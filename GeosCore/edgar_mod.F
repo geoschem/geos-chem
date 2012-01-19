@@ -215,7 +215,11 @@
 
          ! CO
          IF ( LEDGARCO ) THEN
-            CALL COMPUTE_EDGAR_CO( YEAR, EDGAR_CO, EDGAR_CO_SHIP )
+            IF ( LEDGARSHIP) THEN
+               CALL COMPUTE_EDGAR_CO( YEAR, EDGAR_CO, EDGAR_CO_SHIP )
+            ELSE
+               CALL COMPUTE_EDGAR_CO( YEAR, EDGAR_CO )
+            ENDIF
          ENDIF
 
          ! Reset YEAR_SAVE
@@ -230,13 +234,23 @@
       IF ( MONTH /= MONTH_SAVE ) THEN
 
          ! Now always read NOX to get TODN (amv, phs, 3/10/08)
-         CALL COMPUTE_EDGAR_NOX( YEAR,      MONTH, 
-     &                           EDGAR_NOx, EDGAR_NOx_SHIP )
+         IF ( LEDGARSHIP ) THEN
+            CALL COMPUTE_EDGAR_NOX( YEAR,      MONTH, 
+     &           EDGAR_NOx, EDGAR_NOx_SHIP )
+         ELSE
+            CALL COMPUTE_EDGAR_NOX( YEAR,      MONTH, 
+     &           EDGAR_NOx )
+         ENDIF
          
          ! SO2
          IF ( LEDGARSOx ) THEN
-            CALL COMPUTE_EDGAR_SO2( YEAR,      MONTH, 
-     &                              EDGAR_SO2, EDGAR_SO2_SHIP )
+            IF ( LEDGARSHIP ) THEN
+               CALL COMPUTE_EDGAR_SO2( YEAR,      MONTH, 
+     &              EDGAR_SO2, EDGAR_SO2_SHIP )
+            ELSE
+               CALL COMPUTE_EDGAR_SO2( YEAR,      MONTH, 
+     &              EDGAR_SO2 )
+            ENDIF
          ENDIF
          
          ! Reset MONTH_SAVE
@@ -291,9 +305,9 @@
       USE CMN_SIZE_MOD       ! Size parameters
 
       ! Arguments
-      INTEGER, INTENT(IN)     :: YEAR, MONTH
-      REAL*8,  INTENT(OUT)    :: E_NOX(IIPAR,JJPAR)
-      REAL*8,  INTENT(OUT)    :: E_NOX_SHIP(IIPAR,JJPAR)
+      INTEGER, INTENT(IN)            :: YEAR, MONTH
+      REAL*8,  INTENT(OUT)           :: E_NOX(IIPAR,JJPAR)
+      REAL*8,  INTENT(OUT), OPTIONAL :: E_NOX_SHIP(IIPAR,JJPAR)
 
       ! Local variables
       INTEGER                 :: I, J, H, YYYYMMDD
@@ -782,9 +796,9 @@
       USE CMN_SIZE_MOD       ! Size parameters
 
       ! Arguments
-      INTEGER, INTENT(IN)     :: YEAR
-      REAL*8, INTENT(OUT)     :: E_CO(IIPAR,JJPAR)
-      REAL*8, INTENT(OUT)     :: E_CO_SHIP(IIPAR,JJPAR)
+      INTEGER, INTENT(IN)           :: YEAR
+      REAL*8, INTENT(OUT)           :: E_CO(IIPAR,JJPAR)
+      REAL*8, INTENT(OUT), OPTIONAL :: E_CO_SHIP(IIPAR,JJPAR)
 
       ! Local variables
       INTEGER                 :: I, J, H, YYYYMMDD
@@ -995,9 +1009,9 @@
       USE CMN_SIZE_MOD       ! Size parameters
 
       ! Arguments
-      INTEGER, INTENT(IN)     :: YEAR, MONTH
-      REAL*8,  INTENT(OUT)    :: E_SO2(IIPAR,JJPAR)
-      REAL*8,  INTENT(OUT)    :: E_SO2_SHIP(IIPAR,JJPAR)
+      INTEGER, INTENT(IN)            :: YEAR, MONTH
+      REAL*8,  INTENT(OUT)           :: E_SO2(IIPAR,JJPAR)
+      REAL*8,  INTENT(OUT), OPTIONAL :: E_SO2_SHIP(IIPAR,JJPAR)
 
       ! Local variables
       INTEGER                 :: I, J, H, YYYYMMDD

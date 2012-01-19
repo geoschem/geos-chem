@@ -72,7 +72,7 @@
       USE DAO_MOD,          ONLY : SNOW, SNOMAS 
       USE DEPO_MERCURY_MOD, ONLY : WD_HGP, WD_HG2, DD_HGP, DD_HG2
       USE DAO_MOD,          ONLY : IS_ICE, IS_LAND
-      USE DAO_MOD,          ONLY : FRSNO, FRSEAICE, FRLANDIC, FRLAND ! jaf
+      USE DAO_MOD,          ONLY : FRSNO, FRSEAICE, FRLANDIC, FRLAND 
 
       USE CMN_SIZE_MOD         ! Size parameters
 !
@@ -102,9 +102,9 @@
 !
 ! !LOCAL VARIABLES:
 !  
-      REAL*8                :: DTSRCE, REEMFRAC!, SNOW_HT - obsolete
-      REAL*8                :: FRAC_SNOW_OR_ICE, FRAC_SNOWFREE_LAND ! jaf
-      LOGICAL               :: IS_SNOW_OR_ICE, IS_LAND_OR_ICE ! jaf
+      REAL*8                :: DTSRCE, REEMFRAC
+      REAL*8                :: FRAC_SNOW_OR_ICE, FRAC_SNOWFREE_LAND 
+      LOGICAL               :: IS_SNOW_OR_ICE, IS_LAND_OR_ICE 
       REAL*8, PARAMETER     :: SEC_PER_YR = 365.25d0 * 86400d0
       INTEGER               :: I,      J,      NN
 
@@ -125,34 +125,6 @@
       DO I  = 1, IIPAR
       DO NN = 1, N_Hg_CATS
     
-!--jaf.start   
-      ! Restructure to use fractional land type information in MERRA
-      ! (jaf, 4/26/11)
-!#if   defined( GEOS_5 ) || defined( MERRA )
-!         ! GEOS5 snow height (water equivalent) in mm. (Docs wrongly say m)
-!         SNOW_HT = SNOMAS(I,J)
-!#else
-!         ! GEOS1-4 snow heigt (water equivalent) in mm
-!         SNOW_HT = SNOW(I,J)
-!#endif 
-!        
-!         ! If snow > 1mm on the ground, reemission fraction is 0.6,
-!         ! otherwise 0.2
-!         ! Update to Holmes et al. 2010 version (jaf, 4/11/11)
-!         !IF ( (SNOW_HT > 1D0) .OR. (IS_ICE(I,J)) ) THEN
-!         IF ( (IS_ICE(I,J)) .OR. (IS_LAND(I,J) .AND. SNOW_HT>10d0) )THEN
-!            ! If snowpack model is on, then we don't do rapid reemission
-!            IF (LHGSNOW) THEN
-!               REEMFRAC=0d0
-!            ELSE
-!               REEMFRAC=0.6d0
-!            ENDIF 
-!         ELSE
-!            REEMFRAC=0.2d0
-!         ENDIF
-!         
-!
-!         IF ( IS_LAND(I,J) .OR. IS_ICE(I,J) ) THEN 
 
          ! For versions prior to MERRA, have to set snow/land fractions
          ! to 1 depending which type of box we are in.
@@ -200,7 +172,6 @@
                REEMFRAC = 0.2d0 * FRAC_SNOWFREE_LAND +
      &                    0.6d0 * FRAC_SNOW_OR_ICE
             ENDIF
-!--jaf.end
             
             ! Mass of emitted Hg(0), kg
             LFLUX(I,J,NN) =
@@ -291,7 +262,7 @@
       ! Literature range is 70-240e-9. ARCTAS gives 80-130e-9 
       ! Choose 100e-9 (Holmes et al. 2010 )
       REAL*8,  PARAMETER   :: BBRatio_Hg_CO = 1d-7
-
+ 
       ! External functions
       REAL*8,  EXTERNAL      :: BOXVL
 
@@ -501,7 +472,7 @@
       USE TIME_MOD, ONLY : GET_TS_EMIS
       USE GRID_MOD, ONLY : GET_AREA_M2
       USE DAO_MOD,  ONLY : SNOW, SNOMAS
-      USE DAO_MOD,  ONLY : FRSNO, FRLAND ! jaf
+      USE DAO_MOD,  ONLY : FRSNO, FRLAND
 
       USE CMN_SIZE_MOD     ! Size parameters
       USE CMN_DEP_MOD      ! FRCLND
@@ -552,11 +523,11 @@
 ! !LOCAL VARIABLES:
 !     
       REAL*8             :: SOIL_EMIS, DIMLIGHT, TAUZ, LIGHTFRAC
-      REAL*8             :: AREA_M2, DRYSOIL_HG!, SNOW_HT - obsolete
+      REAL*8             :: AREA_M2, DRYSOIL_HG
       INTEGER            :: I, J, JLOOP
       REAL*8             :: SUNCOSVALUE
-      REAL*8             :: FRAC_SNOWFREE_LAND ! jaf
-      LOGICAL            :: IS_SNOWFREE_LAND ! jaf
+      REAL*8             :: FRAC_SNOWFREE_LAND 
+      LOGICAL            :: IS_SNOWFREE_LAND 
 !
 ! !DEFINED PARAMETERS:
 !
@@ -572,7 +543,11 @@
       ! so that total deposition to soil equals total emission from soil,
       ! while also requiring global mean soil Hg concentration of 45 ng/g 
 !      REAL*8, PARAMETER  :: SOIL_EMIS_FAC = 3.3D13
-      REAL*8, PARAMETER  :: SOIL_EMIS_FAC = 2.4D-2 ! for sunlight function
+#if defined (GRID4x5)
+      REAL*8, PARAMETER  :: SOIL_EMIS_FAC = 2.4D-2*.5742d0 ! for sunlight function
+#elif defined(GRID2x25)
+      REAL*8, PARAMETER :: SOIL_EMIS_FAC=2.4D-2*.5742d0*4d0
+#endif
 
       !=================================================================
       ! SOILEMIS begins here!
@@ -587,21 +562,6 @@
       DO J=1, JJPAR
       DO I=1, IIPAR
          
-!--jaf.start
-      ! Restructure to use fractional land area information in MERRA
-!      ! (jaf, 4/26/11)
-!#if   defined( GEOS_5 ) || defined( MERRA )
-!         ! GEOS5 snow height (water equivalent) in mm. (Docs wrongly say m)
-!         SNOW_HT = SNOMAS(I,J)
-!#else
-!         ! GEOS1-4 snow heigt (water equivalent) in mm
-!         SNOW_HT = SNOW(I,J)
-!#endif          
-!         
-!         ! Update to Holmes et al. 2010 version (jaf, 4/11/11)
-!         !IF ( IS_LAND(I,J) .AND. (SNOW_HT < 1d0) ) THEN     
-!         IF ( IS_LAND(I,J) .AND. (SNOW_HT < 10d0) ) THEN     
-
          ! Except in MERRA, assume whole box is land if conditions met
          ! (jaf, 4/26/11)
          FRAC_SNOWFREE_LAND = 1d0
@@ -617,7 +577,6 @@
 #endif          
 
          IF ( IS_SNOWFREE_LAND ) THEN
-!--jaf.end
 
             ! 1-D grid box index for SUNCOS
             JLOOP = ( (J-1) * IIPAR ) + I
@@ -634,37 +593,10 @@
             ! attenuated based on LAI
             LIGHTFRAC = EXP( -TAUZ / SUNCOSVALUE )
 
-!------------------------------------------------------------------------------
-! Prior to (cdh, ccc, 6/2/10)
-!            ! if there is sunlight
-!            IF (SUNCOS(JLOOP) > 0d0 .and. RADSWG(I,J) > 0d0 ) THEN
-!
-!               ! attenuate solar radiation based on function of leaf area index
-!               ! Jacob and Wofsy 1990 equations 8 & 9
-!               TAUZ = ISOLAI(I,J) * 0.5D0
-!
-!               ! fraction of light reaching the surface is
-!               ! attenuated based on LAI
-!               LIGHTFRAC = EXP( -TAUZ / SUNCOS(JLOOP) )
-!
-!            ELSE
-!
-!               ! If the sun has set, then set the canopy attenuation to
-!               ! the same as for a high solar zenith angle, 80 deg
-!               LIGHTFRAC = EXP( -TAUZ / 0.17D0 )
-!
-!            ENDIF
-!------------------------------------------------------------------------------
             ! Dry soil Hg concentration, ng Hg /g soil
             DRYSOIL_HG = DRYSOIL_PREIND_HG * EHg0_dist(I,J)           
 
             ! Soil emissions, ng /m2 /h
-            ! includes temperature and solar radiation effects
-!            SOIL_EMIS = EXP( 1000D0 / TS(I,J) * -10.548D0 ) * 
-!     &           EXP( 0.0011 * RADSWG(I,J) * LIGHTFRAC ) *
-!     &           DRYSOIL_HG * SOIL_EMIS_FAC
-
-! CDH try formula with just light dependence 10/18/2009
             SOIL_EMIS = 
      &           EXP( 0.0011 * RADSWG(I,J) * LIGHTFRAC ) *
      &           DRYSOIL_HG * SOIL_EMIS_FAC
@@ -675,10 +607,8 @@
             ! convert soilnat from ng /m2 /h -> kg /gridbox /s
             EHg0_so(I,J) = SOIL_EMIS * AREA_M2 * 1D-12 / ( 60D0 * 60D0 )
 
-!--jaf.start
             ! Multiply by fractional land area
             EHg0_so(I,J) = EHg0_so(I,J) * FRAC_SNOWFREE_LAND
-!--jaf.end
 
          ELSE
 
@@ -691,8 +621,6 @@
       ENDDO
 !$OMP END PARALLEL DO
 
-!      WRITE(6,'(G12.3)') SUM(EHG0_SO)
-    
       END SUBROUTINE SOILEMIS
 !EOC
 !------------------------------------------------------------------------------
@@ -756,11 +684,6 @@
       ! Get the current month
       MONTH = GET_MONTH() 
      
-!      FILENAME='/as/home/eck/transp/nasatransp_4x5.'
-!     &        //CMONTH(MONTH)//'.bpch'
-!      FILENAME='/home/eck/emissions/transp/nasatransp_4x5.'
-!     &        //CMONTH(MONTH)//'.bpch'
-
       FILENAME=TRIM( DATA_DIR ) // 'mercury_201007/nasatransp_'
      &        // GET_RES_EXT() // '.'// CMONTH(MONTH) // '.bpch'
 
@@ -1009,9 +932,6 @@
      &           'mean_metfields/' // GET_NAME_EXT() // 
      &           '/mean_YYYYMM.bpch'
 
-!      FILENAME = '/home/ccarouge/GTM/MET_FIELDS/' //
-!     &           'mean_200501.bpch'
-    
       ! Replace YYYY, MM, DD, HH tokens in FILENAME w/ actual values
       CALL EXPAND_DATE( FILENAME, NYMD, NHMS )
     

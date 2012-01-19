@@ -142,6 +142,9 @@
 !       and land surface evapotranspiration derived from observed
 !       precipitation and surface air temperature." J. Appl. Meteorol. 32 (8), 
 !       1305-1334.
+!  (7 ) Soerensen, A. et al. (2010), An improved global model for air-sea 
+!       exchange of mercury: High concentrations over the North Atlantic, 
+!       Environ. Sci. Technol., 44, 8574-8580, 2010
 !
 !  NOTES:
 !  (1 ) Updated for reduction rxn and online Hg0 ocean flux.  Now use 
@@ -155,15 +158,17 @@
 !  (7 ) Now includes LPREINDHG logical switch for preindustrial simulation 
 !       (eds 7/30/08)
 !  13 Aug 2010 - R. Yantosca - Add modifications for MERRA (treat like GEOS-5)
+!  01 Apr 2011 - H. Amos      - added LVEGEMIS, distinct from LGCAPEMIS
 !******************************************************************************
 !
       ! References to F90 modules
       USE OCEAN_MERCURY_MOD, ONLY : LDYNSEASALT, LGCAPEMIS, LPOLARBR
+      !Added 2005 GEIA inventory flag (eck, 10/19/11)
+      USE OCEAN_MERCURY_MOD, ONLY : LGEIA05
       ! Added LVEGEMIS, distinct from LGCAPEMIS (jaf, eds, 4/1/11)
       USE OCEAN_MERCURY_MOD, ONLY : LVEGEMIS
       USE OCEAN_MERCURY_MOD, ONLY : LBRCHEM,     LRED_JNO2, LGEOSLWC
-!      USE OCEAN_MERCURY_MOD, ONLY : LHGSNOW,     LHg2HalfAerosol
-      USE DEPO_MERCURY_MOD,  ONLY : LHGSNOW, ADD_HG2_SNOWPACK
+      USE DEPO_MERCURY_MOD , ONLY : LHGSNOW, ADD_HG2_SNOWPACK
       USE OCEAN_MERCURY_MOD, ONLY : LHg2HalfAerosol
       USE OCEAN_MERCURY_MOD, ONLY : LHg_WETDasHNO3, STRAT_BR_FACTOR
       USE OCEAN_MERCURY_MOD, ONLY : LAnthroHgOnly, LOHO3CHEM
@@ -219,8 +224,6 @@
       REAL*8,  ALLOCATABLE :: TCOSZ(:,:)
       REAL*8,  ALLOCATABLE :: TTDAY(:,:)
       REAL*8,  ALLOCATABLE :: ZERO_DVEL(:,:)
-!--- Previous to (ccc, 11/19/09)
-!      REAL*8,  ALLOCATABLE :: TRANSP(:,:)
       REAL*8,  ALLOCATABLE :: HG2_SEASALT_LOSSRATE(:,:) 
       REAL*8,  ALLOCATABLE :: JNO2(:,:,:) 
 
@@ -251,13 +254,10 @@
 !******************************************************************************
 !
       ! References to F90 modules
-!      USE DIAG_MOD,      ONLY : AD44
       USE DRYDEP_MOD,    ONLY : DEPSAV
       USE ERROR_MOD,     ONLY : DEBUG_MSG
       USE GLOBAL_O3_MOD, ONLY : GET_GLOBAL_O3
       USE GLOBAL_OH_MOD, ONLY : GET_GLOBAL_OH
-      ! Renamed to GET_GLOBAL_BR
-      !USE GLOBAL_BR_MOD, ONLY : GET_GLOBAL_BR_NEW
       USE GLOBAL_BR_MOD, ONLY : GET_GLOBAL_BR
       USE PBL_MIX_MOD,   ONLY : GET_PBL_MAX_L
       USE LOGICAL_MOD,   ONLY : LPRT, LGTMM, LNLPBL 
@@ -479,31 +479,30 @@
 !******************************************************************************
 !
       ! References to F90 modules
-      USE DAO_MOD,      ONLY : T, AD, IS_WATER, IS_ICE, IS_LAND
-      USE DIAG03_MOD,   ONLY : AD03_Hg2_Hg0, AD03_Hg2_O3, AD03_Hg2_OH
-      USE DIAG03_MOD,   ONLY : AD03_Hg2_Br 
-      USE DIAG03_MOD,   ONLY : AD03_Hg2_SS,  LD03,        ND03
-      USE DIAG03_MOD,   ONLY : AD03_Hg2_SSR 
-      USE DIAG03_MOD,   ONLY : AD03_Br 
-      USE LOGICAL_MOD,  ONLY : LSPLIT, LGTMM !ccc for GTMM
-      USE PBL_MIX_MOD,  ONLY : GET_FRAC_UNDER_PBLTOP
-      USE TIME_MOD,     ONLY : GET_TS_CHEM
-      USE TRACER_MOD,   ONLY : STT,    XNUMOL
-      USE TRACERID_MOD, ONLY : ID_Hg0, ID_Hg2, ID_Hg_tot, N_Hg_CATS
-      USE TRACERID_MOD, ONLY : IS_Hg2
-      USE GRID_MOD,     ONLY : GET_AREA_CM2
-      USE LOGICAL_MOD,  ONLY : LPRT, LDYNOCEAN, LNLPBL
-      USE ERROR_MOD,    ONLY : DEBUG_MSG 
-!      USE OCEAN_MERCURY_MOD, ONLY : ADD_HG2_DD
+      USE DAO_MOD,          ONLY : T, AD, IS_WATER, IS_ICE, IS_LAND
+      USE DIAG03_MOD,       ONLY : AD03_Hg2_Hg0, AD03_Hg2_O3
+      USE DIAG03_MOD,       ONLY : AD03_Hg2_Br, AD03_Hg2_OH
+      USE DIAG03_MOD,       ONLY : AD03_Hg2_SS,  LD03,        ND03
+      USE DIAG03_MOD,       ONLY : AD03_Hg2_SSR 
+      USE DIAG03_MOD,       ONLY : AD03_Br 
+      USE LOGICAL_MOD,      ONLY : LSPLIT, LGTMM !ccc for GTMM
+      USE PBL_MIX_MOD,      ONLY : GET_FRAC_UNDER_PBLTOP
+      USE TIME_MOD,         ONLY : GET_TS_CHEM
+      USE TRACER_MOD,       ONLY : STT,    XNUMOL
+      USE TRACERID_MOD,     ONLY : ID_Hg0, ID_Hg2, ID_Hg_tot, N_Hg_CATS
+      USE TRACERID_MOD,     ONLY : IS_Hg2
+      USE GRID_MOD,         ONLY : GET_AREA_CM2
+      USE LOGICAL_MOD,      ONLY : LPRT, LDYNOCEAN, LNLPBL
+      USE ERROR_MOD,        ONLY : DEBUG_MSG 
       USE DEPO_MERCURY_MOD, ONLY : ADD_HG2_DD
       USE DAO_MOD,          ONLY : SNOW, SNOMAS
-      USE PRESSURE_MOD, ONLY : GET_PCENTER 
-      USE GRID_MOD,     ONLY : GET_YMID 
-      USE DIAG_MOD,     ONLY : AD44
-      USE DAO_MOD,      ONLY : AIRDEN, QL
-      USE DAO_MOD,      ONLY : AD, CLDF
-      USE DAO_MOD,      ONLY : LWI
-      USE DAO_MOD,      ONLY : FRSNO, FRLANDIC, FROCEAN
+      USE PRESSURE_MOD,     ONLY : GET_PCENTER 
+      USE GRID_MOD,         ONLY : GET_YMID 
+      USE DIAG_MOD,         ONLY : AD44
+      USE DAO_MOD,          ONLY : AIRDEN, QL
+      USE DAO_MOD,          ONLY : AD, CLDF
+      USE DAO_MOD,          ONLY : LWI
+      USE DAO_MOD,          ONLY : FRSNO, FRLANDIC, FROCEAN
 
       USE CMN_SIZE_MOD       ! Size parameters
       USE CMN_DIAG_MOD       ! ND44
@@ -537,7 +536,6 @@
       REAL*8                :: DEP_HG0,     DEP_HG2
       REAL*8                :: DEP_HG2_DRY, DEP_HG2_SALT
       REAL*8                :: DEP_DRY_FLX
-!      REAL*8                :: SNOW_HT - obsolete
       REAL*8                :: FRAC_NO_HG0_DEP !jaf 
       LOGICAL               :: ZERO_HG0_DEP !jaf 
 
@@ -562,7 +560,18 @@
       ! K for reduction, using J_NO2, [unitless scale factor]
       ! Source: Holmes et al. 2010
       ! 3.5D-3 for Hg+Br simulation; 1.3D-2 for Hg+OH/O3 simulation
-      REAL*8, PARAMETER     :: K_RED_JNO2 = 3.5D-3 
+
+      ! Reduce K_RED_JNO2 for GEIA 2005 inventory
+      ! recommended by Helen Amos, 23 Sep 2011
+      ! change implemented 10/19/11 by eck
+      ! inserted ifdefs for future tuning of 2x2.5 by eck
+#if defined (GRID4x5)
+      REAL*8, PARAMETER     :: K_RED_JNO2 = 3.5D-3/2d0 
+#elif defined (GRID2x25)
+      REAL*8, PARAMETER     :: K_RED_JNO2 = 3.5D-3/2d0
+#else
+      REAL*8, PARAMETER     :: K_RED_JNO2 = 3.5D-3/2d0
+#endif      
 
       ! K for sea salt (eck, bmy, 4/6/06) [/s]
       REAL*8, PARAMETER     :: K_SALT_FIXED   = 3.8d-5
@@ -708,6 +717,11 @@
             K_RED = K_RED_OH * FA * C_OH
          ENDIF
 
+         ! Round very small K_OX, K_RED to prevent numerical errors
+         ! (jaf, cdh, 11/17/11)
+         IF ( K_OX  < 1D-10 ) K_OX  = 0d0
+         IF ( K_RED < 1D-10 ) K_RED = 0d0
+
          ! Define K for dry deposition, [/s]
          K_DRYD0 = V_DEP_HG0(I,J)
          K_DRYD2 = V_DEP_HG2(I,J)
@@ -732,15 +746,11 @@
             ENDIF
 
             K_DEP2 = K_DRYD2 + K_SALT
-            ! Now do this below (jaf, 4/26/11)
-            !K_DEP0 = 0D0 ! Hg0 dep over ocean handled in ocean_mercury_mod
 
          ELSE
             K_SALT = 0d0
 
             K_DEP2 = K_DRYD2 
-            ! Now do this below (jaf, 4/26/11)
-            !K_DEP0 = K_DRYD0
          ENDIF
          
 !--jaf.start
@@ -1847,13 +1857,12 @@
 !******************************************************************************
 !
       ! References to F90 modules
-      USE DIAG_MOD,   ONLY : AD44
-      USE GRID_MOD,   ONLY : GET_AREA_CM2
-      USE TRACER_MOD, ONLY : STT, XNUMOL
-!      USE OCEAN_MERCURY_MOD, ONLY : ADD_HgP_DD
+      USE DIAG_MOD,         ONLY : AD44
+      USE GRID_MOD,         ONLY : GET_AREA_CM2
+      USE TRACER_MOD,       ONLY : STT, XNUMOL
       USE DEPO_MERCURY_MOD, ONLY : ADD_HgP_DD
-      USE TRACERID_MOD,      ONLY : IS_HgP
-      USE LOGICAL_MOD,ONLY : LNLPBL
+      USE TRACERID_MOD,     ONLY : IS_HgP
+      USE LOGICAL_MOD,      ONLY : LNLPBL
 
       USE CMN_SIZE_MOD   ! Size parameters
       USE CMN_DIAG_MOD   ! ND44 
@@ -1931,8 +1940,7 @@
       USE ERROR_MOD,         ONLY : DEBUG_MSG
       USE LOGICAL_MOD,       ONLY : LPRT, LDYNOCEAN, LNLPBL 
       USE OCEAN_MERCURY_MOD, ONLY : OCEAN_MERCURY_FLUX
-!      USE OCEAN_MERCURY_MOD, ONLY : RESET_HG_DEP_ARRAYS
-      USE DEPO_MERCURY_MOD, ONLY : RESET_HG_DEP_ARRAYS
+      USE DEPO_MERCURY_MOD,  ONLY : RESET_HG_DEP_ARRAYS
       USE TIME_MOD,          ONLY : GET_MONTH, ITS_A_NEW_MONTH
       USE TRACER_MOD,        ONLY : STT
       USE TRACERID_MOD,      ONLY : N_HG_CATS
@@ -1994,8 +2002,6 @@
          
          CALL LAND_MERCURY_FLUX ( EHg0_ln, LHGSNOW )
          IF ( LPRT ) CALL DEBUG_MSG( '### EMISSMERCURY: a LAND_FLUX' )
-      
-!         EHg0_ln = EHg0_ln + EHg0_snow
       
          ! Bug fix: VEGEMIS shouldn't be tied to GCAP emissions
          ! (jaf, eds, 4/1/11)
@@ -2061,519 +2067,6 @@
       END SUBROUTINE EMISSMERCURY
 
 !----------------------------------------------------------------------------
-!
-!      SUBROUTINE LAND_MERCURY_FLUX( LFLUX )
-!!
-!!******************************************************************************
-!!  Subroutine LAND_MERCURY_FLUX calculates emissions of Hg(0) from 
-!!  prompt recycling of previously deposited mercury to land, in [kg/s].  
-!!  (eck, cdh, eds, 7/30/08)
-!!  
-!!  Arguments as Output
-!!  ============================================================================
-!!  (1 ) LFLUX (REAL*8) : Flux of Hg(0) from the promptly recycled land emissions!                        [kg/s]
-!!
-!!  NOTES:
-!!  (1 ) Now uses SNOWMAS from DAO_MOD for compatibility with GEOS-5.
-!!       (eds 7/30/08)
-!!  (2 ) Now includes REEMFRAC in parallelization; previous versions may have
-!!       overwritten variable. (cdh, eds 7/30/08)
-!!  (3 ) Now also reemit Hg(0) from ice surfaces, including sea ice 
-!!       (cdh, 8/19/08)
-!!******************************************************************************
-!!
-!      USE TRACERID_MOD,  ONLY : ID_Hg0,          N_Hg_CATS
-!      USE LOGICAL_MOD,   ONLY : LSPLIT
-!      USE TIME_MOD,      ONLY : GET_TS_EMIS
-!      USE DAO_MOD,       ONLY : SNOW, SNOMAS 
-!!      USE OCEAN_MERCURY_MOD, ONLY : WD_HGP, WD_HG2, DD_HGP, DD_HG2
-!      USE DEPO_MERCURY_MOD, ONLY : WD_HGP, WD_HG2, DD_HGP, DD_HG2
-!      USE DAO_MOD,       ONLY : IS_ICE, IS_LAND
-!
-!
-!      USE CMN_SIZE_MOD      ! Size parameters
-!
-!      ! Arguments 
-!      REAL*8,  INTENT(OUT)  :: LFLUX(IIPAR,JJPAR,N_Hg_CATS)
-!       
-!  
-!      REAL*8                :: DTSRCE, REEMFRAC, SNOW_HT
-!      REAL*8, PARAMETER     :: SEC_PER_YR = 365.25d0 * 86400d0
-!      INTEGER               :: I,      J,      NN
-!
-!      !=================================================================
-!      ! LAND_MERCURY_FLUX begins here!
-!      !=================================================================
-!
-!      ! Emission timestep [s]
-!      DTSRCE = GET_TS_EMIS() * 60d0     
-!
-!!$OMP PARALLEL DO 
-!!$OMP+DEFAULT( SHARED ) 
-!!$OMP+PRIVATE( I, J, NN )
-!!$OMP+PRIVATE( REEMFRAC, SNOW_HT )  
-!      DO J  = 1, JJPAR
-!      DO I  = 1, IIPAR
-!      DO NN = 1, N_Hg_CATS
-!    
-!#if   defined( GEOS_5 ) || defined( MERRA )
-!         ! GEOS5 snow height (water equivalent) in mm. (Docs wrongly say m)
-!         SNOW_HT = SNOMAS(I,J)
-!#else
-!         ! GEOS1-4 snow heigt (water equivalent) in mm
-!         SNOW_HT = SNOW(I,J)
-!#endif 
-!        
-!         ! If snow > 1mm on the ground, reemission fraction is 0.6,
-!         ! otherwise 0.2
-!         IF ( (SNOW_HT > 1D0) .OR. (IS_ICE(I,J)) ) THEN
-!            ! If snowpack model is on, then we don't do rapid reemission
-!            IF (LHGSNOW) THEN
-!               REEMFRAC=0d0
-!            ELSE
-!               REEMFRAC=0.6d0
-!            ENDIF 
-!         ELSE
-!            REEMFRAC=0.2d0
-!         ENDIF
-!         
-!
-!         IF ( IS_LAND(I,J) .OR. IS_ICE(I,J) ) THEN 
-!            
-!            ! Mass of emitted Hg(0), kg
-!            LFLUX(I,J,NN) =
-!     &           ( WD_HgP(I,J,NN)+
-!     &           WD_Hg2(I,J,NN)+
-!     &           DD_HgP(I,J,NN)+
-!     &           DD_Hg2(I,J,NN) ) * REEMFRAC
-!            
-!            ! Emission rate of Hg(0). Convert kg /timestep -> kg/s
-!            LFLUX(I,J,NN) = LFLUX(I,J,NN) / DTSRCE
-!             
-!         ELSE
-!         
-!            ! No flux from non-land surfaces (water, sea ice)
-!            LFLUX(I,J,NN) = 0D0
-!         
-!         ENDIF
-!
-!      ENDDO
-!      ENDDO
-!      ENDDO
-!!$OMP END PARALLEL DO
-!     
-!      ! Return to calling program
-!      END SUBROUTINE LAND_MERCURY_FLUX
-!
-!
-!!-----------------------------------------------------------------------------
-!
-!      SUBROUTINE BIOMASSHG
-!!
-!!******************************************************************************
-!!  Subroutine BIOMASSHG is the subroutine for Hg(0) emissions from biomass
-!!  burning. These emissions are active only for present day simulations and
-!!  not for preindustrial simulations (eck, cdh, eds, 7/30/08)
-!!
-!!  Emissions are based on an inventory of CO emissions from biomass burning 
-!!  (Duncan et al. J Geophys Res 2003), multiplied by a Hg/CO ratio in BB plumes
-!!  from Franz Slemr (Poster, EGU 2006).
-!!
-!!  Slemr surveyed emission factors from measurements worldwide. Although his
-!!  best estimate was 1.5e-7 mol Hg/ mol CO, we chose the highest value
-!!  (2.1e-7 mol Hg/ mol CO) in the range because the simulations shown in
-!!  Selin et al. (GBC 2008) required large Hg(0) emissions to sustain
-!!  reasonable atmospheric Hg(0) concentrations. (eck, 11/13/2008)   
-!!
-!!******************************************************************************
-!!     
-!
-!      ! References to F90 modules
-!      USE BIOMASS_MOD,    ONLY: BIOMASS, IDBCO
-!      USE LOGICAL_MOD,    ONLY: LBIOMASS, LPREINDHG
-!      USE TIME_MOD,       ONLY: GET_TS_EMIS
-!      USE GRID_MOD,       ONLY: GET_AREA_CM2
-!
-!      USE CMN_SIZE_MOD     ! Size parameters
-!      USE CMN_DIAG_MOD     ! Diagnostic arrays & switches
-!
-!      ! Local variables
-!      REAL*8                 :: DTSRCE, E_CO, AREA_CM2
-!      INTEGER                :: I, J
-!
-!      ! Hg molar mass, kg Hg/ mole Hg
-!      REAL*8,  PARAMETER   :: FMOL_HG     = 200.59d-3
-!
-!      ! Hg/CO molar ratio in BB emissions, mol/mol
-!      ! emission factor 1.5e-7 molHg/molCO (Slemr et al poster EGU 2006)
-!      ! change emission factor to 2.1
-!      REAL*8,  PARAMETER   :: BBRatio_Hg_CO = 2.1D-7
-!
-!      ! External functions
-!      REAL*8,  EXTERNAL      :: BOXVL
-!
-!      !=================================================================
-!      ! BIOMASSHG begins here!
-!      !=================================================================
-!
-!      ! DTSRCE is the number of seconds per emission timestep
-!      DTSRCE = GET_TS_EMIS() * 60d0
-!
-!      ! Do biomass Hg emissions if biomass burning is on and it is a 
-!      ! present-day simulation (i.e. not preindustrial)
-!      IF ( LBIOMASS .AND. ( .NOT. LPREINDHG ) ) THEN
-!
-!!$OMP PARALLEL DO
-!!$OMP+DEFAULT( SHARED )
-!!$OMP+PRIVATE( E_CO, I, J, AREA_CM2 )
-!         DO J = 1, JJPAR
-!         DO I = 1, IIPAR
-! 
-!            ! Grid box surface area, cm2
-!            AREA_CM2 = GET_AREA_CM2( J )
-!
-!            ! Convert molec CO /cm3 /s -> mol CO /gridbox /s 
-!            E_CO = ( BIOMASS(I,J,IDBCO) / 6.022D23 ) * AREA_CM2
-!
-!            ! Convert mol CO /gridbox /s to kg Hg /gridbox /s
-!            EHg0_bb(I,J) = E_CO * BBRatio_Hg_CO * FMOL_HG 
-!         
-!         ENDDO
-!         ENDDO
-!!$OMP END PARALLEL DO
-!
-!      ELSE
-!
-!         ! No emissions for preindustrial period, or when BB is turned off.
-!         EHg0_bb = 0D0
-!
-!      ENDIF
-!
-!
-!      END SUBROUTINE BIOMASSHG
-!
-!!-----------------------------------------------------------------------------
-!
-!      SUBROUTINE VEGEMIS
-!!
-!!******************************************************************************
-!!  Subroutine VEGEMIS is the subroutine for Hg(0) emissions from vegetation 
-!!  by evapotranspiration.
-!!  (eck, cdh, eds, 7/30/08)
-!!
-!!  Vegetation emissions are proportional to the evapotranspiration rate and the
-!!  soil water mercury content. We assume a constant concentration of mercury
-!!  in soil matter, based on the preindustrial and present-day simulations
-!!  described in Selin et al. (GBC 2008) and in SOILEMIS subroutine. From the
-!!  soil matter Hg concentration, we calculate a soil water Hg concentration in 
-!!  equilibrium (Allison and Allison, 2005).
-!!  NASA provides a climatology of evapotranspiration based on a water budget
-!!  model (Mintz and Walker, 1993).
-!!
-!! Calculate vegetation emissions following Xu et al (1999)
-!!    Fc = Ec Cw
-!!
-!!    Fc is Hg0 flux (ng m-2 s-1)
-!!    Ec is canopy transpiration (m s-1)
-!!    Cw is conc of Hg0 in surface soil water (ng m-3)
-!!
-!! Calculate Cw from the Allison and Allison (2005) equilibrium formula
-!!    Cw = Cs / Kd
-!!
-!!    Cs is the concentration of Hg is surface soil solids, ng/g
-!!    Kd is the equilibrium constant = [sorbed]/[dissolved]
-!!       log Kd = 3.8 L/kg -> Kd = 6310 L /kg = 6.31D-3 m3/g
-!!
-!! We assume a global mean Cs = 45 ng/g for the preindustrial period. In
-!! iterative simulations we redistribute this according to the deposition
-!! pattern while maintining the global mean. The scaling factor, EHg0_dist,
-!! also accounts for the anthropogenic enhancement of soil Hg in the present 
-!! day. 
-!!
-!!******************************************************************************
-!!       
-!
-!      ! References to F90 modules      
-!      USE DAO_MOD,        ONLY: RADSWG, IS_LAND
-!      USE TIME_MOD,       ONLY: GET_MONTH, ITS_A_NEW_MONTH
-!      USE TIME_MOD,       ONLY: GET_TS_EMIS
-!      USE GRID_MOD,       ONLY: GET_AREA_M2
-!
-!      USE CMN_SIZE_MOD     ! Size parameters
-!      USE CMN_DEP_MOD      ! FRCLND
-!
-!      ! Local Variables
-!      REAL*8             :: DRYSOIL_HG, SOILWATER_HG, AREA_M2, VEG_EMIS
-!      INTEGER            :: I, J
-!
-!      ! Soil Hg sorption to dissolution ratio, m3/g
-!      REAL*8, PARAMETER  :: Kd = 6.31D-3
-!
-!      ! Preindustrial global mean soil Hg concentration, ng Hg /g dry soil
-!      REAL*8, PARAMETER  :: DRYSOIL_PREIND_HG = 45D0
-!
-!      !=================================================================
-!      ! VEGEMIS begins here!
-!      !=================================================================
-!
-!      ! No emissions through transpiration if we use Bess' GCAP emissions
-!      IF (LGCAPEMIS) THEN
-!
-!         EHg0_vg = 0D0
-!
-!      ELSE
-!
-!         ! read GISS TRANSP monthly average
-!         IF ( ITS_A_NEW_MONTH() ) THEN 
-!            CALL READ_NASA_TRANSP
-!         ENDIF 
-!
-!         ! loop over I,J
-!!$OMP PARALLEL DO
-!!$OMP+DEFAULT( SHARED )
-!!$OMP+PRIVATE( I, J, SOILWATER_HG, DRYSOIL_HG, VEG_EMIS, AREA_M2 ) 
-!         DO J=1, JJPAR
-!         DO I=1, IIPAR
-!        
-!            IF (IS_LAND(I,J)) THEN  
-!
-!               ! Dry soil Hg concentration, ng Hg /g soil
-!               DRYSOIL_HG = DRYSOIL_PREIND_HG * EHg0_dist(I,J)
-!
-!               ! Hg concentration in soil water, ng /m3
-!               SOILWATER_HG =  DRYSOIL_HG / Kd
-!
-!               ! Emission from vegetation, ng /m2
-!               VEG_EMIS = SOILWATER_HG * TRANSP(I,J)
-!
-!               ! convert from ng /m2 /s -> kg/gridbox/s
-!               ! Grid box surface area [m2]
-!               AREA_M2      = GET_AREA_M2( J )
-!               EHg0_vg(I,J) = VEG_EMIS * AREA_M2 * 1D-12
-!
-!            ELSE
-!
-!               ! No emissions from water and ice
-!               EHg0_vg(I,J) = 0D0
-!
-!            ENDIF
-!
-!         ENDDO
-!         ENDDO
-!!$OMP END PARALLEL DO
-!
-!      ENDIF
-!
-!      END SUBROUTINE VEGEMIS
-!
-!!------------------------------------------------------------------------------
-! 
-!      SUBROUTINE SOILEMIS
-!!
-!!******************************************************************************
-!!  Subroutine SIOLEMIS is the subroutine for Hg(0) emissions from soils.
-!!  (eck, eds, 7/30/08)
-!!  
-!!  Soil emissions are a function of solar radiation at ground level 
-!!  (accounting for attenuation by leaf canopy) and surface temperature. 
-!!  The radiation dependence from Zhang et al. (2000) is multiplied by the 
-!!  temperature dependence from Poissant and Casimir (1998). 
-!!  Finally, this emission factor is multiplied by the soil mercury
-!!  concentration and scaled to meet the global emission total.
-!!
-!!  Comments on soil Hg concentration:
-!!  We chose the preindustrial value of 45 ng Hg /g dry soil as the mean of
-!!  the range quoted in Selin et al. (GBC 2008): 20-70 ng/g (Andersson, 1967; 
-!!  Shacklette et al., 1971; Richardson et al., 2003; Frescholtz and Gustin,
-!!  2004). Present-day soil concentrations are thought to be 15% greater than
-!!  preindustrial (Mason and Sheu 2002), but such a difference is much less
-!!  than the range of concentrations found today, so not well constrained.
-!!  We calculate the present-day soil Hg distribution by adding a global mean
-!!  6.75 ng/g (=0.15 * 45 ng/g) according to present-day Hg deposition.
-!!  (eck, 11/13/08)
-!!
-!!  Notes
-!!  (1 ) Added comments. (cdh, eds, 7/30/08)
-!!  (2 ) Now include light attenuation by the canopy after sunset. Emissions
-!!       change by < 1% in high-emission areas  (cdh, 8/13/2008)
-!!  (3 ) Removed FRCLND for consistency with other Hg emissions (cdh, 8/19/08) 
-!!******************************************************************************
-!!
-!
-!      ! References to F90 modules      
-!      USE LAI_MOD,        ONLY: ISOLAI, MISOLAI, PMISOLAI, DAYS_BTW_M
-!      USE DAO_MOD,        ONLY: RADSWG, SUNCOS, TS, IS_LAND
-!      USE TIME_MOD,       ONLY: GET_MONTH, ITS_A_NEW_MONTH
-!      USE TIME_MOD,       ONLY: GET_TS_EMIS
-!      USE GRID_MOD,       ONLY: GET_AREA_M2
-!      USE DAO_MOD,        ONLY: SNOW, SNOMAS
-!
-!      USE CMN_SIZE_MOD     ! Size parameters
-!      USE CMN_DEP_MOD      ! FRCLND
-!
-!      ! Local variables
-!      REAL*8             :: SOIL_EMIS, DIMLIGHT, TAUZ, LIGHTFRAC
-!      REAL*8             :: AREA_M2, DRYSOIL_HG, SNOW_HT
-!      INTEGER            :: I, J, JLOOP
-!
-!      ! Preindustrial global mean soil Hg concentration, ng Hg /g dry soil
-!      REAL*8, PARAMETER  :: DRYSOIL_PREIND_HG = 45D0
-!
-!      ! Scaling factor for emissions, g soil /m2 /h
-!      ! (This parameter is beta in Eq 3 of Selin et al., GBC 2008.
-!      ! The value in paper is actually DRYSOIL_PREIND_HG * SOIL_EMIS_FAC 
-!      ! and the stated units are incorrect. The paper should have stated
-!      ! beta = 1.5D15 / 45D0 = 3.3D13)
-!      ! This parameter is tuned in the preindustrial simulation 
-!      ! so that total deposition to soil equals total emission from soil,
-!      ! while also requiring global mean soil Hg concentration of 45 ng/g 
-!!      REAL*8, PARAMETER  :: SOIL_EMIS_FAC = 3.3D13
-!      REAL*8, PARAMETER  :: SOIL_EMIS_FAC = 2.4D-2 ! for sunlight function
-!      !=================================================================
-!      ! SOILEMIS begins here!
-!      !=================================================================
-!
-!!$OMP PARALLEL DO
-!!$OMP+DEFAULT( SHARED )
-!!$OMP+PRIVATE( I, J, SOIL_EMIS, JLOOP,      SNOW_HT      ) 
-!!$OMP+PRIVATE( DRYSOIL_HG, TAUZ, LIGHTFRAC, AREA_M2 ) 
-!      DO J=1, JJPAR
-!      DO I=1, IIPAR
-!         
-!#if   defined( GEOS_5 ) || defined( MERRA )
-!         ! GEOS5 snow height (water equivalent) in mm. (Docs wrongly say m)
-!         SNOW_HT = SNOMAS(I,J)
-!#else
-!         ! GEOS1-4 snow heigt (water equivalent) in mm
-!         SNOW_HT = SNOW(I,J)
-!#endif          
-!         
-!         IF ( IS_LAND(I,J) .AND. (SNOW_HT < 1d0) ) THEN     
-!
-!            ! 1-D grid box index for SUNCOS
-!            JLOOP = ( (J-1) * IIPAR ) + I
-!         
-!            ! if there is sunlight
-!            IF (SUNCOS(JLOOP) > 0d0 .and. RADSWG(I,J) > 0d0 ) THEN
-!
-!               ! attenuate solar radiation based on function of leaf area index
-!               ! Jacob and Wofsy 1990 equations 8 & 9
-!               TAUZ = ISOLAI(I,J) * 0.5D0
-!
-!               ! fraction of light reaching the surface is
-!               ! attenuated based on LAI
-!               LIGHTFRAC = EXP( -TAUZ / SUNCOS(JLOOP) )
-!
-!            ELSE
-!
-!               ! If the sun has set, then set the canopy attenuation to
-!               ! the same as for a high solar zenith angle, 80 deg
-!               LIGHTFRAC = EXP( -TAUZ / 0.17D0 )
-!
-!            ENDIF
-!
-!            ! Dry soil Hg concentration, ng Hg /g soil
-!            DRYSOIL_HG = DRYSOIL_PREIND_HG * EHg0_dist(I,J)           
-!
-!            ! Soil emissions, ng /m2 /h
-!            ! includes temperature and solar radiation effects
-!!            SOIL_EMIS = EXP( 1000D0 / TS(I,J) * -10.548D0 ) * 
-!!     &           EXP( 0.0011 * RADSWG(I,J) * LIGHTFRAC ) *
-!!     &           DRYSOIL_HG * SOIL_EMIS_FAC
-!
-!! CDH try formula with just light dependence 10/18/2009
-!            SOIL_EMIS = 
-!     &           EXP( 0.0011 * RADSWG(I,J) * LIGHTFRAC ) *
-!     &           DRYSOIL_HG * SOIL_EMIS_FAC
-!     
-!            ! Grid box surface area [m2]
-!            AREA_M2   = GET_AREA_M2( J )
-! 
-!            ! convert soilnat from ng /m2 /h -> kg /gridbox /s
-!            EHg0_so(I,J) = SOIL_EMIS * AREA_M2 * 1D-12 / ( 60D0 * 60D0 )
-!
-!         ELSE
-!
-!            ! no soil emissions from water and ice
-!            EHg0_so(I,J) = 0D0
-!        
-!         ENDIF
-!        
-!      ENDDO
-!      ENDDO
-!!$OMP END PARALLEL DO
-!
-!      WRITE(6,'(G12.3)') SUM(EHG0_SO)
-!    
-!      END SUBROUTINE SOILEMIS
-!
-!!-----------------------------------------------------------------------------
-!
-!      SUBROUTINE READ_NASA_TRANSP
-!!
-!!******************************************************************************
-!!  Subroutine READ_NASA_TRANSP reads monthly average transpirtation from NASA
-!!  http://gcmd.nasa.gov/records/GCMD_MINTZ_WALKER_SOIL_AND_EVAPO.html
-!!  for input into the vegetation emissions. (eck, 9/15/06)
-!!
-!!       Mintz, Y and G.K. Walker (1993). "Global fields of soil moisture
-!!       and land surface evapotranspiration derived from observed
-!!       precipitation and surface air temperature." J. Appl. Meteorol. 32 (8), 
-!!       1305-1334.
-!! 
-!!  Arguments as Input/Output:
-!!  ============================================================================
-!!  (1 ) TRANSP  : Transpiration [m/s]
-!!
-!!******************************************************************************
-!!
-!
-!      ! References to F90 modules     
-!      USE TIME_MOD,       ONLY : GET_MONTH,  ITS_A_NEW_MONTH
-!      USE BPCH2_MOD,      ONLY : GET_TAU0,   READ_BPCH2
-!      USE TRANSFER_MOD,   ONLY : TRANSFER_2D
-!
-!      USE CMN_SIZE_MOD      ! Size parameters
-!
-!      ! Local variables
-!      INTEGER             :: I, J, L, MONTH, N
-!      REAL*4              :: ARRAY(IIPAR,JJPAR,1)
-!      REAL*8              :: XTAU
-!      CHARACTER(LEN=255)  :: FILENAME
-!      CHARACTER(LEN=2)    :: CMONTH(12) = (/ '01','02','03','04',
-!     &                                       '05','06','07','08',
-!     &                                       '09','10','11','12'/)
-!  
-!      !=================================================================
-!      ! READ_NASA_TRANSP begins here!
-!      !=================================================================
-!
-!      ! Get the current month
-!      MONTH = GET_MONTH() 
-!     
-!!      FILENAME='/as/home/eck/transp/nasatransp_4x5.'
-!!     &        //CMONTH(MONTH)//'.bpch'
-!      FILENAME='/home/eck/emissions/transp/nasatransp_4x5.'
-!     &        //CMONTH(MONTH)//'.bpch'
-!
-!      XTAU     = GET_TAU0(MONTH, 1, 1995 )
-!
-!      ! Echo info
-!      WRITE( 6, 100 ) TRIM( FILENAME )
-! 100  FORMAT( '     - TRANSP_NASA: Reading ', a )     
-! 
-!      CALL READ_BPCH2( FILENAME, 'TRANSP-$', 1, 
-!     &                 XTAU,      IIPAR,     JJPAR,    
-!     &                 1,         ARRAY,   QUIET=.TRUE. )
-!
-!      CALL TRANSFER_2D( ARRAY(:,:,1), TRANSP )
-!      
-!      ! convert from mm/month to m/s
-!      TRANSP = TRANSP * 1D-3 * 12D0 / ( 365D0 * 24D0 * 60D0 * 60D0 )
-!      
-!      END SUBROUTINE READ_NASA_TRANSP
-!
-!!-----------------------------------------------------------------------------
 
       SUBROUTINE EMITHG( I, J, L, ID, E_HG )
 !
@@ -2592,9 +2085,9 @@
 !
 
       ! Reference to diagnostic arrays
-      USE TRACER_MOD,   ONLY : STT
-      USE LOGICAL_MOD,  ONLY : LNLPBL
-      USE VDIFF_PRE_MOD,ONLY : EMIS_SAVE
+      USE TRACER_MOD,    ONLY : STT
+      USE LOGICAL_MOD,   ONLY : LNLPBL
+      USE VDIFF_PRE_MOD, ONLY : EMIS_SAVE
 
       ! Local variables
       INTEGER, INTENT(IN)   :: I, J, L, ID
@@ -3223,6 +2716,42 @@
 
             ! Convert from [kg/yr] to [kg/s]
             EHg0_an = EHg0_an / SEC_PER_YR            
+        
+         ELSEIF (LGEIA05) THEN
+            ! Use GEIA 2005 emissions inventory (eck, 10/19/11)
+   
+            ! Mercury data is for 2005
+            NYMD     = ( 2005 * 10000 ) + 0101
+            XTAU     = GET_TAU0( 1, 1, 2005 )
+
+            ! Filename for anthropogenic mercury source
+            FILENAME = TRIM( DATA_DIR_1x1 )       // 
+     &           'mercury_201002/GEIA_Hg0.geos.1x1.YYYY'
+
+            ! Add year to the filename
+            CALL EXPAND_DATE( FILENAME, NYMD, 000000 )
+
+            ! Echo info
+            WRITE( 6, 100 ) TRIM( FILENAME )
+
+            ! Read data in [kg/yr]
+            CALL READ_BPCH2( FILENAME, 'HG-SRCE', 1, 
+     &           XTAU,      I1x1,     J1x1,    
+     &           1,         ARRAY1,   QUIET=.TRUE. )
+            
+            ! Regrid from 1x1 to the current grid
+            CALL DO_REGRID_1x1( 'kg', ARRAY1, EHg0_an )
+
+            ! Convert from [kg/yr] to [kg/s]
+            EHg0_an = EHg0_an / SEC_PER_YR    
+
+            ! For GEIA 2005, change Hg0:Hg2:HgP ratio
+            ! from 50:40:10 to 86.5:9.9:3.6 for fossil fuel emissions.
+            ! Fossil fuels make up ~47% of total global anthro emis
+            ! Refs: Amos et al. (2011, ACPD), Y. Zhang et al. (2011, in prep)
+            ! Implemented 10/19/11 by eck
+            EHg0_an=1.24d0*EHg0_an
+            
 
 
          ELSE
@@ -3292,7 +2821,6 @@
          XTAU     = GET_TAU0( 1, 1, 1985 )
 
          ! Filename for artisanal mining emissions (4x5 only for now)
-!         FILENAME='/as/home/eck/landproject/current/artisanal.bpch'
          FILENAME=TRIM( DATA_DIR ) // 'mercury_201007/artisanal.bpch'
 
          ! Echo info
@@ -3309,9 +2837,18 @@
          ! Convert from Mg/yr to kg/s; multiply by 50%
          ! need more source: try 75%
          EHg0_am = Ehg0_am * 1D3 / SEC_PER_YR * 0.75d0
-      
+
+         !Artisanal mining is included in the 2006 Streets and 2005
+         !GEIA emissions inventories. Here, we don't add it if those
+         !flags are set. (eck, 10/19/11)
+         IF (LGCAPEMIS) THEN
+            EHg0_an = EHg0_an
+         ELSEIF (LGEIA05) THEN
+            EHg0_an = EHg0_an
+         ELSE
          ! Add artisanal mining to anthropogenic
          EHg0_an = EHg0_an + EHg0_am
+         ENDIF
 
          !---------------------------
          ! Anthropogenic Hg(II) emissions [kg/s]
@@ -3341,6 +2878,38 @@
 
             ! Convert from [kg/yr] to [kg/s]
             EHg2_an = EHg2_an / SEC_PER_YR
+        
+         ELSEIF (LGEIA05) THEN
+            ! Use GEIA 2005 emissions (eck, 10/19/11)
+
+            ! Filename for anthropogenic mercury source
+            FILENAME = TRIM( DATA_DIR_1x1 )               // 
+     &           'mercury_201002/GEIA_Hg2.geos.1x1.YYYY'
+
+            ! Add year to the filename
+            CALL EXPAND_DATE( FILENAME, NYMD, 000000 )
+            XTAU     = GET_TAU0( 1, 1, 2005 )
+
+            ! Echo info
+            WRITE( 6, 100 ) TRIM( FILENAME )
+
+            ! Read data in [kg/yr]
+            CALL READ_BPCH2( FILENAME, 'HG-SRCE', 6, 
+     &           XTAU,      I1x1,     J1x1,    
+     &           1,         ARRAY1,   QUIET=.TRUE. )
+
+            ! Regrid from 1x1 to the current grid
+            CALL DO_REGRID_1x1( 'kg', ARRAY1, EHg2_an )
+
+            ! Convert from [kg/yr] to [kg/s]
+            EHg2_an = EHg2_an / SEC_PER_YR
+
+            ! For GEIA 2005, change Hg0:Hg2:HgP ratio
+            ! from 50:40:10 to 86.5:9.9:3.6 for fossil fuel emissions.
+            ! Fossil fuels make up ~47% of total global anthro emis
+            ! Refs: Amos et al. (2011, ACPD), Y. Zhang et al. (2011, in prep)
+            ! Implemented 10/19/11 by eck
+            EHg2_an=0.45d0*EHg2_an
 
          ELSE
             ! Otherwise use Selin et al. 2008 emissions
@@ -3397,6 +2966,36 @@
             ! Convert from [kg/yr] to [kg/s]
             EHgP_an = EHgP_an / SEC_PER_YR
 
+         ELSEIF (LGEIA05) THEN
+            ! Use GEIA 2005 emissions (eck, 10/19/11)
+
+            ! Filename for anthropogenic mercury source
+            FILENAME = TRIM( DATA_DIR_1x1)   //
+     &           'mercury_201002/GEIA_HgP.geos.1x1.YYYY'
+
+            ! Add year to the filename
+            CALL EXPAND_DATE( FILENAME, NYMD, 000000 )
+
+            ! Echo info
+            WRITE( 6, 100 ) TRIM( FILENAME )
+
+            ! Read data in [kg/yr]
+            CALL READ_BPCH2( FILENAME, 'HG-SRCE', 9, 
+     &           XTAU,      I1x1,     J1x1,    
+     &           1,         ARRAY1,   QUIET=.TRUE. )
+
+            ! Regrid from 1x1 to the current grid
+            CALL DO_REGRID_1x1( 'kg', ARRAY1, EHgP_an )
+
+            ! Convert from [kg/yr] to [kg/s]
+            EHgP_an = EHgP_an / SEC_PER_YR
+
+            ! For GEIA 2005, change Hg0:Hg2:HgP ratio
+            ! from 50:40:10 to 86.5:9.9:3.6 for fossil fuel emissions.
+            ! Fossil fuels make up ~47% of total global anthro emis
+            ! Refs: Amos et al. (2011, ACPD), Y. Zhang et al. (2011, in prep)
+            ! Implemented 10/19/11 by eck
+            EHgP_an=0.55d0*EHgP_an
 
          ELSE
             ! Otherwise use Selin et al. 2008 emissions
@@ -3425,41 +3024,6 @@
          ENDIF
 
       ENDIF
-
-      !=================================================================
-      ! Prior to 8/13/2008:
-      ! The terrestrial reemissions were read from a file
-      ! which distributed emissions according to the present-day deposition
-      ! pattern. Now the terrestrial emissions are calculated online.
-      ! 
-      !!=================================================================
-      !! Read annual emissions of anthropogenic Hg(0) which is
-      !! re-emitted from the land [kg/s]
-      !!=================================================================
-      !
-      !! Use "generic" year 1985 for TAU values
-      !XTAU     = GET_TAU0( 1, 1, 1985 )
-      !
-      !! Filename for re-emitted anthropogenic mercury
-      !FILENAME = TRIM( DATA_DIR_1x1 )                 // 
-      ! &           'mercury_200511/Hg_land_reemission.' // 
-      ! &            GET_NAME_EXT_2D() // '.' // GET_RES_EXT()   
-      !
-      !! Echo info
-      !WRITE( 6, 100 ) TRIM( FILENAME )
-      !
-      !! Read data in [kg/yr]
-      !CALL READ_BPCH2( FILENAME, 'HG-SRCE',     4,  
-      !&                 XTAU,      IIPAR,        JJPAR,    
-      !&                 1,         ARRAY(:,:,1), QUIET=.TRUE. )
-      !
-      !! Cast to REAL*8 and resize
-      !CALL TRANSFER_2D( ARRAY(:,:,1), EHg0_ln )
-      !
-      !! Convert from [Mg/yr] to [kg/s]
-      !EHg0_ln = EHg0_ln * 1000d0 / SEC_PER_YR  
-      !=================================================================
-
  
       !=================================================================
       ! Read distribution of Hg on land.
@@ -3474,11 +3038,18 @@
       XTAU     = GET_TAU0( 1, 1, 1985 )
 
       IF ( LPREINDHG ) THEN
-!         FILENAME='/as/home/eck/depoproject/bugfix3map.bpch'
          FILENAME=TRIM( DATA_DIR )           //
-     &        'mercury_201007/soilhg.preind.cdh.bpch'
+     &        'mercury_201110/soilHg.102311.preind.bpch'
+      !        !add H. Amos soil spinup for chemistry tuning 9/23/11
+         !implemented 10/19/11 eck
+!     &        'mercury_201007/soilhg.preind.cdh.bpch'
+      ELSEIF (LGEIA05) THEN
+         !add H. Amos soil spinup for chemistry tuning 9/23/11
+         !implemented 10/19/11 eck for GEIA 05 inventory
+         FILENAME=TRIM( DATA_DIR )           //
+     &        'mercury_201110/soilHg.102311.presentday.bpch'
+
       ELSE
-!         FILENAME='/as/home/eck/depoproject/bugfix3current.bpch'
          FILENAME=TRIM( DATA_DIR )           //
      &        'mercury_201007/soilhg.presentday.cdh.bpch'
       ENDIF
@@ -3501,18 +3072,7 @@
       ! Use "generic" year 1985 for TAU values
       XTAU     = GET_TAU0( 1, 1, 1985 )
 
-      !---------------------------------------------------
-      ! Prior to 8/13/2008:
-      ! Change by eck. WHAT IS THE DIFFERENCE? 
-      !
-      !! Filename for natural land-source mercury
-      !FILENAME = TRIM( DATA_DIR_1x1 )         // 
-      !&           'mercury_200511/Hg_natural.' // GET_NAME_EXT_2D() //
-      !&           '.'                          // GET_RES_EXT() 
-      !---------------------------------------------------
-
       ! Filename for natural land-source mercury
-!      FILENAME= '/as/home/eck/landproject/newnatural.bpch'
       FILENAME= TRIM( DATA_DIR )            //
      &     'mercury_201007/newnatural.bpch'
 
@@ -3521,7 +3081,7 @@
 
       ! TAU value corresponding to the data 
       XTAU   = GET_TAU0( 1, 1, 1995 )
-
+      
       ! Read data in [kg/yr]
       CALL READ_BPCH2( FILENAME, 'HG-SRCE',     5, 
      &                 XTAU,      IIPAR,        JJPAR,    
@@ -3532,6 +3092,11 @@
 
       ! Convert from [kg/yr] to [kg/s]
       EHg0_nt = EHg0_nt / SEC_PER_YR 
+
+      !Recommended for v8-03-02 and later: 
+      !Reduce Geogenic emissions by 50%
+      !Ref: Soerensen et al., 2010
+      EHg0_nt = EHg0_nt *0.5d0
 
       !=================================================================
       ! Read offline ocean Hg0 emissions (if LDYNOCEAN = .FALSE.)
@@ -3831,20 +3396,19 @@
 !******************************************************************************
 !
       ! References to F90 modules
-      USE DAO_MOD,       ONLY : SUNCOS, AD, T
-      USE GLOBAL_BR_MOD, ONLY : BR_MERGE,  BR_TROP,  BR_STRAT, J_BRO
-      USE GLOBAL_BR_MOD, ONLY : BRO_MERGE, BRO_TROP, BRO_STRAT
-      USE TIME_MOD,      ONLY : GET_TS_CHEM, GET_LOCALTIME 
-      USE TIME_MOD,      ONLY : ITS_A_NEW_DAY
-      USE TROPOPAUSE_MOD,ONLY : ITS_IN_THE_TROP, ITS_IN_THE_STRAT
-!      USE LOGICAL_MOD,   ONLY : LVARTROP
-      USE DAO_MOD, ONLY : IS_WATER
-      USE PBL_MIX_MOD, ONLY   : GET_FRAC_UNDER_PBLTOP
-      USE GRID_MOD,      ONLY : GET_YMID
-      USE TIME_MOD,      ONLY : GET_MONTH
-      USE DAO_MOD,       ONLY : LWI, GET_OBK, IS_ICE
-      USE PRESSURE_MOD,  ONLY : GET_PCENTER
-      USE ERROR_MOD,     ONLY : SAFE_DIV
+      USE DAO_MOD,        ONLY : SUNCOS, AD, T
+      USE GLOBAL_BR_MOD,  ONLY : BR_MERGE,  BR_TROP,  BR_STRAT, J_BRO
+      USE GLOBAL_BR_MOD,  ONLY : BRO_MERGE, BRO_TROP, BRO_STRAT
+      USE TIME_MOD,       ONLY : GET_TS_CHEM, GET_LOCALTIME 
+      USE TIME_MOD,       ONLY : ITS_A_NEW_DAY
+      USE TROPOPAUSE_MOD, ONLY : ITS_IN_THE_TROP, ITS_IN_THE_STRAT
+      USE DAO_MOD,        ONLY : IS_WATER
+      USE PBL_MIX_MOD,    ONLY   : GET_FRAC_UNDER_PBLTOP
+      USE GRID_MOD,       ONLY : GET_YMID
+      USE TIME_MOD,       ONLY : GET_MONTH
+      USE DAO_MOD,        ONLY : LWI, GET_OBK, IS_ICE
+      USE PRESSURE_MOD,   ONLY : GET_PCENTER
+      USE ERROR_MOD,      ONLY : SAFE_DIV
 
       USE CMN_SIZE_MOD  ! Size parameters
       USE CMN_DEP_MOD   ! FRCLND
@@ -3870,7 +3434,11 @@
       ! during springtime bromine explosion. Based on DOAS observations
       ! at Alert (Simpson et al. ACP 2007). This concentration applies
       ! only under stable atmospheric conditions.
-      REAL*8, PARAMETER   :: BRO_POLAR=10D0
+      !REAL*8, PARAMETER   :: BRO_POLAR=10D0
+      ! Reduce concentration of BrO in Arctic during depletion events to 5 pptv
+      ! Ref low end of uncertainty range in Holmes et al. 2010
+      ! Ref low [BrO] observed Neuman et al 2010
+      REAL*8, PARAMETER   :: BRO_POLAR=5D0
 
       ! Parameters for calculating Br/BrO photostationary state
       ! BrO J value, /s 
@@ -3901,33 +3469,6 @@
          
       ENDIF 
 
-
-      !----------------------------------------------------------------
-      ! OLD VERSION (cdh, 3/4/09)
-      ! Previously switched at the tropopause, but pTOMCAT includes
-      ! short-lived source gases that continue to dominate Br-x in 
-      ! the lower stratosphere. So we want to use pTOMCAT in the lower
-      ! strat
-      !----------------------------------------------------------------
-      !IF ( LVARTROP ) THEN 
-      !
-      !   ! Choose Br either from the troposphere or stratosphere
-      !   IF ( ITS_IN_THE_TROP(I,J,L) ) THEN
-      !      BR_PPTV = BR_TROP(I,J,L)
-      !   ELSE
-      !      BR_PPTV = BR_STRAT(I,J,L)
-      !   ENDIF   
-      !
-      !ELSE
-      !   
-      !   ! Choose Br from the fields merged at the monthly-mean tropopause
-      !   BR_PPTV = BR_MERGE(I,J,L)
-      !   
-      !ENDIF
-      !
-      !----------------------------------------------------------------
-
-
       !----------------------------------------------------------------
       ! Add Br in the MBL
       !----------------------------------------------------------------
@@ -3949,32 +3490,7 @@
          BrO_PPTV = MAX( BRO_PPTV, BRO_MBL*FPBL )
 
 
-      ENDIF      
-
-      !----------------------------------------------------------------
-      ! Add Br above the MBL
-      ! For testing purposes (cdh 10/24/2009)
-      ! Try 0.5 ppt BrO in FT during daytime (1/2 of MBL value)
-      ! or 0.25 ppt BrO 24 h average.
-      ! Impose a seasonal cycle following coarse aerosol Br- enrichment
-      ! factors reported at Barbados  (Sander ACP 2003)
-      !----------------------------------------------------------------
-
-!      IF ( IS_WATER(I,J) .AND. (GET_FRAC_OF_PBL(I,J,L) == 0d0) ) THEN
-!
-!         ! Convert BrO concentration to corresponding Br based on
-!         ! photochemical steady state, pptv
-!         ! Platt & Janssen, Faraday Discussions (1995)
-!         BR_MBL = 0.25D0 *( J_BRO(I,J,L) + K_BRO_NO * C_NO ) / 
-!     &                     ( K_BR_O3 * GET_O3(I,J,L) ) *
-!     &        (1d0-COS( GET_MONTH() * 6.28D0 / 12D0 )*0.6D0)
-!
-!         ! MBL concentration is the greater of the TOMCAT Br or 1pptv BrO
-!         BR_PPTV  = MAX( BR_PPTV,  BR_MBL )
-!         BrO_PPTV = MAX( BRO_PPTV, 0.25D0 )
-!
-!
-!      ENDIF      
+      ENDIF            
 
       !----------------------------------------------------------------
       ! Add Br in polar boundary layer
@@ -4008,30 +3524,6 @@
          ENDIF
 
       ENDIF
-
-! PREVIOUS METHOD based on Br over all sea ice
-c$$$      IF ( (LPOLARBR)         .AND. 
-c$$$     &     (GET_FRAC_OF_PBL(I,J,L) > 0d0) .AND.
-c$$$     &     (SUNCOS(JLOOP) > 0D0) .AND. (T(I,J,1) <= 268D0) .AND.
-c$$$     &     (FRCLND(I,J)< 0.8) .AND. (LWI(I,J)>1D0) ) THEN 
-c$$$
-c$$$         IF ( ( (GET_YMID(J) > 60D0) .AND. 
-c$$$     &          (GET_MONTH() >= 3) .AND. (GET_MONTH() <= 5)  ) .OR.
-c$$$     &        ( (GET_YMID(J) < -50D0) .AND. 
-c$$$     &          (GET_MONTH() >= 9) .AND. (GET_MONTH() <= 11)  ) ) THEN
-c$$$
-c$$$            ! Br concentration due to bromine explosion, pptv
-c$$$            ! Assume [O3] is 5ppb during event
-c$$$            BR_MBL = BRO_POLAR *( J_BRO(I,J,L) + K_BRO_NO * C_NO ) / 
-c$$$     &                          ( K_BR_O3 * 1.25D11 )            
-c$$$             
-c$$$            BR_PPTV  = BR_PPTV  + BR_MBL
-c$$$            BrO_PPTV = BrO_PPTV + BRO_POLAR
-c$$$
-c$$$         ENDIF
-c$$$
-c$$$      ENDIF
-      
 
       !----------------------------------------------------------------
       ! Impose a diurnal cycle
@@ -4069,8 +3561,6 @@ c$$$      ENDIF
             ! Normalize the multiplicative factor to have a 24-h mean of 1
             BR_FAC = SAFE_DIV( BR_FAC, ( 4D-4 * TTDAY(I,J) ), 0D0 )
 
-            
-
          ENDIF
 
 
@@ -4081,57 +3571,6 @@ c$$$      ENDIF
          ! the time-varying factor from the diurnal cycle
          BR_PPTV = BR_PPTV * BR_FAC
 
-         !----------------------------------------------------------------
-         ! OLD VERSION (cdh, 1/27/09)
-         !----------------------------------------------------------------
-         ! 
-         ! Impose a diurnal variation: on BR during the day (off at night)
-         !BR_MOLEC_CM3 = BR(I,J,L) * ( 1440d0 / TTDAY(I,J) )  
-         !
-         !!----------------------------------------------------------------
-         !! New diurnal cycle developed from the diurnal cycle of RGM
-         !! during ship cruises, especially in the tropical Pacific
-         !! This functional form really only works well for Sunrise and Sunset
-         !! times that are around 6am and 6pm, i.e. not for high latitudes
-         !!
-         !! This function has a plateau from sunrise until 8am, then
-         !! declines quadratically until 6pm
-         !!----------------------------------------------------------------
-         !
-         !IF ( LOCALTIME <= 8d0 ) THEN
-         !   
-         !   BR_MOLEC_CM3 = 1d0
-         !
-         !ELSE
-         !
-         !   BR_MOLEC_CM3 = 1d0 - 1d0 / 
-         ! &                           ( 4d0 + TTDAY(I,J) / 60d0 / 2d0 )**2d0
-         ! &                         * ( LOCALTIME - 8d0 )**2d0
-         !
-         !ENDIF
-         !
-         !! Use a constant function if daylight is < 2 hours or > 22hours
-         !IF ( ( TTDAY(I,J) < 120d0  ) .OR. 
-         ! &        ( TTDAY(I,J) > 1320d0 ) ) THEN
-         !   
-         !   BR_MOLEC_CM3 = BR_MERGE(I,J,L) * ( 1440d0 / TTDAY(I,J) )  
-         !   
-         !ELSE 
-         !
-         !   ! The mean of the function so far is Approximately 
-         !   ! -0.0415 + 0.0340*(TTDAY/60), so this 
-         !   ! normalizes the mean of the function to 1 before multiplying
-         !   ! by the mean concentration from pTOMCAT
-         !
-         !   BR_MOLEC_CM3 = BR_MOLEC_CM3 * BR_MERGE(I,J,L) / 
-         ! &                    ( -0.0415d0 + 0.0340 * ( TTDAY(I,J) / 60d0 ) )
-         !
-         !ENDIF
-         !
-         !! Make sure BR is not negative
-         !BR_MOLEC_CM3 = MAX( BR_MOLEC_CM3, 0d0 )
-         !      
-         !----------------------------------------------------------------
 
       ELSE
 
@@ -4297,8 +3736,6 @@ c$$$      ENDIF
       ! Return to calling program
       END SUBROUTINE OHNO3TIME
 
-
-
 !------------------------------------------------------------------------------
 
       SUBROUTINE DEFINE_TAGGED_Hg
@@ -4427,183 +3864,6 @@ c$$$      ENDIF
       END SUBROUTINE DEFINE_TAGGED_Hg
 
 !------------------------------------------------------------------------------
-c$$$
-c$$$
-c$$$      SUBROUTINE ADD_HG2_SNOWPACK( I, J, N, DEP_Hg2 )
-c$$$!
-c$$$!******************************************************************************
-c$$$!  Subroutine ADD_HG2_SNOWPACK adds Hg2 deposition to snowpack.
-c$$$!
-c$$$!  Arguments as Input:
-c$$$!  ============================================================================
-c$$$!  (1 ) I       (INTEGER) : GEOS-CHEM longitude index
-c$$$!  (2 ) J       (INTEGER) : GEOS-CHEM latitude  index
-c$$$!  (3 ) N       (INTEGER) : GEOS-CHEM tracer    index
-c$$$!  (4 ) DEP_Hg2 (REAL*8 ) : Hg(II) deposited out of the atmosphere [kg]
-c$$$!
-c$$$!  NOTES:
-c$$$!******************************************************************************
-c$$$!
-c$$$      ! References to F90 modules
-c$$$      USE DAO_MOD,           ONLY : SNOW, SNOMAS 
-c$$$      USE DAO_MOD, ONLY : IS_ICE
-c$$$      USE TRACERID_MOD,      ONLY : GET_Hg2_CAT, GET_HgP_CAT
-c$$$      USE TRACERID_MOD,      ONLY : IS_Hg2, IS_HgP
-c$$$!      USE OCEAN_MERCURY_MOD, ONLY : SNOW_HG
-c$$$      USE DEPO_MERCURY_MOD, ONLY : SNOW_HG
-c$$$
-c$$$      ! Arguments as input
-c$$$      INTEGER, INTENT(IN)   :: I, J, N
-c$$$      REAL*8,  INTENT(IN)   :: Dep_Hg2
-c$$$
-c$$$      ! Local variables
-c$$$      REAL*8                :: SNOW_HT
-c$$$      INTEGER               :: NN
-c$$$
-c$$$      !=================================================================
-c$$$      ! ADD_HG2_SNOWPACK begins here!
-c$$$      !=================================================================
-c$$$      
-c$$$      ! Return if snowpack model is disabled
-c$$$      IF (.NOT. LHGSNOW) RETURN
-c$$$
-c$$$      IF ( IS_Hg2( N ) ) THEN
-c$$$         ! Get Hg2 category number
-c$$$         NN = GET_Hg2_CAT( N ) 
-c$$$      ELSE IF ( IS_HgP( N ) ) THEN
-c$$$         ! Get HgP category number
-c$$$         NN = GET_HgP_CAT( N ) 
-c$$$      ENDIF
-c$$$
-c$$$#if   defined( GEOS_5 ) || defined( MERRA )
-c$$$      ! GEOS5 snow height (water equivalent) in mm. (Docs wrongly say m)
-c$$$      SNOW_HT = SNOMAS(I,J)
-c$$$#else
-c$$$      ! GEOS1-4 snow heigt (water equivalent) in mm
-c$$$      SNOW_HT = SNOW(I,J)
-c$$$#endif 
-c$$$
-c$$$      ! Check if there is snow on the ground, or if this is sea ice
-c$$$      IF ( (SNOW_HT > 1d0) .OR. (IS_ICE(I,J)) ) THEN
-c$$$    
-c$$$         IF (DEP_HG2<0d0) THEN
-c$$$            WRITE(6,'(3I6,2G12.4)') I,J,NN,DEP_HG2,SNOW_HG(I,J,NN)
-c$$$         ENDIF
-c$$$
-c$$$         SNOW_HG(I,J,NN) = SNOW_HG(I,J,NN) + MAX( DEP_HG2, 0D0 )
-c$$$
-c$$$      ENDIF
-c$$$
-c$$$      ! Return to calling program
-c$$$      END SUBROUTINE ADD_HG2_SNOWPACK
-c$$$
-!------------------------------------------------------------------------------
-!
-!
-!      SUBROUTINE SNOWPACK_MERCURY_FLUX( FLUX )
-!!
-!!******************************************************************************
-!!  Subroutine SNOWPACK_MERCURY_FLUX calculates emission of Hg(0) from snow and
-!!  ice. Emissions are a linear function of Hg mass stored in the snowpack. The
-!!  Hg lifetime in snow is assumed to be 180 d when T< 270K and 7 d when T>270K
-!!
-!!     E = k * SNOW_HG     : k = 6D-8 if T<270K, 1.6D-6 otherwise
-!!
-!!  These time constants reflect the time scales of emission observed in the 
-!!  Arctic and in field studies. Holmes et al 2010
-!!
-!!  Arguments as Output
-!!  ============================================================================
-!!  (1 ) FLUX (REAL*8) : Flux of Hg(0) [kg/s]
-!!
-!!  NOTES:
-!!******************************************************************************
-!!
-!      ! References to F90 modules
-!      USE TRACERID_MOD,      ONLY : N_Hg_CATS
-!      USE TIME_MOD,          ONLY : GET_TS_EMIS
-!      USE DAO_MOD,           ONLY : T, SUNCOS
-!!      USE OCEAN_MERCURY_MOD, ONLY : SNOW_HG
-!      USE DEPO_MERCURY_MOD, ONLY : SNOW_HG
-!
-!      USE CMN_SIZE_MOD      ! Size parameters
-!
-!      ! Arguments 
-!      REAL*8,  INTENT(OUT)  :: FLUX(IIPAR,JJPAR,N_Hg_CATS)
-!
-!      ! Local variables
-!      INTEGER               :: I, J, NN, JLOOP
-!      LOGICAL, SAVE         :: FIRST
-!      REAL*8                :: DTSRCE, SNOW_HG_NEW, K_EMIT
-!
-!      !=================================================================
-!      ! SNOWPACK_MERCURY_FLUX begins here!
-!      !=================================================================
-!
-!      ! Initialize
-!      FLUX = 0D0
-!
-!      ! Return to calling program if snowpack model is disabled
-!      IF (.NOT. LHGSNOW) RETURN
-!
-!      ! Emission timestep [s]
-!      DTSRCE = GET_TS_EMIS() * 60d0      
-!
-!      ! Emit Hg(0) at a steady rate, based on 180 d residence
-!      ! time in snowpack, based on cycle observed at Alert 
-!      ! (e.g. Steffen et al. 2008)
-!      K_EMIT = 6D-8
-!
-!!$OMP PARALLEL DO 
-!!$OMP+DEFAULT( SHARED ) 
-!!$OMP+PRIVATE( I, J, NN )
-!!$OMP+PRIVATE( SNOW_HG_NEW, JLOOP, K_EMIT )
-!      DO J  = 1, JJPAR
-!      DO I  = 1, IIPAR
-!
-!         ! 1-D grid box index for SUNCOS
-!         JLOOP = ( (J-1) * IIPAR ) + I
-!
-!         ! If the sun is set, then no emissions, go to next box
-!         IF (SUNCOS(JLOOP)<0D0) CYCLE 
-!
-!         ! Decrease residence time to 1 week when T > -3C
-!         IF (T(I,J,1) > 270D0) THEN
-!            K_EMIT = 1.6D-6
-!         ELSE
-!            K_EMIT = 6D-8
-!         ENDIF
-!
-!         DO NN = 1, N_Hg_CATS
-!
-!            ! Check if there is Hg that could be emitted
-!            IF (SNOW_HG(I,J,NN)>0D0) THEN
-!
-!               ! New mass of snow in Hg
-!               SNOW_HG_NEW = SNOW_HG(I,J,NN) * EXP( - K_EMIT * DTSRCE )
-!
-!               FLUX(I,J,NN) = MAX( SNOW_HG(I,J,NN) - SNOW_HG_NEW, 0D0 )
-!
-!               ! Convert mass -> flux
-!               FLUX(I,J,NN) = FLUX(I,J,NN) / DTSRCE
-!
-!               SNOW_HG(I,J,NN) = SNOW_HG_NEW
-!
-!            ENDIF
-!
-!         ENDDO
-!
-!      ENDDO
-!      ENDDO
-!!$OMP END PARALLEL DO
-!      
-!      
-!
-!      ! Return to calling program
-!      END SUBROUTINE SNOWPACK_MERCURY_FLUX
-!
-!!------------------------------------------------------------------------------
-
 
       SUBROUTINE CALC_HG2_SEASALT_LOSSRATE
 !
@@ -4623,10 +3883,10 @@ c$$$
 !******************************************************************************
 !
       ! References to F90 modules
-      USE DAO_MOD, ONLY     : IS_WATER, RH
+      USE DAO_MOD,     ONLY : IS_WATER, RH
       USE PBL_MIX_MOD, ONLY : GET_PBL_TOP_M
-      USE FILE_MOD, ONLY    : IU_FILE
-      USE RNPBBE_MOD, ONLY  : SLQ
+      USE FILE_MOD,    ONLY : IU_FILE
+      USE RNPBBE_MOD,  ONLY : SLQ
 
       USE CMN_SIZE_MOD     ! Size parameters
       USE CMN_DEP_MOD      ! FRCLND
@@ -4811,8 +4071,8 @@ c$$$
       ! Local variables
       INTEGER             :: JLOOP, JDAY
       REAL*8              :: JNO2_NOW, CSZANOON
-      REAL*8               :: A0, A1, A2, A3, B1, B2, B3
-      REAL*8               :: R, DEC, YMID_R  
+      REAL*8              :: A0, A1, A2, A3, B1, B2, B3
+      REAL*8              :: R, DEC, YMID_R  
  
       !=================================================================
       ! GET_JNO2 begins here!
@@ -4883,9 +4143,9 @@ c$$$
       SUBROUTINE PARTITIONHG( DIRECTION, STT_COPY, HGPFRAC )
 
       ! References to F90 modules
-      USE ERROR_MOD, ONLY     : SAFE_DIV, GEOS_CHEM_STOP
-      USE TRACERID_MOD, ONLY  : ID_HG2, ID_HGP
-      USE TRACER_MOD, ONLY    : N_TRACERS
+      USE ERROR_MOD,    ONLY : SAFE_DIV, GEOS_CHEM_STOP
+      USE TRACERID_MOD, ONLY : ID_HG2, ID_HGP
+      USE TRACER_MOD,   ONLY : N_TRACERS
 
       USE CMN_SIZE_MOD  ! Size parameters
 
@@ -5086,10 +4346,6 @@ c$$$
       IF ( AS /= 0 ) CALL ALLOC_ERR( 'TTDAY' )
       TTDAY = 0d0
  
-!      ALLOCATE( TRANSP( IIPAR, JJPAR ), STAT=AS )
-!      IF ( AS /= 0 ) CALL ALLOC_ERR( 'TRANSP' )
-!      TRANSP = 0d0
-     
       ! Allocate ZERO_DVEL if we use non-local PBL mixing or
       ! if drydep is turned off 
       IF ( LNLPBL .OR. (.not. LDRYD) ) THEN
@@ -5133,42 +4389,6 @@ c$$$
 
       ENDIF
 
-c$$$ This section now moved to drydep_mod.f (cdh, 9/1/09)
-c$$$      !=================================================================
-c$$$      ! Locate the drydep species w/in the DEPSAV array (for ND44)
-c$$$      !=================================================================
-c$$$
-c$$$      ! Initialize flags
-c$$$      ! add dry dep of Hg0
-c$$$      DRYHg0 = 0
-c$$$      DRYHg2 = 0
-c$$$      DRYHgP = 0
-c$$$
-c$$$      ! If drydep is turned on ...
-c$$$      IF ( LDRYD ) THEN
-c$$$         
-c$$$         ! Loop over drydep species
-c$$$         DO N = 1, NUMDEP
-c$$$
-c$$$            ! Locate by DEPNAME
-c$$$            SELECT CASE ( TRIM( DEPNAME(N) ) )
-c$$$               ! add dry dep of Hg(0)
-c$$$               CASE( 'Hg0' )
-c$$$                  DRYHg0 = N
-c$$$               CASE( 'Hg2' )
-c$$$                  DRYHg2 = N
-c$$$               CASE( 'HgP' )
-c$$$                  DRYHgP = N
-c$$$               CASE DEFAULT
-c$$$                  ! nothing
-c$$$            END SELECT
-c$$$         ENDDO
-c$$$
-c$$$
-c$$$      ENDIF
-
-
-
       !=================================================================
       ! Settings
       !=================================================================
@@ -5182,10 +4402,13 @@ c$$$      ENDIF
       ! This is temporary
       ! Bess's changes: rescale GEIA to use Streets' 2006 regional totals
       ! With these emissions, Bess found the best chemistry results
-      LGCAPEMIS=.TRUE.
+      LGCAPEMIS=.FALSE.
+      ! Use GEIA 2005 inventory
+      LGEIA05=.TRUE.
+
       ! no Hg emitted through transpiration (VEGEMIS off)
       LVEGEMIS=.FALSE.
-
+     
       ! Switch adds bromine explosion in Northern springtime
       LPOLARBR=.TRUE.
 
@@ -5253,30 +4476,29 @@ c$$$      ENDIF
       !=================================================================
       ! CLEANUP_MERCURY begins here!
       !=================================================================
-      IF ( ALLOCATED( AN_Hg0   ) ) DEALLOCATE( AN_Hg0  )  
-      IF ( ALLOCATED( AN_Hg2   ) ) DEALLOCATE( AN_Hg2  )      
-      IF ( ALLOCATED( AN_HgP   ) ) DEALLOCATE( AN_HgP  )      
-      IF ( ALLOCATED( COSZM    ) ) DEALLOCATE( COSZM   )      
-      IF ( ALLOCATED( EHg0_an  ) ) DEALLOCATE( EHg0_an )
-      IF ( ALLOCATED( EHg0_am  ) ) DEALLOCATE( EHg0_am )
-      IF ( ALLOCATED( EHg2_an  ) ) DEALLOCATE( EHg2_an )
-      IF ( ALLOCATED( EHgP_an  ) ) DEALLOCATE( EHgP_an )
-      IF ( ALLOCATED( EHg0_oc  ) ) DEALLOCATE( EHg0_oc )
-      IF ( ALLOCATED( EHg0_ln  ) ) DEALLOCATE( EHg0_ln )
-      IF ( ALLOCATED( EHg0_snow) ) DEALLOCATE( EHg0_snow )
-      IF ( ALLOCATED( EHg0_nt  ) ) DEALLOCATE( EHg0_nt )
-      IF ( ALLOCATED( EHg0_bb  ) ) DEALLOCATE( EHg0_bb )
-      IF ( ALLOCATED( EHg0_gtm  ) ) DEALLOCATE( EHg0_gtm )
-      IF ( ALLOCATED( EHg0_vg  ) ) DEALLOCATE( EHg0_vg )
-      IF ( ALLOCATED( EHg0_so  ) ) DEALLOCATE( EHg0_so )
-      IF ( ALLOCATED( EHg0_dist) ) DEALLOCATE( EHg0_dist )
-      IF ( ALLOCATED( TCOSZ    ) ) DEALLOCATE( TCOSZ   )
-      IF ( ALLOCATED( TTDAY    ) ) DEALLOCATE( TTDAY   )
-!      IF ( ALLOCATED( TRANSP   ) ) DEALLOCATE( TRANSP  )
-      IF ( ALLOCATED( ZERO_DVEL) ) DEALLOCATE( ZERO_DVEL )
+      IF ( ALLOCATED( AN_Hg0    ) ) DEALLOCATE( AN_Hg0    )  
+      IF ( ALLOCATED( AN_Hg2    ) ) DEALLOCATE( AN_Hg2    )      
+      IF ( ALLOCATED( AN_HgP    ) ) DEALLOCATE( AN_HgP    )      
+      IF ( ALLOCATED( COSZM     ) ) DEALLOCATE( COSZM     )       
+      IF ( ALLOCATED( EHg0_an   ) ) DEALLOCATE( EHg0_an   )
+      IF ( ALLOCATED( EHg0_am   ) ) DEALLOCATE( EHg0_am   )
+      IF ( ALLOCATED( EHg2_an   ) ) DEALLOCATE( EHg2_an   )
+      IF ( ALLOCATED( EHgP_an   ) ) DEALLOCATE( EHgP_an   )
+      IF ( ALLOCATED( EHg0_oc   ) ) DEALLOCATE( EHg0_oc   )
+      IF ( ALLOCATED( EHg0_ln   ) ) DEALLOCATE( EHg0_ln   )
+      IF ( ALLOCATED( EHg0_snow ) ) DEALLOCATE( EHg0_snow )
+      IF ( ALLOCATED( EHg0_nt   ) ) DEALLOCATE( EHg0_nt   )
+      IF ( ALLOCATED( EHg0_bb   ) ) DEALLOCATE( EHg0_bb   )
+      IF ( ALLOCATED( EHg0_gtm  ) ) DEALLOCATE( EHg0_gtm  )
+      IF ( ALLOCATED( EHg0_vg   ) ) DEALLOCATE( EHg0_vg   )
+      IF ( ALLOCATED( EHg0_so   ) ) DEALLOCATE( EHg0_so   )
+      IF ( ALLOCATED( EHg0_dist ) ) DEALLOCATE( EHg0_dist )
+      IF ( ALLOCATED( TCOSZ     ) ) DEALLOCATE( TCOSZ     )
+      IF ( ALLOCATED( TTDAY     ) ) DEALLOCATE( TTDAY     )
+      IF ( ALLOCATED( ZERO_DVEL ) ) DEALLOCATE( ZERO_DVEL )
       IF ( ALLOCATED( HG2_SEASALT_LOSSRATE ) ) 
      &     DEALLOCATE( HG2_SEASALT_LOSSRATE   ) 
-      IF ( ALLOCATED( JNO2     ) ) DEALLOCATE( JNO2    ) 
+      IF ( ALLOCATED( JNO2      ) ) DEALLOCATE( JNO2      ) 
   
       ! Return to calling program
       END SUBROUTINE CLEANUP_MERCURY
