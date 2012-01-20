@@ -3697,7 +3697,6 @@
 !
 ! !USES:
 !
-      USE TRACER_MOD, ONLY : ITS_A_MERCURY_SIM
 !
 ! !INPUT PARAMETERS: 
 !
@@ -3768,7 +3767,6 @@
 !
 ! !USES:
 !
-      USE TRACER_MOD, ONLY : ITS_A_MERCURY_SIM
 !
 ! !INPUT PARAMETERS: 
 !
@@ -3966,12 +3964,6 @@
          ! Washout fraction / F from Eq. 14, Jacob et al, 2000
          ! Note: WASHFRAC_F_14 should match what's used for HNO3 (hma, 13aug2011)
          WASHFRAC_F_14 = 1d0 - EXP( -K_WASH * ( PP / F ) * DT )
-
-         ! Prior to 05 Jun 2011 (H Amos)------------------------------
-         ! ! Do not let the Henry's law washout fraction exceed
-         ! ! ( washout fraction / F ) from Eq. 14 -- this is a cap
-         ! IF ( WASHFRAC > WASHFRAC_F_14 ) WASHFRAC = WASHFRAC_F_14
-         !------------------------------------------------------------
 
          ! Do not let the Henry's law washout fraction exceed
          ! that of HNO3 -- this is a cap
