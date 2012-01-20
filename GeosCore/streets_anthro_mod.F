@@ -230,6 +230,8 @@
 !  (5 ) KG_S        (LOGICAL) : OPTIONAL -- return emissions in [kg/s]
 !  
 !  NOTES:
+!  21 Dec 2011 - M. Payer    - C2H6 emissions are too low. Use Yaping
+!                              Xiao's C2H6 emissions instead.
 !******************************************************************************
 !
       ! References to F90 modules
@@ -334,8 +336,14 @@
 
          ELSE IF ( N == IDTC2H6 ) THEN
 
-            ! SO2 [kg/yr]
-            VALUE = C2H6(I,J)
+!------------------------------------------------------------------------------
+! Prior to 12/21/11:
+! C2H6 emissions are too low. Use Yaping Xiao's C2H6 emissions instead. 
+! (mpayer, 12/21/11)
+!            ! SO2 [kg/yr]
+!            VALUE = C2H6(I,J)
+!------------------------------------------------------------------------------
+            VALUE = -1d0
 
          ELSE IF ( N == IDTMEK ) THEN
 
@@ -1847,6 +1855,7 @@
 !          simulations (phs, 12/9/08)
 !     (2 ) Updated information output. Account for NH3 2000 used for all
 !          simulation years (phs, 2/27/09) 
+!  21 Dec 2011 - M. Payer    - Remove print for C2H6 emissions.
 !******************************************************************************
 !
       ! References to F90 modules
@@ -1967,7 +1976,12 @@
             WRITE( 6, 110 ) 'PRPE ', YEAR, MONTH, T_PRPE, '[Tg C   ]'
             WRITE( 6, 110 ) 'C3H8 ', YEAR, MONTH, T_C3H8, '[Tg C   ]'
             WRITE( 6, 110 ) 'CH2O ', YEAR, MONTH, T_CH2O, '[Tg Ch2O]'
-            WRITE( 6, 110 ) 'C2H6 ', YEAR, MONTH, T_C2H6, '[Tg C   ]'
+!------------------------------------------------------------------------------
+! Prior to 12/21/11:
+! C2H6 emissions are too low. Use Yaping Xiao's C2H6 emissions instead. 
+! (mpayer, 12/21/11)
+!            WRITE( 6, 110 ) 'C2H6 ', YEAR, MONTH, T_C2H6, '[Tg C   ]'
+!------------------------------------------------------------------------------
             WRITE( 6, 110 ) 'ALD2 ', YEAR, MONTH, T_ALD2, '[Tg C   ]'
 
          ENDIF

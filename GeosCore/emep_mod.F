@@ -180,6 +180,8 @@
 !       (amv, 06/2008)
 !  (2 ) Now returns ship emissions if requested (phs, 6/08)
 !  (3 ) Added checks to avoid calling unavailable ship emissions (phs, 6/08)
+!  21 Dec 2011 - M. Payer    - C2H6 emissions are too low. Use Yaping
+!                              Xiao's C2H6 emissions instead.
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -252,7 +254,13 @@
 
       ! C2H6 
       ELSE IF ( N == IDTC2H6 ) THEN
-         EMEP = EMEP_C2H6(I,J)
+!------------------------------------------------------------------------------
+! Prior to 12/21/11:
+! C2H6 emissions are too low. Use Yaping Xiao's C2H6 emissions instead. 
+! (mpayer, 12/21/11)
+!         EMEP = EMEP_C2H6(I,J)
+!------------------------------------------------------------------------------
+         EMEP = -1d0
 
       ! SO2
       ELSE IF ( N == IDTSO2 ) THEN
@@ -807,6 +815,7 @@
 !  (4 ) Now emissions and base year are arguments. Output in Tg/month
 !        since this is called monthly (phs, 12/9/08)
 !  (5 ) Bug fix, now print out correct monthly EMEP totals (bmy, 1/30/09)
+!  21 Dec 2011 - M. Payer    - Remove print for C2H6 emissions.
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -917,7 +926,12 @@
       WRITE( 6, 110   ) 'MEK ', EMISS_YEAR, EMEP_MONTH, MEK,  ' C'
       WRITE( 6, 110   ) 'ALD2', EMISS_YEAR, EMEP_MONTH, ALD2, ' C'
       WRITE( 6, 110   ) 'PRPE', EMISS_YEAR, EMEP_MONTH, PRPE, ' C'
-      WRITE( 6, 110   ) 'C2H6', EMISS_YEAR, EMEP_MONTH, C2H6, ' C'
+!------------------------------------------------------------------------------
+! Prior to 12/21/11:
+! C2H6 emissions are too low. Use Yaping Xiao's C2H6 emissions instead. 
+! (mpayer, 12/21/11)
+!      WRITE( 6, 110   ) 'C2H6', EMISS_YEAR, EMEP_MONTH, C2H6, ' C'
+!------------------------------------------------------------------------------
  110  FORMAT( 'EMEP anthropogenic ', a4, ' for ', i4, '/', i2.2,
      &        ': ', f13.6, ' Tg', a2 )
 
