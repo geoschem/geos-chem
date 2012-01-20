@@ -46,7 +46,8 @@
       PRIVATE :: RAINOUT
       PRIVATE :: GET_RAINFRAC
       PRIVATE :: SAFETY
-      PRIVATE :: WASHFRAC_AEROSOL
+      PRIVATE :: WASHFRAC_FINE_AEROSOL
+      PRIVATE :: WASHFRAC_COARSE_AEROSOL
       PRIVATE :: WASHFRAC_LIQ_GAS
       PRIVATE :: WASHFRAC_HNO3
 !
@@ -3318,6 +3319,9 @@
 !                              not the tracer is an aerosol, it's whether or not
 !                              washout is modeled as a kinetic vs equilibrium 
 !                              process.
+! 20 Jan 2012 - H Amos       - WASHFRAC for aerosol is now either computed by
+!                              WASHFRAC_FINE_AEROSOL or WASHFRAC_COARSE_AEROSOL
+!
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -3329,8 +3333,9 @@
       !=================================================================
       ! WASHOUT begins here!
       !
-      ! Call either WASHFRAC_AEROSOL or WASHFRAC_LIQ_GAS to compute the
-      ! fraction of tracer lost to washout according to Jacob et al 2000
+      ! Call either WASHFRAC_FINE_AEROSOL, WASHFRAC_COARSE_AEROSOL,
+      ! or WASHFRAC_LIQ_GAS to compute the fraction of tracer lost to 
+      ! washout according to Jacob et al 2000
       !=================================================================
 
       ! DZ is the height of the grid box in cm
@@ -3341,7 +3346,7 @@
       !------------------------------
       IF ( N == IDTPb .or. N == IDTBe7 ) THEN
          KIN      = .TRUE.
-         WASHFRAC = WASHFRAC_AEROSOL( DT, F, PP, TK )
+         WASHFRAC = WASHFRAC_FINE_AEROSOL( DT, F, PP, TK )
 
       !------------------------------
       ! HNO3 (aerosol)
@@ -3481,7 +3486,7 @@
          ! wet scavenging.  When evaporation occurs, it returns to SO4.
          !==============================================================
          KIN      = .TRUE.
-         WASHFRAC = WASHFRAC_AEROSOL( DT, F, PP, TK )
+         WASHFRAC = WASHFRAC_FINE_AEROSOL( DT, F, PP, TK )
 
          !==============================================================
          ! Use the wet-scavenging following [Chin et al, 1996] such 
@@ -3514,14 +3519,14 @@
       !------------------------------
       ELSE IF ( N == IDTSO4 .or. N == IDTSO4s .or. N == IDTSO4aq ) THEN
          KIN      = .TRUE.
-         WASHFRAC = WASHFRAC_AEROSOL( DT, F, PP, TK )
+         WASHFRAC = WASHFRAC_FINE_AEROSOL( DT, F, PP, TK )
 
       !------------------------------
       ! MSA (aerosol)
       !------------------------------
       ELSE IF ( N == IDTMSA ) THEN
          KIN      = .TRUE.
-         WASHFRAC = WASHFRAC_AEROSOL( DT, F, PP, TK )
+         WASHFRAC = WASHFRAC_FINE_AEROSOL( DT, F, PP, TK )
 
       !------------------------------
       ! NH3 (liquid & gas phases)
@@ -3536,7 +3541,7 @@
       !------------------------------
       ELSE IF ( N == IDTNH4 .or. N == IDTNH4aq ) THEN
          KIN      = .TRUE.
-         WASHFRAC = WASHFRAC_AEROSOL( DT, F, PP, TK )
+         WASHFRAC = WASHFRAC_FINE_AEROSOL( DT, F, PP, TK )
 
       !------------------------------
       ! NIT/AS/AHS/LET (aerosol)
@@ -3545,7 +3550,7 @@
      &          N == IDTAS   .or. N == IDTAHS  .or. 
      &          N == IDTLET ) THEN
          KIN      = .TRUE.
-         WASHFRAC = WASHFRAC_AEROSOL( DT, F, PP, TK )
+         WASHFRAC = WASHFRAC_FINE_AEROSOL( DT, F, PP, TK )
 
       !------------------------------
       ! BC HYDROPHILIC (aerosol) or
@@ -3556,7 +3561,7 @@
       ELSE IF ( N == IDTBCPI .or. N == IDTOCPI  .or.
      &          N == IDTBCPO .or. N == IDTOCPO ) THEN
          KIN      = .TRUE.
-         WASHFRAC = WASHFRAC_AEROSOL( DT, F, PP, TK )
+         WASHFRAC = WASHFRAC_FINE_AEROSOL( DT, F, PP, TK )
 
       !------------------------------
       ! DUST all size bins (aerosol)
@@ -3564,17 +3569,11 @@
       ELSE IF ( N == IDTDST1 .or. N == IDTDST2  .or.
      &          N == IDTDST3  ) THEN
          KIN      = .TRUE.
-         WASHFRAC = WASHFRAC_AEROSOL( DT, F, PP, TK )
+         WASHFRAC = WASHFRAC_FINE_AEROSOL( DT, F, PP, TK )
       !!coarse mode aerosols (qq,10/11/2011)
       ELSE IF ( N == IDTDST4 ) THEN
          KIN      = .TRUE.
-         IF ( TK >= 268d0 ) THEN
-            WASHFRAC = F *(1d0 - EXP( -0.92d0 * ( PP / F*3.6d4 )**0.79d0 
-     &                             * DT / 3.6d3 ))
-         ELSE
-            WASHFRAC = F *(1d0 - EXP( -1.57d0 *
-     &                          (PP / F*3.6d4)**0.96d0 * DT / 3.6d3 ))
-         ENDIF         
+         WASHFRAC = WASHFRAC_COARSE_AEROSOL( DT, F, PP, TK)
 
       !------------------------------
       ! Accum  seasalt (aerosol) or
@@ -3582,17 +3581,11 @@
       !------------------------------
       ELSE IF ( N == IDTSALA  ) THEN
          KIN      = .TRUE.
-         WASHFRAC = WASHFRAC_AEROSOL( DT, F, PP, TK )
+         WASHFRAC = WASHFRAC_FINE_AEROSOL( DT, F, PP, TK )
       !!coarse mode aerosols (qq,10/11/2011)
       ELSE IF ( N == IDTSALC ) THEN
          KIN      = .TRUE.
-         IF ( TK >= 268d0 ) THEN
-            WASHFRAC = F *(1d0 - EXP( -0.92d0 * ( PP / F*3.6d4 )**0.79d0 
-     &                             * DT / 3.6d3 ))
-         ELSE
-            WASHFRAC = F *(1d0 - EXP( -1.57d0 *
-     &                          (PP / F*3.6d4)**0.96d0 * DT / 3.6d3 ))
-         ENDIF         
+         WASHFRAC = WASHFRAC_COARSE_AEROSOL( DT, F, PP, TK)
  
       !------------------------------
       ! ALPH (liquid & gas phases)
@@ -3635,14 +3628,14 @@
      &          N == IDTSOA3 .or. N == IDTSOA4  .or.  
      &          N == IDTSOA5                    ) THEN
          KIN      = .TRUE.
-         WASHFRAC = WASHFRAC_AEROSOL( DT, F, PP, TK )
+         WASHFRAC = WASHFRAC_FINE_AEROSOL( DT, F, PP, TK )
 
       !------------------------------
       ! SOAG and SOAM (aerosol)
       !------------------------------
       ELSE IF ( N == IDTSOAG .or. N == IDTSOAM ) THEN
          KIN      = .TRUE.
-         WASHFRAC = WASHFRAC_AEROSOL( DT, F, PP, TK )
+         WASHFRAC = WASHFRAC_FINE_AEROSOL( DT, F, PP, TK )
 
       !------------------------------
       ! Hg2 (liquid & gas phases)
@@ -3655,7 +3648,7 @@
 
             ! Assume that Hg2 behaves like HNO3 and aerosols 
             KIN      = .TRUE.
-            WASHFRAC = WASHFRAC_AEROSOL( DT, F, PP, TK )
+            WASHFRAC = WASHFRAC_FINE_AEROSOL( DT, F, PP, TK )
             
          ELSE
 
@@ -3674,7 +3667,7 @@
       !------------------------------
       ELSE IF ( IS_HgP( N ) ) THEN 
          KIN      = .TRUE.
-         WASHFRAC = WASHFRAC_AEROSOL( DT, F, PP, TK )
+         WASHFRAC = WASHFRAC_FINE_AEROSOL( DT, F, PP, TK )
 
       !------------------------------
       ! ERROR: Insoluble tracer
@@ -3691,15 +3684,15 @@
 !------------------------------------------------------------------------------
 !BOP
 !
-! !IROUTINE: washfrac_aerosol
+! !IROUTINE: washfrac__fine_aerosol
 !
-! !DESCRIPTION: Function WASHFRAC\_AEROSOL returns the fraction of soluble 
+! !DESCRIPTION: Function WASHFRAC\_FINE\_AEROSOL returns the fraction of soluble 
 !  aerosol tracer lost to washout.
 !\\
 !\\
 ! !INTERFACE:
 !
-      FUNCTION WASHFRAC_AEROSOL( DT, F, PP, TK ) 
+      FUNCTION WASHFRAC_FINE_AEROSOL( DT, F, PP, TK ) 
      &         RESULT( WASHFRAC )
 !
 ! !USES:
@@ -3728,6 +3721,8 @@
 !  16 Sep 2010 - R. Yantosca - Added ProTeX headers
 !  16 Aug 2011 - H Amos      - Remove K_WASH from input list, make a defined 
 !                              parameter.
+!  20 Jan 2012 - H Amos      - rename WASHFRAC_FINE_AEROSOL to distinguish 
+!                              this function from WASHFRAC_COARSE_AEROSOL
 !
 !EOP
 !------------------------------------------------------------------------------
@@ -3737,23 +3732,87 @@
 !
       ! Washout rate constant for aerosols: aP^b (p: mm h^-1)
       ! K_WASH for aerosols in accumulation mode (qq,10/11/2011)
-      REAL*8, PARAMETER :: K_WASH_aerosol = 1.06d-3
+      REAL*8, PARAMETER :: K_WASH = 1.06d-3
 
       !=================================================================
-      ! WASHFRAC_AEROSOL begins here!
+      ! WASHFRAC_FINE_AEROSOL begins here!
       !=================================================================
 
       ! Washout only happens at or above 268 K
       IF ( ( TK >= 268d0 ) ) THEN
-         WASHFRAC = F *(1d0 - EXP( -K_WASH_aerosol * 
+         WASHFRAC = F *(1d0 - EXP( -K_WASH * 
      &                         (PP / F*3.6d4 )**0.61d0 * DT / 3.6d3 ))
       ELSE
-         WASHFRAC = F *(1d0 - EXP( -2.6d1*K_WASH_aerosol *
+         WASHFRAC = F *(1d0 - EXP( -2.6d1*K_WASH *
      &                         (PP / F*3.6d4 )**0.96d0 * DT / 3.6d3 ))
 
       ENDIF
 
-      END FUNCTION WASHFRAC_AEROSOL
+      END FUNCTION WASHFRAC_FINE_AEROSOL
+!EOC
+!------------------------------------------------------------------------------
+!          Harvard University Atmospheric Chemistry Modeling Group            !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: washfrac_coarse_aerosol
+!
+! !DESCRIPTION: Function WASHFRAC\_COARSE\_AEROSOL returns the fraction of soluble 
+!  aerosol tracer lost to washout.
+!\\
+!\\
+! !INTERFACE:
+!
+      FUNCTION WASHFRAC_COARSE_AEROSOL( DT, F, PP, TK ) 
+     &         RESULT( WASHFRAC )
+!
+! !USES:
+!
+      USE TRACER_MOD, ONLY : ITS_A_MERCURY_SIM
+!
+! !INPUT PARAMETERS: 
+!
+      REAL*8, INTENT(IN) :: DT         ! Timestep of washout event [s]
+      REAL*8, INTENT(IN) :: F          ! Fraction of grid box that is
+                                       !  precipitating [unitless]
+      REAL*8, INTENT(IN) :: PP         ! Precip rate thru bottom of grid 
+                                       !  box (I,J,L)  [cm3 H2O/cm2 air/s]
+      REAL*8, INTENT(IN) :: TK         ! Temperature in grid box [K]
+!
+! !RETURN VALUE:
+!
+      REAL*8             :: WASHFRAC   ! Fraction of soluble tracer 
+                                       !  lost to washout
+! 
+! !REVISION HISTORY: 
+!  08 Nov 2002 - R. Yantosca - Initial version
+!  (1 ) WASHFRAC_AEROSOL used to be an internal function to subroutine WASHOUT.
+!        This caused NaN's in the parallel loop on Altix, so we moved it to
+!        the module and now pass Iall arguments explicitly (bmy, 7/20/04)
+!  16 Sep 2010 - R. Yantosca - Added ProTeX headers
+!  16 Aug 2011 - H Amos      - Remove K_WASH from input list, make a defined 
+!                              parameter.
+!  20 Jan 2012 - H Amos      - WASHFRAC_COARSE_AEROSOL created to handle
+!                              SALC and DST4
+!
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+!
+      !=================================================================
+      ! WASHFRAC_FINE_AEROSOL begins here!
+      !=================================================================
+
+      ! Washout only happens at or above 268 K
+      IF ( TK >= 268d0 ) THEN
+           WASHFRAC = F *(1d0 - EXP( -0.92d0 * ( PP / F*3.6d4 )**0.79d0 
+     &                             * DT / 3.6d3 ))
+      ELSE
+           WASHFRAC = F *(1d0 - EXP( -1.57d0 *
+     &                          (PP / F*3.6d4)**0.96d0 * DT / 3.6d3 ))
+      ENDIF   
+
+      END FUNCTION WASHFRAC_COARSE_AEROSOL
 !EOC
 !------------------------------------------------------------------------------
 !          Harvard University Atmospheric Chemistry Modeling Group            !
