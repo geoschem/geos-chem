@@ -160,6 +160,7 @@
 !  08 Feb 2010 - NBIOMAX is now in F77_CMN_SIZE
 !  07 Feb 2011 - R. Yantosca - Use NEI99 biofuels when useing NEI05 anthro
 !  17 Aug 2011 - R. Yantosca - Added call to RETRO anthro emissions
+!  01 Dec 2011 - M. Payer    - Added call to EMISSC2H6
 !EOP
 !------------------------------------------------------------------------------
 !BOCca
@@ -271,6 +272,10 @@
          ! Read ICOADS ship emissions once per month (cklee, 7/09/09)
          IF ( LICOADSSHIP .and. ITS_A_NEW_MONTH() ) 
      &        CALL EMISS_ICOADS_SHIP
+
+         ! C2H6 emissions using RETRO are too low, use Yaping Xiao's
+         ! offline C2H6 emissions instead (mpayer, 12/1/11)
+         CALL EMISSC2H6
 
          ! NOx-Ox-HC (w/ or w/o aerosols)
          CALL EMISSDR

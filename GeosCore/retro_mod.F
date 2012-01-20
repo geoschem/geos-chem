@@ -49,6 +49,8 @@
 !  18 Aug 2011 - D. Millet   - Partition ketones into 25% MEK and 75% ACET
 !  18 Aug 2011 - D. Millet   - Remove call to GET_ANNUAL_SCALAR
 !  22 Aug 2011 - R. Yantosca - Added ProTeX headers
+!  01 Dec 2011 - M. Payer    - RETRO C2H6 emissions are too low. Use
+!                              Yaping Xiao's C2H6 emissions instead.
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -387,7 +389,7 @@
 ! !REVISION HISTORY: 
 !  08 Mar 2011 - W. Reinhart - Initial Version 
 !  22 Aug 2011 - R. Yantosca - Added ProTeX headers
-
+!  01 Dec 2011 - M. Payer    - Remove print for C2H6 emissions
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -498,7 +500,12 @@
          WRITE( 6, 100   ) 'PRPE', THISMONTH, PRPE, ' C'
          WRITE( 6, 100   ) 'C3H8', THISMONTH, C3H8, ' C'
          WRITE( 6, 100   ) 'CH2O', THISMONTH, CH2O, ' C'
-         WRITE( 6, 100   ) 'C2H6', THISMONTH, C2H6, ' C'
+!------------------------------------------------------------------------------
+! Prior to 12/1/11:
+! RETRO C2H6 emissions are too low. Use Yaping Xiao's C2H6 emissions instead.
+! (mpayer, 12/1/11)
+!         WRITE( 6, 100   ) 'C2H6', THISMONTH, C2H6, ' C'
+!------------------------------------------------------------------------------
          WRITE( 6, 100   ) 'BENZ', THISMONTH, BENZ, ' C'
          WRITE( 6, 100   ) 'TOLU', THISMONTH, TOLU, ' C'
          WRITE( 6, 100   ) 'XYLE', THISMONTH, XYLE, ' C'
@@ -547,6 +554,9 @@
 !  08 Mar 2011 - W. Reinhart - Initial Version 
 !  18 Aug 2011 - D. Millet   - Partition RETRO ketones into 75% acetone 
 !                              and 25% MEK
+!  01 Dec 2011 - M. Payer    - RETRO C2H6 emissions are too low. Use
+!                              Yaping Xiao's C2H6 emissions instead.
+
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -580,7 +590,13 @@
       ELSE IF ( N == IDTCH2O ) THEN
          RETRO = RETRO_CH2O(I,J)
       ELSE IF ( N == IDTC2H6 ) THEN
-         RETRO = RETRO_C2H6(I,J)
+!------------------------------------------------------------------------------
+! Prior to 12/1/11:
+! RETRO C2H6 emissions are too low. Use Yaping Xiao's C2H6 emissions instead.
+! (mpayer, 12/1/11)
+!         RETRO = RETRO_C2H6(I,J)
+!------------------------------------------------------------------------------
+         RETRO = -1d0
       ELSE IF ( N == IDTBENZ ) THEN
          RETRO = RETRO_BENZ(I,J)
       ELSE IF ( N == IDTTOLU ) THEN

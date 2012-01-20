@@ -51,7 +51,8 @@
 !  (5 ) Now references "directory_mod.f", "logical_mod.f", and "tracer_mod.f".
 !        (bmy, 7/20/04)
 !  (6 ) Now make sure all USE statements are USE, ONLY (bmy, 10/3/05)
-!  (7 ) Now modified 
+!  (7 ) Now modified
+!  13 Dec 2011 - M. Payer    - Add function GET_C2H6_ANTHRO
 !******************************************************************************
 !
       IMPLICIT NONE
@@ -61,6 +62,14 @@
       ! MODULE PRIVATE DECLARATIONS -- keep certain internal variables 
       ! and routines from being seen outside "c2h6_mod.f"
       !=================================================================
+      ! Declare everything PRIVATE ...
+      PRIVATE
+
+      ! Public Member Functions
+      PUBLIC  :: GET_C2H6_ANTHRO
+      PUBLIC  :: EMISSC2H6
+      PUBLIC  :: CHEMC2H6
+      PUBLIC  :: CLEANUP_C2H6
 
       ! PRIVATE module variables
       PRIVATE NGASC2H6
@@ -129,7 +138,8 @@
       USE LOGICAL_MOD,   ONLY : LSPLIT, LBIOMASS, LBIOFUEL, LANTHRO
       USE TIME_MOD,      ONLY : GET_MONTH, GET_TS_EMIS
       USE TRACER_MOD,    ONLY : STT
-      USE TRACERID_MOD,  ONLY : IDBFC2H6, IDEC2H6
+      USE TRACER_MOD,    ONLY : ITS_A_C2H6_SIM
+      USE TRACERID_MOD,  ONLY : IDBFC2H6, IDEC2H6, IDTC2H6
       USE TRANSFER_MOD,  ONLY : TRANSFER_2D
 
       USE CMN_SIZE_MOD     ! Size parameters
@@ -188,12 +198,17 @@
                E_C2H6_BB = BIOMASS(I,J,IDBC2H6)   / 2.0d0  / 
      &                     XNUMOL_C2H6 * AREA_CM2 * DTSRCE  
 
-               ! Add BB C2H6 to tracer #1 -- total C2H6 [kg C2H6]
-               STT(I,J,1,1) = STT(I,J,1,1) + E_C2H6_BB  
+               ! Do the following for offline C2H6 sim only (mpayer, 12/13/11)
+               IF ( ITS_A_C2H6_SIM() ) THEN
 
-               ! Add BB C2H6 to tracer #2 -- BB C2H6
-               IF ( LSPLIT ) THEN
-                  STT(I,J,1,2) = STT(I,J,1,2) + E_C2H6_BB 
+                  ! Add BB C2H6 to tracer #1 -- total C2H6 [kg C2H6]
+                  STT(I,J,1,1) = STT(I,J,1,1) + E_C2H6_BB  
+
+                  ! Add BB C2H6 to tracer #2 -- BB C2H6
+                  IF ( LSPLIT ) THEN
+                     STT(I,J,1,2) = STT(I,J,1,2) + E_C2H6_BB 
+                  ENDIF
+
                ENDIF
             ENDDO
          ENDDO
@@ -219,12 +234,17 @@
             E_C2H6_BF = BIOFUEL(IDBFC2H6,I,J) / 2.0d0 / 
      &                  XNUMOL_C2H6 * BOXVL(I,J,1) * DTSRCE  
 
-            ! Add BF C2H6 to tracer #1 -- total C2H6 [kg C2H6]
-            STT(I,J,1,1) = STT(I,J,1,1) + E_C2H6_BF  
+            ! Do the following for offline C2H6 sim only (mpayer, 12/13/11)
+            IF ( ITS_A_C2H6_SIM() ) THEN
 
-            ! Add BF C2H6 to tracer #3 -- BF C2H6
-            IF ( LSPLIT ) THEN
-               STT(I,J,1,3) = STT(I,J,1,3) + E_C2H6_BF 
+               ! Add BF C2H6 to tracer #1 -- total C2H6 [kg C2H6]
+               STT(I,J,1,1) = STT(I,J,1,1) + E_C2H6_BF
+
+               ! Add BF C2H6 to tracer #3 -- BF C2H6
+               IF ( LSPLIT ) THEN
+                  STT(I,J,1,3) = STT(I,J,1,3) + E_C2H6_BF 
+               ENDIF
+
             ENDIF
          ENDDO
          ENDDO
@@ -277,20 +297,25 @@
                E_C2H6_NGAS = NGASC2H6(I,J) / 2.0d0  /
      &                       XNUMOL_C2H6 * AREA_CM2 * DTSRCE 
 
-               ! Add NGAS C2H6 to tracer #1 -- total C2H6 [kg C2H6]
-               STT(I,J,1,1) = STT(I,J,1,1) + E_C2H6_NGAS 
+               ! Do the following for offline C2H6 sim only (mpayer, 12/13/11)
+               IF ( ITS_A_C2H6_SIM() ) THEN
 
-               ! Add NGAS C2H6 to tracer #4 -- NGAS C2H6
-               IF ( LSPLIT ) THEN
-                  STT(I,J,1,4) = STT(I,J,1,4) + E_C2H6_NGAS 
+                  ! Add NGAS C2H6 to tracer #1 -- total C2H6 [kg C2H6]
+                  STT(I,J,1,1) = STT(I,J,1,1) + E_C2H6_NGAS
+
+                  ! Add NGAS C2H6 to tracer #4 -- NGAS C2H6
+                  IF ( LSPLIT ) THEN
+                     STT(I,J,1,4) = STT(I,J,1,4) + E_C2H6_NGAS 
+                  ENDIF
+
+                  ! ND36 = Anthro source diagnostic...store as [moleC/cm2]
+                  ! and convert to [moleC/cm2/s] in DIAG3.F
+                  IF ( ND36 > 0 ) THEN
+                     AD36(I,J,IDEC2H6) = AD36(I,J,IDEC2H6) + 
+     &                                   ( NGASC2H6(I,J) * DTSRCE )
+                  ENDIF
+  
                ENDIF
-
-               ! ND36 = Anthro source diagnostic...store as [moleC/cm2]
-               ! and convert to [moleC/cm2/s] in DIAG3.F
-               IF ( ND36 > 0 ) THEN
-                  AD36(I,J,IDEC2H6) = AD36(I,J,IDEC2H6) + 
-     &                                ( NGASC2H6(I,J) * DTSRCE )
-               ENDIF  
             ENDDO
          ENDDO
 !$OMP END PARALLEL DO
@@ -404,6 +429,57 @@
       ! Return to calling program
       END SUBROUTINE CHEMC2H6
 
+!------------------------------------------------------------------------------
+!          Harvard University Atmospheric Chemistry Modeling Group            !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: get_C2H6_anthro
+!
+! !DESCRIPTION: Function GET\_C2H6\_ANTHRO returns the monthly average
+!  anthropogenic C2H6 emissions at GEOS-Chem grid box (I,J).  Data will
+!  be returned in units of [atoms C/cm2/s].
+!\\
+!\\
+! !INTERFACE:
+!
+      FUNCTION GET_C2H6_ANTHRO( I, J, N ) RESULT( C2H6_ANTHRO )
+!
+! !USES:
+!
+      USE TRACERID_MOD, ONLY : IDTC2H6
+      USE CMN_SIZE_MOD       ! Size parameters
+!
+! !INPUT PARAMETERS: 
+!
+      INTEGER, INTENT(IN) :: I   ! GEOS-Chem longitude index
+      INTEGER, INTENT(IN) :: J   ! GEOS-Chem latitude index
+      INTEGER, INTENT(IN) :: N   ! GEOS-Chem tracer index
+!
+! !RETURN VALUE:
+!
+      REAL*8              :: C2H6_ANTHRO
+! 
+! !REVISION HISTORY: 
+!  13 Dec 2011 - M. Payer    - Initial version adapted from GET_RETRO_ANTHRO
+!
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+!
+! !LOCAL VARIABLES
+!
+
+      !=================================================================
+      !  GET_C2H6_ANTHRO begins here
+      !=================================================================
+
+      IF ( N == IDTC2H6 ) THEN
+         C2H6_ANTHRO = NGASC2H6(I,J)
+      ENDIF
+
+      END FUNCTION GET_C2H6_ANTHRO
+!EOC
 !------------------------------------------------------------------------------
 
       SUBROUTINE INIT_C2H6

@@ -515,7 +515,7 @@ emfossil.o                  : emfossil.F                                     \
                               logical_mod.o           nei2005_anthro_mod.o   \
                               streets_anthro_mod.o    tracer_mod.o           \
                               tracerid_mod.o          vistas_anthro_mod.o    \
-			      retro_mod.o
+			      retro_mod.o             c2h6_mod.o
 
 emisop.o                    : emisop.F                dao_mod.o              \
                               meganut_mod.o

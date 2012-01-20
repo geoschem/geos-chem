@@ -32,6 +32,7 @@
       USE LOGICAL_MOD,        ONLY : LICARTT,          LNEI05
       USE LOGICAL_MOD,        ONLY : LRETRO
       USE RETRO_MOD,          ONLY : GET_RETRO_ANTHRO
+      USE C2H6_MOD,           ONLY : GET_C2H6_ANTHRO ! (mpayer, 12/14/11)
       USE NEI2005_ANTHRO_MOD, ONLY : GET_NEI2005_ANTHRO
       USE NEI2005_ANTHRO_MOD, ONLY : NEI05_MASK => USA_MASK
       USE LOGICAL_MOD,        ONLY : LICOADSSHIP !(cklee, 6/30/09)
@@ -44,6 +45,7 @@
       USE TRACER_MOD,         ONLY : XNUMOL
       USE TRACERID_MOD,       ONLY : IDENOX, IDEOX,    IDEHNO3
       USE TRACERID_MOD,       ONLY : IDTOX,  IDTCO,    IDTHNO3
+      USE TRACERID_MOD,       ONLY : IDTC2H6 ! (mpayer, 12/14/11)
       USE VISTAS_ANTHRO_MOD,  ONLY : GET_VISTAS_ANTHRO
       USE ICOADS_SHIP_MOD,    ONLY : GET_ICOADS_SHIP !(cklee, 7/09/09)
 
@@ -133,6 +135,8 @@
 !        array (e.g. ship O3 or HNO3) they no longer get overwritten.
 !        (gvinken, 11/16/10)
 !  19 Nov 2010 - R. Yantosca - Added ProTeX headers
+!  14 Dec 2011 - M. Payer    - Update for C2H6. RETRO ethane emissions are too
+!                              low so we will use Yaping Xiao's offline emiss.
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -148,6 +152,7 @@
       REAL*8  :: BRAVO, EPA_NEI, EMEP,   EDGAR, STREETS
       REAL*8  :: CAC,   SHIP,    VISTAS, NEI05
       REAL*8  :: RETRO
+      REAL*8  :: C2H6_ANTHRO ! (mpayer, 12/14/11)
 
       !=================================================================
       ! EMFOSSIL begins here!
@@ -622,6 +627,24 @@
 	    ENDIF  
          ENDIF
 
+         !--------------------------------------------------------------
+         ! Get C2H6 emissions from Yaping Xiao's inventory (mpayer, 12/14/11)
+         !--------------------------------------------------------------
+
+         ! If C2H6 is a defined tracer ...
+         IF ( NN == IDTC2H6 ) THEN
+
+               C2H6_ANTHRO = GET_C2H6_ANTHRO( I, J, NN )
+
+               ! Apply time-of-day factor
+	       C2H6_ANTHRO = C2H6_ANTHRO * TODX
+
+               ! Convert from molC/cm2/s to kg/box/timestep in order
+               ! to be in the proper units for EMISRR array
+               EMX(1) = C2H6_ANTHRO * ( DTSRCE * AREA_CM2 ) / XNUMOL(NN)
+
+         ENDIF
+  
          !--------------------------------------------------------------
          ! Get CO & Hydrocarbons from EMEP inventory over Europe
          !--------------------------------------------------------------
