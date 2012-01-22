@@ -299,7 +299,6 @@
 !                         and has been extended to 59 tracers.
 !  09 Mar 2011 - H Amos - clean up comments
 !  25 Oct 2011 - H Amos - brought into v9-01-02
-!  23 Nov 2011 - H Amos - add stratospheric aerosols
 !*****************************************************************************
      
       ! References F90 modules
@@ -329,7 +328,6 @@
       REAL*4               :: ARRAYbcpo( IGLOB, JGLOB, LGLOB )  ! bcpo
       REAL*4               :: ARRAYocpo( IGLOB, JGLOB, LGLOB )  ! ocpo
       REAL*4               :: ARRAYdst1( IGLOB, JGLOB, LGLOB )  ! dst1
-      REAL*4               :: ARRAY_UTLS(IGLOB, JGLOB, LGLOB )  ! UTLS SO4 
 
       ! Arrays to hold bulk concentration and surface area
       REAL*4               :: ARRAYconc(IGLOB,JGLOB,LGLOB)  ! concentration
@@ -337,7 +335,7 @@
       ! Local variables
       REAL*8               :: XTAU
       INTEGER              :: I, J, L, NN
-      CHARACTER(LEN=155)   :: FILENAME, FILENAME2
+      CHARACTER(LEN=155)   :: FILENAME
       CHARACTER(LEN=2)     :: MON                 ! for months 10-12
       CHARACTER(LEN=1)     :: SMON                ! for months 1-9
       REAL*8, PARAMETER    :: TINY  = 1d-16       ! to prevent NaN
@@ -374,19 +372,6 @@
       WRITE( 6, 110 )  FILENAME 
  110  FORMAT( '     -PARTITION_Hg2: Reading ', a )
 
-
-      ! UT/LS aerosols (WACCM)
-#if defined( GRID4x5 )
-      FILENAME2 = '/home/h/hamos/GC/input_files/aerosols/'//
-     &            'WACCM/WACCM.aerosol.4x5.47L.bpch'
-#elif defined( GRID2x25 )
-      FILENAME2 = '/home/h/hamos/GC/input_files/aerosols/'//
-     &            'WACCM/WACCM.aerosol.2x25.47L.bpch'
-#endif
-
-      ! Echo some information to the standard output
-      WRITE( 6, 100 )  FILENAME2 
- 100  FORMAT( '     -PARTITION_Hg2: Reading ', a )
 
       !------------------------------------------------------!
       ! Put aerosol mixing ratio (mol/mol) into arrays.     
@@ -458,58 +443,6 @@
  
       ! convert REAL*4 to REAL*8 
       CALL TRANSFER_3D_TROP( ARRAYdst1 , DST_CONC ) 
-
-      !---------------------------
-      ! UT/LS aerosols (mol/mol)
-      !---------------------------
-      
-      ! Get the TAU0 value for the start of the given month
-      ! Assume "generic" year 1985 (TAU0 = [0, 744, ... 8016])
-      XTAU = GET_TAU0( THISMONTH, 1, 2005 ) 
-
-      ! UT/LS sulfate (WACCM simulation)  
-      CALL READ_BPCH2( FILENAME2, 'SULF-MR' ,  1,  
-     &                 XTAU,      IGLOB,     JGLOB,
-     &                 LGLOB,     ARRAY_UTLS, QUIET=.TRUE. )
- 
-      ! convert REAL*4 to REAL*8 
-      CALL TRANSFER_3D_TROP( ARRAY_UTLS , SO4_WAC )
-
-#if defined( GRID2x25 )
-      ! convert mol/mol to ppb
-      ! Note: At 4x5, both GC and WACCM aerosols are read in
-      !       as mol/mol. At 2x2.5, GC aerosols are read in as
-      !       ppb and WACCM aerosols as mol/mol. It's an IDL 
-      !       idiosyncracy. Convert WACCM aerosols to same units
-      !       as GC aerosols. (hma, 20120104)
-      SO4_WAC = 1d9 * SO4_WAC
-#endif
-
-!$OMP PARALLEL DO
-!$OMP+DEFAULT( SHARED )
-!$OMP+PRIVATE( I, J, L )
-
-      ! Below ~10 km, use GEOS-Chem sulfate aerosol
-      ! Above ~10 km, use WACCM sulfate aerosol
-      ! 10km is about level 30 if using 47L reduced grid. 
-      ! (H Amos, 29 Nov 2011)
-
-      !DO L = 1, 30
-      DO J = 1, JJPAR
-      DO I = 1, IIPAR
-
-        DO L = 1, 30
-           SO4_CONC(I,J,L) = SO4_GC(I,J,L)
-        ENDDO
-
-        DO L = 31, 47
-           SO4_CONC(I,J,L) = SO4_WAC(I,J,L)
-        ENDDO
-
-      ENDDO
-      ENDDO 
-
-!$OMP END PARALLEL DO
 
 
 !$OMP PARALLEL DO
@@ -3325,10 +3258,6 @@
       IF ( AS /= 0 ) CALL ALLOC_ERR( 'R' )
       R = 0d0 
 
-      ALLOCATE( SO4_WAC( IIPAR, JJPAR, LLPAR ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'SO4_WAC' )
-      SO4_WAC = 0d0 
-
       ALLOCATE( SO4_CONC( IIPAR, JJPAR, LLPAR ), STAT=AS )
       IF ( AS /= 0 ) CALL ALLOC_ERR( 'SO4_CONC' )
       SO4_CONC = 0d0 
@@ -3378,7 +3307,6 @@
       IF ( ALLOCATED( BC_CONC   ) ) DEALLOCATE( BC_CONC   )
       IF ( ALLOCATED( DST_CONC  ) ) DEALLOCATE( DST_CONC  )
       IF ( ALLOCATED( R         ) ) DEALLOCATE( R         )
-      IF ( ALLOCATED( SO4_WAC   ) ) DEALLOCATE( SO4_WAC   )
       IF ( ALLOCATED( SO4_CONC  ) ) DEALLOCATE( SO4_CONC  )
 
       ! Return to calling program
