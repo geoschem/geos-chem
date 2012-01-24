@@ -33,14 +33,22 @@ c  only covers the jpnl levels actually needed by the CTM.
 
       USE FJX_ACET_MOD
 
+#if defined( DEVEL )
       USE CMN_FJ_MOD, ONLY : JPMAX, JPPJ, JPNL
+#else
+      USE CMN_FJ_MOD, ONLY : IPAR, JPAR, LPAR, JPMAX, JPPJ, JPNL
+#endif
       USE CMN_SIZE_MOD, ONLY: LLPAR
       USE JV_CMN_MOD
 
       IMPLICIT NONE
 
 !=============== INPUT PARAMETERS ======================================
+#if defined( DEVEL )
       REAL*8,  INTENT(IN) :: T(LLPAR)
+#else
+      REAL*8,  INTENT(IN) :: T(LPAR)
+#endif
       INTEGER, INTENT(IN) :: IDAY
 
 !=============== LOCAL VARIABLES =======================================

@@ -133,7 +133,11 @@
       INTEGER, PARAMETER :: PD62=NNPAR        
       INTEGER, PARAMETER :: PD63=0           
       INTEGER, PARAMETER :: PD64=0
+#if defined( DEVEL )
       INTEGER :: PD65
+#else
+      INTEGER, PARAMETER :: PD65=LLPAR*MAXFAM 
+#endif
       INTEGER, PARAMETER :: PD66=6           
       INTEGER, PARAMETER :: PD67=23 ! (Lin, 31/03/09)
       INTEGER, PARAMETER :: PD68=4            
@@ -253,6 +257,7 @@
 !EOP
 !------------------------------------------------------------------------------
 !BOC
+#if defined( DEVEL )
       CONTAINS
 
       SUBROUTINE SET_CMN_DIAG_MOD
@@ -262,7 +267,7 @@
         PD65=LLPAR*MAXFAM 
 
       END SUBROUTINE SET_CMN_DIAG_MOD
-
+#endif
       END MODULE CMN_DIAG_MOD
 !EOC
 

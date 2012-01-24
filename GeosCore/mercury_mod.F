@@ -188,7 +188,7 @@
       PUBLIC :: LHg_WETDasHNO3
       PUBLIC :: PARTITIONHG
       PUBLIC :: HGPFRAC
-      
+
       !=================================================================
       ! MODULE VARIABLES
       !=================================================================
@@ -227,8 +227,8 @@
 
       ! Henry's Law constant for Hg2 [mol /L /atm]
       REAL*8, PARAMETER     :: HL       = 1.4d6
- 
       REAL*8, ALLOCATABLE :: HGPFRAC(:,:,:)
+
       !=================================================================
       ! MODULE ROUTINES -- follow below the "CONTAINS" statement
       !=================================================================

@@ -139,7 +139,9 @@
       REAL*8,  ALLOCATABLE :: CHEMCO2(:,:,:)
       REAL*8,  ALLOCATABLE :: EMIS_SUB(:,:)
 
-      REAL*8, ALLOCATABLE, SAVE :: CHEMSRC(:,:,:) !dbj, msl
+#if defined( DEVEL )
+      REAL*8,  ALLOCATABLE, SAVE :: CHEMSRC(:,:,:) !dbj, msl
+#endif
 !
 ! !DEFINED PARAMETERS:
 !
@@ -189,7 +191,7 @@
       USE LOGICAL_MOD,  ONLY : LSHIPTAG,    LPLANETAG
       USE LOGICAL_MOD,  ONLY : LSHIPSCALE,  LPLANESCALE
       USE LOGICAL_MOD,  ONLY : LCHEMCO2
-      
+
       USE CMN_SIZE_MOD    ! Size parameters
 !
 ! !REMARKS:
@@ -222,6 +224,9 @@
       INTEGER                :: DAY,   DOY,    HOUR, MONTH, YEAR   
       REAL*8                 :: A_CM2, DTSRCE, E_CO2
       REAL*8                 :: biomass_sum, bionet_sum
+#if !defined( DEVEL )
+      REAL*8, SAVE           :: CHEMSRC(IIPAR,JJPAR,LLPAR)  ! dbj
+#endif
 
       ! External functions     
       REAL*8, EXTERNAL       :: BOXVL    ! dbj
@@ -3247,9 +3252,11 @@
       IF ( AS /= 0 ) CALL ALLOC_ERR( 'OCEAN_REGION' )
       OCEAN_REGION = 0
 
+#if defined( DEVEL )
       ALLOCATE( CHEMSRC(IIPAR,JJPAR,LLPAR), STAT=AS )
       IF ( AS /=0 ) CALL ALLOC_ERR( 'CHEMSRC' )
       CHEMSRC = 0.d0
+#endif
 
       !=================================================================
       ! Read in annual mean emissions

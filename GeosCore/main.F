@@ -251,6 +251,7 @@
       INTEGER            :: ELAPSED_SEC,   NHMSb, RC
       INTEGER            :: ELAPSED_TODAY, HOUR,  MINUTE
       REAL*8             :: TAU,           TAUb         
+
       CHARACTER(LEN=255) :: ZTYPE
 
       !=================================================================

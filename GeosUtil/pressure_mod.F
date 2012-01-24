@@ -476,11 +476,11 @@
       IF ( AS /= 0 ) CALL ALLOC_ERR( 'BP' )
       BP = 0d0
 
-      ALLOCATE( AP_FULLGRID( LLPAR+1 ), STAT=AS )
+      ALLOCATE( AP_FULLGRID( LGLOB+1 ), STAT=AS )
       IF ( AS /= 0 ) CALL ALLOC_ERR( 'AP_FULLGRID' )
       AP = 1d0
 
-      ALLOCATE( BP_FULLGRID( LLPAR+1 ), STAT=AS )
+      ALLOCATE( BP_FULLGRID( LGLOB+1 ), STAT=AS )
       IF ( AS /= 0 ) CALL ALLOC_ERR( 'BP_FULLGRID' )
       BP = 0d0
 

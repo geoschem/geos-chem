@@ -33,7 +33,8 @@
 
 #     include "define.h"
 
-      USE CMN_FJ_MOD, ONLY : JPMAX, JPPJ, JPNL
+      USE CMN_FJ_MOD,   ONLY : JPMAX, JPPJ, JPNL
+      USE CMN_SIZE_MOD, ONLY : LLPAR
       USE JV_CMN_MOD
 
       IMPLICIT NONE

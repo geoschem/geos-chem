@@ -602,6 +602,7 @@
       REAL*4               :: DTDYN, AIRDENS, PNOY
       REAL*4               :: ARRAY(1,JJPAR,LGLOB)
 
+#if defined( DEVEL )
       ! Ratio of ( [NO] + [NO2] ) / [NOy] 
       REAL*4, ALLOCATABLE, SAVE  :: XRATIO(:,:)
 
@@ -613,6 +614,19 @@
 
       ! For P(NOy) above 10 mb
       REAL*4, ALLOCATABLE, SAVE  :: SPNOY10mb(:)
+#else
+      ! Ratio of ( [NO] + [NO2] ) / [NOy] 
+      REAL*4, SAVE  :: XRATIO(JJPAR,LLPAR)
+
+      ! Arrays for P(NOY), NO, NO2, and HNO3 concentrations
+      REAL*4, SAVE  :: STRATPNOY(JJPAR,LLPAR)
+      REAL*4, SAVE  :: STRATNO(JJPAR,LLPAR)
+      REAL*4, SAVE  :: STRATNO2(JJPAR,LLPAR)
+      REAL*4, SAVE  :: STRATHNO3(JJPAR,LLPAR)
+
+      ! For P(NOy) above 10 mb
+      REAL*4, SAVE  :: SPNOY10mb(JJPAR)
+#endif
 
       ! TAU values for indexing the punch file 
       REAL*8               :: XTAU
@@ -628,6 +642,7 @@
       ! UPBDFLX_NOY begins here! 
       !=================================================================
 
+#if defined( DEVEL )
       IF (FIRST) THEN
          ALLOCATE( STRATPNOY(JJPAR,LLPAR), STAT=AS )
          IF (AS /=0) CALL ALLOC_ERR( 'STRATPNOY' )
@@ -644,6 +659,7 @@
          
          FIRST = .FALSE.
       ENDIF
+#endif
 
       ! Dynamic timestep [s]
       DTDYN = GET_TS_DYN() * 60d0
@@ -762,7 +778,11 @@
          LMIN = GET_MIN_TPAUSE_LEVEL()
 
 !$OMP PARALLEL DO
+#if defined( DEVEL )
 !$OMP+DEFAULT( SHARED )
+#else
+!$OMP+DEFAULT( SHARED ) SHARED(XRATIO)
+#endif
 !$OMP+PRIVATE( I, J, L, PNOY )
 !$OMP+SCHEDULE( DYNAMIC )
          DO L = LMIN, LLPAR

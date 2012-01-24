@@ -21,7 +21,11 @@ c
 !-----------------------------------------------------------------------
 #     include "define.h"
 
+#if defined( DEVEL )
       USE CMN_FJ_MOD, ONLY : JPMAX, JPPJ, JPNL
+#else
+      USE CMN_FJ_MOD, ONLY : IPAR, JPAR, LPAR, JPMAX, JPPJ, JPNL
+#endif
       USE CMN_SIZE_MOD, ONLY : LLPAR
       USE JV_CMN_MOD
 
@@ -33,7 +37,11 @@ c
 !=============== LOCAL VARIABLES =======================================
       integer j, k
       real*8  wave, xseco3, xseco2
+#if defined( DEVEL )
       real*8  AVGF(LLPAR),XQO3(NB),XQO2(NB)
+#else
+      real*8  AVGF(LPAR),XQO3(NB),XQO2(NB)
+#endif
 !
       do J=1,jpnl
         do K=NW1,NW2

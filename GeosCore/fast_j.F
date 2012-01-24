@@ -40,8 +40,11 @@
 
       USE CMN_SIZE_MOD, ONLY : IIPAR, JJPAR, LLPAR
       USE CMN_SIZE_MOD, ONLY : NDUST, MAXIJ, NAER, NRH
-      USE CMN_FJ_MOD,   ONLY : JPMAX, JPPJ     ! IPAR, JPAR, LPAR, F77_CMN_SIZE
-      USE JV_CMN_MOD,   ONLY : ODMDUST, PJ, NB, ODAER
+#if !defined( DEVEL )
+      USE CMN_FJ_MOD, ONLY : IPAR, JPAR, LPAR
+#endif
+      USE CMN_FJ_MOD, ONLY : JPMAX, JPPJ               ! IPAR, JPAR, LPAR, F77_CMN_SIZE
+      USE JV_CMN_MOD, ONLY : ODMDUST, PJ, NB, ODAER
 
       IMPLICIT NONE
 
@@ -126,9 +129,14 @@
       REAL*8             :: OPTAER(LLPAR,NAER*NRH)
 
       ! Local variables for cloud overlap (hyl, phs)
-      INTEGER            :: NUMB, KK, I, AS
+      INTEGER           :: NUMB, KK, I
       INTEGER            :: INDIC(LLPAR+1)
+#if defined( DEVEL )
       INTEGER, ALLOCATABLE :: INDGEN(:)
+      INTEGER              :: AS
+#else
+      INTEGER            :: INDGEN(LLPAR+1) = (/ (i,i=1,LLPAR+1) /)
+#endif
       INTEGER            :: KBOT(LLPAR)
       INTEGER            :: KTOP(LLPAR)
       INTEGER            :: INDICATOR(LLPAR+2)
@@ -151,6 +159,7 @@
       ! FAST_J begins here!
       !=================================================================
 
+#if defined( DEVEL )
       IF ( FIRST ) THEN
 
          ALLOCATE ( INDGEN(LLPAR+1), STAT=AS)
@@ -162,6 +171,7 @@
          FIRST = .FALSE.
 
       ENDIF
+#endif
 
       ! Get day of year (0-365 or 0-366)
       DAY_OF_YR = GET_DAY_OF_YEAR()

@@ -17,7 +17,12 @@ c
 !-----------------------------------------------------------------------
 #     include "define.h"
 
+#if defined( DEVEL )
       USE CMN_FJ_MOD, ONLY : JPMAX, JPPJ
+#else
+      USE CMN_FJ_MOD, ONLY : IPAR, JPAR, LPAR, JPMAX, JPPJ
+#endif
+      USE CMN_SIZE_MOD, ONLY : LLPAR
       USE JV_CMN_MOD
 
       IMPLICIT NONE

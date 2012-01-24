@@ -103,13 +103,21 @@
       REAL*8  :: PULSDECAY(NPULSE)
 
       ! Stores output
+#if defined( DEVEL )
       REAL*8, ALLOCATABLE  :: SOILNOX(:,:)
+#else
+      REAL*8  :: SOILNOX(IIPAR,JJPAR) 
+#endif
 
       ! Olson->soil type,nvegtype in commbio.h
       INTEGER :: NCONSOIL(NVEGTYPE) 
 
       ! Track NOx within canopy dry dep.
+#if defined( DEVEL )
       REAL*8, ALLOCATABLE  :: CANOPYNOX(:,:)
+#else
+      REAL*8  :: CANOPYNOX(MAXIJ,NTYPE) 
+#endif
 
       ! Canopy wind extinction coeff from Y&L
       REAL*8  :: SOILTA(NSOIL)
@@ -179,6 +187,7 @@
 !EOP
 !------------------------------------------------------------------------------
 !BOC
+#if defined( DEVEL )
       CONTAINS
 
       SUBROUTINE SET_COMMSOIL_MOD
@@ -193,6 +202,6 @@
      &     STAT=AS)
 
       END SUBROUTINE SET_COMMSOIL_MOD
-
+#endif
       END MODULE COMMSOIL_MOD
 !EOC

@@ -67,7 +67,9 @@
       REAL*8,  ALLOCATABLE   :: DUSTREFF(:)
       REAL*8,  ALLOCATABLE   :: DUSTDEN(:)
       
+#if defined( DEVEL )
       REAL*8, ALLOCATABLE, SAVE :: SRCE_FUNC(:,:,:)
+#endif
 
       CONTAINS
 !EOC
@@ -940,6 +942,9 @@
       REAL*8                 :: SRCE_P, DSRC, REYNOL, ALPHA, BETA
       REAL*8                 :: GAMMA,  CW,   DTSRCE, AREA_M2
       CHARACTER(LEN=255)     :: FILENAME
+#if !defined( DEVEL )
+      REAL*8, SAVE           :: SRCE_FUNC(IIPAR,JJPAR,3)
+#endif
 
       ! Transfer coeff for type natural source  (kg*s2/m5)
       REAL*8, PARAMETER      :: CH_DUST  = 9.375d-10
@@ -1721,9 +1726,11 @@
          FRAC_S(1:NDSTBIN)   = (/ 0.095d0, 0.3d0, 0.3d0, 0.3d0 /)
       ENDIF
 
+#if defined( DEVEL )
       ALLOCATE( SRCE_FUNC(IIPAR,JJPAR,3), STAT=AS )
       IF ( AS /= 0 ) CALL ALLOC_ERR( 'SRCE_FUNC' )
       SRCE_FUNC = 0.d0
+#endif
 
       ! Reset flag
       IS_INIT = .TRUE.

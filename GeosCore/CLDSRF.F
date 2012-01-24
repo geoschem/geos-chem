@@ -18,14 +18,22 @@ c     nlbatm   Level of lower photolysis boundary - usually surface
 !-----------------------------------------------------------------------
 #     include "define.h"
 
+#if defined( DEVEL )
       USE CMN_FJ_MOD, ONLY : JPMAX, JPPJ
+#else
+      USE CMN_FJ_MOD, ONLY : IPAR, JPAR, LPAR, JPMAX, JPPJ
+#endif
       USE CMN_SIZE_MOD, ONLY : IIPAR, JJPAR, LLPAR
       USE JV_CMN_MOD
 
       IMPLICIT NONE
 
 !=============== INPUT PARAMETERS ======================================
+#if defined( DEVEL )
       REAL*8, INTENT(INOUT) :: ODCOL(LLPAR)
+#else
+      REAL*8, INTENT(INOUT) :: ODCOL(LPAR)
+#endif
       REAL*8, INTENT(IN)    :: SA
 
 !=============== LOCAL VARIABLES =======================================
