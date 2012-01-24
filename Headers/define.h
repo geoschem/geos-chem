@@ -131,6 +131,7 @@
 !#define GEOS_4      'GEOS_4'
 #define GEOS_5      'GEOS_5'
 !#define MERRA       'MERRA'
+!#define GEOS_57    'GEOS_57'
 
 !----- Grid sizes -----
 !#define NESTED_CH   'NESTED_CH'
@@ -174,7 +175,7 @@
 !==============================================================================
 #if !defined(IBM_AIX) && !defined(IBM_XLF) && !defined(LINUX_PGI) && !defined(LINUX_IFORT) && !defined(SPARC)
 #error "ERROR: One of IBM_AIX, IBL_XLF, LINUX_PGI, LINUX_IFORT,"
-#error "SPARC must be defined in header file define.h"
+ #error "SPARC must be defined in header file define.h"
 #endif
 
 !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
