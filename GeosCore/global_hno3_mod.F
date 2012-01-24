@@ -106,6 +106,41 @@
 
 !------------------------------------------------------------------------------
 
+      FUNCTION GET_HNO3_VV( I, J, L ) RESULT( HNO3_VV )
+!
+!******************************************************************************
+!  Subroutine GET_HNO3_VV returns HNO3 concentrations in units of v/v (bec, 12/23/11)
+!
+!  Arguments as Input:
+!  ===========================================================================
+!  (1-3) I, J, L   (INTEGER) : Grid box indices for lon, lat, vertical level
+!
+!  NOTES:
+!  (1 ) Now references TCVV from "tracer_mod.f" (bmy, 7/20/04)
+!******************************************************************************
+!
+      ! References to F90 modules
+      USE DAO_MOD,    ONLY : AD, AIRVOL
+      USE TRACER_MOD, ONLY : TCVV
+      USE CMN_SIZE_MOD    ! Size parameters
+
+      ! Arguments
+      INTEGER, INTENT(IN) :: I, J, L
+
+      ! Local variables
+      REAL*8              :: HNO3_VV
+      
+      !=================================================================
+      ! GET_HNO3_vv begins here!
+      !=================================================================
+
+      ! Convert HNO3 from [ppbv] to [v/v] 
+      HNO3_VV = HNO3(I,J,L) * 1.d-9 !HNO3 is in ppbv, not v/v (bec, 9/28/09)
+
+      ! Return to calling program
+      END FUNCTION GET_HNO3_VV
+!------------------------------------------------------------------------------
+
       SUBROUTINE GET_GLOBAL_HNO3( THISMONTH )
 !
 !******************************************************************************
