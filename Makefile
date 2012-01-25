@@ -73,6 +73,9 @@ libutil:
 exe:
 	@$(MAKE) -C $(GEOSDIR) exe
 
+ncdfcheck:
+	@$(MAKE) -C $(GEOSDIR) ncdfcheck
+
 clean:
 	@$(MAKE) -C $(GEOSDIR) clean
 

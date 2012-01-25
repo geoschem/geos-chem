@@ -98,6 +98,7 @@
 #  04 Nov 2011 - R. Yantosca - Remove references to ESMF subdirectory
 #  08 Dec 2011 - M. Payer    - Remove obsolete GEIA biogenic emissions routines
 #  24 Jan 2012 - R. Yantosca - Also add libnc target to build netCDF utils
+#  25 Jan 2012 - R. Yantosca - Add ncdfcheck target to check netCDF install
 #EOP
 #------------------------------------------------------------------------------
 #BOC
@@ -165,8 +166,15 @@ libkpp:                                            # Build code in KPP/
 
 libnc:                                             # Build code in NcdfUtil/
 ifeq ($(NETCDF),yes)                               
-	@$(MAKE) -C $(NCDF) lib          
+	@$(MAKE) -C $(NCDF) lib
 endif
+
+ncdfcheck:                                         # Check netCDF library
+ifeq ($(NETCDF),yes)                               
+	@$(MAKE) libnc
+	@$(MAKE) -C $(NCDF) check
+endif
+
 
 libutil:                                           # Build code in GeosUtil/
 	@$(MAKE) -C $(UTIL)			  

@@ -160,8 +160,8 @@ endif
 
 # Add the netCDF library link commands if necessary
 ifeq ($(NETCDF),yes)
-LINK      += -L$(NCL) 
-LHG       += -L$(NCL)
+LINK      += $(NCL) 
+LHG       += $(NCL)
 endif
 
 # For ESMF development
