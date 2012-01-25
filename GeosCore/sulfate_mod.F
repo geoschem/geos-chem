@@ -1829,34 +1829,35 @@
             ! in aqueous phase with different rate constants. 
             !===========================================================
 
-		! Get concentrations for cloud pH calculation (bec, 12/23/11)
+	    ! Get concentrations for cloud pH calculation (bec, 12/23/11)
 
-		! Get sulfate concentration and convert from [v/v] to [moles/liter]
-		! Use a cloud scavenging ratio of 0.7 
-	   	SO4nss  =  STT(I,J,L,IDTSO4) *  AIRDEN(I,J,L) *  0.7d0 / 
+	    ! Get sulfate concentration and convert from [v/v] to
+            ! [moles/liter]
+	    ! Use a cloud scavenging ratio of 0.7 
+	    SO4nss  =  STT(I,J,L,IDTSO4) *  AIRDEN(I,J,L) *  0.7d0 / 
      &                ( 28.97d0 * LWC )
 
-		! Get total ammonia (NH3 + NH4+) concentration [v/v]
-		! Use a cloud scavenging ratio of 0.7 for NH4+
-         	TNH3     = ( STT(I,J,L,IDTNH4) * 0.7d0 ) + 
+	    ! Get total ammonia (NH3 + NH4+) concentration [v/v]
+	    ! Use a cloud scavenging ratio of 0.7 for NH4+
+            TNH3     = ( STT(I,J,L,IDTNH4) * 0.7d0 ) + 
      &                   STT(I,J,L,IDTNH3)
 
-	   	! Get total nitrate (HNO3 + NIT) concentrations [v/v] 
-     		! Use a cloud scavenging ratio of 0.7 for NIT
-	   	IF ( ITS_A_FULLCHEM_SIM() ) THEN
-			TNO3 = STT(I,J,L,IDTHNO3) + 
-     &                  ( STT(I,J,L,IDTNIT) * 0.7d0 )
-			GNO3 = STT(I,J,L,IDTHNO3) !For Fahey and Pandis decision algorithm
-        	ELSE IF ( ITS_AN_AEROSOL_SIM() ) THEN
-			TANIT = STT(I,J,L,IDTNIT)  !aerosol nitrate [v/v]
-			GNO3 = GET_HNO3_VV(I,J,L) - TANIT ! gas-phase nitric acid [v/v]
-   			ANIT = TANIT * 0.7d0 !aerosol nitrate in the cloud drops [v/v]
-			TNO3 = GNO3 + ANIT ! total nitrate for cloud pH calculations
-	   	ENDIF
+	    ! Get total nitrate (HNO3 + NIT) concentrations [v/v] 
+     	    ! Use a cloud scavenging ratio of 0.7 for NIT
+	    IF ( ITS_A_FULLCHEM_SIM() ) THEN
+               TNO3 = STT(I,J,L,IDTHNO3) + 
+     &              ( STT(I,J,L,IDTNIT) * 0.7d0 )
+	       GNO3 = STT(I,J,L,IDTHNO3) !For Fahey & Pandis decision algorithm
+            ELSE IF ( ITS_AN_AEROSOL_SIM() ) THEN
+               TANIT = STT(I,J,L,IDTNIT) !aerosol nitrate [v/v]
+	       GNO3  = GET_HNO3_VV(I,J,L) - TANIT ! gas-phase nitric acid [v/v]
+   	       ANIT  = TANIT * 0.7d0 ! aerosol nitrate in the cloud drops [v/v]
+	       TNO3  = GNO3 + ANIT   ! total nitrate for cloud pH calculations
+	    ENDIF
 		
-		! Calculate cloud pH
-	      CALL GET_HPLUS( SO4nss, TNH3, TNO3, SO2_ss, TK, 
-     &                      PATM, LWC, HPLUS_45, HPLUS )
+            ! Calculate cloud pH
+	    CALL GET_HPLUS( SO4nss, TNH3, TNO3,     SO2_ss, TK, 
+     &                        PATM,   LWC,  HPLUS_45, HPLUS )
 
             ! Compute aqueous rxn rates for SO2
             CALL AQCHEM_SO2( LWC, TK,    PATM,    SO2_ss, H2O20, 
@@ -1925,128 +1926,173 @@
                ENDIF
             ENDIF
 
-		! Decide whether or not it is necessary to use heterogeneous cloud pH
-		! calculations based on the Fahey and Pandis, 2001 decision algorithm (bec, 12/23/11)
+            ! Decide whether or not it is necessary to use heterogeneous cloud
+            ! pH calculations based on the Fahey and Pandis, 2001 decision
+            ! algorithm (bec, 12/23/11)
 
-		! Add up total seasalt and dust and convert to ug/m3
-		! Note that it is better to use dust and sea-salt alkalinity tracers
-		! if these are being transported (bec, 12/23/11)
-		ALKdst = ( STT(I,J,L,IDTDST1) + STT(I,J,L,IDTDST2) +
+            ! Add up total seasalt and dust and convert to ug/m3
+            ! Note that it is better to use dust and sea-salt alkalinity
+            ! tracers if these are being transported (bec, 12/23/11)
+            ALKdst = ( STT(I,J,L,IDTDST1) + STT(I,J,L,IDTDST2) +
      &                 STT(I,J,L,IDTDST3) + STT(I,J,L,IDTDST4) ) *
-     &               1.D9 * AD(I,J,L) / TCVV(IDTDST1) / AIRVOL(I,J,L)
+     &                 1.D9 * AD(I,J,L) / TCVV(IDTDST1) / AIRVOL(I,J,L)
 
-		ALKss  = ( STT(I,J,L,IDTSALA  ) + STT(I,J,L,IDTSALC) ) *
-     &               1.D9 * AD(I,J,L) / TCVV(IDTSALA) / AIRVOL(I,J,L)
+            ALKss  = ( STT(I,J,L,IDTSALA  ) + STT(I,J,L,IDTSALC) ) *
+     &                 1.D9 * AD(I,J,L) / TCVV(IDTSALA) / AIRVOL(I,J,L)
 
-		ALKds = ALKdst + ALKss
+            ALKds = ALKdst + ALKss
 
-		! Get NH3 concentrations (v/v)
-		NH3 = STT(I,J,L,IDTNH3) 
+            ! Get NH3 concentrations (v/v)
+            NH3 = STT(I,J,L,IDTNH3) 
 
-		! Initialize
+            ! Initialize
             BULK = 0
-		SIZE_RES = 0
+	    SIZE_RES = 0
 
-		! Fahey and Seinfeld decision algorithm
-		IF ( H2O20 > SO2_ss + 1D-9 ) THEN
-			BULK = 1
-		ELSEIF ( LWC < 0.1D6 ) THEN !10^6 coversion from m3/m3 --> g/m3
-			SIZE_RES = 1
-		ELSEIF ( gno3 > NH3 ) THEN
-			IF ( SO2_ss >= 5.D-9 .and. H2O20 >= SO20 ) BULK = 1
-			IF ( LWC >= 0.3D6 .and. SO2_ss >= 3.D-9 .and. 
-     &                 H2O20 >= SO2_ss ) BULK = 1
-			IF ( ALKds >= 5.D0 .and. LWC >= 0.5D6 .and. 
-     &                 H2O20 >= SO2_ss ) BULK = 1
-			IF ( LWC >= 0.1D6 .and. 
-     &                 gno3 <= (NH3 + 2.D-9) ) 
-     &               BULK = 1
-		ELSEIF ( LWC >= 0.1d6 ) THEN
-			IF ( NH3 <= 1.d-9 .and. ALKds >= 5.d0 ) BULK = 1
-			IF ( NH3 <= 5.d-9 .and. ALKds >= 10.d0 ) BULK = 1
-			IF ( gno3 <= 1.d-9 .and. 
-     &                 NH3 >= (gno3 + 2.d-9) .and. 
-     &                 SO2_ss <= 7.d-9 ) BULK = 1
-			IF ( gno3 <= 1.d-9 .and. 
-     &                 NH3 >= (gno3 + 2.d-9) .and. 
-     &                 ALKds >= 2.d0 ) BULK = 1
-			IF ( gno3 <= 3.d-9 .and. 
-     &                 NH3 >= (gno3 + 4.d-9) ) BULK = 1
-			IF ( gno3 <= 7.d-9 .and. 
-     &                 NH3 >= (gno3 + 3.d-9) .and. 
-     &                 SO2_ss <= 5.d-9 ) BULK = 1
- 			IF ( gno3 <= 7.d-9 .and. 
-     &                 NH3 >= (gno3 + 3.d-9) .and. 
-     &		     ALKds >= 4.d0 .and. SO2_ss <= 9.d-9 ) BULK = 1
-			IF ( ALKds >= 3.d0 .and. NH3 <= 3.d-9 .and. 
-     &                 SO2_ss <= 4.d-9 ) BULK = 1
-			IF ( ALKds >= 5.d0 .and. SO2_ss <= 5.d-9 .and. 
-     &                 NH3 <= 7.d-9 ) BULK = 1
-			IF ( NH3 >= (gno3 + 2.d-9) .and. 
-     &                 SO2_ss <= 5.d-9 ) BULK = 1
-			IF ( NH3 >= (gno3 + 4.d-9) .and. 
-     &                 SO2_ss <= 10.d-9 ) BULK = 1
-			IF ( ALKds >= 2.d0 .and. NH3 <= 10.d-9 .and. 
-     &                 H2O20 >= SO2_ss ) BULK = 1
-			IF ( NH3 <= 1.d-9 .and. SO2_ss >= 3.d-9 .and. 
-     &                 H2O20 >= SO2_ss ) BULK = 1
-		ELSEIF ( LWC >= 0.3d6 ) THEN
-			IF ( NH3 >= (gno3 + 5.d-9) .and. 
-     &                 SO2_ss <= 10.d-9 ) BULK = 1
-			IF ( gno3 <= 1.d-9 .and. 
-     &                 NH3 >= (gno3 + 2.d-9) ) BULK = 1
-			IF ( gno3 <= 7.d-9 .and. 
-     &                 NH3 >= (gno3 + 3.d-9) ) BULK = 1
-			IF ( ALKds >= 3.d0 .and. NH3 <= 10d-9 .and. 
-     &                 SO2_ss <= 5d-9 ) BULK = 1
-			IF ( ALKds >= 5.d0 .and. NH3 <= 10.d-9 .and. 
-     &                 SO2_ss <= 5.d-9 ) BULK = 1
-			IF ( SO2_ss >= 1.5d-9 .and. H2O20 >= SO2_ss ) 
-     &                 BULK = 1
-			IF ( NH3 <= 12.d-9 .and. ALKds >=10.d0 ) BULK = 1
-			IF ( NH3 <= 1.d-9 .and. ALKds >= 4.d0 .and. 
-     &                 SO2_ss <=10.d-9 ) BULK = 1
-			IF ( NH3 <= 5.d-9 .and. ALKds >= 6.d0 .and. 
-     &                 SO2_ss <= 10.d-9 ) BULK = 1
-			IF ( NH3 <= 7.d-9 .and. ALKds >-8.d0 .and. 
-     &                 SO2_ss <= 10.d-9 ) BULK = 1
-		ELSEIF ( LWC >= 0.5d6 ) THEN
-			IF ( H2O20 >= (0.9d0 * SO2_ss) ) BULK = 1
-			IF ( NH3 <= 1.d-9 .and. ALKds >= 5.d0 .and. 
-     &                 SO2_ss <= 10.d-9 ) BULK = 1
-		ELSE
-			SIZE_RES = 1
-		ENDIF
+            ! Fahey and Seinfeld decision algorithm
+	    IF ( H2O20 > SO2_ss + 1D-9 ) THEN
+               BULK = 1
+            ELSEIF( LWC < 0.1D6 ) THEN !10^6 coversion from m3/m3 --> g/m3
+               SIZE_RES = 1
+            ELSEIF( gno3 > NH3 ) THEN
+               IF ( SO2_ss >= 5.D-9          .and. 
+     &              H2O20  >= SO20   ) 
+     &              BULK    = 1
+               IF ( LWC    >= 0.3D6          .and. 
+     &              SO2_ss >= 3.D-9          .and. 
+     &              H2O20  >= SO2_ss ) 
+     &              BULK    = 1
+               IF ( ALKds  >= 5.D0           .and. 
+     &              LWC    >= 0.5D6          .and. 
+     &              H2O20  >= SO2_ss ) 
+     &              BULK    = 1
+               IF ( LWC    >= 0.1D6          .and. 
+     &              gno3   <= (NH3 + 2.D-9) ) 
+     &              BULK    = 1
+            ELSEIF( LWC    >= 0.1d6 ) THEN
+               IF ( NH3    <= 1.d-9          .and. 
+     &              ALKds  >= 5.d0   ) 
+     &              BULK    = 1
+               IF ( NH3    <= 5.d-9          .and. 
+     &              ALKds  >= 10.d0  ) 
+     &              BULK    = 1
+               IF ( gno3   <= 1.d-9          .and. 
+     &              NH3    >= (gno3 + 2.d-9) .and. 
+     &              SO2_ss <= 7.d-9 )
+     &              BULK    = 1
+               IF ( gno3   <= 1.d-9          .and. 
+     &              NH3    >= (gno3 + 2.d-9) .and. 
+     &              ALKds  >= 2.d0 )  BULK = 1
+               IF ( gno3   <= 3.d-9          .and. 
+     &              NH3    >= (gno3 + 4.d-9) )
+     &              BULK    = 1
+               IF ( gno3   <= 7.d-9          .and. 
+     &              NH3    >= (gno3 + 3.d-9) .and. 
+     &              SO2_ss <= 5.d-9 )
+     &              BULK    = 1
+               IF ( gno3   <= 7.d-9          .and. 
+     &              NH3    >= (gno3 + 3.d-9) .and. 
+     &		    ALKds  >= 4.d0           .and. 
+     &              SO2_ss <= 9.d-9  ) 
+     &              BULK    = 1
+               IF ( ALKds  >= 3.d0           .and. 
+     &              NH3    <= 3.d-9          .and. 
+     &              SO2_ss <= 4.d-9 ) 
+     &              BULK    = 1
+               IF ( ALKds  >= 5.d0           .and. 
+     &              SO2_ss <= 5.d-9          .and. 
+     &              NH3    <= 7.d-9 )  
+     &              BULK    = 1
+               IF ( NH3    >= (gno3 + 2.d-9) .and. 
+     &              SO2_ss <= 5.d-9 )  
+     &              BULK    = 1
+               IF ( NH3    >= (gno3 + 4.d-9) .and. 
+     &              SO2_ss <= 10.d-9 )
+     &              BULK    = 1
+               IF ( ALKds  >= 2.d0           .and. 
+     &              NH3    <= 10.d-9         .and. 
+     &              H2O20  >= SO2_ss ) 
+     &              BULK    = 1
+               IF ( NH3    <= 1.d-9          .and. 
+     &              SO2_ss >= 3.d-9          .and. 
+     &              H2O20  >= SO2_ss ) 
+     &              BULK    = 1
+            ELSEIF ( LWC   >= 0.3d6 ) THEN
+               IF ( NH3    >= (gno3 + 5.d-9) .and. 
+     &              SO2_ss <= 10.d-9 )
+     &              BULK    = 1
+               IF ( gno3   <= 1.d-9          .and. 
+     &              NH3    >= (gno3 + 2.d-9) )
+     &              BULK    = 1
+               IF ( gno3   <= 7.d-9          .and. 
+     &              NH3    >= (gno3 + 3.d-9) )
+     &              BULK    = 1
+               IF ( ALKds  >= 3.d0           .and. 
+     &              NH3 <= 10d-9             .and. 
+     &              SO2_ss <= 5d-9 ) 
+     &              BULK    = 1
+               IF ( ALKds  >= 5.d0           .and. 
+     &              NH3    <= 10.d-9         .and. 
+     &              SO2_ss <= 5.d-9 ) 
+     &              BULK    = 1
+               IF ( SO2_ss >= 1.5d-9         .and. 
+     &              H2O20  >= SO2_ss ) 
+     &              BULK    = 1
+               IF ( NH3    <= 12.d-9         .and. 
+     &              ALKds  >=10.d0 ) 
+     &              BULK    = 1
+               IF ( NH3    <= 1.d-9          .and. 
+     &              ALKds  >= 4.d0           .and. 
+     &              SO2_ss <= 10.d-9 ) 
+     &              BULK    = 1
+               IF ( NH3    <= 5.d-9          .and. 
+     &              ALKds  >= 6.d0           .and. 
+     &              SO2_ss <= 10.d-9 ) 
+     &              BULK    = 1
+               IF ( NH3    <= 7.d-9          .and. 
+     &              ALKds   >-8.d0           .and. 
+     &              SO2_ss <= 10.d-9 ) 
+     &              BULK    = 1
+            ELSEIF ( LWC   >= 0.5d6 ) THEN
+               IF ( H2O20  >= (0.9d0 * SO2_ss) ) 
+     &              BULK    = 1
+               IF ( NH3    <= 1.d-9          .and. 
+     &              ALKds  >= 5.d0           .and. 
+     &              SO2_ss <= 10.d-9 ) 
+     &              BULK    = 1
+            ELSE
+               SIZE_RES = 1
+            ENDIF
 
-		! Decide whether or not to perform sulfate production rate enhancement due to
-		! cloud drop heterogenity in pH over the oceans (bec, 12/23/11)
+            ! Decide whether or not to perform sulfate production rate
+            ! enhancement due to cloud drop heterogenity in pH over the oceans
+            ! (bec, 12/23/11)
+            IF ( SIZE_RES == 1 .AND. IS_WATER(I,J) .AND. 
+     &           TK > 268.15 ) THEN
 
-		IF ( SIZE_RES == 1 .AND. IS_WATER(I,J) .AND. 
-     &                                     TK > 268.15 ) THEN
+	       ! Get total in-cloud sulfate production based on bulk cloud pH
+               ! calculations for use in HET_DROP_CHEM
+               LSTOT = L2S + L3S
 
-			! Get total in-cloud sulfate production based on bulk cloud pH
-            	! calculations for use in HET_DROP_CHEM
-			LSTOT = L2S + L3S
+	       ! Get coarse-mode sea-salt concentration for use in
+               ! HET_DROP_CHEM [v/v]
+               ! Note that it is better to use coarse sea salt alkalinity
+               ! tracer if it is being transported (bec, 12/23/11)
+               SSCvv  = STT(I,J,L,IDTSALC)
 
-			! Get coarse-mode sea-salt concentration for use in HET_DROP_CHEM [v/v]
-			! Note that it is better to use coarse sea salt alkalinity tracer
-			! if it is being transported (bec, 12/23/11)
-			SSCvv  = STT(I,J,L,IDTSALC)
+	       ! Get sulfate concentrations for use in HET_DROP_CHEM [v/v]
+               aSO4  =  STT(I,J,L,IDTSO4) 
 
-			! Get sulfate concentrations for use in HET_DROP_CHEM [v/v]
-	   		aSO4  =  STT(I,J,L,IDTSO4) 
+               ! This is to make sure HET_DROP_CHEM does not compute more
+               ! sulfate then there is SO2
+               SO2_sr = MAX( SO2_ss - ( ( L2S + L3S ) * FC ), MINDAT )
 
-			! This is to make sure HET_DROP_CHEM does not compute more sulfate 
-			! then there is SO2
-			SO2_sr = MAX( SO2_ss - ( ( L2S + L3S ) * FC ),
-     $                          MINDAT )
+               CALL HET_DROP_CHEM( I,    J,   L,      LSTOT, SSCvv, 
+     &                             aSO4, NH3, SO2_sr, H2O20, GNO3,  SR )
 
-			CALL HET_DROP_CHEM( I, J, L, LSTOT, SSCvv, aSO4, NH3,
-     &                          	  SO2_sr, H2O20, GNO3, SR )
-
-		ELSE
-			SR = 0.d0
-		ENDIF
+	    ELSE
+		SR = 0.d0
+	    ENDIF
 
             ! We have used the in-cloud LWC to compute the sulfate
             ! aqueous chemistry.  We get the appropriate grid-box averaged 
@@ -2055,12 +2101,12 @@
             ! has been done.  (lzh, jaf, bmy, 5/27/11)
             L2S =  L2S * FC
             L3S =  L3S * FC    
-		SR  =  SR  * FC
+	    SR  =  SR  * FC
 
             ! Make sure SO2_ss and H2O20 are in the proper range
 !            SO2_ss = MAX( SO2_ss - ( L2S + L3S ), MINDAT )
             SO2_ss = MAX( SO2_ss - ( L2S + L3S + SR ), MINDAT )
-            H2O20  = MAX( H2O20  - L2S,           MINDAT )
+            H2O20  = MAX( H2O20  - L2S,                MINDAT )
 
             ! Update SO2 level, save SO2[ppv], H2O2[ppv] for WETDEP
             SO2s( I,J,L) = SO2_ss
@@ -2074,7 +2120,7 @@
             SO2s(I,J,L ) = MAX( SO2_ss, 1.0d-32 )
             L2S          = 0.d0
             L3S          = 0.d0
-		SR		 = 0.d0
+	    SR		 = 0.d0
 
          ENDIF
 
@@ -2536,479 +2582,636 @@
       END SUBROUTINE SEASALT_CHEM
 !EOC
 !------------------------------------------------------------------------------
-
+!BOP
+!
+! !IROUTINE: get_hplus
+!
+! !DESCRIPTION: Subroutine GET\_HPLUS computes H+ concentrations in cloud
+!  liquid water for pH dependent cloud chemistry. (bec, 4/11/11)
+!\\
+!\\
+! !INTERFACE:
+!
       SUBROUTINE GET_HPLUS( SO4nss, TNH3, TNO3, SO2,
-     &                      T, PRES, LWC, iHPLUS, HPLUS )
+     &                      T,      PRES, LWC,  iHPLUS, HPLUS )
 !
-!******************************************************************************
+! !USES:
 !
-!******************************************************************************
-!  Subroutine GET_HPLUS computes H+ concentrations in cloud liquid water 
-!  for pH dependent cloud chemistry. (bec, 4/11/11)
+      USE ERROR_MOD,       ONLY : IT_IS_NAN, GEOS_CHEM_STOP
+
 !
-!  Arguments as Input:
-!  ============================================================================
-!  (1) SO4    (REAL*8)  : Total nss sulfate mixing ratio [M]
-!  (2 ) SS     (REAL*8)  : Total sea-salt mixing ratio [M]
-!  (3 ) DST    (REAL*8)  : Dust mixing ratio [M] 
-!  (4 ) SO2    (REAL*8)  : SO2 mixing ratio [v/v]
-!  (5 ) NO3    (REAL*8)  : total nitrate (gas+particulate) mixing ratio [v/v]
-!  (6 ) NH4    (REAL*8)  : NH3 + NH4 mixing ratio [v/v]
-!  (7 ) T      (REAL*8)  : Temperature [K]
-!  (8 ) P      (REAL*8)  : Pressure [atm]
-!  (9 ) LWC    (REAL*8)  : Cloud liquid water content [m3/m3]
-!  (10) iHPLUS (REAL*8)  : initial [H+] [M]
+! !INPUT PARAMETERS: 
 !
-!  Arguments as Output:
-!  ============================================================================
-!  (11) HPLUS   (REAL*8) : calculated [H+] [M]
+      REAL*8,  INTENT(IN)    :: SO4nss ! Total nss sulfate mixing ratio [M]
+      REAL*8,  INTENT(IN)    :: TNO3   ! Total nitrate (gas+particulate) mixing
+                                       ! ratio [v/v]
+      REAL*8,  INTENT(IN)    :: TNH3   ! NH3 mixing ratio [v/v]
+      REAL*8,  INTENT(IN)    :: SO2    ! SO2 mixing ratio [v/v] 
+      REAL*8,  INTENT(IN)    :: T      ! Temperature [K]
+      REAL*8,  INTENT(IN)    :: PRES   ! Pressure [atm]
+      REAL*8,  INTENT(IN)    :: LWC    ! Cloud liquid water content [m3/m3]
+      REAL*8,  INTENT(IN)    :: iHPLUS ! Initial [H+] [M]
 !
+! !OUTPUT PARAMETERS: 
 !
+      REAL*8,  INTENT(OUT)   :: HPLUS  ! Calculated [H+] [M]
+! !REMARKS:
 !  Calculation:
 !  ============================================================================
 !  Solve the following electroneutrality equation:
 !  [H+] = 2[SO4]nss + [Cl] + [OH] + [HCO3] + 2[CO3] + [HSO3] + 2[SO3] + [NO3]
 !        - [Na] - 2[Ca] - [K] - 2[Mg] - [NH4]
-
-!  Aqueous concentrations of [Cl], [Na], [Ca], [K], and [Mg] come from ISORROPIA II
+!
+!  Aqueous concentrations of [Cl], [Na], [Ca], [K], and [Mg] come from 
+!  ISORROPIA II
 !
 !  Let concentrations of [HCO3], [CO3], [HSO3], [SO3], [NO3] and [NH4] evolve
 !  according to Henry's law equilibrium.
 !
 !  Assume [S(VI)] = [SO4]nss (this applies for pH > 3)
+!            
+! !REVISION HISTORY:
+!  25 Jan 2012 - M. Payer    - Added ProTeX headers
+!EOP
+!------------------------------------------------------------------------------
+!BOC
 !
-!  NOTES:
-!  (1 )
-!******************************************************************************
+! !DEFINED PARAMETERS:
+!
 
-	USE ERROR_MOD,       ONLY : IT_IS_NAN, GEOS_CHEM_STOP
-
- 	! Water dissociation constants
-      REAL*8,  PARAMETER   :: Kw   = 1.0d-14
-      REAL*8,  PARAMETER   :: DhrKw = -6710.d0
-
-      REAL*8,  PARAMETER   :: MINVAL = 0.01
-
-      ! Arguments
-      REAL*8,  INTENT(IN)    :: SO4nss, TNO3
-      REAL*8,  INTENT(IN)    :: TNH3, SO2, T, PRES, LWC, iHPLUS
-      REAL*8,  INTENT(OUT)   :: HPLUS
-
-	! Variables
-      REAL*8                   :: D, Kw_T, ipH, newpH, nHPLUS
-      REAL*8                   :: kCO2p, kCO2p2
-      REAL*8                   :: kSO2p, kSO2p2
-      REAL*8                   :: kHNO3p, kNH3p, kHClp
- 	INTEGER                  :: count
-      REAL*8                   :: E, F, G, H, P, Q, R, A, B
-      REAL*8                   :: A2, A1, A0, X, Y
-      REAL*8  :: CRUTES( 3 )      ! Coefficients and roots of cubic equation
-      INTEGER :: NR               ! Number of roots to cubic equation 
+      ! Water dissociation constants
+      REAL*8,  PARAMETER     :: Kw   = 1.0d-14
+      REAL*8,  PARAMETER     :: DhrKw = -6710.d0
+      REAL*8,  PARAMETER     :: MINVAL = 0.01
+!
+! !LOCAL VARIABLES:
+!
+      REAL*8                 :: D, Kw_T, ipH, newpH, nHPLUS
+      REAL*8                 :: kCO2p, kCO2p2
+      REAL*8                 :: kSO2p, kSO2p2
+      REAL*8                 :: kHNO3p, kNH3p, kHClp
+      INTEGER                :: count
+      REAL*8                 :: E, F, G, H, P, Q, R, A, B
+      REAL*8                 :: A2, A1, A0, X, Y
+      REAL*8                 :: CRUTES( 3 ) ! Coeff and roots of cubic equation
+      INTEGER                :: NR          ! Number of roots to cubic equation
 
       !=================================================================
       ! GET_HPLUS begins here!
       !=================================================================
 
-	! Initial pH guess 
-	ipH = -log10(iHPLUS)
+      ! Initial pH guess 
+      ipH = -log10(iHPLUS)
 
-  	! Non-volatile aerosol concentration [M] 
+      ! Non-volatile aerosol concentration [M] 
       ! For now sulfate is the only non-volatile species
       D = (2.d0*SO4nss) 
 
-  	! Temperature dependent water equilibrium constant
-	Kw_T = Kw*exp(DhrKw*((1.d0/T)-(1.d0/298.d0)))
+      ! Temperature dependent water equilibrium constant
+      Kw_T = Kw*exp(DhrKw*((1.d0/T)-(1.d0/298.d0)))
 
- 	 !initialize                                                                                                                             
- 	 newpH   = 0.0 
- 	 COUNT = 0
+      ! Initialize
+      newpH   = 0.0 
+      COUNT = 0
 
-	DO WHILE ( ABS(ipH-newpH) .gt. MINVAL )
+      DO WHILE ( ABS(ipH-newpH) .gt. MINVAL )
 
-	  	COUNT = COUNT+1
+      COUNT = COUNT+1
+ 
+         IF ( COUNT .EQ. 1 ) THEN
+            ipH = ipH
+	 ELSE
+            ipH = newpH
+	 ENDIF
 
- 		IF ( COUNT .EQ. 1 ) THEN
-			ipH = ipH
-		ELSE
-			ipH = newpH
-		ENDIF
+         nHPLUS = 10.d0**(-ipH)
 
-            nHPLUS = 10.d0**(-ipH)
+         kCO2p  = kCO21 ( PRES, T, LWC, nHPLUS ) 
 
-		kCO2p  = kCO21 ( PRES, T, LWC, nHPLUS ) 
+	 kCO2p2 = kCO22 ( PRES, T, LWC, nHPLUS ) 
 
-		kCO2p2 = kCO22 ( PRES, T, LWC, nHPLUS ) 
+	 kSO2p  = kSO21 ( PRES, T, LWC, nHPLUS, SO2 )
 
-		kSO2p  = kSO21 ( PRES, T, LWC, nHPLUS, SO2 )
+	 kSO2p2 = kSO22 ( PRES, T, LWC, nHPLUS, SO2 )
 
-		kSO2p2 = kSO22 ( PRES, T, LWC, nHPLUS, SO2 )
+	 kHNO3p = kHNO3 ( PRES, T, LWC, nHPLUS, TNO3 )
 
-		kHNO3p = kHNO3 ( PRES, T, LWC, nHPLUS, TNO3 )
+	 kNH3p  = kNH3  ( PRES, T, LWC, nHPLUS, TNH3, Kw_T )
 
-		kNH3p  = kNH3  ( PRES, T, LWC, nHPLUS, TNH3, Kw_T )
+         ! Save this for later in case we want to include HCl in cloud pH
+         ! calculations
+         !kHClp  = kHCl  ( PRES, T, LWC, nHPLUS, CL  ) 
 
-		! Save this for later in case we want to include HCl in cloud pH calculations
-!		kHClp  = kHCl  ( PRES, T, LWC, nHPLUS, CL  ) 
+         !E = KHClp + Kw_T + KCO2p + KSO2p + KHNO3p !This would be used if HCl is included
+	 E = Kw_T + KCO2p + KSO2p + KHNO3p 
 
+	 F = KCO2p2 + KSO2p2
 
-!		E = KHClp + Kw_T + KCO2p + KSO2p + KHNO3p !This would be used if HCl is included
-		E = Kw_T + KCO2p + KSO2p + KHNO3p 
+	 G = KNH3p
 
-		F = KCO2p2 + KSO2p2
+	 H = 1 + G
 
-		G = KNH3p
+	 P = -(D/H)
 
-		H = 1 + G
+	 Q = -E/H
 
-		P = -(D/H)
+	 R = F/H
 
-		Q = -E/H
+	 A = (1.d0/3.d0)*((3.d0*Q)-(P*P))
 
-		R = F/H
+  	 B = (1.d0/27.d0)*((2.0d0*P*P*P)-(9.0d0*P*Q)+(27.0d0*R))
 
-		A = (1.d0/3.d0)*((3.d0*Q)-(P*P))
+ 	 A2 = 0.
+ 	 A1 = A
+ 	 A0 = B
 
-  		B = (1.d0/27.d0)*((2.0d0*P*P*P)-(9.0d0*P*Q)+(27.0d0*R))
+	 !write(6,*) 'calling CUBIC'
+         CALL CUBIC ( A2, A1, A0, NR, CRUTES )
+	 !write(6,*) 'after CUBIC'
 
- 	  	A2 = 0.
- 	  	A1 = A
- 	  	A0 = B
+         ! Code assumes the smallest positive root is in CRUTES(1)
+         X = CRUTES( 1 )
 
-!		write(6,*) 'calling CUBIC'
-        	CALL CUBIC ( A2, A1, A0, NR, CRUTES )
-!		write(6,*) 'after CUBIC'
+	 ! Y = [H+]
+ 	 Y = X - (P/3.0d0)
 
-        	! Code assumes the smallest positive root is in CRUTES(1)
-        	X = CRUTES( 1 )
+  	 ! Set minimum [H+] = 1.d-14 (pH = 14)
+    	 Y = MAX(Y,1.0d-14)
 
-		! Y = [H+]
- 		Y = X - (P/3.0d0)
+  	 ! Set maximum [H+] = 1.d-1 (pH = 1)
+    	 Y = MIN(Y,1.0d-1)
 
-  		!set minimum [H+] = 1.d-14 (pH = 14)
-    	   	Y = MAX(Y,1.0d-14)
+  	 ! If solution does not converge after 5 iterations
+  	 ! average last 2 pH calculations
+  	 IF (count > 5) THEN
+	    newpH = ((-log10(Y)) + (-log10(nHPLUS))) / 2.0d0
 
-  		!set maximum [H+] = 1.d-1 (pH = 1)
-    	   	Y = MIN(Y,1.0d-1)
+            IF (IT_IS_NAN( newpH )) THEN
+               write(6,*) 'newpH = ', newpH
+               write(6,*) 'Y = ', Y
+               write(6,*) 'nHPLUS = ', nHPLUS
+               CALL GEOS_CHEM_STOP
+            ENDIF
 
-  		!if solution does not converge after 5 iterations
-  		!average last 2 pH calculations
-  		IF (count > 5) THEN
-		      newpH = ((-log10(Y)) + (-log10(nHPLUS))) / 2.0d0
+            EXIT
+         ELSE 
+            newpH = -log10(Y)
 
-				IF (IT_IS_NAN( newpH )) THEN
-					write(6,*) 'newpH = ', newpH
-					write(6,*) 'Y = ', Y
-					write(6,*) 'nHPLUS = ', nHPLUS
-					CALL GEOS_CHEM_STOP
-				ENDIF
+            IF (IT_IS_NAN( newpH )) THEN
+               write(6,*) 'newpH = ', newpH
+               write(6,*) 'Y = ', Y
+               CALL GEOS_CHEM_STOP
+            ENDIF
 
-			EXIT
-  		ELSE 
-  			newpH = -log10(Y)
+         ENDIF
 
-				IF (IT_IS_NAN( newpH )) THEN
-					write(6,*) 'newpH = ', newpH
-					write(6,*) 'Y = ', Y
-					CALL GEOS_CHEM_STOP
-				ENDIF
+      ENDDO
 
-  		ENDIF
-
-	ENDDO
-
-	HPLUS = 10.0d0**(-newpH)
-
+      HPLUS = 10.0d0**(-newpH)
 
       END SUBROUTINE GET_HPLUS
-
+!EOC
 !------------------------------------------------------------------------------
-
+!BOP
+!
+! !IROUTINE: kCO21
+!
+! !DESCRIPTION: Function kCO21
+!\\
+!\\
+! !INTERFACE:
+!
       FUNCTION kCO21 ( P, T, LWC, HPLUS ) RESULT ( KCO2p )
 !
-!******************************************************************************
-
-      REAL*8,  INTENT(IN)    :: T, P, LWC, HPLUS
-      REAL*8                 :: KCO2p, KCO2p2
-
-	! CO2 dissociation constants
-      REAL*8,  PARAMETER   :: Kc1 = 4.3e-7
-      REAL*8,  PARAMETER   :: Kc2 =4.68e-11
-      REAL*8,  PARAMETER   :: DhrKc1 = -1000.
-      REAL*8,  PARAMETER   :: DhrKc2 = -1760.
-      REAL*8,  PARAMETER   :: Hco2 = 3.4e-2
-      REAL*8,  PARAMETER   :: Dhco2 = -4.85/0.04
-
-	! CO2 concentration [v/v]
-	REAL*8,  PARAMETER   :: CO2 = 380.0d-6 !380 ppmv
-
-	! Variables
-      REAL*8                   :: Hco2_T, Kc1_T, Kc2_T
-      REAL*8                   :: Hco2eff, xCO2, pCO2
-
+! !INPUT PARAMETERS: 
+!
+      REAL*8,  INTENT(IN) :: T, P, LWC, HPLUS
+!
+! !OUTPUT PARAMETERS: 
+!
+      REAL*8              :: KCO2p, KCO2p2
+!
+! !REVISION HISTORY:
+!  25 Jan 2012 - M. Payer    - Added ProTeX headers
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+!
+! !DEFINED PARAMETERS:
+!
+      ! CO2 dissociation constants
+      REAL*8,  PARAMETER  :: Kc1 = 4.3e-7
+      REAL*8,  PARAMETER  :: Kc2 =4.68e-11
+      REAL*8,  PARAMETER  :: DhrKc1 = -1000.
+      REAL*8,  PARAMETER  :: DhrKc2 = -1760.
+      REAL*8,  PARAMETER  :: Hco2 = 3.4e-2
+      REAL*8,  PARAMETER  :: Dhco2 = -4.85/0.04
+      ! CO2 concentration [v/v]
+      REAL*8,  PARAMETER  :: CO2 = 380.0d-6 !380 ppmv
+!
+! !LOCAL VARIABLES:
+!
+      REAL*8              :: Hco2_T, Kc1_T, Kc2_T
+      REAL*8              :: Hco2eff, xCO2, pCO2
 
       !=================================================================
       ! kCO2 begins here!
       !=================================================================
 
-  	!CO2 dissolution constants
- 	Hco2_T = Hco2*exp(Dhco2*((1.d0/T)-(1.d0/298.d0)))
-  	Kc1_T = Kc1*exp(DhrKc1*((1.d0/T)-(1.d0/298.d0)))
-  	Kc2_T = Kc2*exp(DhrKc1*((1.d0/T)-(1.d0/298.d0)))
+      !CO2 dissolution constants
+      Hco2_T = Hco2*exp(Dhco2*((1.d0/T)-(1.d0/298.d0)))
+      Kc1_T = Kc1*exp(DhrKc1*((1.d0/T)-(1.d0/298.d0)))
+      Kc2_T = Kc2*exp(DhrKc1*((1.d0/T)-(1.d0/298.d0)))
 
-	!CO2 dissolution  
-	Hco2eff = Hco2_T*(1.d0+(Kc1_T/HPLUS)+((Kc1_T*Kc2_T)/
+      !CO2 dissolution  
+      Hco2eff = Hco2_T*(1.d0+(Kc1_T/HPLUS)+((Kc1_T*Kc2_T)/
      &         (HPLUS*HPLUS)))
-	xCO2 = 1.d0 / ( 1.d0 + ( Hco2eff * 0.08205d0 * T * LWC ) )
-	pCO2 = CO2 * P * xCO2
+      xCO2 = 1.d0 / ( 1.d0 + ( Hco2eff * 0.08205d0 * T * LWC ) )
+      pCO2 = CO2 * P * xCO2
 
-  	KCO2p  = Hco2_T * Kc1_T * pCO2
+      KCO2p  = Hco2_T * Kc1_T * pCO2
 
       END FUNCTION kCO21
-
+!EOC
 !------------------------------------------------------------------------------
-
+!BOP
+!
+! !IROUTINE: kCO22
+!
+! !DESCRIPTION: Function kCO22
+!\\
+!\\
+! !INTERFACE:
+!
       FUNCTION kCO22 ( P, T, LWC, HPLUS ) RESULT ( KCO2p2 )
 !
-!******************************************************************************
-
-      REAL*8,  INTENT(IN)    :: T, P, LWC, HPLUS
-      REAL*8                 :: KCO2p, KCO2p2
-
-	! CO2 dissociation constants
-      REAL*8,  PARAMETER   :: Kc1 = 4.3e-7
-      REAL*8,  PARAMETER   :: Kc2 =4.68e-11
-      REAL*8,  PARAMETER   :: DhrKc1 = -1000.
-      REAL*8,  PARAMETER   :: DhrKc2 = -1760.
-      REAL*8,  PARAMETER   :: Hco2 = 3.4e-2
-      REAL*8,  PARAMETER   :: Dhco2 = -4.85/0.04
-
-	! CO2 concentration [v/v]
-	REAL*8,  PARAMETER   :: CO2 = 380.0d-6 
-
-	! Variables
-      REAL*8                   :: Hco2_T, Kc1_T, Kc2_T
-      REAL*8                   :: Hco2eff, xCO2, pCO2
-
+! !INPUT PARAMETERS: 
+!
+      REAL*8,  INTENT(IN) :: T, P, LWC, HPLUS
+!
+! !OUTPUT PARAMETERS: 
+!
+      REAL*8              :: KCO2p, KCO2p2
+!
+! !REVISION HISTORY:
+!  25 Jan 2012 - M. Payer    - Added ProTeX headers
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+!
+! !DEFINED PARAMETERS:
+!
+      ! CO2 dissociation constants
+      REAL*8,  PARAMETER  :: Kc1 = 4.3e-7
+      REAL*8,  PARAMETER  :: Kc2 =4.68e-11
+      REAL*8,  PARAMETER  :: DhrKc1 = -1000.
+      REAL*8,  PARAMETER  :: DhrKc2 = -1760.
+      REAL*8,  PARAMETER  :: Hco2 = 3.4e-2
+      REAL*8,  PARAMETER  :: Dhco2 = -4.85/0.04
+      ! CO2 concentration [v/v]
+      REAL*8,  PARAMETER  :: CO2 = 380.0d-6 
+!
+! !LOCAL VARIABLES:
+!
+      REAL*8              :: Hco2_T, Kc1_T, Kc2_T
+      REAL*8              :: Hco2eff, xCO2, pCO2
 
       !=================================================================
       ! kCO2 begins here!
       !=================================================================
 
-  	!CO2 dissolution constants
- 	Hco2_T = Hco2*exp(Dhco2*((1.d0/T)-(1.d0/298.d0)))
-  	Kc1_T = Kc1*exp(DhrKc1*((1.d0/T)-(1.d0/298.d0)))
-  	Kc2_T = Kc2*exp(DhrKc1*((1.d0/T)-(1.d0/298.d0)))
+      !CO2 dissolution constants
+      Hco2_T = Hco2*exp(Dhco2*((1.d0/T)-(1.d0/298.d0)))
+      Kc1_T = Kc1*exp(DhrKc1*((1.d0/T)-(1.d0/298.d0)))
+      Kc2_T = Kc2*exp(DhrKc1*((1.d0/T)-(1.d0/298.d0)))
 
-	!CO2 dissolution  
-	Hco2eff = Hco2_T*(1.d0+(Kc1_T/HPLUS)+((Kc1_T*Kc2_T)/
+      !CO2 dissolution  
+      Hco2eff = Hco2_T*(1.d0+(Kc1_T/HPLUS)+((Kc1_T*Kc2_T)/
      &         (HPLUS*HPLUS)))
-	xCO2 = 1.d0 / ( 1.d0 + ( Hco2eff * 0.08205d0 * T * LWC ) )
-	pCO2 = CO2 * P * xCO2
+      xCO2 = 1.d0 / ( 1.d0 + ( Hco2eff * 0.08205d0 * T * LWC ) )
+      pCO2 = CO2 * P * xCO2
 
-  	KCO2p  = Hco2_T * Kc1_T * pCO2
-  	KCO2p2 = 2.d0 * KCO2p *  Kc2_T
+      KCO2p  = Hco2_T * Kc1_T * pCO2
+      KCO2p2 = 2.d0 * KCO2p *  Kc2_T
 
       END FUNCTION kCO22
-
+!EOC
 !------------------------------------------------------------------------------
-
+!BOP
+!
+! !IROUTINE: kSO21
+!
+! !DESCRIPTION: Function kSO21
+!\\
+!\\
+! !INTERFACE:
+!
       FUNCTION kSO21 ( P, T, LWC, HPLUS, SO2 ) RESULT ( KSO2p )
 !
-
-!******************************************************************************
-
-      REAL*8,  INTENT(IN)    :: T, P, LWC, HPLUS, SO2
-      REAL*8                 :: KSO2p, KSO2p2
-
-	! SO2 dissociation constants
-      REAL*8,  PARAMETER   :: Ks1 = 1.3e-2
-      REAL*8,  PARAMETER   :: Ks2 = 6.6e-8
-      REAL*8,  PARAMETER   :: Hso2 = 1.23
-      REAL*8,  PARAMETER   :: Dhso2 = -6.25/0.04
-      REAL*8,  PARAMETER   :: DhrKso21 = 1960.
-      REAL*8,  PARAMETER   :: DhrKso22 = 1500.
-
-	! Variables
-      REAL*8                   :: Hso2_T, Ks1_T, Ks2_T
-      REAL*8                   :: Hso2eff, xSO2, pSO2
+! !INPUT PARAMETERS: 
+!
+      REAL*8,  INTENT(IN) :: T, P, LWC, HPLUS, SO2
+!
+! !OUTPUT PARAMETERS: 
+!
+      REAL*8              :: KSO2p, KSO2p2
+!
+! !REVISION HISTORY:
+!  25 Jan 2012 - M. Payer    - Added ProTeX headers
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+!
+! !DEFINED PARAMETERS:
+!
+      ! SO2 dissociation constants
+      REAL*8,  PARAMETER  :: Ks1 = 1.3e-2
+      REAL*8,  PARAMETER  :: Ks2 = 6.6e-8
+      REAL*8,  PARAMETER  :: Hso2 = 1.23
+      REAL*8,  PARAMETER  :: Dhso2 = -6.25/0.04
+      REAL*8,  PARAMETER  :: DhrKso21 = 1960.
+      REAL*8,  PARAMETER  :: DhrKso22 = 1500.
+!
+! !LOCAL VARIABLES:
+!
+      REAL*8              :: Hso2_T, Ks1_T, Ks2_T
+      REAL*8              :: Hso2eff, xSO2, pSO2
 
       !=================================================================
       ! kSO2 begins here!
       !=================================================================
 
 
-	! SO2 dissolution constants
- 	Hso2_T = Hso2*exp(Dhso2*((1.d0/T)-(1.d0/298.d0)))
-  	Ks1_T = Ks1*exp(DhrKso21*((1.d0/T)-(1.d0/298.d0)))
-  	Ks2_T = Ks2*exp(DhrKso22*((1.d0/T)-(1.d0/298.d0)))
+      ! SO2 dissolution constants
+      Hso2_T = Hso2*exp(Dhso2*((1.d0/T)-(1.d0/298.d0)))
+      Ks1_T = Ks1*exp(DhrKso21*((1.d0/T)-(1.d0/298.d0)))
+      Ks2_T = Ks2*exp(DhrKso22*((1.d0/T)-(1.d0/298.d0)))
 
-  	!SO2 dissolution
- 	Hso2eff = Hso2_T*(1.d0+(Ks1_T/HPLUS)+((Ks1_T*Ks2_T)/
+      ! SO2 dissolution
+      Hso2eff = Hso2_T*(1.d0+(Ks1_T/HPLUS)+((Ks1_T*Ks2_T)/
      &         (HPLUS*HPLUS)))
-  	xSO2 = 1.d0 / ( 1.d0 + ( Hso2eff * 0.08205d0 * T * LWC ) )
-  	pSO2 = SO2 * P * xSO2
+      xSO2 = 1.d0 / ( 1.d0 + ( Hso2eff * 0.08205d0 * T * LWC ) )
+      pSO2 = SO2 * P * xSO2
 
-  	KSO2p  = Hso2_T * Ks1_T * pSO2
+      KSO2p  = Hso2_T * Ks1_T * pSO2
 
       END FUNCTION kSO21
-
-
+!EOC
 !------------------------------------------------------------------------------
-
+!BOP
+!
+! !IROUTINE: kSO22
+!
+! !DESCRIPTION: Function kSO22
+!\\
+!\\
+! !INTERFACE:
+!
       FUNCTION kSO22 ( P, T, LWC, HPLUS, SO2 ) RESULT ( KSO2p2 )
 !
-
-!******************************************************************************
-
-      REAL*8,  INTENT(IN)    :: T, P, LWC, HPLUS, SO2
-      REAL*8                 :: KSO2p, KSO2p2
-
-	! SO2 dissociation constants
-      REAL*8,  PARAMETER   :: Ks1 = 1.3e-2
-      REAL*8,  PARAMETER   :: Ks2 = 6.6e-8
-      REAL*8,  PARAMETER   :: Hso2 = 1.23
-      REAL*8,  PARAMETER   :: Dhso2 = -6.25/0.04
-      REAL*8,  PARAMETER   :: DhrKso21 = 1960.
-      REAL*8,  PARAMETER   :: DhrKso22 = 1500.
-
-	! Variables
-      REAL*8                   :: Hso2_T, Ks1_T, Ks2_T
-      REAL*8                   :: Hso2eff, xSO2, pSO2
+! !INPUT PARAMETERS: 
+!
+      REAL*8,  INTENT(IN) :: T, P, LWC, HPLUS, SO2
+!
+! !OUTPUT PARAMETERS: 
+!
+      REAL*8              :: KSO2p, KSO2p2
+!
+! !REVISION HISTORY:
+!  25 Jan 2012 - M. Payer    - Added ProTeX headers
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+!
+! !DEFINED PARAMETERS:
+!
+      ! SO2 dissociation constants
+      REAL*8,  PARAMETER  :: Ks1 = 1.3e-2
+      REAL*8,  PARAMETER  :: Ks2 = 6.6e-8
+      REAL*8,  PARAMETER  :: Hso2 = 1.23
+      REAL*8,  PARAMETER  :: Dhso2 = -6.25/0.04
+      REAL*8,  PARAMETER  :: DhrKso21 = 1960.
+      REAL*8,  PARAMETER  :: DhrKso22 = 1500.
+!
+! !LOCAL VARIABLES:
+!
+      REAL*8              :: Hso2_T, Ks1_T, Ks2_T
+      REAL*8              :: Hso2eff, xSO2, pSO2
 
       !=================================================================
       ! kSO2 begins here!
       !=================================================================
 
 
-	! SO2 dissolution constants
- 	Hso2_T = Hso2*exp(Dhso2*((1.d0/T)-(1.d0/298.d0)))
-  	Ks1_T  = Ks1 *exp(DhrKso21*((1.d0/T)-(1.d0/298.d0)))
-  	Ks2_T  = Ks2 *exp(DhrKso22*((1.d0/T)-(1.d0/298.d0)))
+      ! SO2 dissolution constants
+      Hso2_T = Hso2*exp(Dhso2*((1.d0/T)-(1.d0/298.d0)))
+      Ks1_T  = Ks1 *exp(DhrKso21*((1.d0/T)-(1.d0/298.d0)))
+      Ks2_T  = Ks2 *exp(DhrKso22*((1.d0/T)-(1.d0/298.d0)))
 
-  	!SO2 dissolution
- 	Hso2eff = Hso2_T*(1.d0+(Ks1_T/HPLUS)+((Ks1_T*Ks2_T)/
+      !SO2 dissolution
+      Hso2eff = Hso2_T*(1.d0+(Ks1_T/HPLUS)+((Ks1_T*Ks2_T)/
      &         (HPLUS*HPLUS)))
-  	xSO2 = 1.d0 / ( 1.d0 + ( Hso2eff * 0.08205d0 * T * LWC ) )
-  	pSO2 = SO2 * P * xSO2
+      xSO2 = 1.d0 / ( 1.d0 + ( Hso2eff * 0.08205d0 * T * LWC ) )
+      pSO2 = SO2 * P * xSO2
 
-  	KSO2p  = Hso2_T * Ks1_T * pSO2
-  	KSO2p2 = 2.d0 * KSO2p * Ks2_T
+      KSO2p  = Hso2_T * Ks1_T * pSO2
+      KSO2p2 = 2.d0 * KSO2p * Ks2_T
 
       END FUNCTION kSO22
-
+!EOC
 !------------------------------------------------------------------------------
-
+!BOP
+!
+! !IROUTINE: kHNO3
+!
+! !DESCRIPTION: Function kNO3
+!\\
+!\\
+! !INTERFACE:
+!
       FUNCTION kHNO3 ( P, T, LWC, HPLUS, HNO3 ) RESULT ( KHNO3p )
 !
-!******************************************************************************
-
-      REAL*8,  INTENT(IN)    :: T, P, LWC, HPLUS, HNO3
-      REAL*8                 :: KHNO3p
-
-	! HNO3 dissociation constants
-      REAL*8,  PARAMETER   :: Kn1 = 15.4
-      REAL*8,  PARAMETER   :: Hhno3 = 2.1e5
-      REAL*8,  PARAMETER   :: Dhhno3 = 0.
-      REAL*8,  PARAMETER   :: DhrKn1 = 8700.
-
-	! Variables
-      REAL*8                   :: Hhno3_T, Kn1_T
-      REAL*8                   :: Hhno3eff, xHNO3, pHNO3
+! !INPUT PARAMETERS: 
+!
+      REAL*8,  INTENT(IN) :: T, P, LWC, HPLUS, HNO3
+!
+! !OUTPUT PARAMETERS: 
+!
+      REAL*8              :: KHNO3p
+!
+! !REVISION HISTORY:
+!  25 Jan 2012 - M. Payer    - Added ProTeX headers
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+!
+! !DEFINED PARAMETERS:
+!
+      ! HNO3 dissociation constants
+      REAL*8,  PARAMETER  :: Kn1 = 15.4
+      REAL*8,  PARAMETER  :: Hhno3 = 2.1e5
+      REAL*8,  PARAMETER  :: Dhhno3 = 0.
+      REAL*8,  PARAMETER  :: DhrKn1 = 8700.
+!
+! !LOCAL VARIABLES:
+!
+      REAL*8              :: Hhno3_T, Kn1_T
+      REAL*8              :: Hhno3eff, xHNO3, pHNO3
 
       !=================================================================
       ! kHNO3 begins here!
       !=================================================================
 
-	! HNO3 dissolution constants
-  	Hhno3_T = Hhno3*exp(Dhhno3*((1.d0/T)-(1.d0/298.d0)))
-  	Kn1_T = Kn1*exp(DhrKn1*((1.d0/T)-(1.d0/298.d0)))
+      ! HNO3 dissolution constants
+      Hhno3_T = Hhno3*exp(Dhhno3*((1.d0/T)-(1.d0/298.d0)))
+      Kn1_T = Kn1*exp(DhrKn1*((1.d0/T)-(1.d0/298.d0)))
 
-  	!HNO3 dissolution
-  	Hhno3eff = 3.2e6/HPLUS
-  	xHNO3 = 1.d0 / ( 1.d0 + ( Hhno3eff * 0.08205d0 * T * LWC ) )
-  	pHNO3 = HNO3 * P * xHNO3
+      !HNO3 dissolution
+      Hhno3eff = 3.2e6/HPLUS
+      xHNO3 = 1.d0 / ( 1.d0 + ( Hhno3eff * 0.08205d0 * T * LWC ) )
+      pHNO3 = HNO3 * P * xHNO3
 
-  	kHNO3p = Hhno3_T * Kn1_T * pHNO3
+      kHNO3p = Hhno3_T * Kn1_T * pHNO3
 
       END FUNCTION kHNO3
-
+!EOC
 !------------------------------------------------------------------------------
-
+!BOP
+!
+! !IROUTINE: kHCl
+!
+! !DESCRIPTION: Function kHCl
+!\\
+!\\
+! !INTERFACE:
+!
       FUNCTION kHCl ( P, T, LWC, HPLUS, Cl ) RESULT ( KHClp )
 !
-!******************************************************************************
-
-      REAL*8,  INTENT(IN)    :: T, P, LWC, HPLUS, Cl
-      REAL*8                 :: KHClp
-
-	! HNO3 dissociation constants
-      REAL*8,  PARAMETER   :: Kcl = 1.74d6
-      REAL*8,  PARAMETER   :: Hcl = 1.1d0
-      REAL*8,  PARAMETER   :: Dhcl = -2.3158d0
-      REAL*8,  PARAMETER   :: DhrKcl = 6900.d0
-
-	! Variables
-      REAL*8                   :: Hcl_T, Kcl_T
-      REAL*8                   :: Hcleff, xCl, pHCl
+! !INPUT PARAMETERS: 
+!
+      REAL*8,  INTENT(IN) :: T, P, LWC, HPLUS, Cl
+!
+! !OUTPUT PARAMETERS: 
+!
+      REAL*8              :: KHClp
+!
+! !REVISION HISTORY:
+!  25 Jan 2012 - M. Payer    - Added ProTeX headers
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+!
+! !DEFINED PARAMETERS:
+!
+      ! HNO3 dissociation constants
+      REAL*8,  PARAMETER  :: Kcl = 1.74d6
+      REAL*8,  PARAMETER  :: Hcl = 1.1d0
+      REAL*8,  PARAMETER  :: Dhcl = -2.3158d0
+      REAL*8,  PARAMETER  :: DhrKcl = 6900.d0
+!
+! !LOCAL VARIABLES:
+!
+      REAL*8              :: Hcl_T, Kcl_T
+      REAL*8              :: Hcleff, xCl, pHCl
 
       !=================================================================
       ! kHCl begins here!
       !=================================================================
 
-	! HNO3 dissolution constants
-  	HCl_T = Hcl*exp(Dhcl*((1.0d0/T)-(1.0d0/298.0d0)))
-  	Kcl_T = Kcl*exp(DhrKcl*((1.0d0/T)-(1.0d0/298.0d0)))
+      ! HNO3 dissolution constants
+      HCl_T = Hcl*exp(Dhcl*((1.0d0/T)-(1.0d0/298.0d0)))
+      Kcl_T = Kcl*exp(DhrKcl*((1.0d0/T)-(1.0d0/298.0d0)))
 
-  	!HCl dissolution
-  	Hcleff = Hcl_T*(1.0d0+(Kcl_T/HPLUS))
-  	xCl = 1.0d0 / ( 1.0d0 + ( Hcleff * 0.08205d0 * T * LWC ) )
-  	pHCl = Cl * P * xCl
+      !HCl dissolution
+      Hcleff = Hcl_T*(1.0d0+(Kcl_T/HPLUS))
+      xCl = 1.0d0 / ( 1.0d0 + ( Hcleff * 0.08205d0 * T * LWC ) )
+      pHCl = Cl * P * xCl
 
-  	kHClp = Hcl_T * Kcl_T * pHCl
+      kHClp = Hcl_T * Kcl_T * pHCl
 
       END FUNCTION kHCl
-!-----------------------------------------------------------------------------
-
+!EOC
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: kNH3
+!
+! !DESCRIPTION: Function kNH3
+!\\
+!\\
+! !INTERFACE:
+!
       FUNCTION kNH3 ( P, T, LWC, HPLUS, NH3, Kw ) RESULT ( KNH3p )
+!
+! !INPUT PARAMETERS: 
+!
+      REAL*8,  INTENT(IN) :: T, P, LWC, HPLUS, NH3, Kw
+!
+! !OUTPUT PARAMETERS: 
+!
+      REAL*8              :: KNH3p
+!
+! !REVISION HISTORY:
+!  25 Jan 2012 - M. Payer    - Added ProTeX headers
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+!
+! !DEFINED PARAMETERS:
+!
+      ! NH3 dissociation contants
+      REAL*8,  PARAMETER  :: Ka1 = 1.7e-5
+      REAL*8,  PARAMETER  :: Hnh3 = 62.
+      REAL*8,  PARAMETER  :: Dhnh3 = -8.17/0.04
+      REAL*8,  PARAMETER  :: DhrKa1 = -450.
 
-!******************************************************************************
-
-      REAL*8,  INTENT(IN)    :: T, P, LWC, HPLUS, NH3, Kw
-      REAL*8                 :: KNH3p
-
-	! NH3 dissociation contants
-      REAL*8,  PARAMETER   :: Ka1 = 1.7e-5
-      REAL*8,  PARAMETER   :: Hnh3 = 62.
-      REAL*8,  PARAMETER   :: Dhnh3 = -8.17/0.04
-      REAL*8,  PARAMETER   :: DhrKa1 = -450.
-
-	! Variables
-      REAL*8                   :: Hnh3_T, Ka1_T
-      REAL*8                   :: Hnh3eff, xNH3, pNH3
+      ! Variables
+      REAL*8              :: Hnh3_T, Ka1_T
+      REAL*8              :: Hnh3eff, xNH3, pNH3
 
       !=================================================================
       ! kNH3 begins here!
       !=================================================================
 
-  	!NH3 dissolution constants
-  	Hnh3_T = Hnh3*exp(Dhnh3*((1.d0/T)-(1.d0/298.d0)))
-  	Ka1_T = Ka1*exp(DhrKa1*((1.d0/T)-(1.d0/298.d0)))
+      !NH3 dissolution constants
+      Hnh3_T = Hnh3*exp(Dhnh3*((1.d0/T)-(1.d0/298.d0)))
+      Ka1_T = Ka1*exp(DhrKa1*((1.d0/T)-(1.d0/298.d0)))
 
-  	!NH3 dissolution
-  	Hnh3eff = Hnh3_T*(1.d0+((Ka1_T* HPLUS) / Kw))
-  	xNH3 = 1.d0 / ( 1.d0 + ( Hnh3eff * 0.08205d0 * T * LWC ) )
-  	pNH3 = NH3 * P * xNH3
+      !NH3 dissolution
+      Hnh3eff = Hnh3_T*(1.d0+((Ka1_T* HPLUS) / Kw))
+      xNH3 = 1.d0 / ( 1.d0 + ( Hnh3eff * 0.08205d0 * T * LWC ) )
+      pNH3 = NH3 * P * xNH3
 
-  	KNH3p = Hnh3_T * Ka1_T * pNH3 / Kw
+      KNH3p = Hnh3_T * Ka1_T * pNH3 / Kw
 
       END FUNCTION kNH3
-
+!EOC
 !------------------------------------------------------------------------------
-
+!          Harvard University Atmospheric Chemistry Modeling Group            !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: cubic
+!
+! !DESCRIPTION: Subroutine CUBIC finds the roots of a cubic equation / 3rd 
+! order polynomial
+!\\
+!\\
+! !INTERFACE:
+!
       SUBROUTINE CUBIC( A2, A1, A0, NR, CRUTES )
 !
-!******************************************************************************
-! Subroutine to find the roots of a cubic equation / 3rd order polynomial
+! !USES:
+!
+!      USE ERROR_MOD, ONLY : GEOS_CHEM_STOP !ERROR_STOP
+!
+! !INPUT PARAMETERS: 
+!
+      INTEGER           :: NR
+      REAL*8            :: A2, A1, A0
+      REAL*8            :: CRUTES(3)
+!
+! !REMARKS:
 ! Formulae can be found in numer. recip.  on page 145
 !   kiran  developed  this version on 25/4/1990
 !   Dr. Francis S. Binkowski modified the routine on 6/24/91, 8/7/97
@@ -3021,23 +3224,24 @@
 ! - force double precision with "D" exponents
 ! - updated comments / cosmetic changes
 ! - now call ERROR_STOP from "error_mod.f" to stop the run safely
-!******************************************************************************
 !
-      ! References to F90 modules
-!      USE ERROR_MOD, ONLY : GEOS_CHEM_STOP !ERROR_STOP
-
-      ! Arguments
-      INTEGER           :: NR
-      REAL*8            :: A2, A1, A0
-      REAL*8            :: CRUTES(3)
-
-      ! Local variables
-      REAL*8            :: QQ,    RR,    A2SQ,  THETA, DUM1, DUM2
-      REAL*8            :: PART1, PART2, PART3, RRSQ,  PHI,  YY1
-      REAL*8            :: YY2,   YY3,   COSTH, SINTH
+! !REVISION HISTORY:
+!  25 Jan 2012 - M. Payer    - Added ProTeX headers
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+!
+! !DEFINED PARAMETERS:
+!
       REAL*8, PARAMETER :: ONE    = 1.0d0
       REAL*8, PARAMETER :: SQRT3  = 1.732050808d0
       REAL*8, PARAMETER :: ONE3RD = 0.333333333d0
+!
+! !LOCAL VARIABLES:
+!
+      REAL*8            :: QQ,    RR,    A2SQ,  THETA, DUM1, DUM2
+      REAL*8            :: PART1, PART2, PART3, RRSQ,  PHI,  YY1
+      REAL*8            :: YY2,   YY3,   COSTH, SINTH
 
       !=================================================================
       ! CUBIC begins here!
@@ -3101,6 +3305,7 @@
       
       ! Return to calling program
       END SUBROUTINE CUBIC
+!EOC
 !------------------------------------------------------------------------------
 !          Harvard University Atmospheric Chemistry Modeling Group            !
 !------------------------------------------------------------------------------
@@ -3305,52 +3510,48 @@
       END SUBROUTINE AQCHEM_SO2
 !EOC
 !------------------------------------------------------------------------------
-
+!BOP
+!
+! !IROUTINE: het_drop_chem
+!
+! !DESCRIPTION: Subroutine HET\_DROP\_CHEM estimates the in-cloud sulfate
+!  production rate in heterogeneous cloud droplets based on the Yuen et al.,
+!  1996 parameterization. (bec, 6/16/11)
+!\\
+!\\
+! !INTERFACE:
+!
       SUBROUTINE HET_DROP_CHEM( I, J, L, LSTOT, SSCvv, aSO4, GNH3,
      &                          SO2_sr, H2O20, GNO3, SR )
 !
-!******************************************************************************
-!  Function HET_DROP_CHEM estimates the in-cloud sulfate production rate
-!  in heterogeneous cloud droplets based on the Yuen et al., 1996 parameterization.
-!  (bec, 6/16/11)
+! !USES:
 !
-!  Arguments as Input:
-!  ============================================================================
-!  (1 ) I       (REAL*8) 
-!  (2 ) J       (REAL*8) 
-!  (3 ) L       (REAL*8) 
-!  (4 ) B       (REAL*8) : Sulfate production predicted by AQCHEM_SO2
-!  (5 ) CN      (REAL*8) : Coarse mode particle concentration
-!  (6 ) W       (REAL*8) : Updraft velocity [cm/s]
-!  (7 ) SO2     (REAL*8) : SO2  mixing ratio [pptv]
-!  (8 ) H2O2    (REAL*8) : H2O2 mixing ratio [pptv]
-!  (9 ) NH3     (REAL*8) : O3   mixing ratio [pptv]
-!  (10) HNO3    (REAL*8) : HNO3 mixing ratio [pptv]
-! 
-!  Arguments as Output:
-!  ============================================================================
-!  (8 ) SR      (REAL*8) : Sulfate production rate
-!
-!
-!  NOTES:
-!  
-!******************************************************************************
-!
-	USE DAO_MOD,         ONLY : AD, AIRVOL
-	USE DAO_MOD,         ONLY : UWND, VWND, AIRDEN
-	USE ERROR_MOD,       ONLY : IT_IS_FINITE, GEOS_CHEM_STOP
+      USE DAO_MOD,         ONLY : AD, AIRVOL
+      USE DAO_MOD,         ONLY : UWND, VWND, AIRDEN
+      USE ERROR_MOD,       ONLY : IT_IS_FINITE, GEOS_CHEM_STOP
       USE TIME_MOD,        ONLY : GET_TS_CHEM
-	USE TRACER_MOD,      ONLY : TCVV
-	USE TRACERID_MOD,    ONLY : IDTSO4, IDTSALC
-	USE TRACERID_MOD,    ONLY : IDTDST2, IDTDST3, IDTDST4
-
-      ! Arguments
+      USE TRACER_MOD,      ONLY : TCVV
+      USE TRACERID_MOD,    ONLY : IDTSO4, IDTSALC
+      USE TRACERID_MOD,    ONLY : IDTDST2, IDTDST3, IDTDST4
+!
+! !INPUT PARAMETERS: 
+!
       INTEGER, INTENT(IN)  :: I, J, L
       REAL*8,  INTENT(IN)  :: LSTOT, SSCvv
       REAL*8,  INTENT(IN)  :: aSO4, GNH3, SO2_sr, H2O20, GNO3
-      REAL*8,  INTENT(OUT) :: SR
-
-      ! Local variables
+!
+! !OUTPUT PARAMETERS: 
+!
+      REAL*8,  INTENT(OUT) :: SR ! Sulfate production rate
+!
+! !REVISION HISTORY:
+!  25 Jan 2012 - M. Payer    - Added ProTeX headers
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+!
+! !DEFINED PARAMETERS:
+!
       REAL*8, PARAMETER   :: PI    = 3.14159D0
       REAL*8, PARAMETER   :: SS_DEN = 2200.d0 !dry sea-salt density [kg/m3]
       ! sigma of the size distribution for sea-salt (Jaegle et al., 2011)
@@ -3360,6 +3561,9 @@
       REAL*8, PARAMETER   :: RG_D2 = 1.5d-6!(Ginoux et al., 2001)
       REAL*8, PARAMETER   :: RG_D3 = 2.5d-6
       REAL*8, PARAMETER   :: RG_D4 = 4.d-6
+!
+! !LOCAL VARIABLES:
+!
       REAL*8              :: alpha_NH3, alpha_SO2, alpha_H2O2
       REAL*8              :: alpha_HNO3, alpha_B, alpha_CN
       REAL*8              :: alpha_W, alpha_SO4, sum_gas, H
@@ -3372,102 +3576,105 @@
       ! HET_DROP_CHEM begins here!
       !=================================================================
 
-	! Convert gas phase concentrations from [v/v] to [pptv]
-	NH3  = GNH3  * 1.0d12
-	SO2  = SO2_sr  * 1.0d12
-	H2O2 = H2O20 * 1.0d12
-	HNO3 = GNO3 * 1.0d12
+      ! Convert gas phase concentrations from [v/v] to [pptv]
+      NH3  = GNH3  * 1.0d12
+      SO2  = SO2_sr  * 1.0d12
+      H2O2 = H2O20 * 1.0d12
+      HNO3 = GNO3 * 1.0d12
 
-	! Convert sulfate aerosol concentrations from [v/v] to [ug/m3]
-	SO4 = ( aSO4 * AD(I,J,L) * 1.0d9 ) / 
+      ! Convert sulfate aerosol concentrations from [v/v] to [ug/m3]
+      SO4 = ( aSO4 * AD(I,J,L) * 1.0d9 ) / 
      &      ( TCVV(IDTSO4) * AIRVOL(I,J,L) )
 
-	! Convert in cloud sulfate production rate from [v/v/timestep] to [ug/m3/timestep]
-	B  = ( LSTOT  * AD(I,J,L) * 1.0d9 ) / 
-     &      ( TCVV(IDTSO4) * AIRVOL(I,J,L) )
+      ! Convert in cloud sulfate production rate from [v/v/timestep] to
+      ! [ug/m3/timestep]
+      B  = ( LSTOT  * AD(I,J,L) * 1.0d9 ) / 
+     &     ( TCVV(IDTSO4) * AIRVOL(I,J,L) )
 
-	! Convert coarse-mode aerosol concentrations from [v/v] to [#/cm3]
-	! based on equation in Hofmann, Science, 1990.
-	! First convert from [v/v] to [kg/m3 air]
-	CNss = SSCvv   * AD(I,J,L) / ( TCVV(IDTSALC) * AIRVOL(I,J,L) )
-	! Now convert from [kg/m3 air] to [#/cm3 air]
-	! Sea-salt
-	NDss = ( (3.d0/4.d0) * CNss ) / 
+      ! Convert coarse-mode aerosol concentrations from [v/v] to [#/cm3]
+      ! based on equation in Hofmann, Science, 1990.
+      ! First convert from [v/v] to [kg/m3 air]
+      CNss = SSCvv   * AD(I,J,L) / ( TCVV(IDTSALC) * AIRVOL(I,J,L) )
+      ! Now convert from [kg/m3 air] to [#/cm3 air]
+      ! Sea-salt
+      NDss = ( (3.d0/4.d0) * CNss ) / 
      &       (PI * SS_DEN * RG_S**3.d0 * exp( (9.d0/2.d0) * 
      &       (LOG(SIG_S)) ** 2.d0 ) )
-	! Total coarse mode number concentration [#/cm3]
-	CN = NDss ! sea-salt 
+      ! Total coarse mode number concentration [#/cm3]
+      CN = NDss ! sea-salt 
 
-	! Determine regression coefficients based on the local SO2 concentration
-	IF ( SO2 <= 200.0d0 ) THEN
-		alpha_B    = 0.5318d0
-		alpha_NH3  = -1.67d-7
-		alpha_SO2  = 2.59d-6
-		alpha_H2O2 = -1.77d-7
-		alpha_HNO3 = -1.72d-7
-		alpha_W    = 1.22d-6
-		alpha_CN   = 4.58d-6
-		alpha_SO4  = -1.00d-5
-	ELSE IF ( SO2 > 200.0d0 .AND. SO2 <= 500.0d0 ) THEN
-		alpha_B    = 0.5591d0
-		alpha_NH3  = 3.62d-6
-		alpha_SO2  = 1.66d-6
-		alpha_H2O2 = 1.06d-7
-		alpha_HNO3 = -5.45d-7
-		alpha_W    = -5.79d-7
-		alpha_CN   = 1.63d-5
-		alpha_SO4  = -7.40d-6
-	ELSE IF ( SO2 > 500.0d0 .AND. SO2 < 1000.0d0 ) THEN
-		alpha_B    = 1.1547d0
-		alpha_NH3  = -4.28d-8
-		alpha_SO2  = -1.23d-7
-		alpha_H2O2 = -9.05d-7
-		alpha_HNO3 = 1.73d-7
-		alpha_W    = 7.22d-6
-		alpha_CN   = 2.44d-5
-		alpha_SO4  = 3.25d-5
-	ELSE IF ( SO2 >= 1000.0d0 ) THEN
-		alpha_B    = 1.1795d0
-		alpha_NH3  = 2.57d-7
-		alpha_SO2  = -5.54d-7
-		alpha_H2O2 = -1.08d-6
-		alpha_HNO3 = 1.95d-6
-		alpha_W    = 6.14d-6
-		alpha_CN   = 1.64d-5
-		alpha_SO4  = 2.48d-6
-	ENDIF
+      ! Determine regression coefficients based on the local SO2 concentration
+      IF ( SO2 <= 200.0d0 ) THEN
+         alpha_B    = 0.5318d0
+         alpha_NH3  = -1.67d-7
+         alpha_SO2  = 2.59d-6
+         alpha_H2O2 = -1.77d-7
+         alpha_HNO3 = -1.72d-7
+         alpha_W    = 1.22d-6
+         alpha_CN   = 4.58d-6
+         alpha_SO4  = -1.00d-5
+      ELSE IF ( SO2 > 200.0d0 .AND. SO2 <= 500.0d0 ) THEN
+         alpha_B    = 0.5591d0
+         alpha_NH3  = 3.62d-6
+         alpha_SO2  = 1.66d-6
+         alpha_H2O2 = 1.06d-7
+         alpha_HNO3 = -5.45d-7
+         alpha_W    = -5.79d-7
+         alpha_CN   = 1.63d-5
+         alpha_SO4  = -7.40d-6
+      ELSE IF ( SO2 > 500.0d0 .AND. SO2 < 1000.0d0 ) THEN
+         alpha_B    = 1.1547d0
+         alpha_NH3  = -4.28d-8
+         alpha_SO2  = -1.23d-7
+         alpha_H2O2 = -9.05d-7
+         alpha_HNO3 = 1.73d-7
+         alpha_W    = 7.22d-6
+         alpha_CN   = 2.44d-5
+         alpha_SO4  = 3.25d-5
+      ELSE IF ( SO2 >= 1000.0d0 ) THEN
+         alpha_B    = 1.1795d0
+         alpha_NH3  = 2.57d-7
+         alpha_SO2  = -5.54d-7
+         alpha_H2O2 = -1.08d-6
+         alpha_HNO3 = 1.95d-6
+         alpha_W    = 6.14d-6
+         alpha_CN   = 1.64d-5
+         alpha_SO4  = 2.48d-6
+      ENDIF
 
-	! Updraft velocity over the oceans [cm/s]
+      ! Updraft velocity over the oceans [cm/s]
       W = 500d0
 
-	! Compute H (integration time interval * air parcel velocity) [m]
-	! DTCHEM is the chemistry timestep in seconds
+      ! Compute H (integration time interval * air parcel velocity) [m]
+      ! DTCHEM is the chemistry timestep in seconds
       DTCHEM = GET_TS_CHEM() * 60d0
-	! Compute air parcel velocity [m/s]
-	APV = SQRT( (UWND(I,J,L)*UWND(I,J,L)) + (VWND(I,J,L)*VWND(I,J,L)) )
-	H = DTCHEM * APV ![m]
+      ! Compute air parcel velocity [m/s]
+      APV = SQRT( (UWND(I,J,L)*UWND(I,J,L)) + 
+     &            (VWND(I,J,L)*VWND(I,J,L)) )
+      H   = DTCHEM * APV          ![m]
 
-	sum_gas = (alpha_NH3 * NH3) + (alpha_SO2 * SO2) +
+      sum_gas = (alpha_NH3 * NH3) + (alpha_SO2 * SO2) +
      &          (alpha_H2O2 * H2O2) + (alpha_HNO3 * HNO3)
 
-	DSVI = ( alpha_B * B ) +
+      DSVI = ( alpha_B * B ) +
      &       ( ( (alpha_CN * CN) + (alpha_W * W) + (alpha_SO4 * SO4) +
      &           sum_gas ) * H )
 
-	! additional sulfate production that can be attributed to ozone [ug/m3/timestep]
+      ! additional sulfate production that can be attributed to
+      ! ozone [ug/m3/timestep]
       SR = DSVI - B 
 
-	! Convert SR from [ug/m3/timestep] to [v/v/timestep]
-	SR = SR *TCVV(IDTSO4) * 1.D-9 / AIRDEN(I,J,L)
+      ! Convert SR from [ug/m3/timestep] to [v/v/timestep]
+      SR = SR *TCVV(IDTSO4) * 1.D-9 / AIRDEN(I,J,L)
 	
-	! Don't allow SR to be negative
-	SR = MAX( SR, 0.d0 )
+      ! Don't allow SR to be negative
+      SR = MAX( SR, 0.d0 )
 
-	! Don't produce more SO4 than SO2 available after AQCHEM_SO2
+      ! Don't produce more SO4 than SO2 available after AQCHEM_SO2
       SR = MIN( SR, SO2_sr )
 
-      ! Return to calling program
       END SUBROUTINE HET_DROP_CHEM
+!EOC
 !------------------------------------------------------------------------------
 !          Harvard University Atmospheric Chemistry Modeling Group            !
 !------------------------------------------------------------------------------
