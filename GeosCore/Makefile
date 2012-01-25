@@ -95,6 +95,7 @@
 #  16 Feb 2011 - R. Yantosca - Add modifications for APM (G. Luo)
 #  05 Aug 2011 - M. Long     - Now compile module files in Headers/ directory
 #  04 Nov 2011 - R. Yantosca - Remove references to ESMF subdirectory
+#  08 Dec 2011 - M. Payer    - Remove obsolete GEIA biogenic emissions routines
 #EOP
 #------------------------------------------------------------------------------
 #BOC
@@ -234,7 +235,7 @@ a6_read_mod.o               : a6_read_mod.F           dao_mod.o              \
                               diag_mod.o              logical_mod.o
 
 acetone_mod.o               : acetone_mod.F           dao_mod.o              \
-                              diag_mod.o               
+                              diag_mod.o              megan_mod.o 
 
 aerosol_mod.o               : aerosol_mod.F           comode_mod.o           \
                               dao_mod.o               diag_mod.o             \
@@ -517,13 +518,6 @@ emfossil.o                  : emfossil.F                                     \
                               tracerid_mod.o          vistas_anthro_mod.o    \
 			      retro_mod.o
 
-emisop.o                    : emisop.F                dao_mod.o              \
-                              meganut_mod.o
-
-emisop_grass.o              : emisop_grass.F          dao_mod.o
-
-emisop_mb.o                 : emisop_mb.F             dao_mod.o
-
 emissdr.o                   : emissdr.F                                      \
                               acetone_mod.o           aircraft_nox_mod.o     \
                               biofuel_mod.o           dao_mod.o              \
@@ -547,8 +541,6 @@ emissions_mod.o             : emissions_mod.F                                \
                               sulfate_mod.o           tagged_co_mod.o        \
                               tracer_mod.o            vistas_anthro_mod.o    \
 			      retro_mod.o
-
-emmonot.o                   : emmonot.F
 
 epa_nei_mod.o               : epa_nei_mod.F                                  \
                               future_emissions_mod.o  logical_mod.o          \
@@ -858,15 +850,9 @@ rd_js.o                     : rd_js.F
 
 rd_prof.o                   : rd_prof.F
 
-rdisopt.o                   : rdisopt.F
-
 rdlai.o                     : rdlai.F
 
 rdland.o                    : rdland.F                logical_mod.o
-
-rdlight.o                   : rdlight.F
-
-rdmonot.o                   : rdmonot.F
 
 rdsoil.o                    : rdsoil.F
 
@@ -918,8 +904,6 @@ set_aer.o                   : set_aer.F
 
 set_prof.o                  : set_prof.F                                     \
                               dao_mod.o               toms_mod.o
-
-setbase.o                   : setbase.F
 
 setemdep.o                  : setemdep.F              drydep_mod.o           \
                               tracer_mod.o            tracerid_mod.o

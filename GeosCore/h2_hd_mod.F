@@ -113,29 +113,35 @@
 !
 ! !USES:
 !
-      USE BIOFUEL_MOD,   ONLY : BIOFUEL,     BIOFUEL_BURN
-      ! IDBCO moved to tracerid_mod by FP (hotp 7/31/09)
-      USE BIOMASS_MOD,   ONLY : BIOMASS!,     IDBCO
-      USE DAO_MOD,       ONLY : SUNCOS,      BXHEIGHT
-      USE DIAG_MOD,      ONLY : AD29,        AD46,          AD10em
-      USE GEIA_MOD,      ONLY : GET_IHOUR,   GET_DAY_INDEX, READ_GEIA
-      USE GEIA_MOD,      ONLY : READ_LIQCO2, READ_TOTCO2,   READ_TODX
-      USE GRID_MOD,      ONLY : GET_XOFFSET, GET_YOFFSET,   GET_AREA_CM2
-      USE LOGICAL_MOD,      ONLY : LANTHRO,     LGFED2BB, LGFED3BB
+      USE BIOFUEL_MOD,      ONLY : BIOFUEL,     BIOFUEL_BURN
+      USE BIOMASS_MOD,      ONLY : BIOMASS
+      USE DAO_MOD,          ONLY : SUNCOS,      BXHEIGHT
+      USE DAO_MOD,          ONLY : PARDF,       PARDR
+      USE DAO_MOD,          ONLY : SUNCOS_MID
+      USE DIAG_MOD,         ONLY : AD29,        AD46,          AD10em
+      USE GEIA_MOD,         ONLY : GET_IHOUR,   GET_DAY_INDEX, READ_GEIA
+      USE GEIA_MOD,         ONLY : READ_LIQCO2, READ_TOTCO2,   READ_TODX
+      USE GRID_MOD,         ONLY : GET_XOFFSET, GET_YOFFSET  
+      USE GRID_MOD,         ONLY : GET_AREA_CM2
+      USE LOGICAL_MOD,      ONLY : LANTHRO,     LGFED2BB,      LGFED3BB
       USE LOGICAL_MOD,      ONLY : LBIOMASS,    LBIOFUEL,      LNEI99
       USE LOGICAL_MOD,      ONLY : LSTREETS,    LEDGAR,        LBRAVO
+      USE LOGICAL_MOD,      ONLY : LMEGAN
       USE MEGANUT_MOD,      ONLY : XLTMMP
-      USE TRACERID_MOD,  ONLY : IDBCO
+      USE MEGAN_MOD,        ONLY : GET_EMMONOT_MEGAN
+      USE MEGAN_MOD,        ONLY : GET_EMISOP_MEGAN
+      USE TRACERID_MOD,     ONLY : IDBCO
       USE TIME_MOD,         ONLY : GET_MONTH,   GET_TAU 
       USE TIME_MOD,         ONLY : GET_YEAR,    GET_TS_EMIS  
       USE TRACER_MOD,       ONLY : STT
       USE TRACERID_MOD,     ONLY : IDBFCO,      IDTH2,         IDTHD
-      USE TAGGED_CO_MOD,    ONLY : INIT_TAGGED_CO,  READ_ACETONE, EMACET
+      USE TAGGED_CO_MOD,    ONLY : INIT_TAGGED_CO
+      USE TAGGED_CO_MOD,    ONLY : READ_ACETONE,  EMACET
       USE SCALE_ANTHRO_MOD, ONLY : GET_ANNUAL_SCALAR
       
-      USE CMN_SIZE_MOD     ! Size parameters
-      USE CMN_O3_MOD       ! FSCALYR, SCNR89, TODH, EMISTCO
-      USE CMN_DIAG_MOD     ! Diagnostic arrays & switches
+      USE CMN_SIZE_MOD      ! Size parameters
+      USE CMN_O3_MOD        ! FSCALYR, SCNR89, TODH, EMISTCO
+      USE CMN_DIAG_MOD      ! Diagnostic arrays & switches
 ! 
 ! !REVISION HISTORY: 
 !  18 Sep 2007 - L. Jaegle, H. U. Price, P. Le Sager -- Initial version
@@ -143,6 +149,8 @@
 !  (2 ) Move XLTMMP to module MEGANUT_MOD (ccc, 11/20/09)
 !  (3 ) IDBCO is in TRACERID_MOD now (hotp 7/31/09)
 !  02 Dec 2010 - R. Yantosca - Added ProTeX headers
+!  08 Dec 2011 - M. Payer    - Remove obsolete GEIA biogenic emissions and add
+!                              MEGAN biogenic emissions.
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -167,11 +175,12 @@
       REAL*8                 :: CONVERT(NVEGTYPE) 
       REAL*8                 :: GMONOT(NVEGTYPE)
 
+      ! Cosine SZA & PAR (for calculation of monoterpenes)
+      REAL*8                 :: SC, PDF, PDR
+
       ! External functions
-!-- XLTMMP moved to meganut_mod.f (ccc, 11/20/09)
-!      REAL*8, EXTERNAL       :: XLTMMP,  EMISOP, BOXVL
-      REAL*8, EXTERNAL       :: EMISOP, BOXVL
-      REAL*8, EXTERNAL       :: EMMONOT, EMCH3OH
+      REAL*8, EXTERNAL       :: BOXVL
+      REAL*8, EXTERNAL       :: EMCH3OH
 
       !=================================================================
       ! EMISS_H2_HD begins here!
@@ -179,17 +188,6 @@
       ! Do the following only on the first call to EMISS_H2_HD...
       !=================================================================
       IF ( FIRSTEMISS ) THEN
-
-         ! Read polynomial coeffs' for isoprene emissions
-         CALL RDLIGHT
-
-         ! Read conversion tables for isoprene & monoterpene emissions
-         ! Also read acetone emissions (bnd, bmy, 6/8/01)
-         CALL RDISOPT( CONVERT )
-         CALL RDMONOT( GMONOT  ) 
-
-         ! Set the base level of isoprene & monoterpene emissions
-         CALL SETBASE( CONVERT, GMONOT )
 
          ! Read time-of-day and day-of-week scale factors for GEIA emissions
          CALL READ_TODX( TODN, TODH, TODB, SCNR89 )
@@ -567,11 +565,25 @@
 
             ! Surface air temperature [K]
             TMMP = XLTMMP(I,J,IJLOOP)
-      
-            ! ISOP and MONOTERPENE emissions in [atoms C/box/time step] 
-            ! SUNCOS is COSINE( solar zenith angle ) 
-            EMXX = EMISOP( I, J, IJLOOP, SUNCOS, TMMP, XNUMOL_ISOP ) 
-            EMMO = EMMONOT( IJLOOP, TMMP, XNUMOL_MONO )
+
+
+            ! MEGAN biogenic emissions (mpayer,12/8/11)
+            IF ( LMEGAN ) THEN
+
+               ! Cosine of solar zenith angle
+               SC   = SUNCOS_MID(IJLOOP)
+
+               ! Diffuse and direct PAR
+               PDR  = PARDR(I,J)
+               PDF  = PARDF(I,J)
+
+               ! ISOP and MONOTERPENE emissions in [atoms C/box/time step]
+               EMXX = GET_EMISOP_MEGAN(  I,   J,   SC,    TMMP, 
+     &                                   PDR, PDF, XNUMOL_ISOP )
+               EMMO = GET_EMMONOT_MEGAN( I,   J,   SC,    TMMP,
+     &                                   PDR, PDF, XNUMOL_MONO )
+
+            ENDIF
 
             ! Store ISOP and MONOTERPENE emissions [atoms C/box/time step]
             ! for later use in the subroutine CHEM_H2_HD
