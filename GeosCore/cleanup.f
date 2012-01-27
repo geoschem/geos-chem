@@ -86,6 +86,10 @@
 !  (43) Now references CLEANUP_ISOROPIAII (ccc, bmy, 1/29/09)
 !  (44) Now references CLEANUP_DEPO_MERCURY and CLEANUP_LAND_MERCURY
 !       (ccc, 5/6/10)
+!  (45) Added call to CLEANUP_GLOBAL_OC, which deallocates arrays from
+!       "global_oc_mod.f"  (clf, 2/28/2011)
+!  (46) Added call to CLEANUP_GLOBAL_BC, which deallocates arrays from
+!       "global_bc_mod.f"  (clf, 2/28/2011) 
 !******************************************************************************
 !
       ! References to F90 modules 
@@ -109,6 +113,7 @@
       USE DIAG41_MOD,              ONLY : CLEANUP_DIAG41
       USE DIAG50_MOD,              ONLY : CLEANUP_DIAG50
       USE DIAG51_MOD,              ONLY : CLEANUP_DIAG51
+      USE DIAG53_MOD,              ONLY : CLEANUP_DIAG53 !(clf, 3/11/11)
       USE DIAG_OH_MOD,             ONLY : CLEANUP_DIAG_OH
       USE DIAG_PL_MOD,             ONLY : CLEANUP_DIAG_PL
       USE DRYDEP_MOD,              ONLY : CLEANUP_DRYDEP
@@ -126,6 +131,8 @@
       USE GLOBAL_NOX_MOD,          ONLY : CLEANUP_GLOBAL_NOX
       USE GLOBAL_O1D_MOD,          ONLY : CLEANUP_GLOBAL_O1D
       USE GLOBAL_OH_MOD,           ONLY : CLEANUP_GLOBAL_OH
+      USE GLOBAL_OC_MOD,           ONLY : CLEANUP_GLOBAL_OC
+      USE GLOBAL_BC_MOD,           ONLY : CLEANUP_GLOBAL_BC
       USE H2_HD_MOD,               ONLY : CLEANUP_H2_HD
       USE HCN_CH3CN_MOD,           ONLY : CLEANUP_HCN_CH3CN
       USE HDF_MOD,                 ONLY : CLEANUP_HDF
@@ -190,6 +197,7 @@
       CALL CLEANUP_DIAG41
       CALL CLEANUP_DIAG50
       CALL CLEANUP_DIAG51
+      CALL CLEANUP_DIAG53
       CALL CLEANUP_DIAG_OH
       CALL CLEANUP_DIAG_PL
       CALL CLEANUP_DRYDEP
@@ -207,6 +215,8 @@
       CALL CLEANUP_GLOBAL_NO3
       CALL CLEANUP_GLOBAL_O1D
       CALL CLEANUP_GLOBAL_OH
+      CALL CLEANUP_GLOBAL_OC
+      CALL CLEANUP_GLOBAL_BC
       CALL CLEANUP_H2_HD
       CALL CLEANUP_HCN_CH3CN
       CALL CLEANUP_HDF
