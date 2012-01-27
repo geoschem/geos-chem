@@ -40,8 +40,10 @@
 !  Module Variables:
 !  ============================================================================
 !  (1 ) AD53         (REAL*4) : Array for POPS emissions
-!  (2 ) AD53_PG_PP   (REAL*4) : Array for partitioning of gas phase POP to particles 
-!  (3 ) AD53_POPG_OH (REAL*4) : Array for POPG oxidized by OH
+!  (2 ) AD53_PG_OC   (REAL*4) : Array for archiving POP in OC particles 
+!  (3 ) AD53_PG_BC   (REAL*4) : Array for archiving POP on BC particles 
+!  (4 ) AD53_PG_G    (REAL*4) : Array for archiving gas phase POP
+!  (4 ) AD53_POPG_OH (REAL*4) : Array for POPG oxidized by OH
 
 !
 !  Module Routines:
@@ -51,7 +53,7 @@
 !  (3 ) INIT_DIAG53           : Allocates all module arrays
 !  (4 ) CLEANUP_DIAG53        : Deallocates all module arrays
 !
-!  GEOS-CHEM modules referenced by diag03_mod.f
+!  GEOS-CHEM modules referenced by diag53_mod.f
 !  ============================================================================
 !  (1 ) bpch2_mod.f           : Module w/ routines for binary pch file I/O
 !  (2 ) error_mod.f           : Module w/ NaN and other error check routines
@@ -71,12 +73,18 @@
 
       ! Scalars
       INTEGER              :: ND53, LD53
-      INTEGER, PARAMETER   :: PD53 = 4  ! Number of diagnostics for AD03
+      INTEGER, PARAMETER   :: PD53 = 11  ! Number of diagnostics for AD53
 
       ! Arrays
       REAL*4,  ALLOCATABLE :: AD53(:,:,:)
-      REAL*4,  ALLOCATABLE :: AD53_PG_PP(:,:,:)
+      REAL*4,  ALLOCATABLE :: AD53_PG_OC_NEG(:,:,:)
+      REAL*4,  ALLOCATABLE :: AD53_PG_OC_POS(:,:,:)
+      REAL*4,  ALLOCATABLE :: AD53_PG_BC_NEG(:,:,:)
+      REAL*4,  ALLOCATABLE :: AD53_PG_BC_POS(:,:,:)
       REAL*4,  ALLOCATABLE :: AD53_POPG_OH(:,:,:)
+      REAL*4,  ALLOCATABLE :: AD53_POPP_OC_O3(:,:,:)
+      REAL*4,  ALLOCATABLE :: AD53_POPP_BC_O3(:,:,:)
+
 !      REAL*4,  ALLOCATABLE :: AD53_POPG_NO3(:,:,:)
 !      REAL*4,  ALLOCATABLE :: AD53_POPG_OX(:,:,:)
  
@@ -94,10 +102,7 @@
 !  (bmy, 1/21/05, 4/6/06) (now diag 53, eck 9/20/10)
 !
 !  NOTES:
-!  (1 ) Now references N_Hg_CATS from "tracerid_mod.f".  Now zero AD03_Hg2_SS
-!        array. (bmy, 4/6/06)
-!  (2 ) Now use broadcast assignment and double precision 0D0 to zero arrays,
-!        rather than nested DO loops and single precision 0E0. (cdh, 8/14/08)
+!  (1 ) 
 !******************************************************************************
 !
       ! References to F90 modules
@@ -116,9 +121,12 @@
       IF ( ND53 == 0 ) RETURN
 
       ! Zero arrays
-      AD53         = 0D0
-      AD53_PG_PP   = 0D0
-      AD53_POPG_OH = 0D0
+      AD53              = 0D0
+      AD53_PG_OC_NEG    = 0D0
+      AD53_PG_OC_POS    = 0D0
+      AD53_PG_BC_NEG    = 0D0
+      AD53_PG_BC_POS    = 0D0
+      AD53_POPG_OH      = 0D0
   
       ! Return to calling program
       END SUBROUTINE ZERO_DIAG53
@@ -128,14 +136,14 @@
       SUBROUTINE WRITE_DIAG53
 !
 !******************************************************************************
-!  Subroutine WRITE_DIAG03 writes the ND03 diagnostic arrays to the binary
+!  Subroutine WRITE_DIAG53 writes the ND53 diagnostic arrays to the binary
 !  punch file at the proper time. (bmy, 1/21/05, 2/24/06)
 !
-!   # : Field    : Description                     : Units    : Scale factor
-!  --------------------------------------------------------------------------
-!  (1 ) PG-SRCE  : Total POP emission                  : kg       : 1
-!  (2 ) PG-SRCE  : Total gas phase POP reacted with OH : kg       : 1
-!  (21) PL-PP-$  : Amount of POPG CONVERTED TO PARTICLE: kg       : 1 
+!   # : Field    : Description                                   : Units    : Scale factor
+!  -------------------------------------------------------------------------
+!  (1 ) PG-SRCE  : POP emissions                                 : kg       : 1
+!  (2 ) PG-PP-$  : Gas phase POP reacted with OH or partitioned  : kg       : 1
+!   
 !
 !  NOTES:
 !******************************************************************************
@@ -146,7 +154,7 @@
       USE GRID_MOD,     ONLY : GET_XOFFSET, GET_YOFFSET
       USE TIME_MOD,     ONLY : GET_CT_EMIS, GET_DIAGb,  GET_DIAGe
       USE TIME_MOD,     ONLY : GET_CT_CHEM ! CDH for sea salt loss rate
-!      USE TRACERID_MOD, ONLY : N_Hg_CATS
+
 
 #     include "CMN_SIZE"     ! Size parameters
 #     include "CMN_DIAG"     ! TINDEX
@@ -203,41 +211,87 @@
             UNIT              = 'kg'
             LMAX              = 1
             NN                = N
-            ARRAY(:,:,1)     = AD53(:,:,N)
+            ARRAY(:,:,1)      = AD53(:,:,N)
 
          ELSE IF ( N == 5  ) THEN
 
             !--------------------------------
-            ! #2 Amount converted to OC particle
+            ! #2 New gas phase from OC (negative formation of OC)
             !--------------------------------
-            CATEGORY          = 'PL-PP-$'
+            CATEGORY          = 'PG-PP-$'
             UNIT              = 'kg'
             LMAX              = LD53 
             NN                = N
-            ARRAY(:,:,1:LMAX) = AD53_PG_PP(:,:,1:LMAX)
+            ARRAY(:,:,1:LMAX) = AD53_PG_OC_NEG(:,:,1:LMAX)
 
          ELSE IF ( N == 6  ) THEN
 
             !--------------------------------
-            ! #2 Amount converted to BC particle
+            ! #3 New OC phase from gas (positive formation of OC)
             !--------------------------------
-            CATEGORY          = 'PL-PP-$'
+            CATEGORY          = 'PG-PP-$'
             UNIT              = 'kg'
             LMAX              = LD53 
             NN                = N
-            ARRAY(:,:,1:LMAX) = AD53_PG_PP(:,:,1:LMAX)
-        
+            ARRAY(:,:,1:LMAX) = AD53_PG_OC_POS(:,:,1:LMAX)
+
          ELSE IF ( N == 7  ) THEN
 
             !--------------------------------
-            ! #3 Production of oxidized POPG from rxn with OH (clf, 1/27/11)
+            ! #4 New gas phase from BC (negative formation of BC)
             !--------------------------------
-            CATEGORY          = 'PL-PP-$'
+            CATEGORY          = 'PG-PP-$'
             UNIT              = 'kg'
             LMAX              = LD53 
             NN                = N
-            ARRAY(:,:,1:LMAX) = AD53_POPG_OH(:,:,1:LMAX)               
+            ARRAY(:,:,1:LMAX) = AD53_PG_BC_NEG(:,:,1:LMAX)
+
+         ELSE IF ( N == 8 ) THEN
+
+            !--------------------------------
+            ! #5 New BC phase from gas (positive formation of BC)
+            !--------------------------------
+            CATEGORY          = 'PG-PP-$'
+            UNIT              = 'kg'
+            LMAX              = LD53 
+            NN                = N
+            ARRAY(:,:,1:LMAX) = AD53_PG_BC_POS(:,:,1:LMAX)
+
+
+         ELSE IF ( N == 9  ) THEN
+
+            !--------------------------------
+            ! #6 Production of oxidized POPG from rxn with OH (clf, 1/27/11)
+            !--------------------------------
+            CATEGORY          = 'PG-PP-$'
+            UNIT              = 'kg'
+            LMAX              = LD53 
+            NN                = N
+            ARRAY(:,:,1:LMAX) = AD53_POPG_OH(:,:,1:LMAX)     
+
+         ELSE IF ( N == 10  ) THEN
+
+            !--------------------------------
+            ! #7 Production of oxidized POPOC from rxn with O3 (clf, 6/28/11)
+            !--------------------------------
+            CATEGORY          = 'PG-PP-$'
+            UNIT              = 'kg'
+            LMAX              = LD53 
+            NN                = N
+            ARRAY(:,:,1:LMAX) = AD53_POPP_OC_O3(:,:,1:LMAX) 
+
+         ELSE IF ( N == 11  ) THEN
+
+            !--------------------------------
+            ! #8 Production of oxidized POPBC from rxn with O3 (clf, 6/28/11)
+            !--------------------------------
+            CATEGORY          = 'PG-PP-$'
+            UNIT              = 'kg'
+            LMAX              = LD53 
+            NN                = N
+            ARRAY(:,:,1:LMAX) = AD53_POPP_BC_O3(:,:,1:LMAX)       
   
+         ELSE
 
             !--------------------------------
             ! Otherwise skip to next N
@@ -288,16 +342,31 @@
       ! Get number of levels for 3-D arrays
       LD53 = MIN( ND53, LLPAR )
 
-      ! 2-D array ("PP-SRCE")
+      ! 2-D array ("PG-SRCE")
       ALLOCATE( AD53( IIPAR, JJPAR, PD53 ), STAT=AS )
       IF ( AS /= 0 ) CALL ALLOC_ERR( 'AD53' )
 
-      ! 3-D arrays ("PL-PG-$")
-      ALLOCATE( AD53_PG_PP( IIPAR, JJPAR, LD53 ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'AD53_PP_PG' )
+      ! 3-D arrays ("PP-PG-$")
+      ALLOCATE( AD53_PG_OC_NEG( IIPAR, JJPAR, LD53 ), STAT=AS )
+      IF ( AS /= 0 ) CALL ALLOC_ERR( 'AD53_PG_OC_NEG' )
+
+      ALLOCATE( AD53_PG_OC_POS( IIPAR, JJPAR, LD53 ), STAT=AS )
+      IF ( AS /= 0 ) CALL ALLOC_ERR( 'AD53_PG_OC_POS' )
+
+      ALLOCATE( AD53_PG_BC_NEG( IIPAR, JJPAR, LD53 ), STAT=AS )
+      IF ( AS /= 0 ) CALL ALLOC_ERR( 'AD53_PG_BC_NEG' )
+
+      ALLOCATE( AD53_PG_BC_POS( IIPAR, JJPAR, LD53 ), STAT=AS )
+      IF ( AS /= 0 ) CALL ALLOC_ERR( 'AD53_PG_BC_POS' )
 
       ALLOCATE( AD53_POPG_OH( IIPAR, JJPAR, LD53 ), STAT=AS )
       IF ( AS /= 0 ) CALL ALLOC_ERR( 'AD53_POPG_OH' )
+
+      ALLOCATE( AD53_POPP_OC_O3( IIPAR, JJPAR, LD53 ), STAT=AS )
+      IF ( AS /= 0 ) CALL ALLOC_ERR( 'AD53_POPP_OC_O3' )
+
+      ALLOCATE( AD53_POPP_BC_O3( IIPAR, JJPAR, LD53 ), STAT=AS )
+      IF ( AS /= 0 ) CALL ALLOC_ERR( 'AD53_POPP_BC_O3' )
 
     
       ! Zero arrays
@@ -317,11 +386,16 @@
 !******************************************************************************
 !
       !=================================================================
-      ! CLEANUP_DIAG03 begins here!
+      ! CLEANUP_DIAG53 begins here!
       !=================================================================
-      IF ( ALLOCATED( AD53         ) ) DEALLOCATE( AD53         ) 
-      IF ( ALLOCATED( AD53_PG_PP ) ) DEALLOCATE( AD53_PG_PP)
+      IF ( ALLOCATED( AD53         ) ) DEALLOCATE( AD53         )
+      IF ( ALLOCATED( AD53_PG_OC_NEG ) ) DEALLOCATE( AD53_PG_OC_NEG ) 
+      IF ( ALLOCATED( AD53_PG_OC_POS ) ) DEALLOCATE( AD53_PG_OC_POS )
+      IF ( ALLOCATED( AD53_PG_BC_NEG ) ) DEALLOCATE( AD53_PG_BC_NEG )
+      IF ( ALLOCATED( AD53_PG_BC_POS ) ) DEALLOCATE( AD53_PG_BC_POS )
       IF ( ALLOCATED( AD53_POPG_OH ) ) DEALLOCATE( AD53_POPG_OH )
+      IF ( ALLOCATED( AD53_POPP_OC_O3 ) ) DEALLOCATE( AD53_POPP_OC_O3 )
+      IF ( ALLOCATED( AD53_POPP_BC_O3 ) ) DEALLOCATE( AD53_POPP_BC_O3 )
 
       ! Return to calling program
       END SUBROUTINE CLEANUP_DIAG53
