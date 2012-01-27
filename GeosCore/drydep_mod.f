@@ -231,6 +231,7 @@
       REAL*8,  ALLOCATABLE :: DEPSAV(:,:,:)
       REAL*8               :: DRYCOEFF(NNPOLY)
       REAL*8               :: HSTAR(MAXDEP)
+      REAL*8               :: KOA(MAXDEP)
       REAL*8               :: F0(MAXDEP)
       REAL*8               :: XMW(MAXDEP)
       REAL*8               :: A_RADI(MAXDEP)
@@ -1179,6 +1180,7 @@
 
       ! References to F90 modules (bmy, 3/8/01)
       USE ERROR_MOD, ONLY : IT_IS_NAN
+      USE TRACER_MOD, ONLY: ITS_A_POPS_SIM  !(clf, 1/3/2011)
                         
 C     Subroutine computes the dry deposition velocities using 
 C      a resistance-in-series model.
@@ -1370,6 +1372,11 @@ C Logical for snow and sea ice
 C
 
       LOGICAL LSNOW(MAXIJ)
+      LOGICAL IS_POPS !Logical switch for POPS in order to use octanol-air partitioning instead
+                      !of Henry's Law for scaling of cuticular resitances (clf, 1/3/2011)
+
+      ! Is this a POPs simmulation?
+      IS_POPS = ITS_A_POPS_SIM()  ! clf, 1/3/2011     
 C***********************************************************************       
 C
 C
@@ -1556,6 +1563,13 @@ C** exit for non-depositing species or aerosols.
                RLUXX = 1.D12
                IF (RLU(LDT).LT.9999.D0)
      C              RLUXX = RLU(LDT)/(HSTAR(K)/1.0D+05 + F0(K))
+
+        ! If a POPs simulation, scale cuticular resistances with octanol-air
+        ! partition coefficient (Koa) instead of HSTAR (clf, 1/3/2011)
+
+               IF (IS_POPS)
+     C              RLUXX = RLU(LDT)/(KOA(K)/1.0D+05 + F0(K))
+
 C*
 C* To prevent virtually zero resistance to species with huge HSTAR, such
 C* as HNO3, a minimum value of RLUXX needs to be set. The rationality
@@ -4292,37 +4306,77 @@ C** Load array DVEL
          !----------------------------------
 
           ELSE IF ( IS_POPS ) THEN
-             !dry dep of pops gas (like Hg(0) for now)
+             ! POPs gas phase
              IF ( N == IDTPOPG) THEN
                NUMDEP          = NUMDEP + 1
                NTRAIND(NUMDEP) = IDTPOPG
                NDVZIND(NUMDEP) = NUMDEP
                DEPNAME(NUMDEP) = 'POPG'
+               ! HSTAR is Henry's Law in mol/L/atm. 
+               ! For PHENANTHRENE, log Kaw = -2.76  
+               ! so unitless Kaw = 1.73*10^-3 and Kwa = 1/Kaw
+               ! Divide by R (0.0821 atm/M/K) and T (298 K) and get HSTAR = 23.5 M/atm
+               ! For PYRENE, log Kaw = -3.27
+               ! Using the same conversion, HSTAR = 76.1 M/atm
+               ! For BENZO[a]PYRENE, log Kaw = -4.51
+               ! Using the same conversion, HSTAR = 1.32d3 M/atm
+               ! All log Kaws from Ma et al., J Chem Eng Data 2010, 55:819 
                HSTAR(NUMDEP)   = 2.35d1
-               ! F0 consistent with Lin et al (2006)
-               F0(NUMDEP)      = 1.0d-5
+              ! Adding Koa (octanol-ar partition coefficient) for POPs to
+               ! account for accumulation in leaf cuticles
+               ! Needs to be in units of mol/liter/atm as with HSTAR
+               ! Divide unitless Koa at 298 K by product of R (0.0821 atm/M/K)
+               ! and T (298 K)
+               ! For PHENANTHRENE, log Koa = 7.64  
+               ! use same conversion as for HSTAR to get 1.78d6 M/atm
+               ! For PYRENE, log Koa = 8.86
+               ! use same conversion to get 2.96d7 M/atm
+               ! For BENZO[a]PYRENE, log Koa = 11.48
+               ! use same conversion to get 1.23d10 M/atm 
+               ! All log Koas from Ma et al., J Chem Eng Data 2010, 55:819 
+               KOA(NUMDEP)     = 1.78d6
+               F0(NUMDEP)      = 0.0d0
+               ! Need to change molecular weight for different POPs
+               ! For PHENANTHRENE, MW = 178d-3 (kg/mol)
+               ! For PYRENE, MW = 202d-3 (kg/mol)
+               ! for BENZO[a]PYRENE, MW = 252d-3 (kg/mol)
                XMW(NUMDEP)     = 178d-3
                AIROSOL(NUMDEP) = .FALSE. 
             ENDIF
-             ! POPs PARTICLES - OC (copy Hg(P) for now)
+
+             ! POPs PARTICLES - OC 
             IF ( N == IDTPOPPOC ) THEN
                NUMDEP          = NUMDEP + 1
                NTRAIND(NUMDEP) = IDTPOPPOC
                NDVZIND(NUMDEP) = NUMDEP
                DEPNAME(NUMDEP) = 'POPPOC'
                HSTAR(NUMDEP)   = 0.0d0
+               ! Koa for particulate POPs is set to equivalent of Henry's Law
+               ! so cuticular accumulation is not considered
+               KOA(NUMDEP)     = 0.0d0
                F0(NUMDEP)      = 0.0d0
+               ! Need to change molecular weight for different POPs
+               ! For PHENANTHRENE, MW = 178d-3 (kg/mol)
+               ! For PYRENE, MW = 202d-3 (kg/mol)
+               ! for BENZO[a]PYRENE, MW = 252d-3 (kg/mol)
                XMW(NUMDEP)     = 178d-3
                AIROSOL(NUMDEP) = .TRUE. 
             ENDIF
-            ! POPs PARTICLES - BC (copy Hg(P) for now)
+
+            ! POPs PARTICLES - BC 
             IF ( N == IDTPOPPBC ) THEN
                NUMDEP          = NUMDEP + 1
                NTRAIND(NUMDEP) = IDTPOPPBC
                NDVZIND(NUMDEP) = NUMDEP
                DEPNAME(NUMDEP) = 'POPPBC'
                HSTAR(NUMDEP)   = 0.0d0
+               ! Koa for particulate POPs is set to equivalent of Henry's Law
+               ! so cuticular accumulation is not considered
+               KOA(NUMDEP)     = 0.0d0
                F0(NUMDEP)      = 0.0d0
+               ! For PHENANTHRENE, MW = 178d-3 (kg/mol)
+               ! For PYRENE, MW = 202d-3 (kg/mol)
+               ! for BENZO[a]PYRENE, MW = 252d-3 (kg/mol)
                XMW(NUMDEP)     = 178d-3
                AIROSOL(NUMDEP) = .TRUE. 
             ENDIF
