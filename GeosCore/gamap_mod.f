@@ -1330,6 +1330,17 @@
       DESCRIPT(N) = 'Wetland Fraction'
       OFFSET(N)   = SPACING * 51
 
+! Added for POPs (clf, 3/2/2011)
+      N           = N + 1
+      CATEGORY(N) = 'PG-SRCE'
+      DESCRIPT(N) = 'POPs Emissions'
+      OFFSET(N)   = SPACING * 52
+
+      N           = N + 1
+      CATEGORY(N) = 'PG-PP-$'
+      DESCRIPT(N) = 'POP partitioning/oxidation'
+      OFFSET(N)   = SPACING * 53
+
 ! NEED TO DO THAT AT ONE POINT      
 !      ! New for CSPEC
 !      N           = N + 1
@@ -1370,6 +1381,7 @@
       USE DIAG50_MOD,   ONLY : DO_SAVE_DIAG50
       USE DIAG51_MOD,   ONLY : DO_SAVE_DIAG51
       USE DIAG51b_MOD,  ONLY : DO_SAVE_DIAG51b
+      USE DIAG53_MOD,   ONLY : ND53, PD53
       USE DIAG56_MOD,   ONLY : ND56
       USE DIAG_PL_MOD,  ONLY : DO_SAVE_PL,  GET_NFAM
       USE DIAG_PL_MOD,  ONLY : GET_FAM_MWT, GET_FAM_NAME
@@ -1424,6 +1436,7 @@
 !        nm from 400 nm.  Add additional dust AOD bins (amv, bmy, 12/18/09)
 !  20 Jul 2010 - C. Carouge  - Modifications to ND03 for mercury.
 !  03 Aug 2010 - R. Yantosca - Added ProTeX headers
+!  22 Mar 2011 - C. Friedman - Added POPs
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -3412,6 +3425,64 @@
          MOLC (T,52) = 1
          MWT  (T,52) = 0e0
          SCALE(T,52) = 1e0
+      ENDIF
+
+
+      !-----------------------------------
+      ! POPS (ND53) clf (03/22/11)
+      !-----------------------------------
+      IF ( ND53 > 0 ) THEN
+         NTRAC(53)  = T
+
+         ! Loop over tracers
+         DO T = 1, PD53
+
+            ! Define quantities
+            UNIT (T,53) = 'kg'
+            MOLC (T,53) = 1
+            MWT  (T,53) = 178e-3
+            SCALE(T,53) = 1e0
+
+            ! Get name, long-name, index, and new units
+            SELECT CASE( T )
+               CASE( 1  )
+                  NAME (T,53) = 'POPT'
+                  FNAME(T,53) = 'POP total emissions'
+                  INDEX(T,53) = T + ( SPACING * 52 )
+               CASE( 2  )
+                  NAME (T,53) = 'POPPOC'
+                  FNAME(T,53) = 'POPPOC emissions'
+                  INDEX(T,53) = T + ( SPACING * 52 )
+               CASE( 3  )
+                  NAME (T,53) = 'POPPBC'
+                  FNAME(T,53) = 'POPPBC emissions'
+                  INDEX(T,53) = T + ( SPACING * 52 )
+               CASE( 4  )
+                  NAME (T,53) = 'POPG'
+                  FNAME(T,53) = 'POPG emissions'
+                  INDEX(T,53) = T + ( SPACING * 52 )
+               CASE( 5  )
+                  NAME (T,53) = 'POPPOC'
+                  FNAME(T,53) = 'Gross POPPOC lost to gas'
+                  INDEX(T,53) = T + ( SPACING * 53 )
+               CASE( 6  )
+                  NAME (T,53) = 'POPPOC'
+                  FNAME(T,53) = 'Gross POPPOC formed from gas'
+                  INDEX(T,53) = T + ( SPACING * 53 )
+               CASE( 7  )
+                  NAME (T,53) = 'POPPBC'
+                  FNAME(T,53) = 'Gross POPPBC lost to gas'
+                  INDEX(T,53) = T + ( SPACING * 53 )
+               CASE( 8  )
+                  NAME (T,53) = 'POPPBC'
+                  FNAME(T,53) = 'Gross POPPBC formed from gas'
+                  INDEX(T,53) = T + ( SPACING * 53 )
+               CASE( 9  )
+                  NAME (T,53) = 'POPG'
+                  FNAME(T,53) = 'POPG oxidized by OH'
+                  INDEX(T,53) = T + ( SPACING * 53 )
+            END SELECT
+         ENDDO
       ENDIF
 
       !-------------------------------------      
