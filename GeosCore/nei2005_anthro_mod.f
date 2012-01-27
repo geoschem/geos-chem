@@ -421,6 +421,8 @@
 
 #if defined( GEOS_5 )
       SNAME = 'GEOS5'
+#elif defined( GCAP  )
+      SNAME = 'GEOS4'
 #elif defined( GEOS_4 )
       SNAME = 'GEOS4'
 #elif defined( GEOS_3 )
@@ -754,6 +756,8 @@
 
 #if defined( GEOS_5 )
       SNAME = 'GEOS5'
+#elif defined( GCAP   )
+      SNAME = 'GEOS4'
 #elif defined( GEOS_4 )
       SNAME = 'GEOS4'
 #elif defined( GEOS_3 )
@@ -1309,7 +1313,11 @@
   
       MONTHLY(:,:,1) = ARRAY(:,:,1)
       
+#if   !defined( GCAP)
       WRITE( SYEAR, '(i4)') THISYEAR
+#else
+      WRITE( SYEAR, '(i4)') 2002
+#endif
 
       ! Load ozone season regulation factors
       IF (THISMONTH .lt. 10) THEN
