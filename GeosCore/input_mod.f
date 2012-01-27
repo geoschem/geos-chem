@@ -1748,6 +1748,7 @@
          LGFED2BB = .FALSE.
       ENDIF
 
+#if   !defined( GCAP)
       ! Force to use MODIS LAI if we use MEGAN. (ccc, 2/23/10)
       IF ( LMEGAN .OR. LMEGANMONO ) THEN
          LMODISLAI = .TRUE.
@@ -1755,6 +1756,7 @@
          WRITE(6,'(/,a,/)') 'Force to use MODIS LAI for MEGAN.' //
      &        ' AVHRR LAI will not be used'
       ENDIF
+#endif
 
       !=================================================================
       ! Error check LAI switches (i.e. AVHRR or MODIS) (mpb,2009)
