@@ -61,7 +61,7 @@
       SUBROUTINE ZERO_DIAG56
 !
 !******************************************************************************
-!  Subroutine ZERO_DIAG03 zeroes the ND03 diagnostic arrays. 
+!  Subroutine ZERO_DIAG56 zeroes the ND56 diagnostic arrays. 
 !  (bmy, 5/11/06)
 !
 !  NOTES:
@@ -85,7 +85,7 @@
       SUBROUTINE WRITE_DIAG56
 !
 !******************************************************************************
-!  Subroutine WRITE_DIAG56 writes the ND03 diagnostic arrays to the binary
+!  Subroutine WRITE_DIAG56 writes the ND56 diagnostic arrays to the binary
 !  punch file at the proper time. (bmy, 5/11/06, 3/7/06)
 !
 !   # : Field    : Description              : Units          : Scale factor
@@ -122,7 +122,7 @@
       ! WRITE_DIAG56 begins here!
       !=================================================================
 
-      ! Exit if ND03 is turned off
+      ! Exit if ND56 is turned off
       IF ( ND56 == 0 ) RETURN
 
       ! Initialize
@@ -143,7 +143,7 @@
       ! Write data to the bpch file
       !=================================================================
 
-      ! Loop over ND03 diagnostic tracers
+      ! Loop over ND56 diagnostic tracers
       DO M = 1, TMAX(56)
 
          ! Define quantities
