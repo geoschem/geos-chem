@@ -124,15 +124,19 @@
 
       ! Filename for 47-level GEOS5 model
       FILENAME = 
-     &           '/home/cdh/GC/Archived-Br/MERGE.O3.47L.' // 
-     &           GET_NAME_EXT() // '.' // GET_RES_EXT()
+     &           '/net/fs05/d1/selin/geosruns/GC.vHolmes2009/' //
+     &           'data/MERGE.O3.47L.geos5.4x5'
+!     &           '/home/cdh/GC/Archived-Br/MERGE.O3.47L.' // 
+!     &           GET_NAME_EXT() // '.' // GET_RES_EXT()
 
 #elif defined( GEOS_5 )
 
       ! Filename for full level GEOS5 model
       FILENAME = 
-     &           '/home/cdh/GC/Archived-Br/MERGE.O3.' // 
-     &           GET_NAME_EXT() // '.' // GET_RES_EXT()
+     &           '/net/fs05/d1/selin/geosruns/GC.vHolmes2009/' //
+     &           'data/MERGE.O3.geos5.4x5'
+!     &           '/home/cdh/GC/Archived-Br/MERGE.O3.' // 
+!     &           GET_NAME_EXT() // '.' // GET_RES_EXT()
 
 #elif   defined( GRIDREDUCED )
 
