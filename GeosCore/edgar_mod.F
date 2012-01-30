@@ -386,9 +386,9 @@
       USE CMN_SIZE_MOD       ! Size parameters
 
       ! Arguments
-      INTEGER, INTENT(IN)               :: YEAR, MONTH
-      REAL*8,  INTENT(OUT)              :: E_NOX(IIPAR,JJPAR)
-      REAL*8,  INTENT(OUT), OPTIONAL    :: E_NOX_SHIP(IIPAR,JJPAR)
+      INTEGER, INTENT(IN)            :: YEAR, MONTH
+      REAL*8,  INTENT(OUT)           :: E_NOX(IIPAR,JJPAR)
+      REAL*8,  INTENT(OUT), OPTIONAL :: E_NOX_SHIP(IIPAR,JJPAR)
 
       ! Local variables
       INTEGER                 :: I, J, H, YYYYMMDD
@@ -877,9 +877,9 @@
       USE CMN_SIZE_MOD       ! Size parameters
 
       ! Arguments
-      INTEGER, INTENT(IN)               :: YEAR
-      REAL*8, INTENT(OUT)               :: E_CO(IIPAR,JJPAR)
-      REAL*8, INTENT(OUT), OPTIONAL     :: E_CO_SHIP(IIPAR,JJPAR)
+      INTEGER, INTENT(IN)           :: YEAR
+      REAL*8, INTENT(OUT)           :: E_CO(IIPAR,JJPAR)
+      REAL*8, INTENT(OUT), OPTIONAL :: E_CO_SHIP(IIPAR,JJPAR)
 
       ! Local variables
       INTEGER                 :: I, J, H, YYYYMMDD
@@ -1090,9 +1090,9 @@
       USE CMN_SIZE_MOD       ! Size parameters
 
       ! Arguments
-      INTEGER, INTENT(IN)               :: YEAR, MONTH
-      REAL*8,  INTENT(OUT)              :: E_SO2(IIPAR,JJPAR)
-      REAL*8,  INTENT(OUT), OPTIONAL    :: E_SO2_SHIP(IIPAR,JJPAR)
+      INTEGER, INTENT(IN)            :: YEAR, MONTH
+      REAL*8,  INTENT(OUT)           :: E_SO2(IIPAR,JJPAR)
+      REAL*8,  INTENT(OUT), OPTIONAL :: E_SO2_SHIP(IIPAR,JJPAR)
 
       ! Local variables
       INTEGER                 :: I, J, H, YYYYMMDD

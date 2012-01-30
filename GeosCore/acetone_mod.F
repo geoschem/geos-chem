@@ -71,6 +71,8 @@
 !  (20) Updates for GEOS-4 1 x 1.25 grid (lok, bmy, 1/13/10)
 !  13 Aug 2010 - R. Yantosca - Add modifications for MERRA (treat like GEOS-5)
 !  04 Nov 2010 - R. Yantosca - Added ProTeX headers
+!  06 Dec 2011 - E. Fischer  - Updated Ocean exchange, MEGAN biogenic emiss.
+!                              Removed obsolete code.
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -379,6 +381,17 @@
 !  13 Aug 2010 - R. Yantosca - Treat MERRA in the same way as GEOS-5
 !  04 Nov 2010 - R. Yantosca - Added ProTeX headers
 !  04 Nov 2010 - R. Yantosca - Cleaned up #if statements for clarity
+!  06 Dec 2011 - E. Fischer  - Updated ocean source and sink terms to be 
+!                              different than Jacob et al. [2002]. Ocean mixed
+!                              layer is now set to a constant concentration of
+!                              acetone (15 nM). Fluxes are now calculated
+!                              using a direct application of the standard
+!                              two-film model described by Liss and Slater
+!                              [1974]. The fluxes are calculated using an
+!                              updated Henry's law coefficient and transfer
+!                              velocities have been updated following Johnson
+!                              [2010]. The model now reproduces aircraft
+!                              measurements over the remote oceans well.
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -388,6 +401,8 @@
       REAL*8                 :: KG, U, TC, SC, kl, KKL, HSTAR, KL600
       REAL*8                 :: DTSRCE, OCEAN_ACET, AREA_CM2, FOCEAN
       REAL*8,  EXTERNAL      :: SFCWINDSQR
+! evf(6/20/2011)
+      REAL*8                 :: USTAR, CD, Cl
 !
 ! !DEFINED PARAMETERS:
 !
@@ -400,153 +415,6 @@
       REAL*8,  PARAMETER     :: A2 =  2.20642d0
       REAL*8,  PARAMETER     :: A3 = -0.01410642d0
 
-      !=================================================================
-      ! Since the algorithm below was developed for the 4x5 GEOS-STRAT
-      ! model, we need to scale the emissions to the A Posterioris in 
-      ! Jacob et al 2002 = 16.74 Tg C/yr.
-      !
-      ! This scaling is necessary in order (1) to account for variations
-      ! in surface temperature and wind speed between the different
-      ! GEOS met field versions and (2) to account for the different
-      ! surface areas between the 1x1, 2x2.5 and 4x5 grid boxes.
-      !=================================================================
-#if   defined( MERRA ) && defined( GRID4x5 ) 
-
-      !-----------------------------------------------------------------
-      ! %%% MERRA, 4 x 5, global %%%
-      !
-      ! Acetone produced : 17.0919 Tg C
-      ! Scale factor     : 16.74 / 17.0919 = 0.979411
-      !-----------------------------------------------------------------
-      REAL*8, PARAMETER :: SCALE_FACTOR = 0.979411d0
-
-#elif defined( MERRA ) && defined( GRID2x25 )
-
-      !-----------------------------------------------------------------
-      ! %%% MERRA, 2 x 2.5, global %%%
-      !
-      ! %%% SCALING NEEDS TO BE DONE WHEN MET IS FINALLY AVAILABLE %%%
-      !-----------------------------------------------------------------
-      REAL*8, PARAMETER :: SCALE_FACTOR = 1d0
-
-#elif defined( GEOS_5 ) && defined( GRID4x5 )
- 
-      !-----------------------------------------------------------------
-      ! %%% GEOS-5, 4 x 5, global %%%
-      !
-      ! Acetone produced : 17.5272 Tg C
-      ! Scale factor     : 16.74 / 17.5272 = 0.9551
-      !-----------------------------------------------------------------
-      REAL*8, PARAMETER :: SCALE_FACTOR =   0.9551d0
-
-#elif defined( GEOS_5 ) && defined( GRID2x25 ) 
-
-      !-----------------------------------------------------------------
-      ! %%% GEOS-5, 2 x 2.5, global %%%
-      !
-      ! Acetone produced : 75.6781 Tg C
-      ! Scale factor     : 16.74 / 75.6781 = 0.2212
-      !-----------------------------------------------------------------
-      REAL*8, PARAMETER :: SCALE_FACTOR = 0.2212d0
-
-#elif defined( GEOS_5 ) && defined( GRID05x0666 ) && defined ( NESTED_CH )
-
-      !-----------------------------------------------------------------
-      ! %%% GEOS-5, 0.5 x 0.666, NESTED CHINA %%%     (May Fu, Dan Chen)
-      !
-      ! ACET; 4x5 BC region      : 2.16838 Tg C
-      ! ACET; 0.5 x 0.666 region : 134.757 Tg C
-      ! Scale factor             : 0.9551*(2.16838/134.757) = 0.01537
-      !-----------------------------------------------------------------
-      REAL*8, PARAMETER :: SCALE_FACTOR = 0.015369d0      
-
-#elif defined( GEOS_5 ) && defined( GRID05x0666 ) && defined ( NESTED_NA )
-
-      !-----------------------------------------------------------------
-      ! %%% GEOS-5, 0.5 x 0.666, NESTED N. AMERICA %%%   (van Donkelaar)
-      !
-      ! ACET; 2x25 BC region     : 1.6794 Tg C
-      ! ACET; 0.5 x 0.666 region : 1.724  Tg C
-      ! Scale factor             : 0.015369*(1.6794/1.724) = 0.01497
-      !-----------------------------------------------------------------
-      REAL*8, PARAMETER :: SCALE_FACTOR = 0.01497d0
- 
-#elif defined( GEOS_5 ) && defined( GRID05x0666 ) && defined ( NESTED_EU )
-
-      !-----------------------------------------------------------------
-      ! %%% GEOS-5, 0.5 x 0.666, NESTED EUROPE %%%       (van Donkelaar)
-      !
-      ! ACET; 2x25 BC region     : 0.2868 Tg C
-      ! ACET; 0.5 x 0.666 region : 0.2689 Tg C
-      ! Scale factor             : 0.015369*(0.2868/0.2689) = 0.01639
-      !-----------------------------------------------------------------
-      REAL*8, PARAMETER :: SCALE_FACTOR = 0.01639d0
-
-#elif defined( GEOS_4 ) && defined( GRID4x5 )
- 
-      !-----------------------------------------------------------------
-      ! %%% GEOS-4, 4 x 5, global %%%
-      !
-      ! Acetone produced : 19.0973 Tg C
-      ! Scale factor     : 16.74 / 19.0973 = 0.8765
-      !-----------------------------------------------------------------
-      REAL*8, PARAMETER :: SCALE_FACTOR = 0.8765d0
- 
-#elif defined( GEOS_4 ) && defined( GRID2x25 )
- 
-      !-----------------------------------------------------------------
-      ! %%% GEOS-4, 2 x 2.5, global %%%
-      !
-      ! Acetone produced : 80.2888 Tg C
-      ! Scale factor     : 16.74 / 80.2888 = 0.2085
-      !-----------------------------------------------------------------
-      REAL*8, PARAMETER :: SCALE_FACTOR = 0.2085d0
- 
-#elif defined( GEOS_4 ) && defined( GRID1x125 )
- 
-      !-----------------------------------------------------------------
-      ! %%% GEOS-4, 1 x 1.25, global %%%                    (Lok Lamsal)
-      !
-      ! Acetone produced : 290.4233 Tg C
-      ! Scale factor     : 16.74 / 290.4233 = 0.05764
-      !-----------------------------------------------------------------
-      REAL*8, PARAMETER :: SCALE_FACTOR = 0.05764d0
- 
-#elif  defined( GEOS_3 ) && defined( GRID4x5 )
- 
-      !-----------------------------------------------------------------
-      ! %%% GEOS-3, 4 x 5, global %%%
-      !
-      ! Acetone produced : 20.16 Tg C
-      ! Scale factor     : 16.74 / 20.16 =  0.83
-      !-----------------------------------------------------------------
-      REAL*8, PARAMETER :: SCALE_FACTOR = 0.83d0
- 
-#elif defined( GEOS_3 ) && defined( GRID2x25 )
- 
-      !-----------------------------------------------------------------
-      ! %%% GEOS-3, 2 x 2.5, global %%%
-      !
-      ! Acetone produced : 80.76 Tg C
-      ! Scale factor     : 16.74 / 80.76  = 0.2075
-      !-----------------------------------------------------------------
-      REAL*8, PARAMETER :: SCALE_FACTOR = 0.2075d0
- 
-#elif defined( GEOS_3 ) && defined( GRID1x1 )
- 
-      !-----------------------------------------------------------------
-      ! %%% GEOS-3, 1 x 1, NESTED ?? %%%
-      ! Acetone produced : 334.8 Tg C
-      ! Scale factor     : 16.74 / 334.8  = 0.05
-      !-----------------------------------------------------------------
-      REAL*8, PARAMETER :: SCALE_FACTOR = 0.05d0
- 
-#else
-      
-      ! Otherwise set to 1
-      REAL*8, PARAMETER :: SCALE_FACTOR = 1d0
- 
-#endif
 
       !=================================================================
       ! OCEAN_SOURCE_ACET begins here!
@@ -568,9 +436,20 @@
       !=================================================================
       IF ( FOCEAN > 0.5d0 ) THEN 
 
-         ! Henry's law [unitless] using 32 M/atm Henry's law constant
-         HSTAR    = ( 1d0 / 730d0 ) *
-     &        EXP( -5500d0 * ( 298d0 - TS(I,J) ) / ( TS(I,J) * 298d0 ) )
+         ! Updated Henry's Law to 27 M/atm following Benkelberg et al. [1995],
+         ! Johnson [2010], and Zhou and Mopper [1990](evf, 5/11/11)
+
+         HSTAR = (660d0)*EXP(-5090d0*(1./298d0 - 1./TS(I,J)))
+
+  
+         ! Want Henry constant exressed as
+         ! concentration in air/concentration in water.
+         ! Take reciprocal.(evf, 5/11/11) 
+ 
+         HSTAR = 1d0/HSTAR
+
+         ! Now HENCONST = dimensionless H 
+         ! [mass Acetone/volume air]/[mass Acetone/volume H2O]
 
          ! Magnitude of resultant wind [m/s]
          ! SFCWINDSQR(I,J) is needed since this will compute the square
@@ -591,8 +470,17 @@
 
          ! KG is conductance for mass transfer in gas phase (Asher 1997)
          ! Multiply KG by 360000 to convert from [m/s] to [cm/hr]
-         KG       = SQRT( 18d0 / 58d0 ) * ( 5.2d-5 + 3.2d-3 * U )   
-         KG       = KG * 360000d0
+
+         ! Updated KG to the Johnson [2010] parameterization (evf, 5/13/2011)
+         ! USTAR = friction velocity (U* in Johnson [2010]
+         USTAR = SQRT(6.1d-4 + U*6.3d-5)*U
+         ! CD = drag coefficient
+         CD = (USTAR/U)**2
+
+         !KG is airside transfer velocity (Johnson 2010)
+         ! Multiply KG by 360000 to convert from [m/s] to [cm/hr]
+         KG = 1d-3 + (USTAR/(13.3*SC**(1/2) + CD**(-1/2)-5+LOG(SC)/0.8))
+         KG = KG * 360000d0
 
          ! KKL is the air-to-sea transfer velocity (Liss and Slater 1974)
          ! Multiply KKL by 3600 to convert from [cm/hr] to [cm/s]
@@ -602,36 +490,34 @@
          ! Turn off ocean uptake over snow/ice (ALBEDO > 0.4)
          IF ( ALBD(I,J) > 0.4d0 ) KKL = 0d0
       
-         !==============================================================
-         ! The acetone ocean source [kg C] includes the following terms:
-         !
-         !   (1) OCEAN_SCALE = 3.63e11 [kg C s^2/cm].  
-         !
-         !   (2) J(O1D), which is a proxy for the UV-B flux [s^-1].  
-         !
-         !       The product of J(O1D) and OCEAN_SCALE reflect the 
-         !       photoproduction of acetone by microbes in the ocean
-         !       microlayer.
-         !
-         !   (3) KKL, the air-to-sea transfer velocity [cm/s], which
-         !       represents uptake of acetone by microbes in the ocean
-         !       microlayer.  This term is a net loss.
-         !
-         !   (4) FOCEAN, the fraction of the grid box that is ocean.
-         !
-         ! The units of the ocean source (stored in OCEAN_ACET) are:
-         !
-         !      1     |   kg C   | s^2 | 1 | cm       kg C   | 
-         !  ----------+----------+-----+---+---- = ----------+----------
-         !  emission  | grid box | cm  | s | s      grid box | emission 
-         !  time step                                          time step
-         !==============================================================
-         OCEAN_ACET = OCEAN_SCALE * JO1D(I,J) * KKL * FOCEAN 
-         
-         ! Apply further scale factor to account for variations in surface 
-         ! temperature wind speed between GEOS met fields -- and also 
-         ! surface area between 1x1, 2x2.5, and 4x5 grids. (bmy, 3/15/04)
-         OCEAN_ACET = OCEAN_ACET * SCALE_FACTOR
+         !===============================================================
+         !(evf, 5/11/11)
+         ! Remove photochemical acetone source hypothesized by Jacob.
+         ! et al. [2002]. 
+
+         ! Assume a constant seawater concentration
+         ! of Cl = 15 nM (Available measurements of acetone in seawater:
+         ! Williams et al., (2004) GRL, VOL. 31, L23SO6, 
+         ! doi:10.1029/2004GL020012
+         ! Marandino et al., (2005) GRL, VOL 32, L15806,
+         ! doi:10.1029/2005GL02385
+         ! Kameyama et al., (2010) Marine Chemistry, VOL 122, 59-73
+         ! Zhou and Mopper (1997) Marine Chemistry, VOL 56, 201-213
+
+         ! convert Cl to kg acetone/cm3 (evf, 5/11/11)
+         Cl = 15.0d-9*58.08d0/(1000.0d0*1000.0d0)
+
+         !OCEAN_ACET = OCEAN_SCALE * JO1D(I,J) * KKL * FOCEAN
+         !correct for the fraction of the grid cell that is ocean
+         !and compute the flux ( kg/cm2/s)(evf, 5/11/11)
+         OCEAN_ACET = Cl * KKL * FOCEAN 
+          
+         ! Convert to kg Acetone / box / step (evf, 5/11/11)
+         OCEAN_ACET  = OCEAN_ACET * DTSRCE * AREA_CM2
+
+         ! Convert to kg C / box / step (evf, 5/11/11)
+         OCEAN_ACET  = OCEAN_ACET * 36d0/58.08d0
+        
 
       ELSE
 
@@ -721,6 +607,7 @@
       INTEGER           :: I, IREF, J, JREF
       REAL*8            :: KH298, DHR, KH, U, TC, SC, KL, KG 
       REAL*8            :: KKL, CG, F, T1L, H, KL600, FLUX, HSTAR
+      REAL*8            :: USTAR, CD
       REAL*8            :: AREA_CM2, DTCHEM, FOCEAN, OCEAN_ACET
       REAL*8            :: PRE_ACET
 
@@ -749,11 +636,6 @@
       DTCHEM = GET_TS_CHEM() * 60d0
 
       ! Loop over grid boxes
-!$OMP PARALLEL DO
-!$OMP+DEFAULT( SHARED )
-!$OMP+PRIVATE( I,  J, AREA_CM2, FOCEAN, HSTAR, U, TC, SC )   
-!$OMP+PRIVATE( KL600, KL, KG, KKL, CG, FLUX, OCEAN_ACET, PRE_ACET )
-!$OMP+SCHEDULE( DYNAMIC )
       DO J = 1, JJPAR
 
          ! Grid box area in cm2
@@ -771,9 +653,19 @@
             !===========================================================
             IF ( FOCEAN > 0.5d0 .and. ALBD(I,J) <= 0.4d0 ) THEN
 
-               ! Henry's law [unitless] using 32 M/atm Henry's law constant
-               HSTAR = ( 1d0 / 792d0 ) * 
-     &        EXP( -5500d0 * ( 298d0 - TS(I,J) ) / ( TS(I,J) * 298d0 ) )
+               ! Updated Henry's Law to 27 M/atm following Benkelberg et al. [1995],
+               ! Johnson [2010], and Zhou and Mopper [1990](evf, 5/11/11)
+
+                HSTAR = (660d0)*EXP(-5090d0*(1./298d0 - 1./TS(I,J)))
+  
+               ! Want Henry constant exressed as
+               ! concentration in air/concentration in water.
+               ! Take reciprocal.(evf, 5/11/11) 
+ 
+               HSTAR = 1d0/HSTAR
+
+               ! Now HENCONST = dimensionless H 
+               ! [mass Acetone/volume air]/[mass Acetone/volume H2O]       
 
                ! Magnitude of surface wind [m/s]
                ! SFCWINDSQR(I,J) is needed since this will compute the 
@@ -794,8 +686,17 @@
 
                ! KG is conductance for mass transfer in gas phase (Asher 1997)
                ! Multiply KG by 360000 to convert from [m/s] to [cm/hr]
-               KG    = SQRT( 18d0 / 58d0 ) * ( 5.2d-5 + 3.2d-3 * U ) 
-               KG    = KG * ( 360000d0 )     
+               ! Updated KG to the Johnson [2010] parameterization (evf, 5/13/2011)
+               ! USTAR = friction velocity (U* in Johnson [2010]
+               USTAR  = SQRT(6.1d-4 + U*6.3d-5)*U
+               ! CD = drag coefficient
+               CD = (USTAR/U)**2
+
+               ! KG is airside transfer velocity (Johnson 2010)
+               ! Multiply KG by 360000 to convert from [m/s] to [cm/hr]
+               KG = 1d-3 + (USTAR/(13.3*SC**(1/2) + CD**(-1/2)-5+LOG(SC) 
+     &         /0.8))
+               KG = KG * 360000d0      
 
                ! KKL is the air-to-sea transfer velocity (Liss and Slater 1974)
                ! Multiply KKL by 3600 to convert from [cm/hr] to [cm/s]
@@ -807,11 +708,6 @@
 
                ! FLUX is the air-to-sea flux of acetone in [kg C/cm2/s].
                FLUX  = KKL * CG / HSTAR    
-
-               ! Multiply FLUX by OCEANSINK_SCALE, which is the optimized 
-               ! BETA value (= 0.15) found from Emily Jin's analysis.
-               FLUX  = FLUX * OCEANSINK_SCALE
-
                !========================================================
                ! Ocean loss of acetone consists of the following terms:
                !
@@ -856,7 +752,6 @@
             ENDIF
          ENDDO
       ENDDO
-!$OMP END PARALLEL DO
 
       END SUBROUTINE OCEAN_SINK_ACET
 !EOC
@@ -874,8 +769,10 @@
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE EMISS_BIOACET( I,    J,    TMMP,  EMMO, 
-     &                          EMIS, EMMB, GRASS, ACETONE )
+!evf, edits to use MEGAN biogenic acetone emissions (5/25/2011)
+      SUBROUTINE EMISS_BIOACET( I,    J,    TMMP,  EMMO, SUNCOS, Q_DIR,
+     &                          Q_DIFF, XNUMOL_C, EMIS, EMMB, GRASS,
+     &                          ACETONE )
 !
 ! !USES:
 !
@@ -884,20 +781,27 @@
       USE GRID_MOD, ONLY : GET_XMID
       USE GRID_MOD, ONLY : GET_YMID
       USE TIME_MOD, ONLY : GET_TS_EMIS
+ !(evf, 5/25/2011)
+      USE MEGAN_MOD, ONLY : GET_EMACET_MEGAN
 
       USE CMN_SIZE_MOD                  ! Size parameters
       USE CMN_DIAG_MOD                  ! ND11
-      USE CMN_MONOT_MOD                 ! BASEMONOT
 !
 ! !INPUT PARAMETERS: 
 !
       INTEGER, INTENT(IN)    :: I         ! Grid box longitude index
       INTEGER, INTENT(IN)    :: J         ! Grid box latitude index
-      REAL*8,  INTENT(IN)    :: TMMP      ! Surface temperature [K]
+      REAL*8,  INTENT(IN)    :: TMMP      ! Local Surface Air temperature [K]
       REAL*8,  INTENT(IN)    :: EMMO      ! Monoterpene emission [atoms C]
       REAL*8,  INTENT(IN)    :: EMIS      ! Isoprene emission [atoms C]
       REAL*8,  INTENT(IN)    :: EMMB      ! Methylbutenol emission  [atoms C]
       REAL*8,  INTENT(IN)    :: GRASS     ! Isoprene from grasslands [atoms C]
+!evf, edits to use MEGAN biogenic acetone emissions (5/25/2011)
+      REAL*8,  INTENT(IN)    :: SUNCOS    ! Cosine of Solar Zenith Angle
+      REAL*8,  INTENT(IN)    :: Q_DIR     ! Flux of direct PAR above canopy
+      REAL*8,  INTENT(IN)    :: Q_DIFF    ! Flux of diffuse PAR above canopy
+      REAL*8,  INTENT(IN)    :: XNUMOL_C  ! Number of atoms C / kg C
+
 !
 ! !INPUT/OUTPUT PARAMETERS:
 !
@@ -921,6 +825,15 @@
 !        GET_TS_EMIS from "time_mod.f".  Remove reference to CMN header
 !        file. (bmy, 2/11/03)
 !  04 Nov 2010 - R. Yantosca - Added ProTeX headers
+!  06 Dec 2011 - E. Fischer  - Direct biogenic emissions of acetone from
+!                              metabolism and decay are now calculated using
+!                              the MEGAN biogenic emission model [Guenther et
+!                              al., 2006]. The code assumes the fraction of
+!                              emissions that are light-independent is 0.20,
+!                              and the temperature response factor (beta) is
+!                              0.10 as recommended by Alex Guenther. The
+!                              dependency on GEIA has been removed.
+!  08 Dec 2011 - M. Payer    - Remove use of obsolete CMN_MONOT_MOD
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -938,6 +851,8 @@
       ! Scale factors for a posteriori
       REAL*8                 :: MONO_SCALE, DIRECT_SCALE, MB_SCALE 
       REAL*8                 :: DP_SCALE,   GRASS_SCALE
+!evf, edits to use MEGAN biogenic acetone emissions (5/25/2011)
+      REAL*8                 :: EMISS_MEGAN
 
       !=================================================================
       ! EMISS_BIOACET begins here!
@@ -1039,85 +954,46 @@
 
       !=================================================================
       ! (3) BIOGENIC ACETONE -- DIRECT EMISSION 
+      ! evf, removed obsolete code, replaced with MEGAN acetone
+      ! emissions (5/25/2011) Direct Emission now includes emission
+      ! from grasses and emission from dry leaf matter
       ! 
-      ! With communication with Singh we have a direct acetone emission 
-      ! source of 18 Tg acet/yr that scales to the isoprene emissions.
       !=================================================================
 
-      ! Compute [atoms C/box/step] for ACET, using yield from ISOP
-      YIELD_ISOP   = 0.0282d0
-      ACET_ISOP    = EMIS * YIELD_ISOP
+      !evf, edits to use MEGAN biogenic acetone emissions (5/25/2011)
+      ! Acetone Emissions from MEGAN (atoms C / box / step)         
+      EMISS_MEGAN = GET_EMACET_MEGAN(I, J, SUNCOS, TMMP, 
+     &              Q_DIR, Q_DIFF, XNUMOL_C )
 
-      ! Scale to a posteriori source from Jacob et al 2001 (bdf, 9/5/01)
-      DIRECT_SCALE = 1.06d0
-      ACET_ISOP    = ACET_ISOP * DIRECT_SCALE
+     
+      !convert MEGAN Acetone Emissions to atoms C/box/s (evf, 5/25/2011)
+      EMISS_MEGAN = EMISS_MEGAN / DTSRCE
 
-      ! Convert isoprene yield to [atoms C/box/s] and 
-      ! add to the total biogenic acetone emissions
-      ACETONE      = ACETONE + ( ACET_ISOP / DTSRCE )
+      ! Add MEGAN Acetone Emissions to total biogenic acetone emissions (evf, 5/25/2011)
+      ACETONE     = ACETONE +  EMISS_MEGAN
 
-      ! Diagnostics -- save ACETONE from DIRECT EMISSION [atoms C/cm2/s]
+      ! Save MEGAN Acetone Emissions to DIRECT EMISSIONS diag [atoms C/cm2/s]
       IF ( ND11 > 0 ) THEN
          AD11(I,J,3) = AD11(I,J,3) + 
-     &                 ( ACET_ISOP / ( AREA_CM2 * DTSRCE ) )
+     &                 ( EMISS_MEGAN / ( AREA_CM2 ) )
       ENDIF
+
 
       !=================================================================
       ! (4) BIOGENIC ACETONE FROM DRY LEAF MATTER / DEAD PLANTS
+      ! !evf, removed obsolete code for emissions from dry leave matter, 
+      ! MEGAN calculations for direct emissions include acetone
+      !emissions from dry leaf matter and dead plants
+      ! Diagnostic Acetdl = 0 (5/25/2011)
+
+      !=================================================================
+      ! (5) BIOGENIC ACETONE FROM GRASSLANDS
+      ! !evf, removed obsolete code for emissions from grasses, 
+      ! MEGAN calculations for direct emissions include acetone
+      !emissions from grasses
+      ! Diagnostic Acetgr = 0 (5/25/2011) 
       !
-      ! According to Warneke et al. 1999, 1 g C of dry leaf matter 
-      ! produces at least 10^-4 g C in acetone.  We use this lower limit 
-      ! as our g C -> g C yield.  The monthly values of dry leaf matter 
-      ! comes from estimates of resp, heterotrophic respiration, from 
-      ! Parvada Suntharalingham.  XRESP is in units of g C/m2/s.
       !=================================================================
-
-      ! Convert from [g C in dry leaves/m2/s] to [g C in ACETONE/m2/s]
-      YIELD_RESP = 1d-4
-      ACET_RESP  = XRESP(I,J) * YIELD_RESP
-
-      ! Scale to a posteriori source from Jacob et al 2001 (bdf, 9/5/01)
-      DP_SCALE   = 0.23d0
-      ACET_RESP  = ACET_RESP * DP_SCALE
-
-      ! Convert [g C in acetone/m2/s] to [atoms C/box/s] 
-      ! and add to the total biogenic ACETONE emissions
-      ! The 1000 is for changing [g C] to [kg C]
-      ACETONE    = ACETONE + 
-     &             ( ACET_RESP * AREA_M2 * XNUMOL_C / 1000d0 )
-
-      ! Diagnostics -- save ACETONE from DRY LEAF MATTER in [atoms C/cm2/s]
-      ! the 1000 is for [g C] to [kg C], the 1d4 is for [m-2] to [cm-2]
-      IF ( ND11 > 0 ) THEN
-         AD11(I,J,4) = AD11(I,J,4) + 
-     &                 ( ACET_RESP * XNUMOL_C / ( 1000 * 1D4 ) )
-      ENDIF
-
-      !=================================================================
-      ! (5) BIOGENIC ACETONE FROM GRASSLANDS 
-      !
-      ! Direct grass emissions should be about 5 TgC/yr from 
-      ! Kirstine et al 1998
-      !=================================================================
-
-      ! Compute from [atoms C/box/step] of acetone from grass
-      ! for all VOC emissions acetone is about 15%
-      YIELD_GRASS = 0.15d0  
-      ACET_GRASS  = GRASS * YIELD_GRASS
-
-      ! Scale to a posteriori source from Jacob et al 2001 (bdf, 9/5/01)
-      GRASS_SCALE = 1.61d0 
-      ACET_GRASS  = ACET_GRASS * GRASS_SCALE
-
-      ! Convert grassland acetone yield to [atoms C/box/s] 
-      ! and add to the total biogenic acetone emissions
-      ACETONE     = ACETONE + ( ACET_GRASS / DTSRCE )
-
-      ! Diagnostics -- save ACETONE from GRASSLANDS in [atoms C/cm2/s]
-      IF ( ND11 > 0 ) THEN
-         AD11(I,J,5) = AD11(I,J,5) + 
-     &                 ( ACET_GRASS / ( AREA_CM2 * DTSRCE ) )
-      ENDIF
 
       END SUBROUTINE EMISS_BIOACET
 !EOC

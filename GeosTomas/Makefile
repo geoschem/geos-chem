@@ -64,6 +64,7 @@
 #  26 Aug 2010 - R. Yantosca - Modifications for MERRA met fields
 #  23 Sep 2010 - R. Yantosca - Removed "tropopause.f" from compile list
 #  23 Sep 2010 - R. Yantosca - Updated dependencies for v9-01-01
+#  06 Dec 2011 - R. Yantosca - Remove #ifdef blocks for GI model code
 #EOP
 #------------------------------------------------------------------------------
 #BOC
@@ -93,21 +94,7 @@ VPATH   := ../GeosCore
 
 # Include header file.  This returns CC, F90, FREEFORM, LD, R8, SHELL,
 # as well as the default Makefile compilation rules for source code files.
-
-ifeq ($(ESMF),yes)
-  # Hack to force the ESMA headers work correctly with mpif90 as FC
-  include $(ROOTDIR)/Makefile_header.mk
-	override FC := $(COMPILER)
-  # End-of-hack
-  include $(ESMADIR)/Config/ESMA_base.mk  # Generic stuff
-  include $(ESMADIR)/Config/ESMA_arch.mk  # System dependencies
-  include $(ESMADIR)/Config/GMAO_base.mk  # GMAO stuff
-  include $(ROOTDIR)/Makefile_header.mk
-	override FC := $(ESMA_FC) # Unset hack
-	override LD := mpif90
-else
 include $(ROOTDIR)/Makefile_header.mk
-endif
 
 #=============================================================================
 # List of files to compile.  We need to manually list all object files, since 

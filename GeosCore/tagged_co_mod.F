@@ -416,6 +416,7 @@
 !        (jaf, 3/10/09)
 !  (25) Move XLTMMP to module MEGANUT_MOD (ccc, 11/20/09)
 !  (26) IDBCO is now defined in tracerid_mod.f (fp, 6/09)
+!  08 Dec 2011 - M. Payer    - Remove GEIA biogenic emission option
 !******************************************************************************
 !
       ! References to F90 modules
@@ -465,10 +466,8 @@
       REAL*8                 :: SC,   PDF,  PDR
       
       ! External functions
-!-- XLTMMP moved to meganut_mod.f (ccc, 11/20/09)
-!      REAL*8, EXTERNAL       :: XLTMMP,  EMISOP, BOXVL
-      REAL*8, EXTERNAL       :: EMISOP, BOXVL
-      REAL*8, EXTERNAL       :: EMMONOT, EMCH3OH
+      REAL*8, EXTERNAL       :: BOXVL
+      REAL*8, EXTERNAL       :: EMCH3OH
 
       !=================================================================
       ! EMISS_TAGGED_CO begins here!
@@ -704,7 +703,6 @@
       
             ! Add MEGAN biogenics (jaf, 3/10/09)
             IF ( LMEGAN ) THEN
-
                !------------------
                ! MEGAN biogenics
                !------------------
@@ -717,27 +715,12 @@
                PDF = PARDF(I,J)
 
                ! Isoprene [atoms C/box/timestep]
-!--- Change arguments order for coherence with other MEGAN functions
-!    (ccc, 11/23/09)
-!               EMIS = GET_EMISOP_MEGAN(  I, J,     SC, TMMP,
-!     &                                   XNUMOL_ISOP, PDR, PDF )
                EMIS = GET_EMISOP_MEGAN(  I, J,     SC, TMMP,
      &                                   PDR, PDF, XNUMOL_ISOP )
+
                ! Monoterpene [atoms C/box/timestep]
-! Previous to MEGAN v2.1
-!               EMMO = GET_EMMONOT_MEGAN( I, J, TMMP, XNUMOL_MONO)
                EMMO = GET_EMMONOT_MEGAN( I, J,  SC, TMMP, 
      &                                   PDR, PDF, XNUMOL_MONO )
-            ELSE
-
-               !------------------
-               ! GEIA biogenics 
-               !------------------
-
-               ! Isoprene [atoms C/box/timestep]
-               EMIS = EMISOP( I, J, IJLOOP, SUNCOS, TMMP, XNUMOL_ISOP )
-               ! Monoterpene [atoms C/box/timestep]
-               EMMO = EMMONOT( IJLOOP, TMMP, XNUMOL_MONO )
 
             ENDIF
 
