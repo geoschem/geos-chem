@@ -173,19 +173,11 @@
       USE COMODE_LOOP_MOD         ! SMVGEAR common blocks
       USE CMN_DIAG_MOD            ! Diagnostic switches, NJDAY
       USE CMN_GCTM_MOD            ! Physical constants
+
 #if defined( DEVEL )
-      USE TMP_TYPE_MOD,      ONLY : CHEM_STATE, INIT_CHEMSTATE
-      USE CMN_DEP_MOD,       ONLY : SET_CMN_DEP_MOD
-      USE CMN_ISOP_MOD,      ONLY : SET_CMN_ISOP_MOD
-      USE CMN_MONOT_MOD,     ONLY : SET_CMN_MONOT_MOD
-      USE CMN_NOX_MOD,       ONLY : SET_CMN_NOX_MOD
-      USE CMN_O3_MOD,        ONLY : SET_CMN_O3_MOD
-      USE CMN_VEL_MOD,       ONLY : SET_CMN_VEL_MOD
-      USE CMN_MOD,           ONLY : SET_CMN_MOD
-      USE CMN_FJ_MOD,        ONLY : SET_CMN_FJ_MOD
-      USE JV_CMN_MOD,        ONLY : SET_JV_CMN_MOD
-      USE COMMSOIL_MOD,      ONLY : SET_COMMSOIL_MOD
-      USE VDIFF_PRE_MOD,     ONLY : SET_VDIFF_PRE_MOD
+      USE GC_ENVIRONMENT_MOD, ONLY : ALLOCATE_ALL, INIT_ALL
+      USE GC_TYPE2_MOD,       ONLY : CHEMSTATE
+      USE GC_TYPE_MOD,        ONLY : GC_MET_LOCAL
 #endif
 
       IMPLICIT NONE
@@ -254,6 +246,11 @@
 
       CHARACTER(LEN=255) :: ZTYPE
 
+#if defined( DEVEL )
+      TYPE(CHEMSTATE)    :: CHEM_STATE
+      TYPE(GC_MET_LOCAL) :: LOCAL_MET
+#endif
+
       !=================================================================
       ! GEOS-CHEM starts here!                                            
       !=================================================================
@@ -261,21 +258,7 @@
       RC=0 ! Error flag. Default 0 is "no error"
 
 #if defined( DEVEL )
-      CALL SET_CMN_SIZE_MOD
-      CALL SET_CMN_DEP_MOD
-      CALL SET_CMN_DIAG_MOD
-      CALL SET_CMN_ISOP_MOD
-      CALL SET_CMN_MONOT_MOD
-      CALL SET_CMN_NOX_MOD
-      CALL SET_CMN_O3_MOD
-      CALL SET_CMN_VEL_MOD
-      CALL SET_CMN_MOD
-      CALL SET_CMN_FJ_MOD
-      CALL SET_COMMSOIL_MOD
-      CALL SET_COMODE_LOOP_MOD
-      CALL SET_JV_CMN_MOD
-
-      CALL SET_VDIFF_PRE_MOD
+      CALL ALLOCATE_ALL
 #endif
 
       ! Display current grid resolution and data set type
@@ -291,7 +274,7 @@
 
 #if defined( DEVEL )
       ! Initialize all of CHEMSTATE
-      CALL INIT_CHEMSTATE
+      CALL INIT_ALL(LOCAL_MET, CHEM_STATE)
 #endif
 
       ! Initialize met field arrays from "dao_mod.f"
@@ -466,7 +449,11 @@
       ! Open & read A-6 fields
       DATE = GET_FIRST_A6_TIME()
       CALL OPEN_A6_FIELDS( DATE(1), DATE(2) ) 
+#if defined( DEVEL )
+            CALL GET_A6_FIELDS(  DATE(1), DATE(2), LOCAL_MET )
+#else
       CALL GET_A6_FIELDS(  DATE(1), DATE(2) )      
+#endif
       IF ( LPRT ) CALL DEBUG_MSG( '### MAIN: a 1st A6 TIME' )
 
       ! Open & read I-6 fields
@@ -530,7 +517,11 @@
       CALL SET_FLOATING_PRESSURE( PS1 )
       IF ( LPRT ) CALL DEBUG_MSG( '### MAIN: a SET_FLT_PRS' )
 
+#if defined( DEVEL )
+      CALL AIRQNT(LOCAL_MET)
+#else
       CALL AIRQNT
+#endif
       IF ( LPRT ) CALL DEBUG_MSG( '### MAIN: a AIRQNT' )
 
       ! Compute lightning NOx emissions [molec/box/6h]
@@ -888,7 +879,11 @@
 
             ! Open and read A-6 fields
             CALL OPEN_A6_FIELDS( DATE(1), DATE(2) )
+#if defined( DEVEL )
+            CALL GET_A6_FIELDS(  DATE(1), DATE(2), LOCAL_MET )
+#else
             CALL GET_A6_FIELDS(  DATE(1), DATE(2) )
+#endif
 
             ! Since CLDTOPS is an A-6 field, update the
             ! lightning NOx emissions [molec/box/6h]
@@ -990,7 +985,11 @@
          IF ( .not. LTRAN ) CALL SET_FLOATING_PRESSURE( PSC2 )
 
          ! Compute airmass quantities at each grid box 
-         CALL AIRQNT
+#if defined( DEVEL )
+      CALL AIRQNT(LOCAL_MET)
+#else
+      CALL AIRQNT
+#endif
 
          ! Compute the cosine of the solar zenith angle array
          ! SUNCOS     = cos(SZA) at the current time
@@ -1053,7 +1052,11 @@
             IF ( LTRAN ) CALL DO_TRANSPORT               
 
             ! Reset air mass quantities
-            CALL AIRQNT
+#if defined( DEVEL )
+      CALL AIRQNT(LOCAL_MET)
+#else
+      CALL AIRQNT
+#endif
 
             ! Repartition [NOy] species after transport
             IF ( LUPBD .and. ITS_A_FULLCHEM_SIM() ) THEN

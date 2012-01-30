@@ -458,7 +458,11 @@
 
 !------------------------------------------------------------------------------
 
+#if defined( DEVEL )
+      SUBROUTINE GET_A6_FIELDS( NYMD, NHMS, LOCAL_MET )
+#else
       SUBROUTINE GET_A6_FIELDS( NYMD, NHMS )
+#endif
 !
 !******************************************************************************
 !  Subroutine GET_A6_FIELDS is a wrapper for routine READ_A6.  GET_A6_FIELDS
@@ -494,9 +498,15 @@
       USE DAO_MOD,      ONLY : ZMMD,    ZMMU
 
       USE CMN_SIZE_MOD  ! Size parameters
+#if defined( DEVEL )
+      USE GC_TYPE_MOD,  ONLY : GC_MET_LOCAL
+#endif
 
       ! Arguments
       INTEGER, INTENT(IN) :: NYMD, NHMS 
+#if defined( DEVEL )
+      TYPE(GC_MET_LOCAL), INTENT(INOUT) :: LOCAL_MET
+#endif
 
       ! Local variables
       INTEGER, SAVE       :: LASTNYMD = -1, LASTNHMS = -1
@@ -585,6 +595,22 @@
       ! Save NYMD and NHMS for next call
       LASTNYMD = NYMD
       LASTNHMS = NHMS
+
+#if defined( DEVEL )
+      LOCAL_MET%CLDF     = CLDF
+      LOCAL_MET%CMFMC    = CMFMC
+      LOCAL_MET%DTRAIN   = DTRAIN
+      LOCAL_MET%MOISTQ   = MOISTQ
+      LOCAL_MET%OPTD     = OPTDEP
+      LOCAL_MET%RH       = RH
+      LOCAL_MET%SPHU     = SPHU
+      LOCAL_MET%T        = T
+      LOCAL_MET%DQIDTMST = DQIDTMST
+      LOCAL_MET%DQLDTMST = DQLDTMST
+      LOCAL_MET%TAUCLI   = TAUCLI
+      LOCAL_MET%TAUCLW   = TAUCLW
+      LOCAL_MET%DQVDTMST = DQVDTMST
+#endif
 
       ! Return to calling program
       END SUBROUTINE GET_A6_FIELDS

@@ -369,7 +369,7 @@
       USE COMODE_LOOP_MOD   ! IDEMS
 
 #if defined(DEVEL)
-      USE TMP_TYPE_MOD
+      USE GC_TYPE2_MOD
 #endif
 
       ! Local variables

@@ -157,7 +157,7 @@
 ! !INTERFACE:
 !
 #if defined( DEVEL )
-      SUBROUTINE EMISS_VISTAS_ANTHRO
+      SUBROUTINE EMISS_VISTAS_ANTHRO(EMISS)
 #else
       SUBROUTINE EMISS_VISTAS_ANTHRO
 #endif
@@ -173,6 +173,13 @@
 
       USE CMN_SIZE_MOD          ! Size parameters
       USE CMN_O3_MOD            ! FSCALYR
+
+#if defined( DEVEL )
+      USE TIME_MOD,     ONLY : GET_DAY_OF_WEEK
+      USE TRACER_MOD,   ONLY : N_TRACERS
+      USE TRACER_MOD,   ONLY : XNUMOL
+      USE TRACERID_MOD, ONLY : IDTNOx
+#endif
 !
 ! !REVISION HISTORY: 
 !  28 Jan 2009 - A. v. Donkelaar, P. Le Sager - Initial Version
@@ -193,6 +200,12 @@
       CHARACTER(LEN=4)           :: SYEAR, SNAME
       CHARACTER(LEN=2)           :: SMN
       CHARACTER(LEN=1)           :: SSMN
+
+#if defined( DEVEL )
+      INTEGER               :: DAY_NUM
+      LOGICAL               :: WEEKDAY
+      REAL*8, INTENT(INOUT) :: EMISS(IIPAR, JJPAR, N_TRACERS)
+#endif
 
       !=================================================================
       ! EMISS_VISTAS_ANTHRO begins here!
@@ -322,6 +335,24 @@
       IF ( LFUTURE ) THEN 
          CALL VISTAS_SCALE_FUTURE
       ENDIF
+
+#if defined( DEVEL )
+      !--------------------------
+      ! Give to global bundle
+      !--------------------------
+      DAY_NUM = GET_DAY_OF_WEEK()
+      WEEKDAY = ( DAY_NUM > 0 .and. DAY_NUM < 6 )
+
+      DO J=1,JJPAR
+         IF ( WEEKDAY ) THEN
+            IF ( IDTNOX > 0) EMISS(:,J,IDTNOX) = 
+     &           VISTAS_WD_NOx(:,J) * A_CM2(J) / XNUMOL(IDTNOX)
+         ELSE
+            IF ( IDTNOX > 0) EMISS(:,J,IDTNOX) = 
+     &           VISTAS_WE_NOx(:,J) * A_CM2(J) / XNUMOL(IDTNOX)
+         ENDIF
+      ENDDO
+#endif
 
       !--------------------------
       ! Print emission totals

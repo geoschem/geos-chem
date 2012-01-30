@@ -1,5 +1,9 @@
 ! $Id: emissdr.f,v 1.6 2010/03/15 19:33:24 ccarouge Exp $
+#if defined( DEVEL )
+      SUBROUTINE EMISSDR( EMISS_TEND )
+#else
       SUBROUTINE EMISSDR
+#endif
 !
 !******************************************************************************
 !  Subroutine EMISSDR computes emissions for the full chemistry simulation
@@ -478,6 +482,7 @@
                      ENDIF
                   ENDIF
 
+                  ! MSL -- INCLUDE THIS IN THE CHEM_STATE%TEND array?
                   ! Compute biogenic acetone emissions [atoms C/box/s]
                   CALL EMISS_BIOACET( I,    J,    TMMP,  EMMO, 
      &                                EMIS, EMMB, GRASS, BIO_ACET )

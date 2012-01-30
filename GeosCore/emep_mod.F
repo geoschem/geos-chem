@@ -297,7 +297,11 @@
 !\\
 ! !INTERFACE:
 !
+#if defined( DEVEL )
+      SUBROUTINE EMISS_EMEP( EMISS )
+#else
       SUBROUTINE EMISS_EMEP
+#endif
 !
 ! !USES:
 ! 
@@ -312,6 +316,16 @@
 
       USE CMN_SIZE_MOD       ! Size parameters
       USE CMN_O3_MOD         ! SCALEYEAR
+
+#if defined( DEVEL )
+      USE TRACERID_MOD, ONLY : IDTNOX,  IDTCO,   IDTALK4, IDTMEK
+      USE TRACERID_MOD, ONLY : IDTALD2, IDTPRPE, IDTC2H6, IDTSO2
+      USE TRACERID_MOD, ONLY : IDTNH3
+      USE TRACER_MOD,   ONLY : XNUMOL
+      USE TRACER_MOD,   ONLY : N_TRACERS
+      USE GRID_MOD,     ONLY : GET_AREA_CM2
+      USE LOGICAL_MOD,  ONLY : LEMEPSHIP
+#endif
 !
 ! !REVISION HISTORY: 
 !  01 Nov 2005 - B. Field, R. Yantosca - Initial version
@@ -343,6 +357,10 @@
       CHARACTER(LEN=40)       :: CATEGORY
       CHARACTER(LEN=40)       :: UNIT     
       CHARACTER(LEN=40)       :: RESERVED
+
+#if defined( DEVEL )
+      REAL*8, INTENT(INOUT) :: EMISS(IIPAR, JJPAR, N_TRACERS)
+#endif
 
       !=================================================================
       ! EMISS_EMEP begins here!
@@ -498,6 +516,56 @@
          CALL EMEP_SCALE_FUTURE
       ENDIF
 
+#if defined( DEVEL )
+      IF ( LEMEPSHIP ) THEN
+         EMISS(:,J,IDTNOx) = EMEP_NOx_SHIP(:,J)
+     &        * GET_AREA_CM2(J) / XNUMOL(IDTNOx)
+      ELSE 
+         EMISS(:,J,IDTNOx) = EMEP_NOx(:,J)
+     &        * GET_AREA_CM2(J) / XNUMOL(IDTNOx)
+      ENDIF
+      IF ( LEMEPSHIP ) THEN
+         EMISS(:,J,IDTCO) = EMEP_CO_SHIP(:,J)
+     &        * GET_AREA_CM2(J) / XNUMOL(IDTCO)
+      ELSE 
+         EMISS(:,J,IDTCO) = EMEP_CO(:,J)
+     &        * GET_AREA_CM2(J) / XNUMOL(IDTCO)
+      ENDIF
+
+      ! ALK4 (>= C4 alkanes)
+      EMISS(:,J,IDTALK4) = EMEP_ALK4(:,J)
+     &        * GET_AREA_CM2(J) / XNUMOL(IDTALK4)
+
+      ! MEK
+      EMISS(:,J,IDTMEK) = EMEP_MEK(:,J)
+     &        * GET_AREA_CM2(J) / XNUMOL(IDTMEK)
+
+      ! ALD2 (acetaldehyde)
+      EMISS(:,J,IDTALD2) = EMEP_ALD2(:,J)
+     &        * GET_AREA_CM2(J) / XNUMOL(IDTALD2)
+
+      ! PRPE (>= C3 alkenes)
+      EMISS(:,J,IDTPRPE) = EMEP_PRPE(:,J)
+     &        * GET_AREA_CM2(J) / XNUMOL(IDTPRPE)
+
+      ! C2H6 
+      EMISS(:,J,IDTC2H6) = EMEP_C2H6(:,J)
+     &        * GET_AREA_CM2(J) / XNUMOL(IDTC2H6)
+         
+      ! SO2
+      IF ( LEMEPSHIP ) THEN
+         EMISS(:,J,IDTSO2) = EMEP_SO2_SHIP(:,J)
+     &        * GET_AREA_CM2(J) / XNUMOL(IDTSO2)
+      ELSE 
+         EMISS(:,J,IDTSO2) = EMEP_SO2(:,J)
+     &        * GET_AREA_CM2(J) / XNUMOL(IDTSO2)
+      ENDIF
+
+      ! NH3
+      EMISS(:,J,IDTNH3) = EMEP_NH3(:,J)
+     &        * GET_AREA_CM2(J) / XNUMOL(IDTNH3)
+#endif
+
       !=================================================================
       ! Print emission totals
       !=================================================================
@@ -520,7 +588,11 @@
 !\\
 ! !INTERFACE:
 !
+#if defined( DEVEL )
+      SUBROUTINE EMISS_EMEP_05x0666( EMISS )
+#else
       SUBROUTINE EMISS_EMEP_05x0666
+#endif
 !
 ! !USES:
 !
@@ -534,6 +606,17 @@
 
       USE CMN_SIZE_MOD       ! Size parameters
       USE CMN_O3_MOD         ! SCALEYEAR
+
+#if defined( DEVEL )
+      USE TRACERID_MOD, ONLY : IDTNOX,  IDTCO,   IDTALK4, IDTMEK
+      USE TRACERID_MOD, ONLY : IDTALD2, IDTPRPE, IDTC2H6, IDTSO2
+      USE TRACERID_MOD, ONLY : IDTNH3
+      USE TRACER_MOD,   ONLY : XNUMOL
+      USE TRACER_MOD,   ONLY : N_TRACERS
+      USE GRID_MOD,     ONLY : GET_AREA_CM2
+      USE LOGICAL_MOD,  ONLY : LEMEPSHIP
+#endif
+
 !
 ! !REVISION HISTORY:
 !  23 Oct 2006 - A. v. Donkelaar - Initial version, modified from EMISS_EMEP
@@ -563,6 +646,10 @@
       CHARACTER(LEN=40)       :: CATEGORY
       CHARACTER(LEN=40)       :: UNIT
       CHARACTER(LEN=40)       :: RESERVED
+
+#if defined( DEVEL )
+      REAL*8, INTENT(INOUT) :: EMISS(IIPAR, JJPAR, N_TRACERS)
+#endif
 
       !=================================================================
       ! EMISS_EMEP begins here!
@@ -665,7 +752,6 @@
          CALL GET_ANNUAL_SCALAR_05x0666_NESTED(73,1990,SCALEYEAR,Sc)
          EMEP_SO2(:,:) = EMEP_SO2(:,:) * Sc(:,:)
 !         EMEP_SO2_SHIP = EMEP_SO2_SHIP * Sc  ! do not scale SHIP
-
       ENDIF
 
 
@@ -675,6 +761,56 @@
       IF ( LFUTURE ) THEN
          CALL EMEP_SCALE_FUTURE
       ENDIF
+
+#if defined( DEVEL )
+      IF ( LEMEPSHIP ) THEN
+         EMISS(:,J,IDTNOx) = EMEP_NOx_SHIP(:,J)
+     &        * GET_AREA_CM2(J) / XNUMOL(IDTNOx)
+      ELSE 
+         EMISS(:,J,IDTNOx) = EMEP_NOx(:,J)
+     &        * GET_AREA_CM2(J) / XNUMOL(IDTNOx)
+      ENDIF
+      IF ( LEMEPSHIP ) THEN
+         EMISS(:,J,IDTCO) = EMEP_CO_SHIP(:,J)
+     &        * GET_AREA_CM2(J) / XNUMOL(IDTCO)
+      ELSE 
+         EMISS(:,J,IDTCO) = EMEP_CO(:,J)
+     &        * GET_AREA_CM2(J) / XNUMOL(IDTCO)
+      ENDIF
+
+      ! ALK4 (>= C4 alkanes)
+      EMISS(:,J,IDTALK4) = EMEP_ALK4(:,J)
+     &        * GET_AREA_CM2(J) / XNUMOL(IDTALK4)
+
+      ! MEK
+      EMISS(:,J,IDTMEK) = EMEP_MEK(:,J)
+     &        * GET_AREA_CM2(J) / XNUMOL(IDTMEK)
+
+      ! ALD2 (acetaldehyde)
+      EMISS(:,J,IDTALD2) = EMEP_ALD2(:,J)
+     &        * GET_AREA_CM2(J) / XNUMOL(IDTALD2)
+
+      ! PRPE (>= C3 alkenes)
+      EMISS(:,J,IDTPRPE) = EMEP_PRPE(:,J)
+     &        * GET_AREA_CM2(J) / XNUMOL(IDTPRPE)
+
+      ! C2H6 
+      EMISS(:,J,IDTC2H6) = EMEP_C2H6(:,J)
+     &        * GET_AREA_CM2(J) / XNUMOL(IDTC2H6)
+         
+      ! SO2
+      IF ( LEMEPSHIP ) THEN
+         EMISS(:,J,IDTSO2) = EMEP_SO2_SHIP(:,J)
+     &        * GET_AREA_CM2(J) / XNUMOL(IDTSO2)
+      ELSE 
+         EMISS(:,J,IDTSO2) = EMEP_SO2(:,J)
+     &        * GET_AREA_CM2(J) / XNUMOL(IDTSO2)
+      ENDIF
+
+      ! NH3
+      EMISS(:,J,IDTNH3) = EMEP_NH3(:,J)
+     &        * GET_AREA_CM2(J) / XNUMOL(IDTNH3)
+#endif
 
       !=================================================================
       ! Print emission totals

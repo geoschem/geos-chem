@@ -121,7 +121,7 @@
       USE CMN_DIAG_MOD          ! NDxx flags
 
 #if defined( DEVEL )
-      USE TMP_TYPE_MOD,           ONLY : CHEMSTATE, NULL 
+      USE GC_TYPE2_MOD,           ONLY : CHEMSTATE, NULL 
 #endif
 
 !

@@ -1,5 +1,5 @@
 #if defined( DEVEL )
-      MODULE TMP_TYPE_MOD
+      MODULE GC_TYPE2_MOD
 !
 ! USES:
 !
@@ -109,17 +109,23 @@
 
       END FUNCTION GET_TRACER_ID
 
-      SUBROUTINE INIT_CHEMSTATE
+      SUBROUTINE INIT_CHEMSTATE(CHEM_STATE)
       
         USE CMN_SIZE_MOD,    ONLY : IIPAR, JJPAR, LLPAR, NBIOMAX, NNPAR
         USE COMODE_LOOP_MOD, ONLY : IGAS
         USE TRACER_MOD,      ONLY : N_TRACERS
 
+        IMPLICIT NONE
+
+        TYPE(CHEMSTATE), INTENT(out) :: CHEM_STATE
+
+        ! 1-D ALLOCATIONS
         ALLOCATE( CHEM_STATE%TRAC_ID(N_TRACERS+1) )
         ALLOCATE( CHEM_STATE%SMVG_ID(IGAS) )
+
+        ! 3-D ALLOCATIONS
         ALLOCATE( CHEM_STATE%TRAC_TEND(IIPAR,JJPAR,LLPAR,N_TRACERS+1) )
         ALLOCATE( CHEM_STATE%TRAC_BTEND(IIPAR,JJPAR,LLPAR,NBIOMAX) )
-
         ALLOCATE( CHEM_STATE%TRACERS(IIPAR,JJPAR,LLPAR,N_TRACERS+1) )
 
         NULL = N_TRACERS+1 ! Dummy index just-in-case (e.g. CO2)
@@ -133,7 +139,7 @@
 
       END SUBROUTINE INIT_CHEMSTATE
 
-      END MODULE TMP_TYPE_MOD
+      END MODULE GC_TYPE2_MOD
 #endif
 !
 !-----------------------------------------------------------------------
@@ -148,18 +154,17 @@
 ! Y    |        | CALL EMISS_EDGAR( YEAR, MONTH )
 ! Y    |  good  | CALL EMISS_RETRO
 ! Y    |  good* | CALL EMISS_EPA_NEI
-!      |        | CALL EMISS_VISTAS_ANTHRO
+! Y    |        | CALL EMISS_VISTAS_ANTHRO
 ! Y    |        | CALL EMISS_BRAVO
-!      |        | CALL EMISS_EMEP_05x0666
-!      |        | CALL EMISS_EMEP
+! Y    |        | CALL EMISS_EMEP_05x0666
+! Y    |        | CALL EMISS_EMEP
 ! Y    |        | CALL EMISS_CAC_ANTHRO_05x0666
 ! Y    |        | CALL EMISS_CAC_ANTHRO
-!      |        | CALL EMISS_EPA_NEI
-!      |        | CALL EMISS_NEI2005_ANTHRO_05x0666
-!      |        | CALL EMISS_EPA_NEI
-!      |        | CALL EMISS_NEI2005_ANTHRO
+! Y    |        | CALL EMISS_EPA_NEI
+! Y    |        | CALL EMISS_NEI2005_ANTHRO_05x0666
+! Y    |        | CALL EMISS_NEI2005_ANTHRO
 ! Y    |        | CALL EMISS_ARCTAS_SHIP( YEAR )
-!      |        | CALL EMISS_ICOADS_SHIP
+! Y    |        | CALL EMISS_ICOADS_SHIP
 !      |        | CALL EMISSDR
 ! Y    |        | CALL EMISSSEASALT
 ! Y    |        | CALL EMISSSULFATE --> Be sure there's no PBL mixing

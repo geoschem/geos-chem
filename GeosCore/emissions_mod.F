@@ -127,7 +127,8 @@
       USE CMN_O3_MOD                   ! FSCLYR
 
 #if defined( DEVEL )
-      USE TMP_TYPE_MOD,           ONLY : CHEMSTATE, NULL 
+      USE GC_TYPE_MOD ,           ONLY : GC_MET_LOCAL
+      USE GC_TYPE2_MOD,           ONLY : CHEMSTATE, NULL 
       USE TRACERID_MOD,           ONLY : IDTSO2, IDTC2H6
 #endif
 
@@ -180,7 +181,8 @@
       ! BIOMASS not used (hotp 8/3/09)
       !REAL*8                      :: BIOMASS(IIPAR,JJPAR,NBIOMAX)
 #if defined( DEVEL )
-      TYPE(CHEMSTATE), INTENT(INOUT) :: CHEM_STATE
+      TYPE(CHEMSTATE),    INTENT(INOUT) :: CHEM_STATE
+!      TYPE(GC_MET_LOCAL), INTENT(INOUT) :: LOCAL_MET
 #endif
 
       !=================================================================
@@ -267,7 +269,12 @@
 #endif
          ! Read VISTAS (USA) emissions once per month
          IF ( LVISTAS .and. ITS_A_NEW_MONTH() ) THEN
+#if defined( DEVEL )
+            CALL EMISS_VISTAS_ANTHRO(
+     &           CHEM_STATE%TRAC_TEND(:,:,1,:))
+#else
             CALL EMISS_VISTAS_ANTHRO
+#endif
          ENDIF
 
          ! Read BRAVO (Mexico) emissions once per year
@@ -280,10 +287,18 @@
 
          ! Read EMEP (Europe) emissions once per year
          IF ( LEMEP  .and. ITS_A_NEW_MONTH()  ) THEN
+#if defined( DEVEL )
+#if   defined(GRID05x0666)
+            CALL EMISS_EMEP_05x0666(CHEM_STATE%TRAC_TEND(:,:,1,:))
+#else
+            CALL EMISS_EMEP(CHEM_STATE%TRAC_TEND(:,:,1,:))
+#endif
+#else
 #if   defined(GRID05x0666)
             CALL EMISS_EMEP_05x0666
 #else
             CALL EMISS_EMEP
+#endif
 #endif
          ENDIF
 
@@ -312,12 +327,14 @@
             CALL EMISS_EPA_NEI(                  ! Use NEI99 biofuel, nested
      &       CHEM_STATE%TRAC_TEND(:,:,1,:),
      &       CHEM_STATE%TRAC_BTEND(:,:,1,:))
-            CALL EMISS_NEI2005_ANTHRO_05x0666   ! Use NEI05 anthro,  nested
+            CALL EMISS_NEI2005_ANTHRO_05x0666(   ! Use NEI05 anthro,  nested
+     &           CHEM_STATE%TRAC_TEND)
 #else
             CALL EMISS_EPA_NEI(                  ! Use NEI99 biofuel, global
      &       CHEM_STATE%TRAC_TEND(:,:,1,:),
      &       CHEM_STATE%TRAC_BTEND(:,:,1,:))
-            CALL EMISS_NEI2005_ANTHRO           ! Use NEI05 anthro,  global
+            CALL EMISS_NEI2005_ANTHRO(           ! Use NEI05 anthro,  global
+     &           CHEM_STATE%TRAC_TEND)
 #endif
 #else
 #if   defined( GRID05x0666 )
@@ -340,10 +357,18 @@
 #endif
          ! Read ICOADS ship emissions once per month (cklee, 7/09/09)
          IF ( LICOADSSHIP .and. ITS_A_NEW_MONTH() ) 
+#if defined( DEVEL )
+     &        CALL EMISS_ICOADS_SHIP( CHEM_STATE%TRAC_TEND(:,:,1,:) )
+#else
      &        CALL EMISS_ICOADS_SHIP
+#endif
 
          ! NOx-Ox-HC (w/ or w/o aerosols)
+#if defined( DEVEL )
+         CALL EMISSDR( CHEM_STATE%TRAC_TEND )
+#else
          CALL EMISSDR
+#endif
 
          ! Emissions for various aerosol types
 #if defined( DEVEL )
@@ -430,12 +455,14 @@
             CALL EMISS_EPA_NEI(                  ! Use NEI99 biofuel, nested
      &       CHEM_STATE%TRAC_TEND(:,:,1,:),
      &       CHEM_STATE%TRAC_BTEND(:,:,1,:))
-            CALL EMISS_NEI2005_ANTHRO_05x0666   ! Use NEI05 anthro,  nested
+            CALL EMISS_NEI2005_ANTHRO_05x0666(   ! Use NEI05 anthro,  nested
+     &           CHEM_STATE%TRAC_TEND)
 #else
             CALL EMISS_EPA_NEI(                  ! Use NEI99 biofuel, global
      &       CHEM_STATE%TRAC_TEND(:,:,1,:),
      &       CHEM_STATE%TRAC_BTEND(:,:,1,:))
-            CALL EMISS_NEI2005_ANTHRO           ! Use NEI05 anthro,  global
+            CALL EMISS_NEI2005_ANTHRO(           ! Use NEI05 anthro,  global
+     &           CHEM_STATE%TRAC_TEND)
 #endif
 #else
 #if    defined( GRID05x0666 )
@@ -458,10 +485,18 @@
 
          ! Read EMEP (Europe) emissions once per year
          IF ( LEMEP  .and. ITS_A_NEW_YEAR()  ) THEN
+#if defined( DEVEL )
+#if   defined(GRID05x0666)
+            CALL EMISS_EMEP_05x0666(CHEM_STATE%TRAC_TEND(:,:,1,:))
+#else
+            CALL EMISS_EMEP(CHEM_STATE%TRAC_TEND(:,:,1,:))
+#endif
+#else
 #if   defined( GRID05x0666 )
             CALL EMISS_EMEP_05x0666
 #else       
             CALL EMISS_EMEP
+#endif
 #endif
          ENDIF
 
@@ -476,7 +511,11 @@
 
          ! Read ICOADS ship emissions once per month !(cklee, 7/09/09)
          IF ( LICOADSSHIP .and. ITS_A_NEW_MONTH() ) THEN
+#if defined( DEVEL )
+            CALL EMISS_ICOADS_SHIP( CHEM_STATE%TRAC_TEND(:,:,1,:) )
+#else
             CALL EMISS_ICOADS_SHIP
+#endif
          ENDIF
 
          ! Emissions for various aerosol types
@@ -593,12 +632,14 @@
             CALL EMISS_EPA_NEI(                  ! Use NEI99 biofuel, nested
      &       CHEM_STATE%TRAC_TEND(:,:,1,:),
      &       CHEM_STATE%TRAC_BTEND(:,:,1,:))
-            CALL EMISS_NEI2005_ANTHRO_05x0666   ! Use NEI05 anthro,  nested
+            CALL EMISS_NEI2005_ANTHRO_05x0666(   ! Use NEI05 anthro,  nested
+     &           CHEM_STATE%TRAC_TEND)
 #else
             CALL EMISS_EPA_NEI(                  ! Use NEI99 biofuel, global
      &       CHEM_STATE%TRAC_TEND(:,:,1,:),
      &       CHEM_STATE%TRAC_BTEND(:,:,1,:))
-            CALL EMISS_NEI2005_ANTHRO           ! Use NEI05 anthro,  global
+            CALL EMISS_NEI2005_ANTHRO(           ! Use NEI05 anthro,  global
+     &           CHEM_STATE%TRAC_TEND)
 #endif
 #else
 #if   defined( GRID05x0666 )
@@ -621,16 +662,28 @@
 
          ! Read EPA (Europe) emissions once per year
          IF ( LEMEP  .and. ITS_A_NEW_YEAR()  ) THEN
+#if defined( DEVEL )
+#if   defined(GRID05x0666)
+            CALL EMISS_EMEP_05x0666(CHEM_STATE%TRAC_TEND(:,:,1,:))
+#else
+            CALL EMISS_EMEP(CHEM_STATE%TRAC_TEND(:,:,1,:))
+#endif
+#else
 #if   defined(GRID05x0666)
             CALL EMISS_EMEP_05x0666
 #else
             CALL EMISS_EMEP
 #endif
+#endif
          ENDIF
 
          ! Read ICOADS ship emissions once per month (cklee, 7/09/09)
          IF ( LICOADSSHIP .and. ITS_A_NEW_MONTH() ) THEN
+#if defined( DEVEL )
+            CALL EMISS_ICOADS_SHIP( CHEM_STATE%TRAC_TEND(:,:,1,:) )
+#else
             CALL EMISS_ICOADS_SHIP
+#endif
          ENDIF
 
          ! Now call EMISSDR for Tagged CO fossil fuel emissions, 
@@ -796,12 +849,14 @@
             CALL EMISS_EPA_NEI(                  ! Use NEI99 biofuel, nested
      &       CHEM_STATE%TRAC_TEND(:,:,1,:),
      &       CHEM_STATE%TRAC_BTEND(:,:,1,:))
-            CALL EMISS_NEI2005_ANTHRO_05x0666   ! Use NEI05 anthro,  nested
+            CALL EMISS_NEI2005_ANTHRO_05x0666(   ! Use NEI05 anthro,  nested
+     &           CHEM_STATE%TRAC_TEND)
 #else
             CALL EMISS_EPA_NEI(                  ! Use NEI99 biofuel, nested
      &       CHEM_STATE%TRAC_TEND(:,:,1,:),
      &       CHEM_STATE%TRAC_BTEND(:,:,1,:))
-            CALL EMISS_NEI2005_ANTHRO           ! Use NEI05 anthro,  global
+            CALL EMISS_NEI2005_ANTHRO(           ! Use NEI05 anthro,  global
+     &           CHEM_STATE%TRAC_TEND)
 #endif
 #else
 #if   defined( GRID05x0666 )
@@ -826,16 +881,28 @@
 
          ! Read EPA (Europe) emissions once per year
          IF ( LEMEP  .and. ITS_A_NEW_YEAR()  ) THEN
+#if defined( DEVEL )
+#if   defined(GRID05x0666)
+            CALL EMISS_EMEP_05x0666(CHEM_STATE%TRAC_TEND(:,:,1,:))
+#else
+            CALL EMISS_EMEP(CHEM_STATE%TRAC_TEND(:,:,1,:))
+#endif
+#else
 #if   defined( GRID05x0666 )
             CALL EMISS_EMEP_05x0666
 #else
             CALL EMISS_EMEP
 #endif
+#endif
          ENDIF
 
          ! Read ICOADS ship emissions once per month !(cklee, 7/09/09)
          IF ( LICOADSSHIP .and. ITS_A_NEW_MONTH() ) THEN
+#if defined( DEVEL )
+            CALL EMISS_ICOADS_SHIP( CHEM_STATE%TRAC_TEND(:,:,1,:) )
+#else
             CALL EMISS_ICOADS_SHIP
+#endif
          ENDIF
 
          ! Emit H2/HD
