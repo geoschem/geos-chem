@@ -2080,12 +2080,13 @@ contains
        ! Apply dry deposition frequencies
        !----------------------------------------------------------------
        do N = 1, NUMDEP ! NUMDEP includes all gases/aerosols
+          ! Now include sea salt dry deposition (jaegle 5/11/11)
           IF (TRIM( DEPNAME(N) ) == 'DST1'.OR. &
               TRIM( DEPNAME(N) ) == 'DST2'.OR. &
               TRIM( DEPNAME(N) ) == 'DST3'.OR. &
-              TRIM( DEPNAME(N) ) == 'DST4'.OR. &
-              TRIM( DEPNAME(N) ) == 'SALA'.OR. &
-              TRIM( DEPNAME(N) ) == 'SALC') CYCLE
+              TRIM( DEPNAME(N) ) == 'DST4') CYCLE
+              !TRIM( DEPNAME(N) ) == 'SALA'.OR. &
+              !TRIM( DEPNAME(N) ) == 'SALC') CYCLE
 
           ! gases + aerosols for full chemistry 
           NN   = NTRAIND(N)
@@ -2297,8 +2298,10 @@ contains
        do N = 1, NUMDEP
           SELECT CASE ( DEPNAME(N) )
              ! non gases + aerosols for fully chemistry 
-             CASE ( 'DST1', 'DST2', 'DST3', 'DST4', 'SALA', &
-                    'SALC' )
+             !CASE ( 'DST1', 'DST2', 'DST3', 'DST4', 'SALA', &
+             !       'SALC' )
+	     ! now include sea salt dry deposition (jaegle 5/11/11)
+             CASE ( 'DST1', 'DST2', 'DST3', 'DST4')
                 CYCLE
              CASE DEFAULT
                 ! Locate position of each tracer in DEPSAV

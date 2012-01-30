@@ -1457,7 +1457,7 @@
       !=================================================================
 
       ! Location for error messages
-      LOC = 'READ_EMISSIONS_MENU ("input_mod.f")'
+      LOC = 'READ_EMISSIONS_MENU ("input_mod.F")'
 
       ! Error check
       IF ( CT1 /= 2 ) THEN 
@@ -1832,6 +1832,30 @@
       ENDIF
          
       
+      !=================================================================
+      ! Error check GFED switches (mpayer, 11/7/11)
+      !=================================================================
+      IF ( ( LGFED2BB .or. L8DAYBB  .or. LSYNOPBB  .or. L3HRBB  )  .AND.
+     &     ( LGFED3BB .or. L8DAYBB3 .or. LSYNOPBB3 .or. L3HRBB3 ) ) THEN
+
+         MSG = 'GFED2 and GFED3 emissions cannot both be turned on.'
+         CALL ERROR_STOP( MSG, LOC )
+      ENDIF
+
+      ! Only monthly GFED3 emissions are currently available (mpayer, 11/7/11)
+      IF ( L8DAYBB3 ) THEN
+         MSG = '8-day GFED3 emissions are currently not available. ' //
+     &         'To use GFED3 emissions you must select monthly GFED3.'
+         CALL ERROR_STOP( MSG, LOC )
+      ELSE IF ( L3HRBB3   ) THEN
+         MSG = '3-hr GFED3 emissions are currently not available. ' //
+     &         'To use GFED3 emissions you must select monthly GFED3.'
+         CALL ERROR_STOP( MSG, LOC )
+      ELSE IF ( LSYNOPBB3 ) THEN
+         MSG = 'Synoptic GFED3 emiss. are currently not available. ' //
+     &         'To use GFED3 emissions you must select monthly GFED3.'
+         CALL ERROR_STOP( MSG, LOC )
+      ENDIF
 
       !=================================================================
       ! Prioritize GFED2
@@ -1951,16 +1975,16 @@
       WRITE( 6, 100     ) 'Scale BIOMASS to TOMS-AI?   : ', LTOMSAI
       WRITE( 6, 100     ) 'Use GFED2 BIOMASS emissions?: ',
      $     LGFED2BB .or. L8DAYBB .or. LSYNOPBB .or. L3HRBB 
-      WRITE( 6, 100     ) '    monthly GFED2 emissions? : ', LGFED2BB
-      WRITE( 6, 100     ) '    8-day GFED2 emission?    : ', L8DAYBB
-      WRITE( 6, 100     ) '    3hr GFED2 emission?      : ', L3HRBB 
-      WRITE( 6, 100     ) '    synoptic GFED2 ?         : ', LSYNOPBB
+      WRITE( 6, 100     ) '    monthly GFED2 emissions?: ', LGFED2BB
+      WRITE( 6, 100     ) '    8-day GFED2 emission?   : ', L8DAYBB
+      WRITE( 6, 100     ) '    3hr GFED2 emission?     : ', L3HRBB 
+      WRITE( 6, 100     ) '    synoptic GFED2 ?        : ', LSYNOPBB
       WRITE( 6, 100     ) 'Use GFED3 BIOMASS emissions?: ',
      $     LGFED3BB .or. L8DAYBB3 .or. LSYNOPBB3 .or. L3HRBB3
-      WRITE( 6, 100     ) '    monthly GFED3 emissions? : ', LGFED3BB
-      WRITE( 6, 100     ) '    8-day GFED3 emission?    : ', L8DAYBB3
-      WRITE( 6, 100     ) '    3hr GFED3 emission?      : ', L3HRBB3
-      WRITE( 6, 100     ) '    synoptic GFED3 ?         : ', LSYNOPBB3
+      WRITE( 6, 100     ) '    monthly GFED3 emissions?: ', LGFED3BB
+      WRITE( 6, 100     ) '    8-day GFED3 emission?   : ', L8DAYBB3
+      WRITE( 6, 100     ) '    3hr GFED3 emission?     : ', L3HRBB3
+      WRITE( 6, 100     ) '    synoptic GFED3 ?        : ', LSYNOPBB3
       WRITE( 6, 100     ) 'Turn on LIGHTNING NOx?      : ', LLIGHTNOX
       WRITE( 6, 100     ) 'Use OTD-LIS local redist?   : ', LOTDLOC
       WRITE( 6, 100     ) 'Turn on AIRCRAFT NOx?       : ', LAIRNOX

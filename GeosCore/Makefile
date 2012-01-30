@@ -94,6 +94,8 @@
 #  20 Aug 2010 - R. Yantosca - Modifications for MERRA met fields
 #  16 Feb 2011 - R. Yantosca - Add modifications for APM (G. Luo)
 #  05 Aug 2011 - M. Long     - Now compile module files in Headers/ directory
+#  04 Nov 2011 - R. Yantosca - Remove references to ESMF subdirectory
+#  08 Dec 2011 - M. Payer    - Remove obsolete GEIA biogenic emissions routines
 #EOP
 #------------------------------------------------------------------------------
 #BOC
@@ -114,25 +116,10 @@ MOD     := $(ROOTDIR)/mod
 TOM     := $(ROOTDIR)/GeosTomas
 GTMM    := $(ROOTDIR)/GTMM
 UTIL    := $(ROOTDIR)/GeosUtil
-LESMF   := $(ROOTDIR)/ESMF
 
 # Include header file.  This returns CC, F90, FREEFORM, LD, R8, SHELL,
 # as well as the default Makefile compilation rules for source code files.
-
-ifeq ($(ESMF),yes)
-  # Hack to force the ESMA headers work correctly with mpif90 as FC
-  include $(ROOTDIR)/Makefile_header.mk
-	override FC := $(COMPILER)
-  # End-of-hack
-  include $(ESMADIR)/Config/ESMA_base.mk  # Generic stuff
-  include $(ESMADIR)/Config/ESMA_arch.mk  # System dependencies
-  include $(ESMADIR)/Config/GMAO_base.mk  # GMAO stuff
-  include $(ROOTDIR)/Makefile_header.mk
-	override FC := $(ESMA_FC) # Unset hack
-	override LD := mpif90
-else
 include $(ROOTDIR)/Makefile_header.mk
-endif
 
 #=============================================================================
 # List of files to compile (the order is important!).  We specify these as
@@ -142,9 +129,6 @@ endif
 
 # List of source files
 SRC := $(wildcard *.F) $(wildcard *.F90)
-
-# Skip certain files (uncomment if necessary)
-#SRC := $(filter-out , $(SRC))
 
 # Replace .f and .f90 extensions with *.o
 TMP := $(SRC:.F=.o)
@@ -156,24 +140,11 @@ OBJ := $(TMP:.F90=.o)
 
 .PHONY: clean realclean doc docclean help
 
-all:
-	@$(MAKE) lib
+all:                                                 # Build libraries
+	@$(MAKE) lib                                 #  and the executable
 	@$(MAKE) exe
 
-ifeq ($(ESMF),yes)                       
-lib:                                                 # Build for ESMF/GEOS-5
-	@$(MAKE) libgc				     
-	@$(MAKE) libesmf			     
-else ifeq ($(ESMF_TESBED),yes)            	     
-lib:                                                 # Build for ESMF/Testbed
-	@$(MAKE) libgc				     
-	@$(MAKE) libesmf_testbed		     
-else                                      	     
-lib:                                                 # Build normal GEOS-Chem
-	@$(MAKE) libgc				     
-endif						     
-
-libgc:                                               # Compile everything
+lib:                                                 # Build all G-C libraries
 	@$(MAKE) libheaders         		     
 	@$(MAKE) libkpp             		     
 	@$(MAKE) libutil 			     
@@ -194,12 +165,6 @@ libutil:                                             # Build code in GeosUtil/
 libheaders:                                          # Build code in Headers/ 
 	@$(MAKE) -C $(HDR)			     
 
-libesmf:                                             # Compile ESMF/GEOS-5
-	@$(MAKE) -C $(LESMF) ESMF=yes esmf	     
-
-libesmf_testbed:                                     # Compile ESMF testbed
-	@$(MAKE) -C $(LESMF) ESMF_TESTBED=yes esmf     
-
 exe:                                                 # Build executable
 	$(LD) $(OBJ) $(LINK) -o $(EXE)
 	cp -f $(EXE) $(BIN)
@@ -215,9 +180,6 @@ realclean:                                           # Remove files everywhere
 	@$(MAKE) -C $(TOM) clean
 	@$(MAKE) -C $(GTMM) clean
 	@$(MAKE) -C $(UTIL) clean
-ifeq ($(ESMF),yes)
-	@$(MAKE) -C $(LESMF) clean
-endif
 	@$(MAKE) -C $(HDR) clean
 	@$(MAKE) docclean
 	rm -f $(LIB)/*.a
@@ -273,7 +235,7 @@ a6_read_mod.o               : a6_read_mod.F           dao_mod.o              \
                               diag_mod.o              logical_mod.o
 
 acetone_mod.o               : acetone_mod.F           dao_mod.o              \
-                              diag_mod.o               
+                              diag_mod.o              megan_mod.o 
 
 aerosol_mod.o               : aerosol_mod.F           comode_mod.o           \
                               dao_mod.o               diag_mod.o             \
@@ -557,13 +519,6 @@ emfossil.o                  : emfossil.F                                     \
                               tracerid_mod.o          vistas_anthro_mod.o    \
 			      retro_mod.o
 
-emisop.o                    : emisop.F                dao_mod.o              \
-                              meganut_mod.o
-
-emisop_grass.o              : emisop_grass.F          dao_mod.o
-
-emisop_mb.o                 : emisop_mb.F             dao_mod.o
-
 emissdr.o                   : emissdr.F                                      \
                               acetone_mod.o           aircraft_nox_mod.o     \
                               biofuel_mod.o           dao_mod.o              \
@@ -587,8 +542,6 @@ emissions_mod.o             : emissions_mod.F                                \
                               sulfate_mod.o           tagged_co_mod.o        \
                               tracer_mod.o            vistas_anthro_mod.o    \
 			      retro_mod.o
-
-emmonot.o                   : emmonot.F
 
 epa_nei_mod.o               : epa_nei_mod.F                                  \
                               future_emissions_mod.o  logical_mod.o          \
@@ -898,15 +851,9 @@ rd_js.o                     : rd_js.F
 
 rd_prof.o                   : rd_prof.F
 
-rdisopt.o                   : rdisopt.F
-
 rdlai.o                     : rdlai.F
 
 rdland.o                    : rdland.F                logical_mod.o
-
-rdlight.o                   : rdlight.F
-
-rdmonot.o                   : rdmonot.F
 
 rdsoil.o                    : rdsoil.F
 
@@ -958,8 +905,6 @@ set_aer.o                   : set_aer.F
 
 set_prof.o                  : set_prof.F                                     \
                               dao_mod.o               toms_mod.o
-
-setbase.o                   : setbase.F
 
 setemdep.o                  : setemdep.F              drydep_mod.o           \
                               tracer_mod.o            tracerid_mod.o

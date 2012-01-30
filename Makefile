@@ -1,4 +1,3 @@
-# $Id: Makefile,v 1.9 2010/02/02 16:57:55 bmy Exp $
 #------------------------------------------------------------------------------
 #          Harvard University Atmospheric Chemistry Modeling Group            !
 #------------------------------------------------------------------------------
@@ -32,6 +31,7 @@
 #  11 Dec 2009 - R. Yantosca - Now get SHELL from Makefile_header.mk
 #  25 Jan 2010 - R. Yantosca - Added Makefile targets for TOMAS microphysics
 #  16 Feb 2011 - R. Yantosca - Added Makefile targets for APM microphysics
+#  04 Nov 2011 - R. Yantosca - Remove ESMF targets, those are not needed
 #EOP
 #------------------------------------------------------------------------------
 #BOC
@@ -128,18 +128,6 @@ cleanapm:
 
 hg:
 	@$(MAKE) -C $(GEOSDIR) allhg
-
-#=============================================================================
-# Targets for ESMF linking (msl, 7/12/11)
-#=============================================================================
-
-.PHONY: esmf esma
-
-esmf esma:
-	@$(MAKE) -C $(GEOSDIR) ESMF=yes all
-
-esmf_testbed:
-	@$(MAKE) -C $(GEOSDIR) ESMF=yes ESMF_TESTBED=yes all
 
 #EOC
 

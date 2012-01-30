@@ -297,8 +297,8 @@
 ! !USES:
 !
       USE DAO_MOD,           ONLY : SNOW, SNOMAS 
-      USE DAO_MOD,           ONLY : IS_ICE, IS_LAND ! cdh
-      USE DAO_MOD,           ONLY : FRSNO, FRSEAICE, FRLANDIC ! jaf
+      USE DAO_MOD,           ONLY : IS_ICE, IS_LAND
+      USE DAO_MOD,           ONLY : FRSNO, FRSEAICE, FRLANDIC 
       USE TRACERID_MOD,      ONLY : GET_Hg2_CAT, GET_HgP_CAT
       USE TRACERID_MOD,      ONLY : IS_Hg2,      IS_HgP
 
@@ -324,9 +324,8 @@
 ! !LOCAL VARIABLES:
 !
       ! Local variables
-      !REAL*8  :: SNOW_HT ! obsolete (jaf, 4/26/11)
-      REAL*8  :: FRAC_SNOW_OR_ICE ! jaf
-      LOGICAL :: IS_SNOW_OR_ICE ! jaf
+      REAL*8  :: FRAC_SNOW_OR_ICE 
+      LOGICAL :: IS_SNOW_OR_ICE 
       INTEGER :: NN
 
       !=================================================================
@@ -344,38 +343,6 @@
          NN = GET_HgP_CAT( N ) 
       ENDIF
 
-!--jaf.start
-      ! Restructure to use fractional land type information in MERRA
-      ! (jaf, 4/26/11)
-!
-!#if   defined( GEOS_5 ) || defined( MERRA )
-!      ! GEOS5 snow height (water equivalent) in mm. (Docs wrongly say m)
-!      SNOW_HT = SNOMAS(I,J)
-!#else
-!      ! GEOS1-4 snow heigt (water equivalent) in mm
-!      SNOW_HT = SNOW(I,J)
-!#endif 
-!
-!      ! Check if there is snow on the ground, or if this is sea ice
-!      ! Update to Holmes et al. 2010 version (jaf, 4/11/11)
-!      ! (cdh 2/28/09: There are several coastal boxes which are mainly
-!      ! ocean, but have some land-based snow that exceeds the snow_HT 
-!      ! criteria. This Hg should go to the ocean, not the snowpack )
-!      !IF ( (SNOW_HT > 1d0) .OR. (IS_ICE(I,J)) ) THEN
-!      IF ( (IS_ICE(I,J)) .OR. (IS_LAND(I,J) .AND. SNOW_HT > 10d0) ) THEN
-!    
-!         ! Remove unnecessary output (jaf, 4/11/11)
-!         !IF (DEP_HG2<0d0) THEN
-!         !   WRITE(6,'(3I6,2G12.4)') I,J,NN,DEP_HG2,SNOW_HG(I,J,NN)
-!         !ENDIF
-!
-!         ! Update to Holmes et al. 2010 version (jaf, 4/11/11)
-!         !SNOW_HG(I,J,NN) = SNOW_HG(I,J,NN) + MAX( DEP_HG2, 0D0 )
-!         ! Add 60% of deposition to surface, i.e. assume 40% accumulates
-!         ! in surface
-!         SNOW_HG(I,J,NN) = SNOW_HG(I,J,NN) + MAX( 0.6D0*DEP_HG2, 0D0 )
-!
-!      ENDIF
 
       ! Except with MERRA, we can't distinguish land fractions, so we use a 
       ! land fraction of 1 and only use boxes that are mostly snow/ice. 
@@ -407,7 +374,6 @@
      &                     FRAC_SNOW_OR_ICE * MAX( 0.6D0*DEP_HG2, 0D0 )
 
       ENDIF
-!--jaf.end
 
       END SUBROUTINE ADD_HG2_SNOWPACK
 !EOC
@@ -937,7 +903,6 @@
       IF ( AS /= 0 ) CALL ALLOC_ERR( 'WD_HgP' )
       WD_HgP = 0d0
 
-      ! CDH for snowpack
       ALLOCATE( SNOW_HG( IIPAR, JJPAR, N_Hg_CATS ), STAT=AS )
       IF ( AS /= 0 ) CALL ALLOC_ERR( 'SNOW_HG' )
       SNOW_HG = 0d0
@@ -982,7 +947,7 @@
       IF ( ALLOCATED( DD_HgP      ) ) DEALLOCATE( DD_HgP      )
       IF ( ALLOCATED( WD_Hg2      ) ) DEALLOCATE( WD_Hg2      )
       IF ( ALLOCATED( WD_HgP      ) ) DEALLOCATE( WD_HgP      )
-      IF ( ALLOCATED( SNOW_HG     ) ) DEALLOCATE( SNOW_HG     )!CDH for snowpack
+      IF ( ALLOCATED( SNOW_HG     ) ) DEALLOCATE( SNOW_HG     )
       IF ( ALLOCATED( HG0mth_dd   ) ) DEALLOCATE( HG0mth_dd   )
       IF ( ALLOCATED( HG2mth_dd   ) ) DEALLOCATE( HG2mth_dd   )
       IF ( ALLOCATED( HG2mth_wd   ) ) DEALLOCATE( HG2mth_wd   )
