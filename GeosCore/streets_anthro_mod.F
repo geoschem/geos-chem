@@ -1288,7 +1288,13 @@
       ENDIF
 
       ! Pickup BASE_YEAR according to SIMulation YEAR
-      IF ( SIM_YEAR >= 2006 ) THEN
+      ! In the global model, treatment of Streets emissions was changed beginning
+      ! in v8-03-01 to use the 2006 emissions for anything after 2000 to increase
+      ! consistency in simulations running over 2005-2006. This was accidentally
+      ! neglected from the nested version but is fixed here (jaf, gcmv, amv, 
+      ! 1/30/12).
+      !IF ( SIM_YEAR >= 2006 ) THEN
+      IF ( SIM_YEAR > 2000 ) THEN
          IS_2006 = .TRUE.
          BASE_YEAR = 2006
       ELSE
