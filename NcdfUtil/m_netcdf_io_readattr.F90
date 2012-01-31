@@ -91,6 +91,7 @@ CONTAINS
 !
 ! !REVISION HISTORY:
 !  25 Jan 2012 - R. Yantosca - Initial version
+!  31 Jan 2012 - R. Yantosca - Zero attValue before reading attributes
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -99,6 +100,9 @@ CONTAINS
 !
     CHARACTER(LEN=128) :: errMsg
     INTEGER            :: status, vId
+
+    ! Zero return value
+    attValue = ''
 
     ! Check if VARNAME is a valid variable
     status = Nf_Inq_Varid ( fId, varName, vId )
@@ -149,6 +153,7 @@ CONTAINS
 !
 ! !REVISION HISTORY:
 !  25 Jan 2012 - R. Yantosca - Initial version
+!  31 Jan 2012 - R. Yantosca - Zero attValue before reading attributes
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -157,6 +162,9 @@ CONTAINS
 !
     CHARACTER(LEN=128) :: errMsg
     INTEGER            :: status, vId
+
+    ! Zero return value
+    attValue = 0
 
     ! Check if VARNAME is a valid variable
     status = Nf_Inq_Varid ( fId, varName, vId )
@@ -168,7 +176,7 @@ CONTAINS
        CALL Do_Err_Out ( errMsg, .TRUE., 1, fId, 0, 0, 0.0d0, 0.0d0)
     ENDIF
 
-    !  Get the attribute
+    ! Get the attribute
     status = Nf_Get_Att_Int( fId, vId, attName, attValue )
     
     ! Exit w/ error message if unsuccessful
@@ -207,6 +215,7 @@ CONTAINS
 !
 ! !REVISION HISTORY:
 !  25 Jan 2012 - R. Yantosca - Initial version
+!  31 Jan 2012 - R. Yantosca - Zero attValue before reading attributes
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -215,6 +224,9 @@ CONTAINS
 !
     CHARACTER(LEN=128) :: errMsg
     INTEGER            :: status, vId
+
+    ! Zero return value
+    attValue = 0e0
 
     ! Check if VARNAME is a valid variable
     status = Nf_Inq_Varid ( fId, varName, vId )
@@ -226,7 +238,7 @@ CONTAINS
        CALL Do_Err_Out ( errMsg, .TRUE., 1, fId, 0, 0, 0.0d0, 0.0d0)
     ENDIF
 
-    !  Get the attribute
+    ! Get the attribute
     status = Nf_Get_Att_Real( fId, vId, attName, attValue )
     
     ! Exit w/ error message if unsuccessful
@@ -265,6 +277,7 @@ CONTAINS
 !
 ! !REVISION HISTORY:
 !  25 Jan 2012 - R. Yantosca - Initial version
+!  31 Jan 2012 - R. Yantosca - Zero attValue before reading attributes
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -273,6 +286,9 @@ CONTAINS
 !
     CHARACTER(LEN=128) :: errMsg
     INTEGER            :: status, vId
+
+    ! Zero return value
+    attValue = 0d0
 
     ! Check if VARNAME is a valid variable
     status = Nf_Inq_Varid ( fId, varName, vId )
@@ -284,7 +300,7 @@ CONTAINS
        CALL Do_Err_Out ( errMsg, .TRUE., 1, fId, 0, 0, 0.0d0, 0.0d0)
     ENDIF
 
-    !  Get the attribute
+    ! Get the attribute
     status = Nf_Get_Att_Real( fId, vId, attName, attValue )
     
     ! Exit w/ error message if unsuccessful
@@ -322,6 +338,7 @@ CONTAINS
 !
 ! !REVISION HISTORY:
 !  25 Jan 2012 - R. Yantosca - Initial version
+!  31 Jan 2012 - R. Yantosca - Zero attValue before reading attributes
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -331,7 +348,10 @@ CONTAINS
     CHARACTER(LEN=128) :: errMsg, varName
     INTEGER            :: status
 
-    !  Get the attribute
+    ! Zero return value
+    attValue = ''
+
+    ! Get the attribute
     status = Nf_Get_Att( fId, NF_GLOBAL, attName, attValue )
     
     ! Exit w/ error message if unsuccessful
@@ -370,6 +390,7 @@ CONTAINS
 !
 ! !REVISION HISTORY:
 !  25 Jan 2012 - R. Yantosca - Initial version
+!  31 Jan 2012 - R. Yantosca - Zero attValue before reading attributes
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -379,7 +400,10 @@ CONTAINS
     CHARACTER(LEN=128) :: errMsg, varName
     INTEGER            :: status
 
-    !  Get the attribute
+    ! Zero return value
+    attValue = 0
+
+    ! Get the attribute
     status = Nf_Get_Att( fId, NF_GLOBAL, attName, attValue )
     
     ! Exit w/ error message if unsuccessful
@@ -417,6 +441,7 @@ CONTAINS
 !
 ! !REVISION HISTORY:
 !  25 Jan 2012 - R. Yantosca - Initial version
+!  31 Jan 2012 - R. Yantosca - Zero attValue before reading attributes
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -426,7 +451,10 @@ CONTAINS
     CHARACTER(LEN=128) :: errMsg, varName
     INTEGER            :: status
 
-    !  Get the attribute
+    ! Zero return value
+    attValue = 0e0
+
+    ! Get the attribute
     status = Nf_Get_Att( fId, NF_GLOBAL, attName, attValue )
     
     ! Exit w/ error message if unsuccessful
@@ -464,6 +492,7 @@ CONTAINS
 !
 ! !REVISION HISTORY:
 !  25 Jan 2012 - R. Yantosca - Initial version
+!  31 Jan 2012 - R. Yantosca - Zero attValue before reading attributes
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -473,7 +502,10 @@ CONTAINS
     CHARACTER(LEN=128) :: errMsg, varName
     INTEGER            :: status
 
-    !  Get the attribute
+    ! Zero return value
+    attValue = 0d0
+
+    ! Get the attribute
     status = Nf_Get_Att( fId, NF_GLOBAL, attName, attValue )
     
     ! Exit w/ error message if unsuccessful
