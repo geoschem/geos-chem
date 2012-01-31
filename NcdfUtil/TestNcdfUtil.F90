@@ -19,17 +19,16 @@ PROGRAM TestNcdfUtil
 ! !USES:
 !
   ! Modules for netCDF write
-  USE m_netcdf_io_create
   USE m_netcdf_io_define
+  USE m_netcdf_io_create
   USE m_netcdf_io_write
-  USE m_netcdf_io_close
    
   ! Modules for netCDF read
   USE m_netcdf_io_open
-  USE m_netcdf_io_close     
   USE m_netcdf_io_get_dimlen
   USE m_netcdf_io_read
   USE m_netcdf_io_readattr
+  USE m_netcdf_io_close     
   
   IMPLICIT NONE
 
@@ -62,6 +61,7 @@ PROGRAM TestNcdfUtil
 ! !REVISION HISTORY: 
 !  03 Jul 2008 - R. Yantosca (Harvard University) - Initial version
 !  24 Jan 2012 - R. Yantosca - Modified to write COARDS-compliant output
+!  31 Jan 2012 - R. Yantosca - Bug fix in error checks for attributes
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -225,24 +225,28 @@ CONTAINS
     !=========================================================================
 
     ! Define longitude variable
+    vId  = 0
     var1 = (/ idLon /)
     CALL NcDef_Variable( fId, 'lon', NF_DOUBLE, 1, var1, vId )
-    CALL NcDef_Var_Attributes( fId, vId,  'long_name', 'Longitude'   )
-    CALL NcDef_Var_Attributes( fId, vId,  'units',     'degree_east' )
+    CALL NcDef_Var_Attributes( fId, vId,  'long_name', 'Longitude'    )
+    CALL NcDef_Var_Attributes( fId, vId,  'units',     'degrees_east' )
   
     ! Define latitude variable
+    vId  = vId + 1
     var1 = (/ idLat /)
     CALL NcDef_Variable( fId, 'lat', NF_DOUBLE, 1, var1, vId )
-    CALL NcDef_Var_Attributes( fId, vId, 'long_name', 'Latitude'     )
-    CALL NcDef_Var_Attributes( fId, vId, 'units',     'degree_north' )
+    CALL NcDef_Var_Attributes( fId, vId, 'long_name', 'Latitude'      )
+    CALL NcDef_Var_Attributes( fId, vId, 'units',     'degrees_north' )
     
     ! Define vertical (pressure) variable
+    vId  = vId + 1
     var1 = (/ idLev /)
     CALL NcDef_Variable( fId, 'lev', NF_DOUBLE, 1, var1, vId )
     CALL NcDef_Var_Attributes( fId, vId, 'long_name', 'Pressure' )
     CALL NcDef_Var_Attributes( fId, vId, 'units',     'hPa'      )
     
     ! Time index array (hardwire date to 2011/01/01)
+    vId     = vId + 1
     var1    = (/ idTime /)
     vId     = vId + 1
     units   = 'minutes since 2011-01-01 00:00:00 GMT'
@@ -258,8 +262,8 @@ CONTAINS
     CALL NcDef_Var_Attributes( fId, vId, 'begin_time',     TRIM( begin_t )  )
     CALL NcDef_Var_Attributes( fId, vId, 'time_increment', TRIM( incr    )  )
 
-
     ! Define surface pressure variable
+    vId  = vId + 1
     var3 = (/ idLon, idLat, idTime /)
     CALL NcDef_Variable      ( fId, 'PS', NF_FLOAT, 3, var3, vId )
     CALL NcDef_Var_Attributes( fId, vId, 'long_name',      'Surface Pressure' )
@@ -267,12 +271,12 @@ CONTAINS
     CALL NcDef_Var_Attributes( fId, vId, 'gamap_category', 'GMAO-2D'          )
     
     ! Define 
+    vId  = vId + 1
     var4 = (/ idLon, idLat, idLev, idTime /)
     CALL NcDef_Variable      ( fId, 'T', NF_FLOAT, 4, var4, vId )
     CALL NcDef_Var_Attributes( fId, vId, 'long_name',      'Temperature'      )
     CALL NcDef_Var_Attributes( fId, vId, 'units',          'K'                )
     CALL NcDef_Var_Attributes( fId, vId, 'gamap_category', 'GMAO-3D$'         )
-
     
     !=========================================================================
     ! %%% END OF DEFINITION SECTION %%%
@@ -354,6 +358,7 @@ CONTAINS
 ! !REVISION HISTORY: 
 !  03 Jul 2008 - R. Yantosca (Harvard University) - Initial version
 !  24 Jan 2012 - R. Yantosca - Modified to provide COARDS-compliant output
+!  31 Jan 2012 - R. Yantosca - Bug fix in error checks for attributes
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -451,7 +456,7 @@ CONTAINS
     ! Read data
     ALLOCATE( time( TDim ) )
     st1d = (/ 1    /)
-    ct1d = (/ Tdim /)
+    ct1d = (/ TDim /)
     CALL NcRd( time, fId, 'time', st1d, ct1d )
 
     ! Equality test
@@ -474,12 +479,20 @@ CONTAINS
     
     ! Read units attribute
     CALL NcGet_Var_Attributes( fId, 'PS', 'units', attValue )
-    rc = ( TRIM( attValue ) == 'hPa' )
+    IF ( TRIM( attValue ) == 'hPa' ) THEN
+       rc = 0
+    ELSE
+       rc = -1
+    ENDIF
     CALL Check( 'Reading PS:units     back from netCDF file', rc, pCt, tCt )
 
     ! Read long_name attribute
     CALL NcGet_Var_Attributes( fId, 'PS', 'long_name', attValue )
-    rc = ( TRIM( attValue ) == 'Surface Pressure' )
+    IF ( TRIM( attValue ) == 'Surface Pressure' ) THEN
+       rc = 0
+    ELSE
+       rc = -1
+    ENDIF
     CALL Check( 'Reading PS:long_name back from netCDF file', rc, pCt, tCt )
 
     !=========================================================================
@@ -497,13 +510,21 @@ CONTAINS
     CALL Check( 'Reading T            back from netCDF file', rc, pCt, tCt )
 
     ! Read units attribute
-    CALL NcGet_Var_Attributes( fId, 'PS', 'units', attValue )
-    rc = ( TRIM( attValue ) == 'hPa' )
+    CALL NcGet_Var_Attributes( fId, 'T', 'units', attValue )
+    IF ( TRIM( attValue ) == 'K' ) THEN
+       rc = 0
+    ELSE
+       rc = -1
+    ENDIF
     CALL Check( 'Reading T:units      back from netCDF file', rc, pCt, tCt )
 
     ! Read long_name attribute
-    CALL NcGet_Var_Attributes( fId, 'PS', 'long_name', attValue )
-    rc = ( TRIM( attValue ) == 'Surface Pressure' )
+    CALL NcGet_Var_Attributes( fId, 'T', 'long_name', attValue )
+    IF ( TRIM( attValue ) == 'Temperature' ) THEN
+       rc = 0
+    ELSE
+       rc = -1
+    ENDIF
     CALL Check( 'Reading T:long_name  back from netCDF file', rc, pCt, tCt )
 
     !=========================================================================
@@ -512,17 +533,29 @@ CONTAINS
 
     ! Read title attribute
     CALL NcGet_Glob_Attributes( fId, 'title', attValue )
-    rc = ( TRIM( attValue ) == 'NcdfUtilities test file' )
+    IF ( TRIM( attValue ) == 'NcdfUtilities test file' ) THEN
+       rc = 0
+    ELSE
+       rc = -1
+    ENDIF
     CALL Check( 'Reading title        back from netCDF file', rc, pCt, tCt )
 
     ! Read start_date
     CALL NcGet_Glob_Attributes( fId, 'start_date', attValue )
-    rc = ( TRIM( attValue ) == '20110101' )
+    IF ( TRIM( attValue ) == '20110101' ) THEN
+       rc = 0
+    ELSE
+       rc = -1
+    ENDIF
     CALL Check( 'Reading start_date   back from netCDF file', rc, pCt, tCt )
 
     ! Read start_time
     CALL NcGet_Glob_Attributes( fId, 'start_time', attValue )
-    rc = ( TRIM( attValue ) == '000000' )
+    IF ( TRIM( attValue ) == '00:00:00.0' ) THEN
+       rc = 0
+    ELSE
+       rc = -1
+    ENDIF
     CALL Check( 'Reading start_time   back from netCDF file', rc, pCt, tCt )
 
     ! Close netCDF file
