@@ -154,14 +154,14 @@ LHG       := -L$(LIB) -lKpp -lIsoropia -lHg -lGeosUtil -lHeaders
 
 # Add the HDF5 library link commands if necessary
 ifeq ($(HDF5),yes) 
-LINK      += -L$(H5L)
-LHG       += -L$(H5L)
+LINK      := $(LINK) -L$(H5L)
+LHG       := $(LINK) -L$(H5L)
 endif
 
 # Add the netCDF library link commands if necessary
 ifeq ($(NETCDF),yes)
-LINK      += $(NCL) 
-LHG       += $(NCL)
+LINK      := $(LINK) -lNcUtils $(NCL)
+LHG       := $(LINK) -lNcUtils $(NCL)
 endif
 
 # For ESMF development

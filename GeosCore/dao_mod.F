@@ -2046,6 +2046,7 @@
 !  16 Aug 2010 - R. Yantosca - Added ProTeX headers
 !  18 Aug 2010 - R. Yantosca - Now allocate met fields for MERRA
 !  20 Aug 2010 - R. Yantosca - Bug fix, now allocate REEVAPCN
+!  01 Feb 2012 - R. Yantosca - Now allocate met field arrays for GEOS-5.7.x
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -2421,7 +2422,7 @@
       IF ( AS /= 0 ) CALL ALLOC_ERR( 'ZMMU' )
       ZMMU = 0d0
 
-#elif defined( GEOS_5 ) || defined( MERRA )
+#elif defined( GEOS_5 ) || defined( MERRA ) || defined( GEOS_57 )
 
       !-----------------------------------------------------------------
       ! Allocate met field arrays that are used for GEOS-5 or MERRA
@@ -2573,7 +2574,7 @@
       IF ( AS /= 0 ) CALL ALLOC_ERR( 'DQRLSC' )
       DQRLSC = 0d0
 
-#elif defined( MERRA )
+#elif defined( MERRA ) || defined ( GEOS_57 )
 
       !-----------------------------------------------------------------
       ! Allocate met field arrays that are used ONLY for MERRA

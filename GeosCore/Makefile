@@ -621,6 +621,9 @@ gcap_read_mod.o             : gcap_read_mod.F         dao_mod.o              \
 
 geia_mod.o                  : geia_mod.F
 
+geos57_read_mod.o           : geos57_read_mod.F90                            \
+                              dao_mod.o 
+
 GEN.o                       : GEN.F
 
 get_global_ch4.o            : get_global_ch4.F                               \
@@ -774,7 +777,7 @@ main.o                      : main.F                                         \
                               vdiff_mod.o             wetscav_mod.o          \
                               xtra_read_mod.o         merra_cn_mod.o         \
                               merra_a1_mod.o          merra_a3_mod.o         \
-                              merra_i6_mod.o
+                              merra_i6_mod.o          geos57_read_mod.o
 
 MATIN4.o                    : MATIN4.F
 

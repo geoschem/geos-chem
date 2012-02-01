@@ -640,6 +640,7 @@
 !  (6 ) Rename GRID30LEV to GRIDREDUCED (bmy, 2/7/07)
 !  20 Nov 2009 - R. Yantosca - Added ProTeX header
 !  13 Aug 2010 - R. Yantosca - Added MERRA model names
+!  01 Feb 2012 - R. Yantosca - Added GEOS-5.7.x model names
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -670,6 +671,12 @@
       
 #elif defined( MERRA ) 
       MODELNAME = 'MERRA'
+
+#elif defined( GEOS_57 ) && defined( GRIDREDUCED )
+      MODELNAME = 'GEOS5'
+
+#elif defined( GEOS_57 )
+      MODELNAME = 'GEOS5'
 
 #endif
 
@@ -706,7 +713,7 @@
       CHARACTER(LEN=5) :: NAME_EXT
       NAME_EXT = 'geos4'
 
-#elif defined( GEOS_5 )
+#elif defined( GEOS_5 ) || defined( GEOS_57 )
       CHARACTER(LEN=5) :: NAME_EXT
       NAME_EXT = 'geos5'
 
@@ -728,6 +735,7 @@
 !  20 Nov 2009 - R. Yantosca - Added ProTeX header
 !  13 Aug 2010 - R. Yantosca - MERRA uses "geos5" name extension since its
 !                              grid is identical to GEOS-5.
+!  01 Feb 2012 - R. Yantosca - Now also define output for GEOS-5.7.x met
 !EOP
 !------------------------------------------------------------------------------
 !BOC

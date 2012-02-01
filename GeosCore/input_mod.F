@@ -535,7 +535,7 @@
 !
       USE DIRECTORY_MOD, ONLY : DATA_DIR,    DATA_DIR_1x1, GCAP_DIR
       USE DIRECTORY_MOD, ONLY : GEOS_3_DIR,  GEOS_4_DIR,   GEOS_5_DIR
-      USE DIRECTORY_MOD, ONLY : MERRA_DIR
+      USE DIRECTORY_MOD, ONLY : MERRA_DIR,   GEOS_57_DIR
       USE DIRECTORY_MOD, ONLY : RUN_DIR
       USE DIRECTORY_MOD, ONLY : TEMP_DIR   
       USE GRID_MOD,      ONLY : SET_XOFFSET, SET_YOFFSET,  COMPUTE_GRID
@@ -562,6 +562,7 @@
 !  13 Aug 2010 - R. Yantosca - Now read MERRA_DIR
 !  19 Aug 2010 - R. Yantosca - Set LUNZIP=F for MERRA met fields.
 !  27 Aug 2010 - R. Yantosca - Added ProTeX headers
+!   1 Feb 2012 - R. Yantosca - Now read GEOS_57_DIR for GEOS-5.7.x met
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -624,40 +625,44 @@
       CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_simulation_menu:11' )
       READ( SUBSTRS(1:N), '(a)' ) GEOS_5_DIR
 
-      ! MERRA subdir
+      ! GEOS-5.7.x subdir
       CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_simulation_menu:12' )
+      READ( SUBSTRS(1:N), '(a)' ) GEOS_57_DIR
+
+      ! MERRA subdir
+      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_simulation_menu:13' )
       READ( SUBSTRS(1:N), '(a)' ) MERRA_DIR
 
       ! Temp dir
-      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_simulation_menu:13' )
+      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_simulation_menu:14' )
       READ( SUBSTRS(1:N), '(a)' ) DATA_DIR_1x1
 
       ! Temp dir
-      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_simulation_menu:14' )
+      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_simulation_menu:15' )
       READ( SUBSTRS(1:N), '(a)' ) TEMP_DIR
 
       ! Unzip met fields
-      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_simulation_menu:15' )
+      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_simulation_menu:16' )
       READ( SUBSTRS(1:N), *     ) LUNZIP
 
       ! Wait for met fields?
-      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_simulation_menu:16' )
+      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_simulation_menu:17' )
       READ( SUBSTRS(1:N), *     ) LWAIT
 
       ! Variable Tropopause
-      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_simulation_menu:17' )
+      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_simulation_menu:18' )
       READ( SUBSTRS(1:N), *     ) LVARTROP
 
       ! LINOZ chemistry in the stratosphere
-      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_simulation_menu:18' )
+      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_simulation_menu:19' )
       READ( SUBSTRS(1:N), *     ) LLINOZ  
 
       ! I0, J0
-      CALL SPLIT_ONE_LINE( SUBSTRS, N, 2, 'read_simulation_menu:19' )
+      CALL SPLIT_ONE_LINE( SUBSTRS, N, 2, 'read_simulation_menu:20' )
       READ( SUBSTRS(1:N), *     ) I0, J0
 
       ! Separator line
-      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_simulation_menu:20' )
+      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_simulation_menu:21' )
 
       !=================================================================
       ! Add safety checks for logical switches

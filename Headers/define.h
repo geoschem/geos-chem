@@ -91,6 +91,7 @@
 !  18 Dec 2009 - Aaron van D - Added NESTED_EU C-preprocessor switch
 !  20 Jul 2010 - C. Carouge  - Added GTMM_Hg for mercury simulation.
 !  12 Aug 2010 - R. Yantosca - Added MERRA switch for MERRA reanalysis met
+!  01 Feb 2012 - R. Yantosca - Modify error trap to allow GEOS-5.7.x met
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -102,6 +103,7 @@
 #undef GEOS_3
 #undef GEOS_4
 #undef GEOS_5
+#undef GEOS_57
 #undef MERRA
 #undef GRIDREDUCED
 #undef GRID4x5
@@ -129,9 +131,9 @@
 !#define GCAP        'GCAP'
 !#define GEOS_3      'GEOS_3'
 !#define GEOS_4      'GEOS_4'
-#define GEOS_5      'GEOS_5'
+!#define GEOS_5      'GEOS_5'
 !#define MERRA       'MERRA'
-!#define GEOS_57    'GEOS_57'
+#define GEOS_57    'GEOS_57'
 
 !----- Grid sizes -----
 !#define NESTED_CH   'NESTED_CH'
@@ -157,9 +159,9 @@
 !==============================================================================
 ! Force a compile error if GEOS_1, GEOS_STRAT, GEOS_3, GEOS_4 are undefined 
 !==============================================================================
-#if !defined(GEOS_3) && !defined(GEOS_4) && !defined(GEOS_5) && !defined(MERRA) && !defined(GCAP)
-#error "ERROR: GEOS_STRAT, GEOS_3, GEOS_4, GEOS_5, and GCAP"
-#error "are ALL und efined in header file define.h"
+#if !defined(GEOS_3) && !defined(GEOS_4) && !defined(GEOS_5) && !defined(MERRA) && !defined(GCAP) && !defined(GEOS_57)
+#error "ERROR: GEOS_3, GEOS_4, GEOS_5, GEOS-5.7, MERRA, and GCAP"
+#error "are ALL undefined in header file define.h"
 #endif
 
 !==============================================================================

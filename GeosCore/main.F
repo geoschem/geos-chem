@@ -169,6 +169,9 @@
       USE TIME_MOD,          ONLY : GET_FIRST_A1_TIME
       USE TIME_MOD,          ONLY : ITS_TIME_FOR_A1
 
+      ! For Reading GEOS-5.7.2 met fields
+      USE GEOS57_READ_MOD,   ONLY : GEOS57_READ_CN
+
       USE CMN_SIZE_MOD            ! Size parameters
       USE COMODE_LOOP_MOD         ! SMVGEAR common blocks
       USE CMN_DIAG_MOD            ! Diagnostic switches, NJDAY
@@ -314,7 +317,17 @@
       TAU   = GET_TAU()
       TAUb  = GET_TAUb()
 
-#if   defined( MERRA )
+      !=================================================================
+      !    *****  R E A D   G E O S -- 5 . 7 . 2  F I E L D S  *****
+      !    *****  At the start of the GEOS-Chem simulation     *****
+      !
+      !    Handle GEOS-5.7.2 met fields separately from other met products
+      !=================================================================
+#if   defined( GEOS_57 )
+
+      CALL GEOS57_READ_CN()
+
+#elif defined( MERRA )
 
       !=================================================================
       !    *****  R E A D   M E R R A   M E T   F I E L D S  *****
