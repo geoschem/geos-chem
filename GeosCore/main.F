@@ -172,6 +172,7 @@
       ! For Reading GEOS-5.7.2 met fields
       USE GEOS57_READ_MOD,   ONLY : GEOS57_READ_CN
       USE GEOS57_READ_MOD,   ONLY : GEOS57_READ_A1
+      USE GEOS57_READ_MOD,   ONLY : GEOS57_READ_A3cld
       
       USE CMN_SIZE_MOD            ! Size parameters
       USE COMODE_LOOP_MOD         ! SMVGEAR common blocks
@@ -338,7 +339,12 @@
       
       ! Read 3-hr time averaged data
       DATE = GET_FIRST_A3_TIME()
-
+      date(2) = 073000
+      print*, '### date: ', date
+      CALL GEOS57_READ_A3cld( DATE(1), DATE(2) )
+      !CALL GEOS57_READ_A3dyn( DATE(1), DATE(2) )
+      !CALL GEOS57_READ_A3mstE( DATE(1), DATE(2) )
+      !CALL GEOS57_READ_A3mstC( DATE(1), DATE(2) )
 
       ! Close files
       GOTO 9999
