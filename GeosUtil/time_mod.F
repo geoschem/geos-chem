@@ -191,6 +191,7 @@
 !  07 Oct 2011 - R. Yantosca - Remove obsolete TS_SUN_2, GET_TS_SUN_2
 !  07 Oct 2011 - R. Yantosca - Remove obsolete OFFSET argument to GET_LOCALTIME
 !  12 Oct 2011 - R. Yantosca - Modified ITS_A_NEW_MONTH for central chem step
+!  02 Feb 2012 - R. Yantosca - Added modifications for GEOS-5.7.x met fields
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -2519,14 +2520,15 @@
 ! 
 ! !REVISION HISTORY: 
 !  19 Aug 2010 - R. Yantosca - Initial version
+!  02 Feb 2012 - R. Yantosca - Added modifications for GEOS-5.7.x met fields
 !EOP
 !------------------------------------------------------------------------------
 !BOC
 
-#if   defined( MERRA )
+#if   defined( MERRA ) || defined( GEOS_57 )
 
-      ! MERRA met fields are 1-hour time-averages, timestamped at the
-      ! center of the averaging periods (00:30, 01:30, 02:30 ... 23:30)
+      ! MERRA and GEOS-5.7.x met fields are 1-hour time-averages, timestamped 
+      ! at the center of the averaging periods (00:30, 01:30, 02:30 ... 23:30)
       DATE = GET_TIME_AHEAD( 30 )
 
 #else

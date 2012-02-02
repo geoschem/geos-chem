@@ -90,6 +90,7 @@
 !  20 Nov 2009 - R. Yantosca - Added ProTeX headers
 !  13 Aug 2010 - R. Yantosca - Added modifications for MERRA met fields
 !  30 Aug 2010 - R. Yantosca - Updated comments
+!  02 Feb 2012 - R. Yantosca - Added modifications for GEOS-5.7.x met fields
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -448,7 +449,9 @@
 !                              GEOS-5.  The vertical grids are identical.
 !  30 Aug 2010 - R. Yantosca - Updated comments
 !  30 Nov 2010 - R. Yantosca - Further improved comments about how GEOS-4 and
-!                              GEOS-5 vertical levels are lumped together.
+!                              GEOS-5 vertical levels are lumped together.\
+!  02 Feb 2012 - R. Yantosca - Compute Ap and Bp for GEOS-5.7.x in the same way
+!                              as for GEOS-5 and MERRA (grids are identical)
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -484,7 +487,7 @@
       IF ( AS /= 0 ) CALL ALLOC_ERR( 'BP_FULLGRID' )
       BP = 0d0
 
-#if   defined( GEOS_5 ) || defined( MERRA )
+#if   defined( GEOS_5 ) || defined( MERRA ) || defined( GEOS_57 )
 
       !=================================================================
       ! GEOS-5/MERRA vertical coordinates (47 or 72 levels)

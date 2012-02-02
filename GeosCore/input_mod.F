@@ -1670,43 +1670,67 @@
       ! Error check logical flags
       !=================================================================
 
+      ! Turn off individual emissions flags if the master emissions flag
+      ! LEMIS is turned off.  This will prevent inadvertent calls to the
+      ! emissions routines. (bmy, 2/2/12)
+      LANTHRO           = ( LANTHRO        .and. LEMIS )
+      LEMEP             = ( LEMEP          .and. LEMIS )
+      LBRAVO            = ( LBRAVO         .and. LEMIS )
+      LEDGAR            = ( LEDGAR         .and. LEMIS )
+      LSTREETS          = ( LSTREETS       .and. LEMIS )
+      LCAC              = ( LCAC           .and. LEMIS )
+      LNEI05            = ( LNEI05         .and. LEMIS )
+      LRETRO            = ( LRETRO         .and. LEMIS )
+      LNEI99            = ( LNEI99         .and. LEMIS )
+      LICARTT           = ( LICARTT        .and. LEMIS )
+      LVISTAS           = ( LVISTAS        .and. LEMIS )
+      LBIOFUEL          = ( LBIOFUEL       .and. LEMIS )
+      LBIOGENIC         = ( LBIOGENIC      .and. LEMIS )
+      LMEGAN            = ( LMEGAN         .and. LEMIS )
+      LPECCA            = ( LPECCA         .and. LEMIS )
+      LMEGANMONO        = ( LMEGANMONO     .and. LEMIS )
+      LBIOMASS          = ( LBIOMASS       .and. LEMIS )
+      LTOMSAI           = ( LTOMSAI        .and. LEMIS )
+      LGFED2BB          = ( LGFED2BB       .and. LEMIS )
+      L8DAYBB           = ( L8DAYBB        .and. LEMIS )
+      L3HRBB            = ( L3HRBB         .and. LEMIS )
+      LSYNOPBB          = ( LSYNOPBB       .and. LEMIS )
+      LGFED3BB          = ( LGFED3BB       .and. LEMIS )
+      L8DAYBB3          = ( L8DAYBB3       .and. LEMIS )
+      L3HRBB3           = ( L3HRBB3        .and. LEMIS )
+      LSYNOPBB3         = ( LSYNOPBB3      .and. LEMIS )
+      LAIRNOX           = ( LAIRNOX        .and. LEMIS )
+      LLIGHTNOX         = ( LLIGHTNOX      .and. LEMIS )
+      LOTDLOC           = ( LOTDLOC        .and. LEMIS )
+      LSOILNOX          = ( LSOILNOX       .and. LEMIS )
+      LFERTILIZERNOX    = ( LFERTILIZERNOX .and. LEMIS )
+      LEDGARSHIP        = ( LEDGARSHIP     .and. LEMIS )
+      LICOADSSHIP       = ( LICOADSSHIP    .and. LEMIS )
+      LEMEPSHIP         = ( LEMEPSHIP      .and. LEMIS )
+      LSHIPSO2          = ( LSHIPSO2       .and. LEMIS )
+      LARCSHIP          = ( LARCSHIP       .and. LEMIS )
+      LCOOKE            = ( LCOOKE         .and. LEMIS )
+      LAVHRRLAI         = ( LAVHRRLAI      .and. LEMIS )
+      LMODISLAI         = ( LMODISLAI      .and. LEMIS )       
+
       ! Define these flags for backwards compatibility
-      LFOSSIL      = LANTHRO
-      LWOODCO      = LBIOFUEL
-      LBIONOX      = LBIOMASS
+      LFOSSIL           = LANTHRO
+      LWOODCO           = LBIOFUEL
+      LBIONOX           = LBIOMASS
 
-      ! Set LMEGAN=F if emissions are turned off
-      LMEGAN       = ( LMEGAN   .and. LEMIS )
-
-      ! Set LMEGANMONO=F if emissions are turned off (ccc, 1/20/09)
-      LMEGANMONO       = ( LMEGANMONO   .and. LEMIS )
-
-      ! Set all GFED2 flags to F if emissions are turned off      
-      LGFED2BB     = ( LGFED2BB .and. LEMIS )
-      L8DAYBB      = ( L8DAYBB  .and. LEMIS )
-      LSYNOPBB     = ( LSYNOPBB .and. LEMIS )
-      L3HRBB       = ( L3HRBB   .and. LEMIS )
-      
-      ! Set all GFED3 flags to F if emissions are turned off      
-      LGFED3BB     = ( LGFED3BB .and. LEMIS )
-      L8DAYBB3      = ( L8DAYBB3  .and. LEMIS )
-      LSYNOPBB3     = ( LSYNOPBB3 .and. LEMIS )
-      L3HRBB3       = ( L3HRBB3   .and. LEMIS )
-      
       ! Turn off full-chem only switches 
       IF ( .not. ITS_A_FULLCHEM_SIM() ) THEN
          LLIGHTNOX      = .FALSE.
          LAIRNOX        = .FALSE.
          LSOILNOX       = .FALSE.
-         LFERTILIZERNOX = .FALSE.  ! Add check for NOx fertilizer.
+         LFERTILIZERNOX = .FALSE.  
       ENDIF
       
       ! Set other EDGAR switches (for now set all together)
       IF ( LEDGAR ) THEN
-         LEDGARNOx  = .TRUE.
-         LEDGARCO   = .TRUE.
-         !LEDGARSHIP = .TRUE.  ! This is read in now (phs, 12/17/08)
-         LEDGARSOx  = .TRUE.
+         LEDGARNOx      = .TRUE.
+         LEDGARCO       = .TRUE.
+         LEDGARSOx      = .TRUE.
       ENDIF
 
       !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -1799,7 +1823,6 @@
          LSHIPSO2   = .FALSE. ! SO2-ICOADS precedes SO2-Corbett
       ENDIF      
 
-      
       !=================================================================
       ! Check EPA options
       !=================================================================
@@ -2660,6 +2683,7 @@
 !        LNLPBL turned to false if GEOS-5 is not used (lin, ccc 5/13/09)
 !  27 Aug 2010 - R. Yantosca - Now allow non-local PBL for MERRA met data
 !  27 Aug 2010 - R. Yantosca - Added ProTeX headers
+!  02 Feb 2012 - R. Yantosca - Added modifications for MERRA met data
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -2699,7 +2723,7 @@
       CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_convection_menu:5' )
 
       ! The non-local PBL scheme is valid only with GEOS-5 or MERRA!
-#if   !defined( GEOS_5 ) && !defined( MERRA )
+#if   !defined( GEOS_5 ) && !defined( MERRA ) && defined( GEOS_57 )
       IF ( LNLPBL ) THEN
          WRITE(*,*) '================================================='
          WRITE(*,*) 'The non-local PBL scheme is only valid for GEOS-5'

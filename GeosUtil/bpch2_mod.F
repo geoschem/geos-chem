@@ -673,10 +673,10 @@
       MODELNAME = 'MERRA'
 
 #elif defined( GEOS_57 ) && defined( GRIDREDUCED )
-      MODELNAME = 'GEOS5'
+      MODELNAME = 'GEOS57_47L'
 
 #elif defined( GEOS_57 )
-      MODELNAME = 'GEOS5'
+      MODELNAME = 'GEOS57'
 
 #endif
 
