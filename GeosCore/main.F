@@ -171,7 +171,8 @@
 
       ! For Reading GEOS-5.7.2 met fields
       USE GEOS57_READ_MOD,   ONLY : GEOS57_READ_CN
-
+      USE GEOS57_READ_MOD,   ONLY : GEOS57_READ_A1
+      
       USE CMN_SIZE_MOD            ! Size parameters
       USE COMODE_LOOP_MOD         ! SMVGEAR common blocks
       USE CMN_DIAG_MOD            ! Diagnostic switches, NJDAY
@@ -224,6 +225,7 @@
 !  05 Oct 2011 - R. Yantosca - Now get SUNCOS30 array from routine COSSZA
 !  07 Oct 2011 - R. Yantosca - Rename SUNCOS30 to SUNCOS_MID, which is the
 !                              cos(SZA) at the midpt of the chemistry timestep
+!  02 Feb 2012 - R. Yantosca - Added modifications for GEOS-5.7.x met fields
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -318,14 +320,28 @@
       TAUb  = GET_TAUb()
 
       !=================================================================
-      !    *****  R E A D   G E O S -- 5 . 7 . 2  F I E L D S  *****
+      !    *****  R E A D   G E O S -- 5 . 7 , x  F I E L D S  *****
       !    *****  At the start of the GEOS-Chem simulation     *****
       !
-      !    Handle GEOS-5.7.2 met fields separately from other met products
+      !    Handle GEOS-5.7.2 met fields separately from other met 
       !=================================================================
 #if   defined( GEOS_57 )
 
+      PRINT*, '### reading GEOS-5.7.x data'
+
+      ! Read time-invariant data
       CALL GEOS57_READ_CN()
+
+      ! Read 1-hr time-averaged data
+      DATE = GET_FIRST_A1_TIME()
+      CALL GEOS57_READ_A1( DATE(1), DATE(2) )
+      
+      ! Read 3-hr time averaged data
+      DATE = GET_FIRST_A3_TIME()
+
+
+      ! Close files
+      GOTO 9999
 
 #elif defined( MERRA )
 
@@ -1397,6 +1413,7 @@
 !  02 Dec 2003 - R. Yantosca - Initial version
 !  13 Aug 2010 - R. Yantosca - Added ProTeX headers
 !  13 Aug 2010 - R. Yantosca - Added extra output
+!  02 Feb 2012 - R. Yantosca - Added output for GEOS-5.7.x met fields
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -1470,6 +1487,8 @@
       WRITE( 6, '(a)' ) 'Using GMAO GEOS-4 met fields'
 #elif defined( GEOS_5 )
       WRITE( 6, '(a)' ) 'Using GMAO GEOS-5 met fields'
+#elif defined( GEOS_57 )
+      WRITE( 6, '(a)' ) 'Using GMAO GEOS-5.7.x met fields'
 #elif defined( MERRA )
       WRITE( 6, '(a)' ) 'Using GMAO MERRA met fields'
 #elif defined( GCAP  )

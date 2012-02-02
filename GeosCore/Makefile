@@ -622,7 +622,7 @@ gcap_read_mod.o             : gcap_read_mod.F         dao_mod.o              \
 geia_mod.o                  : geia_mod.F
 
 geos57_read_mod.o           : geos57_read_mod.F90                            \
-                              dao_mod.o 
+                              dao_mod.o
 
 GEN.o                       : GEN.F
 

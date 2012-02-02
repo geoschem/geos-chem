@@ -5,7 +5,7 @@
 !
 ! !MODULE: geos57_read_mod
 !
-! !DESCRIPTION: Module GEOS57_READ_MOD contains subroutines for reading the 
+! !DESCRIPTION: Module GEOS57\_READ\_MOD contains subroutines for reading the 
 !  GEOS-5.7.2 data from disk (in netCDF format).
 !\\
 !\\
@@ -17,36 +17,46 @@ MODULE GEOS57_READ_MOD
 !
 #if defined( USE_NETCDF )
   ! NcdfUtil modules for netCDF I/O
-  USE m_netcdf_io_open
-  USE m_netcdf_io_get_dimlen
-  USE m_netcdf_io_read
-  USE m_netcdf_io_readattr
-  USE m_netcdf_io_close
+  USE m_netcdf_io_open                    ! netCDF open
+  USE m_netcdf_io_get_dimlen              ! netCDF dimension queries
+  USE m_netcdf_io_read                    ! netCDF data reads
+  USE m_netcdf_io_readattr                ! netCDF attribute reads
+  USE m_netcdf_io_close                   ! netCDF close
 #endif
 
   ! GEOS-Chem modules
-  USE CMN_SIZE_MOD
-  USE DIRECTORY_MOD
-  USE TIME_MOD,      ONLY : EXPAND_DATE
-  USE TRANSFER_MOD
+  USE CMN_SIZE_MOD                        ! Size parameters
+  USE CMN_GCTM_MOD                        ! Physical constants
+  USE CMN_DIAG_MOD                        ! Diagnostic arrays & counters
+  USE DIAG_MOD,      ONLY : AD66          ! Array for ND66 diagnostic  
+  USE DIAG_MOD,      ONLY : AD67          ! Array for ND67 diagnostic
+  USE DIRECTORY_MOD                       ! Directory paths
+  USE ERROR_MOD,     ONLY : ERROR_STOP    ! Stop w/ error message
+  USE TIME_MOD,      ONLY : EXPAND_DATE   ! Routine for YMD token replace
+  USE TRANSFER_MOD                        ! Routines for casting 
 
   IMPLICIT NONE
   PRIVATE
 
 #if defined( USE_NETCDF )
-# include "netcdf.inc"
+# include "netcdf.inc"                    ! Include file for netCDF library
 #endif
+!
+! !PRIVATE MEMBER FUNCTIONS:
+!
+  PRIVATE :: CHECK_DIMENSIONS
 !
 ! !PUBLIC MEMBER FUNCTIONS:
 ! 
-  PUBLIC :: GEOS57_READ_CN
-!  PUBLIC :: GEOS57_READ_A1
-!  PUBLIC :: GEOS57_READ_A3CLD
-!  PUBLIC :: GEOS57_READ_A3DYN
-!  PUBLIC :: GEOS57_READ_A3MSTC
-!  PUBLIC :: GEOS57_READ_A3MSTE
-!  PUBLIC :: GEOS57_READ_I3
+  PUBLIC  :: GEOS57_READ_CN
+  PUBLIC  :: GEOS57_READ_A1
+!  PUBLIC  :: GEOS57_READ_A3CLD
+!  PUBLIC  :: GEOS57_READ_A3DYN
+!  PUBLIC  :: GEOS57_READ_A3MSTC
+!  PUBLIC  :: GEOS57_READ_A3MSTE
+!  PUBLIC  :: GEOS57_READ_I3
 !
+
 ! !REMARKS:
 !  Assumes that you have a netCDF library (either v3 or v4) installed on your 
 !  system. 
@@ -58,6 +68,93 @@ MODULE GEOS57_READ_MOD
 !------------------------------------------------------------------------------
 !BOC
 CONTAINS
+!EOC
+!------------------------------------------------------------------------------
+!          Harvard University Atmospheric Chemistry Modeling Group            !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: check_dimensions
+!
+! !DESCRIPTION: Subroutine CHECK\_DIMENSIONS checks to see if dimensions read 
+!  from the netCDF file match the defined GEOS-Chem dimensions.  If not, then 
+!  it will stop the GEOS-Chem simulation with an error message.
+!\\
+!\\
+! !INTERFACE:
+!
+  SUBROUTINE CHECK_DIMENSIONS( lon,          lat,  lev,           &
+                               lev_expected, time, time_expected )
+!
+! !INPUT PARAMETERS:
+!
+    INTEGER, OPTIONAL :: lon             ! Longitude dimension
+    INTEGER, OPTIONAL :: lat             ! Latitude dimension
+    INTEGER, OPTIONAL :: lev             ! Altitude dimension
+    INTEGER, OPTIONAL :: lev_expected    ! Expected # of levels
+    INTEGER, OPTIONAL :: time            ! Time dimension
+    INTEGER, OPTIONAL :: time_expected   ! Expected # of times
+!
+! !REMARKS:
+!  Call this routine with keyword arguments, i.e.
+!     CALL CHECK_DIMENSION( lon=X, lat=Y, lev=Z, time=T )
+!
+! !REVISION HISTORY:
+!  02 Feb 2012 - R. Yantosca - Initial version
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+!
+! !LOCAL VARIABLES:
+!
+    CHARACTER(LEN=255) :: errMsg, location
+
+    ! routine 
+    location = "CHECK_DIMENSION (geos57_read_mod.F90)"
+
+    ! Error check longitude dimension 
+    IF ( PRESENT( lon ) ) THEN
+       IF ( lon /= IIPAR ) THEN
+          WRITE( errMsg, 100 ) lon, IIPAR
+ 100      FORMAT( 'Longitude dimension (', i5, &
+                  ' ) does not match IIPAR ( ', i5, ')!' )
+          CALL ERROR_STOP( errMsg, location )
+       ENDIF
+    ENDIF
+
+
+    ! Error check longitude dimension 
+    IF ( PRESENT( lat ) ) THEN
+       IF ( lat /= JJPAR ) THEN
+          WRITE( errMsg, 110 ) lat, JJPAR
+ 110      FORMAT( 'Latitude dimension (', i5, &
+                  ' ) does not match JJPAR ( ', i5, ')!' )
+          CALL ERROR_STOP( errMsg, location )
+       ENDIF
+    ENDIF
+
+
+    ! Error check longitude dimension 
+    IF ( PRESENT( lev ) ) THEN
+       IF ( lev /= lev_expected ) THEN
+          WRITE( errMsg, 120 ) lev, lev_expected
+ 120      FORMAT( 'Levels dimension (', i5, &
+                  ' ) does not match expected # of levels ( ', i5, ')!' )
+          CALL ERROR_STOP( errMsg, location )
+       ENDIF
+    ENDIF
+
+    ! Error check time dimension 
+    IF ( PRESENT( time ) .and. PRESENT( time_expected ) ) THEN
+       IF ( time /= time_expected ) THEN
+          WRITE( errMsg, 130 ) time, time_expected
+ 130      FORMAT( 'Time dimension (', i5, &
+                  ' ) does not match expected # of times ( ', i5, ')!' )
+          CALL ERROR_STOP( errMsg, location )
+       ENDIF
+    ENDIF
+
+  END SUBROUTINE CHECK_DIMENSIONS
 !EOC
 !------------------------------------------------------------------------------
 !          Harvard University Atmospheric Chemistry Modeling Group            !
@@ -82,14 +179,14 @@ CONTAINS
     USE DAO_MOD, ONLY : FROCEAN
     USE DAO_MOD, ONLY : PHIS
 !
-! !INPUT PARAMETERS:
-!
-!    INTEGER, INTENT(IN) :: YYYYMMDD   ! GMT date in YYYY/MM/DD format 
-!    INTEGER, INTENT(IN) :: HHMMSS     ! GMT time in hh:mm:ss format
-!
 ! !REMARKS:
 !  This routine was automatically generated by the Perl script ncCodeRead, 
 !  and was subsequently hand-edited for compatibility with GEOS-Chem.
+!                                                                             .
+!  Even though the netCDF file is self-describing, the GEOS-5.7.2 data, 
+!  dimensions, and units are pre-specified according to the GMAO GEOS-5.7.2
+!  file specification.  Therefore we can "cheat" a little bit and not have
+!  to read netCDF attributes to find what these values are.
 !
 ! !REVISION HISTORY:
 !  30 Jan 2012 - R. Yantosca - Initial version
@@ -101,20 +198,21 @@ CONTAINS
 !
     ! Scalars
     INTEGER            :: fId                ! netCDF file ID
+    INTEGER            :: X, Y, T            ! netCDF file dimensions
     CHARACTER(LEN=255) :: nc_file            ! netCDF file name
-    CHARACTER(LEN=255) :: v_name             ! netCDF variable name 
+    CHARACTER(LEN=255) :: v_name             ! netCDF variable name
     CHARACTER(LEN=255) :: dir                ! Data directory path
-    
-    ! Arrays
-    INTEGER            :: st1d(1), ct1d(1)   ! Start + count, for 1D arrays    
+    CHARACTER(LEN=255) :: errMsg             ! Error message
+                                
+    ! Arrays                                 
     INTEGER            :: st3d(3), ct3d(3)   ! Start + count, for 3D arrays 
     REAL*4             :: TEMP(IIPAR,JJPAR)  ! Temporary data arrray
 
 #if defined( USE_NETCDF )
 
-    !=================================================================
+    !======================================================================
     ! Open the netCDF file
-    !=================================================================
+    !======================================================================
 
     ! Replace time & date tokens in the file name
     dir = TRIM( GEOS_57_DIR )
@@ -130,48 +228,58 @@ CONTAINS
     ! Open netCDF file
     CALL NcOp_Rd( fId, TRIM( nc_file ) )
 
-    !=================================================================
-    ! Read data from netCDF file
-    !=================================================================
+    ! Read the dimensions from the netCDF file
+    CALL NcGet_DimLen( fId, 'lon',   X )
+    CALL NcGet_DimLen( fId, 'lat',   Y )
+    CALL NcGet_DimLen( fId, 'time',  T )
 
-    ! Read FRLAKE from file
-    v_name = "FRLAKE"
+    ! Make sure the dimensions of the file are valid
+    CALL Check_Dimensions( lon=X, lat=Y, time=T, time_expected=1 )
+
+    !======================================================================
+    ! Read data from netCDF file
+    !======================================================================
+
+    ! Start and count indices
     st3d   = (/ 1,     1,     1 /)
     ct3d   = (/ IIPAR, JJPAR, 1 /)
-    CALL NcRd( TEMP, fId, TRIM( v_name ), st3d, ct3d )
+
+    ! Read FRLAKE
+    v_name = "FRLAKE"
+    CALL NcRd( TEMP, fId, TRIM(v_name), st3d, ct3d )
     CALL TRANSFER_2D( TEMP, FRLAKE )
 
-    ! Read FRLAND from file
+    ! Read FRLAND
     v_name = "FRLAND"
-    st3d   = (/ 1,     1,     1 /)
-    ct3d   = (/ IIPAR, JJPAR, 1 /)
     CALL NcRd( TEMP, fId, TRIM(v_name), st3d, ct3d )
     CALL TRANSFER_2D( TEMP, FRLAND )
 
-    ! Read FRLANDIC from file
+    ! Read FRLANDIC
     v_name = "FRLANDIC"
-    st3d   = (/ 1,     1,     1 /)
-    ct3d   = (/ IIPAR, JJPAR, 1 /)
     CALL NcRd( TEMP, fId, TRIM(v_name), st3d, ct3d )
     CALL TRANSFER_2D( TEMP, FRLANDIC )
     
-    ! Variable name
+    ! Read FROCEAN
     v_name = "FROCEAN"
-    st3d   = (/ 1,     1,     1 /)
-    ct3d   = (/ IIPAR, JJPAR, 1 /)
     CALL NcRd( TEMP, fId, TRIM(v_name), st3d, ct3d )
     CALL TRANSFER_2D( TEMP, FROCEAN )
     
-    ! Variable name
+    ! Read PHIS
     v_name = "PHIS"
-    st3d   = (/ 1,     1,     1 /)
-    ct3d   = (/ IIPAR, JJPAR, 1 /)
     CALL NcRd( TEMP, fId, TRIM(v_name), st3d, ct3d )
     CALL TRANSFER_2D( TEMP, PHIS )
 
-    !=================================================================
+    !======================================================================
     ! Cleanup and quit
-    !=================================================================
+    !======================================================================
+
+    ! Convert PHIS from [m2/s2] to [m]
+    PHIS = PHIS / g0
+
+    ! ND67 diagnostic 
+    IF ( ND67 > 0 ) THEN
+       AD67(:,:,15) = AD67(:,:,15) + PHIS  ! Sfc geopotential [m]
+    ENDIF
 
     ! Close netCDF file
     CALL NcCl( fId )
@@ -179,1260 +287,442 @@ CONTAINS
 #endif
 
   END SUBROUTINE GEOS57_READ_CN
-!!EOC
-!!------------------------------------------------------------------------------
-!!          Harvard University Atmospheric Chemistry Modeling Group            !
-!!------------------------------------------------------------------------------
-!!BOP
-!!
-!! !IROUTINE: read_a1_file
-!!
-!! !DESCRIPTION: Routine to read variables and attributes from a GEOS-5.7.2
-!!  met fields file containing 1-hr time-averaged (A1) data.  
-!!\\
-!!\\
-!! !INTERFACE:
-!!
-!  SUBROUTINE READ_A1_FILE( YYYYMMDD, HHMMSS )
-!!
-!! !USES:
-!!
-!    USE DAO_MOD, ONLY : ALBEDO
-!    USE DAO_MOD, ONLY : CLDTOT
-!    USE DAO_MOD, ONLY : EFLUX
-!    USE DAO_MOD, ONLY : EVAP
-!    USE DAO_MOD, ONLY : FRSEAICE
-!    USE DAO_MOD, ONLY : FRSNO
-!    USE DAO_MOD, ONLY : GRN
-!    USE DAO_MOD, ONLY : GWETROOT
-!    USE DAO_MOD, ONLY : GWETTOP
-!    USE DAO_MOD, ONLY : HFLUX
-!    USE DAO_MOD, ONLY : LAI
-!    USE DAO_MOD, ONLY : LWI
-!    USE DAO_MOD, ONLY : LWGNT
-!    USE DAO_MOD, ONLY : LWTUP
-!    USE DAO_MOD, ONLY : PARDF
-!    USE DAO_MOD, ONLY : PARDR
-!    USE DAO_MOD, ONLY : PBLH
-!    USE DAO_MOD, ONLY : PRECANV
-!    USE DAO_MOD, ONLY : PRECCON
-!    USE DAO_MOD, ONLY : PRECLSC
-!    USE DAO_MOD, ONLY : PRECSNO
-!    USE DAO_MOD, ONLY : PRECTOT
-!    USE DAO_MOD, ONLY : QV2M
-!    USE DAO_MOD, ONLY : SEAICE00
-!    USE DAO_MOD, ONLY : SEAICE10
-!    USE DAO_MOD, ONLY : SEAICE20
-!    USE DAO_MOD, ONLY : SEAICE30
-!    USE DAO_MOD, ONLY : SEAICE40
-!    USE DAO_MOD, ONLY : SEAICE50
-!    USE DAO_MOD, ONLY : SEAICE60
-!    USE DAO_MOD, ONLY : SEAICE70
-!    USE DAO_MOD, ONLY : SEAICE80
-!    USE DAO_MOD, ONLY : SEAICE90
-!    USE DAO_MOD, ONLY : SLP
-!    USE DAO_MOD, ONLY : SNODP
-!    USE DAO_MOD, ONLY : SNOMAS
-!    USE DAO_MOD, ONLY : SWGDN
-!    USE DAO_MOD, ONLY : TROPPT
-!    USE DAO_MOD, ONLY : TS
-!    USE DAO_MOD, ONLY : T2M
-!    USE DAO_MOD, ONLY : U10M
-!    USE DAO_MOD, ONLY : USTAR
-!    USE DAO_MOD, ONLY : V10M
-!    USE DAO_MOD, ONLY : Z0M
-!!
-!! !OUTPUT PARAMETERS:
-!!   
-!      INTEGER, INTENT(INOUT) :: fId    ! netCDF file ID
-!!
-!! !REMARKS:
-!!  Assumes that you have:
-!!  (1) A netCDF library (either v3 or v4) installed on your system
-!!  (2) The NcdfUtilities package (from Bob Yantosca) source code
-!!                                                                             .
-!!  Although this routine was generated automatically, some further
-!!  hand-editing may be required (i.e. to  specify the size of parameters, 
-!!  and/or to assign values to variables.  Also, you can decide how to handle
-!!  the variable attributes (or delete calls for reading attributes that you
-!!  do not need).
-!!
-!! !REVISION HISTORY:
-!!  30 Jan 2012 - R. Yantosca - Initial version
-!!EOP
-!!------------------------------------------------------------------------------
-!!BOC
-!!
-!! !LOCAL VARIABLES:
-!!
-!    ! Scalars
-!    INTEGER            :: fId                ! netCDF file ID
-!    CHARACTER(LEN=255) :: nc_file            ! netCDF file name
-!    CHARACTER(LEN=255) :: v_name             ! netCDF variable name 
-!    
-!    ! Arrays
-!    INTEGER            :: st1d(1), ct1d(1)   ! Start + count, for 1D arrays    
-!    INTEGER            :: st3d(3), ct3d(3)   ! Start + count, for 3D arrays 
-!
-!    !=================================================================
-!    ! Open the netCDF file
-!    !=================================================================
-!
-!    ! Replace time & date tokens in the file name
-!    nc_file = 'GEOS572.YYYYMMDD.A1.4x5.nc'
-!    CALL EXPAND_DATE( nc_file, 20110101, 000000 )
-!
-!    ! Prefix data directory to file name
-!    nc_file = TRIM( DATA_DIR ) // TRIM( nc_file )
-!    
-!    ! Open netCDF file
-!    CALL NcOp_Rd( fId, TRIM( nc_file ) )
-!
-!      !=================================================================
-!      ! Open and read data from the netCDF file
-!      !=================================================================
-!
-!      ! Open netCDF file
-!      nc_file = 'GEOS572.YYYYMMDD.A1.4x5.nc'
-!      CALL Ncop_Rd( fId, TRIM(nc_file) )
-!
-!      !----------------------------------------
-!      ! VARIABLE: lon
-!      !----------------------------------------
-!
-!      ! Variable name
-!      v_name = "lon"
-!
-!      ! Read lon from file
-!      st1d   = (/ 1 /)
-!      ct1d   = (/ IIPAR /)
-!      CALL NcRd( lon, fId, TRIM(v_name), st1d, ct1d )
-!
-!      ! Read the lon:long_name attribute
-!      a_name = "long_name"
-!      CALL NcGet_Var_Attributes( fId,TRIM(v_name),TRIM(a_name),a_val )
-!
-!      ! Read the lon:units attribute
-!      a_name = "units"
-!      CALL NcGet_Var_Attributes( fId,TRIM(v_name),TRIM(a_name),a_val )
-!
-!      !----------------------------------------
-!      ! VARIABLE: lat
-!      !----------------------------------------
-!
-!      ! Variable name
-!      v_name = "lat"
-!
-!      ! Read lat from file
-!      st1d   = (/ 1 /)
-!      ct1d   = (/ JJPAR /)
-!      CALL NcRd( lat, fId, TRIM(v_name), st1d, ct1d )
-!
-!      ! Read the lat:long_name attribute
-!      a_name = "long_name"
-!      CALL NcGet_Var_Attributes( fId,TRIM(v_name),TRIM(a_name),a_val )
-!
-!      ! Read the lat:units attribute
-!      a_name = "units"
-!      CALL NcGet_Var_Attributes( fId,TRIM(v_name),TRIM(a_name),a_val )
-!
-!      !----------------------------------------
-!      ! VARIABLE: time
-!      !----------------------------------------
-!
-!      ! Variable name
-!      v_name = "time"
-!
-!      ! Read time from file
-!      st1d   = (/ 1 /)
-!      ct1d   = (/ 1 /)
-!      CALL NcRd( time, fId, TRIM(v_name), st1d, ct1d )
-!
-!      ! Read the time:long_name attribute
-!      a_name = "long_name"
-!      CALL NcGet_Var_Attributes( fId,TRIM(v_name),TRIM(a_name),a_val )
-!
-!      ! Read the time:units attribute
-!      a_name = "units"
-!      CALL NcGet_Var_Attributes( fId,TRIM(v_name),TRIM(a_name),a_val )
-!
-!      ! Read the time:delta_t attribute
-!      a_name = "delta_t"
-!      CALL NcGet_Var_Attributes( fId,TRIM(v_name),TRIM(a_name),a_val )
-!
-!      ! Read the time:begin_date attribute
-!      a_name = "begin_date"
-!      CALL NcGet_Var_Attributes( fId,TRIM(v_name),TRIM(a_name),a_val )
-!
-!      ! Read the time:begin_time attribute
-!      a_name = "begin_time"
-!      CALL NcGet_Var_Attributes( fId,TRIM(v_name),TRIM(a_name),a_val )
-!
-!      ! Read the time:time_increment attribute
-!      a_name = "time_increment"
-!      CALL NcGet_Var_Attributes( fId,TRIM(v_name),TRIM(a_name),a_val )
-!
-!      !----------------------------------------
-!      ! VARIABLE: ALBEDO
-!      !----------------------------------------
-!
-!      ! Variable name
-!      v_name = "ALBEDO"
-!
-!      ! Read ALBEDO from file
-!      st3d   = (/ 1, 1, 1 /)
-!      ct3d   = (/ IIPAR, JJPAR, 1 /)
-!      CALL NcRd( ALBEDO, fId, TRIM(v_name), st3d, ct3d )
-!
-!      ! Read the ALBEDO:long_name attribute
-!      a_name = "long_name"
-!      CALL NcGet_Var_Attributes( fId,TRIM(v_name),TRIM(a_name),a_val )
-!
-!      ! Read the ALBEDO:units attribute
-!      a_name = "units"
-!      CALL NcGet_Var_Attributes( fId,TRIM(v_name),TRIM(a_name),a_val )
-!
-!      ! Read the ALBEDO:gamap_category attribute
-!      a_name = "gamap_category"
-!      CALL NcGet_Var_Attributes( fId,TRIM(v_name),TRIM(a_name),a_val )
-!
-!      !----------------------------------------
-!      ! VARIABLE: CLDTOT
-!      !----------------------------------------
-!
-!      ! Variable name
-!      v_name = "CLDTOT"
-!
-!      ! Read CLDTOT from file
-!      st3d   = (/ 1, 1, 1 /)
-!      ct3d   = (/ IIPAR, JJPAR, 1 /)
-!      CALL NcRd( CLDTOT, fId, TRIM(v_name), st3d, ct3d )
-!
-!      ! Read the CLDTOT:long_name attribute
-!      a_name = "long_name"
-!      CALL NcGet_Var_Attributes( fId,TRIM(v_name),TRIM(a_name),a_val )
-!
-!      ! Read the CLDTOT:units attribute
-!      a_name = "units"
-!      CALL NcGet_Var_Attributes( fId,TRIM(v_name),TRIM(a_name),a_val )
-!
-!      ! Read the CLDTOT:gamap_category attribute
-!      a_name = "gamap_category"
-!      CALL NcGet_Var_Attributes( fId,TRIM(v_name),TRIM(a_name),a_val )
-!
-!      !----------------------------------------
-!      ! VARIABLE: EFLUX
-!      !----------------------------------------
-!
-!      ! Variable name
-!      v_name = "EFLUX"
-!
-!      ! Read EFLUX from file
-!      st3d   = (/ 1, 1, 1 /)
-!      ct3d   = (/ IIPAR, JJPAR, 1 /)
-!      CALL NcRd( EFLUX, fId, TRIM(v_name), st3d, ct3d )
-!
-!      ! Read the EFLUX:long_name attribute
-!      a_name = "long_name"
-!      CALL NcGet_Var_Attributes( fId,TRIM(v_name),TRIM(a_name),a_val )
-!
-!      ! Read the EFLUX:units attribute
-!      a_name = "units"
-!      CALL NcGet_Var_Attributes( fId,TRIM(v_name),TRIM(a_name),a_val )
-!
-!      ! Read the EFLUX:gamap_category attribute
-!      a_name = "gamap_category"
-!      CALL NcGet_Var_Attributes( fId,TRIM(v_name),TRIM(a_name),a_val )
-!
-!      !----------------------------------------
-!      ! VARIABLE: EVAP
-!      !----------------------------------------
-!
-!      ! Variable name
-!      v_name = "EVAP"
-!
-!      ! Read EVAP from file
-!      st3d   = (/ 1, 1, 1 /)
-!      ct3d   = (/ IIPAR, JJPAR, 1 /)
-!      CALL NcRd( EVAP, fId, TRIM(v_name), st3d, ct3d )
-!
-!      ! Read the EVAP:long_name attribute
-!      a_name = "long_name"
-!      CALL NcGet_Var_Attributes( fId,TRIM(v_name),TRIM(a_name),a_val )
-!
-!      ! Read the EVAP:units attribute
-!      a_name = "units"
-!      CALL NcGet_Var_Attributes( fId,TRIM(v_name),TRIM(a_name),a_val )
-!
-!      ! Read the EVAP:gamap_category attribute
-!      a_name = "gamap_category"
-!      CALL NcGet_Var_Attributes( fId,TRIM(v_name),TRIM(a_name),a_val )
-!
-!      !----------------------------------------
-!      ! VARIABLE: FRSEAICE
-!      !----------------------------------------
-!
-!      ! Variable name
-!      v_name = "FRSEAICE"
-!
-!      ! Read FRSEAICE from file
-!      st3d   = (/ 1, 1, 1 /)
-!      ct3d   = (/ IIPAR, JJPAR, 1 /)
-!      CALL NcRd( FRSEAICE, fId, TRIM(v_name), st3d, ct3d )
-!
-!      ! Read the FRSEAICE:long_name attribute
-!      a_name = "long_name"
-!      CALL NcGet_Var_Attributes( fId,TRIM(v_name),TRIM(a_name),a_val )
-!
-!      ! Read the FRSEAICE:units attribute
-!      a_name = "units"
-!      CALL NcGet_Var_Attributes( fId,TRIM(v_name),TRIM(a_name),a_val )
-!
-!      ! Read the FRSEAICE:gamap_category attribute
-!      a_name = "gamap_category"
-!      CALL NcGet_Var_Attributes( fId,TRIM(v_name),TRIM(a_name),a_val )
-!
-!      !----------------------------------------
-!      ! VARIABLE: FRSNO
-!      !----------------------------------------
-!
-!      ! Variable name
-!      v_name = "FRSNO"
-!
-!      ! Read FRSNO from file
-!      st3d   = (/ 1, 1, 1 /)
-!      ct3d   = (/ IIPAR, JJPAR, 1 /)
-!      CALL NcRd( FRSNO, fId, TRIM(v_name), st3d, ct3d )
-!
-!      ! Read the FRSNO:long_name attribute
-!      a_name = "long_name"
-!      CALL NcGet_Var_Attributes( fId,TRIM(v_name),TRIM(a_name),a_val )
-!
-!      ! Read the FRSNO:units attribute
-!      a_name = "units"
-!      CALL NcGet_Var_Attributes( fId,TRIM(v_name),TRIM(a_name),a_val )
-!
-!      ! Read the FRSNO:gamap_category attribute
-!      a_name = "gamap_category"
-!      CALL NcGet_Var_Attributes( fId,TRIM(v_name),TRIM(a_name),a_val )
-!
-!      !----------------------------------------
-!      ! VARIABLE: GRN
-!      !----------------------------------------
-!
-!      ! Variable name
-!      v_name = "GRN"
-!
-!      ! Read GRN from file
-!      st3d   = (/ 1, 1, 1 /)
-!      ct3d   = (/ IIPAR, JJPAR, 1 /)
-!      CALL NcRd( GRN, fId, TRIM(v_name), st3d, ct3d )
-!
-!      ! Read the GRN:long_name attribute
-!      a_name = "long_name"
-!      CALL NcGet_Var_Attributes( fId,TRIM(v_name),TRIM(a_name),a_val )
-!
-!      ! Read the GRN:units attribute
-!      a_name = "units"
-!      CALL NcGet_Var_Attributes( fId,TRIM(v_name),TRIM(a_name),a_val )
-!
-!      ! Read the GRN:gamap_category attribute
-!      a_name = "gamap_category"
-!      CALL NcGet_Var_Attributes( fId,TRIM(v_name),TRIM(a_name),a_val )
-!
-!      !----------------------------------------
-!      ! VARIABLE: GWETROOT
-!      !----------------------------------------
-!
-!      ! Variable name
-!      v_name = "GWETROOT"
-!
-!      ! Read GWETROOT from file
-!      st3d   = (/ 1, 1, 1 /)
-!      ct3d   = (/ IIPAR, JJPAR, 1 /)
-!      CALL NcRd( GWETROOT, fId, TRIM(v_name), st3d, ct3d )
-!
-!      ! Read the GWETROOT:long_name attribute
-!      a_name = "long_name"
-!      CALL NcGet_Var_Attributes( fId,TRIM(v_name),TRIM(a_name),a_val )
-!
-!      ! Read the GWETROOT:units attribute
-!      a_name = "units"
-!      CALL NcGet_Var_Attributes( fId,TRIM(v_name),TRIM(a_name),a_val )
-!
-!      ! Read the GWETROOT:gamap_category attribute
-!      a_name = "gamap_category"
-!      CALL NcGet_Var_Attributes( fId,TRIM(v_name),TRIM(a_name),a_val )
-!
-!      !----------------------------------------
-!      ! VARIABLE: GWETTOP
-!      !----------------------------------------
-!
-!      ! Variable name
-!      v_name = "GWETTOP"
-!
-!      ! Read GWETTOP from file
-!      st3d   = (/ 1, 1, 1 /)
-!      ct3d   = (/ IIPAR, JJPAR, 1 /)
-!      CALL NcRd( GWETTOP, fId, TRIM(v_name), st3d, ct3d )
-!
-!      ! Read the GWETTOP:long_name attribute
-!      a_name = "long_name"
-!      CALL NcGet_Var_Attributes( fId,TRIM(v_name),TRIM(a_name),a_val )
-!
-!      ! Read the GWETTOP:units attribute
-!      a_name = "units"
-!      CALL NcGet_Var_Attributes( fId,TRIM(v_name),TRIM(a_name),a_val )
-!
-!      ! Read the GWETTOP:gamap_category attribute
-!      a_name = "gamap_category"
-!      CALL NcGet_Var_Attributes( fId,TRIM(v_name),TRIM(a_name),a_val )
-!
-!      !----------------------------------------
-!      ! VARIABLE: HFLUX
-!      !----------------------------------------
-!
-!      ! Variable name
-!      v_name = "HFLUX"
-!
-!      ! Read HFLUX from file
-!      st3d   = (/ 1, 1, 1 /)
-!      ct3d   = (/ IIPAR, JJPAR, 1 /)
-!      CALL NcRd( HFLUX, fId, TRIM(v_name), st3d, ct3d )
-!
-!      ! Read the HFLUX:long_name attribute
-!      a_name = "long_name"
-!      CALL NcGet_Var_Attributes( fId,TRIM(v_name),TRIM(a_name),a_val )
-!
-!      ! Read the HFLUX:units attribute
-!      a_name = "units"
-!      CALL NcGet_Var_Attributes( fId,TRIM(v_name),TRIM(a_name),a_val )
-!
-!      ! Read the HFLUX:gamap_category attribute
-!      a_name = "gamap_category"
-!      CALL NcGet_Var_Attributes( fId,TRIM(v_name),TRIM(a_name),a_val )
-!
-!      !----------------------------------------
-!      ! VARIABLE: LAI
-!      !----------------------------------------
-!
-!      ! Variable name
-!      v_name = "LAI"
-!
-!      ! Read LAI from file
-!      st3d   = (/ 1, 1, 1 /)
-!      ct3d   = (/ IIPAR, JJPAR, 1 /)
-!      CALL NcRd( LAI, fId, TRIM(v_name), st3d, ct3d )
-!
-!      ! Read the LAI:long_name attribute
-!      a_name = "long_name"
-!      CALL NcGet_Var_Attributes( fId,TRIM(v_name),TRIM(a_name),a_val )
-!
-!      ! Read the LAI:units attribute
-!      a_name = "units"
-!      CALL NcGet_Var_Attributes( fId,TRIM(v_name),TRIM(a_name),a_val )
-!
-!      ! Read the LAI:gamap_category attribute
-!      a_name = "gamap_category"
-!      CALL NcGet_Var_Attributes( fId,TRIM(v_name),TRIM(a_name),a_val )
-!
-!      !----------------------------------------
-!      ! VARIABLE: LWI
-!      !----------------------------------------
-!
-!      ! Variable name
-!      v_name = "LWI"
-!
-!      ! Read LWI from file
-!      st3d   = (/ 1, 1, 1 /)
-!      ct3d   = (/ IIPAR, JJPAR, 1 /)
-!      CALL NcRd( LWI, fId, TRIM(v_name), st3d, ct3d )
-!
-!      ! Read the LWI:long_name attribute
-!      a_name = "long_name"
-!      CALL NcGet_Var_Attributes( fId,TRIM(v_name),TRIM(a_name),a_val )
-!
-!      ! Read the LWI:units attribute
-!      a_name = "units"
-!      CALL NcGet_Var_Attributes( fId,TRIM(v_name),TRIM(a_name),a_val )
-!
-!      ! Read the LWI:gamap_category attribute
-!      a_name = "gamap_category"
-!      CALL NcGet_Var_Attributes( fId,TRIM(v_name),TRIM(a_name),a_val )
-!
-!      !----------------------------------------
-!      ! VARIABLE: LWGNT
-!      !----------------------------------------
-!
-!      ! Variable name
-!      v_name = "LWGNT"
-!
-!      ! Read LWGNT from file
-!      st3d   = (/ 1, 1, 1 /)
-!      ct3d   = (/ IIPAR, JJPAR, 1 /)
-!      CALL NcRd( LWGNT, fId, TRIM(v_name), st3d, ct3d )
-!
-!      ! Read the LWGNT:long_name attribute
-!      a_name = "long_name"
-!      CALL NcGet_Var_Attributes( fId,TRIM(v_name),TRIM(a_name),a_val )
-!
-!      ! Read the LWGNT:units attribute
-!      a_name = "units"
-!      CALL NcGet_Var_Attributes( fId,TRIM(v_name),TRIM(a_name),a_val )
-!
-!      ! Read the LWGNT:gamap_category attribute
-!      a_name = "gamap_category"
-!      CALL NcGet_Var_Attributes( fId,TRIM(v_name),TRIM(a_name),a_val )
-!
-!      !----------------------------------------
-!      ! VARIABLE: LWTUP
-!      !----------------------------------------
-!
-!      ! Variable name
-!      v_name = "LWTUP"
-!
-!      ! Read LWTUP from file
-!      st3d   = (/ 1, 1, 1 /)
-!      ct3d   = (/ IIPAR, JJPAR, 1 /)
-!      CALL NcRd( LWTUP, fId, TRIM(v_name), st3d, ct3d )
-!
-!      ! Read the LWTUP:long_name attribute
-!      a_name = "long_name"
-!      CALL NcGet_Var_Attributes( fId,TRIM(v_name),TRIM(a_name),a_val )
-!
-!      ! Read the LWTUP:units attribute
-!      a_name = "units"
-!      CALL NcGet_Var_Attributes( fId,TRIM(v_name),TRIM(a_name),a_val )
-!
-!      ! Read the LWTUP:gamap_category attribute
-!      a_name = "gamap_category"
-!      CALL NcGet_Var_Attributes( fId,TRIM(v_name),TRIM(a_name),a_val )
-!
-!      !----------------------------------------
-!      ! VARIABLE: PARDF
-!      !----------------------------------------
-!
-!      ! Variable name
-!      v_name = "PARDF"
-!
-!      ! Read PARDF from file
-!      st3d   = (/ 1, 1, 1 /)
-!      ct3d   = (/ IIPAR, JJPAR, 1 /)
-!      CALL NcRd( PARDF, fId, TRIM(v_name), st3d, ct3d )
-!
-!      ! Read the PARDF:long_name attribute
-!      a_name = "long_name"
-!      CALL NcGet_Var_Attributes( fId,TRIM(v_name),TRIM(a_name),a_val )
-!
-!      ! Read the PARDF:units attribute
-!      a_name = "units"
-!      CALL NcGet_Var_Attributes( fId,TRIM(v_name),TRIM(a_name),a_val )
-!
-!      ! Read the PARDF:gamap_category attribute
-!      a_name = "gamap_category"
-!      CALL NcGet_Var_Attributes( fId,TRIM(v_name),TRIM(a_name),a_val )
-!
-!      !----------------------------------------
-!      ! VARIABLE: PARDR
-!      !----------------------------------------
-!
-!      ! Variable name
-!      v_name = "PARDR"
-!
-!      ! Read PARDR from file
-!      st3d   = (/ 1, 1, 1 /)
-!      ct3d   = (/ IIPAR, JJPAR, 1 /)
-!      CALL NcRd( PARDR, fId, TRIM(v_name), st3d, ct3d )
-!
-!      ! Read the PARDR:long_name attribute
-!      a_name = "long_name"
-!      CALL NcGet_Var_Attributes( fId,TRIM(v_name),TRIM(a_name),a_val )
-!
-!      ! Read the PARDR:units attribute
-!      a_name = "units"
-!      CALL NcGet_Var_Attributes( fId,TRIM(v_name),TRIM(a_name),a_val )
-!
-!      ! Read the PARDR:gamap_category attribute
-!      a_name = "gamap_category"
-!      CALL NcGet_Var_Attributes( fId,TRIM(v_name),TRIM(a_name),a_val )
-!
-!      !----------------------------------------
-!      ! VARIABLE: PBLH
-!      !----------------------------------------
-!
-!      ! Variable name
-!      v_name = "PBLH"
-!
-!      ! Read PBLH from file
-!      st3d   = (/ 1, 1, 1 /)
-!      ct3d   = (/ IIPAR, JJPAR, 1 /)
-!      CALL NcRd( PBLH, fId, TRIM(v_name), st3d, ct3d )
-!
-!      ! Read the PBLH:long_name attribute
-!      a_name = "long_name"
-!      CALL NcGet_Var_Attributes( fId,TRIM(v_name),TRIM(a_name),a_val )
-!
-!      ! Read the PBLH:units attribute
-!      a_name = "units"
-!      CALL NcGet_Var_Attributes( fId,TRIM(v_name),TRIM(a_name),a_val )
-!
-!      ! Read the PBLH:gamap_category attribute
-!      a_name = "gamap_category"
-!      CALL NcGet_Var_Attributes( fId,TRIM(v_name),TRIM(a_name),a_val )
-!
-!      !----------------------------------------
-!      ! VARIABLE: PRECANV
-!      !----------------------------------------
-!
-!      ! Variable name
-!      v_name = "PRECANV"
-!
-!      ! Read PRECANV from file
-!      st3d   = (/ 1, 1, 1 /)
-!      ct3d   = (/ IIPAR, JJPAR, 1 /)
-!      CALL NcRd( PRECANV, fId, TRIM(v_name), st3d, ct3d )
-!
-!      ! Read the PRECANV:long_name attribute
-!      a_name = "long_name"
-!      CALL NcGet_Var_Attributes( fId,TRIM(v_name),TRIM(a_name),a_val )
-!
-!      ! Read the PRECANV:units attribute
-!      a_name = "units"
-!      CALL NcGet_Var_Attributes( fId,TRIM(v_name),TRIM(a_name),a_val )
-!
-!      ! Read the PRECANV:gamap_category attribute
-!      a_name = "gamap_category"
-!      CALL NcGet_Var_Attributes( fId,TRIM(v_name),TRIM(a_name),a_val )
-!
-!      !----------------------------------------
-!      ! VARIABLE: PRECCON
-!      !----------------------------------------
-!
-!      ! Variable name
-!      v_name = "PRECCON"
-!
-!      ! Read PRECCON from file
-!      st3d   = (/ 1, 1, 1 /)
-!      ct3d   = (/ IIPAR, JJPAR, 1 /)
-!      CALL NcRd( PRECCON, fId, TRIM(v_name), st3d, ct3d )
-!
-!      ! Read the PRECCON:long_name attribute
-!      a_name = "long_name"
-!      CALL NcGet_Var_Attributes( fId,TRIM(v_name),TRIM(a_name),a_val )
-!
-!      ! Read the PRECCON:units attribute
-!      a_name = "units"
-!      CALL NcGet_Var_Attributes( fId,TRIM(v_name),TRIM(a_name),a_val )
-!
-!      ! Read the PRECCON:gamap_category attribute
-!      a_name = "gamap_category"
-!      CALL NcGet_Var_Attributes( fId,TRIM(v_name),TRIM(a_name),a_val )
-!
-!      !----------------------------------------
-!      ! VARIABLE: PRECLSC
-!      !----------------------------------------
-!
-!      ! Variable name
-!      v_name = "PRECLSC"
-!
-!      ! Read PRECLSC from file
-!      st3d   = (/ 1, 1, 1 /)
-!      ct3d   = (/ IIPAR, JJPAR, 1 /)
-!      CALL NcRd( PRECLSC, fId, TRIM(v_name), st3d, ct3d )
-!
-!      ! Read the PRECLSC:long_name attribute
-!      a_name = "long_name"
-!      CALL NcGet_Var_Attributes( fId,TRIM(v_name),TRIM(a_name),a_val )
-!
-!      ! Read the PRECLSC:units attribute
-!      a_name = "units"
-!      CALL NcGet_Var_Attributes( fId,TRIM(v_name),TRIM(a_name),a_val )
-!
-!      ! Read the PRECLSC:gamap_category attribute
-!      a_name = "gamap_category"
-!      CALL NcGet_Var_Attributes( fId,TRIM(v_name),TRIM(a_name),a_val )
-!
-!      !----------------------------------------
-!      ! VARIABLE: PRECSNO
-!      !----------------------------------------
-!
-!      ! Variable name
-!      v_name = "PRECSNO"
-!
-!      ! Read PRECSNO from file
-!      st3d   = (/ 1, 1, 1 /)
-!      ct3d   = (/ IIPAR, JJPAR, 1 /)
-!      CALL NcRd( PRECSNO, fId, TRIM(v_name), st3d, ct3d )
-!
-!      ! Read the PRECSNO:long_name attribute
-!      a_name = "long_name"
-!      CALL NcGet_Var_Attributes( fId,TRIM(v_name),TRIM(a_name),a_val )
-!
-!      ! Read the PRECSNO:units attribute
-!      a_name = "units"
-!      CALL NcGet_Var_Attributes( fId,TRIM(v_name),TRIM(a_name),a_val )
-!
-!      ! Read the PRECSNO:gamap_category attribute
-!      a_name = "gamap_category"
-!      CALL NcGet_Var_Attributes( fId,TRIM(v_name),TRIM(a_name),a_val )
-!
-!      !----------------------------------------
-!      ! VARIABLE: PRECTOT
-!      !----------------------------------------
-!
-!      ! Variable name
-!      v_name = "PRECTOT"
-!
-!      ! Read PRECTOT from file
-!      st3d   = (/ 1, 1, 1 /)
-!      ct3d   = (/ IIPAR, JJPAR, 1 /)
-!      CALL NcRd( PRECTOT, fId, TRIM(v_name), st3d, ct3d )
-!
-!      ! Read the PRECTOT:long_name attribute
-!      a_name = "long_name"
-!      CALL NcGet_Var_Attributes( fId,TRIM(v_name),TRIM(a_name),a_val )
-!
-!      ! Read the PRECTOT:units attribute
-!      a_name = "units"
-!      CALL NcGet_Var_Attributes( fId,TRIM(v_name),TRIM(a_name),a_val )
-!
-!      ! Read the PRECTOT:gamap_category attribute
-!      a_name = "gamap_category"
-!      CALL NcGet_Var_Attributes( fId,TRIM(v_name),TRIM(a_name),a_val )
-!
-!      !----------------------------------------
-!      ! VARIABLE: QV2M
-!      !----------------------------------------
-!
-!      ! Variable name
-!      v_name = "QV2M"
-!
-!      ! Read QV2M from file
-!      st3d   = (/ 1, 1, 1 /)
-!      ct3d   = (/ IIPAR, JJPAR, 1 /)
-!      CALL NcRd( QV2M, fId, TRIM(v_name), st3d, ct3d )
-!
-!      ! Read the QV2M:long_name attribute
-!      a_name = "long_name"
-!      CALL NcGet_Var_Attributes( fId,TRIM(v_name),TRIM(a_name),a_val )
-!
-!      ! Read the QV2M:units attribute
-!      a_name = "units"
-!      CALL NcGet_Var_Attributes( fId,TRIM(v_name),TRIM(a_name),a_val )
-!
-!      ! Read the QV2M:gamap_category attribute
-!      a_name = "gamap_category"
-!      CALL NcGet_Var_Attributes( fId,TRIM(v_name),TRIM(a_name),a_val )
-!
-!      !----------------------------------------
-!      ! VARIABLE: SEAICE00
-!      !----------------------------------------
-!
-!      ! Variable name
-!      v_name = "SEAICE00"
-!
-!      ! Read SEAICE00 from file
-!      st3d   = (/ 1, 1, 1 /)
-!      ct3d   = (/ IIPAR, JJPAR, 1 /)
-!      CALL NcRd( SEAICE00, fId, TRIM(v_name), st3d, ct3d )
-!
-!      ! Read the SEAICE00:long_name attribute
-!      a_name = "long_name"
-!      CALL NcGet_Var_Attributes( fId,TRIM(v_name),TRIM(a_name),a_val )
-!
-!      ! Read the SEAICE00:units attribute
-!      a_name = "units"
-!      CALL NcGet_Var_Attributes( fId,TRIM(v_name),TRIM(a_name),a_val )
-!
-!      ! Read the SEAICE00:gamap_category attribute
-!      a_name = "gamap_category"
-!      CALL NcGet_Var_Attributes( fId,TRIM(v_name),TRIM(a_name),a_val )
-!
-!      !----------------------------------------
-!      ! VARIABLE: SEAICE10
-!      !----------------------------------------
-!
-!      ! Variable name
-!      v_name = "SEAICE10"
-!
-!      ! Read SEAICE10 from file
-!      st3d   = (/ 1, 1, 1 /)
-!      ct3d   = (/ IIPAR, JJPAR, 1 /)
-!      CALL NcRd( SEAICE10, fId, TRIM(v_name), st3d, ct3d )
-!
-!      ! Read the SEAICE10:long_name attribute
-!      a_name = "long_name"
-!      CALL NcGet_Var_Attributes( fId,TRIM(v_name),TRIM(a_name),a_val )
-!
-!      ! Read the SEAICE10:units attribute
-!      a_name = "units"
-!      CALL NcGet_Var_Attributes( fId,TRIM(v_name),TRIM(a_name),a_val )
-!
-!      ! Read the SEAICE10:gamap_category attribute
-!      a_name = "gamap_category"
-!      CALL NcGet_Var_Attributes( fId,TRIM(v_name),TRIM(a_name),a_val )
-!
-!      !----------------------------------------
-!      ! VARIABLE: SEAICE20
-!      !----------------------------------------
-!
-!      ! Variable name
-!      v_name = "SEAICE20"
-!
-!      ! Read SEAICE20 from file
-!      st3d   = (/ 1, 1, 1 /)
-!      ct3d   = (/ IIPAR, JJPAR, 1 /)
-!      CALL NcRd( SEAICE20, fId, TRIM(v_name), st3d, ct3d )
-!
-!      ! Read the SEAICE20:long_name attribute
-!      a_name = "long_name"
-!      CALL NcGet_Var_Attributes( fId,TRIM(v_name),TRIM(a_name),a_val )
-!
-!      ! Read the SEAICE20:units attribute
-!      a_name = "units"
-!      CALL NcGet_Var_Attributes( fId,TRIM(v_name),TRIM(a_name),a_val )
-!
-!      ! Read the SEAICE20:gamap_category attribute
-!      a_name = "gamap_category"
-!      CALL NcGet_Var_Attributes( fId,TRIM(v_name),TRIM(a_name),a_val )
-!
-!      !----------------------------------------
-!      ! VARIABLE: SEAICE30
-!      !----------------------------------------
-!
-!      ! Variable name
-!      v_name = "SEAICE30"
-!
-!      ! Read SEAICE30 from file
-!      st3d   = (/ 1, 1, 1 /)
-!      ct3d   = (/ IIPAR, JJPAR, 1 /)
-!      CALL NcRd( SEAICE30, fId, TRIM(v_name), st3d, ct3d )
-!
-!      ! Read the SEAICE30:long_name attribute
-!      a_name = "long_name"
-!      CALL NcGet_Var_Attributes( fId,TRIM(v_name),TRIM(a_name),a_val )
-!
-!      ! Read the SEAICE30:units attribute
-!      a_name = "units"
-!      CALL NcGet_Var_Attributes( fId,TRIM(v_name),TRIM(a_name),a_val )
-!
-!      ! Read the SEAICE30:gamap_category attribute
-!      a_name = "gamap_category"
-!      CALL NcGet_Var_Attributes( fId,TRIM(v_name),TRIM(a_name),a_val )
-!
-!      !----------------------------------------
-!      ! VARIABLE: SEAICE40
-!      !----------------------------------------
-!
-!      ! Variable name
-!      v_name = "SEAICE40"
-!
-!      ! Read SEAICE40 from file
-!      st3d   = (/ 1, 1, 1 /)
-!      ct3d   = (/ IIPAR, JJPAR, 1 /)
-!      CALL NcRd( SEAICE40, fId, TRIM(v_name), st3d, ct3d )
-!
-!      ! Read the SEAICE40:long_name attribute
-!      a_name = "long_name"
-!      CALL NcGet_Var_Attributes( fId,TRIM(v_name),TRIM(a_name),a_val )
-!
-!      ! Read the SEAICE40:units attribute
-!      a_name = "units"
-!      CALL NcGet_Var_Attributes( fId,TRIM(v_name),TRIM(a_name),a_val )
-!
-!      ! Read the SEAICE40:gamap_category attribute
-!      a_name = "gamap_category"
-!      CALL NcGet_Var_Attributes( fId,TRIM(v_name),TRIM(a_name),a_val )
-!
-!      !----------------------------------------
-!      ! VARIABLE: SEAICE50
-!      !----------------------------------------
-!
-!      ! Variable name
-!      v_name = "SEAICE50"
-!
-!      ! Read SEAICE50 from file
-!      st3d   = (/ 1, 1, 1 /)
-!      ct3d   = (/ IIPAR, JJPAR, 1 /)
-!      CALL NcRd( SEAICE50, fId, TRIM(v_name), st3d, ct3d )
-!
-!      ! Read the SEAICE50:long_name attribute
-!      a_name = "long_name"
-!      CALL NcGet_Var_Attributes( fId,TRIM(v_name),TRIM(a_name),a_val )
-!
-!      ! Read the SEAICE50:units attribute
-!      a_name = "units"
-!      CALL NcGet_Var_Attributes( fId,TRIM(v_name),TRIM(a_name),a_val )
-!
-!      ! Read the SEAICE50:gamap_category attribute
-!      a_name = "gamap_category"
-!      CALL NcGet_Var_Attributes( fId,TRIM(v_name),TRIM(a_name),a_val )
-!
-!      !----------------------------------------
-!      ! VARIABLE: SEAICE60
-!      !----------------------------------------
-!
-!      ! Variable name
-!      v_name = "SEAICE60"
-!
-!      ! Read SEAICE60 from file
-!      st3d   = (/ 1, 1, 1 /)
-!      ct3d   = (/ IIPAR, JJPAR, 1 /)
-!      CALL NcRd( SEAICE60, fId, TRIM(v_name), st3d, ct3d )
-!
-!      ! Read the SEAICE60:long_name attribute
-!      a_name = "long_name"
-!      CALL NcGet_Var_Attributes( fId,TRIM(v_name),TRIM(a_name),a_val )
-!
-!      ! Read the SEAICE60:units attribute
-!      a_name = "units"
-!      CALL NcGet_Var_Attributes( fId,TRIM(v_name),TRIM(a_name),a_val )
-!
-!      ! Read the SEAICE60:gamap_category attribute
-!      a_name = "gamap_category"
-!      CALL NcGet_Var_Attributes( fId,TRIM(v_name),TRIM(a_name),a_val )
-!
-!      !----------------------------------------
-!      ! VARIABLE: SEAICE70
-!      !----------------------------------------
-!
-!      ! Variable name
-!      v_name = "SEAICE70"
-!
-!      ! Read SEAICE70 from file
-!      st3d   = (/ 1, 1, 1 /)
-!      ct3d   = (/ IIPAR, JJPAR, 1 /)
-!      CALL NcRd( SEAICE70, fId, TRIM(v_name), st3d, ct3d )
-!
-!      ! Read the SEAICE70:long_name attribute
-!      a_name = "long_name"
-!      CALL NcGet_Var_Attributes( fId,TRIM(v_name),TRIM(a_name),a_val )
-!
-!      ! Read the SEAICE70:units attribute
-!      a_name = "units"
-!      CALL NcGet_Var_Attributes( fId,TRIM(v_name),TRIM(a_name),a_val )
-!
-!      ! Read the SEAICE70:gamap_category attribute
-!      a_name = "gamap_category"
-!      CALL NcGet_Var_Attributes( fId,TRIM(v_name),TRIM(a_name),a_val )
-!
-!      !----------------------------------------
-!      ! VARIABLE: SEAICE80
-!      !----------------------------------------
-!
-!      ! Variable name
-!      v_name = "SEAICE80"
-!
-!      ! Read SEAICE80 from file
-!      st3d   = (/ 1, 1, 1 /)
-!      ct3d   = (/ IIPAR, JJPAR, 1 /)
-!      CALL NcRd( SEAICE80, fId, TRIM(v_name), st3d, ct3d )
-!
-!      ! Read the SEAICE80:long_name attribute
-!      a_name = "long_name"
-!      CALL NcGet_Var_Attributes( fId,TRIM(v_name),TRIM(a_name),a_val )
-!
-!      ! Read the SEAICE80:units attribute
-!      a_name = "units"
-!      CALL NcGet_Var_Attributes( fId,TRIM(v_name),TRIM(a_name),a_val )
-!
-!      ! Read the SEAICE80:gamap_category attribute
-!      a_name = "gamap_category"
-!      CALL NcGet_Var_Attributes( fId,TRIM(v_name),TRIM(a_name),a_val )
-!
-!      !----------------------------------------
-!      ! VARIABLE: SEAICE90
-!      !----------------------------------------
-!
-!      ! Variable name
-!      v_name = "SEAICE90"
-!
-!      ! Read SEAICE90 from file
-!      st3d   = (/ 1, 1, 1 /)
-!      ct3d   = (/ IIPAR, JJPAR, 1 /)
-!      CALL NcRd( SEAICE90, fId, TRIM(v_name), st3d, ct3d )
-!
-!      ! Read the SEAICE90:long_name attribute
-!      a_name = "long_name"
-!      CALL NcGet_Var_Attributes( fId,TRIM(v_name),TRIM(a_name),a_val )
-!
-!      ! Read the SEAICE90:units attribute
-!      a_name = "units"
-!      CALL NcGet_Var_Attributes( fId,TRIM(v_name),TRIM(a_name),a_val )
-!
-!      ! Read the SEAICE90:gamap_category attribute
-!      a_name = "gamap_category"
-!      CALL NcGet_Var_Attributes( fId,TRIM(v_name),TRIM(a_name),a_val )
-!
-!      !----------------------------------------
-!      ! VARIABLE: SLP
-!      !----------------------------------------
-!
-!      ! Variable name
-!      v_name = "SLP"
-!
-!      ! Read SLP from file
-!      st3d   = (/ 1, 1, 1 /)
-!      ct3d   = (/ IIPAR, JJPAR, 1 /)
-!      CALL NcRd( SLP, fId, TRIM(v_name), st3d, ct3d )
-!
-!      ! Read the SLP:long_name attribute
-!      a_name = "long_name"
-!      CALL NcGet_Var_Attributes( fId,TRIM(v_name),TRIM(a_name),a_val )
-!
-!      ! Read the SLP:units attribute
-!      a_name = "units"
-!      CALL NcGet_Var_Attributes( fId,TRIM(v_name),TRIM(a_name),a_val )
-!
-!      ! Read the SLP:gamap_category attribute
-!      a_name = "gamap_category"
-!      CALL NcGet_Var_Attributes( fId,TRIM(v_name),TRIM(a_name),a_val )
-!
-!      !----------------------------------------
-!      ! VARIABLE: SNODP
-!      !----------------------------------------
-!
-!      ! Variable name
-!      v_name = "SNODP"
-!
-!      ! Read SNODP from file
-!      st3d   = (/ 1, 1, 1 /)
-!      ct3d   = (/ IIPAR, JJPAR, 1 /)
-!      CALL NcRd( SNODP, fId, TRIM(v_name), st3d, ct3d )
-!
-!      ! Read the SNODP:long_name attribute
-!      a_name = "long_name"
-!      CALL NcGet_Var_Attributes( fId,TRIM(v_name),TRIM(a_name),a_val )
-!
-!      ! Read the SNODP:units attribute
-!      a_name = "units"
-!      CALL NcGet_Var_Attributes( fId,TRIM(v_name),TRIM(a_name),a_val )
-!
-!      ! Read the SNODP:gamap_category attribute
-!      a_name = "gamap_category"
-!      CALL NcGet_Var_Attributes( fId,TRIM(v_name),TRIM(a_name),a_val )
-!
-!      !----------------------------------------
-!      ! VARIABLE: SNOMAS
-!      !----------------------------------------
-!
-!      ! Variable name
-!      v_name = "SNOMAS"
-!
-!      ! Read SNOMAS from file
-!      st3d   = (/ 1, 1, 1 /)
-!      ct3d   = (/ IIPAR, JJPAR, 1 /)
-!      CALL NcRd( SNOMAS, fId, TRIM(v_name), st3d, ct3d )
-!
-!      ! Read the SNOMAS:long_name attribute
-!      a_name = "long_name"
-!      CALL NcGet_Var_Attributes( fId,TRIM(v_name),TRIM(a_name),a_val )
-!
-!      ! Read the SNOMAS:units attribute
-!      a_name = "units"
-!      CALL NcGet_Var_Attributes( fId,TRIM(v_name),TRIM(a_name),a_val )
-!
-!      !----------------------------------------
-!      ! VARIABLE: SWGDN
-!      !----------------------------------------
-!
-!      ! Variable name
-!      v_name = "SWGDN"
-!
-!      ! Read SWGDN from file
-!      st3d   = (/ 1, 1, 1 /)
-!      ct3d   = (/ IIPAR, JJPAR, 1 /)
-!      CALL NcRd( SWGDN, fId, TRIM(v_name), st3d, ct3d )
-!
-!      ! Read the SWGDN:long_name attribute
-!      a_name = "long_name"
-!      CALL NcGet_Var_Attributes( fId,TRIM(v_name),TRIM(a_name),a_val )
-!
-!      ! Read the SWGDN:units attribute
-!      a_name = "units"
-!      CALL NcGet_Var_Attributes( fId,TRIM(v_name),TRIM(a_name),a_val )
-!
-!      ! Read the SWGDN:gamap_category attribute
-!      a_name = "gamap_category"
-!      CALL NcGet_Var_Attributes( fId,TRIM(v_name),TRIM(a_name),a_val )
-!
-!      !----------------------------------------
-!      ! VARIABLE: TROPPT
-!      !----------------------------------------
-!
-!      ! Variable name
-!      v_name = "TROPPT"
-!
-!      ! Read TROPPT from file
-!      st3d   = (/ 1, 1, 1 /)
-!      ct3d   = (/ IIPAR, JJPAR, 1 /)
-!      CALL NcRd( TROPPT, fId, TRIM(v_name), st3d, ct3d )
-!
-!      ! Read the TROPPT:long_name attribute
-!      a_name = "long_name"
-!      CALL NcGet_Var_Attributes( fId,TRIM(v_name),TRIM(a_name),a_val )
-!
-!      ! Read the TROPPT:units attribute
-!      a_name = "units"
-!      CALL NcGet_Var_Attributes( fId,TRIM(v_name),TRIM(a_name),a_val )
-!
-!      ! Read the TROPPT:gamap_category attribute
-!      a_name = "gamap_category"
-!      CALL NcGet_Var_Attributes( fId,TRIM(v_name),TRIM(a_name),a_val )
-!
-!      !----------------------------------------
-!      ! VARIABLE: TS
-!      !----------------------------------------
-!
-!      ! Variable name
-!      v_name = "TS"
-!
-!      ! Read TS from file
-!      st3d   = (/ 1, 1, 1 /)
-!      ct3d   = (/ IIPAR, JJPAR, 1 /)
-!      CALL NcRd( TS, fId, TRIM(v_name), st3d, ct3d )
-!
-!      ! Read the TS:long_name attribute
-!      a_name = "long_name"
-!      CALL NcGet_Var_Attributes( fId,TRIM(v_name),TRIM(a_name),a_val )
-!
-!      ! Read the TS:units attribute
-!      a_name = "units"
-!      CALL NcGet_Var_Attributes( fId,TRIM(v_name),TRIM(a_name),a_val )
-!
-!      ! Read the TS:gamap_category attribute
-!      a_name = "gamap_category"
-!      CALL NcGet_Var_Attributes( fId,TRIM(v_name),TRIM(a_name),a_val )
-!
-!      !----------------------------------------
-!      ! VARIABLE: T2M
-!      !----------------------------------------
-!
-!      ! Variable name
-!      v_name = "T2M"
-!
-!      ! Read T2M from file
-!      st3d   = (/ 1, 1, 1 /)
-!      ct3d   = (/ IIPAR, JJPAR, 1 /)
-!      CALL NcRd( T2M, fId, TRIM(v_name), st3d, ct3d )
-!
-!      ! Read the T2M:long_name attribute
-!      a_name = "long_name"
-!      CALL NcGet_Var_Attributes( fId,TRIM(v_name),TRIM(a_name),a_val )
-!
-!      ! Read the T2M:units attribute
-!      a_name = "units"
-!      CALL NcGet_Var_Attributes( fId,TRIM(v_name),TRIM(a_name),a_val )
-!
-!      ! Read the T2M:gamap_category attribute
-!      a_name = "gamap_category"
-!      CALL NcGet_Var_Attributes( fId,TRIM(v_name),TRIM(a_name),a_val )
-!
-!      !----------------------------------------
-!      ! VARIABLE: U10M
-!      !----------------------------------------
-!
-!      ! Variable name
-!      v_name = "U10M"
-!
-!      ! Read U10M from file
-!      st3d   = (/ 1, 1, 1 /)
-!      ct3d   = (/ IIPAR, JJPAR, 1 /)
-!      CALL NcRd( U10M, fId, TRIM(v_name), st3d, ct3d )
-!
-!      ! Read the U10M:long_name attribute
-!      a_name = "long_name"
-!      CALL NcGet_Var_Attributes( fId,TRIM(v_name),TRIM(a_name),a_val )
-!
-!      ! Read the U10M:units attribute
-!      a_name = "units"
-!      CALL NcGet_Var_Attributes( fId,TRIM(v_name),TRIM(a_name),a_val )
-!
-!      ! Read the U10M:gamap_category attribute
-!      a_name = "gamap_category"
-!      CALL NcGet_Var_Attributes( fId,TRIM(v_name),TRIM(a_name),a_val )
-!
-!      !----------------------------------------
-!      ! VARIABLE: USTAR
-!      !----------------------------------------
-!
-!      ! Variable name
-!      v_name = "USTAR"
-!
-!      ! Read USTAR from file
-!      st3d   = (/ 1, 1, 1 /)
-!      ct3d   = (/ IIPAR, JJPAR, 1 /)
-!      CALL NcRd( USTAR, fId, TRIM(v_name), st3d, ct3d )
-!
-!      ! Read the USTAR:long_name attribute
-!      a_name = "long_name"
-!      CALL NcGet_Var_Attributes( fId,TRIM(v_name),TRIM(a_name),a_val )
-!
-!      ! Read the USTAR:units attribute
-!      a_name = "units"
-!      CALL NcGet_Var_Attributes( fId,TRIM(v_name),TRIM(a_name),a_val )
-!
-!      ! Read the USTAR:gamap_category attribute
-!      a_name = "gamap_category"
-!      CALL NcGet_Var_Attributes( fId,TRIM(v_name),TRIM(a_name),a_val )
-!
-!      !----------------------------------------
-!      ! VARIABLE: V10M
-!      !----------------------------------------
-!
-!      ! Variable name
-!      v_name = "V10M"
-!
-!      ! Read V10M from file
-!      st3d   = (/ 1, 1, 1 /)
-!      ct3d   = (/ IIPAR, JJPAR, 1 /)
-!      CALL NcRd( V10M, fId, TRIM(v_name), st3d, ct3d )
-!
-!      ! Read the V10M:long_name attribute
-!      a_name = "long_name"
-!      CALL NcGet_Var_Attributes( fId,TRIM(v_name),TRIM(a_name),a_val )
-!
-!      ! Read the V10M:units attribute
-!      a_name = "units"
-!      CALL NcGet_Var_Attributes( fId,TRIM(v_name),TRIM(a_name),a_val )
-!
-!      ! Read the V10M:gamap_category attribute
-!      a_name = "gamap_category"
-!      CALL NcGet_Var_Attributes( fId,TRIM(v_name),TRIM(a_name),a_val )
-!
-!      !----------------------------------------
-!      ! VARIABLE: Z0M
-!      !----------------------------------------
-!
-!      ! Variable name
-!      v_name = "Z0M"
-!
-!      ! Read Z0M from file
-!      st3d   = (/ 1, 1, 1 /)
-!      ct3d   = (/ IIPAR, JJPAR, 1 /)
-!      CALL NcRd( Z0M, fId, TRIM(v_name), st3d, ct3d )
-!
-!      ! Read the Z0M:long_name attribute
-!      a_name = "long_name"
-!      CALL NcGet_Var_Attributes( fId,TRIM(v_name),TRIM(a_name),a_val )
-!
-!      ! Read the Z0M:units attribute
-!      a_name = "units"
-!      CALL NcGet_Var_Attributes( fId,TRIM(v_name),TRIM(a_name),a_val )
-!
-!      ! Read the Z0M:gamap_category attribute
-!      a_name = "gamap_category"
-!      CALL NcGet_Var_Attributes( fId,TRIM(v_name),TRIM(a_name),a_val )
-!
-!      !=================================================================
-!      ! Cleanup and quit
-!      !=================================================================
-!
-!      ! Close netCDF file
-!      CALL NcCl( fId )
-!
-!      END SUBROUTINE READ_FROM_NETCDF_FILE
-!!EOC
+!EOC
+!------------------------------------------------------------------------------
+!          Harvard University Atmospheric Chemistry Modeling Group            !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: geos57_read_a1
+!
+! !DESCRIPTION: Routine to read variables and attributes from a GEOS-5.7.2
+!  met fields file containing 1-hr time-averaged (A1) data.  
+!\\
+!\\
+! !INTERFACE:
+!
+  SUBROUTINE GEOS57_READ_A1( YYYYMMDD, HHMMSS )
+!
+! !USES:
+
+    USE DAO_MOD, ONLY : ALBEDO   => ALBD
+    USE DAO_MOD, ONLY : CLDTOT   => CLDFRC
+    USE DAO_MOD, ONLY : EFLUX
+    USE DAO_MOD, ONLY : EVAP
+    USE DAO_MOD, ONLY : FRSEAICE
+    USE DAO_MOD, ONLY : FRSNO
+    USE DAO_MOD, ONLY : GRN
+    USE DAO_MOD, ONLY : GWETROOT
+    USE DAO_MOD, ONLY : GWETTOP
+    USE DAO_MOD, ONLY : HFLUX
+    USE DAO_MOD, ONLY : LAI
+    USE DAO_MOD, ONLY : LWI
+    USE DAO_MOD, ONLY : LWGNT    => RADLWG
+    USE DAO_MOD, ONLY : PARDF
+    USE DAO_MOD, ONLY : PARDR
+    USE DAO_MOD, ONLY : PBLH     => PBL
+    USE DAO_MOD, ONLY : PRECANV  => PREANV
+    USE DAO_MOD, ONLY : PRECCON  => PRECON
+    USE DAO_MOD, ONLY : PRECLSC  => PRELSC
+    USE DAO_MOD, ONLY : PRECSNO
+    USE DAO_MOD, ONLY : PRECTOT  => PREACC
+    USE DAO_MOD, ONLY : SEAICE00  
+    USE DAO_MOD, ONLY : SEAICE10
+    USE DAO_MOD, ONLY : SEAICE20
+    USE DAO_MOD, ONLY : SEAICE30
+    USE DAO_MOD, ONLY : SEAICE40
+    USE DAO_MOD, ONLY : SEAICE50
+    USE DAO_MOD, ONLY : SEAICE60
+    USE DAO_MOD, ONLY : SEAICE70
+    USE DAO_MOD, ONLY : SEAICE80
+    USE DAO_MOD, ONLY : SEAICE90
+    USE DAO_MOD, ONLY : SLP
+    USE DAO_MOD, ONLY : SNODP
+    USE DAO_MOD, ONLY : SNOMAS
+    USE DAO_MOD, ONLY : SWGDN    => RADSWG
+    USE DAO_MOD, ONLY : SWGNT    => RADSWG
+    USE DAO_MOD, ONLY : TROPPT   => TROPP
+    USE DAO_MOD, ONLY : T2M      => TS
+    USE DAO_MOD, ONLY : TS       => TSKIN
+    USE DAO_MOD, ONLY : U10M
+    USE DAO_MOD, ONLY : USTAR
+    USE DAO_MOD, ONLY : V10M
+    USE DAO_MOD, ONLY : Z0M      => Z0
+!
+! !INPUT PARAMETERS:
+! 
+    INTEGER, INTENT(IN) :: YYYYMMDD    ! GMT date in YYYY/MM/DD format
+    INTEGER, INTENT(IN) :: HHMMSS      ! GMT time in hh:mm:ss   format
+!
+! !REMARKS:
+!  This routine was automatically generated by the Perl script ncCodeRead, 
+!  and was subsequently hand-edited for compatibility with GEOS-Chem.
+!                                                                             .
+!  Even though the netCDF file is self-describing, the GEOS-5.7.2 data, 
+!  dimensions, and units are pre-specified according to the GMAO GEOS-5.7.2
+!  file specification.  Therefore we can "cheat" a little bit and not have
+!  to read netCDF attributes to find what these values are.
+!
+! !REVISION HISTORY:
+!  30 Jan 2012 - R. Yantosca - Initial version
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+!
+! !LOCAL VARIABLES:
+!
+    ! Scalars
+    INTEGER            :: fId                ! netCDF file ID
+    INTEGER            :: X, Y, T            ! netCDF file dimensions
+    INTEGER            :: time_index         ! Read this time slice of data
+    CHARACTER(LEN=255) :: nc_file            ! netCDF file name
+    CHARACTER(LEN=255) :: v_name             ! netCDF variable name 
+    CHARACTER(LEN=255) :: dir                ! Data directory path
+    CHARACTER(LEN=255) :: errMsg             ! Error message
+                                             
+    ! Arrays                                 
+    INTEGER            :: st3d(3), ct3d(3)   ! Start + count, for 3D arrays 
+    REAL*4             :: TEMP(IIPAR,JJPAR)  ! Temporary data arrray
+
+#if defined( USE_NETCDF )
+
+    !======================================================================
+    ! Open the netCDF file
+    !======================================================================
+
+    ! Replace time & date tokens in the file name
+    dir = TRIM( GEOS_57_DIR )
+    CALL EXPAND_DATE( dir, YYYYMMDD, HHMMSS )
+
+    ! Replace time & date tokens in the file name
+    nc_file = 'GEOS572.YYYYMMDD.A1.4x5.nc'
+    CALL EXPAND_DATE( nc_file, YYYYMMDD, HHMMSS )
+
+    ! Construct complete file path
+    nc_file = TRIM( DATA_DIR ) // TRIM( dir ) // TRIM( nc_file )
+    
+    ! Open netCDF file
+    CALL NcOp_Rd( fId, TRIM( nc_file ) )
+
+    ! Read the dimensions from the netCDF file
+    CALL NcGet_DimLen( fId, 'lon',   X )
+    CALL NcGet_DimLen( fId, 'lat',   Y )
+    CALL NcGet_DimLen( fId, 'time',  T )
+
+    ! Make sure the dimensions of the file are valid
+    CALL Check_Dimensions( lon=X, lat=Y, time=T, time_expected=24 )
+    
+    !======================================================================
+    ! Read data from disk
+    !======================================================================
+    
+    ! Find the proper time-slice to read from disk
+    time_index = ( HHMMSS / 10000 ) + 1
+
+    ! Stop w/ error if the time index is invalid
+    IF ( time_index < 1 .or. time_index > T ) THEN
+       WRITE( 6, 100 ) time_index
+ 100   FORMAT( 'Time_index value ', i5, ' must be in the range 1 to 24!' )
+       CALL ERROR_STOP( errMsg, 'GEOS57_READ_A1 (geos57_read_mod.F90)' )
+    ENDIF
+
+    ! netCDF start & count indices
+    st3d      = (/ 1,     1,     time_index /)      
+    ct3d      = (/ IIPAR, JJPAR, 1          /)
+
+    ! Read ALBEDO
+    v_name = "ALBEDO"
+    CALL NcRd( TEMP, fId, TRIM(v_name), st3d, ct3d )
+    CALL TRANSFER_2D( TEMP, ALBEDO )
+
+    ! Read CLDTOT
+    v_name = "CLDTOT"
+    CALL NcRd( TEMP, fId, TRIM(v_name), st3d, ct3d )
+    CALL TRANSFER_2D( TEMP, CLDTOT )
+
+    ! Read EFLUX
+    v_name = "EFLUX"
+    CALL NcRd( TEMP, fId, TRIM(v_name), st3d, ct3d )
+    CALL TRANSFER_2D( TEMP, EFLUX )
+
+    ! Read EVAP
+    v_name = "EVAP"
+    CALL NcRd( TEMP, fId, TRIM(v_name), st3d, ct3d )
+    CALL TRANSFER_2D( TEMP, EVAP )
+
+    ! Read FRSEAICE
+    v_name = "FRSEAICE"
+    CALL NcRd( TEMP, fId, TRIM(v_name), st3d, ct3d )
+    CALL TRANSFER_2D( TEMP, FRSEAICE )
+
+    ! Read FRSNO
+    v_name = "FRSNO"
+    CALL NcRd( TEMP, fId, TRIM(v_name), st3d, ct3d )
+    CALL TRANSFER_2D( TEMP, FRSNO )
+
+    ! Read GRN
+    v_name = "GRN"
+    CALL NcRd( TEMP, fId, TRIM(v_name), st3d, ct3d )
+    CALL TRANSFER_2D( TEMP, GRN )
+
+    ! Read GWETROOT
+    v_name = "GWETROOT"
+    CALL NcRd( TEMP, fId, TRIM(v_name), st3d, ct3d )
+    CALL TRANSFER_2D( TEMP, GWETROOT )
+
+    ! Read GWETTOP
+    v_name = "GWETTOP"
+    CALL NcRd( TEMP, fId, TRIM(v_name), st3d, ct3d )
+    CALL TRANSFER_2D( TEMP, GWETTOP )
+
+    ! Read JFLUX from file
+    v_name = "HFLUX"
+    CALL NcRd( TEMP, fId, TRIM(v_name), st3d, ct3d )
+    CALL TRANSFER_2D( TEMP, HFLUX )
+
+    ! Read LAI
+    v_name = "LAI"
+    CALL NcRd( TEMP, fId, TRIM(v_name), st3d, ct3d )
+    CALL TRANSFER_2D( TEMP, LAI )
+
+    ! Read LWI
+    v_name = "LWI"
+    CALL NcRd( TEMP, fId, TRIM(v_name), st3d, ct3d )
+    CALL TRANSFER_2D( TEMP, LWI )
+
+    ! Read LWGNT 
+    v_name = "LWGNT"
+    CALL NcRd( TEMP, fId, TRIM(v_name), st3d, ct3d )
+    CALL TRANSFER_2D( TEMP, LWGNT )
+
+    !-----------------------------------------------------------------------
+    ! Comment this out for now, this field isn't needed (bmy, 2/2/12)
+    !! Read LWTUP
+    !v_name = "LWTUP"
+    !CALL NcRd( TEMP, fId, TRIM(v_name), st3d, ct3d )
+    !CALL TRANSFER_2D( TEMP, FRLAKE )
+    !-----------------------------------------------------------------------
+
+    ! Read PARDF
+    v_name = "PARDF"
+    CALL NcRd( TEMP, fId, TRIM(v_name), st3d, ct3d )
+    CALL TRANSFER_2D( TEMP, PARDF )
+
+    ! Read PARDR
+    v_name = "PARDR"
+    CALL NcRd( TEMP, fId, TRIM(v_name), st3d, ct3d )
+    CALL TRANSFER_2D( TEMP, PARDR )
+
+    ! Read PBLH
+    v_name = "PBLH"
+    CALL NcRd( TEMP, fId, TRIM(v_name), st3d, ct3d )
+    CALL TRANSFER_2D( TEMP, PBLH )
+
+    ! Read PRECANV
+    v_name = "PRECANV"
+    CALL NcRd( TEMP, fId, TRIM(v_name), st3d, ct3d )
+    CALL TRANSFER_2D( TEMP, PRECANV )
+
+    ! Read PRECCON
+    v_name = "PRECCON"
+    CALL NcRd( PRECCON, fId, TRIM(v_name), st3d, ct3d )
+    CALL TRANSFER_2D( TEMP, PRECCON )
+
+    ! Read PRECLSC
+    v_name = "PRECLSC"
+    CALL NcRd( TEMP, fId, TRIM(v_name), st3d, ct3d )
+    CALL TRANSFER_2D( TEMP, PRECLSC )
+
+    ! Read PRECSNO
+    v_name = "PRECSNO"
+    CALL NcRd( TEMP, fId, TRIM(v_name), st3d, ct3d )
+    CALL TRANSFER_2D( TEMP, PRECSNO )
+
+    ! Read PRECTOT
+    v_name = "PRECTOT"
+    CALL NcRd( TEMP, fId, TRIM(v_name), st3d, ct3d )
+    CALL TRANSFER_2D( TEMP, PRECTOT )
+
+    !-----------------------------------------------------------------------
+    ! Comment this out for now, this field isn't needed (bmy, 2/2/12)
+    !! Read QV2M
+    !v_name = "QV2M"
+    !CALL NcRd( TEMP, fId, TRIM(v_name), st3d, ct3d )
+    !CALL TRANSFER_2D( TEMP, QV2M )
+    !-----------------------------------------------------------------------
+
+
+    ! Read SEAICE00
+    v_name = "SEAICE00"
+    CALL NcRd( TEMP, fId, TRIM(v_name), st3d, ct3d )
+    CALL TRANSFER_2D( TEMP, SEAICE00 )
+
+    ! Read SEAICE10
+    v_name = "SEAICE10"
+    CALL NcRd( TEMP, fId, TRIM(v_name), st3d, ct3d )
+    CALL TRANSFER_2D( TEMP, SEAICE10 )
+
+    ! Read SEAICE20
+    v_name = "SEAICE20"
+    CALL NcRd( TEMP, fId, TRIM(v_name), st3d, ct3d )
+    CALL TRANSFER_2D( TEMP, SEAICE20 )
+
+    ! Read SEAICE30
+    v_name = "SEAICE30"
+    CALL NcRd( TEMP, fId, TRIM(v_name), st3d, ct3d )
+    CALL TRANSFER_2D( TEMP, SEAICE30 )
+
+    ! Read SEAICE40
+    v_name = "SEAICE40"
+    CALL NcRd( TEMP, fId, TRIM(v_name), st3d, ct3d )
+    CALL TRANSFER_2D( TEMP, SEAICE40 )
+
+    ! Read SEAICE50
+    v_name = "SEAICE50"
+    CALL NcRd( TEMP, fId, TRIM(v_name), st3d, ct3d )
+    CALL TRANSFER_2D( TEMP, SEAICE50 )
+
+    ! Read SEAICE60 
+    v_name = "SEAICE60"
+    CALL NcRd( TEMP, fId, TRIM(v_name), st3d, ct3d )
+    CALL TRANSFER_2D( TEMP, SEAICE60 )
+
+    ! Read SEAICE70
+    v_name = "SEAICE70"
+    CALL NcRd( TEMP, fId, TRIM(v_name), st3d, ct3d )
+    CALL TRANSFER_2D( TEMP, SEAICE70 )
+
+    ! Read SEAICE80
+    v_name = "SEAICE80"
+    CALL NcRd( TEMP, fId, TRIM(v_name), st3d, ct3d )
+    CALL TRANSFER_2D( TEMP, SEAICE80 )
+
+    ! Read SEAICE90
+    v_name = "SEAICE90"
+    CALL NcRd( TEMP, fId, TRIM(v_name), st3d, ct3d )
+    CALL TRANSFER_2D( TEMP, SEAICE90 )
+
+    ! Read SLP
+    v_name = "SLP"
+    CALL NcRd( TEMP, fId, TRIM(v_name), st3d, ct3d )
+    CALL TRANSFER_2D( TEMP, SLP )
+
+    ! Read SNODP
+    v_name = "SNODP"
+    CALL NcRd( TEMP, fId, TRIM(v_name), st3d, ct3d )
+    CALL TRANSFER_2D( TEMP, SNODP )
+
+    ! Read SNOMAS
+    v_name = "SNOMAS"
+    CALL NcRd( TEMP, fId, TRIM(v_name), st3d, ct3d )
+    CALL TRANSFER_2D( TEMP, SNOMAS )
+
+    ! Read SWGDN
+    v_name = "SWGDN"
+    CALL NcRd( TEMP, fId, TRIM(v_name), st3d, ct3d )
+    CALL TRANSFER_2D( TEMP, SWGDN )
+
+    ! Read TROPPT
+    v_name = "TROPPT"
+    CALL NcRd( TEMP, fId, TRIM(v_name), st3d, ct3d )
+    CALL TRANSFER_2D( TEMP, TROPPT )
+
+    ! Read TS
+    v_name = "TS"
+    CALL NcRd( TEMP, fId, TRIM(v_name), st3d, ct3d )
+    CALL TRANSFER_2D( TEMP, TS )
+
+    ! Read T2M
+    v_name = "T2M"
+    CALL NcRd( TEMP, fId, TRIM(v_name), st3d, ct3d )
+    CALL TRANSFER_2D( TEMP, T2M )
+
+    ! Read U10M
+    v_name = "U10M"
+    CALL NcRd( TEMP, fId, TRIM(v_name), st3d, ct3d )
+    CALL TRANSFER_2D( TEMP, U10M )
+
+    ! Read USTAR
+    v_name = "USTAR"
+    CALL NcRd( TEMP, fId, TRIM(v_name), st3d, ct3d )
+    CALL TRANSFER_2D( TEMP, USTAR )
+
+    ! Read V10M
+    v_name = "V10M"
+    CALL NcRd( TEMP, fId, TRIM(v_name), st3d, ct3d )
+    CALL TRANSFER_2D( TEMP, V10M )
+
+    ! Read Z0M
+    v_name = "Z0M"
+    CALL NcRd( TEMP, fId, TRIM(v_name), st3d, ct3d )
+    CALL TRANSFER_2D( TEMP, Z0M )
+
+    !======================================================================
+    !        %%%%% SPECIAL HANDLING FOR CERTAIN FIELDS %%%%% 
+    !
+    ! In GEOS-5.7.x (and in MERRA), the PRECTOT etc. surface precipi 
+    ! met fields fields have units of [kg/m2/s].  In all other GEOS 
+    ! versions, PREACC and PRECON have units of [mm/day].  
+    !
+    ! Therefore, for backwards compatibility with existing code, 
+    ! apply the following unit conversion to the GEOS-5 PRECTOT and
+    ! PRECCON fields:
+    !
+    !
+    !     kg  |    m3    | 86400 s | 1000 mm
+    !   ------+----------+---------+--------- = 86400 
+    !    m2 s |  1000 kg |  day    |   m
+    !              ^
+    !              |
+    !       1 / density of water 
+    !===================================================================
+      
+    ! Convert from [kg/m2/s] --> [mm/day]
+    PRECANV = PRECANV * 86400d0
+    PRECCON = PRECCON * 86400d0
+    PRECLSC = PRECLSC * 86400d0
+    PRECTOT = PRECTOT * 86400d0
+
+    !=================================================================
+    ! ND67 diagnostic: A1 surface fields
+    !=================================================================
+    IF ( ND67 > 0 ) THEN
+       AD67(:,:,1 ) = AD67(:,:,1 ) + HFLUX    ! Sensible heat flux [W/m2]
+       AD67(:,:,2 ) = AD67(:,:,2 ) + SWGDN    ! Incident SW rad @ sfc [W/m2]
+       AD67(:,:,3 ) = AD67(:,:,3 ) + PRECTOT  ! Tot prec @ sfc [kg/m2/s]
+       AD67(:,:,4 ) = AD67(:,:,4 ) + PRECCON  ! CV prec @ sfc [kg/m2/s]
+       AD67(:,:,5 ) = AD67(:,:,5 ) + T2M      ! T @ 2m height [K]
+       AD67(:,:,6 ) = AD67(:,:,6 ) + 0e0      !
+       AD67(:,:,7 ) = AD67(:,:,7 ) + USTAR    ! Friction velocity [m/s]
+       AD67(:,:,8 ) = AD67(:,:,8 ) + Z0M      ! Roughness height [m]
+       AD67(:,:,9 ) = AD67(:,:,9 ) + PBLH     ! PBL height [m]
+       AD67(:,:,10) = AD67(:,:,10) + CLDTOT   ! Column cld fraction
+       AD67(:,:,11) = AD67(:,:,11) + U10M     ! U-wind @ 10m [m/s]
+       AD67(:,:,12) = AD67(:,:,12) + V10M     ! V-wind @ 10m [m/s]
+       AD67(:,:,14) = AD67(:,:,14) + ALBEDO   ! Sfc albedo [unitless]
+       AD67(:,:,17) = AD67(:,:,17) + TROPPT   ! T'pause pressure [hPa]
+       AD67(:,:,18) = AD67(:,:,18) + SLP      ! Sea level pressure [hPa]
+       AD67(:,:,19) = AD67(:,:,19) + TS       ! Sfc skin temperature [K]
+       AD67(:,:,20) = AD67(:,:,20) + PARDF    ! Diffuse PAR [W/m2]
+       AD67(:,:,21) = AD67(:,:,21) + PARDR    ! Direct PAR [W/m2]
+       AD67(:,:,22) = AD67(:,:,22) + GWETTOP  ! Topsoil wetness [frac]
+       AD67(:,:,23) = AD67(:,:,23) + EFLUX    ! Latent heat flux [W/m2]
+    ENDIF
+
+    !=================================================================
+    ! Cleanup and quit
+    !=================================================================
+
+    print*, '### st3d: ', st3d
+    print*, '### t2m : ', minval(t2m), maxval(t2m)
+
+    ! Close netCDF file
+    CALL NcCl( fId )
+
+#endif
+
+  END SUBROUTINE GEOS57_READ_A1
+!EOC
 !!------------------------------------------------------------------------------
 !!          Harvard University Atmospheric Chemistry Modeling Group            !
 !!------------------------------------------------------------------------------
@@ -1527,7 +817,7 @@ CONTAINS
 !      ! VARIABLE: lon
 !      !----------------------------------------
 !
-!      ! Variable name
+!      ! Read  from file
 !      v_name = "lon"
 !
 !      ! Read lon from file
@@ -1547,7 +837,7 @@ CONTAINS
 !      ! VARIABLE: lat
 !      !----------------------------------------
 !
-!      ! Variable name
+!      ! Read  from file
 !      v_name = "lat"
 !
 !      ! Read lat from file
@@ -1567,7 +857,7 @@ CONTAINS
 !      ! VARIABLE: lev
 !      !----------------------------------------
 !
-!      ! Variable name
+!      ! Read  from file
 !      v_name = "lev"
 !
 !      ! Read lev from file
@@ -1587,7 +877,7 @@ CONTAINS
 !      ! VARIABLE: time
 !      !----------------------------------------
 !
-!      ! Variable name
+!      ! Read  from file
 !      v_name = "time"
 !
 !      ! Read time from file
@@ -1619,7 +909,7 @@ CONTAINS
 !      ! VARIABLE: CLOUD
 !      !----------------------------------------
 !
-!      ! Variable name
+!      ! Read  from file
 !      v_name = "CLOUD"
 !
 !      ! Read CLOUD from file
@@ -1643,7 +933,7 @@ CONTAINS
 !      ! VARIABLE: OPTDEPTH
 !      !----------------------------------------
 !
-!      ! Variable name
+!      ! Read  from file
 !      v_name = "OPTDEPTH"
 !
 !      ! Read OPTDEPTH from file
@@ -1667,7 +957,7 @@ CONTAINS
 !      ! VARIABLE: QI
 !      !----------------------------------------
 !
-!      ! Variable name
+!      ! Read  from file
 !      v_name = "QI"
 !
 !      ! Read QI from file
@@ -1691,7 +981,7 @@ CONTAINS
 !      ! VARIABLE: QL
 !      !----------------------------------------
 !
-!      ! Variable name
+!      ! Read  from file
 !      v_name = "QL"
 !
 !      ! Read QL from file
@@ -1715,7 +1005,7 @@ CONTAINS
 !      ! VARIABLE: TAUCLI
 !      !----------------------------------------
 !
-!      ! Variable name
+!      ! Read  from file
 !      v_name = "TAUCLI"
 !
 !      ! Read TAUCLI from file
@@ -1739,7 +1029,7 @@ CONTAINS
 !      ! VARIABLE: TAUCLW
 !      !----------------------------------------
 !
-!      ! Variable name
+!      ! Read  from file
 !      v_name = "TAUCLW"
 !
 !      ! Read TAUCLW from file
@@ -1862,7 +1152,7 @@ CONTAINS
 !      ! VARIABLE: lon
 !      !----------------------------------------
 !
-!      ! Variable name
+!      ! Read  from file
 !      v_name = "lon"
 !
 !      ! Read lon from file
@@ -1882,7 +1172,7 @@ CONTAINS
 !      ! VARIABLE: lat
 !      !----------------------------------------
 !
-!      ! Variable name
+!      ! Read  from file
 !      v_name = "lat"
 !
 !      ! Read lat from file
@@ -1902,7 +1192,7 @@ CONTAINS
 !      ! VARIABLE: lev
 !      !----------------------------------------
 !
-!      ! Variable name
+!      ! Read  from file
 !      v_name = "lev"
 !
 !      ! Read lev from file
@@ -1922,7 +1212,7 @@ CONTAINS
 !      ! VARIABLE: time
 !      !----------------------------------------
 !
-!      ! Variable name
+!      ! Read  from file
 !      v_name = "time"
 !
 !      ! Read time from file
@@ -1954,7 +1244,7 @@ CONTAINS
 !      ! VARIABLE: CMFMC
 !      !----------------------------------------
 !
-!      ! Variable name
+!      ! Read  from file
 !      v_name = "CMFMC"
 !
 !      ! Read CMFMC from file
@@ -1978,7 +1268,7 @@ CONTAINS
 !      ! VARIABLE: DTRAIN
 !      !----------------------------------------
 !
-!      ! Variable name
+!      ! Read  from file
 !      v_name = "DTRAIN"
 !
 !      ! Read DTRAIN from file
@@ -2002,7 +1292,7 @@ CONTAINS
 !      ! VARIABLE: OMEGA
 !      !----------------------------------------
 !
-!      ! Variable name
+!      ! Read  from file
 !      v_name = "OMEGA"
 !
 !      ! Read OMEGA from file
@@ -2026,7 +1316,7 @@ CONTAINS
 !      ! VARIABLE: RH
 !      !----------------------------------------
 !
-!      ! Variable name
+!      ! Read  from file
 !      v_name = "RH"
 !
 !      ! Read RH from file
@@ -2050,7 +1340,7 @@ CONTAINS
 !      ! VARIABLE: U
 !      !----------------------------------------
 !
-!      ! Variable name
+!      ! Read  from file
 !      v_name = "U"
 !
 !      ! Read U from file
@@ -2074,7 +1364,7 @@ CONTAINS
 !      ! VARIABLE: V
 !      !----------------------------------------
 !
-!      ! Variable name
+!      ! Read  from file
 !      v_name = "V"
 !
 !      ! Read V from file
@@ -2195,7 +1485,7 @@ CONTAINS
 !      ! VARIABLE: lon
 !      !----------------------------------------
 !
-!      ! Variable name
+!      ! Read  from file
 !      v_name = "lon"
 !
 !      ! Read lon from file
@@ -2215,7 +1505,7 @@ CONTAINS
 !      ! VARIABLE: lat
 !      !----------------------------------------
 !
-!      ! Variable name
+!      ! Read  from file
 !      v_name = "lat"
 !
 !      ! Read lat from file
@@ -2235,7 +1525,7 @@ CONTAINS
 !      ! VARIABLE: lev
 !      !----------------------------------------
 !
-!      ! Variable name
+!      ! Read  from file
 !      v_name = "lev"
 !
 !      ! Read lev from file
@@ -2255,7 +1545,7 @@ CONTAINS
 !      ! VARIABLE: time
 !      !----------------------------------------
 !
-!      ! Variable name
+!      ! Read  from file
 !      v_name = "time"
 !
 !      ! Read time from file
@@ -2287,7 +1577,7 @@ CONTAINS
 !      ! VARIABLE: DQRCU
 !      !----------------------------------------
 !
-!      ! Variable name
+!      ! Read  from file
 !      v_name = "DQRCU"
 !
 !      ! Read DQRCU from file
@@ -2311,7 +1601,7 @@ CONTAINS
 !      ! VARIABLE: DQRLSAN
 !      !----------------------------------------
 !
-!      ! Variable name
+!      ! Read  from file
 !      v_name = "DQRLSAN"
 !
 !      ! Read DQRLSAN from file
@@ -2335,7 +1625,7 @@ CONTAINS
 !      ! VARIABLE: REEVAPCN
 !      !----------------------------------------
 !
-!      ! Variable name
+!      ! Read  from file
 !      v_name = "REEVAPCN"
 !
 !      ! Read REEVAPCN from file
@@ -2359,7 +1649,7 @@ CONTAINS
 !      ! VARIABLE: REEVAPLS
 !      !----------------------------------------
 !
-!      ! Variable name
+!      ! Read  from file
 !      v_name = "REEVAPLS"
 !
 !      ! Read REEVAPLS from file
@@ -2461,7 +1751,7 @@ CONTAINS
 !      ! VARIABLE: lon
 !      !----------------------------------------
 !
-!      ! Variable name
+!      ! Read  from file
 !      v_name = "lon"
 !
 !      ! Read lon from file
@@ -2481,7 +1771,7 @@ CONTAINS
 !      ! VARIABLE: lat
 !      !----------------------------------------
 !
-!      ! Variable name
+!      ! Read  from file
 !      v_name = "lat"
 !
 !      ! Read lat from file
@@ -2501,7 +1791,7 @@ CONTAINS
 !      ! VARIABLE: lev
 !      !----------------------------------------
 !
-!      ! Variable name
+!      ! Read  from file
 !      v_name = "lev"
 !
 !      ! Read lev from file
@@ -2521,7 +1811,7 @@ CONTAINS
 !      ! VARIABLE: time
 !      !----------------------------------------
 !
-!      ! Variable name
+!      ! Read  from file
 !      v_name = "time"
 !
 !      ! Read time from file
@@ -2553,7 +1843,7 @@ CONTAINS
 !      ! VARIABLE: PFICU
 !      !----------------------------------------
 !
-!      ! Variable name
+!      ! Read  from file
 !      v_name = "PFICU"
 !
 !      ! Read PFICU from file
@@ -2577,7 +1867,7 @@ CONTAINS
 !      ! VARIABLE: PFILSAN
 !      !----------------------------------------
 !
-!      ! Variable name
+!      ! Read  from file
 !      v_name = "PFILSAN"
 !
 !      ! Read PFILSAN from file
@@ -2601,7 +1891,7 @@ CONTAINS
 !      ! VARIABLE: PFLCU
 !      !----------------------------------------
 !
-!      ! Variable name
+!      ! Read  from file
 !      v_name = "PFLCU"
 !
 !      ! Read PFLCU from file
@@ -2625,7 +1915,7 @@ CONTAINS
 !      ! VARIABLE: PFLLSAN
 !      !----------------------------------------
 !
-!      ! Variable name
+!      ! Read  from file
 !      v_name = "PFLLSAN"
 !
 !      ! Read PFLLSAN from file
@@ -2765,7 +2055,7 @@ CONTAINS
 !      ! VARIABLE: lon
 !      !----------------------------------------
 !
-!      ! Variable name
+!      ! Read  from file
 !      v_name = "lon"
 !
 !      ! Read lon from file
@@ -2785,7 +2075,7 @@ CONTAINS
 !      ! VARIABLE: lat
 !      !----------------------------------------
 !
-!      ! Variable name
+!      ! Read  from file
 !      v_name = "lat"
 !
 !      ! Read lat from file
@@ -2805,7 +2095,7 @@ CONTAINS
 !      ! VARIABLE: lev
 !      !----------------------------------------
 !
-!      ! Variable name
+!      ! Read  from file
 !      v_name = "lev"
 !
 !      ! Read lev from file
@@ -2825,7 +2115,7 @@ CONTAINS
 !      ! VARIABLE: time
 !      !----------------------------------------
 !
-!      ! Variable name
+!      ! Read  from file
 !      v_name = "time"
 !
 !      ! Read time from file
@@ -2861,7 +2151,7 @@ CONTAINS
 !      ! VARIABLE: PS
 !      !----------------------------------------
 !
-!      ! Variable name
+!      ! Read  from file
 !      v_name = "PS"
 !
 !      ! Read PS from file
@@ -2885,7 +2175,7 @@ CONTAINS
 !      ! VARIABLE: PV
 !      !----------------------------------------
 !
-!      ! Variable name
+!      ! Read  from file
 !      v_name = "PV"
 !
 !      ! Read PV from file
