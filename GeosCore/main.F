@@ -123,6 +123,7 @@
       USE TIME_MOD,          ONLY : TIMESTAMP_DIAG
       USE TIME_MOD,          ONLY : GET_HOUR,         GET_MINUTE
       USE TIME_MOD,          ONLY : GET_FIRST_I6_TIME
+      USE TIME_MOD,          ONLY : GET_FIRST_I3_TIME
       USE TPCORE_BC_MOD,     ONLY : SAVE_GLOBAL_TPCORE_BC
       USE TRACER_MOD,        ONLY : CHECK_STT, N_TRACERS, STT, TCVV
       USE TRACER_MOD,        ONLY : ITS_AN_AEROSOL_SIM
@@ -172,7 +173,9 @@
       ! For Reading GEOS-5.7.2 met fields
       USE GEOS57_READ_MOD,   ONLY : GEOS57_READ_CN
       USE GEOS57_READ_MOD,   ONLY : GEOS57_READ_A1
-      USE GEOS57_READ_MOD,   ONLY : GEOS57_READ_A3cld
+      USE GEOS57_READ_MOD,   ONLY : GEOS57_READ_A3
+      USE GEOS57_READ_MOD,   ONLY : GEOS57_READ_I3_1
+      USE GEOS57_READ_MOD,   ONLY : GEOS57_READ_I3_2
       
       USE CMN_SIZE_MOD            ! Size parameters
       USE COMODE_LOOP_MOD         ! SMVGEAR common blocks
@@ -327,7 +330,6 @@
       !    Handle GEOS-5.7.2 met fields separately from other met 
       !=================================================================
 #if   defined( GEOS_57 )
-
       PRINT*, '### reading GEOS-5.7.x data'
 
       ! Read time-invariant data
@@ -339,12 +341,12 @@
       
       ! Read 3-hr time averaged data
       DATE = GET_FIRST_A3_TIME()
-      date(2) = 073000
+      CALL GEOS57_READ_A3( DATE(1), DATE(2) )
+
+      ! Read 3-hr time averaged data
+      DATE = GET_FIRST_I3_TIME()
       print*, '### date: ', date
-      CALL GEOS57_READ_A3cld( DATE(1), DATE(2) )
-      !CALL GEOS57_READ_A3dyn( DATE(1), DATE(2) )
-      !CALL GEOS57_READ_A3mstE( DATE(1), DATE(2) )
-      !CALL GEOS57_READ_A3mstC( DATE(1), DATE(2) )
+      CALL GEOS57_READ_I3_1( DATE(1), DATE(2) )
 
       ! Close files
       GOTO 9999

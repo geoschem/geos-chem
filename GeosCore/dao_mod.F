@@ -2325,6 +2325,34 @@
 
 #endif
 
+#if   defined( GEOS_3 ) || defined( GEOS_57 )
+
+      !-----------------------------------------------------------------
+      ! Allocate met field arrays that for GEOS-3 and GEOS-5.7.x
+      !-----------------------------------------------------------------
+
+      ! Specific humidity at start of 6-hr interval
+      ALLOCATE( SPHU1( IIPAR, JJPAR, LLPAR ), STAT=AS )
+      IF ( AS /= 0 ) CALL ALLOC_ERR( 'SPHU1' )
+      SPHU1 = 0d0
+
+      ! Specific humidity at end of 6-hr interval
+      ALLOCATE( SPHU2( IIPAR, JJPAR, LLPAR ), STAT=AS )
+      IF ( AS /= 0 ) CALL ALLOC_ERR( 'SPHU2' )
+      SPHU2 = 0d0
+
+      ! Temperature at start of 6-hr interval
+      ALLOCATE( TMPU1( IIPAR, JJPAR, LLPAR ), STAT=AS ) 
+      IF ( AS /= 0 ) CALL ALLOC_ERR( 'TMPU1' )
+      TMPU1 = 0d0
+
+      ! Temperature at end of 6-hr interval
+      ALLOCATE( TMPU2( IIPAR, JJPAR, LLPAR ), STAT=AS )
+      IF ( AS /= 0 ) CALL ALLOC_ERR( 'TMPU2' )
+      TMPU2 = 0d0
+
+#endif
+
 #if   defined( GEOS_3 )
 
       !-----------------------------------------------------------------
@@ -2350,26 +2378,6 @@
       ALLOCATE( DTRAIN( IIPAR, JJPAR, LLPAR ), STAT=AS )
       IF ( AS /= 0 ) CALL ALLOC_ERR( 'DTRAIN' )
       DTRAIN = 0d0
-
-      ! Specific humidity at start of 6-hr interval
-      ALLOCATE( SPHU1( IIPAR, JJPAR, LLPAR ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'SPHU1' )
-      SPHU1 = 0d0
-
-      ! Specific humidity at end of 6-hr interval
-      ALLOCATE( SPHU2( IIPAR, JJPAR, LLPAR ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'SPHU2' )
-      SPHU2 = 0d0
-
-      ! Temperature at start of 6-hr interval
-      ALLOCATE( TMPU1( IIPAR, JJPAR, LLPAR ), STAT=AS ) 
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'TMPU1' )
-      TMPU1 = 0d0
-
-      ! Temperature at end of 6-hr interval
-      ALLOCATE( TMPU2( IIPAR, JJPAR, LLPAR ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'TMPU2' )
-      TMPU2 = 0d0
 
       ! U-wind at start of 6-hr interval
       ALLOCATE( UWND1( IIPAR, JJPAR, LLPAR ), STAT=AS )

@@ -20,7 +20,6 @@ MODULE GEOS57_READ_MOD
   USE m_netcdf_io_open                    ! netCDF open
   USE m_netcdf_io_get_dimlen              ! netCDF dimension queries
   USE m_netcdf_io_read                    ! netCDF data reads
-  USE m_netcdf_io_readattr                ! netCDF attribute reads
   USE m_netcdf_io_close                   ! netCDF close
 #endif
 
@@ -32,7 +31,7 @@ MODULE GEOS57_READ_MOD
   USE DIAG_MOD,      ONLY : AD67          ! Array for ND67 diagnostic
   USE DIRECTORY_MOD                       ! Directory paths
   USE ERROR_MOD,     ONLY : ERROR_STOP    ! Stop w/ error message
-  USE TIME_MOD,      ONLY : EXPAND_DATE   ! Routine for YMD token replace
+  USE TIME_MOD                            ! Date & time routines
   USE TRANSFER_MOD                        ! Routines for casting 
 
   IMPLICIT NONE
@@ -44,26 +43,27 @@ MODULE GEOS57_READ_MOD
 !
 ! !PRIVATE MEMBER FUNCTIONS:
 !
-  PRIVATE :: CHECK_DIMENSIONS
+  PRIVATE :: Check_Dimensions
+  PRIVATE :: Geos57_Read_A3cld
+  PRIVATE :: Geos57_Read_A3dyn
+  PRIVATE :: Geos57_Read_A3mstC
+  PRIVATE :: Geos57_Read_A3mstE
 !
 ! !PUBLIC MEMBER FUNCTIONS:
 ! 
-  PUBLIC  :: GEOS57_READ_CN
-  PUBLIC  :: GEOS57_READ_A1
-  PUBLIC  :: GEOS57_READ_A3cld
-!  PUBLIC  :: GEOS57_READ_A3DYN
-!  PUBLIC  :: GEOS57_READ_A3MSTC
-!  PUBLIC  :: GEOS57_READ_A3MSTE
-!  PUBLIC  :: GEOS57_READ_I3
+  PUBLIC  :: Geos57_Read_CN
+  PUBLIC  :: Geos57_Read_A1
+  PUBLIC  :: Geos57_Read_A3
+  PUBLIC  :: Geos57_Read_I3_1
+  PUBLIC  :: Geos57_Read_I3_2
 !
-
 ! !REMARKS:
-!  Assumes that you have a netCDF library (either v3 or v4) installed on your 
-!  system. 
+!  Assumes that you have a netCDF library (either v3 or v4) installed on 
+!  your system. 
 !
 ! !REVISION HISTORY:
-!  19 Aug 2010 - R. Yantosca - Initial version, based on i6_read_mod.f
-!  20 Aug 2010 - R. Yantosca - Moved include files to top of module
+!  30 Jan 2012 - R. Yantosca - Initial version
+!  03 Feb 2012 - R. Yantosca - Add Geos57_Read_A3 wrapper function
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -83,32 +83,35 @@ CONTAINS
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE CHECK_DIMENSIONS( lon, lat,  lev, time, time_expected )
+  SUBROUTINE Check_Dimensions( lon, lat, lev, time, time_expected, caller )
 !
 ! !INPUT PARAMETERS:
 !
-    INTEGER, OPTIONAL :: lon             ! Longitude dimension
-    INTEGER, OPTIONAL :: lat             ! Latitude dimension
-    INTEGER, OPTIONAL :: lev             ! Altitude dimension
-    INTEGER, OPTIONAL :: time            ! Time dimension
-    INTEGER, OPTIONAL :: time_expected   ! Expected # of times
-!
+    INTEGER,          OPTIONAL, INTENT(IN)  :: lon            ! Lon dimension
+    INTEGER,          OPTIONAL, INTENT(IN)  :: lat            ! Lat dimension
+    INTEGER,          OPTIONAL, INTENT(IN)  :: lev            ! Alt dimension
+    INTEGER,          OPTIONAL, INTENT(IN)  :: time           ! Time dimension
+    INTEGER,          OPTIONAL, INTENT(IN)  :: time_expected  ! Expected # of 
+                                                              !  time slots
+    CHARACTER(LEN=*), OPTIONAL, INTENT(IN)  :: caller         ! Name of caller
+                                                              !  routine
+! 
 ! !REMARKS:
-!  Call this routine with keyword arguments, i.e.
-!     CALL CHECK_DIMENSION( lon=X, lat=Y, lev=Z, time=T )
+!  Call this routine with keyword arguments, e.g
+!     CALL CHECK_DIMENSION( lon=X,  lat=Y,           lev=Z,         &
+!                           time=T, time_expected=8, caller=caller )
 !
 ! !REVISION HISTORY:
 !  02 Feb 2012 - R. Yantosca - Initial version
+!  03 Feb 2012 - R. Yantosca - Now pass the caller routine name as an argument
 !EOP
 !------------------------------------------------------------------------------
 !BOC
 !
 ! !LOCAL VARIABLES:
 !
-    CHARACTER(LEN=255) :: errMsg, location
-
-    ! routine 
-    location = "CHECK_DIMENSION (geos57_read_mod.F90)"
+    ! Error message string
+    CHARACTER(LEN=255) :: errMsg                  
 
     ! Error check longitude dimension 
     IF ( PRESENT( lon ) ) THEN
@@ -116,7 +119,7 @@ CONTAINS
           WRITE( errMsg, 100 ) lon, IIPAR
  100      FORMAT( 'Longitude dimension (', i5, &
                   ' ) does not match IIPAR ( ', i5, ')!' )
-          CALL ERROR_STOP( errMsg, location )
+          CALL ERROR_STOP( errMsg, caller )
        ENDIF
     ENDIF
 
@@ -127,7 +130,7 @@ CONTAINS
           WRITE( errMsg, 110 ) lat, JJPAR
  110      FORMAT( 'Latitude dimension (', i5, &
                   ' ) does not match JJPAR ( ', i5, ')!' )
-          CALL ERROR_STOP( errMsg, location )
+          CALL ERROR_STOP( errMsg, caller )
        ENDIF
     ENDIF
 
@@ -138,7 +141,7 @@ CONTAINS
           WRITE( errMsg, 120 ) lev, LGLOB
  120      FORMAT( 'Levels dimension (', i5, &
                   ' ) does not match LGLOB ( ', i5, ')!' )
-          CALL ERROR_STOP( errMsg, location )
+          CALL ERROR_STOP( errMsg, caller )
        ENDIF
     ENDIF
 
@@ -148,11 +151,11 @@ CONTAINS
           WRITE( errMsg, 130 ) time, time_expected
  130      FORMAT( 'Time dimension (', i5, &
                   ' ) does not match expected # of times ( ', i5, ')!' )
-          CALL ERROR_STOP( errMsg, location )
+          CALL ERROR_STOP( errMsg, caller )
        ENDIF
     ENDIF
 
-  END SUBROUTINE CHECK_DIMENSIONS
+  END SUBROUTINE Check_Dimensions
 !EOC
 !------------------------------------------------------------------------------
 !          Harvard University Atmospheric Chemistry Modeling Group            !
@@ -167,7 +170,7 @@ CONTAINS
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE GEOS57_READ_CN()
+  SUBROUTINE Geos57_Read_CN()
 !
 ! !USES:
 !
@@ -201,10 +204,11 @@ CONTAINS
     CHARACTER(LEN=255) :: v_name             ! netCDF variable name
     CHARACTER(LEN=255) :: dir                ! Data directory path
     CHARACTER(LEN=255) :: errMsg             ! Error message
+    CHARACTER(LEN=255) :: caller             ! Name of this routine
                                 
     ! Arrays                                 
     INTEGER            :: st3d(3), ct3d(3)   ! Start + count, for 3D arrays 
-    REAL*4             :: TEMP(IIPAR,JJPAR)  ! Temporary data arrray
+    REAL*4             :: Q(IIPAR,JJPAR)     ! Temporary data arrray
 
 #if defined( USE_NETCDF )
 
@@ -212,13 +216,16 @@ CONTAINS
     ! Open the netCDF file
     !======================================================================
 
+    ! Name of this routine (for error printout)
+    caller  = "GEOS57_READ_CN (geos57_read_mod.F90)"
+
     ! Replace time & date tokens in the file name
-    dir = TRIM( GEOS_57_DIR )
-    CALL EXPAND_DATE( dir, 20110101, 000000 )
+    dir     = TRIM( GEOS_57_DIR )
+    CALL Expand_Date( dir, 20110101, 000000 )
 
     ! Replace time & date tokens in the file name
     nc_file = 'GEOS572.YYYYMMDD.CN.4x5.nc'
-    CALL EXPAND_DATE( nc_file, 20110101, 000000 )
+    CALL Expand_Date( nc_file, 20110101, 000000 )
 
     ! Construct complete file path
     nc_file = TRIM( DATA_DIR ) // TRIM( dir ) // TRIM( nc_file )
@@ -232,7 +239,8 @@ CONTAINS
     CALL NcGet_DimLen( fId, 'time',  T )
 
     ! Make sure the dimensions of the file are valid
-    CALL Check_Dimensions( lon=X, lat=Y, time=T, time_expected=1 )
+    CALL Check_Dimensions( lon=X,           lat=Y,         time=T,  &
+                           time_expected=1, caller=caller          )
 
     !======================================================================
     ! Read data from netCDF file
@@ -244,28 +252,28 @@ CONTAINS
 
     ! Read FRLAKE
     v_name = "FRLAKE"
-    CALL NcRd( TEMP, fId, TRIM(v_name), st3d, ct3d )
-    CALL TRANSFER_2D( TEMP, FRLAKE )
+    CALL NcRd( Q, fId, TRIM(v_name), st3d, ct3d )
+    CALL Transfer_2d( Q, FRLAKE )
 
     ! Read FRLAND
     v_name = "FRLAND"
-    CALL NcRd( TEMP, fId, TRIM(v_name), st3d, ct3d )
-    CALL TRANSFER_2D( TEMP, FRLAND )
+    CALL NcRd( Q, fId, TRIM(v_name), st3d, ct3d )
+    CALL Transfer_2d( Q, FRLAND )
 
     ! Read FRLANDIC
     v_name = "FRLANDIC"
-    CALL NcRd( TEMP, fId, TRIM(v_name), st3d, ct3d )
-    CALL TRANSFER_2D( TEMP, FRLANDIC )
+    CALL NcRd( Q, fId, TRIM(v_name), st3d, ct3d )
+    CALL Transfer_2d( Q, FRLANDIC )
     
     ! Read FROCEAN
     v_name = "FROCEAN"
-    CALL NcRd( TEMP, fId, TRIM(v_name), st3d, ct3d )
-    CALL TRANSFER_2D( TEMP, FROCEAN )
+    CALL NcRd( Q, fId, TRIM(v_name), st3d, ct3d )
+    CALL Transfer_2d( Q, FROCEAN )
     
     ! Read PHIS
     v_name = "PHIS"
-    CALL NcRd( TEMP, fId, TRIM(v_name), st3d, ct3d )
-    CALL TRANSFER_2D( TEMP, PHIS )
+    CALL NcRd( Q, fId, TRIM(v_name), st3d, ct3d )
+    CALL Transfer_2d( Q, PHIS )
 
     !======================================================================
     ! Cleanup and quit
@@ -284,7 +292,7 @@ CONTAINS
 
 #endif
 
-  END SUBROUTINE GEOS57_READ_CN
+  END SUBROUTINE Geos57_Read_CN
 !EOC
 !------------------------------------------------------------------------------
 !          Harvard University Atmospheric Chemistry Modeling Group            !
@@ -299,7 +307,7 @@ CONTAINS
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE GEOS57_READ_A1( YYYYMMDD, HHMMSS )
+  SUBROUTINE Geos57_Read_A1( YYYYMMDD, HHMMSS )
 !
 ! !USES:
 
@@ -360,6 +368,23 @@ CONTAINS
 !  dimensions, and units are pre-specified according to the GMAO GEOS-5.7.2
 !  file specification.  Therefore we can "cheat" a little bit and not have
 !  to read netCDF attributes to find what these values are.
+!                                                                             .
+!  Special handling for surface precipitation fields:
+!  ---------------------------------------------------------------------------
+!  In GEOS-5.7.x (and in MERRA), the PRECTOT etc. surface precipitation
+!  met fields fields have units of [kg/m2/s].  In all other GEOS 
+!  versions, PREACC and PRECON have units of [mm/day].  
+!                                                                             .
+!  Therefore, for backwards compatibility with existing code, apply 
+!  the following unit conversion to the GEOS-5 PRECTOT and PRECCON 
+!  fields:
+!                                                                             .
+!      kg  |    m3    | 86400 s | 1000 mm
+!    ------+----------+---------+--------- = 86400 
+!     m2 s |  1000 kg |  day    |   m
+!               ^
+!               |
+!        1 / density of water 
 !
 ! !REVISION HISTORY:
 !  30 Jan 2012 - R. Yantosca - Initial version
@@ -377,10 +402,11 @@ CONTAINS
     CHARACTER(LEN=255) :: v_name             ! netCDF variable name 
     CHARACTER(LEN=255) :: dir                ! Data directory path
     CHARACTER(LEN=255) :: errMsg             ! Error message
+    CHARACTER(LEN=255) :: caller             ! Name of this routine
                                              
     ! Arrays                                 
     INTEGER            :: st3d(3), ct3d(3)   ! Start + count, for 3D arrays 
-    REAL*4             :: TEMP(IIPAR,JJPAR)  ! Temporary data arrray
+    REAL*4             :: Q(IIPAR,JJPAR)     ! Temporary data arrray
 
 #if defined( USE_NETCDF )
 
@@ -388,13 +414,16 @@ CONTAINS
     ! Open the netCDF file
     !======================================================================
 
+    ! Name of this routine (for error printout)
+    caller  = "GEOS57_READ_A1 (geos57_read_mod.F90)"
+
     ! Replace time & date tokens in the file name
-    dir = TRIM( GEOS_57_DIR )
-    CALL EXPAND_DATE( dir, YYYYMMDD, HHMMSS )
+    dir     = TRIM( GEOS_57_DIR )
+    CALL Expand_Date( dir, YYYYMMDD, HHMMSS )
 
     ! Replace time & date tokens in the file name
     nc_file = 'GEOS572.YYYYMMDD.A1.4x5.nc'
-    CALL EXPAND_DATE( nc_file, YYYYMMDD, HHMMSS )
+    CALL Expand_Date( nc_file, YYYYMMDD, HHMMSS )
 
     ! Construct complete file path
     nc_file = TRIM( DATA_DIR ) // TRIM( dir ) // TRIM( nc_file )
@@ -408,7 +437,8 @@ CONTAINS
     CALL NcGet_DimLen( fId, 'time',  T )
 
     ! Make sure the dimensions of the file are valid
-    CALL Check_Dimensions( lon=X, lat=Y, time=T, time_expected=24 )
+    CALL Check_Dimensions( lon=X,            lat=Y,        time=T,  &
+                           time_expected=24, caller=caller         )
     
     !======================================================================
     ! Read data from the netCDF file
@@ -421,7 +451,7 @@ CONTAINS
     IF ( time_index < 1 .or. time_index > T ) THEN
        WRITE( 6, 100 ) time_index
  100   FORMAT( 'Time_index value ', i5, ' must be in the range 1 to 24!' )
-       CALL ERROR_STOP( errMsg, 'GEOS57_READ_A1 (geos57_read_mod.F90)' )
+       CALL Error_Stop( errMsg, caller )
     ENDIF
 
     ! netCDF start & count indices
@@ -430,260 +460,248 @@ CONTAINS
 
     ! Read ALBEDO
     v_name = "ALBEDO"
-    CALL NcRd( TEMP, fId, TRIM(v_name), st3d, ct3d )
-    CALL TRANSFER_2D( TEMP, ALBEDO )
+    CALL NcRd( Q, fId, TRIM(v_name), st3d, ct3d )
+    CALL Transfer_2d( Q, ALBEDO )
 
     ! Read CLDTOT
     v_name = "CLDTOT"
-    CALL NcRd( TEMP, fId, TRIM(v_name), st3d, ct3d )
-    CALL TRANSFER_2D( TEMP, CLDTOT )
+    CALL NcRd( Q, fId, TRIM(v_name), st3d, ct3d )
+    CALL Transfer_2d( Q, CLDTOT )
 
     ! Read EFLUX
     v_name = "EFLUX"
-    CALL NcRd( TEMP, fId, TRIM(v_name), st3d, ct3d )
-    CALL TRANSFER_2D( TEMP, EFLUX )
+    CALL NcRd( Q, fId, TRIM(v_name), st3d, ct3d )
+    CALL Transfer_2d( Q, EFLUX )
 
     ! Read EVAP
     v_name = "EVAP"
-    CALL NcRd( TEMP, fId, TRIM(v_name), st3d, ct3d )
-    CALL TRANSFER_2D( TEMP, EVAP )
+    CALL NcRd( Q, fId, TRIM(v_name), st3d, ct3d )
+    CALL Transfer_2d( Q, EVAP )
 
     ! Read FRSEAICE
     v_name = "FRSEAICE"
-    CALL NcRd( TEMP, fId, TRIM(v_name), st3d, ct3d )
-    CALL TRANSFER_2D( TEMP, FRSEAICE )
+    CALL NcRd( Q, fId, TRIM(v_name), st3d, ct3d )
+    CALL Transfer_2d( Q, FRSEAICE )
 
     ! Read FRSNO
     v_name = "FRSNO"
-    CALL NcRd( TEMP, fId, TRIM(v_name), st3d, ct3d )
-    CALL TRANSFER_2D( TEMP, FRSNO )
+    CALL NcRd( Q, fId, TRIM(v_name), st3d, ct3d )
+    CALL Transfer_2d( Q, FRSNO )
 
     ! Read GRN
     v_name = "GRN"
-    CALL NcRd( TEMP, fId, TRIM(v_name), st3d, ct3d )
-    CALL TRANSFER_2D( TEMP, GRN )
+    CALL NcRd( Q, fId, TRIM(v_name), st3d, ct3d )
+    CALL Transfer_2d( Q, GRN )
 
     ! Read GWETROOT
     v_name = "GWETROOT"
-    CALL NcRd( TEMP, fId, TRIM(v_name), st3d, ct3d )
-    CALL TRANSFER_2D( TEMP, GWETROOT )
+    CALL NcRd( Q, fId, TRIM(v_name), st3d, ct3d )
+    CALL Transfer_2d( Q, GWETROOT )
 
     ! Read GWETTOP
     v_name = "GWETTOP"
-    CALL NcRd( TEMP, fId, TRIM(v_name), st3d, ct3d )
-    CALL TRANSFER_2D( TEMP, GWETTOP )
+    CALL NcRd( Q, fId, TRIM(v_name), st3d, ct3d )
+    CALL Transfer_2d( Q, GWETTOP )
 
     ! Read JFLUX from file
     v_name = "HFLUX"
-    CALL NcRd( TEMP, fId, TRIM(v_name), st3d, ct3d )
-    CALL TRANSFER_2D( TEMP, HFLUX )
+    CALL NcRd( Q, fId, TRIM(v_name), st3d, ct3d )
+    CALL Transfer_2d( Q, HFLUX )
 
     ! Read LAI
     v_name = "LAI"
-    CALL NcRd( TEMP, fId, TRIM(v_name), st3d, ct3d )
-    CALL TRANSFER_2D( TEMP, LAI )
+    CALL NcRd( Q, fId, TRIM(v_name), st3d, ct3d )
+    CALL Transfer_2d( Q, LAI )
 
     ! Read LWI
     v_name = "LWI"
-    CALL NcRd( TEMP, fId, TRIM(v_name), st3d, ct3d )
-    CALL TRANSFER_2D( TEMP, LWI )
+    CALL NcRd( Q, fId, TRIM(v_name), st3d, ct3d )
+    CALL Transfer_2d( Q, LWI )
 
     ! Read LWGNT 
     v_name = "LWGNT"
-    CALL NcRd( TEMP, fId, TRIM(v_name), st3d, ct3d )
-    CALL TRANSFER_2D( TEMP, LWGNT )
+    CALL NcRd( Q, fId, TRIM(v_name), st3d, ct3d )
+    CALL Transfer_2d( Q, LWGNT )
 
     !-----------------------------------------------------------------------
     ! Comment this out for now, this field isn't needed (bmy, 2/2/12)
     !! Read LWTUP
     !v_name = "LWTUP"
-    !CALL NcRd( TEMP, fId, TRIM(v_name), st3d, ct3d )
-    !CALL TRANSFER_2D( TEMP, FRLAKE )
+    !CALL NcRd( Q, fId, TRIM(v_name), st3d, ct3d )
+    !CALL Transfer_2d( Q, FRLAKE )
     !-----------------------------------------------------------------------
 
     ! Read PARDF
     v_name = "PARDF"
-    CALL NcRd( TEMP, fId, TRIM(v_name), st3d, ct3d )
-    CALL TRANSFER_2D( TEMP, PARDF )
+    CALL NcRd( Q, fId, TRIM(v_name), st3d, ct3d )
+    CALL Transfer_2d( Q, PARDF )
 
     ! Read PARDR
     v_name = "PARDR"
-    CALL NcRd( TEMP, fId, TRIM(v_name), st3d, ct3d )
-    CALL TRANSFER_2D( TEMP, PARDR )
+    CALL NcRd( Q, fId, TRIM(v_name), st3d, ct3d )
+    CALL Transfer_2d( Q, PARDR )
 
     ! Read PBLH
     v_name = "PBLH"
-    CALL NcRd( TEMP, fId, TRIM(v_name), st3d, ct3d )
-    CALL TRANSFER_2D( TEMP, PBLH )
+    CALL NcRd( Q, fId, TRIM(v_name), st3d, ct3d )
+    CALL Transfer_2d( Q, PBLH )
 
     ! Read PRECANV
     v_name = "PRECANV"
-    CALL NcRd( TEMP, fId, TRIM(v_name), st3d, ct3d )
-    CALL TRANSFER_2D( TEMP, PRECANV )
+    CALL NcRd( Q, fId, TRIM(v_name), st3d, ct3d )
+    CALL Transfer_2d( Q, PRECANV )
 
     ! Read PRECCON
     v_name = "PRECCON"
     CALL NcRd( PRECCON, fId, TRIM(v_name), st3d, ct3d )
-    CALL TRANSFER_2D( TEMP, PRECCON )
+    CALL Transfer_2d( Q, PRECCON )
 
     ! Read PRECLSC
     v_name = "PRECLSC"
-    CALL NcRd( TEMP, fId, TRIM(v_name), st3d, ct3d )
-    CALL TRANSFER_2D( TEMP, PRECLSC )
+    CALL NcRd( Q, fId, TRIM(v_name), st3d, ct3d )
+    CALL Transfer_2d( Q, PRECLSC )
 
     ! Read PRECSNO
     v_name = "PRECSNO"
-    CALL NcRd( TEMP, fId, TRIM(v_name), st3d, ct3d )
-    CALL TRANSFER_2D( TEMP, PRECSNO )
+    CALL NcRd( Q, fId, TRIM(v_name), st3d, ct3d )
+    CALL Transfer_2d( Q, PRECSNO )
 
     ! Read PRECTOT
     v_name = "PRECTOT"
-    CALL NcRd( TEMP, fId, TRIM(v_name), st3d, ct3d )
-    CALL TRANSFER_2D( TEMP, PRECTOT )
+    CALL NcRd( Q, fId, TRIM(v_name), st3d, ct3d )
+    CALL Transfer_2d( Q, PRECTOT )
 
     !-----------------------------------------------------------------------
     ! Comment this out for now, this field isn't needed (bmy, 2/2/12)
     !! Read QV2M
     !v_name = "QV2M"
-    !CALL NcRd( TEMP, fId, TRIM(v_name), st3d, ct3d )
-    !CALL TRANSFER_2D( TEMP, QV2M )
+    !CALL NcRd( Q, fId, TRIM(v_name), st3d, ct3d )
+    !CALL Transfer_2d( Q, QV2M )
     !-----------------------------------------------------------------------
 
 
     ! Read SEAICE00
     v_name = "SEAICE00"
-    CALL NcRd( TEMP, fId, TRIM(v_name), st3d, ct3d )
-    CALL TRANSFER_2D( TEMP, SEAICE00 )
+    CALL NcRd( Q, fId, TRIM(v_name), st3d, ct3d )
+    CALL Transfer_2d( Q, SEAICE00 )
 
     ! Read SEAICE10
     v_name = "SEAICE10"
-    CALL NcRd( TEMP, fId, TRIM(v_name), st3d, ct3d )
-    CALL TRANSFER_2D( TEMP, SEAICE10 )
+    CALL NcRd( Q, fId, TRIM(v_name), st3d, ct3d )
+    CALL Transfer_2d( Q, SEAICE10 )
 
     ! Read SEAICE20
     v_name = "SEAICE20"
-    CALL NcRd( TEMP, fId, TRIM(v_name), st3d, ct3d )
-    CALL TRANSFER_2D( TEMP, SEAICE20 )
+    CALL NcRd( Q, fId, TRIM(v_name), st3d, ct3d )
+    CALL Transfer_2d( Q, SEAICE20 )
 
     ! Read SEAICE30
     v_name = "SEAICE30"
-    CALL NcRd( TEMP, fId, TRIM(v_name), st3d, ct3d )
-    CALL TRANSFER_2D( TEMP, SEAICE30 )
+    CALL NcRd( Q, fId, TRIM(v_name), st3d, ct3d )
+    CALL Transfer_2d( Q, SEAICE30 )
 
     ! Read SEAICE40
     v_name = "SEAICE40"
-    CALL NcRd( TEMP, fId, TRIM(v_name), st3d, ct3d )
-    CALL TRANSFER_2D( TEMP, SEAICE40 )
+    CALL NcRd( Q, fId, TRIM(v_name), st3d, ct3d )
+    CALL Transfer_2d( Q, SEAICE40 )
 
     ! Read SEAICE50
     v_name = "SEAICE50"
-    CALL NcRd( TEMP, fId, TRIM(v_name), st3d, ct3d )
-    CALL TRANSFER_2D( TEMP, SEAICE50 )
+    CALL NcRd( Q, fId, TRIM(v_name), st3d, ct3d )
+    CALL Transfer_2d( Q, SEAICE50 )
 
     ! Read SEAICE60 
     v_name = "SEAICE60"
-    CALL NcRd( TEMP, fId, TRIM(v_name), st3d, ct3d )
-    CALL TRANSFER_2D( TEMP, SEAICE60 )
+    CALL NcRd( Q, fId, TRIM(v_name), st3d, ct3d )
+    CALL Transfer_2d( Q, SEAICE60 )
 
     ! Read SEAICE70
     v_name = "SEAICE70"
-    CALL NcRd( TEMP, fId, TRIM(v_name), st3d, ct3d )
-    CALL TRANSFER_2D( TEMP, SEAICE70 )
+    CALL NcRd( Q, fId, TRIM(v_name), st3d, ct3d )
+    CALL Transfer_2d( Q, SEAICE70 )
 
     ! Read SEAICE80
     v_name = "SEAICE80"
-    CALL NcRd( TEMP, fId, TRIM(v_name), st3d, ct3d )
-    CALL TRANSFER_2D( TEMP, SEAICE80 )
+    CALL NcRd( Q, fId, TRIM(v_name), st3d, ct3d )
+    CALL Transfer_2d( Q, SEAICE80 )
 
     ! Read SEAICE90
     v_name = "SEAICE90"
-    CALL NcRd( TEMP, fId, TRIM(v_name), st3d, ct3d )
-    CALL TRANSFER_2D( TEMP, SEAICE90 )
+    CALL NcRd( Q, fId, TRIM(v_name), st3d, ct3d )
+    CALL Transfer_2d( Q, SEAICE90 )
 
     ! Read SLP
     v_name = "SLP"
-    CALL NcRd( TEMP, fId, TRIM(v_name), st3d, ct3d )
-    CALL TRANSFER_2D( TEMP, SLP )
+    CALL NcRd( Q, fId, TRIM(v_name), st3d, ct3d )
+    CALL Transfer_2d( Q, SLP )
 
     ! Read SNODP
     v_name = "SNODP"
-    CALL NcRd( TEMP, fId, TRIM(v_name), st3d, ct3d )
-    CALL TRANSFER_2D( TEMP, SNODP )
+    CALL NcRd( Q, fId, TRIM(v_name), st3d, ct3d )
+    CALL Transfer_2d( Q, SNODP )
 
     ! Read SNOMAS
     v_name = "SNOMAS"
-    CALL NcRd( TEMP, fId, TRIM(v_name), st3d, ct3d )
-    CALL TRANSFER_2D( TEMP, SNOMAS )
+    CALL NcRd( Q, fId, TRIM(v_name), st3d, ct3d )
+    CALL Transfer_2d( Q, SNOMAS )
 
     ! Read SWGDN
     v_name = "SWGDN"
-    CALL NcRd( TEMP, fId, TRIM(v_name), st3d, ct3d )
-    CALL TRANSFER_2D( TEMP, SWGDN )
+    CALL NcRd( Q, fId, TRIM(v_name), st3d, ct3d )
+    CALL Transfer_2d( Q, SWGDN )
 
     ! Read TROPPT
     v_name = "TROPPT"
-    CALL NcRd( TEMP, fId, TRIM(v_name), st3d, ct3d )
-    CALL TRANSFER_2D( TEMP, TROPPT )
+    CALL NcRd( Q, fId, TRIM(v_name), st3d, ct3d )
+    CALL Transfer_2d( Q, TROPPT )
 
     ! Read TS
     v_name = "TS"
-    CALL NcRd( TEMP, fId, TRIM(v_name), st3d, ct3d )
-    CALL TRANSFER_2D( TEMP, TS )
+    CALL NcRd( Q, fId, TRIM(v_name), st3d, ct3d )
+    CALL Transfer_2d( Q, TS )
 
     ! Read T2M
     v_name = "T2M"
-    CALL NcRd( TEMP, fId, TRIM(v_name), st3d, ct3d )
-    CALL TRANSFER_2D( TEMP, T2M )
+    CALL NcRd( Q, fId, TRIM(v_name), st3d, ct3d )
+    CALL Transfer_2d( Q, T2M )
 
     ! Read U10M
     v_name = "U10M"
-    CALL NcRd( TEMP, fId, TRIM(v_name), st3d, ct3d )
-    CALL TRANSFER_2D( TEMP, U10M )
+    CALL NcRd( Q, fId, TRIM(v_name), st3d, ct3d )
+    CALL Transfer_2d( Q, U10M )
 
     ! Read USTAR
     v_name = "USTAR"
-    CALL NcRd( TEMP, fId, TRIM(v_name), st3d, ct3d )
-    CALL TRANSFER_2D( TEMP, USTAR )
+    CALL NcRd( Q, fId, TRIM(v_name), st3d, ct3d )
+    CALL Transfer_2d( Q, USTAR )
 
     ! Read V10M
     v_name = "V10M"
-    CALL NcRd( TEMP, fId, TRIM(v_name), st3d, ct3d )
-    CALL TRANSFER_2D( TEMP, V10M )
+    CALL NcRd( Q, fId, TRIM(v_name), st3d, ct3d )
+    CALL Transfer_2d( Q, V10M )
 
     ! Read Z0M
     v_name = "Z0M"
-    CALL NcRd( TEMP, fId, TRIM(v_name), st3d, ct3d )
-    CALL TRANSFER_2D( TEMP, Z0M )
+    CALL NcRd( Q, fId, TRIM(v_name), st3d, ct3d )
+    CALL Transfer_2d( Q, Z0M )
 
     !======================================================================
-    !        %%%%% SPECIAL HANDLING FOR CERTAIN FIELDS %%%%% 
-    !
-    ! In GEOS-5.7.x (and in MERRA), the PRECTOT etc. surface precipi 
-    ! met fields fields have units of [kg/m2/s].  In all other GEOS 
-    ! versions, PREACC and PRECON have units of [mm/day].  
-    !
-    ! Therefore, for backwards compatibility with existing code, 
-    ! apply the following unit conversion to the GEOS-5 PRECTOT and
-    ! PRECCON fields:
-    !
-    !
-    !     kg  |    m3    | 86400 s | 1000 mm
-    !   ------+----------+---------+--------- = 86400 
-    !    m2 s |  1000 kg |  day    |   m
-    !              ^
-    !              |
-    !       1 / density of water 
+    ! Diagnostics, cleanup, and quit
     !======================================================================
+
+    ! Close netCDF file
+    CALL NcCl( fId )
+
+    ! Increment the # of times A1 fields are read from disk
+    CALL Set_Ct_A1( INCREMENT=.TRUE. )
       
-    ! Convert from [kg/m2/s] --> [mm/day]
+    ! Convert surface precip fields from [kg/m2/s] --> [mm/day]
     PRECANV = PRECANV * 86400d0
     PRECCON = PRECCON * 86400d0
     PRECLSC = PRECLSC * 86400d0
     PRECTOT = PRECTOT * 86400d0
 
-    !======================================================================
-    ! ND67 diagnostic: A1 surface fields
-    !======================================================================
+    ! ND67 diagnostic: surface fields
     IF ( ND67 > 0 ) THEN
        AD67(:,:,1 ) = AD67(:,:,1 ) + HFLUX    ! Sensible heat flux [W/m2]
        AD67(:,:,2 ) = AD67(:,:,2 ) + SWGDN    ! Incident SW rad @ sfc [W/m2]
@@ -707,16 +725,9 @@ CONTAINS
        AD67(:,:,23) = AD67(:,:,23) + EFLUX    ! Latent heat flux [W/m2]
     ENDIF
 
-    !======================================================================
-    ! Cleanup and quit
-    !======================================================================
-
-    ! Close netCDF file
-    CALL NcCl( fId )
-
 #endif
 
-  END SUBROUTINE GEOS57_READ_A1
+  END SUBROUTINE Geos57_Read_A1
 !EOC
 !------------------------------------------------------------------------------
 !          Harvard University Atmospheric Chemistry Modeling Group            !
@@ -725,13 +736,55 @@ CONTAINS
 !
 ! !IROUTINE: geos57_read_a3
 !
+! !DESCRIPTION: Convenience wrapper for the following routines which read
+!  3-hour time averaged data from disk:
+! \begin{itemize}
+! \item Geos57_Read_A3cld
+! \item Geos57_Read_A3dyn
+! \item Geos57_Read_A3mstC
+! \item Geos57_Read_A3mstE
+! \end{itemize}
+!
+! !INTERFACE:
+!
+  SUBROUTINE Geos57_Read_A3( YYYYMMDD, HHMMSS )
+!
+! !INPUT PARAMETERS:
+! 
+    INTEGER, INTENT(IN) :: YYYYMMDD    ! GMT date in YYYY/MM/DD format
+    INTEGER, INTENT(IN) :: HHMMSS      ! GMT time in hh:mm:ss   format
+!
+! !REVISION HISTORY:
+!  30 Jan 2012 - R. Yantosca - Initial version
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+!
+    ! Read all the diffeent A3 files
+    CALL Geos57_Read_A3cld ( YYYYMMDD, HHMMSS )
+    CALL Geos57_Read_A3dyn ( YYYYMMDD, HHMMSS )
+    CALL Geos57_Read_A3mstC( YYYYMMDD, HHMMSS )
+    CALL Geos57_Read_A3mstE( YYYYMMDD, HHMMSS )
+
+    ! Increment the # of times that A3 fields have been read
+    CALL Set_Ct_A3( INCREMENT=.TRUE. )
+
+  END SUBROUTINE Geos57_Read_A3
+!EOC
+!------------------------------------------------------------------------------
+!          Harvard University Atmospheric Chemistry Modeling Group            !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: geos57_read_a3cld
+!
 ! !DESCRIPTION: Routine to read variables and attributes from a GEOS-5.7.2
 !  met fields file containing 3-hr time-averaged (A3) data (cloud fields).
 !\\
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE GEOS57_READ_A3cld( YYYYMMDD, HHMMSS )
+  SUBROUTINE Geos57_Read_A3cld( YYYYMMDD, HHMMSS )
 !
 ! !USES:
 !
@@ -762,6 +815,8 @@ CONTAINS
 !------------------------------------------------------------------------------
 !BOC
 !
+! !LOCAL VARIABLES:
+!
     ! Scalars
     INTEGER            :: fId                      ! netCDF file ID
     INTEGER            :: X, Y, Z, T               ! netCDF file dimensions
@@ -770,10 +825,11 @@ CONTAINS
     CHARACTER(LEN=255) :: v_name                   ! netCDF variable name 
     CHARACTER(LEN=255) :: dir                      ! Data directory path
     CHARACTER(LEN=255) :: errMsg                   ! Error message
+    CHARACTER(LEN=255) :: caller                   ! Name of this routine
                                              
     ! Arrays                                 
     INTEGER            :: st4d(4), ct4d(4)         ! Start & count indices
-    REAL*4             :: TEMP(IIPAR,JJPAR,LGLOB)  ! Temporary data arrray
+    REAL*4             :: Q(IIPAR,JJPAR,LGLOB)     ! Temporary data arrray
 
 #if defined( USE_NETCDF )
 
@@ -781,8 +837,11 @@ CONTAINS
     ! Open the netCDF file
     !======================================================================
 
+    ! Name of this routine (for error printout)
+    caller  = "GEOS57_READ_A3cld (geos57_read_mod.F90)"
+
     ! Replace time & date tokens in the file name
-    dir = TRIM( GEOS_57_DIR )
+    dir     = TRIM( GEOS_57_DIR )
     CALL EXPAND_DATE( dir, YYYYMMDD, HHMMSS )
 
     ! Replace time & date tokens in the file name
@@ -802,7 +861,163 @@ CONTAINS
     CALL NcGet_DimLen( fId, 'time',  T )
 
     ! Make sure the dimensions of the file are valid
-    CALL Check_Dimensions( lon=X, lat=Y, lev=Z, time=T, time_expected=8 )
+    CALL Check_Dimensions( lon=X,  lat=Y,           lev=Z,         &
+                           time=T, time_expected=8, caller=caller )
+
+    !======================================================================
+    ! Read data from the netCDF file
+    !======================================================================
+    
+    ! Find the proper time-slice to read from disk
+    time_index = ( HHMMSS / 030000 ) + 1
+
+    ! Stop w/ error if the time index is invalid
+    IF ( time_index < 1 .or. time_index > T ) THEN
+       WRITE( 6, 100 ) time_index
+ 100   FORMAT( 'Time_index value ', i5, ' must be in the range 1 to 8!' )
+       CALL ERROR_STOP( errMsg, caller )
+    ENDIF
+
+    ! netCDF start & count indices
+    st4d      = (/ 1,     1,     1,     time_index /)      
+    ct4d      = (/ IIPAR, JJPAR, LGLOB, 1          /)
+
+    ! Read CLOUD
+    v_name = "CLOUD"
+    CALL NcRd( Q, fId, TRIM(v_name), st4d, ct4d )
+    CALL TRANSFER_A6( Q, CLOUD )
+    
+    ! Read OPTDEPTH
+    v_name = "OPTDEPTH"
+    CALL NcRd( Q, fId, TRIM(v_name), st4d, ct4d )
+    CALL TRANSFER_A6( Q, OPTDEPTH )
+
+    ! Read QI
+    v_name = "QI"
+    CALL NcRd( Q, fId, TRIM(v_name), st4d, ct4d )
+    CALL Transfer_3d( Q, QI )
+
+    ! Read QL
+    v_name = "QL"
+    CALL NcRd( Q, fId, TRIM(v_name), st4d, ct4d )
+    CALL Transfer_3d( Q, QL )
+
+    ! Read TAUCLI
+    v_name = "TAUCLI"
+    CALL NcRd( Q, fId, TRIM(v_name), st4d, ct4d )
+    CALL Transfer_3d( Q, TAUCLI )
+
+    ! Read TAUCLW
+    v_name = "TAUCLW"
+    CALL NcRd( Q, fId, TRIM(v_name), st4d, ct4d )
+    CALL Transfer_3d( Q, TAUCLI )
+
+    !======================================================================
+    ! Diagnostics, cleanup, and quit
+    !======================================================================
+
+    ! Close netCDF file
+    CALL NcCl( fId )
+
+#endif
+
+  END SUBROUTINE GEOS57_READ_A3cld
+!EOC
+!------------------------------------------------------------------------------
+!          Harvard University Atmospheric Chemistry Modeling Group            !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: geos57_read_a3dyn
+!
+! !DESCRIPTION: Routine to read variables and attributes from a GEOS-5.7.2
+!  met fields file containing 3-hr time-averaged (A3) data (dynamics fields).
+!\\
+!\\
+! !INTERFACE:
+!
+  SUBROUTINE GEOS57_READ_A3dyn( YYYYMMDD, HHMMSS )
+!
+! !USES:
+!
+    USE DAO_MOD, ONLY : CLDTOPS 
+    USE DAO_MOD, ONLY : CMFMC
+    USE DAO_MOD, ONLY : DTRAIN
+   !USE DAO_MOD, ONLY : OMEGA
+    USE DAO_MOD, ONLY : RH
+    USE DAO_MOD, ONLY : U      => UWND
+    USE DAO_MOD, ONLY : V      => VWND
+!
+! !INPUT PARAMETERS:
+! 
+    INTEGER, INTENT(IN) :: YYYYMMDD    ! GMT date in YYYY/MM/DD format
+    INTEGER, INTENT(IN) :: HHMMSS      ! GMT time in hh:mm:ss   format
+!
+! !REMARKS:
+!  This routine was automatically generated by the Perl script ncCodeRead, 
+!  and was subsequently hand-edited for compatibility with GEOS-Chem.
+!                                                                             .
+!  Even though the netCDF file is self-describing, the GEOS-5.7.2 data, 
+!  dimensions, and units are pre-specified according to the GMAO GEOS-5.7.2
+!  file specification.  Therefore we can "cheat" a little bit and not have
+!  to read netCDF attributes to find what these values are.
+!
+! !REVISION HISTORY:
+!  30 Jan 2012 - R. Yantosca - Initial version
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+!
+! !LOCAL VARIABLES:
+!
+    ! Scalars
+    INTEGER            :: fId                      ! netCDF file ID
+    INTEGER            :: I, J, L                  ! Loop indices
+    INTEGER            :: X, Y, Z, T               ! netCDF file dimensions
+    INTEGER            :: time_index               ! Read this slice of data
+    CHARACTER(LEN=255) :: nc_file                  ! netCDF file name
+    CHARACTER(LEN=255) :: v_name                   ! netCDF variable name 
+    CHARACTER(LEN=255) :: dir                      ! Data directory path
+    CHARACTER(LEN=255) :: errMsg                   ! Error message
+    CHARACTER(LEN=255) :: caller                   ! Name of this routine
+                                             
+    ! Arrays                                 
+    INTEGER            :: st4d(4), ct4d(4)         ! Start & count indices
+    REAL*4             :: Q (IIPAR,JJPAR,LGLOB  )  ! Temporary data arrray
+    REAL*4             :: Qe(IIPAR,JJPAR,LGLOB+1)  ! Temporary data arrray
+
+#if defined( USE_NETCDF )
+
+    !======================================================================
+    ! Open the netCDF file
+    !======================================================================
+
+    ! Name of this routine (for error printout)
+    caller  = "GEOS57_READ_A3dyn (geos57_read_mod.F90)"
+
+    ! Replace time & date tokens in the file name
+    dir     = TRIM( GEOS_57_DIR )
+    CALL EXPAND_DATE( dir, YYYYMMDD, HHMMSS )
+
+    ! Replace time & date tokens in the file name
+    nc_file = 'GEOS572.YYYYMMDD.A3dyn.4x5.nc'
+    CALL EXPAND_DATE( nc_file, YYYYMMDD, HHMMSS )
+
+    ! Construct complete file path
+    nc_file = TRIM( DATA_DIR ) // TRIM( dir ) // TRIM( nc_file )
+    
+    ! Open netCDF file
+    CALL NcOp_Rd( fId, TRIM( nc_file ) )
+
+    ! Read the dimensions from the netCDF file
+    CALL NcGet_DimLen( fId, 'lon',   X )
+    CALL NcGet_DimLen( fId, 'lat',   Y )
+    CALL NcGet_DimLen( fId, 'lev',   Z )
+    CALL NcGet_DimLen( fId, 'time',  T )
+
+    ! Make sure the dimensions of the file are valid
+    CALL Check_Dimensions( lon=X,  lat=Y,           lev=Z,         &
+                           time=T, time_expected=8, caller=caller )
 
     !======================================================================
     ! Read data from the netCDF file
@@ -818,39 +1033,219 @@ CONTAINS
        CALL ERROR_STOP( errMsg, 'GEOS57_READ_A1 (geos57_read_mod.F90)' )
     ENDIF
 
+    !--------------------------------
+    ! Read data on level edges
+    !--------------------------------
+
+    ! netCDF start & count indices
+    st4d      = (/ 1,     1,     1,       time_index /)      
+    ct4d      = (/ IIPAR, JJPAR, LGLOB+1, 1          /)
+
+    ! Read CMFMC
+    v_name = "CMFMC"
+    CALL NcRd( Qe, fId, TRIM(v_name), st4d, ct4d )
+    CALL Transfer_3d_Lp1( Qe, CMFMC )
+
+    !--------------------------------
+    ! Read data on level centers
+    !--------------------------------
+
+    ! netCDF start & count indices
+    st4d      = (/ 1,     1,     1,       time_index /)      
+    ct4d      = (/ IIPAR, JJPAR, LGLOB,   1          /)
+
+    ! Read DTRAIN
+    v_name = "DTRAIN"
+    CALL NcRd( Q, fId, TRIM(v_name), st4d, ct4d )
+    CALL Transfer_3d( Q, DTRAIN )
+
+    !! Read OMEGA  from file
+    !v_name = "OMEGA"
+    !CALL NcRd( Q, fId, TRIM(v_name), st4d, ct4d )
+    !CALL Transfer_3d( Q, OMEGA )
+
+    ! Read RH
+    v_name = "RH"
+    CALL NcRd( Q, fId, TRIM(v_name), st4d, ct4d )
+    CALL Transfer_3d( Q, RH )
+
+    ! Read U
+    v_name = "U"
+    CALL NcRd( Q, fId, TRIM(v_name), st4d, ct4d )
+    CALL Transfer_3d( Q, U )
+
+    ! Read V
+    v_name = "V"
+    CALL NcRd( Q, fId, TRIM(v_name), st4d, ct4d )
+    CALL Transfer_3d( Q, V )
+
+    !======================================================================
+    ! Diagnostics, cleanup, and quit
+    !======================================================================
+    
+    ! CLDTOPS = highest location of CMFMC in the column (I,J)
+    DO J = 1, JJPAR
+    DO I = 1, IIPAR
+       CLDTOPS(I,J) = 1
+       DO L = LLPAR, 1, -1
+          IF ( CMFMC(I,J,L) > 0d0 ) THEN
+             CLDTOPS(I,J) = L + 1
+             EXIT
+          ENDIF
+       ENDDO
+    ENDDO
+    ENDDO
+
+    ! ND66 diagnostic: U, V, CMFMC, DTRAIN met fields
+    IF ( ND66 > 0 ) THEN
+       AD66(:,:,1:LD66,1) = AD66(:,:,1:LD66,1) + U     (:,:,1:LD66) ! [m/s    ]
+       AD66(:,:,1:LD66,2) = AD66(:,:,1:LD66,2) + V     (:,:,1:LD66) ! [m/s    ]
+       AD66(:,:,1:LD66,5) = AD66(:,:,1:LD66,5) + CMFMC (:,:,1:LD66) ! [kg/m2/s]
+       AD66(:,:,1:LD66,6) = AD66(:,:,1:LD66,6) + DTRAIN(:,:,1:LD66) ! [kg/m2/s]
+    ENDIF
+
+    ! ND67 diagnostic: CLDTOPS
+    IF ( ND67 > 0 ) THEN
+       AD67(:,:,16) = AD67(:,:,16) + CLDTOPS                        ! [levels]
+    ENDIF
+
+    ! Close netCDF file
+    CALL NcCl( fId )
+
+#endif
+
+  END SUBROUTINE GEOS57_READ_A3dyn
+!EOC
+!------------------------------------------------------------------------------
+!          Harvard University Atmospheric Chemistry Modeling Group            !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: geos57_read_a3mstc
+!
+! !DESCRIPTION: Routine to read variables and attributes from a GEOS-5.7.2
+!  met fields file containing 3-hr time-averaged (A3) data (moist fields,
+!  saved on level centers).
+!\\
+!\\
+! !INTERFACE:
+!
+  SUBROUTINE GEOS57_READ_A3mstC( YYYYMMDD, HHMMSS )
+!
+! !USES:
+!
+    USE DAO_MOD, ONLY : DQRCU
+    USE DAO_MOD, ONLY : DQRLSAN
+    USE DAO_MOD, ONLY : REEVAPCN
+    USE DAO_MOD, ONLY : REEVAPLS
+!
+! !INPUT PARAMETERS:
+! 
+    INTEGER, INTENT(IN) :: YYYYMMDD    ! GMT date in YYYY/MM/DD format
+    INTEGER, INTENT(IN) :: HHMMSS      ! GMT time in hh:mm:ss   format
+!
+! !REMARKS:
+!  This routine was automatically generated by the Perl script ncCodeRead, 
+!  and was subsequently hand-edited for compatibility with GEOS-Chem.
+!                                                                             .
+!  Even though the netCDF file is self-describing, the GEOS-5.7.2 data, 
+!  dimensions, and units are pre-specified according to the GMAO GEOS-5.7.2
+!  file specification.  Therefore we can "cheat" a little bit and not have
+!  to read netCDF attributes to find what these values are.
+!
+! !REVISION HISTORY:
+!  30 Jan 2012 - R. Yantosca - Initial version
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+!
+! !LOCAL VARIABLES:
+!
+    ! Scalars
+    INTEGER            :: fId                      ! netCDF file ID
+    INTEGER            :: I, J, L                  ! Loop indices
+    INTEGER            :: X, Y, Z, T               ! netCDF file dimensions
+    INTEGER            :: time_index               ! Read this slice of data
+    CHARACTER(LEN=255) :: nc_file                  ! netCDF file name
+    CHARACTER(LEN=255) :: v_name                   ! netCDF variable name 
+    CHARACTER(LEN=255) :: dir                      ! Data directory path
+    CHARACTER(LEN=255) :: errMsg                   ! Error message
+    CHARACTER(LEN=255) :: caller                   ! Name of this routine
+                                    
+    ! Arrays                                 
+    INTEGER            :: st4d(4), ct4d(4)         ! Start & count indices
+    REAL*4             :: Q (IIPAR,JJPAR,LGLOB)    ! Temporary data arrray
+
+#if defined( USE_NETCDF )
+
+    !======================================================================
+    ! Open the netCDF file
+    !======================================================================
+
+    ! Name of this routine (for error printout)
+    caller  = "GEOS57_READ_A3mstC (geos57_read_mod.F90)"
+
+    ! Replace time & date tokens in the file name
+    dir     = TRIM( GEOS_57_DIR )
+    CALL EXPAND_DATE( dir, YYYYMMDD, HHMMSS )
+
+    ! Replace time & date tokens in the file name
+    nc_file = 'GEOS572.YYYYMMDD.A3mstC.4x5.nc'
+    CALL EXPAND_DATE( nc_file, YYYYMMDD, HHMMSS )
+
+    ! Construct complete file path
+    nc_file = TRIM( DATA_DIR ) // TRIM( dir ) // TRIM( nc_file )
+    
+    ! Open netCDF file
+    CALL NcOp_Rd( fId, TRIM( nc_file ) )
+
+    ! Read the dimensions from the netCDF file
+    CALL NcGet_DimLen( fId, 'lon',   X )
+    CALL NcGet_DimLen( fId, 'lat',   Y )
+    CALL NcGet_DimLen( fId, 'lev',   Z )
+    CALL NcGet_DimLen( fId, 'time',  T )
+
+    ! Make sure the dimensions of the file are valid
+    CALL Check_Dimensions( lon=X,  lat=Y,           lev=Z,         &
+                           time=T, time_expected=8, caller=caller )
+
+    !======================================================================
+    ! Read data from the netCDF file
+    !======================================================================
+    
+    ! Find the proper time-slice to read from disk
+    time_index = ( HHMMSS / 030000 ) + 1
+
+    ! Stop w/ error if the time index is invalid
+    IF ( time_index < 1 .or. time_index > T ) THEN
+       WRITE( 6, 100 ) time_index
+ 100   FORMAT( 'Time_index value ', i5, ' must be in the range 1 to 8!' )
+       CALL Error_Stop( errMsg, caller )
+    ENDIF
+
     ! netCDF start & count indices
     st4d      = (/ 1,     1,     1,     time_index /)      
     ct4d      = (/ IIPAR, JJPAR, LGLOB, 1          /)
 
-    ! Read CLOUD
-    v_name = "CLOUD"
-    CALL NcRd( TEMP, fId, TRIM(v_name), st4d, ct4d )
-    CALL TRANSFER_A6( TEMP, CLOUD )
-    
-    ! Read OPTDEPTH
-    v_name = "OPTDEPTH"
-    CALL NcRd( TEMP, fId, TRIM(v_name), st4d, ct4d )
-    CALL TRANSFER_A6( TEMP, OPTDEPTH )
+    ! Read DQRCU  from file
+    v_name = "DQRCU"
+    CALL NcRd( Q, fId, TRIM(v_name), st4d, ct4d )
+    CALL Transfer_3d( Q, DQRCU )
 
-    ! Read QI
-    v_name = "QI"
-    CALL NcRd( TEMP, fId, TRIM(v_name), st4d, ct4d )
-    CALL TRANSFER_3D( TEMP, QI )
+    ! Read DQRLSAN
+    v_name = "DQRLSAN"
+    CALL NcRd( Q, fId, TRIM(v_name), st4d, ct4d )
+    CALL Transfer_3d( Q, DQRLSAN )
 
-    ! Read QL
-    v_name = "QL"
-    CALL NcRd( TEMP, fId, TRIM(v_name), st4d, ct4d )
-    CALL TRANSFER_3D( TEMP, QL )
+    ! Read REEVAPCN
+    v_name = "REEVAPCN"
+    CALL NcRd( Q, fId, TRIM(v_name), st4d, ct4d )
+    CALL Transfer_3d( Q, REEVAPCN )
 
-    ! Read TAUCLI
-    v_name = "TAUCLI"
-    CALL NcRd( TEMP, fId, TRIM(v_name), st4d, ct4d )
-    CALL TRANSFER_3D( TEMP, TAUCLI )
-
-    ! Read TAUCLW
-    v_name = "TAUCLW"
-    CALL NcRd( TEMP, fId, TRIM(v_name), st4d, ct4d )
-    CALL TRANSFER_3D( TEMP, TAUCLI )
+    ! Read  from file
+    v_name = "REEVAPLS"
+    CALL NcRd( Q, fId, TRIM(v_name), st4d, ct4d )
+    CALL Transfer_3d( Q, REEVAPLS )
 
     !======================================================================
     ! Cleanup and quit
@@ -861,1152 +1256,484 @@ CONTAINS
 
 #endif
 
-  END SUBROUTINE GEOS57_READ_A3cld
+  END SUBROUTINE GEOS57_READ_A3mstC
 !EOC
-!!------------------------------------------------------------------------------
-!!          Harvard University Atmospheric Chemistry Modeling Group            !
-!!------------------------------------------------------------------------------
-!!BOP
-!!
-!! !IROUTINE: read_netcdf_file
-!!
-!! !DESCRIPTION: Routine to read variables and attributes from a netCDF
-!!  file.  This routine was automatically generated by the Perl script
-!!  NcdfUtilities/perl/ncCodeRead.
-!!\
-!!\
-!! !INTERFACE:
-!!
-!      SUBROUTINE READ_FROM_NETCDF_FILE( fId )
-!!
-!! !USES:
-!!
-!      ! Modules for netCDF read
-!      USE m_netcdf_io_open
-!      USE m_netcdf_io_get_dimlen
-!      USE m_netcdf_io_read
-!      USE m_netcdf_io_readattr
-!      USE m_netcdf_io_close
-!
-!      IMPLICIT NONE
-!
-!#     include "netcdf.inc"
-!!
-!! !OUTPUT PARAMETERS:
-!!   
-!      INTEGER, INTENT(INOUT) :: fId    ! netCDF file ID
-!!
-!! !REMARKS:
-!!  Assumes that you have:
-!!  (1) A netCDF library (either v3 or v4) installed on your system
-!!  (2) The NcdfUtilities package (from Bob Yantosca) source code
-!!                                                                             .
-!!  Although this routine was generated automatically, some further
-!!  hand-editing may be required (i.e. to  specify the size of parameters, 
-!!  and/or to assign values to variables.  Also, you can decide how to handle
-!!  the variable attributes (or delete calls for reading attributes that you
-!!  do not need).
-!!
-!! !REVISION HISTORY:
-!!  30 Jan 2012 - R. Yantosca - Initial version
-!!EOP
-!!------------------------------------------------------------------------------
-!!BOC
-!!
-!! !LOCAL VARIABLES:
-!!
-!      !=================================================================
-!      ! Variable declarations
-!      !=================================================================
-!
-!      ! Data arrays
-!      REAL*4             :: lon(IIPAR)
-!      REAL*4             :: lat(JJPAR)
-!      REAL*4             :: lev(LLPAR)
-!      INTEGER            :: time(1)
-!      REAL*4             :: CMFMC(IIPAR,JJPAR,LLPAR+1,1)
-!      REAL*4             :: DTRAIN(IIPAR,JJPAR,LLPAR,1)
-!      REAL*4             :: OMEGA(IIPAR,JJPAR,LLPAR,1)
-!      REAL*4             :: RH(IIPAR,JJPAR,LLPAR,1)
-!      REAL*4             :: U(IIPAR,JJPAR,LLPAR,1)
-!      REAL*4             :: V(IIPAR,JJPAR,LLPAR,1)
-!
-!      ! Character strings
-!      CHARACTER(LEN=255) :: nc_file            ! netCDF file name
-!      CHARACTER(LEN=255) :: v_name             ! netCDF variable name 
-!      CHARACTER(LEN=255) :: a_name             ! netCDF attribute name
-!      CHARACTER(LEN=255) :: a_val              ! netCDF attribute value
-!
-!      ! Arrays for netCDF start and count values
-!      INTEGER            :: st1d(1), ct1d(1)   ! For 1D arrays    
-!      INTEGER            :: st2d(2), ct2d(2)   ! For 2D arrays 
-!      INTEGER            :: st3d(3), ct3d(3)   ! For 3D arrays 
-!      INTEGER            :: st4d(4), ct4d(4)   ! For 4D arrays 
-!      INTEGER            :: st5d(5), ct5d(5)   ! For 5D arrays 
-!      INTEGER            :: st6d(6), ct6d(6)   ! For 6D arrays 
-!
-!      !=================================================================
-!      ! Open and read data from the netCDF file
-!      !=================================================================
-!
-!      ! Open netCDF file
-!      nc_file = 'GEOS572.YYYYMMDD.A3dyn.4x5.nc'
-!      CALL Ncop_Rd( fId, TRIM(nc_file) )
-!
-!      !----------------------------------------
-!      ! VARIABLE: lon
-!      !----------------------------------------
-!
-!      ! Read  from file
-!      v_name = "lon"
-!
-!      ! Read lon from file
-!      st1d   = (/ 1 /)
-!      ct1d   = (/ IIPAR /)
-!      CALL NcRd( lon, fId, TRIM(v_name), st1d, ct1d )
-!
-!      ! Read the lon:long_name attribute
-!      a_name = "long_name"
-!      CALL NcGet_Var_Attributes( fId,TRIM(v_name),TRIM(a_name),a_val )
-!
-!      ! Read the lon:units attribute
-!      a_name = "units"
-!      CALL NcGet_Var_Attributes( fId,TRIM(v_name),TRIM(a_name),a_val )
-!
-!      !----------------------------------------
-!      ! VARIABLE: lat
-!      !----------------------------------------
-!
-!      ! Read  from file
-!      v_name = "lat"
-!
-!      ! Read lat from file
-!      st1d   = (/ 1 /)
-!      ct1d   = (/ JJPAR /)
-!      CALL NcRd( lat, fId, TRIM(v_name), st1d, ct1d )
-!
-!      ! Read the lat:long_name attribute
-!      a_name = "long_name"
-!      CALL NcGet_Var_Attributes( fId,TRIM(v_name),TRIM(a_name),a_val )
-!
-!      ! Read the lat:units attribute
-!      a_name = "units"
-!      CALL NcGet_Var_Attributes( fId,TRIM(v_name),TRIM(a_name),a_val )
-!
-!      !----------------------------------------
-!      ! VARIABLE: lev
-!      !----------------------------------------
-!
-!      ! Read  from file
-!      v_name = "lev"
-!
-!      ! Read lev from file
-!      st1d   = (/ 1 /)
-!      ct1d   = (/ LLPAR /)
-!      CALL NcRd( lev, fId, TRIM(v_name), st1d, ct1d )
-!
-!      ! Read the lev:long_name attribute
-!      a_name = "long_name"
-!      CALL NcGet_Var_Attributes( fId,TRIM(v_name),TRIM(a_name),a_val )
-!
-!      ! Read the lev:units attribute
-!      a_name = "units"
-!      CALL NcGet_Var_Attributes( fId,TRIM(v_name),TRIM(a_name),a_val )
-!
-!      !----------------------------------------
-!      ! VARIABLE: time
-!      !----------------------------------------
-!
-!      ! Read  from file
-!      v_name = "time"
-!
-!      ! Read time from file
-!      st1d   = (/ 1 /)
-!      ct1d   = (/ 1 /)
-!      CALL NcRd( time, fId, TRIM(v_name), st1d, ct1d )
-!
-!      ! Read the time:units attribute
-!      a_name = "units"
-!      CALL NcGet_Var_Attributes( fId,TRIM(v_name),TRIM(a_name),a_val )
-!
-!      ! Read the time:delta_t attribute
-!      a_name = "delta_t"
-!      CALL NcGet_Var_Attributes( fId,TRIM(v_name),TRIM(a_name),a_val )
-!
-!      ! Read the time:begin_date attribute
-!      a_name = "begin_date"
-!      CALL NcGet_Var_Attributes( fId,TRIM(v_name),TRIM(a_name),a_val )
-!
-!      ! Read the time:begin_time attribute
-!      a_name = "begin_time"
-!      CALL NcGet_Var_Attributes( fId,TRIM(v_name),TRIM(a_name),a_val )
-!
-!      ! Read the time:time_increment attribute
-!      a_name = "time_increment"
-!      CALL NcGet_Var_Attributes( fId,TRIM(v_name),TRIM(a_name),a_val )
-!
-!      !----------------------------------------
-!      ! VARIABLE: CMFMC
-!      !----------------------------------------
-!
-!      ! Read  from file
-!      v_name = "CMFMC"
-!
-!      ! Read CMFMC from file
-!      st4d   = (/ 1, 1, 1, 1 /)
-!      ct4d   = (/ IIPAR, JJPAR, LLPAR+1, 1 /)
-!      CALL NcRd( CMFMC, fId, TRIM(v_name), st4d, ct4d )
-!
-!      ! Read the CMFMC:long_name attribute
-!      a_name = "long_name"
-!      CALL NcGet_Var_Attributes( fId,TRIM(v_name),TRIM(a_name),a_val )
-!
-!      ! Read the CMFMC:units attribute
-!      a_name = "units"
-!      CALL NcGet_Var_Attributes( fId,TRIM(v_name),TRIM(a_name),a_val )
-!
-!      ! Read the CMFMC:gamap_category attribute
-!      a_name = "gamap_category"
-!      CALL NcGet_Var_Attributes( fId,TRIM(v_name),TRIM(a_name),a_val )
-!
-!      !----------------------------------------
-!      ! VARIABLE: DTRAIN
-!      !----------------------------------------
-!
-!      ! Read  from file
-!      v_name = "DTRAIN"
-!
-!      ! Read DTRAIN from file
-!      st4d   = (/ 1, 1, 1, 1 /)
-!      ct4d   = (/ IIPAR, JJPAR, LLPAR, 1 /)
-!      CALL NcRd( DTRAIN, fId, TRIM(v_name), st4d, ct4d )
-!
-!      ! Read the DTRAIN:long_name attribute
-!      a_name = "long_name"
-!      CALL NcGet_Var_Attributes( fId,TRIM(v_name),TRIM(a_name),a_val )
-!
-!      ! Read the DTRAIN:units attribute
-!      a_name = "units"
-!      CALL NcGet_Var_Attributes( fId,TRIM(v_name),TRIM(a_name),a_val )
-!
-!      ! Read the DTRAIN:gamap_category attribute
-!      a_name = "gamap_category"
-!      CALL NcGet_Var_Attributes( fId,TRIM(v_name),TRIM(a_name),a_val )
-!
-!      !----------------------------------------
-!      ! VARIABLE: OMEGA
-!      !----------------------------------------
-!
-!      ! Read  from file
-!      v_name = "OMEGA"
-!
-!      ! Read OMEGA from file
-!      st4d   = (/ 1, 1, 1, 1 /)
-!      ct4d   = (/ IIPAR, JJPAR, LLPAR, 1 /)
-!      CALL NcRd( OMEGA, fId, TRIM(v_name), st4d, ct4d )
-!
-!      ! Read the OMEGA:long_name attribute
-!      a_name = "long_name"
-!      CALL NcGet_Var_Attributes( fId,TRIM(v_name),TRIM(a_name),a_val )
-!
-!      ! Read the OMEGA:units attribute
-!      a_name = "units"
-!      CALL NcGet_Var_Attributes( fId,TRIM(v_name),TRIM(a_name),a_val )
-!
-!      ! Read the OMEGA:gamap_category attribute
-!      a_name = "gamap_category"
-!      CALL NcGet_Var_Attributes( fId,TRIM(v_name),TRIM(a_name),a_val )
-!
-!      !----------------------------------------
-!      ! VARIABLE: RH
-!      !----------------------------------------
-!
-!      ! Read  from file
-!      v_name = "RH"
-!
-!      ! Read RH from file
-!      st4d   = (/ 1, 1, 1, 1 /)
-!      ct4d   = (/ IIPAR, JJPAR, LLPAR, 1 /)
-!      CALL NcRd( RH, fId, TRIM(v_name), st4d, ct4d )
-!
-!      ! Read the RH:long_name attribute
-!      a_name = "long_name"
-!      CALL NcGet_Var_Attributes( fId,TRIM(v_name),TRIM(a_name),a_val )
-!
-!      ! Read the RH:units attribute
-!      a_name = "units"
-!      CALL NcGet_Var_Attributes( fId,TRIM(v_name),TRIM(a_name),a_val )
-!
-!      ! Read the RH:gamap_category attribute
-!      a_name = "gamap_category"
-!      CALL NcGet_Var_Attributes( fId,TRIM(v_name),TRIM(a_name),a_val )
-!
-!      !----------------------------------------
-!      ! VARIABLE: U
-!      !----------------------------------------
-!
-!      ! Read  from file
-!      v_name = "U"
-!
-!      ! Read U from file
-!      st4d   = (/ 1, 1, 1, 1 /)
-!      ct4d   = (/ IIPAR, JJPAR, LLPAR, 1 /)
-!      CALL NcRd( U, fId, TRIM(v_name), st4d, ct4d )
-!
-!      ! Read the U:long_name attribute
-!      a_name = "long_name"
-!      CALL NcGet_Var_Attributes( fId,TRIM(v_name),TRIM(a_name),a_val )
-!
-!      ! Read the U:units attribute
-!      a_name = "units"
-!      CALL NcGet_Var_Attributes( fId,TRIM(v_name),TRIM(a_name),a_val )
-!
-!      ! Read the U:gamap_category attribute
-!      a_name = "gamap_category"
-!      CALL NcGet_Var_Attributes( fId,TRIM(v_name),TRIM(a_name),a_val )
-!
-!      !----------------------------------------
-!      ! VARIABLE: V
-!      !----------------------------------------
-!
-!      ! Read  from file
-!      v_name = "V"
-!
-!      ! Read V from file
-!      st4d   = (/ 1, 1, 1, 1 /)
-!      ct4d   = (/ IIPAR, JJPAR, LLPAR, 1 /)
-!      CALL NcRd( V, fId, TRIM(v_name), st4d, ct4d )
-!
-!      ! Read the V:long_name attribute
-!      a_name = "long_name"
-!      CALL NcGet_Var_Attributes( fId,TRIM(v_name),TRIM(a_name),a_val )
-!
-!      ! Read the V:units attribute
-!      a_name = "units"
-!      CALL NcGet_Var_Attributes( fId,TRIM(v_name),TRIM(a_name),a_val )
-!
-!      ! Read the V:gamap_category attribute
-!      a_name = "gamap_category"
-!      CALL NcGet_Var_Attributes( fId,TRIM(v_name),TRIM(a_name),a_val )
-!
-!      !=================================================================
-!      ! Cleanup and quit
-!      !=================================================================
-!
-!      ! Close netCDF file
-!      CALL NcCl( fId )
-!
-!      END SUBROUTINE READ_FROM_NETCDF_FILE
-!!EOC
-!!------------------------------------------------------------------------------
-!!          Harvard University Atmospheric Chemistry Modeling Group            !
-!!------------------------------------------------------------------------------
-!!BOP
-!!
-!! !IROUTINE: read_netcdf_file
-!!
-!! !DESCRIPTION: Routine to read variables and attributes from a netCDF
-!!  file.  This routine was automatically generated by the Perl script
-!!  NcdfUtilities/perl/ncCodeRead.
-!!\
-!!\
-!! !INTERFACE:
-!!
-!      SUBROUTINE READ_FROM_NETCDF_FILE( fId )
-!!
-!! !USES:
-!!
-!      ! Modules for netCDF read
-!      USE m_netcdf_io_open
-!      USE m_netcdf_io_get_dimlen
-!      USE m_netcdf_io_read
-!      USE m_netcdf_io_readattr
-!      USE m_netcdf_io_close
-!
-!      IMPLICIT NONE
-!
-!#     include "netcdf.inc"
-!!
-!! !OUTPUT PARAMETERS:
-!!   
-!      INTEGER, INTENT(INOUT) :: fId    ! netCDF file ID
-!!
-!! !REMARKS:
-!!  Assumes that you have:
-!!  (1) A netCDF library (either v3 or v4) installed on your system
-!!  (2) The NcdfUtilities package (from Bob Yantosca) source code
-!!                                                                             .
-!!  Although this routine was generated automatically, some further
-!!  hand-editing may be required (i.e. to  specify the size of parameters, 
-!!  and/or to assign values to variables.  Also, you can decide how to handle
-!!  the variable attributes (or delete calls for reading attributes that you
-!!  do not need).
-!!
-!! !REVISION HISTORY:
-!!  30 Jan 2012 - R. Yantosca - Initial version
-!!EOP
-!!------------------------------------------------------------------------------
-!!BOC
-!!
-!! !LOCAL VARIABLES:
-!!
-!      !=================================================================
-!      ! Variable declarations
-!      !=================================================================
-!
-!      ! Data arrays
-!      REAL*4             :: lon(IIPAR)
-!      REAL*4             :: lat(JJPAR)
-!      REAL*4             :: lev(LLPAR)
-!      INTEGER            :: time(1)
-!      REAL*4             :: DQRCU(IIPAR,JJPAR,LLPAR,1)
-!      REAL*4             :: DQRLSAN(IIPAR,JJPAR,LLPAR,1)
-!      REAL*4             :: REEVAPCN(IIPAR,JJPAR,LLPAR,1)
-!      REAL*4             :: REEVAPLS(IIPAR,JJPAR,LLPAR,1)
-!
-!      ! Character strings
-!      CHARACTER(LEN=255) :: nc_file            ! netCDF file name
-!      CHARACTER(LEN=255) :: v_name             ! netCDF variable name 
-!      CHARACTER(LEN=255) :: a_name             ! netCDF attribute name
-!      CHARACTER(LEN=255) :: a_val              ! netCDF attribute value
-!
-!      ! Arrays for netCDF start and count values
-!      INTEGER            :: st1d(1), ct1d(1)   ! For 1D arrays    
-!      INTEGER            :: st2d(2), ct2d(2)   ! For 2D arrays 
-!      INTEGER            :: st3d(3), ct3d(3)   ! For 3D arrays 
-!      INTEGER            :: st4d(4), ct4d(4)   ! For 4D arrays 
-!      INTEGER            :: st5d(5), ct5d(5)   ! For 5D arrays 
-!      INTEGER            :: st6d(6), ct6d(6)   ! For 6D arrays 
-!
-!      !=================================================================
-!      ! Open and read data from the netCDF file
-!      !=================================================================
-!
-!      ! Open netCDF file
-!      nc_file = 'GEOS572.YYYYMMDD.A3mstC.4x5.nc'
-!      CALL Ncop_Rd( fId, TRIM(nc_file) )
-!
-!      !----------------------------------------
-!      ! VARIABLE: lon
-!      !----------------------------------------
-!
-!      ! Read  from file
-!      v_name = "lon"
-!
-!      ! Read lon from file
-!      st1d   = (/ 1 /)
-!      ct1d   = (/ IIPAR /)
-!      CALL NcRd( lon, fId, TRIM(v_name), st1d, ct1d )
-!
-!      ! Read the lon:long_name attribute
-!      a_name = "long_name"
-!      CALL NcGet_Var_Attributes( fId,TRIM(v_name),TRIM(a_name),a_val )
-!
-!      ! Read the lon:units attribute
-!      a_name = "units"
-!      CALL NcGet_Var_Attributes( fId,TRIM(v_name),TRIM(a_name),a_val )
-!
-!      !----------------------------------------
-!      ! VARIABLE: lat
-!      !----------------------------------------
-!
-!      ! Read  from file
-!      v_name = "lat"
-!
-!      ! Read lat from file
-!      st1d   = (/ 1 /)
-!      ct1d   = (/ JJPAR /)
-!      CALL NcRd( lat, fId, TRIM(v_name), st1d, ct1d )
-!
-!      ! Read the lat:long_name attribute
-!      a_name = "long_name"
-!      CALL NcGet_Var_Attributes( fId,TRIM(v_name),TRIM(a_name),a_val )
-!
-!      ! Read the lat:units attribute
-!      a_name = "units"
-!      CALL NcGet_Var_Attributes( fId,TRIM(v_name),TRIM(a_name),a_val )
-!
-!      !----------------------------------------
-!      ! VARIABLE: lev
-!      !----------------------------------------
-!
-!      ! Read  from file
-!      v_name = "lev"
-!
-!      ! Read lev from file
-!      st1d   = (/ 1 /)
-!      ct1d   = (/ LLPAR /)
-!      CALL NcRd( lev, fId, TRIM(v_name), st1d, ct1d )
-!
-!      ! Read the lev:long_name attribute
-!      a_name = "long_name"
-!      CALL NcGet_Var_Attributes( fId,TRIM(v_name),TRIM(a_name),a_val )
-!
-!      ! Read the lev:units attribute
-!      a_name = "units"
-!      CALL NcGet_Var_Attributes( fId,TRIM(v_name),TRIM(a_name),a_val )
-!
-!      !----------------------------------------
-!      ! VARIABLE: time
-!      !----------------------------------------
-!
-!      ! Read  from file
-!      v_name = "time"
-!
-!      ! Read time from file
-!      st1d   = (/ 1 /)
-!      ct1d   = (/ 1 /)
-!      CALL NcRd( time, fId, TRIM(v_name), st1d, ct1d )
-!
-!      ! Read the time:units attribute
-!      a_name = "units"
-!      CALL NcGet_Var_Attributes( fId,TRIM(v_name),TRIM(a_name),a_val )
-!
-!      ! Read the time:delta_t attribute
-!      a_name = "delta_t"
-!      CALL NcGet_Var_Attributes( fId,TRIM(v_name),TRIM(a_name),a_val )
-!
-!      ! Read the time:begin_date attribute
-!      a_name = "begin_date"
-!      CALL NcGet_Var_Attributes( fId,TRIM(v_name),TRIM(a_name),a_val )
-!
-!      ! Read the time:begin_time attribute
-!      a_name = "begin_time"
-!      CALL NcGet_Var_Attributes( fId,TRIM(v_name),TRIM(a_name),a_val )
-!
-!      ! Read the time:time_increment attribute
-!      a_name = "time_increment"
-!      CALL NcGet_Var_Attributes( fId,TRIM(v_name),TRIM(a_name),a_val )
-!
-!      !----------------------------------------
-!      ! VARIABLE: DQRCU
-!      !----------------------------------------
-!
-!      ! Read  from file
-!      v_name = "DQRCU"
-!
-!      ! Read DQRCU from file
-!      st4d   = (/ 1, 1, 1, 1 /)
-!      ct4d   = (/ IIPAR, JJPAR, LLPAR, 1 /)
-!      CALL NcRd( DQRCU, fId, TRIM(v_name), st4d, ct4d )
-!
-!      ! Read the DQRCU:long_name attribute
-!      a_name = "long_name"
-!      CALL NcGet_Var_Attributes( fId,TRIM(v_name),TRIM(a_name),a_val )
-!
-!      ! Read the DQRCU:units attribute
-!      a_name = "units"
-!      CALL NcGet_Var_Attributes( fId,TRIM(v_name),TRIM(a_name),a_val )
-!
-!      ! Read the DQRCU:gamap_category attribute
-!      a_name = "gamap_category"
-!      CALL NcGet_Var_Attributes( fId,TRIM(v_name),TRIM(a_name),a_val )
-!
-!      !----------------------------------------
-!      ! VARIABLE: DQRLSAN
-!      !----------------------------------------
-!
-!      ! Read  from file
-!      v_name = "DQRLSAN"
-!
-!      ! Read DQRLSAN from file
-!      st4d   = (/ 1, 1, 1, 1 /)
-!      ct4d   = (/ IIPAR, JJPAR, LLPAR, 1 /)
-!      CALL NcRd( DQRLSAN, fId, TRIM(v_name), st4d, ct4d )
-!
-!      ! Read the DQRLSAN:long_name attribute
-!      a_name = "long_name"
-!      CALL NcGet_Var_Attributes( fId,TRIM(v_name),TRIM(a_name),a_val )
-!
-!      ! Read the DQRLSAN:units attribute
-!      a_name = "units"
-!      CALL NcGet_Var_Attributes( fId,TRIM(v_name),TRIM(a_name),a_val )
-!
-!      ! Read the DQRLSAN:gamap_category attribute
-!      a_name = "gamap_category"
-!      CALL NcGet_Var_Attributes( fId,TRIM(v_name),TRIM(a_name),a_val )
-!
-!      !----------------------------------------
-!      ! VARIABLE: REEVAPCN
-!      !----------------------------------------
-!
-!      ! Read  from file
-!      v_name = "REEVAPCN"
-!
-!      ! Read REEVAPCN from file
-!      st4d   = (/ 1, 1, 1, 1 /)
-!      ct4d   = (/ IIPAR, JJPAR, LLPAR, 1 /)
-!      CALL NcRd( REEVAPCN, fId, TRIM(v_name), st4d, ct4d )
-!
-!      ! Read the REEVAPCN:long_name attribute
-!      a_name = "long_name"
-!      CALL NcGet_Var_Attributes( fId,TRIM(v_name),TRIM(a_name),a_val )
-!
-!      ! Read the REEVAPCN:units attribute
-!      a_name = "units"
-!      CALL NcGet_Var_Attributes( fId,TRIM(v_name),TRIM(a_name),a_val )
-!
-!      ! Read the REEVAPCN:gamap_category attribute
-!      a_name = "gamap_category"
-!      CALL NcGet_Var_Attributes( fId,TRIM(v_name),TRIM(a_name),a_val )
-!
-!      !----------------------------------------
-!      ! VARIABLE: REEVAPLS
-!      !----------------------------------------
-!
-!      ! Read  from file
-!      v_name = "REEVAPLS"
-!
-!      ! Read REEVAPLS from file
-!      st4d   = (/ 1, 1, 1, 1 /)
-!      ct4d   = (/ IIPAR, JJPAR, LLPAR, 1 /)
-!      CALL NcRd( REEVAPLS, fId, TRIM(v_name), st4d, ct4d )
-!
-!      ! Read the REEVAPLS:long_name attribute
-!!EOC
-!!------------------------------------------------------------------------------
-!!          Harvard University Atmospheric Chemistry Modeling Group            !
-!!------------------------------------------------------------------------------
-!!BOP
-!!
-!! !IROUTINE: read_netcdf_file
-!!
-!! !DESCRIPTION: Routine to read variables and attributes from a netCDF
-!!  file.  This routine was automatically generated by the Perl script
-!!  NcdfUtilities/perl/ncCodeRead.
-!!\
-!!\
-!! !INTERFACE:
-!!
-!      SUBROUTINE READ_FROM_NETCDF_FILE( fId )
-!!
-!! !USES:
-!!
-!      ! Modules for netCDF read
-!      USE m_netcdf_io_open
-!      USE m_netcdf_io_get_dimlen
-!      USE m_netcdf_io_read
-!      USE m_netcdf_io_readattr
-!      USE m_netcdf_io_close
-!
-!      IMPLICIT NONE
-!
-!#     include "netcdf.inc"
-!!
-!! !OUTPUT PARAMETERS:
-!!   
-!      INTEGER, INTENT(INOUT) :: fId    ! netCDF file ID
-!!
-!! !REMARKS:
-!!  Assumes that you have:
-!!  (1) A netCDF library (either v3 or v4) installed on your system
-!!  (2) The NcdfUtilities package (from Bob Yantosca) source code
-!!                                                                             .
-!!  Although this routine was generated automatically, some further
-!!  hand-editing may be required (i.e. to  specify the size of parameters, 
-!!  and/or to assign values to variables.  Also, you can decide how to handle
-!!  the variable attributes (or delete calls for reading attributes that you
-!!  do not need).
-!!
-!! !REVISION HISTORY:
-!!  30 Jan 2012 - R. Yantosca - Initial version
-!!EOP
-!!------------------------------------------------------------------------------
-!!BOC
-!!
-!! !LOCAL VARIABLES:
-!!
-!      !=================================================================
-!      ! Variable declarations
-!      !=================================================================
-!
-!      ! Data arrays
-!      REAL*4             :: lon(IIPAR)
-!      REAL*4             :: lat(JJPAR)
-!      REAL*4             :: lev(LLPAR+1)
-!      INTEGER            :: time(1)
-!      REAL*4             :: PFICU(IIPAR,JJPAR,)
-!      REAL*4             :: PFILSAN(IIPAR,JJPAR,)
-!      REAL*4             :: PFLCU(IIPAR,JJPAR,)
-!      REAL*4             :: PFLLSAN(IIPAR,JJPAR,)
-!
-!      ! Character strings
-!      CHARACTER(LEN=255) :: nc_file            ! netCDF file name
-!      CHARACTER(LEN=255) :: v_name             ! netCDF variable name 
-!      CHARACTER(LEN=255) :: a_name             ! netCDF attribute name
-!      CHARACTER(LEN=255) :: a_val              ! netCDF attribute value
-!
-!      ! Arrays for netCDF start and count values
-!      INTEGER            :: st1d(1), ct1d(1)   ! For 1D arrays    
-!      INTEGER            :: st2d(2), ct2d(2)   ! For 2D arrays 
-!      INTEGER            :: st3d(3), ct3d(3)   ! For 3D arrays 
-!      INTEGER            :: st4d(4), ct4d(4)   ! For 4D arrays 
-!      INTEGER            :: st5d(5), ct5d(5)   ! For 5D arrays 
-!      INTEGER            :: st6d(6), ct6d(6)   ! For 6D arrays 
-!
-!      !=================================================================
-!      ! Open and read data from the netCDF file
-!      !=================================================================
-!
-!      ! Open netCDF file
-!      nc_file = 'GEOS572.YYYYMMDD.A3mstE.4x5.nc'
-!      CALL Ncop_Rd( fId, TRIM(nc_file) )
-!
-!      !----------------------------------------
-!      ! VARIABLE: lon
-!      !----------------------------------------
-!
-!      ! Read  from file
-!      v_name = "lon"
-!
-!      ! Read lon from file
-!      st1d   = (/ 1 /)
-!      ct1d   = (/ IIPAR /)
-!      CALL NcRd( lon, fId, TRIM(v_name), st1d, ct1d )
-!
-!      ! Read the lon:long_name attribute
-!      a_name = "long_name"
-!      CALL NcGet_Var_Attributes( fId,TRIM(v_name),TRIM(a_name),a_val )
-!
-!      ! Read the lon:units attribute
-!      a_name = "units"
-!      CALL NcGet_Var_Attributes( fId,TRIM(v_name),TRIM(a_name),a_val )
-!
-!      !----------------------------------------
-!      ! VARIABLE: lat
-!      !----------------------------------------
-!
-!      ! Read  from file
-!      v_name = "lat"
-!
-!      ! Read lat from file
-!      st1d   = (/ 1 /)
-!      ct1d   = (/ JJPAR /)
-!      CALL NcRd( lat, fId, TRIM(v_name), st1d, ct1d )
-!
-!      ! Read the lat:long_name attribute
-!      a_name = "long_name"
-!      CALL NcGet_Var_Attributes( fId,TRIM(v_name),TRIM(a_name),a_val )
-!
-!      ! Read the lat:units attribute
-!      a_name = "units"
-!      CALL NcGet_Var_Attributes( fId,TRIM(v_name),TRIM(a_name),a_val )
-!
-!      !----------------------------------------
-!      ! VARIABLE: lev
-!      !----------------------------------------
-!
-!      ! Read  from file
-!      v_name = "lev"
-!
-!      ! Read lev from file
-!      st1d   = (/ 1 /)
-!      ct1d   = (/ LLPAR+1 /)
-!      CALL NcRd( lev, fId, TRIM(v_name), st1d, ct1d )
-!
-!      ! Read the lev:long_name attribute
-!      a_name = "long_name"
-!      CALL NcGet_Var_Attributes( fId,TRIM(v_name),TRIM(a_name),a_val )
-!
-!      ! Read the lev:units attribute
-!      a_name = "units"
-!      CALL NcGet_Var_Attributes( fId,TRIM(v_name),TRIM(a_name),a_val )
-!
-!      !----------------------------------------
-!      ! VARIABLE: time
-!      !----------------------------------------
-!
-!      ! Read  from file
-!      v_name = "time"
-!
-!      ! Read time from file
-!      st1d   = (/ 1 /)
-!      ct1d   = (/ 1 /)
-!      CALL NcRd( time, fId, TRIM(v_name), st1d, ct1d )
-!
-!      ! Read the time:units attribute
-!      a_name = "units"
-!      CALL NcGet_Var_Attributes( fId,TRIM(v_name),TRIM(a_name),a_val )
-!
-!      ! Read the time:delta_t attribute
-!      a_name = "delta_t"
-!      CALL NcGet_Var_Attributes( fId,TRIM(v_name),TRIM(a_name),a_val )
-!
-!      ! Read the time:begin_date attribute
-!      a_name = "begin_date"
-!      CALL NcGet_Var_Attributes( fId,TRIM(v_name),TRIM(a_name),a_val )
-!
-!      ! Read the time:begin_time attribute
-!      a_name = "begin_time"
-!      CALL NcGet_Var_Attributes( fId,TRIM(v_name),TRIM(a_name),a_val )
-!
-!      ! Read the time:time_increment attribute
-!      a_name = "time_increment"
-!      CALL NcGet_Var_Attributes( fId,TRIM(v_name),TRIM(a_name),a_val )
-!
-!      !----------------------------------------
-!      ! VARIABLE: PFICU
-!      !----------------------------------------
-!
-!      ! Read  from file
-!      v_name = "PFICU"
-!
-!      ! Read PFICU from file
-!      st3d   = (/ 1, 1, 1 /)
-!      ct3d   = (/ IIPAR, JJPAR,  /)
-!      CALL NcRd( PFICU, fId, TRIM(v_name), st3d, ct3d )
-!
-!      ! Read the PFICU:long_name attribute
-!      a_name = "long_name"
-!      CALL NcGet_Var_Attributes( fId,TRIM(v_name),TRIM(a_name),a_val )
-!
-!      ! Read the PFICU:units attribute
-!      a_name = "units"
-!      CALL NcGet_Var_Attributes( fId,TRIM(v_name),TRIM(a_name),a_val )
-!
-!      ! Read the PFICU:gamap_category attribute
-!      a_name = "gamap_category"
-!      CALL NcGet_Var_Attributes( fId,TRIM(v_name),TRIM(a_name),a_val )
-!
-!      !----------------------------------------
-!      ! VARIABLE: PFILSAN
-!      !----------------------------------------
-!
-!      ! Read  from file
-!      v_name = "PFILSAN"
-!
-!      ! Read PFILSAN from file
-!      st3d   = (/ 1, 1, 1 /)
-!      ct3d   = (/ IIPAR, JJPAR,  /)
-!      CALL NcRd( PFILSAN, fId, TRIM(v_name), st3d, ct3d )
-!
-!      ! Read the PFILSAN:long_name attribute
-!      a_name = "long_name"
-!      CALL NcGet_Var_Attributes( fId,TRIM(v_name),TRIM(a_name),a_val )
-!
-!      ! Read the PFILSAN:units attribute
-!      a_name = "units"
-!      CALL NcGet_Var_Attributes( fId,TRIM(v_name),TRIM(a_name),a_val )
-!
-!      ! Read the PFILSAN:gamap_category attribute
-!      a_name = "gamap_category"
-!      CALL NcGet_Var_Attributes( fId,TRIM(v_name),TRIM(a_name),a_val )
-!
-!      !----------------------------------------
-!      ! VARIABLE: PFLCU
-!      !----------------------------------------
-!
-!      ! Read  from file
-!      v_name = "PFLCU"
-!
-!      ! Read PFLCU from file
-!      st3d   = (/ 1, 1, 1 /)
-!      ct3d   = (/ IIPAR, JJPAR,  /)
-!      CALL NcRd( PFLCU, fId, TRIM(v_name), st3d, ct3d )
-!
-!      ! Read the PFLCU:long_name attribute
-!      a_name = "long_name"
-!      CALL NcGet_Var_Attributes( fId,TRIM(v_name),TRIM(a_name),a_val )
-!
-!      ! Read the PFLCU:units attribute
-!      a_name = "units"
-!      CALL NcGet_Var_Attributes( fId,TRIM(v_name),TRIM(a_name),a_val )
-!
-!      ! Read the PFLCU:gamap_category attribute
-!      a_name = "gamap_category"
-!      CALL NcGet_Var_Attributes( fId,TRIM(v_name),TRIM(a_name),a_val )
-!
-!      !----------------------------------------
-!      ! VARIABLE: PFLLSAN
-!      !----------------------------------------
-!
-!      ! Read  from file
-!      v_name = "PFLLSAN"
-!
-!      ! Read PFLLSAN from file
-!      st3d   = (/ 1, 1, 1 /)
-!      ct3d   = (/ IIPAR, JJPAR,  /)
-!      CALL NcRd( PFLLSAN, fId, TRIM(v_name), st3d, ct3d )
-!
-!      ! Read the PFLLSAN:long_name attribute
-!      a_name = "long_name"
-!      CALL NcGet_Var_Attributes( fId,TRIM(v_name),TRIM(a_name),a_val )
-!
-!      ! Read the PFLLSAN:units attribute
-!      a_name = "units"
-!      CALL NcGet_Var_Attributes( fId,TRIM(v_name),TRIM(a_name),a_val )
-!
-!      ! Read the PFLLSAN:gamap_category attribute
-!      a_name = "gamap_category"
-!      CALL NcGet_Var_Attributes( fId,TRIM(v_name),TRIM(a_name),a_val )
-!
-!      !=================================================================
-!      ! Cleanup and quit
-!      !=================================================================
-!
-!      ! Close netCDF file
-!      CALL NcCl( fId )
-!
-!      END SUBROUTINE READ_FROM_NETCDF_FILE
-!!EOC
-!
-!      a_name = "long_name"
-!      CALL NcGet_Var_Attributes( fId,TRIM(v_name),TRIM(a_name),a_val )
-!
-!      ! Read the REEVAPLS:units attribute
-!      a_name = "units"
-!      CALL NcGet_Var_Attributes( fId,TRIM(v_name),TRIM(a_name),a_val )
-!
-!      ! Read the REEVAPLS:gamap_category attribute
-!      a_name = "gamap_category"
-!      CALL NcGet_Var_Attributes( fId,TRIM(v_name),TRIM(a_name),a_val )
-!
-!      !=================================================================
-!      ! Cleanup and quit
-!      !=================================================================
-!
-!      ! Close netCDF file
-!      CALL NcCl( fId )
-!
-!      END SUBROUTINE READ_FROM_NETCDF_FILE
-!!EOC
-!!------------------------------------------------------------------------------
-!!          Harvard University Atmospheric Chemistry Modeling Group            !
-!!------------------------------------------------------------------------------
-!!BOP
-!!
-!! !IROUTINE: read_netcdf_file
-!!
-!! !DESCRIPTION: Routine to read variables and attributes from a netCDF
-!!  file.  This routine was automatically generated by the Perl script
-!!  NcdfUtilities/perl/ncCodeRead.
-!!\
-!!\
-!! !INTERFACE:
-!!
-!      SUBROUTINE READ_FROM_NETCDF_FILE( fId )
-!!
-!! !USES:
-!!
-!      ! Modules for netCDF read
-!      USE m_netcdf_io_open
-!      USE m_netcdf_io_get_dimlen
-!      USE m_netcdf_io_read
-!      USE m_netcdf_io_readattr
-!      USE m_netcdf_io_close
-!
-!      IMPLICIT NONE
-!
-!#     include "netcdf.inc"
-!!
-!! !OUTPUT PARAMETERS:
-!!   
-!      INTEGER, INTENT(INOUT) :: fId    ! netCDF file ID
-!!
-!! !REMARKS:
-!!  Assumes that you have:
-!!  (1) A netCDF library (either v3 or v4) installed on your system
-!!  (2) The NcdfUtilities package (from Bob Yantosca) source code
-!!                                                                             .
-!!  Although this routine was generated automatically, some further
-!!  hand-editing may be required (i.e. to  specify the size of parameters, 
-!!  and/or to assign values to variables.  Also, you can decide how to handle
-!!  the variable attributes (or delete calls for reading attributes that you
-!!  do not need).
-!!
-!! !REVISION HISTORY:
-!!  30 Jan 2012 - R. Yantosca - Initial version
-!!EOP
-!!------------------------------------------------------------------------------
-!!BOC
-!!
-!! !LOCAL VARIABLES:
-!!
-!      !=================================================================
-!      ! Variable declarations
-!      !=================================================================
-!
-!      ! Data arrays
-!      REAL*4             :: lon(IIPAR)
-!      REAL*4             :: lat(JJPAR)
-!      REAL*4             :: lev(LLPAR)
-!      INTEGER            :: time(1)
-!      REAL*4             :: PS(IIPAR,JJPAR,1)
-!      REAL*4             :: PV(IIPAR,JJPAR,LLPAR,1)
-!
-!      ! Character strings
-!      CHARACTER(LEN=255) :: nc_file            ! netCDF file name
-!      CHARACTER(LEN=255) :: v_name             ! netCDF variable name 
-!      CHARACTER(LEN=255) :: a_name             ! netCDF attribute name
-!      CHARACTER(LEN=255) :: a_val              ! netCDF attribute value
-!
-!      ! Arrays for netCDF start and count values
-!      INTEGER            :: st1d(1), ct1d(1)   ! For 1D arrays    
-!      INTEGER            :: st2d(2), ct2d(2)   ! For 2D arrays 
-!      INTEGER            :: st3d(3), ct3d(3)   ! For 3D arrays 
-!      INTEGER            :: st4d(4), ct4d(4)   ! For 4D arrays 
-!      INTEGER            :: st5d(5), ct5d(5)   ! For 5D arrays 
-!      INTEGER            :: st6d(6), ct6d(6)   ! For 6D arrays 
-!
-!      !=================================================================
-!      ! Open and read data from the netCDF file
-!      !=================================================================
-!
-!      ! Open netCDF file
-!      nc_file = 'GEOS572.YYYYMMDD.I3.4x5.nc'
-!      CALL Ncop_Rd( fId, TRIM(nc_file) )
-!
-!      !----------------------------------------
-!      ! VARIABLE: lon
-!      !----------------------------------------
-!
-!      ! Read  from file
-!      v_name = "lon"
-!
-!      ! Read lon from file
-!      st1d   = (/ 1 /)
-!      ct1d   = (/ IIPAR /)
-!      CALL NcRd( lon, fId, TRIM(v_name), st1d, ct1d )
-!
-!      ! Read the lon:long_name attribute
-!      a_name = "long_name"
-!      CALL NcGet_Var_Attributes( fId,TRIM(v_name),TRIM(a_name),a_val )
-!
-!      ! Read the lon:units attribute
-!      a_name = "units"
-!      CALL NcGet_Var_Attributes( fId,TRIM(v_name),TRIM(a_name),a_val )
-!
-!      !----------------------------------------
-!      ! VARIABLE: lat
-!      !----------------------------------------
-!
-!      ! Read  from file
-!      v_name = "lat"
-!
-!      ! Read lat from file
-!      st1d   = (/ 1 /)
-!      ct1d   = (/ JJPAR /)
-!      CALL NcRd( lat, fId, TRIM(v_name), st1d, ct1d )
-!
-!      ! Read the lat:long_name attribute
-!      a_name = "long_name"
-!      CALL NcGet_Var_Attributes( fId,TRIM(v_name),TRIM(a_name),a_val )
-!
-!      ! Read the lat:units attribute
-!      a_name = "units"
-!      CALL NcGet_Var_Attributes( fId,TRIM(v_name),TRIM(a_name),a_val )
-!
-!      !----------------------------------------
-!      ! VARIABLE: lev
-!      !----------------------------------------
-!
-!      ! Read  from file
-!      v_name = "lev"
-!
-!      ! Read lev from file
-!      st1d   = (/ 1 /)
-!      ct1d   = (/ LLPAR /)
-!      CALL NcRd( lev, fId, TRIM(v_name), st1d, ct1d )
-!
-!      ! Read the lev:long_name attribute
-!      a_name = "long_name"
-!      CALL NcGet_Var_Attributes( fId,TRIM(v_name),TRIM(a_name),a_val )
-!
-!      ! Read the lev:units attribute
-!      a_name = "units"
-!      CALL NcGet_Var_Attributes( fId,TRIM(v_name),TRIM(a_name),a_val )
-!
-!      !----------------------------------------
-!      ! VARIABLE: time
-!      !----------------------------------------
-!
-!      ! Read  from file
-!      v_name = "time"
-!
-!      ! Read time from file
-!      st1d   = (/ 1 /)
-!      ct1d   = (/ 1 /)
-!      CALL NcRd( time, fId, TRIM(v_name), st1d, ct1d )
-!
-!      ! Read the time:long_name attribute
-!      a_name = "long_name"
-!      CALL NcGet_Var_Attributes( fId,TRIM(v_name),TRIM(a_name),a_val )
-!
-!      ! Read the time:units attribute
-!      a_name = "units"
-!      CALL NcGet_Var_Attributes( fId,TRIM(v_name),TRIM(a_name),a_val )
-!
-!      ! Read the time:delta_t attribute
-!      a_name = "delta_t"
-!      CALL NcGet_Var_Attributes( fId,TRIM(v_name),TRIM(a_name),a_val )
-!
-!      ! Read the time:begin_date attribute
-!      a_name = "begin_date"
-!      CALL NcGet_Var_Attributes( fId,TRIM(v_name),TRIM(a_name),a_val )
-!
-!      ! Read the time:begin_time attribute
-!      a_name = "begin_time"
-!      CALL NcGet_Var_Attributes( fId,TRIM(v_name),TRIM(a_name),a_val )
-!
-!      ! Read the time:time_increment attribute
-!      a_name = "time_increment"
-!      CALL NcGet_Var_Attributes( fId,TRIM(v_name),TRIM(a_name),a_val )
-!
-!      !----------------------------------------
-!      ! VARIABLE: PS
-!      !----------------------------------------
-!
-!      ! Read  from file
-!      v_name = "PS"
-!
-!      ! Read PS from file
-!      st3d   = (/ 1, 1, 1 /)
-!      ct3d   = (/ IIPAR, JJPAR, 1 /)
-!      CALL NcRd( PS, fId, TRIM(v_name), st3d, ct3d )
-!
-!      ! Read the PS:long_name attribute
-!      a_name = "long_name"
-!      CALL NcGet_Var_Attributes( fId,TRIM(v_name),TRIM(a_name),a_val )
-!
-!      ! Read the PS:units attribute
-!      a_name = "units"
-!      CALL NcGet_Var_Attributes( fId,TRIM(v_name),TRIM(a_name),a_val )
-!
-!      ! Read the PS:gamap_category attribute
-!      a_name = "gamap_category"
-!      CALL NcGet_Var_Attributes( fId,TRIM(v_name),TRIM(a_name),a_val )
-!
-!      !----------------------------------------
-!      ! VARIABLE: PV
-!      !----------------------------------------
-!
-!      ! Read  from file
-!      v_name = "PV"
-!
-!      ! Read PV from file
-!      st4d   = (/ 1, 1, 1, 1 /)
-!      ct4d   = (/ IIPAR, JJPAR, LLPAR, 1 /)
-!      CALL NcRd( PV, fId, TRIM(v_name), st4d, ct4d )
-!
-!      ! Read the PV:long_name attribute
-!      a_name = "long_name"
-!      CALL NcGet_Var_Attributes( fId,TRIM(v_name),TRIM(a_name),a_val )
-!
-!      ! Read the PV:units attribute
-!      a_name = "units"
-!      CALL NcGet_Var_Attributes( fId,TRIM(v_name),TRIM(a_name),a_val )
-!
-!      ! Read the PV:gamap_category attribute
-!      a_name = "gamap_category"
-!      CALL NcGet_Var_Attributes( fId,TRIM(v_name),TRIM(a_name),a_val )
-!
-!      !=================================================================
-!      ! Cleanup and quit
-!      !=================================================================
-!
-!      ! Close netCDF file
-!      CALL NcCl( fId )
-!
-!      END SUBROUTINE READ_FROM_NETCDF_FILE
+!------------------------------------------------------------------------------
+!          Harvard University Atmospheric Chemistry Modeling Group            !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: geos57_read_a3mste
+!
+! !DESCRIPTION: Routine to read variables and attributes from a GEOS-5.7.2
+!  met fields file containing 3-hr time-averaged (A3) data (moist fields,
+!  saved on level edges).
+!\\
+!\\
+! !INTERFACE:
+!
+  SUBROUTINE GEOS57_READ_A3mstE( YYYYMMDD, HHMMSS )
+!
+! !USES:
+!
+    USE DAO_MOD, ONLY : PFICU    
+    USE DAO_MOD, ONLY : PFILSAN
+    USE DAO_MOD, ONLY : PFLCU
+    USE DAO_MOD, ONLY : PFLLSAN
+!
+! !INPUT PARAMETERS:
+! 
+    INTEGER, INTENT(IN) :: YYYYMMDD    ! GMT date in YYYY/MM/DD format
+    INTEGER, INTENT(IN) :: HHMMSS      ! GMT time in hh:mm:ss   format
+!
+! !REMARKS:
+!  This routine was automatically generated by the Perl script ncCodeRead, 
+!  and was subsequently hand-edited for compatibility with GEOS-Chem.
+!                                                                             .
+!  Even though the netCDF file is self-describing, the GEOS-5.7.2 data, 
+!  dimensions, and units are pre-specified according to the GMAO GEOS-5.7.2
+!  file specification.  Therefore we can "cheat" a little bit and not have
+!  to read netCDF attributes to find what these values are.
+!
+! !REVISION HISTORY:
+!  30 Jan 2012 - R. Yantosca - Initial version
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+!
+! !LOCAL VARIABLES:
+!
+    ! Scalars
+    INTEGER            :: fId                      ! netCDF file ID
+    INTEGER            :: I, J, L                  ! Loop indices
+    INTEGER            :: X, Y, Z, T               ! netCDF file dimensions
+    INTEGER            :: time_index               ! Read this slice of data
+    CHARACTER(LEN=255) :: nc_file                  ! netCDF file name
+    CHARACTER(LEN=255) :: v_name                   ! netCDF variable name 
+    CHARACTER(LEN=255) :: dir                      ! Data directory path
+    CHARACTER(LEN=255) :: errMsg                   ! Error message
+    CHARACTER(LEN=255) :: caller                   ! Name of this routine
+                                             
+    ! Arrays                                 
+    INTEGER            :: st4d(4), ct4d(4)         ! Start & count indices
+    REAL*4             :: Qe(IIPAR,JJPAR,LGLOB+1)  ! Temporary data arrray
+
+#if defined( USE_NETCDF )
+
+    !======================================================================
+    ! Open the netCDF file
+    !======================================================================
+
+    ! Name of this routine (for error printout)
+    caller  = "GEOS57_READ_A3mstE (geos57_read_mod.F90)"
+
+    ! Replace time & date tokens in the file name
+    dir     = TRIM( GEOS_57_DIR )
+    CALL EXPAND_DATE( dir, YYYYMMDD, HHMMSS )
+
+    ! Replace time & date tokens in the file name
+    nc_file = 'GEOS572.YYYYMMDD.A3mstE.4x5.nc'
+    CALL EXPAND_DATE( nc_file, YYYYMMDD, HHMMSS )
+
+    ! Construct complete file path
+    nc_file = TRIM( DATA_DIR ) // TRIM( dir ) // TRIM( nc_file )
+    
+    ! Open netCDF file
+    CALL NcOp_Rd( fId, TRIM( nc_file ) )
+
+    ! Read the dimensions from the netCDF file
+    CALL NcGet_DimLen( fId, 'lon',   X )
+    CALL NcGet_DimLen( fId, 'lat',   Y )
+    CALL NcGet_DimLen( fId, 'lev',   Z )
+    CALL NcGet_DimLen( fId, 'time',  T )
+
+    ! Make sure the dimensions of the file are valid
+    CALL Check_Dimensions( lon=X,  lat=Y,           lev=Z-2, & !lev=Z-1,       &
+                           time=T, time_expected=8, caller=caller )
+
+    !======================================================================
+    ! Read data from the netCDF file
+    !======================================================================
+    
+    ! Find the proper time-slice to read from disk
+    time_index = ( HHMMSS / 030000 ) + 1
+
+    ! Stop w/ error if the time index is invalid
+    IF ( time_index < 1 .or. time_index > T ) THEN
+       WRITE( 6, 100 ) time_index
+ 100   FORMAT( 'Time_index value ', i5, ' must be in the range 1 to 8!' )
+       CALL ERROR_STOP( errMsg, caller )
+    ENDIF
+
+    ! netCDF start & count indices
+    st4d      = (/ 1,     1,     1,       time_index /)      
+    ct4d      = (/ IIPAR, JJPAR, LGLOB+1, 1          /)
+
+    ! Read PFICU
+    v_name = "PFICU"
+    CALL NcRd( Qe, fId, TRIM(v_name), st4d, ct4d )
+    CALL Transfer_3d_Lp1( Qe, PFICU )
+
+    ! Read PFILSAN
+    v_name = "PFILSAN"
+    CALL NcRd( Qe, fId, TRIM(v_name), st4d, ct4d )
+    CALL Transfer_3d_Lp1( Qe, PFILSAN )
+
+    ! Read PFLCU
+    v_name = "PFLCU"
+    CALL NcRd( Qe, fId, TRIM(v_name), st4d, ct4d )
+    CALL Transfer_3d_Lp1( Qe, PFLCU )
+
+    ! Read  from file
+    v_name = "PFLLSAN"
+    CALL NcRd( Qe, fId, TRIM(v_name), st4d, ct4d )
+    CALL Transfer_3d_Lp1( Qe,  PFLLSAN )
+
+    !=================================================================
+    ! Cleanup and quit
+    !=================================================================
+
+    ! Close netCDF file
+    CALL NcCl( fId )
+
+#endif
+
+  END SUBROUTINE Geos57_Read_A3mstE
 !EOC
-END MODULE GEOS57_READ_MOD
+!------------------------------------------------------------------------------
+!          Harvard University Atmospheric Chemistry Modeling Group            !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: geos57_read_I3_1
+!
+! !DESCRIPTION: Routine to read variables and attributes from a GEOS-5.7.2
+!  met fields file containing 3-hr instantaneous (I3) data.
+!\\
+!\\
+! !INTERFACE:
+!
+  SUBROUTINE Geos57_Read_I3_1( YYYYMMDD, HHMMSS )
+!
+! !USES:
+!
+    USE DAO_MOD, ONLY : PS1
+   !USE DAO_MOD, ONLY : PV1
+    USE DAO_MOD, ONLY : QV1 => SPHU1
+    USE DAO_MOD, ONLY : T1  => TMPU1
+!
+! !INPUT PARAMETERS:
+! 
+    INTEGER, INTENT(IN) :: YYYYMMDD    ! GMT date in YYYY/MM/DD format
+    INTEGER, INTENT(IN) :: HHMMSS      ! GMT time in hh:mm:ss   format
+!
+! !REMARKS:
+!  This routine was automatically generated by the Perl script ncCodeRead, 
+!  and was subsequently hand-edited for compatibility with GEOS-Chem.
+!                                                                             .
+!  Even though the netCDF file is self-describing, the GEOS-5.7.2 data, 
+!  dimensions, and units are pre-specified according to the GMAO GEOS-5.7.2
+!  file specification.  Therefore we can "cheat" a little bit and not have
+!  to read netCDF attributes to find what these values are.
+!
+! !REVISION HISTORY:
+!  30 Jan 2012 - R. Yantosca - Initial version
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+!
+! !LOCAL VARIABLES:
+!
+    ! Scalars
+    INTEGER            :: fId                      ! netCDF file ID
+    INTEGER            :: I, J, L                  ! Loop indices
+    INTEGER            :: X, Y, Z, T               ! netCDF file dimensions
+    INTEGER            :: time_index               ! Read this slice of data
+    CHARACTER(LEN=255) :: nc_file                  ! netCDF file name
+    CHARACTER(LEN=255) :: v_name                   ! netCDF variable name 
+    CHARACTER(LEN=255) :: dir                      ! Data directory path
+    CHARACTER(LEN=255) :: errMsg                   ! Error message
+    CHARACTER(LEN=255) :: caller                   ! Name of this routine
+                                    
+    ! Arrays                                 
+    INTEGER            :: st3d(3), ct3d(3)         ! Start & count indices
+    INTEGER            :: st4d(4), ct4d(4)         ! Start & count indices
+    REAL*4             :: Q2(IIPAR,JJPAR      )    ! 2D temporary data arrray
+    REAL*4             :: Q3(IIPAR,JJPAR,LGLOB)    ! 3D temporary data arrray
+
+#if defined( USE_NETCDF )
+
+    !======================================================================
+    ! Open the netCDF file
+    !======================================================================
+
+    ! Name of this routine (for error printout)
+    caller  = "GEOS57_READ_I3_1 (geos57_read_mod.F90)"
+
+    ! Replace time & date tokens in the file name
+    dir     = TRIM( GEOS_57_DIR )
+    CALL EXPAND_DATE( dir, YYYYMMDD, HHMMSS )
+
+    ! Replace time & date tokens in the file name
+    nc_file = 'GEOS572.YYYYMMDD.I3.4x5.nc'
+    CALL EXPAND_DATE( nc_file, YYYYMMDD, HHMMSS )
+
+    ! Construct complete file path
+    nc_file = TRIM( DATA_DIR ) // TRIM( dir ) // TRIM( nc_file )
+    
+    ! Open netCDF file
+    CALL NcOp_Rd( fId, TRIM( nc_file ) )
+
+    ! Read the dimensions from the netCDF file
+    CALL NcGet_DimLen( fId, 'lon',   X )
+    CALL NcGet_DimLen( fId, 'lat',   Y )
+    CALL NcGet_DimLen( fId, 'lev',   Z )
+    CALL NcGet_DimLen( fId, 'time',  T )
+
+    ! Make sure the dimensions of the file are valid
+    CALL Check_Dimensions( lon=X,  lat=Y,           lev=Z,         &
+                           time=T, time_expected=8, caller=caller )
+
+    !======================================================================
+    ! Read data from the netCDF file
+    !======================================================================
+    
+    ! Find the proper time-slice to read from disk
+    time_index = ( HHMMSS / 030000 ) + 1
+
+    ! Stop w/ error if the time index is invalid
+    IF ( time_index < 1 .or. time_index > T ) THEN
+       WRITE( 6, 100 ) time_index
+ 100   FORMAT( 'Time_index value ', i5, ' must be in the range 1 to 8!' )
+       CALL Error_Stop( errMsg, caller )
+    ENDIF
+    
+    !-------------------------------------------------
+    ! Read 3D data (2D spatial + 1D time )
+    !-------------------------------------------------
+
+    ! netCDF start & count indices
+    st3d   = (/ 1,     1,     time_index /)
+    ct3d   = (/ IIPAR, JJPAR, 1          /)
+
+    ! Read PS
+    v_name = "PS"
+    CALL NcRd( Q2, fId, TRIM(v_name), st3d, ct3d )
+    CALL Transfer_2d( Q2, PS1 )
+
+    !-------------------------------------------------
+    ! Read 4D data (3D spatial + 1D time)
+    !-------------------------------------------------
+
+    ! netCDF start + count indices
+    st4d   = (/ 1,     1,     1,     time_index /)
+    ct4d   = (/ IIPAR, JJPAR, LGLOB, 1          /)
+
+    !----------------------------------------------------------------
+    ! Prior to 2/3/12:
+    ! For now, skip reading Potential Vorticity (bmy, 2/3/12)
+    !! Read PV
+    !v_name = "PV"
+    !CALL NcRd( Q3, fId, TRIM(v_name), st4d, ct4d )
+    !CALL Transfer_3d( Q3, PV )
+    !----------------------------------------------------------------
+
+    ! Read QV
+    v_name = "QV"
+    CALL NcRd( Q3, fId, TRIM(v_name), st4d, ct4d )
+    CALL Transfer_3d( Q3, QV1 )
+
+    ! Read T
+    v_name = "T"
+    CALL NcRd( Q3, fId, TRIM(v_name), st4d, ct4d )
+    CALL Transfer_3d( Q3, T1 )
+
+    !======================================================================
+    ! Diagnostics, cleanup, and quit
+    !======================================================================
+
+    ! Close netCDF file
+    CALL NcCl( fId )
+
+    ! Increment the # of times I3 fields have been read
+    CALL Set_Ct_I3( INCREMENT=.TRUE. )
+
+    ! ND66 diagnostic: T1, QV1 met fields
+    IF ( ND66 > 0 ) THEN
+       AD66(:,:,1:LD66,3) = AD66(:,:,1:LD66,3) + T1 (:,:,1:LD66) ! [K   ]
+       AD66(:,:,1:LD66,4) = AD66(:,:,1:LD66,4) + QV1(:,:,1:LD66) ! [g/kg]
+    ENDIF
+
+#endif
+
+  END SUBROUTINE Geos57_Read_I3_1
+!EOC
+!------------------------------------------------------------------------------
+!          Harvard University Atmospheric Chemistry Modeling Group            !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: geos57_read_I3_2
+!
+! !DESCRIPTION: Routine to read variables and attributes from a GEOS-5.7.2
+!  met fields file containing 3-hr instantaneous (I3) data.
+!\\
+!\\
+! !INTERFACE:
+!
+  SUBROUTINE Geos57_Read_I3_2( YYYYMMDD, HHMMSS )
+!
+! !USES:
+!
+    USE DAO_MOD, ONLY : PS2
+   !USE DAO_MOD, ONLY : PV2
+    USE DAO_MOD, ONLY : QV2 => SPHU2
+    USE DAO_MOD, ONLY : T2  => TMPU2
+!
+! !INPUT PARAMETERS:
+! 
+    INTEGER, INTENT(IN) :: YYYYMMDD    ! GMT date in YYYY/MM/DD format
+    INTEGER, INTENT(IN) :: HHMMSS      ! GMT time in hh:mm:ss   format
+!
+! !REMARKS:
+!  This routine was automatically generated by the Perl script ncCodeRead, 
+!  and was subsequently hand-edited for compatibility with GEOS-Chem.
+!                                                                             .
+!  Even though the netCDF file is self-describing, the GEOS-5.7.2 data, 
+!  dimensions, and units are pre-specified according to the GMAO GEOS-5.7.2
+!  file specification.  Therefore we can "cheat" a little bit and not have
+!  to read netCDF attributes to find what these values are.
+!
+! !REVISION HISTORY:
+!  30 Jan 2012 - R. Yantosca - Initial version
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+!
+! !LOCAL VARIABLES:
+!
+    ! Scalars
+    INTEGER            :: fId                      ! netCDF file ID
+    INTEGER            :: I, J, L                  ! Loop indices
+    INTEGER            :: X, Y, Z, T               ! netCDF file dimensions
+    INTEGER            :: time_index               ! Read this slice of data
+    CHARACTER(LEN=255) :: nc_file                  ! netCDF file name
+    CHARACTER(LEN=255) :: v_name                   ! netCDF variable name 
+    CHARACTER(LEN=255) :: dir                      ! Data directory path
+    CHARACTER(LEN=255) :: errMsg                   ! Error message
+    CHARACTER(LEN=255) :: caller                   ! Name of this routine
+                                    
+    ! Arrays                                 
+    INTEGER            :: st3d(3), ct3d(3)         ! Start & count indices
+    INTEGER            :: st4d(4), ct4d(4)         ! Start & count indices
+    REAL*4             :: Q2(IIPAR,JJPAR      )    ! 2D temporary data arrray
+    REAL*4             :: Q3(IIPAR,JJPAR,LGLOB)    ! 3D temporary data arrray
+
+#if defined( USE_NETCDF )
+
+    !======================================================================
+    ! Open the netCDF file
+    !======================================================================
+
+    ! Name of this routine (for error printout)
+    caller  = "GEOS57_READ_I3_2 (geos57_read_mod.F90)"
+
+    ! Replace time & date tokens in the file name
+    dir     = TRIM( GEOS_57_DIR )
+    CALL EXPAND_DATE( dir, YYYYMMDD, HHMMSS )
+
+    ! Replace time & date tokens in the file name
+    nc_file = 'GEOS572.YYYYMMDD.I3.4x5.nc'
+    CALL EXPAND_DATE( nc_file, YYYYMMDD, HHMMSS )
+
+    ! Construct complete file path
+    nc_file = TRIM( DATA_DIR ) // TRIM( dir ) // TRIM( nc_file )
+    
+    ! Open netCDF file
+    CALL NcOp_Rd( fId, TRIM( nc_file ) )
+
+    ! Read the dimensions from the netCDF file
+    CALL NcGet_DimLen( fId, 'lon',   X )
+    CALL NcGet_DimLen( fId, 'lat',   Y )
+    CALL NcGet_DimLen( fId, 'lev',   Z )
+    CALL NcGet_DimLen( fId, 'time',  T )
+
+    ! Make sure the dimensions of the file are valid
+    CALL Check_Dimensions( lon=X,  lat=Y,           lev=Z,         &
+                           time=T, time_expected=8, caller=caller )
+
+    !======================================================================
+    ! Read data from the netCDF file
+    !======================================================================
+    
+    ! Find the proper time-slice to read from disk
+    time_index = ( HHMMSS / 030000 ) + 1
+
+    ! Stop w/ error if the time index is invalid
+    IF ( time_index < 1 .or. time_index > T ) THEN
+       WRITE( 6, 100 ) time_index
+ 100   FORMAT( 'Time_index value ', i5, ' must be in the range 1 to 8!' )
+       CALL Error_Stop( errMsg, caller )
+    ENDIF
+    
+    !-------------------------------------------------
+    ! Read 3D data (2D spatial + 1D time )
+    !-------------------------------------------------
+
+    ! netCDF start & count indices
+    st3d   = (/ 1,     1,     time_index /)
+    ct3d   = (/ IIPAR, JJPAR, 1          /)
+
+    ! Read PS
+    v_name = "PS"
+    CALL NcRd( Q2, fId, TRIM(v_name), st3d, ct3d )
+    CALL Transfer_2d( Q2, PS2 )
+
+    !-------------------------------------------------
+    ! Read 4D data (3D spatial + 1D time)
+    !-------------------------------------------------
+
+    ! netCDF start + count indices
+    st4d   = (/ 1,     1,     1,     time_index /)
+    ct4d   = (/ IIPAR, JJPAR, LGLOB, 1          /)
+
+    !----------------------------------------------------------------
+    ! Prior to 2/3/12:
+    ! For now, skip reading Potential Vorticity (bmy, 2/3/12)
+    !! Read PV
+    !v_name = "PV"
+    !CALL NcRd( Q3, fId, TRIM(v_name), st4d, ct4d )
+    !CALL Transfer_3d( Q3, PV )
+    !----------------------------------------------------------------
+
+    ! Read QV
+    v_name = "QV"
+    CALL NcRd( Q3, fId, TRIM(v_name), st4d, ct4d )
+    CALL Transfer_3d( Q3, QV2 )
+
+    ! Read T
+    v_name = "T"
+    CALL NcRd( Q3, fId, TRIM(v_name), st4d, ct4d )
+    CALL Transfer_3d( Q3, T2 )
+
+    !======================================================================
+    ! Diagnostics, cleanup, and quit
+    !======================================================================
+
+    ! Close netCDF file
+    CALL NcCl( fId )
+
+    ! Increment the # of times I3 fields have been read
+    CALL Set_Ct_I3( INCREMENT=.TRUE. )
+
+    ! ND66 diagnostic: T2, QV2 met fields
+    IF ( ND66 > 0 ) THEN
+       AD66(:,:,1:LD66,3) = AD66(:,:,1:LD66,3) + T2 (:,:,1:LD66) ! [K   ]
+       AD66(:,:,1:LD66,4) = AD66(:,:,1:LD66,4) + QV2(:,:,1:LD66) ! [g/kg]
+    ENDIF
+
+#endif
+
+  END SUBROUTINE Geos57_Read_I3_2
+!EOC
+END MODULE Geos57_Read_Mod

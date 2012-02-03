@@ -34,9 +34,10 @@
       PUBLIC  :: SET_CT_DYN
       PUBLIC  :: SET_CT_EMIS
       PUBLIC  :: SET_CT_DIAG
-      PUBLIC  :: SET_CT_A1
+      PUBLIC  :: SET_CT_A1 
       PUBLIC  :: SET_CT_A3
       PUBLIC  :: SET_CT_A6
+      PUBLIC  :: SET_CT_I3
       PUBLIC  :: SET_CT_I6
       PUBLIC  :: SET_CT_XTRA
       PUBLIC  :: SET_ELAPSED_MIN
@@ -73,10 +74,6 @@
       PUBLIC  :: GET_TS_DYN
       PUBLIC  :: GET_TS_EMIS
       PUBLIC  :: GET_TS_UNIT
-!-----------------------------------
-! Prior to 10/7/11:
-!      PUBLIC  :: GET_TS_SUN_2
-!-----------------------------------
       PUBLIC  :: GET_CT_CHEM
       PUBLIC  :: GET_CT_CONV
       PUBLIC  :: GET_CT_DYN
@@ -84,6 +81,7 @@
       PUBLIC  :: GET_CT_A1
       PUBLIC  :: GET_CT_A3
       PUBLIC  :: GET_CT_A6
+      PUBLIC  :: GET_CT_I3
       PUBLIC  :: GET_CT_I6
       PUBLIC  :: GET_CT_XTRA
       PUBLIC  :: GET_CT_DIAG
@@ -94,6 +92,7 @@
       PUBLIC  :: GET_FIRST_A1_TIME
       PUBLIC  :: GET_FIRST_A3_TIME
       PUBLIC  :: GET_FIRST_A6_TIME
+      PUBLIC  :: GET_FIRST_I3_TIME
       PUBLIC  :: GET_FIRST_I6_TIME
       PUBLIC  :: ITS_TIME_FOR_CHEM
       PUBLIC  :: ITS_TIME_FOR_CONV
@@ -104,6 +103,7 @@
       PUBLIC  :: ITS_TIME_FOR_A1
       PUBLIC  :: ITS_TIME_FOR_A3
       PUBLIC  :: ITS_TIME_FOR_A6
+      PUBLIC  :: ITS_TIME_FOR_I3
       PUBLIC  :: ITS_TIME_FOR_I6
       PUBLIC  :: ITS_TIME_FOR_UNZIP     
       PUBLIC  :: ITS_TIME_FOR_DEL
@@ -192,6 +192,7 @@
 !  07 Oct 2011 - R. Yantosca - Remove obsolete OFFSET argument to GET_LOCALTIME
 !  12 Oct 2011 - R. Yantosca - Modified ITS_A_NEW_MONTH for central chem step
 !  02 Feb 2012 - R. Yantosca - Added modifications for GEOS-5.7.x met fields
+!  03 Feb 2012 - R. Yantosca - Added I3 fields timestep variable & routines
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -213,8 +214,8 @@
       ! Timestep counters
       INTEGER           :: CT_CHEM,    CT_CONV,     CT_DYN    
       INTEGER           :: CT_EMIS,    CT_A3,       CT_A6
-      INTEGER           :: CT_I6,      CT_XTRA,     CT_DIAG
-      INTEGER           :: CT_A1
+      INTEGER           :: CT_I3,      CT_I6,       CT_XTRA    
+      INTEGER           :: CT_DIAG,    CT_A1
 
       ! Number of leap years we have encountered since start of simulation
       REAL*8            :: LEAP_YEAR_DAYS
@@ -938,6 +939,39 @@
       ENDIF
 
       END SUBROUTINE SET_CT_A6
+!EOC
+!------------------------------------------------------------------------------
+!          Harvard University Atmospheric Chemistry Modeling Group            !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: set_ct_i3
+!
+! !DESCRIPTION: Subroutine SET\_CT\_I3 increments CT\_I3, the counter of the 
+!  number of times we have read in I-3 fields.
+!\\
+!\\
+! !INTERFACE:
+!
+      SUBROUTINE SET_CT_I3( INCREMENT, RESET )
+!
+! !INPUT PARAMETERS:
+!
+      LOGICAL, INTENT(IN), OPTIONAL :: INCREMENT  ! Increment counter?
+      LOGICAL, INTENT(IN), OPTIONAL :: RESET      ! Reset counter?
+! 
+! !REVISION HISTORY:
+!  03 Feb 2012 - R. Yantosca - Initial version, for GEOS-5.7.2
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+      IF ( PRESENT( INCREMENT ) ) THEN
+         CT_I3 = CT_I3 + 1
+      ELSE IF ( PRESENT( RESET ) ) THEN
+         CT_I3 = 0
+      ENDIF
+
+      END SUBROUTINE SET_CT_I3
 !EOC
 !------------------------------------------------------------------------------
 !          Harvard University Atmospheric Chemistry Modeling Group            !
@@ -2393,6 +2427,34 @@
 !------------------------------------------------------------------------------
 !BOP
 !
+! !IROUTINE: get_ct_i3
+!
+! !DESCRIPTION: Function GET\_CT\_I3 returns the I-3 fields timestep counter
+!  to the calling program
+!\\
+!\\
+! !INTERFACE:
+!
+      FUNCTION GET_CT_I3() RESULT( THIS_CT_I3 )
+!
+! !RETURN VALUE:
+!
+      INTEGER :: THIS_CT_I3   ! # of I-6 timesteps
+! 
+! !REVISION HISTORY: 
+!  03 Feb 2012 - R. Yantosca - Initial version, for GEOS-5.7.2
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+      THIS_CT_I3 = CT_I3
+
+      END FUNCTION GET_CT_I3
+!EOC
+!------------------------------------------------------------------------------
+!          Harvard University Atmospheric Chemistry Modeling Group            !
+!------------------------------------------------------------------------------
+!BOP
+!
 ! !IROUTINE: get_ct_i6
 !
 ! !DESCRIPTION: Function GET\_CT\_I6 returns the I-6 fields timestep counter
@@ -2893,6 +2955,53 @@
 !------------------------------------------------------------------------------
 !BOP
 !
+! !IROUTINE: get_first_i3_time
+!
+! !DESCRIPTION: Function GET\_FIRST\_I3\_TIME returns the correct YYYYMMDD and
+!  HHMMSS values the first time that I-3 fields are read in from disk.
+!\\
+!\\
+! !INTERFACE:
+!
+      FUNCTION GET_FIRST_I3_TIME() RESULT( DATE )
+!
+! !RETURN VALUE:
+!
+      INTEGER :: DATE(2)    ! YYYYMMDD, HHMMSS values
+! 
+! !REVISION HISTORY: 
+!  03 Feb 2012 - R. Yantosca - Initial version, for GEOS-5.7.2
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+!
+! !LOCAL VARIABLES:
+!
+      INTEGER :: HH, MM, SS, MINS, OFFSET
+
+      !==================================================================
+      ! Compute first I-6 time for all met field types
+      !==================================================================
+
+      ! Split NYMS into hours, mins, seconds
+      CALL YMD_EXTRACT( NHMS, HH, MM, SS )        
+
+      ! Compute minutes elapsed in the 3-hour interval
+      MINS   = MOD( HH, 3 )*60 + MM
+
+      ! Compute offset to nearest I-6 time
+      OFFSET = -MINS
+
+      ! Get YYYY/MM/DD and hh:mm:ss to nearest I-6 time
+      DATE   = GET_TIME_AHEAD( OFFSET ) 
+
+      END FUNCTION GET_FIRST_I3_TIME
+!EOC
+!------------------------------------------------------------------------------
+!          Harvard University Atmospheric Chemistry Modeling Group            !
+!------------------------------------------------------------------------------
+!BOP
+!
 ! !IROUTINE: get_first_i6_time
 !
 ! !DESCRIPTION: Function GET\_FIRST\_I6\_TIME returns the correct YYYYMMDD and
@@ -3381,6 +3490,42 @@
 
 !EOC
 #endif
+!------------------------------------------------------------------------------
+!          Harvard University Atmospheric Chemistry Modeling Group            !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: its_time_for_i3
+!
+! !DESCRIPTION: Function ITS\_TIME\_FOR\_I3 returns TRUE if it is time to read 
+!  in I2 (instantaneous 3-hr fields) and FALSE otherwise.
+!\\
+!\\
+! !INTERFACE:
+!
+      FUNCTION ITS_TIME_FOR_I3() RESULT( FLAG )
+!
+! !RETURN VALUE:
+!
+      LOGICAL :: FLAG 
+! 
+! !REVISION HISTORY: 
+!  03 Feb 2012 - R. Yantosca - Initial version, for GEOS-5.7.2
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+!
+! !LOCAL VARAIABLES:
+!
+      LOGICAL, SAVE :: FIRST = .TRUE.
+      
+      ! We read in I-6 fields at 00, 03, 06, 09, 12, 15, 18, 21 GMT
+      FLAG = ( ( MOD( NHMS, 030000 ) == 0 ) .or. FIRST )
+      
+      FIRST = .FALSE.
+
+      END FUNCTION ITS_TIME_FOR_I3
+!EOC
 !------------------------------------------------------------------------------
 !          Harvard University Atmospheric Chemistry Modeling Group            !
 !------------------------------------------------------------------------------
