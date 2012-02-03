@@ -34,10 +34,10 @@
 !
 ! !REMARKS:
 !
-!  Hybrid Grid Coordinate Definition: (dsa, bmy, 8/27/02, 8/13/10)
+!  Hybrid Grid Coordinate Definition: (dsa, bmy, 8/27/02, 2/2/12)
 !  ============================================================================
 !                                                                             .
-!  GEOS-4, GEOS-5, and MERRA (hybrid grids):
+!  GEOS-4, GEOS-5, GEOS-5.7, and MERRA (hybrid grids):
 !  ----------------------------------------------------------------------------
 !  For GEOS-4/GEOS-5/MERRA met data products, the pressure at the bottom edge 
 !  of grid box (I,J,L) is defined as follows:
@@ -120,7 +120,7 @@
 !
 ! !USES:
 !
-      USE CMN_SIZE_MOD              ! Size parameters
+      USE CMN_SIZE_MOD                ! Size parameters
 !
 ! !INPUT PARAMETERS: 
 !
@@ -158,7 +158,7 @@
 !
 ! !USES:
 !
-      USE CMN_SIZE_MOD              ! Size parameters
+      USE CMN_SIZE_MOD                ! Size parameters
 !
 ! !INPUT PARAMETERS: 
 !
@@ -200,7 +200,6 @@
       USE ERROR_MOD, ONLY : CHECK_VALUE
 
       USE CMN_SIZE_MOD  ! Size parameters
-  
 !
 ! !INPUT PARAMETERS: 
 !
@@ -277,11 +276,12 @@
 !  (2 ) Now treat GEOS-5 the same way as GEOS-4 (bmy, 10/30/07)
 !  20 Nov 2009 - R. Yantosca - Added ProTeX header
 !  13 Aug 2010 - R. Yantosca - Compute PEDGE for MERRA the same as for GEOS-5
+!  02 Feb 2012 - R. Yantosca - Compute PEDGE for GEOS-5.7.2 the same as MERRA
 !EOP
 !------------------------------------------------------------------------------
 !BOC
 
-#if   defined( GEOS_4 ) || defined( GEOS_5 ) || defined( MERRA )
+#if   defined( GEOS_4 ) || defined( GEOS_5 ) || defined( MERRA ) || defined( GEOS_57 )
 
       !-----------------------------
       ! GEOS-4 & GEOS-5 met fields
@@ -335,6 +335,7 @@
 !
 ! !REVISION HISTORY:
 !  (1 ) Modified from GET_PEDGE (cdh, 1/22/09)
+!  02 Feb 2012 - R. Yantosca - Compute PEDGE for GEOS-5.7.2 the same as MERRA
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -342,7 +343,7 @@
       ! GET_PEDGE_FULLGRID begins here!
       !=================================================================
 
-#if   defined( GEOS_4 ) || defined( GEOS_5 )
+#if   defined( GEOS_4 ) || defined( GEOS_5 ) || defined( MERRA ) || defined( GEOS_57 )
 
       !-----------------------------
       ! GEOS-4 & GEOS-5 met fields

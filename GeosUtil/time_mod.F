@@ -613,11 +613,6 @@
 !
       SUBROUTINE SET_TIMESTEPS( CHEMISTRY, CONVECTION, DYNAMICS,  
      &                          EMISSION,  UNIT_CONV,  DIAGNOS )
-!------------------------------------------------------------------------------
-! Prior to 10/5/11:
-! Remove SUNCOS argument, it's obsolete (bmy, 10/5/11)
-!     &                          SUNCOS )
-!------------------------------------------------------------------------------
 !
 ! !INPUT PARAMETERS:
 !
@@ -627,11 +622,6 @@
       INTEGER, INTENT(IN) :: EMISSION     ! Emission   timestep [min]
       INTEGER, INTENT(IN) :: UNIT_CONV    ! Unit conve timestep [min]
       INTEGER, INTENT(IN) :: DIAGNOS      ! Diagnostic timestep [min]
-!------------------------------------------------------------------------------
-! Prior to 10/5/11:
-! Remove SUNCOS argument, it's obsolete (bmy, 10/5/11)
-!      INTEGER, INTENT(IN) :: SUNCOS       ! 1/2 of timestep for SUNCOS [min]
-!------------------------------------------------------------------------------
 ! 
 ! !REVISION HISTORY: 
 !  05 Feb 2003 - R. Yantosca - Initial Version
@@ -653,11 +643,6 @@
       TS_EMIS  = EMISSION
       TS_UNIT  = UNIT_CONV
       TS_DIAG  = DIAGNOS
-!------------------------------------------------------------------------------
-! Prior to 10/5/11:
-! Remove SUNCOS argument, it's obsolete (bmy, 10/5/11)
-!      TS_SUN_2 = SUNCOS
-!------------------------------------------------------------------------------
 
       ! Zero timestep counters
       CT_CHEM = 0
@@ -679,11 +664,6 @@
       WRITE( 6, '(''Emission   Timestep [min] : '', i4 )' ) TS_EMIS
       WRITE( 6, '(''Unit Conv  Timestep [min] : '', i4 )' ) TS_UNIT
       WRITE( 6, '(''Diagnostic Timestep [min] : '', i4 )' ) TS_DIAG
-!------------------------------------------------------------------------------
-! Prior to 10/5/11:
-! Remove SUNCOS argument, it's obsolete (bmy, 10/5/11)
-!      WRITE( 6, '(''Offset for SUNCOS   [min] : '', i4 )' ) TS_SUN_2
-!------------------------------------------------------------------------------
 
       ! Return to calling program
       END SUBROUTINE SET_TIMESTEPS
