@@ -587,7 +587,7 @@
     !
     !                   G.C.M. Vinken, KNMI, june 2010
     !=======================================================================
-      USE DAO_MOD, ONLY : TS, AD, SUNCOS, SUNCOS5
+      USE DAO_MOD, ONLY : TS, AD, SUNCOS_MID, SUNCOS_MID_5hr
       USE TRACERID_MOD, ONLY : IDO3,      IDTOX,      IDTCO
       USE TRACER_MOD, ONLY : STT, TCVV
       USE TIME_MOD, ONLY   : GET_LOCALTIME
@@ -659,19 +659,19 @@
 !      IJLOOP = ( (J-1) * IIPAR ) + I
 !      print*,"Local Time: ",GET_LOCALTIME(I)
 !      print*,"Solar Zenith Angle at this location: ", 
-!     $            ASIND(SUNCOS(IJLOOP))
+!     $            ASIND(SUNCOS_MID(IJLOOP))
 !      IJLOOP = ( (64-1) * IIPAR ) + 32
 !      print*,"Local USA time: ", GET_LOCALTIME(32)
-!      print*,"Solar Zenith Angle at USA: ", ASIND(SUNCOS(IJLOOP))
-!      print*,"Solar Zenith Angle at USA - 5: ",ASIND(SUNCOS5(IJLOOP))
+!      print*,"Solar Zenith Angle at USA: ", ASIND(SUNCOS_MID(IJLOOP))
+!      print*,"Solar Zenith Angle at USA - 5: ",ASIND(SUNCOS_MID_5hr(IJLOOP))
       
       ! Set the variables
       IJLOOP = ( (J-1) * IIPAR ) + I
       var_array(1) = TS(I,J)                                            ! Temperature
       var_array(2) = jvalues(I,J,1)                                     ! J(NO2)
       var_array(3) = STT(I,J,1,IDTOX)/ AD(I,J,1) * TCVV(IDTOX) * 1.E9   ! [O3] in ppbv
-      var_array(4) = ASIND(SUNCOS5(IJLOOP))                             ! alfa0
-      var_array(5) = ASIND(SUNCOS(IJLOOP))                              ! alfa5
+      var_array(4) = ASIND(SUNCOS_MID_5hr(IJLOOP))                      ! alfa0
+      var_array(5) = ASIND(SUNCOS_MID(IJLOOP))                          ! alfa5
       var_array(6) = jvalues(I,J,2) / jvalues(I,J,1)                    ! J(O1D)/J(NO2)
       var_array(7) = STT(I,J,1,IDTCO)/ AD(I,J,1) * TCVV(IDTCO) * 1.E9   ! [CO] in ppbv
       
@@ -861,7 +861,7 @@
     !                   G.C.M. Vinken, KNMI, june 2010
     ! 02-21-2011: Updated for NOx in LUT
     !=======================================================================
-      USE DAO_MOD, ONLY : TS, SUNCOS, SUNCOS5
+      USE DAO_MOD, ONLY : TS, SUNCOS_MID, SUNCOS_MID_5hr
       USE TIME_MOD, ONLY   : GET_LOCALTIME
 
 ! already called in calling program apparently.. #     include "CMN_SIZE"               ! Size parameters
@@ -932,19 +932,19 @@
 !      IJLOOP = ( (J-1) * IIPAR ) + I
 !      print*,"Local Time: ",GET_LOCALTIME(I)
 !      print*,"Solar Zenith Angle at this location: ", 
-!     $            ASIND(SUNCOS(IJLOOP))
+!     $            ASIND(SUNCOS_MID(IJLOOP))
 !      IJLOOP = ( (64-1) * IIPAR ) + 32
 !      print*,"Local USA time: ", GET_LOCALTIME(32)
-!      print*,"Solar Zenith Angle at USA: ", ASIND(SUNCOS(IJLOOP))
-!      print*,"Solar Zenith Angle at USA - 5: ",ASIND(SUNCOS5(IJLOOP))
+!      print*,"Solar Zenith Angle at USA: ", ASIND(SUNCOS_MID(IJLOOP))
+!      print*,"Solar Zenith Angle at USA - 5: ",ASIND(SUNCOS_MID_5hr(IJLOOP))
       
       ! Set the variables
       IJLOOP = ( (J-1) * IIPAR ) + I
       var_array(1) = TS(I,J)                                            ! Temperature
       var_array(2) = jvalues(I,J,1)                                     ! J(NO2)
       var_array(3) = o3 / dens * 1.E9                                   ! [O3] in ppbv
-      var_array(4) = ASIND(SUNCOS5(IJLOOP))                             ! alfa0
-      var_array(5) = ASIND(SUNCOS(IJLOOP))                              ! alfa5
+      var_array(4) = ASIND(SUNCOS_MID_5hr(IJLOOP))                      ! alfa0
+      var_array(5) = ASIND(SUNCOS_MID(IJLOOP))                          ! alfa5
       var_array(6) = jvalues(I,J,2) / jvalues(I,J,1)                    ! J(O1D)/J(NO2)
       var_array(7) = (no + no2) / dens * 1.E12                          ! [NOx] in pptv
       
