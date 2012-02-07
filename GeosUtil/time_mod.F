@@ -88,6 +88,7 @@
       PUBLIC  :: GET_A1_TIME
       PUBLIC  :: GET_A3_TIME
       PUBLIC  :: GET_A6_TIME
+      PUBLIC  :: GET_I3_TIME
       PUBLIC  :: GET_I6_TIME
       PUBLIC  :: GET_FIRST_A1_TIME
       PUBLIC  :: GET_FIRST_A3_TIME
@@ -2677,6 +2678,79 @@
 #endif
 
       END FUNCTION GET_A6_TIME
+!EOC
+!------------------------------------------------------------------------------
+!          Harvard University Atmospheric Chemistry Modeling Group            !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: get_i3_time
+!
+! !DESCRIPTION: Function GET\_I3\_TIME returns the correct YYYYMMDD and 
+!  HHMMSS values that are needed to read in the next instantaneous 3-hour 
+!  (I-3) fields. 
+!\\
+!\\
+! !INTERFACE:
+!
+      FUNCTION GET_I3_TIME() RESULT( DATE )
+!
+! !RETURN VALUE:
+!
+      INTEGER :: DATE(2)   ! YYYYMMDD and HHMMSS values
+!  
+! !REMARKS:
+!  Modified for start times other than 0 GMT.
+!
+! !REVISION HISTORY: 
+!   6 Feb 2012 - R. Yantosca - Initial version
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+!
+! !LOCAL VARIABLES:
+! 
+      LOGICAL, SAVE :: FIRST = .TRUE.
+      INTEGER       :: HH, MM, SS, MINS, OFFSET
+
+      !=================================================================
+      ! ALL MET FIELDS:
+      !=================================================================
+ 
+      IF ( FIRST ) THEN
+
+         !--------------------------------------------------------------
+         ! FIRST-TIME ONLY!  Get the proper # of hours until the next 
+         ! I6 time.  Also works for start times other than 0 GMT.
+         !--------------------------------------------------------------
+
+         ! Split NHMS into hours, mins, seconds
+         CALL YMD_EXTRACT( NHMS, HH, MM, SS )
+
+         ! Compute minutes elapsed in the 6-hour interval
+         MINS   = MOD( HH, 3 )*60 + MM
+
+         ! Compute offset to next I-3 time
+         OFFSET = 180 - MINS
+
+         ! Get YYYY/MM/DD and hh:mm:ss to next I-6 time
+         DATE   = GET_TIME_AHEAD( OFFSET ) 
+
+         ! Reset first-time flag
+         FIRST = .FALSE.
+
+      ELSE
+
+         !--------------------------------------------------------------
+         ! Other than the 1st time: Search 360 mins ahead
+         !--------------------------------------------------------------
+
+         ! We need to read in the I-6 fields 6h (180 mins) ahead of time
+         DATE = GET_TIME_AHEAD( 180 )
+
+      ENDIF
+
+      END FUNCTION GET_I3_TIME
 !EOC
 !------------------------------------------------------------------------------
 !          Harvard University Atmospheric Chemistry Modeling Group            !
