@@ -883,11 +883,6 @@ contains
        rrho(i)  = rair*t(i,plev)/pmid(i,plev)
        if (present(taux) .and. present(tauy)) then
           ustr     = sqrt( sqrt( taux(i)**2 + tauy(i)**2 )*rrho(i) )
-          !---------------------------------------------------------------
-          ! Prior to 9/17/11:
-          ! Use double precision exponents (bmy, 9/17/11)
-          !ustar(i) = max( ustr,.01 )
-          !---------------------------------------------------------------
           ustar(i) = max( ustr,.01d0 )
        endif
        khfs(i)  = shflx(i)*rrho(i)/cpair

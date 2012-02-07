@@ -497,31 +497,6 @@
 
                ENDIF
                   
-
-!---------------------------------------------------------------               
-! Prior to cdh 10/20/2011, HNO3 and O3 emissions were incorrectly scaled
-!     to ship NOx, due to molar masses being in the wrong place
-!               ! Convert molec/cm2/s to kg/box/timestep to get same
-!               ! units as EMISRN, ie default GEIA emiss (phs, 7/9/09)
-!               SHIP = SHIP * ( DTSRCE * AREA_CM2 ) / XNUMOL(NN) 
-!         
-!               ! Store as HNO3 and O3
-!               EMISRR(I,J,IDEHNO3) = SHIP * XNUMOL(IDTHNO3) / DTSRCE
-!               EMISRR(I,J,IDEOX)   = 10D0 * SHIP * 
-!     &                               XNUMOL(IDTOX) / DTSRCE
-!               
-!               ! ND36 = Anthro source diagnostic...store as [molec/cm2]
-!               ! and convert to [molec/cm2/s] in DIAG3.F
-!               IF ( ND36 > 0 ) THEN
-!
-!                  AD36(I,J,IDEHNO3) = AD36(I,J,IDEHNO3) + SHIP * 
-!     &                                XNUMOL(IDTHNO3) / AREA_CM2
-!
-!                  AD36(I,J,IDEOX) = AD36(I,J,IDEOX) + SHIP * 
-!     &                              10D0 * XNUMOL(IDTOX) / AREA_CM2
-!                  
-!               ENDIF
-!---------------------------------------------------------------               
                ! Store as HNO3 and O3
                ! Convert molec/cm2/s to molec/box/s (cdh, 10/20/2011)
                EMISRR(I,J,IDEHNO3) = SHIP * AREA_CM2

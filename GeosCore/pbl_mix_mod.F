@@ -148,10 +148,6 @@
       CALL COMPUTE_PBL_HEIGHT
 
       ! Do complete mixing of tracers in the PBL (if necessary)
-!-----------------------------------------------------------------------------
-! Prior to 9/7/11:
-!      IF ( DO_TURBDAY ) CALL TURBDAY( N_TRACERS, STT, TCVV )
-!-----------------------------------------------------------------------------
       IF ( DO_TURBDAY ) CALL TURBDAY( N_TOT_TRC, STT, TCVV )
 
       ! Return to calling program

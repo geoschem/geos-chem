@@ -1018,11 +1018,6 @@
 
       ! If the next chemistry timestep is the hour of day
       ! when we have to save to disk, return TRUE
-!-----------------------------------------------------------------------
-! Prior to 9/27/11:
-! Fix for centralizing the chemistry time step (lzh, mpayer, 9/27/11)
-!      IF ( MOD( HOUR + CHEM, 24d0 ) == 0 ) THEN
-!-----------------------------------------------------------------------
       IF ( HOUR + CHEM >= 24d0 ) THEN
          ITS_TIME = .TRUE.
          TAU_W    = TAU + CHEM

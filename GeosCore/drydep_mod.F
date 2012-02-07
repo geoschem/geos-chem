@@ -259,10 +259,6 @@
 ! !USES:
 !
       USE DIAG_MOD,     ONLY : AD44
-!------------------------------------------------------------------------------
-! Prior to 10/7/11:
-!      USE DAO_MOD,      ONLY : AD, ALBD, BXHEIGHT, SUNCOS
-!------------------------------------------------------------------------------
       USE DAO_MOD,      ONLY : AD, ALBD, BXHEIGHT, SUNCOS_MID
       USE DAO_MOD,      ONLY : IS_LAND
       USE ERROR_MOD,    ONLY : DEBUG_MSG
@@ -374,14 +370,6 @@
       ! Call DEPVEL to compute dry deposition velocities [m/s]
       ! Added  PRESSU, W10 as arguments (jaegle 5/11/11)
       !=================================================================
-!------------------------------------------------------------------------------
-! Prior to 10/5/11:
-! Now use SUNCOS_MID, the cos(SZA) at the midpoint of the chem timestep,
-! for consistency with the chemistry routines (bmy, 10/7/11)
-!      CALL DEPVEL( MAXIJ, RADIAT,  TC0,   SUNCOS, F0,  HSTAR, 
-!     &             XMW,   AIROSOL, USTAR, CZ1,    OBK, CFRAC,  
-!     &             ZH,    LSNOW,   DVEL,  AZO,    RHB ) 
-!------------------------------------------------------------------------------
       CALL DEPVEL( MAXIJ, RADIAT,  TC0,   SUNCOS_MID, F0,  HSTAR, 
      &             XMW,   AIROSOL, USTAR, CZ1,        OBK, CFRAC,  
      &             ZH,    LSNOW,   DVEL,  AZO,        RHB,
@@ -1498,13 +1486,6 @@
       INTEGER IOLSON,II,IW
       INTEGER K,IJLOOP,LDT
       REAL*8  RCLX,RIXX,BIOFIT
-!------------------------------------------------------------------------------
-! Prior to 1/10/12:
-! Remove arbitrary pressure value of 1500 hPa and use local surface pressure
-! instead (mpayer, 1/10/12)
-!      REAL*8  PRESS
-!      DATA PRESS /1.5D5/
-!------------------------------------------------------------------------------
 !
 ! Logical for snow and sea ice
 !
@@ -1690,14 +1671,6 @@
 !** exit for non-depositing species or aerosols.
                IF (.NOT. LDEP(K) .OR. AIROSOL(K)) GOTO 155
                XMWH2O = 18.D-3
-!------------------------------------------------------------------------------
-! Prior to 1/10/12:
-! Replace PRESS with local surface pressure (PRESSU) (jaegle 5/11/11,
-!  mpayer 1/10/12)
-!               RIXX = RIX*DIFFG(TEMPK,PRESS,XMWH2O)/
-!     C              DIFFG(TEMPK,PRESS,XMW(K))
-!     C              + 1.D0/(HSTAR(K)/3000.D0+100.D0*F0(K))
-!------------------------------------------------------------------------------
                RIXX = RIX*DIFFG(TEMPK,PRESSU(IJLOOP),XMWH2O)/
      C              DIFFG(TEMPK,PRESSU(IJLOOP),XMW(K))
      C              + 1.D0/(HSTAR(K)/3000.D0+100.D0*F0(K))
@@ -1768,14 +1741,6 @@
 !---------------------------------------------------------------------------
 
                   ! [Zhang et al., 2001]
-!------------------------------------------------------------------------------
-! Prior to 1/10/12:
-! Replace PRESS with local surface pressure (PRESSU) (jaegle 5/11/11,
-!  mpayer 1/10/12);  also added W10 (10m windspeed) (jaegle 5/11/11)
-!                  RSURFC(K,LDT) = 
-!     &               AERO_SFCRSII( K,     II,            PRESS*1D-3, 
-!     &                             TEMPK, USTAR(IJLOOP), RHB(IJLOOP) )
-!------------------------------------------------------------------------------
                   RSURFC(K,LDT) = 
      &               AERO_SFCRSII( K,     II,   PRESSU(IJLOOP)*1D-3, 
      &                             TEMPK, USTAR(IJLOOP), RHB(IJLOOP),
@@ -1798,13 +1763,6 @@
 !     &             DUST_sfcRsI(K, II, PRESS*1D-3, TEMPK, USTAR(IJLOOP))
 
                   ! [Zhang et al., 2001]
-!------------------------------------------------------------------------------
-! Prior to 1/10/12:
-! Replace PRESS with local surface pressure (PRESSU) (jaegle 5/11/11,
-!  mpayer 1/10/12)
-!                  RSURFC(K,LDT) = 
-!     &             DUST_SFCRSII(K, II, PRESS*1D-3, TEMPK, USTAR(IJLOOP))
-!------------------------------------------------------------------------------
                   RSURFC(K,LDT) = 
      &             DUST_SFCRSII(K, II, PRESSU(IJLOOP)*1D-3, TEMPK, 
      &             USTAR(IJLOOP))
@@ -1830,12 +1788,6 @@
 !                  IF (CZH.LT.-30.0D0) VDS = 0.0009D0*USTAR(IJLOOP)*
 !     x                                 (-CZH)**0.6667D0
 
-!------------------------------------------------------------------------------
-! Prior to 1/10/12:
-! Replace PRESS with local surface pressure (PRESSU) (mpayer, 1/10/12)
-!                  RSURFC(K, LDT) =
-!     &                ADUST_SFCRSII(K, II, PRESS*1D-3, TEMPK,
-!------------------------------------------------------------------------------
                   RSURFC(K, LDT) =
      &                ADUST_SFCRSII(K, II, PRESSU(IJLOOP)*1D-3, TEMPK,
      &                              USTAR(IJLOOP))
@@ -2102,11 +2054,6 @@
 !** cited on p. 16,476 of Jacob et al. [1992]
                DAIR = 0.2D0*1.D-4
                RB = (2.D0/CKUSTR)*
-!------------------------------------------------------------------------------
-! Prior to 1/10/12:
-! Replace PRESS with local surface pressure (PRESSU) (mpayer, 1/10/12)
-!     x              (DAIR/DIFFG(TEMPK,PRESS,XMW(K)))**0.667D0
-!------------------------------------------------------------------------------
      x              (DAIR/DIFFG(TEMPK,PRESSU(IJLOOP),XMW(K)))**0.667D0
                IF (AIROSOL(K)) RB=0.D0
                C1X(K) = RA + RB + RSURFC(K,LDT)

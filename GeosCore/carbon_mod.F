@@ -1674,10 +1674,6 @@
 !
       ! References to F90 modules
       USE ERROR_MOD,    ONLY : DEBUG_MSG
-!------------------------------------------------------------------------------
-! Prior to 10/5/11: 
-!      USE DAO_MOD,      ONLY : T, AD, AIRVOL, SUNCOS
-!------------------------------------------------------------------------------
       USE DAO_MOD,      ONLY : T, AD, AIRVOL
       USE DIAG_MOD,     ONLY : AD07_HC
       USE TRACER_MOD,   ONLY : STT 
@@ -4260,10 +4256,6 @@ c
       ! References to F90 modules
       USE BPCH2_MOD,     ONLY : GET_NAME_EXT_2D,  GET_RES_EXT
       USE BPCH2_MOD,     ONLY : GET_TAU0,         READ_BPCH2
-!-----------------------------------------------------------------------------
-! Prior to 10/7/11:
-!      USE DAO_MOD,       ONLY : SUNCOS
-!-----------------------------------------------------------------------------
       USE DAO_MOD,       ONLY : SUNCOS_MID
       USE DIRECTORY_MOD, ONLY : DATA_DIR
       USE LOGICAL_MOD,   ONLY : LMEGANMONO,       LSOA
@@ -4329,11 +4321,6 @@ c
             ! ** MEGAN v2.1 **
             ! Cosine of solar zenith angle   (mpb,2009) 
             ! Diffuse and direct PAR         (mpb,2009)
-!------------------------------------------------------------------------------
-! Prior to 10/5/11:
-! Now compute MEGAN with the cos(SZA) @ 30 mins after the hour (bmy, 10/5/11)
-!            SC   = SUNCOS(IJLOOP)   
-!------------------------------------------------------------------------------
             SC   = SUNCOS_MID(IJLOOP)   
             PDR  = PARDR(I,J)
             PDF  = PARDF(I,J)
@@ -4413,11 +4400,6 @@ c
             ! ** MEGAN v2.1 **
             ! Cosine of solar zenith angle   (mpb,2009) 
             ! Diffuse and direct PAR         (mpb,2009)
-!------------------------------------------------------------------------------
-! Prior to 10/5/11:
-! Now compute MEGAN with the cos(SZA) @ 30 mins after the hour (bmy, 10/5/11)
-!            SC   = SUNCOS(IJLOOP)   
-!------------------------------------------------------------------------------
             SC   = SUNCOS_MID(IJLOOP)   
             PDR  = PARDR(I,J)
             PDF  = PARDF(I,J)
@@ -4434,12 +4416,6 @@ c
             !---------------------------------------------------
             IF ( SUNCOS_MID(IJLOOP) > 0d0 .and. TCOSZ(I,J) > 0d0 ) THEN
                DIUR_ORVC(I,J) = GEIA_ORVC(I,J)*
-!-----------------------------------------------------------------------------
-! Prior to 10/5/11:
-! Now use SUNCOS_MID array instead of SUNCOS (bmy, 10/5/11)
-!     &                          ( SUNCOS(IJLOOP) / TCOSZ(I,J) ) *
-!     &                          ( 1440d0        / GET_TS_CHEM() )
-!-----------------------------------------------------------------------------
      &                          ( SUNCOS_MID(IJLOOP) / TCOSZ(I,J) ) *
      &                          ( 1440d0           / GET_TS_CHEM() )
 

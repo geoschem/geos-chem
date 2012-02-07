@@ -5705,12 +5705,6 @@
 !
 ! !LOCAL VARIABLES:
 !
-!------------------------------------------------------------------------------
-! Prior to 10/7/11:
-! Remove obsolete TS_SUN_2 variable
-!      INTEGER :: I,           J,       K,       L
-!      INTEGER :: TS_SMALLEST, TS_DIAG, TS_SUN_2
-!------------------------------------------------------------------------------
       INTEGER :: I, J, K, L, TS_SMALLEST, TS_DIAG
       
       !=================================================================
@@ -5820,28 +5814,10 @@
          CALL GEOS_CHEM_STOP
       ENDIF
 
-!------------------------------------------------------------------------------
-! Prior to 10/7/11:
-! We no longer need to pass TS_SUN_2 to SET_TIMESTEPS (bmy, 10/7/11)
-!      ! We need to compute the cosine of the solar zenith angle at the 
-!      ! center of the relevant timestep.  Take 1/2 of the proper time 
-!      ! interval and store for future reference. (bmy, 4/2 7/10)
-!      IF ( LCHEM .or. LEMIS .or. LDRYD ) THEN
-!         TS_SUN_2 = TS_CHEM     / 2   ! 1/2 of chemistry timestep
-!      ELSE 
-!         TS_SUN_2 = TS_SMALLEST / 2   ! 1/2 of dynamic (smallest) timestep
-!      ENDIF
-!------------------------------------------------------------------------------
-
       ! Initialize timesteps in "time_mod.f"
       CALL SET_TIMESTEPS( CHEMISTRY  = TS_CHEM, EMISSION  = TS_EMIS, 
      &                    DYNAMICS   = TS_DYN,  UNIT_CONV = TS_UNIT,
      &                    CONVECTION = TS_CONV, DIAGNOS   = TS_DIAG )
-!------------------------------------------------------------------------------
-! Prior to 10/7/11:
-! We no longer need to pass TS_SUN_2 to SET_TIMESTEPS (bmy, 10/7/11)
-!     &                    SUNCOS     = TS_SUN_2 )
-!------------------------------------------------------------------------------
       
  100  FORMAT( A, ' time step must be a multiple of the smallest one:',
      &         i5, i5 )

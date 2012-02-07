@@ -414,10 +414,6 @@
 ! !USES:
 !
       USE DAO_MOD,        ONLY : AD,     AIRDEN,  CLDF
-!------------------------------------------------------------------------------
-! Prior to 10/5/11:
-!      USE DAO_MOD,        ONLY : SUNCOS, CONVERT_UNITS
-!------------------------------------------------------------------------------
       USE DAO_MOD,        ONLY : CONVERT_UNITS
       USE DRYDEP_MOD,     ONLY : DEPSAV
       USE ERROR_MOD,      ONLY : DEBUG_MSG

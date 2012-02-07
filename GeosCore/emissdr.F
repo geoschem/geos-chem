@@ -91,10 +91,6 @@
       USE ACETONE_MOD,       ONLY : READ_JO1D,     READ_RESP
       USE AIRCRAFT_NOX_MOD,  ONLY : AIREMISS
       USE BIOFUEL_MOD,       ONLY : BIOFUEL_BURN
-!------------------------------------------------------------------------------
-! Prior to 10/7/11:
-!      USE DAO_MOD,           ONLY : PARDF,         PARDR,     SUNCOS        
-!------------------------------------------------------------------------------
       USE DAO_MOD,           ONLY : PARDF,         PARDR,     SUNCOS_MID       
       USE DIAG_MOD,          ONLY : AD29,          AD46
       USE GRID_MOD,          ONLY : GET_AREA_CM2
@@ -268,12 +264,6 @@
 !
             IF ( ( LSOILNOX .OR. LFERTILIZERNOX )
      &             .AND. I == 1 .AND. J == 1 ) 
-!------------------------------------------------------------------------------
-! Prior to 10/7/11:
-! Now call soil NOx emissions with the cos(SZA) computed @ the midpoint of
-! the chemistry timestep (bmy, 10/7/11)
-!     &         CALL SOILNOXEMS( SUNCOS )
-!------------------------------------------------------------------------------
      &         CALL SOILNOXEMS( SUNCOS_MID )
 !-----------------------------------------------------------------------------
 ! AIRCRAFT emissions NOx [molecules/cm3/s]
@@ -300,12 +290,6 @@
                   !------------------
 
                   ! Cosine of solar zenith angle
-!------------------------------------------------------------------------------
-! Prior to 10/7/11:
-! Now call MEGAN emissions with the cos(SZA) computed @ the midpoint of
-! the chemistry timestep (bmy, 10/7/11)
-!                  SC   = SUNCOS(IJLOOP)
-!------------------------------------------------------------------------------
                   SC   = SUNCOS_MID(IJLOOP)
                
                   ! Diffuse and direct PAR

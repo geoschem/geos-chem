@@ -3109,13 +3109,6 @@
                ! Compute liquid to gas ratio for HgCl2, using
                ! the appropriate parameters for Henry's law
                ! (Refs: INSERT HERE)
-!---------------------------------------------------------------------------
-! Prior to 1/10/11:
-! hma, 10-Jan-2011, Henry's law constant for HgCl2 = 1.4d+6 M/atm for 
-! HgCl2 (Lindqvist and Rodhe, 1985)
-!           CALL COMPUTE_L2G( 1.0d+14, -8.4d3, 
-!     &                        T(I,J,L), CLDLIQ(I,J,L), L2G )
-!---------------------------------------------------------------------------
                CALL COMPUTE_L2G( 1.4d+6, -8.4d3, 
      &                           T(I,J,L), CLDLIQ(I,J,L), L2G )
            
