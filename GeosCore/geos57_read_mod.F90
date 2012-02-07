@@ -11,7 +11,7 @@
 !\\
 ! !INTERFACE: 
 !
-MODULE GEOS57_READ_MOD
+MODULE Geos57_Read_Mod
 !
 ! !USES:
 !
