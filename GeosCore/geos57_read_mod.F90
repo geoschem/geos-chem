@@ -64,6 +64,7 @@ MODULE Geos57_Read_Mod
 ! !REVISION HISTORY:
 !  30 Jan 2012 - R. Yantosca - Initial version
 !  03 Feb 2012 - R. Yantosca - Add Geos57_Read_A3 wrapper function
+!  07 Feb 2012 - R. Yantosca - Now echo info after reading fields from disk
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -191,6 +192,7 @@ CONTAINS
 !
 ! !REVISION HISTORY:
 !  30 Jan 2012 - R. Yantosca - Initial version
+!  07 Feb 2012 - R. Yantosca - Now echo info after reading fields from disk
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -200,6 +202,7 @@ CONTAINS
     ! Scalars
     INTEGER            :: fId                ! netCDF file ID
     INTEGER            :: X, Y, T            ! netCDF file dimensions
+    CHARACTER(LEN=16)  :: stamp              ! Time and date stamp
     CHARACTER(LEN=255) :: nc_file            ! netCDF file name
     CHARACTER(LEN=255) :: v_name             ! netCDF variable name
     CHARACTER(LEN=255) :: dir                ! Data directory path
@@ -274,6 +277,11 @@ CONTAINS
     v_name = "PHIS"
     CALL NcRd( Q, fId, TRIM(v_name), st3d, ct3d )
     CALL Transfer_2d( Q, PHIS )
+
+    ! Echo info
+    stamp = TimeStamp_String( 20110101, 000000 )
+    WRITE( 6, 10 ) stamp
+ 10 FORMAT( '     - Found all 5  GEOS-5.7-x CN     met fields for ', a )
 
     !======================================================================
     ! Cleanup and quit
@@ -388,6 +396,7 @@ CONTAINS
 !
 ! !REVISION HISTORY:
 !  30 Jan 2012 - R. Yantosca - Initial version
+!  07 Feb 2012 - R. Yantosca - Now echo info after reading fields from disk
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -398,11 +407,16 @@ CONTAINS
     INTEGER            :: fId                ! netCDF file ID
     INTEGER            :: X, Y, T            ! netCDF file dimensions
     INTEGER            :: time_index         ! Read this time slice of data
+    CHARACTER(LEN=16)  :: stamp              ! Time and date stamp
     CHARACTER(LEN=255) :: nc_file            ! netCDF file name
     CHARACTER(LEN=255) :: v_name             ! netCDF variable name 
     CHARACTER(LEN=255) :: dir                ! Data directory path
     CHARACTER(LEN=255) :: errMsg             ! Error message
     CHARACTER(LEN=255) :: caller             ! Name of this routine
+
+    ! Saved scalars
+    INTEGER, SAVE      :: lastDate = -1      ! Stores last YYYYMMDD value
+    INTEGER, SAVE      :: lastTime = -1      ! Stores last hhmmss value
                                              
     ! Arrays                                 
     INTEGER            :: st3d(3), ct3d(3)   ! Start + count, for 3D arrays 
@@ -413,6 +427,15 @@ CONTAINS
     !======================================================================
     ! Open the netCDF file
     !======================================================================
+
+    ! Skip if we have already read data for this date & time
+    IF ( YYYYMMDD == lastDate .and. HHMMSS == lastTime ) THEN
+       stamp = TimeStamp_String( YYYYMMDD, HHMMSS )
+       WRITE( 6, 20 ) stamp
+ 20    FORMAT( '     - GEOS-5.7.x A1 met fields for ', a,  &
+               ' have been read already'                  ) 
+       RETURN
+    ENDIF
 
     ! Name of this routine (for error printout)
     caller  = "GEOS57_READ_A1 (geos57_read_mod.F90)"
@@ -503,7 +526,7 @@ CONTAINS
     CALL NcRd( Q, fId, TRIM(v_name), st3d, ct3d )
     CALL Transfer_2d( Q, GWETTOP )
 
-    ! Read JFLUX from file
+    ! Read HFLUX from file
     v_name = "HFLUX"
     CALL NcRd( Q, fId, TRIM(v_name), st3d, ct3d )
     CALL Transfer_2d( Q, HFLUX )
@@ -578,7 +601,6 @@ CONTAINS
     !CALL NcRd( Q, fId, TRIM(v_name), st3d, ct3d )
     !CALL Transfer_2d( Q, QV2M )
     !-----------------------------------------------------------------------
-
 
     ! Read SEAICE00
     v_name = "SEAICE00"
@@ -685,6 +707,11 @@ CONTAINS
     CALL NcRd( Q, fId, TRIM(v_name), st3d, ct3d )
     CALL Transfer_2d( Q, Z0M )
 
+    ! Echo info
+    stamp = TimeStamp_String( YYYYMMDD, HHMMSS )
+    WRITE( 6, 10 ) stamp                    
+ 10 FORMAT( '     - Found all 44 GEOS-5.7-x A1     met fields for ', a )
+
     !======================================================================
     ! Diagnostics, cleanup, and quit
     !======================================================================
@@ -725,6 +752,10 @@ CONTAINS
        AD67(:,:,23) = AD67(:,:,23) + EFLUX    ! Latent heat flux [W/m2]
     ENDIF
 
+    ! Save date & time for next iteration
+    lastDate = YYYYMMDD
+    lastTime = HHMMSS
+
 #endif
 
   END SUBROUTINE Geos57_Read_A1
@@ -751,8 +782,8 @@ CONTAINS
 !
 ! !INPUT PARAMETERS:
 ! 
-    INTEGER, INTENT(IN) :: YYYYMMDD    ! GMT date in YYYY/MM/DD format
-    INTEGER, INTENT(IN) :: HHMMSS      ! GMT time in hh:mm:ss   format
+    INTEGER, INTENT(IN) :: YYYYMMDD       ! GMT date in YYYY/MM/DD format
+    INTEGER, INTENT(IN) :: HHMMSS         ! GMT time in hh:mm:ss   format
 !
 ! !REVISION HISTORY:
 !  30 Jan 2012 - R. Yantosca - Initial version
@@ -760,14 +791,48 @@ CONTAINS
 !------------------------------------------------------------------------------
 !BOC
 !
+! !LOCAL VARIABLES:
+!
+    ! Scalars
+    CHARACTER(LEN=16) :: stamp            ! Time and date stamp
+
+    ! Saved scalars
+    INTEGER, SAVE     :: lastDate = -1    ! Stores last YYYYMMDD value
+    INTEGER, SAVE     :: lastTime = -1    ! Stores last hhmmss value
+
+    !======================================================================
+    ! Call individual routines for reading A3 data
+    !======================================================================
+
+    ! Test to see if we have already read this data in
+    IF ( YYYYMMDD == lastDate .and. HHMMSS == lastTime ) THEN
+       stamp = TimeStamp_String( YYYYMMDD, HHMMSS )
+       WRITE( 6, 20 ) stamp
+ 20    FORMAT( '     - GEOS-5.7.x A3 met fields for ', a,  &
+               ' have been read already'                  ) 
+       RETURN
+    ENDIF
+
+    ! Save date & time for next iteration
+    lastDate = YYYYMMDD
+    lastTime = HHMMSS
+
     ! Read all the diffeent A3 files
     CALL Geos57_Read_A3cld ( YYYYMMDD, HHMMSS )
     CALL Geos57_Read_A3dyn ( YYYYMMDD, HHMMSS )
     CALL Geos57_Read_A3mstC( YYYYMMDD, HHMMSS )
     CALL Geos57_Read_A3mstE( YYYYMMDD, HHMMSS )
 
+    !======================================================================
+    ! Cleanup and quit
+    !======================================================================
+
     ! Increment the # of times that A3 fields have been read
     CALL Set_Ct_A3( INCREMENT=.TRUE. )
+
+    ! Save date & time for next iteration
+    lastDate = YYYYMMDD
+    lastTime = HHMMSS
 
   END SUBROUTINE Geos57_Read_A3
 !EOC
@@ -811,6 +876,7 @@ CONTAINS
 !
 ! !REVISION HISTORY:
 !  30 Jan 2012 - R. Yantosca - Initial version
+!  07 Feb 2012 - R. Yantosca - Now echo info after reading fields from disk
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -821,6 +887,7 @@ CONTAINS
     INTEGER            :: fId                      ! netCDF file ID
     INTEGER            :: X, Y, Z, T               ! netCDF file dimensions
     INTEGER            :: time_index               ! Read this slice of data
+    CHARACTER(LEN=16)  :: stamp                    ! Time and date stamp
     CHARACTER(LEN=255) :: nc_file                  ! netCDF file name
     CHARACTER(LEN=255) :: v_name                   ! netCDF variable name 
     CHARACTER(LEN=255) :: dir                      ! Data directory path
@@ -912,6 +979,11 @@ CONTAINS
     CALL NcRd( Q, fId, TRIM(v_name), st4d, ct4d )
     CALL Transfer_3d( Q, TAUCLI )
 
+    ! Echo info
+    stamp = TimeStamp_String( YYYYMMDD, HHMMSS )
+    WRITE( 6, 10 ) stamp
+ 10 FORMAT( '     - Found all 6  GEOS-5.7-x A3cld  met fields for ', a )
+
     !======================================================================
     ! Diagnostics, cleanup, and quit
     !======================================================================
@@ -964,6 +1036,7 @@ CONTAINS
 !
 ! !REVISION HISTORY:
 !  30 Jan 2012 - R. Yantosca - Initial version
+!  07 Feb 2012 - R. Yantosca - Now echo info after reading fields from disk
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -975,6 +1048,7 @@ CONTAINS
     INTEGER            :: I, J, L                  ! Loop indices
     INTEGER            :: X, Y, Z, T               ! netCDF file dimensions
     INTEGER            :: time_index               ! Read this slice of data
+    CHARACTER(LEN=16)  :: stamp                    ! Time and date stamp
     CHARACTER(LEN=255) :: nc_file                  ! netCDF file name
     CHARACTER(LEN=255) :: v_name                   ! netCDF variable name 
     CHARACTER(LEN=255) :: dir                      ! Data directory path
@@ -1079,6 +1153,11 @@ CONTAINS
     CALL NcRd( Q, fId, TRIM(v_name), st4d, ct4d )
     CALL Transfer_3d( Q, V )
 
+    ! Echo info
+    stamp = TimeStamp_String( YYYYMMDD, HHMMSS )
+    WRITE( 6, 10 ) stamp
+ 10 FORMAT( '     - Found all 6  GEOS-5.7-x A3dyn  met fields for ', a )
+
     !======================================================================
     ! Diagnostics, cleanup, and quit
     !======================================================================
@@ -1155,6 +1234,7 @@ CONTAINS
 !
 ! !REVISION HISTORY:
 !  30 Jan 2012 - R. Yantosca - Initial version
+!  07 Feb 2012 - R. Yantosca - Now echo info after reading fields from disk
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -1166,6 +1246,7 @@ CONTAINS
     INTEGER            :: I, J, L                  ! Loop indices
     INTEGER            :: X, Y, Z, T               ! netCDF file dimensions
     INTEGER            :: time_index               ! Read this slice of data
+    CHARACTER(LEN=16)  :: stamp                    ! Time and date stamp
     CHARACTER(LEN=255) :: nc_file                  ! netCDF file name
     CHARACTER(LEN=255) :: v_name                   ! netCDF variable name 
     CHARACTER(LEN=255) :: dir                      ! Data directory path
@@ -1247,6 +1328,11 @@ CONTAINS
     CALL NcRd( Q, fId, TRIM(v_name), st4d, ct4d )
     CALL Transfer_3d( Q, REEVAPLS )
 
+    ! Echo info
+    stamp = TimeStamp_String( YYYYMMDD, HHMMSS )
+    WRITE( 6, 10 ) stamp
+ 10 FORMAT( '     - Found all 4  GEOS-5.7-x A3mstC met fields for ', a )
+
     !======================================================================
     ! Cleanup and quit
     !======================================================================
@@ -1297,6 +1383,7 @@ CONTAINS
 !
 ! !REVISION HISTORY:
 !  30 Jan 2012 - R. Yantosca - Initial version
+!  07 Feb 2012 - R. Yantosca - Now echo info after reading fields from disk
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -1308,6 +1395,7 @@ CONTAINS
     INTEGER            :: I, J, L                  ! Loop indices
     INTEGER            :: X, Y, Z, T               ! netCDF file dimensions
     INTEGER            :: time_index               ! Read this slice of data
+    CHARACTER(LEN=16)  :: stamp                    ! Time and date stamp
     CHARACTER(LEN=255) :: nc_file                  ! netCDF file name
     CHARACTER(LEN=255) :: v_name                   ! netCDF variable name 
     CHARACTER(LEN=255) :: dir                      ! Data directory path
@@ -1389,6 +1477,11 @@ CONTAINS
     CALL NcRd( Qe, fId, TRIM(v_name), st4d, ct4d )
     CALL Transfer_3d_Lp1( Qe,  PFLLSAN )
 
+    ! Echo info
+    stamp = TimeStamp_String( YYYYMMDD, HHMMSS )
+    WRITE( 6, 10 ) stamp
+ 10 FORMAT( '     - Found all 4  GEOS-5.7-x A3mstE met fields for ', a )
+
     !=================================================================
     ! Cleanup and quit
     !=================================================================
@@ -1438,6 +1531,7 @@ CONTAINS
 !
 ! !REVISION HISTORY:
 !  30 Jan 2012 - R. Yantosca - Initial version
+!  07 Feb 2012 - R. Yantosca - Now echo info after reading fields from disk
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -1449,6 +1543,7 @@ CONTAINS
     INTEGER            :: I, J, L                  ! Loop indices
     INTEGER            :: X, Y, Z, T               ! netCDF file dimensions
     INTEGER            :: time_index               ! Read this slice of data
+    CHARACTER(LEN=16)  :: stamp                    ! Time and date stamp
     CHARACTER(LEN=255) :: nc_file                  ! netCDF file name
     CHARACTER(LEN=255) :: v_name                   ! netCDF variable name 
     CHARACTER(LEN=255) :: dir                      ! Data directory path
@@ -1548,6 +1643,11 @@ CONTAINS
     CALL NcRd( Q3, fId, TRIM(v_name), st4d, ct4d )
     CALL Transfer_3d( Q3, T1 )
 
+    ! Echo info
+    stamp = TimeStamp_String( YYYYMMDD, HHMMSS )
+    WRITE( 6, 10 ) stamp
+ 10 FORMAT( '     - Found all 4  GEOS-5.7-x I3     met fields for ', a )
+
     !======================================================================
     ! Diagnostics, cleanup, and quit
     !======================================================================
@@ -1606,6 +1706,7 @@ CONTAINS
 !
 ! !REVISION HISTORY:
 !  30 Jan 2012 - R. Yantosca - Initial version
+!  07 Feb 2012 - R. Yantosca - Now echo info after reading fields from disk
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -1617,6 +1718,7 @@ CONTAINS
     INTEGER            :: I, J, L                  ! Loop indices
     INTEGER            :: X, Y, Z, T               ! netCDF file dimensions
     INTEGER            :: time_index               ! Read this slice of data
+    CHARACTER(LEN=16)  :: stamp                    ! Time and date stamp
     CHARACTER(LEN=255) :: nc_file                  ! netCDF file name
     CHARACTER(LEN=255) :: v_name                   ! netCDF variable name 
     CHARACTER(LEN=255) :: dir                      ! Data directory path
@@ -1715,6 +1817,11 @@ CONTAINS
     v_name = "T"
     CALL NcRd( Q3, fId, TRIM(v_name), st4d, ct4d )
     CALL Transfer_3d( Q3, T2 )
+
+    ! Echo info
+    stamp = TimeStamp_String( YYYYMMDD, HHMMSS )
+    WRITE( 6, 10 ) stamp
+ 10 FORMAT( '     - Found all 4  GEOS-5.7-x I3     met fields for ', a )
 
     !======================================================================
     ! Diagnostics, cleanup, and quit
