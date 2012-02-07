@@ -41,7 +41,7 @@
       PUBLIC  :: AIRQNT_FULLGRID
       PUBLIC  :: CLEANUP_DAO
       PUBLIC  :: CONVERT_UNITS
-      PUBLIC  :: COPY_I6_FIELDS
+      PUBLIC  :: COPY_I3_I6_FIELDS
       PUBLIC  :: COSSZA
       PUBLIC  :: GET_OBK
       PUBLIC  :: INIT_DAO
@@ -1990,7 +1990,7 @@
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE COPY_I6_FIELDS
+      SUBROUTINE COPY_I3_I6_FIELDS
 ! 
 ! !REVISION HISTORY: 
 !  13 Apr 2004 - R. Yantosca - Initial version
@@ -2002,6 +2002,7 @@
 !  20 Aug 2010 - R. Yantosca - Rewrite #if block for clarity
 !  20 Aug 2010 - R. Yantosca - Added #if block for MERRA met fields
 !  06 Feb 2012 - R. Yantosca - Added #if block for GEOS-5.7.x met fields
+!  07 Feb 2012 - R. Yantosca - Renamed to COPY_I3_I6_FIELDS
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -2055,22 +2056,21 @@
       !------------------
       ! GEOS-5.7.x met
       !------------------
-      PS1    = PS2          ! I6 surface pressure    [hPa]
-      RH1    = RH2          ! I6 relative humidity   [%]
-
-
-#elif defined( MERRA )
-
-      !------------------
-      ! MERRA met
-      !------------------
       PS1    = PS2          ! I3 surface pressure    [hPa]
       SPHU1  = SPHU2        ! I3 specific humidity   [g/kg]
       TMPU1  = TMPU2        ! I3 temperature         [K]
 
+#elif defined( MERRA )
+
+      !------------------
+      ! GEOS-5.7.x met
+      !------------------
+      PS1    = PS2          ! I6 surface pressure    [hPa]
+      RH1    = RH2          ! I6 relative humidity   [%]
+
 #endif
 
-      END SUBROUTINE COPY_I6_FIELDS
+      END SUBROUTINE COPY_I3_I6_FIELDS
 !EOC
 !------------------------------------------------------------------------------
 !          Harvard University Atmospheric Chemistry Modeling Group            !
