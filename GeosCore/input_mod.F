@@ -44,6 +44,7 @@
       PRIVATE :: READ_ND50_MENU  
       PRIVATE :: READ_ND51_MENU  
       PRIVATE :: READ_ND51b_MENU  
+      PRIVATE :: READ_ND59_MENU
       PRIVATE :: READ_PROD_LOSS_MENU 
       PRIVATE :: READ_UNIX_CMDS_MENU
       PRIVATE :: READ_NESTED_GRID_MENU
@@ -4450,7 +4451,7 @@
       USE DIAG59_MOD, ONLY : INIT_DIAG59
       USE ERROR_MOD,  ONLY : ERROR_STOP
 
-#     include "CMN_SIZE"   ! Size parameters
+      USE CMN_SIZE_MOD     ! Size parameters
 
       ! Local variables
       LOGICAL             :: DO_ND59

@@ -162,10 +162,10 @@
       USE TRACERID_MOD, ONLY : IDTR4N2, IDTSALA, IDTSALC 
       USE DIAG_MOD,     ONLY : AD59     
 
-#     include "cmn_fj.h"        ! FAST-J stuff, includes CMN_SIZE
-#     include "jv_cmn.h"        ! ODAER, QAA, QAA_AOD (clh)
-#     include "CMN_O3"		! Pure O3, SAVENO2
-#     include "CMN_GCTM"        ! XTRA2
+      USE CMN_FJ_MOD         ! FAST-J stuff, includes CMN_SIZE
+      USE JV_CMN_MOD         ! ODAER, QAA, QAA_AOD (clh)
+      USE CMN_O3_MOD	     ! Pure O3, SAVENO2
+      USE CMN_GCTM_MOD       ! XTRA2
 
       ! Local variables
       LOGICAL, SAVE            :: FIRST  = .TRUE.
@@ -409,7 +409,7 @@
 !  NOTES:
 !******************************************************************************
 !      
-#     include "CMN_SIZE"   ! Size parameters
+      USE CMN_SIZE_MOD         ! Size parameters
 
       ! Arguments
       INTEGER, INTENT(IN) :: X
@@ -468,7 +468,7 @@
       USE GRID_MOD,  ONLY : GET_XOFFSET, GET_YOFFSET, ITS_A_NESTED_GRID
       USE ERROR_MOD, ONLY : ERROR_STOP
 
-#     include "CMN_SIZE" ! Size parameters
+      USE CMN_SIZE_MOD         ! Size parameters
 
       ! Arguments
       LOGICAL,            INTENT(IN) :: DO_ND59
