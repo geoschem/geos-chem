@@ -150,9 +150,9 @@
 ! !DEFINED PARAMETERS:
 !
       INTEGER, PARAMETER   :: MAXDEP    = 51
-      INTEGER, PARAMETER   :: NNTYPE    = 15     ! NTYPE    from "F77_CMN_SIZE"
-      INTEGER, PARAMETER   :: NNPOLY    = 20     ! NPOLY    from "F77_CMN_SIZE"
-      INTEGER, PARAMETER   :: NNVEGTYPE = 74     ! NVEGTYPE from "F77_CMN_SIZE"
+      INTEGER, PARAMETER   :: NNTYPE    = 15     ! NTYPE    from "CMN_SIZE"
+      INTEGER, PARAMETER   :: NNPOLY    = 20     ! NPOLY    from "CMN_SIZE"
+      INTEGER, PARAMETER   :: NNVEGTYPE = 74     ! NVEGTYPE from "CMN_SIZE"
       REAL*8,  PARAMETER   :: XCKMAN    = 0.4d0
       ! Add max number of radius bins for sea salt (jaegle 5/11/11)
       INTEGER, PARAMETER   :: NR_MAX    = 200
@@ -296,7 +296,7 @@
 !        each call. (rjp, bmy, 7/21/03)
 !  (3 ) Now declare CFRAC, RADIAT, AZO, USTAR as local variables, which are 
 !        returned by METERO.  CFRAC and RADIAT have also been deleted from 
-!        "F77_CMN_DEP". (bmy, 12/9/03)
+!        "CMN_DEP". (bmy, 12/9/03)
 !  (4 ) Now use explicit formula for IJLOOP to allow parallelization.
 !        Also reference LPRT from "logical_mod.f" (bmy, 7/20/04)
 !  (5 ) Now use routines from "pbl_mix_mod.f" to get PBL quantities, instead
@@ -472,7 +472,7 @@
       USE TRACERID_MOD, ONLY : IDTMSA, IDTNH3, IDTNH4
       USE TRACERID_MOD, ONLY : IDTNIT, IDTSO2, IDTSO4
 
-      USE CMN_SIZE_MOD       ! Size parameters!
+      USE CMN_SIZE_MOD              ! Size parameters
 !
 ! !INPUT PARAMETERS: 
 !
@@ -493,7 +493,6 @@
 !------------------------------------------------------------------------------
 !BOC
 !
-
       !=================================================================
       ! DVZ_MINVAL begins here!
       !=================================================================
@@ -581,7 +580,7 @@
 #endif
 
 !
-! !REMARKS
+! !REMARKS:
 !  References (see full citations above):
 !  ============================================================================
 !  (1 ) Wesely, M. L., 1989. 
@@ -614,7 +613,6 @@
 !  (9 ) Add sea level pressure and 10m windspeed as arguments (jaegle 5/11/11)
 !  22 Dec 2011 - M. Payer    - Added ProTeX headers
 !  10 Jan 2012 - M. Payer    - Added local surface pressure
-
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -647,16 +645,16 @@
       DO I = 1, IIPAR
 
          ! 1-D grid box index
-         IJLOOP      = ( (J-1) * IIPAR ) + I
+         IJLOOP         = ( (J-1) * IIPAR ) + I
 
          ! THIK = thickness of layer 1 [m]
-         THIK        = BXHEIGHT(I,J,1)
+         THIK           = BXHEIGHT(I,J,1)
 
          ! Midpoint height of first model level [m]
-         CZ1(IJLOOP) = THIK / 2.0d0
+         CZ1(IJLOOP)    = THIK / 2.0d0
 
          ! Local surface pressure [hPa] (mpayer, 1/10/12)
-         SP          = GET_PEDGE(I,J,1)
+         SP             = GET_PEDGE(I,J,1)
 
          ! Convert from hPa to Pa for SFCPRESS
          PRESSU(IJLOOP) = SP * 1.d2
@@ -745,7 +743,7 @@
 !  (4 ) Updated comments, cosmetic changes (bmy, 3/14/02)
 !  (5 ) Replaced all instances of IM with IIPAR and JM with JJPAR, in order
 !        to prevent namespace confusion for the new TPCORE (bmy, 6/25/02)
-!  (6 ) Removed reference to "comtrid.h", "F77_CMN_SAV", "F77_CMN_DEP", and "F77_CMN_O3",
+!  (6 ) Removed reference to "comtrid.h", "CMN_SAV", "CMN_DEP", and "CMN_O3",
 !        these are not used in this routine.  Also bundled into "drydep_mod.f"
 !        for more convenient packaging. (bmy, 11/19/02)
 !  (7 ) Replaced DXYP(JREF)*1d4 with routine GET_AREA_CM2 of "grid"mod.f".
@@ -884,8 +882,8 @@
       USE CMN_DIAG_MOD      ! ND44
       USE CMN_DEP_MOD       ! Dry deposition variables
 ! 
-! !REVISION HISTORY: 
-!  (1 ) Now eliminate DEPFLUX from F77_CMN_SAV, in order to save memory.
+! !REVISION HISTORY:
+!  (1 ) Now eliminate DEPFLUX from CMN_SAV, in order to save memory.
 !        DEPFLUX is now a local variable (bdf, 4/2/99)
 !  (2 ) Now make DEPFLUX of dimension (IIPAR,JJPAR,MAXDEP) (bmy, 4/2/99)
 !  (3 ) Now use an allocatable array for the ND44 diagnostic.

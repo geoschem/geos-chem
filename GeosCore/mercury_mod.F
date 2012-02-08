@@ -159,6 +159,7 @@
 !       (eds 7/30/08)
 !  13 Aug 2010 - R. Yantosca - Add modifications for MERRA (treat like GEOS-5)
 !  01 Apr 2011 - H. Amos      - added LVEGEMIS, distinct from LGCAPEMIS
+!  08 Feb 2012 - R. Yantosca - Add modifications for GEOS-5.7.x met
 !******************************************************************************
 !
       ! References to F90 modules
@@ -476,6 +477,7 @@
 !  13 Aug 2010 - R. Yantosca - Treat MERRA like GEOS-5 
 !  14 Jan 2011 - R. Yantosca - Now get volume cloud fraction directly
 !                              from GEOS-5 and MERRA met fields
+!  08 Feb 2012 - R. Yantosca - Treat GEOS-5.7.x in the same way as MERRA
 !******************************************************************************
 !
       ! References to F90 modules
@@ -621,7 +623,7 @@
          C_OH        = GET_OH( I, J, L )
          C_BR        = GET_BR( I, J, L, C_BRO )
 
-#if   defined( GEOS_5 ) || defined( MERRA ) 
+#if   defined( GEOS_5 ) || defined( MERRA ) || defined( GEOS_57 )
 
          !---------------------------------------------
          ! GEOS-5/MERRA: Get LWC, FC from met fields
@@ -779,7 +781,7 @@
          ! Except in MERRA, we assume entire grid box is water or ice
          ! if conditions are met (jaf, 4/26/11)
          FRAC_NO_HG0_DEP = 1d0
-#if   defined( MERRA )
+#if   defined( MERRA ) || defined( GEOS_57 )
          FRAC_NO_HG0_DEP =
      &        MIN(FROCEAN(I,J) + FRSNO(I,J) + FRLANDIC(I,J), 1d0) 
          ZERO_HG0_DEP = ( FRAC_NO_HG0_DEP > 0d0 )

@@ -112,6 +112,7 @@ MODULE VDIFF_MOD
 !  02 Mar 2011 - R. Yantosca - Bug fixes for PGI compiler: these mostly
 !                              involve explicitly using "D" exponents
 !  25 Mar 2011 - R. Yantosca - Corrected bug fixes noted by Jintai Lin
+!  08 Feb 2012 - R. Yantosca - Add modifications for GEOS-5.7.2 met
 !EOP
 !------------------------------------------------------------------------------
 
@@ -1827,6 +1828,7 @@ contains
 !  02 Mar 2011 - R. Yantosca - Bug fixes for PGI compiler: these mostly
 !                              involve explicitly using "D" exponents
 !  26 Apr 2011 - J. Fisher   - Use MERRA land fraction information
+!  08 Feb 2012 - R. Yantosca - Treat GEOS-5.7.2 in the same way as MERRA
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -2145,7 +2147,7 @@ contains
           ! Except in MERRA, we assume entire grid box is water or ice
           ! if conditions are met (jaf, 4/26/11)
           FRAC_NO_HG0_DEP = 1d0
-#if   defined( MERRA )
+#if   defined( MERRA ) || defined( GEOS_57 )
           FRAC_NO_HG0_DEP = &
                MIN(FROCEAN(I,J) + FRSNO(I,J) + FRLANDIC(I,J), 1d0)
           ZERO_HG0_DEP = ( FRAC_NO_HG0_DEP > 0d0 )

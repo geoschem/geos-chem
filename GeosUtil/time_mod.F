@@ -2183,40 +2183,6 @@
       THIS_TS_UNIT = TS_UNIT
 
       END FUNCTION GET_TS_UNIT
-!------------------------------------------------------------------------------
-! Prior to 10/7/11:
-! Remove obsolete GET_TS_SUN_2 function (bmy, 10/7/11)
-!!EOC
-!!------------------------------------------------------------------------------
-!!          Harvard University Atmospheric Chemistry Modeling Group            !
-!!------------------------------------------------------------------------------
-!!BOP
-!!
-!! !IROUTINE: get_ts_sun_2
-!!
-!! !DESCRIPTION: Function GET\_TS\_SUN\_2 returns TS\_SUN\_2, which is 1/2 of
-!!  the interval at which we are computing the cosine of the solar zenith
-!!  angle, aka SUNCOS.  This is required to move the time at which we compute
-!!  SUNCOS to the middle of the chemistry timestep interval.
-!!\\
-!!\\
-!! !INTERFACE:
-!!
-!      FUNCTION GET_TS_SUN_2() RESULT( THIS_TS_SUN_2 )
-!!
-!! !RETURN VALUE:
-!!
-!      INTEGER :: THIS_TS_SUN_2  ! 1/2 of SUNCOS interval [min]
-!! 
-!! !REVISION HISTORY: 
-!!  27 Apr 2010 - R. Yantosca - Initial version
-!!EOP
-!!------------------------------------------------------------------------------
-!!BOC
-!      THIS_TS_SUN_2 = TS_SUN_2
-!
-!      END FUNCTION GET_TS_SUN_2
-!------------------------------------------------------------------------------
 !EOC
 !------------------------------------------------------------------------------
 !          Harvard University Atmospheric Chemistry Modeling Group            !
@@ -3162,12 +3128,6 @@
       M = MAX( M/2, 1 )
 
       ! Is it time for chemistry?
-!-----------------------------------------------------------------------
-! Prior to 9/27/11:
-! Chemistry time step is now in the center of transport time steps. The
-! previous setup was TCTTT, now TTCTT (lzh, mpayer, 9/27/11)
-!      FLAG = ( MOD( ELAPSED_MIN, TS_CHEM ) == 0 )
-!-----------------------------------------------------------------------
       ! Chemistry time step is now in the center of transport time steps
       FLAG = ( MOD( ELAPSED_MIN, TS_CHEM ) == (M-1)*TS_DYN )
 
@@ -3279,12 +3239,6 @@
       M = MAX( M/2, 1 )
 
       ! Is it time for emissions?
-!-----------------------------------------------------------------------
-! Prior to 9/27/11:
-! Emission time step is now in the center of transport time steps. The
-! previous setup was TCTTT, now TTCTT (lzh, mpayer, 9/27/11)
-!      FLAG = ( MOD( ELAPSED_MIN, TS_EMIS ) == 0 )
-!-----------------------------------------------------------------------
       ! Emission time step is now in the center of transport time steps
       FLAG = ( MOD( ELAPSED_MIN, TS_EMIS ) == (M-1)*TS_DYN )
 
@@ -4216,12 +4170,6 @@
 !BOC
 
       ! Test for the 16th of the month at 0 GMT
-!----------------------------------------------------------------------------
-! Prior to 10/14/11:
-! Now use ITS_A_NEW_DAY to tell if it's the first data read time of the day.
-! This will account for the central chemistry timestep option. (bmy, 10/14/11) 
-!      IS_MIDMONTH = ( DAY == 16 .and. NHMS == 000000 )
-!----------------------------------------------------------------------------
       IS_MIDMONTH = ( DAY == 16 .and. ITS_A_NEW_DAY() )
 
       END FUNCTION ITS_MIDMONTH

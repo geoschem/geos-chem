@@ -393,7 +393,7 @@
 !        layer.  In FORTRAN, the best efficiency is obtained when the leftmost 
 !        array index corresponds to the innermost loop.
 !  (5 ) Remove PTOP from the arg list.  PTOP is now a parameter in 
-!      "F77_CMN_SIZE".  Also updated comments. (bmy, 2/22/00)
+!      "CMN_SIZE".  Also updated comments. (bmy, 2/22/00)
 !  (6 ) Replace IM, JM, LM with IIPAR, JJPAR, LLPAR as loop boundaries.
 !        This ensures that all quantities get defined up to the top of
 !        the atmosphere. (bmy, 6/15/00)

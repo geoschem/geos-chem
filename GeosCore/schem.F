@@ -98,6 +98,7 @@
 !  (21) Now references XNUMOLAIR from "tracer_mod.f" (bmy, 10/25/05)
 !  13 Aug 2010 - R. Yantosca - Added ProTeX headers
 !  13 Aug 2010 - R. Yantosca - Treat MERRA in the same way as GEOS-5
+!  08 Feb 2012 - R. Yantosca - Treat GEOS-5.7.x in the same way as MERRA
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -218,7 +219,7 @@
 !%%%         ! Cast from REAL*4 to REAL*8 and resize to (JJPAR,LLPAR)
 !%%%         CALL TRANSFER_ZONAL( ARRAY(1,:,:), STRATOH )
 !%%%---------------------------------------------------------------------
-#if   defined( GEOS_5 )  || defined( MERRA )
+#if   defined( GEOS_5 )  || defined( MERRA ) || defined( GEOS_57 )
          ! Cast from REAL*4 to REAL*8
          STRATOH = ARRAY(1,:,:)
 #else
@@ -251,7 +252,7 @@
 !%%%            ! Cast from REAL*4 to REAL*8 and resize to (JJPAR,LLPAR) 
 !%%%            CALL TRANSFER_ZONAL( ARRAY(1,:,:), SJVALUE(:,:,NN) )
 !%%%---------------------------------------------------------------------
-#if   defined( GEOS_5 ) || defined( MERRA )
+#if   defined( GEOS_5 ) || defined( MERRA )) || defined( GEOS_57 )
             ! Cast from REAL*4 to REAL*8
             SJVALUE(:,:,NN) = ARRAY(1,:,:)
 #else
@@ -282,7 +283,7 @@
 !%%%         ! Cast from REAL*4 to REAL*8 and resize to (JJPAR,LLPAR) 
 !%%%         CALL TRANSFER_ZONAL( ARRAY(1,:,:), COPROD )
 !%%%---------------------------------------------------------------------
-#if   defined( GEOS_5 ) || defined( MERRA )
+#if   defined( GEOS_5 ) || defined( MERRA )) || defined( GEOS_57 )
          ! Cast from REAL*4 to REAL*8
          COPROD = ARRAY(1,:,:)
 #else
@@ -312,7 +313,7 @@
 !%%%         ! Cast from REAL*4 to REAL*8 and resize to (JJPAR,LLPAR) 
 !%%%         CALL TRANSFER_ZONAL( ARRAY(1,:,:), COLOSS )
 !%%%---------------------------------------------------------------------
-#if   defined( GEOS_5 ) || defined( MERRA )
+#if   defined( GEOS_5 ) || defined( MERRA )) || defined( GEOS_57 )
          ! Cast from REAL*4 to REAL*8
          COLOSS = ARRAY(1,:,:)
 #else
