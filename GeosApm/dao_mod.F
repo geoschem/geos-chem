@@ -23,6 +23,18 @@
 #     include "define.h"
 
       PRIVATE
+
+#     include "define.h"
+!
+! !PRIVATE MEMBER FUNCTIONS:
+!
+      PRIVATE :: INIT_DAO_GCAP
+      PRIVATE :: INIT_DAO_GEOS3
+      PRIVATE :: INIT_DAO_GEOS4
+      PRIVATE :: INIT_DAO_GEOS5
+      PRIVATE :: INIT_DAO_GEOS57
+      PRIVATE :: INIT_DAO_MERRA
+      PRIVATE :: INIT_DAO_DERIVED
 !
 ! !PUBLIC MEMBER FUNCTIONS:
 !
@@ -31,7 +43,7 @@
       PUBLIC  :: AIRQNT_FULLGRID
       PUBLIC  :: CLEANUP_DAO
       PUBLIC  :: CONVERT_UNITS
-      PUBLIC  :: COPY_I6_FIELDS
+      PUBLIC  :: COPY_I3_I6_FIELDS
       PUBLIC  :: COSSZA
       PUBLIC  :: GET_OBK
       PUBLIC  :: INIT_DAO
@@ -46,134 +58,135 @@
 ! !PUBLIC DATA MEMBERS:
 !
       ! 2-D data fields
-      REAL*8,  ALLOCATABLE, PUBLIC :: ALBD1   (:,:)
-      REAL*8,  ALLOCATABLE, PUBLIC :: ALBD2   (:,:)
-      REAL*8,  ALLOCATABLE, PUBLIC :: ALBD    (:,:)
-      INTEGER, ALLOCATABLE, PUBLIC :: CLDTOPS (:,:)
-      REAL*8,  ALLOCATABLE, PUBLIC :: CLDFRC  (:,:)
-      REAL*8,  ALLOCATABLE, PUBLIC :: EFLUX   (:,:)
-      REAL*8,  ALLOCATABLE, PUBLIC :: EVAP    (:,:)
-      REAL*8,  ALLOCATABLE, PUBLIC :: FRLAKE  (:,:)
-      REAL*8,  ALLOCATABLE, PUBLIC :: FRLAND  (:,:)
-      REAL*8,  ALLOCATABLE, PUBLIC :: FROCEAN (:,:)
-      REAL*8,  ALLOCATABLE, PUBLIC :: FRLANDIC(:,:)
-      REAL*8,  ALLOCATABLE, PUBLIC :: FRSEAICE(:,:)
-      REAL*8,  ALLOCATABLE, PUBLIC :: FRSNO   (:,:)
-      REAL*8,  ALLOCATABLE, PUBLIC :: GRN     (:,:)
-      REAL*8,  ALLOCATABLE, PUBLIC :: GWETROOT(:,:)
-      REAL*8,  ALLOCATABLE, PUBLIC :: GWETTOP (:,:)
-      REAL*8,  ALLOCATABLE, PUBLIC :: HFLUX   (:,:)
-      REAL*8,  ALLOCATABLE, PUBLIC :: LAI     (:,:)
-      REAL*8,  ALLOCATABLE, PUBLIC :: LWI_GISS(:,:)
-      REAL*8,  ALLOCATABLE, PUBLIC :: LWI     (:,:)
-      REAL*8,  ALLOCATABLE, PUBLIC :: MOLENGTH(:,:)
-      REAL*8,  ALLOCATABLE, PUBLIC :: OICE    (:,:)      
-      REAL*8,  ALLOCATABLE, PUBLIC :: PARDF   (:,:)
-      REAL*8,  ALLOCATABLE, PUBLIC :: PARDR   (:,:)
-      REAL*8,  ALLOCATABLE, PUBLIC :: PBL     (:,:)
-      REAL*8,  ALLOCATABLE, PUBLIC :: PHIS    (:,:)
-      REAL*8,  ALLOCATABLE, PUBLIC :: PREACC  (:,:)
-      REAL*8,  ALLOCATABLE, PUBLIC :: PREANV  (:,:)
-      REAL*8,  ALLOCATABLE, PUBLIC :: PRECON  (:,:)
-      REAL*8,  ALLOCATABLE, PUBLIC :: PRELSC  (:,:)
-      REAL*8,  ALLOCATABLE, PUBLIC :: PRECSNO (:,:)
-      REAL*8,  ALLOCATABLE, PUBLIC :: PS1     (:,:)
-      REAL*8,  ALLOCATABLE, PUBLIC :: PS2     (:,:)
-      REAL*8,  ALLOCATABLE, PUBLIC :: PSC2    (:,:)
-      REAL*8,  ALLOCATABLE, PUBLIC :: RADLWG  (:,:)
-      REAL*8,  ALLOCATABLE, PUBLIC :: RADSWG  (:,:)
-      REAL*8,  ALLOCATABLE, PUBLIC :: SEAICE00(:,:)
-      REAL*8,  ALLOCATABLE, PUBLIC :: SEAICE10(:,:)
-      REAL*8,  ALLOCATABLE, PUBLIC :: SEAICE20(:,:)
-      REAL*8,  ALLOCATABLE, PUBLIC :: SEAICE30(:,:)
-      REAL*8,  ALLOCATABLE, PUBLIC :: SEAICE40(:,:)
-      REAL*8,  ALLOCATABLE, PUBLIC :: SEAICE50(:,:)
-      REAL*8,  ALLOCATABLE, PUBLIC :: SEAICE60(:,:)
-      REAL*8,  ALLOCATABLE, PUBLIC :: SEAICE70(:,:)
-      REAL*8,  ALLOCATABLE, PUBLIC :: SEAICE80(:,:)
-      REAL*8,  ALLOCATABLE, PUBLIC :: SEAICE90(:,:)
-      REAL*8,  ALLOCATABLE, PUBLIC :: SLP     (:,:)
-      REAL*8,  ALLOCATABLE, PUBLIC :: SNICE   (:,:)
-      REAL*8,  ALLOCATABLE, PUBLIC :: SNODP   (:,:)
-      REAL*8,  ALLOCATABLE, PUBLIC :: SNOMAS  (:,:)
-      REAL*8,  ALLOCATABLE, PUBLIC :: SNOW    (:,:)
-      REAL*8,  ALLOCATABLE, PUBLIC :: SUNCOS  (:  )
-      REAL*8,  ALLOCATABLE, PUBLIC :: TO31    (:,:)
-      REAL*8,  ALLOCATABLE, PUBLIC :: TO32    (:,:)
-      REAL*8,  ALLOCATABLE, PUBLIC :: TO3     (:,:)
-      REAL*8,  ALLOCATABLE, PUBLIC :: TTO3    (:,:)
-      REAL*8,  ALLOCATABLE, PUBLIC :: TROPP1  (:,:)
-      REAL*8,  ALLOCATABLE, PUBLIC :: TROPP2  (:,:)
-      REAL*8,  ALLOCATABLE, PUBLIC :: TROPP   (:,:)
-      REAL*8,  ALLOCATABLE, PUBLIC :: TS      (:,:)
-      REAL*8,  ALLOCATABLE, PUBLIC :: TSKIN   (:,:)
-      REAL*8,  ALLOCATABLE, PUBLIC :: U10M    (:,:)
-      REAL*8,  ALLOCATABLE, PUBLIC :: USTAR   (:,:)  
-      REAL*8,  ALLOCATABLE, PUBLIC :: V10M    (:,:)
-      REAL*8,  ALLOCATABLE, PUBLIC :: Z0      (:,:)
+      REAL*8,  ALLOCATABLE, PUBLIC :: ALBD1          (:,:  )
+      REAL*8,  ALLOCATABLE, PUBLIC :: ALBD2          (:,:  )
+      REAL*8,  ALLOCATABLE, PUBLIC :: ALBD           (:,:  )
+      INTEGER, ALLOCATABLE, PUBLIC :: CLDTOPS        (:,:  )
+      REAL*8,  ALLOCATABLE, PUBLIC :: CLDFRC         (:,:  )
+      REAL*8,  ALLOCATABLE, PUBLIC :: EFLUX          (:,:  )
+      REAL*8,  ALLOCATABLE, PUBLIC :: EVAP           (:,:  )
+      REAL*8,  ALLOCATABLE, PUBLIC :: FRLAKE         (:,:  )
+      REAL*8,  ALLOCATABLE, PUBLIC :: FRLAND         (:,:  )
+      REAL*8,  ALLOCATABLE, PUBLIC :: FROCEAN        (:,:  )
+      REAL*8,  ALLOCATABLE, PUBLIC :: FRLANDIC       (:,:  )
+      REAL*8,  ALLOCATABLE, PUBLIC :: FRSEAICE       (:,:  )
+      REAL*8,  ALLOCATABLE, PUBLIC :: FRSNO          (:,:  )
+      REAL*8,  ALLOCATABLE, PUBLIC :: GRN            (:,:  )
+      REAL*8,  ALLOCATABLE, PUBLIC :: GWETROOT       (:,:  )
+      REAL*8,  ALLOCATABLE, PUBLIC :: GWETTOP        (:,:  )
+      REAL*8,  ALLOCATABLE, PUBLIC :: HFLUX          (:,:  )
+      REAL*8,  ALLOCATABLE, PUBLIC :: LAI            (:,:  )
+      REAL*8,  ALLOCATABLE, PUBLIC :: LWI_GISS       (:,:  )
+      REAL*8,  ALLOCATABLE, PUBLIC :: LWI            (:,:  )
+      REAL*8,  ALLOCATABLE, PUBLIC :: MOLENGTH       (:,:  )
+      REAL*8,  ALLOCATABLE, PUBLIC :: OICE           (:,:  )      
+      REAL*8,  ALLOCATABLE, PUBLIC :: PARDF          (:,:  )
+      REAL*8,  ALLOCATABLE, PUBLIC :: PARDR          (:,:  )
+      REAL*8,  ALLOCATABLE, PUBLIC :: PBL            (:,:  )
+      REAL*8,  ALLOCATABLE, PUBLIC :: PHIS           (:,:  )
+      REAL*8,  ALLOCATABLE, PUBLIC :: PREACC         (:,:  )
+      REAL*8,  ALLOCATABLE, PUBLIC :: PREANV         (:,:  )
+      REAL*8,  ALLOCATABLE, PUBLIC :: PRECON         (:,:  )
+      REAL*8,  ALLOCATABLE, PUBLIC :: PRELSC         (:,:  )
+      REAL*8,  ALLOCATABLE, PUBLIC :: PRECSNO        (:,:  )
+      REAL*8,  ALLOCATABLE, PUBLIC :: PS1            (:,:  )
+      REAL*8,  ALLOCATABLE, PUBLIC :: PS2            (:,:  )
+      REAL*8,  ALLOCATABLE, PUBLIC :: PSC2           (:,:  )
+      REAL*8,  ALLOCATABLE, PUBLIC :: RADLWG         (:,:  )
+      REAL*8,  ALLOCATABLE, PUBLIC :: RADSWG         (:,:  )
+      REAL*8,  ALLOCATABLE, PUBLIC :: SEAICE00       (:,:  )
+      REAL*8,  ALLOCATABLE, PUBLIC :: SEAICE10       (:,:  )
+      REAL*8,  ALLOCATABLE, PUBLIC :: SEAICE20       (:,:  )
+      REAL*8,  ALLOCATABLE, PUBLIC :: SEAICE30       (:,:  )
+      REAL*8,  ALLOCATABLE, PUBLIC :: SEAICE40       (:,:  )
+      REAL*8,  ALLOCATABLE, PUBLIC :: SEAICE50       (:,:  )
+      REAL*8,  ALLOCATABLE, PUBLIC :: SEAICE60       (:,:  )
+      REAL*8,  ALLOCATABLE, PUBLIC :: SEAICE70       (:,:  )
+      REAL*8,  ALLOCATABLE, PUBLIC :: SEAICE80       (:,:  )
+      REAL*8,  ALLOCATABLE, PUBLIC :: SEAICE90       (:,:  )
+      REAL*8,  ALLOCATABLE, PUBLIC :: SLP            (:,:  )
+      REAL*8,  ALLOCATABLE, PUBLIC :: SNICE          (:,:  )
+      REAL*8,  ALLOCATABLE, PUBLIC :: SNODP          (:,:  )
+      REAL*8,  ALLOCATABLE, PUBLIC :: SNOMAS         (:,:  )
+      REAL*8,  ALLOCATABLE, PUBLIC :: SNOW           (:,:  )
+      REAL*8,  ALLOCATABLE, PUBLIC :: SUNCOS         (:    )
+      REAL*8,  ALLOCATABLE, PUBLIC :: SUNCOS_MID     (:    )
+      REAL*8,  ALLOCATABLE, PUBLIC :: TO31           (:,:  )
+      REAL*8,  ALLOCATABLE, PUBLIC :: TO32           (:,:  )
+      REAL*8,  ALLOCATABLE, PUBLIC :: TO3            (:,:  )
+      REAL*8,  ALLOCATABLE, PUBLIC :: TTO3           (:,:  )
+      REAL*8,  ALLOCATABLE, PUBLIC :: TROPP1         (:,:  )
+      REAL*8,  ALLOCATABLE, PUBLIC :: TROPP2         (:,:  )
+      REAL*8,  ALLOCATABLE, PUBLIC :: TROPP          (:,:  )
+      REAL*8,  ALLOCATABLE, PUBLIC :: TS             (:,:  )
+      REAL*8,  ALLOCATABLE, PUBLIC :: TSKIN          (:,:  )
+      REAL*8,  ALLOCATABLE, PUBLIC :: U10M           (:,:  )
+      REAL*8,  ALLOCATABLE, PUBLIC :: USTAR          (:,:  )  
+      REAL*8,  ALLOCATABLE, PUBLIC :: V10M           (:,:  )
+      REAL*8,  ALLOCATABLE, PUBLIC :: Z0             (:,:  )
 
       ! 3-D data fields
-      REAL*8,  ALLOCATABLE, PUBLIC :: AD      (:,:,:)
-      REAL*8,  ALLOCATABLE, PUBLIC :: AIRDEN  (:,:,:)
-      REAL*8,  ALLOCATABLE, PUBLIC :: AIRVOL  (:,:,:)
-      REAL*8,  ALLOCATABLE, PUBLIC :: AVGW    (:,:,:)
-      REAL*8,  ALLOCATABLE, PUBLIC :: BXHEIGHT(:,:,:)
-      REAL*8,  ALLOCATABLE, PUBLIC :: DQRCU   (:,:,:)
-      REAL*8,  ALLOCATABLE, PUBLIC :: DQRLSAN (:,:,:)
-      REAL*8,  ALLOCATABLE, PUBLIC :: CLDF    (:,:,:)
-      REAL*8,  ALLOCATABLE, PUBLIC :: CLDMAS  (:,:,:)
-      REAL*8,  ALLOCATABLE, PUBLIC :: CMFMC   (:,:,:)
-      REAL*8,  ALLOCATABLE, PUBLIC :: DELP    (:,:,:)
-      REAL*8,  ALLOCATABLE, PUBLIC :: DETRAINE(:,:,:)
-      REAL*8,  ALLOCATABLE, PUBLIC :: DETRAINN(:,:,:)
-      REAL*8,  ALLOCATABLE, PUBLIC :: DNDE    (:,:,:)
-      REAL*8,  ALLOCATABLE, PUBLIC :: DNDN    (:,:,:)
-      REAL*8,  ALLOCATABLE, PUBLIC :: DQIDTMST(:,:,:)
-      REAL*8,  ALLOCATABLE, PUBLIC :: DQLDTMST(:,:,:)
-      REAL*8,  ALLOCATABLE, PUBLIC :: DQRCON  (:,:,:)
-      REAL*8,  ALLOCATABLE, PUBLIC :: DQRLSC  (:,:,:)    
-      REAL*8,  ALLOCATABLE, PUBLIC :: DQVDTMST(:,:,:)
-      REAL*8,  ALLOCATABLE, PUBLIC :: DTRAIN  (:,:,:)
-      REAL*8,  ALLOCATABLE, PUBLIC :: ENTRAIN (:,:,:)
-      REAL*8,  ALLOCATABLE, PUBLIC :: HKBETA  (:,:,:)
-      REAL*8,  ALLOCATABLE, PUBLIC :: HKETA   (:,:,:)
-      REAL*8,  ALLOCATABLE, PUBLIC :: MFXC    (:,:,:)
-      REAL*8,  ALLOCATABLE, PUBLIC :: MFYC    (:,:,:)
-      REAL*8,  ALLOCATABLE, PUBLIC :: MFZ     (:,:,:)
-      REAL*8,  ALLOCATABLE, PUBLIC :: MOISTQ  (:,:,:)
-      REAL*8,  ALLOCATABLE, PUBLIC :: OPTDEP  (:,:,:)
-      REAL*8,  ALLOCATABLE, PUBLIC :: OPTD    (:,:,:)
-      REAL*8,  ALLOCATABLE, PUBLIC :: PFICU   (:,:,:)
-      REAL*8,  ALLOCATABLE, PUBLIC :: PFILSAN (:,:,:)
-      REAL*8,  ALLOCATABLE, PUBLIC :: PFLCU   (:,:,:)
-      REAL*8,  ALLOCATABLE, PUBLIC :: PFLLSAN (:,:,:)
-      REAL*8,  ALLOCATABLE, PUBLIC :: PV      (:,:,:)
-      REAL*8,  ALLOCATABLE, PUBLIC :: QI      (:,:,:)
-      REAL*8,  ALLOCATABLE, PUBLIC :: QL      (:,:,:)
-      REAL*8,  ALLOCATABLE, PUBLIC :: REEVAPCN(:,:,:)
-      REAL*8,  ALLOCATABLE, PUBLIC :: REEVAPLS(:,:,:)
-      REAL*8,  ALLOCATABLE, PUBLIC :: RH1     (:,:,:)
-      REAL*8,  ALLOCATABLE, PUBLIC :: RH2     (:,:,:)
-      REAL*8,  ALLOCATABLE, PUBLIC :: RH      (:,:,:)
-      REAL*8,  ALLOCATABLE, PUBLIC :: SPHU1   (:,:,:)
-      REAL*8,  ALLOCATABLE, PUBLIC :: SPHU2   (:,:,:)
-      REAL*8,  ALLOCATABLE, PUBLIC :: SPHU    (:,:,:)
-      REAL*8,  ALLOCATABLE, PUBLIC :: T       (:,:,:)
-      REAL*8,  ALLOCATABLE, PUBLIC :: TAUCLI  (:,:,:)
-      REAL*8,  ALLOCATABLE, PUBLIC :: TAUCLW  (:,:,:)
-      REAL*8,  ALLOCATABLE, PUBLIC :: TMPU1   (:,:,:)
-      REAL*8,  ALLOCATABLE, PUBLIC :: TMPU2   (:,:,:)
-      REAL*8,  ALLOCATABLE, PUBLIC :: UPDE    (:,:,:)
-      REAL*8,  ALLOCATABLE, PUBLIC :: UPDN    (:,:,:)
-      REAL*8,  ALLOCATABLE, PUBLIC :: UWND1   (:,:,:)
-      REAL*8,  ALLOCATABLE, PUBLIC :: UWND2   (:,:,:)
-      REAL*8,  ALLOCATABLE, PUBLIC :: UWND    (:,:,:)
-      REAL*8,  ALLOCATABLE, PUBLIC :: VWND1   (:,:,:)
-      REAL*8,  ALLOCATABLE, PUBLIC :: VWND2   (:,:,:)
-      REAL*8,  ALLOCATABLE, PUBLIC :: VWND    (:,:,:)
-      REAL*8,  ALLOCATABLE, PUBLIC :: ZMEU    (:,:,:)
-      REAL*8,  ALLOCATABLE, PUBLIC :: ZMMD    (:,:,:)
-      REAL*8,  ALLOCATABLE, PUBLIC :: ZMMU    (:,:,:)
+      REAL*8,  ALLOCATABLE, PUBLIC :: AD             (:,:,:)
+      REAL*8,  ALLOCATABLE, PUBLIC :: AIRDEN         (:,:,:)
+      REAL*8,  ALLOCATABLE, PUBLIC :: AIRVOL         (:,:,:)
+      REAL*8,  ALLOCATABLE, PUBLIC :: AVGW           (:,:,:)
+      REAL*8,  ALLOCATABLE, PUBLIC :: BXHEIGHT       (:,:,:)
+      REAL*8,  ALLOCATABLE, PUBLIC :: DQRCU          (:,:,:)
+      REAL*8,  ALLOCATABLE, PUBLIC :: DQRLSAN        (:,:,:)
+      REAL*8,  ALLOCATABLE, PUBLIC :: CLDF           (:,:,:)
+      REAL*8,  ALLOCATABLE, PUBLIC :: CLDMAS         (:,:,:)
+      REAL*8,  ALLOCATABLE, PUBLIC :: CMFMC          (:,:,:)
+      REAL*8,  ALLOCATABLE, PUBLIC :: DELP           (:,:,:)
+      REAL*8,  ALLOCATABLE, PUBLIC :: DETRAINE       (:,:,:)
+      REAL*8,  ALLOCATABLE, PUBLIC :: DETRAINN       (:,:,:)
+      REAL*8,  ALLOCATABLE, PUBLIC :: DNDE           (:,:,:)
+      REAL*8,  ALLOCATABLE, PUBLIC :: DNDN           (:,:,:)
+      REAL*8,  ALLOCATABLE, PUBLIC :: DQIDTMST       (:,:,:)
+      REAL*8,  ALLOCATABLE, PUBLIC :: DQLDTMST       (:,:,:)
+      REAL*8,  ALLOCATABLE, PUBLIC :: DQRCON         (:,:,:)
+      REAL*8,  ALLOCATABLE, PUBLIC :: DQRLSC         (:,:,:)    
+      REAL*8,  ALLOCATABLE, PUBLIC :: DQVDTMST       (:,:,:)
+      REAL*8,  ALLOCATABLE, PUBLIC :: DTRAIN         (:,:,:)
+      REAL*8,  ALLOCATABLE, PUBLIC :: ENTRAIN        (:,:,:)
+      REAL*8,  ALLOCATABLE, PUBLIC :: HKBETA         (:,:,:)
+      REAL*8,  ALLOCATABLE, PUBLIC :: HKETA          (:,:,:)
+      REAL*8,  ALLOCATABLE, PUBLIC :: MFXC           (:,:,:)
+      REAL*8,  ALLOCATABLE, PUBLIC :: MFYC           (:,:,:)
+      REAL*8,  ALLOCATABLE, PUBLIC :: MFZ            (:,:,:)
+      REAL*8,  ALLOCATABLE, PUBLIC :: MOISTQ         (:,:,:)
+      REAL*8,  ALLOCATABLE, PUBLIC :: OPTDEP         (:,:,:)
+      REAL*8,  ALLOCATABLE, PUBLIC :: OPTD           (:,:,:)
+      REAL*8,  ALLOCATABLE, PUBLIC :: PFICU          (:,:,:)
+      REAL*8,  ALLOCATABLE, PUBLIC :: PFILSAN        (:,:,:)
+      REAL*8,  ALLOCATABLE, PUBLIC :: PFLCU          (:,:,:)
+      REAL*8,  ALLOCATABLE, PUBLIC :: PFLLSAN        (:,:,:)
+      REAL*8,  ALLOCATABLE, PUBLIC :: PV             (:,:,:)
+      REAL*8,  ALLOCATABLE, PUBLIC :: QI             (:,:,:)
+      REAL*8,  ALLOCATABLE, PUBLIC :: QL             (:,:,:)
+      REAL*8,  ALLOCATABLE, PUBLIC :: REEVAPCN       (:,:,:)
+      REAL*8,  ALLOCATABLE, PUBLIC :: REEVAPLS       (:,:,:)
+      REAL*8,  ALLOCATABLE, PUBLIC :: RH1            (:,:,:)
+      REAL*8,  ALLOCATABLE, PUBLIC :: RH2            (:,:,:)
+      REAL*8,  ALLOCATABLE, PUBLIC :: RH             (:,:,:)
+      REAL*8,  ALLOCATABLE, PUBLIC :: SPHU1          (:,:,:)
+      REAL*8,  ALLOCATABLE, PUBLIC :: SPHU2          (:,:,:)
+      REAL*8,  ALLOCATABLE, PUBLIC :: SPHU           (:,:,:)
+      REAL*8,  ALLOCATABLE, PUBLIC :: T              (:,:,:)
+      REAL*8,  ALLOCATABLE, PUBLIC :: TAUCLI         (:,:,:)
+      REAL*8,  ALLOCATABLE, PUBLIC :: TAUCLW         (:,:,:)
+      REAL*8,  ALLOCATABLE, PUBLIC :: TMPU1          (:,:,:)
+      REAL*8,  ALLOCATABLE, PUBLIC :: TMPU2          (:,:,:)
+      REAL*8,  ALLOCATABLE, PUBLIC :: UPDE           (:,:,:)
+      REAL*8,  ALLOCATABLE, PUBLIC :: UPDN           (:,:,:)
+      REAL*8,  ALLOCATABLE, PUBLIC :: UWND1          (:,:,:)
+      REAL*8,  ALLOCATABLE, PUBLIC :: UWND2          (:,:,:)
+      REAL*8,  ALLOCATABLE, PUBLIC :: UWND           (:,:,:)
+      REAL*8,  ALLOCATABLE, PUBLIC :: VWND1          (:,:,:)
+      REAL*8,  ALLOCATABLE, PUBLIC :: VWND2          (:,:,:)
+      REAL*8,  ALLOCATABLE, PUBLIC :: VWND           (:,:,:)
+      REAL*8,  ALLOCATABLE, PUBLIC :: ZMEU           (:,:,:)
+      REAL*8,  ALLOCATABLE, PUBLIC :: ZMMD           (:,:,:)
+      REAL*8,  ALLOCATABLE, PUBLIC :: ZMMU           (:,:,:)
       REAL*8,  ALLOCATABLE, PUBLIC :: AIRDEN_FULLGRID(:,:,:)
       REAL*8,  ALLOCATABLE, PUBLIC :: T_FULLGRID     (:,:,:)
 
@@ -349,7 +362,12 @@
 !  18 Aug 2010 - R. Yantosca - Added modifications for MERRA data
 !  18 Aug 2010 - R. Yantosca - Move CMN_SIZE, CMN_DIAG to top of module
 !  25 Aug 2010 - R. Yantosca - Now read LWI (land/water/ice) for MERRA met
-!  15 Feb 2011 - R. Yantosca - Add modifications for APM from G. Luo
+!  05 Oct 2011 - R. Yantosca - Add SUNCOS_30 array to hold the cos(SZA)
+!                              computed @ 30 mins after each GMT hour.
+!  07 Oct 2011 - R. Yantosca - Rename SUNCOS30 to SUNCOS_MID, which is the
+!                              cos(SZA) at the midpt of the chemistry timestep
+!  06 Feb 2012 - R. Yantosca - Add modifications for GEOS-5.7.x met fields
+!  06 Feb 2012 - R. Yantosca - Split up INIT_DAO into several routines
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -384,8 +402,8 @@
 !  (1 ) AVGPOLE is written in Fixed-Form Fortran 90.  Use F90 syntax
 !        for declarations, etc (bmy, 4/14/99)
 !  (2 ) MAIN now passes the Harvard CTM variable for surface area of
-!        a gridbox, DXYP(JGLOB), to AVGPOLE.  Use window offset
-!        J+J0 when accessing DXYP.  Add JGLOB to the parameter list.
+!        a gridbox, DXYP(JJPAR), to AVGPOLE.  Use window offset
+!        J+J0 when accessing DXYP.  Add JJPAR to the parameter list.
 !  (3 ) Added this routine to "dao_mod.f" (bmy, 6/27/00)
 !  (4 ) Updated comments (bmy, 4/4/01)
 !  (5 ) Now replaced DXYP(J) with routine GET_AREA_M2 of "grid_mod.f"
@@ -612,7 +630,7 @@
 !
 ! !IROUTINE: airqnt_fullgrid
 !
-! !DESCRIPTION: Subroutine AIRQNT_FULLGRID calculates the same quantities as 
+! !DESCRIPTION: Subroutine AIRQNT\_FULLGRID calculates the same quantities as 
 !  AIRQNT, but for the full, unlumped vertical grid of the GEOS GCM.
 !\\
 !\\
@@ -793,77 +811,7 @@
 !        (phs, 9/18/07)
 !  16 Aug 2010 - R. Yantosca - Added ProTeX headers
 !  18 Aug 2010 - R. Yantosca - Rewrite #if block logic for clarity
-!  15 Feb 2011 - R. Yantosca - Add modifications for APM from G. Luo
-!  15 Feb 2011 - R. Yantosca - Now split into separate subroutines, for clarity
-
-!EOP
-!------------------------------------------------------------------------------
-!BOC
-
-#if   defined( GCAP )
-
-      ! Interpolate GCAP met fields
-      CALL INTERP_GCAP( NTIME0, NTIME1, NTDT )
-
-#elif defined( GEOS_3 )
-
-      ! Interpolate GEOS-3 met fields
-      CALL INTERP_GEOS3( NTIME0, NTIME1, NTDT )
-
-#elif defined( GEOS_4 )
-
-      ! Interpolate GEOS-4 met fields
-      CALL INTERP_GEOS4( NTIME0, NTIME1, NTDT )
-
-#elif defined( GEOS_5 )
-
-      ! Interpolate GEOS-5 met fields
-      CALL INTERP_GEOS5( NTIME0, NTIME1, NTDT )
-
-#elif defined( MERRA )
-
-      ! Interpolate MERRA met fields
-      CALL INTERP_MERRA( NTIME0, NTIME1, NTDT )
-
-#endif
-      
-      END SUBROUTINE INTERP
-!EOC
-!------------------------------------------------------------------------------
-!          Harvard University Atmospheric Chemistry Modeling Group            !
-!------------------------------------------------------------------------------
-!BOP
-!
-! !IROUTINE: interp_gcap
-!
-! !DESCRIPTION: Subroutine INTERP\_GCAP linearly interpolates
-!  GEOS-3 met fields to the current dynamic timestep.
-!\\
-!\\
-! !INTERFACE:
-!
-      SUBROUTINE INTERP_GCAP( NTIME0, NTIME1, NTDT )
-!
-! !USES:
-!
-      USE GRID_MOD,    ONLY : GET_YEDGE
-      USE LOGICAL_MOD, ONLY : LVARTROP
-!
-! !INPUT PARAMETERS: 
-!
-      INTEGER, INTENT(IN)  :: NTIME0   ! Elapsed time [s] at start of 6hr step
-      INTEGER, INTENT(IN)  :: NTIME1   ! Elapsed time [s] at current time
-      INTEGER, INTENT(IN)  :: NTDT     ! Length of dynamic timestep [s]
-! 
-! !REMARKS:
-!  Different met fields are archived at I6 (instantaneous 6-hr) time 
-!  resolution depending on the specific product.  For example, relative 
-!  humidity is an instantaneous 6hr field in MERRA and a 6-hr time averaged
-!  field in GEOS-5.
-!
-! !REVISION HISTORY: 
-!  15 Feb 2011 - R. Yantosca - Initial version, split off from INTERP
-!  15 Feb 2011 - R. Yantosca - Added modifications for APM, from G. Luo
+!  06 Feb 2012 - R. Yantosca - Add modifications for GEOS-5.7.x met fields
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -886,7 +834,12 @@
       D_NTIME0 = DBLE( NTIME0 )
       D_NTIME1 = DBLE( NTIME1 )
       D_NTDT   = DBLE( NTDT   )
-      D_NDT    = 21600d0
+
+#if   defined( GEOS_57 )
+      D_NDT    = 10800d0              ! For 3-hr instantaneous fields
+#else
+      D_NDT    = 21600d0              ! For 6-hr instantaneous fields
+#endif      
 
       ! Fraction of 6h timestep elapsed at mid point of this dyn timestep
       TM  = ( D_NTIME1 + D_NTDT/2d0 - D_NTIME0 ) / D_NDT
@@ -899,6 +852,8 @@
       TMA3 = 2.d0 * TM
       IF ( TMA3 > 1d0 ) TMA3 = TMA3 - 1.d0
 #endif
+
+#if defined( GEOS_4 ) || defined( GCAP )
 
       !=================================================================
       ! Do the interpolation for GEOS-4 or 'GCAP' met fields
@@ -937,6 +892,145 @@
          ENDDO
       ENDDO
 !$OMP END PARALLEL DO
+
+#elif defined( GEOS_5 )
+
+      !=================================================================
+      ! Do the interpolation for GEOS-5 met fields 
+      !=================================================================
+!$OMP PARALLEL DO
+!$OMP+DEFAULT( SHARED )
+!$OMP+PRIVATE( I, J, YSOUTH, YNORTH )
+      DO J = 1, JJPAR
+
+         ! North & south edges of box
+         YSOUTH = GET_YEDGE( J   )
+         YNORTH = GET_YEDGE( J+1 )
+
+         DO I = 1, IIPAR
+
+            ! Interpolate pressure [hPa] to the end of the dynamic timestep
+            PSC2(I,J) = PS1(I,J)  + ( PS2(I,J)  - PS1(I,J)  ) * TC2 
+
+            ! Interpolate the GEOS-5 total O3 column [DU] to current time
+            TO3(I,J)  = TO31(I,J) + ( TO32(I,J) - TO31(I,J) ) * TM
+
+            ! Even though TROPP is a 3-hour average field, we 
+            ! we still need to make sure to cap TROPP in the
+            ! polar regions (if the entire box is outside 60S-60N)
+            ! so that we don't do chemistry at an abnormally high
+            ! altitude.  Set TROPP in the polar regions to 200 hPa.
+            ! (jal, phs, bmy, 9/18/07)
+            IF ( LVARTROP ) THEN
+               IF ( YSOUTH >= 60d0 .or. YNORTH <= -60d0 ) THEN
+                  TROPP(I,J) = MAX( TROPP(I,J), 200d0 )
+               ENDIF
+            ENDIF
+         ENDDO
+      ENDDO
+!$OMP END PARALLEL DO
+
+#elif defined( MERRA )
+
+      !=================================================================
+      ! Do the interpolation for MERRA or GEOS-5.7.x met fields 
+      !=================================================================
+!$OMP PARALLEL DO
+!$OMP+DEFAULT( SHARED )
+!$OMP+PRIVATE( I, J, L, YSOUTH, YNORTH )
+      DO L = 1, LLPAR
+      DO J = 1, JJPAR
+
+         ! North & south edges of box
+         YSOUTH = GET_YEDGE( J   )
+         YNORTH = GET_YEDGE( J+1 )
+
+      DO I = 1, IIPAR
+
+         !----------------------------------------------------
+         ! Interpolate 2D variables
+         !----------------------------------------------------
+         IF ( L == 1 ) THEN
+            
+            ! Interpolate pressure [hPa] to the end of the dynamic timestep
+            PSC2(I,J)  = PS1(I,J) + ( PS2(I,J) - PS1(I,J) ) * TC2 
+
+            ! Even though TROPP is a 3-hour average field, we 
+            ! we still need to make sure to cap TROPP in the
+            ! polar regions (if the entire box is outside 60S-60N)
+            ! so that we don't do chemistry at an abnormally high
+            ! altitude.  Set TROPP in the polar regions to 200 hPa.
+            ! (jal, phs, bmy, 9/18/07)
+            IF ( LVARTROP ) THEN
+               IF ( YSOUTH >= 60d0 .or. YNORTH <= -60d0 ) THEN
+                  TROPP(I,J) = MAX( TROPP(I,J), 200d0 )
+               ENDIF
+            ENDIF
+         ENDIF
+
+         !----------------------------------------------------
+         ! Interpolate 3D variables
+         !----------------------------------------------------
+         RH(I,J,L) = RH1(I,J,L) + ( RH2(I,J,L) - RH1(I,J,L) ) * TM
+
+      ENDDO
+      ENDDO
+      ENDDO
+!$OMP END PARALLEL DO
+
+#elif defined( GEOS_57 )
+
+      !=================================================================
+      ! Do the interpolation for GEOS-5.7.x met fields 
+      !=================================================================
+!$OMP PARALLEL DO
+!$OMP+DEFAULT( SHARED )
+!$OMP+PRIVATE( I, J, L, YSOUTH, YNORTH )
+      DO L = 1, LLPAR
+      DO J = 1, JJPAR
+
+         ! North & south edges of box
+         YSOUTH = GET_YEDGE( J   )
+         YNORTH = GET_YEDGE( J+1 )
+
+      DO I = 1, IIPAR
+
+         !----------------------------------------------------
+         ! Interpolate 2D variables
+         !----------------------------------------------------
+         IF ( L == 1 ) THEN
+            
+            ! Interpolate pressure [hPa] to the end of the dynamic timestep
+            PSC2(I,J)  = PS1(I,J) + ( PS2(I,J) - PS1(I,J) ) * TC2 
+
+            ! Even though TROPP is a 3-hour average field, we 
+            ! we still need to make sure to cap TROPP in the
+            ! polar regions (if the entire box is outside 60S-60N)
+            ! so that we don't do chemistry at an abnormally high
+            ! altitude.  Set TROPP in the polar regions to 200 hPa.
+            ! (jal, phs, bmy, 9/18/07)
+            IF ( LVARTROP ) THEN
+               IF ( YSOUTH >= 60d0 .or. YNORTH <= -60d0 ) THEN
+                  TROPP(I,J) = MAX( TROPP(I,J), 200d0 )
+               ENDIF
+            ENDIF
+         ENDIF
+
+         !----------------------------------------------------
+         ! Interpolate 3D variables
+         !----------------------------------------------------
+         T   (I,J,L) = TMPU1(I,J,L)
+     &               + ( TMPU2(I,J,L) - TMPU1(I,J,L) ) * TM
+
+         SPHU(I,J,L) = SPHU1(I,J,L)
+     &               + ( SPHU2(I,J,L) - SPHU1(I,J,L) ) * TM 
+
+      ENDDO
+      ENDDO
+      ENDDO
+!$OMP END PARALLEL DO
+
+#endif
 
 #if   defined( APM )
 
@@ -1932,6 +2026,7 @@
 !  (10) Remove support for GEOS-1 and GEOS-STRAT met fields (bmy, 8/4/06)
 !  16 Aug 2010 - R. Yantosca - Added ProTeX headers
 !  25 Aug 2010 - R. Yantosca - Treat MERRA in the same way as GEOS-5
+!  06 Feb 2012 - R. Yantosca - Treat GEOS-5.7.x in the same way as MERRA/GEOS-5
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -1956,7 +2051,7 @@
 
       ENDIF
 
-#elif defined( GEOS_4 ) || defined( GEOS_5 ) || defined( MERRA )
+#elif defined( GEOS_4 ) || defined( GEOS_5 ) || defined( MERRA ) || defined( GEOS_57 )
 
       !--------------------------
       ! GEOS-4 / GEOS-5 / MERRA
@@ -2030,6 +2125,7 @@
 !  (10) Remove support for GEOS-1 and GEOS-STRAT met fields (bmy, 8/4/06
 !  16 Aug 2010 - R. Yantosca - Added ProTeX headers
 !  25 Aug 2010 - R. Yantosca - Treat MERRA in the same way as GEOS-5
+!  06 Feb 2012 - R. Yantosca - Treat GEOS-5.7.x in the same way as MERRA/GEOS-5
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -2054,7 +2150,7 @@
          
       ENDIF
 
-#elif defined( GEOS_4 ) || defined( GEOS_5 ) || defined( MERRA )
+#elif defined( GEOS_4 ) || defined( GEOS_5 ) || defined( MERRA ) || defined( GEOS_57 )
       
       !---------------------------
       ! GEOS-4 / GEOS-5 / MERRA
@@ -2111,6 +2207,7 @@
 !  (1 ) Remove support for GEOS-1 and GEOS-STRAT met fields (bmy, 8/4/06)
 !  16 Aug 2010 - R. Yantosca - Added ProTeX headers
 !  25 Aug 2010 - R. Yantosca - Treat MERRA in the same way as GEOS-5
+!  06 Feb 2012 - R. Yantosca - Treat GEOS-5.7.x in the same way as MERRA/GEOS-5
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -2127,7 +2224,7 @@
       ! as a proxy for water coverage instead: ALBEDO > 0.695
       ICE = ( ALBD(I,J) >= 0.695d0 )
 
-#elif defined( GEOS_4 ) || defined( GEOS_5 ) || defined( MERRA )
+#elif defined( GEOS_4 ) || defined( GEOS_5 ) || defined( MERRA ) || defined( GEOS_57 )
 
       !--------------------------
       ! GEOS-4 / GEOS-5 / MERRA
@@ -2192,6 +2289,7 @@
 !  16 Aug 2010 - R. Yantosca - Added ProTeX headers
 !  19 Aug 2010 - R. Yantosca - Rewrote logic of #if block for clarity
 !  25 Aug 2010 - R. Yantosca - Treat MERRA in same way as GEOS-5
+!  06 Feb 2012 - R. Yantosca - Treat GEOS-5.7.x in the same way as MERRA/GEOS-5
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -2276,7 +2374,7 @@
                GOTO 999
             ENDIF
 
-#elif defined( GEOS_4 ) || defined( GEOS_5 ) || defined( MERRA )
+#elif defined( GEOS_4 ) || defined( GEOS_5 ) || defined( MERRA ) || defined( GEOS_57 )
 
             !---------------------------------------------------
             ! GEOS-4 / GEOS-5 / MERRA met fields
@@ -2563,34 +2661,55 @@
 !
 ! !IROUTINE: cossza
 !
-! !DESCRIPTION: COSSZA computes the cosine of the solar zenith angle.
+! !DESCRIPTION: COSSZA computes the cosine of the solar zenith angle at
+!  the current time, and at the midpoint of the chemistry timestep interval.
 !\\
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE COSSZA( JDAY, SUNCOS )
+      SUBROUTINE COSSZA( JDAY, SUNCOS, SUNCOS_MID )
 !
 ! !USES:
 !
       USE GRID_MOD, ONLY : GET_YMID_R
+      USE TIME_MOD, ONLY : GET_HOUR
+      USE TIME_MOD, ONLY : GET_MINUTE
       USE TIME_MOD, ONLY : GET_LOCALTIME
-      USE TIME_MOD, ONLY : GET_TS_SUN_2
+      USE TIME_MOD, ONLY : GET_TS_CHEM
 !
 ! !INPUT PARAMETERS: 
 !
-      INTEGER, INTENT(IN)  :: JDAY             ! Day of year (0-365)
+      INTEGER, INTENT(IN)  :: JDAY              ! Day of year (0-365)
 !
 ! !OUTPUT PARAMETERS:
 !
-      REAL*8,  INTENT(OUT) :: SUNCOS(MAXIJ)    ! COS( Solar zenith angle )
-! 
+      REAL*8,  INTENT(OUT) :: SUNCOS(MAXIJ)     ! cos(SZA) @ current time
+      REAL*8,  INTENT(OUT) :: SUNCOS_MID(MAXIJ) ! cos(SZA) @ midpt of chem step
+!
+! !REMARKS:
+!  Hour angle (AHR) is a function of longitude.  AHR is zero at solar noon, 
+!  and increases by 15 deg for every hour before or after solar noon.  Hour 
+!  angle can be thought of as the time in hours since the sun last passed
+!  the meridian (i.e. the time since the last local noon).
+!                                                                             .
+!  The cosine of the solar zenith angle (SZA) is given by:
+!                                                                             .
+!     cos(SZA) = sin(LAT)*sin(DEC) + cos(LAT)*cos(DEC)*cos(AHR) 
+!                                                                             .
+!  where LAT = the latitude angle, 
+!        DEC = the solar declination angle,  
+!        AHR = the hour angle, all in radians. 
+!                                                                             .
+!  If SUNCOS < 0, then the sun is below the horizon, and therefore does not 
+!  contribute to any solar heating.  
+!
 ! !REVISION HISTORY: 
 !  21 Jan 1998 - R. Yantosca - Initial version
 !  (1 ) COSSZA is written in Fixed-Form Fortran 90.
-!  (2 ) Use IMPLICIT NONE to declare all variables explicitly.                
-!  (3 ) Use C-preprocessor #include statement to include CMN_SIZE, which 
-!        has IIPAR, JJPAR, LLPAR, IGLOB, JGLOB, LGLOB. 
-!  (4 ) Use IM and JM (in CMN_SIZE) as loop limits.
+!  (2 ) Use IMPLICIT NONE
+!  (3 ) Use C-preprocessor #include statement to include F77_CMN_SIZE, which 
+!        has IIPAR, JJPAR, LLPAR, IIPAR, JJPAR, LGLOB. 
+!  (4 ) Use IM and JM (in F77_CMN_SIZE) as loop limits.
 !  (5 ) Include Harvard CTM common blocks and rename variables where needed.  
 !  (6 ) Use SUNCOS(MAXIJ) instead of a 2D array, in order for compatibility
 !        with the Harvard CTM subroutines.  SUNCOS loops over J, then I.
@@ -2608,14 +2727,21 @@
 !        (i.e. the chemistry timestep).   Also make the A and B coefficients
 !        parameters instead of variables. (bmy, 4/27/10)
 !  16 Aug 2010 - R. Yantosca - Added ProTeX headers
+!  05 Oct 2011 - R. Yantosca - Now also return the cosine of the solar 
+!                              zenith angle at 30m after the GMT hour.
+!  07 Oct 2011 - R. Yantosca - Now return SUNCOS_MID, the cos(SZA) at the
+!                              midpt of the chem step (not always at 00:30).
 !EOP
 !------------------------------------------------------------------------------
 !BOC
 !
 ! !LOCAL VARIABLES:
 !      
-      INTEGER            :: I, IJLOOP, J
-      REAL*8             :: R, AHR, DEC, TIMLOC, YMID_R, OFFSET
+      INTEGER            :: FACTOR, I,        IJLOOP,  J
+      INTEGER            :: HOUR,   MINUTE,   TS_SUN
+      REAL*8             :: AHR,    GMT_MID,  R,       TIMLOC
+      REAL*8             :: DEC,    C_DEC,    S_DEC
+      REAL*8             :: YMID_R, C_YMID_R, S_YMID_R
 !
 ! !DEFINED PARAMETERS:
 !
@@ -2629,20 +2755,31 @@
       REAL*8,  PARAMETER :: B3 = 0.000148d0
 
       !=================================================================
-      ! COSSZA begins here!   
+      ! Initialization   
       !=================================================================
 
-      ! 1/2 of the time interval (normally the chemistry timestep)
-      ! for computing SUNCOS.  Convert from minutes to hours.
-      OFFSET = GET_TS_SUN_2() / 60d0
+      ! Quantities for central chemistry timestep
+      TS_SUN   = GET_TS_CHEM()                         ! Chemistry interval
+      HOUR     = GET_HOUR()                            ! Current hour
+      MINUTE   = GET_MINUTE()                          ! Current minutes
+      FACTOR   = MINUTE / TS_SUN                       ! Multiplying factor
+
+      ! GMT at the midpoint of the chemistry timestep
+      GMT_MID  = ( DBLE( GET_HOUR()      )        )    ! Start of hour
+     &         + ( DBLE( TS_SUN * FACTOR ) / 60d0 )    ! + steps already done
+     &         + ( DBLE( TS_SUN / 2      ) / 60d0 )    ! + 1/2 chem timestep
 
       ! Path length of earth's orbit traversed since Jan 1 [radians]
-      R   = ( 2d0 * PI / 365d0 ) * DBLE( JDAY - 1 ) 
+      R        = ( 2d0 * PI / 365d0 ) * DBLE( JDAY - 1 ) 
 
-      ! Solar declination angle (low precision formula)
-      DEC = A0 - A1*COS(     R ) + B1*SIN(     R )
-     &         - A2*COS( 2d0*R ) + B2*SIN( 2d0*R )
-     &         - A3*COS( 3d0*R ) + B3*SIN( 3d0*R )
+      ! Solar declination angle (low precision formula) [radians]
+      DEC      = A0 - A1*COS(     R ) + B1*SIN(     R )
+     &              - A2*COS( 2d0*R ) + B2*SIN( 2d0*R )
+     &              - A3*COS( 3d0*R ) + B3*SIN( 3d0*R )
+
+      ! Pre-compute sin & cos of DEC outside of DO loops (for efficiency)
+      S_DEC    = SIN( DEC )
+      C_DEC    = COS( DEC )
 
       !=================================================================
       ! Compute cosine of solar zenith angle
@@ -2650,54 +2787,52 @@
 
 !$OMP PARALLEL DO
 !$OMP+DEFAULT( SHARED )
-!$OMP+PRIVATE( I, J, YMID_R, IJLOOP, TIMLOC, AHR )
+!$OMP+PRIVATE( I, J, YMID_R, S_YMID_R, C_YMID_R, IJLOOP, TIMLOC, AHR )
 
       ! Loop over latitude
       DO J = 1, JJPAR
 
          ! Latitude of grid box [radians]
-         YMID_R = GET_YMID_R( J )
+         YMID_R   = GET_YMID_R( J )
+
+         ! Pre-compute sin & cos of DEC outside of I loop (for efficiency)
+         S_YMID_R = SIN( YMID_R )
+         C_YMID_R = COS( YMID_R )
 
          ! Loop over longitude
          DO I = 1, IIPAR
 
             ! 1-D grid box index
-            IJLOOP = ( (J-1) * IIPAR ) + I
+            IJLOOP             = ( (J-1) * IIPAR ) + I
 
             !===========================================================
-            ! TIMLOC = Local Time in Hours                   
-            !
-            ! Hour angle (AHR) is a function of longitude.  AHR is 
-            ! zero at solar noon, and increases by 15 deg for every 
-            ! hour before or after solar noon.  
-            !
-            ! Hour angle can be thought of as the time in hours since 
-            ! the sun last passed the meridian (i.e. the time since the
-            ! last local noon).  Convert to radians for the COS below.
+            ! Compute cosine of SZA at the current GMT time
             !===========================================================
 
             ! Local time at box (I,J) [hours]
-            TIMLOC = GET_LOCALTIME( I, OFFSET )
+            TIMLOC             = GET_LOCALTIME( I )
 
             ! Hour angle at box (I,J) [radians]
-            AHR    = ABS( TIMLOC - 12d0 ) * 15d0 * PI_180
+            AHR                = ABS( TIMLOC - 12d0 ) * 15d0 * PI_180
             
+            ! Cosine of solar zenith angle at box (I,J) [unitless]
+            SUNCOS(IJLOOP)     = ( S_YMID_R * S_DEC              ) 
+     &                         + ( C_YMID_R * C_DEC * COS( AHR ) )
+
             !===========================================================
-            ! The cosine of the solar zenith angle (SZA) is given by:
-            !     
-            !  cos(SZA) = sin(LAT)*sin(DEC) + cos(LAT)*cos(DEC)*cos(AHR) 
-            !                   
-            ! where LAT = the latitude angle, 
-            !       DEC = the solar declination angle,  
-            !       AHR = the hour angle, all in radians. 
-            !
-            ! If SUNCOS < 0, then the sun is below the horizon, and 
-            ! therefore does not contribute to any solar heating.  
+            ! Compute cosine(SZA) at the midpoint of the chem timestep
+            ! Required for photolysis, chemistry, emissions, drydep
             !===========================================================
-               
-            ! Compute cos(SZA) at box (I,J) [unitless]
-            SUNCOS(IJLOOP) = SIN( YMID_R ) * SIN( DEC ) +
-     &                       COS( YMID_R ) * COS( DEC ) * COS( AHR )
+
+            ! Local time [hours] at box (I,J) at 30 minutes after the GMT hour
+            TIMLOC             = GET_LOCALTIME( I, GMT=GMT_MID )
+
+            ! Hour angle at box (I,J) [radians]
+            AHR                = ABS( TIMLOC - 12d0 ) * 15d0 * PI_180
+            
+            ! Corresponding cosine( SZA ) at box (I,J) [unitless]
+            SUNCOS_MID(IJLOOP) = ( S_YMID_R * S_DEC              )
+     &                         + ( C_YMID_R * C_DEC * COS( AHR ) )
 
          ENDDO
       ENDDO
@@ -2866,16 +3001,16 @@
 !------------------------------------------------------------------------------
 !BOP
 !
-! !IROUTINE: copy_i6_fields
+! !IROUTINE: copy_i3_i6_fields
 !
-! !DESCRIPTION: Subroutine COPY\_I6\_FIELDS copies the I-6 fields at the end 
-!  of a 6-hr timestep.  The I-6 fields at the end of a given 6-hr timestep 
+! !DESCRIPTION: Subroutine COPY\_I3\_I6\_FIELDS copies the I-6 fields at the 
+!  end of a 6-hr timestep.  The I-6 fields at the end of a given 6-hr timestep 
 !  become the fields at the beginning of the next 6-hr timestep. 
 !\\
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE COPY_I6_FIELDS
+      SUBROUTINE COPY_I3_I6_FIELDS
 ! 
 ! !REVISION HISTORY: 
 !  13 Apr 2004 - R. Yantosca - Initial version
@@ -2886,6 +3021,8 @@
 !  16 Aug 2010 - R. Yantosca - Added ProTeX headers
 !  20 Aug 2010 - R. Yantosca - Rewrite #if block for clarity
 !  20 Aug 2010 - R. Yantosca - Added #if block for MERRA met fields
+!  06 Feb 2012 - R. Yantosca - Added #if block for GEOS-5.7.x met fields
+!  07 Feb 2012 - R. Yantosca - Renamed to COPY_I3_I6_FIELDS
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -2934,6 +3071,15 @@
       !-----------------
       PS1    = PS2          ! I6 surface pressure    [hPa] 
 
+#elif defined( GEOS_57 )
+
+      !------------------
+      ! GEOS-5.7.x met
+      !------------------
+      PS1    = PS2          ! I3 surface pressure    [hPa]
+      SPHU1  = SPHU2        ! I3 specific humidity   [g/kg]
+      TMPU1  = TMPU2        ! I3 temperature         [K]
+
 #elif defined( MERRA )
 
       !-----------------
@@ -2944,127 +3090,29 @@
 
 #endif
 
-      END SUBROUTINE COPY_I6_FIELDS
+      END SUBROUTINE COPY_I3_I6_FIELDS
 !EOC
 !------------------------------------------------------------------------------
 !          Harvard University Atmospheric Chemistry Modeling Group            !
 !------------------------------------------------------------------------------
 !BOP
 !
-! !IROUTINE: init_dao
+! !IROUTINE: init_dao_gcap
 !
-! !DESCRIPTION: Subroutine INIT\_DAO allocates memory for all allocatable 
-!  module arrays. 
+! !DESCRIPTION: Subroutine INIT\_DAO allocates memory for all allocatable
+!  module arrays required when using the GCAP met fields.
 !\\
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE INIT_DAO
+      SUBROUTINE INIT_DAO_GCAP
 !
 ! !USES:
 !
-      USE ERROR_MOD,   ONLY : ALLOC_ERR
-      USE LOGICAL_MOD, ONLY : LWETD, LDRYD, LCHEM
-      USE TRACER_MOD,  ONLY : ITS_AN_AEROSOL_SIM, ITS_A_FULLCHEM_SIM
+      USE ERROR_MOD, ONLY : ALLOC_ERR
 !
-! !REVISION HISTORY: 
-!  26 Jun 2000 - R. Yantosca - Initial version
-!  (1 ) Now allocate AVGW for either NSRCX == 3 or NSRCX == 5 (bmy, 9/24/01)
-!  (2 ) Removed obsolete code from 9/01 (bmy, 10/23/01)
-!  (3 ) Add PSC2 array for TPCORE mixing ratio fix.   (bmy, 3/27/02)
-!  (4 ) Elimintated PS, PSC arrays for floating-pressure fix.
-!        (dsa, bdf, bmy, 8/20/02)
-!  (5 ) Added AD, BXHEIGHT, T to "dao_mod.f" as allocatable arrays, to remove
-!        historical baggage and centralize variables.  Also remove GEOS_2 
-!        flag from C-preprocessor statements.  Also allocate RH array
-!        but only if we are doing a sulfate simulation.  Now references
-!        ALLOC_ERR from "error_mod.f" (bmy, 10/15/02)
-!  (6 ) Now allocate PHIS array (bmy, 3/11/03)
-!  (7 ) Now allocate SUNCOSB array for SMVGEAR II.  Also removed KZZ array,
-!        that is now obsolete. (bdf, bmy, 4/28/03)
-!  (8 ) Now order all arrays in alphabetical order.  Also added new fields
-!        for GEOS-4/fvDAS: HKBETA, HKETA, ZMEU, ZMMD, ZMMU, TSKIN, PARDF,
-!        and PARDR. (bmy, 6/25/03)
-!  (9 ) Now allocate CLDFRC, RADLWG, RADSWG, SNOW arrays.  USTAR, CLDFRC,
-!        and Z0 and RADSWG are now 2-D arrays. (bmy, 12/9/03)
-!  (10) Allocate RADLWG and SNOW for both GEOS-3 & GEOS-4 (bmy, 4/2/04)
-!  (11) Now reference inquiry functions from "tracer_mod.f".  Now reference
-!        LWETD, LDRYD, LCHEM from "logical_mod.f".  Now allocate RH regardless
-!        of simulation. (bmy, 7/20/04)
-!  (12) Now also allocate AVGW for offline aerosol simulations (bmy, 9/27/04)
-!  (13) Now modified for GCAP met fields.  Removed references to CO-OH param 
-!        simulation.  Now allocate AVGW only for fullchem or offline aerosol
-!        simulations. (bmy, 6/24/05)
-!  (14) Now allocate SNOW and GWETTOP for GCAP (bmy, 8/17/05)
-!  (15) Now also add TSKIN for GEOS-3 (bmy, 10/20/05)
-!  (16) Remove support for GEOS-1 and GEOS-STRAT met fields (bmy, 8/4/06)
-!  (17) Reorganized for GEOS-5 met fields (bmy, 1/17/07)
-!  (18) Bug fix: should be CMFMC=0 after allocating CMFMC (jaf, bmy, 6/11/08)
-!  (19) Remove obsolete SUNCOSB array (bmy, 4/28/10)
-!  16 Aug 2010 - R. Yantosca - Added ProTeX headers
-!  18 Aug 2010 - R. Yantosca - Now allocate met fields for MERRA
-!  20 Aug 2010 - R. Yantosca - Bug fix, now allocate REEVAPCN
-!  15 Feb 2011 - R. Yantosca - Split into several subroutines for clarity
-
-!EOP
-!------------------------------------------------------------------------------
-!BOC
-
-      ! Allocate arrays used by all met fields
-      CALL INIT_DAO_COMMON
-
-#if   defined( GCAP )
-
-      ! Allocate GCAP-specific arrays
-      CALL INIT_DAO_GCAP
-
-#elif defined( GEOS_3 )
-
-      ! Allocate GEOS-3-specific arrays
-      CALL INIT_DAO_GEOS3
-
-#elif defined( GEOS_4 )
-
-      ! Allocate GEOS-4-specific arrays
-      CALL INIT_DAO_GEOS4
-
-#elif defined( GEOS_5 )
-
-      ! Allocate GEOS-5-specific arrays
-      CALL INIT_DAO_GEOS5
-
-#elif defined( MERRA )
-
-      ! Allocate MERRA-specific arays
-      CALL INIT_DAO_MERRA
-
-#endif
-      END SUBROUTINE INIT_DAO
-!EOC
-!------------------------------------------------------------------------------
-!          Harvard University Atmospheric Chemistry Modeling Group            !
-!------------------------------------------------------------------------------
-!BOP
-!
-! !IROUTINE: init_dao_common
-!
-! !DESCRIPTION: Subroutine INIT\_DAO\_COMMON allocates memory to arrays
-!  that are common to all met-field data products.
-!\\
-!\\
-! !INTERFACE:
-!
-      SUBROUTINE INIT_DAO_COMMON
-!
-! !USES:
-!
-      USE ERROR_MOD,   ONLY : ALLOC_ERR
-      USE TRACER_MOD,  ONLY : ITS_AN_AEROSOL_SIM
-      USE TRACER_MOD,  ONLY : ITS_A_FULLCHEM_SIM
-!
-! !REVISION HISTORY: 
-!  15 Feb 2011 - R. Yantosca - Initial version, split off from INIT_DAO
-!  15 Feb 2011 - R. Yantosca - Add modifications for APM from G. Luo
+! !REVISION HISTORY:
+!  06 Feb 2012 - R. Yantosca - Split off GCAP array init from routine INIT_DAO
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -3074,117 +3122,161 @@
       INTEGER :: AS
 
       !=================================================================
-      ! INIT_DAO_COMMON begins here!
+      ! A-3 fields
       !=================================================================
 
-      ! Air mass
-      ALLOCATE( AD( IIPAR, JJPAR, LLPAR ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'AD' )
-      AD = 0d0
-
-      ! Air density
-      ALLOCATE( AIRDEN( LLPAR, IIPAR, JJPAR ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'AIRDEN' )
-      AIRDEN = 0d0
-
-      ! Air volume
-      ALLOCATE( AIRVOL( IIPAR, JJPAR, LLPAR ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'AIRVOL' )
-      AIRVOL = 0d0
-      
-      ! Surface albedo
       ALLOCATE( ALBD( IIPAR, JJPAR ), STAT=AS )
       IF ( AS /= 0 ) CALL ALLOC_ERR( 'ALBD' )
       ALBD = 0d0
 
-      ! AVGW (mixing ratio of H2O) is only used for NOx-Ox-HC or aerosol sims
-      IF ( ITS_A_FULLCHEM_SIM() .or. ITS_AN_AEROSOL_SIM() ) THEN 
-         ALLOCATE( AVGW( IIPAR, JJPAR, LLPAR ), STAT=AS )
-         IF ( AS /= 0 ) CALL ALLOC_ERR( 'AVGW' )
-         AVGW = 0d0
-      ENDIF
-
-      ! Grid box height
-      ALLOCATE( BXHEIGHT( IIPAR, JJPAR, LLPAR ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'BXHEIGHT' )
-      BXHEIGHT = 0d0
-
-      ! 3-D Cloud fraction
-      ALLOCATE( CLDF( LLPAR, IIPAR, JJPAR ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'CLDF' )
-      CLDF = 0d0
-
-      ! 2-D column cloud fraction
       ALLOCATE( CLDFRC( IIPAR, JJPAR ), STAT=AS )
       IF ( AS /= 0 ) CALL ALLOC_ERR( 'CLDFRC' )
       CLDFRC = 0d0
 
-      ! Cloud top level
-      ALLOCATE( CLDTOPS( IIPAR, JJPAR ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'CLDTOPS' )
-      CLDTOPS = 0
-
-      ! Pressure difference between levels
-      ALLOCATE( DELP( LLPAR, IIPAR, JJPAR ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'DELP' )
-      DELP = 0d0
-
-      ! Top soil wetness
       ALLOCATE( GWETTOP( IIPAR, JJPAR ), STAT=AS )
       IF ( AS /= 0 ) CALL ALLOC_ERR( 'GWETTOP' )
       GWETTOP = 0d0
 
-      ! Sensible heat flux
       ALLOCATE( HFLUX( IIPAR, JJPAR ), STAT=AS )
       IF ( AS /= 0 ) CALL ALLOC_ERR( 'HFLUX' )
       HFLUX = 0d0
 
-      ! Tendency of specific humidity
-      ALLOCATE( MOISTQ( LLPAR, IIPAR, JJPAR ), STAT=AS ) 
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'MOISTQ' )
-      MOISTQ = 0d0
+      ALLOCATE( MOLENGTH( IIPAR, JJPAR ), STAT=AS )
+      IF ( AS /= 0 ) CALL ALLOC_ERR( 'MOLENGTH' )
+      MOLENGTH = 0d0
 
-      ! Optical depth
-      ALLOCATE( OPTDEP( LLPAR, IIPAR, JJPAR ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'OPTDEP' )
-      OPTDEP = 0d0
+      ALLOCATE( OICE( IIPAR, JJPAR ), STAT=AS )
+      IF ( AS /= 0 ) CALL ALLOC_ERR( 'OICE' )
+      OICE = 0d0
 
-      ! Optical depth
-      ALLOCATE( OPTD( LLPAR, IIPAR, JJPAR ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'OPTD' )
-      OPTD = 0d0
-
-      ! Diffuse PAR
       ALLOCATE( PARDF( IIPAR, JJPAR ), STAT=AS )
       IF ( AS /= 0 ) CALL ALLOC_ERR( 'PARDF' )
       PARDF = 0d0
 
-      ! Direct PAR
       ALLOCATE( PARDR( IIPAR, JJPAR ), STAT=AS )
       IF ( AS /= 0 ) CALL ALLOC_ERR( 'PARDR' )
       PARDR = 0d0
 
-      ! Mixed layer depth
       ALLOCATE( PBL( IIPAR, JJPAR ), STAT=AS )
       IF ( AS /= 0 ) CALL ALLOC_ERR( 'PBL' )
       PBL = 0d0
 
-      ! Surface geopotential height
-      ALLOCATE( PHIS( IIPAR, JJPAR ), STAT=AS )  
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'PHIS' )
-      PHIS = 0d0
-
-      ! Total precip at ground
       ALLOCATE( PREACC( IIPAR, JJPAR ), STAT=AS )
       IF ( AS /= 0 ) CALL ALLOC_ERR( 'PREACC' )
       PREACC = 0d0
 
-      ! Convective precip at ground
       ALLOCATE( PRECON( IIPAR, JJPAR ), STAT=AS )
       IF ( AS /= 0 ) CALL ALLOC_ERR( 'PRECON' )
       PRECON = 0d0
    
-      ! Pressure at beginning of 6hr timestep
+      ALLOCATE( RADLWG( IIPAR, JJPAR ), STAT=AS )
+      IF ( AS /= 0 ) CALL ALLOC_ERR( 'RADLWG' )
+      RADLWG = 0d0
+
+      ALLOCATE( RADSWG( IIPAR, JJPAR ), STAT=AS )
+      IF ( AS /= 0 ) CALL ALLOC_ERR( 'RADSWG' )
+      RADSWG = 0d0
+
+      ALLOCATE( SNICE( IIPAR, JJPAR ), STAT=AS )
+      IF ( AS /= 0 ) CALL ALLOC_ERR( 'SNICE' )
+      SNICE = 0d0
+
+      ALLOCATE( SNOW( IIPAR, JJPAR ), STAT=AS )
+      IF ( AS /= 0 ) CALL ALLOC_ERR( 'SNOW' )
+      SNOW = 0d0
+
+      ALLOCATE( TS( IIPAR, JJPAR ), STAT=AS )
+      IF ( AS /= 0 ) CALL ALLOC_ERR( 'TS' )
+      TS = 0d0
+
+      ALLOCATE( TSKIN( IIPAR, JJPAR ), STAT=AS )
+      IF ( AS /= 0 ) CALL ALLOC_ERR( 'TSKIN' )
+      TSKIN = 0d0
+
+      ALLOCATE( U10M( IIPAR, JJPAR ), STAT=AS )
+      IF ( AS /= 0 ) CALL ALLOC_ERR( 'U10M' )
+      U10M = 0d0
+
+      ALLOCATE( USTAR( IIPAR, JJPAR ), STAT=AS )
+      IF ( AS /= 0 ) CALL ALLOC_ERR( 'USTAR' )
+      USTAR = 0d0
+
+      ALLOCATE( V10M( IIPAR, JJPAR ), STAT=AS )
+      IF ( AS /= 0 ) CALL ALLOC_ERR( 'V10M' )
+      V10M = 0d0
+
+      ALLOCATE( Z0( IIPAR, JJPAR ), STAT=AS )
+      IF ( AS /= 0 ) CALL ALLOC_ERR( 'Z0' )
+      Z0 = 0d0
+
+      !=================================================================
+      ! A-6 fields
+      !=================================================================
+
+      ALLOCATE( CLDF( LLPAR, IIPAR, JJPAR ), STAT=AS )
+      IF ( AS /= 0 ) CALL ALLOC_ERR( 'CLDF' )
+      CLDF = 0d0
+
+      ALLOCATE( DETRAINE( IIPAR, JJPAR, LLPAR ), STAT=AS )
+      IF ( AS /= 0 ) CALL ALLOC_ERR( 'DETRAINE' )
+      DETRAINE = 0d0  
+
+      ALLOCATE( DETRAINN( IIPAR, JJPAR, LLPAR ), STAT=AS )
+      IF ( AS /= 0 ) CALL ALLOC_ERR( 'DETRAINN' )
+      DETRAINN = 0d0  
+
+      ALLOCATE( DNDE( IIPAR, JJPAR, LLPAR ), STAT=AS )
+      IF ( AS /= 0 ) CALL ALLOC_ERR( 'DNDE' )
+      DNDE = 0d0  
+
+      ALLOCATE( DNDN( IIPAR, JJPAR, LLPAR ), STAT=AS )
+      IF ( AS /= 0 ) CALL ALLOC_ERR( 'DNDN' )
+      DNDN = 0d0  
+
+      ALLOCATE( ENTRAIN( IIPAR, JJPAR, LLPAR ), STAT=AS )
+      IF ( AS /= 0 ) CALL ALLOC_ERR( 'ENTRAIN' )
+      ENTRAIN = 0d0  
+
+      ALLOCATE( MOISTQ( LLPAR, IIPAR, JJPAR ), STAT=AS ) 
+      IF ( AS /= 0 ) CALL ALLOC_ERR( 'MOISTQ' )
+      MOISTQ = 0d0
+
+      ALLOCATE( OPTDEP( LLPAR, IIPAR, JJPAR ), STAT=AS )
+      IF ( AS /= 0 ) CALL ALLOC_ERR( 'OPTDEP' )
+      OPTDEP = 0d0
+
+      ALLOCATE( OPTD( LLPAR, IIPAR, JJPAR ), STAT=AS )
+      IF ( AS /= 0 ) CALL ALLOC_ERR( 'OPTD' )
+      OPTD = 0d0
+
+      ALLOCATE( SPHU( IIPAR, JJPAR, LLPAR ), STAT=AS )
+      IF ( AS /= 0 ) CALL ALLOC_ERR( 'SPHU' )
+      SPHU = 0d0
+
+      ALLOCATE( T( IIPAR, JJPAR, LLPAR ), STAT=AS )
+      IF ( AS /= 0 ) CALL ALLOC_ERR( 'T' )
+      T = 0d0
+
+      ALLOCATE( UPDE( IIPAR, JJPAR, LLPAR ), STAT=AS )
+      IF ( AS /= 0 ) CALL ALLOC_ERR( 'UPDE' )
+      UPDE = 0d0  
+
+      ALLOCATE( UPDN( IIPAR, JJPAR, LLPAR ), STAT=AS )
+      IF ( AS /= 0 ) CALL ALLOC_ERR( 'UPDN' )
+      UPDN = 0d0  
+
+      ALLOCATE( UWND( IIPAR, JJPAR, LLPAR), STAT=AS ) 
+      IF ( AS /= 0 ) CALL ALLOC_ERR( 'UWND' )
+      UWND = 0d0
+
+      ALLOCATE( VWND( IIPAR, JJPAR, LLPAR ), STAT=AS ) 
+      IF ( AS /= 0 ) CALL ALLOC_ERR( 'VWND' )
+      VWND = 0d0
+
+      !=================================================================
+      ! I-6 fields / interpolated fields
+      !=================================================================
+
       ALLOCATE( PS1( IIPAR, JJPAR ), STAT=AS )  
       IF ( AS /= 0 ) CALL ALLOC_ERR( 'PS1' )
       PS1 = 0d0
@@ -3194,353 +3286,41 @@
       IF ( AS /= 0 ) CALL ALLOC_ERR( 'PS2' )
       PS2 = 0d0
 
-      ! Pressure at end of dynamic timestep
       ALLOCATE( PSC2( IIPAR, JJPAR ), STAT=AS ) 
       IF ( AS /= 0 ) CALL ALLOC_ERR( 'PSC2' )
       PSC2 = 0d0
 
-      ! Longwave rad at ground
-      ! NOTE: this is a net radiation for GEOS-5 (LWGNET)
-      ALLOCATE( RADLWG( IIPAR, JJPAR ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'RADLWG' )
-      RADLWG = 0d0
-
-      ! Shortwave rad at ground
-      ! NOTE: this is a net radiation for GEOS-5 (SWGNET)
-      ALLOCATE( RADSWG( IIPAR, JJPAR ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'RADSWG' )
-      RADSWG = 0d0
-
-      ! Relative humidity
       ALLOCATE( RH( IIPAR, JJPAR, LLPAR ), STAT=AS )
       IF ( AS /= 0 ) CALL ALLOC_ERR( 'RH' )
       RH = 0d0
 
-      ! Sea level pressure
       ALLOCATE( SLP( IIPAR, JJPAR ), STAT=AS ) 
       IF ( AS /= 0 ) CALL ALLOC_ERR( 'SLP' )
       SLP = 0d0      
 
-      ! Specific humidity
-      ALLOCATE( SPHU( IIPAR, JJPAR, LLPAR ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'SPHU' )
-      SPHU = 0d0
-
-      ! Cosine of solar zenith angle
-      ALLOCATE( SUNCOS( MAXIJ ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'SUNCOS' )
-      SUNCOS = 0d0
-
-      ! Temperature
-      ALLOCATE( T( IIPAR, JJPAR, LLPAR ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'T' )
-      T = 0d0
-
-      ! Temperature on full vertical grid 
-      ALLOCATE( T_FULLGRID( IIPAR, JJPAR, LGLOB ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'T_FULLGRID' )
-      T_FULLGRID = 0d0
-
-      ! Number density of air on full vertical grid
-      ALLOCATE( AIRDEN_FULLGRID( LGLOB, IIPAR, JJPAR ), STAT=AS ) 
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'AIRDEN_FULLGRID' )
-      AIRDEN_FULLGRID = 0d0
-
-      ! Tropopause pressure
       ALLOCATE( TROPP( IIPAR, JJPAR ), STAT=AS ) 
       IF ( AS /= 0 ) CALL ALLOC_ERR( 'TROPP' )
       TROPP = 0d0
 
-      ! Surface temperature
-      ALLOCATE( TS( IIPAR, JJPAR ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'TS' )
-      TS = 0d0
-
-      ! Skin (aka ground) temperature
-      ALLOCATE( TSKIN( IIPAR, JJPAR ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'TSKIN' )
-      TSKIN = 0d0
-
-      ! 10m U-winds
-      ALLOCATE( U10M( IIPAR, JJPAR ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'U10M' )
-      U10M = 0d0
-
-      ! Friction velocity
-      ALLOCATE( USTAR( IIPAR, JJPAR ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'USTAR' )
-      USTAR = 0d0
-
-      ! U-wind
-      ALLOCATE( UWND( IIPAR, JJPAR, LLPAR), STAT=AS ) 
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'UWND' )
-      UWND = 0d0
-
-      ! 10m V-wind
-      ALLOCATE( V10M( IIPAR, JJPAR ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'V10M' )
-      V10M = 0d0
-
-      ! V-wind
-      ALLOCATE( VWND( IIPAR, JJPAR, LLPAR ), STAT=AS ) 
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'VWND' )
-      VWND = 0d0
-
-      ! Roughness height
-      ALLOCATE( Z0( IIPAR, JJPAR ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'Z0' )
-      Z0 = 0d0
-
-#if   defined( APM ) 
-      
-      !-----------------------------------------------------------------
-      ! Common fields for APM microphysics code
-      !-----------------------------------------------------------------
-      
-      ALLOCATE( CLDF0( LLPAR, IIPAR, JJPAR ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'CLDF0' )
-      CLDF0 = 0.d0
-
-      ALLOCATE( CLDF0a( LLPAR, IIPAR, JJPAR ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'CLDF0a' )
-      CLDF0a = 0.d0
-
-      ALLOCATE( CLDF0b( LLPAR, IIPAR, JJPAR ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'CLDF0b' )
-      CLDF0b = 0.d0
-
-
-      ALLOCATE( CLDFRC0( IIPAR, JJPAR ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'CLDFRC0' )
-      CLDFRC0 = 0.d0
-
-      ALLOCATE( CLDFRC0a( IIPAR, JJPAR ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'CLDFRC0a' )
-      CLDFRC0a = 0.d0
-
-      ALLOCATE( CLDFRC0b( IIPAR, JJPAR ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'CLDFRC0b' )
-      CLDFRC0b = 0.d0
-
-
-      ALLOCATE( CLDTOPS0( IIPAR, JJPAR ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'CLDTOPS0' )
-      CLDTOPS0 = 0.d0
-
-      ALLOCATE( CLDTOPS0a( IIPAR, JJPAR ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'CLDTOPS0a' )
-      CLDTOPS0a =0.d0
-
-      ALLOCATE( CLDTOPS0b( IIPAR, JJPAR ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'CLDTOPS0b' )
-      CLDTOPS0b = 0.d0
-
-
-      ALLOCATE( MOISTQ0( LLPAR, IIPAR, JJPAR ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'MOISTQ0' )
-      MOISTQ0 = 0d0
-
-      ALLOCATE( MOISTQ0a( LLPAR, IIPAR, JJPAR ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'MOISTQ0a' )
-      MOISTQ0a = 0d0
-      !-----------------------------------------------------------------
-      ! Allocate met field arrays that are used for all met fields
-      !-----------------------------------------------------------------
-
-
-      ALLOCATE( MOISTQ0b( LLPAR, IIPAR, JJPAR ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'MOISTQ0b' )
-      MOISTQ0b = 0d0
-
-
-      ALLOCATE( OPTDEP0( LLPAR, IIPAR, JJPAR ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'OPTDEP0' )
-      OPTDEP0 = 0d0
-
-      ALLOCATE( OPTDEP0a( LLPAR, IIPAR, JJPAR ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'OPTDEP0a' )
-      OPTDEP0a = 0d0
-
-      ALLOCATE( OPTDEP0b( LLPAR, IIPAR, JJPAR ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'OPTDEP0b' )
-      OPTDEP0b = 0d0
-
-
-      ALLOCATE( RH0( IIPAR, JJPAR, LLPAR ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'RH0' )
-      RH0 = 0d0
-
-      ALLOCATE( RH0a( IIPAR, JJPAR, LLPAR ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'RH0a' )
-      RH0a = 0d0
-
-      ALLOCATE( RH0b( IIPAR, JJPAR, LLPAR ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'RH0b' )
-      RH0b = 0d0
-
-
-      ALLOCATE( SPHU0( IIPAR, JJPAR, LLPAR ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'SPHU0' )
-      SPHU0 = 0.d0
-
-      ALLOCATE( SPHU0a( IIPAR, JJPAR, LLPAR ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'SPHU0a' )
-      SPHU0a = 0.d0
-
-      ALLOCATE( SPHU0b( IIPAR, JJPAR, LLPAR ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'SPHU0b' )
-      SPHU0b = 0.d0
-
-
-      ALLOCATE( T0( IIPAR, JJPAR, LLPAR ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'T0' )
-      T0 = 0d0
-
-      ALLOCATE( T0a( IIPAR, JJPAR, LLPAR ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'T0a' )
-      T0a = 0d0
-
-      ALLOCATE( T0b( IIPAR, JJPAR, LLPAR ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'T0b' )
-      T0b = 0d0
-
-
-      ALLOCATE( UWND0( IIPAR, JJPAR, LLPAR ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'UWND0' )
-      UWND0 = 0.d0
-
-      ALLOCATE( UWND0a( IIPAR, JJPAR, LLPAR ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'UWND0a' )
-      UWND0a= 0.d0
-
-      ALLOCATE( UWND0b( IIPAR, JJPAR, LLPAR ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'UWND0b' )
-      UWND0b = 0.d0
-
-
-      ALLOCATE( VWND0( IIPAR, JJPAR, LLPAR ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'VWND0' )
-      VWND0 = 0d0
-
-      ALLOCATE( VWND0a( IIPAR, JJPAR, LLPAR ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'VWND0a' )
-      VWND0a = 0d0
-
-      ALLOCATE( VWND0b( IIPAR, JJPAR, LLPAR ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'VWND0b' )
-      VWND0b = 0d0
-
-
-      ALLOCATE( PBL0a( IIPAR, JJPAR ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'PBL0a' )
-      PBL0a = 0.d0
-
-      ALLOCATE( PBL0b( IIPAR, JJPAR ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'PBL0b' )
-      PBL0b  = 0.d0
-
-#endif
-
-      END SUBROUTINE INIT_DAO_COMMON
-!EOC
-!------------------------------------------------------------------------------
-!          Harvard University Atmospheric Chemistry Modeling Group            !
-!------------------------------------------------------------------------------
-!BOP
-!
-! !IROUTINE: init_dao_gcap
-!
-! !DESCRIPTION: Subroutine INIT\_DAO\_GCAP allocates memory to arrays
-!  that are specific to the GCAP met data product.
-!\\
-!\\
-! !INTERFACE:
-!
-      SUBROUTINE INIT_DAO_GCAP
-!
-! !USES:
-!
-      USE ERROR_MOD,   ONLY : ALLOC_ERR
-!
-! !REVISION HISTORY: 
-!  15 Feb 2011 - R. Yantosca - Initial version
-!EOP
-!------------------------------------------------------------------------------
-!BOC
-!
-! !LOCAL VARIABLES:
-!
-      ! Local variables
-      INTEGER :: AS
-
-      !=================================================================
-      ! INIT_DAO_GCAP begins here!
-      !=================================================================
-
-      ! Snow depth for all other met fields
-      ALLOCATE( SNOW( IIPAR, JJPAR ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'SNOW' )
-      SNOW = 0d0
-
-      ! TROPP1 is only defined for GEOS-3, GEOS-4, or 'GCAP'
       ALLOCATE( TROPP1( IIPAR, JJPAR ), STAT=AS ) 
       IF ( AS /= 0 ) C ALL ALLOC_ERR( 'TROPP1' )
       TROPP1 = 0d0
 
-      ! TROPP2 is only defined for GEOS-3, GEOS-4, or 'GCAP'
       ALLOCATE( TROPP2( IIPAR, JJPAR ), STAT=AS ) 
       IF ( AS /= 0 ) CALL ALLOC_ERR( 'TROPP2' )
       TROPP2 = 0d0
 
-      ! DTRAINE is only defined for 'GCAP'
-      ALLOCATE( DETRAINE( IIPAR, JJPAR, LLPAR ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'DETRAINE' )
-      DETRAINE = 0d0  
+      !=================================================================
+      ! Constant fields
+      !=================================================================
 
-      ! DETRAINN is only defined for 'GCAP'
-      ALLOCATE( DETRAINN( IIPAR, JJPAR, LLPAR ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'DETRAINN' )
-      DETRAINN = 0d0  
+      ALLOCATE( PHIS( IIPAR, JJPAR ), STAT=AS )  
+      IF ( AS /= 0 ) CALL ALLOC_ERR( 'PHIS' )
+      PHIS = 0d0
 
-      ! DNDE is only defined for 'GCAP'
-      ALLOCATE( DNDE( IIPAR, JJPAR, LLPAR ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'DNDE' )
-      DNDE = 0d0  
-
-      ! DNDN is only defined for 'GCAP'
-      ALLOCATE( DNDN( IIPAR, JJPAR, LLPAR ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'DNDN' )
-      DNDN = 0d0  
-
-      ! ENTRAIN is only defined for 'GCAP'
-      ALLOCATE( ENTRAIN( IIPAR, JJPAR, LLPAR ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'ENTRAIN' )
-      ENTRAIN = 0d0  
-
-      ! MOLENGTH is only defined for 'GCAP'
-      ALLOCATE( MOLENGTH( IIPAR, JJPAR ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'MOLENGTH' )
-      MOLENGTH = 0d0
-
-      ! OICE is only defined for 'GCAP'
-      ALLOCATE( OICE( IIPAR, JJPAR ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'OICE' )
-      OICE = 0d0
-
-      ! SNICE is only defined for 'GCAP'
-      ALLOCATE( SNICE( IIPAR, JJPAR ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'SNICE' )
-      SNICE = 0d0
-
-      ! UPDE is only defined for 'GCAP'
-      ALLOCATE( UPDE( IIPAR, JJPAR, LLPAR ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'UPDE' )
-      UPDE = 0d0  
-
-      ! UPDN is only defined for 'GCAP'
-      ALLOCATE( UPDN( IIPAR, JJPAR, LLPAR ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'UPDN' )
-      UPDN = 0d0  
+      ALLOCATE( LWI_GISS( IIPAR, JJPAR ), STAT=AS )
+      IF ( AS /= 0 ) CALL ALLOC_ERR( 'LWI_GISS' )
+      LWI_GISS = 0d0
 
 #if   defined( APM ) 
       
@@ -3649,8 +3429,8 @@
 !
 ! !IROUTINE: init_dao_geos3
 !
-! !DESCRIPTION: Subroutine INIT\_DAO\_GEOS3 allocates memory to arrays
-!  that are specific to the GEOS-3 met data product.
+! !DESCRIPTION: Subroutine INIT\_DAO allocates memory for all allocatable
+!  module arrays required when using the GEOS-3 met fields
 !\\
 !\\
 ! !INTERFACE:
@@ -3661,97 +3441,212 @@
 !
       USE ERROR_MOD, ONLY : ALLOC_ERR
 !
-! !REVISION HISTORY: 
-!  15 Feb 2011 - R. Yantosca - Initial version
+! !REVISION HISTORY:
+!  06 Feb 2012 - R. Yantosca - Split off GEOS-3 init from routine INIT_DAO
 !EOP
 !------------------------------------------------------------------------------
 !BOC
 !
 ! !LOCAL VARIABLES:
 !
-      ! Local variables
       INTEGER :: AS
 
       !=================================================================
-      ! INIT_DAO_GEOS-3 begins here!
+      ! A-3 fields
       !=================================================================
 
-      ! Land/water flags have to be INTEGER for GEOS
-      ALLOCATE( LWI( IIPAR, JJPAR ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'LWI' )
-      LWI = 0
+      ALLOCATE( CLDFRC( IIPAR, JJPAR ), STAT=AS )
+      IF ( AS /= 0 ) CALL ALLOC_ERR( 'CLDFRC' )
+      CLDFRC = 0d0
 
-      ! Snow depth for all other met fields
-      ALLOCATE( SNOW( IIPAR, JJPAR ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'SNOW' )
-      SNOW = 0d0
+      ALLOCATE( GWETTOP( IIPAR, JJPAR ), STAT=AS )
+      IF ( AS /= 0 ) CALL ALLOC_ERR( 'GWETTOP' )
+      GWETTOP = 0d0
 
-      ! TROPP1 is only defined for GEOS-3, GEOS-4, or GCAP
-      ALLOCATE( TROPP1( IIPAR, JJPAR ), STAT=AS ) 
-      IF ( AS /= 0 ) C ALL ALLOC_ERR( 'TROPP1' )
-      TROPP1 = 0d0
+      ALLOCATE( HFLUX( IIPAR, JJPAR ), STAT=AS )
+      IF ( AS /= 0 ) CALL ALLOC_ERR( 'HFLUX' )
+      HFLUX = 0d0
 
-      ! TROPP2 is only defined for GEOS-3, GEOS-4, or GCAP
-      ALLOCATE( TROPP2( IIPAR, JJPAR ), STAT=AS ) 
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'TROPP2' )
-      TROPP2 = 0d0
+      ALLOCATE( PBL( IIPAR, JJPAR ), STAT=AS )
+      IF ( AS /= 0 ) CALL ALLOC_ERR( 'PBL' )
+      PBL = 0d0
 
-      ! Albedo at start of 6-hr interval
-      ALLOCATE( ALBD1( IIPAR, JJPAR ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'ALBD1' )
-      ALBD1 = 0d0
+      ALLOCATE( PHIS( IIPAR, JJPAR ), STAT=AS )  
+      IF ( AS /= 0 ) CALL ALLOC_ERR( 'PHIS' )
+      PHIS = 0d0
 
-      ! Albedo at end of 6-hr interval
-      ALLOCATE( ALBD2( IIPAR, JJPAR ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'ALBD2' )
-      ALBD2 = 0d0
+      ALLOCATE( PREACC( IIPAR, JJPAR ), STAT=AS )
+      IF ( AS /= 0 ) CALL ALLOC_ERR( 'PREACC' )
+      PREACC = 0d0
 
-      ! GEOS-3 cloud mass flux
+      ALLOCATE( PRECON( IIPAR, JJPAR ), STAT=AS )
+      IF ( AS /= 0 ) CALL ALLOC_ERR( 'PRECON' )
+      PRECON = 0d0
+
+      ALLOCATE( Z0( IIPAR, JJPAR ), STAT=AS )
+      IF ( AS /= 0 ) CALL ALLOC_ERR( 'Z0' )
+      Z0 = 0d0
+
+      !=================================================================
+      ! A-6 fields
+      !=================================================================
+
+      ALLOCATE( CLDF( LLPAR, IIPAR, JJPAR ), STAT=AS )
+      IF ( AS /= 0 ) CALL ALLOC_ERR( 'CLDF' )
+      CLDF = 0d0
+
       ALLOCATE( CLDMAS( IIPAR, JJPAR, LLPAR ), STAT=AS )
       IF ( AS /= 0 ) CALL ALLOC_ERR( 'CLDMAS' )
       CLDMAS = 0d0
 
-      ! GEOS-3 detrainment
       ALLOCATE( DTRAIN( IIPAR, JJPAR, LLPAR ), STAT=AS )
       IF ( AS /= 0 ) CALL ALLOC_ERR( 'DTRAIN' )
       DTRAIN = 0d0
 
-      ! Specific humidity at start of 6-hr interval
+      ALLOCATE( MOISTQ( LLPAR, IIPAR, JJPAR ), STAT=AS ) 
+      IF ( AS /= 0 ) CALL ALLOC_ERR( 'MOISTQ' )
+      MOISTQ = 0d0
+
+      ALLOCATE( OPTDEP( LLPAR, IIPAR, JJPAR ), STAT=AS )
+      IF ( AS /= 0 ) CALL ALLOC_ERR( 'OPTDEP' )
+      OPTDEP = 0d0
+
+      ALLOCATE( OPTD( LLPAR, IIPAR, JJPAR ), STAT=AS )
+      IF ( AS /= 0 ) CALL ALLOC_ERR( 'OPTD' )
+      OPTD = 0d0
+
+      ALLOCATE( PARDF( IIPAR, JJPAR ), STAT=AS )
+      IF ( AS /= 0 ) CALL ALLOC_ERR( 'PARDF' )
+      PARDF = 0d0
+
+      ALLOCATE( PARDR( IIPAR, JJPAR ), STAT=AS )
+      IF ( AS /= 0 ) CALL ALLOC_ERR( 'PARDR' )
+      PARDR = 0d0
+
+      ALLOCATE( RADLWG( IIPAR, JJPAR ), STAT=AS )
+      IF ( AS /= 0 ) CALL ALLOC_ERR( 'RADLWG' )
+      RADLWG = 0d0
+
+      ALLOCATE( RADSWG( IIPAR, JJPAR ), STAT=AS )
+      IF ( AS /= 0 ) CALL ALLOC_ERR( 'RADSWG' )
+      RADSWG = 0d0
+
+      ALLOCATE( TS( IIPAR, JJPAR ), STAT=AS )
+      IF ( AS /= 0 ) CALL ALLOC_ERR( 'TS' )
+      TS = 0d0
+
+      ALLOCATE( TSKIN( IIPAR, JJPAR ), STAT=AS )
+      IF ( AS /= 0 ) CALL ALLOC_ERR( 'TSKIN' )
+      TSKIN = 0d0
+
+      ALLOCATE( U10M( IIPAR, JJPAR ), STAT=AS )
+      IF ( AS /= 0 ) CALL ALLOC_ERR( 'U10M' )
+      U10M = 0d0
+
+      ALLOCATE( USTAR( IIPAR, JJPAR ), STAT=AS )
+      IF ( AS /= 0 ) CALL ALLOC_ERR( 'USTAR' )
+      USTAR = 0d0
+
+      ALLOCATE( V10M( IIPAR, JJPAR ), STAT=AS )
+      IF ( AS /= 0 ) CALL ALLOC_ERR( 'V10M' )
+      V10M = 0d0
+
+      !=================================================================
+      ! I-6 fields / interpolated fields
+      !=================================================================
+
+      ALLOCATE( ALBD( IIPAR, JJPAR ), STAT=AS )
+      IF ( AS /= 0 ) CALL ALLOC_ERR( 'ALBD' )
+      ALBD = 0d0
+
+      ALLOCATE( ALBD1( IIPAR, JJPAR ), STAT=AS )
+      IF ( AS /= 0 ) CALL ALLOC_ERR( 'ALBD1' )
+      ALBD1 = 0d0
+
+      ALLOCATE( ALBD2( IIPAR, JJPAR ), STAT=AS )
+      IF ( AS /= 0 ) CALL ALLOC_ERR( 'ALBD2' )
+      ALBD2 = 0d0
+
+      ALLOCATE( LWI( IIPAR, JJPAR ), STAT=AS )
+      IF ( AS /= 0 ) CALL ALLOC_ERR( 'LWI' )
+      LWI = 0
+
+      ALLOCATE( PS1( IIPAR, JJPAR ), STAT=AS )  
+      IF ( AS /= 0 ) CALL ALLOC_ERR( 'PS1' )
+      PS1 = 0d0
+
+      ALLOCATE( PS2( IIPAR, JJPAR ), STAT=AS )
+      IF ( AS /= 0 ) CALL ALLOC_ERR( 'PS2' )
+      PS2 = 0d0
+
+      ALLOCATE( PSC2( IIPAR, JJPAR ), STAT=AS ) 
+      IF ( AS /= 0 ) CALL ALLOC_ERR( 'PSC2' )
+      PSC2 = 0d0
+
+      ALLOCATE( RH( IIPAR, JJPAR, LLPAR ), STAT=AS )
+      IF ( AS /= 0 ) CALL ALLOC_ERR( 'RH' )
+      RH = 0d0
+
+      ALLOCATE( SLP( IIPAR, JJPAR ), STAT=AS ) 
+      IF ( AS /= 0 ) CALL ALLOC_ERR( 'SLP' )
+      SLP = 0d0      
+
+      ALLOCATE( SPHU( IIPAR, JJPAR, LLPAR ), STAT=AS )
+      IF ( AS /= 0 ) CALL ALLOC_ERR( 'SPHU' )
+      SPHU = 0d0
+
       ALLOCATE( SPHU1( IIPAR, JJPAR, LLPAR ), STAT=AS )
       IF ( AS /= 0 ) CALL ALLOC_ERR( 'SPHU1' )
       SPHU1 = 0d0
 
-      ! Specific humidity at end of 6-hr interval
       ALLOCATE( SPHU2( IIPAR, JJPAR, LLPAR ), STAT=AS )
       IF ( AS /= 0 ) CALL ALLOC_ERR( 'SPHU2' )
       SPHU2 = 0d0
 
-      ! Temperature at start of 6-hr interval
+      ALLOCATE( T( IIPAR, JJPAR, LLPAR ), STAT=AS )
+      IF ( AS /= 0 ) CALL ALLOC_ERR( 'T' )
+      T = 0d0
+
       ALLOCATE( TMPU1( IIPAR, JJPAR, LLPAR ), STAT=AS ) 
       IF ( AS /= 0 ) CALL ALLOC_ERR( 'TMPU1' )
       TMPU1 = 0d0
 
-      ! Temperature at end of 6-hr interval
       ALLOCATE( TMPU2( IIPAR, JJPAR, LLPAR ), STAT=AS )
       IF ( AS /= 0 ) CALL ALLOC_ERR( 'TMPU2' )
       TMPU2 = 0d0
 
-      ! U-wind at start of 6-hr interval
+      ALLOCATE( TROPP( IIPAR, JJPAR ), STAT=AS ) 
+      IF ( AS /= 0 ) CALL ALLOC_ERR( 'TROPP' )
+      TROPP = 0d0
+
+      ALLOCATE( TROPP1( IIPAR, JJPAR ), STAT=AS ) 
+      IF ( AS /= 0 ) C ALL ALLOC_ERR( 'TROPP1' )
+      TROPP1 = 0d0
+
+      ALLOCATE( TROPP2( IIPAR, JJPAR ), STAT=AS ) 
+      IF ( AS /= 0 ) CALL ALLOC_ERR( 'TROPP2' )
+      TROPP2 = 0d0
+
+      ALLOCATE( UWND( IIPAR, JJPAR, LLPAR), STAT=AS ) 
+      IF ( AS /= 0 ) CALL ALLOC_ERR( 'UWND' )
+      UWND = 0d0
+
       ALLOCATE( UWND1( IIPAR, JJPAR, LLPAR ), STAT=AS )
       IF ( AS /= 0 ) CALL ALLOC_ERR( 'UWND1' )
       UWND1 = 0d0
 
-      ! U-wind at end of 6-hr interval
       ALLOCATE( UWND2( IIPAR, JJPAR, LLPAR ), STAT=AS )
       IF ( AS /= 0 ) CALL ALLOC_ERR( 'UWND2' )
       UWND2 = 0d0
 
-      ! V-wind at start of 6-hr interval
+      ALLOCATE( VWND( IIPAR, JJPAR, LLPAR ), STAT=AS ) 
+      IF ( AS /= 0 ) CALL ALLOC_ERR( 'VWND' )
+      VWND = 0d0
+
       ALLOCATE( VWND1( IIPAR, JJPAR, LLPAR ), STAT=AS ) 
       IF ( AS /= 0 ) CALL ALLOC_ERR( 'VWND1' )
       VWND1 = 0d0
 
-      ! V-wind at end of 6-hr interval
       ALLOCATE( VWND2( IIPAR, JJPAR, LLPAR ), STAT=AS )
       IF ( AS /= 0 ) CALL ALLOC_ERR( 'VWND2' )
       VWND2 = 0d0
@@ -3797,9 +3692,9 @@
 !BOP
 !
 ! !IROUTINE: init_dao_geos4
-
-! !DESCRIPTION: Subroutine INIT\_DAO\_GEOS4 allocates memory to arrays
-!  that are common to all met-field data products.
+!
+! !DESCRIPTION: Subroutine INIT\_DAO\_GEOS4 allocates memory for all 
+!  allocatable module arrays required when using the GEOS-4 met fields
 !\\
 !\\
 ! !INTERFACE:
@@ -3808,69 +3703,189 @@
 !
 ! !USES:
 !
-      USE ERROR_MOD,   ONLY : ALLOC_ERR
-      USE LOGICAL_MOD, ONLY : LWETD, LDRYD, LCHEM
-      USE TRACER_MOD,  ONLY : ITS_AN_AEROSOL_SIM, ITS_A_FULLCHEM_SIM
+      USE ERROR_MOD, ONLY : ALLOC_ERR
 !
-! !REVISION HISTORY: 
-!  15 Feb 2011 - R. Yantosca - Initial version
+! !REVISION HISTORY:
+!  06 Feb 2012 - R. Yantosca - Split off GEOS-4 init from routine INIT_DAO
 !EOP
 !------------------------------------------------------------------------------
 !BOC
 !
 ! !LOCAL VARIABLES:
 !
-      ! Local variables
       INTEGER :: AS
 
       !=================================================================
-      ! INIT_DAO_GEOS4 begins here!
+      ! A-3 fields
       !=================================================================
 
-      ! Land/water flags
-      ALLOCATE( LWI( IIPAR, JJPAR ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'LWI' )
-      LWI = 0
+      ALLOCATE( CLDFRC( IIPAR, JJPAR ), STAT=AS )
+      IF ( AS /= 0 ) CALL ALLOC_ERR( 'CLDFRC' )
+      CLDFRC = 0d0
 
-      ! Snow depth for all other met fields
+      ALLOCATE( GWETTOP( IIPAR, JJPAR ), STAT=AS )
+      IF ( AS /= 0 ) CALL ALLOC_ERR( 'GWETTOP' )
+      GWETTOP = 0d0
+
+      ALLOCATE( HFLUX( IIPAR, JJPAR ), STAT=AS )
+      IF ( AS /= 0 ) CALL ALLOC_ERR( 'HFLUX' )
+      HFLUX = 0d0
+
+      ALLOCATE( PARDF( IIPAR, JJPAR ), STAT=AS )
+      IF ( AS /= 0 ) CALL ALLOC_ERR( 'PARDF' )
+      PARDF = 0d0
+
+      ALLOCATE( PARDR( IIPAR, JJPAR ), STAT=AS )
+      IF ( AS /= 0 ) CALL ALLOC_ERR( 'PARDR' )
+      PARDR = 0d0
+
+      ALLOCATE( PBL( IIPAR, JJPAR ), STAT=AS )
+      IF ( AS /= 0 ) CALL ALLOC_ERR( 'PBL' )
+      PBL = 0d0
+
+      ALLOCATE( PHIS( IIPAR, JJPAR ), STAT=AS )  
+      IF ( AS /= 0 ) CALL ALLOC_ERR( 'PHIS' )
+      PHIS = 0d0
+
+      ALLOCATE( PREACC( IIPAR, JJPAR ), STAT=AS )
+      IF ( AS /= 0 ) CALL ALLOC_ERR( 'PREACC' )
+      PREACC = 0d0
+
+      ALLOCATE( PRECON( IIPAR, JJPAR ), STAT=AS )
+      IF ( AS /= 0 ) CALL ALLOC_ERR( 'PRECON' )
+      PRECON = 0d0
+   
+      ALLOCATE( RADLWG( IIPAR, JJPAR ), STAT=AS )
+      IF ( AS /= 0 ) CALL ALLOC_ERR( 'RADLWG' )
+      RADLWG = 0d0
+
+      ALLOCATE( RADSWG( IIPAR, JJPAR ), STAT=AS )
+      IF ( AS /= 0 ) CALL ALLOC_ERR( 'RADSWG' )
+      RADSWG = 0d0
+
       ALLOCATE( SNOW( IIPAR, JJPAR ), STAT=AS )
       IF ( AS /= 0 ) CALL ALLOC_ERR( 'SNOW' )
       SNOW = 0d0
 
-      ! TROPP1 is only defined for GEOS-3, GEOS-4, or GCAP
-      ALLOCATE( TROPP1( IIPAR, JJPAR ), STAT=AS ) 
-      IF ( AS /= 0 ) C ALL ALLOC_ERR( 'TROPP1' )
-      TROPP1 = 0d0
+      ALLOCATE( TS( IIPAR, JJPAR ), STAT=AS )
+      IF ( AS /= 0 ) CALL ALLOC_ERR( 'TS' )
+      TS = 0d0
 
-      ! TROPP2 is only defined for GEOS-3, GEOS-4, or GCAP
-      ALLOCATE( TROPP2( IIPAR, JJPAR ), STAT=AS ) 
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'TROPP2' )
-      TROPP2 = 0d0
+      ALLOCATE( TSKIN( IIPAR, JJPAR ), STAT=AS )
+      IF ( AS /= 0 ) CALL ALLOC_ERR( 'TSKIN' )
+      TSKIN = 0d0
 
-      ! Hack convection overshoot parameter
+      ALLOCATE( U10M( IIPAR, JJPAR ), STAT=AS )
+      IF ( AS /= 0 ) CALL ALLOC_ERR( 'U10M' )
+      U10M = 0d0
+
+      ALLOCATE( USTAR( IIPAR, JJPAR ), STAT=AS )
+      IF ( AS /= 0 ) CALL ALLOC_ERR( 'USTAR' )
+      USTAR = 0d0
+
+      ALLOCATE( V10M( IIPAR, JJPAR ), STAT=AS )
+      IF ( AS /= 0 ) CALL ALLOC_ERR( 'V10M' )
+      V10M = 0d0
+
+      ALLOCATE( Z0( IIPAR, JJPAR ), STAT=AS )
+      IF ( AS /= 0 ) CALL ALLOC_ERR( 'Z0' )
+      Z0 = 0d0
+
+      !=================================================================
+      ! A-6 fields
+      !=================================================================
+
+      ALLOCATE( CLDF( LLPAR, IIPAR, JJPAR ), STAT=AS )
+      IF ( AS /= 0 ) CALL ALLOC_ERR( 'CLDF' )
+      CLDF = 0d0
+
       ALLOCATE( HKBETA( IIPAR, JJPAR, LLPAR ), STAT=AS )
       IF ( AS /= 0 ) CALL ALLOC_ERR( 'HKBETA' )
       HKBETA = 0d0
 
-      ! Hack convection mass flux
       ALLOCATE( HKETA( IIPAR, JJPAR, LLPAR ), STAT=AS )
       IF ( AS /= 0 ) CALL ALLOC_ERR( 'HKETA' )
       HKETA = 0d0
 
-      ! Z&M updraft entrainment flux
+      ALLOCATE( MOISTQ( LLPAR, IIPAR, JJPAR ), STAT=AS ) 
+      IF ( AS /= 0 ) CALL ALLOC_ERR( 'MOISTQ' )
+      MOISTQ = 0d0
+
+      ALLOCATE( OPTDEP( LLPAR, IIPAR, JJPAR ), STAT=AS )
+      IF ( AS /= 0 ) CALL ALLOC_ERR( 'OPTDEP' )
+      OPTDEP = 0d0
+
+      ALLOCATE( OPTD( LLPAR, IIPAR, JJPAR ), STAT=AS )
+      IF ( AS /= 0 ) CALL ALLOC_ERR( 'OPTD' )
+      OPTD = 0d0
+
+      ALLOCATE( SPHU( IIPAR, JJPAR, LLPAR ), STAT=AS )
+      IF ( AS /= 0 ) CALL ALLOC_ERR( 'SPHU' )
+      SPHU = 0d0
+
+      ALLOCATE( T( IIPAR, JJPAR, LLPAR ), STAT=AS )
+      IF ( AS /= 0 ) CALL ALLOC_ERR( 'T' )
+      T = 0d0
+
+      ALLOCATE( UWND( IIPAR, JJPAR, LLPAR), STAT=AS ) 
+      IF ( AS /= 0 ) CALL ALLOC_ERR( 'UWND' )
+      UWND = 0d0
+
+      ALLOCATE( VWND( IIPAR, JJPAR, LLPAR ), STAT=AS ) 
+      IF ( AS /= 0 ) CALL ALLOC_ERR( 'VWND' )
+      VWND = 0d0
+
       ALLOCATE( ZMEU( IIPAR, JJPAR, LLPAR ), STAT=AS )
       IF ( AS /= 0 ) CALL ALLOC_ERR( 'ZMEU' )
       ZMEU = 0d0
 
-      ! Z&M downdraft mass flux
       ALLOCATE( ZMMD( IIPAR, JJPAR, LLPAR ), STAT=AS )
       IF ( AS /= 0 ) CALL ALLOC_ERR( 'ZMMD' )
       ZMMD = 0d0
 
-      ! Z&M updraft mass flux
       ALLOCATE( ZMMU( IIPAR, JJPAR, LLPAR ), STAT=AS )
       IF ( AS /= 0 ) CALL ALLOC_ERR( 'ZMMU' )
       ZMMU = 0d0
+
+      !=================================================================
+      ! I-6 fields / interpolated fields
+      !=================================================================
+
+      ALLOCATE( LWI( IIPAR, JJPAR ), STAT=AS )
+      IF ( AS /= 0 ) CALL ALLOC_ERR( 'LWI' )
+      LWI = 0
+
+      ALLOCATE( PS1( IIPAR, JJPAR ), STAT=AS )  
+      IF ( AS /= 0 ) CALL ALLOC_ERR( 'PS1' )
+      PS1 = 0d0
+
+      ALLOCATE( PS2( IIPAR, JJPAR ), STAT=AS )
+      IF ( AS /= 0 ) CALL ALLOC_ERR( 'PS2' )
+      PS2 = 0d0
+
+      ALLOCATE( PSC2( IIPAR, JJPAR ), STAT=AS ) 
+      IF ( AS /= 0 ) CALL ALLOC_ERR( 'PSC2' )
+      PSC2 = 0d0
+
+      ALLOCATE( RH( IIPAR, JJPAR, LLPAR ), STAT=AS )
+      IF ( AS /= 0 ) CALL ALLOC_ERR( 'RH' )
+      RH = 0d0
+
+      ALLOCATE( SLP( IIPAR, JJPAR ), STAT=AS ) 
+      IF ( AS /= 0 ) CALL ALLOC_ERR( 'SLP' )
+      SLP = 0d0      
+
+      ALLOCATE( TROPP( IIPAR, JJPAR ), STAT=AS ) 
+      IF ( AS /= 0 ) CALL ALLOC_ERR( 'TROPP' )
+      TROPP = 0d0
+
+      ALLOCATE( TROPP1( IIPAR, JJPAR ), STAT=AS ) 
+      IF ( AS /= 0 ) C ALL ALLOC_ERR( 'TROPP1' )
+      TROPP1 = 0d0
+
+      ALLOCATE( TROPP2( IIPAR, JJPAR ), STAT=AS ) 
+      IF ( AS /= 0 ) CALL ALLOC_ERR( 'TROPP2' )
+      TROPP2 = 0d0
 
 #if   defined( APM )
 
@@ -3953,8 +3968,8 @@
 !
 ! !IROUTINE: init_dao_geos5
 !
-! !DESCRIPTION: Subroutine INIT\_DAO\_GEOS5 allocates memory to arrays
-!  that are common to all met-field data products.
+! !DESCRIPTION: Subroutine INIT\_DAO\_GEOS5 allocates memory for all 
+!  allocatable module arrays required when using GEOS-5.2.0 met fields.
 !\\
 !\\
 ! !INTERFACE:
@@ -3963,170 +3978,278 @@
 !
 ! !USES:
 !
-      USE ERROR_MOD,   ONLY : ALLOC_ERR
-      USE LOGICAL_MOD, ONLY : LWETD, LDRYD, LCHEM
-      USE TRACER_MOD,  ONLY : ITS_AN_AEROSOL_SIM, ITS_A_FULLCHEM_SIM
+      USE ERROR_MOD, ONLY : ALLOC_ERR
 !
-! !REVISION HISTORY: 
-!  15 Feb 2011 - R. Yantosca - Initial version
+! !REVISION HISTORY:
+!  06 Feb 2012 - R. Yantosca - Split off GEOS-5 init from routine INIT_DAO
 !EOP
 !------------------------------------------------------------------------------
 !BOC
 !
 ! !LOCAL VARIABLES:
 !
-      ! Local variables
       INTEGER :: AS
 
       !=================================================================
-      ! INIT_DAO_GEOS5 begins here!
+      ! A-3 fields
       !=================================================================
 
-      ! Land/water flags have to be INTEGER for GEOS
-      ALLOCATE( LWI( IIPAR, JJPAR ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'LWI' )
-      LWI = 0
+      ALLOCATE( ALBD( IIPAR, JJPAR ), STAT=AS )
+      IF ( AS /= 0 ) CALL ALLOC_ERR( 'ALBD' )
+      ALBD = 0d0
 
-      ! GEOS-5 cloud mass flux
-      ALLOCATE( CMFMC( IIPAR, JJPAR, LLPAR+1 ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'CMFMC' )
-      CMFMC = 0d0
+      ALLOCATE( CLDFRC( IIPAR, JJPAR ), STAT=AS )
+      IF ( AS /= 0 ) CALL ALLOC_ERR( 'CLDFRC' )
+      CLDFRC = 0d0
 
-      ! GEOS-5 tendency of ice in moist processes
-      ALLOCATE( DQIDTMST( IIPAR, JJPAR, LLPAR ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'DQIDTMST' )
-      DQIDTMST = 0d0
-
-      ! GEOS-5 tendency of ice in moist processes
-      ALLOCATE( DQLDTMST( IIPAR, JJPAR, LLPAR ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'DQLDTMST' )
-      DQLDTMST = 0d0
-
-      ! GEOS-5 tendency of ice in moist processes
-      ALLOCATE( DQVDTMST( IIPAR, JJPAR, LLPAR ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'DQVDTMST' )
-      DQVDTMST = 0d0
-
-      ! GEOS-5 detrainment
-      ALLOCATE( DTRAIN( IIPAR, JJPAR, LLPAR ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'DTRAIN' )
-      DTRAIN = 0d0
-
-      ! Latent heat flux
       ALLOCATE( EFLUX( IIPAR, JJPAR ), STAT=AS )
       IF ( AS /= 0 ) CALL ALLOC_ERR( 'EFLUX' )
       EFLUX = 0d0
 
-      ! GEOS-5 evapotranspiration flux
       ALLOCATE( EVAP( IIPAR, JJPAR ), STAT=AS )
       IF ( AS /= 0 ) CALL ALLOC_ERR( 'EVAP' )
       EVAP = 0d0
 
-      ! Fraction of grid box that is land
       ALLOCATE( FRLAND( IIPAR, JJPAR ), STAT=AS )
       IF ( AS /= 0 ) CALL ALLOC_ERR( 'FRLAND' )
       FRLAND = 0d0
 
-      ! Fraction of grid box that is lakes
       ALLOCATE( FRLAKE( IIPAR, JJPAR ), STAT=AS )
       IF ( AS /= 0 ) CALL ALLOC_ERR( 'FRLAKE' )
       FRLAKE = 0d0
 
-      ! Fraction of grid box that is ocean
       ALLOCATE( FROCEAN( IIPAR, JJPAR ), STAT=AS )
       IF ( AS /= 0 ) CALL ALLOC_ERR( 'FROCEAN' )
       FROCEAN = 0d0
 
-      ! Fraction of grid box that is land ice
       ALLOCATE( FRLANDIC( IIPAR, JJPAR ), STAT=AS )
       IF ( AS /= 0 ) CALL ALLOC_ERR( 'FRLANDIC' )
       FRLANDIC = 0d0
 
-      ! GEOS-5 greenness index
       ALLOCATE( GRN( IIPAR, JJPAR ), STAT=AS )
       IF ( AS /= 0 ) CALL ALLOC_ERR( 'GRN' )
       GRN = 0d0
 
-      ! GEOS-5 root soil moisture
       ALLOCATE( GWETROOT( IIPAR, JJPAR ), STAT=AS )
       IF ( AS /= 0 ) CALL ALLOC_ERR( 'GWETROOT' )
       GWETROOT = 0d0
 
-      ! GEOS-5 root soil moisture
       ALLOCATE( LAI( IIPAR, JJPAR ), STAT=AS )
       IF ( AS /= 0 ) CALL ALLOC_ERR( 'LAI' )
       LAI = 0d0
 
-      ! GEOS-5 "snow" (i.e. frozen) precipitation
       ALLOCATE( PRECSNO( IIPAR, JJPAR ), STAT=AS )
       IF ( AS /= 0 ) CALL ALLOC_ERR( 'PRECSNO' )
       PRECSNO = 0d0
 
-      ! GEOS-5 potential vorticity
-      ALLOCATE( PV( IIPAR, JJPAR, LLPAR ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'PV' )
-      PV = 0d0
+      ALLOCATE( GWETTOP( IIPAR, JJPAR ), STAT=AS )
+      IF ( AS /= 0 ) CALL ALLOC_ERR( 'GWETTOP' )
+      GWETTOP = 0d0
 
-      ! GEOS-5 ice mixing ratio
-      ALLOCATE( QI( IIPAR, JJPAR, LLPAR ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'QI' )
-      QI = 0d0
+      ALLOCATE( HFLUX( IIPAR, JJPAR ), STAT=AS )
+      IF ( AS /= 0 ) CALL ALLOC_ERR( 'HFLUX' )
+      HFLUX = 0d0
 
-      ! GEOS-5 ice mixing ratio
-      ALLOCATE( QL( IIPAR, JJPAR, LLPAR ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'QL' )
-      QL = 0d0
+      ALLOCATE( PARDF( IIPAR, JJPAR ), STAT=AS )
+      IF ( AS /= 0 ) CALL ALLOC_ERR( 'PARDF' )
+      PARDF = 0d0
 
-      ! GEOS-5 snow depth (H2O equiv)
+      ALLOCATE( PARDR( IIPAR, JJPAR ), STAT=AS )
+      IF ( AS /= 0 ) CALL ALLOC_ERR( 'PARDR' )
+      PARDR = 0d0
+
+      ALLOCATE( PBL( IIPAR, JJPAR ), STAT=AS )
+      IF ( AS /= 0 ) CALL ALLOC_ERR( 'PBL' )
+      PBL = 0d0
+
+      ALLOCATE( PHIS( IIPAR, JJPAR ), STAT=AS )  
+      IF ( AS /= 0 ) CALL ALLOC_ERR( 'PHIS' )
+      PHIS = 0d0
+
+      ALLOCATE( PREACC( IIPAR, JJPAR ), STAT=AS )
+      IF ( AS /= 0 ) CALL ALLOC_ERR( 'PREACC' )
+      PREACC = 0d0
+
+      ALLOCATE( PRECON( IIPAR, JJPAR ), STAT=AS )
+      IF ( AS /= 0 ) CALL ALLOC_ERR( 'PRECON' )
+      PRECON = 0d0
+
+      ALLOCATE( RADLWG( IIPAR, JJPAR ), STAT=AS )
+      IF ( AS /= 0 ) CALL ALLOC_ERR( 'RADLWG' )
+      RADLWG = 0d0
+
+      ALLOCATE( RADSWG( IIPAR, JJPAR ), STAT=AS )
+      IF ( AS /= 0 ) CALL ALLOC_ERR( 'RADSWG' )
+      RADSWG = 0d0
+
       ALLOCATE( SNOMAS( IIPAR, JJPAR ), STAT=AS )
       IF ( AS /= 0 ) CALL ALLOC_ERR( 'SNOMAS' )
       SNOMAS = 0d0
 
-      ! GEOS-5 snow depth (geometric)
       ALLOCATE( SNODP( IIPAR, JJPAR ), STAT=AS )
       IF ( AS /= 0 ) CALL ALLOC_ERR( 'SNODP' )
       SNODP = 0d0
 
-      ! GEOS-5 ice path optical depth
-      ALLOCATE( TAUCLI( IIPAR, JJPAR, LLPAR ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'TAUCLI' )
-      TAUCLI = 0d0
+      ALLOCATE( TROPP( IIPAR, JJPAR ), STAT=AS ) 
+      IF ( AS /= 0 ) CALL ALLOC_ERR( 'TROPP' )
+      TROPP = 0d0
 
-      ! GEOS-5 water path optical depth
-      ALLOCATE( TAUCLW( IIPAR, JJPAR, LLPAR ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'TAUCLW' )
-      TAUCLW = 0d0
+      ALLOCATE( TS( IIPAR, JJPAR ), STAT=AS )
+      IF ( AS /= 0 ) CALL ALLOC_ERR( 'TS' )
+      TS = 0d0
 
-      ! GEOS-5 total column ozone at beginning of 6hr timestep
-      ALLOCATE( TO31( IIPAR, JJPAR ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'TO31' )
-      TO31 = 0d0
+      ALLOCATE( TSKIN( IIPAR, JJPAR ), STAT=AS )
+      IF ( AS /= 0 ) CALL ALLOC_ERR( 'TSKIN' )
+      TSKIN = 0d0
 
-      ! GEOS-5 total column ozone at end of 6hr timestep
-      ALLOCATE( TO32( IIPAR, JJPAR ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'TO32' )
-      TO32 = 0d0
+      ALLOCATE( U10M( IIPAR, JJPAR ), STAT=AS )
+      IF ( AS /= 0 ) CALL ALLOC_ERR( 'U10M' )
+      U10M = 0d0
 
-      ! GEOS-5 total column ozone
-      ALLOCATE( TO3( IIPAR, JJPAR ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'TO3' )
-      TO3 = 0d0
+      ALLOCATE( USTAR( IIPAR, JJPAR ), STAT=AS )
+      IF ( AS /= 0 ) CALL ALLOC_ERR( 'USTAR' )
+      USTAR = 0d0
 
-      ! GEOS-5 total trop column ozone
-      ALLOCATE( TTO3( IIPAR, JJPAR ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'TTO3' )
-      TTO3 = 0d0
+      ALLOCATE( V10M( IIPAR, JJPAR ), STAT=AS )
+      IF ( AS /= 0 ) CALL ALLOC_ERR( 'V10M' )
+      V10M = 0d0
 
-      ! GEOS-5 convective rain production
+      ALLOCATE( Z0( IIPAR, JJPAR ), STAT=AS )
+      IF ( AS /= 0 ) CALL ALLOC_ERR( 'Z0' )
+      Z0 = 0d0
+
+      !=================================================================
+      ! A-6 fields
+      !=================================================================
+
+      ALLOCATE( CLDF( LLPAR, IIPAR, JJPAR ), STAT=AS )
+      IF ( AS /= 0 ) CALL ALLOC_ERR( 'CLDF' )
+      CLDF = 0d0
+
+      ALLOCATE( CLDTOPS( IIPAR, JJPAR ), STAT=AS )
+      IF ( AS /= 0 ) CALL ALLOC_ERR( 'CLDTOPS' )
+      CLDTOPS = 0
+
+      ALLOCATE( CMFMC( IIPAR, JJPAR, LLPAR+1 ), STAT=AS )
+      IF ( AS /= 0 ) CALL ALLOC_ERR( 'CMFMC' )
+      CMFMC = 0d0
+
+      ALLOCATE( DQIDTMST( IIPAR, JJPAR, LLPAR ), STAT=AS )
+      IF ( AS /= 0 ) CALL ALLOC_ERR( 'DQIDTMST' )
+      DQIDTMST = 0d0
+
+      ALLOCATE( DQLDTMST( IIPAR, JJPAR, LLPAR ), STAT=AS )
+      IF ( AS /= 0 ) CALL ALLOC_ERR( 'DQLDTMST' )
+      DQLDTMST = 0d0
+
+      ALLOCATE( DQVDTMST( IIPAR, JJPAR, LLPAR ), STAT=AS )
+      IF ( AS /= 0 ) CALL ALLOC_ERR( 'DQVDTMST' )
+      DQVDTMST = 0d0
+
       ALLOCATE( DQRCON( IIPAR, JJPAR, LLPAR ), STAT=AS )
       IF ( AS /= 0 ) CALL ALLOC_ERR( 'DQRCON' )
       DQRCON = 0d0
 
-      ! GEOS-5 convective rain production
       ALLOCATE( DQRLSC( IIPAR, JJPAR, LLPAR ), STAT=AS )
       IF ( AS /= 0 ) CALL ALLOC_ERR( 'DQRLSC' )
       DQRLSC = 0d0
 
+      ALLOCATE( DTRAIN( IIPAR, JJPAR, LLPAR ), STAT=AS )
+      IF ( AS /= 0 ) CALL ALLOC_ERR( 'DTRAIN' )
+      DTRAIN = 0d0
+
+      ALLOCATE( MOISTQ( LLPAR, IIPAR, JJPAR ), STAT=AS ) 
+      IF ( AS /= 0 ) CALL ALLOC_ERR( 'MOISTQ' )
+      MOISTQ = 0d0
+
+      ALLOCATE( OPTDEP( LLPAR, IIPAR, JJPAR ), STAT=AS )
+      IF ( AS /= 0 ) CALL ALLOC_ERR( 'OPTDEP' )
+      OPTDEP = 0d0
+
+      ALLOCATE( OPTD( LLPAR, IIPAR, JJPAR ), STAT=AS )
+      IF ( AS /= 0 ) CALL ALLOC_ERR( 'OPTD' )
+      OPTD = 0d0
+
+      ALLOCATE( PV( IIPAR, JJPAR, LLPAR ), STAT=AS )
+      IF ( AS /= 0 ) CALL ALLOC_ERR( 'PV' )
+      PV = 0d0
+
+      ALLOCATE( QI( IIPAR, JJPAR, LLPAR ), STAT=AS )
+      IF ( AS /= 0 ) CALL ALLOC_ERR( 'QI' )
+      QI = 0d0
+
+      ALLOCATE( QL( IIPAR, JJPAR, LLPAR ), STAT=AS )
+      IF ( AS /= 0 ) CALL ALLOC_ERR( 'QL' )
+      QL = 0d0
+
+      ALLOCATE( RH( IIPAR, JJPAR, LLPAR ), STAT=AS )
+      IF ( AS /= 0 ) CALL ALLOC_ERR( 'RH' )
+      RH = 0d0
+
+      ALLOCATE( SPHU( IIPAR, JJPAR, LLPAR ), STAT=AS )
+      IF ( AS /= 0 ) CALL ALLOC_ERR( 'SPHU' )
+      SPHU = 0d0
+
+      ALLOCATE( T( IIPAR, JJPAR, LLPAR ), STAT=AS )
+      IF ( AS /= 0 ) CALL ALLOC_ERR( 'T' )
+      T = 0d0
+
+      ALLOCATE( TAUCLI( IIPAR, JJPAR, LLPAR ), STAT=AS )
+      IF ( AS /= 0 ) CALL ALLOC_ERR( 'TAUCLI' )
+      TAUCLI = 0d0
+
+      ALLOCATE( TAUCLW( IIPAR, JJPAR, LLPAR ), STAT=AS )
+      IF ( AS /= 0 ) CALL ALLOC_ERR( 'TAUCLW' )
+      TAUCLW = 0d0
+
+      ALLOCATE( UWND( IIPAR, JJPAR, LLPAR), STAT=AS ) 
+      IF ( AS /= 0 ) CALL ALLOC_ERR( 'UWND' )
+      UWND = 0d0
+
+      ALLOCATE( VWND( IIPAR, JJPAR, LLPAR ), STAT=AS ) 
+      IF ( AS /= 0 ) CALL ALLOC_ERR( 'VWND' )
+      VWND = 0d0
+
+      !=================================================================
+      ! I-6 fields
+      !=================================================================
+
+      ALLOCATE( LWI( IIPAR, JJPAR ), STAT=AS )
+      IF ( AS /= 0 ) CALL ALLOC_ERR( 'LWI' )
+      LWI = 0
+
+      ALLOCATE( PS1( IIPAR, JJPAR ), STAT=AS )  
+      IF ( AS /= 0 ) CALL ALLOC_ERR( 'PS1' )
+      PS1 = 0d0
+
+      ALLOCATE( PS2( IIPAR, JJPAR ), STAT=AS )
+      IF ( AS /= 0 ) CALL ALLOC_ERR( 'PS2' )
+      PS2 = 0d0
+
+      ALLOCATE( PSC2( IIPAR, JJPAR ), STAT=AS ) 
+      IF ( AS /= 0 ) CALL ALLOC_ERR( 'PSC2' )
+      PSC2 = 0d0
+
+      ALLOCATE( SLP( IIPAR, JJPAR ), STAT=AS ) 
+      IF ( AS /= 0 ) CALL ALLOC_ERR( 'SLP' )
+      SLP = 0d0    
+
+      ALLOCATE( TO31( IIPAR, JJPAR ), STAT=AS )
+      IF ( AS /= 0 ) CALL ALLOC_ERR( 'TO31' )
+      TO31 = 0d0
+
+      ALLOCATE( TO32( IIPAR, JJPAR ), STAT=AS )
+      IF ( AS /= 0 ) CALL ALLOC_ERR( 'TO32' )
+      TO32 = 0d0
+
+      ALLOCATE( TO3( IIPAR, JJPAR ), STAT=AS )
+      IF ( AS /= 0 ) CALL ALLOC_ERR( 'TO3' )
+      TO3 = 0d0
+
+      ALLOCATE( TTO3( IIPAR, JJPAR ), STAT=AS )
+      IF ( AS /= 0 ) CALL ALLOC_ERR( 'TTO3' )
+      TTO3 = 0d0
+  
 #if   defined( APM )
 
       !-----------------------------------------------------------------
@@ -4288,6 +4411,1085 @@
       TAUCLW0b = 0d0
 
 #endif
+
+      END SUBROUTINE INIT_DAO_GEOS5
+!EOC
+!------------------------------------------------------------------------------
+!          Harvard University Atmospheric Chemistry Modeling Group            !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: init_dao_geos57
+!
+! !DESCRIPTION: Subroutine INIT\_DAO\_GEOS57 allocates memory for all 
+!  allocatable module arrays required when using the GEOS-5.7.x met fields.
+!\\
+!\\
+! !INTERFACE:
+!
+      SUBROUTINE INIT_DAO_GEOS57
+!
+! !USES:
+!
+      USE ERROR_MOD, ONLY : ALLOC_ERR
+!
+! !REVISION HISTORY:
+!  06 Feb 2012 - R. Yantosca - Split off GEOS-5.7.x init from routine INIT_DAO
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+!
+! !LOCAL VARIABLES:
+!
+      INTEGER :: AS
+
+      !=================================================================
+      ! A1 fields
+      !=================================================================
+
+      ALLOCATE( ALBD( IIPAR, JJPAR ), STAT=AS )
+      IF ( AS /= 0 ) CALL ALLOC_ERR( 'ALBD' )
+      ALBD = 0d0
+
+      ALLOCATE( CLDFRC( IIPAR, JJPAR ), STAT=AS )
+      IF ( AS /= 0 ) CALL ALLOC_ERR( 'CLDFRC' )
+      CLDFRC = 0d0
+
+      ALLOCATE( EFLUX( IIPAR, JJPAR ), STAT=AS )
+      IF ( AS /= 0 ) CALL ALLOC_ERR( 'EFLUX' )
+      EFLUX = 0d0
+
+      ALLOCATE( EVAP( IIPAR, JJPAR ), STAT=AS )
+      IF ( AS /= 0 ) CALL ALLOC_ERR( 'EVAP' )
+      EVAP = 0d0
+
+      ALLOCATE( FRSEAICE( IIPAR, JJPAR ), STAT=AS )
+      IF ( AS /= 0 ) CALL ALLOC_ERR( 'FRSEAICE' )
+      FRSEAICE = 0d0
+
+      ALLOCATE( FRSNO( IIPAR, JJPAR ), STAT=AS )
+      IF ( AS /= 0 ) CALL ALLOC_ERR( 'FRSNO' )
+      FRSNO = 0d0
+
+      ALLOCATE( GRN( IIPAR, JJPAR ), STAT=AS )
+      IF ( AS /= 0 ) CALL ALLOC_ERR( 'GRN' )
+      GRN = 0d0
+
+      ALLOCATE( GWETROOT( IIPAR, JJPAR ), STAT=AS )
+      IF ( AS /= 0 ) CALL ALLOC_ERR( 'GWETROOT' )
+      GWETROOT = 0d0
+
+      ALLOCATE( GWETTOP( IIPAR, JJPAR ), STAT=AS )
+      IF ( AS /= 0 ) CALL ALLOC_ERR( 'GWETTOP' )
+      GWETTOP = 0d0
+
+      ALLOCATE( HFLUX( IIPAR, JJPAR ), STAT=AS )
+      IF ( AS /= 0 ) CALL ALLOC_ERR( 'HFLUX' )
+      HFLUX = 0d0
+
+      ALLOCATE( LAI( IIPAR, JJPAR ), STAT=AS )
+      IF ( AS /= 0 ) CALL ALLOC_ERR( 'LAI' )
+      LAI = 0d0
+
+      ALLOCATE( LWI( IIPAR, JJPAR ), STAT=AS )
+      IF ( AS /= 0 ) CALL ALLOC_ERR( 'LWI' )
+      LWI = 0
+
+      ALLOCATE( PARDF( IIPAR, JJPAR ), STAT=AS )
+      IF ( AS /= 0 ) CALL ALLOC_ERR( 'PARDF' )
+      PARDF = 0d0
+
+      ALLOCATE( PARDR( IIPAR, JJPAR ), STAT=AS )
+      IF ( AS /= 0 ) CALL ALLOC_ERR( 'PARDR' )
+      PARDR = 0d0
+ 
+      ALLOCATE( PBL( IIPAR, JJPAR ), STAT=AS )
+      IF ( AS /= 0 ) CALL ALLOC_ERR( 'PBL' )
+      PBL = 0d0
+
+      ALLOCATE( PREACC( IIPAR, JJPAR ), STAT=AS )
+      IF ( AS /= 0 ) CALL ALLOC_ERR( 'PREACC' )
+      PREACC = 0d0
+
+      ALLOCATE( PREANV( IIPAR, JJPAR ), STAT=AS )
+      IF ( AS /= 0 ) CALL ALLOC_ERR( 'PREANV' )
+      PREANV = 0d0
+
+      ALLOCATE( PRECON( IIPAR, JJPAR ), STAT=AS )
+      IF ( AS /= 0 ) CALL ALLOC_ERR( 'PRECON' )
+      PRECON = 0d0
+  
+      ALLOCATE( PRELSC( IIPAR, JJPAR ), STAT=AS )
+      IF ( AS /= 0 ) CALL ALLOC_ERR( 'PRELSC' )
+      PRELSC = 0d0
+
+      ALLOCATE( PRECSNO( IIPAR, JJPAR ), STAT=AS )
+      IF ( AS /= 0 ) CALL ALLOC_ERR( 'PRECSNO' )
+      PRECSNO = 0d0
+
+      ALLOCATE( RADLWG( IIPAR, JJPAR ), STAT=AS )
+      IF ( AS /= 0 ) CALL ALLOC_ERR( 'RADLWG' )
+      RADLWG = 0d0
+
+      ALLOCATE( RADSWG( IIPAR, JJPAR ), STAT=AS )
+      IF ( AS /= 0 ) CALL ALLOC_ERR( 'RADSWG' )
+      RADSWG = 0d0
+
+      ALLOCATE( SEAICE00( IIPAR, JJPAR ), STAT=AS )
+      IF ( AS /= 0 ) CALL ALLOC_ERR( 'SEAICE00' )
+      SEAICE00 = 0d0
+
+      ALLOCATE( SEAICE10( IIPAR, JJPAR ), STAT=AS )
+      IF ( AS /= 0 ) CALL ALLOC_ERR( 'SEAICE10' )
+      SEAICE10 = 0d0
+
+      ALLOCATE( SEAICE20( IIPAR, JJPAR ), STAT=AS )
+      IF ( AS /= 0 ) CALL ALLOC_ERR( 'SEAICE20' )
+      SEAICE20 = 0d0
+
+      ALLOCATE( SEAICE30( IIPAR, JJPAR ), STAT=AS )
+      IF ( AS /= 0 ) CALL ALLOC_ERR( 'SEAICE30' )
+      SEAICE30 = 0d0
+
+      ALLOCATE( SEAICE40( IIPAR, JJPAR ), STAT=AS )
+      IF ( AS /= 0 ) CALL ALLOC_ERR( 'SEAICE40' )
+      SEAICE40 = 0d0
+
+      ALLOCATE( SEAICE50( IIPAR, JJPAR ), STAT=AS )
+      IF ( AS /= 0 ) CALL ALLOC_ERR( 'SEAICE50' )
+      SEAICE50 = 0d0
+
+      ALLOCATE( SEAICE60( IIPAR, JJPAR ), STAT=AS )
+      IF ( AS /= 0 ) CALL ALLOC_ERR( 'SEAICE60' )
+      SEAICE60 = 0d0
+
+      ALLOCATE( SEAICE70( IIPAR, JJPAR ), STAT=AS )
+      IF ( AS /= 0 ) CALL ALLOC_ERR( 'SEAICE70' )
+      SEAICE70 = 0d0
+
+      ALLOCATE( SEAICE80( IIPAR, JJPAR ), STAT=AS )
+      IF ( AS /= 0 ) CALL ALLOC_ERR( 'SEAICE80' )
+      SEAICE80 = 0d0
+
+      ALLOCATE( SEAICE90( IIPAR, JJPAR ), STAT=AS )
+      IF ( AS /= 0 ) CALL ALLOC_ERR( 'SEAICE90' )
+      SEAICE90 = 0d0
+
+      ALLOCATE( SLP( IIPAR, JJPAR ), STAT=AS ) 
+      IF ( AS /= 0 ) CALL ALLOC_ERR( 'SLP' )
+      SLP = 0d0     
+
+      ALLOCATE( SNODP( IIPAR, JJPAR ), STAT=AS )
+      IF ( AS /= 0 ) CALL ALLOC_ERR( 'SNODP' )
+      SNODP = 0d0
+
+      ALLOCATE( SNOMAS( IIPAR, JJPAR ), STAT=AS )
+      IF ( AS /= 0 ) CALL ALLOC_ERR( 'SNOMAS' )
+      SNOMAS = 0d0
+
+      ALLOCATE( TROPP( IIPAR, JJPAR ), STAT=AS ) 
+      IF ( AS /= 0 ) CALL ALLOC_ERR( 'TROPP' )
+      TROPP = 0d0
+
+      ALLOCATE( TS( IIPAR, JJPAR ), STAT=AS )
+      IF ( AS /= 0 ) CALL ALLOC_ERR( 'TS' )
+      TS = 0d0
+
+      ALLOCATE( TSKIN( IIPAR, JJPAR ), STAT=AS )
+      IF ( AS /= 0 ) CALL ALLOC_ERR( 'TSKIN' )
+      TSKIN = 0d0
+
+      ALLOCATE( U10M( IIPAR, JJPAR ), STAT=AS )
+      IF ( AS /= 0 ) CALL ALLOC_ERR( 'U10M' )
+      U10M = 0d0
+
+      ALLOCATE( USTAR( IIPAR, JJPAR ), STAT=AS )
+      IF ( AS /= 0 ) CALL ALLOC_ERR( 'USTAR' )
+      USTAR = 0d0
+
+      ALLOCATE( V10M( IIPAR, JJPAR ), STAT=AS )
+      IF ( AS /= 0 ) CALL ALLOC_ERR( 'V10M' )
+      V10M = 0d0
+
+      ALLOCATE( Z0( IIPAR, JJPAR ), STAT=AS )
+      IF ( AS /= 0 ) CALL ALLOC_ERR( 'Z0' )
+      Z0 = 0d0
+
+      !=================================================================
+      ! A3cld fields
+      !=================================================================
+
+      ALLOCATE( CLDF( LLPAR, IIPAR, JJPAR ), STAT=AS )
+      IF ( AS /= 0 ) CALL ALLOC_ERR( 'CLDF' )
+      CLDF = 0d0
+
+      ALLOCATE( QI( IIPAR, JJPAR, LLPAR ), STAT=AS )
+      IF ( AS /= 0 ) CALL ALLOC_ERR( 'QI' )
+      QI = 0d0
+
+      ALLOCATE( QL( IIPAR, JJPAR, LLPAR ), STAT=AS )
+      IF ( AS /= 0 ) CALL ALLOC_ERR( 'QL' )
+      QL = 0d0
+
+      ALLOCATE( OPTDEP( LLPAR, IIPAR, JJPAR ), STAT=AS )
+      IF ( AS /= 0 ) CALL ALLOC_ERR( 'OPTDEP' )
+      OPTDEP = 0d0
+
+      ALLOCATE( OPTD( LLPAR, IIPAR, JJPAR ), STAT=AS )
+      IF ( AS /= 0 ) CALL ALLOC_ERR( 'OPTD' )
+      OPTD = 0d0
+
+      ALLOCATE( TAUCLI( IIPAR, JJPAR, LLPAR ), STAT=AS )
+      IF ( AS /= 0 ) CALL ALLOC_ERR( 'TAUCLI' )
+      TAUCLI = 0d0
+
+      ALLOCATE( TAUCLW( IIPAR, JJPAR, LLPAR ), STAT=AS )
+      IF ( AS /= 0 ) CALL ALLOC_ERR( 'TAUCLW' )
+      TAUCLW = 0d0
+
+      !=================================================================
+      ! A3dyn fields
+      !=================================================================
+
+      ALLOCATE( CMFMC( IIPAR, JJPAR, LLPAR+1 ), STAT=AS )
+      IF ( AS /= 0 ) CALL ALLOC_ERR( 'CMFMC' )
+      CMFMC = 0d0
+
+      ALLOCATE( DTRAIN( IIPAR, JJPAR, LLPAR ), STAT=AS )
+      IF ( AS /= 0 ) CALL ALLOC_ERR( 'DTRAIN' )
+      DTRAIN = 0d0
+
+      ALLOCATE( RH( IIPAR, JJPAR, LLPAR ), STAT=AS )
+      IF ( AS /= 0 ) CALL ALLOC_ERR( 'RH' )
+      RH = 0d0
+
+      ! U-wind
+      ALLOCATE( UWND( IIPAR, JJPAR, LLPAR ), STAT=AS ) 
+      IF ( AS /= 0 ) CALL ALLOC_ERR( 'UWND' )
+      UWND = 0d0
+
+      ! V-wind
+      ALLOCATE( VWND( IIPAR, JJPAR, LLPAR ), STAT=AS ) 
+      IF ( AS /= 0 ) CALL ALLOC_ERR( 'VWND' )
+      VWND = 0d0
+
+      !=================================================================
+      ! A3mstC fields
+      !=================================================================
+
+      ALLOCATE( DQRCU( IIPAR, JJPAR, LLPAR ), STAT=AS )
+      IF ( AS /= 0 ) CALL ALLOC_ERR( 'DQRCU' )
+      DQRCU = 0d0
+
+      ALLOCATE( DQRLSAN( IIPAR, JJPAR, LLPAR ), STAT=AS )
+      IF ( AS /= 0 ) CALL ALLOC_ERR( 'DQRLSAN' )
+      DQRLSAN = 0d0
+
+      ALLOCATE( REEVAPCN( IIPAR, JJPAR, LLPAR ), STAT=AS )
+      IF ( AS /= 0 ) CALL ALLOC_ERR( 'REEVAPCN' )
+      REEVAPCN = 0d0
+
+      ALLOCATE( REEVAPLS( IIPAR, JJPAR, LLPAR ), STAT=AS )
+      IF ( AS /= 0 ) CALL ALLOC_ERR( 'REEVAPLS' )
+      REEVAPLS = 0d0
+
+      !=================================================================
+      ! A3mstE fields
+      !=================================================================
+
+      ALLOCATE( PFICU( IIPAR, JJPAR, LLPAR+1 ), STAT=AS )
+      IF ( AS /= 0 ) CALL ALLOC_ERR( 'PFICU' )
+      PFICU = 0d0
+
+      ALLOCATE( PFILSAN( IIPAR, JJPAR, LLPAR+1 ), STAT=AS )
+      IF ( AS /= 0 ) CALL ALLOC_ERR( 'PFILSAN' )
+      PFILSAN = 0d0
+
+      ALLOCATE( PFLCU( IIPAR, JJPAR, LLPAR+1 ), STAT=AS )
+      IF ( AS /= 0 ) CALL ALLOC_ERR( 'PFLCU' )
+      PFLCU = 0d0
+
+      ALLOCATE( PFLLSAN( IIPAR, JJPAR, LLPAR+1 ), STAT=AS )
+      IF ( AS /= 0 ) CALL ALLOC_ERR( 'PFLLSAN' )
+      PFLLSAN = 0d0
+
+      !=================================================================
+      ! Constant fields
+      !=================================================================
+
+      ALLOCATE( FRLAKE( IIPAR, JJPAR ), STAT=AS )
+      IF ( AS /= 0 ) CALL ALLOC_ERR( 'FRLAKE' )
+      FRLAKE = 0d0
+
+      ALLOCATE( FRLAND( IIPAR, JJPAR ), STAT=AS )
+      IF ( AS /= 0 ) CALL ALLOC_ERR( 'FRLAND' )
+      FRLAND = 0d0
+
+      ALLOCATE( FROCEAN( IIPAR, JJPAR ), STAT=AS )
+      IF ( AS /= 0 ) CALL ALLOC_ERR( 'FROCEAN' )
+      FROCEAN = 0d0
+
+      ALLOCATE( FRLANDIC( IIPAR, JJPAR ), STAT=AS )
+      IF ( AS /= 0 ) CALL ALLOC_ERR( 'FRLANDIC' )
+      FRLANDIC = 0d0
+
+      ALLOCATE( PHIS( IIPAR, JJPAR ), STAT=AS )  
+      IF ( AS /= 0 ) CALL ALLOC_ERR( 'PHIS' )
+      PHIS = 0d0
+
+      !=================================================================
+      ! I3 fields / interpolated fields
+      !=================================================================
+
+      ! Pressure at beginning of 6hr timestep
+      ALLOCATE( PS1( IIPAR, JJPAR ), STAT=AS )  
+      IF ( AS /= 0 ) CALL ALLOC_ERR( 'PS1' )
+      PS1 = 0d0
+
+      ! Pressure at end of 6hr timestep
+      ALLOCATE( PS2( IIPAR, JJPAR ), STAT=AS )
+      IF ( AS /= 0 ) CALL ALLOC_ERR( 'PS2' )
+      PS2 = 0d0
+
+      ! Pressure at end of dynamic timestep
+      ALLOCATE( PSC2( IIPAR, JJPAR ), STAT=AS ) 
+      IF ( AS /= 0 ) CALL ALLOC_ERR( 'PSC2' )
+      PSC2 = 0d0
+
+      ALLOCATE( PV( IIPAR, JJPAR, LLPAR ), STAT=AS )
+      IF ( AS /= 0 ) CALL ALLOC_ERR( 'PV' )
+      PV = 0d0
+
+      ALLOCATE( SPHU( IIPAR, JJPAR, LLPAR ), STAT=AS )
+      IF ( AS /= 0 ) CALL ALLOC_ERR( 'SPHU' )
+      SPHU = 0d0
+
+      ALLOCATE( SPHU1( IIPAR, JJPAR, LLPAR ), STAT=AS )
+      IF ( AS /= 0 ) CALL ALLOC_ERR( 'SPHU1' )
+      SPHU1 = 0d0
+
+      ALLOCATE( SPHU2( IIPAR, JJPAR, LLPAR ), STAT=AS )
+      IF ( AS /= 0 ) CALL ALLOC_ERR( 'SPHU2' )
+      SPHU2 = 0d0
+
+      ALLOCATE( T( IIPAR, JJPAR, LLPAR ), STAT=AS )
+      IF ( AS /= 0 ) CALL ALLOC_ERR( 'T' )
+      T = 0d0
+
+      ALLOCATE( TMPU1( IIPAR, JJPAR, LLPAR ), STAT=AS )
+      IF ( AS /= 0 ) CALL ALLOC_ERR( 'TMPU1' )
+      TMPU1 = 0d0
+
+      ALLOCATE( TMPU2( IIPAR, JJPAR, LLPAR ), STAT=AS )
+      IF ( AS /= 0 ) CALL ALLOC_ERR( 'TMPU2' )
+      TMPU2 = 0d0
+
+      END SUBROUTINE INIT_DAO_GEOS57
+!EOC
+!------------------------------------------------------------------------------
+!          Harvard University Atmospheric Chemistry Modeling Group            !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: init_dao_merra
+!
+! !DESCRIPTION: Subroutine INIT\_DAO allocates memory for all allocatable
+!  module arrays required when using the MERRA met fields.
+!\\
+!\\
+! !INTERFACE:
+!
+      SUBROUTINE INIT_DAO_MERRA
+!
+! !USES:
+!
+      USE ERROR_MOD, ONLY : ALLOC_ERR
+!
+! !REVISION HISTORY:
+!  06 Feb 2012 - R. Yantosca - Split off MERRA init from routine INIT_DAO
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+!
+! !LOCAL VARIABLES:
+!
+      INTEGER :: AS
+
+      !=================================================================
+      ! A1 fields
+      !=================================================================
+
+      ALLOCATE( CLDFRC( IIPAR, JJPAR ), STAT=AS )
+      IF ( AS /= 0 ) CALL ALLOC_ERR( 'CLDFRC' )
+      CLDFRC = 0d0
+
+      ALLOCATE( EFLUX( IIPAR, JJPAR ), STAT=AS )
+      IF ( AS /= 0 ) CALL ALLOC_ERR( 'EFLUX' )
+      EFLUX = 0d0
+
+      ALLOCATE( EVAP( IIPAR, JJPAR ), STAT=AS )
+      IF ( AS /= 0 ) CALL ALLOC_ERR( 'EVAP' )
+      EVAP = 0d0
+
+      ALLOCATE( FRSEAICE( IIPAR, JJPAR ), STAT=AS )
+      IF ( AS /= 0 ) CALL ALLOC_ERR( 'FRSEAICE' )
+      FRSEAICE = 0d0
+
+      ALLOCATE( FRSNO( IIPAR, JJPAR ), STAT=AS )
+      IF ( AS /= 0 ) CALL ALLOC_ERR( 'FRSNO' )
+      FRSNO = 0d0
+
+      ALLOCATE( GRN( IIPAR, JJPAR ), STAT=AS )
+      IF ( AS /= 0 ) CALL ALLOC_ERR( 'GRN' )
+      GRN = 0d0
+
+      ALLOCATE( GWETROOT( IIPAR, JJPAR ), STAT=AS )
+      IF ( AS /= 0 ) CALL ALLOC_ERR( 'GWETROOT' )
+      GWETROOT = 0d0
+
+      ALLOCATE( GWETTOP( IIPAR, JJPAR ), STAT=AS )
+      IF ( AS /= 0 ) CALL ALLOC_ERR( 'GWETTOP' )
+      GWETTOP = 0d0
+
+      ALLOCATE( HFLUX( IIPAR, JJPAR ), STAT=AS )
+      IF ( AS /= 0 ) CALL ALLOC_ERR( 'HFLUX' )
+      HFLUX = 0d0
+
+      ALLOCATE( LAI( IIPAR, JJPAR ), STAT=AS )
+      IF ( AS /= 0 ) CALL ALLOC_ERR( 'LAI' )
+      LAI = 0d0
+
+      ALLOCATE( LWI( IIPAR, JJPAR ), STAT=AS )
+      IF ( AS /= 0 ) CALL ALLOC_ERR( 'LWI' )
+      LWI = 0
+
+      ALLOCATE( PRECSNO( IIPAR, JJPAR ), STAT=AS )
+      IF ( AS /= 0 ) CALL ALLOC_ERR( 'PRECSNO' )
+      PRECSNO = 0d0
+
+      ALLOCATE( PARDF( IIPAR, JJPAR ), STAT=AS )
+      IF ( AS /= 0 ) CALL ALLOC_ERR( 'PARDF' )
+      PARDF = 0d0
+
+      ALLOCATE( PARDR( IIPAR, JJPAR ), STAT=AS )
+      IF ( AS /= 0 ) CALL ALLOC_ERR( 'PARDR' )
+      PARDR = 0d0
+
+      ALLOCATE( PBL( IIPAR, JJPAR ), STAT=AS )
+      IF ( AS /= 0 ) CALL ALLOC_ERR( 'PBL' )
+      PBL = 0d0
+
+      ALLOCATE( PREACC( IIPAR, JJPAR ), STAT=AS )
+      IF ( AS /= 0 ) CALL ALLOC_ERR( 'PREACC' )
+      PREACC = 0d0
+
+      ALLOCATE( PREANV( IIPAR, JJPAR ), STAT=AS )
+      IF ( AS /= 0 ) CALL ALLOC_ERR( 'PREANV' )
+      PREANV = 0d0
+
+      ALLOCATE( PRECON( IIPAR, JJPAR ), STAT=AS )
+      IF ( AS /= 0 ) CALL ALLOC_ERR( 'PRECON' )
+      PRECON = 0d0
+
+      ALLOCATE( PRELSC( IIPAR, JJPAR ), STAT=AS )
+      IF ( AS /= 0 ) CALL ALLOC_ERR( 'PRELSC' )
+      PRELSC = 0d0
+
+      ALLOCATE( SEAICE00( IIPAR, JJPAR ), STAT=AS )
+      IF ( AS /= 0 ) CALL ALLOC_ERR( 'SEAICE00' )
+      SEAICE00 = 0d0
+
+      ALLOCATE( SEAICE10( IIPAR, JJPAR ), STAT=AS )
+      IF ( AS /= 0 ) CALL ALLOC_ERR( 'SEAICE10' )
+      SEAICE10 = 0d0
+
+      ALLOCATE( SEAICE20( IIPAR, JJPAR ), STAT=AS )
+      IF ( AS /= 0 ) CALL ALLOC_ERR( 'SEAICE20' )
+      SEAICE20 = 0d0
+
+      ALLOCATE( SEAICE30( IIPAR, JJPAR ), STAT=AS )
+      IF ( AS /= 0 ) CALL ALLOC_ERR( 'SEAICE30' )
+      SEAICE30 = 0d0
+
+      ALLOCATE( SEAICE40( IIPAR, JJPAR ), STAT=AS )
+      IF ( AS /= 0 ) CALL ALLOC_ERR( 'SEAICE40' )
+      SEAICE40 = 0d0
+
+      ALLOCATE( SEAICE50( IIPAR, JJPAR ), STAT=AS )
+      IF ( AS /= 0 ) CALL ALLOC_ERR( 'SEAICE50' )
+      SEAICE50 = 0d0
+
+      ALLOCATE( SEAICE60( IIPAR, JJPAR ), STAT=AS )
+      IF ( AS /= 0 ) CALL ALLOC_ERR( 'SEAICE60' )
+      SEAICE60 = 0d0
+
+      ALLOCATE( SEAICE70( IIPAR, JJPAR ), STAT=AS )
+      IF ( AS /= 0 ) CALL ALLOC_ERR( 'SEAICE70' )
+      SEAICE70 = 0d0
+
+      ALLOCATE( SEAICE80( IIPAR, JJPAR ), STAT=AS )
+      IF ( AS /= 0 ) CALL ALLOC_ERR( 'SEAICE80' )
+      SEAICE80 = 0d0
+
+      ALLOCATE( SEAICE90( IIPAR, JJPAR ), STAT=AS )
+      IF ( AS /= 0 ) CALL ALLOC_ERR( 'SEAICE90' )
+      SEAICE90 = 0d0
+
+      ALLOCATE( RADLWG( IIPAR, JJPAR ), STAT=AS )
+      IF ( AS /= 0 ) CALL ALLOC_ERR( 'RADLWG' )
+      RADLWG = 0d0
+
+      ALLOCATE( RADSWG( IIPAR, JJPAR ), STAT=AS )
+      IF ( AS /= 0 ) CALL ALLOC_ERR( 'RADSWG' )
+      RADSWG = 0d0
+
+      ALLOCATE( SLP( IIPAR, JJPAR ), STAT=AS ) 
+      IF ( AS /= 0 ) CALL ALLOC_ERR( 'SLP' )
+      SLP = 0d0    
+
+      ALLOCATE( SNODP( IIPAR, JJPAR ), STAT=AS )
+      IF ( AS /= 0 ) CALL ALLOC_ERR( 'SNODP' )
+      SNODP = 0d0
+
+      ALLOCATE( SNOMAS( IIPAR, JJPAR ), STAT=AS )
+      IF ( AS /= 0 ) CALL ALLOC_ERR( 'SNOMAS' )
+      SNOMAS = 0d0
+
+      ALLOCATE( TROPP( IIPAR, JJPAR ), STAT=AS ) 
+      IF ( AS /= 0 ) CALL ALLOC_ERR( 'TROPP' )
+      TROPP = 0d0
+
+      ALLOCATE( TS( IIPAR, JJPAR ), STAT=AS )
+      IF ( AS /= 0 ) CALL ALLOC_ERR( 'TS' )
+      TS = 0d0
+
+      ALLOCATE( TSKIN( IIPAR, JJPAR ), STAT=AS )
+      IF ( AS /= 0 ) CALL ALLOC_ERR( 'TSKIN' )
+      TSKIN = 0d0
+
+      ALLOCATE( U10M( IIPAR, JJPAR ), STAT=AS )
+      IF ( AS /= 0 ) CALL ALLOC_ERR( 'U10M' )
+      U10M = 0d0
+
+      ALLOCATE( USTAR( IIPAR, JJPAR ), STAT=AS )
+      IF ( AS /= 0 ) CALL ALLOC_ERR( 'USTAR' )
+      USTAR = 0d0
+ 
+      ALLOCATE( V10M( IIPAR, JJPAR ), STAT=AS )
+      IF ( AS /= 0 ) CALL ALLOC_ERR( 'V10M' )
+      V10M = 0d0
+
+      ALLOCATE( Z0( IIPAR, JJPAR ), STAT=AS )
+      IF ( AS /= 0 ) CALL ALLOC_ERR( 'Z0' )
+      Z0 = 0d0
+
+      !=================================================================
+      ! A3 fields
+      !=================================================================
+
+      ALLOCATE( CLDF( LLPAR, IIPAR, JJPAR ), STAT=AS )
+      IF ( AS /= 0 ) CALL ALLOC_ERR( 'CLDF' )
+      CLDF = 0d0
+
+      ALLOCATE( CMFMC( IIPAR, JJPAR, LLPAR+1 ), STAT=AS )
+      IF ( AS /= 0 ) CALL ALLOC_ERR( 'CMFMC' )
+      CMFMC = 0d0
+
+      ALLOCATE( DQIDTMST( IIPAR, JJPAR, LLPAR ), STAT=AS )
+      IF ( AS /= 0 ) CALL ALLOC_ERR( 'DQIDTMST' )
+      DQIDTMST = 0d0
+
+      ALLOCATE( DQLDTMST( IIPAR, JJPAR, LLPAR ), STAT=AS )
+      IF ( AS /= 0 ) CALL ALLOC_ERR( 'DQLDTMST' )
+      DQLDTMST = 0d0
+
+      ALLOCATE( DQRCU( IIPAR, JJPAR, LLPAR ), STAT=AS )
+      IF ( AS /= 0 ) CALL ALLOC_ERR( 'DQRCU' )
+      DQRCU = 0d0
+
+      ALLOCATE( DQRLSAN( IIPAR, JJPAR, LLPAR ), STAT=AS )
+      IF ( AS /= 0 ) CALL ALLOC_ERR( 'DQRLSAN' )
+      DQRLSAN = 0d0
+
+      ALLOCATE( DQVDTMST( IIPAR, JJPAR, LLPAR ), STAT=AS )
+      IF ( AS /= 0 ) CALL ALLOC_ERR( 'DQVDTMST' )
+      DQVDTMST = 0d0
+
+      ALLOCATE( DTRAIN( IIPAR, JJPAR, LLPAR ), STAT=AS )
+      IF ( AS /= 0 ) CALL ALLOC_ERR( 'DTRAIN' )
+      DTRAIN = 0d0
+
+      ALLOCATE( MOISTQ( LLPAR, IIPAR, JJPAR ), STAT=AS ) 
+      IF ( AS /= 0 ) CALL ALLOC_ERR( 'MOISTQ' )
+      MOISTQ = 0d0
+
+      ALLOCATE( OPTDEP( LLPAR, IIPAR, JJPAR ), STAT=AS )
+      IF ( AS /= 0 ) CALL ALLOC_ERR( 'OPTDEP' )
+      OPTDEP = 0d0
+
+      ALLOCATE( OPTD( LLPAR, IIPAR, JJPAR ), STAT=AS )
+      IF ( AS /= 0 ) CALL ALLOC_ERR( 'OPTD' )
+      OPTD = 0d0
+
+      ALLOCATE( PFICU( IIPAR, JJPAR, LLPAR ), STAT=AS )
+      IF ( AS /= 0 ) CALL ALLOC_ERR( 'PFICU' )
+      PFICU = 0d0
+
+      ALLOCATE( PFILSAN( IIPAR, JJPAR, LLPAR ), STAT=AS )
+      IF ( AS /= 0 ) CALL ALLOC_ERR( 'PFILSAN' )
+      PFILSAN = 0d0
+
+      ALLOCATE( PFLCU( IIPAR, JJPAR, LLPAR ), STAT=AS )
+      IF ( AS /= 0 ) CALL ALLOC_ERR( 'PFLCU' )
+      PFLCU = 0d0
+
+      ALLOCATE( PFLLSAN( IIPAR, JJPAR, LLPAR ), STAT=AS )
+      IF ( AS /= 0 ) CALL ALLOC_ERR( 'PFLLSAN' )
+      PFLLSAN = 0d0
+
+      ALLOCATE( QI( IIPAR, JJPAR, LLPAR ), STAT=AS )
+      IF ( AS /= 0 ) CALL ALLOC_ERR( 'QI' )
+      QI = 0d0
+
+      ALLOCATE( QL( IIPAR, JJPAR, LLPAR ), STAT=AS )
+      IF ( AS /= 0 ) CALL ALLOC_ERR( 'QL' )
+      QL = 0d0
+
+      ALLOCATE( REEVAPCN( IIPAR, JJPAR, LLPAR ), STAT=AS )
+      IF ( AS /= 0 ) CALL ALLOC_ERR( 'REEVAPCN' )
+      REEVAPCN = 0d0
+
+      ALLOCATE( REEVAPLS( IIPAR, JJPAR, LLPAR ), STAT=AS )
+      IF ( AS /= 0 ) CALL ALLOC_ERR( 'REEVAPLS' )
+      REEVAPLS = 0d0
+
+      ALLOCATE( SPHU( IIPAR, JJPAR, LLPAR ), STAT=AS )
+      IF ( AS /= 0 ) CALL ALLOC_ERR( 'SPHU' )
+      SPHU = 0d0
+
+      ALLOCATE( T( IIPAR, JJPAR, LLPAR ), STAT=AS )
+      IF ( AS /= 0 ) CALL ALLOC_ERR( 'T' )
+      T = 0d0
+
+      ALLOCATE( TAUCLI( IIPAR, JJPAR, LLPAR ), STAT=AS )
+      IF ( AS /= 0 ) CALL ALLOC_ERR( 'TAUCLI' )
+      TAUCLI = 0d0
+
+      ALLOCATE( TAUCLW( IIPAR, JJPAR, LLPAR ), STAT=AS )
+      IF ( AS /= 0 ) CALL ALLOC_ERR( 'TAUCLW' )
+      TAUCLW = 0d0
+
+      ALLOCATE( UWND( IIPAR, JJPAR, LLPAR), STAT=AS ) 
+      IF ( AS /= 0 ) CALL ALLOC_ERR( 'UWND' )
+      UWND = 0d0
+
+      ALLOCATE( VWND( IIPAR, JJPAR, LLPAR ), STAT=AS ) 
+      IF ( AS /= 0 ) CALL ALLOC_ERR( 'VWND' )
+      VWND = 0d0
+
+      !=================================================================
+      ! Constant fields
+      !=================================================================
+
+      ALLOCATE( FRLAKE( IIPAR, JJPAR ), STAT=AS )
+      IF ( AS /= 0 ) CALL ALLOC_ERR( 'FRLAKE' )
+      FRLAKE = 0d0
+
+      ALLOCATE( FRLAND( IIPAR, JJPAR ), STAT=AS )
+      IF ( AS /= 0 ) CALL ALLOC_ERR( 'FRLAND' )
+      FRLAND = 0d0
+
+      ALLOCATE( FROCEAN( IIPAR, JJPAR ), STAT=AS )
+      IF ( AS /= 0 ) CALL ALLOC_ERR( 'FROCEAN' )
+      FROCEAN = 0d0
+
+      ALLOCATE( FRLANDIC( IIPAR, JJPAR ), STAT=AS )
+      IF ( AS /= 0 ) CALL ALLOC_ERR( 'FRLANDIC' )
+      FRLANDIC = 0d0
+
+      ALLOCATE( PHIS( IIPAR, JJPAR ), STAT=AS )  
+      IF ( AS /= 0 ) CALL ALLOC_ERR( 'PHIS' )
+      PHIS = 0d0
+
+      !=================================================================
+      ! I6 fields / interpolated fields
+      !=================================================================
+
+      ALLOCATE( PS1( IIPAR, JJPAR ), STAT=AS )  
+      IF ( AS /= 0 ) CALL ALLOC_ERR( 'PS1' )
+      PS1 = 0d0
+
+      ALLOCATE( PS2( IIPAR, JJPAR ), STAT=AS )
+      IF ( AS /= 0 ) CALL ALLOC_ERR( 'PS2' )
+      PS2 = 0d0
+
+      ALLOCATE( PSC2( IIPAR, JJPAR ), STAT=AS ) 
+      IF ( AS /= 0 ) CALL ALLOC_ERR( 'PSC2' )
+      PSC2 = 0d0
+
+      ALLOCATE( PV( IIPAR, JJPAR, LLPAR ), STAT=AS )
+      IF ( AS /= 0 ) CALL ALLOC_ERR( 'PV' )
+      PV = 0d0
+
+      ALLOCATE( RH( IIPAR, JJPAR, LLPAR ), STAT=AS )
+      IF ( AS /= 0 ) CALL ALLOC_ERR( 'RH' )
+      RH = 0d0
+
+      ALLOCATE( RH1( IIPAR, JJPAR, LLPAR ), STAT=AS )
+      IF ( AS /= 0 ) CALL ALLOC_ERR( 'RH1' )
+      RH1 = 0d0
+
+      ALLOCATE( RH2( IIPAR, JJPAR, LLPAR ), STAT=AS )
+      IF ( AS /= 0 ) CALL ALLOC_ERR( 'RH2' )
+      RH2 = 0d0
+
+      END SUBROUTINE INIT_DAO_MERRA
+!EOC
+!------------------------------------------------------------------------------
+!          Harvard University Atmospheric Chemistry Modeling Group            !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: init_dao_derived
+!
+! !DESCRIPTION: Subroutine INIT\_DAO\_DERIVED allocates memory for "derived"
+!  fields (i.e. met quantities that are computed from the fields that are
+!  read in from disk.
+!\\
+!\\
+! !INTERFACE:
+!
+      SUBROUTINE INIT_DAO_DERIVED
+!
+! !USES:
+!
+      USE ERROR_MOD,  ONLY : ALLOC_ERR
+      USE TRACER_MOD, ONLY : ITS_AN_AEROSOL_SIM, ITS_A_FULLCHEM_SIM
+!
+! !REVISION HISTORY:
+!  06 Feb 2012 - R. Yantosca - Split off init from routine INIT_DAO
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+!
+! !LOCAL VARIABLES:
+!
+      INTEGER :: AS
+
+      !=================================================================
+      ! Derived fields
+      !=================================================================
+
+      ALLOCATE( AD( IIPAR, JJPAR, LLPAR ), STAT=AS )
+      IF ( AS /= 0 ) CALL ALLOC_ERR( 'AD' )
+      AD = 0d0
+
+      ALLOCATE( AIRDEN( LLPAR, IIPAR, JJPAR ), STAT=AS )
+      IF ( AS /= 0 ) CALL ALLOC_ERR( 'AIRDEN' )
+      AIRDEN = 0d0
+
+      ALLOCATE( AIRDEN_FULLGRID( LGLOB, IIPAR, JJPAR ), STAT=AS ) 
+      IF ( AS /= 0 ) CALL ALLOC_ERR( 'AIRDEN_FULLGRID' )
+      AIRDEN_FULLGRID = 0d0
+
+      ALLOCATE( AIRVOL( IIPAR, JJPAR, LLPAR ), STAT=AS )
+      IF ( AS /= 0 ) CALL ALLOC_ERR( 'AIRVOL' )
+      AIRVOL = 0d0
+      
+      IF ( ITS_A_FULLCHEM_SIM() .or. ITS_AN_AEROSOL_SIM() ) THEN 
+         ALLOCATE( AVGW( IIPAR, JJPAR, LLPAR ), STAT=AS )
+         IF ( AS /= 0 ) CALL ALLOC_ERR( 'AVGW' )
+         AVGW = 0d0
+      ENDIF
+
+      ALLOCATE( BXHEIGHT( IIPAR, JJPAR, LLPAR ), STAT=AS )
+      IF ( AS /= 0 ) CALL ALLOC_ERR( 'BXHEIGHT' )
+      BXHEIGHT = 0d0
+
+      ALLOCATE( CLDTOPS( IIPAR, JJPAR ), STAT=AS )
+      IF ( AS /= 0 ) CALL ALLOC_ERR( 'CLDTOPS' )
+      CLDTOPS = 0
+
+      ALLOCATE( DELP( LLPAR, IIPAR, JJPAR ), STAT=AS )
+      IF ( AS /= 0 ) CALL ALLOC_ERR( 'DELP' )
+      DELP = 0d0
+
+      ALLOCATE( SUNCOS( MAXIJ ), STAT=AS )
+      IF ( AS /= 0 ) CALL ALLOC_ERR( 'SUNCOS' )
+      SUNCOS = 0d0
+
+      ALLOCATE( SUNCOS_MID( MAXIJ ), STAT=AS )
+      IF ( AS /= 0 ) CALL ALLOC_ERR( 'SUNCOS_MID' )
+      SUNCOS_MID = 0d0
+
+      ALLOCATE( T_FULLGRID( IIPAR, JJPAR, LGLOB ), STAT=AS )
+      IF ( AS /= 0 ) CALL ALLOC_ERR( 'T_FULLGRID' )
+      T_FULLGRID = 0d0
+
+#if   defined( APM ) 
+      
+      !-----------------------------------------------------------------
+      ! Common fields for APM microphysics code
+      !-----------------------------------------------------------------
+      
+      ALLOCATE( CLDF0( LLPAR, IIPAR, JJPAR ), STAT=AS )
+      IF ( AS /= 0 ) CALL ALLOC_ERR( 'CLDF0' )
+      CLDF0 = 0.d0
+
+      ALLOCATE( CLDF0a( LLPAR, IIPAR, JJPAR ), STAT=AS )
+      IF ( AS /= 0 ) CALL ALLOC_ERR( 'CLDF0a' )
+      CLDF0a = 0.d0
+
+      ALLOCATE( CLDF0b( LLPAR, IIPAR, JJPAR ), STAT=AS )
+      IF ( AS /= 0 ) CALL ALLOC_ERR( 'CLDF0b' )
+      CLDF0b = 0.d0
+
+
+      ALLOCATE( CLDFRC0( IIPAR, JJPAR ), STAT=AS )
+      IF ( AS /= 0 ) CALL ALLOC_ERR( 'CLDFRC0' )
+      CLDFRC0 = 0.d0
+
+      ALLOCATE( CLDFRC0a( IIPAR, JJPAR ), STAT=AS )
+      IF ( AS /= 0 ) CALL ALLOC_ERR( 'CLDFRC0a' )
+      CLDFRC0a = 0.d0
+
+      ALLOCATE( CLDFRC0b( IIPAR, JJPAR ), STAT=AS )
+      IF ( AS /= 0 ) CALL ALLOC_ERR( 'CLDFRC0b' )
+      CLDFRC0b = 0.d0
+
+
+      ALLOCATE( CLDTOPS0( IIPAR, JJPAR ), STAT=AS )
+      IF ( AS /= 0 ) CALL ALLOC_ERR( 'CLDTOPS0' )
+      CLDTOPS0 = 0.d0
+
+      ALLOCATE( CLDTOPS0a( IIPAR, JJPAR ), STAT=AS )
+      IF ( AS /= 0 ) CALL ALLOC_ERR( 'CLDTOPS0a' )
+      CLDTOPS0a =0.d0
+
+      ALLOCATE( CLDTOPS0b( IIPAR, JJPAR ), STAT=AS )
+      IF ( AS /= 0 ) CALL ALLOC_ERR( 'CLDTOPS0b' )
+      CLDTOPS0b = 0.d0
+
+
+      ALLOCATE( MOISTQ0( LLPAR, IIPAR, JJPAR ), STAT=AS )
+      IF ( AS /= 0 ) CALL ALLOC_ERR( 'MOISTQ0' )
+      MOISTQ0 = 0d0
+
+      ALLOCATE( MOISTQ0a( LLPAR, IIPAR, JJPAR ), STAT=AS )
+      IF ( AS /= 0 ) CALL ALLOC_ERR( 'MOISTQ0a' )
+      MOISTQ0a = 0d0
+      !-----------------------------------------------------------------
+      ! Allocate met field arrays that are used for all met fields
+      !-----------------------------------------------------------------
+
+
+      ALLOCATE( MOISTQ0b( LLPAR, IIPAR, JJPAR ), STAT=AS )
+      IF ( AS /= 0 ) CALL ALLOC_ERR( 'MOISTQ0b' )
+      MOISTQ0b = 0d0
+
+
+      ALLOCATE( OPTDEP0( LLPAR, IIPAR, JJPAR ), STAT=AS )
+      IF ( AS /= 0 ) CALL ALLOC_ERR( 'OPTDEP0' )
+      OPTDEP0 = 0d0
+
+      ALLOCATE( OPTDEP0a( LLPAR, IIPAR, JJPAR ), STAT=AS )
+      IF ( AS /= 0 ) CALL ALLOC_ERR( 'OPTDEP0a' )
+      OPTDEP0a = 0d0
+
+      ALLOCATE( OPTDEP0b( LLPAR, IIPAR, JJPAR ), STAT=AS )
+      IF ( AS /= 0 ) CALL ALLOC_ERR( 'OPTDEP0b' )
+      OPTDEP0b = 0d0
+
+
+      ALLOCATE( RH0( IIPAR, JJPAR, LLPAR ), STAT=AS )
+      IF ( AS /= 0 ) CALL ALLOC_ERR( 'RH0' )
+      RH0 = 0d0
+
+      ALLOCATE( RH0a( IIPAR, JJPAR, LLPAR ), STAT=AS )
+      IF ( AS /= 0 ) CALL ALLOC_ERR( 'RH0a' )
+      RH0a = 0d0
+
+      ALLOCATE( RH0b( IIPAR, JJPAR, LLPAR ), STAT=AS )
+      IF ( AS /= 0 ) CALL ALLOC_ERR( 'RH0b' )
+      RH0b = 0d0
+
+
+      ALLOCATE( SPHU0( IIPAR, JJPAR, LLPAR ), STAT=AS )
+      IF ( AS /= 0 ) CALL ALLOC_ERR( 'SPHU0' )
+      SPHU0 = 0.d0
+
+      ALLOCATE( SPHU0a( IIPAR, JJPAR, LLPAR ), STAT=AS )
+      IF ( AS /= 0 ) CALL ALLOC_ERR( 'SPHU0a' )
+      SPHU0a = 0.d0
+
+      ALLOCATE( SPHU0b( IIPAR, JJPAR, LLPAR ), STAT=AS )
+      IF ( AS /= 0 ) CALL ALLOC_ERR( 'SPHU0b' )
+      SPHU0b = 0.d0
+
+
+      ALLOCATE( T0( IIPAR, JJPAR, LLPAR ), STAT=AS )
+      IF ( AS /= 0 ) CALL ALLOC_ERR( 'T0' )
+      T0 = 0d0
+
+      ALLOCATE( T0a( IIPAR, JJPAR, LLPAR ), STAT=AS )
+      IF ( AS /= 0 ) CALL ALLOC_ERR( 'T0a' )
+      T0a = 0d0
+
+      ALLOCATE( T0b( IIPAR, JJPAR, LLPAR ), STAT=AS )
+      IF ( AS /= 0 ) CALL ALLOC_ERR( 'T0b' )
+      T0b = 0d0
+
+
+      ALLOCATE( UWND0( IIPAR, JJPAR, LLPAR ), STAT=AS )
+      IF ( AS /= 0 ) CALL ALLOC_ERR( 'UWND0' )
+      UWND0 = 0.d0
+
+      ALLOCATE( UWND0a( IIPAR, JJPAR, LLPAR ), STAT=AS )
+      IF ( AS /= 0 ) CALL ALLOC_ERR( 'UWND0a' )
+      UWND0a= 0.d0
+
+      ALLOCATE( UWND0b( IIPAR, JJPAR, LLPAR ), STAT=AS )
+      IF ( AS /= 0 ) CALL ALLOC_ERR( 'UWND0b' )
+      UWND0b = 0.d0
+
+
+      ALLOCATE( VWND0( IIPAR, JJPAR, LLPAR ), STAT=AS )
+      IF ( AS /= 0 ) CALL ALLOC_ERR( 'VWND0' )
+      VWND0 = 0d0
+
+      ALLOCATE( VWND0a( IIPAR, JJPAR, LLPAR ), STAT=AS )
+      IF ( AS /= 0 ) CALL ALLOC_ERR( 'VWND0a' )
+      VWND0a = 0d0
+
+      ALLOCATE( VWND0b( IIPAR, JJPAR, LLPAR ), STAT=AS )
+      IF ( AS /= 0 ) CALL ALLOC_ERR( 'VWND0b' )
+      VWND0b = 0d0
+
+
+      ALLOCATE( PBL0a( IIPAR, JJPAR ), STAT=AS )
+      IF ( AS /= 0 ) CALL ALLOC_ERR( 'PBL0a' )
+      PBL0a = 0.d0
+
+      ALLOCATE( PBL0b( IIPAR, JJPAR ), STAT=AS )
+      IF ( AS /= 0 ) CALL ALLOC_ERR( 'PBL0b' )
+      PBL0b  = 0.d0
+
+#endif
+
+      END SUBROUTINE INIT_DAO_DERIVED
+!EOC
+!------------------------------------------------------------------------------
+!          Harvard University Atmospheric Chemistry Modeling Group            !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: init_dao
+!
+! !DESCRIPTION: Subroutine INIT\_DAO allocates memory for all allocatable 
+!  module arrays. 
+!\\
+!\\
+! !INTERFACE:
+!
+      SUBROUTINE INIT_DAO
+!
+! !REVISION HISTORY: 
+!  26 Jun 2000 - R. Yantosca - Initial version
+!  (1 ) Now allocate AVGW for either NSRCX == 3 or NSRCX == 5 (bmy, 9/24/01)
+!  (2 ) Removed obsolete code from 9/01 (bmy, 10/23/01)
+!  (3 ) Add PSC2 array for TPCORE mixing ratio fix.   (bmy, 3/27/02)
+!  (4 ) Elimintated PS, PSC arrays for floating-pressure fix.
+!        (dsa, bdf, bmy, 8/20/02)
+!  (5 ) Added AD, BXHEIGHT, T to "dao_mod.f" as allocatable arrays, to remove
+!        historical baggage and centralize variables.  Also remove GEOS_2 
+!        flag from C-preprocessor statements.  Also allocate RH array
+!        but only if we are doing a sulfate simulation.  Now references
+!        ALLOC_ERR from "error_mod.f" (bmy, 10/15/02)
+!  (6 ) Now allocate PHIS array (bmy, 3/11/03)
+!  (7 ) Now allocate SUNCOSB array for SMVGEAR II.  Also removed KZZ array,
+!        that is now obsolete. (bdf, bmy, 4/28/03)
+!  (8 ) Now order all arrays in alphabetical order.  Also added new fields
+!        for GEOS-4/fvDAS: HKBETA, HKETA, ZMEU, ZMMD, ZMMU, TSKIN, PARDF,
+!        and PARDR. (bmy, 6/25/03)
+!  (9 ) Now allocate CLDFRC, RADLWG, RADSWG, SNOW arrays.  USTAR, CLDFRC,
+!        and Z0 and RADSWG are now 2-D arrays. (bmy, 12/9/03)
+!  (10) Allocate RADLWG and SNOW for both GEOS-3 & GEOS-4 (bmy, 4/2/04)
+!  (11) Now reference inquiry functions from "tracer_mod.f".  Now reference
+!        LWETD, LDRYD, LCHEM from "logical_mod.f".  Now allocate RH regardless
+!        of simulation. (bmy, 7/20/04)
+!  (12) Now also allocate AVGW for offline aerosol simulations (bmy, 9/27/04)
+!  (13) Now modified for GCAP met fields.  Removed references to CO-OH param 
+!        simulation.  Now allocate AVGW only for fullchem or offline aerosol
+!        simulations. (bmy, 6/24/05)
+!  (14) Now allocate SNOW and GWETTOP for GCAP (bmy, 8/17/05)
+!  (15) Now also add TSKIN for GEOS-3 (bmy, 10/20/05)
+!  (16) Remove support for GEOS-1 and GEOS-STRAT met fields (bmy, 8/4/06)
+!  (17) Reorganized for GEOS-5 met fields (bmy, 1/17/07)
+!  (18) Bug fix: should be CMFMC=0 after allocating CMFMC (jaf, bmy, 6/11/08)
+!  (19) Remove obsolete SUNCOSB array (bmy, 4/28/10)
+!  16 Aug 2010 - R. Yantosca - Added ProTeX headers
+!  18 Aug 2010 - R. Yantosca - Now allocate met fields for MERRA
+!  20 Aug 2010 - R. Yantosca - Bug fix, now allocate REEVAPCN
+!  01 Feb 2012 - R. Yantosca - Now allocate met field arrays for GEOS-5.7.x
+!  06 Feb 2012 - R. Yantosca - Now split off array initializations into
+!                              separate routines, for clarity
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+!
+! !LOCAL VARIABLES:
+!
+      INTEGER :: AS
+
+      !=================================================================
+      ! INIT_DAO begins here!
+      !=================================================================
+
+      ! Initialze met field arrays for the given met field type
+#if   defined( GCAP )
+
+      ! GCAP met arrays
+      CALL INIT_DAO_GCAP()
+
+#elif defined( GEOS_3 )
+
+      ! GEOS-3 met arrays
+      CALL INIT_DAO_GEOS3()
+
+#elif defined( GEOS_4 )
+
+      ! GEOS-4 met arrays
+      CALL INIT_DAO_GEOS4()
+
+#elif defined( GEOS_5 )
+
+      ! GEOS-5.2.0 met arrays
+      CALL INIT_DAO_GEOS5()
+
+#elif defined( GEOS_57 )
+
+      ! GEOS-5.7.x met arrays
+      CALL INIT_DAO_GEOS57()
+
+#elif defined( MERRA )
+
+      ! MERRA met arrays
+      CALL INIT_DAO_MERRA()
+
+#endif
+
+      ! Initialize derived fields (used by all met data types)
+      CALL INIT_DAO_DERIVED()
+
+      END SUBROUTINE INIT_DAO
+
+!===========================================================================
+!===========================================================================
+!===========================================================================
+!===========================================================================
+
+
+
 
       END SUBROUTINE INIT_DAO_GEOS5
 !EOC

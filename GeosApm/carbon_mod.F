@@ -173,6 +173,8 @@
 !  (25) Bug fix for EMIS_SAVE in EMITHIGH (bmy, 1/11/10)
 !  (26) Bug fix: call SOA_PARA_INIT (ensberg, bmy, 6/30/10)
 !  (27) Added 8 new bins for carbonaceous aerosol for APM simulation (GanLuo, 2010)
+!  (28) Modified to include GFED3 (psk, 1/5/11)
+!   8 Feb 2012 - R. Yantosca - Modified for central chemistry timestep option
 !******************************************************************************
 !
       USE LOGICAL_MOD,    ONLY : LNLPBL ! (Lin,03/31/09)
@@ -2157,11 +2159,12 @@
 !  (5 ) Now only print out debug info when LPRT=T (bmy, 4/21/10)
 !  (6 ) Bug fix: call SOA_PARA_INIT (ensberg, bmy, 6/30/10)
 !  16 Feb 2011 - R. Yantosca - Add modifications for APM from G. Luo
+!  05 Oct 2011 - R. Yantosca - SUNCOS is not needed, so remove
 !******************************************************************************
 !
       ! References to F90 modules
       USE ERROR_MOD,    ONLY : DEBUG_MSG
-      USE DAO_MOD,      ONLY : T, AD, AIRVOL, SUNCOS
+      USE DAO_MOD,      ONLY : T, AD, AIRVOL
       USE DIAG_MOD,     ONLY : AD07_HC
       USE TRACER_MOD,   ONLY : STT 
       USE TRACERID_MOD, ONLY : IDTALCO, IDTALPH, IDTLIMO, IDTOCPI
@@ -4431,7 +4434,7 @@ c
 !  (3 ) TRID  (INTEGER) : GEOS-CHEM tracer number 
 ! 
 !  NOTES:
-!  (1 ) Remove reference to F77_CMN, it's obsolete (bmy, 7/20/04)
+!  (1 ) Remove reference to CMN, it's obsolete (bmy, 7/20/04)
 !  (2 ) Replace PBLFRAC from "drydep_mod.f" with  GET_FRAC_UNDER_PBLTOP from 
 !        "pbl_mix_mod.f" (bmy, 2/17/05)
 !  (3 ) Bug fix: Add BL_FRAC to the PRIVATE list (mak, bmy, 10/3/05)
@@ -4603,6 +4606,7 @@ c
       USE TIME_MOD,          ONLY : GET_MONTH, ITS_A_NEW_MONTH
       USE TRACER_MOD,        ONLY : STT
       USE GFED2_BIOMASS_MOD, ONLY : GFED2_IS_NEW
+      USE GFED3_BIOMASS_MOD, ONLY : GFED3_IS_NEW
       !USE TRACERID_MOD
 #if   defined( APM )
       USE DIAG_MOD,     ONLY : AD07, AD07_OM
@@ -4746,7 +4750,8 @@ c
       !-----------------------------------
       IF ( .not. USE_BOND_BIOBURN ) THEN
 
-         IF ( GFED2_IS_NEW() .or. ITS_A_NEW_MONTH() ) THEN 
+         IF ( GFED2_IS_NEW() .or. GFED3_IS_NEW() .or. 
+     &        ITS_A_NEW_MONTH() ) THEN 
             CALL BIOMASS_CARB_GEOS
             IF ( LPRT ) CALL DEBUG_MSG( '### EMISSCARB: a BB_CRB_GEOS' )
          ENDIF
@@ -4953,12 +4958,17 @@ c
 !  (7 ) Change LMEGAN switch to LMEGANMONO switch (ccc, 3/2/09)
 !  (8 ) Update MEGAN calculations to MEGAN v2.1 (mpb, ccc, 11/19/09)
 !  (9 ) Use speciated information from MEGAN v2.1 (hotp, 3/16/10)
+!  05 Oct 2011 - R. Yantosca - Now use SUNCOS30, which is the cos(SZA)
+!                              computed @ 30 mins after each GMT hour
+!  07 Oct 2011 - R. Yantosca - Rename SUNCOS30 to SUNCOS_MID, which is the
+!                              cos(SZA) at the midpt of the chemistry timestep
+!  08 Dec 2011 - M. Payer    - Remove GEIA biogenic emissions option
 !******************************************************************************
 !
       ! References to F90 modules
       USE BPCH2_MOD,     ONLY : GET_NAME_EXT_2D,  GET_RES_EXT
       USE BPCH2_MOD,     ONLY : GET_TAU0,         READ_BPCH2
-      USE DAO_MOD,       ONLY : SUNCOS
+      USE DAO_MOD,       ONLY : SUNCOS_MID
       USE DIRECTORY_MOD, ONLY : DATA_DIR
       USE LOGICAL_MOD,   ONLY : LMEGANMONO,       LSOA
       USE MEGAN_MOD,     ONLY : GET_EMMONOT_MEGAN
@@ -4996,23 +5006,10 @@ c
       REAL*8                 :: SC, PDF, PDR
 
       ! External functions
-!-- Moved to meganut_mod.f
-!      REAL*8,  EXTERNAL      :: XLTMMP
-      REAL*8,  EXTERNAL      :: EMMONOT
 
       !=================================================================
       ! BIOGENIC_OC begins here!
       !=================================================================
-
-      ! Get ISOPRENE baseline emissions (first-time only)
-      IF ( FIRST ) THEN
-         CALL RDISOPT( CONVERT )
-         CALL RDMONOT( GMONOT  )
-         CALL SETBASE( CONVERT, GMONOT )
-
-         ! Resety first-time flag
-         FIRST = .FALSE.
-      ENDIF
 
       !=================================================================
       ! If secondary organic aerosols are turned off ...
@@ -5036,21 +5033,15 @@ c
             ! ** MEGAN v2.1 **
             ! Cosine of solar zenith angle   (mpb,2009) 
             ! Diffuse and direct PAR         (mpb,2009)
-            SC   = SUNCOS(IJLOOP)   
+            SC   = SUNCOS_MID(IJLOOP)   
             PDR  = PARDR(I,J)
             PDF  = PARDF(I,J)
             ! +++++++++++++++++++++++++++++++++++++++++
 
-            ! Get monoterpenes from MEGAN or GEIA [kg C/box]
+            ! Get monoterpenes from MEGAN [kg C/box]
             IF ( LMEGANMONO ) THEN
-               ! +++++++++++++++++++++++++++++++++++++++++
-               ! New formulation for MEGAN (mpb,2009)
                EMMO = GET_EMMONOT_MEGAN( I, J, SC, TMMP,
      &                                   PDR, PDF, 1d0 )
-               ! +++++++++++++++++++++++++++++++++++++++++
-               ! EMMO = GET_EMMONOT_MEGAN( I, J, TMMP, 1d0 )
-            ELSE
-               EMMO = EMMONOT( IJLOOP, TMMP, 1d0 )
             ENDIF
 
             ! Fraction of EMMO that converts into OC [kg/box/timestep]
@@ -5121,29 +5112,24 @@ c
             ! ** MEGAN v2.1 **
             ! Cosine of solar zenith angle   (mpb,2009) 
             ! Diffuse and direct PAR         (mpb,2009)
-            SC   = SUNCOS(IJLOOP)   
+            SC   = SUNCOS_MID(IJLOOP)   
             PDR  = PARDR(I,J)
             PDF  = PARDF(I,J)
             ! +++++++++++++++++++++++++++++++++++++++++
 
-            ! Get monoterpenes from MEGAN or GEIA [kg C/box]
+            ! Get monoterpenes from MEGAN [kg C/box]
             IF ( LMEGANMONO ) THEN
-               ! +++++++++++++++++++++++++++++++++++++++++
-               ! New formulation for MEGAN (mpb,2009)
                TERP_ORGC(I,J) = GET_EMMONOT_MEGAN( I, J, SC, TMMP,
      &                                   PDR, PDF, 1d0 )               
-               ! TERP_ORGC(I,J) = GET_EMMONOT_MEGAN( I, J, TMMP, 1d0 )
-            ELSE
-               TERP_ORGC(I,J) = EMMONOT( IJLOOP, TMMP, 1d0 )
             ENDIF
 
             !---------------------------------------------------
             ! Impose a diurnal variation on NVOC during the day
             !---------------------------------------------------
-            IF ( SUNCOS(IJLOOP) > 0d0 .and. TCOSZ(I,J) > 0d0 ) THEN
+            IF ( SUNCOS_MID(IJLOOP) > 0d0 .and. TCOSZ(I,J) > 0d0 ) THEN
                DIUR_ORVC(I,J) = GEIA_ORVC(I,J)*
-     &                          ( SUNCOS(IJLOOP) / TCOSZ(I,J) ) *
-     &                          ( 1440d0        / GET_TS_CHEM() )
+     &                          ( SUNCOS_MID(IJLOOP) / TCOSZ(I,J) ) *
+     &                          ( 1440d0           / GET_TS_CHEM() )
 
                ! Make sure ORVC is not negative
                DIUR_ORVC(I,J) = MAX( DIUR_ORVC(I,J), 0d0 )
@@ -5906,7 +5892,7 @@ c
 !  emissions are hydrophilic (soluble) and the rest are hydrophobic.
 !
 !  NOTES:
-!  (1 ) Now references DATA_DIR from "directory_mod.f".  Also removed F77_CMN,
+!  (1 ) Now references DATA_DIR from "directory_mod.f".  Also removed CMN,
 !        it's obsolete. (bmy, 7/20/04)
 !  (2 ) Now read data from "carbon_200411" subdir of DATA_DIR (bmy, 11/15/04)
 !  (3 ) Now read BCPO, OCPO biomass burning data directly from files instead
@@ -7761,14 +7747,14 @@ c
 !
 !  NOTES:
 !  (1 ) Also added arrays for secondary organic aerosols (rjp, bmy, 7/8/04)
-!  (2 ) Remove reference to F77_CMN, it's obsolete (bmy, 7/20/04)
+!  (2 ) Remove reference to CMN, it's obsolete (bmy, 7/20/04)
 !  (3 ) Now reference LSOA from "logical_mod.f" not F77_CMN_SETUP.  Now call
 !        GET_BOUNDING_BOX from "grid_mod.f" to compute the indices I1_NA,
 !        I2_NA, J1_NA, J2_NA which define the N. America region. (bmy, 12/1/04)
 !  (4 ) Now call READ_GPROD_APROD to read GPROD & APROD from disk. 
 !        (tmf, havala, bmy, 2/6/07)
 !  (5 ) Now set I1_NA, I2_NA, J1_NA, J2_NA appropriately for both 1 x 1 and
- !        0.5 x 0.666 nested grids (yxw, dan, bmy, 11/6/08)
+!        0.5 x 0.666 nested grids (yxw, dan, bmy, 11/6/08)
 !  (6 ) Now set parameters for NESTED_EU grid (amv, bmy, 12/19/09)
 !  14 Jan 2011 - R. Yantosca - If we are using GEOS-5 or MERRA met, then get
 !                              the cloud fraction directly from the met fields.
