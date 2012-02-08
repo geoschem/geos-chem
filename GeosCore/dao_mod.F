@@ -1574,7 +1574,7 @@
 ! !IROUTINE: get_cosine_sza
 !
 ! !DESCRIPTION: Routine GET\_COSINE\_SZA is a driver for calling the COSSZA 
-!  routine from dao_mod.F.  This routine calls COSSZA twice.  The first call
+!  routine from dao\_mod.F.  This routine calls COSSZA twice.  The first call
 !  computes the sun angles at the current time and midpoint of the current 
 !  chemistry time step.  The second call computes the sun angles 5 hours 
 !  prior to the current time (for the PARANOX ship emissions plume model).

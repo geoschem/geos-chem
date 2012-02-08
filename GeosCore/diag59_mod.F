@@ -1,88 +1,76 @@
-! $Id: diag59_mod.f,v 1.4 2011/02/25 gvinken Exp $
+!------------------------------------------------------------------------------
+!          Harvard University Atmospheric Chemistry Modeling Group            !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !MODULE: diag59_mod
+!
+! !DESCRIPTION: Module DIAG59\_MOD contains variables and routines to save 
+!  out the fraction of NOx remaining and integrated OPE to disk
+!  (gvinken, 25/02/11) 
+!\\
+!\\
+! !INTERFACE: 
+!
       MODULE DIAG59_MOD
 !
-!******************************************************************************
-!  Module DIAG59_MOD contains variables and routines to save out the fraction 
-!  of NOx remaining and integrated OPE to disk (gvinken, 25/02/11)
-!      Based on the original diag49_mod.f (bmy, 7/20/04, 10/13/09)
-!
-!  Module Variables:
-!  ============================================================================
-!  (1 ) DO_SAVE_DIAG59   (LOGICAL ) : Switch to turn ND59 timeseries on/off 
-!  (2 ) I0               (INTEGER ) : Lon offset between global & nested grid
-!  (3 ) J0               (INTEGER ) : Lat offset between global & nested grid
-!  (4 ) IOFF             (INTEGER ) : Offset between relative & absolute lon
-!  (5 ) JOFF             (INTEGER ) : Offset between relative & absolute lat
-!  (6 ) ND59_IMIN        (INTEGER ) : Minimum longitude index
-!  (7 ) ND59_IMAX        (INTEGER ) : Maximum latitude  index
-!  (8 ) ND59_JMIN        (INTEGER ) : Minimum longitude index
-!  (9 ) ND59_JMAX        (INTEGER ) : Maximum longitude index
-!  (10) ND59_FREQ        (INTEGER ) : Frequency which to save to disk [min]
-!  (11) ND59_N_TRACERS   (INTEGER ) : Number of tracers for ND49 timeseries
-!  (12) ND59_OUTPUT_FILE (CHAR*255) : Name of timeseries output file
-!  (13) ND59_TRACERS     (INTEGER ) : Array w/ tracer #'s to save to disk
-!  (14) HALFPOLAR        (INTEGER ) : Used for binary punch file write
-!  (15) CENTER180        (INTEGER ) : Used for binary punch file write
-!  (16) LONRES           (REAL*4  ) : Used for binary punch file write
-!  (17) LATRES           (REAL*4  ) : Used for binary punch file write
-!  (18) RESERVED         (CHAR*40 ) : Used for binary punch file write
-!  (19) MODELNAME        (CHAR*20 ) : Used for binary punch file write
-!  (20) TITLE            (CHAR*80 ) : Used for binary punch file write 
-!
-!  Module Routines:
-!  ============================================================================
-!  (1 ) DIAG59                 : Main driver routine
-!  (2 ) ITS_TIME_TO_CLOSE_FILE : Returns TRUE if it's time to close ND49 file
-!  (3 ) ITS_TIME_FOR_DIAG59    : Returns TRUE if it's time to save to disk
-!  (4 ) GET_I                  : Converts relative longitude index to absolute
-!  (5 ) INIT_DIAG59            : Gets variable values from "input_mod.f"
-!
-!  GEOS-CHEM modules referenced by "diag59_mod.f" 
-!  ============================================================================
-!  (1 ) bpch2_mod.f            : Module w/ routines for binary punch file I/O
-!  (2 ) dao_mod.f              : Module w/ arrays for DAO met fields
-!  (3 ) file_mod.f             : Module w/ file unit numbers & error checks
-!  (4 ) grid_mod.f             : Module w/ horizontal grid information   
-!  (5 ) pbl_mix_mod.f          : Module w/ routines for PBL height & mixing
-!  (6 ) pressure_mod.f         : Module w/ routines to compute P(I,J,L)
-!  (7 ) time_mod.f             : Module w/ routines for computing time & date 
-!  (8 ) tracer_mod.f           : Module w/ GEOS-CHEM tracer array STT etc.  
-!  (9 ) tracerid_mod.f         : Module w/ pointers to tracers & emissions
-!
-!  ND59 tracer numbers:
-!  ============================================================================
-!  1             : Fraction of NOx remaining [unitless]
-!  2             : Integrated OPE (molecules of O3 produced per NOx molecule lost)
-! 
-!  NOTES:
-!  (1 ) 
-!******************************************************************************
+! !USES:
 !
       IMPLICIT NONE
-
-      !=================================================================
-      ! MODULE PRIVATE DECLARATIONS -- keep certain internal variables 
-      ! and routines from being seen outside "diag59_mod.f"
-      !=================================================================
-
-      ! Make everything PRIVATE ...
-      PRIVATE 
-
-      ! ... except these variables ...
-      PUBLIC :: DO_SAVE_DIAG59 
-
-      ! ... except these routines 
+      PRIVATE
+!
+! !PUBLIC DATA MEMBERS:
+!
+      LOGICAL, PUBLIC :: DO_SAVE_DIAG59 
+!
+! !PUBLIC MEMBER FUNCTIONS:
+!
       PUBLIC :: DIAG59
       PUBLIC :: ITS_TIME_FOR_DIAG59
       PUBLIC :: INIT_DIAG59
-
+!
+! !REMARKS:
+!  ND59 tracer numbers:
+!  ============================================================================
+!  1  : Fraction of NOx remaining  [unitless]
+!  2  : Integrated OPE             [molec O3 produced / molec NOx lost]
+!
+! !REVISION HISTORY:
+!  25 Feb 2011 - G. Vinken   - Initial version based on the orig. diag49_mod.f
+!  07 Feb 2012 - M. Payer    - Added ProTeX headers
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+!
+! !PRIVATE TYPES:
+!
       !=================================================================
       ! MODULE VARIABLES
+      !
+      ! DO_SAVE_DIAG59   : Switch to turn ND59 timeseries on/off 
+      ! I0               : Lon offset between global & nested grid
+      ! J0               : Lat offset between global & nested grid
+      ! IOFF             : Offset between relative & absolute lon
+      ! JOFF             : Offset between relative & absolute lat
+      ! ND59_IMIN        : Minimum longitude index
+      ! ND59_IMAX        : Maximum latitude  index
+      ! ND59_JMIN        : Minimum longitude index
+      ! ND59_JMAX        : Maximum longitude index
+      ! ND59_FREQ        : Frequency which to save to disk [min]
+      ! ND59_N_TRACERS   : Number of tracers for ND59 timeseries
+      ! ND59_OUTPUT_FILE : Name of timeseries output file
+      ! ND59_TRACERS     : Array w/ tracer #'s to save to disk
+      ! HALFPOLAR        : Used for binary punch file write
+      ! CENTER180        : Used for binary punch file write
+      ! LONRES           : Used for binary punch file write
+      ! LATRES           : Used for binary punch file write
+      ! RESERVED         : Used for binary punch file write
+      ! MODELNAME        : Used for binary punch file write
+      ! TITLE            : Used for binary punch file write 
       !=================================================================
-      LOGICAL            :: DO_SAVE_DIAG59
+
       INTEGER            :: IOFF,           JOFF
       INTEGER            :: I0,             J0
-      ! Increased to 120 from 100 (mpb,2009)
       INTEGER            :: ND59_N_TRACERS, ND59_TRACERS(120)
       INTEGER            :: ND59_IMIN,      ND59_IMAX
       INTEGER            :: ND59_JMIN,      ND59_JMAX
@@ -96,48 +84,26 @@
       CHARACTER(LEN=80)  :: TITLE
       CHARACTER(LEN=255) :: ND59_OUTPUT_FILE
 
-      !=================================================================
-      ! MODULE ROUTINES -- follow below the "CONTAINS" statement
-      !=================================================================
       CONTAINS
-
+!EOC
 !------------------------------------------------------------------------------
-
+!          Harvard University Atmospheric Chemistry Modeling Group            !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: diag59 
+!
+! !DESCRIPTION: Subroutine DIAG59 produces time series (instantaneous fields) 
+!  for a geographical domain from the information read in timeseries.dat.  
+!  Output will be in binary punch (BPCH) format.
+!\\
+!\\
+! !INTERFACE:
+!
       SUBROUTINE DIAG59
-! 
-!******************************************************************************
-!  Subroutine DIAG59 (based on DIAG49 from diag49_mod.f) produces time series
-!  (instantaneous fields) for a geographical domain from the information read 
-!  in timeseries.dat.  Output will be in binary punch (BPCH) format. 
-!  (bey, bmy, rvm, 4/9/99, 10/7/08)
 !
-!  NOTES:
-!  (1 ) Now bundled into "diag49_mod.f".  Now reference STT from 
-!        "tracer_mod.f".  Now scale aerosol & dust OD's to 400 nm.  
-!        (bmy, rvm, aad, 7/9/04)
-!  (2 ) Updated tracer # for NO2 (bmy, 10/25/04)
-!  (3 ) Remove reference to "CMN".  Also now get PBL heights in meters and 
-!        model layers from GET_PBL_TOP_m and GET_PBL_TOP_L of "pbl_mix_mod.f".
-!        (bmy, 2/16/05)
-!  (4 ) Now reference CLDF and BXHEIGHT from "dao_mod.f".  Now save 3-D cloud 
-!        fraction as tracer #79 and box height as tracer #93.  Now remove 
-!        reference to PBL from "dao_mod.f"(bmy, 4/20/05)
-!  (5 ) Remove references to TRCOFFSET because it is always zero (bmy, 6/24/05)
-!  (6 ) Now do not save SLP data if it is not allocated (bmy, 8/2/05)
-!  (7 ) Now make sure all USE statements are USE, ONLY (bmy, 10/3/05)
-!  (8 ) Now references XNUMOLAIR from "tracer_mod.f".  Bug fix: now must sum
-!        aerosol OD's over all RH bins.  Also zero Q array. (bmy, 11/1/05)
-!  (9 ) Bug fix: accumulate into Q(X,Y,K) for dust OD (qli, bmy, 4/30/07)
-!  (10) Bug fix: UNIT should be "levels" for tracer 77.  Also RH should be
-!        tracer #17 under "TIME-SER" category. (cdh, bmy, 2/11/08)
-!  (11) Bug fix: replace "PS-PTOP" with "PEDGE-$" (bmy, phs, 10/7/08)
-!  (12) Change the new day condition to open a new file. (ccc, 8/12/09)
-!  (13) Change the timestamp for the filename when closing (ccc, 8/12/09)
-!  (14) Add outputs for EMISS_BVOC (10 tracers), TS, PARDR, PARDF and ISOLAI
-!        (mpb, 11/19/09)
-!******************************************************************************
+! !USES:
 !
-      ! References to F90 modules
       USE BPCH2_MOD,    ONLY : BPCH2,   OPEN_BPCH2_FOR_WRITE
       USE DAO_MOD,      ONLY : AD,      AIRDEN, BXHEIGHT, CLDF 
       USE DAO_MOD,      ONLY : CLDTOPS, OPTD,   RH,       SLP     
@@ -166,8 +132,16 @@
       USE JV_CMN_MOD         ! ODAER, QAA, QAA_AOD (clh)
       USE CMN_O3_MOD	     ! Pure O3, SAVENO2
       USE CMN_GCTM_MOD       ! XTRA2
-
-      ! Local variables
+!
+! !REVISION HISTORY:
+!  25 Feb 2011 - G. Vinken   - Initial version based on DIAG49 
+!  07 Feb 2012 - M. Payer    - Added ProTeX headers
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+!
+! !LOCAL VARIABLES:
+!
       LOGICAL, SAVE            :: FIRST  = .TRUE.
       LOGICAL, SAVE            :: IS_FULLCHEM, IS_NOx,     IS_Ox 
       LOGICAL, SAVE            :: IS_NOy,      IS_CLDTOPS, IS_OPTD
@@ -205,7 +179,7 @@
 
       !=================================================================
       ! If it's a new day, open a new BPCH file and write file header
-      ! We need to check if it's a new day + 1 ND49 time step (ccc, 8/12/09)
+      ! We need to check if it's a new day + 1 ND59 time step (ccc, 8/12/09)
       !=================================================================
 !--- Previous to (ccc, 8/12/09)
 !      IF ( ITS_A_NEW_DAY() ) THEN
@@ -298,27 +272,38 @@
          CLOSE( IU_ND59 ) 
       ENDIF
 
-      ! Return to calling program
       END SUBROUTINE DIAG59
-
+!EOC
 !------------------------------------------------------------------------------
-
+!          Harvard University Atmospheric Chemistry Modeling Group            !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: its_time_to_close_file
+!
+! !DESCRIPTION: Function ITS\_TIME\_TO\_CLOSE\_FILE returns TRUE if it's 
+!  time to close the ND59 bpch file before the end of the day.
+!\\
+!\\
+! !INTERFACE:
+!
       FUNCTION ITS_TIME_TO_CLOSE_FILE() RESULT( ITS_TIME )
 !
-!******************************************************************************
-!  Function ITS_TIME_TO_CLOSE_FILE returns TRUE if it's time to close the
-!  ND59 bpch file before the end of the day. (bmy, 7/20/04)
+! !USES:
 !
-!  NOTES:
+      USE TIME_MOD, ONLY : GET_HOUR
+      USE TIME_MOD, ONLY : GET_MINUTE
+! 
+! !REVISION HISTORY: 
+!  20 Jul 2004 - R. Yantosca - Initial version
 !  (1 ) The time is already updated to the next time step (ccc, 8/12/09)
-!  (2 ) The time varies now between 00 and 23:59, so we need to compare HR1 to
-!       00 instead of 24. (ccc, 11/11/10)
-!******************************************************************************
+!  02 Dec 2010 - R. Yantosca - Added ProTeX headers
+!EOP
+!------------------------------------------------------------------------------
+!BOC
 !
-      ! References to F90 modules
-      USE TIME_MOD, ONLY : GET_HOUR, GET_MINUTE
-
-      ! Local variables
+! !LOCAL VARIABLES:
+!
       LOGICAL :: ITS_TIME
       REAL*8  :: HR1
 
@@ -331,7 +316,7 @@
 
 !--- Previous to (ccc, 8/12/09)
 !      ! Hour at the next dynamic timestep
-!      HR2      = HR1        + ( ND49_FREQ / 60d0 )
+!      HR2      = HR1        + ( ND59_FREQ / 60d0 )
 
        ! If the next dyn step is the start of a new day, return TRUE
 !--- Previous to (ccc, 11/11/10)
@@ -339,29 +324,43 @@
 !      ITS_TIME = ( INT( HR1 ) == 24 )
       ITS_TIME = ( INT( HR1 ) == 00 )
  
-       ! Return to calling program
        END FUNCTION ITS_TIME_TO_CLOSE_FILE
-
+!EOC
 !------------------------------------------------------------------------------
-
+!          Harvard University Atmospheric Chemistry Modeling Group            !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: its_time_for_diag59
+!
+! !DESCRIPTION: Function ITS\_TIME\_FOR\_DIAG59 returns TRUE if ND59 is 
+!  turned on and it is time to call DIAG59 -- or FALSE otherwise.
+!\\
+!\\
+! !INTERFACE:
+!
       FUNCTION ITS_TIME_FOR_DIAG59() RESULT( ITS_TIME )
 !
-!******************************************************************************
-!  Function ITS_TIME_FOR_DIAG59 returns TRUE if ND59 is turned on and it is 
-!  time to call DIAG59 -- or FALSE otherwise. (bmy, 7/20/04)
+! !USES:
 !
-!  NOTES:
-!  (1 ) Add a check on the output frequency for validity compared to time 
-!        steps used. (ccc, 5/21/09)
-!******************************************************************************
-!
-      ! References to F90 modules
-      USE TIME_MOD,  ONLY : GET_ELAPSED_MIN, GET_TS_DIAG
+      USE TIME_MOD,  ONLY : GET_ELAPSED_MIN
+      USE TIME_MOD,  ONLY : GET_TS_DIAG
       USE ERROR_MOD, ONLY : GEOS_CHEM_STOP
-
-      ! Local variables
-      INTEGER :: XMIN, TS_DIAG
+!
+! !RETURN VALUE:
+!
       LOGICAL :: ITS_TIME
+! 
+! !REVISION HISTORY: 
+!  25 Feb 2011 - G. Vinken   - Initial version based on ITS_TIME_FOR_DIAG49
+!  07 Feb 2012 - M. Payer    - Added ProTeX headers 
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+!
+! !LOCAL VARIABLES:
+!
+      INTEGER       :: XMIN, TS_DIAG
       LOGICAL, SAVE :: FIRST = .TRUE.
 
       !=================================================================
@@ -374,7 +373,7 @@
             
             ! Check if ND59_FREQ is a multiple of TS_DIAG
             IF ( MOD( ND59_FREQ, TS_DIAG ) /= 0 ) THEN
-               WRITE( 6, 100 ) 'ND49', ND59_FREQ, TS_DIAG
+               WRITE( 6, 100 ) 'ND59', ND59_FREQ, TS_DIAG
  100           FORMAT( 'The ',a,' output frequency must be a multiple '
      &              'of the largest time step:', i5, i5 )
                CALL GEOS_CHEM_STOP
@@ -391,32 +390,42 @@
          ITS_TIME = DO_SAVE_DIAG59
       ENDIF
             
-      ! Return to calling program
       END FUNCTION ITS_TIME_FOR_DIAG59
-
+!EOC
 !------------------------------------------------------------------------------
+!          Harvard University Atmospheric Chemistry Modeling Group            !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: get_i
+!
+! !DESCRIPTION: Function GET\_I returns the absolute longitude index (I), 
+!  given the relative longitude index (X).
+!\\
+!\\
+! !INTERFACE:
+!
 
       FUNCTION GET_I( X ) RESULT( I )
 !
-!******************************************************************************
-!  Function GET_I returns the absolute longitude index (I), given the 
-!  relative longitude index (X).  (bmy, 7/20/04)
+! !USES:
 !
-!  Arguments as Input:
-!  ============================================================================
-!  (1 ) X (INTEGER) : Relative longitude index (used by Q)
-!
-!  NOTES:
-!******************************************************************************
-!      
       USE CMN_SIZE_MOD         ! Size parameters
-
-      ! Arguments
-      INTEGER, INTENT(IN) :: X
-
-      ! Local variables
-      INTEGER             :: I
-      
+!
+! !INPUT PARAMETERS: 
+!
+      INTEGER, INTENT(IN) :: X   ! Relative longitude index (used by Q array)
+!
+! !RETURN VALUE:
+!
+      INTEGER             :: I   ! Absolute longitude index
+! 
+! !REVISION HISTORY: 
+!  20 Jul 2004 - R. Yantosca - Initial version
+!  02 Dec 2010 - R. Yantosca - Added ProTeX headers
+!EOP
+!------------------------------------------------------------------------------
+!BOC      
       !=================================================================
       ! GET_I begins here!
       !=================================================================
@@ -427,58 +436,63 @@
       ! Handle wrapping around the date line, if necessary
       IF ( I > IIPAR ) I = I - IIPAR
 
-      ! Return to calling program
       END FUNCTION GET_I
-
+!EOC
 !------------------------------------------------------------------------------
-
+!          Harvard University Atmospheric Chemistry Modeling Group            !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: init_diag59
+!
+! !DESCRIPTION: Subroutine INIT\_DIAG59 allocates and zeroes all module 
+!  arrays.  It also gets values for module variables from "input\_mod.f". 
+!\\
+!\\
+! !INTERFACE:
+!
       SUBROUTINE INIT_DIAG59( DO_ND59, N_ND59, TRACERS, IMIN,    
-     &                        IMAX,    JMIN,   JMAX, FREQ,   FILE )
+     &                        IMAX,    JMIN,   JMAX,    FREQ,   
+     &                        FILE )
 !
-!******************************************************************************
-!  Subroutine INIT_DIAG59 allocates and zeroes all module arrays.  
-!  It also gets values for module variables from "input_mod.f". Based on 
-!  INIT_DIAG59 (bmy, 7/20/04, 11/30/06)
+! !USES:
 !
-!  Arguments as Input:
-!  ============================================================================
-!  (1 ) DO_ND59 (LOGICAL ) : Switch to turn on ND59 timeseries diagnostic
-!  (2 ) N_ND59  (INTEGER ) : Number of ND59 read by "input_mod.f"
-!  (3 ) TRACERS (INTEGER ) : Array w/ ND59 tracer #'s read by "input_mod.f"
-!  (4 ) IMIN    (INTEGER ) : Min longitude index read by "input_mod.f"
-!  (5 ) IMAX    (INTEGER ) : Max longitude index read by "input_mod.f" 
-!  (6 ) JMIN    (INTEGER ) : Min latitude index read by "input_mod.f" 
-!  (7 ) JMAX    (INTEGER ) : Min latitude index read by "input_mod.f" 
-!  (8 ) LMIN    (INTEGER ) : Min level index read by "input_mod.f" 
-!  (9 ) LMAX    (INTEGER ) : Min level index read by "input_mod.f" 
-!  (10) FREQ    (INTEGER ) : Frequency for saving to disk [min]
-!  (11) FILE    (CHAR*255) : ND59 output file name read by "input_mod.f"
-! 
-!  NOTES:
-!  (1 ) Now get I0 and J0 correctly for nested grid simulations (bmy, 11/9/04)
-!  (2 ) Now call GET_HALFPOLAR from "bpch2_mod.f" to get the HALFPOLAR flag 
-!        value for GEOS or GCAP grids. (bmy, 6/28/05)
-!  (3 ) Now allow ND49_IMIN to be equal to ND49_IMAX and ND49_JMIN to be
-!        equal to ND49_JMAX.  This will allow us to save out longitude
-!        or latitude transects.  (cdh, bmy, 11/30/06)
-!******************************************************************************
-!      
-      ! References to F90 modules
-      USE BPCH2_MOD, ONLY : GET_MODELNAME, GET_HALFPOLAR
-      USE GRID_MOD,  ONLY : GET_XOFFSET, GET_YOFFSET, ITS_A_NESTED_GRID
+      USE BPCH2_MOD, ONLY : GET_MODELNAME
+      USE BPCH2_MOD, ONLY : GET_HALFPOLAR
+      USE GRID_MOD,  ONLY : GET_XOFFSET
+      USE GRID_MOD,  ONLY : GET_YOFFSET
+      USE GRID_MOD,  ONLY : ITS_A_NESTED_GRID
       USE ERROR_MOD, ONLY : ERROR_STOP
 
-      USE CMN_SIZE_MOD         ! Size parameters
-
-      ! Arguments
+      USE CMN_SIZE_MOD    ! Size parameters
+!
+! !INPUT PARAMETERS: 
+!
+      ! DO_ND59 : Switch to turn on ND59 timeseries diagnostic
+      ! N_ND59  : Number of ND59 read by "input_mod.f"
+      ! TRACERS : Array w/ ND59 tracer #'s read by "input_mod.f"
+      ! IMIN    : Min longitude index read by "input_mod.f"
+      ! IMAX    : Max longitude index read by "input_mod.f" 
+      ! JMIN    : Min latitude index read by "input_mod.f" 
+      ! JMAX    : Min latitude index read by "input_mod.f" 
+      ! FREQ    : Frequency for saving to disk [min]
+      ! FILE    : ND59 output file name read by "input_mod.f"
       LOGICAL,            INTENT(IN) :: DO_ND59
       INTEGER,            INTENT(IN) :: N_ND59, TRACERS(100)
       INTEGER,            INTENT(IN) :: IMIN,   IMAX 
       INTEGER,            INTENT(IN) :: JMIN,   JMAX      
       INTEGER,            INTENT(IN) :: FREQ
       CHARACTER(LEN=255), INTENT(IN) :: FILE
-
-      ! Local variables
+! 
+! !REVISION HISTORY:
+!  25 Feb 2011 - G. Vinken   - Initial version based on INIT_DIAG49
+!  07 Feb 2012 - M. Payer    - Added ProTeX headers 
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+!
+! !LOCAL VARIABLES:
+!
       CHARACTER(LEN=255)             :: LOCATION
       
       !=================================================================
@@ -525,7 +539,7 @@
          CALL ERROR_STOP( 'Bad ND59_IMIN value!', LOCATION )
       ENDIF
 
-      ! Error check ND49_IMAX
+      ! Error check ND59_IMAX
       IF ( ND59_IMAX+I0 < 1 .or. ND59_IMAX+I0 > IGLOB ) THEN
          CALL ERROR_STOP( 'Bad ND59_IMAX value!', LOCATION )
       ENDIF
@@ -592,10 +606,6 @@
       I0        = GET_XOFFSET( GLOBAL=.TRUE. )
       J0        = GET_YOFFSET( GLOBAL=.TRUE. )      
 
-      ! Return to calling program
       END SUBROUTINE INIT_DIAG59
-
-!------------------------------------------------------------------------------
-
-      ! End of module
+!EOC
       END MODULE DIAG59_MOD

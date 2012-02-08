@@ -542,11 +542,11 @@ emissions_mod.o             : emissions_mod.F                                \
                               global_ch4_mod.o        h2_hd_mod.o            \
                               hcn_ch3cn_mod.o         icoads_ship_mod.o      \
                               logical_mod.o           mercury_mod.o          \
-                              nei2005_anthro_mod.o    RnPbBe_mod.o           \
+                              nei2005_anthro_mod.o    paranox_mod.o          \
+                              retro_mod.o             RnPbBe_mod.o           \
                               seasalt_mod.o           streets_anthro_mod.o   \
                               sulfate_mod.o           tagged_co_mod.o        \
-                              tracer_mod.o            vistas_anthro_mod.o    \
-			      retro_mod.o
+                              tracer_mod.o            vistas_anthro_mod.o
 
 epa_nei_mod.o               : epa_nei_mod.F                                  \
                               future_emissions_mod.o  logical_mod.o          \
@@ -823,6 +823,10 @@ ohsave.o                    : ohsave.F                comode_mod.o           \
 optdepth_mod.o              : optdepth_mod.F          diag_mod.o  
 
 OPMIE.o                     : OPMIE.F
+
+paranox_mod.o               : paranox_mod.F                                  \
+                              dao_mod.o               tracer_mod.o           \
+                              tracerid_mod.o
 
 partition.o                 : partition.F                                    \
                               comode_mod.o            tracerid_mod.o

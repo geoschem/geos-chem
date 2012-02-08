@@ -4437,26 +4437,38 @@
       END SUBROUTINE READ_ND51b_MENU
 !EOC
 !------------------------------------------------------------------------------
-
+!          Harvard University Atmospheric Chemistry Modeling Group            !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: read_nd59_menu
+!
+! !DESCRIPTION: Subroutine READ\_ND59\_MENU reads the ND59 MENU section
+!  of the GEOS-Chem input file. (gvinken, 02/25/11)
+!\\
+!\\
+! !INTERFACE:
+!
       SUBROUTINE READ_ND59_MENU
 !
-!******************************************************************************
-!  Subroutine READ_ND59_MENU reads the ND59 MENU section of the GEOS-CHEM 
-!  input file. (gvinken, 02/25/11)
+! !USES:
 !
-!  NOTES:
-!******************************************************************************
-!
-      ! References to F90 modules
       USE DIAG59_MOD, ONLY : INIT_DIAG59
       USE ERROR_MOD,  ONLY : ERROR_STOP
 
       USE CMN_SIZE_MOD     ! Size parameters
-
-      ! Local variables
+! 
+! !REVISION HISTORY:
+!  25 Feb 2011 - G. Vinken   - Initial version
+!  07 Feb 2012 - M. Payer    - Added ProTeX headers
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+!
+! !LOCAL VARIABLES:
+!
       LOGICAL             :: DO_ND59
       INTEGER             :: N,    I,         AS
-      ! Increased to 121 from 100 (mpb,2009)
       INTEGER             :: ND59, N_TRACERS, TRACERS(121)
       INTEGER             :: IMIN, IMAX,      FREQ
       INTEGER             :: JMIN, JMAX,      N_ND59
@@ -4533,9 +4545,8 @@
       CALL INIT_DIAG59( DO_ND59, N_ND59, TRACERS, IMIN, 
      &                  IMAX,    JMIN,   JMAX,  FREQ,   FILE )
 
-      ! Return to calling program
       END SUBROUTINE READ_ND59_MENU
-
+!EOC
 !------------------------------------------------------------------------------
 !          Harvard University Atmospheric Chemistry Modeling Group            !
 !------------------------------------------------------------------------------
