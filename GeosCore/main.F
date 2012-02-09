@@ -769,6 +769,7 @@
                CALL PARTITIONHG( 1, STT, HGPFRAC )
             ENDIF            
      
+            ! Do wet deposition
             CALL DO_WETDEP
             
             ! Return all reactive particulate Hg(II) to total Hg(II) tracer

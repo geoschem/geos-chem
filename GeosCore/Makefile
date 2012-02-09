@@ -621,10 +621,11 @@ gcap_read_mod.o             : gcap_read_mod.F         dao_mod.o              \
 
 geia_mod.o                  : geia_mod.F
 
+GEN.o                       : GEN.F
+
+
 geos57_read_mod.o           : geos57_read_mod.F90                            \
                               dao_mod.o
-
-GEN.o                       : GEN.F
 
 get_global_ch4.o            : get_global_ch4.F                               \
                               future_emissions_mod.o  logical_mod.o
@@ -783,7 +784,8 @@ MATIN4.o                    : MATIN4.F
 
 megan_mod.o                 : megan_mod.F             a3_read_mod.o          \
                               lai_mod.o               logical_mod.o          \
-                              meganut_mod.o           merra_a1_mod.o
+                              meganut_mod.o           merra_a1_mod.o         \
+                              geos57_read_mod.o
 
 meganut_mod.o               : meganut_mod.F           dao_mod.o     
 

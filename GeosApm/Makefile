@@ -107,16 +107,15 @@ diag51b_mod.o            diag56_mod.o            diag_2pm.o		     \
 diag_mod.o               diag_oh_mod.o           diag_pl_mod.o		     \
 diagoh.o                 drydep_mod.o            dust_dead_mod.o	     \
 dust_mod.o               edgar_mod.o             emep_mod.o		     \
-emf_scale.o              emfossil.o              emisop.o		     \
-emisop_grass.o           emisop_mb.o             emissdr.o		     \
-emissions_mod.o          emmonot.o               epa_nei_mod.o		     \
+emf_scale.o              emfossil.o              emissdr.o		     \
+emissions_mod.o          epa_nei_mod.o		                             \
 fast_j.o                 fertadd.o               findmon.o		     \
 fjfunc.o                 fjx_acet_mod.o          future_emissions_mod.o	     \
 fvdas_convect_mod.o      fyhoro.o                fyrno3.o		     \
 gamap_mod.o              gasconc.o               gc_biomass_mod.o	     \
 gc_type_mod.o            gcap_convect_mod.o      gcap_read_mod.o	     \
 geia_mod.o               get_global_ch4.o        getifsun.o		     \
-gfed2_biomass_mod.o      gfed3_biomass_mod.o                                 \
+gfed2_biomass_mod.o      gfed3_biomass_mod.o     geos57_read_mod.o           \
 global_br_mod.o          global_ch4_mod.o	                             \
 global_hno3_mod.o        global_no3_mod.o        global_nox_mod.o	     \
 global_o1d_mod.o         global_o3_mod.o         global_oh_mod.o	     \
@@ -134,13 +133,12 @@ ohsave.o                 optdepth_mod.o          partition.o		     \
 pbl_mix_mod.o            pderiv.o                photoj.o		     \
 physproc.o               pjc_pfix_mod.o          pjc_pfix_geos5_window_mod.o \
 planeflight_mod.o        precipfrac.o            pulsing.o		     \
-rd_js.o                  rd_prof.o               rdisopt.o		     \
-rdlai.o                  rdland.o                rdlight.o		     \
-rdmonot.o                rdsoil.o                readchem.o		     \
+rd_js.o                  rd_prof.o               rdland.o                    \
+rdlai.o                  rdsoil.o                readchem.o	             \
 reader.o                 readlai.o               restart_mod.o		     \
 rpmares_mod.o            ruralbox.o              scale_anthro_mod.o	     \
 schem.o                  seasalt_mod.o           set_aer.o		     \
-set_prof.o               setbase.o               setemdep.o		     \
+set_prof.o               setemdep.o		                             \
 setemis.o                setmodel.o              sfcwindsqr.o		     \
 smvgear.o                soaprod_mod.o           soilbase.o		     \
 soilcrf.o                soilnoxems.o            soiltemp.o		     \
@@ -247,12 +245,12 @@ a6_read_mod.o               : a6_read_mod.F           dao_mod.o              \
                               diag_mod.o              logical_mod.o
 
 acetone_mod.o               : acetone_mod.F           dao_mod.o              \
-                              diag_mod.o               
+                              diag_mod.o              megan_mod.o 
 
 aerosol_mod.o               : aerosol_mod.F           comode_mod.o           \
                               dao_mod.o               diag_mod.o             \
                               logical_mod.o           tracerid_mod.o         \
-                              tracer_mod.o            tropopause_mod.o  
+                              tracer_mod.o            tropopause_mod.o
 
 aircraft_nox_mod.o          : aircraft_nox_mod.F                             \
                               dao_mod.o               diag_mod.o              
@@ -658,6 +656,9 @@ geia_mod.o                  : geia_mod.F
 
 GEN.o                       : GEN.F
 
+geos57_read_mod.o           : geos57_read_mod.F90                            \
+                              dao_mod.o
+
 get_global_ch4.o            : get_global_ch4.F                               \
                               future_emissions_mod.o  logical_mod.o
 
@@ -811,13 +812,15 @@ main.o                      : main.F                                         \
                               xtra_read_mod.o         merra_cn_mod.o         \
                               merra_a1_mod.o          merra_a3_mod.o         \
                               merra_i6_mod.o          apm_init_mod.o         \
-                              apm_driv_mod.o          apm_wets_mod.o
+                              apm_driv_mod.o          apm_wets_mod.o         \
+                              geos57_read_mod.o
 
 MATIN4.o                    : MATIN4.F
 
 megan_mod.o                 : megan_mod.F             a3_read_mod.o          \
                               lai_mod.o               logical_mod.o          \
-                              meganut_mod.o           merra_a1_mod.o
+                              meganut_mod.o           merra_a1_mod.o         \
+                              geos57_read_mod.o
 
 meganut_mod.o               : meganut_mod.F           dao_mod.o     
 

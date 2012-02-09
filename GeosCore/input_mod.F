@@ -5445,12 +5445,7 @@
 !
 ! !USES:
 !
-      USE DIRECTORY_MOD, ONLY : DATA_DIR,    DATA_DIR_1x1, GCAP_DIR
-      USE DIRECTORY_MOD, ONLY : GEOS_1_DIR,  GEOS_S_DIR,   GEOS_3_DIR
-      USE DIRECTORY_MOD, ONLY : GEOS_4_DIR,  GEOS_5_DIR,   O3PL_DIR  
-      USE DIRECTORY_MOD, ONLY : OH_DIR,      RUN_DIR,      TEMP_DIR
-      USE DIRECTORY_MOD, ONLY : TPBC_DIR,    TPBC_DIR_NA,  MERRA_DIR
-      USE DIRECTORY_MOD, ONLY : TPBC_DIR_EU, TPBC_DIR_CH
+      USE DIRECTORY_MOD
       USE GRID_MOD,      ONLY : ITS_A_NESTED_GRID 
       USE LOGICAL_MOD,   ONLY : LWINDO_CU,   LUNZIP
       USE LOGICAL_MOD,   ONLY : LWINDO_NA,   LWINDO_EU,    LWINDO_CH
@@ -5467,7 +5462,8 @@
 !  (4 ) Now check TPBC_DIR_NA, TPBC_DIR_CH, TPBC_DIR_EU (amv, bmy, 12/18/09)
 !  27 Aug 2010 - R. Yantosca - Added ProTeX headers
 !  27 Aug 2010 - R. Yantosca -  Now check MERRA directory
-!   8 Feb 2012 - R. Yantosca - Now check GEOS-5.7.x directory
+!  08 Feb 2012 - R. Yantosca - Now check GEOS-5.7.x directory
+!  09 Feb 2012 - R. Yantosca - Rewrote USE statements for clarity
 !EOP
 !------------------------------------------------------------------------------
 !BOC

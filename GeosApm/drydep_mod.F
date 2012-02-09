@@ -349,6 +349,10 @@
       ! add pressure and 10m wind (jaegle 5/11/11)
       REAL*8            :: PRESSU(MAXIJ)      ! Local surface pressure [Pa]
       REAL*8            :: W10(MAXIJ)         ! 10m windspeed [m/s]
+#if   defined( APM )
+      ! size resolved dry velocities for APM simulation
+      REAL*8            :: DVELSIZE(MAXIJ,NSO4+NSEA+NDSTB)
+#endif
 
       ! Dimension AZO for GCAP or GEOS met fields (swu, bmy, 5/25/05)
 #if   defined( GCAP )
@@ -468,7 +472,7 @@
       ! for APM simulation [m/s]
       !=================================================================
       !GanLuo for newbins
-      CALL DEPVELBIN( MAXIJ, RADIAT, TC0, SUNCOS,
+      CALL DEPVELBIN( MAXIJ, RADIAT, TC0, SUNCOS_MID,
      &                USTAR, CZ1,    OBK, CFRAC,  
      &                ZH,    LSNOW,  DVELSIZE,   AZO,    RHB )
 
@@ -3931,7 +3935,7 @@
       REAL*8  CZH,CKUSTR,REYNO,CORR1,CORR2,Z0OBK
       REAL*8  RA,RB,DUMMY1,DUMMY2,DUMMY3,DUMMY4
       REAL*8  XMWH2O,DAIR,TEMPK,TEMPC
-      INTEGER IOLSON,IXI,IW
+      INTEGER IOLSON,II,IW
       INTEGER I,J,K,IJLOOP,LDT
       REAL*8  RCLX,RIXX,BIOFIT
       REAL*8  PRESS

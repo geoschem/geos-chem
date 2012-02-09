@@ -1128,7 +1128,7 @@
 
 #endif
 
-      END SUBROUTINE INTERP_GCAP
+      END SUBROUTINE INTERP
 !EOC
 !------------------------------------------------------------------------------
 !          Harvard University Atmospheric Chemistry Modeling Group            !
@@ -4784,6 +4784,168 @@
       IF ( AS /= 0 ) CALL ALLOC_ERR( 'TMPU2' )
       TMPU2 = 0d0
 
+#if   defined( APM )
+
+      !-----------------------------------------------------------------
+      ! GEOS-5.7.x fields for APM microphysics code
+      !-----------------------------------------------------------------
+
+      ALLOCATE( CMFMC0( IIPAR, JJPAR, LLPAR+1 ), STAT=AS )
+      IF ( AS /= 0 ) CALL ALLOC_ERR( 'CMFMC0' )
+      CMFMC0 = 0d0
+
+      ALLOCATE( CMFMC0a( IIPAR, JJPAR, LLPAR+1 ), STAT=AS )
+      IF ( AS /= 0 ) CALL ALLOC_ERR( 'CMFMC0a' )
+      CMFMC0a = 0d0
+
+      ALLOCATE( CMFMC0b( IIPAR, JJPAR, LLPAR+1 ), STAT=AS )
+      IF ( AS /= 0 ) CALL ALLOC_ERR( 'CMFMC0b' )
+      CMFMC0b = 0d0
+
+
+      ALLOCATE( DQIDTMST0( IIPAR, JJPAR, LLPAR ), STAT=AS )
+      IF ( AS /= 0 ) CALL ALLOC_ERR( 'DQIDTMST0' )
+      DQIDTMST0 = 0d0
+
+      ALLOCATE( DQIDTMST0a( IIPAR, JJPAR, LLPAR ), STAT=AS )
+      IF ( AS /= 0 ) CALL ALLOC_ERR( 'DQIDTMST0a' )
+      DQIDTMST0a = 0d0
+
+      ALLOCATE( DQIDTMST0b( IIPAR, JJPAR, LLPAR ), STAT=AS )
+      IF ( AS /= 0 ) CALL ALLOC_ERR( 'DQIDTMST0b' )
+      DQIDTMST0b = 0d0
+
+
+      ALLOCATE( DQLDTMST0( IIPAR, JJPAR, LLPAR ), STAT=AS )
+      IF ( AS /= 0 ) CALL ALLOC_ERR( 'DQLDTMST0' )
+      DQLDTMST0 = 0d0
+
+      ALLOCATE( DQLDTMST0a( IIPAR, JJPAR, LLPAR ), STAT=AS )
+      IF ( AS /= 0 ) CALL ALLOC_ERR( 'DQLDTMST0a' )
+      DQLDTMST0a = 0d0
+
+      ALLOCATE( DQLDTMST0b( IIPAR, JJPAR, LLPAR ), STAT=AS )
+      IF ( AS /= 0 ) CALL ALLOC_ERR( 'DQLDTMST0b' )
+      DQLDTMST0b = 0d0
+
+
+      ALLOCATE( DQRCON0( IIPAR, JJPAR, LLPAR ), STAT=AS )
+      IF ( AS /= 0 ) CALL ALLOC_ERR( 'DQRCON0' )
+      DQRCON0 = 0.d0
+
+      ALLOCATE( DQRCON0a( IIPAR, JJPAR, LLPAR ), STAT=AS )
+      IF ( AS /= 0 ) CALL ALLOC_ERR( 'DQRCON0a' )
+      DQRCON0a = 0.d0
+
+      ALLOCATE( DQRCON0b( IIPAR, JJPAR, LLPAR ), STAT=AS )
+      IF ( AS /= 0 ) CALL ALLOC_ERR( 'DQRCON0b' )
+      DQRCON0b = 0.d0
+
+
+      ALLOCATE( DQRLSC0(IIPAR, JJPAR, LLPAR ), STAT=AS )
+      IF ( AS /= 0 ) CALL ALLOC_ERR( 'DQRLSC0' )
+      DQRLSC0 = 0.d0
+
+      ALLOCATE( DQRLSC0a(IIPAR, JJPAR, LLPAR ), STAT=AS )
+      IF ( AS /= 0 ) CALL ALLOC_ERR( 'DQRLSC0a' )
+      DQRLSC0a = 0.d0
+
+      ALLOCATE( DQRLSC0b(IIPAR, JJPAR, LLPAR ), STAT=AS )
+      IF ( AS /= 0 ) CALL ALLOC_ERR( 'DQRLSC0b' )
+      DQRLSC0b = 0.d0
+
+
+      ALLOCATE( DQVDTMST0( IIPAR, JJPAR, LLPAR ), STAT=AS )
+      IF ( AS /= 0 ) CALL ALLOC_ERR( 'DQVDTMST0' )
+      DQVDTMST0 = 0d0
+
+      ALLOCATE( DQVDTMST0a( IIPAR, JJPAR, LLPAR ), STAT=AS )
+      IF ( AS /= 0 ) CALL ALLOC_ERR( 'DQVDTMST0a' )
+      DQVDTMST0a = 0d0
+
+      ALLOCATE( DQVDTMST0b( IIPAR, JJPAR, LLPAR ), STAT=AS )
+      IF ( AS /= 0 ) CALL ALLOC_ERR( 'DQVDTMST0b' )
+      DQVDTMST0b= 0d0
+
+
+      ALLOCATE( DTRAIN0( IIPAR, JJPAR, LLPAR ), STAT=AS )
+      IF ( AS /= 0 ) CALL ALLOC_ERR( 'DTRAIN0' )
+      DTRAIN0 = 0d0
+
+      ALLOCATE( DTRAIN0a( IIPAR, JJPAR, LLPAR ), STAT=AS )
+      IF ( AS /= 0 ) CALL ALLOC_ERR( 'DTRAIN0a' )
+      DTRAIN0a = 0d0
+
+      ALLOCATE( DTRAIN0b( IIPAR, JJPAR, LLPAR ), STAT=AS )
+      IF ( AS /= 0 ) CALL ALLOC_ERR( 'DTRAIN0b' )
+      DTRAIN0b = 0d0
+
+
+      ALLOCATE( PV0( IIPAR, JJPAR, LLPAR ), STAT=AS )
+      IF ( AS /= 0 ) CALL ALLOC_ERR( 'PV0' )
+      PV0 = 0d0
+
+      ALLOCATE( PV0a( IIPAR, JJPAR, LLPAR ), STAT=AS )
+      IF ( AS /= 0 ) CALL ALLOC_ERR( 'PV0a' )
+      PV0a = 0d0
+
+      ALLOCATE( PV0b( IIPAR, JJPAR, LLPAR ), STAT=AS )
+      IF ( AS /= 0 ) CALL ALLOC_ERR( 'PV0b' )
+      PV0b = 0d0
+
+
+      ALLOCATE( QI0( IIPAR, JJPAR, LLPAR ), STAT=AS )
+      IF ( AS /= 0 ) CALL ALLOC_ERR( 'QI0' )
+      QI0 = 0d0
+
+      ALLOCATE( QI0a(IIPAR, JJPAR, LLPAR ), STAT=AS )
+      IF ( AS /= 0 ) CALL ALLOC_ERR( 'QI0a' )
+      QI0a = 0.d0
+
+      ALLOCATE( QI0b( IIPAR, JJPAR, LLPAR ), STAT=AS )
+      IF ( AS /= 0 ) CALL ALLOC_ERR( 'QI0b' )
+      QI0b = 0.d0
+
+      ALLOCATE( QL0( IIPAR, JJPAR, LLPAR ), STAT=AS )
+      IF ( AS /= 0 ) CALL ALLOC_ERR( 'QL0' )
+      QL0 = 0d0
+
+      ALLOCATE( QL0a( IIPAR, JJPAR, LLPAR ), STAT=AS )
+      IF ( AS /= 0 ) CALL ALLOC_ERR( 'QL0a' )
+      QL0a = 0d0
+
+      ALLOCATE( QL0b(IIPAR, JJPAR, LLPAR ), STAT=AS )
+      IF ( AS /= 0 ) CALL ALLOC_ERR( 'QL0b' )
+      QL0b = 0d0
+
+
+      ALLOCATE( TAUCLI0( IIPAR, JJPAR, LLPAR ), STAT=AS )
+      IF ( AS /= 0 ) CALL ALLOC_ERR( 'TAUCLI0' )
+      TAUCLI0 = 0d0
+
+      ALLOCATE( TAUCLI0a( IIPAR, JJPAR, LLPAR ), STAT=AS )
+      IF ( AS /= 0 ) CALL ALLOC_ERR( 'TAUCLI0a' )
+      TAUCLI0a = 0d0
+
+      ALLOCATE( TAUCLI0b( IIPAR, JJPAR, LLPAR ), STAT=AS )
+      IF ( AS /= 0 ) CALL ALLOC_ERR( 'TAUCLI0b' )
+      TAUCLI0b = 0d0
+
+
+      ALLOCATE( TAUCLW0( IIPAR, JJPAR, LLPAR ), STAT=AS )
+      IF ( AS /= 0 ) CALL ALLOC_ERR( 'TAUCLW0' )
+      TAUCLW0 = 0d0
+
+      ALLOCATE( TAUCLW0a( IIPAR, JJPAR, LLPAR ), STAT=AS )
+      IF ( AS /= 0 ) CALL ALLOC_ERR( 'TAUCLW0a' )
+      TAUCLW0a = 0d0
+
+      ALLOCATE( TAUCLW0b( IIPAR, JJPAR, LLPAR ), STAT=AS )
+      IF ( AS /= 0 ) CALL ALLOC_ERR( 'TAUCLW0b' )
+      TAUCLW0b = 0d0
+
+#endif
+
       END SUBROUTINE INIT_DAO_GEOS57
 !EOC
 !------------------------------------------------------------------------------
@@ -5143,6 +5305,168 @@
       IF ( AS /= 0 ) CALL ALLOC_ERR( 'RH2' )
       RH2 = 0d0
 
+#if   defined( APM )
+
+      !-----------------------------------------------------------------
+      ! MERRA fields for APM microphysics code
+      !-----------------------------------------------------------------
+
+      ALLOCATE( CMFMC0( IIPAR, JJPAR, LLPAR+1 ), STAT=AS )
+      IF ( AS /= 0 ) CALL ALLOC_ERR( 'CMFMC0' )
+      CMFMC0 = 0d0
+
+      ALLOCATE( CMFMC0a( IIPAR, JJPAR, LLPAR+1 ), STAT=AS )
+      IF ( AS /= 0 ) CALL ALLOC_ERR( 'CMFMC0a' )
+      CMFMC0a = 0d0
+
+      ALLOCATE( CMFMC0b( IIPAR, JJPAR, LLPAR+1 ), STAT=AS )
+      IF ( AS /= 0 ) CALL ALLOC_ERR( 'CMFMC0b' )
+      CMFMC0b = 0d0
+
+
+      ALLOCATE( DQIDTMST0( IIPAR, JJPAR, LLPAR ), STAT=AS )
+      IF ( AS /= 0 ) CALL ALLOC_ERR( 'DQIDTMST0' )
+      DQIDTMST0 = 0d0
+
+      ALLOCATE( DQIDTMST0a( IIPAR, JJPAR, LLPAR ), STAT=AS )
+      IF ( AS /= 0 ) CALL ALLOC_ERR( 'DQIDTMST0a' )
+      DQIDTMST0a = 0d0
+
+      ALLOCATE( DQIDTMST0b( IIPAR, JJPAR, LLPAR ), STAT=AS )
+      IF ( AS /= 0 ) CALL ALLOC_ERR( 'DQIDTMST0b' )
+      DQIDTMST0b = 0d0
+
+
+      ALLOCATE( DQLDTMST0( IIPAR, JJPAR, LLPAR ), STAT=AS )
+      IF ( AS /= 0 ) CALL ALLOC_ERR( 'DQLDTMST0' )
+      DQLDTMST0 = 0d0
+
+      ALLOCATE( DQLDTMST0a( IIPAR, JJPAR, LLPAR ), STAT=AS )
+      IF ( AS /= 0 ) CALL ALLOC_ERR( 'DQLDTMST0a' )
+      DQLDTMST0a = 0d0
+
+      ALLOCATE( DQLDTMST0b( IIPAR, JJPAR, LLPAR ), STAT=AS )
+      IF ( AS /= 0 ) CALL ALLOC_ERR( 'DQLDTMST0b' )
+      DQLDTMST0b = 0d0
+
+
+      ALLOCATE( DQRCON0( IIPAR, JJPAR, LLPAR ), STAT=AS )
+      IF ( AS /= 0 ) CALL ALLOC_ERR( 'DQRCON0' )
+      DQRCON0 = 0.d0
+
+      ALLOCATE( DQRCON0a( IIPAR, JJPAR, LLPAR ), STAT=AS )
+      IF ( AS /= 0 ) CALL ALLOC_ERR( 'DQRCON0a' )
+      DQRCON0a = 0.d0
+
+      ALLOCATE( DQRCON0b( IIPAR, JJPAR, LLPAR ), STAT=AS )
+      IF ( AS /= 0 ) CALL ALLOC_ERR( 'DQRCON0b' )
+      DQRCON0b = 0.d0
+
+
+      ALLOCATE( DQRLSC0(IIPAR, JJPAR, LLPAR ), STAT=AS )
+      IF ( AS /= 0 ) CALL ALLOC_ERR( 'DQRLSC0' )
+      DQRLSC0 = 0.d0
+
+      ALLOCATE( DQRLSC0a(IIPAR, JJPAR, LLPAR ), STAT=AS )
+      IF ( AS /= 0 ) CALL ALLOC_ERR( 'DQRLSC0a' )
+      DQRLSC0a = 0.d0
+
+      ALLOCATE( DQRLSC0b(IIPAR, JJPAR, LLPAR ), STAT=AS )
+      IF ( AS /= 0 ) CALL ALLOC_ERR( 'DQRLSC0b' )
+      DQRLSC0b = 0.d0
+
+
+      ALLOCATE( DQVDTMST0( IIPAR, JJPAR, LLPAR ), STAT=AS )
+      IF ( AS /= 0 ) CALL ALLOC_ERR( 'DQVDTMST0' )
+      DQVDTMST0 = 0d0
+
+      ALLOCATE( DQVDTMST0a( IIPAR, JJPAR, LLPAR ), STAT=AS )
+      IF ( AS /= 0 ) CALL ALLOC_ERR( 'DQVDTMST0a' )
+      DQVDTMST0a = 0d0
+
+      ALLOCATE( DQVDTMST0b( IIPAR, JJPAR, LLPAR ), STAT=AS )
+      IF ( AS /= 0 ) CALL ALLOC_ERR( 'DQVDTMST0b' )
+      DQVDTMST0b= 0d0
+
+
+      ALLOCATE( DTRAIN0( IIPAR, JJPAR, LLPAR ), STAT=AS )
+      IF ( AS /= 0 ) CALL ALLOC_ERR( 'DTRAIN0' )
+      DTRAIN0 = 0d0
+
+      ALLOCATE( DTRAIN0a( IIPAR, JJPAR, LLPAR ), STAT=AS )
+      IF ( AS /= 0 ) CALL ALLOC_ERR( 'DTRAIN0a' )
+      DTRAIN0a = 0d0
+
+      ALLOCATE( DTRAIN0b( IIPAR, JJPAR, LLPAR ), STAT=AS )
+      IF ( AS /= 0 ) CALL ALLOC_ERR( 'DTRAIN0b' )
+      DTRAIN0b = 0d0
+
+
+      ALLOCATE( PV0( IIPAR, JJPAR, LLPAR ), STAT=AS )
+      IF ( AS /= 0 ) CALL ALLOC_ERR( 'PV0' )
+      PV0 = 0d0
+
+      ALLOCATE( PV0a( IIPAR, JJPAR, LLPAR ), STAT=AS )
+      IF ( AS /= 0 ) CALL ALLOC_ERR( 'PV0a' )
+      PV0a = 0d0
+
+      ALLOCATE( PV0b( IIPAR, JJPAR, LLPAR ), STAT=AS )
+      IF ( AS /= 0 ) CALL ALLOC_ERR( 'PV0b' )
+      PV0b = 0d0
+
+
+      ALLOCATE( QI0( IIPAR, JJPAR, LLPAR ), STAT=AS )
+      IF ( AS /= 0 ) CALL ALLOC_ERR( 'QI0' )
+      QI0 = 0d0
+
+      ALLOCATE( QI0a(IIPAR, JJPAR, LLPAR ), STAT=AS )
+      IF ( AS /= 0 ) CALL ALLOC_ERR( 'QI0a' )
+      QI0a = 0.d0
+
+      ALLOCATE( QI0b( IIPAR, JJPAR, LLPAR ), STAT=AS )
+      IF ( AS /= 0 ) CALL ALLOC_ERR( 'QI0b' )
+      QI0b = 0.d0
+
+      ALLOCATE( QL0( IIPAR, JJPAR, LLPAR ), STAT=AS )
+      IF ( AS /= 0 ) CALL ALLOC_ERR( 'QL0' )
+      QL0 = 0d0
+
+      ALLOCATE( QL0a( IIPAR, JJPAR, LLPAR ), STAT=AS )
+      IF ( AS /= 0 ) CALL ALLOC_ERR( 'QL0a' )
+      QL0a = 0d0
+
+      ALLOCATE( QL0b(IIPAR, JJPAR, LLPAR ), STAT=AS )
+      IF ( AS /= 0 ) CALL ALLOC_ERR( 'QL0b' )
+      QL0b = 0d0
+
+
+      ALLOCATE( TAUCLI0( IIPAR, JJPAR, LLPAR ), STAT=AS )
+      IF ( AS /= 0 ) CALL ALLOC_ERR( 'TAUCLI0' )
+      TAUCLI0 = 0d0
+
+      ALLOCATE( TAUCLI0a( IIPAR, JJPAR, LLPAR ), STAT=AS )
+      IF ( AS /= 0 ) CALL ALLOC_ERR( 'TAUCLI0a' )
+      TAUCLI0a = 0d0
+
+      ALLOCATE( TAUCLI0b( IIPAR, JJPAR, LLPAR ), STAT=AS )
+      IF ( AS /= 0 ) CALL ALLOC_ERR( 'TAUCLI0b' )
+      TAUCLI0b = 0d0
+
+
+      ALLOCATE( TAUCLW0( IIPAR, JJPAR, LLPAR ), STAT=AS )
+      IF ( AS /= 0 ) CALL ALLOC_ERR( 'TAUCLW0' )
+      TAUCLW0 = 0d0
+
+      ALLOCATE( TAUCLW0a( IIPAR, JJPAR, LLPAR ), STAT=AS )
+      IF ( AS /= 0 ) CALL ALLOC_ERR( 'TAUCLW0a' )
+      TAUCLW0a = 0d0
+
+      ALLOCATE( TAUCLW0b( IIPAR, JJPAR, LLPAR ), STAT=AS )
+      IF ( AS /= 0 ) CALL ALLOC_ERR( 'TAUCLW0b' )
+      TAUCLW0b = 0d0
+
+#endif
+
       END SUBROUTINE INIT_DAO_MERRA
 !EOC
 !------------------------------------------------------------------------------
@@ -5482,486 +5806,6 @@
       CALL INIT_DAO_DERIVED()
 
       END SUBROUTINE INIT_DAO
-
-!===========================================================================
-!===========================================================================
-!===========================================================================
-!===========================================================================
-
-
-
-
-      END SUBROUTINE INIT_DAO_GEOS5
-!EOC
-!------------------------------------------------------------------------------
-!          Harvard University Atmospheric Chemistry Modeling Group            !
-!------------------------------------------------------------------------------
-!BOP
-!
-! !IROUTINE: init_dao_geos5
-!
-! !DESCRIPTION: Subroutine INIT\_DAO\_GEOS5 allocates memory to arrays
-!  that are common to all met-field data products.
-!\\
-!\\
-! !INTERFACE:
-!
-      SUBROUTINE INIT_DAO_MERRA
-!
-! !USES:
-!
-      USE ERROR_MOD,   ONLY : ALLOC_ERR
-      USE LOGICAL_MOD, ONLY : LWETD, LDRYD, LCHEM
-      USE TRACER_MOD,  ONLY : ITS_AN_AEROSOL_SIM, ITS_A_FULLCHEM_SIM
-!
-! !REVISION HISTORY: 
-!  15 Feb 2011 - R. Yantosca - Initial version
-!EOP
-!------------------------------------------------------------------------------
-!BOC
-!
-! !LOCAL VARIABLES:
-!
-      ! Local variables
-      INTEGER :: AS
-
-      !=================================================================
-      ! INIT_DAO_MERRA begins here!
-      !=================================================================
-
-      ! Land/water flags
-      ALLOCATE( LWI( IIPAR, JJPAR ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'LWI' )
-      LWI = 0
-
-      ! Snow depth for all other met fields
-      ALLOCATE( SNOW( IIPAR, JJPAR ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'SNOW' )
-      SNOW = 0d0
-
-      ! TROPP1 is only defined for GEOS-3, GEOS-4, or GCAP
-      ALLOCATE( TROPP1( IIPAR, JJPAR ), STAT=AS ) 
-      IF ( AS /= 0 ) C ALL ALLOC_ERR( 'TROPP1' )
-      TROPP1 = 0d0
-
-      ! TROPP2 is only defined for GEOS-3, GEOS-4, or GCAP
-      ALLOCATE( TROPP2( IIPAR, JJPAR ), STAT=AS ) 
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'TROPP2' )
-      TROPP2 = 0d0
-
-      ! GEOS-5 cloud mass flux
-      ALLOCATE( CMFMC( IIPAR, JJPAR, LLPAR+1 ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'CMFMC' )
-      CMFMC = 0d0
-
-      ! GEOS-5 tendency of ice in moist processes
-      ALLOCATE( DQIDTMST( IIPAR, JJPAR, LLPAR ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'DQIDTMST' )
-      DQIDTMST = 0d0
-
-      ! GEOS-5 tendency of ice in moist processes
-      ALLOCATE( DQLDTMST( IIPAR, JJPAR, LLPAR ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'DQLDTMST' )
-      DQLDTMST = 0d0
-
-      ! GEOS-5 tendency of ice in moist processes
-      ALLOCATE( DQVDTMST( IIPAR, JJPAR, LLPAR ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'DQVDTMST' )
-      DQVDTMST = 0d0
-
-      ! GEOS-5 detrainment
-      ALLOCATE( DTRAIN( IIPAR, JJPAR, LLPAR ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'DTRAIN' )
-      DTRAIN = 0d0
-
-      ! Latent heat flux
-      ALLOCATE( EFLUX( IIPAR, JJPAR ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'EFLUX' )
-      EFLUX = 0d0
-
-      ! GEOS-5 evapotranspiration flux
-      ALLOCATE( EVAP( IIPAR, JJPAR ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'EVAP' )
-      EVAP = 0d0
-
-      ! Fraction of grid box that is land
-      ALLOCATE( FRLAND( IIPAR, JJPAR ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'FRLAND' )
-      FRLAND = 0d0
-
-      ! Fraction of grid box that is lakes
-      ALLOCATE( FRLAKE( IIPAR, JJPAR ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'FRLAKE' )
-      FRLAKE = 0d0
-
-      ! Fraction of grid box that is ocean
-      ALLOCATE( FROCEAN( IIPAR, JJPAR ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'FROCEAN' )
-      FROCEAN = 0d0
-
-      ! Fraction of grid box that is land ice
-      ALLOCATE( FRLANDIC( IIPAR, JJPAR ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'FRLANDIC' )
-      FRLANDIC = 0d0
-
-      ! GEOS-5 greenness index
-      ALLOCATE( GRN( IIPAR, JJPAR ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'GRN' )
-      GRN = 0d0
-
-      ! GEOS-5 root soil moisture
-      ALLOCATE( GWETROOT( IIPAR, JJPAR ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'GWETROOT' )
-      GWETROOT = 0d0
-
-      ! GEOS-5 root soil moisture
-      ALLOCATE( LAI( IIPAR, JJPAR ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'LAI' )
-      LAI = 0d0
-
-      ! GEOS-5 "snow" (i.e. frozen) precipitation
-      ALLOCATE( PRECSNO( IIPAR, JJPAR ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'PRECSNO' )
-      PRECSNO = 0d0
-
-      ! GEOS-5 potential vorticity
-      ALLOCATE( PV( IIPAR, JJPAR, LLPAR ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'PV' )
-      PV = 0d0
-
-      ! GEOS-5 ice mixing ratio
-      ALLOCATE( QI( IIPAR, JJPAR, LLPAR ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'QI' )
-      QI = 0d0
-
-      ! GEOS-5 ice mixing ratio
-      ALLOCATE( QL( IIPAR, JJPAR, LLPAR ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'QL' )
-      QL = 0d0
-
-      ! GEOS-5 snow depth (H2O equiv)
-      ALLOCATE( SNOMAS( IIPAR, JJPAR ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'SNOMAS' )
-      SNOMAS = 0d0
-
-      ! GEOS-5 snow depth (geometric)
-      ALLOCATE( SNODP( IIPAR, JJPAR ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'SNODP' )
-      SNODP = 0d0
-
-      ! GEOS-5 ice path optical depth
-      ALLOCATE( TAUCLI( IIPAR, JJPAR, LLPAR ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'TAUCLI' )
-      TAUCLI = 0d0
-
-      ! GEOS-5 water path optical depth
-      ALLOCATE( TAUCLW( IIPAR, JJPAR, LLPAR ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'TAUCLW' )
-      TAUCLW = 0d0
-
-      ! GEOS-5 total column ozone at beginning of 6hr timestep
-      ALLOCATE( TO31( IIPAR, JJPAR ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'TO31' )
-      TO31 = 0d0
-
-      ! GEOS-5 total column ozone at end of 6hr timestep
-      ALLOCATE( TO32( IIPAR, JJPAR ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'TO32' )
-      TO32 = 0d0
-
-      ! GEOS-5 total column ozone
-      ALLOCATE( TO3( IIPAR, JJPAR ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'TO3' )
-      TO3 = 0d0
-
-      ! GEOS-5 total trop column ozone
-      ALLOCATE( TTO3( IIPAR, JJPAR ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'TTO3' )
-      TTO3 = 0d0
-
-      ! Precipitation production rate -- convective
-      ALLOCATE( DQRCU( IIPAR, JJPAR, LLPAR ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'DQRCU' )
-      DQRCU = 0d0
-
-      ! Precipitation production rate -- LS + anvil
-      ALLOCATE( DQRLSAN( IIPAR, JJPAR, LLPAR ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'DQRLSAN' )
-      DQRLSAN = 0d0
-
-      ! Fraction of grid box that is land ice
-      ALLOCATE( FRSEAICE( IIPAR, JJPAR ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'FRSEAICE' )
-      FRSEAICE = 0d0
-
-      ! Fraction of grid box that is snow
-      ALLOCATE( FRSNO( IIPAR, JJPAR ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'FRSNO' )
-      FRSNO = 0d0
-
-      ! Downward flux of ice precipitation -- convective
-      ALLOCATE( PFICU( IIPAR, JJPAR, LLPAR ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'PFICU' )
-      PFICU = 0d0
-
-      ! Downward flux of ice precipitation -- LS + anvil
-      ALLOCATE( PFILSAN( IIPAR, JJPAR, LLPAR ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'PFILSAN' )
-      PFILSAN = 0d0
-
-      ! Downward flux of liquid precipitation -- convective
-      ALLOCATE( PFLCU( IIPAR, JJPAR, LLPAR ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'PFLCU' )
-      PFLCU = 0d0
-
-      ! Downward flux of liquid precipitation -- LS + anvil
-      ALLOCATE( PFLLSAN( IIPAR, JJPAR, LLPAR ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'PFILSAN' )
-      PFLLSAN = 0d0
-
-      ! Surface precipitation flux from anvils
-      ALLOCATE( PREANV( IIPAR, JJPAR ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'PREANV' )
-      PREANV = 0d0
-
-      ! Surface precipitation flux from large-scale
-      ALLOCATE( PRELSC( IIPAR, JJPAR ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'PRELSC' )
-      PRELSC = 0d0
-
-      ! RH at current 3-hr timestep
-      ALLOCATE( RH1( IIPAR, JJPAR, LLPAR ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'RH1' )
-      RH1 = 0d0
-
-      ! RH at next 3-hr timestep
-      ALLOCATE( RH2( IIPAR, JJPAR, LLPAR ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'RH2' )
-      RH2 = 0d0
-
-      ! Evaporation of precipitating convective condensate
-      ALLOCATE( REEVAPCN( IIPAR, JJPAR, LLPAR ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'REEVAPCN' )
-      REEVAPCN = 0d0
-
-      ! Evaporation of precipitating LS & anvil condensate
-      ALLOCATE( REEVAPLS( IIPAR, JJPAR, LLPAR ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'REEVAPLS' )
-      REEVAPLS = 0d0
-
-      ! 0-10% sea ice coverage
-      ALLOCATE( SEAICE00( IIPAR, JJPAR ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'SEAICE00' )
-      SEAICE00 = 0d0
-
-      ! 10-20% sea ice coverage
-      ALLOCATE( SEAICE10( IIPAR, JJPAR ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'SEAICE10' )
-      SEAICE10 = 0d0
-
-      ! 20-30% sea ice coverage
-      ALLOCATE( SEAICE20( IIPAR, JJPAR ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'SEAICE20' )
-      SEAICE20 = 0d0
-
-      ! 30-40% sea ice coverage
-      ALLOCATE( SEAICE30( IIPAR, JJPAR ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'SEAICE30' )
-      SEAICE30 = 0d0
-
-      ! 40-50% sea ice coverage
-      ALLOCATE( SEAICE40( IIPAR, JJPAR ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'SEAICE40' )
-      SEAICE40 = 0d0
-
-      ! 50-60% sea ice coverage
-      ALLOCATE( SEAICE50( IIPAR, JJPAR ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'SEAICE50' )
-      SEAICE50 = 0d0
-
-      ! 60-70% sea ice coverage
-      ALLOCATE( SEAICE60( IIPAR, JJPAR ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'SEAICE60' )
-      SEAICE60 = 0d0
-
-      ! 70-80% sea ice coverage
-      ALLOCATE( SEAICE70( IIPAR, JJPAR ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'SEAICE70' )
-      SEAICE70 = 0d0
-
-      ! 80-90 sea ice coverage
-      ALLOCATE( SEAICE80( IIPAR, JJPAR ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'SEAICE80' )
-      SEAICE80 = 0d0
-
-      ! 90-100% sea ice coverage
-      ALLOCATE( SEAICE90( IIPAR, JJPAR ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'SEAICE90' )
-      SEAICE90 = 0d0
-
-#if   defined( APM )
-
-      !-----------------------------------------------------------------
-      ! MERRA fields for APM microphysics code
-      !-----------------------------------------------------------------
-
-      ALLOCATE( CMFMC0( IIPAR, JJPAR, LLPAR+1 ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'CMFMC0' )
-      CMFMC0 = 0d0
-
-      ALLOCATE( CMFMC0a( IIPAR, JJPAR, LLPAR+1 ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'CMFMC0a' )
-      CMFMC0a = 0d0
-
-      ALLOCATE( CMFMC0b( IIPAR, JJPAR, LLPAR+1 ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'CMFMC0b' )
-      CMFMC0b = 0d0
-
-
-      ALLOCATE( DQIDTMST0( IIPAR, JJPAR, LLPAR ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'DQIDTMST0' )
-      DQIDTMST0 = 0d0
-
-      ALLOCATE( DQIDTMST0a( IIPAR, JJPAR, LLPAR ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'DQIDTMST0a' )
-      DQIDTMST0a = 0d0
-
-      ALLOCATE( DQIDTMST0b( IIPAR, JJPAR, LLPAR ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'DQIDTMST0b' )
-      DQIDTMST0b = 0d0
-
-
-      ALLOCATE( DQLDTMST0( IIPAR, JJPAR, LLPAR ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'DQLDTMST0' )
-      DQLDTMST0 = 0d0
-
-      ALLOCATE( DQLDTMST0a( IIPAR, JJPAR, LLPAR ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'DQLDTMST0a' )
-      DQLDTMST0a = 0d0
-
-      ALLOCATE( DQLDTMST0b( IIPAR, JJPAR, LLPAR ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'DQLDTMST0b' )
-      DQLDTMST0b = 0d0
-
-
-      ALLOCATE( DQRCON0( IIPAR, JJPAR, LLPAR ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'DQRCON0' )
-      DQRCON0 = 0.d0
-
-      ALLOCATE( DQRCON0a( IIPAR, JJPAR, LLPAR ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'DQRCON0a' )
-      DQRCON0a = 0.d0
-
-      ALLOCATE( DQRCON0b( IIPAR, JJPAR, LLPAR ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'DQRCON0b' )
-      DQRCON0b = 0.d0
-
-
-      ALLOCATE( DQRLSC0(IIPAR, JJPAR, LLPAR ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'DQRLSC0' )
-      DQRLSC0 = 0.d0
-
-      ALLOCATE( DQRLSC0a(IIPAR, JJPAR, LLPAR ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'DQRLSC0a' )
-      DQRLSC0a = 0.d0
-
-      ALLOCATE( DQRLSC0b(IIPAR, JJPAR, LLPAR ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'DQRLSC0b' )
-      DQRLSC0b = 0.d0
-
-
-      ALLOCATE( DQVDTMST0( IIPAR, JJPAR, LLPAR ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'DQVDTMST0' )
-      DQVDTMST0 = 0d0
-
-      ALLOCATE( DQVDTMST0a( IIPAR, JJPAR, LLPAR ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'DQVDTMST0a' )
-      DQVDTMST0a = 0d0
-
-      ALLOCATE( DQVDTMST0b( IIPAR, JJPAR, LLPAR ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'DQVDTMST0b' )
-      DQVDTMST0b= 0d0
-
-
-      ALLOCATE( DTRAIN0( IIPAR, JJPAR, LLPAR ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'DTRAIN0' )
-      DTRAIN0 = 0d0
-
-      ALLOCATE( DTRAIN0a( IIPAR, JJPAR, LLPAR ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'DTRAIN0a' )
-      DTRAIN0a = 0d0
-
-      ALLOCATE( DTRAIN0b( IIPAR, JJPAR, LLPAR ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'DTRAIN0b' )
-      DTRAIN0b = 0d0
-
-
-      ALLOCATE( PV0( IIPAR, JJPAR, LLPAR ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'PV0' )
-      PV0 = 0d0
-
-      ALLOCATE( PV0a( IIPAR, JJPAR, LLPAR ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'PV0a' )
-      PV0a = 0d0
-
-      ALLOCATE( PV0b( IIPAR, JJPAR, LLPAR ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'PV0b' )
-      PV0b = 0d0
-
-
-      ALLOCATE( QI0( IIPAR, JJPAR, LLPAR ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'QI0' )
-      QI0 = 0d0
-
-      ALLOCATE( QI0a(IIPAR, JJPAR, LLPAR ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'QI0a' )
-      QI0a = 0.d0
-
-      ALLOCATE( QI0b( IIPAR, JJPAR, LLPAR ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'QI0b' )
-      QI0b = 0.d0
-
-      ALLOCATE( QL0( IIPAR, JJPAR, LLPAR ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'QL0' )
-      QL0 = 0d0
-
-      ALLOCATE( QL0a( IIPAR, JJPAR, LLPAR ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'QL0a' )
-      QL0a = 0d0
-
-      ALLOCATE( QL0b(IIPAR, JJPAR, LLPAR ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'QL0b' )
-      QL0b = 0d0
-
-
-      ALLOCATE( TAUCLI0( IIPAR, JJPAR, LLPAR ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'TAUCLI0' )
-      TAUCLI0 = 0d0
-
-      ALLOCATE( TAUCLI0a( IIPAR, JJPAR, LLPAR ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'TAUCLI0a' )
-      TAUCLI0a = 0d0
-
-      ALLOCATE( TAUCLI0b( IIPAR, JJPAR, LLPAR ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'TAUCLI0b' )
-      TAUCLI0b = 0d0
-
-
-      ALLOCATE( TAUCLW0( IIPAR, JJPAR, LLPAR ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'TAUCLW0' )
-      TAUCLW0 = 0d0
-
-      ALLOCATE( TAUCLW0a( IIPAR, JJPAR, LLPAR ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'TAUCLW0a' )
-      TAUCLW0a = 0d0
-
-      ALLOCATE( TAUCLW0b( IIPAR, JJPAR, LLPAR ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'TAUCLW0b' )
-      TAUCLW0b = 0d0
-
-#endif
-
-      END SUBROUTINE INIT_DAO_MERRA
 !EOC
 !------------------------------------------------------------------------------
 !          Harvard University Atmospheric Chemistry Modeling Group            !
