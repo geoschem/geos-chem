@@ -389,6 +389,7 @@
 #else
          CALL ERROR_STOP ( 'NNNTRID .NE. NNPAR!',
      &                                     'tracerid_mod,CMN_SIZE' )
+#endif
          ! If you get this error, an appropriate fix is to increase 
          ! either NNNTRID (in tracerid_mod) or NNPAR (in CMN_SIZE) so
          ! they are the same and greater than or equal to the number 
