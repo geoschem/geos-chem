@@ -138,6 +138,9 @@
 !  15 Oct 2010 - R. Yantosca - Now pass H2O2s, SO2s to DO_MERRA_CONVECTION
 !  15 Feb 2011 - R. Yantosca - Add modifications for APM from G. Luo
 !  29 Aug 2011 - R. Yantosca - Bug fix: reposition #if defined(APM) statement
+!  09 Feb 2012 - R. Yantosca - For GEOS-5.7, PFICU and PFLCU fields are
+!                              defined on level edges.  Pass the top edge
+!                              of each level to DO_MERRA_CONVECTION
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -218,12 +221,16 @@
       REAL*8             :: AREA_M2, DT
                          
       ! Arrays           
-      REAL*8             :: DIAG14(               LLPAR,   N_TRACERS )
-      REAL*8             :: DIAG38(               LLPAR,   N_TRACERS )
-      REAL*8             :: F     (               LLPAR,   N_TRACERS )
-      REAL*8             :: FSOL  ( IIPAR, JJPAR, LLPAR,   N_TRACERS )
-      INTEGER            :: ISOL  (                        N_TRACERS )
-      REAL*8             :: PEDGE (               LLPAR+1            )
+      REAL*8             :: DIAG14 (               LLPAR,   N_TRACERS )
+      REAL*8             :: DIAG38 (               LLPAR,   N_TRACERS )
+      REAL*8             :: F      (               LLPAR,   N_TRACERS )
+      REAL*8             :: FSOL   ( IIPAR, JJPAR, LLPAR,   N_TRACERS )
+      INTEGER            :: ISOL   (                        N_TRACERS )
+      REAL*8             :: PEDGE  (               LLPAR+1            )
+
+      ! Pointers
+      REAL*8             :: T_PFICU(               LLPAR              )
+      REAL*8             :: T_PFLCU(               LLPAR              )
 
       ! Parameters
       LOGICAL, PARAMETER :: FIRST = .TRUE.
@@ -274,6 +281,7 @@
 !$OMP+DEFAULT( SHARED )
 !$OMP+PRIVATE( J, AREA_M2, I,      IDENT,  L,  PEDGE )
 !$OMP+PRIVATE( N, F,       DIAG14, DIAG38, RC, NN    ) 
+!$OMP+PRIVATE( P
       DO J = 1, JJPAR
 
          ! Grid box surface area [m2]
@@ -306,6 +314,20 @@
          ENDDO
          ENDDO
 
+#if   defined( GEOS_57 )
+
+         ! For GEOS-5.7, PFICU and PFLCU are defined on level edges
+         T_PFICU = PFICU( I, J, 2:LLPAR+1 )
+         T_PFLCU = PFLCU( I, J, 2:LLPAR+1 )
+
+#elif defined( MERRA   )
+
+         ! For MERRA, PFICU and PFLCU are defined on level centers
+         T_PFICU = PFICU( I, J, 1:LLPAR   )
+         T_PFLCU = PFLCU( I, J, 1:LLPAR   )
+
+#endif
+
          !--------------------------
          ! Do the cloud convection
          !--------------------------
@@ -324,8 +346,15 @@
      &                             DQRCU    = DQRCU   (I,J, :        ),
      &                             DTRAIN   = DTRAIN  (I,J, :        ), 
      &                             H2O2s    = H2O2s   (I,J, :        ),
-     &                             PFICU    = PFICU   (I,J, :        ),
-     &                             PFLCU    = PFLCU   (I,J, :        ),
+!----------------------------------------------------------------------------
+! Prior to 2/9/12:
+! Use temporary arrays so that the code will work properly with
+! both MERRA and GEOS-5.7.x met. (bmy, 2/9/12)
+!     &                             PFICU    = PFICU   (I,J, :        ),
+!     &                             PFLCU    = PFLCU   (I,J, :        ),
+!----------------------------------------------------------------------------
+     &                             PFICU    = T_PFICU,
+     &                             PFLCU    = T_PFLCU,
      &                             REEVAPCN = REEVAPCN(I,J, :        ),
      &                             SO2s     = SO2s    (I,J, :        ),
      &                             T        = T       (I,J, :        ),
