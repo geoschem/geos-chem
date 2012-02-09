@@ -67,7 +67,9 @@
 !EOP
 !------------------------------------------------------------------------------
 !BOC
-!      
+!
+! !PRIVATE TYPES:
+!
       ! Scalars
       LOGICAL                        :: DO_SAVE_O3
       INTEGER                        :: NFAM
@@ -79,6 +81,7 @@
       INTEGER,           ALLOCATABLE :: FAM_NMEM(:), COUNT(:,:,:)
       REAL*8,            ALLOCATABLE :: FAM_COEF(:,:)
       REAL*8,            ALLOCATABLE :: PL24H(:,:,:,:)
+      CHARACTER(LEN=14), ALLOCATABLE :: FAM_NAME(:)
       CHARACTER(LEN=14), ALLOCATABLE :: FAM_TYPE(:)
       CHARACTER(LEN=14), ALLOCATABLE :: FAM_MEMB(:,:)
 
@@ -525,15 +528,15 @@
 
             ENDIF        
             
-           !### Debug (FP 6/2009)
-      IF ( LPRT ) THEN
-         CALL DEBUG_MSG( '### SETPL' )
-            WRITE(6,*) NAMEGAS(IFAM(N))
-            WRITE( 6, '(i4,1x,16(a,'':'')))' ) 
-     &           NK, ( TRIM(NAMEGAS(IRM(J,NK,NCS))), J=1,NREAD )
-            WRITE( 6, '(i4,1x,4f4.1,''/'',12f4.1)' ) 
-     &           NK, ( FKOEF(J,NK,NCS), J=1,NREAD )
-      ENDIF
+!           !### Debug (FP 6/2009)
+!      IF ( LPRT ) THEN
+!         CALL DEBUG_MSG( '### SETPL' )
+!            WRITE(6,*) NAMEGAS(IFAM(N))
+!            WRITE( 6, '(i4,1x,16(a,'':'')))' ) 
+!     &           NK, ( TRIM(NAMEGAS(IRM(J,NK,NCS))), J=1,NREAD )
+!            WRITE( 6, '(i4,1x,4f4.1,''/'',12f4.1)' ) 
+!     &           NK, ( FKOEF(J,NK,NCS), J=1,NREAD )
+!      ENDIF
 
          ENDDO             
       ENDDO
@@ -548,7 +551,7 @@
 ! !IROUTINE: do_diag_pl 
 !
 ! !DESCRIPTION: Subroutine DO\_DIAG\_PL saves info on production and loss of 
-!  families into the FAM_PL diagnostic array.
+!  families into the FAM\_PL diagnostic array.
 !\\
 !\\
 ! !INTERFACE:
@@ -1040,7 +1043,7 @@ c 88            format (3I3, 'H2SO4rate (kg/s)',e13.5)
 
       ! If the next chemistry timestep is the hour of day
       ! when we have to save to disk, return TRUE
-      IF ( MOD( HOUR + CHEM, 24d0 ) == 0 ) THEN
+      IF ( HOUR + CHEM >= 24d0 ) THEN
          ITS_TIME = .TRUE.
          TAU_W    = TAU + CHEM
          RETURN
@@ -1178,7 +1181,6 @@ c 88            format (3I3, 'H2SO4rate (kg/s)',e13.5)
 !
 ! !LOCAL VARIABLES:
 !
-      ! Local variables
       INTEGER            :: T
       CHARACTER(LEN=255) :: MSG, PL_NAME, T_NAME 
 
@@ -1237,7 +1239,7 @@ c 88            format (3I3, 'H2SO4rate (kg/s)',e13.5)
 ! !IROUTINE: init_diag_pl 
 !
 ! !DESCRIPTION: Subroutine INIT\_DIAG\_PL takes values read from the GEOS-Chem
-!  input file and saves to module variables w/in "diag65_mod.f" 
+!  input file and saves to module variables w/in "diag\_pl\_mod.f" 
 !\\
 !\\
 ! !INTERFACE:
@@ -1294,7 +1296,7 @@ c 88            format (3I3, 'H2SO4rate (kg/s)',e13.5)
       INTEGER :: AS
  
       !=================================================================
-      ! INIT_DIAG65 begins here!
+      ! INIT_DIAG_PL begins here!
       !=================================================================
 
       ! Turn on prod loss diagnostic?
@@ -1410,7 +1412,7 @@ c 88            format (3I3, 'H2SO4rate (kg/s)',e13.5)
 !  15 Sep 2010 - R. Yantosca - Added ProTeX headers
 !EOP
 !------------------------------------------------------------------------------
-!BOC      
+!BOC
       !=================================================================
       ! CLEANUP_DIAG65 begins here!
       !=================================================================

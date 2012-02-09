@@ -1,4 +1,4 @@
-! $Id: tracerid_mod.f,v 1.2 2010/03/15 19:33:19 ccarouge Exp $
+! $Id: tracerid_mod.f,v 1.3 2010/03/15 19:33:20 ccarouge Exp $
       MODULE TRACERID_MOD
 !
 !******************************************************************************
@@ -183,6 +183,7 @@
 !******************************************************************************
 !
       IMPLICIT NONE
+#     include "define.h"
 
       ! for CTM tracers
       INTEGER, PARAMETER :: NNNTRID  = 320
@@ -343,7 +344,9 @@
       INTEGER            :: IDEGLYC
       INTEGER            :: IDEGLYX, IDEMGLY
       INTEGER            :: IDEHAC
-
+      !%%%%(bmy 4/13/11)
+      INTEGER            :: IDERCHO, IDEHCOOH, IDEACTA       
+      
       ! GEOS-CHEM biofuel ID's
       INTEGER            :: IDBFNOX,  IDBFCO,   IDBFALK4, IDBFACET 
       INTEGER            :: IDBFMEK,  IDBFALD2, IDBFPRPE, IDBFC3H8
@@ -412,9 +415,11 @@
 !  (20) Add definition of IDTSOG5, IDTSOA5, IDTISOPN, PROPNN, 
 !        IDTAP, IDTMOBA, IDTMMN, IDTRIP, IDTIEPOX, IDTMAP, IDTPYPAN
 !        (fp, hotp, 01/10)
-!  (21) Change hard-wired IDEs to dynamically defined IDEs. (fp, hotp, 01/10)
-!  (22) Add IDEMS definitions for new species (fp, hotp, 01/10)
-!  (23) Add writing check on IDs. (hotp, 01/10)
+!  (20) Change hard-wired IDEs to dynamically defined IDEs. (fp, hotp, 01/10)
+!  (21) Add IDEMS definitions for new species (fp, hotp, 01/10)
+!  (22) Add writing check on IDs. (hotp, 01/10)
+!  17 Aug 2011 - R. Yantosca - Print values of 3 extra emission IDExxx flags
+!  22 Aug 2011 - R. Yantosca - Add modifications for APM microphysics (G. Luo)
 !******************************************************************************
 !
       ! References to F90 modules
@@ -1680,50 +1685,21 @@
 
          END SELECT
       ENDDO
-      
-      ! Replace the 'SPECIAL CASE' with the following code to account
-      ! for different tracers in different simulations (hotp 8/5/09)
+
       !=================================================================
-      ! SPECIAL CASE: we need to hardwire the emission flags so that
-      ! they are in the same order as the old emissions code.  The 
-      ! order should be: 1 4 18 19 5 21 9 10 11 20 6.  Think of a 
-      ! better way to implement this later on. (bmy, 12/20/04)
-      ! Added HNO3 and Ox to deal with ship NOx emissions (3/4/08, phs)
+      ! Initialize the IDExxx flags, which denote tracers that
+      ! are emitted.  Remove the old previous hardwiring
+      ! (hotp, bmy, 8/17/11)
       !=================================================================
-!      IF ( ITS_A_FULLCHEM_SIM() ) THEN
-!         NEMANTHRO = 21 !phs - replaces 10
-!         NEMBIOG   = 3
-!         IDENOX    = 1
-!         IDECO     = 2
-!         IDEPRPE   = 3
-!         IDEC3H8   = 4
-!         IDEALK4   = 5
-!         IDEC2H6   = 6
-!         IDEACET   = 7
-!         IDEMEK    = 8
-!         IDEALD2   = 9
-!         IDECH2O   = 10
-!         IDEOX     = 11 !PHS
-!         IDEHNO3   = 12 !PHS
-!         IDEGLYX   = 13
-!         IDEMGLY   = 14
-!         IDEBENZ   = 15
-!         IDETOLU   = 16
-!         IDEXYLE   = 17
-!         IDEC2H4   = 18
-!         IDEC2H2   = 19
-!         IDEGLYC   = 20
-!         IDEHAC    = 21
-!         IDEISOP   = 22
-!         IDEMONX   = 23
-!         IDEMBO    = 24
-!      ENDIF
       IF ( ITS_A_FULLCHEM_SIM() ) THEN
+
          ! Initialize counters
          ! Number of anthro emissions handled in anthroems and SMVGEAR:
          NEMANTHRO = 0
+
          ! Number of additional emissions handled in SMVGEAR:
          NEMBIOG   = 0
+
          ! The first 12 tracers are in the original order and thus
          ! IDEs are the same as listed below
          IF ( IDTNOX > 0 ) THEN
@@ -1795,6 +1771,27 @@
             NEMANTHRO = NEMANTHRO + 1
             IDEC2H2   = NEMANTHRO
          ENDIF
+         
+         !%%%%%%bmy add these here%%%%%%%%%%
+
+         ! For now, comment this out, as RETRO does not have RCHO emissions
+         ! (bmy, 8/17/11)
+	 !IF ( IDTRCHO > 0 ) THEN
+         !   NEMANTHRO = NEMANTHRO + 1
+         !   IDERCHO  = NEMANTHRO
+         !ENDIF
+
+         IF ( IDTHCOOH > 0 ) THEN
+            NEMANTHRO = NEMANTHRO + 1
+            IDEHCOOH  = NEMANTHRO
+         ENDIF
+
+         IF ( IDTACTA > 0 ) THEN
+            NEMANTHRO = NEMANTHRO + 1
+            IDEACTA   = NEMANTHRO
+          ENDIF
+         !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
          ! Now add additional species treated in SMVGEAR that are NOT
          ! anthropogenic, increment NEMBIOG
          ! All non-anthropogenic species should be last (see anthroems.f
@@ -1856,6 +1853,11 @@
       IF ( IDEMONX /= 0 ) IDEMS(IDEMONX) = IDTMONX
       IF ( IDEC2H4 /= 0 ) IDEMS(IDEC2H4) = IDTC2H4
       IF ( IDEC2H2 /= 0 ) IDEMS(IDEC2H2) = IDTC2H2
+      !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+      IF ( IDERCHO /= 0 )  IDEMS(IDERCHO) = IDTRCHO
+      IF ( IDEHCOOH /= 0 ) IDEMS(IDEHCOOH)= IDTHCOOH
+      IF ( IDEACTA /= 0 )  IDEMS(IDEACTA) = IDTACTA
+      !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
       IF ( IDEMBO  /= 0 ) IDEMS(IDEMBO ) = IDTMBO
       IF ( IDEGLYC /= 0 ) IDEMS(IDEGLYC) = IDTGLYC
       IF ( IDEHAC /= 0 )  IDEMS(IDEHAC ) = IDTHAC
@@ -1899,6 +1901,9 @@
        WRITE( 6, 120 ) 'IDEMONX ', IDEMONX
        WRITE( 6, 120 ) 'IDEC2H4 ', IDEC2H4
        WRITE( 6, 120 ) 'IDEC2H2 ', IDEC2H2
+       WRITE( 6, 120 ) 'IDERCHO ', IDERCHO
+       WRITE( 6, 120 ) 'IDEHCOOH', IDEHCOOH
+       WRITE( 6, 120 ) 'IDEACTA ', IDEACTA
        WRITE( 6, 120 ) 'IDEMBO  ', IDEMBO
        WRITE( 6, 120 ) 'IDEGLYC ', IDEGLYC
        WRITE( 6, 120 ) 'IDEHAC  ', IDEHAC
@@ -2719,7 +2724,7 @@
       IDTNK22= 0
       IDTNK23= 0
       IDTNK24= 0
-      IDTNK25= 0
+      IDTNK25= 0}
       IDTNK26= 0
       IDTNK27= 0
       IDTNK28= 0

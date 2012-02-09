@@ -159,6 +159,8 @@
 !  (22) Reference to TRACERID_MOd for IDTDUST1 for calling EMISSDUST (Win, 7/17/09)
 !  18 Dec 2009 - Aaron van D - Added emissions for nested grids @ 0.5 x 0.666
 !  08 Feb 2010 - NBIOMAX is now in CMN_SIZE
+!  07 Feb 2011 - R. Yantosca - Use NEI99 biofuels when useing NEI05 anthro
+!  17 Aug 2011 - R. Yantosca - Added call to RETRO anthro emissions
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -166,8 +168,9 @@
 ! !LOCAL VARIABLES:
 !
       INTEGER                     :: MONTH, YEAR
-      ! BIOMASS not used (hotp 8/3/09)
-      !REAL*8                      :: BIOMASS(IIPAR,JJPAR,NBIOMAX)
+!
+! !DEFINED PARAMETERS:
+!
 
       !=================================================================
       ! DO_EMISSIONS begins here!
@@ -216,14 +219,19 @@
          ENDIF
 
          ! Read RETRO emissions once per month (wfr, 3/8/11)
-         IF ( LRETRO .and. ITS_A_NEW_MONTH() ) CALL EMISS_RETRO
+         IF ( LRETRO .and. ITS_A_NEW_MONTH() ) THEN
+            CALL EMISS_RETRO
+         ENDIF
 
          ! Read EPA/NEI99 (USA) emissions once per month
-         IF ( LNEI99 .and. ITS_A_NEW_MONTH() ) CALL EMISS_EPA_NEI
+         IF ( LNEI99 .and. ITS_A_NEW_MONTH() ) THEN
+            CALL EMISS_EPA_NEI
+         ENDIF
 
          ! Read VISTAS (USA) emissions once per month
-         IF ( LVISTAS .and. ITS_A_NEW_MONTH() ) 
-     &        CALL EMISS_VISTAS_ANTHRO
+         IF ( LVISTAS .and. ITS_A_NEW_MONTH() ) THEN
+            CALL EMISS_VISTAS_ANTHRO
+         ENDIF
 
          ! Read BRAVO (Mexico) emissions once per year
          IF ( LBRAVO .and. ITS_A_NEW_YEAR()  ) CALL EMISS_BRAVO

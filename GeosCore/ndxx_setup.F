@@ -153,7 +153,7 @@
 !  (31) Eliminate obsolete commented-out code (bmy, 4/20/01)
 !  (32) Now also allocate the AD12 diagnostic array (bdf, bmy, 6/15/01)
 !  (33) Now assign TRCOFFSET = 40 for multi-tracer Ox run (when NSRCX = 6 
-!        and LSPLIT = T).  Reference F77_CMN_SETUP for LSPLIT.  Allocate AD44 
+!        and LSPLIT = T).  Reference CMN_SETUP for LSPLIT.  Allocate AD44 
 !        with NTRACE instead of NUMDEP for single or multi-tracer Ox runs 
 !        (NSRCX = 6).  Now define NFAM as NTRACE*2 for single or multi-tracer 
 !        Ox runs.  Updated comments & made cosmetic changes. (bmy, 7/3/01)
@@ -187,7 +187,7 @@
 !  (46) Now allocate AD13_SO2_sh array for ND13 (bec, bmy, 5/20/04)
 !  (47) Now allocate AD07_HC array for ND07 (rjp, bmy, 7/13/04)
 !  (48) Now references "tracer_mod.f" and "logical_mod.f" instead of "CMN"
-!        and "F77_CMN_SETUP".  Now references INIT_DIAG_OH from "diag_oh_mod.f"
+!        and "CMN_SETUP".  Now references INIT_DIAG_OH from "diag_oh_mod.f"
 !        Adjust TRCOFFSET for various aerosol simulations. (bmy, 7/20/04)
 !  (49) Make sure ND21 only goes from 1-LLTROP (bmy, 9/28/04)
 !  (50) Now allocate AD13_SO4_bf array (bmy, 11/17/04)
@@ -226,7 +226,10 @@
 !  (72) Now AD13_SO2_an and AD13_SO4_an have NOXLEVELS levels to accomodate
 !     NEI 2005 (amv, 10/9/09)
 !  (73) AD13_NH3_an is 3D now (phs, 10/22/09)
-!  (74) NBIOMAX is now in F77_CMN_SIZE. (fp, 2/26/10)
+!  (74) Add new diagnostic ND59, ND60, ND61 (win, 7/9/09) 
+!  (75) Increase size for AD44 for TOMAS aerosol mass (win, 7/14/09)
+!  (76) Initialize values for LD59, LD60, and LD61 (win, 8/10/09)
+!  (77) NBIOMAX is now in CMN_SIZE. (fp, 2/26/10)
 !  26 Aug 2010 - R. Yantosca - Added ProTeX headers
 !  16 Feb 2011 - R. Yantosca - Add modifications for APM from G. Luo
 !EOP

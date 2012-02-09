@@ -128,7 +128,7 @@
 !  (10) Now reference IU_CTMCHEM from "file_mod.f".  Assign the value of
 !        IU_CTMCHEM (which =93) to IO93 for SMVGEAR routines.  Also open 
 !        "ctm.chem" file on the first call as file unit # IO93.  Add
-!        references to "F77_CMN_DIAG" and "planeflight_mod.f".  Call routine
+!        references to "CMN_DIAG" and "planeflight_mod.f".  Call routine
 !        SETUP_PLANEFLIGHT to initialize the plane track diagnostic
 !        after reading the "chem.dat" file.  (bmy, 7/2/02)
 !  (11) Now reference AD, T and BXHEIGHT from "dao_mod.f".  Also removed 
@@ -140,7 +140,7 @@
 !  (12) Now reference "AIRVOL" from "dao_mod.f".  Now declare local array
 !        SO4_NH4_NIT, which will contain lumped SO4, NH3, NIT aerosol.  Now
 !        pass SO4_NH4_NIT to "rdaer.f" via the arg list if sulfate chemistry
-!        is turned on.  Now also references F77_CMN_SETUP. (rjp, bmy, 3/23/03)
+!        is turned on.  Now also references CMN_SETUP. (rjp, bmy, 3/23/03)
 !  (13) Removed ITAU from the arg list.  Removed reference to IHOUR.  Now use
 !        functions GET_MONTH, GET_YEAR from "time_mod.f" (bmy, 3/27/03)
 !  (14) Remove KYEAR and TWO_PI, these are now obsolete for SMVGEAR II.  Now 

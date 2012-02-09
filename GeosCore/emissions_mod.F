@@ -157,12 +157,12 @@
 !  (21) Now references EMISS_NEI2005_ANTHRO from "nei2005_anthro_mod.f"
 !        (amv, 10/19/09)
 !  18 Dec 2009 - Aaron van D - Added emissions for nested grids @ 0.5 x 0.666
-!  08 Feb 2010 - NBIOMAX is now in F77_CMN_SIZE
+!  08 Feb 2010 - NBIOMAX is now in CMN_SIZE
 !  07 Feb 2011 - R. Yantosca - Use NEI99 biofuels when useing NEI05 anthro
 !  17 Aug 2011 - R. Yantosca - Added call to RETRO anthro emissions
 !EOP
 !------------------------------------------------------------------------------
-!BOCca
+!BOC
 !
 ! !LOCAL VARIABLES:
 !

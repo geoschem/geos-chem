@@ -157,7 +157,7 @@
 !        steps. (ccc, 7/20/09)
 !  (87) Add diagnostics 19, 58 and 60 for methane. (kjw, 8/18/09)
 !  (88) Account for 3D AD13_NH3_an now (phs, 10/22/09)
-!  (89) NBIOMAX is now in F77_CMN_SIZE (hotp 7/31/09)
+!  (89) NBIOMAX is now in CMN_SIZE (hotp 7/31/09)
 !  (90) Add SOA5 to ND07_HC, add AD57 for potential temperature. (fp, 2/3/10)
 !  (91) Modify ND44 for tracers with several deposition tracers. (ccc, 2/3/10)
 !  (92) Add aromatics to ND43. (dkh, 06/21/07)
@@ -175,7 +175,7 @@
 !  27 May 2011 - R. Yantosca - Now use SCALEDIAG for ND54 (time-in-trop) diag
 !  08 Feb 2012 - R. Yantosca - Add modifications for GEOS-5.7.x met
 !  08 Feb 2012 - R. Yantosca - Restructure USE statements for clarity
-!   8 Feb 2012 - R. Yantosca - Add counter for I3 (inst 3hr) met fields
+!  08 Feb 2012 - R. Yantosca - Add counter for I3 (inst 3hr) met fields
 !EOP
 !------------------------------------------------------------------------------
 !BOC
