@@ -84,6 +84,11 @@
 #  24 Jan 2012 - R. Yantosca - If NETCDF=yes, GEOS-Chem will link and include
 #                              to the netCDF dir paths that are specified
 #  24 Jan 2012 - R. Yantosca - Now use := for makefile assignment statements
+#  10 Feb 2012 - R. Yantosca - When compiling with NETCDF=yes or HDF5=yes,
+#                              we must also add the flags -mcmodel=medium 
+#                              -i-dynamic to FFLAGS in order to avoid memory 
+#                              errors (for IFORT only)
+#  10 Feb 2012 - R. Yantosca - Remove -CU from the DEBUG option (IFORT only)
 #EOP
 #------------------------------------------------------------------------------
 #BOC
@@ -185,7 +190,7 @@ endif
 
 # Pick compiler options for debug run or regular run 
 ifdef DEBUG
-FFLAGS    := -cpp -w -O0 -auto -noalign -convert big_endian -g -CU
+FFLAGS    := -cpp -w -O0 -auto -noalign -convert big_endian -g
 else
 FFLAGS    := -cpp -w -O2 -auto -noalign -convert big_endian -vec-report0
 endif
@@ -232,11 +237,13 @@ INCLUDE   := -I$(HDR) -module $(MOD)
 # Also append HDF5 include commands if necessary
 ifeq ($(HDF5),yes)
 INCLUDE   += -DUSE_HDF5 -I$(H5I)
+FFLAGS    +=  -mcmodel=medium -i-dynamic
 endif
 
 # Also append netCDF include commands if necessary
 ifeq ($(NETCDF),yes)
 INCLUDE   += -DUSE_NETCDF $(NCI)
+FFLAGS    +=  -mcmodel=medium -i-dynamic
 endif
 
 # Also add ESMF linking option

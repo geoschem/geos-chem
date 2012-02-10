@@ -92,6 +92,7 @@
 !  20 Jul 2010 - C. Carouge  - Added GTMM_Hg for mercury simulation.
 !  12 Aug 2010 - R. Yantosca - Added MERRA switch for MERRA reanalysis met
 !  01 Feb 2012 - R. Yantosca - Modify error trap to allow GEOS-5.7.x met
+!  10 Feb 2012 - R. Yantosca - Added GRID025x03125 C-preprocessor switch
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -110,6 +111,7 @@
 #undef GRID2x25  
 #undef GRID1x125
 #undef GRID1x1
+#undef GRID025x03125
 #undef GRID05x0666
 #undef NESTED_NA
 #undef NESTED_CH
@@ -128,30 +130,31 @@
 !==============================================================================
 
 !----- Model types -----
-!#define GCAP        'GCAP'
-!#define GEOS_3      'GEOS_3'
-!#define GEOS_4      'GEOS_4'
-!#define GEOS_5      'GEOS_5'
-!#define MERRA       'MERRA'
-#define GEOS_57    'GEOS_57'
+!#define GCAP          'GCAP'
+!#define GEOS_3        'GEOS_3'
+!#define GEOS_4        'GEOS_4'
+!#define GEOS_5        'GEOS_5'
+!#define MERRA         'MERRA'
+#define GEOS_57       'GEOS_57'
 
 !----- Grid sizes -----
-!#define NESTED_CH   'NESTED_CH'
-!#define NESTED_NA   'NESTED_NA'
-!#define NESTED_EU   'NESTED_EU'
-!#define GRID05x0666 'GRID05x0666'
-!#define GRID1x1     'GRID1x1'
-!#define GRID1x125   'GRID1x125'
-!#define GRID2x25    'GRID2x25'
-#define GRID4x5     'GRID4x5'
-#define GRIDREDUCED 'GRIDREDUCED'
+!#define NESTED_CH     'NESTED_CH'
+!#define NESTED_NA     'NESTED_NA'
+!#define NESTED_EU     'NESTED_EU'
+!#define GRID025x03125 'GRID025x03125'
+!#define GRID05x0666   'GRID05x0666'
+!#define GRID1x1       'GRID1x1'
+!#define GRID1x125     'GRID1x125'
+!#define GRID2x25      'GRID2x25'
+#define GRID4x5       'GRID4x5'
+#define GRIDREDUCED   'GRIDREDUCED'
 
 !----- Compilers -----
-!#define IBM_AIX     'IBM_AIX'
-!#define IBM_XLF     'IBM_XLF'
-!#define LINUX_PGI   'LINUX_PGI'
-#define LINUX_IFORT 'LINUX_IFORT'
-!#define SPARC       'SPARC'
+!#define IBM_AIX       'IBM_AIX'
+!#define IBM_XLF       'IBM_XLF'
+!#define LINUX_PGI     'LINUX_PGI'
+#define LINUX_IFORT   'LINUX_IFORT'
+!#define SPARC         'SPARC'
 
 !----- Simulation type -----
 !#define GTMM_Hg
@@ -167,8 +170,9 @@
 !==============================================================================
 ! Force a compile error if GRID1x1, GRID2x25, and GRID4x5 are all undefined 
 !==============================================================================
-#if !defined(GRID2x25) && !defined(GRID4x5) && !defined(GRID1x125) && !defined(GRID1x1) && !defined(GRID05x0666)
-#error "ERROR: GRID4x5, GRID2x25, GRID1x125, GRID05x0666 and GRID1x1"
+#if !defined(GRID2x25) && !defined(GRID4x5) && !defined(GRID1x125) && !defined(GRID1x1) && !defined(GRID05x0666) && !defined(GRID025x03125)
+#error "ERROR: GRID4x5, GRID2x25, GRID1x125, GRID1x1, "
+#error " GRID05x0666, and GRID025x03125"
 #error "are ALL undefined in header file define.h"
 #endif
 
@@ -181,16 +185,20 @@
 #endif
 
 !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-!%%% SCHEM PATCH: Stop the run if we are running w/ GEOS-5 72-level grid
+!%%% SCHEM PATCH: Stop the run if we are running w/ the GEOS-5 72Ll grid
 !%%% This prevents dimension mismatch when reading SCHEM data fields!
 !%%% (ltm, bmy, 6/2/10)
 #if defined( GEOS_5 ) && !defined( GRIDREDUCED )
 #error "Cannot run GEOS-5 with the full vertical 72 level grid!"
 #error "We are working on a patch to fix this soon!"
 #endif 
-!%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-
-!%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+!%%% SCHEM PATCH: Stop the run if we are running w/ the GEOS-5.7x 72L grid
+!%%% This prevents dimension mismatch when reading SCHEM data fields!
+!%%% (ltm, bmy, 6/2/10)
+#if defined( GEOS_57 ) && !defined( GRIDREDUCED )
+#error "Cannot run GEOS-5.7.x with the full vertical 72 level grid!"
+#error "We are working on a patch to fix this soon!"
+#endif 
 !%%% SCHEM PATCH: Stop the run if we are running w/ MERRA 72-level grid
 !%%% This prevents dimension mismatch when reading SCHEM data fields!
 !%%% (ltm, bmy, 6/2/10)
@@ -199,4 +207,6 @@
 #error "We are working on a patch to fix this soon!"
 #endif 
 !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+
 !EOC

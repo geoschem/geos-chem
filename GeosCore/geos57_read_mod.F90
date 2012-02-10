@@ -48,6 +48,7 @@ MODULE Geos57_Read_Mod
   PRIVATE :: Geos57_Read_A3dyn
   PRIVATE :: Geos57_Read_A3mstC
   PRIVATE :: Geos57_Read_A3mstE
+  PRIVATE :: Get_Resolution_String
 !
 ! !PUBLIC MEMBER FUNCTIONS:
 ! 
@@ -65,10 +66,72 @@ MODULE Geos57_Read_Mod
 !  30 Jan 2012 - R. Yantosca - Initial version
 !  03 Feb 2012 - R. Yantosca - Add Geos57_Read_A3 wrapper function
 !  07 Feb 2012 - R. Yantosca - Now echo info after reading fields from disk
+!  10 Feb 2012 - R. Yantosca - Add function Get_Resolution_String
 !EOP
 !------------------------------------------------------------------------------
 !BOC
 CONTAINS
+!EOC
+!------------------------------------------------------------------------------
+!          Harvard University Atmospheric Chemistry Modeling Group            !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: get_resolution_string
+!
+! !DESCRIPTION: Function Get\_Resolution\_String returns the proper filename 
+!  extension for the GEOS-Chem horizontal grid resolution.  This is used to
+!  construct the various file names.
+!\\
+!\\
+! !INTERFACE:
+!
+  FUNCTION Get_Resolution_String() RESULT( resString )
+!
+! !USES:
+!
+#   include "define.h"
+!
+! !RETURN VALUE:
+!
+    CHARACTER(LEN=255) :: resString
+! 
+! !REVISION HISTORY:
+!  10 Feb 2012 - R. Yantosca - Initial version
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+
+#if   defined( GRID4x5 )
+    resString = '4x5.nc'
+     
+#elif defined( GRID2x25 ) 
+    resString = '2x25.nc'
+
+#elif defined( GRID1x125 )
+    resString = '1x125.nc'
+
+#elif defined( GRID1x1 ) 
+    resString = '1x1.nc'
+
+#elif defined( GRID05x0666 )
+    resString = '05x0666.nc'
+
+#elif defined( GRID025x03125 ) && defined( NESTED_CH )
+    resString = '025x03125.SEA4CRS.nc'
+
+#elif defined( GRID025x03125 ) && defined( NESTED_EU )
+    resString = '025x03125.EU.nc'
+
+#elif defined( GRID025x03125 ) && defined( NESTED_NA )
+    resString = '025x03125.NA.nc'
+
+#elif defined( GRID025x03125 )
+    resString = '025x03125.nc'
+
+#endif
+
+  END FUNCTION Get_Resolution_String
 !EOC
 !------------------------------------------------------------------------------
 !          Harvard University Atmospheric Chemistry Modeling Group            !
@@ -193,6 +256,7 @@ CONTAINS
 ! !REVISION HISTORY:
 !  30 Jan 2012 - R. Yantosca - Initial version
 !  07 Feb 2012 - R. Yantosca - Now echo info after reading fields from disk
+!  10 Feb 2012 - R. Yantosca - Now get a string for the model resolution
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -227,7 +291,8 @@ CONTAINS
     CALL Expand_Date( dir, 20110101, 000000 )
 
     ! Replace time & date tokens in the file name
-    nc_file = 'GEOS572.YYYYMMDD.CN.4x5.nc'
+    nc_file = Get_Resolution_String() 
+    nc_file = 'GEOS572.YYYYMMDD.CN.' // TRIM( nc_file ) 
     CALL Expand_Date( nc_file, 20110101, 000000 )
 
     ! Construct complete file path
@@ -397,6 +462,7 @@ CONTAINS
 ! !REVISION HISTORY:
 !  30 Jan 2012 - R. Yantosca - Initial version
 !  07 Feb 2012 - R. Yantosca - Now echo info after reading fields from disk
+!  10 Feb 2012 - R. Yantosca - Now get a string for the model resolution
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -445,7 +511,8 @@ CONTAINS
     CALL Expand_Date( dir, YYYYMMDD, HHMMSS )
 
     ! Replace time & date tokens in the file name
-    nc_file = 'GEOS572.YYYYMMDD.A1.4x5.nc'
+    nc_file = Get_Resolution_String()
+    nc_file = 'GEOS572.YYYYMMDD.A1.' // TRIM( nc_file )
     CALL Expand_Date( nc_file, YYYYMMDD, HHMMSS )
 
     ! Construct complete file path
@@ -877,6 +944,7 @@ CONTAINS
 ! !REVISION HISTORY:
 !  30 Jan 2012 - R. Yantosca - Initial version
 !  07 Feb 2012 - R. Yantosca - Now echo info after reading fields from disk
+!  10 Feb 2012 - R. Yantosca - Now get a string for the model resolution
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -912,7 +980,8 @@ CONTAINS
     CALL EXPAND_DATE( dir, YYYYMMDD, HHMMSS )
 
     ! Replace time & date tokens in the file name
-    nc_file = 'GEOS572.YYYYMMDD.A3cld.4x5.nc'
+    nc_file = Get_Resolution_String()
+    nc_file = 'GEOS572.YYYYMMDD.A3cld.' // TRIM( nc_file )
     CALL EXPAND_DATE( nc_file, YYYYMMDD, HHMMSS )
 
     ! Construct complete file path
@@ -1037,6 +1106,7 @@ CONTAINS
 ! !REVISION HISTORY:
 !  30 Jan 2012 - R. Yantosca - Initial version
 !  07 Feb 2012 - R. Yantosca - Now echo info after reading fields from disk
+!  10 Feb 2012 - R. Yantosca - Now get a string for the model resolution
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -1074,7 +1144,8 @@ CONTAINS
     CALL EXPAND_DATE( dir, YYYYMMDD, HHMMSS )
 
     ! Replace time & date tokens in the file name
-    nc_file = 'GEOS572.YYYYMMDD.A3dyn.4x5.nc'
+    nc_file = Get_Resolution_String()
+    nc_file = 'GEOS572.YYYYMMDD.A3dyn.' // TRIM( nc_file )
     CALL EXPAND_DATE( nc_file, YYYYMMDD, HHMMSS )
 
     ! Construct complete file path
@@ -1235,6 +1306,7 @@ CONTAINS
 ! !REVISION HISTORY:
 !  30 Jan 2012 - R. Yantosca - Initial version
 !  07 Feb 2012 - R. Yantosca - Now echo info after reading fields from disk
+!  10 Feb 2012 - R. Yantosca - Now get a string for the model resolution
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -1271,7 +1343,8 @@ CONTAINS
     CALL EXPAND_DATE( dir, YYYYMMDD, HHMMSS )
 
     ! Replace time & date tokens in the file name
-    nc_file = 'GEOS572.YYYYMMDD.A3mstC.4x5.nc'
+    nc_file = Get_Resolution_String()
+    nc_file = 'GEOS572.YYYYMMDD.A3mstC.' // TRIM( nc_file )
     CALL EXPAND_DATE( nc_file, YYYYMMDD, HHMMSS )
 
     ! Construct complete file path
@@ -1384,6 +1457,7 @@ CONTAINS
 ! !REVISION HISTORY:
 !  30 Jan 2012 - R. Yantosca - Initial version
 !  07 Feb 2012 - R. Yantosca - Now echo info after reading fields from disk
+!  10 Feb 2012 - R. Yantosca - Now get a string for the model resolution
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -1420,7 +1494,8 @@ CONTAINS
     CALL EXPAND_DATE( dir, YYYYMMDD, HHMMSS )
 
     ! Replace time & date tokens in the file name
-    nc_file = 'GEOS572.YYYYMMDD.A3mstE.4x5.nc'
+    nc_file = Get_Resolution_String()
+    nc_file = 'GEOS572.YYYYMMDD.A3mstE.' // TRIM( nc_file )
     CALL EXPAND_DATE( nc_file, YYYYMMDD, HHMMSS )
 
     ! Construct complete file path
@@ -1435,7 +1510,7 @@ CONTAINS
     CALL NcGet_DimLen( fId, 'lev',   Z )
     CALL NcGet_DimLen( fId, 'time',  T )
 
-    ! Make sure the dimensions of the file are valid
+    ! Make sure the dimensions of the file are valid           ! Kludge
     CALL Check_Dimensions( lon=X,  lat=Y,           lev=Z-2, & !lev=Z-1,       &
                            time=T, time_expected=8, caller=caller )
 
@@ -1532,6 +1607,7 @@ CONTAINS
 ! !REVISION HISTORY:
 !  30 Jan 2012 - R. Yantosca - Initial version
 !  07 Feb 2012 - R. Yantosca - Now echo info after reading fields from disk
+!  10 Feb 2012 - R. Yantosca - Now get a string for the model resolution
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -1570,7 +1646,8 @@ CONTAINS
     CALL EXPAND_DATE( dir, YYYYMMDD, HHMMSS )
 
     ! Replace time & date tokens in the file name
-    nc_file = 'GEOS572.YYYYMMDD.I3.4x5.nc'
+    nc_file = Get_Resolution_String()
+    nc_file = 'GEOS572.YYYYMMDD.I3.' // TRIM( nc_file )
     CALL EXPAND_DATE( nc_file, YYYYMMDD, HHMMSS )
 
     ! Construct complete file path
@@ -1707,6 +1784,7 @@ CONTAINS
 ! !REVISION HISTORY:
 !  30 Jan 2012 - R. Yantosca - Initial version
 !  07 Feb 2012 - R. Yantosca - Now echo info after reading fields from disk
+!  10 Feb 2012 - R. Yantosca - Now get a string for the model resolution
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -1745,7 +1823,8 @@ CONTAINS
     CALL EXPAND_DATE( dir, YYYYMMDD, HHMMSS )
 
     ! Replace time & date tokens in the file name
-    nc_file = 'GEOS572.YYYYMMDD.I3.4x5.nc'
+    nc_file = Get_Resolution_String()
+    nc_file = 'GEOS572.YYYYMMDD.I3.' // TRIM( nc_file )
     CALL EXPAND_DATE( nc_file, YYYYMMDD, HHMMSS )
 
     ! Construct complete file path

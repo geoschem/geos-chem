@@ -5554,7 +5554,6 @@
       DIR = TRIM( DATA_DIR ) // TRIM( DIR )
       CALL CHECK_DIRECTORY( DIR )
 
-
       ! Check GEOS-5 met field directory (ending date)
       DIR = GEOS_5_DIR
       CALL EXPAND_DATE( DIR, NYMDe, 000000 )
@@ -5582,7 +5581,6 @@
       CALL EXPAND_DATE( DIR, NYMDb, 000000 )
       DIR = TRIM( DATA_DIR ) // TRIM( DIR )
       CALL CHECK_DIRECTORY( DIR )
-
 
       ! Check GEOS-5 met field directory (ending date)
       DIR = MERRA_DIR

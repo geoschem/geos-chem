@@ -829,12 +829,18 @@
       CHARACTER(LEN=7) :: RES_EXT
       RES_EXT = '05x0666'
 
+#elif defined( GRID025x03125 )
+      CHARACTER(LEN=9) :: RES_EXT
+      RES_EXT = '025x03125'
+
 #endif
 !
 ! !REVISION HISTORY:
 !  (1 ) Added extension for 1 x 1.25 grid (bmy, 12/1/04)
 !  (2 ) Added extension for 0.5 x 0.666 grid (yxw, dan, bmy, 11/6/08)
 !  20 Nov 2009 - R. Yantosca - Added ProTeX header
+!  10 Feb 2012 - R. Yantosca - Added extension for 0.25 x 0.3125 grids
+
 !EOP
 !------------------------------------------------------------------------------
 !BOC

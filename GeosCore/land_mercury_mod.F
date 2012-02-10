@@ -520,6 +520,8 @@
 !  26 Apr 2011 - J. Fisher   - Use MERRA land fraction information
 !  12 Apr 2011 - J. Fisher   - Bug fixes, add missing code from Holmes 2010
 !  08 Feb 2012 - R. Yantosca - Treat GEOS-5.7.x in the same way as MERRA
+!  10 Feb 2012 - R. Yantosca - Extend #if statement for SOIL_EMIS_FAC in order
+!                              to get the code to compile w/o error.
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -551,6 +553,14 @@
       REAL*8, PARAMETER  :: SOIL_EMIS_FAC = 2.4D-2*.5742d0 ! for sunlight function
 #elif defined(GRID2x25)
       REAL*8, PARAMETER :: SOIL_EMIS_FAC=2.4D-2*.5742d0*4d0
+#else
+      !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+      !%%% NOTE TO TEAM HG: I copied the 2 x 2.5 value here so that   
+      !%%% the code would compile.  You will need to add a separate   
+      !%%% value for nested grids. (bmy, 2/10/12)                     
+      !%%%% 
+      REAL*8, PARAMETER :: SOIL_EMIS_FAC=2.4D-2*.5742d0*4d0
+      !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 #endif
 
       !=================================================================
