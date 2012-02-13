@@ -1124,24 +1124,24 @@
       ENDDO
 
       !jpp: debugging
-      WRITE(6,*) 'jpp printing out ids'
+!      WRITE(6,*) 'jpp printing out ids'
 !      WRITE(6,*) 'dryO3:', IDDRYO3
 !      WRITE(6,*) 'IDTOX:', IDTOX
 !      WRITE(6,*) 'IDO3:', IDO3
 !      WRITE(6,*) 'dryNO2:', IDDRYNO2
 !      WRITE(6,*) 'IDTNOX:', IDTNOX
 !      WRITE(6,*) 'IDNO2:', IDNO2
-      WRITE(6,*) 'Br2:', IDTBr2
-      WRITE(6,*) 'Br:', IDTBr 
-      WRITE(6,*) 'BrO:', IDTBrO
-      WRITE(6,*) 'HOBr:', IDTHOBr
-      WRITE(6,*) 'HBr:',  IDTHBr
-      WRITE(6,*) 'BrNO3:', IDTBrNO3
-      WRITE(6,*) 'BrNO2:', IDTBrNO2
-      WRITE(6,*) 'CH3Br:', IDTCH3Br
-      WRITE(6,*) 'CH2Br2:', IDTCH2Br2
-      WRITE(6,*) 'CHBr3:', IDTCHBr3
-      call flush(6)
+!      WRITE(6,*) 'Br2:', IDTBr2
+!      WRITE(6,*) 'Br:', IDTBr 
+!      WRITE(6,*) 'BrO:', IDTBrO
+!      WRITE(6,*) 'HOBr:', IDTHOBr
+!      WRITE(6,*) 'HBr:',  IDTHBr
+!      WRITE(6,*) 'BrNO3:', IDTBrNO3
+!      WRITE(6,*) 'BrNO2:', IDTBrNO2
+!      WRITE(6,*) 'CH3Br:', IDTCH3Br
+!      WRITE(6,*) 'CH2Br2:', IDTCH2Br2
+!      WRITE(6,*) 'CHBr3:', IDTCHBr3
+!      call flush(6)
 !      stop
       
       !=================================================================

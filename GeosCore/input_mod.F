@@ -1393,7 +1393,10 @@
       USE EMISSIONS_MOD, ONLY : NOx_SCALING
       USE LOGICAL_MOD, ONLY : LRETRO  !(wfr, 3/8/11)
       !jpp 8/23/07:
-      USE LOGICAL_MOD, ONLY : LWARWICK_VSLS, LSSABr2, LFIX_PBL_BRO
+      USE LOGICAL_MOD,  ONLY : LWARWICK_VSLS, LSSABr2, LFIX_PBL_BRO
+      USE TRACERID_MOD, ONLY : IDTBr2,    IDTBr,    IDTBrO,   IDTHOBr
+      USE TRACERID_MOD, ONLY : IDTHBr,    IDTBrNO2, IDTBrNO3, IDTCHBr3
+      USE TRACERID_MOD, ONLY : IDTCH2Br2, IDTCH3Br
 
       USE CMN_SIZE_MOD      ! Size parameters
       USE CMN_O3_MOD        ! FSCALYR
@@ -1450,7 +1453,7 @@
 !
 ! !LOCAL VARIABLES:
 !
-      INTEGER            :: N
+      INTEGER            :: N, I
       CHARACTER(LEN=255) :: SUBSTRS(MAXDIM), MSG, LOC
 
       !=================================================================
@@ -1659,20 +1662,23 @@
       CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_emissions_menu:49' )
       READ( SUBSTRS(1:N), * ) LMODISLAI
 
-      !jpp: Use the Warwick(2006), scenario 3? (400Gg/yr of CHBr3)
+      ! Separator line (start of bromine emissions)
       CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_emissions_menu:50' )
+
+      !jpp: Use the Warwick(2006), scenario 3? (400Gg/yr of CHBr3)
+      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_emissions_menu:51' )
       READ( SUBSTRS(1:N), * ) LWARWICK_VSLS
 
       !jpp: Use sea-salt Br2 emissions? Currently Monahan w/ Yang et al. 2005
-      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_emissions_menu:51' )
+      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_emissions_menu:52' )
       READ( SUBSTRS(1:N), * ) LSSABr2
 
       !jpp: Set PBL BrO concentrations equal to 1ppt during the day?
-      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_emissions_menu:52' )
+      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_emissions_menu:53' )
       READ( SUBSTRS(1:N), * ) LFIX_PBL_BRO
 
       ! Separator line
-      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_emissions_menu:53' )
+      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_emissions_menu:54' )
 
       !=================================================================
       ! Error check logical flags
@@ -1686,12 +1692,43 @@
       IF ( LFIX_PBL_BRO .and. LSSABr2 ) THEN
          LSSABr2 = .FALSE. ! turn off sea-salt emissions
                            ! to avoid conflict.
-         write(6,'(a)') 'Warning in input_mod.f: LSSABr2 was'
+         write(6,'(/,a,/)') 'Warning in input_mod.f: LSSABr2 was'
      &        // ' left ON when LFIX_PBL_BRO was also selected.'
          write(6,'(a)') 'Turning off sea-salt emissions and'
      &        // ' selecting the 1pptv PBL daytime BrO simulation.'
       ENDIF
 
+      I = IDTBr2   + IDTBr    + IDTBrO   + IDTHOBr   + IDTHBr 
+     &  + IDTBrNO2 + IDTBrNO3 + IDTCHBr3 + IDTCH2Br2 + IDTCH3Br
+
+      ! Set all bromine emission flags to F if bromine tracers are not 
+      ! defined (mpayer, 12/28/11)
+      IF ( LWARWICK_VSLS ) THEN
+         IF ( I == 0 ) THEN
+            LWARWICK_VSLS = .FALSE. 
+            WRITE( 6, '(/,a,/)' ) 'Warning in input_mod.F: '
+     &          // 'LWARWICK_VSLS=T but bromine tracers are undefined.' 
+            WRITE( 6, '(a)' ) 'Turning off Warwick VSLS.'
+         ENDIF
+      ENDIF
+
+      IF ( LSSABr2 ) THEN
+         IF ( I == 0 ) THEN
+            LSSABr2 = .FALSE.
+            WRITE( 6, '(/,a,/)' ) 'Warning in input_mod.F: ' 
+     &          // 'LSSABr2=T but bromine tracers are undefined.' 
+            WRITE( 6, '(a)' ) 'Turning off sea salt Br2 emissions.'
+         ENDIF
+      ENDIF
+
+      IF (  LFIX_PBL_BRO ) THEN
+         IF ( I == 0 ) THEN
+            LFIX_PBL_BRO = .FALSE.
+            WRITE( 6, '(/,a,/)' ) 'Warning in input_mod.F: '
+     &          // 'LFIX_PBL_BRO=T but bromine tracers are undefined.' 
+            WRITE( 6, '(a)' ) 'Turning off 1ppt PBL BrO simulation.'
+         ENDIF
+      ENDIF
 
       ! Define these flags for backwards compatibility
       LFOSSIL      = LANTHRO
@@ -2455,6 +2492,11 @@
       USE LOGICAL_MOD, ONLY : LSVCSPEC, LKPP
       USE TIME_MOD,    ONLY : SET_CT_CHEM
       USE TRACER_MOD,  ONLY : N_TRACERS
+      ! (mpayer, 12/28/11)
+      USE LOGICAL_MOD,  ONLY : LBrCHEM
+      USE TRACERID_MOD, ONLY : IDTBr2,    IDTBr,    IDTBrO,   IDTHOBr
+      USE TRACERID_MOD, ONLY : IDTHBr,    IDTBrNO2, IDTBrNO3, IDTCHBr3
+      USE TRACERID_MOD, ONLY : IDTCH2Br2, IDTCH3Br
 
       USE CMN_SIZE_MOD      ! Size parameters
 ! 
@@ -2470,7 +2512,7 @@
 !
 ! !LOCAL VARIABLES:
 !
-      INTEGER            :: N
+      INTEGER            :: N, I
       CHARACTER(LEN=255) :: SUBSTRS(MAXDIM), MSG
 
       !=================================================================
@@ -2499,8 +2541,25 @@
       CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_chemistry_menu:4' )
       READ( SUBSTRS(1:N), * ) LKPP
 
-      ! Separator line
+      ! Use bromine chemistry?
       CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_chemistry_menu:5' )
+      READ( SUBSTRS(1:N), * ) LBrCHEM
+
+      ! Separator line
+      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_chemistry_menu:6' )
+
+      !=================================================================
+      ! Error check bromine chemistry (mpayer, 12/28/11)
+      !=================================================================
+      I = IDTBr2   + IDTBr    + IDTBrO   + IDTHOBr   + IDTHBr 
+     &  + IDTBrNO2 + IDTBrNO3 + IDTCHBr3 + IDTCH2Br2 + IDTCH3Br
+
+      IF ( LBrCHEM ) THEN
+         IF ( I == 0 ) THEN
+            MSG = 'LBrCHEM=T but bromine tracers are undefined!'
+            CALL ERROR_STOP( MSG,'READ_CHEMISTRY_MENU ("input_mod.f")')
+         ENDIF
+      ENDIF
 
       !=================================================================
       ! Print to screen
@@ -2511,6 +2570,7 @@
       WRITE( 6, 110     ) 'Chemistry timestep [min]    : ', TS_CHEM
       WRITE( 6, 100     ) 'Use CSPEC restart?          : ', LSVCSPEC
       WRITE( 6, 100     ) 'Use solver coded by KPP?    : ', LKPP
+      WRITE( 6, 100     ) 'Use bromine chemistry?      : ', LBrCHEM
 
          
       

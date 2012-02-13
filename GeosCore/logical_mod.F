@@ -85,6 +85,7 @@
       !%%%% Chemistry %%%%
       LOGICAL :: LCHEM           ! Use chemistry?
       LOGICAL :: LKPP            ! Use KPP solver instead of SMVGEAR?
+      LOGICAL :: LBrCHEM         ! Use bromine chemistry? (mpayer 12/28/11)
 
       !%%%% Cloud convection %%%%
       LOGICAL :: LCONV           ! Use cloud convection?

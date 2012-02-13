@@ -35,10 +35,11 @@
       USE TROPOPAUSE_MOD, ONLY : GET_MIN_TPAUSE_LEVEL, ITS_IN_THE_STRAT
       ! jpp, 7/14/09: putting in the bromocarbon tracer id's so
       !               a simple decay term can be applied to avoid buildup.
-      use tracerid_mod,   ONLY : IDTCH3BR, IDTCH2Br2, IDTCHBr3
+      USE TRACERID_MOD,   ONLY : IDTCH3BR, IDTCH2Br2, IDTCHBr3
       USE DAO_MOD,        ONLY : SUNCOS
-      use tracer_mod,     ONLY : TCVV
+      USE TRACER_MOD,     ONLY : TCVV
       USE TRANSFER_MOD,   ONLY : TRANSFER_3D
+      USE LOGICAL_MOD,    ONLY : LBrCHEM ! (mpayer, 12/28/11)
 
       USE CMN_SIZE_MOD         ! Size parameters
 
@@ -343,86 +344,88 @@
          ! Stored by Q. Liang using the GEOS CCM. (jpp, 6/27/2011)
          !==============================================================
 
-         ! the daytime concentrations
-         dayfile = trim(RUN_DIR)//'/CCM_stratosphere_Bry/' //
-     &        'Bry_Stratosphere_day.bpch.'//GET_NAME_EXT()//'.'//
-     &        GET_RES_EXT()
-         ! the nighttime concentrations
-         nightfile = trim(RUN_DIR)//'/CCM_stratosphere_Bry/' //
-     &        'Bry_Stratosphere_night.bpch.'//GET_NAME_EXT()//'.'//
-     &        GET_RES_EXT()
+         IF ( LBrCHEM ) THEN
+            ! the daytime concentrations
+            dayfile = trim(RUN_DIR)//'/CCM_stratosphere_Bry/' //
+     &           'Bry_Stratosphere_day.bpch.'//GET_NAME_EXT()//'.'//
+     &           GET_RES_EXT()
+            ! the nighttime concentrations
+            nightfile = trim(RUN_DIR)//'/CCM_stratosphere_Bry/' //
+     &           'Bry_Stratosphere_night.bpch.'//GET_NAME_EXT()//'.'//
+     &           GET_RES_EXT()
 
-         DO NN = 1, 6
+            DO NN = 1, 6
 
-            ! 1. Read daytime data
-            CALL READ_BPCH2( DAYFILE, 'IJ-AVG-$', br_nos(NN),    
-     &           XTAU,      IGLOB,         JGLOB,     
-     &           LGLOB,     Bry_temp,     QUIET=.TRUE. )
+               ! 1. Read daytime data
+               CALL READ_BPCH2( DAYFILE, 'IJ-AVG-$', br_nos(NN),    
+     &              XTAU,      IGLOB,         JGLOB,     
+     &              LGLOB,     Bry_temp,     QUIET=.TRUE. )
 
-            ! Cast from REAL*4 to REAL*8 and resize to (JJPAR,LLPAR) 
-            CALL TRANSFER_3D( Bry_temp(:,:,:), Bry_day(:,:,:,NN) )
+               ! Cast from REAL*4 to REAL*8 and resize to (JJPAR,LLPAR) 
+               CALL TRANSFER_3D( Bry_temp(:,:,:), Bry_day(:,:,:,NN) )
 
-            !==============================================================
-            ! now convert units from [ppt] to [kg]
-            !  STT(I,J,L,N) [v/v] * AD(I,J,L) / TCVV(N) = STT(I,J,L,N) [kg]
-            !==============================================================
+               !==============================================================
+               ! now convert units from [ppt] to [kg]
+               !  STT(I,J,L,N) [v/v] * AD(I,J,L) / TCVV(N) = STT(I,J,L,N) [kg]
+               !==============================================================
 
-            ! 2. Read nighttime data
-            CALL READ_BPCH2( NIGHTFILE, 'IJ-AVG-$', br_nos(NN),    
-     &           XTAU,      IGLOB,         JGLOB,     
-     &           LGLOB,     Bry_temp,     QUIET=.TRUE. )
+               ! 2. Read nighttime data
+               CALL READ_BPCH2( NIGHTFILE, 'IJ-AVG-$', br_nos(NN),    
+     &              XTAU,      IGLOB,         JGLOB,     
+     &              LGLOB,     Bry_temp,     QUIET=.TRUE. )
 
-            ! Cast from REAL*4 to REAL*8 and resize to (JJPAR,LLPAR) 
-            CALL TRANSFER_3D( Bry_temp(:,:,:), Bry_night(:,:,:,NN) )
+               ! Cast from REAL*4 to REAL*8 and resize to (JJPAR,LLPAR) 
+               CALL TRANSFER_3D( Bry_temp(:,:,:), Bry_night(:,:,:,NN) )
 
-            !==============================================================
-            ! now convert units from [ppt] to [kg]
-            !  STT(I,J,L,N) [v/v] * AD(I,J,L) / TCVV(N) = STT(I,J,L,N) [kg]
-            !==============================================================
+               !==============================================================
+               ! now convert units from [ppt] to [kg]
+               !  STT(I,J,L,N) [v/v] * AD(I,J,L) / TCVV(N) = STT(I,J,L,N) [kg]
+               !==============================================================
 !jpt !$OMP PARALLEL DO
 !jpt !$OMP+DEFAULT( SHARED )
 !jpt !$OMP+PRIVATE( IJWINDOW, I, J, L )
 !jpt !$OMP+SCHEDULE( DYNAMIC )
-            DO L = 1, LLPAR
-            DO J = 1, JJPAR
-            DO I = 1, IIPAR
-               ! 1. the daytime values
-               bry_day(I,J,L,NN) = bry_day(I,J,L,NN)
-     &              * 1.d-12 ! convert from [ppt]
-     &              * AD(I,J,L) / TCVV(br_nos(NN))
+               DO L = 1, LLPAR
+               DO J = 1, JJPAR
+               DO I = 1, IIPAR
+                  ! 1. the daytime values
+                  bry_day(I,J,L,NN) = bry_day(I,J,L,NN)
+     &                 * 1.d-12 ! convert from [ppt]
+     &                 * AD(I,J,L) / TCVV(br_nos(NN))
 
-               ! 2. the nighttime values
-               bry_night(I,J,L,NN) = bry_night(I,J,L,NN)
-     &              * 1.d-12 ! convert from [ppt]
-     &              * AD(I,J,L) / TCVV(br_nos(NN))
+                  ! 2. the nighttime values
+                  bry_night(I,J,L,NN) = bry_night(I,J,L,NN)
+     &                 * 1.d-12 ! convert from [ppt]
+     &                 * AD(I,J,L) / TCVV(br_nos(NN))
 
-               ! Only proceed for stratospheric boxes
-               IF ( ITS_IN_THE_STRAT( I, J, L ) ) THEN
+                  ! Only proceed for stratospheric boxes
+                  IF ( ITS_IN_THE_STRAT( I, J, L ) ) THEN
 
-                  ! Set the Bry boundary conditions. Simulated
-                  ! output from the GEOS5 CCM stratosphere.
-                  ! (jpp, 6/27/2011)
-                  IJWINDOW   = (J-1)*IIPAR + I
-!               GMU        = SUNCOS(IJWINDOW)
+                     ! Set the Bry boundary conditions. Simulated
+                     ! output from the GEOS5 CCM stratosphere.
+                     ! (jpp, 6/27/2011)
+                     IJWINDOW   = (J-1)*IIPAR + I
+!                     GMU        = SUNCOS(IJWINDOW)
 
-                  ! daytime
-!                  if ( GMU > 0.d0 ) then
-                  if (SUNCOS(IJWINDOW) > 0.d0) then
-                     STT(I,J,L, br_nos(NN) ) = 
-     &                    Bry_day(I,J,L,NN)
-                  else          ! nighttime
-                     STT(I,J,L, br_nos(NN) ) = 
-     &                    Bry_night(I,J,L,NN)
-                  endif
+                     ! daytime
+!                     if ( GMU > 0.d0 ) then
+                     IF (SUNCOS(IJWINDOW) > 0.d0) THEN
+                        STT(I,J,L, br_nos(NN) ) = 
+     &                       Bry_day(I,J,L,NN)
+                     ELSE          ! nighttime
+                        STT(I,J,L, br_nos(NN) ) = 
+     &                       Bry_night(I,J,L,NN)
+                     ENDIF
 
-               ENDIF
+                  ENDIF
 
-            ENDDO     
-            ENDDO
-            ENDDO
+               ENDDO     
+               ENDDO
+               ENDDO
 !jpt !$OMP END PARALLEL DO
 
-         ENDDO
+            ENDDO
+         ENDIF ! LBrCHEM
 
       ENDIF
 

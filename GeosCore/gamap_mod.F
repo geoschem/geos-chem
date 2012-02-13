@@ -1366,6 +1366,7 @@
       USE TRACERID_MOD, ONLY : IDTBCPI,   IDTOCPI
       USE TRACERID_MOD, ONLY : IDTXYLE, IDTBENZ, IDTTOLU
       USE TRACERID_MOD, ONLY : N_Hg_CATS  !CDH for snowpack
+      USE LOGICAL_MOD,  ONLY : LBrCHEM    ! (mpayer, 12/28/11)
 ! 
 ! !REVISION HISTORY: 
 !  17 Oct 1996 - R. Yantosca & P. Le Sager - Initial version
@@ -2400,7 +2401,11 @@
             !------------------
 
             ! Number of tracers
-            NTRAC(22) = 14 !jpp, replaced 8
+            IF ( LBrCHEM ) THEN
+               NTRAC(22) = 14 ! Increase for bromine (jpp, mpayer, 12/28/11)
+            ELSE
+               NTRAC(22) = 8
+            ENDIF
 
             ! Loop over tracers
             DO T = 1, NTRAC(22)
@@ -3153,12 +3158,11 @@
       IF ( ND46 > 0 ) THEN 
 
          ! Number of tracers
-!------------------------------------------------------------------------------
-! Prior to 12/28/11:
-! Increase from 13 to 16 for bromine tracers (jpp, mpayer, 12/28/11)
-!         NTRAC(46) = 13 ! was 6 (mpb,2009)
-!------------------------------------------------------------------------------
-         NTRAC(46) = 16
+         IF ( LBrCHEM ) THEN
+            NTRAC(46) = 16 ! Increase for bromine (jpp, mpayer, 12/28/11)
+         ELSE
+            NTRAC(46) = 13 ! was 6 (mpb,2009)
+         ENDIF
 
          ! Loop over tracers
          DO T = 1, NTRAC(46)

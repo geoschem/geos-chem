@@ -121,8 +121,6 @@
       !jpp, 8/24/07: adding a USE, ONLY statement to see IDECHBr3
       USE TRACERID_MOD,      ONLY : IDECHBr3, IDECH2Br2
       USE BROMOCARB_MOD,     ONLY : EMIS_CHBr3, EMIS_CH2Br2
-      ! testing
-      use error_mod,         only : geos_chem_stop
  
       USE CMN_SIZE_MOD     ! Size parameters
       USE COMODE_LOOP_MOD     ! IVERT?
@@ -653,16 +651,17 @@
 
             IF ( IDECHBr3 /= 0 ) THEN
                EMISRR(I,J,IDECHBr3) = EMIS_CHBr3(I,J)
+
+               !jpp: debugging
+               CHBr3_SUM  = CHBr3_SUM  + EMISRR(I,J,IDECHBr3)
             ENDIF
 
             IF ( IDECH2Br2 /= 0 ) THEN
                EMISRR(I,J,IDECH2Br2) = EMIS_CH2Br2(I,J)
+
+               !jpp: debugging
+               CH2Br2_SUM = CH2Br2_SUM + EMISRR(I,J,IDECH2Br2)
             ENDIF
-
-            !jpp: debugging
-            CHBr3_SUM  = CHBr3_SUM  + EMISRR(I,J,IDECHBr3)
-            CH2Br2_SUM = CH2Br2_SUM + EMISRR(I,J,IDECH2Br2)
-
 
 !jp            IF ( EMISRR(I,J,IDECHBr3) .GT. 0d0 ) THEN
 !jp               WRITE(6,*) 'jpp in emissdr.f'
@@ -745,27 +744,33 @@
 
                ! ++++++++++++++++++++++++++++++++++++++++++++++++++++
 
-               ! CHBr3 emissions [kg/m2/s] -- tracer #14
-              AD46(I,J,14) = AD46(I,J,14) + ( EMISRR(I,J,IDECHBr3)  / 
-     &                 AREA_M2) * ( MWT_CHBr3 / AVG ) !AVG is avagadro's # from comode.h
+               IF ( IDECHBr3 /= 0 ) THEN
+                 ! CHBr3 emissions [kg/m2/s] -- tracer #14
+                 AD46(I,J,14) = AD46(I,J,14) + ( EMISRR(I,J,IDECHBr3) / 
+     &                 AREA_M2) * ( MWT_CHBr3 / AVG )
+               ENDIF
 
-               ! CH2Br2 emissions [kg/m2/s] -- tracer #15
-              AD46(I,J,15) = AD46(I,J,15) + ( EMISRR(I,J,IDECH2Br2) / 
-     &                 AREA_M2) * ( MWT_CH2Br2 / AVG ) !AVG is avagadro's # from comode.h
+               IF ( IDECH2Br2 /= 0 ) THEN
+                 ! CH2Br2 emissions [kg/m2/s] -- tracer #15
+                 AD46(I,J,15) = AD46(I,J,15) + ( EMISRR(I,J,IDECH2Br2) / 
+     &                 AREA_M2) * ( MWT_CH2Br2 / AVG )
+               ENDIF
                
                ENDIF  
             ENDIF
          ENDDO
       ENDDO
 
-      !jpp: debugging
-      CHBr3_SUM  = ( CHBr3_SUM ) * ( MWT_CHBr3 / AVG ) * 
-     &     (3.1536d+7) / (1.d6)
-      CH2Br2_SUM = ( CH2Br2_SUM ) * ( MWT_CH2Br2/AVG ) *
-     &     (3.1536d+7) / (1.d6)
-      WRITE(6,*) 'jpp in emissdr: total over all boxes'
-      WRITE(6,*) 'CHBr3_SUM =', CHBr3_SUM
-      WRITE(6,*) 'CH2Br2_SUM =', CH2Br2_SUM
+      IF ( ( IDECHBr3 /= 0 ) .and. (IDECH2Br2 /= 0) ) THEN
+         !jpp: debugging
+         CHBr3_SUM  = ( CHBr3_SUM ) * ( MWT_CHBr3 / AVG ) * 
+     &       (3.1536d+7) / (1.d6)
+         CH2Br2_SUM = ( CH2Br2_SUM ) * ( MWT_CH2Br2/AVG ) *
+     &        (3.1536d+7) / (1.d6)
+         WRITE(6,*) 'jpp in emissdr: total over all boxes'
+         WRITE(6,*) 'CHBr3_SUM =', CHBr3_SUM
+         WRITE(6,*) 'CH2Br2_SUM =', CH2Br2_SUM
+      ENDIF
 
       ! Return to calling program
       END SUBROUTINE EMISSDR                                                

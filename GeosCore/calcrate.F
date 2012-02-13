@@ -98,6 +98,7 @@
       USE TRACERID_MOD,    ONLY : IDTHBr, IDTHOBr
       USE ERROR_MOD,       ONLY : is_safe_div
       USE TRACER_MOD,      ONLY : STT
+      USE LOGICAL_MOD,     ONLY : LBrCHEM ! (mpayer, 12/28/11)
 
       USE CMN_SIZE_MOD          ! Size parameters
       USE COMODE_LOOP_MOD       ! SMVGEAR II arrays
@@ -115,7 +116,7 @@
       ! jpp, added this variable to store
       !      the rate constant for BrNO3 cloud
       !      recycling
-      real*8 :: CLD_BrNO3_RC
+      REAL*8 :: CLD_BrNO3_RC
 
       ! Local variables
       INTEGER :: KLOOP,JLOOP,I,NK,JOLD2,JOLD,NK1,NKN,NH,MLOOP,J
@@ -141,7 +142,7 @@
       ! External functions
       REAL*8, EXTERNAL :: RTFUNC, FYRNO3,  ARSL1K,  FJFUNC, FYHORO
 
-      CHARACTER*8      :: SPECNAME !jpp, replaced *4... more length for Br species
+      CHARACTER*8      :: SPECNAME !jpp, replaced *4 for Br species
 
       ! Added for heterogeneous chemistry (bmy, 11/15/01, 8/7/03)
       LOGICAL          :: HETCHEM
@@ -175,12 +176,12 @@
       ! psuedo-reactions that account for bromine heterogeneous
       ! chemistry involving 2 gas phase species. (jpp, 4/12/10)
       LOGICAL :: yn_nkhobr, yn_nk1hbr
-      real*8  :: br_aer1_rc ! temporary storage for HBr + HOBr + aerosol rate constant
+      REAL*8  :: br_aer1_rc ! temp storage for HBr+HOBr+aerosol rate constant
 
-      real*8  :: hobr_rtemp, hbr_rtemp
-      real*8  :: ki_hobr, ki_hbr
-      real*8  :: darea ! dummy variable for ice surface area (jpp, 7/5/2011)
-      logical :: yn_div_safe
+      REAL*8  :: hobr_rtemp, hbr_rtemp
+      REAL*8  :: ki_hobr, ki_hbr
+      REAL*8  :: darea ! dummy variable for ice surface area (jpp, 7/5/2011)
+      LOGICAL :: yn_div_safe
 
       ! initialize the true/false selectors (jpp, 4/12/10)
       yn_nkhobr = .false.; yn_nk1hbr = .false.
@@ -334,12 +335,14 @@
       ! Test whether we are setting the VSL bromine source gases
       ! equal to zero or not: (jpp, 4/15/10)
       ! ---------------------------------------------------------
-      IF ( .not. LWARWICK_VSLS ) THEN
-        ! Loop over boxes per grid block
-         DO KLOOP = 1, KTLOOP 
-            CBLK(KLOOP, ICHBr3)  = 0.d0
-            CBLK(KLOOP, ICH2Br2) = 0.d0
-         ENDDO
+      IF ( ( ICHBr3 > 0 ) .and. ( ICH2Br2 > 0 ) ) THEN
+         IF ( .not. LWARWICK_VSLS ) THEN
+           ! Loop over boxes per grid block
+            DO KLOOP = 1, KTLOOP 
+               CBLK(KLOOP, ICHBr3)  = 0.d0
+               CBLK(KLOOP, ICH2Br2) = 0.d0
+            ENDDO
+         ENDIF
       ENDIF
 
 !
@@ -992,93 +995,97 @@ c new OH+CO rate from JPL2006.
                ENDIF
             ENDDO
 
+            ! Do the following if bromine chemistry is on (mpayer, 12/28/11)
+            IF ( LBrCHEM ) THEN
 
-            ! ---------------------------------------------------
-            ! Setting the HOBr and HBr pseudo-rxns equal to
-            ! whichever rate is smaller/limiting. (jpp, 4/12/10)
-            ! ---------------------------------------------------
-            ! -------------------------------------------------
-            ! make sure that both rates have been calculated,
-            ! then, take the lowest rate and apply it to
-            ! both pseudo-rxns (rate limiting). (jpp, 4/12/10)
-            ! -------------------------------------------------
+               ! ---------------------------------------------------
+               ! Setting the HOBr and HBr pseudo-rxns equal to
+               ! whichever rate is smaller/limiting. (jpp, 4/12/10)
+               ! ---------------------------------------------------
+               ! -------------------------------------------------
+               ! make sure that both rates have been calculated,
+               ! then, take the lowest rate and apply it to
+               ! both pseudo-rxns (rate limiting). (jpp, 4/12/10)
+               ! -------------------------------------------------
 
-            ! select the min of the two rates
-            hbr_rtemp  = RRATE(KLOOP, NK1HBr) *
-     &           STT(IX,IY,IZ, IDTHBr)
-            hobr_rtemp = RRATE(KLOOP, NKHOBr) * 
-     &           STT(IX,IY,IZ, IDTHOBr)
+               ! select the min of the two rates
+               hbr_rtemp  = RRATE(KLOOP, NK1HBr) *
+     &              STT(IX,IY,IZ, IDTHBr)
+               hobr_rtemp = RRATE(KLOOP, NKHOBr) * 
+     &              STT(IX,IY,IZ, IDTHOBr)
 
-            ! ---------------------------------------------
-            ! kludging the rates to be equal to one another
-            ! to avoid having to keep setting equality in
-            ! SMVGEAR solver. (jpp, 5/10/2011)
-            ! ---------------------------------------------
-            if ( hbr_rtemp > hobr_rtemp ) then
+               ! ---------------------------------------------
+               ! kludging the rates to be equal to one another
+               ! to avoid having to keep setting equality in
+               ! SMVGEAR solver. (jpp, 5/10/2011)
+               ! ---------------------------------------------
+               IF ( hbr_rtemp > hobr_rtemp ) THEN
 
-               ! 1. is it safe to divide?
-               yn_div_safe = is_safe_div( 
-     &              RRATE(KLOOP, NKHOBr) *
-     &              STT(IX,IY,IZ, IDTHOBr), 
-     &              STT(IX,IY,IZ, IDTHBr) )
-               if (yn_div_safe) then
-                  ! 2. if it is safe, then go ahead
-                  RRATE(KLOOP,NK1HBr) = RRATE(KLOOP, NKHOBr) *
-     &                 STT(IX,IY,IZ, IDTHOBr) /
-     &                 STT(IX,IY,IZ, IDTHBr)
-               else
-                  !    if not, then set rates really small...
-                  !    b/c the largest contributor is very small.
-                  RRATE(KLOOP, NK1HBr) = TINY(1.d0)
-                  RRATE(KLOOP, NKHOBr) = TINY(1.d0)
-               endif
+                  ! 1. is it safe to divide?
+                  yn_div_safe = is_safe_div( 
+     &                 RRATE(KLOOP, NKHOBr) *
+     &                 STT(IX,IY,IZ, IDTHOBr), 
+     &                 STT(IX,IY,IZ, IDTHBr) )
+                  IF (yn_div_safe) THEN
+                     ! 2. if it is safe, then go ahead
+                     RRATE(KLOOP,NK1HBr) = RRATE(KLOOP, NKHOBr) *
+     &                    STT(IX,IY,IZ, IDTHOBr) /
+     &                    STT(IX,IY,IZ, IDTHBr)
+                  ELSE
+                     !    if not, then set rates really small...
+                     !    b/c the largest contributor is very small.
+                     RRATE(KLOOP, NK1HBr) = TINY(1.d0)
+                     RRATE(KLOOP, NKHOBr) = TINY(1.d0)
+                  ENDIF
 
-            else ! if HOBr rate is larger than HBr rate
-               ! 1. is it safe to divide?
-               yn_div_safe = is_safe_div( 
-     &              RRATE(KLOOP, NK1HBr) *
-     &              STT(IX,IY,IZ, IDTHBr), 
-     &              STT(IX,IY,IZ, IDTHOBr) )
+               ELSE ! if HOBr rate is larger than HBr rate
+                  ! 1. is it safe to divide?
+                  yn_div_safe = is_safe_div( 
+     &                 RRATE(KLOOP, NK1HBr) *
+     &                    STT(IX,IY,IZ, IDTHBr), 
+     &                    STT(IX,IY,IZ, IDTHOBr) )
 
-               if (yn_div_safe) then
-                  ! 2. if it is safe, then go ahead
-                  RRATE(KLOOP,NKHOBr) = RRATE(KLOOP, NK1HBr) *
-     &                 STT(IX,IY,IZ, IDTHBr) /
-     &                 STT(IX,IY,IZ, IDTHOBr)
-               else
-                  !    if not, then set rates really small...
-                  !    b/c the largest contributor is very small.
-                  RRATE(KLOOP, NK1HBr) = TINY(1.d0)
-                  RRATE(KLOOP, NKHOBr) = TINY(1.d0)
-               endif
+                  IF (yn_div_safe) THEN
+                     ! 2. if it is safe, then go ahead
+                     RRATE(KLOOP,NKHOBr) = RRATE(KLOOP, NK1HBr) *
+     &                    STT(IX,IY,IZ, IDTHBr) /
+     &                    STT(IX,IY,IZ, IDTHOBr)
+                  ELSE
+                     !    if not, then set rates really small...
+                     !    b/c the largest contributor is very small.
+                     RRATE(KLOOP, NK1HBr) = TINY(1.d0)
+                     RRATE(KLOOP, NKHOBr) = TINY(1.d0)
+                  ENDIF
 
-            endif
+               ENDIF
 
-            ! ----------------------------------------------
-            !  Add rate for cloud heterogeneous chemistry
-            !  to RRATE(KLOOP, NKBrNO3). (jpp, 2/28/2011)
-            ! ----------------------------------------------
-            cld_brno3_rc = CLD1K_BrNO3( IX, IY, IZ, XDENA,
-     &           AIRVOL(IX,IY,IZ), T(IX,IY,IZ), FRLAND(IX,IY),
-     &           FROCEAN(IX,IY), QL(IX,IY,IZ), CLDF(IZ,IX,IY),
-     &           AD(IX,IY,IZ) )
+               ! ----------------------------------------------
+               !  Add rate for cloud heterogeneous chemistry
+               !  to RRATE(KLOOP, NKBrNO3). (jpp, 2/28/2011)
+               ! ----------------------------------------------
+               cld_brno3_rc = CLD1K_BrNO3( IX, IY, IZ, XDENA,
+     &              AIRVOL(IX,IY,IZ), T(IX,IY,IZ), FRLAND(IX,IY),
+     &              FROCEAN(IX,IY), QL(IX,IY,IZ), CLDF(IZ,IX,IY),
+     &              AD(IX,IY,IZ) )
 
-            RRATE(KLOOP, NKBrNO3) = RRATE(KLOOP, NKBrNO3) + 
-     &           cld_brno3_rc
+              RRATE(KLOOP, NKBrNO3) = RRATE(KLOOP, NKBrNO3) + 
+     &              cld_brno3_rc
 
-            ! ----------------------------------------------
-            !  Calculate rates for HOBr + HBr + ice --> Br2
-            !  for cold and mixed clouds. (jpp, 6/16/2011)
-            ! ----------------------------------------------
-            call cldice_hbrhobr_rxn( XDENA,
-     &           AIRVOL(IX,IY,IZ), T(IX,IY,IZ), 
-     &           QI(IX,IY,IZ), CLDF(IZ,IX,IY),
-     &           AD(IX,IY,IZ), STT(IX,IY,IZ,IDTHBr),
-     &           STT(IX,IY,IZ,IDTHOBr),
-     &           ki_hbr, ki_hobr, DAREA )
+               ! ----------------------------------------------
+               !  Calculate rates for HOBr + HBr + ice --> Br2
+               !  for cold and mixed clouds. (jpp, 6/16/2011)
+               ! ----------------------------------------------
+               CALL cldice_hbrhobr_rxn( XDENA,
+     &              AIRVOL(IX,IY,IZ), T(IX,IY,IZ), 
+     &              QI(IX,IY,IZ), CLDF(IZ,IX,IY),
+     &              AD(IX,IY,IZ), STT(IX,IY,IZ,IDTHBr),
+     &              STT(IX,IY,IZ,IDTHOBr),
+     &              ki_hbr, ki_hobr, DAREA )
 
-            RRATE(KLOOP, NK2HBr)  = ki_hbr
-            RRATE(KLOOP, NK2HOBr) = ki_hobr
+               RRATE(KLOOP, NK2HBr)  = ki_hbr
+               RRATE(KLOOP, NK2HOBr) = ki_hobr
+
+            ENDIF
 
          ELSE
 
