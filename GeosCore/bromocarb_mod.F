@@ -15,6 +15,7 @@
 !******************************************************************************
 !
       IMPLICIT NONE
+#     include "define.h"
 
       ! Make everything PRIVATE
       PRIVATE

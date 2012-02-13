@@ -199,7 +199,7 @@
       ! zero'd for initialization... so just return.
       ! -----------------------------------------------
       IF ( .not. LSSABr2 ) THEN
-         AD46(:,:,9) = 0.d0
+         AD46(:,:,16) = 0.d0
          EMISRR(:,:,IDEBr2) = 0.d0
          RETURN
       ENDIF
@@ -220,7 +220,7 @@
             if ( ND46 > 0 ) then
                ! store the emission in the AD46 Biogenic Emissions
                ! diagnostic array [kg/m2/s]
-               AD46(I,J,9) = AD46(I,J,9) + ( EMISRR(I,J,IDEBr2) /
+               AD46(I,J,16) = AD46(I,J,16) + ( EMISRR(I,J,IDEBr2) /
      &              AREA_M2 ) * ( MWT_BR2 / AVG )
             endif
 

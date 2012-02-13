@@ -688,6 +688,7 @@
 !     AD46(:,:,13) = Total biogenic ocimene  emissions [atoms C/cm2/s]
 !     AD46(:,:,14) = Total biogenic CHBr3    emissions [kg/m2/s]
 !     AD46(:,:,15) = Total biogenic CH2Br2   emissions [kg/m2/s]
+!     AD46(:,:,16) = Total biogenic SSBr2    emissions [kg/m2/s]
 !
 !  NOTES: 
 !  (1 ) Now make ACET tracer #2 and PRPE tracer #3 (bmy, 9/13/01)
@@ -755,6 +756,8 @@
                  AD46(I,J,15) = AD46(I,J,15) + ( EMISRR(I,J,IDECH2Br2) / 
      &                 AREA_M2) * ( MWT_CH2Br2 / AVG )
                ENDIF
+
+               ! Note: IDEBr2 is added to AD46(I,J,16) in ssa_bromine_mod.F
                
                ENDIF  
             ENDIF

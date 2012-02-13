@@ -3158,11 +3158,8 @@
       IF ( ND46 > 0 ) THEN 
 
          ! Number of tracers
-         IF ( LBrCHEM ) THEN
-            NTRAC(46) = 16 ! Increase for bromine (jpp, mpayer, 12/28/11)
-         ELSE
-            NTRAC(46) = 13 ! was 6 (mpb,2009)
-         ENDIF
+         !NTRAC(46) = 13 ! was 6 (mpb,2009)
+         NTRAC(46) = 16 ! Increase for bromine (jpp, mpayer, 12/28/11)
 
          ! Loop over tracers
          DO T = 1, NTRAC(46)
