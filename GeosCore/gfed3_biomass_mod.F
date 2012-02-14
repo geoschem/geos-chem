@@ -91,7 +91,11 @@
       ! N_SPEC  : Number of species
       !=================================================================
       INTEGER,          PARAMETER   :: N_EMFAC = 6
-      INTEGER,          PARAMETER   :: N_SPEC  = 24
+!kjw
+      !INTEGER,          PARAMETER   :: N_SPEC  = 24
+      INTEGER,          PARAMETER   :: N_SPEC  = 25
+!kjw
+
 !
 ! PRIVATE TYPES:
 !
@@ -651,7 +655,10 @@
       USE FUTURE_EMISSIONS_MOD,   ONLY : GET_FUTURE_SCALE_OCbb
       USE FUTURE_EMISSIONS_MOD,   ONLY : GET_FUTURE_SCALE_SO2bb
       USE FUTURE_EMISSIONS_MOD,   ONLY : GET_FUTURE_SCALE_VOCbb
-      USE TRACER_MOD,             ONLY : ITS_A_CO2_SIM       
+      USE TRACER_MOD,             ONLY : ITS_A_CO2_SIM 
+!kjw
+      USE TRACER_MOD,             ONLY : ITS_A_CH4_SIM
+!kjw
       USE TRACERID_MOD,           ONLY : IDBNOx,  IDBCO,   IDBSO2 
       USE TRACERID_MOD,           ONLY : IDBNH3,  IDBBC,   IDBOC 
 
@@ -672,6 +679,9 @@
 ! !LOCAL VARIABLES:
 !
       LOGICAL :: ITS_CO2
+!kjw
+      LOGICAL :: ITS_CH4
+!kjw
       INTEGER :: I, J, N
       
       !=================================================================
@@ -680,6 +690,9 @@
 
       ! Test if it's a CO2 simulation outside of the loop
       ITS_CO2 = ITS_A_CO2_SIM()
+!kjw
+      ITS_CH4 = ITS_A_CH4_SIM()
+!kjw
 
 !$OMP PARALLEL DO
 !$OMP+DEFAULT( SHARED )
@@ -721,7 +734,10 @@
             ! Future biomass OC [molec/cm2]
             BB(I,J,N) = BB(I,J,N) * GET_FUTURE_SCALE_OCbb( I, J )
 
-         ELSE IF ( ITS_CO2 ) THEN
+!kjw
+         ! Don't scale future emissions if CO2 or CH4
+         ELSE IF ( ITS_CO2 .OR. ITS_CH4 ) THEN
+!kjw
 
             ! Nothing
 
@@ -843,6 +859,9 @@
       USE TRACERID_MOD,  ONLY : IDBGLYX, IDBMGLY, IDBBENZ
       USE TRACERID_MOD,  ONLY : IDBTOLU, IDBXYLE, IDBC2H4
       USE TRACERID_MOD,  ONLY : IDBC2H2, IDBGLYC, IDBHAC
+!kjw
+      USE TRACERID_MOD, ONLY : IDBCH4
+!kjw
 
       USE CMN_SIZE_MOD        ! Size parameters
 ! 
@@ -910,8 +929,12 @@
       !=================================================================
      
       ! File name
-      FILENAME = TRIM( DATA_DIR_1x1) // 
-     &           'GFED3_201110/GFED3_emission_factors.txt'
+!kjw
+!      FILENAME = TRIM( DATA_DIR_1x1) // 
+!     &           'GFED3_201110/GFED3_emission_factors.txt'
+      FILENAME = '/home/kjw/gfed_ch4/gfed3/'  //
+     &           'GFED3_emission_factors.txt'
+!kjw
 
       ! Open emission factor file (ASCII format)
       OPEN( IU_FILE, FILE=TRIM( FILENAME ), STATUS='OLD', IOSTAT=IOS )
@@ -1068,6 +1091,12 @@
                BIO_SAVE(N)         = IDBCO2
                GFED3_SPEC_MOLWT(N) = 44d-3
                GFED3_SPEC_UNIT(N)  = '[Tg  ]'
+!kjw
+            CASE( 'CH4' )
+               BIO_SAVE(N)         = IDBCH4
+               GFED3_SPEC_MOLWT(N) = 16d-3
+               GFED3_SPEC_UNIT(N)  = '[Tg  ]'
+!kjw
             CASE DEFAULT
                ! Nothing
                BIO_SAVE(N)         = 0

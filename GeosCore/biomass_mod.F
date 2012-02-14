@@ -36,6 +36,12 @@
 !
 !   CO2        24         1          [molec CO2 /cm2/s]
 !
+!kjw
+!  ----------------------------------------------------------------------------
+!  FOR CH4 SIMULATION ONLY
+!
+!   CH4        25         1          [molec CH4 /cm2/s]!
+!kjw
 !
 !  Module Variables:
 !  ============================================================================
@@ -445,6 +451,9 @@
       USE TRACERID_MOD, ONLY : IDBSO2,  IDBNH3
       USE TRACERID_MOD, ONLY : IDBBC,   IDBOC
       USE TRACERID_MOD, ONLY : IDBCO2
+!kjw
+      USE TRACERID_MOD, ONLY : IDBCH4
+!kjw
       USE TRACERID_MOD, ONLY : IDBBENZ, IDBTOLU, IDBXYLE
       ! Add dicarbonyls
       USE TRACERID_MOD, ONLY : IDBGLYX, IDBMGLY, IDBC2H4
@@ -573,6 +582,15 @@
       IDBCO2            = NBIOTRCE + 1
       BIOTRCE( IDBCO2 ) = 1
       BIOBGAS( IDBCO2 ) = .FALSE.
+
+!kjw
+      ! For CH4
+      !  IDBCH4 is placed at end after all full chem tracers and CO2
+      IDBCH4            = NBIOTRCE + 1
+      BIOTRCE( IDBCH4 ) = 1
+      BIOBGAS( IDBCH4 ) = .FALSE.  ! not treated in setemis
+!kjw
+
 
       ! Error check 
       ! NBIOTRCE should be less than or equal to NBIOMAX (hotp 7/31/09)

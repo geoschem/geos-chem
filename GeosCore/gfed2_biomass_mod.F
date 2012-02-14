@@ -667,7 +667,10 @@
       USE FUTURE_EMISSIONS_MOD,   ONLY : GET_FUTURE_SCALE_OCbb
       USE FUTURE_EMISSIONS_MOD,   ONLY : GET_FUTURE_SCALE_SO2bb
       USE FUTURE_EMISSIONS_MOD,   ONLY : GET_FUTURE_SCALE_VOCbb
-      USE TRACER_MOD,             ONLY : ITS_A_CO2_SIM       
+      USE TRACER_MOD,             ONLY : ITS_A_CO2_SIM  
+!kjw
+      USE TRACER_MOD,             ONLY : ITS_A_CH4_SIM
+!kjw     
 
       !Need IDBs from TRACERID_MOD now.
       USE TRACERID_MOD, ONLY : IDBNOx,  IDBCO,   IDBSO2 
@@ -680,6 +683,9 @@
 
       ! Local variables
       LOGICAL                         :: ITS_CO2
+!kjw
+      LOGICAL :: ITS_CH4
+!kjw
       INTEGER                         :: I, J, N
       
       !=================================================================
@@ -688,6 +694,10 @@
 
       ! Test if it's a CO2 simulation outside of the loop
       ITS_CO2 = ITS_A_CO2_SIM()
+!kjw
+      ITS_CH4 = ITS_A_CH4_SIM()
+!kjw
+
 
 !$OMP PARALLEL DO
 !$OMP+DEFAULT( SHARED )
@@ -737,7 +747,7 @@
             ! Future biomass OC [molec/cm2]
             BB(I,J,N) = BB(I,J,N) * GET_FUTURE_SCALE_OCbb( I, J )
 
-         ELSE IF ( ITS_CO2 ) THEN
+         ELSE IF ( ITS_CO2 .OR. ITS_CH4 ) THEN
 
             ! Nothing
 
@@ -853,6 +863,9 @@
       USE TRACERID_MOD, ONLY : IDBGLYX, IDBMGLY, IDBBENZ
       USE TRACERID_MOD, ONLY : IDBTOLU, IDBXYLE, IDBC2H4
       USE TRACERID_MOD, ONLY : IDBC2H2, IDBGLYC, IDBHAC
+!kjw
+      USE TRACERID_MOD, ONLY : IDBCH4
+!kjw
 
       USE CMN_SIZE_MOD      ! Size parameters
 
@@ -912,8 +925,12 @@
       !=================================================================
      
       ! File name
-      FILENAME = TRIM( DATA_DIR_1x1) // 
-     &           'GFED2_200601/GFED2_emission_factors_73t.txt'
+!kjw
+!      FILENAME = TRIM( DATA_DIR_1x1) // 
+!     &           'GFED2_200601/GFED2_emission_factors_73t.txt'
+      FILENAME = '/home/kjw/gfed_ch4/gfed2/' //
+     &           'GFED2_emission_factors_73.txt'
+!kjw
 
       ! Open emission factor file (ASCII format)
       OPEN( IU_FILE, FILE=TRIM( FILENAME ), STATUS='OLD', IOSTAT=IOS )
@@ -1093,6 +1110,10 @@
             CASE( 'CO2'  )
                BIO_SAVE(N)         = IDBCO2
                GFED2_SPEC_MOLWT(N) = 44d-3
+               GFED2_SPEC_UNIT(N)  = '[Tg  ]'
+            CASE( 'CH4' )
+               BIO_SAVE(N)         = IDBCH4
+               GFED2_SPEC_MOLWT(N) = 16d-3
                GFED2_SPEC_UNIT(N)  = '[Tg  ]'
             CASE DEFAULT
                ! Nothing
