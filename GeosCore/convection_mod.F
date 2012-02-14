@@ -203,7 +203,7 @@
       ! Call the S-J Lin convection routine for GEOS-5
       CALL NFCLDMX( N_TOT_TRC, TCVV, CMFMC(:,:,2:LLPAR+1), DTRAIN, STT )
 
-#elif defined( MERRA )
+#elif defined( MERRA ) || defined( GEOS_57 )
 
       !=================================================================
       ! MERRA met fields
@@ -279,9 +279,9 @@
       !-----------------------------------------------------------------
 !$OMP PARALLEL DO
 !$OMP+DEFAULT( SHARED )
-!$OMP+PRIVATE( J, AREA_M2, I,      IDENT,  L,  PEDGE )
-!$OMP+PRIVATE( N, F,       DIAG14, DIAG38, RC, NN    ) 
-!$OMP+PRIVATE( P
+!$OMP+PRIVATE( J,       AREA_M2, I,      IDENT,  L,  PEDGE )
+!$OMP+PRIVATE( N,       F,       DIAG14, DIAG38, RC, NN    ) 
+!$OMP+PRIVATE( T_PFICU, T_PFLCU                            )
       DO J = 1, JJPAR
 
          ! Grid box surface area [m2]
