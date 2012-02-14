@@ -1453,6 +1453,7 @@
 !  29 Jul 2011 - L. Zhang    - Fix bug that turns off CAC/BRAVO emissions
 !                             inadvertently during nested NA simulations
 !  07 Sep 2011 - P. Kasibhatla - Add modifications for GFED3
+!  14 Feb 2012 - R. Yantosca - Reorganize error checks for logical switches
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -1675,48 +1676,60 @@
       ! Error check logical flags
       !=================================================================
 
+      !-----------------------------------------------------------------
       ! Turn off individual emissions flags if the master emissions flag
       ! LEMIS is turned off.  This will prevent inadvertent calls to the
       ! emissions routines. (bmy, 2/2/12)
-      LANTHRO           = ( LANTHRO        .and. LEMIS )
-      LEMEP             = ( LEMEP          .and. LEMIS )
-      LBRAVO            = ( LBRAVO         .and. LEMIS )
-      LEDGAR            = ( LEDGAR         .and. LEMIS )
-      LSTREETS          = ( LSTREETS       .and. LEMIS )
-      LCAC              = ( LCAC           .and. LEMIS )
-      LNEI05            = ( LNEI05         .and. LEMIS )
-      LRETRO            = ( LRETRO         .and. LEMIS )
-      LNEI99            = ( LNEI99         .and. LEMIS )
-      LICARTT           = ( LICARTT        .and. LEMIS )
-      LVISTAS           = ( LVISTAS        .and. LEMIS )
-      LBIOFUEL          = ( LBIOFUEL       .and. LEMIS )
-      LBIOGENIC         = ( LBIOGENIC      .and. LEMIS )
-      LMEGAN            = ( LMEGAN         .and. LEMIS )
-      LPECCA            = ( LPECCA         .and. LEMIS )
-      LMEGANMONO        = ( LMEGANMONO     .and. LEMIS )
-      LBIOMASS          = ( LBIOMASS       .and. LEMIS )
-      LTOMSAI           = ( LTOMSAI        .and. LEMIS )
-      LGFED2BB          = ( LGFED2BB       .and. LEMIS )
-      L8DAYBB           = ( L8DAYBB        .and. LEMIS )
-      L3HRBB            = ( L3HRBB         .and. LEMIS )
-      LSYNOPBB          = ( LSYNOPBB       .and. LEMIS )
-      LGFED3BB          = ( LGFED3BB       .and. LEMIS )
-      L8DAYBB3          = ( L8DAYBB3       .and. LEMIS )
-      L3HRBB3           = ( L3HRBB3        .and. LEMIS )
-      LSYNOPBB3         = ( LSYNOPBB3      .and. LEMIS )
-      LAIRNOX           = ( LAIRNOX        .and. LEMIS )
-      LLIGHTNOX         = ( LLIGHTNOX      .and. LEMIS )
-      LOTDLOC           = ( LOTDLOC        .and. LEMIS )
-      LSOILNOX          = ( LSOILNOX       .and. LEMIS )
-      LFERTILIZERNOX    = ( LFERTILIZERNOX .and. LEMIS )
-      LEDGARSHIP        = ( LEDGARSHIP     .and. LEMIS )
-      LICOADSSHIP       = ( LICOADSSHIP    .and. LEMIS )
-      LEMEPSHIP         = ( LEMEPSHIP      .and. LEMIS )
-      LSHIPSO2          = ( LSHIPSO2       .and. LEMIS )
-      LARCSHIP          = ( LARCSHIP       .and. LEMIS )
-      LCOOKE            = ( LCOOKE         .and. LEMIS )
-      LAVHRRLAI         = ( LAVHRRLAI      .and. LEMIS )
-      LMODISLAI         = ( LMODISLAI      .and. LEMIS )       
+      !-----------------------------------------------------------------
+
+      ! Master switches
+      LANTHRO           = ( LANTHRO        .and. LEMIS     )
+      LBIOFUEL          = ( LBIOFUEL       .and. LEMIS     )
+      LBIOGENIC         = ( LBIOGENIC      .and. LEMIS     )
+      LBIOMASS          = ( LBIOMASS       .and. LEMIS     )
+
+      ! Anthro
+      LAIRNOX           = ( LAIRNOX        .and. LANTHRO   )
+      LEMEP             = ( LEMEP          .and. LANTHRO   )
+      LBRAVO            = ( LBRAVO         .and. LANTHRO   )
+      LEDGAR            = ( LEDGAR         .and. LANTHRO   )
+      LSTREETS          = ( LSTREETS       .and. LANTHRO   )
+      LCAC              = ( LCAC           .and. LANTHRO   )
+      LNEI05            = ( LNEI05         .and. LANTHRO   )
+      LRETRO            = ( LRETRO         .and. LANTHRO   )
+      LNEI99            = ( LNEI99         .and. LANTHRO   )
+      LICARTT           = ( LICARTT        .and. LANTHRO   )
+      LVISTAS           = ( LVISTAS        .and. LANTHRO   )
+      LEDGARSHIP        = ( LEDGARSHIP     .and. LANTHRO   )
+      LICOADSSHIP       = ( LICOADSSHIP    .and. LANTHRO   )
+      LEMEPSHIP         = ( LEMEPSHIP      .and. LANTHRO   )
+      LSHIPSO2          = ( LSHIPSO2       .and. LANTHRO   )
+      LARCSHIP          = ( LARCSHIP       .and. LANTHRO   )
+      LCOOKE            = ( LCOOKE         .and. LANTHRO   )
+
+      ! Biogenic
+      LMEGAN            = ( LMEGAN         .and. LBIOGENIC )
+      LPECCA            = ( LPECCA         .and. LBIOGENIC )
+      LMEGANMONO        = ( LMEGANMONO     .and. LBIOGENIC )
+
+      ! Biomass
+      LTOMSAI           = ( LTOMSAI        .and. LBIOMASS  )
+      LGFED2BB          = ( LGFED2BB       .and. LBIOMASS  )
+      L8DAYBB           = ( L8DAYBB        .and. LBIOMASS  )
+      L3HRBB            = ( L3HRBB         .and. LBIOMASS  )
+      LSYNOPBB          = ( LSYNOPBB       .and. LBIOMASS  )
+      LGFED3BB          = ( LGFED3BB       .and. LBIOMASS  )
+      L8DAYBB3          = ( L8DAYBB3       .and. LBIOMASS  )
+      L3HRBB3           = ( L3HRBB3        .and. LBIOMASS  )
+      LSYNOPBB3         = ( LSYNOPBB3      .and. LBIOMASS  )
+
+      ! Other
+      LLIGHTNOX         = ( LLIGHTNOX      .and. LEMIS     )
+      LOTDLOC           = ( LOTDLOC        .and. LEMIS     )
+      LSOILNOX          = ( LSOILNOX       .and. LEMIS     )
+      LFERTILIZERNOX    = ( LFERTILIZERNOX .and. LEMIS     )
+      LAVHRRLAI         = ( LAVHRRLAI      .and. LEMIS     )
+      LMODISLAI         = ( LMODISLAI      .and. LEMIS     )       
 
       ! Define these flags for backwards compatibility
       LFOSSIL           = LANTHRO
