@@ -155,6 +155,7 @@
       USE TRACERID_MOD, ONLY : IDO3, IDTOX, IDTCO
       USE TRACER_MOD,   ONLY : STT,  TCVV
       USE TIME_MOD,     ONLY : GET_LOCALTIME
+      USE ERROR_MOD,    ONLY : ERROR_STOP
 
       USE CMN_FJ_MOD         ! Photolysis parameters
       USE CMN_O3_MOD         ! fracnox, intope, jvalues
@@ -171,6 +172,7 @@
 !     Jun 2010 - G.C.M. Vinken - Initial version
 !  06 Feb 2012 - M. Payer      - Moved from emissions_mod.F to paranox_mod.F;
 !                                Added ProTeX headers 
+!  15 Feb 2012 - M. Payer      - Add error trap to ensure 0 < fracnox < 1.
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -220,6 +222,8 @@
  
       ! array contain temp, jno2, cao3, alfa_0, alfa_5, jo1d, caco
       REAL,DIMENSION(7)          :: var_array
+
+      CHARACTER(LEN=255)         :: MSG
 
       !=================================================================
       ! INTERPOLATE_LUT begins here!
@@ -288,7 +292,7 @@
       ! Find smallest temperature reference level (i) for which actual
       ! temperature is smaller, then do
       !
-      ! x(1) = (  temperature_level(i+1) - actual temperature  )
+      ! x(1) = ( temperature_level(i+1) - actual temperature   )
       !        ------------------------------------------------- 
       !        ( temperature_level(i+1) - temperature_level(i) )
       !
@@ -302,19 +306,19 @@
       temp_tmp = var_array(1)
 
       ! If temperature larger than largest in LUT, assign largest temp
-      IF ( var_array(1) > templev(ntemp) ) temp_tmp = templev(ntemp)
+      IF ( var_array(1) > templev( ntemp ) ) temp_tmp = templev(ntemp)
 
       ! If temp smaller, assign smallest temp level
-      IF ( var_array(1) < templev(1) ) temp_tmp = templev(1)
+      IF ( var_array(1) < templev(1) )       temp_tmp = templev(1)
 
       DO i0=1,ntemp-1
          itemp = i0
-         IF( templev(itemp+1) > temp_tmp ) EXIT 
+         IF( templev( itemp+1 ) > temp_tmp ) EXIT 
       END DO
 
-      xtemp(1)=(templev(itemp+1)-temp_tmp)/
-     $         (templev(itemp+1)-templev(itemp))
-      xtemp(2)=1.0-xtemp(1)       
+      xtemp(1) = ( templev( itemp+1 ) - temp_tmp       ) /
+     $           ( templev( itemp+1 ) - templev( itemp ) )
+      xtemp(2) = 1.0 - xtemp(1)       
 
       !----------------------
       ! J(NO2):
@@ -322,19 +326,19 @@
       jno2_tmp = var_array(2)
 
       ! If larger than largest in LUT, assign largest level values
-      IF ( var_array(2) > jno2lev(njno2) ) jno2_tmp = jno2lev(njno2)
+      IF ( var_array(2) > jno2lev( njno2 ) ) jno2_tmp = jno2lev(njno2)
 
       ! If smaller, assign smallest level value
-      IF ( var_array(2) < jno2lev(1) ) jno2_tmp = jno2lev(1)
+      IF ( var_array(2) < jno2lev(1) )       jno2_tmp = jno2lev(1)
 
       DO i0=1,njno2-1
          ijno2 = i0
-         IF( jno2lev(ijno2+1) > jno2_tmp ) EXIT 
+         IF( jno2lev( ijno2+1 ) > jno2_tmp ) EXIT 
       END DO
 
-      xjno2(1)=(jno2lev(ijno2+1)-jno2_tmp)/
-     $         (jno2lev(ijno2+1)-jno2lev(ijno2))
-      xjno2(2)=1.0-xjno2(1)       
+      xjno2(1) = ( jno2lev( ijno2+1 ) - jno2_tmp       ) /
+     $           ( jno2lev( ijno2+1 ) - jno2lev( ijno2 ) )
+      xjno2(2) = 1.0 - xjno2(1)       
 
       !----------------------
       ! [O3]:
@@ -342,19 +346,19 @@
       cao3_tmp = var_array(3)
 
       ! If larger than largest in LUT, assign largest level values
-      IF ( var_array(3) > cao3lev(ncao3) ) cao3_tmp = cao3lev(ncao3)
+      IF ( var_array(3) > cao3lev( ncao3 ) ) cao3_tmp = cao3lev(ncao3)
 
       ! If smaller, assign smallest level value
-      IF ( var_array(3) < cao3lev(1) ) cao3_tmp = cao3lev(1)
+      IF ( var_array(3) < cao3lev(1) )       cao3_tmp = cao3lev(1)
 
       DO i0=1,ncao3-1
          icao3 = i0
-         IF( cao3lev(icao3+1) > cao3_tmp ) EXIT 
+         IF( cao3lev( icao3+1 ) > cao3_tmp ) EXIT 
       END DO
 
-      xcao3(1)=(cao3lev(icao3+1)-cao3_tmp)/
-     $         (cao3lev(icao3+1)-cao3lev(icao3))
-      xcao3(2)=1.0-xcao3(1)       
+      xcao3(1) = ( cao3lev( icao3+1 ) - cao3_tmp       ) /
+     $           ( cao3lev( icao3+1 ) - cao3lev( icao3 ) )
+      xcao3(2) = 1.0 - xcao3(1)       
 
       !----------------------
       ! alfa0:
@@ -362,20 +366,20 @@
       alfa0_tmp = var_array(4)
 
       ! If larger than largest in LUT, assign largest level values
-      IF ( var_array(4) > alfa0lev(nalfa0) ) alfa0_tmp = 
-     $                                       alfa0lev(nalfa0)
+      IF ( var_array(4) > alfa0lev( nalfa0 ) ) alfa0_tmp = 
+     $                                         alfa0lev(nalfa0)
 
       ! If smaller, assign smallest level value
-      IF ( var_array(4) < alfa0lev(1) ) alfa0_tmp = alfa0lev(1)
+      IF ( var_array(4) < alfa0lev(1) )        alfa0_tmp = alfa0lev(1)
 
       DO i0=1,nalfa0-1
          ialfa0 = i0
-         IF( alfa0lev(ialfa0+1) > alfa0_tmp ) EXIT 
+         IF( alfa0lev( ialfa0+1 ) > alfa0_tmp ) EXIT 
       END DO
 
-      xalfa0(1)=(alfa0lev(ialfa0+1)-alfa0_tmp)/
-     $          (alfa0lev(ialfa0+1)-alfa0lev(ialfa0))
-      xalfa0(2)=1.0-xalfa0(1)       
+      xalfa0(1) = ( alfa0lev( ialfa0+1 ) - alfa0_tmp        ) /
+     $            ( alfa0lev( ialfa0+1 ) - alfa0lev( ialfa0 ) )
+      xalfa0(2) = 1.0 - xalfa0(1)       
 
       !----------------------
       ! alfa5:
@@ -383,20 +387,20 @@
       alfa5_tmp = var_array(5)
 
       ! If larger than largest in LUT, assign largest level values
-      IF ( var_array(5) > alfa5lev(nalfa5) ) alfa5_tmp = 
-     $                                       alfa5lev(nalfa5)
+      IF ( var_array(5) > alfa5lev( nalfa5 ) ) alfa5_tmp = 
+     $                                         alfa5lev(nalfa5)
 
       ! If smaller, assign smallest level value
-      IF ( var_array(5) < alfa5lev(1) ) alfa5_tmp = alfa5lev(1)
+      IF ( var_array(5) < alfa5lev(1) )        alfa5_tmp = alfa5lev(1)
 
       DO i0=1,nalfa5-1
          ialfa5 = i0
-         IF( alfa5lev(ialfa5+1) > alfa5_tmp ) EXIT 
+         IF( alfa5lev( ialfa5+1 ) > alfa5_tmp ) EXIT 
       END DO
 
-      xalfa5(1)=(alfa5lev(ialfa5+1)-alfa5_tmp)/
-     $          (alfa5lev(ialfa5+1)-alfa5lev(ialfa5))
-      xalfa5(2)=1.0-xalfa5(1)       
+      xalfa5(1) = ( alfa5lev( ialfa5+1 ) - alfa5_tmp        ) /
+     $            ( alfa5lev( ialfa5+1 ) - alfa5lev( ialfa5 ) )
+      xalfa5(2) = 1.0 - xalfa5(1)       
 
       !----------------------
       ! jo1d:
@@ -404,19 +408,19 @@
       jo1d_tmp = var_array(6)
 
       ! If larger than largest in LUT, assign largest level values
-      IF ( var_array(6) > jo1dlev(njo1d) ) jo1d_tmp = jo1dlev(njo1d)
+      IF ( var_array(6) > jo1dlev( njo1d ) ) jo1d_tmp = jo1dlev(njo1d)
 
       ! If smaller, assign smallest level value
-      IF ( var_array(6) < jo1dlev(1) ) jo1d_tmp = jo1dlev(1)
+      IF ( var_array(6) < jo1dlev(1) )       jo1d_tmp = jo1dlev(1)
 
       DO i0=1,njo1d-1
          ijo1d = i0
-         IF( jo1dlev(ijo1d+1) > jo1d_tmp ) EXIT 
+         IF( jo1dlev( ijo1d+1 ) > jo1d_tmp ) EXIT 
       END DO
 
-      xjo1d(1)=(jo1dlev(ijo1d+1)-jo1d_tmp)/
-     $         (jo1dlev(ijo1d+1)-jo1dlev(ijo1d))
-      xjo1d(2)=1.0-xjo1d(1)       
+      xjo1d(1) = ( jo1dlev( ijo1d+1 ) - jo1d_tmp       ) /
+     $           ( jo1dlev( ijo1d+1 ) - jo1dlev( ijo1d ) )
+      xjo1d(2) = 1.0 - xjo1d(1)       
 
       !----------------------
       ! [CO]:
@@ -424,24 +428,24 @@
       caco_tmp = var_array(7)
 
       ! If larger than largest in LUT, assign largest level values
-      IF ( var_array(7) > cacolev(ncaco) ) caco_tmp = cacolev(ncaco)
+      IF ( var_array(7) > cacolev( ncaco ) ) caco_tmp = cacolev(ncaco)
 
       ! If smaller, assign smallest level value
-      IF ( var_array(7) < cacolev(1) ) caco_tmp = cacolev(1)
+      IF ( var_array(7) < cacolev(1) )       caco_tmp = cacolev(1)
 
       DO i0=1,ncaco-1
          icaco = i0
-         IF( cacolev(icaco+1) > caco_tmp ) EXIT 
+         IF( cacolev( icaco+1 ) > caco_tmp ) EXIT 
       END DO
 
-      xcaco(1)=(cacolev(icaco+1)-caco_tmp)/
-     $         (cacolev(icaco+1)-cacolev(icaco))
-      xcaco(2)=1.0-xcaco(1)       
+      xcaco(1) = ( cacolev( icaco+1 ) - caco_tmp       ) /
+     $           ( cacolev( icaco+1 ) - cacolev( icaco ) )
+      xcaco(2) = 1.0 - xcaco(1)       
 
-!      PRINT*,"The i-values are:", itemp, ijno2, icao3, ialfa0,
-!     $                            ialfa5, ijo1d, icaco
-!      PRINT*,"Variables are: ", var_array
-!      PRINT*,"For testing, xtemp: ",xtemp
+!      PRINT*,"The i-values are:",    itemp, ijno2, icao3, ialfa0,
+!     $                               ialfa5, ijo1d, icaco
+!      PRINT*,"Variables are: ",      var_array
+!      PRINT*,"For testing, xtemp: ", xtemp
       
       !========================
       ! Linear interpolation
@@ -459,24 +463,42 @@
       DO i7=1,2
 
          !IF ENCOUNTER -999 IN THE LUT PRINT ERROR!!       
-         IF (fracnox(itemp+i1-1,ijno2+i2-1,icao3+i3-1,ialfa0+i4-1,
-     $        ialfa5+i5-1,ijo1d+i6-1,icaco+i7-1) .LT. 0.) PRINT*,"##E#"
+         IF ( ( fracnox( itemp+i1-1,  ijno2+i2-1,  icao3+i3-1,
+     $                   ialfa0+i4-1, ialfa5+i5-1, ijo1d+i6-1, 
+     $                   icaco+i7-1 ) < 0. )       .or.
+     $        ( fracnox( itemp+i1-1,  ijno2+i2-1,  icao3+i3-1,
+     $                   ialfa0+i4-1, ialfa5+i5-1, ijo1d+i6-1, 
+     $                   icaco+i7-1 ) > 1. ) )     THEN
 
-            !Cycle if both angles are 0   
-            IF ((ialfa0+i4-1 .eq. 6) .and. (ialfa5+i5-1 .eq. 6) ) 
-     $         CYCLE
+            PRINT*, 'INTERPOLATE_LUT: fracnox = ,',
+     $          fracnox( itemp+i1-1,  ijno2+i2-1,  icao3+i3-1,
+     $                   ialfa0+i4-1, ialfa5+i5-1, ijo1d+i6-1, 
+     $                   icaco+i7-1   )
 
-            ! fracnox is the array with the actual lut data
-            fraction_nox=fraction_nox+xtemp(i1)*xjno2(i2)*
-     $              xcao3(i3)*xalfa0(i4)*xalfa5(i5)*xjo1d(i6)*xcaco(i7)* 
-     $              fracnox(itemp+i1-1,ijno2+i2-1,icao3+i3-1,
-     $              ialfa0+i4-1,ialfa5+i5-1,ijo1d+i6-1,icaco+i7-1)
+            MSG = 'LUT error: Fracnox should be between 0 and 1!'
+            CALL ERROR_STOP( MSG, 'INTERPOLATE_LUT ("paranox_mod.F")' )
+         ENDIF
+
+         !Cycle if both angles are 0   
+         IF ((ialfa0+i4-1 .eq. 6) .and. (ialfa5+i5-1 .eq. 6) ) 
+     $      CYCLE
+
+         ! fracnox is the array with the actual lut data
+         fraction_nox = fraction_nox + xtemp(i1)    * xjno2(i2)  *
+     $                  xcao3(i3)    * xalfa0(i4)   * xalfa5(i5) *
+     $                  xjo1d(i6)    * xcaco(i7)    * 
+     $                  fracnox(       itemp+i1-1,    ijno2+i2-1,
+     $                  icao3+i3-1,    ialfa0+i4-1,   ialfa5+i5-1,
+     $                  ijo1d+i6-1,    icaco+i7-1     )
  
-            ! intope is the array with the actual lut data
-            int_ope=int_ope+xtemp(i1)*xjno2(i2)*xcao3(i3)* 
-     $              xalfa0(i4)*xalfa5(i5)*xjo1d(i6)*xcaco(i7)* 
-     $              intope(itemp+i1-1,ijno2+i2-1,icao3+i3-1,
-     $              ialfa0+i4-1,ialfa5+i5-1,ijo1d+i6-1,icaco+i7-1)
+         ! intope is the array with the actual lut data
+         int_ope =      int_ope      + xtemp(i1)    * xjno2(i2)  * 
+     $                  xcao3(i3)    * xalfa0(i4)   * xalfa5(i5)  * 
+     $                  xjo1d(i6)    * xcaco(i7)    * 
+     $                  intope(        itemp+i1-1,    ijno2+i2-1,  
+     $                  icao3+i3-1,    ialfa0+i4-1,   ialfa5+i5-1, 
+     $                  ijo1d+i6-1,    icaco+i7-1     )
+
       END DO
       END DO
       END DO
@@ -488,13 +510,14 @@
       IF ((I .eq. 108) .and. (J .eq. 49)) THEN
          PRINT*,"----INTERPOLATE_LUT-----"
          PRINT*,"fraction_nox and int_OPE: ",fraction_nox,
-     &                                       int_ope
-         PRINT*,"Jvalues are: ",jvalues(I, J,:)
-         PRINT*,"Vars are: ",var_array
-         PRINT*,"[O3] in interpolate_lut: ",var_array(3)
-         PRINT*,"[CO] in interpolate_lut: ",var_array(7)
-         PRINT*,"The i-values are:", itemp,  ijno2, icao3, ialfa0,
-     $                               ialfa5, ijo1d, icaco
+     $                                       int_ope
+         PRINT*,"Jvalues are: ",             jvalues(I, J,:)
+         PRINT*,"Vars are: ",                var_array
+         PRINT*,"[O3] in interpolate_lut: ", var_array(3)
+         PRINT*,"[CO] in interpolate_lut: ", var_array(7)
+         PRINT*,"The i-values are:",         itemp,  ijno2,  icao3,
+     $                                       ialfa0, ialfa5, ijo1d,
+     $                                       icaco
        ENDIF
                
 !      PRINT*,"fraction_nox is: ",fraction_nox
@@ -520,12 +543,13 @@
 !
 ! !USES:
 !
-      USE DAO_MOD,  ONLY : TS
-      USE DAO_MOD,  ONLY : SUNCOS_MID,  SUNCOS_MID_5hr
-      USE TIME_MOD, ONLY : GET_LOCALTIME
+      USE DAO_MOD,   ONLY : TS
+      USE DAO_MOD,   ONLY : SUNCOS_MID,  SUNCOS_MID_5hr
+      USE TIME_MOD,  ONLY : GET_LOCALTIME
+      USE ERROR_MOD, ONLY : ERROR_STOP
 
-      USE CMN_FJ_MOD     ! Photolysis parameters
-      USE CMN_O3_MOD     ! fracnox, intope, jvalues
+      USE CMN_FJ_MOD      ! Photolysis parameters
+      USE CMN_O3_MOD      ! fracnox, intope, jvalues
 !
 ! !INPUT PARAMETERS: 
 !
@@ -539,9 +563,10 @@
 !
 ! !REVISION HISTORY:
 !     Jun 2010 - G.C.M. Vinken - Initial version
-!  02 Feb 2011 - G.C.M. Vinken - Updated for NOx in LUT
+!  21 Feb 2011 - G.C.M. Vinken - Updated for NOx in LUT
 !  06 Feb 2012 - M. Payer      - Moved from emissions_mod.F to paranox_mod.F;
 !                                Added ProTeX headers
+!  15 Feb 2012 - M. Payer      - Add error trap to ensure 0 < fracnox < 1.
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -597,6 +622,12 @@
  
       ! array contain temp, jno2, cao3, alfa_0, alfa_5, jo1d, canox
       REAL,DIMENSION(7)          :: var_array
+
+      CHARACTER(LEN=255)         :: MSG
+
+      !=================================================================
+      ! INTERPOLATE_LUT2 begins here!
+      !=================================================================
 
       ! Set the levels that were chosen in the look up table
       templev  = (/ 275.,  280.,   285.,   310.         /)
@@ -659,7 +690,7 @@
       ! Find smallest temperature reference level (i) for which actual
       ! temperature is smaller, then do
       !
-      ! x(1) = (  temperature_level(i+1) - actual temperature  )
+      ! x(1) = ( temperature_level(i+1) - actual temperature   )
       !        ------------------------------------------------- 
       !        ( temperature_level(i+1) - temperature_level(i) )
       !
@@ -673,19 +704,19 @@
       temp_tmp = var_array(1)
 
       ! If temperature larger than largest in LUT, assign largest temp
-      IF ( var_array(1) > templev(ntemp) ) temp_tmp = templev(ntemp)
+      IF ( var_array(1) > templev( ntemp ) ) temp_tmp = templev(ntemp)
 
       ! If temp smaller, assign smallest temp level
-      IF ( var_array(1) < templev(1) ) temp_tmp = templev(1)
+      IF ( var_array(1) < templev(1) )       temp_tmp = templev(1)
 
       DO i0=1,ntemp-1
          itemp = i0
-         IF( templev(itemp+1) > temp_tmp ) EXIT 
+         IF( templev( itemp+1 ) > temp_tmp ) EXIT 
       END DO
 
-      xtemp(1)=(templev(itemp+1)-temp_tmp)/
-     $         (templev(itemp+1)-templev(itemp))
-      xtemp(2)=1.0-xtemp(1)       
+      xtemp(1) = ( templev( itemp+1 ) - temp_tmp       ) /
+     $           ( templev( itemp+1 ) - templev( itemp ) )
+      xtemp(2) = 1.0 - xtemp(1)       
 
       !---------------------
       ! J(NO2):
@@ -693,19 +724,19 @@
       jno2_tmp = var_array(2)
 
       ! If larger than largest in LUT, assign largest level values
-      IF ( var_array(2) > jno2lev(njno2) ) jno2_tmp = jno2lev(njno2)
+      IF ( var_array(2) > jno2lev( njno2 ) ) jno2_tmp = jno2lev(njno2)
 
       ! If smaller, assign smallest level value
-      IF ( var_array(2) < jno2lev(1) ) jno2_tmp = jno2lev(1)
+      IF ( var_array(2) < jno2lev(1) )       jno2_tmp = jno2lev(1)
 
       DO i0=1,njno2-1
          ijno2 = i0
-         IF( jno2lev(ijno2+1) > jno2_tmp ) EXIT 
+         IF( jno2lev( ijno2+1 ) > jno2_tmp ) EXIT 
       END DO
 
-      xjno2(1)=(jno2lev(ijno2+1)-jno2_tmp)/
-     $         (jno2lev(ijno2+1)-jno2lev(ijno2))
-      xjno2(2)=1.0-xjno2(1)       
+      xjno2(1) = ( jno2lev( ijno2+1 ) - jno2_tmp       ) /
+     $           ( jno2lev( ijno2+1 ) - jno2lev( ijno2 ) )
+      xjno2(2) = 1.0 - xjno2(1)       
 
       !---------------------
       ! [O3]:
@@ -713,19 +744,19 @@
       cao3_tmp = var_array(3)
 
       ! If larger than largest in LUT, assign largest level values
-      IF ( var_array(3) > cao3lev(ncao3) ) cao3_tmp = cao3lev(ncao3)
+      IF ( var_array(3) > cao3lev( ncao3 ) ) cao3_tmp = cao3lev(ncao3)
 
       ! If smaller, assign smallest level value
-      IF ( var_array(3) < cao3lev(1) ) cao3_tmp = cao3lev(1)
+      IF ( var_array(3) < cao3lev(1) )       cao3_tmp = cao3lev(1)
 
       DO i0=1,ncao3-1
          icao3 = i0
-         IF( cao3lev(icao3+1) > cao3_tmp ) EXIT 
+         IF( cao3lev( icao3+1 ) > cao3_tmp ) EXIT 
       END DO
 
-      xcao3(1)=(cao3lev(icao3+1)-cao3_tmp)/
-     $         (cao3lev(icao3+1)-cao3lev(icao3))
-      xcao3(2)=1.0-xcao3(1)       
+      xcao3(1) = ( cao3lev( icao3+1 ) - cao3_tmp       ) /
+     $           ( cao3lev( icao3+1 ) - cao3lev( icao3 ) )
+      xcao3(2) = 1.0 - xcao3(1)       
 
       !---------------------
       ! alfa0:
@@ -733,20 +764,20 @@
       alfa0_tmp = var_array(4)
 
       ! If larger than largest in LUT, assign largest level values
-      IF ( var_array(4) > alfa0lev(nalfa0) ) alfa0_tmp = 
-     $                                       alfa0lev(nalfa0)
+      IF ( var_array(4) > alfa0lev( nalfa0 ) ) alfa0_tmp = 
+     $                                         alfa0lev(nalfa0)
 
       ! If smaller, assign smallest level value
-      IF ( var_array(4) < alfa0lev(1) ) alfa0_tmp = alfa0lev(1)
+      IF ( var_array(4) < alfa0lev(1) )        alfa0_tmp = alfa0lev(1)
 
       DO i0=1,nalfa0-1
          ialfa0 = i0
-         IF( alfa0lev(ialfa0+1) > alfa0_tmp ) EXIT 
+         IF( alfa0lev( ialfa0+1 ) > alfa0_tmp ) EXIT 
       END DO
 
-      xalfa0(1)=(alfa0lev(ialfa0+1)-alfa0_tmp)/
-     $          (alfa0lev(ialfa0+1)-alfa0lev(ialfa0))
-      xalfa0(2)=1.0-xalfa0(1)       
+      xalfa0(1) = ( alfa0lev( ialfa0+1 ) - alfa0_tmp        ) /
+     $            ( alfa0lev( ialfa0+1 ) - alfa0lev( ialfa0 ) )
+      xalfa0(2) = 1.0 - xalfa0(1)       
 
       !---------------------
       ! alfa5:
@@ -754,20 +785,20 @@
       alfa5_tmp = var_array(5)
 
       ! If larger than largest in LUT, assign largest level values
-      IF ( var_array(5) > alfa5lev(nalfa5) ) alfa5_tmp = 
-     $                                       alfa5lev(nalfa5)
+      IF ( var_array(5) > alfa5lev( nalfa5 ) ) alfa5_tmp = 
+     $                                         alfa5lev(nalfa5)
 
       ! If smaller, assign smallest level value
-      IF ( var_array(5) < alfa5lev(1) ) alfa5_tmp = alfa5lev(1)
+      IF ( var_array(5) < alfa5lev(1) )        alfa5_tmp = alfa5lev(1)
 
       DO i0=1,nalfa5-1
          ialfa5 = i0
-         IF( alfa5lev(ialfa5+1) > alfa5_tmp ) EXIT 
+         IF( alfa5lev( ialfa5+1 ) > alfa5_tmp ) EXIT 
       END DO
 
-      xalfa5(1)=(alfa5lev(ialfa5+1)-alfa5_tmp)/
-     $          (alfa5lev(ialfa5+1)-alfa5lev(ialfa5))
-      xalfa5(2)=1.0-xalfa5(1)       
+      xalfa5(1) = ( alfa5lev( ialfa5+1 ) - alfa5_tmp        ) /
+     $            ( alfa5lev( ialfa5+1 ) - alfa5lev( ialfa5 ) )
+      xalfa5(2) = 1.0 - xalfa5(1)       
 
       !---------------------
       ! jo1d:
@@ -775,19 +806,19 @@
       jo1d_tmp = var_array(6)
 
       ! If larger than largest in LUT, assign largest level values
-      IF ( var_array(6) > jo1dlev(njo1d) ) jo1d_tmp = jo1dlev(njo1d)
+      IF ( var_array(6) > jo1dlev( njo1d ) ) jo1d_tmp = jo1dlev(njo1d)
 
       ! If smaller, assign smallest level value
-      IF ( var_array(6) < jo1dlev(1) ) jo1d_tmp = jo1dlev(1)
+      IF ( var_array(6) < jo1dlev(1) )       jo1d_tmp = jo1dlev(1)
 
       DO i0=1,njo1d-1
          ijo1d = i0
-         IF( jo1dlev(ijo1d+1) > jo1d_tmp ) EXIT 
+         IF( jo1dlev( ijo1d+1 ) > jo1d_tmp ) EXIT 
       END DO
 
-      xjo1d(1)=(jo1dlev(ijo1d+1)-jo1d_tmp)/
-     $         (jo1dlev(ijo1d+1)-jo1dlev(ijo1d))
-      xjo1d(2)=1.0-xjo1d(1)       
+      xjo1d(1) = ( jo1dlev( ijo1d+1 ) - jo1d_tmp       ) /
+     $           ( jo1dlev( ijo1d+1 ) - jo1dlev( ijo1d ) )
+      xjo1d(2) = 1.0 - xjo1d(1)       
 
       !---------------------
       ! [NOx]:
@@ -795,25 +826,25 @@
       canox_tmp = var_array(7)
 
       ! If larger than largest in LUT, assign largest level values
-      IF ( var_array(7) > canoxlev(ncanox) ) canox_tmp = 
-     $                                       canoxlev(ncanox)
+      IF ( var_array(7) > canoxlev( ncanox ) ) canox_tmp = 
+     $                                         canoxlev(ncanox)
 
       ! If smaller, assign smallest level value
-      IF ( var_array(7) < canoxlev(1) ) canox_tmp = canoxlev(1)
+      IF ( var_array(7) < canoxlev(1) )        canox_tmp = canoxlev(1)
 
       DO i0=1,ncanox-1
          icanox = i0
-         IF( canoxlev(icanox+1) > canox_tmp ) EXIT 
+         IF( canoxlev( icanox+1 ) > canox_tmp ) EXIT 
       END DO
 
-      xcanox(1)=(canoxlev(icanox+1)-canox_tmp)/
-     $          (canoxlev(icanox+1)-canoxlev(icanox))
-      xcanox(2)=1.0-xcanox(1)       
+      xcanox(1) = ( canoxlev( icanox+1 ) - canox_tmp        ) /
+     $            ( canoxlev( icanox+1 ) - canoxlev( icanox ) )
+      xcanox(2) = 1.0 - xcanox(1)       
 
-!      PRINT*,"The i-values are:", itemp, ijno2, icao3, ialfa0,
-!     $                            ialfa5, ijo1d, icanox
-!      PRINT*,"Variables are: ", var_array
-!      PRINT*,"For testing, xtemp: ",xtemp
+!      PRINT*,"The i-values are:",    itemp, ijno2, icao3, ialfa0,
+!     $                               ialfa5, ijo1d, icanox
+!      PRINT*,"Variables are: ",      var_array
+!      PRINT*,"For testing, xtemp: ", xtemp
       
       !======================
       ! Linear interpolation
@@ -831,24 +862,38 @@
       DO i7=1,2 
 
          !IF ENCOUNTER -999 IN THE LUT PRINT ERROR!!       
-         IF (fracnox(itemp+i1-1,ijno2+i2-1,icao3+i3-1,ialfa0+i4-1,
-     $      ialfa5+i5-1,ijo1d+i6-1,icanox+i7-1) .LT. 0.) THEN
-            fracnox(itemp+i1-1,ijno2+i2-1,icao3+i3-1,ialfa0+i4-1,
-     $           ialfa5+i5-1,ijo1d+i6-1,icanox+i7-1) = 0.0
-            !PRINT*,"##E#"
+         IF ( ( fracnox( itemp+i1-1,  ijno2+i2-1,  icao3+i3-1,
+     $                   ialfa0+i4-1, ialfa5+i5-1, ijo1d+i6-1,
+     $                   icanox+i7-1  ) < 0. )     .or.
+     $        ( fracnox( itemp+i1-1,  ijno2+i2-1,  icao3+i3-1,
+     $                   ialfa0+i4-1, ialfa5+i5-1, ijo1d+i6-1, 
+     $                   icanox+i7-1  ) > 1. ) )   THEN
+
+            PRINT*, 'INTERPOLATE_LUT2: fracnox = ,',
+     $          fracnox( itemp+i1-1,  ijno2+i2-1,  icao3+i3-1,
+     $                   ialfa0+i4-1, ialfa5+i5-1, ijo1d+i6-1,
+     $                   icanox+i7-1  )
+
+            MSG = 'LUT error: Fracnox should be between 0 and 1!'
+            CALL ERROR_STOP( MSG, 'INTERPOLATE_LUT2 ("paranox_mod.F")' )
          ENDIF
 
-            ! fracnox is the array with the actual lut data
-            fraction_nox=fraction_nox+xtemp(i1)*xjno2(i2)
-     $              *xcao3(i3)*xalfa0(i4)*xalfa5(i5)*xjo1d(i6)*
-     $              xcanox(i7)*fracnox(itemp+i1-1,ijno2+i2-1,icao3+i3-1,
-     $              ialfa0+i4-1,ialfa5+i5-1,ijo1d+i6-1,icanox+i7-1)
+         ! fracnox is the array with the actual lut data
+         fraction_nox = fraction_nox + xtemp(i1)    * xjno2(i2)  *
+     $                  xcao3(i3)    * xalfa0(i4)   * xalfa5(i5) *
+     $                  xjo1d(i6)    * xcanox(i7)   *
+     $                  fracnox(       itemp+i1-1,    ijno2+i2-1,
+     $                  icao3+i3-1,    ialfa0+i4-1,   ialfa5+i5-1,
+     $                  ijo1d+i6-1,    icanox+i7-1    )
 
-            ! intope is the array with the actual lut data
-            int_ope=int_ope+xtemp(i1)*xjno2(i2)*xcao3(i3)* 
-     $              xalfa0(i4)*xalfa5(i5)*xjo1d(i6)*xcanox(i7)* 
-     $              intope(itemp+i1-1,ijno2+i2-1,icao3+i3-1,
-     $              ialfa0+i4-1,ialfa5+i5-1,ijo1d+i6-1,icanox+i7-1)
+         ! intope is the array with the actual lut data
+         int_ope =      int_ope      + xtemp(i1)    * xjno2(i2)  * 
+     $                  xcao3(i3)    * xalfa0(i4)   * xalfa5(i5) *
+     $                  xjo1d(i6)    * xcanox(i7)   * 
+     $                  intope(        itemp+i1-1,    ijno2+i2-1,
+     $                  icao3+i3-1,    ialfa0+i4-1,   ialfa5+i5-1,
+     $                  ijo1d+i6-1,    icanox+i7-1    )
+
       END DO
       END DO
       END DO
@@ -859,33 +904,37 @@
       
       IF ((I .eq. 108) .and. (J .eq. 49)) THEN
          PRINT*,"-----INTERPOLATE_LUT2, for 108,49-----"
-         PRINT*,"Fraction_nox and int_OPE: ",fraction_nox,
-     &                                       int_ope
-         PRINT*,"Jvalues are: ",jvalues(I, J,:)
-         PRINT*,"Vars are: ",var_array
-         PRINT*,"[O3] in interpolate_lut: ",var_array(3)
-         PRINT*,"[NOx] in interpolate_lut: ",var_array(7)
-         PRINT*,"J(O1D)/J(NO2) : ",var_array(6)
-         PRINT*,"The i-values are:", itemp, ijno2, icao3, ialfa0,
-     $                               ialfa5, ijo1d, icanox
-         PRINT*,"Interpolation parameters: ",xtemp,xjno2,xcao3,
-     $                                       xalfa0,xalfa5,xjo1d,xcanox 
+         PRINT*,"Fraction_nox and int_OPE: ", fraction_nox,
+     &                                        int_ope
+         PRINT*,"Jvalues are: ",              jvalues(I, J,:)
+         PRINT*,"Vars are: ",                 var_array
+         PRINT*,"[O3] in interpolate_lut: ",  var_array(3)
+         PRINT*,"[NOx] in interpolate_lut: ", var_array(7)
+         PRINT*,"J(O1D)/J(NO2) : ",           var_array(6)
+         PRINT*,"The i-values are:",          itemp,  ijno2,  icao3,
+     $                                        ialfa0, ialfa5, ijo1d,
+     $                                        icanox
+         PRINT*,"Interpolation parameters: ", xtemp,  xjno2,  xcao3,
+     $                                        xalfa0, xalfa5, xjo1d,
+     $                                        xcanox 
          PRINT*,"---------------------------------"
       ENDIF
        
       IF ((I .eq. 73) .and. (J .eq. 76)) THEN
          PRINT*,"-----INTERPOLATE_LUT2, for 73,76-----"
-         PRINT*,"Fraction_nox and int_OPE: ",fraction_nox,
-     &                                       int_ope
-         PRINT*,"Jvalues are: ",jvalues(I, J,:)
-         PRINT*,"Vars are: ",var_array
-         PRINT*,"[O3] in interpolate_lut: ",var_array(3)
-         PRINT*,"[NOx] in interpolate_lut: ",var_array(7)
-         PRINT*,"J(O1D)/J(NO2) : ",var_array(6)
-         PRINT*,"The i-values are:", itemp, ijno2, icao3, ialfa0,
-     $                               ialfa5, ijo1d, icanox
-         PRINT*,"Interpolation parameters: ",xtemp,xjno2,xcao3,
-     $                                       xalfa0,xalfa5,xjo1d,xcanox 
+         PRINT*,"Fraction_nox and int_OPE: ", fraction_nox,
+     &                                        int_ope
+         PRINT*,"Jvalues are: ",              jvalues(I, J,:)
+         PRINT*,"Vars are: ",                 var_array
+         PRINT*,"[O3] in interpolate_lut: ",  var_array(3)
+         PRINT*,"[NOx] in interpolate_lut: ", var_array(7)
+         PRINT*,"J(O1D)/J(NO2) : ",           var_array(6)
+         PRINT*,"The i-values are:",          itemp,  ijno2,  icao3,
+     $                                        ialfa0, ialfa5, ijo1d,
+     $                                        icanox
+         PRINT*,"Interpolation parameters: ", xtemp,  xjno2,  xcao3,
+     $                                        xalfa0, xalfa5, xjo1d,
+     $                                        xcanox 
          PRINT*,"------------------------------------"
       ENDIF
       
