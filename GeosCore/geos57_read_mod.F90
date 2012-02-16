@@ -1510,8 +1510,8 @@ CONTAINS
     CALL NcGet_DimLen( fId, 'lev',   Z )
     CALL NcGet_DimLen( fId, 'time',  T )
 
-    ! Make sure the dimensions of the file are valid           ! Kludge
-    CALL Check_Dimensions( lon=X,  lat=Y,           lev=Z-2, & !lev=Z-1,       &
+    ! Make sure the dimensions of the file are valid
+    CALL Check_Dimensions( lon=X,  lat=Y,           lev=Z-1,       &
                            time=T, time_expected=8, caller=caller )
 
     !======================================================================
