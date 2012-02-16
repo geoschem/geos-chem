@@ -1758,8 +1758,8 @@
             IF ( N > N_TRACERS ) CYCLE
             NN = N
             
-!            ARRAY(:,:,1:LD24) = MASSFLEW(:,:,1:LD24,N) / SCALEDYN
-            ARRAY(:,:,1:LD24) = MASSFLEW(:,:,LD24:1:-1,N) / SCALEDYN
+            ARRAY(:,:,1:LD24) = MASSFLEW(:,:,LLPAR:LLPAR-LD24+1:-1,N) /
+     &                          SCALEDYN
 
             CALL BPCH2( IU_BPCH,   MODELNAME, LONRES,   LATRES,
      &                  HALFPOLAR, CENTER180, CATEGORY, NN,
@@ -1791,8 +1791,8 @@
             IF ( N > N_TRACERS ) CYCLE
             NN = N
 
-!            ARRAY(:,:,1:LD25) = MASSFLNS(:,:,1:LD25,N) / SCALEDYN
-            ARRAY(:,:,1:LD25) = MASSFLNS(:,:,LD25:1:-1,N) / SCALEDYN
+            ARRAY(:,:,1:LD25) = MASSFLNS(:,:,LLPAR:LLPAR-LD25+1:-1,N) /
+     &                          SCALEDYN
 
             CALL BPCH2( IU_BPCH,   MODELNAME, LONRES,   LATRES,
      &                  HALFPOLAR, CENTER180, CATEGORY, NN,
@@ -1824,8 +1824,8 @@
             IF ( N > N_TRACERS ) CYCLE
             NN = N
             
-!            ARRAY(:,:,1:LD26) = MASSFLUP(:,:,1:LD26,N) / SCALEDYN
-            ARRAY(:,:,1:LD26) = MASSFLUP(:,:,LD26:1:-1,N) / SCALEDYN
+            ARRAY(:,:,1:LD26) = MASSFLUP(:,:,LLPAR:LLPAR-LD26+1:-1,N) /
+     &                          SCALEDYN
                
             CALL BPCH2( IU_BPCH,   MODELNAME, LONRES,   LATRES, 
      &                  HALFPOLAR, CENTER180, CATEGORY, NN,
@@ -3585,6 +3585,8 @@
 !     models (phs, 9/3/08)
 !  (7 ) add EFLUX for output. (lin, ccc 5/29/09)
 !  26 Aug 2010 - R. Yantosca - Modified for MERRA
+!  03 Nov 2011 - M. Payer    - Fix SCALEX for SLP: use A1 for MERRA, otherwise
+!                              use I6
 !******************************************************************************
 !
       IF ( ND67 > 0 ) THEN
@@ -3657,7 +3659,11 @@
                   SCALEX = SCALE_ND67
                   UNIT   = 'hPa'
                CASE ( 18 ) 
-                  SCALEX = SCALE_ND67
+#if   defined( MERRA )
+                 SCALEX = SCALE_A1     ! MERRA SLP is hourly
+#else
+                 SCALEX = SCALE_I6     ! Otherwise SLP is 6-h inst.
+#endif
                   UNIT   = 'hPa'
                CASE ( 19 )
                   SCALEX = SCALE_ND67
