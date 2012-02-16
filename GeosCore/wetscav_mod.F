@@ -480,6 +480,16 @@
                FRAC = PRECON(I,J) / PREACC(I,J)
             ENDIF
 
+           !##################################################################
+           !### KLUDGE: On July 22, 2010, there is an error where PREACC
+           !### is set to a very small number (but nonzero).  This causes
+           !### FRAC to blow up to near infinity and PDOWN to be a very
+           !### large number.  For now, limit FRAC to be between 0 and 1.
+           !### 
+           IF ( FRAC > 1d0 ) FRAC = 1d0
+           IF ( FRAC < 0d0 ) FRAC = 0d0 
+           !##################################################################
+
             ! Start at the top of the atmosphere
             L = LLPAR
 
