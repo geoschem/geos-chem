@@ -180,6 +180,7 @@
 !        IDTSS1-IDTSS30, IDTECIL1-IDTECIL30, IDTECOB1-IDTECOB30, 
 !        IDTOCIL1-IDTOCIL30, IDTOCOB1-IDTOCOB30, and IDTAW1-IDTAW30 (win, 6/23/09)
 !  (23) Updates for mercury simulation (ccc, 5/17/10)
+!  17 Feb 2011 - R. Yantosca - Add modifications for APM microphysics (G. Luo)
 !******************************************************************************
 !
       IMPLICIT NONE
@@ -251,6 +252,8 @@
       INTEGER            :: IDTIEPOX
       INTEGER            :: IDTPYPAN,IDTMAP
       INTEGER            :: IDTAP
+
+      INTEGER		 :: IDTHCOOH, IDTACTA  ! (mjc, 4/13/11)
 
       ! TOMAS tracer ID's  !(win, 6/23/09)
       INTEGER            :: IDTH2SO4
@@ -454,8 +457,12 @@
       ! NNNTRID is used in this module to dimension some arrays
       ! NNNTRID should be the same as NNPAR in CMN_SIZE
       IF ( NNNTRID .NE. NNPAR ) THEN
+#if   defined( APM )
+         write(*,*)'NNNTRID .NE. NNPAR!',NNNTRID,NNPAR
+#else
          CALL ERROR_STOP ( 'NNNTRID .NE. NNPAR!',
      &                                     'tracerid_mod,CMN_SIZE' )
+#endif
          ! If you get this error, an appropriate fix is to increase 
          ! either NNNTRID (in tracerid_mod) or NNPAR (in CMN_SIZE) so
          ! they are the same and greater than or equal to the number 
@@ -2724,7 +2731,7 @@
       IDTNK22= 0
       IDTNK23= 0
       IDTNK24= 0
-      IDTNK25= 0}
+      IDTNK25= 0
       IDTNK26= 0
       IDTNK27= 0
       IDTNK28= 0

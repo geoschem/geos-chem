@@ -118,6 +118,14 @@
       USE TAGGED_CO_MOD,          ONLY : EMISS_TAGGED_CO
       USE VISTAS_ANTHRO_MOD,      ONLY : EMISS_VISTAS_ANTHRO
       USE ICOADS_SHIP_MOD,        ONLY : EMISS_ICOADS_SHIP !(cklee,7/09/09)
+ 
+      USE TRACERID_MOD,           ONLY : IDTSS1           ! (win, 1/25/10)
+      USE TRACERID_MOD,           ONLY : IDTSF1           ! (win, 1/25/10)
+      USE TRACERID_MOD,           ONLY : IDTECIL1         ! (win, 1/25/10)
+      USE TRACERID_MOD,           ONLY : IDTOCIL1         ! (win, 1/25/10)
+      USE TRACERID_MOD,           ONLY : IDTECOB1         ! (win, 1/25/10)
+      USE TRACERID_MOD,           ONLY : IDTOCOB1         ! (win, 1/25/10)
+      USE TRACERID_MOD,           ONLY : IDTDUST1         ! (win, 1/25/10)
 
       USE CMN_SIZE_MOD                 ! Size parameters
       USE CMN_O3_MOD                   ! FSCLYR

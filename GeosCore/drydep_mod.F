@@ -1300,10 +1300,10 @@
 !                          surface ID in input unit 65)
 !     IJUSE(IJLOOP,LDT)  - Fraction ((per mil) of gridbox area occupied by
 !                          land type element LDT
-!
+!                                                                             .
 !  Need as leaf area index see (RDLAI & CMN_VEL):
 !     XYLAI(IJLOOP,LDT)  - Leaf Area Index of land type element LDT
-!
+!                                                                             .
 !  Need as meteorological input for each grid square(I,J) (passed):
 !     RADIAT(IJLOOP) - Solar radiation in W m-2
 !     TEMP(IJLOOP)   - Surface air temperature in K
@@ -1312,7 +1312,7 @@
 !     RHB(IJLOOP)    - Relative humidity at the surface
 !     PRESSU(IJLOOP) - Local surface pressure
 !     W10(IJLOOP)    - 10m wind speed
-!
+!                                                                             .
 !  Need as input for each species K (passed):
 !     F0(K)          - reactivity factor for oxidation of biological substances
 !     HSTAR(K)       - Henry's Law constant
@@ -1320,7 +1320,7 @@
 !                      (used to calculate molecular diffusivities)
 !     AIROSOL(K)     - LOGICAL flag (T = aerosol species; 
 !                                    F = gas-phase species)
-!
+!                                                                             .
 !  Also need to call the following subroutines to read drydep input data:
 !     "modin.f"      - reads Olson land types, dry deposition land types,
 !                      and roughness heights from "drydep.table". 
@@ -1329,7 +1329,7 @@
 !     "rddrycf.f     - reads drydep polynomial coeff's from file "drydep.coef"
 !     "rdlai.f"      - reads Leaf Area Indices from files "lai**.global"
 !     "rdland.f"     - reads Olson land types from file "vegtype.global"
-!
+!                                                                             .
 !  Some variables used in the subroutine (passed):
 !     LRGERA(IJLOOP) T -> stable atmosphere; a high aerodynamic resistance
 !                        (RA=1.E4 m s-1) is imposed; else RA is calculated
@@ -1339,7 +1339,7 @@
 !                      conditions
 !     CFRAC(IJLOOP)  - Fractional cloud cover
 !     ZH(IJLOOP)     - Mixing depth (m)
-!
+!                                                                             .
 !  Some variables used in the subroutine:
 !     MAXDEP         - the maximum number of species for which the dry 
 !                      deposition calculation is done
@@ -1348,10 +1348,10 @@
 !     RSURFC(K,LDT)  - Bulk surface resistance (s m-1) for species K to 
 !                      surface LDT
 !     C1X(K)         - Total resistance to deposition (s m-1) for species K
-!
+!                                                                             .
 !  Returned:
 !     DVEL(IJLOOP,K) - Deposition velocity (m s-1) of species K
-!
+!                                                                             .
 !  References:
 !  ============================================================================
 !     Baldocchi, D.D., B.B. Hicks, and P. Camara, A canopy stomatal
@@ -3180,7 +3180,8 @@
 !  non-size resolved aerosol according to Zhang et al 2001.  We do not consider
 !  the hygroscopic growth of the aerosol particles. (rjp, tdf, bec, bmy, 
 !  4/1/04, 4/15/05) 
-!
+!\\
+!\\
 !  This routine is used for all aerosols except dust, sulfate, and seasalt
 !  (hotp 7/31/09)
 !\\

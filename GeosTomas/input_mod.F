@@ -3937,9 +3937,12 @@ c$$$      WRITE( 6, 100     ) '30-BIN DUST AEROSOLS?       : ', LDUST30
 !
 ! !LOCAL VARIABLES:
 !
-      LOGICAL, SAVE :: FIRST = .TRUE.
-      LOGICAL       :: IS_ALL 
-      INTEGER       :: M
+      LOGICAL, SAVE       :: FIRST = .TRUE.
+      LOGICAL             :: IS_ALL 
+      INTEGER             :: M
+      INTEGER             :: NN,     COL,     IFLAG, TC     ! (win, 7/14/09)
+      CHARACTER (LEN=255) :: WORD,   SUBWORD, TMP1,  TMP2   ! (win, 7/14/09)
+      INTEGER             :: MINTMP, MAXTMP                 ! (win, 7/14/09)
 
       !=================================================================
       ! SET_TINDEX begins here!

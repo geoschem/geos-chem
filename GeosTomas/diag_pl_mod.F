@@ -81,7 +81,6 @@
       INTEGER,           ALLOCATABLE :: FAM_NMEM(:), COUNT(:,:,:)
       REAL*8,            ALLOCATABLE :: FAM_COEF(:,:)
       REAL*8,            ALLOCATABLE :: PL24H(:,:,:,:)
-      CHARACTER(LEN=14), ALLOCATABLE :: FAM_NAME(:)
       CHARACTER(LEN=14), ALLOCATABLE :: FAM_TYPE(:)
       CHARACTER(LEN=14), ALLOCATABLE :: FAM_MEMB(:,:)
 
