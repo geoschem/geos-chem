@@ -266,7 +266,7 @@
       !=================================================================
 
       ! Only open file if it's a new day
-      IF ( ITS_A_NEW_DAY() ) THEN
+      IF ( ITS_A_NEW_DAY(.TRUE.) ) THEN
 
          ! File name for BC's
          IF ( WINDOW .eq. 5 ) THEN

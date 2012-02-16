@@ -42,6 +42,7 @@
 #  05 Aug 2011 - M. Long     - Now compile module files in Headers/ directory
 #  27 Sep 2011 - M. Payer    - Modified dependencies for GFED3
 #   6 Dec 2011 - R. Yantosca - Remove #ifdef blocks for GI model code
+#  16 Feb 2012 - M. Payer    - Remove references to ESMF directory
 #EOP
 #------------------------------------------------------------------------------
 #BOC
@@ -164,18 +165,8 @@ all:
 	@$(MAKE) lib
 	@$(MAKE) exe
 
-ifeq ($(ESMF),yes)                       
-lib:                                                 # Build for ESMF/GEOS-5
-	@$(MAKE) libgc				     
-	@$(MAKE) libesmf			     
-else ifeq ($(ESMF_TESBED),yes)            	     
-lib:                                                 # Build for ESMF/Testbed
-	@$(MAKE) libgc				     
-	@$(MAKE) libesmf_testbed		     
-else                                      	     
 lib:                                                 # Build normal GEOS-Chem
 	@$(MAKE) libgc				     
-endif						     
 
 libgc:                                               # Compile everything
 	@$(MAKE) libheaders         		     
@@ -197,12 +188,6 @@ libutil:                                             # Build code in GeosUtil/
 
 libheaders:                                          # Build code in Headers/ 
 	@$(MAKE) -C $(HDR)			     
-
-libesmf:                                             # Compile ESMF/GEOS-5
-	@$(MAKE) -C $(LESMF) ESMF=yes esmf
-
-libesmf_testbed:                                     # Compile ESMF testbed
-	@$(MAKE) -C $(LESMF) ESMF_TESTBED=yes esmf
 
 exe:                                                 # Build executable
 	$(LD) $(OBJ) $(LINK) -o $(EXE)

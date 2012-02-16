@@ -65,6 +65,7 @@
 #  23 Sep 2010 - R. Yantosca - Removed "tropopause.f" from compile list
 #  23 Sep 2010 - R. Yantosca - Updated dependencies for v9-01-01
 #  06 Dec 2011 - R. Yantosca - Remove #ifdef blocks for GI model code
+#  16 Feb 2012 - M. Payer    - Remove references to ESMF directory
 #EOP
 #------------------------------------------------------------------------------
 #BOC
@@ -85,7 +86,6 @@ KPP     := $(ROOTDIR)/KPP
 MOD     := $(ROOTDIR)/mod
 UTIL    := $(ROOTDIR)/GeosUtil
 GTMM    := $(ROOTDIR)/GTMM
-LESMF   := $(ROOTDIR)/ESMF
 
 # This directory only contains files that are different for the TOMAS
 # aerosol microphysics.  For files that are the same as for the regular
@@ -185,18 +185,8 @@ all:
 	@$(MAKE) TOMAS=yes lib
 	@$(MAKE) TOMAS=yes exe
 
-ifeq ($(ESMF),yes)                       
-lib:                                                 # Build for ESMF/GEOS-5
-	@$(MAKE) libgc				     
-	@$(MAKE) libesmf			     
-else ifeq ($(ESMF_TESBED),yes)            	     
-lib:                                                 # Build for ESMF/Testbed
-	@$(MAKE) libgc				     
-	@$(MAKE) libesmf_testbed		     
-else                                      	     
 lib:                                                 # Build normal GEOS-Chem
 	@$(MAKE) libgc				     
-endif						     
 
 libgc:                                               # Compile everything
 	@$(MAKE) libheaders         		     
@@ -218,12 +208,6 @@ libutil:                                             # Build code in GeosUtil/
 
 libheaders:                                          # Build code in Headers/ 
 	@$(MAKE) -C $(HDR)			     
-
-libesmf:                                             # Compile ESMF/GEOS-5
-	@$(MAKE) -C $(LESMF) ESMF=yes esmf	     
-
-libesmf_testbed:                                     # Compile ESMF testbed
-	@$(MAKE) -C $(LESMF) ESMF_TESTBED=yes esmf     
 
 exe:                                                 # Build executable
 	$(LD) $(OBJ) $(LINK) -o $(EXE)
