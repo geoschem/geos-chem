@@ -573,7 +573,7 @@
 ! 
 ! !REVISION HISTORY: 
 !  14 Sep 2001 - B. Field    - Initial version
-!  (1 ) Remove references to F77_CMN_UV10M and F77_CMN_LWI -- these are now
+!  (1 ) Remove references to CMN_UV10M and CMN_LWI -- these are now
 !        obsolete in GEOS-CHEM versions 4.18 and higher (bmy, 9/5/01)
 !  (2 ) Now compute u = SQRT( U10M^2 + V10M^2 ) as SQRT( SFCWINDSQR(I,J) ).
 !        This is necessary since U10M and V10M are missing for 1996, and

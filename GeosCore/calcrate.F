@@ -14,7 +14,7 @@
 !        declare these allocatable in "comode_mod.f".  This allows us to only 
 !        allocate these if we are doing a fullchem run.  Now also references
 !        routines from "diag_mod.f", "drydep_mod.f", "error_mod", and 
-!        "planeflight_mod.f".  Also, F77_CMN_SAV has now been eliminated. 
+!        "planeflight_mod.f".  Also, CMN_SAV has now been eliminated. 
 !        Also modified ND22 FAST-J diagnostics accordingly for SMVGEAR II. 
 !        Now added special rxn for DMS+OH+O2.  Force double precision with
 !        "D" exponents. (gcc, bdf, bmy, 4/1/03)

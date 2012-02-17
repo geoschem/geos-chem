@@ -149,7 +149,7 @@
 !  09 Mar 2010 - R. Yantosca - Minor bug fix in GET_EMMONOT_MEGAN
 !  17 Mar 2010 - H. Pye      - AEF_SPARE must be a scalar local variable
 !                              in GET_EMMONOT_MEGAN for parallelization.
-!  20 Aug 2010 - R. Yantosca - Move F77_CMN_SIZE to top of module
+!  20 Aug 2010 - R. Yantosca - Move CMN_SIZE to top of module
 !  20 Aug 2010 - R. Yantosca - Now set DAY_DIM = 24 for MERRA, since the
 !                              surface temperature is now an hourly field.
 !  01 Sep 2010 - R. Yantosca - Bug fix in INIT_MEGAN: now only read in 

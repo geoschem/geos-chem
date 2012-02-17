@@ -20,7 +20,7 @@
 !
 ! !USES:
 !
-      !NBIOMAX moved to F77_CMN_SIZE (fp, 6/2009)
+      !NBIOMAX moved to CMN_SIZE_mod (fp, 6/2009)
       !USE BIOMASS_MOD,     ONLY : NBIOMAX
       USE BIOFUEL_MOD,     ONLY : NBFTRACE
       USE DIAG_MOD,        ONLY : AD01,        AD02,        AD05    

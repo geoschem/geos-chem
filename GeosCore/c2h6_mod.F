@@ -106,7 +106,7 @@
 !        area in cm2.  Remove references to DXYP.  Use routines GET_MONTH
 !        and GET_TS_EMIS from "time_mod.f".  Remove MONTH from call to
 !        BIOBURN. (bmy, 2/11/03)
-!  (5 ) Now replace F77_CMN_SETUP w/ references from "logical_mod.f" and
+!  (5 ) Now replace CMN_SETUP w/ references from "logical_mod.f" and
 !        "directory_mod.f".  Now references STT from "tracer_mod.f".
 !        Replace LFOSSIL with LANTHRO (bmy, 7/20/04)
 !  (6 ) Now make sure all USE statements are USE, ONLY.  Also eliminate 

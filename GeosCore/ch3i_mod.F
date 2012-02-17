@@ -92,7 +92,7 @@
 !        (surface water concentration should not exceed 8 ng/L)
 !  (2 ) CH3I emissions from rice and wetlands use Fung's CH4 emission
 !        inventory scaled with a constant factor from BIBLE observations.
-!  (3 ) Added "F77_CMN_SETUP" so that the proper path name to the /data/ctm
+!  (3 ) Added "CMN_SETUP" so that the proper path name to the /data/ctm
 !        directories can be supplied. (bmy, 3/18/99)
 !  (4 ) Trap I/O errors with subroutine IOERROR (bmy, 5/27/99)
 !  (5 ) OCDATA now holds the aqueous CH3I in [ng/L], as read from disk.
@@ -291,7 +291,7 @@
 !  (11) Fixed bugs in the expressions for H and FLUX (mgs, bmy, 5/15/99)
 !  (12) Now uses bilinear correlation with NPP and RADSWG for ocean source
 !       (before only NPP)   (mgs, 16 Jun 1999
-!  (13) FRCLND removed as argument, because F77_CMN_DEP now included 
+!  (13) FRCLND removed as argument, because CMN_DEP now included 
 !       (mgs, 06/16/99)
 !  (14) Ocean emissions now differetn parametrizations for 3 latitude regions.
 !        Emissions protocolled in more detail.

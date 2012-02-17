@@ -165,7 +165,7 @@
       LOGICAL, SAVE          :: FIRSTEMISS = .TRUE.
       INTEGER, SAVE          :: LASTYEAR = -999, LASTMONTH = -999
 
-      ! For now these are defined in F77_CMN_O3
+      ! For now these are defined in CMN_O3_mod
       !REAL*4                 :: EMISTCO(IIPAR,JJPAR)
       !REAL*4                 :: FLIQCO2(IIPAR,JJPAR)
 

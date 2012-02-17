@@ -106,7 +106,7 @@
 !  (7 ) Now account for extra production of CO from VOC's for Tagged CO
 !        and CO-OH simulations (bmy, 1/3/01)
 !  (8 ) Now use routines from "error_mod.f" for trapping NaN's (bmy, 3/8/01)
-!  (9 ) Moved NBIOMAX here from "F77_CMN_SIZE" (bmy, 3/16/01)
+!  (9 ) Moved NBIOMAX here from "CMN_SIZE" (bmy, 3/16/01)
 !  (10) Now dimension BIOTRCE and to be of size NBIOMAX, instead of having 
 !        them be allocatable.  Also change NBIOMAX from 9 to 10, since we 
 !        will be adding ALK4 soon.  Elminate LDOBIOEMIT, since that is now
@@ -186,7 +186,7 @@
       ! Parameters
       ! NOTE: This is an internal declaration for the 
       ! gas-phase species only (bmy, 9/28/06)
-      ! use NBIOMAX from F77_CMN_SIZE now (hotp 8/3/09)
+      ! use NBIOMAX from CMN_SIZE_mod now (hotp 8/3/09)
       !INTEGER, PARAMETER   :: NBIOMAX = 19
 
       ! TOMS AI interannual variability in biomass burning emissions
@@ -2029,7 +2029,7 @@
 !  NAIMONTHS      = 12*NAIYEARS; number of months for which there is data.
 !
 !  NOTES:
-!  (1 ) Remove references to "F77_CMN_CO", "F77_CMN_OH", and "CMN". (bmy, 9/25/00)
+!  (1 ) Remove references to "CMN_CO", "CMN_OH", and "CMN". (bmy, 9/25/00)
 !  (2 ) Updated lat/lon boundaries of geographic regions (bnd, bmy, 10/16/00)
 !  (3 ) Now references ALLOC_ERR from "error_mod.f" (bmy, 10/15/02)
 !  (4 ) Now use functions GET_MONTH, GET_TAU, GET_YEAR from "time_mod.f" 

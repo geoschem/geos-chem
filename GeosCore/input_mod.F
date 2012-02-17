@@ -3042,7 +3042,7 @@
 !        (phs, 11/18/08)
 !  (12) Now set TINDEX with PD45=NNPAR+1 tracers instead of N_TRACERS.
 !        (tmf, 2/10/09)
-!  (13) NBIOMAX now in F77_CMN_SIZE (fp, 6/2009)
+!  (13) NBIOMAX now in CMN_SIZE (fp, 6/2009)
 !  27 Aug 2010 - R. Yantosca - Added ProTeX headers
 !  26 May 2011 - R. Yantosca - For ND17, ND18, ND37, ND38, ND39, we need to
 !                              set N_TMP = N_TRACERS, or else wetdep tracers 
@@ -4480,7 +4480,7 @@
 ! !LOCAL VARIABLES:
 !
       LOGICAL              :: EOF, DO_SAVE_PL, DO_SAVE_O3
-      !FP_ISOP moved to F77_CMN_SIZE (6/2009)
+      !FP_ISOP moved to CMN_SIZE_mod (6/2009)
       !INTEGER, PARAMETER   :: MAXMEM=10
       INTEGER              :: F, M, N, NFAM
       INTEGER              :: FAM_NMEM(MAXFAM)

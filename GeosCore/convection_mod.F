@@ -120,7 +120,7 @@
 ! 
 ! !REVISION HISTORY: 
 !  25 May 2005 - S. Wu       - Initial version
-!  08 Feb 2007 - R. Yantosca - Now reference "F77_CMN_SIZE".  Now references 
+!  08 Feb 2007 - R. Yantosca - Now reference "CMN_SIZE".  Now references 
 !                              CLDMAS, CMFMC, DTRAIN from "dao_mod.f" so that 
 !                              we can pass either GEOS-5 or GEOS-3 meteorology
 !                              to NFCLDMX. 

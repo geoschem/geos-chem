@@ -150,9 +150,9 @@
 ! !DEFINED PARAMETERS:
 !
       INTEGER, PARAMETER   :: MAXDEP    = 51
-      INTEGER, PARAMETER   :: NNTYPE    = 15     ! NTYPE    from "F77_CMN_SIZE"
-      INTEGER, PARAMETER   :: NNPOLY    = 20     ! NPOLY    from "F77_CMN_SIZE"
-      INTEGER, PARAMETER   :: NNVEGTYPE = 74     ! NVEGTYPE from "F77_CMN_SIZE"
+      INTEGER, PARAMETER   :: NNTYPE    = 15     ! NTYPE    from "CMN_SIZE_mod"
+      INTEGER, PARAMETER   :: NNPOLY    = 20     ! NPOLY    from "CMN_SIZE_mod"
+      INTEGER, PARAMETER   :: NNVEGTYPE = 74     ! NVEGTYPE from "CMN_SIZE_mod"
       REAL*8,  PARAMETER   :: XCKMAN    = 0.4d0
       ! Add max number of radius bins for sea salt (jaegle 5/11/11)
       INTEGER, PARAMETER   :: NR_MAX    = 200
@@ -300,7 +300,7 @@
 !        each call. (rjp, bmy, 7/21/03)
 !  (3 ) Now declare CFRAC, RADIAT, AZO, USTAR as local variables, which are 
 !        returned by METERO.  CFRAC and RADIAT have also been deleted from 
-!        "F77_CMN_DEP". (bmy, 12/9/03)
+!        "CMN_DEP". (bmy, 12/9/03)
 !  (4 ) Now use explicit formula for IJLOOP to allow parallelization.
 !        Also reference LPRT from "logical_mod.f" (bmy, 7/20/04)
 !  (5 ) Now use routines from "pbl_mix_mod.f" to get PBL quantities, instead
@@ -757,7 +757,7 @@
 !  (4 ) Updated comments, cosmetic changes (bmy, 3/14/02)
 !  (5 ) Replaced all instances of IM with IIPAR and JM with JJPAR, in order
 !        to prevent namespace confusion for the new TPCORE (bmy, 6/25/02)
-!  (6 ) Removed reference to "comtrid.h", "F77_CMN_SAV", "F77_CMN_DEP", and "F77_CMN_O3",
+!  (6 ) Removed reference to "comtrid.h", "CMN_SAV", "CMN_DEP", and "CMN_O3",
 !        these are not used in this routine.  Also bundled into "drydep_mod.f"
 !        for more convenient packaging. (bmy, 11/19/02)
 !  (7 ) Replaced DXYP(JREF)*1d4 with routine GET_AREA_CM2 of "grid"mod.f".
@@ -897,7 +897,7 @@
       USE CMN_DEP_MOD       ! Dry deposition variables
 ! 
 ! !REVISION HISTORY: 
-!  (1 ) Now eliminate DEPFLUX from F77_CMN_SAV, in order to save memory.
+!  (1 ) Now eliminate DEPFLUX from CMN_SAV, in order to save memory.
 !        DEPFLUX is now a local variable (bdf, 4/2/99)
 !  (2 ) Now make DEPFLUX of dimension (IIPAR,JJPAR,MAXDEP) (bmy, 4/2/99)
 !  (3 ) Now use an allocatable array for the ND44 diagnostic.

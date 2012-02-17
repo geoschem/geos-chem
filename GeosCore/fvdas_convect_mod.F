@@ -730,7 +730,7 @@
 !  (13) SMALL   (REAL*8 )  : A small number
 ! 
 !  NOTES:
-!  (1 ) Added references to "diag_mod.f", "grid_mod.f", and "F77_CMN_DIAG.  
+!  (1 ) Added references to "diag_mod.f", "grid_mod.f", and "CMN_DIAG.  
 !        Also added TCVV and INDEXSOL as arguments.  Now only save LD38
 !        levels of the ND38 diagnostic.  Now place NTRACE before Q in the
 !        arg list. (swu, bmy, 1/21/04)

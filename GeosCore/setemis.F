@@ -124,9 +124,9 @@
 !        now in units of [molec CO/cm2/s].  Adjust unit conversion accordingly.
 !        Also replace NBIOMAX with NBIOMAX_GAS, since aerosol biomass is
 !        handled elsewhere.  (bdf, phs, bmy, 9/27/06)
-!  (28) Now replace GEMISNOX array (from F77_CMN_NOX) with module arrays
+!  (28) Now replace GEMISNOX array (from CMN_NOX) with module arrays
 !        EMIS_LI_NOx and EMIS_AC_NOx (ltm, bmy, 10/3/07)
-!  (29) Bug fix: resize EMISRR to be consistent w/ F77_CMN_O3 (bmy, jaf, 6/11/08)
+!  (29) Bug fix: resize EMISRR to be consistent w/ CMN_O3 (bmy, jaf, 6/11/08)
 !  (30) Limit emissions into the surface level only (lin, 5/29/09)
 !  (31) Bug fix: cycle if IDEMIS(NN) <= 0 to avoid array-out-of-bounds
 !        errors (bmy, 8/6/09)

@@ -73,8 +73,8 @@
 !        nm from 400 nm.  Add additional dust AOD bins.  Output values to 
 !        hdf_mod. (amv, bmy, 12/1/09)
 !  03 Aug 2010 - R. Yantosca - Added ProTeX headers
-!  03 Aug 2010 - R. Yantosca - Now move the #include "F77_CMN_SIZE" and
-!                              #include "F77_CMN_DIAG" to the top of module
+!  03 Aug 2010 - R. Yantosca - Now move the #include "CMN_SIZE" and
+!                              #include "CMN_DIAG" to the top of module
 !  13 Aug 2010 - R. Yantosca - Added modifications for MERRA
 !  21 Sep 2010 - R. Yantosca - Removed duplicates in INIT_DIAGINFO
 !  21 Oct 2010 - R. Yantosca - Bug fix in INIT_DIAGINFO

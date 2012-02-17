@@ -1350,7 +1350,7 @@
 !
 !***********************************************************************       
 !
-! Need as landtype input for each grid square (I,J) see (RDLAND & F77_CMN_VEL):
+! Need as landtype input for each grid square (I,J) see (RDLAND & CMN_VEL_mod):
 !     IJREG(JLOOP)       - # of landtypes in grid square
 !     IJLAND(IJLOOP,LDT) - Land type ID for element LDT =1, IJREG(IJLOOP)
 !                          (could be from any source - mapped to deposition 
@@ -1358,7 +1358,7 @@
 !     IJUSE(IJLOOP,LDT)  - Fraction ((per mil) of gridbox area occupied by
 !                          land type element LDT
 !
-! Need as leaf area index see (RDLAI & F77_CMN_VEL):
+! Need as leaf area index see (RDLAI & CMN_VEL_mod):
 !     XYLAI(IJLOOP,LDT)  - Leaf Area Index of land type element LDT
 !
 ! Need as meteorological input for each grid square(I,J) (passed):

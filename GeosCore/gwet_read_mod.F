@@ -75,7 +75,7 @@
 !  NOTES:
 !  (1 ) Adapted from "a3_read_mod.f" (tdf, bmy, 3/30/04)
 !  (2 ) Now reference "directory_mod.f" and "unix_cmds_mod.f".  Also remove 
-!        reference to F77_CMN_SETUP. (bmy, 7/20/04)
+!        reference to CMN_SETUP. (bmy, 7/20/04)
 !  (3 ) Now reference "directory_mod.f" and "unix_cmds_mod.f". Now prevent 
 !        EXPAND_DATE from overwriting directory paths with Y/M/D tokens in 
 !        them (bmy, 7/20/04)
@@ -255,7 +255,7 @@
 !
 !  NOTES:
 !  (1 ) Adapted from "a3_read_mod.f" (tdf, bmy, 3/30/04)
-!  (2 ) Now references "directory_mod.f" instead of F77_CMN_SETUP.  Also now
+!  (2 ) Now references "directory_mod.f" instead of CMN_SETUP.  Also now
 !        references LUNZIP from "logical_mod.f".  Also now prevents EXPAND_DATE
 !        from overwriting Y/M/D tokens in directory paths. (bmy, 7/20/04)
 !  (3 ) Now use FILE_EXISTS from "file_mod.f" to determine if file unit 

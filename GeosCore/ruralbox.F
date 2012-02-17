@@ -52,12 +52,12 @@
 ! !REVISION HISTORY: 
 !  01 Oct 1995 - M. Prather  - Initial version
 !  (1 ) Remove PTOP from the arg list.  PTOP is now a parameter
-!        in "F77_CMN_SIZE". (bmy, 2/10/00)
+!        in "CMN_SIZE". (bmy, 2/10/00)
 !  (2 ) Add C-preprocessor switch LSLOWJ to bracket code for 
 !        SLOW-J photolysis (bmy, 2/25/00)
 !  (3 ) Now reference ABHSUM, AIRDENS, IXSAVE, IYSAVE, IZSAVE, JLOP, PRESS3, 
 !        T3, and VOLUME from F90 module "comode_mod.f" (bmy, 10/19/00)
-!  (4 ) PTOP is already a parameter in "F77_CMN_SIZE", don't declare it here
+!  (4 ) PTOP is already a parameter in "CMN_SIZE", don't declare it here
 !        (bmy, 7/16/01)
 !  (5 ) Replace IGCMPAR,JGCMPAR,LGCMPAR with IIPAR,JJPAR,LLPAR.  Also moved
 !        CLOUDREF to SLOW-J block.  Also remove IREF, JREF, IOFF, JOFF, these

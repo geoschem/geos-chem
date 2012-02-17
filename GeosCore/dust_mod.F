@@ -1361,7 +1361,7 @@
 !        binary files is pretty fast.  And it's only done once a month.
 !  (3 ) Now references punch file utility routines from F90 module
 !        "bpch2_mod.f".  Also reference variable DATA_DIR from the
-!         header file "F77_CMN_SETUP". (bmy, 9/30/00) 
+!         header file "CMN_SETUP". (bmy, 9/30/00) 
 !  (4 ) Now selects proper GEOS-STRAT dust field for 1996 or 1997.
 !        Also need to pass THISYEAR thru the arg list. (rvm, bmy, 11/21/00)
 !  (5 ) CONC is now declared as REAL*8 (rvm, bmy, 12/15/00)
