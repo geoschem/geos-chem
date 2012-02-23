@@ -300,7 +300,8 @@ cac_anthro_mod.o            : cac_anthro_mod.F                               \
 
 calcrate.o                  : calcrate.F                                     \
                               comode_mod.o            dao_mod.o              \
-                              diag_mod.o              drydep_mod.o           \
+                              diag_mod.o              diag59_mod.o           \
+                              drydep_mod.o            emissions_mod.o        \
                               logical_mod.o           pbl_mix_mod.o          \
                               planeflight_mod.o       tracerid_mod.o
 
@@ -465,6 +466,11 @@ diag51b_mod.o               : diag51b_mod.F                                  \
 
 diag56_mod.o                : diag56_mod.F
 
+diag59_mod.o                : diag59_mod.F                                   \
+                              dao_mod.o               lai_mod.o              \
+                              pbl_mix_mod.o           tracerid_mod.o         \
+                              tracer_mod.o
+
 diag_2pm.o                  : diag_2pm.F                                     \
                               diag_mod.o              tropopause_mod.o
 
@@ -536,11 +542,11 @@ emissions_mod.o             : emissions_mod.F                                \
                               global_ch4_mod.o        h2_hd_mod.o            \
                               hcn_ch3cn_mod.o         icoads_ship_mod.o      \
                               logical_mod.o           mercury_mod.o          \
-                              nei2005_anthro_mod.o    RnPbBe_mod.o           \
+                              nei2005_anthro_mod.o    paranox_mod.o          \
+                              retro_mod.o             RnPbBe_mod.o           \
                               seasalt_mod.o           streets_anthro_mod.o   \
                               sulfate_mod.o           tagged_co_mod.o        \
-                              tracer_mod.o            vistas_anthro_mod.o    \
-			      retro_mod.o
+                              tracer_mod.o            vistas_anthro_mod.o
 
 epa_nei_mod.o               : epa_nei_mod.F                                  \
                               future_emissions_mod.o  logical_mod.o          \
@@ -577,7 +583,8 @@ gamap_mod.o                 : gamap_mod.F                                    \
                               diag51b_mod.o           diag56_mod.o           \
                               diag_pl_mod.o  	      drydep_mod.o           \
                               logical_mod.o    	      tracerid_mod.o         \
-                              tracer_mod.o            wetscav_mod.o  
+                              tracer_mod.o            wetscav_mod.o          \
+                              diag59_mod.o 
 ifeq ($(COMPILER),sun)
 	$(F90) -O0 -c $<
 endif
@@ -693,7 +700,7 @@ input_mod.o                 : input_mod.F                                    \
                               restart_mod.o           tpcore_bc_mod.o        \
                               tracerid_mod.o          tracer_mod.o           \
                               transport_mod.o         upbdflx_mod.o          \
-                              wetscav_mod.o
+                              wetscav_mod.o           diag59_mod.o
 
 isoropiaII_mod.o            : isoropiaII_mod.F                               \
                               dao_mod.o               global_hno3_mod.o      \
@@ -756,7 +763,7 @@ main.o                      : main.F                                         \
                               vdiff_mod.o             wetscav_mod.o          \
                               xtra_read_mod.o         merra_cn_mod.o         \
                               merra_a1_mod.o          merra_a3_mod.o         \
-                              merra_i6_mod.o
+                              merra_i6_mod.o          diag59_mod.o
 
 MATIN4.o                    : MATIN4.F
 
@@ -796,7 +803,7 @@ ndxx_setup.o                : ndxx_setup.F                                   \
                               diag_oh_mod.o           drydep_mod.o           \
                               logical_mod.o           planeflight_mod.o      \
                               tracer_mod.o            tracerid_mod.o         \
-                              wetscav_mod.o     
+                              wetscav_mod.o           diag59_mod.o     
 
 nei2005_anthro_mod.o        : nei2005_anthro_mod.F                           \
                               future_emissions_mod.o  logical_mod.o          \
@@ -816,6 +823,10 @@ ohsave.o                    : ohsave.F                comode_mod.o           \
 optdepth_mod.o              : optdepth_mod.F          diag_mod.o  
 
 OPMIE.o                     : OPMIE.F
+
+paranox_mod.o               : paranox_mod.F                                  \
+                              dao_mod.o               tracer_mod.o           \
+                              tracerid_mod.o
 
 partition.o                 : partition.F                                    \
                               comode_mod.o            tracerid_mod.o
