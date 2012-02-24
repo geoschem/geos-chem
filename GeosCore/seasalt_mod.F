@@ -38,7 +38,7 @@
 ! !REMARKS:
 !  Seasalt aerosol species: (1) Accumulation mode (usually 0.1 -  0.5 um)
 !                           (2) Coarse mode       (usually 0.5 - 10.0 um)
-!
+!                                                                             .
 !  NOTE: You can change the bin sizes for accumulation mode and coarse
 !        mode seasalt in the "input.geos" file in v7-yy-zz and higher.
 !
@@ -301,7 +301,9 @@
       REAL*8                 :: WTP, RHO1 
       INTEGER                :: ID
       LOGICAL, SAVE          :: FIRST = .TRUE.
-      
+!
+! !DEFINED PARAMETERS:
+!      
       ! Parameters
       REAL*8,  PARAMETER     :: C1 =  0.7674d0 
       REAL*8,  PARAMETER     :: C2 =  3.079d0 
@@ -762,7 +764,7 @@
 !
 ! !IROUTINE: emissseasalt
 !
-! !DESCRIPTION: Subroutine EMISSSEASALT is the interface between the GEOS-CHEM
+! !DESCRIPTION: Subroutine EMISSSEASALT is the interface between the GEOS-Chem
 !  model and the SEASALT emissions routines in "seasalt\_mod.f".
 !  (bec, rjp, bmy, 3/24/03, 2/22/05)
 !\\

@@ -125,6 +125,7 @@
 !  12 Nov 2010 - R. Yantosca   - Avoid div-by-zero when computing L2S, L3S
 !  07 Sep 2011 - P. Kasibathla - Modified to include GFED3
 !  22 Dec 2011 - M. Payer      - Added ProTeX headers 
+!  08 Feb 2012 - R. Yantosca   - Add modifications for GEOS-5.7.2 met
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -414,10 +415,6 @@
 ! !USES:
 !
       USE DAO_MOD,        ONLY : AD,     AIRDEN,  CLDF
-!------------------------------------------------------------------------------
-! Prior to 10/5/11:
-!      USE DAO_MOD,        ONLY : SUNCOS, CONVERT_UNITS
-!------------------------------------------------------------------------------
       USE DAO_MOD,        ONLY : CONVERT_UNITS
       USE DRYDEP_MOD,     ONLY : DEPSAV
       USE ERROR_MOD,      ONLY : DEBUG_MSG
@@ -1515,6 +1512,7 @@
 !  27 May 2011 - L. Zhang    - Divide LWC by cloud fraction for GEOS/MERRA
 !                              and adjust the L2S and L3S rates accordingly
 !  22 Dec 2011 - M. Payer    - Added ProTeX headers
+!  08 Feb 2012 - R. Yantosca - Treat GEOS-5.7.2 in the same way as MERRA
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -1686,7 +1684,7 @@
          ! Update SO2 concentration after cloud chemistry          
          ! SO2 chemical loss rate = SO4 production rate [v/v/timestep]
          !==============================================================
-#if   defined ( GEOS_5 ) || defined( MERRA )
+#if   defined ( GEOS_5 ) || defined( MERRA ) || defined( GEOS_57 )
 
          !---------------------------------------------
          ! GEOS-5/MERRA: Get LWC, FC from met fields
@@ -8285,7 +8283,7 @@
       IF ( AS /= 0 ) CALL ALLOC_ERR( 'SOx_SCALE' )
       SOx_SCALE = 0d0
 
-#if   !defined( GEOS_5 ) && !defined( MERRA )
+#if   !defined( GEOS_5 ) && !defined( MERRA ) && !defined( GEOS_57 )
       ! If we are using GEOS-5 or MERRA met, then get the cloud fraction 
       ! directly from the met fields.  (skim, bmy, 1/14/10)
       ALLOCATE( VCLDF( IIPAR, JJPAR, LLTROP ), STAT=AS )

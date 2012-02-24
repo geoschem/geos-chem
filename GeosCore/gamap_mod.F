@@ -79,6 +79,7 @@
 !  21 Sep 2010 - R. Yantosca - Removed duplicates in INIT_DIAGINFO
 !  21 Oct 2010 - R. Yantosca - Bug fix in INIT_DIAGINFO
 !  09 Dec 2010 - C. Carouge  - Modify MAXTRACER definition to account for 
+!   8 Feb 2012 - R. Yantosca - Add modifications for GEOS-5.7.x
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -1399,6 +1400,7 @@
 !                              tracerinfo.dat for the timeseries diagnostics
 !  24 Jan 2012 - M. Payer    - Change scale factors for Rn-Pb-Be simulation so
 !                              units are in mBq/SCM
+!  08 Feb 2012 - R. Yantosca - Treat GEOS-5.7.x in the same way as MERRA
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -3698,7 +3700,7 @@
 #if   defined( GEOS_4 )
                   NAME(T,66) = 'ZMMU'
                   UNIT(T,66) = 'Pa/s'
-#elif defined( GEOS_5 ) || defined( MERRA )
+#elif defined( GEOS_5 ) || defined( MERRA ) || defined( GEOS_57 )
                   NAME(T,66) = 'CMFMC'
                   UNIT(T,66) = 'kg/m2/s'
 #else

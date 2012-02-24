@@ -65,6 +65,7 @@
 !  (26) Added support for LINOZ (dbj, jliu, bmy, 10/16/09)
 !  13 Aug 2010 - R. Yantosca - Add modifications for MERRA (treat like GEOS-5)
 !  02 Dec 2010 - R. Yantosca - Added ProTeX headers
+!  08 Feb 2012 - R. Yantosca - Add modifications for GEOS-5.7.2 met data
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -264,6 +265,8 @@
 !  (28) Now do not call ADD_STRAT_POx for tagged Ox (dbj, bmy, 10/16/09)
 !  13 Aug 2010 - R. Yantosca - Treat MERRA like GEOS-5 (bmy, 8/13/10)
 !  02 Dec 2010 - R. Yantosca - Added ProTeX headers
+!  08 Feb 2012 - R. Yantosca - Treat GEOS-5.7.2 in the same way as MERRA
+!  10 Feb 2012 - R. Yantosca - Modified for 0.25 x 0.3125 grids
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -293,6 +296,9 @@
       INTEGER, PARAMETER   :: J30S = 61, J30N = 121
 
 #elif defined( GRID05x0666 )
+      INTEGER, PARAMETER   :: J30S = 1, J30N = JJPAR
+
+#elif defined( GRID025x03125 )
       INTEGER, PARAMETER   :: J30S = 1, J30N = JJPAR
 
 #elif defined( GRID1x1 ) 
@@ -346,7 +352,7 @@
 
       PO3_vmr = 5.14d-14                                 ! 3,3,7
 
-#elif defined( GEOS_5 ) || defined( MERRA )
+#elif defined( GEOS_5 ) || defined( MERRA ) || defined( GEOS_57 )
 
       ! For now assume GEOS-5 has same PO3_vmr value 
       ! as GEOS-4; we can redefine later (bmy, 5/25/05)
@@ -873,6 +879,8 @@
 !  (27) Remove support for COMPAQ compiler (bmy, 7/8/09)
 !  13 Aug 2010 - R. Yantosca - Treat MERRA like GEOS-5
 !  02 Dec 2010 - R. Yantosca - Added ProTeX headers
+!  08 Feb 2012 - R. Yantosca - Treat GEOS-5.7.2 in the same way as MERRA
+!  10 Feb 2012 - R. Yantosca - Modified for 0.25 x 0.3125 grids
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -901,6 +909,9 @@
       INTEGER, PARAMETER   :: J30S = 61, J30N = 121
 
 #elif defined( GRID05x0666 )
+      INTEGER, PARAMETER   :: J30S = 1, J30N = JJPAR
+
+#elif defined( GRID025x03125 )
       INTEGER, PARAMETER   :: J30S = 1, J30N = JJPAR
 
 #elif defined( GRID1x1 ) 
@@ -947,7 +958,7 @@
 
       PO3_vmr = 5.14d-14                                 ! 3,3,7
 
-#elif defined( GEOS_5 ) || defined( MERRA )
+#elif defined( GEOS_5 ) || defined( MERRA ) || defined( GEOS_57 )
 
       ! For now assume GEOS-5 has same PO3_vmr value 
       ! as GEOS-4; we can redefine later (bmy, 5/25/05)

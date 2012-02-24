@@ -56,6 +56,7 @@
 !       (clh, 05/07/10)
 !  25 Aug 2010 - R. Yantosca - Added ProTeX headers
 !  03 Sep 2010 - R. Yantosca - Bug fix in SRC_DUST_DEAD
+!  08 Feb 2012 - R. Yantosca - Add modifications for GEOS-5.7.x
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -878,6 +879,7 @@ c$$$      ENDIF
 !  03 Sep 2010 - R. Yantosca - Bug fix, SNOMAS was mislabled in GEOS-5
 !                              and has units of mm H2O instead of m H2O
 !                              so we need to convert to m H2O.
+!  08 Feb 2012 - R. Yantosca - Treat GEOS-5.7.x in the same way as MERRA
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -1015,15 +1017,7 @@ c$$$      ENDIF
             ORO(I)         = OROGRAPHY(I,J) 
 
             ! Snow height [m H2O]
-#if   defined( GEOS_5  ) || defined( MERRA )
-            !--------------------------------------------------------------
-            ! Prior to 9/3/10:
-            ! SNOMAS in GEOS-5 was originally reported as m H2O but this
-            ! was mis-lableled.  Both GEOS-5 and MERRA SNOMAS field have 
-            ! units of liquid-equivalent mm H2O.  Therefore, we need to
-            ! divide by 1000 to convert mm to m. (bmy, 9/3/10)
-            !SNW_HGT_LQD(I) = SNOMAS(I,J)
-            !--------------------------------------------------------------
+#if   defined( GEOS_5 ) || defined( MERRA ) || defined( GEOS_57 )
             SNW_HGT_LQD(I) = SNOMAS(I,J) / 1000d0
 #else
             SNW_HGT_LQD(I) = SNOW(I,J) / 1000d0
@@ -1940,7 +1934,7 @@ c$$$      ENDIF
 !  30 Mar 2004 - R. Yantosca - Initial version
 !  (1 ) Now references LDEAD from "logical_mod.f" (bmy, 7/20/04)
 !  (2 ) Modify to work with 30bin dust. Reference to IBINS from tomas_mod
-!       for number of total bin = 30 bins.  (win, 7/17/09)
+!       for number of total bi}n = 30 bins.  (win, 7/17/09)
 !  25 Aug 2010 - R. Yantosca - Added ProTeX headers
 !EOP
 !------------------------------------------------------------------------------

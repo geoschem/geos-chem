@@ -63,6 +63,7 @@
 !  20 Jul 2010 - C. Carouge  - Add LPREINDHG and LGTMM for updated mercury.
 !  24 Jan 2011 - L. Murray   - Remove LOTDREG, LCTH, LMFLUX, LPRECON,
 !                               and LOTDSCALE for lightning
+!  07 Sep 2011 - P. Kasibhatla - Modified to include GFED3
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -139,6 +140,7 @@
       LOGICAL :: LWOODCO         ! <-- deprecated: replace w/ LBIOFUEL soon
       LOGICAL :: LAVHRRLAI       ! Use AVHRR leaf-area-indices?
       LOGICAL :: LGFED2BB        ! Use GFED2 biomass burning?
+      LOGICAL :: LGFED3BB        ! Use GFED3 biomass burning?
       LOGICAL :: LFUTURE         ! Use future-years emission scaling (GCAP)?
       LOGICAL :: LARCSHIP        ! Use ARCTAS ship emissions?
       LOGICAL :: LEMEPSHIP       ! Use EMEP ship emissions?
@@ -146,6 +148,9 @@
       LOGICAL :: L8DAYBB         ! Use GFED2 8-day biomass burning?
       LOGICAL :: L3HRBB          ! Use GFED2 3-hr biomass burning?
       LOGICAL :: LSYNOPBB        ! Use GFED2 synoptic biomass burning
+      LOGICAL :: L8DAYBB3        ! Use GFED3 8-day biomass burning?
+      LOGICAL :: L3HRBB3         ! Use GFED3 3-hr biomass burning?
+      LOGICAL :: LSYNOPBB3       ! Use GFED3 synoptic biomass burning
       LOGICAL :: LMODISLAI       ! MODIS LAI (mpb, 2009)
       LOGICAL :: LPECCA          ! PCEEA BVOC emission model (mpb,2009)
       LOGICAL :: LRETRO          ! RETRO anthropogenic emissions (wfr, 3/8/11)

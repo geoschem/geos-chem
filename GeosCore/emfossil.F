@@ -54,8 +54,6 @@
 
       IMPLICIT NONE
 #     include "define.h"
-
-
 !
 ! !INPUT PARAMETERS: 
 !
@@ -70,6 +68,11 @@
 ! !REMARKS:
 !  In most cases, I0=J0=0, so IREF=I and JREF=J.  The offsets I0 and J0 are
 !  mostly historical baggage.
+!                                                                             .
+!  NOTE: The source code for ship emissions has been commented out, but left
+!  in place.  Although PARANOX computes ship emissions in CALCRATE, we may
+!  have to disable this for the Grid-Independent model (because we have to
+!  have a clean separation between emissions & chemistry).
 ! 
 ! !REVISION HISTORY: 
 !  19 Apr 1999 - R. Yantosca - Initial version
@@ -133,6 +136,9 @@
 !        array (e.g. ship O3 or HNO3) they no longer get overwritten.
 !        (gvinken, 11/16/10)
 !  19 Nov 2010 - R. Yantosca - Added ProTeX headers
+!  24 Feb 2012 - M. Payer    - Commented out ship emissions, which has been
+!                              moved to calcrate.F for PARANOX.  Left original
+!                              code in place, but commented out.
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -455,19 +461,76 @@
 
             ENDIF
 
-            !-----------------------------------------------------------
-            ! Add ship emissions emitted as HNO3 and 10*O3,
-            ! i.e., ozone production efficiency (OPE)=10.
-            ! See : Chen, G., et al. (2005), An investigation of the 
-            ! chemistry of ship emission plumes during ITCT 2002, 
-            ! J. Geophys. Res., 110, D10S90, doi:10.1029/2004JD005236.
-            ! (djj, phs, 3/4/08)
-            ! Now also process EMEP NOx ship emissions, available
-            ! from 1990 with EMEP 2005 (phs, 6/08)
-            ! Correctly handle LEMEPSHIP=.TRUE. (phs 7/9/09) 
-            !-----------------------------------------------------------
+!%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+! Prior to 2/24/12:
+! Comment this out and leave this here, in case we have to re-install it
+! in the context of the Grid-Independent model (bmy, 2/24/12) 
+!
+!            !SHIP EMISSIONS NOW DONE IN CALCRATE.F (gvinken, 07/27/10)
+!
+!            !-----------------------------------------------------------
+!            ! Add ship emissions emitted as HNO3 and 10*O3,
+!            ! i.e., ozone production efficiency (OPE)=10.
+!            ! See : Chen, G., et al. (2005), An investigation of the 
+!            ! chemistry of ship emission plumes during ITCT 2002, 
+!            ! J. Geophys. Res., 110, D10S90, doi:10.1029/2004JD005236.
+!            ! (djj, phs, 3/4/08)
+!            ! Now also process EMEP NOx ship emissions, available
+!            ! from 1990 with EMEP 2005 (phs, 6/08)
+!            ! Correctly handle LEMEPSHIP=.TRUE. (phs 7/9/09) 
+!            !-----------------------------------------------------------
+!
+!
+!            ! DO it only once (1st level)
+!            IF ( LL == 1 ) THEN
+!
+!               ! Reset
+!               SHIP = 0D0
+!
+!               ! handle global inventory first
+!               IF ( LEDGARSHIP ) THEN 
+!
+!                  ! Get SHIP EDGAR emissions for NOx [molec/cm2/s]
+!                  SHIP = GET_EDGAR_NOx( I, J, 
+!     &                                  MOLEC_CM2_S=.TRUE., SHIP=.TRUE.)
+!                  
+!               ! ICOADS ship emissions (cklee,7/09/09)
+!               ELSE IF ( LICOADSSHIP ) THEN
+!
+!                  ! Get ICOADS  emissions for NOx [molec/cm2/s]
+!                  SHIP = GET_ICOADS_SHIP( I, J, NN, MOLEC_CM2_S=.TRUE. )
+!                  
+!               ENDIF
+!
+!               ! Overwrite Europe
+!               IF ( LEMEPSHIP ) THEN
+!                 
+!                  IF ( GET_EUROPE_MASK( I, J ) > 0d0 )
+!
+!                  ! Get SHIP EMEP emissions for NOx [molec/cm2/s]
+!     &            SHIP = GET_EMEP_ANTHRO( I, J, NN, SHIP=.TRUE.)
+!
+!               ENDIF
+!                  
+!               ! Store as HNO3 and O3
+!               ! Convert molec/cm2/s to molec/box/s (cdh, 10/20/2011)
+!               EMISRR(I,J,IDEHNO3) = SHIP * AREA_CM2
+!               EMISRR(I,J,IDEOX)   = 10D0 * SHIP * AREA_CM2 
+!               
+!               ! ND36 = Anthro source diagnostic...store as [molec/cm2]
+!               ! and convert to [molec/cm2/s] in DIAG3.F
+!               IF ( ND36 > 0 ) THEN
+!
+!                  AD36(I,J,IDEHNO3) = AD36(I,J,IDEHNO3) + SHIP * DTSRCE
+!
+!                  AD36(I,J,IDEOX) = AD36(I,J,IDEOX) + 10D0 * SHIP * 
+!     &                              DTSRCE
+!                  
+!               ENDIF
+!                  
+!            ENDIF
+!%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
-            !SHIP EMISSIONS NOW DONE IN CALCRATE.F (gvinken, 07/27/10)
 
             !-----------------------------------------------------------
             ! Store in EMISRRN array and archive diagnostics

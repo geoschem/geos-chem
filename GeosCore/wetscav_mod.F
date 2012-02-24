@@ -136,6 +136,7 @@
 !  08 Oct 2010 - H. Amos - Various other modifications in WETDEP_MERRA
 !  01 Aug 2011 - H. Amos - Bug fix for function WASHFRAC_LIQ_GAS
 !  01 Aug 2011 - H. Amos - Updated comments
+!  09 Feb 2012 - R. Yantosca - Add modifications for GEOS-5.7.x
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -206,11 +207,12 @@
 !  13 Aug 2010 - R. Yantosca - Treat GEOS-5 like MERRA
 !  16 Sep 2010 - R. Yantosca - Added ProTeX headers
 !  20 Sep 2010 - R. Yantosca - Rewrote #if block structure for clarity
+!  09 Feb 2012 - R. Yantosca - Treat GEOS-5.7.x in the same way as MERRA
 !EOP
 !------------------------------------------------------------------------------
 !BOC
 
-#if   defined( MERRA )
+#if   defined( MERRA ) || defined( GEOS_57 )
 
       !=================================================================
       ! MERRA: Only do wet deposition for large-scale + anvil precip
@@ -302,9 +304,9 @@
                                   ! =F, denotes convective precip
 ! 
 ! !REMARKS:
-!  %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-!  %%%%%          FOR MERRA MET FIELDS ONLY         %%%%%
-!  %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+!  %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+!  %%%%%          FOR MERRA and GEOS-5.7.x MET FIELDS ONLY         %%%%%
+!  %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 !                                                                             .
 !  Now construct QQ and PDOWN directly from MERRA met fields.
 !                                                                             .
@@ -342,9 +344,9 @@
 !                                                                             .
 !  = [ (PFILSAN/1000) * 100 ] + [ (PFILSAN/1000) * 100]
 !                                                                             .
-!  %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%% 
-!  %%%%%    FOR ALL OTHER MET FIELDS EXCEPT MERRA   %%%%%
-!  %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%% 
+!  %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%% 
+!  %%%%%    FOR ALL OTHER MET FIELDS EXCEPT MERRA and GEOS-5.7.x   %%%%%
+!  %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 !                                                                             .
 !  If there is total precipitation in the (I,J) column, then:
 !                                                                             .
@@ -407,6 +409,7 @@
 !  (11) Now reference met field arrays directly from "dao_mod.f" (bmy, 11/8/02)
 !  16 Sep 2010 - R. Yantosca - Added ProTeX headers
 !  16 Sep 2010 - R. Yantosca - Compute QQ and PDOWN from MERRA met fields
+!  09 Feb 2012 - R. Yantosca - Added modifications for GEOS-5.7.x met fields
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -446,7 +449,30 @@
       DO J = 1, JJPAR
       DO I = 1, IIPAR
 
-#if   defined( MERRA )
+#if   defined( GEOS_57 )
+
+         !==============================================================
+         ! %%%%% FOR GEOS-5.7.x MET FIELDS ONLY %%%%%  
+         !
+         ! In GEOS-5.7.x, the PFILSAN and PFLLSAN fields are defined
+         ! on level edges.  Therefore, we must use L+1 to index them.
+         !==============================================================
+
+         ! Loop over vertical levels
+         DO L = 1, LLPAR
+
+            ! Rate of new precipitation formation in grid box (I,J,L)
+            ! [cm3 H2O/cm3 air/s]
+            QQ(L,I,J)    = ( DQRLSAN(I,J,L)                   )
+     &                   * ( AIRDEN(L,I,J)  / 1000d0          )
+
+            ! Column precipitation [cm3 H2O/cm2 air/s]
+            PDOWN(L,I,J) = ( ( PFLLSAN(I,J,L+1) / 1000d0 ) 
+     &                   +   ( PFILSAN(I,J,L+1) /  917d0 ) ) * 100d0
+
+         ENDDO
+
+#elif   defined( MERRA )
 
          !==============================================================
          ! %%%%% FOR MERRA MET FIELDS ONLY %%%%%  
@@ -722,7 +748,7 @@
       USE TRACERID_MOD, ONLY : IDTMAP
       USE OCEAN_MERCURY_MOD,  ONLY : LHg_WETDasHNO3 
 
-      USE CMN_SIZE_MOD                         ! Size parameters
+      USE CMN_SIZE_MOD                               ! Size parameters
 !
 ! !INPUT PARAMETERS: 
 !
@@ -2148,7 +2174,7 @@
 !
       USE TRACER_MOD, ONLY : N_TRACERS
 
-      USE CMN_SIZE_MOD           ! Size parameters
+      USE CMN_SIZE_MOD                 ! Size parameters
 !
 ! !INPUT PARAMETERS: 
 !
@@ -2251,7 +2277,7 @@
       USE TRACER_MOD,   ONLY : ITS_A_MERCURY_SIM 
       USE OCEAN_MERCURY_MOD,  ONLY : LHg_WETDasHNO3
 
-      USE CMN_SIZE_MOD             ! Size parameters
+      USE CMN_SIZE_MOD                   ! Size parameters
 !
 ! !INPUT PARAMETERS: 
 !
@@ -2304,6 +2330,7 @@
 !        overlooked this. (havala, bmy, 7/20/09)
 !  25 Aug 2010 - R. Yantosca - Treat MERRA in the same way as GEOS-5
 !  16 Sep 2010 - R. Yantosca - Added ProTeX headers
+!  09 Feb 2012 - R. Yantosca - Treat GEOS-5.7.x in the same way as MERRA
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -2950,7 +2977,7 @@
         
       ELSE
 
-#if   defined( GEOS_5 ) || defined( MERRA )
+#if   defined( GEOS_5 ) || defined( MERRA ) || defined( GEOS_57 )
          !------------------------------------------------------------------
          ! Suppress scavenging at cold temperatures for most aerosol simulation
          ! Allow scavenging at cold temperatures for BCPO,DUST and HNO3 (qq,
@@ -3119,13 +3146,6 @@
                ! Compute liquid to gas ratio for HgCl2, using
                ! the appropriate parameters for Henry's law
                ! (Refs: INSERT HERE)
-!---------------------------------------------------------------------------
-! Prior to 1/10/11:
-! hma, 10-Jan-2011, Henry's law constant for HgCl2 = 1.4d+6 M/atm for 
-! HgCl2 (Lindqvist and Rodhe, 1985)
-!           CALL COMPUTE_L2G( 1.0d+14, -8.4d3, 
-!     &                        T(I,J,L), CLDLIQ(I,J,L), L2G )
-!---------------------------------------------------------------------------
                CALL COMPUTE_L2G( 1.4d+6, -8.4d3, 
      &                           T(I,J,L), CLDLIQ(I,J,L), L2G )
            
@@ -3253,7 +3273,7 @@
       USE TRACERID_MOD, ONLY : IDTIEPOX, IDTRIP, IDTMAP
       USE OCEAN_MERCURY_MOD,  ONLY : LHg_WETDasHNO3 ! (cdh 5/20/09)
 
-      USE CMN_SIZE_MOD               ! Size parameters
+      USE CMN_SIZE_MOD                     ! Size parameters
 !
 ! !INPUT PARAMETERS: 
 !
@@ -4021,8 +4041,8 @@
       USE DEPO_MERCURY_MOD,  ONLY : ADD_Hg2_SNOWPACK
       USE LOGICAL_MOD,       ONLY : LGTMM
 
-      USE CMN_SIZE_MOD      ! Size parameters
-      USE CMN_DIAG_MOD      ! Diagnostic arrays and switches 
+      USE CMN_SIZE_MOD            ! Size parameters
+      USE CMN_DIAG_MOD            ! Diagnostic arrays and switches
 !
 ! !INPUT PARAMETERS: 
 !
@@ -4614,8 +4634,8 @@
       USE DEPO_MERCURY_MOD,  ONLY : ADD_Hg2_SNOWPACK
       USE LOGICAL_MOD,       ONLY : LGTMM
 
-      USE CMN_SIZE_MOD      ! Size parameters
-      USE CMN_DIAG_MOD      ! Diagnostic arrays and switches 
+      USE CMN_SIZE_MOD            ! Size parameters
+      USE CMN_DIAG_MOD            ! Diagnostic arrays and switches
 !
 ! !INPUT PARAMETERS: 
 !
@@ -5252,8 +5272,8 @@
       USE ERROR_MOD,   ONLY : IT_IS_NAN                ! Test for NaN
       USE LOGICAL_MOD, ONLY : LGTMM                    ! Use GTMM for Hg sim?
 
-      USE CMN_SIZE_MOD                           ! Size parameters
-      USE CMN_DIAG_MOD                           ! Diagnostic flags etc
+      USE CMN_SIZE_MOD                                 ! Size parameters
+      USE CMN_DIAG_MOD                                 ! Diagnostic flags
 !
 ! !INPUT PARAMETERS: 
 !     
@@ -5415,7 +5435,6 @@
 !  The modifications for the MERRA met fields require calling this same 
 !  sequence of code more than once.  The expedient solution was to just move
 !  the relevant code into this this subroutine.
-
 !\\
 !\\
 ! !INTERFACE:
@@ -5445,8 +5464,8 @@
       USE LOGICAL_MOD,  ONLY : LGTMM                   ! Use GTMM w/ Hg sim?
       USE ERROR_MOD,    ONLY : IT_IS_NAN               ! Check for NaN 
 
-      USE CMN_SIZE_MOD                           ! Size parameters
-      USE CMN_DIAG_MOD                           ! Diagnostic flags, etc
+      USE CMN_SIZE_MOD                                 ! Size parameters
+      USE CMN_DIAG_MOD                                 ! Diagnostic flags
 !
 ! !INPUT PARAMETERS: 
 !     
@@ -5600,7 +5619,7 @@
      &                 TF,        H2O2s(I,J,L), SO2s(I,J,L), 
      &                 WASHFRAC,  KIN )
 
-#if    defined( MERRA )
+#if    defined( MERRA ) || defined( GEOS_57 )
          !%%% BUG FIX: Only apply this section of when running
          !%%% GEOS-Chem with MERRA met fields.  (bmy, hamos, 5/26/11)
          !
@@ -5617,19 +5636,19 @@
          ENDIF
 #endif
 
-           ! Adjust WASHFRAC accordingly for aerosols.  NOTE: TF is always 
-           ! > 0 since DO_WASHOUT_ONLY is only called if F_WASHOUT > 0.  
-           ! We will never get a div-by-zero error here. (bmy, 5/27/11)
-           IF ( KIN ) THEN
-             WASHFRAC = WASHFRAC / TF * F_WASHOUT
-           ENDIF
+         ! Adjust WASHFRAC accordingly for aerosols.  NOTE: TF is always 
+         ! > 0 since DO_WASHOUT_ONLY is only called if F_WASHOUT > 0.  
+         ! We will never get a div-by-zero error here. (bmy, 5/27/11)
+         IF ( KIN ) THEN
+           WASHFRAC = WASHFRAC / TF * F_WASHOUT
+         ENDIF
                   
          !--------------------------------------------------------------
          ! Washout of aerosol tracers -- 
          ! this is modeled as a kinetic process
          !--------------------------------------------------------------
 
-          IF ( KIN ) THEN
+         IF ( KIN ) THEN
 
             ! Define ALPHA, the fraction of the raindrops that 
             ! re-evaporate when falling from (I,J,L+1) to (I,J,L)
@@ -5801,8 +5820,8 @@
       USE TRACERID_MOD, ONLY : IDTSO4                  ! ID flag for SO4
       USE LOGICAL_MOD,  ONLY : LGTMM                   ! Use GTMM w/ Hg sim?
 
-      USE CMN_SIZE_MOD                           ! Size parameters
-      USE CMN_DIAG_MOD                           ! Diagnostic flags, etc
+      USE CMN_SIZE_MOD                                 ! Size parameters
+      USE CMN_DIAG_MOD                                 ! Diagnostic flags
 !
 ! !INPUT PARAMETERS: 
 !     
@@ -5934,8 +5953,8 @@
       USE TRACERID_MOD, ONLY : IDTSO4                  ! ID flag for SO4
       USE LOGICAL_MOD,  ONLY : LGTMM                   ! Use GTMM w/ Hg sim?
 
-      USE CMN_SIZE_MOD                           ! Size parameters
-      USE CMN_DIAG_MOD                           ! Diagnostic flags, etc
+      USE CMN_SIZE_MOD                                 ! Size parameters
+      USE CMN_DIAG_MOD                                 ! Diagnostic flags
 !
 ! !INPUT PARAMETERS: 
 !     
@@ -6120,7 +6139,7 @@
 !
       USE ERROR_MOD, ONLY : GEOS_CHEM_STOP
 
-      USE CMN_SIZE_MOD
+      USE CMN_SIZE_MOD                              ! Size parameters
 !
 ! !INPUT PARAMETERS: 
 !
@@ -6225,7 +6244,7 @@
       USE TRACERID_MOD, ONLY : IDTISOPN,  IDTMMN
       USE TRACERID_MOD, ONLY : IDTIEPOX,  IDTRIP,    IDTMAP
 
-      USE CMN_SIZE_MOD  ! Size parameters
+      USE CMN_SIZE_MOD       ! Size parameters
 ! 
 ! !REVISION HISTORY: 
 !  08 Nov 2002 - R. Yantosca - Initial version
@@ -6570,7 +6589,7 @@
       USE TRACER_MOD,   ONLY : ITS_A_RnPbBe_SIM,   ITS_A_MERCURY_SIM
       USE TRACERID_MOD, ONLY : IDTSOAG,  IDTSOAM
 
-      USE CMN_SIZE_MOD ! Size Parameters
+      USE CMN_SIZE_MOD       ! Size parameters
 !
 ! !RETURN VALUE:
 !
@@ -6777,7 +6796,8 @@
       USE TRACER_MOD,   ONLY : STT
       USE TRACERID_MOD, ONLY : IDTH2O2, IDTSO2
 
-      USE CMN_SIZE_MOD ! Size parameters
+      USE CMN_SIZE_MOD       ! Size parameters
+
 ! 
 ! !REVISION HISTORY: 
 !  23 Feb 2000 - R. Yantosca - Initial version

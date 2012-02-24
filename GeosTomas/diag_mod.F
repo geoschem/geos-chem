@@ -361,6 +361,7 @@
 !  (13) Now deallocate AD30 (bmy, 8/18/05)
 !  (14) Now deallocate CTO3, AD10, AD10em arrays (phs, 9/18/07)
 !  (15) Now deallocate TOMAS related arrays (win, bmy, 1/25/10)
+!  15 Feb 2011 - R. Yantosca - Add modifications for APM microphysics
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -494,7 +495,15 @@
       IF ( ALLOCATED( TURBFLUP    ) ) DEALLOCATE( TURBFLUP    )
       IF ( ALLOCATED( STT_TEMPO2  ) ) DEALLOCATE( STT_TEMPO2  ) 
 
+#if   defined( APM )
+      !-----------------------------------------
+      ! Deallocate arrays for APM microphysics
+      !-----------------------------------------
+      IF ( ALLOCATED( AD07_OM     ) ) DEALLOCATE( AD07_OM     )
+#endif
+
       END SUBROUTINE CLEANUP_DIAG
 !EOC
       END MODULE DIAG_MOD 
+
 

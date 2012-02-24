@@ -150,9 +150,9 @@
 ! !DEFINED PARAMETERS:
 !
       INTEGER, PARAMETER   :: MAXDEP    = 51
-      INTEGER, PARAMETER   :: NNTYPE    = 15     ! NTYPE    from "CMN_SIZE_mod"
-      INTEGER, PARAMETER   :: NNPOLY    = 20     ! NPOLY    from "CMN_SIZE_mod"
-      INTEGER, PARAMETER   :: NNVEGTYPE = 74     ! NVEGTYPE from "CMN_SIZE_mod"
+      INTEGER, PARAMETER   :: NNTYPE    = 15     ! NTYPE    from "CMN_SIZE"
+      INTEGER, PARAMETER   :: NNPOLY    = 20     ! NPOLY    from "CMN_SIZE"
+      INTEGER, PARAMETER   :: NNVEGTYPE = 74     ! NVEGTYPE from "CMN_SIZE"
       REAL*8,  PARAMETER   :: XCKMAN    = 0.4d0
       ! Add max number of radius bins for sea salt (jaegle 5/11/11)
       INTEGER, PARAMETER   :: NR_MAX    = 200
@@ -259,10 +259,6 @@
 ! !USES:
 !
       USE DIAG_MOD,     ONLY : AD44
-!------------------------------------------------------------------------------
-! Prior to 10/7/11:
-!      USE DAO_MOD,      ONLY : AD, ALBD, BXHEIGHT, SUNCOS
-!------------------------------------------------------------------------------
       USE DAO_MOD,      ONLY : AD, ALBD, BXHEIGHT, SUNCOS_MID
       USE DAO_MOD,      ONLY : IS_LAND
       USE ERROR_MOD,    ONLY : DEBUG_MSG
@@ -374,14 +370,6 @@
       ! Call DEPVEL to compute dry deposition velocities [m/s]
       ! Added  PRESSU, W10 as arguments (jaegle 5/11/11)
       !=================================================================
-!------------------------------------------------------------------------------
-! Prior to 10/5/11:
-! Now use SUNCOS_MID, the cos(SZA) at the midpoint of the chem timestep,
-! for consistency with the chemistry routines (bmy, 10/7/11)
-!      CALL DEPVEL( MAXIJ, RADIAT,  TC0,   SUNCOS, F0,  HSTAR, 
-!     &             XMW,   AIROSOL, USTAR, CZ1,    OBK, CFRAC,  
-!     &             ZH,    LSNOW,   DVEL,  AZO,    RHB ) 
-!------------------------------------------------------------------------------
       CALL DEPVEL( MAXIJ, RADIAT,  TC0,   SUNCOS_MID, F0,  HSTAR, 
      &             XMW,   AIROSOL, USTAR, CZ1,        OBK, CFRAC,  
      &             ZH,    LSNOW,   DVEL,  AZO,        RHB,
@@ -484,7 +472,7 @@
       USE TRACERID_MOD, ONLY : IDTMSA, IDTNH3, IDTNH4
       USE TRACERID_MOD, ONLY : IDTNIT, IDTSO2, IDTSO4
 
-      USE CMN_SIZE_MOD       ! Size parameters!
+      USE CMN_SIZE_MOD              ! Size parameters
 !
 ! !INPUT PARAMETERS: 
 !
@@ -505,7 +493,6 @@
 !------------------------------------------------------------------------------
 !BOC
 !
-
       !=================================================================
       ! DVZ_MINVAL begins here!
       !=================================================================
@@ -593,7 +580,7 @@
 #endif
 
 !
-! !REMARKS
+! !REMARKS:
 !  References (see full citations above):
 !  ============================================================================
 !  (1 ) Wesely, M. L., 1989. 
@@ -626,7 +613,6 @@
 !  (9 ) Add sea level pressure and 10m windspeed as arguments (jaegle 5/11/11)
 !  22 Dec 2011 - M. Payer    - Added ProTeX headers
 !  10 Jan 2012 - M. Payer    - Added local surface pressure
-
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -659,16 +645,16 @@
       DO I = 1, IIPAR
 
          ! 1-D grid box index
-         IJLOOP      = ( (J-1) * IIPAR ) + I
+         IJLOOP         = ( (J-1) * IIPAR ) + I
 
          ! THIK = thickness of layer 1 [m]
-         THIK        = BXHEIGHT(I,J,1)
+         THIK           = BXHEIGHT(I,J,1)
 
          ! Midpoint height of first model level [m]
-         CZ1(IJLOOP) = THIK / 2.0d0
+         CZ1(IJLOOP)    = THIK / 2.0d0
 
          ! Local surface pressure [hPa] (mpayer, 1/10/12)
-         SP          = GET_PEDGE(I,J,1)
+         SP             = GET_PEDGE(I,J,1)
 
          ! Convert from hPa to Pa for SFCPRESS
          PRESSU(IJLOOP) = SP * 1.d2
@@ -896,7 +882,7 @@
       USE CMN_DIAG_MOD      ! ND44
       USE CMN_DEP_MOD       ! Dry deposition variables
 ! 
-! !REVISION HISTORY: 
+! !REVISION HISTORY:
 !  (1 ) Now eliminate DEPFLUX from CMN_SAV, in order to save memory.
 !        DEPFLUX is now a local variable (bdf, 4/2/99)
 !  (2 ) Now make DEPFLUX of dimension (IIPAR,JJPAR,MAXDEP) (bmy, 4/2/99)
@@ -1314,10 +1300,10 @@
 !                          surface ID in input unit 65)
 !     IJUSE(IJLOOP,LDT)  - Fraction ((per mil) of gridbox area occupied by
 !                          land type element LDT
-!
+!                                                                             .
 !  Need as leaf area index see (RDLAI & CMN_VEL):
 !     XYLAI(IJLOOP,LDT)  - Leaf Area Index of land type element LDT
-!
+!                                                                             .
 !  Need as meteorological input for each grid square(I,J) (passed):
 !     RADIAT(IJLOOP) - Solar radiation in W m-2
 !     TEMP(IJLOOP)   - Surface air temperature in K
@@ -1326,7 +1312,7 @@
 !     RHB(IJLOOP)    - Relative humidity at the surface
 !     PRESSU(IJLOOP) - Local surface pressure
 !     W10(IJLOOP)    - 10m wind speed
-!
+!                                                                             .
 !  Need as input for each species K (passed):
 !     F0(K)          - reactivity factor for oxidation of biological substances
 !     HSTAR(K)       - Henry's Law constant
@@ -1334,7 +1320,7 @@
 !                      (used to calculate molecular diffusivities)
 !     AIROSOL(K)     - LOGICAL flag (T = aerosol species; 
 !                                    F = gas-phase species)
-!
+!                                                                             .
 !  Also need to call the following subroutines to read drydep input data:
 !     "modin.f"      - reads Olson land types, dry deposition land types,
 !                      and roughness heights from "drydep.table". 
@@ -1343,7 +1329,7 @@
 !     "rddrycf.f     - reads drydep polynomial coeff's from file "drydep.coef"
 !     "rdlai.f"      - reads Leaf Area Indices from files "lai**.global"
 !     "rdland.f"     - reads Olson land types from file "vegtype.global"
-!
+!                                                                             .
 !  Some variables used in the subroutine (passed):
 !     LRGERA(IJLOOP) T -> stable atmosphere; a high aerodynamic resistance
 !                        (RA=1.E4 m s-1) is imposed; else RA is calculated
@@ -1353,7 +1339,7 @@
 !                      conditions
 !     CFRAC(IJLOOP)  - Fractional cloud cover
 !     ZH(IJLOOP)     - Mixing depth (m)
-!
+!                                                                             .
 !  Some variables used in the subroutine:
 !     MAXDEP         - the maximum number of species for which the dry 
 !                      deposition calculation is done
@@ -1362,10 +1348,10 @@
 !     RSURFC(K,LDT)  - Bulk surface resistance (s m-1) for species K to 
 !                      surface LDT
 !     C1X(K)         - Total resistance to deposition (s m-1) for species K
-!
+!                                                                             .
 !  Returned:
 !     DVEL(IJLOOP,K) - Deposition velocity (m s-1) of species K
-!
+!                                                                             .
 !  References:
 !  ============================================================================
 !     Baldocchi, D.D., B.B. Hicks, and P. Camara, A canopy stomatal
@@ -1498,13 +1484,6 @@
       INTEGER IOLSON,II,IW
       INTEGER K,IJLOOP,LDT
       REAL*8  RCLX,RIXX,BIOFIT
-!------------------------------------------------------------------------------
-! Prior to 1/10/12:
-! Remove arbitrary pressure value of 1500 hPa and use local surface pressure
-! instead (mpayer, 1/10/12)
-!      REAL*8  PRESS
-!      DATA PRESS /1.5D5/
-!------------------------------------------------------------------------------
 !
 ! Logical for snow and sea ice
 !
@@ -1690,14 +1669,6 @@
 !** exit for non-depositing species or aerosols.
                IF (.NOT. LDEP(K) .OR. AIROSOL(K)) GOTO 155
                XMWH2O = 18.D-3
-!------------------------------------------------------------------------------
-! Prior to 1/10/12:
-! Replace PRESS with local surface pressure (PRESSU) (jaegle 5/11/11,
-!  mpayer 1/10/12)
-!               RIXX = RIX*DIFFG(TEMPK,PRESS,XMWH2O)/
-!     C              DIFFG(TEMPK,PRESS,XMW(K))
-!     C              + 1.D0/(HSTAR(K)/3000.D0+100.D0*F0(K))
-!------------------------------------------------------------------------------
                RIXX = RIX*DIFFG(TEMPK,PRESSU(IJLOOP),XMWH2O)/
      C              DIFFG(TEMPK,PRESSU(IJLOOP),XMW(K))
      C              + 1.D0/(HSTAR(K)/3000.D0+100.D0*F0(K))
@@ -1768,14 +1739,6 @@
 !---------------------------------------------------------------------------
 
                   ! [Zhang et al., 2001]
-!------------------------------------------------------------------------------
-! Prior to 1/10/12:
-! Replace PRESS with local surface pressure (PRESSU) (jaegle 5/11/11,
-!  mpayer 1/10/12);  also added W10 (10m windspeed) (jaegle 5/11/11)
-!                  RSURFC(K,LDT) = 
-!     &               AERO_SFCRSII( K,     II,            PRESS*1D-3, 
-!     &                             TEMPK, USTAR(IJLOOP), RHB(IJLOOP) )
-!------------------------------------------------------------------------------
                   RSURFC(K,LDT) = 
      &               AERO_SFCRSII( K,     II,   PRESSU(IJLOOP)*1D-3, 
      &                             TEMPK, USTAR(IJLOOP), RHB(IJLOOP),
@@ -1798,13 +1761,6 @@
 !     &             DUST_sfcRsI(K, II, PRESS*1D-3, TEMPK, USTAR(IJLOOP))
 
                   ! [Zhang et al., 2001]
-!------------------------------------------------------------------------------
-! Prior to 1/10/12:
-! Replace PRESS with local surface pressure (PRESSU) (jaegle 5/11/11,
-!  mpayer 1/10/12)
-!                  RSURFC(K,LDT) = 
-!     &             DUST_SFCRSII(K, II, PRESS*1D-3, TEMPK, USTAR(IJLOOP))
-!------------------------------------------------------------------------------
                   RSURFC(K,LDT) = 
      &             DUST_SFCRSII(K, II, PRESSU(IJLOOP)*1D-3, TEMPK, 
      &             USTAR(IJLOOP))
@@ -1830,12 +1786,6 @@
 !                  IF (CZH.LT.-30.0D0) VDS = 0.0009D0*USTAR(IJLOOP)*
 !     x                                 (-CZH)**0.6667D0
 
-!------------------------------------------------------------------------------
-! Prior to 1/10/12:
-! Replace PRESS with local surface pressure (PRESSU) (mpayer, 1/10/12)
-!                  RSURFC(K, LDT) =
-!     &                ADUST_SFCRSII(K, II, PRESS*1D-3, TEMPK,
-!------------------------------------------------------------------------------
                   RSURFC(K, LDT) =
      &                ADUST_SFCRSII(K, II, PRESSU(IJLOOP)*1D-3, TEMPK,
      &                              USTAR(IJLOOP))
@@ -2102,11 +2052,6 @@
 !** cited on p. 16,476 of Jacob et al. [1992]
                DAIR = 0.2D0*1.D-4
                RB = (2.D0/CKUSTR)*
-!------------------------------------------------------------------------------
-! Prior to 1/10/12:
-! Replace PRESS with local surface pressure (PRESSU) (mpayer, 1/10/12)
-!     x              (DAIR/DIFFG(TEMPK,PRESS,XMW(K)))**0.667D0
-!------------------------------------------------------------------------------
      x              (DAIR/DIFFG(TEMPK,PRESSU(IJLOOP),XMW(K)))**0.667D0
                IF (AIROSOL(K)) RB=0.D0
                C1X(K) = RA + RB + RSURFC(K,LDT)
@@ -3235,7 +3180,8 @@
 !  non-size resolved aerosol according to Zhang et al 2001.  We do not consider
 !  the hygroscopic growth of the aerosol particles. (rjp, tdf, bec, bmy, 
 !  4/1/04, 4/15/05) 
-!
+!\\
+!\\
 !  This routine is used for all aerosols except dust, sulfate, and seasalt
 !  (hotp 7/31/09)
 !\\

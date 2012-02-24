@@ -40,6 +40,7 @@
 # LINK       Specifies the link commands to the GEOS-Chem library files
 # KPP        Specifies the directory where th KPP solver files reside
 # MOD        Specifies the directory where module files (*.mod) are stored
+# NCDF       Specifies the directory where netCDF utilities are stored
 # OBJ        Specifies the list of object files (*.o) to be created.
 # UTIL       Specifies the directory where the G-C utility modules are found
 # AR         Sys var w/ name of library creator program (i.e., "ar", "ranlib")
@@ -96,6 +97,8 @@
 #  05 Aug 2011 - M. Long     - Now compile module files in Headers/ directory
 #  04 Nov 2011 - R. Yantosca - Remove references to ESMF subdirectory
 #  08 Dec 2011 - M. Payer    - Remove obsolete GEIA biogenic emissions routines
+#  24 Jan 2012 - R. Yantosca - Also add libnc target to build netCDF utils
+#  25 Jan 2012 - R. Yantosca - Add ncdfcheck target to check netCDF install
 #EOP
 #------------------------------------------------------------------------------
 #BOC
@@ -113,6 +116,7 @@ ISO     := $(ROOTDIR)/ISOROPIA
 LIB     := $(ROOTDIR)/lib
 KPP     := $(ROOTDIR)/KPP
 MOD     := $(ROOTDIR)/mod
+NCDF    := $(ROOTDIR)/NcdfUtil
 TOM     := $(ROOTDIR)/GeosTomas
 GTMM    := $(ROOTDIR)/GTMM
 UTIL    := $(ROOTDIR)/GeosUtil
@@ -140,40 +144,54 @@ OBJ := $(TMP:.F90=.o)
 
 .PHONY: clean realclean doc docclean help
 
-all:                                                 # Build libraries
-	@$(MAKE) lib                                 #  and the executable
+all:                                               # Build libraries
+	@$(MAKE) lib                               #  and the executable
 	@$(MAKE) exe
 
-lib:                                                 # Build all G-C libraries
-	@$(MAKE) libheaders         		     
-	@$(MAKE) libkpp             		     
-	@$(MAKE) libutil 			     
-	@$(MAKE) libiso 			     
-	@$(MAKE) libcore			     
+lib:                                               # Build all G-C libraries
+	@$(MAKE) libnc
+	@$(MAKE) libheaders         		  
+	@$(MAKE) libkpp             		  
+	@$(MAKE) libutil 			  
+	@$(MAKE) libiso 			  
+	@$(MAKE) libcore			  
 
-libcore: $(OBJ)                                      # Build code in GeosCore/
+libcore: $(OBJ)                                    # Build code in GeosCore/
 
-libiso:                                              # Build code in ISOROPIA/
-	@$(MAKE) -C $(ISO)			     
+libiso:                                            # Build code in ISOROPIA/
+	@$(MAKE) -C $(ISO)			  
 
-libkpp:                                              # Build code in KPP/
-	@$(MAKE) -C $(KPP)			     
+libkpp:                                            # Build code in KPP/
+	@$(MAKE) -C $(KPP)			  
 
-libutil:                                             # Build code in GeosUtil/
-	@$(MAKE) -C $(UTIL)			     
+libnc:                                             # Build code in NcdfUtil/
+ifeq ($(NETCDF),yes)                               
+	@$(MAKE) -C $(NCDF) lib
+endif
 
-libheaders:                                          # Build code in Headers/ 
-	@$(MAKE) -C $(HDR)			     
+ncdfcheck:                                         # Check netCDF library
+ifeq ($(NETCDF),yes)                               
+	@$(MAKE) libnc
+	@$(MAKE) -C $(NCDF) check
+endif
 
-exe:                                                 # Build executable
+
+libutil:                                           # Build code in GeosUtil/
+	@$(MAKE) -C $(UTIL)			  
+
+libheaders:                                        # Build code in Headers/ 
+	@$(MAKE) -C $(HDR)			  
+
+exe:                                               # Build executable
 	$(LD) $(OBJ) $(LINK) -o $(EXE)
 	cp -f $(EXE) $(BIN)
 
-clean:                                               # Remove files here
+clean:                                             # Remove files here
 	rm -f *.o *.mod geos geosapm geostomas
 
-realclean:                                           # Remove files everywhere
+realclean:                                         # Remove files everywhere
 	@$(MAKE) clean
+	@$(MAKE) -C $(NCDF) clean
 	@$(MAKE) -C $(APM) clean
 	@$(MAKE) -C $(ISO) clean
 	@$(MAKE) -C $(KPP) realclean
@@ -186,31 +204,31 @@ realclean:                                           # Remove files everywhere
 	rm -f $(MOD)/*.mod
 	rm -f $(BIN)/geos*
 
-doc:                                                 # Build documentation
+doc:                                               # Build documentation
 	@$(MAKE) -C $(DOC) all
 
-docclean:                                            # Remove documentation
+docclean:                                          # Remove documentation
 	@$(MAKE) -C $(DOC) clean
 
-help:                                                # Show help screen
+help:                                              # Show help screen
 	@$(MAKE) -C $(HELP)
 
 #=============================================================================
 # Targets for mercury simulation (ccc, 6/7/10)
 #=============================================================================
 
-allhg:                                               # Build Hg/GTMM executable
+allhg:                                             # Build Hg/GTMM executable
 	@$(MAKE) libhg
 	@$(MAKE) exehg
 
-libhg:                                               # Compile HG/GTMM code
+libhg:                                             # Compile HG/GTMM code
 	@$(MAKE) libgtmm           		     
 	@$(MAKE) libgc
 
-libgtmm:                                             # Compile GTMM model code
+libgtmm:                                           # Compile GTMM model code
 	@$(MAKE) -C $(GTMM)
 
-exehg:                                               # Create Hg/GTMM exec file
+exehg:                                             # Create Hg/GTMM exec file
 	$(LD) $(OBJ) $(LHG) -o $(EXE)
 	cp -f $(EXE) $(BIN)
 
@@ -612,6 +630,10 @@ geia_mod.o                  : geia_mod.F
 
 GEN.o                       : GEN.F
 
+
+geos57_read_mod.o           : geos57_read_mod.F90                            \
+                              dao_mod.o
+
 get_global_ch4.o            : get_global_ch4.F                               \
                               future_emissions_mod.o  logical_mod.o
 
@@ -763,13 +785,15 @@ main.o                      : main.F                                         \
                               vdiff_mod.o             wetscav_mod.o          \
                               xtra_read_mod.o         merra_cn_mod.o         \
                               merra_a1_mod.o          merra_a3_mod.o         \
-                              merra_i6_mod.o          diag59_mod.o
+                              merra_i6_mod.o          geos57_read_mod.o      \
+                              diag59_mod.o
 
 MATIN4.o                    : MATIN4.F
 
 megan_mod.o                 : megan_mod.F             a3_read_mod.o          \
                               lai_mod.o               logical_mod.o          \
-                              meganut_mod.o           merra_a1_mod.o
+                              meganut_mod.o           merra_a1_mod.o         \
+                              geos57_read_mod.o
 
 meganut_mod.o               : meganut_mod.F           dao_mod.o     
 

@@ -16,156 +16,92 @@
 !
 ! !USES:
 !
-      USE A3_READ_MOD,       ONLY : GET_A3_FIELDS
-      USE A3_READ_MOD,       ONLY : OPEN_A3_FIELDS
-      USE A3_READ_MOD,       ONLY : UNZIP_A3_FIELDS
-      USE A6_READ_MOD,       ONLY : GET_A6_FIELDS
-      USE A6_READ_MOD,       ONLY : OPEN_A6_FIELDS
-      USE A6_READ_MOD,       ONLY : UNZIP_A6_FIELDS
-      USE BENCHMARK_MOD,     ONLY : STDRUN
-      ! (hotp 5/24/09) Modified for SOA from aroms
-      !USE CARBON_MOD,        ONLY : WRITE_GPROD_APROD
-      ! Add RECOMPUTE_OD to call AOD calculation twice (skim, 02/02/11)
-      USE CHEMISTRY_MOD,     ONLY : DO_CHEMISTRY, RECOMPUTE_OD
-      USE CONVECTION_MOD,    ONLY : DO_CONVECTION
-      USE COMODE_MOD,        ONLY : INIT_COMODE
-      USE GCKPP_COMODE_MOD,  ONLY : INIT_GCKPP_COMODE
-      USE DIAG_MOD,          ONLY : DIAGCHLORO
-      USE DIAG41_MOD,        ONLY : DIAG41,          ND41
-      USE DIAG42_MOD,        ONLY : DIAG42,          ND42
-      USE DIAG48_MOD,        ONLY : DIAG48,          ITS_TIME_FOR_DIAG48
-      USE DIAG49_MOD,        ONLY : DIAG49,          ITS_TIME_FOR_DIAG49
-      USE DIAG50_MOD,        ONLY : DIAG50,          DO_SAVE_DIAG50
-      USE DIAG51_MOD,        ONLY : DIAG51,          DO_SAVE_DIAG51
-      USE DIAG51b_MOD,       ONLY : DIAG51b,         DO_SAVE_DIAG51b
-      USE DIAG_OH_MOD,       ONLY : PRINT_DIAG_OH
-      USE DAO_MOD,           ONLY : AD,              AIRQNT  
-      USE DAO_MOD,           ONLY : AVGPOLE,         CLDTOPS
-      USE DAO_MOD,           ONLY : CONVERT_UNITS,   COPY_I6_FIELDS
-      USE DAO_MOD,           ONLY : COSSZA,          INIT_DAO
-      USE DAO_MOD,           ONLY : INTERP,          PS1
-      USE DAO_MOD,           ONLY : PS2,             PSC2          
-      USE DAO_MOD,           ONLY : T,               TS            
-      USE DAO_MOD,           ONLY : SUNCOS
-      USE DAO_MOD,           ONLY : MAKE_RH
-      !Add MAKE_GTMM_RESTART for mercury simulation (ccc, 11/19/09)
-      USE DEPO_MERCURY_MOD,  ONLY : MAKE_GTMM_RESTART, UPDATE_DEP
-      USE DRYDEP_MOD,        ONLY : DO_DRYDEP
-      USE EMISSIONS_MOD,     ONLY : DO_EMISSIONS
-      USE ERROR_MOD,         ONLY : DEBUG_MSG,       ERROR_STOP
-      USE FILE_MOD,          ONLY : IU_BPCH,         IU_DEBUG
-      USE FILE_MOD,          ONLY : IU_ND48,         IU_SMV2LOG    
-      USE FILE_MOD,          ONLY : CLOSE_FILES
-      USE GLOBAL_CH4_MOD,    ONLY : INIT_GLOBAL_CH4, CH4_AVGTP
-      USE GCAP_READ_MOD,     ONLY : GET_GCAP_FIELDS
-      USE GCAP_READ_MOD,     ONLY : OPEN_GCAP_FIELDS
-      USE GCAP_READ_MOD,     ONLY : UNZIP_GCAP_FIELDS
-      USE GWET_READ_MOD,     ONLY : GET_GWET_FIELDS
-      USE GWET_READ_MOD,     ONLY : OPEN_GWET_FIELDS
-      USE GWET_READ_MOD,     ONLY : UNZIP_GWET_FIELDS
-      USE I6_READ_MOD,       ONLY : GET_I6_FIELDS_1
-      USE I6_READ_MOD,       ONLY : GET_I6_FIELDS_2
-      USE I6_READ_MOD,       ONLY : OPEN_I6_FIELDS
-      USE I6_READ_MOD,       ONLY : UNZIP_I6_FIELDS
-      USE INPUT_MOD,         ONLY : READ_INPUT_FILE
-      USE LAI_MOD,           ONLY : RDISOLAI
-      USE LIGHTNING_NOX_MOD, ONLY : LIGHTNING
-      USE LOGICAL_MOD,       ONLY : LEMIS,     LCHEM, LUNZIP,  LDUST
-      USE LOGICAL_MOD,       ONLY : LLIGHTNOX, LPRT,  LSTDRUN, LSVGLB
-      USE LOGICAL_MOD,       ONLY : LWAIT,     LTRAN, LUPBD,   LCONV
-      USE LOGICAL_MOD,       ONLY : LWETD,     LTURB, LDRYD,   LMEGAN  
-      USE LOGICAL_MOD,       ONLY : LDYNOCEAN, LSOA,  LVARTROP,LKPP
-      USE LOGICAL_MOD,       ONLY : LLINOZ,    LWINDO
-      ! Add LGTMM logical for mercury simulation (ccc, 11/19/09)
-      USE LOGICAL_MOD,       ONLY : LGTMM
-      USE MEGAN_MOD,         ONLY : INIT_MEGAN
-      USE MEGAN_MOD,         ONLY : UPDATE_T_15_AVG
-      USE MEGAN_MOD,         ONLY : UPDATE_T_DAY
-      USE PBL_MIX_MOD,       ONLY : DO_PBL_MIX
-      USE OCEAN_MERCURY_MOD, ONLY : MAKE_OCEAN_Hg_RESTART
-      USE OCEAN_MERCURY_MOD, ONLY : READ_OCEAN_Hg_RESTART
-      USE PLANEFLIGHT_MOD,   ONLY : PLANEFLIGHT
-      USE PLANEFLIGHT_MOD,   ONLY : SETUP_PLANEFLIGHT 
-      USE PRESSURE_MOD,      ONLY : INIT_PRESSURE
-      USE PRESSURE_MOD,      ONLY : SET_FLOATING_PRESSURE, get_pedge
-      ! add support for saving APROD, GPROD (dkh, 11/09/06)  
-      USE SOAPROD_MOD,       ONLY : SET_SOAPROD, MAKE_SOAPROD_FILE
-      USE SOAPROD_MOD,       ONLY : READ_SOAPROD_FILE
-      ! hotp 5/25/09
-      USE SOAPROD_MOD,       ONLY : FIRST_APRODGPROD
-      USE TIME_MOD,          ONLY : GET_NYMDb,        GET_NHMSb
-      USE TIME_MOD,          ONLY : GET_NYMD,         GET_NHMS
-      USE TIME_MOD,          ONLY : GET_A3_TIME,      GET_FIRST_A3_TIME
-      USE TIME_MOD,          ONLY : GET_A6_TIME,      GET_FIRST_A6_TIME
-      USE TIME_MOD,          ONLY : GET_I6_TIME,      GET_MONTH
-      USE TIME_MOD,          ONLY : GET_TAU,          GET_TAUb
-      USE TIME_MOD,          ONLY : GET_TS_CHEM,      GET_TS_DYN
-      USE TIME_MOD,          ONLY : GET_ELAPSED_SEC,  GET_TIME_AHEAD
-      USE TIME_MOD,          ONLY : GET_DAY_OF_YEAR,  ITS_A_NEW_DAY
-      USE TIME_MOD,          ONLY : ITS_A_NEW_SEASON, GET_SEASON
-      USE TIME_MOD,          ONLY : ITS_A_NEW_MONTH,  GET_NDIAGTIME
-      USE TIME_MOD,          ONLY : ITS_A_LEAPYEAR,   GET_YEAR
-      USE TIME_MOD,          ONLY : ITS_TIME_FOR_A3,  ITS_TIME_FOR_A6
-      USE TIME_MOD,          ONLY : ITS_TIME_FOR_I6,  ITS_TIME_FOR_CHEM
-      USE TIME_MOD,          ONLY : ITS_TIME_FOR_CONV,ITS_TIME_FOR_DEL
-      USE TIME_MOD,          ONLY : ITS_TIME_FOR_DIAG,ITS_TIME_FOR_DYN
-      USE TIME_MOD,          ONLY : ITS_TIME_FOR_EMIS,ITS_TIME_FOR_EXIT
-      USE TIME_MOD,          ONLY : ITS_TIME_FOR_UNIT,ITS_TIME_FOR_UNZIP
-      USE TIME_MOD,          ONLY : ITS_TIME_FOR_BPCH
-      USE TIME_MOD,          ONLY : SET_CT_CONV,      SET_CT_DYN
-      USE TIME_MOD,          ONLY : SET_CT_EMIS,      SET_CT_CHEM
-      USE TIME_MOD,          ONLY : SET_CT_DIAG
-      USE TIME_MOD,          ONLY : SET_DIAGb,        SET_DIAGe
-      USE TIME_MOD,          ONLY : SET_CURRENT_TIME, PRINT_CURRENT_TIME
-      USE TIME_MOD,          ONLY : SET_ELAPSED_MIN,  SYSTEM_TIMESTAMP
-      USE TIME_MOD,          ONLY : TIMESTAMP_DIAG
-      USE TIME_MOD,          ONLY : GET_HOUR,         GET_MINUTE
-      USE TIME_MOD,          ONLY : GET_FIRST_I6_TIME
-      USE TPCORE_BC_MOD,     ONLY : SAVE_GLOBAL_TPCORE_BC
-      USE TRACER_MOD,        ONLY : CHECK_STT, N_TRACERS, STT, TCVV
-      USE TRACER_MOD,        ONLY : ITS_AN_AEROSOL_SIM
-      USE TRACER_MOD,        ONLY : ITS_A_CH4_SIM
-      USE TRACER_MOD,        ONLY : ITS_A_FULLCHEM_SIM
-      USE TRACER_MOD,        ONLY : ITS_A_H2HD_SIM
-      USE TRACER_MOD,        ONLY : ITS_A_MERCURY_SIM
-      USE TRACER_MOD,        ONLY : ITS_A_TAGCO_SIM
-      USE TRANSPORT_MOD,     ONLY : DO_TRANSPORT
-      USE TROPOPAUSE_MOD,    ONLY : READ_TROPOPAUSE, CHECK_VAR_TROP
-      USE TROPOPAUSE_MOD,    ONLY : DIAG_TROPOPAUSE
-      USE RESTART_MOD,       ONLY : MAKE_RESTART_FILE, READ_RESTART_FILE
-      USE UPBDFLX_MOD,       ONLY : DO_UPBDFLX,        UPBDFLX_NOY
-      USE UVALBEDO_MOD,      ONLY : READ_UVALBEDO
-      USE WETSCAV_MOD,       ONLY : INIT_WETSCAV,      DO_WETDEP
-      USE XTRA_READ_MOD,     ONLY : GET_XTRA_FIELDS,   OPEN_XTRA_FIELDS
-      USE XTRA_READ_MOD,     ONLY : UNZIP_XTRA_FIELDS
-      USE ERROR_MOD,         ONLY : IT_IS_NAN, IT_IS_FINITE   !yxw
-      USE ERROR_MOD,         ONLY : SAFE_DIV
-      ! To save CSPEC_FULL restart (dkh, 02/12/09)
-      USE LOGICAL_MOD,       ONLY : LSVCSPEC
-      USE RESTART_MOD,       ONLY : MAKE_CSPEC_FILE
-      ! Added (lin, 03/31/09)
-      USE LOGICAL_MOD,       ONLY : LNLPBL
-      USE VDIFF_MOD,         ONLY : DO_PBL_MIX_2
-      USE LINOZ_MOD,         ONLY : LINOZ_READ
-      USE TRACERID_MOD,      ONLY : IS_Hg2
+      !-----------------------------------------------------------------
+      ! Basic GEOS-Chem modules
+      !-----------------------------------------------------------------
+      USE CMN_SIZE_MOD          ! Size parameters
+      USE CMN_GCTM_MOD          ! Physical constants
+      USE ERROR_MOD             ! For error checking
+      USE FILE_MOD              ! For file I/O
+      USE INPUT_MOD             ! For reading settings from "input.geos"
+      USE LOGICAL_MOD           ! Logical flags to toggle G-C options
+      USE PRESSURE_MOD          ! For computing pressure at grid boxes
+      USE RESTART_MOD           ! For restart file I/O
+      USE TIME_MOD              ! For computing date & time
+      USE TRACER_MOD            ! Tracer array (STT) + related functions
+      USE TRACERID_MOD          ! Flags for G-C tracers & chemical species
 
-      ! For GTMM for mercury simulations. (ccc, 6/7/10)
-      USE WETSCAV_MOD,       ONLY : GET_WETDEP_IDWETD  
-      USE MERCURY_MOD,       ONLY : PARTITIONHG
+      !-----------------------------------------------------------------
+      ! GEOS-Chem chemistry modules
+      !-----------------------------------------------------------------
+      USE CHEMISTRY_MOD         ! Driver routines for chemistry
+      USE COMODE_MOD            ! Allocatable arrays for SMVGEAR solver
+      USE COMODE_LOOP_MOD       ! Formerly common-block arrays for SMVGEAR
+      USE GCKPP_COMODE_MOD      ! For the KPP chemical solver
+      USE GLOBAL_CH4_MOD        ! For offline CH4 simulation
+      USE MERCURY_MOD           ! For offline Hg simulation (driver)
+      USE OCEAN_MERCURY_MOD     ! For offline Hg simulation (ocean model)
+      USE SOAPROD_MOD           ! For SOA simulation
+      USE UVALBEDO_MOD          ! For reading UV albedoes (for FAST-J)
 
-      ! For MERRA met fields (bmy, 8/19/10)
-      USE MERRA_A1_MOD,      ONLY : GET_MERRA_A1_FIELDS
-      USE MERRA_A1_MOD,      ONLY : OPEN_MERRA_A1_FIELDS
-      USE MERRA_A3_MOD,      ONLY : GET_MERRA_A3_FIELDS
-      USE MERRA_A3_MOD,      ONLY : OPEN_MERRA_A3_FIELDS
-      USE MERRA_CN_MOD,      ONLY : GET_MERRA_CN_FIELDS
-      USE MERRA_CN_MOD,      ONLY : OPEN_MERRA_CN_FIELDS
-      USE MERRA_I6_MOD,      ONLY : GET_MERRA_I6_FIELDS_1
-      USE MERRA_I6_MOD,      ONLY : GET_MERRA_I6_FIELDS_2
-      USE MERRA_I6_MOD,      ONLY : OPEN_MERRA_I6_FIELDS
-      USE TIME_MOD,          ONLY : GET_A1_TIME
-      USE TIME_MOD,          ONLY : GET_FIRST_A1_TIME
-      USE TIME_MOD,          ONLY : ITS_TIME_FOR_A1
+      !-----------------------------------------------------------------
+      ! GEOS-Chem deposition modules
+      !-----------------------------------------------------------------
+      USE DEPO_MERCURY_MOD      ! Deposition for offline Hg simulation
+      USE DRYDEP_MOD            ! For dry deposition
+      USE WETSCAV_MOD           ! For wet deposition (rainout & washout)
+
+      !-----------------------------------------------------------------
+      ! GEOS-Chem diagnostics modules
+      !-----------------------------------------------------------------
+      USE BENCHMARK_MOD         ! For the 1-month benchmark simulations
+      USE CMN_DIAG_MOD          ! Logical switches for G-C diagnostics
+      USE DIAG_MOD              ! G-C diagnostic arrays & counters
+      USE DIAG41_MOD            ! For ND41  (afternoon PBL       ) diag
+      USE DIAG42_MOD            ! For ND42  (SOA products        ) diag
+      USE DIAG48_MOD            ! For ND48  (station timeseries  ) diag
+      USE DIAG49_MOD            ! For ND49  (inst. timeseries    ) diag
+      USE DIAG50_MOD            ! For ND50  (24h avg timeseries  ) diag
+      USE DIAG51_MOD            ! For ND51  (satellite timeseries) diag
+      USE DIAG51b_MOD           ! For ND51b (satellite timeseries) diag
+      USE DIAG_OH_MOD           ! For ND43  (OH,NO2,etc. prod    ) diag
+      USE PLANEFLIGHT_MOD       ! For ND40  (plane flight track  ) diag
+
+      !-----------------------------------------------------------------
+      ! GEOS-Chem dynamics modules
+      !-----------------------------------------------------------------
+      USE CONVECTION_MOD        ! For deep cloud convection
+      USE LINOZ_MOD             ! For LINOX linear strat chemistry
+      USE PBL_MIX_MOD           ! For full PBL mixing (TURBDAY)
+      USE TPCORE_BC_MOD         ! For nested-grid boundary conditions
+      USE TRANSPORT_MOD         ! Driver routines for advection
+      USE TROPOPAUSE_MOD        ! For the dynamic tropopause
+      USE UPBDFLX_MOD           ! For Ox, NOx strat boundary conditions
+      USE VDIFF_MOD             ! For non-local PBL mixing (J. Lin)
+
+      !-----------------------------------------------------------------
+      ! GEOS-Chem emissions modules
+      !-----------------------------------------------------------------
+      USE EMISSIONS_MOD         ! Driver routines for emissions
+      USE LAI_MOD               ! For MODIS leaf-area-indices
+      USE LIGHTNING_NOX_MOD     ! For lightning NOx emissions  
+      USE MEGAN_MOD             ! For biogenic emissions
+
+      !-----------------------------------------------------------------
+      ! GEOS-Chem met field I/O modules
+      !-----------------------------------------------------------------
+      USE DAO_MOD               ! Met field definitions
+      USE GCAP_READ_MOD         ! For reading GCAP met data
+      USE GEOS57_READ_MOD       ! For reading GEOS-5.7.x data
+      USE MERRA_A1_MOD          ! For reading MERRA A1 data
+      USE MERRA_A3_MOD          ! For reading MERRA A3 data
+      USE MERRA_CN_MOD          ! For reading MERRA CN data
+      USE MERRA_I6_MOD          ! For reading MERRA I6 data
+      USE A3_READ_MOD           ! For reading A3 data (all other met)
+      USE A6_READ_MOD           ! For reading A6 data (all other met)
+      USE I6_READ_MOD           ! For reading I6 data (all other met)
+      USE GWET_READ_MOD         ! For reading GEOS-3 GWET data
+      USE XTRA_READ_MOD         ! For reading GEOS-3 extra data fields
 
 #if   defined( APM )
       ! APM+: For APM aerosol microphysics simulation, see apm_driv_mod.f 
@@ -180,12 +116,9 @@
       USE TRACER_MOD,        ONLY : N_APMTRA
 #endif
 
-      USE CMN_SIZE_MOD            ! Size parameters
-      USE COMODE_LOOP_MOD         ! SMVGEAR common blocks
-      USE CMN_DIAG_MOD            ! Diagnostic switches, NJDAY
-      USE CMN_GCTM_MOD            ! Physical constants
-
       IMPLICIT NONE     
+
+#     include "define.h"
 !
 ! !REMARKS:
 !                                                                             .
@@ -197,7 +130,7 @@
 !                                                                             .
 !                                                                             .
 !                 (formerly known as the Harvard-GEOS model)
-!           for 4 x 5, 2 x 2.5 global grids and 1 x 1 nested grids
+!           for 4 x 5, 2 x 2.5 global grids and hi-res nested grids
 !                                                                             .
 !       Contact: GEOS-Chem Support Team (geos-chem-support@as.harvard.edu)
 !                                                                     
@@ -227,24 +160,35 @@
 !  13 Aug 2010 - R. Yantosca - Add modifications for MERRA (treat like GEOS-5)
 !  19 Aug 2010 - R. Yantosca - Now call MERRA met field reader routines
 !  02 Feb 2011 - S. Kim      - Call Compute_OD after wet deposition
+!  05 Oct 2011 - R. Yantosca - Now get SUNCOS30 array from routine COSSZA
+!  07 Oct 2011 - R. Yantosca - Rename SUNCOS30 to SUNCOS_MID, which is the
+!                              cos(SZA) at the midpt of the chemistry timestep
+!  02 Feb 2012 - R. Yantosca - Added modifications for GEOS-5.7.x met fields
+!  06 Feb 2012 - R. Yantosca - Reorganize USE statements for clarity
+!  06 Feb 2012 - R. Yantosca - Renamed NN to NNN to avoid name confusion
+!  07 Feb 2012 - R. Yantosca - Split off met field I/O into internal routines
+!                              READ_INITIAL_MET_FIELDS and READ_MET_FIELDS
 !EOP
 !------------------------------------------------------------------------------
 !BOC
 !
 ! !LOCAL VARIABLES:
 !
+      ! Scalars
       LOGICAL            :: FIRST = .TRUE.
       LOGICAL            :: LXTRA 
       INTEGER            :: I,             IOS,   J,         K,      L
-      INTEGER            :: N,             JDAY,  NDIAGTIME, N_DYN,  NN
+      INTEGER            :: N,             JDAY,  NDIAGTIME, N_DYN,  NNN
       INTEGER            :: N_DYN_STEPS,   NSECb, N_STEP,    DATE(2)
       INTEGER            :: YEAR,          MONTH, DAY,       DAY_OF_YEAR
       INTEGER            :: SEASON,        NYMD,  NYMDb,     NHMS
       INTEGER            :: ELAPSED_SEC,   NHMSb, RC
       INTEGER            :: ELAPSED_TODAY, HOUR,  MINUTE,    N_TRC_TOT
       REAL*8             :: TAU,           TAUb         
-      REAL*8             :: HGPFRAC(IIPAR,JJPAR,LLPAR)
       CHARACTER(LEN=255) :: ZTYPE
+
+      ! Arrays
+      REAL*8             :: HGPFRAC(IIPAR,JJPAR,LLPAR)
 
       !=================================================================
       ! GEOS-CHEM starts here!                                            
@@ -336,180 +280,12 @@
       TAU   = GET_TAU()
       TAUb  = GET_TAUb()
 
-#if   defined( MERRA )
-
-      !=================================================================
-      !    *****  R E A D   M E R R A   M E T   F I E L D S  *****
-      !    *****  At the start of the GEOS-Chem simulation   *****
-      !
-      !    Handle MERRA met fields separately from other met products
-      !=================================================================
-
-      ! Open constant fields
-      DATE = (/ 20000101, 000000 /)
-      CALL OPEN_MERRA_CN_FIELDS( DATE(1), DATE(2) )
-      CALL GET_MERRA_CN_FIELDS(  DATE(1), DATE(2) )
-      IF ( LPRT ) CALL DEBUG_MSG( '### MAIN: a 1st MERRA CN TIME' )
-
-      ! Open and read A-1 fields
-      DATE = GET_FIRST_A1_TIME()
-      CALL OPEN_MERRA_A1_FIELDS( DATE(1), DATE(2), RESET=.TRUE. )
-      CALL GET_MERRA_A1_FIELDS(  DATE(1), DATE(2) )
-      IF ( LPRT ) CALL DEBUG_MSG( '### MAIN: a 1st MERRA A1 TIME' )
-
-      ! Open and read A-3 fields
-      DATE = GET_FIRST_A3_TIME()
-      CALL OPEN_MERRA_A3_FIELDS( DATE(1), DATE(2) )
-      CALL GET_MERRA_A3_FIELDS(  DATE(1), DATE(2) )
-      IF ( LPRT ) CALL DEBUG_MSG( '### MAIN: a 1st MERRA A3 TIME' )
-
-      ! Open & read I-6 fields
-      DATE = GET_FIRST_I6_TIME()
-      CALL OPEN_MERRA_I6_FIELDS(  DATE(1), DATE(2) )
-      CALL GET_MERRA_I6_FIELDS_1( DATE(1), DATE(2) )
-      IF ( LPRT ) CALL DEBUG_MSG( '### MAIN: a 1st I6 TIME' )
-
-#else
-
-      !=================================================================
-      !    *****      U N Z I P   M E T   F I E L D S        *****
-      !    ***** At at the start of the GEOS-Chem simulation *****
-      !
-      !   Here we unzip the initial GEOS-3, GEOS-4, GEOS-5, GCAP data
-      !=================================================================
-      IF ( LUNZIP ) THEN
-
-         !---------------------
-         ! Remove all files
-         !---------------------
-
-         ! Type of unzip operation
-         ZTYPE = 'remove all'
-         
-         ! Remove any leftover A-3, A-6, I-6, in temp dir
-         CALL UNZIP_A3_FIELDS( ZTYPE )
-         CALL UNZIP_A6_FIELDS( ZTYPE )
-         CALL UNZIP_I6_FIELDS( ZTYPE )
-
-#if   defined( GEOS_3 )
-         ! Remove GEOS-3 GWET and XTRA files 
-         IF ( LDUST ) CALL UNZIP_GWET_FIELDS( ZTYPE )
-         IF ( LXTRA ) CALL UNZIP_XTRA_FIELDS( ZTYPE )
-#endif
-
-#if   defined( GCAP )
-         ! Unzip GCAP PHIS field (if necessary)
-         CALL UNZIP_GCAP_FIELDS( ZTYPE )
-#endif
-
-         !---------------------
-         ! Unzip in foreground
-         !---------------------
-
-         ! Type of unzip operation
-         ZTYPE = 'unzip foreground'
-
-         ! Unzip A-3, A-6, I-6 files for START of run
-         CALL UNZIP_A3_FIELDS( ZTYPE, NYMDb )
-         CALL UNZIP_A6_FIELDS( ZTYPE, NYMDb )
-         CALL UNZIP_I6_FIELDS( ZTYPE, NYMDb )
-
-#if   defined( GEOS_3 )
-         ! Unzip GEOS-3 GWET and XTRA fields for START of run
-         IF ( LDUST ) CALL UNZIP_GWET_FIELDS( ZTYPE, NYMDb )
-         IF ( LXTRA ) CALL UNZIP_XTRA_FIELDS( ZTYPE, NYMDb )
-#endif
-
-#if   defined( GCAP )
-         ! Unzip GCAP PHIS field (if necessary)
-         CALL UNZIP_GCAP_FIELDS( ZTYPE )
-#endif
-
-         !### Debug output
-         IF ( LPRT ) CALL DEBUG_MSG( '### MAIN: a UNZIP' )
-      ENDIF
-
-      !=================================================================
-      !      *****      R E A D   M E T   F I E L D S       *****
-      !      ***** At the start of the GEOS-Chem simulation *****
-      !
-      !  Here we read in the initial GEOS-3, GEOS-4, GEOS-5, GCAP data
-      !=================================================================
-
-      ! Open and read A-3 fields
-      DATE = GET_FIRST_A3_TIME()
-      CALL OPEN_A3_FIELDS( DATE(1), DATE(2), RESET=.TRUE. )
-      CALL GET_A3_FIELDS(  DATE(1), DATE(2) )
-      IF ( LPRT ) CALL DEBUG_MSG( '### MAIN: a 1st A3 TIME' )
-
-      ! For MEGAN biogenics, update hourly temps w/in 15-day window
-      IF ( LMEGAN ) THEN
-         CALL UPDATE_T_DAY
-         IF ( LPRT ) CALL DEBUG_MSG( '### MAIN: UPDATE T_DAY' )
-      ENDIF
-
-      ! Open & read A-6 fields
-      DATE = GET_FIRST_A6_TIME()
-      CALL OPEN_A6_FIELDS( DATE(1), DATE(2) ) 
-      CALL GET_A6_FIELDS(  DATE(1), DATE(2) )      
-#if   defined( APM )
-      CALL UPDATE_A6_FIELDS
-#endif
-      IF ( LPRT ) CALL DEBUG_MSG( '### MAIN: a 1st A6 TIME' )
-
-
-      ! Open & read I-6 fields
-      DATE = GET_FIRST_I6_TIME()
-      CALL OPEN_I6_FIELDS(  DATE(1), DATE(2) )
-      CALL GET_I6_FIELDS_1( DATE(1), DATE(2) )
-      IF ( LPRT ) CALL DEBUG_MSG( '### MAIN: a 1st I6 TIME' )
-      
-#if   defined( GEOS_3 )
-
-      !-----------------------------------------------------------------
-      ! Read additional fields for GEOS-3 meteorology
-      !-----------------------------------------------------------------
-
-      ! Open & read GEOS-3 GWET fields
-      IF ( LDUST ) THEN
-         DATE = GET_FIRST_A3_TIME()
-         CALL OPEN_GWET_FIELDS( DATE(1), DATE(2) )
-         CALL GET_GWET_FIELDS(  DATE(1), DATE(2) ) 
-         IF ( LPRT ) CALL DEBUG_MSG( '### MAIN: a 1st GWET TIME' )
-      ENDIF
-
-      ! Open & read GEOS-3 XTRA fields
-      IF ( LXTRA ) THEN
-         DATE = GET_FIRST_A3_TIME()
-         CALL OPEN_XTRA_FIELDS( DATE(1), DATE(2) )
-         CALL GET_XTRA_FIELDS(  DATE(1), DATE(2) ) 
-         IF ( LPRT ) CALL DEBUG_MSG( '### MAIN: a 1st XTRA TIME' )
-      ENDIF
-
-#endif
-
-#if   defined( GCAP )
-
-      !-----------------------------------------------------------------
-      ! Read additional fields for GCAP meteorology
-      !-----------------------------------------------------------------
-
-      ! Read GCAP PHIS and LWI fields (if necessary)
-      CALL OPEN_GCAP_FIELDS
-      CALL GET_GCAP_FIELDS
-
-      ! Remove temporary file (if necessary)
-      IF ( LUNZIP ) THEN
-         CALL UNZIP_GCAP_FIELDS( 'remove date' )
-      ENDIF
-
-#endif
-
-#endif
-
       !=================================================================
       !        ***** I N I T I A L I Z A T I O N  continued *****
       !=================================================================
+
+      ! Read the initial met fields from disk
+      CALL READ_INITIAL_MET_FIELDS()
 
       ! Compute avg surface pressure near polar caps
       CALL AVGPOLE( PS1 )
@@ -565,7 +341,6 @@
 
       ENDIF
 
-
       ! Read ocean Hg initial conditions (if necessary)
       IF ( ITS_A_MERCURY_SIM() .and. LDYNOCEAN ) THEN
          CALL READ_OCEAN_Hg_RESTART( NYMDb, NHMSb )
@@ -586,10 +361,14 @@
       WRITE( 6, '(a)' ) REPEAT( '*', 44 )
       WRITE( 6, '(a)' ) 
 
-      ! NSTEP is the number of dynamic timesteps w/in a 6-h interval
-      N_DYN_STEPS = 360 / GET_TS_DYN()
+      ! NSTEP is the number of dynamic timesteps w/in the outer loop
+#if   defined( GEOS_57 ) 
+      N_DYN_STEPS = 180 / GET_TS_DYN()     ! GEOS-5.7.x has a 3-hr interval
+#else
+      N_DYN_STEPS = 360 / GET_TS_DYN()     ! All other met has a 6hr interval
+#endif
 
-      ! Start a new 6-h loop
+      ! Start a new outer loop
       DO 
 
       ! Compute time parameters at start of 6-h loop
@@ -703,12 +482,12 @@
          IF ( LGTMM .AND. ITS_A_NEW_MONTH() .AND. NYMD /= NYMDb ) THEN
             IF (.NOT.( ITS_TIME_FOR_BPCH() )) THEN
                N = 1
-               NN = GET_WETDEP_IDWETD( N )
-               DO WHILE( .NOT.(IS_Hg2( NN )) )
+               NNN = GET_WETDEP_IDWETD( N )
+               DO WHILE( .NOT.(IS_Hg2( NNN )) )
                
                   N = N + 1
                   ! Tracer number
-                  NN = GET_WETDEP_IDWETD( N )
+                  NNN = GET_WETDEP_IDWETD( N )
 
                ENDDO
 
@@ -722,193 +501,15 @@
          !==============================================================
          IF ( ITS_TIME_FOR_EXIT() ) GOTO 9999
 
-#if   defined( MERRA )
-
          !==============================================================
-         !    ***** R E A D   M E R R A   A - 1   F I E L D S *****
+         !          ****** R E A D   M E T   F I E L D S ******
          !
-         !    The MERRA archive contains hourly surface data fields.
+         !    For clarity, we have split off the code that reads met 
+         !    fields into the internal subroutine READ_MET_FIELDS.
+         !    Lightning NOx emissions are also computed at the same
+         !    time when A3 or A6 met fields are read from disk.
          !==============================================================
-         IF ( ITS_TIME_FOR_A1() ) THEN
-
-            ! Get the date/time for the next A-3 data block
-            DATE = GET_A1_TIME()
-
-            ! Open & read A-3 fields
-            CALL OPEN_MERRA_A1_FIELDS( DATE(1), DATE(2) )
-            CALL GET_MERRA_A1_FIELDS ( DATE(1), DATE(2) )
-
-            !%%% NEED TO UPDATE FOR MERRA %%%
-            ! Update daily mean temperature archive for MEGAN biogenics
-            !IF ( LMEGAN ) CALL UPDATE_T_DAY 
-         ENDIf
-
-         !==============================================================
-         !    ***** R E A D   M E R R A   A - 3   F I E L D S *****
-         !
-         !     The MERRA archive contains 3-hourly 3-D data fields.
-         !==============================================================
-         IF ( ITS_TIME_FOR_A3() ) THEN
-            
-            ! Get the date/time for the next A-6 data block
-            DATE = GET_A3_TIME()
-
-            ! Open and read A-6 fields
-            CALL OPEN_MERRA_A3_FIELDS( DATE(1), DATE(2) )
-            CALL GET_MERRA_A3_FIELDS ( DATE(1), DATE(2) )
-
-            ! Since CLDTOPS is an A-3 field, update the
-            ! lightning NOx emissions [molec/box/6h]
-            IF ( LLIGHTNOX ) CALL LIGHTNING
-         ENDIF
-
-         !==============================================================
-         !    ***** R E A D   M E R R A   I - 6   F I E L D S *****
-         !
-         !    The MERRA archive contains 6-hourly instantaneous data.
-         !==============================================================
-         IF ( ITS_TIME_FOR_I6() ) THEN
-
-            ! Get the date/time for the next I-6 data block
-            DATE = GET_I6_TIME()
-
-            ! Open and read files
-            CALL OPEN_MERRA_I6_FIELDS ( DATE(1), DATE(2) )
-            CALL GET_MERRA_I6_FIELDS_2( DATE(1), DATE(2) )
-
-            ! Compute avg pressure at polar caps 
-            CALL AVGPOLE( PS2 )
-         ENDIF
-
-#else
-
-         !===============================================================
-         !         ***** U N Z I P   M E T   F I E L D S *****
-         !
-         !      Some met data (except MERRA) are stored compressed.
-         !===============================================================
-         IF ( LUNZIP .and. ITS_TIME_FOR_UNZIP() ) THEN
-            
-            ! Get the date & time for 12h (720 mins) from now
-            DATE = GET_TIME_AHEAD( 720 )
-
-            ! If LWAIT=T then wait for the met fields to be
-            ! fully unzipped before proceeding w/ the run.
-            ! Otherwise, unzip fields in the background
-            IF ( LWAIT ) THEN
-               ZTYPE = 'unzip foreground'
-            ELSE
-               ZTYPE = 'unzip background'
-            ENDIF
-            
-            ! Unzip A3, A6, I6 fields
-            CALL UNZIP_A3_FIELDS( ZTYPE, DATE(1) )
-            CALL UNZIP_A6_FIELDS( ZTYPE, DATE(1) )
-            CALL UNZIP_I6_FIELDS( ZTYPE, DATE(1) )
-
-#if   defined( GEOS_3 )
-            ! Unzip GEOS-3 GWET & XTRA fields
-            IF ( LDUST ) CALL UNZIP_GWET_FIELDS( ZTYPE, DATE(1) )
-            IF ( LXTRA ) CALL UNZIP_XTRA_FIELDS( ZTYPE, DATE(1) )
-#endif
-         ENDIF
-
-         !===============================================================
-         !        ***** R E M O V E   M E T   F I E L D S *****  
-         !===============================================================
-         IF ( LUNZIP .and. ITS_TIME_FOR_DEL() ) THEN
-
-            ! Type of operation
-            ZTYPE = 'remove date'
-
-            ! Remove A-3, A-6, and I-6 files only for the current date
-            CALL UNZIP_A3_FIELDS( ZTYPE, NYMD )
-            CALL UNZIP_A6_FIELDS( ZTYPE, NYMD )
-            CALL UNZIP_I6_FIELDS( ZTYPE, NYMD )
-
-#if   defined( GEOS_3 )
-            ! Remove GEOS-3 GWET & XTRA fields only for the current date
-            IF ( LDUST ) CALL UNZIP_GWET_FIELDS( ZTYPE, NYMD )
-            IF ( LXTRA ) CALL UNZIP_XTRA_FIELDS( ZTYPE, NYMD )
-#endif
-         ENDIF  
-
-         !==============================================================
-         !          ***** R E A D   A - 3   F I E L D S *****
-         !
-         !  All met data (except MERRA) contain 3-hourly surface data.
-         !==============================================================
-         IF ( ITS_TIME_FOR_A3() ) THEN
-
-            ! Get the date/time for the next A-3 data block
-            DATE = GET_A3_TIME()
-
-            ! Open & read A-3 fields
-            CALL OPEN_A3_FIELDS( DATE(1), DATE(2) )
-            CALL GET_A3_FIELDS(  DATE(1), DATE(2) )
-
-            ! Update daily mean temperature archive for MEGAN biogenics
-            IF ( LMEGAN ) CALL UPDATE_T_DAY 
-
-#if   defined( GEOS_3 )
-            ! Read GEOS-3 GWET fields
-            IF ( LDUST ) THEN
-               CALL OPEN_GWET_FIELDS( DATE(1), DATE(2) )
-               CALL GET_GWET_FIELDS(  DATE(1), DATE(2) )           
-            ENDIF
-            
-            ! Read GEOS-3 PARDF, PARDR, SNOW fields
-            IF ( LXTRA ) THEN
-               CALL OPEN_XTRA_FIELDS( DATE(1), DATE(2) )
-               CALL GET_XTRA_FIELDS(  DATE(1), DATE(2) )           
-            ENDIF
-#endif
-         ENDIF
-
-         !==============================================================
-         !          ***** R E A D   A - 6   F I E L D S *****  
-         !
-         !      All other met fields contain 6-hourly 3-D data. 
-         !==============================================================
-         IF ( ITS_TIME_FOR_A6() ) THEN
-            
-            ! Get the date/time for the next A-6 data block
-            DATE = GET_A6_TIME()
-
-            ! Open and read A-6 fields
-            CALL OPEN_A6_FIELDS( DATE(1), DATE(2) )
-            CALL GET_A6_FIELDS(  DATE(1), DATE(2) )
-
-            ! Since CLDTOPS is an A-6 field, update the
-            ! lightning NOx emissions [molec/box/6h]
-            IF ( LLIGHTNOX ) CALL LIGHTNING
-
-         ENDIF
-
-#if      defined( APM )
-            ! Update the A6 fields for APM microphysics
-            IF ( ITS_TIME_FOR_A6UPDATE() ) THEN
-               CALL UPDATE_A6_FIELDS
-            ENDIF
-#endif
-
-         !==============================================================
-         !          ***** R E A D   I - 6   F I E L D S *****   
-         !==============================================================
-         IF ( ITS_TIME_FOR_I6() ) THEN
-
-            ! Get the date/time for the next I-6 data block
-            DATE = GET_I6_TIME()
-
-            ! Open and read files
-            CALL OPEN_I6_FIELDS(  DATE(1), DATE(2) )
-            CALL GET_I6_FIELDS_2( DATE(1), DATE(2) )
-
-            ! Compute avg pressure at polar caps 
-            CALL AVGPOLE( PS2 )
-         ENDIF
-
-#endif
+         CALL READ_MET_FIELDS()
 
          !==============================================================
          ! ***** M O N T H L Y   O R   S E A S O N A L   D A T A *****
@@ -920,9 +521,14 @@
          ENDIF
 
          ! Fossil fuel emissions (SMVGEAR)
+         ! NOTE: Only call ANTHROEMS if it's time to do emissions;
+         ! this will function properly for the central chemistry time step
+         ! (bmy, 10/14/11)
          IF ( ITS_A_FULLCHEM_SIM() .or. ITS_A_TAGCO_SIM() ) THEN
-            IF ( LEMIS .and. ITS_A_NEW_SEASON() ) THEN
-               CALL ANTHROEMS( SEASON )              
+            IF ( ITS_TIME_FOR_EMIS() ) THEN 
+               IF ( LEMIS .and. ITS_A_NEW_SEASON() ) THEN
+                  CALL ANTHROEMS( SEASON )              
+               ENDIF
             ENDIF
          ENDIF
 
@@ -984,8 +590,10 @@
          ! Compute airmass quantities at each grid box 
          CALL AIRQNT
 
-         ! Compute the cosine of the solar zenith angle array SUNCOS
-         CALL COSSZA( DAY_OF_YEAR, SUNCOS )
+         ! Compute the cosine of the solar zenith angle array
+         ! SUNCOS     = cos(SZA) at the current time
+         ! SUNCOS_MID = cos(SZA) at the midpt of the chemistry timestep
+         CALL COSSZA( DAY_OF_YEAR, SUNCOS, SUNCOS_MID )
 
          ! Compute tropopause height for ND55 diagnostic
          IF ( ND55 > 0 ) CALL DIAG_TROPOPAUSE
@@ -1046,7 +654,7 @@
                CALL UPBDFLX_NOY( 2 )
             ENDIF   
 
-#if   !defined( GEOS_5 ) && !defined( MERRA )
+#if   !defined( GEOS_5 ) && !defined( MERRA ) && !defined( GEOS_57 )
             ! Get relative humidity (after recomputing pressures)
             ! NOTE: for GEOS-5 we'll read this from disk instead
             CALL MAKE_RH
@@ -1342,13 +950,13 @@
       ENDDO
 
       !=================================================================
-      !            ***** C O P Y   I - 6   F I E L D S *****
+      !     ***** C O P Y   I - 3   O R   I - 6   F I E L D S *****
       !
-      !        The I-6 fields at the end of this timestep become
-      !        the fields at the beginning of the next timestep
+      !     The I-3 or I-6 fields at the end of this outer timestep 
+      !     become the fields at the beginning of the next timestep
       !=================================================================
-      CALL COPY_I6_FIELDS
-      IF ( LPRT ) CALL DEBUG_MSG( '### MAIN: after COPY_I6_FIELDS' )
+      CALL COPY_I3_I6_FIELDS
+      IF ( LPRT ) CALL DEBUG_MSG( '### MAIN: after COPY_I3_I6_FIELDS' )
 
       ENDDO
 
@@ -1433,6 +1041,7 @@
 !  02 Dec 2003 - R. Yantosca - Initial version
 !  13 Aug 2010 - R. Yantosca - Added ProTeX headers
 !  13 Aug 2010 - R. Yantosca - Added extra output
+!  02 Feb 2012 - R. Yantosca - Added output for GEOS-5.7.x met fields
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -1506,6 +1115,8 @@
       WRITE( 6, '(a)' ) 'Using GMAO GEOS-4 met fields'
 #elif defined( GEOS_5 )
       WRITE( 6, '(a)' ) 'Using GMAO GEOS-5 met fields'
+#elif defined( GEOS_57 )
+      WRITE( 6, '(a)' ) 'Using GMAO GEOS-5.7.x met fields'
 #elif defined( MERRA )
       WRITE( 6, '(a)' ) 'Using GMAO MERRA met fields'
 #elif defined( GCAP  )
@@ -1532,7 +1143,7 @@
 ! file buffers to disk. 
 !\\
 !\\
-! CTM_FLUSH should normally be called after each diagnostic output, so that 
+! CTM\_FLUSH should normally be called after each diagnostic output, so that 
 ! in case the run dies, the output files from the last diagnostic timestep 
 ! will not be lost.  
 !\\
@@ -1596,6 +1207,478 @@
      &        '**************' )
 
       END SUBROUTINE DISPLAY_END_TIME
+!EOC
+!------------------------------------------------------------------------------
+!          Harvard University Atmospheric Chemistry Modeling Group            !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: read_initial_met_fields
+!
+! !DESCRIPTION: Internal subroutine READ\_INITIAL\_MET\_FIELDS calls the
+!  various routines to read met fields at the beginning of a GEOS-Chem
+!  simulation.  This code was moved out of the main routine for clarity,
+!  due to the many #if defined() blocks that are required.
+!\\
+!\\
+! !INTERFACE:
+!
+      SUBROUTINE READ_INITIAL_MET_FIELDS()
+! 
+! !REMARKS:
+!  All variables used in this routine are declared above in the main 
+!  program, and as such, are visible here.
+!                                                                             .
+!  Also calls the following routines:
+!  (1) AVGPOLE   (average pressure @ poles) when I3 or I6 fields are read
+!  (2) LIGHTNING (lightning NOx emissions)  when A3 or A6 fields are read
+!
+! !REVISION HISTORY: 
+!  07 Feb 2012 - R. Yantosca - Initial version
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+      !=================================================================
+      !    *****  R E A D   G E O S -- 5 . 7 , x  F I E L D S  *****
+      !    *****  At the start of the GEOS-Chem simulation     *****
+      !
+      !    Handle GEOS-5.7.2 met fields separately from other met 
+      !=================================================================
+#if   defined( GEOS_57 )
+
+      ! Read time-invariant data
+      CALL GEOS57_READ_CN()
+
+      ! Read 1-hr time-averaged data
+      DATE = GET_FIRST_A1_TIME()
+      CALL GEOS57_READ_A1( DATE(1), DATE(2) )
+      
+      ! Read 3-hr time averaged data
+      DATE = GET_FIRST_A3_TIME()
+      CALL GEOS57_READ_A3( DATE(1), DATE(2) )
+
+      ! Read 3-hr time averaged data
+      DATE = GET_FIRST_I3_TIME()
+      CALL GEOS57_READ_I3_1( DATE(1), DATE(2) )
+
+#elif defined( MERRA )
+
+      !=================================================================
+      !    *****  R E A D   M E R R A   M E T   F I E L D S  *****
+      !    *****  At the start of the GEOS-Chem simulation   *****
+      !
+      !    Handle MERRA met fields separately from other met products
+      !=================================================================
+
+      ! Open constant fields
+      DATE = (/ 20000101, 000000 /)
+      CALL OPEN_MERRA_CN_FIELDS( DATE(1), DATE(2) )
+      CALL GET_MERRA_CN_FIELDS(  DATE(1), DATE(2) )
+      IF ( LPRT ) CALL DEBUG_MSG( '### MAIN: a 1st MERRA CN TIME' )
+
+      ! Open and read A-1 fields
+      DATE = GET_FIRST_A1_TIME()
+      CALL OPEN_MERRA_A1_FIELDS( DATE(1), DATE(2), RESET=.TRUE. )
+      CALL GET_MERRA_A1_FIELDS(  DATE(1), DATE(2) )
+      IF ( LPRT ) CALL DEBUG_MSG( '### MAIN: a 1st MERRA A1 TIME' )
+
+      ! Open and read A-3 fields
+      DATE = GET_FIRST_A3_TIME()
+      CALL OPEN_MERRA_A3_FIELDS( DATE(1), DATE(2) )
+      CALL GET_MERRA_A3_FIELDS(  DATE(1), DATE(2) )
+      IF ( LPRT ) CALL DEBUG_MSG( '### MAIN: a 1st MERRA A3 TIME' )
+
+      ! Open & read I-6 fields
+      DATE = GET_FIRST_I6_TIME()
+      CALL OPEN_MERRA_I6_FIELDS(  DATE(1), DATE(2) )
+      CALL GET_MERRA_I6_FIELDS_1( DATE(1), DATE(2) )
+      IF ( LPRT ) CALL DEBUG_MSG( '### MAIN: a 1st I6 TIME' )
+
+#else
+
+      !=================================================================
+      !    *****      U N Z I P   M E T   F I E L D S        *****
+      !    ***** At at the start of the GEOS-Chem simulation *****
+      !
+      !   Here we unzip the initial GEOS-3, GEOS-4, GEOS-5, GCAP data
+      !=================================================================
+      IF ( LUNZIP ) THEN
+
+         !---------------------
+         ! Remove all files
+         !---------------------
+
+         ! Type of unzip operation
+         ZTYPE = 'remove all'
+         
+         ! Remove any leftover A-3, A-6, I-6, in temp dir
+         CALL UNZIP_A3_FIELDS( ZTYPE )
+         CALL UNZIP_A6_FIELDS( ZTYPE )
+         CALL UNZIP_I6_FIELDS( ZTYPE )
+
+#if   defined( GEOS_3 )
+         ! Remove GEOS-3 GWET and XTRA files 
+         IF ( LDUST ) CALL UNZIP_GWET_FIELDS( ZTYPE )
+         IF ( LXTRA ) CALL UNZIP_XTRA_FIELDS( ZTYPE )
+#endif
+
+#if   defined( GCAP )
+         ! Unzip GCAP PHIS field (if necessary)
+         CALL UNZIP_GCAP_FIELDS( ZTYPE )
+#endif
+
+         !---------------------
+         ! Unzip in foreground
+         !---------------------
+
+         ! Type of unzip operation
+         ZTYPE = 'unzip foreground'
+
+         ! Unzip A-3, A-6, I-6 files for START of run
+         CALL UNZIP_A3_FIELDS( ZTYPE, NYMDb )
+         CALL UNZIP_A6_FIELDS( ZTYPE, NYMDb )
+         CALL UNZIP_I6_FIELDS( ZTYPE, NYMDb )
+
+#if   defined( GEOS_3 )
+         ! Unzip GEOS-3 GWET and XTRA fields for START of run
+         IF ( LDUST ) CALL UNZIP_GWET_FIELDS( ZTYPE, NYMDb )
+         IF ( LXTRA ) CALL UNZIP_XTRA_FIELDS( ZTYPE, NYMDb )
+#endif
+
+#if   defined( GCAP )
+         ! Unzip GCAP PHIS field (if necessary)
+         CALL UNZIP_GCAP_FIELDS( ZTYPE )
+#endif
+
+         !### Debug output
+         IF ( LPRT ) CALL DEBUG_MSG( '### MAIN: a UNZIP' )
+      ENDIF
+
+      !=================================================================
+      !      *****      R E A D   M E T   F I E L D S       *****
+      !      ***** At the start of the GEOS-Chem simulation *****
+      !
+      !  Here we read in the initial GEOS-3, GEOS-4, GEOS-5, GCAP data
+      !=================================================================
+
+      ! Open and read A-3 fields
+      DATE = GET_FIRST_A3_TIME()
+      CALL OPEN_A3_FIELDS( DATE(1), DATE(2), RESET=.TRUE. )
+      CALL GET_A3_FIELDS(  DATE(1), DATE(2) )
+      IF ( LPRT ) CALL DEBUG_MSG( '### MAIN: a 1st A3 TIME' )
+
+      ! For MEGAN biogenics, update hourly temps w/in 15-day window
+      IF ( LMEGAN ) THEN
+         CALL UPDATE_T_DAY
+         IF ( LPRT ) CALL DEBUG_MSG( '### MAIN: UPDATE T_DAY' )
+      ENDIF
+
+      ! Open & read A-6 fields
+      DATE = GET_FIRST_A6_TIME()
+      CALL OPEN_A6_FIELDS( DATE(1), DATE(2) ) 
+      CALL GET_A6_FIELDS(  DATE(1), DATE(2) )      
+      IF ( LPRT ) CALL DEBUG_MSG( '### MAIN: a 1st A6 TIME' )
+
+      ! Open & read I-6 fields
+      DATE = GET_FIRST_I6_TIME()
+      CALL OPEN_I6_FIELDS(  DATE(1), DATE(2) )
+      CALL GET_I6_FIELDS_1( DATE(1), DATE(2) )
+      IF ( LPRT ) CALL DEBUG_MSG( '### MAIN: a 1st I6 TIME' )
+      
+#if   defined( GEOS_3 )
+
+      !-----------------------------------------------------------------
+      ! Read additional fields for GEOS-3 meteorology
+      !-----------------------------------------------------------------
+
+      ! Open & read GEOS-3 GWET fields
+      IF ( LDUST ) THEN
+         DATE = GET_FIRST_A3_TIME()
+         CALL OPEN_GWET_FIELDS( DATE(1), DATE(2) )
+         CALL GET_GWET_FIELDS(  DATE(1), DATE(2) ) 
+         IF ( LPRT ) CALL DEBUG_MSG( '### MAIN: a 1st GWET TIME' )
+      ENDIF
+
+      ! Open & read GEOS-3 XTRA fields
+      IF ( LXTRA ) THEN
+         DATE = GET_FIRST_A3_TIME()
+         CALL OPEN_XTRA_FIELDS( DATE(1), DATE(2) )
+         CALL GET_XTRA_FIELDS(  DATE(1), DATE(2) ) 
+         IF ( LPRT ) CALL DEBUG_MSG( '### MAIN: a 1st XTRA TIME' )
+      ENDIF
+
+#endif
+
+#if   defined( GCAP )
+
+      !-----------------------------------------------------------------
+      ! Read additional fields for GCAP meteorology
+      !-----------------------------------------------------------------
+
+      ! Read GCAP PHIS and LWI fields (if necessary)
+      CALL OPEN_GCAP_FIELDS
+      CALL GET_GCAP_FIELDS
+
+      ! Remove temporary file (if necessary)
+      IF ( LUNZIP ) THEN
+         CALL UNZIP_GCAP_FIELDS( 'remove date' )
+      ENDIF
+
+#endif
+
+#endif
+
+      END SUBROUTINE READ_INITIAL_MET_FIELDS
+!EOC
+!------------------------------------------------------------------------------
+!          Harvard University Atmospheric Chemistry Modeling Group            !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: read_met_fields
+!
+! !DESCRIPTION: Internal subroutine READ\__MET\_FIELDS calls the
+!  various routines to read met fields in the main GEOS-Chem timestepping
+!  loop.  This code was moved out of the main routine for clarity, due to
+!  the many #if defined() blocks that are required.
+!\\
+!\\
+! !INTERFACE:
+!
+      SUBROUTINE READ_MET_FIELDS()
+! 
+! !REMARKS:
+!  All variables used in this routine are declared above in the main 
+!  program, and as such, are visible here.
+!                                                                             .
+!  Also calls the following routines:
+!  (1) AVGPOLE   (average pressure @ poles) when I3 or I6 fields are read
+!  (2) LIGHTNING (lightning NOx emissions)  when A3 or A6 fields are read
+!
+! !REVISION HISTORY: 
+!  07 Feb 2012 - R. Yantosca - Initial version
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+
+#if   defined( GEOS_57 )
+
+      !==============================================================
+      !  ****** R E A D   G E O S -- 5 . 7 . x   F I E L D S  *****
+      !==============================================================
+
+      !---------------------------------
+      ! A-1 fields (1hr time averaged)
+      !---------------------------------
+      IF ( ITS_TIME_FOR_A1() ) THEN
+         DATE = GET_A1_TIME()
+         CALL GEOS57_READ_A1( DATE(1), DATE(2) )
+      ENDIF
+
+      !----------------------------------
+      ! A-3 fields (3-hr time averaged)
+      !----------------------------------
+      IF ( ITS_TIME_FOR_A3() ) THEN
+         DATE = GET_A3_TIME()
+         CALL GEOS57_READ_A3( DATE(1), DATE(2) )
+
+         ! Since CLDTOPS is an A-3 field, update the
+         ! lightning NOx emissions [molec/box/6h]
+         IF ( LLIGHTNOX ) CALL LIGHTNING
+      ENDIF
+
+      !----------------------------------
+      ! I-3 fields (3-hr instantaneous
+      !----------------------------------
+      IF ( ITS_TIME_ FOR_I3() ) THEN
+         DATE = GET_I3_TIME()
+         CALL GEOS57_READ_I3_2( DATE(1), DATE(2) )
+
+         ! Compute avg pressure at polar caps 
+         CALL AVGPOLE( PS2 )
+      ENDIF
+
+#elif defined( MERRA )
+
+      !==============================================================
+      !    ***** R E A D   M E R R A   A - 1   F I E L D S *****
+      !
+      !    The MERRA archive contains hourly surface data fields.
+      !==============================================================
+      IF ( ITS_TIME_FOR_A1() ) THEN
+
+         ! Get the date/time for the next A-3 data block
+         DATE = GET_A1_TIME()
+
+         ! Open & read A-3 fields
+         CALL OPEN_MERRA_A1_FIELDS( DATE(1), DATE(2) )
+         CALL GET_MERRA_A1_FIELDS ( DATE(1), DATE(2) )
+
+         !%%% NEED TO UPDATE FOR MERRA %%%
+         ! Update daily mean temperature archive for MEGAN biogenics
+         !IF ( LMEGAN ) CALL UPDATE_T_DAY 
+      ENDIf
+
+      !==============================================================
+      !    ***** R E A D   M E R R A   A - 3   F I E L D S *****
+      !
+      !     The MERRA archive contains 3-hourly 3-D data fields.
+      !==============================================================
+      IF ( ITS_TIME_FOR_A3() ) THEN
+         
+         ! Get the date/time for the next A-6 data block
+         DATE = GET_A3_TIME()
+
+         ! Open and read A-6 fields
+         CALL OPEN_MERRA_A3_FIELDS( DATE(1), DATE(2) )
+         CALL GET_MERRA_A3_FIELDS ( DATE(1), DATE(2) )
+
+         ! Since CLDTOPS is an A-3 field, update the
+         ! lightning NOx emissions [molec/box/6h]
+         IF ( LLIGHTNOX ) CALL LIGHTNING
+      ENDIF
+
+      !==============================================================
+      !    ***** R E A D   M E R R A   I - 6   F I E L D S *****
+      !
+      !    The MERRA archive contains 6-hourly instantaneous data.
+      !==============================================================
+      IF ( ITS_TIME_FOR_I6() ) THEN
+
+         ! Get the date/time for the next I-6 data block
+         DATE = GET_I6_TIME()
+
+         ! Open and read files
+         CALL OPEN_MERRA_I6_FIELDS ( DATE(1), DATE(2) )
+         CALL GET_MERRA_I6_FIELDS_2( DATE(1), DATE(2) )
+
+         ! Compute avg pressure at polar caps 
+         CALL AVGPOLE( PS2 )
+      ENDIF
+
+#else
+
+      !===============================================================
+      !         ***** U N Z I P   M E T   F I E L D S *****
+      !
+      !      Some met data (except MERRA) are stored compressed.
+      !===============================================================
+      IF ( LUNZIP .and. ITS_TIME_FOR_UNZIP() ) THEN
+         
+         ! Get the date & time for 12h (720 mins) from now
+         DATE = GET_TIME_AHEAD( 720 )
+      
+         ! If LWAIT=T then wait for the met fields to be
+         ! fully unzipped before proceeding w/ the run.
+         ! Otherwise, unzip fields in the background
+         IF ( LWAIT ) THEN
+            ZTYPE = 'unzip foreground'
+         ELSE
+            ZTYPE = 'unzip background'
+         ENDIF
+         
+         ! Unzip A3, A6, I6 fields
+         CALL UNZIP_A3_FIELDS( ZTYPE, DATE(1) )
+         CALL UNZIP_A6_FIELDS( ZTYPE, DATE(1) )
+         CALL UNZIP_I6_FIELDS( ZTYPE, DATE(1) )
+      
+#if   defined( GEOS_3 )
+         ! Unzip GEOS-3 GWET & XTRA fields
+         IF ( LDUST ) CALL UNZIP_GWET_FIELDS( ZTYPE, DATE(1) )
+         IF ( LXTRA ) CALL UNZIP_XTRA_FIELDS( ZTYPE, DATE(1) )
+#endif
+      ENDIF
+
+      !===============================================================
+      !        ***** R E M O V E   M E T   F I E L D S *****  
+      !===============================================================
+      IF ( LUNZIP .and. ITS_TIME_FOR_DEL() ) THEN
+
+         ! Type of operation
+         ZTYPE = 'remove date'
+
+         ! Remove A-3, A-6, and I-6 files only for the current date
+         CALL UNZIP_A3_FIELDS( ZTYPE, NYMD )
+         CALL UNZIP_A6_FIELDS( ZTYPE, NYMD )
+         CALL UNZIP_I6_FIELDS( ZTYPE, NYMD )
+
+#if   defined( GEOS_3 )
+         ! Remove GEOS-3 GWET & XTRA fields only for the current date
+         IF ( LDUST ) CALL UNZIP_GWET_FIELDS( ZTYPE, NYMD )
+         IF ( LXTRA ) CALL UNZIP_XTRA_FIELDS( ZTYPE, NYMD )
+#endif
+      ENDIF  
+
+      !==============================================================
+      !          ***** R E A D   A - 3   F I E L D S *****
+      !
+      !  All met data (except MERRA) contain 3-hourly surface data.
+      !==============================================================
+      IF ( ITS_TIME_FOR_A3() ) THEN
+
+         ! Get the date/time for the next A-3 data block
+         DATE = GET_A3_TIME()
+
+         ! Open & read A-3 fields
+         CALL OPEN_A3_FIELDS( DATE(1), DATE(2) )
+         CALL GET_A3_FIELDS(  DATE(1), DATE(2) )
+
+         ! Update daily mean temperature archive for MEGAN biogenics
+         IF ( LMEGAN ) CALL UPDATE_T_DAY 
+
+#if   defined( GEOS_3 )
+         ! Read GEOS-3 GWET fields
+         IF ( LDUST ) THEN
+            CALL OPEN_GWET_FIELDS( DATE(1), DATE(2) )
+            CALL GET_GWET_FIELDS(  DATE(1), DATE(2) )           
+         ENDIF
+         
+         ! Read GEOS-3 PARDF, PARDR, SNOW fields
+         IF ( LXTRA ) THEN
+            CALL OPEN_XTRA_FIELDS( DATE(1), DATE(2) )
+            CALL GET_XTRA_FIELDS(  DATE(1), DATE(2) )           
+         ENDIF
+#endif
+      ENDIF
+
+      !==============================================================
+      !          ***** R E A D   A - 6   F I E L D S *****  
+      !
+      !      All other met fields contain 6-hourly 3-D data. 
+      !==============================================================
+      IF ( ITS_TIME_FOR_A6() ) THEN
+         
+         ! Get the date/time for the next A-6 data block
+         DATE = GET_A6_TIME()
+
+         ! Open and read A-6 fields
+         CALL OPEN_A6_FIELDS( DATE(1), DATE(2) )
+         CALL GET_A6_FIELDS(  DATE(1), DATE(2) )
+
+         ! Since CLDTOPS is an A-6 field, update the
+         ! lightning NOx emissions [molec/box/6h]
+         IF ( LLIGHTNOX ) CALL LIGHTNING
+      ENDIF
+
+      !==============================================================
+      !          ***** R E A D   I - 6   F I E L D S *****   
+      !==============================================================
+      IF ( ITS_TIME_FOR_I6() ) THEN
+
+         ! Get the date/time for the next I-6 data block
+         DATE = GET_I6_TIME()
+
+         ! Open and read files
+         CALL OPEN_I6_FIELDS(  DATE(1), DATE(2) )
+         CALL GET_I6_FIELDS_2( DATE(1), DATE(2) )
+
+         ! Compute avg pressure at polar caps 
+         CALL AVGPOLE( PS2 )
+      ENDIF
+
+#endif
+
+      END SUBROUTINE READ_MET_FIELDS
 !EOC
       END PROGRAM GEOS_CHEM
 #endif

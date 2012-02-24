@@ -1,4 +1,4 @@
-! $Id: tpcore_window_mod.f,v 1.1 2010/02/02 16:57:47 bmy Exp $
+! $Id: tpcore_window_mod.f,v 1.1 2009/09/16 14:06:00 bmy Exp $
       MODULE TPCORE_WINDOW_MOD
 !
 !******************************************************************************
@@ -5036,7 +5036,7 @@ c        AL(i,k) = median(AL(i,k), qmin, qmax)
 !  (9 ) DQNK   (REAL)  : Saved DQ of aerosol number 
 !  (10) FLUXM  (REAL)  : Flux of aerosol mass to be calculated
 !  (11) DQ     (REAL)  : DQ of aerosol mass
-!  (12) DIR    (INTEGER) : Direction chosen to calculate mass flux
+!  (12) DIR    (}INTEGER) : Direction chosen to calculate mass flux
 !
 !  NOTES: 
 !  (1 ) About the size of fluxes array, the high-order fluxes eventually I want 

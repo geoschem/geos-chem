@@ -1988,9 +1988,9 @@ c     median(x,y,z) = min(max(x,y), max(y,z), max(z,x))
 
       elseif(LMT .eq. 4) then
 
-c****6***0*********0*********0*********0*********0*********0**********72
+!****6***0*********0*********0*********0*********0*********0**********72
 ! Huynh's 2nd constraint
-c****6***0*********0*********0*********0*********0*********0**********72
+!****6***0*********0*********0*********0*********0*********0**********72
 
       do k=2, NL-1
          do i=1,imr
@@ -3130,7 +3130,7 @@ c        AL(i,k) = median(AL(i,k), qmin, qmax)
       USE GRID_MOD,     ONLY : GET_AREA_M2, GET_YOFFSET
       USE PRESSURE_MOD, ONLY : GET_BP
 
-      USE CMN_SIZE_MOD     ! Size parameters
+      USE CMN_SIZE_MOD       ! Size parameters
 
       IMPLICIT NONE
 #     include "define.h"

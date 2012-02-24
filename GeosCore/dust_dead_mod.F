@@ -297,6 +297,8 @@
 !        changes. (amv, bmy, 12/18/09)
 !  (6 ) For now treat MERRA like GEOS-5 (bmy, 8/13/10)
 !  29 Oct 2010 - T. D. Fairlie, R. Yantosca - Retune dust for MERRA 4x5
+!  08 Feb 2012 - R. Yantosca - For now, use same FLX_MSS_FDG_FCT for 
+!                              GEOS-5.7.x as for MERRA
 !******************************************************************************
 !
       ! References to F90 modules
@@ -351,6 +353,7 @@
       ! retuned based upon updated GEOS-4 tuning (amv, Nov 9, 2009)
       REAL*8,  PARAMETER     :: FLX_MSS_FDG_FCT = 4.9d-4
 
+
 #elif defined( MERRA ) && defined( GRID2x25 )
       
       !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -373,6 +376,21 @@
       !    -- Duncan Fairlie (t.d.fairlie@nasa.gov), 29 Oct 2010
       !----------------------------------------------------------------
       REAL*8,  PARAMETER     :: FLX_MSS_FDG_FCT = 7.0d-4 / 0.731d0
+
+#elif defined( GEOS_57 ) && defined( GRID2x25 )
+
+      !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+      !%%% NOTE: NEED TO SCALE THIS FOR GEOS-5.7.x 2x25!                 %%%
+      !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+      REAL*8,  PARAMETER     :: FLX_MSS_FDG_FCT = 4.9d-4
+
+#elif defined( GEOS_57 ) && defined( GRID4x5 )
+
+      !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+      !%%% NOTE: USE SAME VALUE AS MERRA 4x5 FOR NOW!                    %%%
+      !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+      REAL*8,  PARAMETER     :: FLX_MSS_FDG_FCT = 7.0d-4 / 0.731d0
+
 
 #elif defined( GEOS_3 ) && defined( GRID1x1 ) && defined( NESTED_NA )
 

@@ -164,7 +164,7 @@
 !  07 Feb 2012 - M. Payer    - Added call to read PARANOX look up tables
 !EOP
 !------------------------------------------------------------------------------
-!BOCca
+!BOC
 !
 ! !LOCAL VARIABLES:
 !

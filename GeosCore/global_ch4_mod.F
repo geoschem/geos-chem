@@ -98,6 +98,7 @@
 !  (22) Now make sure all USE statements are USE, ONLY (bmy, 10/3/05)
 !  (23) Updated CH4 simulation (kjw, cph, ccarouge, 10/1/09)
 !  (24) Added modifications for MERRA (bmy, 8/13/10)
+!  08 Feb 2012 - R. Yantosca - Added modifications for GEOS-5.7.x
 !******************************************************************************
 !     
       IMPLICIT NONE
@@ -626,6 +627,7 @@
 !	by J.O.Kaplan. Soil moisture is read from GEOS Met input files.  
 !
 !  (3 ) Corrected order of DO loops (bmy, 10/1/09)
+!  08 Feb 2012 - R. Yantosca - Treat GEOS-5.7.x in the same way as MERRA
 !******************************************************************************
 !
       ! References to F90 modules
@@ -749,7 +751,7 @@
 !$OMP END PARALLEL DO
 
       ! GEOS5 Calculation of inundated fraction
-#elif defined( GEOS_5 ) || defined( MERRA )
+#elif defined( GEOS_5 ) || defined( MERRA ) || defined( GEOS_57 )
 !$OMP PARALLEL DO
 !$OMP+DEFAULT( SHARED )
 !$OMP+PRIVATE( J, I )
@@ -1915,6 +1917,7 @@
 !  (6 ) Now reads data for both GEOS and GCAP grids (bmy, 8/16/05)
 !  (7 ) Now make sure all USE statements are USE, ONLY (bmy, 10/3/05)
 !  (8 ) Treat MERRA in the same way as for GEOS-5 (bmy, 8/13/10)
+!  08 Feb 2012 - R. Yantosca - Treat GEOS-5.7.x in the same way as MERRA
 !*****************************************************************************
 !
       ! References to F90 modules
@@ -1980,7 +1983,7 @@
 !%%%
 !%%%         COPROD(:,:,M) = DUMMY_OUT(:,:)
 !%%%-----------------------------------------------------------------------
-#if   defined( GEOS_5 ) || defined( MERRA )
+#if   defined( GEOS_5 ) || defined( MERRA ) || defined( GEOS_57 )
          ! Cast from REAL*4 to REAL*8
          COPROD(:,:,M) = ARRAY(1,:,:)
 #else

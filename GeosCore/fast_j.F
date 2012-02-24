@@ -111,7 +111,8 @@
 !        in-cloud optical depths. (bmy, hyl, 10/24/08)
 !  (10) Remove references to IN_CLOUD_OD (bmy, 10/15/09)
 !  13 Aug 2010 - R. Yantosca - Added ProTeX headers
-!  13 Aug 2010 - R. Yantosca - Treat GEOS-5 in the same way as MERRA
+!  13 Aug 2010 - R. Yantosca - Treat MERRA in the same way as GEOS-5
+!  08 Feb 2012 - R. Yantosca - Treat GEOS-5.7.x in the same way as MERRA
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -232,7 +233,7 @@
             !===========================================================
             IF ( OVERLAP == 1 ) then
 
-#if   defined( GEOS_5 ) || defined( MERRA )
+#if   defined( GEOS_5 ) || defined( MERRA ) || defined( GEOS_57 )
 
                ! Column cloud fraction (not less than zero)
                CLDF1D = CLDF(1:LLPAR,NLON,NLAT)
@@ -262,7 +263,7 @@
                CLDF1D = CLDF(1:LLPAR,NLON,NLAT)
                WHERE ( CLDF1D < 0d0 ) CLDF1D = 0d0
                
-#if   defined( GEOS_5 ) || defined( MERRA )
+#if   defined( GEOS_5 ) || defined( MERRA ) || defined( GEOS_57 )
 
                ! NOTE: for the reprocessed GEOS-5 met fields (i.e. with
                ! optical depth & cloud fractions regridded with RegridTau)
@@ -365,7 +366,7 @@
                   ! Max cloud fraction
                   FMAX(KK) = MAXVAL( CLDF1D(KBOT(KK):KTOP(KK)) )
 
-#if   defined( GEOS_5 ) || defined( MERRA )
+#if   defined( GEOS_5 ) || defined( MERRA ) || defined( GEOS_57 )
 
                   ! NOTE: for the reprocessed GEOS-5 met fields (i.e. with
                   ! optical depth & cloud fractions regridded with RegridTau)

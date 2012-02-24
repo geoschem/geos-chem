@@ -50,7 +50,7 @@
 ! !DEFINED PARAMETERS:
 ! 
       ! Scalars
-#if   defined( MERRA ) 
+#if   defined( MERRA ) || defined( GEOS_57 )
       INTEGER, PARAMETER  :: DAY_DIM        = 24       ! # of 1-hr periods/day
 #else
       INTEGER, PARAMETER  :: DAY_DIM        = 8        ! # of 3-hr periods/day
@@ -2772,14 +2772,15 @@
 ! !USES:
 !
       USE A3_READ_MOD
+      USE GEOS57_READ_MOD, ONLY : GEOS57_READ_A1
       USE MERRA_A1_MOD
-      USE FILE_MOD,    ONLY : IU_A3
-      USE JULDAY_MOD,  ONLY : CALDATE
-      USE ERROR_MOD,   ONLY : ALLOC_ERR
-      USE LAI_MOD,     ONLY : INIT_LAI
-      USE LOGICAL_MOD, ONLY : LUNZIP
-      USE TIME_MOD,    ONLY : GET_FIRST_A3_TIME, GET_JD
-      USE TIME_MOD,    ONLY : ITS_A_LEAPYEAR,    YMD_EXTRACT
+      USE FILE_MOD,         ONLY : IU_A3
+      USE JULDAY_MOD,       ONLY : CALDATE
+      USE ERROR_MOD,        ONLY : ALLOC_ERR
+      USE LAI_MOD,          ONLY : INIT_LAI
+      USE LOGICAL_MOD,      ONLY : LUNZIP
+      USE TIME_MOD,         ONLY : GET_FIRST_A3_TIME, GET_JD
+      USE TIME_MOD,         ONLY : ITS_A_LEAPYEAR,    YMD_EXTRACT
 ! 
 ! !REVISION HISTORY: 
 !  (1 ) Change the logic in the #if block for G4AHEAD. (bmy, 12/6/05)
@@ -2792,6 +2793,7 @@
 !  07 Feb 2011 - R. Yantosca - Fix typos: make sure to zero out the proper 
 !                              PARDF_* and PARDR_* arrays after allocation
 !  22 Nov 2011 - R. Yantosca - Do not use erroneous AEF's for nested grids
+!  08 Feb 2012 - R. Yantosca - Now read surface temperature for GEOS-5.7.x
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -2976,10 +2978,10 @@
       ! by ending time: 00Z, 03Z, 06Z, 09Z, 12Z, 15Z, 18Z, 21Z.  
       G4AHEAD   = 0
 
-#elif defined( MERRA )
+#elif defined( MERRA ) || defined( GEOS_57 )
 
-      ! For MERRA, the A1 fields are timestamped on the half-hours:
-      ! 00:30, 01:30, 02:30, ... 23:30
+      ! For MERRA and GEOS-5.7.x, the A1 fields are timestamped
+      ! on the half-hours: 00:30, 01:30, 02:30, ... 23:30
       G4AHEAD   = 003000
 
 #else
@@ -3040,7 +3042,15 @@
          ! Loop over 3h periods during day
          DO J = 0, DAY_DIM-1  
 
-#if   defined( MERRA )
+#if   defined( GEOS_57 )
+
+            !-----------------------------
+            ! GEOS-5.7.x met fields
+            ! Sfc temp is hourly data
+            !-----------------------------
+            CALL GEOS57_READ_A1( NYMD_T15, 010000*J + G4AHEAD ) 
+
+#elif   defined( MERRA )
 
             !-----------------------------
             ! MERRA met fields

@@ -227,7 +227,10 @@
 !  (72) Now AD13_SO2_an and AD13_SO4_an have NOXLEVELS levels to accomodate
 !     NEI 2005 (amv, 10/9/09)
 !  (73) AD13_NH3_an is 3D now (phs, 10/22/09)
-!  (74) NBIOMAX is now in CMN_SIZE. (fp, 2/26/10)
+!  (74) Add new diagnostic ND59, ND60, ND61 (win, 7/9/09) 
+!  (75) Increase size for AD44 for TOMAS aerosol mass (win, 7/14/09)
+!  (76) Initialize values for LD59, LD60, and LD61 (win, 8/10/09)
+!  (77) NBIOMAX is now in CMN_SIZE. (fp, 2/26/10)
 !  26 Aug 2010 - R. Yantosca - Added ProTeX headers
 !  16 Feb 2011 - R. Yantosca - Add modifications for APM from G. Luo
 !EOP

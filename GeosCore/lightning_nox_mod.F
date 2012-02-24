@@ -99,6 +99,7 @@
 !  13 Aug 2010 - R. Yantosca - Add modifications for MERRA
 !  10 Nov 2010 - L. Murray   - Updated OTD/LIS local scaling for MERRA 4x5
 !  10 Nov 2010 - R. Yantosca - Added ProTeX headers
+!  02 Feb 2012 - R. Yantosca - Added modifications for GEOS-5.7.x met fields
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -1205,6 +1206,7 @@
 !       new data directory. Special handling for GEOS5.1.0 and 5.2.0 added. 
 !       (ltm, bmy, 1/25/11)
 !  10 Nov 2010 - R. Yantosca - Added ProTeX headers
+!  02 Feb 2012 - R. Yantosca - Added modifications for GEOS-5.7.x met
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -1223,6 +1225,8 @@
       ! Get model name
 #if   defined( MERRA )
       MODELNAME = 'merra'
+#elif defined( GEOS_57 )
+         MODELNAME = 'geos5.7.2'
 #elif defined( GEOS_5 )
       ! GEOS-5 convection scheme changed in GCM post 9/1/2008
       IF ( GET_TAU() .ge. GET_TAU0( 9, 1, 2008 ) ) THEN
@@ -1392,6 +1396,8 @@
 !  (8 ) Reprocessed for error in CLDTOPS field; Updated for GEOS
 !        5.1.0 vs. 5.2.0; MERRA added; (ltm, bmy, 1/25/11)
 !  10 Nov 2010 - R. Yantosca - Added ProTeX headers
+!  02 Feb 2012 - R. Yantosca - Compute BETA for MERRA 2 x 2.5
+!  02 Feb 2012 - R. Yantosca - Compute BETA for GEOS-5.7.x
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -1458,7 +1464,32 @@
       ! Initialize
       BETA = 1d0
 
-#if   defined( MERRA ) && defined( GRID4x5 )
+#if   defined( GEOS_57 ) && defined( GRID4x5 ) 
+
+      !---------------------------------------
+      ! GEOS-5.7.x: 4 x 5 global simulation
+      !---------------------------------------
+      !%%% BMY KLUDGE (2/2/12)
+      !%%% Use same value as 4x5 MERRA during testing phase
+      BETA = ANN_AVG_FLASHRATE / 76.019042d0
+
+#elif defined( GEOS_57 ) && defined( GRID2x25 )
+
+      !---------------------------------------
+      ! GEOS 5: 2 x 2.5 global simulation
+      !---------------------------------------
+      !%%% BMY KLUDGE (2/2/12)
+      !%%% Use same value as 2x25 MERRA during testing phase
+      BETA = ANN_AVG_FLASHRATE / 253.55888d0
+
+#elif defined( MERRA ) && defined( GRID2x25 )
+
+      !---------------------------------------
+      ! MERRA: 2 x 2.5 global simulation
+      !---------------------------------------
+      BETA = ANN_AVG_FLASHRATE / 253.55888d0
+
+#elif   defined( MERRA ) && defined( GRID4x5 )
 
       !---------------------------------------
       ! MERRA: 4 x 5 global simulation
