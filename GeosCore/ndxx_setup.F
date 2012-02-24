@@ -61,12 +61,12 @@
       USE DIAG_MOD,        ONLY : LTLXRO2H,    LTLXRO2N
       USE DIAG_MOD,        ONLY : AD44,        AD45,        LTOTH
       USE DIAG_MOD,        ONLY : CTOTH,       AD46,        AD47
-      USE DIAG_MOD,        ONLY : AD52,        AD54,        AD59
+      USE DIAG_MOD,        ONLY : AD52,        AD54,        AD63
       USE DIAG_MOD,        ONLY : AD19,        AD58,        AD60
       USE DIAG_MOD,        ONLY : AD55,        AD66,        AD67
       USE DIAG_MOD,        ONLY : AD68,        AD69,        CTO3
       USE DIAG_MOD,        ONLY : AD10,        AD10em,      CTO3_24h
-      USE DIAG59_MOD,      ONLY : DO_SAVE_DIAG59
+      USE DIAG63_MOD,      ONLY : DO_SAVE_DIAG63
       ! Add O3 for ND45 diag. (ccc, 8/12/09)
       USE DIAG_MOD,        ONLY : LTO3
       USE DIAG_OH_MOD,     ONLY : INIT_DIAG_OH
@@ -1118,14 +1118,8 @@
       ENDIF
 
       !=================================================================
-      ! ND59: FRACTION OF NOx REMAINING AND INTEGRATED OPE
+      ! ND59-61: Used for TOMAS
       !=================================================================
-      IF ( DO_SAVE_DIAG59 ) THEN 
-
-         ALLOCATE( AD59( IIPAR, JJPAR, 5), STAT=AS )
-         IF ( AS /= 0 ) CALL ALLOC_ERR( 'AD59' )
-
-      ENDIF
 
       !=================================================================
       ! ND60: WETLAND FRACTION 
@@ -1134,6 +1128,16 @@
 	 
          ALLOCATE( AD60( IIPAR, JJPAR ), STAT=AS )
          IF ( AS /= 0 ) CALL ALLOC_ERR( 'AD60' )
+
+      ENDIF
+
+      !=================================================================
+      ! ND63: FRACTION OF NOx REMAINING AND INTEGRATED OPE
+      !=================================================================
+      IF ( DO_SAVE_DIAG63 ) THEN 
+
+         ALLOCATE( AD63( IIPAR, JJPAR, 5), STAT=AS )
+         IF ( AS /= 0 ) CALL ALLOC_ERR( 'AD63' )
 
       ENDIF
 

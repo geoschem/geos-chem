@@ -103,8 +103,8 @@
       USE PBL_MIX_MOD,     ONLY : GET_PBL_TOP_L
       USE PRESSURE_MOD,    ONLY : GET_PEDGE     
       USE COMODE_MOD,      ONLY : VOLUME
-      USE DIAG_MOD,        ONLY : AD32_an, AD36,   AD59
-      USE DIAG59_MOD,      ONLY : DO_SAVE_DIAG59
+      USE DIAG_MOD,        ONLY : AD32_an, AD36,   AD63
+      USE DIAG63_MOD,      ONLY : DO_SAVE_DIAG63
       USE EMISSIONS_MOD,   ONLY : NOx_SCALING      
       USE PARANOX_MOD,     ONLY : INTERPOLATE_LUT2 !(mpayer, 2/7/12)
 
@@ -1415,15 +1415,15 @@ c new OH+CO rate from JPL2006.
      &                                 ( DTSRCE * AREA_CM2 ) )   
                ENDIF
 
-               ! ND59 = save the fraction of NOx remaining and integrated OPE +
+               ! ND63 = save the fraction of NOx remaining and integrated OPE +
                ! extra stuff
                ! Unit for 3-5 is kg/box/timestep
-               IF ( DO_SAVE_DIAG59 ) THEN
-                  AD59(IX,IY,1) = fraction_nox
-                  AD59(IX,IY,2) = int_ope
-                  AD59(IX,IY,3) = fraction_nox * SHIP
-                  AD59(IX,IY,4) = int_ope * (1D0 - fraction_nox) * SHIP
-                  AD59(IX,IY,5) = SHIP
+               IF ( DO_SAVE_DIAG63 ) THEN
+                  AD63(IX,IY,1) = fraction_nox
+                  AD63(IX,IY,2) = int_ope
+                  AD63(IX,IY,3) = fraction_nox * SHIP
+                  AD63(IX,IY,4) = int_ope * (1D0 - fraction_nox) * SHIP
+                  AD63(IX,IY,5) = SHIP
                ENDIF
 
 !               JLOOP   = JLOP(IX,IY,1)

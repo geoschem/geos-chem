@@ -40,7 +40,7 @@
       USE DIAG50_MOD,        ONLY : DIAG50,          DO_SAVE_DIAG50
       USE DIAG51_MOD,        ONLY : DIAG51,          DO_SAVE_DIAG51
       USE DIAG51b_MOD,       ONLY : DIAG51b,         DO_SAVE_DIAG51b
-      USE DIAG59_MOD,        ONLY : DIAG59,          ITS_TIME_FOR_DIAG59
+      USE DIAG63_MOD,        ONLY : DIAG63,          ITS_TIME_FOR_DIAG63
       USE DIAG_OH_MOD,       ONLY : PRINT_DIAG_OH
       USE DAO_MOD,           ONLY : AD,              AIRQNT  
       USE DAO_MOD,           ONLY : AVGPOLE,         CLDTOPS
@@ -1276,8 +1276,8 @@
          IF ( LPRT ) CALL DEBUG_MSG( '### MAIN: after DIAG49' )
 
          ! Ship timeseries
-         IF ( ITS_TIME_FOR_DIAG59() ) CALL DIAG59
-         IF ( LPRT ) CALL DEBUG_MSG( '### MAIN: after DIAG59' )
+         IF ( ITS_TIME_FOR_DIAG63() ) CALL DIAG63
+         IF ( LPRT ) CALL DEBUG_MSG( '### MAIN: after DIAG63' )
 
          ! Morning or afternoon timeseries
          IF ( DO_SAVE_DIAG51 ) CALL DIAG51 

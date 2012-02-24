@@ -233,8 +233,8 @@
       REAL*4,  ALLOCATABLE :: AD58(:,:,:)
       REAL*4,  ALLOCATABLE :: AD60(:,:)
 
-      ! For ND59 -- fraction of NOx remaining and Integrated OPE
-      REAL*4,  ALLOCATABLE :: AD59(:,:,:)
+      ! For ND63 -- fraction of NOx remaining and Integrated OPE
+      REAL*4,  ALLOCATABLE :: AD63(:,:,:)
 
       ! For ND66 -- I-6 fields diagnostic
       REAL*4,  ALLOCATABLE :: AD66(:,:,:,:)      
@@ -414,8 +414,8 @@
       IF ( ALLOCATED( AD57        ) ) DEALLOCATE( AD57        )
       IF ( ALLOCATED( AD19        ) ) DEALLOCATE( AD19        )
       IF ( ALLOCATED( AD58        ) ) DEALLOCATE( AD58        )
-      IF ( ALLOCATED( AD59        ) ) DEALLOCATE( AD59        )
       IF ( ALLOCATED( AD60        ) ) DEALLOCATE( AD60        )
+      IF ( ALLOCATED( AD63        ) ) DEALLOCATE( AD63        )
       IF ( ALLOCATED( AD66        ) ) DEALLOCATE( AD66        )
       IF ( ALLOCATED( AD68        ) ) DEALLOCATE( AD68        )
       IF ( ALLOCATED( AD69        ) ) DEALLOCATE( AD69        )
