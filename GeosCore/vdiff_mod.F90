@@ -1800,6 +1800,9 @@ contains
     USE DRYDEP_MOD,   ONLY : DRYHg0, DRYHg2, DRYHgP !cdh
     USE TRACER_MOD,   ONLY: ITS_A_FULLCHEM_SIM  !bmy
 
+#if   defined( GEOS_3 )
+    USE CMN_GCTM_MOD      ! BMY KLUDGE for the present (bmy, 2/24/12)
+#endif
 
 #   include "define.h"
 

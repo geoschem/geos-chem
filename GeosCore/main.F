@@ -66,6 +66,7 @@
       USE DIAG50_MOD            ! For ND50  (24h avg timeseries  ) diag
       USE DIAG51_MOD            ! For ND51  (satellite timeseries) diag
       USE DIAG51b_MOD           ! For ND51b (satellite timeseries) diag
+      USE DIAG59_MOD            ! FOr ND59  (PARANOX timeseries  ) diag
       USE DIAG_OH_MOD           ! For ND43  (OH,NO2,etc. prod    ) diag
       USE PLANEFLIGHT_MOD       ! For ND40  (plane flight track  ) diag
 
