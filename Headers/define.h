@@ -133,9 +133,9 @@
 !#define GCAP          'GCAP'
 !#define GEOS_3        'GEOS_3'
 !#define GEOS_4        'GEOS_4'
-!#define GEOS_5        'GEOS_5'
+#define GEOS_5        'GEOS_5'
 !#define MERRA         'MERRA'
-#define GEOS_57       'GEOS_57'
+!#define GEOS_57       'GEOS_57'
 
 !----- Grid sizes -----
 !#define NESTED_CH     'NESTED_CH'

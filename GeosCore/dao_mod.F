@@ -3006,10 +3006,6 @@
       IF ( AS /= 0 ) CALL ALLOC_ERR( 'CLDF' )
       CLDF = 0d0
 
-      ALLOCATE( CLDTOPS( IIPAR, JJPAR ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'CLDTOPS' )
-      CLDTOPS = 0
-
       ALLOCATE( CMFMC( IIPAR, JJPAR, LLPAR+1 ), STAT=AS )
       IF ( AS /= 0 ) CALL ALLOC_ERR( 'CMFMC' )
       CMFMC = 0d0
