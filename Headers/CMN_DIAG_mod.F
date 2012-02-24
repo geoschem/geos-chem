@@ -121,7 +121,7 @@
       INTEGER, PARAMETER :: PD58=12
 #if   defined( TOMAS )
       ! Special settings for TOMAS aerosol microphysics (win, bmy, 1/22/10)
-      INTEGER, PARAMETER :: PD59=0    
+      INTEGER, PARAMETER :: PD59=TOMASBIN*TOMASSPEC    
       INTEGER, PARAMETER :: PD60=TOMASBIN*TOMASSPEC    
       INTEGER, PARAMETER :: PD61=2 
 #else
