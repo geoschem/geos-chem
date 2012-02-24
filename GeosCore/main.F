@@ -156,7 +156,7 @@
 !  06 Feb 2012 - R. Yantosca - Reorganize USE statements for clarity
 !  06 Feb 2012 - R. Yantosca - Renamed NN to NNN to avoid name confusion
 !  07 Feb 2012 - R. Yantosca - Split off met field I/O into internal routines
-!                              READ_INITIAL_MET_FIELDS and READ_MET_FIELDS
+!  07 Feb 2012 - M. Payer    - Replace call to COSSZA with GET_COSINE_SZA
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -564,9 +564,10 @@
          CALL AIRQNT
 
          ! Compute the cosine of the solar zenith angle array
-         ! SUNCOS     = cos(SZA) at the current time
-         ! SUNCOS_MID = cos(SZA) at the midpt of the chemistry timestep
-         CALL COSSZA( DAY_OF_YEAR, SUNCOS, SUNCOS_MID )
+         ! SUNCOS         = cos(SZA) at the current time
+         ! SUNCOS_MID     = cos(SZA) at the midpt of the chem timestep
+         ! SUNCOS_MID_5hr = cos(SZA) at the midpt of the chem timestep 5hrs ago
+         CALL GET_COSINE_SZA( SUNCOS, SUNCOS_MID, SUNCOS_MID_5hr )
 
          ! Compute tropopause height for ND55 diagnostic
          IF ( ND55 > 0 ) CALL DIAG_TROPOPAUSE
@@ -875,6 +876,10 @@
          ! 3-D timeseries
          IF ( ITS_TIME_FOR_DIAG49() ) CALL DIAG49
          IF ( LPRT ) CALL DEBUG_MSG( '### MAIN: after DIAG49' )
+
+         ! Ship timeseries
+         IF ( ITS_TIME_FOR_DIAG59() ) CALL DIAG59
+         IF ( LPRT ) CALL DEBUG_MSG( '### MAIN: after DIAG59' )
 
          ! Morning or afternoon timeseries
          IF ( DO_SAVE_DIAG51 ) CALL DIAG51 

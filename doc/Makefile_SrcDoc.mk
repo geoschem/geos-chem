@@ -45,6 +45,7 @@
 #  07 Sep 2011 - R. Yantosca - Added gfed3_biomass_mod, *jv*_mod files
 #  22 Dec 2011 - M. Payer    - Added aerosol_mod, drydep_mod, seasalt_mod,
 #                              and sulfate_mod
+#  07 Feb 2012 - M. Payer    - Added paranox_mod, diag59_mod
 #  08 Feb 2012 - R. Yantosca - Added geos57_read_mod.F90
 #EOP
 #------------------------------------------------------------------------------
@@ -80,6 +81,7 @@ $(CORE)/diag49_mod.F                 \
 $(CORE)/diag50_mod.F                 \
 $(CORE)/diag51b_mod.F                \
 $(CORE)/diag56_mod.F                 \
+$(CORE)/diag59_mod.F                 \
 $(CORE)/diag_pl_mod.F                \
 $(CORE)/diag_oh_mod.F                \
 $(CORE)/diag_mod.F                   \
@@ -113,6 +115,7 @@ $(CORE)/merra_cn_mod.F               \
 $(CORE)/merra_i6_mod.F               \
 $(CORE)/nei2005_anthro_mod.F         \
 $(CORE)/optdepth_mod.F               \
+$(CORE)/paranox_mod.F                \
 $(CORE)/pjc_pfix_mod.F               \
 $(CORE)/planeflight_mod.F            \
 $(CORE)/retro_mod.F                  \

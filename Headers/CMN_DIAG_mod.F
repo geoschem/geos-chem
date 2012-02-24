@@ -121,7 +121,7 @@
       INTEGER, PARAMETER :: PD58=12
 #if   defined( TOMAS )
       ! Special settings for TOMAS aerosol microphysics (win, bmy, 1/22/10)
-      INTEGER, PARAMETER :: PD59=TOMASBIN*TOMASSPEC    
+      INTEGER, PARAMETER :: PD59=0    
       INTEGER, PARAMETER :: PD60=TOMASBIN*TOMASSPEC    
       INTEGER, PARAMETER :: PD61=2 
 #else
@@ -175,7 +175,7 @@
       INTEGER :: LD24, LD25, LD26, LD37, LD38, LD39, LD43, LD45, LD47
       INTEGER :: LD54, LD64, LD65, LD66, LD68, LD01, LD02, LD05, LD07
       INTEGER :: LD09, LD10, LD31, LD52, LD19, LD57, LD58, LD59, LD60
-      INTEGER :: LD61
+      INTEGER :: LD61, LD62
 
       !=================================================================
       ! NDxx diagnostic flags

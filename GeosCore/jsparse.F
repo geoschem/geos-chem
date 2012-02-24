@@ -497,9 +497,7 @@
 ! *********************************************************************
 !
        DO 243 J          = 1, JPHOTRAT(NCS)
-        NK               = NKPHOTRAT(J,NCS)
-        NKN              = NEWFOLD(NK,NCS)
-        NKNPHOTRT(J,NCS) = NKN
+         NKNPHOTRT(J,NCS) = NKPHOTRAT(J,NCS)
  243   CONTINUE
 !
  245   FORMAT('JSPARSE: IC NE NALLRAT =',2(I5))
