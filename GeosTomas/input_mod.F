@@ -44,6 +44,7 @@
       PRIVATE :: READ_ND50_MENU  
       PRIVATE :: READ_ND51_MENU  
       PRIVATE :: READ_ND51b_MENU  
+      PRIVATE :: READ_ND63_MENU
       PRIVATE :: READ_PROD_LOSS_MENU 
       PRIVATE :: READ_UNIX_CMDS_MENU
       PRIVATE :: READ_NESTED_GRID_MENU
@@ -292,6 +293,9 @@
                                                   
          ELSE IF ( INDEX( LINE, 'ND51b MENU'       ) > 0 ) THEN
             CALL READ_ND51b_MENU  
+
+         ELSE IF ( INDEX( LINE, 'ND63 MENU'        ) > 0 ) THEN
+            CALL READ_ND63_MENU                   
 
          ELSE IF ( INDEX( LINE, 'PROD & LOSS MENU' ) > 0 ) THEN
             CALL READ_PROD_LOSS_MENU               
@@ -3794,21 +3798,22 @@ c$$$      WRITE( 6, 100     ) '30-BIN DUST AEROSOLS?       : ', LDUST30
       CALL SET_TINDEX( 58, ND58, SUBSTRS(2:N), N-1, PD58 )
 
       !--------------------------
-      ! ND59: Free
+      ! ND59: TOMAS aerosol emiss
       !--------------------------
       CALL SPLIT_ONE_LINE( SUBSTRS, N, -1, 'read_diagnostic_menu:58' )
       READ( SUBSTRS(1), * ) ND59
       CALL SET_TINDEX( 59, ND59, SUBSTRS(2:N), N-1, PD59 )
 
       !--------------------------
-      ! ND60: Wetland Fraction 
+      ! ND60: Wetland Fraction
+      ! ND60: TOMAS rate
       !--------------------------
       CALL SPLIT_ONE_LINE( SUBSTRS, N, -1, 'read_diagnostic_menu:59' )
       READ( SUBSTRS(1), * ) ND60
       CALL SET_TINDEX( 60, ND60, SUBSTRS(2:N), N-1, PD60 )
 
       !--------------------------
-      ! ND61: Free
+      ! ND61: 3-D TOMAS rate
       !--------------------------
       CALL SPLIT_ONE_LINE( SUBSTRS, N, -1, 'read_diagnostic_menu:60' )
       READ( SUBSTRS(1), * ) ND61
@@ -3820,13 +3825,6 @@ c$$$      WRITE( 6, 100     ) '30-BIN DUST AEROSOLS?       : ', LDUST30
       CALL SPLIT_ONE_LINE( SUBSTRS, N, -1, 'read_diagnostic_menu:61' )
       READ( SUBSTRS(1), * ) ND62
       CALL SET_TINDEX( 62, ND62, SUBSTRS(2:N), N-1, PD62 )
-
-      !--------------------------
-      ! ND63: Free
-      !--------------------------
-      CALL SPLIT_ONE_LINE( SUBSTRS, N, -1, 'read_diagnostic_menu:62' )
-      READ( SUBSTRS(1), * ) ND63
-      CALL SET_TINDEX( 63, ND63, SUBSTRS(2:N), N-1, PD63 )
 
       !--------------------------
       ! ND64: Free
@@ -4793,6 +4791,119 @@ c$$$         IS_ALL = .FALSE.
      &                   JMIN,    JMAX,   LMIN,    LMAX,  FILE )
 
       END SUBROUTINE READ_ND51b_MENU
+!EOC
+!------------------------------------------------------------------------------
+!          Harvard University Atmospheric Chemistry Modeling Group            !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: read_nd63_menu
+!
+! !DESCRIPTION: Subroutine READ\_ND63\_MENU reads the ND63 MENU section
+!  of the GEOS-Chem input file. (gvinken, 02/25/11)
+!\\
+!\\
+! !INTERFACE:
+!
+      SUBROUTINE READ_ND63_MENU
+!
+! !USES:
+!
+      USE DIAG63_MOD, ONLY : INIT_DIAG63
+      USE ERROR_MOD,  ONLY : ERROR_STOP
+
+      USE CMN_SIZE_MOD     ! Size parameters
+! 
+! !REVISION HISTORY:
+!  25 Feb 2011 - G. Vinken   - Initial version
+!  07 Feb 2012 - M. Payer    - Added ProTeX headers
+!  24 Feb 2012 - M. Payer    - Renamed routine from READ_ND59_MENU to
+!                              READ_ND63 MENU. ND59 is used by TOMAS.
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+!
+! !LOCAL VARIABLES:
+!
+      LOGICAL             :: DO_ND63
+      INTEGER             :: N,    I,         AS
+      INTEGER             :: ND63, N_TRACERS, TRACERS(121)
+      INTEGER             :: IMIN, IMAX,      FREQ
+      INTEGER             :: JMIN, JMAX,      N_ND63
+      CHARACTER(LEN=255)  :: SUBSTRS(MAXDIM), MSG
+      CHARACTER(LEN=255)  :: FILE
+
+      !=================================================================
+      ! READ_ND63_MENU begins here!
+      !=================================================================
+
+      ! Error check
+      IF ( CT1 /= 2 ) THEN 
+         MSG = 'SIMULATION MENU & TRACER MENU must be read in first!'
+         CALL ERROR_STOP( MSG, 'READ_ND63_MENU ("input_mod.f")' )
+      ENDIF
+
+      ! Initialize
+      ND63       = 0
+      TRACERS(:) = 0
+
+      ! Turn on ND63 diagnostic
+      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1,  'read_nd63_menu:1' )
+      READ( SUBSTRS(1:N), * ) DO_ND63
+
+      ! Instantaneous 3-D timeseries file
+      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1,  'read_nd63_menu:2' )
+      READ( SUBSTRS(1:N), '(a)' ) FILE
+
+      ! Tracers to include
+      CALL SPLIT_ONE_LINE( SUBSTRS, N_ND63, -1, 'read_nd63_menu:3' )
+      DO N = 1, N_ND63
+         READ( SUBSTRS(N), * ) TRACERS(N)
+      ENDDO
+
+      ! FREQ
+      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1,  'read_nd63_menu:4' )
+      READ( SUBSTRS(1:N), * ) FREQ
+
+      ! IMIN, IMAX
+      CALL SPLIT_ONE_LINE( SUBSTRS, N, 2,  'read_nd63_menu:5' )
+      READ( SUBSTRS(1:N), * ) IMIN, IMAX
+
+      ! JMIN, JMAX
+      CALL SPLIT_ONE_LINE( SUBSTRS, N, 2,  'read_nd63_menu:6' )
+      READ( SUBSTRS(1:N), * ) JMIN, JMAX
+
+      ! Separator line
+      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1,  'read_nd63_menu:8' )
+
+      !=================================================================
+      ! Print to screen
+      !=================================================================
+      WRITE( 6, '(/,a)' ) 'ND63 SHIP TIMESERIES MENU'
+      WRITE( 6, '(  a)' ) '--------------------------------------'
+      WRITE( 6, 100     ) 'Turn on ND63 timeseries?    : ', DO_ND63
+      WRITE( 6, 110     ) 'ND63 timeseries file name   : ', TRIM( FILE )
+      WRITE( 6, 120     ) 'ND63 timeseries tracers     : ', 
+     &                     ( TRACERS(N), N=1, N_ND63 )
+      WRITE( 6, 130     ) 'ND63 save frequency [min]   : ', FREQ
+      WRITE( 6, 130     ) 'ND63 longitude limits       : ', IMIN, IMAX
+      WRITE( 6, 130     ) 'ND63 latitude  limits       : ', JMIN, JMAX
+
+      ! FORMAT statements
+ 100  FORMAT( A, L5    )
+ 110  FORMAT( A, A     )
+ 120  FORMAT( A, 100I3 )
+ 130  FORMAT( A, 2I5   )
+
+      !=================================================================
+      ! Call setup routines from other F90 modules
+      !=================================================================
+
+      ! Initialize for ND63 timeseries
+      CALL INIT_DIAG63( DO_ND63, N_ND63, TRACERS, IMIN, 
+     &                  IMAX,    JMIN,   JMAX,  FREQ,   FILE )
+
+      END SUBROUTINE READ_ND63_MENU
 !EOC
 !------------------------------------------------------------------------------
 !          Harvard University Atmospheric Chemistry Modeling Group            !

@@ -64,6 +64,7 @@
       USE DIAG50_MOD            ! For ND50  (24h avg timeseries  ) diag
       USE DIAG51_MOD            ! For ND51  (satellite timeseries) diag
       USE DIAG51b_MOD           ! For ND51b (satellite timeseries) diag
+      USE DIAG63_MOD            ! For ND63  (PARANOX timeseries  ) diag
       USE DIAG_OH_MOD           ! For ND43  (OH,NO2,etc. prod    ) diag
       USE PLANEFLIGHT_MOD       ! For ND40  (plane flight track  ) diag
 
@@ -591,9 +592,10 @@
          CALL AIRQNT
 
          ! Compute the cosine of the solar zenith angle array
-         ! SUNCOS     = cos(SZA) at the current time
-         ! SUNCOS_MID = cos(SZA) at the midpt of the chemistry timestep
-         CALL COSSZA( DAY_OF_YEAR, SUNCOS, SUNCOS_MID )
+         ! SUNCOS         = cos(SZA) at the current time
+         ! SUNCOS_MID     = cos(SZA) at the midpt of the chem timestep
+         ! SUNCOS_MID_5hr = cos(SZA) at the midpt of the chem timestep 5hrs ago
+         CALL GET_COSINE_SZA( SUNCOS, SUNCOS_MID, SUNCOS_MID_5hr )
 
          ! Compute tropopause height for ND55 diagnostic
          IF ( ND55 > 0 ) CALL DIAG_TROPOPAUSE
@@ -921,6 +923,10 @@
          ! 3-D timeseries
          IF ( ITS_TIME_FOR_DIAG49() ) CALL DIAG49
          IF ( LPRT ) CALL DEBUG_MSG( '### MAIN: after DIAG49' )
+
+         ! Ship timeseries
+         IF ( ITS_TIME_FOR_DIAG63() ) CALL DIAG63
+         IF ( LPRT ) CALL DEBUG_MSG( '### MAIN: after DIAG63' )
 
          ! Morning or afternoon timeseries
          IF ( DO_SAVE_DIAG51 ) CALL DIAG51 

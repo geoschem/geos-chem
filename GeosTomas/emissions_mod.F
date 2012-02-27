@@ -118,6 +118,7 @@
       USE TAGGED_CO_MOD,          ONLY : EMISS_TAGGED_CO
       USE VISTAS_ANTHRO_MOD,      ONLY : EMISS_VISTAS_ANTHRO
       USE ICOADS_SHIP_MOD,        ONLY : EMISS_ICOADS_SHIP !(cklee,7/09/09)
+      USE PARANOX_MOD,            ONLY : READ_PARANOX_LUT
  
       USE TRACERID_MOD,           ONLY : IDTSS1           ! (win, 1/25/10)
       USE TRACERID_MOD,           ONLY : IDTSF1           ! (win, 1/25/10)
@@ -169,6 +170,7 @@
 !  08 Feb 2010 - NBIOMAX is now in CMN_SIZE
 !  07 Feb 2011 - R. Yantosca - Use NEI99 biofuels when useing NEI05 anthro
 !  17 Aug 2011 - R. Yantosca - Added call to RETRO anthro emissions
+!  07 Feb 2012 - M. Payer    - Added call to read PARANOX look up tables
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -281,6 +283,12 @@
          IF ( LICOADSSHIP .and. ITS_A_NEW_MONTH() ) 
      &        CALL EMISS_ICOADS_SHIP
 
+         ! Read look up tables for PARANOX ship plume model (mpayer, 2/7/12)
+         IF ( ( LICOADSSHIP .or. LEDGARSHIP .or. LEMEPSHIP ) 
+     &      .and. ITS_A_NEW_MONTH() ) THEN
+            CALL READ_PARANOX_LUT
+         ENDIF
+
          ! NOx-Ox-HC (w/ or w/o aerosols)
          CALL EMISSDR
 
@@ -358,6 +366,12 @@ c$$$         IF ( LDUST             ) CALL EMISSDUST
          ! Read ICOADS ship emissions once per month !(cklee, 7/09/09)
          IF ( LICOADSSHIP .and. ITS_A_NEW_MONTH() ) THEN
             CALL EMISS_ICOADS_SHIP
+         ENDIF
+
+         ! Read look up tables for PARANOX ship plume model (mpayer, 2/7/12)
+         IF ( ( LICOADSSHIP .or. LEDGARSHIP .or. LEMEPSHIP ) 
+     &      .and. ITS_A_NEW_MONTH() ) THEN
+            CALL READ_PARANOX_LUT
          ENDIF
 
          ! Emissions for various aerosol types
@@ -448,6 +462,12 @@ c$$$         IF ( LDUST             ) CALL EMISSDUST
          ! Read ICOADS ship emissions once per month (cklee, 7/09/09)
          IF ( LICOADSSHIP .and. ITS_A_NEW_MONTH() ) THEN
             CALL EMISS_ICOADS_SHIP
+         ENDIF
+
+         ! Read look up tables for PARANOX ship plume model (mpayer, 2/7/12)
+         IF ( ( LICOADSSHIP .or. LEDGARSHIP .or. LEMEPSHIP ) 
+     &      .and. ITS_A_NEW_MONTH() ) THEN
+            CALL READ_PARANOX_LUT
          ENDIF
 
          ! Now call EMISSDR for Tagged CO fossil fuel emissions, 
@@ -575,6 +595,12 @@ c$$$         IF ( LDUST             ) CALL EMISSDUST
          ! Read ICOADS ship emissions once per month !(cklee, 7/09/09)
          IF ( LICOADSSHIP .and. ITS_A_NEW_MONTH() ) THEN
             CALL EMISS_ICOADS_SHIP
+         ENDIF
+
+         ! Read look up tables for PARANOX ship plume model (mpayer, 2/7/12)
+         IF ( ( LICOADSSHIP .or. LEDGARSHIP .or. LEMEPSHIP ) 
+     &      .and. ITS_A_NEW_MONTH() ) THEN
+            CALL READ_PARANOX_LUT
          ENDIF
 
          ! Emit H2/HD
