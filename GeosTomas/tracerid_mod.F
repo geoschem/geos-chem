@@ -423,6 +423,8 @@
 !  (22) Add writing check on IDs. (hotp, 01/10)
 !  17 Aug 2011 - R. Yantosca - Print values of 3 extra emission IDExxx flags
 !  22 Aug 2011 - R. Yantosca - Add modifications for APM microphysics (G. Luo)
+!  16 Feb 2012 - M. Payer    - Account for alternate spellings of the Rn and Pb
+!                              tracers in input.geos
 !******************************************************************************
 !
       ! References to F90 modules
@@ -983,10 +985,10 @@
             !--------------------------------
             ! Rn-Pb-Be tracers
             !--------------------------------
-            CASE ( 'RN' )
+            CASE ( 'RN', 'RN222' )
                IDTRN    = N
  
-            CASE ( 'PB' )
+            CASE ( 'PB', 'PB210' )
                IDTPB    = N
 
             CASE ( 'BE7' )
