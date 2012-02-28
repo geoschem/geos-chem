@@ -1800,10 +1800,6 @@ contains
     USE DRYDEP_MOD,   ONLY : DRYHg0, DRYHg2, DRYHgP !cdh
     USE TRACER_MOD,   ONLY: ITS_A_FULLCHEM_SIM  !bmy
 
-#if   defined( GEOS_3 )
-    USE CMN_GCTM_MOD      ! BMY KLUDGE for the present (bmy, 2/24/12)
-#endif
-
 #   include "define.h"
 
     implicit none
@@ -2444,16 +2440,9 @@ contains
     ! re-compute PBL variables wrt derived pblh (in m)
     if (.not. pblh_ar) then
 
-#if   defined( GEOS_3 )
-       ! PBL in GEOS_3 is in hPa 
-       ! pint has been 'upside-down' (Lin, 05/28/08)
-       ! m -> hPa
-       ! PBL = pint(:,:,LLPAR+1) * pblh / SCALE_HEIGHT ! simplified formulation
-       PBL = pint(:,:,LLPAR+1) * (1.d0 - EXP( - pblh / SCALE_HEIGHT )) * 1.d-2
-#else
-       ! PBL in other meteo. datasets is in m 
+       ! PBL is in m 
        PBL = pblh 
-#endif
+
        CALL COMPUTE_PBL_HEIGHT
     endif
 

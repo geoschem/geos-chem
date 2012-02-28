@@ -97,6 +97,7 @@
 !  (31) Add potential temperature diagnostic in ND57 (fp, 2/3/10)
 !  25 Aug 2010 - R. Yantosca - Added ProTeX headers
 !  15 Feb 2011 - R. Yantosca - Added modifications for APM from G. Luo
+!  28 Feb 2012 - R. Yantosca - Removed support for GEOS-3
 !
 ! !REMARKS:
 !  For a complete list of GEOS-Chem diagnostics, please see this web page:
@@ -361,18 +362,9 @@
          DO J = 1, JJPAR
          DO I = 1, IIPAR
 
-#if   defined( GEOS_3 )
-
-            ! PBL is in [hPa], subtract from PSurface
-            AD67(I,J,13) = AD67(I,J,13) + GET_PEDGE(I,J,1) - PBL(I,J) 
-
-#else
-            
             ! PBL is in [m], use hydrostatic law to get [hPa]
             AD67(I,J,13) = AD67(I,J,13) + 
      &           ( GET_PEDGE(I,J,1) * EXP( -PBL(I,J) / SCALE_HEIGHT ) )
-
-#endif
 
          ENDDO
          ENDDO

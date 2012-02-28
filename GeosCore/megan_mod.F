@@ -156,6 +156,7 @@
 !                              NUM_DAYS (instead of 15) days of sfc temp data
 !  22 Nov 2011 - R. Yantosca - Do not use erroneous AEF's for nested grids 
 !  06 Dec 2011 - E. Fischer  - Added Acetone emissions 
+!  28 Feb 2012 - R. Yantosca - Removed support for GEOS-3
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -2794,6 +2795,7 @@
 !                              PARDF_* and PARDR_* arrays after allocation
 !  22 Nov 2011 - R. Yantosca - Do not use erroneous AEF's for nested grids
 !  08 Feb 2012 - R. Yantosca - Now read surface temperature for GEOS-5.7.x
+!  28 Feb 2012 - R. Yantosca - Removed support for GEOS-3
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -2972,13 +2974,7 @@
       ! Astronomical Julian Date of the A3 file at start of run
       JD_T15b   = GET_JD( NYMD_T15b, NHMS_T15b )
 
-#if   defined( GEOS_3 )
-
-      ! For GEOS-1, GEOS-STRAT, GEOS-3, the A-3 fields are timestamped 
-      ! by ending time: 00Z, 03Z, 06Z, 09Z, 12Z, 15Z, 18Z, 21Z.  
-      G4AHEAD   = 0
-
-#elif defined( MERRA ) || defined( GEOS_57 )
+#if   defined( MERRA ) || defined( GEOS_57 )
 
       ! For MERRA and GEOS-5.7.x, the A1 fields are timestamped
       ! on the half-hours: 00:30, 01:30, 02:30, ... 23:30

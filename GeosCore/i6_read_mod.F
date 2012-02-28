@@ -49,6 +49,7 @@
 !       in case of a variable tropopause (phs, bmy, bdf, 9/14/06)
 !  (14) Now get the # of A-3 fields from the file ident string (bmy, 10/7/08)
 !  (15) Remove references to IN_CLOUD_OD (bmy, 10/15/09)
+!  28 Feb 2012 - R. Yantosca - Removed support for GEOS-3
 !******************************************************************************
 !
       IMPLICIT NONE
@@ -105,11 +106,12 @@
 !  (4 ) Now modified for GEOS-5 and GCAP met fields
 !  (5 ) Now make sure all USE statements are USE, ONLY (bmy, 10/3/05)
 !  (6 ) Remove support for GEOS-1 and GEOS-STRAT met fields (bmy, 8/4/06)
+!  28 Feb 2012 - R. Yantosca - Removed support for GEOS-3
 !******************************************************************************
 !
       ! References to F90 modules
       USE BPCH2_MOD,     ONLY : GET_RES_EXT
-      USE DIRECTORY_MOD, ONLY : DATA_DIR,   GCAP_DIR,   GEOS_3_DIR 
+      USE DIRECTORY_MOD, ONLY : DATA_DIR,   GCAP_DIR
       USE DIRECTORY_MOD, ONLY : GEOS_4_DIR, GEOS_5_DIR, TEMP_DIR 
       USE ERROR_MOD,     ONLY : ERROR_STOP
       USE TIME_MOD,      ONLY : EXPAND_DATE
@@ -133,13 +135,7 @@
       !=================================================================
       IF ( PRESENT( NYMD ) ) THEN
 
-#if   defined( GEOS_3 )
-
-         ! Strings for directory & filename
-         GEOS_DIR = TRIM( GEOS_3_DIR )
-         I6_STR   = 'YYYYMMDD.i6.' // GET_RES_EXT() 
-
-#elif defined( GEOS_4 )
+#if   defined( GEOS_4 )
 
          ! Strings for directory & filename
          GEOS_DIR = TRIM( GEOS_4_DIR )
@@ -259,11 +255,12 @@
 !  (8 ) Remove support for GEOS-1 and GEOS-STRAT met fields (bmy, 8/4/06)
 !  (9 ) Updated for variable tropopause (phs, bmy, 9/14/06)
 !  (10) Now get the # of A-3 fields from the file ident string (bmy, 10/7/08)
+!  28 Feb 2012 - R. Yantosca - Removed support for GEOS-3
 !******************************************************************************
 !      
       ! References to F90 modules
       USE BPCH2_MOD,     ONLY : GET_RES_EXT
-      USE DIRECTORY_MOD, ONLY : DATA_DIR,   GCAP_DIR,   GEOS_3_DIR 
+      USE DIRECTORY_MOD, ONLY : DATA_DIR,   GCAP_DIR
       USE DIRECTORY_MOD, ONLY : GEOS_4_DIR, GEOS_5_DIR, TEMP_DIR 
       USE ERROR_MOD,     ONLY : ERROR_STOP
       USE LOGICAL_MOD,   ONLY : LUNZIP, LVARTROP
@@ -291,13 +288,7 @@
       ! Open the A-3 file 0 GMT of each day, or on the first call
       IF ( NHMS == 000000 .or. FIRST ) THEN
 
-#if   defined( GEOS_3 )
-
-         ! Strings for directory & filename
-         GEOS_DIR = TRIM( GEOS_3_DIR )
-         I6_FILE  = 'YYYYMMDD.i6.' // GET_RES_EXT()
-
-#elif defined( GEOS_4 )
+#if   defined( GEOS_4 )
 
          ! Strings for directory & filename
          GEOS_DIR = TRIM( GEOS_4_DIR )
@@ -356,8 +347,6 @@
          ! Set the proper first-time-flag false
          FIRST = .FALSE.
 
-#if   !defined( GEOS_3 )
-
          ! Skip past the ident string
          READ( IU_I6, IOSTAT=IOS ) IDENT
 
@@ -368,8 +357,6 @@
          ! The last 2 digits of the ident string
          ! is the # of fields contained in the file
          READ( IDENT(7:8), '(i2.2)' ) N_I6_FIELDS    
-
-#endif
 
 #if   defined( GEOS_4 ) 
 
@@ -449,6 +436,7 @@
 !  (1 ) Now modified for GEOS-5 and GCAP met fields (swu, bmy, 5/25/05)
 !  (2 ) Remove support for GEOS-1 and GEOS-STRAT met fields (bmy, 8/4/06)
 !  (3 ) Now also read TO3 and TTO3 for GEOS-5 (bmy, 1/16/07)
+!  28 Feb 2012 - R. Yantosca - Removed support for GEOS-3
 !******************************************************************************
 !      
       ! References to F90 modules
@@ -458,21 +446,7 @@
       ! Arguments
       INTEGER, INTENT(IN) :: NYMD, NHMS 
 
-#if   defined( GEOS_3 )
-
-      !=================================================================
-      ! GEOS-3: read PS1,   ALBD1, LWI,   SLP,  TROPP, 
-      !              UWND1, VWND1, TMPU1, SPHU1    
-      !=================================================================
-      CALL READ_I6( NYMD=NYMD,    NHMS=NHMS,   
-     &              PS=PS1,       ALBD=ALBD1,    LWI=LWI,    
-     &              SLP=SLP,      TROPP=TROPP1,  UWND=UWND1,  
-     &              VWND=VWND1,   TMPU=TMPU1,    SPHU=SPHU1 ) 
-
-      ! Initialize T with TMPU1
-      T = TMPU1
-
-#elif defined( GEOS_4 )
+#if   defined( GEOS_4 )
 
       !=================================================================
       ! GEOS-4: read LWI, PS1, SLP      
@@ -519,6 +493,7 @@
 !  (1 ) Now modified for GEOS-5 and GCAP met fields
 !  (2 ) Remove support for GEOS-1 and GEOS-STRAT met fields (bmy, 8/4/06)
 !  (3 ) Now read TO3 and TTO3 for GEOS-5 (bmy, 1/16/07)
+!  28 Feb 2012 - R. Yantosca - Removed support for GEOS-3
 !******************************************************************************
 !
       ! References to F90 modules
@@ -529,18 +504,7 @@
       ! Arguments
       INTEGER, INTENT(IN) :: NYMD, NHMS 
 
-#if   defined( GEOS_3 )
-
-      !=================================================================
-      ! GEOS-3: read PS2,   ALBD2, LWI,   SLP, TROPP, 
-      !              UWND2, VWND2, TMPU2, SPHU2     
-      !=================================================================
-      CALL READ_I6( NYMD=NYMD,    NHMS=NHMS,   
-     &              PS=PS2,       ALBD=ALBD2,    LWI=LWI,    
-     &              SLP=SLP,      TROPP=TROPP2,  UWND=UWND2,  
-     &              VWND=VWND2,   TMPU=TMPU2,    SPHU=SPHU2 ) 
-
-#elif defined( GEOS_4 )
+#if   defined( GEOS_4 )
 
       !=================================================================
       ! GEOS-4: read LWI, PS2, SLP
@@ -585,6 +549,7 @@
 !  (1 ) Now modified for GCAP and GEOS-5 met fields (swu, bmy, 5/25/05)
 !  (2 ) Remove support for GEOS-1 and GEOS-STRAT met fields (bmy, 8/4/06)
 !  (3 ) Increase # of I-6 fields to 5 for GEOS-5 (bmy, 1/17/06)
+!  28 Feb 2012 - R. Yantosca - Removed support for GEOS-3
 !******************************************************************************
 !
       USE CMN_SIZE_MOD 
@@ -598,20 +563,7 @@
       !=================================================================
       ! GET_N_I6 begins here!
       !=================================================================
-
-#if   defined( GEOS_3 ) 
-      
-      ! N_I6 is a function of year for GEOS-3
-      SELECT CASE ( NYMD / 10000 ) 
-         CASE ( 1997, 1998, 1999 )
-            N_I6 = 8
-
-         CASE DEFAULT
-            N_I6 = 9
-            
-      END SELECT
-
-#elif defined( GEOS_4 )
+#if   defined( GEOS_4 )
 
       ! GEOS-4 has 3 I-6 fields
       N_I6 = 3 

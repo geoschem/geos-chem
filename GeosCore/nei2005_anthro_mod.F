@@ -66,6 +66,7 @@
 !  13 Aug 2010 - R. Yantosca - Add modifications for MERRA (treat like GEOS-5)
 !  27 Jul 2011 - R. Yantosca - Removed typo in EMISS_NEI2005_ANTHRO_05x0666
 !  08 Feb 2012 - R. Yantosca - Add modifications for GEOS-5.7.x met
+!  28 Feb 2012 - R. Yantosca - Removed support for GEOS-3
 !EOP
 !------------------------------------------------------------------------------
 !
@@ -390,6 +391,7 @@
 !                              fix a problem in the VOC emissions.
 !  13 Aug 2010 - R. Yantosca - Treat MERRA like GEOS-5
 !  08 Feb 2012 - R. Yantosca - Treat GEOS-5.7.x in the same way as MERRA
+!  28 Feb 2012 - R. Yantosca - Removed support for GEOS-3
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -427,12 +429,10 @@
          THISYEAR = FSCALYR
       ENDIF
 
-#if   defined( GEOS_5 ) || defined( MERRA ) | defined( GEOS_57 )
+#if   defined( GEOS_5 ) || defined( MERRA ) || defined( GEOS_57 )
       SNAME = 'GEOS5'
 #elif defined( GEOS_4 )
       SNAME = 'GEOS4'
-#elif defined( GEOS_3 )
-      SNAME = 'GEOS3'
 #endif
 
       ! list of ID of available species
@@ -735,6 +735,7 @@
 !  27 Jul 2011 - R. Yantosca - Fixed typo: now *really* point to the NEI2005
 !                              data directory NEI2005_101007/
 !  08 Feb 2012 - R. Yantosca - Treat GEOS-5.7.x like MERRA
+!  28 Feb 2012 - R. Yantosca - Removed support for GEOS-3
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -776,8 +777,6 @@
       SNAME = 'GEOS5'
 #elif defined( GEOS_4 )
       SNAME = 'GEOS4'
-#elif defined( GEOS_3 )
-      SNAME = 'GEOS3'
 #endif
 
       ! list of ID of available species

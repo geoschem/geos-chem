@@ -81,6 +81,7 @@
 !  (33) Modifications for GEOS-5 nested grids (bmy, 11/6/08)
 !  20 Nov 2009 - R. Yantosca - Added ProTeX headers
 !  13 Aug 2010 - R. Yantosca - Added modifications for MERRA
+!  28 Feb 2012 - R. Yantosca - Removed support for GEOS-3
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -641,17 +642,12 @@
 !  20 Nov 2009 - R. Yantosca - Added ProTeX header
 !  13 Aug 2010 - R. Yantosca - Added MERRA model names
 !  01 Feb 2012 - R. Yantosca - Added GEOS-5.7.x model names
+!  28 Feb 2012 - R. Yantosca - Removed support for GEOS-3
 !EOP
 !------------------------------------------------------------------------------
 !BOC
 
-#if   defined( GEOS_3 ) && defined( GRIDREDUCED )
-      MODELNAME = 'GEOS3_30L'
-
-#elif defined( GEOS_3 )
-      MODELNAME = 'GEOS3'
-
-#elif defined( GEOS_4 ) && defined( GRIDREDUCED )
+#if   defined( GEOS_4 ) && defined( GRIDREDUCED )
       MODELNAME = 'GEOS4_30L'
 
 #elif defined( GEOS_4 )
@@ -705,11 +701,7 @@
 !
 ! !RETURN VALUE:
 !
-#if   defined( GEOS_3 )
-      CHARACTER(LEN=5) :: NAME_EXT
-      NAME_EXT = 'geos3'
-
-#elif defined( GEOS_4 )
+#if   defined( GEOS_4 )
       CHARACTER(LEN=5) :: NAME_EXT
       NAME_EXT = 'geos4'
 
@@ -736,6 +728,7 @@
 !  13 Aug 2010 - R. Yantosca - MERRA uses "geos5" name extension since its
 !                              grid is identical to GEOS-5.
 !  01 Feb 2012 - R. Yantosca - Now also define output for GEOS-5.7.x met
+!  28 Feb 2012 - R. Yantosca - Removed support for GEOS-3
 !EOP
 !------------------------------------------------------------------------------
 !BOC

@@ -194,6 +194,7 @@
 !  12 Oct 2011 - R. Yantosca - Modified ITS_A_NEW_MONTH for central chem step
 !  02 Feb 2012 - R. Yantosca - Added modifications for GEOS-5.7.x met fields
 !  03 Feb 2012 - R. Yantosca - Added I3 fields timestep variable & routines
+!  28 Feb 2012 - R. Yantosca - Removed support for GEOS-3
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -2578,27 +2579,16 @@
 !  (2 ) Remove reference to FIRST variable (bmy, 12/10/04)
 !  (3 ) Now modified for GCAP and GEOS-5 met fields (swu, bmy, 5/24/05)
 !  (4 ) Remove support for GEOS-1 and GEOS-STRAT met fields (bmy, 8/4/06)
-
 !  15 Jan 2010 - R. Yantosca - Added ProTeX headers
+!  28 Feb 2012 - R. Yantosca - Removed support for GEOS-3
 !EOP
 !------------------------------------------------------------------------------
 !BOC
-
-#if   defined( GEOS_3 )
-
-      ! For GEOS-1, GEOS-STRAT, GEOS-3, the A-3 fields are timestamped 
-      ! by ending time.  Therefore, the difference between the actual time
-      ! when the fields are read and the A-3 timestamp time is 180 minutes.
-      DATE = GET_TIME_AHEAD( 180 )      
-
-#else
 
       ! For GEOS-4, GEOS-5, or GCAP data: The A-3 fields are timestamped 
       ! by center time.  Therefore, the difference between the actual time 
       ! when the fields are read and the A-3 timestamp time is 90 minutes.
       DATE = GET_TIME_AHEAD( 90 )   
-
-#endif
 
       END FUNCTION GET_A3_TIME
 !EOC
@@ -2875,6 +2865,7 @@
 !  (2 ) Remove support for GEOS-1 and GEOS-STRAT met fields (bmy, 8/4/06)
 !  15 Jan 2010 - R. Yantosca - Added ProTeX headers
 !  27 Sep 2010 - R. Yantosca - Modified for start times other than 0 GMT
+!  28 Feb 2012 - R. Yantosca - Removed support for GEOS-3
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -2882,17 +2873,6 @@
 ! !LOCAL VARIABLES:
 !
       INTEGER :: HH, MM, SS, MINS, OFFSET
-
-#if   defined( GEOS_3 )
-
-      !==================================================================
-      ! GEOS-3: A3 fields indexed by start time
-      !==================================================================
-
-      ! For GEOS-1, GEOS-STRAT, GEOS-3: Return the current date/time
-      DATE = (/ NYMD, NHMS /)
-
-#else
 
       !==================================================================
       ! GEOS-4, GEOS-5, MERRA, GCAP: 
@@ -2910,8 +2890,6 @@
 
       ! Get YYYY/MM/DD and hh:mm:ss at midpoint of 3hr interval
       DATE   = GET_TIME_AHEAD( OFFSET )
-
-#endif
 
       END FUNCTION GET_FIRST_A3_TIME
 !EOC

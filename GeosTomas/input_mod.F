@@ -117,6 +117,7 @@
 !  16 Feb 2011 - R. Yantosca - Add modifications for APM from G. Luo
 !  07 Sep 2011 - P. Kasibhatla - Modified to include GFED3
 !  08 Feb 2012 - R. Yantosca - Add modifications for GEOS-5.7.x met data
+!  28 Feb 2012 - R. Yantosca - Removed support for GEOS-3
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -542,7 +543,7 @@
 ! !USES:
 !
       USE DIRECTORY_MOD, ONLY : DATA_DIR,    DATA_DIR_1x1, GCAP_DIR
-      USE DIRECTORY_MOD, ONLY : GEOS_3_DIR,  GEOS_4_DIR,   GEOS_5_DIR
+      USE DIRECTORY_MOD, ONLY : GEOS_4_DIR,  GEOS_5_DIR
       USE DIRECTORY_MOD, ONLY : MERRA_DIR,   GEOS_57_DIR
       USE DIRECTORY_MOD, ONLY : RUN_DIR
       USE DIRECTORY_MOD, ONLY : TEMP_DIR   
@@ -572,6 +573,7 @@
 !  27 Aug 2010 - R. Yantosca - Added ProTeX headers
 !  01 Feb 2012 - R. Yantosca - Now read GEOS_57_DIR for GEOS-5.7.x met
 !  08 Feb 2012 - R. Yantosca - Set LUNZIP=F for GEOS-5.7.x met fields
+!  28 Feb 2012 - R. Yantosca - Removed support for GEOS-3
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -622,56 +624,52 @@
       CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_simulation_menu:8' )
       READ( SUBSTRS(1:N), '(a)' ) GCAP_DIR
 
-      ! GEOS-3 subdir
-      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_simulation_menu:9' )
-      READ( SUBSTRS(1:N), '(a)' ) GEOS_3_DIR
-
       ! GEOS-4 subdir
-      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_simulation_menu:10' )
+      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_simulation_menu:9' )
       READ( SUBSTRS(1:N), '(a)' ) GEOS_4_DIR
 
       ! GEOS-5 subdir
-      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_simulation_menu:11' )
+      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_simulation_menu:10' )
       READ( SUBSTRS(1:N), '(a)' ) GEOS_5_DIR
 
       ! GEOS-5.7.x subdir
-      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_simulation_menu:12' )
+      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_simulation_menu:11' )
       READ( SUBSTRS(1:N), '(a)' ) GEOS_57_DIR
 
       ! MERRA subdir
-      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_simulation_menu:13' )
+      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_simulation_menu:12' )
       READ( SUBSTRS(1:N), '(a)' ) MERRA_DIR
 
       ! Temp dir
-      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_simulation_menu:14' )
+      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_simulation_menu:13' )
       READ( SUBSTRS(1:N), '(a)' ) DATA_DIR_1x1
 
       ! Temp dir
-      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_simulation_menu:15' )
+      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_simulation_menu:14' )
       READ( SUBSTRS(1:N), '(a)' ) TEMP_DIR
 
       ! Unzip met fields
-      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_simulation_menu:16' )
+      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_simulation_menu:15' )
       READ( SUBSTRS(1:N), *     ) LUNZIP
 
       ! Wait for met fields?
-      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_simulation_menu:17' )
+      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_simulation_menu:16' )
       READ( SUBSTRS(1:N), *     ) LWAIT
 
       ! Variable Tropopause
-      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_simulation_menu:18' )
+      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_simulation_menu:17' )
       READ( SUBSTRS(1:N), *     ) LVARTROP
 
       ! LINOZ chemistry in the stratosphere
-      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_simulation_menu:19' )
+      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_simulation_menu:18' )
       READ( SUBSTRS(1:N), *     ) LLINOZ  
 
       ! I0, J0
-      CALL SPLIT_ONE_LINE( SUBSTRS, N, 2, 'read_simulation_menu:20' )
+      CALL SPLIT_ONE_LINE( SUBSTRS, N, 2, 'read_simulation_menu:19' )
       READ( SUBSTRS(1:N), *     ) I0, J0
 
       ! Separator line
-      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_simulation_menu:21' )
+      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_simulation_menu:20' )
 
       !=================================================================
       ! Add safety checks for logical switches
@@ -694,8 +692,6 @@
      &                     TRIM( DATA_DIR )
       WRITE( 6, 110     ) 'GCAP       sub-directory    : ', 
      &                     TRIM( GCAP_DIR )
-      WRITE( 6, 110     ) 'GEOS-3     sub-directory    : ', 
-     &                     TRIM( GEOS_3_DIR )
       WRITE( 6, 110     ) 'GEOS-4     sub-directory    : ', 
      &                     TRIM( GEOS_4_DIR )
       WRITE( 6, 110     ) 'GEOS-5     sub-directory    : ', 
@@ -1729,6 +1725,7 @@ c$$$      WRITE( 6, 100     ) '30-BIN DUST AEROSOLS?       : ', LDUST30
 !  29 Jul 2011 - L. Zhang    - Fix bug that turns off CAC/BRAVO emissions
 !                             inadvertently during nested NA simulations
 !  07 Sep 2011 - P. Kasibhatla - Add modifications for GFED3
+!  28 Feb 2012 - R. Yantosca - Removed support for GEOS-3
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -2219,23 +2216,6 @@ c$$$      WRITE( 6, 100     ) '30-BIN DUST AEROSOLS?       : ', LDUST30
          !--------------------------------
          ! GEOS-5 warnings & error traps
          !--------------------------------
-
-#endif
-
-#if defined( GEOS_3   )
-
-         !--------------------------------
-         ! GEOS-3 error trap
-         !--------------------------------
-
-         IF ( LOTDLOC ) THEN
-            MSG = 'Lightning rescaling not available for GEOS-3.  ' //
-     &            'Use one of the parameterizations without '       //
-     &            'redist/scale.  CTH performs best on GEOS-4 and ' //
-     &            'GEOS-5, though MFLUX and PRECON were developed ' //
-     &            ' w/ GEOS-STRAT met fields.'
-            CALL ERROR_STOP( MSG, LOC )
-         ENDIF
 
 #elif defined( GCAP     )
 
@@ -5897,6 +5877,7 @@ c$$$         IS_ALL = .FALSE.
 !  27 Aug 2010 - R. Yantosca -  Now check MERRA directory
 !  08 Feb 2012 - R. Yantosca - Now check GEOS-5.7.x directory
 !  09 Feb 2012 - R. Yantosca - Rewrote USE statements for clarity
+!  28 Feb 2012 - R. Yantosca - Removed support for GEOS-3
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -5948,22 +5929,7 @@ c$$$         IS_ALL = .FALSE.
          CALL CHECK_DIRECTORY( TPBC_DIR_CH )
       ENDIF
 
-
-#if   defined( GEOS_3 )
-
-      ! Check GEOS-3 met field directory (starting date)
-      DIR = GEOS_3_DIR
-      CALL EXPAND_DATE( DIR, NYMDb, 000000 )
-      DIR = TRIM( DATA_DIR ) // TRIM( DIR )
-      CALL CHECK_DIRECTORY( DIR )
-
-      ! Check GEOS-3 met field directory (ending date)
-      DIR = GEOS_3_DIR
-      CALL EXPAND_DATE( DIR, NYMDe, 000000 )
-      DIR = TRIM( DATA_DIR ) // TRIM( DIR )
-      CALL CHECK_DIRECTORY( DIR )
-
-#elif defined( GEOS_4 )
+#if   defined( GEOS_4 )
 
       ! Check GEOS-4 met field directory (starting date)
       DIR = GEOS_4_DIR
@@ -6381,7 +6347,8 @@ c$$$         IS_ALL = .FALSE.
 !  01 Dec 2009 - C. Carouge  - Initialize LNEI05 
 !  27 Aug 2010 - R. Yantosca - Added ProTeX headers
 !  07 Sep 2011 - P. Kasibhatla - Modified for GFED3
-!   8 Feb 2012 - R. Yantosca - Rewrote USE statements for clarity
+!  08 Feb 2012 - R. Yantosca - Rewrote USE statements for clarity
+!  28 Feb 2012 - R. Yantosca - Removed support for GEOS-3
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -6394,7 +6361,6 @@ c$$$         IS_ALL = .FALSE.
       DATA_DIR_1x1 = ''
       GEOS_1_DIR   = ''
       GEOS_S_DIR   = ''
-      GEOS_3_DIR   = ''
       GEOS_4_DIR   = ''
       TEMP_DIR     = ''
       RUN_DIR      = ''
