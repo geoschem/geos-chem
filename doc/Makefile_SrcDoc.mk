@@ -47,6 +47,7 @@
 #                              and sulfate_mod
 #  07 Feb 2012 - M. Payer    - Added paranox_mod, diag59_mod
 #  08 Feb 2012 - R. Yantosca - Added geos57_read_mod.F90
+#  28 Feb 2012 - R. Yantosca - Added pbl_mix_mod
 #EOP
 #------------------------------------------------------------------------------
 #BOC
@@ -116,6 +117,7 @@ $(CORE)/merra_i6_mod.F               \
 $(CORE)/nei2005_anthro_mod.F         \
 $(CORE)/optdepth_mod.F               \
 $(CORE)/paranox_mod.F                \
+$(CORE)/pbl_mix_mod.F                \
 $(CORE)/pjc_pfix_mod.F               \
 $(CORE)/planeflight_mod.F            \
 $(CORE)/retro_mod.F                  \
