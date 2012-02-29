@@ -134,6 +134,7 @@
       USE EDGAR_MOD,           ONLY : READ_AROMATICS_05x0666
       USE EDGAR_MOD,           ONLY : READ_C2H4_05x0666
       USE EDGAR_MOD,           ONLY : READ_C2H2_05x0666
+      ! SOAupdate: For gas phase NAP chemistry (hotp, mpayer, 7/27/11)
       USE TRACERID_MOD,        ONLY : IDENAP
       USE LOGICAL_MOD,         ONLY : NAPEMISS
 
@@ -160,15 +161,15 @@
       REAL*8 :: GEOS1x1(I1x1,J1x1,1)
       REAL*8 :: TEMP(IGLOB,JGLOB)
 
+      ! SOAupdate: For gas phase NAP chemistry (hotp, mpayer, 7/27/11)
       ! Get anthropogenic (FF) NAP emissions by scaling BENZ emissions with the
       ! following factor. Factor is ratio of TgC NAP to TgC BENZ emissions
       ! or equivalently, molec C NAP to molec C BENZ. Scaling should produce
       ! about 0.09 TgC NAP/year, consistent with non-BB,BF emissions predicted
       ! by Zhang and Tao, 2009. Values based on year 2000 1x1 inventory.
-      ! (hotp, mpayer, 7/27/11)
       REAL*8, PARAMETER    :: NAPTOBENZSCALE = 0.06861d0
 
-      ! Scale total NAP emissions to POA (hotp, mpayer, 7/27/11)
+      ! SOAupdate: Scale total NAP emissions to POA (hotp, mpayer, 7/27/11)
       REAL*8, PARAMETER    :: NAPTOTALSCALE = 66.09027d0
 
       !=================================================================
@@ -275,7 +276,7 @@
          ENDIF
 
          !-----------------------------------------------------------------
-         ! For gas-phase NAP chemistry (hotp, mpayer, 7/27/11)
+         ! SOAupdate: For gas-phase NAP chemistry (hotp, mpayer, 7/27/11)
          !-----------------------------------------------------------------
 
          ! Get NAP FF emissions by scaling BENZ
@@ -588,7 +589,7 @@
      &                            1,                  12d-3, 'C2H2' )
          ENDIF
 
-         ! NAP: for year 1985 (hotp, mpayer, 7/27/11)
+         ! SOAupdate: NAP (hotp, mpayer, 7/27/11)
          IF ( IDENAP /= 0 ) THEN
             DO J = 1, JJPAR
                JREF = J + J0

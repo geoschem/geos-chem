@@ -155,16 +155,16 @@
       REAL*8, EXTERNAL       :: EMMONOT, EMISOP_MB, EMISOP_GRASS
 
       ! Add in new monoterpene species (mpb,2009)
-       REAL*8                 :: APINE  , BPINE , LIMON , SABIN 
-       REAL*8                 :: MYRCN  , CAREN , OCIMN
+      REAL*8                 :: APINE  , BPINE , LIMON , SABIN 
+      REAL*8                 :: MYRCN  , CAREN , OCIMN
       ! Add in gamma activity factors for isoprene ONLY (mpb,2009)
-       REAL*8                 :: GAMMA_LAI
-       REAL*8                 :: GAMMA_LEAF_AGE
-       REAL*8                 :: GAMMA_P
-       REAL*8                 :: GAMMA_T
-       REAL*8                 :: GAMMA_SM
-      ! Add sesquiterpenes & other monoterpenes (hotp, mpayer, 7/27/11)
-       REAL*8                 :: FARN, BCAR, OSQT, OMTP
+      REAL*8                 :: GAMMA_LAI
+      REAL*8                 :: GAMMA_LEAF_AGE
+      REAL*8                 :: GAMMA_P
+      REAL*8                 :: GAMMA_T
+      REAL*8                 :: GAMMA_SM
+      ! SOAupdate: Add sesquiterpenes & other mtp (hotp, mpayer, 7/27/11)
+      REAL*8                 :: FARN, BCAR, OSQT, OMTP
 !
 !******************************************************************************
 !  EMISSDR begins here!
@@ -351,11 +351,13 @@
                   EMMB = GET_EMMBO_MEGAN(   I, J,     SC, TMMP,
      &                                      PDR, PDF, XNUMOL_C )
 
-                  ! Check to see if using SOA + semivolatile POA or
+                  ! SOAupdate: Check to see if using SOA + semivolatile POA or
                   ! traditional SOA simulation (mpayer, 7/27/11)
                   IF ( LSVPOA ) THEN
 
-                     !%%% SOA + semivolatile POA (H.O.T. Pye) %%%
+                     !---------------------------------
+                     ! SOA + semivolatile POA (H. Pye)
+                     !---------------------------------
 
                      ! ------------------------------------------
                      ! Aplha Pinene emissions
@@ -413,7 +415,9 @@
 
                   ELSE
 
-                     !%%% Traditional SOA %%%
+                     !---------------------------------
+                     ! Traditional SOA
+                     !---------------------------------
 
                      ! ------------------------------------------
                      ! Aplha Pinene emissions
@@ -498,6 +502,10 @@
                ! Mycrene            = 8
                ! 3-Carene           = 9
                ! Ocimene            = 10
+               ! a-Farnesene        = 11
+               ! b-Caryophyllene    = 12
+               ! Other sesquiterp.  = 13
+               ! Other monoterpenes = 14
 
                EMISS_BVOC( I , J , 1 ) =  EMIS   / AREA_CM2 / DTSRCE     
                EMISS_BVOC( I , J , 2 ) =  EMMO   / AREA_CM2 / DTSRCE
@@ -510,7 +518,7 @@
                EMISS_BVOC( I , J , 9 ) =  CAREN  / AREA_CM2 / DTSRCE  
                EMISS_BVOC( I , J , 10) =  OCIMN  / AREA_CM2 / DTSRCE
 
-               ! Add sesquiterpenes, other mtp for SOA + semivol POA
+               ! SOAupdate: Add sesquiterpenes, other mtp for SOA + semivol POA
                !  (hotp, mpayer, 7/27/11)
                IF ( LSVPOA ) THEN
                   EMISS_BVOC( I , J , 11) =  FARN   / AREA_CM2 / DTSRCE
@@ -696,6 +704,10 @@
 !     AD46(:,:,11) = Total biogenic mycrene  emissions [atoms C/cm2/s]
 !     AD46(:,:,12) = Total biogenic 3-carene emissions [atoms C/cm2/s]
 !     AD46(:,:,13) = Total biogenic ocimene  emissions [atoms C/cm2/s]
+!     AD46(:,:,14) = Total biogenic FARN     emissions [atoms C/cm2/s]
+!     AD46(:,:,15) = Total biogenic BCAR     emissions [atoms C/cm2/s]
+!     AD46(:,:,16) = Total biogenic OSQT     emissions [atoms C/cm2/s]
+!     AD46(:,:,17) = Total biogenic OMTP     emissions [atoms C/cm2/s]
 !
 !  NOTES: 
 !  (1 ) Now make ACET tracer #2 and PRPE tracer #3 (bmy, 9/13/01)
@@ -726,52 +738,64 @@
                   AD46(I,J,6) = AD46(I,J,6) + 
      &            ( EMIS * BIOSCALEC2H4 / AREA_CM2 / DTSRCE )
 
-               ! ++++++++++++++++++++++++++++++++++++++++++++++++++++
-               !              MEGAN v2.1 - (mpb,2009)               !
-               ! ++++++++++++++++++++++++++++++++++++++++++++++++++++
+                  ! ++++++++++++++++++++++++++++++++++++++++++++++++++++
+                  !              MEGAN v2.1 - (mpb,2009)               !
+                  ! ++++++++++++++++++++++++++++++++++++++++++++++++++++
 
-               ! Aplha Pinene emissions [atoms C/cm2/s] -- tracer #6
-               AD46(I,J,7) = AD46(I,J,7) + ( APINE / AREA_CM2 / DTSRCE ) 
-
-               ! Beta Pinene emissions [atoms C/cm2/s] -- tracer #7
-               AD46(I,J,8) = AD46(I,J,8) + ( BPINE / AREA_CM2 / DTSRCE ) 
-
-               ! Limonene emissions [atoms C/cm2/s] -- tracer #8
-               AD46(I,J,9) = AD46(I,J,9) + ( LIMON / AREA_CM2 / DTSRCE ) 
+                  ! Aplha Pinene emissions [atoms C/cm2/s] -- tracer #6
+                  AD46(I,J,7)  = AD46(I,J,7)  +
+     &                         ( APINE        / AREA_CM2 / DTSRCE ) 
  
-               ! Sabinene emissions [atoms C/cm2/s] -- tracer #9
-              AD46(I,J,10) = AD46(I,J,10) + ( SABIN / AREA_CM2 / DTSRCE) 
+                  ! Beta Pinene emissions [atoms C/cm2/s] -- tracer #7
+                  AD46(I,J,8)  = AD46(I,J,8)  +
+     &                         ( BPINE        / AREA_CM2 / DTSRCE ) 
 
-               ! Mycrene emissions [atoms C/cm2/s] -- tracer #10
-              AD46(I,J,11) = AD46(I,J,11) + ( MYRCN / AREA_CM2 / DTSRCE) 
-
-               ! 3-Carene emissions [atoms C/cm2/s] -- tracer #11
-              AD46(I,J,12) = AD46(I,J,12) + ( CAREN / AREA_CM2 / DTSRCE) 
-
-               ! Ocimene emissions [atoms C/cm2/s] -- tracer #12
-              AD46(I,J,13) = AD46(I,J,13) + ( OCIMN / AREA_CM2 / DTSRCE) 
-
-               ! Add sesquiterpenes for SOA + semivol POA (hotp,mpayer,7/27/11)
-               IF ( LSVPOA ) THEN
-
-               ! Farnesene emissions [atoms C/cm2/s] -- tracer #14
-               AD46(I,J,14) = AD46(I,J,14) + ( FARN / AREA_CM2 / DTSRCE)
-
-               ! b-caryophyllene emissions [atoms C/cm2/s] -- tracer #15
-               AD46(I,J,15) = AD46(I,J,15) + ( BCAR / AREA_CM2 / DTSRCE)
-
-               ! Other SQT emissions [atoms C/cm2/s] -- tracer #16
-               AD46(I,J,16) = AD46(I,J,16) + ( OSQT / AREA_CM2 / DTSRCE)
+                  ! Limonene emissions [atoms C/cm2/s] -- tracer #8
+                  AD46(I,J,9)  = AD46(I,J,9)  +
+     &                         ( LIMON        / AREA_CM2 / DTSRCE ) 
  
-               ! Other MTP emissions [atoms C/cm2/s] -- tracer #17
-               AD46(I,J,17) = AD46(I,J,17) + ( OMTP / AREA_CM2 / DTSRCE)
+                  ! Sabinene emissions [atoms C/cm2/s] -- tracer #9
+                  AD46(I,J,10) = AD46(I,J,10) + 
+     &                         ( SABIN        / AREA_CM2 / DTSRCE) 
 
-               ENDIF
+                  ! Mycrene emissions [atoms C/cm2/s] -- tracer #10
+                  AD46(I,J,11) = AD46(I,J,11) +
+     &                         ( MYRCN        / AREA_CM2 / DTSRCE) 
+
+                  ! 3-Carene emissions [atoms C/cm2/s] -- tracer #11
+                  AD46(I,J,12) = AD46(I,J,12) +
+     &                         ( CAREN        / AREA_CM2 / DTSRCE) 
+
+                  ! Ocimene emissions [atoms C/cm2/s] -- tracer #12
+                  AD46(I,J,13) = AD46(I,J,13) +
+     &                         ( OCIMN        / AREA_CM2 / DTSRCE) 
+
+                  ! SOAupdate: Add sesquiterpenes for SOA + semivol POA
+                  ! (hotp,mpayer,7/27/11)
+                  IF ( LSVPOA ) THEN
+
+                     ! Farnesene emissions [atoms C/cm2/s] -- tracer #14
+                     AD46(I,J,14) = AD46(I,J,14) + 
+     &                            ( FARN         / AREA_CM2 / DTSRCE)
+
+                     ! b-caryophyllene emissions [atoms C/cm2/s] -- tracer #15
+                     AD46(I,J,15) = AD46(I,J,15) + 
+     &                            ( BCAR         / AREA_CM2 / DTSRCE)
+
+                     ! Other SQT emissions [atoms C/cm2/s] -- tracer #16
+                     AD46(I,J,16) = AD46(I,J,16) + 
+     &                            ( OSQT         / AREA_CM2 / DTSRCE)
+ 
+                     ! Other MTP emissions [atoms C/cm2/s] -- tracer #17
+                     AD46(I,J,17) = AD46(I,J,17) + 
+     &                            ( OMTP         / AREA_CM2 / DTSRCE)
+
+                  ENDIF
 
                ! ++++++++++++++++++++++++++++++++++++++++++++++++++++
                
-               ENDIF  
-            ENDIF
+               ENDIF ! ND46
+            ENDIF    ! LBIOGENIC
          ENDDO
       ENDDO
 

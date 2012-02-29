@@ -40,6 +40,12 @@
 !  (11) transfer_mod.f   : Module w/ routines to cast & resize arrays
 !  (12) tropopause_mod.f : Module w/ routines to read in ann mean tropopause
 !
+!  References:
+!  ============================================================================
+!  (1 ) Pye, H.O.T., and J.H. Seinfeld, "A global perspective on aerosol from
+!        low-volatility organic compounds", Atmos. Chem. & Phys., Vol 10, pp
+!        4377-4401, 2010.
+!
 !  NOTES:
 !  (1 ) Added AEROSOL_RURALBOX routine (bmy, 9/28/04)
 !  (2 ) Now convert ABSHUM from absolute humidity to relative humidity in
@@ -307,7 +313,7 @@
       USE TRACERID_MOD, ONLY : IDTSOA1, IDTSOA2, IDTSOA3, IDTSOA4
       USE TRACERID_MOD, ONLY : IDTSO4,  IDTSOA5  
       USE TRACERID_MOD, ONLY : IDTSOAG, IDTSOAM
-      ! For SOA + semivolatile POA (hotp, mpayer, 7/13/11)
+      ! SOAupdate: For SOA + semivolatile POA (hotp, mpayer, 7/13/11)
       USE TRACERID_MOD, ONLY : IDTPOA1,  IDTPOA2
       USE TRACERID_MOD, ONLY : IDTOPOA1, IDTOPOA2
       USE TRACERID_MOD, ONLY : IDTTSOA1, IDTTSOA2, IDTTSOA3
@@ -325,8 +331,9 @@
       ! 1.4 to account for the mass of the other chemical components
       ! (rjp, bmy, 7/15/04)
       REAL*8,  PARAMETER :: OCF     = 2.1d0
-      ! OM/OC Ratios for POA & OPOA (hotp, mpayer, 7/13/11)
-      ! (see pp 4382 & 4386, Pye & Seinfeld, 2010)
+
+      ! SOAupdate: OC/OM Ratios for POA & OPOA (hotp, mpayer, 7/13/11)
+      ! (see Pye & Seinfeld, 2010)
       REAL*8,  PARAMETER :: OCFPOA  = 1.4d0
       REAL*8,  PARAMETER :: OCFOPOA = 1.4d0*1.5d0  ! 2.1
 
@@ -398,7 +405,8 @@
             BCPO(I,J,L) = STT(I,J,L,IDTBCPO) / AIRVOL(I,J,L)
 
             ! Hydrophobic OC [kg/m3]
-            ! Treat either OCPO [x2.1] or POA [x1.4] (hotp, mpayer, 7/13/11)
+            ! SOAupdate: Treat either OCPO (x2.1) or POA (x1.4) 
+            !  (hotp, mpayer, 7/13/11)
             IF ( IDTPOA1 > 0 ) THEN
                OCPO(I,J,L) = STT(I,J,L,IDTPOA1) * OCFPOA / AIRVOL(I,J,L)
      &                     + STT(I,J,L,IDTPOA2) * OCFPOA / AIRVOL(I,J,L)
@@ -413,11 +421,13 @@
                ! components which are attached to the OC aerosol.
                ! (rjp, bmy, 7/15/04)
 
-               ! Check to see if using SOA + semivolatile POA or traditional
-               ! SOA simulation (mpayer, 7/14/11)
+               ! SOAupdate: Check to see if using SOA + semivolatile POA or
+               ! traditional SOA simulation (mpayer, 7/14/11)
                IF ( LSVPOA ) THEN
 
-                  !%%% SOA + semivolatile POA (H.O.T. Pye)%%%
+                  !---------------------------------
+                  ! SOA + semivolatile POA (H. Pye)
+                  !---------------------------------
 
                   OCPI(I,J,L) = ( STT(I,J,L,IDTTSOA1)
      &                         +  STT(I,J,L,IDTTSOA2)
@@ -435,9 +445,10 @@
 
                   IF ( IDTOCPI > 0 ) THEN
                     OCPI(I,J,L) = OCPI(I,J,L)                                  
-     &               + ( STT(I,J,L,IDTOCPI) * OCF / AIRVOL(I,J,L) )
+     &               + ( STT(I,J,L,IDTOCPI) * OCFOPOA / AIRVOL(I,J,L) )
                   ENDIF
 
+                  ! LUMPAROMIVOC (always present)
                   OCPI(I,J,L) = OCPI(I,J,L) +
      &                     ( (  STT(I,J,L,IDTASOAN) 
      &                        + STT(I,J,L,IDTASOA1)
@@ -446,7 +457,9 @@
 
                ELSE
          
-                  !%%% Traditional SOA %%%
+                  !---------------------------------
+                  ! Traditional SOA
+                  !---------------------------------
 
                   ! (clh, 05/19/10) bug corrected SOA5 missing from OCPI
                   OCPI(I,J,L) = ( STT(I,J,L,IDTOCPI) * OCF 

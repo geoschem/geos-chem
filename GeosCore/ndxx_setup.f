@@ -308,16 +308,13 @@
          ALLOCATE( AD07_OC( IIPAR, JJPAR, LD07 ), STAT=AS )
          IF ( AS /= 0 ) CALL ALLOC_ERR( 'AD07_OC' )
 
-         ! Increase last dim if using SOA + semivol POA (POA OPOA OPOG NAP)
-         ! (hotp, mpayer, 7/27/11)
+         ! SOAupdate: Increase dimension for SOA + semivol POA (add POA OPOA
+         ! OPOG NAP) (hotp, mpayer, 7/27/11)
          IF ( LSVPOA ) THEN
-            !%%% SOA + semivolatile POA %%%
             ALLOCATE( AD07_HC( IIPAR, JJPAR, LD07, 9 ), STAT=AS )
-            IF ( AS /= 0 ) CALL ALLOC_ERR( 'AD07_HC' )
          ELSE
             ALLOCATE( AD07_HC( IIPAR, JJPAR, LD07, 5 ), STAT=AS )
          ENDIF
-
          IF ( AS /= 0 ) CALL ALLOC_ERR( 'AD07_HC' )
 
          ALLOCATE( AD07_SOAGM( IIPAR, JJPAR, LD07, 4 ), STAT=AS )

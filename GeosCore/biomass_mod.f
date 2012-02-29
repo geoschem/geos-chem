@@ -237,10 +237,12 @@
       USE TRACERID_MOD,      ONLY : IDBBC, IDBNH3, IDBOC, IDBSO2
       USE TRACERID_MOD,      ONLY : IDBCO, IDBNOx
       USE TRACERID_MOD,      ONLY : IDBCO2
-      USE TRACERID_MOD,      ONLY : IDBXYLE, IDBTOLU, IDBBENZ !for debug (hotp)
+      USE TRACERID_MOD,      ONLY : IDBXYLE, IDBTOLU, IDBBENZ ! hotp for debug
+      ! SOAupdate: For POA, NAP (hotp, mpayer, 7/6/11)
       USE TRACERID_MOD,      ONLY : IDTPOA1
       USE TRACERID_MOD,      ONLY : IDBNAP
-      USE LOGICAL_MOD,       ONLY : NAPEMISS, LSVPOA
+      USE LOGICAL_MOD,       ONLY : NAPEMISS
+      USE LOGICAL_MOD,       ONLY : LSVPOA
 
 
 #     include "CMN_SIZE"          ! Size parameters
@@ -256,7 +258,7 @@
       INTEGER                    :: I,       J,       N,      N_BIOB
       REAL*8                     :: BXHT_CM, DTSRCE
 
-      ! Scale up total NAP emissions (hotp, mpayer, 7/6/11)
+      ! SOAupdate: Scale up total NAP emissions (hotp, mpayer, 7/6/11)
       REAL*8, PARAMETER          :: NAPTOTALSCALE = 66.09027d0
       
       !=================================================================
@@ -345,11 +347,8 @@
                ENDIF
 
                ! Get biomass BC & OC [molec/cm2/s]
-!-----------------------------------------------------------------------
-! Prior to 7/6/11:
-! Add option for OCPO or POA1 (hotp, mpayer, 7/6/11) 
-!               IF ( IDTBCPO > 0 .and. IDTOCPO > 0 ) THEN
-!-----------------------------------------------------------------------
+               ! SOAupdate: OC emissions now are nonvolatile (OCPO defined) or
+               !  semivolatile (POA defined) (hotp, mpayer, 7/6/11) 
                IF ( IDTBCPO > 0 ) THEN
                   IF ( IDTOCPO > 0 .or. IDTPOA1 > 0 ) THEN
                   CALL GC_READ_BIOMASS_BCOC( YEAR, MONTH,
@@ -372,12 +371,14 @@
          ENDIF
 
          !==============================================================
-         ! NAP emissions (hotp, mpayer, 7/6/11)
+         ! SOAupdate: NAP emissions (hotp, mpayer, 7/6/11)
          !==============================================================
 
          IF ( IDBNAP > 0 ) THEN
             
+            ! Obtain NAP emissions using scale factor:
             ! Emmision ratio NAP/CO = 0.0602d-3 [mole/mole]
+            !
             ! NAP emiss = 0.0253 g NAP/kg DM (Table 4, Hays et al, 2002)
             ! CO  emiss =     92 g CO /kg DM (Table 1, Andreae & Merlet, 2001)
             ! NAP has 10 carbons
@@ -386,7 +387,7 @@
             ! Scale up total
             BIOMASS(:,:,IDBNAP ) = BIOMASS(:,:,IDBNAP) * NAPTOTALSCALE
 
-            ! Set NAP emissions according to input.geos
+            ! Set according to input.geos
             BIOMASS(:,:,IDBNAP ) = BIOMASS(:,:,IDBNAP) * NAPEMISS
 
          ENDIF
@@ -410,7 +411,7 @@
             IF ( IDBNAP > 0 )
      &         CALL TOTAL_BIOMASS_TG( BIOMASS(:,:,IDBNAP ) * 2592000d0,
      &                                12d-3, 'NAP ' )
-         ENDIF ! LSVPOA
+         ENDIF
       
          !==============================================================
          ! Do the following on every timestep:
@@ -485,6 +486,7 @@
       ! Add dicarbonyls
       USE TRACERID_MOD, ONLY : IDBGLYX, IDBMGLY, IDBC2H4
       USE TRACERID_MOD, ONLY : IDBC2H2, IDBGLYC, IDBHAC
+      ! SOAupdate: Add NAP emissions (hotp, mpayer, 7/6/11)
       USE TRACERID_MOD, ONLY : IDBNAP
 
       USE TRACERID_MOD, ONLY : IDTNOX,  IDTCO,   IDTALK4, IDTACET 
@@ -495,6 +497,7 @@
       USE TRACERID_MOD, ONLY : IDTBENZ, IDTTOLU, IDTXYLE
       USE TRACERID_MOD, ONLY : IDTHAC, IDTGLYC, IDTMGLY, IDTGLYX
       USE TRACERID_MOD, ONLY : IDTC2H2, IDTC2H4
+      ! SOAupdate: Add NAP emissions, POA (hotp, mpayer, 7/6/11)
       USE TRACERID_MOD, ONLY : IDTNAP
       USE TRACERID_MOD, ONLY : IDTPOA1
 
@@ -597,7 +600,7 @@
       IF ( IDBXYLE  /= 0 ) BIOBGAS(IDBXYLE) = .TRUE. 
       IF ( IDBTOLU  /= 0 ) BIOBGAS(IDBTOLU) = .TRUE.
       IF ( IDBBENZ  /= 0 ) BIOBGAS(IDBBENZ) = .TRUE.
-      ! NAP handled by setemis (hotp, mpayer, 7/6/11)
+      ! SOAupdate: NAP handled by setemis (hotp, mpayer, 7/6/11)
       IF ( IDBNAP   /= 0 ) BIOBGAS(IDBNAP)  = .TRUE.
 
       ! Dicarbonyls handled by setemis

@@ -163,13 +163,8 @@
       !=================================================================
 
       ! Parameters
-!----------------------------------------------------------------------------
-! Prior to 7/5/11:
-! Increase NSOLMAX to 100 for SOA + semivol POA (jje, mpayer, 7/5/11)
-!      !(fp, 06/09)
-!      !INTEGER, PARAMETER   :: NSOLMAX = 38
-!      INTEGER, PARAMETER   :: NSOLMAX = 50
-!----------------------------------------------------------------------------
+      ! SOAupdate: Increase NSOLMAX from 50 to 100 for SOA + semivol POA
+      !  (jje, mpayer,7/5/11)
       INTEGER, PARAMETER   :: NSOLMAX = 100
       REAL*8,  PARAMETER   :: EPSILON = 1d-32
 
@@ -656,7 +651,7 @@
       USE TRACERID_MOD, ONLY : IDTISOPN, IDTMMN
       USE TRACERID_MOD, ONLY : IDTIEPOX, IDTRIP
       USE TRACERID_MOD, ONLY : IDTMAP
-      ! For SOA + semivolatile POA (hotp, mpayer, 7/5/11)
+      ! SOAupdate: For SOA + semivolatile POA (hotp, mpayer, 7/5/11)
       USE TRACERID_MOD, ONLY : IDTMTPA,  IDTMTPO
       USE TRACERID_MOD, ONLY : IDTASOAN, IDTASOA1, IDTASOA2, IDTASOA3
       USE TRACERID_MOD, ONLY : IDTASOG1, IDTASOG2, IDTASOG3
@@ -1197,11 +1192,7 @@
       ! OC HYDROPHOBIC (aerosol) or
       ! POA (treated as hydrophobic)
       !-------------------------------
-!-----------------------------------------------------------------------
-! Prior to 7/5/11:
-! Add POA1 POA2 for SOA + semivolatile POA (hotp, mpayer, 7/5/11)
-!      ELSE IF ( N == IDTBCPO .or. N == IDTOCPO ) THEN
-!-----------------------------------------------------------------------
+      ! SOAupdate: Add POA1 and 2 for SOA + semivol POA (hotp, mpayer, 7/5/11)
       ELSE IF ( N == IDTBCPO .or. N == IDTOCPO .or. 
      &          N == IDTPOA1 .or. N == IDTPOA2  ) THEN
 
@@ -1382,7 +1373,7 @@
 
       !-------------------------------
       ! MTPA (liquid phase only)
-      ! (hotp, mpayer, 7/5/11)
+      ! SOAupdate (hotp, mpayer, 7/5/11)
       !-------------------------------
       ELSE IF ( N == IDTMTPA ) THEN
 
@@ -1434,7 +1425,7 @@
 
       !-------------------------------
       ! MTPO (liquid phase only)
-      ! (hotp, mpayer, 7/5/11)
+      ! SOAupdate (hotp, mpayer, 7/5/11)
       !-------------------------------
       ELSE IF ( N == IDTMTPO ) THEN
 
@@ -1489,7 +1480,7 @@
 
       !------------------------------------
       ! POG (treated  as relatively hydrophobic)
-      ! (hotp, mpayer, 7/5/11)
+      ! SOAupdate (hotp, mpayer, 7/5/11)
       !------------------------------------
       ELSE IF ( N == IDTPOG1 .or. N == IDTPOG2 ) THEN
 
@@ -1545,17 +1536,9 @@
       !-----------------------------------
       ! SOG (liquid phase only)
       !-----------------------------------
-!-----------------------------------------------------------------------
-! Prior to 7/5/11:
-! Add SOA + semivolatile POA tracers (hotp, mpayer, 7/5/11)
-!      ! Add SOG5 (dkh, 03/26/07)  
-!      ! add PMNN assuming it behaves like SOG4 FP_ISOP 10/09
-!      !ELSE IF ( N == IDTSOG1 .or. N == IDTSOG2  .or. 
-!      !&          N == IDTSOG3 .or. N == IDTSOG4 ) THEN
-!      ELSE IF ( N == IDTSOG1 .or. N == IDTSOG2  .or. 
-!     &          N == IDTSOG3 .or. N == IDTSOG4  .or. 
-!     &          N == IDTSOG5                     ) THEN
-!-----------------------------------------------------------------------
+      ! Add SOG5 (dkh, 03/26/07)  
+      ! add PMNN assuming it behaves like SOG4 FP_ISOP 10/09
+      ! SOAupdate: Add SOA + semivolatile POA tracers (hotp, mpayer, 7/5/11)
       ELSE IF ( N == IDTSOG1  .or. N == IDTSOG2  .or. 
      &          N == IDTSOG3  .or. N == IDTSOG4  .or. 
      &          N == IDTSOG5  .or.
@@ -1618,16 +1601,8 @@
       ! SOA (aerosol)
       ! Scavenging efficiency for SOA is 0.8
       !------------------------------------------
-!-----------------------------------------------------------------------
-! Prior to 7/5/11:
-! Add SOA + semivolatile POA tracers (hotp, mpayer, 7/5/11)
-!      ! Add SOA5 (dkh, 03/26/07) 
-!      !ELSE IF ( N == IDTSOA1 .or. N == IDTSOA2  .or. 
-!      !&          N == IDTSOA3 .or. N == IDTSOA4 ) THEN
-!      ELSE IF ( N == IDTSOA1 .or. N == IDTSOA2  .or. 
-!     &          N == IDTSOA3 .or. N == IDTSOA4  .or. 
-!     &          N == IDTSOA5                    ) THEN
-!-----------------------------------------------------------------------
+      ! Add SOA5 (dkh, 03/26/07) 
+      ! SOAupdate: Add SOA + semivolatile POA tracers (hotp, mpayer, 7/5/11)
       ELSE IF ( N == IDTSOA1   .or. N == IDTSOA2  .or. 
      &          N == IDTSOA3   .or. N == IDTSOA4  .or. 
      &          N == IDTSOA5   .or.
@@ -2314,7 +2289,7 @@
       USE TRACERID_MOD, ONLY : IDTMOBA,  IDTPROPNN
       USE TRACERID_MOD, ONLY : IDTISOPN, IDTMMN
       USE TRACERID_MOD, ONLY : IDTIEPOX, IDTRIP, IDTMAP
-      ! For SOA + semivolatile POA (hotp, mpayer, 7/5/11)
+      ! SOAupdate: For SOA + semivolatile POA (hotp, mpayer, 7/5/11)
       USE TRACERID_MOD, ONLY : IDTMTPA,  IDTMTPO
       USE TRACERID_MOD, ONLY : IDTASOAN, IDTASOA1, IDTASOA2, IDTASOA3
       USE TRACERID_MOD, ONLY : IDTASOG1, IDTASOG2, IDTASOG3
@@ -2949,11 +2924,7 @@
       ! OC HYDROPHOBIC (aerosol) or
       ! POA (treated as hydrophobic)
       !-------------------------------
-!-----------------------------------------------------------------------
-! Prior to 7/5/11:
-! Add POA1 POA2 for SOA + semivolatile POA (hotp, mpayer, 7/5/11)
-!      ELSE IF ( N == IDTBCPO .or. N == IDTOCPO ) THEN
-!-----------------------------------------------------------------------
+      ! SOAupdate: Add POA1 and 2 for SOA + semivol POA (hotp, mpayer, 7/5/11)
       ELSE IF ( N == IDTBCPO .or. N == IDTOCPO .or.
      &          N == IDTPOA1 .or. N == IDTPOA2 ) THEN
 
@@ -3075,7 +3046,7 @@
 
       !------------------------------
       ! MTPA (liquid phase only)
-      ! (hotp, mpayer, 7/5/11)
+      ! SOAupdate (hotp, mpayer, 7/5/11)
       !------------------------------
       ELSE IF ( N == IDTMTPA ) THEN
 
@@ -3108,8 +3079,8 @@
          RAINFRAC = GET_RAINFRAC( K, F, DT )
 
       !------------------------------
-      !  MTPO (liquid phase only)
-      ! (hotp, mpayer, 7/5/11)
+      ! MTPO (liquid phase only)
+      ! SOAupdate (hotp, mpayer, 7/5/11)
       !------------------------------
       ELSE IF ( N == IDTMTPO ) THEN
 
@@ -3144,7 +3115,7 @@
 
       !------------------------------------
       ! POG (treated  as relatively hydrophobic)
-      ! (hotp, mpayer, 7/5/11)
+      ! SOAupdate (hotp, mpayer, 7/5/11)
       !------------------------------------
       ELSE IF ( N == IDTPOG1 .or. N == IDTPOG2 ) THEN
 
@@ -3180,16 +3151,8 @@
       !----------------------------------
       ! SOG (liquid phase only)
       !----------------------------------
-!-----------------------------------------------------------------------
-! Prior to 7/5/11:
-! Add SOA + semivolatile POA tracers (hotp, mpayer, 7/5/11)
-!      ! Add SOG5 (dkh, 03/26/07)  
-!!      ELSE IF ( N == IDTSOG1 .or. N == IDTSOG2  .or. 
-!!     &          N == IDTSOG3 .or. N == IDTSOG4 ) THEN
-!      ELSE IF ( N == IDTSOG1 .or. N == IDTSOG2  .or. 
-!     &          N == IDTSOG3 .or. N == IDTSOG4  .or. 
-!     &          N == IDTSOG5                    ) THEN
-!-----------------------------------------------------------------------
+      ! Add SOG5 (dkh, 03/26/07)  
+      ! SOAupdate: Add SOA + semivolatile POA tracers (hotp, mpayer, 7/5/11)
       ELSE IF ( N == IDTSOG1  .or. N == IDTSOG2  .or. 
      &          N == IDTSOG3  .or. N == IDTSOG4  .or. 
      &          N == IDTSOG5  .or. 
@@ -3233,16 +3196,8 @@
       ! SOA (aerosol)
       ! Scavenging efficiency for SOA is 0.8
       !--------------------------------------
-!-----------------------------------------------------------------------
-! Prior to 7/5/11:
-! Add SOA + semivolatile POA tracers (hotp, mpayer, 7/5/11)
-!      ! Add SOA5 (dkh, 03/26/07)
-!!      ELSE IF ( N == IDTSOA1 .or. N == IDTSOA2  .or. 
-!!     &          N == IDTSOA3 .or. N == IDTSOA4 ) THEN
-!      ELSE IF ( N == IDTSOA1 .or. N == IDTSOA2  .or. 
-!     &          N == IDTSOA3 .or. N == IDTSOA4  .or.  
-!     &          N == IDTSOA5                    ) THEN
-!-----------------------------------------------------------------------
+      ! Add SOA5 (dkh, 03/26/07)
+      ! SOAupdate: Add SOA + semivolatile POA tracers (hotp, mpayer, 7/5/11)
       ELSE IF ( N == IDTSOA1  .or. N == IDTSOA2  .or. 
      &          N == IDTSOA3  .or. N == IDTSOA4  .or. 
      &          N == IDTSOA5  .or.                   
@@ -3432,7 +3387,7 @@
       USE TRACERID_MOD, ONLY : IDTMOBA,  IDTPROPNN
       USE TRACERID_MOD, ONLY : IDTISOPN, IDTMMN
       USE TRACERID_MOD, ONLY : IDTIEPOX, IDTRIP, IDTMAP
-      ! For SOA + semivolatile POA (hotp, mpayer, 7/5/11)
+      ! SOAupdate: For SOA + semivolatile POA (hotp, mpayer, 7/5/11)
       USE TRACERID_MOD, ONLY : IDTMTPA,  IDTMTPO
       USE TRACERID_MOD, ONLY : IDTASOAN, IDTASOA1, IDTASOA2, IDTASOA3
       USE TRACERID_MOD, ONLY : IDTASOG1, IDTASOG2, IDTASOG3
@@ -3694,12 +3649,7 @@
       ! OC HYDROPHOBIC (aerosol) or
       ! POA (treated like OCPO)
       !------------------------------
-!-----------------------------------------------------------------------
-! Prior to 7/5/11:
-! Add POA1 POA2 for SOA + semivolatile POA (hotp, mpayer, 7/5/11)
-!      ELSE IF ( N == IDTBCPI .or. N == IDTOCPI  .or.
-!     &          N == IDTBCPO .or. N == IDTOCPO ) THEN
-!-----------------------------------------------------------------------
+      ! SOAupdate: Add POA1 and 2 for SOA + semivol POA (hotp, mpayer, 7/5/11)
       ELSE IF ( N == IDTBCPI .or. N == IDTOCPI  .or.
      &          N == IDTBCPO .or. N == IDTOCPO  .or.
      &          N == IDTPOA1 .or. N == IDTPOA2 ) THEN
@@ -3748,7 +3698,7 @@
 
       !------------------------------
       ! MTPA (liquid & gas)
-      ! (hotp, mpayer, 7/5/11)
+      ! SOAupdate (hotp, mpayer, 7/5/11)
       !------------------------------
       ELSE IF ( N == IDTMTPA ) THEN
          AER      = .FALSE. 
@@ -3757,7 +3707,7 @@
 
       !-------------------------------
       ! MTPO (liquid & gas)
-      ! (hotp, mpayer, 7/5/11)
+      ! SOAupdate (hotp, mpayer, 7/5/11)
       !-------------------------------
       ELSE IF ( N == IDTMTPO ) THEN
          AER      = .FALSE.
@@ -3766,7 +3716,7 @@
 
       !------------------------------------
       ! POG (treated as relatively hydrophobic)
-      ! (hotp, mpayer, 7/5/11)
+      ! SOAupdate (hotp, mpayer, 7/5/11)
       !------------------------------------
       ELSE IF ( N == IDTPOG1 .or. N == IDTPOG2 ) THEN
          AER      = .FALSE.
@@ -3776,17 +3726,9 @@
       !---------------------------------
       ! SOG (liq & gas phases)
       !---------------------------------
-!-----------------------------------------------------------------------
-! Prior to 7/5/11:
-! Add SOA + semivol POA tracers (hotp, mpayer, 7/5/11)
-!      ! Add SOG5  (dkh, 03/26/07)  
-!      ! add PMNN assuming = SOG4 (fp, 06/09)
-!!      ELSE IF ( N == IDTSOG1 .or. N == IDTSOG2  .or. 
-!!     &          N == IDTSOG3 .or. N == IDTSOG4 ) THEN
-!      ELSE IF ( N == IDTSOG1 .or. N == IDTSOG2  .or. 
-!     &          N == IDTSOG3 .or. N == IDTSOG4  .or.  
-!     &          N == IDTSOG5                    ) THEN 
-!-----------------------------------------------------------------------
+      ! Add SOG5  (dkh, 03/26/07)  
+      ! add PMNN assuming = SOG4 (fp, 06/09)
+      ! SOAupdate: Add SOA + semivol POA tracers (hotp, mpayer, 7/5/11)
       ELSE IF ( N == IDTSOG1  .or. N == IDTSOG2  .or. 
      &          N == IDTSOG3  .or. N == IDTSOG4  .or.  
      &          N == IDTSOG5  .or.
@@ -3804,16 +3746,8 @@
       !------------------------------
       ! SOA (aerosol)
       !------------------------------
-!-----------------------------------------------------------------------
-! Prior to 7/5/11:
-! Add SOA + semivol POA tracers (hotp, mpayer, 7/5/11)
-!      ! Add SOA5 (hotp 5/25/09)
-!!      ELSE IF ( N == IDTSOA1 .or. N == IDTSOA2  .or. 
-!!     &          N == IDTSOA3 .or. N == IDTSOA4 ) THEN
-!      ELSE IF ( N == IDTSOA1 .or. N == IDTSOA2  .or. 
-!     &          N == IDTSOA3 .or. N == IDTSOA4  .or.  
-!     &          N == IDTSOA5                    ) THEN
-!-----------------------------------------------------------------------
+      ! Add SOA5 (hotp 5/25/09)
+      ! SOAupdate: Add SOA + semivol POA tracers (hotp, mpayer, 7/5/11)
       ELSE IF ( N == IDTSOA1  .or. N == IDTSOA2  .or. 
      &          N == IDTSOA3  .or. N == IDTSOA4  .or.  
      &          N == IDTSOA5  .or.
@@ -5177,7 +5111,7 @@
       USE TRACERID_MOD, ONLY : IDTMOBA,  IDTPROPNN
       USE TRACERID_MOD, ONLY : IDTISOPN, IDTMMN
       USE TRACERID_MOD, ONLY : IDTIEPOX, IDTRIP, IDTMAP
-      ! For SOA + semivolatile POA (hotp, mpayer, 7/5/11)
+      ! SOAupdate: For SOA + semivolatile POA (hotp, mpayer, 7/5/11)
       USE TRACERID_MOD, ONLY : IDTMTPA,  IDTMTPO
       USE TRACERID_MOD, ONLY : IDTASOAN, IDTASOA1, IDTASOA2, IDTASOA3
       USE TRACERID_MOD, ONLY : IDTASOG1, IDTASOG2, IDTASOG3
@@ -5416,7 +5350,7 @@
             NSOL         = NSOL + 1
             IDWETD(NSOL) = IDTSOAM
 
-         ! For SOA + semivolatile POA (hotp, mpayer, 7/5/11)
+         ! SOAupdate: For SOA + semivolatile POA (hotp, mpayer, 7/5/11)
          ELSE IF ( N == IDTMTPA ) THEN
             NSOL         = NSOL + 1
             IDWETD(NSOL) = IDTMTPA
@@ -5540,7 +5474,7 @@
          ELSE IF ( N == IDTOPOG2 ) THEN
             NSOL         = NSOL + 1
             IDWETD(NSOL) = IDTOPOG2
-         ! End SOA + semivolatile POA
+         ! End SOAupdate
 
          !-----------------------------
          ! Dust aerosol tracers
@@ -5674,13 +5608,8 @@
          IF ( LSSALT )   NMAX = NMAX + 2        ! plus 2 seasalts
 
          IF ( LSOA ) THEN
-!-----------------------------------------------------------------------------
-! Prior to 7/5/11:
-! Increase NMAX for  SOA + semivolatile POA (hotp, mpayer, 7/5/11)
-!            ! (hotp 6/15/09) Add SOA5 and SOG5
-!            !IF ( LCARB ) NMAX = NMAX + 15       ! carbon + SOA aerosols
-!            IF ( LCARB ) NMAX = NMAX + 17       ! carbon + SOA aerosols
-!-----------------------------------------------------------------------------
+            ! SOAupdate: Increase NMAX from 17 to 32  SOA + semivol POA
+            !  (hotp, mpayer, 7/5/11)
             IF ( LCARB ) NMAX = NMAX + 32       ! carbon + SOA + semivol POA
             IF ( IDTSOAG /= 0 ) NMAX = NMAX + 1 ! SOAG deposition
             IF ( IDTSOAM /= 0 ) NMAX = NMAX + 1 ! SOAM deposition

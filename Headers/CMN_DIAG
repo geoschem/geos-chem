@@ -74,7 +74,7 @@
       ! Now set PD52 to 1 (jaegle 2/26/09)
       ! Increase PD46 from 6 to 13 (mpb, ccc, 11/19/09)
       ! increase PD21 from 20 to 27 (clh, 05/06/10)
-      ! Increase PD46 from 13 to 17 (hotp, mpayer, 6/28/11)
+      ! Increase PD46 from 13 to 17 for SOAupdate (hotp, mpayer, 6/28/11)
 
       INTEGER, PARAMETER :: PD01=3            
       INTEGER, PARAMETER :: PD02=3

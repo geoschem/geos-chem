@@ -34,7 +34,7 @@
 !+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 !
 ! New biogenic VOC emissions (mpb,2009) 
-! Added sesquiterpenes (#11-14) (hotp, mpayer, 6/28/11)
+! SOaupdate: Added sesquiterpenes (#11-14) (hotp, mpayer, 6/28/11)
 !
 !     ---------------------------
 !     Species            | Order 
@@ -71,7 +71,7 @@
 ! NOTE: ALD2 is not emitted in GEIA so we don't need an array for
 !       it below...but it is emitted in EMEP.  It will be saved
 !       into the EMISRR array for SMVGEAR. (bdf, bmy, 11/1/05)
-! Added naphthalene emissions (hotp, mpayer, 6/28/11)
+! SOAupdate: Added naphthalene emissions (hotp, mpayer, 6/28/11)
 
       REAL*4 EMISTNOX,EMISTCO,EMISTETHE,EMISTPRPE,EMISTC2H6,            &
      &       EMISTC3H8,EMISTALK4,EMISTACET,EMISTMEK,EMISTSOX,           &

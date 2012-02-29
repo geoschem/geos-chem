@@ -327,7 +327,7 @@ C
 C
 C *********************************************************************
 C *         ZERO OUT ISOPRENE-NO3 OXIDATION COUNTER SPECIES
-C *                   (hotp, mpayer, 7/27/11)  
+C *                 SOAupdate (hotp, mpayer, 7/27/11)  
 C *********************************************************************
 C LISOPNO3  = Dummy species for tracking loss of isoprene due to rxn w/ NO3
 C ILISOPNO3 = Location of LISOPNO3 in CSPEC (tracerid_mod.f)
@@ -354,8 +354,8 @@ C ILTRO2H  Location of LTRO2H in CSPEC
 C ILTRO2N  Location of LTRO2N in CSPEC
 C ILXRO2H  Location of LXRO2H in CSPEC
 C ILXRO2N  Location of LXRO2N in CSPEC
-C ILLNRO2H Location of LNRO2H in CSPEC ! (hotp, mpayer, 7/27/11)
-C ILLNRO2N Location of LNRO2N in CSPEC ! (hotp, mpayer, 7/27/11)
+C ILNRO2H  Location of LNRO2H in CSPEC  (hotp, mpayer, 7/27/11)
+C ILNRO2N  Location of LNRO2N in CSPEC  (hotp, mpayer, 7/27/11)
 
       ! Check if we have 2dy organic aerosols
       IF ( LSOA ) THEN
@@ -378,10 +378,10 @@ C ILLNRO2N Location of LNRO2N in CSPEC ! (hotp, mpayer, 7/27/11)
                CSPEC(JLOOP,ILXRO2N) = 0d0
             ENDDO
 
-            ! Allow NAP to be present or not in reactions (hotp,mpayer,7/27/11)
-            IF ( ILNRO2H > 0 .and.
-     &           ILNRO2N > 0  ) THEN
-               DO JLOOP      = 1, NTLOOP
+            ! SOAupdate: Allow NAP to be present or not in reactions
+            ! (hotp,mpayer,7/27/11)
+            IF ( ILNRO2H > 0 .and. ILNRO2N > 0  ) THEN
+               DO JLOOP = 1, NTLOOP
                   ! Add NAP species
                   CSPEC(JLOOP,ILNRO2H) = 0d0
                   CSPEC(JLOOP,ILNRO2N) = 0d0

@@ -421,7 +421,8 @@
       ! add support for making restart files of APROD and GPROD (dkh, 11/09/06)  
       IF ( LSOA ) THEN
 
-         ! APROD GPROD not used in SOA + semivol POA (hotp, mpayer, 7/27/11)
+         ! SOApudate APROD GPROD not used in SOA + semivol POA
+         ! (hotp, mpayer, 7/27/11)
          IF ( .NOT. LSVPOA ) THEN
 
             !! use this to make initial soaprod files  
@@ -439,7 +440,7 @@
             CALL SET_SOAPROD
             CALL READ_SOAPROD_FILE( GET_NYMDb(), GET_NHMSb() )
 
-         ENDIF ! NOT LSVPOA
+         ENDIF
 
       ENDIF
 
@@ -535,7 +536,7 @@
 !               ENDIF
 
                IF ( LSOA .and. LCHEM ) THEN
-                  ! APROD GPROD not used in SOA + semivolatile POA
+                  ! SOAupdate: APROD GPROD not used in SOA + semivolatile POA
                   ! (hotp, mpayer, 7/27/11)
                   IF ( .NOT. LSVPOA ) THEN
                      CALL MAKE_SOAPROD_FILE( GET_NYMD(), GET_NHMS() )
@@ -544,7 +545,7 @@
                      IF ( LPRT ) THEN
                        CALL DEBUG_MSG( '### MAIN: a MAKE_SOAPROD_FILE' )
                      ENDIF
-                  ENDIF ! NOT LSVPOA
+                  ENDIF
                ENDIF
 
                ! Save species concentrations (CSPEC_FULL). (dkh, 02/12/09)

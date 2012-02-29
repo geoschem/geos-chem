@@ -423,13 +423,14 @@ C
       COMMON /SPECIE3/   C3090S,      C0030S,    C0030N,   C3090N
 
       ! Added for tracking oxidation of ISOP by OH (dkh, bmy, 6/1/06)
-      ! Added for tracking oxidation of ISOP by NO3 (hotp, mpayer, 6/28/11)
+      ! SOAupdate: Added for tracking oxidation of ISOP by NO3 (hotp, mpayer,
+      !  6/28/11)
       INTEGER ::         ILISOPOH, ILISOPNO3
       COMMON /SPECIE4/   ILISOPOH, ILISOPNO3
 
       ! Added for tracking oxidation of aromatic RO2s (dkh, 10/06/06)  
       ! bug fix: change to INTEGER (dbm, dkh, 06/26/07)
-      ! Added ILNRO2H and ILNRO2N (hotp, mpayer, 6/28/11) 
+      ! SOAupdate: Added ILNRO2H and ILNRO2N (hotp, mpayer, 6/28/11) 
       INTEGER ::         ILBRO2H,    ILBRO2N,   ILTRO2H,  ILTRO2N
       INTEGER ::         ILXRO2H,    ILXRO2N,   ILNRO2H,  ILNRO2N
       COMMON /SPECIE5/   ILBRO2H,    ILBRO2N,   ILTRO2H,  ILTRO2N,

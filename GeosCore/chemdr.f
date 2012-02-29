@@ -343,9 +343,10 @@
          !### Debug
          IF ( LPRT ) CALL DEBUG_MSG( '### CHEMDR: after SETEMDEP' )
 
-         !--------------------------------------------------------------
-         ! Check ILISOPNO3 for SOA + semivol POA (hotp, mpayer, 7/27/11)
-         !--------------------------------------------------------------
+         !---------------------------------------------------
+         ! SOAupdate: Check ILISOPNO3 for SOA + semivol POA
+         !  (hotp, mpayer, 7/27/11)
+         !---------------------------------------------------
          IF ( LSVPOA .and. ILISOPNO3 == 0 ) THEN
             CALL ERROR_STOP( 
      &         'IDLISOPNO3 needs to be defined for SOA + semivol POA!',

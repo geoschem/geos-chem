@@ -391,12 +391,8 @@
 #if   defined( TOMAS )
       INTEGER, PARAMETER :: NNPAR   = 320   ! For TOMAS (win, bmy, 1/25/10)
 #else
-      ! increase NNPAR to 100 (FP 8/2009)
-!-----------------------------------------------------------------------
-! Prior to 6/28/11:
-! Increase NNPAR to 100 for SOA + semivol POA (hotp, mpayer, 6/28/11)
-!      INTEGER, PARAMETER :: NNPAR   = 75    ! for non-TOMAS simulations
-!-----------------------------------------------------------------------
+      ! SOAupdate: Increase NNPAR from 75 to 100 for SOA + semivol POA
+      !  (hotp, mpayer,6/28/11)
       INTEGER, PARAMETER :: NNPAR   = 100   ! For non-TOMAS with SOA
 
 #endif
@@ -463,7 +459,7 @@
       !NBIOMAX -- biomass burning
       ! increase NBIOMAX to 20 (hotp 7/31/09)
       ! increase NBIOMAX to 24 for dicarbonyls (ccc, 2/02/10)
-      ! increase NBIOMAX to 25 to include napthalene (hotp, mpayer, 6/28/11)
+      ! SOAupdate: increase NBIOMAX to 25 for napthalene (hotp, mpayer,6/28/11)
       INTEGER, PARAMETER :: NBIOMAX = 25 
 
 #if   defined( TOMAS )

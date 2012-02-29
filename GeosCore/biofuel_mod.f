@@ -116,11 +116,7 @@
       ! MODULE VARIABLES
       !=================================================================
 
-!-----------------------------------------------------------------------
-! Prior to 7/6/11:
-! Increase NMFMAX to 20 for NAP (hotp, mpayer, 7/6/11)
-!      INTEGER, PARAMETER  :: NBFMAX = 19
-!-----------------------------------------------------------------------
+      ! SOAupdate: Increase NBFMAX from 19 to 20 for NAP (hotp, mpayer, 7/6/11)
       INTEGER, PARAMETER  :: NBFMAX = 20
 
       INTEGER             :: NBFTRACE
@@ -229,7 +225,7 @@
       USE TRACERID_MOD,         ONLY : IDBFBENZ,IDBFTOLU,IDBFXYLE
       USE TRACERID_MOD,         ONLY : IDBFGLYX,IDBFMGLY,IDBFC2H4
       USE TRACERID_MOD,         ONLY : IDBFC2H2,IDBFGLYC,IDBFHAC
-      ! For gas-phase NAP chemistry and emissions (hotp, mpayer, 7/6/11)
+      ! SOAupdate: For gas-phase NAP chemistry and emiss (hotp, mpayer, 7/6/11)
       USE TRACERID_MOD,         ONLY : IDTNAP
       USE TRACER_MOD,           ONLY : ITS_A_FULLCHEM_SIM 
       USE TRACER_MOD,           ONLY : ITS_A_TAGCO_SIM
@@ -251,7 +247,6 @@
       REAL*4                        :: ARRAY(IGLOB,JGLOB,1)
       REAL*8,  SAVE                 :: MOLWT(NBFMAX)
       REAL*8                        :: TOTAL, BXHEIGHT_CM, EPA_NEI
-      REAL*8                        :: COSCALEDOWN  ! (hotp, mpayer, 7/6/11)
       CHARACTER(LEN=255)            :: FILENAME 
       
       ! External functions
@@ -259,7 +254,10 @@
 
       REAL*8                        :: BF_CO( IIPAR, JJPAR )  ! Biofuel emission of CO [molec/cm2/s]
       
-      ! Scale up NAP emissions (hotp, mpayer, 7/6/11)
+      ! SOAupdate: Scale CO down & remove effect of VOC ox (hotp,mpayer,7/6/11)
+      REAL*8                        :: COSCALEDOWN
+
+      ! SOAupdate: Scale up NAP emissions (hotp, mpayer, 7/6/11)
       REAL*8, PARAMETER             :: NAPTOTALSCALE = 66.09027d0
 
       !=================================================================
@@ -765,15 +763,15 @@
 
             ELSE IF ( NN == IDTNAP ) THEN
 
-               !----------------
-               ! Biofuel NAP
+               !------------------------
+               ! SOAupdate: Biofuel NAP
                ! (hotp, mpayer, 7/6/11)
-               !----------------
+               !------------------------
 
-               ! Scale down CO to account for VOC oxidation (default value)
+               ! Remove extra CO to account for VOC oxidation (default value)
                COSCALEDOWN = 1d0
 
-               ! Scale based on simulation type
+               ! Adjust based on simulation type
                IF ( ITS_A_FULLCHEM_SIM() ) THEN
                    COSCALEDOWN = 1d0/1.086d0
                ELSE IF ( ITS_A_TAGCO_SIM() ) THEN
@@ -781,13 +779,16 @@
                ENDIF
 
                ! Emmision ratio NAP/CO = 0.0701d-3 [mole/mole]
+               !
                ! NAP emiss = 0.025 g NAP/kg DM (Table 4, Hays et al, 2002)
                ! CO  emiss =    78 g CO /kg DM (Table 1, Andreae & Merlet,2001)
-               ! Scale emissions down if appropriate using COSCALEDOWN
+               !
+               ! Scale emissions down if appropriate to remove the
+               ! effect of VOC ox on CO emission
                BIOFUEL_KG(N,:,:) = BIOFUEL_KG(IDBFCO,:,:) * 0.0701d-3 
      &                             * 120d0 / 28d0 * COSCALEDOWN ! [kg C/box/yr]
 
-               ! Scale up total
+               ! Scale up NAP emiss
                BIOFUEL_KG(N,:,:) = BIOFUEL_KG(N,:,:) * NAPTOTALSCALE
 
                ! Set NAP emissions according to input.geos
@@ -877,16 +878,12 @@
 
                   ! We do not have EPA/NEI biofuel emission.  
                   ! Use default emission for the newly added species. 
-                  ! (tmf, 1/8/08) 
+                  ! (tmf, 1/8/08)
+                  ! SOAupdate: Add NAP (hotp, mpayer, 7/6/11) 
                   IF ( (NN /= IDTGLYX) .and. (NN /= IDTMGLY) .and. 
      &                 (NN /= IDTBENZ) .and. (NN /= IDTTOLU) .and.
      &                 (NN /= IDTXYLE) .and. (NN /= IDTC2H4) .and.
      &                 (NN /= IDTC2H2) .and. (NN /= IDTGLYC) .and.
-!-----------------------------------------------------------------------
-! Prior to 7/6/11:
-! Add NAP for SOA + semivolatile POA (hotp, mpayer, 7/6/11)
-!     &                 (NN /= IDTHAC ) ) THEN
-!-----------------------------------------------------------------------
      &                 (NN /= IDTHAC ) .and. (NN /= IDTNAP ) ) THEN
 
                      ! Get EPA/NEI biofuel [molec/cm2/s or atoms C/cm2/s]
@@ -1016,7 +1013,7 @@
      &                  BIOFUEL(IDBFCO,I,J) * 3.31d-3             
                   ENDIF
 
-                  ! NAP (hotp, mpayer, 7/6/11)
+                  ! SOAupdate: NAP (hotp, mpayer, 7/6/11)
                   IF ( IDBFNAP > 0 ) THEN
                   BIOFUEL(IDBFNAP,I,J) = 
      &                 BIOFUEL(IDBFCO,I,J) * 0.0701d-3 * 10.d0 *
@@ -1259,6 +1256,7 @@
       USE TRACERID_MOD, ONLY : IDTGLYX,  IDTMGLY,  IDTBENZ,  IDTTOLU
       USE TRACERID_MOD, ONLY : IDTXYLE,  IDTC2H4,  IDTC2H2,  IDTGLYC
       USE TRACERID_MOD, ONLY : IDTHAC
+      ! SOAupdate: For gas-phase NAP chemistry and emiss (hotp, mpayer, 7/6/11)
       USE TRACERID_MOD, ONLY : IDTNAP
       USE TRACERID_MOD, ONLY : IDBFNAP
 

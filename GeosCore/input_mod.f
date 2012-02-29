@@ -1053,7 +1053,7 @@
       USE TRACERID_MOD, ONLY : IDTDST1,  IDTDST2,  IDTDST3, IDTDST4
       USE TRACERID_MOD, ONLY : IDTSALA,  IDTSALC 
       USE TRACERID_MOD, ONLY : IDTSOAG,  IDTSOAM,  IDTSOA5
-      ! For SOA + semivolatile POA (hotp, mpayer, 7/15/11)
+      ! SOAupdate: For SOA + semivolatile POA (hotp, mpayer, 7/15/11)
       USE TRACERID_MOD, ONLY : IDTMTPA,  IDTMTPO
       USE TRACERID_MOD, ONLY : IDTBENZ,  IDTTOLU,  IDTXYLE
       USE TRACERID_MOD, ONLY : IDTTSOA1, IDTTSOA2, IDTTSOA3
@@ -1127,21 +1127,15 @@
       CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_aerosol_menu:10' )
       READ( SUBSTRS(1:N), * ) LDICARB
 
-!-----------------------------------------------------------------------
-! Prior to 7/15/11:
-! Add lines for SOA + semivolatile POA options (hotp, mpayer, 7/15/11)
-!      ! Separator line
-!      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_aerosol_menu:11' )
-!-----------------------------------------------------------------------
-      ! Use SOA + semivolatile POA option? 
+      ! SOAupdate: Use SOA + semivolatile POA option? 
       CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_aerosol_menu:11' )
       READ( SUBSTRS(1:N), * ) LSVPOA
 
-      ! Naphthanele (IVOC surrogate) emissions [Tg/yr]
+      ! SOAupdate: Naphthanele (IVOC surrogate) emissions [Tg/yr]
       CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_aerosol_menu:12' )
       READ( SUBSTRS(1:N), * ) NAPEMISS
 
-      ! POA emission scale
+      ! SOAupdate: POA emission scale
       CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_aerosol_menu:13' )
       READ( SUBSTRS(1:N), * ) POAEMISSSCALE
 
@@ -1244,10 +1238,7 @@
       !---------------------------------
       ! Error check CARBON AEROSOLS
       !---------------------------------
-!-----------------------------------------------------------------------
-! Prior to 7/15/11:
-!      I = IDTBCPO + IDTBCPI + IDTOCPO + IDTOCPI
-!-----------------------------------------------------------------------
+      ! SOAupdate: Add IDTPOA1 (hotp, mpayer, 7/15/11)
       I = IDTBCPO + IDTBCPI + IDTOCPO + IDTOCPI + IDTPOA1
 
       IF ( LCARB ) THEN
@@ -1262,8 +1253,18 @@
          ENDIF
       ENDIF
 
+      !-----------------------------------------------
+      ! SOAupdate: Error check SOA + semivolatile POA
+      ! (hotp, mpayer, 7/15/11)
+      !-----------------------------------------------
+      IF ( LSVPOA .and. ( .NOT. LSOA ) ) THEN
+         MSG = 'SOA + Semivolatile POA requires LSOA=T'
+         CALL ERROR_STOP( MSG, LOCATION )
+      ENDIF
+
       !---------------------------------
-      ! Error check POA (hotp, mpayer, 7/15/11)
+      ! SOAupdate: Error check POA
+      ! (hotp, mpayer, 7/15/11)
       !---------------------------------
       ! OCPI and OCPO are the non-volatile POA tracers
       ! POA (along w/ POG, OPOA, and OPOG) are the semivol POA tracers
@@ -1271,12 +1272,12 @@
       I = IDTOCPI + IDTOCPO
       IF ( IDTPOA1 > 0 ) THEN
          IF ( I > 0 ) THEN
-            MSG = 'SEMIVOLATILE POA TRACER IS DEFINED IN ADDITION TO
-     &             NONVOLATILE POA'
+            MSG = 'Semivolatile POA tracer is defined in addition to
+     &             Nonvolatile POA'
             CALL ERROR_STOP( MSG, LOCATION )
          ENDIF
-         IF ( .NOT. LSOA ) THEN
-            MSG = ' SEMIVOLATILE POA REQUIRES LSOA=T'
+         IF ( ( .NOT. LSOA ) .or. (.NOT. LSVPOA ) ) THEN
+            MSG = 'Semivolatile POA requires LSOA=T and LSVPOA=T'
             CALL ERROR_STOP( MSG, LOCATION )
          ENDIF
       ENDIF
@@ -1306,34 +1307,55 @@
       ! Error check 2dy ORG AEROSOLS
       !---------------------------------
 
-      ! Define I based on using SOA + semivolatile POA or traditional
-      ! SOA simulation (hotp, mpayer, 7/15/11)
+      ! SOAupdate: Define I based on using SOA + semivolatile POA or
+      ! traditional SOA simulation (hotp, mpayer, 7/15/11)
       IF ( LSVPOA ) THEN
-         !%%% SOA + semivolatile POA %%%
+
+         !------------------------
+         ! SOA + semivolatile POA
+         !------------------------
+
          I = IDTMTPA  + IDTLIMO  + IDTMTPO  + 
      &       IDTBENZ  + IDTTOLU  + IDTXYLE  +
      &       IDTTSOA1 + IDTTSOA2 + IDTTSOA3 +
      &       IDTISOA1 + IDTISOA2 + IDTISOA3 +
      &       IDTASOA1 + IDTASOA2 + IDTASOA3 + IDTASOAN +
      &       IDTSOAG  + IDTSOAM
-      ELSE
-         !%%% Traditional SOA %%%
-         I = IDTALPH + IDTLIMO + IDTALCO + 
-     &       IDTSOG1 + IDTSOG2 + IDTSOG3 + IDTSOG4 + 
-     &       IDTSOA1 + IDTSOA2 + IDTSOA3 + IDTSOA4 + 
-     &       IDTSOAG + IDTSOAM + IDTSOA5
-      ENDIF
 
-      IF ( LSOA ) THEN
          IF ( I == 0 ) THEN
-            MSG = 'LSOA=T but ONLINE 2dy ORG AEROSOLS are undefined!'
+            MSG = 'LSVPOA=T but ONLINE 2dy ORG AEROSOLS are undefined!'
             CALL ERROR_STOP( MSG, LOCATION )
          ENDIF
       ELSE
          IF ( I > 0 ) THEN
-            MSG = 'Cannot use ONLINE 2dy ORG AEROSOLS if LSOA=F!'
+            MSG = 'Cannot use ONLINE 2dy ORG AEROSOLS if LSVPOA=F!'
             CALL ERROR_STOP( MSG, LOCATION )
          ENDIF
+      ENDIF
+
+      IF ( .not. LSVPOA) THEN
+
+         !------------------------
+         ! Traditional SOA
+         !------------------------
+
+         I = IDTALPH + IDTLIMO + IDTALCO + 
+     &       IDTSOG1 + IDTSOG2 + IDTSOG3 + IDTSOG4 + 
+     &       IDTSOA1 + IDTSOA2 + IDTSOA3 + IDTSOA4 + 
+     &       IDTSOAG + IDTSOAM + IDTSOA5
+
+         IF ( LSOA ) THEN
+            IF ( I == 0 ) THEN
+               MSG = 'LSOA=T but ONLINE 2dy ORG AEROSOLS are undefined!'
+               CALL ERROR_STOP( MSG, LOCATION )
+            ENDIF
+         ELSE
+            IF ( I > 0 ) THEN
+               MSG = 'Cannot use ONLINE 2dy ORG AEROSOLS if LSOA=F!'
+               CALL ERROR_STOP( MSG, LOCATION )
+            ENDIF
+         ENDIF
+
       ENDIF
 
       !---------------------------------
@@ -5162,7 +5184,7 @@
       USE LOGICAL_MOD,   ONLY : LLINOZ
       ! Add flags for MODIS LAI & the PCEEA model (mpb,2009)
       USE LOGICAL_MOD,   ONLY : LMODISLAI,  LPECCA
-      ! For SOA + semivolatile POA (hotp, mpayer, 7/15/11)
+      ! SOAupdate: For SOA + semivolatile POA (hotp, mpayer, 7/15/11)
       USE LOGICAL_MOD,   ONLY : LSVPOA,     NAPEMISS,   POAEMISSSCALE
       
       !=================================================================
@@ -5253,7 +5275,7 @@
       LPECCA       = .FALSE.
       LSVPOA       = .FALSE.
 
-      ! Initialize for SOA + semivol POA (hotp, mpayer, 7/15/11)
+      ! SOAupdate: Initialize for SOA + semivol POA (hotp, mpayer, 7/15/11)
       POAEMISSSCALE= 0d0
       NAPEMISS     = 0d0
 

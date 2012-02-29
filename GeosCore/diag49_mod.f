@@ -838,13 +838,6 @@
 !$OMP END PARALLEL DO
             ENDDO
 
-!-----------------------------------------------------------------------
-! Prior to 7/29/11:
-! For traditional SOA keep original numbering (115-121 for DUST OPTD); 
-! For SOA + semivol POA change numbers to 116-122 (see below), since
-!  FARN is 115 (mpayer, 7/29/11)
-!         !ELSE IF (N > 114) THEN
-!-----------------------------------------------------------------------
          ELSE IF (N > 114 .AND. ( .NOT. LSVPOA ) ) THEN
 
             !--------------------------------------
@@ -876,6 +869,8 @@
                ENDDO
 !$OMP END PARALLEL DO
 
+         ! SOAupdate: For SOA + semivol POA change DUST OPTD to 116-122
+         ! since farnesene emiss is 115 (mpayer, 7/29/11)
          ELSE IF (N > 115 .AND. LSVPOA ) THEN
 
             !--------------------------------------
@@ -1425,10 +1420,11 @@
             ENDDO
 !$OMP END PARALLEL DO
 
+         ! SOAupdate: Add FARN emissions (hotp, mpayer, 7/12/11)
          ELSE IF ( N == 115 .AND. LSVPOA ) THEN
             
             !-----------------------------------
-            ! Farnesene EMISSIONS  (hotp, mpayer, 7/12/11)
+            ! Farnesene EMISSIONS
             ! [atom C/cm2/s]
             !-----------------------------------
             CATEGORY = 'BIOGSRCE'
@@ -1448,7 +1444,8 @@
             ENDDO
 !$OMP END PARALLEL DO
 
-            ! can add 12-14: BCARYO, OSQT, OMTP if desired (hotp 7/25/10)
+         ! SOAupdate: Can add 12-14: BCARYO, OSQT, OMTP if desired
+         ! (hotp 7/25/10); Would need to adjust DUST OPTD #s accordingly.
 
          ELSE
 

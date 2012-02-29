@@ -60,7 +60,7 @@
       REAL*8, PARAMETER   :: RAD2D =    180.0d0 / 3.14159d0  ! Radians -> Deg
       REAL*8, PARAMETER   :: PI    =  3.14159d0              ! PI
 
-      ! Megan group IDs (from MEGAN CDP) (hotp, mpayer, 7/13/11)
+      ! SOAupdate: Megan group IDs (from MEGAN CDP) (hotp, mpayer, 7/13/11)
       ! Used to locate species within EF and AEF_GEN arrays
       INTEGER, PARAMETER  :: IDMGFARN = 10  ! farnesene
       INTEGER, PARAMETER  :: IDMGBCAR = 11  ! beta-caryophyllene
@@ -104,7 +104,7 @@
       !REAL*8, ALLOCATABLE :: AEF_SPARE(:,:)     ! Temp array for monoterp's
       REAL*8, ALLOCATABLE :: AEF_GEN(:,:,:)     ! Generic (all 20 MEGAN groups)
 
-      ! Plant functional types (hotp, mpayer, 7/13/11)
+      ! SOAupdate: Plant functional types (hotp, mpayer, 7/13/11)
       REAL*8, ALLOCATABLE :: PFT_BT(:,:)        ! broadleaf trees
       REAL*8, ALLOCATABLE :: PFT_NT(:,:)        ! needleleaf trees
       REAL*8, ALLOCATABLE :: PFT_SH(:,:)        ! shrubs
@@ -753,8 +753,6 @@
 !------------------------------------------------------------------------------
 !BOP
 !
-! %%% THIS SUBROUTINE IS FOR SOA + SEMIVOLATILE POA SIMULATION %%%
-!
 ! !IROUTINE: get_emterp_megan
 !
 ! !DESCRIPTION: Function GET\_EMTERP\_MEGAN computes terpene (monoterpene +
@@ -792,6 +790,10 @@
       REAL*8                       :: EMTERP        ! Emissions [atoms C/box]
 !
 ! !REMARKS:
+!  %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+!  %%% THIS SUBROUTINE IS FOR SOA + SEMIVOLATILE POA SIMULATION %%%
+!  %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+!                                                                             .
 !  References (see above for full citations):
 !  ============================================================================
 !  (1 ) Guenther et al, 1995, 1999, 2004, 2006
@@ -985,8 +987,6 @@
 !------------------------------------------------------------------------------
 !BOP
 !
-! %%% THIS SUBROUTINE IS FOR SOA + SEMIVOLATILE POA SIMULATION %%%
-!
 ! !IROUTINE: get_tot_emterp_megan
 !
 ! !DESCRIPTION: Function GET\_TOT\_EMTERP\_MEGAN computes the total 
@@ -1020,6 +1020,10 @@
       REAL*8              :: TOT_EMTERP ! Total terpene emissions [atoms C/box]
 !
 ! !REMARKS:
+!  %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+!  %%% THIS SUBROUTINE IS FOR SOA + SEMIVOLATILE POA SIMULATION %%%
+!  %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+!                                                                             .
 !  References (see above for full citations):
 !  ============================================================================
 !  (1 ) Guenther et al, 1995, 1999, 2000, 2006
@@ -1832,11 +1836,7 @@
       INTEGER            :: AINDX
  
       ! Use species specific relative emission activity factors (mpb,2008)
-!-----------------------------------------------------------------------
-! Prior to 7/13/11:
-! Increase to 5 for sesquiterpenes (hotp, mpayer, 7/13/11)
-!      INTEGER, PARAMETER :: N_CAT = 4
-!-----------------------------------------------------------------------
+      ! SOAupdate: Increase N_CAT from 4 to 5 for sesq (hotp, mpayer, 7/13/11)
       INTEGER, PARAMETER :: N_CAT = 5
       REAL*8             :: ANEW(N_CAT)
       REAL*8             :: AGRO(N_CAT)
@@ -1856,17 +1856,14 @@
       ! Current set-up (v7-04-11) - used for other VOCs (OVOC)
       DATA    ANEW(  4),  AGRO(  4),  AMAT(  4),  ASEN(  4)
      &     /  0.01d0   ,  0.5d0    ,  1.00d0   ,  0.33d0     /
-      ! Sesquiterpenes (from MEGANv2.04/src/EMPROC/INCLDIR)
+      ! SOAupdate: Sesquiterpenes - from MEGANv2.04/src/EMPROC/INCLDIR
       ! (hotp, mpayer, 7/13/11)
       DATA    ANEW(  5),  AGRO(  5),  AMAT(  5),  ASEN(  5)
      &     /  0.4d0   ,  0.6d0    ,  1.075d0   ,  1.0d0     /
 
       ! Normalization factors
-!-----------------------------------------------------------------------
-! Prior to 7/13/11:
-! Add NORM_V(5) = 1/[0.1*0.6 + 0.1*1 + 0.8*1.075] (hotp, mpayer, 7/13/11)
-!      DATA   NORM_V(1) , NORM_V(2) , NORM_V(3) , NORM_V(4)
-!-----------------------------------------------------------------------
+      ! SOAupdate: Add NORM_V(5) = 1/[0.1*0.6 + 0.1*1 + 0.8*1.075]
+      !  (hotp, mpayer, 7/13/11)
       DATA   NORM_V(1) , NORM_V(2) , NORM_V(3) , NORM_V(4), NORM_V(5) 
      &     /                 1.0d0 , ! Constant
      &       0.96153846153846145d0 , ! Monoterpenes
@@ -1940,7 +1937,7 @@
          AINDX = 3
       CASE ('OVOC')
          AINDX = 4
-      ! Add sesquiterpenes (hotp, mpayer, 7/13/11)
+      ! SOAupdate: Add sesquiterpenes (hotp, mpayer, 7/13/11)
       CASE ('SESQ')
          AINDX = 5
       CASE DEFAULT
@@ -2943,8 +2940,6 @@
 !------------------------------------------------------------------------------
 !BOP
 !
-! %%% THIS SUBROUTINE IS FOR SOA + SEMIVOLATILE POA SIMULATION %%%
-!
 ! !IROUTINE: read_pft
 !
 ! !DESCRIPTION: Subroutine READ\_PFT reads the MEGAN v2.1 plant functional type
@@ -2965,6 +2960,12 @@
 #     include "CMN_SIZE"       ! Size parameters
 !
 ! !REMARKS:
+!  %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+!  %%% THIS SUBROUTINE IS FOR SOA + SEMIVOLATILE POA SIMULATION %%%
+!  %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+!                                                                             .
+!  Notes:
+!  ============================================================================
 !  (1 ) From the MEGAN Community Data Portal Documentation:
 !       http://acd.ucar.edu/~guenther/MEGAN/MEGAN.htm
 !       PFT: fraction of a grid covered by a plant functional type for the year
@@ -3113,8 +3114,6 @@
 !------------------------------------------------------------------------------
 !BOP
 !
-! %%% THIS SUBROUTINE IS FOR SOA + SEMIVOLATILE POA SIMULATION %%%
-!
 ! !IROUTINE: get_aef_gen
 !
 ! !DESCRIPTION: Subroutine GET\_AEF\_GEN creates AEFs for species without 
@@ -3136,6 +3135,12 @@
 #     include "CMN_SIZE"       ! Size parameters
 !
 ! !REMARKS:
+!  %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+!  %%% THIS SUBROUTINE IS FOR SOA + SEMIVOLATILE POA SIMULATION %%%
+!  %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+!                                                                             .
+!  Notes:
+!  ============================================================================
 !  (1 ) MEGAN CDP: MEGAN EFs originally from:
 !       http://cdp.ucar.edu (search for MEGAN)
 !       MEGAN_v2.04/src/MECHCONV/INCDIR/EF_MGN20.EXT
@@ -3398,7 +3403,7 @@
       IF ( AS /= 0 ) CALL ALLOC_ERR( 'PARDF_DAILY' )
       T_DAILY = 0d0
 
-      ! Only allocate PFT and AEG_GEN if using SOA + semivolatile POA
+      ! SOAupdate: Only allocate PFT and AEG_GEN if using SOA + semivol POA
       ! (hotp, mpayer, 7/13/11)
       IF ( LSVPOA ) THEN
 
@@ -3428,19 +3433,22 @@
 
       ENDIF
 
-      ! Read fractional coverage of PFTs from file
+      ! SOAupdate: Read fractional coverage of PFTs from file
+      ! (hotp, mpayer, 7/13/11)
       IF ( LSVPOA ) CALL READ_PFT
 
       ! Get annual emission factors for MEGAN inventory
 #if   defined( GRID05x0666 )
       CALL GET_AEF_05x0666     ! GEOS-5 nested grids only
 
-      ! Need GET_AEF_GEN for 05x0666 (hotp, mpayer, 7/13/11)
+      !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+      ! SOAupdate: Need GET_AEF_GEN for 05x0666 !
+      !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 #else
       CALL GET_AEF             ! Global simulations
 
-      ! Get annual emission factors for MEGAN inventory for species 
-      ! without geospatial information (hotp, mpayer, 7/13/11)
+      ! SOAupdate: Get annual emission factors for MEGAN inventory for
+      ! species without geospatial information (hotp, mpayer, 7/13/11)
       IF ( LSVPOA ) CALL GET_AEF_GEN
 #endif 
 

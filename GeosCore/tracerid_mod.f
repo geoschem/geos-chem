@@ -146,27 +146,27 @@
 !  (148) IDTNAP    (INTEGER) : NAP   index w/in STT array ("tracer_mod.f")
 !  (149) IDTMTPA   (INTEGER) : MTPA  index w/in STT array ("tracer_mod.f")
 !  (150) IDTMTPO   (INTEGER) : MTPO  index w/in STT array ("tracer_mod.f")
-!  (151) ISTASOAN  (INTEGER) : ASOAN index w/in STT array ("tracer_mod.f")
-!  (152) ISTASOA1  (INTEGER) : ASOA1 index w/in STT array ("tracer_mod.f")
-!  (153) ISTASOA2  (INTEGER) : ASOA2 index w/in STT array ("tracer_mod.f")
-!  (154) ISTASOA3  (INTEGER) : ASOA3 index w/in STT array ("tracer_mod.f")
-!  (155) ISTASOG1  (INTEGER) : ASOG1 index w/in STT array ("tracer_mod.f")
-!  (156) ISTASOG2  (INTEGER) : ASOG2 index w/in STT array ("tracer_mod.f")
-!  (157) ISTASOG3  (INTEGER) : ASOG3 index w/in STT array ("tracer_mod.f")
-!  (158) ISTTSOA1  (INTEGER) : TSOA1 index w/in STT array ("tracer_mod.f")
-!  (159) ISTTSOA2  (INTEGER) : TSOA2 index w/in STT array ("tracer_mod.f")
-!  (160) ISTTSOA3  (INTEGER) : TSOA3 index w/in STT array ("tracer_mod.f")
-!  (161) ISTTSOG1  (INTEGER) : TSOG1 index w/in STT array ("tracer_mod.f")
-!  (162) ISTTSOG2  (INTEGER) : TSOG2 index w/in STT array ("tracer_mod.f")
-!  (163) ISTTSOG3  (INTEGER) : TSOG3 index w/in STT array ("tracer_mod.f")
-!  (164) ISTTSOA0  (INTEGER) : TSOA0 index w/in STT array ("tracer_mod.f")
-!  (165) ISTTSOG0  (INTEGER) : TSOG0 index w/in STT array ("tracer_mod.f")
-!  (166) ISTISOA1  (INTEGER) : ISOA1 index w/in STT array ("tracer_mod.f")
-!  (167) ISTISOA2  (INTEGER) : ISOA2 index w/in STT array ("tracer_mod.f")
-!  (168) ISTISOA3  (INTEGER) : ISOA3 index w/in STT array ("tracer_mod.f")
-!  (169) ISTISOG1  (INTEGER) : ISOG1 index w/in STT array ("tracer_mod.f")
-!  (170) ISTISOG2  (INTEGER) : ISOG2 index w/in STT array ("tracer_mod.f")
-!  (171) ISTISOG3  (INTEGER) : ISOG3 index w/in STT array ("tracer_mod.f")
+!  (151) IDTASOAN  (INTEGER) : ASOAN index w/in STT array ("tracer_mod.f")
+!  (152) IDTASOA1  (INTEGER) : ASOA1 index w/in STT array ("tracer_mod.f")
+!  (153) IDTASOA2  (INTEGER) : ASOA2 index w/in STT array ("tracer_mod.f")
+!  (154) IDTASOA3  (INTEGER) : ASOA3 index w/in STT array ("tracer_mod.f")
+!  (155) IDTASOG1  (INTEGER) : ASOG1 index w/in STT array ("tracer_mod.f")
+!  (156) IDTASOG2  (INTEGER) : ASOG2 index w/in STT array ("tracer_mod.f")
+!  (157) IDTASOG3  (INTEGER) : ASOG3 index w/in STT array ("tracer_mod.f")
+!  (158) IDTTSOA1  (INTEGER) : TSOA1 index w/in STT array ("tracer_mod.f")
+!  (159) IDTTSOA2  (INTEGER) : TSOA2 index w/in STT array ("tracer_mod.f")
+!  (160) IDTTSOA3  (INTEGER) : TSOA3 index w/in STT array ("tracer_mod.f")
+!  (161) IDTTSOG1  (INTEGER) : TSOG1 index w/in STT array ("tracer_mod.f")
+!  (162) IDTTSOG2  (INTEGER) : TSOG2 index w/in STT array ("tracer_mod.f")
+!  (163) IDTTSOG3  (INTEGER) : TSOG3 index w/in STT array ("tracer_mod.f")
+!  (164) IDTTSOA0  (INTEGER) : TSOA0 index w/in STT array ("tracer_mod.f")
+!  (165) IDTTSOG0  (INTEGER) : TSOG0 index w/in STT array ("tracer_mod.f")
+!  (166) IDTISOA1  (INTEGER) : ISOA1 index w/in STT array ("tracer_mod.f")
+!  (167) IDTISOA2  (INTEGER) : ISOA2 index w/in STT array ("tracer_mod.f")
+!  (168) IDTISOA3  (INTEGER) : ISOA3 index w/in STT array ("tracer_mod.f")
+!  (169) IDTISOG1  (INTEGER) : ISOG1 index w/in STT array ("tracer_mod.f")
+!  (170) IDTISOG2  (INTEGER) : ISOG2 index w/in STT array ("tracer_mod.f")
+!  (171) IDTISOG3  (INTEGER) : ISOG3 index w/in STT array ("tracer_mod.f")
 !  (172) IDTPOA1   (INTEGER) : POA1  index w/in STT array ("tracer_mod.f")
 !  (173) IDTPOA2   (INTEGER) : POA2  index w/in STT array ("tracer_mod.f")
 !  (174) IDTPOG1   (INTEGER) : POG1  index w/in STT array ("tracer_mod.f")
@@ -225,7 +225,8 @@
       ! for CTM tracers
 !----------------------------------------------------------------------- 
 ! Prior to 6/29/11:
-! Increased NNNTRID to 100 for SOA + semivol POA (hotp, mpayer, 6/29/11)
+! SOAupdate: Increased NNNTRID to 100 for SOA + semivol POA 
+! (hotp, mpayer, 6/29/11)
 !!-- add tracers for new isoprene chemistry. (fp, 01/27/10)
 !      INTEGER, PARAMETER :: NNNTRID  = 75
 !!      INTEGER, PARAMETER :: MMMEMBER = 10
@@ -262,7 +263,7 @@
       INTEGER            :: IDLBRO2H, IDLBRO2N  
       INTEGER            :: IDLTRO2H, IDLTRO2N  
       INTEGER            :: IDLXRO2H, IDLXRO2N
-      ! For gas-phase NAP chemistry (hotp, mpayer, 6/29/11)
+      ! SOAupdate: For gas-phase NAP chemistry (hotp, mpayer, 6/29/11)
       INTEGER            :: IDNAP,    IDNRO2,  IDLNRO2H, IDLNRO2N
 
 
@@ -300,18 +301,18 @@
       INTEGER            :: IDTH2, IDTHD ! (hup, phs, 9/18/07)
       ! update for arom (dkh, 10/05/06)  
       INTEGER            :: IDTSOA5, IDTSOG5
-      ! For SOA + semivolatile POA (See Fig. 1, Pye et al, 2010)
+      ! SOAupdate: For SOA + semivolatile POA (See Fig. 1, Pye et al, 2010)
       ! (hotp, mpayer, 6/30/11)
       INTEGER            :: IDTNAP                       ! gasphase naphthalene
       INTEGER            :: IDTMTPA,  IDTMTPO            ! mtp gas precursors
-      INTEGER            :: IDTASOAN                     ! non-vol,low-NOx prod
-      INTEGER            :: IDTASOA1, IDTASOA2, IDTASOA3 ! semivol,low-NOx prod
-      INTEGER            :: IDTASOG1, IDTASOG2, IDTASOG3 ! semivol,low-NOx prod
       INTEGER            :: IDTTSOA1, IDTTSOA2, IDTTSOA3 ! mtp + sesq products
       INTEGER            :: IDTTSOG1, IDTTSOG2, IDTTSOG3 ! mtp + sesq products
       INTEGER            :: IDTTSOA0, IDTTSOG0           ! mtp + sesq products
       INTEGER            :: IDTISOA1, IDTISOA2, IDTISOA3 ! isoprene products
       INTEGER            :: IDTISOG1, IDTISOG2, IDTISOG3 ! isoprene products
+      INTEGER            :: IDTASOAN                     ! non-vol,low-NOx prod
+      INTEGER            :: IDTASOA1, IDTASOA2, IDTASOA3 ! semivol,low-NOx prod
+      INTEGER            :: IDTASOG1, IDTASOG2, IDTASOG3 ! semivol,low-NOx prod
       INTEGER            :: IDTPOA1,  IDTPOA2,  IDTPOG1,  IDTPOG2  ! SVOC prod
       INTEGER            :: IDTOPOA1, IDTOPOA2, IDTOPOG1, IDTOPOG2 ! OSVOC prod
 
@@ -773,33 +774,12 @@
             CASE ( 'SOA5' )
                IDTSOA5  = N
 
-            ! For SOA + semivol POA (hotp, mpayer, 6/30/11)
+            ! SOAupdate: For SOA + semivol POA (hotp, mpayer, 6/30/11)
             CASE ( 'MTPA' )
                IDTMTPA  = N
 
             CASE ( 'MTPO' )
                IDTMTPO  = N
-
-            CASE ( 'ASOAN' )
-               IDTASOAN = N
-
-            CASE ( 'ASOA1' )
-               IDTASOA1 = N
-
-            CASE ( 'ASOA2' )
-               IDTASOA2 = N
-
-            CASE ( 'ASOA3' )
-               IDTASOA3 = N
-
-            CASE ( 'ASOG1' )
-               IDTASOG1 = N
-
-            CASE ( 'ASOG2' )
-               IDTASOG2 = N
-
-            CASE ( 'ASOG3' )
-               IDTASOG3 = N
 
             CASE ( 'TSOA1' )
                IDTTSOA1  = N
@@ -843,6 +823,27 @@
             CASE ( 'ISOG3' )
                IDTISOG3  = N
 
+            CASE ( 'ASOAN' )
+               IDTASOAN = N
+
+            CASE ( 'ASOA1' )
+               IDTASOA1 = N
+
+            CASE ( 'ASOA2' )
+               IDTASOA2 = N
+
+            CASE ( 'ASOA3' )
+               IDTASOA3 = N
+
+            CASE ( 'ASOG1' )
+               IDTASOG1 = N
+
+            CASE ( 'ASOG2' )
+               IDTASOG2 = N
+
+            CASE ( 'ASOG3' )
+               IDTASOG3 = N
+
             CASE ( 'POA1' )
                IDTPOA1   = N
                COUNT_BB = COUNT_BB + 1
@@ -868,7 +869,7 @@
 
             CASE ( 'OPOG2' )
                IDTOPOG2  = N
-            ! End SOA + semivolatile POA
+            ! End SOAupdate
 
             !--------------------------------
             ! Mineral dust aerosols
@@ -941,7 +942,8 @@
                IDBXYLE  = COUNT_BB
 
             !-------------------------------
-            ! Naphthalene (hotp, mpayer, 6/30/11)
+            ! SOAupdate: Naphthalene
+            ! (hotp, mpayer, 6/30/11)
             !-------------------------------
             CASE ( 'NAP' )
                COUNT    = COUNT + 1
@@ -1320,7 +1322,7 @@
             NEMANTHRO = NEMANTHRO + 1
             IDEXYLE   = NEMANTHRO
          ENDIF
-         ! NAP emissions for SOA + semivol POA (hotp, mpayer, 6/30/11)
+         ! SOAupdate: NAP for SOA + semivol POA (hotp, mpayer, 6/30/11)
          IF ( IDTNAP  > 0 ) THEN
             NEMANTHRO = NEMANTHRO + 1
             IDENAP    = NEMANTHRO
@@ -1409,10 +1411,6 @@
        WRITE( 6, 115 ) 'NEMANTHRO: 10 for standard sims b4 v811'
        WRITE( 6, 115 ) '          + 2 for HNO3 and Ox'
        WRITE( 6, 115 ) '          + 5 for aromatics (B,T,X, C2H2, C2H4)'
-!-----------------------------------------------------------------------
-! Prior to 6/30/11:
-!       WRITE( 6, 115 ) 'NEMANTHRO: 17 max'
-!-----------------------------------------------------------------------
        WRITE( 6, 115 ) '          + 1 for NAP' ! (hotp, mpayer, 6/30/11)
        WRITE( 6, 115 ) 'NEMANTHRO: 18 max'
        WRITE( 6, 120 ) 'THIS NEMANTHRO: ', NEMANTHRO
@@ -1577,15 +1575,12 @@
          IF ( NAMEGAS(I) == 'LTRO2H'   ) IDLTRO2H   = I
          IF ( NAMEGAS(I) == 'LTRO2N'   ) IDLTRO2N   = I
          IF ( NAMEGAS(I) == 'LXRO2H'   ) IDLXRO2H   = I
-         IF ( NAMEGAS(I) == 'LXRO2N'   ) IDLXRO2N   = I
-         
-         ! For SOA + semivol POA (hotp,mpayer,6/30/11)
-         IF ( LSVPOA ) THEN
-            IF ( NAMEGAS(I) == 'NAP'      ) IDNAP      = I 
-            IF ( NAMEGAS(I) == 'NRO2'     ) IDNRO2     = I
-            IF ( NAMEGAS(I) == 'LNRO2H'   ) IDLNRO2H   = I
-            IF ( NAMEGAS(I) == 'LNRO2N'   ) IDLNRO2N   = I
-         ENDIF
+         IF ( NAMEGAS(I) == 'LXRO2N'   ) IDLXRO2N   = I         
+         ! SOAupdate: For SOA + semivol POA (hotp, mpayer, 6/30/11)
+         IF ( NAMEGAS(I) == 'NAP'      ) IDNAP      = I 
+         IF ( NAMEGAS(I) == 'NRO2'     ) IDNRO2     = I
+         IF ( NAMEGAS(I) == 'LNRO2H'   ) IDLNRO2H   = I
+         IF ( NAMEGAS(I) == 'LNRO2N'   ) IDLNRO2N   = I
       ENDDO
 
       !=================================================================
@@ -2064,10 +2059,11 @@
       IDLTRO2N  = 0
       IDLXRO2H  = 0
       IDLXRO2N  = 0
-      IDNAP     = 0 ! (hotp, mpayer, 6/30/11)
-      IDNRO2    = 0 ! (hotp, mpayer, 6/30/11)
-      IDLNRO2H  = 0 ! (hotp, mpayer, 6/30/11)
-      IDLNRO2N  = 0 ! (hotp, mpayer, 6/30/11)
+      ! SOAupdate (hotp, mpayer, 6/30/11)
+      IDNAP     = 0
+      IDNRO2    = 0
+      IDLNRO2H  = 0
+      IDLNRO2N  = 0
 
       ! GEOS-CHEM Tracer ID #'s
       IDTNOX    = 0
@@ -2127,7 +2123,7 @@
       ! (hotp 5/25/09)
       IDTSOG5   = 0
       IDTSOA5   = 0
-      ! For SOA + semivol POA (hotp, mpayer, 6/30/11)
+      ! SOAupdate (hotp, mpayer, 6/30/11)
       IDTNAP    = 0
       IDTMTPA   = 0
       IDTMTPO   = 0
@@ -2160,7 +2156,7 @@
       IDTOPOA2  = 0
       IDTOPOG1  = 0
       IDTOPOG2  = 0
-      ! End SOA + semivol POA
+      ! End SOAupdate
       IDTDST1   = 0
       IDTDST2   = 0
       IDTDST3   = 0

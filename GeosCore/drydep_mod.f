@@ -199,11 +199,8 @@
       !=================================================================
 
       ! Parameters
-!-----------------------------------------------------------------------
-! Prior to 7/1/11:
-! Increase MAXDEP to 100 for SOA + semivol POA (jje, mpayer, 7/1/11)
-!      INTEGER, PARAMETER   :: MAXDEP    = 50
-!-----------------------------------------------------------------------
+      ! SOAupdate: Increase MAXDEP to from 50 to 100 for SOA + semivol POA
+      ! (jje, mpayer, 7/1/11)
       INTEGER, PARAMETER   :: MAXDEP    = 100
       INTEGER, PARAMETER   :: NNTYPE    = 15     ! NTYPE    from "CMN_SIZE"
       INTEGER, PARAMETER   :: NNPOLY    = 20     ! NPOLY    from "CMN_SIZE"
@@ -3363,7 +3360,7 @@ C** Load array DVEL
       USE TRACERID_MOD, ONLY : IDTMMN
       USE TRACERID_MOD, ONLY : IDTRIP,    IDTIEPOX, IDTPYPAN
       USE TRACERID_MOD, ONLY : IDTMAP
-      ! For SOA + semivolatile POA (hotp, mpayer, 7/1/11)
+      ! SOAupdate: For SOA + semivolatile POA (hotp, mpayer, 7/1/11)
       USE TRACERID_MOD, ONLY : IDTMTPA,   IDTMTPO
       USE TRACERID_MOD, ONLY : IDTTSOA1,  IDTTSOA2, IDTTSOA3
       USE TRACERID_MOD, ONLY : IDTTSOG1,  IDTTSOG2, IDTTSOG3
@@ -4134,7 +4131,7 @@ C** Load array DVEL
             XMW(NUMDEP)     = 72d-3
             AIROSOL(NUMDEP) = .TRUE.
 
-         ! For SOA + semivol POA (hotp, mpayer, 7/1/11)
+         ! SOAupdate: For SOA + semivol POA (hotp, mpayer, 7/1/11)
          ! MTPA
          ELSE IF ( N == IDTMTPA ) THEN
             NUMDEP          = NUMDEP + 1
@@ -4156,17 +4153,6 @@ C** Load array DVEL
             F0(NUMDEP)      = 0d0
             XMW(NUMDEP)     = 136d-3
             AIROSOL(NUMDEP) = .FALSE.
-
-         ! ASOAN
-         ELSE IF ( N == IDTASOAN ) THEN
-            NUMDEP          = NUMDEP + 1
-            NTRAIND(NUMDEP) = IDTASOAN
-            NDVZIND(NUMDEP) = NUMDEP
-            DEPNAME(NUMDEP) = 'ASOAN'
-            HSTAR(NUMDEP)   = 0d0
-            F0(NUMDEP)      = 0d0
-            XMW(NUMDEP)     = 150d-3
-            AIROSOL(NUMDEP) = .TRUE.
 
          ! TSOA0-3
          ELSE IF ( N == IDTTSOA0 ) THEN
@@ -4301,6 +4287,17 @@ C** Load array DVEL
             F0(NUMDEP)      = 0d0
             XMW(NUMDEP)     = 150d-3
             AIROSOL(NUMDEP) = .FALSE.
+
+         ! ASOAN
+         ELSE IF ( N == IDTASOAN ) THEN
+            NUMDEP          = NUMDEP + 1
+            NTRAIND(NUMDEP) = IDTASOAN
+            NDVZIND(NUMDEP) = NUMDEP
+            DEPNAME(NUMDEP) = 'ASOAN'
+            HSTAR(NUMDEP)   = 0d0
+            F0(NUMDEP)      = 0d0
+            XMW(NUMDEP)     = 150d-3
+            AIROSOL(NUMDEP) = .TRUE.
 
          ! ASOA1-3
          ELSE IF ( N == IDTASOA1 ) THEN
@@ -4439,7 +4436,7 @@ C** Load array DVEL
             F0(NUMDEP)      = 0d0
             XMW(NUMDEP)     = 12d-3
             AIROSOL(NUMDEP) = .FALSE.
-         ! End SOA + semivol POA
+         ! End SOAupdate
 
          !----------------------------------
          ! Dust aerosol tracers
@@ -4605,11 +4602,7 @@ C** Load array DVEL
          WRITE( 6, 100 ) N, TRIM( DEPNAME(N) ), NTRAIND(N), NDVZIND(N), 
      &                   HSTAR(N),  F0(N),      XMW(N),     AIROSOL(N)
       ENDDO
-!-----------------------------------------------------------------------
-! Prior to 7/1/11:
-! Changed format so we can see full name (hotp, mpayer, 7/1/11)
-! 100  FORMAT( i3, 3x, a4, 2(3x,i3), 4x, es8.1, 2(3x,f6.3), 3x, L3 )
-!-----------------------------------------------------------------------
+
  100  FORMAT( i3, 2x, a5, 2(3x,i3), 4x, es8.1, 2(3x,f6.3), 3x, L3 )
 
       ! Return to calling program

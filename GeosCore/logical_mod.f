@@ -79,7 +79,7 @@
       LOGICAL :: LDICARB         ! Use dicarbonyl chemistry mechanism?
       LOGICAL :: LSVPOA          ! Use SOA + semivolatile POA? (H. Pye)
 
-      ! For SOA + semivolatile POA (hotp, mpayer, 7/6/11)
+      ! SOAupdate: For SOA + semivolatile POA (hotp, mpayer, 7/6/11)
       ! Find better place for these since not logical?
       REAL*8  :: NAPEMISS        ! Set NAP emissions [Tg/yr]
       REAL*8  :: POAEMISSSCALE   ! Fractional scaling, recommend value: 1.27

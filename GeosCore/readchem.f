@@ -444,7 +444,7 @@ C
       ILTRO2N = 0
       ILXRO2H = 0
       ILXRO2N = 0
-      ! For SOA + semivolatile POA (hotp, mpayer, 7/27/11)
+      ! SOAupdate: For SOA + semivolatile POA (hotp, mpayer, 7/27/11)
       ILISOPNO3=0
       ILNRO2H = 0 
       ILNRO2N = 0 
@@ -474,7 +474,7 @@ C
                ILXRO2H = I
             CASE( 'LXRO2N' )
                ILXRO2N = I
-            ! For SOA + semivolatile POA (hotp, mpayer, 7/27/11)
+            ! SOAupdate: For SOA + semivolatile POA (hotp, mpayer, 7/27/11)
             CASE( 'LISOPNO3' )
                IF ( LSVPOA ) ILISOPNO3 = I
             CASE( 'LNRO2H' )
@@ -1229,20 +1229,17 @@ C
                   IF ( J == MAPPL(IFAM(N),NCS) ) THEN
                      ITS_NOT_A_ND65_FAMILY(J) = .FALSE.
                      EXIT
-                  ! dkh 
+                  ! dkh
+                  ! SOAupdate: Add IDLNRO2H/N for SOA + semivol POA
+                  !  (hotp, mpayer, 7/27/11)
                   ELSEIF ( J == MAPPL(ILBRO2H,NCS) .or.
      &                     J == MAPPL(ILBRO2N,NCS) .or.
      &                     J == MAPPL(ILTRO2H,NCS) .or.
      &                     J == MAPPL(ILTRO2N,NCS) .or.
      &                     J == MAPPL(ILXRO2H,NCS) .or.
-!-----------------------------------------------------------------------
-! Prior to 7/27/11:
-! Add IDLNRO2H/N for SOA + semivol POA (hotp, mpayer, 7/27/11)
-!     &                     J == MAPPL(ILXRO2N,NCS) ) THEN
-!-----------------------------------------------------------------------
      &                     J == MAPPL(ILXRO2N,NCS) .or.
-     &      ( LSVPOA .and. J == MAPPL(ILNRO2H,NCS)) .or.
-     &      ( LSVPOA .and. J == MAPPL(ILNRO2N,NCS))     ) THEN
+     &                   ( J == MAPPL(ILNRO2H,NCS) .and. LSVPOA )  .or.
+     &                   ( J == MAPPL(ILNRO2N,NCS) .and. LSVPOA )) THEN
                      ITS_NOT_A_ND65_FAMILY(J) = .FALSE.
                      EXIT
                   ENDIF

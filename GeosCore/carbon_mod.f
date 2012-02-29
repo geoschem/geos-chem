@@ -347,7 +347,7 @@
       PUBLIC :: CHEMCARBON
       PUBLIC :: CLEANUP_CARBON
       PUBLIC :: EMISSCARBON
-      PUBLIC :: INIT_CARBON ! called in main.f (mpayer, 8/10/11)
+      PUBLIC :: INIT_CARBON
       !PUBLIC :: WRITE_GPROD_APROD
       ! ... and this other stuff (dkh, 11/09/06)  
       PUBLIC :: APROD, GPROD, MNOX, NPROD, MHC, NNOX, MPROD
@@ -368,7 +368,7 @@
       INTEGER             :: I1_NA,   J1_NA
       INTEGER             :: I2_NA,   J2_NA
       INTEGER             :: DRYSOAG, DRYSOAM
-      ! Dry deposited species for SOA + semivol POA (hotp,,mpayer, 7/18/11)
+      ! SOAupdate: Drydep species for SOA + semivol POA (hotp, mpayer, 7/18/11)
       INTEGER             :: DRYPOA1,  DRYPOA2,  DRYPOG1,  DRYPOG2
       INTEGER             :: DRYOPOA1, DRYOPOA2, DRYOPOG1, DRYOPOG2
       INTEGER             :: DRYMTPA,  DRYMTPO
@@ -386,15 +386,16 @@
 
 !----------------------------------------------------------------------
 ! Prior to 7/22/11:
-! The values and dimensions used to define these parameters differ for
-! traditional SOA and SOA + semivolatile POA simulations.
+! SOAupdate: The values and dimensions used to define these parameters differ
+! for traditional SOA and SOA + semivolatile POA simulations.
 ! Make these parameters variables and set in INIT_CARBON (mpayer, 7/22/11)
 !      ! Parameters
 !      !INTEGER, PARAMETER  :: MHC      = 6
 !      !INTEGER, PARAMETER  :: NPROD    = 3  
 !      INTEGER, PARAMETER  :: MHC       = 9  ! (dkh, 10/29/06)
 !      INTEGER, PARAMETER  :: MPROD            = 3
-!      INTEGER, PARAMETER  :: MNOX             = 2  ! (dkh, 11/05/06)  
+!      INTEGER, PARAMETER  :: MNOX             = 2  ! (dkh, 11/05/06)
+!  
 ! Make these arrays allocatable and set in INIT_CARBON (mpayer, 7/22/11)
 !      INTEGER             :: NPROD(MHC)
 !      INTEGER             :: NNOX(MHC)             ! (dkh, 11/05/06)
@@ -412,10 +413,9 @@
       REAL*8              :: AARO2HO2, BBRO2HO2 ! Rate constants for RO2+HO2
 
       ! Parameters
-      REAL*8,  PARAMETER  :: SMALLNUM = 1d-20
-      REAL*8,  PARAMETER  :: OCFPOA = 1.4d0           ! OM/OC for POA
-      REAL*8,  PARAMETER  :: OCFOPOA = 1.4d0 * 1.5d0  ! OM/OC=2.1 for OPOA
-      INTEGER, SAVE       :: MAXSIMSV        ! # parent HC based on sim tracers
+      REAL*8,  PARAMETER  :: SMALLNUM   = 1d-20
+      REAL*8,  PARAMETER  :: OCFPOA     = 1.4d0          ! OM/OC for POA
+      REAL*8,  PARAMETER  :: OCFOPOA    = 1.4d0 * 1.5d0  ! OM/OC=2.1 for OPOA
       INTEGER, PARAMETER  :: PARENTMTPA = 1  ! bicyclic monoterpenes
       INTEGER, PARAMETER  :: PARENTLIMO = 2  ! limonene
       INTEGER, PARAMETER  :: PARENTMTPO = 3  ! other monoterpenes
@@ -426,11 +426,12 @@
       INTEGER, PARAMETER  :: PARENTXYLE = 8  ! aromatic xylene
       INTEGER, PARAMETER  :: PARENTPOA  = 9  ! SVOCs (primary SVOCs)
       INTEGER, PARAMETER  :: PARENTOPOA = 10 ! oxidized SVOCs (secondary SVOCs)
-      INTEGER, PARAMETER  :: PARENTNAP  = 11 ! naphthalene (IVOC surrogate)
+      INTEGER, PARAMETER  :: PARENTNAP  = 11 ! IVOC surrogate (naphthalene)
       INTEGER, PARAMETER  :: NHIGHNOX   = 1  ! R + OH, RO2 + NO
       INTEGER, PARAMETER  :: NLOWNOX    = 2  ! R + OH, RO2 + HO2
       INTEGER, PARAMETER  :: NNO3RXN    = 3  ! R + NO3
       INTEGER, PARAMETER  :: NONLYNOX   = 1  ! R + any oxidant
+      INTEGER, SAVE       :: MAXSIMSV        ! # parent HC based on sim tracers
 
       ! Arrays
       REAL*8, ALLOCATABLE :: ANTH_BLKC(:,:,:)
@@ -467,19 +468,19 @@
       ! (tmf, 12/07/07) 
       REAL*8, ALLOCATABLE :: VCLDF(:,:,:)
 
-      ! These arrays are now allocatable (mpayer, 7/22/11)
-      INTEGER, ALLOCATABLE :: NPROD(:)
-      INTEGER, ALLOCATABLE :: NNOX(:)
-      REAL*8,  ALLOCATABLE :: PRODPERCOFSTT(:)
-      REAL*8,  ALLOCATABLE :: KO3_REF(:), KOH_REF(:), KNO3_REF(:)
-      REAL*8,  ALLOCATABLE :: KOM_REF(:,:,:)
-      REAL*8,  ALLOCATABLE :: KOM_REF_SVPOA(:,:)
-      REAL*8,  ALLOCATABLE :: ALPHA(:,:,:)
+      ! SOAupdate: These arrays are now allocatable (mpayer, 7/22/11)
+      INTEGER,      ALLOCATABLE :: NPROD(:)
+      INTEGER,      ALLOCATABLE :: NNOX(:)
+      REAL*8,       ALLOCATABLE :: PRODPERCOFSTT(:)
+      REAL*8,       ALLOCATABLE :: KO3_REF(:), KOH_REF(:), KNO3_REF(:)
+      REAL*8,       ALLOCATABLE :: KOM_REF(:,:,:)
+      REAL*8,       ALLOCATABLE :: KOM_REF_SVPOA(:,:)
+      REAL*8,       ALLOCATABLE :: ALPHA(:,:,:)
 
-      INTEGER, ALLOCATABLE :: IDSV(:)                ! Map parent HC to semivol
-      REAL*8,  ALLOCATABLE :: DELTAHCSAVE(:,:)             ! Parent HC reacted
-      REAL*8,  ALLOCATABLE :: SPECSOAPROD(:,:,:,:,:)       ! SOA formed
-      REAL*8,  ALLOCATABLE :: SPECSOAEVAP(:,:,:,:,:)       ! SOA evaporated
+      INTEGER,      ALLOCATABLE :: IDSV(:)           ! Map parent HC to semivol
+      REAL*8,       ALLOCATABLE :: DELTAHCSAVE(:,:)        ! Parent HC reacted
+      REAL*8,       ALLOCATABLE :: SPECSOAPROD(:,:,:,:,:)  ! SOA formed
+      REAL*8,       ALLOCATABLE :: SPECSOAEVAP(:,:,:,:,:)  ! SOA evaporated
       REAL*8, SAVE, ALLOCATABLE :: GLOB_POGRXN(:,:,:,:)    ! POG reacted
       REAL*8, SAVE, ALLOCATABLE :: BETANOSAVE(:,:,:)       ! RO2 branch ratio
       REAL*8, SAVE, ALLOCATABLE :: POAEMISS(:,:,:,:)       ! POA emissions
@@ -532,7 +533,7 @@
       USE TRACERID_MOD,   ONLY : IDTOCPO, IDTSOG4, IDTSOA4
       USE TRACERID_MOD,   ONLY : IDTSOG5, IDTSOA5  ! (dkh, 03/24/07)  
       USE TRACERID_MOD,   ONLY : IDTSOAG, IDTSOAM
-      ! For SOA + semivolatile POA (hotp, mpayer, 7/18/11)
+      ! SOAupdate: For SOA + semivolatile POA (hotp, mpayer, 7/18/11)
       USE TRACERID_MOD,   ONLY : IDTASOAN
       USE TRACERID_MOD,   ONLY : IDTASOA1, IDTASOG1
       USE TRACERID_MOD,   ONLY : IDTASOA2, IDTASOG2
@@ -602,7 +603,7 @@
                   DRYSOAG = N
                CASE ( 'SOAM' )
                   DRYSOAM = N
-               ! For SOA + semivol POA (hotp, mpayer, 7/18/11)
+               ! SOAupdate: For SOA + semivol POA (hotp, mpayer, 7/18/11)
                CASE ( 'POA1'  )
                   DRYPOA1  = N
                CASE ( 'POA2'  )
@@ -665,7 +666,7 @@
                   DRYISOG2 = N 
                CASE ( 'ISOG3' )
                   DRYISOG3 = N
-               ! End SOA + semivol POA
+               ! End SOAupdate
                CASE DEFAULT
                   ! Nothing
             END SELECT        
@@ -689,7 +690,7 @@
                STT(:,:,:,IDTSOA5) = 0d0
             ENDIF
 
-            ! Do the same for SOA + semivol POA (hotp, mpayer, 7/18/11)
+            ! SOAupdate: For SOA + semivol POA (hotp, mpayer, 7/18/11)
             IF ( IDTISOA1 > 0 ) THEN
                STT(:,:,:,IDTISOA1) = 0d0
                STT(:,:,:,IDTISOA2) = 0d0
@@ -710,7 +711,7 @@
          
          ENDIF
 
-         ! Determine number of semivolatile parent HC (hotp, mpayer, 7/18/11)
+         ! SOAupdate: Determine # of semivol parent HC (hotp, mpayer, 7/18/11)
          ! MAXSIMSV = 0 for traditional SOA (non-volatile POA)
          MAXSIMSV = 0 
          IF ( LSVPOA ) THEN
@@ -730,48 +731,46 @@
          ! Reset first-time flag
          FIRSTCHEM = .FALSE.
 
-         ! Debug info
-         IF ( LPRT ) THEN
-            IF ( LSVPOA ) THEN
-               print*,'The following species have been identified'
-               print*,'as dry dep species in CHEMCARBON (carbon_mod.f)'
-               print*, 'ASOAN ', DEPNAME(DRYASOAN)
-               print*, 'ASOA1 ', DEPNAME(DRYASOA1)
-               print*, 'ASOA2 ', DEPNAME(DRYASOA2)
-               print*, 'ASOA3 ', DEPNAME(DRYASOA3)
-               print*, 'ASOG1 ', DEPNAME(DRYASOG1)
-               print*, 'ASOG2 ', DEPNAME(DRYASOG2)
-               print*, 'ASOG3 ', DEPNAME(DRYASOG3)
+         ! SOAupdate: Debug info
+         IF ( LPRT .and. LSVPOA ) THEN
+            print*,'The following species have been identified'
+            print*,'as dry dep species in CHEMCARBON (carbon_mod.f)'
 
-               IF ( IDTPOA1 > 0 ) THEN
-                  print*, 'POA1  ', DEPNAME(DRYPOA1)
-                  print*, 'POA2  ', DEPNAME(DRYPOA2)
-                  print*, 'POG1  ', DEPNAME(DRYPOG1)
-                  print*, 'POG2  ', DEPNAME(DRYPOG2)
-                  print*, 'OPOA1 ', DEPNAME(DRYOPOA1)
-                  print*, 'OPOA2 ', DEPNAME(DRYOPOA2)
-                  print*, 'OPOG1 ', DEPNAME(DRYOPOG1)
-                  print*, 'OPOG2 ', DEPNAME(DRYOPOG2)
-               ENDIF
-
-               print*, 'ISOA1 ', DEPNAME(DRYISOA1)
-               print*, 'ISOA2 ', DEPNAME(DRYISOA2)
-               print*, 'ISOA3 ', DEPNAME(DRYISOA3)
-               print*, 'ISOG1 ', DEPNAME(DRYISOG1)
-               print*, 'ISOG2 ', DEPNAME(DRYISOG2)
-               print*, 'ISOG3 ', DEPNAME(DRYISOG3)
-               print*, 'TSOA1 ', DEPNAME(DRYTSOA1)
-               print*, 'TSOA2 ', DEPNAME(DRYTSOA2)
-               print*, 'TSOA3 ', DEPNAME(DRYTSOA3)
-               print*, 'TSOA0 ', DEPNAME(DRYTSOA0)
-               print*, 'TSOG1 ', DEPNAME(DRYTSOG1)
-               print*, 'TSOG2 ', DEPNAME(DRYTSOG2)
-               print*, 'TSOG3 ', DEPNAME(DRYTSOG3)
-               print*, 'TSOG0 ', DEPNAME(DRYTSOG0)
-               print*, 'MTPA  ', DEPNAME(DRYMTPA) 
-               print*, 'LIMO  ', DEPNAME(DRYLIMO) 
-               print*, 'MTPO  ', DEPNAME(DRYMTPO) 
+            IF ( IDTPOA1 > 0 ) THEN
+               print*, 'POA1  ', DEPNAME(DRYPOA1)
+               print*, 'POA2  ', DEPNAME(DRYPOA2)
+               print*, 'POG1  ', DEPNAME(DRYPOG1)
+               print*, 'POG2  ', DEPNAME(DRYPOG2)
+               print*, 'OPOA1 ', DEPNAME(DRYOPOA1)
+               print*, 'OPOA2 ', DEPNAME(DRYOPOA2)
+               print*, 'OPOG1 ', DEPNAME(DRYOPOG1)
+               print*, 'OPOG2 ', DEPNAME(DRYOPOG2)
             ENDIF
+
+            print*, 'ASOAN ', DEPNAME(DRYASOAN)
+            print*, 'ASOA1 ', DEPNAME(DRYASOA1)
+            print*, 'ASOA2 ', DEPNAME(DRYASOA2)
+            print*, 'ASOA3 ', DEPNAME(DRYASOA3)
+            print*, 'ASOG1 ', DEPNAME(DRYASOG1)
+            print*, 'ASOG2 ', DEPNAME(DRYASOG2)
+            print*, 'ASOG3 ', DEPNAME(DRYASOG3)
+            print*, 'MTPA  ', DEPNAME(DRYMTPA) 
+            print*, 'LIMO  ', DEPNAME(DRYLIMO) 
+            print*, 'MTPO  ', DEPNAME(DRYMTPO) 
+            print*, 'TSOA1 ', DEPNAME(DRYTSOA1)
+            print*, 'TSOA2 ', DEPNAME(DRYTSOA2)
+            print*, 'TSOA3 ', DEPNAME(DRYTSOA3)
+            print*, 'TSOA0 ', DEPNAME(DRYTSOA0)
+            print*, 'TSOG1 ', DEPNAME(DRYTSOG1)
+            print*, 'TSOG2 ', DEPNAME(DRYTSOG2)
+            print*, 'TSOG3 ', DEPNAME(DRYTSOG3)
+            print*, 'TSOG0 ', DEPNAME(DRYTSOG0)
+            print*, 'ISOA1 ', DEPNAME(DRYISOA1)
+            print*, 'ISOA2 ', DEPNAME(DRYISOA2)
+            print*, 'ISOA3 ', DEPNAME(DRYISOA3)
+            print*, 'ISOG1 ', DEPNAME(DRYISOG1)
+            print*, 'ISOG2 ', DEPNAME(DRYISOG2)
+            print*, 'ISOG3 ', DEPNAME(DRYISOG3)
          ENDIF
 
       ENDIF
@@ -792,13 +791,13 @@
          IF ( LPRT ) CALL DEBUG_MSG( '### CHEMCARBON: a CHEM_BCPI' )
       ENDIF
 
-      ! Chemistry for hydrophobic OC (traditional SOA only) 
+      ! Chemistry for hydrophobic OC (traditional POA only) 
       IF ( IDTOCPO > 0 ) THEN
          CALL CHEM_OCPO( STT(:,:,:,IDTOCPO) )
          IF ( LPRT ) CALL DEBUG_MSG( '### CHEMCARBON: a CHEM_OCPO' )
       ENDIF
 
-      ! Chemistry for hydrophilic OC (traditional SOA only)
+      ! Chemistry for hydrophilic OC (traditional POA only)
       IF ( IDTOCPI > 0 ) THEN 
          CALL CHEM_OCPI( STT(:,:,:,IDTOCPI) )
          IF ( LPRT ) CALL DEBUG_MSG( '### CHEMCARBON: a CHEM_OCPI' )
@@ -833,17 +832,28 @@
          ! Compute SOA chemistry
          ! NOTE: This is SOA production from the reversible mechanism only 
          ! (tmf, 12/07/07)
-         ! Check to see if using SOA + semivolatile POA or traditional SOA
-         ! simulation since these call different routines (mpayer, 7/18/11)
+         !
+         ! SOAupdate: Check to see if using SOA + semivolatile POA or
+         !  traditional SOA simulation since they call different routines
+         !  (mpayer, 7/18/11)
          IF ( LSVPOA ) THEN
-            !%%% SOA + semivolatile POA %%%
+
+            !-------------------------
+            ! SOA + semivolatile POA
+            !-------------------------
             CALL SOA_SVPOA_CHEMISTRY
             IF ( LPRT ) 
      &         CALL DEBUG_MSG( '### CHEMCARBON: a SOA_SVPOA_CHEM' )
+
          ELSE
-            !%%% Traditional SOA %%%
+
+            !-------------------------
+            ! Traditional SOA
+            !-------------------------
             CALL SOA_CHEMISTRY
-            IF ( LPRT ) CALL DEBUG_MSG( '### CHEMCARBON: a SOA_CHEM' ) 
+            IF ( LPRT )
+     &         CALL DEBUG_MSG( '### CHEMCARBON: a SOA_CHEM' )
+ 
          ENDIF
 
 
@@ -4354,7 +4364,7 @@ c
 !  and the CARBONACEOUS AEROSOL emissions (rjp, bmy, 1/24/02, 9/25/06)
 !
 !  For SOA + semivolatile POA simulations: do not distinguish between 
-!  hyrophobic and hydrophilic emissions (H.O.T. Pye)
+!  hyrophobic and hydrophilic emissions (H. Pye)
 !
 !  NOTES:
 !  (1 ) Now references LSOA from "CMN_SETUP".  Also now call OHNO3TIME since
@@ -4496,16 +4506,25 @@ c
       !--------------------------
       ! Compute biogenic OC
       !--------------------------
-      ! Check to see if using SOA + semivolatile POA or traditional SOA
-      ! simulation since these call different routines (mpayer, 8/1/11)
+      ! SOAupdate: Check to see if using SOA + semivolatile POA or
+      !  traditional SOA simulation since these call different routines
+      !  (mpayer, 8/1/11)
       IF ( LSVPOA ) THEN
-         !%%% SOA + semivolatile POA %%%
+
+         !-------------------------
+         ! SOA + semivolatile POA 
+         !-------------------------
          CALL BIOGENIC_OC_SVPOA
          IF ( LPRT ) CALL DEBUG_MSG( '### EMISSCARB: a BIOGENIC_OC_SV' )
+
       ELSE
-         !%%% Traditional SOA %%%
+
+         !-------------------------
+         ! Traditional SOA
+         !-------------------------
          CALL BIOGENIC_OC
          IF ( LPRT ) CALL DEBUG_MSG( '### EMISSCARB: a BIOGENIC_OC'    )
+
       ENDIF
 
       !=================================================================
@@ -4561,7 +4580,7 @@ c
      &                  BIOF_ORGC(I,J,2) + 
      &                  BIOB_ORGC(I,J,2) 
 
-         ! Semivolatile POA (hotp, mpayer, 7/20/11)
+         ! SOAupdate: Semivolatile POA (hotp, mpayer, 7/20/11)
          ! OCSRC1 is BB + BF, OCSRC2 is ANTH
          IF ( IDTPOA1 > 0 ) THEN
             OCSRC(I,J,1) = BIOF_ORGC(I,J,1) + BIOF_ORGC(I,J,2) +
@@ -4616,21 +4635,22 @@ c
 
             IF ( LSOA ) THEN
 
-
-               ! Check to see if using SOA + semivol POA or traditional SOA
-               ! simulation (mpayer, 7/20/11)
+               ! SOAupdate: Check to see if using SOA + semivol POA or 
+               ! traditional SOA simulation (mpayer, 7/20/11)
                IF ( LSVPOA ) THEN
 
-                  !%%% SOA + semivolatile POA (H.O.T. Pye) %%%
+                  !-------------------------------------
+                  ! SOA + semivolatile POA (H. Pye)
+                  !-------------------------------------
 
-                  ! MTPA= a-,b-pinene, sabinene, carene
+                  ! MTPA = a-pinene ,b-pinene, sabinene, carene
                   AD07(I,J,8) = AD07(I,J,8)   + BIOG_MTPA(I,J)
 
                   ! LIMONENE
                   AD07(I,J,9)  = AD07(I,J,9)    + BIOG_LIMO(I,J)
 
-                  ! MTPO= terpinene, terpinolene, myrcene, ocimene, terpenoid
-                  !       alcohols, and all other monoterpenes
+                  ! MTPO = terpinene, terpinolene, myrcene, ocimene, terpenoid
+                  !        alcohols,  and all other monoterpenes
                   AD07(I,J,10) = AD07(I,J,10)   + BIOG_MTPO(I,J)
 
                   ! SESQTERPENE
@@ -4638,7 +4658,9 @@ c
 
                ELSE
 
-                  !%%% Traditional SOA %%%
+                  !-------------------------------------
+                  ! Traditional SOA
+                  !-------------------------------------
 
                   ! ALPHA-PINENE
                   AD07(I,J,8)  = AD07(I,J,8)    + BIOG_ALPH(I,J)
@@ -4667,7 +4689,7 @@ c
          IF ( LPRT ) CALL DEBUG_MSG( '### EMISCARB: after ND07' )
       ENDIF
 
-      ! Print info for checks
+      ! SOAupdate: Print info for checks
       IF ( LPRT .AND. LSVPOA ) THEN
          print*,'POA emissions in kg/timestep conv to Tg/yr'
          print*,'ANTH_ORGC ',SUM(ANTH_ORGC(:,:,:))*1d-9*365.0*24.0
@@ -5681,7 +5703,7 @@ c
       USE TIME_MOD,             ONLY : GET_TS_EMIS
       USE TRACER_MOD,           ONLY : XNUMOL
       USE TRACERID_MOD,         ONLY : IDTBCPO,  IDTOCPO
-      USE TRACERID_MOD,         ONLY : IDTPOA1 
+      USE TRACERID_MOD,         ONLY : IDTPOA1   ! (hotp, mpayer, 7/21/11)
       USE FUTURE_EMISSIONS_MOD, ONLY : GET_FUTURE_SCALE_OCbb
       USE FUTURE_EMISSIONS_MOD, ONLY : GET_FUTURE_SCALE_BCbb
 
@@ -5711,13 +5733,9 @@ c
 
       ! Conversion factor for [s * kg/molec]
       CONV_BC = DTSRCE / XNUMOL(IDTBCPO)
-!-----------------------------------------------------------------------
-! Prior to 7/21/11:
-! Check to see if OCPO or POA1 is defined (hotp, mpayer, 7/21/11)
-!      CONV_OC = DTSRCE / XNUMOL(IDTOCPO)
-!-----------------------------------------------------------------------
+      ! SOAupdate: Check to see if OCPO/POA1 is defined (hotp, mpayer, 7/21/11)
       IF ( IDTOCPO > 0 ) CONV_OC = DTSRCE / XNUMOL(IDTOCPO)
-      IF ( IDTPOA1  > 0 ) CONV_OC = DTSRCE / XNUMOL(IDTPOA1)
+      IF ( IDTPOA1 > 0 ) CONV_OC = DTSRCE / XNUMOL(IDTPOA1)
 
 !$OMP PARALLEL DO
 !$OMP+DEFAULT( SHARED )
@@ -5861,7 +5879,8 @@ c
             IF ( IS_LIMO ) THEN
                EMIS_SAVE(I,J,IDTLIMO) = BIOG_LIMO(I,J)
 
-               ! TERP not used for SOA + semivol POA (hotp, mpayer, 7/21/11)
+               ! SOAupdate: TERP not used for SOA + semivol POA
+               !  (hotp, mpayer, 7/21/11)
                IF ( .NOT. LSVPOA ) THEN
                   ! lead to too much ORVC_TERP in the 1st layer?
                   ORVC_TERP(I,J,1)   = ORVC_TERP(I,J,1) + BIOG_TERP(I,J)
@@ -5875,7 +5894,7 @@ c
                ORVC_SESQ(I,J,1)   = ORVC_SESQ(I,J,1) + BIOG_SESQ(I,J)
             ENDIF
 
-            ! For SOA + semivolatile POA (hotp, mpayer, 7/21/11)
+            ! SOAupdate: Add new MTP (hotp, mpayer, 7/21/11)
             IF ( IS_MTPA ) EMIS_SAVE(I,J,IDTMTPA) = BIOG_MTPA(I,J)
             IF ( IS_MTPO ) EMIS_SAVE(I,J,IDTMTPO) = BIOG_MTPO(I,J)
    
@@ -5883,9 +5902,10 @@ c
          ENDDO
 !$OMP END PARALLEL DO
 
-         ! Fix for species whose emissions are not added to STT in this routine
+         ! SOAupdate: Fix for species whose emissions are not added to STT in 
+         ! this routine (hotp, mpayer, 7/21/11)
          ! Just use old PBL mixing to prevent all emissions from going into 
-         ! into surface layer for now (hotp, mpayer, 7/21/11)
+         ! into surface layer for now
          IF ( LSVPOA ) THEN
 
             ! Maximum extent of PBL [model levels]
@@ -5979,7 +5999,8 @@ c
             STT(I,J,L,IDTLIMO) = STT(I,J,L,IDTLIMO) + 
      &                           ( F_OF_PBL * BIOG_LIMO(I,J) )
 
-            ! TERP not used for SOA + semivol SOA (hotp, mpayer, 7/21/11)
+            ! SOAupdate: TERP not used for SOA + semivol SOA
+            !  (hotp, mpayer, 7/21/11)
             IF ( .NOT. LSVPOA ) THEN
                ORVC_TERP(I,J,L)   = ORVC_TERP(I,J,L) + 
      &                           ( F_OF_PBL * BIOG_TERP(I,J) )
@@ -5995,13 +6016,13 @@ c
      &                           ( F_OF_PBL * BIOG_SESQ(I,J) )
          ENDIF
 
-         ! MTPA (hotp, mpayer, 7/21/11)
+         ! SOAupdate: Lumped MTPA (hotp, mpayer, 7/21/11)
          IF ( IS_MTPA ) THEN
             STT(I,J,L,IDTMTPA) = STT(I,J,L,IDTMTPA) + 
      &                           ( F_OF_PBL * BIOG_MTPA(I,J) )
          ENDIF
 
-         ! MTPO and SESQTERPENE (hotp, mpayer, 7/21/11)
+         ! SOAupdate: Lumped MTPO and SESQTERPENE (hotp, mpayer, 7/21/11)
          IF ( IS_MTPO ) THEN
             STT(I,J,L,IDTMTPO) = STT(I,J,L,IDTMTPO) + 
      &                           ( F_OF_PBL * BIOG_MTPO(I,J) )
@@ -6544,15 +6565,16 @@ c
          ! Test if we are in the troposphere
          IF ( JLOOP > 0 ) THEN
 
-            ! Check to see if using SOA + semivolatile POA or traditional
-            ! SOA simulation (mpayer, 7/21/11)
+            ! SOAupdate: Check to see if using SOA + semivolatile POA or
+            ! traditional SOA simulation (mpayer, 7/21/11)
             IF ( LSVPOA ) THEN 
 
-               !%%% SOA + semivolatile POA (H.O.T. Pye) %%%
+               !-------------------------------------
+               ! SOA + semivolatile POA (H. Pye)
+               !-------------------------------------
 
                ! Get info on the specified type of aromatic peroxy radical
                ! Reference PARENT variable, not hardwire
-
                ! Benzene
                IF    ( JHC == PARENTBENZ ) THEN
   
@@ -6640,7 +6662,9 @@ c
 
             ELSE
 
-               !%%% Traditional SOA %%%
+               !-------------------------------------
+               ! Traditional SOA
+               !-------------------------------------
 
                ! Get information on the 
                ! specified type of aromatic peroxy radical
@@ -7335,7 +7359,9 @@ c
 !
 !******************************************************************************
 !
+!  %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 !  %%% THIS SUBROUTINE IS FOR SOA + SEMIVOLATILE POA SIMULATION %%%
+!  %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 !
 !  Subroutine SOA_SVPOA_CHEMISTRY performs SOA formation for SOA + semivolatile
 !  POA simulation.  This code is from the Caltech group (Hong Liao, 
@@ -7351,7 +7377,7 @@ c
 !  (5 ) get T0M gas products
 !  (6 ) equilibrium calculation
 !
-!  SOA + SEMIVOLATILE POA simulation was created by H.O.T. Pye.
+!  SOA + SEMIVOLATILE POA simulation was created by Havala Pye.
 ! 
 !  In this simulation GEOS-Chem treats formation of aerosol from 11 parent
 !  hydrocarbons and oxidation by OH, O3, and NO3:
@@ -8019,7 +8045,9 @@ c
 !
 !******************************************************************************
 !
+!  %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 !  %%% THIS SUBROUTINE IS FOR SOA + SEMIVOLATILE POA SIMULATION %%%
+!  %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 !
 !  Subroutine SOA_SVPOA_EQUIL solves SOAeqn=0 to determine Mnew (= mass)
 !  See Eqn (27) on page 70 of notes.  Originally written by Serena Chung at
@@ -8100,7 +8128,9 @@ c
 !
 !******************************************************************************
 !
+!  %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 !  %%% THIS SUBROUTINE IS FOR SOA + SEMIVOLATILE POA SIMULATION %%%
+!  %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 !
 ! NOTE: This function may be problematic -- it uses GOTO's, which are not
 ! good for parallelization. (bmy, 7/8/04)
@@ -8254,7 +8284,9 @@ c
 !
 !******************************************************************************
 !
+!  %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 !  %%% THIS SUBROUTINE IS FOR SOA + SEMIVOLATILE POA SIMULATION %%%
+!  %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 ! 
 !  Function RTBIS_SVPOA finds the root of the function SOA_SVPOA_EQUIL via the 
 !  bisection method.  Original algorithm from "Numerical Recipes" by Press et
@@ -8348,7 +8380,9 @@ c
 !
 !******************************************************************************
 !
+!  %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 !  %%% THIS SUBROUTINE IS FOR SOA + SEMIVOLATILE POA SIMULATION %%%
+!  %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 !
 !  Subroutine SOA_SVPOA_PARA gives mass-based stoichiometric coefficients for 
 !  semi-volatile products from the oxidation of hydrocarbons.  It calculates 
@@ -8535,7 +8569,9 @@ c
 !
 !******************************************************************************
 !
+!  %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 !  %%% THIS SUBROUTINE IS FOR SOA + SEMIVOLATILE POA SIMULATION %%%
+!  %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 !
 !  Subroutine SOA_SVPOA_PARA_INIT initializes the ALPHAS and KOMS, the latter 
 !  at their reference temperature, for SOA + semivolatile POa simulations. It 
@@ -8884,7 +8920,9 @@ c
 !
 !******************************************************************************
 !
+!  %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 !  %%% THIS SUBROUTINE IS FOR SOA + SEMIVOLATILE POA SIMULATION %%%
+!  %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 !
 !  Subroutine SOA_SVPOA_PARTITION assigns the mass in the STT array to 
 !  the GM0 and AM0 arrays. (hotp 5/13/10)
@@ -9021,7 +9059,9 @@ c
 !
 !******************************************************************************
 !
+!  %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 !  %%% THIS SUBROUTINE IS FOR SOA + SEMIVOLATILE POA SIMULATION %%%
+!  %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 !
 !  Subroutine SOA_SVPOA_LUMP returns the organic gas and aerosol back to the
 !  STT array.  (rjp, bmy, 7/7/04, 2/6/07)
@@ -9464,7 +9504,9 @@ c
 !
 !******************************************************************************
 !
+!  %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 !  %%% THIS SUBROUTINE IS FOR SOA + SEMIVOLATILE POA SIMULATION %%%
+!  %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 !
 !  Subroutine CHEM_NVOC_SVPOA computes the oxidation of Hydrocarbon by O3, OH, 
 !  and NO3.  This comes from the Caltech group (Hong Liao, Serena Chung, et al)
@@ -9834,7 +9876,9 @@ c
 !
 !******************************************************************************
 !
+!  %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 !  %%% THIS SUBROUTINE IS FOR SOA + SEMIVOLATILE POA SIMULATION %%%
+!  %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 !
 !  Subroutine BIOGENIC_OC_SVPOA emits secondary organic carbon aerosols.
 !  Also modified for SOA + semivolatile POA tracers. (rjp, bmy, 4/1/04, 1/24/0)
@@ -10225,11 +10269,13 @@ c
 
 !******************************************************************************
 !
+!  %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 !  %%% THIS SUBROUTINE IS FOR SOA + SEMIVOLATILE POA SIMULATION %%%
+!  %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 !
 !  Subroutine CHECK_EQLB makes sure aerosols are at equilibrium (checks 
 !  SOA=SOG*KOM*Mo). Called inside SOA_SVPOA_CHEMISTRY I, J, L loop after
-!  SOA_SVPOA_LUMP. Created by H.O.T. Pye (5/18/10).
+!  SOA_SVPOA_LUMP. Created by Havala Pye (5/18/10).
 !
 !  Note: There are some deviations from equilibrium due to the fact
 !   that ASOAN is supposed to be nonvolatile, but is modeled with a KOM of 
@@ -10576,11 +10622,13 @@ c
 
 !******************************************************************************
 !
+!  %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 !  %%% THIS SUBROUTINE IS FOR SOA + SEMIVOLATILE POA SIMULATION %%%
+!  %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 !
 !  Subroutine SAVE_OAGINIT saves total SOA+SOG before partitioning for 
 !  diagnostic purposes. Units are the same as the STT array ([kg] or [kgC per 
-!  box]). Created H.O.T. Pye (5/17/10).
+!  box]). Created Havala Pye (5/17/10).
 !
 !  Notes:
 !  (1) added TSOA and ISOA (hotp 5/24/10)
@@ -10699,11 +10747,14 @@ c
 
 !******************************************************************************
 !
+!  %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 !  %%% THIS SUBROUTINE IS FOR SOA + SEMIVOLATILE POA SIMULATION %%%
+!  %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 !
 !  Subroutine CHECK_MB checks total SOA+SOG mass balance for diagnostic/
 !  debugging purposes. Units are the same as the STT array ([kg] or [kgC per
-!  box]). Routine also prints helpful budget info. Created H.O.T Pye (5/18/10).
+!  box]). Routine also prints helpful budget info. Created by Havala Pye
+!  (5/18/10).
 !
 !  Notes:
 !  (1) added monoterpene, sesq, isoprene SOA (hotp 5/24/10)
@@ -11207,10 +11258,12 @@ c
 !
 !******************************************************************************
 !
+!  %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 !  %%% THIS SUBROUTINE IS FOR SOA + SEMIVOLATILE POA SIMULATION %%%
+!  %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 !
 !  Function GET_NO returns NO from SMVGEAR's CSPEC array (for coupled runs).
-!  Created by H.O.T. Pye (5/7/2010).
+!  Created by Havala Pye (5/7/2010).
 !
 !  Arguments as Input:
 !  ============================================================================
@@ -11276,10 +11329,12 @@ c
 !
 !******************************************************************************
 !
+!  %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 !  %%% THIS SUBROUTINE IS FOR SOA + SEMIVOLATILE POA SIMULATION %%%
+!  %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 !
 !  Function GET_HO2 returns HO2 from SMVGEAR's CSPEC array (for coupled runs).
-!  Created by H.O.T. Pye (5/7/2010).
+!  Created by Havala Pye (5/7/2010).
 !
 !  Arguments as Input:
 !  ============================================================================
@@ -11345,11 +11400,13 @@ c
 !
 !******************************************************************************
 !
+!  %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 !  %%% THIS SUBROUTINE IS FOR SOA + SEMIVOLATILE POA SIMULATION %%%
+!  %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 !
 !  Modification of GET_DOH that returns the amount of isoprene [kgC] that has 
 !  reacted with NO3 during the last chemistry time step. Created by
-!  H.O.T. Pye (5/22/10).
+!  Havala Pye (5/22/10).
 !
 !  Location in CSPEC array is in comode.h
 !
@@ -11736,11 +11793,13 @@ c
       !=================================================================
       IF ( LSOA ) THEN
       
-         ! Check to see if using SOA + semivolatile POA or traditional
-         ! SOA simulation (mpayer, 7/21/11)
+         ! SOAupdate: Check to see if using SOA + semivolatile POA or
+         ! traditional SOA simulation (mpayer, 7/21/11)
          IF ( LSVPOA ) THEN
 
-            !%%% SOA + semivolatile POA %%%
+            !------------------------
+            ! SOA + semivolatile POA
+            !-------------------------
 
             ! All monoterpene and sesquiterpene SOA lumped together 
             ! NOX: Used to indicate (1) high NOx, (2) low NOx, and (3) +NO3
@@ -11833,7 +11892,9 @@ c
 
          ELSE
 
-            !%%% Traditional SOA %%%
+            !------------------------
+            ! Traditional SOA
+            !------------------------
 
             MHC   = 9
             MSV   = 0 ! not used in traditional SOA
@@ -11895,10 +11956,11 @@ c
 
          ENDIF ! LSVPOA
 
-         ! The following are used in both trad. SOA and SOA + semivol POA
+         ! SOAupdate: The following are used in both traditional SOA and
+         ! SOA + semivol POA
 !-----------------------------------------------------------------------
 ! Prior to 7/21/11:
-! Move to ELSE statement above for traditional SOA (mpayer, 7/21/11)
+! SOAupdate: Move to ELSE statement above for traditional SOA (mpayer, 7/21/11)
 !         ALLOCATE( BIOG_ALPH( IIPAR, JJPAR ), STAT=AS )
 !         IF ( AS /= 0 ) CALL ALLOC_ERR( 'BIOG_ALPH' )
 !         BIOG_ALPH = 0d0
@@ -11910,7 +11972,7 @@ c
 
 !-----------------------------------------------------------------------
 ! Prior to 7/21/11:
-! Move to ELSE statement above for traditional SOA (mpayer, 7/21/11)
+! SOAupdate: Move to ELSE statement above for traditional SOA (mpayer, 7/21/11)
 !         ALLOCATE( BIOG_ALCO( IIPAR, JJPAR ), STAT=AS )
 !         IF ( AS /= 0 ) CALL ALLOC_ERR( 'BIOG_ALCO' )
 !         BIOG_ALCO = 0d0
@@ -11938,7 +12000,7 @@ c
 
 !-----------------------------------------------------------------------
 ! Prior to 7/21/11:
-! Move to ELSE statement above for traditional SOA (mpayer, 7/21/11)
+! SOAupdate: Move to ELSE statement above for traditional SOA (mpayer, 7/21/11)
 !         ALLOCATE( ORVC_TERP( IIPAR, JJPAR, LLPAR ), STAT=AS )
 !         IF ( AS /= 0 ) CALL ALLOC_ERR( 'ORVC_TERP' )
 !         ORVC_TERP = 0d0
@@ -11963,7 +12025,7 @@ c
 
 !-----------------------------------------------------------------------
 ! Prior to 7/21/11:
-! Move to ELSE statement above for traditional SOA (mpayer, 7/21/11)
+! SOAupdate: Move to ELSE statement above for traditional SOA (mpayer, 7/21/11)
 !         ! diagnostic  (dkh, 11/11/06)  
 !         ALLOCATE( GLOB_DARO2( IIPAR, JJPAR, LLPAR,2,3), STAT=AS )
 !         IF ( AS /= 0 ) CALL ALLOC_ERR( 'GLOB_DARO2' )
@@ -11989,7 +12051,8 @@ c
       ENDIF ! LSOA
 
       !=================================================================
-      ! Map parent HCs to lumped semivolatiles (hotp, mpayer, 7/21/11)
+      ! SOAupdate: Map parent HCs to lumped semivolatiles
+      ! (hotp, mpayer, 7/21/11)
       !=================================================================
 
       IF ( LSVPOA ) THEN

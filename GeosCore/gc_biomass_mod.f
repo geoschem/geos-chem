@@ -1340,11 +1340,7 @@
       !=================================================================
 
       ! Make sure BCPO, OCPO tracers are defined
-!-----------------------------------------------------------------------
-! Prior to 7/27/11:
-! Add POA1 for SOA + semivol POA (hotp, mpayer, 7/27/11)
-!      IF ( IDTBCPO == 0 .and. IDTOCPO == 0 ) THEN
-!-----------------------------------------------------------------------
+      ! SOAupdate: Add POA1 for SOA + semivol POA (hotp, mpayer, 7/27/11)
       IF ( IDTBCPO == 0 .and. IDTOCPO == 0 .and. IDTPOA1 == 0 ) THEN
          BIOMASS_BC = 0d0
          BIOMASS_OC = 0d0
@@ -1464,7 +1460,8 @@
 
             ! Convert [kg C/month] -> [atoms C/cm2/s]
             BIOMASS_BC(I,J) = BIOMASS_BC(I,J) * XNUMOL(IDTBCPO) * CONV
-            ! Add options for OCPO or  POA1 (hotp, mpayer, 7/27/11)
+
+            ! SOAupdate: Add options for OCPO or  POA1 (hotp, mpayer, 7/27/11)
             IF ( IDTOCPO > 0 ) THEN
               BIOMASS_OC(I,J) = BIOMASS_OC(I,J) * XNUMOL(IDTOCPO) * CONV
             ELSEIF ( IDTPOA1 > 0 ) THEN

@@ -426,10 +426,14 @@
       SNAME = 'GEOS3'
 #endif
 
-      ! list of ID of available species
+      ! List of ID of available species
+      ! SOAupdate: Check to see if using SOA + semivolatile POA or standard
+      ! chemistry simulation (mpayer, 8/1/11)
       IF ( LSVPOA ) THEN
 
-         !%%% SOA + semivolatile POA %%%
+         !------------------------
+         ! SOA + semivolatile POA
+         !------------------------
          SPECIES_ID = (/ IDTNOX,  IDTCO,   IDTSO2,  IDTSO4,  
      &                   IDTNH3,  IDTACET, IDTALK4, IDTC2H6, 
      &                   IDTC3H8, IDTPOA1, IDTBCPI, IDTALD2, 
@@ -437,7 +441,9 @@
 
       ELSE
 
-         !%%% Standard chemistry %%%
+         !------------------------
+         ! Standard chemistry
+         !------------------------
          SPECIES_ID = (/ IDTNOX,  IDTCO,   IDTSO2,  IDTSO4, 
      &                   IDTNH3,  IDTACET, IDTALK4, IDTC2H6, 
      &                   IDTC3H8, IDTOCPI, IDTBCPI, IDTALD2, 
@@ -556,11 +562,7 @@
                NH3(:,:,L) = NH3(:,:,L) * USA_MASK(:,:)
             ENDDO
 
-!-----------------------------------------------------------------------
-! Prior to 8/1/11:
-! Add POA for SOA + semivolatile POA (mpayer, 8/1/11)
-!         ELSEIF ( SNo .eq. IDTOCPI ) THEN
-!-----------------------------------------------------------------------
+         ! SOAupdate: Add POA for SOA + semivolatile POA (mpayer, 8/1/11)
          ELSEIF ( SNo == IDTOCPI .or. SNo == IDTPOA1 ) THEN
 
             CALL DO_REGRID_1x1( 5, 'kg/yr', GEOS_1x1, OC )
@@ -770,10 +772,14 @@
       SNAME = 'GEOS3'
 #endif
 
-      ! list of ID of available species
+      ! List of ID of available species
+      ! SOAupdate: Check to see if using SOA + semivolatile POA or standard
+      ! chemistry simulation (mpayer, 8/1/11)
       IF ( LSVPOA ) THEN
 
-         !%%% SOA + semivolatile POA %%%
+         !------------------------
+         ! SOA + semivolatile POA
+         !------------------------
          SPECIES_ID = (/ IDTNOX,  IDTCO,   IDTSO2,  IDTSO4,  
      &                   IDTNH3,  IDTACET, IDTALK4, IDTC2H6, 
      &                   IDTC3H8, IDTPOA1, IDTBCPI, IDTALD2, 
@@ -781,7 +787,9 @@
 
       ELSE
 
-         !%%% Standard chemistry %%%
+         !------------------------
+         ! Standard chemistry
+         !------------------------
          SPECIES_ID = (/ IDTNOX,  IDTCO,   IDTSO2,  IDTSO4, 
      &                   IDTNH3,  IDTACET, IDTALK4, IDTC2H6, 
      &                   IDTC3H8, IDTOCPI, IDTBCPI, IDTALD2, 
@@ -895,11 +903,7 @@
                NH3(:,:,L) = NH3(:,:,L) * USA_MASK(:,:)
             ENDDO
 
-!-----------------------------------------------------------------------
-! Prior to 8/1/11:
-! Add POA for SOA + semivolatile POA (mpayer, 8/1/11)
-!         ELSEIF ( SNo .eq. IDTOCPI ) THEN
-!-----------------------------------------------------------------------
+         ! SOAupdate: Add POA for SOA + semivolatile POA (mpayer, 8/1/11)
          ELSEIF ( SNo == IDTOCPI .or. SNo == IDTPOA1 ) THEN
 
             OC(:,:,:) = GEOS_05x0666
