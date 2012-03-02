@@ -1097,7 +1097,7 @@
       TAU1995 = GET_TAU0( GET_MONTH(), 1, 1995 )
 
       ! For NH3 only ...
-      IF ( TRACERN == IDTNH3 ) THEN
+      IF ( TRACERN == 30 ) THEN
 
          ! File name containing scaling factors
          FILENAME_S = TRIM( DATA_DIR_1x1 ) // 
