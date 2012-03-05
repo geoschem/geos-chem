@@ -1431,24 +1431,24 @@ c new OH+CO rate from JPL2006.
                ENDIF
 
 !               JLOOP   = JLOP(IX,IY,1)
-               IF ((IX .eq. 108) .and. (IY .eq. 49)) THEN
-                  PRINT*,"In calcrate.f: ",fraction_nox, int_ope
-                  PRINT*,"NOx scaling: ",NOx_SCALING
+!              IF ((IX .eq. 108) .and. (IY .eq. 49)) THEN
+!                  PRINT*,"In calcrate.f: ",fraction_nox, int_ope
+!                  PRINT*,"NOx scaling: ",NOx_SCALING
 !                  PRINT*,"In calcrate.f: remis(ox),(hno3),(nox) after: ",
 !     &                    REMIS(JLOOP,IDEOX), REMIS(JLOOP,IDEHNO3),
 !     &                          REMIS(JLOOP,IDENOX)
 !                  PRINT*,"This is values for emisison of ship after jval"
 !                  PRINT*,"------------END CALCRATE.F-----------------"
-               ENDIF    
-               IF ((IX .eq. 73) .and. (IY .eq. 76)) THEN
-                  JLOOP   = JLOP(IX,IY,1)
-                  PRINT*,"In calcrate.f, north sea: ",
-     &                     fraction_nox,int_ope
-                  PRINT*,"In calcrate.f, north sea: remis(ox),(hno3),",
-     &                   "(nox) after: ",
-     &                    REMIS(JLOOP,IDEOX), REMIS(JLOOP,IDEHNO3),
-     &                          REMIS(JLOOP,IDENOX)
-               ENDIF                    
+!               ENDIF    
+!               IF ((IX .eq. 73) .and. (IY .eq. 76)) THEN
+!                  JLOOP   = JLOP(IX,IY,1)
+!                  PRINT*,"In calcrate.f, north sea: ",
+!     &                     fraction_nox,int_ope
+!                  PRINT*,"In calcrate.f, north sea: remis(ox),(hno3),",
+!     &                   "(nox) after: ",
+!     &                    REMIS(JLOOP,IDEOX), REMIS(JLOOP,IDEHNO3),
+!     &                          REMIS(JLOOP,IDENOX)
+!               ENDIF                    
                
             ENDIF
          ENDDO
