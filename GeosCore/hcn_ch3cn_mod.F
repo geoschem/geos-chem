@@ -207,7 +207,9 @@
 !  ============================================================================
 !  (1 ) REGION (INTEGER) : Array of Fossil Fuel regions 
 !
-!  NOTES:
+!  NOTES
+!  01 Mar 2012 - R. Yantosca - Now use GET_XMID(I,J,L) from grid_mod.F90
+!  01 Mar 2012 - R. Yantosca - Now use GET_YMID(I,J,L) from grid_mod.F90
 !******************************************************************************
 !
       ! References to F90 modules
@@ -229,15 +231,13 @@
 !$OMP+PRIVATE( I, J, X, Y )
       DO J = 1, JJPAR
          
-         ! Latitude [degrees]
-         Y = GET_YMID( J )         
-
          ! Loop over longitudes
          DO I = 1, IIPAR
 
-            ! Longitude [degrees]
-            X = GET_XMID( I )
-
+            ! Longitude and latitude [degrees]
+            X = GET_XMID( I, J, 1 )
+            Y = GET_YMID( I, J, 1 )         
+         
             ! Region #5: HCN Asian DF (1st sub-box)
             IF      ( ( X >= 72.5 .AND. X < 127.5 )  .AND.
      &                ( Y >=  8.0 .AND. Y <  28.0 ) ) THEN

@@ -4606,7 +4606,7 @@
             ERATE = ( AKw  / 100.d0 / 3600.d0 ) * 
      &              ( CONC * 1.d-12 * 1000.d0 ) * DMS_MW * DTSRCE  
 
-            DMSSRC = ERATE * GET_AREA_M2( J )
+            DMSSRC = ERATE * GET_AREA_M2( I, J, 1 )
 
             !===========================================================
             ! Add DMS emissions [kg DMS/box] into the tracer array
@@ -6630,14 +6630,12 @@
          ! Loop over latitudes
          DO J = 1, JJPAR
 
-            ! Latitude [degrees]
-            Y = GET_YMID( J )
-
             ! Loop over longitudes
             DO I = 1, IIPAR
 
-               ! Longitude [degrees]
-               X  = GET_XMID( I )
+               ! Longitude and latitude [degrees]
+               X       = GET_XMID( I, J, 1 )
+               Y       = GET_YMID( I, J, 1 )
 
                ! Get EDGAR SO2 emissions [kg/s]
                ! NOTE: Future emissions are already applied!
@@ -8177,15 +8175,15 @@
 
             ! Loop over surface grid boxes
             DO J = 1, JJPAR
+            DO I = 1, IIPAR
 
                ! Grid box latitude center [radians]
-               YMID_R = GET_YMID_R( J )
-
-            DO I = 1, IIPAR
+               YMID_R = GET_YMID_R( I, J, 1 )
 
                ! Increment IJLOOP
                IJLOOP = IJLOOP + 1
-               TIMLOC = real(LHR0) + real(NT)/3600.0 + GET_XMID(I)/15.0
+               TIMLOC = real(LHR0) + real(NT)/3600.0 + 
+     &                  GET_XMID( I, J, 1 )/15.0
          
                DO WHILE (TIMLOC .lt. 0)
                   TIMLOC = TIMLOC + 24.0

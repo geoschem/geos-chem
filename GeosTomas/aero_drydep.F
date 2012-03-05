@@ -43,6 +43,7 @@
 !                              the internally-mixed aerosol population based
 !                              on the same manner implemented by Rokjin Park
 !  25 Jan 2010 - R. Yantosca - Added ProTeX headers
+!  01 Mar 2012 - R. Yantosca - Now use GET_AREA_CM2(I,J,L) from grid_mod.F90
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -246,7 +247,7 @@ cdbg      print *, dryd(:)
             IF ( ND44 > 0 ) THEN 
 
                ! Surface area [cm2]
-               AREA_CM2 = GET_AREA_CM2( J )
+               AREA_CM2 = GET_AREA_CM2( I, J, 1 )
 
                ! Initialize
                TOT1 = 0d0
@@ -348,7 +349,7 @@ c     &           print *,'JC=',JC,'BIN=',BIN,'ID=',ID,'RKT',RKT
             IF ( ND44 > 0 .AND. RKT > 0d0 ) THEN
 
                ! Surface area [cm2]
-               AREA_CM2 = GET_AREA_CM2( J )
+               AREA_CM2 = GET_AREA_CM2( I, J, 1 )
                
                ! Convert from [kg/timestep] to [molec/cm2/s] 
                ! Store in AD44
@@ -395,7 +396,7 @@ c     &           AD44(I,J,NUMDEP+BIN+(JC-2)*IBINS,1)
          IF ( ND44 > 0 .AND. RKT > 0d0 ) THEN
 
             ! Surface area [cm2]
-            AREA_CM2 = GET_AREA_CM2( J )
+            AREA_CM2 = GET_AREA_CM2( I, J, 1 )
 
             ! Convert from [kg/timestep] to [molec/cm2/s] 
             ! Store in AD44

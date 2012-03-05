@@ -496,7 +496,7 @@
       WRITE( 6, 100   ) 'C2H4', THISMONTH, C2H4, ' C'
       WRITE( 6, 100   ) 'C2H2', THISMONTH, C2H2, ' C'
  100  FORMAT( 'Total anthro ', a4, ' for 2000/',
-              i2.2, ': ', f13.6, ' Tg', a2 )
+     &         i2.2, ': ', f13.6, ' Tg', a2 )
 
       END SUBROUTINE TOTAL_ANTHRO_TG
 !EOC

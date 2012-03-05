@@ -201,6 +201,8 @@
 !  (5 ) Removed obsolete code from 9/28/01 (bmy, 10/22/01)
 !  (6 ) Now uses routines GET_XMID and GET_YMID from "grid_mod.f" to compute
 !        grid box lon & lat.  Remove XMID, YMID from arg list. (bmy, 2/3/03)
+!  01 Mar 2012 - R. Yantosca - Now use GET_XMID(I,J,L) from grid_mod.F90
+!  01 Mar 2012 - R. Yantosca - Now use GET_YMID(I,J,L) from grid_mod.F90
 !******************************************************************************
 !
       ! References to F90 modules
@@ -224,37 +226,38 @@
 !$OMP+DEFAULT( SHARED ) 
 !$OMP+PRIVATE( I, J, X, Y )
       DO J = 1, JJPAR
-         Y = GET_YMID( J )         ! Latitude [degrees]
+      DO I = 1, IIPAR
 
-         DO I = 1, IIPAR
-            X = GET_XMID( I )      ! Longitude [degrees]
+         ! Longitude & latitude [degrees]
+         X = GET_XMID( I, J, 1 )
+         Y = GET_YMID( I, J, 1 )
          
-            ! Region #2 -- North American FF CO 
-            IF ( ( X >= -172.5 .and. X < -17.5 )   .and. 
-     &           ( Y >=   24.0 .and. Y <  88.0 ) ) THEN
-               REGION(I,J) = 2
+         ! Region #2 -- North American FF CO 
+         IF ( ( X >= -172.5 .and. X < -17.5 )   .and. 
+     &        ( Y >=   24.0 .and. Y <  88.0 ) ) THEN
+            REGION(I,J) = 2
             
-            ! Region #3 -- European FF CO (1st sub-box)
-            ELSE IF ( ( X >= -17.5 .and. X < 72.5 )  .and. 
-     &                ( Y >=  36.0 .and. Y < 45.0 ) ) THEN
-               REGION(I,J) = 3
+         ! Region #3 -- European FF CO (1st sub-box)
+         ELSE IF ( ( X >= -17.5 .and. X < 72.5 )  .and. 
+     &             ( Y >=  36.0 .and. Y < 45.0 ) ) THEN
+            REGION(I,J) = 3
 
-            ! Region #3 -- European FF CO (2nd sub-box)
-            ELSE IF ( ( X >= -17.5 .and. X < 172.5 )  .and. 
-     &                ( Y >=  45.0 .and. Y <  88.0 ) ) THEN
-               REGION(I,J) = 3
+         ! Region #3 -- European FF CO (2nd sub-box)
+         ELSE IF ( ( X >= -17.5 .and. X < 172.5 )  .and. 
+     &             ( Y >=  45.0 .and. Y <  88.0 ) ) THEN
+            REGION(I,J) = 3
 
-            ! Region #4 -- Asian FF CO (1st sub-box) 
-            ELSE IF ( ( X >= 70.0 .and. X < 152.5 )  .and.
-     &                ( Y >=  8.0 .and. Y <  45.0 ) ) THEN
-               REGION(I,J) = 4
+         ! Region #4 -- Asian FF CO (1st sub-box) 
+         ELSE IF ( ( X >= 70.0 .and. X < 152.5 )  .and.
+     &             ( Y >=  8.0 .and. Y <  45.0 ) ) THEN
+            REGION(I,J) = 4
    
             ! Region #5 -- FF CO from everywhere else
-            ELSE
-               REGION(I,J) = 5
+         ELSE
+            REGION(I,J) = 5
                
-            ENDIF
-         ENDDO
+         ENDIF
+      ENDDO
       ENDDO
 !$OMP END PARALLEL DO
 
@@ -283,6 +286,8 @@
 !  (5 ) Removed obsolete code from 9/28/01 (bmy, 10/22/01)
 !  (6 ) Now uses routines GET_XMID and GET_YMID from "grid_mod.f" to compute
 !        grid box lon & lat.  Remove XMID, YMID from arg list. (bmy, 2/3/03)
+!  01 Mar 2012 - R. Yantosca - Now use GET_XMID(I,J,L) from grid_mod.F90
+!  01 Mar 2012 - R. Yantosca - Now use GET_YMID(I,J,L) from grid_mod.F90
 !******************************************************************************
 !
       ! References to F90 modules
@@ -305,48 +310,49 @@
 !$OMP+DEFAULT( SHARED ) 
 !$OMP+PRIVATE( I, J, X, Y )
       DO J = 1, JJPAR
-         Y = GET_YMID( J )      ! Latitude [degrees]
+      DO I = 1, IIPAR
 
-         DO I = 1, IIPAR
-            X = GET_XMID( I )   ! Longitude [degrees]
+          ! Longitude & latitude [degrees]
+          X = GET_XMID( I, J, 1 )
+          Y = GET_YMID( I, J, 1 )
 
-            ! Region #6 -- South American BB CO 
-            IF ( ( X >= -112.5 .and. X < -32.5 )  .and.
-     &           ( Y >=  -56.0 .and. Y <  24.0 ) ) THEN
-               REGION(I,J) = 6
+          ! Region #6 -- South American BB CO 
+          IF ( ( X >= -112.5 .and. X < -32.5 )  .and.
+     &         ( Y >=  -56.0 .and. Y <  24.0 ) ) THEN
+             REGION(I,J) = 6
 
-            ! Region #7 -- African BB CO 
-            ELSE IF ( ( X >= -17.5 .and. X < 70.0 )  .and.
-     &                ( Y >= -48.0 .and. Y < 36.0 ) ) THEN
-               REGION(I,J) = 7
+          ! Region #7 -- African BB CO 
+          ELSE IF ( ( X >= -17.5 .and. X < 70.0 )  .and.
+     &              ( Y >= -48.0 .and. Y < 36.0 ) ) THEN
+             REGION(I,J) = 7
 
-            ! Region #8 -- SE Asian BB CO (1st sub-box) 
-            ELSE IF ( ( X >= 70.0 .and. X < 152.5 )  .and.
-     &                ( Y >=  8.0 .and. Y <  45.0 ) ) THEN
-               REGION(I,J) = 8
+          ! Region #8 -- SE Asian BB CO (1st sub-box) 
+          ELSE IF ( ( X >= 70.0 .and. X < 152.5 )  .and.
+     &              ( Y >=  8.0 .and. Y <  45.0 ) ) THEN
+             REGION(I,J) = 8
 
-            ! Region #9 -- Oceania BB CO 
-            ELSE IF ( ( X >= 70.0 .and. X < 170.0 )  .and.
-     &                ( Y <  8.0 ) ) THEN
-               REGION(I,J) = 9
+          ! Region #9 -- Oceania BB CO 
+          ELSE IF ( ( X >= 70.0 .and. X < 170.0 )  .and.
+     &              ( Y <  8.0 ) ) THEN
+             REGION(I,J) = 9
 
-            ! Region #10 -- European BB CO (1st sub-box)
-            ELSE IF ( ( X >= -17.5 .and. X < 72.5 )  .and.
-     &                ( Y >=  36.0 .and. Y < 45.0 ) ) THEN
-               REGION(I,J) = 10
+          ! Region #10 -- European BB CO (1st sub-box)
+          ELSE IF ( ( X >= -17.5 .and. X < 72.5 )  .and.
+     &              ( Y >=  36.0 .and. Y < 45.0 ) ) THEN
+             REGION(I,J) = 10
 
-            ! Region #10 -- European BB CO (2nd sub-box)
-            ELSE IF ( ( X >= -17.5 .and. X < 172.5 )  .and.
-     &                ( Y >=  45.0 .and. Y <  88.0 ) ) THEN
-               REGION(I,J) = 10 
+          ! Region #10 -- European BB CO (2nd sub-box)
+          ELSE IF ( ( X >= -17.5 .and. X < 172.5 )  .and.
+     &              ( Y >=  45.0 .and. Y <  88.0 ) ) THEN
+             REGION(I,J) = 10 
 
-            ! Region #11 -- North America BB CO  
-            ! (rest of world = North America)
-            ELSE 
-               REGION(I,J) = 11
+          ! Region #11 -- North America BB CO  
+          ! (rest of world = North America)
+          ELSE 
+             REGION(I,J) = 11
 
-            ENDIF
-         ENDDO
+          ENDIF
+       ENDDO
       ENDDO
 !$OMP END PARALLEL DO
 

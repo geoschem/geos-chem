@@ -4366,7 +4366,7 @@ c        AL(i,k) = median(AL(i,k), qmin, qmax)
                DO I = 1, IIPAR
 
                   ! Grid box surface area [m2]
-                  AREA_M2 = GET_AREA_M2( J )
+                  AREA_M2 = GET_AREA_M2( I, J, K )
 
                   DTC = ( FZ(I,J,K) + FZ1_TP(I,J,K) ) *
      &                  ( g0_100    * AREA_M2       ) /

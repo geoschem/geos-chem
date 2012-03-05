@@ -27,7 +27,7 @@
       ! Use this array to determine if emissions are handled here (hotp 8/3/09)
       USE BIOMASS_MOD,       ONLY : BIOBGAS
       USE COMODE_MOD,        ONLY : JLOP,      REMIS,   VOLUME
-      USE COMODE_MOD,        ONLY : IYSAVE
+      USE COMODE_MOD,        ONLY : IXSAVE,    IYSAVE,  IZSAVE
       USE DIAG_MOD,          ONLY : AD12
       USE GRID_MOD,          ONLY : GET_AREA_CM2
       USE LIGHTNING_NOX_MOD, ONLY : EMIS_LI_NOx
@@ -137,6 +137,7 @@
 !  16 Dec 2010 - R. Yantosca - Added ProTeX headers
 !  21 Dec 2010 - R. Yantosca - Now set REMIS=0d0.  Also updated comments.
 !  01 Mar 2012 - R. Yantosca - Now use GET_AREA_CM2(I,J,L) from grid_mod.F90
+!  01 Mar 2012 - R. Yantosca - Now reference IXSAVE, IZSAVE from comode_mod.F
 !EOP
 !------------------------------------------------------------------------------
 !BOC

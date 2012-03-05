@@ -3647,7 +3647,7 @@
 
          IF ( ( (GET_YMID(I,J,L) > 60D0) .AND. 
      &          (GET_MONTH() >= 3) .AND. (GET_MONTH() <= 5)  ) .OR.
-     &        ( (GET_YMID(I,J,LJ) < -50D0) .AND. 
+     &        ( (GET_YMID(I,J,L) < -50D0) .AND. 
      &          (GET_MONTH() >= 9) .AND. (GET_MONTH() <= 11)  ) ) THEN
 
             ! Br concentration due to bromine explosion, pptv

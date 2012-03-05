@@ -297,6 +297,7 @@
 !  (6 ) For now treat MERRA like GEOS-5 (bmy, 8/13/10)
 !  29 Oct 2010 - T. D. Fairlie, R. Yantosca - Retune dust for MERRA 4x5
 !  15 Feb 2011 - R. Yantosca - Add modifications for APM from G. Luo
+!  01 Mar 2012 - R. Yantosca - Now use GET_AREA_M2(I,J,L) from grid_mod.F90
 !******************************************************************************
 !
       ! References to F90 modules
@@ -889,7 +890,7 @@ ctdf        print *,' no mobilisation candidates'
 
                ! use get_area_m2 (Grid box surface area) [m2] instead of DXYP
                Q_DST_TND_MBL(I,M) =
-     &              FLX_MSS_VRT_DST(I,M) * GET_AREA_M2(LAT_IDX) ! [kg/sec]
+     &              FLX_MSS_VRT_DST(I,M) * GET_AREA_M2(I,LAT_IDX,1) ! [kg/sec]
 
                ! Introduce DSRC: dust mixing ratio increment   12/9/2K3
                DSRC(I,M) =      ! [kg]

@@ -1011,7 +1011,7 @@ SPHERE.o                    : SPHERE.F
 streets_anthro_mod.o        : streets_anthro_mod.F                           \
                               future_emissions_mod.o  logical_mod.o          \
                               scale_anthro_mod.o      tracerid_mod.o         \
-                              tracer_mod.o  
+                              tracer_mod.o            dao_mod.o
 
 subfun.o                    : subfun.F
 

@@ -988,6 +988,7 @@
 !  (7 ) Apply an empirical sea surface temperature dependence to Gong (2003)
 !       (jaegle 5/11/11)
 !  22 Dec 2011 - M. Payer    - Added ProTeX headers
+!  01 Mar 2012 - R. Yantosca - Now use GET_AREA_M2(I,J,L) from grid_mod.F90
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -1147,11 +1148,11 @@
       ! Loop over latitudes
       DO J = 1, JJPAR
             
-         ! Grid box surface area [m2]
-         A_M2 = GET_AREA_M2( J )
-
          ! Loop over longitudes
          DO I = 1, IIPAR
+
+            ! Grid box surface area [m2]
+            A_M2 = GET_AREA_M2( I, J, 1 )
 
             ! Test if this is a water box
             IF ( IS_WATER(I,J) ) THEN
@@ -1858,6 +1859,7 @@
 !
 ! !REVISION HISTORY: 
 !  22 Dec 2011 - M. Payer    - Added ProTeX headers
+!  01 Mar 2012 - R. Yantosca - Now use GET_AREA_CM2(I,J,L) from grid_mod.F90
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -1903,12 +1905,12 @@
 
       ! Loop over latitudes
       DO J = 1, JJPAR
-            
-         ! Grid box surface area [m2]
-         A_M2 = GET_AREA_M2( J )
 
          ! Loop over longitudes
          DO I = 1, IIPAR
+
+            ! Grid box surface area [m2]
+            A_M2 = GET_AREA_M2( I, J, 1 )
 
             ! Test if this is a water box
             IF ( IS_WATER(I,J) ) THEN

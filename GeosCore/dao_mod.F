@@ -460,10 +460,10 @@
          AREA_M2     = GET_AREA_M2( I, J, L )
   
          ! Pressure at bottom edge of grid box [hPa]
-         P1          = GET_PEDGE(I,J,L)
+         P1          = GET_PEDGE( I, J, L )
 
          ! Pressure at top edge of grid box [hPa]
-         P2          = GET_PEDGE(I,J,L+1)
+         P2          = GET_PEDGE( I, J, L+1 )
 
          ! Pressure difference between top & bottom edges [hPa]
          DELP(L,I,J) = P1 - P2
@@ -573,16 +573,16 @@
       DO I = 1, IIPAR
 
          ! Grid box surface area [m2]
-         AREA_M2     = GET_AREA_M2( I, J, L )
+         AREA_M2      = GET_AREA_M2( I, J, L )
 
          ! Pressure at bottom edge of grid box [hPa]
-         P1          = GET_PEDGE_FULLGRID(I,J,L)
+         P1           = GET_PEDGE_FULLGRID( I, J, L )
 
          ! Pressure at top edge of grid box [hPa]
-         P2          = GET_PEDGE_FULLGRID(I,J,L+1)
+         P2           = GET_PEDGE_FULLGRID( I, J, L+1 )
 
          ! Pressure difference between top & bottom edges [hPa]
-         DELP_TMP = P1 - P2
+         DELP_TMP     = P1 - P2
          
          !===========================================================
          ! BXHEIGHT is the height (Delta-Z) of grid box (I,J,L) 

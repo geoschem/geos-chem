@@ -2002,7 +2002,7 @@ contains
           ! Should NOT use ID_EMITTED here, since it is only for gases 
           ! for SMVGEAR. (Lin, 06/10/08)
           do N = 1, N_TRACERS
-             eflx(I,J,N) = eflx(I,J,N) + emis_save(I,J,N) 
+             eflx(I,J,N) = eflx(I,J,N) + emis_save(I,J,N)       &
                                        / GET_AREA_M2( I, J, 1 ) &
                                        / GET_TS_EMIS() / 60.d0
           enddo

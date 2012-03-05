@@ -206,6 +206,7 @@
 ! 
 ! !REVISION HISTORY:
 !  17 Jul 2009 - W. Trivitayanurak - Initial version
+!  01 Mar 2012 - R. Yantosca - Now use GET_AREA_CM2(I,J,L) from grid_mod.F90
 !------------------------------------------------------------------------------
 !BOC
 !
@@ -273,9 +274,11 @@
       NN = NUMDEP + (SRTDUST-1)*IBINS + BIN
 
       DO J = 1, JJPAR
-         ! Surface area [cm2]
-         AREA_CM2 = GET_AREA_CM2(J)
          DO I = 1, IIPAR
+
+            ! Surface area [cm2]
+            AREA_CM2 = GET_AREA_CM2( I, J, 1 )
+         
             FLUXD = 0d0
             FLUXN = 0d0
 !debug            if(i==ii .and. j==jj .and. bin==bb) 
@@ -358,6 +361,7 @@
 !  (2 ) Remove reference to CMN, it's not needed (bmy, 7/20/04)
 !  (3 ) Now references XNUMOL from "tracer_mod.f" (bmy, 10/25/05)
 !  25 Aug 2010 - R. Yantosca - Added ProTeX headers
+!  01 Mar 2012 - R. Yantosca - Now use GET_AREA_CM2(I,J,L) from grid_mod.F90
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -423,12 +427,12 @@
          ! Loop over latitudes
          DO J = 1, JJPAR
 
-            ! Surface area [cm2]
-            AREA_CM2 = GET_AREA_CM2(J)
-
             ! Loop over longitudes
             DO I = 1, IIPAR
-            
+
+               ! Surface area [cm2]
+               AREA_CM2 = GET_AREA_CM2( I, J, 1 )
+
                ! Initialize settling velocity
                DO L = 1, LLPAR
                   VTS(L) = 0d0
@@ -562,6 +566,7 @@
 !  30 Mar 2004 - T. D. Fairlie - Initial version
 !  (1 ) Now references XNUMOL from "tracer_mod.f" (bmy, 10/25/05)
 !  25 Aug 2010 - R. Yantosca - Added ProTeX headers
+!  01 Mar 2012 - R. Yantosca - Now use GET_AREA_CM2(I,J,L) from grid_mod.F90
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -590,11 +595,11 @@
          ! Loop over latitudes
          DO J = 1, JJPAR
 
-            ! Surface area [cm2]
-            AREA_CM2 = GET_AREA_CM2(J)
-
             ! Loop over longitudes
             DO I = 1, IIPAR
+
+               ! Surface area [cm2]
+               AREA_CM2 = GET_AREA_CM2( I, J, 1 )
 
                ! Original dust concentration at surface
                OLD = TC(I,J,1,N)
@@ -880,6 +885,7 @@ c$$$      ENDIF
 !                              and has units of mm H2O instead of m H2O
 !                              so we need to convert to m H2O.
 !  08 Feb 2012 - R. Yantosca - Treat GEOS-5.7.x in the same way as MERRA
+!  01 Mar 2012 - R. Yantosca - Now use GET_YMID_R(I,J,L) from grid_mod.F90
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -1033,7 +1039,7 @@ c$$$      ENDIF
          !==============================================================
          
          ! Latitude in RADIANS
-         YMID_R = GET_YMID_R(J)
+         YMID_R = GET_YMID_R( I, J, 1 )
 
          ! Call DEAD dust mobilization
          CALL DST_MBL( DOY,    BHT2,  J,     YMID_R, ORO,    
@@ -1144,6 +1150,7 @@ c$$$      ENDIF
 !  (1 ) Added OpenMP parallelization (bmy, 4/8/04)
 !  (2 ) Now references DATA_DIR from "directory_mod.f" (bmy, 7/20/04)
 !  25 Aug 2010 - R. Yantosca - Added ProTeX headers
+!  01 Mar 2012 - R. Yantosca - Now use GET_AREA_CM2(I,J,L) from grid_mod.F90
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -1288,11 +1295,11 @@ c$$$      ENDIF
          ! Loop over latitudes
          DO J = 1, JJPAR
             
-            ! Get grid box surface area [m2]
-            AREA_M2 = GET_AREA_M2(J)
-
             ! Loop over longitudes
             DO I = 1, IIPAR
+
+               ! Get grid box surface area [m2]
+               AREA_M2 = GET_AREA_M2( I, J, 1 )
 
                ! Fraction of emerged surfaces 
                ! (subtract lakes, coastal ocean,...)

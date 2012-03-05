@@ -144,6 +144,7 @@
 !  (6 ) Now uses GOCART source function (tdf, bmy, 1/25/07)
 !  (7 ) Modifications for 0.5 x 0.667 grid (yxw, dan, bmy, 11/6/08)
 !  (8 ) Updates for nested grids (amv, bmy, 12/18/09)
+!  01 Mar 2012 - R. Yantosca - Now reference new grid_mod.F90
 !******************************************************************************
 !
       IMPLICIT NONE
@@ -299,6 +300,7 @@
 !  29 Oct 2010 - T. D. Fairlie, R. Yantosca - Retune dust for MERRA 4x5
 !  08 Feb 2012 - R. Yantosca - For now, use same FLX_MSS_FDG_FCT for 
 !                              GEOS-5.7.x as for MERRA
+!  01 Mar 2012 - R. Yantosca - Now use GET_AREA_M2(I,J,L) from grid_mod.F90
 !******************************************************************************
 !
       ! References to F90 modules
@@ -888,7 +890,7 @@ ctdf        print *,' no mobilisation candidates'
 
                ! use get_area_m2 (Grid box surface area) [m2] instead of DXYP
                Q_DST_TND_MBL(I,M) =
-     &              FLX_MSS_VRT_DST(I,M) * GET_AREA_M2(LAT_IDX) ! [kg/sec]
+     &              FLX_MSS_VRT_DST(I,M) * GET_AREA_M2(I,LAT_IDX,1) ! [kg/sec]
 
                ! Introduce DSRC: dust mixing ratio increment   12/9/2K3
                DSRC(I,M) =      ! [kg]

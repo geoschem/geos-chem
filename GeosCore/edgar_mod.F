@@ -114,7 +114,6 @@
       REAL*8,  PARAMETER   :: XNUMOL_SO2  = 6.0225d23  / 64d-3
 
       ! Arrays
-      REAL*8,  ALLOCATABLE :: A_CM2(:,:)
       REAL*8,  ALLOCATABLE :: EDGAR_NOx(:,:)
       REAL*8,  ALLOCATABLE :: EDGAR_CO(:,:)
       REAL*8,  ALLOCATABLE :: EDGAR_SO2(:,:)
@@ -1587,10 +1586,11 @@
 !
 !  NOTES:
 !  (1 ) Added the SHIP switch (phs, 5/13/08)
-!  01 Mar 2012 - R. Yantosca - A_CM2 is now 2-D
+!  01 Mar 2012 - R. Yantosca - Now use GET_AREA_CM2(I,J,L) from grid_mod.F90
 !******************************************************************************
 !
       ! References to F90 modules
+      USE GRID_MOD,             ONLY : GET_AREA_CM2
       USE FUTURE_EMISSIONS_MOD, ONLY : GET_FUTURE_SCALE_NOxff
       USE LOGICAL_MOD,          ONLY : LFUTURE
 
@@ -1649,7 +1649,8 @@
       ELSE IF ( DO_MCS ) THEN
 
          ! Convert to [molec/cm2/s]
-         NOx = NOx * XNUMOL_NO2 / ( A_CM2(I,J) * SEC_IN_SEASON )
+         NOx = NOx * XNUMOL_NO2 
+     &       / ( GET_AREA_CM2( I, J, 1 ) * SEC_IN_SEASON )
 
       ENDIF
 
@@ -1674,10 +1675,11 @@
 !
 !  NOTES:
 !  (1 ) Added the SHIP switch (phs, 5/13/08)
-!  01 Mar 2012 - R. Yantosca - A_CM2 is now 2-D
+!  01 Mar 2012 - R. Yantosca - Now use GET_AREA_CM2(I,J,L) from grid_mod.F90
 !******************************************************************************
 !
       ! References to F90 modules
+      USE GRID_MOD,             ONLY : GET_AREA_CM2
       USE FUTURE_EMISSIONS_MOD, ONLY : GET_FUTURE_SCALE_COff
       USE LOGICAL_MOD,          ONLY : LFUTURE
 
@@ -1726,7 +1728,8 @@
       ELSE IF ( DO_MCS ) THEN 
 
          ! Convert to [molec/cm2/s]
-         CO = CO * XNUMOL_CO / ( A_CM2(I,J) * SEC_IN_2000 )
+         CO = CO * XNUMOL_CO 
+     &      / ( GET_AREA_CM2( I, J, 1 ) * SEC_IN_2000 )
 
       ENDIF
 
@@ -1749,10 +1752,11 @@
 !  (4 ) MOLEC_CM2_S (LOGICAL) : OPTIONAL - Return data in [molec/cm2/s]
 !
 !  NOTES:
-!  01 Mar 2012 - R. Yantosca - A_CM2 is now 2-D
+!  01 Mar 2012 - R. Yantosca - Now use GET_AREA_CM2(I,J,L) from grid_mod.F90
 !******************************************************************************
 !
       ! References to F90 modules
+      USE GRID_MOD,             ONLY : GET_AREA_CM2
       USE FUTURE_EMISSIONS_MOD, ONLY : GET_FUTURE_SCALE_SO2ff
       USE LOGICAL_MOD,          ONLY : LFUTURE
 
@@ -1793,7 +1797,8 @@
       ELSE IF ( DO_MCS ) THEN 
 
          ! Convert to [molec/cm2/s]
-         SO2 = SO2 * XNUMOL_SO2 / ( A_CM2(I,J) * SEC_IN_SEASON )
+         SO2 = SO2 * XNUMOL_SO2 
+     &       / ( GET_AREA_CM2( I, J, 1 ) * SEC_IN_SEASON )
 
       ENDIF
 
@@ -1817,10 +1822,11 @@
 !  (4 ) MOLEC_CM2_S (LOGICAL) : OPTIONAL - Return data in [molec/cm2/s]
 !
 !  NOTES:
-!  01 Mar 2012 - R. Yantosca - A_CM2 is now 2-D
+!  01 Mar 2012 - R. Yantosca - Now use GET_AREA_CM2(I,J,L) from grid_mod.F90
 !******************************************************************************
 !
       ! References to F90 modules
+      USE GRID_MOD,             ONLY : GET_AREA_CM2
       USE FUTURE_EMISSIONS_MOD, ONLY : GET_FUTURE_SCALE_SO2ff
       USE LOGICAL_MOD,          ONLY : LFUTURE
 
@@ -1861,7 +1867,8 @@
       ELSE IF ( DO_MCS ) THEN 
 
          ! Convert to [molec/cm2/s]
-         SO2 = SO2 * XNUMOL_SO2 / ( A_CM2(I,J) * SEC_IN_MONTH )
+         SO2 = SO2 * XNUMOL_SO2 
+     &       / ( GET_AREA_CM2( I, J, 1 ) * SEC_IN_MONTH )
 
       ENDIF
 
@@ -2608,10 +2615,10 @@
 !
 !  NOTES:
 !  (1 ) Now allocates SHIP arrays only if LEDGARSHIP is TRUE (5/13/08)
+!  01 Mar 2012 - R. Yantosca - Removed ref to GET_AREA_CM2 and A_CM2 array
 !******************************************************************************
 !
       ! Reference to F90 modules
-      USE GRID_MOD,    ONLY : GET_AREA_CM2
       USE ERROR_MOD,   ONLY : ALLOC_ERR
       USE LOGICAL_MOD, ONLY : LEDGARSHIP
 
@@ -2656,19 +2663,6 @@
       IF (AS /= 0 ) CALL ALLOC_ERR( 'EDGAR_TODN' )
       EDGAR_TODN = 0d0
 
-      !---------------------------------------------------
-      ! Pre-store array for grid box surface area in cm2
-      !---------------------------------------------------
-
-      ALLOCATE( A_CM2( IIPAR, JJPAR ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'A_CM2' )
-
-      DO J = 1, JJPAR
-      DO I = 1, IIPAR
-         A_CM2(I,J) = GET_AREA_CM2( I, J, 1 )
-      ENDDO
-      ENDDO
-
       ! Return to calling program
       END SUBROUTINE INIT_EDGAR
 
@@ -2685,7 +2679,6 @@
       !=================================================================
       ! CLEANUP_EDGAR begins here!
       !=================================================================
-      IF ( ALLOCATED( A_CM2          ) ) DEALLOCATE( A_CM2          )
       IF ( ALLOCATED( EDGAR_NOx      ) ) DEALLOCATE( EDGAR_NOx      )
       IF ( ALLOCATED( EDGAR_CO       ) ) DEALLOCATE( EDGAR_CO       )
       IF ( ALLOCATED( EDGAR_SO2      ) ) DEALLOCATE( EDGAR_SO2      )

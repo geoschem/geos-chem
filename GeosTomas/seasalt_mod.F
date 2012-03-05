@@ -1595,6 +1595,8 @@
 !  (2 ) Now partition emission throughout the PBL (win, 7/18/07)
 !  (3 ) Add COEF to adjust emission in a 1x1 nested-grid (win, 4/27/08)
 !  16 Feb 2012 - R. Yantosca - Added ProTeX headers
+!  01 Mar 2012 - R. Yantosca - Now use GET_AREA_CM2(I,J,L) from grid_mod.F90
+!  01 Mar 2012 - R. Yantosca - A_M2 is now a scalar
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -1606,7 +1608,7 @@
       REAL*4                 :: FOCEAN, W10M,   DTEMIS
       REAL*8                 :: F100,   W,      NUM
       REAL*8                 :: DBIN(IBINS),    A(IBINS)
-      REAL*8                 :: A_M2(JJPAR),    FEMIS
+      REAL*8                 :: A_M2,           FEMIS
        
       ! External functions
       REAL*8,  EXTERNAL      :: SFCWINDSQR
@@ -1655,7 +1657,7 @@
       DO I = 1, IIPAR
 
          ! Grid box surface area [m2]
-         A_M2( J ) = GET_AREA_M2( J )
+         A_M2  = GET_AREA_M2( I, J, 1 )
          
          ! Check if over ocean assuming only gridcells that are
          ! at least 50% water are oceans
@@ -1674,14 +1676,14 @@
 
                F100 = A(K)
                
-               !================================================================
+               !===============================================================
                ! Calculate sea-salt emission 
-               !================================================================
-               NUM = F100 * W * A_M2(J) * FOCEAN * DTEMIS * COEF
+               !===============================================================
+               NUM = F100 * W * A_M2 * FOCEAN * DTEMIS * COEF
 
-               !================================================================
+               !===============================================================
                ! Partition sea-salt emissions through boundary layer
-               !================================================================
+               !===============================================================
 
                ! Layer in which the PBL top occurs
                NTOP = CEILING( GET_PBL_TOP_L( I, J ) )

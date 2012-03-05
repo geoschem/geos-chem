@@ -835,7 +835,7 @@
                TDRYFX        = CSPEC(JLOOP,JJ) * VOLUME(JLOOP)
                     
                ! Convert TDRYFX from [molec] to [molec/cm2/s]        
-               TDRYFX        = TDRYFX / ( AREA_CM2(J) * DTCHEM ) 
+               TDRYFX        = TDRYFX / ( AREA_CM2 * DTCHEM ) 
                     
 !$OMP CRITICAL
                ! Save into AD44 diagnostic array

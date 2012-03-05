@@ -133,6 +133,7 @@
 !
 ! !USES:
 !
+      USE GRID_MOD,     ONLY : GET_AREA_CM2
       USE TRACER_MOD,   ONLY : XNUMOL
       USE TRACERID_MOD, ONLY : IDTACET, IDTALK4, IDTC2H6, IDTC3H8
       USE TRACERID_MOD, ONLY : IDTALD2, IDTCH2O, IDTPRPE, IDTMEK
@@ -2129,6 +2130,7 @@
       SUBROUTINE CLEANUP_NEI2005_ANTHRO
 !
 ! !REVISION HISTORY: 
+!  01 Mar 2012 - R. Yantosca - Remove reference to A_CM2 array
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -2137,7 +2139,6 @@
       !=================================================================
       ! USA mask
       IF ( ALLOCATED( USA_MASK) ) DEALLOCATE( USA_MASK )
-      IF ( ALLOCATED( A_CM2   ) ) DEALLOCATE( A_CM2 )
       IF ( ALLOCATED( NOx     ) ) DEALLOCATE( NOx   )
       IF ( ALLOCATED( CO      ) ) DEALLOCATE( CO    )
       IF ( ALLOCATED( SO2     ) ) DEALLOCATE( SO2   )

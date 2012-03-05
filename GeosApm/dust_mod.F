@@ -664,6 +664,7 @@
 !  03 Sep 2010 - R. Yantosca - Bug fix, SNOMAS was mislabled in GEOS-5
 !                              and has units of mm H2O instead of m H2O
 !                              so we need to convert to m H2O.
+!  01 Mar 2012 - R. Yantosca - Now use GET_YMID_R(I,J,L) from grid_mod.F90
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -828,7 +829,7 @@
          !==============================================================
          
          ! Latitude in RADIANS
-         YMID_R = GET_YMID_R(J)
+         YMID_R = GET_YMID_R( I, J, 1 )
 
          ! Call DEAD dust mobilization
          CALL DST_MBL( DOY,    BHT2,  J,     YMID_R, ORO,    
@@ -948,6 +949,7 @@
 !  (1 ) Added OpenMP parallelization (bmy, 4/8/04)
 !  (2 ) Now references DATA_DIR from "directory_mod.f" (bmy, 7/20/04)
 !  25 Aug 2010 - R. Yantosca - Added ProTeX headers
+!  01 Mar 2012 - R. Yantosca - Now use GET_AREA_M2(I,J,L) from grid_mod.F90
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -1062,11 +1064,11 @@
          ! Loop over latitudes
          DO J = 1, JJPAR
             
-            ! Get grid box surface area [m2]
-            AREA_M2 = GET_AREA_M2(J)
-
             ! Loop over longitudes
             DO I = 1, IIPAR
+
+               ! Get grid box surface area [m2]
+               AREA_M2 = GET_AREA_M2( I, J, 1)
 
                ! Fraction of emerged surfaces 
                ! (subtract lakes, coastal ocean,...)

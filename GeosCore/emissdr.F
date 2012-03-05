@@ -85,6 +85,7 @@
 !  06 Dec 2011 - E. Fischer  - Change biogenic acetone emissions to MEGAN
 !  08 Dec 2011 - M. Payer    - Remove GEIA biogenic emissions option
 !  01 Mar 2012 - R. Yantosca - Now use GET_LOCALTIME(I,J,L) from time_mod.F90
+!  01 Mar 2012 - R. Yantosca - Now use GET_AREA_CM2(I,J,L) from grid_mod.F90
 !******************************************************************************
 !
       ! References to F90 modules
@@ -210,14 +211,14 @@
       DO J = 1, JJPAR
          JREF = J + J0
 
-         ! Compute surface area of grid boxes in cm^2 
-         AREA_CM2 = GET_AREA_CM2( J )
-
          ! Loop over longitues
          DO I = 1, IIPAR
             IREF   = I + I0
             IJLOOP = IJLOOP + 1
-         
+
+            ! Compute surface area of grid boxes in cm^2 
+            AREA_CM2 = GET_AREA_CM2( I, J, 1 )
+
             ! Zero biogenic acetone (bmy, 9/14/01)
             BIO_ACET  = 0d0
 
