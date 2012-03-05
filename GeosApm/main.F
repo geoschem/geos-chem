@@ -1,4 +1,6 @@
+!BOC
 #if !defined(ESMF_)
+!EOC
 !------------------------------------------------------------------------------
 !          Harvard University Atmospheric Chemistry Modeling Group            !
 !------------------------------------------------------------------------------
@@ -167,6 +169,7 @@
 !  06 Feb 2012 - R. Yantosca - Renamed NN to NNN to avoid name confusion
 !  07 Feb 2012 - R. Yantosca - Split off met field I/O into internal routines
 !                              READ_INITIAL_MET_FIELDS and READ_MET_FIELDS
+!  07 Feb 2012 - M. Payer    - Replace call to COSSZA with GET_COSINE_SZA
 !  28 Feb 2012 - R. Yantosca - Removed support for GEOS-3
 !EOP
 !------------------------------------------------------------------------------
@@ -791,6 +794,11 @@
 #endif
          ENDIF 
 
+         ! Check STT (yxw)   
+#if   defined( GEOS_5 ) && defined( GRID05x0666 )
+         CALL CHECK_STT_05x0666( 'after chemistry' )
+#endif 
+
          !==============================================================
          ! ***** W E T   D E P O S I T I O N  (rainout + washout) *****
          !==============================================================
@@ -940,6 +948,14 @@
          ! Check for NaN, Negatives, Infinities in STT each time diag are
          ! saved. (ccc, 5/13/09)
          IF ( ITS_TIME_FOR_DIAG() ) THEN
+
+         ! Sometimes STT in the stratosphere can be negative at 
+         ! the nested-grid domain edges. Force them to be zero before
+         ! CHECK_STT (yxw)
+#if   defined( GEOS_5 ) && defined( GRID05x0666 )
+            CALL CHECK_STT_05x0666( 'after dynamics step' )
+#endif
+
             CALL CHECK_STT( 'End of Dynamic Loop' )
          ENDIF
           
