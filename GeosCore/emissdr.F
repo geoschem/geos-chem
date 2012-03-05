@@ -84,6 +84,7 @@
 !                              cos(SZA) at the midpt of the chemistry timestep
 !  06 Dec 2011 - E. Fischer  - Change biogenic acetone emissions to MEGAN
 !  08 Dec 2011 - M. Payer    - Remove GEIA biogenic emissions option
+!  01 Mar 2012 - R. Yantosca - Now use GET_LOCALTIME(I,J,L) from time_mod.F90
 !******************************************************************************
 !
       ! References to F90 modules
@@ -222,7 +223,7 @@
 
             ! Use function GET_LOCALTIME to get the local time at lon I
             ! Middle of time step is between 10pm-2am when IHOUR = 1
-            IHOUR = NINT( ( GET_LOCALTIME( I ) ) / 4 ) + 1
+            IHOUR = NINT( ( GET_LOCALTIME( I, J, 1 ) ) / 4 ) + 1
             IF ( IHOUR .EQ. 7 ) IHOUR = 1
 
             !=================================================================

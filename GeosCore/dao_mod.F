@@ -258,7 +258,7 @@
 !                              angles at the current time and 5 hours prior to
 !                              the current time (for the PARANOX ship emissions
 !                              plume model) (R. Yantosca)
-!  02 Mar 2012 - R. Yantosca - Now references the new grid_mod.F90
+!  01 Mar 2012 - R. Yantosca - Now references the new grid_mod.F90
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -1818,6 +1818,7 @@
 !  07 Feb 2012 - R. Yantosca - Now add GMT_HOUR as a new argument, which !
 !                              will facilitate computing sun angles 5h ago
 !  01 Mar 2012 - R. Yantosca - Now use GET_YMID_R(I,J,L) from grid_mod.F90
+!  01 Mar 2012 - R. Yantosca - Now use GET_LOCALTIME(I,J,L) from time_mod.F90
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -1895,7 +1896,7 @@
          !===========================================================
 
          ! Local time at box (I,J) [hours]
-         TIMLOC             = GET_LOCALTIME( I, GMT=GMT_CUR )
+         TIMLOC             = GET_LOCALTIME( I, J, 1, GMT=GMT_CUR )
 
          ! Hour angle at box (I,J) [radians]
          AHR                = ABS( TIMLOC - 12d0 ) * 15d0 * PI_180
@@ -1910,7 +1911,7 @@
          !===========================================================
 
          ! Local time [hours] at box (I,J) at the midpt of the chem timestep
-         TIMLOC             = GET_LOCALTIME( I, GMT=GMT_MID )
+         TIMLOC             = GET_LOCALTIME( I, J, 1, GMT=GMT_MID )
 
          ! Hour angle at box (I,J) [radians]
          AHR                = ABS( TIMLOC - 12d0 ) * 15d0 * PI_180

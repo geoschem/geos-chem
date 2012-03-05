@@ -49,6 +49,7 @@
 !  (15) Modifications for 0.5 x 0.666 nested grids (yxw, dan, bmy, 11/6/08)
 !  (16) Modifications for reading data on GEOS-4 1 x 1.25 grids (bmy, 1/13/10)
 !  01 Mar 2012 - R. Yantosca - Now reference new grid_mod.F90
+!  01 Mar 2012 - R. Yantosca - Use updated GET_LOCALTIME from time_mod.F
 !******************************************************************************
 !
       IMPLICIT NONE
@@ -949,6 +950,11 @@
 !  ============================================================================
 !  (1 ) IHOUR  (INTEGER) : Index for scale factor arrays
 !
+! !REMARKS:
+!  For now use GET_LOCALTIME( I, 1, 1 ) which will be independent of J and L
+!  for a pure cartesian grid.  This may need to be revisited once G-C is
+!  interfaced into a GCM.
+!
 !  NOTES:
 !  (1 ) COMPUTE IHOUR TO DETERMINE TIME OF DAY FACTOR FOR EMISSIONS
 !        THIS TOFDAY IS IN GREENWICH TIME(GMT); WE NEED TO CHANGE IT TO
@@ -986,7 +992,7 @@
 
       ! IHOUR ranges from 1-6 
       ! Modified to use NINT instead of INT (ccc, 4/15/09)
-      IHOUR = NINT( ( GET_LOCALTIME( I ) ) / 4 ) + 1
+      IHOUR = NINT( ( GET_LOCALTIME( I, 1, 1 ) ) / 4 ) + 1
       IF ( IHOUR == 7 ) IHOUR = 1
 
       ! Return to calling program

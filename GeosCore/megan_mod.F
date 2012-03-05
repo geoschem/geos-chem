@@ -157,6 +157,7 @@
 !  22 Nov 2011 - R. Yantosca - Do not use erroneous AEF's for nested grids 
 !  06 Dec 2011 - E. Fischer  - Added Acetone emissions 
 !  01 Mar 2012 - R. Yantosca - Now reference new grid_mod.F90
+!  01 Mar 2012 - R. Yantosca - Use updated GET_LOCALTIME from time_mod.F
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -1094,6 +1095,7 @@
 !       (mpb,2009)
 !  17 Dec 2009 - R. Yantosca - Added ProTeX headers
 !  01 Mar 2012 - R. Yantosca - Now use GET_YMID(I,J,L) from grid_mod.F90
+!  01 Mar 2012 - R. Yantosca - Now use GET_LOCALTIME(I,J,L) from time_mod.F90
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -1127,7 +1129,7 @@
 
       ! Get day of year, local-time and latitude
       DOY   = GET_DAY_OF_YEAR()
-      LUT   = GET_LOCALTIME( I )
+      LUT   = GET_LOCALTIME( I, J, 1 )
       LAT   = GET_YMID( I, J, 1 )
 
       ! Get solar elevation angle

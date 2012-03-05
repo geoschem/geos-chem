@@ -161,6 +161,7 @@
 !  01 Apr 2011 - H. Amos      - added LVEGEMIS, distinct from LGCAPEMIS
 !  08 Feb 2012 - R. Yantosca - Add modifications for GEOS-5.7.x met
 !  01 Mar 2012 - R. Yantosca - Now reference new grid_mod.F90
+!  01 Mar 2012 - R. Yantosca - Use updated GET_LOCALTIME from time_mod.F
 !******************************************************************************
 !
       ! References to F90 modules
@@ -3528,6 +3529,7 @@
 !
 !  NOTES:
 !  01 Mar 2012 - R. Yantosca - Now use GET_YMID(I,J,L) from grid_mod.F90
+!  01 Mar 2012 - R. Yantosca - Now use GET_LOCALTIME(I,J,L) from time_mod.F90
 !******************************************************************************
 !
       ! References to F90 modules
@@ -3682,7 +3684,7 @@
          ELSE
 
             ! Local time: 0-23.999
-            LOCALTIME = GET_LOCALTIME(I)
+            LOCALTIME = GET_LOCALTIME( I, J, L )
       
             ! Interpolate the real hour to lie within an equinoctal day
             ! i.e. between 6-18

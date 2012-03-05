@@ -36,6 +36,7 @@
 !
 ! !REVISION HISTORY:
 !  06 Feb 2012 - M. Payer    - Initial version
+!  01 Mar 2012 - R. Yantosca - Use updated GET_LOCALTIME from time_mod.F
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -258,11 +259,11 @@
       
       ! SOLAR ZENITH ANGLES IN DEGREES
 !      IJLOOP = ( (J-1) * IIPAR ) + I
-!      PRINT*,"Local Time: ",GET_LOCALTIME(I)
+!      PRINT*,"Local Time: ",GET_LOCALTIME(I,1,1)
 !      PRINT*,"Solar Zenith Angle at this location: ", 
 !     $            ASIND(SUNCOS_MID(IJLOOP))
 !      IJLOOP = ( (64-1) * IIPAR ) + 32
-!      PRINT*,"Local USA time: ", GET_LOCALTIME(32)
+!      PRINT*,"Local USA time: ", GET_LOCALTIME(32,1,1)
 !      PRINT*,"Solar Zenith Angle at USA: ", ASIND(SUNCOS_MID(IJLOOP))
 !      PRINT*,"Solar Zenith Angle at USA - 5: ",ASIND(SUNCOS_MID_5hr(IJLOOP))
       
@@ -658,11 +659,11 @@
       
       ! SOLAR ZENITH ANGLES IN DEGREES
 !      IJLOOP = ( (J-1) * IIPAR ) + I
-!      PRINT*,"Local Time: ",GET_LOCALTIME(I)
+!      PRINT*,"Local Time: ",GET_LOCALTIME(I,1,1)
 !      PRINT*,"Solar Zenith Angle at this location: ", 
 !     $            ASIND(SUNCOS_MID(IJLOOP))
 !      IJLOOP = ( (64-1) * IIPAR ) + 32
-!      PRINT*,"Local USA time: ", GET_LOCALTIME(32)
+!      PRINT*,"Local USA time: ", GET_LOCALTIME(32,1,1)
 !      PRINT*,"Solar Zenith Angle at USA: ", ASIND(SUNCOS_MID(IJLOOP))
 !      PRINT*,"Solar Zenith Angle at USA - 5: ",ASIND(SUNCOS_MID_5hr(IJLOOP))
       

@@ -194,6 +194,7 @@
 !  12 Oct 2011 - R. Yantosca - Modified ITS_A_NEW_MONTH for central chem step
 !  02 Feb 2012 - R. Yantosca - Added modifications for GEOS-5.7.x met fields
 !  03 Feb 2012 - R. Yantosca - Added I3 fields timestep variable & routines
+!  01 Mar 2012 - R. Yantosca - GET_LOCALTIME now takes (I,J,L,GMT) as args
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -1928,7 +1929,7 @@
 !\\
 ! !INTERFACE:
 !
-      FUNCTION GET_LOCALTIME( I, GMT ) RESULT( THISLOCALTIME )
+      FUNCTION GET_LOCALTIME( I, J, L, GMT ) RESULT( THISLOCALTIME )
 !
 ! !USES:
 !
@@ -1937,6 +1938,8 @@
 ! !INPUT PARAMETERS:
 !
       INTEGER, INTENT(IN)           :: I              ! Longitude index
+      INTEGER, INTENT(IN)           :: J              ! Latitude index
+      INTEGER, INTENT(IN)           :: L              ! Level index
       REAL*8,  INTENT(IN), OPTIONAL :: GMT            ! GMT time of day [hrs]
 !
 ! !RETURN VALUE:
@@ -1955,6 +1958,8 @@
 !                              (e.g. at the halfway point of an interval)
 !  05 Oct 2011 - R. Yantosca - Now add GMT as an optional argument
 !  07 Oct 2011 - R. Yantosca - Removed obsolete OFFSET argument
+!  01 Mar 2012 - R. Yantosca - Now use GET_XMID(I,J,L) from grid_mod.F90, and
+!                              add J, L indices to the argument list
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -1971,8 +1976,8 @@
          GMT_HRS = GET_GMT()
       ENDIF
 
-      ! Local time  = GMT time [hrs] +   longitude     / 15
-      THISLOCALTIME = GMT_HRS        + ( GET_XMID( I ) / 15d0 ) 
+      ! Local time  = GMT time [hrs] +   longitude           / 15
+      THISLOCALTIME = GMT_HRS        + ( GET_XMID( I, J, L ) / 15d0 ) 
 
       ! Make sure that THISLOCALTIME is in the range 0-24 hours
       IF ( THISLOCALTIME > 24 ) THISLOCALTIME = THISLOCALTIME - 24d0 
