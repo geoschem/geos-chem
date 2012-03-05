@@ -45,7 +45,7 @@
 #  07 Sep 2011 - R. Yantosca - Added gfed3_biomass_mod, *jv*_mod files
 #  22 Dec 2011 - M. Payer    - Added aerosol_mod, drydep_mod, seasalt_mod,
 #                              and sulfate_mod
-#  07 Feb 2012 - M. Payer    - Added paranox_mod, diag59_mod
+#  07 Feb 2012 - M. Payer    - Added paranox_mod, diag63_mod
 #  08 Feb 2012 - R. Yantosca - Added geos57_read_mod.F90
 #  28 Feb 2012 - R. Yantosca - Added pbl_mix_mod
 #  05 Mar 2012 - M. Payer    - Added tracer_mod
@@ -83,7 +83,7 @@ $(CORE)/diag49_mod.F                 \
 $(CORE)/diag50_mod.F                 \
 $(CORE)/diag51b_mod.F                \
 $(CORE)/diag56_mod.F                 \
-$(CORE)/diag59_mod.F                 \
+$(CORE)/diag63_mod.F                 \
 $(CORE)/diag_pl_mod.F                \
 $(CORE)/diag_oh_mod.F                \
 $(CORE)/diag_mod.F                   \
@@ -93,7 +93,7 @@ $(CORE)/emep_mod.F                   \
 $(CORE)/emissions_mod.F              \
 $(CORE)/fjx_acet_mod.F               \
 $(CORE)/gamap_mod.F                  \
-$(CORE)/geos57_read_mod.F            \
+$(CORE)/geos57_read_mod.F90          \
 $(CORE)/gfed3_biomass_mod.F          \
 $(CORE)/global_br_mod.F              \
 $(CORE)/global_no3_mod.F             \
@@ -146,7 +146,6 @@ $(CORE)/diag_2pm.F                   \
 $(CORE)/diagoh.F                     \
 $(CORE)/emfossil.F                   \
 $(CORE)/emf_scale.F                  \
-$(CORE)/emmonot.F                    \
 $(CORE)/fast_j.F                     \
 $(CORE)/findmon.F                    \
 $(CORE)/initialize.F                 \
@@ -155,8 +154,6 @@ $(CORE)/ohsave.F                     \
 $(CORE)/rdlai.F                      \
 $(CORE)/rdland.F                     \
 $(CORE)/rdsoil.F                     \
-$(CORE)/rdlight.F                    \
-$(CORE)/rdmonot.F                    \
 $(CORE)/readlai.F                    \
 $(CORE)/ruralbox.F                   \
 $(CORE)/setemis.F                    \

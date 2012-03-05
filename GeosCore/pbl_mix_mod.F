@@ -635,27 +635,6 @@
 !------------------------------------------------------------------------------
 !BOC
 !
-! !LOCAL VARIABLES:
-!
-!------------------------------------------------------------------------------
-
-!
-!******************************************************************************
-!
-!  Arguments as Input:
-!  ============================================================================
-!  (1 ) I (INTEGER) : GEOS-CHEM longitude index
-!  (2 ) J (INTEGER) : GEOS-CHEM latitude  index
-!  (3 ) L (INTEGER) : GEOS-CHEM level     index
-!  
-!  NOTES: 
-!******************************************************************************
-!
-
-      ! Arguments
-
-      ! Return value
-
       !=================================================================
       ! GET_FRAC_OF_PBL begins here!
       !=================================================================
@@ -718,7 +697,6 @@
 !
 ! !DESCRIPTION: Function GET\_PBL\_MAX\_L returns the model level at the 
 !  highest part of the planetary boundary layer.
-
 !\\
 !\\
 ! !INTERFACE:
@@ -748,7 +726,6 @@
 !
 ! !DESCRIPTION: Function GET\_PBL\_TOP\_hPa returns the planetary boundary 
 !  layer top [hPa] at a given GEOS-Chem surface location (I,J). 
-
 !\\
 !\\
 ! !INTERFACE:
@@ -782,7 +759,6 @@
 !
 ! !DESCRIPTION: Function GET\_PBL\_TOP\_L returns the planetary boundary 
 !  layer top [model levels] at a given GEOS-Chem surface location (I,J). 
-
 !\\
 !\\
 ! !INTERFACE:
@@ -853,7 +829,6 @@
 !
 ! !DESCRIPTION: Function GET\_PBL\_THICK returns the thickness of the PBL
 !  at a given surface location (I,J).
-
 !\\
 !\\
 ! !INTERFACE:
@@ -886,7 +861,6 @@
 ! !IROUTINE: init_pbl_mix
 !
 ! !DESCRIPTION: Subroutine INIT\_PBL\_MIX allocates and zeroes module arrays
-
 !\\
 !\\
 ! !INTERFACE:

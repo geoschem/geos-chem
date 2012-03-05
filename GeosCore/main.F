@@ -1168,7 +1168,7 @@
 ! !DESCRIPTION: Internal subroutine READ\_INITIAL\_MET\_FIELDS calls the
 !  various routines to read met fields at the beginning of a GEOS-Chem
 !  simulation.  This code was moved out of the main routine for clarity,
-!  due to the many #if defined() blocks that are required.
+!  due to the many \#if defined() blocks that are required.
 !\\
 !\\
 ! !INTERFACE:
@@ -1352,10 +1352,10 @@
 !
 ! !IROUTINE: read_met_fields
 !
-! !DESCRIPTION: Internal subroutine READ\__MET\_FIELDS calls the
+! !DESCRIPTION: Internal subroutine READ\_MET\_FIELDS calls the
 !  various routines to read met fields in the main GEOS-Chem timestepping
 !  loop.  This code was moved out of the main routine for clarity, due to
-!  the many #if defined() blocks that are required.
+!  the many \#if defined() blocks that are required.
 !\\
 !\\
 ! !INTERFACE:
