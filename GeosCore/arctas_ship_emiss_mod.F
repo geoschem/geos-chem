@@ -34,6 +34,8 @@
 ! !REVISION HISTORY:
 !  28 Jan 2009 - P. Le Sager - Initial Version
 !  31 Aug 2010 - R. Yantosca - Updated comments
+!  01 Mar 2012 - R. Yantosca - Remove A_CM2 array, use the new function
+!                              GET_AREA_CM2( I, J, L ) from grid_mod.F90 
 !
 ! !REMARKS:
 !  (1) Part of the ARCTAS pre-campaign composite inventory distributed by
@@ -61,9 +63,6 @@
 !
 ! !PRIVATE DATA MEMBERS:
 !
-      ! Arrays
-      REAL*8,  ALLOCATABLE :: A_CM2(:)
-
       ! Anthro emiss arrays
       REAL*8,  TARGET, ALLOCATABLE :: SO2_SHIP(:,:)
       REAL*8,  TARGET, ALLOCATABLE :: CO2_SHIP(:,:)
@@ -93,6 +92,7 @@
 !
 ! !USES:
 !
+      USE GRID_MOD,     ONLY : GET_AREA_CM2
       USE TRACER_MOD,   ONLY : ITS_A_CO2_SIM
       USE TRACER_MOD,   ONLY : XNUMOL
       USE TRACERID_MOD, ONLY : IDTSO2
@@ -169,13 +169,14 @@
       !------------------------------
       IF ( DO_KGS ) THEN
 
-            ! Convert from [kg/yr] to [kg/s]         
-            VALUE = VALUE / SEC_IN_YEAR              
+         ! Convert from [kg/yr] to [kg/s]         
+         VALUE = VALUE / SEC_IN_YEAR              
 
       ELSE IF ( DO_MCS ) THEN
 
-            ! Convert from [kg/yr] to [molec/cm2/s]            
-            VALUE = VALUE * XNUMOL(N) / ( A_CM2(J) * SEC_IN_YEAR )  
+         ! Convert from [kg/yr] to [molec/cm2/s]            
+         VALUE = ( VALUE       * XNUMOL(N)               )
+     &         / ( SEC_IN_YEAR * GET_AREA_CM2( I, J, 1 ) )  
 
       ENDIF
 
@@ -458,7 +459,6 @@
 ! !USES:
 ! 
       USE ERROR_MOD,   ONLY : ALLOC_ERR
-      USE GRID_MOD,    ONLY : GET_AREA_CM2
       USE LOGICAL_MOD, ONLY : LARCSHIP
       USE TRACER_MOD,  ONLY : ITS_A_CO2_SIM 
 
@@ -466,6 +466,7 @@
 !
 ! !REVISION HISTORY: 
 !  28 Jan 2009 - P. Le Sager - Initial Version
+!  01 Mar 2012 - R. Yantosca - Remove A_CM2 array
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -505,17 +506,6 @@
 
          ENDIF
 
-         !---------------------------------------------------
-         ! Allocate array for grid box surface area in cm2
-         !---------------------------------------------------
-         ALLOCATE( A_CM2( JJPAR ), STAT=AS )
-         IF ( AS /= 0 ) CALL ALLOC_ERR( 'A_CM2' )
-
-         ! Fill array
-         DO J = 1, JJPAR
-            A_CM2(J) = GET_AREA_CM2( J )
-         ENDDO
-
       ENDIF
 
       END SUBROUTINE INIT_ARCTAS_SHIP
@@ -543,7 +533,6 @@
       !=================================================================
       ! CLEANUP_ARCTAS_SHIP begins here!
       !=================================================================
-      IF ( ALLOCATED( A_CM2        ) ) DEALLOCATE( A_CM2        )
       IF ( ALLOCATED( SO2_SHIP     ) ) DEALLOCATE( SO2_SHIP     )
       IF ( ALLOCATED( CO2_SHIP     ) ) DEALLOCATE( CO2_SHIP     )
 

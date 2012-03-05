@@ -69,6 +69,7 @@
 !        (ccc, 5/14/09)
 !  (11) Bug fixes in GET_ALK and SRCSALT (bec, lyj, bmy, 11/23/09)
 !  22 Dec 2011 - M. Payer    - Added ProTeX headers
+!  01 Mar 2012 - R. Yantosca - Now reference new grid_mod.F90
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -278,6 +279,7 @@
 !  (7 ) Itegrate settling velocity over entire size distribution (jaegle
 !        5/11/11)
 !  22 Dec 2011 - M. Payer    - Added ProTeX headers
+!  01 Mar 2012 - R. Yantosca - Now use GET_AREA_CM2(I,J,L) from grid_mod.F90
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -602,7 +604,7 @@
             ENDDO
 
             ! Surface area [cm2]
-            AREA_CM2 = GET_AREA_CM2( J )
+            AREA_CM2 = GET_AREA_CM2( I, J, 1 )
 
             ! Convert sea salt flux from [kg/s] to [molec/cm2/s]
             FLUX     = ( TOT1 - TOT2 ) / DTCHEM
@@ -662,6 +664,7 @@
 !       dry_dep.f. This is only used if LNLPBL is turned off (or for GEOS-4 and
 !       prior met fields). (jaegle 5/11/11)
 !  22 Dec 2011 - M. Payer    - Added ProTeX headers
+!  01 Mar 2012 - R. Yantosca - Now use GET_AREA_CM2(I,J,L) from grid_mod.F90
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -703,55 +706,57 @@
       ! Loop over latitudes
       DO J = 1, JJPAR
 
+      ! Loop over longitudes
+      DO I = 1, IIPAR
+
          ! Grid box surface area [cm2]
-         AREA_CM2 = GET_AREA_CM2( J )
+         AREA_CM2 = GET_AREA_CM2( I, J, L )
 
-         ! Loop over longitudes
-         DO I = 1, IIPAR
+         ! Fraction of box (I,J,L) under PBL top [unitless]
+	 F_UNDER_TOP = GET_FRAC_UNDER_PBLTOP( I, J, L )
 
-            ! Fraction of box (I,J,L) under PBL top [unitless]
-	    F_UNDER_TOP = GET_FRAC_UNDER_PBLTOP( I, J, L )
+         ! Only apply drydep to boxes w/in the PBL
+         IF ( F_UNDER_TOP > 0d0 ) THEN
 
-            ! Only apply drydep to boxes w/in the PBL
-            IF ( F_UNDER_TOP > 0d0 ) THEN
+            ! Sea salt dry deposition frequency [1/s] accounting
+            ! for fraction of each grid box located beneath the PBL top
+            FREQ = DEPSAV(I,J,IDDEP(N)) * F_UNDER_TOP
 
-              ! Sea salt dry deposition frequency [1/s] accounting
-              ! for fraction of each grid box located beneath the PBL top
-              FREQ = DEPSAV(I,J,IDDEP(N)) * F_UNDER_TOP
-              ! Only apply drydep loss if FREQ is nonzero
-              IF ( FREQ > 0d0 ) THEN
-                  ! Old tracer concentration [kg]
-                  OLD  = TC(I,J,L)
+            ! Only apply drydep loss if FREQ is nonzero
+            IF ( FREQ > 0d0 ) THEN
 
-                  ! New tracer concentration [kg]
-                  NEW  = OLD * EXP( -FREQ * DTCHEM )
+               ! Old tracer concentration [kg]
+               OLD  = TC(I,J,L)
+
+               ! New tracer concentration [kg]
+               NEW  = OLD * EXP( -FREQ * DTCHEM )
 
 
-            ! Old tracer concentration [kg]
-            !OLD  = TC(I,J,1)
+               ! Old tracer concentration [kg]
+               !OLD  = TC(I,J,1)
 
-            ! New tracer concentration [kg]
-            !NEW  = OLD * EXP( -DEPSAV(I,J,IDDEP(N)) * DTCHEM  )
+               ! New tracer concentration [kg]
+               !NEW  = OLD * EXP( -DEPSAV(I,J,IDDEP(N)) * DTCHEM  )
 
-            !===========================================================
-            ! ND44 diagnostic: sea salt drydep loss [molec/cm2/s]
-            !===========================================================
-            IF ( ND44 > 0 ) THEN
-               
-               ! Convert drydep loss from [kg/s] to [molec/cm2/s]
-               FLUX = ( OLD - NEW ) / DTCHEM 
-               FLUX = FLUX * XNUMOL(IDTSALA) / AREA_CM2 
+               !===========================================================
+               ! ND44 diagnostic: sea salt drydep loss [molec/cm2/s]
+               !===========================================================
+               IF ( ND44 > 0 ) THEN
             
-               ! Store in AD44
-               AD44(I,J,IDDEP(N),1) = AD44(I,J,IDDEP(N),1) + FLUX
-            ENDIF
+                  ! Convert drydep loss from [kg/s] to [molec/cm2/s]
+                  FLUX = ( OLD - NEW ) / DTCHEM 
+                  FLUX = FLUX * XNUMOL(IDTSALA) / AREA_CM2 
+         
+                  ! Store in AD44
+                  AD44(I,J,IDDEP(N),1) = AD44(I,J,IDDEP(N),1) + FLUX
+               ENDIF
 
-            ! Update tracer array
-            TC(I,J,L) = NEW 
-                  ENDIF
+               ! Update tracer array
+               TC(I,J,L) = NEW 
             ENDIF
-         ENDDO
-         ENDDO
+         ENDIF
+      ENDDO
+      ENDDO
       ENDDO
 !$OMP END PARALLEL DO
 
@@ -948,6 +953,7 @@
 !  (7 ) Apply an empirical sea surface temperature dependence to Gong (2003)
 !       (jaegle 5/11/11)
 !  22 Dec 2011 - M. Payer    - Added ProTeX headers
+!  01 Mar 2012 - R. Yantosca - Now use GET_AREA_M2(I,J,L) from grid_mod.F90
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -1107,11 +1113,11 @@
       ! Loop over latitudes
       DO J = 1, JJPAR
             
-         ! Grid box surface area [m2]
-         A_M2 = GET_AREA_M2( J )
-
          ! Loop over longitudes
          DO I = 1, IIPAR
+
+            ! Grid box surface area [m2]
+            A_M2 = GET_AREA_M2( I, J, 1 )
 
             ! Test if this is a water box
             IF ( IS_WATER(I,J) ) THEN

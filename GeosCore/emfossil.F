@@ -139,6 +139,7 @@
 !  24 Feb 2012 - M. Payer    - Commented out ship emissions, which has been
 !                              moved to calcrate.F for PARANOX.  Left original
 !                              code in place, but commented out.
+!  01 Mar 2012 - R. Yantosca - Now use GET_AREA_CM2(I,J,L) from grid_mod.F90
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -163,7 +164,7 @@
       DTSRCE   = GET_TS_EMIS() * 60d0
 
       ! Surface area of grid box
-      AREA_CM2 = GET_AREA_CM2( J )
+      AREA_CM2 = GET_AREA_CM2( I, J, 1 )
 
       ! GMT hour of day
       HOUR     = GET_HOUR()

@@ -152,6 +152,7 @@
 !  13 Aug 2010 - R. Yantosca - Added modifications for MERRA met fields
 !  13 Aug 2010 - R. Yantosca - Added ProTeX headers
 !  02 Feb 2012 - R. Yantosca - Added modifications for GEOS-5.7.x met fields
+!  01 Mar 2012 - R. Yantosca - Updated to use grid_mod.F90 for the GI model
 !EOP
 !------------------------------------------------------------------------------
 !BOC

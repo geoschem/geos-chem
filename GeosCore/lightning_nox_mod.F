@@ -100,6 +100,7 @@
 !  10 Nov 2010 - L. Murray   - Updated OTD/LIS local scaling for MERRA 4x5
 !  10 Nov 2010 - R. Yantosca - Added ProTeX headers
 !  02 Feb 2012 - R. Yantosca - Added modifications for GEOS-5.7.x met fields
+!  01 Mar 2012 - R. Yantosca - Now reference new grid_mod.F90
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -259,21 +260,24 @@
 !$OMP+PRIVATE( RATE_SAVE,   VERTPROF                              )
 !$OMP+SCHEDULE( DYNAMIC )
 
-      ! Loop over latitudes
+      ! Loop over surface boxes
       DO J = 1, JJPAR
+      DO I = 1, IIPAR
 
-         ! Grid box surface areas in [m2] and [km2]
-         A_M2  = GET_AREA_M2( J )
-         A_KM2 = A_M2 / 1d6
+            !%%% NOTE: Use L=1 for GRID_MOD functions.  This is OK for the
+            !%%% existing GEOS-Chem with a pure cartesian grid, but may be an
+            !%%% issue when interfaced with a GCM with a non-regular grid
+            !%%% (bmy, 3/1/12)
 
-         ! Grid box latitude [degrees]
-         YMID  = GET_YMID( J )
+            ! Grid box surface areas in [m2] and [km2]
+            A_M2     = GET_AREA_M2( I, J, 1 )
+            A_KM2    = A_M2 / 1d6
 
-         ! Loop over longitudes
-         DO I = 1, IIPAR
+            ! Grid box latitude [degrees]
+            YMID     = GET_YMID( I, J, 1 )
 
             ! Grid box longitude [degrees]
-            XMID     = GET_XMID( I )
+            XMID     = GET_XMID( I, J, 1 )
 
             ! Initialize
             LBOTTOM  = 0
@@ -837,6 +841,7 @@
 !  (11) Now use the Ott et al. [2010] profiles, and apply consistently with
 !        GMI model [Allen et al., 2010] (ltm, bmy, 1/25/11).
 !  10 Nov 2010 - R. Yantosca - Added ProTeX headers
+!  01 Mar 2012 - R. Yantosca - Now use GET_AREA_CM2(I,J,L) from grid_mod.F90
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -856,7 +861,12 @@
       MTYPE    = 0
       VERTPROF = 0d0
       MONTH    = GET_MONTH()
-      YMID     = GET_YMID(J)
+
+      !%%% NOTE: Use L=1 for GRID_MOD functions.  This is OK for the
+      !%%% existing GEOS-Chem with a pure cartesian grid, but may be an
+      !%%% issue when interfaced with a GCM with a non-regular grid
+      !%%% (bmy, 3/1/12)
+      YMID     = GET_YMID( I, J, 1 )
 
       !=================================================================
       ! Test whether location (I,J) is continental, marine, or snow/ice
@@ -1610,7 +1620,6 @@
       USE ERROR_MOD,     ONLY : ALLOC_ERR
       USE FILE_MOD,      ONLY : IOERROR
       USE FILE_MOD,      ONLY : IU_FILE
-      USE GRID_MOD,      ONLY : GET_YEDGE
       USE GRID_MOD,      ONLY : GET_AREA_M2
       USE LOGICAL_MOD,   ONLY : LOTDLOC
 
@@ -1634,6 +1643,7 @@
 !  (8 ) Read in new Ott profiles from lightning_NOx_201101. Remove
 !        depreciated options. (ltm, bmy, 1/25/11)
 !  10 Nov 2010 - R. Yantosca - Added ProTeX headers
+!  01 Mar 2012 - R. Yantosca - Removed reference to GET_YEDGE
 !EOP
 !------------------------------------------------------------------------------
 !BOC

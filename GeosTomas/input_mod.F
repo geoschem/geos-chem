@@ -117,6 +117,7 @@
 !  16 Feb 2011 - R. Yantosca - Add modifications for APM from G. Luo
 !  07 Sep 2011 - P. Kasibhatla - Modified to include GFED3
 !  08 Feb 2012 - R. Yantosca - Add modifications for GEOS-5.7.x met data
+!  01 Mar 2012 - R. Yantosca - Now reference new grid_mod.F90
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -546,7 +547,7 @@
       USE DIRECTORY_MOD, ONLY : MERRA_DIR,   GEOS_57_DIR
       USE DIRECTORY_MOD, ONLY : RUN_DIR
       USE DIRECTORY_MOD, ONLY : TEMP_DIR   
-      USE GRID_MOD,      ONLY : SET_XOFFSET, SET_YOFFSET,  COMPUTE_GRID
+      USE GRID_MOD,      ONLY : SET_XOFFSET, SET_YOFFSET
       USE LOGICAL_MOD,   ONLY : LSVGLB,      LUNZIP,       LWAIT
       USE LOGICAL_MOD,   ONLY : LVARTROP,    LLINOZ
       USE RESTART_MOD,   ONLY : SET_RESTART
@@ -572,6 +573,8 @@
 !  27 Aug 2010 - R. Yantosca - Added ProTeX headers
 !  01 Feb 2012 - R. Yantosca - Now read GEOS_57_DIR for GEOS-5.7.x met
 !  08 Feb 2012 - R. Yantosca - Set LUNZIP=F for GEOS-5.7.x met fields
+!  01 Mar 2012 - R. Yantosca - Now call routine INITIALIZE_GEOS_GRID to
+!                              initialize horizontal grid parameters
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -752,8 +755,8 @@
       CALL SET_XOFFSET( I0 )
       CALL SET_YOFFSET( J0 )
 
-      ! Compute lat/lon/surface area variables
-      CALL COMPUTE_GRID
+      ! Initialize GEOS-Chem horizontal grid structure
+      CALL INITIALIZE_GEOS_GRID()
 
       ! Initialze quantities for "transfer_mod.f"
       CALL INIT_TRANSFER( 0, 0 )
@@ -762,6 +765,133 @@
       CT1 = CT1 + 1
 
       END SUBROUTINE READ_SIMULATION_MENU
+!EOC
+!------------------------------------------------------------------------------
+!          Harvard University Atmospheric Chemistry Modeling Group            !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: initialize_geos_grid
+!
+! !DESCRIPTION: Subroutine INITIALIZE\_GEOS\_GRID calls routines from
+!  grid_mod.F90 to initialize the horizontal grid parameters.
+!\\
+!\\
+! !INTERFACE:
+!
+      SUBROUTINE INITIALIZE_GEOS_GRID()
+!
+! !USES:
+!
+      USE CMN_SIZE_MOD
+      USE GRID_MOD,     ONLY : INIT_GRID, COMPUTE_GRID
+! 
+! !REMARKS:
+!  The module grid_mod.F90 has been modified to save grid parameters in 3D
+!  format, which will facilitate interfacing GEOS-Chem to a GCM.
+!
+! !REVISION HISTORY: 
+!  01 Mar 2012 - R. Yantosca - Initial version
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+!
+! !LOCAL VARIABLES:
+!
+
+      ! Scalars
+      INTEGER :: JSP, JNP
+      
+      ! Arrays
+      REAL*8  :: DLON(IIPAR,JJPAR,LLPAR)   ! Delta-longitudes
+      REAL*8  :: DLAT(IIPAR,JJPAR,LLPAR)   ! Delta-latitudes
+
+#if   defined( GRID4x5 )
+
+      !-----------------------------
+      ! Global 4 x 5 grid
+      !-----------------------------
+      JSP             = 1                  ! Lat index of S Pole
+      JNP             = JJPAR              ! Lat index of N pole
+      DLON            = 5.0d0              ! Delta-longitude array [degrees]
+      DLAT            = 4.0d0              ! Delta-latitude array [degrees]
+      DLAT(:,1,    :) = 2.0d0              !  Half-sized S Pole boxes
+      DLAT(:,JJPAR,:) = 2.0d0              !  Half-sized N Pole boxes
+
+
+#elif defined( GRID2x25 )
+
+      !-----------------------------
+      ! Global 2 x 2.5 grid
+      !-----------------------------
+      JSP             = 1                  ! Lat index of S Pole
+      JNP             = JJPAR              ! Lat index of N pole
+      DLON            = 2.5d0              ! Delta-longitude array [degrees]
+      DLAT            = 2.0d0              ! Delta-latitude array [degrees]
+      DLAT(:,1,    :) = 1.0d0              !  Half-sized S Pole boxes
+      DLAT(:,JJPAR,:) = 1.0d0              !  Half-sized N Pole boxes
+  
+
+#elif defined( GRID1x125 )
+
+      !-----------------------------
+      ! Global 1 x 1.25 grid
+      !-----------------------------
+      JSP             = 1                  ! Lat index of S Pole
+      JNP             = JJPAR              ! Lat index of N pole
+      DLON            = 1.25d0             ! Delta-longitude array [degrees]
+      DLAT            = 1.0d0              ! Delta-latitude array [degrees]
+      DLAT(:,1,    :) = 0.5d0              !  Half-sized S Pole boxes
+      DLAT(:,JJPAR,:) = 0.5d0              !  Half-sized N Pole boxes
+
+
+#elif defined( GRID1x1 )
+
+      !-----------------------------
+      ! Global 1 x 1 
+      !-----------------------------
+      JSP             = 1                  ! Lat index of S Pole
+      JNP             = JJPAR              ! Lat index of N pole
+      DLON            = 1.0d0              ! Delta-longitude array [degrees]
+      DLAT            = 1.0d0              ! Delta-latitude array [degrees]
+      DLAT(:,1,    :) = 0.5d0              !  Half-sized S Pole boxes
+      DLAT(:,JJPAR,:) = 0.5d0              !  Half-sized N Pole boxes
+
+#elif defined( GRID05x0666 )
+
+      !-------------------=---------
+      ! Nested 0.5 x 0.666 grids
+      !-----------------------------
+      JSP             = 0                  ! Lat index of S Pole
+      JNP             = 0                  ! Lat index of N pole
+      DLON            = 2d0/3d0            ! Delta-longitude array [degrees]
+      DLAT            = 0.5d0              ! Delta-latitude array [degrees]
+
+#elif defined( GRID025x03125 )
+
+      !-----------------------------
+      ! Nested 0.25 x 0.3125 grids
+      !-----------------------------
+      JSP             = 0                  ! Lat index of S Pole
+      JNP             = 0                  ! Lat index of N pole
+      DLON            = 0.3125d0           ! Delta-longitude array [degrees]
+      DLAT            = 0.25d0             ! Delta-latitude array [degrees]
+
+#endif
+
+      ! Allocate module arrays in grid_mod.F90
+      CALL INIT_GRID   ( I1=1,      I2=IIPAR,  
+     &                   J1=1,      J2=JJPAR,  
+     &                   L1=1,      L2=LLPAR  )
+
+      ! Compute grid parameters in grid_mod.F90
+      CALL COMPUTE_GRID( I1=1,      I2=IIPAR,  
+     &                   J1=1,      J2=JJPAR,  
+     &                   JSP=JSP,   JNP=JNP,   
+     &                   L1=1,      L2=LLPAR,  
+     &                   DLON=DLON, DLAT=DLAT )
+
+      END SUBROUTINE INITIALIZE_GEOS_GRID
 !EOC
 !------------------------------------------------------------------------------
 !          Harvard University Atmospheric Chemistry Modeling Group            !

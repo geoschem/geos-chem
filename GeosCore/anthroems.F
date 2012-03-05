@@ -587,11 +587,12 @@
             DO J = 1, JJPAR
                JREF = J + J0
                
-               ! Grid box surface area [cm2]
-               AREA_CM2 = GET_AREA_CM2( J )
-
                DO I = 1, IIPAR
                   IREF = I + I0
+                  
+                  ! Grid box surface area [cm2]
+                  AREA_CM2 = GET_AREA_CM2( I, J, 1 )
+
                   EMIST(I,J,N) = EMIST(I,J,N) * TRACER_MW_KG(NN) * 
      &                           DTSRCE * AREA_CM2 / 6.023d23
 
@@ -652,12 +653,12 @@
                DO J = 1, JJPAR
                   JREF = J + J0
                
-                  ! Grid box surface area [cm2]
-                  AREA_CM2 = GET_AREA_CM2( J )
-               
                   DO I = 1, IIPAR
                      IREF = I + I0
 
+                     ! Grid box surface area [cm2]
+                     AREA_CM2 = GET_AREA_CM2( I, J, 1 )
+               
                      EMISTN(I,J,LL) = EMISTN(I,J,LL) *TRACER_MW_KG(NN) * 
      &                                DTSRCE * AREA_CM2  / 6.023d23
                

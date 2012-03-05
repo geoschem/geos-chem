@@ -126,6 +126,7 @@
 !        EMACET is public now.  (phs, 9/18/07)
 !  13 Aug 2010 - R. Yantosca - Add modifications for MERRA (treat like GEOS-5)
 !  08 Feb 2012 - R. Yantosca - Add modifications for GEOS-5.7.2 met
+!  01 Mar 2012 - R. Yantosca - Now reference new grid_mod.F90
 !******************************************************************************
 !
       IMPLICIT NONE
@@ -418,6 +419,7 @@
 !  (25) Move XLTMMP to module MEGANUT_MOD (ccc, 11/20/09)
 !  (26) IDBCO is now defined in tracerid_mod.f (fp, 6/09)
 !  08 Dec 2011 - M. Payer    - Remove GEIA biogenic emission option
+!  01 Mar 2012 - R. Yantosca - Now use GET_AREA_CM2(I,J,L) from grid_mod.F90
 !******************************************************************************
 !
       ! References to F90 modules
@@ -425,10 +427,9 @@
       !IDBCO now in tracerid_mod (fp, 6/2009)
       USE BIOMASS_MOD,  ONLY : BIOMASS!,     IDBCO
       ! Add variables for MEGAN (jaf, 3/10/09)
-      USE DAO_MOD,      ONLY : SUNCOS,           PARDF,       PARDR
+      USE DAO_MOD,      ONLY : SUNCOS,        PARDF,       PARDR
       USE DIAG_MOD,     ONLY : AD29,          AD46
       USE GRID_MOD,     ONLY : GET_XOFFSET,   GET_YOFFSET, GET_AREA_CM2
-      USE GRID_MOD,     ONLY : GET_AREA_CM2
       USE LOGICAL_MOD,  ONLY : LSPLIT,        LANTHRO
       USE LOGICAL_MOD,  ONLY : LBIOMASS,      LBIOFUEL
       ! Add switches for biogenic MEGAN (jaf, 3/10/09)
@@ -586,15 +587,11 @@
 !$OMP PARALLEL DO
 !$OMP+DEFAULT( SHARED )
 !$OMP+PRIVATE( E_CO, I, J, L, F_OF_PBL, N, AREA_CM2 )
-
-         ! Loop over latitudes
          DO J = 1, JJPAR
-
-            ! Grid box surface area [cm2]
-            AREA_CM2 = GET_AREA_CM2( J )
-
-         ! Loop over longitudes
          DO I = 1, IIPAR
+               
+            ! Grid box surface area [cm2]
+            AREA_CM2 = GET_AREA_CM2( I, J, 1 )
 
             ! Convert [molec CO/cm2/s] to [kg CO] and store in E_CO
             E_CO = ( BIOMASS(I,J,IDBCO) / XNUMOL_CO ) *
@@ -678,82 +675,81 @@
 ! Add some private declarations for use with MEGAN
 !$OMP+PRIVATE( SC, PDR, PDF )
       DO J = 1, JJPAR
+      DO I = 1, IIPAR
 
          ! Grid box surface area [cm2]
-         AREA_CM2 = GET_AREA_CM2( J )
+         AREA_CM2 = GET_AREA_CM2( I, J, 1 )
 
-         DO I = 1, IIPAR
+         ! To be safe, zero coefficients (jaf, 3/10/09)
+         EMIS = 0d0
+         EMMO = 0d0
+         EMAC = 0d0
 
-            ! To be safe, zero coefficients (jaf, 3/10/09)
-            EMIS = 0d0
-            EMMO = 0d0
-            EMAC = 0d0
+         ! 1-D array index 
+         IJLOOP = ( (J-1) * IIPAR ) + I
 
-            ! 1-D array index 
-            IJLOOP = ( (J-1) * IIPAR ) + I
+         !===========================================================
+         ! The CO yields from ISOP, MONOTERPENES, and CH3OH will be
+         ! computed in subroutine CHEM_TAGGED_CO.  P(CO) from CH3OH
+         ! will be scaled to isoprene emissions within subroutine
+         ! CHEM_TAGGED_CO (bnd, bmy, 6/14/01)
+         !===========================================================
 
-            !===========================================================
-            ! The CO yields from ISOP, MONOTERPENES, and CH3OH will be
-            ! computed in subroutine CHEM_TAGGED_CO.  P(CO) from CH3OH
-            ! will be scaled to isoprene emissions within subroutine
-            ! CHEM_TAGGED_CO (bnd, bmy, 6/14/01)
-            !===========================================================
-
-            ! Surface air temperature [K]
-            TMMP = XLTMMP(I,J,IJLOOP)
+         ! Surface air temperature [K]
+         TMMP = XLTMMP(I,J,IJLOOP)
       
-            ! Add MEGAN biogenics (jaf, 3/10/09)
-            IF ( LMEGAN ) THEN
-               !------------------
-               ! MEGAN biogenics
-               !------------------
+         ! Add MEGAN biogenics (jaf, 3/10/09)
+         IF ( LMEGAN ) THEN
+            !------------------
+            ! MEGAN biogenics
+            !------------------
 
-               ! Cosine of solar zenith angle
-               SC = SUNCOS(IJLOOP)
+            ! Cosine of solar zenith angle
+            SC = SUNCOS(IJLOOP)
 
-               ! Diffuse and direct PAR
-               PDR = PARDR(I,J)
-               PDF = PARDF(I,J)
+            ! Diffuse and direct PAR
+            PDR = PARDR(I,J)
+            PDF = PARDF(I,J)
 
-               ! Isoprene [atoms C/box/timestep]
-               EMIS = GET_EMISOP_MEGAN(  I, J,     SC, TMMP,
-     &                                   PDR, PDF, XNUMOL_ISOP )
+            ! Isoprene [atoms C/box/timestep]
+            EMIS = GET_EMISOP_MEGAN(  I, J,     SC, TMMP,
+     &                                PDR, PDF, XNUMOL_ISOP )
 
-               ! Monoterpene [atoms C/box/timestep]
-               EMMO = GET_EMMONOT_MEGAN( I, J,  SC, TMMP, 
-     &                                   PDR, PDF, XNUMOL_MONO )
+            ! Monoterpene [atoms C/box/timestep]
+            EMMO = GET_EMMONOT_MEGAN( I, J,  SC, TMMP, 
+     &                                PDR, PDF, XNUMOL_MONO )
 
-            ENDIF
+         ENDIF
 
-            ! Store ISOP and MONOTERPENE emissions [atoms C/box/time step]
-            ! for later use in the subroutine CHEM_TAGGED_CO
-            SUMISOPCO(I,J) = SUMISOPCO(I,J) + EMIS
-            SUMMONOCO(I,J) = SUMMONOCO(I,J) + EMMO
+         ! Store ISOP and MONOTERPENE emissions [atoms C/box/time step]
+         ! for later use in the subroutine CHEM_TAGGED_CO
+         SUMISOPCO(I,J) = SUMISOPCO(I,J) + EMIS
+         SUMMONOCO(I,J) = SUMMONOCO(I,J) + EMMO
 
-            ! ND46 -- save biogenic emissions [atoms C/cm2/s] here 
-            IF ( ND46 > 0 ) THEN
+         ! ND46 -- save biogenic emissions [atoms C/cm2/s] here 
+         IF ( ND46 > 0 ) THEN
 
-               ! Isoprene 
-               AD46(I,J,1) = AD46(I,J,1) + ( EMIS / AREA_CM2 / DTSRCE )
+            ! Isoprene 
+            AD46(I,J,1) = AD46(I,J,1) + ( EMIS / AREA_CM2 / DTSRCE )
 
-               ! Monoterpenes 
-               AD46(I,J,4) = AD46(I,J,4) + ( EMMO / AREA_CM2 / DTSRCE )
+            ! Monoterpenes 
+            AD46(I,J,4) = AD46(I,J,4) + ( EMMO / AREA_CM2 / DTSRCE )
 
-            ENDIF
+         ENDIF
 
-            !===========================================================
-            ! For GEOS-1, GEOS-STRAT, GEOS-3, extract acetone emission
-            ! fluxes the EMACET array for the current month
-            !===========================================================
+         !===========================================================
+         ! For GEOS-1, GEOS-STRAT, GEOS-3, extract acetone emission
+         ! fluxes the EMACET array for the current month
+         !===========================================================
 
-            ! EMAC = [atoms C/box/s] from acetone
-            EMAC = EMACET( I, J )
+         ! EMAC = [atoms C/box/s] from acetone
+         EMAC = EMACET( I, J )
 
-            ! Sum acetone loss for use in chemco_decay
-            ! Units = [atoms C/box/timestep]
-            SUMACETCO(I,J) = SUMACETCO(I,J) + (EMAC * DTSRCE * AREA_CM2)
+         ! Sum acetone loss for use in chemco_decay
+         ! Units = [atoms C/box/timestep]
+         SUMACETCO(I,J) = SUMACETCO(I,J) + (EMAC * DTSRCE * AREA_CM2)
             
-         ENDDO
+      ENDDO
       ENDDO
 !$OMP END PARALLEL DO
       ENDIF
@@ -815,6 +811,8 @@
 !  (19) Now make sure all USE statements are USE, ONLY (bmy, 10/3/05)
 !  (20) Remove reference to "global_ch4_mod.f" (bmy, 5/31/06)
 !  (21) Use newest JPL 2006 rate constant for CO+OH (jaf, jmao, 3/4/09)
+!  01 Mar 2012 - R. Yantosca - Now use GET_AREA_CM2(I,J,L) from grid_mod.F90
+!  01 Mar 2012 - R. Yantosca - Now use GET_YMID(I,J,L) from grid_mod.F90
 !******************************************************************************
 !
       ! References to F90 modules
@@ -936,14 +934,13 @@
 
       DO L = 1, LLPAR
       DO J = 1, JJPAR
+      DO I = 1, IIPAR
 
          ! Latitude of grid box
-         YMID = GET_YMID( J )
+         YMID     = GET_YMID( I, J, L )
 
          ! Grid box surface areas [cm2] (jaf, 3/10/09)
-         AREA_CM2 = GET_AREA_CM2( J )
-
-      DO I = 1, IIPAR
+         AREA_CM2 = GET_AREA_CM2( I, J, L )
 
          !==============================================================
          ! (0) Define useful quantities

@@ -99,6 +99,7 @@
 !  (23) Updated CH4 simulation (kjw, cph, ccarouge, 10/1/09)
 !  (24) Added modifications for MERRA (bmy, 8/13/10)
 !  08 Feb 2012 - R. Yantosca - Added modifications for GEOS-5.7.x
+!  01 Mar 2012 - R. Yantosca - Now reference new grid_mod.F90
 !******************************************************************************
 !     
       IMPLICIT NONE
@@ -345,6 +346,7 @@
 !        "directory_mod.f". (bmy, 7/20/04)
 !  (12) Now make sure all USE statements are USE, ONLY (bmy, 10/3/05)
 !  (13) Add non-local PBL capability (ccc, 8/31/09)
+!  01 Mar 2012 - R. Yantosca - Now use GET_AREA_CM2(I,J,L) from grid_mod.F90
 !******************************************************************************
 !
       ! References to F90 modules
@@ -507,12 +509,11 @@
       DO J = 1, JJPAR
          JREF = J + J0     
 
-         ! Grid box surface area [cm2]
-         AREA_CM2 = GET_AREA_CM2( J )
-
       DO I = 1, IIPAR
          IREF = I + I0
 
+         ! Grid box surface area [cm2]
+         AREA_CM2 = GET_AREA_CM2( I, J, 1 )
 
          IF ( .NOT. LNLPBL ) THEN
             DO N = 1, N_TRACERS
@@ -559,11 +560,12 @@
       DO J = 1,JJPAR
          JREF = J + J0
 
-         ! Grid box surface area [cm2]
-         AREA_CM2 = GET_AREA_CM2( J )
-
       DO I = 1,IIPAR
          IREF = I + I0
+
+         ! Grid box surface area [cm2]
+         AREA_CM2 = GET_AREA_CM2( I, J, 1 )
+
          ! Gas, oil, mine
          TCH4(I,J,1,5) = TCH4(I,J,1,5) +
      &        ( ( CH4_EMIS(I,J,2) + CH4_EMIS(I,J,3) ) * 
@@ -628,6 +630,7 @@
 !
 !  (3 ) Corrected order of DO loops (bmy, 10/1/09)
 !  08 Feb 2012 - R. Yantosca - Treat GEOS-5.7.x in the same way as MERRA
+!  01 Mar 2012 - R. Yantosca - Now use GET_AREA_M2(I,J,L) from grid_mod.F90
 !******************************************************************************
 !
       ! References to F90 modules
@@ -1300,7 +1303,7 @@
 !  Andreae and Merlet, 2001 (6/4/09).
 !
 !  NOTES:
-!
+!  01 Mar 2012 - R. Yantosca - Now use GET_AREA_CM2(I,J,L) from grid_mod.F90
 !******************************************************************************
 !
       ! References to F90 modules
@@ -1355,8 +1358,10 @@
 
       ! [kgCO/box/year] --> [kgCO/cm2/year]
       DO J = 1, JJPAR
-         AREA_CM2 = GET_AREA_CM2( J )
+      DO I = 1, IIPAR
+         AREA_CM2      = GET_AREA_CM2( I, J, 1 )
          BIOF_OUT(:,J) = BIOF_OUT(:,J) / AREA_CM2
+      ENDDO
       ENDDO
 
       ! [kgCO/cm2/year] --> [kgCO/cm2/s]

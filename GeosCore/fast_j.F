@@ -113,6 +113,7 @@
 !  13 Aug 2010 - R. Yantosca - Added ProTeX headers
 !  13 Aug 2010 - R. Yantosca - Treat MERRA in the same way as GEOS-5
 !  08 Feb 2012 - R. Yantosca - Treat GEOS-5.7.x in the same way as MERRA
+!  01 Mar 2012 - R. Yantosca - Now use GET_YMID(I,J,L) from grid_mod.F90
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -184,11 +185,11 @@
       ! Loop over latitudes
       DO NLAT = 1, JJPAR
 
-         ! Grid box latitude [degrees]
-         YLAT = GET_YMID( NLAT )
-
          ! Loop over longitudes
          DO NLON = 1, IIPAR
+
+            ! Grid box latitude [degrees]
+            YLAT         = GET_YMID( NLON, NLAT, 1 )
 
             ! Cosine of solar zenith angle [unitless] at (NLON,NLAT)
             CSZA         = SUNCOS( (NLAT-1)*IIPAR + NLON ) 

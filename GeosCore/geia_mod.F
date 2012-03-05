@@ -48,6 +48,7 @@
 !  (14) Now make sure all USE statements are USE, ONLY (bmy, 10/3/05)
 !  (15) Modifications for 0.5 x 0.666 nested grids (yxw, dan, bmy, 11/6/08)
 !  (16) Modifications for reading data on GEOS-4 1 x 1.25 grids (bmy, 1/13/10)
+!  01 Mar 2012 - R. Yantosca - Now reference new grid_mod.F90
 !******************************************************************************
 !
       IMPLICIT NONE
@@ -1013,6 +1014,7 @@
 !      Bryan Duncan (bnd@io.harvard.edu), and Daniel Jacob (djj@io.harvard.edu)
 !  (2) Now replace DXYP(J)*1d4 with routine GET_AREA_CM2 from "grid_mod.f".
 !       (bmy, 2/4/03)
+!  01 Mar 2012 - R. Yantosca - Now use GET_AREA_M2(I,J,L) from grid_mod.F90
 !******************************************************************************
 !
       ! References to F90 modules
@@ -1041,13 +1043,13 @@
 
       DO L = 1, LX
       DO J = 1, JX
-            
+      DO I = 1, IX
+
          ! Grid box surface area [cm2]
-         A_CM2 = GET_AREA_CM2( J )
-         
-         DO I = 1, IX
-            TOTAL = TOTAL + FFARRAY(I,J,L) * A_CM2 * ( MOLWT/ 6.023d23 )
-         ENDDO
+         A_CM2 = GET_AREA_CM2( I, J, L )
+
+         TOTAL = TOTAL + FFARRAY(I,J,L) * A_CM2 * ( MOLWT/ 6.023d23 )
+      ENDDO
       ENDDO
       ENDDO
 

@@ -176,6 +176,7 @@
 !  08 Feb 2012 - R. Yantosca - Add modifications for GEOS-5.7.x met
 !  08 Feb 2012 - R. Yantosca - Restructure USE statements for clarity
 !  08 Feb 2012 - R. Yantosca - Add counter for I3 (inst 3hr) met fields
+!  01 Mar 2012 - R. Yantosca - Now use GET_AREA_M2(I,J,L) from grid_mod.F90
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -3313,14 +3314,14 @@
             NN = N
 
             DO J = 1, JJPAR
+            DO I = 1, IIPAR
 
                ! Grid box surface area [cm2]
-               AREA_M2 = GET_AREA_M2( J )
+               AREA_M2 = GET_AREA_M2( I, J, 1 )
 
-               DO I = 1, IIPAR
-                  ARRAY(I,J,1) = ( SUM( STT(I,J,:,N) ) * 6.022d22 )
-     &                         / ( TRACER_MW_G(N)       * AREA_M2  )
-               ENDDO
+               ARRAY(I,J,1) = ( SUM( STT(I,J,:,N) ) * 6.022d22 )
+     &                      / ( TRACER_MW_G(N)       * AREA_M2  )
+            ENDDO
             ENDDO
 
             ! Write the proper unit string

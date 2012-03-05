@@ -47,6 +47,7 @@
 !  (4 ) Add INIT_PBL_MIX and COMPUTE_PBL_HEIGHT as PUBLIC routines 
 !        (lin, 5/29/09)
 !  (5 ) Extend tracers for APM simulation (GanLuo, 2010)
+!  01 Mar 2012 - R. Yantosca - Now reference new grid_mod.F90
 !******************************************************************************
 !
       IMPLICIT NONE
@@ -444,12 +445,12 @@
 !  (21) Now bundled into "pbl_mix_mod.f".  Broke off the part which computes
 !        PBL height and related quantities into COMPUTE_PBL_HEIGHT. 
 !        (bmy, 2/15/05)
+!   2 Mar 2012 - R. Yantosca - Remove reference to GET_AREA_M2
 !******************************************************************************
 !
       ! References to F90 modules 
       USE DAO_MOD,        ONLY : AD
       USE DIAG_MOD,       ONLY : TURBFLUP
-      USE GRID_MOD,       ONLY : GET_AREA_M2
       USE TIME_MOD,       ONLY : GET_TS_CONV
 
       USE CMN_SIZE_MOD       ! Size parameters    

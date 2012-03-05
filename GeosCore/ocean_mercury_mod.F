@@ -105,6 +105,7 @@
 !  (5 ) Change HgC (colloidal) to HgP (particulate) or HgPaq. (ccc, 7/20/10)
 !  12 Apr 2011 - J. Fisher   - Add missing code from Holmes 2010
 !  08 Feb 2012 - R. Yantosca - Add modifications for GEOS-5.7.2 data
+!  01 Mar 2012 - R. Yantosca - Now reference new grid_mod.F90
 !******************************************************************************
 !
       IMPLICIT NONE
@@ -343,6 +344,9 @@
 !  27 Jul 2011 - R. Yantosca - Use the D exponent in the defnition of KD_PART, 
 !                              or else the PGI compiler will crash
 !  08 Feb 2012 - R. Yantosca - Now treat GEOS-5.7.2 in the same way as MERRA
+!  01 Mar 2012 - R. Yantosca - Now use GET_AREA_CM2(I,J,L) from grid_mod.F90
+!  01 Mar 2012 - R. Yantosca - Now use GET_XMID(I,J,L) from grid_mod.F90
+!  01 Mar 2012 - R. Yantosca - Now use GET_YMID(I,J,L) from grid_mod.F90
 !******************************************************************************
 !
       ! References to F90 modules
@@ -496,7 +500,7 @@
       DO I = 1, IIPAR
 
          ! Grid box surface area [m2]
-         A_M2 = GET_AREA_M2( J )
+         A_M2 = GET_AREA_M2( I, J, 1 )
 
 !--jaf.start
          ! Use fractional land type information in MERRA (jaf, 4/26/11)
@@ -518,7 +522,7 @@
       NPP_avg = NPP_tot / A_ocean
 
 
-      ! Loop over latitudes   
+      ! Loop over surface boxes  
 !$OMP PARALLEL DO
 !$OMP+DEFAULT( SHARED )
 !$OMP+PRIVATE( I,   vi,   A_M2,    Hg2_RED, Hgaq_tot   )
@@ -532,14 +536,11 @@
 !$OMP+PRIVATE( Sc,  Usq,  C_tot,   JorgC_kg   )
 !$OMP+PRIVATE( IS_OCEAN_BOX                   )
 !$OMP+SCHEDULE( DYNAMIC )
-
       DO J = 1, JJPAR
+      DO I = 1, IIPAR
 
          ! Grid box surface area [m2]
-         A_M2 = GET_AREA_M2( J )
-
-      ! Loop over longitudes
-      DO I = 1, IIPAR
+         A_M2       = GET_AREA_M2( I, J, 1 )
 
          ! Initialize values
          Kw         = 0d0
@@ -811,10 +812,10 @@
             DO C = 1, N_tot_oc
 
                ! Grid-box latitude [degrees]
-               Y = GET_YMID( J )
+               Y = GET_YMID( I, J, 1 )
          
                ! Grid box longitude [degrees]
-               X = GET_XMID( I )
+               X = GET_XMID( I, J, 1 )
 
                ! Get Hg category #
                IF ( C == 1 ) NN = ID_Hg_tot
@@ -1509,6 +1510,9 @@
 !  NOTES:
 !  (1 ) Now use MERRA land fraction information (jaf, 4/26/11)
 !   8 Feb 2012 - R. Yantosca - Treat GEOS-5.7.2 in the same way as MERRA
+!  01 Mar 2012 - R. Yantosca - Now use GET_AREA_CM2(I,J,L) from grid_mod.F90
+!  01 Mar 2012 - R. Yantosca - Now use GET_XMID(I,J,L) from grid_mod.F90
+!  01 Mar 2012 - R. Yantosca - Now use GET_YMID(I,J,L) from grid_mod.F90
 !******************************************************************************
 !
       ! Reference to fortran90 modules
@@ -1543,7 +1547,7 @@
       ENDIF
 
       ! Grid box surface area [m2]
-      A_M2   = GET_AREA_M2( J )
+      A_M2   = GET_AREA_M2( I, J, 1 )
 
       ! Fraction of box that is ocean
       ! Use fractional land type information in MERRA (jaf, 4/26/11)
@@ -1576,10 +1580,10 @@
          ! Add Cdeepatl to North Atlantic and Cdeep to rest if the world (anls, 01/05/09)
 
          ! Grid-box latitude [degrees]
-         Y = GET_YMID( J )
+         Y = GET_YMID( I, J, 1 )
          
          ! Grid box longitude [degrees]
-         X = GET_XMID( I )
+         X = GET_XMID( I, J, 1 )
 
          ! Loop over total Hg (and ocean Hg if necessary)
          DO C = 1, N_tot_oc

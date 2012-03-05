@@ -64,6 +64,7 @@
 !        READ_C2H2_05x0666 for 0.5x0.666 resolution emissions. 
 !        They are PUBLIC routines as they are used by anthroems.f.(ccc, 3/2/09)
 !  (6 ) Fixed typos in READ_C2H2 and READ_C2H4 (tmf, bmy, 12/20/10)
+!  01 Mar 2012 - R. Yantosca - Now reference the new grid_mod.F90
 !******************************************************************************
 !
       IMPLICIT NONE
@@ -113,7 +114,7 @@
       REAL*8,  PARAMETER   :: XNUMOL_SO2  = 6.0225d23  / 64d-3
 
       ! Arrays
-      REAL*8,  ALLOCATABLE :: A_CM2(:)
+      REAL*8,  ALLOCATABLE :: A_CM2(:,:)
       REAL*8,  ALLOCATABLE :: EDGAR_NOx(:,:)
       REAL*8,  ALLOCATABLE :: EDGAR_CO(:,:)
       REAL*8,  ALLOCATABLE :: EDGAR_SO2(:,:)
@@ -1586,6 +1587,7 @@
 !
 !  NOTES:
 !  (1 ) Added the SHIP switch (phs, 5/13/08)
+!  01 Mar 2012 - R. Yantosca - A_CM2 is now 2-D
 !******************************************************************************
 !
       ! References to F90 modules
@@ -1647,7 +1649,7 @@
       ELSE IF ( DO_MCS ) THEN
 
          ! Convert to [molec/cm2/s]
-         NOx = NOx * XNUMOL_NO2 / ( A_CM2(J) * SEC_IN_SEASON )
+         NOx = NOx * XNUMOL_NO2 / ( A_CM2(I,J) * SEC_IN_SEASON )
 
       ENDIF
 
@@ -1672,6 +1674,7 @@
 !
 !  NOTES:
 !  (1 ) Added the SHIP switch (phs, 5/13/08)
+!  01 Mar 2012 - R. Yantosca - A_CM2 is now 2-D
 !******************************************************************************
 !
       ! References to F90 modules
@@ -1723,7 +1726,7 @@
       ELSE IF ( DO_MCS ) THEN 
 
          ! Convert to [molec/cm2/s]
-         CO = CO * XNUMOL_CO / ( A_CM2(J) * SEC_IN_2000 )
+         CO = CO * XNUMOL_CO / ( A_CM2(I,J) * SEC_IN_2000 )
 
       ENDIF
 
@@ -1746,6 +1749,7 @@
 !  (4 ) MOLEC_CM2_S (LOGICAL) : OPTIONAL - Return data in [molec/cm2/s]
 !
 !  NOTES:
+!  01 Mar 2012 - R. Yantosca - A_CM2 is now 2-D
 !******************************************************************************
 !
       ! References to F90 modules
@@ -1789,7 +1793,7 @@
       ELSE IF ( DO_MCS ) THEN 
 
          ! Convert to [molec/cm2/s]
-         SO2 = SO2 * XNUMOL_SO2 / ( A_CM2(J) * SEC_IN_SEASON )
+         SO2 = SO2 * XNUMOL_SO2 / ( A_CM2(I,J) * SEC_IN_SEASON )
 
       ENDIF
 
@@ -1813,6 +1817,7 @@
 !  (4 ) MOLEC_CM2_S (LOGICAL) : OPTIONAL - Return data in [molec/cm2/s]
 !
 !  NOTES:
+!  01 Mar 2012 - R. Yantosca - A_CM2 is now 2-D
 !******************************************************************************
 !
       ! References to F90 modules
@@ -1856,7 +1861,7 @@
       ELSE IF ( DO_MCS ) THEN 
 
          ! Convert to [molec/cm2/s]
-         SO2 = SO2 * XNUMOL_SO2 / ( A_CM2(J) * SEC_IN_MONTH )
+         SO2 = SO2 * XNUMOL_SO2 / ( A_CM2(I,J) * SEC_IN_MONTH )
 
       ENDIF
 
@@ -2655,11 +2660,13 @@
       ! Pre-store array for grid box surface area in cm2
       !---------------------------------------------------
 
-      ALLOCATE( A_CM2( JJPAR ), STAT=AS )
+      ALLOCATE( A_CM2( IIPAR, JJPAR ), STAT=AS )
       IF ( AS /= 0 ) CALL ALLOC_ERR( 'A_CM2' )
 
       DO J = 1, JJPAR
-         A_CM2(J) = GET_AREA_CM2( J )
+      DO I = 1, IIPAR
+         A_CM2(I,J) = GET_AREA_CM2( I, J, 1 )
+      ENDDO
       ENDDO
 
       ! Return to calling program

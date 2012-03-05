@@ -73,6 +73,7 @@
 !  (16) Remove support for GEOS-1 and GEOS-STRAT met fields (bmy, 8/4/06)
 !  19 Nov 2010 - R. Yantosca - Added ProTeX headers
 !  08 Nov 2011 - R. Yantosca - Prevent out-of-bounds errors in diagnostics
+!  01 Mar 2012 - R. Yantosca - Now use routines from the new grid_mod.F90
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -314,6 +315,8 @@
 !        from "tropopause_mod.f" to diagnose strat boxes. (bmy, 8/15/05)
 !  08 Dec 2009 - R. Yantosca - Added ProTeX headers
 !  08 Nov 2011 - R. Yantosca - Prevent out-of-bounds errors in diagnostics
+!  01 Mar 2012 - R. Yantosca - Now use functions GET_AREA_CM2(I,J,L) and
+!                              GET_YEDGE(I,J,L) from the new grid_mod.F90
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -357,18 +360,17 @@
       !  global atmospheric transport models using Rn-222 and other 
       !  short-lived tracers, JGR, 1997 (102):5953-5970
       !=================================================================
-      
-      ! Loop over latitudes
 !$OMP PARALLEL DO
 !$OMP+DEFAULT( SHARED )
 !$OMP+PRIVATE( I, J, LAT_S, LAT_N, LAT_H, LAT_L, F_BELOW_70     )
 !$OMP+PRIVATE( F_BELOW_60, F_ABOVE_60, A_CM2, Rn_LAND, Rn_WATER )
 !$OMP+PRIVATE( F_LAND, F_WATER, ADD_Rn                          )
       DO J = 1, JJPAR
-         
+      DO I = 1, IIPAR
+
          ! Get ABS( latitude ) at S and N edges of grid box
-         LAT_S      = ABS( GET_YEDGE(J)   ) 
-         LAT_N      = ABS( GET_YEDGE(J+1) )
+         LAT_S      = ABS( GET_YEDGE( I, J,   1 ) ) 
+         LAT_N      = ABS( GET_YEDGE( I, J+1, 1 ) )
          LAT_H      = MAX( LAT_S, LAT_N )
          LAT_L      = MIN( LAT_S, LAT_N ) 
 
@@ -382,7 +384,7 @@
          F_ABOVE_60 = 1d0 - F_BELOW_60
 
          ! Grid box surface area [cm2]
-         A_CM2      = GET_AREA_CM2( J )
+         A_CM2      = GET_AREA_CM2( I, J, 1 )
 
          ! Baseline 222Rn emissions over land [kg]
          ! Rn_LAND [kg] = [1 atom 222Rn/cm2/s] / [atoms/kg] * [s] * [cm2]
@@ -390,9 +392,6 @@
 
          ! Baseline 222Rn emissions over water or ice [kg]
          Rn_WATER   = Rn_LAND * 0.005d0
-
-      ! Loop over longitudes
-      DO I = 1, IIPAR
 
          ! Fraction of grid box that is land
          F_LAND  = FRCLND(I,J)
@@ -499,7 +498,7 @@
 
             ! Get absolute value of latitude, since we will assume that 
             ! the 7Be distribution is symmetric about the equator
-            LAT_TMP = ABS( GET_YMID( J ) )
+            LAT_TMP = ABS( GET_YMID( I, J, L ) )
 
             ! Pressure at (I,J,L) -- need to change for fvDAS!
             P_TMP   = GET_PCENTER( I, J, L )

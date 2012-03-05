@@ -147,6 +147,7 @@
 !  21 Dec 2011 - M. Payer  - Updates for sea salt (jaegle 5/11/11)
 !  22 Dec 2011 - M. Payer  - Added ProTeX headers
 !  10 Jan 2012 - M. Payer  - Update to use local surface pressure
+!  01 Mar 2012 - R. Yantosca - Now reference new grid_mod.F90
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -827,6 +828,7 @@
 !  (11) Now reference GET_FRAC_UNDER_PBLTOP and GET_PBL_MAX_L from 
 !        "pbl_mix_mod.f".  Remove reference to CMN. (bmy, 2/22/05)
 !  22 Dec 2011 - M. Payer    - Added ProTeX headers
+!  01 Mar 2012 - R. Yantosca - Now use GET_AREA_CM2(I,J,L) from grid_mod.F90
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -834,7 +836,7 @@
 ! !LOCAL VARIABLES:
 !
       INTEGER :: I, J, JJ, JLOOP, L, L_PBLTOP, N, NK, NN
-      REAL*8  :: DTCHEM, PBL_MAX, TDRYFX, AREA_CM2(JJPAR)
+      REAL*8  :: DTCHEM, PBL_MAX, TDRYFX, AREA_CM2
 
       !=================================================================
       ! DRYFLX begins here!
@@ -860,13 +862,6 @@
       ! tracers which are SMVGEAR species.  Fluxes for sulfate tracers
       ! will be updated in "sulfate_mod.f". (bmy, 11/19/02)
       !=================================================================
-
-      ! Save grid box surface area [cm2] in a lookup table (bmy, 7/23/03)
-      DO J = 1, JJPAR
-         AREA_CM2(J) = GET_AREA_CM2(J)
-      ENDDO
-
-      ! Loop over dry deposition species
 !$OMP PARALLEL DO
 !$OMP+DEFAULT( SHARED )
 !$OMP+PRIVATE( I, J, L, N, NK, JJ, JLOOP, TDRYFX )
@@ -897,16 +892,19 @@
             ! Only deal w/ boxes w/in the boundary layer
             IF ( GET_FRAC_UNDER_PBLTOP( I, J, L ) > 0d0 ) THEN
 
+               ! Grid box surface area [cm2]
+               AREA_CM2      = GET_AREA_CM2( I, J, L )
+
                ! 1-D grid box index for CSPEC & VOLUME
-               JLOOP = JLOP(I,J,L)
+               JLOOP         = JLOP(I,J,L)
 
                ! Dry dep flux [molec] for species N = 
                !  CSPEC(JLOOP,JJ) * VOLUME(JLOOP)
                !  [molec/cm3]     * [cm3]  
-               TDRYFX = CSPEC(JLOOP,JJ) * VOLUME(JLOOP)
+               TDRYFX        = CSPEC(JLOOP,JJ) * VOLUME(JLOOP)
                     
                ! Convert TDRYFX from [molec] to [molec/cm2/s]        
-               TDRYFX = TDRYFX / ( AREA_CM2(J) * DTCHEM ) 
+               TDRYFX        = TDRYFX / ( AREA_CM2 * DTCHEM ) 
                     
 !$OMP CRITICAL
                ! Save into AD44 diagnostic array
@@ -1113,6 +1111,7 @@
 !       temperature (phs, 5/16/07)
 !  (2) Move XLTMMP to module MEGANUT_MOD (ccc, 11/20/09)
 !  22 Dec 2011 - M. Payer    - Added ProTeX headers
+!  01 Mar 2012 - R. Yantosca - Now use GET_AREA_CM2(I,J,L) from grid_mod.F90
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -1202,7 +1201,7 @@
      &              (FSOIL > 0.d0) .AND. (ALBD(I,J) < 0.4d0) ) THEN
 
                   ! Grid box area in cm2
-                  AREA_CM2 = GET_AREA_CM2( J )
+                  AREA_CM2 = GET_AREA_CM2( I, J, L )
 
 !                 !===========================================================
 !                 ! Get SOIL TEMPerature from function SOILTEMP(I,J,M,NTYP)

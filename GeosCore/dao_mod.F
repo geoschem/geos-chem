@@ -258,6 +258,7 @@
 !                              angles at the current time and 5 hours prior to
 !                              the current time (for the PARANOX ship emissions
 !                              plume model) (R. Yantosca)
+!  02 Mar 2012 - R. Yantosca - Now references the new grid_mod.F90
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -303,6 +304,7 @@
 !  (7 ) Also need to RETURN for 0.5 x 0.666 nested grid simulations 
 !        (mpb, bmy, 12/18/09)
 !  16 Aug 2010 - R. Yantosca - Added ProTeX headers
+!  01 Mar 2012 - R. Yantosca - Now use GET_AREA_M2(I,J,L) from grid_mod.F90
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -317,8 +319,8 @@
       ! AVGPOLE begins here!                                                  
       !=================================================================
 
-#if   defined( GRID1x1   ) || defined( GRID05x0666 ) 
-#if   defined( NESTED_CH ) || defined( NESTED_NA   ) 
+#if   defined( GRID1x1   ) || defined( GRID05x0666 ) || defined( GRID025x03125 )
+#if   defined( NESTED_CH ) || defined( NESTED_NA   ) || defined( NESTED_EU     )
       ! NOTE: Only do this for 1x1 nested grids (bmy, 12/1/04)
       ! 1x1 window grid does not extend to poles
       RETURN
@@ -335,14 +337,22 @@
       TOTAL_A4 = 0.
 
       DO I = 1, IIPAR
-         TOTAL_Z1 = TOTAL_Z1 + GET_AREA_M2(       1 ) * Z(I,      1)
-         TOTAL_Z2 = TOTAL_Z2 + GET_AREA_M2(       2 ) * Z(I,      2)
-         TOTAL_Z3 = TOTAL_Z3 + GET_AREA_M2( JJPAR-1 ) * Z(I,JJPAR-1)
-         TOTAL_Z4 = TOTAL_Z4 + GET_AREA_M2(   JJPAR ) * Z(I,JJPAR  )
-         TOTAL_A1 = TOTAL_A1 + GET_AREA_M2(       1 ) 
-         TOTAL_A2 = TOTAL_A2 + GET_AREA_M2(       2 )
-         TOTAL_A3 = TOTAL_A3 + GET_AREA_M2( JJPAR-1 )
-         TOTAL_A4 = TOTAL_A4 + GET_AREA_M2(   JJPAR )
+         TOTAL_Z1 = TOTAL_Z1 
+     &            + GET_AREA_M2( I, 1,       1 ) * Z(I,1      )
+
+         TOTAL_Z2 = TOTAL_Z2 
+     &            + GET_AREA_M2( I, 2,       1 ) * Z(I,2      )
+
+         TOTAL_Z3 = TOTAL_Z3 
+     &            + GET_AREA_M2( I, JJPAR-1, 1 ) * Z(I,JJPAR-1)
+
+         TOTAL_Z4 = TOTAL_Z4 
+     &            + GET_AREA_M2( I, JJPAR,   1 ) * Z(I,JJPAR  )
+
+         TOTAL_A1 = TOTAL_A1 + GET_AREA_M2( I, 1,       1 ) 
+         TOTAL_A2 = TOTAL_A2 + GET_AREA_M2( I, 2,       1 )
+         TOTAL_A3 = TOTAL_A3 + GET_AREA_M2( I, JJPAR-1, 1 )
+         TOTAL_A4 = TOTAL_A4 + GET_AREA_M2( I, JJPAR,   1 )
       ENDDO
 
       DO I = 1, IIPAR
@@ -426,6 +436,7 @@
 !  (19) Now move computation of DELP into main loop.  Also remove P, LOGP,
 !        JREF, DSIG variables -- these are obsolete for fvDAS.  (bmy, 6/19/03)
 !  16 Aug 2010 - R. Yantosca - Added ProTeX headers
+!  01 Mar 2012 - R. Yantosca - Now use GET_AREA_M2(I,J,L) from grid_mod.F90
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -443,70 +454,69 @@
 !$OMP+PRIVATE( I, J, L, AREA_M2, P1, P2 )
       DO L = 1, LLPAR
       DO J = 1, JJPAR
+      DO I = 1, IIPAR
 
          ! Grid box surface area [m2]
-         AREA_M2 = GET_AREA_M2( J )
+         AREA_M2     = GET_AREA_M2( I, J, L )
+  
+         ! Pressure at bottom edge of grid box [hPa]
+         P1          = GET_PEDGE(I,J,L)
 
-         DO I = 1, IIPAR
-               
-            ! Pressure at bottom edge of grid box [hPa]
-            P1          = GET_PEDGE(I,J,L)
+         ! Pressure at top edge of grid box [hPa]
+         P2          = GET_PEDGE(I,J,L+1)
 
-            ! Pressure at top edge of grid box [hPa]
-            P2          = GET_PEDGE(I,J,L+1)
+         ! Pressure difference between top & bottom edges [hPa]
+         DELP(L,I,J) = P1 - P2
+         
+         !===========================================================
+         ! BXHEIGHT is the height (Delta-Z) of grid box (I,J,L) 
+         ! in meters. 
+         !
+         ! The formula for BXHEIGHT is just the hydrostatic eqn.  
+         ! Rd = 287 J/K/kg is the value for the ideal gas constant
+         ! R for air (M.W = 0.02897 kg/mol),  or 
+         ! Rd = 8.31 J/(mol*K) / 0.02897 kg/mol. 
+         !===========================================================
+         BXHEIGHT(I,J,L) = Rdg0 * T(I,J,L) * LOG( P1 / P2 )
 
-            ! Pressure difference between top & bottom edges [hPa]
-            DELP(L,I,J) = P1 - P2
-            
-            !===========================================================
-            ! BXHEIGHT is the height (Delta-Z) of grid box (I,J,L) 
-            ! in meters. 
-            !
-            ! The formula for BXHEIGHT is just the hydrostatic eqn.  
-            ! Rd = 287 J/K/kg is the value for the ideal gas constant
-            ! R for air (M.W = 0.02897 kg/mol),  or 
-            ! Rd = 8.31 J/(mol*K) / 0.02897 kg/mol. 
-            !===========================================================
-            BXHEIGHT(I,J,L) = Rdg0 * T(I,J,L) * LOG( P1 / P2 )
+         !===========================================================
+         ! AIRVOL is the volume of grid box (I,J,L) in meters^3
+         !
+         ! AREA_M2 is the Delta-X * Delta-Y surface area of grid
+         ! boxes (I,J,L=1), that is, at the earth's surface.
+         !
+         ! Since the thickness of the atmosphere is much smaller 
+         ! than the radius of the earth, we can make the "thin 
+         ! atmosphere" approximation, namely:
+         !
+         !               (Rearth + h) ~ Rearth
+         !
+         ! Therefore, the Delta-X * Delta-Y surface area of grid
+         ! boxes that are above the earth's surface will be 
+         ! approx. the same as AREA_M2.  Thus we are justified 
+         ! in using AREA_M2 for grid boxes (I, J, L > 1)
+         !===========================================================
+         AIRVOL(I,J,L) = BXHEIGHT(I,J,L) * AREA_M2
 
-            !===========================================================
-            ! AIRVOL is the volume of grid box (I,J,L) in meters^3
-            !
-            ! AREA_M2 is the Delta-X * Delta-Y surface area of grid
-            ! boxes (I,J,L=1), that is, at the earth's surface.
-            !
-            ! Since the thickness of the atmosphere is much smaller 
-            ! than the radius of the earth, we can make the "thin 
-            ! atmosphere" approximation, namely:
-            !
-            !               (Rearth + h) ~ Rearth
-            !
-            ! Therefore, the Delta-X * Delta-Y surface area of grid
-            ! boxes that are above the earth's surface will be 
-            ! approx. the same as AREA_M2.  Thus we are justified 
-            ! in using AREA_M2 for grid boxes (I, J, L > 1)
-            !===========================================================
-            AIRVOL(I,J,L) = BXHEIGHT(I,J,L) * AREA_M2
+         !===========================================================
+         ! AD = (dry) mass of air in grid box (I,J,L) in kg, 
+         ! given by:        
+         !
+         !  Mass    Pressure        100      1        Surface area 
+         !        = difference   *  ---  *  ---   *   of grid box 
+         !          in grid box      1       g          AREA_M2
+         !
+         !   kg         mb          Pa      s^2           m^2
+         !  ----  =    ----      * ----  * -----  *      -----
+         !    1          1          mb       m             1
+         !===========================================================
+         AD(I,J,L) = DELP(L,I,J) * G0_100 * AREA_M2
 
-            !===========================================================
-            ! AD = (dry) mass of air in grid box (I,J,L) in kg, 
-            ! given by:        
-            !
-            !  Mass    Pressure        100      1        Surface area 
-            !        = difference   *  ---  *  ---   *   of grid box 
-            !          in grid box      1       g          AREA_M2
-            !
-            !   kg         mb          Pa      s^2           m^2
-            !  ----  =    ----      * ----  * -----  *      -----
-            !    1          1          mb       m             1
-            !===========================================================
-            AD(I,J,L) = DELP(L,I,J) * G0_100 * AREA_M2
-
-            !===========================================================
-            ! AIRDEN = density of air (AD / AIRVOL) in kg / m^3 
-            !===========================================================
-            AIRDEN(L,I,J) = AD(I,J,L) / AIRVOL(I,J,L)
-         ENDDO
+         !===========================================================
+         ! AIRDEN = density of air (AD / AIRVOL) in kg / m^3 
+         !===========================================================
+         AIRDEN(L,I,J) = AD(I,J,L) / AIRVOL(I,J,L)
+      ENDDO
       ENDDO
       ENDDO
 !$OMP END PARALLEL DO
@@ -538,8 +548,9 @@
 !  ========================================================================
 !  (1 ) AIRDEN_FULLGRID (REAL*8 ) : Density of air  in a grid box   [kg/m^3  ]
 !
-!  NOTES:
+! !REVISION HISTORY:
 !  (1 ) Modified from AIRQNT in DAO_MOD (cdh, 1/22/09)
+!  01 Mar 2012 - R. Yantosca - Now use GET_AREA_M2(I,J,L) from grid_mod.F90
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -559,70 +570,69 @@
 !$OMP+PRIVATE( DELP_TMP, BXHEIGHT_TMP, AIRVOL_TMP, AD_TMP )
       DO L = 1, LGLOB
       DO J = 1, JJPAR
+      DO I = 1, IIPAR
 
          ! Grid box surface area [m2]
-         AREA_M2 = GET_AREA_M2( J )
+         AREA_M2     = GET_AREA_M2( I, J, L )
 
-         DO I = 1, IIPAR
-               
-            ! Pressure at bottom edge of grid box [hPa]
-            P1          = GET_PEDGE_FULLGRID(I,J,L)
+         ! Pressure at bottom edge of grid box [hPa]
+         P1          = GET_PEDGE_FULLGRID(I,J,L)
 
-            ! Pressure at top edge of grid box [hPa]
-            P2          = GET_PEDGE_FULLGRID(I,J,L+1)
+         ! Pressure at top edge of grid box [hPa]
+         P2          = GET_PEDGE_FULLGRID(I,J,L+1)
 
-            ! Pressure difference between top & bottom edges [hPa]
-            DELP_TMP = P1 - P2
-            
-            !===========================================================
-            ! BXHEIGHT is the height (Delta-Z) of grid box (I,J,L) 
-            ! in meters. 
-            !
-            ! The formula for BXHEIGHT is just the hydrostatic eqn.  
-            ! Rd = 287 J/K/kg is the value for the ideal gas constant
-            ! R for air (M.W = 0.02897 kg/mol),  or 
-            ! Rd = 8.31 J/(mol*K) / 0.02897 kg/mol. 
-            !===========================================================
-            BXHEIGHT_TMP = Rdg0 * T_FULLGRID(I,J,L) * LOG( P1 / P2 )
+         ! Pressure difference between top & bottom edges [hPa]
+         DELP_TMP = P1 - P2
+         
+         !===========================================================
+         ! BXHEIGHT is the height (Delta-Z) of grid box (I,J,L) 
+         ! in meters. 
+         !
+         ! The formula for BXHEIGHT is just the hydrostatic eqn.  
+         ! Rd = 287 J/K/kg is the value for the ideal gas constant
+         ! R for air (M.W = 0.02897 kg/mol),  or 
+         ! Rd = 8.31 J/(mol*K) / 0.02897 kg/mol. 
+         !===========================================================
+         BXHEIGHT_TMP = Rdg0 * T_FULLGRID(I,J,L) * LOG( P1 / P2 )
 
-            !===========================================================
-            ! AIRVOL is the volume of grid box (I,J,L) in meters^3
-            !
-            ! AREA_M2 is the Delta-X * Delta-Y surface area of grid
-            ! boxes (I,J,L=1), that is, at the earth's surface.
-            !
-            ! Since the thickness of the atmosphere is much smaller 
-            ! than the radius of the earth, we can make the "thin 
-            ! atmosphere" approximation, namely:
-            !
-            !               (Rearth + h) ~ Rearth
-            !
-            ! Therefore, the Delta-X * Delta-Y surface area of grid
-            ! boxes that are above the earth's surface will be 
-            ! approx. the same as AREA_M2.  Thus we are justified 
-            ! in using AREA_M2 for grid boxes (I, J, L > 1)
-            !===========================================================
-            AIRVOL_TMP = BXHEIGHT_TMP * AREA_M2
+         !===========================================================
+         ! AIRVOL is the volume of grid box (I,J,L) in meters^3
+         !
+         ! AREA_M2 is the Delta-X * Delta-Y surface area of grid
+         ! boxes (I,J,L=1), that is, at the earth's surface.
+         !
+         ! Since the thickness of the atmosphere is much smaller 
+         ! than the radius of the earth, we can make the "thin 
+         ! atmosphere" approximation, namely:
+         !
+         !               (Rearth + h) ~ Rearth
+         !
+         ! Therefore, the Delta-X * Delta-Y surface area of grid
+         ! boxes that are above the earth's surface will be 
+         ! approx. the same as AREA_M2.  Thus we are justified 
+         ! in using AREA_M2 for grid boxes (I, J, L > 1)
+         !===========================================================
+         AIRVOL_TMP = BXHEIGHT_TMP * AREA_M2
 
-            !===========================================================
-            ! AD = (dry) mass of air in grid box (I,J,L) in kg, 
-            ! given by:        
-            !
-            !  Mass    Pressure        100      1        Surface area 
-            !        = difference   *  ---  *  ---   *   of grid box 
-            !          in grid box      1       g          AREA_M2
-            !
-            !   kg         mb          Pa      s^2           m^2
-            !  ----  =    ----      * ----  * -----  *      -----
-            !    1          1          mb       m             1
-            !===========================================================
-            AD_TMP = DELP_TMP * G0_100 * AREA_M2
+         !===========================================================
+         ! AD = (dry) mass of air in grid box (I,J,L) in kg, 
+         ! given by:        
+         !
+         !  Mass    Pressure        100      1        Surface area 
+         !        = difference   *  ---  *  ---   *   of grid box 
+         !          in grid box      1       g          AREA_M2
+         !
+         !   kg         mb          Pa      s^2           m^2
+         !  ----  =    ----      * ----  * -----  *      -----
+         !    1          1          mb       m             1
+         !===========================================================
+         AD_TMP = DELP_TMP * G0_100 * AREA_M2
 
-            !===========================================================
-            ! AIRDEN = density of air (AD / AIRVOL) in kg / m^3 
-            !===========================================================
-            AIRDEN_FULLGRID(L,I,J) = AD_TMP / AIRVOL_TMP
-         ENDDO
+         !===========================================================
+         ! AIRDEN = density of air (AD / AIRVOL) in kg / m^3 
+         !===========================================================
+         AIRDEN_FULLGRID(L,I,J) = AD_TMP / AIRVOL_TMP
+      ENDDO
       ENDDO
       ENDDO
 !$OMP END PARALLEL DO
@@ -702,6 +712,7 @@
 !  16 Aug 2010 - R. Yantosca - Added ProTeX headers
 !  18 Aug 2010 - R. Yantosca - Rewrite #if block logic for clarity
 !  06 Feb 2012 - R. Yantosca - Add modifications for GEOS-5.7.x met fields
+!  01 Mar 2012 - R. Yantosca - Now use GET_YEDGE(I,J,L) from new grid_mod.F90
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -788,34 +799,32 @@
 !$OMP+DEFAULT( SHARED )
 !$OMP+PRIVATE( I, J, YSOUTH, YNORTH )
       DO J = 1, JJPAR
+      DO I = 1, IIPAR
 
          ! North & south edges of box
-         YSOUTH = GET_YEDGE( J   )
-         YNORTH = GET_YEDGE( J+1 )
+         YSOUTH = GET_YEDGE( I, J,   1 )
+         YNORTH = GET_YEDGE( I, J+1, 1 )
 
-         DO I = 1, IIPAR
+         ! Interpolate pressure [hPa] to the end of the dynamic timestep
+         PSC2(I,J) = PS1(I,J) + ( PS2(I,J) - PS1(I,J) ) * TC2 
 
-            ! Interpolate pressure [hPa] to the end of the dynamic timestep
-            PSC2(I,J) = PS1(I,J) + ( PS2(I,J) - PS1(I,J) ) * TC2 
-
-            ! Test if we are using the variable tropopause
-            IF ( LVARTROP ) THEN
+         ! Test if we are using the variable tropopause
+         IF ( LVARTROP ) THEN
  
-               ! Interpolate TROPP [hPa] to the midpt of the dynamic timestep
-               TROPP(I,J) = TROPP1(I,J) 
-     &                    + ( TROPP2(I,J) - TROPP1(I,J) ) * TM
+            ! Interpolate TROPP [hPa] to the midpt of the dynamic timestep
+            TROPP(I,J) = TROPP1(I,J) 
+     &                 + ( TROPP2(I,J) - TROPP1(I,J) ) * TM
 
-
-               ! However, we still need to make sure to cap TROPP in the
-               ! polar regions (if the entire box is outside 60S-60N)
-               ! so that we don't do chemistry at an abnormally high
-               ! altitude.  Set TROPP in the polar regions to 200 hPa.
-               ! (jal, phs, bmy, 9/18/07)
-               IF ( YSOUTH >= 60d0 .or. YNORTH <= -60d0 ) THEN
-                  TROPP(I,J) = MAX( TROPP(I,J), 200d0 )
-               ENDIF
+            ! However, we still need to make sure to cap TROPP in the
+            ! polar regions (if the entire box is outside 60S-60N)
+            ! so that we don't do chemistry at an abnormally high
+            ! altitude.  Set TROPP in the polar regions to 200 hPa.
+            ! (jal, phs, bmy, 9/18/07)
+            IF ( YSOUTH >= 60d0 .or. YNORTH <= -60d0 ) THEN
+               TROPP(I,J) = MAX( TROPP(I,J), 200d0 )
             ENDIF
-         ENDDO
+         ENDIF
+      ENDDO
       ENDDO
 !$OMP END PARALLEL DO
 
@@ -828,31 +837,30 @@
 !$OMP+DEFAULT( SHARED )
 !$OMP+PRIVATE( I, J, YSOUTH, YNORTH )
       DO J = 1, JJPAR
+      DO I = 1, IIPAR
 
          ! North & south edges of box
-         YSOUTH = GET_YEDGE( J   )
-         YNORTH = GET_YEDGE( J+1 )
+         YSOUTH = GET_YEDGE( I, J,   1 )
+         YNORTH = GET_YEDGE( I, J+1, 1 )
 
-         DO I = 1, IIPAR
+         ! Interpolate pressure [hPa] to the end of the dynamic timestep
+         PSC2(I,J) = PS1(I,J)  + ( PS2(I,J)  - PS1(I,J)  ) * TC2 
 
-            ! Interpolate pressure [hPa] to the end of the dynamic timestep
-            PSC2(I,J) = PS1(I,J)  + ( PS2(I,J)  - PS1(I,J)  ) * TC2 
+         ! Interpolate the GEOS-5 total O3 column [DU] to current time
+         TO3(I,J)  = TO31(I,J) + ( TO32(I,J) - TO31(I,J) ) * TM
 
-            ! Interpolate the GEOS-5 total O3 column [DU] to current time
-            TO3(I,J)  = TO31(I,J) + ( TO32(I,J) - TO31(I,J) ) * TM
-
-            ! Even though TROPP is a 3-hour average field, we 
-            ! we still need to make sure to cap TROPP in the
-            ! polar regions (if the entire box is outside 60S-60N)
-            ! so that we don't do chemistry at an abnormally high
-            ! altitude.  Set TROPP in the polar regions to 200 hPa.
-            ! (jal, phs, bmy, 9/18/07)
-            IF ( LVARTROP ) THEN
-               IF ( YSOUTH >= 60d0 .or. YNORTH <= -60d0 ) THEN
-                  TROPP(I,J) = MAX( TROPP(I,J), 200d0 )
-               ENDIF
+         ! Even though TROPP is a 3-hour average field, we 
+         ! we still need to make sure to cap TROPP in the
+         ! polar regions (if the entire box is outside 60S-60N)
+         ! so that we don't do chemistry at an abnormally high
+         ! altitude.  Set TROPP in the polar regions to 200 hPa.
+         ! (jal, phs, bmy, 9/18/07)
+         IF ( LVARTROP ) THEN
+            IF ( YSOUTH >= 60d0 .or. YNORTH <= -60d0 ) THEN
+               TROPP(I,J) = MAX( TROPP(I,J), 200d0 )
             ENDIF
-         ENDDO
+         ENDIF
+      ENDDO
       ENDDO
 !$OMP END PARALLEL DO
 
@@ -866,17 +874,16 @@
 !$OMP+PRIVATE( I, J, L, YSOUTH, YNORTH )
       DO L = 1, LLPAR
       DO J = 1, JJPAR
-
-         ! North & south edges of box
-         YSOUTH = GET_YEDGE( J   )
-         YNORTH = GET_YEDGE( J+1 )
-
       DO I = 1, IIPAR
 
          !----------------------------------------------------
          ! Interpolate 2D variables
          !----------------------------------------------------
          IF ( L == 1 ) THEN
+
+            ! North & south edges of box
+            YSOUTH     = GET_YEDGE( I, J,   L )
+            YNORTH     = GET_YEDGE( I, J+1, L )
             
             ! Interpolate pressure [hPa] to the end of the dynamic timestep
             PSC2(I,J)  = PS1(I,J) + ( PS2(I,J) - PS1(I,J) ) * TC2 
@@ -914,18 +921,17 @@
 !$OMP+PRIVATE( I, J, L, YSOUTH, YNORTH )
       DO L = 1, LLPAR
       DO J = 1, JJPAR
-
-         ! North & south edges of box
-         YSOUTH = GET_YEDGE( J   )
-         YNORTH = GET_YEDGE( J+1 )
-
       DO I = 1, IIPAR
 
          !----------------------------------------------------
          ! Interpolate 2D variables
          !----------------------------------------------------
          IF ( L == 1 ) THEN
-            
+
+            ! North & south edges of box
+            YSOUTH     = GET_YEDGE( I, J,   L )
+            YNORTH     = GET_YEDGE( I, J+1, L )
+
             ! Interpolate pressure [hPa] to the end of the dynamic timestep
             PSC2(I,J)  = PS1(I,J) + ( PS2(I,J) - PS1(I,J) ) * TC2 
 
@@ -1811,6 +1817,7 @@
 !                              midpt of the chem step (not always at 00:30).
 !  07 Feb 2012 - R. Yantosca - Now add GMT_HOUR as a new argument, which !
 !                              will facilitate computing sun angles 5h ago
+!  01 Mar 2012 - R. Yantosca - Now use GET_YMID_R(I,J,L) from grid_mod.F90
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -1867,57 +1874,52 @@
       !=================================================================
       ! Compute cosine of solar zenith angle
       !=================================================================
-
 !$OMP PARALLEL DO
 !$OMP+DEFAULT( SHARED )
 !$OMP+PRIVATE( I, J, YMID_R, S_YMID_R, C_YMID_R, IJLOOP, TIMLOC, AHR )
-
-      ! Loop over latitude
       DO J = 1, JJPAR
+      DO I = 1, IIPAR
 
          ! Latitude of grid box [radians]
-         YMID_R   = GET_YMID_R( J )
+         YMID_R             = GET_YMID_R( I, J, 1 )
 
          ! Pre-compute sin & cos of DEC outside of I loop (for efficiency)
-         S_YMID_R  = SIN( YMID_R )
-         C_YMID_R  = COS( YMID_R )
+         S_YMID_R           = SIN( YMID_R )
+         C_YMID_R           = COS( YMID_R )
 
-         ! Loop over longitude
-         DO I = 1, IIPAR
+         ! 1-D grid box index
+         IJLOOP             = ( (J-1) * IIPAR ) + I
 
-            ! 1-D grid box index
-            IJLOOP             = ( (J-1) * IIPAR ) + I
+         !===========================================================
+         ! Compute cosine of SZA at the current GMT time
+         !===========================================================
 
-            !===========================================================
-            ! Compute cosine of SZA at the current GMT time
-            !===========================================================
+         ! Local time at box (I,J) [hours]
+         TIMLOC             = GET_LOCALTIME( I, GMT=GMT_CUR )
 
-            ! Local time at box (I,J) [hours]
-            TIMLOC             = GET_LOCALTIME( I, GMT=GMT_CUR )
+         ! Hour angle at box (I,J) [radians]
+         AHR                = ABS( TIMLOC - 12d0 ) * 15d0 * PI_180
+         
+         ! Cosine of solar zenith angle at box (I,J) [unitless]
+         SUNCOS(IJLOOP)     = ( S_YMID_R * S_DEC              ) 
+     &                      + ( C_YMID_R * C_DEC * COS( AHR ) )
 
-            ! Hour angle at box (I,J) [radians]
-            AHR                = ABS( TIMLOC - 12d0 ) * 15d0 * PI_180
-            
-            ! Cosine of solar zenith angle at box (I,J) [unitless]
-            SUNCOS(IJLOOP)     = ( S_YMID_R * S_DEC              ) 
-     &                         + ( C_YMID_R * C_DEC * COS( AHR ) )
+         !===========================================================
+         ! Compute cosine of SZA at the midpoint of the chem timestep
+         ! Required for photolysis, chemistry, emissions, drydep
+         !===========================================================
 
-            !===========================================================
-            ! Compute cosine of SZA at the midpoint of the chem timestep
-            ! Required for photolysis, chemistry, emissions, drydep
-            !===========================================================
+         ! Local time [hours] at box (I,J) at the midpt of the chem timestep
+         TIMLOC             = GET_LOCALTIME( I, GMT=GMT_MID )
 
-            ! Local time [hours] at box (I,J) at the midpt of the chem timestep
-            TIMLOC             = GET_LOCALTIME( I, GMT=GMT_MID )
+         ! Hour angle at box (I,J) [radians]
+         AHR                = ABS( TIMLOC - 12d0 ) * 15d0 * PI_180
+         
+         ! Corresponding cosine( SZA ) at box (I,J) [unitless]
+         SUNCOS_MID(IJLOOP) = ( S_YMID_R * S_DEC              )
+     &                      + ( C_YMID_R * C_DEC * COS( AHR ) )
 
-            ! Hour angle at box (I,J) [radians]
-            AHR                = ABS( TIMLOC - 12d0 ) * 15d0 * PI_180
-            
-            ! Corresponding cosine( SZA ) at box (I,J) [unitless]
-            SUNCOS_MID(IJLOOP) = ( S_YMID_R * S_DEC              )
-     &                         + ( C_YMID_R * C_DEC * COS( AHR ) )
-
-         ENDDO
+      ENDDO
       ENDDO
 !$OMP END PARALLEL DO
 

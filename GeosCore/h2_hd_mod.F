@@ -35,6 +35,7 @@
 !  18 Sep 2007 - L. Jaegle, H. U. Price, P. Le Sager -- Initial version
 !  02 Dec 2010 - R. Yantosca - Added ProTeX headers
 !  07 Sep 2011 - P. Kasibhatla - Modified to include GFED3 (psk, 1/5/11)
+!  01 Mar 2012 - R. Yantosca - Now reference new grid_mod.F90
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -151,6 +152,7 @@
 !  02 Dec 2010 - R. Yantosca - Added ProTeX headers
 !  08 Dec 2011 - M. Payer    - Remove obsolete GEIA biogenic emissions and add
 !                              MEGAN biogenic emissions.
+!  01 Mar 2012 - R. Yantosca - Now use GET_AREA_CM2(I,J,L) from grid_mod.F90
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -293,11 +295,11 @@
          DO J = 1, JJPAR
             JREF = J + J0
 
-            ! Grid box surface areas [cm2]
-            AREA_CM2 = GET_AREA_CM2( J )
-
             DO I = 1, IIPAR
                IREF = I + I0
+
+               ! Grid box surface areas [cm2]
+               AREA_CM2 = GET_AREA_CM2( I, J, 1 )
 
                ! E_CO is FF CO emissions in [molec CO/cm^2/s]
                ! Scale E_CO by the day-of-week scale factor SFAC89
@@ -411,14 +413,12 @@
 !!$OMP+DEFAULT( SHARED )
 !!$OMP+PRIVATE( E_H2, E_HD, I, J, N, AREA_CM2 )
 
-         ! Loop over latitudes
+         ! Loop over surface boxes
          DO J = 1, JJPAR
+         DO I = 1, IIPAR
 
             ! Grid box surface area [cm2]
-            AREA_CM2 = GET_AREA_CM2( J )
-
-            ! Loop over longitudes
-            DO I = 1, IIPAR
+            AREA_CM2 = GET_AREA_CM2( I, J, 1 )
 
             ! Convert [molec CO/cm2/s] to [molec H2/cm2/s]
             ! Scale by 0.29 mol H2/mol CO and increase by 
@@ -547,11 +547,10 @@
 !$OMP+PRIVATE( I, J, AREA_CM2, IJLOOP, TMMP, EMXX, EMMO, EMAC, EMOC )
 !$OMP+PRIVATE( E_H2, E_HD )
       DO J = 1, JJPAR
+      DO I = 1, IIPAR
 
-         ! Grid box surface area [cm2]
-         AREA_CM2 = GET_AREA_CM2( J )
-
-         DO I = 1, IIPAR
+            ! Grid box surface area [cm2]
+            AREA_CM2 = GET_AREA_CM2( I, J, 1 )
 
             ! 1-D array index 
             IJLOOP = ( (J-1) * IIPAR ) + I
@@ -699,6 +698,8 @@
 ! !REVISION HISTORY: 
 !  18 Sep 2007 - L. Jaegle, H. U. Price, P. Le Sager -- Initial version
 !  02 Dec 2010 - R. Yantosca - Added ProTeX headers
+!  01 Mar 2012 - R. Yantosca - Now use GET_AREA_CM2(I,J,L) from grid_mod.F90
+!  01 Mar 2012 - R. Yantosca - Now use GET_YMID(I,J,L) from grid_mod.F90
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -793,11 +794,10 @@
       
       DO L = 1, LLPAR
       DO J = 1, JJPAR
+      DO I = 1, IIPAR
 
          ! Latitude of grid box
-         YMID = GET_YMID( J )
-
-      DO I = 1, IIPAR
+         YMID = GET_YMID( I, J, L )
 
          !==============================================================
          ! (0) Define useful quantities

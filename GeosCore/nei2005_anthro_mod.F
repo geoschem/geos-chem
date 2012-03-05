@@ -66,14 +66,13 @@
 !  13 Aug 2010 - R. Yantosca - Add modifications for MERRA (treat like GEOS-5)
 !  27 Jul 2011 - R. Yantosca - Removed typo in EMISS_NEI2005_ANTHRO_05x0666
 !  08 Feb 2012 - R. Yantosca - Add modifications for GEOS-5.7.x met
+!  01 Mar 2012 - R. Yantosca - Now reference new grid_mod.F90
+!   2 Mar 2012 - R. Yantosca - Remove A_CM2 array, use GET_AREA_CM2 instead
 !EOP
 !------------------------------------------------------------------------------
 !
 ! !PRIVATE TYPES:
 !
-      ! Array for surface area
-      REAL*8,  ALLOCATABLE :: A_CM2(:)
-
       ! Arrays for emissions
       REAL*8,  ALLOCATABLE :: NOx(:,:,:)
       REAL*8,  ALLOCATABLE :: CO(:,:,:)
@@ -157,7 +156,9 @@
       REAL*8                        :: VALUE     
 !
 ! !REVISION HISTORY: 
-!    7 Oct 2009 - A. van Donkelaar - initial version
+!  07 Oct 2009 - A. van Donkelaar - initial version
+!  01 Mar 2012 - R. Yantosca - Now use GET_AREA_CM2(I,J,L) from grid_mod.F90
+!  01 Mar 2012 - R. Yantosca - Remove A_CM2 array, use GET_AREA_CM2 instead
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -342,7 +343,8 @@
 
          ! Convert NOx from [kg/yr] to [molec/cm2/s] or from
          ! [kg C/yr] to [atom C/cm2/s] 
-         VALUE = VALUE * XNUMOL(N) / ( A_CM2(J) * SEC_IN_YEAR )
+         VALUE = ( VALUE                   * XNUMOL(N)   )
+     &         / ( GET_AREA_CM2( I, J, L ) * SEC_IN_YEAR )
 
       ENDIF
 
@@ -1956,12 +1958,12 @@
 ! !USES:
 ! 
       USE ERROR_MOD,   ONLY : ALLOC_ERR
-      USE GRID_MOD,    ONLY : GET_AREA_CM2
       USE LOGICAL_MOD, ONLY : LNEI05
 
       USE CMN_SIZE_MOD    ! Size parameters
 !
-! !REVISION HISTORY: 
+! !REVISION HISTORY:
+!  02 Mar 2012 - R. Yantosca - Remove A_CM2 array
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -2107,19 +2109,6 @@
       ALLOCATE( CH2O_WKEND( IIPAR, JJPAR, 5 ), STAT=AS )
       IF ( AS /= 0 ) CALL ALLOC_ERR( 'CH2O_WKEND' )
       CH2O_WKEND = 0d0 
-
-      !---------------------------------------------------
-      ! Pre-store array for grid box surface area in cm2
-      !---------------------------------------------------
-
-      ! Allocate array
-      ALLOCATE( A_CM2( JJPAR ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'A_CM2' )
-
-      ! Fill array
-      DO J = 1, JJPAR
-         A_CM2(J) = GET_AREA_CM2( J )
-      ENDDO
 
       ! Return to calling program
       END SUBROUTINE INIT_NEI2005_ANTHRO

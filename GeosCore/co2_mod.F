@@ -207,6 +207,7 @@
 !  (4 ) New tracers for emissions from international and domestic shipping,
 !        international and domestic aviation, and the chemical CO2 source
 !        from the oxidation of CO, CH4, and other organics (rnassar,dbj, 2009)
+!  01 Mar 2012 - R. Yantosca - Now use GET_AREA_CM2(I,J,L) from grid_mod.F90
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -350,18 +351,14 @@
       !=================================================================
       ! Process emissions and save diagnostics
       !=================================================================
-
-      ! Loop over latitudes
 !$OMP PARALLEL DO
 !$OMP+DEFAULT( SHARED )
 !$OMP+PRIVATE( I, J, L, A_CM2, E_CO2 )  ! dbj
       DO J = 1, JJPAR
+      DO I = 1, IIPAR
 
          ! Grid box surface area [cm2]
-         A_CM2 = GET_AREA_CM2( J )
-
-      ! Loop over longitudes
-      DO I = 1, IIPAR
+         A_CM2 = GET_AREA_CM2( I, J, 1 )
 
          !-------------------------------------------
          ! #1: Total CO2
@@ -974,7 +971,8 @@
 !  25 Feb 2011 - R. Nassar           - Now point to annual_v2010 and
 !                                      monthly_v2010 directories, which
 !                                      contain updated CO2 data from CDIAC
-!EOP!EOP
+!  01 Mar 2012 - R. Yantosca - Now use GET_AREA_CM2(I,J,L) from grid_mod.F90
+!EOP
 !------------------------------------------------------------------------------
 !BOC
 !
@@ -990,7 +988,8 @@
 
       REAL*4                  :: ARRAY(IIPAR,JJPAR,1)
 
-      REAL*8                  :: TAU, MONFAC, NMHCFAC, A_CM2(JJPAR)
+      REAL*8                  :: TAU, MONFAC, NMHCFAC
+      REAL*8                  :: A_CM2(IIPAR,JJPAR)
       
       REAL*8                  :: FOSS_MASS(IIPAR,JJPAR),  FOSS_SUM
       REAL*8                  :: LIVE_MASS(IIPAR,JJPAR),  LIVE_SUM
@@ -1027,7 +1026,9 @@
       WRITE( MONTH_STR, '(i2.2)' ) MONTH 
 
       DO J = 1, JJPAR
-         A_CM2(J) = GET_AREA_CM2(J)
+      DO I = 1, IIPAR
+         A_CM2(I,J) = GET_AREA_CM2( I, J, 1 )
+      ENDDO
       ENDDO
 
       !-----------------------------------------------------------------
@@ -1154,11 +1155,11 @@
  
       DO J = 1, JJPAR
       DO I = 1, IIPAR
-         LIVE_CORR(I,J)      = LIVE_MASS(I,J)*CH4FAC/MONFAC/A_CM2(J)
-         WASTE_CORR(I,J)     = WASTE_MASS(I,J)*CH4FAC/MONFAC/A_CM2(J)
-         RICE_CORR(I,J)      = RICE_MASS(I,J)*CH4FAC/MONFAC/A_CM2(J)
-         WET_CORR(I,J)       = WET_MASS(I,J)*CH4FAC/MONFAC/A_CM2(J)
-         OTHER_CORR(I,J)     = OTHER_MASS(I,J)*CH4FAC/MONFAC/A_CM2(J)
+         LIVE_CORR(I,J)  = LIVE_MASS(I,J) *CH4FAC/MONFAC/A_CM2(I,J)
+         WASTE_CORR(I,J) = WASTE_MASS(I,J)*CH4FAC/MONFAC/A_CM2(I,J)
+         RICE_CORR(I,J)  = RICE_MASS(I,J) *CH4FAC/MONFAC/A_CM2(I,J)
+         WET_CORR(I,J)   = WET_MASS(I,J)  *CH4FAC/MONFAC/A_CM2(I,J)
+         OTHER_CORR(I,J) = OTHER_MASS(I,J)*CH4FAC/MONFAC/A_CM2(I,J)
       ENDDO
       ENDDO
 
@@ -1223,10 +1224,12 @@
 
       DO J = 1, JJPAR
       DO I = 1, IIPAR
-         FOSS_MASS(I,J) = FOSSIL_CORR(I,J)*A_CM2(J)*MONFAC/CFAC
-         ISO_MASS(I,J)  = ISO_CORR(I,J)*A_CM2(J)*NMHCFAC*MONFAC/CFAC
-         MONO_MASS(I,J) = MONO_CORR(I,J)*A_CM2(J)*NMHCFAC*MONFAC/CFAC
-         TOT_MASS(I,J)  = EMIS_SUB(I,J)*A_CM2(J)*MONFAC/CFAC
+         FOSS_MASS(I,J) = FOSSIL_CORR(I,J) * A_CM2(I,J) * MONFAC /CFAC
+         ISO_MASS(I,J)  = ISO_CORR(I,J)    * A_CM2(I,J) * NMHCFAC
+     &                  * MONFAC           / CFAC
+         MONO_MASS(I,J) = MONO_CORR(I,J)   * A_CM2(I,J) * NMHCFAC
+     &                  * MONFAC           / CFAC
+         TOT_MASS(I,J)  = EMIS_SUB(I,J)    * A_CM2(I,J) * MONFAC / CFAC
       ENDDO
       ENDDO
 
@@ -1284,6 +1287,7 @@
 !  25 Feb 2011 - R. Nassar           - Now point to annual_v2010 and
 !                                      monthly_v2010 directories, which
 !                                      contain updated CO2 data from CDIAC
+!  01 Mar 2012 - R. Yantosca - Now use GET_AREA_CM2(I,J,L) from grid_mod.F90
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -1297,7 +1301,7 @@
       REAL*4             :: REGION(IIPAR,JJPAR)
       REAL*8             :: TAU, U_CONV
       REAL*8             :: DOM_COR(8), REG_SUM(8), AV_SCLFAC(8)
-      REAL*8             :: ANN_FOSS(IIPAR,JJPAR), A_CM2(JJPAR)
+      REAL*8             :: ANN_FOSS(IIPAR,JJPAR)
       REAL*8             :: ANN_FOSS_NOAREA(IIPAR,JJPAR)
 
       !-----------------------------------------------------------------
@@ -1338,8 +1342,10 @@
       U_CONV = NDAYS*86400*(12./6.022D23)*1D-12
 
       DO J = 1, JJPAR
-         A_CM2(J) = GET_AREA_CM2(J)
-         ANN_FOSS_NOAREA(:,J) =  ANN_FOSS(:,J)*A_CM2(J)*U_CONV
+      DO I = 1, IIPAR
+         ANN_FOSS_NOAREA(:,J) =  ANN_FOSS(:,J)
+     &                        *  GET_AREA_CM2( I, J, 1 ) * U_CONV
+      ENDDO
       ENDDO
 
       !-----------------------------------------------------------------
@@ -1616,6 +1622,7 @@
 !
 ! !REVISION HISTORY: 
 !  18 May 2010 - R. Nassar, D. Jones - Initial version
+!  01 Mar 2012 - R. Yantosca - Now use GET_AREA_CM2(I,J,L) from grid_mod.F90
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -1623,7 +1630,7 @@
 ! !LOCAL VARIABLES:
 !
       INTEGER            :: I, J, N, YEAR
-      REAL*4		 :: A_CM2(JJPAR)
+      REAL*4		 :: A_CM2(IIPAR,JJPAR)
       REAL*4             :: ARRAY(360,180,1)
       REAL*8             :: GEN_1x1(360,180,1)
       REAL*8             :: GEOS_1x1(I1x1,J1x1,1)
@@ -1645,7 +1652,9 @@
 
       ! Fill array
       DO J = 1, JJPAR
-         A_CM2(J) = GET_AREA_CM2( J )
+      DO I = 1, IIPAR
+         A_CM2(I,J) = GET_AREA_CM2( I, J, 1 )
+      ENDDO
       ENDDO
 
       ! File contaning EDGAR ship CO2 data
@@ -1675,8 +1684,10 @@
 
       ! Convert units kg CO2 / yr --> molecules/cm2/s 
       DO J = 1, JJPAR
-      	EMSHIPCO2(:,J) = GEOS_GRID(:,J,1) * 6.022E23 
-     &            / ( 44.0d-3 * SEC_IN_YEAR * A_CM2(J))
+      DO I = 1, IIPAR
+      	EMSHIPCO2(I,J) = GEOS_GRID(I,J,1) * 6.022E23 
+     &            / ( 44.0d-3 * SEC_IN_YEAR * A_CM2(I,J) )
+      ENDDO
       ENDDO
 
       !-----------------------------------------------------------------
@@ -1736,7 +1747,6 @@
       USE TRANSFER_MOD,   ONLY : TRANSFER_2D
       USE FILE_MOD,       ONLY : IU_FILE, IOERROR
       USE REGRID_1x1_MOD, ONLY : DO_REGRID_G2G_1x1, DO_REGRID_1x1 
-      USE GRID_MOD,       ONLY : GET_AREA_CM2
       USE TIME_MOD,       ONLY : GET_YEAR, GET_MONTH
 	
       USE CMN_SIZE_MOD       ! Size parameters
@@ -1762,6 +1772,7 @@
 ! 
 ! !REVISION HISTORY: 
 !  18 May 2010 - R. Nassar, D. Jones - Initial version
+!  01 Mar 2012 - R. Yantosca - Now use GET_AREA_M2(I,J,L) from grid_mod.F90
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -1769,7 +1780,7 @@
 ! !LOCAL VARIABLES:
 !
       INTEGER                :: I, J, MONTH, YEAR, IOS, N
-      REAL*4		     :: A_CM2(JJPAR)
+      REAL*4		     :: A_CM2(IIPAR,JJPAR)
       REAL*4                 :: ARRAY(360,181,1)
       REAL*8                 :: GEOS_1x1(I1x1,J1x1,1)
       REAL*8                 :: GEOS_GRID(IIPAR,JJPAR,1)
@@ -1786,11 +1797,6 @@
       !=================================================================
       ! READ_SHIPCO2_ICOADS begins here!
       !=================================================================
-
-      ! Fill array
-      DO J = 1, JJPAR
-         A_CM2(J) = GET_AREA_CM2( J )
-      ENDDO
 
       YEAR = GET_YEAR()
       MONTH = GET_MONTH()
@@ -2490,6 +2496,7 @@
 !
 ! !REVISION HISTORY: 
 !  18 May 2010 - R. Nassar, D. Jones - Updated 
+!  01 Mar 2012 - R. Yantosca - Now use GET_AREA_CM2(I,J,L) from grid_mod.F90
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -2510,11 +2517,15 @@
       ! Convert from [molec  /cm2/month] to [kg  /month]
       ! or      from [molec C/cm2/month] to [kg C/month]
       DO J = 1, JJPAR
-         A_CM2 = GET_AREA_CM2( J ) ! Grid box surface area [cm2]
+      DO I = 1, IIPAR
 
-         DO I = 1, IIPAR
-            TOTAL = TOTAL + BBARRAY(I,J) * A_CM2 * ( MOLWT / 6.023d23 )
-         ENDDO
+         ! Grid box surface area [cm2]
+         A_CM2 = GET_AREA_CM2( I, J, 1 ) 
+      
+         ! Unit conversion
+         TOTAL = TOTAL + BBARRAY(I,J) * A_CM2 * ( MOLWT / 6.023d23 )
+
+      ENDDO
       ENDDO
      
       ! Convert from kg --> Tg

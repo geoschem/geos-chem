@@ -102,6 +102,7 @@
 !        on the tracers used in the simulation. (ccc, 4/23/09)
 !  (6 ) Adjust call to GFED2_AVAILABLE to reflect that monthly data for
 !        2008 is now available on disk (bmy, 7/8/09)
+!  01 Mar 2012 - R. Yantosca - Now reference new grid_mod.F90
 !******************************************************************************
 !
       IMPLICIT NONE
@@ -771,6 +772,7 @@
 !  (2 ) MM      (INTEGER) : Currrent month
 !
 !  NOTES:
+!  01 Mar 2012 - R. Yantosca - Now use GET_AREA_CM2(I,J,L) from grid_mod.F90
 !******************************************************************************
 !
       ! References to F90 modules
@@ -800,16 +802,17 @@
          UNIT  = GFED2_SPEC_UNIT(N)
          TOTAL = 0d0
 
-         ! Loop over latitudes
+         ! Loop over surface boxes
          DO J = 1, JJPAR
-         
-            ! Convert to [Tg/gfed-period] (or [Tg C/gfed-period] for HC's)
-            CONV = GET_AREA_CM2( J ) * ( MOLWT / 6.023d23 ) * 1d-9
+         DO I = 1, IIPAR
 
-            ! Loop over longitudes
-            DO I = 1, IIPAR
-               TOTAL = TOTAL + ( GFED2_BIOMASS(I,J,N) * CONV )
-            ENDDO
+            ! Convert to [Tg/gfed-period] (or [Tg C/gfed-period] for HC's)
+            CONV = GET_AREA_CM2( I, J, 1 ) 
+     &           * ( MOLWT / 6.023d23 ) * 1d-9
+
+
+            TOTAL = TOTAL + ( GFED2_BIOMASS(I,J,N) * CONV )
+         ENDDO
          ENDDO
      
          ! Write totals

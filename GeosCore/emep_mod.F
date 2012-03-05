@@ -180,6 +180,7 @@
 !       (amv, 06/2008)
 !  (2 ) Now returns ship emissions if requested (phs, 6/08)
 !  (3 ) Added checks to avoid calling unavailable ship emissions (phs, 6/08)
+!  01 Mar 2012 - R. Yantosca - Now use GET_AREA_CM2(I,J,L) from grid_mod.F90
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -278,7 +279,7 @@
       !------------------------------
       IF ( DO_KGS ) THEN
 
-         EMEP = EMEP * GET_AREA_CM2(J) / XNUMOL(NN)
+         EMEP = EMEP * GET_AREA_CM2( I, J, 1 ) / XNUMOL(NN)
 
       ENDIF
 
@@ -807,6 +808,7 @@
 !  (4 ) Now emissions and base year are arguments. Output in Tg/month
 !        since this is called monthly (phs, 12/9/08)
 !  (5 ) Bug fix, now print out correct monthly EMEP totals (bmy, 1/30/09)
+!  01 Mar 2012 - R. Yantosca - Now use GET_AREA_M2(I,J,L) from grid_mod.F90
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -877,31 +879,29 @@
       SO2      = 0d0 
       NH3      = 0d0 
 
-      ! Loop over latitudes
+      ! Loop over grid boxes
       DO J = 1, JJPAR
-            
+      DO I = 1, IIPAR
+
          ! Surface area [cm2] * seconds in this year 
          ! Multiply by 1d-9 to convert from [kg] to [Tg]
-         A = GET_AREA_CM2( J ) * DAYS_IN_MONTH * 86400d0 * 1d-9 
+         A = GET_AREA_CM2( I, J, 1 ) * DAYS_IN_MONTH * 86400d0 * 1d-9 
          
-         ! Loop over longitudes
-         DO I = 1, IIPAR
+         ! Sum emissions (list NOx as Tg N)
+         NOX  = NOX  + ( EMEP_NOX (I,J) + EMEP_NOX_SHIP(I,J) )
+     &        * A * B(1)
+         CO   = CO   + ( EMEP_CO  (I,J) + EMEP_CO_SHIP(I,J)  )
+     &        * A * B(2) 
+         SO2  = SO2  + ( EMEP_SO2 (I,J) + EMEP_SO2_SHIP(I,J) )
+     &        * A * B(8) 
 
-            ! Sum emissions (list NOx as Tg N)
-            NOX  = NOX  + ( EMEP_NOX (I,J) + EMEP_NOX_SHIP(I,J) )
-     $           * A * B(1)
-            CO   = CO   + ( EMEP_CO  (I,J) + EMEP_CO_SHIP(I,J)  )
-     $           * A * B(2) 
-            SO2  = SO2  + ( EMEP_SO2 (I,J) + EMEP_SO2_SHIP(I,J) )
-     $           * A * B(8) 
-
-            ALK4 = ALK4 + EMEP_ALK4(I,J) * A * B(3) 
-            MEK  = MEK  + EMEP_MEK (I,J) * A * B(4) 
-            ALD2 = ALD2 + EMEP_ALD2(I,J) * A * B(5) 
-            PRPE = PRPE + EMEP_PRPE(I,J) * A * B(6) 
-            C2H6 = C2H6 + EMEP_C2H6(I,J) * A * B(7) 
-            NH3  = NH3  + EMEP_NH3 (I,J) * A * B(9) 
-         ENDDO
+         ALK4 = ALK4 + EMEP_ALK4(I,J) * A * B(3) 
+         MEK  = MEK  + EMEP_MEK (I,J) * A * B(4) 
+         ALD2 = ALD2 + EMEP_ALD2(I,J) * A * B(5) 
+         PRPE = PRPE + EMEP_PRPE(I,J) * A * B(6) 
+         C2H6 = C2H6 + EMEP_C2H6(I,J) * A * B(7) 
+         NH3  = NH3  + EMEP_NH3 (I,J) * A * B(9) 
+      ENDDO
       ENDDO
  
       !----------------
@@ -1087,6 +1087,7 @@
 !  28 Jan 2009 - P. Le Sager - Now account for LEMEPSHIP
 !  29 Oct 2009 - Added multi-species seasonality (amv)
 !  04 Jan 2010 - Extended to 2007, changed input format (amv)
+!  01 Mar 2012 - R. Yantosca - Now use GET_AREA_CM2(I,J,L) from grid_mod.F90
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -1222,18 +1223,17 @@
       IF ( TRACER .eq. 26 ) B = 1.d3 / 64d0 * 6.0225d23
       IF ( TRACER .eq. 30 ) B = 1.d3 / 17d0 * 6.0225d23
 
-      ! Loop over latitudes
+      ! Loop over surface boxes
       DO J = 1, JJPAR
+      DO I = 1, IIPAR
 
          ! Surface area [cm2] * sec per year
-         A = GET_AREA_CM2( J ) * 365d0 * 86400d0
+         A = GET_AREA_CM2( I, J, 1 ) * 365d0 * 86400d0
 
-         ! Loop over longitudes
-         DO I = 1, IIPAR
+         ! Unit conversion
+         ARRAY(I,J) = ARRAY(I,J) / A * B
 
-            ARRAY(I,J) = ARRAY(I,J) / A * B
-
-         ENDDO
+      ENDDO
       ENDDO
 
       END SUBROUTINE READ_EMEP_UPDATED
@@ -1282,6 +1282,7 @@
 !  28 Jan 2009 - A. v. Donkelaar, P. Le Sager - Initial version
 !  28 Jan 2009 - P. Le Sager - Now account for LEMEPSHIP
 !  29 Oct 2009 - Added multi-species seasonality (amv)
+!  01 Mar 2012 - R. Yantosca - Now use GET_AREA_CM2(I,J,L) from grid_mod.F90
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -1428,18 +1429,17 @@
       IF ( TRACER .eq. 26 ) B = 1.d3 / 64d0 * 6.0225d23
       IF ( TRACER .eq. 30 ) B = 1.d3 / 17d0 * 6.0225d23
 
-      ! Loop over latitudes
+      ! Loop over surface boxes
       DO J = 1, JJPAR
+      DO I = 1, IIPAR
 
          ! Surface area [cm2] * sec per year
-         A = GET_AREA_CM2( J ) * 365d0 * 86400d0
+         A = GET_AREA_CM2( I, J, 1 ) * 365d0 * 86400d0
 
-         ! Loop over longitudes
-         DO I = 1, IIPAR
+         ! Unit conversion
+         ARRAY(I,J) = ARRAY(I,J) / A * B
 
-            ARRAY(I,J) = ARRAY(I,J) / A * B
-
-         ENDDO
+      ENDDO
       ENDDO
 
       END SUBROUTINE READ_EMEP_UPDATED_05x0666

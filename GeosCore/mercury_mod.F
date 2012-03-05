@@ -160,6 +160,7 @@
 !  13 Aug 2010 - R. Yantosca - Add modifications for MERRA (treat like GEOS-5)
 !  01 Apr 2011 - H. Amos      - added LVEGEMIS, distinct from LGCAPEMIS
 !  08 Feb 2012 - R. Yantosca - Add modifications for GEOS-5.7.x met
+!  01 Mar 2012 - R. Yantosca - Now reference new grid_mod.F90
 !******************************************************************************
 !
       ! References to F90 modules
@@ -478,6 +479,7 @@
 !  14 Jan 2011 - R. Yantosca - Now get volume cloud fraction directly
 !                              from GEOS-5 and MERRA met fields
 !  08 Feb 2012 - R. Yantosca - Treat GEOS-5.7.x in the same way as MERRA
+!  01 Mar 2012 - R. Yantosca - Now use GET_AREA_CM2(I,J,L) from grid_mod.F90
 !******************************************************************************
 !
       ! References to F90 modules
@@ -499,7 +501,6 @@
       USE DEPO_MERCURY_MOD, ONLY : ADD_HG2_DD
       USE DAO_MOD,          ONLY : SNOW, SNOMAS
       USE PRESSURE_MOD,     ONLY : GET_PCENTER 
-      USE GRID_MOD,         ONLY : GET_YMID 
       USE DIAG_MOD,         ONLY : AD44
       USE DAO_MOD,          ONLY : AIRDEN, QL
       USE DAO_MOD,          ONLY : AD, CLDF
@@ -951,7 +952,7 @@
             IF ( ( ND44 > 0 .OR. LGTMM ) .AND. (.NOT. LNLPBL) ) THEN
 
                ! Grid box surface area [cm2]
-               AREA_CM2 = GET_AREA_CM2( J )
+               AREA_CM2 = GET_AREA_CM2( I, J, L )
 
                ! Amt of Hg(II) lost to drydep [molec/cm2/s]
                DEP_DRY_FLX  = DEP_HG2_DRY * XNUMOL(ID_Hg2(NN)) / 
@@ -1774,7 +1775,6 @@
 !
       ! Refernces to F90 modules
       USE DIAG03_MOD,   ONLY : ND03, LD03
-      USE GRID_MOD,     ONLY : GET_AREA_CM2
       USE LOGICAL_MOD,  ONLY : LSPLIT
       USE PBL_MIX_MOD,  ONLY : GET_FRAC_UNDER_PBLTOP, GET_PBL_MAX_L
       USE TIME_MOD,     ONLY : GET_TS_CHEM
@@ -1856,6 +1856,7 @@
 !         fluxes into T44 array. (bmy, 2/24/05)
 !  (2  ) Now references XNUMOL from "tracer_mod.f" (bmy, 10/25/05)
 !  (3  ) Now uses ID_HgP and ID_Hg_tot from "tracerid_mod.f" (cdh, bmy,4/6/06)
+!  01 Mar 2012 - R. Yantosca - Now use GET_AREA_CM2(I,J,L) from grid_mod.F90
 !******************************************************************************
 !
       ! References to F90 modules
@@ -1906,7 +1907,7 @@
       IF ( ND44 > 0 .AND. (.NOT. LNLPBL) ) THEN
          
          ! Grid box surface area [cm2]
-         AREA_CM2     = GET_AREA_CM2( J )
+         AREA_CM2     = GET_AREA_CM2( I, J, L )
 
          ! Amt of Hg(II) lost to drydep [molec/cm2/s]
          DRYDEP       = OLD_HgP - NEW_HgP  
@@ -1917,7 +1918,6 @@
 
       ENDIF
      
-
       ! Return to calling program
       END SUBROUTINE RXN_HgP_DRYD
 
@@ -1936,6 +1936,8 @@
 !  (2 ) Now no longer call COMPUTE_FEMIS, since we can get the same information
 !        from routine GET_FRAC_OF_PBL in "pbl_mix_mod.f" (bmy, 2/22/05)
 !  (3 ) Now modified for new ocean mercury module. (cdh, sas, bmy, 4/6/06)
+!  01 Mar 2012 - R. Yantosca - Now use GET_XMID(I,J,L) from grid_mod.F90
+!  01 Mar 2012 - R. Yantosca - Now use GET_YMID(I,J,L) from grid_mod.F90
 !******************************************************************************
 !
       ! References to F90 modules
@@ -2028,8 +2030,10 @@
          DO J = 1, JJPAR
          DO I = 1, IIPAR
 
-            IF ( GET_XMID(I) > -125 .AND. GET_XMID(I) < -65 .AND.
-     &           GET_YMID(J) >  25  .AND. GET_YMID(J) < 50 ) THEN
+            IF ( GET_XMID( I, J, 1 ) > -125 .AND. 
+     &           GET_XMID( I, J, 1 ) < -65  .AND.
+     &           GET_YMID( I, J, 1 ) >  25  .AND. 
+     &           GET_YMID( I, J, 1 ) < 50 ) THEN
                
                EHg0_An(I,J) = 0d0
                EHg2_An(I,J) = 0d0
@@ -2644,6 +2648,8 @@
 !        keep 2x25 and 4x5 files together in DATA_1x1_DIR.  Also now use new
 !        land re-emissions files from Noelle Selin. (eck, bmy, 4/6/06)
 !  (5 ) Bug fix: emissions are read on GENERIC grid (jaf, 2/8/12)
+!  01 Mar 2012 - R. Yantosca - Now use GET_XMID(I,J,L) from grid_mod.F90
+!  01 Mar 2012 - R. Yantosca - Now use GET_YMID(I,J,L) from grid_mod.F90
 !******************************************************************************
 !
       ! References to F90 modules
@@ -2830,30 +2836,28 @@
 
             ! Scale up the inventory, as explained in Selin et al., GBC 2008
             DO J = 1, JJPAR
+            DO I = 1, IIPAR
+
+               ! Grid box longitude [degrees]
+               X = GET_XMID( I, J, 1 )
 
                ! Grid-box latitude [degrees]
-               Y = GET_YMID( J )
-         
-               ! Loop over longitudes
-               DO I = 1, IIPAR
+               Y = GET_YMID( I, J, 1 )
 
-                  ! Grid box longitude [degrees]
-                  X = GET_XMID( I )
+               ! Asian Anthro Hg increase 50%
+               IF ( ( X >= 70.0 .and. X < 152.5 )  .and.
+     &              ( Y >=  8.0 .and. Y <  45.0 ) ) THEN
 
-                  ! Asian Anthro Hg increase 50%
-                  IF ( ( X >= 70.0 .and. X < 152.5 )  .and.
-     &                 ( Y >=  8.0 .and. Y <  45.0 ) ) THEN
+                  EHg0_an(I,J) = EHg0_an(I,J) * 1.5d0
 
-                     EHg0_an(I,J) = EHg0_an(I,J) * 1.5d0
+               ELSE
 
-                  ELSE
+                  ! otherwise, 30% increase
+                  EHg0_an(I,J) = EHg0_an(I,J) * 1.3d0
 
-                     ! otherwise, 30% increase
-                     EHg0_an(I,J) = EHg0_an(I,J) * 1.3d0
+               ENDIF 
 
-                  ENDIF 
-
-               ENDDO
+            ENDDO
             ENDDO 
 
          ENDIF
@@ -3523,6 +3527,7 @@
 !  (1-3) BrO (REAL*8)      : Concentration of BrO
 !
 !  NOTES:
+!  01 Mar 2012 - R. Yantosca - Now use GET_YMID(I,J,L) from grid_mod.F90
 !******************************************************************************
 !
       ! References to F90 modules
@@ -3638,9 +3643,9 @@
      &     (SUNCOS(JLOOP) > 0D0) .AND. (T(I,J,1) <= 268D0) .AND.
      &     ( LWI(I,J)==2 )  .AND. GET_OBK(I,J) > 0D0 ) THEN
 
-         IF ( ( (GET_YMID(J) > 60D0) .AND. 
+         IF ( ( (GET_YMID(I,J,L) > 60D0) .AND. 
      &          (GET_MONTH() >= 3) .AND. (GET_MONTH() <= 5)  ) .OR.
-     &        ( (GET_YMID(J) < -50D0) .AND. 
+     &        ( (GET_YMID(I,J,LJ) < -50D0) .AND. 
      &          (GET_MONTH() >= 9) .AND. (GET_MONTH() <= 11)  ) ) THEN
 
             ! Br concentration due to bromine explosion, pptv
@@ -3740,6 +3745,8 @@
 !  (3 ) Now store the peak SUNCOS value for each surface grid box (I,J) in 
 !        the COSZM array. (rjp, bmy, 3/30/04)
 !  (4 ) Also added parallel loop over grid boxes (eck, bmy, 12/8/04)
+!  01 Mar 2012 - R. Yantosca - Now use GET_XMID(I,J,L) from grid_mod.F90
+!  01 Mar 2012 - R. Yantosca - Now use GET_YMID_R(I,J,L) from grid_mod.F90
 !******************************************************************************
 !
       ! References to F90 modules
@@ -3802,15 +3809,15 @@
 !$OMP+DEFAULT( SHARED )
 !$OMP+PRIVATE( I, J, YMID_R, IJLOOP, TIMLOC, AHR )
             DO J = 1, JJPAR
+            DO I = 1, IIPAR
 
                ! Grid box latitude center [radians]
-               YMID_R = GET_YMID_R( J )
-
-            DO I = 1, IIPAR
+               YMID_R = GET_YMID_R( I, J, 1 )
 
                ! Increment IJLOOP
                IJLOOP = ( (J-1) * IIPAR ) + I
-               TIMLOC = real(LHR0) + real(NT)/3600.0 + GET_XMID(I)/15.0
+               TIMLOC = real(LHR0) + real(NT)/3600.0 
+     &                + GET_XMID(I,J,1)/15.0
          
                DO WHILE (TIMLOC .lt. 0)
                   TIMLOC = TIMLOC + 24.0
@@ -3880,6 +3887,8 @@
 !  NOTES:
 !  (1 ) Now only define AN_Hg0, AN_Hg2, AN_HgP.  Now use ID_Hg0, ID_Hg2, and
 !        ID_HgP index arrays from "tracerid_mod.f". (eck, cdh, bmy, 4/6/06)
+!  01 Mar 2012 - R. Yantosca - Now use GET_XMID(I,J,L) from grid_mod.F90
+!  01 Mar 2012 - R. Yantosca - Now use GET_YMID(I,J,L) from grid_mod.F90
 !******************************************************************************
 !
       ! References to F90 modules
@@ -3913,52 +3922,48 @@
 !$OMP+DEFAULT( SHARED ) 
 !$OMP+PRIVATE( I, J, X, Y )
       DO J = 1, JJPAR
+      DO I = 1, IIPAR
 
-         ! Grid-box latitude [degrees]
-         Y = GET_YMID( J )
+         ! Grid box longitude and latitude [degrees]
+         X = GET_XMID( I, J, 1 )
+         Y = GET_YMID( I, J, 1 )
          
-         ! Loop over longitudes
-         DO I = 1, IIPAR
+         ! North American Anthro Hg 
+         IF ( ( X >= -172.5 .and. X < -17.5 )   .and. 
+     &        ( Y >=   24.0 .and. Y <  88.0 ) ) THEN
+            AN_Hg0(I,J) = ID_Hg0(ID_Hg_na)
+            AN_Hg2(I,J) = ID_Hg2(ID_Hg_na)
+            AN_HgP(I,J) = ID_HgP(ID_Hg_na)
+         
+         ! European Anthro Hg (1st sub-box)
+         ELSE IF ( ( X >= -17.5 .and. X < 72.5 )  .and. 
+     &             ( Y >=  36.0 .and. Y < 45.0 ) ) THEN
+            AN_Hg0(I,J) = ID_Hg0(ID_Hg_eu)
+            AN_Hg2(I,J) = ID_Hg2(ID_Hg_eu)
+            AN_HgP(I,J) = ID_HgP(ID_Hg_eu)
 
-            ! Grid box longitude [degrees]
-            X = GET_XMID( I )
+         ! European Anthro Hg (2nd sub-box)
+         ELSE IF ( ( X >= -17.5 .and. X < 172.5 )  .and. 
+     &             ( Y >=  45.0 .and. Y <  88.0 ) ) THEN
+            AN_Hg0(I,J) = ID_Hg0(ID_Hg_eu)
+            AN_Hg2(I,J) = ID_Hg2(ID_Hg_eu)
+            AN_HgP(I,J) = ID_HgP(ID_Hg_eu)
 
-            ! North American Anthro Hg 
-            IF ( ( X >= -172.5 .and. X < -17.5 )   .and. 
-     &           ( Y >=   24.0 .and. Y <  88.0 ) ) THEN
-               AN_Hg0(I,J) = ID_Hg0(ID_Hg_na)
-               AN_Hg2(I,J) = ID_Hg2(ID_Hg_na)
-               AN_HgP(I,J) = ID_HgP(ID_Hg_na)
-            
-            ! European Anthro Hg (1st sub-box)
-            ELSE IF ( ( X >= -17.5 .and. X < 72.5 )  .and. 
-     &                ( Y >=  36.0 .and. Y < 45.0 ) ) THEN
-               AN_Hg0(I,J) = ID_Hg0(ID_Hg_eu)
-               AN_Hg2(I,J) = ID_Hg2(ID_Hg_eu)
-               AN_HgP(I,J) = ID_HgP(ID_Hg_eu)
+         ! Asian Anthro Hg 
+         ELSE IF ( ( X >= 70.0 .and. X < 152.5 )  .and.
+     &             ( Y >=  8.0 .and. Y <  45.0 ) ) THEN
+            AN_Hg0(I,J) = ID_Hg0(ID_Hg_as)
+            AN_Hg2(I,J) = ID_Hg2(ID_Hg_as)
+            AN_HgP(I,J) = ID_HgP(ID_Hg_as)
 
-            ! European Anthro Hg (2nd sub-box)
-            ELSE IF ( ( X >= -17.5 .and. X < 172.5 )  .and. 
-     &                ( Y >=  45.0 .and. Y <  88.0 ) ) THEN
-               AN_Hg0(I,J) = ID_Hg0(ID_Hg_eu)
-               AN_Hg2(I,J) = ID_Hg2(ID_Hg_eu)
-               AN_HgP(I,J) = ID_HgP(ID_Hg_eu)
+         ! Rest-of-world Anthro Hg 
+         ELSE
+            AN_Hg0(I,J) = ID_Hg0(ID_Hg_rw)
+            AN_Hg2(I,J) = ID_Hg2(ID_Hg_rw)
+            AN_HgP(I,J) = ID_HgP(ID_Hg_rw)
 
-            ! Asian Anthro Hg 
-            ELSE IF ( ( X >= 70.0 .and. X < 152.5 )  .and.
-     &                ( Y >=  8.0 .and. Y <  45.0 ) ) THEN
-               AN_Hg0(I,J) = ID_Hg0(ID_Hg_as)
-               AN_Hg2(I,J) = ID_Hg2(ID_Hg_as)
-               AN_HgP(I,J) = ID_HgP(ID_Hg_as)
-
-            ! Rest-of-world Anthro Hg 
-            ELSE
-               AN_Hg0(I,J) = ID_Hg0(ID_Hg_rw)
-               AN_Hg2(I,J) = ID_Hg2(ID_Hg_rw)
-               AN_HgP(I,J) = ID_HgP(ID_Hg_rw)
-
-            ENDIF
-         ENDDO
+         ENDIF
+      ENDDO
       ENDDO
 !$OMP END PARALLEL DO
 
@@ -4185,6 +4190,7 @@
 !  (1-3) I, J, L (INTEGER) : Grid box indices for lon, lat, vertical level
 !
 !  NOTES:
+!  01 Mar 2012 - R. Yantosca - Now use GET_YMID_R(I,J,L) from grid_mod.F90
 !******************************************************************************
 !
       ! References to F90 modules
@@ -4235,8 +4241,7 @@
      &            - A3*COS( 3d0*R ) + B3*SIN( 3d0*R )
 
          ! Latitude of grid box [radians]
-         YMID_R = GET_YMID_R( J )
-
+         YMID_R = GET_YMID_R( I, J, L )
 
          ! Cosine of solar zenith angle at local noon
          CSZANOON = SIN( YMID_R ) * SIN( DEC ) +

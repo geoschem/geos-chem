@@ -55,6 +55,7 @@
 !  (11) Now make sure all USE statements are USE, ONLY (bmy, 10/3/05)
 !  (12) BIOMASS(:,:,IDBCO) from "biomass_mod.f" is now in units of 
 !        [molec CO/cm2/s].  Adjust unit conversion accordingly. (bmy, 9/27/06)
+!  01 Mar 2012 - R. Yantosca - Now use GET_AREA_M2(I,J,L) from grid_mod.F90
 !******************************************************************************
 !
       IMPLICIT NONE
@@ -329,6 +330,7 @@
 !  (33) BIOMASS(:,:,IDBCO) from "biomass_mod.f" is now in units of 
 !        [molec CO/cm2/s].  Adjust unit conversion accordingly. (bmy, 9/27/06)
 !  (34) IDBCO is now defined in TRACERID_MOD. (fp, hotp 7/31/09)
+!  01 Mar 2012 - R. Yantosca - Now use GET_AREA_M2(I,J,L) from grid_mod.F90
 !******************************************************************************
 !
       ! Reference to F90 modules
@@ -588,11 +590,11 @@
       N = 1
       L = 1
       DO J = 1, JJPAR
+      DO I = 1, IIPAR
 
          ! Grid box surface area [m2]
-         AREA_M2 = GET_AREA_M2( J )
+         AREA_M2 = GET_AREA_M2( I, J, 1 )
 
-      DO I = 1, IIPAR
          IF ( TS(I,J) >= 271.15 .and. FRCLND(I,J) < 0.8 ) THEN
 
             ! surface air temp [K]
@@ -779,11 +781,10 @@
       N = 4
       L = 1
       DO J = 1, JJPAR
-
-         ! Grid box surface area [m2]
-         AREA_M2 = GET_AREA_M2( J )
-
          DO I = 1, IIPAR
+
+            ! Grid box surface area [m2]
+            AREA_M2 = GET_AREA_M2( I, J, 1 )
 
             ! First compute flux as kg/m2/time step
             FLUX = EFCH4R(I,J)
@@ -818,11 +819,10 @@
       N = 5
       L = 1
       DO J = 1, JJPAR
-
-         ! Grid box surface area [m2]
-         AREA_M2 = GET_AREA_M2( J )
-
          DO I = 1, IIPAR
+
+            ! Grid box surface area [m2]
+            AREA_M2 = GET_AREA_M2( I, J, 1 )
 
             ! First compute flux as kg/m2/time step
             FLUX = EFCH4W(I,J)

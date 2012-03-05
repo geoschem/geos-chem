@@ -62,6 +62,7 @@
 !                              DO_MERRA_CONVECTION routine
 !  16 Aug 2011 - J. Fisher   - Minor bug fixes in DO_MERRA_CONVECTION
 !  15 Feb 2011 - R. Yantosca - Add modifications for APM from G. Luo
+!  02 Mar 2012 - R. Yantosca - Now reference the new grid_mod.F90
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -141,6 +142,7 @@
 !  09 Feb 2012 - R. Yantosca - For GEOS-5.7, PFICU and PFLCU fields are
 !                              defined on level edges.  Pass the top edge
 !                              of each level to DO_MERRA_CONVECTION
+!  01 Mar 2012 - R. Yantosca - Now use GET_AREA_M2(I,J,L) from grid_mod.F90
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -283,11 +285,10 @@
 !$OMP+PRIVATE( N,       F,       DIAG14, DIAG38, RC, NN    ) 
 !$OMP+PRIVATE( T_PFICU, T_PFLCU                            )
       DO J = 1, JJPAR
+      DO I = 1, IIPAR
 
          ! Grid box surface area [m2]
-         AREA_M2           = GET_AREA_M2( J ) 
-
-      DO I = 1, IIPAR
+         AREA_M2           = GET_AREA_M2( I, J, 1 ) 
 
          ! Initialize the IDENT object for error I/O
          IDENT%STDOUT_FILE = ''                     ! Write to
@@ -1029,6 +1030,7 @@
 !  (18) Add a check to set negative values in Q to TINY (ccc, 4/15/09)
 !  (19) Updates for mercury simulation (ccc, 5/17/10)
 !  13 Aug 2010 - R. Yantosca - Added ProTeX headers
+!  01 Mar 2012 - R. Yantosca - Now use GET_AREA_M2(I,J,L) from grid_mod.F90
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -1158,12 +1160,12 @@
 !$OMP+PRIVATE( I, J, AREA_M2, K )
 !$OMP+SCHEDULE( DYNAMIC )
       DO K = 1, NLAY
-         DO J = 1, JJPAR
-            AREA_M2 = GET_AREA_M2( J )
-            DO I = 1, IMR
-               BMASS(I,J,K) = AD(I,J,K) / AREA_M2
-            ENDDO
-         ENDDO
+      DO J = 1, JJPAR
+      DO I = 1, IMR
+         AREA_M2      = GET_AREA_M2( I, J, K )
+         BMASS(I,J,K) = AD(I,J,K) / AREA_M2
+      ENDDO
+      ENDDO
       ENDDO
 !$OMP END PARALLEL DO
 
@@ -1322,13 +1324,12 @@
             ! is the level ABOVE level K.  This is the way that SJ Lin 
             ! indexes the sigma levels.
             !===========================================================
-            DO K = 3, KTOP
+            DO K = 3,  KTOP
             DO J = JS, JN
+            DO I = 1,  IMR
 
                ! Grid box surface area [m2]
-               AREA_M2 = GET_AREA_M2( J )
-
-               DO I = 1, IMR
+               AREA_M2 = GET_AREA_M2( I, J, K )
 
 !==============================================================================
 !  (5.1)  M a s s   B a l a n c e   i n   C l o u d  ===>  QC(I,J)

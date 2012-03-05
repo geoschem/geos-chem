@@ -39,6 +39,7 @@
 !  30 Aug 2010 - R. Yantosca - Added more ProTeX headers
 !  12 Apr 2011 - J. Fisher   - Add missing code from Holmes 2010
 !  08 Feb 2012 - R. Yantosca - Treat GEOS-5.7.x in the same way as MERRA
+!  01 Mar 2012 - R. Yantosca - Now reference new grid_mod.F90
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -245,6 +246,7 @@
 ! !REVISION HISTORY:
 !  30 Jul 2008 - N. E. Selin, C. Holmes, B. Corbitt - Initial version 
 !  12 Apr 2011 - J. Fisher   - Add missing code from Holmes 2010
+!  01 Mar 2012 - R. Yantosca - Now use GET_AREA_CM2(I,J,L) from grid_mod.F90
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -287,7 +289,7 @@
          DO I = 1, IIPAR
  
             ! Grid box surface area, cm2
-            AREA_CM2 = GET_AREA_CM2( J )
+            AREA_CM2 = GET_AREA_CM2( I, J, 1 )
 
             ! Convert molec CO /cm3 /s -> mol CO /gridbox /s 
             E_CO = ( BIOMASS(I,J,IDBCO) / 6.022D23 ) * AREA_CM2
@@ -380,6 +382,7 @@
 
 ! !REVISION HISTORY:
 !  30 Aug 2010 - N. Eckley, C. Holmes, B. Corbitt - Initial version
+!  01 Mar 2012 - R. Yantosca - Now use GET_AREA_M2(I,J,L) from grid_mod.F90
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -434,7 +437,7 @@
 
                ! convert from ng /m2 /s -> kg/gridbox/s
                ! Grid box surface area [m2]
-               AREA_M2      = GET_AREA_M2( J )
+               AREA_M2      = GET_AREA_M2( I, J, 1 )
                EHg0_vg(I,J) = VEG_EMIS * AREA_M2 * 1D-12
 
             ELSE
@@ -522,6 +525,7 @@
 !  08 Feb 2012 - R. Yantosca - Treat GEOS-5.7.x in the same way as MERRA
 !  10 Feb 2012 - R. Yantosca - Extend #if statement for SOIL_EMIS_FAC in order
 !                              to get the code to compile w/o error.
+!  01 Mar 2012 - R. Yantosca - Now use GET_AREA_CM2(I,J,L) from grid_mod.F90
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -615,7 +619,7 @@
      &           DRYSOIL_HG * SOIL_EMIS_FAC
      
             ! Grid box surface area [m2]
-            AREA_M2   = GET_AREA_M2( J )
+            AREA_M2   = GET_AREA_M2( I, J, 1 )
  
             ! convert soilnat from ng /m2 /h -> kg /gridbox /s
             EHg0_so(I,J) = SOIL_EMIS * AREA_M2 * 1D-12 / ( 60D0 * 60D0 )

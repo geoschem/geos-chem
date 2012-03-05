@@ -156,6 +156,7 @@
 !                              NUM_DAYS (instead of 15) days of sfc temp data
 !  22 Nov 2011 - R. Yantosca - Do not use erroneous AEF's for nested grids 
 !  06 Dec 2011 - E. Fischer  - Added Acetone emissions 
+!  01 Mar 2012 - R. Yantosca - Now reference new grid_mod.F90
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -1092,6 +1093,7 @@
 !  (2 ) Code was taken & adapted directly from the MEGAN v2.1 source code.
 !       (mpb,2009)
 !  17 Dec 2009 - R. Yantosca - Added ProTeX headers
+!  01 Mar 2012 - R. Yantosca - Now use GET_YMID(I,J,L) from grid_mod.F90
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -1126,7 +1128,7 @@
       ! Get day of year, local-time and latitude
       DOY   = GET_DAY_OF_YEAR()
       LUT   = GET_LOCALTIME( I )
-      LAT   = GET_YMID( J )
+      LAT   = GET_YMID( I, J, 1 )
 
       ! Get solar elevation angle
       SINbeta      =  SOLAR_ANGLE( DOY , LUT , LAT  )
@@ -1871,6 +1873,7 @@
 !  (5 ) Uses new v2.1 emission factors maps for isoprene, MBO and 7 monoterpene
 !        species, download in 2009. (mpb,2009)
 !  17 Dec 2009 - R. Yantosca - Added ProTeX headers
+!  01 Mar 2012 - R. Yantosca - Now use GET_AREA_M2(I,J,L) from grid_mod.F90
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -1945,23 +1948,20 @@
       ! Regrid from 1x1 to the current grid (also cast to REAL*8)
       CALL DO_REGRID_1x1( 'ug C/m2/hr', ARRAY, AEF_ISOP ) 
 
-      ! Loop over longitudes
+      ! Loop over surface boxes
       DO J = 1, JJPAR
-       
+      DO I = 1, IIPAR
+
          ! Grid box surface area [m2]
-         AREA_M2 = GET_AREA_M2( J )
+         AREA_M2       = GET_AREA_M2( I, J, 1 )
 
          ! Conversion factor from [ug C/m2/hr] to [kg C/box]
-         FACTOR = 1.d-9 / 3600.d0 * AREA_M2 * DTSRCE * 60.d0
-         
- 
-         ! Loop over latitudes
-         DO I = 1, IIPAR
+         FACTOR        = 1.d-9 / 3600.d0 * AREA_M2 * DTSRCE * 60.d0
+        
+         ! Convert AEF_ISOP To [kg C/box]
+         AEF_ISOP(I,J) = AEF_ISOP(I,J) * FACTOR * ISOP2CARBON
 
-            ! Convert AEF_ISOP To [kg C/box]
-            AEF_ISOP(I,J) = AEF_ISOP(I,J) * FACTOR * ISOP2CARBON
-
-         ENDDO
+      ENDDO
       ENDDO
 
       !---------------------------------------------
@@ -1983,22 +1983,20 @@
       ! Regrid from 1x1 to the current grid (also cast to REAL*8)
       CALL DO_REGRID_1x1( 'ug C/m2/hr', ARRAY, AEF_MONOT ) 
 
-      ! Loop over longitudes
+      ! Loop over surface boxes
       DO J = 1, JJPAR
+      DO I = 1, IIPAR
 
          ! Surface area 
-         AREA_M2 = GET_AREA_M2( J )
+         AREA_M2        = GET_AREA_M2( I, J, 1 )
 
          ! Conversion factor from [ug C/m2/hr] to [kg C/box]
-         FACTOR  = 1.d-9 / 3600.d0 * AREA_M2 * DTSRCE * 60.d0
+         FACTOR         = 1.d-9 / 3600.d0 * AREA_M2 * DTSRCE * 60.d0
 
-         ! Loop over latitudes
-         DO I = 1, IIPAR
+         ! Convert AEF_MONOT to [kg C/box]
+         AEF_MONOT(I,J) = AEF_MONOT(I,J) * FACTOR * MONO2CARBON
 
-            ! Convert AEF_MONOT to [kg C/box]
-            AEF_MONOT(I,J) = AEF_MONOT(I,J) * FACTOR * MONO2CARBON
-
-         ENDDO
+      ENDDO
       ENDDO
 
       !---------------------------------------------
@@ -2020,22 +2018,20 @@
       ! Regrid from 1x1 to the current grid (also cast to REAL*8)
       CALL DO_REGRID_1x1( 'ug C/m2/hr', ARRAY, AEF_MBO ) 
 
-      ! Loop over latitudes
+      ! Loop over surface boxes
       DO J = 1, JJPAR
+      DO I = 1, IIPAR
 
          ! Grid box surface area
-         AREA_M2 = GET_AREA_M2( J )
+         AREA_M2      = GET_AREA_M2( I, J, 1 )
 
          ! Conversion factor from [ug C/m2/hr] to [kg C/box]
-         FACTOR = 1.d-9 / 3600.d0 * AREA_M2 * DTSRCE * 60.d0
+         FACTOR       = 1.d-9 / 3600.d0 * AREA_M2 * DTSRCE * 60.d0
 
-         ! Loop over longitudes
-         DO I = 1, IIPAR
-
-            ! Convert AEF to [kg C/box/step]
-            AEF_MBO(I,J) = AEF_MBO(I,J) * FACTOR * MBO2CARBON
+         ! Convert AEF to [kg C/box/step]
+         AEF_MBO(I,J) = AEF_MBO(I,J) * FACTOR * MBO2CARBON
             
-         ENDDO
+      ENDDO
       ENDDO
 
       !---------------------------------------------
@@ -2060,25 +2056,21 @@
       ! Regrid from 1x1 to the current grid (also cast to REAL*8)
       CALL DO_REGRID_1x1( 'ug C/m2/hr', ARRAY, AEF_ACET ) 
 
-      ! Loop over latitudes
+      ! Loop over surface boxes
       DO J = 1, JJPAR
-
+      DO I = 1, IIPAR
+            
          ! Grid box surface area
-         AREA_M2 = GET_AREA_M2( J )
+         AREA_M2       = GET_AREA_M2( I, J, 1 )
 
          ! Conversion factor from [ug C/m2/hr] to [kg C/box]
-         FACTOR = 1.d-9 / 3600.d0 * AREA_M2 * DTSRCE * 60.d0
+         FACTOR        = 1.d-9 / 3600.d0 * AREA_M2 * DTSRCE * 60.d0
 
-         ! Loop over longitudes
-         DO I = 1, IIPAR
-
-            ! Convert AEF to [kg C/box/step]
-            AEF_ACET(I,J) = AEF_ACET(I,J) * FACTOR
+          ! Convert AEF to [kg C/box/step]
+         AEF_ACET(I,J) = AEF_ACET(I,J) * FACTOR
             
-         ENDDO
       ENDDO
-
- 
+      ENDDO
 
       !---------------------------------------------
       ! Read in other VOC Annual Emission Factors
@@ -2099,29 +2091,27 @@
       ! Regrid from 1x1 to the current grid (also cast to REAL*8)
       CALL DO_REGRID_1x1( 'ug C/m2/hr', ARRAY, AEF_OVOC ) 
 
-      ! Loop over latitudes
+      ! Loop over surface boxes
       DO J = 1, JJPAR
+      DO I = 1, IIPAR
 
          ! Grid box surface area
-         AREA_M2 = GET_AREA_M2( J )
+         AREA_M2       = GET_AREA_M2( I, J, 1 )
 
          ! Conversion factor from [ug C/m2/hr] to [kg C/box]
-         FACTOR = 1.d-9 / 3600.d0 * AREA_M2 * DTSRCE * 60.d0
+         FACTOR        = 1.d-9 / 3600.d0 * AREA_M2 * DTSRCE * 60.d0
 
-         ! Loop over longitudes
-         DO I = 1, IIPAR
-
-            ! Convert AEF to [kg C/box/step]
-            AEF_OVOC(I,J) = AEF_OVOC(I,J) * FACTOR
+         ! Convert AEF to [kg C/box/step]
+         AEF_OVOC(I,J) = AEF_OVOC(I,J) * FACTOR
             
-         ENDDO
+      ENDDO
       ENDDO
 
       !--------------------------------------------------
       ! Read in other Monoterpene Annual Emission Factors
       !-------------------------------------------------
 
-      ! 1) Alpha Pinene (APIN) 
+      !%%%%% 1) Alpha Pinene (APIN) %%%%%
 
       ! 1x1 file name
       FILENAME = TRIM( DATA_DIR_1x1 ) //
@@ -2138,25 +2128,23 @@
       ! Regrid from 1x1 to the current grid (also cast to REAL*8)
       CALL DO_REGRID_1x1( 'ug C/m2/hr', ARRAY, AEF_APINE ) 
 
-      ! Loop over latitudes
+      ! Loop over surface boxes
       DO J = 1, JJPAR
-
+      DO I = 1, IIPAR
+            
          ! Grid box surface area
-         AREA_M2 = GET_AREA_M2( J )
+         AREA_M2        = GET_AREA_M2( I, J, 1 )
 
          ! Conversion factor from [ug C/m2/hr] to [kg C/box]
-         FACTOR = 1.d-9 / 3600.d0 * AREA_M2 * DTSRCE * 60.d0
+         FACTOR         = 1.d-9 / 3600.d0 * AREA_M2 * DTSRCE * 60.d0
 
-         ! Loop over longitudes
-         DO I = 1, IIPAR
-
-            ! Convert AEF to [kg C/box/step]
-            AEF_APINE(I,J) = AEF_APINE(I,J) * FACTOR * MONO2CARBON
+         ! Convert AEF to [kg C/box/step]
+         AEF_APINE(I,J) = AEF_APINE(I,J) * FACTOR * MONO2CARBON
             
-         ENDDO
+      ENDDO
       ENDDO
 
-      ! 2) Beta Pinene (BPIN) 
+      !%%%%% 2) Beta Pinene (BPIN) %%%%%
 
       ! 1x1 file name
       FILENAME = TRIM( DATA_DIR_1x1 ) //
@@ -2173,25 +2161,23 @@
       ! Regrid from 1x1 to the current grid (also cast to REAL*8)
       CALL DO_REGRID_1x1( 'ug C/m2/hr', ARRAY, AEF_BPINE ) 
 
-      ! Loop over latitudes
+      ! Loop over surface boxes
       DO J = 1, JJPAR
+      DO I = 1, IIPAR
 
          ! Grid box surface area
-         AREA_M2 = GET_AREA_M2( J )
+         AREA_M2        = GET_AREA_M2( I, J, 1 )
 
          ! Conversion factor from [ug C/m2/hr] to [kg C/box]
-         FACTOR = 1.d-9 / 3600.d0 * AREA_M2 * DTSRCE * 60.d0
+         FACTOR         = 1.d-9 / 3600.d0 * AREA_M2 * DTSRCE * 60.d0
 
-         ! Loop over longitudes
-         DO I = 1, IIPAR
-
-            ! Convert AEF to [kg C/box/step]
-            AEF_BPINE(I,J) = AEF_BPINE(I,J) * FACTOR * MONO2CARBON
+         ! Convert AEF to [kg C/box/step]
+         AEF_BPINE(I,J) = AEF_BPINE(I,J) * FACTOR * MONO2CARBON
             
-         ENDDO
+      ENDDO
       ENDDO
 
-      ! 3) Limonene (LIMON) 
+      !%%%%% 3) Limonene (LIMON) %%%%%
 
       ! 1x1 file name
       FILENAME = TRIM( DATA_DIR_1x1 ) //
@@ -2208,25 +2194,23 @@
       ! Regrid from 1x1 to the current grid (also cast to REAL*8)
       CALL DO_REGRID_1x1( 'ug C/m2/hr', ARRAY, AEF_LIMON ) 
 
-      ! Loop over latitudes
+      ! Loop over surface boxes
       DO J = 1, JJPAR
+      DO I = 1, IIPAR
 
          ! Grid box surface area
-         AREA_M2 = GET_AREA_M2( J )
+         AREA_M2        = GET_AREA_M2( I, J, 1 )
 
          ! Conversion factor from [ug C/m2/hr] to [kg C/box]
-         FACTOR = 1.d-9 / 3600.d0 * AREA_M2 * DTSRCE * 60.d0
+         FACTOR         = 1.d-9 / 3600.d0 * AREA_M2 * DTSRCE * 60.d0
 
-         ! Loop over longitudes
-         DO I = 1, IIPAR
-
-            ! Convert AEF to [kg C/box/step]
-            AEF_LIMON(I,J) = AEF_LIMON(I,J) * FACTOR * MONO2CARBON
+         ! Convert AEF to [kg C/box/step]
+         AEF_LIMON(I,J) = AEF_LIMON(I,J) * FACTOR * MONO2CARBON
             
-         ENDDO
+      ENDDO
       ENDDO
 
-      ! 4) Sabinene (SABIN) 
+      !%%%%% 4) Sabinene (SABIN) %%%%%
 
       ! 1x1 file name
       FILENAME = TRIM( DATA_DIR_1x1 ) //
@@ -2243,25 +2227,23 @@
       ! Regrid from 1x1 to the current grid (also cast to REAL*8)
       CALL DO_REGRID_1x1( 'ug C/m2/hr', ARRAY, AEF_SABIN ) 
 
-      ! Loop over latitudes
+      ! Loop over surface boxes
       DO J = 1, JJPAR
+      DO I = 1, IIPAR
 
          ! Grid box surface area
-         AREA_M2 = GET_AREA_M2( J )
+         AREA_M2        = GET_AREA_M2( I, J, 1 )
 
          ! Conversion factor from [ug C/m2/hr] to [kg C/box]
-         FACTOR = 1.d-9 / 3600.d0 * AREA_M2 * DTSRCE * 60.d0
+         FACTOR         = 1.d-9 / 3600.d0 * AREA_M2 * DTSRCE * 60.d0
 
-         ! Loop over longitudes
-         DO I = 1, IIPAR
-
-            ! Convert AEF to [kg C/box/step]
-            AEF_SABIN(I,J) = AEF_SABIN(I,J) * FACTOR * MONO2CARBON
+         ! Convert AEF to [kg C/box/step]
+         AEF_SABIN(I,J) = AEF_SABIN(I,J) * FACTOR * MONO2CARBON
             
-         ENDDO
+      ENDDO
       ENDDO
 
-      ! 5) Myrcene (MYRCN) 
+      !%%%%% 5) Myrcene (MYRCN) %%%%%
 
       ! 1x1 file name
       FILENAME = TRIM( DATA_DIR_1x1 ) //
@@ -2278,25 +2260,23 @@
       ! Regrid from 1x1 to the current grid (also cast to REAL*8)
       CALL DO_REGRID_1x1( 'ug C/m2/hr', ARRAY, AEF_MYRCN ) 
 
-      ! Loop over latitudes
+      ! Loop over surface boxes
       DO J = 1, JJPAR
+      DO I = 1, IIPAR
 
          ! Grid box surface area
-         AREA_M2 = GET_AREA_M2( J )
+         AREA_M2        = GET_AREA_M2( I, J, 1 )
 
          ! Conversion factor from [ug C/m2/hr] to [kg C/box]
-         FACTOR = 1.d-9 / 3600.d0 * AREA_M2 * DTSRCE * 60.d0
+         FACTOR         = 1.d-9 / 3600.d0 * AREA_M2 * DTSRCE * 60.d0
 
-         ! Loop over longitudes
-         DO I = 1, IIPAR
-
-            ! Convert AEF to [kg C/box/step]
-            AEF_MYRCN(I,J) = AEF_MYRCN(I,J) * FACTOR * MONO2CARBON
+         ! Convert AEF to [kg C/box/step]
+         AEF_MYRCN(I,J) = AEF_MYRCN(I,J) * FACTOR * MONO2CARBON
             
-         ENDDO
+      ENDDO
       ENDDO
 
-      ! 6) 3-Carene (CAREN) 
+      !%%%%% 6) 3-Carene (CAREN) %%%%%
 
       ! 1x1 file name
       FILENAME = TRIM( DATA_DIR_1x1 ) //
@@ -2313,25 +2293,23 @@
       ! Regrid from 1x1 to the current grid (also cast to REAL*8)
       CALL DO_REGRID_1x1( 'ug C/m2/hr', ARRAY, AEF_CAREN ) 
 
-      ! Loop over latitudes
+      ! Loop over surface boxes
       DO J = 1, JJPAR
+      DO I = 1, IIPAR
 
          ! Grid box surface area
-         AREA_M2 = GET_AREA_M2( J )
+         AREA_M2        = GET_AREA_M2( I, J, 1 )
 
          ! Conversion factor from [ug C/m2/hr] to [kg C/box]
-         FACTOR = 1.d-9 / 3600.d0 * AREA_M2 * DTSRCE * 60.d0
+         FACTOR         = 1.d-9 / 3600.d0 * AREA_M2 * DTSRCE * 60.d0
 
-         ! Loop over longitudes
-         DO I = 1, IIPAR
-
-            ! Convert AEF to [kg C/box/step]
-            AEF_CAREN(I,J) = AEF_CAREN(I,J) * FACTOR * MONO2CARBON
+         ! Convert AEF to [kg C/box/step]
+         AEF_CAREN(I,J) = AEF_CAREN(I,J) * FACTOR * MONO2CARBON
             
-         ENDDO
+      ENDDO
       ENDDO
 
-      ! 7) Ocimene (OCIMN) 
+      !%%%%% 7) Ocimene (OCIMN) %%%%%
 
       ! 1x1 file name
       FILENAME = TRIM( DATA_DIR_1x1 ) //
@@ -2348,22 +2326,20 @@
       ! Regrid from 1x1 to the current grid (also cast to REAL*8)
       CALL DO_REGRID_1x1( 'ug C/m2/hr', ARRAY, AEF_OCIMN ) 
 
-      ! Loop over latitudes
+      ! Loop over surface boxes
       DO J = 1, JJPAR
+      DO I = 1, IIPAR
 
          ! Grid box surface area
-         AREA_M2 = GET_AREA_M2( J )
+         AREA_M2        = GET_AREA_M2( I, J, 1 )
 
          ! Conversion factor from [ug C/m2/hr] to [kg C/box]
-         FACTOR = 1.d-9 / 3600.d0 * AREA_M2 * DTSRCE * 60.d0
+         FACTOR         = 1.d-9 / 3600.d0 * AREA_M2 * DTSRCE * 60.d0
 
-         ! Loop over longitudes
-         DO I = 1, IIPAR
-
-            ! Convert AEF to [kg C/box/step]
-            AEF_OCIMN(I,J) = AEF_OCIMN(I,J) * FACTOR * MONO2CARBON
+         ! Convert AEF to [kg C/box/step]
+         AEF_OCIMN(I,J) = AEF_OCIMN(I,J) * FACTOR * MONO2CARBON
             
-         ENDDO
+      ENDDO
       ENDDO
 
       END SUBROUTINE GET_AEF
@@ -2402,6 +2378,7 @@
 !  (1) Specially constructed to read 0.5 x 0.666 nested grid data for the 
 !      GEOS-5 nested grid simulations. (yxw, dan, bmy, 11/6/08)
 !  17 Dec 2009 - R. Yantosca - Added ProTeX headers
+!  01 Mar 2012 - R. Yantosca - Now use GET_AREA_M2(I,J,L) from grid_mod.F90
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -2444,22 +2421,20 @@
       ! Regrid from 1x1 to the current grid (also cast to REAL*8)
       CALL DO_REGRID_05x0666( 1, 'ug C/m2/hr', GEOS_05x0666, AEF_ISOP )
 
-      ! Loop over longitudes
+      ! Loop over surface boxes
       DO J = 1, JJPAR
+      DO I = 1, IIPAR
 
          ! Grid box surface area [m2]
-         AREA_M2 = GET_AREA_M2( J )
+         AREA_M2 = GET_AREA_M2( I, J, 1 )
 
          ! Conversion factor from [ug C/m2/hr] to [kg C/box]
          FACTOR = 1.d-9 / 3600.d0 * AREA_M2 * DTSRCE * 60.d0
 
-         ! Loop over latitudes
-         DO I = 1, IIPAR
+         ! Convert AEF_ISOP To [kg C/box]
+         AEF_ISOP(I,J) = AEF_ISOP(I,J) * FACTOR
 
-            ! Convert AEF_ISOP To [kg C/box]
-            AEF_ISOP(I,J) = AEF_ISOP(I,J) * FACTOR
-
-         ENDDO
+      ENDDO
       ENDDO
 
       !---------------------------------------------
@@ -2484,22 +2459,20 @@
       ! Regrid from 1x1 to the current grid (also cast to REAL*8)
       CALL DO_REGRID_05x0666( 1,'ug C/m2/hr', GEOS_05x0666, AEF_MONOT )
 
-      ! Loop over longitudes
+      ! Loop over surface boxes
       DO J = 1, JJPAR
+      DO I = 1, IIPAR
 
          ! Surface area 
-         AREA_M2 = GET_AREA_M2( J )
+         AREA_M2 = GET_AREA_M2( I, J, 1 )
 
          ! Conversion factor from [ug C/m2/hr] to [kg C/box]
          FACTOR  = 1.d-9 / 3600.d0 * AREA_M2 * DTSRCE * 60.d0
 
-         ! Loop over latitudes
-         DO I = 1, IIPAR
+         ! Convert AEF_MONOT to [kg C/box]
+         AEF_MONOT(I,J) = AEF_MONOT(I,J) * FACTOR
 
-            ! Convert AEF_MONOT to [kg C/box]
-            AEF_MONOT(I,J) = AEF_MONOT(I,J) * FACTOR
-
-         ENDDO
+      ENDDO
       ENDDO
 
       !---------------------------------------------
@@ -2525,22 +2498,20 @@
       ! Regrid from 1x1 to the current grid (also cast to REAL*8)
       CALL DO_REGRID_05x0666( 1,'ug C/m2/hr',GEOS_05x0666, AEF_MBO )
 
-      ! Loop over latitudes
+      ! Loop over surface boxes
       DO J = 1, JJPAR
+      DO I = 1, IIPAR
 
          ! Grid box surface area
-         AREA_M2 = GET_AREA_M2( J )
+         AREA_M2 = GET_AREA_M2( I, J, 1 )
 
          ! Conversion factor from [ug C/m2/hr] to [kg C/box]
          FACTOR = 1.d-9 / 3600.d0 * AREA_M2 * DTSRCE * 60.d0
 
-         ! Loop over longitudes
-         DO I = 1, IIPAR
+         ! Convert AEF to [kg C/box/step]
+         AEF_MBO(I,J) = AEF_MBO(I,J) * FACTOR
 
-            ! Convert AEF to [kg C/box/step]
-            AEF_MBO(I,J) = AEF_MBO(I,J) * FACTOR
-
-         ENDDO
+      ENDDO
       ENDDO
 
       !---------------------------------------------
@@ -2565,22 +2536,20 @@
       ! Regrid from 1x1 to the current grid (also cast to REAL*8)
       CALL DO_REGRID_05x0666( 1,'ug C/m2/hr', GEOS_05x0666, AEF_OVOC )
 
-      ! Loop over latitudes
+      ! Loop over surface boxes
       DO J = 1, JJPAR
+      DO I = 1, IIPAR
 
          ! Grid box surface area
-         AREA_M2 = GET_AREA_M2( J )
+         AREA_M2 = GET_AREA_M2( I, J, 1 )
 
          ! Conversion factor from [ug C/m2/hr] to [kg C/box]
          FACTOR = 1.d-9 / 3600.d0 * AREA_M2 * DTSRCE * 60.d0
 
-         ! Loop over longitudes
-         DO I = 1, IIPAR
+         ! Convert AEF to [kg C/box/step]
+         AEF_OVOC(I,J) = AEF_OVOC(I,J) * FACTOR
 
-            ! Convert AEF to [kg C/box/step]
-            AEF_OVOC(I,J) = AEF_OVOC(I,J) * FACTOR
-
-         ENDDO
+      ENDDO
       ENDDO
 
       END SUBROUTINE GET_AEF_05x0666

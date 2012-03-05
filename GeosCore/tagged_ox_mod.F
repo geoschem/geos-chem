@@ -48,6 +48,7 @@
 !  (12) Now use LD65 instead of LLTROP everywhere (phs, 11/17/08)
 !  (13) Updates for LINOZ (dbj, jliu, bmy, 10/26/09)
 !  19 Nov 2010 - R. Yantosca - Added ProTeX headers
+!  01 Mar 2012 - R. Yantosca - Now reference new grid_mod.F90
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -338,6 +339,8 @@
 !  (7 ) Now use LLTROP instead of LLTROP_FIX (bmy, 12/4/07)
 !  (8 ) Now use LD65 instead of LLTROP (phs, 11/17/08)
 !  08 Dec 2009 - R. Yantosca - Added ProTeX headers
+!  01 Mar 2012 - R. Yantosca - Now use GET_XMID(I,J,L) from grid_mod.F90
+!  01 Mar 2012 - R. Yantosca - Now use GET_YMID(I,J,L) from grid_mod.F90
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -373,8 +376,8 @@
       !=================================================================      
 
       ! Longitude [degrees]
-      X          = GET_XMID( I )   
-      Y          = GET_YMID( J )
+      X          = GET_XMID( I, J, L )   
+      Y          = GET_YMID( I, J, L )
 
       ! PBLTOP is the model level at ~ 750 hPa
       ! MTTOP  is the model level at ~ 350 hPa
@@ -548,6 +551,7 @@
 !  (9 ) Now use LD65 instead of LLTROP (phs, 11/17/08)
 !  (10) Now only compute loss rate in troposphere (dbj, bmy, 10/26/09)
 !  08 Dec 2009 - R. Yantosca - Added ProTeX headers
+!  01 Mar 2012 - R. Yantosca - Now use GET_AREA_CM2(I,J,L) from grid_mod.F90
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -703,8 +707,8 @@
                      IF ( ND44 > 0 .and. Ox_LOST > 0d0 ) THEN
 
                         ! Convert from [kg] to [molec/cm2/s]
-                        FLUX = Ox_LOST         * XNUMOL(IDTOX) / 
-     &                         GET_AREA_CM2(J) / DTCHEM 
+                        FLUX = Ox_LOST             * XNUMOL(IDTOX) / 
+     &                         GET_AREA_CM2(I,J,L) / DTCHEM 
                      
                         ! Store dryd flx in ND44_TMP as a placeholder
                         ND44_TMP(I,J,L) = ND44_TMP(I,J,L) + FLUX

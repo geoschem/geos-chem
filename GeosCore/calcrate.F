@@ -63,6 +63,8 @@
 !       574nm, so we don't need to add the 1e-5 to the JHNO4 rate anymore.
 !       (jmao, bmy, 10/27/09)
 !  (18) Add change yield for HAC. Make CONSTC a parameter. (fp, 2/2/10)
+!  01 Mar 2012 - R. Yantosca - Now use new functions from grid_mod.F90:
+!                              GET_YMID(I,J,L) and GET_AREA_CM2(I,J,L)
 !******************************************************************************
 !
       ! References to F90 modules 
@@ -307,7 +309,9 @@
             JLOOP = KLOOP + JLOOPLO
 
             ! Grid-box latitude index
-            YLAT  = GET_YMID( IYSAVE(JLOOP) )
+            YLAT  = GET_YMID( IXSAVE(JLOOP), 
+     &                        IYSAVE(JLOOP), 
+     &                        IZSAVE(JLOOP)  )
             
             ! Pick the CH4 concentration [ppbv] for the proper lat bin
             ! CH4 values are read in "chemdr.f" (outside the parallel loop)
@@ -1158,7 +1162,7 @@ c new OH+CO rate from JPL2006.
                DTSRCE   = GET_TS_EMIS() * 60d0
 
                ! Surface area of grid box
-               AREA_CM2 = GET_AREA_CM2( IY )
+               AREA_CM2 = GET_AREA_CM2( IX, IY, IZ )
    
                NN = IDTNOX
 

@@ -1616,6 +1616,7 @@
 !  (5) Now replace FMOL with TRACER_MW_KG (bmy, 10/25/05) 
 
 !  07 Feb 2011 - R. Yantosca - Added ProTeX headers
+!  01 Mar 2012 - R. Yantosca - Now use GET_AREA_CM2(I,J,L) from grid_mod.F90
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -1702,45 +1703,44 @@
       ! Sum anthropogenic emissions
       !=================================================================
 
-      ! Loop over latitudes
+      ! Loop over surface boxes
       DO J = 1, JJPAR
-            
+      DO I = 1, IIPAR
+
          ! Surface area [cm2] * seconds in this month / AVOGADRO's number
          ! Also multiply by the factor 1d-9 to convert kg to Tg
-         A = GET_AREA_CM2( J ) * ( D(THISMONTH) * 86400d-9 ) / 6.0225d23
+         A       = GET_AREA_CM2( I, J, 1 ) 
+     &           * ( D(THISMONTH) * 86400d-9 ) / 6.0225d23
          
-         ! Loop over longitudes
-         DO I = 1, IIPAR
+         ! Weekday avg emissions
+         WD_NOX  = WD_NOX  + EPA_WD_AN_NOX (I,J) * A * F_NOX 
+         WD_CO   = WD_CO   + EPA_WD_AN_CO  (I,J) * A * F_CO  
+         WD_ALK4 = WD_ALK4 + EPA_WD_AN_ALK4(I,J) * A * F_ALK4
+         WD_ACET = WD_ACET + EPA_WD_AN_ACET(I,J) * A * F_ACET
+         WD_MEK  = WD_MEK  + EPA_WD_AN_MEK (I,J) * A * F_MEK 
+         WD_PRPE = WD_PRPE + EPA_WD_AN_PRPE(I,J) * A * F_PRPE
+         WD_C2H6 = WD_C2H6 + EPA_WD_AN_C2H6(I,J) * A * F_C2H6
+         WD_C3H8 = WD_C3H8 + EPA_WD_AN_C3H8(I,J) * A * F_C3H8
+         WD_CH2O = WD_CH2O + EPA_WD_AN_CH2O(I,J) * A * F_CH2O
+         WD_SO2  = WD_SO2  + EPA_WD_AN_SO2 (I,J) * A * F_SO2 
+         WD_SO4  = WD_SO4  + EPA_WD_AN_SO4 (I,J) * A * F_SO4 
+         WD_NH3  = WD_NH3  + EPA_WD_AN_NH3 (I,J) * A * F_NH3 
 
-            ! Weekday avg emissions
-            WD_NOX  = WD_NOX  + EPA_WD_AN_NOX (I,J) * A * F_NOX 
-            WD_CO   = WD_CO   + EPA_WD_AN_CO  (I,J) * A * F_CO  
-            WD_ALK4 = WD_ALK4 + EPA_WD_AN_ALK4(I,J) * A * F_ALK4
-            WD_ACET = WD_ACET + EPA_WD_AN_ACET(I,J) * A * F_ACET
-            WD_MEK  = WD_MEK  + EPA_WD_AN_MEK (I,J) * A * F_MEK 
-            WD_PRPE = WD_PRPE + EPA_WD_AN_PRPE(I,J) * A * F_PRPE
-            WD_C2H6 = WD_C2H6 + EPA_WD_AN_C2H6(I,J) * A * F_C2H6
-            WD_C3H8 = WD_C3H8 + EPA_WD_AN_C3H8(I,J) * A * F_C3H8
-            WD_CH2O = WD_CH2O + EPA_WD_AN_CH2O(I,J) * A * F_CH2O
-            WD_SO2  = WD_SO2  + EPA_WD_AN_SO2 (I,J) * A * F_SO2 
-            WD_SO4  = WD_SO4  + EPA_WD_AN_SO4 (I,J) * A * F_SO4 
-            WD_NH3  = WD_NH3  + EPA_WD_AN_NH3 (I,J) * A * F_NH3 
+         ! Weekend avg emissions
+         WE_NOX  = WE_NOX  + EPA_WE_AN_NOX (I,J) * A * F_NOX 
+         WE_CO   = WE_CO   + EPA_WE_AN_CO  (I,J) * A * F_CO  
+         WE_ALK4 = WE_ALK4 + EPA_WE_AN_ALK4(I,J) * A * F_ALK4
+         WE_ACET = WE_ACET + EPA_WE_AN_ACET(I,J) * A * F_ACET
+         WE_MEK  = WE_MEK  + EPA_WE_AN_MEK (I,J) * A * F_MEK 
+         WE_PRPE = WE_PRPE + EPA_WE_AN_PRPE(I,J) * A * F_PRPE
+         WE_C2H6 = WE_C2H6 + EPA_WE_AN_C2H6(I,J) * A * F_C2H6
+         WE_C3H8 = WE_C3H8 + EPA_WE_AN_C3H8(I,J) * A * F_C3H8
+         WE_CH2O = WE_CH2O + EPA_WE_AN_CH2O(I,J) * A * F_CH2O
+         WE_SO2  = WE_SO2  + EPA_WE_AN_SO2 (I,J) * A * F_SO2 
+         WE_SO4  = WE_SO4  + EPA_WE_AN_SO4 (I,J) * A * F_SO4 
+         WE_NH3  = WE_NH3  + EPA_WE_AN_NH3 (I,J) * A * F_NH3 
 
-            ! Weekend avg emissions
-            WE_NOX  = WE_NOX  + EPA_WE_AN_NOX (I,J) * A * F_NOX 
-            WE_CO   = WE_CO   + EPA_WE_AN_CO  (I,J) * A * F_CO  
-            WE_ALK4 = WE_ALK4 + EPA_WE_AN_ALK4(I,J) * A * F_ALK4
-            WE_ACET = WE_ACET + EPA_WE_AN_ACET(I,J) * A * F_ACET
-            WE_MEK  = WE_MEK  + EPA_WE_AN_MEK (I,J) * A * F_MEK 
-            WE_PRPE = WE_PRPE + EPA_WE_AN_PRPE(I,J) * A * F_PRPE
-            WE_C2H6 = WE_C2H6 + EPA_WE_AN_C2H6(I,J) * A * F_C2H6
-            WE_C3H8 = WE_C3H8 + EPA_WE_AN_C3H8(I,J) * A * F_C3H8
-            WE_CH2O = WE_CH2O + EPA_WE_AN_CH2O(I,J) * A * F_CH2O
-            WE_SO2  = WE_SO2  + EPA_WE_AN_SO2 (I,J) * A * F_SO2 
-            WE_SO4  = WE_SO4  + EPA_WE_AN_SO4 (I,J) * A * F_SO4 
-            WE_NH3  = WE_NH3  + EPA_WE_AN_NH3 (I,J) * A * F_NH3 
-
-         ENDDO
+      ENDDO
       ENDDO
  
       !=================================================================
@@ -1817,6 +1817,7 @@
 !  (1 ) Prevent out of bounds error when tracers are undefined (bmy, 1/25/05)
 !  (2 ) Now replace FMOL with TRACER_MW_KG
 !  07 Feb 2011 - R. Yantosca - Added ProTeX headers
+!  01 Mar 2012 - R. Yantosca - Now use GET_AREA_M2(I,J,L) from grid_mod.F90
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -1905,42 +1906,43 @@
 
       ! Loop over surface boxes
       DO J = 1, JJPAR
+      DO I = 1, IIPAR
 
          ! Surface area [cm2] * seconds in this month / AVOGADRO's number
          ! Also multiply by the factor 1d-9 to convert kg to Tg
-         A = GET_AREA_CM2( J ) * ( D(THISMONTH) * 86400d-9 ) / 6.0225d23
+         A       = GET_AREA_CM2( I, J, 1 ) 
+     &           * ( D(THISMONTH) * 86400d-9 ) / 6.0225d23
 
-         DO I = 1, IIPAR
 
-            ! Weekday avg emissions
-            WD_NOX  = WD_NOX  + EPA_WD_BF_NOX (I,J) * A * F_NOX
-            WD_CO   = WD_CO   + EPA_WD_BF_CO  (I,J) * A * F_CO  
-            WD_ALK4 = WD_ALK4 + EPA_WD_BF_ALK4(I,J) * A * F_ALK4
-            WD_ACET = WD_ACET + EPA_WD_BF_ACET(I,J) * A * F_ACET
-            WD_MEK  = WD_MEK  + EPA_WD_BF_MEK (I,J) * A * F_MEK 
-            WD_PRPE = WD_PRPE + EPA_WD_BF_PRPE(I,J) * A * F_PRPE
-            WD_C2H6 = WD_C2H6 + EPA_WD_BF_C2H6(I,J) * A * F_C2H6
-            WD_C3H8 = WD_C3H8 + EPA_WD_BF_C3H8(I,J) * A * F_C3H8
-            WD_CH2O = WD_CH2O + EPA_WD_BF_CH2O(I,J) * A * F_CH2O
-            WD_SO2  = WD_SO2  + EPA_WD_BF_SO2 (I,J) * A * F_SO2 
-            WD_SO4  = WD_SO4  + EPA_WD_BF_SO4 (I,J) * A * F_SO4 
-            WD_NH3  = WD_NH3  + EPA_WD_BF_NH3 (I,J) * A * F_NH3 
+         ! Weekday avg emissions
+         WD_NOX  = WD_NOX  + EPA_WD_BF_NOX (I,J) * A * F_NOX
+         WD_CO   = WD_CO   + EPA_WD_BF_CO  (I,J) * A * F_CO  
+         WD_ALK4 = WD_ALK4 + EPA_WD_BF_ALK4(I,J) * A * F_ALK4
+         WD_ACET = WD_ACET + EPA_WD_BF_ACET(I,J) * A * F_ACET
+         WD_MEK  = WD_MEK  + EPA_WD_BF_MEK (I,J) * A * F_MEK 
+         WD_PRPE = WD_PRPE + EPA_WD_BF_PRPE(I,J) * A * F_PRPE
+         WD_C2H6 = WD_C2H6 + EPA_WD_BF_C2H6(I,J) * A * F_C2H6
+         WD_C3H8 = WD_C3H8 + EPA_WD_BF_C3H8(I,J) * A * F_C3H8
+         WD_CH2O = WD_CH2O + EPA_WD_BF_CH2O(I,J) * A * F_CH2O
+         WD_SO2  = WD_SO2  + EPA_WD_BF_SO2 (I,J) * A * F_SO2 
+         WD_SO4  = WD_SO4  + EPA_WD_BF_SO4 (I,J) * A * F_SO4 
+         WD_NH3  = WD_NH3  + EPA_WD_BF_NH3 (I,J) * A * F_NH3 
+         
+         ! Weekend avg emissions
+         WE_NOX  = WE_NOX  + EPA_WE_BF_NOX (I,J) * A * F_NOX 
+         WE_CO   = WE_CO   + EPA_WE_BF_CO  (I,J) * A * F_CO  
+         WE_ALK4 = WE_ALK4 + EPA_WE_BF_ALK4(I,J) * A * F_ALK4
+         WE_ACET = WE_ACET + EPA_WE_BF_ACET(I,J) * A * F_ACET
+         WE_MEK  = WE_MEK  + EPA_WE_BF_MEK (I,J) * A * F_MEK 
+         WE_PRPE = WE_PRPE + EPA_WE_BF_PRPE(I,J) * A * F_PRPE
+         WE_C2H6 = WE_C2H6 + EPA_WE_BF_C2H6(I,J) * A * F_C2H6
+         WE_C3H8 = WE_C3H8 + EPA_WE_BF_C3H8(I,J) * A * F_C3H8
+         WE_CH2O = WE_CH2O + EPA_WE_BF_CH2O(I,J) * A * F_CH2O
+         WE_SO2  = WE_SO2  + EPA_WE_BF_SO2 (I,J) * A * F_SO2 
+         WE_SO4  = WE_SO4  + EPA_WE_BF_SO4 (I,J) * A * F_SO4 
+         WE_NH3  = WE_NH3  + EPA_WE_BF_NH3 (I,J) * A * F_NH3 
             
-            ! Weekend avg emissions
-            WE_NOX  = WE_NOX  + EPA_WE_BF_NOX (I,J) * A * F_NOX 
-            WE_CO   = WE_CO   + EPA_WE_BF_CO  (I,J) * A * F_CO  
-            WE_ALK4 = WE_ALK4 + EPA_WE_BF_ALK4(I,J) * A * F_ALK4
-            WE_ACET = WE_ACET + EPA_WE_BF_ACET(I,J) * A * F_ACET
-            WE_MEK  = WE_MEK  + EPA_WE_BF_MEK (I,J) * A * F_MEK 
-            WE_PRPE = WE_PRPE + EPA_WE_BF_PRPE(I,J) * A * F_PRPE
-            WE_C2H6 = WE_C2H6 + EPA_WE_BF_C2H6(I,J) * A * F_C2H6
-            WE_C3H8 = WE_C3H8 + EPA_WE_BF_C3H8(I,J) * A * F_C3H8
-            WE_CH2O = WE_CH2O + EPA_WE_BF_CH2O(I,J) * A * F_CH2O
-            WE_SO2  = WE_SO2  + EPA_WE_BF_SO2 (I,J) * A * F_SO2 
-            WE_SO4  = WE_SO4  + EPA_WE_BF_SO4 (I,J) * A * F_SO4 
-            WE_NH3  = WE_NH3  + EPA_WE_BF_NH3 (I,J) * A * F_NH3 
-            
-         ENDDO
+      ENDDO
       ENDDO
  
       !=================================================================

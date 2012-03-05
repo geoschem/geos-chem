@@ -121,6 +121,8 @@
 !                                   so that users w/o HDF5 library can still
 !                                   compile & run GEOS-Chem
 !  21 Dec 2009 - R. Yantosca      - Updated comments
+!  01 Mar 2012 - R. Yantosca      - Now use GET_XMID(I,J,L), GET_YMID(I,J,L)
+!                                   from the new grid_mod.F90
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -146,11 +148,11 @@
       ! Write LAT/LON to new file
       ! Does not wrap around date line
       DO I = 0, NI-1
-         LON(I+1) = GET_XMID(I+IMIN)
+         LON(I+1) = GET_XMID(I+IMIN,1,1)
       ENDDO
 
       DO J = 0, NJ-1
-         LAT(J+1) = GET_YMID(J+JMIN)
+         LAT(J+1) = GET_YMID(J+JMIN,1,1)
       ENDDO
 
       DO I = 1,2

@@ -80,6 +80,8 @@
 !        2006 emission output, but new irregularity likely now occurs at 2000 
 !        to 2001 (although this is likely less relevant to current studies).
 !        Initiated 1/2x2/3 annual scaling. (amv, bmy, 12/18/09)
+!  01 Mar 2012 - R. Yantosca - Now reference new grid_mod.F90
+!  01 Mar 2012 - R. Yantosca - Remove A_CM2 array, use GET_AREA_CM2 instead
 !******************************************************************************
 !
       IMPLICIT NONE
@@ -108,7 +110,6 @@
       ! Arrays
       INTEGER, ALLOCATABLE :: MASK_CHINA_1x1(:,:)
       INTEGER, ALLOCATABLE :: MASK_CHINA_05x0666(:,:)
-      REAL*8,  ALLOCATABLE :: A_CM2(:)
       REAL*8,  ALLOCATABLE :: MASK_CHINA(:,:)
       REAL*8,  ALLOCATABLE :: MASK_SE_ASIA(:,:)
       REAL*8,  ALLOCATABLE :: NOx(:,:)
@@ -230,9 +231,11 @@
 !  (5 ) KG_S        (LOGICAL) : OPTIONAL -- return emissions in [kg/s]
 !  
 !  NOTES:
+!  01 Mar 2012 - R. Yantosca - Now use GET_AREA_CM2(I,J,L) from grid_mod.F90
 !******************************************************************************
 !
       ! References to F90 modules
+      USE GRID_MOD,             ONLY : GET_AREA_CM2
       USE TRACER_MOD,           ONLY : ITS_A_CH4_SIM
       USE TRACER_MOD,           ONLY : ITS_A_CO2_SIM
       USE TRACER_MOD,           ONLY : XNUMOL
@@ -387,10 +390,12 @@
          IF ( IS_NMVOC ) THEN                                     
             ! Convert from [atom C/yr] to [atom C/cm2/s] or       
             ! from [molec/yr] to [molec/cm2/s]                    
-            VALUE = VALUE / ( A_CM2(J) * SEC_IN_YEAR )            
+            VALUE = VALUE 
+     &            / ( GET_AREA_CM2( I, J, 1 ) * SEC_IN_YEAR )            
          ELSE                                                     
             ! Convert from [kg/yr] to [molec/cm2/s]            
-            VALUE = VALUE * XNUMOL(N) / ( A_CM2(J) * SEC_IN_YEAR )
+            VALUE = VALUE * XNUMOL(N) 
+     &            / ( GET_AREA_CM2( I, J, 1 ) * SEC_IN_YEAR )
          ENDIF                                                    
 
       ENDIF
@@ -2233,6 +2238,7 @@
 !  (1 ) Now allocate MASK_CHINA_1x1 (bmy, 9/5/06)
 !  (2 ) Now calls READ_STREETS_MASKS_05x0666 for the GEOS-5 0.5 x 0.666 
 !        nested-grid simulations (yxw, dan, bmy, 11/6/08)
+!  01 Mar 2012 - R. Yantosca - Remove A_CM2 array
 !******************************************************************************
 !
       ! References to F90 modules
@@ -2322,19 +2328,6 @@
       ! -- end VOCs
 
       !---------------------------------------------------
-      ! Pre-store array for grid box surface area in cm2
-      !---------------------------------------------------
-
-      ! Allocate array
-      ALLOCATE( A_CM2( JJPAR ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'A_CM2' )
-
-      ! Fill array
-      DO J = 1, JJPAR
-         A_CM2(J) = GET_AREA_CM2( J )
-      ENDDO
-
-      !---------------------------------------------------
       ! Read & Regrid masks for Streets' emissions
       !---------------------------------------------------
 
@@ -2374,12 +2367,12 @@
 !
 !  NOTES:
 !  (1 ) Now deallocate MASK_CHINA_1x1 (bmy, 9/5/06)
+!  01 Mar 2012 - R. Yantosca - Remove A_CM2 array
 !******************************************************************************
 !
       !=================================================================
       ! CLEANUP_STREETS begins here!
       !=================================================================
-      IF ( ALLOCATED( A_CM2          ) ) DEALLOCATE( A_CM2          )
       IF ( ALLOCATED( MASK_CHINA_1x1 ) ) DEALLOCATE( MASK_CHINA_1x1 )
       IF ( ALLOCATED( MASK_CHINA_05x0666 ) ) 
      &  DEALLOCATE( MASK_CHINA_05x0666 )                   !(dan) 

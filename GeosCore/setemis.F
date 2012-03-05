@@ -136,6 +136,7 @@
 !  16 Dec 2010 - R. Yantosca - Removed obsolete, commented-out code
 !  16 Dec 2010 - R. Yantosca - Added ProTeX headers
 !  21 Dec 2010 - R. Yantosca - Now set REMIS=0d0.  Also updated comments.
+!  01 Mar 2012 - R. Yantosca - Now use GET_AREA_CM2(I,J,L) from grid_mod.F90
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -447,7 +448,9 @@
                      IF (LNLPBL) DELTPRES = TOTPRES
  
                      ! Grid box area [cm2]
-                     A_CM2    = GET_AREA_CM2( IYSAVE(JLOOP) )
+                     A_CM2    = GET_AREA_CM2( IXSAVE(JLOOP),
+     &                                        IYSAVE(JLOOP),
+     &                                        IZSAVE(JLOOP)  )
                
                      ! Biomass burning is in [molec/cm2/s], so we need to 
                      ! multiply by A_CM2 to convert it to [molec/box/s].

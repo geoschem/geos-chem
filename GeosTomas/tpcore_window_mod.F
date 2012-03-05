@@ -3431,6 +3431,7 @@ c        AL(i,k) = median(AL(i,k), qmin, qmax)
 !
 !  NOTES:
 !  (1 ) Differences from "tpcore_mod" denoted by !%%% (bmy, 3/10/03)
+!  01 Mar 2012 - R. Yantosca - Now use GET_AREA_M2(I,J,L) from grid_mod.F90
 !******************************************************************************
 !
       ! References to F90 modules
@@ -3508,7 +3509,7 @@ c        AL(i,k) = median(AL(i,k), qmin, qmax)
       ! Save grid box surface areas [m2] into the local DXYP array
       IF ( FIRST ) THEN
          DO J = 1, JJPAR
-            DXYP(J) = GET_AREA_M2( J )
+            DXYP(J) = GET_AREA_M2( 1, J, 1 )
          ENDDO
 
          ! Reset first-time flag
@@ -3716,6 +3717,7 @@ c        AL(i,k) = median(AL(i,k), qmin, qmax)
 !  NOTES:
 !  (1 ) Differences from "tpcore_mod.f" denoted by !%%% (bmy, 3/10/03)
 !  (2 ) Removed reference to CMN (bmy, 7/20/04)
+!  01 Mar 2012 - R. Yantosca - Now use GET_AREA_M2(I,J,L) from grid_mod.F90
 !******************************************************************************
 !
       ! References to F90 modules
@@ -3894,7 +3896,7 @@ c        AL(i,k) = median(AL(i,k), qmin, qmax)
          
          ! Surface area [m2]
          DO J = 1, JJPAR
-            DXYP(J) = GET_AREA_M2( J )
+            DXYP(J) = GET_AREA_M2( 1, J, 1 )
          ENDDO
 
          ! Sigma-level thickness [unitless]
@@ -4786,6 +4788,7 @@ c        AL(i,k) = median(AL(i,k), qmin, qmax)
 !  (1 ) Differences from "tpcore_mod.f" denoted by !%%% (bmy, 3/10/03)
 !  (2 ) Now references TCVV & ITS_A_CH4_SIM from "tracer_mod.f" (bmy, 7/20/04)
 !  (3 ) Remove code for the CO-OH simulation (bmy, 6/24/05)
+!  01 Mar 2012 - R. Yantosca - Now use GET_AREA_CM2(I,J,L) from grid_mod.F90
 !******************************************************************************
 !
       ! References to F90 modules
@@ -4852,7 +4855,7 @@ c        AL(i,k) = median(AL(i,k), qmin, qmax)
          
          ! Surface area [m2]
          DO J = 1, JJPAR
-            DXYP(J) = GET_AREA_M2( J )
+            DXYP(J) = GET_AREA_M2( 1, J, 1  )
          ENDDO
 
          ! Reset first-time flag

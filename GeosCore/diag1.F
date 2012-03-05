@@ -97,6 +97,7 @@
 !  (31) Add potential temperature diagnostic in ND57 (fp, 2/3/10)
 !  25 Aug 2010 - R. Yantosca - Added ProTeX headers
 !  15 Feb 2011 - R. Yantosca - Added modifications for APM from G. Luo
+!  01 Mar 2012 - R. Yantosca - Now use GET_AREA_M2(I,J,L) from grid_mod.F90
 !
 ! !REMARKS:
 !  For a complete list of GEOS-Chem diagnostics, please see this web page:
@@ -419,11 +420,9 @@
       !================================================================= 
       IF ( ND69 > 0 ) THEN
          DO J = 1, JJPAR
-            AREA_M2 = GET_AREA_M2( J )
-
-            DO I = 1, IIPAR
-               AD69(I,J,1) = AREA_M2
-            ENDDO
+         DO I = 1, IIPAR
+            AD69(I,J,1) = GET_AREA_M2( I, J, 1 )
+         ENDDO
          ENDDO
       ENDIF
       
