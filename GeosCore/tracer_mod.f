@@ -549,6 +549,94 @@
 
 !------------------------------------------------------------------------------
 
+      SUBROUTINE CHECK_STT_05x0666( LOCATION )
+!
+!******************************************************************************
+!  Subroutine CHECK_STT_05x0666 checks the STT tracer array for negative
+!  values, NaN values, or Infinity values.  If any of these are found, the STT
+!  array will be set to a specified value.
+!
+!  Arguments as Input:
+!  ============================================================================
+!  (1) LOCATION (CHARACTER) : String describing location of error in code
+!
+!  NOTES:
+!   5 Mar 2012 - M. Payer    - Initial version based on CHECK_STT and updates
+!                              for nested grid by Yuxuan Wang.
+!******************************************************************************
+!
+      ! References to F90 modules
+      USE ERROR_MOD, ONLY : IT_IS_NAN
+      USE ERROR_MOD, ONLY : IT_IS_FINITE
+
+#     include "CMN_SIZE"           ! Size parameters
+
+      ! Arguments
+      CHARACTER(LEN=*), INTENT(IN) :: LOCATION
+
+      ! Local variables
+      INTEGER                      :: I,    J,    L,   N
+      
+      !=================================================================
+      ! CHECK_STT_05x0666 begins here!
+      !=================================================================
+
+      ! Loop over grid boxes
+!$OMP PARALLEL DO 
+!$OMP+DEFAULT( SHARED )
+!$OMP+PRIVATE( I, J, L, N )
+      DO N = 1, N_TRACERS
+      DO L = 1, LLPAR
+      DO J = 1, JJPAR
+      DO I = 1, IIPAR
+
+         !---------------------------
+         ! Check for Negatives
+         !---------------------------
+         IF ( STT(I,J,L,N) < 0d0 ) THEN 
+!$OMP CRITICAL
+            WRITE( 6, 100 ) I, J, L, N, STT(I,J,L,N)
+            PRINT*, 'Neg STT ' // TRIM( LOCATION ) //
+     &              '. SET STT TO BE ZERO.'
+            STT(I,J,L,N) = 0d0
+!$OMP END CRITICAL
+
+         !---------------------------
+         ! Check for NaN's
+         !---------------------------
+         ELSE IF ( IT_IS_NAN( STT(I,J,L,N) ) ) THEN 
+!$OMP CRITICAL
+            WRITE( 6, 100 ) I, J, L, N, STT(I,J,L,N)
+            PRINT*, 'NaN STT ' // TRIM( LOCATION ) //
+     &              '. SET STT TO BE LOWER LEVEL.'
+            STT(I,J,L,N) = STT(I,J,L-1,N)
+!$OMP END CRITICAL
+
+         !----------------------------
+         ! Check STT's for Infinities
+         !----------------------------
+         ELSE IF ( .not. IT_IS_FINITE( STT(I,J,L,N) ) ) THEN
+!$OMP CRITICAL
+            WRITE( 6, 100 ) I, J, L, N, STT(I,J,L,N)
+            PRINT*, 'Inf STT ' // TRIM( LOCATION ) //
+     &              '. SET STT TO BE LOWER LEVEL.'
+            STT(I,J,L,N) =  STT(I,J,L-1,N)
+!$OMP END CRITICAL
+
+         ENDIF
+      ENDDO
+      ENDDO
+      ENDDO
+      ENDDO
+!$OMP END PARALLEL DO
+
+ 100  FORMAT( ' STT(',i3,',',i3,',',i3,',',i3,') = ', f13.6 )
+
+      ! Return to calling program
+      END SUBROUTINE CHECK_STT_05x0666
+
+!------------------------------------------------------------------------------
+
       SUBROUTINE INIT_TRACER
 !
 !******************************************************************************
