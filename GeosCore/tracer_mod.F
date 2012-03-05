@@ -1,57 +1,99 @@
-! $Id: tracer_mod.f,v 1.2 2010/03/15 19:33:20 ccarouge Exp $
+!------------------------------------------------------------------------------
+!          Harvard University Atmospheric Chemistry Modeling Group            !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !MODULE: tracer_mod
+!
+! !DESCRIPTION: Module TRACER\_MOD contains GEOS-CHEM tracer array STT plus
+!  various other related quantities.  TRACER\_MOD also contains inquiry
+!  functions that can be used to determine the type of GEOS-CHEM simulation.
+!\\
+!\\
+! !INTERFACE:
+!
       MODULE TRACER_MOD
 !
-!******************************************************************************
-!  Module TRACER_MOD contains the GEOS-CHEM tracer array STT plus various
-!  other related quantities.  TRACER_MOD also contains inquiry functions that
-!  can be used to determine the type of GEOS-CHEM simulation.
-!  (bmy, 7/20/04, 9/18/07)
+! !USES:
 !
-!  Module Variables:
-!  ============================================================================
-!  (1 ) SIM_TYPE               : Number denoting simulation type
-!  (2 ) N_TRACERS              : Number of GEOS-CHEM tracers
-!  (3 ) N_MEMBERS              : Max # of constituents a tracer can have
-!  (4 ) ID_TRACER              : Array of tracer numbers
-!  (5 ) ID_EMITTED             : Index of which constituent has the emissions
-!  (6 ) STT                    : GEOS-CHEM Tracer array [kg] 
-!  (7 ) TCVV                   : Molecular weight air / molecular weight tracer
-!  (8 ) TRACER_COEFF           : Coefficient of each tracer constituent
-!  (9 ) TRACER_MW_G            : Tracer molecular weight [g/mole]
-!  (10) TRACER_MW_KG           : Tracer molecular weight [kg/mole]
-!  (11) TRACER_N_CONST         : Array of number of constituents per tracer
-!  (12) TRACER_NAME            : Array of tracer names
-!  (13) TRACER_CONST           : Array of names for tracer constituents
-!  (14) SALA_REDGE_um          : Accum mode seasalt radii bin edges [um]
-!  (15) SALC_REDGE_um          : Coarse mode seasalt radii bin edges [um]
-!  (16) XNUMOL                 : Ratio of (molec/mole) / (kg/mole) = molec/kg
-!  (17) XNUMOLAIR              : XNUMOL ratio for air
+      IMPLICIT NONE
+      PRIVATE
 !
-!  Module Routines:
-!  ============================================================================
-!  (1 ) ITS_A_RnPbBe_SIM       : Returns TRUE if it's a  Rn-Pb-Be  simulation
-!  (2 ) ITS_A_CH3I_SIM         : Returns TRUE if it's a  CH3I      simulation
-!  (3 ) ITS_A_FULLCHEM_SIM     : Returns TRUE if it's a  fullchem  simulation
-!  (4 ) ITS_A_HCN_SIM          : Returns TRUE if it's a  HCN       simulation
-!  (5 ) ITS_A_TAGOX_SIM        : Returns TRUE if it's a  Tagged Ox simulation
-!  (6 ) ITS_A_TAGCO_SIM        : Returns TRUE if it's a  Tagged CO simulation
-!  (7 ) ITS_A_C2H6_SIM         : Returns TRUE if it's a  C2H6      simulation
-!  (8 ) ITS_A_CH4_SIM          : Returns TRUE if it's a  CH4       simulation
-!  (9 ) ITS_AN_AEROSOL_SIM     : Returns TRUE if it's an aerosol   simulation
-!  (10) ITS_A_MERCURY_SIM      : Returns TRUE if it's a  mercury   simulation
-!  (11) ITS_A_CO2_SIM          : Returns TRUE if it's a  CO2       simulation
-!  (12) ITS_A_H2HD_SIM         : Returns TRUE if it's a  CO2       simulation
-!  (13) ITS_NOT_COPARAM_OR_CH4 : Returns TRUE if it's not CO param or CH4 
-!  (14) GET_SIM_NAME           : Returns the name of the current simulation
-!  (15) CHECK_STT              : Checks STT array for NaN, Inf, or negatives
-!  (16) INIT_TRACER            : Allocates and zeroes all module arrays
-!  (17) CLEANUP_TRACER         : Deallocates all module arrays
+! !PUBLIC MEMBER FUNCTIONS: 
 !
-!  Module Routines:
-!  ============================================================================
-!  (1 ) error_mod.f : Module containing I/O error and NaN check routines 
+      PUBLIC :: ITS_A_RnPbBe_SIM
+      PUBLIC :: ITS_A_CH3I_SIM
+      PUBLIC :: ITS_A_FULLCHEM_SIM
+      PUBLIC :: ITS_A_HCN_SIM
+      PUBLIC :: ITS_A_TAGOX_SIM
+      PUBLIC :: ITS_A_TAGCO_SIM
+      PUBLIC :: ITS_A_C2H6_SIM
+      PUBLIC :: ITS_A_CH4_SIM
+      PUBLIC :: ITS_AN_AEROSOL_SIM
+      PUBLIC :: ITS_A_MERCURY_SIM
+      PUBLIC :: ITS_A_CO2_SIM
+      PUBLIC :: ITS_A_H2HD_SIM
+      PUBLIC :: ITS_NOT_COPARAM_OR_CH4
+      PUBLIC :: GET_SIM_NAME
+      PUBLIC :: CHECK_STT
+      PUBLIC :: CHECK_STT_05x0666
+      PUBLIC :: INIT_TRACER
+      PUBLIC :: CLEANUP_TRACER
 !
-!  NOTES:
+! !PUBLIC DATA MEMBERS:
+!
+      !========================================================================
+      ! Module Variables:
+      ! SIM_TYPE       : Number denoting simulation type
+      ! N_TRACERS      : Number of GEOS-CHEM tracers
+      ! N_MEMBERS      : Max # of constituents a tracer can have
+      ! ID_TRACER      : Array of tracer numbers
+      ! ID_EMITTED     : Index of which constituent has the emissions
+      ! STT            : GEOS-CHEM Tracer array [kg] 
+      ! TCVV           : Molecular weight air / molecular weight tracer
+      ! TRACER_COEFF   : Coefficient of each tracer constituent
+      ! TRACER_MW_G    : Tracer molecular weight [g/mole]
+      ! TRACER_MW_KG   : Tracer molecular weight [kg/mole]
+      ! TRACER_N_CONST : Array of number of constituents per tracer
+      ! TRACER_NAME    : Array of tracer names
+      ! TRACER_CONST   : Array of names for tracer constituents
+      ! SALA_REDGE_um  : Accum  mode seasalt radii bin edges [um]
+      ! SALC_REDGE_um  : Coarse mode seasalt radii bin edges [um]
+      ! XNUMOL         : Ratio of (molec/mole) / (kg/mole) = molec/kg
+      ! XNUMOLAIR      : XNUMOL ratio for air
+      !========================================================================
+
+      ! Scalars
+      INTEGER,           PUBLIC              :: SIM_TYPE
+      INTEGER,           PUBLIC              :: N_TRACERS
+#if   defined( APM )
+      INTEGER,           PUBLIC              :: N_APMTRA
+#endif
+      ! N_MEMBERS increased from 10 to 15 (FP 8/2009)
+      INTEGER,           PUBLIC, PARAMETER   :: N_MEMBERS = 15
+      REAL*8,            PUBLIC, PARAMETER   :: XNUMOLAIR = 6.022d+23 / 
+     &                                                      28.9644d-3
+
+      ! Arrays
+      INTEGER,           PUBLIC, ALLOCATABLE :: ID_TRACER(:)
+      INTEGER,           PUBLIC, ALLOCATABLE :: ID_EMITTED(:)
+      INTEGER,           PUBLIC, ALLOCATABLE :: TRACER_N_CONST(:)
+      REAL*8,            PUBLIC, ALLOCATABLE :: STT(:,:,:,:)
+      REAL*8,            PUBLIC, ALLOCATABLE :: TCVV(:)
+      REAL*8,            PUBLIC, ALLOCATABLE :: TRACER_COEFF(:,:)
+      REAL*8,            PUBLIC, ALLOCATABLE :: TRACER_MW_G(:)
+      REAL*8,            PUBLIC, ALLOCATABLE :: TRACER_MW_KG(:)
+      REAL*8,            PUBLIC, ALLOCATABLE :: XNUMOL(:)
+      CHARACTER(LEN=14), PUBLIC, ALLOCATABLE :: TRACER_NAME(:)
+      CHARACTER(LEN=14), PUBLIC, ALLOCATABLE :: TRACER_CONST(:,:)
+
+      ! Define seasalt radii bin edges [um] here since these
+      ! need to be used both in "seasalt_mod.f" and "drydep_mod.f"
+      REAL*8,            PUBLIC              :: SALA_REDGE_um(2)
+      REAL*8,            PUBLIC              :: SALC_REDGE_um(2)
+! 
+! !REVISION HISTORY: 
+!  20 Jul 2004 - R. Yantosca -  Initial version
 !  (1 ) Added function GET_SIM_NAME (bmy, 5/3/05)
 !  (2 ) Removed ITS_A_COPARAM_SIM; the CO-OH param is obsolete (bmy, 6/24/05)
 !  (3 ) Added ITS_A_CO2_SIM (pns, bmy, 7/25/05)
@@ -59,58 +101,37 @@
 !  (5 ) Now added XNUMOL, XNUMOLAIR as module variables (bmy, 10/25/05)
 !  (6 ) Added public routine ITS_A_H2HD_SIM (phs, 9/18/07)
 !  16 Feb 2011 - R. Yantosca - Add modifications for APM microphysics (G. Luo)
-!******************************************************************************
-!
-      !=================================================================
-      ! MODULE VARIABLES
-      !=================================================================
-
-      ! Scalars
-      INTEGER                        :: SIM_TYPE
-      INTEGER                        :: N_TRACERS
-#if   defined( APM )
-      INTEGER                        :: N_APMTRA
-#endif
-      ! N_MEMBERS increased from 10 to 15 (FP 8/2009)
-      INTEGER,           PARAMETER   :: N_MEMBERS = 15
-      REAL*8,            PARAMETER   :: XNUMOLAIR =  6.022d+23 / 
-     &                                               28.9644d-3
-
-      ! Arrays
-      INTEGER,           ALLOCATABLE :: ID_TRACER(:)
-      INTEGER,           ALLOCATABLE :: ID_EMITTED(:)
-      INTEGER,           ALLOCATABLE :: TRACER_N_CONST(:)
-      REAL*8,            ALLOCATABLE :: STT(:,:,:,:)
-      REAL*8,            ALLOCATABLE :: TCVV(:)
-      REAL*8,            ALLOCATABLE :: TRACER_COEFF(:,:)
-      REAL*8,            ALLOCATABLE :: TRACER_MW_G(:)
-      REAL*8,            ALLOCATABLE :: TRACER_MW_KG(:)
-      REAL*8,            ALLOCATABLE :: XNUMOL(:)
-      CHARACTER(LEN=14), ALLOCATABLE :: TRACER_NAME(:)
-      CHARACTER(LEN=14), ALLOCATABLE :: TRACER_CONST(:,:)
-
-      ! Define seasalt radii bin edges [um] here since these
-      ! need to be used both in "seasalt_mod.f" and "drydep_mod.f"
-      REAL*8                         :: SALA_REDGE_um(2)
-      REAL*8                         :: SALC_REDGE_um(2)
-
-      !=================================================================
-      ! MODULE ROUTINES -- follow below the "CONTAINS" statement
-      !=================================================================
-      CONTAINS
-
+!  05 Mar 2012 - M. Payer    - Added ProTeX headers
+!EOP
 !------------------------------------------------------------------------------
-
+!BOC
+!
+      CONTAINS
+!EOC
+!------------------------------------------------------------------------------
+!          Harvard University Atmospheric Chemistry Modeling Group            !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: its_a_rnpbbe_sim
+!
+! !DESCRIPTION: Function ITS\_A\_RnPbBe\_SIM returns TRUE if we are doing a 
+!  GEOS-CHEM Rn-Pb-Be simulation.
+!\\
+!\\
+! !INTERFACE:
+!
       FUNCTION ITS_A_RnPbBe_SIM() RESULT( VALUE )
+! 
+! !REVISION HISTORY:
+!  15 Jul 2004 - R. Yantosca - Initial version
+!  05 Mar 2012 - M. Payer    - Added ProTeX headers
+!EOP
+!------------------------------------------------------------------------------
+!BOC
 !
-!******************************************************************************
-!  Function ITS_A_RnPbBe_SIM returns TRUE if we are doing a GEOS-CHEM
-!  Rn-Pb-Be simulation. (bmy, 7/15/04)
+! !LOCAL VARIABLES:
 !
-!  NOTES:
-!******************************************************************************
-!
-      ! Local variables
       LOGICAL :: VALUE
       
       !=================================================================
@@ -118,21 +139,32 @@
       !=================================================================
       VALUE = ( SIM_TYPE == 1 )
 
-      ! Return to calling program
       END FUNCTION ITS_A_RnPbBe_SIM
-
+!EOC
 !------------------------------------------------------------------------------
-
+!          Harvard University Atmospheric Chemistry Modeling Group            !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: its_a_ch3i_sim
+!
+! !DESCRIPTION: Function ITS\_A\_CH3I\_SIM returns TRUE if we are doing a
+!  GEOS-CHEM CH3I (Methyl Iodide) simulation.
+!\\
+!\\
+! !INTERFACE:
+!
       FUNCTION ITS_A_CH3I_SIM() RESULT( VALUE )
+! 
+! !REVISION HISTORY: 
+!  15 Jul 2004 - R. Yantosca - Initial version
+!  05 Mar 2012 - M. Payer    - Added ProTeX headers
+!EOP
+!------------------------------------------------------------------------------
+!BOC
 !
-!******************************************************************************
-!  Function ITS_A_CH3I_SIM returns TRUE if we are doing a GEOS-CHEM
-!  CH3I (Methyl Iodide) simulation. (bmy, 7/15/04)
+! !LOCAL VARIABLES:
 !
-!  NOTES:
-!******************************************************************************
-!
-      ! Local variables
       LOGICAL :: VALUE
       
       !=================================================================
@@ -140,21 +172,32 @@
       !=================================================================
       VALUE = ( SIM_TYPE == 2 )
 
-      ! Return to calling program
       END FUNCTION ITS_A_CH3I_SIM
-
+!EOC
 !------------------------------------------------------------------------------
-
+!          Harvard University Atmospheric Chemistry Modeling Group            !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: its_a_fullchem_sim
+!
+! !DESCRIPTION: Function ITS\_A\_FULLCHEM\_SIM returns TRUE if we are doing a
+!  GEOS-CHEM full chemistry/aerosol simulation (i.e. via SMVGEAR).
+!\\
+!\\
+! !INTERFACE:
+!
       FUNCTION ITS_A_FULLCHEM_SIM() RESULT( VALUE )
+! 
+! !REVISION HISTORY: 
+!  15 Jul 2004 - R. Yantosca - Initial version
+!  05 Mar 2012 - M. Payer    - Added ProTeX headers
+!EOP
+!------------------------------------------------------------------------------
+!BOC
 !
-!******************************************************************************
-!  Function ITS_A_FULLCHEM_SIM returns TRUE if we are doing a GEOS-CHEM
-!  full chemistry/aerosol simulation (i.e. via SMVGEAR). (bmy, 7/15/04)
+! !LOCAL VARIABLES:
 !
-!  NOTES:
-!******************************************************************************
-!
-      ! Local variables
       LOGICAL :: VALUE
       
       !=================================================================
@@ -162,21 +205,32 @@
       !=================================================================
       VALUE = ( SIM_TYPE == 3 )
 
-      ! Return to calling program
       END FUNCTION ITS_A_FULLCHEM_SIM
-
+!EOC
 !------------------------------------------------------------------------------
-
+!          Harvard University Atmospheric Chemistry Modeling Group            !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: its_a_hcn_sim
+!
+! !DESCRIPTION: Function ITS\_A\_HCN\_SIM returns TRUE if we are doing a
+!  GEOS-CHEM HCN (Hydrogen Cyanide) simulation.
+!\\
+!\\
+! !INTERFACE:
+!
       FUNCTION ITS_A_HCN_SIM() RESULT( VALUE )
+! 
+! !REVISION HISTORY: 
+!  15 Jul 2004 - R. Yantosca - Initial version
+!  05 Mar 2012 - M. Payer    - Added ProTeX headers
+!EOP
+!------------------------------------------------------------------------------
+!BOC
 !
-!******************************************************************************
-!  Function ITS_A_HCN_SIM returns TRUE if we are doing a GEOS-CHEM
-!  HCN (Hydrogen Cyanide) simulation. (bmy, 7/15/04)
+! !LOCAL VARIABLES:
 !
-!  NOTES:
-!******************************************************************************
-!
-      ! Local variables
       LOGICAL :: VALUE
       
       !=================================================================
@@ -184,21 +238,32 @@
       !=================================================================
       VALUE = ( SIM_TYPE == 4 )
 
-      ! Return to calling program
       END FUNCTION ITS_A_HCN_SIM
-
+!EOC
 !------------------------------------------------------------------------------
-
+!          Harvard University Atmospheric Chemistry Modeling Group            !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: its_a_tagox_sim
+!
+! !DESCRIPTION: Function ITS\_A\_TAGOX\_SIM returns TRUE if we are doing a
+!  GEOS-CHEM tagged Ox simulation.
+!\\
+!\\
+! !INTERFACE:
+!
       FUNCTION ITS_A_TAGOX_SIM() RESULT( VALUE )
+! 
+! !REVISION HISTORY: 
+!  15 Jul 2004 - R. Yantosca - Initial version
+!  05 Mar 2012 - M. Payer    - Added ProTeX headers
+!EOP
+!------------------------------------------------------------------------------
+!BOC
 !
-!******************************************************************************
-!  Function ITS_A_TAGOX_SIM returns TRUE if we are doing a GEOS-CHEM
-!  Tagged Ox simulation. (bmy, 7/15/04)
+! !LOCAL VARIABLES:
 !
-!  NOTES:
-!******************************************************************************
-!
-      ! Local variables
       LOGICAL :: VALUE
       
       !=================================================================
@@ -206,21 +271,32 @@
       !=================================================================
       VALUE = ( SIM_TYPE == 6 )
 
-      ! Return to calling program
       END FUNCTION ITS_A_TAGOX_SIM
-
+!EOC
 !------------------------------------------------------------------------------
-
+!          Harvard University Atmospheric Chemistry Modeling Group            !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: its_a_tagco_sim
+!
+! !DESCRIPTION: Function ITS\_A\_TAGCO\_SIM returns TRUE if we are doing a
+!  GEOS-CHEM tagged CO simulation.
+!\\
+!\\
+! !INTERFACE:
+!
       FUNCTION ITS_A_TAGCO_SIM() RESULT( VALUE )
+! 
+! !REVISION HISTORY: 
+!  15 Jul 2004 - R. Yantosca - Initial version
+!  05 Mar 2012 - M. Payer    - Added ProTeX headers
+!EOP
+!------------------------------------------------------------------------------
+!BOC
 !
-!******************************************************************************
-!  Function ITS_A_TAGCO_SIM returns TRUE if we are doing a GEOS-CHEM
-!  CH3I (Methyl Iodide) simulation. (bmy, 7/15/04)
+! !LOCAL VARIABLES:
 !
-!  NOTES:
-!******************************************************************************
-!
-      ! Local variables
       LOGICAL :: VALUE
       
       !=================================================================
@@ -228,21 +304,32 @@
       !=================================================================
       VALUE = ( SIM_TYPE == 7 )
 
-      ! Return to calling program
       END FUNCTION ITS_A_TAGCO_SIM
-
+!EOC
 !------------------------------------------------------------------------------
-
+!          Harvard University Atmospheric Chemistry Modeling Group            !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: its_a_c2h6_sim
+!
+! !DESCRIPTION: Function ITS\_A\_C2H6\_SIM returns TRUE if we are doing a
+!  GEOS-CHEM C2H6 (Ethane) simulation.
+!\\
+!\\
+! !INTERFACE:
+!
       FUNCTION ITS_A_C2H6_SIM() RESULT( VALUE )
+! 
+! !REVISION HISTORY: 
+!  15 Jul 2004 - R. Yantosca - Initial version
+!  05 Mar 2012 - M. Payer    - Added ProTeX headers
+!EOP
+!------------------------------------------------------------------------------
+!BOC
 !
-!******************************************************************************
-!  Function ITS_A_C2H6_SIM returns TRUE if we are doing a GEOS-CHEM
-!  C2H6 (Ethane) simulation. (bmy, 7/15/04)
+! !LOCAL VARIABLES:
 !
-!  NOTES:
-!******************************************************************************
-!
-      ! Local variables
       LOGICAL :: VALUE
       
       !=================================================================
@@ -250,21 +337,32 @@
       !=================================================================
       VALUE = ( SIM_TYPE == 8 )
 
-      ! Return to calling program
       END FUNCTION ITS_A_C2H6_SIM
-
+!EOC
 !------------------------------------------------------------------------------
-
+!          Harvard University Atmospheric Chemistry Modeling Group            !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: its_a_ch4_sim
+!
+! !DESCRIPTION: Function ITS\_A\_CH4\_SIM returns TRUE if we are doing a
+!  GEOS-CHEM CH4 (Methane) simulation.
+!\\
+!\\
+! !INTERFACE:
+!
       FUNCTION ITS_A_CH4_SIM() RESULT( VALUE )
+! 
+! !REVISION HISTORY: 
+!  15 Jul 2004 - R. Yantosca - Initial version
+!  05 Mar 2012 - M. Payer    - Added ProTeX headers
+!EOP
+!------------------------------------------------------------------------------
+!BOC
 !
-!******************************************************************************
-!  Function ITS_A_CH4_SIM returns TRUE if we are doing a GEOS-CHEM
-!  CH4 (Methane) simulation. (bmy, 7/15/04)
+! !LOCAL VARIABLES:
 !
-!  NOTES:
-!******************************************************************************
-!
-      ! Local variables
       LOGICAL :: VALUE
       
       !=================================================================
@@ -272,21 +370,32 @@
       !=================================================================
       VALUE = ( SIM_TYPE == 9 )
 
-      ! Return to calling program
       END FUNCTION ITS_A_CH4_SIM
-
+!EOC
 !------------------------------------------------------------------------------
-
+!          Harvard University Atmospheric Chemistry Modeling Group            !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: its_an_aerosol_sim
+!
+! !DESCRIPTION: Function ITS\_AN\_AEROSOL\_SIM returns TRUE if we are doing a
+!  GEOS-CHEM offline Sulfate/Carbon/dust/seasalt aerosol simulation.
+!\\
+!\\
+! !INTERFACE:
+!
       FUNCTION ITS_AN_AEROSOL_SIM() RESULT( VALUE )
+! 
+! !REVISION HISTORY: 
+!  15 Jul 2004 - R. Yantosca - Initial version
+!  05 Mar 2012 - M. Payer    - Added ProTeX headers
+!EOP
+!------------------------------------------------------------------------------
+!BOC
 !
-!******************************************************************************
-!  Function ITS_A_SULFATE_SIM returns TRUE if we are doing a GEOS-CHEM
-!  offline Sulfate/Carbon/dust/seasalt aerosol simulation. (bmy, 7/15/04)
+! !LOCAL VARIABLES:
 !
-!  NOTES:
-!******************************************************************************
-!
-      ! Local variables
       LOGICAL :: VALUE
       
       !=================================================================
@@ -294,21 +403,32 @@
       !=================================================================
       VALUE = ( SIM_TYPE == 10 )
 
-      ! Return to calling program
       END FUNCTION ITS_AN_AEROSOL_SIM
-
+!EOC
 !------------------------------------------------------------------------------
-
+!          Harvard University Atmospheric Chemistry Modeling Group            !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: its_a_mercury_sim
+!
+! !DESCRIPTION: Function ITS\_A\_MERCURY\_SIM returns TRUE if we are doing a
+!  GEOS-CHEM Hg0/Hg2/HgP offline mercury simulation.
+!\\
+!\\
+! !INTERFACE:
+!
       FUNCTION ITS_A_MERCURY_SIM() RESULT( VALUE )
+! 
+! !REVISION HISTORY: 
+!  15 Jul 2004 - R. Yantosca - Initial version
+!  05 Mar 2012 - M. Payer    - Added ProTeX headers
+!EOP
+!------------------------------------------------------------------------------
+!BOC
 !
-!******************************************************************************
-!  Function ITS_A_MERCURY_SIM returns TRUE if we are doing a GEOS-CHEM
-!  Hg0/Hg2/HgP offline mercury simulation. (bmy, 7/15/04)
+! !LOCAL VARIABLES:
 !
-!  NOTES:
-!******************************************************************************
-!
-      ! Local variables
       LOGICAL :: VALUE
       
       !=================================================================
@@ -316,21 +436,32 @@
       !=================================================================
       VALUE = ( SIM_TYPE == 11 )
 
-      ! Return to calling program
       END FUNCTION ITS_A_MERCURY_SIM
-
+!EOC
 !------------------------------------------------------------------------------
-
+!          Harvard University Atmospheric Chemistry Modeling Group            !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: its_a_co2_sim
+!
+! !DESCRIPTION: Function ITS\_A\_CO2\_SIM returns TRUE if we are doing a
+!  GEOS-CHEM CO2 offline simulation.
+!\\
+!\\
+! !INTERFACE:
+!
       FUNCTION ITS_A_CO2_SIM() RESULT( VALUE )
+! 
+! !REVISION HISTORY: 
+!  25 Jul 2004 - R. Yantosca - Initial version
+!  05 Mar 2012 - M. Payer    - Added ProTeX headers
+!EOP
+!------------------------------------------------------------------------------
+!BOC
 !
-!******************************************************************************
-!  Function ITS_A_CO2_SIM returns TRUE if we are doing a GEOS-CHEM
-!  CO2 offline simulation. (pns, bmy, 7/25/04)
+! !LOCAL VARIABLES:
 !
-!  NOTES:
-!******************************************************************************
-!
-      ! Local variables
       LOGICAL :: VALUE
       
       !=================================================================
@@ -338,21 +469,32 @@
       !=================================================================
       VALUE = ( SIM_TYPE == 12 )
 
-      ! Return to calling program
       END FUNCTION ITS_A_CO2_SIM
-
+!EOC
 !------------------------------------------------------------------------------
-
+!          Harvard University Atmospheric Chemistry Modeling Group            !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: its_a_h2hd_sim
+!
+! !DESCRIPTION: Function ITS\_A\_H2HD\_SIM returns TRUE if we are doing a
+!  GEOS-CHEM H2-HD simulation.
+!\\
+!\\
+! !INTERFACE:
+!
       FUNCTION ITS_A_H2HD_SIM() RESULT( VALUE )
+! 
+! !REVISION HISTORY: 
+!  18 Sep 2007 - P. Le Sager - Initial version
+!  05 Mar 2012 - M. Payer    - Added ProTeX headers
+!EOP
+!------------------------------------------------------------------------------
+!BOC
 !
-!******************************************************************************
-!  Function ITS_A_H2HD_SIM returns TRUE if we are doing a GEOS-CHEM
-!  CO2 offline simulation. (phs, 9/18/07)
+! !LOCAL VARIABLES:
 !
-!  NOTES:
-!******************************************************************************
-!
-      ! Local variables
       LOGICAL :: VALUE
       
       !=================================================================
@@ -360,23 +502,35 @@
       !=================================================================
       VALUE = ( SIM_TYPE == 13 )
 
-      ! Return to calling program
       END FUNCTION ITS_A_H2HD_SIM
-
+!EOC
 !------------------------------------------------------------------------------
-
+!          Harvard University Atmospheric Chemistry Modeling Group            !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: its_not_coparam_or_ch4
+!
+! !DESCRIPTION: Function ITS\_NOT\_COPARAM\_OR\_CH4 returns TRUE if we are
+!  doing a GEOS-CHEM simulation other than CO with parameterized OH or CH4. 
+!\\
+!\\
+! !INTERFACE:
+!
       FUNCTION ITS_NOT_COPARAM_OR_CH4() RESULT( VALUE )
 !
-!******************************************************************************
-!  Function ITS_NOT_COPARAM_OR_CH4 returns TRUE if we are doing a 
-!  GEOS-CHEM simulation other than CO w/ Parameterized OH or CH4. 
-!  (bmy, 7/15/04, 6/24/05)
+! !REMARKS:
+!  The CO-OH param (SIM_TYPE=5) is now obsolete (bmy, 6/24/05)
 !
-!  NOTES:
-!  (1 ) The CO-OH param (SIM_TYPE=5) is now obsolete (bmy, 6/24/05)
-!******************************************************************************
+! !REVISION HISTORY: 
+!  15 Jul 2004 - R. Yantosca - Initial version
+!  05 Mar 2012 - M. Payer    - Added ProTeX headers
+!EOP
+!------------------------------------------------------------------------------
+!BOC
 !
-      ! Local variables
+! !LOCAL VARIABLES:
+!
       LOGICAL :: VALUE
       
       !=================================================================
@@ -384,25 +538,37 @@
       !=================================================================
       VALUE = ( SIM_TYPE /= 9 )
 
-      ! Return to calling program
       END FUNCTION ITS_NOT_COPARAM_OR_CH4
-
+!EOC
 !------------------------------------------------------------------------------
-
+!          Harvard University Atmospheric Chemistry Modeling Group            !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: get_sim_name
+!
+! !DESCRIPTION: Function GET\_SIM\_NAME returns the name (e.g. 
+!  "NOx-Ox-Hydrocarbon-Aerosol", "Tagged CO", etc.) of the GEOS-CHEM
+!  simulation.
+!\\
+!\\
+! !INTERFACE:
+!
       FUNCTION GET_SIM_NAME() RESULT( NAME )
 !
-!******************************************************************************
-!  Function GET_SIM_NAME returns the name (e.g. "NOx-Ox-Hydrocarbon-Aerosol", 
-!  "Tagged CO", etc.) of the GEOS-CHEM simulation. (bmy, 5/3/05, 9/18/07)
+! !RETURN VALUE:
 !
-!  NOTES:
+      CHARACTER(LEN=40) :: NAME
+!
+! !REVISION HISTORY:
+!  03 May 2005 - R. Yantosca - Initial version
 !  (1 ) The CO-OH simulation has been removed (bmy, 6/24/05)
 !  (2 ) Added CASE blocks for CO2 and H2/HD simulations (bmy, 9/18/07)
-!******************************************************************************
+!  05 Mar 2012 - M. Payer    - Added ProTeX headers
+!EOP
+!------------------------------------------------------------------------------
+!BOC
 !
-      ! Function value
-      CHARACTER(LEN=40) :: NAME
-      
       !=================================================================
       ! GET_SIM_NAME begins here!
       !=================================================================
@@ -439,23 +605,37 @@
             NAME = 'UNKNOWN'
        END SELECT
 
-      ! Return to calling program
       END FUNCTION GET_SIM_NAME
-
+!EOC
 !------------------------------------------------------------------------------
-
+!          Harvard University Atmospheric Chemistry Modeling Group            !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: check_stt
+!
+! !DESCRIPTION: Subroutine CHECK\_STT checks the STT tracer array for negative
+!  values, NaN values, or Infinity values.  If any of these are found, the code
+!  will stop with an error message.
+!\\
+!\\
+! !INTERFACE:
+!
       SUBROUTINE CHECK_STT( LOCATION )
 !
-!******************************************************************************
-!  Subroutine CHECK_STT checks the STT tracer array for negative values,
-!  NaN values, or Infinity values.  If any of these are found, the code
-!  will stop with an error message. (bmy, 3/8/01, 10/3/05)
+! !USES:
 !
-!  Arguments as Input:
-!  ============================================================================
-!  (1) LOCATION (CHARACTER) : String describing location of error in code
+      USE ERROR_MOD, ONLY : GEOS_CHEM_STOP
+      USE ERROR_MOD, ONLY : IT_IS_NAN
+      USE ERROR_MOD, ONLY : IT_IS_FINITE
+
+      USE CMN_SIZE_MOD    ! Size parameters
 !
-!  NOTES:
+! !INPUT PARAMETERS: 
+!
+      CHARACTER(LEN=*), INTENT(IN) :: LOCATION
+! 
+! !REVISION HISTORY:
 !  (1 ) CHECK_STT uses the interfaces defined above -- these will do the
 !        proper error checking for either SGI or DEC/Compaq platforms.
 !        (bmy, 3/8/01)
@@ -465,19 +645,13 @@
 !  (3 ) Bug fix in FORMAT statement: replace missing commas (bmy, 3/23/03)
 !  (4 ) Moved from "error_mod.f" to "tracer_mod.f" (bmy, 7/15/04)
 !  (5 ) Now make sure all USE statements are USE, ONLY (bmy, 10/3/05)
-!******************************************************************************
+!  05 Mar 2012 - M. Payer    - Added ProTeX headers
+!EOP
+!------------------------------------------------------------------------------
+!BOC
 !
-      ! References to F90 modules
-      USE ERROR_MOD, ONLY : GEOS_CHEM_STOP
-      USE ERROR_MOD, ONLY : IT_IS_NAN
-      USE ERROR_MOD, ONLY : IT_IS_FINITE
-
-      USE CMN_SIZE_MOD           ! Size parameters
-
-      ! Arguments
-      CHARACTER(LEN=*), INTENT(IN) :: LOCATION
-
-      ! Local variables
+! !LOCAL VARIABLES:
+!
       LOGICAL                      :: LNEG, LNAN, LINF
       INTEGER                      :: I,    J,    L,   N, N_TOT_TRC
       
@@ -555,37 +729,45 @@
  100  FORMAT( 'CHECK_STT: STT(',i3,',',i3,',',i3,',',i3,') = ', f13.6 )
  120  FORMAT( 'CHECK_STT: STOP at ', a , 3L2 )
 
-      ! Return to calling program
       END SUBROUTINE CHECK_STT
-
+!EOC
 !------------------------------------------------------------------------------
-
+!          Harvard University Atmospheric Chemistry Modeling Group            !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: check_stt_05x0666
+!
+! !DESCRIPTION: Subroutine CHECK\_STT\_05x0666 checks the STT tracer array for
+!  negative values, NaN values, or Infinity values.  If any of these are found,
+!  the STT array will be set to a specified value.
+!\\
+!\\
+! !INTERFACE:
+!
       SUBROUTINE CHECK_STT_05x0666( LOCATION )
 !
-!******************************************************************************
-!  Subroutine CHECK_STT_05x0666 checks the STT tracer array for negative
-!  values, NaN values, or Infinity values.  If any of these are found, the STT
-!  array will be set to a specified value.
+! !USES:
 !
-!  Arguments as Input:
-!  ============================================================================
-!  (1) LOCATION (CHARACTER) : String describing location of error in code
-!
-!  NOTES:
-!   5 Mar 2012 - M. Payer    - Initial version based on CHECK_STT and updates
-!                              for nested grid by Yuxuan Wang.
-!******************************************************************************
-!
-      ! References to F90 modules
       USE ERROR_MOD, ONLY : IT_IS_NAN
       USE ERROR_MOD, ONLY : IT_IS_FINITE
 
       USE CMN_SIZE_MOD    ! Size parameters
-
-      ! Arguments
+!
+! !INPUT PARAMETERS: 
+!
       CHARACTER(LEN=*), INTENT(IN) :: LOCATION
-
-      ! Local variables
+! 
+! !REVISION HISTORY:
+!  05 Mar 2012 - M. Payer    - Initial version based on CHECK_STT and updates
+!                              for nested grid by Yuxuan Wang.
+!  05 Mar 2012 - M. Payer    - Added ProTeX headers
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+!
+! !LOCAL VARIABLES:
+!
       INTEGER                      :: I,    J,    L,   N
       
       !=================================================================
@@ -643,31 +825,43 @@
 
  100  FORMAT( ' STT(',i3,',',i3,',',i3,',',i3,') = ', f13.6 )
 
-      ! Return to calling program
       END SUBROUTINE CHECK_STT_05x0666
-
+!EOC
 !------------------------------------------------------------------------------
-
+!          Harvard University Atmospheric Chemistry Modeling Group            !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: init_tracer
+!
+! !DESCRIPTION: Subroutine INIT\_TRACER initializes all module arrays.
+!\\
+!\\
+! !INTERFACE:
+!
       SUBROUTINE INIT_TRACER
 !
-!******************************************************************************
-!  Subroutine INIT_TRACER initializes all module arrays 
-!  (bmy, 7/15/04, 10/25/05)
+! !USES:
 !
-!  NOTES:
-!  (1 ) Now allocate XNUMOL (bmy, 10/25/05)
-!  16 Feb 2011 - R. Yantosca - Add modifications for APM from G. Luo
-!******************************************************************************
-!
-      ! References to F90 modules
-      USE ERROR_MOD, ONLY : ALLOC_ERR
+      USE ERROR_MOD,     ONLY : ALLOC_ERR
 #if   defined( APM ) 
       USE APM_INIT_MOD,  ONLY : APM_NTRACERS
+      USE APM_INIT_MOD,  ONLY : LAPM
 #endif
 
       USE CMN_SIZE_MOD
-
-      ! Local variables
+! 
+! !REVISION HISTORY:
+!  15 Jul 2004 - R. Yantosca - Initial version
+!  25 Oct 2005 - R. Yantosca - Now allocate XNUMOL
+!  16 Feb 2011 - R. Yantosca - Add modifications for APM from G. Luo
+!  05 Mar 2012 - M. Payer    - Added ProTeX headers
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+!
+! !LOCAL VARIABLES:
+!
       INTEGER :: AS, N_TOT_TRC
 
 #if   defined( APM ) 
@@ -695,12 +889,6 @@
       !=================================================================
       ! We are not using APM microphysics
       !=================================================================
-
-      ! Force LAPM=F
-      LAPM      = .FALSE.
-
-      ! No additional tracers for APM
-      N_APMTRA  = 0           
 
       ! N_TOT_TRC is the total # of G-C advected tracers only
       N_TOT_TRC = N_TRACERS
@@ -754,20 +942,29 @@
       IF ( AS /= 0 ) CALL ALLOC_ERR( 'XNUMOL' )
       XNUMOL = 0
 
-      ! Return to calling program
       END SUBROUTINE INIT_TRACER
-
-!-----------------------------------------------------------------------------
-      
+!EOC
+!------------------------------------------------------------------------------
+!          Harvard University Atmospheric Chemistry Modeling Group            !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: cleanup_tracer
+!
+! !DESCRIPTION: Subroutine CLEANUP\_TRACER deallocates all module arrays.
+!\\
+!\\
+! !INTERFACE:
+!
       SUBROUTINE CLEANUP_TRACER
-!
-!******************************************************************************
-!  Subroutine CLEANUP_TRACER deallocates all module arrays 
-!  (bmy, 7/15/04, 10/25/05)
-!
-!  NOTES:
-!  (1 ) Now deallocates XNUMOL (bmy, 10/25/05)
-!******************************************************************************
+! 
+! !REVISION HISTORY:
+!  15 Jul 2004 - R. Yantosca - Initial version
+!  25 Oct 2005 - R. Yantosca - Now deallocates XNUMOL
+!  05 Mar 2012 - M. Payer    - Added ProTeX headers
+!EOP
+!------------------------------------------------------------------------------
+!BOC
 !
       !=================================================================
       ! CLEANUP_TRACER begins here!
@@ -784,10 +981,6 @@
       IF ( ALLOCATED( STT            ) ) DEALLOCATE( STT            )
       IF ( ALLOCATED( XNUMOL         ) ) DEALLOCATE( XNUMOL         )
 
-      ! Return to calling program
       END SUBROUTINE CLEANUP_TRACER
-
-!-----------------------------------------------------------------------------
-
-      ! End of module
+!EOC
       END MODULE TRACER_MOD

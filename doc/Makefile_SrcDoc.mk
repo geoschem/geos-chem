@@ -48,6 +48,7 @@
 #  07 Feb 2012 - M. Payer    - Added paranox_mod, diag59_mod
 #  08 Feb 2012 - R. Yantosca - Added geos57_read_mod.F90
 #  28 Feb 2012 - R. Yantosca - Added pbl_mix_mod
+#  05 Mar 2012 - M. Payer    - Added tracer_mod
 #EOP
 #------------------------------------------------------------------------------
 #BOC
@@ -127,6 +128,7 @@ $(CORE)/seasalt_mod.F                \
 $(CORE)/sulfate_mod.F                \
 $(CORE)/tagged_ox_mod.F              \
 $(CORE)/toms_mod.F                   \
+$(CORE)/tracer_mod.F                 \
 $(CORE)/tropopause_mod.F             \
 $(CORE)/tpcore_fvdas_mod.F90         \
 $(CORE)/tpcore_geos5_window_mod.F90  \
