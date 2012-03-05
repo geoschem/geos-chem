@@ -471,10 +471,10 @@
      $                   ialfa0+i4-1, ialfa5+i5-1, ijo1d+i6-1, 
      $                   icaco+i7-1 ) > 1. ) )     THEN
 
-            PRINT*, 'INTERPOLATE_LUT: fracnox = ,',
-     $          fracnox( itemp+i1-1,  ijno2+i2-1,  icao3+i3-1,
-     $                   ialfa0+i4-1, ialfa5+i5-1, ijo1d+i6-1, 
-     $                   icaco+i7-1   )
+!            PRINT*, 'INTERPOLATE_LUT: fracnox = ,',
+!     $          fracnox( itemp+i1-1,  ijno2+i2-1,  icao3+i3-1,
+!     $                   ialfa0+i4-1, ialfa5+i5-1, ijo1d+i6-1, 
+!     $                   icaco+i7-1   )
 
             MSG = 'LUT error: Fracnox should be between 0 and 1!'
             CALL ERROR_STOP( MSG, 'INTERPOLATE_LUT ("paranox_mod.F")' )
