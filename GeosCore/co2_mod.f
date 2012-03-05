@@ -1256,11 +1256,12 @@
 !
       USE BPCH2_MOD,     ONLY : GET_TAU0,   READ_BPCH2
       USE BPCH2_MOD,     ONLY : GET_NAME_EXT_2D, GET_RES_EXT
-      USE DIRECTORY_MOD, ONLY : DATA_DIR
+      USE DIRECTORY_MOD, ONLY : DATA_DIR, DATA_DIR_1x1    !(lmw,05/16/11)
       USE LOGICAL_MOD,   ONLY : LGENFF
       USE TRANSFER_MOD,  ONLY : TRANSFER_2D
       USE TIME_MOD,      ONLY : GET_YEAR, ITS_A_LEAPYEAR
       USE GRID_MOD,      ONLY : GET_AREA_CM2
+      USE REGRID_1x1_MOD, ONLY : DO_REGRID_G2G_1x1, DO_REGRID_1x1   !(lmw,05/16/11)
 
 #     include "CMN_SIZE"      ! Size parameters
 !
@@ -1285,6 +1286,9 @@
       REAL*8             :: DOM_COR(8), REG_SUM(8), AV_SCLFAC(8)
       REAL*8             :: ANN_FOSS(IIPAR,JJPAR), A_CM2(JJPAR)
       REAL*8             :: ANN_FOSS_NOAREA(IIPAR,JJPAR)
+      REAL*8             :: GEOS_1x1(I1x1,J1x1,1)    !(lmw,05/16/11)
+      REAL*8             :: GEOS_GRID(IIPAR,JJPAR,1)
+      REAL*4             :: REGION_1x1(360,181)
 
       !-----------------------------------------------------------------
 	! Read Generic or annual fossil fuel emissions file
@@ -1331,14 +1335,21 @@
       !-----------------------------------------------------------------
       ! Read region/continent file 
       !-----------------------------------------------------------------
+      FILENAME = TRIM( DATA_DIR_1x1)   //   
+     &   'CO2_201003/Aviation_Regions.geos.1x1'
+
       TAU      = GET_TAU0( 1, 1, 2004 )
-      FILENAME = TRIM( DATA_DIR )                          //  
-     &           'CO2_201003/Aviation_Regions.'            // 
-     &           GET_NAME_EXT_2D() // '.' // GET_RES_EXT()
 
       CALL READ_BPCH2( FILENAME, 'CO2-SRCE', 1, 
-     &                 TAU,       IIPAR,     JJPAR,     
-     &                 1,         REGION,    QUIET=.TRUE. )
+     &                 TAU,       360,     181,     
+     &                 1,         REGION_1x1,    QUIET=.TRUE. )
+
+      GEOS_1x1(:,:,1) = REGION_1x1(:,:)
+
+      ! Regrid from GEOS 1x1 --> current model resolution
+      CALL DO_REGRID_1x1( 1, 'molec/cm2/s', GEOS_1x1, GEOS_GRID)
+  
+      REGION(:,:) = GEOS_GRID(:,:,1)      !(lmw,05/16/11)
 
       !-----------------------------------------------------------------
       ! Sum fossil fuel CO2 (as C) in each region
@@ -1516,8 +1527,9 @@
       ! References to F90 modules
       USE BPCH2_MOD,     ONLY : GET_NAME_EXT_2D, GET_RES_EXT
       USE BPCH2_MOD,     ONLY : GET_TAU0,        READ_BPCH2
-      USE DIRECTORY_MOD, ONLY : DATA_DIR
+      USE DIRECTORY_MOD, ONLY : DATA_DIR, DATA_DIR_1x1    !(lmw,05/16/11)
       USE TRANSFER_MOD,  ONLY : TRANSFER_2D
+      USE REGRID_1x1_MOD, ONLY : DO_REGRID_G2G_1x1, DO_REGRID_1x1   !(lmw,05/16/11)
 
 #     include "CMN_SIZE"      ! Size parameters
 !
@@ -1536,8 +1548,10 @@
 ! !LOCAL VARIABLES:
 !
       INTEGER                :: I, J
-      REAL*4                 :: ARRAY(IGLOB,JGLOB,1)
+      REAL*4                 :: ARRAY(360,181,1)
       REAL*8                 :: TAU
+      REAL*8                 :: GEOS_GRID(IIPAR,JJPAR,1)
+      REAL*8                 :: GEOS_1x1(I1x1,J1x1,1)     !(lmw,05/16/11)
       CHARACTER(LEN=255)     :: FILENAME
 
       !=================================================================
@@ -1546,10 +1560,9 @@
       ! "Burn in fields" not included (this is already in GFED)
       !=================================================================
 
-      FILENAME = TRIM( DATA_DIR )                 // 
+      FILENAME = TRIM( DATA_DIR_1x1) //  
      &          'CO2_201003/biofuel/biofuel_CO2.' // 
-     &           GET_NAME_EXT_2D() // '.'         // 
-     &           GET_RES_EXT()     // '-1995'
+     &           GET_NAME_EXT_2D() // '.1x1-1995'
 
       ! Echo info
       WRITE( 6, 100 ) TRIM( FILENAME )
@@ -1557,14 +1570,19 @@
 
 !     TAU = GET_TAU0( 1, 1, 1985 )
       TAU = GET_TAU0( 1, 1, 1995 )
-
+      
       ! Read biofuel CO2 emissions [molec/cm2/s]
       CALL READ_BPCH2( FILENAME, 'CO2-SRCE', 5, 
-     &                 TAU,       IIPAR,     JJPAR,     
+     &                 TAU,       360,     181,     
      &                 1,         ARRAY,     QUIET=.TRUE. )
+     
+      ! Cast to REAL*8 before regridding
+      GEOS_1x1(:,:,1) = ARRAY(:,:,1)
+      
+      ! Regrid from GEOS 1x1 --> current model resolution
+      CALL DO_REGRID_1x1( 1, 'molec/cm2/s', GEOS_1x1, GEOS_GRID)
 
-      ! Cast from REAL*4 to REAL*8 and resize
-      CALL TRANSFER_2D( ARRAY(:,:,1), EMBIOFUELCO2 )
+      EMBIOFUELCO2(:,:) = GEOS_GRID(:,:,1)   !(lmw,05/16/11)
 
       END SUBROUTINE READ_ANNUAL_BIOFUELCO2
 !EOC
@@ -2113,7 +2131,7 @@
 ! !LOCAL VARIABLES:
 !
       INTEGER                :: I, J, IOS
-      REAL*4                 :: ARRAY(IIPAR,JJPAR,1)
+      REAL*4                 :: ARRAY(I1x1,J1x1,1)  !(lmw,05/16/11)
       REAL*4                 :: ARRAY_1x1(360,180,1)
       REAL*8                 :: GEN_1x1(360,180,1)
       REAL*8                 :: GEOS_1x1(I1x1,J1x1,1)
@@ -2170,20 +2188,25 @@
          TAU = GET_TAU0( 1, 1, 2000 )
 
          ! Filename
-         FILENAME = TRIM( DATA_DIR )                           //
-     &              'CO2_201003/Net_terrestrial_exch_5.29Pg.'  //
-     &              GET_NAME_EXT_2D() // '.' // GET_RES_EXT() 
+         FILENAME = TRIM( DATA_DIR_1x1 )  //  
+     &        'CO2_201003/Net_terrestrial_exch_5.29Pg.geos.1x1'
 	
          ! Echo info
          WRITE( 6, 100 ) TRIM( FILENAME )
 
          ! Read Net Terrestrial CO2 Exchange [molec/cm2/s]
          CALL READ_BPCH2( FILENAME, 'CO2-SRCE', 6, 
-     &                 TAU,       IIPAR,     JJPAR,     
+     &                 TAU,       360,     181,     
      &                 1,         ARRAY,     QUIET=.TRUE. )
 
-         ! Cast to REAL*8 and resize if necessary
-         CALL TRANSFER_2D( ARRAY(:,:,1), EMBIONETCO2 )
+
+         ! Cast to REAL*8 before regridding
+         GEOS_1x1(:,:,1) = ARRAY(:,:,1)
+
+         ! Regrid from GEOS 1x1 --> current model resolution
+         CALL DO_REGRID_1x1( 1, 'molec/cm2/s', GEOS_1x1, GEOS_GRID)
+         
+         EMBIONETCO2(:,:) = GEOS_GRID(:,:,1)  !(lmw,05/16/11)     
 
 !-----------------------------------------------------------------------
 ! Commented block of code below is nearly equivalent to the block of code 

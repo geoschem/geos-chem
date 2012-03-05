@@ -972,7 +972,55 @@
 
          ENDIF 
 
- 
+         ! check STT (yxw)   
+#if   defined( GEOS_5 ) && defined( GRID05x0666 )
+            ! Loop over grid boxes
+!$OMP PARALLEL DO 
+!$OMP+DEFAULT( SHARED )
+!$OMP+PRIVATE( I, J, L, N )
+            DO N = 1, N_TRACERS
+            DO L = 1, LLPAR
+            DO J = 1, JJPAR
+            DO I = 1, IIPAR
+              !---------------------------
+              ! Check for Negatives
+              !---------------------------
+              IF ( STT(I,J,L,N) < 0d0 ) THEN 
+!$OMP CRITICAL
+                  WRITE( 6, 100 ) I, J, L, N, STT(I,J,L,N)
+                  PRINT*, 'Neg STT after chemistry ' // 
+     &                   'SET STT TO BE ZERO'
+                  STT(I,J,L,N) = 0d0
+!$OMP END CRITICAL
+              !---------------------------
+              ! Check for NaN's
+              !---------------------------
+              ELSE IF ( IT_IS_NAN( STT(I,J,L,N) ) ) THEN 
+!$OMP CRITICAL
+                  WRITE( 6, 100 ) I, J, L, N, STT(I,J,L,N)
+                  PRINT*, 'NaN STT after chemistry ' //
+     &                  'SET STT TO BE LOWER LEVEL'
+                  STT(I,J,L,N) = STT(I,J,L-1,N)
+!$OMP END CRITICAL
+              !----------------------------
+              ! Check STT's for Infinities
+              !----------------------------
+              ELSE IF ( .not. IT_IS_FINITE( STT(I,J,L,N) ) ) THEN
+!$OMP CRITICAL
+                  WRITE( 6, 100 ) I, J, L, N, STT(I,J,L,N)
+                  PRINT*, 'Inf STT after chemistry ' //
+     &                  'SET STT TO BE LOWER LEVEL'
+                  STT(I,J,L,N) =  STT(I,J,L-1,N)
+!$OMP END CRITICAL            
+
+              ENDIF
+            ENDDO
+            ENDDO
+            ENDDO
+            ENDDO
+!$OMP END PARALLEL DO
+#endif 
+
          !==============================================================
          ! ***** W E T   D E P O S I T I O N  (rainout + washout) *****
          !==============================================================
@@ -1103,6 +1151,40 @@
          ! Check for NaN, Negatives, Infinities in STT each time diag are
          ! saved. (ccc, 5/13/09)
          IF ( ITS_TIME_FOR_DIAG() ) THEN
+
+         ! Sometimes STT in the stratosphere can be negative at 
+         ! the nested-grid domain edges. Force them to be zero before
+         ! CHECK_STT (yxw)
+#if   defined( GEOS_5 ) && defined( GRID05x0666 )
+            ! Loop over grid boxes
+!$OMP PARALLEL DO 
+!$OMP+DEFAULT( SHARED )
+!$OMP+PRIVATE( I, J, L, N )
+            DO N = 1, N_TRACERS
+            DO L = 1, LLPAR
+            DO J = 1, JJPAR
+            DO I = 1, IIPAR
+
+              !---------------------------
+              ! Check for Negatives
+              !---------------------------
+              IF ( STT(I,J,L,N) < 0d0 ) THEN
+!$OMP CRITICAL
+                  WRITE( 6, 100 ) I, J, L, N, STT(I,J,L,N)
+                  PRINT*, 'Neg STT after dynamics step ' //
+     &             'SET STT TO BE ZERO'
+                  STT(I,J,L,N) = 0d0
+!$OMP END CRITICAL
+              ENDIF
+            ENDDO
+            ENDDO
+            ENDDO
+            ENDDO
+!$OMP END PARALLEL DO
+ 100  FORMAT( ' STT(',i3,',',i3,',',i3,',',i3,') = ', f13.6 )
+
+#endif
+
             CALL CHECK_STT( 'End of Dynamic Loop' )
          ENDIF
           
