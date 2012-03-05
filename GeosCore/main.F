@@ -751,6 +751,11 @@
 
          ENDIF 
 
+         ! Check STT (yxw)   
+#if   defined( GEOS_5 ) && defined( GRID05x0666 )
+         CALL CHECK_STT_05x0666( 'after chemistry' )
+#endif 
+
          !==============================================================
          ! ***** W E T   D E P O S I T I O N  (rainout + washout) *****
          !==============================================================
@@ -894,6 +899,14 @@
          ! Check for NaN, Negatives, Infinities in STT each time diag are
          ! saved. (ccc, 5/13/09)
          IF ( ITS_TIME_FOR_DIAG() ) THEN
+
+         ! Sometimes STT in the stratosphere can be negative at 
+         ! the nested-grid domain edges. Force them to be zero before
+         ! CHECK_STT (yxw)
+#if   defined( GEOS_5 ) && defined( GRID05x0666 )
+            CALL CHECK_STT_05x0666( 'after dynamics step' )
+#endif
+
             CALL CHECK_STT( 'End of Dynamic Loop' )
          ENDIF
           
