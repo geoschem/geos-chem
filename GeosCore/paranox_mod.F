@@ -101,7 +101,7 @@
       READ( IU_FILE, IOSTAT=IOS ) FRACNOX
       IF ( IOS /= 0 ) CALL IOERROR( IOS, IU_FILE, 'read_paranox_lut:2' )
 
-      PRINT*, "binary_fracnox: ", FRACNOX(1:4,1,1,2,3,4,4)      
+      !PRINT*, "binary_fracnox: ", FRACNOX(1:4,1,1,2,3,4,4)      
 
       ! Close file
       CLOSE( IU_FILE )
@@ -127,7 +127,7 @@
       READ( IU_FILE, IOSTAT=IOS ) INTOPE
       IF ( IOS /= 0 ) CALL IOERROR( IOS, IU_FILE, 'read_paranox_lut:4' )
 
-      PRINT*, "binary_intope: ", INTOPE(1:4,1,1,2,3,4,4)
+      !PRINT*, "binary_intope: ", INTOPE(1:4,1,1,2,3,4,4)
 
       ! Close file
       CLOSE( IU_FILE )
@@ -507,20 +507,20 @@
       END DO
       END DO
       END DO
-      
-      IF ((I .eq. 108) .and. (J .eq. 49)) THEN
-         PRINT*,"----INTERPOLATE_LUT-----"
-         PRINT*,"fraction_nox and int_OPE: ",fraction_nox,
-     $                                       int_ope
-         PRINT*,"Jvalues are: ",             jvalues(I, J,:)
-         PRINT*,"Vars are: ",                var_array
-         PRINT*,"[O3] in interpolate_lut: ", var_array(3)
-         PRINT*,"[CO] in interpolate_lut: ", var_array(7)
-         PRINT*,"The i-values are:",         itemp,  ijno2,  icao3,
-     $                                       ialfa0, ialfa5, ijo1d,
-     $                                       icaco
-       ENDIF
-               
+!      
+!      IF ((I .eq. 108) .and. (J .eq. 49)) THEN
+!         PRINT*,"----INTERPOLATE_LUT-----"
+!         PRINT*,"fraction_nox and int_OPE: ",fraction_nox,
+!     $                                       int_ope
+!         PRINT*,"Jvalues are: ",             jvalues(I, J,:)
+!         PRINT*,"Vars are: ",                var_array
+!         PRINT*,"[O3] in interpolate_lut: ", var_array(3)
+!         PRINT*,"[CO] in interpolate_lut: ", var_array(7)
+!         PRINT*,"The i-values are:",         itemp,  ijno2,  icao3,
+!     $                                       ialfa0, ialfa5, ijo1d,
+!     $                                       icaco
+!       ENDIF
+!               
 !      PRINT*,"fraction_nox is: ",fraction_nox
 !      PRINT*,"integrated OPE: ",int_ope
       
@@ -903,41 +903,41 @@
       END DO
       END DO
       
-      IF ((I .eq. 108) .and. (J .eq. 49)) THEN
-         PRINT*,"-----INTERPOLATE_LUT2, for 108,49-----"
-         PRINT*,"Fraction_nox and int_OPE: ", fraction_nox,
-     &                                        int_ope
-         PRINT*,"Jvalues are: ",              jvalues(I, J,:)
-         PRINT*,"Vars are: ",                 var_array
-         PRINT*,"[O3] in interpolate_lut: ",  var_array(3)
-         PRINT*,"[NOx] in interpolate_lut: ", var_array(7)
-         PRINT*,"J(O1D)/J(NO2) : ",           var_array(6)
-         PRINT*,"The i-values are:",          itemp,  ijno2,  icao3,
-     $                                        ialfa0, ialfa5, ijo1d,
-     $                                        icanox
-         PRINT*,"Interpolation parameters: ", xtemp,  xjno2,  xcao3,
-     $                                        xalfa0, xalfa5, xjo1d,
-     $                                        xcanox 
-         PRINT*,"---------------------------------"
-      ENDIF
-       
-      IF ((I .eq. 73) .and. (J .eq. 76)) THEN
-         PRINT*,"-----INTERPOLATE_LUT2, for 73,76-----"
-         PRINT*,"Fraction_nox and int_OPE: ", fraction_nox,
-     &                                        int_ope
-         PRINT*,"Jvalues are: ",              jvalues(I, J,:)
-         PRINT*,"Vars are: ",                 var_array
-         PRINT*,"[O3] in interpolate_lut: ",  var_array(3)
-         PRINT*,"[NOx] in interpolate_lut: ", var_array(7)
-         PRINT*,"J(O1D)/J(NO2) : ",           var_array(6)
-         PRINT*,"The i-values are:",          itemp,  ijno2,  icao3,
-     $                                        ialfa0, ialfa5, ijo1d,
-     $                                        icanox
-         PRINT*,"Interpolation parameters: ", xtemp,  xjno2,  xcao3,
-     $                                        xalfa0, xalfa5, xjo1d,
-     $                                        xcanox 
-         PRINT*,"------------------------------------"
-      ENDIF
+!      IF ((I .eq. 108) .and. (J .eq. 49)) THEN
+!         PRINT*,"-----INTERPOLATE_LUT2, for 108,49-----"
+!         PRINT*,"Fraction_nox and int_OPE: ", fraction_nox,
+!     &                                        int_ope
+!         PRINT*,"Jvalues are: ",              jvalues(I, J,:)
+!         PRINT*,"Vars are: ",                 var_array
+!         PRINT*,"[O3] in interpolate_lut: ",  var_array(3)
+!         PRINT*,"[NOx] in interpolate_lut: ", var_array(7)
+!         PRINT*,"J(O1D)/J(NO2) : ",           var_array(6)
+!         PRINT*,"The i-values are:",          itemp,  ijno2,  icao3,
+!     $                                        ialfa0, ialfa5, ijo1d,
+!     $                                        icanox
+!         PRINT*,"Interpolation parameters: ", xtemp,  xjno2,  xcao3,
+!     $                                        xalfa0, xalfa5, xjo1d,
+!     $                                        xcanox 
+!         PRINT*,"---------------------------------"
+!      ENDIF
+!       
+!      IF ((I .eq. 73) .and. (J .eq. 76)) THEN
+!         PRINT*,"-----INTERPOLATE_LUT2, for 73,76-----"
+!         PRINT*,"Fraction_nox and int_OPE: ", fraction_nox,
+!     &                                        int_ope
+!         PRINT*,"Jvalues are: ",              jvalues(I, J,:)
+!         PRINT*,"Vars are: ",                 var_array
+!         PRINT*,"[O3] in interpolate_lut: ",  var_array(3)
+!         PRINT*,"[NOx] in interpolate_lut: ", var_array(7)
+!         PRINT*,"J(O1D)/J(NO2) : ",           var_array(6)
+!         PRINT*,"The i-values are:",          itemp,  ijno2,  icao3,
+!     $                                        ialfa0, ialfa5, ijo1d,
+!     $                                        icanox
+!         PRINT*,"Interpolation parameters: ", xtemp,  xjno2,  xcao3,
+!     $                                        xalfa0, xalfa5, xjo1d,
+!     $                                        xcanox 
+!         PRINT*,"------------------------------------"
+!      ENDIF
       
       END SUBROUTINE INTERPOLATE_LUT2
 !EOC
