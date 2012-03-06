@@ -815,7 +815,7 @@
 !                         citation) to 1.4d6 M/atm (HgCl2, Lindqvist & Rhode, 
 !                         1985). Henry's law constant in wetscav_mod.f is 
 !                         now consistent with what's used in mercury_mod.f
-! 27 Sep 2011 - H. Amos - remove LHg_WETDasHNO3 logical, it's obsolete
+!  27 Sep 2011 - H. Amos - remove LHg_WETDasHNO3 logical, it's obsolete
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -3672,7 +3672,7 @@
 !------------------------------------------------------------------------------
 !BOP
 !
-! !IROUTINE: washfrac__fine_aerosol
+! !IROUTINE: washfrac_fine_aerosol
 !
 ! !DESCRIPTION: Function WASHFRAC\_FINE\_AEROSOL returns the fraction of
 !  soluble aerosol tracer lost to washout.

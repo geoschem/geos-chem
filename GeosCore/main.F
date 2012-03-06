@@ -155,6 +155,7 @@
 !  06 Feb 2012 - R. Yantosca - Reorganize USE statements for clarity
 !  06 Feb 2012 - R. Yantosca - Renamed NN to NNN to avoid name confusion
 !  07 Feb 2012 - R. Yantosca - Split off met field I/O into internal routines
+!                              READ_INITIAL_MET_FIELDS and READ_MET_FIELDS
 !  07 Feb 2012 - M. Payer    - Replace call to COSSZA with GET_COSINE_SZA
 !  28 Feb 2012 - R. Yantosca - Removed support for GEOS-3
 !EOP

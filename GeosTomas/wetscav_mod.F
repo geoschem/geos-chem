@@ -746,7 +746,6 @@
       USE TRACERID_MOD, ONLY : IDTISOPN, IDTMMN
       USE TRACERID_MOD, ONLY : IDTIEPOX, IDTRIP
       USE TRACERID_MOD, ONLY : IDTMAP
-      USE OCEAN_MERCURY_MOD,  ONLY : LHg_WETDasHNO3 
 
       USE CMN_SIZE_MOD                               ! Size parameters
 !
@@ -816,6 +815,7 @@
 !                         citation) to 1.4d6 M/atm (HgCl2, Lindqvist & Rhode, 
 !                         1985). Henry's law constant in wetscav_mod.f is 
 !                         now consistent with what's used in mercury_mod.f
+!  27 Sep 2011 - H. Amos - remove LHg_WETDasHNO3 logical, it's obsolete
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -1630,69 +1630,54 @@
       ELSE IF ( IS_Hg2( N ) ) THEN
          
 
-         ! Begin CDH Changes (5/20/2009)
-         ! Allow user to choose how precip occurs
-         IF (LHg_WETDasHNO3) THEN
+         ! Calculate gas-liquid partitioning from Henry's law
+         ! then assume Hg2 is scavenged only by liquid precip
+         ! No scavenging at the surface
+         F(:,:,1) = 0d0
 
-            ! Assume that all Hg2 is in cloud water (liquid or frozen), 
-            ! in analogy to aerosols and HNO3
-            CALL F_AEROSOL( KC,N, F )
-            ISOL = GET_ISOL( N ) 
+         ! Apply scavenging in levels 2 and higher
+         DO L = 2, LLPAR
+         DO J = 1, JJPAR
+         DO I = 1, IIPAR
 
-         ELSE
+            ! Compute liquid to gas ratio for HgCl2, using
+            ! the appropriate parameters for Henry's law
+            ! (Refs: INSERT HERE)
+            !
+            ! hma, 10-Jan-2011, Henry's law constant for 
+            ! HgCl2 = 1.4d+6 M/atm
+            ! Ref: Lindqvist and Rhode, 1985
+            CALL COMPUTE_L2G( 1.4d+6, -8.4d3, 
+     &                        T(I,J,L), CLDLIQ(I,J,L), L2G )
 
-            ! Calculate gas-liquid partitioning from Henry's law
-            ! then assume Hg2 is scavenged only by liquid precip
+            ! Fraction of HgCl2 in liquid phase 
+            ! Assume that HgCl2 is not present in ice phase
+            ! (Eqs. 4, 5, 6, Jacob et al, 2000)
+            C_TOT = 1d0 + L2G
+            F_L   = L2G / C_TOT
 
-            ! No scavenging at the surface
-            F(:,:,1) = 0d0
+            ! Compute the rate constant K. 
+            !CDH allow scavening during riming (8/7/2009
+            !Scavenging at all temperatures
+            IF ( T(I,J,L) >= 248d0 ) THEN
+               K = KC * F_L  
+            ELSE 
+               K = 0d0
+            ENDIF
 
-            ! Apply scavenging in levels 2 and higher
-            DO L = 2, LLPAR
-            DO J = 1, JJPAR
-            DO I = 1, IIPAR
+            ! Distance between grid box centers [m]
+            TMP = 0.5d0 * ( BXHEIGHT(I,J,L-1) + BXHEIGHT(I,J,L) ) 
+              
+            ! F is the fraction of HgCl2 scavenged out of the updraft
+            ! (Eq. 2, Jacob et al, 2000)
+            F(I,J,L) = 1d0 - EXP( -K * TMP / Vud(I,J) )
 
-               ! Compute liquid to gas ratio for HgCl2, using
-               ! the appropriate parameters for Henry's law
-               ! (Refs: INSERT HERE)
-               !
-               ! hma, 10-Jan-2011, Henry's law constant for 
-               ! HgCl2 = 1.4d+6 M/atm
-               ! Ref: Lindqvist and Rhode, 1985
-               CALL COMPUTE_L2G( 1.4d+6, -8.4d3, 
-     &                           T(I,J,L), CLDLIQ(I,J,L), L2G )
+         ENDDO
+         ENDDO
+         ENDDO
 
-               ! Fraction of HgCl2 in liquid phase 
-               ! Assume that HgCl2 is not present in ice phase
-               ! (Eqs. 4, 5, 6, Jacob et al, 2000)
-               C_TOT = 1d0 + L2G
-               F_L   = L2G / C_TOT
-
-               ! Compute the rate constant K. 
-               !CDH allow scavening during riming (8/7/2009
-               !Scavenging at all temperatures
-               IF ( T(I,J,L) >= 248d0 ) THEN
-                  K = KC * F_L  
-               ELSE 
-                  K = 0d0
-               ENDIF
-
-               ! Distance between grid box centers [m]
-               TMP = 0.5d0 * ( BXHEIGHT(I,J,L-1) + BXHEIGHT(I,J,L) ) 
-               
-               ! F is the fraction of HgCl2 scavenged out of the updraft
-               ! (Eq. 2, Jacob et al, 2000)
-               F(I,J,L) = 1d0 - EXP( -K * TMP / Vud(I,J) )
-
-            ENDDO
-            ENDDO
-            ENDDO
-
-            ! ND38 index
-            ISOL = GET_ISOL( N )
-
-         ENDIF
-         ! END CDH Changes
+         ! ND38 index
+         ISOL = GET_ISOL( N )
 
       !-------------------------------
       ! HgP (treat like aerosol)
@@ -2275,7 +2260,6 @@
       USE TRACERID_MOD, ONLY : IDTISOPN, IDTMMN
       USE TRACERID_MOD, ONLY : IDTIEPOX, IDTRIP, IDTMAP
       USE TRACER_MOD,   ONLY : ITS_A_MERCURY_SIM 
-      USE OCEAN_MERCURY_MOD,  ONLY : LHg_WETDasHNO3
 
       USE CMN_SIZE_MOD                   ! Size parameters
 !
@@ -2330,6 +2314,7 @@
 !        overlooked this. (havala, bmy, 7/20/09)
 !  25 Aug 2010 - R. Yantosca - Treat MERRA in the same way as GEOS-5
 !  16 Sep 2010 - R. Yantosca - Added ProTeX headers
+!  27 Sep 2011 - H. Amos     - remove LHg_WETDasHNO3 logical, it's obsolete
 !  09 Feb 2012 - R. Yantosca - Treat GEOS-5.7.x in the same way as MERRA
 !EOP
 !------------------------------------------------------------------------------
@@ -2982,8 +2967,7 @@
          ! Suppress scavenging at cold temperatures for most aerosol simulation
          ! Allow scavenging at cold temperatures for BCPO,DUST and HNO3 (qq,
          ! 10/14/2011)
-         ! Allow scavenging at cold temperatures for Hg simulation,
-         ! except when we want to use Selin (2007) scheme (LHg_WETDasHNO3=FALSE
+         ! Allow scavenging at cold temperatures for Hg simulation.
          ! (cdh, 4/16/09, 5/20/09)
          !------------------------------------------------------------------- 
 ! CDH 8/7/2009, 10/27/2009. All temperature dependence for Hg handled below
@@ -3132,60 +3116,50 @@
          ! Hg2 (liquid phase only)
          !------------------------------
          ELSE IF ( IS_Hg2( N ) ) THEN 
-  
-            ! Begin CDH Changes (5/20/2009)
-            ! Allow user to choose how precip occurs
-            IF (LHg_WETDasHNO3) THEN
-              
-               ! Assume that all Hg2 is in cloud water (liquid or frozen), 
-               ! in analogy to aerosols and HNO3
-               RAINFRAC = GET_RAINFRAC( K_RAIN, F, DT )
-  
+
+            ! Compute liquid to gas ratio for HgCl2, using
+            ! the appropriate parameters for Henry's law
+            ! (Refs: INSERT HERE)
+            !
+            ! hma, 10-Jan-2011, Henry's law constant for 
+            ! HgCl2 = 1.4d+6 M/atm for HgCl2 (Lindqvist and Rodhe, 1985)
+            CALL COMPUTE_L2G( 1.4d+6, -8.4d3, 
+     &                        T(I,J,L), CLDLIQ(I,J,L), L2G )
+         
+            ! Fraction of HgCl2 in liquid phase
+            ! Assume no HgCl2 in the ice phase
+            C_TOT = 1d0 + L2G
+            F_L   = L2G / C_TOT
+
+            ! Compute the rate constant K.  Assume the retention factor  
+            ! for liquid HgCl2 is 0 for T < 268 K, and 
+            ! 1.0 for T > 268 K. (Eq. 1, Jacob et al, 2000)
+            IF ( TK >= 248d0 ) THEN
+               K = K_RAIN * F_L  
             ELSE
-  
-               ! Compute liquid to gas ratio for HgCl2, using
-               ! the appropriate parameters for Henry's law
-               ! (Refs: INSERT HERE)
-               CALL COMPUTE_L2G( 1.4d+6, -8.4d3, 
-     &                           T(I,J,L), CLDLIQ(I,J,L), L2G )
-           
-               ! Fraction of HgCl2 in liquid phase
-               ! Assume no HgCl2 in the ice phase
-               C_TOT = 1d0 + L2G
-               F_L   = L2G / C_TOT
-   
-               ! Compute the rate constant K.  Assume the retention factor  
-               ! for liquid HgCl2 is 0 for T < 268 K, and 
-               ! 1.0 for T > 268 K. (Eq. 1, Jacob et al, 2000)
-               IF ( TK >= 248d0 ) THEN
-                  K = K_RAIN * F_L  
-               ELSE
-                  K = 0d0               
-               ENDIF
-    
-               ! Compute RAINFRAC, the fraction of rained-out HgCl2
-               ! (Eq. 10, Jacob et al, 2000)
-               RAINFRAC = GET_RAINFRAC( K, F, DT ) 
-  
+               K = 0d0               
             ENDIF
-            ! END CDH Changes
   
+            ! Compute RAINFRAC, the fraction of rained-out HgCl2
+            ! (Eq. 10, Jacob et al, 2000)
+            RAINFRAC = GET_RAINFRAC( K, F, DT ) 
+
          !------------------------------
          ! HgP (treat like aerosol)
          !------------------------------
          ELSE IF ( IS_HgP( N ) ) THEN
             RAINFRAC = GET_RAINFRAC( K_RAIN, F, DT )
-  
+
             ! CDH 9/28/2009
 !            IF ( TK < 248d0 ) RAINFRAC = 0d0
-  
+
          !------------------------------
          ! ERROR: insoluble tracer!
          !------------------------------
          ELSE
             CALL ERROR_STOP( 'Invalid tracer!',
      &                       'RAINOUT (wetscav_mod.f)' )
-  
+
          ENDIF
       ENDIF
       
@@ -3271,7 +3245,6 @@
       USE TRACERID_MOD, ONLY : IDTMOBA,  IDTPROPNN
       USE TRACERID_MOD, ONLY : IDTISOPN, IDTMMN
       USE TRACERID_MOD, ONLY : IDTIEPOX, IDTRIP, IDTMAP
-      USE OCEAN_MERCURY_MOD,  ONLY : LHg_WETDasHNO3 ! (cdh 5/20/09)
 
       USE CMN_SIZE_MOD                     ! Size parameters
 !
@@ -3349,9 +3322,9 @@
 !                              not the tracer is an aerosol, it's whether or not
 !                              washout is modeled as a kinetic vs equilibrium 
 !                              process.
-! 20 Jan 2012 - H Amos       - WASHFRAC for aerosol is now either computed by
+!  27 Sep 2011 - H. Amos     - remove LHg2_WETDasHNO3 logical, it's obsolete
+!  20 Jan 2012 - H. Amos     - WASHFRAC for aerosol is now either computed by
 !                              WASHFRAC_FINE_AEROSOL or WASHFRAC_COARSE_AEROSOL
-!
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -3401,7 +3374,6 @@
          CALL WASHFRAC_LIQ_GAS( 3.0d3, -7.2d3, PP,       DT,  F,
      &                          DZ,     TK,    WASHFRAC, KIN  )
 
-
       !------------------------------
       ! GLYX (liquid & gas phases)
       !------------------------------
@@ -3415,7 +3387,6 @@
          KIN      = .FALSE.
          CALL WASHFRAC_LIQ_GAS( 3.6d5, -7.2d3, PP,       DT,  F, 
      &                          DZ,     TK,    WASHFRAC, KIN  )
-
 
       !------------------------------
       ! MGLY (liquid & gas phases)
@@ -3672,25 +3643,12 @@
       !------------------------------
       ELSE IF ( IS_Hg2( N ) ) THEN
 
-         ! Begin CDH Changes (5/20/2009)
-         ! Allow user to choose how precip occurs
-         IF ( LHg_WETDasHNO3 ) THEN
-
-            ! Assume that Hg2 behaves like HNO3 and aerosols 
-            KIN      = .TRUE.
-            WASHFRAC = WASHFRAC_FINE_AEROSOL( DT, F, PP, TK )
-            
-         ELSE
-
-            ! Assume Hg2 is in gas phase and equilibrates with precip
-            ! according to Henry's law
-            ! HgCl2: 1.4d+6 M/atm (Ref: Lindqvist and Rhode, 1985) 
-            KIN      = .FALSE.
-            CALL WASHFRAC_LIQ_GAS( 1.4d+6, -8.4d3, PP,       DT,  F,
-     &                             DZ,      TK,    WASHFRAC, KIN  )
-
-
-         ENDIF
+         ! Assume Hg2 is in gas phase and equilibrates with precip
+         ! according to Henry's law
+         ! HgCl2: 1.4d+6 M/atm (Ref: Lindqvist and Rhode, 1985) 
+         KIN      = .FALSE.
+         CALL WASHFRAC_LIQ_GAS( 1.4d+6, -8.4d3, PP,       DT,  F,
+     &                          DZ,      TK,    WASHFRAC, KIN  )
       
       !------------------------------
       ! HgP (treat like aerosol) 
@@ -3714,10 +3672,10 @@
 !------------------------------------------------------------------------------
 !BOP
 !
-! !IROUTINE: washfrac__fine_aerosol
+! !IROUTINE: washfrac_fine_aerosol
 !
-! !DESCRIPTION: Function WASHFRAC\_FINE\_AEROSOL returns the fraction of soluble 
-!  aerosol tracer lost to washout.
+! !DESCRIPTION: Function WASHFRAC\_FINE\_AEROSOL returns the fraction of
+!  soluble aerosol tracer lost to washout.
 !\\
 !\\
 ! !INTERFACE:
@@ -3748,11 +3706,13 @@
 !        This caused NaN's in the parallel loop on Altix, so we moved it to
 !        the module and now pass Iall arguments explicitly (bmy, 7/20/04)
 !  16 Sep 2010 - R. Yantosca - Added ProTeX headers
+!  21 Jan 2011 - J. Fisher & Q. Wang - Update to account for time-dependent
+!        shift in aerosol size distribution that slows washout as a rain
+!        event proceeds (see e.g. Feng et al., 2007, 2009). 
 !  16 Aug 2011 - H Amos      - Remove K_WASH from input list, make a defined 
 !                              parameter.
 !  20 Jan 2012 - H Amos      - rename WASHFRAC_FINE_AEROSOL to distinguish 
 !                              this function from WASHFRAC_COARSE_AEROSOL
-!
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -3882,7 +3842,7 @@
 !                        2009) should only be applied to aerosol species. It
 !                        was a coincidence before that the original washout
 !                        coefficients for aerosols and HNO3 were the same.
-!   16 Aug 2011, H Amos: Remove K_WASH from input list, now a defined parameter 
+!   16 Aug 2011, H Amos: Remove K_WASH from input list, now a defined parameter
 !
 !EOP
 !------------------------------------------------------------------------------
@@ -3968,7 +3928,7 @@
 !
       REAL*8, PARAMETER :: K_WASH = 1d0  ! First order washout rate 
                                          ! constant [cm^-1]. 
- 
+
       !=================================================================
       ! WASHFRAC_LIQ_GAS begins here!
       !=================================================================
@@ -6939,7 +6899,7 @@
          !=============================================================
          ! CLDICE, the cloud ice content [cm3 ice/cm3 air] is given by:
          !
-         !    CLDICE = 2e-6 - CLDLIQ
+         !    CLDICE = 1.0e-6 - CLDLIQ
          !=============================================================
          CLDICE(I,J,L) = 1d-6 - CLDLIQ(I,J,L)
 
