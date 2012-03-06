@@ -961,8 +961,8 @@
 !  (5 ) Added to module "RnPbBe_mod.f".  Also made cosmetic changes
 !        and updated comments (bmy, 6/14/01)
 !  (6 ) Updated comments (bmy, 3/29/02)
-!  (7 ) Replace all instances of IM, JM, IMX, JMX, with IIPAR, JJPAR, IGLOB,
-!        and JGLOB.  Now replaced DEPFLUX array w/ AMT_LOST scalar
+!  (7 ) Replace all instances of IM, JM, IMX, JMX, with IIPAR, JJPAR, IIPAR,
+!        and JJPAR.  Now replaced DEPFLUX array w/ AMT_LOST scalar
 !        variable.  Also make sure that the amount of tracer lost to drydep
 !        is now accurately accounted in the ND44 diagnostic. (bmy, 8/7/02)
 !  (8 ) Now call GEOS_CHEM_STOP or ERROR_STOP (from "error_mod.f") when 
@@ -1369,10 +1369,10 @@
 !                          surface ID in input unit 65)
 !     IJUSE(IJLOOP,LDT)  - Fraction ((per mil) of gridbox area occupied by
 !                          land type element LDT
-!
+!                                                                             .
 !  Need as leaf area index see (RDLAI & CMN_VEL):
 !     XYLAI(IJLOOP,LDT)  - Leaf Area Index of land type element LDT
-!
+!                                                                             .
 !  Need as meteorological input for each grid square(I,J) (passed):
 !     RADIAT(IJLOOP) - Solar radiation in W m-2
 !     TEMP(IJLOOP)   - Surface air temperature in K
@@ -1381,7 +1381,7 @@
 !     RHB(IJLOOP)    - Relative humidity at the surface
 !     PRESSU(IJLOOP) - Local surface pressure
 !     W10(IJLOOP)    - 10m wind speed
-!
+!                                                                             .
 !  Need as input for each species K (passed):
 !     F0(K)          - reactivity factor for oxidation of biological substances
 !     HSTAR(K)       - Henry's Law constant
@@ -1389,7 +1389,7 @@
 !                      (used to calculate molecular diffusivities)
 !     AIROSOL(K)     - LOGICAL flag (T = aerosol species; 
 !                                    F = gas-phase species)
-!
+!                                                                             .
 !  Also need to call the following subroutines to read drydep input data:
 !     "modin.f"      - reads Olson land types, dry deposition land types,
 !                      and roughness heights from "drydep.table". 
@@ -1398,7 +1398,7 @@
 !     "rddrycf.f     - reads drydep polynomial coeff's from file "drydep.coef"
 !     "rdlai.f"      - reads Leaf Area Indices from files "lai**.global"
 !     "rdland.f"     - reads Olson land types from file "vegtype.global"
-!
+!                                                                             .
 !  Some variables used in the subroutine (passed):
 !     LRGERA(IJLOOP) T -> stable atmosphere; a high aerodynamic resistance
 !                        (RA=1.E4 m s-1) is imposed; else RA is calculated
@@ -1408,7 +1408,7 @@
 !                      conditions
 !     CFRAC(IJLOOP)  - Fractional cloud cover
 !     ZH(IJLOOP)     - Mixing depth (m)
-!
+!                                                                             .
 !  Some variables used in the subroutine:
 !     MAXDEP         - the maximum number of species for which the dry 
 !                      deposition calculation is done
@@ -1417,10 +1417,10 @@
 !     RSURFC(K,LDT)  - Bulk surface resistance (s m-1) for species K to 
 !                      surface LDT
 !     C1X(K)         - Total resistance to deposition (s m-1) for species K
-!
+!                                                                             .
 !  Returned:
 !     DVEL(IJLOOP,K) - Deposition velocity (m s-1) of species K
-!
+!                                                                             .
 !  References:
 !  ============================================================================
 !     Baldocchi, D.D., B.B. Hicks, and P. Camara, A canopy stomatal
@@ -3249,7 +3249,7 @@
 !  non-size resolved aerosol according to Zhang et al 2001.  We do not consider
 !  the hygroscopic growth of the aerosol particles. (rjp, tdf, bec, bmy, 
 !  4/1/04, 4/15/05) 
-!
+!                                                                             .
 !  This routine is used for all aerosols except dust, sulfate, and seasalt
 !  (hotp 7/31/09)
 !\\
@@ -4476,6 +4476,9 @@ C*
       USE TRACERID_MOD, ONLY : IDTMMN
       USE TRACERID_MOD, ONLY : IDTRIP, IDTIEPOX, IDTPYPAN
       USE TRACERID_MOD, ONLY : IDTMAP
+      USE TRACERID_MOD, ONLY : IDTACET
+      !add drydep for MVK and MACR (jmao,4/2011)
+      USE TRACERID_MOD, ONLY : IDTMVK, IDTMACR
 #if   defined( APM )
       USE APM_INIT_MOD, ONLY : NSO4, NSEA, NDSTB
 #endif
@@ -4621,7 +4624,7 @@ C*
             NTRAIND(NUMDEP) = IDTHNO3
             NDVZIND(NUMDEP) = NUMDEP
             DEPNAME(NUMDEP) = 'HNO3'
-            HST AR(NUMDEP)  = 1.0d+14
+            HSTAR(NUMDEP)   = 1.0d+14
             F0(NUMDEP)      = 0.0d0
             XMW(NUMDEP)     = 63d-3
             AIROSOL(NUMDEP) = .FALSE.
@@ -4637,6 +4640,17 @@ C*
             HSTAR(NUMDEP)   = 1.0d+5
             F0(NUMDEP)      = 1.0d0
             XMW(NUMDEP)     = 34d-3
+            AIROSOL(NUMDEP) = .FALSE.
+
+         ! ACET
+         ELSE IF ( N == IDTACET ) THEN
+            NUMDEP          = NUMDEP + 1
+            NDVZIND(NUMDEP) = NUMDEP
+            NTRAIND(NUMDEP) = IDTACET
+            DEPNAME(NUMDEP) = 'ACET'
+            HSTAR(NUMDEP)   = 1.0d+5
+            F0(NUMDEP)      = 1.0d0
+            XMW(NUMDEP)     = 58d-3
             AIROSOL(NUMDEP) = .FALSE.
 
          ! PMN (uses same dep vel as PAN)
@@ -4702,7 +4716,7 @@ C*
             NDVZIND(NUMDEP) = NUMDEP
             DEPNAME(NUMDEP) = 'CH2O'
             HSTAR(NUMDEP)   = 6.0d+3
-            F0(NUMDEP)      = 0.0d0
+            F0(NUMDEP)      = 1.0d0 !Karl et al. 2010(science)
             XMW(NUMDEP)     = 30d-3
             AIROSOL(NUMDEP) = .FALSE.
 
@@ -4715,7 +4729,7 @@ C*
             NDVZIND(NUMDEP) = NUMDEP
             DEPNAME(NUMDEP) = 'GLYX'
             HSTAR(NUMDEP)   = 3.6d+5
-            F0(NUMDEP)      = 0.0d0
+            F0(NUMDEP)      = 1.0d0 !Karl et al. 2010(science)
             XMW(NUMDEP)     = 58d-3
             AIROSOL(NUMDEP) = .FALSE.
 
@@ -4726,7 +4740,7 @@ C*
             NDVZIND(NUMDEP) = NUMDEP
             DEPNAME(NUMDEP) = 'MGLY'
             HSTAR(NUMDEP)   = 3.7d+3
-            F0(NUMDEP)      = 0.0d0
+            F0(NUMDEP)      = 1.0d0 !Karl et al. 2010(science)
             XMW(NUMDEP)     = 72d-3
             AIROSOL(NUMDEP) = .FALSE.
 
@@ -4737,7 +4751,7 @@ C*
             NDVZIND(NUMDEP) = NUMDEP
             DEPNAME(NUMDEP) = 'GLYC'
             HSTAR(NUMDEP)   = 4.1d+4
-            F0(NUMDEP)      = 0.0d0
+            F0(NUMDEP)      = 1.0d0 !Karl et al. 2010(science)
             XMW(NUMDEP)     = 60d-3
             AIROSOL(NUMDEP) = .FALSE.
 
@@ -4878,7 +4892,7 @@ C*
             NDVZIND(NUMDEP) = DRYDH2O2 !USE H2O2
             DEPNAME(NUMDEP) = 'RIP'
             HSTAR(NUMDEP)   = 0d0
-            F0(NUMDEP)      = 0d0
+            F0(NUMDEP)      = 1.0d0 !Karl et al. 2010(science)
             XMW(NUMDEP)     = 0d0
             AIROSOL(NUMDEP) = .FALSE.
 
@@ -4889,7 +4903,7 @@ C*
             NDVZIND(NUMDEP) = DRYDH2O2 !USE H2O2
             DEPNAME(NUMDEP) = 'IEPOX'
             HSTAR(NUMDEP)   = 0d0
-            F0(NUMDEP)      = 0d0
+            F0(NUMDEP)      = 1.0d0 !Karl et al. 2010(science)
             XMW(NUMDEP)     = 0d0
             AIROSOL(NUMDEP) = .FALSE.
 
@@ -4903,6 +4917,29 @@ C*
             F0(NUMDEP)      = 1.0d0  !Assume reactive
             XMW(NUMDEP)     = 76d-3
             AIROSOL(NUMDEP) = .FALSE.
+            
+         !MVK
+         ELSE IF ( N == IDTMVK ) THEN
+            NUMDEP          = NUMDEP + 1
+            NTRAIND(NUMDEP) = IDTMVK
+            NDVZIND(NUMDEP) = NUMDEP !USE H2O2
+            DEPNAME(NUMDEP) = 'MVK'
+            HSTAR(NUMDEP)   = 4.4d1 !from R. Sander
+            F0(NUMDEP)      = 1.0d0 !Karl et al. 2010(science)
+            XMW(NUMDEP)     = 70d-3
+            AIROSOL(NUMDEP) = .FALSE.
+
+         !MACR
+         ELSE IF ( N == IDTMACR ) THEN
+            NUMDEP          = NUMDEP + 1
+            NDVZIND(NUMDEP) = NUMDEP
+            NTRAIND(NUMDEP) = IDTMACR
+            DEPNAME(NUMDEP) = 'MACR'
+            HSTAR(NUMDEP)   = 6.5d0 !from R. Sander
+            F0(NUMDEP)      = 1.0d0 !Assume reactive
+            XMW(NUMDEP)     = 70d-3
+            AIROSOL(NUMDEP) = .FALSE.
+
 
          !----------------------------------
          ! Sulfur & Nitrate aerosol tracers
@@ -5412,7 +5449,9 @@ C*
                NTRAIND(NUMDEP) = ID_Hg2(ID_Hg_tot)
                NDVZIND(NUMDEP) = NUMDEP
                DEPNAME(NUMDEP) = 'Hg2'
-               HSTAR(NUMDEP)   = 1.0d+6
+               HSTAR(NUMDEP)   = 1.0d+14
+               ! Change from 1d6 to 1d14 per HAmos 9/23/11
+               ! implemented 10/19/11 eck
                F0(NUMDEP)      = 0.0d0
                XMW(NUMDEP)     = 201d-3
                AIROSOL(NUMDEP) = .FALSE. 
@@ -5470,10 +5509,19 @@ C*
 
       !=================================================================
       ! Allocate arrays
+      ! add allocation for SALT_V and DMID (jaegle 5/11/11)
       !=================================================================
       ALLOCATE( DEPSAV( IIPAR, JJPAR, NUMDEP ), STAT=AS )
       IF ( AS /= 0 ) CALL ALLOC_ERR( 'DEPSAV' )
       DEPSAV = 0d0
+
+      ALLOCATE( SALT_V( NR_MAX ), STAT=AS )
+      IF ( AS /= 0 ) CALL ALLOC_ERR( 'SALT_V' )
+      SALT_V = 0d0
+
+      ALLOCATE( DMID( NR_MAX ), STAT=AS )
+      IF ( AS /= 0 ) CALL ALLOC_ERR( 'DMID' )
+      DMID = 0d0
 
 #if   defined( APM )
       ALLOCATE( DEPSAVSIZE( IIPAR, JJPAR, NSO4+NSEA+NDSTB ), STAT=AS )

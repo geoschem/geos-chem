@@ -298,6 +298,8 @@
 !  (6 ) For now treat MERRA like GEOS-5 (bmy, 8/13/10)
 !  29 Oct 2010 - T. D. Fairlie, R. Yantosca - Retune dust for MERRA 4x5
 !  15 Feb 2011 - R. Yantosca - Add modifications for APM from G. Luo
+!  08 Feb 2012 - R. Yantosca - For now, use same FLX_MSS_FDG_FCT for 
+!                              GEOS-5.7.x as for MERRA
 !  28 Feb 2012 - R. Yantosca - Removed support for GEOS-3
 !******************************************************************************
 !
@@ -381,6 +383,20 @@
       !
       !    -- Duncan Fairlie (t.d.fairlie@nasa.gov), 29 Oct 2010
       !----------------------------------------------------------------
+      REAL*8,  PARAMETER     :: FLX_MSS_FDG_FCT = 7.0d-4 / 0.731d0
+
+#elif defined( GEOS_57 ) && defined( GRID2x25 )
+
+      !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+      !%%% NOTE: NEED TO SCALE THIS FOR GEOS-5.7.x 2x25!                 %%%
+      !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+      REAL*8,  PARAMETER     :: FLX_MSS_FDG_FCT = 4.9d-4
+
+#elif defined( GEOS_57 ) && defined( GRID4x5 )
+
+      !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+      !%%% NOTE: USE SAME VALUE AS MERRA 4x5 FOR NOW!                    %%%
+      !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
       REAL*8,  PARAMETER     :: FLX_MSS_FDG_FCT = 7.0d-4 / 0.731d0
 
 #else

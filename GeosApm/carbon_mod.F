@@ -7241,7 +7241,7 @@ c
          ! GET gas mixing ratio [v/v]
          XGASMIX = XGASM / XMW / ( XAIRM / 28.97d0 )
 
-#if   defined( GEOS_5 ) || defined( MERRA )
+#if   defined( GEOS_5 ) || defined( MERRA ) || defined( GEOS_57 )
 
          !---------------------------------------------
          ! GEOS-5/MERRA: Get LWC, FC from met fields
