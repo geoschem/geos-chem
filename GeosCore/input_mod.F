@@ -5347,6 +5347,11 @@
       USE LOGICAL_MOD, ONLY : LBFCH4,  LBMCH4,  LWETL,  LRICE
       USE LOGICAL_MOD, ONLY : LOTANT,  LSOABS,  LOTNAT
       USE LOGICAL_MOD, ONLY : LCH4BUD
+      ! kjw
+      USE LOGICAL_MOD, ONLY : LBIOMASS
+      USE LOGICAL_MOD, ONLY : LGFED3BB, L8DAYBB3
+      USE LOGICAL_MOD, ONLY : LGFED2BB, L8DAYBB
+      USE ERROR_MOD,   ONLY : ERROR_STOP
  
 #     include "define.h"             ! C-preprocessor switches
 ! 
@@ -5361,6 +5366,7 @@
 !
       INTEGER            :: N
       CHARACTER(LEN=255) :: SUBSTRS(MAXDIM)
+      CHARACTER(LEN=255) :: MSG
 
       !=================================================================
       ! READ_CH4_MENU begins here!
@@ -5434,6 +5440,22 @@
       WRITE( 6, 100     ) 'Use Wetlands emis?    : ', LWETL
       WRITE( 6, 100     ) 'Use Soil Absorption?  : ', LSOABS
       WRITE( 6, 100     ) 'Use Ot. Natural emis? : ', LOTNAT
+
+      ! Error check (kjw)
+      IF ( LBMCH4 .EQ. .TRUE. ) THEN
+         IF ( ( LBIOMASS .EQ. .FALSE. ) .OR. 
+     &        ( LGFED2BB .EQ. .FALSE.  .AND. LGFED3BB .EQ. .FALSE. .AND.  
+     &         L8DAYBB  .EQ. .FALSE.  .AND. L8DAYBB3 .EQ. .FALSE.)) THEN
+            MSG = 'Specify which biomass burning emissions to use.'  //
+     &            '  If necessary, read CH4_MENU after EMISSIONS_MENU.'
+            print*,'LBIOMASS = ',LBIOMASS
+            print*,'LGFED3BB = ',LGFED3BB
+            print*,'LGFED2BB = ',LGFED2BB
+            print*,'L8DAYBB  = ',L8DAYBB
+            print*,'L8DAYBB3 = ',L8DAYBB3
+            CALL ERROR_STOP( MSG, 'READ_CH4_MENU ("input_mod.F")' )
+         ENDIF
+      ENDIF
 
       ! FORMAT statements
  100  FORMAT( A, L5  )

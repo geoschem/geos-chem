@@ -11,6 +11,7 @@
 !  (2 ) BAIRDENS   (REAL*8 ) : Array for air density [molec/cm3]
 !  (3 ) BOH        (REAL*8 ) : Array for OH values [molec/cm3]
 !  (4 ) COPROD     (REAL*8 ) : Array for zonal mean P(CO) [v/v/s]
+!  (4 ) CH4LOSS    (REAL*8 ) : Array for monthly average CH4 loss freq [1/s]
 !  (5 ) PAVG       (REAL*8 ) : Array for 24-h avg surface pressure [mb]
 !  (6 ) TAVG       (REAL*8 ) : Array for 24-h avg temperature [K]
 !  (7 ) TCH4       (REAL*8 ) : Array for CH4 budget (N_CH4 items)
@@ -127,8 +128,9 @@
                             
       ! Various arrays      
       REAL*8,  ALLOCATABLE :: BAIRDENS(:,:,:)
-      REAL*8,  ALLOCATABLE :: BOH(:,:,:)
+      REAL*8,  ALLOCATABLE :: BOH(:,:,:,:)
       REAL*8,  ALLOCATABLE :: COPROD(:,:,:)
+      REAL*8,  ALLOCATABLE :: CH4LOSS(:,:,:,:)
       REAL*8,  ALLOCATABLE :: PAVG(:,:,:)
       REAL*8,  ALLOCATABLE :: TAVG(:,:,:)
       REAL*8,  ALLOCATABLE :: TCH4(:,:,:,:)
@@ -224,15 +226,16 @@
          ! Initialize NNEW
 	 NNEW = 0
 
-         ! Error check --  NCHEM has to be 1440 min
-         IF ( GET_TS_CHEM() /= 1440 ) THEN   
-            WRITE(*,*) ' '
-            WRITE(*,*) 'CH4-OH parameterization option (i.e., NSRCX=5)!' 
-            WRITE(*,*) 'Use a chemistry time step = 24 hours'
-            WRITE(*,*) '(i.e., NCHEM=1440 min.)'
-            WRITE(*,*) ' '
-            CALL GEOS_CHEM_STOP
-         ENDIF
+         ! No longer true (kjw, 11/17/11).
+         !! Error check --  NCHEM has to be 1440 min
+         !IF ( GET_TS_CHEM() /= 1440 ) THEN   
+         !   WRITE(*,*) ' '
+         !   WRITE(*,*) 'CH4-OH parameterization option (i.e., NSRCX=5)!' 
+         !   WRITE(*,*) 'Use a chemistry time step = 24 hours'
+         !   WRITE(*,*) '(i.e., NCHEM=1440 min.)'
+         !   WRITE(*,*) ' '
+         !   CALL GEOS_CHEM_STOP
+         !ENDIF
 
          ! Error check -- need chem timestep (1440) to be divisible by 
          ! dyn timestep
@@ -360,7 +363,6 @@
       USE TRACER_MOD,    ONLY : N_TRACERS, ID_TRACER
       USE LOGICAL_MOD,   ONLY : LWETL,           LBMCH4,       LRICE
       USE LOGICAL_MOD,   ONLY : LBFCH4
-
       USE VDIFF_PRE_MOD, ONLY : EMIS_SAVE ! (ccc, 08/31/09)
       USE LOGICAL_MOD,   ONLY : LNLPBL    ! (ccc, 08/31/09)
       
@@ -458,13 +460,9 @@
 
       IF ( ITS_A_NEW_YEAR() ) THEN
 
-        !4.4 Biofuel emissions (CH4_BFL, #6)
-        IF ( LBFCH4 ) THEN
-           CALL BIOFUEL_EMIS
-        ENDIF
-
         !4.5 Aseasonal Anthropogenic emissions
-        ! (CH4_OAG, #2; CH4_COL, #3; CH4_LIV, #4; CH4_WST, #5; CH4_OTA, #8)
+        ! (CH4_OAG, #2; CH4_COL, #3; CH4_LIV, #4; CH4_WST, #5; 
+        !  CH4_BFL, #6; CH4_OTA, #8)
         CALL ASEASONAL_ANTHRO_EMIS
 
         !4.6 Aseasonal Natural emissions (CH4_SAB, #11; CH4_OTN, #12)
@@ -533,7 +531,7 @@
 
          IF ( ND58 > 0 ) THEN
 
-            ! All emission sources except soil absorption
+            ! All emission sources excluding soil absorption
             AD58(IREF,JREF,1) = AD58(IREF,JREF,1) + 
      &         ( CH4_EMIS(IREF,JREF,1) + CH4_EMIS(IREF,JREF,11) )
      &         / XNUMOL_CH4 * DTSRCE * AREA_CM2 
@@ -598,7 +596,6 @@
 
       ENDDO
       ENDDO
-
 
       print*,'END SUBROUTINE: EMISSCH4'
 
@@ -676,6 +673,7 @@
      &                               30, 31, 30, 31 /)
       CHARACTER(LEN=255) :: FILENAME
       CHARACTER(LEN=4)   :: CYEAR
+      LOGICAL, SAVE      :: FIRST
 
       !=================================================================
       ! WETLAND_CH4 begins here!
@@ -689,24 +687,38 @@
 
       WRITE( 6, '(a)' ) '% EMISSCH4 --- BEGIN WETLAND_EMIS'
 
-      FILENAME = TRIM( DATA_DIR )  // 'CH4_200911/wetlands/' //
-     &           'Wet_frac.'       // GET_NAME_EXT_2D()      //
-     &           '.'               // GET_RES_EXT()
 
-      WRITE( 6, 91 ) TRIM ( FILENAME )
- 91   FORMAT( '     - WL_CH4: Reading WET-FRAC: ', a )
-      CALL FLUSH( 6 )
+      ! Read Wetland fraction only if first call of simulation
+      !IF ( FIRST ) THEN
+         FILENAME = TRIM( DATA_DIR )  // 'CH4_201203/wetlands/' //
+     &              'Wetfrac.'        // GET_RES_EXT()          // 
+     &              '.bpch'
 
-      XTAU = GET_TAU0( 1, 1, 2000 )
+#if   defined( GRID05x0666 ) && defined( NESTED_NA )
+         FILENAME = TRIM( DATA_DIR )  // 'CH4_201203/wetlands/' //
+     &              'Wetfrac.'        // GET_RES_EXT()          //
+     &              '_NA.bpch'
+#endif
 
-      CALL READ_BPCH2( FILENAME, 'WET-FRAC',     1,      
-     &                     XTAU,      IIPAR,     JJPAR,      
-     &                        1,      ARRAY,     QUIET=.TRUE.)
+         WRITE( 6, 91 ) TRIM ( FILENAME )
+ 91      FORMAT( '     - WL_CH4: Reading WET-FRAC: ', a )
+         CALL FLUSH( 6 )
 
-      CALL TRANSFER_2D( ARRAY(:,:), WETFRAC(:,:) )
+         XTAU = GET_TAU0( 1, 1, 2000 )
 
-      ! WETFRAC is maximum inundatable area in a box
-      WETFRAC =  WETFRAC / 100d0
+         CALL READ_BPCH2( FILENAME, 'WET-FRAC',     1,      
+     &                    XTAU,     IIPAR,          JJPAR,      
+     &                    1,        ARRAY,          QUIET=.TRUE.)
+         
+         CALL TRANSFER_2D( ARRAY(:,:), WETFRAC(:,:) )
+
+         ! WETFRAC is maximum inundatable area in a box
+         WETFRAC =  WETFRAC / 100d0
+
+         ! Reset FIRST = FALSE
+         !FIRST = .FALSE.
+
+      !ENDIF
 
 
       !===================================================================
@@ -800,56 +812,98 @@
       ! Get litter carbon and soil carbon from LPJ DGVM (in gC/m2). 
       !===================================================================
 
-      ! Carbon litter and carbon soil files both have tau date of
-      ! Jan. 1, 2000
+      ! Only read Carbon and tskin information at beginning of each month
+      !IF ( ITS_A_NEW_MONTH() ) THEN
 
-      XTAU = GET_TAU0( 1, 1, 2000 )
+         ! Carbon litter and carbon soil files both have tau date of
+         ! Jan. 1, 2000
+         
+         XTAU = GET_TAU0( 1, 1, 2000 )
 
-      FILENAME = TRIM( DATA_DIR ) // 'CH4_200911/wetlands/' //
-     &           'Carbon_litter.'     // GET_NAME_EXT_2D()      //
-     &           '.'                  // GET_RES_EXT()
+         FILENAME = TRIM( DATA_DIR ) // 'CH4_201203/wetlands/' //
+     &              'Carbon_litter.' // GET_RES_EXT()          // 
+     &              '.bpch'
 
-      CALL READ_BPCH2( FILENAME, 'CO--SRCE',   2,      
-     &                        XTAU,      IIPAR,   JJPAR,      
-     &                           1,      ARRAY,   QUIET=.TRUE.)
+#if   defined( GRID05x0666 ) && defined( NESTED_NA )
+         FILENAME = TRIM( DATA_DIR ) // 'CH4_201203/wetlands/' //
+     &              'Carbon_litter.' // GET_RES_EXT()          //
+     &              '_NA.bpch'
+#endif
 
-      CALL TRANSFER_2D( ARRAY, LITTER_C )
+         CALL READ_BPCH2( FILENAME, 'CO--SRCE',   1,      
+     &                    XTAU,      IIPAR,       JJPAR,      
+     &                    1,         ARRAY,       QUIET=.TRUE.)
+
+         CALL TRANSFER_2D( ARRAY, LITTER_C )
+
+         FILENAME = TRIM( DATA_DIR ) // 'CH4_201203/wetlands/' //
+     &              'Carbon_soil.'   // GET_RES_EXT()          // 
+     &              '.bpch'
+
+#if   defined( GRID05x0666 ) && defined( NESTED_NA )
+         FILENAME = TRIM( DATA_DIR ) // 'CH4_201203/wetlands/' //
+     &              'Carbon_soil.'   // GET_RES_EXT()          // 
+     &              '_NA.bpch'
+#endif
+
+         CALL READ_BPCH2( FILENAME, 'CO--SRCE',   1,      
+     &                    XTAU,     IIPAR,        JJPAR,      
+     &                    1,        ARRAY,        QUIET=.TRUE.)
+
+         CALL TRANSFER_2D( ARRAY, SOIL_C )
 
 
-      FILENAME = TRIM( DATA_DIR )  // 'CH4_200911/wetlands/' //
-     &           'Carbon_soil.'    // GET_NAME_EXT_2D()      //
-     &           '.'               // GET_RES_EXT()
+         !===================================================================
+         ! Get annual mean skin temperature. 
+         !===================================================================
 
-      CALL READ_BPCH2( FILENAME, 'CO--SRCE',   2,      
-     &                 XTAU,      IIPAR,   JJPAR,      
-     &                 1,      ARRAY,   QUIET=.TRUE.)
+         ! No TSKIN data for years before 2000 or after 2009
+         YEAR = GET_YEAR()
 
-      CALL TRANSFER_2D( ARRAY, SOIL_C )
+#if   defined( GEOS_5 )
+         IF ( YEAR .LT. 2004 ) YEAR  = 2004
+         IF ( YEAR .GT. 2011 ) YEAR  = 2011
+         WRITE( CYEAR, '(i4)' ) YEAR
 
+         FILENAME = TRIM( DATA_DIR ) // 'CH4_201203/wetlands/' //
+     &              'TSKIN.'         // GET_NAME_EXT()         // 
+     &              '.'              // GET_RES_EXT()          //
+     &              '.'              // CYEAR                  // 
+     &              '.bpch'
 
-      !===================================================================
-      ! Get annual mean skin temperature. 
-      !===================================================================
+#elif defined( GEOS_4 )
+         IF ( YEAR .LT. 2000 ) YEAR  = 2000
+         IF ( YEAR .GT. 2009 ) YEAR  = 2009
+         WRITE( CYEAR, '(i4)' ) YEAR
 
-      YEAR = GET_YEAR()
-      ! Force YEAR to 2004. Only year with data for now.
-      IF ( YEAR /= 2004 ) YEAR = 2004
+         FILENAME = TRIM( DATA_DIR )  // 'CH4_200911/wetlands/' //
+     &              'TSKIN.'          // CYEAR                  // 
+     &              '.'               // GET_NAME_EXT()         // 
+     &              '.'               // GET_RES_EXT()
+#endif
 
-      WRITE( CYEAR, '(i4)' ) YEAR
+#if   defined( GRID05x0666 ) && defined( NESTED_NA )
+         YEAR    = 2004
+         WRITE( CYEAR, '(i4)' ) YEAR
 
-      FILENAME = TRIM( DATA_DIR )  // 'CH4_200911/wetlands/' //
-     &           'TSKIN.'          // CYEAR                  // 
-     &           '.'               // GET_NAME_EXT()         // 
-     &           '.'               // GET_RES_EXT()
+         FILENAME = TRIM( DATA_DIR ) // TRIM( CH4_DIR )        //
+     &              'TSKIN.'         // GET_NAME_EXT()         //
+     &              '.'              // GET_RES_EXT()          //
+     &              '_NA.'           // CYEAR                  //
+     &              '.bpch' 
+#endif
 
-      XTAU = GET_TAU0( 1, 1, YEAR )
+         XTAU = GET_TAU0( 1, 1, YEAR )
       
-      CALL READ_BPCH2( FILENAME,  'GMAO-2D',    2,
-     &                     XTAU,      IIPAR,    JJPAR,      
-     &                        1,      ARRAY,    QUIET=.TRUE.)
+         CALL READ_BPCH2( FILENAME,  'GMAO-2D',    2,
+     &                    XTAU,      IIPAR,        JJPAR,      
+     &                    1,         ARRAY,        QUIET=.TRUE.)
 
-      CALL TRANSFER_2D( ARRAY, MEAN_T )
-      print*,'done skin temp'
+         CALL TRANSFER_2D( ARRAY, MEAN_T )
+         print*,'done skin temp'
+
+      !ENDIF   ! End if its_a_new_month
+
 
       !===================================================================
       ! Calculate CH4 emissions!
@@ -866,9 +920,24 @@
       !    routine using GEOS-4 met variables. I have tuned the model
       !    using GEOS-5 met variables and found that EMIT_FACT=.01 
       !    and MOIST_SCALE=.1 give a reasonable balance between
-      !    extratropical and tropical emissions, kjw (7/20/10). 
-      MOIST_SCALE=0.1d0
-      EMIT_FACT = .01d0
+      !    extratropical and tropical emissions, kjw (7/20/10).
+      ! 
+      ! UPDATE 12/13/2011
+      !    Carbon litter and soil maps used prior to GC v9-01-03 were
+      !    incorrect. Carbon litter had wrong spatial distribution, and
+      !    carbon soil values were too high and may also have had the 
+      !    wrong spatial distribution.
+      !    Updated carbon litter, carbon soil, and wetland fraction maps
+      !    are included in v9-01-03. MOIST_SCALE and EMIT_FACT have been 
+      !    tuned to maintain annual global average methane emissions 
+      !    ~ 166.8 Tg/y. Boreal wetland emissions are ~ 28.9 Tg/y, 
+      !    consistent with estimates described in Pickett-Heaps 2011,
+      !    3rd pararaph of introduction. New parameter values:
+      !      MOIST_SCALE = 0.19
+      !      EMIT_FACT   = 0.023
+      !    (kjw, 12/13/2011)
+      MOIST_SCALE=0.19d0
+      EMIT_FACT = .023d0
 
 
 !$OMP PARALLEL DO
@@ -962,29 +1031,14 @@
 !******************************************************************************
 !
       ! References to F90 modules
-      USE BPCH2_MOD,        ONLY : READ_BPCH2,    GET_TAU0
-      USE DIRECTORY_MOD,    ONLY : DATA_DIR_1x1
-      USE REGRID_1x1_MOD,   ONLY : DO_REGRID_1x1
-      USE REGRID_1x1_MOD,   ONLY : DO_REGRID_G2G_1x1
-      USE TIME_MOD,         ONLY : GET_MONTH,     GET_YEAR
-      USE TIME_MOD,         ONLY : EXPAND_DATE
-
-      USE CMN_SIZE_MOD     ! Size parameters
-      USE CMN_DIAG_MOD     ! Diagnostic switches
+      USE BIOMASS_MOD,      ONLY : BIOMASS
+      USE LOGICAL_MOD,      ONLY : LGFED2BB,      LGFED3BB
+      USE TRACERID_MOD,     ONLY : IDBCH4
+      USE CMN_SIZE_MOD,     ONLY : IIPAR, JJPAR
 
       ! Local Variables
-      INTEGER                :: I, J, MM, MM1, YYYY, YYYY1
-      INTEGER                :: YYYYMMDD, N_VEG
-      INTEGER                :: VEG_GEN_1x1(I1x1,J1x1-1)
-      REAL*4                 :: ARRAY(I1x1,J1x1-1)
-      REAL*4                 :: DM_GEN_1x1(I1x1,J1x1-1)
-      REAL*8                 :: BIOM_GEN_1x1(I1x1,J1x1-1)
-      REAL*8                 :: BIOM_GEOS_1x1(I1x1,J1x1,1)
-      REAL*8                 :: BIOM_OUT(IIPAR,JJPAR)
-      REAL*8                 :: TAU0, TAU1, SECONDS
-      REAL*8                 :: GFED2_EMFAC(3)
-      CHARACTER(LEN=255)     :: FILENAME
-
+      REAL*8                 :: E_CH4
+      INTEGER                :: I, J
 
       WRITE( 6, '(a)' ) '% EMISSCH4 --- BEGIN BIOBURN_EMIS'
 
@@ -992,174 +1046,20 @@
       ! BIOBURN_EMIS begins here!
       !=================================================================
 
-      !4.9 Biomass Burning emissions
+      !4.9 Biomass Burning emissions. Calculate emissions from monthly 
+      !     GFED-2 or GFED-3.
+      IF ( LGFED2BB .OR. LGFED3BB ) THEN
+         DO I=1,IIPAR
+         DO J=1,JJPAR
+            ! Biomass burning emissions [molec/cm2/s]
+            E_CH4 = BIOMASS( I,J,IDBCH4 )
 
-      ! Get year for which biomass burning will be read
-      YYYY = GET_YEAR()
-      MM   = GET_MONTH()
- 
-      ! 1997 is the 1st year of available data
-      IF ( YYYY < 1997 ) THEN
-         YYYY = 1997
-         WRITE( 6, 110 )
- 110     FORMAT( 'YEAR < 1997; Using GFED2 biomass for 1997!' )
+            ! Place into CH4_EMIS array
+            CH4_EMIS(I,J,9) = E_CH4
+
+         ENDDO
+         ENDDO
       ENDIF
-
-      ! 2007 is currently the last year of available data (6/4/09)
-      IF ( YYYY > 2007 ) THEN
-         YYYY = 2007
-         WRITE( 6, 120 ) 
- 120     FORMAT( 'YEAR > 2007; Using GFED2 biomass for 2007!' )
-      ENDIF
-
-
-      !=================================================================
-      ! Read monthly GFED2 C emissions [g/m2/month]
-      !=================================================================
-
-      !TAU value at start of YYYY/MM
-      TAU0     = GET_TAU0( MM, 1, YYYY )
-
-      ! Get YYYY/MM value for next month
-      MM1      = MM + 1
-      YYYY1    = YYYY
-
-      ! Increment year if necessary
-      IF ( MM1 == 13 ) THEN
-         MM1   = 1
-         YYYY1 = YYYY + 1
-      ENDIF
-
-      ! TAU value at start of next month
-      TAU1     = GET_TAU0( MM1, 1, YYYY1 )
-
-      ! Number of seconds in this month 
-      ! (NOTE: its value will be saved until the next month)
-      SECONDS  = ( TAU1 - TAU0 ) * 3600d0
-
-      ! File name with GFED2 C emissions
-      FILENAME = TRIM( DATA_DIR_1x1 ) //
-     &           'GFED2_200601/YYYY/GFED2_C_YYYYMM.generic.1x1'
-
-      ! Create YYYYMMDD integer value
-      YYYYMMDD = YYYY*10000 + MM*100 + 01
-
-      ! Replace YYYY/MM in the file name
-      CALL EXPAND_DATE( FILENAME, YYYYMMDD, 000000 )
-
-      ! Read GFED2 C emissions [g C/m2/month]
-      CALL READ_BPCH2( FILENAME, 'GFED2-BB',   99, 
-     &                 TAU0,      I1x1,        J1x1-1,     
-     &                 1,         DM_GEN_1x1,  QUIET=.TRUE. ) 
-
-      !=================================================================
-      ! Convert C [g/m2/month] to dry matter burned [kg/cm2/month]
-      !
-      ! Unit Conversions:
-      ! (1) C    to DM    --> Divide by 0.45  
-      ! (2) g    to kg    --> Divide by 1000  
-      ! (3) 1/m2 to 1/cm2 --> Divide by 10000 
-      !=================================================================
-
-      ! Loop over GENERIC 1x1 GRID
-      DO J = 1, J1x1-1
-      DO I = 1, I1x1
-
-         ! Set negatives to zero
-         DM_GEN_1x1(I,J) = MAX( DM_GEN_1x1(I,J), 0e0 )
-
-         ! Convert [g C/m2/month] to [kg DM/cm2/month]
-         DM_GEN_1x1(I,J) = DM_GEN_1x1(I,J) / ( 0.45d0 * 1d3 * 1d4 )
-
-      ENDDO
-      ENDDO
-
-      !=================================================================
-      ! Read GFED vegetation map from bpch file
-      ! 
-      ! Values:  3 = boreal forest 
-      !          2 = tropical forest; 
-      !          1 = savanna / herb / other land
-      !          0 = water
-      !=================================================================
-
-      ! File name
-      FILENAME = TRIM( DATA_DIR_1x1 ) // 
-     &           'GFED2_200601/GFED2_vegmap.generic.1x1'
-
-      ! Read GFED2 veg map 
-      CALL READ_BPCH2( FILENAME, 'LANDMAP',  1, 
-     &                 0d0,       I1x1,      J1x1-1,     
-     &                 1,         ARRAY,     QUIET=.TRUE. ) 
-
-      ! Cast from REAL*4 to INTEGER
-      VEG_GEN_1x1(:,:) = ARRAY(:,:)
-
-
-      !=================================================================
-      ! Calculate CH4 emissions on 1x1 emissions grid
-      !
-      ! Emission factors from Andreae and Merlet 2001 convert from
-      !    [kgDM/cm2/month] --> [gCH4/cm2/month]
-      !
-      !  1. Savanna/Grassland:     2.3  +/- 0.9
-      !  2. Tropical Forest:       6.8  +/- 2.0
-      !  3. Extratropical Forest:  4.7  +/- 1.9
-      !
-      ! / 16d0 * 6.022d23  converts from
-      !    [gCH4/cm2/month] --> [molecCH4/cm2/month]
-      !
-      !=================================================================
-
-      ! Emission factors from Andreae and Merlet 2001
-      GFED2_EMFAC(1) = 2.3 / 16d0 * 6.022d23
-      GFED2_EMFAC(2) = 6.8 / 16d0 * 6.022d23
-      GFED2_EMFAC(3) = 4.7 / 16d0 * 6.022d23
-
-      DO J = 1, J1x1-1
-      DO I = 1, I1x1
-
-         ! Vegetation type index
-         N_VEG = VEG_GEN_1x1(I,J)
-            
-         ! Multiply DM * EMISSION FACTOR to get biomass emissions
-         ! for each species on the GENERIC 1x1 GRID 
-         SELECT CASE( N_VEG )
-
-            ! Ocean 
-            CASE( 0 ) 
-               BIOM_GEN_1x1(I,J) = 0d0
-
-            ! Land
-            CASE( 1:3 )
-               BIOM_GEN_1x1(I,J) = DM_GEN_1x1(I,J) * 
-     &                               GFED2_EMFAC(N_VEG)
-
-            ! Otherwise
-            CASE DEFAULT
-               ! Nothing
- 
-         END SELECT
-      ENDDO
-      ENDDO
-
-      ! Regrid each species from GENERIC 1x1 GRID to GEOS-Chem 1x1 GRID
-      CALL DO_REGRID_G2G_1x1( 'molec/cm2',
-     &                         BIOM_GEN_1x1, 
-     &                         BIOM_GEOS_1x1(:,:,1) )
-
-      ! Regrid from GEOS 1x1 grid to current grid.  (The unit 'molec/cm2' 
-      ! is just used to denote that the quantity is per unit area.)
-      CALL DO_REGRID_1x1 ('molec/cm2', 
-     &                     BIOM_GEOS_1x1,  BIOM_OUT     ) 
-
-      ! Convert from [molec/cm2/month] to [molec/cm2/s]
-      BIOM_OUT = BIOM_OUT / SECONDS
-
-
-      ! BIOM_OUT has molecCH4/cm2/s  for the current month
-      CH4_EMIS(:,:,9) = BIOM_OUT
-
 
       ! Return to calling program
       END SUBROUTINE BIOBURN_EMIS
@@ -1198,7 +1098,7 @@
       USE CMN_DIAG_MOD     ! Diagnostic switches
 
       ! Local Variables
-      INTEGER                :: I,J
+      INTEGER                :: I,J,YEAR
       REAL*4                 :: ARRAY(IIPAR,JJPAR)      
       REAL*8                 :: DTSRCE,       AREA_CM2
       REAL*8                 :: MEAN_GWETTOP(IIPAR,JJPAR)
@@ -1230,28 +1130,64 @@
      &           '.'              // GET_NAME_EXT_2D() // 
      &           '.'              // GET_RES_EXT()
 
+#if   defined( GRID05x0666 ) && defined( NESTED_NA )
+      FILENAME = TRIM( DATA_DIR ) // 'CH4_201203/'     //
+     &           'rice.'          // GET_RES_EXT()     //
+     &           '_NA.'           // CYEAR             //
+     &           '.bpch'
+#endif
+
       CALL READ_BPCH2( FILENAME, 'CH4-EMIS', 1,
      &                 XTAU,      IIPAR,     JJPAR,
      &                 1,         ARRAY,     QUIET=.TRUE.)
-      CALL TRANSFER_2D( ARRAY, CH4_EMIS(:,:,7) )
 
+      CALL TRANSFER_2D( ARRAY, CH4_EMIS(:,:,7) )
 
       ! Get annual and monthly mean soil wetness from GEOS
       ! One file contains both monthly and annual mean GWETTOP
+      YEAR = GET_YEAR()
+#if   defined( GEOS_5 )
+      IF ( YEAR .LT. 2004 ) YEAR  = 2004
+      IF ( YEAR .GT. 2011 ) YEAR  = 2011
+      WRITE( CYEAR, '(i4)' ) YEAR
+
+      FILENAME = TRIM( DATA_DIR )  // 'CH4_201203/GWETTOP/'  //
+     &           'GWETTOP.'        // GET_NAME_EXT()         // 
+     &           '.'               // GET_RES_EXT()          // 
+     &           '.'               // CYEAR                  // 
+     &           '.bpch'
+
+#elif defined( GEOS_4 )
+      IF ( YEAR .LT. 2000 ) YEAR  = 2000
+      IF ( YEAR .GT. 2009 ) YEAR  = 2009
+      WRITE( CYEAR, '(i4)' ) YEAR
+
       FILENAME = TRIM( DATA_DIR )  // 'CH4_200911/GWETTOP/'  //
-     &           'GWETTOP.'        // CYEAR          // 
-     &           '.'               // GET_NAME_EXT() // 
+     &           'GWETTOP.'        // CYEAR                  // 
+     &           '.'               // GET_NAME_EXT()         // 
      &           '.'               // GET_RES_EXT()
+#endif
+
+#if   defined( GRID05x0666 ) && defined( NESTED_NA )
+      YEAR = 2004
+      WRITE( CYEAR, '(i4)' ) YEAR
+
+      FILENAME = TRIM( DATA_DIR )  // 'CH4_201203/GWETTOP/'  //
+     &           'GWETTOP.'        // GET_NAME_EXT()         // 
+     &           '.'               // GET_RES_EXT()          // 
+     &           '_NA.'            // CYEAR                  //
+     &           '.bpch' 
+#endif
 
       ! Annual mean GWETTOP
-      XTAU = GET_TAU0( 1, 1, GET_YEAR() )
+      XTAU = GET_TAU0( 1, 1, YEAR )
       CALL READ_BPCH2( FILENAME, 'GMAO-2D',  2,      
      &                 XTAU,      IIPAR,     JJPAR,      
      &                    1,      ARRAY,     QUIET=.TRUE.)
       CALL TRANSFER_2D( ARRAY, MEAN_GWETTOP )
 
       ! Monthly mean GWETTOP
-      XTAU = GET_TAU0( GET_MONTH(), 1, GET_YEAR() )
+      XTAU = GET_TAU0( GET_MONTH(), 1, YEAR )
       CALL READ_BPCH2( FILENAME, 'GMAO-2D',  1,      
      &                 XTAU,      IIPAR,     JJPAR,      
      &                    1,      ARRAY,     QUIET=.TRUE.)
@@ -1286,102 +1222,6 @@
       ! Return to calling program
       END SUBROUTINE RICE_EMIS
 
-
-!------------------------------------------------------------------------------
-
-      SUBROUTINE BIOFUEL_EMIS
-!
-!******************************************************************************
-!  Subroutine BIOFUEL_EMIS calculates CH4 emissions from anthropogenic
-!  biofuels in the Yevich and Logan 2003 inventory (kjw, 6/03/09) 
-!
-!  CO Emissions are read from the inventory of Yevich and Logan 2003.
-!  CH4 Emissions are calculated from emission factors in
-!  Andreae and Merlet, 2001 (6/4/09).
-!
-!  NOTES:
-!
-!******************************************************************************
-!
-      ! References to F90 modules
-      USE BPCH2_MOD,      ONLY : READ_BPCH2,    GET_TAU0
-      USE BPCH2_MOD,      ONLY : GET_RES_EXT
-      USE DIRECTORY_MOD,  ONLY : DATA_DIR
-      USE GRID_MOD,       ONLY : GET_AREA_CM2
-      USE TIME_MOD,       ONLY : GET_MONTH,     GET_YEAR
-      USE TIME_MOD,       ONLY : EXPAND_DATE
-      USE TRANSFER_MOD,   ONLY : TRANSFER_2D
-
-      USE CMN_SIZE_MOD     ! Size parameters
-      USE CMN_DIAG_MOD     ! Diagnostic switches
-
-      ! Local Variables
-      INTEGER                :: I, J, YYYY
-      REAL*4                 :: ARRAY(IIPAR,JJPAR)
-      REAL*8                 :: BIOF_OUT(IIPAR,JJPAR)
-      REAL*8                 :: AREA_CM2
-      REAL*8                 :: TAU0, TAU1, SECONDS
-      CHARACTER(LEN=255)     :: FILENAME
-
-
-      WRITE( 6, '(a)' ) '% EMISSCH4 --- BEGIN BIOFUEL_EMIS'
-
-      !=================================================================
-      ! BIOFUEL_EMIS begins here!
-      !=================================================================
-
-      !4.6 Biofuel emissions
-
-      !=================================================================
-      ! Read monthly biofuel emissions [kgCO/box/year]
-      !=================================================================
-
-      !TAU value for biofuel bpch files in data directory
-      TAU0     = GET_TAU0( 1, 1, 1985 )
-
-      ! File name with GFED2 C emissions
-      FILENAME = TRIM( DATA_DIR ) // 'biofuel_200202/biofuel.geos.' //
-     &              GET_RES_EXT()
-
-      ! Read CO Biofuel emissions [kg/box/year]
-      CALL READ_BPCH2( FILENAME, 'BIOFSRCE',   4, 
-     &                 TAU0,      IIPAR,       JJPAR,     
-     &                 1,         ARRAY,       QUIET=.TRUE. ) 
-      CALL TRANSFER_2D( ARRAY, BIOF_OUT )
-
-      !=================================================================
-      ! Convert [kgCO/box/year] to [molecCH4/cm2/s]
-      !=================================================================
-
-      ! [kgCO/box/year] --> [kgCO/cm2/year]
-      DO J = 1, JJPAR
-         AREA_CM2 = GET_AREA_CM2( J )
-         BIOF_OUT(:,J) = BIOF_OUT(:,J) / AREA_CM2
-      ENDDO
-
-      ! [kgCO/cm2/year] --> [kgCO/cm2/s]
-      YYYY = GET_YEAR()
-      TAU0 = GET_TAU0(1, 1, YYYY)
-      YYYY = YYYY + 1
-      TAU1 = GET_TAU0(1, 1, YYYY)
-      SECONDS  = ( TAU1 - TAU0 ) * 3600d0  ! # seconds in the current year
-      BIOF_OUT = BIOF_OUT / SECONDS
-
-      ! [kgCO/cm2/s] --> [kgCH4/cm2/s]
-      BIOF_OUT = BIOF_OUT * 61d-1 / 78d0   ! Andreae and Merlet 2001
-
-      ! [kgCH4/cm2/s] --> [molecCH4/cm2/s]
-      BIOF_OUT = BIOF_OUT * XNUMOL_CH4
-
-
-      ! BIOF_OUT has molecCH4/cm2/s  for the current month
-      CH4_EMIS(:,:,6) = BIOF_OUT
-
-
-      ! Return to calling program
-      END SUBROUTINE BIOFUEL_EMIS
-
-
 !------------------------------------------------------------------------------
 
       SUBROUTINE ASEASONAL_ANTHRO_EMIS
@@ -1409,7 +1249,7 @@
       USE TIME_MOD,      ONLY : GET_YEAR
       USE TRANSFER_MOD,  ONLY : TRANSFER_2D
       USE LOGICAL_MOD,   ONLY : LGAO,         LCOL,         LLIV
-      USE LOGICAL_MOD,   ONLY : LWAST,        LOTANT
+      USE LOGICAL_MOD,   ONLY : LWAST,        LOTANT, LBFCH4
 
       USE CMN_SIZE_MOD     ! Size parameters
       USE CMN_DIAG_MOD     ! Diagnostic switches
@@ -1437,8 +1277,6 @@
       !      XTAU = GET_TAU0( 1, 1, GET_YEAR() )
 
 
-
-
       !4.2 Gas and Oil emissions
       IF ( LGAO ) THEN
          FILENAME = TRIM( DATA_DIR ) // 'CH4_200911/'     //
@@ -1446,9 +1284,16 @@
      &              '.'              // GET_NAME_EXT_2D() //
      &              '.'              // GET_RES_EXT() 
 
+#if   defined( GRID05x0666 ) && defined( NESTED_NA )
+         FILENAME = TRIM( DATA_DIR ) // 'CH4_201203/'     //
+     &              'gas_oil.'       // GET_RES_EXT()     // 
+     &              '_NA.'           // CYEAR             // 
+     &              '.bpch'
+#endif
+
          CALL READ_BPCH2( FILENAME, 'CH4-EMIS',   1,
-     &                       XTAU,      IIPAR,    JJPAR,
-     &                       1,         ARRAY,    QUIET=.TRUE.)
+     &                    XTAU,     IIPAR,        JJPAR,
+     &                    1,        ARRAY,        QUIET=.TRUE.)
          CALL TRANSFER_2D( ARRAY, CH4_EMIS(:,:,2) ) 
       ENDIF
 
@@ -1460,9 +1305,16 @@
      &              '.'              // GET_NAME_EXT_2D() //
      &              '.'              // GET_RES_EXT() 
 
+#if   defined( GRID05x0666 ) && defined( NESTED_NA )
+         FILENAME = TRIM( DATA_DIR ) // 'CH4_201203/'     //
+     &              'coal.'          // GET_RES_EXT()     // 
+     &              '_NA.'           // CYEAR             // 
+     &              '.bpch'
+#endif 
+
          CALL READ_BPCH2( FILENAME, 'CH4-EMIS',   1,
-     &                       XTAU,      IIPAR,    JJPAR,
-     &                       1,         ARRAY,    QUIET=.TRUE.)
+     &                    XTAU,     IIPAR,        JJPAR,
+     &                    1,        ARRAY,        QUIET=.TRUE.)
          CALL TRANSFER_2D( ARRAY, CH4_EMIS(:,:,3) )
       ENDIF
 
@@ -1473,12 +1325,38 @@
      &              '.'              // GET_NAME_EXT_2D() //
      &              '.'              // GET_RES_EXT() 
 
+#if   defined( GRID05x0666 ) && defined( NESTED_NA )
+         FILENAME = TRIM( DATA_DIR ) // 'CH4_201203/'     //
+     &              'livestock.'     // GET_RES_EXT()     // 
+     &              '_NA.'           // CYEAR             //
+     &              '.bpch'
+#endif
+
          CALL READ_BPCH2( FILENAME, 'CH4-EMIS',   1,
-     &                       XTAU,      IIPAR,    JJPAR,
-     &                       1,         ARRAY,    QUIET=.TRUE.)
+     &                    XTAU,     IIPAR,        JJPAR,
+     &                    1,        ARRAY,        QUIET=.TRUE.)
          CALL TRANSFER_2D( ARRAY, CH4_EMIS(:,:,4) )
       ENDIF
 
+      !4.6 Biofuel emissions
+      IF ( LBFCH4 ) THEN
+         FILENAME = TRIM( DATA_DIR ) // 'CH4_201203/'     //
+     &              'resident.'      // GET_RES_EXT()     // 
+     &              '.'              // CYEAR             //
+     &              '.bpch'
+
+#if   defined( GRID05x0666 ) && defined( NESTED_NA )
+         FILENAME = TRIM( DATA_DIR ) // 'CH4_201203/'     //
+     &              'resident.'      // GET_RES_EXT()     //
+     &              '_NA.'           // CYEAR             //
+     &              '.bpch'
+#endif
+
+         CALL READ_BPCH2( TRIM(FILENAME), 'CH4-EMIS',   1,
+     &                    XTAU,           IIPAR,        JJPAR,
+     &                    1,              ARRAY,        QUIET=.TRUE.)
+         CALL TRANSFER_2D( ARRAY, CH4_EMIS(:,:,6) ) 
+      ENDIF
 	
       !4.5 Waste emissions
       IF ( LWAST ) THEN
@@ -1487,9 +1365,16 @@
      &              '.'              // GET_NAME_EXT_2D() //
      &              '.'              // GET_RES_EXT() 
 
+#if   defined( GRID05x0666 ) && defined( NESTED_NA )
+         FILENAME = TRIM( DATA_DIR ) // 'CH4_201203/'     //
+     &              'waste.'         // GET_RES_EXT()     //
+     &              '_NA.'           // CYEAR             //
+     &              '.bpch'
+#endif
+
          CALL READ_BPCH2( FILENAME, 'CH4-EMIS',   1,
-     &                       XTAU,      IIPAR,    JJPAR,
-     &                       1,         ARRAY,    QUIET=.TRUE.)
+     &                    XTAU,     IIPAR,        JJPAR,
+     &                    1,        ARRAY,        QUIET=.TRUE.)
          CALL TRANSFER_2D( ARRAY, CH4_EMIS(:,:,5) )
       ENDIF
 
@@ -1500,9 +1385,16 @@
      &              '.'              // GET_NAME_EXT_2D() //
      &              '.'              // GET_RES_EXT() 
 
+#if   defined( GRID05x0666 ) && defined( NESTED_NA )
+         FILENAME = TRIM( DATA_DIR ) // 'CH4_201203/'     //
+     &              'other.'         // GET_RES_EXT()     //
+     &              '_NA.'           // CYEAR             //
+     &              '.bpch'
+#endif
+
          CALL READ_BPCH2( FILENAME, 'CH4-EMIS',   1,
-     &                       XTAU,      IIPAR,    JJPAR,
-     &                       1,         ARRAY,    QUIET=.TRUE.)
+     &                    XTAU,     IIPAR,        JJPAR,
+     &                    1,        ARRAY,        QUIET=.TRUE.)
          CALL TRANSFER_2D( ARRAY, CH4_EMIS(:,:,8) )
       ENDIF
 
@@ -1565,9 +1457,15 @@
      &              'soilabs.'       // GET_NAME_EXT_2D() //
      &              '.'              // GET_RES_EXT() 
 
+#if   defined( GRID05x0666 ) && defined( NESTED_NA )
+         FILENAME = TRIM( DATA_DIR ) // 'CH4_201203/'     //
+     &              'soilabs.'       // GET_RES_EXT()     // 
+     &              '_NA.bpch'
+#endif
+
          CALL READ_BPCH2( FILENAME, 'CH4-EMIS', 1,
-     &                       XTAU,      IIPAR,    JJPAR,
-     &                       1,         ARRAY,    QUIET=.TRUE.)
+     &                    XTAU,     IIPAR,      JJPAR,
+     &                    1,        ARRAY,      QUIET=.TRUE.)
          CALL TRANSFER_2D( ARRAY, CH4_EMIS(:,:,11) )
       ENDIF
 
@@ -1577,9 +1475,15 @@
      &              'termites.'      // GET_NAME_EXT_2D() //
      &              '.'              // GET_RES_EXT() 
 
+#if   defined( GRID05x0666 ) && defined( NESTED_NA )
+         FILENAME = TRIM( DATA_DIR ) // 'CH4_201203/'     //
+     &              'termites.'      // GET_RES_EXT()     //
+     &              '_NA.bpch'
+#endif
+
          CALL READ_BPCH2( FILENAME, 'CH4-EMIS', 1,
-     &                       XTAU,      IIPAR,    JJPAR,
-     &                       1,         ARRAY,    QUIET=.TRUE.)
+     &                     XTAU,     IIPAR,     JJPAR,
+     &                     1,        ARRAY,     QUIET=.TRUE.)
          CALL TRANSFER_2D( ARRAY, CH4_EMIS(:,:,12) )
       ENDIF
 
@@ -1647,6 +1551,7 @@
       USE BPCH2_MOD,     ONLY : GET_NAME_EXT, GET_RES_EXT
       USE TRACER_MOD,    ONLY : STT
       USE LOGICAL_MOD,   ONLY : LSPLIT, LCH4BUD
+      USE TIME_MOD,      ONLY : ITS_A_NEW_MONTH
 
       USE CMN_SIZE_MOD     ! Size parameters
       USE CMN_DIAG_MOD     ! ND43, AD43
@@ -1699,22 +1604,30 @@
 
       !=================================================================
       ! (1) If the first time step ...
+      !        Read monthly average ch4 loss frequencies for strat chem
       !=================================================================
       IF ( FIRSTCHEM ) THEN
 
          ! Counter for total number of timesteps per month for CO budget.
          NTALDT = 1
 
+         ! Now read CH4 loss frequencies instead of CO production
+         ! (kjw, 11/19/11)
          ! Zero CO Production array
-         COPROD(:,:,:) = 0d0
-         print*,'READ_COPROD'
+         !COPROD(:,:,:) = 0d0
+         !print*,'READ_COPROD'
          ! Read zonally-averaged CO production [v/v/s]
-         CALL READ_COPROD
-         print*,'READ_COPROD DONE'
+         !CALL READ_COPROD
+         !print*,'READ_COPROD DONE'
+         CH4LOSS(:,:,:,:) = 0d0
+         CALL READ_CH4LOSS
 
          ! Initialize the CH4 burden TCH4 [molec/box], (ccc, 7/23/09)
          TCH4(:,:,:,1) = STT(:,:,:,1) * XNUMOL_CH4 
       ENDIF
+
+      ! Initialize current month
+      LMN = GET_MONTH()
 
       ! Increment counter of timesteps
       NTALDT = NTALDT + 1
@@ -1732,9 +1645,7 @@
       !       = 1 : Get GEOS-Chem OH (v5-07-08) (kjw, 5/28/08)
       !
       !================================================================
-      
-      ! 3D OH Field
-      BOH(:,:,:) = 0d0
+
 
       ! Change value of NOHDO as listed above
       NOHDO = 1
@@ -1744,38 +1655,24 @@
          ! NOHDO = 1: GEOS-Chem OH v5-07-08
          CASE ( 1 )
 
+            ! If first of month, read monthly mean OH
+            IF ( FIRSTCHEM ) THEN
 
-          ! LMN is the current month
-            LMN = GET_MONTH()
+               ! 3D OH Field
+               BOH(:,:,:,:) = 0d0
 
-          ! Global OH 
-            CALL GET_GLOBAL_OH( LMN )
+               ! Loop over each month, reading OH
+               DO M=1,12
 
-            BOH = OH
+                  ! Global OH 
+                  CALL GET_GLOBAL_OH( M )
 
-!            FILENAME = TRIM( OH_DIR )   //
-!     &                 'OH_3Dglobal.'   //   GET_NAME_EXT()   //
-!     &                 '.'              //   GET_RES_EXT()
-!
-!            WRITE( 6, 44 ) TRIM ( FILENAME )
-! 44         FORMAT( '     - READ OH from: ', a )
-!	    CALL FLUSH( 6 )
-!
-!          ! LMN is the current month
-!            LMN = GET_MONTH()
-!
-!	    XTAU = GET_TAU0( LMN, 1, 1985 ) 
-!            print*,'     - READ OH:  before CALL READ_BPCH2'
-!            CALL READ_BPCH2( FILENAME, 'CHEM-L=$', 1,      
-!     &                       XTAU,      IIPAR,     JJPAR,      
-!     &                       LLPAR,     ARRAY,     QUIET=.FALSE.)
-!
-!            print*,'     - READ OH:  after CALL READ_BPCH2'
-!	    DO L=1, LLPAR
-!	       CALL TRANSFER_2D( ARRAY(:,:,L), BOH(:,:,L) )
-!	    ENDDO
-!            print*,'     - READ OH:  OH read done'
+                  ! Assign to module variable BOH
+                  BOH(:,:,:,M) = OH(:,:,:)
 
+               ENDDO
+
+            ENDIF
 
          ! Default.  GEOS_CHEM_STOP
          CASE DEFAULT
@@ -1795,7 +1692,7 @@
          DO J = 1, JJPAR
          DO I = 1, IIPAR
             IF ( L < LPAUSE(I,J) ) THEN
-               AD43(I,J,L,1) = AD43(I,J,L,1) + BOH(I,J,L)
+               AD43(I,J,L,1) = AD43(I,J,L,1) + BOH(I,J,L,LMN)
             ENDIF
          ENDDO
          ENDDO
@@ -2004,6 +1901,94 @@
 
 !------------------------------------------------------------------------------
 
+      SUBROUTINE READ_CH4LOSS
+!
+!*****************************************************************************
+!  Subroutine READ_CH4LOSS reads CH4 loss frequencies in the stratosphere. 
+!  These values constitute a linearized stratospheric CH4 chemistry scheme.
+!  Loss frequencies from 4x5 degree output from the GMI model. Thanks to Lee 
+!  Murray for the ch4 loss frequencies. (kjw, 11/19/2011)
+!
+!  Module Variables:
+!  ===========================================================================
+!  (1) CH4LOSS (REAL*8) : Array containing ch4 loss frequencies for all 12
+!                         months [1/s]
+!
+!  NOTES:
+!  (1 ) Created by Bryan Duncan (1/99).  Adapted for CH4 chemistry by
+!        James Wang (6/8/00).  Inserted into module "global_ch4_mod.f" 
+!        by Bob Yantosca. (bmy, 1/16/01)
+!  (2 ) READ_CH4LOSS is independent of "F77_CMN_OH", "F77_CMN_CO", and "F77_CMN_CO_BUDGET".
+!        (bmy, 1/16/01)
+!  (3 ) ARRAY needs to be dimensioned (1,JJPAR,LGLOB) (bmy, 9/26/01)
+!  (4 ) Remove obsolete code from 9/01 (bmy, 10/24/01)
+!  (5 ) Now reference DATA_DIR from "directory_mod.f" (bmy, 7/20/04)
+!  (6 ) Now reads data for both GEOS and GCAP grids (bmy, 8/16/05)
+!  (7 ) Now make sure all USE statements are USE, ONLY (bmy, 10/3/05)
+!  (8 ) Treat MERRA in the same way as for GEOS-5 (bmy, 8/13/10)
+!*****************************************************************************
+!
+      ! References to F90 modules
+      USE BPCH2_MOD,     ONLY : GET_NAME_EXT_2D, GET_RES_EXT
+      USE BPCH2_MOD,     ONLY : GET_TAU0,        READ_BPCH2
+      USE BPCH2_MOD,     ONLY : GET_NAME_EXT,    GET_MODELNAME
+      USE DIRECTORY_MOD, ONLY : DATA_DIR
+      USE TRANSFER_MOD,  ONLY : TRANSFER_3D
+        
+      USE CMN_SIZE_MOD  ! Size parameters
+
+      IMPLICIT NONE
+#     include "define.h"
+
+
+      ! Local variables
+      INTEGER            :: I, J, L, M
+      REAL*4             :: ARRAY(IIPAR,JJPAR,LLPAR)
+      REAL*8             :: XTAU
+      CHARACTER(LEN=255) :: FILENAME
+
+
+      !=================================================================
+      ! READ_CH4LOSS begins here!
+      ! 
+      ! Read P(CO) for all 12 months
+      !=================================================================
+
+      ! Construct filename
+      FILENAME = TRIM( DATA_DIR )         // 'CH4_201203/' //
+     &           'gmi.ch4loss.geos5_47L.' // GET_RES_EXT() // 
+     &           '.bpch'
+
+#if   defined( GRID05x0666 ) && defined( NESTED_NA )
+      FILENAME = TRIM( DATA_DIR )         // 'CH4_201203/' //
+     &           'gmi.ch4loss.geos5_47L.' // GET_RES_EXT() //
+     &           '_NA.bpch'
+#endif
+
+      WRITE( 6, 93 ) TRIM ( FILENAME )
+ 93   FORMAT( '     - READ_CH4LOSS: Reading Ch4loss: ', a )
+      CALL FLUSH( 6 )
+
+      ! Read data for each month
+      DO M = 1, 12 
+
+         ! TAU value at the start of month M -- Use "generic" year 1985
+         XTAU = GET_TAU0( M, 1, 1985 )
+
+         ! Read Loss frequencies in units of [1/s].  drevet.
+         CALL READ_BPCH2( FILENAME, 'IJ-AVG-$', 1,     
+     &                    XTAU,      IIPAR,     JJPAR,     
+     &                    LLPAR,     ARRAY,     QUIET=.TRUE. )
+
+         ! Place array into CH4LOSS module variable
+         CH4LOSS(:,:,:,M) = ARRAY(:,:,:)
+
+      ENDDO
+
+      ! Return to calling program
+      END SUBROUTINE READ_CH4LOSS
+
+!------------------------------------------------------------------------------
 
       SUBROUTINE CH4_DECAY
 !
@@ -2039,10 +2024,10 @@
 !******************************************************************************
 !
       ! References to F90 modules
-      USE DAO_MOD,    ONLY : AIRVOL
-      USE TIME_MOD,   ONLY : GET_TS_CHEM, ITS_A_NEW_YEAR
+      USE DAO_MOD,    ONLY : AIRVOL, T
+      USE TIME_MOD,   ONLY : GET_TS_CHEM, ITS_A_NEW_YEAR, GET_MONTH
       USE TRACER_MOD, ONLY : STT
-      USE DIAG_MOD,   ONLY : AD19    	      
+      USE DIAG_MOD,   ONLY : AD19   	      
 
       USE CMN_SIZE_MOD       ! Size parameters
       USE CMN_DIAG_MOD       ! ND19
@@ -2050,12 +2035,12 @@
 
       ! Local variables
       LOGICAL          :: FIRST_DECAY=.TRUE.
-      INTEGER          :: I, J, L, M, N, MM
+      INTEGER          :: I, J, L, M, N, MM, LMN
       REAL*8           :: DT, GCH4, STT2GCH4, KRATE
 
       ! External variables
       REAL*8, EXTERNAL :: BOXVL
-      
+
 
       !=================================================================
       ! CH4_DECAY begins here!
@@ -2063,6 +2048,9 @@
 
       ! Chemistry timestep in seconds
       DT = GET_TS_CHEM() * 60d0
+
+      ! Current month
+      LMN = GET_MONTH()
 
       !=================================================================
       ! Compute decay of CH4 by OH in the troposphere
@@ -2074,9 +2062,6 @@
       ! This is from JPL '97.
       ! JPL '00 & '06 do not revise '97 value. (jsw, kjw)
       !=================================================================
-      IF (ITS_A_NEW_YEAR()) THEN
-	TROPOCH4=0d0
-      ENDIF
 
       MM = MAXVAL( LPAUSE )
 !$OMP PARALLEL DO
@@ -2092,7 +2077,7 @@
 
             ! Use 24-hr avg temperature to calc. rate coeff.
             ! citation needed
-            KRATE = 2.45d-12 * EXP( -1775d0 / Tavg(I,J,L) )  
+            KRATE = 2.45d-12 * EXP( -1775d0 / T(I,J,L) )  
 
             ! Conversion from [kg/box] --> [molec/cm3]
             ! [kg CH4/box] * [box/cm3] * XNUMOL_CH4 [molec CH4/kg CH4]
@@ -2103,9 +2088,9 @@
 	
             ! Sum loss in TCH4(3) (molecules/box)
             TCH4(I,J,L,3) = TCH4(I,J,L,3)+ 
-     &           ( GCH4 * BOXVL(I,J,L) * KRATE * BOH(I,J,L) * DT)
+     &           ( GCH4 * BOXVL(I,J,L) * KRATE * BOH(I,J,L,LMN) * DT)
 
-            TROPOCH4=TROPOCH4 + GCH4 * KRATE * BOH(I,J,L) * DT / 
+            TROPOCH4=TROPOCH4 + GCH4 * KRATE * BOH(I,J,L,LMN) * DT / 
      &               STT2GCH4
 
             ! Modify AD19 Diagnostic
@@ -2114,12 +2099,12 @@
                IF ( L <= LD19 ) THEN
 !	    	AD19(I,J,12) = AD19(I,J,12) + 
                   AD19(I,J,L) = AD19(I,J,L) + 
-     &                 ( GCH4 * KRATE * BOH(I,J,L) * DT ) / STT2GCH4
+     &                 ( GCH4 * KRATE * BOH(I,J,L,LMN) * DT ) / STT2GCH4
                ENDIF
 	    ENDIF
 
             ! Calculate new CH4 value: [CH4]=[CH4](1-k[OH]*delt) 
-            GCH4 = GCH4 * ( 1d0 - KRATE * BOH(I,J,L) * DT )
+            GCH4 = GCH4 * ( 1d0 - KRATE * BOH(I,J,L,LMN) * DT )
 		
             ! Convert back from [molec/cm3] --> [kg/box]
             STT(I,J,L,1) = GCH4 / STT2GCH4
@@ -2131,6 +2116,8 @@
 !$OMP END PARALLEL DO
 
       print*,'% --- CHEMCH4: CH4_DECAY: TROP DECAY (Tg): ',TROPOCH4/1e9
+      print*,'Trop decay should be over 1Tg per day globally'
+      print*,'    ~ 500Tg/365d ~ 1.37/d'
 
       ! Return to calling program
       END SUBROUTINE CH4_DECAY
@@ -2165,12 +2152,14 @@
 !
       ! References to F90 modules
       USE DIAG_OH_MOD, ONLY : DO_DIAG_OH_CH4
+      USE TIME_MOD,    ONLY : GET_MONTH
+      USE DAO_MOD,     ONLY : T
 
       USE CMN_SIZE_MOD  ! Size parameters
       USE CMN_MOD       ! LPAUSE
 
       ! Local variables
-      INTEGER          :: I, J, L
+      INTEGER          :: I, J, L, LMN
       REAL*8           :: KCLO, LOSS, OHMASS, MASST
 
       ! External functions
@@ -2183,6 +2172,9 @@
       ! (2) ND59: Diagnostic for CH3CCl3 calculation
       !=================================================================
 
+      ! Current month
+      LMN = GET_MONTH()
+
       ! 1. Calculate OH mass and total air mass
       DO L = 1, MAXVAL( LPAUSE )
       DO J = 1, JJPAR 
@@ -2191,17 +2183,17 @@
          IF ( L < LPAUSE(I,J) ) THEN
 
             ! Calculate OH mass [molec / box]
-            OHMASS = BOH(I,J,L) * BAIRDENS(I,J,L) * BOXVL(I,J,L)
+            OHMASS = BOH(I,J,L,LMN) * BAIRDENS(I,J,L) * BOXVL(I,J,L)
 
             ! Calculate total air mass [molec / box]
             MASST  = BAIRDENS(I,J,L) * BOXVL(I,J,L)
 
             ! Calculate CH3CCl3 + OH rate constant from JPL '06
             ! [cm3 / molec / s]
-            KCLO   = 1.64d-12 * EXP( -1520.d0 / Tavg(I,J,L) )
+            KCLO   = 1.64d-12 * EXP( -1520.d0 / T(I,J,L) )
 
             ! Calculate Loss term [molec / box / s]
-            LOSS   = KCLO            * BOH(I,J,L)  *
+            LOSS   = KCLO            * BOH(I,J,L,LMN)  *
      &               BAIRDENS(I,J,L) * BOXVL(I,J,L)
 
 
@@ -2251,14 +2243,14 @@
       ! References to F90 modules
       USE DAO_MOD,    ONLY : AIRVOL
       USE TIME_MOD,   ONLY : GET_MONTH, GET_TS_CHEM
-      USE TRACER_MOD, ONLY : STT
+      USE TRACER_MOD, ONLY : STT, CHECK_STT
 
       USE CMN_SIZE_MOD       ! Size parameters
       USE CMN_MOD            ! STT, LPAUSE
 
       ! Local variables
       INTEGER             :: I, J, L, LMN
-      REAL*8              :: DT, GCH4, STT2GCH4
+      REAL*8              :: DT, GCH4, STT2GCH4, LRATE
       CHARACTER*20        :: STT_TEST
       CHARACTER*20        :: STT2GCH4_CHAR
 
@@ -2290,28 +2282,41 @@
             ! CH4 in [molec/cm3]
             GCH4 = STT(I,J,L,1) * STT2GCH4
 
-            ! Sum loss in TCH4(3) [molec CH4/box] in the stratosphere
-            ! [molec/cm3] * [v/v/s] * [s] * [cm3/box] = [molec CH4/box]
-            TCH4(I,J,L,3) = TCH4(I,J,L,3) + 
-     &                      ( BAIRDENS(I,J,L) * COPROD(J,L,LMN) *
-     &                        DT              * BOXVL(I,J,L)    )
+            ! Loss rate [molec/cm3/s]
+            LRATE = GCH4 * CH4LOSS( I,J,L,LMN )
 
-            ! Calculate new CH4 value [molec CH4/cm3] in the stratosphere
-            ! [v/v/s] * [s] * [molec/cm3] = [molec CH4/cm3] 
-            GCH4 = GCH4 - ( COPROD(J,L,LMN) * DT * BAIRDENS(I,J,L) )
+            ! Update Methane concentration in this grid box [molec/cm3]
+            GCH4 = GCH4 - ( LRATE * DT )
+
+! Update stratospheric chem to use linearized CH4 loss frequencies
+!  (kjw, 11/19/11)
+!            ! Sum loss in TCH4(3) [molec CH4/box] in the stratosphere
+!            ! [molec/cm3] * [v/v/s] * [s] * [cm3/box] = [molec CH4/box]
+!            TCH4(I,J,L,3) = TCH4(I,J,L,3) + 
+!     &                      ( BAIRDENS(I,J,L) * COPROD(J,L,LMN) *
+!     &                        DT              * BOXVL(I,J,L)    )
+!
+!            ! Calculate new CH4 value [molec CH4/cm3] in the stratosphere
+!            ! [v/v/s] * [s] * [molec/cm3] = [molec CH4/cm3] 
+!            GCH4 = GCH4 - ( COPROD(J,L,LMN) * DT * BAIRDENS(I,J,L) )
 
             ! Convert back from [molec CH4/cm3] --> [kg/box] 
             STT(I,J,L,1) = GCH4 / STT2GCH4
 
-            ! Prevent negative values in STT
-	    IF ( STT(I,J,L,1) < 0 ) THEN
-		STT(I,J,L,1)=0
-	    ENDIF
+! With new linearized chemistry, STT should never be negative
+!  (kjw, 11/19/11)
+!            ! Prevent negative values in STT
+!	    IF ( STT(I,J,L,1) < 0 ) THEN
+!		STT(I,J,L,1)=0
+!	    ENDIF
 
          ENDIF
       ENDDO
       ENDDO
       ENDDO
+
+      ! Check STT for negatives and NaN
+      CALL CHECK_STT( 'IN global_ch4_mod.F: CH4_STRAT' )
 
       ! Return to calling program
       END SUBROUTINE CH4_STRAT
@@ -2480,7 +2485,7 @@
       WRITE(189,18)
       WRITE(189,31)
 
-c Sinks   jsw has checked correctness of code for sinks.
+! Sinks   jsw has checked correctness of code for sinks.
       NTP=SUM_CH4(1,IIPAR,1,JJPAR,1,LLPAR,3,3,1)
       NTQ=SUM_CH4(1,IIPAR,1,JJPAR,1,LLPAR,3,3,0)
       SINKS=NTP+NTQ
@@ -2684,7 +2689,7 @@ c Sinks   jsw has checked correctness of code for sinks.
       
       WRITE(189,18)
       WRITE(189,31)
-c Sinks
+! Sinks
       NTQ=SUM_CH4(1,IIPAR,JJPAR/2+1,JJPAR,1,LLPAR,3,3,1)
       NTQ2=SUM_CH4(1,IIPAR,JJPAR/2+1,JJPAR,1,LLPAR,3,3,0)
       SINKS=NTQ+NTQ2
@@ -3027,13 +3032,17 @@ c Sinks
       IF ( AS /= 0 ) CALL ALLOC_ERR( 'BAIRDENS' )
       BAIRDENS = 0d0
 
-      ALLOCATE( BOH( IIPAR, JJPAR, LLPAR ), STAT=AS )
+      ALLOCATE( BOH( IIPAR, JJPAR, LLPAR, 12 ), STAT=AS )
       IF ( AS /= 0 ) CALL ALLOC_ERR( 'BOH' )
       BOH = 0d0
 
       ALLOCATE( COPROD( JJPAR, LLPAR, 12 ), STAT=AS )
       IF ( AS /= 0 ) CALL ALLOC_ERR( 'COPROD' )
       COPROD = 0d0
+
+      ALLOCATE( CH4LOSS( IIPAR, JJPAR, LLPAR, 12 ), STAT=AS )
+      IF ( AS /= 0 ) CALL ALLOC_ERR( 'CH4LOSS' )
+      CH4LOSS = 0d0
 
       ALLOCATE( PAVG( IIPAR, JJPAR, LLPAR ), STAT=AS )
       IF ( AS /= 0 ) CALL ALLOC_ERR( 'PAVG' )
@@ -3051,6 +3060,9 @@ c Sinks
       IF ( AS /= 0 ) CALL ALLOC_ERR( 'CH4_EMIS' )
       CH4_EMIS = 0d0
 
+      ! Initialize tropoch4 (counts total decay of CH4 due to OH)
+      TROPOCH4 = 0d0
+
       ! Return to calling program
       END SUBROUTINE INIT_GLOBAL_CH4
 
@@ -3065,6 +3077,7 @@ c Sinks
       IF ( ALLOCATED( BAIRDENS  ) ) DEALLOCATE( BAIRDENS  )
       IF ( ALLOCATED( BOH       ) ) DEALLOCATE( BOH       )
       IF ( ALLOCATED( COPROD    ) ) DEALLOCATE( COPROD    )
+      IF ( ALLOCATED( CH4LOSS   ) ) DEALLOCATE( CH4LOSS   )
       IF ( ALLOCATED( TCH4      ) ) DEALLOCATE( TCH4      )
       IF ( ALLOCATED( CH4_EMIS  ) ) DEALLOCATE( CH4_EMIS  )
 
