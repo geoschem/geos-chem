@@ -352,7 +352,7 @@
       ! GEOS-5.7.x: SEA4CRS nested china grid
       !-----------------------------------------------------------------
       INTEGER, PARAMETER :: IGLOB      = 257
-      INTEGER, PARAMETER :: JGLOB      = 241
+      INTEGER, PARAMETER :: JGLOB      = 281
       INTEGER, PARAMETER :: LGLOB      = 72
       INTEGER, PARAMETER :: IIPAR      = IGLOB
       INTEGER, PARAMETER :: JJPAR      = JGLOB
