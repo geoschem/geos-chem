@@ -70,8 +70,6 @@
 
           USE GC_TYPE2_MOD,      ONLY : CHEM_STATE, INIT_CHEMSTATE
           USE CMN_DEP_MOD,       ONLY : SET_CMN_DEP_MOD
-          USE CMN_ISOP_MOD,      ONLY : SET_CMN_ISOP_MOD
-          USE CMN_MONOT_MOD,     ONLY : SET_CMN_MONOT_MOD
           USE CMN_NOX_MOD,       ONLY : SET_CMN_NOX_MOD
           USE CMN_O3_MOD,        ONLY : SET_CMN_O3_MOD
           USE CMN_VEL_MOD,       ONLY : SET_CMN_VEL_MOD
@@ -89,8 +87,6 @@
           CALL SET_CMN_SIZE_MOD
           CALL SET_CMN_DEP_MOD
           CALL SET_CMN_DIAG_MOD
-          CALL SET_CMN_ISOP_MOD
-          CALL SET_CMN_MONOT_MOD
           CALL SET_CMN_NOX_MOD
           CALL SET_CMN_O3_MOD
           CALL SET_CMN_VEL_MOD

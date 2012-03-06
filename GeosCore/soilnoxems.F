@@ -1,5 +1,9 @@
 ! $Id: soilnoxems.f,v 1.3 2010/03/15 19:33:20 ccarouge Exp $
+#if defined( DEVEL )
+      SUBROUTINE SOILNOXEMS( SUNCOS, EMISS )
+#else
       SUBROUTINE SOILNOXEMS( SUNCOS )
+#endif
 !
 !******************************************************************************
 !  Subroutine SOILNOXEMS computes the emission of soil and fertilizer NOx
@@ -80,7 +84,9 @@
 
       ! Arguments
       REAL*8, INTENT(IN)            :: SUNCOS(MAXIJ)
-
+#if defined( DEVEL )
+      REAL*8, INTENT(INOUT)         :: EMISS(:,:)
+#endif
       ! Local variables
       INTEGER                       :: I,    J,       M,      III,    NN  
       INTEGER                       :: K,    IREF,    JREF,   IJLOOP, L
@@ -217,5 +223,6 @@
  110     CONTINUE
       ENDDO ! M
 
+      EMISS = EMISS + GEMISNOX2
       ! Return to calling program
       END SUBROUTINE SOILNOXEMS

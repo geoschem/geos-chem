@@ -365,7 +365,7 @@
 
          ! NOx-Ox-HC (w/ or w/o aerosols)
 #if defined( DEVEL )
-         CALL EMISSDR( CHEM_STATE%TRAC_TEND )
+         CALL EMISSDR( CHEM_STATE%TRAC_TEND, CHEM_STATE%TRAC_BTEND )
 #else
          CALL EMISSDR
 #endif
@@ -550,7 +550,7 @@
 
          ! Emit CH3I
 #if defined( DEVEL )
-         CALL EMISSCH3I
+         CALL EMISSCH3I( CHEM_STATE%TRAC_BTEND(:,:,1,:) )
 #else
          CALL EMISSCH3I
 #endif
@@ -702,7 +702,9 @@
 
          ! Emit C2H6
 #if defined( DEVEL )
-         CALL EMISSC2H6(CHEM_STATE%TRAC_TEND(:,:,1,IDTC2H6))
+         CALL EMISSC2H6( 
+     &        CHEM_STATE%TRAC_TEND (:,:,1,IDTC2H6),
+     &        CHEM_STATE%TRAC_BTEND(:,:,1,:)       )
 #else
          CALL EMISSC2H6
 #endif
@@ -906,7 +908,11 @@
          ENDIF
 
          ! Emit H2/HD
+#if defined( DEVEL ) 
+         CALL EMISS_H2_HD( CHEM_STATE%TRAC_BTEND(:,:,1,:) )
+#else
          CALL EMISS_H2_HD
+#endif
 
       ENDIF
 

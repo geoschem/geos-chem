@@ -119,7 +119,11 @@
 
 !------------------------------------------------------------------------------
 
+#if defined( DEVEL )
+      SUBROUTINE BIOFUEL_BURN( BIO_EMISS )
+#else
       SUBROUTINE BIOFUEL_BURN
+#endif
 !
 !******************************************************************************
 !  Subroutine BIOFUEL_BURN computes the yearly biofuel burning emissions
@@ -239,6 +243,10 @@
       REAL*8,  EXTERNAL             :: BOXVL
 
       REAL*8                        :: BF_CO( IIPAR, JJPAR )  ! Biofuel emission of CO [molec/cm2/s]
+
+#if defined( DEVEL )
+      REAL*8, INTENT(INOUT)         :: BIO_EMISS(:,:,:)
+#endif
 
       !=================================================================
       !   B i o f u e l   B u r n i n g   B e g i n s   H e r e !!

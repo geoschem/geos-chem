@@ -170,6 +170,10 @@
 ! Y    |        | CALL EMISSSULFATE --> Be sure there's no PBL mixing
 ! Y    |        | CALL EMISSCARBON --> Be sure there's no PBL mixing
 ! Y    |        | CALL EMISSDUST --> Be sure there's no PBL mixing
+! Y    |        | AIRCRAFT_NOX
+! Y    |        | LIGHTNING_NOX
+! Y    |        | SOIL_NOX
+!      |        | BIOFUEL_BURN (NOx and CO)
 !-----------------------------------------------------------------------
 ! Notes:
 ! LNLPBL Switch --> NEEDS TO BE ON (>=1)

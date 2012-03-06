@@ -1206,7 +1206,7 @@
       USE TROPOPAUSE_MOD, ONLY : ITS_IN_THE_STRAT
  
       USE CMN_SIZE_MOD
-      USE CMN_FJ_MOD, ONLY     : IPAR, JPAR, LPAR, JPMAX, JPPJ
+      USE CMN_FJ_MOD, ONLY     : JPMAX, JPPJ
       USE CMN_DIAG_MOD         ! ND44
       USE CMN_GCTM_MOD         ! AIRMW
 ! 
@@ -1224,7 +1224,6 @@
 !        the ND44 diagnostic. (rjp, bmy, 3/30/04)
 !  (6 ) Now use parallel DO-loop to zero ND44_TMP.  Now uses ITS_A_NEW_MONTH
 !        fro      USE TRACER_MOD,     ONLY : STT,       TCVV,        XNUMOL
-m time_mod.f. (bmy, 4/14/04)
 !  (7 ) Now reference STT & TCVV from "tracer_mod.f".  Also replace IJSURF
 !        with an analytic function.  Now references DATA_DIR from 
 !        "directory_mod.f". (bmy, 7/20/04)

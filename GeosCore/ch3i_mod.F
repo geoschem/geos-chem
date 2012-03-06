@@ -250,7 +250,11 @@
 
 !------------------------------------------------------------------------------
 
+#if defined( DEVEL )
+      SUBROUTINE EMISSCH3I( BIO_EMISS )
+#else
       SUBROUTINE EMISSCH3I
+#endif
 !
 !******************************************************************************
 !  Subroutine EMISSCH3I (mgs, bmy, 11/23/98, 9/27/06) specifies methyl 
@@ -375,6 +379,7 @@
 !      REAL*8 :: EFCH4R(IIPAR,JJPAR)  ! scaled emission flux from rice
 !      REAL*8 :: EFCH4W(IIPAR,JJPAR)  ! scaled emission flux from wetlands
 !      REAL*8 :: CH3ISUM(5)           ! sum of emissions in kg/yr
+      REAL*8, INTENT(INOUT) :: BIO_EMISS(:,:,:)
 #else
       ! Local common blocks (shared with OPEN_CH3I_FILES)
       REAL*8 :: OCDATA(IIPAR,JJPAR)   ! scaled ocean net primary prod.
@@ -763,7 +768,11 @@
       ENDIF
 
       ! Now reference routine BIOFUEL_BURN from "biofuel_mod.f" (bmy, 9/12/00)
+#if defined( DEVEL )
+      CALL BIOFUEL_BURN( BIO_EMISS )
+#else
       CALL BIOFUEL_BURN
+#endif
 
       N = 3
       L = 1

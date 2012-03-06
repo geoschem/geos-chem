@@ -87,7 +87,7 @@
      
 !------------------------------------------------------------------------------
 #if defined( DEVEL )      
-      SUBROUTINE EMISSC2H6(EMISSIONS)
+      SUBROUTINE EMISSC2H6(EMISS, BIO_EMISS)
 #else
       SUBROUTINE EMISSC2H6
 #endif
@@ -154,7 +154,8 @@
       REAL*8, EXTERNAL       :: BOXVL
 
 #if defined( DEVEL )
-      REAL*8, INTENT(INOUT)  :: EMISSIONS(IIPAR,JJPAR)
+      REAL*8, INTENT(INOUT)  :: EMISS(IIPAR,JJPAR)
+      REAL*8, INTENT(INOUT)  :: BIO_EMISS(:,:,:)
 #endif
 
       !=================================================================
@@ -214,7 +215,11 @@
       IF ( LBIOFUEL ) THEN
 
          ! Read biofuel burning emissions (and update ND34 diagnostic)
+#if defined( DEVEL )
+         CALL BIOFUEL_BURN( BIO_EMISS )
+#else
          CALL BIOFUEL_BURN
+#endif
 
 !$OMP PARALLEL DO
 !$OMP+DEFAULT( SHARED )
@@ -304,7 +309,7 @@
       ENDIF
          
 #if defined( DEVEL )
-      EMISSIONS(:,:) = EMISSIONS(:,:) + NGASC2H6(:,:)
+      EMISS(:,:) = EMISS(:,:) + NGASC2H6(:,:)
 #endif
       ! Return to calling program
       END SUBROUTINE EMISSC2H6

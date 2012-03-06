@@ -220,8 +220,11 @@
       END SUBROUTINE READAIR
 
 !------------------------------------------------------------------------------
-
+#if defined( DEVEL )
+      SUBROUTINE AIREMISS( EMISS )
+#else
       SUBROUTINE AIREMISS
+#endif
 !
 !******************************************************************************
 !  Subroutine AIREMISS interpolates the aircraft NOx emissions from the 1-km
@@ -263,6 +266,10 @@
       
       ! External functions
       REAL*8, EXTERNAL    ::  BOXVL
+
+#if defined( DEVEL )
+      REAL*8, INTENT(INOUT) :: EMISS(:,:,:)
+#endif
       
       !=================================================================
       ! AIREMISS begins here!
@@ -365,6 +372,11 @@
          ENDDO  ! L
       ENDDO     ! I 
       ENDDO     ! J
+
+#if defined( DEVEL )
+      ! Superimpose aircraft NOx onto exiting tendency
+      EMISS = EMISS + EMIS_AC_NOx ! Assumes dimension conformity
+#endif
 
       ! Return to calling program
       END SUBROUTINE AIREMISS
