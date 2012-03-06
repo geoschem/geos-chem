@@ -173,6 +173,9 @@
 !  (25) Bug fix for EMIS_SAVE in EMITHIGH (bmy, 1/11/10)
 !  (26) Bug fix: call SOA_PARA_INIT (ensberg, bmy, 6/30/10)
 !  (27) Added 8 new bins for carbonaceous aerosol for APM simulation (GanLuo, 2010)
+!  (28) Modified to include GFED3 (psk, 1/5/11)
+!   8 Feb 2012 - R. Yantosca - Modified for central chemistry timestep option
+!  01 Mar 2012 - R. Yantosca - Now reference new grid_mod.F90
 !******************************************************************************
 !
       USE LOGICAL_MOD,    ONLY : LNLPBL ! (Lin,03/31/09)
@@ -289,7 +292,7 @@
 !  (1 ) Added code from the Caltech group for SOA chemistry.  Also now 
 !        reference "global_oh_mod.f", "global_o3_mod.f", "global_no3_mod.f".
 !        (rjp, bmy, 7/8/04)
-!  (2 ) Now reference LSOA and LEMIS from F77_CMN_SETUP.  Now only call OHNO3TIME
+!  (2 ) Now reference LSOA and LEMIS from CMN_SETUP.  Now only call OHNO3TIME
 !        if it hasn't been done before w/in EMISSCARBON. (rjp, bmy, 7/15/04)
 !  (3 ) Now reference LSOA, LEMIS, LPRT from "logical_mod.f".  Now reference
 !        STT and ITS_AN_AEROSOL_SIM from "tracer_mod.f" (bmy, 7/20/04)
@@ -570,6 +573,7 @@
 !        from "pbl_mix_mod.f" (bmy, 2/17/05)
 !  (3 ) Now references XNUMOL from "tracer_mod.f" (bmy, 10/25/05)
 !  (4 ) Add option for non-local PBL scheme (lin, 06/09/08)
+!  01 Mar 2012 - R. Yantosca - Now use GET_AREA_CM2(I,J,L) from grid_mod.F90
 !******************************************************************************
 !
       ! References to F90 modules
@@ -679,7 +683,7 @@
          IF ( ND44 > 0 .AND. FREQ > 0d0 ) THEN
 
              ! Surface area [cm2]
-             AREA_CM2 = GET_AREA_CM2( J )
+             AREA_CM2 = GET_AREA_CM2( I, J, L )
 
              ! Convert drydep loss from [kg/timestep] to [atoms C/cm2/s]  
              ! XNUMOL is the ratio [molec tracer/kg tracer]   
@@ -738,10 +742,11 @@
 !  (1 ) TC (REAL*8) : Array of hydrophilic BC tracer 
 ! 
 !  NOTES:
-!  (1 ) Remove reference to "F77_CMN", it's obsolete (bmy, 7/20/04)
+!  (1 ) Remove reference to "CMN", it's obsolete (bmy, 7/20/04)
 !  (2 ) Replace PBLFRAC from "drydep_mod.f" with GET_FRAC_UNDER_PBLTOP from 
 !        "pbl_mix_mod.f" (bmy, 2/17/05)
 !  (3 ) Now references XNUMOL from "tracer_mod.f" (bmy, 10/25/05)
+!  01 Mar 2012 - R. Yantosca - Now use GET_AREA_CM2(I,J,L) from grid_mod.F90
 !******************************************************************************
 !
       ! References to F90 modules
@@ -838,7 +843,7 @@
             IF ( ND44 > 0 .and. FREQ > 0d0 ) THEN
   
                ! Surface area [cm2]
-               AREA_CM2 = GET_AREA_CM2( J )
+               AREA_CM2 = GET_AREA_CM2( I, J, L )
 
                ! Convert drydep loss from [kg/timestep] to [molec/cm2/s]
                FLUX = ( TC0 + CCV - CNEW ) 
@@ -915,10 +920,11 @@
 !  (1 ) TC (REAL*8) : Array of hydrophobic OC tracer [kg]
 !
 !  NOTES:
-!  (1 ) Remove reference to "F77_CMN", it's obsolete (bmy, 7/20/04)
+!  (1 ) Remove reference to "fCMN", it's obsolete (bmy, 7/20/04)
 !  (2 ) Replace PBLFRAC from "drydep_mod.f" with GET_FRAC_UNDER_PBLTOP from 
 !        "pbl_mix_mod.f" (bmy, 2/17/05)
 !  (3 ) Now references XNUMOL from "tracer_mod.f" (bmy, 10/25/05)
+!  01 Mar 2012 - R. Yantosca - Now use GET_AREA_CM2(I,J,L) from grid_mod.F90
 !******************************************************************************
 !
       ! References to F90 modules
@@ -1027,7 +1033,7 @@
          IF ( ND44 > 0 .AND. FREQ > 0d0 ) THEN
 
              ! Surface area [cm2]
-             AREA_CM2 = GET_AREA_CM2( J )
+             AREA_CM2 = GET_AREA_CM2( I, J, L )
 
              ! Convert drydep loss from [kg/timestep] to [atoms C/cm2/s]
              ! XNUMOL is the ratio [molec tracer/kg tracer]     
@@ -1087,11 +1093,12 @@
 !  (1 ) TC (REAL*8) : Array of hydrophilic BC tracer 
 ! 
 !  NOTES:
-!  (1 ) Remove reference to "F77_CMN", it's obsolete (bmy, 7/20/04)
+!  (1 ) Remove reference to "CMN", it's obsolete (bmy, 7/20/04)
 !  (2 ) Replace PBLFRAC from "drydep_mod.f" with GET_FRAC_UNDER_PBLTOP from 
 !        "pbl_mix_mod.f" (bmy, 2/17/05)
 !  (3 ) Bug fix: add BL_FRAC to the PRIVATE list (mak, bmy, 10/3/05)
 !  (4 ) Now refrerences XNUMOL from "tracer_mod.f" (bmy, 10/25/05)
+!  01 Mar 2012 - R. Yantosca - Now use GET_AREA_CM2(I,J,L) from grid_mod.F90
 !******************************************************************************
 !
       ! References to F90 modules
@@ -1186,7 +1193,7 @@
             IF ( ND44 > 0 ) THEN
 
                ! Surface area [cm2]
-               AREA_CM2 = GET_AREA_CM2( J )
+               AREA_CM2 = GET_AREA_CM2( I, J, L )
 
                ! Convert drydep loss from [kg/timestep] to [atoms C/cm2/s]
                FLUX = ( TC0 + CCV - CNEW ) 
@@ -2157,11 +2164,12 @@
 !  (5 ) Now only print out debug info when LPRT=T (bmy, 4/21/10)
 !  (6 ) Bug fix: call SOA_PARA_INIT (ensberg, bmy, 6/30/10)
 !  16 Feb 2011 - R. Yantosca - Add modifications for APM from G. Luo
+!  05 Oct 2011 - R. Yantosca - SUNCOS is not needed, so remove
 !******************************************************************************
 !
       ! References to F90 modules
       USE ERROR_MOD,    ONLY : DEBUG_MSG
-      USE DAO_MOD,      ONLY : T, AD, AIRVOL, SUNCOS
+      USE DAO_MOD,      ONLY : T, AD, AIRVOL
       USE DIAG_MOD,     ONLY : AD07_HC
       USE TRACER_MOD,   ONLY : STT 
       USE TRACERID_MOD, ONLY : IDTALCO, IDTALPH, IDTLIMO, IDTOCPI
@@ -4431,12 +4439,13 @@ c
 !  (3 ) TRID  (INTEGER) : GEOS-CHEM tracer number 
 ! 
 !  NOTES:
-!  (1 ) Remove reference to F77_CMN, it's obsolete (bmy, 7/20/04)
+!  (1 ) Remove reference to CMN, it's obsolete (bmy, 7/20/04)
 !  (2 ) Replace PBLFRAC from "drydep_mod.f" with  GET_FRAC_UNDER_PBLTOP from 
 !        "pbl_mix_mod.f" (bmy, 2/17/05)
 !  (3 ) Bug fix: Add BL_FRAC to the PRIVATE list (mak, bmy, 10/3/05)
 !  (4 ) Now references XNUMOL from "tracer_mod.f" (bmy, 10/25/05)
 !  (5 ) Add non-local PBL scheme option for dry deposition (lin, 06/09/08)
+!  01 Mar 2012 - R. Yantosca - Now use GET_AREA_CM2(I,J,L) from grid_mod.F90
 !******************************************************************************
 !
       ! References to F90 modules
@@ -4518,7 +4527,7 @@ c
             IF ( ND44 > 0 ) THEN
 
                ! Surface area [cm2]
-               AREA_CM2 = GET_AREA_CM2( J )
+               AREA_CM2 = GET_AREA_CM2( I, J, L )
 
                ! Convert drydep loss from [kg/timestep] to [atoms C/cm2/s]
                FLUX = ( TC0 - CNEW ) 
@@ -4577,7 +4586,7 @@ c
 !  and the CARBONACEOUS AEROSOL emissions (rjp, bmy, 1/24/02, 9/25/06)
 !
 !  NOTES:
-!  (1 ) Now references LSOA from "F77_CMN_SETUP".  Also now call OHNO3TIME since
+!  (1 ) Now references LSOA from "CMN_SETUP".  Also now call OHNO3TIME since
 !        biogenic emissions also have a diurnal variation. (rjp, bmy, 7/15/04)
 !  (2 ) Now references LSOA and LPRT from "logical_mod.f".  Now references
 !        STT from "tracer_mod.f" (bmy, 7/20/04)
@@ -4603,6 +4612,7 @@ c
       USE TIME_MOD,          ONLY : GET_MONTH, ITS_A_NEW_MONTH
       USE TRACER_MOD,        ONLY : STT
       USE GFED2_BIOMASS_MOD, ONLY : GFED2_IS_NEW
+      USE GFED3_BIOMASS_MOD, ONLY : GFED3_IS_NEW
       !USE TRACERID_MOD
 #if   defined( APM )
       USE DIAG_MOD,     ONLY : AD07, AD07_OM
@@ -4746,7 +4756,8 @@ c
       !-----------------------------------
       IF ( .not. USE_BOND_BIOBURN ) THEN
 
-         IF ( GFED2_IS_NEW() .or. ITS_A_NEW_MONTH() ) THEN 
+         IF ( GFED2_IS_NEW() .or. GFED3_IS_NEW() .or. 
+     &        ITS_A_NEW_MONTH() ) THEN 
             CALL BIOMASS_CARB_GEOS
             IF ( LPRT ) CALL DEBUG_MSG( '### EMISSCARB: a BB_CRB_GEOS' )
          ENDIF
@@ -4953,12 +4964,17 @@ c
 !  (7 ) Change LMEGAN switch to LMEGANMONO switch (ccc, 3/2/09)
 !  (8 ) Update MEGAN calculations to MEGAN v2.1 (mpb, ccc, 11/19/09)
 !  (9 ) Use speciated information from MEGAN v2.1 (hotp, 3/16/10)
+!  05 Oct 2011 - R. Yantosca - Now use SUNCOS30, which is the cos(SZA)
+!                              computed @ 30 mins after each GMT hour
+!  07 Oct 2011 - R. Yantosca - Rename SUNCOS30 to SUNCOS_MID, which is the
+!                              cos(SZA) at the midpt of the chemistry timestep
+!  08 Dec 2011 - M. Payer    - Remove GEIA biogenic emissions option
 !******************************************************************************
 !
       ! References to F90 modules
       USE BPCH2_MOD,     ONLY : GET_NAME_EXT_2D,  GET_RES_EXT
       USE BPCH2_MOD,     ONLY : GET_TAU0,         READ_BPCH2
-      USE DAO_MOD,       ONLY : SUNCOS
+      USE DAO_MOD,       ONLY : SUNCOS_MID
       USE DIRECTORY_MOD, ONLY : DATA_DIR
       USE LOGICAL_MOD,   ONLY : LMEGANMONO,       LSOA
       USE MEGAN_MOD,     ONLY : GET_EMMONOT_MEGAN
@@ -4996,23 +5012,10 @@ c
       REAL*8                 :: SC, PDF, PDR
 
       ! External functions
-!-- Moved to meganut_mod.f
-!      REAL*8,  EXTERNAL      :: XLTMMP
-      REAL*8,  EXTERNAL      :: EMMONOT
 
       !=================================================================
       ! BIOGENIC_OC begins here!
       !=================================================================
-
-      ! Get ISOPRENE baseline emissions (first-time only)
-      IF ( FIRST ) THEN
-         CALL RDISOPT( CONVERT )
-         CALL RDMONOT( GMONOT  )
-         CALL SETBASE( CONVERT, GMONOT )
-
-         ! Resety first-time flag
-         FIRST = .FALSE.
-      ENDIF
 
       !=================================================================
       ! If secondary organic aerosols are turned off ...
@@ -5036,21 +5039,15 @@ c
             ! ** MEGAN v2.1 **
             ! Cosine of solar zenith angle   (mpb,2009) 
             ! Diffuse and direct PAR         (mpb,2009)
-            SC   = SUNCOS(IJLOOP)   
+            SC   = SUNCOS_MID(IJLOOP)   
             PDR  = PARDR(I,J)
             PDF  = PARDF(I,J)
             ! +++++++++++++++++++++++++++++++++++++++++
 
-            ! Get monoterpenes from MEGAN or GEIA [kg C/box]
+            ! Get monoterpenes from MEGAN [kg C/box]
             IF ( LMEGANMONO ) THEN
-               ! +++++++++++++++++++++++++++++++++++++++++
-               ! New formulation for MEGAN (mpb,2009)
                EMMO = GET_EMMONOT_MEGAN( I, J, SC, TMMP,
      &                                   PDR, PDF, 1d0 )
-               ! +++++++++++++++++++++++++++++++++++++++++
-               ! EMMO = GET_EMMONOT_MEGAN( I, J, TMMP, 1d0 )
-            ELSE
-               EMMO = EMMONOT( IJLOOP, TMMP, 1d0 )
             ENDIF
 
             ! Fraction of EMMO that converts into OC [kg/box/timestep]
@@ -5121,29 +5118,24 @@ c
             ! ** MEGAN v2.1 **
             ! Cosine of solar zenith angle   (mpb,2009) 
             ! Diffuse and direct PAR         (mpb,2009)
-            SC   = SUNCOS(IJLOOP)   
+            SC   = SUNCOS_MID(IJLOOP)   
             PDR  = PARDR(I,J)
             PDF  = PARDF(I,J)
             ! +++++++++++++++++++++++++++++++++++++++++
 
-            ! Get monoterpenes from MEGAN or GEIA [kg C/box]
+            ! Get monoterpenes from MEGAN [kg C/box]
             IF ( LMEGANMONO ) THEN
-               ! +++++++++++++++++++++++++++++++++++++++++
-               ! New formulation for MEGAN (mpb,2009)
                TERP_ORGC(I,J) = GET_EMMONOT_MEGAN( I, J, SC, TMMP,
      &                                   PDR, PDF, 1d0 )               
-               ! TERP_ORGC(I,J) = GET_EMMONOT_MEGAN( I, J, TMMP, 1d0 )
-            ELSE
-               TERP_ORGC(I,J) = EMMONOT( IJLOOP, TMMP, 1d0 )
             ENDIF
 
             !---------------------------------------------------
             ! Impose a diurnal variation on NVOC during the day
             !---------------------------------------------------
-            IF ( SUNCOS(IJLOOP) > 0d0 .and. TCOSZ(I,J) > 0d0 ) THEN
+            IF ( SUNCOS_MID(IJLOOP) > 0d0 .and. TCOSZ(I,J) > 0d0 ) THEN
                DIUR_ORVC(I,J) = GEIA_ORVC(I,J)*
-     &                          ( SUNCOS(IJLOOP) / TCOSZ(I,J) ) *
-     &                          ( 1440d0        / GET_TS_CHEM() )
+     &                          ( SUNCOS_MID(IJLOOP) / TCOSZ(I,J) ) *
+     &                          ( 1440d0           / GET_TS_CHEM() )
 
                ! Make sure ORVC is not negative
                DIUR_ORVC(I,J) = MAX( DIUR_ORVC(I,J), 0d0 )
@@ -5906,7 +5898,7 @@ c
 !  emissions are hydrophilic (soluble) and the rest are hydrophobic.
 !
 !  NOTES:
-!  (1 ) Now references DATA_DIR from "directory_mod.f".  Also removed F77_CMN,
+!  (1 ) Now references DATA_DIR from "directory_mod.f".  Also removed CMN,
 !        it's obsolete. (bmy, 7/20/04)
 !  (2 ) Now read data from "carbon_200411" subdir of DATA_DIR (bmy, 11/15/04)
 !  (3 ) Now read BCPO, OCPO biomass burning data directly from files instead
@@ -5918,6 +5910,7 @@ c
 !        file-reading code to gc_biomass_mod.f. (bmy, 9/25/06)
 !  (7 ) Prevent seg fault error when LBIOMASS=F (bmy, 11/3/06)
 !  (8 ) Now apply future emissions if necessary (hotp, swu, bmy, 2/19/09)
+!  01 Mar 2012 - R. Yantosca - Now use GET_AREA_CM2(I,J,L) from grid_mod.F90
 !******************************************************************************
 !
       ! References to F90 modules
@@ -5965,50 +5958,48 @@ c
 !$OMP+DEFAULT( SHARED )
 !$OMP+PRIVATE( I, J, BIOBC, BIOOC, A_CM2, FUT_SCL )
 
-      ! Loop over latitudes
+      ! Loop over surface boxes
       DO J = 1, JJPAR
+      DO I = 1, IIPAR
 
          ! Grid box area [cm2]
-         A_CM2 = GET_AREA_CM2( J )
-         
-         ! Loop over longitudes
-         DO I = 1, IIPAR
+         A_CM2 = GET_AREA_CM2( I, J, 1 )
+      
+         ! Convert [molec/cm2/s] --> [kg C/timestep]
+         IF ( LBIOMASS ) THEN
+            BIOBC         = BIOMASS(I,J,IDBBC) * A_CM2 * CONV_BC
+            BIOOC         = BIOMASS(I,J,IDBOC) * A_CM2 * CONV_OC
+         ELSE
+            BIOBC         = 0d0
+            BIOOC         = 0d0
+         ENDIF
 
-            ! Convert [molec/cm2/s] --> [kg C/timestep]
-            IF ( LBIOMASS ) THEN
-               BIOBC         = BIOMASS(I,J,IDBBC) * A_CM2 * CONV_BC
-               BIOOC         = BIOMASS(I,J,IDBOC) * A_CM2 * CONV_OC
-            ELSE
-               BIOBC         = 0d0
-               BIOOC         = 0d0
-            ENDIF
+         ! Hydrophilic BLACK CARBON from biomass [kg C/timestep]
+         BIOB_BLKC(I,J,1) =          FHB   * BIOBC
+      
+         ! Hydrophobic BLACK CARBON from biomass [kg C/timestep]
+         BIOB_BLKC(I,J,2) = ( 1.D0 - FHB ) * BIOBC
 
-            ! Hydrophilic BLACK CARBON from biomass [kg C/timestep]
-            BIOB_BLKC(I,J,1) =          FHB   * BIOBC
-         
-            ! Hydrophobic BLACK CARBON from biomass [kg C/timestep]
-            BIOB_BLKC(I,J,2) = ( 1.D0 - FHB ) * BIOBC
+         ! Hydrophilic ORGANIC CARBON from biomass [kg C/timestep]
+         BIOB_ORGC(I,J,1) =          FHO   * BIOOC
 
-            ! Hydrophilic ORGANIC CARBON from biomass [kg C/timestep]
-            BIOB_ORGC(I,J,1) =          FHO   * BIOOC
+         ! Hydrophobic ORGANIC CARBON from biomass [kg C/timestep]
+         BIOB_ORGC(I,J,2) = ( 1.D0 - FHO ) * BIOOC
 
-            ! Hydrophobic ORGANIC CARBON from biomass [kg C/timestep]
-            BIOB_ORGC(I,J,2) = ( 1.D0 - FHO ) * BIOOC
+         ! Apply future emissions for GCAP (if necessary)
+         IF ( LFUTURE ) THEN
 
-            ! Apply future emissions for GCAP (if necessary)
-            IF ( LFUTURE ) THEN
+            ! Compute future emissions of ORGANIC CARBON
+            FUT_SCL          = GET_FUTURE_SCALE_OCbb( I, J )
+            BIOB_ORGC(I,J,1) = BIOB_ORGC(I,J,1) * FUT_SCL
+            BIOB_ORGC(I,J,2) = BIOB_ORGC(I,J,2) * FUT_SCL
 
-               ! Compute future emissions of ORGANIC CARBON
-               FUT_SCL          = GET_FUTURE_SCALE_OCbb( I, J )
-               BIOB_ORGC(I,J,1) = BIOB_ORGC(I,J,1) * FUT_SCL
-               BIOB_ORGC(I,J,2) = BIOB_ORGC(I,J,2) * FUT_SCL
-
-               ! Compute future emissions of BLACK CARBON
-               FUT_SCL          = GET_FUTURE_SCALE_BCbb( I, J )
-               BIOB_BLKC(I,J,1) = BIOB_BLKC(I,J,1) * FUT_SCL
-               BIOB_BLKC(I,J,2) = BIOB_BLKC(I,J,2) * FUT_SCL
-            ENDIF 
-         ENDDO
+            ! Compute future emissions of BLACK CARBON
+            FUT_SCL          = GET_FUTURE_SCALE_BCbb( I, J )
+            BIOB_BLKC(I,J,1) = BIOB_BLKC(I,J,1) * FUT_SCL
+            BIOB_BLKC(I,J,2) = BIOB_BLKC(I,J,2) * FUT_SCL
+         ENDIF 
+      ENDDO
       ENDDO
 !$OMP END PARALLEL DO  
 
@@ -6313,6 +6304,9 @@ c
 !  (3 ) Now store the peak SUNCOS value for each surface grid box (I,J) in 
 !        the COSZM array. (rjp, bmy, 3/30/04)
 !  (4 ) Also added parallel loop over grid boxes (bmy, 1/18/05)
+!  01 Mar 2012 - R. Yantosca - Now use GET_AREA_CM2(I,J,L) from grid_mod.F90
+!  01 Mar 2012 - R. Yantosca - Now use GET_XMID(I,J,L) from grid_mod.F90
+!  01 Mar 2012 - R. Yantosca - Now use GET_YMID_R(I,J,L) from grid_mod.F90
 !******************************************************************************
 !
       ! References to F90 modules
@@ -6373,15 +6367,15 @@ c
 !$OMP+DEFAULT( SHARED )
 !$OMP+PRIVATE( I, J, YMID_R, IJLOOP, TIMLOC, AHR )
             DO J = 1, JJPAR
+            DO I = 1, IIPAR
 
                ! Grid box latitude center [radians]
-               YMID_R = GET_YMID_R( J )
-
-            DO I = 1, IIPAR
+               YMID_R = GET_YMID_R( I, J, 1 )
 
                ! Increment IJLOOP
                IJLOOP = ( (J-1) * IIPAR ) + I
-               TIMLOC = real(LHR0) + real(NT)/3600.0 + GET_XMID(I)/15.0
+               TIMLOC = real(LHR0) + real(NT)/3600.0 + 
+     &                  GET_XMID( I, J, 1 )/15.0
          
                DO WHILE (TIMLOC .lt. 0)
                   TIMLOC = TIMLOC + 24.0
@@ -7761,18 +7755,19 @@ c
 !
 !  NOTES:
 !  (1 ) Also added arrays for secondary organic aerosols (rjp, bmy, 7/8/04)
-!  (2 ) Remove reference to F77_CMN, it's obsolete (bmy, 7/20/04)
-!  (3 ) Now reference LSOA from "logical_mod.f" not F77_CMN_SETUP.  Now call
+!  (2 ) Remove reference to CMN, it's obsolete (bmy, 7/20/04)
+!  (3 ) Now reference LSOA from "logical_mod.f" not CMN_SETUP.  Now call
 !        GET_BOUNDING_BOX from "grid_mod.f" to compute the indices I1_NA,
 !        I2_NA, J1_NA, J2_NA which define the N. America region. (bmy, 12/1/04)
 !  (4 ) Now call READ_GPROD_APROD to read GPROD & APROD from disk. 
 !        (tmf, havala, bmy, 2/6/07)
 !  (5 ) Now set I1_NA, I2_NA, J1_NA, J2_NA appropriately for both 1 x 1 and
- !        0.5 x 0.666 nested grids (yxw, dan, bmy, 11/6/08)
+!        0.5 x 0.666 nested grids (yxw, dan, bmy, 11/6/08)
 !  (6 ) Now set parameters for NESTED_EU grid (amv, bmy, 12/19/09)
 !  14 Jan 2011 - R. Yantosca - If we are using GEOS-5 or MERRA met, then get
 !                              the cloud fraction directly from the met fields.
 !  16 Feb 2011 - R. Yantosca - Add modifications for APM from G. Luo
+!  01 Mar 2012 - R. Yantosca - Now use GET_BOUNDING_BOX from grid_mod.F90
 !******************************************************************************
 !
       ! References to F90 modules
@@ -7979,7 +7974,7 @@ c
       COORDS = (/ -165d0,  10d0,  -40d0,   90d0  /)
       
       ! Get the indices corresponding to the lon/lat values in COORDS
-      CALL GET_BOUNDING_BOX( COORDS, INDICES )
+       CALL GET_BOUNDING_BOX( 1, IIPAR, 1, JJPAR, 1, COORDS, INDICES )
 
       ! Copy values from INDEX array to scalars
       I1_NA = INDICES(1)

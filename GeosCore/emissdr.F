@@ -88,6 +88,8 @@
 !                              cos(SZA) at the midpt of the chemistry timestep
 !  06 Dec 2011 - E. Fischer  - Change biogenic acetone emissions to MEGAN
 !  08 Dec 2011 - M. Payer    - Remove GEIA biogenic emissions option
+!  01 Mar 2012 - R. Yantosca - Now use GET_LOCALTIME(I,J,L) from time_mod.F90
+!  01 Mar 2012 - R. Yantosca - Now use GET_AREA_CM2(I,J,L) from grid_mod.F90
 !******************************************************************************
 !
       ! References to F90 modules
@@ -95,10 +97,6 @@
       USE ACETONE_MOD,       ONLY : READ_JO1D,     READ_RESP
       USE AIRCRAFT_NOX_MOD,  ONLY : AIREMISS
       USE BIOFUEL_MOD,       ONLY : BIOFUEL_BURN
-!------------------------------------------------------------------------------
-! Prior to 10/7/11:
-!      USE DAO_MOD,           ONLY : PARDF,         PARDR,     SUNCOS        
-!------------------------------------------------------------------------------
       USE DAO_MOD,           ONLY : PARDF,         PARDR,     SUNCOS_MID       
       USE DIAG_MOD,          ONLY : AD29,          AD46
       USE GRID_MOD,          ONLY : GET_AREA_CM2
@@ -227,20 +225,20 @@
       DO J = 1, JJPAR
          JREF = J + J0
 
-         ! Compute surface area of grid boxes in cm^2 
-         AREA_CM2 = GET_AREA_CM2( J )
-
          ! Loop over longitues
          DO I = 1, IIPAR
             IREF   = I + I0
             IJLOOP = IJLOOP + 1
-         
+
+            ! Compute surface area of grid boxes in cm^2 
+            AREA_CM2 = GET_AREA_CM2( I, J, 1 )
+
             ! Zero biogenic acetone (bmy, 9/14/01)
             BIO_ACET  = 0d0
 
             ! Use function GET_LOCALTIME to get the local time at lon I
             ! Middle of time step is between 10pm-2am when IHOUR = 1
-            IHOUR = NINT( ( GET_LOCALTIME( I ) ) / 4 ) + 1
+            IHOUR = NINT( ( GET_LOCALTIME( I, J, 1 ) ) / 4 ) + 1
             IF ( IHOUR .EQ. 7 ) IHOUR = 1
 
             !=================================================================
@@ -333,12 +331,6 @@
                   !------------------
 
                   ! Cosine of solar zenith angle
-!------------------------------------------------------------------------------
-! Prior to 10/7/11:
-! Now call MEGAN emissions with the cos(SZA) computed @ the midpoint of
-! the chemistry timestep (bmy, 10/7/11)
-!                  SC   = SUNCOS(IJLOOP)
-!------------------------------------------------------------------------------
                   SC   = SUNCOS_MID(IJLOOP)
                
                   ! Diffuse and direct PAR

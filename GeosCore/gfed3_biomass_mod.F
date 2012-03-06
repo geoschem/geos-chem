@@ -78,6 +78,7 @@
 ! !REVISION HISTORY: 
 !  07 Sep 2011 - P. Kasibhatla - Initial version, based on GFED2
 !  07 Sep 2011 - R. Yantosca   - Added ProTeX headers 
+!  01 Mar 2012 - R. Yantosca   - Now reference new grid_mod.F90
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -427,7 +428,7 @@
       !-------------------------------
       IF ( LGFED3BB ) THEN
          
-         CALL GFED3_AVAILABLE( YYYY, 1997, 2009 )
+         CALL GFED3_AVAILABLE( YYYY, 1997, 2010 )
 
          WRITE( 6, 410 ) YYYY, MM
  410     FORMAT( 'for year and month: ', i4, '/', i2.2, / )
@@ -768,6 +769,7 @@
 ! !REVISION HISTORY: 
 !  07 Sep 2011 - P. Kasibhatla - Initial version, based on GFED2
 !  07 Sep 2011 - R. Yantosca   - Added ProTeX headers 
+!  01 Mar 2012 - R. Yantosca - Now use GET_AREA_M2(I,J,L) from grid_mod.F90
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -792,16 +794,16 @@
          UNIT  = GFED3_SPEC_UNIT(N)
          TOTAL = 0d0
 
-         ! Loop over latitudes
+         ! Loop over surface boxes
          DO J = 1, JJPAR
-         
-            ! Convert to [Tg/gfed-period] (or [Tg C/gfed-period] for HC's)
-            CONV = GET_AREA_CM2( J ) * ( MOLWT / 6.023d23 ) * 1d-9
+         DO I = 1, IIPAR
 
-            ! Loop over longitudes
-            DO I = 1, IIPAR
-               TOTAL = TOTAL + ( GFED3_BIOMASS(I,J,N) * CONV )
-            ENDDO
+            ! Convert to [Tg/gfed-period] (or [Tg C/gfed-period] for HC's)
+            CONV  = GET_AREA_CM2( I, J, 1 ) 
+     &            * ( MOLWT / 6.023d23 ) * 1d-9
+
+            TOTAL = TOTAL + ( GFED3_BIOMASS(I,J,N) * CONV )
+         ENDDO
          ENDDO
      
          ! Write totals

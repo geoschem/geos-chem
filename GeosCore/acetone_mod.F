@@ -392,6 +392,7 @@
 !                              velocities have been updated following Johnson
 !                              [2010]. The model now reproduces aircraft
 !                              measurements over the remote oceans well.
+!  01 Mar 2012 - R. Yantosca - Now use GET_AREA_CM2(I,J,L) from grid_mod.F90
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -427,7 +428,7 @@
       FOCEAN   = 1d0 - FRCLND(I,J)    
 
       ! Area of grid box (I,J) in cm^2
-      AREA_CM2 = GET_AREA_CM2( J )    
+      AREA_CM2 = GET_AREA_CM2( I, J, 1 )    
 
       !=================================================================
       ! Compute ocean source by Henry's law
@@ -573,7 +574,7 @@
 ! 
 ! !REVISION HISTORY: 
 !  14 Sep 2001 - B. Field    - Initial version
-!  (1 ) Remove references to F77_CMN_UV10M and F77_CMN_LWI -- these are now
+!  (1 ) Remove references to CMN_UV10M and CMN_LWI -- these are now
 !        obsolete in GEOS-CHEM versions 4.18 and higher (bmy, 9/5/01)
 !  (2 ) Now compute u = SQRT( U10M^2 + V10M^2 ) as SQRT( SFCWINDSQR(I,J) ).
 !        This is necessary since U10M and V10M are missing for 1996, and
@@ -598,6 +599,7 @@
 !  (12) Now use Nightingale et al 2000b formulation for piston velocity KL.
 !        (swu, bmy, 8/16/05)
 !  04 Nov 2010 - R. Yantosca - Added ProTeX headers
+!  01 Mar 2012 - R. Yantosca - Now use GET_AREA_M2(I,J,L) from grid_mod.F90
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -638,10 +640,10 @@
       ! Loop over grid boxes
       DO J = 1, JJPAR
 
-         ! Grid box area in cm2
-         AREA_CM2 = GET_AREA_CM2( J )
-
          DO I = 1, IIPAR
+
+            ! Grid box area in cm2
+            AREA_CM2 = GET_AREA_CM2( I, J, 1 )
 
             ! Fraction of grid box that is ocean
             FOCEAN = 1d0 - FRCLND(I,J)
@@ -834,6 +836,7 @@
 !                              0.10 as recommended by Alex Guenther. The
 !                              dependency on GEIA has been removed.
 !  08 Dec 2011 - M. Payer    - Remove use of obsolete CMN_MONOT_MOD
+!  01 Mar 2012 - R. Yantosca - Use new grid routines from grid_mod.F90
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -869,7 +872,7 @@
       DTSRCE = GET_TS_EMIS() * 60d0
 
       ! Grid box areas in [m2] and [cm2]
-      AREA_M2  = GET_AREA_M2( J )
+      AREA_M2  = GET_AREA_M2( I, J, 1 )
       AREA_CM2 = AREA_M2 * 1d4
 
       !=================================================================
@@ -917,8 +920,8 @@
       ACET_MB = 0D0
 
       ! Lon and lat of grid box (I,J) in degrees
-      X = GET_XMID( I )
-      Y = GET_YMID( J )
+      X = GET_XMID( I, J, 1 )
+      Y = GET_YMID( I, J, 1 )
 
       ! Methyl butenol is emitted only in North America, where
       ! ( -167.5 <= lon <= -52.5 ) and ( 16.0 <= lat <= 72.0 ) 

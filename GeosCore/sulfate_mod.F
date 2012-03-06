@@ -125,6 +125,8 @@
 !  12 Nov 2010 - R. Yantosca   - Avoid div-by-zero when computing L2S, L3S
 !  07 Sep 2011 - P. Kasibathla - Modified to include GFED3
 !  22 Dec 2011 - M. Payer      - Added ProTeX headers 
+!  08 Feb 2012 - R. Yantosca   - Add modifications for GEOS-5.7.2 met
+!  01 Mar 2012 - R. Yantosca   - Now reference new grid_mod.F90
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -414,10 +416,6 @@
 ! !USES:
 !
       USE DAO_MOD,        ONLY : AD,     AIRDEN,  CLDF
-!------------------------------------------------------------------------------
-! Prior to 10/5/11:
-!      USE DAO_MOD,        ONLY : SUNCOS, CONVERT_UNITS
-!------------------------------------------------------------------------------
       USE DAO_MOD,        ONLY : CONVERT_UNITS
       USE DRYDEP_MOD,     ONLY : DEPSAV
       USE ERROR_MOD,      ONLY : DEBUG_MSG
@@ -655,6 +653,7 @@
 !  (5 ) Update hygroscopic growth to Lewis and Schwartz formulation (2006) and
 !       density calculation based on Tang et al. (1997) (bec, jaegle 5/5/11)
 !  22 Dec 2011 - M. Payer    - Added ProTeX headers
+!  01 Mar 2012 - R. Yantosca - Now use GET_AREA_CM2(I,J,L) from grid_mod.F90
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -881,7 +880,7 @@
             ENDDO
 
             ! Surface area [cm2]
-            AREA_CM2 = GET_AREA_CM2( J )
+            AREA_CM2 = GET_AREA_CM2( I, J, 1 )
 
             ! Convert sea salt flux from [kg/s] to [molec/cm2/s]
             FLUX     = ( TOT1 - TOT2 ) / DTCHEM
@@ -1236,6 +1235,7 @@
 !  (11) Now make sure all USE statements are USE, ONLY (bmy, 10/3/05)
 !  (12) Now references XNUMOL from "tracer_mod.f" (bmy, 10/25/05)
 !  22 Dec 2011 - M. Payer    - Added ProTeX headers
+!  01 Mar 2012 - R. Yantosca - Now use GET_AREA_CM2(I,J,L) from grid_mod.F90
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -1386,7 +1386,8 @@
             ! Convert H2O2 from [v/v] to H2O2 [molec/cm2/s]
             FLUX = H2O20 * FREQ * DT / ( 1.D0 + FREQ * DT )
             FLUX = FLUX * AD(I,J,L) / TCVV(IDTH2O2)
-            FLUX = FLUX * XNUMOL(IDTH2O2) / ( GET_AREA_CM2( J ) * DT )
+            FLUX = FLUX * XNUMOL(IDTH2O2) 
+     &            / ( GET_AREA_CM2( I, J, L ) * DT )
 
             ! Save dryd flx in ND44_TMP as a placeholder
             ND44_TMP(I,J,L) = ND44_TMP(I,J,L) + FLUX
@@ -1515,6 +1516,8 @@
 !  27 May 2011 - L. Zhang    - Divide LWC by cloud fraction for GEOS/MERRA
 !                              and adjust the L2S and L3S rates accordingly
 !  22 Dec 2011 - M. Payer    - Added ProTeX headers
+!  08 Feb 2012 - R. Yantosca - Treat GEOS-5.7.2 in the same way as MERRA
+!  01 Mar 2012 - R. Yantosca - Now use GET_AREA_CM2(I,J,L) from grid_mod.F90
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -1686,7 +1689,7 @@
          ! Update SO2 concentration after cloud chemistry          
          ! SO2 chemical loss rate = SO4 production rate [v/v/timestep]
          !==============================================================
-#if   defined ( GEOS_5 ) || defined( MERRA )
+#if   defined ( GEOS_5 ) || defined( MERRA ) || defined( GEOS_57 )
 
          !---------------------------------------------
          ! GEOS-5/MERRA: Get LWC, FC from met fields
@@ -1945,7 +1948,7 @@
          IF ( ND44 > 0 .AND. Ld > 0d0 ) THEN
 
             ! Surface area [cm2]
-            AREA_CM2 = GET_AREA_CM2( J )
+            AREA_CM2 = GET_AREA_CM2( I, J, L )
 
             ! Convert [v/v/timestep] to [molec/cm2/s]
             FLUX = Ld   * AD(I,J,L)      / TCVV(IDTSO2)
@@ -2630,6 +2633,7 @@
 !  (10) Now references XNUMOL from "tracer_mod.f" (bmy, 10/25/05)
 !  (11) Rearrange error check to avoid SEG FAULTS (bmy, 5/23/06)
 !  22 Dec 2011 - M. Payer    - Added ProTeX headers
+!  01 Mar 2012 - R. Yantosca - Now use GET_AREA_CM2(I,J,L) from grid_mod.F90
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -2909,7 +2913,7 @@
          IF ( ND44 > 0 ) THEN
 
             ! Surface area [cm2]
-            AREA_CM2 = GET_AREA_CM2( J )
+            AREA_CM2 = GET_AREA_CM2( I, J, L )
 
             ! SO4 drydep flux [molec/cm2/s]
             FLUX = SO40  - SO4 + PSO4_SO2(I,J,L) 
@@ -3074,6 +3078,7 @@
 !       Added reference USE_TROPOPAUSE_MOD, ONLY : ITS_IN_THE_STRAT
 !        as a precaution.  (pjh, 8/19/2009)
 !  22 Dec 2011 - M. Payer    - Added ProTeX headers
+!  01 Mar 2012 - R. Yantosca - Now use GET_AREA_CM2(I,J,L) from grid_mod.F90
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -3164,7 +3169,7 @@
          IF ( ND44 > 0 .and. RKT > 0d0 ) THEN
                      
             ! Surface area [cm2]
-            AREA_CM2 = GET_AREA_CM2( J )
+            AREA_CM2 = GET_AREA_CM2( I, J, L )
 
             ! Convert [v/v/timestep] to [molec/cm2/s]
             FLUX = MSA0 - MSA + PMSA_DMS(I,J,L)                    
@@ -3254,6 +3259,7 @@
 !        Vertical DO-loops can run up to PBL_MAX and not LLTROP. (bmy, 2/22/05)
 !  (8 ) Now references XNUMOL from "tracer_mod.f" (bmy, 10/25/05)
 !  22 Dec 2011 - M. Payer    - Added ProTeX headers
+!  01 Mar 2012 - R. Yantosca - Now use GET_AREA_CM2(I,J,L) from grid_mod.F90
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -3334,7 +3340,7 @@
                IF ( ND44 > 0 .and. NH3 > 0d0 ) THEN
 
                   ! Surface area [cm2]
-                  AREA_CM2 = GET_AREA_CM2( J )
+                  AREA_CM2 = GET_AREA_CM2( I, J, L )
                   
                   ! Convert drydep loss from [v/v/timestep] to [molec/cm2/s]
                   FLUX = NH3  * AD(I,J,L)      / TCVV(IDTNH3)
@@ -3423,6 +3429,7 @@
 !        Vertical DO-loops can run up to PBL_MAX and not LLTROP. (bmy, 2/22/05)
 !  (8 ) Now references XNUMOL from "tracer_mod.f" (bmy, 10/25/05)
 !  22 Dec 2011 - M. Payer    - Added ProTeX headers
+!  01 Mar 2012 - R. Yantosca - Now use GET_AREA_CM2(I,J,L) from grid_mod.F90
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -3502,7 +3509,7 @@
                IF ( ND44 > 0 .and. NH4 > 0d0 ) THEN
          
                   ! Surface area [cm2]
-                  AREA_CM2 = GET_AREA_CM2( J )
+                  AREA_CM2 = GET_AREA_CM2( I, J, L )
                   
                   ! Convert drydep loss from [v/v/timestep] to [molec/cm2/s]
                   FLUX = NH4  * AD(I,J,L)      / TCVV(IDTNH4)
@@ -3578,6 +3585,7 @@
 !        Vertical DO-loops can run up to PBL_MAX and not LLTROP. (bmy, 2/22/05)
 !  (2 ) Now references XNUMOL from "tracer_mod.f" (bmy, 10/25/05)
 !  22 Dec 2011 - M. Payer    - Added ProTeX headers
+!  01 Mar 2012 - R. Yantosca - Now use GET_AREA_CM2(I,J,L) from grid_mod.F90
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -3658,7 +3666,7 @@
                IF ( ND44 > 0 .and. NH4aq > 0d0 ) THEN
          
                   ! Surface area [cm2]
-                  AREA_CM2 = GET_AREA_CM2( J )
+                  AREA_CM2 = GET_AREA_CM2( I, J, L )
                   
                   ! Convert drydep loss from [v/v/timestep] to [molec/cm2/s]
                   FLUX = NH4aq * AD(I,J,L)        / TCVV(IDTNH4aq)
@@ -3749,6 +3757,7 @@
 !  (8 ) Now references XNUMOL from "tracer_mod.f" (bmy, 10/25/05)
 !  (9 ) Rearrange error check to avoid SEG FAULTS (bmy, 5/23/06)
 !  22 Dec 2011 - M. Payer    - Added ProTeX headers
+!  01 Mar 2012 - R. Yantosca - Now use GET_AREA_CM2(I,J,L) from grid_mod.F90
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -3900,7 +3909,7 @@
             IF ( ND44 > 0 ) THEN
          
                ! Surface area [cm2]
-               AREA_CM2 = GET_AREA_CM2( J )
+               AREA_CM2 = GET_AREA_CM2( I, J, L )
                   
                !-------------
                ! NIT drydep
@@ -4022,7 +4031,7 @@
 !  (5 ) Now use functions GET_SEASON and GET_MONTH from the new "time_mod.f"
 !        (bmy, 3/27/03)
 !  (6 ) Added first-time printout message (bmy, 4/6/04)
-!  (7 ) Now references F77_CMN_SETUP.  Now read ship SO2 if LSHIPSO2=T.  Also
+!  (7 ) Now references CMN_SETUP.  Now read ship SO2 if LSHIPSO2=T.  Also
 !        references ITS_A_NEW_MONTH from "time_mod.f". (bec, bmy, 5/20/04)
 !  (8 ) Now references STT and ITS_AN_AEROSOL_SIM from "tracer_mod.f".  
 !        Now references LSHIPSO2 from "logical_mod.f" (bmy, 7/20/04)
@@ -4298,7 +4307,7 @@
 !  (2 ) Now replace DXYP(J) with routine GET_AREA_M2 of "grid_mod.f"
 !        Now use routine GET_TS_EMIS from the new "time_mod.f". (bmy, 3/27/03)
 !  (3 ) For GEOS-4, convert PBL from [m] to [hPa] w/ the hydrostatic law.
-!        Now references SCALE_HEIGHT from "F77_CMN_GCTM".  Added BLTHIK variable
+!        Now references SCALE_HEIGHT from "CMN_GCTM".  Added BLTHIK variable
 !        for PBL thickness in [hPa]. (bmy, 1/15/04)
 !  (4 ) Remove reference to "pressure_mod.f".  Now reference GET_FRAC_OF_PBL
 !        and GET_PBL_TOP_L from "pbl_mix_mod.f". (bmy, 2/22/05)
@@ -4433,7 +4442,7 @@
             ERATE = ( AKw  / 100.d0 / 3600.d0 ) * 
      &              ( CONC * 1.d-12 * 1000.d0 ) * DMS_MW * DTSRCE  
 
-            DMSSRC = ERATE * GET_AREA_M2( J )
+            DMSSRC = ERATE * GET_AREA_M2( I, J, 1 )
 
 #if defined( DEVEL )
             SFLX(I,J) = SFLX(I,J) + DMSSRC/DTSRCE ! kg DMS/grid/s
@@ -4538,10 +4547,10 @@
 !  (2 ) Now use routines GET_TS_EMIS and GET_DAY_OF_YEAR from the new 
 !        "time_mod.f" (bmy, 3/27/03)
 !  (3 ) For GEOS-4, convert PBL from [m] to [hPa] w/ the hydrostatic law.
-!        Now references SCALE_HEIGHT from "F77_CMN_GCTM".  Added BLTHIK variable
+!        Now references SCALE_HEIGHT from "CMN_GCTM".  Added BLTHIK variable
 !        to hold PBL thickness in [hPa]. (bmy, 1/15/04)
 !  (4 ) Now references AD13_SO2_sh array from "diag_mod.f".  Also references
-!        LSHIPSO2 from "F77_CMN_SETUP" (bec, bmy, 5/20/04) 
+!        LSHIPSO2 from "CMN_SETUP" (bec, bmy, 5/20/04) 
 !  (5 ) Now references LSHIPSO2 from "logical_mod.f" (bmy, 7/20/04)
 !  (6 ) Now references routines GET_EPA_ANTHRO and GET_USA_MASK from 
 !        "epa_nei_mod.f".  Now references GET_AREA_CM2 from "grid_mod.f".  
@@ -4567,6 +4576,7 @@
 !  (16) Rewrite Aerocom SO2 emissions section to avoid errors on SunStudio
 !        compiler. Also avoid division by zero. (bmy, 12/3/09)
 !  22 Dec 2011 - M. Payer    - Added ProTeX headers
+!  01 Mar 2012 - R. Yantosca - Now use GET_AREA_CM2(I,J,L) from grid_mod.F90
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -4786,10 +4796,11 @@
          AN       = 0d0
          BF       = 0d0
 
-         ! Grid box surface area [cm2]
-         AREA_CM2 = GET_AREA_CM2(J)
-
          DO I = 1, IIPAR
+
+            ! Grid box surface area [cm2]
+            AREA_CM2 = GET_AREA_CM2( I, J, 1 )
+
 !------- Prior to 3/8/07 (phs)         
             !!-----------------------------------------------------------
             !! If we are using EPA/NEI99 (anthro + biofuel) ...
@@ -5149,7 +5160,7 @@
 !        It is converted to [kg/box/timestep] here.  
 !  (2 ) Now use routine GET_TS_EMIS from the new "time_mod.f" (bmy, 3/27/03)
 !  (3 ) For GEOS-4, convert PBL from [m] to [hPa] w/ the barometric law.
-!        Now references SCALE_HEIGHT from "F77_CMN_GCTM".  Added BLTHIK variable
+!        Now references SCALE_HEIGHT from "CMN_GCTM".  Added BLTHIK variable
 !        to hold PBL thickness in [hPa]. (bmy, 1/15/04)
 !  (4 ) Now references GET_EPA_ANTHRO, GET_EPA_BIOFUEL, and GET_USA_MASK from 
 !        "epa_nei_mod.f".  Now references AD13_SO4_bf from "diag_mod.f".  Now 
@@ -5169,6 +5180,7 @@
 !  (11) Now calls SULFATE_PBL_MIX to do the PBL mixing of
 !        emissions (phs, 10/27/09)
 !  22 Dec 2011 - M. Payer    - Added ProTeX headers
+!  01 Mar 2012 - R. Yantosca - Now use GET_AREA_CM2(I,J,L) from grid_mod.F90
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -5218,10 +5230,10 @@
 !$OMP+PRIVATE( NTOP, FEMIS, SO4, TEMPEMISS )
       DO J = 1, JJPAR
          
-         ! Grid box surface area [cm2]
-         AREA_CM2 = GET_AREA_CM2(J)
-
          DO I = 1, IIPAR
+
+            ! Grid box surface area [cm2]
+            AREA_CM2 = GET_AREA_CM2( I, J, 1 )
 
             ! Top level of boundary layer at (I,J)
             NTOP = CEILING( GET_PBL_TOP_L( I, J ) )
@@ -5447,13 +5459,13 @@
 !       when partitioning by level into the STT array. (rjp, bmy, 3/23/03)
 !  (3 ) Now use routine GET_TS_EMIS from the new "time_mod.f" (bmy, 3/27/03)
 !  (4 ) For GEOS-4, convert PBL from [m] to [hPa] w/ the barometric law.
-!       Now references SCALE_HEIGHT from "F77_CMN_GCTM".  Added BLTHIK variable
+!       Now references SCALE_HEIGHT from "CMN_GCTM".  Added BLTHIK variable
 !       to hold PBL thickness in [hPa]. (bmy, 1/15/04)
 !  (5 ) Now references GET_EPA_ANTHRO, GET_EPA_BIOFUEL, and GET_USA_MASK from 
 !       "epa_nei_mod.f".  Now references GET_DAY_OF_WEEK from "time_mod.f".  
 !       Now references LNEI99 from "logical_mod.f".  Now references 
 !       GET_AREA_CM2 from "grid_mod.f".  Now references IDTNH3 from 
-!       "tracerid_mod.f".  Now references XNUMOL from F77_CMN_O3.  Now can 
+!       "tracerid_mod.f".  Now references XNUMOL from CMN_O3.  Now can 
 !       overwrite the anthro & biofuel NH3 emissions over the continental US 
 !       if LNEI99=T.  Now references IDTNH3 from "tracerid_mod.f". 
 !       (rjp, rch, bmy, 11/16/04)
@@ -5466,6 +5478,7 @@
 !  (10) Made NH3an 3D; Calls SULFATE_PBL_MIX to do the PBL mixing of
 !       emissions, and allows for emissions above the PBL (phs, 10/27/09)
 !  22 Dec 2011 - M. Payer    - Added ProTeX headers
+!  01 Mar 2012 - R. Yantosca - Now use GET_AREA_CM2(I,J,L) from grid_mod.F90
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -5510,17 +5523,17 @@
 !$OMP+PRIVATE( I, J, AREA_CM2, EPA_AN, EPA_BF, CAC_AN, L )
 !$OMP+PRIVATE( NTOP, FEMIS, NH3, TEMPEMISS )
       DO J = 1, JJPAR
-         
-         !-------------------------------------------------------------------
-         ! NOTE: There seems to be some problems with the EPA/NEI NH3 
-         ! emissions.  Therefore we will use the existing emissions for NH3 
-         ! until further notice.  Comment out the lines below until 
-         ! further notice.  (bmy, 11/17/04) 
-         !! Grid box surface area [cm2]
-         AREA_CM2 = GET_AREA_CM2( J )
-         !-------------------------------------------------------------------
 
          DO I = 1, IIPAR
+
+            !----------------------------------------------------------------
+            ! NOTE: There seems to be some problems with the EPA/NEI NH3 
+            ! emissions.  Therefore we will use the existing emissions for NH3 
+            ! until further notice.  Comment out the lines below until 
+            ! further notice.  (bmy, 11/17/04) 
+            !! Grid box surface area [cm2]
+            AREA_CM2 = GET_AREA_CM2( I, J, 1  )
+            !----------------------------------------------------------------
 
             ! Top of the boundary layer
             NTOP = CEILING( GET_PBL_TOP_L( I, J ) ) 
@@ -6448,6 +6461,9 @@
 !        (dkh, 10/31/08)
 !  (10) Account for multilevels emissions (amv, 10/07/2009)
 !  22 Dec 2011 - M. Payer    - Added ProTeX headers
+!  01 Mar 2012 - R. Yantosca - Now use GET_AREA_CM2(I,J,L) from grid_mod.F90
+!  01 Mar 2012 - R. Yantosca - Now use GET_XMID(I,J,L) from grid_mod.F90
+!  01 Mar 2012 - R. Yantosca - Now use GET_YMID(I,J,L) from grid_mod.F90
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -6500,14 +6516,12 @@
          ! Loop over latitudes
          DO J = 1, JJPAR
 
-            ! Latitude [degrees]
-            Y = GET_YMID( J )
-
             ! Loop over longitudes
             DO I = 1, IIPAR
 
-               ! Longitude [degrees]
-               X  = GET_XMID( I )
+               ! Longitude and latitude [degrees]
+               X       = GET_XMID( I, J, 1 )
+               Y       = GET_YMID( I, J, 1 )
 
                ! Get EDGAR SO2 emissions [kg/s]
                ! NOTE: Future emissions are already applied!
@@ -6631,88 +6645,84 @@
 !$OMP+PRIVATE( I, J, L, AREA_CM2, Y, X, Fe, LL )
          DO L = 1, 2
          DO J = 1, JJPAR
+         DO I = 1, IIPAR
 
             ! Grid box surface area [cm2]
-            AREA_CM2 = GET_AREA_CM2( J )
-
-            ! Latitude [degrees]
-            Y = GET_YMID( J )
-
-            DO I = 1, IIPAR
-
-               ! Longitude [degrees]  
-               X = GET_XMID( I )
-
-               ! First scale SOx to the given fossil fuel year
-               E_SOx(I,J,L) = E_SOx(I,J,L) * SOx_SCALE(I,J)
+            AREA_CM2     = GET_AREA_CM2( I, J, L )
             
-               ! Compute future SOx emissions (if necessary)
-               IF ( LFUTURE ) THEN
+            ! Longitude and latitude [degrees]
+            X        = GET_XMID( I, J, L )
+            Y        = GET_YMID( I, J, L )
+
+            ! First scale SOx to the given fossil fuel year
+            E_SOx(I,J,L) = E_SOx(I,J,L) * SOx_SCALE(I,J)
+            
+            ! Compute future SOx emissions (if necessary)
+            IF ( LFUTURE ) THEN
                   E_SOx(I,J,L) = E_SOx(I,J,L)                  * 
      &                           GET_FUTURE_SCALE_SO2ff( I, J )
-               ENDIF
+            ENDIF
 
-               ! Compute SO4/SOx fraction for EUROPE
-               IF ( ( X >= -12.5 .and. X <= 60.0 )  .and. 
-     &              ( Y >=  36.0 .and. Y <= 78.0 ) ) THEN
-                  Fe = 0.05d0
+            ! Compute SO4/SOx fraction for EUROPE
+            IF ( ( X >= -12.5 .and. X <= 60.0 )  .and. 
+     &           ( Y >=  36.0 .and. Y <= 78.0 ) ) THEN
+               Fe = 0.05d0
 
-               ! Compute SO4/SOx fraction for NORTH AMERICA
-               ELSE IF ( ( X >= -167.5 .and. X <= -52.5 )  .and.   
-     &                   ( Y >=   26.0 .and. Y <=  74.0 ) ) THEN
-                  Fe = 0.014d0
+            ! Compute SO4/SOx fraction for NORTH AMERICA
+            ELSE IF ( ( X >= -167.5 .and. X <= -52.5 )  .and.   
+     &                ( Y >=   26.0 .and. Y <=  74.0 ) ) THEN
+               Fe = 0.014d0
  
-               ! Compute SO4/SOx fraction for EVERYWHERE ELSE
-               ELSE
-                  Fe = 0.03d0
+            ! Compute SO4/SOx fraction for EVERYWHERE ELSE
+            ELSE
+               Fe = 0.03d0
              
-               ENDIF
+            ENDIF
          
-               ! Compute SO2 (tracer #2) from SOx
-               ! Convert from [molec SOx/cm2/s] to [kg SO2/box/s]
-               ESO2_an(I,J,L) = E_SOx(I,J,L) * ( 1.d0 - Fe ) * 
-     &                          AREA_CM2 / XNUMOL(IDTSO2)            
+            ! Compute SO2 (tracer #2) from SOx
+            ! Convert from [molec SOx/cm2/s] to [kg SO2/box/s]
+            ESO2_an(I,J,L) = E_SOx(I,J,L) * ( 1.d0 - Fe ) * 
+     &                       AREA_CM2 / XNUMOL(IDTSO2)            
 
-               ! If we are using David Streets' emissions
-               ! Remember: those include BF if Year is GE 2006
-               IF ( LSTREETS ) THEN
+            ! If we are using David Streets' emissions
+            ! Remember: those include BF if Year is GE 2006
+            IF ( LSTREETS ) THEN
 
-                  ! If we are over the SE Asia region
-                  IF ( GET_SE_ASIA_MASK( I, J ) > 0d0 ) THEN
+               ! If we are over the SE Asia region
+               IF ( GET_SE_ASIA_MASK( I, J ) > 0d0 ) THEN
 
-                     ! Overwrite GEIA SO2 w/ David Streets' SO2 [kg SO2/s]
-                     ESO2_an(I,J,1) = GET_STREETS_ANTHRO( I, J, IDTSO2, 
+                  ! Overwrite GEIA SO2 w/ David Streets' SO2 [kg SO2/s]
+                  ESO2_an(I,J,1) = GET_STREETS_ANTHRO( I, J, IDTSO2, 
      &                                                    KG_S=.TRUE. )
 
-                     ! Zero 2nd level of emissions
-                     ESO2_an(I,J,2) = 0d0
-
-                  ENDIF
-               ENDIF
-
-               IF ( LEMEP ) THEN
-
-                  IF (GET_EUROPE_MASK(I,J) > 0d0 ) THEN
-
-                     ESO2_an(I,J,1) = GET_EMEP_ANTHRO( I, J, IDTSO2,
-     &                                                 KG_S=.TRUE. ) 
-
-                     ESO2_an(I,J,2) = 0d0
- 
-                  ENDIF
+                  ! Zero 2nd level of emissions
+                  ESO2_an(I,J,2) = 0d0
 
                ENDIF
+            ENDIF
 
-                ESO4_an(I,J,L) = ESO2_an(I,J,L) * Fe / (1.d0-Fe)
+            IF ( LEMEP ) THEN
 
-                IF ( NOXLEVELS > 2 ) THEN
-                   DO LL = 3,NOXLEVELS
-                      ESO2_an(I,J,LL) = 0d0
-                      ESO4_an(I,J,LL) = 0d0
-                   ENDDO
-                ENDIF
+               IF (GET_EUROPE_MASK(I,J) > 0d0 ) THEN
 
-            ENDDO
+                  ESO2_an(I,J,1) = GET_EMEP_ANTHRO( I, J, IDTSO2,
+     &                                              KG_S=.TRUE. ) 
+
+                  ESO2_an(I,J,2) = 0d0
+               ENDIF
+
+            ENDIF
+
+            ESO4_an(I,J,L) = ESO2_an(I,J,L) * Fe / (1.d0-Fe)
+
+            IF ( NOXLEVELS > 2 ) THEN
+               DO LL = 3,NOXLEVELS
+                  ESO2_an(I,J,LL) = 0d0
+                  ESO4_an(I,J,LL) = 0d0
+               ENDDO
+            ENDIF
+
+         ENDDO
          ENDDO
          ENDDO
 !$OMP END PARALLEL DO
@@ -6935,7 +6945,6 @@
       USE BPCH2_MOD,            ONLY : GET_TAU0,        READ_BPCH2
       USE DIRECTORY_MOD,        ONLY : DATA_DIR
       USE FUTURE_EMISSIONS_MOD, ONLY : GET_FUTURE_SCALE_SO2bf
-      USE GRID_MOD,             ONLY : GET_AREA_CM2
       USE LOGICAL_MOD,          ONLY : LBIOMASS,        LFUTURE
       USE TIME_MOD,             ONLY : ITS_A_LEAPYEAR
       USE TRACER_MOD,           ONLY : XNUMOL
@@ -6957,7 +6966,7 @@
 !        Now replace MONTH with the argument THISMONTH.  Now call READ_BPCH2
 !        with QUIET=.TRUE. (bmy, 3/27/03)
 !  (4 ) Now references DATA_DIR from "directory_mod.f".  Also removed
-!        references to CMN and F77_CMN_SETUP. (bmy, 7/20/04)
+!        references to CMN and CMN_SETUP. (bmy, 7/20/04)
 !  (5 ) Now can read either seasonal or interannual biomass burning emissions.
 !        Now references routines from both "logical_mod.f" and "time_mod.f".
 !        Now reads SO2 biomass emissions directly rather than computing
@@ -6974,6 +6983,7 @@
 !        to account for several GFED2 products (yc, phs, 12/23/08)
 !  (12) IDBSO2 is not used anymore (ccc, 01/29/10)
 !  22 Dec 2011 - M. Payer    - Added ProTeX headers
+!  01 Mar 2012 - R. Yantosca - Removed reference to GET_AREA_CM2
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -7082,6 +7092,7 @@
 !        (yc, phs, 12/23/08)
 !  (2 ) IDBSO2 is now in tracerid_mod.f (fp, 6/2009)
 !  22 Dec 2011 - M. Payer    - Added ProTeX headers
+!  01 Mar 2012 - R. Yantosca - Now use GET_AREA_CM2(I,J,L) from grid_mod.F90
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -7101,20 +7112,18 @@
 !$OMP+DEFAULT( SHARED )
 !$OMP+PRIVATE( I, J, CONV )
 
-      ! Loop over longitudes
+      ! Loop over surface boxes
       DO J = 1, JJPAR
+      DO I = 1, IIPAR
 
          ! Conversion factor for [cm2 * kg/molec]
-         CONV = GET_AREA_CM2( J ) / XNUMOL(IDTSO2)
+         CONV = GET_AREA_CM2( I, J, 1 ) / XNUMOL(IDTSO2)
 
-         ! Loop over latitudes
-         DO I = 1, IIPAR
-
-            ! Convert biomass SO2 from [molec SO2/cm2/s] -> [kg SO2/s] 
-            ! NOTE: Future scale has already been applied by this point
-            ESO2_bb(I,J) = BIOMASS(I,J,IDBSO2) * CONV
-
-         ENDDO
+         ! Convert biomass SO2 from [molec SO2/cm2/s] -> [kg SO2/s] 
+         ! NOTE: Future scale has already been applied by this point
+         ESO2_bb(I,J) = BIOMASS(I,J,IDBSO2) * CONV
+            
+      ENDDO
       ENDDO
 !$OMP END PARALLEL DO
 
@@ -7322,6 +7331,7 @@
 !       GET_EMEP_ANTHRO to get ARCTAS and EMEP SO2 ship emissions (phs,12/5/08)
 !  (7 ) Now get ICOADS ship SO2 if necessary (phs, cklee, 6/30/09) 
 !  22 Dec 2011 - M. Payer    - Added ProTeX headers
+!  01 Mar 2012 - R. Yantosca - Now use GET_AREA_CM2(I,J,L) from grid_mod.F90
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -7397,31 +7407,29 @@
          ! Cast from REAL*4 to REAL*8
          CALL TRANSFER_2D( ARRAY(:,:,1), SHIPSO2 )
 
-         ! Loop over latitudes
+         ! Loop over surface boxes
          DO J = 1, JJPAR
+         DO I = 1, IIPAR
 
             ! Grid box surface area [cm2]
-            AREA_CM2 = GET_AREA_CM2( J )
+            AREA_CM2 = GET_AREA_CM2( I, J, 1 )
 
-            ! Loop over longitudes
-            DO I = 1, IIPAR
-            
-               ! Convert [molec SO2/cm2/s] to [kg SO2/box/s]
-               ESO2_sh(I,J) = SHIPSO2(I,J) * AREA_CM2 / XNUMOL(IDTSO2)
+            ! Convert [molec SO2/cm2/s] to [kg SO2/box/s]
+            ESO2_sh(I,J) = SHIPSO2(I,J) * AREA_CM2 / XNUMOL(IDTSO2)
 
-               ! Apply future emissions (if necessary)
-               IF ( LFUTURE ) THEN
-                   ESO2_sh(I,J) = ESO2_sh(I,J) *
-     &                            GET_FUTURE_SCALE_SO2ff( I, J ) 
-               ENDIF
+            ! Apply future emissions (if necessary)
+            IF ( LFUTURE ) THEN
+               ESO2_sh(I,J) = ESO2_sh(I,J) *
+     &              GET_FUTURE_SCALE_SO2ff( I, J ) 
+            ENDIF
 
-               IF ( LEMEPSHIP ) THEN
-                  IF ( GET_EUROPE_MASK(I,J) > 0d0 )
-     $                 ESO2_sh(I,J) = GET_EMEP_ANTHRO(I, J, IDTSO2,
-     $                                         KG_S=.TRUE., SHIP=.TRUE.)
-               ENDIF               
-
-            ENDDO 
+            IF ( LEMEPSHIP ) THEN
+               IF ( GET_EUROPE_MASK(I,J) > 0d0 )
+     &              ESO2_sh(I,J) = GET_EMEP_ANTHRO(I, J, IDTSO2,
+     &                                     KG_S=.TRUE., SHIP=.TRUE.)
+            ENDIF               
+             
+         ENDDO 
          ENDDO
 
       !-----------------------------------------------------------
@@ -7505,7 +7513,7 @@
       USE BPCH2_MOD,            ONLY : GET_TAU0,        READ_BPCH2
       USE DIRECTORY_MOD,        ONLY : DATA_DIR
       USE EMEP_MOD,             ONLY : GET_EMEP_ANTHRO
-      USe EMEP_MOD,             ONLY : GET_EUROPE_MASK
+      USE EMEP_MOD,             ONLY : GET_EUROPE_MASK
       USE FUTURE_EMISSIONS_MOD, ONLY : GET_FUTURE_SCALE_NH3an
       USE LOGICAL_MOD,          ONLY : LFUTURE,         LSTREETS
       USE LOGICAL_MOD,          ONLY : LEMEP
@@ -7734,7 +7742,6 @@
       USE DIRECTORY_MOD,        ONLY : DATA_DIR
       USE FUTURE_EMISSIONS_MOD, ONLY : GET_FUTURE_SCALE_NH3bf
       USE LOGICAL_MOD,          ONLY : LBIOMASS,        LFUTURE
-      USE GRID_MOD,             ONLY : GET_AREA_CM2
       USE TIME_MOD,             ONLY : ITS_A_LEAPYEAR
       USE TRACER_MOD,           ONLY : XNUMOL
       USE TRACERID_MOD,         ONLY : IDTNH3
@@ -7761,7 +7768,7 @@
 !  (4 ) Now use ENCODE statement for PGI/F90 on Linux (bmy, 9/29/03)
 !  (5 ) Changed cpp switch name from LINUX to LINUX_PGI (bmy, 12/2/03)
 !  (6 ) Now references DATA_DIR from "directory_mod.f".  Now references LBBSEA
-!        from "logical_mod.f".  Removed references to CMN and F77_CMN_SETUP.
+!        from "logical_mod.f".  Removed references to CMN and CMN_SETUP.
 !        (bmy, 7/20/04)
 !  (7 ) Now can read either seasonal or interannual biomass burning emissions.
 !        Now references routines from both and "time_mod.f".  Now reads SO2 
@@ -7778,6 +7785,7 @@
 !        to account for several GFED2 products (yc, phs, 12/23/08)
 !  (13) IDBNH3 is not used anymore (ccc, 01/29/10)   
 !  22 Dec 2011 - M. Payer    - Added ProTeX headers
+!  01 Mar 2012 - R. Yantosca - Removed reference to GET_AREA_CM2
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -7882,6 +7890,7 @@
 !        (yc, phs, 12/23/08)
 !  (2 ) IDBNH3 is in tracerid_mod.f now (fp, 6/2009)
 !  22 Dec 2011 - M. Payer    - Added ProTeX headers
+!  01 Mar 2012 - R. Yantosca - Now use GET_AREA_CM2(I,J,L) from grid_mod.F90
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -7894,27 +7903,22 @@
       !=================================================================
       ! READ_BIOMASSBURN_NH3 begins here!
       !=================================================================
-
-      ! Convert units
-
 !$OMP PARALLEL DO
 !$OMP+DEFAULT( SHARED )
 !$OMP+PRIVATE( I, J, CONV )
 
-      ! Loop over latitudes
+      ! Loop over surface grid boxes
       DO J = 1, JJPAR
- 
+      DO I = 1, IIPAR
+
          ! Conversion factor for [cm2 * kg/molec]
-         CONV = GET_AREA_CM2( J ) / XNUMOL(IDTNH3)
+         CONV = GET_AREA_CM2( I, J, 1 ) / XNUMOL(IDTNH3)
 
-         ! Loop over longitudes
-         DO I = 1, IIPAR
+         ! Convert biomass NH3 from [molec NH3/cm2/s] -> [kg NH3/s]
+         ! NOTE: Future scale is applied by this point (if necessary)
+         ENH3_bb(I,J) = BIOMASS(I,J,IDBNH3) * CONV
 
-            ! Convert biomass NH3 from [molec NH3/cm2/s] -> [kg NH3/s]
-            ! NOTE: Future scale is applied by this point (if necessary)
-            ENH3_bb(I,J) = BIOMASS(I,J,IDBNH3) * CONV
-
-         ENDDO
+      ENDDO
       ENDDO
 !$OMP END PARALLEL DO
       
@@ -8123,15 +8127,15 @@
 
             ! Loop over surface grid boxes
             DO J = 1, JJPAR
+            DO I = 1, IIPAR
 
                ! Grid box latitude center [radians]
-               YMID_R = GET_YMID_R( J )
-
-            DO I = 1, IIPAR
+               YMID_R = GET_YMID_R( I, J, 1 )
 
                ! Increment IJLOOP
                IJLOOP = IJLOOP + 1
-               TIMLOC = real(LHR0) + real(NT)/3600.0 + GET_XMID(I)/15.0
+               TIMLOC = real(LHR0) + real(NT)/3600.0 + 
+     &                  GET_XMID( I, J, 1 )/15.0
          
                DO WHILE (TIMLOC .lt. 0)
                   TIMLOC = TIMLOC + 24.0
@@ -8347,7 +8351,7 @@
       IF ( AS /= 0 ) CALL ALLOC_ERR( 'SOx_SCALE' )
       SOx_SCALE = 0d0
 
-#if   !defined( GEOS_5 ) && !defined( MERRA )
+#if   !defined( GEOS_5 ) && !defined( MERRA ) && !defined( GEOS_57 )
       ! If we are using GEOS-5 or MERRA met, then get the cloud fraction 
       ! directly from the met fields.  (skim, bmy, 1/14/10)
       ALLOCATE( VCLDF( IIPAR, JJPAR, LLTROP ), STAT=AS )

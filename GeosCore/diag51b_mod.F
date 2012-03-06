@@ -112,6 +112,7 @@
 !                              rather than Psurface - PTOP
 !  03 Feb 2011 - S. Kim      - Now do not scale the AOD output
 !                              (recalculated in RDAER AND DUST_MOD)
+!  01 Mar 2012 - R. Yantosca - Use updated GET_LOCALTIME from time_mod.F
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -295,6 +296,11 @@
 
       USE CMN_SIZE_MOD   ! Size parameters
 ! 
+! !REMARKS:
+!  For now use GET_LOCALTIME( I, 1, 1 ) which will be independent of J and L
+!  for a pure cartesian grid.  This may need to be revisited once G-C is
+!  interfaced into a GCM.
+!
 ! !REVISION HISTORY: 
 !  20 Jul 2004 - R. Yantosca - Initial version
 !  (1 ) The 1d-3 in the computation of XLOCTM is to remove roundoff ambiguity 
@@ -309,6 +315,7 @@
 !  (7 ) We need to substract TS_DYN to the time to get the local time at 
 !        the beginning of previous time step. (ccc, 8/11/09)
 !  02 Dec 2010 - R. Yantosca - Added ProTeX headers
+!  01 Mar 2012 - R. Yantosca - Now use GET_LOCALTIME(I,J,L) from time_mod.F90
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -327,7 +334,7 @@
       DO I = 1, IIPAR
 
          ! Get local time
-         LT = GET_LOCALTIME(I) - TS_DYN
+         LT = GET_LOCALTIME( I, 1, 1 ) - TS_DYN
          IF ( LT < 0  ) LT = LT + 24d0
 
          ! GOOD indicates which boxes have local times between HR1 and HR2

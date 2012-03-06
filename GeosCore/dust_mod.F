@@ -55,6 +55,8 @@
 !       (clh, 05/07/10)
 !  25 Aug 2010 - R. Yantosca - Added ProTeX headers
 !  03 Sep 2010 - R. Yantosca - Bug fix in SRC_DUST_DEAD
+!  08 Feb 2012 - R. Yantosca - Add modifications for GEOS-5.7.x
+!  01 Mar 2012 - R. Yantosca - Now reference the new grid_mod.F90
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -213,6 +215,7 @@
 !  (2 ) Remove reference to CMN, it's not needed (bmy, 7/20/04)
 !  (3 ) Now references XNUMOL from "tracer_mod.f" (bmy, 10/25/05)
 !  25 Aug 2010 - R. Yantosca - Added ProTeX headers
+!  01 Mar 2012 - R. Yantosca - Now use GET_AREA_CM2(I,J,L) from grid_mod.F90
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -278,12 +281,12 @@
          ! Loop over latitudes
          DO J = 1, JJPAR
 
-            ! Surface area [cm2]
-            AREA_CM2 = GET_AREA_CM2(J)
-
             ! Loop over longitudes
             DO I = 1, IIPAR
-            
+
+               ! Surface area [cm2]
+               AREA_CM2 = GET_AREA_CM2( I, J, 1 )
+
                ! Initialize settling velocity
                DO L = 1, LLPAR
                   VTS(L) = 0d0
@@ -417,6 +420,7 @@
 !  30 Mar 2004 - T. D. Fairlie - Initial version
 !  (1 ) Now references XNUMOL from "tracer_mod.f" (bmy, 10/25/05)
 !  25 Aug 2010 - R. Yantosca - Added ProTeX headers
+!  01 Mar 2012 - R. Yantosca - Now use GET_AREA_CM2(I,J,L) from grid_mod.F90
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -445,11 +449,11 @@
          ! Loop over latitudes
          DO J = 1, JJPAR
 
-            ! Surface area [cm2]
-            AREA_CM2 = GET_AREA_CM2(J)
-
             ! Loop over longitudes
             DO I = 1, IIPAR
+
+               ! Surface area [cm2]
+               AREA_CM2 = GET_AREA_CM2( I, J, 1 )
 
                ! Original dust concentration at surface
                OLD = TC(I,J,1,N)
@@ -665,6 +669,8 @@
 !  03 Sep 2010 - R. Yantosca - Bug fix, SNOMAS was mislabled in GEOS-5
 !                              and has units of mm H2O instead of m H2O
 !                              so we need to convert to m H2O.
+!  08 Feb 2012 - R. Yantosca - Treat GEOS-5.7.x in the same way as MERRA
+!  01 Mar 2012 - R. Yantosca - Now use GET_YMID_R(I,J,L) from grid_mod.F90
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -802,7 +808,7 @@
             ORO(I)         = OROGRAPHY(I,J) 
 
             ! Snow height [m H2O]
-#if   defined( GEOS_5 ) || defined( MERRA )
+#if   defined( GEOS_5 ) || defined( MERRA ) || defined( GEOS_57 )
             SNW_HGT_LQD(I) = SNOMAS(I,J) / 1000d0
 #else
             SNW_HGT_LQD(I) = SNOW(I,J) / 1000d0
@@ -818,7 +824,7 @@
          !==============================================================
          
          ! Latitude in RADIANS
-         YMID_R = GET_YMID_R(J)
+         YMID_R = GET_YMID_R( I, J, 1 )
 
          ! Call DEAD dust mobilization
          CALL DST_MBL( DOY,    BHT2,  J,     YMID_R, ORO,    
@@ -928,6 +934,7 @@
 !  (1 ) Added OpenMP parallelization (bmy, 4/8/04)
 !  (2 ) Now references DATA_DIR from "directory_mod.f" (bmy, 7/20/04)
 !  25 Aug 2010 - R. Yantosca - Added ProTeX headers
+!  01 Mar 2012 - R. Yantosca - Now use GET_AREA_M2(I,J,L) from grid_mod.F90
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -1044,11 +1051,11 @@
          ! Loop over latitudes
          DO J = 1, JJPAR
             
-            ! Get grid box surface area [m2]
-            AREA_M2 = GET_AREA_M2(J)
-
             ! Loop over longitudes
             DO I = 1, IIPAR
+
+               ! Get grid box surface area [m2]
+               AREA_M2 = GET_AREA_M2( I, J, 1 )
 
                ! Fraction of emerged surfaces 
                ! (subtract lakes, coastal ocean,...)
@@ -1387,7 +1394,7 @@
 !        binary files is pretty fast.  And it's only done once a month.
 !  (3 ) Now references punch file utility routines from F90 module
 !        "bpch2_mod.f".  Also reference variable DATA_DIR from the
-!         header file "F77_CMN_SETUP". (bmy, 9/30/00) 
+!         header file "CMN_SETUP". (bmy, 9/30/00) 
 !  (4 ) Now selects proper GEOS-STRAT dust field for 1996 or 1997.
 !        Also need to pass THISYEAR thru the arg list. (rvm, bmy, 11/21/00)
 !  (5 ) CONC is now declared as REAL*8 (rvm, bmy, 12/15/00)

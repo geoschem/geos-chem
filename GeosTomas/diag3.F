@@ -11,127 +11,48 @@
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE DIAG3                                                      
+      SUBROUTINE DIAG3                                                    
 !
 ! !USES:
 !
-      USE BPCH2_MOD
-      ! NBIOMAX now refers to the maximum number of possible
-      ! BB species (hotp 7/31/09)
-      ! NBIOTRCE is the number for a given simulation and
-      ! set of tracers
-      ! NBIOMAX in CMN_SIZE (FP)
-      USE BIOMASS_MOD,  ONLY : BIOTRCE !     NBIOMAX
-      USE BIOFUEL_MOD,  ONLY : NBFTRACE,    BFTRACE
-      USE DIAG_MOD,     ONLY : AD01,        AD02,        AD05    
-      USE DIAG_MOD,     ONLY : AD06,        AD07,        AD07_BC
-      USE DIAG_MOD,     ONLY : AD07_SOAGM
-      USE DIAG_MOD,     ONLY : AD07_OC,     AD07_HC,     AD08
-      USE DIAG_MOD,     ONLY : AD09,        AD09_em,     AD11
-      USE DIAG_MOD,     ONLY : AD12,        AD13_DMS,    AD13_SO2_ac 
-      USE DIAG_MOD,     ONLY : AD13_SO2_an, AD13_SO2_bb, AD13_SO2_bf
-      USE DIAG_MOD,     ONLY : AD13_SO2_ev, AD13_SO2_nv, AD13_SO4_an
-      USE DIAG_MOD,     ONLY : AD13_SO4_bf, AD13_SO2_sh, AD13_NH3_an
-      USE DIAG_MOD,     ONLY : AD13_NH3_na, AD13_NH3_bb, AD13_NH3_bf
-      USE DIAG_MOD,     ONLY : CONVFLUP,    TURBFLUP,    AD16
-      USE DIAG_MOD,     ONLY : CT16,        AD17,        CT17
-      USE DIAG_MOD,     ONLY : AD18,        CT18,        AD21
-      USE DIAG_MOD,     ONLY : AD21_cr,     AD22,        LTJV
-      USE DIAG_MOD,     ONLY : CTJV,        MASSFLEW,    MASSFLNS
-      USE DIAG_MOD,     ONLY : MASSFLUP,    AD28,        AD29
-      USE DIAG_MOD,     ONLY : AD30,        AD31
-      ! potential temperature (hotp 7/31/09)
-      USE DIAG_MOD,     ONLY : AD57
-      USE DIAG_MOD,     ONLY : AD32_ac,     AD32_an,     AD32_bb
-      USE DIAG_MOD,     ONLY : AD32_bf,     AD32_fe,     AD32_li
-      USE DIAG_MOD,     ONLY : AD32_so,     AD32_ub,     AD33
-      USE DIAG_MOD,     ONLY : AD34,        AD35,        AD36
-      USE DIAG_MOD,     ONLY : AD37,        AD38,        AD39
-      USE DIAG_MOD,     ONLY : AD43,        LTNO
-      USE DIAG_MOD,     ONLY : CTNO,        LTOH,        CTOH
-      USE DIAG_MOD,     ONLY : LTHO2,       CTHO2,       LTNO2
-      USE DIAG_MOD,     ONLY : CTNO2,       LTNO3,       CTNO3
-      ! update for arom (dkh, 06/21/07)  
-      ! to save the amount of RO2 consumed by HO2 (*H) or NO (*N)
-      ! CTLxRO2x : # of times a grid box was in the ND43 time range between
-      ! the last .bpch write and current .bpch write
-      USE DIAG_MOD,     ONLY : CTLBRO2H,      CTLBRO2N
-      USE DIAG_MOD,     ONLY : CTLTRO2H,      CTLTRO2N
-      USE DIAG_MOD,     ONLY : CTLXRO2H,      CTLXRO2N
-      USE DIAG_MOD,     ONLY : AD44,        AD45,        LTOTH
-      USE DIAG_MOD,     ONLY : CTOTH,       AD46,        AD47
-      USE DIAG_MOD,     ONLY : AD52
-      USE DIAG_MOD,     ONLY : AD54,        CTO3,        CTO3_24h
-      USE DIAG_MOD,     ONLY : AD19,        AD58,        AD60
-      USE DIAG_MOD,     ONLY : AD59_NUMB,   AD59_SULF,   AD59_SALT   !(win, 1/25/10)
-      USE DIAG_MOD,     ONLY : AD59_ECIL,   AD59_ECOB  !(win, 1/25/10)
-      USE DIAG_MOD,     ONLY : AD59_OCIL,   AD59_OCOB,   AD59_DUST  !(win, 1/25/10)
-      USE DIAG_MOD,     ONLY : AD60_COND,   AD60_COAG,   AD60_NUCL !(win, 1/25/10)
-      USE DIAG_MOD,     ONLY : AD60_AQOX,   AD60_ERROR,  AD60_SOA !(win, 1/25/10)
-      USE DIAG_MOD,     ONLY : AD61
-      USE DIAG_MOD,     ONLY : AD55,        AD66,        AD67
-      USE DIAG_MOD,     ONLY : AD68,        AD69
-      USE DIAG_MOD,     ONLY : AD10,        AD10em
-      USE DIAG03_MOD,   ONLY : ND03,        WRITE_DIAG03
-      USE DIAG04_MOD,   ONLY : ND04,        WRITE_DIAG04
-      USE DIAG41_MOD,   ONLY : ND41,        WRITE_DIAG41
-      USE DIAG42_MOD,   ONLY : ND42,        WRITE_DIAG42
-      USE DIAG56_MOD,   ONLY : ND56,        WRITE_DIAG56
-      USE DIAG_PL_MOD,  ONLY : AD65
-      ! For mercury simulation. (ccc, 6/4/10)
-      USE DEPO_MERCURY_MOD, ONLY : UPDATE_DEP
-      USE DRYDEP_MOD,   ONLY : NUMDEP,      NTRAIND
-      ! To handle tracers with several dry dep. tracers
-      !(ccc, 2/3/10)
-      USE DRYDEP_MOD,   ONLY : DEPNAME
-      USE FILE_MOD,     ONLY : IU_BPCH
-      USE GRID_MOD,     ONLY : GET_AREA_M2, GET_XOFFSET, GET_YOFFSET
-      USE LOGICAL_MOD,  ONLY : LCARB,       LCRYST,      LDUST    
-      USE LOGICAL_MOD,  ONLY : LSHIPSO2,    LSOA,        LSSALT
-      USE LOGICAL_MOD,  ONLY : LEDGARSHIP,  LARCSHIP,    LEMEPSHIP
-      USE LOGICAL_MOD,  ONLY : LICOADSSHIP, LGTMM
+      ! Modules from Headers directory
+      USE CMN_SIZE_MOD                       ! Size parameters
+      USE CMN_MOD                            ! IFLX, LPAUSE
+      USE CMN_O3_MOD                         ! FMOL, XNUMOL
+      USE CMN_DIAG_MOD                       ! Diagnostic switches & arrays
+      USE COMODE_LOOP_MOD                    ! IDEMS
+      USE FILE_MOD                           
+      USE GRID_MOD
+      USE TIME_MOD
 
-      USE TIME_MOD,     ONLY : GET_DIAGb,   GET_DIAGe,   GET_CT_A3   
-      USE TIME_MOD,     ONLY : GET_CT_A6,   GET_CT_CHEM, GET_CT_CONV 
-      USE TIME_MOD,     ONLY : GET_CT_DYN,  GET_CT_EMIS, GET_CT_I6   
-      USE TIME_MOD,     ONLY : GET_CT_DIAG, GET_CT_A1
-      USE TRACER_MOD,   ONLY : N_TRACERS,   STT,         TRACER_MW_G
-      USE TRACER_MOD,   ONLY : TRACER_NAME
-      USE TRACER_MOD,   ONLY : ITS_AN_AEROSOL_SIM
-      USE TRACER_MOD,   ONLY : ITS_A_CH3I_SIM
-      USE TRACER_MOD,   ONLY : ITS_A_FULLCHEM_SIM
-      USE TRACER_MOD,   ONLY : ITS_A_H2HD_SIM
-      USE TRACER_MOD,   ONLY : ITS_A_MERCURY_SIM
-      USE TRACER_MOD,   ONLY : ITS_A_RnPbBe_SIM
-      USE TRACER_MOD,   ONLY : ITS_A_TAGOX_SIM
-      USE TRACERID_MOD, ONLY : IDTPB,       IDTDST1,     IDTDST2 
-      USE TRACERID_MOD, ONLY : IDTDST3,     IDTDST4,     IDTBCPI 
-      USE TRACERID_MOD, ONLY : IDTOCPI,     IDTALPH,     IDTLIMO 
-      USE TRACERID_MOD, ONLY : IDTSOA1,     IDTSOA2,     IDTSOA3 
-      ! aromatic SOA
-      USE TRACERID_MOD, ONLY : IDTSOA5
-      USE TRACERID_MOD, ONLY : IDTSALA,     IDTSALC,     IDTDMS 
-      USE TRACERID_MOD, ONLY : IDTSO2,      IDTSO4,      IDTNH3 
-      USE TRACERID_MOD, ONLY : IDTOX,       IDTNOX,      IDTHNO3 
-      USE TRACERID_MOD, ONLY : IDTISOP,     IDTACET,     IDTPRPE 
-      USE TRACERID_MOD, ONLY : IDTH2,       IDTHD
-      USE TRACERID_MOD, ONLY : NEMANTHRO ,  IDTSOA4
-      USE TRACERID_MOD, ONLY : IDTSOAG,     IDTSOAM
-      USE TRACERID_MOD, ONLY : IDTMONX,     IDTMBO, IDTC2H4
-      USE TRACERID_MOD, ONLY : IDTNK1,      IDTSF1,      IDTSS1   !(win, 1/25/10)
-      USE TRACERID_MOD, ONLY : IDTECIL1,    IDTECOB1   !(win, 1/25/10)
-      USE TRACERID_MOD, ONLY : IDTOCIL1,    IDTOCOB1,    IDTDUST1  !(win, 1/25/10)
-      USE TRACERID_MOD, ONLY : IS_Hg2
-      USE WETSCAV_MOD,  ONLY : GET_WETDEP_NSOL
-      USE WETSCAV_MOD,  ONLY : GET_WETDEP_IDWETD  
-      USE DIAG_PL_MOD,  ONLY : GET_FAM_NAME         !(win, 1/25/10)
+      ! Modules from GeosCore directory
+      USE BPCH2_MOD                          ! For binary punch I/O routines
+      USE BIOMASS_MOD                        ! For biomass emissions
+      USE BIOFUEL_MOD                        ! For biofuel emissions
+      USE DIAG_MOD                           ! For diagnostic arrays
+      USE DIAG03_MOD                         ! For Hg diagnostic
+      USE DIAG04_MOD                         ! For CO2 diagnostics
+      USE DIAG41_MOD                         ! For afternoon PBL diag
+      USE DIAG42_MOD                         ! For SOA diag
+      USE DIAG56_MOD                         ! For time in tropopause diag
+      USE DIAG_PL_MOD                        ! For prod/loss diagnostic
+      USE DEPO_MERCURY_MOD                   ! For offline Hg simulation
+      USE DRYDEP_MOD                         ! For dry deposition
+      USE LOGICAL_MOD                        ! For logical switches
+      USE TRACER_MOD                         ! For tracer array
+      USE TRACERID_MOD                       ! For tracer flags
+      USE WETSCAV_MOD                        ! For wet deposition
+
       USE TOMAS_MOD,    ONLY : ICOMP, IDIAG, IBINS  !(win, 1/25/10)
 
-      USE CMN_SIZE_MOD       ! Size parameters
-      USE COMODE_LOOP_MOD    ! IDEMS
-      USE CMN_O3_MOD         ! FMOL, XNUMOL
-      USE CMN_DIAG_MOD       ! Diagnostic switches & arrays
-      USE CMN_MOD            ! IFLX, LPAUSE
+#if   defined( APM )
+      ! Modules from GeosApm directory
+      USE APM_DRIV_MOD, ONLY : IFTEMPOUT
+      USE APM_DRIV_MOD, ONLY : TEMPOUT
+      USE APM_DRIV_MOD, ONLY : NTEMPOUT
+      USE APM_DRIV_MOD, ONLY : NPOUTSTEPS
+#endif
+
 
       IMPLICIT NONE
 ! 
@@ -250,6 +171,13 @@
 !  20 Aug 2010 - R. Yantosca - Now pick proper scale for ND67 for MERRA
 !  20 Aug 2010 - R. Yantosca - Now added SCALE_A1 for hourly data
 !  20 Aug 2010 - R. Yantosca - Now reference GET_A1_TIME from "time_mod.f"
+!  26 May 2011 - R. Yantosca - For ND44, omit the special treatment of
+!                              isoprene tracers if we are not doing fullchem
+!  27 May 2011 - R. Yantosca - Now use SCALEDIAG for ND54 (time-in-trop) diag
+!  08 Feb 2012 - R. Yantosca - Add modifications for GEOS-5.7.x met
+!  08 Feb 2012 - R. Yantosca - Restructure USE statements for clarity
+!  08 Feb 2012 - R. Yantosca - Add counter for I3 (inst 3hr) met fields
+!  01 Mar 2012 - R. Yantosca - Now use GET_AREA_M2(I,J,L) from grid_mod.F90
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -265,8 +193,9 @@
       REAL*8             :: SCALE_A1,   SCALED,     SCALEDYN
       REAL*8             :: SCALECONV,  SCALESRCE,  SCALECHEM  
       REAL*8             :: SCALEDIAG,  SCALE_ND66, SCALE_ND67 
-      REAL*8             :: SCALEX,    SECONDS,   PMASS,     PRESSX
-      REAL*8             :: FDTT,      AREA_M2,   DIAGb,     DIAGe
+      REAL*8             :: SCALEX,     SECONDS,    PMASS      
+      REAL*8             :: PRESSX,     FDTT,       AREA_M2
+      REAL*8             :: DIAGb,      DIAGe,      SCALE_I3
       
       ! For binary punch file, version 2.0
       CHARACTER (LEN=40) :: CATEGORY 
@@ -298,6 +227,7 @@
       SCALE_A1   = DBLE( GET_CT_A1()   ) + 1d-32
       SCALE_A3   = DBLE( GET_CT_A3()   ) + 1d-32
       SCALE_A6   = DBLE( GET_CT_A6()   ) + 1d-32
+      SCALE_I3   = DBLE( GET_CT_I3()   ) + 1d-32
       SCALE_I6   = DBLE( GET_CT_I6()   ) + 1d-32
       SCALEDIAG  = DBLE( GET_CT_DIAG() ) + 1d-32
 !
@@ -1530,6 +1460,7 @@
 !  (6 ) Now scale online dust fields by SCALECHEM (bmy, 4/9/04)
 !  (7 ) Also save out extra diagnostics for cryst sulfur tracers (bmy, 1/5/05)
 !  (8 ) Save out extra diagnostics for dust AOD in each size bin (clh, 5/7/10)
+!  (9 ) Bug fix, don't write out obsolete tracer #3 for ND21 (bmy, 12/16/11)
 !******************************************************************************
 !
       IF ( ND21 > 0 ) THEN
@@ -1545,6 +1476,10 @@
                
             ! Select proper unit string (cf list above)
             SELECT CASE( N ) 
+               CASE ( 3 )
+                  ! This diagnostic is for a GEOS-1/GEOS-STRAT field
+                  ! so skip it! (bmy, 12/16/11)
+                  CYCLE
                CASE ( 5, 8, 11, 14, 17, 20 )
                   UNIT = 'cm2/cm3'
                CASE DEFAULT
@@ -1745,8 +1680,14 @@
             IF ( N > N_TRACERS ) CYCLE
             NN = N
             
-!            ARRAY(:,:,1:LD24) = MASSFLEW(:,:,1:LD24,N) / SCALEDYN
-            ARRAY(:,:,1:LD24) = MASSFLEW(:,:,LD24:1:-1,N) / SCALEDYN
+!------------------------------------------------------------------------------
+! Prior to 2/16/12:
+! Bug fix to account for output of a subset of model levels   
+!!            ARRAY(:,:,1:LD24) = MASSFLEW(:,:,1:LD24,N) / SCALEDYN
+!            ARRAY(:,:,1:LD24) = MASSFLEW(:,:,LD24:1:-1,N) / SCALEDYN
+!------------------------------------------------------------------------------
+            ARRAY(:,:,1:LD24) = MASSFLEW(:,:,LLPAR:LLPAR-LD24+1:-1,N) /
+     &                          SCALEDYN
 
             CALL BPCH2( IU_BPCH,   MODELNAME, LONRES,   LATRES,
      &                  HALFPOLAR, CENTER180, CATEGORY, NN,
@@ -1778,8 +1719,14 @@
             IF ( N > N_TRACERS ) CYCLE
             NN = N
 
-!            ARRAY(:,:,1:LD25) = MASSFLNS(:,:,1:LD25,N) / SCALEDYN
-            ARRAY(:,:,1:LD25) = MASSFLNS(:,:,LD25:1:-1,N) / SCALEDYN
+!------------------------------------------------------------------------------
+! Prior to 2/16/12:
+! Bug fix to account for output of a subset of model levels   
+!!            ARRAY(:,:,1:LD25) = MASSFLNS(:,:,1:LD25,N) / SCALEDYN
+!            ARRAY(:,:,1:LD25) = MASSFLNS(:,:,LD25:1:-1,N) / SCALEDYN
+!------------------------------------------------------------------------------
+            ARRAY(:,:,1:LD25) = MASSFLNS(:,:,LLPAR:LLPAR-LD25+1:-1,N) /
+     &                          SCALEDYN
 
             CALL BPCH2( IU_BPCH,   MODELNAME, LONRES,   LATRES,
      &                  HALFPOLAR, CENTER180, CATEGORY, NN,
@@ -1811,8 +1758,14 @@
             IF ( N > N_TRACERS ) CYCLE
             NN = N
             
-!            ARRAY(:,:,1:LD26) = MASSFLUP(:,:,1:LD26,N) / SCALEDYN
-            ARRAY(:,:,1:LD26) = MASSFLUP(:,:,LD26:1:-1,N) / SCALEDYN
+!------------------------------------------------------------------------------
+! Prior to 2/16/12:
+! Bug fix to account for output of a subset of model levels               
+!!            ARRAY(:,:,1:LD26) = MASSFLUP(:,:,1:LD26,N) / SCALEDYN
+!            ARRAY(:,:,1:LD26) = MASSFLUP(:,:,LD26:1:-1,N) / SCALEDYN
+!------------------------------------------------------------------------------
+            ARRAY(:,:,1:LD26) = MASSFLUP(:,:,LLPAR:LLPAR-LD26+1:-1,N) /
+     &                          SCALEDYN
                
             CALL BPCH2( IU_BPCH,   MODELNAME, LONRES,   LATRES, 
      &                  HALFPOLAR, CENTER180, CATEGORY, NN,
@@ -2833,16 +2786,17 @@
                MMB = TINDEX(44,MM)
                MM  = MM + 1
             ENDDO
-            
-            ! Special case for tracers with several dry dep. tracers
-            ! E.g. ISOPN: ISOPND and ISOPNB.
-            ! We handle both tracers at the same time so we need to 
-            ! skip the second tracer. (ccc, 2/3/10)
-            !IF ( MMB /= NN ) CYCLE
-            IF ( MMB /= NN                .OR.
-     &           DEPNAME( N ) == 'ISOPNB' .OR.
-     &           DEPNAME( N ) == 'MVKN'       ) CYCLE
-
+          
+            IF ( ITS_A_FULLCHEM_SIM() ) THEN
+               ! Special case for tracers with several dry dep. tracers
+               ! E.g. ISOPN: ISOPND and ISOPNB.
+               ! We handle both tracers at the same time so we need to 
+               ! skip the second tracer. (ccc, 2/3/10)
+               !IF ( MMB /= NN ) CYCLE
+               IF ( MMB /= NN                .OR.
+     &              DEPNAME( N ) == 'ISOPNB' .OR.
+     &              DEPNAME( N ) == 'MVKN'       ) CYCLE
+            ENDIF
 
             ! Save into ARRAY
             ARRAY(:,:,1) = ( AD44(:,:,N,1) / SCALECHEM )
@@ -2919,15 +2873,17 @@
                MMB = TINDEX(44,MM)
                MM  = MM + 1
             ENDDO
-            
-            ! Special case for tracers with several dry dep. tracers
-            ! E.g. ISOPN: ISOPND and ISOPNB.
-            ! We handle both tracers at the same time so we need to 
-            ! skip the second tracer. (ccc, 2/3/10)
-            !IF ( MMB /= NN ) CYCLE
-            IF ( MMB /= NN                .OR.
-     &           DEPNAME( N ) == 'ISOPNB' .OR.
-     &           DEPNAME( N ) == 'MVKN'       ) CYCLE
+
+            IF ( ITS_A_FULLCHEM_SIM() ) THEN
+               ! Special case for tracers with several dry dep. tracers
+               ! E.g. ISOPN: ISOPND and ISOPNB.
+               ! We handle both tracers at the same time so we need to 
+               ! skip the second tracer. (ccc, 2/3/10)
+               !IF ( MMB /= NN ) CYCLE
+               IF ( MMB /= NN                .OR.
+     &              DEPNAME( N ) == 'ISOPNB' .OR.
+     &              DEPNAME( N ) == 'MVKN'       ) CYCLE
+            ENDIF
 
             ! Tracer number plus GAMAP offset
             ARRAY(:,:,1) = AD44(:,:,N,2) / SCALESRCE
@@ -3176,7 +3132,7 @@
          UNIT = 'unitless'
 
          DO L = 1, LD54
-            ARRAY(:,:,L) = AD54(:,:,L) / SCALEDYN
+            ARRAY(:,:,L) = AD54(:,:,L) / SCALEDIAG
          ENDDO
 
          CALL BPCH2( IU_BPCH,   MODELNAME, LONRES,   LATRES,
@@ -3229,6 +3185,7 @@
 !******************************************************************************
 !
       IF ( ND56 > 0 ) CALL WRITE_DIAG56
+
 !
 !******************************************************************************
 !  ND57: THETA
@@ -3942,11 +3899,11 @@
             NN = N
 
             DO J = 1, JJPAR
+            DO I = 1, IIPAR
 
-               ! Grid box surface area [cm2]
-               AREA_M2 = GET_AREA_M2( J )
+                  ! Grid box surface area [cm2]
+                  AREA_M2 = GET_AREA_M2( I, J, 1 )
 
-               DO I = 1, IIPAR
                   ARRAY(I,J,1) = ( SUM( STT(I,J,:,N) ) * 6.022d22 )
      &                         / ( TRACER_MW_G(N)       * AREA_M2  )
                ENDDO
@@ -4064,17 +4021,20 @@
 !       the scale factors accordingly.  Also delete KZZ. (bmy, 6/23/03)
 !  (4) Modified for GEOS-5 and GCAP (bmy, 6/9/05)
 !  20 Aug 2010 - R. Yantosca - Modified for MERRA
+!   8 Feb 2012 - R. Yantosca - Modified for GEOS-5.7.x
 !******************************************************************************
 !
       IF ( ND66 > 0 ) THEN
          CATEGORY = 'DAO-3D-$'
 
 #if   defined( GEOS_3 )
-         SCALE_ND66 = SCALE_I6   ! For GEOS-3, ND66 is 6-hr instantaneous data
+         SCALE_ND66 = SCALE_I6   ! For GEOS-3,      ND66 is 6-hr inst data
+#elif defined( GEOS_57 )
+         SCALE_ND66 = SCALE_A3   ! For GEOS_5.7.x,  ND66 is 3-hr time-avg data
 #elif defined( MERRA )
-         SCALE_ND66 = SCALE_A3   ! For MERRA,  ND66 is 3-hour time-avg data
+         SCALE_ND66 = SCALE_A3   ! For MERRA,       ND66 is 3-hr time-avg data
 #else
-         SCALE_ND66 = SCALE_A6   ! Otherwise,  ND66 is 6-hr time-avg data
+         SCALE_ND66 = SCALE_A6   ! Otherwise,       ND66 is 6-hr time-avg data
 #endif
 
          DO M = 1, TMAX(66)
@@ -4090,12 +4050,20 @@
 
                ! TMPU
                CASE ( 3 )
+#if   defined( GEOS_57 )
+                  SCALEX = SCALE_I3      ! T is an I3 field in GEOS-5.7.x
+#else
                   SCALEX = SCALE_ND66
+#endif
                   UNIT   = 'K'
 
                ! SPHU
                CASE ( 4 )
+#if   defined( GEOS_57 )
+                  SCALEX = SCALE_I3      ! SPHU is an I3 field in GEOS-5.7.x
+#else
                   SCALEX = SCALE_ND66
+#endif
                   UNIT   = 'g/kg'
 
                ! CLDMAS, DTRAIN
@@ -4158,15 +4126,20 @@
 !     models (phs, 9/3/08)
 !  (7 ) add EFLUX for output. (lin, ccc 5/29/09)
 !  26 Aug 2010 - R. Yantosca - Modified for MERRA
+!  03 Nov 2011 - M. Payer    - Fix SCALEX for SLP: use A1 for MERRA, otherwise
+!                              use I6
+!  08 Feb 2012 - R. Yantosca - Modified for GEOS-5.7.x
 !******************************************************************************
 !
       IF ( ND67 > 0 ) THEN
          CATEGORY = 'DAO-FLDS'
 
 #if   defined( MERRA )
-         SCALE_ND67 = SCALE_A1     ! For MERRA, most ND67 fields are hourly
+         SCALE_ND67 = SCALE_A1    ! For MERRA,      ND67 fields are hourly
+#elif defined( GEOS_57 )
+         SCALE_ND67 = SCALE_A1    ! For GEOS-5.7.x, ND67 fields are hourly
 #else
-         SCALE_ND67 = SCALE_A3     ! Otherwise, most ND67 fields are 3-hourly
+         SCALE_ND67 = SCALE_A3    ! Otherwise, most ND67 fields are 3-hourly
 #endif
 
          ! Binary punch file
@@ -4220,7 +4193,7 @@
                   SCALEX = SCALED
                   UNIT   = 'm'
                CASE ( 16 )
-#if   defined( MERRA )
+#if   defined( MERRA ) || defined( GEOS_57 )
                   SCALEX = SCALE_A3     ! MERRA CLDTOPS is a 3-hr time avg'd
 #else 
                   SCALEX = SCALE_A6     ! Otherwise CLDTOPS is 6-hr time avg'd
@@ -4230,7 +4203,11 @@
                   SCALEX = SCALE_ND67
                   UNIT   = 'hPa'
                CASE ( 18 ) 
-                  SCALEX = SCALE_ND67
+#if   defined( MERRA )
+                 SCALEX = SCALE_A1     ! MERRA SLP is hourly
+#else
+                 SCALEX = SCALE_I6     ! Otherwise SLP is 6-h inst.
+#endif
                   UNIT   = 'hPa'
                CASE ( 19 )
                   SCALEX = SCALE_ND67
@@ -4251,7 +4228,7 @@
                CASE DEFAULT
                   CYCLE
             END SELECT
-
+                  
             ARRAY(:,:,1) = AD67(:,:,N) / SCALEX
 
             CALL BPCH2( IU_BPCH,   MODELNAME, LONRES,   LATRES,

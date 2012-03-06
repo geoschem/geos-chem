@@ -100,9 +100,9 @@
       PRIVATE
 
       ! ... except these variables
-      ! FP: NBIOMAX now specified in F77_CMN_SIZE and is the max
+      ! FP: NBIOMAX now specified in CMN_SIZE_mod and is the max
       ! number of BB species allowed, used for array allocation (hotp 7/30/09)
-      ! if additional BB species are added, increase NBIOMAX in F77_CMN_SIZE
+      ! if additional BB species are added, increase NBIOMAX in CMN_SIZE_mod
       !PUBLIC :: NBIOMAX
       !PUBLIC :: NBIOMAX_GAS ! no longer needed (hotp 8/3/09)
       !FP_ISOP
@@ -138,7 +138,7 @@
       ! MODULE VARIABLES
       !=================================================================
 
-      ! FP Removed hard-wired IDBxxx and move NBIOMAX to F77_CMN_SIZE (hotp 7/30/09)      ! Parameters
+      ! FP Removed hard-wired IDBxxx and move NBIOMAX to CMN_SIZE_mod (hotp 7/30/09)      ! Parameters
 !      INTEGER, PARAMETER   :: NBIOMAX     = 24
 !      INTEGER, PARAMETER   :: NBIOMAX_GAS = 19
 !      INTEGER, PARAMETER   :: IDBNOX      = 1
@@ -615,7 +615,7 @@
       IF ( NBIOTRCE .GE. NBIOMAX ) THEN
           CALL ERROR_STOP ( 'NBIOTRCE too large!', '(biomass_mod)' )
           ! If you get this error, an appropriate fix is to increase
-          ! NBIOMAX in F77_CMN_SIZE (hotp 7/31/09)
+          ! NBIOMAX in CMN_SIZE_mod (hotp 7/31/09)
       ENDIF
 
       ! Echo biomass burning tracer information

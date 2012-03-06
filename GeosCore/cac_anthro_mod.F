@@ -40,6 +40,8 @@
 !  28 Jan 2009 - P. Le Sager - Initial Version
 !  18 Dec 2009 - Aaron van D - Added EMISS_CAC_ANTHRO_05x0666 routine
 !  18 Dec 2009 - Aaron van D - Added READ_CANADA_MASK_05x0666 routine
+!  01 Mar 2012 - R. Yantosca - Remove A_CM2 array, use the new function
+!                              GET_AREA_CM2( I, J, L ) from grid_mod.F90 
 !EOP
 !------------------------------------------------------------------------------
 !
@@ -50,9 +52,6 @@
       INTEGER, ALLOCATABLE :: MASK_CANADA_1x1(:,:)
       REAL*8,  ALLOCATABLE :: MASK_CANADA(:,:)
       
-      ! Array for surface area
-      REAL*8,  ALLOCATABLE :: A_CM2(:)
-
       ! Arrays for emissions
       REAL*8,  ALLOCATABLE :: NOx(:,:)
       REAL*8,  ALLOCATABLE :: CO(:,:)
@@ -123,6 +122,7 @@
 !
 ! !USES:
 !
+      USE GRID_MOD,     ONLY : GET_AREA_CM2
       USE TRACER_MOD,   ONLY : XNUMOL
       USE TRACERID_MOD, ONLY : IDTNOx, IDTCO, IDTSO2, IDTNH3
 !
@@ -204,7 +204,8 @@
       ELSE IF ( DO_MCS ) THEN
 
          ! Convert NOx from [kg/yr] to [molec/cm2/s]
-         VALUE = VALUE * XNUMOL(N) / ( A_CM2(J) * SEC_IN_YEAR )
+         VALUE = ( VALUE       * XNUMOL(N)               )
+     &         / ( SEC_IN_YEAR * GET_AREA_CM2( I, J, 1 ) )
 
       ENDIF
 
@@ -959,13 +960,14 @@
 ! !USES:
 ! 
       USE ERROR_MOD,   ONLY : ALLOC_ERR
-      USE GRID_MOD,    ONLY : GET_AREA_CM2
       USE LOGICAL_MOD, ONLY : LCAC
 
       USE CMN_SIZE_MOD    ! Size parameters
 !
 ! !REVISION HISTORY: 
 !  28 Jan 2009 - P. Le Sager - Initial Version
+!  01 Mar 2012 - R. Yantosca - Delete the A_CM2 array, we will now just
+!                              use the function directly
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -1000,19 +1002,6 @@
       ALLOCATE( NH3( IIPAR, JJPAR ), STAT=AS )
       IF ( AS /= 0 ) CALL ALLOC_ERR( 'NH3' )
       NH3 = 0d0
-
-      !---------------------------------------------------
-      ! Pre-store array for grid box surface area in cm2
-      !---------------------------------------------------
-
-      ! Allocate array
-      ALLOCATE( A_CM2( JJPAR ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'A_CM2' )
-
-      ! Fill array
-      DO J = 1, JJPAR
-         A_CM2(J) = GET_AREA_CM2( J )
-      ENDDO
 
       !---------------------------------------------------
       ! Read & Regrid masks for CAC emissions
@@ -1054,7 +1043,6 @@
       !=================================================================
       ! CLEANUP_STREETS begins here!
       !=================================================================
-      IF ( ALLOCATED( A_CM2          ) ) DEALLOCATE( A_CM2          )
       IF ( ALLOCATED( MASK_CANADA_1x1) ) DEALLOCATE( MASK_CANADA_1x1) 
       IF ( ALLOCATED( MASK_CANADA    ) ) DEALLOCATE( MASK_CANADA    ) 
       IF ( ALLOCATED( NOx            ) ) DEALLOCATE( NOx            )

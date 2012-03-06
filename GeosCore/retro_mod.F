@@ -49,6 +49,7 @@
 !  18 Aug 2011 - D. Millet   - Partition ketones into 25% MEK and 75% ACET
 !  18 Aug 2011 - D. Millet   - Remove call to GET_ANNUAL_SCALAR
 !  22 Aug 2011 - R. Yantosca - Added ProTeX headers
+!  01 Mar 2012 - R. Yantosca - Now reference new grid_mod.F90
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -385,16 +386,6 @@
          SCALEYEAR = FSCALYR
       ENDIF
 
-!------------------------------------------------------------------------------
-! Prior to 8/18/11:
-! This shouldn't be here (dbm, 8/18/2011)
-!      ! Set base year to 2000
-!      BASEYEAR = 2000
-!
-!      CALL GET_ANNUAL_SCALAR( 71, BASEYEAR, SCALEYEAR, SC)
-!      ALK4(:,:) = ALK4(:,:) * SC(:,:)
-!------------------------------------------------------------------------------
-
       END SUBROUTINE READ_RETRO
 !EOC
 !------------------------------------------------------------------------------
@@ -429,7 +420,7 @@
 ! !REVISION HISTORY: 
 !  08 Mar 2011 - W. Reinhart - Initial Version 
 !  22 Aug 2011 - R. Yantosca - Added ProTeX headers
-
+!  01 Mar 2012 - R. Yantosca - Now use GET_AREA_CM2(I,J,L) from grid_mod.F90
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -501,55 +492,55 @@
       !=================================================================
       !  Sum anthropogenic emissions
       !=================================================================
-      ! Loop over latitudes
+
+      ! Loop over surface boxes
       DO J = 1, JJPAR
+      DO I = 1, IIPAR
 
          ! Surface area [cm2] * seconds in the month / Avogadro's number
          ! Also multiply by the factor 1d-9 to convert kg to Tg
-         A = GET_AREA_CM2( J ) * ( D(THISMONTH) * 86400d-9 ) / 6.0225d23
-      
-         ! Loop over longitudes
-         DO I = 1, IIPAR
+         A     = GET_AREA_CM2( I, J, 1 ) 
+     &         * ( D(THISMONTH) * 86400d-9 ) / 6.0225d23
 
-            ! Anthro emissions
-            ALK4  = ALK4  + RETRO_ALK4(I,J)  * A * F_ALK4
-            ACET  = ACET  + RETRO_ACET(I,J)  * A * F_ACET
-            MEK   = MEK   + RETRO_MEK(I,J)   * A * F_MEK
-            ALD2  = ALD2  + RETRO_ALD2(I,J)  * A * F_ALD2
-            PRPE  = PRPE  + RETRO_PRPE(I,J)  * A * F_PRPE
-            C3H8  = C3H8  + RETRO_C3H8(I,J)  * A * F_C3H8
-            CH2O  = CH2O  + RETRO_CH2O(I,J)  * A * F_CH2O
-            C2H6  = C2H6  + RETRO_C2H6(I,J)  * A * F_C2H6
-            BENZ  = BENZ  + RETRO_BENZ(I,J)  * A * F_BENZ
-            TOLU  = TOLU  + RETRO_TOLU(I,J)  * A * F_TOLU
-            XYLE  = XYLE  + RETRO_XYLE(I,J)  * A * F_XYLE
-            C2H4  = C2H4  + RETRO_C2H4(I,J)  * A * F_C2H4
-            C2H2  = C2H2  + RETRO_C2H2(I,J)  * A * F_C2H2
+         ! Anthro emissions
+         ALK4  = ALK4  + RETRO_ALK4(I,J)  * A * F_ALK4
+         ACET  = ACET  + RETRO_ACET(I,J)  * A * F_ACET
+         MEK   = MEK   + RETRO_MEK(I,J)   * A * F_MEK
+         ALD2  = ALD2  + RETRO_ALD2(I,J)  * A * F_ALD2
+         PRPE  = PRPE  + RETRO_PRPE(I,J)  * A * F_PRPE
+         C3H8  = C3H8  + RETRO_C3H8(I,J)  * A * F_C3H8
+         CH2O  = CH2O  + RETRO_CH2O(I,J)  * A * F_CH2O
+         C2H6  = C2H6  + RETRO_C2H6(I,J)  * A * F_C2H6
+         BENZ  = BENZ  + RETRO_BENZ(I,J)  * A * F_BENZ
+         TOLU  = TOLU  + RETRO_TOLU(I,J)  * A * F_TOLU
+         XYLE  = XYLE  + RETRO_XYLE(I,J)  * A * F_XYLE
+         C2H4  = C2H4  + RETRO_C2H4(I,J)  * A * F_C2H4
+         C2H2  = C2H2  + RETRO_C2H2(I,J)  * A * F_C2H2
 
-            ENDDO
-         ENDDO
+      ENDDO
+      ENDDO
 
-         !==============================================================
-         !  Print info
-         !==============================================================
-         WRITE( 6, '(a)' )
-         WRITE( 6, 100   ) 'ALK4', THISMONTH, ALK4, ' C'
-         WRITE( 6, 100   ) 'ACET', THISMONTH, ACET, ' C'
-         WRITE( 6, 100   ) 'MEK',  THISMONTH, MEK,  ' C'
-         WRITE( 6, 100   ) 'ALD2', THISMONTH, ALD2, ' C'
-         WRITE( 6, 100   ) 'PRPE', THISMONTH, PRPE, ' C'
-         WRITE( 6, 100   ) 'C3H8', THISMONTH, C3H8, ' C'
-         WRITE( 6, 100   ) 'CH2O', THISMONTH, CH2O, ' C'
-         WRITE( 6, 100   ) 'C2H6', THISMONTH, C2H6, ' C'
-         WRITE( 6, 100   ) 'BENZ', THISMONTH, BENZ, ' C'
-         WRITE( 6, 100   ) 'TOLU', THISMONTH, TOLU, ' C'
-         WRITE( 6, 100   ) 'XYLE', THISMONTH, XYLE, ' C'
-         WRITE( 6, 100   ) 'C2H4', THISMONTH, C2H4, ' C'
-         WRITE( 6, 100   ) 'C2H2', THISMONTH, C2H2, ' C'
- 100     FORMAT( 'Total anthro ', a4, ' for 2000/',
-     &           i2.2, ': ', f13.6, ' Tg', a2 )
+      !==============================================================
+      !  Print info
+      !==============================================================
+      WRITE( 6, '(a)' )
+      WRITE( 6, 100   ) 'ALK4', THISMONTH, ALK4, ' C'
+      WRITE( 6, 100   ) 'ACET', THISMONTH, ACET, ' C'
+      WRITE( 6, 100   ) 'MEK',  THISMONTH, MEK,  ' C'
+      WRITE( 6, 100   ) 'ALD2', THISMONTH, ALD2, ' C'
+      WRITE( 6, 100   ) 'PRPE', THISMONTH, PRPE, ' C'
+      WRITE( 6, 100   ) 'C3H8', THISMONTH, C3H8, ' C'
+      WRITE( 6, 100   ) 'CH2O', THISMONTH, CH2O, ' C'
+      WRITE( 6, 100   ) 'C2H6', THISMONTH, C2H6, ' C'
+      WRITE( 6, 100   ) 'BENZ', THISMONTH, BENZ, ' C'
+      WRITE( 6, 100   ) 'TOLU', THISMONTH, TOLU, ' C'
+      WRITE( 6, 100   ) 'XYLE', THISMONTH, XYLE, ' C'
+      WRITE( 6, 100   ) 'C2H4', THISMONTH, C2H4, ' C'
+      WRITE( 6, 100   ) 'C2H2', THISMONTH, C2H2, ' C'
+ 100  FORMAT( 'Total anthro ', a4, ' for 2000/',
+     &         i2.2, ': ', f13.6, ' Tg', a2 )
 
-         END SUBROUTINE TOTAL_ANTHRO_TG
+      END SUBROUTINE TOTAL_ANTHRO_TG
 !EOC
 !------------------------------------------------------------------------------
 !             University of Minnesota Atmospheric Chemistry Group

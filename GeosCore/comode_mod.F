@@ -270,6 +270,14 @@
          ALLOCATE( TAREA( ITLOOP, NDUST+NAER ), STAT=AS )
          IF ( AS /= 0 ) CALL ALLOC_ERR( 'TAREA' )
          TAREA = 0d0      
+
+         ALLOCATE( WTAREA( ITLOOP, NDUST+NAER ), STAT=AS )
+         IF ( AS /= 0 ) CALL ALLOC_ERR( 'WTAREA' )
+         WTAREA = 0d0
+
+         ALLOCATE( WERADIUS( ITLOOP, NDUST+NAER ), STAT=AS )
+         IF ( AS /= 0 ) CALL ALLOC_ERR( 'WERADIUS' )
+         WERADIUS = 0d0      
          
       ENDIF
 

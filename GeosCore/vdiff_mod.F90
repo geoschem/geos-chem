@@ -125,6 +125,7 @@ MODULE VDIFF_MOD
 !  02 Mar 2011 - R. Yantosca - Bug fixes for PGI compiler: these mostly
 !                              involve explicitly using "D" exponents
 !  25 Mar 2011 - R. Yantosca - Corrected bug fixes noted by Jintai Lin
+!  08 Feb 2012 - R. Yantosca - Add modifications for GEOS-5.7.2 met
 !EOP
 !------------------------------------------------------------------------------
 
@@ -900,11 +901,6 @@ contains
        rrho(i)  = rair*t(i,plev)/pmid(i,plev)
        if (present(taux) .and. present(tauy)) then
           ustr     = sqrt( sqrt( taux(i)**2 + tauy(i)**2 )*rrho(i) )
-          !---------------------------------------------------------------
-          ! Prior to 9/17/11:
-          ! Use double precision exponents (bmy, 9/17/11)
-          !ustar(i) = max( ustr,.01 )
-          !---------------------------------------------------------------
           ustar(i) = max( ustr,.01d0 )
        endif
        khfs(i)  = shflx(i)*rrho(i)/cpair
@@ -1836,6 +1832,9 @@ contains
     USE DRYDEP_MOD,   ONLY : DRYHg0, DRYHg2, DRYHgP !cdh
     USE TRACER_MOD,   ONLY: ITS_A_FULLCHEM_SIM  !bmy
 
+#if   defined( GEOS_3 )
+    USE CMN_GCTM_MOD      ! BMY KLUDGE for the present (bmy, 2/24/12)
+#endif
 
 #   include "define.h"
 
@@ -1864,6 +1863,8 @@ contains
 !  02 Mar 2011 - R. Yantosca - Bug fixes for PGI compiler: these mostly
 !                              involve explicitly using "D" exponents
 !  26 Apr 2011 - J. Fisher   - Use MERRA land fraction information
+!  08 Feb 2012 - R. Yantosca - Treat GEOS-5.7.2 in the same way as MERRA
+!  01 Mar 2012 - R. Yantosca - Now use GET_AREA_CM2(I,J,L) from grid_mod.F90
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -2033,8 +2034,9 @@ contains
           ! Should NOT use ID_EMITTED here, since it is only for gases 
           ! for SMVGEAR. (Lin, 06/10/08)
           do N = 1, N_TRACERS
-             eflx(I,J,N) = eflx(I,J,N) + emis_save(I,J,N)/GET_AREA_M2(J)/ &
-                                                         GET_TS_EMIS() / 60.d0
+             eflx(I,J,N) = eflx(I,J,N) + emis_save(I,J,N)       &
+                                       / GET_AREA_M2( I, J, 1 ) &
+                                       / GET_TS_EMIS() / 60.d0
           enddo
 
        ENDIF
@@ -2061,8 +2063,9 @@ contains
           ! Should NOT use ID_EMITTED here, since it is only for gases 
           ! for SMVGEAR. (Lin, 06/10/08)
           do N = 1, N_TRACERS
-             eflx(I,J,N) = eflx(I,J,N) + emis_save(I,J,N)/GET_AREA_M2(J)/ &
-                                                         GET_TS_EMIS() / 60.d0
+             eflx(I,J,N) = eflx(I,J,N) + emis_save(I,J,N) &
+                         / GET_AREA_M2( I, J, 1 )         &
+                         / GET_TS_EMIS() / 60.d0
           enddo
        endif
 
@@ -2071,8 +2074,9 @@ contains
        !----------------------------------------------------------------
        IF ( IS_Hg ) THEN
           do N = 1, N_TRACERS
-             eflx(I,J,N) = eflx(I,J,N) + emis_save(I,J,N)/GET_AREA_M2(J)/ &
-                  GET_TS_EMIS() / 60.d0
+             eflx(I,J,N) = eflx(I,J,N) + emis_save(I,J,N) & 
+                         / GET_AREA_M2( I, J, 1 )         &
+                         / GET_TS_EMIS() / 60.d0
           enddo
        ENDIF
 
@@ -2182,7 +2186,7 @@ contains
           ! Except in MERRA, we assume entire grid box is water or ice
           ! if conditions are met (jaf, 4/26/11)
           FRAC_NO_HG0_DEP = 1d0
-#if   defined( MERRA )
+#if   defined( MERRA ) || defined( GEOS_57 )
           FRAC_NO_HG0_DEP = &
                MIN(FROCEAN(I,J) + FRSNO(I,J) + FRLANDIC(I,J), 1d0)
           ZERO_HG0_DEP = ( FRAC_NO_HG0_DEP > 0d0 )
@@ -2251,7 +2255,7 @@ contains
        ! for deposition: additional step to convert from s-1 to kg/m2/s
        ! dflx(I,J,:) = dflx(I,J,:) * pmid(I,J,1) / rair / vtemp * BXHEIGHT(I,J,1)
        ! alternate method to convert from s-1 to kg/m2/s
-       dflx(I,J,:) = dflx(I,J,:) * AD(I,J,1) / GET_AREA_M2(J) 
+       dflx(I,J,:) = dflx(I,J,:) * AD(I,J,1) / GET_AREA_M2( I, J, 1 ) 
 
        ! surface flux = emissions - dry deposition
        sflx(I,J,:) = eflx(I,J,:) - dflx(I,J,:) ! kg/m2/s
@@ -2269,7 +2273,8 @@ contains
              NN = NTRAIND(N)
              
              ! Deposition mass, kg
-             DEP_KG = dflx( I, J, NN ) * GET_AREA_M2(J) * GET_TS_CONV() * 60d0
+             DEP_KG = dflx( I, J, NN ) * GET_AREA_M2( I, J, 1 ) &
+                    * GET_TS_CONV()    * 60d0
 
              IF ( IS_Hg2(NN) ) THEN 
                 

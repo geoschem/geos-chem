@@ -1,4 +1,3 @@
-# $Id: Makefile,v 1.5 2010/02/02 16:57:47 bmy Exp $
 #------------------------------------------------------------------------------
 #          Harvard University Atmospheric Chemistry Modeling Group            !
 #------------------------------------------------------------------------------
@@ -54,16 +53,18 @@
 #  11 Dec 2009 - R. Yantosca - Now get SHELL from Makefile_header.mk
 #  21 Dec 2009 - R. Yantosca - If HDF5=yes, then look for hdf5.mod in the
 #                              HDF5 include path $(HDF5_INC).
+#  01 Mar 2012 - R. Yantosca - Replace grid_mod.F with grid_mod.F90, to
+#                              facilitate work on the GI model
 #EOP
 #------------------------------------------------------------------------------
 #BOC
 
 # Define variables
-ROOTDIR = ..
-HDR     = $(ROOTDIR)/Headers
-HELP    = $(ROOTDIR)/help
-LIB     = $(ROOTDIR)/lib
-MOD     = $(ROOTDIR)/mod
+ROOTDIR := ..
+HDR     := $(ROOTDIR)/Headers
+HELP    := $(ROOTDIR)/help
+LIB     := $(ROOTDIR)/lib
+MOD     := $(ROOTDIR)/mod
 
 # Include header file.  This returns CC, F90, FREEFORM, LD, R8, SHELL,
 # as well as the default Makefile compilation rules for source code files.
@@ -75,11 +76,14 @@ include $(ROOTDIR)/Makefile_header.mk
 #=============================================================================
 
 # List of source files
-SRC = $(wildcard *.F) $(wildcard *.F90)
+SRC := $(wildcard *.F) $(wildcard *.F90)
+
+# Skip these files
+SRC := $(filter-out grid_mod.F,$(SRC))
 
 # Replace .f and .f90 extensions with *.o
-TMP = $(SRC:.F=.o)
-OBJ = $(TMP:.F90=.o)
+TMP := $(SRC:.F=.o)
+OBJ := $(TMP:.F90=.o)
 
 # Special files just for IFORT
 ifeq ($(COMPILER),ifort) 
@@ -126,7 +130,7 @@ charpak_mod.o    : charpak_mod.F
 directory_mod.o  : directory_mod.F
 error_mod.o      : error_mod.F
 file_mod.o       : file_mod.F       error_mod.o
-grid_mod.o       : grid_mod.F       error_mod.o
+grid_mod.o       : grid_mod.F90     error_mod.o
 ifort_errmsg.o   : ifort_errmsg.F
 julday_mod.o     : julday_mod.F
 linux_err.o      : linux_err.c

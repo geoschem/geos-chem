@@ -65,6 +65,7 @@
 !  26 Feb 2010 - R. Yantosca - Added ProTex Headers
 !  08 Mar 2010 - C. Carouge  - Modify call to tpcore_fvdas. We do not re-order 
 !                              mass fluxes diagnostics anymore.
+!  01 Mar 2012 - R. Yantosca - Now reference new grid_mod.F90
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -1321,7 +1322,7 @@
 !  10 Mar 2003 - R. Yantosca - Initial version
 !  (1 ) Now references GET_TS_DYN from "time_mod.f", INIT_TPCORE_FVDAS from
 !        "tpcore_fvdas_mod.f90", and GET_YMID_R from "grid_mod.f".  Now also
-!        include "F77_CMN_SETUP".  (bdf, bmy, 4/28/03)
+!        include "CMN_SETUP".  (bdf, bmy, 4/28/03)
 !  (2 ) Remove reference to DSIG, it's obsolete. (bmy, 6/24/03)
 !  (3 ) Now references LEMBED & LTPFV from "logical_mod.f".  Now references
 !        N_TRACERS from "tracer_mod.f". (bmy, 7/20/04)
@@ -1331,6 +1332,8 @@
 !  (6 ) Deleted reference to CMN, it's not needed anymore (bmy, 11/6/08)
 !  26 Feb 2010 - R. Yantosca - Removed references to obsolete LEMBED switch
 !  26 Feb 2010 - R. Yantosca - Added ProTeX headers
+!  01 Mar 2012 - R. Yantosca - Now use GET_AREA_M2(I,J,L) from grid_mod.F90
+!  01 Mar 2012 - R. Yantosca - Now use GET_YMID_R_W(I,J,L) from grid_mod.F90
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -1384,7 +1387,7 @@
 
       ! Surface area [m2]
       DO J = 1, JJPAR
-         A_M2(J) = GET_AREA_M2( J )
+         A_M2(J) = GET_AREA_M2( 1, J, 1 )
       ENDDO
 
       !=================================================================
@@ -1400,7 +1403,7 @@
 
       ! YMID_R is latitude of grid box center [radians]
       DO J = 1,JJPAR
-         YMID_R(J) = GET_YMID_R(J)
+         YMID_R(J) = GET_YMID_R( 1, J, 1 )
       ENDDO
 
       ! Call INIT routine from "tpcore_fvdas_mod.f" 
@@ -1452,6 +1455,8 @@
 !  06 Jun 2008 - D. Chen & R. Yantosca - Initial version
 !  26 Feb 2010 - R. Yantosca - Removed references to obsolete LEMBED switch
 !  26 Feb 2010 - R. Yantosca - Added ProTeX headers
+!  01 Mar 2012 - R. Yantosca - Now use GET_AREA_CM2(I,J,L) from grid_mod.F90
+!  01 Mar 2012 - R. Yantosca - Now use GET_YMID_R_W(I,J,L) from grid_mod.F90
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -1497,7 +1502,7 @@
 
       ! Surface area [m2]
       DO J = 1, JJPAR
-         A_M2(J) = GET_AREA_M2( J )
+         A_M2(J) = GET_AREA_M2( 1, J, 1 )
       ENDDO
 
       !=================================================================
@@ -1512,7 +1517,7 @@
 
       ! YMID_R is latitude of grid box center [radians]
       DO J =0, JJPAR+1
-         YMID_R_W(J) = GET_YMID_R_W(J)
+         YMID_R_W(J) = GET_YMID_R_W( 1, J, 1 )
       ENDDO
 
       ! Call INIT routine from "tpcore_geos5_fvdas_window_mod.f"

@@ -109,7 +109,7 @@
 !        area in cm2.  Remove references to DXYP.  Use routines GET_MONTH
 !        and GET_TS_EMIS from "time_mod.f".  Remove MONTH from call to
 !        BIOBURN. (bmy, 2/11/03)
-!  (5 ) Now replace F77_CMN_SETUP w/ references from "logical_mod.f" and
+!  (5 ) Now replace CMN_SETUP w/ references from "logical_mod.f" and
 !        "directory_mod.f".  Now references STT from "tracer_mod.f".
 !        Replace LFOSSIL with LANTHRO (bmy, 7/20/04)
 !  (6 ) Now make sure all USE statements are USE, ONLY.  Also eliminate 
@@ -118,6 +118,7 @@
 !  (8 ) BIOMASS(:,:,IDBCO) from "biomass_mod.f" is now in units of 
 !        [atoms C/cm2/s].  Adjust unit conversion accordingly. (bmy, 9/27/06)
 !  (9 ) Now IDBC2H6 is defined in TRACERID_MOD. (fp, hotp , 7/31/09)
+!  01 Mar 2012 - R. Yantosca - Now use GET_AREA_M2(I,J,L) from grid_mod.F90
 !******************************************************************************
 !
       ! References to F90 modules
@@ -183,15 +184,13 @@
 !$OMP+DEFAULT( SHARED )
 !$OMP+PRIVATE( I, J, AREA_CM2, E_C2H6_BB )
 
-         ! Loop over latitudes
+         ! Loop over lats & lons
          DO J = 1, JJPAR
+         DO I = 1, IIPAR
 
-            ! Grid box area [cm2]
-            AREA_CM2 = GET_AREA_CM2( J )
+               ! Grid box area [cm2]
+               AREA_CM2 = GET_AREA_CM2( I, J, 1 )
             
-            ! Loop over longitudes
-            DO I = 1, IIPAR
- 
                ! Convert [atoms C/cm2/s] to [kg C2H6] and store in E_C2H6
                E_C2H6_BB = BIOMASS(I,J,IDBC2H6)   / 2.0d0  / 
      &                     XNUMOL_C2H6 * AREA_CM2 * DTSRCE  
@@ -279,11 +278,10 @@
 !$OMP+DEFAULT( SHARED )
 !$OMP+PRIVATE( I, J, AREA_CM2, E_C2H6_NGAS  )
          DO J = 1, JJPAR
+         DO I = 1, IIPAR
 
-            ! Grid box surface area [cm2]
-            AREA_CM2 = GET_AREA_CM2( J )
-
-            DO I = 1, IIPAR
+               ! Grid box surface area [cm2]
+               AREA_CM2 = GET_AREA_CM2( I, J, 1 )
 
                ! Convert NGAS C2H6 from [atoms C/cm2/s] to [kg C2H6]
                E_C2H6_NGAS = NGASC2H6(I,J) / 2.0d0  /

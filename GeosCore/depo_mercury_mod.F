@@ -58,6 +58,7 @@
 ! !REVISION HISTORY:
 !  23 Apr 2010 - C. Carouge  - Initial version
 !  12 Apr 2011 - J. Fisher   - Add missing code from Holmes 2010
+!  08 Feb 2012 - R. Yantosca - Add modifications for GEOS-5.7.x met
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -114,7 +115,6 @@
          DD_Hg2(I,J,NN) = DD_Hg2(I,J,NN) + DRY_Hg2
         
       ENDIF
-      
      
       END SUBROUTINE ADD_Hg2_DD
 !EOC
@@ -317,6 +317,7 @@
 !  26 Apr 2011 - J. Fisher   - Use MERRA land fraction information
 !  12 Apr 2011 - J. Fisher   - Add missing code from Holmes 2010
 !  13 Apr 2011 - R. Yantosca - Bug fix: reference IS_LAND from dao_mod.f
+!   8 Feb 2012 - R. Yantosca - Treat GEOS-5.7.x in the same way as MERRA
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -346,22 +347,29 @@
 
       ! Except with MERRA, we can't distinguish land fractions, so we use a 
       ! land fraction of 1 and only use boxes that are mostly snow/ice. 
-      ! For MERRA we use the actual fractions, so FRAC_SNOW_OR_ICE is overwritten
-      ! (jaf, 4/25/11)
+      ! For MERRA we use the actual fractions, so FRAC_SNOW_OR_ICE is 
+      ! overwritten (jaf, 4/25/11)
       FRAC_SNOW_OR_ICE = 1d0
-#if   defined( MERRA )
+
+#if   defined( MERRA ) || defined( GEOS_57 )
+
       ! Don't let fraction be greater than 1
-      FRAC_SNOW_OR_ICE = 
-     &    MIN(FRSNO(I,J) + FRSEAICE(I,J) + FRLANDIC(I,J), 1d0)
-      IS_SNOW_OR_ICE = ( FRAC_SNOW_OR_ICE > 0d0 )
+      FRAC_SNOW_OR_ICE = MIN(FRSNO(I,J) 
+     &                 + FRSEAICE(I,J) + FRLANDIC(I,J), 1d0)
+      IS_SNOW_OR_ICE   = ( FRAC_SNOW_OR_ICE > 0d0 )
+
 #elif defined( GEOS_5 )
+
       ! Use GEOS5 snow height (water equivalent) in mm. (Docs wrongly say m)
-      IS_SNOW_OR_ICE = ( (IS_ICE(I,J)) .OR. 
-     &                   (IS_LAND(I,J) .AND. SNOMAS(I,J) > 10d0) )
+      IS_SNOW_OR_ICE   = ( (IS_ICE(I,J)) .OR. 
+     &                     (IS_LAND(I,J) .AND. SNOMAS(I,J) > 10d0) )
+ 
 #else
+
       ! Use GEOS1-4 snow height (water equivalent) in mm
-      IS_SNOW_OR_ICE = ( (IS_ICE(I,J)) .OR. 
-     &                   (IS_LAND(I,J) .AND. SNOW(I,J) > 10d0) )
+      IS_SNOW_OR_ICE   = ( (IS_ICE(I,J)) .OR. 
+     &                     (IS_LAND(I,J) .AND. SNOW(I,J) > 10d0) )
+
 #endif 
 
       ! Check if there is snow on the ground, or if this is sea ice
@@ -369,7 +377,7 @@
     
          ! Add 60% of deposition to surface (i.e. assume 40% accumulates
          ! in surface) multiplied by the fraction of the box that is 
-         ! snow or ice (i.e. 1 for all met fields but MERRA)
+         ! snow or ice (i.e. 1 for all met fields but MERRA and GEOS-5.7.x)
          SNOW_HG(I,J,NN) = SNOW_HG(I,J,NN) + 
      &                     FRAC_SNOW_OR_ICE * MAX( 0.6D0*DEP_HG2, 0D0 )
 

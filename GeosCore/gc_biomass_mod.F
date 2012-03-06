@@ -106,7 +106,7 @@
 !  (7 ) Now account for extra production of CO from VOC's for Tagged CO
 !        and CO-OH simulations (bmy, 1/3/01)
 !  (8 ) Now use routines from "error_mod.f" for trapping NaN's (bmy, 3/8/01)
-!  (9 ) Moved NBIOMAX here from "F77_CMN_SIZE" (bmy, 3/16/01)
+!  (9 ) Moved NBIOMAX here from "CMN_SIZE" (bmy, 3/16/01)
 !  (10) Now dimension BIOTRCE and to be of size NBIOMAX, instead of having 
 !        them be allocatable.  Also change NBIOMAX from 9 to 10, since we 
 !        will be adding ALK4 soon.  Elminate LDOBIOEMIT, since that is now
@@ -186,7 +186,7 @@
       ! Parameters
       ! NOTE: This is an internal declaration for the 
       ! gas-phase species only (bmy, 9/28/06)
-      ! use NBIOMAX from F77_CMN_SIZE now (hotp 8/3/09)
+      ! use NBIOMAX from CMN_SIZE_mod now (hotp 8/3/09)
       !INTEGER, PARAMETER   :: NBIOMAX = 19
 
       ! TOMS AI interannual variability in biomass burning emissions
@@ -1224,6 +1224,7 @@
 !        Cosmetic changes. (bmy, 3/14/03)
 !  (4 ) Now report sums of NOx as Tg N instead of Tg NOx (bmy, 4/5/06)
 !  (5 ) Add unit choice for GLYX, MGLY, GLYC, HAC (tmf, 1/7/09)
+!  01 Mar 2012 - R. Yantosca - Now use GET_AREA_CM2(I,J,L) from grid_mod.F90
 !******************************************************************************
 !
       ! References to F90 modules
@@ -1250,14 +1251,14 @@
 
       ! Convert to [Tg/month] (or [Tg C/month] for hydrocarbons)
       DO J = 1, JJPAR
-         
+      DO I = 1, IIPAR
+
          ! Conversion factor to [Tg/month] (or [Tg C/month] for HC's)
-         CONV = GET_AREA_CM2( J ) * ( MOLWT / 6.023d23 ) * 1d-9
+         CONV  = GET_AREA_CM2( I, J, 1 ) * ( MOLWT / 6.023d23 ) * 1d-9
          
          ! Sum the emissions
-         DO I = 1, IIPAR
-            TOTAL = TOTAL + ( BBARRAY(I,J) * CONV )
-         ENDDO
+         TOTAL = TOTAL + ( BBARRAY(I,J) * CONV )
+      ENDDO
       ENDDO
      
       ! Define unit string
@@ -1300,6 +1301,7 @@
 !  NOTES:
 !  (1 ) Took the code that reads the emissions from disk from 
 !        BIOMASS_CARB_GEOS in "carbon_mod.f". (bmy, 9/28/06)
+!  01 Mar 2012 - R. Yantosca - Now use GET_AREA_CM2(I,J,L) from grid_mod.F90
 !******************************************************************************
 !
       ! References to F90 modules
@@ -1449,12 +1451,12 @@
       ! Loop over latitudes
       DO J = 1, JJPAR
 
-         ! Conversion factor for [1/cm2/s]
-         CONV = 1d0 / ( GET_AREA_CM2( J ) * SEC_PER_MONTH )
-          
          ! Loop over longitudes
          DO I = 1, IIPAR
 
+            ! Conversion factor for [1/cm2/s]
+            CONV = 1d0 / ( GET_AREA_CM2( I, J, 1 ) * SEC_PER_MONTH )
+          
             ! Convert [kg C/month] -> [atoms C/cm2/s]
             BIOMASS_BC(I,J) = BIOMASS_BC(I,J) * XNUMOL(IDTBCPO) * CONV
             BIOMASS_OC(I,J) = BIOMASS_OC(I,J) * XNUMOL(IDTOCPO) * CONV
@@ -1498,6 +1500,7 @@
 !  NOTES:
 !  (1 ) Took file reading code out of READ_BIOMASS_SO2 of "sulfate_mod.f"
 !        and inserted here (bmy, 9/28/06)
+!  01 Mar 2012 - R. Yantosca - Now use GET_AREA_M2(I,J,L) from grid_mod.F90
 !******************************************************************************
 !
       ! References to F90 modules
@@ -1615,24 +1618,23 @@
 !$OMP+DEFAULT( SHARED )
 !$OMP+PRIVATE( I, J, CONV )
 
-      ! Loop over latitudes
+      ! Loop over surface boxes
       DO J = 1, JJPAR
-         
+      DO I = 1, IIPAR
+
          ! Conversion factor for [kg/month] -> [molec/cm2/s]
-         CONV = XNUMOL(IDTSO2) / ( GET_AREA_CM2( J ) * SEC_PER_MONTH )
+         CONV = XNUMOL(IDTSO2) 
+     &        / ( GET_AREA_CM2( I, J, 1 ) * SEC_PER_MONTH )
 
-         ! Loop over longitudes
-         DO I = 1, IIPAR
+         ! Convert [kg SO2/month] -> [molec SO2/cm2/s]
+         BIOMASS_SO2(I,J) = BIOMASS_SO2(I,J) * CONV
 
-            ! Convert [kg SO2/month] -> [molec SO2/cm2/s]
-            BIOMASS_SO2(I,J) = BIOMASS_SO2(I,J) * CONV
-
-            ! Scale to IPCC future scenario (if necessary)
-            IF ( LFUTURE ) THEN
-               BIOMASS_SO2(I,J) = BIOMASS_SO2(I,J) * 
-     &                            GET_FUTURE_SCALE_SO2bb( I, J )
-            ENDIF
-         ENDDO
+         ! Scale to IPCC future scenario (if necessary)
+         IF ( LFUTURE ) THEN
+            BIOMASS_SO2(I,J) = BIOMASS_SO2(I,J) * 
+     &                         GET_FUTURE_SCALE_SO2bb( I, J )
+         ENDIF
+      ENDDO
       ENDDO
 !$OMP END PARALLEL DO
 
@@ -1660,6 +1662,7 @@
 !  NOTES:
 !  (1 ) Took file reading code out of READ_BIOMASS_NH3 of "sulfate_mod.f"
 !        and inserted here (bmy, 9/28/06)
+!  01 Mar 2012 - R. Yantosca - Now use GET_AREA_CM2(I,J,L) from grid_mod.F90
 !******************************************************************************
 !
       ! References to F90 modules
@@ -1777,24 +1780,24 @@
 !$OMP+DEFAULT( SHARED )
 !$OMP+PRIVATE( I, J, CONV )
 
-      ! Loop over latitudes
+      ! Loop over surface boxes
       DO J = 1, JJPAR
+      DO I = 1, IIPAR
 
          ! Conversion factor for [kg/month] -> [molec/cm2/s]
-         CONV = XNUMOL(IDTNH3) / ( GET_AREA_CM2( J ) * SEC_PER_MONTH ) 
+         CONV = XNUMOL(IDTNH3) 
+     &        / ( GET_AREA_CM2( I, J, 1 ) * SEC_PER_MONTH ) 
 
-         ! Loop over longitudes
-         DO I = 1, IIPAR
 
-            ! Convert [kg NH3/month] -> [molec NH3/cm2/s]
-            BIOMASS_NH3(I,J) = BIOMASS_NH3(I,J) * CONV
+         ! Convert [kg NH3/month] -> [molec NH3/cm2/s]
+         BIOMASS_NH3(I,J) = BIOMASS_NH3(I,J) * CONV
 
-            ! Scale to IPCC future scenario (if necessary)
-            IF ( LFUTURE ) THEN
-               BIOMASS_NH3(I,J) = BIOMASS_NH3(I,J) * 
-     &                            GET_FUTURE_SCALE_NH3bb( I, J )
-            ENDIF
-         ENDDO
+         ! Scale to IPCC future scenario (if necessary)
+         IF ( LFUTURE ) THEN
+            BIOMASS_NH3(I,J) = BIOMASS_NH3(I,J) * 
+     &                         GET_FUTURE_SCALE_NH3bb( I, J )
+         ENDIF
+      ENDDO
       ENDDO
 !$OMP END PARALLEL DO
       
@@ -2029,7 +2032,7 @@
 !  NAIMONTHS      = 12*NAIYEARS; number of months for which there is data.
 !
 !  NOTES:
-!  (1 ) Remove references to "F77_CMN_CO", "F77_CMN_OH", and "CMN". (bmy, 9/25/00)
+!  (1 ) Remove references to "CMN_CO", "CMN_OH", and "CMN". (bmy, 9/25/00)
 !  (2 ) Updated lat/lon boundaries of geographic regions (bnd, bmy, 10/16/00)
 !  (3 ) Now references ALLOC_ERR from "error_mod.f" (bmy, 10/15/02)
 !  (4 ) Now use functions GET_MONTH, GET_TAU, GET_YEAR from "time_mod.f" 

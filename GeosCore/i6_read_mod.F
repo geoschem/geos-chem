@@ -249,7 +249,7 @@
 !  (1 ) Adapted from OPEN_MET_FIELDS of "dao_read_mod.f" (bmy, 6/13/03)
 !  (2 ) Now opens either zipped or unzipped files (bmy, 12/11/03)
 !  (3 ) Now skips past the GEOS-4 ident string (bmy, 12/12/03)
-!  (4 ) Now references "directory_mod.f" instead of F77_CMN_SETUP.  Also now
+!  (4 ) Now references "directory_mod.f" instead of CMN_SETUP.  Also now
 !        references LUNZIP from "logical_mod.f".  Also now prevents EXPAND_DATE
 !        from overwriting Y/M/D tokens in directory paths. (bmy, 7/20/04)
 !  (5 ) Now use FILE_EXISTS from "file_mod.f" to determine if file unit IU_I6

@@ -68,6 +68,7 @@
 !  (26) Added support for LINOZ (dbj, jliu, bmy, 10/16/09)
 !  13 Aug 2010 - R. Yantosca - Add modifications for MERRA (treat like GEOS-5)
 !  02 Dec 2010 - R. Yantosca - Added ProTeX headers
+!  08 Feb 2012 - R. Yantosca - Add modifications for GEOS-5.7.2 met data
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -215,7 +216,7 @@
 ! 
 ! !REVISION HISTORY:
 !  13 Dec 1999 - Q. Li, R. Martin - Initial version
-!  (1 ) The parameter Rdg0 from "F77_CMN_GCTM" = R / g0 = 28.97. 
+!  (1 ) The parameter Rdg0 from "CMN_GCTM" = R / g0 = 28.97. 
 !  (2 ) Pass PW = PS - PTOP to UPBDFLX via "CMN".
 !  (3 ) Now pass IORD, JORD, KORD as arguments (bmy, 12/6/00)
 !  (4 ) Now compute the proper value of PO3_vmr that will yield 475 Tg O3/yr
@@ -228,7 +229,7 @@
 !                                                                             .
 !  (5 ) Added to "upbdflx_mod.f".  Also updated comments and made some
 !        cosmetic changes. (bmy, 6/28/01)
-!  (6 ) Now reference F77_CMN_SETUP for LSPLIT.  Also store strat O3 into
+!  (6 ) Now reference CMN_SETUP for LSPLIT.  Also store strat O3 into
 !        tracer #11 for multi-tracer Ox run. (amf, bmy, 7/3/01)
 !  (7 ) Removed IREF, JREF -- these are obsolete.  Also T(IREF,JREF,L) is
 !        now T(I,J,L). (bmy, 9/27/01)
@@ -268,6 +269,8 @@
 !  (28) Now do not call ADD_STRAT_POx for tagged Ox (dbj, bmy, 10/16/09)
 !  13 Aug 2010 - R. Yantosca - Treat MERRA like GEOS-5 (bmy, 8/13/10)
 !  02 Dec 2010 - R. Yantosca - Added ProTeX headers
+!  08 Feb 2012 - R. Yantosca - Treat GEOS-5.7.2 in the same way as MERRA
+!  10 Feb 2012 - R. Yantosca - Modified for 0.25 x 0.3125 grids
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -297,6 +300,9 @@
       INTEGER, PARAMETER   :: J30S = 61, J30N = 121
 
 #elif defined( GRID05x0666 )
+      INTEGER, PARAMETER   :: J30S = 1, J30N = JJPAR
+
+#elif defined( GRID025x03125 )
       INTEGER, PARAMETER   :: J30S = 1, J30N = JJPAR
 
 #elif defined( GRID1x1 ) 
@@ -350,7 +356,7 @@
 
       PO3_vmr = 5.14d-14                                 ! 3,3,7
 
-#elif defined( GEOS_5 ) || defined( MERRA )
+#elif defined( GEOS_5 ) || defined( MERRA ) || defined( GEOS_57 )
 
       ! For now assume GEOS-5 has same PO3_vmr value 
       ! as GEOS-4; we can redefine later (bmy, 5/25/05)
@@ -915,6 +921,8 @@
 !  (27) Remove support for COMPAQ compiler (bmy, 7/8/09)
 !  13 Aug 2010 - R. Yantosca - Treat MERRA like GEOS-5
 !  02 Dec 2010 - R. Yantosca - Added ProTeX headers
+!  08 Feb 2012 - R. Yantosca - Treat GEOS-5.7.2 in the same way as MERRA
+!  10 Feb 2012 - R. Yantosca - Modified for 0.25 x 0.3125 grids
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -943,6 +951,9 @@
       INTEGER, PARAMETER   :: J30S = 61, J30N = 121
 
 #elif defined( GRID05x0666 )
+      INTEGER, PARAMETER   :: J30S = 1, J30N = JJPAR
+
+#elif defined( GRID025x03125 )
       INTEGER, PARAMETER   :: J30S = 1, J30N = JJPAR
 
 #elif defined( GRID1x1 ) 
@@ -989,7 +1000,7 @@
 
       PO3_vmr = 5.14d-14                                 ! 3,3,7
 
-#elif defined( GEOS_5 ) || defined( MERRA )
+#elif defined( GEOS_5 ) || defined( MERRA ) || defined( GEOS_57 )
 
       ! For now assume GEOS-5 has same PO3_vmr value 
       ! as GEOS-4; we can redefine later (bmy, 5/25/05)

@@ -796,9 +796,9 @@
       USE ERROR_MOD,  ONLY : GEOS_CHEM_STOP
       USE TRACER_MOD, ONLY : ITS_A_FULLCHEM_SIM
 
-      USE CMN_SIZE_MOD   ! Size parameters
-      USE COMODE_LOOP_MOD       ! NSPEC, NAMEGAS, NCS
-! 
+      USE CMN_SIZE_MOD     ! Size parameters
+      USE COMODE_LOOP_MOD  ! NAMEGAS, NSPEC
+!
 ! !REVISION HISTORY: 
 !  01 Aug 2003 - M. Evans    - Initial version
 !  (1 ) Now references GEOS_CHEM_STOP from "error_mod.f", which frees all
@@ -1097,6 +1097,7 @@
 !  (10) Change planeflight output time step. (ccc, 8/27/09)
 !  (11) Now scale AOD's to jv_spec_aod.dat wavelength. (clh, 5/14/09)
 !  29 Jul 2011 - R. Yantosca - Added ProTeX headers
+!  09 Feb 2012 - R. Yantosca - Treat GEOS-5.7.x in the same way as MERRA
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -1318,7 +1319,7 @@
                   CASE ( 1009 )
                      VARI(V) = L
 
-#if   defined( MERRA )
+#if   defined( MERRA ) || defined( GEOS_57 )
                   !--------------------------
                   ! GEOS-Chem SEAICE frac's
                   !--------------------------

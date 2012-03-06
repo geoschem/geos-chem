@@ -160,6 +160,10 @@
       REAL*8, ALLOCATABLE ::   FRACNO2(:,:,:)
       REAL*8, ALLOCATABLE ::   SAVEHO2(:,:,:)
 #else
+      ! fracnox                 = look up table for fraction of NOx remaining
+      !                           for ship emissions (gvinken, 6/6/10)
+      ! intope                  = look up table for integrated Ozone Production
+      !                           Efficiency for ship emiss (gvinken, 6/6/10)
       REAL*8 ::   FRACO3(IIPAR,JJPAR,LLPAR)
       REAL*8 ::   SAVEOH(IIPAR,JJPAR,LLPAR)
       REAL*8 ::   FRACNO(IIPAR,JJPAR,LLPAR)
@@ -170,6 +174,9 @@
       REAL*8 ::   SAVEHO2(IIPAR,JJPAR,LLPAR)
 #endif
 
+      REAL*4 ::   fracnox(4,4,4,12,12,4,5)
+      REAL*4 ::   intope(4,4,4,12,12,4,5)
+      REAL   ::   jvalues(IIPAR,JJPAR,2)
 !
 ! !REMARKS:
 !  NOTE: Now NEMPARA = max no. of anthropogenic emissions
