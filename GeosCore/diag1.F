@@ -31,6 +31,9 @@
       USE TRACER_MOD,     ONLY : XNUMOLAIR
       USE TRACERID_MOD,   ONLY : IDTOX
       USE TROPOPAUSE_MOD, ONLY : ITS_IN_THE_TROP
+      USE DIAG03_MOD       , ONLY : AD03_RGM, AD03_RPM, ND03   
+      USE OCEAN_MERCURY_MOD, ONLY : Fg, Fp, PARTITION_Hg2
+
 #if   defined( APM )
       USE TRACER_MOD,     ONLY : N_APMTRA
 #endif
@@ -153,6 +156,36 @@
          ENDDO
 !$OMP END PARALLEL DO
       ENDIF
+
+! H Amos, 25 Oct 2011--------------------------------------------------
+
+      !-----------------------------------------------!
+      ! Write ND03 diagnostics for RGM and RPM (pptv) !
+      !-----------------------------------------------!
+       IF(ND03 > 0) THEN
+
+!$OMP PARALLEL DO 
+!$OMP+DEFAULT( SHARED )
+!$OMP+PRIVATE( I, J, L)
+   
+        DO L = 1, LLPAR
+        DO J = 1, JJPAR
+        DO I = 1, IIPAR
+
+          ! Reactive gaseous mercury, RGM
+          AD03_RGM(I,J,L) = AD03_RGM(I,J,L)+
+     &      Fg(I,J,L) * STT(I,J,L,2) * TCVV(2) / AD(I,J,L) *1D12
+
+          ! Reactive particulate mercury, RPM
+          AD03_RPM(I,J,L) = AD03_RPM(I,J,L) + 
+     &      Fp(I,J,L)* STT(I,J,L,2) * TCVV(2) / AD(I,J,L) *1D12
+                                                       
+        ENDDO
+        ENDDO
+        ENDDO
+!$OMP END PARALLEL DO 
+      ENDIF
+!-------------------------------------------------------------------------
 
       !================================================================= 
       ! ND30: Land/water/ice flags

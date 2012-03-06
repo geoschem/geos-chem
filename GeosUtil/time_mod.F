@@ -19,6 +19,7 @@
 
 #     include "define.h"
       PRIVATE
+      PRIVATE :: HG2_DIAG !hma, 25 Oct 2011
 !
 ! !PUBLIC MEMBER FUNCTIONS:
 !
@@ -124,6 +125,8 @@
       PUBLIC  :: SYSTEM_TIMESTAMP
       PUBLIC  :: TIMESTAMP_DIAG
       PUBLIC  :: GET_NYMD_DIAG
+      PUBLIC  :: GET_Hg2_DIAG !hma, 25 Oct 2011
+      PUBLIC  :: SET_Hg2_DIAG !hma, 25 Oct 2011
 #if   defined( APM )
       PUBLIC  :: ITS_TIME_FOR_A6UPDATE
 #endif
@@ -192,6 +195,8 @@
 !  07 Oct 2011 - R. Yantosca - Remove obsolete TS_SUN_2, GET_TS_SUN_2
 !  07 Oct 2011 - R. Yantosca - Remove obsolete OFFSET argument to GET_LOCALTIME
 !  12 Oct 2011 - R. Yantosca - Modified ITS_A_NEW_MONTH for central chem step
+!  25 Oct 2011 - H. Amos     - bring Hg2 gas-particle partitioning code into
+!                              v9-01-02
 !  02 Feb 2012 - R. Yantosca - Added modifications for GEOS-5.7.x met fields
 !  03 Feb 2012 - R. Yantosca - Added I3 fields timestep variable & routines
 !  28 Feb 2012 - R. Yantosca - Removed support for GEOS-3
@@ -218,6 +223,7 @@
       INTEGER           :: CT_EMIS,    CT_A3,       CT_A6
       INTEGER           :: CT_I3,      CT_I6,       CT_XTRA    
       INTEGER           :: CT_DIAG,    CT_A1
+      INTEGER           :: Hg2_DIAG
 
       ! Number of leap years we have encountered since start of simulation
       REAL*8            :: LEAP_YEAR_DAYS
@@ -648,15 +654,16 @@
       TS_DIAG  = DIAGNOS
 
       ! Zero timestep counters
-      CT_CHEM = 0
-      CT_CONV = 0
-      CT_DYN  = 0
-      CT_EMIS = 0
-      CT_A3   = 0
-      CT_A6   = 0
-      CT_I6   = 0
-      CT_XTRA = 0
-      CT_DIAG = 0
+      CT_CHEM  = 0
+      CT_CONV  = 0
+      CT_DYN   = 0
+      CT_EMIS  = 0
+      CT_A3    = 0
+      CT_A6    = 0
+      CT_I6    = 0
+      CT_XTRA  = 0
+      CT_DIAG  = 0
+      Hg2_DIAG = 0
 
       ! Echo to stdout
       WRITE( 6, '(/,a)' ) 'SET_TIMESTEPS: setting GEOS-Chem timesteps!'
@@ -704,6 +711,42 @@
       ENDIF
 
       END SUBROUTINE SET_CT_CHEM
+
+!EOC
+!------------------------------------------------------------------------------
+!          Harvard University Atmospheric Chemistry Modeling Group            !
+!------------------------------------------------------------------------------
+!BOP
+
+      SUBROUTINE SET_Hg2_DIAG( INCREMENT, RESET )
+!
+!******************************************************************************
+!  Subroutine SET_Hg2_DIAG increments Hg2_DIAG, the counter for the number
+! of times AAD03_Fg and AD03_Fp are recorded. (hma 20100218)
+!
+!  Arguments as Input:
+!  ============================================================================
+!  (1 ) INCREMENT (LOGICAL) : If T, then will increment counter
+!  (2 ) RESET     (LOGICAL) : If T, then will reset counter to zero!
+!
+!  NOTES:
+!******************************************************************************
+! BOC      
+      ! Arguments
+      LOGICAL, INTENT(IN), OPTIONAL :: INCREMENT, RESET
+
+      !=================================================================
+      ! SET_Hg2_DIAG begins here!
+      !=================================================================
+      IF ( PRESENT( INCREMENT ) ) THEN
+         Hg2_DIAG = Hg2_DIAG + 1
+      ELSE IF ( PRESENT( RESET ) ) THEN
+         Hg2_DIAG = 0
+      ENDIF
+
+      ! Return to calling program
+      END SUBROUTINE SET_Hg2_DIAG
+
 !EOC
 !------------------------------------------------------------------------------
 !          Harvard University Atmospheric Chemistry Modeling Group            !
@@ -2504,6 +2547,31 @@
       THIS_CT_DIAG = CT_DIAG
 
       END FUNCTION GET_CT_DIAG
+!EOC
+!------------------------------------------------------------------------------
+!          Harvard University Atmospheric Chemistry Modeling Group            !
+!------------------------------------------------------------------------------
+!BOP
+      FUNCTION GET_Hg2_DIAG() RESULT( THIS_Hg2_DIAG )
+!
+!******************************************************************************
+!  Function GET_Hg2_DIAG returns the DIAG timestep counter to the
+!  calling program. (hma 20100218)
+!
+!  NOTES:
+!******************************************************************************
+!BOC
+      ! Function value
+      INTEGER :: THIS_Hg2_DIAG
+
+      !=================================================================
+      ! GET_Hg2_DIAG begins here!
+      !=================================================================
+      THIS_Hg2_DIAG = Hg2_DIAG
+
+      ! Return to calling program
+      END FUNCTION GET_Hg2_DIAG
+
 !EOC
 !------------------------------------------------------------------------------
 !          Harvard University Atmospheric Chemistry Modeling Group            !

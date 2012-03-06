@@ -505,6 +505,12 @@
             ENDIF
          ENDIF
 
+         ! Hg2 gas-particle partitioning (H Amos, 25 Oct 2011)
+         IF ( ITS_A_MERCURY_SIM() .and. ITS_A_NEW_MONTH() ) THEN
+            CALL PARTITION_Hg2( MONTH )
+            IF ( LPRT ) CALL DEBUG_MSG( '### MAIN: a PARTITION_Hg2' )
+         ENDIF
+
          !==============================================================
          !              ***** D A I L Y   D A T A *****
          !==============================================================
@@ -687,14 +693,14 @@
                
                ! Partition Hg(II) between aerosol and gas
                IF ( ITS_A_MERCURY_SIM() ) THEN
-                  CALL PARTITIONHG( 1, STT, HGPFRAC )
+                  CALL PARTITIONHG( 1, STT )
                ENDIF
       
                CALL DO_CONVECTION
 
                ! Return all reactive particulate Hg(II) to total Hg(II) tracer
                IF ( ITS_A_MERCURY_SIM() ) THEN
-                  CALL PARTITIONHG( 2, STT, HGPFRAC )
+                  CALL PARTITIONHG( 2, STT )
                ENDIF
       
                !### Debug
@@ -763,7 +769,7 @@
 
             ! Add partition Hg(II) between aerosol and gas
             IF ( ITS_A_MERCURY_SIM() ) THEN
-               CALL PARTITIONHG( 1, STT, HGPFRAC )
+               CALL PARTITIONHG( 1, STT )
             ENDIF            
      
             ! Do wet deposition
@@ -771,7 +777,7 @@
             
             ! Return all reactive particulate Hg(II) to total Hg(II) tracer
             IF ( ITS_A_MERCURY_SIM() ) THEN
-               CALL PARTITIONHG( 2, STT, HGPFRAC )
+               CALL PARTITIONHG( 2, STT )
             ENDIF 
 
          ENDIF
