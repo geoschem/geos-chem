@@ -27,7 +27,6 @@
 ! !PRIVATE MEMBER FUNCTIONS:
 !
       PRIVATE :: INIT_DAO_GCAP
-      PRIVATE :: INIT_DAO_GEOS3
       PRIVATE :: INIT_DAO_GEOS4
       PRIVATE :: INIT_DAO_GEOS5
       PRIVATE :: INIT_DAO_GEOS57
@@ -1969,10 +1968,10 @@
 !------------------------------------------------------------------------------
 !BOP
 !
-! !IROUTINE: copy_i6_fields
+! !IROUTINE: copy_i3_i6_fields
 !
-! !DESCRIPTION: Subroutine COPY\_I6\_FIELDS copies the I-6 fields at the end 
-!  of a 6-hr timestep.  The I-6 fields at the end of a given 6-hr timestep 
+! !DESCRIPTION: Subroutine COPY\_I3\_I6\_FIELDS copies the I-6 fields at the 
+!  end of a 6-hr timestep.  The I-6 fields at the end of a given 6-hr timestep 
 !  become the fields at the beginning of the next 6-hr timestep. 
 !\\
 !\\
@@ -2039,7 +2038,7 @@
 #elif defined( MERRA )
 
       !------------------
-      ! GEOS-5.7.x met
+      ! MERRA met
       !------------------
       PS1    = PS2          ! I6 surface pressure    [hPa]
       RH1    = RH2          ! I6 relative humidity   [%]
@@ -2279,237 +2278,6 @@
       LWI_GISS = 0d0
 
       END SUBROUTINE INIT_DAO_GCAP
-!EOC
-!------------------------------------------------------------------------------
-!          Harvard University Atmospheric Chemistry Modeling Group            !
-!------------------------------------------------------------------------------
-!BOP
-!
-! !IROUTINE: init_dao_geos3
-!
-! !DESCRIPTION: Subroutine INIT\_DAO allocates memory for all allocatable
-!  module arrays required when using the GEOS-3 met fields
-!\\
-!\\
-! !INTERFACE:
-!
-      SUBROUTINE INIT_DAO_GEOS3
-!
-! !USES:
-!
-      USE ERROR_MOD, ONLY : ALLOC_ERR
-!
-! !REVISION HISTORY:
-!  06 Feb 2012 - R. Yantosca - Split off GEOS-3 init from routine INIT_DAO
-!EOP
-!------------------------------------------------------------------------------
-!BOC
-!
-! !LOCAL VARIABLES:
-!
-      INTEGER :: AS
-
-      !=================================================================
-      ! A-3 fields
-      !=================================================================
-
-      ALLOCATE( CLDFRC( IIPAR, JJPAR ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'CLDFRC' )
-      CLDFRC = 0d0
-
-      ALLOCATE( GWETTOP( IIPAR, JJPAR ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'GWETTOP' )
-      GWETTOP = 0d0
-
-      ALLOCATE( HFLUX( IIPAR, JJPAR ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'HFLUX' )
-      HFLUX = 0d0
-
-      ALLOCATE( PBL( IIPAR, JJPAR ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'PBL' )
-      PBL = 0d0
-
-      ALLOCATE( PHIS( IIPAR, JJPAR ), STAT=AS )  
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'PHIS' )
-      PHIS = 0d0
-
-      ALLOCATE( PREACC( IIPAR, JJPAR ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'PREACC' )
-      PREACC = 0d0
-
-      ALLOCATE( PRECON( IIPAR, JJPAR ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'PRECON' )
-      PRECON = 0d0
-
-      ALLOCATE( Z0( IIPAR, JJPAR ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'Z0' )
-      Z0 = 0d0
-
-      !=================================================================
-      ! A-6 fields
-      !=================================================================
-
-      ALLOCATE( CLDF( LLPAR, IIPAR, JJPAR ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'CLDF' )
-      CLDF = 0d0
-
-      ALLOCATE( CLDMAS( IIPAR, JJPAR, LLPAR ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'CLDMAS' )
-      CLDMAS = 0d0
-
-      ALLOCATE( DTRAIN( IIPAR, JJPAR, LLPAR ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'DTRAIN' )
-      DTRAIN = 0d0
-
-      ALLOCATE( MOISTQ( LLPAR, IIPAR, JJPAR ), STAT=AS ) 
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'MOISTQ' )
-      MOISTQ = 0d0
-
-      ALLOCATE( OPTDEP( LLPAR, IIPAR, JJPAR ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'OPTDEP' )
-      OPTDEP = 0d0
-
-      ALLOCATE( OPTD( LLPAR, IIPAR, JJPAR ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'OPTD' )
-      OPTD = 0d0
-
-      ALLOCATE( PARDF( IIPAR, JJPAR ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'PARDF' )
-      PARDF = 0d0
-
-      ALLOCATE( PARDR( IIPAR, JJPAR ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'PARDR' )
-      PARDR = 0d0
-
-      ALLOCATE( RADLWG( IIPAR, JJPAR ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'RADLWG' )
-      RADLWG = 0d0
-
-      ALLOCATE( RADSWG( IIPAR, JJPAR ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'RADSWG' )
-      RADSWG = 0d0
-
-      ALLOCATE( TS( IIPAR, JJPAR ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'TS' )
-      TS = 0d0
-
-      ALLOCATE( TSKIN( IIPAR, JJPAR ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'TSKIN' )
-      TSKIN = 0d0
-
-      ALLOCATE( U10M( IIPAR, JJPAR ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'U10M' )
-      U10M = 0d0
-
-      ALLOCATE( USTAR( IIPAR, JJPAR ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'USTAR' )
-      USTAR = 0d0
-
-      ALLOCATE( V10M( IIPAR, JJPAR ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'V10M' )
-      V10M = 0d0
-
-      !=================================================================
-      ! I-6 fields / interpolated fields
-      !=================================================================
-
-      ALLOCATE( ALBD( IIPAR, JJPAR ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'ALBD' )
-      ALBD = 0d0
-
-      ALLOCATE( ALBD1( IIPAR, JJPAR ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'ALBD1' )
-      ALBD1 = 0d0
-
-      ALLOCATE( ALBD2( IIPAR, JJPAR ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'ALBD2' )
-      ALBD2 = 0d0
-
-      ALLOCATE( LWI( IIPAR, JJPAR ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'LWI' )
-      LWI = 0
-
-      ALLOCATE( PS1( IIPAR, JJPAR ), STAT=AS )  
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'PS1' )
-      PS1 = 0d0
-
-      ALLOCATE( PS2( IIPAR, JJPAR ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'PS2' )
-      PS2 = 0d0
-
-      ALLOCATE( PSC2( IIPAR, JJPAR ), STAT=AS ) 
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'PSC2' )
-      PSC2 = 0d0
-
-      ALLOCATE( RH( IIPAR, JJPAR, LLPAR ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'RH' )
-      RH = 0d0
-
-      ALLOCATE( SLP( IIPAR, JJPAR ), STAT=AS ) 
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'SLP' )
-      SLP = 0d0      
-
-      ALLOCATE( SPHU( IIPAR, JJPAR, LLPAR ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'SPHU' )
-      SPHU = 0d0
-
-      ALLOCATE( SPHU1( IIPAR, JJPAR, LLPAR ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'SPHU1' )
-      SPHU1 = 0d0
-
-      ALLOCATE( SPHU2( IIPAR, JJPAR, LLPAR ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'SPHU2' )
-      SPHU2 = 0d0
-
-      ALLOCATE( T( IIPAR, JJPAR, LLPAR ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'T' )
-      T = 0d0
-
-      ALLOCATE( TMPU1( IIPAR, JJPAR, LLPAR ), STAT=AS ) 
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'TMPU1' )
-      TMPU1 = 0d0
-
-      ALLOCATE( TMPU2( IIPAR, JJPAR, LLPAR ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'TMPU2' )
-      TMPU2 = 0d0
-
-      ALLOCATE( TROPP( IIPAR, JJPAR ), STAT=AS ) 
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'TROPP' )
-      TROPP = 0d0
-
-      ALLOCATE( TROPP1( IIPAR, JJPAR ), STAT=AS ) 
-      IF ( AS /= 0 ) C ALL ALLOC_ERR( 'TROPP1' )
-      TROPP1 = 0d0
-
-      ALLOCATE( TROPP2( IIPAR, JJPAR ), STAT=AS ) 
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'TROPP2' )
-      TROPP2 = 0d0
-
-      ALLOCATE( UWND( IIPAR, JJPAR, LLPAR), STAT=AS ) 
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'UWND' )
-      UWND = 0d0
-
-      ALLOCATE( UWND1( IIPAR, JJPAR, LLPAR ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'UWND1' )
-      UWND1 = 0d0
-
-      ALLOCATE( UWND2( IIPAR, JJPAR, LLPAR ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'UWND2' )
-      UWND2 = 0d0
-
-      ALLOCATE( VWND( IIPAR, JJPAR, LLPAR ), STAT=AS ) 
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'VWND' )
-      VWND = 0d0
-
-      ALLOCATE( VWND1( IIPAR, JJPAR, LLPAR ), STAT=AS ) 
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'VWND1' )
-      VWND1 = 0d0
-
-      ALLOCATE( VWND2( IIPAR, JJPAR, LLPAR ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'VWND2' )
-      VWND2 = 0d0
-
-      END SUBROUTINE INIT_DAO_GEOS3
 !EOC
 !------------------------------------------------------------------------------
 !          Harvard University Atmospheric Chemistry Modeling Group            !
