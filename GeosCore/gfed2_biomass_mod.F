@@ -102,6 +102,7 @@
 !        on the tracers used in the simulation. (ccc, 4/23/09)
 !  (6 ) Adjust call to GFED2_AVAILABLE to reflect that monthly data for
 !        2008 is now available on disk (bmy, 7/8/09)
+!  14 Feb 2012 - M. Payer    - Add modifications for CH4 (K. Wecht)
 !******************************************************************************
 !
       IMPLICIT NONE
@@ -144,8 +145,8 @@
 
       ! Parameters
       INTEGER,          PARAMETER   :: N_EMFAC = 3
-!------------------------------------------------------------------------
-      INTEGER,          PARAMETER   :: N_SPEC  = 24
+      !INTEGER,          PARAMETER   :: N_SPEC  = 24
+      INTEGER,          PARAMETER   :: N_SPEC  = 25  !kjw
 
       ! Arrays
       INTEGER,          ALLOCATABLE :: VEG_GEN_1x1(:,:)
@@ -668,9 +669,7 @@
       USE FUTURE_EMISSIONS_MOD,   ONLY : GET_FUTURE_SCALE_SO2bb
       USE FUTURE_EMISSIONS_MOD,   ONLY : GET_FUTURE_SCALE_VOCbb
       USE TRACER_MOD,             ONLY : ITS_A_CO2_SIM  
-!kjw
       USE TRACER_MOD,             ONLY : ITS_A_CH4_SIM
-!kjw     
 
       !Need IDBs from TRACERID_MOD now.
       USE TRACERID_MOD, ONLY : IDBNOx,  IDBCO,   IDBSO2 
@@ -683,9 +682,7 @@
 
       ! Local variables
       LOGICAL                         :: ITS_CO2
-!kjw
-      LOGICAL :: ITS_CH4
-!kjw
+      LOGICAL                         :: ITS_CH4
       INTEGER                         :: I, J, N
       
       !=================================================================
@@ -694,9 +691,7 @@
 
       ! Test if it's a CO2 simulation outside of the loop
       ITS_CO2 = ITS_A_CO2_SIM()
-!kjw
       ITS_CH4 = ITS_A_CH4_SIM()
-!kjw
 
 
 !$OMP PARALLEL DO
@@ -863,9 +858,7 @@
       USE TRACERID_MOD, ONLY : IDBGLYX, IDBMGLY, IDBBENZ
       USE TRACERID_MOD, ONLY : IDBTOLU, IDBXYLE, IDBC2H4
       USE TRACERID_MOD, ONLY : IDBC2H2, IDBGLYC, IDBHAC
-!kjw
-      USE TRACERID_MOD, ONLY : IDBCH4
-!kjw
+      USE TRACERID_MOD, ONLY : IDBCH4   !kjw
 
       USE CMN_SIZE_MOD      ! Size parameters
 
@@ -925,12 +918,8 @@
       !=================================================================
      
       ! File name
-!kjw
-!      FILENAME = TRIM( DATA_DIR_1x1) // 
-!     &           'GFED2_200601/GFED2_emission_factors_73t.txt'
-      FILENAME = '/home/kjw/gfed_ch4/gfed2/' //
-     &           'GFED2_emission_factors_73.txt'
-!kjw
+      FILENAME = TRIM( DATA_DIR_1x1) // 
+     &           'GFED2_200601/GFED2_emission_factors_73t.txt'
 
       ! Open emission factor file (ASCII format)
       OPEN( IU_FILE, FILE=TRIM( FILENAME ), STATUS='OLD', IOSTAT=IOS )

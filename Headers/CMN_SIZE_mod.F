@@ -439,10 +439,8 @@
       !NBIOMAX -- biomass burning
       ! increase NBIOMAX to 20 (hotp 7/31/09)
       ! increase NBIOMAX to 24 for dicarbonyls (ccc, 2/02/10)
-      !INTEGER, PARAMETER :: NBIOMAX = 24
-      !kjw
+      ! increase NBIOMAX to 25 fpr CH4 (kjw)
       INTEGER, PARAMETER :: NBIOMAX = 25
-      !kjw
 
 
 #if   defined( TOMAS )
