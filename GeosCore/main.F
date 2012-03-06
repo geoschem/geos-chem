@@ -17,7 +17,7 @@
       PROGRAM GEOS_CHEM
 !
 ! !USES:
-!
+!f
       !-----------------------------------------------------------------
       ! Basic GEOS-Chem modules
       !-----------------------------------------------------------------
@@ -29,7 +29,7 @@
       USE LOGICAL_MOD           ! Logical flags to toggle G-C options
       USE PRESSURE_MOD          ! For computing pressure at grid boxes
       USE RESTART_MOD           ! For restart file I/O
-      USE TIME_MOD              ! For computing date & time
+      USE TIME_MOD              ! For computing date & time 
       USE TRACER_MOD            ! Tracer array (STT) + related functions
       USE TRACERID_MOD          ! Flags for G-C tracers & chemical species
 
@@ -44,6 +44,7 @@
       USE MERCURY_MOD           ! For offline Hg simulation (driver)
       USE OCEAN_MERCURY_MOD     ! For offline Hg simulation (ocean model)
       USE SOAPROD_MOD           ! For SOA simulation
+      USE TOMS_MOD              ! For overhead O3 columns (for FAST-J)
       USE UVALBEDO_MOD          ! For reading UV albedoes (for FAST-J)
 
       !-----------------------------------------------------------------
@@ -158,6 +159,9 @@
 !  06 Feb 2012 - R. Yantosca - Renamed NN to NNN to avoid name confusion
 !  07 Feb 2012 - R. Yantosca - Split off met field I/O into internal routines
 !  07 Feb 2012 - M. Payer    - Replace call to COSSZA with GET_COSINE_SZA
+!  06 Mar 2012 - R. Yantosca - Now call READ_TOMS every month and call 
+!                              GET_TOTAL_O3 every day in order to pre-compute 
+!                              the total overhead O3 column for FAST-J
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -166,6 +170,7 @@
 !
       ! Scalars
       LOGICAL            :: FIRST = .TRUE.
+      LOGICAL            :: USE_O3_FROM_MET
       LOGICAL            :: LXTRA 
       INTEGER            :: I,             IOS,   J,         K,      L
       INTEGER            :: N,             JDAY,  NDIAGTIME, N_DYN,  NNN
@@ -471,7 +476,7 @@
          ENDIF
 
          !==============================================================
-         !       ***** T E S T   F O R   E N D   O F   R U N *****
+          !       ***** T E S T   F O R   E N D   O F   R U N *****
          !==============================================================
          IF ( ITS_TIME_FOR_EXIT() ) GOTO 9999
 
@@ -488,10 +493,19 @@
          !==============================================================
          ! ***** M O N T H L Y   O R   S E A S O N A L   D A T A *****
          !==============================================================
-
-         ! UV albedoes
          IF ( LCHEM .and. ITS_A_NEW_MONTH() ) THEN
-            CALL READ_UVALBEDO( MONTH )
+
+            ! Quantities for FAST-J photolysis
+            IF ( ITS_A_FULLCHEM_SIM()  .or.
+     &           ITS_AN_AEROSOL_SIM()  .or.
+     &           ITS_A_CH3I_SIM()     ) THEN
+
+               ! Read UV albedoes for FAST-J
+               CALL READ_UVALBEDO( MONTH )
+
+               ! Read TOMS overhead O3 columns for FAST-J
+               CALL READ_TOMS( MONTH, YEAR )
+            ENDIF
          ENDIF
 
          ! Fossil fuel emissions (SMVGEAR)
@@ -537,6 +551,35 @@
             ! Also read soil-type info for fullchem simulation
             IF ( ITS_A_FULLCHEM_SIM() .or. ITS_A_H2HD_SIM() ) THEN
                CALL RDSOIL 
+            ENDIF
+           
+            ! Get the total overhead ozone for FAST-J
+            IF ( ITS_A_FULLCHEM_SIM()  .or.
+     &           ITS_AN_AEROSOL_SIM()  .or.
+     &           ITS_A_CH3I_SIM()     ) THEN
+
+#if   defined( GEOS_5 )
+
+               ! When TOMS data is not available, then we will use
+               ! the O3 columns directly from the met fields.  
+               ! Currently, this is only done for GEOS-5 met.
+               IF ( YEAR > LAST_TOMS_YEAR ) THEN
+                  USE_O3_FROM_MET = .TRUE.
+               ELSE
+                  USE_O3_FROM_MET = .FALSE.
+               ENDIF
+#else
+               
+               ! When TOMS data is not available, then we will use
+               ! the TOMS data from the last valid year.  This is
+               ! done for all met field products other than GEOS-5.
+               USE_O3_FROM_MET = .FALSE.
+
+#endif
+
+               ! Get the overhead O3 column for FAST-J, overwriting with
+               ! TOMS O3 data (or not) as dictated by the date & met field
+               CALL COMPUTE_OVERHEAD_O3( DAY, USE_O3_FROM_MET, TO3 )
             ENDIF
 
             !### Debug

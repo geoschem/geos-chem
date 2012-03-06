@@ -259,6 +259,7 @@
 !                              the current time (for the PARANOX ship emissions
 !                              plume model) (R. Yantosca)
 !  01 Mar 2012 - R. Yantosca - Now references the new grid_mod.F90
+!  06 Mar 2012 - R. Yantosca - Now allocate TO3 for all met fields
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -2396,6 +2397,12 @@
       IF ( AS /= 0 ) CALL ALLOC_ERR( 'TROPP2' )
       TROPP2 = 0d0
 
+      ! NOTE: Allocate this here, it will always be 0 for GCAP
+      ! (bmy, 3/6/12)
+      ALLOCATE( TO3( IIPAR, JJPAR ), STAT=AS )
+      IF ( AS /= 0 ) CALL ALLOC_ERR( 'TO3' )
+      TO3 = 0d0
+
       !=================================================================
       ! Constant fields
       !=================================================================
@@ -2639,6 +2646,12 @@
       IF ( AS /= 0 ) CALL ALLOC_ERR( 'VWND2' )
       VWND2 = 0d0
 
+      ! NOTE: Allocate this here, it will always be 0 for GEOS-3
+      ! (bmy, 3/6/12)
+      ALLOCATE( TO3( IIPAR, JJPAR ), STAT=AS )
+      IF ( AS /= 0 ) CALL ALLOC_ERR( 'TO3' )
+      TO3 = 0d0
+
       END SUBROUTINE INIT_DAO_GEOS3
 !EOC
 !------------------------------------------------------------------------------
@@ -2842,6 +2855,13 @@
       IF ( AS /= 0 ) CALL ALLOC_ERR( 'TROPP2' )
       TROPP2 = 0d0
 
+      ! NOTE: Allocate this here, it will always be 0 for GEOS-4
+      ! (bmy, 3/6/12)
+      ALLOCATE( TO3( IIPAR, JJPAR ), STAT=AS )
+      IF ( AS /= 0 ) CALL ALLOC_ERR( 'TO3' )
+      TO3 = 0d0
+
+
       END SUBROUTINE INIT_DAO_GEOS4
 !EOC
 !------------------------------------------------------------------------------
@@ -2865,6 +2885,7 @@
 !
 ! !REVISION HISTORY:
 !  06 Feb 2012 - R. Yantosca - Split off GEOS-5 init from routine INIT_DAO
+!  06 Mar 2012 - R. Yantosca - Move TO3 to INIT_GEOS3_DERIVED
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -3501,6 +3522,12 @@
       IF ( AS /= 0 ) CALL ALLOC_ERR( 'TMPU2' )
       TMPU2 = 0d0
 
+      ! NOTE: Allocate this here, it will always be 0 for GEOS_5.7.x
+      ! (bmy, 3/6/12)
+      ALLOCATE( TO3( IIPAR, JJPAR ), STAT=AS )
+      IF ( AS /= 0 ) CALL ALLOC_ERR( 'TO3' )
+      TO3 = 0d0
+
       END SUBROUTINE INIT_DAO_GEOS57
 !EOC
 !------------------------------------------------------------------------------
@@ -3859,6 +3886,12 @@
       ALLOCATE( RH2( IIPAR, JJPAR, LLPAR ), STAT=AS )
       IF ( AS /= 0 ) CALL ALLOC_ERR( 'RH2' )
       RH2 = 0d0
+
+      ! NOTE: Allocate this here, it will always be 0 for MERRA
+      ! (bmy, 3/6/12)
+      ALLOCATE( TO3( IIPAR, JJPAR ), STAT=AS )
+      IF ( AS /= 0 ) CALL ALLOC_ERR( 'TO3' )
+      TO3 = 0d0
 
       END SUBROUTINE INIT_DAO_MERRA
 !EOC

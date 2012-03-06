@@ -157,14 +157,15 @@
 !        local PBL (lin, ccc, 5/29/09)
 !  17 Dec 2009 - R. Yantosca - Added ProTeX headers
 !  28 Jan 2010 - C. Carouge, R. Yantosca - Modified for ISORROPIA II
+!  06 Mar 2012 - R. Yantosca - Now reference TO3 from dao_mod.F
 !EOP
 !------------------------------------------------------------------------------
 !BOC
 !
 ! !LOCAL VARIABLES:
 ! 
-      LOGICAL, SAVE            :: FIRST = .TRUE.
-      INTEGER                  :: N_TROP, MONTH, YEAR, WAVELENGTH
+      LOGICAL, SAVE :: FIRST = .TRUE.
+      INTEGER       :: N_TROP, MONTH, YEAR, WAVELENGTH
 
       !=================================================================
       ! DO_CHEMISTRY begins here!
