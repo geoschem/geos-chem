@@ -392,6 +392,10 @@
 ! !LOCAL VARIABLES:
 !
       LOGICAL, SAVE :: FIRST = .TRUE.
+      INTEGER       :: I, J
+
+      ! Initialize
+      TO3_DAILY = 0d0
 
       !=================================================================
       ! Now weight the O3 column by the observed monthly mean TOMS.

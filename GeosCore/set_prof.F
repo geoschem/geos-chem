@@ -22,10 +22,6 @@
 !
 ! !USES:
 !
-      USE DAO_MOD,  ONLY : TO3
-      USE TOMS_MOD, ONLY : TOMS, DTOMS1, DTOMS2
-      USE TIME_MOD, ONLY : GET_YEAR
-
 #     include "define.h"
 
       USE CMN_FJ_MOD, ONLY : IPAR, JPAR, LPAR, JPMAX, JPPJ  
@@ -98,7 +94,6 @@
 ! !LOCAL VARIABLES:
 !
       INTEGER :: I, K, L, M, N
-      INTEGER :: YEAR
       REAL*8  :: DLOGP,F0,T0,B0,PB,PC,XC,MASFAC,SCALEH
       REAL*8  :: PSTD(52),OREF2(51),TREF2(51),BREF2(51)
       REAL*8  :: PROFCOL, DAYTOMS
@@ -106,21 +101,6 @@
       !=================================================================
       ! SET_PROF begins here!
       !=================================================================
-
-      ! Get the year of the run to know if using TOMS or GEOS-5 O3 
-      ! columns. (ccc, 07/13/09)
-      YEAR = GET_YEAR()
-
-!-----------------------------------------------------------------------------
-! Prior to 3/6/12:
-! This is now pre-computed by routine COMPUTE_OVERHEAD_O3 in toms_mod.F 
-! (bmy, 3/6/12)
-!#if defined(GEOS_5)
-!      IF ( YEAR > 2008 ) THEN
-!         TTOMS = .FALSE.
-!      ENDIF
-!#endif
-!-----------------------------------------------------------------------------
 
       ! Set up cloud and surface properties
       CALL CLDSRF( ODCOL, SA )
@@ -252,107 +232,51 @@
          PROFCOL = PROFCOL + ( DO3(I) / 2.69d16 )
       ENDDO
 
-!-----------------------------------------------------------------------------
-! Prior to 3/6/12:
-! The total overhead O3 (either TOMS/SBUV or from the met fields) are now
-! computed in COMPUTE_OVERHEAD_O3 and returned by GET_OVERHEAD_O3.
-! (bmy, 3/6/12)
-!      !=================================================================
-!      ! Now weight the O3 column by the observed monthly mean TOMS.
-!      ! Missing data is denoted by the flag -999. (mje, bmy, 7/15/03)
-!      ! 
-!      ! TOMS/SBUV MERGED TOTAL OZONE DATA, Version 8, Revision 3.
-!      ! Resolution:  5 x 10 deg.
-!      !
-!      ! Methodology (bmy, 2/12/07)
-!      ! ----------------------------------------------------------------
-!      ! FAST-J comes with its own default O3 column climatology (from 
-!      ! McPeters 1992 & Nagatani 1991), which is stored in the input 
-!      ! file "jv_atms.dat".  These "FAST-J default" O3 columns are used 
-!      ! in the computation of the actinic flux and other optical 
-!      ! quantities for the FAST-J photolysis.  
-!      !
-!      ! The TOMS/SBUV O3 columns and 1/2-monthly O3 trends (contained 
-!      ! in the TOMS_200701 directory) are read into GEOS-Chem by routine 
-!      ! READ_TOMS in "toms_mod.f".  Missing values (i.e. locations where 
-!      ! there are no data) in the TOMS/SBUV O3 columns are defined by 
-!      ! the flag -999.  
-!      ! 
-!      ! After being read from disk in routine READ_TOMS, the TOMS/SBUV 
-!      ! O3 data are then passed to the FAST-J routine "set_prof.f".  In 
-!      ! "set_prof.f", a test is done to make sure that the TOMS/SBUV O3 
-!      ! columns and 1/2-monthly trends do not have any missing values 
-!      ! for (lat,lon) location for the given month.  If so, then the 
-!      ! TOMS/SBUV O3 column data is interpolated to the current day and 
-!      ! is used to weight the "FAST-J default" O3 column.  This 
-!      ! essentially "forces" the "FAST-J default" O3 column values to 
-!      ! better match the observations, as defined by TOMS/SBUV.
-!      !
-!      ! If there are no TOMS/SBUV O3 columns (and 1/2-monthly trends) 
-!      ! at a (lat,lon) location for given month, then FAST-J will revert 
-!      ! to its own "default" climatology for that location and month.  
-!      ! Therefore, the TOMS O3 can be thought of as an  "overlay" data 
-!      ! -- it is only used if it exists.
-!      !
-!      ! Note that there are no TOMS/SBUV O3 columns at the higher 
-!      ! latitudes.  At these latitudes, the code will revert to using 
-!      ! the "FAST-J default" O3 columns.
-!      !
-!      ! As of February 2007, we have TOMS/SBUV data for 1979 thru 2005.  
-!      ! 2006 TOMS/SBUV data is incomplete as of this writing.  For years
-!      ! 2006 and onward, we use 2005 TOMS O3 columns.
-!      !
-!      ! This methodology was originally adopted by Mat Evans.  Symeon 
-!      ! Koumoutsaris was responsible for creating the downloading and 
-!      ! processing the TOMS O3 data files from 1979 thru 2005 in the 
-!      ! TOMS_200701 directory.
-!      !=================================================================
-!      DAYTOMS = 0d0
-!
-!      IF ( TTOMS ) THEN
-!         IF ( DAY <= 15 ) THEN 
-!
-!            ! Interpolate O3 to current day (w/in first half of month)
-!            IF ( TOMS(NLON,NLAT)   > -999d0  .AND.
-!     &           DTOMS1(NLON,NLAT) > -999d0 ) THEN  
-!               DAYTOMS = TOMS(NLON,NLAT) + DTOMS1(NLON,NLAT) * 
-!     &                   ( DAY - 15 )
-!            ENDIF
-!
-!         ELSE
-!
-!            ! Interpolate O3 to current day (w/in 2nd half of month)
-!            IF ( TOMS(NLON,NLAT)   > -999d0  .AND.
-!     &           DTOMS2(NLON,NLAT) > -999d0 ) THEN  
-!               DAYTOMS = TOMS(NLON,NLAT) + DTOMS2(NLON,NLAT) * 
-!     &                   ( DAY - 15 )
-!            ENDIF
-!
-!         ENDIF
-!
-!      ELSE
-!
-!         ! TOMS/SBUV data don't exist so we use GEOS_5 total O3 column, 
-!         ! TO3. (ccc, 7/13/09)
-!         IF ( FIRST ) THEN
-!            WRITE(6,*) 'TOMS/SBUV data are not available for this year'
-!            WRITE(6,*) 'We use the total O3 column given by GEOS-5.'
-!            WRITE(6,*) 'The validation by GMAO of these O3 columns is ' 
-!     &                 // 'in progress.'
-!            FIRST = .FALSE.
-!         ENDIF
-!
-!         DAYTOMS = TO3(NLON, NLAT)
-!
-!      ENDIF
-!
-!      ! Scale monthly O3 profile to the daily O3 profile (if available)
-!      IF ( DAYTOMS > 0d0 ) THEN 
-!         DO I = 1, NB
-!            DO3(I) = DO3(I) * ( DAYTOMS / PROFCOL )
-!         ENDDO
-!      ENDIF
-!-----------------------------------------------------------------------------
+      !=================================================================
+      ! Now weight the O3 column by the observed monthly mean TOMS.
+      ! Missing data is denoted by the flag -999. (mje, bmy, 7/15/03)
+      ! 
+      ! TOMS/SBUV MERGED TOTAL OZONE DATA, Version 8, Revision 5.
+      ! Resolution:  5 x 10 deg.
+      !
+      ! Methodology (bmy, 3/7/12)
+      ! ----------------------------------------------------------------
+      ! FAST-J comes with its own default O3 column climatology (from 
+      ! McPeters 1992 & Nagatani 1991), which is stored in the input 
+      ! file "jv_atms.dat".  These "FAST-J default" O3 columns are used 
+      ! in the computation of the actinic flux and other optical 
+      ! quantities for the FAST-J photolysis.  
+      !
+      ! The TOMS/SBUV O3 columns and 1/2-monthly O3 trends (contained 
+      ! in the TOMS_200701 directory) are read into GEOS-Chem by routine 
+      ! READ_TOMS in "toms_mod.f".  Missing values (i.e. locations where 
+      ! there are no data) in the TOMS/SBUV O3 columns are defined by 
+      ! the flag -999.  
+      ! 
+      ! After being read from disk in routine READ_TOMS, the TOMS/SBUV 
+      ! O3 data are then passed to the FAST-J routine "set_prof.f".  In 
+      ! "set_prof.f", a test is done to make sure that the TOMS/SBUV O3 
+      ! columns and 1/2-monthly trends do not have any missing values 
+      ! for (lat,lon) location for the given month.  If so, then the 
+      ! TOMS/SBUV O3 column data is interpolated to the current day and 
+      ! is used to weight the "FAST-J default" O3 column.  This 
+      ! essentially "forces" the "FAST-J default" O3 column values to 
+      ! better match the observations, as defined by TOMS/SBUV.
+      !
+      ! If there are no TOMS/SBUV O3 columns (and 1/2-monthly trends) 
+      ! at a (lat,lon) location for given month, then FAST-J will revert 
+      ! to its own "default" climatology for that location and month.  
+      ! Therefore, the TOMS O3 can be thought of as an  "overlay" data 
+      ! -- it is only used if it exists.
+      !
+      ! Note that there are no TOMS/SBUV O3 columns at the higher 
+      ! latitudes.  At these latitudes, the code will revert to using 
+      ! the "FAST-J default" O3 columns.
+      !
+      ! As of March 2012, we have TOMS/SBUV data for 1979 thru 2008,
+      ! which are stored in the TOMS_200906 data directory.  We will
+      ! shortly update to the latest TOMS product.
+      !=================================================================
 
       ! Scale monthly O3 profile to the daily O3 profile (if available)
       IF ( O3COL > 0d0 ) THEN 
@@ -360,11 +284,6 @@
             DO3(I) = DO3(I) * ( O3COL / PROFCOL )
          ENDDO
       ENDIF
-      
-!### Debug
-!      write (*,100) nlon,nlat,toms(nlon,nlat), profcol, daytoms,
-!     $     dtoms1(nlon,nlat), dtoms2(nlon,nlat), SUM( DO3(:) / 2.69d16 )
-! 100  format('DO3 debug ',i7,x,i7,x,6(f8.2,x))
 
-      ! Return to calling program
       END SUBROUTINE SET_PROF
+!EOC

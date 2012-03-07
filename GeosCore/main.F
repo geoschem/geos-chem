@@ -159,9 +159,13 @@
 !  06 Feb 2012 - R. Yantosca - Renamed NN to NNN to avoid name confusion
 !  07 Feb 2012 - R. Yantosca - Split off met field I/O into internal routines
 !  07 Feb 2012 - M. Payer    - Replace call to COSSZA with GET_COSINE_SZA
-!  06 Mar 2012 - R. Yantosca - Now call READ_TOMS every month and call 
-!                              GET_TOTAL_O3 every day in order to pre-compute 
-!                              the total overhead O3 column for FAST-J
+!  06 Mar 2012 - R. Yantosca - Now call READ_TOMS every month (this was
+!                              formerly done within routine "fast_j.F")
+!  06 Mar 2012 - R. Yantosca - Add subroutine GET_OVERHEAD_O3_FOR_FASTJ
+!                              which calls COMPUTE_OVERHEAD_O3 (in toms_mod.F)
+!                              to pre-compute the overhead O3 columsn for
+!                              FAST-J photolysis.  This removes code from
+!                              "set_prof.F" to facilitate the GI model.
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -170,7 +174,6 @@
 !
       ! Scalars
       LOGICAL            :: FIRST = .TRUE.
-      LOGICAL            :: USE_O3_FROM_MET
       LOGICAL            :: LXTRA 
       INTEGER            :: I,             IOS,   J,         K,      L
       INTEGER            :: N,             JDAY,  NDIAGTIME, N_DYN,  NNN
@@ -375,6 +378,7 @@
 
          ! Set time variables for dynamic loop
          DAY_OF_YEAR   = GET_DAY_OF_YEAR()
+         DAY           = GET_DAY()
          ELAPSED_SEC   = GET_ELAPSED_SEC()
          MONTH         = GET_MONTH()
          NHMS          = GET_NHMS()
@@ -476,7 +480,7 @@
          ENDIF
 
          !==============================================================
-          !       ***** T E S T   F O R   E N D   O F   R U N *****
+         !       ***** T E S T   F O R   E N D   O F   R U N *****
          !==============================================================
          IF ( ITS_TIME_FOR_EXIT() ) GOTO 9999
 
@@ -552,35 +556,6 @@
             IF ( ITS_A_FULLCHEM_SIM() .or. ITS_A_H2HD_SIM() ) THEN
                CALL RDSOIL 
             ENDIF
-           
-            ! Get the total overhead ozone for FAST-J
-            IF ( ITS_A_FULLCHEM_SIM()  .or.
-     &           ITS_AN_AEROSOL_SIM()  .or.
-     &           ITS_A_CH3I_SIM()     ) THEN
-
-#if   defined( GEOS_5 )
-
-               ! When TOMS data is not available, then we will use
-               ! the O3 columns directly from the met fields.  
-               ! Currently, this is only done for GEOS-5 met.
-               IF ( YEAR > LAST_TOMS_YEAR ) THEN
-                  USE_O3_FROM_MET = .TRUE.
-               ELSE
-                  USE_O3_FROM_MET = .FALSE.
-               ENDIF
-#else
-               
-               ! When TOMS data is not available, then we will use
-               ! the TOMS data from the last valid year.  This is
-               ! done for all met field products other than GEOS-5.
-               USE_O3_FROM_MET = .FALSE.
-
-#endif
-
-               ! Get the overhead O3 column for FAST-J, overwriting with
-               ! TOMS O3 data (or not) as dictated by the date & met field
-               CALL COMPUTE_OVERHEAD_O3( DAY, USE_O3_FROM_MET, TO3 )
-            ENDIF
 
             !### Debug
             IF ( LPRT ) CALL DEBUG_MSG ( '### MAIN: a DAILY DATA' )
@@ -636,6 +611,9 @@
          ! Placed after interpolation to get correct value of TROPP. 
          ! (ccc, 12/9/08)
          CALL DIAG_2PM
+
+         ! Get the overhead column O3 for use with FAST-J
+         CALL GET_OVERHEAD_O3_FOR_FASTJ()
 
          !==============================================================
          !   ***** U N I T   C O N V E R S I O N  ( kg -> v/v ) *****
@@ -1676,6 +1654,74 @@
 #endif
 
       END SUBROUTINE READ_MET_FIELDS
+!EOC
+!------------------------------------------------------------------------------
+!          Harvard University Atmospheric Chemistry Modeling Group            !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: get_overhead_o3_for_fastj
+!
+! !DESCRIPTION: Internal subroutine GET\_OVERHEAD\_O3\_FOR\_FASTJ 
+!\\
+!\\
+! !INTERFACE:
+!
+      SUBROUTINE GET_OVERHEAD_O3_FOR_FASTJ()
+! 
+! !REMARKS:
+!  This routine makes use of variables declared in above in the main program
+!  (which are visible in all sub-programs below the CONTAINS statement).
+!                                                                             .
+!  The original code was done in FAST-J routine "set_prof.F", but has been
+!  split off to facilitate development of the grid-independent model.
+!
+! !REVISION HISTORY: 
+!   7 Mar 2012 - R. Yantosca - Initial version
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+!
+! !LOCAL VARIABLES:
+!
+      LOGICAL :: USE_O3_FROM_MET
+
+      ! FAST-J is only used for fullchem, offline aerosol
+      ! and CH3I simulations, so skip otherwise
+      IF ( ITS_A_FULLCHEM_SIM()  .or.
+     &     ITS_AN_AEROSOL_SIM()  .or.
+     &     ITS_A_CH3I_SIM()     ) THEN
+
+         ! Only execute this if we are doing chemistry
+         ! and if it we are at a chemistry timestep
+         IF ( LCHEM .and. ITS_TIME_FOR_CHEM() ) THEN
+             
+#if   defined( GEOS_5 )
+
+            ! When TOMS data is not available, then we will use
+            ! the O3 columns directly from the met fields.  
+            ! Currently, this is only done for GEOS-5 met.
+            IF ( YEAR > LAST_TOMS_YEAR ) THEN
+               USE_O3_FROM_MET = .TRUE.
+            ELSE
+               USE_O3_FROM_MET = .FALSE.
+            ENDIF
+#else
+               
+            ! When TOMS data is not available, then we will use
+            ! the TOMS data from the last valid year.  This is
+            ! done for all met field products other than GEOS-5.
+            USE_O3_FROM_MET = .FALSE.
+
+#endif
+
+            ! Get the overhead O3 column for FAST-J.  Take either the
+            ! TOMS O3 data or the column O3 directly from the met fields
+            CALL COMPUTE_OVERHEAD_O3( DAY, USE_O3_FROM_MET, TO3 )
+         ENDIF
+      ENDIF
+
+      END SUBROUTINE GET_OVERHEAD_O3_FOR_FASTJ
 !EOC
       END PROGRAM GEOS_CHEM
 #endif

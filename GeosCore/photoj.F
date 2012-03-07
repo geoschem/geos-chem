@@ -21,8 +21,8 @@
 #     include "define.h"
 
       USE CMN_SIZE_MOD, ONLY : NDUST, NAER, NRH
-      USE CMN_FJ_MOD,   ONLY : IPAR,  JPAR, LPAR, 
-      USE CMN_FJ_MOD,   ONLY : JPMAX  JPPJ, JPNL, ZPJ
+      USE CMN_FJ_MOD,   ONLY : IPAR,  JPAR, LPAR
+      USE CMN_FJ_MOD,   ONLY : JPMAX, JPPJ, JPNL, ZPJ
       USE JV_CMN_MOD,   ONLY : ZJ,    U0,   SZA,  SZAMAX
 
       IMPLICIT NONE

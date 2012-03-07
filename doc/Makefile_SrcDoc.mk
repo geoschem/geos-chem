@@ -47,6 +47,7 @@
 #                              and sulfate_mod
 #  07 Feb 2012 - M. Payer    - Added paranox_mod, diag59_mod
 #  08 Feb 2012 - R. Yantosca - Added geos57_read_mod.F90
+#  06 Mar 2012 - R. Yantosca - Added photoj.F and set_prof.F
 #EOP
 #------------------------------------------------------------------------------
 #BOC
@@ -144,6 +145,8 @@ $(CORE)/emfossil.F                   \
 $(CORE)/emf_scale.F                  \
 $(CORE)/emmonot.F                    \
 $(CORE)/fast_j.F                     \
+$(CORE)/photuj.F                     \
+$(CORE)/set_prof.F                   \
 $(CORE)/findmon.F                    \
 $(CORE)/initialize.F                 \
 $(CORE)/ndxx_setup.F                 \
