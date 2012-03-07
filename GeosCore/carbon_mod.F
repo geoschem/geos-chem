@@ -4594,6 +4594,10 @@ c
       USE FUTURE_EMISSIONS_MOD, ONLY : GET_FUTURE_SCALE_OCff
       USE LOGICAL_MOD,          ONLY : LFUTURE
       USE TIME_MOD,             ONLY : GET_TS_EMIS
+![eml
+      USE LOGICAL_MOD,          ONLY : LHIST, LBIOFUEL, LANTHRO
+      USE TIME_MOD,             ONLY : GET_HISTYR
+!eml]
       USE TRANSFER_MOD,         ONLY : TRANSFER_2D
 
       USE CMN_SIZE_MOD             ! Size parameters
@@ -4608,6 +4612,10 @@ c
       REAL*8                        :: STEPS_PER_MON
       REAL*8                        :: FD2D(IIPAR,JJPAR)
       CHARACTER(LEN=255)            :: FILENAME
+![eml
+      CHARACTER(LEN=  4)            :: CHISTYR
+      CHARACTER(LEN=255)            :: DATADIR
+!eml]
 
       ! Hydrophilic fraction of BLACK CARBON (aka ELEMENTAL CARBON)
       REAL*8, PARAMETER             :: FHB = 0.2d0
@@ -4622,24 +4630,40 @@ c
       ! Number of emission timesteps per month
       STEPS_PER_MON = ( ( 1440 * NDAYS ( THISMONTH ) ) / GET_TS_EMIS() )
 
-      ! Get TAU0 value to index the punch file
-      XTAU          = GET_TAU0( THISMONTH, 1, 2000 )   
+![eml
+      IF( .not. LHIST ) THEN
+         ! Get TAU0 value to index the punch file
+         XTAU          = GET_TAU0( THISMONTH, 1, 2000 )   
 
       
-      !=================================================================
-      ! Read BLACK CARBON (aka ELEMENTAL CARBON) emission from 
-      ! anthropogenic sources as tracer #34 in [kg C/month].  
-      ! Then convert to [kg C/timestep] and store in ANTH_BLKC.
-      !=================================================================
-      ! Filename for carbon aerosol from fossil fuel use
-      FILENAME = TRIM( DATA_DIR )                         // 
-     &           'carbon_200909/BCOC_TBond_fossil.2000.'  // 
-     &           GET_NAME_EXT_2D() // '.' // GET_RES_EXT()
+         !=================================================================
+         ! Read BLACK CARBON (aka ELEMENTAL CARBON) emission from 
+         ! anthropogenic sources as tracer #34 in [kg C/month].  
+         ! Then convert to [kg C/timestep] and store in ANTH_BLKC.
+         !=================================================================
+         ! Filename for carbon aerosol from fossil fuel use
+         FILENAME = TRIM( DATA_DIR )                         // 
+     &              'carbon_200909/BCOC_TBond_fossil.2000.'  // 
+     &               GET_NAME_EXT_2D() // '.' // GET_RES_EXT()
       
+      ELSE
 
+         XTAU = GET_TAU0( THISMONTH, 1, GET_HISTYR() )
+         WRITE( CHISTYR, '(I4)' ) GET_HISTYR()
+
+         DATADIR ='/home/eml/data/EMISSIONS/CARB_EMISSIONS/proper/'
+         FILENAME=TRIM(DATADIR) //'BCOC_anthsrce.' // CHISTYR // '.' //
+     &            GET_NAME_EXT_2D() // '.' // GET_RES_EXT()
+
+      ENDIF
+!eml]
       ! Echo info
       WRITE( 6, 100 ) TRIM( FILENAME )
  100  FORMAT( '     - ANTHRO_CARB_TBOND: Reading ', a )
+
+![eml Only if LANTHRO
+      IF( LANTHRO ) THEN
+!eml]      
 
       ! Read BLCK emission
       CALL READ_BPCH2( FILENAME, 'ANTHSRCE', 34, 
@@ -4704,18 +4728,28 @@ c
       ENDDO
       ENDDO
 !$OMP END PARALLEL DO
-
+![eml
+      ENDIF ! IF LANTHRO
+!eml]
       !=================================================================
       ! Read BLACK CARBON (aka ELEMENTAL CARBON) emission from biofuel 
       ! combustion as tracer #34 in [kg C/year].  Then convert to 
       ! [kg C/timestep] and store in BIOF_BLKC.
       !=================================================================
       ! Filename
-      FILENAME = TRIM( DATA_DIR )                         // 
-     &           'carbon_200909/BCOC_TBond_biofuel.2000.' // 
-     &           GET_NAME_EXT_2D() // '.' // GET_RES_EXT()
-
-
+![eml Onlt if LBIOFUEL
+      IF( LBIOFUEL ) THEN
+!eml]
+![eml
+      IF( .not. LHIST ) THEN
+         FILENAME = TRIM( DATA_DIR )                         // 
+     &              'carbon_200909/BCOC_TBond_biofuel.2000.' // 
+     &              GET_NAME_EXT_2D() // '.' // GET_RES_EXT()
+      ELSE
+         FILENAME = TRIM( DATADIR )//'BCOC_biofuel.'//CHISTYR // '.' //
+     &              GET_NAME_EXT_2D() // '.' // GET_RES_EXT()
+      ENDIF
+!eml]
       ! Echo info
       WRITE( 6, 100 ) TRIM( FILENAME )
 
@@ -4783,6 +4817,9 @@ c
       ENDDO
       ENDDO
 !$OMP END PARALLEL DO
+![eml
+      ENDIF ! IF LBIOFUEL
+!eml]
 
       ! Return to calling program
       END SUBROUTINE ANTHRO_CARB_TBOND
