@@ -49,6 +49,7 @@
 #  08 Feb 2012 - R. Yantosca - Added geos57_read_mod.F90
 #  28 Feb 2012 - R. Yantosca - Added pbl_mix_mod
 #  05 Mar 2012 - M. Payer    - Added tracer_mod
+#   7 Mar 2012 - M. Payer    - Added global_ch4_mod
 #EOP
 #------------------------------------------------------------------------------
 #BOC
@@ -96,6 +97,7 @@ $(CORE)/gamap_mod.F                  \
 $(CORE)/geos57_read_mod.F90          \
 $(CORE)/gfed3_biomass_mod.F          \
 $(CORE)/global_br_mod.F              \
+$(CORE)/global_ch4_mod.F              \
 $(CORE)/global_no3_mod.F             \
 $(CORE)/global_nox_mod.F             \
 $(CORE)/global_o1d_mod.F             \

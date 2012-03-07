@@ -1,72 +1,38 @@
-! $Id: global_ch4_mod.f,v 1.4 2009/10/15 17:46:24 bmy Exp $
+!------------------------------------------------------------------------------
+!          Harvard University Atmospheric Chemistry Modeling Group            !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !MODULE: global_ch4_mod
+!
+! !DESCRIPTION: Module GLOBAL\_CH4\_MOD contains variables and routines for
+!  simulating CH4 chemistry in the troposphere (jsw, bnd, bmy, 1/17/01,10/1/09)
+!\\
+!\\
+! !INTERFACE: 
+!
       MODULE GLOBAL_CH4_MOD
 !
-!******************************************************************************
-!  Module GLOBAL_CH4_MOD contains variables and routines for simulating
-!  CH4 chemistry in the troposphere (jsw, bnd, bmy, 1/17/01, 10/1/09)
+! !USES:
 !
-!  Module Variables:
-!  =========================================================================== 
-!  (1 ) N_CH4      (INTEGER) : Number of budget items in TCH4
-!  (2 ) BAIRDENS   (REAL*8 ) : Array for air density [molec/cm3]
-!  (3 ) BOH        (REAL*8 ) : Array for OH values [molec/cm3]
-!  (4 ) COPROD     (REAL*8 ) : Array for zonal mean P(CO) [v/v/s]
-!  (4 ) CH4LOSS    (REAL*8 ) : Array for monthly average CH4 loss freq [1/s]
-!  (5 ) PAVG       (REAL*8 ) : Array for 24-h avg surface pressure [mb]
-!  (6 ) TAVG       (REAL*8 ) : Array for 24-h avg temperature [K]
-!  (7 ) TCH4       (REAL*8 ) : Array for CH4 budget (N_CH4 items)
-!  (8 ) NCMSALTS   (INTEGER) : # of altitudes for CMS climatological OH
-!  (9 ) NCMSLATS   (INTEGER) : # of latitudes for CMS climatological OH
-!  (10) CMSALTS    (REAL*8 ) : Altitude values for CMS climatological OH
-!  (11) CMSLATS    (REAL*8 ) : Latitude values for CMS climatological OH
-!  (12) AVGOH      (REAL*8 ) : Array for CMS climatological OH [molec/cm3]
-!  (13) FMOL_CH4   (REAL*8 ) : Molecular weight of CH4 [kg/mole]
-!  (14) XNUMOL_CH4 (REAL*8 ) : Molecules CH4 / kg CH4
-!  (15) CH4_EMIS   (REAL*8 ) : Array for CH4 Emissions
+      IMPLICIT NONE
+#     include "define.h"
+      PRIVATE
 !
-!  Module Routines: 
-!  =========================================================================== 
-!  (1 ) CH4_AVGTP             : Computes 24-h average pressure & temperature
-!  (2 ) EMISSCH4              : Handles CH4 emissions
-!  (3 ) CHEMCH4               : Handles CH4 chemistry (various sinks)
-!  (4 ) CH4_DECAY             : Computes decay of CH4 w/ OH in the troposphere
-!  (5 ) CH4_OHSAVE            : Saves OH conc. for CH3CCl3 diagnostic
-!  (6 ) CH4_STRAT             : Computes loss of CH4 in the stratosphere
-!  (7 ) CH4_BUDGET            : Computes global CH4 budgets, sources & sinks
-!  (8 ) SUM_CH4               : Sums a sub-region of the TCH4 budget array
-!  (9 ) INIT_CH4              : Allocates and zeroes module arrays
-!  (10) CLEANUP_CH4           : Deallocates module arrays
-!  (11) WETLAND_EMIS          : Computes CH4 emissions from Wetland
-!  (12) CH4_DISTRIB           : Distributes chemical loss of CH4 to all tracers
-!  (13) BIOBURN_EMIS          : Gets CH4 emissions from GFED2 biomass burning
-!  (14) RICE_EMIS             : Gets and scales CH4 rice emissions
-!  (15) BIOFUEL_EMIS          : Gets CH4 emissions from Yevich and Logan 2003
-!  (16) ASEASONAL_ANTHRO_EMIS : Gets aseasonal anthropogenic CH4 emissions
-!  (17) ASEASONAL_NATURAL_EMIS: Gets aseasonal natural CH4 emissions
+! !PUBLIC MEMBER FUNCTIONS:
 !
-!  GEOS-CHEM modules referenced by global_ch4_mod.f
-!  ============================================================================
-!  (1 ) bpch2_mod.f      : Module containing routines for binary punch file I/O
-!  (2 ) diag_mod.f       : Module containing GEOS-CHEM diagnostic arrays
-!  (3 ) dao_mod.f        : Module containing arrays for DAO met fields
-!  (4 ) diag_oh_mod.f    : Module containing arrays for mean OH & CH3CCl3 life
-!  (4 ) error_mod.f      : Module containing NaN and other error check routines
-!  (5 ) grid_mod.f       : Module containing horizontal grid information
-!  (6 ) pressure_mod.f   : Module containing routines to compute P(I,J,L) 
-!  (7 ) time_mod.f       : Module containing routines to compute date & time
-!  (8 ) tracer_mod.f     : Module containing information on tracers and
-!                          concentration array.
-!  (9 ) logical_mod.f    : Module containing logical variables.
-!  (10) directory_mod.f  : Module containing directory variables.
-!  (11) file_mod.f       : Module containing file unit numbers.
-!  (12) transfer_mod.f   : Module containing routines to change type of array 
-!                          data.
-!  (13) regrid_1x1_mod.f : Module containing regridding routines
-!  (14) diag_pl_mod.f    : Module containing variables and routines for prod
-!                          and loss of chemical families.
-!  (15) diag_oh_mod.f    : Module containing routines to archive OH mass.
+      PUBLIC :: CH4_AVGTP
+      PUBLIC :: EMISSCH4
+      PUBLIC :: CHEMCH4
+      PUBLIC :: INIT_GLOBAL_CH4
+      PUBLIC :: CLEANUP_GLOBAL_CH4
 !
-!  NOTES:
+! !PUBLIC DATA MEMBERS:
+!
+      REAL*8, PARAMETER,   PUBLIC :: XNUMOL_CH4 = 6.0221d23 / 16d-3
+      REAL*8, ALLOCATABLE, PUBLIC :: TCH4(:,:,:,:)
+! 
+! !REVISION HISTORY: 
 !  (1 ) Merged routines from jsw's CH4 code  into "global_ch4_mod.f" 
 !        (bmy, 1/16/01)
 !  (2 ) XNUMOL_CH4 and TCH4 have to be public - all other variables can
@@ -100,32 +66,43 @@
 !  (23) Updated CH4 simulation (kjw, cph, ccarouge, 10/1/09)
 !  (24) Added modifications for MERRA (bmy, 8/13/10)
 !  08 Feb 2012 - R. Yantosca - Added modifications for GEOS-5.7.x
-!******************************************************************************
+!  07 Mar 2012 - M. Payer    - Added ProTeX headers
+!EOP
+!------------------------------------------------------------------------------
+!BOC
 !     
-      IMPLICIT NONE
-#     include "define.h"
-
-      PUBLIC
-
-      !=================================================================
-      ! MODULE PRIVATE DECLARATIONS -- keep certain internal variables 
-      ! and routines from being seen outside "global_ch4_mod.f"
-      !=================================================================
-
-      ! PRIVATE module variables
-      PRIVATE :: BAIRDENS,  BOH    
-      PRIVATE :: COPROD,   PAVG,      TAVG      
-      PRIVATE :: NSEAS,    NCMSALTS,  NCMSLATS 
-      PRIVATE :: CMSALTS,  CMSLATS,   AVGOH
-      PRIVATE :: FMOL_CH4 
-      
-      !=================================================================
-      ! MODULE VARIABLES
-      !=================================================================
+! !DEFINED PARAMETERS:
+!
+      !========================================================================
+      ! Module Variables:
+      ! N_CH4      : Number of budget items in TCH4
+      ! BAIRDENS   : Array for air density                      [molec/cm3]
+      ! BOH        : Array for OH values                        [molec/cm3]
+      ! COPROD     : Array for zonal mean P(CO)                 [v/v/s]
+      ! CH4LOSS    : Array for monthly average CH4 loss freq    [1/s]
+      ! PAVG       : Array for 24-h avg surface pressure        [mb]
+      ! TAVG       : Array for 24-h avg temperature             [K]
+      ! TCH4       : Array for CH4 budget (N_CH4 items)         [molec/box]
+      ! NCMSALTS   : # of altitudes for CMS climatological OH
+      ! NCMSLATS   : # of latitudes for CMS climatological OH
+      ! CMSALTS    : Altitude values for CMS climatological OH
+      ! CMSLATS    : Latitude values for CMS climatological OH
+      ! AVGOH      : Array for CMS climatological OH            [molec/cm3]
+      ! FMOL_CH4   : Molecular weight of CH4                    [kg/mole]
+      ! XNUMOL_CH4 : Molecules CH4 / kg CH4                     [molec/kg]
+      ! CH4_EMIS   : Array for CH4 Emissions                    [molec/cm2/s]
+      !========================================================================
 
       ! Number of CH4 budget types 
-      INTEGER, PARAMETER   :: N_CH4 = 12
-                            
+      INTEGER, PARAMETER   :: N_CH4    = 12
+      ! For Clarisa's Climatological OH
+      INTEGER, PARAMETER   :: NSEAS    = 4
+      INTEGER, PARAMETER   :: NCMSALTS = 7
+      INTEGER, PARAMETER   :: NCMSLATS = 24
+      REAL*8,  PARAMETER   :: FMOL_CH4 = 16d-3
+!
+! !LOCAL VARIABLES:
+!
       ! Various arrays      
       REAL*8,  ALLOCATABLE :: BAIRDENS(:,:,:)
       REAL*8,  ALLOCATABLE :: BOH(:,:,:,:)
@@ -133,13 +110,10 @@
       REAL*8,  ALLOCATABLE :: CH4LOSS(:,:,:,:)
       REAL*8,  ALLOCATABLE :: PAVG(:,:,:)
       REAL*8,  ALLOCATABLE :: TAVG(:,:,:)
-      REAL*8,  ALLOCATABLE :: TCH4(:,:,:,:)
+      REAL*8,  ALLOCATABLE :: CH4_EMIS(:,:,:)
+      REAL*8,  ALLOCATABLE :: AVGOH(:,:,:)
 
-      ! For Clarisa's Climatological OH
-      INTEGER, PARAMETER   :: NSEAS    = 4
-      INTEGER, PARAMETER   :: NCMSALTS = 7
-      INTEGER, PARAMETER   :: NCMSLATS = 24
-      
+      ! For Clarisa's Climatological OH      
       REAL*8               :: CMSALTS(NCMSALTS) =
      &    (/ 1000d0, 900d0, 800d0, 700d0, 500d0, 300d0, 200d0 /)
 
@@ -148,32 +122,37 @@
      &       28d0,  20d0,  12d0,   4d0,  -4d0, -12d0, -20d0, -28d0,
      &      -36d0, -44d0, -52d0, -60d0, -68d0, -76d0, -84d0, -90d0 /)
 
-      REAL*8,  ALLOCATABLE  :: AVGOH(:,:,:)
+      REAL*8               :: TROPOCH4
+      REAL*8               :: STRATOCH4
 
-      ! FMOL_CH4   =  kg CH4    / mole CH4
-      ! XNUMOL_CH4 =  molec CH4 / kg CH4
-      REAL*8, PARAMETER    :: FMOL_CH4   = 16d-3
-      REAL*8, PARAMETER    :: XNUMOL_CH4 = 6.0221d23 / 16d-3
-
-      REAL*8,  ALLOCATABLE  :: CH4_EMIS(:,:,:)
-
-      REAL*8           :: TROPOCH4
-      REAL*8           :: STRATOCH4
-
-      !=================================================================
-      ! MODULE ROUTINES -- follow below the "CONTAINS" statement 
-      !=================================================================
       CONTAINS
-
+!EOC
 !------------------------------------------------------------------------------
-
+!          Harvard University Atmospheric Chemistry Modeling Group            !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: ch4_avgtp
+!
+! !DESCRIPTION: Subroutine CH4\_AVGTP gets the 24-h average surface pressure
+!  and temperature needed for the CH4 simulation. (jsw, bnd, bmy, 1/16/01,
+!  7/20/04)
+!\\
+!\\
+! !INTERFACE:
+!
       SUBROUTINE CH4_AVGTP
 !
-!******************************************************************************
-!  Subroutine CH4_AVGTP gets the 24-h average surface pressure and temperature
-!  needed for the CH4 simulation. (jsw, bnd, bmy, 1/16/01, 7/20/04)
+! !USES:
 !
-!  NOTES:
+      USE DAO_MOD,      ONLY : T
+      USE ERROR_MOD,    ONLY : GEOS_CHEM_STOP
+      USE PRESSURE_MOD, ONLY : GET_PCENTER
+      USE TIME_MOD,     ONLY : GET_TS_DYN, GET_TS_CHEM, GET_ELAPSED_MIN
+
+      USE CMN_SIZE_MOD       ! Size parameters
+! 
+! !REVISION HISTORY:
 !  (1 ) Created by Bryan Duncan (1/99).  Adapted for CH4 chemistry and
 !        placed into module "global_ch4_mod.f" by Bob Yantosca. (bmy, 1/16/01)
 !  (2 ) CH4_AVGTP is independent of "CMN_OH", "CMN_CO", and "CMN_CO_BUDGET".
@@ -191,21 +170,17 @@
 !  (8 ) Removed NTDT, NMIN from the arg list.  Now uses functions GET_TS_DYN,
 !        GET_TS_CHEM, and GET_ELAPSED_MIN from "time_mod.f" (bmy, 3/27/03)
 !  (9 ) Remove reference to CMN, it's not needed (bmy, 7/20/04)
-!******************************************************************************
+!  07 Mar 2012 - M. Payer    - Added ProTeX headers
+!EOP
+!------------------------------------------------------------------------------
+!BOC
 !
-      ! References to F90 modules
-      USE DAO_MOD,      ONLY : T
-      USE ERROR_MOD,    ONLY : GEOS_CHEM_STOP
-      USE PRESSURE_MOD, ONLY : GET_PCENTER
-      USE TIME_MOD,     ONLY : GET_TS_DYN, GET_TS_CHEM, GET_ELAPSED_MIN
-
-      USE CMN_SIZE_MOD  ! Size parameters
-
-      ! Local variables
-      INTEGER             :: NTDT, NMIN
-      INTEGER             :: I, J, L, NTIMES, MNDT, K, M, N
-      INTEGER             :: NNEW, NNCOUNT 
-      REAL*8              :: Ptemp(IIPAR,JJPAR,LLPAR)
+! !LOCAL VARIABLES:
+!
+      INTEGER               :: NTDT, NMIN
+      INTEGER               :: I, J, L, NTIMES, MNDT, K, M, N
+      INTEGER               :: NNEW, NNCOUNT 
+      REAL*8                :: Ptemp(IIPAR,JJPAR,LLPAR)
       
       !=================================================================
       ! CH4_AVGTP begins here!
@@ -308,20 +283,48 @@
          NNEW              = 0
       ENDIF
       
-      ! Return to calling program
       END SUBROUTINE CH4_AVGTP
-
+!EOC
 !------------------------------------------------------------------------------
-
+!          Harvard University Atmospheric Chemistry Modeling Group            !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: emissch4
+!
+! !DESCRIPTION: Subroutine EMISSCH4 places emissions of CH4 [kg] into the STT
+!  array. (jsw, bnd, bey, bmy, 1/16/01, 10/3/05)
+!\\
+!\\
+! !INTERFACE:
+!
       SUBROUTINE EMISSCH4
 !
-!******************************************************************************
-!  Subroutine EMISSCH4 places emissions of CH4 [kg] into the STT array.
-!  (jsw, bnd, bey, bmy, 1/16/01, 10/3/05)
-!  
-!  WARNING: Soil absorption has to be the 11th field in CH4_EMIS
+! !USES:
 !
-!  NOTES:
+      USE TIME_MOD,      ONLY : ITS_A_NEW_MONTH, ITS_A_NEW_YEAR 
+      USE TIME_MOD,      ONLY : GET_MONTH,       GET_YEAR
+      USE TIME_MOD,      ONLY : GET_TS_EMIS
+      USE GRID_MOD,      ONLY : GET_AREA_CM2,    GET_XOFFSET
+      USE GRID_MOD,      ONLY : GET_YOFFSET 
+      USE TRACER_MOD,    ONLY : STT
+      USE LOGICAL_MOD,   ONLY : LSPLIT
+      USE DIAG_MOD,      ONLY : AD58
+      USE ERROR_MOD,     ONLY : GEOS_CHEM_STOP,  IT_IS_NAN
+      USE TRACER_MOD,    ONLY : N_TRACERS, ID_TRACER
+      USE LOGICAL_MOD,   ONLY : LWETL,           LBMCH4,       LRICE
+      USE LOGICAL_MOD,   ONLY : LBFCH4
+      USE VDIFF_PRE_MOD, ONLY : EMIS_SAVE ! (ccc, 08/31/09)
+      USE LOGICAL_MOD,   ONLY : LNLPBL    ! (ccc, 08/31/09)
+      
+
+      USE CMN_SIZE_MOD        ! Size parameters
+      USE CMN_DIAG_MOD        ! Diagnostic switches
+! 
+! !REMARKS:
+!  WARNING: Soil absorption has to be the 11th field in CH4_EMIS
+! 
+! !REVISION HISTORY:
 !  (1 ) Created by Bryan Duncan (1/99).  Adapted for CH4 chemistry by
 !        James Wang (7/00).  Inserted into module "global_ch4_mod.f" 
 !        by Bob Yantosca. (bmy, 1/16/01)
@@ -348,31 +351,19 @@
 !        "directory_mod.f". (bmy, 7/20/04)
 !  (12) Now make sure all USE statements are USE, ONLY (bmy, 10/3/05)
 !  (13) Add non-local PBL capability (ccc, 8/31/09)
-!******************************************************************************
+!  07 Mar 2012 - M. Payer    - Added ProTeX headers
+!EOP
+!------------------------------------------------------------------------------
+!BOC
 !
-      ! References to F90 modules
-      USE TIME_MOD,      ONLY : ITS_A_NEW_MONTH, ITS_A_NEW_YEAR 
-      USE TIME_MOD,      ONLY : GET_MONTH,       GET_YEAR
-      USE TIME_MOD,      ONLY : GET_TS_EMIS
-      USE GRID_MOD,      ONLY : GET_AREA_CM2,    GET_XOFFSET
-      USE GRID_MOD,      ONLY : GET_YOFFSET 
-      USE TRACER_MOD,    ONLY : STT
-      USE LOGICAL_MOD,   ONLY : LSPLIT
-      USE DIAG_MOD,      ONLY : AD58
-      USE ERROR_MOD,     ONLY : GEOS_CHEM_STOP,  IT_IS_NAN
-      USE TRACER_MOD,    ONLY : N_TRACERS, ID_TRACER
-      USE LOGICAL_MOD,   ONLY : LWETL,           LBMCH4,       LRICE
-      USE LOGICAL_MOD,   ONLY : LBFCH4
-      USE VDIFF_PRE_MOD, ONLY : EMIS_SAVE ! (ccc, 08/31/09)
-      USE LOGICAL_MOD,   ONLY : LNLPBL    ! (ccc, 08/31/09)
-      
-
-      USE CMN_SIZE_MOD     ! Size parameters
-      USE CMN_DIAG_MOD     ! Diagnostic switches
-
-      ! Local Variables
+! !LOCAL VARIABLES:
+!
       INTEGER                :: I, I0, IREF, J, J0, JREF, N
       REAL*8                 :: DTSRCE,       AREA_CM2
+
+      !=================================================================
+      ! EMISSCH4 begins here!
+      !=================================================================
 
       ! Get nested-grid offsets
       I0  = GET_XOFFSET()
@@ -599,35 +590,27 @@
 
       print*,'END SUBROUTINE: EMISSCH4'
 
-      ! Return to calling program
       END SUBROUTINE EMISSCH4
-      
+!EOC
 !------------------------------------------------------------------------------
-
+!          Harvard University Atmospheric Chemistry Modeling Group            !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: wetland_emis
+!
+! !DESCRIPTION: Subroutine WETLAND\_EMIS calculates emissions of CH4 [kg] by
+!  Wetland. For a description of the GEOS-Chem wetland CH4 emission routine,
+!  see a paper titled, "Magnitude and trends of wetland methane emissions from 
+!  the Hudson Bay Lowlands (Canada)" by C. Pickett-Heaps
+!\\
+!\\
+! !INTERFACE:
+!
       SUBROUTINE WETLAND_EMIS
 !
-!******************************************************************************
-!  Subroutine WETLAND_CH4 calculates emissions of CH4 [kg] by Wetland.
-!  For a description of the GEOS-Chem wetland CH4 emission routine, see
-!  a paper titled, "Magnitude and trends of wetland methane emissions from 
-!  the Hudson Bay Lowlands (Canada)" by C. Pickett-Heaps
+! !USES:
 !
-!  NOTES:
-!  (1 ) Adapted by Jérôme Drevet (3/06) from the BIOME-TG Wetland-Methane
-!       scheme provided by Jed O. Kaplan.
-!  (2 ) CH4 Emissions from Wetland depend on:
-!		a - Soil Carbon content.
-!		b - Vegetation type
-!		c - Wetland area (%)
-!		d - Soil moisture.
-!       a, b, c are taken from the LPJ, a vegetation model. Data are provided 
-!	by J.O.Kaplan. Soil moisture is read from GEOS Met input files.  
-!
-!  (3 ) Corrected order of DO loops (bmy, 10/1/09)
-!  08 Feb 2012 - R. Yantosca - Treat GEOS-5.7.x in the same way as MERRA
-!******************************************************************************
-!
-      ! References to F90 modules
       USE DAO_MOD,       ONLY : GWETTOP,      LWI
       USE DAO_MOD,       ONLY : TSKIN,        TS
       USE DAO_MOD,       ONLY : FRLAND,       FRLAKE
@@ -643,37 +626,56 @@
       USE TRANSFER_MOD,  ONLY : TRANSFER_2D
       USE DIAG_MOD,      ONLY : AD60, AD58
 
-      USE CMN_SIZE_MOD     ! Size parameters
-      USE CMN_DIAG_MOD     ! Diagnostic switches
-
-      INTEGER :: I, J, L      
-      INTEGER :: GM, YEAR      
-      REAL*4  :: ARRAY(IIPAR,JJPAR)
-      REAL*8  :: WETFRAC(IIPAR,JJPAR)
-      REAL*8  :: REALWET(IIPAR,JJPAR)
-      REAL*8  :: EFF_GWET(IIPAR,JJPAR)
-      REAL*8  :: SOIL_C(IIPAR,JJPAR) 
-      REAL*8  :: LITTER_C(IIPAR,JJPAR) 
-      REAL*8  :: litterfast 
-      REAL*8  :: litterslow 
-      REAL*8  :: soilfast 
-      REAL*8  :: soilslow 
-      REAL*8  :: HETEROR 
-      REAL*8  :: F_TEMP 
-      REAL*8  :: MEAN_T(IIPAR,JJPAR)  
-      REAL*8  :: METHANE_OUT(IIPAR,JJPAR)   
-      REAL*8  :: XTAU
-      REAL*8  :: TROPICNESS
-      REAL*8  :: EMIT_TROPIC
-      REAL*8  :: EMIT_TEMPER
-      REAL*8  :: MOIST_SCALE
-      REAL*8  :: EMIT_FACT
-      INTEGER :: MONTHDATES(12) = (/ 31, 28, 31, 30,
-     &                               31, 30, 31, 31,
-     &                               30, 31, 30, 31 /)
-      CHARACTER(LEN=255) :: FILENAME
-      CHARACTER(LEN=4)   :: CYEAR
-      LOGICAL, SAVE      :: FIRST
+      USE CMN_SIZE_MOD        ! Size parameters
+      USE CMN_DIAG_MOD        ! Diagnostic switches
+! 
+! !REVISION HISTORY:
+!  (1 ) Adapted by Jérôme Drevet (3/06) from the BIOME-TG Wetland-Methane
+!       scheme provided by Jed O. Kaplan.
+!  (2 ) CH4 Emissions from Wetland depend on:
+!		a - Soil Carbon content.
+!		b - Vegetation type
+!		c - Wetland area (%)
+!		d - Soil moisture.
+!       a, b, c are taken from the LPJ, a vegetation model. Data are provided 
+!	by J.O.Kaplan. Soil moisture is read from GEOS Met input files.  
+!  (3 ) Corrected order of DO loops (bmy, 10/1/09)
+!  08 Feb 2012 - R. Yantosca - Treat GEOS-5.7.x in the same way as MERRA
+!  07 Mar 2012 - M. Payer    - Added ProTeX headers
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+!
+! !LOCAL VARIABLES:
+!
+      INTEGER                :: I, J, L      
+      INTEGER                :: GM, YEAR      
+      REAL*4                 :: ARRAY(IIPAR,JJPAR)
+      REAL*8                 :: WETFRAC(IIPAR,JJPAR)
+      REAL*8                 :: REALWET(IIPAR,JJPAR)
+      REAL*8                 :: EFF_GWET(IIPAR,JJPAR)
+      REAL*8                 :: SOIL_C(IIPAR,JJPAR) 
+      REAL*8                 :: LITTER_C(IIPAR,JJPAR) 
+      REAL*8                 :: litterfast 
+      REAL*8                 :: litterslow 
+      REAL*8                 :: soilfast 
+      REAL*8                 :: soilslow 
+      REAL*8                 :: HETEROR 
+      REAL*8                 :: F_TEMP 
+      REAL*8                 :: MEAN_T(IIPAR,JJPAR)  
+      REAL*8                 :: METHANE_OUT(IIPAR,JJPAR)   
+      REAL*8                 :: XTAU
+      REAL*8                 :: TROPICNESS
+      REAL*8                 :: EMIT_TROPIC
+      REAL*8                 :: EMIT_TEMPER
+      REAL*8                 :: MOIST_SCALE
+      REAL*8                 :: EMIT_FACT
+      INTEGER                :: MONTHDATES(12) = (/ 31, 28, 31, 30,
+     &                                              31, 30, 31, 31,
+     &                                              30, 31, 30, 31 /)
+      CHARACTER(LEN=255)     :: FILENAME
+      CHARACTER(LEN=4)       :: CYEAR
+      LOGICAL, SAVE          :: FIRST
 
       !=================================================================
       ! WETLAND_CH4 begins here!
@@ -1011,34 +1013,46 @@
       CH4_EMIS(:,:,10) = METHANE_OUT
 
       print*,'END SUBROUTINE WETLAND_EMIS'
-      ! Return to calling program
+
       END SUBROUTINE WETLAND_EMIS
-
-
+!EOC
 !------------------------------------------------------------------------------
-
+!          Harvard University Atmospheric Chemistry Modeling Group            !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: bioburn_emis
+!
+! !DESCRIPTION: Subroutine BIOBURN\_EMIS calculates CH4 emissions from GFED2 or
+!  GFED3 biomass burning. (kjw, 6/03/09) 
+!\\
+!\\
+! !INTERFACE:
+!
       SUBROUTINE BIOBURN_EMIS
 !
-!******************************************************************************
-!  Subroutine BIOBURN_EMIS calculates CH4 emissions from GFED2 biomass burning.
-!  (kjw, 6/03/09) 
+! !USES:
 !
-!  The code used to read, scale and regrid emissions is from SUBROUTINE
-!  GFED2_COMPUTE_BIOMASS in gfed2_biomass_mod.f (6/4/09).
-!
-!  NOTES:
-!
-!******************************************************************************
-!
-      ! References to F90 modules
       USE BIOMASS_MOD,      ONLY : BIOMASS
       USE LOGICAL_MOD,      ONLY : LGFED2BB,      LGFED3BB
       USE TRACERID_MOD,     ONLY : IDBCH4
       USE CMN_SIZE_MOD,     ONLY : IIPAR, JJPAR
-
-      ! Local Variables
-      REAL*8                 :: E_CH4
-      INTEGER                :: I, J
+! 
+! !REVISION HISTORY:
+!  03 Jun 2009 - K. Wecht    - The code used to read, scale & regrid emissions
+!                              is from SUBROUTINE GFED2_COMPUTE_BIOMASS in
+!                              gfed2_biomass_mod.f
+!  14 Feb 2012 - M. Payer    - Now obtain emissions from BIOMASS array. Also
+!                              update for GFED3 (K. Wecht)
+!  07 Mar 2012 - M. Payer    - Added ProTeX headers
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+!
+! !LOCAL VARIABLES:
+!
+      REAL*8                    :: E_CH4
+      INTEGER                   :: I, J
 
       WRITE( 6, '(a)' ) '% EMISSCH4 --- BEGIN BIOBURN_EMIS'
 
@@ -1061,30 +1075,25 @@
          ENDDO
       ENDIF
 
-      ! Return to calling program
       END SUBROUTINE BIOBURN_EMIS
-
-
+!EOC
 !------------------------------------------------------------------------------
-
+!          Harvard University Atmospheric Chemistry Modeling Group            !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: rice_emis
+!
+! !DESCRIPTION: Subroutine RICE\_EMIS calculates CH4 emissions from rice and
+!  places CH4 [kg] into the STT array. (kjw, 6/03/09)
+!\\
+!\\
+! !INTERFACE:
+!
       SUBROUTINE RICE_EMIS
 !
-!******************************************************************************
-!  Subroutine RICE_EMIS calculates CH4 emissions from rice and places CH4 [kg]
-!  into the STT array. (kjw, 6/03/09)
+! !USES:
 !
-!  Rice Emissions are scaled to GEOS soil wetness.  Scaling sceme developed
-!     and implemented by Jerome Drevet.
-!  Wetland emissions are modified by the presence of rice emissions.  Sceme
-!     developed by Jerome Drevet.
-!
-!  NOTES:
-!  (1 ) CH4 emissions from rice calculated with a routine created by Jerome
-!       Drevet.  Adapted as its own subroutine by Kevin Wecht (6/03/09)
-!  (2 ) Corrected ordering of DO loops (bmy, 10/1/09)
-!******************************************************************************
-!
-      ! References to F90 modules
       USE BPCH2_MOD,     ONLY : GET_RES_EXT,  GET_MODELNAME
       USE BPCH2_MOD,     ONLY : GET_TAU0,     READ_BPCH2
       USE BPCH2_MOD,     ONLY : GET_NAME_EXT, GET_NAME_EXT_2D
@@ -1094,10 +1103,26 @@
       USE LOGICAL_MOD,   ONLY : LSPLIT
       USE TRANSFER_MOD,  ONLY : TRANSFER_2D
 
-      USE CMN_SIZE_MOD     ! Size parameters
-      USE CMN_DIAG_MOD     ! Diagnostic switches
-
-      ! Local Variables
+      USE CMN_SIZE_MOD        ! Size parameters
+      USE CMN_DIAG_MOD        ! Diagnostic switches
+! 
+! !REMARKS:
+!  Rice Emissions are scaled to GEOS soil wetness.  Scaling sceme developed
+!     and implemented by Jerome Drevet.
+!  Wetland emissions are modified by the presence of rice emissions.  Sceme
+!     developed by Jerome Drevet.
+! 
+! !REVISION HISTORY:
+!  (1 ) CH4 emissions from rice calculated with a routine created by Jerome
+!       Drevet.  Adapted as its own subroutine by Kevin Wecht (6/03/09)
+!  (2 ) Corrected ordering of DO loops (bmy, 10/1/09)
+!  07 Mar 2012 - M. Payer    - Added ProTeX headers
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+!
+! !LOCAL VARIABLES:
+!
       INTEGER                :: I,J,YEAR
       REAL*4                 :: ARRAY(IIPAR,JJPAR)      
       REAL*8                 :: DTSRCE,       AREA_CM2
@@ -1199,7 +1224,7 @@
 	 wet_ratio = MONTH_GWETTOP(I,J)/MEAN_GWETTOP(I,J)-1
          wet_ratio = wet_ratio * 2.
          wet_ratio = wet_ratio +1.
-	 if (wet_ratio < 0) wet_ratio = 0
+	 IF (wet_ratio < 0) wet_ratio = 0
          CH4_EMIS(I,J,7)=CH4_EMIS(I,J,7)*wet_ratio
       ENDDO
       ENDDO
@@ -1208,40 +1233,35 @@
       ! counting of emissions from the same source.
       DO J = 1, JJPAR
       DO I = 1, IIPAR
-         if (CH4_EMIS(I,J,7) > 0) THEN   ! If rice > 0
-         if (CH4_EMIS(I,J,10) > 0) THEN  ! If wtl  > 0
-         if (CH4_EMIS(I,J,10) > CH4_EMIS(I,J,7)) THEN
+         IF (CH4_EMIS(I,J,7) > 0) THEN   ! If rice > 0
+         IF (CH4_EMIS(I,J,10) > 0) THEN  ! If wtl  > 0
+         IF (CH4_EMIS(I,J,10) > CH4_EMIS(I,J,7)) THEN
              CH4_EMIS(I,J,10) = CH4_EMIS(I,J,10) - CH4_EMIS(I,J,7)
-         endif
-         endif
-         endif
-      enddo
-      enddo
+         ENDIF
+         ENDIF
+         ENDIF
+      ENDDO
+      ENDDO
 
-
-      ! Return to calling program
       END SUBROUTINE RICE_EMIS
-
+!EOC
 !------------------------------------------------------------------------------
-
+!          Harvard University Atmospheric Chemistry Modeling Group            !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: aseasonal_anthro_emis
+!
+! !DESCRIPTION: Subroutine ASEASONAL\_ANTHRO\_EMIS reads CH4 emissions from
+!  anthropogenic sources. (kjw, 6/03/09)
+!\\
+!\\
+! !INTERFACE:
+!
       SUBROUTINE ASEASONAL_ANTHRO_EMIS
 !
-!******************************************************************************
+! !USES:
 !
-!  Subroutine ASEASONAL_ANTHRO_EMIS reads CH4 emissions from anthropogenic
-!  sources. (kjw, 6/03/09)
-!
-!  Aseasonal anthropogenic emissions currently include EDGAR v4 categories
-!  that are not called in their own subroutines.  Current emission categories
-!  read in this subroutine are: gas & oil, coal, livestock, waste, and other
-!  anthropogenic sources.
-!
-!  NOTES:
-!  (1 )
-!
-!******************************************************************************
-
-      ! References to F90 modules
       USE BPCH2_MOD,     ONLY : GET_RES_EXT,  GET_MODELNAME
       USE BPCH2_MOD,     ONLY : GET_NAME_EXT_2D
       USE BPCH2_MOD,     ONLY : GET_TAU0,     READ_BPCH2
@@ -1251,10 +1271,23 @@
       USE LOGICAL_MOD,   ONLY : LGAO,         LCOL,         LLIV
       USE LOGICAL_MOD,   ONLY : LWAST,        LOTANT, LBFCH4
 
-      USE CMN_SIZE_MOD     ! Size parameters
-      USE CMN_DIAG_MOD     ! Diagnostic switches
-
-      ! Local Variables
+      USE CMN_SIZE_MOD        ! Size parameters
+      USE CMN_DIAG_MOD        ! Diagnostic switches
+! 
+! !REMARKS:
+!  Aseasonal anthropogenic emissions currently include EDGAR v4 categories
+!  that are not called in their own subroutines.  Current emission categories
+!  read in this subroutine are: gas & oil, coal, livestock, waste, and other
+!  anthropogenic sources.
+!
+! !REVISION HISTORY:
+!  07 Mar 2012 - M. Payer    - Added ProTeX headers
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+!
+! !LOCAL VARIABLES:
+!
       REAL*4                 :: ARRAY(IIPAR,JJPAR)      
       REAL*8                 :: XTAU
       CHARACTER(LEN=255)     :: FILENAME
@@ -1398,45 +1431,54 @@
          CALL TRANSFER_2D( ARRAY, CH4_EMIS(:,:,8) )
       ENDIF
 
-
-      ! Return to calling program
       END SUBROUTINE ASEASONAL_ANTHRO_EMIS
-
-
+!EOC
 !------------------------------------------------------------------------------
-
+!          Harvard University Atmospheric Chemistry Modeling Group            !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: aseasonal_natural_emis
+!
+! !DESCRIPTION: Subroutine ASEASONAL\_NATURAL\_EMIS reads CH4 emissions from
+!  natural sources. (kjw, 6/03/09)
+!\\
+!\\
+! !INTERFACE:
+!
       SUBROUTINE ASEASONAL_NATURAL_EMIS
 !
-!******************************************************************************
-!  Subroutine ASEASONAL_NATURAL_EMIS reads CH4 emissions from natural sources.
-!  (kjw, 6/03/09)
+! !USES:
 !
+      USE BPCH2_MOD,     ONLY : GET_RES_EXT,    GET_MODELNAME
+      USE BPCH2_MOD,     ONLY : GET_NAME_EXT_2D
+      USE BPCH2_MOD,     ONLY : GET_TAU0,       READ_BPCH2
+      USE DIRECTORY_MOD, ONLY : DATA_DIR
+      USE TIME_MOD,      ONLY : GET_YEAR
+      USE TRANSFER_MOD,  ONLY : TRANSFER_2D
+      USE LOGICAL_MOD,   ONLY : LSOABS,         LOTNAT
+
+      USE CMN_SIZE_MOD        ! Size parameters
+      USE CMN_DIAG_MOD        ! Diagnostic switches
+! 
+! !REMARKS:
 !  Aseasonal natural emissions currently include termites (Fung et. al. 1991)
 !  and soil absorption (Fung et. al. 1991).  Future additions may include 
 !  emissions from permafrost, clathrates, thermokarst lakes, or 
 !  geothermal vents.
+! 
+! !REVISION HISTORY:
+!  07 Mar 2012 - M. Payer    - Added ProTeX headers
+!EOP
+!------------------------------------------------------------------------------
+!BOC
 !
-!  NOTES:
-!******************************************************************************
+! !LOCAL VARIABLES:
 !
-      ! References to F90 modules
-      USE BPCH2_MOD,     ONLY : GET_RES_EXT,  GET_MODELNAME
-      USE BPCH2_MOD,     ONLY : GET_NAME_EXT_2D
-      USE BPCH2_MOD,     ONLY : GET_TAU0,     READ_BPCH2
-      USE DIRECTORY_MOD, ONLY : DATA_DIR
-      USE TIME_MOD,      ONLY : GET_YEAR
-      USE TRANSFER_MOD,  ONLY : TRANSFER_2D
-      USE LOGICAL_MOD,   ONLY : LSOABS,       LOTNAT
-
-      USE CMN_SIZE_MOD     ! Size parameters
-      USE CMN_DIAG_MOD     ! Diagnostic switches
-
-      ! Local Variables
       REAL*4                 :: ARRAY(IIPAR,JJPAR)      
       REAL*8                 :: XTAU
       CHARACTER(LEN=255)     :: FILENAME
       CHARACTER(LEN=4  )     :: CYEAR
-
 
       WRITE( 6, '(a)' ) '% EMISSCH4 --- BEGIN ASEASONAL_NATURAL_EMIS'
 
@@ -1487,26 +1529,51 @@
          CALL TRANSFER_2D( ARRAY, CH4_EMIS(:,:,12) )
       ENDIF
 
-
-      ! Return to calling program
       END SUBROUTINE ASEASONAL_NATURAL_EMIS
-
-
+!EOC
 !------------------------------------------------------------------------------
-
+!          Harvard University Atmospheric Chemistry Modeling Group            !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: chemch4
+!
+! !DESCRIPTION: Subroutine CHEMCH4 computes the chemical loss of CH4
+!  (sources - sinks). (jsw, bnd, bmy, 6/8/00, 10/3/05)
+!\\
+!\\
+! !INTERFACE:
+!
       SUBROUTINE CHEMCH4
 !
-!******************************************************************************
-!  Subroutine CHEMCH4 computes the chemical loss of CH4 (sources - sinks).
-!  (jsw, bnd, bmy, 6/8/00, 10/3/05)
+! !USES:
 !
+      USE DAO_MOD,       ONLY : AD
+      USE DIAG_MOD,      ONLY : AD43
+      USE DIRECTORY_MOD, ONLY : DATA_DIR, OH_DIR
+      USE ERROR_MOD,     ONLY : GEOS_CHEM_STOP, IT_IS_NAN, IT_IS_FINITE
+      USE GLOBAL_OH_MOD, ONLY : GET_GLOBAL_OH, OH
+      USE TIME_MOD,      ONLY : GET_DAY, GET_MONTH, GET_NYMDb, GET_NYMDe
+      USE TIME_MOD,      ONLY : GET_TAU, GET_YEAR
+      USE BPCH2_MOD,     ONLY : GET_TAU0, READ_BPCH2, GET_MODELNAME
+      USE TRANSFER_MOD,  ONLY : TRANSFER_2D
+      USE BPCH2_MOD,     ONLY : GET_NAME_EXT, GET_RES_EXT
+      USE TRACER_MOD,    ONLY : STT
+      USE LOGICAL_MOD,   ONLY : LSPLIT, LCH4BUD
+      USE TIME_MOD,      ONLY : ITS_A_NEW_MONTH
+
+      USE CMN_SIZE_MOD        ! Size parameters
+      USE CMN_DIAG_MOD        ! ND43, AD43
+      USE CMN_MOD             ! LPAUSE
+! 
+! !REMARKS:
 !  CH4 SOURCES
 !  ============================================================================
 !  (1 ) Oxidation of methane, isoprene and monoterpenes (SRCO_fromHCs).
 !  (2 ) Direct emissions of CO from fossil fuel combustion, biomass 
 !        burning and wood (for fuel) burning (SR SETEMIS).
 !  (3 ) Emissions.
-!
+!                                                                             .
 !  CH4 SINKS:
 !  ============================================================================
 !  (1 ) Removal of CO by OH (SR OHparam & CO_decay).
@@ -1517,7 +1584,8 @@
 !  (5 ) Transport of CH4 between troposphere and stratosphere, and 
 !        destruction in strat (CH4_strat.f).
 !
-!  NOTES:
+! 
+! !REVISION HISTORY:
 !  (1 ) Created by Bryan Duncan (1/99).  Adapted for CH4 chemistry by
 !        James Wang (6/8/00).  Inserted into module "global_ch4_mod.f" 
 !        by Bob Yantosca. (bmy, 1/16/01)
@@ -1536,28 +1604,18 @@
 !        (bmy, 3/27/03) 
 !  (8 ) Now reference DATA_DIR from "directory_mod.f" (bmy, 7/20/04)
 !  (9 ) Remove reference to BPCH2_MOD, it's not needed (bmy, 10/3/05)
-!******************************************************************************
+!  07 Mar 2012 - M. Payer    - Added ProTeX headers
+!EOP
+!------------------------------------------------------------------------------
+!BOC
 !
-      ! References to F90 modules
-      USE DAO_MOD,       ONLY : AD
-      USE DIAG_MOD,      ONLY : AD43
-      USE DIRECTORY_MOD, ONLY : DATA_DIR, OH_DIR
-      USE ERROR_MOD,     ONLY : GEOS_CHEM_STOP, IT_IS_NAN, IT_IS_FINITE
-      USE GLOBAL_OH_MOD, ONLY : GET_GLOBAL_OH, OH
-      USE TIME_MOD,      ONLY : GET_DAY, GET_MONTH, GET_NYMDb, GET_NYMDe
-      USE TIME_MOD,      ONLY : GET_TAU, GET_YEAR
-      USE BPCH2_MOD,     ONLY : GET_TAU0, READ_BPCH2, GET_MODELNAME
-      USE TRANSFER_MOD,  ONLY : TRANSFER_2D
-      USE BPCH2_MOD,     ONLY : GET_NAME_EXT, GET_RES_EXT
-      USE TRACER_MOD,    ONLY : STT
-      USE LOGICAL_MOD,   ONLY : LSPLIT, LCH4BUD
-      USE TIME_MOD,      ONLY : ITS_A_NEW_MONTH
-
-      USE CMN_SIZE_MOD     ! Size parameters
-      USE CMN_DIAG_MOD     ! ND43, AD43
-      USE CMN_MOD          ! LPAUSE
-
-      ! Local variables
+! !DEFINED PARAMETERS:
+!
+      ! Weight of air (taken from "comode.h") 
+      REAL*8, PARAMETER      :: WTAIR = 28.966d0
+!
+! !LOCAL VARIABLES:
+!
       LOGICAL                :: FIRSTCHEM = .TRUE.
       INTEGER                :: I, J, L, K, M, N
       INTEGER                :: IJ, JJ, NPART, III, JJJ
@@ -1576,12 +1634,10 @@
       INTEGER                :: NODAYS(12) = (/ 31, 28, 31, 30, 
      &                                          31, 30, 31, 31, 
      &                                          30, 31, 30, 31 /)
-
-      ! External functions 
-      REAL*8 , EXTERNAL      :: BOXVL
-  
-      ! Weight of air (taken from "comode.h") 
-      REAL*8, PARAMETER      :: WTAIR = 28.966d0
+!
+! !EXTERNAL FUNCTIONS:
+!
+      REAL*8 , EXTERNAL      :: BOXVL  
 
       !=================================================================
       ! CHEMCH4 begins here!
@@ -1786,23 +1842,39 @@
       ! Set FIRSTCHEM to FALSE
       FIRSTCHEM = .FALSE.
 
-      ! Return to calling program
       END SUBROUTINE CHEMCH4
-
+!EOC
 !------------------------------------------------------------------------------
-
+!          Harvard University Atmospheric Chemistry Modeling Group            !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: read_coprod
+!
+! !DESCRIPTION: Subroutine READ\_COPROD reads production and destruction rates
+!  for CO in the stratosphere. CO destruction rate is assumed equal to CH4
+!  production rate for the GEOS-Chem CH4 simulation. (bnd, bmy, 1/17/01,
+!  10/3/05)
+!\\
+!\\
+! !INTERFACE:
+!
       SUBROUTINE READ_COPROD
 !
-!*****************************************************************************
-!  Subroutine READ_COPROD reads production and destruction rates for CO in 
-!  the stratosphere. CO destruction rate is assumed equal to CH4 production
-!  rate for the GEOS-Chem CH4 simulation. (bnd, bmy, 1/17/01, 10/3/05)
+! !USES:
 !
-!  Module Variables:
-!  ===========================================================================
-!  (1) COPROD (REAL*8) : Array containing P(CO) for all 12 months [v/v/s]
-!
-!  NOTES:
+      USE BPCH2_MOD,     ONLY : GET_NAME_EXT_2D, GET_RES_EXT
+      USE BPCH2_MOD,     ONLY : GET_TAU0,        READ_BPCH2
+      USE BPCH2_MOD,     ONLY : GET_NAME_EXT,    GET_MODELNAME
+      USE DIRECTORY_MOD, ONLY : DATA_DIR
+      USE TRANSFER_MOD,  ONLY : TRANSFER_ZONAL
+        
+      USE CMN_SIZE_MOD        ! Size parameters
+
+      IMPLICIT NONE
+#     include "define.h"
+! 
+! !REVISION HISTORY:
 !  (1 ) Created by Bryan Duncan (1/99).  Adapted for CH4 chemistry by
 !        James Wang (6/8/00).  Inserted into module "global_ch4_mod.f" 
 !        by Bob Yantosca. (bmy, 1/16/01)
@@ -1815,35 +1887,26 @@
 !  (7 ) Now make sure all USE statements are USE, ONLY (bmy, 10/3/05)
 !  (8 ) Treat MERRA in the same way as for GEOS-5 (bmy, 8/13/10)
 !  08 Feb 2012 - R. Yantosca - Treat GEOS-5.7.x in the same way as MERRA
-!*****************************************************************************
+!  07 Mar 2012 - M. Payer    - Added ProTeX headers
+!EOP
+!------------------------------------------------------------------------------
+!BOC
 !
-      ! References to F90 modules
-      USE BPCH2_MOD,     ONLY : GET_NAME_EXT_2D, GET_RES_EXT
-      USE BPCH2_MOD,     ONLY : GET_TAU0,        READ_BPCH2
-      USE BPCH2_MOD,     ONLY : GET_NAME_EXT,    GET_MODELNAME
-      USE DIRECTORY_MOD, ONLY : DATA_DIR
-      USE TRANSFER_MOD,  ONLY : TRANSFER_ZONAL
-        
-      USE CMN_SIZE_MOD  ! Size parameters
-
-      IMPLICIT NONE
-#     include "define.h"
-
-
-      ! Local variables
-      INTEGER            :: I, J, L, M
-      REAL*4             :: ARRAY(1,JJPAR,LGLOB)
-      REAL*4             :: DUMMY_IN(JJPAR,LGLOB)
-      REAL*8             :: XTAU
-      CHARACTER(LEN=255) :: FILENAME
-      REAL*8             :: DUMMY_OUT(JJPAR,LGLOB)
-
+! !LOCAL VARIABLES:
+!
+      INTEGER                :: I, J, L, M
+      REAL*4                 :: ARRAY(1,JJPAR,LGLOB)
+      REAL*4                 :: DUMMY_IN(JJPAR,LGLOB)
+      REAL*8                 :: XTAU
+      CHARACTER(LEN=255)     :: FILENAME
+      REAL*8                 :: DUMMY_OUT(JJPAR,LGLOB)
 
       !=================================================================
       ! READ_COPROD begins here!
       ! 
       ! Read P(CO) for all 12 months
       !=================================================================
+
       DO M = 1, 12 
 
          ! TAU value at the start of month M -- Use "generic" year 1985
@@ -1896,29 +1959,43 @@
 !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
       ENDDO
 
-      ! Return to calling program
       END SUBROUTINE READ_COPROD
-
+!EOC
 !------------------------------------------------------------------------------
-
+!          Harvard University Atmospheric Chemistry Modeling Group            !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: read_ch4loss
+!
+! !DESCRIPTION: Subroutine READ\_CH4LOSS reads CH4 loss frequencies in the
+!  stratosphere. These values constitute a linearized stratospheric CH4
+!  chemistry scheme. Loss frequencies from 4x5 degree output from the GMI 
+!  model. Thanks to Lee Murray for the ch4 loss frequencies. (kjw, 11/19/2011)
+!\\
+!\\
+! !INTERFACE:
+!
       SUBROUTINE READ_CH4LOSS
 !
-!*****************************************************************************
-!  Subroutine READ_CH4LOSS reads CH4 loss frequencies in the stratosphere. 
-!  These values constitute a linearized stratospheric CH4 chemistry scheme.
-!  Loss frequencies from 4x5 degree output from the GMI model. Thanks to Lee 
-!  Murray for the ch4 loss frequencies. (kjw, 11/19/2011)
+! !USES:
 !
-!  Module Variables:
-!  ===========================================================================
-!  (1) CH4LOSS (REAL*8) : Array containing ch4 loss frequencies for all 12
-!                         months [1/s]
-!
-!  NOTES:
+      USE BPCH2_MOD,     ONLY : GET_NAME_EXT_2D, GET_RES_EXT
+      USE BPCH2_MOD,     ONLY : GET_TAU0,        READ_BPCH2
+      USE BPCH2_MOD,     ONLY : GET_NAME_EXT,    GET_MODELNAME
+      USE DIRECTORY_MOD, ONLY : DATA_DIR
+      USE TRANSFER_MOD,  ONLY : TRANSFER_3D
+        
+      USE CMN_SIZE_MOD        ! Size parameters
+
+      IMPLICIT NONE
+#     include "define.h"
+! 
+! !REVISION HISTORY:!
 !  (1 ) Created by Bryan Duncan (1/99).  Adapted for CH4 chemistry by
 !        James Wang (6/8/00).  Inserted into module "global_ch4_mod.f" 
 !        by Bob Yantosca. (bmy, 1/16/01)
-!  (2 ) READ_CH4LOSS is independent of "F77_CMN_OH", "F77_CMN_CO", and "F77_CMN_CO_BUDGET".
+!  (2 ) READ_CH4LOSS is independent of "CMN_OH", "CMN_CO", and "CMN_CO_BUDGET".
 !        (bmy, 1/16/01)
 !  (3 ) ARRAY needs to be dimensioned (1,JJPAR,LGLOB) (bmy, 9/26/01)
 !  (4 ) Remove obsolete code from 9/01 (bmy, 10/24/01)
@@ -1926,26 +2003,17 @@
 !  (6 ) Now reads data for both GEOS and GCAP grids (bmy, 8/16/05)
 !  (7 ) Now make sure all USE statements are USE, ONLY (bmy, 10/3/05)
 !  (8 ) Treat MERRA in the same way as for GEOS-5 (bmy, 8/13/10)
-!*****************************************************************************
+!  07 Mar 2012 - M. Payer    - Added ProTeX headers
+!EOP
+!------------------------------------------------------------------------------
+!BOC
 !
-      ! References to F90 modules
-      USE BPCH2_MOD,     ONLY : GET_NAME_EXT_2D, GET_RES_EXT
-      USE BPCH2_MOD,     ONLY : GET_TAU0,        READ_BPCH2
-      USE BPCH2_MOD,     ONLY : GET_NAME_EXT,    GET_MODELNAME
-      USE DIRECTORY_MOD, ONLY : DATA_DIR
-      USE TRANSFER_MOD,  ONLY : TRANSFER_3D
-        
-      USE CMN_SIZE_MOD  ! Size parameters
-
-      IMPLICIT NONE
-#     include "define.h"
-
-
-      ! Local variables
-      INTEGER            :: I, J, L, M
-      REAL*4             :: ARRAY(IIPAR,JJPAR,LLPAR)
-      REAL*8             :: XTAU
-      CHARACTER(LEN=255) :: FILENAME
+! !LOCAL VARIABLES:
+!
+      INTEGER                :: I, J, L, M
+      REAL*4                 :: ARRAY(IIPAR,JJPAR,LLPAR)
+      REAL*8                 :: XTAU
+      CHARACTER(LEN=255)     :: FILENAME
 
 
       !=================================================================
@@ -1985,35 +2053,49 @@
 
       ENDDO
 
-      ! Return to calling program
       END SUBROUTINE READ_CH4LOSS
-
+!EOC
 !------------------------------------------------------------------------------
-
+!          Harvard University Atmospheric Chemistry Modeling Group            !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: ch4_decay
+!
+! !DESCRIPTION: Subroutine CH4\_DECAY calculates the decay rate of CH4 by OH.
+!  OH is the only sink for CH4 considered here. (jsw, bnd, bmy, 1/16/01,
+!  7/20/04)
+!\\
+!\\
+! !INTERFACE:
+!
       SUBROUTINE CH4_DECAY
 !
-!******************************************************************************
-!  Subroutine CH4_DECAY calculates the decay rate of CH4 by OH.  OH is the 
-!  only sink for CH4 considered here. (jsw, bnd, bmy, 1/16/01, 7/20/04)
+! !USES:
 !
+      USE DAO_MOD,    ONLY : AIRVOL, T
+      USE TIME_MOD,   ONLY : GET_TS_CHEM, ITS_A_NEW_YEAR, GET_MONTH
+      USE TRACER_MOD, ONLY : STT
+      USE DIAG_MOD,   ONLY : AD19   	      
+
+      USE CMN_SIZE_MOD     ! Size parameters
+      USE CMN_DIAG_MOD     ! ND19
+      USE CMN_MOD          ! STT, LPAUSE
+! 
+! !REMARKS:
 !  The annual mean tropopause is stored in the LPAUSE array 
 !  (from header file "CMN").  LPAUSE is defined such that: 
-!
+!                                                                             .
 !  Levels            1 <= L <= LPAUSE(I,J) - 1 are tropospheric
 !          LPAUSE(I,J) <= L <= LLPAR           are stratospheric
-!
+!                                                                             .
 !  We now use LPAUSE instead of NSKIPL to denote the strat/trop boundary. 
 !  (bmy, 4/18/00)  
-!
+!                                                                             .
 !  Monthly loss of CH4 is summed in TCH4(3)
 !     TCH4(3)  = CH4 sink by OH
-!
-!  Module Variables:
-!  ============================================================================
-!  (1) BOH        (REAL*8) : Array holding global OH concentrations
-!  (2) XNUMOL_CH4 (REAL*8) : Molec CH4 / kg CH4
-!
-!  NOTES:
+! 
+! !REVISION HISTORY:
 !  (1 ) Created by Bryan Duncan (1/99).  Adapted for CH4 chemistry by
 !        James Wang (7/00).  Inserted into module "global_ch4_mod.f" 
 !        by Bob Yantosca. (bmy, 1/16/01)
@@ -2021,26 +2103,20 @@
 !        (bmy, 1/16/01)
 !  (3 ) Now use function GET_TS_CHEM from "time_mod.f" (bmy, 3/27/03)
 !  (4 ) Now references STT from "tracer_mod.f" (bmy, 7/20/04)
-!******************************************************************************
+!  07 Mar 2012 - M. Payer    - Added ProTeX headers
+!EOP
+!------------------------------------------------------------------------------
+!BOC
 !
-      ! References to F90 modules
-      USE DAO_MOD,    ONLY : AIRVOL, T
-      USE TIME_MOD,   ONLY : GET_TS_CHEM, ITS_A_NEW_YEAR, GET_MONTH
-      USE TRACER_MOD, ONLY : STT
-      USE DIAG_MOD,   ONLY : AD19   	      
-
-      USE CMN_SIZE_MOD       ! Size parameters
-      USE CMN_DIAG_MOD       ! ND19
-      USE CMN_MOD            ! STT, LPAUSE
-
-      ! Local variables
-      LOGICAL          :: FIRST_DECAY=.TRUE.
-      INTEGER          :: I, J, L, M, N, MM, LMN
-      REAL*8           :: DT, GCH4, STT2GCH4, KRATE
-
-      ! External variables
-      REAL*8, EXTERNAL :: BOXVL
-
+! !LOCAL VARIABLES:
+!
+      LOGICAL             :: FIRST_DECAY=.TRUE.
+      INTEGER             :: I, J, L, M, N, MM, LMN
+      REAL*8              :: DT, GCH4, STT2GCH4, KRATE
+!
+! !EXTERNAL FUNCTIONS:   
+!
+      REAL*8, EXTERNAL    :: BOXVL
 
       !=================================================================
       ! CH4_DECAY begins here!
@@ -2119,28 +2195,41 @@
       print*,'Trop decay should be over 1Tg per day globally'
       print*,'    ~ 500Tg/365d ~ 1.37/d'
 
-      ! Return to calling program
       END SUBROUTINE CH4_DECAY
-
+!EOC
 !------------------------------------------------------------------------------
-
-      SUBROUTINE CH4_OHSAVE
-! 
-!*****************************************************************************
-!  Subroutine CH4_OHSAVE archives the CH3CCl3 lifetime from the OH
-!  used in the CH4 simulation. (bnd, jsw, bmy, 1/16/01, 7/20/04)
+!          Harvard University Atmospheric Chemistry Modeling Group            !
+!------------------------------------------------------------------------------
+!BOP
 !
+! !IROUTINE: ch4_ohsave
+!
+! !DESCRIPTION: Subroutine CH4\_OHSAVE archives the CH3CCl3 lifetime from the
+!  OH used in the CH4 simulation. (bnd, jsw, bmy, 1/16/01, 7/20/04)
+!\\
+!\\
+! !INTERFACE:
+!
+      SUBROUTINE CH4_OHSAVE
+!
+! !USES:
+!
+      ! References to F90 modules
+      USE DIAG_OH_MOD, ONLY : DO_DIAG_OH_CH4
+      USE TIME_MOD,    ONLY : GET_MONTH
+      USE DAO_MOD,     ONLY : T
+
+      USE CMN_SIZE_MOD      ! Size parameters
+      USE CMN_MOD           ! LPAUSE
+! 
+! !REMARKS:
 !  The annual mean tropopause is stored in the LPAUSE array 
 !  (from header file "CMN").  LPAUSE is defined such that: 
-!
+!                                                                             .
 !  Levels            1 <= L <= LPAUSE(I,J) - 1 are tropospheric
 !          LPAUSE(I,J) <= L <= LLPAR           are stratospheric
-!
-!  Module Variables
-!  ===========================================================================
-!  (1) BOH (REAL*8) : Array containing global OH field 
-!
-!  NOTES:
+! 
+! !REVISION HISTORY:
 !  (1 ) Created by Bryan Duncan (1/99).  Adapted for CH4 chemistry by
 !        James Wang (7/00).  Inserted into module "global_ch4_mod.f" 
 !        by Bob Yantosca. (bmy, 1/16/01)
@@ -2148,22 +2237,19 @@
 !        (bmy, 1/16/01)
 !  (3 ) Now call DO_DIAG_OH_CH4 to pass OH diagnostic info to the
 !        "diag_oh_mod.f" (bmy, 7/20/04)
-!*****************************************************************************
+!  07 Mar 2012 - M. Payer    - Added ProTeX headers
+!EOP
+!------------------------------------------------------------------------------
+!BOC
 !
-      ! References to F90 modules
-      USE DIAG_OH_MOD, ONLY : DO_DIAG_OH_CH4
-      USE TIME_MOD,    ONLY : GET_MONTH
-      USE DAO_MOD,     ONLY : T
-
-      USE CMN_SIZE_MOD  ! Size parameters
-      USE CMN_MOD       ! LPAUSE
-
-      ! Local variables
-      INTEGER          :: I, J, L, LMN
-      REAL*8           :: KCLO, LOSS, OHMASS, MASST
-
-      ! External functions
-      REAL*8, EXTERNAL :: BOXVL
+! !LOCAL VARIABLES:
+!
+      INTEGER              :: I, J, L, LMN
+      REAL*8               :: KCLO, LOSS, OHMASS, MASST
+!
+! !EXTERNAL FUNCTIONS:   
+!
+      REAL*8, EXTERNAL     :: BOXVL
 
       !=================================================================
       ! CH4_OHSAVE begins here!
@@ -2207,29 +2293,44 @@
       ENDDO
       ENDDO
 
-
-      ! Return to calling program
       END SUBROUTINE CH4_OHSAVE
-
+!EOC
 !------------------------------------------------------------------------------
-
+!          Harvard University Atmospheric Chemistry Modeling Group            !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: ch4_strat
+!
+! !DESCRIPTION: Subroutine CH4\_STRAT calculates uses production rates for CH4
+!  to  calculate loss of CH4 in above the tropopause. (jsw, bnd, bmy, 1/16/01,
+!  7/20/04)
+!\\
+!\\
+! !INTERFACE:
+!
       SUBROUTINE CH4_STRAT
 !
-!*****************************************************************************
-!  Subroutine CH4_STRAT calculates uses production rates for CH4 to 
-!  calculate loss of CH4 in above the tropopause. 
-!  (jsw, bnd, bmy, 1/16/01, 7/20/04)
+! !USES:
 !
+      USE DAO_MOD,    ONLY : AIRVOL
+      USE TIME_MOD,   ONLY : GET_MONTH, GET_TS_CHEM
+      USE TRACER_MOD, ONLY : STT, CHECK_STT
+
+      USE CMN_SIZE_MOD     ! Size parameters
+      USE CMN_MOD          ! STT, LPAUSE
+! 
+! !REMARKS:
 !  Production (mixing ratio/sec) rate provided by Dylan Jones.  
 !  Only production by CH4 + OH is considered.
-!  
+!                                                                             .
 !  The annual mean tropopause is stored in the LPAUSE array 
 !  (from header file "CMN").  LPAUSE is defined such that: 
-! 
+!                                                                             .
 !  Levels           1 <= L <= LPAUSE(I,J) - 1 are tropospheric
 !         LPAUSE(I,J) <= L <= LLPAR           are stratospheric (bmy, 4/18/00)
 !
-!  NOTES:
+! !REVISION HISTORY:
 !  (1 ) Created by Bryan Duncan (1/99).  Adapted for CH4 chemistry by
 !        James Wang (7/00).  Inserted into module "global_ch4_mod.f" 
 !        by Bob Yantosca. (bmy, 1/16/01)
@@ -2238,23 +2339,20 @@
 !  (3 ) Removed LMN from the arg list and made it a local variable.  Now use 
 !        functions GET_MONTH and GET_TS_CHEM from "time_mod.f" (bmy, 3/27/03)
 !  (4 ) Now references STT from "tracer_mod.f" (bmy, 7/20/04)
-!*****************************************************************************
+!  07 Mar 2012 - M. Payer    - Added ProTeX headers
+!EOP
+!------------------------------------------------------------------------------
+!BOC
 !
-      ! References to F90 modules
-      USE DAO_MOD,    ONLY : AIRVOL
-      USE TIME_MOD,   ONLY : GET_MONTH, GET_TS_CHEM
-      USE TRACER_MOD, ONLY : STT, CHECK_STT
-
-      USE CMN_SIZE_MOD       ! Size parameters
-      USE CMN_MOD            ! STT, LPAUSE
-
-      ! Local variables
+! !LOCAL VARIABLES:
+!
       INTEGER             :: I, J, L, LMN
       REAL*8              :: DT, GCH4, STT2GCH4, LRATE
       CHARACTER*20        :: STT_TEST
       CHARACTER*20        :: STT2GCH4_CHAR
-
-      ! External functions
+!
+! !EXTERNAL FUNCTIONS:   
+!
       REAL*8, EXTERNAL    :: BOXVL
 
       !=================================================================
@@ -2318,20 +2416,37 @@
       ! Check STT for negatives and NaN
       CALL CHECK_STT( 'IN global_ch4_mod.F: CH4_STRAT' )
 
-      ! Return to calling program
       END SUBROUTINE CH4_STRAT
-
+!EOC
 !------------------------------------------------------------------------------
-
+!          Harvard University Atmospheric Chemistry Modeling Group            !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: ch4_budget
+!
+! !DESCRIPTION: Subroutine CH4\_BUDGET calculates the budget of CH4. This SR
+!  only works for monthly averages, so be sure to start on the first of the
+!  month and run to another first of the month! (jsw, bnd, bmy, 1/16/01,
+!  10/3/05)
+!\\
+!\\
+! !INTERFACE:
+!
       SUBROUTINE CH4_BUDGET
 !
-!******************************************************************************
-!  Subroutine CH4_BUDGET calculates the budget of CH4.  This SR only works 
-!  for monthly averages, so be sure to start on the first of the month 
-!  and run to another first of the month!!!  (jsw, bnd, bmy, 1/16/01, 10/3/05)
+! !USES:
 !
-!  Modified for the run with new emissions (j drevet, 03/06)
-!
+      USE BPCH2_MOD,  ONLY : BPCH2,       BPCH2_HDR,   GET_MODELNAME
+      USE GRID_MOD,   ONLY : GET_XOFFSET, GET_YOFFSET
+      USE TIME_MOD,   ONLY : GET_MONTH,   GET_YEAR
+      USE TIME_MOD,   ONLY : GET_DIAGb,   GET_CT_DYN
+      USE TRACER_MOD, ONLY : STT
+
+      USE CMN_SIZE_MOD     ! Size parameters
+      USE CMN_MOD          ! STT, LPAUSE
+! 
+! !REMARKS:
 !  Store the sources/sinks of CH4 in TCH4 in total molecules
 !           ( 1) = Initial burden
 !           ( 2) = Final burden
@@ -2339,15 +2454,16 @@
 !           ( 3) = Tropospheric CH4 sink by OH
 !  SOURCES
 !           ( 4) = Total Sources
-!           ( 5) = Industrial (Gas+Oil+Mine)
-!           ( 6) = Agriculture (Enteric fermentation+Manure+Rice+Waste+Waste water)
+!           ( 5) = Industrial  ( Gas + Oil + Mine )
+!           ( 6) = Agriculture ( Enteric fermentation + Manure + Rice + Waste
+!                              + Waste water )
 !           ( 7) = Biomass burning
 !           ( 8) = Termites 
 !           ( 9) = Wetland
 !           (10) = Soil absorption
 !           (11) = Interhemispheric Exchange (+ = northward)
 !
-!  NOTES:
+! !REVISION HISTORY:
 !  (1 ) Created by Bryan Duncan (1/99).  Adapted for CH4 chemistry by
 !        James Wang (7/00).  Inserted into module "global_ch4_mod.f" 
 !        by Bob Yantosca. (bmy, 1/16/01)
@@ -2361,44 +2477,40 @@
 !        "grid_mod.f".  (bmy, 3/27/03)
 !  (6 ) Now references STT from "tracer_mod.f" (bmy, 7/20/04)
 !  (7 ) Now make sure all USE statements are USE, ONLY (bmy, 10/3/05)
-!******************************************************************************
+!  (8 ) Modified for the run with new emissions (j drevet, 03/06)
+!  07 Mar 2012 - M. Payer    - Added ProTeX headers
+!EOP
+!------------------------------------------------------------------------------
+!BOC
 !
-      ! References to F90 modules
-      USE BPCH2_MOD,  ONLY : BPCH2,       BPCH2_HDR,   GET_MODELNAME
-      USE GRID_MOD,   ONLY : GET_XOFFSET, GET_YOFFSET
-      USE TIME_MOD,   ONLY : GET_MONTH,   GET_YEAR
-      USE TIME_MOD,   ONLY : GET_DIAGb,   GET_CT_DYN
-      USE TRACER_MOD, ONLY : STT
+! !LOCAL VARIABLES:
+!
+      INTEGER             :: I, J, K, L, M, NERROR, UD, LMN
 
-      USE CMN_SIZE_MOD       ! Size parameters
-      USE CMN_MOD            ! STT, LPAUSE
- 
-      ! Local variables
-      INTEGER                :: I, J, K, L, M, NERROR, UD, LMN
+      REAL*8              :: STTCONV, TGS, SCALEDYN
+      REAL*8              :: NTP, NTQ, NTP2, NTQ2 
+      REAL*8              :: SOURCES, SINKS
 
-      REAL*8                 :: STTCONV, TGS, SCALEDYN
-      REAL*8                 :: NTP, NTQ, NTP2, NTQ2 
-      REAL*8                 :: SOURCES, SINKS
-
-      CHARACTER(LEN=17)      :: MERGE
-      CHARACTER(LEN=13)      :: MERGE2
+      CHARACTER(LEN=17)   :: MERGE
+      CHARACTER(LEN=13)   :: MERGE2
 
       ! For binary punch file, v. 2.0
-      REAL*4                 :: ARRAY(IIPAR, JJPAR, LLPAR)
-      REAL*4                 :: LONRES, LATRES
+      REAL*4              :: ARRAY(IIPAR, JJPAR, LLPAR)
+      REAL*4              :: LONRES, LATRES
 
-      INTEGER                :: IFIRST, JFIRST, LFIRST
-      INTEGER, PARAMETER     :: HALFPOLAR = 1
-      INTEGER, PARAMETER     :: CENTER180 = 1
+      INTEGER             :: IFIRST, JFIRST, LFIRST
+      INTEGER, PARAMETER  :: HALFPOLAR = 1
+      INTEGER, PARAMETER  :: CENTER180 = 1
 
-      CHARACTER (LEN=20)     :: MODELNAME 
-      CHARACTER (LEN=40)     :: UNIT
-      CHARACTER (LEN=40)     :: RESERVED = ''
-      CHARACTER (LEN=40)     :: CATEGORY 
-      CHARACTER (LEN=80)     :: LABEL
-
-      ! External functions 
-      REAL*8, EXTERNAL       :: BOXVL 
+      CHARACTER (LEN=20)  :: MODELNAME 
+      CHARACTER (LEN=40)  :: UNIT
+      CHARACTER (LEN=40)  :: RESERVED = ''
+      CHARACTER (LEN=40)  :: CATEGORY 
+      CHARACTER (LEN=80)  :: LABEL
+!
+! !EXTERNAL FUNCTIONS:   
+!
+      REAL*8, EXTERNAL    :: BOXVL 
 
       !=================================================================
       ! CH4_BUDGET begins here!
@@ -2485,7 +2597,7 @@
       WRITE(189,18)
       WRITE(189,31)
 
-! Sinks   jsw has checked correctness of code for sinks.
+      ! Sinks   jsw has checked correctness of code for sinks.
       NTP=SUM_CH4(1,IIPAR,1,JJPAR,1,LLPAR,3,3,1)
       NTQ=SUM_CH4(1,IIPAR,1,JJPAR,1,LLPAR,3,3,0)
       SINKS=NTP+NTQ
@@ -2497,7 +2609,7 @@
       WRITE(189,18)
       WRITE(189,30)
 
-! Sources
+      ! Sources
       NTP=SUM_CH4(1,IIPAR,1,JJPAR,1,1,4,4,1)
       SOURCES=NTP
 
@@ -2516,7 +2628,7 @@
       NTP=SUM_CH4(1,IIPAR,1,JJPAR,1,1,8,8,1)
       WRITE(189,26) NTP,NTP/SOURCES*100.D0,NTP/STTCONV
 
-!jsw Following lines added by jsw.
+      !jsw Following lines added by jsw.
       NTP=SUM_CH4(1,IIPAR,1,JJPAR,1,1,10,10,1)
       WRITE(189,35) NTP,NTP/SOURCES*100.D0,NTP/STTCONV
 
@@ -2689,7 +2801,8 @@
       
       WRITE(189,18)
       WRITE(189,31)
-! Sinks
+
+      ! Sinks
       NTQ=SUM_CH4(1,IIPAR,JJPAR/2+1,JJPAR,1,LLPAR,3,3,1)
       NTQ2=SUM_CH4(1,IIPAR,JJPAR/2+1,JJPAR,1,LLPAR,3,3,0)
       SINKS=NTQ+NTQ2
@@ -2720,7 +2833,8 @@
       WRITE(189,34)SINKS,SINKS/STTCONV
       WRITE(189,18)
       WRITE(189,30)
-! Sources
+
+      ! Sources
       NTQ=SUM_CH4(1,IIPAR,JJPAR/2+1,JJPAR,1,LLPAR,5,9,1)
       NTQ2=SUM_CH4(1,IIPAR,JJPAR/2+1,JJPAR,1,LLPAR,4,4,0)
       SOURCES=NTQ+NTQ2
@@ -2836,18 +2950,38 @@
       TCH4(:,:,:,1      ) = TCH4(:,:,:,2)
       TCH4(:,:,:,2:N_CH4) = 0d0
 	
-      ! Return to calling program
       END SUBROUTINE CH4_BUDGET
-
+!EOC
 !------------------------------------------------------------------------------
-
+!          Harvard University Atmospheric Chemistry Modeling Group            !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: sum_ch4
+!
+! !DESCRIPTION: Function SUM\_CH4 sums a section of the TCH4 array bounded by
+!  the input variables I1, I2, J1, J2, L1, L2, K1, K2.  SUM\_CH4 is called by
+!  module subroutine CH4\_BUDGET. (jsw, bnd, bmy, 1/16/01)
+!\\
+!\\
+! !INTERFACE:
+!
       REAL*8 FUNCTION SUM_CH4( I1, I2, J1, J2, L1, L2, K1, K2, UPDOWN )
 !
-!******************************************************************************
-!  Function SUM_CH4 sums a section of the TCH4 array bounded by the input
-!  variables I1, I2, J1, J2, L1, L2, K1, K2.  SUM_CH4 is called by
-!  module subroutine CH4_BUDGET. (jsw, bnd, bmy, 1/16/01)
+! !USES:
 !
+      USE CMN_SIZE_MOD     ! Size parameters
+      USE CMN_MOD          ! LPAUSE
+!
+! !INPUT PARAMETERS: 
+!
+      INTEGER, INTENT(IN) :: I1, I2 ! Min/max longitude indices of TCH4 to sum
+      INTEGER, INTENT(IN) :: J1, J2 ! Min/max latitude  indices of TCH4 to sum 
+      INTEGER, INTENT(IN) :: L1, L2 ! Min/max altitude  indices of TCH4 to sum
+      INTEGER, INTENT(IN) :: K1, K2 ! Min/max tracer    indices of TCH4 to sum
+      INTEGER, INTENT(IN) :: UPDOWN ! Sum in trop (=1) or in strat (=0)
+!
+! !REMARKS:
 !  Store the sources/sinks of CH4 in TCH4 in total molecules
 !           ( 1) = Initial burden
 !           ( 2) = Final burden
@@ -2863,36 +2997,26 @@
 !           (10) = Soil absorption
 !           (11) = Interhemispheric Exchange (+ = northward)
 !           (12) = ...
-!
+!                                                                             .
 !  Levels            1 <= L <= LPAUSE(I,J) - 1 are tropospheric
 !          LPAUSE(I,J) <= L <= LLPAR           are stratospheric (bmy, 4/17/00)
 !
-!  Arguments as Input:
-!  ============================================================================
-!  (1-2) I1, I2 (INTEGER) : Min and max longitude indices of TCH4 to sum
-!  (3-4) J1, J2 (INTEGER) : Min and max latitude  indices of TCH4 to sum 
-!  (5-6) L1, L2 (INTEGER) : Min and max altitude  indices of TCH4 to sum 
-!  (7-8) K1, K2 (INTEGER) : Min and max tracer    indices of TCH4 to sum
-!  (9  ) UPDOWN (INTEGER) : Sum in troposphere (=1) or in stratosphere (=0)
-!
-!  NOTES:
+! !REVISION HISTORY:
 !  (1 ) Created by Bryan Duncan (1/99).  Adapted for CH4 chemistry by
 !        James Wang (7/00).  Inserted into module "global_ch4_mod.f" 
 !        by Bob Yantosca. (bmy, 1/16/01)
 !  (2 ) CH4_BUDGET is independent of "CMN_OH", "CMN_CO", and "CMN_CO_BUDGET".
 !        (bmy, 1/16/01)
 !  (3 ) Updated comments (jsw, bmy, 2/12/01)
-!******************************************************************************
-!    
-      USE CMN_SIZE_MOD       ! Size parameters
-      USE CMN_MOD            ! LPAUSE
-
-      ! Arguments
-      INTEGER, INTENT(IN) :: I1, I2, J1, J2, L1, L2
-      INTEGER, INTENT(IN) :: K1, K2, UPDOWN
-      
-      ! Local variables
-      INTEGER             :: I, J, K, L, LPAUSE_MIN, LPAUSE_MAX
+!  07 Mar 2012 - M. Payer    - Added ProTeX headers
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+!
+! !LOCAL VARIABLES:
+!
+      INTEGER             :: I, J, K, L
+      INTEGER             :: LPAUSE_MIN, LPAUSE_MAX
 
       !=================================================================
       ! SUM_CH4 begins here!
@@ -2946,37 +3070,45 @@
          ENDDO
       ENDIF
       
-      ! Return to calling program
       END FUNCTION SUM_CH4
-
+!EOC
 !------------------------------------------------------------------------------
-
+!          Harvard University Atmospheric Chemistry Modeling Group            !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: ch4_distrib
+!
+! !DESCRIPTION: Subroutine CH4\_DISTRIB allocates the chemistry sink to
+!  different emission tracers. (ccc, 10/2/09)
+!\\
+!\\
+! !INTERFACE:
+!
       SUBROUTINE CH4_DISTRIB(PREVCH4)
 !
-!******************************************************************************
-!  Subroutine CH4_DISTRIB allocates the chemistry sink to different 
-!  emission tracers.
-!  (ccc, 10/2/09)
+! !USES:
 !
-!  Arguments as Input:
-!  ============================================================================
-!  PREVCH4(IIPAR, JJPAR, LLPAR) (REAL*8) : Store CH4 concentration before
-!                                          chemistry  
-! 
-!******************************************************************************
-!      
       USE TRACER_MOD,    ONLY : STT, N_TRACERS
       USE ERROR_MOD,     ONLY : SAFE_DIV
 
-      USE CMN_SIZE_MOD     ! Size parameters
+      USE CMN_SIZE_MOD        ! Size parameters
    
       IMPLICIT NONE
 #     include "define.h"
-
-      !Arguments
-      REAL*8                 :: PREVCH4(IIPAR, JJPAR, LLPAR)
-
-      !Local variables
+!
+! !INPUT PARAMETERS: 
+!
+      REAL*8                 :: PREVCH4(IIPAR, JJPAR, LLPAR) ! CH4 before chem
+! 
+! !REVISION HISTORY:
+!  07 Mar 2012 - M. Payer    - Added ProTeX headers
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+!
+! !LOCAL VARIABLES:
+!
       INTEGER                :: N, I, J, L
 
       !========================================================================
@@ -3000,29 +3132,44 @@
 
       ENDDO
 
-      ! Return to calling program
       END SUBROUTINE CH4_DISTRIB
-
+!EOC
 !------------------------------------------------------------------------------
-
+!          Harvard University Atmospheric Chemistry Modeling Group            !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: init_global_ch4
+!
+! !DESCRIPTION: Subroutine INIT\_GLOBAL\_CH4 allocates and zeroes module 
+!  arrays. (bmy, 1/16/01, 10/15/02)
+!\\
+!\\
+! !INTERFACE:
+!
       SUBROUTINE INIT_GLOBAL_CH4
 !
-!******************************************************************************
-!  Subroutine INIT_GLOBAL_CH4 allocates and zeroes module arrays. 
-!  (bmy, 1/16/01, 10/15/02)
+! !USES:
 !
-!  NOTES:
-!  (1 ) Now references ALLOC_ERR from "error_mod.f" (bmy, 10/15/02)
-!******************************************************************************
-!      
-      ! References to F90 modules
       USE ERROR_MOD, ONLY : ALLOC_ERR
 
       USE CMN_SIZE_MOD
       USE CMN_DIAG_MOD
-      
-      ! Local variables
-      INTEGER :: AS
+! 
+! !REVISION HISTORY:
+!  (1 ) Now references ALLOC_ERR from "error_mod.f" (bmy, 10/15/02)
+!  07 Mar 2012 - M. Payer    - Added ProTeX headers
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+!
+! !LOCAL VARIABLES:
+!
+      INTEGER            :: AS
+
+      !=================================================================
+      ! INIT_GLOBAL_CH4 begins here!
+      !=================================================================
 
       ALLOCATE( AVGOH( NSEAS, NCMSLATS, NCMSALTS ), STAT=AS )
       IF ( AS /= 0 ) CALL ALLOC_ERR( 'AVGOH' )
@@ -3063,17 +3210,34 @@
       ! Initialize tropoch4 (counts total decay of CH4 due to OH)
       TROPOCH4 = 0d0
 
-      ! Return to calling program
       END SUBROUTINE INIT_GLOBAL_CH4
-
+!EOC
 !------------------------------------------------------------------------------
-
-      SUBROUTINE CLEANUP_GLOBAL_CH4
+!          Harvard University Atmospheric Chemistry Modeling Group            !
+!------------------------------------------------------------------------------
+!BOP
 !
-!******************************************************************************
-!  Subroutine CLEANUP_GLOBAL_CH4 deallocates module arrays. (bmy, 1/16/01)
-!******************************************************************************
+! !IROUTINE: cleanup_global_ch4
+!
+! !DESCRIPTION: Subroutine CLEANUP\_GLOBAL\_CH4 deallocates module arrays.
+!  (bmy, 1/16/01)
+!\\
+!\\
+! !INTERFACE:
+!
+      SUBROUTINE CLEANUP_GLOBAL_CH4
 ! 
+! !REVISION HISTORY:
+!  (1 ) Now references ALLOC_ERR from "error_mod.f" (bmy, 10/15/02)
+!  07 Mar 2012 - M. Payer    - Added ProTeX headers
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+!
+      !=================================================================
+      ! CLEANUP_GLOBAL_CH4 begins here!
+      !=================================================================
+
       IF ( ALLOCATED( BAIRDENS  ) ) DEALLOCATE( BAIRDENS  )
       IF ( ALLOCATED( BOH       ) ) DEALLOCATE( BOH       )
       IF ( ALLOCATED( COPROD    ) ) DEALLOCATE( COPROD    )
@@ -3082,7 +3246,5 @@
       IF ( ALLOCATED( CH4_EMIS  ) ) DEALLOCATE( CH4_EMIS  )
 
       END SUBROUTINE CLEANUP_GLOBAL_CH4
-
-!------------------------------------------------------------------------------
-
+!EOC
       END MODULE GLOBAL_CH4_MOD
