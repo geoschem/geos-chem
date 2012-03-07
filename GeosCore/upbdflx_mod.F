@@ -66,6 +66,7 @@
 !  13 Aug 2010 - R. Yantosca - Add modifications for MERRA (treat like GEOS-5)
 !  02 Dec 2010 - R. Yantosca - Added ProTeX headers
 !  08 Feb 2012 - R. Yantosca - Add modifications for GEOS-5.7.2 met data
+!  07 Mar 2012 - R. Yantosca - Change DO loop boundaries for GI model
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -591,6 +592,7 @@
 !  (21) Remove support for GEOS-1 and GEOS-STRAT met fields (bmy, 8/4/06)
 !  (22) Cap 1-XRATIO to avoid numerical problems later (bmy, 6/30/08)
 !  02 Dec 2010 - R. Yantosca - Added ProTeX headers
+!  07 Mar 2012 - R. Yantosca - Start DO loops from L=1 instead of L=LMIN
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -749,7 +751,11 @@
 !$OMP+DEFAULT( SHARED )
 !$OMP+PRIVATE( I, J, L, PNOY )
 !$OMP+SCHEDULE( DYNAMIC )
-         DO L = LMIN, LLPAR
+!----------------------------------
+! Prior to 3/7/12:
+!         DO L = LMIN, LLPAR
+!----------------------------------
+         DO L = 1,    LLPAR
          DO J = 1,    JJPAR
          DO I = 1,    IIPAR
 
@@ -797,7 +803,10 @@
 !$OMP+DEFAULT( SHARED )
 !$OMP+PRIVATE( I, J, L, PNOY )
 !$OMP+SCHEDULE( DYNAMIC )
-         DO L = LMIN, LLPAR
+!--------------------------------
+!         DO L = LMIN, LLPAR
+!-----------------------------
+         DO L = 1,    LLPAR
          DO J = 1,    JJPAR
          DO I = 1,    IIPAR
 
