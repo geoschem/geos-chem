@@ -1614,29 +1614,64 @@
       THISYEAR = YEAR
 
       END FUNCTION GET_YEAR
-
-![eml
+!EOC
+!------------------------------------------------------------------------------
+!          Harvard University Atmospheric Chemistry Modeling Group            !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: set_histyr
+!
+! !DESCRIPTION: Function SET\_HISTYR returns the year stored in HISTYR w/o
+!  needing to include the CMN\_O3 common block (eml, 8/20/08)
+!\\
+!\\
+! !INTERFACE:
+!
       SUBROUTINE SET_HISTYR( YEARIN )
-      
+!
+! !INPUT PARAMETERS:
+!
       INTEGER, INTENT(IN) :: YEARIN
-      
+! 
+! !REVISION HISTORY:
+!  20 Aug 2008 - E. Leibensperger - Initial version
+!  07 Mar 2012 - M. Payer         - Added ProTeX headers
+!EOP
+!------------------------------------------------------------------------------
+!BOC
       HISTYRA = YEARIN
       
       END SUBROUTINE SET_HISTYR
-
+!EOC
+!------------------------------------------------------------------------------
+!          Harvard University Atmospheric Chemistry Modeling Group            !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: get_histyr
+!
+! !DESCRIPTION: Function GET\_HISTYR returns the year stored in HISTYR w/o
+!  needing to include the CMN\_O3 common block (eml, 8/20/08)
+!\\
+!\\
+! !INTERFACE:
+!
       FUNCTION GET_HISTYR() RESULT( HISTYEAR )
-!******************************************************************************
-!  Function GET_HISTYR returns the year stored in HISTYR w/o needing to 
-!  include the CMN_O3 common block (eml, 8/20/08)
-!******************************************************************************
-
-      !Function value
+!
+! !RETURN VALUE:
+!
       INTEGER :: HISTYEAR
+! 
+! !REVISION HISTORY:
+!  20 Aug 2008 - E. Leibensperger - Initial version
+!  07 Mar 2012 - M. Payer         - Added ProTeX headers
+!EOP
+!------------------------------------------------------------------------------
+!BOC
       HISTYEAR = HISTYRA
 
       END FUNCTION GET_HISTYR
-!eml]
-
 !EOC
 !------------------------------------------------------------------------------
 !          Harvard University Atmospheric Chemistry Modeling Group            !
