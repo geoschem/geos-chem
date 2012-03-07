@@ -717,34 +717,34 @@
 !          Harvard University Atmospheric Chemistry Modeling Group            !
 !------------------------------------------------------------------------------
 !BOP
-
+!
+! !IROUTINE: set_hg2_diag
+!
+! !DESCRIPTION: Subroutine SET\_Hg2\_DIAG increments Hg2\_DIAG, the counter for
+!  the number of times AAD03\_Fg and AD03\_Fp are recorded. (hma 20100218)
+!\\
+!\\
+! !INTERFACE:
+!
       SUBROUTINE SET_Hg2_DIAG( INCREMENT, RESET )
 !
-!******************************************************************************
-!  Subroutine SET_Hg2_DIAG increments Hg2_DIAG, the counter for the number
-! of times AAD03_Fg and AD03_Fp are recorded. (hma 20100218)
+! !INPUT PARAMETERS:
 !
-!  Arguments as Input:
-!  ============================================================================
-!  (1 ) INCREMENT (LOGICAL) : If T, then will increment counter
-!  (2 ) RESET     (LOGICAL) : If T, then will reset counter to zero!
-!
-!  NOTES:
-!******************************************************************************
-! BOC      
-      ! Arguments
-      LOGICAL, INTENT(IN), OPTIONAL :: INCREMENT, RESET
-
-      !=================================================================
-      ! SET_Hg2_DIAG begins here!
-      !=================================================================
+      LOGICAL, INTENT(IN), OPTIONAL :: INCREMENT  ! Increment counter?
+      LOGICAL, INTENT(IN), OPTIONAL :: RESET      ! Reset counter?
+! 
+! !REVISION HISTORY:
+!  18 Feb 2012 - H. Amos     - Initial version 
+!  07 Mar 2012 - M. Payer    - Added ProTeX headers
+!EOP
+!------------------------------------------------------------------------------
+!BOC
       IF ( PRESENT( INCREMENT ) ) THEN
          Hg2_DIAG = Hg2_DIAG + 1
       ELSE IF ( PRESENT( RESET ) ) THEN
          Hg2_DIAG = 0
       ENDIF
 
-      ! Return to calling program
       END SUBROUTINE SET_Hg2_DIAG
 
 !EOC
@@ -2537,7 +2537,7 @@
 ! !RETURN VALUE:
 !
       INTEGER :: THIS_CT_DIAG   ! # of diagnostic timesteps
- ! 
+! 
 ! !REVISION HISTORY: 
 !  21 May 2009 - C. Carouge  - Initial Version
 !  15 Jan 2010 - R. Yantosca - Added ProTeX headers
@@ -2552,26 +2552,30 @@
 !          Harvard University Atmospheric Chemistry Modeling Group            !
 !------------------------------------------------------------------------------
 !BOP
+!
+! !IROUTINE: get_hg2_diag
+!
+! !DESCRIPTION: Function GET\_Hg2\_DIAG returns the DIAG timestep counter to
+!  the calling program. (hma 20100218)
+!\\
+!\\
+! !INTERFACE:
+!
       FUNCTION GET_Hg2_DIAG() RESULT( THIS_Hg2_DIAG )
 !
-!******************************************************************************
-!  Function GET_Hg2_DIAG returns the DIAG timestep counter to the
-!  calling program. (hma 20100218)
+! !RETURN VALUE:
 !
-!  NOTES:
-!******************************************************************************
+      INTEGER :: THIS_Hg2_DIAG  ! # of diagnostic timesteps
+! 
+! !REVISION HISTORY:
+!  18 Feb 2012 - H. Amos     - Initial version 
+!  07 Mar 2012 - M. Payer    - Added ProTeX headers
+!EOP
+!------------------------------------------------------------------------------
 !BOC
-      ! Function value
-      INTEGER :: THIS_Hg2_DIAG
-
-      !=================================================================
-      ! GET_Hg2_DIAG begins here!
-      !=================================================================
       THIS_Hg2_DIAG = Hg2_DIAG
 
-      ! Return to calling program
       END FUNCTION GET_Hg2_DIAG
-
 !EOC
 !------------------------------------------------------------------------------
 !          Harvard University Atmospheric Chemistry Modeling Group            !

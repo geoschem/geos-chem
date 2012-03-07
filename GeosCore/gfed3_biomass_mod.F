@@ -1095,7 +1095,7 @@
 !------------------------------------------------------------------------------
 !BOP
 !
-! !IROUTINE: 
+! !IROUTINE: rearrange_biom
 !
 ! !DESCRIPTION: Subroutine REARRANGE\_BIOM takes GFED3 emissions (which have 
 !  their own, unique ID numbers and associates them with the IDBxxxs of 
