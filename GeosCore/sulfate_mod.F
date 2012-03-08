@@ -4494,7 +4494,7 @@
       USE TRACER_MOD,     ONLY     : XNUMOL
       USE TRACERID_MOD,   ONLY     : IDTSO2
 ![eml
-      USE LOGICAL_MOD,    ONLY : LHIST
+      USE LOGICAL_MOD,    ONLY     : LHIST
 !eml]
 
       USE CMN_SIZE_MOD             ! Size parameters
@@ -6385,7 +6385,6 @@
       USE SCALE_ANTHRO_MOD,     ONLY : GET_ANNUAL_SCALAR
 ![eml
       USE LOGICAL_MOD,          ONLY : LHIST
-      USE TIME_MOD,             ONLY : GET_HISTYR
 !eml]
 
       USE CMN_SIZE_MOD               ! Size parameters
@@ -6907,7 +6906,7 @@
       !USE BIOMASS_MOD,          ONLY : BIOMASS,         IDBSO2
       USE BPCH2_MOD,            ONLY : GET_NAME_EXT_2D, GET_RES_EXT
       USE BPCH2_MOD,            ONLY : GET_TAU0,        READ_BPCH2
-      USE DIRECTORY_MOD,        ONLY : DATA_DIR
+      USE DIRECTORY_MOD,        ONLY : DATA_DIR,        DATA_DIR_1x1
       USE FUTURE_EMISSIONS_MOD, ONLY : GET_FUTURE_SCALE_SO2bf
       USE GRID_MOD,             ONLY : GET_AREA_CM2
       USE LOGICAL_MOD,          ONLY : LBIOMASS,        LFUTURE
@@ -6953,6 +6952,8 @@
 !        to account for several GFED2 products (yc, phs, 12/23/08)
 !  (12) IDBSO2 is not used anymore (ccc, 01/29/10)
 !  22 Dec 2011 - M. Payer    - Added ProTeX headers
+!  08 Mar 2012 - M. Payer    - Added modifications for historical emissions of
+!                              SO2 (E. Leibensperger)
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -6967,7 +6968,6 @@
       CHARACTER(LEN=255)            :: FILENAME
 ![eml
       CHARACTER(LEN=4  )            :: CHISTYR
-      CHARACTER(LEN=255)            :: DATADIR
       REAL*4                        :: ESO2_GEN(I1x1,J1x1-1)
       REAL*8                        :: ESO2_GEN8(I1x1,J1x1-1)
       REAL*8                        :: ESO2_GEO(I1x1,J1x1,1)
@@ -7035,13 +7035,24 @@
             ENDDO
          ENDDO
 !$OMP END PARALLEL DO
+
 ![eml
       ELSE
+
+         !-----------------------------------------------------------------
+         ! Historical emissions of SO2
+         !-----------------------------------------------------------------
+
          WRITE(CHISTYR,'(I4)') GET_HISTYR()
-         DATADIR ='/home/eml/data/EMISSIONS/SO2/proper/'
-         FILENAME=TRIM(DATADIR)//'EDGAR.BCSO2.'//CHISTYR//'generic.1x1'
-         
+
+         ! Get TAU0 for this year
          XTAU = GET_TAU0( 1, 1, GET_HISTYR() )
+
+         ! Read biofuel SO2
+         FILENAME = TRIM( DATA_DIR_1x1 )                       // 
+     &              'historical_emissions_201203/SO2/'         //
+     &              'EDGAR.BCSO2.' // CHISTYR // 'generic.1x1'
+        
          WRITE( 6, 101 ) TRIM( FILENAME )
  101     FORMAT( '     - READ_EDGAR_NOx: Reading ', a )
          CALL READ_BPCH2( TRIM(FILENAME), 'EDGAR-2D', 26,
@@ -7052,8 +7063,10 @@
 
          CALL DO_REGRID_G2G_1x1( 'kg/yr', ESO2_GEN8, ESO2_GEO(:,:,1) )
          CALL DO_REGRID_1x1(1, 'kg/yr', ESO2_GEO, TEMP_ED )
+
          ! Convert from kg SO2/yr to kg SO2/s
          ESO2_bf = TEMP_ED(:,:,1) / (365.25d0 * 86400.d0)
+
       ENDIF
 !eml]
 

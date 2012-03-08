@@ -101,9 +101,6 @@
       REAL*8               :: SEC_IN_MONTH
       REAL*8               :: SEASON_TAU0
       REAL*8               :: MONTH_TAU0
-![eml Tau0 for historical data
-      REAL*8               :: MONTH_TAU0_HIST
-!eml]
       CHARACTER(LEN=3)     :: SEASON_NAME
       CHARACTER(LEN=3)     :: MONTH_NAME
 
@@ -296,6 +293,8 @@
 !  (4 ) E_NOX_SHIP (REAL*4 ) : EDGAR NOx ship emissions [kg NO2/season]
 !
 !  NOTES:
+!  08 Mar 2012 - M. Payer    - Added modifications for historical emissions of
+!                              NOx (E. Leibensperger)
 !******************************************************************************
 !
       ! References to F90 modules
@@ -424,9 +423,12 @@
 !
 !  NOTES:
 !  (1 ) Now pass the unit string to DO_REGRID_G2G_1x1 (bmy, 8/9/06)
+!  08 Mar 2012 - M. Payer    - Added modifications for historical emissions of
+!                              NOx (E. Leibensperger)
 !******************************************************************************
 !
       ! References to F90 modules
+      USE DIRECTORY_MOD,  ONLY : DATA_DIR_1x1
       USE LOGICAL_MOD,    ONLY : LEDGARSHIP
       USE REGRID_1x1_MOD, ONLY : DO_REGRID_G2G_1x1
 ![eml
@@ -452,7 +454,7 @@
 ![eml
       REAL*8                  :: TAU0
       CHARACTER(LEN=  4)      :: CHISTYR
-      CHARACTER(LEN=255)      :: DATADIR, FILENAME
+      CHARACTER(LEN=255)      :: FILENAME
 !eml]
 
       !=================================================================
@@ -662,24 +664,32 @@
 
       ELSE
 
+         !-----------------------------------------------------------------
+         ! Historical emissions of NOX
+         !-----------------------------------------------------------------
+
          ! Make sure to do Ship nox
+
          ! Read in lumped diurnal scale factors
-         DATADIR='/home/eml/data/EMISSIONS/NOX/proper/'
-         OPEN(412,
-     &      FILE=TRIM(DATADIR)//'lumped_fnox_diurnal_scale_factors.dat',
-     &      FORM='formatted')
+         FILENAME = TRIM( DATA_DIR_1x1 )                       // 
+     &              'historical_emissions_201203/NOx/'         //
+     &              'lumped_fnox_diurnal_scale_factors.dat'
+
+         OPEN(412, FILE=FILENAME, FORM='formatted')
          READ(412,*) SC
          CLOSE(412)
 
-         ! Build up filename
+         ! Get year
          WRITE( CHISTYR, '(I4)' ) GET_HISTYR()
-         FILENAME = TRIM(DATADIR) // 'EDGAR.FCNOX.' // CHISTYR //
-     &              'generic.1x1'
 
          ! Get TAU0 for this year
          TAU0 = GET_TAU0( 1, 1, GET_HISTYR() )
 
          ! Read fossil fuel combustion NOx
+         FILENAME = TRIM( DATA_DIR_1x1 )                       // 
+     &              'historical_emissions_201203/NOx/'         //
+     &              'EDGAR.FCNOX.' // CHISTYR // 'generic.1x1'
+
          WRITE( 6, 100 ) TRIM( FILENAME )
  100     FORMAT( '     - READ_EDGAR_NOx: Reading ', a )
          CALL READ_BPCH2( TRIM(FILENAME), 'EDGAR-2D', 1,
@@ -689,8 +699,10 @@
          CALL ADD_EDGAR_DATA( E_IN, T_1x1, SC, T_HRLY_1x1 )
 
          ! Read industrial NOx
-         FILENAME = TRIM(DATADIR) // 'EDGAR.INNOX.' // CHISTYR //
-     &              'generic.1x1'
+         FILENAME = TRIM( DATA_DIR_1x1 )                       // 
+     &              'historical_emissions_201203/NOx/'         //
+     &              'EDGAR.INNOX.' // CHISTYR // 'generic.1x1'
+
          WRITE( 6, 100 ) TRIM( FILENAME )
  110     FORMAT( '     - READ_EDGAR_NOx: Reading ', a )
          CALL READ_BPCH2( TRIM(FILENAME), 'EDGAR-2D', 1,
@@ -698,7 +710,9 @@
      &                    1,               E_IN,      QUIET=.TRUE. )
 
          SC(:) = 1
+
          CALL ADD_EDGAR_DATA( E_IN, T_1x1, SC, T_HRLY_1x1 )
+
       ENDIF
 !eml]
 
@@ -1059,6 +1073,8 @@
 !  (4 ) E_SO2_SHIP (REAL*4 ) : EDGAR ship exhaust  SO2 emissions
 !
 !  NOTES:
+!  08 Mar 2012 - M. Payer    - Added modifications for historical emissions of
+!                              SO2 (E. Leibensperger)
 !******************************************************************************
 !
       ! References to F90 modules
@@ -1160,9 +1176,12 @@
 !
 !  NOTES:
 !  (1 ) Now pass the unit string to DO_REGRID_G2G_1x1 (bmy, 8/9/06)
+!  08 Mar 2012 - M. Payer    - Added modifications for historical emissions of
+!                              SO2 (E. Leibensperger)
 !******************************************************************************
 !
       ! Reference to F90 modules
+      USE DIRECTORY_MOD,  ONLY : DATA_DIR_1x1
       USE LOGICAL_MOD,    ONLY : LEDGARSHIP
       USE REGRID_1x1_MOD, ONLY : DO_REGRID_G2G_1x1
 ![eml
@@ -1184,7 +1203,7 @@
 ![eml
       REAL*8                  :: TAU0
       CHARACTER(LEN=  4)      :: CHISTYR
-      CHARACTER(LEN=255)      :: DATADIR, FILENAME
+      CHARACTER(LEN=255)      :: FILENAME
 !eml]
       !=================================================================
       ! READ_EDGAR_SO2 begins here!
@@ -1257,17 +1276,22 @@
          CALL READ_EDGAR_DATA( 'w4000so2', 26, E_IN )
          CALL ADD_EDGAR_DATA( E_IN, T_SO2_1x1 )
 
-      ELSE ! use historical
+      ELSE
 
-         DATADIR='/home/eml/data/EMISSIONS/SO2/proper/'
+         !-----------------------------------------------------------------
+         ! Historical emissions of SO2
+         !-----------------------------------------------------------------
+
          WRITE( CHISTYR, '(I4)' ) GET_HISTYR()
-         FILENAME = TRIM(DATADIR) // 'EDGAR.FCSO2.' // CHISTYR //
-     &              'generic.1x1'
 
          ! Get TAU0 for this year
          TAU0 = GET_TAU0( 1, 1, GET_HISTYR() )
 
          ! Read fossil fuel combustion SO2
+         FILENAME = TRIM( DATA_DIR_1x1 )                       // 
+     &              'historical_emissions_201203/SO2/'         //
+     &              'EDGAR.FCSO2.' // CHISTYR // 'generic.1x1'
+
          WRITE( 6, 100 ) TRIM( FILENAME )
  100     FORMAT( '     - READ_EDGAR_SO2: Reading ', a )
          CALL READ_BPCH2( TRIM(FILENAME), 'EDGAR-2D', 26,
@@ -1277,15 +1301,18 @@
          CALL ADD_EDGAR_DATA( E_IN, T_SO2_1x1 )
 
          ! Read industrial SO2
-         FILENAME = TRIM(DATADIR) // 'EDGAR.INSO2.' // CHISTYR //
-     &              'generic.1x1'
+         FILENAME = TRIM( DATA_DIR_1x1 )                       // 
+     &              'historical_emissions_201203/SO2/'         //
+     &              'EDGAR.INSO2.' // CHISTYR // 'generic.1x1'
+
          WRITE( 6, 110 ) TRIM( FILENAME )
  110     FORMAT( '     - READ_EDGAR_SO2: Reading ', a )
          CALL READ_BPCH2( TRIM(FILENAME), 'EDGAR-2D', 26,
      &                    TAU0,           I1x1,       J1x1-1,
-     &                    1,              E_IN,      QUIET=.TRUE. )
+     &                    1,              E_IN,       QUIET=.TRUE. )
          
          CALL ADD_EDGAR_DATA( E_IN, T_SO2_1x1 )
+
       ENDIF
 
       ! Do aircraft and ship emissions even if using historical
@@ -1299,8 +1326,8 @@
          CALL READ_EDGAR_DATA( 'f5800so2(IEA)', 26, E_IN )
          CALL ADD_EDGAR_DATA( E_IN, T_SO2_SHIP_1x1 )
       ENDIF
-
 !eml]
+
       !-----------------------------------------------------------------
       ! Force a seasonal variation onto the anthropogenic SO2 emissions
       ! by applying seasonal scale factors.  The scale factors are the
@@ -2034,6 +2061,8 @@
 !  (1) Bug fix: now add IF (LEDGARSHIP) block before referencing any of the
 !       ship emissions arrays.  This will help prevent a seg fault error.
 !       (jensberg, bmy, 8/4/10)
+!  08 Mar 2012 - M. Payer    - Added modifications for historical emissions of
+!                              NOx and SO2 (E. Leibensperger)
 !******************************************************************************
 !
       USE LOGICAL_MOD, ONLY : LEDGARSHIP

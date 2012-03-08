@@ -1046,8 +1046,8 @@
       USE TRACERID_MOD, ONLY : IDTOCPI
       USE TIME_MOD,     ONLY : GET_TS_CHEM
 
-      USE CMN_SIZE_MOD     ! Size parameters
-      USE CMN_DIAG_MOD     ! ND44
+      USE CMN_SIZE_MOD       ! Size parameters
+      USE CMN_DIAG_MOD       ! ND44
 
       ! Arguments
       REAL*8,  INTENT(INOUT) :: TC(IIPAR,JJPAR,LLPAR)
@@ -4582,12 +4582,14 @@ c
 !  (3 ) Now can read data for both GEOS and GCAP grids (bmy, 8/16/05)
 !  (4 ) Now compute future emissions of BC,OC if necessary. (swu, bmy, 5/30/06)
 !  (5 ) Now reads in monthly data from Bond et al [2007] (eml, 4/17/09)
+!  08 Mar 2012 - M. Payer    - Added modifications for historical emissions of
+!                              BC/POA (E. Leibensperger)
 !******************************************************************************
 !
       ! References to F90 modules
       USE BPCH2_MOD,            ONLY : GET_NAME_EXT_2D, GET_RES_EXT
       USE BPCH2_MOD,            ONLY : GET_TAU0,        READ_BPCH2
-      USE DIRECTORY_MOD,        ONLY : DATA_DIR
+      USE DIRECTORY_MOD,        ONLY : DATA_DIR,        DATA_DIR_1x1
       USE FUTURE_EMISSIONS_MOD, ONLY : GET_FUTURE_SCALE_BCbf
       USE FUTURE_EMISSIONS_MOD, ONLY : GET_FUTURE_SCALE_BCff
       USE FUTURE_EMISSIONS_MOD, ONLY : GET_FUTURE_SCALE_OCbf
@@ -4614,7 +4616,8 @@ c
       CHARACTER(LEN=255)            :: FILENAME
 ![eml
       CHARACTER(LEN=  4)            :: CHISTYR
-      CHARACTER(LEN=255)            :: DATADIR
+      REAL*4                        :: GENERIC_1x1(I1x1,J1x1-1,1)
+
 !eml]
 
       ! Hydrophilic fraction of BLACK CARBON (aka ELEMENTAL CARBON)
@@ -4630,193 +4633,260 @@ c
       ! Number of emission timesteps per month
       STEPS_PER_MON = ( ( 1440 * NDAYS ( THISMONTH ) ) / GET_TS_EMIS() )
 
-![eml
-      IF( .not. LHIST ) THEN
-         ! Get TAU0 value to index the punch file
-         XTAU          = GET_TAU0( THISMONTH, 1, 2000 )   
+![eml Only if LANTHRO
+      IF( LANTHRO ) THEN
 
-      
          !=================================================================
          ! Read BLACK CARBON (aka ELEMENTAL CARBON) emission from 
          ! anthropogenic sources as tracer #34 in [kg C/month].  
          ! Then convert to [kg C/timestep] and store in ANTH_BLKC.
          !=================================================================
-         ! Filename for carbon aerosol from fossil fuel use
-         FILENAME = TRIM( DATA_DIR )                         // 
-     &              'carbon_200909/BCOC_TBond_fossil.2000.'  // 
-     &               GET_NAME_EXT_2D() // '.' // GET_RES_EXT()
+         IF( .not. LHIST ) THEN
+            ! Get TAU0 value to index the punch file
+            XTAU          = GET_TAU0( THISMONTH, 1, 2000 )   
       
-      ELSE
+            ! Filename for carbon aerosol from fossil fuel use
+            FILENAME = TRIM( DATA_DIR )                         // 
+     &                 'carbon_200909/BCOC_TBond_fossil.2000.'  // 
+     &                 GET_NAME_EXT_2D() // '.' // GET_RES_EXT()
 
-         XTAU = GET_TAU0( THISMONTH, 1, GET_HISTYR() )
-         WRITE( CHISTYR, '(I4)' ) GET_HISTYR()
+            ! Echo info
+            WRITE( 6, 100 ) TRIM( FILENAME )
+ 100        FORMAT( '     - ANTHRO_CARB_TBOND: Reading ', a )     
 
-         DATADIR ='/home/eml/data/EMISSIONS/CARB_EMISSIONS/proper/'
-         FILENAME=TRIM(DATADIR) //'BCOC_anthsrce.' // CHISTYR // '.' //
-     &            GET_NAME_EXT_2D() // '.' // GET_RES_EXT()
+            ! Read BLCK emission
+            CALL READ_BPCH2( FILENAME, 'ANTHSRCE', 34, 
+     &                       XTAU,      IIPAR,     JJPAR,     
+     &                       1,         ARRAY,     QUIET=.TRUE. ) 
 
-      ENDIF
+            ! Cast to REAL*8 and resize
+            CALL TRANSFER_2D( ARRAY(:,:,1), FD2D )
+      
+         ELSE
+
+            XTAU = GET_TAU0( THISMONTH, 1, GET_HISTYR() )
+            WRITE( CHISTYR, '(I4)' ) GET_HISTYR()
+
+            ! Read historical emissions of BC
+            FILENAME = TRIM( DATA_DIR_1x1 )                   // 
+     &                 'historical_emissions_201203/BCOC/'    //
+     &                 'BCOC_anthsrce.'  // CHISTYR           // 
+     &                 '.'               // GET_NAME_EXT_2D() // 
+     &                 '.1x1'
+
+            ! Echo info
+            WRITE( 6, 100 ) TRIM( FILENAME )
+
+            ! Read BLCK emission
+            CALL READ_BPCH2( FILENAME, 'ANTHSRCE',   34, 
+     &                       XTAU,      I1x1,        J1x1-1,     
+     &                       1,         GENERIC_1x1, QUIET=.TRUE. ) 
+
+            ! Cast to REAL*8 and resize
+            CALL TRANSFER_2D( GENERIC_1x1(:,:,1), FD2D )
+
+         ENDIF ! LHIST
 !eml]
-      ! Echo info
-      WRITE( 6, 100 ) TRIM( FILENAME )
- 100  FORMAT( '     - ANTHRO_CARB_TBOND: Reading ', a )
 
-![eml Only if LANTHRO
-      IF( LANTHRO ) THEN
-!eml]      
-
-      ! Read BLCK emission
-      CALL READ_BPCH2( FILENAME, 'ANTHSRCE', 34, 
-     &                 XTAU,      IIPAR,     JJPAR,     
-     &                 1,         ARRAY,     QUIET=.TRUE. ) 
-
-      ! Cast to REAL*8 and resize
-      CALL TRANSFER_2D( ARRAY(:,:,1), FD2D )
 
 !$OMP PARALLEL DO
 !$OMP+DEFAULT( SHARED )
 !$OMP+PRIVATE( I, J, FUT_SCL )
-      DO J = 1, JJPAR
-      DO I = 1, IIPAR
+         DO J = 1, JJPAR
+         DO I = 1, IIPAR
          
-         ! Hydrophilic BLACK CARBON from anthropogenics [kg C/timestep]
-         ANTH_BLKC(I,J,1) =          FHB   * FD2D(I,J) / STEPS_PER_MON
+            ! Hydrophilic BLACK CARBON from anthropogenics [kg C/timestep]
+            ANTH_BLKC(I,J,1) =          FHB   * FD2D(I,J) /
+     &                         STEPS_PER_MON
          
-         ! Hydrophobic BLACK CARBON from anthropogenics [kg C/timestep]
-         ANTH_BLKC(I,J,2) = ( 1.d0 - FHB ) * FD2D(I,J) / STEPS_PER_MON
+            ! Hydrophobic BLACK CARBON from anthropogenics [kg C/timestep]
+            ANTH_BLKC(I,J,2) = ( 1.d0 - FHB ) * FD2D(I,J) / 
+     &                         STEPS_PER_MON
 
-         ! Compute future emissions of BLACK CARBON (if necessary)
-         IF ( LFUTURE ) THEN
-            FUT_SCL          = GET_FUTURE_SCALE_BCff( I, J )
-            ANTH_BLKC(I,J,1) = ANTH_BLKC(I,J,1) * FUT_SCL
-            ANTH_BLKC(I,J,2) = ANTH_BLKC(I,J,2) * FUT_SCL
-         ENDIF
-      ENDDO
-      ENDDO
+            ! Compute future emissions of BLACK CARBON (if necessary)
+            IF ( LFUTURE ) THEN
+               FUT_SCL          = GET_FUTURE_SCALE_BCff( I, J )
+               ANTH_BLKC(I,J,1) = ANTH_BLKC(I,J,1) * FUT_SCL
+               ANTH_BLKC(I,J,2) = ANTH_BLKC(I,J,2) * FUT_SCL
+            ENDIF
+         ENDDO
+         ENDDO
 !$OMP END PARALLEL DO
 
-      !=================================================================
-      ! Read ORGANIC CARBON from anthropogenic sources as tracer #35
-      ! in [kg C/month].  Then Convert to [kg C/timestep] and store in 
-      ! ANTH_ORGC.
-      !=================================================================
-      CALL READ_BPCH2( FILENAME, 'ANTHSRCE', 35, 
-     &                 XTAU,      IIPAR,     JJPAR,     
-     &                 1,         ARRAY,     QUIET=.TRUE. ) 
+         !=================================================================
+         ! Read ORGANIC CARBON from anthropogenic sources as tracer #35
+         ! in [kg C/month].  Then Convert to [kg C/timestep] and store in 
+         ! ANTH_ORGC.
+         !=================================================================
+         IF( .not. LHIST ) THEN
 
-      ! Cast to REAL*8 and resize
-      CALL TRANSFER_2D( ARRAY(:,:,1), FD2D )
+            CALL READ_BPCH2( FILENAME, 'ANTHSRCE', 35, 
+     &                       XTAU,      IIPAR,     JJPAR,     
+     &                       1,         ARRAY,     QUIET=.TRUE. ) 
+
+            ! Cast to REAL*8 and resize
+            CALL TRANSFER_2D( ARRAY(:,:,1), FD2D )
+
+         ELSE
+
+            ! Read historical emissions of BC
+            CALL READ_BPCH2( FILENAME, 'ANTHSRCE',   35, 
+     &                       XTAU,      I1x1,        J1x1-1,     
+     &                       1,         GENERIC_1x1, QUIET=.TRUE. ) 
+
+            ! Cast to REAL*8 and resize
+            CALL TRANSFER_2D( GENERIC_1x1(:,:,1), FD2D )
+
+         ENDIF ! LHIST
 
 !$OMP PARALLEL DO
 !$OMP+DEFAULT( SHARED )
 !$OMP+PRIVATE( I, J, FUT_SCL )
-      DO J = 1, JJPAR
-      DO I = 1, IIPAR
+         DO J = 1, JJPAR
+         DO I = 1, IIPAR
 
-         ! Hydrophilic ORGANIC CARBON from anthropogenics [kg C/timestep]
-         ANTH_ORGC(I,J,1) =          FHO *   FD2D(I,J) / STEPS_PER_MON
+            ! Hydrophilic ORGANIC CARBON from anthropogenics [kg C/timestep]
+            ANTH_ORGC(I,J,1) =          FHO *   FD2D(I,J) / 
+     &                         STEPS_PER_MON
 
-         ! Hydrophobic ORGANIC CARBON from anthropogenics [kgC/timestep]
-         ANTH_ORGC(I,J,2) = ( 1.d0 - FHO ) * FD2D(I,J) / STEPS_PER_MON
+            ! Hydrophobic ORGANIC CARBON from anthropogenics [kgC/timestep]
+            ANTH_ORGC(I,J,2) = ( 1.d0 - FHO ) * FD2D(I,J) / 
+     &                         STEPS_PER_MON
 
-         ! Compute future emissions of ORGANIC CARBON (if necessary)
-         IF ( LFUTURE ) THEN
-            FUT_SCL          = GET_FUTURE_SCALE_OCff( I, J )
-            ANTH_ORGC(I,J,1) = ANTH_ORGC(I,J,1) * FUT_SCL
-            ANTH_ORGC(I,J,2) = ANTH_ORGC(I,J,2) * FUT_SCL
-         ENDIF
-      ENDDO
-      ENDDO
+            ! Compute future emissions of ORGANIC CARBON (if necessary)
+            IF ( LFUTURE ) THEN
+               FUT_SCL          = GET_FUTURE_SCALE_OCff( I, J )
+               ANTH_ORGC(I,J,1) = ANTH_ORGC(I,J,1) * FUT_SCL
+               ANTH_ORGC(I,J,2) = ANTH_ORGC(I,J,2) * FUT_SCL
+            ENDIF
+         ENDDO
+         ENDDO
 !$OMP END PARALLEL DO
+
 ![eml
       ENDIF ! IF LANTHRO
 !eml]
+
       !=================================================================
       ! Read BLACK CARBON (aka ELEMENTAL CARBON) emission from biofuel 
       ! combustion as tracer #34 in [kg C/year].  Then convert to 
       ! [kg C/timestep] and store in BIOF_BLKC.
       !=================================================================
-      ! Filename
-![eml Onlt if LBIOFUEL
+
+![eml Only if LBIOFUEL
       IF( LBIOFUEL ) THEN
-!eml]
-![eml
-      IF( .not. LHIST ) THEN
-         FILENAME = TRIM( DATA_DIR )                         // 
-     &              'carbon_200909/BCOC_TBond_biofuel.2000.' // 
-     &              GET_NAME_EXT_2D() // '.' // GET_RES_EXT()
-      ELSE
-         FILENAME = TRIM( DATADIR )//'BCOC_biofuel.'//CHISTYR // '.' //
-     &              GET_NAME_EXT_2D() // '.' // GET_RES_EXT()
-      ENDIF
-!eml]
-      ! Echo info
-      WRITE( 6, 100 ) TRIM( FILENAME )
 
-      ! Read data
-      CALL READ_BPCH2( FILENAME, 'BIOFSRCE', 34, 
-     &                 XTAU,      IIPAR,     JJPAR,
-     &                 1,         ARRAY,     QUIET=.TRUE. ) 
+         IF( .not. LHIST ) THEN
+            ! Filename
+            FILENAME = TRIM( DATA_DIR )                         // 
+     &                 'carbon_200909/BCOC_TBond_biofuel.2000.' // 
+     &                 GET_NAME_EXT_2D() // '.' // GET_RES_EXT()
 
-      ! Cast to REAL*8 and resize
-      CALL TRANSFER_2D( ARRAY(:,:,1), FD2D )
+            ! Echo info
+            WRITE( 6, 100 ) TRIM( FILENAME )
+
+            ! Read data
+            CALL READ_BPCH2( FILENAME, 'BIOFSRCE', 34, 
+     &                       XTAU,      IIPAR,     JJPAR,
+     &                       1,         ARRAY,     QUIET=.TRUE. ) 
+
+            ! Cast to REAL*8 and resize
+            CALL TRANSFER_2D( ARRAY(:,:,1), FD2D )
+
+         ELSE
+            ! Read historical emissions of BC
+            FILENAME = TRIM( DATA_DIR_1x1 )                 // 
+     &                 'historical_emissions_201203/BCOC/'  //
+     &                 'BCOC_biofuel.' // CHISTYR           // 
+     &                 '.'             // GET_NAME_EXT_2D() // 
+     &                 '.1x1'
+
+            ! Echo info
+            WRITE( 6, 100 ) TRIM( FILENAME )
+
+            ! Read data
+            CALL READ_BPCH2( FILENAME, 'BIOFSRCE',   34, 
+     &                       XTAU,      I1x1,        J1x1-1,
+     &                       1,         GENERIC_1x1, QUIET=.TRUE. ) 
+
+            ! Cast to REAL*8 and resize
+            CALL TRANSFER_2D( GENERIC_1x1(:,:,1), FD2D )
+
+         ENDIF
+!eml]
 
 !$OMP PARALLEL DO
 !$OMP+DEFAULT( SHARED )
 !$OMP+PRIVATE( I, J, FUT_SCL )
-      DO J = 1, JJPAR
-      DO I = 1, IIPAR
+         DO J = 1, JJPAR
+         DO I = 1, IIPAR
 
-         ! Hydrophilic BLACK CARBON from biofuels [kg C /timestep]
-         BIOF_BLKC(I,J,1) =          FHB *   FD2D(I,J) / STEPS_PER_MON
+            ! Hydrophilic BLACK CARBON from biofuels [kg C /timestep]
+            BIOF_BLKC(I,J,1) =          FHB *   FD2D(I,J) / 
+     &                         STEPS_PER_MON
 
-         ! Hydrophobic BLACK CARBON from biofuels [kg C/timestep]
-         BIOF_BLKC(I,J,2) = ( 1.d0 - FHB ) * FD2D(I,J) / STEPS_PER_MON
+            ! Hydrophobic BLACK CARBON from biofuels [kg C/timestep]
+            BIOF_BLKC(I,J,2) = ( 1.d0 - FHB ) * FD2D(I,J) / 
+     &                         STEPS_PER_MON
 
 
-         ! Compute future emissions of BLACK CARBON (if necessary)
-         IF ( LFUTURE ) THEN
-            FUT_SCL          = GET_FUTURE_SCALE_BCbf( I, J )
-            BIOF_BLKC(I,J,1) = BIOF_BLKC(I,J,1) * FUT_SCL
-            BIOF_BLKC(I,J,2) = BIOF_BLKC(I,J,2) * FUT_SCL
-         ENDIF
-      ENDDO
-      ENDDO
+            ! Compute future emissions of BLACK CARBON (if necessary)
+            IF ( LFUTURE ) THEN
+               FUT_SCL          = GET_FUTURE_SCALE_BCbf( I, J )
+               BIOF_BLKC(I,J,1) = BIOF_BLKC(I,J,1) * FUT_SCL
+               BIOF_BLKC(I,J,2) = BIOF_BLKC(I,J,2) * FUT_SCL
+            ENDIF
+         ENDDO
+         ENDDO
 !$OMP END PARALLEL DO
 
-      !=================================================================
-      ! Read ORGANIC CARBON from biofuel combustion as tracer #35 in
-      ! [kg C/year].  Convert to [kg C/timestep] and store in BIOF_BLKC.
-      !=================================================================
-      
-      CALL READ_BPCH2( FILENAME, 'BIOFSRCE', 35, 
-     &                 XTAU,      IIPAR,     JJPAR,     
-     &                 1,         ARRAY,     QUIET=.TRUE. )
+         !=================================================================
+         ! Read ORGANIC CARBON from biofuel combustion as tracer #35 in
+         ! [kg C/year].  Convert to [kg C/timestep] and store in BIOF_BLKC.
+         !=================================================================
+         IF( .not. LHIST ) THEN
+            CALL READ_BPCH2( FILENAME, 'BIOFSRCE', 35, 
+     &                       XTAU,      IIPAR,     JJPAR,     
+     &                       1,         ARRAY,     QUIET=.TRUE. )
 
-      ! Cast to REAL*8 and resize
-      CALL TRANSFER_2D( ARRAY(:,:,1), FD2D )
+            ! Cast to REAL*8 and resize
+            CALL TRANSFER_2D( ARRAY(:,:,1), FD2D )
+
+         ELSE
+
+            CALL READ_BPCH2( FILENAME, 'BIOFSRCE',   35, 
+     &                       XTAU,      I1x1,        J1x1-1,     
+     &                       1,         GENERIC_1x1, QUIET=.TRUE. )
+
+            ! Cast to REAL*8 and resize
+            CALL TRANSFER_2D( GENERIC_1x1(:,:,1), FD2D )
+
+         ENDIF ! LHIST
 
 !$OMP PARALLEL DO
 !$OMP+DEFAULT( SHARED )
 !$OMP+PRIVATE( I, J )
-      DO J = 1, JJPAR
-      DO I = 1, IIPAR
+         DO J = 1, JJPAR
+         DO I = 1, IIPAR
 
-         ! Hydrophilic ORGANIC CARBON from biofuels [kg C/timestep]
-         BIOF_ORGC(I,J,1) =          FHO   * FD2D(I,J) / STEPS_PER_MON
+            ! Hydrophilic ORGANIC CARBON from biofuels [kg C/timestep]
+            BIOF_ORGC(I,J,1) =          FHO   * FD2D(I,J) / 
+     &                         STEPS_PER_MON
 
-         ! Hydrophobic ORGANIC CARBON from biofuels [kg C/timestep]
-         BIOF_ORGC(I,J,2) = ( 1.d0 - FHO ) * FD2D(I,J) / STEPS_PER_MON
+            ! Hydrophobic ORGANIC CARBON from biofuels [kg C/timestep]
+            BIOF_ORGC(I,J,2) = ( 1.d0 - FHO ) * FD2D(I,J) / 
+     &                         STEPS_PER_MON
 
-         ! Compute future emissions of BLACK CARBON (if necessary)
-         IF ( LFUTURE ) THEN
-            FUT_SCL          = GET_FUTURE_SCALE_OCbf( I, J )
-            BIOF_ORGC(I,J,1) = BIOF_ORGC(I,J,1) * FUT_SCL
-            BIOF_ORGC(I,J,2) = BIOF_ORGC(I,J,2) * FUT_SCL
-         ENDIF          
-      ENDDO
-      ENDDO
+            ! Compute future emissions of BLACK CARBON (if necessary)
+            IF ( LFUTURE ) THEN
+               FUT_SCL          = GET_FUTURE_SCALE_OCbf( I, J )
+               BIOF_ORGC(I,J,1) = BIOF_ORGC(I,J,1) * FUT_SCL
+                  BIOF_ORGC(I,J,2) = BIOF_ORGC(I,J,2) * FUT_SCL
+            ENDIF          
+         ENDDO
+         ENDDO
 !$OMP END PARALLEL DO
+
 ![eml
       ENDIF ! IF LBIOFUEL
 !eml]

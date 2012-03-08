@@ -188,6 +188,8 @@
 !  18 Aug 2011 - D. Millet   - RETRO anthropogenic emissions include 
 !                              residential biofuel, so we need to zero out the
 !                              biofuel contributions to avoid double-counting
+!  08 Mar 2012 - M. Payer    - Added modifications for historical emissions of
+!                              NOx (E. Leibensperger)
 !******************************************************************************
 !
       ! References to F90 modules
@@ -195,7 +197,7 @@
       USE BPCH2_MOD,            ONLY : GET_TAU0,         READ_BPCH2
       USE DAO_MOD,              ONLY : BXHEIGHT
       USE DIAG_MOD,             ONLY : AD29,    AD32_bf, AD34
-      USE DIRECTORY_MOD,        ONLY : DATA_DIR
+      USE DIRECTORY_MOD,        ONLY : DATA_DIR,         DATA_DIR_1x1
       USE EPA_NEI_MOD,          ONLY : GET_EPA_BIOFUEL,  GET_USA_MASK
       USE LOGICAL_MOD,          ONLY : LFUTURE, LNEI99,  LSTREETS
       USE LOGICAL_MOD,          ONLY : LRETRO ! (dbm, 8/18/2011)
@@ -218,7 +220,7 @@
 ![eml 
       USE LOGICAL_MOD,          ONLY : LHIST
       USE TIME_MOD,             ONLY : GET_HISTYR
-      USE REGRID_1x1_MOD,       ONLY : DO_REGRID_1x1,DO_REGRID_G2G_1x1
+      USE REGRID_1x1_MOD,       ONLY : DO_REGRID_1x1, DO_REGRID_G2G_1x1
 !eml]
 
       USE CMN_SIZE_MOD             ! Size parameters
@@ -242,9 +244,9 @@
 ![eml
       CHARACTER(LEN=4  )            :: CHISTYR
       CHARACTER(LEN=255)            :: ED_FILENAME
-      REAL*4                        :: generic_1x1(I1x1,J1x1-1)
-      REAL*8                        :: generic8_1x1(I1x1,J1x1-1)
-      REAL*8                        :: geos_1x1(I1x1,J1x1,1)
+      REAL*4                        :: GENERIC_1x1(I1x1,J1x1-1)
+      REAL*8                        :: GENERIC8_1x1(I1x1,J1x1-1)
+      REAL*8                        :: GEOS_1x1(I1x1,J1x1,1)
       REAL*8                        :: TEMP_ED(IGLOB,JGLOB,1), HIST_TAU
 !eml]
       
@@ -329,24 +331,37 @@
                ! Read biofuel NOx emissions in [kg/box/yr] -- tracer #1
 ![eml
                IF ( LHIST ) THEN
+
+                  !-----------------------------------------------------
+                  ! Historical emissions of NOX
+                  !-----------------------------------------------------
+
                   WRITE(CHISTYR, '(I4)') GET_HISTYR()
                   HIST_TAU = GET_TAU0(1,1,GET_HISTYR())
-                  ED_FILENAME ='/home/eml/data/EMISSIONS/NOX/proper/'//
-     &                         'EDGAR.BCNOX.'//CHISTYR//'generic.1x1'
+
+                  ED_FILENAME = TRIM( DATA_DIR_1x1 )                // 
+     &                          'historical_emissions_201203/NOx/'  //
+     &                          'EDGAR.BCNOX.'    //     CHISTYR    //
+     &                          'generic.1x1'
 
                   CALL READ_BPCH2(ED_FILENAME, 'EDGAR-2D', 1,
      &                            HIST_TAU,    I1x1,       J1x1-1,
-     &                            1,           generic_1x1,QUIET=.TRUE.)
+     &                            1,          GENERIC_1x1, QUIET=.TRUE.)
 
-                  generic8_1x1=generic_1x1
+                  ! Cast from REAL*4 to REAL*8
+                  GENERIC8_1x1 = GENERIC_1x1
+
                   !Convert to GEOS-Chem grid
-                  CALL DO_REGRID_G2G_1x1('kg/yr',generic8_1x1,
-     &                                   geos_1x1(:,:,1) )
+                  CALL DO_REGRID_G2G_1x1('kg/yr', GENERIC8_1x1,
+     &                                            GEOS_1x1(:,:,1) )
+
                   ! Regrid to current resolution
-                  CALL DO_REGRID_1x1(1, 'kg/yr', geos_1x1, TEMP_ED )
+                  CALL DO_REGRID_1x1(1, 'kg/yr', GEOS_1x1, TEMP_ED )
                   BIOFUEL_KG(N,:,:) = TEMP_ED(:,:,1)
+
                ELSE
-                  CALL READ_BPCH2( FILENAME, 'EDGAR-2D', 1 , 
+
+                  CALL READ_BPCH2( FILENAME, 'BIOFSRCE', 1 , 
      &                             0d0,       IIPAR,     JJPAR,     
      &                             1,         ARRAY,     QUIET=.TRUE. ) 
                           
