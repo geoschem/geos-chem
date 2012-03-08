@@ -732,12 +732,9 @@
       REFF = 0.5d-6 * ( SALC_REDGE_um(1) + SALC_REDGE_um(2) )
             
       ! Sea salt radius [cm]
-      !RCM  = REFF * 100d0  
-      ! The Gerber formula for hygroscopic growth uses the radius in micrometers
-      ! instead of centimeters. This fix is implemented by using RUM instead of RCM
-      ! RCM is changed to RUM below
-      ! (jaegle 5/5/11)
-      ! Sea salt radius [um]
+      ! The Gerber formula for hygroscopic growth uses the radius in
+      ! micrometers instead of centimeters. This fix is implemented by using
+      ! RUM instead of RCM (jaegle 5/5/11)
       RUM  = REFF * 1d6
 
 
@@ -778,13 +775,14 @@
 
             ! Aerosol growth with relative humidity in radius [m] 
             ! (Gerber, 1985)
-            !RWET    = 0.01d0*(FAC1/(FAC2-DLOG(RHB))+RUM**3.d0)**0.33d0
-            ! Several bug fixes to the Gerber formulation: a log10 (instead of ln) should be used and 
-            ! the dry radius should be expressed in micrometers (instead of cm) also add more significant digits to the exponent
-            ! (jaegle 5/5/11)
+            ! Several bug fixes to the Gerber formulation: a log10 (instead of
+            ! ln) should be used and the dry radius should be expressed in
+            ! micrometers (instead of cm) also add more significant digits to
+            ! the exponent (jaegle 5/5/11)
             !RWET    = 1d-6*(FAC1/(FAC2-LOG10(RHB))+RUM**3.d0)**0.33333d0
 
-            ! Use equation 5 in Lewis and Schwartz (2006) [m] for sea salt growth (jaegle 5/11/11)
+            ! Use equation 5 in Lewis and Schwartz (2006) [m] for sea salt
+            ! growth (jaegle 5/11/11)
             RWET = REFF * (4.d0 / 3.7d0) *
      &                  ( (2.d0 - RHB)/(1.d0 - RHB) )**(1.d0/3.d0)
 
@@ -795,9 +793,10 @@
             ! Density of the wet aerosol (kg/m3)
             !RHO     = RATIO_R * DEN + ( 1.d0 - RATIO_R ) * 1000.d0
 
-
-            ! Above density calculation is chemically unsound because it ignores chemical solvation.  
-            ! Iteratively solve Tang et al., 1997 equation 5 to calculate density of wet aerosol (kg/m3) 
+            ! Above density calculation is chemically unsound because it
+            ! ignores chemical solvation.  
+            ! Iteratively solve Tang et al., 1997 equation 5 to calculate
+            ! density of wet aerosol (kg/m3) 
             ! (bec, jaegle 5/11/11)
             RATIO_R = ( REFF / RWET )
             ! Assume an initial density of 1000 kg/m3
@@ -810,7 +809,8 @@
                 ! in Tang et al., 1997 [kg/m3]
                 RHO1   = ( 0.9971d0 + (A1 * WTP) + (A2 * WTP**2.d0) + 
      $               (A3 * WTP**3.d0) + (A4 * WTP**4.d0) ) * 1000.d0
-                ! Now calculate new weight percent using above density calculation
+                ! Now calculate new weight percent using above density
+                ! calculation
                 WTP    = 100.d0 * DEN/RHO1 * RATIO_R**3.d0
                 ! Now recalculate new wet density [kg/m3]
                 RHO   = ( 0.9971d0 + (A1 * WTP) + (A2 * WTP**2.d0) + 
@@ -942,27 +942,27 @@
 ! !REMARKS:
 !  Reaction List (by Mian Chin, chin@rondo.gsfc.nasa.gov)                  
 !  ============================================================================
-!                                                                           
+!                                                                             .
 !  R1:    DMS + OH  -> a*SO2 + b*MSA                OH addition channel    
 !         k1 = { 1.7e-42*exp(7810/T)*[O2] / (1+5.5e-31*exp(7460/T)*[O2] }  
 !         a = 0.75, b = 0.25                                               
-!                                                                           
+!                                                                             .
 !  R2:    DMS + OH  ->   SO2 + ...                  OH abstraction channel 
 !         k2 = 1.2e-11*exp(-260/T)                                         
-!                                                                           
+!                                                                             .
 !         DMS_OH = DMS0 * exp(-(r1+r2)* NDT1)                                  
 !         where DMS0 is the DMS concentration at the beginning,            
 !         r1 = k1*[OH], r2 = k2*[OH].                                      
-!                                                                           
+!                                                                             .
 !  R3:    DMS + NO3 ->   SO2 + ...                                         
 !         k3 = 1.9e-13*exp(500/T)                                          
-!                                                                           
+!                                                                             .
 !         DMS = DMS_OH * exp(-r3*NDT1)                                         
 !         where r3 = k3*[NO3].                                             
-!                                                                           
+!                                                                             .
 !  R4:    DMS + X   ->   SO2 + ...                                         
 !         assume to be at the rate of DMS+OH and DMS+NO3 combined.         
-!                                                                           
+!                                                                             .
 !  The production of SO2 and MSA here, PSO2_DMS and PMSA_DMS, are saved    
 !  for use in CHEM_SO2 and CHEM_MSA subroutines as a source term.  They    
 !  are in unit of [v/v/timestep]. 
@@ -1471,26 +1471,24 @@
       USE CMN_SIZE_MOD          ! Size parameters
       USE CMN_DIAG_MOD          ! LD05, ND05, ND44
       USE CMN_GCTM_MOD          ! AIRMW
-
-                                                                         
-
+!
 ! !REMARKS:
 !  Reaction List (by Rokjin Park, rjp@io.harvard.edu)                      
 !  ============================================================================
 !  (1 ) SO2 production:                                                      
 !       DMS + OH, DMS + NO3 (saved in CHEM_DMS)                               
-!                                                                          
+!                                                                             .
 !  (2 ) SO2 loss:                                                         
 !       (a) SO2 + OH  -> SO4                                               
 !       (b) SO2       -> drydep                                             
 !       (c) SO2 + H2O2 or O3 (aq) -> SO4                         
-!                                                                          
+!                                                                             .
 !  (3 ) SO2 = SO2_0 * exp(-bt) +  PSO2_DMS/bt * [1-exp(-bt)]   
-! 
+!                                                                             .
 !       where b is the sum of the reaction rate of SO2 + OH and the dry       
 !       deposition rate of SO2, PSO2_DMS is SO2 production from DMS in        
 !       MixingRatio/timestep.                                                 
-!                                                                          
+!                                                                             .
 !  If there is cloud in the gridbox (fraction = fc), then the aqueous      
 !  phase chemistry also takes place in cloud. The amount of SO2 oxidized   
 !  by H2O2 in cloud is limited by the available H2O2; the rest may be      
@@ -2415,36 +2413,47 @@
 !  Chemical Reactions:
 !  ============================================================================
 !  (R1) HSO3- + H2O2(aq) + H+ => SO4-- + 2H+ + H2O [Jacob, 1986]   
-!
+!                                                                             .
 !      d[S(VI)]/dt = k[H+][H2O2(aq)][HSO3-]/(1 + K[H+]) 
 !      [Seinfeld and Pandis, 1998, page 366]
-!
+!                                                                             .
 !  (R2) SO2(aq) + O3(aq) =>                                        
 !       HSO3-   + O3(aq) =>  
 !       SO3--   + O3(aq) =>
 !       [Jacob, 1986; Jacobson, 1999]
-!
+!                                                                             .
 !       d[S(VI)]/dt = (k0[SO2(aq)] + k1[HSO3-] + K2[SO3--])[O3(aq)]
 !       [Seinfeld and Pandis, 1998, page 363]
-!
+!                                                                             .
 !  Reaction rates can be given as
 !       Ra     = k [H2O2(ag)] [S(IV)]  [mole/liter*s]  OR
 !       Krate  = Ra LWC R T / P        [1/s]
-!
+!                                                                             .
 !  Where:
 !       LWC = Liquid water content(g/m3)*10-6 [m3(water)/m3(gas)]
 !       R   = 0.08205  (atm L / mol-K), Universal gas const.
 !       T   = Temperature (K)
 !       P   = Pressure (atm)
-!
+!                                                                             .
 !  Procedure:
 !  ============================================================================
 !  (a ) Given [SO2] which is assumed to be total SO2 (gas+liquid) in 
 !        equilibrium between gas and liquid phase. 
-!
+!                                                                             .
 !  (b ) We can compute SO2(g) using Henry's law
+!          P(so2(g)) = Xg * [SO2]
+!          Xg = 1/(1 + Faq), Fraction of SO2 in gas
+!       where: 
+!          Faq   = Kheff * R * T * LWC, 
+!          KHeff = Effective Henry's constant
+!                                                                             .
+!  (c ) Then Calculate Aquous phase, S[IV] concentrations
+!        S[IV] = Kheff * P(so2(g) in atm) [M]
+!                                                                             .
+!  (d ) The exact same procedure is applied to calculate H2O2(aq)
 !
 ! !REVISION HISTORY:
+!  (1 ) Updated by Rokjin Park (rjp, bmy, 12/12/02)
 !  22 Dec 2011 - M. Payer    - Added ProTeX headers
 !EOP
 !------------------------------------------------------------------------------
@@ -2622,10 +2631,10 @@
 !  ============================================================================
 !  The Only production is from SO2 oxidation (save in CHEM_SO2), and the only  
 !  loss is dry depsition here.  Wet deposition will be treated in "wetdep.f".
-!                                                                          
+!                                                                             .
 !  SO4 = SO4_0 * exp(-kt) + PSO4_SO2/kt * (1.-exp(-kt))                    
 !    where k = dry deposition.                                             
-!
+!                                                                             .
 ! !REVISION HISTORY:
 !  (1 ) Now reference AD from "dao_mod.f".  Added parallel DO-loops.  
 !        Updated comments, cosmetic changes. (rjp, bdf, bmy, 9/16/02)
@@ -3145,7 +3154,7 @@
 !  ============================================================================
 !  The Only production is from DMS oxidation (saved in CHEM_DMS), and the only
 !  loss is dry depsition here.  Wet deposition will be treated in "wetdep.f".
-!                                                                          
+!                                                                             .
 !  MSA = MSA_0 * exp(-dt) + PMSA_DMS/kt * (1.-exp(-kt))                    
 !    where k = dry deposition.                                             
 !        
@@ -4113,7 +4122,7 @@
 !  (5 ) Now use functions GET_SEASON and GET_MONTH from the new "time_mod.f"
 !        (bmy, 3/27/03)
 !  (6 ) Added first-time printout message (bmy, 4/6/04)
-!  (7 ) Now references F77_CMN_SETUP.  Now read ship SO2 if LSHIPSO2=T.  Also
+!  (7 ) Now references CMN_SETUP.  Now read ship SO2 if LSHIPSO2=T.  Also
 !        references ITS_A_NEW_MONTH from "time_mod.f". (bec, bmy, 5/20/04)
 !  (8 ) Now references STT and ITS_AN_AEROSOL_SIM from "tracer_mod.f".  
 !        Now references LSHIPSO2 from "logical_mod.f" (bmy, 7/20/04)
@@ -4420,7 +4429,7 @@ c      print *,BINMASS(24,11,2,:)
 !  (2 ) Now replace DXYP(J) with routine GET_AREA_M2 of "grid_mod.f"
 !        Now use routine GET_TS_EMIS from the new "time_mod.f". (bmy, 3/27/03)
 !  (3 ) For GEOS-4, convert PBL from [m] to [hPa] w/ the hydrostatic law.
-!        Now references SCALE_HEIGHT from "F77_CMN_GCTM".  Added BLTHIK variable
+!        Now references SCALE_HEIGHT from "CMN_GCTM".  Added BLTHIK variable
 !        for PBL thickness in [hPa]. (bmy, 1/15/04)
 !  (4 ) Remove reference to "pressure_mod.f".  Now reference GET_FRAC_OF_PBL
 !        and GET_PBL_TOP_L from "pbl_mix_mod.f". (bmy, 2/22/05)
@@ -4642,6 +4651,9 @@ c      print *,BINMASS(24,11,2,:)
       USE TIME_MOD,       ONLY     : GET_DAY_OF_WEEK
       USE TRACER_MOD,     ONLY     : XNUMOL
       USE TRACERID_MOD,   ONLY     : IDTSO2
+![eml
+      USE LOGICAL_MOD,    ONLY     : LHIST
+!eml]
 
       USE CMN_SIZE_MOD             ! Size parameters
       USE CMN_DIAG_MOD             ! ND13, LD13 (for now)
@@ -4663,10 +4675,10 @@ c      print *,BINMASS(24,11,2,:)
 !  (2 ) Now use routines GET_TS_EMIS and GET_DAY_OF_YEAR from the new 
 !        "time_mod.f" (bmy, 3/27/03)
 !  (3 ) For GEOS-4, convert PBL from [m] to [hPa] w/ the hydrostatic law.
-!        Now references SCALE_HEIGHT from "F77_CMN_GCTM".  Added BLTHIK variable
+!        Now references SCALE_HEIGHT from "CMN_GCTM".  Added BLTHIK variable
 !        to hold PBL thickness in [hPa]. (bmy, 1/15/04)
 !  (4 ) Now references AD13_SO2_sh array from "diag_mod.f".  Also references
-!        LSHIPSO2 from "F77_CMN_SETUP" (bec, bmy, 5/20/04) 
+!        LSHIPSO2 from "CMN_SETUP" (bec, bmy, 5/20/04) 
 !  (5 ) Now references LSHIPSO2 from "logical_mod.f" (bmy, 7/20/04)
 !  (6 ) Now references routines GET_EPA_ANTHRO and GET_USA_MASK from 
 !        "epa_nei_mod.f".  Now references GET_AREA_CM2 from "grid_mod.f".  
@@ -5003,7 +5015,9 @@ c      print *,BINMASS(24,11,2,:)
             !-----------------------------------------------------------
             ! If we are using EPA/NEI99 over the USA (anthro + biofuel)
             !-----------------------------------------------------------
-            IF ( LNEI99 ) THEN
+![eml Don't overwrite US if historical
+            IF ( LNEI99 .and. .not. LHIST ) THEN
+!eml]
             IF ( GET_USA_MASK( I, J ) > 0d0 ) THEN
             
                ! Read EPA/NEI99 SO2 emissions in [molec/cm2/s]
@@ -5026,7 +5040,9 @@ c      print *,BINMASS(24,11,2,:)
             !-----------------------------------------------------------
             ! If we are using BRAVO emissions over Mexico (anthro)
             !-----------------------------------------------------------
-            IF ( LBRAVO )  THEN 
+![eml
+            IF ( LBRAVO .and. .not. LHIST )  THEN 
+!eml]
             IF ( GET_BRAVO_MASK( I, J ) > 0d0 )  THEN
             
                ! Read BRAVO SO2 emissions in [molec/cm2/s]
@@ -5056,7 +5072,9 @@ c      print *,BINMASS(24,11,2,:)
             !-----------------------------------------------------------
             ! If we are using CAC emissions over Canada ...
             !-----------------------------------------------------------
-            IF ( LCAC ) THEN
+![eml
+            IF ( LCAC .and. .not. LHIST ) THEN
+!eml]
             IF ( GET_CANADA_MASK( I, J ) > 0d0 ) THEN
 
                ! Read CAC SO2 emissions in [molec/cm2/s]
@@ -5089,7 +5107,9 @@ c      print *,BINMASS(24,11,2,:)
             ! Must be called after CAC and BRAVO to simply overwrite
             ! where they overlap
             !-----------------------------------------------------------  
-            IF ( LNEI05 ) THEN
+![eml
+            IF ( LNEI05 .and. .not. LHIST ) THEN
+!eml]
             IF ( NEI05_MASK( I, J ) > 0d0 ) THEN
 
                ! Read USA SO2 emissions in [molec/cm2/s]
@@ -5244,6 +5264,9 @@ c      print *,BINMASS(24,11,2,:)
       USE TIME_MOD,           ONLY : GET_DAY_OF_WEEK, GET_TS_EMIS
       USE TRACER_MOD,         ONLY : XNUMOL
       USE TRACERID_MOD,       ONLY : IDTSO4, IDTSO2
+![eml
+      USE LOGICAL_MOD,        ONLY : LHIST
+!eml]
 
       USE CMN_SIZE_MOD             ! Size parameters
       USE CMN_DIAG_MOD             ! ND13 (for now)
@@ -5259,7 +5282,7 @@ c      print *,BINMASS(24,11,2,:)
 !        It is converted to [kg/box/timestep] here.  
 !  (2 ) Now use routine GET_TS_EMIS from the new "time_mod.f" (bmy, 3/27/03)
 !  (3 ) For GEOS-4, convert PBL from [m] to [hPa] w/ the barometric law.
-!        Now references SCALE_HEIGHT from "F77_CMN_GCTM".  Added BLTHIK variable
+!        Now references SCALE_HEIGHT from "CMN_GCTM".  Added BLTHIK variable
 !        to hold PBL thickness in [hPa]. (bmy, 1/15/04)
 !  (4 ) Now references GET_EPA_ANTHRO, GET_EPA_BIOFUEL, and GET_USA_MASK from 
 !        "epa_nei_mod.f".  Now references AD13_SO4_bf from "diag_mod.f".  Now 
@@ -5354,7 +5377,9 @@ c      print *,BINMASS(24,11,2,:)
             
             !-----------------------------------------------------------
             ! If we are using EPA/NEI99 emissions and over the USA
-            IF ( LNEI99 ) THEN
+![eml don't overwrite if historical
+            IF ( LNEI99 .and. .not. LHIST ) THEN
+!eml]
             IF ( GET_USA_MASK( I, J ) > 0d0 )  THEN
             
                   ! Read SO4 emissions in [molec/cm2/s]
@@ -5376,7 +5401,9 @@ c      print *,BINMASS(24,11,2,:)
 
             !-----------------------------------------------------------
             ! If we are using CAC emissions and over CANADA ...
-            IF ( LCAC ) THEN
+![eml
+            IF ( LCAC .and. .not. LHIST ) THEN
+!eml]
             IF ( GET_CANADA_MASK( I, J) > 0d0 ) THEN
 
                ! Read SO4 emissions in [molec/cm2/s]
@@ -5405,7 +5432,9 @@ c      print *,BINMASS(24,11,2,:)
 
             !-----------------------------------------------------------
             ! If we are using BRAVO emissions and over MEXICO ...
-            IF ( LBRAVO ) THEN
+![eml
+            IF ( LBRAVO .and. .not. LHIST ) THEN
+!eml]
             IF ( GET_BRAVO_MASK( I, J) > 0d0 ) THEN
 
                ! Read SO4 emissions in [molec/cm2/s]
@@ -5436,7 +5465,9 @@ c      print *,BINMASS(24,11,2,:)
             ! If we are using NEI 2005 over the USA ...
             ! Must be called after CAC and BRAVO to simply overwrite
             ! where they overlap
-            IF ( LNEI05 ) THEN
+![eml
+            IF ( LNEI05 .and. .not. LHIST ) THEN
+!eml]
                IF ( NEI05_MASK( I, J) < 0d0 ) THEN
 
                   ! Read SO4 emissions in [molec/cm2/s]
@@ -6035,13 +6066,13 @@ c      print *,BINMASS(24,11,2,:)
 !       when partitioning by level into the STT array. (rjp, bmy, 3/23/03)
 !  (3 ) Now use routine GET_TS_EMIS from the new "time_mod.f" (bmy, 3/27/03)
 !  (4 ) For GEOS-4, convert PBL from [m] to [hPa] w/ the barometric law.
-!       Now references SCALE_HEIGHT from "F77_CMN_GCTM".  Added BLTHIK variable
+!       Now references SCALE_HEIGHT from "CMN_GCTM".  Added BLTHIK variable
 !       to hold PBL thickness in [hPa]. (bmy, 1/15/04)
 !  (5 ) Now references GET_EPA_ANTHRO, GET_EPA_BIOFUEL, and GET_USA_MASK from 
 !       "epa_nei_mod.f".  Now references GET_DAY_OF_WEEK from "time_mod.f".  
 !       Now references LNEI99 from "logical_mod.f".  Now references 
 !       GET_AREA_CM2 from "grid_mod.f".  Now references IDTNH3 from 
-!       "tracerid_mod.f".  Now references XNUMOL from F77_CMN_O3.  Now can 
+!       "tracerid_mod.f".  Now references XNUMOL from CMN_O3.  Now can 
 !       overwrite the anthro & biofuel NH3 emissions over the continental US 
 !       if LNEI99=T.  Now references IDTNH3 from "tracerid_mod.f". 
 !       (rjp, rch, bmy, 11/16/04)
@@ -6998,7 +7029,9 @@ c      print *,BINMASS(24,11,2,:)
       USE TRACERID_MOD,         ONLY : IDTSO2, IDTSO4
       USE TRANSFER_MOD,         ONLY : TRANSFER_2D
       USE SCALE_ANTHRO_MOD,     ONLY : GET_ANNUAL_SCALAR
-
+![eml
+      USE LOGICAL_MOD,          ONLY : LHIST
+!eml]
       USE TRACERID_MOD,         ONLY : IDTNK1           !(win, 1/25/10)
 
       USE CMN_SIZE_MOD               ! Size parameters
@@ -7108,8 +7141,9 @@ c      print *,BINMASS(24,11,2,:)
                EDG_SO2 = GET_EDGAR_ANTH_SO2( I, J, KG_S=.TRUE. ) 
 
                ! If we are using David Streets' emissions ...
-               IF ( LSTREETS ) THEN
-
+![eml Not if historical
+               IF ( LSTREETS .and. .not. LHIST ) THEN
+!eml]
                   ! If we are over the SE Asia region ...
                   IF ( GET_SE_ASIA_MASK( I, J ) > 0d0 ) THEN
 
@@ -7124,7 +7158,9 @@ c      print *,BINMASS(24,11,2,:)
                ENDIF
 
                ! If we are using EMEP over Europe...
-               IF ( LEMEP ) THEN
+![eml
+               IF ( LEMEP .and. .not. LHIST ) THEN
+!eml]
 
                   IF (GET_EUROPE_MASK(I,J) > 0d0) THEN
 
@@ -7557,7 +7593,7 @@ c      print *,BINMASS(24,11,2,:)
       !USE BIOMASS_MOD,          ONLY : BIOMASS,         IDBSO2
       USE BPCH2_MOD,            ONLY : GET_NAME_EXT_2D, GET_RES_EXT
       USE BPCH2_MOD,            ONLY : GET_TAU0,        READ_BPCH2
-      USE DIRECTORY_MOD,        ONLY : DATA_DIR
+      USE DIRECTORY_MOD,        ONLY : DATA_DIR,        DATA_DIR_1x1
       USE FUTURE_EMISSIONS_MOD, ONLY : GET_FUTURE_SCALE_SO2bf
       USE GRID_MOD,             ONLY : GET_AREA_CM2
       USE LOGICAL_MOD,          ONLY : LBIOMASS,        LFUTURE
@@ -7565,6 +7601,11 @@ c      print *,BINMASS(24,11,2,:)
       USE TRACER_MOD,           ONLY : XNUMOL
       USE TRACERID_MOD,         ONLY : IDTSO2
       USE TRANSFER_MOD,         ONLY : TRANSFER_2D
+![eml
+      USE LOGICAL_MOD,          ONLY : LHIST
+      USE TIME_MOD,             ONLY : GET_HISTYR
+      USE REGRID_1x1_MOD,       ONLY : DO_REGRID_G2G_1x1, DO_REGRID_1x1
+!eml]
       
       USE CMN_SIZE_MOD               ! Size parameters
 !
@@ -7581,7 +7622,7 @@ c      print *,BINMASS(24,11,2,:)
 !        Now replace MONTH with the argument THISMONTH.  Now call READ_BPCH2
 !        with QUIET=.TRUE. (bmy, 3/27/03)
 !  (4 ) Now references DATA_DIR from "directory_mod.f".  Also removed
-!        references to CMN and F77_CMN_SETUP. (bmy, 7/20/04)
+!        references to CMN and CMN_SETUP. (bmy, 7/20/04)
 !  (5 ) Now can read either seasonal or interannual biomass burning emissions.
 !        Now references routines from both "logical_mod.f" and "time_mod.f".
 !        Now reads SO2 biomass emissions directly rather than computing
@@ -7598,6 +7639,8 @@ c      print *,BINMASS(24,11,2,:)
 !        to account for several GFED2 products (yc, phs, 12/23/08)
 !  (12) IDBSO2 is not used anymore (ccc, 01/29/10)
 !  22 Dec 2011 - M. Payer    - Added ProTeX headers
+!  08 Mar 2012 - M. Payer    - Added modifications for historical emissions of
+!                              SO2 (E. Leibensperger)
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -7610,7 +7653,13 @@ c      print *,BINMASS(24,11,2,:)
       REAL*8                        :: XTAU
       CHARACTER(LEN=4  )            :: CYEAR
       CHARACTER(LEN=255)            :: FILENAME
-                                    
+![eml
+      CHARACTER(LEN=4  )            :: CHISTYR
+      REAL*4                        :: ESO2_GEN(I1x1,J1x1-1)
+      REAL*8                        :: ESO2_GEN8(I1x1,J1x1-1)
+      REAL*8                        :: ESO2_GEO(I1x1,J1x1,1)
+      REAL*8                        :: TEMP_ED(IIPAR,JJPAR,1)
+!eml]
       ! Days per month              
       REAL*8 :: NMDAY(12) = (/ 31d0, 28d0, 31d0, 30d0, 31d0, 30d0, 
      &                         31d0, 31d0, 30d0, 31d0, 30d0, 31d0/)
@@ -7626,50 +7675,87 @@ c      print *,BINMASS(24,11,2,:)
       !=================================================================
       
       ! File name for biofuel burning file
-      FILENAME = TRIM( DATA_DIR )          // 
-     &           'biofuel_200202/biofuel.' // GET_NAME_EXT_2D() //
-     &           '.'                       // GET_RES_EXT()
+![eml
+      IF(.not. LHIST) THEN
+!eml]
+         FILENAME = TRIM( DATA_DIR )          // 
+     &              'biofuel_200202/biofuel.' // GET_NAME_EXT_2D() //
+     &              '.'                       // GET_RES_EXT()
 
-      ! Echo info
-      WRITE( 6, 100 ) TRIM( FILENAME )
- 100  FORMAT( '     - READ_BIOFUEL_SO2: Reading ', a )
+         ! Echo info
+         WRITE( 6, 100 ) TRIM( FILENAME )
+ 100     FORMAT( '     - READ_BIOFUEL_SO2: Reading ', a )
 
-      ! Get TAU0 value (use generic year 1985)
-      XTAU = GET_TAU0( 1, 1, 1985 )
+         ! Get TAU0 value (use generic year 1985)
+         XTAU = GET_TAU0( 1, 1, 1985 )
 
-      ! Read Biofuel burning of CO [kg/yr]
-      CALL READ_BPCH2( FILENAME, 'BIOFSRCE',    4, 
-     &                 XTAU,      IIPAR,        JJPAR,     
-     &                 1,         ARRAY(:,:,1), QUIET=.TRUE.  ) 
+         ! Read Biofuel burning of CO [kg/yr]
+         CALL READ_BPCH2( FILENAME, 'BIOFSRCE',    4, 
+     &                    XTAU,      IIPAR,        JJPAR,     
+     &                    1,         ARRAY(:,:,1), QUIET=.TRUE.  ) 
 
-      ! Cast from REAL*4 to REAL*8
-      CALL TRANSFER_2D( ARRAY(:,:,1), BIOCO )
+         ! Cast from REAL*4 to REAL*8
+         CALL TRANSFER_2D( ARRAY(:,:,1), BIOCO )
 
-      !=================================================================
-      ! Unit conversion to [kg SO2/s]
-      !=================================================================
+         !=================================================================
+         ! Unit conversion to [kg SO2/s]
+         !=================================================================
   
 !$OMP PARALLEL DO
 !$OMP+DEFAULT( SHARED )
 !$OMP+PRIVATE( I, J )
-      ! Loop over longitudes
-      DO J = 1, JJPAR
+         ! Loop over longitudes
+         DO J = 1, JJPAR
 
-         ! Loop over latitudes
-         DO I = 1, IIPAR
+            ! Loop over latitudes
+            DO I = 1, IIPAR
 
-            ! Convert biofuel SO2 from [kg CO/yr] to [kg SO2/s]
-            ESO2_bf(I,J) = ( BIOCO(I,J) * 64d-3 * 0.0015d0 /
-     &                     ( 28d-3 * 86400.d0 * 365.25d0 ) )
+               ! Convert biofuel SO2 from [kg CO/yr] to [kg SO2/s]
+               ESO2_bf(I,J) = ( BIOCO(I,J) * 64d-3 * 0.0015d0 /
+     &                        ( 28d-3 * 86400.d0 * 365.25d0 ) )
 
-            ! Apply future emissions to biofuel SO2, if necessary
-            IF ( LFUTURE ) THEN
-               ESO2_bf(I,J) = ESO2_bf(I,J) * 
-     &                        GET_FUTURE_SCALE_SO2bf( I, J )
-            ENDIF
+               ! Apply future emissions to biofuel SO2, if necessary
+               IF ( LFUTURE ) THEN
+                  ESO2_bf(I,J) = ESO2_bf(I,J) * 
+     &                           GET_FUTURE_SCALE_SO2bf( I, J )
+               ENDIF
+            ENDDO
          ENDDO
-      ENDDO
 !$OMP END PARALLEL DO
+
+![eml
+      ELSE
+
+         !-----------------------------------------------------------------
+         ! Historical emissions of SO2
+         !-----------------------------------------------------------------
+
+         WRITE(CHISTYR,'(I4)') GET_HISTYR()
+
+         ! Get TAU0 for this year
+         XTAU = GET_TAU0( 1, 1, GET_HISTYR() )
+
+         ! Read biofuel SO2
+         FILENAME = TRIM( DATA_DIR_1x1 )                       // 
+     &              'historical_emissions_201203/SO2/'         //
+     &              'EDGAR.BCSO2.' // CHISTYR // 'generic.1x1'
+        
+         WRITE( 6, 101 ) TRIM( FILENAME )
+ 101     FORMAT( '     - READ_EDGAR_NOx: Reading ', a )
+         CALL READ_BPCH2( TRIM(FILENAME), 'EDGAR-2D', 26,
+     &                    XTAU,           I1x1,       J1x1-1,
+     &                    1,              ESO2_GEN,   QUIET=.TRUE. )
+
+         ESO2_GEN8 = ESO2_GEN
+
+         CALL DO_REGRID_G2G_1x1( 'kg/yr', ESO2_GEN8, ESO2_GEO(:,:,1) )
+         CALL DO_REGRID_1x1(1, 'kg/yr', ESO2_GEO, TEMP_ED )
+
+         ! Convert from kg SO2/yr to kg SO2/s
+         ESO2_bf = TEMP_ED(:,:,1) / (365.25d0 * 86400.d0)
+
+      ENDIF
+!eml]
 
       END SUBROUTINE READ_BIOFUEL_SO2
 !EOC
@@ -8385,7 +8471,7 @@ c      print *,BINMASS(24,11,2,:)
 !  (4 ) Now use ENCODE statement for PGI/F90 on Linux (bmy, 9/29/03)
 !  (5 ) Changed cpp switch name from LINUX to LINUX_PGI (bmy, 12/2/03)
 !  (6 ) Now references DATA_DIR from "directory_mod.f".  Now references LBBSEA
-!        from "logical_mod.f".  Removed references to CMN and F77_CMN_SETUP.
+!        from "logical_mod.f".  Removed references to CMN and CMN_SETUP.
 !        (bmy, 7/20/04)
 !  (7 ) Now can read either seasonal or interannual biomass burning emissions.
 !        Now references routines from both and "time_mod.f".  Now reads SO2 

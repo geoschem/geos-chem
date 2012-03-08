@@ -1439,7 +1439,7 @@
 !
 ! !REVISION HISTORY:
 !  (1 ) Now exit if we have allocated arrays before.  Now also allocate 
-!        ALK_EMIS & N_DENS.  Now reference F77_CMN_SIZE. (bec, bmy, 4/13/05)
+!        ALK_EMIS & N_DENS.  Now reference CMN_SIZE. (bec, bmy, 4/13/05)
 !  (2 ) Added SALT_V and DMID (jaegle 5/11/11)
 !  22 Dec 2011 - M. Payer    - Added ProTeX headers
 !EOP

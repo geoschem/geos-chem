@@ -1350,7 +1350,7 @@ c$$$      ENDIF
 !
 ! !DESCRIPTION: Subroutine RDUST\_ONLINE reads global mineral dust 
 !  concentrations as determined by P. Ginoux.  Calculates dust optical 
-!  depth at each level for the FAST-J routine "set_prof.f". 
+!  depth at each level for the FAST-J routine "set\_prof.f". 
 !\\
 !\\
 ! !INTERFACE:
@@ -2084,13 +2084,13 @@ c$$$      ENDIF
 !
 ! !IROUTINE: cleanup_dust
 !
-! !DESCRIPTION: Subroutine CLEANUP\DUST deallocates all module arrays.
+! !DESCRIPTION: Subroutine CLEANUP\_DUST deallocates all module arrays.
 !\\
 !\\
 ! !INTERFACE:
-
-      SUBROUTINE CLEANUP_DUST
 !
+      SUBROUTINE CLEANUP_DUST
+! 
 ! !REVISION HISTORY: 
 !  30 Mar 2004 - R. Yantosca - Initial version
 !  25 Aug 2010 - R. Yantosca - Added ProTeX headers

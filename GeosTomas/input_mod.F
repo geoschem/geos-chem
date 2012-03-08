@@ -1674,7 +1674,10 @@ c$$$      WRITE( 6, 100     ) '30-BIN DUST AEROSOLS?       : ', LDUST30
       USE EMISSIONS_MOD, ONLY : ISOP_SCALING 
       USE EMISSIONS_MOD, ONLY : NOx_SCALING
       USE LOGICAL_MOD, ONLY : LRETRO  !(wfr, 3/8/11)
-      
+![eml 
+      USE LOGICAL_MOD, ONLY : LHIST
+      USE TIME_MOD,    ONLY : SET_HISTYR
+!eml]
 
       USE CMN_SIZE_MOD      ! Size parameters
       USE CMN_O3_MOD        ! FSCALYR
@@ -1724,7 +1727,10 @@ c$$$      WRITE( 6, 100     ) '30-BIN DUST AEROSOLS?       : ', LDUST30
 !  27 Aug 2010 - R. Yantosca - Added warning msg for MERRA
 !  29 Jul 2011 - L. Zhang    - Fix bug that turns off CAC/BRAVO emissions
 !                             inadvertently during nested NA simulations
+!  11 Aug 2011 - E. Leibensperger - Added flag for historical emissions and
+!                                   base year
 !  07 Sep 2011 - P. Kasibhatla - Add modifications for GFED3
+!  14 Feb 2012 - R. Yantosca - Reorganize error checks for logical switches
 !  28 Feb 2012 - R. Yantosca - Removed support for GEOS-3
 !EOP
 !------------------------------------------------------------------------------
@@ -1734,7 +1740,9 @@ c$$$      WRITE( 6, 100     ) '30-BIN DUST AEROSOLS?       : ', LDUST30
 !
       INTEGER            :: N
       CHARACTER(LEN=255) :: SUBSTRS(MAXDIM), MSG, LOC
-
+![eml
+      INTEGER            :: HISTYR
+!eml]
       !=================================================================
       ! READ_EMISSIONS_MENU begins here!
       !=================================================================
@@ -1941,55 +1949,78 @@ c$$$      WRITE( 6, 100     ) '30-BIN DUST AEROSOLS?       : ', LDUST30
       CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_emissions_menu:49' )
       READ( SUBSTRS(1:N), * ) LMODISLAI
 
-      ! Separator line
+![eml
+      ! Use historical emissions (EDGAR NOx/SO2 and Bond BC/OC) for 
+      ! 1890-2000?
       CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_emissions_menu:50' )
+      READ( SUBSTRS(1:N), * ) LHIST
+      
+      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_emissions_menu:51' )
+      READ( SUBSTRS(1:N), * ) HISTYR
+      CALL SET_HISTYR( HISTYR )
+
+      ! Separator line
+      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_emissions_menu:52' )
+!eml]
 
       !=================================================================
       ! Error check logical flags
       !=================================================================
 
+      !-----------------------------------------------------------------
       ! Turn off individual emissions flags if the master emissions flag
       ! LEMIS is turned off.  This will prevent inadvertent calls to the
       ! emissions routines. (bmy, 2/2/12)
-      LANTHRO           = ( LANTHRO        .and. LEMIS )
-      LEMEP             = ( LEMEP          .and. LEMIS )
-      LBRAVO            = ( LBRAVO         .and. LEMIS )
-      LEDGAR            = ( LEDGAR         .and. LEMIS )
-      LSTREETS          = ( LSTREETS       .and. LEMIS )
-      LCAC              = ( LCAC           .and. LEMIS )
-      LNEI05            = ( LNEI05         .and. LEMIS )
-      LRETRO            = ( LRETRO         .and. LEMIS )
-      LNEI99            = ( LNEI99         .and. LEMIS )
-      LICARTT           = ( LICARTT        .and. LEMIS )
-      LVISTAS           = ( LVISTAS        .and. LEMIS )
-      LBIOFUEL          = ( LBIOFUEL       .and. LEMIS )
-      LBIOGENIC         = ( LBIOGENIC      .and. LEMIS )
-      LMEGAN            = ( LMEGAN         .and. LEMIS )
-      LPECCA            = ( LPECCA         .and. LEMIS )
-      LMEGANMONO        = ( LMEGANMONO     .and. LEMIS )
-      LBIOMASS          = ( LBIOMASS       .and. LEMIS )
-      LTOMSAI           = ( LTOMSAI        .and. LEMIS )
-      LGFED2BB          = ( LGFED2BB       .and. LEMIS )
-      L8DAYBB           = ( L8DAYBB        .and. LEMIS )
-      L3HRBB            = ( L3HRBB         .and. LEMIS )
-      LSYNOPBB          = ( LSYNOPBB       .and. LEMIS )
-      LGFED3BB          = ( LGFED3BB       .and. LEMIS )
-      L8DAYBB3          = ( L8DAYBB3       .and. LEMIS )
-      L3HRBB3           = ( L3HRBB3        .and. LEMIS )
-      LSYNOPBB3         = ( LSYNOPBB3      .and. LEMIS )
-      LAIRNOX           = ( LAIRNOX        .and. LEMIS )
-      LLIGHTNOX         = ( LLIGHTNOX      .and. LEMIS )
-      LOTDLOC           = ( LOTDLOC        .and. LEMIS )
-      LSOILNOX          = ( LSOILNOX       .and. LEMIS )
-      LFERTILIZERNOX    = ( LFERTILIZERNOX .and. LEMIS )
-      LEDGARSHIP        = ( LEDGARSHIP     .and. LEMIS )
-      LICOADSSHIP       = ( LICOADSSHIP    .and. LEMIS )
-      LEMEPSHIP         = ( LEMEPSHIP      .and. LEMIS )
-      LSHIPSO2          = ( LSHIPSO2       .and. LEMIS )
-      LARCSHIP          = ( LARCSHIP       .and. LEMIS )
-      LCOOKE            = ( LCOOKE         .and. LEMIS )
-      LAVHRRLAI         = ( LAVHRRLAI      .and. LEMIS )
-      LMODISLAI         = ( LMODISLAI      .and. LEMIS )       
+      !-----------------------------------------------------------------
+
+      ! Master switches
+      LANTHRO           = ( LANTHRO        .and. LEMIS     )
+      LBIOFUEL          = ( LBIOFUEL       .and. LEMIS     )
+      LBIOGENIC         = ( LBIOGENIC      .and. LEMIS     )
+      LBIOMASS          = ( LBIOMASS       .and. LEMIS     )
+
+      ! Anthro
+      LAIRNOX           = ( LAIRNOX        .and. LANTHRO   )
+      LEMEP             = ( LEMEP          .and. LANTHRO   )
+      LBRAVO            = ( LBRAVO         .and. LANTHRO   )
+      LEDGAR            = ( LEDGAR         .and. LANTHRO   )
+      LSTREETS          = ( LSTREETS       .and. LANTHRO   )
+      LCAC              = ( LCAC           .and. LANTHRO   )
+      LNEI05            = ( LNEI05         .and. LANTHRO   )
+      LRETRO            = ( LRETRO         .and. LANTHRO   )
+      LNEI99            = ( LNEI99         .and. LANTHRO   )
+      LICARTT           = ( LICARTT        .and. LANTHRO   )
+      LVISTAS           = ( LVISTAS        .and. LANTHRO   )
+      LEDGARSHIP        = ( LEDGARSHIP     .and. LANTHRO   )
+      LICOADSSHIP       = ( LICOADSSHIP    .and. LANTHRO   )
+      LEMEPSHIP         = ( LEMEPSHIP      .and. LANTHRO   )
+      LSHIPSO2          = ( LSHIPSO2       .and. LANTHRO   )
+      LARCSHIP          = ( LARCSHIP       .and. LANTHRO   )
+      LCOOKE            = ( LCOOKE         .and. LANTHRO   )
+
+      ! Biogenic
+      LMEGAN            = ( LMEGAN         .and. LBIOGENIC )
+      LPECCA            = ( LPECCA         .and. LBIOGENIC )
+      LMEGANMONO        = ( LMEGANMONO     .and. LBIOGENIC )
+
+      ! Biomass
+      LTOMSAI           = ( LTOMSAI        .and. LBIOMASS  )
+      LGFED2BB          = ( LGFED2BB       .and. LBIOMASS  )
+      L8DAYBB           = ( L8DAYBB        .and. LBIOMASS  )
+      L3HRBB            = ( L3HRBB         .and. LBIOMASS  )
+      LSYNOPBB          = ( LSYNOPBB       .and. LBIOMASS  )
+      LGFED3BB          = ( LGFED3BB       .and. LBIOMASS  )
+      L8DAYBB3          = ( L8DAYBB3       .and. LBIOMASS  )
+      L3HRBB3           = ( L3HRBB3        .and. LBIOMASS  )
+      LSYNOPBB3         = ( LSYNOPBB3      .and. LBIOMASS  )
+
+      ! Other
+      LLIGHTNOX         = ( LLIGHTNOX      .and. LEMIS     )
+      LOTDLOC           = ( LOTDLOC        .and. LEMIS     )
+      LSOILNOX          = ( LSOILNOX       .and. LEMIS     )
+      LFERTILIZERNOX    = ( LFERTILIZERNOX .and. LEMIS     )
+      LAVHRRLAI         = ( LAVHRRLAI      .and. LEMIS     )
+      LMODISLAI         = ( LMODISLAI      .and. LEMIS     )       
 
       ! Define these flags for backwards compatibility
       LFOSSIL           = LANTHRO
@@ -2010,6 +2041,14 @@ c$$$      WRITE( 6, 100     ) '30-BIN DUST AEROSOLS?       : ', LDUST30
          LEDGARCO       = .TRUE.
          LEDGARSOx      = .TRUE.
       ENDIF
+
+![eml
+      ! If using historical emissions, make sure EDGAR NOx/SO2 are used
+      IF ( LHIST ) THEN
+         LEDGARNOx = .TRUE.
+         LEDGARSOx = .TRUE.
+      ENDIF
+!eml]
 
       !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
       !%%% Bug fix!  If LEMEPSHIP is turned on but LEMEP is turned %%%
@@ -2290,6 +2329,9 @@ c$$$      WRITE( 6, 100     ) '30-BIN DUST AEROSOLS?       : ', LDUST30
       WRITE( 6, 100     ) 'Use COOKE for OC/BC N.-Amer.: ', LCOOKE
       WRITE( 6, 100     ) 'Turn on AVHRR-derived LAI?  : ', LAVHRRLAI
       WRITE( 6, 100     ) 'Turn on MODIS-derived LAI?  : ', LMODISLAI
+![eml
+      WRITE( 6, 100     ) 'Turn on historical emiss?   : ', LHIST
+!eml]
 
       ! FORMAT statements
  100  FORMAT( A, L5 )
@@ -5656,6 +5698,11 @@ c$$$         IS_ALL = .FALSE.
       USE LOGICAL_MOD, ONLY : LBFCH4,  LBMCH4,  LWETL,  LRICE
       USE LOGICAL_MOD, ONLY : LOTANT,  LSOABS,  LOTNAT
       USE LOGICAL_MOD, ONLY : LCH4BUD
+      ! kjw
+      USE LOGICAL_MOD, ONLY : LBIOMASS
+      USE LOGICAL_MOD, ONLY : LGFED3BB, L8DAYBB3
+      USE LOGICAL_MOD, ONLY : LGFED2BB, L8DAYBB
+      USE ERROR_MOD,   ONLY : ERROR_STOP
  
 #     include "define.h"             ! C-preprocessor switches
 ! 
@@ -5670,6 +5717,7 @@ c$$$         IS_ALL = .FALSE.
 !
       INTEGER            :: N
       CHARACTER(LEN=255) :: SUBSTRS(MAXDIM)
+      CHARACTER(LEN=255) :: MSG
 
       !=================================================================
       ! READ_CH4_MENU begins here!
@@ -5743,6 +5791,22 @@ c$$$         IS_ALL = .FALSE.
       WRITE( 6, 100     ) 'Use Wetlands emis?    : ', LWETL
       WRITE( 6, 100     ) 'Use Soil Absorption?  : ', LSOABS
       WRITE( 6, 100     ) 'Use Ot. Natural emis? : ', LOTNAT
+
+      ! Error check (kjw)
+      IF ( LBMCH4 .EQ. .TRUE. ) THEN
+         IF ( ( LBIOMASS .EQ. .FALSE. ) .OR. 
+     &        ( LGFED2BB .EQ. .FALSE.  .AND. LGFED3BB .EQ. .FALSE. .AND.  
+     &         L8DAYBB  .EQ. .FALSE.  .AND. L8DAYBB3 .EQ. .FALSE.)) THEN
+            MSG = 'Specify which biomass burning emissions to use.'  //
+     &            '  If necessary, read CH4_MENU after EMISSIONS_MENU.'
+            print*,'LBIOMASS = ',LBIOMASS
+            print*,'LGFED3BB = ',LGFED3BB
+            print*,'LGFED2BB = ',LGFED2BB
+            print*,'L8DAYBB  = ',L8DAYBB
+            print*,'L8DAYBB3 = ',L8DAYBB3
+            CALL ERROR_STOP( MSG, 'READ_CH4_MENU ("input_mod.F")' )
+         ENDIF
+      ENDIF
 
       ! FORMAT statements
  100  FORMAT( A, L5  )
@@ -5952,7 +6016,6 @@ c$$$         IS_ALL = .FALSE.
       DIR = TRIM( DATA_DIR ) // TRIM( DIR )
       CALL CHECK_DIRECTORY( DIR )
 
-
       ! Check GEOS-5 met field directory (ending date)
       DIR = GEOS_5_DIR
       CALL EXPAND_DATE( DIR, NYMDe, 000000 )
@@ -5980,7 +6043,6 @@ c$$$         IS_ALL = .FALSE.
       CALL EXPAND_DATE( DIR, NYMDb, 000000 )
       DIR = TRIM( DATA_DIR ) // TRIM( DIR )
       CALL CHECK_DIRECTORY( DIR )
-
 
       ! Check GEOS-5 met field directory (ending date)
       DIR = MERRA_DIR

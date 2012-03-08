@@ -55,6 +55,8 @@
 
 
       IMPLICIT NONE
+#     include "define.h"
+
 ! 
 ! !REVISION HISTORY: 
 !  (40) Bug fix: Save levels 1:LD13 for ND13 diagnostic for diagnostic
