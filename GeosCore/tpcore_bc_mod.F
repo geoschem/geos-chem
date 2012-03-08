@@ -266,7 +266,7 @@
       !=================================================================
 
       ! Only open file if it's a new day
-      IF ( ITS_A_NEW_DAY() ) THEN
+      IF ( ITS_A_NEW_DAY(.TRUE.) ) THEN
 
          ! File name for BC's
          IF ( WINDOW .eq. 5 ) THEN
@@ -917,7 +917,7 @@
 !
 !  NOTES:
 !  (1 ) Rename arguments to avoid conflict w/ I1x1, J1x1 parameters in 
-!        F77_CMN_SIZE. (bmy, 10/24/05)
+!        CMN_SIZE. (bmy, 10/24/05)
 !******************************************************************************
 !
       ! References to F90 modules

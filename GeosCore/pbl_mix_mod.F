@@ -148,10 +148,6 @@
       CALL COMPUTE_PBL_HEIGHT
 
       ! Do complete mixing of tracers in the PBL (if necessary)
-!-----------------------------------------------------------------------------
-! Prior to 9/7/11:
-!      IF ( DO_TURBDAY ) CALL TURBDAY( N_TRACERS, STT, TCVV )
-!-----------------------------------------------------------------------------
       IF ( DO_TURBDAY ) CALL TURBDAY( N_TOT_TRC, STT, TCVV )
 
       ! Return to calling program
@@ -412,7 +408,7 @@
 !  (7 ) Now pass TCVV and NCONV for the mass flux diagnostics.  Also
 !        updated comments and cleaned up a few things. (bey, bmy, 11/10/99)
 !  (8 ) Remove PTOP and XNUMOL from the arg list.  PTOP is now a parameter 
-!        in "F77_CMN_SIZE".  XNUMOL is no longer used in TURBDAY. (bmy, 2/10/00)
+!        in "CMN_SIZE".  XNUMOL is no longer used in TURBDAY. (bmy, 2/10/00)
 !  (9 ) Also removed obsolete ND63 diagnostics and updated comments.
 !        (bmy, 4/12/00)
 !  (10) Now use NTRC instead of NNPAR to dimension variables TC, TCVV, DTC, 
@@ -444,7 +440,7 @@
 !        time regardless of SUNCOS.  Updated comments, cosmetic changes.
 !        (bmy, 2/11/03)
 !  (20) Now can handle PBL field in meters for GEOS-4/fvDAS.  Also the
-!        atmospheric scale height from F77_CMN_GCTM. (bmy, 6/23/03)
+!        atmospheric scale height from CMN_GCTM. (bmy, 6/23/03)
 !  (21) Now bundled into "pbl_mix_mod.f".  Broke off the part which computes
 !        PBL height and related quantities into COMPUTE_PBL_HEIGHT. 
 !        (bmy, 2/15/05)

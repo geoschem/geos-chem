@@ -427,10 +427,14 @@
 !        2006 emission output, but new irregularity likely now occurs at 2000 
 !        to 2001 (although this is likely less relevant to current studies).
 !        Initiated 1/2x2/3 annual scaling. (amv, bmy, 12/18/09)
+!  (7 ) Bug fix : overwrite NOx, SO2, and CO emissions over water (ship tracks)
+!        with zero for Streets 2000 emissions since these are double counted 
+!        (jaf, gcmv, amv, 1/30/12)
 !******************************************************************************
 !
       ! References to F90 modules
       USE BPCH2_MOD,        ONLY : GET_TAU0,          READ_BPCH2
+      USE DAO_MOD,          ONLY : FROCEAN !jaf
       USE DIRECTORY_MOD,    ONLY : DATA_DIR_1x1 
       USE LOGICAL_MOD,      ONLY : LFUTURE
       USE TRACER_MOD,       ONLY : ITS_A_CO2_SIM,     ITS_A_CH4_SIM
@@ -443,6 +447,7 @@
       ! Local variables
       LOGICAL, SAVE              :: FIRST = .TRUE.
       INTEGER                    :: BASE_YEAR,       SIM_YEAR
+      INTEGER                    :: I, J !jaf
       CHARACTER(LEN=255)         :: FILENAME,        STREETS_DIR,
      $                              STREETS_DIR_2000
 
@@ -457,6 +462,7 @@
       ! to hold data and scale factors
       REAL*4                     :: SCALFAC( IIPAR, JJPAR )
       REAL*8                     :: TEMP( IIPAR, JJPAR )
+      REAL*8                     :: SCALOC( IIPAR, JJPAR ) !jaf
 
       ! TAUs
       REAL*8                     :: TAU2000,       TAU2004,      TAU2006
@@ -533,6 +539,20 @@
       ! set module flag
       IS_2006 = ( BASE_YEAR == 2006 )
       
+      ! 2000 emissions have included ship emissions of NOX, SO2, and CO, which
+      ! leads to double counting and other problems. Here we deal with this by
+      ! defining a scale factor array that is all 1's unless 2000 emissions
+      ! are being used, in which case values over 100% ocean grid boxes are
+      ! set to zero. (jaf, gcvm, amv, 1/31/12)
+      SCALOC = 1d0
+      IF (.NOT. IS_2006) THEN
+         DO J = 1, JJPAR
+         DO I = 1, IIPAR
+            IF ( FROCEAN(I,J) == 1d0 ) SCALOC(I,J) = 0d0
+         ENDDO
+         ENDDO
+      ENDIF 
+
       ! %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
       ! %%%%    To simulate 2020 estimate, uncomment following two lines    %%%%
       !BASE_YEAR = 2020
@@ -646,11 +666,13 @@
             ! Read data
             CALL READ_STREETS( FILENAME, 'ANTHSRCE', 1, TAU, TEMP )
    
-            NOX = NOX + TEMP * ONOFF( NSOURCE ) * SCALE2020( NSOURCE )
+            ! Set emissions over water (ship emissions) to zero (jaf, 1/31/12)
+            !NOX = NOX + TEMP * ONOFF( NSOURCE ) * SCALE2020( NSOURCE )
+            NOX = NOX + 
+     $          TEMP * ONOFF( NSOURCE ) * SCALE2020( NSOURCE ) * SCALOC
 
          ENDDO
 
-         
          !--------------------------
          ! Scale NOx 
          !--------------------------
@@ -736,11 +758,13 @@
             ! Read data
             CALL READ_STREETS( FILENAME, 'ANTHSRCE', 4, TAU2000, CO )
 
+            ! Set emissions over water (ship emissions) to zero (jaf, 1/31/12)
+            ! Only necessary for 2000 emissions
+            CO = CO * SCALOC
+         
             ! Annual scalar factor (amv, phs, 3/10/08)
             CALL GET_ANNUAL_SCALAR( 72, 2000, SIM_YEAR, SCALFAC )
             CO = CO * SCALFAC
-
-
 
             !-- PART 2 -- File name for 2001 CO over China only
             FILENAME  = TRIM( STREETS_DIR ) // 
@@ -762,7 +786,6 @@
             CO = CO * ONOFF( 1 )
             
          ENDIF
-         
          
          !--------------------------
          ! Read SO2 and regrid
@@ -787,7 +810,9 @@
             ! Read data
             CALL READ_STREETS( FILENAME, 'ANTHSRCE', 26, TAU, TEMP )
 
-            SO2 = SO2 + TEMP * ONOFF( NSOURCE )
+            ! Set emissions over water (ship emissions) to zero (jaf, 1/31/12)
+            !SO2 = SO2 + TEMP * ONOFF( NSOURCE )
+            SO2 = SO2 + TEMP * ONOFF( NSOURCE ) * SCALOC
 
          ENDDO
 
@@ -1196,12 +1221,18 @@
 !     (2) Now read 2006 inventory (including VOCs) if needed. Apply monthly
 !     variations for NOx
 !     (3) Bug fixe : we call only read_streets_05x0666. (ccc, 3/11/09)
+!     (4) Bug fix : use Streets 2006 emissions for years 2001-2005 (as in global
+!     simulation (jaf, 1/30/12)
+!     (5) Bug fix : overwrite NOx, SO2, and CO emissions over water (ship tracks)
+!     with zero for Streets 2000 emissions since these are double counted 
+!     (jaf, gcmv, amv, 1/30/12)
 !
 !  NOTES:
 !******************************************************************************
 !
       ! References to F90 modules
       USE BPCH2_MOD,        ONLY : GET_TAU0,         READ_BPCH2
+      USE DAO_MOD,          ONLY : FROCEAN ! jaf
       USE LOGICAL_MOD,      ONLY : LFUTURE
       USE TRACER_MOD,       ONLY : ITS_A_CO2_SIM,    ITS_A_CH4_SIM
       USE DIRECTORY_MOD,    ONLY : DATA_DIR              
@@ -1215,6 +1246,7 @@
       ! Local variables
       LOGICAL, SAVE              :: FIRST = .TRUE.
       INTEGER                    :: BASE_YEAR,       SIM_YEAR
+      INTEGER                    :: I, J !jaf 
       CHARACTER(LEN=255)         :: FILENAME,        STREETS_DIR
       CHARACTER(LEN=255)         :: STREETS_DIR_2000
 
@@ -1229,6 +1261,7 @@
       ! to hold temporary data and scale factors
       REAL*4                     :: SCALFAC( IIPAR, JJPAR )
       REAL*8                     :: TEMP( IIPAR, JJPAR )
+      REAL*8                     :: SCALOC( IIPAR, JJPAR ) !jaf
 
       ! TAUs
       REAL*8                     :: TAU2000,       TAU2004,      TAU2006
@@ -1296,7 +1329,13 @@
       ENDIF
 
       ! Pickup BASE_YEAR according to SIMulation YEAR
-      IF ( SIM_YEAR >= 2006 ) THEN
+      ! In the global model, treatment of Streets emissions was changed beginning
+      ! in v8-03-01 to use the 2006 emissions for anything after 2000 to increase
+      ! consistency in simulations running over 2005-2006. This was accidentally
+      ! neglected from the nested version but is fixed here (jaf, gcmv, amv, 
+      ! 1/30/12).
+      !IF ( SIM_YEAR >= 2006 ) THEN
+      IF ( SIM_YEAR > 2000 ) THEN
          IS_2006 = .TRUE.
          BASE_YEAR = 2006
       ELSE
@@ -1306,6 +1345,20 @@
       ! %%%%  To simulate 2020 estimate, uncomment following line %%%%
       !BASE_YEAR = 2020
       !IS_2006 = .TRUE.
+
+      ! 2000 emissions have included ship emissions of NOX, SO2, and CO, which
+      ! leads to double counting and other problems. Here we deal with this by
+      ! defining a scale factor array that is all 1's unless 2000 emissions
+      ! are being used, in which case values over 100% ocean grid boxes are 
+      ! set to zero. (jaf, gcvm, amv, 1/31/12)
+      SCALOC = 1d0
+      IF (.NOT. IS_2006) THEN
+         DO J = 1, JJPAR
+         DO I = 1, IIPAR
+            IF ( FROCEAN(I,J) == 1d0 ) SCALOC(I,J) = 0d0
+         ENDDO
+         ENDDO
+      ENDIF 
 
       ! define data directory and number of sources
       STREETS_DIR_2000 = TRIM( DATA_DIR ) // 'Streets_200607/'
@@ -1421,7 +1474,10 @@
             CALL READ_STREETS_05x0666( FILENAME, 'ANTHSRCE', 1,
      $                                 TAU,       TEMP )
 
-            NOX = NOX + TEMP * ONOFF( NSOURCE ) * SCALE2020( NSOURCE )
+            ! Set emissions over water (ship emissions) to zero (jaf, 1/31/12)
+            !NOX = NOX + TEMP * ONOFF( NSOURCE ) * SCALE2020( NSOURCE )
+            NOX = NOX + 
+     $          TEMP * ONOFF( NSOURCE ) * SCALE2020( NSOURCE ) * SCALOC
 
          ENDDO
 
@@ -1514,11 +1570,14 @@
             CALL READ_STREETS_05x0666( FILENAME, 'ANTHSRCE', 4,
      $                                 TAU2000,   CO )
 
+            ! Set emissions over water (ship emissions) to zero (jaf, 1/31/12)
+            ! Only necessary for 2000 emissions
+            CO = CO * SCALOC
+
             ! (amv, 10/29/2009)
             CALL GET_ANNUAL_SCALAR_05x0666_NESTED( 72,    2000,
      &                                      SIM_YEAR, SCALFAC )
             CO = CO * SCALFAC            
-         
 
             !-- PART 2 -- File name for 2001 CO over China only
             FILENAME  = TRIM( STREETS_DIR ) //
@@ -1571,7 +1630,9 @@
             CALL READ_STREETS_05x0666( FILENAME, 'ANTHSRCE', 26,
      $                                 TAU,       TEMP )
 
-            SO2 = SO2 + TEMP * ONOFF( NSOURCE )
+            ! Set emissions over water (ship emissions) to zero (jaf, 1/31/12)
+            !SO2 = SO2 + TEMP * ONOFF( NSOURCE )
+            SO2 = SO2 + TEMP * ONOFF( NSOURCE ) * SCALOC
 
          ENDDO
 

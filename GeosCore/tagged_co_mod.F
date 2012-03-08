@@ -125,6 +125,7 @@
 !        READ_ACETONE and INIT_TAGGED_CO are public now. Variable
 !        EMACET is public now.  (phs, 9/18/07)
 !  13 Aug 2010 - R. Yantosca - Add modifications for MERRA (treat like GEOS-5)
+!  08 Feb 2012 - R. Yantosca - Add modifications for GEOS-5.7.2 met
 !******************************************************************************
 !
       IMPLICIT NONE
@@ -416,6 +417,7 @@
 !        (jaf, 3/10/09)
 !  (25) Move XLTMMP to module MEGANUT_MOD (ccc, 11/20/09)
 !  (26) IDBCO is now defined in tracerid_mod.f (fp, 6/09)
+!  08 Dec 2011 - M. Payer    - Remove GEIA biogenic emission option
 !******************************************************************************
 !
       ! References to F90 modules
@@ -454,7 +456,7 @@
       INTEGER                :: AS, IREF, JREF, IJLOOP, PBL_MAX
       INTEGER, SAVE          :: LASTMONTH = -999
 
-      ! For now these are defined in F77_CMN_O3
+      ! For now these are defined in CMN_O3_mod
       !REAL*4                 :: EMISTCO(IIPAR,JJPAR)
       !REAL*4                 :: FLIQCO2(IIPAR,JJPAR)
 
@@ -465,10 +467,8 @@
       REAL*8                 :: SC,   PDF,  PDR
       
       ! External functions
-!-- XLTMMP moved to meganut_mod.f (ccc, 11/20/09)
-!      REAL*8, EXTERNAL       :: XLTMMP,  EMISOP, BOXVL
-      REAL*8, EXTERNAL       :: EMISOP, BOXVL
-      REAL*8, EXTERNAL       :: EMMONOT, EMCH3OH
+      REAL*8, EXTERNAL       :: BOXVL
+      REAL*8, EXTERNAL       :: EMCH3OH
 
       !=================================================================
       ! EMISS_TAGGED_CO begins here!
@@ -704,7 +704,6 @@
       
             ! Add MEGAN biogenics (jaf, 3/10/09)
             IF ( LMEGAN ) THEN
-
                !------------------
                ! MEGAN biogenics
                !------------------
@@ -717,27 +716,12 @@
                PDF = PARDF(I,J)
 
                ! Isoprene [atoms C/box/timestep]
-!--- Change arguments order for coherence with other MEGAN functions
-!    (ccc, 11/23/09)
-!               EMIS = GET_EMISOP_MEGAN(  I, J,     SC, TMMP,
-!     &                                   XNUMOL_ISOP, PDR, PDF )
                EMIS = GET_EMISOP_MEGAN(  I, J,     SC, TMMP,
      &                                   PDR, PDF, XNUMOL_ISOP )
+
                ! Monoterpene [atoms C/box/timestep]
-! Previous to MEGAN v2.1
-!               EMMO = GET_EMMONOT_MEGAN( I, J, TMMP, XNUMOL_MONO)
                EMMO = GET_EMMONOT_MEGAN( I, J,  SC, TMMP, 
      &                                   PDR, PDF, XNUMOL_MONO )
-            ELSE
-
-               !------------------
-               ! GEIA biogenics 
-               !------------------
-
-               ! Isoprene [atoms C/box/timestep]
-               EMIS = EMISOP( I, J, IJLOOP, SUNCOS, TMMP, XNUMOL_ISOP )
-               ! Monoterpene [atoms C/box/timestep]
-               EMMO = EMMONOT( IJLOOP, TMMP, XNUMOL_MONO )
 
             ENDIF
 
@@ -1501,6 +1485,7 @@
 !  (7 ) Now references DATA_DIR from "directory_mod.f" (bmy, 7/20/04)
 !  (8 ) Now make sure all USE statements are USE, ONLY (bmy, 10/3/05)
 !  13 Aug 2010 - R. Yantosca - Treat MERRA in the same way as GEOS-5
+!  08 Feb 2012 - R. Yantosca - Treat GEOS-5.7.2 in the same way as MERRA
 !******************************************************************************
 !
       ! References to F90 modules
@@ -1554,7 +1539,7 @@
 !%%%      ! Cast from REAL*4 to REAL*8 and resize to (JJPAR,LLPAR)
 !%%%      CALL TRANSFER_ZONAL( ARRAY(1,:,:), CO_PRODS )
 !%%%---------------------------------------------------------------------
-#if   defined( GEOS_5 ) || defined( MERRA )
+#if   defined( GEOS_5 ) || defined( MERRA ) || defined( GEOS_57 )
       ! Cast from REAL*4 to REAL*8
       CO_PRODS = ARRAY(1,:,:)
 #else
@@ -1585,7 +1570,7 @@
 !%%%      ! Cast from REAL*4 to REAL*8 and resize to (JJPAR,LLPAR)
 !%%%      CALL TRANSFER_ZONAL( ARRAY(1,:,:), CO_LOSSS )
 !%%%---------------------------------------------------------------------
-#if   defined( GEOS_5 ) || defined( MERRA )
+#if   defined( GEOS_5 ) || defined( MERRA ) || defined( GEOS_57 )
       ! Cast from REAL*4 to REAL*8
       CO_LOSSS = ARRAY(1,:,:)
 #else

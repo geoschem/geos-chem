@@ -69,7 +69,7 @@
 !    NSEASON=3 --> summer (Jun, Jul, Aug)
 !    NSEASON=4 --> autumn (Sep, Oct, Nov)
 !                                                                             .
-!  Passed Via F77_CMN_O3:
+!  Passed Via CMN_O3_mod:
 !  ===========================================================================
 !  Fossil Fuel arrays: EMISTNOX,  EMISTCO,   EMISTETHE, EMISTPRPE,
 !                      EMISTC2H6, EMISTC3H8, EMISTALK4, EMISTACET,

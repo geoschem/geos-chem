@@ -1,4 +1,3 @@
-! $Id: grid_mod.f,v 1.1 2009/11/20 21:43:05 bmy Exp $
 !------------------------------------------------------------------------------
 !          Harvard University Atmospheric Chemistry Modeling Group            !
 !------------------------------------------------------------------------------
@@ -52,6 +51,7 @@
 !  (4 ) Added comments re: surface area derivation (bmy, 4/20/06)
 !  (5 ) Modifications for GEOS-5 nested grids (yxw, dan, bmy, 11/6/08)
 !  20 Nov 2009 - R. Yantosca - Added ProTeX headers
+!  10 Feb 2012 - R. Yantosca - Updated for 0.25 x 0.3125 grid & nested grids
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -125,6 +125,7 @@
 !  (5 ) Added comments re: surface area derivation (bmy, 4/20/06)
 !  (6 ) Compute YMID, YEDGE for 0.5x0.666 nested grids (yxw, dan, bmy, 11/6/08)
 !  20 Nov 2009 - R. Yantosca - Added ProTeX header
+!  10 Feb 2012 - R. Yantosca - Updated for 0.25 x 0.3125 grid & nested grids
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -180,6 +181,11 @@
       ! Overwrite YMID at poles for 0.5 x 0.666 grids
       YMID_G(1)      = -89.875d0
       YMID_G(JJJPAR) = +89.875d0
+
+#elif defined ( GRID025x03125 )
+      ! Overwrite YMID at poles for 0.25 x 0.3125 grids (bmy, 2/10/11)
+      YMID_G(1)      = -89.9375d0
+      YMID_G(JJJPAR) = +89.9375d0
 
 #endif
 
@@ -311,8 +317,8 @@
          AREA_CM2(J) = AREA_CM2_G(J+J0)
       ENDDO
 
-#if   defined( GRID05x0666 )
-      ! This only needs to be done for GEOS-5 nested grid (dan, bmy, 11/18/08)
+#if   defined( GRID05x0666 ) || defined( GRID025x03125 )
+      ! This only needs to be done for GEOS-5 nested grids (dan, bmy, 11/18/08)
       DO J = 0, JJPAR+1
          YMID_R_W(J) = YMID_R_G(J+J0)
       ENDDO
@@ -969,6 +975,7 @@
 !  (3 ) Modified for GCAP 4x5 horizontal grid (swu, bmy, 5/24/05)
 !  (4 ) Modifications for 0.5 x 0.666 nested grids (dan, bmy, 11/6/08)
 !  20 Nov 2009 - R. Yantosca - Added ProTeX header
+!  10 Feb 2012 - R. Yantosca - Define IIIPAR, JJJPAR for 0.25 x 0.3125 grid
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -983,12 +990,15 @@
 
       ! Define global sizes for grid.  We need to redefine these here
       ! since for the nested grid, we set IIPAR=IIPAR and JJPAR=JJPAR
-#if   defined( GRID1x1 )
-      IIIPAR = 360
-      JJJPAR = 181
+#if   defined( GRID025x03125 )
+      IIIPAR = 1152
+      JJJPAR = 721
 #elif defined( GRID05x0666 )
       IIIPAR = 540
       JJJPAR = 361
+#elif defined( GRID1x1 )
+      IIIPAR = 360
+      JJJPAR = 181
 #elif defined( GRID1x125 )
       IIIPAR = 288
       JJJPAR = 181

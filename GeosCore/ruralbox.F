@@ -12,11 +12,6 @@
 !\\
 ! !INTERFACE:
 !
-!------------------------------------------------------------------------------
-! Prior to 10/5/11:
-! SUNCOS is no longer used in RURALBOX, we can remove it (bmy, 10/5/11)
-!      SUBROUTINE RURALBOX( AD, T, AVGW, ALBD, SUNCOS )
-!------------------------------------------------------------------------------
       SUBROUTINE RURALBOX( AD, T, AVGW, ALBD )
 !
 ! !USES:
@@ -40,11 +35,6 @@
       REAL*8,  INTENT(IN) :: T(IIPAR,JJPAR,LLPAR)      ! Temperature [K]
       REAL*8,  INTENT(IN) :: AVGW(IIPAR,JJPAR,LLPAR)   ! Mix rat. of H2O [v/v]
       REAL*8,  INTENT(IN) :: ALBD(IIPAR,JJPAR)         ! Sfc albedo [unitless]
-!------------------------------------------------------------------------------
-! Prior to 10/5/11:
-! SUNCOS is no longer used in RURALBOX, we can remove it (bmy, 10/5/11)
-!      REAL*8,  INTENT(IN) :: SUNCOS(MAXIJ)             ! Cos of SZA [unitless]
-!------------------------------------------------------------------------------
 !
 ! !REMARKS:
 !  Developers: amf, bey, ljm, lwh, gmg, bdf, bmy, 7/16/01, 2/25/10)
@@ -52,12 +42,12 @@
 ! !REVISION HISTORY: 
 !  01 Oct 1995 - M. Prather  - Initial version
 !  (1 ) Remove PTOP from the arg list.  PTOP is now a parameter
-!        in "F77_CMN_SIZE". (bmy, 2/10/00)
+!        in "CMN_SIZE". (bmy, 2/10/00)
 !  (2 ) Add C-preprocessor switch LSLOWJ to bracket code for 
 !        SLOW-J photolysis (bmy, 2/25/00)
 !  (3 ) Now reference ABHSUM, AIRDENS, IXSAVE, IYSAVE, IZSAVE, JLOP, PRESS3, 
 !        T3, and VOLUME from F90 module "comode_mod.f" (bmy, 10/19/00)
-!  (4 ) PTOP is already a parameter in "F77_CMN_SIZE", don't declare it here
+!  (4 ) PTOP is already a parameter in "CMN_SIZE", don't declare it here
 !        (bmy, 7/16/01)
 !  (5 ) Replace IGCMPAR,JGCMPAR,LGCMPAR with IIPAR,JJPAR,LLPAR.  Also moved
 !        CLOUDREF to SLOW-J block.  Also remove IREF, JREF, IOFF, JOFF, these

@@ -327,7 +327,7 @@
 !  (1 ) Adapted from OPEN_MET_FIELDS of "dao_read_mod.f" (bmy, 6/19/03)
 !  (2 ) Now opens either zipped or unzipped files (bmy, 12/11/03)
 !  (3 ) Now skips past the GEOS-4 ident string (bmy, 12/12/03)
-!  (4 ) Now references "directory_mod.f" instead of F77_CMN_SETUP.  Also now
+!  (4 ) Now references "directory_mod.f" instead of CMN_SETUP.  Also now
 !        references LUNZIP from "logical_mod.f".  Also now prevents EXPAND_DATE
 !        from overwriting Y/M/D tokens in directory paths. (bmy, 7/20/04)
 !  (5 ) Now use FILE_EXISTS from "file_mod.f" to determine if file unit IU_A6 
@@ -474,7 +474,7 @@
 !  (2 ) NHMS (INTEGER) :  and HHMMSS of A-6 fields to be read from disk
 !
 !  NOTES:
-!  (1 ) CFRAC has been removed from F77_CMN_DEP.  Now use CLDFRC(I,J) from
+!  (1 ) CFRAC has been removed from CMN_DEP.  Now use CLDFRC(I,J) from
 !        "dao_mod.f" (bmy, 12/9/03)
 !  (2 ) Now pass CLDTOPS to READ_A6 for GEOS-4 (bmy, 3/4/04)
 !  (3 ) Now modified for GEOS-5 and GCAP met fields (swu, bmy, 5/25/05)
@@ -1065,7 +1065,7 @@
 !  (3 ) Now compute CLDTOPS using ZMMU for GEOS-4 (bmy, 3/4/04)
 !  (4 ) Now modified for GEOS-5 and GCAP fields.  Added DETRAINE, 
 !        DETRAINN, DNDE, DNDN, ENTRAIN, UPDE, UPDN as optional arguments.
-!        Now references "F77_CMN_DIAG". (swu, bmy, 5/25/05)
+!        Now references "CMN_DIAG". (swu, bmy, 5/25/05)
 !  (5 ) Bug fix in ND66 diagnostic for GEOS-4 (bmy, 2/1/06)
 !  (6 ) Remove support for GEOS-1 and GEOS-STRAT met fields (bmy, 8/4/06)
 !  (7 ) Now set negative SPHU to a small positive # (1d-32) instead of zero, 

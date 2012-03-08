@@ -983,12 +983,6 @@
       !=================================================================
 
       ! File name
-!-----------------------------------------------------------------------
-! Prior to 11/24/10:
-! Read in new mask file for EMEP emissions (gvinken, 11/24/10)
-!      FILENAME  = TRIM( DATA_DIR_1x1 ) // 
-!     &            'EMEP_200510/EMEP_mask.geos.1x1'
-!-----------------------------------------------------------------------
       FILENAME  = TRIM( DATA_DIR_1x1 ) // 
      &            'EMEP_200911/EMEP_mask.geos.1x1'
 
@@ -1177,23 +1171,38 @@
          ! Apply Monthly Factors over land
          TAU = GET_TAU0( GET_MONTH(), 1, 2005)
 
-         IF ( TRACER .eq. IDTNOx ) THEN
-            FILENAME = TRIM( DIR ) // 'SeasonalVariation/' 
-     &        // 'NOx-EMEP-SeasonalScalar.geos.1x1'
-            RATIOID = 71
-         ELSEIF ( TRACER .eq. IDTCO ) THEN
-            FILENAME = TRIM( DIR ) // 'SeasonalVariation/'
-     &        // 'CO-EMEP-SeasonalScalar.geos.1x1'
-            RATIOID = 72
-         ELSEIF ( TRACER .eq. IDTSO2 ) THEN
-            FILENAME = TRIM( DIR ) // 'SeasonalVariation/'
-     &        // 'SOx-EMEP-SeasonalScalar.geos.1x1'
-            RATIOID = 73
-         ELSEIF ( TRACER .eq. IDTNH3 ) THEN
-            FILENAME = TRIM( DIR ) // 'SeasonalVariation/'
-     &        // 'NH3-EMEP-SeasonalScalar.geos.1x1'
-            RATIOID = 74
-         ENDIF
+         ! Select proper filename & tracer #
+         SELECT CASE( TRACER )
+
+            ! NOx
+            CASE( 1 )
+               RATIOID = 71
+               FILENAME = TRIM( DIR )          //
+     &                    'SeasonalVariation/' //
+     &                    'NOx-EMEP-SeasonalScalar.geos.1x1'
+
+            ! CO
+            CASE( 4 )
+               RATIOID = 72
+               FILENAME = TRIM( DIR )          //
+     &                    'SeasonalVariation/' //
+     &                    'CO-EMEP-SeasonalScalar.geos.1x1'
+
+            ! SO2
+            CASE( 26 )
+               RATIOID = 73
+               FILENAME = TRIM( DIR )          //
+     &                    'SeasonalVariation/' //
+     &                    'SOx-EMEP-SeasonalScalar.geos.1x1'
+
+            ! SO2
+            CASE( 30 )
+               RATIOID = 74
+               FILENAME = TRIM( DIR )          //
+     &                    'SeasonalVariation/' //
+     &                    'NH3-EMEP-SeasonalScalar.geos.1x1'
+
+         END SELECT
 
          ! Echo info
          WRITE( 6, 101 ) TRIM( FILENAME )
@@ -1222,10 +1231,10 @@
       ! convert to molec/cm2 for consistency with previous
       ! emissions
       B = 0d0
-      IF ( IDTNOx .eq. TRACER ) B = 1.d3 / 46d0 * 6.0225d23
-      IF ( IDTCO  .eq. TRACER ) B = 1.d3 / 28d0 * 6.0225d23
-      IF ( IDTSO2 .eq. TRACER ) B = 1.d3 / 64d0 * 6.0225d23
-      IF ( IDTNH3 .eq. TRACER ) B = 1.d3 / 17d0 * 6.0225d23
+      IF ( TRACER .eq.  1 ) B = 1.d3 / 46d0 * 6.0225d23
+      IF ( TRACER .eq.  4 ) B = 1.d3 / 28d0 * 6.0225d23
+      IF ( TRACER .eq. 26 ) B = 1.d3 / 64d0 * 6.0225d23
+      IF ( TRACER .eq. 30 ) B = 1.d3 / 17d0 * 6.0225d23
 
       ! Loop over latitudes
       DO J = 1, JJPAR
@@ -1366,23 +1375,38 @@
          ! Apply Monthly Factors over land
          TAU = GET_TAU0( GET_MONTH(), 1, 2005)
 
-         IF ( TRACER .eq. 1 ) THEN
-            FILENAME = TRIM( DIR ) // 'SeasonalVariation/'
-     &        // 'NOx-EMEP-SeasonalScalar.geos.05x0666'
-            RATIOID = 71
-         ELSEIF ( TRACER .eq. 4 ) THEN
-            FILENAME = TRIM( DIR ) // 'SeasonalVariation/'
-     &        // 'CO-EMEP-SeasonalScalar.geos.05x0666'
-            RATIOID = 72
-         ELSEIF ( TRACER .eq. 26 ) THEN
-            FILENAME = TRIM( DIR ) // 'SeasonalVariation/'
-     &        // 'SOx-EMEP-SeasonalScalar.geos.05x0666'
-            RATIOID = 73
-         ELSEIF ( TRACER .eq. 30 ) THEN
-            FILENAME = TRIM( DIR ) // 'SeasonalVariation/'
-     &        // 'NH3-EMEP-SeasonalScalar.geos.05x0666'
-            RATIOID = 74
-         ENDIF
+         ! Select proper filename & tracer #
+         SELECT CASE( TRACER )
+
+            ! NOx
+            CASE( 1 )
+               RATIOID = 71
+               FILENAME = TRIM( DIR )          //
+     &                    'SeasonalVariation/' //
+     &                    'NOx-EMEP-SeasonalScalar.geos.05x0666'
+
+            ! CO
+            CASE( 4 )
+               RATIOID = 72
+               FILENAME = TRIM( DIR )          //
+     &                    'SeasonalVariation/' //
+     &                    'CO-EMEP-SeasonalScalar.geos.05x0666'
+
+            ! SO2
+            CASE( 26 )
+               RATIOID = 73
+               FILENAME = TRIM( DIR )          //
+     &                    'SeasonalVariation/' //
+     &                    'SOx-EMEP-SeasonalScalar.geos.05x0666'
+
+            ! SO2
+            CASE( 30 )
+               RATIOID = 74
+               FILENAME = TRIM( DIR )          //
+     &                    'SeasonalVariation/' //
+     &                    'NH3-EMEP-SeasonalScalar.geos.05x0666'
+
+         END SELECT
 
          ! Echo info
          WRITE( 6, 101 ) TRIM( FILENAME )
@@ -1413,10 +1437,10 @@
       ! convert to molec/cm2 for consistency with previous
       ! emissions
       B = 0d0
-      IF ( IDTNOx .eq. TRACER ) B = 1.d3 / 46d0 * 6.0225d23
-      IF ( IDTCO  .eq. TRACER ) B = 1.d3 / 28d0 * 6.0225d23
-      IF ( IDTSO2 .eq. TRACER ) B = 1.d3 / 64d0 * 6.0225d23
-      IF ( IDTNH3 .eq. TRACER ) B = 1.d3 / 17d0 * 6.0225d23
+      IF ( TRACER .eq.  1 ) B = 1.d3 / 46d0 * 6.0225d23
+      IF ( TRACER .eq.  4 ) B = 1.d3 / 28d0 * 6.0225d23
+      IF ( TRACER .eq. 26 ) B = 1.d3 / 64d0 * 6.0225d23
+      IF ( TRACER .eq. 30 ) B = 1.d3 / 17d0 * 6.0225d23
 
       ! Loop over latitudes
       DO J = 1, JJPAR

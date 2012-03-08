@@ -55,6 +55,7 @@
 !       (clh, 05/07/10)
 !  25 Aug 2010 - R. Yantosca - Added ProTeX headers
 !  03 Sep 2010 - R. Yantosca - Bug fix in SRC_DUST_DEAD
+!  08 Feb 2012 - R. Yantosca - Add modifications for GEOS-5.7.x
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -641,6 +642,7 @@
 !  03 Sep 2010 - R. Yantosca - Bug fix, SNOMAS was mislabled in GEOS-5
 !                              and has units of mm H2O instead of m H2O
 !                              so we need to convert to m H2O.
+!  08 Feb 2012 - R. Yantosca - Treat GEOS-5.7.x in the same way as MERRA
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -778,7 +780,7 @@
             ORO(I)         = OROGRAPHY(I,J) 
 
             ! Snow height [m H2O]
-#if   defined( GEOS_5 ) || defined( MERRA )
+#if   defined( GEOS_5 ) || defined( MERRA ) || defined( GEOS_57 )
             SNW_HGT_LQD(I) = SNOMAS(I,J) / 1000d0
 #else
             SNW_HGT_LQD(I) = SNOW(I,J) / 1000d0
@@ -1361,7 +1363,7 @@
 !        binary files is pretty fast.  And it's only done once a month.
 !  (3 ) Now references punch file utility routines from F90 module
 !        "bpch2_mod.f".  Also reference variable DATA_DIR from the
-!         header file "F77_CMN_SETUP". (bmy, 9/30/00) 
+!         header file "CMN_SETUP". (bmy, 9/30/00) 
 !  (4 ) Now selects proper GEOS-STRAT dust field for 1996 or 1997.
 !        Also need to pass THISYEAR thru the arg list. (rvm, bmy, 11/21/00)
 !  (5 ) CONC is now declared as REAL*8 (rvm, bmy, 12/15/00)

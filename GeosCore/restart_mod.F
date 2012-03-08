@@ -131,7 +131,7 @@
 !  (9 ) Now reference STT, N_TRACERS, TCVV from "tracer_mod.f".  Also now
 !        remove hardwired output restart filename.   Now references LPRT
 !        from "logical_mod.f". (bmy, 7/20/04)
-!  (10) Remove references to F77_CMN_DIAG and TRCOFFSET.  Now call GET_HALFPOLAR 
+!  (10) Remove references to CMN_DIAG and TRCOFFSET.  Now call GET_HALFPOLAR 
 !        from "bpch2_mod.f" to get the HALFPOLAR flag value for GEOS or GCAP 
 !        grids. (bmy, 6/28/05)
 !  (11) Now make sure all USE statements are USE, ONLY (bmy, 10/3/05)
@@ -277,7 +277,7 @@
 !  27 May 1999 - R. Yantosca - Initial version
 !  (1 ) Now check that N = NTRACER - TRCOFFSET is valid.  
 !        Also reorganize some print statements  (bmy, 10/25/99)
-!  (2 ) Now pass LFORCE, LSPLIT via F77_CMN_SETUP. (bmy, 11/4/99)
+!  (2 ) Now pass LFORCE, LSPLIT via CMN_SETUP. (bmy, 11/4/99)
 !  (3 ) Cosmetic changes, added comments (bmy, 3/17/00)
 !  (4 ) Now use function NYMD_STRING from "time_mod.f" to generate a
 !        Y2K compliant string for all data sets. (bmy, 6/22/00)
@@ -301,7 +301,7 @@
 !  (18) No longer use hardwired filename.  Also now reference "logical_mod.f"
 !        and "tracer_mod.f" (bmy, 7/20/04)
 !  (19) Remove code for obsolete CO-OH simulation.  Also remove references
-!        to F77_CMN_DIAG and TRCOFFSET.   Change tracer name format string to 
+!        to CMN_DIAG and TRCOFFSET.   Change tracer name format string to 
 !        A10. (bmy, 6/24/05)
 !  (20) Updated comments (bmy, 12/16/05)
 !  11 Jul 2011 - R. Yantosca - Added ProTeX headers

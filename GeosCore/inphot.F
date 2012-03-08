@@ -14,7 +14,7 @@
 !
 !  NOTES: 
 !  (1 ) Remove PTOP from the arg list, since it is now a 
-!        parameter in "F77_CMN_SIZE" (bmy, 2/10/00).
+!        parameter in "CMN_SIZE" (bmy, 2/10/00).
 !  (2 ) Remove SIGE from the argument list, since we are now using
 !        a hybrid pressure specification.  Now define ETAA and ETAB
 !        for use in "set_prof.f". (bmy, 8/23/02)

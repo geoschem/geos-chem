@@ -98,6 +98,7 @@
 !  (22) Now make sure all USE statements are USE, ONLY (bmy, 10/3/05)
 !  (23) Updated CH4 simulation (kjw, cph, ccarouge, 10/1/09)
 !  (24) Added modifications for MERRA (bmy, 8/13/10)
+!  08 Feb 2012 - R. Yantosca - Added modifications for GEOS-5.7.x
 !******************************************************************************
 !     
       IMPLICIT NONE
@@ -173,7 +174,7 @@
 !  NOTES:
 !  (1 ) Created by Bryan Duncan (1/99).  Adapted for CH4 chemistry and
 !        placed into module "global_ch4_mod.f" by Bob Yantosca. (bmy, 1/16/01)
-!  (2 ) CH4_AVGTP is independent of "F77_CMN_OH", "F77_CMN_CO", and "F77_CMN_CO_BUDGET".
+!  (2 ) CH4_AVGTP is independent of "CMN_OH", "CMN_CO", and "CMN_CO_BUDGET".
 !        (bmy, 1/16/01)
 !  (3 ) Removed duplicate definition for NTDT, NMIN (bmy, 11/15/01)
 !  (4 ) Removed PS from argument list.  Now use P(I,J)+PTOP instead of
@@ -321,13 +322,13 @@
 !  (1 ) Created by Bryan Duncan (1/99).  Adapted for CH4 chemistry by
 !        James Wang (7/00).  Inserted into module "global_ch4_mod.f" 
 !        by Bob Yantosca. (bmy, 1/16/01)
-!  (2 ) EMISSCH4 is independent of "F77_CMN_OH", "F77_CMN_CO", and "F77_CMN_CO_BUDGET".
+!  (2 ) EMISSCH4 is independent of "CMN_OH", "CMN_CO", and "CMN_CO_BUDGET".
 !        (bmy, 1/16/01)
 !  (3 ) GLOBASEAEMIS, GLOBSEAEMIS are diagnostics by jsw.
 !  (4 ) Do not multiply CO emissions by 1.28 anymore (jsw, bmy, 2/12/01)
 !  (5 ) Renamed input files to CH4_monthly.geos.{RES} and 
 !        CH4_aseasonal.geos.{RES}. (bmy, 2/12/01)
-!  (6 ) Add reference to "F77_CMN_SETUP" for the DATA_DIR variable (bmy, 2/13/01)
+!  (6 ) Add reference to "CMN_SETUP" for the DATA_DIR variable (bmy, 2/13/01)
 !  (7 ) Removed references to "biofuel_mod.f" and "biomass_mod.f"; these
 !        weren't necessary (bmy, 3/20/01)
 !  (8 ) Now reference IU_FILE and IOERROR from "file_mod.f".  Now use IU_FILE
@@ -626,6 +627,7 @@
 !	by J.O.Kaplan. Soil moisture is read from GEOS Met input files.  
 !
 !  (3 ) Corrected order of DO loops (bmy, 10/1/09)
+!  08 Feb 2012 - R. Yantosca - Treat GEOS-5.7.x in the same way as MERRA
 !******************************************************************************
 !
       ! References to F90 modules
@@ -749,7 +751,7 @@
 !$OMP END PARALLEL DO
 
       ! GEOS5 Calculation of inundated fraction
-#elif defined( GEOS_5 ) || defined( MERRA )
+#elif defined( GEOS_5 ) || defined( MERRA ) || defined( GEOS_57 )
 !$OMP PARALLEL DO
 !$OMP+DEFAULT( SHARED )
 !$OMP+PRIVATE( J, I )
@@ -1615,10 +1617,10 @@
 !  (1 ) Created by Bryan Duncan (1/99).  Adapted for CH4 chemistry by
 !        James Wang (6/8/00).  Inserted into module "global_ch4_mod.f" 
 !        by Bob Yantosca. (bmy, 1/16/01)
-!  (2 ) CHEMCH4 is independent of "F77_CMN_OH", "F77_CMN_CO", and "F77_CMN_CO_BUDGET".
+!  (2 ) CHEMCH4 is independent of "CMN_OH", "CMN_CO", and "CMN_CO_BUDGET".
 !        (bmy, 1/16/01)
 !  (3 ) Updated comments (jsw, bmy, 2/12/01)
-!  (4 ) LD43 is already declared in F77_CMN_DIAG; don't redefine it (bmy, 11/15/01)
+!  (4 ) LD43 is already declared in CMN_DIAG; don't redefine it (bmy, 11/15/01)
 !  (5 ) Replaced all instances of IM with IIPAR and JM with JJPAR, in order
 !        to prevent namespace confusion for the new TPCORE (bmy, 6/25/02)
 !  (6 ) Now reference AD from "dao_mod.f".  Now reference GEOS_CHEM_STOP from
@@ -1907,7 +1909,7 @@
 !  (1 ) Created by Bryan Duncan (1/99).  Adapted for CH4 chemistry by
 !        James Wang (6/8/00).  Inserted into module "global_ch4_mod.f" 
 !        by Bob Yantosca. (bmy, 1/16/01)
-!  (2 ) READ_COPROD is independent of "F77_CMN_OH", "F77_CMN_CO", and "F77_CMN_CO_BUDGET".
+!  (2 ) READ_COPROD is independent of "CMN_OH", "CMN_CO", and "CMN_CO_BUDGET".
 !        (bmy, 1/16/01)
 !  (3 ) ARRAY needs to be dimensioned (1,JJPAR,LGLOB) (bmy, 9/26/01)
 !  (4 ) Remove obsolete code from 9/01 (bmy, 10/24/01)
@@ -1915,6 +1917,7 @@
 !  (6 ) Now reads data for both GEOS and GCAP grids (bmy, 8/16/05)
 !  (7 ) Now make sure all USE statements are USE, ONLY (bmy, 10/3/05)
 !  (8 ) Treat MERRA in the same way as for GEOS-5 (bmy, 8/13/10)
+!  08 Feb 2012 - R. Yantosca - Treat GEOS-5.7.x in the same way as MERRA
 !*****************************************************************************
 !
       ! References to F90 modules
@@ -1980,7 +1983,7 @@
 !%%%
 !%%%         COPROD(:,:,M) = DUMMY_OUT(:,:)
 !%%%-----------------------------------------------------------------------
-#if   defined( GEOS_5 ) || defined( MERRA )
+#if   defined( GEOS_5 ) || defined( MERRA ) || defined( GEOS_57 )
          ! Cast from REAL*4 to REAL*8
          COPROD(:,:,M) = ARRAY(1,:,:)
 #else
@@ -2029,7 +2032,7 @@
 !  (1 ) Created by Bryan Duncan (1/99).  Adapted for CH4 chemistry by
 !        James Wang (7/00).  Inserted into module "global_ch4_mod.f" 
 !        by Bob Yantosca. (bmy, 1/16/01)
-!  (2 ) CH4_DECAY is independent of "F77_CMN_OH", "F77_CMN_CO", and "F77_CMN_CO_BUDGET".
+!  (2 ) CH4_DECAY is independent of "CMN_OH", "CMN_CO", and "CMN_CO_BUDGET".
 !        (bmy, 1/16/01)
 !  (3 ) Now use function GET_TS_CHEM from "time_mod.f" (bmy, 3/27/03)
 !  (4 ) Now references STT from "tracer_mod.f" (bmy, 7/20/04)
@@ -2154,7 +2157,7 @@
 !  (1 ) Created by Bryan Duncan (1/99).  Adapted for CH4 chemistry by
 !        James Wang (7/00).  Inserted into module "global_ch4_mod.f" 
 !        by Bob Yantosca. (bmy, 1/16/01)
-!  (2 ) CH4_OHSAVE is independent of "F77_CMN_OH", "F77_CMN_CO", and "F77_CMN_CO_BUDGET".
+!  (2 ) CH4_OHSAVE is independent of "CMN_OH", "CMN_CO", and "CMN_CO_BUDGET".
 !        (bmy, 1/16/01)
 !  (3 ) Now call DO_DIAG_OH_CH4 to pass OH diagnostic info to the
 !        "diag_oh_mod.f" (bmy, 7/20/04)
@@ -2238,7 +2241,7 @@
 !  (1 ) Created by Bryan Duncan (1/99).  Adapted for CH4 chemistry by
 !        James Wang (7/00).  Inserted into module "global_ch4_mod.f" 
 !        by Bob Yantosca. (bmy, 1/16/01)
-!  (2 ) CH4_STRAT is independent of "F77_CMN_OH", "F77_CMN_CO", and "F77_CMN_CO_BUDGET".
+!  (2 ) CH4_STRAT is independent of "CMN_OH", "CMN_CO", and "CMN_CO_BUDGET".
 !        (bmy, 1/16/01)
 !  (3 ) Removed LMN from the arg list and made it a local variable.  Now use 
 !        functions GET_MONTH and GET_TS_CHEM from "time_mod.f" (bmy, 3/27/03)
@@ -2343,7 +2346,7 @@
 !  (1 ) Created by Bryan Duncan (1/99).  Adapted for CH4 chemistry by
 !        James Wang (7/00).  Inserted into module "global_ch4_mod.f" 
 !        by Bob Yantosca. (bmy, 1/16/01)
-!  (2 ) CH4_BUDGET is independent of "F77_CMN_OH", "F77_CMN_CO", and "F77_CMN_CO_BUDGET".
+!  (2 ) CH4_BUDGET is independent of "CMN_OH", "CMN_CO", and "CMN_CO_BUDGET".
 !        (bmy, 1/16/01)
 !  (3 ) Updated comments (jsw, bmy, 2/13/01)
 !  (4 ) Renamed XLABEL to LABEL so as not to conflict w/ "CMN"
@@ -2871,7 +2874,7 @@ c Sinks
 !  (1 ) Created by Bryan Duncan (1/99).  Adapted for CH4 chemistry by
 !        James Wang (7/00).  Inserted into module "global_ch4_mod.f" 
 !        by Bob Yantosca. (bmy, 1/16/01)
-!  (2 ) CH4_BUDGET is independent of "F77_CMN_OH", "F77_CMN_CO", and "F77_CMN_CO_BUDGET".
+!  (2 ) CH4_BUDGET is independent of "CMN_OH", "CMN_CO", and "CMN_CO_BUDGET".
 !        (bmy, 1/16/01)
 !  (3 ) Updated comments (jsw, bmy, 2/12/01)
 !******************************************************************************

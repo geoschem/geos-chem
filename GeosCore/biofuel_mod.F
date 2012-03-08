@@ -179,7 +179,7 @@
 !  (22) Now reference ITS_A_H2HD_SIM from "tracer_mod.f" for ND29.
 !        (phs, 9/18/07)
 !  (23) Switch off biofuel in S.E.-Asia if Streets 2006 inventory is used,
-!        accounting for FSCLYR from F77_CMN_O3 (phs,3/17/08)
+!        accounting for FSCLYR from CMN_O3 (phs,3/17/08)
 !  (24) Add scaling of aromatic emissions over the US. (hotp, 11/23/09)
 !   7 Feb 2011 - R. Yantosca - If we are using the EPA/NEI05 anthropogenic
 !                              emissions, get biofuels from EPA/NEI99 over USA

@@ -1321,7 +1321,7 @@
 !  10 Mar 2003 - R. Yantosca - Initial version
 !  (1 ) Now references GET_TS_DYN from "time_mod.f", INIT_TPCORE_FVDAS from
 !        "tpcore_fvdas_mod.f90", and GET_YMID_R from "grid_mod.f".  Now also
-!        include "F77_CMN_SETUP".  (bdf, bmy, 4/28/03)
+!        include "CMN_SETUP".  (bdf, bmy, 4/28/03)
 !  (2 ) Remove reference to DSIG, it's obsolete. (bmy, 6/24/03)
 !  (3 ) Now references LEMBED & LTPFV from "logical_mod.f".  Now references
 !        N_TRACERS from "tracer_mod.f". (bmy, 7/20/04)

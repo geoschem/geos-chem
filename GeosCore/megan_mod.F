@@ -50,7 +50,7 @@
 ! !DEFINED PARAMETERS:
 ! 
       ! Scalars
-#if   defined( MERRA ) 
+#if   defined( MERRA ) || defined( GEOS_57 )
       INTEGER, PARAMETER  :: DAY_DIM        = 24       ! # of 1-hr periods/day
 #else
       INTEGER, PARAMETER  :: DAY_DIM        = 8        ! # of 3-hr periods/day
@@ -96,6 +96,9 @@
       REAL*8, ALLOCATABLE :: AEF_MYRCN(:,:)     ! Myrcene
       REAL*8, ALLOCATABLE :: AEF_CAREN(:,:)     ! 3-Carene
       REAL*8, ALLOCATABLE :: AEF_OCIMN(:,:)     ! Ocimene
+      !evf, acetone update (5/24/2011)
+      REAL*8, ALLOCATABLE :: AEF_ACET(:,:)      ! Acetone
+
       ! bug fix: causes issues in parallel (hotp 3/10/10) 
       !REAL*8, ALLOCATABLE :: AEF_SPARE(:,:)     ! Temp array for monoterp's
 
@@ -105,7 +108,9 @@
 ! !PUBLIC MEMBER FUNCTIONS: 
 !
       PUBLIC  :: ACTIVITY_FACTORS
-      PUBLIC  :: CLEANUP_MEGAN   
+      PUBLIC  :: CLEANUP_MEGAN
+      ! evf, acetone update (5/24/2011)
+      PUBLIC  :: GET_EMACET_MEGAN    
       PUBLIC  :: GET_EMISOP_MEGAN  
       PUBLIC  :: GET_EMMBO_MEGAN    
       PUBLIC  :: GET_EMMONOG_MEGAN 
@@ -144,12 +149,13 @@
 !  09 Mar 2010 - R. Yantosca - Minor bug fix in GET_EMMONOT_MEGAN
 !  17 Mar 2010 - H. Pye      - AEF_SPARE must be a scalar local variable
 !                              in GET_EMMONOT_MEGAN for parallelization.
-!  20 Aug 2010 - R. Yantosca - Move F77_CMN_SIZE to top of module
+!  20 Aug 2010 - R. Yantosca - Move CMN_SIZE to top of module
 !  20 Aug 2010 - R. Yantosca - Now set DAY_DIM = 24 for MERRA, since the
 !                              surface temperature is now an hourly field.
 !  01 Sep 2010 - R. Yantosca - Bug fix in INIT_MEGAN: now only read in 
 !                              NUM_DAYS (instead of 15) days of sfc temp data
 !  22 Nov 2011 - R. Yantosca - Do not use erroneous AEF's for nested grids 
+!  06 Dec 2011 - E. Fischer  - Added Acetone emissions 
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -647,6 +653,187 @@
       EMMONOT  = EMMONOT * XNUMOL
 
       END FUNCTION GET_EMMONOG_MEGAN
+!EOC
+!------------------------------------------------------------------------------
+!          Harvard University Atmospheric Chemistry Modeling Group            !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: get_emacet_megan
+!
+! !DESCRIPTION: Subroutine GET\_EMACET\_MEGAN computes acetone emissions in
+!  units of [atomsC/box] using the MEGAN inventory.
+!\\
+!\\
+! !INTERFACE:
+!
+      FUNCTION GET_EMACET_MEGAN( I,     J ,     SUNCOS , TS,
+     &                           Q_DIR, Q_DIFF, XNUMOL ) 
+     &            RESULT( EMACET )
+!
+! !USES:
+!
+      USE LAI_MOD,     ONLY : ISOLAI, MISOLAI, PMISOLAI, DAYS_BTW_M
+      USE LOGICAL_MOD, ONLY : LPECCA 
+
+      USE CMN_SIZE_MOD      ! Size parameters
+!
+! !INPUT PARAMETERS: 
+!
+      INTEGER, INTENT(IN) :: I,  J   ! GEOS-Chem lon & lat indices
+      REAL*8,  INTENT(IN) :: SUNCOS  ! Solar zenith angle [unitless]
+      REAL*8,  INTENT(IN) :: TS      ! Surface temperature [K]
+      REAL*8,  INTENT(IN) :: Q_DIR   ! Flux of direct PAR above canopy [W/m2]
+      REAL*8,  INTENT(IN) :: Q_DIFF  ! Flux of diffuse PAR above canopy [W/m2]
+      REAL*8,  INTENT(IN) :: XNUMOL  ! Number of atoms C / kg C 
+!
+! !RETURN VALUE:
+!
+      REAL*8              :: EMACET  ! Acetone emissions [atoms C/box]
+! 
+! !REMARKS:
+!  References (see above for full citations):
+!  ============================================================================
+!  (1 ) Guenther et al, 1995, 1999, 2004, 2006
+!  (2 ) Guenther et al, 2007, MEGAN v2.1 User Manual
+!
+! !REVISION HISTORY:
+!  (1 ) Written by Michael Barkley (2008), based on old monoterpene code by 
+!       dsa,tmf.
+!  (2 ) Uses gamma factors instead of exchange factors, this includes
+!        calling of a new temperature algorithm which use a beta factor.
+!        (mpb,2008) 
+!  24 May 2011 - E. Fischer  - Modified for acetone. Function GET_EMACET_MEGAN
+!                              is called from "acetone_mod.f"
+!  06 Dec 2011 - M. Payer    - Added ProTeX headers
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+!
+! !DEFINED PARAMETERS:
+!
+      ! Fraction of emission that is light dependent (A. Guenther 5/25/2011)
+      REAL*8, PARAMETER   :: LDF    = 0.20d0
+      ! Temperature response factor for light-independent emissions
+      ! (A. Guenther 5/25/2011)
+      REAL*8, PARAMETER   :: BETA   = 0.10d0
+!
+! !LOCAL VARIABLES:
+!
+      INTEGER             :: IJLOOP
+      REAL*8              :: GAMMA_LAI
+      REAL*8              :: GAMMA_LEAF_AGE
+      REAL*8              :: GAMMA_P
+      REAL*8              :: GAMMA_T
+      REAL*8              :: GAMMA_SM
+      REAL*8              :: D_BTW_M
+      REAL*8              :: Q_DIR_2, Q_DIFF_2
+
+      !=================================================================
+      ! GET_EMACET_MEGAN begins here!
+      !================================================================= 
+
+      ! Initialize return value & activity factors
+      EMACET          = 0.d0
+      GAMMA_T         = 0.d0
+      GAMMA_LAI       = 0.d0
+      GAMMA_LEAF_AGE  = 1.d0
+      GAMMA_P         = 0.d0
+      GAMMA_SM        = 0.d0
+
+      ! Number of days between MISOLAI and PMISOLAI
+      D_BTW_M  = DBLE( DAYS_BTW_M )
+
+      ! Convert Q_DIR and Q_DIFF from [W/m2] to [umol/m2/s]
+      Q_DIR_2  = Q_DIR  * WM2_TO_UMOLM2S
+      Q_DIFF_2 = Q_DIFF * WM2_TO_UMOLM2S
+
+      !-----------------------------------------------------
+      ! Only interested in terrestrial biosphere (pip)
+      ! If (local LAI != 0 .AND. baseline emission !=0 ) 
+      !-----------------------------------------------------
+      IF ( ISOLAI(I,J) * AEF_ACET (I,J) > 0d0 ) THEN
+
+            ! Calculate gamma PAR only if sunlight conditions
+            IF ( SUNCOS > 0d0 ) THEN
+
+               IF ( LPECCA ) THEN 
+               
+                  GAMMA_P = GET_GAMMA_P_PECCA(I, J, Q_DIR_2, Q_DIFF_2,
+     &                         PARDR_15_AVG(I,J),  PARDF_15_AVG(I,J) )
+               ELSE 
+  
+                  GAMMA_P = GET_GAMMA_P( ISOLAI(I,J), SUNCOS,
+     &                                    Q_DIR_2, Q_DIFF_2 )
+               END IF 
+
+            ELSE             
+ 
+               ! If night
+               GAMMA_P = 0.d0  
+           
+            END IF
+
+            ! --------------------------------------------------
+            ! GAMMA_lai
+            ! --------------------------------------------------
+         
+            ! Activity factor for leaf area
+            GAMMA_LAI = GET_GAMMA_LAI( MISOLAI(I,J) )
+
+            ! --------------------------------------------------
+            ! GAMMA_age
+            ! --------------------------------------------------
+            ! Activity factor for leaf age
+            ! there is no leaf age dependence for acetone so 
+            ! GAMMA_LEAF_AGE should be 1
+!            GAMMA_LEAF_AGE = GET_GAMMA_LEAF_AGE( MISOLAI(I,J), 
+!     &                                 PMISOLAI(I,J), D_BTW_M, 
+!     &                                 'MOHT', T_15_AVG(I,J) )
+
+            ! --------------------------------------------------
+            ! GAMMA_T
+            ! --------------------------------------------------
+            ! Activity factor for temperature
+            GAMMA_T = GET_GAMMA_T_NISOP( TS, BETA )
+
+            ! --------------------------------------------------
+            ! GAMMA_sm
+            ! --------------------------------------------------
+            ! Activity factor for soil moisture
+            GAMMA_SM = 1.d0
+
+         ELSE
+
+            ! set activity factors to zero, except leaf age dependence for acetone
+            GAMMA_T         = 0.d0
+            GAMMA_LAI       = 0.d0
+            GAMMA_LEAF_AGE  = 1.d0
+            GAMMA_P         = 0.d0
+            GAMMA_SM        = 0.d0
+
+      END IF
+    
+      ! Acetone emission is the product of all these; must be 
+      ! careful to distinguish between canopy & PECCA models.
+      IF ( LPECCA ) THEN
+
+         EMACET    = AEF_ACET(I,J) * GAMMA_LEAF_AGE * GAMMA_T 
+     &            * GAMMA_SM       * GAMMA_LAI
+     &            * ( (1.d0 - LDF) + (LDF * GAMMA_P) )
+
+      ELSE 
+
+         EMACET    = AEF_ACET(I,J) * GAMMA_LEAF_AGE * GAMMA_T 
+     &            * GAMMA_SM       
+     &            * (  GAMMA_LAI * (1.d0 - LDF) + (LDF * GAMMA_P) )
+
+      END IF 
+
+      ! Convert from [kg/box] to [atoms C/box]
+      EMACET  = EMACET * XNUMOL
+
+      END FUNCTION GET_EMACET_MEGAN
 !EOC
 !------------------------------------------------------------------------------
 !          Harvard University Atmospheric Chemistry Modeling Group            !
@@ -1710,6 +1897,9 @@
       REAL*8                  ::  ISOP2CARBON               
       REAL*8                  ::  MONO2CARBON
       REAL*8                  ::  MBO2CARBON
+      !evf, acetone update (5/24/2011)
+      REAL*8                  ::  ACET2CARBON
+
       !
       ! Note, where it is written as [ug C/m2/hr] think of C = compound
       ! (mpb,2008)
@@ -1731,6 +1921,9 @@
       ISOP2CARBON =  60d0 /  68d0
       MONO2CARBON = 120d0 / 136d0
       MBO2CARBON  =  60d0 /  86d0
+      ! evf, acetone update (5/24/2011)
+      ACET2CARBON  =  36d0 /  58d0
+
       
       !---------------------------------------------
       ! Read in ISOPRENE Annual Emission Factors
@@ -1844,6 +2037,48 @@
             
          ENDDO
       ENDDO
+
+      !---------------------------------------------
+      ! Read in Acetone Annual Emission Factors
+      ! evf, (5/24/2011)
+      !---------------------------------------------
+
+      ! 1x1 file name
+      ! Base emission factors in ug(acetone)/m2/hr (evf, 5/24/2011 -
+      ! AEF file from dbm)
+      FILENAME = TRIM( DATA_DIR_1x1 ) //
+     &    TRIM( MEGAN_SUBDIR ) // 'MEGANv2.1_AEF_ACET.geos.1x1'
+
+      ! Echo info
+      WRITE( 6, 100 ) TRIM( FILENAME )
+
+      ! Read data at 1x1 resolution [ug C/m2/hr]
+      CALL READ_BPCH2( FILENAME, 'BIOGSRCE', 99,   
+     &                 0d0,       I1x1,      J1x1,     
+     &                 1,         ARRAY,     QUIET=.TRUE. )
+
+      ! Regrid from 1x1 to the current grid (also cast to REAL*8)
+      CALL DO_REGRID_1x1( 'ug C/m2/hr', ARRAY, AEF_ACET ) 
+
+      ! Loop over latitudes
+      DO J = 1, JJPAR
+
+         ! Grid box surface area
+         AREA_M2 = GET_AREA_M2( J )
+
+         ! Conversion factor from [ug C/m2/hr] to [kg C/box]
+         FACTOR = 1.d-9 / 3600.d0 * AREA_M2 * DTSRCE * 60.d0
+
+         ! Loop over longitudes
+         DO I = 1, IIPAR
+
+            ! Convert AEF to [kg C/box/step]
+            AEF_ACET(I,J) = AEF_ACET(I,J) * FACTOR
+            
+         ENDDO
+      ENDDO
+
+ 
 
       !---------------------------------------------
       ! Read in other VOC Annual Emission Factors
@@ -2537,14 +2772,15 @@
 ! !USES:
 !
       USE A3_READ_MOD
+      USE GEOS57_READ_MOD, ONLY : GEOS57_READ_A1
       USE MERRA_A1_MOD
-      USE FILE_MOD,    ONLY : IU_A3
-      USE JULDAY_MOD,  ONLY : CALDATE
-      USE ERROR_MOD,   ONLY : ALLOC_ERR
-      USE LAI_MOD,     ONLY : INIT_LAI
-      USE LOGICAL_MOD, ONLY : LUNZIP
-      USE TIME_MOD,    ONLY : GET_FIRST_A3_TIME, GET_JD
-      USE TIME_MOD,    ONLY : ITS_A_LEAPYEAR,    YMD_EXTRACT
+      USE FILE_MOD,         ONLY : IU_A3
+      USE JULDAY_MOD,       ONLY : CALDATE
+      USE ERROR_MOD,        ONLY : ALLOC_ERR
+      USE LAI_MOD,          ONLY : INIT_LAI
+      USE LOGICAL_MOD,      ONLY : LUNZIP
+      USE TIME_MOD,         ONLY : GET_FIRST_A3_TIME, GET_JD
+      USE TIME_MOD,         ONLY : ITS_A_LEAPYEAR,    YMD_EXTRACT
 ! 
 ! !REVISION HISTORY: 
 !  (1 ) Change the logic in the #if block for G4AHEAD. (bmy, 12/6/05)
@@ -2557,6 +2793,7 @@
 !  07 Feb 2011 - R. Yantosca - Fix typos: make sure to zero out the proper 
 !                              PARDF_* and PARDR_* arrays after allocation
 !  22 Nov 2011 - R. Yantosca - Do not use erroneous AEF's for nested grids
+!  08 Feb 2012 - R. Yantosca - Now read surface temperature for GEOS-5.7.x
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -2608,6 +2845,12 @@
       ALLOCATE( AEF_OVOC( IIPAR, JJPAR ), STAT=AS )
       IF ( AS /= 0 ) CALL ALLOC_ERR( 'AEF_OVOC' )
       AEF_OVOC = 0d0
+
+      ! evf, acetone update (5/24/2011):
+      ALLOCATE( AEF_ACET( IIPAR, JJPAR ), STAT=AS )
+      IF ( AS /= 0 ) CALL ALLOC_ERR( 'AEF_ACET' )
+      AEF_ACET = 0d0
+
 
       ! New monoterpene species (mpb,2008)
 
@@ -2735,10 +2978,10 @@
       ! by ending time: 00Z, 03Z, 06Z, 09Z, 12Z, 15Z, 18Z, 21Z.  
       G4AHEAD   = 0
 
-#elif defined( MERRA )
+#elif defined( MERRA ) || defined( GEOS_57 )
 
-      ! For MERRA, the A1 fields are timestamped on the half-hours:
-      ! 00:30, 01:30, 02:30, ... 23:30
+      ! For MERRA and GEOS-5.7.x, the A1 fields are timestamped
+      ! on the half-hours: 00:30, 01:30, 02:30, ... 23:30
       G4AHEAD   = 003000
 
 #else
@@ -2799,7 +3042,15 @@
          ! Loop over 3h periods during day
          DO J = 0, DAY_DIM-1  
 
-#if   defined( MERRA )
+#if   defined( GEOS_57 )
+
+            !-----------------------------
+            ! GEOS-5.7.x met fields
+            ! Sfc temp is hourly data
+            !-----------------------------
+            CALL GEOS57_READ_A1( NYMD_T15, 010000*J + G4AHEAD ) 
+
+#elif   defined( MERRA )
 
             !-----------------------------
             ! MERRA met fields
@@ -2891,6 +3142,8 @@
       IF ( ALLOCATED( AEF_MONOT ) ) DEALLOCATE( AEF_MONOT )
       IF ( ALLOCATED( AEF_MBO   ) ) DEALLOCATE( AEF_MBO   )
       IF ( ALLOCATED( AEF_OVOC  ) ) DEALLOCATE( AEF_OVOC  )
+      ! evf, acetone update (5/24/2011):
+      IF ( ALLOCATED( AEF_ACET  ) ) DEALLOCATE( AEF_ACET  )
       IF ( ALLOCATED( AEF_APINE ) ) DEALLOCATE( AEF_APINE )
       IF ( ALLOCATED( AEF_BPINE ) ) DEALLOCATE( AEF_BPINE )
       IF ( ALLOCATED( AEF_LIMON ) ) DEALLOCATE( AEF_LIMON )

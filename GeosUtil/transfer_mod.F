@@ -78,10 +78,10 @@
 !
 ! !REMARKS:
 !
-!  Hybrid Grid Coordinate Definition: (dsa, bmy, 8/27/02, 8/13/10)
+!  Hybrid Grid Coordinate Definition: (dsa, bmy, 8/27/02, 2/2/12)
 !  ============================================================================
 !                                                                             .
-!  GEOS-4, GEOS-5, and MERRA (hybrid grids):
+!  GEOS-4, GEOS-5, GEOS-5.7, and MERRA (hybrid grids):
 !  ----------------------------------------------------------------------------
 !  For GEOS-4 and GEOS-5, the pressure at the bottom edge of grid box (I,J,L) 
 !  is defined as follows:
@@ -151,6 +151,7 @@
 !  (16) Modified for GEOS-5.  Rewritten for clarity. (bmy, 10/30/07)
 !  13 Aug 2010 - R. Yantosca - Added modifications for MERRA met fields
 !  13 Aug 2010 - R. Yantosca - Added ProTeX headers
+!  02 Feb 2012 - R. Yantosca - Added modifications for GEOS-5.7.x met fields
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -209,6 +210,7 @@
 !  13 Aug 2010 - R. Yantosca - Added ProTeX headers
 !  13 Aug 2010 - R. Yantosca - Treat MERRA the same way as GEOS-5, because
 !                              the vertical grids are identical
+!  02 Feb 2012 - R. Yantosca - Treat GEOS-5.7.x the same way as MERRA
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -292,7 +294,7 @@
          OUT(29,I,J) = LUMP_4( INCOL, LGLOB, 48 ) 
          OUT(30,I,J) = LUMP_4( INCOL, LGLOB, 52 ) 
 
-#elif defined( GEOS_5 ) || defined( MERRA )
+#elif defined( GEOS_5 ) || defined( MERRA ) || defined( GEOS_57 )
 
          !--------------------------------------------------------------
          ! GEOS-5/MERRA: Lump 72 levels into 47 levels, starting above 
@@ -359,6 +361,7 @@
 !  13 Aug 2010 - R. Yantosca - Added ProTeX headers
 !  13 Aug 2010 - R. Yantosca - Treat MERRA the same way as GEOS-5, because
 !                              the vertical grids are identical
+!  02 Feb 2012 - R. Yantosca - Treat GEOS-5.7.x the same way as MERRA
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -433,7 +436,7 @@
          OUT(I,J,29) = LUMP_4( INCOL, LGLOB, 48 ) 
          OUT(I,J,30) = LUMP_4( INCOL, LGLOB, 52 ) 
 
-#elif defined( GEOS_5 ) || defined( MERRA )
+#elif defined( GEOS_5 ) || defined( MERRA ) || defined( GEOS_57 )
 
          !--------------------------------------------------------------
          ! GEOS-5/MERRA Lump 72 levels into 47 levels, starting above 
@@ -533,6 +536,7 @@
 !  13 Aug 2010 - R. Yantosca - Added ProTeX headers
 !  13 Aug 2010 - R. Yantosca - Treat MERRA the same way as GEOS-5, because
 !                              the vertical grids are identical
+!  02 Feb 2012 - R. Yantosca - Treat GEOS-5.7.x the same way as MERRA
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -555,7 +559,7 @@
       ! Return GEOS-5 pressure edges for reduced grid
       !================================================================
 
-#if   defined( GEOS_5 ) || defined( MERRA )
+#if   defined( GEOS_5 ) || defined( MERRA ) || defined( GEOS_57 )
 
 !$OMP PARALLEL DO
 !$OMP+DEFAULT( SHARED )
@@ -616,6 +620,7 @@
 !  13 Aug 2010 - R. Yantosca - Added ProTeX headers
 !  13 Aug 2010 - R. Yantosca - Treat MERRA the same way as GEOS-5, because
 !                              the vertical grids are identical
+!  02 Feb 2012 - R. Yantosca - Treat GEOS-5.7.x the same way as MERRA
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -646,7 +651,7 @@
       ! %%% above about 120 hPa. (bmy, 2/8/07)
       !=================================================================
       
-#if   defined( GEOS_5 ) || defined( MERRA )
+#if   defined( GEOS_5 ) || defined( MERRA ) || defined( GEOS_57 )
 
 !$OMP PARALLEL DO
 !$OMP+DEFAULT( SHARED )
@@ -762,6 +767,7 @@
 !  13 Aug 2010 - R. Yantosca - Added ProTeX headers
 !  13 Aug 2010 - R. Yantosca - Treat MERRA the same way as GEOS-5, because
 !                              the vertical grids are identical
+!  02 Feb 2012 - R. Yantosca - Treat GEOS-5.7.x the same way as MERRA
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -835,7 +841,7 @@
          OUT(J,29) = LUMP_4( INCOL, LGLOB, 48 ) 
          OUT(J,30) = LUMP_4( INCOL, LGLOB, 52 ) 
 
-#elif defined( GEOS_5 ) || defined( MERRA )
+#elif defined( GEOS_5 ) || defined( MERRA ) || defined( GEOS_57 )
 
          !--------------------------------------------------------------
          ! GEOS-5/MERRA: Lump 72 levels into 47 levels, starting above 
@@ -901,6 +907,7 @@
 !  13 Aug 2010 - R. Yantosca - Added ProTeX headers
 !  13 Aug 2010 - R. Yantosca - Treat MERRA the same way as GEOS-5, because
 !                              the vertical grids are identical
+!  02 Feb 2012 - R. Yantosca - Treat GEOS-5.7.x the same way as MERRA
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -974,7 +981,7 @@
          OUT(J,29) = LUMP_4( INCOL, LGLOB, 48 ) 
          OUT(J,30) = LUMP_4( INCOL, LGLOB, 52 ) 
 
-#elif defined( GEOS_5 ) || defined( MERRA )
+#elif defined( GEOS_5 ) || defined( MERRA ) || defined( GEOS_57 )
 
          !--------------------------------------------------------------
          ! GEOS-5/MERRA: Lump 72 levels into 47 levels, starting above 
@@ -1659,6 +1666,7 @@
 !  13 Aug 2010 - R. Yantosca - Added ProTeX headers
 !  13 Aug 2010 - R. Yantosca - Treat MERRA the same way as GEOS-5, because
 !                              the vertical grids are identical
+!  02 Feb 2012 - R. Yantosca - Treat GEOS-5.7.x the same way as MERRA
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -1691,15 +1699,17 @@
 
       ELSE
 
-#if   defined( GEOS_3 )
+#if   defined( GEOS_3  )
          L_COPY = 22       ! GEOS-3: Copy up to L=22
-#elif defined( GEOS_4 )
+#elif defined( GEOS_4  )
          L_COPY = 19       ! GEOS-4: Copy up to L=19
-#elif defined( GEOS_5 )
+#elif defined( GEOS_5  )
          L_COPY = 36       ! GEOS-5: Copy up to L=36
-#elif defined( MERRA  )
+#elif defined( GEOS_57 )
+         L_COPY = 36       ! GEOS-5.7.x: Copy up to L=36
+#elif defined( MERRA   )
          L_COPY = 36       ! MERRA: Copy up to L=36
-#elif defined( GCAP   )
+#elif defined( GCAP    )
          L_COPY = LGLOB    ! GCAP: Copy all levels
 #endif
 
@@ -1714,7 +1724,7 @@
       IF ( AS /= 0 ) CALL ALLOC_ERR( 'EDGE_IN' )
       EDGE_IN = 0d0
 
-#if   defined( GEOS_5 ) || defined( MERRA ) 
+#if   defined( GEOS_5 ) || defined( MERRA ) || defined( GEOS_57 )
 
       !-----------------------------------------------------------------
       ! For GEOS-5/MERRA, levels 1-31 are "terrain-following" 

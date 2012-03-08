@@ -441,7 +441,7 @@
 !   Philip Cameron-Smith and John Tannahill, GMI project @ LLNL (2003)
 ! 
 ! !REMARKS:
-!   Now reference PI from "F77_CMN_GCTM" for consistency.  Also force
+!   Now reference PI from "CMN_GCTM" for consistency.  Also force
 !   double-precision with the "D" exponent. (bmy, 5/6/03)
 !
 ! !REVISION HISTORY: 

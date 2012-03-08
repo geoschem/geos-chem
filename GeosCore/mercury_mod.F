@@ -159,6 +159,7 @@
 !       (eds 7/30/08)
 !  13 Aug 2010 - R. Yantosca - Add modifications for MERRA (treat like GEOS-5)
 !  01 Apr 2011 - H. Amos      - added LVEGEMIS, distinct from LGCAPEMIS
+!  08 Feb 2012 - R. Yantosca - Add modifications for GEOS-5.7.x met
 !******************************************************************************
 !
       ! References to F90 modules
@@ -476,6 +477,7 @@
 !  13 Aug 2010 - R. Yantosca - Treat MERRA like GEOS-5 
 !  14 Jan 2011 - R. Yantosca - Now get volume cloud fraction directly
 !                              from GEOS-5 and MERRA met fields
+!  08 Feb 2012 - R. Yantosca - Treat GEOS-5.7.x in the same way as MERRA
 !******************************************************************************
 !
       ! References to F90 modules
@@ -621,7 +623,7 @@
          C_OH        = GET_OH( I, J, L )
          C_BR        = GET_BR( I, J, L, C_BRO )
 
-#if   defined( GEOS_5 ) || defined( MERRA ) 
+#if   defined( GEOS_5 ) || defined( MERRA ) || defined( GEOS_57 )
 
          !---------------------------------------------
          ! GEOS-5/MERRA: Get LWC, FC from met fields
@@ -779,7 +781,7 @@
          ! Except in MERRA, we assume entire grid box is water or ice
          ! if conditions are met (jaf, 4/26/11)
          FRAC_NO_HG0_DEP = 1d0
-#if   defined( MERRA )
+#if   defined( MERRA ) || defined( GEOS_57 )
          FRAC_NO_HG0_DEP =
      &        MIN(FROCEAN(I,J) + FRSNO(I,J) + FRLANDIC(I,J), 1d0) 
          ZERO_HG0_DEP = ( FRAC_NO_HG0_DEP > 0d0 )
@@ -1763,7 +1765,7 @@
 !  (1 ) V_DEP_HgP (REAL*8) : Dry deposition velocity for Hg(II) [cm/s]
 !     
 !  NOTES:
-!  (1 ) Removed references to AD44 and "F77_CMN_DIAG".  Now compute drydep for all
+!  (1 ) Removed references to AD44 and "CMN_DIAG".  Now compute drydep for all
 !        levels within the PBL.  Now references ND03, LD03 from "diag03_mod.f".
 !        (bmy, 2/24/05)
 !  (2 ) Now references XNUMOL & XNUMOLAIR from "tracer_mod.f" (bmy, 10/25/05)
@@ -1850,7 +1852,7 @@
 !  (6  ) DTCHEM   (INTEGER) : Chemistry timestep [s]
 !
 !  NOTES:
-!  (1  ) Remove references to "diag_mod.f" and "F77_CMN_DIAG".  Now save drydep
+!  (1  ) Remove references to "diag_mod.f" and "CMN_DIAG".  Now save drydep
 !         fluxes into T44 array. (bmy, 2/24/05)
 !  (2  ) Now references XNUMOL from "tracer_mod.f" (bmy, 10/25/05)
 !  (3  ) Now uses ID_HgP and ID_Hg_tot from "tracerid_mod.f" (cdh, bmy,4/6/06)
@@ -2641,7 +2643,7 @@
 !  (4 ) Now read anthro emissions on GEOS 1x1 grid in DATA_1x1_DIR.  Also
 !        keep 2x25 and 4x5 files together in DATA_1x1_DIR.  Also now use new
 !        land re-emissions files from Noelle Selin. (eck, bmy, 4/6/06)
-!  (5 ) Now
+!  (5 ) Bug fix: emissions are read on GENERIC grid (jaf, 2/8/12)
 !******************************************************************************
 !
       ! References to F90 modules
@@ -2649,7 +2651,7 @@
       USE BPCH2_MOD,      ONLY : GET_TAU0,        READ_BPCH2
       USE DIRECTORY_MOD,  ONLY : DATA_DIR_1x1, DATA_DIR
       USE LOGICAL_MOD,    ONLY : LDYNOCEAN, LPREINDHG
-      USE REGRID_1x1_MOD, ONLY : DO_REGRID_1x1
+      USE REGRID_1x1_MOD, ONLY : DO_REGRID_1x1, DO_REGRID_G2G_1x1
       USE TIME_MOD,       ONLY : EXPAND_DATE
       USE TRANSFER_MOD,   ONLY : TRANSFER_2D
       USE GRID_MOD,       ONLY : GET_XMID,    GET_YMID
@@ -2659,7 +2661,9 @@
       ! Local variables
       INTEGER                 :: NYMD, I, J
       REAL*4                  :: ARRAY(IIPAR,JJPAR,1)
-      REAL*4                  :: ARRAY1(I1x1,J1x1,1)
+      REAL*4                  :: ARRAY1(I1x1,J1x1-1,1)
+      REAL*8                  :: GEN_1x1(I1x1,J1x1-1)
+      REAL*8                  :: GEOS_1x1(I1x1,J1x1,1)
       REAL*8                  :: XTAU
       REAL*8                  :: X, Y
       REAL*8, PARAMETER       :: SEC_PER_YR = 365.25d0 * 86400d0
@@ -2707,12 +2711,26 @@
  100        FORMAT( '     - MERCURY_READYR: Reading ', a )
 
             ! Read data in [kg/yr]
-            CALL READ_BPCH2( FILENAME, 'HG-SRCE', 1, 
-     &           XTAU,      I1x1,     J1x1,    
+            ! Bug fix: emissions are on generic grid (jaf, 2/8/12)
+!            CALL READ_BPCH2( FILENAME, 'HG-SRCE', 1, 
+!     &           XTAU,      I1x1,     J1x1,    
+!     &           1,         ARRAY1,   QUIET=.TRUE. )
+!            
+!            ! Regrid from 1x1 to the current grid
+!            CALL DO_REGRID_1x1( 'kg', ARRAY1, EHg0_an )
+
+            CALL READ_BPCH2( FILENAME, 'HG-SRCE', 1,
+     &           XTAU,      I1x1,     J1x1-1,
      &           1,         ARRAY1,   QUIET=.TRUE. )
-            
+
+            ! Cast to REAL*8 before regridding
+            GEN_1x1(:,:) = ARRAY1(:,:,1)
+
+            ! Regrid from GENERIC 1x1 --> GEOS 1x1
+            CALL DO_REGRID_G2G_1x1( 'kg', GEN_1x1, GEOS_1x1(:,:,1) )
+
             ! Regrid from 1x1 to the current grid
-            CALL DO_REGRID_1x1( 'kg', ARRAY1, EHg0_an )
+            CALL DO_REGRID_1x1( 'kg', GEOS_1x1, EHg0_an )
 
             ! Convert from [kg/yr] to [kg/s]
             EHg0_an = EHg0_an / SEC_PER_YR            
@@ -2735,12 +2753,26 @@
             WRITE( 6, 100 ) TRIM( FILENAME )
 
             ! Read data in [kg/yr]
-            CALL READ_BPCH2( FILENAME, 'HG-SRCE', 1, 
-     &           XTAU,      I1x1,     J1x1,    
+            ! Bug fix: emissions are on generic grid (jaf, 2/8/12)
+!            CALL READ_BPCH2( FILENAME, 'HG-SRCE', 1, 
+!     &           XTAU,      I1x1,     J1x1,    
+!     &           1,         ARRAY1,   QUIET=.TRUE. )
+!            
+!            ! Regrid from 1x1 to the current grid
+!            CALL DO_REGRID_1x1( 'kg', ARRAY1, EHg0_an )
+
+            CALL READ_BPCH2( FILENAME, 'HG-SRCE', 1,
+     &           XTAU,      I1x1,     J1x1-1,
      &           1,         ARRAY1,   QUIET=.TRUE. )
-            
+
+            ! Cast to REAL*8 before regridding
+            GEN_1x1(:,:) = ARRAY1(:,:,1)
+
+            ! Regrid from GENERIC 1x1 --> GEOS 1x1
+            CALL DO_REGRID_G2G_1x1( 'kg', GEN_1x1, GEOS_1x1(:,:,1) )
+
             ! Regrid from 1x1 to the current grid
-            CALL DO_REGRID_1x1( 'kg', ARRAY1, EHg0_an )
+            CALL DO_REGRID_1x1( 'kg', GEOS_1x1, EHg0_an )
 
             ! Convert from [kg/yr] to [kg/s]
             EHg0_an = EHg0_an / SEC_PER_YR    
@@ -2772,12 +2804,26 @@
             WRITE( 6, 100 ) TRIM( FILENAME )
 
             ! Read data in [kg/yr]
-            CALL READ_BPCH2( FILENAME, 'HG-SRCE', 1, 
-     &           XTAU,      I1x1,     J1x1,    
+            ! Bug fix: emissions are on generic grid (jaf, 2/8/12)
+!            CALL READ_BPCH2( FILENAME, 'HG-SRCE', 1, 
+!     &           XTAU,      I1x1,     J1x1,    
+!     &           1,         ARRAY1,   QUIET=.TRUE. )
+!            
+!            ! Regrid from 1x1 to the current grid
+!            CALL DO_REGRID_1x1( 'kg', ARRAY1, EHg0_an )
+
+            CALL READ_BPCH2( FILENAME, 'HG-SRCE', 1,
+     &           XTAU,      I1x1,     J1x1-1,
      &           1,         ARRAY1,   QUIET=.TRUE. )
             
+            ! Cast to REAL*8 before regridding
+            GEN_1x1(:,:) = ARRAY1(:,:,1)
+
+            ! Regrid from GENERIC 1x1 --> GEOS 1x1
+            CALL DO_REGRID_G2G_1x1( 'kg', GEN_1x1, GEOS_1x1(:,:,1) ) 
+     
             ! Regrid from 1x1 to the current grid
-            CALL DO_REGRID_1x1( 'kg', ARRAY1, EHg0_an )
+            CALL DO_REGRID_1x1( 'kg', GEOS_1x1, EHg0_an )
 
             ! Convert from [kg/yr] to [kg/s]
             EHg0_an = EHg0_an / SEC_PER_YR
@@ -2869,12 +2915,26 @@
             WRITE( 6, 100 ) TRIM( FILENAME )
 
             ! Read data in [kg/yr]
-            CALL READ_BPCH2( FILENAME, 'HG-SRCE', 6, 
-     &           XTAU,      I1x1,     J1x1,    
+            ! Bug fix: emissions are on generic grid (jaf, 2/8/12)
+!            CALL READ_BPCH2( FILENAME, 'HG-SRCE', 6, 
+!     &           XTAU,      I1x1,     J1x1,    
+!     &           1,         ARRAY1,   QUIET=.TRUE. )
+!
+!            ! Regrid from 1x1 to the current grid
+!            CALL DO_REGRID_1x1( 'kg', ARRAY1, EHg2_an )
+
+            CALL READ_BPCH2( FILENAME, 'HG-SRCE', 6,
+     &           XTAU,      I1x1,     J1x1-1,
      &           1,         ARRAY1,   QUIET=.TRUE. )
 
+            ! Cast to REAL*8 before regridding
+            GEN_1x1(:,:) = ARRAY1(:,:,1)
+
+            ! Regrid from GENERIC 1x1 --> GEOS 1x1
+            CALL DO_REGRID_G2G_1x1( 'kg', GEN_1x1, GEOS_1x1(:,:,1) )
+
             ! Regrid from 1x1 to the current grid
-            CALL DO_REGRID_1x1( 'kg', ARRAY1, EHg2_an )
+            CALL DO_REGRID_1x1( 'kg', GEOS_1x1, EHg2_an )
 
             ! Convert from [kg/yr] to [kg/s]
             EHg2_an = EHg2_an / SEC_PER_YR
@@ -2894,12 +2954,26 @@
             WRITE( 6, 100 ) TRIM( FILENAME )
 
             ! Read data in [kg/yr]
-            CALL READ_BPCH2( FILENAME, 'HG-SRCE', 6, 
-     &           XTAU,      I1x1,     J1x1,    
+            ! Bug fix: emissions are on generic grid (jaf, 2/8/12)
+!            CALL READ_BPCH2( FILENAME, 'HG-SRCE', 6, 
+!     &           XTAU,      I1x1,     J1x1,    
+!     &           1,         ARRAY1,   QUIET=.TRUE. )
+!
+!            ! Regrid from 1x1 to the current grid
+!            CALL DO_REGRID_1x1( 'kg', ARRAY1, EHg2_an )
+
+            CALL READ_BPCH2( FILENAME, 'HG-SRCE', 6,
+     &           XTAU,      I1x1,     J1x1-1,
      &           1,         ARRAY1,   QUIET=.TRUE. )
 
+            ! Cast to REAL*8 before regridding
+            GEN_1x1(:,:) = ARRAY1(:,:,1)
+
+            ! Regrid from GENERIC 1x1 --> GEOS 1x1
+            CALL DO_REGRID_G2G_1x1( 'kg', GEN_1x1, GEOS_1x1(:,:,1) )
+
             ! Regrid from 1x1 to the current grid
-            CALL DO_REGRID_1x1( 'kg', ARRAY1, EHg2_an )
+            CALL DO_REGRID_1x1( 'kg', GEOS_1x1, EHg2_an )
 
             ! Convert from [kg/yr] to [kg/s]
             EHg2_an = EHg2_an / SEC_PER_YR
@@ -2926,12 +3000,26 @@
             WRITE( 6, 100 ) TRIM( FILENAME )
 
             ! Read data in [kg/yr]
-            CALL READ_BPCH2( FILENAME, 'HG-SRCE', 6, 
-     &           XTAU,      I1x1,     J1x1,    
+            ! Bug fix: emissions are on generic grid (jaf, 2/8/12)
+!            CALL READ_BPCH2( FILENAME, 'HG-SRCE', 6, 
+!     &           XTAU,      I1x1,     J1x1,    
+!     &           1,         ARRAY1,   QUIET=.TRUE. )
+!
+!            ! Regrid from 1x1 to the current grid
+!            CALL DO_REGRID_1x1( 'kg', ARRAY1, EHg2_an )
+
+            CALL READ_BPCH2( FILENAME, 'HG-SRCE', 6,
+     &           XTAU,      I1x1,     J1x1-1,
      &           1,         ARRAY1,   QUIET=.TRUE. )
 
+            ! Cast to REAL*8 before regridding
+            GEN_1x1(:,:) = ARRAY1(:,:,1)
+
+            ! Regrid from GENERIC 1x1 --> GEOS 1x1
+            CALL DO_REGRID_G2G_1x1( 'kg', GEN_1x1, GEOS_1x1(:,:,1) )
+
             ! Regrid from 1x1 to the current grid
-            CALL DO_REGRID_1x1( 'kg', ARRAY1, EHg2_an )
+            CALL DO_REGRID_1x1( 'kg', GEOS_1x1, EHg2_an )
 
             ! Convert from [kg/yr] to [kg/s]; increase Pacyna by 30%
             EHg2_an = EHg2_an * 1.3d0 / SEC_PER_YR
@@ -2956,12 +3044,26 @@
             WRITE( 6, 100 ) TRIM( FILENAME )
 
             ! Read data in [kg/yr]
-            CALL READ_BPCH2( FILENAME, 'HG-SRCE', 9, 
-     &           XTAU,      I1x1,     J1x1,    
+            ! Bug fix: emissions are on generic grid (jaf, 2/8/12)
+!            CALL READ_BPCH2( FILENAME, 'HG-SRCE', 9, 
+!     &           XTAU,      I1x1,     J1x1,    
+!     &           1,         ARRAY1,   QUIET=.TRUE. )
+!
+!            ! Regrid from 1x1 to the current grid
+!            CALL DO_REGRID_1x1( 'kg', ARRAY1, EHgP_an )
+
+            CALL READ_BPCH2( FILENAME, 'HG-SRCE', 9,
+     &           XTAU,      I1x1,     J1x1-1,
      &           1,         ARRAY1,   QUIET=.TRUE. )
 
+            ! Cast to REAL*8 before regridding
+            GEN_1x1(:,:) = ARRAY1(:,:,1)
+
+            ! Regrid from GENERIC 1x1 --> GEOS 1x1
+            CALL DO_REGRID_G2G_1x1( 'kg', GEN_1x1, GEOS_1x1(:,:,1) )
+
             ! Regrid from 1x1 to the current grid
-            CALL DO_REGRID_1x1( 'kg', ARRAY1, EHgP_an )
+            CALL DO_REGRID_1x1( 'kg', GEOS_1x1, EHgP_an )
 
             ! Convert from [kg/yr] to [kg/s]
             EHgP_an = EHgP_an / SEC_PER_YR
@@ -2980,12 +3082,26 @@
             WRITE( 6, 100 ) TRIM( FILENAME )
 
             ! Read data in [kg/yr]
-            CALL READ_BPCH2( FILENAME, 'HG-SRCE', 9, 
-     &           XTAU,      I1x1,     J1x1,    
+            ! Bug fix: emissions are on generic grid (jaf, 2/8/12)
+!            CALL READ_BPCH2( FILENAME, 'HG-SRCE', 9, 
+!     &           XTAU,      I1x1,     J1x1,    
+!     &           1,         ARRAY1,   QUIET=.TRUE. )
+!
+!            ! Regrid from 1x1 to the current grid
+!            CALL DO_REGRID_1x1( 'kg', ARRAY1, EHgP_an )
+
+            CALL READ_BPCH2( FILENAME, 'HG-SRCE', 9,
+     &           XTAU,      I1x1,     J1x1-1,
      &           1,         ARRAY1,   QUIET=.TRUE. )
 
+            ! Cast to REAL*8 before regridding
+            GEN_1x1(:,:) = ARRAY1(:,:,1)
+
+            ! Regrid from GENERIC 1x1 --> GEOS 1x1
+            CALL DO_REGRID_G2G_1x1( 'kg', GEN_1x1, GEOS_1x1(:,:,1) )
+
             ! Regrid from 1x1 to the current grid
-            CALL DO_REGRID_1x1( 'kg', ARRAY1, EHgP_an )
+            CALL DO_REGRID_1x1( 'kg', GEOS_1x1, EHgP_an )
 
             ! Convert from [kg/yr] to [kg/s]
             EHgP_an = EHgP_an / SEC_PER_YR
@@ -3011,12 +3127,26 @@
             WRITE( 6, 100 ) TRIM( FILENAME )
 
             ! Read data in [kg/yr]
-            CALL READ_BPCH2( FILENAME, 'HG-SRCE', 9, 
-     &           XTAU,      I1x1,     J1x1,    
+            ! Bug fix: emissions are on generic grid (jaf, 2/8/12)
+!            CALL READ_BPCH2( FILENAME, 'HG-SRCE', 9, 
+!     &           XTAU,      I1x1,     J1x1,    
+!     &           1,         ARRAY1,   QUIET=.TRUE. )
+!
+!            ! Regrid from 1x1 to the current grid
+!            CALL DO_REGRID_1x1( 'kg', ARRAY1, EHgP_an )
+
+            CALL READ_BPCH2( FILENAME, 'HG-SRCE', 9,
+     &           XTAU,      I1x1,     J1x1-1,
      &           1,         ARRAY1,   QUIET=.TRUE. )
 
+            ! Cast to REAL*8 before regridding
+            GEN_1x1(:,:) = ARRAY1(:,:,1)
+
+            ! Regrid from GENERIC 1x1 --> GEOS 1x1
+            CALL DO_REGRID_G2G_1x1( 'kg', GEN_1x1, GEOS_1x1(:,:,1) )
+
             ! Regrid from 1x1 to the current grid
-            CALL DO_REGRID_1x1( 'kg', ARRAY1, EHgP_an )
+            CALL DO_REGRID_1x1( 'kg', GEOS_1x1, EHgP_an )
 
             ! Convert from [kg/yr] to [kg/s];increase Pacyna by 30%
             EHgP_an = EHgP_an * 1.3D0 / SEC_PER_YR
@@ -4234,7 +4364,7 @@
 !  
 !  NOTES:
 !  (1 ) Removed reference to FEMIS array.  Now also allocates and zeroes
-!        the T44 array.  Added reference to F77_CMN_DIAG.  Now references 
+!        the T44 array.  Added reference to CMN_DIAG.  Now references 
 !        N_TRACERS from "tracer_mod.f". (bmy, 2/24/05)
 !  (2 ) EHg0_an, EHg2_an, EHgP_an are now 2-D arrays.  Now modified for 
 !        updated ocean mercury module. (eck, cdh, sas, bmy, 4/6/06)

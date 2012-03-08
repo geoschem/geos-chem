@@ -44,6 +44,7 @@
       PRIVATE :: READ_ND50_MENU  
       PRIVATE :: READ_ND51_MENU  
       PRIVATE :: READ_ND51b_MENU  
+      PRIVATE :: READ_ND63_MENU
       PRIVATE :: READ_PROD_LOSS_MENU 
       PRIVATE :: READ_UNIX_CMDS_MENU
       PRIVATE :: READ_NESTED_GRID_MENU
@@ -115,6 +116,7 @@
 !  29 Jul 2011 - R. Yantosca - Bug fix in READ_EMISSIONS_MENU for nested NA
 !  16 Feb 2011 - R. Yantosca - Add modifications for APM from G. Luo
 !  07 Sep 2011 - P. Kasibhatla - Modified to include GFED3
+!  08 Feb 2012 - R. Yantosca - Add modifications for GEOS-5.7.x met data
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -288,6 +290,9 @@
                                                   
          ELSE IF ( INDEX( LINE, 'ND51b MENU'       ) > 0 ) THEN
             CALL READ_ND51b_MENU  
+
+         ELSE IF ( INDEX( LINE, 'ND63 MENU'        ) > 0 ) THEN
+            CALL READ_ND63_MENU                   
 
          ELSE IF ( INDEX( LINE, 'PROD & LOSS MENU' ) > 0 ) THEN
             CALL READ_PROD_LOSS_MENU               
@@ -535,7 +540,7 @@
 !
       USE DIRECTORY_MOD, ONLY : DATA_DIR,    DATA_DIR_1x1, GCAP_DIR
       USE DIRECTORY_MOD, ONLY : GEOS_3_DIR,  GEOS_4_DIR,   GEOS_5_DIR
-      USE DIRECTORY_MOD, ONLY : MERRA_DIR
+      USE DIRECTORY_MOD, ONLY : MERRA_DIR,   GEOS_57_DIR
       USE DIRECTORY_MOD, ONLY : RUN_DIR
       USE DIRECTORY_MOD, ONLY : TEMP_DIR   
       USE GRID_MOD,      ONLY : SET_XOFFSET, SET_YOFFSET,  COMPUTE_GRID
@@ -562,6 +567,8 @@
 !  13 Aug 2010 - R. Yantosca - Now read MERRA_DIR
 !  19 Aug 2010 - R. Yantosca - Set LUNZIP=F for MERRA met fields.
 !  27 Aug 2010 - R. Yantosca - Added ProTeX headers
+!  01 Feb 2012 - R. Yantosca - Now read GEOS_57_DIR for GEOS-5.7.x met
+!  08 Feb 2012 - R. Yantosca - Set LUNZIP=F for GEOS-5.7.x met fields
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -624,45 +631,49 @@
       CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_simulation_menu:11' )
       READ( SUBSTRS(1:N), '(a)' ) GEOS_5_DIR
 
-      ! MERRA subdir
+      ! GEOS-5.7.x subdir
       CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_simulation_menu:12' )
+      READ( SUBSTRS(1:N), '(a)' ) GEOS_57_DIR
+
+      ! MERRA subdir
+      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_simulation_menu:13' )
       READ( SUBSTRS(1:N), '(a)' ) MERRA_DIR
 
       ! Temp dir
-      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_simulation_menu:13' )
+      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_simulation_menu:14' )
       READ( SUBSTRS(1:N), '(a)' ) DATA_DIR_1x1
 
       ! Temp dir
-      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_simulation_menu:14' )
+      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_simulation_menu:15' )
       READ( SUBSTRS(1:N), '(a)' ) TEMP_DIR
 
       ! Unzip met fields
-      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_simulation_menu:15' )
+      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_simulation_menu:16' )
       READ( SUBSTRS(1:N), *     ) LUNZIP
 
       ! Wait for met fields?
-      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_simulation_menu:16' )
+      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_simulation_menu:17' )
       READ( SUBSTRS(1:N), *     ) LWAIT
 
       ! Variable Tropopause
-      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_simulation_menu:17' )
+      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_simulation_menu:18' )
       READ( SUBSTRS(1:N), *     ) LVARTROP
 
       ! LINOZ chemistry in the stratosphere
-      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_simulation_menu:18' )
+      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_simulation_menu:19' )
       READ( SUBSTRS(1:N), *     ) LLINOZ  
 
       ! I0, J0
-      CALL SPLIT_ONE_LINE( SUBSTRS, N, 2, 'read_simulation_menu:19' )
+      CALL SPLIT_ONE_LINE( SUBSTRS, N, 2, 'read_simulation_menu:20' )
       READ( SUBSTRS(1:N), *     ) I0, J0
 
       ! Separator line
-      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_simulation_menu:20' )
+      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_simulation_menu:21' )
 
       !=================================================================
       ! Add safety checks for logical switches
       !=================================================================
-#if   defined( MERRA )
+#if   defined( MERRA ) || defined( GEOS_57 )
       ! Turn unzipping off for MERRA met fields
       LUNZIP = .FALSE. 
 #endif
@@ -686,6 +697,8 @@
      &                     TRIM( GEOS_4_DIR )
       WRITE( 6, 110     ) 'GEOS-5     sub-directory    : ', 
      &                     TRIM( GEOS_5_DIR )
+      WRITE( 6, 110     ) 'GEOS-5.7.x sub-directory    : ', 
+     &                     TRIM( GEOS_57_DIR )
       WRITE( 6, 110     ) 'MERRA      sub-directory    : ', 
      &                     TRIM( MERRA_DIR )
       WRITE( 6, 110     ) '1x1 Emissions etc Data Dir  : ',
@@ -712,6 +725,7 @@
       !=================================================================
       ! Call setup routines from other GEOS-CHEM modules
       !=================================================================
+
       ! Set start time of run in "time_mod.f"
       CALL SET_BEGIN_TIME( NYMDb, NHMSb )
 
@@ -1443,6 +1457,7 @@
 !  29 Jul 2011 - L. Zhang    - Fix bug that turns off CAC/BRAVO emissions
 !                             inadvertently during nested NA simulations
 !  07 Sep 2011 - P. Kasibhatla - Add modifications for GFED3
+!  14 Feb 2012 - R. Yantosca - Reorganize error checks for logical switches
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -1665,43 +1680,79 @@
       ! Error check logical flags
       !=================================================================
 
+      !-----------------------------------------------------------------
+      ! Turn off individual emissions flags if the master emissions flag
+      ! LEMIS is turned off.  This will prevent inadvertent calls to the
+      ! emissions routines. (bmy, 2/2/12)
+      !-----------------------------------------------------------------
+
+      ! Master switches
+      LANTHRO           = ( LANTHRO        .and. LEMIS     )
+      LBIOFUEL          = ( LBIOFUEL       .and. LEMIS     )
+      LBIOGENIC         = ( LBIOGENIC      .and. LEMIS     )
+      LBIOMASS          = ( LBIOMASS       .and. LEMIS     )
+
+      ! Anthro
+      LAIRNOX           = ( LAIRNOX        .and. LANTHRO   )
+      LEMEP             = ( LEMEP          .and. LANTHRO   )
+      LBRAVO            = ( LBRAVO         .and. LANTHRO   )
+      LEDGAR            = ( LEDGAR         .and. LANTHRO   )
+      LSTREETS          = ( LSTREETS       .and. LANTHRO   )
+      LCAC              = ( LCAC           .and. LANTHRO   )
+      LNEI05            = ( LNEI05         .and. LANTHRO   )
+      LRETRO            = ( LRETRO         .and. LANTHRO   )
+      LNEI99            = ( LNEI99         .and. LANTHRO   )
+      LICARTT           = ( LICARTT        .and. LANTHRO   )
+      LVISTAS           = ( LVISTAS        .and. LANTHRO   )
+      LEDGARSHIP        = ( LEDGARSHIP     .and. LANTHRO   )
+      LICOADSSHIP       = ( LICOADSSHIP    .and. LANTHRO   )
+      LEMEPSHIP         = ( LEMEPSHIP      .and. LANTHRO   )
+      LSHIPSO2          = ( LSHIPSO2       .and. LANTHRO   )
+      LARCSHIP          = ( LARCSHIP       .and. LANTHRO   )
+      LCOOKE            = ( LCOOKE         .and. LANTHRO   )
+
+      ! Biogenic
+      LMEGAN            = ( LMEGAN         .and. LBIOGENIC )
+      LPECCA            = ( LPECCA         .and. LBIOGENIC )
+      LMEGANMONO        = ( LMEGANMONO     .and. LBIOGENIC )
+
+      ! Biomass
+      LTOMSAI           = ( LTOMSAI        .and. LBIOMASS  )
+      LGFED2BB          = ( LGFED2BB       .and. LBIOMASS  )
+      L8DAYBB           = ( L8DAYBB        .and. LBIOMASS  )
+      L3HRBB            = ( L3HRBB         .and. LBIOMASS  )
+      LSYNOPBB          = ( LSYNOPBB       .and. LBIOMASS  )
+      LGFED3BB          = ( LGFED3BB       .and. LBIOMASS  )
+      L8DAYBB3          = ( L8DAYBB3       .and. LBIOMASS  )
+      L3HRBB3           = ( L3HRBB3        .and. LBIOMASS  )
+      LSYNOPBB3         = ( LSYNOPBB3      .and. LBIOMASS  )
+
+      ! Other
+      LLIGHTNOX         = ( LLIGHTNOX      .and. LEMIS     )
+      LOTDLOC           = ( LOTDLOC        .and. LEMIS     )
+      LSOILNOX          = ( LSOILNOX       .and. LEMIS     )
+      LFERTILIZERNOX    = ( LFERTILIZERNOX .and. LEMIS     )
+      LAVHRRLAI         = ( LAVHRRLAI      .and. LEMIS     )
+      LMODISLAI         = ( LMODISLAI      .and. LEMIS     )       
+
       ! Define these flags for backwards compatibility
-      LFOSSIL      = LANTHRO
-      LWOODCO      = LBIOFUEL
-      LBIONOX      = LBIOMASS
+      LFOSSIL           = LANTHRO
+      LWOODCO           = LBIOFUEL
+      LBIONOX           = LBIOMASS
 
-      ! Set LMEGAN=F if emissions are turned off
-      LMEGAN       = ( LMEGAN   .and. LEMIS )
-
-      ! Set LMEGANMONO=F if emissions are turned off (ccc, 1/20/09)
-      LMEGANMONO       = ( LMEGANMONO   .and. LEMIS )
-
-      ! Set all GFED2 flags to F if emissions are turned off      
-      LGFED2BB     = ( LGFED2BB .and. LEMIS )
-      L8DAYBB      = ( L8DAYBB  .and. LEMIS )
-      LSYNOPBB     = ( LSYNOPBB .and. LEMIS )
-      L3HRBB       = ( L3HRBB   .and. LEMIS )
-      
-      ! Set all GFED3 flags to F if emissions are turned off      
-      LGFED3BB     = ( LGFED3BB .and. LEMIS )
-      L8DAYBB3      = ( L8DAYBB3  .and. LEMIS )
-      LSYNOPBB3     = ( LSYNOPBB3 .and. LEMIS )
-      L3HRBB3       = ( L3HRBB3   .and. LEMIS )
-      
       ! Turn off full-chem only switches 
       IF ( .not. ITS_A_FULLCHEM_SIM() ) THEN
          LLIGHTNOX      = .FALSE.
          LAIRNOX        = .FALSE.
          LSOILNOX       = .FALSE.
-         LFERTILIZERNOX = .FALSE.  ! Add check for NOx fertilizer.
+         LFERTILIZERNOX = .FALSE.  
       ENDIF
       
       ! Set other EDGAR switches (for now set all together)
       IF ( LEDGAR ) THEN
-         LEDGARNOx  = .TRUE.
-         LEDGARCO   = .TRUE.
-         !LEDGARSHIP = .TRUE.  ! This is read in now (phs, 12/17/08)
-         LEDGARSOx  = .TRUE.
+         LEDGARNOx      = .TRUE.
+         LEDGARCO       = .TRUE.
+         LEDGARSOx      = .TRUE.
       ENDIF
 
       !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -1794,7 +1845,6 @@
          LSHIPSO2   = .FALSE. ! SO2-ICOADS precedes SO2-Corbett
       ENDIF      
 
-      
       !=================================================================
       ! Check EPA options
       !=================================================================
@@ -2655,6 +2705,7 @@
 !        LNLPBL turned to false if GEOS-5 is not used (lin, ccc 5/13/09)
 !  27 Aug 2010 - R. Yantosca - Now allow non-local PBL for MERRA met data
 !  27 Aug 2010 - R. Yantosca - Added ProTeX headers
+!  02 Feb 2012 - R. Yantosca - Added modifications for MERRA met data
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -2694,7 +2745,7 @@
       CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_convection_menu:5' )
 
       ! The non-local PBL scheme is valid only with GEOS-5 or MERRA!
-#if   !defined( GEOS_5 ) && !defined( MERRA )
+#if   !defined( GEOS_5 ) && !defined( MERRA ) && defined( GEOS_57 )
       IF ( LNLPBL ) THEN
          WRITE(*,*) '================================================='
          WRITE(*,*) 'The non-local PBL scheme is only valid for GEOS-5'
@@ -3042,7 +3093,7 @@
 !        (phs, 11/18/08)
 !  (12) Now set TINDEX with PD45=NNPAR+1 tracers instead of N_TRACERS.
 !        (tmf, 2/10/09)
-!  (13) NBIOMAX now in F77_CMN_SIZE (fp, 6/2009)
+!  (13) NBIOMAX now in CMN_SIZE (fp, 6/2009)
 !  27 Aug 2010 - R. Yantosca - Added ProTeX headers
 !  26 May 2011 - R. Yantosca - For ND17, ND18, ND37, ND38, ND39, we need to
 !                              set N_TMP = N_TRACERS, or else wetdep tracers 
@@ -3488,21 +3539,22 @@
       CALL SET_TINDEX( 58, ND58, SUBSTRS(2:N), N-1, PD58 )
 
       !--------------------------
-      ! ND59: Free
+      ! ND59: TOMAS aerosol emiss
       !--------------------------
       CALL SPLIT_ONE_LINE( SUBSTRS, N, -1, 'read_diagnostic_menu:58' )
       READ( SUBSTRS(1), * ) ND59
       CALL SET_TINDEX( 59, ND59, SUBSTRS(2:N), N-1, PD59 )
 
       !--------------------------
-      ! ND60: Wetland Fraction 
+      ! ND60: Wetland Fraction
+      ! ND60: TOMAS rate
       !--------------------------
       CALL SPLIT_ONE_LINE( SUBSTRS, N, -1, 'read_diagnostic_menu:59' )
       READ( SUBSTRS(1), * ) ND60
       CALL SET_TINDEX( 60, ND60, SUBSTRS(2:N), N-1, PD60 )
 
       !--------------------------
-      ! ND61: Free
+      ! ND61: 3-D TOMAS rate
       !--------------------------
       CALL SPLIT_ONE_LINE( SUBSTRS, N, -1, 'read_diagnostic_menu:60' )
       READ( SUBSTRS(1), * ) ND61
@@ -3514,13 +3566,6 @@
       CALL SPLIT_ONE_LINE( SUBSTRS, N, -1, 'read_diagnostic_menu:61' )
       READ( SUBSTRS(1), * ) ND62
       CALL SET_TINDEX( 62, ND62, SUBSTRS(2:N), N-1, PD62 )
-
-      !--------------------------
-      ! ND63: Free
-      !--------------------------
-      CALL SPLIT_ONE_LINE( SUBSTRS, N, -1, 'read_diagnostic_menu:62' )
-      READ( SUBSTRS(1), * ) ND63
-      CALL SET_TINDEX( 63, ND63, SUBSTRS(2:N), N-1, PD63 )
 
       !--------------------------
       ! ND64: Free
@@ -4444,6 +4489,119 @@
 !------------------------------------------------------------------------------
 !BOP
 !
+! !IROUTINE: read_nd63_menu
+!
+! !DESCRIPTION: Subroutine READ\_ND63\_MENU reads the ND63 MENU section
+!  of the GEOS-Chem input file. (gvinken, 02/25/11)
+!\\
+!\\
+! !INTERFACE:
+!
+      SUBROUTINE READ_ND63_MENU
+!
+! !USES:
+!
+      USE DIAG63_MOD, ONLY : INIT_DIAG63
+      USE ERROR_MOD,  ONLY : ERROR_STOP
+
+      USE CMN_SIZE_MOD     ! Size parameters
+! 
+! !REVISION HISTORY:
+!  25 Feb 2011 - G. Vinken   - Initial version
+!  07 Feb 2012 - M. Payer    - Added ProTeX headers
+!  24 Feb 2012 - M. Payer    - Renamed routine from READ_ND59_MENU to
+!                              READ_ND63 MENU. ND59 is used by TOMAS.
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+!
+! !LOCAL VARIABLES:
+!
+      LOGICAL             :: DO_ND63
+      INTEGER             :: N,    I,         AS
+      INTEGER             :: ND63, N_TRACERS, TRACERS(121)
+      INTEGER             :: IMIN, IMAX,      FREQ
+      INTEGER             :: JMIN, JMAX,      N_ND63
+      CHARACTER(LEN=255)  :: SUBSTRS(MAXDIM), MSG
+      CHARACTER(LEN=255)  :: FILE
+
+      !=================================================================
+      ! READ_ND63_MENU begins here!
+      !=================================================================
+
+      ! Error check
+      IF ( CT1 /= 2 ) THEN 
+         MSG = 'SIMULATION MENU & TRACER MENU must be read in first!'
+         CALL ERROR_STOP( MSG, 'READ_ND63_MENU ("input_mod.f")' )
+      ENDIF
+
+      ! Initialize
+      ND63       = 0
+      TRACERS(:) = 0
+
+      ! Turn on ND63 diagnostic
+      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1,  'read_nd63_menu:1' )
+      READ( SUBSTRS(1:N), * ) DO_ND63
+
+      ! Instantaneous 3-D timeseries file
+      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1,  'read_nd63_menu:2' )
+      READ( SUBSTRS(1:N), '(a)' ) FILE
+
+      ! Tracers to include
+      CALL SPLIT_ONE_LINE( SUBSTRS, N_ND63, -1, 'read_nd63_menu:3' )
+      DO N = 1, N_ND63
+         READ( SUBSTRS(N), * ) TRACERS(N)
+      ENDDO
+
+      ! FREQ
+      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1,  'read_nd63_menu:4' )
+      READ( SUBSTRS(1:N), * ) FREQ
+
+      ! IMIN, IMAX
+      CALL SPLIT_ONE_LINE( SUBSTRS, N, 2,  'read_nd63_menu:5' )
+      READ( SUBSTRS(1:N), * ) IMIN, IMAX
+
+      ! JMIN, JMAX
+      CALL SPLIT_ONE_LINE( SUBSTRS, N, 2,  'read_nd63_menu:6' )
+      READ( SUBSTRS(1:N), * ) JMIN, JMAX
+
+      ! Separator line
+      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1,  'read_nd63_menu:8' )
+
+      !=================================================================
+      ! Print to screen
+      !=================================================================
+      WRITE( 6, '(/,a)' ) 'ND63 SHIP TIMESERIES MENU'
+      WRITE( 6, '(  a)' ) '--------------------------------------'
+      WRITE( 6, 100     ) 'Turn on ND63 timeseries?    : ', DO_ND63
+      WRITE( 6, 110     ) 'ND63 timeseries file name   : ', TRIM( FILE )
+      WRITE( 6, 120     ) 'ND63 timeseries tracers     : ', 
+     &                     ( TRACERS(N), N=1, N_ND63 )
+      WRITE( 6, 130     ) 'ND63 save frequency [min]   : ', FREQ
+      WRITE( 6, 130     ) 'ND63 longitude limits       : ', IMIN, IMAX
+      WRITE( 6, 130     ) 'ND63 latitude  limits       : ', JMIN, JMAX
+
+      ! FORMAT statements
+ 100  FORMAT( A, L5    )
+ 110  FORMAT( A, A     )
+ 120  FORMAT( A, 100I3 )
+ 130  FORMAT( A, 2I5   )
+
+      !=================================================================
+      ! Call setup routines from other F90 modules
+      !=================================================================
+
+      ! Initialize for ND63 timeseries
+      CALL INIT_DIAG63( DO_ND63, N_ND63, TRACERS, IMIN, 
+     &                  IMAX,    JMIN,   JMAX,  FREQ,   FILE )
+
+      END SUBROUTINE READ_ND63_MENU
+!EOC
+!------------------------------------------------------------------------------
+!          Harvard University Atmospheric Chemistry Modeling Group            !
+!------------------------------------------------------------------------------
+!BOP
+!
 ! !IROUTINE: read_prod_loss_menu 
 !
 ! !DESCRIPTION: Subroutine READ\_PROD\_LOSS\_MENU reads the PROD AND LOSS MENU 
@@ -4480,7 +4638,7 @@
 ! !LOCAL VARIABLES:
 !
       LOGICAL              :: EOF, DO_SAVE_PL, DO_SAVE_O3
-      !FP_ISOP moved to F77_CMN_SIZE (6/2009)
+      !FP_ISOP moved to CMN_SIZE (6/2009)
       !INTEGER, PARAMETER   :: MAXMEM=10
       INTEGER              :: F, M, N, NFAM
       INTEGER              :: FAM_NMEM(MAXFAM)
@@ -5412,12 +5570,7 @@
 !
 ! !USES:
 !
-      USE DIRECTORY_MOD, ONLY : DATA_DIR,    DATA_DIR_1x1, GCAP_DIR
-      USE DIRECTORY_MOD, ONLY : GEOS_1_DIR,  GEOS_S_DIR,   GEOS_3_DIR
-      USE DIRECTORY_MOD, ONLY : GEOS_4_DIR,  GEOS_5_DIR,   O3PL_DIR  
-      USE DIRECTORY_MOD, ONLY : OH_DIR,      RUN_DIR,      TEMP_DIR
-      USE DIRECTORY_MOD, ONLY : TPBC_DIR,    TPBC_DIR_NA,  MERRA_DIR
-      USE DIRECTORY_MOD, ONLY : TPBC_DIR_EU, TPBC_DIR_CH
+      USE DIRECTORY_MOD
       USE GRID_MOD,      ONLY : ITS_A_NESTED_GRID 
       USE LOGICAL_MOD,   ONLY : LWINDO_CU,   LUNZIP
       USE LOGICAL_MOD,   ONLY : LWINDO_NA,   LWINDO_EU,    LWINDO_CH
@@ -5433,7 +5586,9 @@
 !  (3 ) Remove support for GEOS-1 and GEOS-STRAT met fields (bmy, 8/4/06)
 !  (4 ) Now check TPBC_DIR_NA, TPBC_DIR_CH, TPBC_DIR_EU (amv, bmy, 12/18/09)
 !  27 Aug 2010 - R. Yantosca - Added ProTeX headers
-!  27 Aug 2010 - R. Yantosca - Now check MERRA directory
+!  27 Aug 2010 - R. Yantosca -  Now check MERRA directory
+!  08 Feb 2012 - R. Yantosca - Now check GEOS-5.7.x directory
+!  09 Feb 2012 - R. Yantosca - Rewrote USE statements for clarity
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -5523,9 +5678,22 @@
       DIR = TRIM( DATA_DIR ) // TRIM( DIR )
       CALL CHECK_DIRECTORY( DIR )
 
-
       ! Check GEOS-5 met field directory (ending date)
       DIR = GEOS_5_DIR
+      CALL EXPAND_DATE( DIR, NYMDe, 000000 )
+      DIR = TRIM( DATA_DIR ) // TRIM( DIR )
+      CALL CHECK_DIRECTORY( DIR )
+
+#elif defined( GEOS_57 )
+
+      ! Check GEOS-5.7.x met field directory (starting date)
+      DIR = GEOS_57_DIR
+      CALL EXPAND_DATE( DIR, NYMDb, 000000 )
+      DIR = TRIM( DATA_DIR ) // TRIM( DIR )
+      CALL CHECK_DIRECTORY( DIR )
+
+      ! Check GEOS-5.7.x met field directory (ending date)
+      DIR = GEOS_57_DIR
       CALL EXPAND_DATE( DIR, NYMDe, 000000 )
       DIR = TRIM( DATA_DIR ) // TRIM( DIR )
       CALL CHECK_DIRECTORY( DIR )
@@ -5537,7 +5705,6 @@
       CALL EXPAND_DATE( DIR, NYMDb, 000000 )
       DIR = TRIM( DATA_DIR ) // TRIM( DIR )
       CALL CHECK_DIRECTORY( DIR )
-
 
       ! Check GEOS-5 met field directory (ending date)
       DIR = MERRA_DIR
@@ -5676,12 +5843,6 @@
 !
 ! !LOCAL VARIABLES:
 !
-!------------------------------------------------------------------------------
-! Prior to 10/7/11:
-! Remove obsolete TS_SUN_2 variable
-!      INTEGER :: I,           J,       K,       L
-!      INTEGER :: TS_SMALLEST, TS_DIAG, TS_SUN_2
-!------------------------------------------------------------------------------
       INTEGER :: I, J, K, L, TS_SMALLEST, TS_DIAG
       
       !=================================================================
@@ -5791,28 +5952,10 @@
          CALL GEOS_CHEM_STOP
       ENDIF
 
-!------------------------------------------------------------------------------
-! Prior to 10/7/11:
-! We no longer need to pass TS_SUN_2 to SET_TIMESTEPS (bmy, 10/7/11)
-!      ! We need to compute the cosine of the solar zenith angle at the 
-!      ! center of the relevant timestep.  Take 1/2 of the proper time 
-!      ! interval and store for future reference. (bmy, 4/2 7/10)
-!      IF ( LCHEM .or. LEMIS .or. LDRYD ) THEN
-!         TS_SUN_2 = TS_CHEM     / 2   ! 1/2 of chemistry timestep
-!      ELSE 
-!         TS_SUN_2 = TS_SMALLEST / 2   ! 1/2 of dynamic (smallest) timestep
-!      ENDIF
-!------------------------------------------------------------------------------
-
       ! Initialize timesteps in "time_mod.f"
       CALL SET_TIMESTEPS( CHEMISTRY  = TS_CHEM, EMISSION  = TS_EMIS, 
      &                    DYNAMICS   = TS_DYN,  UNIT_CONV = TS_UNIT,
      &                    CONVECTION = TS_CONV, DIAGNOS   = TS_DIAG )
-!------------------------------------------------------------------------------
-! Prior to 10/7/11:
-! We no longer need to pass TS_SUN_2 to SET_TIMESTEPS (bmy, 10/7/11)
-!     &                    SUNCOS     = TS_SUN_2 )
-!------------------------------------------------------------------------------
       
  100  FORMAT( A, ' time step must be a multiple of the smallest one:',
      &         i5, i5 )
@@ -5905,47 +6048,8 @@
 !
 ! !USES:
 !
-      USE DIRECTORY_MOD, ONLY : DATA_DIR,   GEOS_1_DIR, GEOS_S_DIR 
-      USE DIRECTORY_MOD, ONLY : GEOS_3_DIR, GEOS_4_DIR, TEMP_DIR   
-      USE DIRECTORY_MOD, ONLY : RUN_DIR,    OH_DIR,     O3PL_DIR   
-      USE DIRECTORY_MOD, ONLY : TPBC_DIR,   DATA_DIR_1x1
-      USE LOGICAL_MOD,   ONLY : LATEQ,      LAVHRRLAI,  LCARB      
-      USE LOGICAL_MOD,   ONLY : LDEAD,      LDUST,      LSULF      
-      USE LOGICAL_MOD,   ONLY : LSOA,       LSSALT,     LCHEM      
-      USE LOGICAL_MOD,   ONLY : LCONV,      LDBUG      
-      USE LOGICAL_MOD,   ONLY : LDIAG,      LPRT,       LSTDRUN    
-      USE LOGICAL_MOD,   ONLY : LDRYD,      LAIRNOX,    LANTHRO    
-      USE LOGICAL_MOD,   ONLY : LBIONOX,    LBIOMASS,   LBIOFUEL   
-      USE LOGICAL_MOD,   ONLY : LBIOGENIC,  LBBSEA,     LEMIS      
-      USE LOGICAL_MOD,   ONLY : LFFNOX,     LFOSSIL,    LLIGHTNOX  
-      USE LOGICAL_MOD,   ONLY : LMONOT,     LNEI99,     LSHIPSO2   
-      USE LOGICAL_MOD,   ONLY : LSOILNOX,   LTOMSAI,    LWOODCO     
-      USE LOGICAL_MOD,   ONLY : LFILL,      LMFCT,      LTRAN      
-      USE LOGICAL_MOD,   ONLY : LTPFV,      LUPBD,      LWINDO     
-      USE LOGICAL_MOD,   ONLY : LUNZIP,     LWAIT,      LTURB      
-      USE LOGICAL_MOD,   ONLY : LSVGLB,     LSPLIT,     LWETD 
-      USE LOGICAL_MOD,   ONLY : LMEGAN,     LMEGANMONO, LDYNOCEAN
-      USE LOGICAL_MOD,   ONLY : LGFED2BB,   LFUTURE,    LEDGAR
-      USE LOGICAL_MOD,   ONLY : LGFED3BB
-      USE LOGICAL_MOD,   ONLY : LEDGARNOx,  LEDGARCO,   LEDGARSHIP
-      USE LOGICAL_MOD,   ONLY : LEDGARSOx,  LVARTROP
-      USE LOGICAL_MOD,   ONLY : LOTDLOC
-      USE LOGICAL_MOD,   ONLY : LEMEP
-      USE LOGICAL_MOD,   ONLY : LNEI05,     LPREINDHG
-      USE LOGICAL_MOD,   ONLY : LSVCSPEC 
-      USE LOGICAL_MOD,   ONLY : LLINOZ
-      USE LOGICAL_MOD,   ONLY : LMODISLAI,   LPECCA
-      USE LOGICAL_MOD,   ONLY : LGENFF,      LANNFF,      LMONFF
-      USE LOGICAL_MOD,   ONLY : LSEASBB,     LBIODAILY,   LBIODIURNAL 
-      USE LOGICAL_MOD,   ONLY : LBIONETORIG, LBIONETCLIM
-      USE LOGICAL_MOD,   ONLY : LOCN1997,    LOCN2009ANN, LOCN2009MON
-      USE LOGICAL_MOD,   ONLY : LFFBKGRD
-      USE LOGICAL_MOD,   ONLY : LBIOSPHTAG,  LFOSSILTAG
-      USE LOGICAL_MOD,   ONLY : LSHIPEDG,    LSHIPICO,    LPLANE
-      USE LOGICAL_MOD,   ONLY : LSHIPSCALE,  LPLANESCALE
-      USE LOGICAL_MOD,   ONLY : LSHIPTAG,    LPLANETAG
-      USE LOGICAL_MOD,   ONLY : LCHEMCO2
-      USE LOGICAL_MOD,   ONLY : LRETRO   !(wfr, 3/8/11)
+      USE DIRECTORY_MOD
+      USE LOGICAL_MOD
 ! 
 ! !REVISION HISTORY: 
 !  20 Jul 2004 - R. Yantosca - Initial version
@@ -5967,6 +6071,7 @@
 !  01 Dec 2009 - C. Carouge  - Initialize LNEI05 
 !  27 Aug 2010 - R. Yantosca - Added ProTeX headers
 !  07 Sep 2011 - P. Kasibhatla - Modified for GFED3
+!   8 Feb 2012 - R. Yantosca - Rewrote USE statements for clarity
 !EOP
 !------------------------------------------------------------------------------
 !BOC

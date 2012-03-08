@@ -38,6 +38,7 @@
 !  25 Aug 2010 - R. Yantosca - Treat MERRA in same way as GEOS-5
 !  30 Aug 2010 - R. Yantosca - Added more ProTeX headers
 !  12 Apr 2011 - J. Fisher   - Add missing code from Holmes 2010
+!  08 Feb 2012 - R. Yantosca - Treat GEOS-5.7.x in the same way as MERRA
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -96,6 +97,7 @@
 !  25 Aug 2010 - R. Yantosca - Treat MERRA in same way as GEOS-5
 !  26 Apr 2011 - J. Fisher   - Use MERRA land fraction information
 !  12 Apr 2011 - J. Fisher   - Add missing code from Holmes 2010
+!  08 Feb 2012 - R. Yantosca - Treat GEOS-5.7.x in the same way as MERRA
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -134,15 +136,16 @@
          FRAC_SNOW_OR_ICE = 0d0
          FRAC_SNOWFREE_LAND  = 1d0
 
-#if   defined( MERRA )
+#if   defined( MERRA ) || defined( GEOS_57 )
          ! Distinguish between ice/snow and snow-free land
-         FRAC_SNOW_OR_ICE =  
-     &        MIN(FRSNO(I,J) + FRSEAICE(I,J) + FRLANDIC(I,J), 1d0)
+         FRAC_SNOW_OR_ICE    =  MIN(FRSNO(I,J) 
+     &                       + FRSEAICE(I,J) + FRLANDIC(I,J), 1d0)
          FRAC_SNOWFREE_LAND  = MAX(FRLAND(I,J) - FRSNO(I,J), 0d0)
+
          ! Set this to FALSE in MERRA to avoid overwriting fractions
-         IS_SNOW_OR_ICE = .FALSE.
-         IS_LAND_OR_ICE = ( (FRAC_SNOWFREE_LAND > 0d0) .OR.
-     &                      (FRAC_SNOW_OR_ICE > 0d0) )
+         IS_SNOW_OR_ICE      = .FALSE.
+         IS_LAND_OR_ICE      = ( (FRAC_SNOWFREE_LAND > 0d0) .OR.
+     &                           (FRAC_SNOW_OR_ICE > 0d0) )
 #elif defined( GEOS_5 )
          ! GEOS5 snow height (water equivalent) in mm. (Docs incorrectly say m)
          IS_SNOW_OR_ICE = 
@@ -516,6 +519,9 @@
 !  25 Aug 2010 - R. Yantosca - Treat MERRA in same way as GEOS-5
 !  26 Apr 2011 - J. Fisher   - Use MERRA land fraction information
 !  12 Apr 2011 - J. Fisher   - Bug fixes, add missing code from Holmes 2010
+!  08 Feb 2012 - R. Yantosca - Treat GEOS-5.7.x in the same way as MERRA
+!  10 Feb 2012 - R. Yantosca - Extend #if statement for SOIL_EMIS_FAC in order
+!                              to get the code to compile w/o error.
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -547,6 +553,13 @@
       REAL*8, PARAMETER  :: SOIL_EMIS_FAC = 2.4D-2*.5742d0 ! for sunlight function
 #elif defined(GRID2x25)
       REAL*8, PARAMETER :: SOIL_EMIS_FAC=2.4D-2*.5742d0*4d0
+#elif defined(GRID05x0666)
+      !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+      ! lhu, 1/5/2012, add pre-defined SOIL_EMIS_FAC for 05x0667 simulation
+      ! This is a non-physical value and would need to be changed for an
+      ! actual mercury simulation
+      REAL*8, PARAMETER :: SOIL_EMIS_FAC = -9.0D99
+      !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 #endif
 
       !=================================================================
@@ -565,7 +578,7 @@
          ! Except in MERRA, assume whole box is land if conditions met
          ! (jaf, 4/26/11)
          FRAC_SNOWFREE_LAND = 1d0
-#if   defined( MERRA )
+#if   defined( MERRA ) || defined( GEOS_57 )
          FRAC_SNOWFREE_LAND = MAX(FRLAND(I,J) - FRSNO(I,J), 0d0)
          IS_SNOWFREE_LAND = (FRAC_SNOWFREE_LAND > 0d0)
 #elif defined( GEOS_5 )

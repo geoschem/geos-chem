@@ -18,9 +18,9 @@
       USE AEROSOL_MOD,          ONLY : AEROSOL_CONC, RDAER, SOILDUST
       USE COMODE_MOD,           ONLY : ABSHUM, CSPEC, ERADIUS, TAREA
       USE COMODE_MOD,           ONLY : JLOP,   JLOP_PREVIOUS
-      USE DAO_MOD,              ONLY : AD,       AIRVOL,    ALBD, AVGW   
-      USE DAO_MOD,              ONLY : BXHEIGHT, MAKE_AVGW, OPTD, SUNCOS  
-      USE DAO_MOD,              ONLY : T
+      USE DAO_MOD,              ONLY : AD,       AIRVOL,    ALBD, AVGW
+      USE DAO_MOD,              ONLY : BXHEIGHT, MAKE_AVGW, OPTD  
+      USE DAO_MOD,              ONLY : T,        SUNCOS_MID
       USE DIAG_OH_MOD,          ONLY : DO_DIAG_OH
       USE DIAG_PL_MOD,          ONLY : DO_DIAG_PL
       USE DUST_MOD,             ONLY : RDUST_ONLINE, RDUST_OFFLINE
@@ -40,12 +40,12 @@
       USE TIME_MOD,             ONLY : GET_NYMD,     GET_NHMS
       USE LOGICAL_MOD,          ONLY : LSVCSPEC,     LLINOZ,    LTOMAS
 
-      USE CMN_SIZE_MOD             ! Size parameters
-      USE COMODE_LOOP_MOD             ! SMVGEAR variables
-      USE CMN_O3_MOD               ! EMISRRN, EMISRR
-      USE CMN_DIAG_MOD             ! ND40
-      USE CMN_NOX_MOD              ! SLBASE
-      USE CMN_DEP_MOD              ! FRCLND
+      USE CMN_SIZE_MOD               ! Size parameters
+      USE COMODE_LOOP_MOD            ! SMVGEAR variables
+      USE CMN_O3_MOD                 ! EMISRRN, EMISRR
+      USE CMN_DIAG_MOD               ! ND40
+      USE CMN_NOX_MOD                ! SLBASE
+      USE CMN_DEP_MOD                ! FRCLND
 
       IMPLICIT NONE
 #     include "define.h"
@@ -194,8 +194,13 @@
 !  (36) Now bracket out dust emissions if TOMAS is invoked (bmy, 1/25/10)
 !  (37) Now remove obsolete embedded chemistry stuff.  Modify arg list to
 !        RURALBOX accordingly.   Removed obsolete LEMBED switch. (bmy, 2/26/10)
-!  (37) Remove obsolete SUNCOSB (bmy, 4/28/10)
+!  (38) Remove obsolete SUNCOSB (bmy, 4/28/10)
 !  26 Aug 2010 - R. Yantosca - Added ProTeX headers
+!  05 Oct 2011 - R. Yantosca - Now use SUNCOS30 (cosine of SZA at 30m after
+!                              the GMT hour) instead of SUNCOS.  This fixes
+!                              the photolysis issue.
+!  07 Oct 2011 - R. Yantosca - Rename SUNCOS30 to SUNCOS_MID, which is the
+!                              cos(SZA) at the midpt of the chemistry timestep
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -206,6 +211,8 @@
       INTEGER, SAVE            :: CH4_YEAR  = -1
       INTEGER                  :: I, J, JLOOP, L, NPTS, N, MONTH, YEAR
       INTEGER                  :: WAVELENGTH
+      INTEGER                  :: DATE                         
+      INTEGER, SAVE            :: DATE_PREV = -1
 
       ! To use CSPEC_FULL restart (dkh, 02/12/09) 
       LOGICAL                  :: IT_EXISTS 
@@ -258,7 +265,7 @@
       !the grid mappings.
       JLOP_PREVIOUS(:,:,:) = JLOP(:,:,:)
 
-      CALL RURALBOX( AD, T, AVGW, ALBD, SUNCOS )
+      CALL RURALBOX( AD, T, AVGW, ALBD )
 
       !vartrop fix (dkh, 05/08/11)
       !Use JLOP from this timestep the first time through
@@ -363,8 +370,18 @@
       ! At the beginning of each new day, call SETUP_PLANEFLIGHT
       ! to see if there are any plane flight points to be processed
       !=================================================================
-      IF ( ND40 > 0 .and. ITS_A_NEW_DAY() ) THEN
+
+      ! Get todays' date
+      DATE = GET_NYMD()
+    
+      ! If this is the first chem timestep of a new day, then we need to 
+      ! call SETUP_PLANEFLIGHT.  If chemistry is turned on, then we need
+      ! to place this call here, so as to make sure that the chemical
+      ! mechanism files (read by READER and READCHEM) have been loaded.
+      IF ( ND40 .and. DATE /= DATE_PREV ) THEN
+         print*, '### Called SETUP_PLANEFLIGHT'
          CALL SETUP_PLANEFLIGHT
+         DATE_PREV = DATE
       ENDIF
 
       !================================================================
@@ -398,12 +415,6 @@
             WRITE(6,*) 
      &   '    - CHEMDR: CSPEC restart not found, use background values'
  
-!------------------------------------------------------------------------------
-! Prior to 2/15/11:
-! Now pass STT & XNUMOL with N_TRACERS to avoid seg fault (G.Luo, bmy, 2/15/11)
-!            CALL GASCONC( FIRSTCHEM, N_TRACERS, STT, XNUMOL, FRCLND,
-!     &                    IT_EXISTS )
-!------------------------------------------------------------------------------
             CALL GASCONC( FIRSTCHEM,              N_TRACERS, 
      &                    STT(:,:,:,1:N_TRACERS), XNUMOL(1:N_TRACERS),    
      &                    FRCLND,                 IT_EXISTS )
@@ -414,12 +425,6 @@
      &   '    - CHEMDR: using CSPEC values from restart file'                  
 
             ! Call GASCONC but don't reset CSPEC values
-!------------------------------------------------------------------------------
-! Prior to 2/15/11:
-! Now pass STT & XNUMOL with N_TRACERS to avoid seg fault (G.Luo, bmy, 2/15/11)
-!            CALL GASCONC( .FALSE., N_TRACERS, STT, XNUMOL, FRCLND,
-!     &                    IT_EXISTS )
-!------------------------------------------------------------------------------
             CALL GASCONC( .FALSE.,                 N_TRACERS, 
      &                     STT(:,:,:,1:N_TRACERS), XNUMOL(1:N_TRACERS),    
      &                     FRCLND,                 IT_EXISTS )
@@ -428,12 +433,6 @@
 
       ELSE 
 
-!------------------------------------------------------------------------------
-! Prior to 2/15/11:
-! Now pass STT & XNUMOL with N_TRACERS to avoid seg fault (G.Luo, bmy, 2/15/11)
-!         CALL GASCONC( FIRSTCHEM, N_TRACERS, STT, XNUMOL, FRCLND,
-!     &                 IT_EXISTS )
-!------------------------------------------------------------------------------
          CALL GASCONC(  FIRSTCHEM,              N_TRACERS, 
      &                  STT(:,:,:,1:N_TRACERS), XNUMOL(1:N_TRACERS),  
      &                  FRCLND,                 IT_EXISTS )
@@ -497,7 +496,7 @@
       !=================================================================
       ! Call photolysis routine to compute J-Values
       !=================================================================
-      CALL FAST_J( SUNCOS, OPTD, UVALBEDO )              
+      CALL FAST_J( SUNCOS_MID, OPTD, UVALBEDO )              
 
       !### Debug
       IF ( LPRT ) CALL DEBUG_MSG( '### CHEMDR: after FAST-J' )
@@ -509,7 +508,7 @@
       ! PHYSPROC calls both CALCRATE, which computes rxn rates 
       ! and SMVGEAR (if we do not use the solver coded by kpp), which
       ! is the chemistry solver
-      CALL PHYSPROC( SUNCOS )
+      CALL PHYSPROC( SUNCOS_MID )
 
       !### Debug
       IF ( LPRT ) CALL DEBUG_MSG( '### CHEMDR: after PHYSPROC' )
@@ -527,11 +526,6 @@
       !=================================================================
       ! Call LUMP which lumps the species together after chemistry
       !=================================================================
-!------------------------------------------------------------------------------
-! Prior to 2/15/11:
-! Now pass STT & XNUMOL with N_TRACERS to avoid seg fault (G.Luo, bmy, 2/15/11)
-!      CALL LUMP( N_TRACERS, XNUMOL, STT )
-!------------------------------------------------------------------------------
       CALL LUMP( N_TRACERS, 
      &           XNUMOL(1:N_TRACERS),
      &           STT(:,:,:,1:N_TRACERS) )
@@ -543,13 +537,6 @@
       ! Call OHSAVE which saves info on OZONE, OH, AND NO concentrations 
       !=================================================================
       IF ( IDTNOX /= 0 .AND. IDTOX /= 0 ) THEN
-!------------------------------------------------------------------------------
-! Prior to 2/15/11:
-! Now pass STT & XNUMOL with N_TRACERS to avoid seg fault (G.Luo, bmy, 2/15/11)
-!         CALL OHSAVE( N_TRACERS, XNUMOL,  STT,    FRACO3, 
-!     &                FRACNO,    FRACNO2, SAVEOH, SAVEHO2, 
-!     &                SAVENO,    SAVENO2, SAVENO3 )
-!------------------------------------------------------------------------------
          CALL OHSAVE( N_TRACERS,              XNUMOL(1:N_TRACERS),
      &                STT(:,:,:,1:N_TRACERS), FRACO3, 
      &                FRACNO,                 FRACNO2, 

@@ -44,6 +44,7 @@
 !  (6 ) Bug fix in GET_GLOBAL_O3 (bmy, 1/14/09)
 !  13 Aug 2010 - R. Yantosca - Added modifications for MERRA
 !  13 Aug 2010 - R. Yantosca - Added ProTeX headers
+!  08 Feb 2012 - R. Yantosca - Add modifications for GEOS-5.7.x
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -97,6 +98,7 @@
 !  13 Aug 2010 - R. Yantosca - Treat MERRA in same way as GEOS-5 
 !  08 Dec 2009 - R. Yantosca - Added ProTeX headers
 !  19 Aug 2010 - R. Yantosca - Removed hardwiring of data directory
+!  08 Feb 2012 - R. Yantosca - Treat GEOS-5.7.x in the same way as MERRA
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -121,7 +123,7 @@
          FIRST = .FALSE.
       ENDIF
 
-#if   defined( GEOS_5 ) || defined( MERRA )
+#if   defined( GEOS_5 ) || defined( MERRA ) || defined( GEOS_57 )
 
       !----------------------------------------------------------------
       ! GEOS-5 or MERRA

@@ -284,7 +284,7 @@
 !  (1 ) Added code from the Caltech group for SOA chemistry.  Also now 
 !        reference "global_oh_mod.f", "global_o3_mod.f", "global_no3_mod.f".
 !        (rjp, bmy, 7/8/04)
-!  (2 ) Now reference LSOA and LEMIS from F77_CMN_SETUP.  Now only call OHNO3TIME
+!  (2 ) Now reference LSOA and LEMIS from CMN_SETUP.  Now only call OHNO3TIME
 !        if it hasn't been done before w/in EMISSCARBON. (rjp, bmy, 7/15/04)
 !  (3 ) Now reference LSOA, LEMIS, LPRT from "logical_mod.f".  Now reference
 !        STT and ITS_AN_AEROSOL_SIM from "tracer_mod.f" (bmy, 7/20/04)
@@ -1674,10 +1674,6 @@
 !
       ! References to F90 modules
       USE ERROR_MOD,    ONLY : DEBUG_MSG
-!------------------------------------------------------------------------------
-! Prior to 10/5/11: 
-!      USE DAO_MOD,      ONLY : T, AD, AIRVOL, SUNCOS
-!------------------------------------------------------------------------------
       USE DAO_MOD,      ONLY : T, AD, AIRVOL
       USE DIAG_MOD,     ONLY : AD07_HC
       USE TRACER_MOD,   ONLY : STT 
@@ -3959,7 +3955,7 @@ c
 !  and the CARBONACEOUS AEROSOL emissions (rjp, bmy, 1/24/02, 9/25/06)
 !
 !  NOTES:
-!  (1 ) Now references LSOA from "F77_CMN_SETUP".  Also now call OHNO3TIME since
+!  (1 ) Now references LSOA from "CMN_SETUP".  Also now call OHNO3TIME since
 !        biogenic emissions also have a diurnal variation. (rjp, bmy, 7/15/04)
 !  (2 ) Now references LSOA and LPRT from "logical_mod.f".  Now references
 !        STT from "tracer_mod.f" (bmy, 7/20/04)
@@ -4254,15 +4250,12 @@ c
 !                              computed @ 30 mins after each GMT hour
 !  07 Oct 2011 - R. Yantosca - Rename SUNCOS30 to SUNCOS_MID, which is the
 !                              cos(SZA) at the midpt of the chemistry timestep
+!  08 Dec 2011 - M. Payer    - Remove GEIA biogenic emissions option
 !******************************************************************************
 !
       ! References to F90 modules
       USE BPCH2_MOD,     ONLY : GET_NAME_EXT_2D,  GET_RES_EXT
       USE BPCH2_MOD,     ONLY : GET_TAU0,         READ_BPCH2
-!-----------------------------------------------------------------------------
-! Prior to 10/7/11:
-!      USE DAO_MOD,       ONLY : SUNCOS
-!-----------------------------------------------------------------------------
       USE DAO_MOD,       ONLY : SUNCOS_MID
       USE DIRECTORY_MOD, ONLY : DATA_DIR
       USE LOGICAL_MOD,   ONLY : LMEGANMONO,       LSOA
@@ -4301,23 +4294,10 @@ c
       REAL*8                 :: SC, PDF, PDR
 
       ! External functions
-!-- Moved to meganut_mod.f
-!      REAL*8,  EXTERNAL      :: XLTMMP
-      REAL*8,  EXTERNAL      :: EMMONOT
 
       !=================================================================
       ! BIOGENIC_OC begins here!
       !=================================================================
-
-      ! Get ISOPRENE baseline emissions (first-time only)
-      IF ( FIRST ) THEN
-         CALL RDISOPT( CONVERT )
-         CALL RDMONOT( GMONOT  )
-         CALL SETBASE( CONVERT, GMONOT )
-
-         ! Resety first-time flag
-         FIRST = .FALSE.
-      ENDIF
 
       !=================================================================
       ! If secondary organic aerosols are turned off ...
@@ -4341,26 +4321,15 @@ c
             ! ** MEGAN v2.1 **
             ! Cosine of solar zenith angle   (mpb,2009) 
             ! Diffuse and direct PAR         (mpb,2009)
-!------------------------------------------------------------------------------
-! Prior to 10/5/11:
-! Now compute MEGAN with the cos(SZA) @ 30 mins after the hour (bmy, 10/5/11)
-!            SC   = SUNCOS(IJLOOP)   
-!------------------------------------------------------------------------------
             SC   = SUNCOS_MID(IJLOOP)   
             PDR  = PARDR(I,J)
             PDF  = PARDF(I,J)
             ! +++++++++++++++++++++++++++++++++++++++++
 
-            ! Get monoterpenes from MEGAN or GEIA [kg C/box]
+            ! Get monoterpenes from MEGAN [kg C/box]
             IF ( LMEGANMONO ) THEN
-               ! +++++++++++++++++++++++++++++++++++++++++
-               ! New formulation for MEGAN (mpb,2009)
                EMMO = GET_EMMONOT_MEGAN( I, J, SC, TMMP,
      &                                   PDR, PDF, 1d0 )
-               ! +++++++++++++++++++++++++++++++++++++++++
-               ! EMMO = GET_EMMONOT_MEGAN( I, J, TMMP, 1d0 )
-            ELSE
-               EMMO = EMMONOT( IJLOOP, TMMP, 1d0 )
             ENDIF
 
             ! Fraction of EMMO that converts into OC [kg/box/timestep]
@@ -4431,25 +4400,15 @@ c
             ! ** MEGAN v2.1 **
             ! Cosine of solar zenith angle   (mpb,2009) 
             ! Diffuse and direct PAR         (mpb,2009)
-!------------------------------------------------------------------------------
-! Prior to 10/5/11:
-! Now compute MEGAN with the cos(SZA) @ 30 mins after the hour (bmy, 10/5/11)
-!            SC   = SUNCOS(IJLOOP)   
-!------------------------------------------------------------------------------
             SC   = SUNCOS_MID(IJLOOP)   
             PDR  = PARDR(I,J)
             PDF  = PARDF(I,J)
             ! +++++++++++++++++++++++++++++++++++++++++
 
-            ! Get monoterpenes from MEGAN or GEIA [kg C/box]
+            ! Get monoterpenes from MEGAN [kg C/box]
             IF ( LMEGANMONO ) THEN
-               ! +++++++++++++++++++++++++++++++++++++++++
-               ! New formulation for MEGAN (mpb,2009)
                TERP_ORGC(I,J) = GET_EMMONOT_MEGAN( I, J, SC, TMMP,
      &                                   PDR, PDF, 1d0 )               
-               ! TERP_ORGC(I,J) = GET_EMMONOT_MEGAN( I, J, TMMP, 1d0 )
-            ELSE
-               TERP_ORGC(I,J) = EMMONOT( IJLOOP, TMMP, 1d0 )
             ENDIF
 
             !---------------------------------------------------
@@ -4457,12 +4416,6 @@ c
             !---------------------------------------------------
             IF ( SUNCOS_MID(IJLOOP) > 0d0 .and. TCOSZ(I,J) > 0d0 ) THEN
                DIUR_ORVC(I,J) = GEIA_ORVC(I,J)*
-!-----------------------------------------------------------------------------
-! Prior to 10/5/11:
-! Now use SUNCOS_MID array instead of SUNCOS (bmy, 10/5/11)
-!     &                          ( SUNCOS(IJLOOP) / TCOSZ(I,J) ) *
-!     &                          ( 1440d0        / GET_TS_CHEM() )
-!-----------------------------------------------------------------------------
      &                          ( SUNCOS_MID(IJLOOP) / TCOSZ(I,J) ) *
      &                          ( 1440d0           / GET_TS_CHEM() )
 
@@ -6463,7 +6416,7 @@ c
          ! GET gas mixing ratio [v/v]
          XGASMIX = XGASM / XMW / ( XAIRM / 28.97d0 )
 
-#if   defined( GEOS_5 ) || defined( MERRA )
+#if   defined( GEOS_5 ) || defined( MERRA ) || defined( GEOS_57 )
 
          !---------------------------------------------
          ! GEOS-5/MERRA: Get LWC, FC from met fields
@@ -6970,7 +6923,7 @@ c
 !  NOTES:
 !  (1 ) Also added arrays for secondary organic aerosols (rjp, bmy, 7/8/04)
 !  (2 ) Remove reference to CMN, it's obsolete (bmy, 7/20/04)
-!  (3 ) Now reference LSOA from "logical_mod.f" not F77_CMN_SETUP.  Now call
+!  (3 ) Now reference LSOA from "logical_mod.f" not CMN_SETUP.  Now call
 !        GET_BOUNDING_BOX from "grid_mod.f" to compute the indices I1_NA,
 !        I2_NA, J1_NA, J2_NA which define the N. America region. (bmy, 12/1/04)
 !  (4 ) Now call READ_GPROD_APROD to read GPROD & APROD from disk. 

@@ -19,10 +19,6 @@
       USE COMODE_MOD,           ONLY : ABSHUM, CSPEC, ERADIUS, TAREA
       USE COMODE_MOD,           ONLY : JLOP,   JLOP_PREVIOUS
       USE DAO_MOD,              ONLY : AD,       AIRVOL,    ALBD, AVGW
-!------------------------------------------------------------------------------
-! Prior to 11/5/11:
-!      USE DAO_MOD,              ONLY : BXHEIGHT, MAKE_AVGW, OPTD, SUNCOS  
-!------------------------------------------------------------------------------
       USE DAO_MOD,              ONLY : BXHEIGHT, MAKE_AVGW, OPTD  
       USE DAO_MOD,              ONLY : T,        SUNCOS_MID
       USE DIAG_OH_MOD,          ONLY : DO_DIAG_OH
@@ -132,7 +128,7 @@
 !  (10) Now reference IU_CTMCHEM from "file_mod.f".  Assign the value of
 !        IU_CTMCHEM (which =93) to IO93 for SMVGEAR routines.  Also open 
 !        "ctm.chem" file on the first call as file unit # IO93.  Add
-!        references to "F77_CMN_DIAG" and "planeflight_mod.f".  Call routine
+!        references to "CMN_DIAG" and "planeflight_mod.f".  Call routine
 !        SETUP_PLANEFLIGHT to initialize the plane track diagnostic
 !        after reading the "chem.dat" file.  (bmy, 7/2/02)
 !  (11) Now reference AD, T and BXHEIGHT from "dao_mod.f".  Also removed 
@@ -144,7 +140,7 @@
 !  (12) Now reference "AIRVOL" from "dao_mod.f".  Now declare local array
 !        SO4_NH4_NIT, which will contain lumped SO4, NH3, NIT aerosol.  Now
 !        pass SO4_NH4_NIT to "rdaer.f" via the arg list if sulfate chemistry
-!        is turned on.  Now also references F77_CMN_SETUP. (rjp, bmy, 3/23/03)
+!        is turned on.  Now also references CMN_SETUP. (rjp, bmy, 3/23/03)
 !  (13) Removed ITAU from the arg list.  Removed reference to IHOUR.  Now use
 !        functions GET_MONTH, GET_YEAR from "time_mod.f" (bmy, 3/27/03)
 !  (14) Remove KYEAR and TWO_PI, these are now obsolete for SMVGEAR II.  Now 
@@ -268,11 +264,6 @@
       !the grid mappings.
       JLOP_PREVIOUS(:,:,:) = JLOP(:,:,:)
 
-!-----------------------------------------------------------------------------
-! Prior to 10/5/11:
-! SUNCOS is no longer used in RURALBOX, we can remove it (bmy, 10/5/11)
-!     CALL RURALBOX( AD, T, AVGW, ALBD, SUNCOS )
-!-----------------------------------------------------------------------------
       CALL RURALBOX( AD, T, AVGW, ALBD )
 
       !vartrop fix (dkh, 05/08/11)
@@ -378,13 +369,6 @@
       ! At the beginning of each new day, call SETUP_PLANEFLIGHT
       ! to see if there are any plane flight points to be processed
       !=================================================================
-!-----------------------------------------------------------------------
-! Prior to 9/27/11:
-! Fix for centralizing chemistry timestep (bmy, mpayer, 9/27/11)
-!      IF ( ND40 > 0 .and. ITS_A_NEW_DAY() ) THEN
-!         CALL SETUP_PLANEFLIGHT
-!      ENDIF
-!-----------------------------------------------------------------------
 
       ! Get todays' date
       DATE = GET_NYMD()
@@ -505,10 +489,6 @@
       !=================================================================
       ! Call photolysis routine to compute J-Values
       !=================================================================
-!------------------------------------------------------------------------------
-! Prior to 10/7/11:
-!      CALL FAST_J( SUNCOS, OPTD, UVALBEDO )              
-!------------------------------------------------------------------------------
       CALL FAST_J( SUNCOS_MID, OPTD, UVALBEDO )              
 
       !### Debug
@@ -521,10 +501,6 @@
       ! PHYSPROC calls both CALCRATE, which computes rxn rates 
       ! and SMVGEAR (if we do not use the solver coded by kpp), which
       ! is the chemistry solver
-!------------------------------------------------------------------------------
-! Prior to 10/5/11:
-!      CALL PHYSPROC( SUNCOS )
-!------------------------------------------------------------------------------
       CALL PHYSPROC( SUNCOS_MID )
 
       !### Debug

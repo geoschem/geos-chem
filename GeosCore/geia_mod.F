@@ -256,7 +256,7 @@
 !  (3 ) Now use IOS /= 0 to trap both I/O errors and EOF (bmy, 9/13/00)
 !  (4 ) Now read files directly from DATA_DIR/fossil_200104 subdirectory.
 !        Also echo the file name to stdout.  Now reference DATA_DIR from
-!        the "F77_CMN_SETUP" header file. (bmy, 4/3/02)
+!        the "CMN_SETUP" header file. (bmy, 4/3/02)
 !  (5 ) Now reference IU_FILE and IOERROR from "file_mod.f".  Also deleted
 !        obsolete code from April 2002 (bmy, 6/27/02)
 !  (6 ) Now references DATA_DIR from "directory_mod.f" (bmy, 7/20/04)
@@ -463,7 +463,7 @@
 !        ASCII merge file (bmy, 4/23/01)
 !  (5 ) Now read files directly from DATA_DIR/fossil_obsolete subdirectory.
 !        Also echo the file name to stdout.  Now reference DATA_DIR from
-!        the "F77_CMN_SETUP" header file. (bmy, 4/3/02)
+!        the "CMN_SETUP" header file. (bmy, 4/3/02)
 !  (6 ) Now reference IU_FILE and IOERROR from "file_mod.f".  Also deleted
 !        obsolete code from April 2002 (bmy, 6/27/02)
 !  (7 ) Now references DATA_DIR from "directory_mod.f" (bmy, 7/20/04)

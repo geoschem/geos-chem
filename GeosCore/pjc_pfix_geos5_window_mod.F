@@ -383,7 +383,7 @@
 !    geofac_pc : special geometrical factor (geofac) for Polar cap
 !  
 !  NOTES:
-!  (1 ) Now reference PI from "F77_CMN_GCTM" for consistency.  Also force
+!  (1 ) Now reference PI from "CMN_GCTM" for consistency.  Also force
 !        double-precision with the "D" exponent. (bmy, 5/6/03)
 !  (2 ) New definition for the geometric factor. (lzh, ccc, 8/3/10)
 !******************************************************************************

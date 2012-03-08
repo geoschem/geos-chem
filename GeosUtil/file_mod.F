@@ -40,6 +40,7 @@
       INTEGER, PUBLIC, PARAMETER :: IU_BC_NA   = 20  ! TPCORE BC files: NA grid
       INTEGER, PUBLIC, PARAMETER :: IU_BC_EU   = 21  ! TPCORE BC files: EU grid
       INTEGER, PUBLIC, PARAMETER :: IU_BC_CH   = 22  ! TPCORE BC files: CH grid
+      INTEGER, PUBLIC, PARAMETER :: IU_ND63    = 25  ! ND63 output
       INTEGER, PUBLIC, PARAMETER :: IU_FILE    = 65  ! Generic file
       INTEGER, PUBLIC, PARAMETER :: IU_TP      = 69  ! "YYYYMMDD.tropp.*"
       INTEGER, PUBLIC, PARAMETER :: IU_PH      = 70  ! "YYYYMMDD.phis.*"

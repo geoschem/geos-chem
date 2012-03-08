@@ -112,6 +112,7 @@ MODULE VDIFF_MOD
 !  02 Mar 2011 - R. Yantosca - Bug fixes for PGI compiler: these mostly
 !                              involve explicitly using "D" exponents
 !  25 Mar 2011 - R. Yantosca - Corrected bug fixes noted by Jintai Lin
+!  08 Feb 2012 - R. Yantosca - Add modifications for GEOS-5.7.2 met
 !EOP
 !------------------------------------------------------------------------------
 
@@ -883,11 +884,6 @@ contains
        rrho(i)  = rair*t(i,plev)/pmid(i,plev)
        if (present(taux) .and. present(tauy)) then
           ustr     = sqrt( sqrt( taux(i)**2 + tauy(i)**2 )*rrho(i) )
-          !---------------------------------------------------------------
-          ! Prior to 9/17/11:
-          ! Use double precision exponents (bmy, 9/17/11)
-          !ustar(i) = max( ustr,.01 )
-          !---------------------------------------------------------------
           ustar(i) = max( ustr,.01d0 )
        endif
        khfs(i)  = shflx(i)*rrho(i)/cpair
@@ -1804,6 +1800,9 @@ contains
     USE DRYDEP_MOD,   ONLY : DRYHg0, DRYHg2, DRYHgP !cdh
     USE TRACER_MOD,   ONLY: ITS_A_FULLCHEM_SIM  !bmy
 
+#if   defined( GEOS_3 )
+    USE CMN_GCTM_MOD      ! BMY KLUDGE for the present (bmy, 2/24/12)
+#endif
 
 #   include "define.h"
 
@@ -1832,6 +1831,7 @@ contains
 !  02 Mar 2011 - R. Yantosca - Bug fixes for PGI compiler: these mostly
 !                              involve explicitly using "D" exponents
 !  26 Apr 2011 - J. Fisher   - Use MERRA land fraction information
+!  08 Feb 2012 - R. Yantosca - Treat GEOS-5.7.2 in the same way as MERRA
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -2048,12 +2048,13 @@ contains
        ! Apply dry deposition frequencies
        !----------------------------------------------------------------
        do N = 1, NUMDEP ! NUMDEP includes all gases/aerosols
+          ! Now include sea salt dry deposition (jaegle 5/11/11)
           IF (TRIM( DEPNAME(N) ) == 'DST1'.OR. &
               TRIM( DEPNAME(N) ) == 'DST2'.OR. &
               TRIM( DEPNAME(N) ) == 'DST3'.OR. &
-              TRIM( DEPNAME(N) ) == 'DST4'.OR. &
-              TRIM( DEPNAME(N) ) == 'SALA'.OR. &
-              TRIM( DEPNAME(N) ) == 'SALC') CYCLE
+              TRIM( DEPNAME(N) ) == 'DST4') CYCLE
+              !TRIM( DEPNAME(N) ) == 'SALA'.OR. &
+              !TRIM( DEPNAME(N) ) == 'SALC') CYCLE
 
           ! gases + aerosols for full chemistry 
           NN   = NTRAIND(N)
@@ -2149,7 +2150,7 @@ contains
           ! Except in MERRA, we assume entire grid box is water or ice
           ! if conditions are met (jaf, 4/26/11)
           FRAC_NO_HG0_DEP = 1d0
-#if   defined( MERRA )
+#if   defined( MERRA ) || defined( GEOS_57 )
           FRAC_NO_HG0_DEP = &
                MIN(FROCEAN(I,J) + FRSNO(I,J) + FRLANDIC(I,J), 1d0)
           ZERO_HG0_DEP = ( FRAC_NO_HG0_DEP > 0d0 )
@@ -2265,8 +2266,10 @@ contains
        do N = 1, NUMDEP
           SELECT CASE ( DEPNAME(N) )
              ! non gases + aerosols for fully chemistry 
-             CASE ( 'DST1', 'DST2', 'DST3', 'DST4', 'SALA', &
-                    'SALC' )
+             !CASE ( 'DST1', 'DST2', 'DST3', 'DST4', 'SALA', &
+             !       'SALC' )
+	     ! now include sea salt dry deposition (jaegle 5/11/11)
+             CASE ( 'DST1', 'DST2', 'DST3', 'DST4')
                 CYCLE
              CASE DEFAULT
                 ! Locate position of each tracer in DEPSAV

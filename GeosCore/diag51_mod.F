@@ -377,7 +377,7 @@
       USE TRACERID_MOD,   ONLY : IDTR4N2, IDTSALA, IDTSALC 
       USE TROPOPAUSE_MOD, ONLY : ITS_IN_THE_TROP
 
-      USE CMN_FJ_MOD, ONLY : IPAR, JPAR, LPAR, JPMAX, JPPJ  ! includes F77_CMN_SIZE
+      USE CMN_FJ_MOD, ONLY : IPAR, JPAR, LPAR, JPMAX, JPPJ  ! includes CMN_SIZE
       USE JV_CMN_MOD  ! ODAER, QAA, QAA_AOD
       USE CMN_O3_MOD    ! FRACO3, FRACNO, SAVEO3, SAVENO2, SAVEHO2, FRACNO2
       USE CMN_GCTM_MOD  ! SCALE_HEIGHT
@@ -900,14 +900,6 @@
                !-----------------------------------
                ! PEDGE-$ (prs @ level edges) [hPa]
                !-----------------------------------
-!----------------------------------------------------------------------------
-! Prior to 11/12/10
-! Now save out PEDGE-$ instead of Psurface - PTOP (bmy, 11/12/10)
-!               IF ( K == 1 ) THEN
-!                  Q(X,Y,K,W) = Q(X,Y,K,W) + 
-!     &                         ( GET_PEDGE(I,J,K) - PTOP ) * GOOD(I)
-!               ENDIF
-!----------------------------------------------------------------------------
                Q(X,Y,K,W) = Q(X,Y,K,W) + ( GET_PEDGE(I,J,K) * GOOD(I) )
 
             ELSE IF ( N == 100 ) THEN 
@@ -1662,10 +1654,6 @@
             !---------------------
             CATEGORY = 'PEDGE-$'
             UNIT     = 'hPa'
-            !-------------------------
-            ! Prior to 11/12/10:
-            !GMNL     = 1
-            !-------------------------
             GMNL     = ND51_NL
             GMTRC    = 1
 

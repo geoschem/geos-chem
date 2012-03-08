@@ -427,7 +427,7 @@
       !-------------------------------
       IF ( LGFED3BB ) THEN
          
-         CALL GFED3_AVAILABLE( YYYY, 1997, 2009 )
+         CALL GFED3_AVAILABLE( YYYY, 1997, 2010 )
 
          WRITE( 6, 410 ) YYYY, MM
  410     FORMAT( 'for year and month: ', i4, '/', i2.2, / )

@@ -280,14 +280,14 @@
 !  (2 ) Now trap I/O errors with subroutine IOERROR (bmy, 5/28/99)
 !  (3 ) Eliminate obsolete code and ND63 diagnostic (bmy, 4/12/00)
 !  (4 ) Now reference TS from "dao_mod.f" instead of from common block
-!        header file "F77_CMN_TS". (bmy, 6/23/00)
+!        header file "CMN_TS". (bmy, 6/23/00)
 !  (5 ) Cosmetic changes (bmy, 7/12/00)
 !  (6 ) Now use IOS /= 0 criterion to trap both I/O errors and EOF 
 !        condition. (bmy, 9/13/00)
 !  (7 ) Added to module "RnPbBe_mod.f".  Also updated comments and made
 !        cosmetic changes. (bmy, 6/14/01)
 !  (8 ) Replace PW(I,J) with P(I,J) (bmy, 10/3/01)
-!  (9 ) Now reference DATA_DIR from "F77_CMN_SETUP".  Added FILENAME variable.
+!  (9 ) Now reference DATA_DIR from "CMN_SETUP".  Added FILENAME variable.
 !        Now read "7Be.Lal" file from DATA_DIR/RnPbBe_200203/ directory.
 !        (bmy, 3/29/02)
 !  (10) Add diagnostics for Rn/Be emissions.  Also cleaned up some old code
