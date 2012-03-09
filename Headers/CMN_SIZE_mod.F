@@ -357,6 +357,12 @@
       INTEGER, PARAMETER :: I05x0666   = 540 
       INTEGER, PARAMETER :: J05x0666   = 361
 
+      !-----------------------------------------------------------------
+      ! For GFED3
+      !-----------------------------------------------------------------
+      INTEGER, PARAMETER :: IGFED3   = 720 
+      INTEGER, PARAMETER :: JGFED3   = 360
+
       !=================================================================
       ! TRACER & EMISSION SPECIES PARAMETERS
       !

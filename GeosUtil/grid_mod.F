@@ -28,10 +28,12 @@
       PUBLIC  :: GET_AREA_CM2
       PUBLIC  :: GET_BOUNDING_BOX
       PUBLIC  :: GET_XEDGE
+      PUBLIC  :: GET_XEDGE_G
       PUBLIC  :: GET_XMID
       PUBLIC  :: GET_XOFFSET
       PUBLIC  :: GET_YOFFSET
       PUBLIC  :: GET_YEDGE
+      PUBLIC  :: GET_YEDGE_G
       PUBLIC  :: GET_YEDGE_R
       PUBLIC  :: GET_YMID
       PUBLIC  :: GET_YMID_R
@@ -39,6 +41,8 @@
       PUBLIC  :: SET_XOFFSET
       PUBLIC  :: SET_YOFFSET
       PUBLIC  :: ITS_A_NESTED_GRID
+      PUBLIC  :: GET_IIIPAR
+      PUBLIC  :: GET_JJJPAR
 !
 ! !PRIVATE MEMBER FUNCTIONS:
 !
@@ -346,9 +350,9 @@
       ! Deallocate global arrays -- we don't need these anymore
       !=================================================================
       IF ( ALLOCATED( XMID_G     ) ) DEALLOCATE( XMID_G     )
-      IF ( ALLOCATED( XEDGE_G    ) ) DEALLOCATE( XEDGE_G    )
+      ! IF ( ALLOCATED( XEDGE_G    ) ) DEALLOCATE( XEDGE_G    )
       IF ( ALLOCATED( YMID_G     ) ) DEALLOCATE( YMID_G     )
-      IF ( ALLOCATED( YEDGE_G    ) ) DEALLOCATE( YEDGE_G    )
+      ! IF ( ALLOCATED( YEDGE_G    ) ) DEALLOCATE( YEDGE_G    )
       IF ( ALLOCATED( YMID_R_G   ) ) DEALLOCATE( YMID_R_G   )
       IF ( ALLOCATED( YEDGE_R_G  ) ) DEALLOCATE( YEDGE_R_G  )
       IF ( ALLOCATED( AREA_M2_G  ) ) DEALLOCATE( AREA_M2_G  )
@@ -414,6 +418,60 @@
       J0 = Y_OFFSET
 
       END SUBROUTINE SET_YOFFSET
+!EOC
+!------------------------------------------------------------------------------
+!          Prasad Kasibhatla - Duke University                                !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: get_iiipar
+!  
+! !DESCRIPTION: Function GET\_IIIPAR returns IIIPAR.
+!\\
+!\\
+! !INTERFACE:
+!
+      FUNCTION GET_IIIPAR() RESULT( I )
+!
+! !RETURN VALUE:
+!
+      INTEGER              :: I  ! IIIPAR
+!
+! !REVISION HISTORY:
+!  01 Mar 2012 - P. Kasibhatla
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+      I =  IIIPAR
+
+      END FUNCTION GET_IIIPAR
+!EOC
+!------------------------------------------------------------------------------
+!          Prasad Kasibhatla - Duke University                                !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: get_jjjpar
+!
+! !DESCRIPTION: Function GET\_JJJPAR returns JJJPAR.
+!\\
+!\\
+! !INTERFACE:
+!
+      FUNCTION GET_JJJPAR() RESULT( J )
+!
+! !RETURN VALUE:
+!
+      INTEGER              :: J  ! JJJPAR
+!
+! !REVISION HISTORY:
+!  01 Mar 2012 - P. Kasibhatla
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+      J =  JJJPAR
+
+      END FUNCTION GET_JJJPAR
 !EOC
 !------------------------------------------------------------------------------
 !          Harvard University Atmospheric Chemistry Modeling Group            !
@@ -576,6 +634,38 @@
       END FUNCTION GET_XEDGE
 !EOC
 !------------------------------------------------------------------------------
+!          Prasad Kasibhatla - Duke University                                !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: get_xedge_g
+!
+! !DESCRIPTION: Function GET\_XEDGE\_G returns the longitude in degrees at the
+!  western edge of a GEOS-Chem grid box
+!\\
+!\\
+! !INTERFACE:
+!
+      FUNCTION GET_XEDGE_G( I ) RESULT( X )
+! 
+! !INPUT PARAMETERS:
+!
+      INTEGER, INTENT(IN) :: I  ! Longitude index
+! 
+! !RETURN VALUE:
+!
+      REAL*4              :: X  ! Corresponding lon value @ W edge of grid box
+! 
+! !REVISION HISTORY:
+!  01 Mar 2012 - P. Kasibhatla
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+      X = XEDGE_G( I )
+
+      END FUNCTION GET_XEDGE_G
+!EOC
+!------------------------------------------------------------------------------
 !          Harvard University Atmospheric Chemistry Modeling Group            !
 !------------------------------------------------------------------------------
 !BOP
@@ -640,6 +730,38 @@
       Y = YEDGE( J )
 
       END FUNCTION GET_YEDGE
+!EOC
+!------------------------------------------------------------------------------
+!          Prasad Kasibhatla - Duke University                                !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: get_yedge_g
+!
+! !DESCRIPTION: Function GET\_YEDGE\_G returns the latitude in degrees at the
+!  southern edge of a GEOS-Chem grid box. 
+!\\
+!\\
+! !INTERFACE:
+!
+      FUNCTION GET_YEDGE_G( J ) RESULT( Y )
+!
+! !INPUT PARAMETERS:
+!
+      INTEGER, INTENT(IN) :: J  ! Latitude index
+!
+! !RETURN VALUE:
+!  
+      REAL*4              :: Y  ! Latitude value @ S edge of grid box [degrees]
+!
+! !REVISION HISTORY:
+!  01 Mar 2012 - P. Kasibhatla
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+      Y = YEDGE_G( J )
+
+      END FUNCTION GET_YEDGE_G
 !EOC
 !------------------------------------------------------------------------------
 !          Harvard University Atmospheric Chemistry Modeling Group            !

@@ -114,7 +114,8 @@
 !  27 Aug 2010 - R. Yantosca - Added ProTeX headers
 !  29 Jul 2011 - R. Yantosca - Bug fix in READ_EMISSIONS_MENU for nested NA
 !  16 Feb 2011 - R. Yantosca - Add modifications for APM from G. Luo
-!  07 Sep 2011 - P. Kasibhatla - Modified to include GFED3
+!  07 Sep 2011 - P. Kasibhatla - Modified to include monthly GFED3
+!  17 Jan 2012 - P. Kasibhatla - Modified to include daily and 3-hourly GFED3
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -534,6 +535,7 @@
 ! !USES:
 !
       USE DIRECTORY_MOD, ONLY : DATA_DIR,    DATA_DIR_1x1, GCAP_DIR
+      USE DIRECTORY_MOD, ONLY : DATA_DIR_GFED3
       USE DIRECTORY_MOD, ONLY : GEOS_3_DIR,  GEOS_4_DIR,   GEOS_5_DIR
       USE DIRECTORY_MOD, ONLY : MERRA_DIR
       USE DIRECTORY_MOD, ONLY : RUN_DIR
@@ -559,9 +561,11 @@
 !  (7 ) Fix typo in "print to screen" section  (phs, 6/1/08)
 !  (8 ) Call INIT_TRANSFER w/ (0,0) instead of (I0,J0) (phs, 6/17/08)
 !  (10) Now read LLINOZ switch from input.geos file (dbm, bmy, 10/16/09)
+!  (11) Now references DATA_DIR_GFED3 for GFED3 emissions files (psk, 1/17/12)
 !  13 Aug 2010 - R. Yantosca - Now read MERRA_DIR
 !  19 Aug 2010 - R. Yantosca - Set LUNZIP=F for MERRA met fields.
 !  27 Aug 2010 - R. Yantosca - Added ProTeX headers
+!  17 Jan 2012 - P. Kasibhatla - Add GFED3 data directory
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -628,36 +632,40 @@
       CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_simulation_menu:12' )
       READ( SUBSTRS(1:N), '(a)' ) MERRA_DIR
 
-      ! Temp dir
+      ! 1x1  dir
       CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_simulation_menu:13' )
       READ( SUBSTRS(1:N), '(a)' ) DATA_DIR_1x1
 
-      ! Temp dir
+      ! GFED3 dir
       CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_simulation_menu:14' )
+      READ( SUBSTRS(1:N), '(a)' ) DATA_DIR_GFED3
+
+      ! Temp dir
+      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_simulation_menu:15' )
       READ( SUBSTRS(1:N), '(a)' ) TEMP_DIR
 
       ! Unzip met fields
-      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_simulation_menu:15' )
+      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_simulation_menu:16' )
       READ( SUBSTRS(1:N), *     ) LUNZIP
 
       ! Wait for met fields?
-      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_simulation_menu:16' )
+      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_simulation_menu:17' )
       READ( SUBSTRS(1:N), *     ) LWAIT
 
       ! Variable Tropopause
-      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_simulation_menu:17' )
+      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_simulation_menu:18' )
       READ( SUBSTRS(1:N), *     ) LVARTROP
 
       ! LINOZ chemistry in the stratosphere
-      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_simulation_menu:18' )
+      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_simulation_menu:19' )
       READ( SUBSTRS(1:N), *     ) LLINOZ  
 
       ! I0, J0
-      CALL SPLIT_ONE_LINE( SUBSTRS, N, 2, 'read_simulation_menu:19' )
+      CALL SPLIT_ONE_LINE( SUBSTRS, N, 2, 'read_simulation_menu:20' )
       READ( SUBSTRS(1:N), *     ) I0, J0
 
       ! Separator line
-      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_simulation_menu:20' )
+      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_simulation_menu:21' )
 
       !=================================================================
       ! Add safety checks for logical switches
@@ -690,6 +698,8 @@
      &                     TRIM( MERRA_DIR )
       WRITE( 6, 110     ) '1x1 Emissions etc Data Dir  : ',
      &                     TRIM( DATA_DIR_1x1 )
+      WRITE( 6, 110     ) 'GFED3 Data Dir              : ',
+     &                     TRIM( DATA_DIR_GFED3 )
       WRITE( 6, 110     ) 'Temporary Directory         : ', 
      &                     TRIM( TEMP_DIR )
       WRITE( 6, 110     ) 'Input restart file          : ', 
@@ -1386,7 +1396,7 @@
       USE LOGICAL_MOD, ONLY : LGFED3BB 
       USE LOGICAL_MOD, ONLY : LICOADSSHIP,LNEI05 
       USE LOGICAL_MOD, ONLY : L8DAYBB,    L3HRBB,    LSYNOPBB
-      USE LOGICAL_MOD, ONLY : L8DAYBB3,   L3HRBB3,   LSYNOPBB3
+      USE LOGICAL_MOD, ONLY : LDAYBB3,   L3HRBB3
       USE TRACER_MOD,  ONLY : ITS_A_FULLCHEM_SIM
       USE LOGICAL_MOD, ONLY : LMODISLAI , LPECCA  !(mpb,2009)
       USE EMISSIONS_MOD, ONLY : ISOP_SCALING 
@@ -1583,17 +1593,13 @@
       CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_emissions_menu:30' )
       READ( SUBSTRS(1:N), * ) LGFED3BB
 
-      ! Use 8-day GFED3 biomass emissions?
+      ! Use daily GFED3 biomass emissions?
       CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_emissions_menu:31' )
-      READ( SUBSTRS(1:N), * ) L8DAYBB3
+      READ( SUBSTRS(1:N), * ) LDAYBB3
 
       ! Use 3-hr GFED3 biomass emissions?
       CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_emissions_menu:32' )
       READ( SUBSTRS(1:N), * ) L3HRBB3
-
-      ! Use 3-hr synoptic GFED3 biomass emissions?
-      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_emissions_menu:33' )
-      READ( SUBSTRS(1:N), * ) LSYNOPBB3
 
       ! Separator line
       CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_emissions_menu:34' )
@@ -1684,8 +1690,7 @@
       
       ! Set all GFED3 flags to F if emissions are turned off      
       LGFED3BB     = ( LGFED3BB .and. LEMIS )
-      L8DAYBB3      = ( L8DAYBB3  .and. LEMIS )
-      LSYNOPBB3     = ( LSYNOPBB3 .and. LEMIS )
+      LDAYBB3      = ( LDAYBB3  .and. LEMIS )
       L3HRBB3       = ( L3HRBB3   .and. LEMIS )
       
       ! Turn off full-chem only switches 
@@ -1836,25 +1841,28 @@
       ! Error check GFED switches (mpayer, 11/7/11)
       !=================================================================
       IF ( ( LGFED2BB .or. L8DAYBB  .or. LSYNOPBB  .or. L3HRBB  )  .AND.
-     &     ( LGFED3BB .or. L8DAYBB3 .or. LSYNOPBB3 .or. L3HRBB3 ) ) THEN
+     &     ( LGFED3BB .or. LDAYBB3 .or. L3HRBB3 ) ) THEN
 
          MSG = 'GFED2 and GFED3 emissions cannot both be turned on.'
          CALL ERROR_STOP( MSG, LOC )
       ENDIF
 
-      ! Only monthly GFED3 emissions are currently available (mpayer, 11/7/11)
-      IF ( L8DAYBB3 ) THEN
-         MSG = '8-day GFED3 emissions are currently not available. ' //
-     &         'To use GFED3 emissions you must select monthly GFED3.'
-         CALL ERROR_STOP( MSG, LOC )
-      ELSE IF ( L3HRBB3   ) THEN
-         MSG = '3-hr GFED3 emissions are currently not available. ' //
-     &         'To use GFED3 emissions you must select monthly GFED3.'
-         CALL ERROR_STOP( MSG, LOC )
-      ELSE IF ( LSYNOPBB3 ) THEN
-         MSG = 'Synoptic GFED3 emiss. are currently not available. ' //
-     &         'To use GFED3 emissions you must select monthly GFED3.'
-         CALL ERROR_STOP( MSG, LOC )
+      IF ( LDAYBB3 ) THEN
+         IF ( .not. LGFED3BB) THEN
+            MSG = 'To use daily GFED3, also select monthly GFED3.'
+            CALL ERROR_STOP( MSG, LOC )
+         ENDIF
+      ENDIF
+
+      IF ( L3HRBB3 ) THEN
+         IF ( .not. LGFED3BB) THEN
+            MSG = 'To use 3-hourly GFED3, also select monthly GFED3.'
+            CALL ERROR_STOP( MSG, LOC )
+         ENDIF
+         IF ( .not. LDAYBB3) THEN
+            MSG = 'To use 3-hourly GFED3, also select daily GFED3.'
+            CALL ERROR_STOP( MSG, LOC )
+         ENDIF
       ENDIF
 
       !=================================================================
@@ -1870,21 +1878,6 @@
       ELSE IF ( L8DAYBB ) THEN
          LGFED2BB = .FALSE.
       ENDIF
-
-      !=================================================================
-      ! Prioritize GFED3
-      !=================================================================
-      IF ( L3HRBB3 ) THEN
-         LGFED3BB = .FALSE.
-         L8DAYBB3  = .FALSE.
-         LSYNOPBB3 = .FALSE.
-      ELSE IF ( LSYNOPBB3 ) THEN
-         LGFED3BB = .FALSE.
-         L8DAYBB3  = .FALSE.
-      ELSE IF ( L8DAYBB3 ) THEN
-         LGFED3BB = .FALSE.
-      ENDIF
-
 
 
       ! Force to use MODIS LAI if we use MEGAN. (ccc, 2/23/10)
@@ -1980,11 +1973,10 @@
       WRITE( 6, 100     ) '    3hr GFED2 emission?     : ', L3HRBB 
       WRITE( 6, 100     ) '    synoptic GFED2 ?        : ', LSYNOPBB
       WRITE( 6, 100     ) 'Use GFED3 BIOMASS emissions?: ',
-     $     LGFED3BB .or. L8DAYBB3 .or. LSYNOPBB3 .or. L3HRBB3
+     $     LGFED3BB .or. LDAYBB3 .or. L3HRBB3
       WRITE( 6, 100     ) '    monthly GFED3 emissions?: ', LGFED3BB
-      WRITE( 6, 100     ) '    8-day GFED3 emission?   : ', L8DAYBB3
+      WRITE( 6, 100     ) '    daily GFED3 emission?   : ', LDAYBB3
       WRITE( 6, 100     ) '    3hr GFED3 emission?     : ', L3HRBB3
-      WRITE( 6, 100     ) '    synoptic GFED3 ?        : ', LSYNOPBB3
       WRITE( 6, 100     ) 'Turn on LIGHTNING NOx?      : ', LLIGHTNOX
       WRITE( 6, 100     ) 'Use OTD-LIS local redist?   : ', LOTDLOC
       WRITE( 6, 100     ) 'Turn on AIRCRAFT NOx?       : ', LAIRNOX
@@ -2031,7 +2023,7 @@
       USE LOGICAL_MOD, ONLY : LANTHRO, LFOSSIL
       USE LOGICAL_MOD, ONLY : LGENFF, LANNFF, LMONFF, LSTREETS
       USE LOGICAL_MOD, ONLY : LSEASBB, LGFED2BB, L8DAYBB, LBIOFUEL
-      USE LOGICAL_MOD, ONLY : LGFED3BB, L8DAYBB3
+      USE LOGICAL_MOD, ONLY : LGFED3BB, LDAYBB3
       USE LOGICAL_MOD, ONLY : LBIODAILY, LBIODIURNAL
       USE LOGICAL_MOD, ONLY : LBIONETORIG, LBIONETCLIM
       USE LOGICAL_MOD, ONLY : LOCN1997, LOCN2009ANN, LOCN2009MON
@@ -2119,9 +2111,9 @@
       CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_CO2_sim_menu:10' )
       READ( SUBSTRS(1:N), * ) LGFED3BB
 
-      ! Use GFED3 8-day biomass emissions?
+      ! Use GFED3 daily biomass emissions?
       CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_CO2_sim_menu:11' )
-      READ( SUBSTRS(1:N), * ) L8DAYBB3
+      READ( SUBSTRS(1:N), * ) LDAYBB3
    
       ! Include biofuel emissions?
       CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_CO2_sim_menu:12' )
@@ -2232,13 +2224,6 @@
 	IF (LGFED2BB) THEN
 		LSEASBB = .FALSE.
 	ENDIF
-        IF (L8DAYBB3) THEN
-                LGFED3BB = .FALSE.
-                LSEASBB  = .FALSE.
-        ENDIF
-        IF (LGFED3BB) THEN
-                LSEASBB = .FALSE.
-        ENDIF
 
 	!--- CASA Biosphere -------------
 	IF (LBIODIURNAL) THEN
@@ -2281,7 +2266,7 @@
 	  WRITE(6,100    ) '  GFED2 monthly biomass       :', LGFED2BB
 	  WRITE(6,100    ) '  GFED2 8-day biomass         :', L8DAYBB
 	  WRITE(6,100    ) '  GFED3 monthly biomass       :', LGFED3BB
-	  WRITE(6,100    ) '  GFED3 8-day biomass         :', L8DAYBB3
+	  WRITE(6,100    ) '  GFED3 8-day biomass         :', LDAYBB3
 	  WRITE(6,100    ) 'Biofuel emissions             :', LBIOFUEL
 	  WRITE(6, 90    ) 'Terrestrial Exchange'
 	  WRITE(6,100    ) '  CASA Biosphere daily average:', LBIODAILY
@@ -5413,6 +5398,7 @@
 ! !USES:
 !
       USE DIRECTORY_MOD, ONLY : DATA_DIR,    DATA_DIR_1x1, GCAP_DIR
+      USE DIRECTORY_MOD, ONLY : DATA_DIR_GFED3
       USE DIRECTORY_MOD, ONLY : GEOS_1_DIR,  GEOS_S_DIR,   GEOS_3_DIR
       USE DIRECTORY_MOD, ONLY : GEOS_4_DIR,  GEOS_5_DIR,   O3PL_DIR  
       USE DIRECTORY_MOD, ONLY : OH_DIR,      RUN_DIR,      TEMP_DIR
@@ -5434,6 +5420,7 @@
 !  (4 ) Now check TPBC_DIR_NA, TPBC_DIR_CH, TPBC_DIR_EU (amv, bmy, 12/18/09)
 !  27 Aug 2010 - R. Yantosca - Added ProTeX headers
 !  27 Aug 2010 - R. Yantosca - Now check MERRA directory
+!  17 Jan 2012 - P. Kasibhatla - Now check GFED3 data directory
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -5454,6 +5441,7 @@
       ! Check directories
       CALL CHECK_DIRECTORY( DATA_DIR     )
       CALL CHECK_DIRECTORY( DATA_DIR_1x1 )
+      CALL CHECK_DIRECTORY( DATA_DIR_GFED3 )
       CALL CHECK_DIRECTORY( RUN_DIR      )
       CALL CHECK_DIRECTORY( OH_DIR       )
       CALL CHECK_DIRECTORY( O3PL_DIR     )
@@ -5909,6 +5897,7 @@
       USE DIRECTORY_MOD, ONLY : GEOS_3_DIR, GEOS_4_DIR, TEMP_DIR   
       USE DIRECTORY_MOD, ONLY : RUN_DIR,    OH_DIR,     O3PL_DIR   
       USE DIRECTORY_MOD, ONLY : TPBC_DIR,   DATA_DIR_1x1
+      USE DIRECTORY_MOD, ONLY : DATA_DIR_GFED3
       USE LOGICAL_MOD,   ONLY : LATEQ,      LAVHRRLAI,  LCARB      
       USE LOGICAL_MOD,   ONLY : LDEAD,      LDUST,      LSULF      
       USE LOGICAL_MOD,   ONLY : LSOA,       LSSALT,     LCHEM      
@@ -5962,11 +5951,13 @@
 !  (9 ) Now initialize LOTDREG, LOTDLOC, LCTH, LMFLUX, LPRECON (bmy, 1/31/07)
 !  (10) Now initialize LOTDSCALE (ltm, bmy, 9/24/07)
 !  (11) Add MEGAN Monoterpenes switch (ccc, 2/2/09)
+!  (12) Now also initialize DATA_DIR_GFED3 directory (psk, 1/17/12)
 !  16 Oct 2009 - R. Yantosca - Now initialize LLINOZ
 !  19 Nov 2009 - C. Carouge  - Initialize LMODISLAI and LPECCA
 !  01 Dec 2009 - C. Carouge  - Initialize LNEI05 
 !  27 Aug 2010 - R. Yantosca - Added ProTeX headers
 !  07 Sep 2011 - P. Kasibhatla - Modified for GFED3
+!  17 Jan 2012 - P. Kasibhatla - Modified for GFED3
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -5977,6 +5968,7 @@
       ! Initialize directories
       DATA_DIR     = ''
       DATA_DIR_1x1 = ''
+      DATA_DIR_GFED3 = ''
       GEOS_1_DIR   = ''
       GEOS_S_DIR   = ''
       GEOS_3_DIR   = ''
