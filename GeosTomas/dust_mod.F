@@ -1039,7 +1039,7 @@ c$$$      ENDIF
          !==============================================================
          
          ! Latitude in RADIANS
-         YMID_R = GET_YMID_R( I, J, 1 )
+         YMID_R = GET_YMID_R( 1, J, 1 )
 
          ! Call DEAD dust mobilization
          CALL DST_MBL( DOY,    BHT2,  J,     YMID_R, ORO,    
