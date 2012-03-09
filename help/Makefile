@@ -1,4 +1,3 @@
-# $Id: Makefile,v 1.9 2010/03/15 19:33:18 ccarouge Exp $
 #------------------------------------------------------------------------------
 #          Harvard University Atmospheric Chemistry Modeling Group            !
 #------------------------------------------------------------------------------
@@ -33,6 +32,8 @@
 #  25 Jan 2010 - R. Yantosca - Added info about TOMAS option
 #  10 Mar 2010 - C. Carouge  - Remove info about TOMAS option. Keep info
 #                              about tomas target.
+#  26 Aug 2011 - R. Yantosca - Added info about APM targets
+#  26 Aug 2011 - R. Yantosca - Add info about the PRECISE=no option
 #EOP
 #------------------------------------------------------------------------------
 #BOC
@@ -50,28 +51,39 @@ help:
 	@echo ''
 	@echo 'TARGET may be one of the following:'
 	@echo 'all            Default target (synonym for "lib exe")'
-	@echo 'lib            Builds all GEOS-Chem source code (synonym for "libkpp libutil libcore")'
-	@echo 'libcore        Only builds GEOS-Chem objects & libraries in GeosCore subdir'
-	@echo 'libutil        Only builds GEOS-Chem objects & libraries in GeosUtil subdir'
-	@echo 'libkpp         Only builds GEOS-Chem objects & libraries in KPP subdir'
-	@echo 'exe            Build GEOS-Chem executable'
+	@echo 'lib            Builds GEOS-Chem source code'
+	@echo 'libheaders     Builds GEOS-Chem objs & libs only in GeosHeaders/'
+	@echo 'libcore        Builds GEOS-Chem objs & libs only in GeosCore/'
+	@echo 'libutil        Builds GEOS-Chem objs & libs only in GeosUtil/'
+	@echo 'libkpp         Builds GEOS-Chem objs & libs only in KPP/'
+	@echo 'exe            Creates GEOS-Chem executable'
 	@echo 'clean          Removes *.o, *.mod files in source code subdirs only'
 	@echo 'realclean      Removes all *.o, *mod, *.lib *.a, *.tex, *ps, *pdf files everywhere'
-	@echo 'doc            Builds GEOS-Chem documentation (*.ps, *.pdf) with ProTeX in doc subdir'
-	@echo 'docclean       Removes *.tex, *.pdf, *,ps from the doc subdir'
+	@echo 'doc            Builds GEOS-Chem documentation (*.ps, *.pdf) in doc/'
+	@echo 'docclean       Removes *.tex, *.pdf, *,ps from doc/'
 	@echo 'help           Displays this help screen'
 	@echo ''
 	@echo 'Special targets for TOMAS aerosol microphysics:'
-	@echo 'tomas          Build GEOS-Chem + TOMAS code (synonym for "libtomas exetomas")'
-	@echo 'libtomas       Only builds GEOS-Chem + TOMAS objects & libraries'
-	@echo 'exetomas       Only builds GEOS-Chem + TOMAS executable'
-	@echo 'cleantomas     Removes *.o *.mod files in GeosTomas directory only'
+	@echo 'tomas          Builds GEOS-Chem + TOMAS (synonym for "libtomas exetomas")'
+	@echo 'libtomas       Builds GEOS-Chem + TOMAS objs & libs in GeosTomas/'
+	@echo 'exetomas       Creates GEOS-Chem + TOMAS executable'
+	@echo 'cleantomas     Removes *.o *.mod files only in GeosTomas/'
+	@echo ''
+	@echo 'Special targets for APM aerosol microphysics:'
+	@echo 'apm            Builds GEOS-Chem + APM (synonym for libapm exeapm)'
+	@echo 'libapm         Builds GEOS-Chem + APM objs & libs in GeosApm/ subdir'
+	@echo 'exeapm         Creates GEOS-Chem + APM executable in GeosApm/'
+	@echo 'cleanapm       Removes *.o *.mod files only in GeosApm/'
+	@echo ''
+	@echo 'Special target for mercury simulation:'
+	@echo 'hg             Builds GEOS-Chem + GTMM for mercury simulation'
 	@echo ''
 	@echo 'OPTIONAL-FLAGS may be:'
 	@echo 'COMPILER=___   Options: ifort pgi sun xlf (default is ifort)'
+	@echo 'PRECISE=no     Disable precise floating point math optimization (for speed)'
 	@echo 'HDF5=yes       Enables writing diagnostic timeseries output to HDF5 files'
-	@echo 'DEBUG=yes      Compiles GEOS-Chem for use w/ a debugger'
-	@echo 'BOUNDS=yes     Turns on subscript-array checking (for debugging purposes)'
+	@echo 'DEBUG=yes      Builds GEOS-Chem for a debugger (with -g -O0)'
+	@echo 'BOUNDS=yes     Turns on subscript-array checking (for debug)'
 	@echo 'OMP=[yes|no]   Turns OpenMP parallelization on/off (default is yes)'
 	@echo 'IPO=yes        Turns on optmization options -ipo -static (ifort only)'
 	@echo 'TRACEBACK=yes  Turns on -traceback option (ifort only)'
