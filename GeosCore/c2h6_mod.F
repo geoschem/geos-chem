@@ -181,25 +181,27 @@
       !=================================================================
       IF ( LBIOMASS ) THEN
 
+         ! Only process biomass C2H6 emissions if offline C2H6 sim.
+         ! For fullchem sim, C2H6 biomass emissions are read from GFED2/3. 
+         ! (mpayer, 3/12/12)
+         IF ( ITS_A_C2H6_SIM() ) THEN
+
 !$OMP PARALLEL DO
 !$OMP+DEFAULT( SHARED )
 !$OMP+PRIVATE( I, J, AREA_CM2, E_C2H6_BB )
 
-         ! Loop over latitudes
-         DO J = 1, JJPAR
+            ! Loop over latitudes
+            DO J = 1, JJPAR
 
-            ! Grid box area [cm2]
-            AREA_CM2 = GET_AREA_CM2( J )
+               ! Grid box area [cm2]
+               AREA_CM2 = GET_AREA_CM2( J )
             
-            ! Loop over longitudes
-            DO I = 1, IIPAR
+               ! Loop over longitudes
+               DO I = 1, IIPAR
  
-               ! Convert [atoms C/cm2/s] to [kg C2H6] and store in E_C2H6
-               E_C2H6_BB = BIOMASS(I,J,IDBC2H6)   / 2.0d0  / 
-     &                     XNUMOL_C2H6 * AREA_CM2 * DTSRCE  
-
-               ! Do the following for offline C2H6 sim only (mpayer, 12/13/11)
-               IF ( ITS_A_C2H6_SIM() ) THEN
+                  ! Convert [atoms C/cm2/s] to [kg C2H6] and store in E_C2H6
+                  E_C2H6_BB = BIOMASS(I,J,IDBC2H6)   / 2.0d0  / 
+     &                        XNUMOL_C2H6 * AREA_CM2 * DTSRCE  
 
                   ! Add BB C2H6 to tracer #1 -- total C2H6 [kg C2H6]
                   STT(I,J,1,1) = STT(I,J,1,1) + E_C2H6_BB  
@@ -209,10 +211,10 @@
                      STT(I,J,1,2) = STT(I,J,1,2) + E_C2H6_BB 
                   ENDIF
 
-               ENDIF
+               ENDDO
             ENDDO
-         ENDDO
 !$OMP END PARALLEL DO
+         ENDIF
       ENDIF
       
       !=================================================================
@@ -221,21 +223,23 @@
       !=================================================================
       IF ( LBIOFUEL ) THEN
 
-         ! Read biofuel burning emissions (and update ND34 diagnostic)
-         CALL BIOFUEL_BURN
+         ! Only read biofuel burning emissions if offline C2H6 sim in order
+         ! to avoid double counting of biofuel emissions in fullchem sim
+         ! (mpayer, 3/12/12)
+         IF ( ITS_A_C2H6_SIM() ) THEN
+
+            ! Read biofuel burning emissions (and update ND34 diagnostic)
+            CALL BIOFUEL_BURN
 
 !$OMP PARALLEL DO
 !$OMP+DEFAULT( SHARED )
 !$OMP+PRIVATE( I, J, E_C2H6_BF )
-         DO J = 1, JJPAR
-         DO I = 1, IIPAR
+            DO J = 1, JJPAR
+            DO I = 1, IIPAR
  
-            ! Convert [molec C/cm3/s] to [kg C2H6] and store in E_C2H6
-            E_C2H6_BF = BIOFUEL(IDBFC2H6,I,J) / 2.0d0 / 
-     &                  XNUMOL_C2H6 * BOXVL(I,J,1) * DTSRCE  
-
-            ! Do the following for offline C2H6 sim only (mpayer, 12/13/11)
-            IF ( ITS_A_C2H6_SIM() ) THEN
+               ! Convert [molec C/cm3/s] to [kg C2H6] and store in E_C2H6
+               E_C2H6_BF = BIOFUEL(IDBFC2H6,I,J) / 2.0d0 / 
+     &                     XNUMOL_C2H6 * BOXVL(I,J,1) * DTSRCE  
 
                ! Add BF C2H6 to tracer #1 -- total C2H6 [kg C2H6]
                STT(I,J,1,1) = STT(I,J,1,1) + E_C2H6_BF
@@ -245,10 +249,10 @@
                   STT(I,J,1,3) = STT(I,J,1,3) + E_C2H6_BF 
                ENDIF
 
-            ENDIF
-         ENDDO
-         ENDDO
+            ENDDO
+            ENDDO
 !$OMP END PARALLEL DO
+         ENDIF
       ENDIF
 
       !=================================================================
