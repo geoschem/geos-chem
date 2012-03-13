@@ -1,0 +1,569 @@
+!------------------------------------------------------------------------------
+!          Harvard University Atmospheric Chemistry Modeling Group            !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !MODULE: olson_landmap_mod
+!
+! !DESCRIPTION: Module OLSON\_LANDMAP\_MOD reads the Olson land map and
+!  computes the IREG, ILAND, and IUSE (and also IJREG, IJLAND, and
+!  IJUSE) arrays.  This module was written to facilitate Grid-Independent
+!  GEOS-Chem development while still keeping backwards compatibility
+!  with existing code.  It replaces the old routine rdland.F.
+!\\
+!\\
+! !INTERFACE: 
+!
+MODULE Olson_LandMap_Mod
+!
+! !USES:
+!
+  USE CMN_GCTM_MOD                                  ! Physical constants
+  USE CMN_DEP_MOD                                   ! IREG, ILAND, IUSE
+  USE CMN_SIZE_MOD                                  ! Size parameters
+  USE CMN_VEL_MOD                                   ! IJREG, IJLAND, IJUSE
+  USE DIRECTORY_MOD                                 ! Disk directory paths   
+  USE GRID_MOD                                      ! Horizontal grid
+  
+  IMPLICIT NONE
+  PRIVATE
+!
+! !PUBLIC MEMBER FUNCTIONS:
+!
+  PUBLIC  :: Init_Olson_Landmap
+  PUBLIC  :: Compute_Olson_Landmap
+!
+! !PRIVATE MEMBER FUNCTIONS:
+!
+  PRIVATE :: Get_Map_Wt
+
+! !REMARKS:
+!  The Olson land types are as follows:
+!  ------------------------------------------------------------------
+!   0 Water              25 Deciduous           50 Desert
+!   1 Urban              26 Deciduous           51 Desert
+!   2 Shrub              27 Conifer             52 Steppe
+!   3 ---                28 Dwarf forest        53 Tundra
+!   4 ---                29 Trop. broadleaf     54 rainforest
+!   5 ---                30 Agricultural        55 mixed wood/open
+!   6 Trop. evergreen    31 Agricultural        56 mixed wood/open
+!   7 ---                32 Dec. woodland       57 mixed wood/open
+!   8 Desert             33 Trop. rainforest    58 mixed wood/open
+!   9 ---                34 ---                 59 mixed wood/open
+!  10 ---                35 ---                 60 conifers
+!  11 ---                36 Rice paddies        61 conifers
+!  12 ---                37 agric               62 conifers
+!  13 ---                38 agric               63 Wooded tundra
+!  14 ---                39 agric.              64 Moor
+!  15 ---                40 shrub/grass         65 coastal
+!  16 Scrub              41 shrub/grass         66 coastal
+!  17 Ice                42 shrub/grass         67 coastal
+!  18 ---                43 shrub/grass         68 coastal
+!  19 ---                44 shrub/grass         69 desert
+!  20 Conifer            45 wetland             70 ice
+!  21 Conifer            46 scrub               71 salt flats
+!  22 Conifer            47 scrub               72 wetland
+!  23 Conifer/Deciduous  48 scrub               73 water
+!  24 Deciduous/Conifer  49 scrub
+!                                                                             .
+! !REVISION HISTORY:
+!  13 Mar 2012 - R. Yantosca - Initial version
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+!
+! !DEFINED PARAMETERS:
+!
+  ! Parameters for the Olson land map NATIVE GRID
+  INTEGER, PARAMETER :: I_OLSON = 720              ! # of lons (0.5 x 0.5)
+  INTEGER, PARAMETER :: J_OLSON = 360              ! # of lats (0.5 x 0.5)
+  REAL*8,  PARAMETER :: D_LON   = 0.5d0            ! Delta longitude [degrees]
+  REAL*8,  PARAMETER :: D_LAT   = 0.5d0            ! Delta latitude [degrees]
+!
+! !PRIVATE TYPES:
+!
+  ! Arrays for the Olson land map NATIVE GRID
+  REAL*4             :: lon  (I_OLSON          )   ! Lon centers [degrees]
+  REAL*4             :: lat  (        J_OLSON  )   ! Lat centers [degrees]
+  INTEGER            :: OLSON(I_OLSON,J_OLSON,1)   ! Olson land types (0-73)
+
+CONTAINS
+!EOC
+!------------------------------------------------------------------------------
+!          Harvard University Atmospheric Chemistry Modeling Group            !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: compute_olson_landmap
+!
+! !DESCRIPTION: Subroutine COMPUTE\_OLSON\_LANDMAP computes the GEOS-Chem
+!  arrays IREG, ILAND, IUSE (and corresponding 1-D arrays IJREG, IJLAND, 
+!  IJUSE) on-the-fly from the Olson Land map file.  This routine, which is
+!  intended to facilitate the Grid-Independent GEOS-Chem, replaces
+!  the old rdland.F, which read from pre-computed "vegtype.global" files.
+!\\
+!\\
+! !INTERFACE:
+!
+  SUBROUTINE Compute_Olson_LandMap()
+!
+! !REMARKS:
+!  This routine supplies arrays that are required for legacy code routines:
+!  (1) IREG,  ILAND,  IUSE are used by the Soil NOx routines
+!  (2) IJREG, IJLAND, IJUSE are used by the dry deposition routines
+! 
+! !REVISION HISTORY: 
+!  13 Mar 2012 - R. Yantosca - Initial version
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+!
+! !LOCAL VARIABLES:
+!
+    ! Scalars
+    LOGICAL :: isGlobal
+    INTEGER :: I,         J,        II,       III
+    INTEGER :: JJ,        T,        N,        type
+    INTEGER :: IJLOOP,    sumIuse   
+    REAL*8  :: xedge_w,   xedge_e,  yedge_s,  yedge_n
+    REAL*8  :: xedgeC_w,  xedgeC_e, yedgeC_s, yedgeC_n
+    REAL*8  :: dxdy,      dxdy4,    mapWt,    area
+    REAL*8  :: sumArea
+    
+    ! Generic arrays
+    INTEGER :: maxIuse(1)
+    
+    ! Arrays on the Olson land map NATIVE GRID
+    INTEGER :: indLon  (I_OLSON                )    ! Index array for lons
+    INTEGER :: shiftLon(I_OLSON                )    ! Shifted indLon array
+    REAL*8  :: a_cm2   (          J_OLSON      )    ! Surface areas [cm2]
+    REAL*8  :: lonedge (I_OLSON+1              )    ! Lon edges   [degrees]
+    REAL*8  :: latedge (          J_OLSON+1    )    ! Lat edges   [degrees]
+    
+    ! Arrays on the GEOS-CHEM GRID                 
+    REAL*8  :: lonedgeC(IIPAR+1                )    ! Lon edges [degrees]
+    REAL*8  :: latedgeC(          JJPAR+1      )    ! Lat edges [degrees]
+    INTEGER :: ctOlson (IIPAR,    JJPAR,   0:73)    ! Count of land types/box
+    REAL*8  :: frOlson (IIPAR,    JJPAR,   0:73)    ! Frac of land types/box
+    
+    !======================================================================
+    ! NATIVE GRID parameters (i.e. 0.5 x 0.5 "GENERIC")
+    !======================================================================
+    
+    ! Be lazy, construct lon edges from lon centers
+    DO I = 1, I_OLSON
+       lonedge(I)      = DBLE( lon(I) ) - ( D_LON * 0.5d0 )
+       indLon(I)       = I
+    ENDDO
+    lonedge(I_OLSON+1) = lonedge(I_OLSON) + D_LON
+    
+    ! Be lazy, construct lat edges from lat centers
+    DO J = 1, J_OLSON
+       latedge(J)      = DBLE( lat(J) ) - ( D_LAT * 0.5d0 )
+    ENDDO
+    latedge(J_OLSON+1) = latedge(J_OLSON) + D_LAT
+    
+    ! Surface area, native grid [m2]
+    DO J = 1, J_OLSON
+       a_cm2(J)        = ( 0.5d0 * PI_180 ) * Re**2              &
+                       * ( SIN( latedge(J+1) * PI_180 )          &
+                       -   SIN( latedge(J  ) * PI_180 ) ) * 1d4
+    ENDDO
+ 
+    ! Shift longitudes by 2 degrees to the west for date-line handling
+    shiftLon           = CSHIFT( indLon, -20 )
+
+    !======================================================================
+    ! Initialize variables outside of the main loop 
+    !======================================================================
+    ctOlson            = 0
+    frOlson            = 0d0
+    IREG               = 0
+    ILAND              = 0
+    IUSE               = 0
+    IJREG              = 0
+    IJLAND             = 0
+    IJUSE              = 0
+    isGlobal           = ( .not. ITS_A_NESTED_GRID() )
+
+    !=====================================================================
+    ! Find all of the Olson land types at 0.5 x 0.5 "GENERIC" grid 
+    ! resolution that fit into the "coarse" grid box
+    !=====================================================================
+    !$OMP PARALLEL DO                                                       &
+    !$OMP DEFAULT( SHARED )                                                 &
+    !$OMP PRIVATE( I,     J,       xedgeC_w, yedgeC_s, xedgeC_e, yedgeC_n ) &
+    !$OMP PRIVATE( dxdy4, sumArea, JJ,       III,      dxdy,     mapWt    ) &
+    !$OMP PRIVATE( II,    xedge_w, yedge_s,  xedge_e,  yedge_n,  area     ) &
+    !$OMP PRIVATE( type,  N,       maxIuse,  T,        sumIUse,  IJLOOP   )
+    DO J = 1, JJPAR
+    DO I = 1, IIPAR
+
+       ! Edges of this GEOS-CHEM GRID box
+       xedgeC_w = GET_XEDGE( I,   J,   1 )          ! W edge
+       yedgeC_s = GET_YEDGE( I,   J,   1 )          ! S edge
+       xedgeC_e = GET_XEDGE( I+1, J,   1 )          ! E edge
+       yedgeC_n = GET_YEDGE( I,   J+1, 1 )          ! N edge
+       
+       ! "Area" of the GEOS-CHEM GRID box in degrees (DLON * DLAT)
+       dxdy4    = ( xedgeC_e - xedgeC_w ) * ( yedgeC_n - yedgeC_s )
+     
+       ! Zero the summing array
+       sumArea  = 0d0
+
+       ! Loop over the NATIVE GRID boxes
+       DO JJ  = 1, J_OLSON
+       DO III = 1, I_OLSON
+
+          ! Initialize
+          dxdy       = 0e0
+          mapWt      = 0e0
+       
+          ! Find the NATIVE GRID longitude index for use below.  Account for 
+          ! the first GEOS-CHEM GRID box, which straddles the date line.
+          IF ( isGlobal .and.  I == 1 ) THEN
+             II      = shiftLon(III)
+          ELSE
+             II      = indLon(III)
+          ENDIF
+          
+          ! Edges of this NATIVE GRID box
+          XEDGE_W    = lonedge(II  )                ! W edge
+          yedge_s    = latedge(JJ  )                ! S edge
+          xedge_e    = lonedge(II+1)                ! E edge
+          yedge_n    = latedge(JJ+1)                ! N edge
+
+          ! Because the first GEOS-CHEM GRID BOX straddles the date line,
+          ! we have to adjust the W and E edges of the NATIVE GRID BOX to
+          ! be in monotonically increasing order.  This will prevent
+          ! erronous results from being returned by GET_MAP_WT below.
+          IF ( isGlobal .and.  I == 1 .and. II >= shiftLon(1) ) THEN
+             xedge_w = xedge_w - 360d0
+             xedge_e = xedge_e - 360d0
+          ENDIF
+         
+          ! "Area" of the GEOS-CHEM GRID BOX in degrees (DLON * DLAT)
+          dxdy       = ( xedge_e - xedge_w ) * ( yedge_n - yedge_s )
+
+          ! Get the mapping weight (i.e. The fraction of the NATIVE 
+          ! GRID BOX that lies w/in the GEOS-CHEM GRID BOX)
+          CALL GET_MAP_WT( xedge_w, xedge_e, xedgeC_w, xedgeC_e,  &
+                           yedge_s, yedge_n, yedgeC_s, yedgeC_n,  &
+                           mapWt                                 )
+
+          ! Skip unless part (or all) of the NATIVE GRID BOX
+          ! actually fits into the GEOS-CHEM GRID BOX
+          IF ( mapWt <= 0d0 .or. mapWt > 1d0 ) CYCLE
+
+          ! Area of the NATIVE GRID BOX that lies w/in the GEOS-CHEM GRID BOX
+          area              = a_cm2(JJ) * mapWt
+           
+          ! Keep a total of the area
+          sumArea           = sumArea + area
+        
+          ! Olson land map type on the NATIVE GRID
+          type              = OLSON(II,JJ,1)
+           
+          ! Increment count of Olson types
+          ctOlson(I,J,type) = ctOlson(I,J,type) + 1
+
+          ! Add area covered by this olson type
+          frOlson(I,J,type) = frOlson(I,J,type) + area
+
+       ENDDO
+       ENDDO
+         
+       !===================================================================
+       ! Construct GEOS-Chem type output arrays 
+       ! from the binning that we just have completed
+       !===================================================================
+     
+       ! Land type index for ILAND & IUSE
+       N       = 0
+       maxIUse = 0
+
+       ! Loop over all land types
+       DO T = 0, 73
+          
+          ! Normalize the land type coverage to the sum of the surface areas
+          frOlson(I,J,T)    =  &
+               INT( ( ( frOlson(I,J,T) / sumArea ) * 1e3 ) + 0.5e0 )
+        
+          ! If land type T is represented in this box ...
+          IF ( ctOlson(I,J,T) > 0 ) THEN 
+             
+             ! Increment counter
+             N              = N + 1
+               
+             ! Increment the count of Olson types in the box
+             IREG(I,J)      = IREG(I,J) + 1
+             
+             ! Save land type into ILAND
+             ILAND(I,J,N)   = T
+             
+             ! Save the fraction (in mils) of this land type
+             IUSE(I,J,N)    = frOlson(I,J,T)
+
+          ENDIF
+       ENDDO
+
+       ! Land type with the largest coverage in the GEOS-CHEM GRID BOX
+       maxIuse              = MAXLOC( IUSE(I,J,1:N) )
+
+       ! Sum of all land types in the GEOS-CHEM GRID BOX (should be 1000)
+       sumIUse              = SUM( IUSE(I,J,1:N) )
+
+       ! Make sure everything adds up to 1000.  If not, then adjust
+       ! the land type w/ the largest coverage accordingly.
+       ! This follows the algorithm from "regridh_lai.pro".
+       IF ( sumIUse /= 1000 ) THEN
+          IUSE(I,J,maxIUse) = IUSE(I,J,maxIUse) + ( 1000 - sumIUse )
+       ENDIF
+      
+       ! 1-D grid box index for IJ* arrays
+       IJLOOP               = ( (J-1) * IIPAR ) + I
+
+       ! Copy IREG into IJREG
+       IJREG(IJLOOP)        = IREG(I,J) 
+
+       ! Copy ILAND into IJLAND and IUSE into IJUSE
+       DO T = 1, IREG(I,J)
+          IJLAND(IJLOOP,T)  = ILAND(I,J,T)
+          IJUSE (IJLOOP,T)  = IUSE (I,J,T)
+       ENDDO
+
+    ENDDO
+    ENDDO
+    !$OMP END PARALLEL DO
+
+  END SUBROUTINE Compute_Olson_LandMap
+!EOC
+!------------------------------------------------------------------------------
+!          Harvard University Atmospheric Chemistry Modeling Group            !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: init_olson_landmap
+!
+! !DESCRIPTION: Subroutine INIT\_OLSON\_LANDMAP reads 0.5 x 0.5 degree Olson 
+!  land map information from disk (in netCDF format).
+!\\
+!\\
+! !INTERFACE:
+!
+  SUBROUTINE Init_Olson_LandMap()
+!
+! !USES:
+!
+    USE m_netcdf_io_open
+    USE m_netcdf_io_read
+    USE m_netcdf_io_close
+    
+    IMPLICIT NONE
+    
+#   include "netcdf.inc"
+!
+! !REMARKS:
+!  Assumes that you have:
+!  (1) A netCDF library (either v3 or v4) installed on your system
+!  (2) The NcdfUtilities package (from Bob Yantosca) source code
+!                                                                             .
+!  Although this routine was generated automatically, some further
+!  hand-editing may be required (i.e. to  specify the size of parameters, 
+!  and/or to assign values to variables.  Also, you can decide how to handle
+!  the variable attributes (or delete calls for reading attributes that you
+!  do not need).
+!
+! !REVISION HISTORY:
+!  30 Jan 2012 - R. Yantosca - Initial version
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+!
+! !LOCAL VARIABLES:
+!
+    !======================================================================
+    ! Variable declarations
+    !======================================================================
+    
+    ! Scalars
+    INTEGER            :: fId                ! netCDF file ID
+    
+    ! Character strings
+    CHARACTER(LEN=255) :: nc_file            ! netCDF file name
+    CHARACTER(LEN=255) :: v_name             ! netCDF variable name 
+     
+    ! Arrays for netCDF start and count values
+    INTEGER            :: st1d(1), ct1d(1)   ! For 1D arrays    
+    INTEGER            :: st3d(3), ct3d(3)   ! For 3D arrays 
+     
+    !======================================================================
+    ! Open and read data from the netCDF file
+    !======================================================================
+
+    ! Open netCDF file
+    nc_file =  TRIM( DATA_DIR_1x1 ) // &
+               'Olson_Land_Map_201203/Olson_Land_Map.05x05.generic.nc'
+    CALL Ncop_Rd( fId, TRIM(nc_file) )
+     
+    !----------------------------------------
+    ! VARIABLE: lon
+    !----------------------------------------
+     
+    ! Variable name
+    v_name = "lon"
+    
+    ! Read lon from file
+    st1d   = (/ 1       /)
+    ct1d   = (/ I_OLSON /)
+    CALL NcRd( lon, fId, TRIM(v_name), st1d, ct1d )
+     
+    !----------------------------------------
+    ! VARIABLE: lat
+    !----------------------------------------
+    
+    ! Variable name
+    v_name = "lat"
+    
+    ! Read lat from file
+    st1d   = (/ 1       /)
+    ct1d   = (/ J_OLSON /)
+    CALL NcRd( lat, fId, TRIM(v_name), st1d, ct1d )
+     
+    !----------------------------------------
+    ! VARIABLE: OLSON
+    !----------------------------------------
+    
+    ! Variable name
+    v_name = "OLSON"
+    
+    ! Read OLSON from file
+    st3d   = (/ 1,       1,       1 /)
+    ct3d   = (/ I_OLSON, J_OLSON, 1 /)
+    CALL NcRd( OLSON, fId, TRIM(v_name), st3d, ct3d )
+    
+    !=================================================================
+    ! Cleanup and quit
+    !=================================================================
+    
+    ! Close netCDF file
+    CALL NcCl( fId )
+    
+  END SUBROUTINE Init_Olson_LandMap
+!EOC
+!------------------------------------------------------------------------------
+!          Harvard University Atmospheric Chemistry Modeling Group            !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: get_map_wt
+!
+! !DESCRIPTION: Subroutine GET\_MAP\_WT returns the "mapping weight", that
+!  is, the fraction that each "fine" grid box fits into each "coarse" grid
+!  box.
+!\\
+!\\
+! !INTERFACE:
+!
+  SUBROUTINE Get_Map_Wt( xedge_w, xedge_e, xedgeC_w, xedgeC_e,   &
+                         yedge_s, yedge_n, yedgeC_s, yedgeC_n,   &
+                         mapWt                                  )
+!
+! !INPUT PARAMETERS:
+!
+    REAL*8, INTENT(IN)  :: xedge_w,  xedge_e    ! Lon edges, fine grid
+    REAL*8, INTENT(IN)  :: xedgeC_w, xedgeC_e   ! Lon edges, coarse grid
+    REAL*8, INTENT(IN)  :: yedge_s,  yedge_n    ! Lat edges, fine grid
+    REAL*8, INTENT(IN)  :: yedgeC_s, yedgeC_n   ! Lat edges, coarse grid
+    REAL*8, INTENT(OUT) :: mapWt                ! Mapping weight
+!
+! !REMARKS:
+!  Follows the algorithm from GAMAP routine ctm_getweight.pro
+!
+! !REVISION HISTORY:
+!  30 Jan 2012 - R. Yantosca - Initial version
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+!
+! !LOCAL VARIABLES:
+!
+    REAL*8 :: ox1, ox2, nx1, nx2, ov1, ov2, xOverLap
+    REAL*8 :: oy1, oy2, ny1, ny2,           yOverLap
+
+    !======================================================================
+    ! Get overlap in longitude
+    !======================================================================
+
+    ! OX1, OX2 are the lon edges of the "fine" grid box
+    ox1 = xedge_w
+    ox2 = xedge_e
+    
+    ! NX1, NX2 are the lon edges of the coarse grid box
+    nx1 = xedgeC_w
+    nx2 = xedgeC_e
+    
+    ! Deal with over-the-dateline cases (phs, 9/26/07)
+    ! That fixes a problem when going from GEOS-5
+    ! 0.66667 x 0.5 to GENERIC 1 x 1.
+    ! Maybe it fixes also the kludges below ?? ## need checking 
+    if ( ox2 .lt. nx1 ) then
+       ox1 = ox1 + 360d0
+       ox2 = ox2 + 360d0
+    endif
+    
+    if ( ox1 .gt. nx2 ) then
+       ox1 = ox1 - 360d0
+       ox2 = ox2 - 360d0
+    endif
+    
+    ! convert to equivalent longitudes where necessary
+    if ( nx1 < -90. .AND. ox1 > 0. ) nx1 = nx1 + 360d0
+    if ( nx2 < -90. .AND. ox2 > 0. ) nx2 = nx2 + 360d0
+    
+    ! OV1 is the greater of OX1 and NX1
+    ! OV2 is the lesser of OX2 and NX2
+    ov1 = MAX( ox1, nx1 )
+    ov2 = MIN( nx2, ox2 )
+    
+    ! XOVERLAP is the fraction of the old (fine) grid box that 
+    ! occupies the new (coarse) grid box in the longitude
+    xOverLap = ( ov2 - ov1 ) / ( ox2 - ox1 )
+    
+    ! If XOVERLAP is not in the range of 0-1, then it means that the "fine" 
+    ! grid box lies completely outside the "coarse" grid box (in longitude).
+    ! Set to zero to avoid erroneous results in the calling routine.
+    if ( xOverLap < 0d0 .or. xOverLap > 1d0 ) yOverlap = 0d0
+    
+    !======================================================================
+    ! Get overlap in latitude
+    !======================================================================
+
+    ! OY1 and OY2 are lat edges of the "fine" grid
+    oy1 = yedge_s
+    oy2 = yedge_n
+    
+    ! NY1 and NY2 are consecutive Y-edges for the coarse
+    ny1 = yedgeC_s
+    ny2 = yedgeC_n
+     
+    ! OV1 is the greater of OY1 and NY1
+    ! OV2 is the lesser of OY2 and NY2
+    ov1 = MAX( oy1, ny1 )
+    ov2 = MIN( ny2, oy2 )
+    
+    ! YOVERLAP is the fraction of the old (fine) grid box that 
+    ! occupies the new (coarse) grid box in latitude 
+    yoverlap = ( ov2 - ov1 ) / ( oy2 - oy1 )
+    
+    ! If YOVERLAP is not in the range of 0-1, then it means that the "fine" 
+    ! grid box lies completely outside the "coarse" grid box (in latitude).
+    ! Set to zero to avoid erroneous results in the calling routine.
+    if ( yOverLap < 0d0 .or. yOverLap > 1d0 ) yOverlap = 0d0
+
+    ! Resultant mapping weight
+    mapWt = xOverLap * yOverLap
+
+  END SUBROUTINE Get_Map_Wt
+!EOC
+END MODULE Olson_LandMap_Mod

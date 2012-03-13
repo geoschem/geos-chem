@@ -786,7 +786,7 @@ main.o                      : main.F                                         \
                               xtra_read_mod.o         merra_cn_mod.o         \
                               merra_a1_mod.o          merra_a3_mod.o         \
                               merra_i6_mod.o          geos57_read_mod.o      \
-                              diag63_mod.o
+                              diag63_mod.o            olson_landmap_mod.o
 
 MATIN4.o                    : MATIN4.F
 
@@ -844,6 +844,9 @@ ocean_mercury_mod.o         : ocean_mercury_mod.F                            \
 ohsave.o                    : ohsave.F                comode_mod.o           \
                               diag_mod.o              tracerid_mod.o
 
+
+olson_landmap_mod.o         : olson_landmap_mod.F90
+
 optdepth_mod.o              : optdepth_mod.F          diag_mod.o  
 
 OPMIE.o                     : OPMIE.F
@@ -886,8 +889,6 @@ rd_js.o                     : rd_js.F
 rd_prof.o                   : rd_prof.F
 
 rdlai.o                     : rdlai.F
-
-rdland.o                    : rdland.F                logical_mod.o
 
 rdsoil.o                    : rdsoil.F
 

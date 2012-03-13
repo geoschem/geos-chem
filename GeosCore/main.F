@@ -27,6 +27,7 @@
       USE FILE_MOD              ! For file I/O
       USE INPUT_MOD             ! For reading settings from "input.geos"
       USE LOGICAL_MOD           ! Logical flags to toggle G-C options
+      USE OLSON_LANDMAP_MOD     ! Computes IREG, ILAND, IUSE from Olson map
       USE PRESSURE_MOD          ! For computing pressure at grid boxes
       USE RESTART_MOD           ! For restart file I/O
       USE TIME_MOD              ! For computing date & time 
@@ -106,6 +107,10 @@
       USE I6_READ_MOD           ! For reading I6 data (all other met)
       USE GWET_READ_MOD         ! For reading GEOS-3 GWET data
       USE XTRA_READ_MOD         ! For reading GEOS-3 extra data fields
+
+      ! for testing
+      use cmn_dep_mod
+      use cmn_vel_mod
 
       IMPLICIT NONE
 
@@ -286,9 +291,18 @@
          IF ( LPRT ) CALL DEBUG_MSG( '### MAIN: a LIGHTNING' )
       ENDIF
 
-      ! Read land types and fractions from "vegtype.global"
-      CALL RDLAND   
-      IF ( LPRT ) CALL DEBUG_MSG( '### MAIN: a RDLAND' )
+!------------------------------------------------------------------------------
+! Prior to 3/13/12:
+! Replace this with routines from olson_landmap_mod.F90
+!      ! Read land types and fractions from "vegtype.global"
+!      CALL RDLAND   
+!      IF ( LPRT ) CALL DEBUG_MSG( '### MAIN: a RDLAND' )
+!------------------------------------------------------------------------------
+
+      ! Compute the Olson land types that occur in each grid box
+      ! (i.e. this is a replacement for rdland.F and vegtype.global)
+      CALL INIT_OLSON_LANDMAP()
+      CALL COMPUTE_OLSON_LANDMAP()
 
       ! Initialize PBL quantities but do not do mixing
       ! Add option for non-local PBL (Lin, 03/31/09) 
