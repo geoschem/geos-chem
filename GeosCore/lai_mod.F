@@ -81,13 +81,15 @@
 !        and modified for the standard code by May Fu (11/2004).
 !  (2 ) Renamed to READISOLAI_AVHRR to differentiate from the newer routine for
 !       reading in the MODIS LAI (mpb,2009).
+!  13 Mar 2012 - M. Cooper   - Changed regrid algorithm to map_a2a
 !******************************************************************************
 !
       USE BPCH2_MOD,      ONLY : GET_TAU0, READ_BPCH2, GET_RES_EXT
       USE DIRECTORY_MOD,  ONLY : DATA_DIR_1x1
-      USE REGRID_1x1_MOD, ONLY : DO_REGRID_1x1
+      !USE REGRID_1x1_MOD,ONLY : DO_REGRID_1x1
+      USE REGRID_A2A_MOD, ONLY : DO_REGRID_A2A
       USE TRANSFER_MOD,   ONLY : TRANSFER_2D
-    
+ 
       USE CMN_SIZE_MOD      ! Size parameters
    
       IMPLICIT NONE
@@ -101,6 +103,9 @@
       REAL*4                 :: ARRAY(I1x1,J1x1,1)
       REAL*8                 :: TAU0
       CHARACTER(LEN=255)     :: FILENAME
+      CHARACTER(LEN=255)     :: LLFILENAME
+      REAL*8, ALLOCATABLE    :: OUTGRID(:,:)
+      REAL*8, ALLOCATABLE    :: INGRID(:,:)
 
       !=================================================================
       ! READISOLAI begins here!
@@ -131,8 +136,17 @@
      &                 TAU0,      I1x1,   J1x1,    
      &                 1,         ARRAY,  QUIET=.TRUE. )
 
+      LLFILENAME = TRIM( DATA_DIR_1x1) //'latlon_geos1x1.txt'
+
+        ALLOCATE(INGRID(I1x1,J1x1))
+        INGRID=ARRAY(:,:,1)
+        ALLOCATE(OUTGRID(IIPAR,JJPAR))
+        CALL DO_REGRID_A2A(LLFILENAME,360,182,INGRID,OUTGRID,0)
+        MISOLAI=OUTGRID
+
+
       ! Regrid from 1x1 to current grid resolution
-      CALL DO_REGRID_1x1( 'cm2/cm2', ARRAY, MISOLAI )
+      !CALL DO_REGRID_1x1( 'cm2/cm2', ARRAY, MISOLAI )
 
       !------------------------------------
       ! Read next month's lai at (I,J) 
@@ -151,7 +165,12 @@
      &                 1,         ARRAY,  QUIET=.TRUE. )
 
       ! Regrid from 1x1 to current grid resolution
-      CALL DO_REGRID_1x1( 'cm2/cm2', ARRAY, NMISOLAI )
+
+      INGRID=ARRAY(:,:,1)        
+      CALL DO_REGRID_A2A(LLFILENAME,360,182,INGRID,OUTGRID,0)
+      NMISOLAI=OUTGRID
+
+      !CALL DO_REGRID_1x1( 'cm2/cm2', ARRAY, NMISOLAI )
 
       !------------------------------------
       ! Read previous month's lai at (I,J) 
@@ -170,8 +189,14 @@
      &                 1,         ARRAY,  QUIET=.TRUE. )
 
       ! Regrid from 1x1 to current grid resolution
-      CALL DO_REGRID_1x1( 'cm2/cm2', ARRAY, PMISOLAI )
+      !CALL DO_REGRID_1x1( 'cm2/cm2', ARRAY, PMISOLAI )
 
+      INGRID=ARRAY(:,:,1)   
+      CALL DO_REGRID_A2A(LLFILENAME,360,182,INGRID,OUTGRID,0)
+      PMISOLAI=OUTGRID
+
+      DEALLOCATE(INGRID)
+      DEALLOCATE(OUTGRID)
       ! Return to calling program
       END SUBROUTINE READISOLAI_AVHRR
 
@@ -195,7 +220,8 @@
 !
       USE BPCH2_MOD,      ONLY : GET_TAU0, READ_BPCH2, GET_RES_EXT
       USE DIRECTORY_MOD,  ONLY : DATA_DIR_1x1
-      USE REGRID_1x1_MOD, ONLY : DO_REGRID_1x1
+      !USE REGRID_1x1_MOD, ONLY : DO_REGRID_1x1
+      USE REGRID_A2A_MOD, ONLY : DO_REGRID_A2A
       USE TRANSFER_MOD,   ONLY : TRANSFER_2D
      
       USE CMN_SIZE_MOD      ! Size parameters
@@ -211,6 +237,9 @@
       REAL*4                 :: ARRAY(I1x1,J1x1,1)
       REAL*8                 :: TAU0
       CHARACTER(LEN=255)     :: FILENAME 
+      CHARACTER(LEN=255)     :: LLFILENAME
+      REAL*8, ALLOCATABLE    :: OUTGRID(:,:)
+      REAL*8, ALLOCATABLE    :: INGRID(:,:)
 
       ! For MODIS add past, current and next years (mpb,2009)                   
       CHARACTER(LEN=4)       :: YEAR 
@@ -233,6 +262,8 @@
       !MODIS_CLIM =  TRIM( DATA_DIR_1x1 ) // 
       MODIS_CLIM = TRIM( DATA_DIR_1x1 ) // 'MODIS_LAI_200911/' //
      &             '1985/MODIS.LAIv.V5.geos.1x1.1985'
+
+      LLFILENAME = TRIM( DATA_DIR_1x1) //'latlon_geos1x1.txt'
 
       IYYYY = 0
       PYYYY = 0
@@ -281,7 +312,13 @@
      &                 1,         ARRAY,  QUIET=.TRUE. )
 
       ! Regrid from 1x1 to current grid resolution
-      CALL DO_REGRID_1x1( 'cm2/cm2', ARRAY, MISOLAI )
+      !CALL DO_REGRID_1x1( 'cm2/cm2', ARRAY, MISOLAI )
+        ALLOCATE(INGRID(I1x1,J1x1))
+        ALLOCATE(OUTGRID(IIPAR,JJPAR))
+        INGRID=ARRAY(:,:,1)
+        CALL DO_REGRID_A2A(LLFILENAME,360,182,INGRID,OUTGRID,0)
+        MISOLAI=OUTGRID
+
 
       ! ++++++++++++++++++++++++++++++++++
       ! Get LAI data for NEXT month
@@ -362,8 +399,10 @@
      &                 1,         ARRAY,  QUIET=.TRUE. )
 
       ! Regrid from 1x1 to current grid resolution
-      CALL DO_REGRID_1x1( 'cm2/cm2', ARRAY, NMISOLAI )
-
+      !CALL DO_REGRID_1x1( 'cm2/cm2', ARRAY, NMISOLAI )
+        INGRID=ARRAY(:,:,1)
+        CALL DO_REGRID_A2A(LLFILENAME,360,182,INGRID,OUTGRID,0)
+        NMISOLAI=OUTGRID
       ! ++++++++++++++++++++++++++++++++++
       ! Get LAI data for PAST month
       ! ++++++++++++++++++++++++++++++++++
@@ -442,8 +481,12 @@
      &                 1,         ARRAY,  QUIET=.TRUE. )
 
       ! Regrid from 1x1 to current grid resolution
-      CALL DO_REGRID_1x1( 'cm2/cm2', ARRAY, PMISOLAI )
-
+      !CALL DO_REGRID_1x1( 'cm2/cm2', ARRAY, PMISOLAI )
+        INGRID=ARRAY(:,:,1)
+        CALL DO_REGRID_A2A(LLFILENAME,360,182,INGRID,OUTGRID,0)
+        PMISOLAI=OUTGRID
+        DEALLOCATE(INGRID)
+        DEALLOCATE(OUTGRID)
 100   FORMAT( '     - READISOLAI: Reading ', a )
      
       ! Return to calling program

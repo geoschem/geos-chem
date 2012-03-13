@@ -73,6 +73,7 @@
 !  26 Jan 2010 - R. Yantosca - Minor bug fix in INIT_EMEP
 !  31 Aug 2010 - R. Yantosca - Updated comments
 !  24 Nov 2010 - G. Vinken   - Updated EMEP mask file
+!  13 Mar 2012 - M. Cooper   - Changed gridding algorithm to map_a2a
 !EOP
 !------------------------------------------------------------------------------
 !
@@ -305,7 +306,8 @@
       USE FILE_MOD,         ONLY : IU_FILE,      IOERROR
       USE DIRECTORY_MOD,    ONLY : DATA_DIR_1x1 
       USE LOGICAL_MOD,      ONLY : LFUTURE
-      USE REGRID_1x1_MOD,   ONLY : DO_REGRID_1x1
+      !USE REGRID_1x1_MOD,   ONLY : DO_REGRID_1x1
+      USE REGRID_A2A_MOD,   ONLY : DO_REGRID_A2A
       USE TIME_MOD,         ONLY : EXPAND_DATE,  GET_YEAR
       USE TIME_MOD,         ONLY : GET_MONTH
       USE SCALE_ANTHRO_MOD, ONLY : GET_ANNUAL_SCALAR
@@ -317,6 +319,8 @@
 !  01 Nov 2005 - B. Field, R. Yantosca - Initial version
 !  (1 ) Modified for IPCC future emissions.  Now references LFUTURE from
 !        "logical_mod.f". (bmy, 5/30/06)
+!  13 Mar 2012 - M. Cooper   - Changed gridding algorithm to map_a2a
+
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -343,6 +347,9 @@
       CHARACTER(LEN=40)       :: CATEGORY
       CHARACTER(LEN=40)       :: UNIT     
       CHARACTER(LEN=40)       :: RESERVED
+      CHARACTER(LEN=255)      :: LLFILENAME
+      REAL*8, ALLOCATABLE     :: OUTGRID(:,:)
+      REAL*8, ALLOCATABLE     :: INGRID(:,:)
 
       !=================================================================
       ! EMISS_EMEP begins here!
@@ -387,6 +394,12 @@
       ! Open file
       CALL OPEN_BPCH2_FOR_READ( IU_FILE, FILENAME )
 
+      ! Read lat/lon edges:  File name
+      LLFILENAME = TRIM( DATA_DIR_1x1) //
+     &           'EMEP_200510/latlon_geos1x1.txt'
+        ALLOCATE(INGRID(I1x1,J1x1))
+        ALLOCATE(OUTGRID(IIPAR,JJPAR))
+
       ! Read the entire file in one pass (for I/O optimization)
       DO 
 
@@ -418,31 +431,50 @@
 
             ! NOx [molec/cm2/s]
             CASE( 1  )
-               CALL DO_REGRID_1x1( UNIT, ARRAY, EMEP_NOx  )
+              INGRID=ARRAY(:,:,1)
+              CALL DO_REGRID_A2A(LLFILENAME,360,182,INGRID,OUTGRID,0)
+              EMEP_NOx=OUTGRID
 
             ! CO [molec/cm2/s]
             CASE( 4  )
-               CALL DO_REGRID_1x1( UNIT, ARRAY, EMEP_CO   )
-
+              INGRID=ARRAY(:,:,1)
+              CALL DO_REGRID_A2A(LLFILENAME,360,182,INGRID,OUTGRID,0)
+              EMEP_CO=OUTGRID
+               
             ! ALK4 [atoms C/cm2/s]
             CASE( 5  )
-               CALL DO_REGRID_1x1( UNIT, ARRAY, EMEP_ALK4 )
+              INGRID=ARRAY(:,:,1)
+              CALL DO_REGRID_A2A(LLFILENAME,360,182,INGRID,OUTGRID,0)
+              EMEP_ALK4=OUTGRID
+               !CALL DO_REGRID_1x1( UNIT, ARRAY, EMEP_ALK4 )
 
             ! MEK [atoms C/cm2/s]
             CASE( 10 )
-               CALL DO_REGRID_1x1( UNIT, ARRAY, EMEP_MEK  )
+              INGRID=ARRAY(:,:,1)
+              CALL DO_REGRID_A2A(LLFILENAME,360,182,INGRID,OUTGRID,0)
+              EMEP_MEK=OUTGRID
+               !CALL DO_REGRID_1x1( UNIT, ARRAY, EMEP_MEK  )
 
             ! ALD2 [atoms C/cm2/s]
             CASE( 11 )
-               CALL DO_REGRID_1x1( UNIT, ARRAY, EMEP_ALD2 )
+              INGRID=ARRAY(:,:,1)
+              CALL DO_REGRID_A2A(LLFILENAME,360,182,INGRID,OUTGRID,0)
+              EMEP_ALD2=OUTGRID
+               !CALL DO_REGRID_1x1( UNIT, ARRAY, EMEP_ALD2 )
 
             ! PRPE [atoms C/cm2/s]
             CASE( 18 )
-               CALL DO_REGRID_1x1( UNIT, ARRAY, EMEP_PRPE )
+              INGRID=ARRAY(:,:,1)
+              CALL DO_REGRID_A2A(LLFILENAME,360,182,INGRID,OUTGRID,0)
+              EMEP_PRPE=OUTGRID
+               !CALL DO_REGRID_1x1( UNIT, ARRAY, EMEP_PRPE )
 
             ! C2H6 [atoms C/cm2/s]
             CASE( 21 )
-               CALL DO_REGRID_1x1( UNIT, ARRAY, EMEP_C2H6 )
+              INGRID=ARRAY(:,:,1)
+              CALL DO_REGRID_A2A(LLFILENAME,360,182,INGRID,OUTGRID,0)
+              EMEP_C2H6=OUTGRID
+               !CALL DO_REGRID_1x1( UNIT, ARRAY, EMEP_C2H6 )
 
             CASE DEFAULT
                ! Nothing
@@ -450,7 +482,8 @@
          END SELECT
 
       ENDDO
-
+      DEALLOCATE(INGRID)
+      DEALLOCATE(OUTGRID)
       ! Close file
       CLOSE( IU_FILE )
 
@@ -527,7 +560,6 @@
       USE BPCH2_MOD,        ONLY : GET_TAU0,     READ_BPCH2
       USE DIRECTORY_MOD,    ONLY : DATA_DIR
       USE LOGICAL_MOD,      ONLY : LFUTURE
-      USE REGRID_1x1_MOD,   ONLY : DO_REGRID_05x0666
       USE TIME_MOD,         ONLY : EXPAND_DATE,  GET_YEAR
       USE TIME_MOD,         ONLY : GET_MONTH
       USE SCALE_ANTHRO_MOD, ONLY : GET_ANNUAL_SCALAR_05x0666_NESTED
@@ -563,6 +595,7 @@
       CHARACTER(LEN=40)       :: CATEGORY
       CHARACTER(LEN=40)       :: UNIT
       CHARACTER(LEN=40)       :: RESERVED
+
 
       !=================================================================
       ! EMISS_EMEP begins here!
@@ -945,8 +978,8 @@
 ! 
       USE BPCH2_MOD,      ONLY : READ_BPCH2
       USE DIRECTORY_MOD,  ONLY : DATA_DIR_1x1
-      USE REGRID_1x1_MOD, ONLY : DO_REGRID_1x1
-
+      !USE REGRID_1x1_MOD, ONLY : DO_REGRID_1x1
+      USE REGRID_A2A_MOD, ONLY : DO_REGRID_A2A
       USE CMN_SIZE_MOD       ! Size parameters
 !
 ! !REVISION HISTORY: 
@@ -955,6 +988,7 @@
 !        a rectangular box (bmy, 10/18/06)
 !  (2 ) Updated the mask file to correspond with the 200911 EMEP emissions
 !        (gvinken, 11/24/10)
+!  13 Mar 2012 - M. Cooper   - Changed regrid algorithm to map_a2a
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -963,6 +997,10 @@
 !
       REAL*4                  :: ARRAY(I1x1,J1x1,1)
       CHARACTER(LEN=255)      :: FILENAME
+      CHARACTER(LEN=255)      :: LLFILENAME
+      REAL*8, ALLOCATABLE     :: OUTGRID(:,:)
+      REAL*8, ALLOCATABLE     :: INGRID(:,:)
+      INTEGER                 :: I
 
       !=================================================================
       ! READ_EUROPE_MASK begins here!
@@ -978,6 +1016,9 @@
       FILENAME  = TRIM( DATA_DIR_1x1 ) // 
      &            'EMEP_200911/EMEP_mask.geos.1x1'
 
+      LLFILENAME = TRIM( DATA_DIR_1x1) //
+     &           'EMEP_200911/latlon_geos1x1.txt'
+
       ! Echo info
       WRITE( 6, 100 ) TRIM( FILENAME )
  100  FORMAT( '     - READ_EUROPE_MASK: Reading ', a )
@@ -988,7 +1029,15 @@
      &                 1,         ARRAY,    QUIET=.TRUE. ) 
 
       ! Regrid from GEOS 1x1 GRID to current model resolution
-      CALL DO_REGRID_1x1( 'unitless', ARRAY, EUROPE_MASK )
+      !CALL DO_REGRID_1x1( 'unitless', ARRAY, EUROPE_MASK )
+        ALLOCATE(INGRID(I1x1,J1x1))
+        INGRID=ARRAY(:,:,1)
+        ALLOCATE(OUTGRID(IIPAR,JJPAR))
+        CALL DO_REGRID_A2A(LLFILENAME,360,182,INGRID,OUTGRID,1)  
+        EUROPE_MASK=OUTGRID 
+        DEALLOCATE(INGRID)
+        DEALLOCATE(OUTGRID)
+
 
       END SUBROUTINE READ_EUROPE_MASK
 !EOC
@@ -1011,7 +1060,6 @@
 !
       USE BPCH2_MOD,      ONLY : READ_BPCH2
       USE DIRECTORY_MOD,  ONLY : DATA_DIR
-      USE REGRID_1x1_MOD, ONLY : DO_REGRID_05x0666
 
       USE CMN_SIZE_MOD       ! Size parameters
 !
@@ -1070,11 +1118,11 @@
       USE BPCH2_MOD,      ONLY : READ_BPCH2, GET_TAU0
       USE TIME_MOD,       ONLY : EXPAND_DATE, GET_MONTH
       USE DIRECTORY_MOD,  ONLY : DATA_DIR_1x1 
-      USE REGRID_1x1_MOD, ONLY : DO_REGRID_1x1
+      !USE REGRID_1x1_MOD, ONLY : DO_REGRID_1x1
       USE LOGICAL_MOD,    ONLY : LEMEPSHIP
       USE GRID_MOD,       ONLY : GET_AREA_CM2
       USE TRACERID_MOD,   ONLY : IDTNOx, IDTCO, IDTSO2, IDTNH3
-
+      USE REGRID_A2A_MOD, ONLY : DO_REGRID_A2A
       USE CMN_SIZE_MOD       ! Size parameters
       USE CMN_O3_MOD         ! SCALEYEAR
 !
@@ -1093,6 +1141,7 @@
 !  28 Jan 2009 - P. Le Sager - Now account for LEMEPSHIP
 !  29 Oct 2009 - Added multi-species seasonality (amv)
 !  04 Jan 2010 - Extended to 2007, changed input format (amv)
+!  13 Mar 2012 - M. Cooper   - Changed regrid algorithm to map_a2a
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -1105,6 +1154,9 @@
       CHARACTER(LEN=255)            :: FILENAME, DIR
       REAL*8                        :: EMEP_TAU, TAU, A, B
       INTEGER                       :: EMEP_NYMD, MN, RATIOID, I, J
+      CHARACTER(LEN=255)            :: LLFILENAME
+      REAL*8, ALLOCATABLE           :: OUTGRID(:,:)
+      REAL*8, ALLOCATABLE           :: INGRID(:,:)
 
       ARRAY_1x1_SHIP(:,:,:) = 0.d0
       ARRAY_1x1_LAND(:,:,:) = 0.d0
@@ -1199,7 +1251,17 @@
      &                                       ARRAY_1x1_SHIP(:,:,1)
       IF ( wSHIP .eq. 2 ) ARRAY_1x1(:,:,1) = ARRAY_1x1_SHIP(:,:,1)
 
-      CALL DO_REGRID_1x1('kg/yr', ARRAY_1x1, ARRAY)
+
+      LLFILENAME = TRIM( DATA_DIR_1x1) //
+     &           'EMEP_200911/latlon_geos1x1.txt'
+        ALLOCATE(INGRID(I1x1,J1x1))
+        ALLOCATE(OUTGRID(IIPAR,JJPAR))
+        INGRID=ARRAY_1x1(:,:,1) !Units kg/yr
+        CALL DO_REGRID_A2A(LLFILENAME,360,181,INGRID,OUTGRID,1)
+        ARRAY=OUTGRID
+        DEALLOCATE(INGRID)
+        DEALLOCATE(OUTGRID)
+      !CALL DO_REGRID_1x1('kg/yr', ARRAY_1x1, ARRAY)
 
       ! Convert SOx to SO2 assuming a SOx is 95% SO2 over Europe, as used
       ! throughout GEOS-Chem, and as per Chin et al, 2000
@@ -1251,7 +1313,6 @@
       USE BPCH2_MOD,      ONLY : READ_BPCH2, GET_TAU0
       USE TIME_MOD,       ONLY : EXPAND_DATE, GET_MONTH
       USE DIRECTORY_MOD,  ONLY : DATA_DIR
-      USE REGRID_1x1_MOD, ONLY : DO_REGRID_05x0666
       USE LOGICAL_MOD,    ONLY : LEMEPSHIP
       USE TRACERID_MOD,   ONLY : IDTNOx, IDTCO, IDTSO2, IDTNH3
       USE GRID_MOD,       ONLY : GET_AREA_CM2

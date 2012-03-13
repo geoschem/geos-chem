@@ -1668,7 +1668,8 @@
       ! References to F90 modules
       USE BPCH2_MOD,      ONLY : GET_RES_EXT, READ_BPCH2
       USE DIRECTORY_MOD,  ONLY : DATA_DIR_1x1
-      USE REGRID_1x1_MOD, ONLY : DO_REGRID_1x1
+      !USE REGRID_1x1_MOD, ONLY : DO_REGRID_1x1
+      USE REGRID_A2A_MOD, ONLY : DO_REGRID_A2A
       USE TIME_MOD,       ONLY : GET_TS_EMIS
       USE GRID_MOD,       ONLY : GET_AREA_M2
 !
@@ -1684,6 +1685,7 @@
 !  (5 ) Uses new v2.1 emission factors maps for isoprene, MBO and 7 monoterpene
 !        species, download in 2009. (mpb,2009)
 !  17 Dec 2009 - R. Yantosca - Added ProTeX headers
+!  13 Mar 2012 - M. Cooper   - Changed regrid algorithm to map_a2a
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -1694,6 +1696,9 @@
       REAL*4                  :: ARRAY(I1x1,J1x1,1)
       REAL*8                  :: DTSRCE, AREA_M2, FACTOR
       CHARACTER(LEN=255)      :: FILENAME
+      CHARACTER(LEN=255)      :: LLFILENAME
+      REAL*8, ALLOCATABLE     :: OUTGRID(:,:)
+      REAL*8, ALLOCATABLE     :: INGRID(:,:)
 
 
       ! ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
@@ -1750,7 +1755,19 @@
      &                 1,         ARRAY,     QUIET=.TRUE. )
 
       ! Regrid from 1x1 to the current grid (also cast to REAL*8)
-      CALL DO_REGRID_1x1( 'ug C/m2/hr', ARRAY, AEF_ISOP ) 
+      !CALL DO_REGRID_1x1( 'ug C/m2/hr', ARRAY, AEF_ISOP ) 
+      print*,"Array size"
+      print*,SIZE(ARRAY,1)
+      print*,SIZE(ARRAY,2)
+      print*,SIZE(ARRAY,3)
+      call flush(6)
+      LLFILENAME = TRIM( DATA_DIR_1x1) //'latlon_geos1x1.txt'
+        ALLOCATE(INGRID(I1x1,J1x1))
+        ALLOCATE(OUTGRID(IIPAR,JJPAR))
+        INGRID = ARRAY(:,:,1)
+        CALL DO_REGRID_A2A(LLFILENAME,360,182,INGRID,OUTGRID,0)
+        AEF_ISOP=OUTGRID
+
 
       ! Loop over longitudes
       DO J = 1, JJPAR
@@ -1788,7 +1805,10 @@
      &                 1,         ARRAY,     QUIET=.TRUE. )
 
       ! Regrid from 1x1 to the current grid (also cast to REAL*8)
-      CALL DO_REGRID_1x1( 'ug C/m2/hr', ARRAY, AEF_MONOT ) 
+      !CALL DO_REGRID_1x1( 'ug C/m2/hr', ARRAY, AEF_MONOT ) 
+        INGRID = ARRAY(:,:,1)
+        CALL DO_REGRID_A2A(LLFILENAME,360,182,INGRID,OUTGRID,0)
+        AEF_MONOT=OUTGRID
 
       ! Loop over longitudes
       DO J = 1, JJPAR
@@ -1825,7 +1845,10 @@
      &                 1,         ARRAY,     QUIET=.TRUE. )
 
       ! Regrid from 1x1 to the current grid (also cast to REAL*8)
-      CALL DO_REGRID_1x1( 'ug C/m2/hr', ARRAY, AEF_MBO ) 
+      !CALL DO_REGRID_1x1( 'ug C/m2/hr', ARRAY, AEF_MBO ) 
+        INGRID = ARRAY(:,:,1)
+        CALL DO_REGRID_A2A(LLFILENAME,360,182,INGRID,OUTGRID,0)
+        AEF_MBO=OUTGRID
 
       ! Loop over latitudes
       DO J = 1, JJPAR
@@ -1862,7 +1885,10 @@
      &                 1,         ARRAY,     QUIET=.TRUE. )
 
       ! Regrid from 1x1 to the current grid (also cast to REAL*8)
-      CALL DO_REGRID_1x1( 'ug C/m2/hr', ARRAY, AEF_OVOC ) 
+      !CALL DO_REGRID_1x1( 'ug C/m2/hr', ARRAY, AEF_OVOC ) 
+        INGRID = ARRAY(:,:,1)
+        CALL DO_REGRID_A2A(LLFILENAME,360,182,INGRID,OUTGRID,0)
+        AEF_OVOC=OUTGRID
 
       ! Loop over latitudes
       DO J = 1, JJPAR
@@ -1901,7 +1927,10 @@
      &                 1,         ARRAY,     QUIET=.TRUE. )
 
       ! Regrid from 1x1 to the current grid (also cast to REAL*8)
-      CALL DO_REGRID_1x1( 'ug C/m2/hr', ARRAY, AEF_APINE ) 
+      !CALL DO_REGRID_1x1( 'ug C/m2/hr', ARRAY, AEF_APINE ) 
+        INGRID = ARRAY(:,:,1)
+        CALL DO_REGRID_A2A(LLFILENAME,360,182,INGRID,OUTGRID,0)
+        AEF_APINE=OUTGRID
 
       ! Loop over latitudes
       DO J = 1, JJPAR
@@ -1936,8 +1965,10 @@
      &                 1,         ARRAY,     QUIET=.TRUE. )
 
       ! Regrid from 1x1 to the current grid (also cast to REAL*8)
-      CALL DO_REGRID_1x1( 'ug C/m2/hr', ARRAY, AEF_BPINE ) 
-
+      !CALL DO_REGRID_1x1( 'ug C/m2/hr', ARRAY, AEF_BPINE ) 
+        INGRID = ARRAY(:,:,1)
+        CALL DO_REGRID_A2A(LLFILENAME,360,182,INGRID,OUTGRID,0)
+        AEF_BPINE=OUTGRID
       ! Loop over latitudes
       DO J = 1, JJPAR
 
@@ -1971,7 +2002,10 @@
      &                 1,         ARRAY,     QUIET=.TRUE. )
 
       ! Regrid from 1x1 to the current grid (also cast to REAL*8)
-      CALL DO_REGRID_1x1( 'ug C/m2/hr', ARRAY, AEF_LIMON ) 
+      !CALL DO_REGRID_1x1( 'ug C/m2/hr', ARRAY, AEF_LIMON ) 
+        INGRID = ARRAY(:,:,1)
+        CALL DO_REGRID_A2A(LLFILENAME,360,182,INGRID,OUTGRID,0)
+        AEF_LIMON=OUTGRID
 
       ! Loop over latitudes
       DO J = 1, JJPAR
@@ -2006,8 +2040,10 @@
      &                 1,         ARRAY,     QUIET=.TRUE. )
 
       ! Regrid from 1x1 to the current grid (also cast to REAL*8)
-      CALL DO_REGRID_1x1( 'ug C/m2/hr', ARRAY, AEF_SABIN ) 
-
+      !CALL DO_REGRID_1x1( 'ug C/m2/hr', ARRAY, AEF_SABIN ) 
+        INGRID = ARRAY(:,:,1)
+        CALL DO_REGRID_A2A(LLFILENAME,360,182,INGRID,OUTGRID,0)
+        AEF_SABIN=OUTGRID
       ! Loop over latitudes
       DO J = 1, JJPAR
 
@@ -2041,8 +2077,10 @@
      &                 1,         ARRAY,     QUIET=.TRUE. )
 
       ! Regrid from 1x1 to the current grid (also cast to REAL*8)
-      CALL DO_REGRID_1x1( 'ug C/m2/hr', ARRAY, AEF_MYRCN ) 
-
+      !CALL DO_REGRID_1x1( 'ug C/m2/hr', ARRAY, AEF_MYRCN ) 
+        INGRID = ARRAY(:,:,1)
+        CALL DO_REGRID_A2A(LLFILENAME,360,182,INGRID,OUTGRID,0)
+        AEF_MYRCN=OUTGRID
       ! Loop over latitudes
       DO J = 1, JJPAR
 
@@ -2076,8 +2114,10 @@
      &                 1,         ARRAY,     QUIET=.TRUE. )
 
       ! Regrid from 1x1 to the current grid (also cast to REAL*8)
-      CALL DO_REGRID_1x1( 'ug C/m2/hr', ARRAY, AEF_CAREN ) 
-
+      !CALL DO_REGRID_1x1( 'ug C/m2/hr', ARRAY, AEF_CAREN ) 
+        INGRID = ARRAY(:,:,1)
+        CALL DO_REGRID_A2A(LLFILENAME,360,182,INGRID,OUTGRID,0)
+        AEF_CAREN=OUTGRID
       ! Loop over latitudes
       DO J = 1, JJPAR
 
@@ -2111,8 +2151,10 @@
      &                 1,         ARRAY,     QUIET=.TRUE. )
 
       ! Regrid from 1x1 to the current grid (also cast to REAL*8)
-      CALL DO_REGRID_1x1( 'ug C/m2/hr', ARRAY, AEF_OCIMN ) 
-
+      !CALL DO_REGRID_1x1( 'ug C/m2/hr', ARRAY, AEF_OCIMN ) 
+        INGRID = ARRAY(:,:,1)
+        CALL DO_REGRID_A2A(LLFILENAME,360,182,INGRID,OUTGRID,0)
+        AEF_OCIMN=OUTGRID
       ! Loop over latitudes
       DO J = 1, JJPAR
 
@@ -2130,7 +2172,8 @@
             
          ENDDO
       ENDDO
-
+      DEALLOCATE(INGRID)
+      DEALLOCATE(OUTGRID)
       END SUBROUTINE GET_AEF
 !EOC
 !------------------------------------------------------------------------------
@@ -2159,6 +2202,7 @@
       USE TIME_MOD,       ONLY : GET_TS_EMIS
       USE GRID_MOD,       ONLY : GET_AREA_M2
       USE DIRECTORY_MOD,  ONLY : DATA_DIR
+
 !
 ! !REMARKS:
 !  Reference: (5 ) Guenther et al, 2004 

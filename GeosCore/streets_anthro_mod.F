@@ -40,7 +40,7 @@
 !  (4 ) future_emissions_mod.f : Module w/ routines for IPCC future emissions
 !  (5 ) grid_mod.f             : Module w/ horizontal grid information
 !  (6 ) logical_mod.f          : Module w/ GEOS-Chem logical switches
-!  (7 ) regrid_1x1_mod.f       : Module w/ routines to regrid 1x1 data  
+!  (7 ) regrid_a2a_mod.f       : Module w/ routines to regrid data  
 !  (8 ) time_mod.f             : Module w/ routines for computing time & date
 !  (9 ) tracerid_mod.f         : Module w/ pointers to tracers & emissions  
 !
@@ -1008,16 +1008,17 @@
 !        still correct.
 !  02 Mar 2011 - J. Fisher   - Added seasonality for NH3 emissions
 !  02 Mar 2011 - R. Yantosca - Added ProTeX headers
+!  13 Mar 2012 - M. Cooper   - Changed regrid algorithm to map_a2a
 !******************************************************************************
 !
       ! References to F90 modules
       USE BPCH2_MOD,      ONLY : GET_TAU0,      READ_BPCH2
-      USE REGRID_1x1_MOD, ONLY : DO_REGRID_1x1, DO_REGRID_G2G_1x1
       USE DIRECTORY_MOD,  ONLY : DATA_DIR_1x1
-      USE REGRID_1x1_MOD, ONLY : DO_REGRID_1x1
-      USE REGRID_1x1_MOD, ONLY : DO_REGRID_G2G_1x1
+      !USE REGRID_1x1_MOD, ONLY : DO_REGRID_1x1
+      !USE REGRID_1x1_MOD, ONLY : DO_REGRID_G2G_1x1
       USE TIME_MOD,       ONLY : GET_MONTH
       USE TRACERID_MOD,   ONLY : IDTNH3
+      USE REGRID_A2A_MOD, ONLY : DO_REGRID_A2A
 
       USE CMN_SIZE_MOD        ! Size parameters
   
@@ -1029,15 +1030,18 @@
       CHARACTER(LEN=*), OPTIONAL      :: UNIT
       
       ! Local variables
-      REAL*4            :: ARRAY(I1x1,J1x1-1,1)
-      REAL*8            :: GEN_1x1(I1x1,J1x1-1)
-      REAL*8            :: GEOS_1x1(I1x1,J1x1,1)
-      CHARACTER(LEN=50) :: THISUNIT
+      REAL*4                  :: ARRAY(I1x1,J1x1-1,1)
+      REAL*8                  :: GEN_1x1(I1x1,J1x1-1)
+      REAL*8                  :: GEOS_1x1(I1x1,J1x1,1)
+      CHARACTER(LEN=50)       :: THISUNIT
+      CHARACTER(LEN=255)      :: LLFILENAME
+      REAL*8, ALLOCATABLE     :: OUTGRID(:,:)
+      REAL*8, ALLOCATABLE     :: INGRID(:,:)
 
       ! Variables for seasonal scaling of NH3 (jaf, 3/2/11)
       REAL*4            :: SCALAR_1x1(I1x1,J1x1-1,1)
       REAL*8            :: TAU1995
-      INTEGER           :: RATIOID
+      INTEGER           :: RATIOID, I
       CHARACTER(LEN=250):: FILENAME_S
 
       !=================================================================
@@ -1101,12 +1105,21 @@
 
       ! Cast to REAL*8 before regridding
       GEN_1x1(:,:) = ARRAY(:,:,1)
-      
-      ! Regrid from GENERIC 1x1 --> GEOS 1x1 
-      CALL DO_REGRID_G2G_1x1( THISUNIT, GEN_1x1, GEOS_1x1(:,:,1) )
 
-      ! Regrid from GEOS 1x1 --> current model resolution
-      CALL DO_REGRID_1x1( THISUNIT, GEOS_1x1, ARR )
+      ! Regrid from GENERIC 1x1 --> current model resolution
+        LLFILENAME = TRIM( DATA_DIR_1x1) //'latlon_generic.txt' 
+        ALLOCATE(INGRID(I1x1,J1x1-1))
+        ALLOCATE(OUTGRID(IIPAR,JJPAR))
+        INGRID = GEN_1x1
+        CALL DO_REGRID_A2A(LLFILENAME,360,181,INGRID,OUTGRID,1)
+        ARR=OUTGRID
+
+        DEALLOCATE(INGRID)
+        DEALLOCATE(OUTGRID)
+
+      ! Regrid from GENERIC 1x1 --> GEOS 1x1 --> current model resolution
+      !CALL DO_REGRID_G2G_1x1( THISUNIT, GEN_1x1, GEOS_1x1(:,:,1) )
+      !CALL DO_REGRID_1x1( THISUNIT, GEOS_1x1, ARR )
 
 
       END SUBROUTINE READ_STREETS
@@ -2003,7 +2016,8 @@
       ! References to F90 modules
       USE BPCH2_MOD,      ONLY : READ_BPCH2
       USE DIRECTORY_MOD,  ONLY : DATA_DIR_1x1
-      USE REGRID_1x1_MOD, ONLY : DO_REGRID_G2G_1x1, DO_REGRID_1x1
+      !USE REGRID_1x1_MOD, ONLY : DO_REGRID_G2G_1x1, DO_REGRID_1x1
+      USE REGRID_A2A_MOD, ONLY : DO_REGRID_A2A
 
       USE CMN_SIZE_MOD       ! Size parameters
 
@@ -2012,6 +2026,10 @@
       REAL*8                  :: GEN_1x1(I1x1,J1x1-1)
       REAL*8                  :: GEOS_1x1(I1x1,J1x1,1)
       CHARACTER(LEN=255)      :: FILENAME
+      CHARACTER(LEN=255)      :: LLFILENAME
+      REAL*8, ALLOCATABLE     :: OUTGRID(:,:)
+      REAL*8, ALLOCATABLE     :: INGRID(:,:)
+      INTEGER                 :: I
 
       !=================================================================
       ! READ_STREETS_MASKS begins here!
@@ -2041,10 +2059,18 @@
       MASK_CHINA_1x1(:,:) = GEN_1x1(:,:)
 
       ! Regrid from GENERIC 1x1 GRID to GEOS 1x1 GRID
-      CALL DO_REGRID_G2G_1x1( 'unitless', GEN_1x1, GEOS_1x1(:,:,1) )
-
+      !CALL DO_REGRID_G2G_1x1( 'unitless', GEN_1x1, GEOS_1x1(:,:,1) )
       ! Regrid from GEOS 1x1 GRID to current model resolution
-      CALL DO_REGRID_1x1( 'unitless', GEOS_1x1, MASK_CHINA )
+      !CALL DO_REGRID_1x1( 'unitless', GEOS_1x1, MASK_CHINA )
+
+      ! Regrid from GENERIC 1x1 to current model resolution
+      LLFILENAME = TRIM( DATA_DIR_1x1) //'latlon_generic.txt'
+        ALLOCATE(INGRID(I1x1,J1x1-1))
+        ALLOCATE(OUTGRID(IIPAR,JJPAR))
+        INGRID = GEN_1x1
+        CALL DO_REGRID_A2A(LLFILENAME,360,181,INGRID,OUTGRID,1)
+        MASK_CHINA=OUTGRID
+
 
       !------------------------------------
       ! SE Asia Mask (for 2000 emissions)
@@ -2066,10 +2092,15 @@
       GEN_1x1(:,:) = ARRAY(:,:,1)
 
       ! Regrid from GENERIC 1x1 GRID to GEOS 1x1 GRID
-      CALL DO_REGRID_G2G_1x1( 'unitless', GEN_1x1, GEOS_1x1(:,:,1) )
-
+      !CALL DO_REGRID_G2G_1x1( 'unitless', GEN_1x1, GEOS_1x1(:,:,1) )
       ! Regrid from GEOS 1x1 GRID to current model resolution
-      CALL DO_REGRID_1x1( 'unitless', GEOS_1x1, MASK_SE_ASIA )
+      !CALL DO_REGRID_1x1( 'unitless', GEOS_1x1, MASK_SE_ASIA )
+        INGRID = GEN_1x1
+        CALL DO_REGRID_A2A(LLFILENAME,360,181,INGRID,OUTGRID,1)
+        MASK_SE_ASIA=OUTGRID
+
+      DEALLOCATE(INGRID)
+      DEALLOCATE(OUTGRID)
 
       ! Return to calling program
       END SUBROUTINE READ_STREETS_MASKS

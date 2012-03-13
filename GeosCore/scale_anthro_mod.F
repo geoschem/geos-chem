@@ -63,7 +63,10 @@
 !
 ! !USES:
 !
-      USE REGRID_1x1_MOD, ONLY : DO_REGRID_1x1
+      !USE REGRID_1x1_MOD, ONLY : DO_REGRID_1x1
+      USE REGRID_A2A_MOD, ONLY : DO_REGRID_A2A
+      USE FILE_MOD,       ONLY : IOERROR, IU_FILE
+      USE DIRECTORY_MOD,  ONLY : DATA_DIR_1x1
 
       USE CMN_SIZE_MOD                         ! Size parameters
 !
@@ -79,6 +82,7 @@
 !
 ! !REVISION HISTORY: 
 !  28 Jan 2009 - A. v. Donkelaar and P. Le Sager - Initial Version
+!  13 Mar 2012 - M. Cooper   - Changed regrid algorithm to map_a2a
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -88,6 +92,10 @@
       REAL*8                        :: AS_1x1(I1x1,J1x1)
       REAL*8                        :: AS_1x1x1(I1x1,J1x1,1)
       REAL*8                        :: AS_R8(IIPAR,JJPAR)
+      CHARACTER(LEN=255)            :: LLFILENAME
+      REAL*8, ALLOCATABLE           :: OUTGRID(:,:)
+      REAL*8, ALLOCATABLE           :: INGRID(:,:)
+      INTEGER			    :: I
 
       ! Read 1x1 scale factors
       CALL GET_ANNUAL_SCALAR_1x1( TRACER, B_YEAR, T_YEAR, AS_1x1 )
@@ -95,11 +103,23 @@
       ! Cast to REAL*8
       AS_1x1x1(:,:,1) = AS_1x1(:,:)
 
-      ! Regrid emissions factors to current model resolution
-      CALL DO_REGRID_1x1( 'unitless', AS_1x1x1, AS_R8 )
+      ! Read lat/lon edges:  File name
+      LLFILENAME = TRIM( DATA_DIR_1x1) //
+     &           'anth_scale_factors_201111/latlon_generic.txt'
 
+
+        ALLOCATE(INGRID(I1x1,J1x1-1))
+        INGRID=AS_1x1x1(:,:,1)
+        ALLOCATE(OUTGRID(IIPAR,JJPAR))
+  
+      ! Regrid emissions factors to current model resolution
+        CALL DO_REGRID_A2A(LLFILENAME,360,181,INGRID,
+     &                    OUTGRID,0)
+ 
+        DEALLOCATE(INGRID)
       ! Cast to REAL*4
-      AS(:,:) = AS_R8(:,:)
+      AS(:,:) = OUTGRID(:,:)
+      DEALLOCATE(OUTGRID)
 
       END SUBROUTINE GET_ANNUAL_SCALAR
 !EOC

@@ -121,15 +121,16 @@
 !  (17) logical_mod.f          : Module w/ GEOS-Chem logical switches
 !  (18) pbl_mix_mod.f          : Module w/ routines for PBL height & mixing
 !  (19) pressure_mod.f         : Module w/ routines to compute P(I,J,L)
-!  (20) seasalt_mod.f          : Module w/ routines for seasalt chemistry
-!  (21) streets_anthro_mod.f   : Module w/ routines for David Streets' emiss
-!  (22) time_mod.f             : Module w/ routines to compute time & date
-!  (23) tracer_mod.f           : Module w/ GEOS-Chem tracer array STT etc.
-!  (24) tracerid_mod.f         : Module w/ pointers to tracers & emissions
-!  (25) transfer_mod.f         : Module w/ routines to cast & resize arrays
-!  (26) tropopause_mod.f       : Module w/ routines to read ann mean tropopause
-!  (27) uvalbedo_mod.f         : Module w/ UV albedo array and reader
-!  (28) wetscav_mod.f          : Module w/ routines for wetdep & scavenging
+!  (20) regrid_a2a_mod.f       : Module w/ routines for regridding
+!  (21) seasalt_mod.f          : Module w/ routines for seasalt chemistry
+!  (22) streets_anthro_mod.f   : Module w/ routines for David Streets' emiss
+!  (23) time_mod.f             : Module w/ routines to compute time & date
+!  (24) tracer_mod.f           : Module w/ GEOS-Chem tracer array STT etc.
+!  (25) tracerid_mod.f         : Module w/ pointers to tracers & emissions
+!  (26) transfer_mod.f         : Module w/ routines to cast & resize arrays
+!  (27) tropopause_mod.f       : Module w/ routines to read ann mean tropopause
+!  (28) uvalbedo_mod.f         : Module w/ UV albedo array and reader
+!  (29) wetscav_mod.f          : Module w/ routines for wetdep & scavenging
 !
 !  References:
 !  ============================================================================
@@ -223,6 +224,7 @@
 !  26 Aug 2010 - R. Yantosca - Add modifications for MERRA
 !  12 Nov 2010 - R. Yantosca - Avoid div-by-zero when computing L2S, L3S
 !  07 Sep 2011 - P. Kasibathla - Modified to include GFED3
+!  13 Mar 2012 - M. Cooper   - Changed regrid algorithm to map_a2a
 !******************************************************************************
 !
       USE LOGICAL_MOD,   ONLY : LNLPBL ! (Lin, 03/31/09)
@@ -5843,7 +5845,8 @@
       ! References to F90 modules
       USE BPCH2_MOD,      ONLY : GET_TAU0, READ_BPCH2
       USE DIRECTORY_MOD,  ONLY : DATA_DIR_1x1
-      USE REGRID_1x1_MOD, ONLY : DO_REGRID_1x1, DO_REGRID_G2G_1x1
+      !USE REGRID_1x1_MOD, ONLY : DO_REGRID_1x1, DO_REGRID_G2G_1x1
+      USE REGRID_A2A_MOD, ONLY : DO_REGRID_A2A
       USE TIME_MOD,       ONLY : EXPAND_DATE
 
       USE CMN_SIZE_MOD         ! Size parameters
@@ -5860,6 +5863,11 @@
       REAL*8               :: XTAU
       INTEGER              :: THISYEAR, THISDAY, YYYYMMDD, L
       CHARACTER(LEN=255)   :: FILENAME
+      INTEGER		   :: I
+      CHARACTER(LEN=255)   :: LLFILENAME
+      REAL*8, ALLOCATABLE  :: OUTGRID(:,:)
+      REAL*8, ALLOCATABLE  :: INGRID(:,:)
+
 
       !=================================================================
       ! READ_NONERUP_VOLC begins here!
@@ -5909,19 +5917,24 @@
 
       ! Array regridding has to be done level by level since the array
       ! has a different vertical dimension than expected
+
+      LLFILENAME = TRIM( DATA_DIR_1x1) //'latlon_generic.txt'
+      ALLOCATE(INGRID(I1x1,J1x1-1))
+      ALLOCATE(OUTGRID(IIPAR,JJPAR))
+
       DO L = 1, LVOLC
          ! Cast from REAL*4 to REAL*8
          ARRAY_GEN8 = ARRAY_GEN(:,:,L)
 
-         ! Regrid from GENERIC 1x1 GRID to GEOS-Chem 1x1 GRID.
-         CALL DO_REGRID_G2G_1x1( 'kg', ARRAY_GEN8, ARRAY_1x1(:,:,1) )
-
-         ! Regrid from 1x1 to correct grid
-         CALL DO_REGRID_1x1( 'kg', ARRAY_1x1, ARRAY_1LEV )
+        INGRID=ARRAY_GEN8   !Units kg 
+     
+        CALL DO_REGRID_A2A(LLFILENAME,360,181,INGRID,OUTGRID,1)
 
          ! Save into correct level of ARRAY
-         ARRAY(:,:,L) = ARRAY_1LEV
+         ARRAY(:,:,L) = OUTGRID
       ENDDO
+       DEALLOCATE(INGRID)
+       DEALLOCATE(OUTGRID)
 
       ! Unit conversion: [kg SO2/box/day] -> [kg SO2/box/s]
       ENV = ARRAY / ( 24.d0 * 3600.d0 )
@@ -5953,12 +5966,14 @@
 !  (6 ) Now use MNYEAR_VOLC and MXYEAR_VOLC as 1st and last year of emissions.
 !       (ccc, 9/30/10)
 !  (7 ) Volcanic data have been updated. Use a new directory. (ccc, 9/30/10)
+!  13 Mar 2012 - M. Cooper   - Changed regrid algorithm to map_a2a
 !*****************************************************************************
 !
       ! References to F90 modules
       USE BPCH2_MOD,      ONLY : GET_TAU0, READ_BPCH2
       USE DIRECTORY_MOD,  ONLY : DATA_DIR_1x1
-      USE REGRID_1x1_MOD, ONLY : DO_REGRID_1x1, DO_REGRID_G2G_1x1
+      !USE REGRID_1x1_MOD, ONLY : DO_REGRID_1x1, DO_REGRID_G2G_1x1
+      USE REGRID_A2A_MOD, ONLY : DO_REGRID_A2A
       USE TIME_MOD,       ONLY : EXPAND_DATE
       
       USE CMN_SIZE_MOD         ! Size parameters
@@ -5973,8 +5988,11 @@
       REAL*8               :: ARRAY_1LEV(IIPAR,JJPAR)
       REAL*8               :: ARRAY(IIPAR,JJPAR,LVOLC)
       REAL*8               :: XTAU
-      INTEGER              :: YYYYMMDD, L
+      INTEGER              :: YYYYMMDD, L, I
       CHARACTER(LEN=255)   :: FILENAME
+      CHARACTER(LEN=255)   :: LLFILENAME
+      REAL*8, ALLOCATABLE  :: OUTGRID(:,:)
+      REAL*8, ALLOCATABLE  :: INGRID(:,:)
      
       !==================================================================
       ! READ_ERUP_VOLC begins here
@@ -6017,19 +6035,25 @@
 
          ! Array regridding has to be done level by level since the array
          ! has a different vertical dimension than expected
+
+      LLFILENAME = TRIM( DATA_DIR_1x1) //'latlon_generic.txt'
+        ALLOCATE(INGRID(I1x1,J1x1-1))
+        ALLOCATE(OUTGRID(IIPAR,JJPAR))
+
          DO L = 1, LVOLC
             ! Cast from REAL*4 to REAL*8
-            ARRAY_GEN8 = ARRAY_GEN(:,:,L)
+             ARRAY_GEN8 = ARRAY_GEN(:,:,L)
 
-            ! Regrid from GENERIC 1x1 GRID to GEOS-Chem 1x1 GRID.
-            CALL DO_REGRID_G2G_1x1( 'kg', ARRAY_GEN8, ARRAY_1x1(:,:,1) )
-
-            ! Regrid from 1x1 to correct grid
-            CALL DO_REGRID_1x1( 'kg', ARRAY_1x1, ARRAY_1LEV )
+            INGRID=ARRAY_GEN8   !Units kg 
+     
+            CALL DO_REGRID_A2A(LLFILENAME,360,181,INGRID,OUTGRID,1)
 
             ! Save into correct level of ARRAY
-            ARRAY(:,:,L) = ARRAY_1LEV
+            ARRAY(:,:,L) = OUTGRID
          ENDDO
+
+       DEALLOCATE(INGRID)
+       DEALLOCATE(OUTGRID)
 
          ! Unit conversion: [kg SO2/box/day] -> [kg SO2/box/s]
          EEV = ARRAY / ( 24.d0 * 3600.d0 )
@@ -6477,13 +6501,15 @@
 !  (5 ) Now make sure all USE statements are USE, ONLY (bmy, 10/3/05)
 !  (6 ) Now read int'annual SST data on the GEOS 1x1 grid (bmy, 11/17/05)
 !  (7 ) Last year of data is now 2008 (bmy, 7/13/09)
+!  13 Mar 2012 - M. Cooper   - Changed regrid algorithm to map_a2a
 !*****************************************************************************
 !
       ! References to F90 modules
       USE BPCH2_MOD,      ONLY : GET_NAME_EXT_2D, GET_RES_EXT
       USE BPCH2_MOD,      ONLY : GET_TAU0,        READ_BPCH2
       USE DIRECTORY_MOD,  ONLY : DATA_DIR,        DATA_DIR_1x1
-      USE REGRID_1x1_MOD, ONLY : DO_REGRID_1x1
+      !USE REGRID_1x1_MOD, ONLY : DO_REGRID_1x1
+      USE REGRID_A2A_MOD, ONLY : DO_REGRID_A2A
       USE TRANSFER_MOD,   ONLY : TRANSFER_2D
 
       USE CMN_SIZE_MOD         ! Size parameters
@@ -6497,6 +6523,10 @@
       REAL*8                  :: XTAU
       CHARACTER(LEN=4)        :: SYEAR
       CHARACTER(LEN=255)      :: FILENAME
+      CHARACTER(LEN=255)      :: LLFILENAME
+      REAL*8, ALLOCATABLE     :: OUTGRID(:,:)
+      REAL*8, ALLOCATABLE     :: INGRID(:,:)
+      INTEGER                 :: I
 
       !==================================================================
       ! READ_SST begins here!
@@ -6529,8 +6559,17 @@
      &                    XTAU,      I1x1,          J1x1,     
      &                    1,         ARRAY1(:,:,1), QUIET=.TRUE. ) 
 
-         ! Regrid from 1x1 and cast to REAL*8
-         CALL DO_REGRID_1x1( 'K', ARRAY1, SSTEMP )
+      LLFILENAME = TRIM( DATA_DIR_1x1) //
+     &           'SST_200508/latlon_geos1x1.txt'
+        ALLOCATE(INGRID(I1x1,J1x1))
+        INGRID=ARRAY1(:,:,1)
+        ALLOCATE(OUTGRID(IIPAR,JJPAR))
+
+        CALL DO_REGRID_A2A(LLFILENAME,360,181,INGRID,OUTGRID,0) 
+
+        DEALLOCATE(INGRID)
+        SSTEMP=OUTGRID
+        DEALLOCATE(OUTGRID)
 
       ELSE
 

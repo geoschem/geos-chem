@@ -293,8 +293,10 @@
 ! !USES:
 ! 
       USE BPCH2_MOD,        ONLY : GET_TAU0,      READ_BPCH2
-      USE REGRID_1x1_MOD,   ONLY : DO_REGRID_1x1, DO_REGRID_G2G_1x1
-      USE SCALE_ANTHRO_MOD, ONLY : GET_ANNUAL_SCALAR_1x1
+      !USE REGRID_1x1_MOD,  ONLY : DO_REGRID_1x1, DO_REGRID_G2G_1x1
+      USE REGRID_A2A_MOD,   ONLY : DO_REGRID_A2A
+      USE DIRECTORY_MOD,    ONLY : DATA_DIR_1x1      
+      USE SCALE_ANTHRO_MOD, ONLY : GET_ANNUAL_SCALAR
 
       USE CMN_SIZE_MOD         ! Size parameters
 !
@@ -330,14 +332,18 @@
       REAL*4         :: ARRAY(I1x1,J1x1-1,1)
       REAL*8         :: GEN_1x1(I1x1,J1x1-1)
       REAL*8         :: GEOS_1x1(I1x1,J1x1,1)
-      REAL*8         :: SC_1x1(I1x1,J1x1)
+      REAL*8         :: SC(I1x1,J1x1)
       REAL*8         :: TAU2008
+      CHARACTER(LEN=255)       :: LLFILENAME
+      REAL*8, ALLOCATABLE     :: OUTGRID(:,:)
+      REAL*8, ALLOCATABLE     :: INGRID(:,:)
+      INTEGER        :: I
 
       ! TAU0 values for 2008
       TAU2008 = GET_TAU0( 1, 1, 2008 )
 
       ! Initialize
-      SC_1x1 = 1d0
+      SC = 1d0
 
       ! Read data
       CALL READ_BPCH2( FILENAME,  CATEGORY,  TRACERN, 
@@ -347,20 +353,19 @@
       ! Cast to REAL*8 before regridding
       GEN_1x1(:,:) = ARRAY(:,:,1)
       
-      ! Regrid from GENERIC 1x1 --> GEOS 1x1 
-      CALL DO_REGRID_G2G_1x1( 'kg/yr', GEN_1x1, GEOS_1x1(:,:,1) )
+      ! Regrid from GENERIC 1x1 --> Current Model Resolution
 
+      LLFILENAME = TRIM( DATA_DIR_1x1) //'latlon_generic.txt'
 
-      ! Get & apply scaling factor to GEOS 1x1
-      IF ( TRACERN == 26 )
-     $     CALL GET_ANNUAL_SCALAR_1x1( 73, 2000, YEAR, SC_1x1 )
+        ALLOCATE(INGRID(I1x1,J1x1-1))
+        INGRID=GEN_1X1(:,:)
+        ALLOCATE(OUTGRID(IIPAR,JJPAR))
 
-      GEOS_1x1(:,:,1) = GEOS_1x1(:,:,1) * SC_1x1(:,:)
+        CALL DO_REGRID_A2A(LLFILENAME,360,181,INGRID,OUTGRID,1)
 
-
-      ! Regrid from GEOS 1x1 --> current model resolution
-      CALL DO_REGRID_1x1( 'kg/yr', GEOS_1x1, ARR )
-
+        DEALLOCATE(INGRID)
+        ARR=OUTGRID*SC
+        DEALLOCATE(OUTGRID)
       END SUBROUTINE READ_ARCTAS_SHIP
 !EOC
 !------------------------------------------------------------------------------

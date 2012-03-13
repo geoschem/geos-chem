@@ -60,7 +60,7 @@
 !  (11) file_mod.f       : Module containing file unit numbers.
 !  (12) transfer_mod.f   : Module containing routines to change type of array 
 !                          data.
-!  (13) regrid_1x1_mod.f : Module containing regridding routines
+!  (13) regrid_a2a_mod.f : Module containing regridding routines
 !  (14) diag_pl_mod.f    : Module containing variables and routines for prod
 !                          and loss of chemical families.
 !  (15) diag_oh_mod.f    : Module containing routines to archive OH mass.
@@ -98,6 +98,7 @@
 !  (22) Now make sure all USE statements are USE, ONLY (bmy, 10/3/05)
 !  (23) Updated CH4 simulation (kjw, cph, ccarouge, 10/1/09)
 !  (24) Added modifications for MERRA (bmy, 8/13/10)
+!  (25) Changed regrid algorithm to map_a2a (mjc, 3/13/12)
 !******************************************************************************
 !     
       IMPLICIT NONE
@@ -962,8 +963,9 @@
       ! References to F90 modules
       USE BPCH2_MOD,        ONLY : READ_BPCH2,    GET_TAU0
       USE DIRECTORY_MOD,    ONLY : DATA_DIR_1x1
-      USE REGRID_1x1_MOD,   ONLY : DO_REGRID_1x1
-      USE REGRID_1x1_MOD,   ONLY : DO_REGRID_G2G_1x1
+      !USE REGRID_1x1_MOD,   ONLY : DO_REGRID_1x1
+      !USE REGRID_1x1_MOD,   ONLY : DO_REGRID_G2G_1x1
+      USE REGRID_A2A_MOD, ONLY : DO_REGRID_A2A
       USE TIME_MOD,         ONLY : GET_MONTH,     GET_YEAR
       USE TIME_MOD,         ONLY : EXPAND_DATE
 
@@ -982,7 +984,9 @@
       REAL*8                 :: TAU0, TAU1, SECONDS
       REAL*8                 :: GFED2_EMFAC(3)
       CHARACTER(LEN=255)     :: FILENAME
-
+      CHARACTER(LEN=255)     :: LLFILENAME
+      REAL*8, ALLOCATABLE    :: OUTGRID(:,:)
+      REAL*8, ALLOCATABLE    :: INGRID(:,:)
 
       WRITE( 6, '(a)' ) '% EMISSCH4 --- BEGIN BIOBURN_EMIS'
 
@@ -1141,15 +1145,29 @@
       ENDDO
       ENDDO
 
-      ! Regrid each species from GENERIC 1x1 GRID to GEOS-Chem 1x1 GRID
-      CALL DO_REGRID_G2G_1x1( 'molec/cm2',
-     &                         BIOM_GEN_1x1, 
-     &                         BIOM_GEOS_1x1(:,:,1) )
+!      ! Regrid each species from GENERIC 1x1 GRID to GEOS-Chem 1x1 GRID
+!      CALL DO_REGRID_G2G_1x1( 'molec/cm2',
+!     &                         BIOM_GEN_1x1, 
+!     &                         BIOM_GEOS_1x1(:,:,1) )
+! Regrid from GEOS 1x1 grid to current grid.  (The unit 'molec/cm2' 
+! is just used to denote that the quantity is per unit area.)
+!      CALL DO_REGRID_1x1 ('molec/cm2', 
+!     &                     BIOM_GEOS_1x1,  BIOM_OUT     ) 
 
-      ! Regrid from GEOS 1x1 grid to current grid.  (The unit 'molec/cm2' 
-      ! is just used to denote that the quantity is per unit area.)
-      CALL DO_REGRID_1x1 ('molec/cm2', 
-     &                     BIOM_GEOS_1x1,  BIOM_OUT     ) 
+      !Regrid each species from GENERIC 1x1 grid to current model resolution
+
+      LLFILENAME = TRIM( DATA_DIR_1x1) //'latlon_generic.txt'
+
+        ALLOCATE(INGRID(I1x1,J1x1-1))
+        INGRID=BIOM_GEN_1X1(:,:)
+        ALLOCATE(OUTGRID(IIPAR,JJPAR))
+
+        CALL DO_REGRID_A2A(LLFILENAME,360,181,INGRID,
+     &                    OUTGRID,0)
+ 
+        DEALLOCATE(INGRID)
+        BIOM_OUT(:,:)=OUTGRID
+        DEALLOCATE(OUTGRID)
 
       ! Convert from [molec/cm2/month] to [molec/cm2/s]
       BIOM_OUT = BIOM_OUT / SECONDS

@@ -231,10 +231,10 @@
       USE BPCH2_MOD,         ONLY : GET_TAU0,      READ_BPCH2
       USE DIRECTORY_MOD,     ONLY : DATA_DIR_1x1 
       USE LOGICAL_MOD,       ONLY : LFUTURE
-      USE REGRID_1x1_MOD,    ONLY : DO_REGRID_1x1
+      !USE REGRID_1x1_MOD,    ONLY : DO_REGRID_1x1
       USE TIME_MOD,          ONLY : GET_YEAR
       USE SCALE_ANTHRO_MOD,  ONLY : GET_ANNUAL_SCALAR_1x1
-
+      USE REGRID_A2A_MOD, ONLY : DO_REGRID_A2A
       USE CMN_SIZE_MOD          ! Size parameters
       USE CMN_O3_MOD            ! FSCALYR
 !
@@ -246,6 +246,7 @@
 !        (except NH3) between 1985-2003 if needed (phs, 3/10/08)
 !  (2 ) Now accounts for FSCALYR (phs, 3/17/08)
 !  18 Dec 2009 - Aaron van D - Use 2005 scale factors for years beyond 2005
+!  13 Mar 2012 - M. Cooper   - Changed regrid algorithm to map_a2a
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -262,6 +263,9 @@
       REAL*8                     :: TAU2002, TAU2005, TAU
       CHARACTER(LEN=255)         :: FILENAME
       CHARACTER(LEN=4)           :: SYEAR, SNAME
+      CHARACTER(LEN=255)         :: LLFILENAME
+      REAL*8, ALLOCATABLE        :: OUTGRID(:,:)
+      REAL*8, ALLOCATABLE        :: INGRID(:,:)
 
       !=================================================================
       ! EMISS_CAC_ANTHRO begins here!
@@ -279,6 +283,12 @@
       ELSE
          THISYEAR = FSCALYR
       ENDIF
+
+      LLFILENAME = TRIM( DATA_DIR_1x1) //
+     &           'CAC_200801/latlon_geos1x1.txt'
+      ALLOCATE(INGRID(I1x1,J1x1))
+      ALLOCATE(OUTGRID(IIPAR,JJPAR))
+
 
 
       DO SPECIES = 1,4
@@ -388,31 +398,38 @@
          ENDIF
 
          ! Regrid from GEOS 1x1 --> current model resolution
+         INGRID=GEOS_1x1(:,:,1)
          IF ( SPECIES .eq. 1 ) THEN
 
-            CALL DO_REGRID_1x1( 'kg/yr', GEOS_1x1, NOx )
+            !CALL DO_REGRID_1x1( 'kg/yr', GEOS_1x1, NOx )
+        CALL DO_REGRID_A2A(LLFILENAME,360,182,INGRID,OUTGRID,1)
+        NOx=OUTGRID
 
          ELSEIF ( SPECIES .eq. 2 ) THEN
 
-            CALL DO_REGRID_1x1( 'kg/yr', GEOS_1x1, CO )
-
+            !CALL DO_REGRID_1x1( 'kg/yr', GEOS_1x1, CO )
+         CALL DO_REGRID_A2A(LLFILENAME,360,182,INGRID,OUTGRID,1)
+         CO=OUTGRID
          ELSEIF ( SPECIES .eq. 3 ) THEN
 
             ! Convert SOx to SO2, where SOx is assumed to be 1.4% SO4 and
             ! 98.6% SO2 over NA, based upon Chin et al, 2000, and as
             ! utilized in sulfate_mod.f
-            GEOS_1x1(:,:,1) = GEOS_1x1(:,:,1) * 0.986
-
-            CALL DO_REGRID_1x1( 'kg/yr', GEOS_1x1, SO2 )
-
+            !GEOS_1x1(:,:,1) = GEOS_1x1(:,:,1) * 0.986
+            INGRID = INGRID * 0.986
+            !CALL DO_REGRID_1x1( 'kg/yr', GEOS_1x1, SO2 )
+         CALL DO_REGRID_A2A(LLFILENAME,360,182,INGRID,OUTGRID,1)
+         SO2=OUTGRID
          ELSEIF ( SPECIES .eq. 4 ) THEN
 
-            CALL DO_REGRID_1x1( 'kg/yr', GEOS_1x1, NH3 )
-
+            !CALL DO_REGRID_1x1( 'kg/yr', GEOS_1x1, NH3 )
+         CALL DO_REGRID_A2A(LLFILENAME,360,182,INGRID,OUTGRID,1)
+         NH3=OUTGRID
          ENDIF
 
       ENDDO
-
+      DEALLOCATE(INGRID)
+      DEALLOCATE(OUTGRID)
       !--------------------------
       ! Compute future emissions
       !--------------------------
@@ -794,7 +811,8 @@
 ! 
       USE BPCH2_MOD,      ONLY : GET_TAU0, READ_BPCH2
       USE DIRECTORY_MOD,  ONLY : DATA_DIR_1x1
-      USE REGRID_1x1_MOD, ONLY : DO_REGRID_G2G_1x1, DO_REGRID_1x1
+      !USE REGRID_1x1_MOD, ONLY : DO_REGRID_G2G_1x1, DO_REGRID_1x1
+      USE REGRID_A2A_MOD, ONLY : DO_REGRID_A2A
 
       USE CMN_SIZE_MOD       ! Size parameters
 !
@@ -810,6 +828,10 @@
       REAL*8                  :: GEOS_1x1(I1x1,J1x1,1)
       REAL*8                  :: TAU2000
       CHARACTER(LEN=255)      :: FILENAME
+      CHARACTER(LEN=255)      :: LLFILENAME
+      REAL*8, ALLOCATABLE     :: OUTGRID(:,:)
+      REAL*8, ALLOCATABLE     :: INGRID(:,:)
+      INTEGER                 :: I
 
       !=================================================================
       ! READ_CANADA_MASK begins here!
@@ -820,6 +842,8 @@
       ! File name
       FILENAME  = TRIM( DATA_DIR_1x1 ) // 
      &            'CAC_200801/CanadaMask.geos.1x1'
+
+      LLFILENAME = TRIM( DATA_DIR_1x1) //'latlon_geos1x1.txt'
 
       ! Echo info
       WRITE( 6, 100 ) TRIM( FILENAME )
@@ -836,11 +860,20 @@
       ! Save the 1x1 China mask for future use
       MASK_CANADA_1x1(:,:) = GEOS_1x1(:,:,1)
 
+      ! Regrid from GENERIC 1x1 to current model resolution
+        ALLOCATE(INGRID(I1x1,J1x1))
+        ALLOCATE(OUTGRID(IIPAR,JJPAR))
+        INGRID=GEOS_1x1(:,:,1)
+        CALL DO_REGRID_A2A(LLFILENAME,360,181,INGRID,OUTGRID,1)
+        DEALLOCATE(INGRID)
+        MASK_CANADA=OUTGRID
+        DEALLOCATE(OUTGRID)
+
       ! Regrid from GENERIC 1x1 GRID to GEOS 1x1 GRID
 !      CALL DO_REGRID_G2G_1x1( 'unitless', GEN_1x1, GEOS_1x1(:,:,1) )
 
       ! Regrid from GEOS 1x1 GRID to current model resolution
-      CALL DO_REGRID_1x1( 'unitless', GEOS_1x1, MASK_CANADA )
+!      CALL DO_REGRID_1x1( 'unitless', GEOS_1x1, MASK_CANADA )
 
       END SUBROUTINE READ_CANADA_MASK
 !EOC
@@ -863,7 +896,7 @@
 !
       USE BPCH2_MOD,      ONLY : GET_TAU0, READ_BPCH2
       USE DIRECTORY_MOD,  ONLY : DATA_DIR
-      USE REGRID_1x1_MOD, ONLY : DO_REGRID_G2G_1x1, DO_REGRID_1x1
+
 
       USE CMN_SIZE_MOD       ! Size parameters
 !

@@ -72,7 +72,7 @@
 !  (5 ) future_emissions_mod.f : Module w/ routines for IPCC future emissions
 !  (6 ) grid_mod.f             : Module w/ horizontal grid information
 !  (7 ) time_mod.f             : Module w/ routines for computing time & date
-!  (8 ) regrid_1x1_mod.f       : Module w/ routines for regrid 1x1 data
+!  (8 ) regrid_a2a_mod.f       : Module w/ routines for regrid data
 !
 !  References:
 !  ============================================================================
@@ -100,8 +100,9 @@
 !  (6 ) Added 9 gaseous biomass burning emissions (tmf, 1/7/09)
 !  (7 ) The value of N_SPEC is now determined in INIT_GFED2_BIOMASS and depend
 !        on the tracers used in the simulation. (ccc, 4/23/09)
-!  (6 ) Adjust call to GFED2_AVAILABLE to reflect that monthly data for
+!  (8 ) Adjust call to GFED2_AVAILABLE to reflect that monthly data for
 !        2008 is now available on disk (bmy, 7/8/09)
+!  (9 ) Change regrid algorithm to map_a2a (mjc, 3/13/12)
 !******************************************************************************
 !
       IMPLICIT NONE
@@ -331,9 +332,10 @@
       USE LOGICAL_MOD,    ONLY : LFUTURE
       USE LOGICAL_MOD,    ONLY : L8DAYBB, L3HRBB, LSYNOPBB, LGFED2BB
       USE TIME_MOD,       ONLY : EXPAND_DATE,   TIMESTAMP_STRING
-      USE REGRID_1x1_MOD, ONLY : DO_REGRID_1x1, DO_REGRID_G2G_1x1
+      !USE REGRID_1x1_MOD, ONLY : DO_REGRID_1x1, DO_REGRID_G2G_1x1
       USE TIME_MOD,       ONLY : GET_DAY, GET_HOUR, GET_DAY_OF_YEAR
       USE TIME_MOD,       ONLY : ITS_A_LEAPYEAR
+      USE REGRID_A2A_MOD, ONLY : DO_REGRID_A2A
 
       USE CMN_SIZE_MOD       ! Size parameters
 
@@ -356,6 +358,9 @@
       CHARACTER(LEN=255)      :: FILENAME
       CHARACTER(LEN=16 )      :: TIME_STR
       INTEGER                 :: DD, HH, DOY
+      CHARACTER(LEN=255)      :: LLFILENAME
+      REAL*8, ALLOCATABLE     :: GFED_REGRIDDED(:,:)
+      REAL*8, ALLOCATABLE     :: INGRID(:,:)
 
       !=================================================================
       ! GFED2_COMPUTE_BIOMASS begins here!
@@ -601,16 +606,34 @@
          ENDDO
 !$OMP END PARALLEL DO
 
-         ! Regrid each species from GENERIC 1x1 GRID to GEOS-Chem 1x1 GRID
-         CALL DO_REGRID_G2G_1x1( 'molec/cm2',
-     &                            BIOM_GEN_1x1(:,:,N), 
-     &                            BIOM_GEOS_1x1(:,:,N) )
+! Regrid each species from GENERIC 1x1 GRID to GEOS-Chem 1x1 GRID
+!         CALL DO_REGRID_G2G_1x1( 'molec/cm2',
+!     &                            BIOM_GEN_1x1(:,:,N), 
+!     &                            BIOM_GEOS_1x1(:,:,N) )
+
+      ! Read lat/lon edges:  File name
+      LLFILENAME = TRIM( DATA_DIR_1x1) //'latlon_generic.txt'
+
+
+        ALLOCATE(INGRID(I1x1,J1x1-1))
+        INGRID=BIOM_GEN_1X1(:,:,N)
+        ALLOCATE(GFED_REGRIDDED(IIPAR,JJPAR))
+
+        CALL DO_REGRID_A2A(LLFILENAME,360,181,
+     &                    INGRID,GFED_REGRIDDED,0)
+
+        DEALLOCATE(INGRID)
+        GFED2_BIOMASS(:,:,N)=GFED_REGRIDDED
+        DEALLOCATE(GFED_REGRIDDED)
+
       ENDDO
 
       ! Regrid from GEOS 1x1 grid to current grid.  (The unit 'molec/cm2' 
       ! is just used to denote that the quantity is per unit area.)
-      CALL DO_REGRID_1x1( N_SPEC,       'molec/cm2', 
-     &                    BIOM_GEOS_1x1, GFED2_BIOMASS ) 
+!      CALL DO_REGRID_1x1( N_SPEC,       'molec/cm2', 
+!     &                    BIOM_GEOS_1x1, GFED2_BIOMASS ) 
+
+
 
       ! Compute future biomass emissions (if necessary)
       IF ( LFUTURE ) THEN

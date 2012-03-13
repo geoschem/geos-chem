@@ -41,6 +41,7 @@
       INTEGER, PUBLIC, PARAMETER :: IU_BC_EU   = 21  ! TPCORE BC files: EU grid
       INTEGER, PUBLIC, PARAMETER :: IU_BC_CH   = 22  ! TPCORE BC files: CH grid
       INTEGER, PUBLIC, PARAMETER :: IU_FILE    = 65  ! Generic file
+      INTEGER, PUBLIC, PARAMETER :: IU_REGRID  = 66  ! Lat/Lon file for regrid
       INTEGER, PUBLIC, PARAMETER :: IU_TP      = 69  ! "YYYYMMDD.tropp.*"
       INTEGER, PUBLIC, PARAMETER :: IU_PH      = 70  ! "YYYYMMDD.phis.*"
       INTEGER, PUBLIC, PARAMETER :: IU_I6      = 71  ! "YYYYMMDD.i6.*"
@@ -408,6 +409,7 @@
       CLOSE( IU_BC_EU   )
       CLOSE( IU_BC_CH   )
       CLOSE( IU_FILE    )
+      CLOSE( IU_REGRID  )
       CLOSE( IU_PH      )
       CLOSE( IU_TP      )
       CLOSE( IU_I6      )

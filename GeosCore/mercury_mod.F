@@ -74,11 +74,11 @@
 !  (7 ) global_o3_mod.f    : Module w/ routines to read 3-D O3 field
 !  (8 ) global_oh_mod.f    : Module w/ routines to read 3-D OH field
 !  (9 ) global_br_mod.f    : Module w/ routines to read 3-D Br field
-!  (10 ) grid_mod.f         : Module w/ horizontal grid information
+!  (10) grid_mod.f         : Module w/ horizontal grid information
 !  (11) logical_mod.f      : Module w/ GEOS-CHEM logical switches
 !  (12) pbl_mix_mod.f      : Module w/ routines for PBL height & mixing
 !  (13) pressure_mod.f     : Module w/ routines to compute P(I,J,L)
-!  (14) regrid_1x1_mod.f   : Module w/ routines to regrid 1x1 data
+!  (14) regrid_a2a_mod.f   : Module w/ routines to regrid data
 !  (15) time_mod.f         : Module w/ routines to compute date & time
 !  (16) tracer_mod.f       : Module w/ GEOS-CHEM tracer array STT etc.
 !  (17) tracerid_mod.f     : Module w/ pointers to tracers & emissions
@@ -2642,6 +2642,7 @@
 !        keep 2x25 and 4x5 files together in DATA_1x1_DIR.  Also now use new
 !        land re-emissions files from Noelle Selin. (eck, bmy, 4/6/06)
 !  (5 ) Now
+!  13 Mar 2012 - M. Cooper   - Changed regrid algorithm to map_a2a
 !******************************************************************************
 !
       ! References to F90 modules
@@ -2649,7 +2650,8 @@
       USE BPCH2_MOD,      ONLY : GET_TAU0,        READ_BPCH2
       USE DIRECTORY_MOD,  ONLY : DATA_DIR_1x1, DATA_DIR
       USE LOGICAL_MOD,    ONLY : LDYNOCEAN, LPREINDHG
-      USE REGRID_1x1_MOD, ONLY : DO_REGRID_1x1
+      !USE REGRID_1x1_MOD,ONLY : DO_REGRID_1x1
+      USE REGRID_A2A_MOD, ONLY : DO_REGRID_A2A
       USE TIME_MOD,       ONLY : EXPAND_DATE
       USE TRANSFER_MOD,   ONLY : TRANSFER_2D
       USE GRID_MOD,       ONLY : GET_XMID,    GET_YMID
@@ -2664,6 +2666,9 @@
       REAL*8                  :: X, Y
       REAL*8, PARAMETER       :: SEC_PER_YR = 365.25d0 * 86400d0
       CHARACTER(LEN=255)      :: FILENAME
+      CHARACTER(LEN=255)      :: LLFILENAME
+      REAL*8, ALLOCATABLE     :: OUTGRID(:,:)
+      REAL*8, ALLOCATABLE     :: INGRID(:,:)
 
       !=================================================================
       ! MERCURY_READYR begins here! 
@@ -2686,7 +2691,9 @@
          !---------------------------
          ! Hg(0) emissions, except mining [kg/s]
          !---------------------------
-         
+        LLFILENAME = TRIM( DATA_DIR_1x1) //'latlon_geos1x1.txt'
+        ALLOCATE(INGRID(I1x1,J1x1))
+        ALLOCATE(OUTGRID(IIPAR,JJPAR))   
          
          IF (LGCAPEMIS) THEN
             ! Use Bess' GCAP emissions
@@ -2712,7 +2719,10 @@
      &           1,         ARRAY1,   QUIET=.TRUE. )
             
             ! Regrid from 1x1 to the current grid
-            CALL DO_REGRID_1x1( 'kg', ARRAY1, EHg0_an )
+            !CALL DO_REGRID_1x1( 'kg', ARRAY1, EHg0_an )
+            INGRID = ARRAY1(:,:,1)
+            CALL DO_REGRID_A2A(LLFILENAME,360,182,INGRID,OUTGRID,1)
+            EHg0_an = OUTGRID
 
             ! Convert from [kg/yr] to [kg/s]
             EHg0_an = EHg0_an / SEC_PER_YR            
@@ -2740,7 +2750,10 @@
      &           1,         ARRAY1,   QUIET=.TRUE. )
             
             ! Regrid from 1x1 to the current grid
-            CALL DO_REGRID_1x1( 'kg', ARRAY1, EHg0_an )
+            !CALL DO_REGRID_1x1( 'kg', ARRAY1, EHg0_an )
+            INGRID = ARRAY1(:,:,1)
+            CALL DO_REGRID_A2A(LLFILENAME,360,182,INGRID,OUTGRID,1)
+            EHg0_an = OUTGRID
 
             ! Convert from [kg/yr] to [kg/s]
             EHg0_an = EHg0_an / SEC_PER_YR    
@@ -2777,7 +2790,10 @@
      &           1,         ARRAY1,   QUIET=.TRUE. )
             
             ! Regrid from 1x1 to the current grid
-            CALL DO_REGRID_1x1( 'kg', ARRAY1, EHg0_an )
+            !CALL DO_REGRID_1x1( 'kg', ARRAY1, EHg0_an )
+            INGRID = ARRAY1(:,:,1)
+            CALL DO_REGRID_A2A(LLFILENAME,360,182,INGRID,OUTGRID,1)
+            EHg0_an = OUTGRID
 
             ! Convert from [kg/yr] to [kg/s]
             EHg0_an = EHg0_an / SEC_PER_YR
@@ -2874,7 +2890,10 @@
      &           1,         ARRAY1,   QUIET=.TRUE. )
 
             ! Regrid from 1x1 to the current grid
-            CALL DO_REGRID_1x1( 'kg', ARRAY1, EHg2_an )
+            !CALL DO_REGRID_1x1( 'kg', ARRAY1, EHg2_an )
+            INGRID = ARRAY1(:,:,1)
+            CALL DO_REGRID_A2A(LLFILENAME,360,182,INGRID,OUTGRID,1)
+            EHg2_an = OUTGRID
 
             ! Convert from [kg/yr] to [kg/s]
             EHg2_an = EHg2_an / SEC_PER_YR
@@ -2899,7 +2918,10 @@
      &           1,         ARRAY1,   QUIET=.TRUE. )
 
             ! Regrid from 1x1 to the current grid
-            CALL DO_REGRID_1x1( 'kg', ARRAY1, EHg2_an )
+            !CALL DO_REGRID_1x1( 'kg', ARRAY1, EHg2_an )
+            INGRID = ARRAY1(:,:,1)
+            CALL DO_REGRID_A2A(LLFILENAME,360,182,INGRID,OUTGRID,1)
+            EHg2_an = OUTGRID
 
             ! Convert from [kg/yr] to [kg/s]
             EHg2_an = EHg2_an / SEC_PER_YR
@@ -2931,7 +2953,10 @@
      &           1,         ARRAY1,   QUIET=.TRUE. )
 
             ! Regrid from 1x1 to the current grid
-            CALL DO_REGRID_1x1( 'kg', ARRAY1, EHg2_an )
+            !CALL DO_REGRID_1x1( 'kg', ARRAY1, EHg2_an )
+            INGRID = ARRAY1(:,:,1)
+            CALL DO_REGRID_A2A(LLFILENAME,360,182,INGRID,OUTGRID,1)
+            EHg2_an = OUTGRID
 
             ! Convert from [kg/yr] to [kg/s]; increase Pacyna by 30%
             EHg2_an = EHg2_an * 1.3d0 / SEC_PER_YR
@@ -2961,7 +2986,10 @@
      &           1,         ARRAY1,   QUIET=.TRUE. )
 
             ! Regrid from 1x1 to the current grid
-            CALL DO_REGRID_1x1( 'kg', ARRAY1, EHgP_an )
+            !CALL DO_REGRID_1x1( 'kg', ARRAY1, EHgP_an )
+            INGRID = ARRAY1(:,:,1)
+            CALL DO_REGRID_A2A(LLFILENAME,360,182,INGRID,OUTGRID,1)
+            EHgP_an = OUTGRID
 
             ! Convert from [kg/yr] to [kg/s]
             EHgP_an = EHgP_an / SEC_PER_YR
@@ -2985,7 +3013,10 @@
      &           1,         ARRAY1,   QUIET=.TRUE. )
 
             ! Regrid from 1x1 to the current grid
-            CALL DO_REGRID_1x1( 'kg', ARRAY1, EHgP_an )
+            !CALL DO_REGRID_1x1( 'kg', ARRAY1, EHgP_an )
+            INGRID = ARRAY1(:,:,1)
+            CALL DO_REGRID_A2A(LLFILENAME,360,182,INGRID,OUTGRID,1)
+            EHgP_an = OUTGRID
 
             ! Convert from [kg/yr] to [kg/s]
             EHgP_an = EHgP_an / SEC_PER_YR
@@ -3016,7 +3047,10 @@
      &           1,         ARRAY1,   QUIET=.TRUE. )
 
             ! Regrid from 1x1 to the current grid
-            CALL DO_REGRID_1x1( 'kg', ARRAY1, EHgP_an )
+            !CALL DO_REGRID_1x1( 'kg', ARRAY1, EHgP_an )
+            INGRID = ARRAY1(:,:,1)
+            CALL DO_REGRID_A2A(LLFILENAME,360,182,INGRID,OUTGRID,1)
+            EHgP_an = OUTGRID
 
             ! Convert from [kg/yr] to [kg/s];increase Pacyna by 30%
             EHgP_an = EHgP_an * 1.3D0 / SEC_PER_YR
@@ -3159,6 +3193,9 @@
  115  FORMAT( 'Total Anthro     Hg(II) : ', f7.3, ' [Gg/yr]' )
  116  FORMAT( 'Total Anthro     HgP    : ', f7.3, ' [Gg/yr]' )
  117  FORMAT( 'Total Ocean      Hg(0)  : ', f7.3, ' [Gg/yr]' )
+ 
+      DEALLOCATE(INGRID)
+      DEALLOCATE(OUTGRID)
 
       ! Return to calling program
       END SUBROUTINE MERCURY_READYR

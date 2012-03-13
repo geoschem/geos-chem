@@ -254,7 +254,8 @@ anthroems.o                 : anthroems.F                                    \
 
 arctas_ship_emiss_mod.o     : arctas_ship_emiss_mod.F                        \
                               logical_mod.o           scale_anthro_mod.o     \
-                              tracerid_mod.o          tracer_mod.o  
+                              tracerid_mod.o          tracer_mod.o           \
+                              regrid_a2a_mod.o
 
 arsl1k.o                    : arsl1k.F
 
@@ -283,7 +284,8 @@ boxvl.o                     : boxvl.F                 dao_mod.o
 
 bravo_mod.o                 : bravo_mod.F                                    \
                               future_emissions_mod.o  logical_mod.o          \
-                              scale_anthro_mod.o      tracerid_mod.o    
+                              scale_anthro_mod.o      tracerid_mod.o         \
+                              regrid_a2a_mod.o  
 
 c2h6_mod.o                  : c2h6_mod.F                                     \
                               biofuel_mod.o           biomass_mod.o          \
@@ -295,7 +297,7 @@ c2h6_mod.o                  : c2h6_mod.F                                     \
 cac_anthro_mod.o            : cac_anthro_mod.F                               \
                               future_emissions_mod.o  logical_mod.o          \
                               scale_anthro_mod.o      tracerid_mod.o         \
-                              tracer_mod.o  
+                              tracer_mod.o            regrid_a2a_mod.o
 
 calcrate.o                  : calcrate.F                                     \
                               comode_mod.o            dao_mod.o              \
@@ -385,7 +387,7 @@ CLDSRF.o                    : CLDSRF.F
 
 co2_mod.o                   : co2_mod.F               biomass_mod.o          \
                               diag04_mod.o            tracer_mod.o           \
-	                      tracerid_mod.o 
+	                      tracerid_mod.o          regrid_a2a_mod.o 
 
 CO_strat_pl.o               : CO_strat_pl.F                                  \
                               dao_mod.o               tracer_mod.o           \
@@ -408,7 +410,8 @@ decomp.o                    : decomp.F
 
 depo_mercury_mod.o          : depo_mercury_mod.F                             \
                               dao_mod.o               diag_mod.o             \
-                              logical_mod.o           tracerid_mod.o         
+                              logical_mod.o           tracerid_mod.o         \
+                              regrid_a2a_mod.o         
 
 diag03_mod.o                : diag03_mod.F            tracerid_mod.o
 
@@ -496,14 +499,14 @@ dust_mod.o                  : dust_mod.F                                     \
 
 edgar_mod.o                 : edgar_mod.F                                    \
                               future_emissions_mod.o  logical_mod.o          \
-                              scale_anthro_mod.o    
+                              scale_anthro_mod.o      regrid_a2a_mod.o
 
 EFOLD.o                     : EFOLD.F
 
 emep_mod.o                  : emep_mod.F                                     \
                               future_emissions_mod.o  logical_mod.o          \
                               scale_anthro_mod.o      tracerid_mod.o         \
-                              tracer_mod.o  
+                              tracer_mod.o            regrid_a2a_mod.o  
 
 emf_scale.o                 : emf_scale.F             tracerid_mod.o
 
@@ -614,17 +617,20 @@ geia_mod.o                  : geia_mod.F
 GEN.o                       : GEN.F
 
 get_global_ch4.o            : get_global_ch4.F                               \
-                              future_emissions_mod.o  logical_mod.o
+                              future_emissions_mod.o  logical_mod.o          \
+                              regrid_a2a_mod.o
 
 getifsun.o                  : getifsun.F              comode_mod.o
 
 gfed2_biomass_mod.o         : gfed2_biomass_mod.F                            \
                               future_emissions_mod.o  logical_mod.o          \
-                              tracer_mod.o            tracerid_mod.o
+                              tracer_mod.o            tracerid_mod.o         \
+                              regrid_a2a_mod.o
 
 gfed3_biomass_mod.o         : gfed3_biomass_mod.F                            \
                               future_emissions_mod.o  logical_mod.o          \
-                              tracer_mod.o            tracerid_mod.o
+                              tracer_mod.o            tracerid_mod.o         \
+                              regrid_a2a_mod.o
 
 global_br_mod.o             : global_br_mod.F         tropopause_mod.o 
 
@@ -675,7 +681,7 @@ i6_read_mod.o               : i6_read_mod.F                                  \
 icoads_ship_mod.o           : icoads_ship_mod.F                              \
                               future_emissions_mod.o  logical_mod.o          \
                               scale_anthro_mod.o      tracerid_mod.o         \
-                              tracer_mod.o  
+                              tracer_mod.o            regrid_a2a_mod.o
 
 initialize.o                : initialize.F                                   \
                               diag_mod.o              diag03_mod.o           \
@@ -718,7 +724,8 @@ jv_index.o                  : jv_index.F
 
 ksparse.o                   : ksparse.F
 
-lai_mod.o                   : lai_mod.F               logical_mod.o
+lai_mod.o                   : lai_mod.F               logical_mod.o          \
+                              regrid_a2a_mod.o
 
 land_mercury_mod.o          : land_mercury_mod.F                             \
                               biomass_mod.o           dao_mod.o              \
@@ -770,7 +777,8 @@ MATIN4.o                    : MATIN4.F
 
 megan_mod.o                 : megan_mod.F             a3_read_mod.o          \
                               lai_mod.o               logical_mod.o          \
-                              meganut_mod.o           merra_a1_mod.o
+                              meganut_mod.o           merra_a1_mod.o         \
+                              regrid_a2a_mod.o
 
 meganut_mod.o               : meganut_mod.F           dao_mod.o     
 
@@ -852,6 +860,8 @@ precipfrac.o                : precipfrac.F            dao_mod.o
 
 pulsing.o                   : pulsing.F
 
+regrid_a2a_mod.o            : regrid_a2a_mod.F90
+
 RD_AOD.o                    : RD_AOD.F
 
 rd_js.o                     : rd_js.F
@@ -902,7 +912,7 @@ rpmares_mod.o               : rpmares_mod.F                                  \
 ruralbox.o                  : ruralbox.F                                     \
                               comode_mod.o            tropopause_mod.o
 
-scale_anthro_mod.o          : scale_anthro_mod.F
+scale_anthro_mod.o          : scale_anthro_mod.F      regrid_a2a_mod.o
 
 schem.o                     : schem.F                 dao_mod.o              \
                               tracerid_mod.o          tracer_mod.o           \
@@ -960,7 +970,7 @@ SPHERE.o                    : SPHERE.F
 streets_anthro_mod.o        : streets_anthro_mod.F                           \
                               future_emissions_mod.o  logical_mod.o          \
                               scale_anthro_mod.o      tracerid_mod.o         \
-                              tracer_mod.o  
+                              tracer_mod.o            regrid_a2a_mod.o  
 
 subfun.o                    : subfun.F
 
@@ -980,7 +990,7 @@ sulfate_mod.o               : sulfate_mod.F                                  \
                               streets_anthro_mod.o    tracerid_mod.o         \
                               tracer_mod.o            tropopause_mod.o       \
                               uvalbedo_mod.o          vdiff_pre_mod.o        \
-                              wetscav_mod.o
+                              wetscav_mod.o           regrid_a2a_mod.o
 
 sunparam.o                  : sunparam.F
 
@@ -1067,7 +1077,8 @@ vdiff_mod.o                 : vdiff_mod.F90                                  \
 vistas_anthro_mod.o         : vistas_anthro_mod.F                            \
                               future_emissions_mod.o  epa_nei_mod.o          \
                               logical_mod.o           scale_anthro_mod.o     \
-                              tracerid_mod.o          tracer_mod.o  
+                              tracerid_mod.o          tracer_mod.o           \
+                              regrid_a2a_mod.o
 
 wetscav_mod.o               : wetscav_mod.F                                  \
                               dao_mod.o               diag_mod.o             \

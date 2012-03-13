@@ -36,6 +36,7 @@
       PUBLIC  :: GET_YMID
       PUBLIC  :: GET_YMID_R
       PUBLIC  :: GET_YMID_R_W
+      PUBLIC  :: GET_YSIN
       PUBLIC  :: SET_XOFFSET
       PUBLIC  :: SET_YOFFSET
       PUBLIC  :: ITS_A_NESTED_GRID
@@ -93,6 +94,7 @@
       REAL*8,  ALLOCATABLE :: YMID_R(:),    YEDGE_R(:)
       REAL*8,  ALLOCATABLE :: YMID_R_W(:),  YEDGE_R_W(:)
       REAL*8,  ALLOCATABLE :: AREA_M2(:),   AREA_CM2(:)
+      REAL*8,  ALLOCATABLE :: YSIN_G(:),    YSIN(:)
 
       CONTAINS
 !EOC
@@ -154,7 +156,7 @@
       DO J = 1, JJJPAR
          YMID_G(J)  = DJSIZE * ( DBLE(J) - FMID  )
          YEDGE_G(J) = DJSIZE * ( DBLE(J) - FEDGE )
-      ENDDO
+      ENDDO 
 
 #if   defined( GRID4x5 ) && defined( GCAP )
       ! Overwrite YMID at poles for GCAP 4 x 5 grid (swu, bmy, 5/24/05)
@@ -193,6 +195,11 @@
          YEDGE_R_G(J) = ( PI / 180d0 ) * YEDGE_G(J)
       ENDDO
          
+      ! mjc - Compute sine of latitude edges (needed for map_a2a regrid)
+      DO J = 1, JJJPAR
+	 YSIN_G(J) = SIN ( YEDGE_R_G(J) )
+      ENDDO  
+
       ! Overwrite RLATV at N. pole
       YEDGE_R_G(JJJPAR+1) = PI / 2d0
 
@@ -322,6 +329,7 @@
       DO J = 1, JJPAR+1
          YEDGE(J)   = YEDGE_G(J+J0)
          YEDGE_R(J) = YEDGE_R_G(J+J0)
+         YSIN(J)    = YSIN_G(J+J0)
       ENDDO
 
       !=================================================================
@@ -353,6 +361,7 @@
       IF ( ALLOCATED( YEDGE_R_G  ) ) DEALLOCATE( YEDGE_R_G  )
       IF ( ALLOCATED( AREA_M2_G  ) ) DEALLOCATE( AREA_M2_G  )
       IF ( ALLOCATED( AREA_CM2_G ) ) DEALLOCATE( AREA_CM2_G )
+      !IF ( ALLOCATED( YSIN_G     ) ) DEALLOCATE( YSIN_G     )
 
       END SUBROUTINE COMPUTE_GRID
 !EOC
@@ -740,6 +749,32 @@
       Y = YEDGE_R( J )
 
       END FUNCTION GET_YEDGE_R
+
+!------------------------------------------------------------------------------
+!
+! !IROUTINE: get_ysin
+!
+! !DESCRIPTION: Function GET\_YSIN returns the sine of the southern edge 
+! of a GEOS-Chem grid. 
+!\\
+!\\
+! !INTERFACE:
+!
+      FUNCTION GET_YSIN( J ) RESULT( Y ) 
+!   
+! !INPUT PARAMETERS:
+!                  
+      INTEGER, INTENT(IN) :: J  ! Latitude index
+!
+! !RETURN VALUE:
+!
+      REAL*8              :: Y  ! Sine of Latitude value @ S edge of grid box
+!
+!------------------------------------------------------------------------------
+
+      Y = YSIN_G( J )
+      END FUNCTION GET_YSIN
+
 !EOC
 !------------------------------------------------------------------------------
 !          Harvard University Atmospheric Chemistry Modeling Group            !
@@ -1022,6 +1057,10 @@
       IF ( AS /= 0 ) CALL ALLOC_ERR( 'YEDGE_G' )
       YEDGE_G = 0d0
 
+      ALLOCATE( YSIN_G( JJJPAR+1 ), STAT=AS )
+      IF ( AS /= 0 ) CALL ALLOC_ERR( 'YSIN_G' )
+      YSIN_G = 0d0
+
       ALLOCATE( YMID_R_G( JJJPAR ), STAT=AS )
       IF ( AS /= 0 ) CALL ALLOC_ERR( 'YMID_R_G' )
       YMID_R_G = 0d0
@@ -1057,6 +1096,10 @@
       IF ( AS /= 0 ) CALL ALLOC_ERR( 'YEDGE' )
       YEDGE = 0d0
 
+      ALLOCATE( YSIN( JJPAR+1 ), STAT=AS )
+      IF ( AS /= 0 ) CALL ALLOC_ERR( 'YSIN' )
+      YSIN = 0d0
+
       ALLOCATE( YMID_R( 1:JJPAR ), STAT=AS )               
       IF ( AS /= 0 ) CALL ALLOC_ERR( 'YMID_R' )
       YMID_R = 0d0
@@ -1076,6 +1119,7 @@
       ALLOCATE( AREA_CM2( JJPAR ), STAT=AS )
       IF ( AS /= 0 ) CALL ALLOC_ERR( 'AREA_CM2' )
       AREA_CM2 = 0d0
+
 
       !=================================================================
       ! Also test for 1x1 nested-grid (smaller than global size)
@@ -1119,7 +1163,9 @@
       IF ( ALLOCATED( YEDGE_R    ) ) DEALLOCATE( YEDGE_R    )
       IF ( ALLOCATED( AREA_M2    ) ) DEALLOCATE( AREA_M2    )
       IF ( ALLOCATED( AREA_CM2   ) ) DEALLOCATE( AREA_CM2   )
+      !IF ( ALLOCATED( YSIN       ) ) DEALLOCATE( YSIN       )
 
       END SUBROUTINE CLEANUP_GRID
 !EOC
+
       END MODULE GRID_MOD

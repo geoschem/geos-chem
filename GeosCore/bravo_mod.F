@@ -180,9 +180,11 @@
       USE BPCH2_MOD,        ONLY : GET_TAU0,      READ_BPCH2
       USE DIRECTORY_MOD,    ONLY : DATA_DIR_1x1 
       USE LOGICAL_MOD,      ONLY : LFUTURE
-      USE REGRID_1x1_MOD,   ONLY : DO_REGRID_1x1, DO_REGRID_G2G_1x1
+      !USE REGRID_1x1_MOD,   ONLY : DO_REGRID_1x1, DO_REGRID_G2G_1x1
       USE SCALE_ANTHRO_MOD, ONLY : GET_ANNUAL_SCALAR_1x1
+      USE SCALE_ANTHRO_MOD, ONLY : GET_ANNUAL_SCALAR
       USE TIME_MOD,         ONLY : GET_YEAR
+      USE REGRID_A2A_MOD,   ONLY : DO_REGRID_A2A
 
       USE CMN_SIZE_MOD         ! Size parameters
       USE CMN_O3_MOD           ! 
@@ -190,6 +192,7 @@
 ! !REVISION HISTORY: 
 !  22 Jun 2006 - R. Park, F. Boersma, R. Yantosca - Initial version
 !  (1 ) Now pass the unit string to DO_REGRID_G2G_1x1 (bmy, 8/9/06)
+!  13 Mar 2012 - M. Cooper   - Changed regrid algorithm to map_a2a
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -197,13 +200,18 @@
 ! !LOCAL VARIABLES:
 !
       LOGICAL, SAVE           :: FIRST = .TRUE.
-      INTEGER                 :: SCALEYEAR
+      INTEGER                 :: SCALEYEAR, I
       REAL*4                  :: ARRAY(I1x1,J1x1-1,1)
       REAL*8                  :: GEN_1x1(I1x1,J1x1-1)
       REAL*8                  :: GEOS_1x1(I1x1,J1x1,1)
       REAL*8                  :: SC_1x1(I1x1,J1x1)
+      REAL*4                  :: SC(IIPAR,JJPAR)
       REAL*8                  :: TAU0
       CHARACTER(LEN=255)      :: FILENAME
+      CHARACTER(LEN=255)      :: LLFILENAME
+      REAL*8, ALLOCATABLE     :: OUTGRID(:,:)
+      REAL*8, ALLOCATABLE     :: INGRID(:,:)
+
       
       !=================================================================
       ! EMISS_BRAVO begins here!
@@ -249,15 +257,19 @@
       ! Cast from REAL*4 to REAL*8
       GEN_1x1(:,:) = ARRAY(:,:,1)
 
-      ! Regrid NOx [molec/cm2/s] to GEOS 1x1 GRID
-      CALL DO_REGRID_G2G_1x1( 'molec/cm2/s', GEN_1x1, GEOS_1x1(:,:,1) )
+      !Regrid to current model resolution
+      LLFILENAME = TRIM( DATA_DIR_1x1) //'latlon_generic.txt'
 
-      ! Get/Apply annual scalar factor (amv 08/21/2007)
-      CALL GET_ANNUAL_SCALAR_1x1( 71, 1999, SCALEYEAR, SC_1x1 )
-      GEOS_1x1(:,:,1) = GEOS_1x1(:,:,1) * SC_1x1(:,:)
+        ALLOCATE(INGRID(I1x1,J1x1-1))
+        INGRID=GEN_1x1(:,:)
+        ALLOCATE(OUTGRID(IIPAR,JJPAR))
 
-      ! Regrid NOx [molec/cm2/s] to current model resolution
-      CALL DO_REGRID_1x1( 'molec/cm2/s', GEOS_1x1, BRAVO_NOx )
+       CALL DO_REGRID_A2A(LLFILENAME,360,181,INGRID,OUTGRID,0)
+       CALL GET_ANNUAL_SCALAR( 71, 1999, SCALEYEAR, SC )
+       BRAVO_NOx=OUTGRID * SC
+
+        DEALLOCATE(INGRID)
+        DEALLOCATE(OUTGRID)
 
       !---------------------
       ! Read and regrid CO
@@ -278,15 +290,18 @@
       ! Cast from REAL*4 to REAL*8
       GEN_1x1(:,:) = ARRAY(:,:,1)
 
-      ! Regrid CO [molec/cm2/s] to GEOS 1x1 GRID
-      CALL DO_REGRID_G2G_1x1( 'molec/cm2/s', GEN_1x1, GEOS_1x1(:,:,1) )
-
-      ! Get/Apply annual scalar factor (amv 08/21/2007)
-      CALL GET_ANNUAL_SCALAR_1x1( 72, 1999, SCALEYEAR, SC_1x1 )
-      GEOS_1x1(:,:,1) = GEOS_1x1(:,:,1) * SC_1x1(:,:)
-
       ! Regrid CO [molec/cm2/s] to current model resolution
-      CALL DO_REGRID_1x1( 'molec/cm2/s', GEOS_1x1, BRAVO_CO )
+
+        ALLOCATE(INGRID(I1x1,J1x1-1))
+        INGRID=GEN_1x1(:,:)
+        ALLOCATE(OUTGRID(IIPAR,JJPAR))
+
+       CALL DO_REGRID_A2A(LLFILENAME,360,181,INGRID,OUTGRID,0)
+       CALL GET_ANNUAL_SCALAR( 72, 1999, SCALEYEAR, SC )
+       BRAVO_CO=OUTGRID * SC
+
+        DEALLOCATE(INGRID)
+        DEALLOCATE(OUTGRID)
 
       !---------------------
       ! Read and regrid SO2
@@ -308,14 +323,16 @@
       GEN_1x1(:,:) = ARRAY(:,:,1)
 
       ! Regrid SO2 [molec/cm2/s] to GEOS 1x1 GRID
-      CALL DO_REGRID_G2G_1x1( 'molec/cm2/s', GEN_1x1, GEOS_1x1(:,:,1) )
+        ALLOCATE(INGRID(I1x1,J1x1-1))
+        INGRID=GEN_1x1(:,:)
+        ALLOCATE(OUTGRID(IIPAR,JJPAR))
 
-      ! Get/Apply annual scalar factor (amv 08/21/2007)
-      CALL GET_ANNUAL_SCALAR_1x1( 73, 1999, SCALEYEAR, SC_1x1 )
-      GEOS_1x1(:,:,1) = GEOS_1x1(:,:,1) * SC_1x1(:,:)
+       CALL DO_REGRID_A2A(LLFILENAME,360,181,INGRID,OUTGRID,0)
+       CALL GET_ANNUAL_SCALAR( 73, 1999, SCALEYEAR, SC )
+       BRAVO_SO2=OUTGRID * SC
 
-      ! Regrid SO2 [molec/cm2/s] to current model resolution
-      CALL DO_REGRID_1x1( 'molec/cm2/s', GEOS_1x1, BRAVO_SO2 )
+        DEALLOCATE(INGRID)
+        DEALLOCATE(OUTGRID)
 
       !=================================================================
       ! Compute IPCC future emissions (if necessary)
