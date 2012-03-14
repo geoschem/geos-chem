@@ -78,6 +78,7 @@
 ! !REVISION HISTORY: 
 !  07 Sep 2011 - P. Kasibhatla - Initial version, based on GFED2
 !  07 Sep 2011 - R. Yantosca   - Added ProTeX headers 
+!  14 Feb 2012 - M. Payer      - Add modifications for CH4 (K. Wecht)
 !  01 Mar 2012 - R. Yantosca   - Now reference new grid_mod.F90
 !EOP
 !------------------------------------------------------------------------------
@@ -92,7 +93,9 @@
       ! N_SPEC  : Number of species
       !=================================================================
       INTEGER,          PARAMETER   :: N_EMFAC = 6
-      INTEGER,          PARAMETER   :: N_SPEC  = 24
+      !INTEGER,          PARAMETER   :: N_SPEC  = 24
+      INTEGER,          PARAMETER   :: N_SPEC  = 25  !kjw
+
 !
 ! PRIVATE TYPES:
 !
@@ -652,7 +655,8 @@
       USE FUTURE_EMISSIONS_MOD,   ONLY : GET_FUTURE_SCALE_OCbb
       USE FUTURE_EMISSIONS_MOD,   ONLY : GET_FUTURE_SCALE_SO2bb
       USE FUTURE_EMISSIONS_MOD,   ONLY : GET_FUTURE_SCALE_VOCbb
-      USE TRACER_MOD,             ONLY : ITS_A_CO2_SIM       
+      USE TRACER_MOD,             ONLY : ITS_A_CO2_SIM 
+      USE TRACER_MOD,             ONLY : ITS_A_CH4_SIM
       USE TRACERID_MOD,           ONLY : IDBNOx,  IDBCO,   IDBSO2 
       USE TRACERID_MOD,           ONLY : IDBNH3,  IDBBC,   IDBOC 
 
@@ -673,6 +677,7 @@
 ! !LOCAL VARIABLES:
 !
       LOGICAL :: ITS_CO2
+      LOGICAL :: ITS_CH4
       INTEGER :: I, J, N
       
       !=================================================================
@@ -681,6 +686,7 @@
 
       ! Test if it's a CO2 simulation outside of the loop
       ITS_CO2 = ITS_A_CO2_SIM()
+      ITS_CH4 = ITS_A_CH4_SIM()
 
 !$OMP PARALLEL DO
 !$OMP+DEFAULT( SHARED )
@@ -722,7 +728,8 @@
             ! Future biomass OC [molec/cm2]
             BB(I,J,N) = BB(I,J,N) * GET_FUTURE_SCALE_OCbb( I, J )
 
-         ELSE IF ( ITS_CO2 ) THEN
+         ! Don't scale future emissions if CO2 or CH4
+         ELSE IF ( ITS_CO2 .OR. ITS_CH4 ) THEN
 
             ! Nothing
 
@@ -845,6 +852,7 @@
       USE TRACERID_MOD,  ONLY : IDBGLYX, IDBMGLY, IDBBENZ
       USE TRACERID_MOD,  ONLY : IDBTOLU, IDBXYLE, IDBC2H4
       USE TRACERID_MOD,  ONLY : IDBC2H2, IDBGLYC, IDBHAC
+      USE TRACERID_MOD,  ONLY : IDBCH4   !kjw
 
       USE CMN_SIZE_MOD        ! Size parameters
 ! 
@@ -1070,6 +1078,10 @@
                BIO_SAVE(N)         = IDBCO2
                GFED3_SPEC_MOLWT(N) = 44d-3
                GFED3_SPEC_UNIT(N)  = '[Tg  ]'
+            CASE( 'CH4' )
+               BIO_SAVE(N)         = IDBCH4
+               GFED3_SPEC_MOLWT(N) = 16d-3
+               GFED3_SPEC_UNIT(N)  = '[Tg  ]'
             CASE DEFAULT
                ! Nothing
                BIO_SAVE(N)         = 0
@@ -1085,7 +1097,7 @@
 !------------------------------------------------------------------------------
 !BOP
 !
-! !IROUTINE: 
+! !IROUTINE: rearrange_biom
 !
 ! !DESCRIPTION: Subroutine REARRANGE\_BIOM takes GFED3 emissions (which have 
 !  their own, unique ID numbers and associates them with the IDBxxxs of 

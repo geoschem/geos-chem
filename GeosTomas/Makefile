@@ -141,7 +141,7 @@ bravo_mod.o              global_nox_mod.o        soaprod_mod.o               \
 c2h6_mod.o               global_o1d_mod.o        soilbase.o                  \
 cac_anthro_mod.o         global_o3_mod.o         soilcrf.o                   \
 calcrate.o               global_oh_mod.o         soilnoxems.o                \
-carbon_mod.o             gwet_read_mod.o         soiltemp.o                  \
+carbon_mod.o             soiltemp.o                                          \
 ch3i_mod.o               h2_hd_mod.o             soiltype.o                  \
 chemdr.o                 hcn_ch3cn_mod.o         streets_anthro_mod.o        \
 chemistry_mod.o          i6_read_mod.o           subfun.o                    \
@@ -168,7 +168,7 @@ diag_mod.o               nei2005_anthro_mod.o    vdiff_mod.o                 \
 diag_oh_mod.o            ocean_mercury_mod.o     vdiff_pre_mod.o             \
 diag_pl_mod.o            ohsave.o                vistas_anthro_mod.o         \
 diagoh.o                 optdepth_mod.o          wetscav_mod.o               \
-xtra_read_mod.o          aero_drydep.o           tomas_mod.o                 \
+aero_drydep.o            tomas_mod.o                                         \
 tomas_tpcore_mod.o       RD_AOD.o                depo_mercury_mod.o          \
 land_mercury_mod.o       global_br_mod.o         merra_a1_mod.o              \
 merra_a3_mod.o           merra_cn_mod.o          merra_i6_mod.o              \
@@ -443,7 +443,7 @@ diag04_mod.o                : diag04_mod.F
 diag1.o                     : diag1.F                                        \
                               dao_mod.o               diag_mod.o             \
                               tracer_mod.o            tracerid_mod.o         \
-                              tropopause_mod.o
+                              tropopause_mod.o        ocean_mercury_mod.o
 
 diag3.o                     : diag3.F                                        \
                               biofuel_mod.o           biomass_mod.o          \
@@ -674,10 +674,6 @@ global_o3_mod.o             : global_o3_mod.F
 global_oh_mod.o             : global_oh_mod.F                                \
                               dao_mod.o
 
-gwet_read_mod.o             : gwet_read_mod.F                                \
-                              dao_mod.o               diag_mod.o             \
-                              logical_mod.o 
-
 h2_hd_mod.o                 : h2_hd_mod.F                                    \
                               biofuel_mod.o           biomass_mod.o          \
                               dao_mod.o               diag_mod.o             \
@@ -778,18 +774,17 @@ main.o                      : main.F                                         \
                               diag_oh_mod.o           dao_mod.o              \
                               depo_mercury_mod.o      drydep_mod.o           \
                               emissions_mod.o         global_ch4_mod.o       \
-                              gcap_read_mod.o         gwet_read_mod.o        \
-                              i6_read_mod.o           input_mod.o            \
-                              lai_mod.o               lightning_nox_mod.o    \
-                              linoz_mod.o             logical_mod.o          \
-                              megan_mod.o             pbl_mix_mod.o          \
-                              ocean_mercury_mod.o     planeflight_mod.o      \
-                              soaprod_mod.o           tpcore_bc_mod.o        \
-                              tracer_mod.o            transport_mod.o        \
-                              tropopause_mod.o        restart_mod.o          \
-                              upbdflx_mod.o           uvalbedo_mod.o         \
-                              vdiff_mod.o             wetscav_mod.o          \
-                              xtra_read_mod.o         merra_cn_mod.o         \
+                              gcap_read_mod.o         i6_read_mod.o          \
+                              input_mod.o             lai_mod.o              \
+                              lightning_nox_mod.o     linoz_mod.o            \
+                              logical_mod.o           megan_mod.o            \
+                              pbl_mix_mod.o           ocean_mercury_mod.o    \
+                              planeflight_mod.o       soaprod_mod.o          \
+                              tpcore_bc_mod.o         tracer_mod.o           \
+                              transport_mod.o         tropopause_mod.o       \
+                              restart_mod.o           upbdflx_mod.o          \
+                              uvalbedo_mod.o          vdiff_mod.o            \
+                              wetscav_mod.o           merra_cn_mod.o         \
                               merra_a1_mod.o          merra_a3_mod.o         \
                               merra_i6_mod.o          geos57_read_mod.o      \
                               diag63_mod.o
@@ -1108,10 +1103,6 @@ XSEC1D.o                    : XSEC1D.F
 XSECO2.o                    : XSECO2.F
 
 XSECO3.o                    : XSECO3.F
-
-xtra_read_mod.o             : xtra_read_mod.F         dao_mod.o              \
-                              diag_mod.o              logical_mod.o          \
-                              tomas_mod.o
 
 #------------------------------------------------------------------------------
 # Dependencies of files specific to TOMAS microphysics (bmy, 1/25/10)

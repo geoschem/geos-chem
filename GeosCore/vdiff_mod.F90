@@ -1799,10 +1799,7 @@ contains
     USE OCEAN_MERCURY_MOD,  ONLY : LHg2HalfAerosol !cdh
     USE DRYDEP_MOD,   ONLY : DRYHg0, DRYHg2, DRYHgP !cdh
     USE TRACER_MOD,   ONLY: ITS_A_FULLCHEM_SIM  !bmy
-
-#if   defined( GEOS_3 )
-    USE CMN_GCTM_MOD      ! BMY KLUDGE for the present (bmy, 2/24/12)
-#endif
+    USE OCEAN_MERCURY_MOD, ONLY : Fp, Fg !hma
 
 #   include "define.h"
 
@@ -1831,6 +1828,8 @@ contains
 !  02 Mar 2011 - R. Yantosca - Bug fixes for PGI compiler: these mostly
 !                              involve explicitly using "D" exponents
 !  26 Apr 2011 - J. Fisher   - Use MERRA land fraction information
+!  25 Oct 2011 - H. Amos     - bring Hg2 gas-particle partitioning code into
+!                              v9-01-02
 !  08 Feb 2012 - R. Yantosca - Treat GEOS-5.7.2 in the same way as MERRA
 !  01 Mar 2012 - R. Yantosca - Now use GET_AREA_CM2(I,J,L) from grid_mod.F90
 !EOP
@@ -2100,17 +2099,40 @@ contains
              ! avoid seg faults in parallelization (ccarouge, bmy, 12/20/10)
              dflx(I,J,NN) = DEPSAV(I,J,N) * as2_scal(I,J,NN) / TCVV(NN)
 
-             ! If flag is set to treat Hg2 as half aerosol, half gas, then
-             ! use average deposition velocity (cdh, 9/01/09)
-             IF ( LHG2HALFAEROSOL .AND. IS_HG2(NN) ) THEN
+             !------------------------------------------------------------------
+             !Prior to 25 Oct 2011, H Amos
+             !! If flag is set to treat Hg2 as half aerosol, half gas, then
+             !! use average deposition velocity (cdh, 9/01/09)
+             !IF ( LHG2HALFAEROSOL .AND. IS_HG2(NN) ) THEN
+             !
+             !   ! NOTE: Now use as2_scal(I,J,NN), instead of as2(I,J,1,NN) to 
+             !   ! avoid seg faults in parallelization (ccarouge, bmy, 12/20/10)
+             !   dflx(I,J,NN) =  &
+             !        ( DEPSAV(I,J,DRYHg2) +  DEPSAV(I,J,DRYHgP) ) / 2D0 * &
+             !        as2_scal(I,J,NN) / TCVV(NN) 
+             !   
+             !ENDIF
+             !
+             IF ( IS_HG2(NN) ) THEN
 
-                ! NOTE: Now use as2_scal(I,J,NN), instead of as2(I,J,1,NN) to 
-                ! avoid seg faults in parallelization (ccarouge, bmy, 12/20/10)
-                dflx(I,J,NN) =  &
-                     ( DEPSAV(I,J,DRYHg2) +  DEPSAV(I,J,DRYHgP) ) / 2D0 * &
-                     as2_scal(I,J,NN) / TCVV(NN) 
-                
+                IF ( LHG2HALFAEROSOL ) THEN
+                   ! NOTE: Now use as2_scal(I,J,NN), instead of as2(I,J,1,NN) to 
+                   ! avoid seg faults in parallelization (ccarouge, bmy, 12/20/10)
+
+                   ! partition Hg2 50/50 gas/particle
+                   dflx(I,J,NN) =  &
+                        ( DEPSAV(I,J,DRYHg2) +  DEPSAV(I,J,DRYHgP) ) / 2D0 * &
+                        as2_scal(I,J,NN) / TCVV(NN) 
+                ELSE
+                   
+                   ! temperature-dependent Hg2 partitioning
+                   dflx(I,J,NN) = ( DEPSAV(I,J,DRYHg2)*Fg(I,J,1) + &
+                                    DEPSAV(I,J,DRYHgP)*Fp(I,J,1) ) * &
+                                    as2_scal(I,J,NN) / TCVV(NN) 
+                ENDIF
+                   
              ENDIF
+             !------------------------------------------------------------------
           endif
           
 !--jaf.start          
@@ -2449,16 +2471,9 @@ contains
     ! re-compute PBL variables wrt derived pblh (in m)
     if (.not. pblh_ar) then
 
-#if   defined( GEOS_3 )
-       ! PBL in GEOS_3 is in hPa 
-       ! pint has been 'upside-down' (Lin, 05/28/08)
-       ! m -> hPa
-       ! PBL = pint(:,:,LLPAR+1) * pblh / SCALE_HEIGHT ! simplified formulation
-       PBL = pint(:,:,LLPAR+1) * (1.d0 - EXP( - pblh / SCALE_HEIGHT )) * 1.d-2
-#else
-       ! PBL in other meteo. datasets is in m 
+       ! PBL is in m 
        PBL = pblh 
-#endif
+
        CALL COMPUTE_PBL_HEIGHT
     endif
 

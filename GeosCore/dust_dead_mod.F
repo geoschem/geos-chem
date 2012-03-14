@@ -393,14 +393,6 @@
       !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
       REAL*8,  PARAMETER     :: FLX_MSS_FDG_FCT = 7.0d-4 / 0.731d0
 
-
-#elif defined( GEOS_3 ) && defined( GRID1x1 ) && defined( NESTED_NA )
-
-      ! For the GEOS-3 1x1 N. America Nested grid (as used by the MIT/FAA-ULS
-      ! project), we'll tune the global dust emissions to the same totals as 
-      ! the GEOS-5 4x5 1-year benchmark v8-01-01-Run0. (bmy, 11/10/08)
-      REAL*8,  PARAMETER     :: FLX_MSS_FDG_FCT = 7.0d-4 / 9.57d0
-
 #else
 
       ! Default value

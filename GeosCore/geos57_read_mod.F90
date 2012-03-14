@@ -837,10 +837,10 @@ CONTAINS
 ! !DESCRIPTION: Convenience wrapper for the following routines which read
 !  3-hour time averaged data from disk:
 ! \begin{itemize}
-! \item Geos57_Read_A3cld
-! \item Geos57_Read_A3dyn
-! \item Geos57_Read_A3mstC
-! \item Geos57_Read_A3mstE
+! \item Geos57\_Read\_A3cld
+! \item Geos57\_Read\_A3dyn
+! \item Geos57\_Read\_A3mstC
+! \item Geos57\_Read\_A3mstE
 ! \end{itemize}
 !
 ! !INTERFACE:

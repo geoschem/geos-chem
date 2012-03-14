@@ -1,4 +1,6 @@
+!BOC
 #if !defined(ESMF_)
+!EOC
 !------------------------------------------------------------------------------
 !          Harvard University Atmospheric Chemistry Modeling Group            !
 !------------------------------------------------------------------------------
@@ -101,8 +103,6 @@
       USE A3_READ_MOD           ! For reading A3 data (all other met)
       USE A6_READ_MOD           ! For reading A6 data (all other met)
       USE I6_READ_MOD           ! For reading I6 data (all other met)
-      USE GWET_READ_MOD         ! For reading GEOS-3 GWET data
-      USE XTRA_READ_MOD         ! For reading GEOS-3 extra data fields
 
 #if   defined( APM )
       ! APM+: For APM aerosol microphysics simulation, see apm_driv_mod.f 
@@ -169,6 +169,8 @@
 !  06 Feb 2012 - R. Yantosca - Renamed NN to NNN to avoid name confusion
 !  07 Feb 2012 - R. Yantosca - Split off met field I/O into internal routines
 !                              READ_INITIAL_MET_FIELDS and READ_MET_FIELDS
+!  07 Feb 2012 - M. Payer    - Replace call to COSSZA with GET_COSINE_SZA
+!  28 Feb 2012 - R. Yantosca - Removed support for GEOS-3
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -533,6 +535,12 @@
             ENDIF
          ENDIF
 
+         ! Hg2 gas-particle partitioning (H Amos, 25 Oct 2011)
+         IF ( ITS_A_MERCURY_SIM() .and. ITS_A_NEW_MONTH() ) THEN
+            CALL PARTITION_Hg2( MONTH )
+            IF ( LPRT ) CALL DEBUG_MSG( '### MAIN: a PARTITION_Hg2' )
+         ENDIF
+
          !==============================================================
          !              ***** D A I L Y   D A T A *****
          !==============================================================
@@ -599,15 +607,6 @@
 
          ! Compute tropopause height for ND55 diagnostic
          IF ( ND55 > 0 ) CALL DIAG_TROPOPAUSE
-
-#if   defined( GEOS_3 )
-
-         ! 1998 GEOS-3 carries the ground temperature and not the air
-         ! temperature -- thus TS will be 2-3 K too high.  As a quick fix, 
-         ! copy the temperature at the first sigma level into TS. 
-         ! (mje, bnd, bmy, 7/3/01)
-         IF ( YEAR == 1998 ) TS(:,:) = T(:,:,1)
-#endif
 
          ! Update dynamic timestep
          CALL SET_CT_DYN( INCREMENT=.TRUE. )
@@ -728,14 +727,14 @@
                
                ! Partition Hg(II) between aerosol and gas
                IF ( ITS_A_MERCURY_SIM() ) THEN
-                  CALL PARTITIONHG( 1, STT, HGPFRAC )
+                  CALL PARTITIONHG( 1, STT )
                ENDIF
       
                CALL DO_CONVECTION
 
                ! Return all reactive particulate Hg(II) to total Hg(II) tracer
                IF ( ITS_A_MERCURY_SIM() ) THEN
-                  CALL PARTITIONHG( 2, STT, HGPFRAC )
+                  CALL PARTITIONHG( 2, STT )
                ENDIF
       
                !### Debug
@@ -801,6 +800,11 @@
 #endif
          ENDIF 
 
+         ! Check STT (yxw)   
+#if   defined( GEOS_5 ) && defined( GRID05x0666 )
+         CALL CHECK_STT_05x0666( 'after chemistry' )
+#endif 
+
          !==============================================================
          ! ***** W E T   D E P O S I T I O N  (rainout + washout) *****
          !==============================================================
@@ -808,7 +812,7 @@
 
             ! Add partition Hg(II) between aerosol and gas
             IF ( ITS_A_MERCURY_SIM() ) THEN
-               CALL PARTITIONHG( 1, STT, HGPFRAC )
+               CALL PARTITIONHG( 1, STT )
             ENDIF            
      
             ! Do wet deposition
@@ -816,7 +820,7 @@
             
             ! Return all reactive particulate Hg(II) to total Hg(II) tracer
             IF ( ITS_A_MERCURY_SIM() ) THEN
-               CALL PARTITIONHG( 2, STT, HGPFRAC )
+               CALL PARTITIONHG( 2, STT )
             ENDIF 
 
 #if   defined( APM )
@@ -950,6 +954,14 @@
          ! Check for NaN, Negatives, Infinities in STT each time diag are
          ! saved. (ccc, 5/13/09)
          IF ( ITS_TIME_FOR_DIAG() ) THEN
+
+         ! Sometimes STT in the stratosphere can be negative at 
+         ! the nested-grid domain edges. Force them to be zero before
+         ! CHECK_STT (yxw)
+#if   defined( GEOS_5 ) && defined( GRID05x0666 )
+            CALL CHECK_STT_05x0666( 'after dynamics step' )
+#endif
+
             CALL CHECK_STT( 'End of Dynamic Loop' )
          ENDIF
           
@@ -981,12 +993,6 @@
          CALL UNZIP_A3_FIELDS( ZTYPE )
          CALL UNZIP_A6_FIELDS( ZTYPE )
          CALL UNZIP_I6_FIELDS( ZTYPE )
-
-#if   defined( GEOS_3 )
-         ! Remove GEOS-3 GWET & XTRA fields
-         IF ( LDUST ) CALL UNZIP_GWET_FIELDS( ZTYPE )
-         IF ( LXTRA ) CALL UNZIP_XTRA_FIELDS( ZTYPE )
-#endif
 
 #if   defined( GCAP )
          ! Remove GCAP PHIS field (if necessary)
@@ -1048,6 +1054,7 @@
 !  13 Aug 2010 - R. Yantosca - Added ProTeX headers
 !  13 Aug 2010 - R. Yantosca - Added extra output
 !  02 Feb 2012 - R. Yantosca - Added output for GEOS-5.7.x met fields
+!  28 Feb 2012 - R. Yantosca - Removed support for GEOS-3
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -1115,9 +1122,7 @@
       !-----------------------
       ! Print met field info
       !-----------------------
-#if   defined( GEOS_3 )
-      WRITE( 6, '(a)' ) 'Using GMAO GEOS-3 met fields'
-#elif defined( GEOS_4 )
+#if   defined( GEOS_4 )
       WRITE( 6, '(a)' ) 'Using GMAO GEOS-4 met fields'
 #elif defined( GEOS_5 )
       WRITE( 6, '(a)' ) 'Using GMAO GEOS-5 met fields'
@@ -1224,7 +1229,7 @@
 ! !DESCRIPTION: Internal subroutine READ\_INITIAL\_MET\_FIELDS calls the
 !  various routines to read met fields at the beginning of a GEOS-Chem
 !  simulation.  This code was moved out of the main routine for clarity,
-!  due to the many #if defined() blocks that are required.
+!  due to the many \#if defined() blocks that are required.
 !\\
 !\\
 ! !INTERFACE:
@@ -1241,6 +1246,7 @@
 !
 ! !REVISION HISTORY: 
 !  07 Feb 2012 - R. Yantosca - Initial version
+!  28 Feb 2012 - R. Yantosca - Removed support for GEOS-3
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -1322,12 +1328,6 @@
          CALL UNZIP_A6_FIELDS( ZTYPE )
          CALL UNZIP_I6_FIELDS( ZTYPE )
 
-#if   defined( GEOS_3 )
-         ! Remove GEOS-3 GWET and XTRA files 
-         IF ( LDUST ) CALL UNZIP_GWET_FIELDS( ZTYPE )
-         IF ( LXTRA ) CALL UNZIP_XTRA_FIELDS( ZTYPE )
-#endif
-
 #if   defined( GCAP )
          ! Unzip GCAP PHIS field (if necessary)
          CALL UNZIP_GCAP_FIELDS( ZTYPE )
@@ -1344,12 +1344,6 @@
          CALL UNZIP_A3_FIELDS( ZTYPE, NYMDb )
          CALL UNZIP_A6_FIELDS( ZTYPE, NYMDb )
          CALL UNZIP_I6_FIELDS( ZTYPE, NYMDb )
-
-#if   defined( GEOS_3 )
-         ! Unzip GEOS-3 GWET and XTRA fields for START of run
-         IF ( LDUST ) CALL UNZIP_GWET_FIELDS( ZTYPE, NYMDb )
-         IF ( LXTRA ) CALL UNZIP_XTRA_FIELDS( ZTYPE, NYMDb )
-#endif
 
 #if   defined( GCAP )
          ! Unzip GCAP PHIS field (if necessary)
@@ -1391,30 +1385,6 @@
       CALL GET_I6_FIELDS_1( DATE(1), DATE(2) )
       IF ( LPRT ) CALL DEBUG_MSG( '### MAIN: a 1st I6 TIME' )
       
-#if   defined( GEOS_3 )
-
-      !-----------------------------------------------------------------
-      ! Read additional fields for GEOS-3 meteorology
-      !-----------------------------------------------------------------
-
-      ! Open & read GEOS-3 GWET fields
-      IF ( LDUST ) THEN
-         DATE = GET_FIRST_A3_TIME()
-         CALL OPEN_GWET_FIELDS( DATE(1), DATE(2) )
-         CALL GET_GWET_FIELDS(  DATE(1), DATE(2) ) 
-         IF ( LPRT ) CALL DEBUG_MSG( '### MAIN: a 1st GWET TIME' )
-      ENDIF
-
-      ! Open & read GEOS-3 XTRA fields
-      IF ( LXTRA ) THEN
-         DATE = GET_FIRST_A3_TIME()
-         CALL OPEN_XTRA_FIELDS( DATE(1), DATE(2) )
-         CALL GET_XTRA_FIELDS(  DATE(1), DATE(2) ) 
-         IF ( LPRT ) CALL DEBUG_MSG( '### MAIN: a 1st XTRA TIME' )
-      ENDIF
-
-#endif
-
 #if   defined( GCAP )
 
       !-----------------------------------------------------------------
@@ -1443,10 +1413,10 @@
 !
 ! !IROUTINE: read_met_fields
 !
-! !DESCRIPTION: Internal subroutine READ\__MET\_FIELDS calls the
+! !DESCRIPTION: Internal subroutine READ\_MET\_FIELDS calls the
 !  various routines to read met fields in the main GEOS-Chem timestepping
 !  loop.  This code was moved out of the main routine for clarity, due to
-!  the many #if defined() blocks that are required.
+!  the many \#if defined() blocks that are required.
 !\\
 !\\
 ! !INTERFACE:
@@ -1463,6 +1433,7 @@
 !
 ! !REVISION HISTORY: 
 !  07 Feb 2012 - R. Yantosca - Initial version
+!  28 Feb 2012 - R. Yantosca - Removed support for GEOS-3
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -1588,11 +1559,6 @@
          CALL UNZIP_A6_FIELDS( ZTYPE, DATE(1) )
          CALL UNZIP_I6_FIELDS( ZTYPE, DATE(1) )
       
-#if   defined( GEOS_3 )
-         ! Unzip GEOS-3 GWET & XTRA fields
-         IF ( LDUST ) CALL UNZIP_GWET_FIELDS( ZTYPE, DATE(1) )
-         IF ( LXTRA ) CALL UNZIP_XTRA_FIELDS( ZTYPE, DATE(1) )
-#endif
       ENDIF
 
       !===============================================================
@@ -1608,11 +1574,6 @@
          CALL UNZIP_A6_FIELDS( ZTYPE, NYMD )
          CALL UNZIP_I6_FIELDS( ZTYPE, NYMD )
 
-#if   defined( GEOS_3 )
-         ! Remove GEOS-3 GWET & XTRA fields only for the current date
-         IF ( LDUST ) CALL UNZIP_GWET_FIELDS( ZTYPE, NYMD )
-         IF ( LXTRA ) CALL UNZIP_XTRA_FIELDS( ZTYPE, NYMD )
-#endif
       ENDIF  
 
       !==============================================================
@@ -1632,19 +1593,6 @@
          ! Update daily mean temperature archive for MEGAN biogenics
          IF ( LMEGAN ) CALL UPDATE_T_DAY 
 
-#if   defined( GEOS_3 )
-         ! Read GEOS-3 GWET fields
-         IF ( LDUST ) THEN
-            CALL OPEN_GWET_FIELDS( DATE(1), DATE(2) )
-            CALL GET_GWET_FIELDS(  DATE(1), DATE(2) )           
-         ENDIF
-         
-         ! Read GEOS-3 PARDF, PARDR, SNOW fields
-         IF ( LXTRA ) THEN
-            CALL OPEN_XTRA_FIELDS( DATE(1), DATE(2) )
-            CALL GET_XTRA_FIELDS(  DATE(1), DATE(2) )           
-         ENDIF
-#endif
       ENDIF
 
       !==============================================================

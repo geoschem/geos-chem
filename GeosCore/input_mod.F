@@ -540,7 +540,7 @@
 ! !USES:
 !
       USE DIRECTORY_MOD, ONLY : DATA_DIR,    DATA_DIR_1x1, GCAP_DIR
-      USE DIRECTORY_MOD, ONLY : GEOS_3_DIR,  GEOS_4_DIR,   GEOS_5_DIR
+      USE DIRECTORY_MOD, ONLY : GEOS_4_DIR,  GEOS_5_DIR
       USE DIRECTORY_MOD, ONLY : MERRA_DIR,   GEOS_57_DIR
       USE DIRECTORY_MOD, ONLY : RUN_DIR
       USE DIRECTORY_MOD, ONLY : TEMP_DIR   
@@ -570,6 +570,7 @@
 !  27 Aug 2010 - R. Yantosca - Added ProTeX headers
 !  01 Feb 2012 - R. Yantosca - Now read GEOS_57_DIR for GEOS-5.7.x met
 !  08 Feb 2012 - R. Yantosca - Set LUNZIP=F for GEOS-5.7.x met fields
+!  28 Feb 2012 - R. Yantosca - Removed support for GEOS-3
 !  01 Mar 2012 - R. Yantosca - Now call routine INITIALIZE_GEOS_GRID to
 !                              initialize horizontal grid parameters
 !EOP
@@ -622,56 +623,52 @@
       CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_simulation_menu:8' )
       READ( SUBSTRS(1:N), '(a)' ) GCAP_DIR
 
-      ! GEOS-3 subdir
-      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_simulation_menu:9' )
-      READ( SUBSTRS(1:N), '(a)' ) GEOS_3_DIR
-
       ! GEOS-4 subdir
-      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_simulation_menu:10' )
+      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_simulation_menu:9' )
       READ( SUBSTRS(1:N), '(a)' ) GEOS_4_DIR
 
       ! GEOS-5 subdir
-      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_simulation_menu:11' )
+      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_simulation_menu:10' )
       READ( SUBSTRS(1:N), '(a)' ) GEOS_5_DIR
 
       ! GEOS-5.7.x subdir
-      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_simulation_menu:12' )
+      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_simulation_menu:11' )
       READ( SUBSTRS(1:N), '(a)' ) GEOS_57_DIR
 
       ! MERRA subdir
-      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_simulation_menu:13' )
+      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_simulation_menu:12' )
       READ( SUBSTRS(1:N), '(a)' ) MERRA_DIR
 
       ! Temp dir
-      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_simulation_menu:14' )
+      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_simulation_menu:13' )
       READ( SUBSTRS(1:N), '(a)' ) DATA_DIR_1x1
 
       ! Temp dir
-      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_simulation_menu:15' )
+      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_simulation_menu:14' )
       READ( SUBSTRS(1:N), '(a)' ) TEMP_DIR
 
       ! Unzip met fields
-      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_simulation_menu:16' )
+      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_simulation_menu:15' )
       READ( SUBSTRS(1:N), *     ) LUNZIP
 
       ! Wait for met fields?
-      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_simulation_menu:17' )
+      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_simulation_menu:16' )
       READ( SUBSTRS(1:N), *     ) LWAIT
 
       ! Variable Tropopause
-      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_simulation_menu:18' )
+      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_simulation_menu:17' )
       READ( SUBSTRS(1:N), *     ) LVARTROP
 
       ! LINOZ chemistry in the stratosphere
-      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_simulation_menu:19' )
+      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_simulation_menu:18' )
       READ( SUBSTRS(1:N), *     ) LLINOZ  
 
       ! I0, J0
-      CALL SPLIT_ONE_LINE( SUBSTRS, N, 2, 'read_simulation_menu:20' )
+      CALL SPLIT_ONE_LINE( SUBSTRS, N, 2, 'read_simulation_menu:19' )
       READ( SUBSTRS(1:N), *     ) I0, J0
 
       ! Separator line
-      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_simulation_menu:21' )
+      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_simulation_menu:20' )
 
       !=================================================================
       ! Add safety checks for logical switches
@@ -694,8 +691,6 @@
      &                     TRIM( DATA_DIR )
       WRITE( 6, 110     ) 'GCAP       sub-directory    : ', 
      &                     TRIM( GCAP_DIR )
-      WRITE( 6, 110     ) 'GEOS-3     sub-directory    : ', 
-     &                     TRIM( GEOS_3_DIR )
       WRITE( 6, 110     ) 'GEOS-4     sub-directory    : ', 
      &                     TRIM( GEOS_4_DIR )
       WRITE( 6, 110     ) 'GEOS-5     sub-directory    : ', 
@@ -1536,7 +1531,10 @@
       USE EMISSIONS_MOD, ONLY : ISOP_SCALING 
       USE EMISSIONS_MOD, ONLY : NOx_SCALING
       USE LOGICAL_MOD, ONLY : LRETRO  !(wfr, 3/8/11)
-      
+![eml 
+      USE LOGICAL_MOD, ONLY : LHIST
+      USE TIME_MOD,    ONLY : SET_HISTYR
+!eml]
 
       USE CMN_SIZE_MOD      ! Size parameters
       USE CMN_O3_MOD        ! FSCALYR
@@ -1586,8 +1584,11 @@
 !  27 Aug 2010 - R. Yantosca - Added warning msg for MERRA
 !  29 Jul 2011 - L. Zhang    - Fix bug that turns off CAC/BRAVO emissions
 !                             inadvertently during nested NA simulations
+!  11 Aug 2011 - E. Leibensperger - Added flag for historical emissions and
+!                                   base year
 !  07 Sep 2011 - P. Kasibhatla - Add modifications for GFED3
 !  14 Feb 2012 - R. Yantosca - Reorganize error checks for logical switches
+!  28 Feb 2012 - R. Yantosca - Removed support for GEOS-3
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -1596,7 +1597,9 @@
 !
       INTEGER            :: N
       CHARACTER(LEN=255) :: SUBSTRS(MAXDIM), MSG, LOC
-
+![eml
+      INTEGER            :: HISTYR
+!eml]
       !=================================================================
       ! READ_EMISSIONS_MENU begins here!
       !=================================================================
@@ -1803,8 +1806,19 @@
       CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_emissions_menu:49' )
       READ( SUBSTRS(1:N), * ) LMODISLAI
 
-      ! Separator line
+![eml
+      ! Use historical emissions (EDGAR NOx/SO2 and Bond BC/OC) for 
+      ! 1890-2000?
       CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_emissions_menu:50' )
+      READ( SUBSTRS(1:N), * ) LHIST
+      
+      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_emissions_menu:51' )
+      READ( SUBSTRS(1:N), * ) HISTYR
+      CALL SET_HISTYR( HISTYR )
+
+      ! Separator line
+      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_emissions_menu:52' )
+!eml]
 
       !=================================================================
       ! Error check logical flags
@@ -1884,6 +1898,14 @@
          LEDGARCO       = .TRUE.
          LEDGARSOx      = .TRUE.
       ENDIF
+
+![eml
+      ! If using historical emissions, make sure EDGAR NOx/SO2 are used
+      IF ( LHIST ) THEN
+         LEDGARNOx = .TRUE.
+         LEDGARSOx = .TRUE.
+      ENDIF
+!eml]
 
       !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
       !%%% Bug fix!  If LEMEPSHIP is turned on but LEMEP is turned %%%
@@ -2091,23 +2113,6 @@
          ! GEOS-5 warnings & error traps
          !--------------------------------
 
-#endif
-
-#if defined( GEOS_3   )
-
-         !--------------------------------
-         ! GEOS-3 error trap
-         !--------------------------------
-
-         IF ( LOTDLOC ) THEN
-            MSG = 'Lightning rescaling not available for GEOS-3.  ' //
-     &            'Use one of the parameterizations without '       //
-     &            'redist/scale.  CTH performs best on GEOS-4 and ' //
-     &            'GEOS-5, though MFLUX and PRECON were developed ' //
-     &            ' w/ GEOS-STRAT met fields.'
-            CALL ERROR_STOP( MSG, LOC )
-         ENDIF
-
 #elif defined( GCAP     )
 
          !--------------------------------
@@ -2181,6 +2186,9 @@
       WRITE( 6, 100     ) 'Use COOKE for OC/BC N.-Amer.: ', LCOOKE
       WRITE( 6, 100     ) 'Turn on AVHRR-derived LAI?  : ', LAVHRRLAI
       WRITE( 6, 100     ) 'Turn on MODIS-derived LAI?  : ', LMODISLAI
+![eml
+      WRITE( 6, 100     ) 'Turn on historical emiss?   : ', LHIST
+!eml]
 
       ! FORMAT statements
  100  FORMAT( A, L5 )
@@ -5498,6 +5506,11 @@
       USE LOGICAL_MOD, ONLY : LBFCH4,  LBMCH4,  LWETL,  LRICE
       USE LOGICAL_MOD, ONLY : LOTANT,  LSOABS,  LOTNAT
       USE LOGICAL_MOD, ONLY : LCH4BUD
+      ! kjw
+      USE LOGICAL_MOD, ONLY : LBIOMASS
+      USE LOGICAL_MOD, ONLY : LGFED3BB, L8DAYBB3
+      USE LOGICAL_MOD, ONLY : LGFED2BB, L8DAYBB
+      USE ERROR_MOD,   ONLY : ERROR_STOP
  
 #     include "define.h"             ! C-preprocessor switches
 ! 
@@ -5512,6 +5525,7 @@
 !
       INTEGER            :: N
       CHARACTER(LEN=255) :: SUBSTRS(MAXDIM)
+      CHARACTER(LEN=255) :: MSG
 
       !=================================================================
       ! READ_CH4_MENU begins here!
@@ -5585,6 +5599,22 @@
       WRITE( 6, 100     ) 'Use Wetlands emis?    : ', LWETL
       WRITE( 6, 100     ) 'Use Soil Absorption?  : ', LSOABS
       WRITE( 6, 100     ) 'Use Ot. Natural emis? : ', LOTNAT
+
+      ! Error check (kjw)
+      IF ( LBMCH4 .EQ. .TRUE. ) THEN
+         IF ( ( LBIOMASS .EQ. .FALSE. ) .OR. 
+     &        ( LGFED2BB .EQ. .FALSE.  .AND. LGFED3BB .EQ. .FALSE. .AND.  
+     &         L8DAYBB  .EQ. .FALSE.  .AND. L8DAYBB3 .EQ. .FALSE.)) THEN
+            MSG = 'Specify which biomass burning emissions to use.'  //
+     &            '  If necessary, read CH4_MENU after EMISSIONS_MENU.'
+            print*,'LBIOMASS = ',LBIOMASS
+            print*,'LGFED3BB = ',LGFED3BB
+            print*,'LGFED2BB = ',LGFED2BB
+            print*,'L8DAYBB  = ',L8DAYBB
+            print*,'L8DAYBB3 = ',L8DAYBB3
+            CALL ERROR_STOP( MSG, 'READ_CH4_MENU ("input_mod.F")' )
+         ENDIF
+      ENDIF
 
       ! FORMAT statements
  100  FORMAT( A, L5  )
@@ -5719,6 +5749,7 @@
 !  27 Aug 2010 - R. Yantosca -  Now check MERRA directory
 !  08 Feb 2012 - R. Yantosca - Now check GEOS-5.7.x directory
 !  09 Feb 2012 - R. Yantosca - Rewrote USE statements for clarity
+!  28 Feb 2012 - R. Yantosca - Removed support for GEOS-3
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -5770,22 +5801,7 @@
          CALL CHECK_DIRECTORY( TPBC_DIR_CH )
       ENDIF
 
-
-#if   defined( GEOS_3 )
-
-      ! Check GEOS-3 met field directory (starting date)
-      DIR = GEOS_3_DIR
-      CALL EXPAND_DATE( DIR, NYMDb, 000000 )
-      DIR = TRIM( DATA_DIR ) // TRIM( DIR )
-      CALL CHECK_DIRECTORY( DIR )
-
-      ! Check GEOS-3 met field directory (ending date)
-      DIR = GEOS_3_DIR
-      CALL EXPAND_DATE( DIR, NYMDe, 000000 )
-      DIR = TRIM( DATA_DIR ) // TRIM( DIR )
-      CALL CHECK_DIRECTORY( DIR )
-
-#elif defined( GEOS_4 )
+#if   defined( GEOS_4 )
 
       ! Check GEOS-4 met field directory (starting date)
       DIR = GEOS_4_DIR
@@ -6214,7 +6230,6 @@
       DATA_DIR_1x1 = ''
       GEOS_1_DIR   = ''
       GEOS_S_DIR   = ''
-      GEOS_3_DIR   = ''
       GEOS_4_DIR   = ''
       TEMP_DIR     = ''
       RUN_DIR      = ''

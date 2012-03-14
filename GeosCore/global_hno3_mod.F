@@ -33,6 +33,7 @@
 !  (6 ) Now read files from "sulfate_sim_200508/offline" dir (bmy, 8/1/05)
 !  (7 ) Now make sure all USE statements are USE, ONLY (bmy, 10/3/05)
 !   8 Feb 2012 - R. Yantosca - Add modifications for GEOS_5.7.x
+!  28 Feb 2012 - R. Yantosca - Removed support for GEOS-3
 !******************************************************************************
 !     
       IMPLICIT NONE
@@ -129,6 +130,7 @@
 !  (8 ) Renamed GRID30LEV to GRIDREDUCED (bmy, 2/7/07)
 !  (9 ) Treat MERRA in the same way as for GEOS-5 (bmy, 8/13/10)
 !  08 Feb 2012 - R. Yantosca - Treat GEOS-5.7.x in the same way as MERRA
+!  28 Feb 2012 - R. Yantosca - Removed support for GEOS-3
 !******************************************************************************
 !
       ! References to F90 modules
@@ -179,7 +181,7 @@
       ! Assume "generic" year 1985 (TAU0 = [0, 744, ... 8016])
       XTAU = GET_TAU0( THISMONTH, 1, 1985 )
 
-#if   defined( GEOS_3 ) || defined( GEOS_4 ) || defined( GEOS_5 ) || defined( MERRA ) || defined( GEOS_57 )
+#if   defined( GEOS_4 ) || defined( GEOS_5 ) || defined( MERRA ) || defined( GEOS_57 )
 
       !-------------------------------------------------------
       ! GEOS-3 / GEOS-4 data come from the 30 level model run

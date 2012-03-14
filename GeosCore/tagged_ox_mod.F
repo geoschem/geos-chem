@@ -48,6 +48,7 @@
 !  (12) Now use LD65 instead of LLTROP everywhere (phs, 11/17/08)
 !  (13) Updates for LINOZ (dbj, jliu, bmy, 10/26/09)
 !  19 Nov 2010 - R. Yantosca - Added ProTeX headers
+!  28 Feb 2012 - R. Yantosca - Removed support for GEOS-3
 !  01 Mar 2012 - R. Yantosca - Now reference new grid_mod.F90
 !EOP
 !------------------------------------------------------------------------------
@@ -339,6 +340,7 @@
 !  (7 ) Now use LLTROP instead of LLTROP_FIX (bmy, 12/4/07)
 !  (8 ) Now use LD65 instead of LLTROP (phs, 11/17/08)
 !  08 Dec 2009 - R. Yantosca - Added ProTeX headers
+!  28 Feb 2012 - R. Yantosca - Removed support for GEOS-3
 !  01 Mar 2012 - R. Yantosca - Now use GET_XMID(I,J,L) from grid_mod.F90
 !  01 Mar 2012 - R. Yantosca - Now use GET_YMID(I,J,L) from grid_mod.F90
 !EOP
@@ -381,13 +383,10 @@
 
       ! PBLTOP is the model level at ~ 750 hPa
       ! MTTOP  is the model level at ~ 350 hPa
-#if   defined( GEOS_3 ) 
-      PBLTOP = 10
-      MTTOP  = 16
-#elif defined( GEOS_4 )
+#if   defined( GEOS_4 )
       PBLTOP = 5
       MTTOP  = 10
-#elif defined( GEOS_5 )
+#elif defined( GEOS_5 ) || defined( MERRA ) || defined( GEOS_57 )
       PBLTOP = 5
       MTTOP  = 10
 #endif

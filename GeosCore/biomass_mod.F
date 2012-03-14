@@ -36,6 +36,10 @@
 !
 !   CO2        24         1          [molec CO2 /cm2/s]
 !
+!  ----------------------------------------------------------------------------
+!  FOR CH4 SIMULATION ONLY (kjw)
+!
+!   CH4        25         1          [molec CH4 /cm2/s]!
 !
 !  Module Variables:
 !  ============================================================================
@@ -84,6 +88,7 @@
 !  (6 ) Now always scale biomass CO regardless of inventory (jaf, mak, 11/6/09)
 !  (7 ) Updates to remove all hard-wired order. (fp, 2/2/10)
 !  (8)  Updates to include GFED3 (psk, 1/5/11)
+!  14 Feb 2012 - M. Payer    - Add modifications for CH4 simulation (K. Wecht)
 !******************************************************************************
 !
       USE CMN_SIZE_MOD               ! Size parameters
@@ -445,6 +450,7 @@
       USE TRACERID_MOD, ONLY : IDBSO2,  IDBNH3
       USE TRACERID_MOD, ONLY : IDBBC,   IDBOC
       USE TRACERID_MOD, ONLY : IDBCO2
+      USE TRACERID_MOD, ONLY : IDBCH4   !kjw
       USE TRACERID_MOD, ONLY : IDBBENZ, IDBTOLU, IDBXYLE
       ! Add dicarbonyls
       USE TRACERID_MOD, ONLY : IDBGLYX, IDBMGLY, IDBC2H4
@@ -458,6 +464,8 @@
       USE TRACERID_MOD, ONLY : IDTBENZ, IDTTOLU, IDTXYLE
       USE TRACERID_MOD, ONLY : IDTHAC, IDTGLYC, IDTMGLY, IDTGLYX
       USE TRACERID_MOD, ONLY : IDTC2H2, IDTC2H4
+
+      USE TRACER_MOD,   ONLY : ITS_A_CH4_SIM ! (mpayer, 2/14/12)
 
       !=================================================================
       ! SET_BIOTRCE begins here!
@@ -573,6 +581,14 @@
       IDBCO2            = NBIOTRCE + 1
       BIOTRCE( IDBCO2 ) = 1
       BIOBGAS( IDBCO2 ) = .FALSE.
+
+      ! For CH4 (kjw)
+      !  IDBCH4 is placed at end after all full chem tracers and CO2
+      IF ( ITS_A_CH4_SIM() ) THEN
+         IDBCH4            = NBIOTRCE + 1
+         BIOTRCE( IDBCH4 ) = 1
+         BIOBGAS( IDBCH4 ) = .FALSE.  ! not treated in setemis
+      ENDIF
 
       ! Error check 
       ! NBIOTRCE should be less than or equal to NBIOMAX (hotp 7/31/09)
@@ -704,7 +720,6 @@
       ! CLEANUP_BIOMASS begins here!
       !=================================================================
       IF ( ALLOCATED( BIOMASS ) ) DEALLOCATE( BIOMASS )
-
       ! Return to calling program
       END SUBROUTINE CLEANUP_BIOMASS
 

@@ -1268,19 +1268,20 @@
 !
 ! !USES:
 !
-      USE BPCH2_MOD,     ONLY : GET_TAU0,   READ_BPCH2
-      USE BPCH2_MOD,     ONLY : GET_NAME_EXT_2D, GET_RES_EXT
-      USE DIRECTORY_MOD, ONLY : DATA_DIR
-      USE LOGICAL_MOD,   ONLY : LGENFF
-      USE TRANSFER_MOD,  ONLY : TRANSFER_2D
-      USE TIME_MOD,      ONLY : GET_YEAR, ITS_A_LEAPYEAR
-      USE GRID_MOD,      ONLY : GET_AREA_CM2
+      USE BPCH2_MOD,      ONLY : GET_TAU0,        READ_BPCH2
+      USE BPCH2_MOD,      ONLY : GET_NAME_EXT_2D, GET_RES_EXT
+      USE DIRECTORY_MOD,  ONLY : DATA_DIR,        DATA_DIR_1x1  !(lmw,05/16/11)
+      USE LOGICAL_MOD,    ONLY : LGENFF
+      USE TRANSFER_MOD,   ONLY : TRANSFER_2D
+      USE TIME_MOD,       ONLY : GET_YEAR,        ITS_A_LEAPYEAR
+      USE GRID_MOD,       ONLY : GET_AREA_CM2
+      USE REGRID_1x1_MOD, ONLY : DO_REGRID_1x1    !(lmw,05/16/11)
 
       USE CMN_SIZE_MOD      ! Size parameters
 !
 ! !INPUT PARAMETERS:
 !
-      REAL*8, INTENT(INOUT)  :: EMFOSS(IIPAR,JJPAR)  ! Fuel to be scaled
+      REAL*8, INTENT(INOUT)   :: EMFOSS(IIPAR,JJPAR)  ! Fuel to be scaled
 
 ! !REVISION HISTORY: 
 !  18 May 2010 - R. Nassar, D. Jones - Initial version 
@@ -1288,6 +1289,8 @@
 !                                      monthly_v2010 directories, which
 !                                      contain updated CO2 data from CDIAC
 !  01 Mar 2012 - R. Yantosca - Now use GET_AREA_CM2(I,J,L) from grid_mod.F90
+!   5 Mar 2012 - M. Payer            - Add modifications for nested-grid CO2
+!                                      (Yuxuan Wang, lmw)
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -1303,6 +1306,9 @@
       REAL*8             :: DOM_COR(8), REG_SUM(8), AV_SCLFAC(8)
       REAL*8             :: ANN_FOSS(IIPAR,JJPAR)
       REAL*8             :: ANN_FOSS_NOAREA(IIPAR,JJPAR)
+      REAL*8             :: GEOS_1x1(I1x1,J1x1,1)    !(lmw,05/16/11)
+      REAL*8             :: GEOS_GRID(IIPAR,JJPAR,1)
+      REAL*4             :: REGION_1x1(360,181)
 
       !-----------------------------------------------------------------
       ! Read Generic or annual fossil fuel emissions file
@@ -1352,13 +1358,33 @@
       ! Read region/continent file 
       !-----------------------------------------------------------------
       TAU      = GET_TAU0( 1, 1, 2004 )
-      FILENAME = TRIM( DATA_DIR )                          //  
-     &           'CO2_201003/Aviation_Regions.'            // 
-     &           GET_NAME_EXT_2D() // '.' // GET_RES_EXT()
+!------------------------------------------------------------------------------
+! Prior to 3/5/12:
+! Apply on-line regridding of 1x1 data to all resolutions (Y.Wang, lmw, mpayer)
+!      FILENAME = TRIM( DATA_DIR )                          //  
+!     &           'CO2_201003/Aviation_Regions.'            // 
+!     &           GET_NAME_EXT_2D() // '.' // GET_RES_EXT()
+!------------------------------------------------------------------------------
+      FILENAME = TRIM( DATA_DIR_1x1)   //   
+     &           'CO2_201003/Aviation_Regions.geos.1x1'
 
-      CALL READ_BPCH2( FILENAME, 'CO2-SRCE', 1, 
-     &                 TAU,       IIPAR,     JJPAR,     
-     &                 1,         REGION,    QUIET=.TRUE. )
+!------------------------------------------------------------------------------
+! Prior to 3/5/12:
+!       CALL READ_BPCH2( FILENAME, 'CO2-SRCE', 1, 
+!     &                  TAU,       IIPAR,     JJPAR,     
+!     &                  1,         REGION,    QUIET=.TRUE. )
+!------------------------------------------------------------------------------
+      CALL READ_BPCH2( FILENAME, 'CO2-SRCE',  1, 
+     &                 TAU,       360,        181,     
+     &                 1,         REGION_1x1, QUIET=.TRUE. )
+
+      ! Cast to REAL*8 before regridding
+      GEOS_1x1(:,:,1) = REGION_1x1(:,:)
+
+      ! Regrid from GEOS 1x1 --> current model resolution
+      CALL DO_REGRID_1x1( 1, 'molec/cm2/s', GEOS_1x1, GEOS_GRID)
+  
+      REGION(:,:) = GEOS_GRID(:,:,1)      !(lmw,05/16/11)
 
       !-----------------------------------------------------------------
       ! Sum fossil fuel CO2 (as C) in each region
@@ -1379,10 +1405,10 @@
       ! Mean domestic CO2 from aviation for 2000-2004 in TgC/yr 
       ! from Kim et al. (2005). See report or bpch for exact regions.
       !-----------------------------------------------------------------
-      DOM_COR(1) =  49.6   ! North America                             
-      DOM_COR(2) =   2.8        ! South America                             
-      DOM_COR(3) =   1.8   ! Eastern Europe                          
-      DOM_COR(4) =  12.3   ! Western Europe     
+      DOM_COR(1) =  49.6  ! North America                             
+      DOM_COR(2) =   2.8  ! South America                             
+      DOM_COR(3) =   1.8  ! Eastern Europe                          
+      DOM_COR(4) =  12.3  ! Western Europe     
       DOM_COR(5) =  16.1  ! Asia     
       DOM_COR(6) =   1.0  ! Africa                   
       DOM_COR(7) =   2.2  ! MiddleEast 
@@ -1537,10 +1563,11 @@
 ! !USES:
 !
       ! References to F90 modules
-      USE BPCH2_MOD,     ONLY : GET_NAME_EXT_2D, GET_RES_EXT
-      USE BPCH2_MOD,     ONLY : GET_TAU0,        READ_BPCH2
-      USE DIRECTORY_MOD, ONLY : DATA_DIR
-      USE TRANSFER_MOD,  ONLY : TRANSFER_2D
+      USE BPCH2_MOD,      ONLY : GET_NAME_EXT_2D, GET_RES_EXT
+      USE BPCH2_MOD,      ONLY : GET_TAU0,        READ_BPCH2
+      USE DIRECTORY_MOD,  ONLY : DATA_DIR,        DATA_DIR_1x1  !(lmw,05/16/11)
+      USE TRANSFER_MOD,   ONLY : TRANSFER_2D
+      USE REGRID_1x1_MOD, ONLY : DO_REGRID_1x1    !(lmw,05/16/11)
 
       USE CMN_SIZE_MOD      ! Size parameters
 !
@@ -1551,7 +1578,9 @@
 ! 
 ! !REVISION HISTORY: 
 !  16 Aug 2005 - P. Suntharalingam   - Initial version
-!  18 May 2010 - R. Nassar, D. Jones - Updated 
+!  18 May 2010 - R. Nassar, D. Jones - Updated
+!   5 Mar 2012 - M. Payer            - Add modifications for nested-grid CO2
+!                                      (Yuxuan Wang, lmw)
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -1559,8 +1588,11 @@
 ! !LOCAL VARIABLES:
 !
       INTEGER                :: I, J
-      REAL*4                 :: ARRAY(IIPAR,JJPAR,1)
+      !REAL*4                 :: ARRAY(IIPAR,JJPAR,1)
+      REAL*4                 :: ARRAY(360,181,1)
       REAL*8                 :: TAU
+      REAL*8                 :: GEOS_GRID(IIPAR,JJPAR,1)
+      REAL*8                 :: GEOS_1x1(I1x1,J1x1,1)     !(lmw,05/16/11)
       CHARACTER(LEN=255)     :: FILENAME
 
       !=================================================================
@@ -1569,10 +1601,17 @@
       ! "Burn in fields" not included (this is already in GFED)
       !=================================================================
 
-      FILENAME = TRIM( DATA_DIR )                 // 
-     &          'CO2_201003/biofuel/biofuel_CO2.' // 
-     &           GET_NAME_EXT_2D() // '.'         // 
-     &           GET_RES_EXT()     // '-1995'
+!------------------------------------------------------------------------------
+! Prior to 3/5/12:
+! Apply on-line regridding of 1x1 data to all resolutions (Y.Wang, lmw, mpayer)
+!      FILENAME = TRIM( DATA_DIR )                 // 
+!     &          'CO2_201003/biofuel/biofuel_CO2.' // 
+!     &           GET_NAME_EXT_2D() // '.'         // 
+!     &           GET_RES_EXT()     // '-1995'
+!------------------------------------------------------------------------------
+      FILENAME = TRIM( DATA_DIR_1x1)               //  
+     &           'CO2_201003/biofuel/biofuel_CO2.' // 
+     &            GET_NAME_EXT_2D()                // '.1x1-1995'
 
       ! Echo info
       WRITE( 6, 100 ) TRIM( FILENAME )
@@ -1580,14 +1619,28 @@
 
 !     TAU = GET_TAU0( 1, 1, 1985 )
       TAU = GET_TAU0( 1, 1, 1995 )
-
+      
       ! Read biofuel CO2 emissions [molec/cm2/s]
+!------------------------------------------------------------------------------
+! Prior to 3/5/12:
+!      CALL READ_BPCH2( FILENAME, 'CO2-SRCE', 5, 
+!     &                 TAU,       IIPAR,     JJPAR,     
+!     &                 1,         ARRAY,     QUIET=.TRUE. )
+!
+!      ! Cast from REAL*4 to REAL*8 and resize
+!      CALL TRANSFER_2D( ARRAY(:,:,1), EMBIOFUELCO2 )
+!------------------------------------------------------------------------------
       CALL READ_BPCH2( FILENAME, 'CO2-SRCE', 5, 
-     &                 TAU,       IIPAR,     JJPAR,     
+     &                 TAU,       360,       181,     
      &                 1,         ARRAY,     QUIET=.TRUE. )
+     
+      ! Cast to REAL*8 before regridding
+      GEOS_1x1(:,:,1) = ARRAY(:,:,1)
+      
+      ! Regrid from GEOS 1x1 --> current model resolution
+      CALL DO_REGRID_1x1( 1, 'molec/cm2/s', GEOS_1x1, GEOS_GRID)
 
-      ! Cast from REAL*4 to REAL*8 and resize
-      CALL TRANSFER_2D( ARRAY(:,:,1), EMBIOFUELCO2 )
+      EMBIOFUELCO2(:,:) = GEOS_GRID(:,:,1)   !(lmw,05/16/11)
 
       END SUBROUTINE READ_ANNUAL_BIOFUELCO2
 !EOC
@@ -2101,12 +2154,12 @@
 ! !USES:
 !
       ! References to F90 modules
-      USE BPCH2_MOD,      ONLY : GET_NAME_EXT_2D, GET_RES_EXT
-      USE BPCH2_MOD,      ONLY : GET_TAU0,        READ_BPCH2
-      USE DIRECTORY_MOD,  ONLY : DATA_DIR, DATA_DIR_1x1
-      USE FILE_MOD,       ONLY : IU_FILE, IOERROR
+      USE BPCH2_MOD,      ONLY : GET_NAME_EXT_2D,   GET_RES_EXT
+      USE BPCH2_MOD,      ONLY : GET_TAU0,          READ_BPCH2
+      USE DIRECTORY_MOD,  ONLY : DATA_DIR,          DATA_DIR_1x1
+      USE FILE_MOD,       ONLY : IU_FILE,           IOERROR
       USE TRANSFER_MOD,   ONLY : TRANSFER_2D
-      USE LOGICAL_MOD,    ONLY : LBIONETORIG,   LBIONETCLIM
+      USE LOGICAL_MOD,    ONLY : LBIONETORIG,       LBIONETCLIM
       USE REGRID_1x1_MOD, ONLY : DO_REGRID_G2G_1x1, DO_REGRID_1x1 
 
       USE CMN_SIZE_MOD       ! Size parameters
@@ -2126,6 +2179,8 @@
 ! !REVISION HISTORY: 
 !  16 Aug 2005 - P. Suntharalingam   - Initial version
 !  18 May 2010 - R. Nassar, D. Jones - Updated 
+!   5 Mar 2012 - M. Payer            - Add modifications for nested-grid CO2
+!                                      (Yuxuan Wang, lmw)
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -2133,7 +2188,8 @@
 ! !LOCAL VARIABLES:
 !
       INTEGER                :: I, J, IOS
-      REAL*4                 :: ARRAY(IIPAR,JJPAR,1)
+      !REAL*4                 :: ARRAY(IIPAR,JJPAR,1)
+      REAL*4                 :: ARRAY(I1x1,J1x1,1)  !(lmw,05/16/11)
       REAL*4                 :: ARRAY_1x1(360,180,1)
       REAL*8                 :: GEN_1x1(360,180,1)
       REAL*8                 :: GEOS_1x1(I1x1,J1x1,1)
@@ -2190,20 +2246,40 @@
          TAU = GET_TAU0( 1, 1, 2000 )
 
          ! Filename
-         FILENAME = TRIM( DATA_DIR )                           //
-     &              'CO2_201003/Net_terrestrial_exch_5.29Pg.'  //
-     &              GET_NAME_EXT_2D() // '.' // GET_RES_EXT() 
+!------------------------------------------------------------------------------
+! Prior to 3/5/12:
+! Apply on-line regridding of 1x1 data to all resolutions (Y.Wang, lmw, mpayer)
+!         FILENAME = TRIM( DATA_DIR )                           //
+!     &              'CO2_201003/Net_terrestrial_exch_5.29Pg.'  //
+!     &              GET_NAME_EXT_2D() // '.' // GET_RES_EXT() 
+!------------------------------------------------------------------------------
+         FILENAME = TRIM( DATA_DIR_1x1 )  //  
+     &              'CO2_201003/Net_terrestrial_exch_5.29Pg.geos.1x1'
 	
          ! Echo info
          WRITE( 6, 100 ) TRIM( FILENAME )
 
          ! Read Net Terrestrial CO2 Exchange [molec/cm2/s]
+!------------------------------------------------------------------------------
+! Prior to 3/5/12:
+!         CALL READ_BPCH2( FILENAME, 'CO2-SRCE', 6, 
+!     &                    TAU,       IIPAR,     JJPAR,     
+!     &                    1,         ARRAY,     QUIET=.TRUE. )
+! 
+!         ! Cast to REAL*8 and resize if necessary
+!         CALL TRANSFER_2D( ARRAY(:,:,1), EMBIONETCO2 )
+!------------------------------------------------------------------------------
          CALL READ_BPCH2( FILENAME, 'CO2-SRCE', 6, 
-     &                 TAU,       IIPAR,     JJPAR,     
-     &                 1,         ARRAY,     QUIET=.TRUE. )
+     &                    TAU,       360,       181,     
+     &                    1,         ARRAY,     QUIET=.TRUE. )
 
-         ! Cast to REAL*8 and resize if necessary
-         CALL TRANSFER_2D( ARRAY(:,:,1), EMBIONETCO2 )
+         ! Cast to REAL*8 before regridding
+         GEOS_1x1(:,:,1) = ARRAY(:,:,1)
+
+         ! Regrid from GEOS 1x1 --> current model resolution
+         CALL DO_REGRID_1x1( 1, 'molec/cm2/s', GEOS_1x1, GEOS_GRID)
+         
+         EMBIONETCO2(:,:) = GEOS_GRID(:,:,1)  !(lmw,05/16/11)     
 
 !-----------------------------------------------------------------------
 ! Commented block of code below is nearly equivalent to the block of code 
