@@ -48,7 +48,7 @@
       USE EDGAR_MOD,           ONLY : READ_AROMATICS_05x0666
       USE EDGAR_MOD,           ONLY : READ_C2H4_05x0666
       USE EDGAR_MOD,           ONLY : READ_C2H2_05x0666
-     ! SOAupdate: For gas phase NAP chemistry (hotp, mpayer, 7/27/11)
+      ! SOAupdate: For gas phase NAP chemistry (hotp, mpayer, 7/27/11)
       USE TRACERID_MOD,        ONLY : IDENAP
       USE LOGICAL_MOD,         ONLY : NAPEMISS
 

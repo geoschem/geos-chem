@@ -959,7 +959,7 @@
       USE LAI_MOD,     ONLY : ISOLAI, MISOLAI, PMISOLAI, DAYS_BTW_M
       USE LOGICAL_MOD, ONLY : LPECCA 
 
-#     include "CMN_SIZE"    ! Size parameters
+      USE CMN_SIZE_MOD      ! Size parameters
 !
 ! !INPUT PARAMETERS: 
 !
@@ -1192,7 +1192,7 @@
 !
       USE LAI_MOD,    ONLY : ISOLAI, MISOLAI, PMISOLAI, DAYS_BTW_M
 
-#     include "CMN_SIZE"   ! Size parameters
+      USE CMN_SIZE_MOD     ! Size parameters
 !
 ! !INPUT PARAMETERS: 
 !
@@ -3173,7 +3173,7 @@
       USE DIRECTORY_MOD,  ONLY : DATA_DIR_1x1
       USE REGRID_1x1_MOD, ONLY : DO_REGRID_1x1
 
-#     include "CMN_SIZE"       ! Size parameters
+      USE CMN_SIZE_MOD         ! Size parameters
 !
 ! !REMARKS:
 !  %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -3347,8 +3347,9 @@
       USE TIME_MOD,    ONLY : GET_TS_EMIS
       USE GRID_MOD,    ONLY : GET_AREA_M2
 
+      USE CMN_SIZE_MOD      ! Size parameters
+
 #     include "EF_MGN20"       ! EF_MGN20.EXT from MEGAN CDP, EFs
-#     include "CMN_SIZE"       ! Size parameters
 !
 ! !REMARKS:
 !  %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%

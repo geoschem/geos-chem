@@ -95,7 +95,7 @@
       REAL*4  :: EMISTXYLE(IIPAR,JJPAR    )
       REAL*4  :: EMISTC2H4(IIPAR,JJPAR    )
       REAL*4  :: EMISTC2H2(IIPAR,JJPAR    )
-      REAL*4  :: EMISTNAP (IGLOB,JGLOB    )
+      REAL*4  :: EMISTNAP (IIPAR,JJPAR    )
 
 
       ! Time of day and weekday/weekend scale factors

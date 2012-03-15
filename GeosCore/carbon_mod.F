@@ -7532,9 +7532,9 @@ c
       USE LOGICAL_MOD,  ONLY   : LPRT
       USE TROPOPAUSE_MOD, ONLY : ITS_IN_THE_STRAT
 
-#     include "CMN_SIZE"     ! Size parameters
-#     include "CMN_O3"       ! XNUMOL
-#     include "CMN_DIAG"     ! ND44
+      USE CMN_SIZE_MOD         ! Size parameters
+      USE CMN_O3_MOD           ! XNUMOL
+      USE CMN_DIAG_MOD         ! ND44
 
       ! Local variables
       LOGICAL, SAVE :: FIRST = .TRUE.
@@ -9001,7 +9001,7 @@ c
       USE TRACERID_MOD, ONLY : IDTASOAN, IDTASOA1, IDTASOA2, IDTASOA3
       USE TRACERID_MOD, ONLY : IDTASOG1, IDTASOG2, IDTASOG3
 
-#     include "CMN_SIZE"     ! Size parameters
+      USE CMN_SIZE_MOD       ! Size parameters
 
       ! Arguments
       INTEGER, INTENT(IN)  :: I, J, L
@@ -9135,8 +9135,8 @@ c
       USE TRACERID_MOD, ONLY : IDTASOAN, IDTASOA1, IDTASOA2, IDTASOA3
       USE TRACERID_MOD, ONLY : IDTASOG1, IDTASOG2, IDTASOG3
 
-#     include "CMN_SIZE"    ! Size parameters
-#     include "CMN_DIAG"    ! ND44, ND07, LD07
+      USE CMN_SIZE_MOD       ! Size parameters
+      USE CMN_DIAG_MOD       ! ND44, ND07, LD07
       
       ! Arguments
       INTEGER, INTENT(IN)  :: I, J, L
@@ -9582,8 +9582,8 @@ c
       USE TRACERID_MOD,  ONLY : IDTNAP
       USE TIME_MOD,      ONLY : GET_TS_CHEM, GET_MONTH
 
-#     include "CMN_SIZE"      ! Size parameters
-#     include "CMN_DIAG"      ! ND07 info
+      USE CMN_SIZE_MOD        ! Size parameters
+      USE CMN_DIAG_MOD        ! ND07 info
 
       ! Arguments
       INTEGER, INTENT(IN)    :: I, J, L
@@ -9951,7 +9951,7 @@ c
       USE DAO_MOD,       ONLY : PARDF, PARDR
       USE MEGANUT_MOD,   ONLY : XLTMMP
 
-#     include "CMN_SIZE"      ! Size parameters
+      USE CMN_SIZE_MOD        ! Size parameters
 
       ! Local variables
       LOGICAL, SAVE          :: FIRST = .TRUE.
@@ -10693,7 +10693,7 @@ c
       USE TRACERID_MOD, ONLY : IDTISOA1, IDTISOA2, IDTISOA3
       USE TRACERID_MOD, ONLY : IDTISOG1, IDTISOG2, IDTISOG3
 
-#     include "CMN_SIZE"     ! Size parameters
+      USE CMN_SIZE_MOD       ! Size parameters
 
       ! Local variables
       INTEGER :: I, J, L, NOX, JHC, JSV
@@ -10806,24 +10806,24 @@ c
 !******************************************************************************
 
       ! References to modules
-      USE TRACER_MOD,   ONLY : STT
-      USE TRACERID_MOD, ONLY : IDTASOAN
-      USE TRACERID_MOD, ONLY : IDTASOA1, IDTASOA2, IDTASOA3
-      USE TRACERID_MOD, ONLY : IDTASOG1, IDTASOG2, IDTASOG3
-      USE TRACERID_MOD, ONLY : IDTPOA1, IDTPOG1
-      USE TRACERID_MOD, ONLY : IDTPOA2, IDTPOG2
-      USE TRACERID_MOD, ONLY : IDTOPOA1, IDTOPOG1
-      USE TRACERID_MOD, ONLY : IDTOPOA2, IDTOPOG2
-      USE TRACERID_MOD, ONLY : IDTTSOA1, IDTTSOA2, IDTTSOA3
-      USE TRACERID_MOD, ONLY : IDTTSOG1, IDTTSOG2, IDTTSOG3
-      USE TRACERID_MOD, ONLY : IDTTSOA0, IDTTSOG0
-      USE TRACERID_MOD, ONLY : IDTISOA1, IDTISOA2, IDTISOA3
-      USE TRACERID_MOD, ONLY : IDTISOG1, IDTISOG2, IDTISOG3
+      USE TRACER_MOD,     ONLY : STT
+      USE TRACERID_MOD,   ONLY : IDTASOAN
+      USE TRACERID_MOD,   ONLY : IDTASOA1, IDTASOA2, IDTASOA3
+      USE TRACERID_MOD,   ONLY : IDTASOG1, IDTASOG2, IDTASOG3
+      USE TRACERID_MOD,   ONLY : IDTPOA1, IDTPOG1
+      USE TRACERID_MOD,   ONLY : IDTPOA2, IDTPOG2
+      USE TRACERID_MOD,   ONLY : IDTOPOA1, IDTOPOG1
+      USE TRACERID_MOD,   ONLY : IDTOPOA2, IDTOPOG2
+      USE TRACERID_MOD,   ONLY : IDTTSOA1, IDTTSOA2, IDTTSOA3
+      USE TRACERID_MOD,   ONLY : IDTTSOG1, IDTTSOG2, IDTTSOG3
+      USE TRACERID_MOD,   ONLY : IDTTSOA0, IDTTSOG0
+      USE TRACERID_MOD,   ONLY : IDTISOA1, IDTISOA2, IDTISOA3
+      USE TRACERID_MOD,   ONLY : IDTISOG1, IDTISOG2, IDTISOG3
       ! for debug:
       USE TROPOPAUSE_MOD, ONLY : ITS_IN_THE_STRAT
       USE LOGICAL_MOD,    ONLY : LPRT
 
-#     include "CMN_SIZE"     ! Size parameters
+      USE CMN_SIZE_MOD         ! Size parameters
 
       ! Local variables
       INTEGER :: I, J, L, NOX, JHC, JSV, IPR
@@ -11322,7 +11322,7 @@ c
       USE TRACER_MOD,    ONLY : ITS_A_FULLCHEM_SIM
       USE TRACERID_MOD,  ONLY : IDNO
 
-#     include "CMN_SIZE"  ! Size parameters
+      USE CMN_SIZE_MOD        ! Size parameters
 
       ! Arguments
       INTEGER, INTENT(IN) :: I, J, L
@@ -11393,7 +11393,7 @@ c
       USE TRACER_MOD,    ONLY : ITS_A_FULLCHEM_SIM
       USE TRACERID_MOD,  ONLY : IDHO2
 
-#     include "CMN_SIZE"  ! Size parameters
+      USE CMN_SIZE_MOD        ! Size parameters
 
       ! Arguments
       INTEGER, INTENT(IN) :: I, J, L
@@ -11470,8 +11470,8 @@ c
       USE TRACER_MOD,    ONLY : XNUMOL,             TRACER_COEFF
       USE TRACERID_MOD,  ONLY : IDTISOP
 
-#     include "CMN_SIZE"      ! Size parameters
-#     include "comode.h"      ! ILISOPNO3  
+      USE CMN_SIZE_MOD        ! Size parameters
+      USE COMODE_LOOP_MOD     ! ILISOPNO3
 
       ! Arguments
       INTEGER, INTENT(IN)    :: I, J, L

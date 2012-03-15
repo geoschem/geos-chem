@@ -3985,27 +3985,27 @@
       ! SOAupdate (hotp, mpayer, 7/5/11)
       !------------------------------
       ELSE IF ( N == IDTMTPA ) THEN
-         AER      = .FALSE. 
-         WASHFRAC = WASHFRAC_LIQ_GAS( 0.049d0, 0.d0, PP, DT, 
-     &                                F,       DZ,   TK, K_WASH )
+         KIN      = .FALSE. 
+         CALL WASHFRAC_LIQ_GAS( 0.049d0, 0.d0, PP,       DT,  F,
+     &                          DZ,      TK,   WASHFRAC, KIN  )
 
       !-------------------------------
       ! MTPO (liquid & gas)
       ! SOAupdate (hotp, mpayer, 7/5/11)
       !-------------------------------
       ELSE IF ( N == IDTMTPO ) THEN
-         AER      = .FALSE.
-         WASHFRAC = WASHFRAC_LIQ_GAS( 0.049d0, 0.d0, PP, DT, 
-     &                                F,     DZ,   TK, K_WASH )
+         KIN      = .FALSE.
+         CALL WASHFRAC_LIQ_GAS( 0.049d0, 0.d0, PP,       DT,  F, 
+     &                          DZ,      TK,   WASHFRAC, KIN  )
 
       !------------------------------------
       ! POG (treated as relatively hydrophobic)
       ! SOAupdate (hotp, mpayer, 7/5/11)
       !------------------------------------
       ELSE IF ( N == IDTPOG1 .or. N == IDTPOG2 ) THEN
-         AER      = .FALSE.
-         WASHFRAC = WASHFRAC_LIQ_GAS( 9.5d0, -4.70d3, PP, DT, 
-     &                                F,      DZ,      TK, K_WASH )
+         KIN      = .FALSE.
+         CALL WASHFRAC_LIQ_GAS( 9.5d0, -4.70d3, PP,       DT,  F,
+     &                          DZ,    TK,      WASHFRAC, KIN  )
 
       !---------------------------------
       ! SOG (liq & gas phases)
