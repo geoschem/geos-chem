@@ -3348,8 +3348,7 @@
       USE GRID_MOD,    ONLY : GET_AREA_M2
 
       USE CMN_SIZE_MOD      ! Size parameters
-
-#     include "EF_MGN20"       ! EF_MGN20.EXT from MEGAN CDP, EFs
+      USE EF_MGN20_MOD      ! EF_MGN20.EXT from MEGAN CDP, EFs
 !
 ! !REMARKS:
 !  %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%

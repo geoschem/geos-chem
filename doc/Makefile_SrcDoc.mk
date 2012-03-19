@@ -47,6 +47,7 @@
 #                              and sulfate_mod
 #  07 Feb 2012 - M. Payer    - Added paranox_mod, diag59_mod
 #  08 Feb 2012 - R. Yantosca - Added geos57_read_mod.F90
+#  19 Mar 2012 - M. Payer    - Added EF_MGN20_mod
 #EOP
 #------------------------------------------------------------------------------
 #BOC
@@ -59,6 +60,7 @@ $(HDR)/define.h                      \
 $(HDR)/CMN_SIZE_mod.F                \
 $(HDR)/CMN_DIAG_mod.F                \
 $(HDR)/cmn_fj_mod.F                  \
+$(HDR)/EF_MGN20_mod.F                \
 $(HDR)/jv_cmn_mod.F                  \
 $(HDR)/jv_mie_mod.F                  \
 $(CORE)/main.F                       \

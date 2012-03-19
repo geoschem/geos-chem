@@ -1,34 +1,42 @@
-C=======================================================================
-C  EF_MGN20.EXT
-C  This include file contains EF for 20 MEGAN species.  The values in
-C  this file have to be in the same order as in SPC_MGN.EXT
-C
-C  MEGAN v2.02
-C  INPUT version 210
-C
-C  History:
-C  Who          When       What
-C  ---------------------------------------------------------------------
-C  Tan          12/02/06 - Creates this file
-C  Guenther A.  08/11/07 - Creates this file again with updates and move
-C                          from v2.0 to v2.02
-C  Havala Pye   07/26/10 - EFs now double precision (replace REAL with
-C                          REAL*8) (part of SOA + semivolatile POA)
-C=======================================================================
+!------------------------------------------------------------------------------
+!          Harvard University Atmospheric Chemistry Modeling Group            !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !MODULE: ef_mgn20_mod
+!
+! !DESCRIPTION: Module EF\_MGN20 contains emission factors for 20 MEGAN
+!  species.  The values in this file have to be in the same order as in
+!  SPC\_MGN.EXT
+!\\
+!\\
+! !INTERFACE: 
+!
+      MODULE EF_MGN20_MOD
+!
+! !USES:
+!
+      IMPLICIT NONE
+      PUBLIC
+!
+! !DEFINED PARAMETERS: 
+!
+      ! Number of categories
+      INTEGER, PARAMETER :: N_EF_SPC = 20
+!
+! !PUBLIC DATA MEMBERS:
+!
+      ! Speciation factor for broadleaf
+      REAL*8 ::      EF_BT( N_EF_SPC )
 
-      INTEGER        N_EF_SPC
-      PARAMETER     (N_EF_SPC = 20)           ! Number of categories
+      ! Speciation factor for needleleaf
+      REAL*8 ::      EF_NT( N_EF_SPC )
 
-      !REAL           EF_BT( N_EF_SPC )        ! speciation factor for
-      REAL*8 ::      EF_BT( N_EF_SPC )        ! speciation factor for
-                                              ! broadleaf
-      REAL*8 ::      EF_NT( N_EF_SPC )        ! speciation factor for
-                                              ! needleleaf
-      REAL*8 ::      EF_SB( N_EF_SPC )        ! speciation factor for
-                                              ! shrub
-      REAL*8 ::      EF_HB( N_EF_SPC )        ! speciation factor for
-                                              ! herb/grass/crop
+      ! Speciation factor for shrub
+      REAL*8 ::      EF_SB( N_EF_SPC )
 
+      ! Speciation factor for herb/grass/crop
+      REAL*8 ::      EF_HB( N_EF_SPC )
 
       DATA    EF_BT(  1)  , EF_NT(  1)  , EF_SB(  1)  , EF_HB(  1)
      &      / 13000.00    , 2000.00     , 11000.00    , 400.00       /
@@ -70,4 +78,21 @@ C=======================================================================
      &      / 70.00       , 70.00       , 70.00       , 70.00        /
       DATA    EF_BT( 20)  , EF_NT( 20)  , EF_SB( 20)  , EF_HB( 20)
      &      / 1000.0      , 1000.0      , 1000.0      , 1000.0       /
-
+!
+! !REMARKS:
+!  MEGAN v2.02
+!  INPUT version 210
+!
+! !REVISION HISTORY:
+!  Tan          12/02/06 - Creates this file
+!  Guenther A.  08/11/07 - Creates this file again with updates and move
+!                          from v2.0 to v2.02
+!  Havala Pye   07/26/10 - EFs now double precision (replace REAL with
+!                          REAL*8) (part of SOA + semivolatile POA)
+!  15 Mar 2012 - M. Payer  - Converted to module from include file.
+!                            Added ProTeX headers.
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+      END MODULE EF_MGN20_MOD
+!EOC

@@ -35,6 +35,8 @@
 #
 # !REVISION HISTORY: 
 #  23 Aug 2011 - M. Long     - Initial version
+#  19 Mar 2012 - M. Payer    - Added EF_MGN20_mod for SOA + semivolatile POA
+#                              simulation (H. Pye)
 #EOP
 #------------------------------------------------------------------------------
 #BOC
@@ -111,6 +113,8 @@ CMN_SIZE_mod.o      : CMN_SIZE_mod.F
 CMN_VEL_mod.o       : CMN_VEL_mod.F          CMN_SIZE_mod.o
 
 CMN_mod.o           : CMN_mod.F              CMN_SIZE_mod.o
+
+EF_MGN20_mod.o      : EF_MGN20_mod.F
 
 cmn_fj_mod.o        : cmn_fj_mod.F           CMN_SIZE_mod.o
 
