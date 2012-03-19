@@ -17,7 +17,7 @@
       PROGRAM GEOS_CHEM
 !
 ! !USES:
-!f
+!
       !-----------------------------------------------------------------
       ! Basic GEOS-Chem modules
       !-----------------------------------------------------------------
@@ -106,10 +106,6 @@
       USE A6_READ_MOD           ! For reading A6 data (all other met)
       USE I6_READ_MOD           ! For reading I6 data (all other met)
 
-      ! for testing
-      use cmn_dep_mod
-      use cmn_vel_mod
-
       IMPLICIT NONE
 
 #     include "define.h"
@@ -171,6 +167,8 @@
 !                              to pre-compute the overhead O3 columsn for
 !                              FAST-J photolysis.  This removes code from
 !                              "set_prof.F" to facilitate the GI model.
+!  19 Mar 2012 - R. Yantosca - Now call routines from olson_landmap_mod.F90
+!                              to read the Olson land map data
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -1036,6 +1034,8 @@
 !  13 Aug 2010 - R. Yantosca - Added extra output
 !  02 Feb 2012 - R. Yantosca - Added output for GEOS-5.7.x met fields
 !  28 Feb 2012 - R. Yantosca - Removed support for GEOS-3
+!  19 Mar 2012 - R. Yantosca - Now echo info for 0.25 x 0.3125 runs
+!  19 Mar 2012 - R. Yantosca - Now echo info if ISORROPIA is turned off
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -1045,31 +1045,31 @@
       ! For system time stamp
       CHARACTER(LEN=16) :: STAMP
 
-      !-----------------------
+      !-------------------------------------------------
       ! Print resolution info
-      !-----------------------
+      !-------------------------------------------------
 #if   defined( GRID4x5   )
       WRITE( 6, '(a)' )                   
-     &    REPEAT( '*', 13 )                                      //
-     &    '   S T A R T I N G   4 x 5   G E O S--C H E M   '     //
+     &    REPEAT( '*', 13 )                                          //
+     &    '   S T A R T I N G   4 x 5   G E O S--C H E M   '         //
      &    REPEAT( '*', 13 )
 
 #elif defined( GRID2x25  )
       WRITE( 6, '(a)' ) 
-     &    REPEAT( '*', 13 )                                      // 
-     &    '   S T A R T I N G   2 x 2.5   G E O S--C H E M   '   //
+     &    REPEAT( '*', 13 )                                          // 
+     &    '   S T A R T I N G   2 x 2.5   G E O S--C H E M   '       //
      &    REPEAT( '*', 13 )
 
 #elif defined( GRID1x125 )
       WRITE( 6, '(a)' ) 
-     &    REPEAT( '*', 13 )                                      // 
-     &    '   S T A R T I N G   1 x 1.25   G E O S--C H E M   '  //
+     &    REPEAT( '*', 13 )                                          // 
+     &    '   S T A R T I N G   1 x 1.25   G E O S--C H E M   '      //
      &    REPEAT( '*', 13 )
 
 #elif defined( GRID1x1 )
       WRITE( 6, '(a)' ) 
-     &    REPEAT( '*', 13 )                                      // 
-     &    '   S T A R T I N G   1 x 1   G E O S -- C H E M   '     //
+     &    REPEAT( '*', 13 )                                          // 
+     &    '   S T A R T I N G   1 x 1   G E O S -- C H E M   '       //
      &    REPEAT( '*', 13 )
 
 #elif defined( GRID05x0666 )
@@ -1078,11 +1078,17 @@
      &    '   S T A R T I N G   0.5 x 0.666   G E O S -- C H E M   ' //
      &    REPEAT( '*', 13 )
 
+#elif defined( GRID025x03125 )
+      WRITE( 6, '(a)' ) 
+     &    REPEAT( '*', 13 )                                          // 
+     &    '   S T A R T I N G  0.25 x 0.3125  G E O S -- C H E M   ' //
+     &    REPEAT( '*', 13 )
+
 #endif
 
-      !-----------------------
+      !-------------------------------------------------
       ! Print machine info
-      !-----------------------
+      !-------------------------------------------------
 
       ! Get the proper FORMAT statement for the model being used
 #if   defined( COMPAQ    )
@@ -1100,9 +1106,9 @@
       WRITE( 6, '(a)' ) 'Created w/ Sun/SPARC compiler'
 #endif
 
-      !-----------------------
+      !-------------------------------------------------
       ! Print met field info
-      !-----------------------
+      !-------------------------------------------------
 #if   defined( GEOS_4 )
       WRITE( 6, '(a)' ) 'Using GMAO GEOS-4 met fields'
 #elif defined( GEOS_5 )
@@ -1115,9 +1121,19 @@
       WRITE( 6, '(a)' ) 'Using GCAP/GISS met fields'
 #endif
 
-      !-----------------------
+      !-------------------------------------------------
+      ! Print msg if ISORROPIA is turned off for debug
+      !-------------------------------------------------
+#if   defined( NO_ISORROPIA ) 
+      WRITE( 6, '(/,a)' ) REPEAT( '=', 30 )
+      WRITE( 6, '(a  )' ) 'ISORROPIA TURNED OFF FOR TESTING!!!'
+      WRITE( 6, '(a,/)' ) REPEAT( '=', 30 )
+#endif
+      
+
+      !-------------------------------------------------
       ! System time stamp
-      !-----------------------
+      !-------------------------------------------------
       STAMP = SYSTEM_TIMESTAMP()
       WRITE( 6, 100 ) STAMP
  100  FORMAT( /, '===> SIMULATION START TIME: ', a, ' <===', / )

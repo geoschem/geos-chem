@@ -136,15 +136,15 @@
 !#define GEOS_57       'GEOS_57'
 
 !----- Grid sizes -----
-#define NESTED_CH     'NESTED_CH'
+!#define NESTED_CH     'NESTED_CH'
 !#define NESTED_NA     'NESTED_NA'
 !#define NESTED_EU     'NESTED_EU'
 !#define GRID025x03125 'GRID025x03125'
-#define GRID05x0666   'GRID05x0666'
+!#define GRID05x0666   'GRID05x0666'
 !#define GRID1x1       'GRID1x1'
 !#define GRID1x125     'GRID1x125'
 !#define GRID2x25      'GRID2x25'
-!#define GRID4x5       'GRID4x5'
+#define GRID4x5       'GRID4x5'
 #define GRIDREDUCED   'GRIDREDUCED'
 
 !----- Compilers -----

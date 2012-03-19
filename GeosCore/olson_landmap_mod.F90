@@ -19,7 +19,7 @@ MODULE Olson_LandMap_Mod
 ! !USES:
 !
   USE CMN_GCTM_MOD                                  ! Physical constants
-  USE CMN_DEP_MOD                                   ! IREG, ILAND, IUSE
+  USE CMN_DEP_MOD                                   ! IREG, ILAND, IUSE, FRCLND
   USE CMN_SIZE_MOD                                  ! Size parameters
   USE CMN_VEL_MOD                                   ! IJREG, IJLAND, IJUSE
   USE DIRECTORY_MOD                                 ! Disk directory paths   
@@ -39,7 +39,7 @@ MODULE Olson_LandMap_Mod
 
 ! !REMARKS:
 !  The Olson land types are as follows:
-!  ------------------------------------------------------------------
+!  ============================================================================
 !   0 Water              25 Deciduous           50 Desert
 !   1 Urban              26 Deciduous           51 Desert
 !   2 Shrub              27 Conifer             52 Steppe
@@ -66,8 +66,25 @@ MODULE Olson_LandMap_Mod
 !  23 Conifer/Deciduous  48 scrub               73 water
 !  24 Deciduous/Conifer  49 scrub
 !                                                                             .
+!  Arrays computed by olson_landmap_mod.F90
+!  ============================================================================
+!  (1) IREG   (in CMN_DEP_mod.F): # of Olson land types per G-C grid box 
+!  (2) ILAND  (in CMN_DEP_mod.F): List of all Olson land types in G-C grid box
+!  (3) IUSE   (in CMN_DEP_mod.F): Coverage of each Olson type in G-C grid box
+!  (4) IJREG  (in CMN_VEL_mod.F): Same as IREG,  but has 1 spatial dimension
+!  (5) IJLAND (in CMN_VEL_mod.F): Same as ILAND, but has 1 spatial dimension
+!  (6) IJUSE  (in CMN_VEL_mod.F): Same as IUSE,  but has 1 spatial dimension
+!  (7) FRCLND (in CMN_DEP_mod.F): Fraction of G-C grid box that is not water
+!                                                                             .
+!  NOTES: 
+!  (1) IREG,  ILAND,  IUSE  are used by the soil NOx emissions routines
+!  (2) IJREG, IJLAND, IJUSE are used by the drydep routines (legacy code)
+!  (3) FRCLND               is  used by various GEOS-Chem routines
+!  
+!                                                                             .
 ! !REVISION HISTORY:
 !  13 Mar 2012 - R. Yantosca - Initial version
+!  19 Mar 2012 - R. Yantosca - Minor last-minute bug fixes
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -114,6 +131,10 @@ CONTAINS
 ! 
 ! !REVISION HISTORY: 
 !  13 Mar 2012 - R. Yantosca - Initial version
+!  19 Mar 2012 - R. Yantosca - Reorder ILAND, IUSE, IJLAND, IJUSE to be
+!                              consistent w/ the leaf area indices
+!  19 Mar 2012 - R. Yantosca - DCompute the FRCLND array (from CMN_DEP_mod.F)
+
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -122,12 +143,12 @@ CONTAINS
 !
     ! Scalars
     LOGICAL :: isGlobal
-    INTEGER :: I,         J,        II,       III
-    INTEGER :: JJ,        T,        N,        type
-    INTEGER :: IJLOOP,    sumIuse   
-    REAL*8  :: xedge_w,   xedge_e,  yedge_s,  yedge_n
-    REAL*8  :: xedgeC_w,  xedgeC_e, yedgeC_s, yedgeC_n
-    REAL*8  :: dxdy,      dxdy4,    mapWt,    area
+    INTEGER :: I,        J,         II,       III
+    INTEGER :: JJ,       T,         N,        type
+    INTEGER :: IJLOOP,   uniqOlson, sumIuse
+    REAL*8  :: xedge_w,  xedge_e,   yedge_s,  yedge_n
+    REAL*8  :: xedgeC_w, xedgeC_e,  yedgeC_s, yedgeC_n
+    REAL*8  :: dxdy,     dxdy4,     mapWt,    area
     REAL*8  :: sumArea
     
     ! Generic arrays
@@ -145,11 +166,12 @@ CONTAINS
     REAL*8  :: latedgeC(          JJPAR+1      )    ! Lat edges [degrees]
     INTEGER :: ctOlson (IIPAR,    JJPAR,   0:73)    ! Count of land types/box
     REAL*8  :: frOlson (IIPAR,    JJPAR,   0:73)    ! Frac of land types/box
-    
+    INTEGER :: ordOlson(IIPAR,    JJPAR,   0:73)
+
     !======================================================================
     ! NATIVE GRID parameters (i.e. 0.5 x 0.5 "GENERIC")
     !======================================================================
-    
+
     ! Be lazy, construct lon edges from lon centers
     DO I = 1, I_OLSON
        lonedge(I)      = DBLE( lon(I) ) - ( D_LON * 0.5d0 )
@@ -178,24 +200,25 @@ CONTAINS
     !======================================================================
     ctOlson            = 0
     frOlson            = 0d0
+    ordOlson           = -999
     IREG               = 0
     ILAND              = 0
     IUSE               = 0
     IJREG              = 0
     IJLAND             = 0
     IJUSE              = 0
+    FRCLND             = 1000e0
     isGlobal           = ( .not. ITS_A_NESTED_GRID() )
 
-    !=====================================================================
-    ! Find all of the Olson land types at 0.5 x 0.5 "GENERIC" grid 
-    ! resolution that fit into the "coarse" grid box
-    !=====================================================================
-    !$OMP PARALLEL DO                                                       &
-    !$OMP DEFAULT( SHARED )                                                 &
-    !$OMP PRIVATE( I,     J,       xedgeC_w, yedgeC_s, xedgeC_e, yedgeC_n ) &
-    !$OMP PRIVATE( dxdy4, sumArea, JJ,       III,      dxdy,     mapWt    ) &
-    !$OMP PRIVATE( II,    xedge_w, yedge_s,  xedge_e,  yedge_n,  area     ) &
-    !$OMP PRIVATE( type,  N,       maxIuse,  T,        sumIUse,  IJLOOP   )
+    !======================================================================
+    ! Loop over all GEOS-CHEM GRID BOXES and initialize variables
+    !======================================================================
+    !$OMP PARALLEL DO                                                        &
+    !$OMP DEFAULT( SHARED )                                                  &
+    !$OMP PRIVATE( I,     J,       xedgeC_w, yedgeC_s, xedgeC_e, yedgeC_n  ) &
+    !$OMP PRIVATE( dxdy4, sumArea, JJ,       III,      dxdy,     mapWt     ) &
+    !$OMP PRIVATE( II,    xedge_w, yedge_s,  xedge_e,  yedge_n,  area      ) &
+    !$OMP PRIVATE( type,  maxIuse, T,        sumIUse,  IJLOOP,   uniqOlson )
     DO J = 1, JJPAR
     DO I = 1, IIPAR
 
@@ -211,7 +234,13 @@ CONTAINS
        ! Zero the summing array
        sumArea  = 0d0
 
-       ! Loop over the NATIVE GRID boxes
+       ! Reset counter of olson land types found per box
+       uniqOlson = 0d0
+
+       !===================================================================
+       ! Find each 0.5 x 0.5 NATIVE GRID BOX that fits into the GEOS-CHEM
+       ! GRID BOX.  Keep track of the land types and coverage fractions.
+       !===================================================================
        DO JJ  = 1, J_OLSON
        DO III = 1, I_OLSON
 
@@ -228,7 +257,7 @@ CONTAINS
           ENDIF
           
           ! Edges of this NATIVE GRID box
-          XEDGE_W    = lonedge(II  )                ! W edge
+          xedge_w    = lonedge(II  )                ! W edge
           yedge_s    = latedge(JJ  )                ! S edge
           xedge_e    = lonedge(II+1)                ! E edge
           yedge_n    = latedge(JJ+1)                ! N edge
@@ -270,48 +299,55 @@ CONTAINS
           ! Add area covered by this olson type
           frOlson(I,J,type) = frOlson(I,J,type) + area
 
+          ! Preserve ordering for backwards-compatibility w/ LAI data
+          IF ( ordOlson(I,J,type) < 0 ) THEN 
+
+             ! Counter of land types we have encountered for the first time
+             uniqOlson          = uniqOlson + 1
+
+             ! Record the order in which this land type was first encountered
+             ordOlson(I,J,type) = uniqOlson
+
+          ENDIF
        ENDDO
        ENDDO
          
        !===================================================================
-       ! Construct GEOS-Chem type output arrays 
-       ! from the binning that we just have completed
+       ! Construct GEOS-Chem type output arrays from the binning that we 
+       ! just have completed.  Preserve the ordering from "vegtype.global"
+       ! for backwards compatibility w/ existing code.
        !===================================================================
      
        ! Land type index for ILAND & IUSE
-       N       = 0
        maxIUse = 0
 
        ! Loop over all land types
        DO T = 0, 73
-          
-          ! Normalize the land type coverage to the sum of the surface areas
-          frOlson(I,J,T)    =  &
+
+          ! Normalize the land type coverage 
+          frOlson(I,J,T)                =  &
                INT( ( ( frOlson(I,J,T) / sumArea ) * 1e3 ) + 0.5e0 )
-        
+ 
           ! If land type T is represented in this box ...
-          IF ( ctOlson(I,J,T) > 0 ) THEN 
-             
-             ! Increment counter
-             N              = N + 1
-               
+          IF ( ctOlson(I,J,T) > 0 .and. ordOlson(I,J,T) > 0 ) THEN 
+ 
              ! Increment the count of Olson types in the box
-             IREG(I,J)      = IREG(I,J) + 1
+             IREG(I,J)                  = IREG(I,J) + 1
              
              ! Save land type into ILAND
-             ILAND(I,J,N)   = T
+             ILAND(I,J,ordOlson(I,J,T)) = T
              
              ! Save the fraction (in mils) of this land type
-             IUSE(I,J,N)    = frOlson(I,J,T)
+             IUSE(I,J,ordOlson(I,J,T))  = frOlson(I,J,T)
 
           ENDIF
        ENDDO
 
        ! Land type with the largest coverage in the GEOS-CHEM GRID BOX
-       maxIuse              = MAXLOC( IUSE(I,J,1:N) )
+       maxIuse              = MAXLOC( IUSE( I, J, 1:IREG(I,J) ) )
 
        ! Sum of all land types in the GEOS-CHEM GRID BOX (should be 1000)
-       sumIUse              = SUM( IUSE(I,J,1:N) )
+       sumIUse              = SUM( IUSE( I, J, 1:IREG(I,J) ) )
 
        ! Make sure everything adds up to 1000.  If not, then adjust
        ! the land type w/ the largest coverage accordingly.
@@ -323,14 +359,28 @@ CONTAINS
        ! 1-D grid box index for IJ* arrays
        IJLOOP               = ( (J-1) * IIPAR ) + I
 
-       ! Copy IREG into IJREG
+       ! Copy IREG into IJREG (for drydep)
        IJREG(IJLOOP)        = IREG(I,J) 
 
-       ! Copy ILAND into IJLAND and IUSE into IJUSE
+       ! Loop over land types in the GEOS-CHEM GRID BOX
        DO T = 1, IREG(I,J)
+
+          ! Copy ILAND into IJLAND (for drydep)
           IJLAND(IJLOOP,T)  = ILAND(I,J,T)
+
+          ! Copy IUSE into IJUSE (for drydep)
           IJUSE (IJLOOP,T)  = IUSE (I,J,T)
+
+          ! If the current Olson land type is water (type 0),
+          ! subtract the coverage fraction (IUSE) from FRCLND.
+          IF ( ILAND(I,J,T) == 0 ) THEN
+             FRCLND(I,J) = FRCLND(I,J) - IUSE(I,J,T)
+          ENDIF
        ENDDO
+
+       ! Normalize FRCLND into the range of 0-1
+       ! NOTE: Use REAL*4 for backwards compatibility w/ existing code!
+       FRCLND(I,J) = FRCLND(I,J) / 1000e0
 
     ENDDO
     ENDDO
@@ -367,15 +417,9 @@ CONTAINS
 !  Assumes that you have:
 !  (1) A netCDF library (either v3 or v4) installed on your system
 !  (2) The NcdfUtilities package (from Bob Yantosca) source code
-!                                                                             .
-!  Although this routine was generated automatically, some further
-!  hand-editing may be required (i.e. to  specify the size of parameters, 
-!  and/or to assign values to variables.  Also, you can decide how to handle
-!  the variable attributes (or delete calls for reading attributes that you
-!  do not need).
 !
 ! !REVISION HISTORY:
-!  30 Jan 2012 - R. Yantosca - Initial version
+!  13 Mar 2012 - R. Yantosca - Initial version
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -401,9 +445,11 @@ CONTAINS
     ! Open and read data from the netCDF file
     !======================================================================
 
-    ! Open netCDF file
+    ! Pick file name
     nc_file =  TRIM( DATA_DIR_1x1 ) // &
-               'Olson_Land_Map_201203/Olson_Land_Map.05x05.generic.nc'
+                'Olson_Land_Map_201203/Olson_1992_Land_Map.05x05.generic.nc'
+
+    ! Open file for read
     CALL Ncop_Rd( fId, TRIM(nc_file) )
      
     !----------------------------------------
