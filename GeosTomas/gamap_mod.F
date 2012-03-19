@@ -1461,6 +1461,10 @@
 !  24 Jan 2012 - M. Payer    - Change scale factors for Rn-Pb-Be simulation so
 !                              units are in mBq/SCM
 !  08 Feb 2012 - R. Yantosca - Treat GEOS-5.7.x in the same way as MERRA
+!  19 Mar 2012 - M. Payer    - Remove ACETdl and ACETgr from ND11 diagnostic.
+!                              Acetone from dry leaf matter and grasses is now
+!                              included in the direct emissions (ACETbg).
+!                              (E. Fischer)
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -2236,7 +2240,7 @@
       IF ( ND11 > 0 ) THEN
 
          ! Number of tracers
-         NTRAC(11) = 7
+         NTRAC(11) = 5
 
          ! Loop over tracers
          DO T = 1, NTRAC(11)
@@ -2253,15 +2257,9 @@
                   NAME (T,11) = 'ACETbg'
                   FNAME(T,11) = 'ACET from direct emissions'
                CASE( 4 )
-                  NAME (T,11) = 'ACETdl'
-                  FNAME(T,11) = 'ACET from dry leaf matter'
-               CASE( 5 )
-                  NAME (T,11) = 'ACETgr'
-                  FNAME(T,11) = 'ACET from grasslands'
-               CASE( 6 )
                   NAME (T,11) = 'ACETop'
                   FNAME(T,11) = 'ACET from ocean source'
-               CASE( 7 )
+               CASE( 5 )
                   NAME (T,11) = 'ACETol'
                   FNAME(T,11) = 'ACET from ocean sink'
                CASE DEFAULT
