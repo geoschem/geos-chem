@@ -88,7 +88,6 @@
 !
       ! References to F90 modules
       USE ACETONE_MOD,       ONLY : EMISS_BIOACET, OCEAN_SOURCE_ACET
-      USE ACETONE_MOD,       ONLY : READ_JO1D,     READ_RESP
       USE AIRCRAFT_NOX_MOD,  ONLY : AIREMISS
       USE BIOFUEL_MOD,       ONLY : BIOFUEL_BURN
       USE DAO_MOD,           ONLY : PARDF,         PARDR,     SUNCOS_MID       
@@ -382,20 +381,6 @@
 ! BIOGENIC ACETONE EMISSIONS
 !
                IF ( IDEACET /= 0 ) THEN
-
-                  ! Read monthly mean JO1D and leaf respiration values
-                  ! These will be stored internally in "acetone_mod.f"
-                  IF ( I==1 .and. J==1 ) THEN
-                     IF ( GET_MONTH() /= LASTMONTH ) THEN
-                        CALL READ_JO1D( GET_MONTH() )
-                        CALL READ_RESP( GET_MONTH() )
-                        LASTMONTH = GET_MONTH()
-                     ENDIF
-                  ENDIF
-
-                  ! Compute biogenic acetone emissions [atoms C/box/s]
-                 ! CALL EMISS_BIOACET( I,    J,    TMMP,  EMMO, 
-    ! &                                EMIS, EMMB, GRASS, BIO_ACET )
 
                   ! evf, edits to use MEGAN biogenic acetone emissions (5/25/2011)
                   ! Compute biogenic acetone emissions [atoms C/box/s]
