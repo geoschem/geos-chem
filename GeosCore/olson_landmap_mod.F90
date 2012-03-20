@@ -66,6 +66,7 @@ MODULE Olson_LandMap_Mod
 !  23 Conifer/Deciduous  48 scrub               73 water
 !  24 Deciduous/Conifer  49 scrub
 !                                                                             .
+!                                                                             .
 !  Arrays computed by olson_landmap_mod.F90
 !  ============================================================================
 !  (1) IREG   (in CMN_DEP_mod.F): # of Olson land types per G-C grid box 
@@ -80,8 +81,48 @@ MODULE Olson_LandMap_Mod
 !  (1) IREG,  ILAND,  IUSE  are used by the soil NOx emissions routines
 !  (2) IJREG, IJLAND, IJUSE are used by the drydep routines (legacy code)
 !  (3) FRCLND               is  used by various GEOS-Chem routines
-!  
 !                                                                             .
+!                                                                             .
+!  BUG IN THE OLD "rdland.F" FOR 2 X 2.5 DEGREE RESOLUTION
+!  ============================================================================
+!  This module ("olson_landmap_mod.F") replaces the old routine "rdland.F", 
+!  which previously read in the Olson landtype data from the ASCII format
+!  file named "vegtype.global".  There used to be a different "vegtype.global"
+!  file for each different horizontal grid resolution.
+!                                                                             .
+!  The "vegtype.global" stored the following quantities, such that values
+!  for a single grid box were saved on a single line:
+!                                                                             .
+!    I, J, IREG(I,J), ILAND(I,J,K), IUSE(I,J,K)  (where K=1,IREG(I,J))
+!                                                                             .
+!  Routine "rdland.F" read these quantities from "vegtype.global" assuming 
+!  there were 20 integer characters on a single line (i.e. using Fortran
+!  FORMAT '(20i4)').   However, ~ 12 lines of the 2 x 2.5 "vegtype.global"
+!  file contained more than 20 integer values.  This caused "rdland.F", 
+!  to read in the values from these lines improperly, which in turn caused
+!  the IREG, ILAND, IUSE, IJREG, IJLAND, IJUSE, and FRCLND arrays to be
+!  improperly initialized for the grid boxes corresponding to these
+!  lines in the "vegtype.global" file.
+!                                                                             .
+!  Bob Yantosca has validated that "olson_landmap_mod.F" returns results
+!  100% identical to the "vegtype.global" file.  Therefore, if you want
+!  to compare the output of  model simulations using "olson_landmap_mod.F" 
+!  the output of simulations using "rdland.F", you will see a slight 
+!  difference in the MCL lifetime and tracer concentrations.
+!                                                                             .
+!  If you need to run a GEOS-Chem simulation with an older version of the
+!  code using "rdland.F", then this bug may be corrected by changing the
+!  line of code:
+!                                                                             .
+!      101  FORMAT(20I4)
+!                                                                             .
+!  to:
+!                                                                             .
+!      101  FORMAT(25I4)
+!                                                                             .
+!  This is more or less a moot point, as "olson_landmap_mod.F" will be
+!  installed into GEOS-Chem v9-01-03 and higher versions.
+!
 ! !REVISION HISTORY:
 !  13 Mar 2012 - R. Yantosca - Initial version
 !  19 Mar 2012 - R. Yantosca - Minor last-minute bug fixes
@@ -332,7 +373,7 @@ CONTAINS
           IF ( ctOlson(I,J,T) > 0 .and. ordOlson(I,J,T) > 0 ) THEN 
  
              ! Increment the count of Olson types in the box
-             IREG(I,J)                  = IREG(I,J) + 1
+             IREG(I,LJ)                  = IREG(I,J) + 1
              
              ! Save land type into ILAND
              ILAND(I,J,ordOlson(I,J,T)) = T
