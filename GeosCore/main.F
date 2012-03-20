@@ -1125,12 +1125,11 @@
       ! Print msg if ISORROPIA is turned off for debug
       !-------------------------------------------------
 #if   defined( NO_ISORROPIA ) 
-      WRITE( 6, '(/,a)' ) REPEAT( '=', 30 )
-      WRITE( 6, '(a  )' ) 'ISORROPIA TURNED OFF FOR TESTING!!!'
-      WRITE( 6, '(a,/)' ) REPEAT( '=', 30 )
+      WRITE( 6, '(a)' ) REPEAT( '#', 39 )
+      WRITE( 6, '(a)' ) '# ISORROPIA TURNED OFF FOR TESTING!!! #'
+      WRITE( 6, '(a)' ) REPEAT( '#', 39 )
 #endif
       
-
       !-------------------------------------------------
       ! System time stamp
       !-------------------------------------------------
