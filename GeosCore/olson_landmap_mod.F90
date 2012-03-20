@@ -95,7 +95,7 @@ MODULE Olson_LandMap_Mod
 !                                                                             .
 !    I, J, IREG(I,J), ILAND(I,J,K), IUSE(I,J,K)  (where K=1,IREG(I,J))
 !                                                                             .
-!  Routine "rdland.F" read these quantities from "vegtype.global" assuming 
+!  Routine "rdland.F" reads these quantities from "vegtype.global" assuming 
 !  there were 20 integer characters on a single line (i.e. using Fortran
 !  FORMAT '(20i4)').   However, ~ 12 lines of the 2 x 2.5 "vegtype.global"
 !  file contained more than 20 integer values.  This caused "rdland.F", 
@@ -106,7 +106,7 @@ MODULE Olson_LandMap_Mod
 !                                                                             .
 !  Bob Yantosca has validated that "olson_landmap_mod.F" returns results
 !  100% identical to the "vegtype.global" file.  Therefore, if you want
-!  to compare the output of  model simulations using "olson_landmap_mod.F" 
+!  to compare the output of model simulations using "olson_landmap_mod.F" 
 !  the output of simulations using "rdland.F", you will see a slight 
 !  difference in the MCL lifetime and tracer concentrations.
 !                                                                             .
@@ -373,7 +373,7 @@ CONTAINS
           IF ( ctOlson(I,J,T) > 0 .and. ordOlson(I,J,T) > 0 ) THEN 
  
              ! Increment the count of Olson types in the box
-             IREG(I,LJ)                  = IREG(I,J) + 1
+             IREG(I,J)                  = IREG(I,J) + 1
              
              ! Save land type into ILAND
              ILAND(I,J,ordOlson(I,J,T)) = T
