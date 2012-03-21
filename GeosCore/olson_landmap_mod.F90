@@ -118,14 +118,28 @@ MODULE Olson_LandMap_Mod
 !                                                                             .
 !  to:
 !                                                                             .
+!     #if   defined( GRID2x25 )
 !      101  FORMAT(25I4)
+!     #else
+!      100  FORMAT(20I4)
+!     #endif
 !                                                                             .
 !  This is more or less a moot point, as "olson_landmap_mod.F" will be
 !  installed into GEOS-Chem v9-01-03 and higher versions.
+!                                                                             .
+!                                                                             .
+!  NOTE FOR 0.5 x 0.666 grids
+!  ============================================================================
+!  As of 21 Mar 2012, the IUSE values computed by "olson_landmap_mod.F90"
+!  may slightly differ from those specified in the "vegtype.global" files
+!  for 0.5 x 0.666 nested grids.  We attribute this to roundoff error caused
+!  by the the longitude spacing being an irrational number (0.6666666...). 
+!  We are still investigating.
 !
 ! !REVISION HISTORY:
 !  13 Mar 2012 - R. Yantosca - Initial version
 !  19 Mar 2012 - R. Yantosca - Minor last-minute bug fixes
+!  21 Mar 2012 - R. Yantosca - Now use REAL*4 for computations
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -174,8 +188,9 @@ CONTAINS
 !  13 Mar 2012 - R. Yantosca - Initial version
 !  19 Mar 2012 - R. Yantosca - Reorder ILAND, IUSE, IJLAND, IJUSE to be
 !                              consistent w/ the leaf area indices
-!  19 Mar 2012 - R. Yantosca - DCompute the FRCLND array (from CMN_DEP_mod.F)
-
+!  19 Mar 2012 - R. Yantosca - Compute the FRCLND array (from CMN_DEP_mod.F)
+!  21 Mar 2012 - R. Yantosca - Now use REAL*4 for computation, to reduce
+!                              roundoff errors at high-resolution
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -187,10 +202,10 @@ CONTAINS
     INTEGER :: I,        J,         II,       III
     INTEGER :: JJ,       T,         N,        type
     INTEGER :: IJLOOP,   uniqOlson, sumIuse
-    REAL*8  :: xedge_w,  xedge_e,   yedge_s,  yedge_n
-    REAL*8  :: xedgeC_w, xedgeC_e,  yedgeC_s, yedgeC_n
-    REAL*8  :: dxdy,     dxdy4,     mapWt,    area
-    REAL*8  :: sumArea
+    REAL*4  :: xedge_w,  xedge_e,   yedge_s,  yedge_n
+    REAL*4  :: xedgeC_w, xedgeC_e,  yedgeC_s, yedgeC_n
+    REAL*4  :: dxdy,     dxdy4,     mapWt,    area
+    REAL*4  :: sumArea
     
     ! Generic arrays
     INTEGER :: maxIuse(1)
@@ -198,15 +213,13 @@ CONTAINS
     ! Arrays on the Olson land map NATIVE GRID
     INTEGER :: indLon  (I_OLSON                )    ! Index array for lons
     INTEGER :: shiftLon(I_OLSON                )    ! Shifted indLon array
-    REAL*8  :: a_cm2   (          J_OLSON      )    ! Surface areas [cm2]
-    REAL*8  :: lonedge (I_OLSON+1              )    ! Lon edges   [degrees]
-    REAL*8  :: latedge (          J_OLSON+1    )    ! Lat edges   [degrees]
+    REAL*4  :: a_cm2   (          J_OLSON      )    ! Surface areas [cm2]
+    REAL*4  :: lonedge (I_OLSON+1              )    ! Lon edges   [degrees]
+    REAL*4  :: latedge (          J_OLSON+1    )    ! Lat edges   [degrees]
     
     ! Arrays on the GEOS-CHEM GRID                 
-    REAL*8  :: lonedgeC(IIPAR+1                )    ! Lon edges [degrees]
-    REAL*8  :: latedgeC(          JJPAR+1      )    ! Lat edges [degrees]
     INTEGER :: ctOlson (IIPAR,    JJPAR,   0:73)    ! Count of land types/box
-    REAL*8  :: frOlson (IIPAR,    JJPAR,   0:73)    ! Frac of land types/box
+    REAL*4  :: frOlson (IIPAR,    JJPAR,   0:73)    ! Frac of land types/box
     INTEGER :: ordOlson(IIPAR,    JJPAR,   0:73)
 
     !======================================================================
@@ -228,11 +241,11 @@ CONTAINS
     
     ! Surface area, native grid [m2]
     DO J = 1, J_OLSON
-       a_cm2(J)        = ( 0.5d0 * PI_180 ) * Re**2              &
+       a_cm2(J)        = ( D_LON * PI_180 ) * Re**2              &
                        * ( SIN( latedge(J+1) * PI_180 )          &
                        -   SIN( latedge(J  ) * PI_180 ) ) * 1d4
     ENDDO
- 
+
     ! Shift longitudes by 2 degrees to the west for date-line handling
     shiftLon           = CSHIFT( indLon, -20 )
 
@@ -240,7 +253,7 @@ CONTAINS
     ! Initialize variables outside of the main loop 
     !======================================================================
     ctOlson            = 0
-    frOlson            = 0d0
+    frOlson            = 0e0
     ordOlson           = -999
     IREG               = 0
     ILAND              = 0
@@ -264,19 +277,19 @@ CONTAINS
     DO I = 1, IIPAR
 
        ! Edges of this GEOS-CHEM GRID box
-       xedgeC_w = GET_XEDGE( I,   J,   1 )          ! W edge
-       yedgeC_s = GET_YEDGE( I,   J,   1 )          ! S edge
-       xedgeC_e = GET_XEDGE( I+1, J,   1 )          ! E edge
-       yedgeC_n = GET_YEDGE( I,   J+1, 1 )          ! N edge
+       xedgeC_w  = GET_XEDGE( I,   J,   1 )          ! W edge
+       yedgeC_s  = GET_YEDGE( I,   J,   1 )          ! S edge
+       xedgeC_e  = GET_XEDGE( I+1, J,   1 )          ! E edge
+       yedgeC_n  = GET_YEDGE( I,   J+1, 1 )          ! N edge
        
        ! "Area" of the GEOS-CHEM GRID box in degrees (DLON * DLAT)
-       dxdy4    = ( xedgeC_e - xedgeC_w ) * ( yedgeC_n - yedgeC_s )
+       dxdy4     = ( xedgeC_e - xedgeC_w ) * ( yedgeC_n - yedgeC_s )
      
        ! Zero the summing array
-       sumArea  = 0d0
+       sumArea   = 0e0
 
        ! Reset counter of olson land types found per box
-       uniqOlson = 0d0
+       uniqOlson = 0e0
 
        !===================================================================
        ! Find each 0.5 x 0.5 NATIVE GRID BOX that fits into the GEOS-CHEM
@@ -308,8 +321,8 @@ CONTAINS
           ! be in monotonically increasing order.  This will prevent
           ! erronous results from being returned by GET_MAP_WT below.
           IF ( isGlobal .and.  I == 1 .and. II >= shiftLon(1) ) THEN
-             xedge_w = xedge_w - 360d0
-             xedge_e = xedge_e - 360d0
+             xedge_w = xedge_w - 360e0
+             xedge_e = xedge_e - 360e0
           ENDIF
          
           ! "Area" of the GEOS-CHEM GRID BOX in degrees (DLON * DLAT)
@@ -323,14 +336,14 @@ CONTAINS
 
           ! Skip unless part (or all) of the NATIVE GRID BOX
           ! actually fits into the GEOS-CHEM GRID BOX
-          IF ( mapWt <= 0d0 .or. mapWt > 1d0 ) CYCLE
+          IF ( mapWt <= 0e0 .or. mapWt > 1e0 ) CYCLE
 
           ! Area of the NATIVE GRID BOX that lies w/in the GEOS-CHEM GRID BOX
           area              = a_cm2(JJ) * mapWt
            
           ! Keep a total of the area
           sumArea           = sumArea + area
-        
+
           ! Olson land map type on the NATIVE GRID
           type              = OLSON(II,JJ,1)
            
@@ -426,7 +439,18 @@ CONTAINS
     ENDDO
     ENDDO
     !$OMP END PARALLEL DO
-
+  
+!### Save code here for debugging
+!###    do j = 1, jjpar
+!###    do i = 1, iipar
+!###       write( 800, '(2i5, f13.6)' ) i, j, frclnd(i,j)
+!###       
+!###       write( 810, '(25i4)'       ) i, j, ireg(i,j),                 &
+!###                                    ( iland(i,j,t), t=1,ireg(i,j) ), &
+!###                                    ( iuse (i,j,t), t=1,ireg(i,j) )
+!###    enddo
+!###    enddo
+   
   END SUBROUTINE Compute_Olson_LandMap
 !EOC
 !------------------------------------------------------------------------------
@@ -558,17 +582,21 @@ CONTAINS
 !
 ! !INPUT PARAMETERS:
 !
-    REAL*8, INTENT(IN)  :: xedge_w,  xedge_e    ! Lon edges, fine grid
-    REAL*8, INTENT(IN)  :: xedgeC_w, xedgeC_e   ! Lon edges, coarse grid
-    REAL*8, INTENT(IN)  :: yedge_s,  yedge_n    ! Lat edges, fine grid
-    REAL*8, INTENT(IN)  :: yedgeC_s, yedgeC_n   ! Lat edges, coarse grid
-    REAL*8, INTENT(OUT) :: mapWt                ! Mapping weight
+    REAL*4, INTENT(IN)  :: xedge_w,  xedge_e    ! Lon edges, fine grid
+    REAL*4, INTENT(IN)  :: xedgeC_w, xedgeC_e   ! Lon edges, coarse grid
+    REAL*4, INTENT(IN)  :: yedge_s,  yedge_n    ! Lat edges, fine grid
+    REAL*4, INTENT(IN)  :: yedgeC_s, yedgeC_n   ! Lat edges, coarse grid
+    REAL*4, INTENT(OUT) :: mapWt                ! Mapping weight
 !
 ! !REMARKS:
 !  Follows the algorithm from GAMAP routine ctm_getweight.pro
 !
 ! !REVISION HISTORY:
 !  30 Jan 2012 - R. Yantosca - Initial version
+!  21 Mar 2012 - R. Yantosca - Typo: set xOverLap to zero if it is out of the
+!                              range of 0-1.  (We had set yOverLap=0 before)
+!  21 Mar 2012 - R. Yantosca - Now use REAL*4 for computations to avoid
+!                              roundoff errors at hi-res grids
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -595,18 +623,18 @@ CONTAINS
     ! 0.66667 x 0.5 to GENERIC 1 x 1.
     ! Maybe it fixes also the kludges below ?? ## need checking 
     if ( ox2 .lt. nx1 ) then
-       ox1 = ox1 + 360d0
-       ox2 = ox2 + 360d0
+       ox1 = ox1 + 360e0
+       ox2 = ox2 + 360e0
     endif
     
     if ( ox1 .gt. nx2 ) then
-       ox1 = ox1 - 360d0
-       ox2 = ox2 - 360d0
+       ox1 = ox1 - 360e0
+       ox2 = ox2 - 360e0
     endif
     
     ! convert to equivalent longitudes where necessary
-    if ( nx1 < -90. .AND. ox1 > 0. ) nx1 = nx1 + 360d0
-    if ( nx2 < -90. .AND. ox2 > 0. ) nx2 = nx2 + 360d0
+    if ( nx1 < -90. .AND. ox1 > 0. ) nx1 = nx1 + 360e0
+    if ( nx2 < -90. .AND. ox2 > 0. ) nx2 = nx2 + 360e0
     
     ! OV1 is the greater of OX1 and NX1
     ! OV2 is the lesser of OX2 and NX2
@@ -620,7 +648,7 @@ CONTAINS
     ! If XOVERLAP is not in the range of 0-1, then it means that the "fine" 
     ! grid box lies completely outside the "coarse" grid box (in longitude).
     ! Set to zero to avoid erroneous results in the calling routine.
-    if ( xOverLap < 0d0 .or. xOverLap > 1d0 ) yOverlap = 0d0
+    if ( xOverLap < 0e0 .or. xOverLap > 1e0 ) xOverlap = 0e0
     
     !======================================================================
     ! Get overlap in latitude
@@ -646,7 +674,7 @@ CONTAINS
     ! If YOVERLAP is not in the range of 0-1, then it means that the "fine" 
     ! grid box lies completely outside the "coarse" grid box (in latitude).
     ! Set to zero to avoid erroneous results in the calling routine.
-    if ( yOverLap < 0d0 .or. yOverLap > 1d0 ) yOverlap = 0d0
+    if ( yOverLap < 0e0 .or. yOverLap > 1e0 ) yOverlap = 0e0
 
     ! Resultant mapping weight
     mapWt = xOverLap * yOverLap
