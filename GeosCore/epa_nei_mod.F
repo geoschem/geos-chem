@@ -64,6 +64,8 @@
 !        (b) Hudman et al., 2008, Geophys. Res. Lett., 35, L04801, 
 !             doi:10.1029/2007GL032393
 !  (8 ) Now can read 0.5 x 0.667 nested grid emissions (amv, bmy, 12/18/09)
+!  22 Mar 2012 - M. Payer    - C2H6 emissions are too low. Use Yaping Xiao's
+!                              C2H6 emissions instead.
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -1617,6 +1619,7 @@
 
 !  07 Feb 2011 - R. Yantosca - Added ProTeX headers
 !  01 Mar 2012 - R. Yantosca - Now use GET_AREA_CM2(I,J,L) from grid_mod.F90
+!  22 Mar 2012 - M. Payer    - Remove print for C2H6 emissions.
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -1757,7 +1760,10 @@
       WRITE( 6, 100   ) 'PRPE', THISMONTH, WD_PRPE, ' C'
       WRITE( 6, 100   ) 'C3H8', THISMONTH, WD_C3H8, ' C'
       WRITE( 6, 100   ) 'CH2O', THISMONTH, WD_CH2O, '  '
-      WRITE( 6, 100   ) 'C2H6', THISMONTH, WD_C2H6, ' C'
+!------------------------------------------------------------------------------
+! Prior to 3/22/12:
+!      WRITE( 6, 100   ) 'C2H6', THISMONTH, WD_C2H6, ' C'
+!------------------------------------------------------------------------------
       WRITE( 6, 100   ) 'SO2 ', THISMONTH, WD_SO2,  '  '
       WRITE( 6, 100   ) 'SO4 ', THISMONTH, WD_SO4,  '  '
       WRITE( 6, 100   ) 'NH3 ', THISMONTH, WD_NH3,  '  '
@@ -1774,12 +1780,19 @@
       WRITE( 6, 110   ) 'PRPE', THISMONTH, WE_PRPE, ' C'
       WRITE( 6, 110   ) 'C3H8', THISMONTH, WE_C3H8, ' C'
       WRITE( 6, 110   ) 'CH2O', THISMONTH, WE_CH2O, '  '
-      WRITE( 6, 110   ) 'C2H6', THISMONTH, WE_C2H6, ' C'
+!------------------------------------------------------------------------------
+! Prior to 3/22/12:
+!      WRITE( 6, 110   ) 'C2H6', THISMONTH, WE_C2H6, ' C'
+!------------------------------------------------------------------------------
       WRITE( 6, 110   ) 'SO2 ', THISMONTH, WE_SO2,  '  '
       WRITE( 6, 110   ) 'SO4 ', THISMONTH, WE_SO4,  '  '
       WRITE( 6, 110   ) 'NH3 ', THISMONTH, WE_NH3,  '  '
  110  FORMAT( 'Total weekend avg anthro ', a4, ' for 1999/', 
      &         i2.2, ': ', f13.6, ' Tg', a2 )
+
+      WRITE( 6, '(/,a,/)' ) 'EPA_NEI_MOD: EPA/NEI99 C2H6 '   //
+     &   'anthro emissions are too low. Using offline C2H6 ' //
+     &   'emissions from Yaping Xiao.'
 
       END SUBROUTINE TOTAL_ANTHRO_TG
 !EOC
@@ -2066,8 +2079,9 @@
 !        to BPCH2_MOD and TRACERID_MOD, they're not needed.  (bmy, 10/3/05)
 !  (2 ) Default value changed to -1 to identify tracers without EPA/NEI 
 !        emissions. (hotp, ccc, 5/29/09)
-
 !  07 Feb 2011 - R. Yantosca - Added ProTeX headers
+!  22 Mar 2012 - M. Payer    - C2H6 emissions are too low. Use Yaping Xiao's
+!                              C2H6 emissions instead.
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -2106,7 +2120,11 @@
             EPA_NEI = EPA_WD_AN_CH2O(I,J)
 
          ELSE IF ( N == IDTC2H6 ) THEN
-            EPA_NEI = EPA_WD_AN_C2H6(I,J)
+!------------------------------------------------------------------------------
+! Prior to 3/22/12:
+!            EPA_NEI = EPA_WD_AN_C2H6(I,J)
+!------------------------------------------------------------------------------
+            EPA_NEI = -1d0
 
          ELSE IF ( N == IDTSO2 ) THEN
             EPA_NEI = EPA_WD_AN_SO2(I,J)
@@ -2154,7 +2172,11 @@
             EPA_NEI = EPA_WE_AN_CH2O(I,J)
 
          ELSE IF ( N == IDTC2H6 ) THEN
-            EPA_NEI = EPA_WE_AN_C2H6(I,J)
+!------------------------------------------------------------------------------
+! Prior to 3/22/12:
+!            EPA_NEI = EPA_WE_AN_C2H6(I,J)
+!------------------------------------------------------------------------------
+            EPA_NEI = -1d0
 
          ELSE IF ( N == IDTSO2 ) THEN
             EPA_NEI = EPA_WE_AN_SO2(I,J)

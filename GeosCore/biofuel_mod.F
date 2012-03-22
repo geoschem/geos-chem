@@ -845,7 +845,13 @@
             !-----------------------------------------------------------
             IF ( LRETRO ) THEN
                IF ( (NN == IDTC2H2) .or. (NN == IDTC2H4) .or.
-     &              (NN == IDTC2H6) .or. (NN == IDTPRPE) .or.
+!------------------------------------------------------------------------------
+! Prior to 12/8/11:
+! RETRO C2H6 emissions are too low. Use Yaping Xiao's C2H6 emissions instead
+! and don't zero BIOFUEL for C2H6. (mpayer, 3/22/12)
+!     &              (NN == IDTC2H6) .or. (NN == IDTPRPE) .or.
+!------------------------------------------------------------------------------
+     &              (NN == IDTPRPE) .or.
      &              (NN == IDTC3H8) .or. (NN == IDTALK4) .or.
      &              (NN == IDTCH2O) .or. (NN == IDTALD2) .or. 
      &              (NN == IDTACET) .or. (NN == IDTMEK ) .or.
