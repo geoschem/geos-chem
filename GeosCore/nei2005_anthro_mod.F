@@ -66,6 +66,8 @@
 !  13 Aug 2010 - R. Yantosca - Add modifications for MERRA (treat like GEOS-5)
 !  27 Jul 2011 - R. Yantosca - Removed typo in EMISS_NEI2005_ANTHRO_05x0666
 !  08 Feb 2012 - R. Yantosca - Add modifications for GEOS-5.7.x met
+!  21 Dec 2011 - M. Payer    - C2H6 emissions are too low. Use Yaping
+!                              Xiao's C2H6 emissions instead.
 !EOP
 !------------------------------------------------------------------------------
 !
@@ -240,8 +242,6 @@
 
 !------------------------------------------------------------------------------
 ! Prior to 12/21/11:
-! C2H6 emissions are too low. Use Yaping Xiao's C2H6 emissions instead. 
-! (mpayer, 12/21/11)
 !            ! [kg C/yr]
 !            VALUE = C2H6(I,J,L)
 !------------------------------------------------------------------------------
@@ -321,8 +321,6 @@
 
 !------------------------------------------------------------------------------
 ! Prior to 12/21/11:
-! C2H6 emissions are too low. Use Yaping Xiao's C2H6 emissions instead. 
-! (mpayer, 12/21/11)
 !            ! [kg C/yr]
 !            VALUE = C2H6_WKEND(I,J,L)
 !------------------------------------------------------------------------------
@@ -1856,7 +1854,6 @@
 ! !REVISION HISTORY: 
 !   7 Oct 2009 - A. van Donkelaar - initial version
 !  21 Dec 2011 - M. Payer         - Remove print for C2H6 emissions.
-
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -1943,8 +1940,6 @@
       WRITE( 6, 110 ) 'CH2O ', YEAR, T_CH2O, '[Tg C]'
 !------------------------------------------------------------------------------
 ! Prior to 12/21/11:
-! C2H6 emissions are too low. Use Yaping Xiao's C2H6 emissions instead. 
-! (mpayer, 12/21/11)
 !      WRITE( 6, 110 ) 'C2H6 ', YEAR, T_C2H6, '[Tg C]'
 !------------------------------------------------------------------------------
       WRITE( 6, 110 ) 'ALD2 ', YEAR, T_ALD2, '[Tg C]'
@@ -1952,6 +1947,10 @@
       ! Format statement
  110  FORMAT( 'NEI2005 anthro ', a5, 
      &        'for year ', i4, ': ', f11.4, 1x, a8 )
+
+      WRITE( 6, '(/,a,/)' ) 'NEI2005_ANTHRO_MOD: NEI05 C2H6 ' //
+     &   'anthro emissions are too low. Using offline C2H6 '  //
+     &   'emissions from Yaping Xiao.'
 
       ! Fancy output
       WRITE( 6, '(a)' ) REPEAT( '=', 79 )

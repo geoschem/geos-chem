@@ -599,7 +599,7 @@
          ! Get CO emissions from RETRO inventory
          !--------------------------------------------------------------
         
-        ! If we are using RETRO emissions ...
+         ! If we are using RETRO emissions ...
          IF ( LRETRO ) THEN
 
 	    ! Get RETRO emissions
@@ -610,10 +610,10 @@
 
 	       ! Apply time-of-day factor
 	       RETRO = RETRO * TODX
-           ! Convert from molec/cm2/s to kg/box/timestep in order
-           ! to be in the proper units for EMISRR array
 
-	    EMX(1) = RETRO * ( DTSRCE * AREA_CM2 ) / XNUMOL(NN)	    
+               ! Convert from molec/cm2/s to kg/box/timestep in order
+               ! to be in the proper units for EMISRR array
+	       EMX(1) = RETRO * ( DTSRCE * AREA_CM2 ) / XNUMOL(NN)	    
 
 	    ENDIF  
          ENDIF

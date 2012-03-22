@@ -492,8 +492,6 @@
          WRITE( 6, 100   ) 'CH2O', THISMONTH, CH2O, ' C'
 !------------------------------------------------------------------------------
 ! Prior to 12/1/11:
-! RETRO C2H6 emissions are too low. Use Yaping Xiao's C2H6 emissions instead.
-! (mpayer, 12/1/11)
 !         WRITE( 6, 100   ) 'C2H6', THISMONTH, C2H6, ' C'
 !------------------------------------------------------------------------------
          WRITE( 6, 100   ) 'BENZ', THISMONTH, BENZ, ' C'
@@ -503,6 +501,10 @@
          WRITE( 6, 100   ) 'C2H2', THISMONTH, C2H2, ' C'
  100     FORMAT( 'Total anthro ', a4, ' for 2000/',
      &           i2.2, ': ', f13.6, ' Tg', a2 )
+
+         WRITE( 6, '(/,a,/)' ) 'RETRO_MOD: RETRO C2H6 anthro ' //
+     &         'emissions are too low. Using offline C2H6 '    //
+     &         'emissions from Yaping Xiao.'
 
          END SUBROUTINE TOTAL_ANTHRO_TG
 !EOC
@@ -582,8 +584,6 @@
       ELSE IF ( N == IDTC2H6 ) THEN
 !------------------------------------------------------------------------------
 ! Prior to 12/1/11:
-! RETRO C2H6 emissions are too low. Use Yaping Xiao's C2H6 emissions instead.
-! (mpayer, 12/1/11)
 !         RETRO = RETRO_C2H6(I,J)
 !------------------------------------------------------------------------------
          RETRO = -1d0

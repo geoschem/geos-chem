@@ -80,6 +80,8 @@
 !        2006 emission output, but new irregularity likely now occurs at 2000 
 !        to 2001 (although this is likely less relevant to current studies).
 !        Initiated 1/2x2/3 annual scaling. (amv, bmy, 12/18/09)
+!  21 Dec 2011 - M. Payer    - C2H6 emissions are too low. Use Yaping
+!                              Xiao's C2H6 emissions instead.
 !******************************************************************************
 !
       IMPLICIT NONE
@@ -338,8 +340,6 @@
 
 !------------------------------------------------------------------------------
 ! Prior to 12/21/11:
-! C2H6 emissions are too low. Use Yaping Xiao's C2H6 emissions instead. 
-! (mpayer, 12/21/11)
 !            ! SO2 [kg/yr]
 !            VALUE = C2H6(I,J)
 !------------------------------------------------------------------------------
@@ -2039,8 +2039,6 @@
             WRITE( 6, 110 ) 'CH2O ', YEAR, MONTH, T_CH2O, '[Tg Ch2O]'
 !------------------------------------------------------------------------------
 ! Prior to 12/21/11:
-! C2H6 emissions are too low. Use Yaping Xiao's C2H6 emissions instead. 
-! (mpayer, 12/21/11)
 !            WRITE( 6, 110 ) 'C2H6 ', YEAR, MONTH, T_C2H6, '[Tg C   ]'
 !------------------------------------------------------------------------------
             WRITE( 6, 110 ) 'ALD2 ', YEAR, MONTH, T_ALD2, '[Tg C   ]'
@@ -2056,6 +2054,10 @@
 
  120  FORMAT( 'David Streets anthro ', a5, 'for year ', i4,
      $     ': ', f11.4, 1x, a9 )
+
+      WRITE( 6, '(/,a,/)' ) 'STREETS_ANTHRO_MOD: Streets C2H6 ' //
+     &   'anthro emissions are too low. Using offline C2H6 '    //
+     &   'emissions from Yaping Xiao.'
 
       ! Fancy output
       WRITE( 6, '(a)' ) REPEAT( '=', 79 )

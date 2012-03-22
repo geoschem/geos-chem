@@ -287,13 +287,17 @@
             LASTMONTH = GET_MONTH()
          ENDIF
 
+         ! Only add anthro emissions to STT if offline C2H6 sim. For
+         ! fullchem sim, this is done in emfossil (mpayer, 12/13/11)
+         IF ( ITS_A_C2H6_SIM() ) THEN
+
 !$OMP PARALLEL DO
 !$OMP+DEFAULT( SHARED )
 !$OMP+PRIVATE( I, J, AREA_CM2, E_C2H6_NGAS  )
-         DO J = 1, JJPAR
+            DO J = 1, JJPAR
 
-            ! Grid box surface area [cm2]
-            AREA_CM2 = GET_AREA_CM2( J )
+               ! Grid box surface area [cm2]
+               AREA_CM2 = GET_AREA_CM2( J )
 
             DO I = 1, IIPAR
 
@@ -301,28 +305,25 @@
                E_C2H6_NGAS = NGASC2H6(I,J) / 2.0d0  /
      &                       XNUMOL_C2H6 * AREA_CM2 * DTSRCE 
 
-               ! Do the following for offline C2H6 sim only (mpayer, 12/13/11)
-               IF ( ITS_A_C2H6_SIM() ) THEN
+               ! Add NGAS C2H6 to tracer #1 -- total C2H6 [kg C2H6]
+               STT(I,J,1,1) = STT(I,J,1,1) + E_C2H6_NGAS
 
-                  ! Add NGAS C2H6 to tracer #1 -- total C2H6 [kg C2H6]
-                  STT(I,J,1,1) = STT(I,J,1,1) + E_C2H6_NGAS
-
-                  ! Add NGAS C2H6 to tracer #4 -- NGAS C2H6
-                  IF ( LSPLIT ) THEN
-                     STT(I,J,1,4) = STT(I,J,1,4) + E_C2H6_NGAS 
-                  ENDIF
-
-                  ! ND36 = Anthro source diagnostic...store as [moleC/cm2]
-                  ! and convert to [moleC/cm2/s] in DIAG3.F
-                  IF ( ND36 > 0 ) THEN
-                     AD36(I,J,IDEC2H6) = AD36(I,J,IDEC2H6) + 
-     &                                   ( NGASC2H6(I,J) * DTSRCE )
-                  ENDIF
-  
+               ! Add NGAS C2H6 to tracer #4 -- NGAS C2H6
+               IF ( LSPLIT ) THEN
+                  STT(I,J,1,4) = STT(I,J,1,4) + E_C2H6_NGAS 
                ENDIF
+
+               ! ND36 = Anthro source diagnostic...store as [moleC/cm2]
+               ! and convert to [moleC/cm2/s] in DIAG3.F
+               IF ( ND36 > 0 ) THEN
+                  AD36(I,J,IDEC2H6) = AD36(I,J,IDEC2H6) + 
+     &                              ( NGASC2H6(I,J) * DTSRCE )
+               ENDIF
+  
             ENDDO
-         ENDDO
+            ENDDO
 !$OMP END PARALLEL DO
+         ENDIF
       ENDIF
          
       ! Return to calling program

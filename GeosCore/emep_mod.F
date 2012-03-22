@@ -73,6 +73,8 @@
 !  26 Jan 2010 - R. Yantosca - Minor bug fix in INIT_EMEP
 !  31 Aug 2010 - R. Yantosca - Updated comments
 !  24 Nov 2010 - G. Vinken   - Updated EMEP mask file
+!  21 Dec 2011 - M. Payer    - C2H6 emissions are too low. Use Yaping
+!                              Xiao's C2H6 emissions instead.
 !EOP
 !------------------------------------------------------------------------------
 !
@@ -256,8 +258,6 @@
       ELSE IF ( N == IDTC2H6 ) THEN
 !------------------------------------------------------------------------------
 ! Prior to 12/21/11:
-! C2H6 emissions are too low. Use Yaping Xiao's C2H6 emissions instead. 
-! (mpayer, 12/21/11)
 !         EMEP = EMEP_C2H6(I,J)
 !------------------------------------------------------------------------------
          EMEP = -1d0
@@ -928,12 +928,14 @@
       WRITE( 6, 110   ) 'PRPE', EMISS_YEAR, EMEP_MONTH, PRPE, ' C'
 !------------------------------------------------------------------------------
 ! Prior to 12/21/11:
-! C2H6 emissions are too low. Use Yaping Xiao's C2H6 emissions instead. 
-! (mpayer, 12/21/11)
 !      WRITE( 6, 110   ) 'C2H6', EMISS_YEAR, EMEP_MONTH, C2H6, ' C'
 !------------------------------------------------------------------------------
  110  FORMAT( 'EMEP anthropogenic ', a4, ' for ', i4, '/', i2.2,
      &        ': ', f13.6, ' Tg', a2 )
+
+      WRITE( 6, '(/,a,/)' ) 'EMEP_MOD: EMEP C2H6 anthro '       //
+     &   'emissions are too low. Using offline C2H6 emissions ' //
+     &   'from Yaping Xiao.'
 
       ! Fancy output
       WRITE( 6, '(a)' ) REPEAT( '=', 79 )
