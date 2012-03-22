@@ -73,6 +73,9 @@
       PUBLIC :: GET_PBL_THICK
       PUBLIC :: INIT_PBL_MIX, COMPUTE_PBL_HEIGHT ! (Lin, 03/31/09)
 
+#if defined ( DEVEL )
+      PUBLIC :: PBL_TOP_L, PBL_TOP_m
+#endif
       !=================================================================
       ! MODULE VARIABLES
       !=================================================================

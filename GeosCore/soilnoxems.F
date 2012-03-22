@@ -85,7 +85,7 @@
       ! Arguments
       REAL*8, INTENT(IN)            :: SUNCOS(MAXIJ)
 #if defined( DEVEL )
-      REAL*8, INTENT(INOUT)         :: EMISS(:,:)
+      REAL*8, INTENT(INOUT)         :: EMISS(IIPAR,JJPAR)
 #endif
       ! Local variables
       INTEGER                       :: I,    J,       M,      III,    NN  

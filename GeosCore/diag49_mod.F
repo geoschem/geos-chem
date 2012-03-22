@@ -200,6 +200,8 @@
       USE JV_CMN_MOD        ! ODAER, QAA, QAA_AOD (clh)
       USE CMN_O3_MOD		! Pure O3, SAVENO2
       USE CMN_GCTM_MOD        ! XTRA2
+      USE LOGICAL_MOD,  ONLY : DO_DIAG_WRITE
+
 !
 ! !REVISION HISTORY: 
 !  09 Apr 1999 - I. Bey, R. Martin, R. Yantosca - Initial version
@@ -293,8 +295,13 @@
          WRITE( 6, 100 ) TRIM( FILENAME )
  100     FORMAT( '     - DIAG49: Opening file ', a )
         
-         ! Open bpch file and write top-of-file header
-         CALL OPEN_BPCH2_FOR_WRITE( IU_ND49, FILENAME, TITLE )
+         IF ( DO_DIAG_WRITE ) THEN
+
+            ! Open bpch file and write top-of-file header
+            CALL OPEN_BPCH2_FOR_WRITE( IU_ND49, FILENAME, TITLE )
+
+         ENDIF
+
       ENDIF
 
       !=================================================================
@@ -1420,22 +1427,27 @@
 
          ENDIF
 
+         IF ( DO_DIAG_WRITE ) THEN
+
          !==============================================================
          ! Save this data block to the ND49 timeseries file
          !==============================================================
-         CALL BPCH2( IU_ND49,      MODELNAME,    LONRES,   
-     &               LATRES,       HALFPOLAR,    CENTER180, 
-     &               CATEGORY,     GMTRC,        UNIT,      
-     &               TAU,          TAU,          RESERVED,  
-     &               ND49_NI,      ND49_NJ,      GMNL,  
-     &               ND49_IMIN+I0, ND49_JMIN+J0, ND49_LMIN, 
-     &               REAL( Q(1:ND49_NI, 1:ND49_NJ, 1:GMNL),4 ) )
+            CALL BPCH2( IU_ND49,      MODELNAME,    LONRES,   
+     &        LATRES,       HALFPOLAR,    CENTER180, 
+     &           CATEGORY,     GMTRC,        UNIT,      
+     &           TAU,          TAU,          RESERVED,  
+     &           ND49_NI,      ND49_NJ,      GMNL,  
+     &           ND49_IMIN+I0, ND49_JMIN+J0, ND49_LMIN, 
+     &           REAL( Q(1:ND49_NI, 1:ND49_NJ, 1:GMNL),4 ) )
+
+         ENDIF
+
       ENDDO
             
       !=================================================================
       ! Close the file at the proper time
       !=================================================================
-      IF ( ITS_TIME_TO_CLOSE_FILE() ) THEN
+      IF ( ITS_TIME_TO_CLOSE_FILE() .and. DO_DIAG_WRITE ) THEN
 
          ! Expand date tokens in the file name
          FILENAME = TRIM( ND49_OUTPUT_FILE )

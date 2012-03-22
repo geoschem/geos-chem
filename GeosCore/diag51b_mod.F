@@ -251,6 +251,8 @@
 !EOP
 !------------------------------------------------------------------------------
 !BOC
+      USE LOGICAL_MOD, ONLY : DO_DIAG_WRITE
+
 !
 ! !LOCAL VARIABLES:
 !
@@ -267,7 +269,7 @@
       CALL ACCUMULATE_DIAG51
 
       ! Write data to disk at the proper time
-      IF ( ITS_TIME_FOR_WRITE_DIAG51( TAU_W ) ) THEN
+      IF ( ITS_TIME_FOR_WRITE_DIAG51( TAU_W ) .and. DO_DIAG_WRITE ) THEN
          CALL WRITE_DIAG51( TAU_W )
       ENDIF
 
@@ -1874,7 +1876,11 @@
      &                  TAU0,         TAU1,         RESERVED,  
      &                  ND51_NI,      ND51_NJ,      GMNL,     
      &                  ND51_IMIN+I0, ND51_JMIN+J0, ND51_LMIN, 
+#if defined( DEVEL )
+     &                  REAL( Q(1:ND51_NI, 1:ND51_NJ, 1:GMNL, W),4))
+#else
      &                  REAL( Q(1:ND51_NI, 1:ND51_NJ, 1:GMNL, W)))
+#endif
          ENDIF
       ENDDO
 

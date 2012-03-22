@@ -233,6 +233,9 @@
       LOGICAL :: LND50_HDF       ! Save ND50  diagnostic in HDF5?
       LOGICAL :: LND51_HDF       ! Save ND51  diagnostic in HDF5?
       LOGICAL :: LND51b_HDF      ! Save ND51b diagnostic in HDF5?
+ 
+      !%%%% For interface with GCM's in MPI environments
+      LOGICAL :: DO_DIAG_WRITE = .TRUE.  ! TURN ON/OFF DIAGNOSTIC WRITING
 
       END MODULE LOGICAL_MOD
 !EOC

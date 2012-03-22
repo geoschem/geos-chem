@@ -7157,6 +7157,15 @@ c
       ! Definition of the N. American bounding box
       ! with LL corner (10N,165W) and UR corner (90N,40W)
       !            Lon_LL  Lat_LL  Lon_UR  Lat_UR
+#if defined( DEVEL )
+
+      I1_NA = 0
+      J1_NA = 0
+      I2_NA = 0
+      J2_NA = 0
+
+#else
+
       COORDS = (/ -165d0,  10d0,  -40d0,   90d0  /)
       
       ! Get the indices corresponding to the lon/lat values in COORDS
@@ -7168,6 +7177,7 @@ c
       I2_NA = INDICES(3)
       J2_NA = INDICES(4)
 
+#endif
 #endif
               
       ! Reset IS_INIT before exiting

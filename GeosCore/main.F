@@ -107,6 +107,7 @@
       USE XTRA_READ_MOD         ! For reading GEOS-3 extra data fields
 
 #if defined( DEVEL )
+      USE LOGICAL_MOD,        ONLY : DO_DIAG_WRITE
       USE GC_ENVIRONMENT_MOD, ONLY : ALLOCATE_ALL, INIT_ALL
       USE GC_TYPE2_MOD,       ONLY : CHEMSTATE
       USE GC_TYPE_MOD,        ONLY : GC_MET_LOCAL
@@ -186,7 +187,7 @@
       TYPE(CHEMSTATE)    :: CHEM_STATE
       TYPE(GC_MET_LOCAL) :: LOCAL_MET
 #endif
-=======
+
       CHARACTER(LEN=255) :: ZTYPE
 
       ! Arrays
@@ -418,11 +419,12 @@
             CALL SET_DIAGe( TAU )
 
             ! Write bpch file
-            CALL DIAG3  
+            IF ( DO_DIAG_WRITE ) THEN
+               CALL DIAG3  
 
             ! Flush file units
-            CALL CTM_FLUSH
-
+               CALL CTM_FLUSH
+            ENDIF
             !===========================================================
             !    *****  W R I T E   R E S T A R T   F I L E S  *****
             !===========================================================
@@ -588,9 +590,9 @@
 
          ! Compute airmass quantities at each grid box 
 #if defined( DEVEL )
-      CALL AIRQNT(LOCAL_MET)
+         CALL AIRQNT(LOCAL_MET)
 #else
-      CALL AIRQNT
+         CALL AIRQNT
 #endif
 
          ! Compute the cosine of the solar zenith angle array
@@ -855,7 +857,7 @@
          ! (ccc, 5/13/09)
  
          ! Plane following diagnostic
-         IF ( ND40 > 0 ) THEN 
+         IF ( ND40 > 0 .and. DO_DIAG_WRITE ) THEN 
          
             ! Call SETUP_PLANEFLIGHT routine if necessary
             IF ( ITS_A_NEW_DAY() ) THEN
@@ -1385,7 +1387,11 @@
       ! Open & read A-6 fields
       DATE = GET_FIRST_A6_TIME()
       CALL OPEN_A6_FIELDS( DATE(1), DATE(2) ) 
+#if defined( DEVEL )
+      CALL GET_A6_FIELDS(  DATE(1), DATE(2), LOCAL_MET )      
+#else
       CALL GET_A6_FIELDS(  DATE(1), DATE(2) )      
+#endif
       IF ( LPRT ) CALL DEBUG_MSG( '### MAIN: a 1st A6 TIME' )
 
       ! Open & read I-6 fields
@@ -1662,7 +1668,11 @@
 
          ! Open and read A-6 fields
          CALL OPEN_A6_FIELDS( DATE(1), DATE(2) )
+#if defined( DEVEL )
+         CALL GET_A6_FIELDS(  DATE(1), DATE(2), LOCAL_MET )      
+#else
          CALL GET_A6_FIELDS(  DATE(1), DATE(2) )
+#endif
 
          ! Since CLDTOPS is an A-6 field, update the
          ! lightning NOx emissions [molec/box/6h]

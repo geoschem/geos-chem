@@ -40,6 +40,7 @@
 !
         PUBLIC :: ALLOCATE_ALL
         PUBLIC :: INIT_ALL
+        PUBLIC :: TRACER_INDEX
 !
 ! !PRIVATE MEMBER FUNCTIONS:
 !
@@ -53,6 +54,9 @@
 !
 ! !PRIVATE TYPES:
 !
+
+        INTEGER, ALLOCATABLE :: TRACER_INDEX(:)
+
       !=================================================================
       ! MODULE ROUTINES -- follow below the "CONTAINS" statement
       !=================================================================
@@ -127,12 +131,42 @@
           USE CMN_SIZE_MOD, ONLY : IIPAR, JJPAR, LLPAR
           USE ERROR_MOD,    ONLY : ALLOC_ERR
           USE PRESSURE_MOD, ONLY : GET_PEDGE, GET_PCENTER
+          USE TRACER_MOD,   ONLY : N_TRACERS
 
           IMPLICIT NONE
 
           TYPE(GC_MET_LOCAL), INTENT(OUT) :: LOCAL_MET
           INTEGER :: I,J,L,AS
 
+          ! Allocate 2-D Arrays
+          ALLOCATE( &
+               LOCAL_MET%ALBD(IIPAR, JJPAR), &   ! Visible surface albedo [unitless]
+               LOCAL_MET%AREA_M2(IIPAR, JJPAR), &! Grid box surface area [cm2]
+               LOCAL_MET%CLDFRC(IIPAR, JJPAR), & ! Column cloud fraction [unitless]
+               LOCAL_MET%FRCLND(IIPAR, JJPAR), & ! Olson land fraction [unitless]
+               LOCAL_MET%GWETTOP(IIPAR, JJPAR), &! Top soil moisture [unitless]
+               LOCAL_MET%HFLUX(IIPAR, JJPAR), &  ! Sensible heat flux [W/m2]
+               LOCAL_MET%LWI(IIPAR, JJPAR), &    ! Land/water indices [unitless]
+               LOCAL_MET%PARDR(IIPAR, JJPAR), &  ! Direct  photsyn active rad [W/m2]
+               LOCAL_MET%PARDF(IIPAR, JJPAR), &  ! Diffuse photsyn active rad [W/m2]
+               LOCAL_MET%PBLH(IIPAR, JJPAR), &   ! PBL height [m]
+               LOCAL_MET%PRECCON(IIPAR, JJPAR), &! Conv  precip @ ground [kg/m2/s]
+               LOCAL_MET%PRECTOT(IIPAR, JJPAR), &! Total precip @ ground [kg/m2/s]
+               LOCAL_MET%RADSWG(IIPAR,JJPAR), & ! Solar radiation @ ground [W/m2]
+               LOCAL_MET%SST(IIPAR, JJPAR), &    ! Sea surface temperature [K]
+               LOCAL_MET%SUNCOS(IIPAR, JJPAR), & ! Cosine of solar zenith angle
+               LOCAL_MET%TO3(IIPAR, JJPAR), &    ! Total overhead O3 column [DU]
+               LOCAL_MET%TROPP(IIPAR, JJPAR), &  ! Tropopause pressure [hPa]
+               LOCAL_MET%TS(IIPAR, JJPAR), &     ! Surface temperature [K]
+               LOCAL_MET%U10M(IIPAR, JJPAR), &   ! E/W wind speed @ 10m height [m/s]
+               LOCAL_MET%USTAR(IIPAR, JJPAR), &  ! Friction velocity [m/s]
+               LOCAL_MET%UVALBEDO(IIPAR, JJPAR), &! UV surface albedo [unitless]
+               LOCAL_MET%V10M(IIPAR, JJPAR), &   ! N/S wind speed @ 10m height [m/s]
+               LOCAL_MET%Z0(IIPAR, JJPAR), &
+               STAT = AS )
+          IF (AS /= 0) CALL ALLOC_ERR('LOCAL_MET 2D')
+
+          ! Allocate 3-D Arrays
           ALLOCATE( &
                LOCAL_MET%AD(IIPAR,JJPAR,LLPAR), &        ! Air mass [kg]
                LOCAL_MET%AIRDENS(LLPAR,IIPAR,JJPAR), &   ! Air density [kg/m3]
@@ -148,7 +182,7 @@
                LOCAL_MET%OPTD(LLPAR,IIPAR,JJPAR), &      ! Visible optical depth [unitless]
                LOCAL_MET%PEDGE(IIPAR,JJPAR,LLPAR), &     ! Pressure @ level edges [Pa]
                LOCAL_MET%PMID(IIPAR,JJPAR,LLPAR), &      ! Pressure @ level centers [Pa]
-               LOCAL_MET%DELP(LLPAR,IIPAR,JJPAR), &      !
+               LOCAL_MET%DELP(LLPAR,IIPAR,JJPAR), &      ! Pressure thickness for layer [Pa]
                LOCAL_MET%RH(IIPAR,JJPAR,LLPAR), &        ! Relative humidity [unitless]
                LOCAL_MET%SPHU(IIPAR,JJPAR,LLPAR), &      ! Specific humidity [kg/kg]
                LOCAL_MET%T(IIPAR,JJPAR,LLPAR), &         ! Temperature [K]
@@ -156,16 +190,18 @@
                LOCAL_MET%TAUCLW(IIPAR,JJPAR,LLPAR), &    ! Opt depth of H2O clouds [unitless]
                STAT=AS)
           
-          IF (AS /= 0) CALL ALLOC_ERR('LOCAL_MET')
+          IF (AS /= 0) CALL ALLOC_ERR('LOCAL_MET 3D')
 
           DO I = 1,IIPAR
              DO J = 1, JJPAR
                 DO L = 1, LLPAR
-                   LOCAL_MET%PEDGE(I,J,L) = GET_PEDGE(I,J,L)
-                   LOCAL_MET%PMID (I,J,L) = GET_PCENTER(I,J,L)
+!                   LOCAL_MET%PEDGE(I,J,L) = GET_PEDGE(I,J,L)
+!                   LOCAL_MET%PMID (I,J,L) = GET_PCENTER(I,J,L)
                 ENDDO
              ENDDO
           ENDDO
+
+!          ALLOCATE( TRACER_INDEX(N_TRACERS), STAT = AS )
 
         END SUBROUTINE INIT_LOCAL_MET
            

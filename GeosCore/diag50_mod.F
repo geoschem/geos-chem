@@ -179,6 +179,8 @@
 !EOP
 !------------------------------------------------------------------------------
 !BOC
+      USE LOGICAL_MOD, ONLY : DO_DIAG_WRITE
+
       !=================================================================
       ! DIAG50 begins here!
       !=================================================================
@@ -187,7 +189,9 @@
       CALL ACCUMULATE_DIAG50
 
       ! Write data to disk at the end of the day
-      IF ( ITS_TIME_FOR_WRITE_DIAG50() ) CALL WRITE_DIAG50
+      IF ( ITS_TIME_FOR_WRITE_DIAG50() .and. DO_DIAG_WRITE ) THEN
+         CALL WRITE_DIAG50
+      ENDIF
 
       END SUBROUTINE DIAG50
 !EOC
@@ -229,6 +233,7 @@
       USE COMODE_LOOP_MOD  ! NPVERT
       USE CMN_O3_MOD    ! FRACO3, FRACNO, SAVEO3, SAVENO2, SAVEHO2, FRACNO2
       USE CMN_GCTM_MOD  ! SCALE_HEIGHT
+      USE LOGICAL_MOD,    ONLY : DO_DIAG_WRITE
 ! 
 ! !REVISION HISTORY: 
 !  20 Jul 2004 - R. Yantosca - Initial version

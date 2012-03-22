@@ -34,6 +34,8 @@
 ! 
 ! !USES:
 !
+      USE ERROR_MOD, ONLY: ALLOC_ERR
+
       IMPLICIT NONE
 #     include "define.h"
       PRIVATE
@@ -361,6 +363,8 @@
 
 #if defined( DEVEL )
       REAL*8, INTENT(INOUT) :: EMISS(IIPAR, JJPAR, N_TRACERS)
+      REAL*8, ALLOCATABLE   :: A(:,:)
+      INTEGER AS
 #endif
 
       !=================================================================
@@ -369,6 +373,12 @@
 
       ! First-time initialization
       IF ( FIRST ) THEN
+#if defined( DEVEL )
+         ALLOCATE( A( IIPAR, JJPAR ), STAT=AS )
+         IF ( AS /= 0 ) CALL ALLOC_ERR( 'EMEP:A' )
+         A = 0d0
+#endif         
+         
          CALL INIT_EMEP
          FIRST = .FALSE.
       ENDIF
@@ -518,53 +528,59 @@
       ENDIF
 
 #if defined( DEVEL )
+      DO I=1,IIPAR
+      DO J=1,JJPAR
+         A(I,J)  = GET_AREA_CM2( I, J, 1 ) 
+      ENDDO
+      ENDDO
+
       IF ( LEMEPSHIP ) THEN
-         EMISS(:,J,IDTNOx) = EMEP_NOx_SHIP(:,J)
-     &        * GET_AREA_CM2(J) / XNUMOL(IDTNOx)
+         EMISS(:,:,IDTNOx) = EMEP_NOx_SHIP(:,:)
+     &        * A / XNUMOL(IDTNOx)
       ELSE 
-         EMISS(:,J,IDTNOx) = EMEP_NOx(:,J)
-     &        * GET_AREA_CM2(J) / XNUMOL(IDTNOx)
+         EMISS(:,:,IDTNOx) = EMEP_NOx(:,:)
+     &        * A / XNUMOL(IDTNOx)
       ENDIF
       IF ( LEMEPSHIP ) THEN
-         EMISS(:,J,IDTCO) = EMEP_CO_SHIP(:,J)
-     &        * GET_AREA_CM2(J) / XNUMOL(IDTCO)
+         EMISS(:,:,IDTCO) = EMEP_CO_SHIP(:,:)
+     &        * A / XNUMOL(IDTCO)
       ELSE 
-         EMISS(:,J,IDTCO) = EMEP_CO(:,J)
-     &        * GET_AREA_CM2(J) / XNUMOL(IDTCO)
+         EMISS(:,:,IDTCO) = EMEP_CO(:,:)
+     &        * A / XNUMOL(IDTCO)
       ENDIF
 
       ! ALK4 (>= C4 alkanes)
-      EMISS(:,J,IDTALK4) = EMEP_ALK4(:,J)
-     &        * GET_AREA_CM2(J) / XNUMOL(IDTALK4)
+      EMISS(:,:,IDTALK4) = EMEP_ALK4(:,:)
+     &        * A / XNUMOL(IDTALK4)
 
       ! MEK
-      EMISS(:,J,IDTMEK) = EMEP_MEK(:,J)
-     &        * GET_AREA_CM2(J) / XNUMOL(IDTMEK)
+      EMISS(:,:,IDTMEK) = EMEP_MEK(:,:)
+     &        * A / XNUMOL(IDTMEK)
 
       ! ALD2 (acetaldehyde)
-      EMISS(:,J,IDTALD2) = EMEP_ALD2(:,J)
-     &        * GET_AREA_CM2(J) / XNUMOL(IDTALD2)
+      EMISS(:,:,IDTALD2) = EMEP_ALD2(:,:)
+     &        * A / XNUMOL(IDTALD2)
 
       ! PRPE (>= C3 alkenes)
-      EMISS(:,J,IDTPRPE) = EMEP_PRPE(:,J)
-     &        * GET_AREA_CM2(J) / XNUMOL(IDTPRPE)
+      EMISS(:,:,IDTPRPE) = EMEP_PRPE(:,:)
+     &        * A / XNUMOL(IDTPRPE)
 
       ! C2H6 
-      EMISS(:,J,IDTC2H6) = EMEP_C2H6(:,J)
-     &        * GET_AREA_CM2(J) / XNUMOL(IDTC2H6)
+      EMISS(:,:,IDTC2H6) = EMEP_C2H6(:,:)
+     &        * A / XNUMOL(IDTC2H6)
          
       ! SO2
       IF ( LEMEPSHIP ) THEN
-         EMISS(:,J,IDTSO2) = EMEP_SO2_SHIP(:,J)
-     &        * GET_AREA_CM2(J) / XNUMOL(IDTSO2)
+         EMISS(:,:,IDTSO2) = EMEP_SO2_SHIP(:,:)
+     &        * A / XNUMOL(IDTSO2)
       ELSE 
-         EMISS(:,J,IDTSO2) = EMEP_SO2(:,J)
-     &        * GET_AREA_CM2(J) / XNUMOL(IDTSO2)
+         EMISS(:,:,IDTSO2) = EMEP_SO2(:,:)
+     &        * A / XNUMOL(IDTSO2)
       ENDIF
 
       ! NH3
-      EMISS(:,J,IDTNH3) = EMEP_NH3(:,J)
-     &        * GET_AREA_CM2(J) / XNUMOL(IDTNH3)
+      EMISS(:,:,IDTNH3) = EMEP_NH3(:,:)
+     &        * A / XNUMOL(IDTNH3)
 #endif
 
       !=================================================================
@@ -650,6 +666,8 @@
 
 #if defined( DEVEL )
       REAL*8, INTENT(INOUT) :: EMISS(IIPAR, JJPAR, N_TRACERS)
+      REAL*8, ALLOCATABLE   :: A(:,:)
+      INTEGER AS
 #endif
 
       !=================================================================
@@ -658,6 +676,12 @@
 
       ! First-time initialization
       IF ( FIRST ) THEN
+#if defined( DEVEL )
+         ALLOCATE( A( IIPAR, JJPAR ), STAT=AS )
+         IF ( AS /= 0 ) CALL ALLOC_ERR( 'EMEP:A' )
+         A = 0d0
+#endif         
+         
          CALL INIT_EMEP
          FIRST = .FALSE.
       ENDIF
@@ -764,53 +788,59 @@
       ENDIF
 
 #if defined( DEVEL )
+      DO I=1,IIPAR
+      DO J=1,JJPAR
+         A(I,J)  = GET_AREA_CM2( I, J, 1 ) 
+      ENDDO
+      ENDDO
+
       IF ( LEMEPSHIP ) THEN
-         EMISS(:,J,IDTNOx) = EMEP_NOx_SHIP(:,J)
-     &        * GET_AREA_CM2(J) / XNUMOL(IDTNOx)
+         EMISS(:,:,IDTNOx) = EMEP_NOx_SHIP(:,:)
+     &        * A / XNUMOL(IDTNOx)
       ELSE 
-         EMISS(:,J,IDTNOx) = EMEP_NOx(:,J)
-     &        * GET_AREA_CM2(J) / XNUMOL(IDTNOx)
+         EMISS(:,:,IDTNOx) = EMEP_NOx(:,:)
+     &        * A / XNUMOL(IDTNOx)
       ENDIF
       IF ( LEMEPSHIP ) THEN
-         EMISS(:,J,IDTCO) = EMEP_CO_SHIP(:,J)
-     &        * GET_AREA_CM2(J) / XNUMOL(IDTCO)
+         EMISS(:,:,IDTCO) = EMEP_CO_SHIP(:,:)
+     &        * A / XNUMOL(IDTCO)
       ELSE 
-         EMISS(:,J,IDTCO) = EMEP_CO(:,J)
-     &        * GET_AREA_CM2(J) / XNUMOL(IDTCO)
+         EMISS(:,:,IDTCO) = EMEP_CO(:,:)
+     &        * A / XNUMOL(IDTCO)
       ENDIF
 
       ! ALK4 (>= C4 alkanes)
-      EMISS(:,J,IDTALK4) = EMEP_ALK4(:,J)
-     &        * GET_AREA_CM2(J) / XNUMOL(IDTALK4)
+      EMISS(:,:,IDTALK4) = EMEP_ALK4(:,:)
+     &        * A / XNUMOL(IDTALK4)
 
       ! MEK
-      EMISS(:,J,IDTMEK) = EMEP_MEK(:,J)
-     &        * GET_AREA_CM2(J) / XNUMOL(IDTMEK)
+      EMISS(:,:,IDTMEK) = EMEP_MEK(:,:)
+     &        * A / XNUMOL(IDTMEK)
 
       ! ALD2 (acetaldehyde)
-      EMISS(:,J,IDTALD2) = EMEP_ALD2(:,J)
-     &        * GET_AREA_CM2(J) / XNUMOL(IDTALD2)
+      EMISS(:,:,IDTALD2) = EMEP_ALD2(:,:)
+     &        * A / XNUMOL(IDTALD2)
 
       ! PRPE (>= C3 alkenes)
-      EMISS(:,J,IDTPRPE) = EMEP_PRPE(:,J)
-     &        * GET_AREA_CM2(J) / XNUMOL(IDTPRPE)
+      EMISS(:,:,IDTPRPE) = EMEP_PRPE(:,:)
+     &        * A / XNUMOL(IDTPRPE)
 
       ! C2H6 
-      EMISS(:,J,IDTC2H6) = EMEP_C2H6(:,J)
-     &        * GET_AREA_CM2(J) / XNUMOL(IDTC2H6)
+      EMISS(:,:,IDTC2H6) = EMEP_C2H6(:,:)
+     &        * A / XNUMOL(IDTC2H6)
          
       ! SO2
       IF ( LEMEPSHIP ) THEN
-         EMISS(:,J,IDTSO2) = EMEP_SO2_SHIP(:,J)
-     &        * GET_AREA_CM2(J) / XNUMOL(IDTSO2)
+         EMISS(:,:,IDTSO2) = EMEP_SO2_SHIP(:,:)
+     &        * A / XNUMOL(IDTSO2)
       ELSE 
-         EMISS(:,J,IDTSO2) = EMEP_SO2(:,J)
-     &        * GET_AREA_CM2(J) / XNUMOL(IDTSO2)
+         EMISS(:,:,IDTSO2) = EMEP_SO2(:,:)
+     &        * A / XNUMOL(IDTSO2)
       ENDIF
 
       ! NH3
-      EMISS(:,J,IDTNH3) = EMEP_NH3(:,J)
-     &        * GET_AREA_CM2(J) / XNUMOL(IDTNH3)
+      EMISS(:,:,IDTNH3) = EMEP_NH3(:,:)
+     &        * A / XNUMOL(IDTNH3)
 #endif
 
       !=================================================================

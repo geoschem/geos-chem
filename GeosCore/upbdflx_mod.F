@@ -313,6 +313,10 @@
       INTEGER, PARAMETER   :: J30S = 61, J30N = 121    ! 1x1 global grid
 #endif
 
+#elif defined( EXTERNAL_GRID )
+      ! THIS HAS TO BE DEFINED SPECIFICALLY! HOW?
+      INTEGER, PARAMETER   :: J30S = 31, J30N = 61
+
 #endif
 
       ! Lower pressure bound for O3 release (unit: mb)
@@ -963,6 +967,10 @@
 #else  
       INTEGER, PARAMETER   :: J30S = 61, J30N = 121    ! 1x1 global grid
 #endif
+
+#elif defined( EXTERNAL_GRID )
+      ! THIS HAS TO BE DEFINED SPECIFICALLY! HOW?
+      INTEGER, PARAMETER   :: J30S = 31, J30N = 61
 
 #endif
 

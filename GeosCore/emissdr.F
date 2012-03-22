@@ -132,6 +132,7 @@
 
 #if defined( DEVEL )
       USE TRACERID_MOD,      ONLY : IDTNOX
+      USE TRACER_MOD,        ONLY : N_TRACERS
 #endif
 
       IMPLICIT NONE
@@ -170,8 +171,9 @@
       REAL*8                 :: GAMMA_SM
 
 #if defined( DEVEL )
-      REAL*8, INTENT(INOUT)  ::    EMISS_TEND(:,:,:,:)
-      REAL*8, INTENT(INOUT)  :: BIOEMISS_TEND(:,:,:,:)
+      REAL*8, INTENT(INOUT)  :: 
+     &     EMISS_TEND(IIPAR,JJPAR,LLPAR,N_TRACERS+1),
+     &     BIOEMISS_TEND(IIPAR,JJPAR,LLPAR,N_TRACERS+1)
 #endif
 
 !
@@ -275,6 +277,8 @@
 ! LIGHTNING EMISSIONS NOX [molecules/cm3/s]
 !
 #if defined( DEVEL )
+            write(*,*) 'EMISS_TEND:', shape(EMISS_TEND)
+            write(*,*) 'BIOEMISS_TEND:', shape(BIOEMISS_TEND)
             IF ( LLIGHTNOX .AND. I == 1 .AND. J == 1 ) 
      &           CALL EMLIGHTNING( EMISS_TEND(:,:,:,IDTNOX) )
 #else

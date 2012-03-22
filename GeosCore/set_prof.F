@@ -105,6 +105,9 @@
          TTOMS = .FALSE.
       ENDIF
 #endif
+#if defined( EXTERNAL_FORCING )
+      TTOMS = .FALSE.
+#endif
 
       ! Set up cloud and surface properties
       CALL CLDSRF( ODCOL, SA )

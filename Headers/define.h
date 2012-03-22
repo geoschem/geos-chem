@@ -136,6 +136,7 @@
 #define GEOS_5        'GEOS_5'
 !#define MERRA         'MERRA'
 !#define GEOS_57       'GEOS_57'
+!#define EXTERNAL_FORCING 'EXTERNAL_FORCING'
 
 !----- Grid sizes -----
 !#define NESTED_CH   'NESTED_CH'
@@ -144,9 +145,10 @@
 !#define GRID05x0666 'GRID05x0666'
 !#define GRID1x1     'GRID1x1'
 !#define GRID1x125   'GRID1x125'
-#define GRID2x25    'GRID2x25'
-!#define GRID4x5     'GRID4x5'
+!#define GRID2x25    'GRID2x25'
+#define GRID4x5     'GRID4x5'
 #define GRIDREDUCED 'GRIDREDUCED'
+#define EXTERNAL_GRID 'EXTERNAL_GRID'
 
 !----- Compilers -----
 !#define IBM_AIX       'IBM_AIX'
@@ -161,7 +163,7 @@
 !==============================================================================
 ! Force a compile error if GEOS_1, GEOS_STRAT, GEOS_3, GEOS_4 are undefined 
 !==============================================================================
-#if !defined(GEOS_3) && !defined(GEOS_4) && !defined(GEOS_5) && !defined(MERRA) && !defined(GCAP) && !defined(GEOS_57)
+#if !defined(GEOS_3) && !defined(GEOS_4) && !defined(GEOS_5) && !defined(MERRA) && !defined(GCAP) && !defined(GEOS_57) && !defined(EXTERNAL_FORCING)
 #error "ERROR: GEOS_3, GEOS_4, GEOS_5, GEOS-5.7, MERRA, and GCAP"
 #error "are ALL undefined in header file define.h"
 #endif
@@ -169,7 +171,7 @@
 !==============================================================================
 ! Force a compile error if GRID1x1, GRID2x25, and GRID4x5 are all undefined 
 !==============================================================================
-#if !defined(GRID2x25) && !defined(GRID4x5) && !defined(GRID1x125) && !defined(GRID1x1) && !defined(GRID05x0666) && !defined(GRID025x03125)
+#if !defined(GRID2x25) && !defined(GRID4x5) && !defined(GRID1x125) && !defined(GRID1x1) && !defined(GRID05x0666) && !defined(GRID025x03125) && !defined(EXTERNAL_GRID)
 #error "ERROR: GRID4x5, GRID2x25, GRID1x125, GRID1x1, "
 #error " GRID05x0666, and GRID025x03125"
 #error "are ALL undefined in header file define.h"

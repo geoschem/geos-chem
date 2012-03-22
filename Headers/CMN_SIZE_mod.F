@@ -41,6 +41,9 @@
 #elif defined( GRID05x0666 )
       REAL*8, PARAMETER :: DISIZE = 2d0/3d0
       REAL*8, PARAMETER :: DJSIZE = 0.5d0
+#elif defined( EXTERNAL_GRID )
+      REAL*8 :: DISIZE
+      REAL*8 :: DJSIZE
 #endif
 
       !=================================================================
@@ -341,6 +344,13 @@
 #endif
       REAL*8,  PARAMETER :: PTOP       = 0.01d0
 
+#elif defined ( EXTERNAL_GRID )
+      INTEGER :: IGLOB, JGLOB, LGLOB
+      INTEGER :: IIPAR, JJPAR, LLPAR
+
+      INTEGER, PARAMETER :: LLTROP_FIX = 22
+      INTEGER, PARAMETER :: LLTROP     = 22
+      REAL*8,  PARAMETER :: PTOP       = 0.01d0
 #endif
 
       !-----------------------------------------------------------------
@@ -699,6 +709,14 @@
       LLPAR      = LGLOB     ! Full vertical grid
 #endif
 
+#elif defined( EXTERNAL_GRID )
+
+      !------------------------------------------------------------------
+      ! EXTERNALLY INITIALIZED GRID
+      !------------------------------------------------------------------
+
+      IIPAR = IIPAR
+      JJPAR = JJPAR
 #endif
 
       ! Set values for former variables declared as parameters

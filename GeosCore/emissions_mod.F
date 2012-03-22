@@ -364,7 +364,7 @@
 #else
      &        CALL EMISS_ICOADS_SHIP
 #endif
-         ENDIF
+!         ENDIF
 
          ! Read look up tables for PARANOX ship plume model (mpayer, 2/7/12)
          IF ( ( LICOADSSHIP .or. LEDGARSHIP .or. LEMEPSHIP ) 
@@ -374,6 +374,7 @@
 
          ! NOx-Ox-HC (w/ or w/o aerosols)
 #if defined( DEVEL )
+         write(*,*) 'TRAC_TEND:', shape(CHEM_STATE%TRAC_TEND)
          CALL EMISSDR( CHEM_STATE%TRAC_TEND, CHEM_STATE%TRAC_BTEND )
 #else
          CALL EMISSDR

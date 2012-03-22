@@ -1047,7 +1047,8 @@ tpcore_window_mod.o         : tpcore_window_mod.F     dao_mod.o              \
 tracer_mod.o                : tracer_mod.F
 
 tracerid_mod.o              : tracerid_mod.F          gc_type2_mod.o         \
-                              logical_mod.o           tracer_mod.o
+                              logical_mod.o           tracer_mod.o           \
+			      gc_environment_mod.o
 
 transport_mod.o             : transport_mod.F                                \
                               dao_mod.o               diag_mod.o             \

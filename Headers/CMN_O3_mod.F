@@ -159,6 +159,7 @@
       REAL*8, ALLOCATABLE ::   SAVENO3(:,:,:)
       REAL*8, ALLOCATABLE ::   FRACNO2(:,:,:)
       REAL*8, ALLOCATABLE ::   SAVEHO2(:,:,:)
+      REAL  , ALLOCATABLE ::   jvalues(:,:,:)
 #else
       ! fracnox                 = look up table for fraction of NOx remaining
       !                           for ship emissions (gvinken, 6/6/10)
@@ -172,11 +173,11 @@
       REAL*8 ::   SAVENO3(IIPAR,JJPAR,LLPAR)
       REAL*8 ::   FRACNO2(IIPAR,JJPAR,LLPAR)
       REAL*8 ::   SAVEHO2(IIPAR,JJPAR,LLPAR)
+      REAL   ::   jvalues(IIPAR,JJPAR,2)
 #endif
 
       REAL*4 ::   fracnox(4,4,4,12,12,4,5)
       REAL*4 ::   intope(4,4,4,12,12,4,5)
-      REAL   ::   jvalues(IIPAR,JJPAR,2)
 !
 ! !REMARKS:
 !  NOTE: Now NEMPARA = max no. of anthropogenic emissions
@@ -234,6 +235,7 @@
      &  SAVENO3(IIPAR,JJPAR,LLPAR),
      &  FRACNO2(IIPAR,JJPAR,LLPAR),
      &  SAVEHO2(IIPAR,JJPAR,LLPAR),
+     &  JVALUES(IIPAR,JJPAR,2),
      &  STAT=AS)
 
       END SUBROUTINE SET_CMN_O3_MOD

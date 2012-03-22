@@ -90,6 +90,7 @@
      & IDTTOLU, IDTXYLE, IDTC2H4, IDTC2H2
       USE TRACER_MOD,           ONLY : N_TRACERS, TRACER_MW_KG
       USE GRID_MOD,             ONLY : GET_AREA_CM2
+      USE ERROR_MOD,            ONLY : ALLOC_ERR
 #endif
 ! 
 ! !REVISION HISTORY: 
@@ -108,6 +109,8 @@
 
 #if defined( DEVEL )
       REAL*8, INTENT(INOUT)         :: EMISSIONS(IIPAR,JJPAR,N_TRACERS)
+      REAL*8, ALLOCATABLE   :: A(:,:)
+      INTEGER AS
 #endif
       !=================================================================
       !  EMISS_RETRO begins here
@@ -117,6 +120,12 @@
       IF ( FIRST ) THEN
 
          ! Allocate arrays
+#if defined( DEVEL )
+         ALLOCATE( A( IIPAR, JJPAR ), STAT=AS )
+         IF ( AS /= 0 ) CALL ALLOC_ERR( 'EMISS_EPA_NEI:A' )
+         A = 0d0
+#endif         
+
          CALL INIT_RETRO
 
          ! Reset first-time flag
@@ -194,36 +203,39 @@
       WRITE(6, '(a)' ) REPEAT( '=', 79)
 
 #if defined( DEVEL )
-
-      DO J = 1,JJPAR
-      IF ( IDTALK4 > 0 ) EMISSIONS(:,J,IDTALK4) = RETRO_ALK4(:,J) * 
-     & GET_AREA_CM2(J) * 6.0225d-23 * TRACER_MW_KG(IDTALK4)
-      IF ( IDTACET > 0 ) EMISSIONS(:,J,IDTACET) = RETRO_ACET(:,J) * 
-     & GET_AREA_CM2(J) * 6.0225d-23 * TRACER_MW_KG(IDTACET)
-      IF ( IDTMEK  > 0 ) EMISSIONS(:,J,IDTMEK)  = RETRO_MEK(:,J)  * 
-     & GET_AREA_CM2(J) * 6.0225d-23 * TRACER_MW_KG(IDTMEK)
-      IF ( IDTALD2 > 0 ) EMISSIONS(:,J,IDTALD2) = RETRO_ALD2(:,J) * 
-     & GET_AREA_CM2(J) * 6.0225d-23 * TRACER_MW_KG(IDTALD2)
-      IF ( IDTPRPE > 0 ) EMISSIONS(:,J,IDTPRPE) = RETRO_PRPE(:,J) * 
-     & GET_AREA_CM2(J) * 6.0225d-23 * TRACER_MW_KG(IDTPRPE)
-      IF ( IDTC3H8 > 0 ) EMISSIONS(:,J,IDTC3H8) = RETRO_C3H8(:,J) * 
-     & GET_AREA_CM2(J) * 6.0225d-23 * TRACER_MW_KG(IDTC3H8)
-      IF ( IDTC2H6 > 0 ) EMISSIONS(:,J,IDTC2H6) = RETRO_C2H6(:,J) * 
-     & GET_AREA_CM2(J) * 6.0225d-23 * TRACER_MW_KG(IDTC2H6)
-      IF ( IDTCH2O > 0 ) EMISSIONS(:,J,IDTCH2O) = RETRO_CH2O(:,J) * 
-     & GET_AREA_CM2(J) * 6.0225d-23 * TRACER_MW_KG(IDTCH2O)
-      IF ( IDTBENZ > 0 ) EMISSIONS(:,J,IDTBENZ) = RETRO_BENZ(:,J) * 
-     & GET_AREA_CM2(J) * 6.0225d-23 * TRACER_MW_KG(IDTBENZ)
-      IF ( IDTTOLU > 0 ) EMISSIONS(:,J,IDTTOLU) = RETRO_TOLU(:,J) * 
-     & GET_AREA_CM2(J) * 6.0225d-23 * TRACER_MW_KG(IDTTOLU)
-      IF ( IDTXYLE > 0 ) EMISSIONS(:,J,IDTXYLE) = RETRO_XYLE(:,J) * 
-     & GET_AREA_CM2(J) * 6.0225d-23 * TRACER_MW_KG(IDTXYLE)
-      IF ( IDTC2H4 > 0 ) EMISSIONS(:,J,IDTC2H4) = RETRO_C2H4(:,J) * 
-     & GET_AREA_CM2(J) * 6.0225d-23 * TRACER_MW_KG(IDTC2H4)
-      IF ( IDTC2H2 > 0 ) EMISSIONS(:,J,IDTC2H2) = RETRO_C2H2(:,J) * 
-     & GET_AREA_CM2(J) * 6.0225d-23 * TRACER_MW_KG(IDTC2H2)
-
+      DO I=1,IIPAR
+      DO J=1,JJPAR
+         A(I,J)  = GET_AREA_CM2( I, J, 1 ) 
       ENDDO
+      ENDDO
+
+      IF ( IDTALK4 > 0 ) EMISSIONS(:,:,IDTALK4) = RETRO_ALK4(:,:) * 
+     & A * 6.0225d-23 * TRACER_MW_KG(IDTALK4)
+      IF ( IDTACET > 0 ) EMISSIONS(:,:,IDTACET) = RETRO_ACET(:,:) * 
+     & A * 6.0225d-23 * TRACER_MW_KG(IDTACET)
+      IF ( IDTMEK  > 0 ) EMISSIONS(:,:,IDTMEK)  = RETRO_MEK(:,:)  * 
+     & A * 6.0225d-23 * TRACER_MW_KG(IDTMEK)
+      IF ( IDTALD2 > 0 ) EMISSIONS(:,:,IDTALD2) = RETRO_ALD2(:,:) * 
+     & A * 6.0225d-23 * TRACER_MW_KG(IDTALD2)
+      IF ( IDTPRPE > 0 ) EMISSIONS(:,:,IDTPRPE) = RETRO_PRPE(:,:) * 
+     & A * 6.0225d-23 * TRACER_MW_KG(IDTPRPE)
+      IF ( IDTC3H8 > 0 ) EMISSIONS(:,:,IDTC3H8) = RETRO_C3H8(:,:) * 
+     & A * 6.0225d-23 * TRACER_MW_KG(IDTC3H8)
+      IF ( IDTC2H6 > 0 ) EMISSIONS(:,:,IDTC2H6) = RETRO_C2H6(:,:) * 
+     & A * 6.0225d-23 * TRACER_MW_KG(IDTC2H6)
+      IF ( IDTCH2O > 0 ) EMISSIONS(:,:,IDTCH2O) = RETRO_CH2O(:,:) * 
+     & A * 6.0225d-23 * TRACER_MW_KG(IDTCH2O)
+      IF ( IDTBENZ > 0 ) EMISSIONS(:,:,IDTBENZ) = RETRO_BENZ(:,:) * 
+     & A * 6.0225d-23 * TRACER_MW_KG(IDTBENZ)
+      IF ( IDTTOLU > 0 ) EMISSIONS(:,:,IDTTOLU) = RETRO_TOLU(:,:) * 
+     & A * 6.0225d-23 * TRACER_MW_KG(IDTTOLU)
+      IF ( IDTXYLE > 0 ) EMISSIONS(:,:,IDTXYLE) = RETRO_XYLE(:,:) * 
+     & A * 6.0225d-23 * TRACER_MW_KG(IDTXYLE)
+      IF ( IDTC2H4 > 0 ) EMISSIONS(:,:,IDTC2H4) = RETRO_C2H4(:,:) * 
+     & A * 6.0225d-23 * TRACER_MW_KG(IDTC2H4)
+      IF ( IDTC2H2 > 0 ) EMISSIONS(:,:,IDTC2H2) = RETRO_C2H2(:,:) * 
+     & A * 6.0225d-23 * TRACER_MW_KG(IDTC2H2)
+
 #endif
 
       ! Return to calling program

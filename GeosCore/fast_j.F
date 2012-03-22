@@ -185,10 +185,12 @@
       DAY       = GET_DAY()
 
       ! Read TOMS O3 columns if it's a new month
+#if ! defined ( GCM )
       IF ( MONTH /= LASTMONTH ) THEN
          CALL READ_TOMS( MONTH, GET_YEAR() )
          LASTMONTH = MONTH
       ENDIF
+#endif
 
       !=================================================================
       ! For each (NLON,NLAT) location, call subroutine PHOTOJ (in a 
