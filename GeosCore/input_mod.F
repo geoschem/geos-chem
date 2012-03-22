@@ -766,7 +766,7 @@
 ! !IROUTINE: initialize_geos_grid
 !
 ! !DESCRIPTION: Subroutine INITIALIZE\_GEOS\_GRID calls routines from
-!  grid_mod.F90 to initialize the horizontal grid parameters.
+!  grid\_mod.F90 to initialize the horizontal grid parameters.
 !\\
 !\\
 ! !INTERFACE:

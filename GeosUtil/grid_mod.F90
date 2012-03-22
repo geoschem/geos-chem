@@ -3,7 +3,7 @@
 !------------------------------------------------------------------------------
 !BOP
 !
-! !MODULE: grid _mod.F90
+! !MODULE: grid_mod.F90
 !
 ! !DESCRIPTION: Module GRID\_MOD contains variables and routines which are 
 !  used to specify the parameters of a GEOS-Chem horizontal grid. Grid 

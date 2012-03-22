@@ -3,7 +3,7 @@
 !------------------------------------------------------------------------------
 !BOP
 !
-! !IMODULE: c2h6_mod
+! !MODULE: c2h6_mod
 !
 ! !DESCRIPTION: Module C2H6\_MOD contains variables and routines used for the
 !  tagged C2H6 (ethane) simulation. (xyp, qli, bmy, 7/28/01, 4/5/06)
@@ -439,7 +439,7 @@
 !------------------------------------------------------------------------------
 !BOP
 !
-! !IROUTINE: get_C2H6_anthro
+! !IROUTINE: get_c2h6_anthro
 !
 ! !DESCRIPTION: Function GET\_C2H6\_ANTHRO returns the monthly average
 !  anthropogenic C2H6 emissions at GEOS-Chem grid box (I,J).  Data will
@@ -533,7 +533,7 @@
 !
 ! !IROUTINE: cleanup_c2h6
 !
-! !DESCRIPTION: Subroutine CLEANUP_C2H6 deallocates the natural gas C2H6
+! !DESCRIPTION: Subroutine CLEANUP\_C2H6 deallocates the natural gas C2H6
 !  emission array.
 !\\
 !\\
