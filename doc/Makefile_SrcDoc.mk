@@ -47,6 +47,7 @@
 #                              and sulfate_mod
 #  07 Feb 2012 - M. Payer    - Added paranox_mod, diag59_mod
 #  08 Feb 2012 - R. Yantosca - Added geos57_read_mod.F90
+#  22 Mar 2012 - M. Payer    - Added c2h6_mod
 #EOP
 #------------------------------------------------------------------------------
 #BOC
@@ -66,6 +67,7 @@ $(CORE)/acetone_mod.F                \
 $(CORE)/aerosol_mod.F                \
 $(CORE)/arctas_ship_emiss_mod.F	     \
 $(CORE)/bravo_mod.F                  \
+$(CORE)/c2h6_mod.F                   \
 $(CORE)/cac_anthro_mod.F             \
 $(CORE)/chemistry_mod.F              \
 $(CORE)/co2_mod.F                    \
