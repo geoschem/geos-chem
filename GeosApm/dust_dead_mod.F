@@ -144,6 +144,7 @@
 !  (6 ) Now uses GOCART source function (tdf, bmy, 1/25/07)
 !  (7 ) Modifications for 0.5 x 0.667 grid (yxw, dan, bmy, 11/6/08)
 !  (8 ) Updates for nested grids (amv, bmy, 12/18/09)
+!  28 Feb 2012 - R. Yantosca - Removed support for GEOS-3
 !******************************************************************************
 !
       IMPLICIT NONE
@@ -297,6 +298,9 @@
 !  (6 ) For now treat MERRA like GEOS-5 (bmy, 8/13/10)
 !  29 Oct 2010 - T. D. Fairlie, R. Yantosca - Retune dust for MERRA 4x5
 !  15 Feb 2011 - R. Yantosca - Add modifications for APM from G. Luo
+!  08 Feb 2012 - R. Yantosca - For now, use same FLX_MSS_FDG_FCT for 
+!                              GEOS-5.7.x as for MERRA
+!  28 Feb 2012 - R. Yantosca - Removed support for GEOS-3
 !  01 Mar 2012 - R. Yantosca - Now use GET_AREA_M2(I,J,L) from grid_mod.F90
 !******************************************************************************
 !
@@ -382,12 +386,19 @@
       !----------------------------------------------------------------
       REAL*8,  PARAMETER     :: FLX_MSS_FDG_FCT = 7.0d-4 / 0.731d0
 
-#elif defined( GEOS_3 ) && defined( GRID1x1 ) && defined( NESTED_NA )
+#elif defined( GEOS_57 ) && defined( GRID2x25 )
 
-      ! For the GEOS-3 1x1 N. America Nested grid (as used by the MIT/FAA-ULS
-      ! project), we'll tune the global dust emissions to the same totals as 
-      ! the GEOS-5 4x5 1-year benchmark v8-01-01-Run0. (bmy, 11/10/08)
-      REAL*8,  PARAMETER     :: FLX_MSS_FDG_FCT = 7.0d-4 / 9.57d0
+      !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+      !%%% NOTE: NEED TO SCALE THIS FOR GEOS-5.7.x 2x25!                 %%%
+      !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+      REAL*8,  PARAMETER     :: FLX_MSS_FDG_FCT = 4.9d-4
+
+#elif defined( GEOS_57 ) && defined( GRID4x5 )
+
+      !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+      !%%% NOTE: USE SAME VALUE AS MERRA 4x5 FOR NOW!                    %%%
+      !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+      REAL*8,  PARAMETER     :: FLX_MSS_FDG_FCT = 7.0d-4 / 0.731d0
 
 #else
 

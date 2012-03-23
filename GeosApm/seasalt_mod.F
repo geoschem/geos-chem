@@ -273,6 +273,8 @@
       USE TRACERID_MOD,  ONLY : IDTSALA,       IDTSALC
       USE TIME_MOD,      ONLY : GET_TS_CHEM
       USE GRID_MOD,      ONLY : GET_AREA_CM2
+      ! add (jaegle 5/11/11)
+      USE ERROR_MOD,     ONLY : DEBUG_MSG, ERROR_STOP
 
       USE CMN_SIZE_MOD        ! Size parameters
       USE CMN_DIAG_MOD        ! ND44
@@ -293,6 +295,8 @@
 !  (3 ) Bug fix: DTCHEM has to be REAL*8, not integer. (bmy, 9/7/06)
 !  (4 ) Now limit relative humidity to [tiny(real*8),0.99] range for DLOG
 !         argument (phs, 5/1/08)
+!  (5 ) Update sea salt density calculation using Tang et al. (1997) (bec,
+!       jaegle 5/11/11)
 !  (6 ) Update hygroscopic growth for sea salt using Lewis and Schwartz (2006)
 !       and and density calculation based on Tang et al. (1997) (bec, jaegle
 !       5/11/11)
@@ -1242,37 +1246,49 @@
 
       END SUBROUTINE SRCSALT
 !EOC
-
 !------------------------------------------------------------------------------
-
+!          Harvard University Atmospheric Chemistry Modeling Group            !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: get_alk
+!
+! !DESCRIPTION: Subroutine GET\_ALK returns the seasalt alkalinity emitted at
+!  each timestep to sulfate\_mod.f for chemistry on seasalt aerosols.
+!  (bec, 12/7/04, 11/23/09)
+!\\
+!\\
+! !INTERFACE:
+!
       SUBROUTINE GET_ALK( I, J, L, ALK1, ALK2, Kt1, Kt2, Kt1N, Kt2N )
 !
-!******************************************************************************
-!  Function GET_ALK returns the seasalt alkalinity emitted at each timestep to
-!  sulfate_mod.f for chemistry on seasalt aerosols.
-!  (bec, 12/7/04, 11/23/09)
-! 
-!  Arguments as Input:
-!  ============================================================================
-!
-!  NOTES:
-!  (1 ) Becky Alexander says we can remove AREA1, AREA2 (bec, bmy, 9/5/06)
-!  (2 ) Bug fix to remove a double-substitution.  Replace code lines for 
-!        TERM{123}A, TERM{123}B, TERM{123}AN, TERM{123}BN. (bec, bmy, 7/18/08)
-!  (3 ) Updated hygroscopic growth parameters (bec, bmy, 11/23/09)
-!******************************************************************************
+! !USES:
 !
       USE DAO_MOD,      ONLY : AD, RH
       USE ERROR_MOD,    ONLY : IT_IS_NAN
       USE TRACER_MOD,   ONLY : SALA_REDGE_um, SALC_REDGE_um
-
-      ! Arguments
+!
+! !INPUT PARAMETERS: 
+!
       INTEGER, INTENT(IN)  :: I, J, L 
-      
-      ! Return value
-      REAL*8, INTENT(OUT)  :: ALK1, ALK2 ! [kg]
+!
+! !OUTPUT PARAMETERS: 
+!
+      REAL*8, INTENT(OUT)  :: ALK1, ALK2           ! [kg]
       REAL*8, INTENT(OUT)  :: Kt1, Kt2, Kt1N, Kt2N ! [s-1]
- 
+!
+! !REVISION HISTORY: 
+!  (1 ) Becky Alexander says we can remove AREA1, AREA2 (bec, bmy, 9/5/06)
+!  (2 ) Bug fix to remove a double-substitution.  Replace code lines for 
+!        TERM{123}A, TERM{123}B, TERM{123}AN, TERM{123}BN. (bec, bmy, 7/18/08)
+!  (3 ) Updated hygroscopic growth parameters (bec, bmy, 11/23/09)
+!  22 Dec 2011 - M. Payer    - Added ProTeX headers
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+!
+! !LOCAL VARIABLES:
+!
       REAL*8,  PARAMETER :: PI = 3.14159265
       REAL*8             :: N1, N2, Kt
       REAL*8             :: HGF, ALK
@@ -1421,26 +1437,39 @@
 
       ! Return to calling program
       END SUBROUTINE GET_ALK
-
+!EOC
 !------------------------------------------------------------------------------
-
+!          Harvard University Atmospheric Chemistry Modeling Group            !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: init_seasalt
+!
+! !DESCRIPTION: Subroutine INIT\_SEASALT initializes and zeroes all module
+!  arrays (bmy, 4/26/04, 4/13/05)
+!\\
+!\\
+! !INTERFACE:
+!
       SUBROUTINE INIT_SEASALT
 !
-!******************************************************************************
-!  Subroutine INIT_SEASALT initializes and zeroes all module arrays 
-!  (bmy, 4/26/04, 4/13/05)
+! !USES:
 !
-!  NOTES:
-!  (1 ) Now exit if we have allocated arrays before.  Now also allocate 
-!        ALK_EMIS & N_DENS.  Now reference CMN_SIZE. (bec, bmy, 4/13/05)
-!******************************************************************************
-!
-      ! References to F90 modules
       USE ERROR_MOD, ONLY : ALLOC_ERR
 
       USE CMN_SIZE_MOD
-
-      ! Local variables
+!
+! !REVISION HISTORY:
+!  (1 ) Now exit if we have allocated arrays before.  Now also allocate 
+!        ALK_EMIS & N_DENS.  Now reference CMN_SIZE. (bec, bmy, 4/13/05)
+!  (2 ) Added SALT_V and DMID (jaegle 5/11/11)
+!  22 Dec 2011 - M. Payer    - Added ProTeX headers
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+!
+! !LOCAL VARIABLES:
+!
       LOGICAL, SAVE :: IS_INIT = .FALSE.
       INTEGER       :: AS
 
@@ -1476,23 +1505,42 @@
       IF ( AS /= 0 ) CALL ALLOC_ERR( 'N_DENS' )
       N_DENS = 0d0
 
+      ALLOCATE( SALT_V( NR_MAX ), STAT=AS )
+      IF ( AS /= 0 ) CALL ALLOC_ERR( 'SALT_V' )
+      SALT_V = 0d0
+
+      ALLOCATE( DMID( NR_MAX ), STAT=AS )
+      IF ( AS /= 0 ) CALL ALLOC_ERR( 'DMID' )
+      DMID = 0d0
+
       ! Reset IS_INIT
       IS_INIT = .TRUE.
 
       ! Return to calling program
       END SUBROUTINE INIT_SEASALT
-
-!----------------------------------------------------------------------------
-
+!EOC
+!------------------------------------------------------------------------------
+!          Harvard University Atmospheric Chemistry Modeling Group            !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: cleanup_seasalt
+!
+! !DESCRIPTION: Subroutine CLEANUP\_SEASALT deallocates all module arrays 
+!  (bmy, 4/26/04, 4/13/05)
+!\\
+!\\
+! !INTERFACE:
+!
       SUBROUTINE CLEANUP_SEASALT
 !
-!******************************************************************************
-!  Subroutine INIT_SEASALT deallocates all module arrays 
-!  (bmy, 4/26/04, 4/13/05)
-!
-!  NOTES:
+! !REVISION HISTORY:
 !  (1 ) Now deallocates ALK_EMIS, N_DENS, SRC_N (bec, bmy, 4/13/05)
-!******************************************************************************
+!  (2 ) Deallocated SALT_V and DMID (jaegle 5/11/11)
+!  22 Dec 2011 - M. Payer    - Added ProTeX headers
+!EOP
+!------------------------------------------------------------------------------
+!BOC
 !
       !=================================================================
       ! CLEANUP_SEASALT begins here!
@@ -1503,6 +1551,8 @@
       IF ( ALLOCATED( SRC_N    ) ) DEALLOCATE( SRC_N    )
       IF ( ALLOCATED( ALK_EMIS ) ) DEALLOCATE( ALK_EMIS )
       IF ( ALLOCATED( N_DENS   ) ) DEALLOCATE( N_DENS   )      
+      IF ( ALLOCATED( SALT_V   ) ) DEALLOCATE( SALT_V   )
+      IF ( ALLOCATED( DMID     ) ) DEALLOCATE( DMID     )
 
       ! Return to calling program
       END SUBROUTINE CLEANUP_SEASALT

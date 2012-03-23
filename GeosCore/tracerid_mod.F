@@ -298,6 +298,9 @@
       INTEGER            :: IDBSO2,  IDBNH3
       INTEGER            :: IDBBC,   IDBOC
       INTEGER            :: IDBCO2
+!kjw
+      INTEGER            :: IDBCH4
+!kjw
 
       INTEGER            :: IDBTOLU, IDBBENZ, IDBXYLE
       ! add dicarbonyl emissions (ccc, 01/27/10)
@@ -2158,6 +2161,9 @@
       IDBGLYC   = 0
       IDBGLYX   = 0
       IDBMGLY   = 0
+!kjw
+      IDBCH4    = 0
+!kjw
 
       !-----------------------------------
       ! Initialize tagged Hg index arrays

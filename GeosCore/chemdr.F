@@ -200,6 +200,7 @@
 !                              the photolysis issue.
 !  07 Oct 2011 - R. Yantosca - Rename SUNCOS30 to SUNCOS_MID, which is the
 !                              cos(SZA) at the midpt of the chemistry timestep
+!   6 Mar 2012 - R. Yantosca - Now reference TO3 from dao_mod.F
 !EOP
 !------------------------------------------------------------------------------
 !BOC

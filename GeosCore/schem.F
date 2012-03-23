@@ -106,6 +106,7 @@
 !  13 Aug 2010 - R. Yantosca - Added ProTeX headers
 !  13 Aug 2010 - R. Yantosca - Treat MERRA in the same way as GEOS-5
 !  08 Feb 2012 - R. Yantosca - Treat GEOS-5.7.x in the same way as MERRA
+!  07 Mar 2012 - R. Yantosca - Start DO loops from L=1 instead of L=LMIN
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -355,7 +356,11 @@
       DO NN = 1, NSPHOTO
          N = SPHOTOID(NN)
 
-         DO L = LMIN, LLPAR
+!---------------------------------
+! Prior to 3/7/12:
+!         DO L = LMIN, LLPAR
+!---------------------------------
+         DO L = 1,    LLPAR
          DO J = 1,    JJPAR
          DO I = 1,    IIPAR
 
@@ -391,7 +396,11 @@
 !$OMP+PRIVATE( I, J, L, N, M, TK, RC, k0, k1, RDLOSS, T1L )
 !$OMP+SCHEDULE( DYNAMIC )
       DO N = 1,    N_TRACERS
-      DO L = LMIN, LLPAR
+!---------------------------------
+! Prior to 3/7/12:
+!      DO L = LMIN, LLPAR
+!---------------------------------
+      DO L = 1,    LLPAR
       DO J = 1,    JJPAR
       DO I = 1,    IIPAR
 

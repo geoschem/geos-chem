@@ -166,14 +166,16 @@
 !        local PBL (lin, ccc, 5/29/09)
 !  17 Dec 2009 - R. Yantosca - Added ProTeX headers
 !  28 Jan 2010 - C. Carouge, R. Yantosca - Modified for ISORROPIA II
+!  19 Mar 2012 - R. Yantosca - Add C-preprocessor switch to shut off 
+!                              ISORROPIA to facilitate debugging
 !EOP
 !------------------------------------------------------------------------------
 !BOC
 !
 ! !LOCAL VARIABLES:
 ! 
-      LOGICAL, SAVE            :: FIRST = .TRUE.
-      INTEGER                  :: N_TROP, MONTH, YEAR, WAVELENGTH
+      LOGICAL, SAVE :: FIRST = .TRUE.
+      INTEGER       :: N_TROP, MONTH, YEAR, WAVELENGTH
 
 #if defined( DEVEL )
       TYPE(CHEMSTATE), INTENT(INOUT) :: CHEM_STATE
@@ -219,8 +221,10 @@
                 ! Do aerosol thermodynamic equilibrium
                 IF ( LSSALT ) THEN
                 
+#if   !defined( NO_ISORROPIA )
                    ! ISOROPIA takes Na+, Cl- into account
-!                   CALL DO_ISOROPIAII
+                   CALL DO_ISOROPIAII
+#endif
                 
                 ELSE
  

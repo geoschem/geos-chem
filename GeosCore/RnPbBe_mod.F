@@ -73,6 +73,7 @@
 !  (16) Remove support for GEOS-1 and GEOS-STRAT met fields (bmy, 8/4/06)
 !  19 Nov 2010 - R. Yantosca - Added ProTeX headers
 !  08 Nov 2011 - R. Yantosca - Prevent out-of-bounds errors in diagnostics
+!  28 Feb 2012 - R. Yantosca - Removed support for GEOS-3
 !  01 Mar 2012 - R. Yantosca - Now use routines from the new grid_mod.F90
 !EOP
 !------------------------------------------------------------------------------
@@ -219,6 +220,7 @@
 !  (1 ) Now updated for GCAP met fields (swu, bmy, 5/24/05)
 !  (2 ) Remove support for GEOS-1 and GEOS-STRAT met fields (bmy, 8/4/06)
 !  08 Dec 2009 - R. Yantosca - Added ProTeX headers
+!  28 Feb 2012 - R. Yantosca - Removed support for GEOS-3
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -227,10 +229,7 @@
       !
       ! Correction factors were computed by Hongyu Liu (hyl, 8/6/02)
       !=================================================================
-#if   defined( GEOS_3 )
-      EMISSION = EMISSION / 3.5d0 
-
-#elif defined( GEOS_4 )
+#if   defined( GEOS_4 )
       !EMISSION = 0d0           ! to be determined later
 
 #elif defined( GEOS_5 ) || defined( MERRA )

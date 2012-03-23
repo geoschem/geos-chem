@@ -66,8 +66,11 @@
 !  13 Aug 2010 - R. Yantosca - Add modifications for MERRA (treat like GEOS-5)
 !  27 Jul 2011 - R. Yantosca - Removed typo in EMISS_NEI2005_ANTHRO_05x0666
 !  08 Feb 2012 - R. Yantosca - Add modifications for GEOS-5.7.x met
+!  28 Feb 2012 - R. Yantosca - Removed support for GEOS-3
 !  01 Mar 2012 - R. Yantosca - Now reference new grid_mod.F90
 !   2 Mar 2012 - R. Yantosca - Remove A_CM2 array, use GET_AREA_CM2 instead
+!  22 Mar 2012 - M. Payer    - C2H6 emissions are too low. Use Yaping
+!                              Xiao's C2H6 emissions instead.
 !EOP
 !------------------------------------------------------------------------------
 !
@@ -160,6 +163,8 @@
 !  07 Oct 2009 - A. van Donkelaar - initial version
 !  01 Mar 2012 - R. Yantosca - Now use GET_AREA_CM2(I,J,L) from grid_mod.F90
 !  01 Mar 2012 - R. Yantosca - Remove A_CM2 array, use GET_AREA_CM2 instead
+!  22 Mar 2012 - M. Payer    - C2H6 emissions are too low. Use Yaping
+!                              Xiao's C2H6 emissions instead.  
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -238,8 +243,12 @@
 
          ELSE IF ( N == IDTC2H6 ) THEN
 
-            ! [kg C/yr]
-            VALUE = C2H6(I,J,L)
+!------------------------------------------------------------------------------
+! Prior to 3/22/12:
+!            ! [kg C/yr]
+!            VALUE = C2H6(I,J,L)
+!------------------------------------------------------------------------------
+            VALUE = -1d0
 
          ELSE IF ( N == IDTALD2 ) THEN
 
@@ -313,8 +322,12 @@
 
          ELSE IF ( N == IDTC2H6 ) THEN
 
-            ! [kg C/yr]
-            VALUE = C2H6_WKEND(I,J,L)
+!------------------------------------------------------------------------------
+! Prior to 3/22/12:
+!            ! [kg C/yr]
+!            VALUE = C2H6_WKEND(I,J,L)
+!------------------------------------------------------------------------------
+            VALUE = -1d0
  
          ELSE IF ( N == IDTALD2 ) THEN
 
@@ -406,6 +419,7 @@
 !                              fix a problem in the VOC emissions.
 !  13 Aug 2010 - R. Yantosca - Treat MERRA like GEOS-5
 !  08 Feb 2012 - R. Yantosca - Treat GEOS-5.7.x in the same way as MERRA
+!  28 Feb 2012 - R. Yantosca - Removed support for GEOS-3
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -448,12 +462,10 @@
          THISYEAR = FSCALYR
       ENDIF
 
-#if   defined( GEOS_5 ) || defined( MERRA ) | defined( GEOS_57 )
+#if   defined( GEOS_5 ) || defined( MERRA ) || defined( GEOS_57 )
       SNAME = 'GEOS5'
 #elif defined( GEOS_4 )
       SNAME = 'GEOS4'
-#elif defined( GEOS_3 )
-      SNAME = 'GEOS3'
 #endif
 
       ! list of ID of available species
@@ -804,6 +816,7 @@
 !  27 Jul 2011 - R. Yantosca - Fixed typo: now *really* point to the NEI2005
 !                              data directory NEI2005_101007/
 !  08 Feb 2012 - R. Yantosca - Treat GEOS-5.7.x like MERRA
+!  28 Feb 2012 - R. Yantosca - Removed support for GEOS-3
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -852,8 +865,6 @@
       SNAME = 'GEOS5'
 #elif defined( GEOS_4 )
       SNAME = 'GEOS4'
-#elif defined( GEOS_3 )
-      SNAME = 'GEOS3'
 #endif
 
       ! list of ID of available species
@@ -1951,7 +1962,8 @@
       INTEGER, INTENT(IN) :: YEAR   ! Year of data to compute totals
 !
 ! !REVISION HISTORY: 
-!    7 Oct 2009 - A. van Donkelaar - initial version
+!   7 Oct 2009 - A. van Donkelaar - initial version
+!  22 Mar 2012 - M. Payer         - Remove print for C2H6 emissions.
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -2036,12 +2048,19 @@
       WRITE( 6, 110 ) 'PRPE ', YEAR, T_PRPE, '[Tg C]'
       WRITE( 6, 110 ) 'C3H8 ', YEAR, T_C3H8, '[Tg C]'
       WRITE( 6, 110 ) 'CH2O ', YEAR, T_CH2O, '[Tg C]'
-      WRITE( 6, 110 ) 'C2H6 ', YEAR, T_C2H6, '[Tg C]'
+!------------------------------------------------------------------------------
+! Prior to 3/22/12:
+!      WRITE( 6, 110 ) 'C2H6 ', YEAR, T_C2H6, '[Tg C]'
+!------------------------------------------------------------------------------
       WRITE( 6, 110 ) 'ALD2 ', YEAR, T_ALD2, '[Tg C]'
 
       ! Format statement
  110  FORMAT( 'NEI2005 anthro ', a5, 
      &        'for year ', i4, ': ', f11.4, 1x, a8 )
+
+      WRITE( 6, '(/,a,/)' ) 'NEI2005_ANTHRO_MOD: NEI05 C2H6 ' //
+     &   'anthro emissions are too low. Using offline C2H6 '  //
+     &   'emissions from Yaping Xiao.'
 
       ! Fancy output
       WRITE( 6, '(a)' ) REPEAT( '=', 79 )

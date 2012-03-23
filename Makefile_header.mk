@@ -89,6 +89,8 @@
 #                              -i-dynamic to FFLAGS in order to avoid memory 
 #                              errors (for IFORT only)
 #  10 Feb 2012 - R. Yantosca - Remove -CU from the DEBUG option (IFORT only)
+#  19 Mar 2012 - R. Yantosca - Add optional NO_ISO switch, which will turn off
+#                              the ISORROPIA ATE package for testing
 #EOP
 #------------------------------------------------------------------------------
 #BOC
@@ -112,9 +114,9 @@ ifndef HDF5
 HDF5      := no
 endif
 
-# netCDF I/O is turned off by default
+# netCDF I/O is turned on by default
 ifndef NETCDF
-NETCDF    := no           
+NETCDF    := yes
 endif
 
 # Use precise FP math optimization (i.e. to avoid numerical noise)
@@ -231,6 +233,11 @@ ifdef TRACEBACK
 FFLAGS    += -traceback
 endif
 
+# Option to turn off ISORROPIA for testing
+ifdef NO_ISO
+FFLAGS    += -DNO_ISORROPIA
+endif
+
 # Include options (i.e. for finding *.h, *.mod files)
 INCLUDE   := -I$(HDR) -module $(MOD)
 
@@ -306,6 +313,11 @@ ifdef BOUNDS
 FFLAGS    += -C
 endif
 
+# Option to turn off ISORROPIA for testing
+ifdef NO_ISO
+FFLAGS    += -DNO_ISORROPIA
+endif
+
 # Include options (i.e. for finding *.h, *.mod files)
 INCLUDE   := -I$(HDR) -module $(MOD)
 
@@ -365,6 +377,11 @@ endif
 # Add option for "array out of bounds" checking
 ifdef BOUNDS
 FFLAGS    += -C
+endif
+
+# Option to turn off ISORROPIA for testing
+ifdef NO_ISO
+FFLAGS    += -DNO_ISORROPIA
 endif
 
 # Include options (i.e. for finding *.h, *.mod files)
@@ -431,6 +448,11 @@ endif
 # Add option for "array out of bounds" checking
 ifdef BOUNDS
 FFLAGS += -C
+endif
+
+# Option to turn off ISORROPIA for testing
+ifdef NO_ISO
+FFLAGS    += -DNO_ISORROPIA
 endif
 
 # Include options (i.e. for finding *.h, *.mod files)

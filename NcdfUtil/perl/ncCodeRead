@@ -44,6 +44,7 @@
 # !REVISION HISTORY: 
 #  30 Jan 2012 - R. Yantosca - Initial version
 #  31 Jan 2012 - R. Yantosca - Minor edits for consistency
+#  07 Mar 2012 - R. Yantosca - Minor fix, ignore comment lines
 #EOP
 #------------------------------------------------------------------------------
 #          Harvard University Atmospheric Chemistry Modeling Group            !
@@ -69,7 +70,8 @@ sub readRcFile($) {
 # &readRcFile( RESOURCE-FILE-NAME );
 #
 # !REVISION HISTORY:
-#  30 Jan 2012 - R. Yantosca - Initial versin
+#  30 Jan 2012 - R. Yantosca - Initial version
+#  07 Mar 2012 - R. Yantosca - Minor fix, ignore comment lines
 #EOP
 #------------------------------------------------------------------------------
 #BOC
@@ -96,14 +98,18 @@ sub readRcFile($) {
   # output file with the fortran code
   foreach $line ( @lines ) {
 
-    # Name of output file w/ Fortran code
-    if ( $line =~ 'Fortran Read File' ) {
-      ( $name, $cmdFile ) = &splitLine( $line, '=' );
-    }
+    # Skip comment lines
+    if ( !( substr( $line, 0, 1 ) eq '#' ) ) {
 
-    # NetCDF file ID (aka filehandle)
-    if ( $line =~ 'netCDF FileHandle' ) {
-      ( $name, $F_ID ) = &splitLine( $line, '=' );
+      # Name of output file w/ Fortran code
+      if ( $line =~ 'Fortran Read File' ) {
+	( $name, $cmdFile ) = &splitLine( $line, '=' );
+      }
+
+      # NetCDF file ID (aka filehandle)
+      if ( $line =~ 'netCDF FileHandle' ) {
+	( $name, $F_ID ) = &splitLine( $line, '=' );
+      }
     }
   }
       

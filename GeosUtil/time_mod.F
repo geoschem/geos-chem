@@ -19,6 +19,7 @@
 
 #     include "define.h"
       PRIVATE
+      PRIVATE :: HG2_DIAG !hma, 25 Oct 2011
 !
 ! !PUBLIC MEMBER FUNCTIONS:
 !
@@ -124,6 +125,12 @@
       PUBLIC  :: SYSTEM_TIMESTAMP
       PUBLIC  :: TIMESTAMP_DIAG
       PUBLIC  :: GET_NYMD_DIAG
+      PUBLIC  :: GET_Hg2_DIAG !hma, 25 Oct 2011
+      PUBLIC  :: SET_Hg2_DIAG !hma, 25 Oct 2011
+![eml
+      PUBLIC  :: SET_HISTYR
+      PUBLIC  :: GET_HISTYR
+!eml]
 #if   defined( APM )
       PUBLIC  :: ITS_TIME_FOR_A6UPDATE
 #endif
@@ -192,8 +199,11 @@
 !  07 Oct 2011 - R. Yantosca - Remove obsolete TS_SUN_2, GET_TS_SUN_2
 !  07 Oct 2011 - R. Yantosca - Remove obsolete OFFSET argument to GET_LOCALTIME
 !  12 Oct 2011 - R. Yantosca - Modified ITS_A_NEW_MONTH for central chem step
+!  25 Oct 2011 - H. Amos     - bring Hg2 gas-particle partitioning code into
+!                              v9-01-02
 !  02 Feb 2012 - R. Yantosca - Added modifications for GEOS-5.7.x met fields
 !  03 Feb 2012 - R. Yantosca - Added I3 fields timestep variable & routines
+!  28 Feb 2012 - R. Yantosca - Removed support for GEOS-3
 !  01 Mar 2012 - R. Yantosca - GET_LOCALTIME now takes (I,J,L,GMT) as args
 !EOP
 !------------------------------------------------------------------------------
@@ -206,6 +216,9 @@
       INTEGER           :: HOUR,       MINUTE,      SECOND
       INTEGER           :: NSEASON,    DAY_OF_YEAR, ELAPSED_MIN
       INTEGER           :: NDIAGTIME
+![eml
+      INTEGER           :: HISTYRA
+!eml]
       REAL*8            :: TAU,        TAUb,        TAUe  
       REAL*8            :: GMT,        DIAGb,       DIAGe
 
@@ -218,6 +231,7 @@
       INTEGER           :: CT_EMIS,    CT_A3,       CT_A6
       INTEGER           :: CT_I3,      CT_I6,       CT_XTRA    
       INTEGER           :: CT_DIAG,    CT_A1
+      INTEGER           :: Hg2_DIAG
 
       ! Number of leap years we have encountered since start of simulation
       REAL*8            :: LEAP_YEAR_DAYS
@@ -648,15 +662,16 @@
       TS_DIAG  = DIAGNOS
 
       ! Zero timestep counters
-      CT_CHEM = 0
-      CT_CONV = 0
-      CT_DYN  = 0
-      CT_EMIS = 0
-      CT_A3   = 0
-      CT_A6   = 0
-      CT_I6   = 0
-      CT_XTRA = 0
-      CT_DIAG = 0
+      CT_CHEM  = 0
+      CT_CONV  = 0
+      CT_DYN   = 0
+      CT_EMIS  = 0
+      CT_A3    = 0
+      CT_A6    = 0
+      CT_I6    = 0
+      CT_XTRA  = 0
+      CT_DIAG  = 0
+      Hg2_DIAG = 0
 
       ! Echo to stdout
       WRITE( 6, '(/,a)' ) 'SET_TIMESTEPS: setting GEOS-Chem timesteps!'
@@ -704,6 +719,42 @@
       ENDIF
 
       END SUBROUTINE SET_CT_CHEM
+
+!EOC
+!------------------------------------------------------------------------------
+!          Harvard University Atmospheric Chemistry Modeling Group            !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: set_hg2_diag
+!
+! !DESCRIPTION: Subroutine SET\_Hg2\_DIAG increments Hg2\_DIAG, the counter for
+!  the number of times AAD03\_Fg and AD03\_Fp are recorded. (hma 20100218)
+!\\
+!\\
+! !INTERFACE:
+!
+      SUBROUTINE SET_Hg2_DIAG( INCREMENT, RESET )
+!
+! !INPUT PARAMETERS:
+!
+      LOGICAL, INTENT(IN), OPTIONAL :: INCREMENT  ! Increment counter?
+      LOGICAL, INTENT(IN), OPTIONAL :: RESET      ! Reset counter?
+! 
+! !REVISION HISTORY:
+!  18 Feb 2012 - H. Amos     - Initial version 
+!  07 Mar 2012 - M. Payer    - Added ProTeX headers
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+      IF ( PRESENT( INCREMENT ) ) THEN
+         Hg2_DIAG = Hg2_DIAG + 1
+      ELSE IF ( PRESENT( RESET ) ) THEN
+         Hg2_DIAG = 0
+      ENDIF
+
+      END SUBROUTINE SET_Hg2_DIAG
+
 !EOC
 !------------------------------------------------------------------------------
 !          Harvard University Atmospheric Chemistry Modeling Group            !
@@ -1564,6 +1615,64 @@
       THISYEAR = YEAR
 
       END FUNCTION GET_YEAR
+!EOC
+!------------------------------------------------------------------------------
+!          Harvard University Atmospheric Chemistry Modeling Group            !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: set_histyr
+!
+! !DESCRIPTION: Function SET\_HISTYR returns the year stored in HISTYR w/o
+!  needing to include the CMN\_O3 common block (eml, 8/20/08)
+!\\
+!\\
+! !INTERFACE:
+!
+      SUBROUTINE SET_HISTYR( YEARIN )
+!
+! !INPUT PARAMETERS:
+!
+      INTEGER, INTENT(IN) :: YEARIN
+! 
+! !REVISION HISTORY:
+!  20 Aug 2008 - E. Leibensperger - Initial version
+!  07 Mar 2012 - M. Payer         - Added ProTeX headers
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+      HISTYRA = YEARIN
+      
+      END SUBROUTINE SET_HISTYR
+!EOC
+!------------------------------------------------------------------------------
+!          Harvard University Atmospheric Chemistry Modeling Group            !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: get_histyr
+!
+! !DESCRIPTION: Function GET\_HISTYR returns the year stored in HISTYR w/o
+!  needing to include the CMN\_O3 common block (eml, 8/20/08)
+!\\
+!\\
+! !INTERFACE:
+!
+      FUNCTION GET_HISTYR() RESULT( HISTYEAR )
+!
+! !RETURN VALUE:
+!
+      INTEGER :: HISTYEAR
+! 
+! !REVISION HISTORY:
+!  20 Aug 2008 - E. Leibensperger - Initial version
+!  07 Mar 2012 - M. Payer         - Added ProTeX headers
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+      HISTYEAR = HISTYRA
+
+      END FUNCTION GET_HISTYR
 !EOC
 !------------------------------------------------------------------------------
 !          Harvard University Atmospheric Chemistry Modeling Group            !
@@ -2498,7 +2607,7 @@
 ! !RETURN VALUE:
 !
       INTEGER :: THIS_CT_DIAG   ! # of diagnostic timesteps
- ! 
+! 
 ! !REVISION HISTORY: 
 !  21 May 2009 - C. Carouge  - Initial Version
 !  15 Jan 2010 - R. Yantosca - Added ProTeX headers
@@ -2508,6 +2617,35 @@
       THIS_CT_DIAG = CT_DIAG
 
       END FUNCTION GET_CT_DIAG
+!EOC
+!------------------------------------------------------------------------------
+!          Harvard University Atmospheric Chemistry Modeling Group            !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: get_hg2_diag
+!
+! !DESCRIPTION: Function GET\_Hg2\_DIAG returns the DIAG timestep counter to
+!  the calling program. (hma 20100218)
+!\\
+!\\
+! !INTERFACE:
+!
+      FUNCTION GET_Hg2_DIAG() RESULT( THIS_Hg2_DIAG )
+!
+! !RETURN VALUE:
+!
+      INTEGER :: THIS_Hg2_DIAG  ! # of diagnostic timesteps
+! 
+! !REVISION HISTORY:
+!  18 Feb 2012 - H. Amos     - Initial version 
+!  07 Mar 2012 - M. Payer    - Added ProTeX headers
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+      THIS_Hg2_DIAG = Hg2_DIAG
+
+      END FUNCTION GET_Hg2_DIAG
 !EOC
 !------------------------------------------------------------------------------
 !          Harvard University Atmospheric Chemistry Modeling Group            !
@@ -2583,27 +2721,16 @@
 !  (2 ) Remove reference to FIRST variable (bmy, 12/10/04)
 !  (3 ) Now modified for GCAP and GEOS-5 met fields (swu, bmy, 5/24/05)
 !  (4 ) Remove support for GEOS-1 and GEOS-STRAT met fields (bmy, 8/4/06)
-
 !  15 Jan 2010 - R. Yantosca - Added ProTeX headers
+!  28 Feb 2012 - R. Yantosca - Removed support for GEOS-3
 !EOP
 !------------------------------------------------------------------------------
 !BOC
-
-#if   defined( GEOS_3 )
-
-      ! For GEOS-1, GEOS-STRAT, GEOS-3, the A-3 fields are timestamped 
-      ! by ending time.  Therefore, the difference between the actual time
-      ! when the fields are read and the A-3 timestamp time is 180 minutes.
-      DATE = GET_TIME_AHEAD( 180 )      
-
-#else
 
       ! For GEOS-4, GEOS-5, or GCAP data: The A-3 fields are timestamped 
       ! by center time.  Therefore, the difference between the actual time 
       ! when the fields are read and the A-3 timestamp time is 90 minutes.
       DATE = GET_TIME_AHEAD( 90 )   
-
-#endif
 
       END FUNCTION GET_A3_TIME
 !EOC
@@ -2880,6 +3007,7 @@
 !  (2 ) Remove support for GEOS-1 and GEOS-STRAT met fields (bmy, 8/4/06)
 !  15 Jan 2010 - R. Yantosca - Added ProTeX headers
 !  27 Sep 2010 - R. Yantosca - Modified for start times other than 0 GMT
+!  28 Feb 2012 - R. Yantosca - Removed support for GEOS-3
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -2887,17 +3015,6 @@
 ! !LOCAL VARIABLES:
 !
       INTEGER :: HH, MM, SS, MINS, OFFSET
-
-#if   defined( GEOS_3 )
-
-      !==================================================================
-      ! GEOS-3: A3 fields indexed by start time
-      !==================================================================
-
-      ! For GEOS-1, GEOS-STRAT, GEOS-3: Return the current date/time
-      DATE = (/ NYMD, NHMS /)
-
-#else
 
       !==================================================================
       ! GEOS-4, GEOS-5, MERRA, GCAP: 
@@ -2915,8 +3032,6 @@
 
       ! Get YYYY/MM/DD and hh:mm:ss at midpoint of 3hr interval
       DATE   = GET_TIME_AHEAD( OFFSET )
-
-#endif
 
       END FUNCTION GET_FIRST_A3_TIME
 !EOC

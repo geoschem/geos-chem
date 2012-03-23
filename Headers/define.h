@@ -12,25 +12,24 @@
 ! !REMARKS:
 !  List of "Switches"
 !  ===========================================================================
-!  (1 ) GCAP        : Enables code for GCAP   met fields & chemistry
-!  (2 ) GEOS_3      : Enables code for GEOS-3 met fields & chemistry
-!  (3 ) GEOS_4      : Enables code for GEOS-4 met fields & chemistry
-!  (4 ) GEOS_5      : Enables code for GEOS-5 met fields & chemistry
-!  (5 ) MERRA       : Enables code for MERRA  met fields & chemistry
-!  (6 ) GRIDREDUCED : Enables code for reduced stratosphere grids
-!  (7 ) GRID1x1     : Enables code for 1 x 1    GLOBAL        GRID
-!  (8 ) NESTED_CH   : Enables code for CHINA  NESTED GRID
-!  (9 ) NESTED_NA   : Enables code for N. AM. NESTED GRID
-!  (10) NESTED_EUR  : Enables code for EUROPE NESTED GRID
-!  (11) GRID1x125   : Enables code for 1 x 1.25 GLOBAL        GRID
-!  (12) GRID2x25    : Enables code for 2 x 2.5  GLOBAL        GRID
-!  (13) GRID4x5     : Enables code for 4 x 5    GLOBAL        GRID 
-!  (14) IBM_AIX     : Enables code for IBM/AIX compiler
-!  (15) IBM_XLF     : Enables code for IBM/XLF compiler
-!  (16) LINUX_PGI   : Enables code for Linux w/ PGI compiler
-!  (17) LINUX_IFORT : Enables code for Linux v8 or v9 "IFORT" compiler
-!  (18) SPARC       : Enables code for Sun w/ SPARC or Sun Studio compiler
-!  (19) GTMM_Hg     : Enables code for Hg simulation with GTMM
+!  GCAP        : Enables code for GCAP   met fields & chemistry
+!  GEOS_4      : Enables code for GEOS-4 met fields & chemistry
+!  GEOS_5      : Enables code for GEOS-5 met fields & chemistry
+!  MERRA       : Enables code for MERRA  met fields & chemistry
+!  GRIDREDUCED : Enables code for reduced stratosphere grids
+!  GRID1x1     : Enables code for 1 x 1    GLOBAL        GRID
+!  NESTED_CH   : Enables code for CHINA  NESTED GRID
+!  NESTED_NA   : Enables code for N. AM. NESTED GRID
+!  NESTED_EUR  : Enables code for EUROPE NESTED GRID
+!  GRID1x125   : Enables code for 1 x 1.25 GLOBAL        GRID
+!  GRID2x25    : Enables code for 2 x 2.5  GLOBAL        GRID
+!  GRID4x5     : Enables code for 4 x 5    GLOBAL        GRID 
+!  IBM_AIX     : Enables code for IBM/AIX compiler
+!  IBM_XLF     : Enables code for IBM/XLF compiler
+!  LINUX_PGI   : Enables code for Linux w/ PGI compiler
+!  LINUX_IFORT : Enables code for Linux v8 or v9 "IFORT" compiler
+!  SPARC       : Enables code for Sun w/ SPARC or Sun Studio compiler
+!  GTMM_Hg     : Enables code for Hg simulation with GTMM
 !                                                                            .
 !  NOTES:
 !  (1 ) "define.h" is #include'd at the top of CMN_SIZE.  All subroutines
@@ -93,6 +92,7 @@
 !  12 Aug 2010 - R. Yantosca - Added MERRA switch for MERRA reanalysis met
 !  01 Feb 2012 - R. Yantosca - Modify error trap to allow GEOS-5.7.x met
 !  10 Feb 2012 - R. Yantosca - Added GRID025x03125 C-preprocessor switch
+!  28 Feb 2012 - R. Yantosca - Removed support for GEOS-3
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -101,7 +101,6 @@
 ! Undefine all "switches" so that they cannot be accidentally reset  
 !==============================================================================
 #undef GCAP
-#undef GEOS_3
 #undef GEOS_4
 #undef GEOS_5
 #undef GEOS_57
@@ -131,7 +130,6 @@
 
 !----- Model types -----
 !#define GCAP          'GCAP'
-!#define GEOS_3        'GEOS_3'
 !#define GEOS_4        'GEOS_4'
 #define GEOS_5        'GEOS_5'
 !#define MERRA         'MERRA'
@@ -161,15 +159,15 @@
 !#define GTMM_Hg
 
 !==============================================================================
-! Force a compile error if GEOS_1, GEOS_STRAT, GEOS_3, GEOS_4 are undefined 
+! Force a compile error if a model type is undefined
 !==============================================================================
-#if !defined(GEOS_3) && !defined(GEOS_4) && !defined(GEOS_5) && !defined(MERRA) && !defined(GCAP) && !defined(GEOS_57) && !defined(EXTERNAL_FORCING)
-#error "ERROR: GEOS_3, GEOS_4, GEOS_5, GEOS-5.7, MERRA, and GCAP"
+#if !defined(GEOS_4) && !defined(GEOS_5) && !defined(MERRA) && !defined(GCAP) && !defined(GEOS_57) && !defined(EXTERNAL_FORCING)
+#error "ERROR: GEOS_4, GEOS_5, GEOS-5.7, MERRA, and GCAP"
 #error "are ALL undefined in header file define.h"
 #endif
 
 !==============================================================================
-! Force a compile error if GRID1x1, GRID2x25, and GRID4x5 are all undefined 
+! Force a compile error if a grid type is undefined
 !==============================================================================
 #if !defined(GRID2x25) && !defined(GRID4x5) && !defined(GRID1x125) && !defined(GRID1x1) && !defined(GRID05x0666) && !defined(GRID025x03125) && !defined(EXTERNAL_GRID)
 #error "ERROR: GRID4x5, GRID2x25, GRID1x125, GRID1x1, "
@@ -178,7 +176,7 @@
 #endif
 
 !==============================================================================
-! Force a compile  error if all compiler switches are undefined
+! Force a compile error if all compiler switches are undefined
 !==============================================================================
 #if !defined(IBM_AIX) && !defined(IBM_XLF) && !defined(LINUX_PGI) && !defined(LINUX_IFORT) && !defined(SPARC)
 #error "ERROR: One of IBM_AIX, IBL_XLF, LINUX_PGI, LINUX_IFORT,"
@@ -186,6 +184,8 @@
 #endif
 
 !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+!%%% NOTE: SCHEM is scheduled to be removed from GEOS-Chem v9-01-03
+!%%%
 !%%% SCHEM PATCH: Stop the run if we are running w/ the GEOS-5 72Ll grid
 !%%% This prevents dimension mismatch when reading SCHEM data fields!
 !%%% (ltm, bmy, 6/2/10)

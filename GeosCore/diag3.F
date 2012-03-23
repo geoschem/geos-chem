@@ -176,6 +176,7 @@
 !  08 Feb 2012 - R. Yantosca - Add modifications for GEOS-5.7.x met
 !  08 Feb 2012 - R. Yantosca - Restructure USE statements for clarity
 !  08 Feb 2012 - R. Yantosca - Add counter for I3 (inst 3hr) met fields
+!  28 Feb 2012 - R. Yantosca - Removed support for GEOS-3
 !  01 Mar 2012 - R. Yantosca - Now use GET_AREA_M2(I,J,L) from grid_mod.F90
 !EOP
 !------------------------------------------------------------------------------
@@ -3442,9 +3443,7 @@
       IF ( ND66 > 0 ) THEN
          CATEGORY = 'DAO-3D-$'
 
-#if   defined( GEOS_3 )
-         SCALE_ND66 = SCALE_I6   ! For GEOS-3,      ND66 is 6-hr inst data
-#elif defined( GEOS_57 )
+#if   defined( GEOS_57 )
          SCALE_ND66 = SCALE_A3   ! For GEOS_5.7.x,  ND66 is 3-hr time-avg data
 #elif defined( MERRA )
          SCALE_ND66 = SCALE_A3   ! For MERRA,       ND66 is 3-hr time-avg data
@@ -3484,9 +3483,6 @@
                ! CLDMAS, DTRAIN
                CASE( 5, 6 )
                   SCALEX = SCALE_ND66 
-#if   defined( GEOS_3 )
-                  SCALEX = SCALE_A6      ! GEOS-3 CLDMAS/DTRAIN are 6-hr avg'd
-#endif
                   UNIT   = 'kg/m2/s'
 
                CASE DEFAULT
@@ -3598,11 +3594,7 @@
                   ! Bug fix: For GEOS-3, ALBEDO is an I-6 field, but
                   ! for GEOS-4, GEOS-5, GCAP, it is an A-3 field.
                   ! (lyj, phs, bmy, 10/7/08)
-#if   defined( GEOS_3 )
-                  SCALEX = SCALE_I6 
-#else
                   SCALEX = SCALE_ND67
-#endif
                   UNIT   = 'unitless'
                CASE ( 15 )
                   SCALEX = SCALED

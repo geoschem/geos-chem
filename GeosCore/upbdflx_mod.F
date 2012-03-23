@@ -69,6 +69,8 @@
 !  13 Aug 2010 - R. Yantosca - Add modifications for MERRA (treat like GEOS-5)
 !  02 Dec 2010 - R. Yantosca - Added ProTeX headers
 !  08 Feb 2012 - R. Yantosca - Add modifications for GEOS-5.7.2 met data
+!  28 Feb 2012 - R. Yantosca - Removed support for GEOS-3
+!  07 Mar 2012 - R. Yantosca - Change DO loop boundaries for GI model
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -271,6 +273,7 @@
 !  02 Dec 2010 - R. Yantosca - Added ProTeX headers
 !  08 Feb 2012 - R. Yantosca - Treat GEOS-5.7.2 in the same way as MERRA
 !  10 Feb 2012 - R. Yantosca - Modified for 0.25 x 0.3125 grids
+!  28 Feb 2012 - R. Yantosca - Removed support for GEOS-3
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -351,13 +354,7 @@
       !                                     be the default)
       !  (2) IORD = 5, JORD = 5, KORD = 7 
       !=================================================================
-#if defined( GEOS_3 )
-
-      PO3_vmr = 5.14d-14                                 ! 3,3,7
-      IF ( IORD + JORD + KORD == 17 ) PO3_vmr = 4.07d-14 ! 5,5,7
-
-#elif defined( GEOS_4 )
-
+#if   defined( GEOS_4 )
       PO3_vmr = 5.14d-14                                 ! 3,3,7
 
 #elif defined( GEOS_5 ) || defined( MERRA ) || defined( GEOS_57 )
@@ -599,6 +596,7 @@
 !  (21) Remove support for GEOS-1 and GEOS-STRAT met fields (bmy, 8/4/06)
 !  (22) Cap 1-XRATIO to avoid numerical problems later (bmy, 6/30/08)
 !  02 Dec 2010 - R. Yantosca - Added ProTeX headers
+!  07 Mar 2012 - R. Yantosca - Start DO loops from L=1 instead of L=LMIN
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -795,7 +793,11 @@
 #endif
 !$OMP+PRIVATE( I, J, L, PNOY )
 !$OMP+SCHEDULE( DYNAMIC )
-         DO L = LMIN, LLPAR
+!----------------------------------
+! Prior to 3/7/12:
+!         DO L = LMIN, LLPAR
+!----------------------------------
+         DO L = 1,    LLPAR
          DO J = 1,    JJPAR
          DO I = 1,    IIPAR
 
@@ -843,7 +845,10 @@
 !$OMP+DEFAULT( SHARED ) SHARED(XRATIO)
 !$OMP+PRIVATE( I, J, L, PNOY )
 !$OMP+SCHEDULE( DYNAMIC )
-         DO L = LMIN, LLPAR
+!--------------------------------
+!         DO L = LMIN, LLPAR
+!-----------------------------
+         DO L = 1,    LLPAR
          DO J = 1,    JJPAR
          DO I = 1,    IIPAR
 
@@ -927,6 +932,7 @@
 !  02 Dec 2010 - R. Yantosca - Added ProTeX headers
 !  08 Feb 2012 - R. Yantosca - Treat GEOS-5.7.2 in the same way as MERRA
 !  10 Feb 2012 - R. Yantosca - Modified for 0.25 x 0.3125 grids
+!  28 Feb 2012 - R. Yantosca - Removed support for GEOS-3
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -993,18 +999,7 @@
       ! PHD_vmr [v/v/s]
       ! For now uses the GEOS-3 scale factor for all cases (phs)
       !=================================================================
-
-#if   defined( GEOS_3 )
-
-! Lyatt Jaegle uses older value as of 2003/06/11:
-!      PO3_vmr = 4.2d-14                                  ! 3,3,7
-! However, O3 flux has been changed to 500 Tg/yr for GEOS-3 few months later
-!  (mje, bmy, 9/15/03), as follows:
-!   Impact on SCALE_HD (phs)? 
-      PO3_vmr = 5.14d-14                                 ! 3,3,7
-      IF ( IORD + JORD + KORD == 17 ) PO3_vmr = 4.07d-14 ! 5,5,7
-
-#elif defined( GEOS_4 )
+#if   defined( GEOS_4 )
 
       PO3_vmr = 5.14d-14                                 ! 3,3,7
 

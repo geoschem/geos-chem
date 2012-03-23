@@ -75,6 +75,8 @@
 !  26 Jan 2010 - R. Yantosca - Minor bug fix in INIT_EMEP
 !  31 Aug 2010 - R. Yantosca - Updated comments
 !  24 Nov 2010 - G. Vinken   - Updated EMEP mask file
+!  22 Mar 2012 - M. Payer    - C2H6 emissions are too low. Use Yaping
+!                              Xiao's C2H6 emissions instead.
 !EOP
 !------------------------------------------------------------------------------
 !
@@ -183,6 +185,8 @@
 !  (2 ) Now returns ship emissions if requested (phs, 6/08)
 !  (3 ) Added checks to avoid calling unavailable ship emissions (phs, 6/08)
 !  01 Mar 2012 - R. Yantosca - Now use GET_AREA_CM2(I,J,L) from grid_mod.F90
+!  22 Mar 2012 - M. Payer    - C2H6 emissions are too low. Use Yaping
+!                              Xiao's C2H6 emissions instead.
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -255,7 +259,11 @@
 
       ! C2H6 
       ELSE IF ( N == IDTC2H6 ) THEN
-         EMEP = EMEP_C2H6(I,J)
+!------------------------------------------------------------------------------
+! Prior to 3/22/12:
+!         EMEP = EMEP_C2H6(I,J)
+!------------------------------------------------------------------------------
+         EMEP = -1d0
 
       ! SO2
       ELSE IF ( N == IDTSO2 ) THEN
@@ -975,6 +983,7 @@
 !        since this is called monthly (phs, 12/9/08)
 !  (5 ) Bug fix, now print out correct monthly EMEP totals (bmy, 1/30/09)
 !  01 Mar 2012 - R. Yantosca - Now use GET_AREA_M2(I,J,L) from grid_mod.F90
+!  22 Mar 2012 - M. Payer    - Remove print for C2H6 emissions.
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -1083,9 +1092,16 @@
       WRITE( 6, 110   ) 'MEK ', EMISS_YEAR, EMEP_MONTH, MEK,  ' C'
       WRITE( 6, 110   ) 'ALD2', EMISS_YEAR, EMEP_MONTH, ALD2, ' C'
       WRITE( 6, 110   ) 'PRPE', EMISS_YEAR, EMEP_MONTH, PRPE, ' C'
-      WRITE( 6, 110   ) 'C2H6', EMISS_YEAR, EMEP_MONTH, C2H6, ' C'
+!------------------------------------------------------------------------------
+! Prior to 3/22/12:
+!      WRITE( 6, 110   ) 'C2H6', EMISS_YEAR, EMEP_MONTH, C2H6, ' C'
+!------------------------------------------------------------------------------
  110  FORMAT( 'EMEP anthropogenic ', a4, ' for ', i4, '/', i2.2,
      &        ': ', f13.6, ' Tg', a2 )
+
+      WRITE( 6, '(/,a,/)' ) 'EMEP_MOD: EMEP C2H6 anthro '       //
+     &   'emissions are too low. Using offline C2H6 emissions ' //
+     &   'from Yaping Xiao.'
 
       ! Fancy output
       WRITE( 6, '(a)' ) REPEAT( '=', 79 )

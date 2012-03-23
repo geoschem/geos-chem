@@ -1,83 +1,76 @@
-! $Id: pbl_mix_mod.f,v 1.1 2009/09/16 14:06:16 bmy Exp $
+!------------------------------------------------------------------------------
+!          Harvard University Atmospheric Chemistry Modeling Group            !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !MODULE: pbl_mix_mod
+!
+! !DESCRIPTION: Module PBL\_MIX\_MOD contains routines and variables used to 
+!  compute the planetary boundary layer (PBL) height and to mix tracers 
+!  underneath the PBL top.  
+!\\
+!\\
+! !INTERFACE: 
+!
       MODULE PBL_MIX_MOD
 !
-!******************************************************************************
-!  Module PBL_MIX_MOD contains routines and variables used to compute the
-!  planetary boundary layer (PBL) height and to mix tracers underneath the 
-!  PBL top. (bmy, 2/11/05, 8/4/06)
+! !USES:
 !
-!  Module Variables:
-!  ============================================================================
-!  (1 ) IMIX        (INTEGER) : Array for integer # of levels under PBL top
-!  (2 ) FPBL        (REAL*8 ) : Array for frac # of levels under PBL top
-!  (3 ) F_OF_PBL    (REAL*8 ) : Array for frac of box (I,J,L) w/in PBL
-!  (4 ) F_UNDER_TOP (REAL*8 ) : Array for frac of box (I,J,L) under PBL top
-!  (5 ) PBL_TOP_hPa (REAL*8 ) : Array for PBL top [hPa]
-!  (6 ) PBL_TOP_L   (REAL*8 ) : Array for PBL top [model levels]
-!  (7 ) PBL_TOP_m   (REAL*8 ) : Array for PBL top [m]
-!  (7 ) PBL_THICK   (REAL*8 ) : Array for PBL thickness [hPa]
+      IMPLICIT NONE
+#     include "define.h"
+      PRIVATE
 !
-!  Module Routines:
-!  ============================================================================
-!  (1 ) DO_PBL_MIX            : Driver routine for PBL mixing
-!  (2 ) GET_FRAC_OF_PBL       : Returns fraction of grid box w/in PBL
-!  (3 ) GET_FRAC_UNDER_PBLTOP : Returns fraction of grid box under PBL top
-!  (4 ) GET_PBL_MAX_L         : Returns model level at highest part of PBL
-!  (5 ) GET_PBL_TOP_hPa       : Returns PBL top value in [hPa]
-!  (6 ) GET_PBL_TOP_L         : Returns PBL top value in [model layers]
-!  (7 ) GET_PBL_THICK         : Returns PBL thickness in [hPa]
-!  (8 ) INIT_PBL_MIX          : Allocates and zeroes all module arrays
-!  (9 ) CLEANUP_PBL_MIX       : Deallocates all module arrays
-! 
-!  GEOS-CHEM modules referenced by "input_mod.f"
-!  ============================================================================
-!  (1 ) dao_mod.f             : Module w/ arrays for DAO met fields
-!  (2 ) diag_mod.f            : Module w/ GEOS-CHEM diagnostic arrays
-!  (3 ) error_mod.f           : Module w/ I/O error and NaN check routines
-!  (4 ) grid_mod.f            : Module w/ horizontal grid information
-!  (5 ) logical_mod.f         : Module w/ GEOS-CHEM logical switches
-!  (6 ) pressure_mod.f        : Module w/ routines to compute P(I,J,L)
-!  (7 ) time_mod.f            : Module w/ routines for computing time & date
-!  (8 ) tracer_mod.f          : Module w/ GEOS-CHEM tracer array STT etc.
+! !PUBLIC MEMBER FUNCTIONS:
 !
-!  NOTES:
+      PUBLIC  :: CLEANUP_PBL_MIX
+      PUBLIC  :: DO_PBL_MIX
+      PUBLIC  :: GET_FRAC_OF_PBL
+      PUBLIC  :: GET_FRAC_UNDER_PBLTOP
+      PUBLIC  :: GET_PBL_MAX_L
+      PUBLIC  :: GET_PBL_TOP_hPa
+      PUBLIC  :: GET_PBL_TOP_L
+      PUBLIC  :: GET_PBL_TOP_m
+      PUBLIC  :: GET_PBL_THICK
+      PUBLIC  :: INIT_PBL_MIX
+      PUBLIC  :: COMPUTE_PBL_HEIGHT
+
+#if defined ( DEVEL )
+      PUBLIC :: PBL_TOP_L, PBL_TOP_m
+#endif
+
+!
+! !PRIVATE MEMBER FUNCTIONS:
+!
+      PRIVATE :: TURBDAY
+!
+! !REVISION HISTORY:
+!  11 Feb 2005 - R. Yantosca - Initial version
 !  (1 ) Now modified for GCAP and GEOS-5 met fields (bmy, 5/24/05)
 !  (2 ) Remove reference to "CMN" and XTRA2. (bmy, 8/30/05)
 !  (3 ) Remove support for GEOS-1 and GEOS-STRAT met fields (bmy, 8/4/06)
 !  (4 ) Add INIT_PBL_MIX and COMPUTE_PBL_HEIGHT as PUBLIC routines 
 !        (lin, 5/29/09)
 !  (5 ) Extend tracers for APM simulation (GanLuo, 2010)
+!  28 Feb 2012 - R. Yantosca - Removed support for GEOS-3
+!  28 Feb 2012 - R. Yantosca - Added ProTeX headers
 !  01 Mar 2012 - R. Yantosca - Now reference new grid_mod.F90
-!******************************************************************************
+!EOP
+!------------------------------------------------------------------------------
+!BOC
 !
-      IMPLICIT NONE
-#     include "define.h"
-
-      !=================================================================
-      ! MODULE PRIVATE DECLARATIONS -- keep certain internal variables 
-      ! and routines from being seen outside "pbl_mix_mod.f"
-      !=================================================================
-
-      ! Make everything PRIVATE ...
-      PRIVATE
-
-      ! ... except these routines
-      PUBLIC :: CLEANUP_PBL_MIX
-      PUBLIC :: DO_PBL_MIX
-      PUBLIC :: GET_FRAC_OF_PBL
-      PUBLIC :: GET_FRAC_UNDER_PBLTOP
-      PUBLIC :: GET_PBL_MAX_L
-      PUBLIC :: GET_PBL_TOP_hPa
-      PUBLIC :: GET_PBL_TOP_L
-      PUBLIC :: GET_PBL_TOP_m
-      PUBLIC :: GET_PBL_THICK
-      PUBLIC :: INIT_PBL_MIX, COMPUTE_PBL_HEIGHT ! (Lin, 03/31/09)
-
-#if defined ( DEVEL )
-      PUBLIC :: PBL_TOP_L, PBL_TOP_m
-#endif
+! !PRIVATE TYPES:
+!
       !=================================================================
       ! MODULE VARIABLES
+      !
+      ! IMIX        : Array for integer # of levels under PBL top
+      ! FPBL        : Array for frac # of levels under PBL top
+      ! F_OF_PBL    : Array for frac of box (I,J,L) w/in PBL
+      ! F_UNDER_TOP : Array for frac of box (I,J,L) under PBL top
+      ! PBL_TOP_hPa : Array for PBL top [hPa]
+      ! PBL_TOP_L   : Array for PBL top [model levels]
+      ! PBL_TOP_m   : Array for PBL top [m]
+      ! PBL_THICK   : Array for PBL thickness [hPa]
       !=================================================================
 
       ! Scalars
@@ -98,38 +91,54 @@
       ! MODULE ROUTINES -- follow below the "CONTAINS" statement
       !=================================================================
       CONTAINS
-
+!EOC
 !------------------------------------------------------------------------------
-
+!          Harvard University Atmospheric Chemistry Modeling Group            !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: do_pbl_mix
+!
+! !DESCRIPTION: Subroutine DO\_PBL\_MIX is the driver routine for planetary 
+!  boundary layer mixing.  The PBL layer height and related quantities are 
+!  always computed.  Complete mixing of tracers underneath the PBL top is 
+!  toggled by the DO\_TURBDAY switch.
+!\\
+!\\
+! !INTERFACE:
+!
       SUBROUTINE DO_PBL_MIX( DO_TURBDAY )
 !
-!******************************************************************************
-!  Subroutine DO_PBL_MIX is the driver routine for planetary boundary layer
-!  mixing.  The PBL layer height and related quantities are always computed.
-!  Complete mixing of tracers underneath the PBL top is toggled by the 
-!  DO_TURBDAY switch. (bmy, 2/11/05)
+! !USES:
 !
-!  Arguments as Input:
-!  ============================================================================
-!  (1 ) DO_TURBDAY (LOGICAL) : Switch which turns on PBL mixing of tracers
-!
-!  NOTES:
-!  07 Sep 2011 - G. Luo    - Add modifications for APM
-!******************************************************************************
-!
-      ! References to F90 modules
       USE LOGICAL_MOD, ONLY : LTURB
       USE TRACER_MOD,  ONLY : N_TRACERS, STT, TCVV 
 #if   defined( APM ) 
       USE TRACER_MOD,  ONLY : N_APMTRA
 #endif
 
-      ! Arguments
-      LOGICAL, INTENT(IN) :: DO_TURBDAY
+!
+! !INPUT PARAMETERS: 
+!
+      LOGICAL, INTENT(IN) :: DO_TURBDAY   ! =T means call TURBDAY 
+                                          !    for full PBL mixing
+!
+! !REVISION HISTORY: 
+!  11 Feb 2005 - R. Yantosca - Initial version
+!  07 Sep 2011 - G. Luo    - Add modifications for APM
+!  28 Feb 2012 - R. Yantosca - Added ProTeX headers
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+!
+! !LOCAL VARIABLES:
+!
+      LOGICAL, SAVE :: FIRST = .TRUE.
+      INTEGER       :: N_TOT_TRC
 
-      ! Local variables
-      LOGICAL, SAVE       :: FIRST = .TRUE.
-      INTEGER             :: N_TOT_TRC
+      !=================================================================
+      ! DO_PBL_MIX begins here!
+      !=================================================================
 
       ! Pick the proper # of tracers
 #if   defined( APM )  
@@ -137,10 +146,6 @@
 #else                                    !  the G-C advected tracers +
       N_TOT_TRC = N_TRACERS              !  the APM aerosol tracers
 #endif
-
-      !=================================================================
-      ! DO_PBL_MIX begins here!
-      !=================================================================
 
       ! First-time initialization
       IF ( FIRST ) THEN
@@ -154,37 +159,50 @@
       ! Do complete mixing of tracers in the PBL (if necessary)
       IF ( DO_TURBDAY ) CALL TURBDAY( N_TOT_TRC, STT, TCVV )
 
-      ! Return to calling program
       END SUBROUTINE DO_PBL_MIX
-
+!EOC
 !------------------------------------------------------------------------------
-
+!          Harvard University Atmospheric Chemistry Modeling Group            !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: compute_pbl_height
+!
+! !DESCRIPTION: Subroutine COMPUTE\_PBL\_HEIGHT computes the PBL height and 
+!  other related quantities.
+!\\
+!\\
+! !INTERFACE:
+!
       SUBROUTINE COMPUTE_PBL_HEIGHT
 !
-!******************************************************************************
-!  Subroutine COMPUTE_PBL_HEIGHT computes the PBL height and other related
-!  quantities. (bmy, 2/15/05, 8/4/06)
+! !USES:
 !
-!  NOTES:
+      USE DAO_MOD,      ONLY : BXHEIGHT, PBL
+      USE ERROR_MOD,    ONLY : ERROR_STOP
+      USE PRESSURE_MOD, ONLY : GET_PEDGE
+
+      USE CMN_SIZE_MOD       ! Size parameters
+      USE CMN_GCTM_MOD       ! Scale height
+!
+! !REVISION HISTORY: 
+!  11 Feb 2005 - R. Yantosca - Initial version
 !  (1 ) Now modified for GEOS-5 and GCAP met fields (swu, bmy, 5/25/05)
 !  (2 ) Remove reference to "CMN" and XTRA2 -- they're obsolete.  Also do not
 !        force BLTOP, BLTHIK to minimum values for GEOS-STRAT met fields.
 !        (bmy, 8/30/05)
 !  (3 ) Remove support for GEOS-1 and GEOS-STRAT met fields (bmy, 8/4/06)
-!******************************************************************************
+!  28 Feb 2012 - R. Yantosca - Removed support for GEOS-3
+!  28 Feb 2012 - R. Yantosca - Added ProTeX headers
+!EOP
+!------------------------------------------------------------------------------
+!BOC
 !
-      ! References to F90 modules
-      USE DAO_MOD,      ONLY : BXHEIGHT, PBL
-      USE ERROR_MOD,    ONLY : ERROR_STOP
-      USE PRESSURE_MOD, ONLY : GET_PEDGE
-
-      USE CMN_SIZE_MOD     ! Size parameters
-      USE CMN_GCTM_MOD     ! Scale height
-
-      ! Local variables
-      INTEGER               :: I,     J,      L,    LTOP
-      REAL*8                :: BLTOP, BLTHIK, DELP
-      REAL*8                :: P(0:LLPAR)
+! !LOCAL VARIABLES:
+!
+      INTEGER :: I,     J,      L,    LTOP
+      REAL*8  :: BLTOP, BLTHIK, DELP
+      REAL*8  :: P(0:LLPAR)
 
       !=================================================================
       ! COMPUTE_PBL_HEIGHT begins here!
@@ -207,28 +225,7 @@
             P(L) = GET_PEDGE(I,J,L+1)
          ENDDO
          
-#if   defined( GEOS_3 )
-
          !----------------------------------------------
-         ! GEOS-3: Find PBL top and thickness [hPa]
-         !----------------------------------------------
-
-         ! BLTOP = pressure at PBL top
-         ! PBL is in [hPa], so subtract it from surface pressure [hPa]
-         BLTOP  = P(0) - PBL(I,J)
-
-         ! BLTHIK is PBL thickness [hPa]
-         BLTHIK = MAX( PBL(I,J), 1d0 )
- 
-         ! If the PBL depth is very small (or zero), then assume
-         ! a PBL depth of 2 mb.  This will prevent NaN's from
-         ! propagating throughout the code. (bmy, 3/7/01)
-         IF ( PBL(I,J) < 1d-5 ) BLTOP  = P(0) - 2d0
-
-#else
-
-         !----------------------------------------------
-         ! GEOS-4, GEOS-5, GCAP:
          ! Find PBL top and thickness [hPa]
          !----------------------------------------------
 
@@ -238,8 +235,6 @@
 
          ! BLTHIK is PBL thickness [hPa]
          BLTHIK = P(0) - BLTOP
-
-#endif
 
          !----------------------------------------------
          ! Find model level where BLTOP occurs
@@ -372,29 +367,50 @@
       ! Model level where PBL top occurs
       PBL_MAX_L = MAXVAL( IMIX ) 
 
-      ! Return to calling program
       END SUBROUTINE COMPUTE_PBL_HEIGHT
-
+!EOC
 !------------------------------------------------------------------------------
-
+!          Harvard University Atmospheric Chemistry Modeling Group            !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: turbday
+!
+! !DESCRIPTION: !  Subroutine TURBDAY executes the GEOS-Chem boundary layer 
+!  mixing algorithm (full PBL mixing).
+!\\
+!\\
+! !INTERFACE:
+!
       SUBROUTINE TURBDAY( NTRC, TC, TCVV )              
 !
-!******************************************************************************
-!  Subroutine TURBDAY executes the GEOS-CTM dry convection / boundary layer 
-!  mixing algorithm.  Original subroutine by Dale Allen, Univ of MD.
-!  (bmy, bey, 1/30/98, 2/15/05)
+! !USES:
 !
-!  Arguments as Input:
-!  ===========================================================================
-!  (1 ) NTRC    : Number of tracers used in computation  [1 to NNPAR]
-!  (2 ) TC      : Tracer concentration                   [ v / v    ]
-!  (3 ) TCVV    : MW air (g/mol) / MW tracer (g/mol)     [ unitless ]
+      USE DAO_MOD,     ONLY : AD
+      USE DIAG_MOD,    ONLY : TURBFLUP
+      USE TIME_MOD,    ONLY : GET_TS_CONV
+
+      USE CMN_SIZE_MOD      ! Size parameters    
+      USE CMN_DIAG_MOD      ! ND15
 !
-!  Arguments as output:
-!  ==========================================================================
-!  (2 ) TC      : Modified Tracer concentration          [ v / v    ]
+! !INPUT PARAMETERS: 
 !
-!  NOTES:
+      ! Number of tracers used in computation
+      INTEGER,  INTENT(IN)    :: NTRC             
+
+      ! MW air (g/mol) / MW tracer (g/mol)     [ unitless ]
+      REAL*8,   INTENT(IN)    :: TCVV(NTRC)
+!
+! !INPUT/OUTPUT PARAMETERS: 
+!
+      ! Tracer concentration [v/v]
+      REAL*8,   INTENT(INOUT) :: TC(IIPAR,JJPAR,LLPAR,NTRC) 
+! 
+! !REMARKS:
+!  Original subroutine by Dale Allen, Univ of MD.
+!
+! !REVISION HISTORY: 
+!  30 Jan 1998 - I. Bey, R. Yantosca - Initial version
 !  (1 ) TURBDAY is written in Fixed-Form Fortran 90.  Also use F90
 !        syntax for declarations (bmy, 4/1/99).
 !  (2 ) New tracer concentrations are returned in TC.
@@ -448,28 +464,19 @@
 !  (21) Now bundled into "pbl_mix_mod.f".  Broke off the part which computes
 !        PBL height and related quantities into COMPUTE_PBL_HEIGHT. 
 !        (bmy, 2/15/05)
+!  28 Feb 2012 - R. Yantosca - Added ProTeX headers
 !   2 Mar 2012 - R. Yantosca - Remove reference to GET_AREA_M2
-!******************************************************************************
+!EOP
+!------------------------------------------------------------------------------
+!BOC
 !
-      ! References to F90 modules 
-      USE DAO_MOD,        ONLY : AD
-      USE DIAG_MOD,       ONLY : TURBFLUP
-      USE TIME_MOD,       ONLY : GET_TS_CONV
-
-      USE CMN_SIZE_MOD       ! Size parameters    
-      USE CMN_DIAG_MOD       ! ND15
-
-      ! Arguments
-      INTEGER,  INTENT(IN)    :: NTRC
-      REAL*8,   INTENT(INOUT) :: TC(IIPAR,JJPAR,LLPAR,NTRC)
-      REAL*8,   INTENT(IN)    :: TCVV(NTRC)
-      
-      ! Local variables
-      LOGICAL, SAVE           :: FIRST = .TRUE.
-      INTEGER                 :: I,  J,  L,     LTOP,    N
-      REAL*8                  :: AA, CC, CC_AA, AREA_M2, DTCONV
-      REAL*8                  :: A(IIPAR,JJPAR)
-      REAL*8                  :: DTC(IIPAR,JJPAR,LLPAR,NTRC)  
+! !LOCAL VARIABLES:
+!
+      LOGICAL, SAVE :: FIRST = .TRUE.
+      INTEGER       :: I,  J,  L,     LTOP,    N
+      REAL*8        :: AA, CC, CC_AA, AREA_M2, DTCONV
+      REAL*8        :: A(IIPAR,JJPAR)
+      REAL*8        :: DTC(IIPAR,JJPAR,LLPAR,NTRC)  
 
       !=================================================================
       ! TURBDAY begins here!          
@@ -598,34 +605,42 @@
 !     &                TC(I,J,L,N)   * AIRMAS(I,J,L) ) / AIRMAS(I,J,L) 
 !-----------------------------------------------------------------------------
 
-      !  Return to calling program 
       END SUBROUTINE TURBDAY
-
+!EOC
 !------------------------------------------------------------------------------
-
+!          Harvard University Atmospheric Chemistry Modeling Group            !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: get_frac_of_pbl
+!
+! !DESCRIPTION: Function GET\_FRAC\_OF\_PBL returns the fraction of grid box 
+!  (I,J,L) that lies within the planetary boundary layer.
+!\\
+!\\
+! !INTERFACE:
+!
       FUNCTION GET_FRAC_OF_PBL( I, J, L ) RESULT( FRAC )
 !
-!******************************************************************************
-!  Function GET_FRAC_OF_PBL returns the fraction of grid box (I,J,L) that
-!  lies within the planetary boundary layer (bmy, 2/15/05)
-!
-!  Arguments as Input:
-!  ============================================================================
-!  (1 ) I (INTEGER) : GEOS-CHEM longitude index
-!  (2 ) J (INTEGER) : GEOS-CHEM latitude  index
-!  (3 ) L (INTEGER) : GEOS-CHEM level     index
-!  
-!  NOTES: 
-!******************************************************************************
+! !USES:
 !
       USE CMN_SIZE_MOD   ! Size parameters
-
-      ! Arguments
-      INTEGER, INTENT(IN) :: I, J, L
-
-      ! Return value
-      REAL*8              :: FRAC
-
+!
+! !INPUT PARAMETERS: 
+!
+      INTEGER, INTENT(IN) :: I, J, L    ! Lon, lat, lev indices
+!
+! !RETURN VALUE:
+!
+      REAL*8              :: FRAC       ! Fraction of box (I,J,L) in the PBL
+! 
+! !REVISION HISTORY: 
+!  11 Feb 2005 - R. Yantosca - Initial version
+!  28 Feb 2012 - R. Yantosca - Added ProTeX headers
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+!
       !=================================================================
       ! GET_FRAC_OF_PBL begins here!
       !=================================================================
@@ -637,202 +652,241 @@
 
       ! Return to calling program
       END FUNCTION GET_FRAC_OF_PBL
-    
+   !EOC
 !------------------------------------------------------------------------------
-
+!          Harvard University Atmospheric Chemistry Modeling Group            !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: get_frac_under_pbltop
+!
+! !DESCRIPTION: Function GET\_FRAC\_UNDER\_PBLTOP returns the fraction of 
+!  grid box (I,J,L) that lies underneath the planetary boundary layer top.
+!\\
+!\\
+! !INTERFACE:
+!
       FUNCTION GET_FRAC_UNDER_PBLTOP( I, J, L ) RESULT( FRAC )
 !
-!******************************************************************************
-!  Function GET_FRAC_UNDER_PBLTOP returns the fraction of grid box (I,J,L) 
-!  that lies underneath the planetary boundary layer top.
+! !USES:
 !
-!  Arguments as Input:
-!  ============================================================================
-!  (1 ) I (INTEGER) : GEOS-CHEM longitude index
-!  (2 ) J (INTEGER) : GEOS-CHEM latitude  index
-!  (3 ) L (INTEGER) : GEOS-CHEM level     index
-!  
-!  NOTES:  
-!******************************************************************************
+      USE CMN_SIZE_MOD                 ! Size parameters
 !
-      USE CMN_SIZE_MOD   ! Size parameters
-
-      ! Arguments
-      INTEGER, INTENT(IN) :: I, J, L
-
-      ! Return value
-      REAL*8              :: FRAC
-
-      !=================================================================
-      ! GET_FRAC_UNDER_PBLTOP begins here!
-      !=================================================================
+! !INPUT PARAMETERS: 
+!
+      INTEGER, INTENT(IN) :: I, J, L   ! Lon, lat, level indices
+!
+! !RETURN VALUE:
+!
+      REAL*8              :: FRAC      ! Fraction of box (I,J,L) below PBL top
+! 
+! !REVISION HISTORY: 
+!  11 Feb 2005 - R. Yantosca - Initial version
+!  28 Feb 2012 - R. Yantosca - Added ProTeX headers
+!EOP
+!------------------------------------------------------------------------------
+!BOC
       IF ( L <= LLTROP ) THEN
          FRAC = F_UNDER_TOP(I,J,L)
       ELSE
          FRAC = 0d0
       ENDIF
 
-      ! Return to calling program
       END FUNCTION GET_FRAC_UNDER_PBLTOP
-
+!EOC
 !------------------------------------------------------------------------------
-
+!          Harvard University Atmospheric Chemistry Modeling Group            !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: get_pbl_max_l
+!
+! !DESCRIPTION: Function GET\_PBL\_MAX\_L returns the model level at the 
+!  highest part of the planetary boundary layer.
+!\\
+!\\
+! !INTERFACE:
+!
       FUNCTION GET_PBL_MAX_L() RESULT( TOP )
 !
-!******************************************************************************
-!  Function GET_PBL_MAX_L returns the model level at the highest part of
-!  the planetary boundary layer. (bmy, 2/15/05). 
+! !RETURN VALUE:
 !
-!  NOTES:  
-!******************************************************************************
-!
-      ! Return value
-      INTEGER  :: TOP
-
-      !=================================================================
-      ! GET_PBL_MAX_L begins here!
-      !=================================================================
+      INTEGER  :: TOP   ! Highest extent of PBL [model levels]
+! 
+! !REVISION HISTORY: 
+!  11 Feb 2005 - R. Yantosca - Initial version
+!  28 Feb 2012 - R. Yantosca - Added ProTeX headers
+!EOP
+!------------------------------------------------------------------------------
+!BOC
       TOP = PBL_MAX_L
 
-      ! Return to calling program
       END FUNCTION GET_PBL_MAX_L
-
+!EOC
 !------------------------------------------------------------------------------
-
+!          Harvard University Atmospheric Chemistry Modeling Group            !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: get_pbl_top_hpa
+!
+! !DESCRIPTION: Function GET\_PBL\_TOP\_hPa returns the planetary boundary 
+!  layer top [hPa] at a given GEOS-Chem surface location (I,J). 
+!\\
+!\\
+! !INTERFACE:
+!
       FUNCTION GET_PBL_TOP_hPa( I, J ) RESULT( TOP )
 !
-!******************************************************************************
-!  Function GET_PBL_TOP_hPa returns the planetary boundary layer top [hPa]
-!  at a given GEOS-CHEM surface location (I,J). 
+! !INPUT PARAMETERS: 
 !
-!  Arguments as Input:
-!  ============================================================================
-!  (1 ) I (INTEGER) : GEOS-CHEM longitude index
-!  (2 ) J (INTEGER) : GEOS-CHEM latitude  index
-!  
-!  NOTES:  
-!******************************************************************************
+      INTEGER, INTENT(IN) :: I, J   ! Lon and lat indices
 !
-      ! Arguments
-      INTEGER, INTENT(IN) :: I, J
-
-      ! Return value
-      REAL*8              :: TOP
-
-      !=================================================================
-      ! GET_PBL_TOP_hPa begins here!
-      !=================================================================
+! !RETURN VALUE:
+!
+      REAL*8              :: TOP    ! PBL top [hPa]
+!
+! !REVISION HISTORY: 
+!  11 Feb 2005 - R. Yantosca - Initial version
+!  28 Feb 2012 - R. Yantosca - Added ProTeX headers
+!EOP
+!------------------------------------------------------------------------------
+!BOC
       TOP = PBL_TOP_hPa(I,J)
 
-      ! Return to calling program
       END FUNCTION GET_PBL_TOP_hPa
-
+!EOC
 !------------------------------------------------------------------------------
-
+!          Harvard University Atmospheric Chemistry Modeling Group            !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: get_pbl_top_l
+!
+! !DESCRIPTION: Function GET\_PBL\_TOP\_L returns the planetary boundary 
+!  layer top [model levels] at a given GEOS-Chem surface location (I,J). 
+!\\
+!\\
+! !INTERFACE:
+!
       FUNCTION GET_PBL_TOP_L( I, J ) RESULT( TOP )
 !
-!******************************************************************************
-!  Function GET_PBL_TOP_L returns the planetary boundary layer top 
-!  [model levels] at a given GEOS-CHEM surface location (I,J). 
+! !USES:
 !
-!  Arguments as Input:
-!  ============================================================================
-!  (1 ) I (INTEGER) : GEOS-CHEM longitude index
-!  (2 ) J (INTEGER) : GEOS-CHEM latitude  index
-!  
-!  NOTES:  
-!******************************************************************************
+
 !
-      ! Arguments
-      INTEGER, INTENT(IN) :: I, J
-
-      ! Return value
-      REAL*8              :: TOP
-
-      !=================================================================
-      ! GET_PBL_TOP_L begins here!
-      !=================================================================
+! !INPUT PARAMETERS: 
+!
+      INTEGER, INTENT(IN) :: I, J   ! Lon and lat indices
+!
+! !RETURN VALUE:
+!
+      REAL*8              :: TOP    ! PBL top [model levels]
+! 
+! !REVISION HISTORY: 
+!  11 Feb 2005 - R. Yantosca - Initial version
+!  28 Feb 2012 - R. Yantosca - Added ProTeX headers
+!EOP
+!------------------------------------------------------------------------------
+!BOC
       TOP = PBL_TOP_L(I,J)
 
-      ! Return to calling program
       END FUNCTION GET_PBL_TOP_L
-
+!EOC
 !------------------------------------------------------------------------------
-
+!          Harvard University Atmospheric Chemistry Modeling Group            !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: get_pbl_top_m
+!
+! !DESCRIPTION: Function GET\_PBL\_TOP\_m returns the planetary boundary 
+!  layer top [m] at a given GEOS-CHEM surface location (I,J). 
+!\\
+!\\
+! !INTERFACE:
+!
       FUNCTION GET_PBL_TOP_m( I, J ) RESULT( TOP )
 !
-!******************************************************************************
-!  Function GET_PBL_TOP_m returns the planetary boundary layer top [m] 
-!  at a given GEOS-CHEM surface location (I,J). 
+! !INPUT PARAMETERS: 
 !
-!  Arguments as Input:
-!  ============================================================================
-!  (1 ) I (INTEGER) : GEOS-CHEM longitude index
-!  (2 ) J (INTEGER) : GEOS-CHEM latitude  index
-!  
-!  NOTES:  
-!******************************************************************************
+      INTEGER, INTENT(IN) :: I, J   ! Lon and lat indices
 !
-      ! Arguments
-      INTEGER, INTENT(IN) :: I, J
-
-      ! Return value
-      REAL*8              :: TOP
-
-      !=================================================================
-      ! GET_PBL_TOP_m begins here!
-      !=================================================================
+! !RETURN VALUE:
+!
+      REAL*8              :: TOP    ! PBL top [m]
+! 
+! !REVISION HISTORY: 
+!  11 Feb 2005 - R. Yantosca - Initial version
+!  28 Feb 2012 - R. Yantosca - Added ProTeX headers
+!EOP
+!------------------------------------------------------------------------------
+!BOC
       TOP = PBL_TOP_m(I,J)
 
-      ! Return to calling program
       END FUNCTION GET_PBL_TOP_m
-
+!EOC
 !------------------------------------------------------------------------------
-
+!          Harvard University Atmospheric Chemistry Modeling Group            !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: 
+!
+! !DESCRIPTION: Function GET\_PBL\_THICK returns the thickness of the PBL
+!  at a given surface location (I,J).
+!\\
+!\\
+! !INTERFACE:
+!
       FUNCTION GET_PBL_THICK( I, J ) RESULT( THICK )
 !
-!******************************************************************************
-!  Function GET_PBL_TOP_L returns the planetary boundary layer top 
-!  [model levels] at a given GEOS-CHEM surface location (I,J). 
+! !INPUT PARAMETERS: 
 !
-!  Arguments as Input:
-!  ============================================================================
-!  (1 ) I (INTEGER) : GEOS-CHEM longitude index
-!  (2 ) J (INTEGER) : GEOS-CHEM latitude  index
-!  
-!  NOTES:  
-!******************************************************************************
+      INTEGER, INTENT(IN) :: I, J    ! Lon and lat indices
 !
-      ! Arguments
-      INTEGER, INTENT(IN) :: I, J
-
-      ! Return value
-      REAL*8              :: THICK
-
-      !=================================================================
-      ! GET_PBL_THICK begins here!
-      !=================================================================
+! !RETURN VALUE:
+!
+      REAL*8              :: THICK   ! PBL thickness [hPa]
+! 
+! !REVISION HISTORY: 
+!  11 Feb 2005 - R. Yantosca - Initial version
+!  28 Feb 2012 - R. Yantosca - Added ProTeX headers
+!EOP
+!------------------------------------------------------------------------------
+!BOC
       THICK = PBL_THICK(I,J)
 
-      ! Return to calling program
       END FUNCTION GET_PBL_THICK
-
+!EOC
 !------------------------------------------------------------------------------
-
-      SUBROUTINE INIT_PBL_MIX 
+!          Harvard University Atmospheric Chemistry Modeling Group            !
+!------------------------------------------------------------------------------
+!BOP
 !
-!******************************************************************************
-!  Subroutine INIT_PBL_MIX allocates and zeroes module arrays (bmy, 2/10/05)
+! !IROUTINE: init_pbl_mix
 !
-!  NOTES:
-!******************************************************************************
+! !DESCRIPTION: Subroutine INIT\_PBL\_MIX allocates and zeroes module arrays
+!\\
+!\\
+! !INTERFACE:
 !
-      ! References to F90 modules
+      SUBROUTINE INIT_PBL_MIX
+!
+! !USES:
+!
       USE ERROR_MOD, ONLY : ALLOC_ERR
-
       USE CMN_SIZE_MOD
-
-      ! Local variables
+! 
+! !REVISION HISTORY: 
+!  11 Feb 2005 - R. Yantosca - Initial version
+!  28 Feb 2012 - R. Yantosca - Added ProTeX headers
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+!
+! !LOCAL VARIABLES:
+!
       INTEGER :: AS
 
       !=================================================================
@@ -875,19 +929,29 @@
       IF ( AS /= 0 ) CALL ALLOC_ERR( 'PBL_THICK' )
       PBL_THICK = 0d0
 
-      ! Return to calling program
       END SUBROUTINE INIT_PBL_MIX
-      
+!EOC
 !------------------------------------------------------------------------------
-
+!          Harvard University Atmospheric Chemistry Modeling Group            !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: cleanup_pbl_mix
+!
+! !DESCRIPTION: Subroutine CLEANUP\_PBL\_MIX allocates and zeroes 
+!  module arrays.
+!\\
+!\\
+! !INTERFACE:
+!
       SUBROUTINE CLEANUP_PBL_MIX
-!
-!******************************************************************************
-!  Subroutine INIT_PBL_MIX allocates and zeroes module arrays (bmy, 2/10/05)
-!
-!  NOTES:
-!******************************************************************************
-!
+! 
+! !REVISION HISTORY: 
+!  11 Feb 2005 - R. Yantosca - Initial version
+!  28 Feb 2012 - R. Yantosca - Added ProTeX headers
+!EOP
+!------------------------------------------------------------------------------
+!BOC
       !=================================================================
       ! CLEANUP_PBL_MIX begins here!
       !=================================================================     
@@ -900,10 +964,6 @@
       IF ( ALLOCATED( PBL_TOP_m   ) ) DEALLOCATE( PBL_TOP_m   ) 
       IF ( ALLOCATED( PBL_THICK   ) ) DEALLOCATE( PBL_THICK   )
 
-      ! Return to calling program
       END SUBROUTINE CLEANUP_PBL_MIX
-
-!------------------------------------------------------------------------------
-
-      ! End of module
+!EOC
       END MODULE PBL_MIX_MOD

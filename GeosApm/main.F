@@ -1,10 +1,12 @@
+!BOC
 #if !defined(ESMF_)
+!EOC
 !------------------------------------------------------------------------------
 !          Harvard University Atmospheric Chemistry Modeling Group            !
 !------------------------------------------------------------------------------
 !BOP
 !
-! !PROGRAM: geos_chem 
+! !MODULE: geos_chem 
 !
 ! !DESCRIPTION: Program GEOS\_CHEM is the main level driver program for the 
 !  GEOS-Chem model of atmospheric chemistry and composition.
@@ -25,9 +27,10 @@
       USE FILE_MOD              ! For file I/O
       USE INPUT_MOD             ! For reading settings from "input.geos"
       USE LOGICAL_MOD           ! Logical flags to toggle G-C options
+      USE OLSON_LANDMAP_MOD     ! Computes IREG, ILAND, IUSE from Olson map
       USE PRESSURE_MOD          ! For computing pressure at grid boxes
       USE RESTART_MOD           ! For restart file I/O
-      USE TIME_MOD              ! For computing date & time
+      USE TIME_MOD              ! For computing date & time 
       USE TRACER_MOD            ! Tracer array (STT) + related functions
       USE TRACERID_MOD          ! Flags for G-C tracers & chemical species
 
@@ -42,6 +45,7 @@
       USE MERCURY_MOD           ! For offline Hg simulation (driver)
       USE OCEAN_MERCURY_MOD     ! For offline Hg simulation (ocean model)
       USE SOAPROD_MOD           ! For SOA simulation
+      USE TOMS_MOD              ! For overhead O3 columns (for FAST-J)
       USE UVALBEDO_MOD          ! For reading UV albedoes (for FAST-J)
 
       !-----------------------------------------------------------------
@@ -101,8 +105,6 @@
       USE A3_READ_MOD           ! For reading A3 data (all other met)
       USE A6_READ_MOD           ! For reading A6 data (all other met)
       USE I6_READ_MOD           ! For reading I6 data (all other met)
-      USE GWET_READ_MOD         ! For reading GEOS-3 GWET data
-      USE XTRA_READ_MOD         ! For reading GEOS-3 extra data fields
 
 #if   defined( APM )
       ! APM+: For APM aerosol microphysics simulation, see apm_driv_mod.f 
@@ -169,6 +171,17 @@
 !  06 Feb 2012 - R. Yantosca - Renamed NN to NNN to avoid name confusion
 !  07 Feb 2012 - R. Yantosca - Split off met field I/O into internal routines
 !                              READ_INITIAL_MET_FIELDS and READ_MET_FIELDS
+!  07 Feb 2012 - M. Payer    - Replace call to COSSZA with GET_COSINE_SZA
+!  28 Feb 2012 - R. Yantosca - Removed support for GEOS-3
+!  06 Mar 2012 - R. Yantosca - Now call READ_TOMS every month (this was
+!                              formerly done within routine "fast_j.F")
+!  06 Mar 2012 - R. Yantosca - Add subroutine GET_OVERHEAD_O3_FOR_FASTJ
+!                              which calls COMPUTE_OVERHEAD_O3 (in toms_mod.F)
+!                              to pre-compute the overhead O3 columsn for
+!                              FAST-J photolysis.  This removes code from
+!                              "set_prof.F" to facilitate the GI model.
+!  19 Mar 2012 - R. Yantosca - Now call routines from olson_landmap_mod.F90
+!                              to read the Olson land map data
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -305,9 +318,18 @@
          IF ( LPRT ) CALL DEBUG_MSG( '### MAIN: a LIGHTNING' )
       ENDIF
 
-      ! Read land types and fractions from "vegtype.global"
-      CALL RDLAND   
-      IF ( LPRT ) CALL DEBUG_MSG( '### MAIN: a RDLAND' )
+!------------------------------------------------------------------------------
+! Prior to 3/13/12:
+! Replace this with routines from olson_landmap_mod.F90
+!      ! Read land types and fractions from "vegtype.global"
+!      CALL RDLAND   
+!      IF ( LPRT ) CALL DEBUG_MSG( '### MAIN: a RDLAND' )
+!------------------------------------------------------------------------------
+
+      ! Compute the Olson land types that occur in each grid box
+      ! (i.e. this is a replacement for rdland.F and vegtype.global)
+      CALL INIT_OLSON_LANDMAP()
+      CALL COMPUTE_OLSON_LANDMAP()
 
       ! Initialize PBL quantities but do not do mixing
       ! Add option for non-local PBL (Lin, 03/31/09) 
@@ -397,6 +419,7 @@
 
          ! Set time variables for dynamic loop
          DAY_OF_YEAR   = GET_DAY_OF_YEAR()
+         DAY           = GET_DAY()
          ELAPSED_SEC   = GET_ELAPSED_SEC()
          MONTH         = GET_MONTH()
          NHMS          = GET_NHMS()
@@ -515,10 +538,19 @@
          !==============================================================
          ! ***** M O N T H L Y   O R   S E A S O N A L   D A T A *****
          !==============================================================
-
-         ! UV albedoes
          IF ( LCHEM .and. ITS_A_NEW_MONTH() ) THEN
-            CALL READ_UVALBEDO( MONTH )
+
+            ! Quantities for FAST-J photolysis
+            IF ( ITS_A_FULLCHEM_SIM()  .or.
+     &           ITS_AN_AEROSOL_SIM()  .or.
+     &           ITS_A_CH3I_SIM()     ) THEN
+
+               ! Read UV albedoes for FAST-J
+               CALL READ_UVALBEDO( MONTH )
+
+               ! Read TOMS overhead O3 columns for FAST-J
+               CALL READ_TOMS( MONTH, YEAR )
+            ENDIF
          ENDIF
 
          ! Fossil fuel emissions (SMVGEAR)
@@ -531,6 +563,12 @@
                   CALL ANTHROEMS( SEASON )              
                ENDIF
             ENDIF
+         ENDIF
+
+         ! Hg2 gas-particle partitioning (H Amos, 25 Oct 2011)
+         IF ( ITS_A_MERCURY_SIM() .and. ITS_A_NEW_MONTH() ) THEN
+            CALL PARTITION_Hg2( MONTH )
+            IF ( LPRT ) CALL DEBUG_MSG( '### MAIN: a PARTITION_Hg2' )
          ENDIF
 
          !==============================================================
@@ -600,15 +638,6 @@
          ! Compute tropopause height for ND55 diagnostic
          IF ( ND55 > 0 ) CALL DIAG_TROPOPAUSE
 
-#if   defined( GEOS_3 )
-
-         ! 1998 GEOS-3 carries the ground temperature and not the air
-         ! temperature -- thus TS will be 2-3 K too high.  As a quick fix, 
-         ! copy the temperature at the first sigma level into TS. 
-         ! (mje, bnd, bmy, 7/3/01)
-         IF ( YEAR == 1998 ) TS(:,:) = T(:,:,1)
-#endif
-
          ! Update dynamic timestep
          CALL SET_CT_DYN( INCREMENT=.TRUE. )
 
@@ -620,6 +649,9 @@
          ! Placed after interpolation to get correct value of TROPP. 
          ! (ccc, 12/9/08)
          CALL DIAG_2PM
+
+         ! Get the overhead column O3 for use with FAST-J
+         CALL GET_OVERHEAD_O3_FOR_FASTJ()
 
          !==============================================================
          !   ***** U N I T   C O N V E R S I O N  ( kg -> v/v ) *****
@@ -728,14 +760,14 @@
                
                ! Partition Hg(II) between aerosol and gas
                IF ( ITS_A_MERCURY_SIM() ) THEN
-                  CALL PARTITIONHG( 1, STT, HGPFRAC )
+                  CALL PARTITIONHG( 1, STT )
                ENDIF
       
                CALL DO_CONVECTION
 
                ! Return all reactive particulate Hg(II) to total Hg(II) tracer
                IF ( ITS_A_MERCURY_SIM() ) THEN
-                  CALL PARTITIONHG( 2, STT, HGPFRAC )
+                  CALL PARTITIONHG( 2, STT )
                ENDIF
       
                !### Debug
@@ -801,6 +833,11 @@
 #endif
          ENDIF 
 
+         ! Check STT (yxw)   
+#if   defined( GEOS_5 ) && defined( GRID05x0666 )
+         CALL CHECK_STT_05x0666( 'after chemistry' )
+#endif 
+
          !==============================================================
          ! ***** W E T   D E P O S I T I O N  (rainout + washout) *****
          !==============================================================
@@ -808,7 +845,7 @@
 
             ! Add partition Hg(II) between aerosol and gas
             IF ( ITS_A_MERCURY_SIM() ) THEN
-               CALL PARTITIONHG( 1, STT, HGPFRAC )
+               CALL PARTITIONHG( 1, STT )
             ENDIF            
      
             ! Do wet deposition
@@ -816,7 +853,7 @@
             
             ! Return all reactive particulate Hg(II) to total Hg(II) tracer
             IF ( ITS_A_MERCURY_SIM() ) THEN
-               CALL PARTITIONHG( 2, STT, HGPFRAC )
+               CALL PARTITIONHG( 2, STT )
             ENDIF 
 
 #if   defined( APM )
@@ -950,6 +987,14 @@
          ! Check for NaN, Negatives, Infinities in STT each time diag are
          ! saved. (ccc, 5/13/09)
          IF ( ITS_TIME_FOR_DIAG() ) THEN
+
+         ! Sometimes STT in the stratosphere can be negative at 
+         ! the nested-grid domain edges. Force them to be zero before
+         ! CHECK_STT (yxw)
+#if   defined( GEOS_5 ) && defined( GRID05x0666 )
+            CALL CHECK_STT_05x0666( 'after dynamics step' )
+#endif
+
             CALL CHECK_STT( 'End of Dynamic Loop' )
          ENDIF
           
@@ -981,12 +1026,6 @@
          CALL UNZIP_A3_FIELDS( ZTYPE )
          CALL UNZIP_A6_FIELDS( ZTYPE )
          CALL UNZIP_I6_FIELDS( ZTYPE )
-
-#if   defined( GEOS_3 )
-         ! Remove GEOS-3 GWET & XTRA fields
-         IF ( LDUST ) CALL UNZIP_GWET_FIELDS( ZTYPE )
-         IF ( LXTRA ) CALL UNZIP_XTRA_FIELDS( ZTYPE )
-#endif
 
 #if   defined( GCAP )
          ! Remove GCAP PHIS field (if necessary)
@@ -1048,6 +1087,9 @@
 !  13 Aug 2010 - R. Yantosca - Added ProTeX headers
 !  13 Aug 2010 - R. Yantosca - Added extra output
 !  02 Feb 2012 - R. Yantosca - Added output for GEOS-5.7.x met fields
+!  28 Feb 2012 - R. Yantosca - Removed support for GEOS-3
+!  19 Mar 2012 - R. Yantosca - Now echo info for 0.25 x 0.3125 runs
+!  19 Mar 2012 - R. Yantosca - Now echo info if ISORROPIA is turned off
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -1057,31 +1099,31 @@
       ! For system time stamp
       CHARACTER(LEN=16) :: STAMP
 
-      !-----------------------
+      !-------------------------------------------------
       ! Print resolution info
-      !-----------------------
+      !-------------------------------------------------
 #if   defined( GRID4x5   )
       WRITE( 6, '(a)' )                   
-     &    REPEAT( '*', 13 )                                      //
-     &    '   S T A R T I N G   4 x 5   G E O S--C H E M   '     //
+     &    REPEAT( '*', 13 )                                          //
+     &    '   S T A R T I N G   4 x 5   G E O S--C H E M   '         //
      &    REPEAT( '*', 13 )
 
 #elif defined( GRID2x25  )
       WRITE( 6, '(a)' ) 
-     &    REPEAT( '*', 13 )                                      // 
-     &    '   S T A R T I N G   2 x 2.5   G E O S--C H E M   '   //
+     &    REPEAT( '*', 13 )                                          // 
+     &    '   S T A R T I N G   2 x 2.5   G E O S--C H E M   '       //
      &    REPEAT( '*', 13 )
 
 #elif defined( GRID1x125 )
       WRITE( 6, '(a)' ) 
-     &    REPEAT( '*', 13 )                                      // 
-     &    '   S T A R T I N G   1 x 1.25   G E O S--C H E M   '  //
+     &    REPEAT( '*', 13 )                                          // 
+     &    '   S T A R T I N G   1 x 1.25   G E O S--C H E M   '      //
      &    REPEAT( '*', 13 )
 
 #elif defined( GRID1x1 )
       WRITE( 6, '(a)' ) 
-     &    REPEAT( '*', 13 )                                      // 
-     &    '   S T A R T I N G   1 x 1   G E O S -- C H E M   '     //
+     &    REPEAT( '*', 13 )                                          // 
+     &    '   S T A R T I N G   1 x 1   G E O S -- C H E M   '       //
      &    REPEAT( '*', 13 )
 
 #elif defined( GRID05x0666 )
@@ -1090,11 +1132,17 @@
      &    '   S T A R T I N G   0.5 x 0.666   G E O S -- C H E M   ' //
      &    REPEAT( '*', 13 )
 
+#elif defined( GRID025x03125 )
+      WRITE( 6, '(a)' ) 
+     &    REPEAT( '*', 13 )                                          // 
+     &    '   S T A R T I N G  0.25 x 0.3125  G E O S -- C H E M   ' //
+     &    REPEAT( '*', 13 )
+
 #endif
 
-      !-----------------------
+      !-------------------------------------------------
       ! Print machine info
-      !-----------------------
+      !-------------------------------------------------
 
       ! Get the proper FORMAT statement for the model being used
 #if   defined( COMPAQ    )
@@ -1112,12 +1160,10 @@
       WRITE( 6, '(a)' ) 'Created w/ Sun/SPARC compiler'
 #endif
 
-      !-----------------------
+      !-------------------------------------------------
       ! Print met field info
-      !-----------------------
-#if   defined( GEOS_3 )
-      WRITE( 6, '(a)' ) 'Using GMAO GEOS-3 met fields'
-#elif defined( GEOS_4 )
+      !-------------------------------------------------
+#if   defined( GEOS_4 )
       WRITE( 6, '(a)' ) 'Using GMAO GEOS-4 met fields'
 #elif defined( GEOS_5 )
       WRITE( 6, '(a)' ) 'Using GMAO GEOS-5 met fields'
@@ -1129,9 +1175,18 @@
       WRITE( 6, '(a)' ) 'Using GCAP/GISS met fields'
 #endif
 
-      !-----------------------
+      !-------------------------------------------------
+      ! Print msg if ISORROPIA is turned off for debug
+      !-------------------------------------------------
+#if   defined( NO_ISORROPIA ) 
+      WRITE( 6, '(a)' ) REPEAT( '#', 39 )
+      WRITE( 6, '(a)' ) '# ISORROPIA TURNED OFF FOR TESTING!!! #'
+      WRITE( 6, '(a)' ) REPEAT( '#', 39 )
+#endif
+      
+      !-------------------------------------------------
       ! System time stamp
-      !-----------------------
+      !-------------------------------------------------
       STAMP = SYSTEM_TIMESTAMP()
       WRITE( 6, 100 ) STAMP
  100  FORMAT( /, '===> SIMULATION START TIME: ', a, ' <===', / )
@@ -1224,7 +1279,7 @@
 ! !DESCRIPTION: Internal subroutine READ\_INITIAL\_MET\_FIELDS calls the
 !  various routines to read met fields at the beginning of a GEOS-Chem
 !  simulation.  This code was moved out of the main routine for clarity,
-!  due to the many #if defined() blocks that are required.
+!  due to the many \#if defined() blocks that are required.
 !\\
 !\\
 ! !INTERFACE:
@@ -1241,6 +1296,7 @@
 !
 ! !REVISION HISTORY: 
 !  07 Feb 2012 - R. Yantosca - Initial version
+!  28 Feb 2012 - R. Yantosca - Removed support for GEOS-3
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -1322,12 +1378,6 @@
          CALL UNZIP_A6_FIELDS( ZTYPE )
          CALL UNZIP_I6_FIELDS( ZTYPE )
 
-#if   defined( GEOS_3 )
-         ! Remove GEOS-3 GWET and XTRA files 
-         IF ( LDUST ) CALL UNZIP_GWET_FIELDS( ZTYPE )
-         IF ( LXTRA ) CALL UNZIP_XTRA_FIELDS( ZTYPE )
-#endif
-
 #if   defined( GCAP )
          ! Unzip GCAP PHIS field (if necessary)
          CALL UNZIP_GCAP_FIELDS( ZTYPE )
@@ -1344,12 +1394,6 @@
          CALL UNZIP_A3_FIELDS( ZTYPE, NYMDb )
          CALL UNZIP_A6_FIELDS( ZTYPE, NYMDb )
          CALL UNZIP_I6_FIELDS( ZTYPE, NYMDb )
-
-#if   defined( GEOS_3 )
-         ! Unzip GEOS-3 GWET and XTRA fields for START of run
-         IF ( LDUST ) CALL UNZIP_GWET_FIELDS( ZTYPE, NYMDb )
-         IF ( LXTRA ) CALL UNZIP_XTRA_FIELDS( ZTYPE, NYMDb )
-#endif
 
 #if   defined( GCAP )
          ! Unzip GCAP PHIS field (if necessary)
@@ -1391,30 +1435,6 @@
       CALL GET_I6_FIELDS_1( DATE(1), DATE(2) )
       IF ( LPRT ) CALL DEBUG_MSG( '### MAIN: a 1st I6 TIME' )
       
-#if   defined( GEOS_3 )
-
-      !-----------------------------------------------------------------
-      ! Read additional fields for GEOS-3 meteorology
-      !-----------------------------------------------------------------
-
-      ! Open & read GEOS-3 GWET fields
-      IF ( LDUST ) THEN
-         DATE = GET_FIRST_A3_TIME()
-         CALL OPEN_GWET_FIELDS( DATE(1), DATE(2) )
-         CALL GET_GWET_FIELDS(  DATE(1), DATE(2) ) 
-         IF ( LPRT ) CALL DEBUG_MSG( '### MAIN: a 1st GWET TIME' )
-      ENDIF
-
-      ! Open & read GEOS-3 XTRA fields
-      IF ( LXTRA ) THEN
-         DATE = GET_FIRST_A3_TIME()
-         CALL OPEN_XTRA_FIELDS( DATE(1), DATE(2) )
-         CALL GET_XTRA_FIELDS(  DATE(1), DATE(2) ) 
-         IF ( LPRT ) CALL DEBUG_MSG( '### MAIN: a 1st XTRA TIME' )
-      ENDIF
-
-#endif
-
 #if   defined( GCAP )
 
       !-----------------------------------------------------------------
@@ -1443,10 +1463,10 @@
 !
 ! !IROUTINE: read_met_fields
 !
-! !DESCRIPTION: Internal subroutine READ\__MET\_FIELDS calls the
+! !DESCRIPTION: Internal subroutine READ\_MET\_FIELDS calls the
 !  various routines to read met fields in the main GEOS-Chem timestepping
 !  loop.  This code was moved out of the main routine for clarity, due to
-!  the many #if defined() blocks that are required.
+!  the many \#if defined() blocks that are required.
 !\\
 !\\
 ! !INTERFACE:
@@ -1463,6 +1483,7 @@
 !
 ! !REVISION HISTORY: 
 !  07 Feb 2012 - R. Yantosca - Initial version
+!  28 Feb 2012 - R. Yantosca - Removed support for GEOS-3
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -1588,11 +1609,6 @@
          CALL UNZIP_A6_FIELDS( ZTYPE, DATE(1) )
          CALL UNZIP_I6_FIELDS( ZTYPE, DATE(1) )
       
-#if   defined( GEOS_3 )
-         ! Unzip GEOS-3 GWET & XTRA fields
-         IF ( LDUST ) CALL UNZIP_GWET_FIELDS( ZTYPE, DATE(1) )
-         IF ( LXTRA ) CALL UNZIP_XTRA_FIELDS( ZTYPE, DATE(1) )
-#endif
       ENDIF
 
       !===============================================================
@@ -1608,11 +1624,6 @@
          CALL UNZIP_A6_FIELDS( ZTYPE, NYMD )
          CALL UNZIP_I6_FIELDS( ZTYPE, NYMD )
 
-#if   defined( GEOS_3 )
-         ! Remove GEOS-3 GWET & XTRA fields only for the current date
-         IF ( LDUST ) CALL UNZIP_GWET_FIELDS( ZTYPE, NYMD )
-         IF ( LXTRA ) CALL UNZIP_XTRA_FIELDS( ZTYPE, NYMD )
-#endif
       ENDIF  
 
       !==============================================================
@@ -1632,19 +1643,6 @@
          ! Update daily mean temperature archive for MEGAN biogenics
          IF ( LMEGAN ) CALL UPDATE_T_DAY 
 
-#if   defined( GEOS_3 )
-         ! Read GEOS-3 GWET fields
-         IF ( LDUST ) THEN
-            CALL OPEN_GWET_FIELDS( DATE(1), DATE(2) )
-            CALL GET_GWET_FIELDS(  DATE(1), DATE(2) )           
-         ENDIF
-         
-         ! Read GEOS-3 PARDF, PARDR, SNOW fields
-         IF ( LXTRA ) THEN
-            CALL OPEN_XTRA_FIELDS( DATE(1), DATE(2) )
-            CALL GET_XTRA_FIELDS(  DATE(1), DATE(2) )           
-         ENDIF
-#endif
       ENDIF
 
       !==============================================================
@@ -1685,6 +1683,74 @@
 #endif
 
       END SUBROUTINE READ_MET_FIELDS
+!EOC
+!------------------------------------------------------------------------------
+!          Harvard University Atmospheric Chemistry Modeling Group            !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: get_overhead_o3_for_fastj
+!
+! !DESCRIPTION: Internal subroutine GET\_OVERHEAD\_O3\_FOR\_FASTJ 
+!\\
+!\\
+! !INTERFACE:
+!
+      SUBROUTINE GET_OVERHEAD_O3_FOR_FASTJ()
+! 
+! !REMARKS:
+!  This routine makes use of variables declared in above in the main program
+!  (which are visible in all sub-programs below the CONTAINS statement).
+!                                                                             .
+!  The original code was done in FAST-J routine "set_prof.F", but has been
+!  split off to facilitate development of the grid-independent model.
+!
+! !REVISION HISTORY: 
+!   7 Mar 2012 - R. Yantosca - Initial version
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+!
+! !LOCAL VARIABLES:
+!
+      LOGICAL :: USE_O3_FROM_MET
+
+      ! FAST-J is only used for fullchem, offline aerosol
+      ! and CH3I simulations, so skip otherwise
+      IF ( ITS_A_FULLCHEM_SIM()  .or.
+     &     ITS_AN_AEROSOL_SIM()  .or.
+     &     ITS_A_CH3I_SIM()     ) THEN
+
+         ! Only execute this if we are doing chemistry
+         ! and if it we are at a chemistry timestep
+         IF ( LCHEM .and. ITS_TIME_FOR_CHEM() ) THEN
+             
+#if   defined( GEOS_5 )
+
+            ! When TOMS data is not available, then we will use
+            ! the O3 columns directly from the met fields.  
+            ! Currently, this is only done for GEOS-5 met.
+            IF ( YEAR > LAST_TOMS_YEAR ) THEN
+               USE_O3_FROM_MET = .TRUE.
+            ELSE
+               USE_O3_FROM_MET = .FALSE.
+            ENDIF
+#else
+               
+            ! When TOMS data is not available, then we will use
+            ! the TOMS data from the last valid year.  This is
+            ! done for all met field products other than GEOS-5.
+            USE_O3_FROM_MET = .FALSE.
+
+#endif
+
+            ! Get the overhead O3 column for FAST-J.  Take either the
+            ! TOMS O3 data or the column O3 directly from the met fields
+            CALL COMPUTE_OVERHEAD_O3( DAY, USE_O3_FROM_MET, TO3 )
+         ENDIF
+      ENDIF
+
+      END SUBROUTINE GET_OVERHEAD_O3_FOR_FASTJ
 !EOC
       END PROGRAM GEOS_CHEM
 #endif

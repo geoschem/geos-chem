@@ -27,7 +27,6 @@
 ! !PRIVATE MEMBER FUNCTIONS:
 !
       PRIVATE :: INIT_DAO_GCAP
-      PRIVATE :: INIT_DAO_GEOS3
       PRIVATE :: INIT_DAO_GEOS4
       PRIVATE :: INIT_DAO_GEOS5
       PRIVATE :: INIT_DAO_GEOS57
@@ -258,7 +257,9 @@
 !                              angles at the current time and 5 hours prior to
 !                              the current time (for the PARANOX ship emissions
 !                              plume model) (R. Yantosca)
+!  28 Feb 2012 - R. Yantosca - Removed support for GEOS-3
 !  01 Mar 2012 - R. Yantosca - Now references the new grid_mod.F90
+!  06 Mar 2012 - R. Yantosca - Now allocate TO3 for all met fields
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -742,6 +743,7 @@
 !  16 Aug 2010 - R. Yantosca - Added ProTeX headers
 !  18 Aug 2010 - R. Yantosca - Rewrite #if block logic for clarity
 !  06 Feb 2012 - R. Yantosca - Add modifications for GEOS-5.7.x met fields
+!  28 Feb 2012 - R. Yantosca - Removed support for GEOS-3
 !  01 Mar 2012 - R. Yantosca - Now use GET_YEDGE(I,J,L) from new grid_mod.F90
 !EOP
 !------------------------------------------------------------------------------
@@ -775,52 +777,7 @@
       ! Fraction of 6h timestep elapsed at the end of this dyn timestep
       TC2 = ( D_NTIME1 + D_NTDT     - D_NTIME0 ) / D_NDT 
 
-#if defined( GEOS_3 )
-
-      !=================================================================
-      ! Do the interpolation for GEOS-3 met fields 
-      !=================================================================
-!$OMP PARALLEL DO
-!$OMP+DEFAULT( SHARED )
-!$OMP+PRIVATE( I, J, L )
-      DO L = 1, LLPAR
-      DO J = 1, JJPAR
-      DO I = 1, IIPAR
-         
-         !----------------------------------------------------
-         ! Interpolate 2D variables
-         !----------------------------------------------------
-         IF ( L == 1 ) THEN
-            
-            ! Interpolate pressure [hPa] to the end of the dynamic timestep
-            PSC2(I,J)  = PS1(I,J)  + ( PS2(I,J) - PS1(I,J) ) * TC2 
-  
-            ! Interpolate ALBEDO to the midpt of the dynamic timestep
-            ALBD(I,J) = ALBD1(I,J) + ( ALBD2(I,J) - ALBD1(I,J) ) * TM
-
-            ! Interpolate TROPP to the midpt of the dynamic timestep
-            IF ( LVARTROP ) THEN
-               TROPP(I,J) = TROPP1(I,J) 
-     &                    + ( TROPP2(I,J) - TROPP1(I,J) ) * TM
-            ENDIF
-         ENDIF
-         
-         !-----------------------------------------------------
-         ! Interpolate 3D Variables
-         !-----------------------------------------------------
-
-         ! Interpolate to the midpt of the dynamic timestep
-         UWND(I,J,L) = UWND1(I,J,L) + (UWND2(I,J,L) - UWND1(I,J,L)) * TM
-         VWND(I,J,L) = VWND1(I,J,L) + (VWND2(I,J,L) - VWND1(I,J,L)) * TM
-         SPHU(I,J,L) = SPHU1(I,J,L) + (SPHU2(I,J,L) - SPHU1(I,J,L)) * TM
-         T(I,J,L)    = TMPU1(I,J,L) + (TMPU2(I,J,L) - TMPU1(I,J,L)) * TM
-
-      ENDDO
-      ENDDO
-      ENDDO
-!$OMP END PARALLEL DO
-
-#elif defined( GEOS_4 ) || defined( GCAP )
+#if   defined( GEOS_4 ) || defined( GCAP )
 
       !=================================================================
       ! Do the interpolation for GEOS-4 or GCAP met fields 
@@ -1048,40 +1005,12 @@
 !  16 Aug 2010 - R. Yantosca - Added ProTeX headers
 !  25 Aug 2010 - R. Yantosca - Treat MERRA in the same way as GEOS-5
 !  06 Feb 2012 - R. Yantosca - Treat GEOS-5.7.x in the same way as MERRA/GEOS-5
+!  28 Feb 2012 - R. Yantosca - Removed support for GEOS-3
 !EOP
 !------------------------------------------------------------------------------
 !BOC
-!
-! !LOCAL VARIABLES:
-!
-#if   defined( GEOS_3 )
 
-      !--------------------------
-      ! GEOS-3
-      !--------------------------
-      IF ( GET_YEAR() == 1998 ) THEN
-
-         ! Fields for 1998 don't have LWI/SURFTYPE flags, so use albedo 
-         ! as a proxy for land coverage instead: 0.08 < ALBEDO < 0.55
-         LAND = ( ALBD(I,J) > 0.08d0 .and. ALBD(I,J) < 0.55d0 )
-
-      ELSE
-
-         ! Otherwise LWI < 50 and ALBEDO less than 69.5% is a water box 
-         LAND = ( LWI(I,J) < 50 .and. ALBD(I,J) < 0.695d0 )
-
-      ENDIF
-
-#elif defined( GEOS_4 ) || defined( GEOS_5 ) || defined( MERRA ) || defined( GEOS_57 )
-
-      !--------------------------
-      ! GEOS-4 / GEOS-5 / MERRA
-      !--------------------------
-
-      ! LWI=1 and ALBEDO less than 69.5% is a LAND box 
-      LAND = ( NINT( LWI(I,J) ) == 1 .and. ALBD(I,J) < 0.695d0 )
-
-#elif defined( GCAP )
+#if   defined( GCAP )
 
       !--------------------------
       ! GCAP
@@ -1090,6 +1019,16 @@
       ! It's a land box if 50% or more of the box is covered by 
       ! land and less than 50% of the box is covered by ice
       LAND = ( LWI_GISS(I,J) >= 0.5d0 .and. SNICE(I,J) < 0.5d0 )
+
+#else
+
+      !--------------------------
+      ! GEOS-4 / GEOS-5 / MERRA
+      !--------------------------
+
+      ! LWI=1 and ALBEDO less than 69.5% is a LAND box 
+      LAND = ( NINT( LWI(I,J) ) == 1 .and. ALBD(I,J) < 0.695d0 )
+
     
 #endif
 
@@ -1147,40 +1086,12 @@
 !  16 Aug 2010 - R. Yantosca - Added ProTeX headers
 !  25 Aug 2010 - R. Yantosca - Treat MERRA in the same way as GEOS-5
 !  06 Feb 2012 - R. Yantosca - Treat GEOS-5.7.x in the same way as MERRA/GEOS-5
+!  28 Feb 2012 - R. Yantosca - Removed support for GEOS-3
 !EOP
 !------------------------------------------------------------------------------
 !BOC
-!
-! !LOCAL VARIABLES:
-!
-#if   defined( GEOS_3 )
-      
-      !--------------------------
-      ! GEOS-3 
-      !--------------------------
-      IF ( GET_YEAR() == 1998 ) THEN
 
-         ! 1998 fields don't have LWI/SURFTYPE flags, so use albedo as 
-         ! a proxy for water coverage: 55%  < ALBEDO < 69.5%
-         WATER = ( ALBD(I,J) > 0.55d0 .and. ALBD(I,J) < 0.695d0 )
-
-      ELSE
-
-         ! Otherwise LWI >= 50 and ALBEDO less than 69.5% is a water box
-         WATER = ( LWI(I,J) >= 50 .and. ALBD(I,J) < 0.695d0 )
-         
-      ENDIF
-
-#elif defined( GEOS_4 ) || defined( GEOS_5 ) || defined( MERRA ) || defined( GEOS_57 )
-
-      !---------------------------
-      ! GEOS-4 / GEOS-5 / MERRA
-      !---------------------------
-
-      ! LWI=0 and ALBEDO less than 69.5% is a water box 
-      WATER = ( NINT( LWI(I,J) ) == 0 .and. ALBD(I,J) < 0.695d0 )
-
-#elif defined( GCAP )
+#if   defined( GCAP )
 
       !--------------------------
       ! GCAP
@@ -1189,6 +1100,16 @@
       ! It's a water box if less than 50% of the box is
       ! covered by land and less than 50% is covered by ice
       WATER = ( LWI_GISS(I,J) < 0.5d0 .and. SNICE(I,J) < 0.5d0 )
+
+#else
+
+      !---------------------------
+      ! GEOS-4 / GEOS-5 / MERRA
+      !---------------------------
+
+      ! LWI=0 and ALBEDO less than 69.5% is a water box 
+      WATER = ( NINT( LWI(I,J) ) == 0 .and. ALBD(I,J) < 0.695d0 )
+
 
 #endif
 
@@ -1229,32 +1150,12 @@
 !  16 Aug 2010 - R. Yantosca - Added ProTeX headers
 !  25 Aug 2010 - R. Yantosca - Treat MERRA in the same way as GEOS-5
 !  06 Feb 2012 - R. Yantosca - Treat GEOS-5.7.x in the same way as MERRA/GEOS-5
+!  28 Feb 2012 - R. Yantosca - Removed support for GEOS-3
 !EOP
 !------------------------------------------------------------------------------
 !BOC
-!
-! !LOCAL VARIABLES:
-!
-#if   defined( GEOS_3 )
 
-      !--------------------------
-      ! GEOS-3
-      !-------------------------- 
-
-      ! Fields for 1998 don't have LWI/SURFTYPE flags, so use albedo 
-      ! as a proxy for water coverage instead: ALBEDO > 0.695
-      ICE = ( ALBD(I,J) >= 0.695d0 )
-
-#elif defined( GEOS_4 ) || defined( GEOS_5 ) || defined( MERRA ) || defined( GEOS_57 )
-
-      !--------------------------
-      ! GEOS-4 / GEOS-5 / MERRA
-      !--------------------------
-
-      ! LWI=2 or ALBEDO > 69.5% is ice
-      ICE = ( NINT( LWI(I,J) ) == 2 .or. ALBD(I,J) >= 0.695d0 )
-
-#elif defined( GCAP )
+#if   defined( GCAP )
 
       !--------------------------
       ! GCAP
@@ -1262,6 +1163,14 @@
 
       ! It's an ice box if 50% or more of the box is covered by ice
       ICE = ( SNICE(I,J) >= 0.5d0 )
+
+#else
+      !--------------------------
+      ! GEOS-4 / GEOS-5 / MERRA
+      !--------------------------
+
+      ! LWI=2 or ALBEDO > 69.5% is ice
+      ICE = ( NINT( LWI(I,J) ) == 2 .or. ALBD(I,J) >= 0.695d0 )
 
 #endif
 
@@ -1311,6 +1220,7 @@
 !  19 Aug 2010 - R. Yantosca - Rewrote logic of #if block for clarity
 !  25 Aug 2010 - R. Yantosca - Treat MERRA in same way as GEOS-5
 !  06 Feb 2012 - R. Yantosca - Treat GEOS-5.7.x in the same way as MERRA/GEOS-5
+!  28 Feb 2012 - R. Yantosca - Removed support for GEOS-3
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -1362,31 +1272,6 @@
             !---------------------------------------------------
             IF ( LWI_GISS(LONGI,LATJ) >  THRESH .and.
      &           LWI_GISS(LONGI,LATJ) <= 1.0d0 ) THEN
-
-               ! We are in a near-land box
-               NEAR = .TRUE.
-
-               ! Break out of loop
-               GOTO 999
-            ENDIF
-
-#elif defined( GEOS_3 )
-
-            !---------------------------------------------------
-            ! GEOS-3 met fields
-            !
-            ! LWI < 10 is land
-            ! LWI = 101 is water
-            !
-            ! with fractional values at land-water boundaries
-            !
-            ! Therefore if you pick a threshold value such
-            ! as 80, then everything with LWI < THRESH is 
-            ! sure to be a land box.
-            !
-            ! It's near land if LWI < THRESH.
-            !---------------------------------------------------
-            IF ( LWI(LONGI,LATJ) < THRESH ) THEN 
 
                ! We are in a near-land box
                NEAR = .TRUE.
@@ -2117,10 +2002,10 @@
 !------------------------------------------------------------------------------
 !BOP
 !
-! !IROUTINE: copy_i6_fields
+! !IROUTINE: copy_i3_i6_fields
 !
-! !DESCRIPTION: Subroutine COPY\_I6\_FIELDS copies the I-6 fields at the end 
-!  of a 6-hr timestep.  The I-6 fields at the end of a given 6-hr timestep 
+! !DESCRIPTION: Subroutine COPY\_I3\_I6\_FIELDS copies the I-6 fields at the 
+!  end of a 6-hr timestep.  The I-6 fields at the end of a given 6-hr timestep 
 !  become the fields at the beginning of the next 6-hr timestep. 
 !\\
 !\\
@@ -2139,6 +2024,7 @@
 !  20 Aug 2010 - R. Yantosca - Added #if block for MERRA met fields
 !  06 Feb 2012 - R. Yantosca - Added #if block for GEOS-5.7.x met fields
 !  07 Feb 2012 - R. Yantosca - Renamed to COPY_I3_I6_FIELDS
+!  28 Feb 2012 - R. Yantosca - Removed support for GEOS-3
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -2158,19 +2044,6 @@
       !------------------
       PS1    = PS2          ! I6 surface pressure    [hPa]
       TROPP1 = TROPP2       ! I6 tropopause pressure [hPa]
-
-#elif defined( GEOS_3 )
-
-      !------------------
-      ! GEOS-3 met
-      !------------------
-      PS1    = PS2          ! I6 surface pressure    [hPa]
-      TROPP1 = TROPP2       ! I6 tropopause pressure [hPa]
-      ALBD1  = ALBD2        ! I6 surface albedo      [unitless]
-      UWND1  = UWND2        ! I6 zonal wind          [m/s]
-      VWND1  = VWND2        ! I6 meridional wind     [m/s]
-      TMPU1  = TMPU2        ! I6 temperature         [K]
-      SPHU1  = SPHU2        ! I6 specific humidity   [g/kg]
 
 #elif defined( GEOS_4 )
 
@@ -2199,7 +2072,7 @@
 #elif defined( MERRA )
 
       !------------------
-      ! GEOS-5.7.x met
+      ! MERRA met
       !------------------
       PS1    = PS2          ! I6 surface pressure    [hPa]
       RH1    = RH2          ! I6 relative humidity   [%]
@@ -2426,6 +2299,12 @@
       IF ( AS /= 0 ) CALL ALLOC_ERR( 'TROPP2' )
       TROPP2 = 0d0
 
+      ! NOTE: Allocate this here, it will always be 0 for GCAP
+      ! (bmy, 3/6/12)
+      ALLOCATE( TO3( IIPAR, JJPAR ), STAT=AS )
+      IF ( AS /= 0 ) CALL ALLOC_ERR( 'TO3' )
+      TO3 = 0d0
+
       !=================================================================
       ! Constant fields
       !=================================================================
@@ -2439,237 +2318,6 @@
       LWI_GISS = 0d0
 
       END SUBROUTINE INIT_DAO_GCAP
-!EOC
-!------------------------------------------------------------------------------
-!          Harvard University Atmospheric Chemistry Modeling Group            !
-!------------------------------------------------------------------------------
-!BOP
-!
-! !IROUTINE: init_dao_geos3
-!
-! !DESCRIPTION: Subroutine INIT\_DAO allocates memory for all allocatable
-!  module arrays required when using the GEOS-3 met fields
-!\\
-!\\
-! !INTERFACE:
-!
-      SUBROUTINE INIT_DAO_GEOS3
-!
-! !USES:
-!
-      USE ERROR_MOD, ONLY : ALLOC_ERR
-!
-! !REVISION HISTORY:
-!  06 Feb 2012 - R. Yantosca - Split off GEOS-3 init from routine INIT_DAO
-!EOP
-!------------------------------------------------------------------------------
-!BOC
-!
-! !LOCAL VARIABLES:
-!
-      INTEGER :: AS
-
-      !=================================================================
-      ! A-3 fields
-      !=================================================================
-
-      ALLOCATE( CLDFRC( IIPAR, JJPAR ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'CLDFRC' )
-      CLDFRC = 0d0
-
-      ALLOCATE( GWETTOP( IIPAR, JJPAR ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'GWETTOP' )
-      GWETTOP = 0d0
-
-      ALLOCATE( HFLUX( IIPAR, JJPAR ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'HFLUX' )
-      HFLUX = 0d0
-
-      ALLOCATE( PBL( IIPAR, JJPAR ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'PBL' )
-      PBL = 0d0
-
-      ALLOCATE( PHIS( IIPAR, JJPAR ), STAT=AS )  
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'PHIS' )
-      PHIS = 0d0
-
-      ALLOCATE( PREACC( IIPAR, JJPAR ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'PREACC' )
-      PREACC = 0d0
-
-      ALLOCATE( PRECON( IIPAR, JJPAR ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'PRECON' )
-      PRECON = 0d0
-
-      ALLOCATE( Z0( IIPAR, JJPAR ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'Z0' )
-      Z0 = 0d0
-
-      !=================================================================
-      ! A-6 fields
-      !=================================================================
-
-      ALLOCATE( CLDF( LLPAR, IIPAR, JJPAR ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'CLDF' )
-      CLDF = 0d0
-
-      ALLOCATE( CLDMAS( IIPAR, JJPAR, LLPAR ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'CLDMAS' )
-      CLDMAS = 0d0
-
-      ALLOCATE( DTRAIN( IIPAR, JJPAR, LLPAR ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'DTRAIN' )
-      DTRAIN = 0d0
-
-      ALLOCATE( MOISTQ( LLPAR, IIPAR, JJPAR ), STAT=AS ) 
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'MOISTQ' )
-      MOISTQ = 0d0
-
-      ALLOCATE( OPTDEP( LLPAR, IIPAR, JJPAR ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'OPTDEP' )
-      OPTDEP = 0d0
-
-      ALLOCATE( OPTD( LLPAR, IIPAR, JJPAR ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'OPTD' )
-      OPTD = 0d0
-
-      ALLOCATE( PARDF( IIPAR, JJPAR ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'PARDF' )
-      PARDF = 0d0
-
-      ALLOCATE( PARDR( IIPAR, JJPAR ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'PARDR' )
-      PARDR = 0d0
-
-      ALLOCATE( RADLWG( IIPAR, JJPAR ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'RADLWG' )
-      RADLWG = 0d0
-
-      ALLOCATE( RADSWG( IIPAR, JJPAR ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'RADSWG' )
-      RADSWG = 0d0
-
-      ALLOCATE( TS( IIPAR, JJPAR ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'TS' )
-      TS = 0d0
-
-      ALLOCATE( TSKIN( IIPAR, JJPAR ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'TSKIN' )
-      TSKIN = 0d0
-
-      ALLOCATE( U10M( IIPAR, JJPAR ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'U10M' )
-      U10M = 0d0
-
-      ALLOCATE( USTAR( IIPAR, JJPAR ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'USTAR' )
-      USTAR = 0d0
-
-      ALLOCATE( V10M( IIPAR, JJPAR ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'V10M' )
-      V10M = 0d0
-
-      !=================================================================
-      ! I-6 fields / interpolated fields
-      !=================================================================
-
-      ALLOCATE( ALBD( IIPAR, JJPAR ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'ALBD' )
-      ALBD = 0d0
-
-      ALLOCATE( ALBD1( IIPAR, JJPAR ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'ALBD1' )
-      ALBD1 = 0d0
-
-      ALLOCATE( ALBD2( IIPAR, JJPAR ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'ALBD2' )
-      ALBD2 = 0d0
-
-      ALLOCATE( LWI( IIPAR, JJPAR ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'LWI' )
-      LWI = 0
-
-      ALLOCATE( PS1( IIPAR, JJPAR ), STAT=AS )  
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'PS1' )
-      PS1 = 0d0
-
-      ALLOCATE( PS2( IIPAR, JJPAR ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'PS2' )
-      PS2 = 0d0
-
-      ALLOCATE( PSC2( IIPAR, JJPAR ), STAT=AS ) 
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'PSC2' )
-      PSC2 = 0d0
-
-      ALLOCATE( RH( IIPAR, JJPAR, LLPAR ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'RH' )
-      RH = 0d0
-
-      ALLOCATE( SLP( IIPAR, JJPAR ), STAT=AS ) 
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'SLP' )
-      SLP = 0d0      
-
-      ALLOCATE( SPHU( IIPAR, JJPAR, LLPAR ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'SPHU' )
-      SPHU = 0d0
-
-      ALLOCATE( SPHU1( IIPAR, JJPAR, LLPAR ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'SPHU1' )
-      SPHU1 = 0d0
-
-      ALLOCATE( SPHU2( IIPAR, JJPAR, LLPAR ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'SPHU2' )
-      SPHU2 = 0d0
-
-      ALLOCATE( T( IIPAR, JJPAR, LLPAR ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'T' )
-      T = 0d0
-
-      ALLOCATE( TMPU1( IIPAR, JJPAR, LLPAR ), STAT=AS ) 
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'TMPU1' )
-      TMPU1 = 0d0
-
-      ALLOCATE( TMPU2( IIPAR, JJPAR, LLPAR ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'TMPU2' )
-      TMPU2 = 0d0
-
-      ALLOCATE( TROPP( IIPAR, JJPAR ), STAT=AS ) 
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'TROPP' )
-      TROPP = 0d0
-
-      ALLOCATE( TROPP1( IIPAR, JJPAR ), STAT=AS ) 
-      IF ( AS /= 0 ) C ALL ALLOC_ERR( 'TROPP1' )
-      TROPP1 = 0d0
-
-      ALLOCATE( TROPP2( IIPAR, JJPAR ), STAT=AS ) 
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'TROPP2' )
-      TROPP2 = 0d0
-
-      ALLOCATE( UWND( IIPAR, JJPAR, LLPAR), STAT=AS ) 
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'UWND' )
-      UWND = 0d0
-
-      ALLOCATE( UWND1( IIPAR, JJPAR, LLPAR ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'UWND1' )
-      UWND1 = 0d0
-
-      ALLOCATE( UWND2( IIPAR, JJPAR, LLPAR ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'UWND2' )
-      UWND2 = 0d0
-
-      ALLOCATE( VWND( IIPAR, JJPAR, LLPAR ), STAT=AS ) 
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'VWND' )
-      VWND = 0d0
-
-      ALLOCATE( VWND1( IIPAR, JJPAR, LLPAR ), STAT=AS ) 
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'VWND1' )
-      VWND1 = 0d0
-
-      ALLOCATE( VWND2( IIPAR, JJPAR, LLPAR ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'VWND2' )
-      VWND2 = 0d0
-
-      END SUBROUTINE INIT_DAO_GEOS3
 !EOC
 !------------------------------------------------------------------------------
 !          Harvard University Atmospheric Chemistry Modeling Group            !
@@ -2872,6 +2520,13 @@
       IF ( AS /= 0 ) CALL ALLOC_ERR( 'TROPP2' )
       TROPP2 = 0d0
 
+      ! NOTE: Allocate this here, it will always be 0 for GEOS-4
+      ! (bmy, 3/6/12)
+      ALLOCATE( TO3( IIPAR, JJPAR ), STAT=AS )
+      IF ( AS /= 0 ) CALL ALLOC_ERR( 'TO3' )
+      TO3 = 0d0
+
+
       END SUBROUTINE INIT_DAO_GEOS4
 !EOC
 !------------------------------------------------------------------------------
@@ -2895,6 +2550,7 @@
 !
 ! !REVISION HISTORY:
 !  06 Feb 2012 - R. Yantosca - Split off GEOS-5 init from routine INIT_DAO
+!  06 Mar 2012 - R. Yantosca - Move TO3 to INIT_GEOS3_DERIVED
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -3531,6 +3187,12 @@
       IF ( AS /= 0 ) CALL ALLOC_ERR( 'TMPU2' )
       TMPU2 = 0d0
 
+      ! NOTE: Allocate this here, it will always be 0 for GEOS_5.7.x
+      ! (bmy, 3/6/12)
+      ALLOCATE( TO3( IIPAR, JJPAR ), STAT=AS )
+      IF ( AS /= 0 ) CALL ALLOC_ERR( 'TO3' )
+      TO3 = 0d0
+
       END SUBROUTINE INIT_DAO_GEOS57
 !EOC
 !------------------------------------------------------------------------------
@@ -3890,6 +3552,12 @@
       IF ( AS /= 0 ) CALL ALLOC_ERR( 'RH2' )
       RH2 = 0d0
 
+      ! NOTE: Allocate this here, it will always be 0 for MERRA
+      ! (bmy, 3/6/12)
+      ALLOCATE( TO3( IIPAR, JJPAR ), STAT=AS )
+      IF ( AS /= 0 ) CALL ALLOC_ERR( 'TO3' )
+      TO3 = 0d0
+
       END SUBROUTINE INIT_DAO_MERRA
 !EOC
 !------------------------------------------------------------------------------
@@ -4035,6 +3703,7 @@
 !  01 Feb 2012 - R. Yantosca - Now allocate met field arrays for GEOS-5.7.x
 !  06 Feb 2012 - R. Yantosca - Now split off array initializations into
 !                              separate routines, for clarity
+!  28 Feb 2012 - R. Yantosca - Removed support for GEOS-3
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -4052,11 +3721,6 @@
 
       ! GCAP met arrays
       CALL INIT_DAO_GCAP()
-
-#elif defined( GEOS_3 )
-
-      ! GEOS-3 met arrays
-      CALL INIT_DAO_GEOS3()
 
 #elif defined( GEOS_4 )
 

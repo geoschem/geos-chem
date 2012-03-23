@@ -91,6 +91,7 @@
 !  13 Aug 2010 - R. Yantosca - Added modifications for MERRA met fields
 !  30 Aug 2010 - R. Yantosca - Updated comments
 !  02 Feb 2012 - R. Yantosca - Added modifications for GEOS-5.7.x met fields
+!  28 Feb 2012 - R. Yantosca - Removed support for GEOS-3
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -453,6 +454,7 @@
 !                              GEOS-5 vertical levels are lumped together.\
 !  02 Feb 2012 - R. Yantosca - Compute Ap and Bp for GEOS-5.7.x in the same way
 !                              as for GEOS-5 and MERRA (grids are identical)
+!  28 Feb 2012 - R. Yantosca - Removed support for GEOS-3
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -785,80 +787,6 @@
 
 #endif
 
-#elif defined( GEOS_3 ) 
-
-      !=================================================================
-      ! GEOS-3 vertical coordinates (30 or 48 levels)
-      !=================================================================
-
-#if   defined( GRIDREDUCED )
-
-      !-----------------------------------------------------------------
-      ! GEOS-3 30 level grid
-      !-----------------------------------------------------------------
-
-      ! AP [hPa] is just PTOP for a pure-sigma grid
-      AP = PTOP
-
-      ! BP [unitless] is just SIGE for a pure-sigma grid
-      BP = (/ 1.000000d0, 0.997095d0, 0.991200d0, 0.981500d0, 
-     &        0.967100d0, 0.946800d0, 0.919500d0, 0.884000d0, 
-     &        0.839000d0, 0.783000d0, 0.718200d0, 0.647600d0, 
-     &        0.574100d0, 0.500000d0, 0.427800d0, 0.359500d0, 
-     &        0.297050d0, 0.241950d0, 0.194640d0, 0.155000d0, 
-     &        0.122680d0, 0.096900d0, 0.076480d0, 0.047610d0, 
-     &        0.029600d0, 0.018380d0, 0.007040d0, 0.002530d0, 
-     &        0.000765d0, 0.000155d0, 0.000000d0 /)
-
-      !-----------------------------------
-      ! GEOS-3 48 level grid
-      !-----------------------------------
-
-      ! AP [hPa] is just PTOP for a pure-sigma grid
-      AP_FULLGRID = PTOP
-         
-      ! BP [unitless] is just SIGE for a pure-sigma grid
-      BP_FULLGRID =
-     &     (/ 1.000000d0, 0.997095d0, 0.991200d0, 0.981500d0,    
-     &        0.967100d0, 0.946800d0, 0.919500d0, 0.884000d0,    
-     &        0.839000d0, 0.783000d0, 0.718200d0, 0.647600d0,    
-     &        0.574100d0, 0.500000d0, 0.427800d0, 0.359500d0,    
-     &        0.297050d0, 0.241950d0, 0.194640d0, 0.155000d0,    
-     &        0.122680d0, 0.096900d0, 0.076480d0, 0.060350d0,   
-     &        0.047610d0, 0.037540d0, 0.029600d0, 0.023330d0,   
-     &        0.018380d0, 0.014480d0, 0.011405d0, 0.008975d0,  
-     &        0.007040d0, 0.005500d0, 0.004280d0, 0.003300d0,  
-     &        0.002530d0, 0.001900d0, 0.001440d0, 0.001060d0,  
-     &        0.000765d0, 0.000540d0, 0.000370d0, 0.000245d0, 
-     &        0.000155d0, 9.20000d-5, 4.75000d-5, 1.76800d-5, 
-     &        0.000000d0 /)
-
-#else
-
-      !-----------------------------------------------------------------
-      ! GEOS-3 48 level grid
-      !-----------------------------------------------------------------
-
-      ! AP [hPa] is just PTOP for a pure-sigma grid
-      AP = PTOP
-         
-      ! BP [unitless] is just SIGE for a pure-sigma grid
-      BP = (/ 1.000000d0, 0.997095d0, 0.991200d0, 0.981500d0,    
-     &        0.967100d0, 0.946800d0, 0.919500d0, 0.884000d0,    
-     &        0.839000d0, 0.783000d0, 0.718200d0, 0.647600d0,    
-     &        0.574100d0, 0.500000d0, 0.427800d0, 0.359500d0,    
-     &        0.297050d0, 0.241950d0, 0.194640d0, 0.155000d0,    
-     &        0.122680d0, 0.096900d0, 0.076480d0, 0.060350d0,   
-     &        0.047610d0, 0.037540d0, 0.029600d0, 0.023330d0,   
-     &        0.018380d0, 0.014480d0, 0.011405d0, 0.008975d0,  
-     &        0.007040d0, 0.005500d0, 0.004280d0, 0.003300d0,  
-     &        0.002530d0, 0.001900d0, 0.001440d0, 0.001060d0,  
-     &        0.000765d0, 0.000540d0, 0.000370d0, 0.000245d0, 
-     &        0.000155d0, 9.20000d-5, 4.75000d-5, 1.76800d-5, 
-     &        0.000000d0 /)
-       
-#endif  
-
 #elif defined( GCAP )
 
       !=================================================================
@@ -924,11 +852,11 @@
 !EOP
 !------------------------------------------------------------------------------
 !BOC
-      IF ( ALLOCATED( AP   ) ) DEALLOCATE( AP   )
-      IF ( ALLOCATED( BP   ) ) DEALLOCATE( BP   )
-      IF ( ALLOCATED( AP_FULLGRID   ) ) DEALLOCATE( AP_FULLGRID   )
-      IF ( ALLOCATED( BP_FULLGRID   ) ) DEALLOCATE( BP_FULLGRID   )
-      IF ( ALLOCATED( PFLT ) ) DEALLOCATE( PFLT )
+      IF ( ALLOCATED( AP          ) ) DEALLOCATE( AP          )
+      IF ( ALLOCATED( BP          ) ) DEALLOCATE( BP          )
+      IF ( ALLOCATED( AP_FULLGRID ) ) DEALLOCATE( AP_FULLGRID )
+      IF ( ALLOCATED( BP_FULLGRID ) ) DEALLOCATE( BP_FULLGRID )
+      IF ( ALLOCATED( PFLT        ) ) DEALLOCATE( PFLT        )
 
       END SUBROUTINE CLEANUP_PRESSURE
 !EOC

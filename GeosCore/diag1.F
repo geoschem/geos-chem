@@ -31,6 +31,9 @@
       USE TRACER_MOD,     ONLY : XNUMOLAIR
       USE TRACERID_MOD,   ONLY : IDTOX
       USE TROPOPAUSE_MOD, ONLY : ITS_IN_THE_TROP
+      USE DIAG03_MOD       , ONLY : AD03_RGM, AD03_RPM, ND03   
+      USE OCEAN_MERCURY_MOD, ONLY : Fg, Fp, PARTITION_Hg2
+
 #if   defined( APM )
       USE TRACER_MOD,     ONLY : N_APMTRA
 #endif
@@ -97,6 +100,7 @@
 !  (31) Add potential temperature diagnostic in ND57 (fp, 2/3/10)
 !  25 Aug 2010 - R. Yantosca - Added ProTeX headers
 !  15 Feb 2011 - R. Yantosca - Added modifications for APM from G. Luo
+!  28 Feb 2012 - R. Yantosca - Removed support for GEOS-3
 !  01 Mar 2012 - R. Yantosca - Now use GET_AREA_M2(I,J,L) from grid_mod.F90
 !
 ! !REMARKS:
@@ -153,6 +157,36 @@
          ENDDO
 !$OMP END PARALLEL DO
       ENDIF
+
+! H Amos, 25 Oct 2011--------------------------------------------------
+
+      !-----------------------------------------------!
+      ! Write ND03 diagnostics for RGM and RPM (pptv) !
+      !-----------------------------------------------!
+       IF(ND03 > 0) THEN
+
+!$OMP PARALLEL DO 
+!$OMP+DEFAULT( SHARED )
+!$OMP+PRIVATE( I, J, L)
+   
+        DO L = 1, LLPAR
+        DO J = 1, JJPAR
+        DO I = 1, IIPAR
+
+          ! Reactive gaseous mercury, RGM
+          AD03_RGM(I,J,L) = AD03_RGM(I,J,L)+
+     &      Fg(I,J,L) * STT(I,J,L,2) * TCVV(2) / AD(I,J,L) *1D12
+
+          ! Reactive particulate mercury, RPM
+          AD03_RPM(I,J,L) = AD03_RPM(I,J,L) + 
+     &      Fp(I,J,L)* STT(I,J,L,2) * TCVV(2) / AD(I,J,L) *1D12
+                                                       
+        ENDDO
+        ENDDO
+        ENDDO
+!$OMP END PARALLEL DO 
+      ENDIF
+!-------------------------------------------------------------------------
 
       !================================================================= 
       ! ND30: Land/water/ice flags
@@ -362,18 +396,9 @@
          DO J = 1, JJPAR
          DO I = 1, IIPAR
 
-#if   defined( GEOS_3 )
-
-            ! PBL is in [hPa], subtract from PSurface
-            AD67(I,J,13) = AD67(I,J,13) + GET_PEDGE(I,J,1) - PBL(I,J) 
-
-#else
-            
             ! PBL is in [m], use hydrostatic law to get [hPa]
             AD67(I,J,13) = AD67(I,J,13) + 
      &           ( GET_PEDGE(I,J,1) * EXP( -PBL(I,J) / SCALE_HEIGHT ) )
-
-#endif
 
          ENDDO
          ENDDO

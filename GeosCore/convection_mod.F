@@ -62,6 +62,7 @@
 !                              DO_MERRA_CONVECTION routine
 !  16 Aug 2011 - J. Fisher   - Minor bug fixes in DO_MERRA_CONVECTION
 !  15 Feb 2011 - R. Yantosca - Add modifications for APM from G. Luo
+!  28 Feb 2012 - R. Yantosca - Removed support for GEOS-3
 !  02 Mar 2012 - R. Yantosca - Now reference the new grid_mod.F90
 !EOP
 !------------------------------------------------------------------------------
@@ -142,6 +143,7 @@
 !  09 Feb 2012 - R. Yantosca - For GEOS-5.7, PFICU and PFLCU fields are
 !                              defined on level edges.  Pass the top edge
 !                              of each level to DO_MERRA_CONVECTION
+!  28 Feb 2012 - R. Yantosca - Removed support for GEOS-3
 !  01 Mar 2012 - R. Yantosca - Now use GET_AREA_M2(I,J,L) from grid_mod.F90
 !EOP
 !------------------------------------------------------------------------------
@@ -163,22 +165,6 @@
 
       ! Call GCAP driver routine
       CALL DO_GCAP_CONVECT
-
-#elif defined( GEOS_3 )
-
-      !=================================================================
-      ! GEOS-3 met fields
-      !=================================================================
-
-      ! Pick the proper # of tracers
-#if   defined( APM )  
-      N_TOT_TRC = N_TRACERS + N_APMTRA   ! If APM is used, then convect
-#else                                    !  the G-C advected tracers +
-      N_TOT_TRC = N_TRACERS              !  the APM aerosol tracers
-#endif
-
-      ! Call the S-J Lin convection routine for GEOS-3
-      CALL NFCLDMX( N_TOT_TRC, TCVV, CLDMAS, DTRAIN, STT )
 
 #elif defined( GEOS_4 )
 

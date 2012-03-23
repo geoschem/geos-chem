@@ -47,6 +47,7 @@
 #                              Perl module "StrTrim.pm" 
 #  30 Jan 2012 - R. Yantosca - Add ProTex comment headers to output
 #  31 Jan 2012 - R. Yantosca - Minor edits for consistency
+#  07 Mar 2012 - R. Yantosca - Minor fix, ignore comment lines
 #EOP
 #------------------------------------------------------------------------------
 #          Harvard University Atmospheric Chemistry Modeling Group            !
@@ -73,6 +74,7 @@ sub readRcFile($) {
 #
 # !REVISION HISTORY:
 #  27 Jan 2012 - R. Yantosca - Initial version
+#  07 Mar 2012 - R. Yantosca - Minor fix, ignore comment lines
 #EOP
 #------------------------------------------------------------------------------
 #BOC
@@ -98,14 +100,18 @@ sub readRcFile($) {
   # Parse the file first to pre-get a few quantities
   foreach $line ( @lines ) {
 
-    # Name of output file w/ Fortran code
-    if ( $line =~ 'Fortran Write File' ) {
-      ( $name, $cmdFile ) = &splitLine( $line, '=' );
-    }
+    # Skip comment lines
+    if ( !( substr( $line, 0, 1 ) eq '#' ) ) {
 
-    # NetCDF file ID (aka filehandle)
-    if ( $line =~ 'netCDF FileHandle' ) {
-      ( $name, $F_ID ) = &splitLine( $line, '=' );
+      # Name of output file w/ Fortran code
+      if ( $line =~ 'Fortran Write File' ) {
+	( $name, $cmdFile ) = &splitLine( $line, '=' );
+      }
+
+      # NetCDF file ID (aka filehandle)
+      if ( $line =~ 'netCDF FileHandle' ) {
+	( $name, $F_ID ) = &splitLine( $line, '=' );
+      }
     }
   }
       

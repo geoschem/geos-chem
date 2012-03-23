@@ -160,6 +160,8 @@
 !  17 Dec 2009 - R. Yantosca - Added ProTeX headers
 !  25 Jan 2010 - R. Yantosca - Now call DO_TOMAS for TOMAS microphysics
 !  28 Jan 2010 - C. Carouge, R. Yantosca - Modified for ISORROPIA II
+!  19 Mar 2012 - R. Yantosca - Add C-preprocessor switch to shut off 
+!                              ISORROPIA to facilitate debugging
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -203,8 +205,10 @@
                 ! Do aerosol thermodynamic equilibrium
                 IF ( LSSALT ) THEN
                 
+#if   !defined( NO_ISORROPIA )
                    ! ISOROPIA takes Na+, Cl- into account
                    CALL DO_ISOROPIAII
+#endif
                 
                 ELSE
  

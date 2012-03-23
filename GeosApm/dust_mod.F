@@ -664,6 +664,7 @@
 !  03 Sep 2010 - R. Yantosca - Bug fix, SNOMAS was mislabled in GEOS-5
 !                              and has units of mm H2O instead of m H2O
 !                              so we need to convert to m H2O.
+!  08 Feb 2012 - R. Yantosca - Treat GEOS-5.7.x in the same way as MERRA
 !  01 Mar 2012 - R. Yantosca - Now use GET_YMID_R(I,J,L) from grid_mod.F90
 !EOP
 !------------------------------------------------------------------------------
@@ -813,7 +814,7 @@
             ORO(I)         = OROGRAPHY(I,J) 
 
             ! Snow height [m H2O]
-#if   defined( GEOS_5 ) || defined( MERRA )
+#if   defined( GEOS_5 ) || defined( MERRA ) || defined( GEOS_57 )
             SNW_HGT_LQD(I) = SNOMAS(I,J) / 1000d0
 #else
             SNW_HGT_LQD(I) = SNOW(I,J) / 1000d0
@@ -829,7 +830,7 @@
          !==============================================================
          
          ! Latitude in RADIANS
-         YMID_R = GET_YMID_R( I, J, 1 )
+         YMID_R = GET_YMID_R( 1, J, 1 )
 
          ! Call DEAD dust mobilization
          CALL DST_MBL( DOY,    BHT2,  J,     YMID_R, ORO,    
