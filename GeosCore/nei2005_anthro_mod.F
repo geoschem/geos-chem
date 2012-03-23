@@ -725,33 +725,33 @@
       WEEKDAY = ( DAY_NUM > 0 .and. DAY_NUM < 6 )
 
       IF ( WEEKDAY ) THEN       !Kg/Yr
-         EMISS(:,:,:,IDTNOx)  = NOx
-         EMISS(:,:,:,IDTCO)   = CO
-         EMISS(:,:,:,IDTSO2)  = SO2
-         EMISS(:,:,:,IDTSO4)  = SO4
-         EMISS(:,:,:,IDTNH3)  = NH3
-         EMISS(:,:,:,IDTALK4) = ALK4
-         EMISS(:,:,:,IDTACET) = ACET
-         EMISS(:,:,:,IDTMEK)  = MEK
-         EMISS(:,:,:,IDTPRPE) = PRPE
-         EMISS(:,:,:,IDTC3H8) = C3H8
-         EMISS(:,:,:,IDTCH2O) = CH2O
-         EMISS(:,:,:,IDTC2H6) = C2H6
-         EMISS(:,:,:,IDTALD2) = ALD2
+         EMISS(:,:,1:5,IDTNOx)  = NOx
+         EMISS(:,:,1:5,IDTCO)   = CO
+         EMISS(:,:,1:5,IDTSO2)  = SO2
+         EMISS(:,:,1:5,IDTSO4)  = SO4
+         EMISS(:,:,1:5,IDTNH3)  = NH3
+         EMISS(:,:,1:5,IDTALK4) = ALK4
+         EMISS(:,:,1:5,IDTACET) = ACET
+         EMISS(:,:,1:5,IDTMEK)  = MEK
+         EMISS(:,:,1:5,IDTPRPE) = PRPE
+         EMISS(:,:,1:5,IDTC3H8) = C3H8
+         EMISS(:,:,1:5,IDTCH2O) = CH2O
+         EMISS(:,:,1:5,IDTC2H6) = C2H6
+         EMISS(:,:,1:5,IDTALD2) = ALD2
       ELSE
-         EMISS(:,:,:,IDTNOx)  = NOx_WKEND
-         EMISS(:,:,:,IDTCO)   = CO_WKEND
-         EMISS(:,:,:,IDTSO2)  = SO2_WKEND
-         EMISS(:,:,:,IDTSO4)  = SO4_WKEND
-         EMISS(:,:,:,IDTNH3)  = NH3_WKEND
-         EMISS(:,:,:,IDTALK4) = ALK4_WKEND
-         EMISS(:,:,:,IDTACET) = ACET_WKEND
-         EMISS(:,:,:,IDTMEK)  = MEK_WKEND
-         EMISS(:,:,:,IDTPRPE) = PRPE_WKEND
-         EMISS(:,:,:,IDTC3H8) = C3H8_WKEND
-         EMISS(:,:,:,IDTCH2O) = CH2O_WKEND
-         EMISS(:,:,:,IDTC2H6) = C2H6_WKEND
-         EMISS(:,:,:,IDTALD2) = ALD2_WKEND
+         EMISS(:,:,1:5,IDTNOx)  = NOx_WKEND
+         EMISS(:,:,1:5,IDTCO)   = CO_WKEND
+         EMISS(:,:,1:5,IDTSO2)  = SO2_WKEND
+         EMISS(:,:,1:5,IDTSO4)  = SO4_WKEND
+         EMISS(:,:,1:5,IDTNH3)  = NH3_WKEND
+         EMISS(:,:,1:5,IDTALK4) = ALK4_WKEND
+         EMISS(:,:,1:5,IDTACET) = ACET_WKEND
+         EMISS(:,:,1:5,IDTMEK)  = MEK_WKEND
+         EMISS(:,:,1:5,IDTPRPE) = PRPE_WKEND
+         EMISS(:,:,1:5,IDTC3H8) = C3H8_WKEND
+         EMISS(:,:,1:5,IDTCH2O) = CH2O_WKEND
+         EMISS(:,:,1:5,IDTC2H6) = C2H6_WKEND
+         EMISS(:,:,1:5,IDTALD2) = ALD2_WKEND
       ENDIF
 #endif
       !--------------------------
