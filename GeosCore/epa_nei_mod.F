@@ -568,10 +568,12 @@
       !=================================================================
       IF ( FIRST ) THEN
 
+#if defined( DEVEL )
          ! Allocate arrays
          ALLOCATE( A( IIPAR, JJPAR ), STAT=AS )
          IF ( AS /= 0 ) CALL ALLOC_ERR( 'EMISS_EPA_NEI:A' )
          A = 0d0
+#endif
 
          CALL INIT_EPA_NEI
 

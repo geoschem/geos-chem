@@ -39,7 +39,7 @@
       INTEGER, INTENT(IN)    :: DAY                    ! Day of month
       REAL*8,  INTENT(IN)    :: T(LLPAR)               ! Temperature [K]
       REAL*8,  INTENT(IN)    :: SA                     ! UV albedo [unitless]
-      REAL*8,  INTENT(IN)    :: OPTDUST(:LPAR,NDUST)   ! Dust OD [unitless]
+      REAL*8,  INTENT(IN)    :: OPTDUST(LLPAR,NDUST)   ! Dust OD [unitless]
       REAL*8,  INTENT(IN)    :: OPTAER(LLPAR,NAER*NRH) ! Aerosol OD [unitless]
       REAL*8,  INTENT(IN)    :: O3COL                  ! Overhd O3 column [DU]
 !

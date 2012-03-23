@@ -223,6 +223,9 @@
  110     CONTINUE
       ENDDO ! M
 
+#if defined( DEVEL )
       EMISS = EMISS + GEMISNOX2
+#endif
+
       ! Return to calling program
       END SUBROUTINE SOILNOXEMS
