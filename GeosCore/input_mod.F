@@ -2930,6 +2930,7 @@
       USE DRYDEP_MOD,  ONLY : INIT_DRYDEP
       USE LOGICAL_MOD, ONLY : LCONV,             LDRYD
       USE LOGICAL_MOD, ONLY : LWETD,             LSPLIT
+      USE LOGICAL_MOD, ONLY : USE_OLSON_2001
       USE TRACER_MOD,  ONLY : ITS_A_C2H6_SIM,    ITS_A_CH3I_SIM
       USE TRACER_MOD,  ONLY : ITS_A_CH4_SIM,     ITS_A_HCN_SIM
       USE TRACER_MOD,  ONLY : ITS_A_MERCURY_SIM, ITS_A_TAGCO_SIM
@@ -2948,6 +2949,8 @@
 !  (4 ) Now make sure all USE statements are USE, ONLY (bmy, 10/3/05)
 !  27 Aug 2010 - R. Yantosca - Added ProTeX headers
 !  16 Feb 2011 - R. Yantosca - Add modifications for APM from G. Luo
+!  26 Mar 2012 - R. Yantosca - Now turn off switch USE_OLSON_2001 by default
+!                              (except for GEOS-5.7.2 met)
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -2993,7 +2996,21 @@
       IF ( ITS_A_TAGCO_SIM()   ) LWETD = .FALSE.
       IF ( ITS_A_C2H6_SIM()    ) LWETD = .FALSE.
       IF ( ITS_A_CH4_SIM()     ) LWETD = .FALSE.
-      
+     
+      ! Default is to use the Olson 1992 land map & drydep inputs
+      USE_OLSON_2001 = .FALSE.
+
+#if   defined( GEOS_57 ) 
+      !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+      !%%% KLUDGE FOR TESTING GEOS-5.7.2 (bmy, 3/26/12)
+      !%%% Use the Olson 2001 land map, which is at 0.25 x 0.25 resolution
+      !%%% in order to facilitate the SEAC4RS simulations.  Eventually
+      !%%% this will replace Olson 1992 for all other met field types,
+      !%%% once more rigorous testing & validation has been done.
+      !USE_OLSON_2001 = .TRUE.
+      !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+#endif
+
       !=================================================================
       ! Print to screen
       !=================================================================
@@ -3001,6 +3018,8 @@
       WRITE( 6, '(  a)' ) '---------------'
       WRITE( 6, 100     ) 'Turn on dry deposition?     : ', LDRYD
       WRITE( 6, 100     ) 'Turn on wet deposition?     : ', LWETD
+      WRITE( 6, 100     ) 'Use Olson 2001 land map?    : ', 
+     &                                                  USE_OLSON_2001
 
       ! FORMAT statements
  100  FORMAT( A, L5 )
