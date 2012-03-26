@@ -1,5 +1,5 @@
 #if defined( DEVEL )
-! $Id: gc_interface_mod.F,v 1.1 2009/12/11 20:57:28 dasilva Exp $
+! $Id: gc_environment_mod.F
 !------------------------------------------------------------------------------
 !          Harvard University Atmospheric Chemistry Modeling Group            !
 !------------------------------------------------------------------------------
@@ -208,29 +208,3 @@
       END MODULE GC_ENVIRONMENT_MOD
 !EOC
 #endif
-!-----------------------------------------------------------------------
-! TO BE DONE:
-!
-!  ARRAY     !  COMPLETE?  ! NOTE:
-!------------!-------------!--------------------------------------------
-!  AD        !   YES       ! SET IN DAO_MOD.AIRQNT IN STD GC
-!  AIRDENS   !   YES       ! SET IN DAO_MOD.AIRQNT IN STD GC
-!  AIRVOL    !   YES       ! SET IN DAO_MOD.AIRQNT IN STD GC
-!  BXHEIGHT  !   YES       ! SET IN DAO_MOD.AIRQNT IN STD GC
-!  CLDF      !   YES       ! SET IN A6_READMOD
-!  CMFMC     !   YES       ! SET IN A6_READMOD
-!  DQIDTMST  !   YES       ! SET IN A6_READMOD
-!  DQLDTMST  !   YES       ! SET IN A6_READMOD
-!  DQVDTMST  !   YES       ! SET IN A6_READMOD
-!  DTRAIN    !   YES       ! SET IN A6_READMOD
-!  MOISTQ    !   YES       ! SET IN A6_READMOD
-!  OPTD      !   YES       ! SET IN A6_READMOD
-!  PEDGE     !   YES       ! SET LOCALLY (ABOVE)
-!  PMID      !   YES       ! SET LOCALLY (ABOVE)
-!  DELP      !   YES       ! SET IN DAO_MOD.AIRQNT IN STD GC
-!  RH        !   YES       ! SET IN A6_READMOD
-!  SPHU      !   YES       ! SET IN A6_READMOD
-!  T         !   YES       ! SET IN A6_READMOD
-!  TAUCLI    !   YES       ! SET IN A6_READMOD
-!  TAUCLW    !   YES       ! SET IN A6_READMOD
-!-----------------------------------------------------------------------

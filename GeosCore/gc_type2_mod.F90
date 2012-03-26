@@ -1,4 +1,26 @@
 #if defined( DEVEL )
+! $Id: gc_type2_mod.F
+!------------------------------------------------------------------------------
+!          Harvard University Atmospheric Chemistry Modeling Group            !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !MODULE: gc_type2_mod
+!
+! !DESCRIPTION: Module GC\_TYPE2\_MOD defines the derived types that will represent
+!               the "socket" with external modules. These types will be implemented
+!               thru GEOS-Chem in a top-down format to tightly control memory
+!               allocation and access both within and outside of GEOS-Chem.
+!
+!\\
+!\\
+!  NOTE: This is mostly for testing the grid-independent code in the current 
+!  GEOS-Chem.  Many of these inputs will come from the GEOS-5 interface. It will
+!  remain in DEVEL state for some time.
+!\\
+!\\
+! !INTERFACE: 
+!
       MODULE GC_TYPE2_MOD
 !
 ! USES:
@@ -196,8 +218,8 @@
 !
 ! KEEP EMISSIONS FROM UPDATING STT DIRECTLY
 !
-! NEI EMISSIONS: BIOFUEL EMISSIONS ARE NOT 'REALLY' BIOFUEL. THEY STILL
-!                AS IN THERE'S NO IDBF'SPEC' INDEX. WTF? XXXXXXXXXXXXXX
+! NEI EMISSIONS: BIOFUEL EMISSIONS ARE NOT 'REALLY' BIOFUEL.
+!                AS IN THERE'S NO IDBF'SPEC' INDEX.
 !-----------------------------------------------------------------------
 
 !-----------------------------------------------------------------------
