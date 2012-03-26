@@ -32,6 +32,7 @@
       USE LOGICAL_MOD,        ONLY : LICARTT,          LNEI05
       USE LOGICAL_MOD,        ONLY : LRETRO
       USE RETRO_MOD,          ONLY : GET_RETRO_ANTHRO
+      USE C2H6_MOD,           ONLY : GET_C2H6_ANTHRO
       USE NEI2005_ANTHRO_MOD, ONLY : GET_NEI2005_ANTHRO
       USE NEI2005_ANTHRO_MOD, ONLY : NEI05_MASK => USA_MASK
       USE LOGICAL_MOD,        ONLY : LICOADSSHIP !(cklee, 6/30/09)
@@ -44,6 +45,7 @@
       USE TRACER_MOD,         ONLY : XNUMOL
       USE TRACERID_MOD,       ONLY : IDENOX, IDEOX,    IDEHNO3
       USE TRACERID_MOD,       ONLY : IDTOX,  IDTCO,    IDTHNO3
+      USE TRACERID_MOD,       ONLY : IDTC2H6
       USE VISTAS_ANTHRO_MOD,  ONLY : GET_VISTAS_ANTHRO
       USE ICOADS_SHIP_MOD,    ONLY : GET_ICOADS_SHIP !(cklee, 7/09/09)
 ![eml
@@ -143,6 +145,8 @@
 !                              moved to calcrate.F for PARANOX.  Left original
 !                              code in place, but commented out.
 !  01 Mar 2012 - R. Yantosca - Now use GET_AREA_CM2(I,J,L) from grid_mod.F90
+!  22 Mar 2012 - M. Payer    - Update for C2H6. RETRO ethane emissions are too
+!                              low so we will use Yaping Xiao's offline emiss.
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -158,6 +162,7 @@
       REAL*8  :: BRAVO, EPA_NEI, EMEP,   EDGAR, STREETS
       REAL*8  :: CAC,   SHIP,    VISTAS, NEI05
       REAL*8  :: RETRO
+      REAL*8  :: C2H6_ANTHRO
 
       !=================================================================
       ! EMFOSSIL begins here!
@@ -606,7 +611,7 @@
          ! Get CO emissions from RETRO inventory
          !--------------------------------------------------------------
         
-        ! If we are using RETRO emissions ...
+         ! If we are using RETRO emissions ...
          IF ( LRETRO ) THEN
 
 	    ! Get RETRO emissions
@@ -617,14 +622,32 @@
 
 	       ! Apply time-of-day factor
 	       RETRO = RETRO * TODX
-           ! Convert from molec/cm2/s to kg/box/timestep in order
-           ! to be in the proper units for EMISRR array
 
-	    EMX(1) = RETRO * ( DTSRCE * AREA_CM2 ) / XNUMOL(NN)	    
+               ! Convert from molec/cm2/s to kg/box/timestep in order
+               ! to be in the proper units for EMISRR array
+	       EMX(1) = RETRO * ( DTSRCE * AREA_CM2 ) / XNUMOL(NN)	    
 
 	    ENDIF  
          ENDIF
 
+         !--------------------------------------------------------------
+         ! Get C2H6 emissions from Yaping Xiao's inventory (mpayer, 3/22/12)
+         !--------------------------------------------------------------
+
+         ! If C2H6 is a defined tracer ...
+         IF ( NN == IDTC2H6 ) THEN
+
+               C2H6_ANTHRO = GET_C2H6_ANTHRO( I, J, NN )
+
+               ! Apply time-of-day factor
+	       C2H6_ANTHRO = C2H6_ANTHRO * TODX
+
+               ! Convert from molC/cm2/s to kg/box/timestep in order
+               ! to be in the proper units for EMISRR array
+               EMX(1) = C2H6_ANTHRO * ( DTSRCE * AREA_CM2 ) / XNUMOL(NN)
+
+         ENDIF
+  
          !--------------------------------------------------------------
          ! Get CO & Hydrocarbons from EMEP inventory over Europe
          !--------------------------------------------------------------

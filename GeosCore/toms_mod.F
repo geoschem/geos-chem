@@ -292,9 +292,9 @@
 
 !  \begin{enumerate}
 !  \item Default: TOMS/SBUV overhead O3 columns.  These will be used be
-!        the FAST-J routine set_prof.F to overwrite the existing FAST-J
-!        climatology (cf McPeters & Nagatani 1992).  Missing data (i.e.
-!        for months & locations where TOMS/SBUV data does not exist) 
+!        the FAST-J routine set\_prof.F to overwrite the existing FAST-J
+!        climatology (cf McPeters \& Nagatani 1992).  Missing data (i.e.
+!        for months \& locations where TOMS/SBUV data does not exist) 
 !        is denoted by the value -999; FAST-J will skip over these points.
 !  \item Overhead O3 columns taken directly from the met fields.  These 
 !        will be returned if the flag  USE\_O3\_FROM\_MET is set to TRUE.

@@ -69,6 +69,8 @@
 !  28 Feb 2012 - R. Yantosca - Removed support for GEOS-3
 !  01 Mar 2012 - R. Yantosca - Now reference new grid_mod.F90
 !   2 Mar 2012 - R. Yantosca - Remove A_CM2 array, use GET_AREA_CM2 instead
+!  22 Mar 2012 - M. Payer    - C2H6 emissions are too low. Use Yaping
+!                              Xiao's C2H6 emissions instead.
 !EOP
 !------------------------------------------------------------------------------
 !
@@ -161,6 +163,8 @@
 !  07 Oct 2009 - A. van Donkelaar - initial version
 !  01 Mar 2012 - R. Yantosca - Now use GET_AREA_CM2(I,J,L) from grid_mod.F90
 !  01 Mar 2012 - R. Yantosca - Remove A_CM2 array, use GET_AREA_CM2 instead
+!  22 Mar 2012 - M. Payer    - C2H6 emissions are too low. Use Yaping
+!                              Xiao's C2H6 emissions instead.  
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -239,8 +243,12 @@
 
          ELSE IF ( N == IDTC2H6 ) THEN
 
-            ! [kg C/yr]
-            VALUE = C2H6(I,J,L)
+!------------------------------------------------------------------------------
+! Prior to 3/22/12:
+!            ! [kg C/yr]
+!            VALUE = C2H6(I,J,L)
+!------------------------------------------------------------------------------
+            VALUE = -1d0
 
          ELSE IF ( N == IDTALD2 ) THEN
 
@@ -314,8 +322,12 @@
 
          ELSE IF ( N == IDTC2H6 ) THEN
 
-            ! [kg C/yr]
-            VALUE = C2H6_WKEND(I,J,L)
+!------------------------------------------------------------------------------
+! Prior to 3/22/12:
+!            ! [kg C/yr]
+!            VALUE = C2H6_WKEND(I,J,L)
+!------------------------------------------------------------------------------
+            VALUE = -1d0
  
          ELSE IF ( N == IDTALD2 ) THEN
 
@@ -1842,7 +1854,8 @@
       INTEGER, INTENT(IN) :: YEAR   ! Year of data to compute totals
 !
 ! !REVISION HISTORY: 
-!    7 Oct 2009 - A. van Donkelaar - initial version
+!   7 Oct 2009 - A. van Donkelaar - initial version
+!  22 Mar 2012 - M. Payer         - Remove print for C2H6 emissions.
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -1927,12 +1940,19 @@
       WRITE( 6, 110 ) 'PRPE ', YEAR, T_PRPE, '[Tg C]'
       WRITE( 6, 110 ) 'C3H8 ', YEAR, T_C3H8, '[Tg C]'
       WRITE( 6, 110 ) 'CH2O ', YEAR, T_CH2O, '[Tg C]'
-      WRITE( 6, 110 ) 'C2H6 ', YEAR, T_C2H6, '[Tg C]'
+!------------------------------------------------------------------------------
+! Prior to 3/22/12:
+!      WRITE( 6, 110 ) 'C2H6 ', YEAR, T_C2H6, '[Tg C]'
+!------------------------------------------------------------------------------
       WRITE( 6, 110 ) 'ALD2 ', YEAR, T_ALD2, '[Tg C]'
 
       ! Format statement
  110  FORMAT( 'NEI2005 anthro ', a5, 
      &        'for year ', i4, ': ', f11.4, 1x, a8 )
+
+      WRITE( 6, '(/,a,/)' ) 'NEI2005_ANTHRO_MOD: NEI05 C2H6 ' //
+     &   'anthro emissions are too low. Using offline C2H6 '  //
+     &   'emissions from Yaping Xiao.'
 
       ! Fancy output
       WRITE( 6, '(a)' ) REPEAT( '=', 79 )

@@ -162,6 +162,7 @@
 !  07 Feb 2011 - R. Yantosca - Use NEI99 biofuels when useing NEI05 anthro
 !  17 Aug 2011 - R. Yantosca - Added call to RETRO anthro emissions
 !  07 Feb 2012 - M. Payer    - Added call to read PARANOX look up tables
+!  22 Mar 2012 - M. Payer    - Added call to EMISSC2H6
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -280,6 +281,10 @@
      &      .and. ITS_A_NEW_MONTH() ) THEN
             CALL READ_PARANOX_LUT
          ENDIF
+
+         ! C2H6 emissions using RETRO are too low, use Yaping Xiao's
+         ! offline C2H6 emissions instead (mpayer, 3/22/12)
+         CALL EMISSC2H6
 
          ! NOx-Ox-HC (w/ or w/o aerosols)
          CALL EMISSDR

@@ -51,6 +51,7 @@
 #  05 Mar 2012 - M. Payer    - Added tracer_mod
 #  06 Mar 2012 - R. Yantosca - Added photoj.F and set_prof.F
 #   7 Mar 2012 - M. Payer    - Added global_ch4_mod
+#  22 Mar 2012 - M. Payer    - Added c2h6_mod, olson_landmap_mod
 #EOP
 #------------------------------------------------------------------------------
 #BOC
@@ -70,6 +71,7 @@ $(CORE)/acetone_mod.F                \
 $(CORE)/aerosol_mod.F                \
 $(CORE)/arctas_ship_emiss_mod.F	     \
 $(CORE)/bravo_mod.F                  \
+$(CORE)/c2h6_mod.F                   \
 $(CORE)/cac_anthro_mod.F             \
 $(CORE)/chemistry_mod.F              \
 $(CORE)/co2_mod.F                    \
@@ -98,7 +100,7 @@ $(CORE)/gamap_mod.F                  \
 $(CORE)/geos57_read_mod.F90          \
 $(CORE)/gfed3_biomass_mod.F          \
 $(CORE)/global_br_mod.F              \
-$(CORE)/global_ch4_mod.F              \
+$(CORE)/global_ch4_mod.F             \
 $(CORE)/global_no3_mod.F             \
 $(CORE)/global_nox_mod.F             \
 $(CORE)/global_o1d_mod.F             \
@@ -119,6 +121,7 @@ $(CORE)/merra_a3_mod.F               \
 $(CORE)/merra_cn_mod.F               \
 $(CORE)/merra_i6_mod.F               \
 $(CORE)/nei2005_anthro_mod.F         \
+$(CORE)/olson_landmap_mod.F90        \
 $(CORE)/optdepth_mod.F               \
 $(CORE)/paranox_mod.F                \
 $(CORE)/pbl_mix_mod.F                \
@@ -150,14 +153,13 @@ $(CORE)/diagoh.F                     \
 $(CORE)/emfossil.F                   \
 $(CORE)/emf_scale.F                  \
 $(CORE)/fast_j.F                     \
-$(CORE)/photuj.F                     \
+$(CORE)/photoj.F                     \
 $(CORE)/set_prof.F                   \
 $(CORE)/findmon.F                    \
 $(CORE)/initialize.F                 \
 $(CORE)/ndxx_setup.F                 \
 $(CORE)/ohsave.F                     \
 $(CORE)/rdlai.F                      \
-$(CORE)/rdland.F                     \
 $(CORE)/rdsoil.F                     \
 $(CORE)/readlai.F                    \
 $(CORE)/ruralbox.F                   \
