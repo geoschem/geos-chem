@@ -709,6 +709,7 @@
 !  24 May 2011 - E. Fischer  - Modified for acetone. Function GET_EMACET_MEGAN
 !                              is called from "acetone_mod.f"
 !  06 Dec 2011 - M. Payer    - Added ProTeX headers
+!  27 Mar 2012 - R. Yantosca - Avoid segfault errors if LMEGAN=.FALSE.
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -743,6 +744,11 @@
       GAMMA_LEAF_AGE  = 1.d0
       GAMMA_P         = 0.d0
       GAMMA_SM        = 0.d0
+
+      ! For safety's sake: exit with EMACET=0d0 if MEGAN emissions
+      ! are turned off.  This prevents a segfault error caused by
+      ! trying to access unallocated arrays. (bmy, 3/27/12)
+      IF ( .not. LMEGAN ) RETURN
 
       ! Number of days between MISOLAI and PMISOLAI
       D_BTW_M  = DBLE( DAYS_BTW_M )
