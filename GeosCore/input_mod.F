@@ -2949,8 +2949,6 @@
 !  (4 ) Now make sure all USE statements are USE, ONLY (bmy, 10/3/05)
 !  27 Aug 2010 - R. Yantosca - Added ProTeX headers
 !  16 Feb 2011 - R. Yantosca - Add modifications for APM from G. Luo
-!  26 Mar 2012 - R. Yantosca - Now turn off switch USE_OLSON_2001 by default
-!                              (except for GEOS-5.7.2 met)
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -2996,20 +2994,6 @@
       IF ( ITS_A_TAGCO_SIM()   ) LWETD = .FALSE.
       IF ( ITS_A_C2H6_SIM()    ) LWETD = .FALSE.
       IF ( ITS_A_CH4_SIM()     ) LWETD = .FALSE.
-     
-      ! Default is to use the Olson 1992 land map & drydep inputs
-      USE_OLSON_2001 = .FALSE.
-
-#if   defined( GEOS_57 ) 
-      !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-      !%%% KLUDGE FOR TESTING GEOS-5.7.2 (bmy, 3/26/12)
-      !%%% Use the Olson 2001 land map, which is at 0.25 x 0.25 resolution
-      !%%% in order to facilitate the SEAC4RS simulations.  Eventually
-      !%%% this will replace Olson 1992 for all other met field types,
-      !%%% once more rigorous testing & validation has been done.
-      !USE_OLSON_2001 = .TRUE.
-      !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-#endif
 
       !=================================================================
       ! Print to screen
@@ -6237,6 +6221,9 @@
 !  27 Aug 2010 - R. Yantosca - Added ProTeX headers
 !  07 Sep 2011 - P. Kasibhatla - Modified for GFED3
 !   8 Feb 2012 - R. Yantosca - Rewrote USE statements for clarity
+!  26 Mar 2012 - R. Yantosca - Now turn off switch USE_OLSON_2001 by default
+!                              (except for GEOS-5.7.2 met)
+!  27 Mar 2012 - R. Yantosca - Cosmetic changes
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -6245,113 +6232,126 @@
       !=================================================================
 
       ! Initialize directories
-      DATA_DIR     = ''
-      DATA_DIR_1x1 = ''
-      GEOS_1_DIR   = ''
-      GEOS_S_DIR   = ''
-      GEOS_4_DIR   = ''
-      TEMP_DIR     = ''
-      RUN_DIR      = ''
-      OH_DIR       = ''
-      O3PL_DIR     = ''
-      TPBC_DIR     = ''
+      DATA_DIR       = ''
+      DATA_DIR_1x1   = ''
+      GEOS_1_DIR     = ''
+      GEOS_S_DIR     = ''
+      GEOS_4_DIR     = ''
+      TEMP_DIR       = ''
+      RUN_DIR        = ''
+      OH_DIR         = ''
+      O3PL_DIR       = ''
+      TPBC_DIR       = ''
 
       ! Initialize logicals
-      LATEQ        = .FALSE.
-      LAVHRRLAI    = .FALSE.
-      LCARB        = .FALSE.
-      LDEAD        = .FALSE.
-      LDUST        = .FALSE.
-      LSULF        = .FALSE.
-      LSOA         = .FALSE.
-      LSSALT       = .FALSE.
-      LCHEM        = .FALSE.
-      LCONV        = .FALSE.
-      LDBUG        = .FALSE.
-      LDIAG        = .FALSE.
-      LPRT         = .FALSE.
-      LSTDRUN      = .FALSE.
-      LDRYD        = .FALSE.
-      LAIRNOX      = .FALSE.
-      LANTHRO      = .FALSE.
-      LBIONOX      = .FALSE.
-      LBIOMASS     = .FALSE.
-      LBIOFUEL     = .FALSE.
-      LBIOGENIC    = .FALSE.
-      LBBSEA       = .FALSE.
-      LDYNOCEAN    = .FALSE.
-      LEMEP        = .FALSE.
-      LEMIS        = .FALSE.
-      LEDGAR       = .FALSE.
-      LEDGARNOx    = .FALSE. 
-      LEDGARCO     = .FALSE. 
-      LEDGARSHIP   = .FALSE. 
-      LEDGARSOx    = .FALSE. 
-      LFFNOX       = .FALSE.
-      LFOSSIL      = .FALSE.
-      LFUTURE      = .FALSE.
-      LGFED2BB     = .FALSE.
-      LGFED3BB     = .FALSE.
-      LLIGHTNOX    = .FALSE.
-      LMEGAN       = .FALSE.
-      LMEGANMONO   = .FALSE.
-      LMONOT       = .FALSE.
-      LNEI99       = .FALSE.
-      LNEI05       = .FALSE.
-      LOTDLOC      = .FALSE.
-      LSHIPSO2     = .FALSE.
-      LSOILNOX     = .FALSE.
-      LTOMSAI      = .FALSE.
-      LWOODCO      = .FALSE.
-      LFILL        = .FALSE.
-      LMFCT        = .FALSE.
-      LTRAN        = .FALSE.
-      LTPFV        = .FALSE.
-      LUPBD        = .FALSE.
-      LWINDO       = .FALSE.
-      LUNZIP       = .FALSE.
-      LWAIT        = .FALSE.
-      LTURB        = .FALSE.
-      LSVGLB       = .FALSE.
-      ! >> (dkh, 02/12/09) 
-      LSVCSPEC     = .FALSE.
-      ! << 
-      LSPLIT       = .FALSE.
-      LWETD        = .FALSE.
-      LVARTROP     = .FALSE.
-      LLINOZ       = .FALSE.
-      LPREINDHG    = .FALSE.
+      LATEQ          = .FALSE.
+      LAVHRRLAI      = .FALSE.
+      LCARB          = .FALSE.
+      LDEAD          = .FALSE.
+      LDUST          = .FALSE.
+      LSULF          = .FALSE.
+      LSOA           = .FALSE.
+      LSSALT         = .FALSE.
+      LCHEM          = .FALSE.
+      LCONV          = .FALSE.
+      LDBUG          = .FALSE.
+      LDIAG          = .FALSE.
+      LPRT           = .FALSE.
+      LSTDRUN        = .FALSE.
+      LDRYD          = .FALSE.
+      LAIRNOX        = .FALSE.
+      LANTHRO        = .FALSE.
+      LBIONOX        = .FALSE.
+      LBIOMASS       = .FALSE.
+      LBIOFUEL       = .FALSE.
+      LBIOGENIC      = .FALSE.
+      LBBSEA         = .FALSE.
+      LDYNOCEAN      = .FALSE.
+      LEMEP          = .FALSE.
+      LEMIS          = .FALSE.
+      LEDGAR         = .FALSE.
+      LEDGARNOx      = .FALSE. 
+      LEDGARCO       = .FALSE. 
+      LEDGARSHIP     = .FALSE. 
+      LEDGARSOx      = .FALSE. 
+      LFFNOX         = .FALSE.
+      LFOSSIL        = .FALSE.
+      LFUTURE        = .FALSE.
+      LGFED2BB       = .FALSE.
+      LGFED3BB       = .FALSE.
+      LLIGHTNOX      = .FALSE.
+      LMEGAN         = .FALSE.
+      LMEGANMONO     = .FALSE.
+      LMONOT         = .FALSE.
+      LNEI99         = .FALSE.
+      LNEI05         = .FALSE.
+      LOTDLOC        = .FALSE.
+      LSHIPSO2       = .FALSE.
+      LSOILNOX       = .FALSE.
+      LTOMSAI        = .FALSE.
+      LWOODCO        = .FALSE.
+      LFILL          = .FALSE.
+      LMFCT          = .FALSE.
+      LTRAN          = .FALSE.
+      LTPFV          = .FALSE.
+      LUPBD          = .FALSE.
+      LWINDO         = .FALSE.
+      LUNZIP         = .FALSE.
+      LWAIT          = .FALSE.
+      LTURB          = .FALSE.
+      LSVGLB         = .FALSE.
+      LSVCSPEC       = .FALSE.
+      LSPLIT         = .FALSE.
+      LWETD          = .FALSE.
+      LVARTROP       = .FALSE.
+      LLINOZ         = .FALSE.
+      LPREINDHG      = .FALSE.
+      USE_OLSON_2001 = .FALSE.
 
       !Specifically for CO2 simulation (R Nassar, 2009-03-02)
-      LGENFF       = .FALSE.
-      LANNFF       = .FALSE.
-      LMONFF       = .FALSE.
-      LSEASBB      = .FALSE.
-      LBIONETORIG  = .FALSE.
-      LBIONETCLIM  = .FALSE.
-      LBIODAILY    = .FALSE.
-      LBIODIURNAL  = .FALSE.
-      LOCN1997     = .FALSE.
-      LOCN2009ANN  = .FALSE.
-      LOCN2009MON  = .FALSE.
-      LFFBKGRD     = .FALSE.
-      LBIOSPHTAG   = .FALSE.
-      LFOSSILTAG   = .FALSE.
-      LSHIPEDG     = .FALSE.
-      LSHIPICO     = .FALSE.
-      LSHIPSCALE   = .FALSE.
-      LSHIPTAG     = .FALSE.
-      LPLANE       = .FALSE.
-      LPLANESCALE  = .FALSE.
-      LPLANETAG    = .FALSE.
-      LCHEMCO2     = .FALSE.
-
-      LRETRO       = .FALSE.  !(wfr, 3/8/11)
+      LGENFF         = .FALSE.
+      LANNFF         = .FALSE.
+      LMONFF         = .FALSE.
+      LSEASBB        = .FALSE.
+      LBIONETORIG    = .FALSE.
+      LBIONETCLIM    = .FALSE.
+      LBIODAILY      = .FALSE.
+      LBIODIURNAL    = .FALSE.
+      LOCN1997       = .FALSE.
+      LOCN2009ANN    = .FALSE.
+      LOCN2009MON    = .FALSE.
+      LFFBKGRD       = .FALSE.
+      LBIOSPHTAG     = .FALSE.
+      LFOSSILTAG     = .FALSE.
+      LSHIPEDG       = .FALSE.
+      LSHIPICO       = .FALSE.
+      LSHIPSCALE     = .FALSE.
+      LSHIPTAG       = .FALSE.
+      LPLANE         = .FALSE.
+      LPLANESCALE    = .FALSE.
+      LPLANETAG      = .FALSE.
+      LCHEMCO2       = .FALSE.
+                     
+      LRETRO         = .FALSE.  !(wfr, 3/8/11)
       
       ! Initialize counters
-      CT1          = 0
-      CT2          = 0
-      CT3          = 0
+      CT1            = 0
+      CT2            = 0
+      CT3            = 0
+
+#if   defined( GEOS_57 ) 
+      !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+      !%%% KLUDGE FOR TESTING GEOS-5.7.2 (bmy, 3/26/12)
+      !%%% Use the Olson 2001 land map, which is at 0.25 x 0.25 resolution
+      !%%% in order to facilitate the SEAC4RS simulations.  Eventually
+      !%%% this will replace Olson 1992 for all other met field types,
+      !%%% once more rigorous testing & validation has been done.
+      USE_OLSON_2001 = .TRUE.
+      !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+#endif
+
+      !%%% KLUDGE, set to TRUE for testing GEOS-5 etc. (bmy, 3/27/12)
+      USE_OLSON_2001 = .TRUE.
 
       END SUBROUTINE INIT_INPUT
 !EOC

@@ -25,7 +25,8 @@ MODULE Olson_LandMap_Mod
   USE DIRECTORY_MOD                     ! Disk directory paths   
   USE ERROR_MOD                         ! Error checking routines
   USE GRID_MOD                          ! Horizontal grid definition
-  
+  USE LOGICAL_MOD                       ! Logical switches
+
   IMPLICIT NONE
   PRIVATE
 !
@@ -146,13 +147,10 @@ MODULE Olson_LandMap_Mod
 !  22 Mar 2012 - R. Yantosca - Now make lon, lat, OLSON, A_CM2 allocatable
 !  22 Mar 2012 - R. Yantosca - Now define I_OLSON, J_OLSON, N_OLSON, D_LON,
 !                              and D_LAT in routine Init_Olson_LandMap
+!  27 Mar 2012 - R. Yantosca - Now reference USE_OLSON_2001 from logical_mod.F
 !EOP
 !------------------------------------------------------------------------------
 !BOC
-!
-! !DEFINED PARAMETERS:
-!
-  LOGICAL              :: USE_OLSON_2001 = .FALSE.
 !
 ! !PRIVATE TYPES:
 !
@@ -476,6 +474,7 @@ CONTAINS
 !
     USE m_netcdf_io_open
     USE m_netcdf_io_read
+    USE m_netcdf_io_readattr
     USE m_netcdf_io_close
     
     IMPLICIT NONE
@@ -490,7 +489,9 @@ CONTAINS
 ! !REVISION HISTORY:
 !  13 Mar 2012 - R. Yantosca - Initial version
 !  22 Mar 2012 - R. Yantosca - Also read in surface areas [m2] from file
-
+!  27 Mar 2012 - R. Yantosca - Now read the "units" attribute of each variable
+!  27 Mar 2012 - R. Yantosca - Now echo file I/O status info to stdout
+!  27 Mar 2012 - R. Yantosca - Now can read Olson 1992 or Olson 2001 land map
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -506,8 +507,12 @@ CONTAINS
     INTEGER            :: as                 ! Allocation status
     
     ! Character strings
+    CHARACTER(LEN=255) :: nc_dir             ! netCDF directory name
     CHARACTER(LEN=255) :: nc_file            ! netCDF file name
+    CHARACTER(LEN=255) :: nc_path            ! netCDF path name
     CHARACTER(LEN=255) :: v_name             ! netCDF variable name 
+    CHARACTER(LEN=255) :: a_name             ! netCDF attribute name
+    CHARACTER(LEN=255) :: a_val              ! netCDF attribute value
      
     ! Arrays for netCDF start and count values
     INTEGER            :: st1d(1), ct1d(1)   ! For 1D arrays    
@@ -521,22 +526,24 @@ CONTAINS
        !--------------------------------
        ! Settings for Olson 2001 grid
        !--------------------------------
-       I_OLSON = 1440                        ! # of lons (0.5 x 0.5)
-       J_OLSON = 720                         ! # of lats (0.5 x 0.5)
-       N_OLSON = 74                          ! %%% NEED TO VERIFY THIS %%%
-       D_LON   = 0.25d0                      ! Delta longitude [degrees]
-       D_LAT   = 0.25d0                      ! Delta latitude [degrees]
+       I_OLSON = 1440                                     ! # lons (0.25x0.25)
+       J_OLSON = 720                                      ! # lats (0.25x0.25)
+       N_OLSON = 74                                       ! # of land types
+       D_LON   = 0.25d0                                   ! Delta lon [degrees]
+       D_LAT   = 0.25d0                                   ! Delta lat [degrees]
+       nc_file = 'Olson_2001_Land_Map.025x025.generic.nc' ! Input file name
 
     ELSE
 
        !--------------------------------
        ! Settings for Olson 1992 grid
        !--------------------------------
-       I_OLSON = 720                         ! # of lons (0.5 x 0.5)
-       J_OLSON = 360                         ! # of lats (0.5 x 0.5)
-       N_OLSON = 74
-       D_LON   = 0.5d0                       ! Delta longitude [degrees]
-       D_LAT   = 0.5d0                       ! Delta latitude [degrees]
+       I_OLSON = 720                                      ! # lons (0.5x0.5)
+       J_OLSON = 360                                      ! # lats (0.5x0.5)
+       N_OLSON = 74                                       ! # of land types
+       D_LON   = 0.5d0                                    ! Delta lon [degrees]
+       D_LAT   = 0.5d0                                    ! Delta lat [degrees]
+       nc_file = 'Olson_1992_Land_Map.05x05.generic.nc'   ! Input file name
 
     ENDIF
 
@@ -550,13 +557,18 @@ CONTAINS
     ! Open and read data from the netCDF file
     !======================================================================
 
-    ! Pick file name
-    nc_file =  TRIM( DATA_DIR_1x1 ) // &
-                'Olson_Land_Map_201203/Olson_1992_Land_Map.05x05.generic.nc'
+    ! Construct file path from directory & file name
+    nc_dir  = TRIM( DATA_DIR_1x1 ) // 'Olson_Land_Map_201203/'
+    nc_path = TRIM( nc_dir ) // TRIM( nc_file )
 
     ! Open file for read
-    CALL Ncop_Rd( fId, TRIM(nc_file) )
+    CALL Ncop_Rd( fId, TRIM(nc_path) )
      
+    ! Echo info to stdout
+    WRITE( 6, 100 ) REPEAT( '%', 79 )
+    WRITE( 6, 110 ) TRIM(nc_file)
+    WRITE( 6, 120 ) TRIM(nc_dir)
+
     !----------------------------------------
     ! VARIABLE: lon
     !----------------------------------------
@@ -568,7 +580,14 @@ CONTAINS
     st1d   = (/ 1       /)
     ct1d   = (/ I_OLSON /)
     CALL NcRd( lon, fId, TRIM(v_name), st1d, ct1d )
-     
+ 
+    ! Read the lon:units attribute
+    a_name = "units"
+    CALL NcGet_Var_Attributes( fId,TRIM(v_name),TRIM(a_name),a_val )
+    
+    ! Echo info to stdout
+    WRITE( 6, 130 ) TRIM(v_name), TRIM(a_val)     
+
     !----------------------------------------
     ! VARIABLE: lat
     !----------------------------------------
@@ -581,6 +600,13 @@ CONTAINS
     ct1d   = (/ J_OLSON /)
     CALL NcRd( lat, fId, TRIM(v_name), st1d, ct1d )
      
+    ! Read the lat:units attribute
+    a_name = "units"
+    CALL NcGet_Var_Attributes( fId,TRIM(v_name),TRIM(a_name),a_val )
+    
+    ! Echo info to stdout
+    WRITE( 6, 130 ) TRIM(v_name), TRIM(a_val) 
+
     !----------------------------------------
     ! VARIABLE: OLSON
     !----------------------------------------
@@ -592,6 +618,13 @@ CONTAINS
     st3d   = (/ 1,       1,       1 /)
     ct3d   = (/ I_OLSON, J_OLSON, 1 /)
     CALL NcRd( OLSON, fId, TRIM(v_name), st3d, ct3d )
+
+    ! Read the OLSON:units attribute
+    a_name = "units"
+    CALL NcGet_Var_Attributes( fId,TRIM(v_name),TRIM(a_name),a_val )
+    
+    ! Echo info to stdout
+    WRITE( 6, 130 ) TRIM(v_name), TRIM(a_val) 
 
     !----------------------------------------
     ! VARIABLE: DXYP 
@@ -606,6 +639,13 @@ CONTAINS
     ct3d   = (/ I_OLSON, J_OLSON, 1 /)
     CALL NcRd( A_CM2, fId, TRIM(v_name), st3d, ct3d )
     
+    ! Read the DXYP:units attribute
+    a_name = "units"
+    CALL NcGet_Var_Attributes( fId,TRIM(v_name),TRIM(a_name),a_val )
+    
+    ! Echo info to stdout
+    WRITE( 6, 130 ) TRIM(v_name), TRIM(a_val) 
+
     ! Convert from [m2] to [cm2]
     A_CM2  = A_CM2 * 1e4
 
@@ -616,6 +656,17 @@ CONTAINS
     ! Close netCDF file
     CALL NcCl( fId )
     
+    ! Echo info to stdout
+    WRITE( 6, 140 )
+    WRITE( 6, 100 ) REPEAT( '%', 79 )
+
+    ! FORMAT statements
+100 FORMAT( a                                              )
+110 FORMAT( '%% Opening file  : ',         a               )
+120 FORMAT( '%%  in directory : ',         a, / , '%%'     )
+130 FORMAT( '%% Successfully read ',       a, ' [', a, ']' )
+140 FORMAT( '%% Successfully closed file!'                 )
+
   END SUBROUTINE Init_Olson_LandMap
 !EOC
 !------------------------------------------------------------------------------

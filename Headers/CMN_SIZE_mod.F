@@ -392,7 +392,12 @@
       ! NTYPE    - Maximum number of veg types in a CTM grid box
       ! NPOLY    - Number of coefficients for polynomial fits
       INTEGER, PARAMETER :: NVEGTYPE = 74
-      INTEGER, PARAMETER :: NTYPE    = 15
+!-----------------------------------------------------------------------------
+! Prior to 3/27/12:
+! Updated for Olson 2001 landmap (bmy, 3/27/12)
+!      INTEGER, PARAMETER :: NTYPE    = 15
+!-----------------------------------------------------------------------------
+      INTEGER, PARAMETER :: NTYPE    = 25
       INTEGER, PARAMETER :: NPOLY    = 20
 
       ! NNSTA = max number of time series stations (in inptr.ctm)
@@ -527,6 +532,7 @@
 !  23 Aug 2011 - M. Long     - Converted to Module from Header file
 !  10 Feb 2012 - R. Yantosca - Added #if blocks for GEOS-5.7.x nested CH grid
 !  28 Feb 2012 - R. Yantosca - Removed support for GEOS-3
+!  27 Mar 2012 - R. Yantosca - Increase NTYPE from 15 to 25 for Olson 2001 map
 !EOP
 !------------------------------------------------------------------------------
 !BOC
