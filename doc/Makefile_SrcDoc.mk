@@ -52,6 +52,7 @@
 #  06 Mar 2012 - R. Yantosca - Added photoj.F and set_prof.F
 #   7 Mar 2012 - M. Payer    - Added global_ch4_mod
 #  22 Mar 2012 - M. Payer    - Added c2h6_mod, olson_landmap_mod
+#  29 Mar 2012 - R. Yantosca - Added lai_mod
 #EOP
 #------------------------------------------------------------------------------
 #BOC
@@ -110,6 +111,7 @@ $(CORE)/h2_hd_mod.F                  \
 $(CORE)/icoads_ship_mod.F            \
 $(CORE)/input_mod.F                  \
 $(CORE)/isoropiaII_mod.F             \
+$(CORE)/lai_mod.F                    \
 $(CORE)/land_mercury_mod.F           \
 $(CORE)/lightning_nox_mod.F          \
 $(CORE)/linoz_mod.F                  \
