@@ -289,14 +289,6 @@
          IF ( LPRT ) CALL DEBUG_MSG( '### MAIN: a LIGHTNING' )
       ENDIF
 
-!------------------------------------------------------------------------------
-! Prior to 3/13/12:
-! Replace this with routines from olson_landmap_mod.F90
-!      ! Read land types and fractions from "vegtype.global"
-!      CALL RDLAND   
-!      IF ( LPRT ) CALL DEBUG_MSG( '### MAIN: a RDLAND' )
-!------------------------------------------------------------------------------
-
       ! Compute the Olson land types that occur in each grid box
       ! (i.e. this is a replacement for rdland.F and vegtype.global)
       CALL INIT_OLSON_LANDMAP()
@@ -551,6 +543,24 @@
             ! Now include the year (mpb,11/19/09)
             CALL RDLAI( DAY_OF_YEAR, MONTH, YEAR )
 
+#if   defined( USE_ISOLAI_IN_DRYD )
+
+            !%%% TEST FOR USING ISOLAI IN THE DRYDEP CODE
+            !%%% NEED TO READ ISOLAI EVEN WHEN MEGAN IS NOT USED
+
+            ! Read daily leaf-area-index
+            ! Now include the year (mpb,11/19/09)
+            CALL RDISOLAI( DAY_OF_YEAR, MONTH, YEAR )
+
+            ! For MEGAN biogenics ...
+            IF ( LMEGAN ) THEN
+
+               ! Compute 15-day average temperature for MEGAN
+               CALL UPDATE_T_15_AVG
+            ENDIF
+#else
+            !%%% OTHERWISE, PRESERVE EXISTING CODE HERE
+
             ! For MEGAN biogenics ...
             IF ( LMEGAN ) THEN
 
@@ -561,7 +571,7 @@
                ! Compute 15-day average temperature for MEGAN
                CALL UPDATE_T_15_AVG
             ENDIF
-
+#endif
             ! For mercury simulations ...
             IF ( ITS_A_MERCURY_SIM() ) THEN
 

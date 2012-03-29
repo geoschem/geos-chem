@@ -28,6 +28,7 @@
       USE DIRECTORY_MOD                         ! Data directory paths
       USE ERROR_MOD                             ! Error handling routines
       USE GRID_MOD,       ONLY : GET_AREA_CM2   ! Grid box surface areas [cm2]
+      USE LAI_MOD                               ! Leaf area index module
       USE LOGICAL_MOD                           ! GEOS-Chem logical switches
       USE PBL_MIX_MOD                           ! Boundary layer quantities
       USE PRESSURE_MOD,   ONLY : GET_PEDGE      ! Pressure @ level edges
@@ -360,9 +361,9 @@
 
       ! Dimension AZO for GCAP or GEOS met fields (swu, bmy, 5/25/05)
 #if   defined( GCAP )
-      REAL*8        :: AZO   (NTYPE       )
+      REAL*8        :: AZO   (NTYPE       )   ! Z0, per Olson land type
 #else
-      REAL*8        :: AZO   (MAXIJ       )
+      REAL*8        :: AZO   (MAXIJ       )   ! Z0, per (I,J) square
 #endif
 
       !=================================================================
@@ -1240,6 +1241,24 @@
      &                   PRESSU, W10 )
 !
 ! !REMARKS:
+!  %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+!  %%%  If the USE_ISOLAI_IN_DRYD Cpp switch is set, then replace all      %%%
+!  %%%  instances of XYLAI(IJLOOP,LDT), with ISOLAI(I,J).  This will       %%%
+!  %%%  facilitate adoption of the Olson 2001 land map.                    %%%
+!  %%%                                                                     %%%
+!  %%%  The issue is that right now, the LAI values in the lai*.global     %%% 
+!  %%%  files are listed in the same order as in the Olson 1992 land       %%%
+!  %%%  cover map.  While the new module olson_landmap_mod.F90             %%%
+!  %%%  preserves this ordering for Olson 1992, switching to the newer     %%%
+!  %%%  Olson 2001 map will result in a mis-ordering of LAI values.        %%%
+!  %%%                                                                     %%%
+!  %%%  Because we want to move towards total grid-independence in         %%%
+!  %%%  GEOS-Chem, rather than re-processing the MODIS LAI values to       %%%
+!  %%%  adhere to the new Olson 2001 ordering, we will use the MODIS LAI   %%%
+!  %%%  values from the bpch files rather than from the lai*global files.  %%%
+!  %%%  This will also make it easier to move to netCDF file format.       %%%
+!  %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+!
 !  Need as landtype input for each grid square (I,J) see (RDLAND & CMN_VEL):
 !     IJREG(JLOOP)       - # of landtypes in grid square
 !     IJLAND(IJLOOP,LDT) - Land type ID for element LDT =1, IJREG(IJLOOP)
@@ -1438,6 +1457,11 @@
 !
 
       LOGICAL LSNOW(MAXIJ)
+
+#if   defined( USE_ISOLAI_IN_DRYD ) 
+      INTEGER :: I, J
+#endif
+
 !***********************************************************************       
 !
 !
@@ -1470,8 +1494,16 @@
 !$OMP+PRIVATE( DTMP1,  DTMP2,  DTMP3,  DTMP4,  VDS,    CZH    )
 !$OMP+PRIVATE( CKUSTR, REYNO,  CORR1,  CORR2,  Z0OBK,  RA     )
 !$OMP+PRIVATE( DUMMY1, DUMMY2, DUMMY3, DUMMY4, DAIR,   RB     )
-!$OMP+PRIVATE( C1X,    VK                                     )
+!$OMP+PRIVATE( C1X,    VK,     I,      J                      )
+#if  defined( USE_ISOLAI_IN_DRYD )
+      DO J = 1, JJPAR
+      DO I = 1, IIPAR
+
+         ! Convert (I,J) to 1-D index IJLOOP
+         IJLOOP = ( ( J - 1 ) * IIPAR ) + I 
+#else
       DO 560 IJLOOP =1,NPTS
+#endif
 
 !** CZ is Altitude (m) at which deposition velocity is computed
          CZ = CZ1(IJLOOP)
@@ -1516,7 +1548,7 @@
 !* land-types (i.e., many of the Olson land types share the same deposition
 !* characteristics).  Surface resistance components for the "deposition land 
 !* types" are from Wesely [1989] except for tropical forests [Jacob and Wofsy,
-!* 1990] and for tundra [Jacob et al., 1992].  All surface resistance 
+!* 1990] and for tundra [Jacob etE al., 1992].  All surface resistance 
 !* components are normalized to a leaf area index of unity.
 !*
 !* Olson land types, deposition land types, and surface resistance components
@@ -1544,11 +1576,19 @@
 !** divide them by the leaf area index to get a cuticular resistance for the
 !** bulk canopy.  If IRLU is '9999' it means there are no cuticular
 !** surfaces on which to deposit so we impose a very large value for RLU.
+#if   defined( USE_ISOLAI_IN_DRYD )
+            IF (IRLU(II) .GE. 9999 .or. ISOLAI(I,J) .LE. 0.D0 ) THEN
+#else
             IF (IRLU(II) .GE. 9999 .OR. 
      &           XYLAI(IJLOOP,LDT).LE.0.D0) THEN
+#endif
                RLU(LDT)  = 1.D6
             ELSE
+#if  defined( USE_ISOLAI_IN_DRYD )
+               RLU(LDT)= DBLE(IRLU(II))/ISOLAI(I,J)+RT
+#else
                RLU(LDT)= DBLE(IRLU(II))/XYLAI(IJLOOP,LDT)+RT
+#endif
             ENDIF
 !** The following are the remaining resistances for the Wesely
 !** resistance-in-series model for a surface canopy
@@ -1597,11 +1637,17 @@
             IF (TEMPC .GT. 0.D0 .AND. TEMPC .LT. 40.D0)
      *           GFACT = 400.D0/TEMPC/(40.0D0-TEMPC)
             GFACI = 100.D0
+#if   defined( USE_ISOLAI_IN_DRYD )
+            IF (RAD0.GT.0.D0 .AND. ISOLAI(I,J).GT.0.D0) THEN
+               GFACI=1.D0/BIOFIT( DRYCOEFF,       ISOLAI(I,J),
+     *                            SUNCOS(IJLOOP), CFRAC(IJLOOP) )
+            ENDIF
+#else
             IF (RAD0.GT.0.D0 .AND. XYLAI(IJLOOP,LDT).GT.0.D0) THEN
                GFACI=1.D0/BIOFIT(DRYCOEFF,XYLAI(IJLOOP,LDT),
      *              SUNCOS(IJLOOP),CFRAC(IJLOOP))
             ENDIF
-            
+#endif            
             RIX = RIX*GFACT*GFACI
  150        CONTINUE
 !*                                 
@@ -2086,7 +2132,13 @@
 !$OMP END CRITICAL
             ENDIF
  550     CONTINUE
+
+#if   defined( USE_ISOLAI_IN_DRYD )
+      ENDDO
+      ENDDO
+#else
  560  CONTINUE
+#endif
 !$OMP END PARALLEL DO
 
       END SUBROUTINE DEPVEL
@@ -2497,19 +2549,16 @@
       ! Open and read data from the netCDF file
       !=================================================================
 
-      ! Directory in which Olson maps and drydep inputs are found
-      nc_dir = TRIM( DATA_DIR_1x1 ) // 'Olson_Land_Map_201203/'
-
       ! Pick the proper input file for Olson 1992 or Olson 2001
       IF ( USE_OLSON_2001 ) THEN
          nc_file = 'Olson_2001_Drydep_Inputs.nc'
-         nc_path = TRIM( nc_dir ) // 'Olson_2001_Drydep_Inputs.nc'
       ELSE
          nc_file = 'Olson_1992_Drydep_Inputs.nc'
-         nc_path = TRIM( nc_dir ) // 'Olson_1992_Drydep_Inputs.nc'
       ENDIF
 
-      ! Open file for reading
+      ! Open file for reading (construct full data path)
+      nc_dir  = TRIM( DATA_DIR_1x1 ) // 'Olson_Land_Map_201203/'
+      nc_path = TRIM( nc_dir )       // TRIM( nc_file )
       CALL Ncop_Rd( fId, TRIM(nc_path) )
 
       ! Echo info to stdout
@@ -2800,15 +2849,15 @@
       CALL NcCl( fId )
 
       ! Echo info to stdout
-      WRITE( 6, 140 ) TRIM(nc_file)
+      WRITE( 6, 140 )
       WRITE( 6, 100 ) REPEAT( '%', 79 )
 
       ! FORMAT statements
- 100  FORMAT( a                                        )
- 110  FORMAT( '%% Opening file  : ',  a                )
- 120  FORMAT( '%%  in directory : ',  a, / , '%%'      )
- 130  FORMAT( '%% Successfully read ', a, ' [', a, ']' )
- 140  FORMAT( '%%', /, '%% Closed file: ',      a      )
+ 100  FORMAT( a                                              )
+ 110  FORMAT( '%% Opening file  : ',         a               )
+ 120  FORMAT( '%%  in directory : ',         a, / , '%%'     )
+ 130  FORMAT( '%% Successfully read ',       a, ' [', a, ']' )
+ 140  FORMAT( '%% Successfully closed file!'                 )
 
       END SUBROUTINE READ_DRYDEP_INPUTS
 !EOC
