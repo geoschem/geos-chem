@@ -1458,9 +1458,8 @@
 
       LOGICAL LSNOW(MAXIJ)
 
-#if   defined( USE_ISOLAI_IN_DRYD ) 
+      ! Loop indices (bmy, 3/29/12)
       INTEGER :: I, J
-#endif
 
 !***********************************************************************       
 !
@@ -1495,15 +1494,17 @@
 !$OMP+PRIVATE( CKUSTR, REYNO,  CORR1,  CORR2,  Z0OBK,  RA     )
 !$OMP+PRIVATE( DUMMY1, DUMMY2, DUMMY3, DUMMY4, DAIR,   RB     )
 !$OMP+PRIVATE( C1X,    VK,     I,      J                      )
-#if  defined( USE_ISOLAI_IN_DRYD )
       DO J = 1, JJPAR
       DO I = 1, IIPAR
 
          ! Convert (I,J) to 1-D index IJLOOP
          IJLOOP = ( ( J - 1 ) * IIPAR ) + I 
-#else
-      DO 560 IJLOOP =1,NPTS
-#endif
+!-----------------------------------------------------------------------------
+! Prior to 3/29/12:
+! Loop over (I,J), then compute IJLOOP.  This will facilitate using
+! the ISOLAI(I,J) array later in the source code. (bmy, 3/29/12)
+!      DO 560 IJLOOP =1,NPTS
+!-----------------------------------------------------------------------------
 
 !** CZ is Altitude (m) at which deposition velocity is computed
          CZ = CZ1(IJLOOP)
@@ -2132,13 +2133,14 @@
 !$OMP END CRITICAL
             ENDIF
  550     CONTINUE
-
-#if   defined( USE_ISOLAI_IN_DRYD )
+!-----------------------------------------------------------------------------
+! Prior to 3/27/12:
+! Now loop over (I,J), then compute IJLOOP.  This will facilitate using
+! the leaf area indices stored in ISOLAI(I,J).
+! 560  CONTINUE
+!-----------------------------------------------------------------------------
       ENDDO
       ENDDO
-#else
- 560  CONTINUE
-#endif
 !$OMP END PARALLEL DO
 
       END SUBROUTINE DEPVEL
@@ -2221,230 +2223,6 @@
 
       END FUNCTION DIFFG
 !EOC
-!------------------------------------------------------------------------------
-! Prior to 3/26/12:
-! MODIN, RDDRYCF are now obsolete.  We now read in the equivalent data from
-! a netCDF file (corresponding to either the Olson 1992 or Olson 2001 land
-! map, whichever is used). (bmy, 3/26/12)
-!!------------------------------------------------------------------------------
-!!          Harvard University Atmospheric Chemistry Modeling Group            !
-!!------------------------------------------------------------------------------
-!!BOP
-!!
-!! !IROUTINE: modin
-!!
-!! !DESCRIPTION: Subroutine MODIN reads Olson's data from the "drydep.table"
-!!  file. (bmy, 4/1/02, 7/20/04)
-!!\\
-!!\\
-!! !INTERFACE:
-!!
-!      SUBROUTINE MODIN
-!!
-!! !USES:
-!!
-!      USE DIRECTORY_MOD, ONLY : DATA_DIR
-!      USE FILE_MOD,      ONLY : IU_FILE, IOERROR
-!      USE LOGICAL_MOD,   ONLY : USE_OLSON_2001
-!      
-!      USE CMN_SIZE_MOD        ! Size parameters
-!
-!      IMPLICIT NONE
-!#     include "define.h"
-!
-!!
-!! !REMARKS:
-!!  NOTE: The roughness heights (IZO) from "drydep.table" are supplanted by
-!!  the Z0 field from the DAO met field archive.  The old GISS-II routines did
-!!  not archive Z0 as a met field, so roughness heights for each land type
-!!  were specified in this file.  This is historical baggage, but we still
-!!  need to keep IZO for compatibility w/ existing routine "depvel.f".
-!!
-!!  References (see above for full citations):
-!!  ============================================================================
-!!  (1 ) Wesely, M.L., 1988.
-!!  (2 ) Wesely, M.L., 1989. 
-!!
-!! !REVISION HISTORY: 
-!!  (1 ) MODIN is one of the original GEOS-CHEM subroutines, that go back
-!!        to the days of the GISS-II code.  This has been cleaned up and
-!!        new comments added.  Also use subroutine "ioerror.f" to trap
-!!        I/O errors across all platforms . Now read the "drydep.table" file 
-!!        from the DATA_DIR/drydep_200203/ directory. (bmy, 4/1/02) 
-!!  (2 ) Remove obsolete code from April 2002.  Now reference IU_FILE and
-!!        IOERROR from "file_mod.f".  Now use IU_FILE as the file unit
-!!        number instead of IUNIT. (bmy, 6/27/02)
-!!  (3 ) Now bundled into "drydep_mod.f".  Changed NVEGTYPE to NNVEGTYPE.
-!!        (bmy, 11/21/02)
-!!  (4 ) Now references DATA_DIR from "directory_mod.f" (bmy, 7/20/04)
-!!  22 Dec 2011 - M. Payer    - Added ProTeX headers
-!!EOP
-!!------------------------------------------------------------------------------
-!!BOC
-!!
-!! !LOCAL VARIABLES:
-!!
-!      INTEGER             :: L, IOLSON, I, IOS, IUNIT
-!      CHARACTER(LEN=255)  :: FILENAME
-!
-!      !=================================================================
-!      ! MODIN begins here!
-!      !=================================================================
-!
-!      ! Logical unit number
-!      IUNIT    = IU_FILE
-!
-!      ! Pick the proper file name for either Olson 2001 or Olson1992
-!      IF ( USE_OLSON_2001 ) THEN
-!         FILENAME = '/home/bmy/archive/data/Olson_Land_Map_201203/' //
-!     &              '2001/Code/drydep.table.Olson2001'
-!      ELSE
-!         FILENAME = TRIM( DATA_DIR ) // 'drydep_200203/drydep.table'
-!      ENDIF
-!
-!      WRITE( 6, 50 ) TRIM( FILENAME )
-! 50   FORMAT( '     - MODIN: Reading ', a )
-!
-!      ! Open file
-!      OPEN( IUNIT, FILE=TRIM( FILENAME ), FORM='FORMATTED', 
-!     &             STATUS='OLD',          IOSTAT=IOS )
-!      IF ( IOS /= 0 ) CALL IOERROR( IOS, IUNIT, 'modin:1' ) 
-!
-!      ! Read 5 header comment lines
-!      DO L = 1, 5
-!         READ( IUNIT, '(a)', IOSTAT=IOS )
-!         IF ( IOS /= 0 ) CALL IOERROR( IOS, IUNIT, 'modin:2' )
-!      ENDDO
-!
-!      !=================================================================
-!      ! For each of the NVEGTYPE Olson land types, read:
-!      !
-!      ! IOLSON (INTEGER) : Olson surface type ID #
-!      ! IDEP   (INTEGER) : Drydep ID # corresponding to IOLSON
-!      ! IZO    (INTEGER) : Roughness height [1e-4 m]
-!      !=================================================================
-!      DO L = 1, NVEGTYPE
-!         READ( IUNIT, '(3i6)', IOSTAT=IOS )
-!     &      IOLSON, IDEP(IOLSON), IZO(IOLSON)
-!         IF ( IOS /= 0 ) CALL IOERROR( IOS, IUNIT, 'modin:3' )
-!      ENDDO
-!
-!      ! Read comment line
-!      READ( IUNIT, '(a)', IOSTAT=IOS )
-!      IF ( IOS /= 0 ) CALL IOERROR( IOS, IUNIT, 'modin:4' )
-!      
-!      !=================================================================
-!      ! For the water surface types, zO is input as 1.E-4 m but is 
-!      ! recalculated elsewhere as function of wind speed.  Read the # 
-!      ! of Olson's surface types that are water (NWATER) and the 
-!      ! corresponding ID's (IWATER)
-!      !=================================================================
-!      READ( IUNIT, '(10i3)', IOSTAT=IOS ) NWATER, (IWATER(I),I=1,NWATER)
-!      IF ( IOS /= 0 ) CALL IOERROR( IOS, IUNIT, 'modin:5' )
-!
-!      ! Read 3 lines of comments
-!      DO L = 1, 3
-!         READ( IUNIT, '(a)', IOSTAT=IOS )
-!         IF ( IOS /= 0 ) CALL IOERROR( IOS, IUNIT, 'modin:6' )
-!      ENDDO
-!
-!      !=================================================================
-!      ! Read in resistances for each surface type (see "depvel.f")
-!      ! IRI,IRLU,IRAC,IRGSS,IRGSO,IRCLS,IRCLO,IVSMAX 
-!      !=================================================================
-!      DO L = 1, NVEGTYPE
-!         READ( IUNIT, '(9i5)', IOSTAT=IOS ) 
-!     &        I, IRI(I),   IRLU(I),  IRAC(I),  IRGSS(I),
-!     &           IRGSO(I), IRCLS(I), IRCLO(I), IVSMAX(I)
-!
-!         IF ( IOS < 0 ) EXIT
-!         IF ( IOS > 0 ) CALL IOERROR( IOS, IUNIT, 'modin:7' )
-!      ENDDO
-!
-!      ! Close the file
-!      CLOSE( IUNIT )
-!
-!      END SUBROUTINE MODIN
-!!EOC
-!!------------------------------------------------------------------------------
-!!          Harvard University Atmospheric Chemistry Modeling Group            !
-!!------------------------------------------------------------------------------
-!!BOP
-!!
-!! !IROUTINE: rddrycf
-!!
-!! !DESCRIPTION: Subroutine RDDRYCF read polynomial coefficients from the 
-!!  "drydep.coef" file in the data directory. (bmy, 7/6/01, 7/20/04)
-!!\\
-!!\\
-!! !INTERFACE:
-!!
-!      SUBROUTINE RDDRYCF
-!!
-!! !USES:
-!!
-!      USE DIRECTORY_MOD, ONLY : DATA_DIR
-!      USE FILE_MOD,      ONLY : IU_FILE, IOERROR
-!
-!      USE CMN_SIZE_MOD  ! Size parameters
-!
-!      IMPLICIT NONE
-!#     include "define.h"
-!
-!! 
-!! !REVISION HISTORY: 
-!!  (1 ) Use F90 syntax.  Now read "drydep.coef" directly from DATA_DIR.
-!!        Now use IOERROR to trap I/O errors.  Updated comments and made
-!!        cosmetic changes (bmy, 7/6/01)
-!!  (2 ) Removed obsolete code from ages past (bmy, 9/4/01)
-!!  (3 ) Now read the "drydep.coef" file from the DATA_DIR/drydep_200203/ 
-!!        directory.  Make IUNIT a dynamic variable and not a parameter. 
-!!        (bmy, 3/29/02)
-!!  (4 ) Removed obsolete code from March 2002.  Now reference IU_FILE and
-!!        IOERROR from "file_mod.f".  Now use IU_FILE as the logical unit
-!!        number. (bmy, 6/27/02)
-!!  (5 ) Bundled into "drydep_mod.f" (bmy, 11/21/02) 
-!!  (6 ) Now references DATA_DIR from "directory_mod.f" (bmy, 7/20/04)
-!!  22 Dec 2011 - M. Payer    - Added ProTeX headers
-!!EOP
-!!------------------------------------------------------------------------------
-!!BOC
-!!
-!! !LOCAL VARIABLES:
-!!
-!      INTEGER            :: I, IOS
-!      CHARACTER(LEN=80)  :: DUM
-!      CHARACTER(LEN=255) :: FILENAME
-!      
-!      !=================================================================
-!      ! RDDRYCF begins here!
-!      !=================================================================
-!
-!      ! Define the file name
-!      FILENAME = TRIM( DATA_DIR ) // 'drydep_200203/drydep.coef'
-!
-!      ! Echo info
-!      WRITE( 6, 100 ) TRIM( FILENAME )
-! 100  FORMAT( '     - RDDRYCF: Reading ', a ) 
-!
-!      ! Open file
-!      OPEN( IU_FILE, FILE=TRIM( FILENAME ), STATUS='OLD', 
-!     &               FORM='FORMATTED',      IOSTAT=IOS )
-!      IF ( IOS /= 0 ) CALL IOERROR( IOS, IU_FILE, 'rddrycf:1' )
-!
-!      ! Read header line
-!      READ( IU_FILE, '(a80)', IOSTAT=IOS ) DUM
-!      IF ( IOS /= 0 ) CALL IOERROR( IOS, IU_FILE, 'rddrycf:2' )
-!
-!      ! Read polynomial coefficients
-!      READ( IU_FILE,'(8(1pe10.2))', IOSTAT=IOS) (DRYCOEFF(I),I=1,NPOLY)
-!      IF ( IOS /= 0 ) CALL IOERROR( IOS, IU_FILE, 'rddrycf:3' )
-!
-!      ! Close file
-!      CLOSE( IU_FILE )
-!
-!      END SUBROUTINE RDDRYCF
-!!EOC
 !------------------------------------------------------------------------------
 !          Harvard University Atmospheric Chemistry Modeling Group            !
 !------------------------------------------------------------------------------

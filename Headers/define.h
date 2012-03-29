@@ -158,7 +158,7 @@
 !#define GTMM_Hg
 
 !%%% FOR TESTING
-#define USE_ISOLAI_IN_DRYD 'USE_ISOLAI_IN_DRYD'
+!#define USE_ISOLAI_IN_DRYD 'USE_ISOLAI_IN_DRYD'
 
 !==============================================================================
 ! Force a compile error if a model type is undefined
