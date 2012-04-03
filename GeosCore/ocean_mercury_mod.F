@@ -130,6 +130,7 @@
       PUBLIC :: LHg2HalfAerosol,        LHg_WETDasHNO3
       PUBLIC :: STRAT_BR_FACTOR,        LAnthroHgOnly
       PUBLIC :: LOHO3CHEM,              LnoUSAemis
+      PUBLIC :: LNEI2005,                    LInPlume     ! yzh
          
       !=================================================================
       ! MODULE VARIABLES
@@ -174,6 +175,7 @@
       LOGICAL   :: LHg2HalfAerosol,        LHg_WETDasHNO3
       LOGICAL   :: LAnthroHgOnly,          LOHO3CHEM
       LOGICAL   :: LnoUSAemis
+      LOGICAL   :: LNEI2005, LInPlume    ! yzh
       REAL*8    :: STRAT_BR_FACTOR
 
       ! CDH Set this TRUE to use corrected area-flux relationship
@@ -1284,8 +1286,12 @@
       !------------------------------
 
       ! MLD file name
+!           need to read emission file at nested-resolution, Y. Zhang 11/1/2011
+!      FILENAME = TRIM( DATA_DIR )       // 
+!     &           'mercury_201007/MLD_DReqDT.geos.' // GET_RES_EXT()  
       FILENAME = TRIM( DATA_DIR )       // 
-     &           'mercury_201007/MLD_DReqDT.geos.' // GET_RES_EXT()  
+     &           'mercury_201007/MLD_DReqDT.' // 
+     &          GET_NAME_EXT() // '.' // GET_RES_EXT()
      
       ! Echo info
       WRITE( 6, 100 ) TRIM( FILENAME )
@@ -1317,8 +1323,12 @@
 !-------------------------------------------------
 
       ! Chl file name
+!           need to read emission file at nested-resolution, Y. Zhang 11/1/2011
+!      FILENAME = TRIM( DATA_DIR )       // 
+!     &           'mercury_201007/Chl_2003.geos.' // GET_RES_EXT()
       FILENAME = TRIM( DATA_DIR )       // 
-     &           'mercury_201007/Chl_2003.geos.' // GET_RES_EXT()
+     &           'mercury_201007/Chl_2003.'// 
+     &          GET_NAME_EXT() // '.' // GET_RES_EXT()  
 
       ! Echo info
       WRITE( 6, 100 ) TRIM( FILENAME )
@@ -1346,8 +1356,12 @@
       !--------------------------------
  
       ! NPP file name (anls, 100111)
+!           need to read emission file at nested-resolution, Y. Zhang 11/1/2011
+!      FILENAME = TRIM( DATA_DIR )       // 
+!     &           'mercury_201007/NPP_2003.geos.' // GET_RES_EXT()
       FILENAME = TRIM( DATA_DIR )       // 
-     &           'mercury_201007/NPP_2003.geos.' // GET_RES_EXT()
+     &           'mercury_201007/NPP_2003.' // 
+     &          GET_NAME_EXT() // '.' // GET_RES_EXT()  
 
       ! Echo info
       WRITE( 6, 100 ) TRIM( FILENAME )
@@ -1369,8 +1383,12 @@
       !---------------------------------
 
       ! NPP file name
-      FILENAME = TRIM( DATA_DIR_1x1 )               // 
-     &           'mercury_200511/ekman_upvel.geos.' // GET_RES_EXT() 
+!           need to read emission file at nested-resolution, Y. Zhang 11/1/2011
+!      FILENAME = TRIM( DATA_DIR_1x1 )               // 
+!     &           'mercury_200511/ekman_upvel.geos.' // GET_RES_EXT() 
+      FILENAME = TRIM( DATA_DIR )               // 
+     &           'ocean_201001/ekman_upvel.' // 
+     &           GET_NAME_EXT() // '.' // GET_RES_EXT() 
 
       ! Echo info
       WRITE( 6, 100 ) TRIM( FILENAME )
@@ -1416,6 +1434,7 @@
       USE DIRECTORY_MOD, ONLY : DATA_DIR
       USE TRANSFER_MOD,  ONLY : TRANSFER_2D
       USE TIME_MOD,      ONLY : ITS_A_LEAPYEAR
+      USE BPCH2_MOD,     ONLY : GET_NAME_EXT   ! Y. Zhang
 
       USE CMN_SIZE_MOD      ! Size parameters
 
@@ -1444,8 +1463,12 @@
       ENDIF
 
       ! MLD file name
+!           need to read emission file at nested-resolution, Y. Zhang 11/1/2011
+!      FILENAME = TRIM( DATA_DIR )       // 
+!     &           'mercury_201007/MLD_DReqDT.geos.' // GET_RES_EXT()      
       FILENAME = TRIM( DATA_DIR )       // 
-     &           'mercury_201007/MLD_DReqDT.geos.' // GET_RES_EXT()      
+     &           'mercury_201007/MLD_DReqDT.' // 
+     &          GET_NAME_EXT() // '.' // GET_RES_EXT()   
 
       ! Echo info
       WRITE( 6, 100 ) TRIM( FILENAME )
@@ -1993,8 +2016,11 @@
 
       ! Hg2
       DO NN = 1, N_Hg_CATS
+!     Bug fixed, Y. Zhang, 11/1/2011
+!         WRITE( 6, 140 ) ID_Hg2(NN), TRACER_NAME( Id_Hg2(NN) ), 
+!     &                   SUM( Hg0aq(:,:,NN) ), 'kg'
          WRITE( 6, 140 ) ID_Hg2(NN), TRACER_NAME( Id_Hg2(NN) ), 
-     &                   SUM( Hg0aq(:,:,NN) ), 'kg'
+     &                   SUM( Hg2aq(:,:,NN) ), 'kg'
       ENDDO
 
       ! HgP

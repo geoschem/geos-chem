@@ -129,15 +129,23 @@
 #if   defined( GRIDREDUCED )
 
       ! Filename for 47-level model
+!     need to handle the nested-resolution file, Y. Zhang 11/1/2011
+!      FILENAME = TRIM( DATA_DIR )                           // 
+!     &           'sulfate_sim_200508/offline/MERGE.O3.47L.' //
+!     &           GET_NAME_EXT() // '.' // GET_RES_EXT()
       FILENAME = TRIM( DATA_DIR )                           // 
-     &           'sulfate_sim_200508/offline/MERGE.O3.47L.' //
+     &           'mercury_201007/MERGE.O3.47L.' //
      &           GET_NAME_EXT() // '.' // GET_RES_EXT()
 
 #else
 
       ! Filename for 72-level model
+ !     need to handle the nested-resolution file, Y. Zhang 11/1/2011
+!      FILENAME = TRIM( DATA_DIR )                           // 
+!     &           'sulfate_sim_200508/offline/MERGE.O3.'     //
+!     &           GET_NAME_EXT() // '.' // GET_RES_EXT()
       FILENAME = TRIM( DATA_DIR )                           // 
-     &           'sulfate_sim_200508/offline/MERGE.O3.'     //
+     &           'mercury_201007/MERGE.O3.'     //
      &           GET_NAME_EXT() // '.' // GET_RES_EXT()
 
 #endif
