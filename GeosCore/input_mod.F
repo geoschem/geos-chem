@@ -1509,32 +1509,12 @@
 !
 ! !USES:
 !
-      USE ERROR_MOD,   ONLY : ERROR_STOP
-      USE LOGICAL_MOD, ONLY : LAIRNOX,    LANTHRO,   LAVHRRLAI, LBBSEA    
-      USE LOGICAL_MOD, ONLY : LBIOFUEL,   LBIOGENIC, LBIOMASS,  LBIONOX
-      USE LOGICAL_MOD, ONLY : LCOOKE
-      USE LOGICAL_MOD, ONLY : LEMIS,      LFOSSIL,   LLIGHTNOX, LMONOT    
-      USE LOGICAL_MOD, ONLY : LNEI99,     LSHIPSO2,  LSOILNOX,  LTOMSAI   
-      USE LOGICAL_MOD, ONLY : LWOODCO,    LMEGAN,    LMEGANMONO,LEMEP
-      USE LOGICAL_MOD, ONLY : LFERTILIZERNOX
-      USE LOGICAL_MOD, ONLY : LOTDLOC
-      USE LOGICAL_MOD, ONLY : LBRAVO,    LEDGAR    
-      USE LOGICAL_MOD, ONLY : LEDGARNOx,  LEDGARCO,  LEDGARSOx 
-      USE LOGICAL_MOD, ONLY : LEDGARSHIP, LSTREETS,  LCAC,      LVISTAS
-      USE LOGICAL_MOD, ONLY : LARCSHIP,   LEMEPSHIP, LICARTT,   LGFED2BB 
-      USE LOGICAL_MOD, ONLY : LGFED3BB 
-      USE LOGICAL_MOD, ONLY : LICOADSSHIP,LNEI05 
-      USE LOGICAL_MOD, ONLY : L8DAYBB,    L3HRBB,    LSYNOPBB
-      USE LOGICAL_MOD, ONLY : L8DAYBB3,   L3HRBB3,   LSYNOPBB3
-      USE TRACER_MOD,  ONLY : ITS_A_FULLCHEM_SIM
-      USE LOGICAL_MOD, ONLY : LMODISLAI , LPECCA  !(mpb,2009)
+      USE ERROR_MOD,     ONLY : ERROR_STOP
+      USE LOGICAL_MOD
+      USE MODIS_LAI_MOD, ONLY : INIT_MODIS_LAI
       USE EMISSIONS_MOD, ONLY : ISOP_SCALING 
       USE EMISSIONS_MOD, ONLY : NOx_SCALING
-      USE LOGICAL_MOD, ONLY : LRETRO  !(wfr, 3/8/11)
-![eml 
-      USE LOGICAL_MOD, ONLY : LHIST
-      USE TIME_MOD,    ONLY : SET_HISTYR
-!eml]
+      USE TIME_MOD,      ONLY : SET_HISTYR
 
       USE CMN_SIZE_MOD      ! Size parameters
       USE CMN_O3_MOD        ! FSCALYR
@@ -1589,6 +1569,8 @@
 !  07 Sep 2011 - P. Kasibhatla - Add modifications for GFED3
 !  14 Feb 2012 - R. Yantosca - Reorganize error checks for logical switches
 !  28 Feb 2012 - R. Yantosca - Removed support for GEOS-3
+!  05 Apr 2012 - R. Yantosca - Now call INIT_MODIS_LAI
+!  05 Apr 2012 - R. Yantosca - Reorganized USE statements for clarity
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -2087,8 +2069,6 @@
          LGFED3BB = .FALSE.
       ENDIF
 
-
-
       ! Force to use MODIS LAI if we use MEGAN. (ccc, 2/23/10)
       IF ( LMEGAN .OR. LMEGANMONO ) THEN
          LMODISLAI = .TRUE.
@@ -2098,22 +2078,15 @@
       ENDIF
 
       !=================================================================
-      ! Error check LAI switches (i.e. AVHRR or MODIS) (mpb,2009)
+      ! Error checks
       !=================================================================
       IF ( LAVHRRLAI .AND. LMODISLAI ) THEN
             CALL ERROR_STOP( 
      &         ' AVHRR LAI &  MODIS LAI cannot both be turned on!', 
      &         ' READ_EMISSIONS_MENU ("input_mod.f")' )
          ENDIF
-      ! ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-      
-#if   defined( GEOS_5 )
-         
-         !--------------------------------
-         ! GEOS-5 warnings & error traps
-         !--------------------------------
 
-#elif defined( GCAP     )
+#if    defined( GCAP )
 
          !--------------------------------
          ! GCAP error message 
@@ -2128,6 +2101,14 @@
          ENDIF
 
 #endif
+
+      !=================================================================
+      ! Initialization
+      !=================================================================
+
+      !%%% NOTE: For now turn on INIT_MODIS_LAI regardless of whether
+      !%%% MODIS or LAVHRRLAI is used.  The
+      CALL INIT_MODIS_LAI()
 
       !=================================================================
       ! Print to screen
