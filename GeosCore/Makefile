@@ -99,6 +99,8 @@
 #  08 Dec 2011 - M. Payer    - Remove obsolete GEIA biogenic emissions routines
 #  24 Jan 2012 - R. Yantosca - Also add libnc target to build netCDF utils
 #  25 Jan 2012 - R. Yantosca - Add ncdfcheck target to check netCDF install
+#  05 Apr 2012 - R. Yantosca - Now assume netCDF will always be used
+#  05 Apr 2012 - R. Yantosca - Now retire rdlai.F, readlai.F
 #EOP
 #------------------------------------------------------------------------------
 #BOC
@@ -165,16 +167,11 @@ libkpp:                                            # Build code in KPP/
 	@$(MAKE) -C $(KPP)			  
 
 libnc:                                             # Build code in NcdfUtil/
-ifeq ($(NETCDF),yes)                               
 	@$(MAKE) -C $(NCDF) lib
-endif
 
 ncdfcheck:                                         # Check netCDF library
-ifeq ($(NETCDF),yes)                               
 	@$(MAKE) libnc
 	@$(MAKE) -C $(NCDF) check
-endif
-
 
 libutil:                                           # Build code in GeosUtil/
 	@$(MAKE) -C $(UTIL)			  
@@ -890,8 +887,6 @@ rd_js.o                     : rd_js.F
 
 rd_prof.o                   : rd_prof.F
 
-rdlai.o                     : rdlai.F
-
 rdsoil.o                    : rdsoil.F
 
 RD_TJPL.o                   : RD_TJPL.F
@@ -901,8 +896,6 @@ readchem.o                  : readchem.F                                     \
                               logical_mod.o
 
 reader.o                    : reader.F
-
-readlai.o                   : readlai.F               logical_mod.o
 
 restart_mod.o               : restart_mod.F                                  \
                               comode_mod.o            dao_mod.o              \
