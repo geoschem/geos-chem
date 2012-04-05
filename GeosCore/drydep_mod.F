@@ -1441,9 +1441,6 @@
       ! Loop indices (bmy, 3/29/12)
       INTEGER :: I, J
 
-      ! Fraction of ISOLAI for each land usage type
-      REAL*8  :: ISOLAI_LDT
-
 !***********************************************************************       
 !
 !
@@ -1526,7 +1523,7 @@
 !* land-types (i.e., many of the Olson land types share the same deposition
 !* characteristics).  Surface resistance components for the "deposition land 
 !* types" are from Wesely [1989] except for tropical forests [Jacob and Wofsy,
-!* 1990] and for tundra [Jacob etE al., 1992].  All surface resistance 
+!* 1990] and for tundra [Jacob et al., 1992].  All surface resistance 
 !* components are normalized to a leaf area index of unity.
 !*
 !* Olson land types, deposition land types, and surface resistance components
@@ -1611,6 +1608,7 @@
                GFACI=1.D0/BIOFIT(DRYCOEFF,XYLAI(IJLOOP,LDT),
      *              SUNCOS(IJLOOP),CFRAC(IJLOOP))
             ENDIF
+            
             RIX = RIX*GFACT*GFACI
  150        CONTINUE
 !*                                 

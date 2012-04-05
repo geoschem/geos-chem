@@ -31,7 +31,7 @@ MODULE Mapping_Mod
      INTEGER, POINTER :: JJ(:)        ! Latitude  indices,  "fine"   grid
      INTEGER, POINTER :: olson(:)     ! Olson land type,    "fine"   grid
      INTEGER, POINTER :: ordOlson(:)  ! Ordering of Olson land types
-     REAL*4,  POINTER :: mapWt(:)     ! Mapping weights,    "fine"   grid
+    !REAL*4,  POINTER :: mapWt(:)     ! Mapping weights,    "fine"   grid
      REAL*4,  POINTER :: area(:)      ! Surface areas,      "fine"   grid
      REAL*4           :: sumarea      ! Total surface area, "coarse" grid
   END TYPE MapWeight
@@ -55,6 +55,8 @@ MODULE Mapping_Mod
 !
 ! !REVISION HISTORY:
 !  03 Apr 2012 - R. Yantosca - Initial version
+!  05 Apr 2012 - R. Yantosca - Comment out mapwt field of MapWeight type,
+!                              leave this for future expansion
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -121,7 +123,7 @@ CONTAINS
           ALLOCATE( map(I,J)%jj      ( FINE_PER_COARSE ), STAT=as )
           ALLOCATE( map(I,J)%olson   ( FINE_PER_COARSE ), STAT=as )
           ALLOCATE( map(I,J)%ordOlson( 0:NVEGTYPE-1    ), STAT=as )
-          ALLOCATE( map(I,J)%mapWt   ( FINE_PER_COARSE ), STAT=as )
+         !ALLOCATE( map(I,J)%mapWt   ( FINE_PER_COARSE ), STAT=as )
           ALLOCATE( map(I,J)%area    ( FINE_PER_COARSE ), STAT=as )
 
           ! Initialize sub-fields
@@ -300,7 +302,7 @@ CONTAINS
           DEALLOCATE( map(I,J)%jj       )
           DEALLOCATE( map(I,J)%olson    )
           DEALLOCATE( map(I,J)%ordOlson )
-          DEALLOCATE( map(I,J)%mapWt    )
+         !DEALLOCATE( map(I,J)%mapWt    )
           DEALLOCATE( map(I,J)%area     )
        ENDDO
        ENDDO

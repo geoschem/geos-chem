@@ -173,6 +173,7 @@
 !                              to read the Olson land map data
 !  04 Apr 2012 - R. Yantosca - Now call updated LAI routines from new module
 !                              modis_lai_mod.F90.  Retire routine RDLAI.
+!  05 Apr 2012 - R. Yantosca - Removed reference to LXTRA, it's obsolete
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -181,7 +182,7 @@
 !
       ! Scalars
       LOGICAL                  :: FIRST = .TRUE.
-      LOGICAL                  :: LXTRA 
+      LOGICAL                  :: wasModisRead
       INTEGER                  :: I,             IOS,         J
       INTEGER                  :: K,             L,           N
       INTEGER                  :: JDAY,          NDIAGTIME,   N_DYN
@@ -191,6 +192,7 @@
       INTEGER                  :: NYMD,          NYMDb,       NHMS
       INTEGER                  :: ELAPSED_SEC,   NHMSb,       RC
       INTEGER                  :: ELAPSED_TODAY, HOUR,        MINUTE
+      INTEGER                  :: laiYYYY,       laiMM
       REAL*8                   :: TAU,           TAUb         
       CHARACTER(LEN=255)       :: ZTYPE
 
@@ -199,7 +201,7 @@
       REAL*8                   :: HGPFRAC(IIPAR,JJPAR,LLPAR)
 
       ! Derived type objects
-      TYPE(MapWeight), POINTER :: mapping
+      TYPE(MapWeight), POINTER :: mapping(:,:)
 
       !=================================================================
       ! GEOS-CHEM starts here!                                            
@@ -263,10 +265,6 @@
          IF ( LPRT ) CALL DEBUG_MSG( '### MAIN: a INIT_MEGAN' )
       ENDIF
 
-      ! Local flag for reading XTRA fields for GEOS-3
-      !LXTRA = ( LDUST .or. LMEGAN )
-      LXTRA = LMEGAN
-
       ! Define time variables for use below
       NHMS  = GET_NHMS()
       NHMSb = GET_NHMSb()
@@ -310,7 +308,7 @@
       ! Compute the Olson land types that occur in each grid box
       ! (i.e. this is a replacement for rdland.F and vegtype.global)
       CALL INIT_OLSON_LANDMAP()
-      CALL COMPUTE_OLSON_LANDMAP()
+      CALL COMPUTE_OLSON_LANDMAP( mapping )
       CALL CLEANUP_OLSON_LANDMAP()
 
       ! Initialize PBL quantities but do not do mixing
@@ -622,11 +620,12 @@
      &                                        laiMM, laiYYYY )
             
             ! Read MODIS LAI from disk (if it is a new LAI month)
-            CALL Read_Modis_Lai( laiYYYY, laiMM, doMonthly )
+            ! Logical flag MODISREAD determines if data was just read in
+            CALL Read_Modis_Lai( laiYYYY, laiMM, wasModisRead )
 
             ! Interpolate LAI quantities from native grid to GEOS-Chem grid
             CALL Compute_Modis_Lai( day_of_year, laiMM, 
-     &                              mapping,     doMonthly )
+     &                              mapping,     wasModisRead )
 
             ! For MEGAN biogenics ...
             IF ( LMEGAN ) THEN

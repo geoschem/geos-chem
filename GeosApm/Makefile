@@ -109,7 +109,7 @@ diag_mod.o               diag_oh_mod.o           diag_pl_mod.o		     \
 diagoh.o                 drydep_mod.o            dust_dead_mod.o	     \
 dust_mod.o               edgar_mod.o             emep_mod.o		     \
 emf_scale.o              emfossil.o              emissdr.o		     \
-emissions_mod.o          epa_nei_mod.o		                             \
+emissions_mod.o          epa_nei_mod.o		 mapping_mod.o               \
 fast_j.o                 fertadd.o               findmon.o		     \
 fjfunc.o                 fjx_acet_mod.o          future_emissions_mod.o	     \
 fvdas_convect_mod.o      fyhoro.o                fyrno3.o		     \
@@ -117,7 +117,7 @@ gamap_mod.o              gasconc.o               gc_biomass_mod.o	     \
 gc_type_mod.o            gcap_convect_mod.o      gcap_read_mod.o	     \
 geia_mod.o               get_global_ch4.o        getifsun.o		     \
 gfed2_biomass_mod.o      gfed3_biomass_mod.o     geos57_read_mod.o           \
-global_br_mod.o          global_ch4_mod.o	                             \
+global_br_mod.o          global_ch4_mod.o	 olson_landmap_mod.o         \
 global_hno3_mod.o        global_no3_mod.o        global_nox_mod.o	     \
 global_o1d_mod.o         global_o3_mod.o         global_oh_mod.o	     \
  h2_hd_mod.o             hcn_ch3cn_mod.o	                             \
@@ -139,7 +139,7 @@ rdlai.o                  rdsoil.o                readchem.o	             \
 reader.o                 readlai.o               restart_mod.o		     \
 rpmares_mod.o            ruralbox.o              scale_anthro_mod.o	     \
 schem.o                  seasalt_mod.o           set_aer.o		     \
-set_prof.o               setemdep.o		                             \
+set_prof.o               setemdep.o		 modis_lai_mod.o             \
 setemis.o                setmodel.o              sfcwindsqr.o		     \
 smvgear.o                soaprod_mod.o           soilbase.o		     \
 soilcrf.o                soilnoxems.o            soiltemp.o		     \
@@ -803,7 +803,10 @@ main.o                      : main.F                                         \
                               merra_a1_mod.o          merra_a3_mod.o         \
                               merra_i6_mod.o          apm_init_mod.o         \
                               apm_driv_mod.o          apm_wets_mod.o         \
-                              geos57_read_mod.o       diag63_mod.o
+                              geos57_read_mod.o       diag63_mod.o           \
+                              olson_landmap_mod.o     mapping_mod.o
+
+mapping_mod.o               : mapping_mod.F90
 
 MATIN4.o                    : MATIN4.F
 
@@ -839,6 +842,9 @@ merra_i6_mod.o              : merra_i6_mod.F                                 \
 
 MIESCT.o                    : MIESCT.F
 
+modis_lai_mod.o             : modis_lai_mod.F90                              \
+                              mapping_mod.o
+
 ndxx_setup.o                : ndxx_setup.F                                   \
                               biofuel_mod.o           diag_mod.o             \
                               diag_oh_mod.o           drydep_mod.o           \
@@ -860,6 +866,9 @@ ocean_mercury_mod.o         : ocean_mercury_mod.F                            \
 
 ohsave.o                    : ohsave.F                comode_mod.o           \
                               diag_mod.o              tracerid_mod.o
+
+olson_landmap_mod.o         : olson_landmap_mod.F90                          \
+                              mapping_mod.o
 
 optdepth_mod.o              : optdepth_mod.F          diag_mod.o  
 

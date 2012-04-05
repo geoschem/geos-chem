@@ -781,7 +781,10 @@ main.o                      : main.F                                         \
                               wetscav_mod.o           merra_cn_mod.o         \
                               merra_a1_mod.o          merra_a3_mod.o         \
                               merra_i6_mod.o          geos57_read_mod.o      \
-                              diag63_mod.o            olson_landmap_mod.o
+                              diag63_mod.o            olson_landmap_mod.o    \
+                              mapping_mod.o           modis_lai_mod.o
+
+mapping_mod.o               : mapping_mod.F90
 
 MATIN4.o                    : MATIN4.F
 
@@ -817,6 +820,9 @@ merra_i6_mod.o              : merra_i6_mod.F                                 \
 
 MIESCT.o                    : MIESCT.F
 
+modis_lai_mod.o             : modis_lai_mod.F90                              \
+                              mapping_mod.o
+
 ndxx_setup.o                : ndxx_setup.F                                   \
                               biofuel_mod.o           diag_mod.o             \
                               diag_oh_mod.o           drydep_mod.o           \
@@ -840,7 +846,8 @@ ohsave.o                    : ohsave.F                comode_mod.o           \
                               diag_mod.o              tracerid_mod.o
 
 
-olson_landmap_mod.o         : olson_landmap_mod.F90
+olson_landmap_mod.o         : olson_landmap_mod.F90                          \
+                              mapping_mod.o
 
 optdepth_mod.o              : optdepth_mod.F          diag_mod.o  
 

@@ -53,6 +53,7 @@
 #   7 Mar 2012 - M. Payer    - Added global_ch4_mod
 #  22 Mar 2012 - M. Payer    - Added c2h6_mod, olson_landmap_mod
 #  29 Mar 2012 - R. Yantosca - Added lai_mod
+#  29 Mar 2012 - R. Yantosca - Added modis_lai_mod and mapping_mod
 #EOP
 #------------------------------------------------------------------------------
 #BOC
@@ -116,12 +117,14 @@ $(CORE)/land_mercury_mod.F           \
 $(CORE)/lightning_nox_mod.F          \
 $(CORE)/linoz_mod.F                  \
 $(CORE)/logical_mod.F                \
+$(CORE)/mapping_mod.F                \
 $(CORE)/megan_mod.F                  \
 $(CORE)/meganut_mod.F                \
 $(CORE)/merra_a1_mod.F               \
 $(CORE)/merra_a3_mod.F               \
 $(CORE)/merra_cn_mod.F               \
 $(CORE)/merra_i6_mod.F               \
+$(CORE)/modis_lai_mod.F              \
 $(CORE)/nei2005_anthro_mod.F         \
 $(CORE)/olson_landmap_mod.F90        \
 $(CORE)/optdepth_mod.F               \

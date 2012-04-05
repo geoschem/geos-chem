@@ -6,14 +6,15 @@
 ! !MODULE: modis_lai_mod
 !
 ! !DESCRIPTION: Module MODIS\_LAI\_MOD reads the MODIS LAI data at native
-!  resolution (either 0.25 x 0.25 or 0.5 x 0.5) and rebins it to the proper
-!  GEOS-Chem leaf area index arrays.  This module eliminates the need for the
-!  following GEOS-Chem modules and routines:
+!  resolution (either 0.25 x 0.25 or 0.5 x 0.5, in netCDF format) and rebins 
+!  it to the proper GEOS-Chem LAI arrays.  This module eliminates the need 
+!  for the following GEOS-Chem modules, routines, and data files:
 !
 ! \begin{itemize}
 ! \item lai_mod.F
 ! \item readlai.F
 ! \item rdlai.F
+! \item findmon.F
 ! \item The \texttt{lai*.global} input files
 ! \end{itemize}
 !\\
@@ -30,7 +31,7 @@ MODULE Modis_Lai_Mod
   USE Directory_Mod                               ! Disk directory paths   
   USE Error_Mod                                   ! Error checking routines
   USE Logical_Mod                                 ! Logical switches
-  USE Mapping_Mod                                 ! Mapping weights
+  USE Mapping_Mod                                 ! Mapping weights & areas
   USE Time_Mod                                    ! EXPAND_DATE
 
   IMPLICIT NONE
@@ -56,6 +57,8 @@ MODULE Modis_Lai_Mod
 !
 !
 ! !REMARKS:
+!  Functionality of this module:
+!  ===========================================================================
 !  If you are using the Olson 1992 land map, then this module will pick the
 !  MODIS LAI data at 0.5 x 0.5 native resolution.  This is because the legacy
 !  code assumed a direct correspondence between the Olson 1992 land map and
@@ -64,9 +67,57 @@ MODULE Modis_Lai_Mod
 !                                                                             .
 !  Follows the same algorithm as in the IDL codes used to regrid MODIS LAI
 !  data (regridmodis_lai_v5.pro; contact GEOS-Chem Support team).
+!                                                                             .
+!                                                                             .
+!  Historical background of how LAI data have been used in GEOS-Chem:
+!  ===========================================================================
+!  Note that GEOS-Chem (as of April 2012) uses LAI data from two separate
+!  sources.  The dry deposition and soil NOx modules rely on the data from 
+!  "lai*.global" ASCII files.  These files (which are pre-processed offline 
+!  by IDL codes) are generated for each specific GEOS-Chem grid configuration
+!  (e.g. 4x5, 2x25, 0.5x0.666 nested grids).  These files are read from disk 
+!  by routine RDLAI, which saves the LAI data into the XLAI and XYLAI arrays.
+!  XLAI and XYLAI store the leaf area index as a function of Olson land type 
+!  (cf Olson 1992 land map).
+!                                                                             .
+!  However, the MEGAN biogenic emissions code relies on LAI data stored at 
+!  1x1 resolution stored in bpch format.  These binary files are read by 
+!  routine RDISOLAI (and other underlying routines in lai_mod.F), and are
+!  regridded on-the-fly to the current GEOS-Chem grid resolution.
+!                                                                             .
+!  Therefore, these two sources of LAI data present an inconsistency that 
+!  should be resolved.  Also, for the Grid-Indpendent GEOS-Chem project, 
+!  we must move away from ASCII files (which prevent interfacing with 
+!  external GCMs).  We also cannot assume any particular horizontal grid, 
+!  since that is now to be specified at the start of the simulation.
+!                                                                             .
+!  Also, to facilitate simulations at ultra-fine horizontal resolution, we 
+!  will eventually adopt the Olson 2001 land map, which has a native 
+!  resolution of 0.25 x 0.25 degrees, and likewise use an updated version 
+!  of the MODIS LAI data at 0.25 x 0.25 resolution.
+!                                                                             .
+!  To resolve these issues, we have created a new module (modis_lai_mod.F90)
+!  which reads from the MODIS LAI data in netCDF format at the native 
+!  resolution and then regrids the LAI data to GEOS-Chem resolution on-the-
+!  fly.  The XLAI and XYLAI arrays are populated for backwards compatibility 
+!  with the existing legacy codes.  The LAI arrays used for MEGAN (ISOLAI, 
+!  PMISOLAI, MISOLAI, and NMISOLAI) are now replaced by arrays GC_LAI, 
+!  GC_LAI_PM, GC_LAI_CM, and GC_LAI_NM) from modis_lai_mod.F.
+!                                                                             .
+!  We have validated that the new scheme generates identical XLAI and XYLAI
+!  arrays w/r/t the old scheme.  The arrays GC_LAI etc. differ from the 
+!  ISOLAI etc. arrays slightly; however, this is to be expected given that 
+!  we are now regridding from finer resolution than 1x1.
+!                                                                             .
+!  NOTE: At the present time (April 2012), we have not yet disabled the 
+!  RDISOLAI function.  We will do so in the future, and will validate this 
+!  with a separate benchmark.
+!                                                                             .
+!      -- Bob Yantosca (geos-chem-support@as.harvard.edu), 04 Apr 2012
 !
 ! !REVISION HISTORY:
 !  03 Apr 2012 - R. Yantosca - Initial version
+!  05 Apr 2012 - R. Yantosca - Added descriptive comments
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -110,20 +161,21 @@ CONTAINS
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE Compute_Modis_Lai( doy, mm, map, doMonthly )
+  SUBROUTINE Compute_Modis_Lai( doy, mm, map, wasModisRead )
 !
 ! !INPUT PARAMETERS:
 !
-    INTEGER,         INTENT(IN) :: doy         ! Day of year
-    INTEGER,         INTENT(IN) :: mm          ! Month for LAI data
-    TYPE(MapWeight), POINTER    :: map(:,:)    ! "fine" -> "coarse" grid map
-    LOGICAL,         INTENT(IN) :: doMonthly   ! Interpolate monthly files? 
+    INTEGER,         INTENT(IN) :: doy           ! Day of year
+    INTEGER,         INTENT(IN) :: mm            ! Month for LAI data
+    TYPE(MapWeight), POINTER    :: map(:,:)      ! "fine" -> "coarse" grid map
+    LOGICAL,         INTENT(IN) :: wasModisRead  ! Was LAI data just read in?
 !
 ! !REMARKS:
 !  Uses same algorithm as RDISOLAI in the existing lai_mod.F.
 !
 ! !REVISION HISTORY: 
 !  03 Apr 2012 - R. Yantosca - Initial version
+!  05 Apr 2012 - R. Yantosca - Renamed arg "doMonthly" to "wasModisRead"
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -131,11 +183,10 @@ CONTAINS
 ! !LOCAL VARIABLES:
 !
     ! Scalars
-    INTEGER :: I,      J,       IMUL,   ITD
-    INTEGER :: IJLOOP
-    INTEGER :: C,      II,      JJ,     type
-    REAL*4  :: mapWt,  area,    sumArea
-    REAL*8  :: FRAC,   leafArea
+    INTEGER :: I,     J,       IMUL,   ITD,  IJLOOP
+    INTEGER :: C,     II,      JJ,     type
+    REAL*4  :: mapWt, area,    sumArea
+    REAL*8  :: FRAC,  leafArea
     
     ! Arrays
     REAL*8  :: tempArea(0:NVEGTYPE-1)
@@ -173,11 +224,11 @@ CONTAINS
 
     !======================================================================
     ! Bin data from the "fine" MODIS grid to the "coarse" GEOS-Chem grid.
-    ! Populate arrays for backwards-compatibility w/ existing codes.
+    ! Populate arrays for backwards-compatibility w/ existing routines
     !======================================================================
     !$OMP PARALLEL DO                                             &
     !$OMP DEFAULT( SHARED                                       ) &
-    !$OMP PRIVATE( I, J,  tempArea, tempLai, sumArea, IJLOOP   ) &
+    !$OMP PRIVATE( I, J,  tempArea, tempLai, sumArea,  IJLOOP   ) &
     !$OMP PRIVATE( C, II, JJ,       type,    area,     leafArea ) 
     DO J = 1, JJPAR
     DO I = 1, IIPAR
@@ -189,7 +240,9 @@ CONTAINS
        IJLOOP               = ( (J-1) * IIPAR ) + I
        GC_LAI   (I,J)       = 0d0
 
-       IF ( doMonthly ) THEN
+       ! If a new month of MODIS LAI data was just read from disk,
+       ! then also initialize the appropriate data arrays here.
+       IF ( wasModisRead ) THEN
           GC_LAI_PM(I,J)    = 0d0
           GC_LAI_CM(I,J)    = 0d0
           GC_LAI_NM(I,J)    = 0d0
@@ -219,7 +272,10 @@ CONTAINS
           ! grid box (I,J), irrespective of Olson land type
           GC_LAI(I,J)       = GC_LAI(I,J)    + ( MODIS_LAI(II,JJ)    * area )
 
-          IF ( doMonthly ) THEN
+          ! If a new month of MODIS LAI data was just read from disk,
+          ! then also compute the corresponding total leaf areas in the 
+          ! "coarse" GEOS-Chem grid box (I,J).
+          IF ( wasModisRead ) THEN
              GC_LAI_PM(I,J) = GC_LAI_PM(I,J) + ( MODIS_LAI_PM(II,JJ) * area )
              GC_LAI_CM(I,J) = GC_LAI_CM(I,J) + ( MODIS_LAI_CM(II,JJ) * area )
              GC_LAI_NM(I,J) = GC_LAI_NM(I,J) + ( MODIS_LAI_NM(II,JJ) * area )
@@ -236,7 +292,10 @@ CONTAINS
        ! grid box (I,J), irrespective of Olson land type
        GC_LAI(I,J)       = GC_LAI(I,J)    / sumArea
 
-       IF ( doMonthly ) THEN 
+       ! If a new month of MODIS LAI data was just read from disk,
+       ! then also convert the appropriate arrays to leaf area index
+       ! [cm2 leaf/cm2 grid box].
+       IF ( wasModisRead ) THEN 
           GC_LAI_PM(I,J) = GC_LAI_PM(I,J) / sumArea
           GC_LAI_CM(I,J) = GC_LAI_CM(I,J) / sumArea
           GC_LAI_NM(I,J) = GC_LAI_NM(I,J) / sumArea 
@@ -280,7 +339,7 @@ CONTAINS
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE Read_Modis_Lai( yyyy, mm, doMonthly )
+  SUBROUTINE Read_Modis_Lai( yyyy, mm, wasModisRead )
 !
 ! !USES:
 !
@@ -298,10 +357,11 @@ CONTAINS
 !
 ! !OUTPUT PARAMETERS:
 !
-    LOGICAL, INTENT(OUT) :: doMonthly
+    LOGICAL, INTENT(OUT) :: wasModisRead       ! Was LAI data just read in?
 !
 ! !REVISION HISTORY:
 !  03 Apr 2012 - R. Yantosca - Initial version
+!  05 Apr 2012 - R. Yantosca - Renamed arg "doMonthly" to "wasModisRead"
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -335,13 +395,13 @@ CONTAINS
     ! Test if it is time to read data
     !======================================================================
 
-    ! If we enter a new LAI month, then read the data below
-    ! Otherwise, just exit 
+    ! If we enter a new LAI month, then read MODIS LAI from disk
+    ! Otherwise, just exit, since it is not time to read data yet
     IF ( mm /= mmLast ) THEN
-       doMonthly = .TRUE.
-       mmLast    = mm
+       wasModisRead = .TRUE.
+       mmLast       = mm
     ELSE
-       doMonthly = .FALSE.
+       wasModisRead = .FALSE.
        RETURN
     ENDIF
 

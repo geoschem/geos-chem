@@ -26,7 +26,7 @@ MODULE Olson_LandMap_Mod
   USE ERROR_MOD                         ! Error checking routines
   USE GRID_MOD                          ! Horizontal grid definition
   USE LOGICAL_MOD                       ! Logical switches
-  USE MAPPING_MOD                       ! Mapping weights
+  USE MAPPING_MOD                       ! Mapping weights & areas
 
   IMPLICIT NONE
   PRIVATE
@@ -384,7 +384,7 @@ CONTAINS
           map(I,J)%II(C)    = II
           map(I,J)%JJ(C)    = JJ
           map(I,J)%olson(C) = type
-          map(I,J)%mapWt(C) = mapWt
+         !map(I,J)%mapWt(C) = mapWt
           map(I,J)%area(C)  = area
           map(I,J)%sumarea  = sumarea
 
