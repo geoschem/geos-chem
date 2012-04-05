@@ -6351,7 +6351,7 @@
 #endif
 
       !%%% KLUDGE, set to TRUE for testing GEOS-5 etc. (bmy, 3/27/12)
-      USE_OLSON_2001 = .TRUE.
+      !USE_OLSON_2001 = .TRUE.
 
       END SUBROUTINE INIT_INPUT
 !EOC

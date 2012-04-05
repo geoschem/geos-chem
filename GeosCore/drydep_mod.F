@@ -569,26 +569,24 @@
 !
 ! !OUTPUT PARAMETERS:
 !
-      LOGICAL, INTENT(OUT)  :: LSNOW(MAXIJ)  ! Flag for denoting snow/ice
-      REAL*8,  INTENT(OUT)  :: CZ1(MAXIJ)    ! Midpt ht of 1st model level [m]
-      REAL*8,  INTENT(OUT)  :: TC0(MAXIJ)    ! Grid box surface temperature [K]
-      REAL*8,  INTENT(OUT)  :: OBK(MAXIJ)    ! Monin-Obhukov length [m]
-      REAL*8,  INTENT(OUT)  :: CFRAC(MAXIJ)  ! Column cloud fraction [unitless]
-      REAL*8,  INTENT(OUT)  :: RADIAT(MAXIJ) ! Solar radiation @ ground [W/m2]
-      REAL*8,  INTENT(OUT)  :: RHB(MAXIJ)    ! Rel humidity at sfc [unitless]
-      REAL*8,  INTENT(OUT)  :: USTR(MAXIJ)   ! Friction velocity [m/s]
-      REAL*8,  INTENT(OUT)  :: ZH(MAXIJ)     ! PBL height [m]
-      ! add the following 2 outputs (jaegle 5/5/11, mpayer 1/10/12)
-      REAL*8,  INTENT(OUT)  :: PRESSU(MAXIJ) ! Local surface pressure [Pa]
-      REAL*8,  INTENT(OUT)  :: W10(MAXIJ)    ! 10 meter windspeed [m/s]
+      LOGICAL, INTENT(OUT) :: LSNOW (MAXIJ)  ! Flag for denoting snow/ice
+      REAL*8,  INTENT(OUT) :: CZ1   (MAXIJ)  ! Midpt ht of 1st model level [m]
+      REAL*8,  INTENT(OUT) :: TC0   (MAXIJ)  ! Grid box sfc temperature [K]
+      REAL*8,  INTENT(OUT) :: OBK   (MAXIJ)  ! Monin-Obhukov length [m]
+      REAL*8,  INTENT(OUT) :: CFRAC (MAXIJ)  ! Column cloud fraction [unitless]
+      REAL*8,  INTENT(OUT) :: RADIAT(MAXIJ)  ! Solar radiation @ ground [W/m2]
+      REAL*8,  INTENT(OUT) :: RHB   (MAXIJ)  ! Rel humidity at sfc [unitless]
+      REAL*8,  INTENT(OUT) :: USTR  (MAXIJ)  ! Friction velocity [m/s]
+      REAL*8,  INTENT(OUT) :: ZH    (MAXIJ)  ! PBL height [m]
+      REAL*8,  INTENT(OUT) :: PRESSU(MAXIJ)  ! Local surface pressure [Pa]
+      REAL*8,  INTENT(OUT) :: W10   (MAXIJ)  ! 10 meter windspeed [m/s]
 
       ! Dimension AZO for GCAP or GEOS met fields (swu, bmy, 5/25/05)
 #if   defined( GCAP )
-      REAL*8, INTENT(OUT)   :: AZO(NTYPE)
+      REAL*8, INTENT(OUT)  :: AZO(NTYPE)     ! Roughness heights, by landtype
 #else
-      REAL*8, INTENT(OUT)   :: AZO(MAXIJ)
+      REAL*8, INTENT(OUT)  :: AZO(MAXIJ)     ! Roughness heights, by grid box
 #endif
-
 !
 ! !REMARKS:
 !  References (see full citations above):
@@ -1241,24 +1239,6 @@
      &                   PRESSU, W10 )
 !
 ! !REMARKS:
-!  %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-!  %%%  If the USE_ISOLAI_IN_DRYD Cpp switch is set, then replace all      %%%
-!  %%%  instances of XYLAI(IJLOOP,LDT), with ISOLAI(I,J).  This will       %%%
-!  %%%  facilitate adoption of the Olson 2001 land map.                    %%%
-!  %%%                                                                     %%%
-!  %%%  The issue is that right now, the LAI values in the lai*.global     %%% 
-!  %%%  files are listed in the same order as in the Olson 1992 land       %%%
-!  %%%  cover map.  While the new module olson_landmap_mod.F90             %%%
-!  %%%  preserves this ordering for Olson 1992, switching to the newer     %%%
-!  %%%  Olson 2001 map will result in a mis-ordering of LAI values.        %%%
-!  %%%                                                                     %%%
-!  %%%  Because we want to move towards total grid-independence in         %%%
-!  %%%  GEOS-Chem, rather than re-processing the MODIS LAI values to       %%%
-!  %%%  adhere to the new Olson 2001 ordering, we will use the MODIS LAI   %%%
-!  %%%  values from the bpch files rather than from the lai*global files.  %%%
-!  %%%  This will also make it easier to move to netCDF file format.       %%%
-!  %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-!
 !  Need as landtype input for each grid square (I,J) see (RDLAND & CMN_VEL):
 !     IJREG(JLOOP)       - # of landtypes in grid square
 !     IJLAND(IJLOOP,LDT) - Land type ID for element LDT =1, IJREG(IJLOOP)
@@ -1461,6 +1441,9 @@
       ! Loop indices (bmy, 3/29/12)
       INTEGER :: I, J
 
+      ! Fraction of ISOLAI for each land usage type
+      REAL*8  :: ISOLAI_LDT
+
 !***********************************************************************       
 !
 !
@@ -1499,12 +1482,6 @@
 
          ! Convert (I,J) to 1-D index IJLOOP
          IJLOOP = ( ( J - 1 ) * IIPAR ) + I 
-!-----------------------------------------------------------------------------
-! Prior to 3/29/12:
-! Loop over (I,J), then compute IJLOOP.  This will facilitate using
-! the ISOLAI(I,J) array later in the source code. (bmy, 3/29/12)
-!      DO 560 IJLOOP =1,NPTS
-!-----------------------------------------------------------------------------
 
 !** CZ is Altitude (m) at which deposition velocity is computed
          CZ = CZ1(IJLOOP)
@@ -1577,19 +1554,11 @@
 !** divide them by the leaf area index to get a cuticular resistance for the
 !** bulk canopy.  If IRLU is '9999' it means there are no cuticular
 !** surfaces on which to deposit so we impose a very large value for RLU.
-#if   defined( USE_ISOLAI_IN_DRYD )
-            IF (IRLU(II) .GE. 9999 .or. ISOLAI(I,J) .LE. 0.D0 ) THEN
-#else
             IF (IRLU(II) .GE. 9999 .OR. 
      &           XYLAI(IJLOOP,LDT).LE.0.D0) THEN
-#endif
                RLU(LDT)  = 1.D6
             ELSE
-#if  defined( USE_ISOLAI_IN_DRYD )
-               RLU(LDT)= DBLE(IRLU(II))/ISOLAI(I,J)+RT
-#else
                RLU(LDT)= DBLE(IRLU(II))/XYLAI(IJLOOP,LDT)+RT
-#endif
             ENDIF
 !** The following are the remaining resistances for the Wesely
 !** resistance-in-series model for a surface canopy
@@ -1638,17 +1607,10 @@
             IF (TEMPC .GT. 0.D0 .AND. TEMPC .LT. 40.D0)
      *           GFACT = 400.D0/TEMPC/(40.0D0-TEMPC)
             GFACI = 100.D0
-#if   defined( USE_ISOLAI_IN_DRYD )
-            IF (RAD0.GT.0.D0 .AND. ISOLAI(I,J).GT.0.D0) THEN
-               GFACI=1.D0/BIOFIT( DRYCOEFF,       ISOLAI(I,J),
-     *                            SUNCOS(IJLOOP), CFRAC(IJLOOP) )
-            ENDIF
-#else
             IF (RAD0.GT.0.D0 .AND. XYLAI(IJLOOP,LDT).GT.0.D0) THEN
                GFACI=1.D0/BIOFIT(DRYCOEFF,XYLAI(IJLOOP,LDT),
      *              SUNCOS(IJLOOP),CFRAC(IJLOOP))
             ENDIF
-#endif            
             RIX = RIX*GFACT*GFACI
  150        CONTINUE
 !*                                 

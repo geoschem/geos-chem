@@ -26,6 +26,7 @@ MODULE Olson_LandMap_Mod
   USE ERROR_MOD                         ! Error checking routines
   USE GRID_MOD                          ! Horizontal grid definition
   USE LOGICAL_MOD                       ! Logical switches
+  USE MAPPING_MOD                       ! Mapping weights
 
   IMPLICIT NONE
   PRIVATE
@@ -36,10 +37,6 @@ MODULE Olson_LandMap_Mod
   PUBLIC  :: Compute_Olson_Landmap
   PUBLIC  :: Cleanup_Olson_LandMap
 !
-! !PRIVATE MEMBER FUNCTIONS:
-!
-  PRIVATE :: Get_Map_Wt
-
 ! !REMARKS:
 !  The Olson land types are as follows:
 !  ============================================================================
@@ -148,6 +145,9 @@ MODULE Olson_LandMap_Mod
 !  22 Mar 2012 - R. Yantosca - Now define I_OLSON, J_OLSON, N_OLSON, D_LON,
 !                              and D_LAT in routine Init_Olson_LandMap
 !  27 Mar 2012 - R. Yantosca - Now reference USE_OLSON_2001 from logical_mod.F
+!  02 Apr 2012 - R. Yantosca - Now reference mapping_mod.F90
+!  02 Apr 2012 - R. Yantosca - Moved routine GET_MAP_WT to mapping_mod.F90
+!  02 Apr 2012 - R. Yantosca - Now Save mapping info for later use
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -185,7 +185,11 @@ CONTAINS
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE Compute_Olson_LandMap()
+  SUBROUTINE Compute_Olson_LandMap( map )
+!
+! !INPUT/OUTPUT PARAMETERS:
+!
+    TYPE(MapWeight), POINTER :: map(:,:)   ! "fine" -> "coarse" mapping
 !
 ! !REMARKS:
 !  This routine supplies arrays that are required for legacy code routines:
@@ -201,6 +205,8 @@ CONTAINS
 !                              roundoff errors at high-resolution
 !  22 Mar 2012 - R. Yantosca - Now get surface area directly from variable
 !                              A_CM2 (read from disk) instead of computing it
+!  02 Apr 2012 - R. Yantosca - Now pass MAP (mapping weight object) via the
+!                              arg list, to save the mapping info for later
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -211,7 +217,7 @@ CONTAINS
     LOGICAL :: isGlobal
     INTEGER :: I,        J,         II,       III
     INTEGER :: JJ,       T,         N,        type
-    INTEGER :: IJLOOP,   uniqOlson, sumIuse
+    INTEGER :: IJLOOP,   uniqOlson, sumIuse,  C
     REAL*4  :: xedge_w,  xedge_e,   yedge_s,  yedge_n
     REAL*4  :: xedgeC_w, xedgeC_e,  yedgeC_s, yedgeC_n
     REAL*4  :: dxdy,     dxdy4,     mapWt,    area
@@ -227,9 +233,9 @@ CONTAINS
     REAL*4  :: latedge (          J_OLSON+1         ) ! Lat edges   [degrees]
     
     ! Arrays on the GEOS-CHEM GRID                 
-    INTEGER :: ctOlson (IIPAR,    JJPAR,   0:N_OLSON) ! Count of land types/box
-    REAL*4  :: frOlson (IIPAR,    JJPAR,   0:N_OLSON) ! Frac of land types/box
-    INTEGER :: ordOlson(IIPAR,    JJPAR,   0:N_OLSON) ! Order of land types
+    INTEGER :: ctOlson (IIPAR,    JJPAR, 0:N_OLSON-1) ! Count of land types/box
+    REAL*4  :: frOlson (IIPAR,    JJPAR, 0:N_OLSON-1) ! Frac of land types/box
+    INTEGER :: ordOlson(IIPAR,    JJPAR, 0:N_OLSON-1) ! Order of land types
 
     !======================================================================
     ! NATIVE GRID parameters (i.e. 0.5 x 0.5 "GENERIC")
@@ -269,12 +275,13 @@ CONTAINS
     !======================================================================
     ! Loop over all GEOS-CHEM GRID BOXES and initialize variables
     !======================================================================
-    !$OMP PARALLEL DO                                                        &
-    !$OMP DEFAULT( SHARED )                                                  &
-    !$OMP PRIVATE( I,     J,       xedgeC_w, yedgeC_s, xedgeC_e, yedgeC_n  ) &
-    !$OMP PRIVATE( dxdy4, sumArea, JJ,       III,      dxdy,     mapWt     ) &
-    !$OMP PRIVATE( II,    xedge_w, yedge_s,  xedge_e,  yedge_n,  area      ) &
-    !$OMP PRIVATE( type,  maxIuse, T,        sumIUse,  IJLOOP,   uniqOlson )
+    !$OMP PARALLEL DO                                                &
+    !$OMP DEFAULT( SHARED )                                          &
+    !$OMP PRIVATE( I,        J,       xedgeC_w, yedgeC_s, xedgeC_e ) &
+    !$OMP PRIVATE( yedgeC_n, dxdy4,   sumArea,  JJ,       III      ) &
+    !$OMP PRIVATE( dxdy,     mapWt,   II,       xedge_w,  yedge_s  ) &
+    !$OMP PRIVATE( xedge_e,  yedge_n, area,     type,     maxIuse  ) &
+    !$OMP PRIVATE( sumIUse,  IJLOOP,  uniqOlson, C                 )
     DO J = 1, JJPAR
     DO I = 1, IIPAR
 
@@ -292,6 +299,9 @@ CONTAINS
 
        ! Reset counter of olson land types found per box
        uniqOlson = 0e0
+
+       ! Counter for mapping object
+       C         = 0
 
        !===================================================================
        ! Find each 0.5 x 0.5 NATIVE GRID BOX that fits into the GEOS-CHEM
@@ -365,6 +375,19 @@ CONTAINS
              ordOlson(I,J,type) = uniqOlson
 
           ENDIF
+
+          ! Save mapping information for later use in modis_lai_mod.F90
+          ! in order to prepare the XLAI and XYLAI arrays for use with
+          ! the legacy dry-deposition and soil NOx emissions codes.
+          C                 = C + 1
+          map(I,J)%count    = C
+          map(I,J)%II(C)    = II
+          map(I,J)%JJ(C)    = JJ
+          map(I,J)%olson(C) = type
+          map(I,J)%mapWt(C) = mapWt
+          map(I,J)%area(C)  = area
+          map(I,J)%sumarea  = sumarea
+
        ENDDO
        ENDDO
          
@@ -379,6 +402,10 @@ CONTAINS
 
        ! Loop over all land types
        DO T = 0, N_OLSON-1
+
+          ! Save the ordering of Olson land types for later use 
+          ! by routines in the module modis_lai_mod.F90
+          map(I,J)%ordOlson(T) = ordOlson(I,J,T)
 
           ! Normalize the land type coverage 
           frOlson(I,J,T)                =  &
@@ -452,7 +479,15 @@ CONTAINS
 !###                                    ( iuse (i,j,t), t=1,ireg(i,j) )
 !###    enddo
 !###    enddo
-   
+!###   
+!###    ! ### DEBUG OUTPUT
+!###    C = map(23,34)%count
+!###    print*, '### count   : ', C
+!###    print*, '### II      : ', map(23,34)%II(1:C)
+!###    print*, '### JJ      : ', map(23,34)%JJ(1:C)
+!###    print*, '### area    : ', map(23,34)%area(1:C)
+!###    print*, '### sumarea : ', map(23,34)%sumarea
+
   END SUBROUTINE Compute_Olson_LandMap
 !EOC
 !------------------------------------------------------------------------------
@@ -503,6 +538,7 @@ CONTAINS
     !======================================================================
     
     ! Scalars
+    INTEGER            :: I, J               ! Loop indices
     INTEGER            :: fId                ! netCDF file ID
     INTEGER            :: as                 ! Allocation status
     
@@ -668,125 +704,6 @@ CONTAINS
 140 FORMAT( '%% Successfully closed file!'                 )
 
   END SUBROUTINE Init_Olson_LandMap
-!EOC
-!------------------------------------------------------------------------------
-!          Harvard University Atmospheric Chemistry Modeling Group            !
-!------------------------------------------------------------------------------
-!BOP
-!
-! !IROUTINE: get_map_wt
-!
-! !DESCRIPTION: Subroutine GET\_MAP\_WT returns the "mapping weight", that
-!  is, the fraction that each "fine" grid box fits into each "coarse" grid
-!  box.
-!\\
-!\\
-! !INTERFACE:
-!
-  SUBROUTINE Get_Map_Wt( xedge_w, xedge_e, xedgeC_w, xedgeC_e,   &
-                         yedge_s, yedge_n, yedgeC_s, yedgeC_n,   &
-                         mapWt                                  )
-!
-! !INPUT PARAMETERS:
-!
-    REAL*4, INTENT(IN)  :: xedge_w,  xedge_e    ! Lon edges, fine grid
-    REAL*4, INTENT(IN)  :: xedgeC_w, xedgeC_e   ! Lon edges, coarse grid
-    REAL*4, INTENT(IN)  :: yedge_s,  yedge_n    ! Lat edges, fine grid
-    REAL*4, INTENT(IN)  :: yedgeC_s, yedgeC_n   ! Lat edges, coarse grid
-    REAL*4, INTENT(OUT) :: mapWt                ! Mapping weight
-!
-! !REMARKS:
-!  Follows the algorithm from GAMAP routine ctm_getweight.pro
-!
-! !REVISION HISTORY:
-!  30 Jan 2012 - R. Yantosca - Initial version
-!  21 Mar 2012 - R. Yantosca - Typo: set xOverLap to zero if it is out of the
-!                              range of 0-1.  (We had set yOverLap=0 before)
-!  21 Mar 2012 - R. Yantosca - Now use REAL*4 for computations to avoid
-!                              roundoff errors at hi-res grids
-!EOP
-!------------------------------------------------------------------------------
-!BOC
-!
-! !LOCAL VARIABLES:
-!
-    REAL*8 :: ox1, ox2, nx1, nx2, ov1, ov2, xOverLap
-    REAL*8 :: oy1, oy2, ny1, ny2,           yOverLap
-
-    !======================================================================
-    ! Get overlap in longitude
-    !======================================================================
-
-    ! OX1, OX2 are the lon edges of the "fine" grid box
-    ox1 = xedge_w
-    ox2 = xedge_e
-    
-    ! NX1, NX2 are the lon edges of the coarse grid box
-    nx1 = xedgeC_w
-    nx2 = xedgeC_e
-    
-    ! Deal with over-the-dateline cases (phs, 9/26/07)
-    ! That fixes a problem when going from GEOS-5
-    ! 0.66667 x 0.5 to GENERIC 1 x 1.
-    ! Maybe it fixes also the kludges below ?? ## need checking 
-    if ( ox2 .lt. nx1 ) then
-       ox1 = ox1 + 360e0
-       ox2 = ox2 + 360e0
-    endif
-    
-    if ( ox1 .gt. nx2 ) then
-       ox1 = ox1 - 360e0
-       ox2 = ox2 - 360e0
-    endif
-    
-    ! convert to equivalent longitudes where necessary
-    if ( nx1 < -90. .AND. ox1 > 0. ) nx1 = nx1 + 360e0
-    if ( nx2 < -90. .AND. ox2 > 0. ) nx2 = nx2 + 360e0
-    
-    ! OV1 is the greater of OX1 and NX1
-    ! OV2 is the lesser of OX2 and NX2
-    ov1 = MAX( ox1, nx1 )
-    ov2 = MIN( nx2, ox2 )
-    
-    ! XOVERLAP is the fraction of the old (fine) grid box that 
-    ! occupies the new (coarse) grid box in the longitude
-    xOverLap = ( ov2 - ov1 ) / ( ox2 - ox1 )
-    
-    ! If XOVERLAP is not in the range of 0-1, then it means that the "fine" 
-    ! grid box lies completely outside the "coarse" grid box (in longitude).
-    ! Set to zero to avoid erroneous results in the calling routine.
-    if ( xOverLap < 0e0 .or. xOverLap > 1e0 ) xOverlap = 0e0
-    
-    !======================================================================
-    ! Get overlap in latitude
-    !======================================================================
-
-    ! OY1 and OY2 are lat edges of the "fine" grid
-    oy1 = yedge_s
-    oy2 = yedge_n
-    
-    ! NY1 and NY2 are consecutive Y-edges for the coarse
-    ny1 = yedgeC_s
-    ny2 = yedgeC_n
-     
-    ! OV1 is the greater of OY1 and NY1
-    ! OV2 is the lesser of OY2 and NY2
-    ov1 = MAX( oy1, ny1 )
-    ov2 = MIN( ny2, oy2 )
-    
-    ! YOVERLAP is the fraction of the old (fine) grid box that 
-    ! occupies the new (coarse) grid box in latitude 
-    yoverlap = ( ov2 - ov1 ) / ( oy2 - oy1 )
-    
-    ! If YOVERLAP is not in the range of 0-1, then it means that the "fine" 
-    ! grid box lies completely outside the "coarse" grid box (in latitude).
-    ! Set to zero to avoid erroneous results in the calling routine.
-    if ( yOverLap < 0e0 .or. yOverLap > 1e0 ) yOverlap = 0e0
-
-    ! Resultant mapping weight
-    mapWt = xOverLap * yOverLap
-
-  END SUBROUTINE Get_Map_Wt
 !EOC
 !------------------------------------------------------------------------------
 !          Harvard University Atmospheric Chemistry Modeling Group            !

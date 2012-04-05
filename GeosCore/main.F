@@ -27,6 +27,8 @@
       USE FILE_MOD              ! For file I/O
       USE INPUT_MOD             ! For reading settings from "input.geos"
       USE LOGICAL_MOD           ! Logical flags to toggle G-C options
+      USE MAPPING_MOD           ! For regridding MODIS LAI
+      USE MODIS_LAI_MOD         ! For MODIS leaf area indices (replacement)
       USE OLSON_LANDMAP_MOD     ! Computes IREG, ILAND, IUSE from Olson map
       USE PRESSURE_MOD          ! For computing pressure at grid boxes
       USE RESTART_MOD           ! For restart file I/O
@@ -88,7 +90,7 @@
       ! GEOS-Chem emissions modules
       !-----------------------------------------------------------------
       USE EMISSIONS_MOD         ! Driver routines for emissions
-      USE LAI_MOD               ! For MODIS leaf-area-indices
+      USE LAI_MOD               ! For MODIS leaf area indices (deprecated)
       USE LIGHTNING_NOX_MOD     ! For lightning NOx emissions  
       USE MEGAN_MOD             ! For biogenic emissions
 
@@ -169,6 +171,8 @@
 !                              "set_prof.F" to facilitate the GI model.
 !  19 Mar 2012 - R. Yantosca - Now call routines from olson_landmap_mod.F90
 !                              to read the Olson land map data
+!  04 Apr 2012 - R. Yantosca - Now call updated LAI routines from new module
+!                              modis_lai_mod.F90.  Retire routine RDLAI.
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -176,20 +180,26 @@
 ! !LOCAL VARIABLES:
 !
       ! Scalars
-      LOGICAL            :: FIRST = .TRUE.
-      LOGICAL            :: LXTRA 
-      INTEGER            :: I,             IOS,   J,         K,      L
-      INTEGER            :: N,             JDAY,  NDIAGTIME, N_DYN,  NNN
-      INTEGER            :: N_DYN_STEPS,   NSECb, N_STEP,    DATE(2)
-      INTEGER            :: YEAR,          MONTH, DAY,       DAY_OF_YEAR
-      INTEGER            :: SEASON,        NYMD,  NYMDb,     NHMS
-      INTEGER            :: ELAPSED_SEC,   NHMSb, RC
-      INTEGER            :: ELAPSED_TODAY, HOUR,  MINUTE
-      REAL*8             :: TAU,           TAUb         
-      CHARACTER(LEN=255) :: ZTYPE
+      LOGICAL                  :: FIRST = .TRUE.
+      LOGICAL                  :: LXTRA 
+      INTEGER                  :: I,             IOS,         J
+      INTEGER                  :: K,             L,           N
+      INTEGER                  :: JDAY,          NDIAGTIME,   N_DYN
+      INTEGER                  :: NNN,           N_DYN_STEPS, NSECb 
+      INTEGER                  :: N_STEP,        YEAR,        MONTH
+      INTEGER                  :: DAY,           DAY_OF_YEAR, SEASON
+      INTEGER                  :: NYMD,          NYMDb,       NHMS
+      INTEGER                  :: ELAPSED_SEC,   NHMSb,       RC
+      INTEGER                  :: ELAPSED_TODAY, HOUR,        MINUTE
+      REAL*8                   :: TAU,           TAUb         
+      CHARACTER(LEN=255)       :: ZTYPE
 
       ! Arrays
-      REAL*8             :: HGPFRAC(IIPAR,JJPAR,LLPAR)
+      INTEGER                  :: DATE(2)
+      REAL*8                   :: HGPFRAC(IIPAR,JJPAR,LLPAR)
+
+      ! Derived type objects
+      TYPE(MapWeight), POINTER :: mapping
 
       !=================================================================
       ! GEOS-CHEM starts here!                                            
@@ -289,10 +299,19 @@
          IF ( LPRT ) CALL DEBUG_MSG( '### MAIN: a LIGHTNING' )
       ENDIF
 
+      ! Initialize the derived type object containing
+      ! mapping information for the MODIS LAI routines
+      IF ( USE_OLSON_2001 ) THEN
+         CALL INIT_MAPPING( 1440, 720, IIPAR, JJPAR, mapping )
+      ELSE
+         CALL INIT_MAPPING(  720, 360, IIPAR, JJPAR, mapping )
+      ENDIF
+
       ! Compute the Olson land types that occur in each grid box
       ! (i.e. this is a replacement for rdland.F and vegtype.global)
       CALL INIT_OLSON_LANDMAP()
       CALL COMPUTE_OLSON_LANDMAP()
+      CALL CLEANUP_OLSON_LANDMAP()
 
       ! Initialize PBL quantities but do not do mixing
       ! Add option for non-local PBL (Lin, 03/31/09) 
@@ -539,44 +558,110 @@
          !==============================================================
          IF ( ITS_A_NEW_DAY() ) THEN 
 
-            ! Read leaf-area index (needed for drydep)
-            ! Now include the year (mpb,11/19/09)
-            CALL RDLAI( DAY_OF_YEAR, MONTH, YEAR )
+            !-----------------------------------------------------------
+            !    %%%%%%% UPDATED LEAF AREA INDEX ALGORITHM %%%%%%%
+            ! 
+            ! Note that GEOS-Chem uses LAI data from two separate
+            ! sources.  The dry deposition and soil NOx modules rely
+            ! on the data from lai*.global ASCII files.  These files
+            ! (which are pre-processed offline by IDL codes) are 
+            ! generated for each specific GEOS-Chem grid configuration
+            ! (e.g. 4x5, 2x25, 0.5x0.666 nested grids).  These files
+            ! are read from disk by routine RDLAI, which saves
+            ! the LAI data into the XLAI and XYLAI arrays.  XLAI and
+            ! XYLAI store the leaf area index as a function of Olson 
+            ! land type (cf Olson 1992 land map).
+            !
+            ! However, the MEGAN biogenic emissions code relies on 
+            ! LAI data stored at 1x1 resolution stored in bpch format.
+            ! These binary files are read by routine RDISOLAI (and
+            ! other underlying routines in lai_mod.F), and are
+            ! regridded on-the-fly to the current GEOS-Chem grid
+            ! resolution.
+            !
+            ! Therefore, these two sources of LAI data present an
+            ! inconsistency that should be resolved.  Also, for the 
+            ! Grid-Indpendent GEOS-Chem project, we must move away
+            ! from ASCII files (which prevent interfacing with 
+            ! external GCMs).  We also cannot assume any particular
+            ! horizontal grid, since that is now to be specified at
+            ! the start of the simulation.
+            !
+            ! Also, to facilitate simulations at ultra-fine horizontal
+            ! resolution, we will eventually adopt the Olson 2001 land 
+            ! map, which has a native resolution of 0.25 x 0.25 
+            ! degrees, and likewise use an updated version of the 
+            ! MODIS LAI data at 0.25 x 0.25 resolution.
+            !
+            ! To resolve these issues, we have created a new module
+            ! (modis_lai_mod.F90) which reads from the MODIS LAI data
+            ! in netCDF format at the native resolution and then
+            ! regrids the LAI data to GEOS-Chem resolution on-the-fly.
+            ! The XLAI and XYLAI arrays are populated for backwards
+            ! compatibility with the existing legacy codes.  The LAI
+            ! arrays used for MEGAN (ISOLAI, PMISOLAI, MISOLAI, and
+            ! NMISOLAI) are now replaced by arrays GC_LAI, GC_LAI_PM, 
+            ! GC_LAI_CM, and GC_LAI_NM) from modis_lai_mod.F.
+            !
+            ! We have validated that the new scheme generates identical
+            ! XLAI and XYLAI arrays to the old scheme.  The arrays
+            ! GC_LAI etc. differ from the ISOLAI etc. arrays slightly;
+            ! however, this is to be expected given that we are now
+            ! regridding from finer resolution than 1x1.
+            !
+            ! NOTE: At the present time, we have not yet disabled
+            ! the RDISOLAI function.  We will do so in the future,
+            ! and will validate this with a separate benchmark.
+            ! 
+            !      -- Bob Yantosca (04 Apr 2012)
+            !-----------------------------------------------------------
 
-#if   defined( USE_ISOLAI_IN_DRYD )
+            ! Find the proper month and year for LAI  based on the current 
+            ! month & year.  LAI months begin in the middle of the month.
+            CALL Find_Lai_Month( day_of_year, month, year, 
+     &                                        laiMM, laiYYYY )
+            
+            ! Read MODIS LAI from disk (if it is a new LAI month)
+            CALL Read_Modis_Lai( laiYYYY, laiMM, doMonthly )
 
-            !%%% TEST FOR USING ISOLAI IN THE DRYDEP CODE
-            !%%% NEED TO READ ISOLAI EVEN WHEN MEGAN IS NOT USED
-
-            ! Read daily leaf-area-index
-            ! Now include the year (mpb,11/19/09)
-            CALL RDISOLAI( DAY_OF_YEAR, MONTH, YEAR )
+            ! Interpolate LAI quantities from native grid to GEOS-Chem grid
+            CALL Compute_Modis_Lai( day_of_year, laiMM, 
+     &                              mapping,     doMonthly )
 
             ! For MEGAN biogenics ...
             IF ( LMEGAN ) THEN
 
-               ! Compute 15-day average temperature for MEGAN
-               CALL UPDATE_T_15_AVG
-            ENDIF
-#else
-            !%%% OTHERWISE, PRESERVE EXISTING CODE HERE
-
-            ! For MEGAN biogenics ...
-            IF ( LMEGAN ) THEN
-
+               !--------------------------------------------------------
+               !%%% NOTE: For consistency, we shall eventually disable 
+               !%%% RDISOLAI in favor of computing LAI directly from
+               !%%% the native resolution via routines from the new
+               !%%% modis_lai_mod.F90.  This will result in changes to
+               !%%% the biogenic emissions, which need to be validated
+               !%%% with a benchmark simulation. (bmy, 4/4/12)
+               !
                ! Read daily leaf-area-index
                ! Now include the year (mpb,11/19/09)
                CALL RDISOLAI( DAY_OF_YEAR, MONTH, YEAR )
+               !--------------------------------------------------------
 
                ! Compute 15-day average temperature for MEGAN
                CALL UPDATE_T_15_AVG
             ENDIF
-#endif
+
             ! For mercury simulations ...
             IF ( ITS_A_MERCURY_SIM() ) THEN
 
+               !--------------------------------------------------------
+               !%%% NOTE: For consistency, we shall eventually disable 
+               !%%% RDISOLAI in favor of computing LAI directly from
+               !%%% the native resolution via routines from the new
+               !%%% modis_lai_mod.F90.  This will result in changes to
+               !%%% the biogenic emissions, which need to be validated
+               !%%% with a benchmark simulation. (bmy, 4/4/12)
+               !
                ! Read AVHRR daily leaf-area-index
                CALL RDISOLAI( DAY_OF_YEAR, MONTH, YEAR )
+               !--------------------------------------------------------
 
             ENDIF 
                
@@ -1009,6 +1094,9 @@
 
       ! Deallocate dynamic module arrays
       CALL CLEANUP
+
+      ! Deallocate the derived type object w/ mapping info
+      CALL CLEANUP_MAPPING( mapping )
 
 #if defined( GTMM_Hg )
       ! Deallocate arrays from GTMM model for mercury simulation
