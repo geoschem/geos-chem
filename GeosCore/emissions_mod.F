@@ -375,7 +375,13 @@
 
          ! C2H6 emissions using RETRO are too low, use Yaping Xiao's
          ! offline C2H6 emissions instead (mpayer, 3/22/12)
+#if defined( DEVEL )
+         CALL EMISSC2H6( 
+     &        CHEM_STATE%TRAC_TEND (:,:,1,IDTC2H6),
+     &        CHEM_STATE%TRAC_BTEND(:,:,1,:)       )
+#else
          CALL EMISSC2H6
+#endif
 
          ! NOx-Ox-HC (w/ or w/o aerosols)
 #if defined( DEVEL )
