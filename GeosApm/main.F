@@ -28,7 +28,6 @@
       USE INPUT_MOD             ! For reading settings from "input.geos"
       USE LOGICAL_MOD           ! Logical flags to toggle G-C options
       USE MAPPING_MOD           ! For regridding MODIS LAI
-      USE MODIS_LAI_MOD         ! For MODIS leaf area indices (replacement)
       USE OLSON_LANDMAP_MOD     ! Computes IREG, ILAND, IUSE from Olson map
       USE PRESSURE_MOD          ! For computing pressure at grid boxes
       USE RESTART_MOD           ! For restart file I/O
@@ -91,6 +90,7 @@
       !-----------------------------------------------------------------
       USE EMISSIONS_MOD         ! Driver routines for emissions
       USE LAI_MOD               ! For MODIS leaf area indices (deprecated)
+      USE MODIS_LAI_MOD         ! For MODIS leaf area indices (replacement)
       USE LIGHTNING_NOX_MOD     ! For lightning NOx emissions  
       USE MEGAN_MOD             ! For biogenic emissions
 

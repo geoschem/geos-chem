@@ -41,34 +41,39 @@
 #  22 Aug 2011 - R. Yantosca - Modified for v9-01-02
 #  05 Aug 2011 - M. Long     - Now compile module files in Headers/ directory
 #  27 Sep 2011 - M. Payer    - Modified dependencies for GFED3
-#   6 Dec 2011 - R. Yantosca - Remove #ifdef blocks for GI model code
+#  06 Dec 2011 - R. Yantosca - Remove #ifdef blocks for GI model code
 #  16 Feb 2012 - M. Payer    - Remove references to ESMF directory
+#  05 Apr 2012 - R. Yantosca - Now also build code in NcdfUtil
+#  05 Apr 2012 - R. Yantosca - Remove reference to rdland.F
+#  05 Apr 2012 - R. Yantosca - Add c2h6_mod.o to emfossil.F dependency
+#  05 Apr 2012 - R. Yantosca - Remove reference to rdlai.F
 #EOP
 #------------------------------------------------------------------------------
 #BOC
 
 # Define variables
-SHELL   = /bin/sh
-ROOTDIR = ..
-APM     = $(ROOTDIR)/APM
-BIN     = $(ROOTDIR)/bin
-BPCH    = $(ROOTDIR)/GeosBpch
-CORE    = $(ROOTDIR)/GeosCore
-DOC     = $(ROOTDIR)/doc
-EXE     = geosapm
-GTMM    = $(ROOTDIR)/GTMM
-HDR     = $(ROOTDIR)/Headers
-HELP    = $(ROOTDIR)/help
-ISO     = $(ROOTDIR)/ISOROPIA
-LIB     = $(ROOTDIR)/lib
-KPP     = $(ROOTDIR)/KPP
-MOD     = $(ROOTDIR)/mod
-UTIL    = $(ROOTDIR)/GeosUtil
+SHELL   := /bin/sh
+ROOTDIR := ..
+APM     := $(ROOTDIR)/APM
+BIN     := $(ROOTDIR)/bin
+BPCH    := $(ROOTDIR)/GeosBpch
+CORE    := $(ROOTDIR)/GeosCore
+DOC     := $(ROOTDIR)/doc
+EXE     := geosapm
+GTMM    := $(ROOTDIR)/GTMM
+HDR     := $(ROOTDIR)/Headers
+HELP    := $(ROOTDIR)/help
+ISO     := $(ROOTDIR)/ISOROPIA
+LIB     := $(ROOTDIR)/lib
+KPP     := $(ROOTDIR)/KPP
+MOD     := $(ROOTDIR)/mod
+NCDF    := $(ROOTDIR)/NcdfUtil
+UTIL    := $(ROOTDIR)/GeosUtil
 
 # This directory only contains files that are different for the APM
 # aerosol microphysics.  For files that are the same as for the regular
 # GEOS-Chem code, look in the GeosCore directory.
-VPATH   = ../GeosCore
+VPATH   := ../GeosCore
 
 # Include header file.  This returns variables CC, F90, FREEFORM, LD, R8,
 # as well as the default Makefile compilation rules for source code files.
@@ -120,7 +125,7 @@ gfed2_biomass_mod.o      gfed3_biomass_mod.o     geos57_read_mod.o           \
 global_br_mod.o          global_ch4_mod.o	 olson_landmap_mod.o         \
 global_hno3_mod.o        global_no3_mod.o        global_nox_mod.o	     \
 global_o1d_mod.o         global_o3_mod.o         global_oh_mod.o	     \
- h2_hd_mod.o             hcn_ch3cn_mod.o	                             \
+h2_hd_mod.o              hcn_ch3cn_mod.o	                             \
 i6_read_mod.o            icoads_ship_mod.o       initialize.o		     \
 inphot.o                 input_mod.o             isoropiaII_mod.o	     \
 jsparse.o                jv_index.o              ksparse.o		     \
@@ -134,9 +139,9 @@ ohsave.o                 optdepth_mod.o          partition.o		     \
 pbl_mix_mod.o            pderiv.o                photoj.o		     \
 physproc.o               pjc_pfix_mod.o          pjc_pfix_geos5_window_mod.o \
 planeflight_mod.o        precipfrac.o            pulsing.o		     \
-rd_js.o                  rd_prof.o               rdland.o                    \
-rdlai.o                  rdsoil.o                readchem.o	             \
-reader.o                 readlai.o               restart_mod.o		     \
+rd_js.o                  rd_prof.o                                           \
+rdsoil.o                 readchem.o	                                     \
+reader.o                 restart_mod.o		                             \
 rpmares_mod.o            ruralbox.o              scale_anthro_mod.o	     \
 schem.o                  seasalt_mod.o           set_aer.o		     \
 set_prof.o               setemdep.o		 modis_lai_mod.o             \
@@ -152,7 +157,7 @@ tracerid_mod.o           transport_mod.o	 tropopause_mod.o            \
 upbdflx_mod.o            update.o                uvalbedo_mod.o              \
 vdiff_pre_mod.o          vdiff_mod.o             vistas_anthro_mod.o         \
 wetscav_mod.o            retro_mod.o             diag63_mod.o                \
- paranox_mod.o
+paranox_mod.o
 
 #=============================================================================
 # Makefile targets: type "make help" for a complete listing!
@@ -164,41 +169,47 @@ all:
 	@$(MAKE) lib
 	@$(MAKE) exe
 
-lib:                                                 # Build normal GEOS-Chem
-	@$(MAKE) libgc				     
-
-libgc:                                               # Compile everything
+lib:                                               # Build all G-C libraries
+	@$(MAKE) libnc                             
 	@$(MAKE) libheaders         		     
 	@$(MAKE) libkpp             		     
 	@$(MAKE) libutil 			     
 	@$(MAKE) libiso 			     
 	@$(MAKE) libapm
 
-libapm: $(OBJ)                                       # Build code in GeosApm/
+libapm: $(OBJ)                                     # Build code in GeosApm/
 
-libiso:                                              # Build code in ISOROPIA/
+libiso:                                            # Build code in ISOROPIA/
 	@$(MAKE) -C $(ISO)
 
-libkpp:                                              # Build code in KPP/
+libkpp:                                            # Build code in KPP/
 	@$(MAKE) -C $(KPP)
 
-libutil:                                             # Build code in GeosUtil/
+libnc:                                             # Build code in NcdfUtil/
+	@$(MAKE) -C $(NCDF) lib
+
+ncdfcheck:                                         # Check netCDF library
+	@$(MAKE) libnc
+	@$(MAKE) -C $(NCDF) check
+
+libutil:                                           # Build code in GeosUtil/
 	@$(MAKE) -C $(UTIL)
 
-libheaders:                                          # Build code in Headers/ 
+libheaders:                                        # Build code in Headers/ 
 	@$(MAKE) -C $(HDR)			     
 
-exe:                                                 # Build executable
+exe:                                               # Build executable
 	$(LD) $(OBJ) $(LINK) -o $(EXE)
 	cp -f $(EXE) $(BIN)
 
-clean:                                               # Remove files here
+clean:                                             # Remove files here
 	rm -f *.o *.mod geos geosapm geostomas
 
-realclean:                                           # Remove files everywhere
+realclean:                                         # Remove files everywhere
 	@$(MAKE) clean
 	@$(MAKE) -C $(ISO) clean
 	@$(MAKE) -C $(KPP) realclean
+	@$(MAKE) -C $(NCDF) clean
 	@$(MAKE) -C $(UTIL) clean
 	@$(MAKE) -C $(CORE) clean
 	@$(MAKE) -C $(GTMM) clean
@@ -207,13 +218,13 @@ realclean:                                           # Remove files everywhere
 	rm -f $(MOD)/*.mod
 	rm -f $(BIN)/geos*
 
-doc:                                                 # Build documentation
+doc:                                               # Build documentation
 	@$(MAKE) -C $(DOC) all
 
-docclean:                                            # Remove documentation
+docclean:                                          # Remove documentation
 	@$(MAKE) -C $(DOC) clean
 
-help:                                                # Show help screen
+help:                                              # Show help screen
 	@$(MAKE) -C $(HELP)
 
 #=============================================================================
@@ -550,7 +561,7 @@ emfossil.o                  : emfossil.F                                     \
                               logical_mod.o           nei2005_anthro_mod.o   \
                               streets_anthro_mod.o    tracer_mod.o           \
                               tracerid_mod.o          vistas_anthro_mod.o    \
-                              retro_mod.o   
+                              retro_mod.o   	      c2h6_mod.o
 
 emisop.o                    : emisop.F                dao_mod.o              \
                               meganut_mod.o
@@ -914,8 +925,6 @@ rd_prof.o                   : rd_prof.F
 rdisopt.o                   : rdisopt.F
 
 rdlai.o                     : rdlai.F
-
-rdland.o                    : rdland.F                logical_mod.o
 
 rdlight.o                   : rdlight.F
 

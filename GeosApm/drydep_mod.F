@@ -35,9 +35,6 @@
       USE TIME_MOD,       ONLY : GET_TS_CHEM    ! Chemistry timestep
       USE TRACER_MOD                            ! Tracer array STT etc.
       USE TRACERID_MOD                          ! Tracer ID flags
-#if   defined( APM ) 
-      USE APM_INIT_MOD                          ! For APM microphysics
-#endif
 
       IMPLICIT NONE
 
@@ -272,6 +269,9 @@
       REAL*8,  ALLOCATABLE :: DEPSAV  (:,:,:    )   ! Drydep frequencies
       REAL*8,  ALLOCATABLE :: DMID    (:        )   ! 
       REAL*8,  ALLOCATABLE :: SALT_V  (:        )
+#if   defined( APM )
+      REAL*8,  ALLOCATABLE :: DEPSAVSIZE(:,:,:)
+#endif
 
       !=================================================================
       ! MODULE ROUTINES -- follow below the "CONTAINS" statement
@@ -294,6 +294,12 @@
 ! !INTERFACE:
 !
       SUBROUTINE DO_DRYDEP
+!
+! !USES:
+!
+#if   defined( APM ) 
+      USE APM_INIT_MOD, ONLY : NSO4, NSEA, NDSTB
+#endif
 !
 ! !REMARKS:
 !  NOTE: Modeled aerosol dry deposition velocities over snow and ice surfaces 
@@ -372,6 +378,11 @@
       REAL*8        :: AZO   (NTYPE       )   ! Z0, per Olson land type
 #else
       REAL*8        :: AZO   (MAXIJ       )   ! Z0, per (I,J) square
+#endif
+
+#if   defined( APM )
+      ! size resolved dry velocities for APM simulation
+      REAL*8            :: DVELSIZE(MAXIJ,NSO4+NSEA+NDSTB)
 #endif
 
       !=================================================================
@@ -3954,6 +3965,12 @@
 ! !INTERFACE:
 !
       SUBROUTINE INIT_DRYDEP
+!
+! !USES:
+!
+#if   defined( APM ) 
+      USE APM_INIT_MOD, ONLY : NSO4, NSEA, NDSTB
+#endif
 ! 
 ! !REVISION HISTORY: 
 !  (1 ) Added N2O5 as a drydep tracer, w/ the same drydep velocity as

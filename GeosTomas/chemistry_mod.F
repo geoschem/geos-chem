@@ -168,8 +168,8 @@
 !
 ! !LOCAL VARIABLES:
 ! 
-      LOGICAL, SAVE            :: FIRST = .TRUE.
-      INTEGER                  :: N_TROP, MONTH, YEAR, WAVELENGTH
+      LOGICAL, SAVE :: FIRST = .TRUE.
+      INTEGER       :: N_TROP, MONTH, YEAR, WAVELENGTH
 
       !=================================================================
       ! DO_CHEMISTRY begins here!
