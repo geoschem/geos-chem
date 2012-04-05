@@ -117,6 +117,7 @@
 !  16 Feb 2011 - R. Yantosca - Add modifications for APM from G. Luo
 !  07 Sep 2011 - P. Kasibhatla - Modified to include GFED3
 !  08 Feb 2012 - R. Yantosca - Add modifications for GEOS-5.7.x met data
+!  28 Feb 2012 - R. Yantosca - Removed support for GEOS-3
 !  01 Mar 2012 - R. Yantosca - Now reference new grid_mod.F90
 !EOP
 !------------------------------------------------------------------------------
@@ -6203,6 +6204,7 @@
 !  27 Aug 2010 - R. Yantosca - Added ProTeX headers
 !  07 Sep 2011 - P. Kasibhatla - Modified for GFED3
 !   8 Feb 2012 - R. Yantosca - Rewrote USE statements for clarity
+!  28 Feb 2012 - R. Yantosca - Removed support for GEOS-3
 !  26 Mar 2012 - R. Yantosca - Now turn off switch USE_OLSON_2001 by default
 !                              (except for GEOS-5.7.2 met)
 !  27 Mar 2012 - R. Yantosca - Cosmetic changes

@@ -84,10 +84,10 @@ CONTAINS
     INTEGER, INTENT(IN) :: I_COARSE  ! # of longitudes on the "coarse" grid
     INTEGER, INTENT(IN) :: J_COARSE  ! # of latitudes  on the "coarse" grid
 !
-! !INPUT/OUTPUT PARAMETERS
+! !INPUT/OUTPUT PARAMETERS:
 ! 
     TYPE(MapWeight), POINTER, INTENT(INOUT) :: map(:,:)  ! "fine" -> "coarse"
-
+!
 ! !REVISION HISTORY:
 !  03 Apr 2012 - R. Yantosca - Initial version
 !EOP
