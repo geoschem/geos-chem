@@ -27,7 +27,6 @@ MODULE Modis_Lai_Mod
 !
   USE CMN_SIZE_Mod                                ! Size parameters
   USE CMN_DEP_Mod                                 ! IREG, ILAND, IUSE, FRCLND
-  USE CMN_VEL_Mod                                 ! IJREG, IJLAND, IJUSE
   USE Directory_Mod                               ! Disk directory paths   
   USE Error_Mod                                   ! Error checking routines
   USE Logical_Mod                                 ! Logical switches
@@ -55,6 +54,7 @@ MODULE Modis_Lai_Mod
 !
 ! !PRIVATE MEMBER FUNCTIONS:
 !
+  PRIVATE :: RoundOff
 !
 ! !REMARKS:
 !  Functionality of this module:
@@ -63,7 +63,7 @@ MODULE Modis_Lai_Mod
 !  MODIS LAI data at 0.5 x 0.5 native resolution.  This is because the legacy
 !  code assumed a direct correspondence between the Olson 1992 land map and
 !  the MODIS LAI data.  Similarly, if you are using the Olson 2001 land map,
-!  then thismodule will pick the MODIS LAI data at 0.25 x 0.25 resolution.
+!  then this module will pick the MODIS LAI data at 0.25 x 0.25 resolution.
 !                                                                             .
 !  Follows the same algorithm as in the IDL codes used to regrid MODIS LAI
 !  data (regridmodis_lai_v5.pro; contact GEOS-Chem Support team).
@@ -99,25 +99,44 @@ MODULE Modis_Lai_Mod
 !  To resolve these issues, we have created a new module (modis_lai_mod.F90)
 !  which reads from the MODIS LAI data in netCDF format at the native 
 !  resolution and then regrids the LAI data to GEOS-Chem resolution on-the-
-!  fly.  The XLAI and XYLAI arrays are populated for backwards compatibility 
-!  with the existing legacy codes.  The LAI arrays used for MEGAN (ISOLAI, 
-!  PMISOLAI, MISOLAI, and NMISOLAI) are now replaced by arrays GC_LAI, 
-!  GC_LAI_PM, GC_LAI_CM, and GC_LAI_NM) from modis_lai_mod.F.
+!  fly.  The XLAI array are populated for backwards compatibility with the 
+!  existing legacy codes.  The LAI arrays used for MEGAN (ISOLAI, PMISOLAI, 
+!  MISOLAI, and NMISOLAI) are now replaced by arrays GC_LAI, GC_LAI_PM, 
+!  GC_LAI_CM, and GC_LAI_NM) from modis_lai_mod.F.
 !                                                                             .
-!  We have validated that the new scheme generates identical XLAI and XYLAI
-!  arrays w/r/t the old scheme.  The arrays GC_LAI etc. differ from the 
-!  ISOLAI etc. arrays slightly; however, this is to be expected given that 
-!  we are now regridding from finer resolution than 1x1.
+!  We have validated that the new scheme generates identical XLAI arrays 
+!  w/r/t the old scheme.  The arrays GC_LAI etc. differ from the ISOLAI etc. 
+!  arrays slightly (but generally agree to within 0.001).  This is due to 
+!  the fact that the ISOLAI arrays were regridded from 1 x 1 native
+!  resolution, but now we are regridding from much finer resolution 
+!  (either 0.5 x 0.5 or 0.25 x 0.25).
 !                                                                             .
 !  NOTE: At the present time (April 2012), we have not yet disabled the 
 !  RDISOLAI function.  We will do so in the future, and will validate this 
-!  with a separate benchmark.
+!  with a separate full-chemistry benchmark simulation
 !                                                                             .
-!      -- Bob Yantosca (geos-chem-support@as.harvard.edu), 04 Apr 2012
+!      -- Bob Yantosca (geos-chem-support@as.harvard.edu), 09 Apr 2012
+!                                                                             .
+!                                                                             .
+!
+!  LAI arrays and where they are (or will be) used in GEOS-Chem:
+!  ===========================================================================
+!  (1) XLAI      --> Used in Soil NOx module
+!  (2) XLAI2     --> Used to compute XLAI
+!  (3) XYLAI     --> %%% OBSOLETE: REMOVED, NOW REPLACED BY XLAI %%%
+!  (4) GC_LAI    --> Intended replacement for ISOLAI   (from lai_mod.F)
+!  (5) GC_LAI_PM --> Intended replacement for PMISOLAI (from lai_mod.F)
+!  (6) GC_LAI_CM --> Intended replacement for MISOLAI  (from lai_mod.F)
+!  (7) GC_LAI_NM --> Intended replacement for NMISOLAI (from lai_mod.F)
 !
 ! !REVISION HISTORY:
 !  03 Apr 2012 - R. Yantosca - Initial version
 !  05 Apr 2012 - R. Yantosca - Added descriptive comments
+!  09 Apr 2012 - R. Yantosca - Fixed error in ROUNDOFF function that caused
+!                              numbers to be rounded up incorrectly.
+!  09 Apr 2012 - R. Yantosca - Changed variables to REAL*8
+!  09 Apr 2012 - R. Yantosca - Now set MODIS_START and MODIS_END depending
+!                              on which version of MODIS LAI we are using
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -127,17 +146,14 @@ MODULE Modis_Lai_Mod
   ! Scalars
   INTEGER              :: I_MODIS             ! # of longitudes, MODIS grid
   INTEGER              :: J_MODIS             ! # of latitudes,  MODIS grid
+  INTEGER              :: MODIS_START         ! First year of MODIS data  
+  INTEGER              :: MODIS_END           ! Last  year of MODIS data
                                               
   ! Arrays                                    
-  REAL*8,  ALLOCATABLE :: MODIS_LAI   (:,:)   ! Daily LAI on the MODIS grid
-  REAL*8,  ALLOCATABLE :: MODIS_LAI_PM(:,:)   ! MODIS LAI for previous month 
-  REAL*8,  ALLOCATABLE :: MODIS_LAI_CM(:,:)   ! MODIS LAI for current month 
-  REAL*8,  ALLOCATABLE :: MODIS_LAI_NM(:,:)   ! MODIS LAI for next month 
-!                                             
-! !DEFINED PARAMETERS:                        
-!                                             
-  INTEGER, PARAMETER   :: MODIS_START = 2000  ! First year of MODIS data  
-  INTEGER, PARAMETER   :: MODIS_END   = 2008  ! Last  year of MODIS data
+  REAL*4,  ALLOCATABLE :: MODIS_LAI   (:,:)   ! Daily LAI on the MODIS grid
+  REAL*4,  ALLOCATABLE :: MODIS_LAI_PM(:,:)   ! MODIS LAI for previous month 
+  REAL*4,  ALLOCATABLE :: MODIS_LAI_CM(:,:)   ! MODIS LAI for current month 
+  REAL*4,  ALLOCATABLE :: MODIS_LAI_NM(:,:)   ! MODIS LAI for next month 
 
   ! specify midmonth day for year 2000
   INTEGER, PARAMETER   :: startDay(13) = (/  15,  45,  74, 105,      &
@@ -155,8 +171,9 @@ CONTAINS
 !
 ! !DESCRIPTION: Subroutine COMPUTE\_MODIS\_LAI computes the daily MODIS leaf
 !  area indices for GEOS-Chem directly from the native grid resolution 
-!  (0.25 x 0.25 or 0.5 x 0.5).  Arrays XLAI and XYLAI (used in the legacy
-!  soil NOx and dry deposition routines) are populated accordingly.
+!  (0.25 x 0.25 or 0.5 x 0.5).  The XLAI array (used in the legacy soil NOx 
+!  and dry deposition routines) are populated accordingly.  The XYLAI array
+!  is now obsolete and has been replaced by XLAI.
 !\\
 !\\
 ! !INTERFACE:
@@ -176,28 +193,37 @@ CONTAINS
 ! !REVISION HISTORY: 
 !  03 Apr 2012 - R. Yantosca - Initial version
 !  05 Apr 2012 - R. Yantosca - Renamed arg "doMonthly" to "wasModisRead"
+!  09 Apr 2012 - R. Yantosca - Changed variables to REAL*8
+!  09 Apr 2012 - R. Yantosca - Now follows same algorithm as rdlai.F for
+!                              populating XLAI array
+!  09 Apr 2012 - R. Yantosca - Remove refs to CMN_VEL_mod.F and XYLAI array;
+!                              these are now obsolete
 !EOP
 !------------------------------------------------------------------------------
 !BOC
 !
 ! !LOCAL VARIABLES:
 !
+    LOGICAL, SAVE :: FIRST = .TRUE.
+
     ! Scalars
-    INTEGER :: I,     J,       IMUL,   ITD,  IJLOOP
-    INTEGER :: C,     II,      JJ,     type
-    REAL*4  :: mapWt, area,    sumArea
-    REAL*8  :: FRAC,  leafArea
-    
+    INTEGER :: I,     J,    IMUL,    ITD,  IJLOOP
+    INTEGER :: C,     II,   JJ,      type, K
+    REAL*8  :: mapWt, area, sumArea, DMON, DITD, DIMUL
+
     ! Arrays
-    REAL*8  :: tempArea(0:NVEGTYPE-1)
-    REAL*8  :: tempLai (0:NVEGTYPE-1)
+    REAL*8  :: tempArea (0:NVEGTYPE-1)
+    REAL*8  :: tempLai  (0:NVEGTYPE-1)
+    REAL*8  :: tempLaiCm(0:NVEGTYPE-1)
+    REAL*8  :: tempLaiNm(0:NVEGTYPE-1)
 
     !======================================================================
     ! Interpolate the LAI data on the MODIS grid to current day
+    ! Use same algorithm as in routines RDISOLAI (in lai_mod.F)
     !======================================================================
-
+    
     ! IMUL is days since midmonth
-    ! ITD  is days betw een midmonths
+    ! ITD  is days between midmonths
     IF ( doy < startDay(1) ) THEN
        IMUL           = 365 + doy - startDay(12) 
        ITD            = 31
@@ -209,15 +235,21 @@ CONTAINS
     ! Archive the days between midmonths in the LAI data
     DAYS_BTW_MON      = ITD
 
+    ! Cast ITD, IMUL to REAL*8
+    DITD              = DBLE( ITD  )
+    DIMUL             = DBLE( IMUL )
+
     ! Fraction of the LAI month that we are in
-    FRAC              = DBLE( IMUL ) / DBLE( ITD ) 
+    DMON              = REAL( IMUL ) / REAL( ITD ) 
        
     ! Interpolate to daily LAI value, on the MODIS grid
-    !$OMP PARALLEL DO DEFAULT( SHARED ) PRIVATE( I, J )
+    !$OMP PARALLEL DO       &
+    !$OMP DEFAULT( SHARED ) & 
+    !$OMP PRIVATE( I, J   )
     DO J = 1, J_MODIS
     DO I = 1, I_MODIS
        MODIS_LAI(I,J) = MODIS_LAI_CM(I,J)  &
-                      + ( FRAC * ( MODIS_LAI_NM(I,J) - MODIS_LAI_CM(I,J) ) )
+                      + ( ( MODIS_LAI_NM(I,J) - MODIS_LAI_CM(I,J) ) * DMON )
     ENDDO
     ENDDO 
     !$OMP END PARALLEL DO
@@ -225,20 +257,24 @@ CONTAINS
     !======================================================================
     ! Bin data from the "fine" MODIS grid to the "coarse" GEOS-Chem grid.
     ! Populate arrays for backwards-compatibility w/ existing routines
+    ! Use same algorithm as in routine rdlai.F
     !======================================================================
-    !$OMP PARALLEL DO                                             &
-    !$OMP DEFAULT( SHARED                                       ) &
-    !$OMP PRIVATE( I, J,  tempArea, tempLai, sumArea,  IJLOOP   ) &
-    !$OMP PRIVATE( C, II, JJ,       type,    area,     leafArea ) 
+    !$OMP PARALLEL DO                                                 &
+    !$OMP DEFAULT( SHARED                                           ) &
+    !$OMP PRIVATE( I,         J,       tempArea, tempLai, tempLaiCm ) &
+    !$OMP PRIVATE( tempLaiNm, sumArea, IJLOOP,   C,       II        ) & 
+    !$OMP PRIVATE( JJ,        type,    area,     K                  )      
     DO J = 1, JJPAR
     DO I = 1, IIPAR
 
        ! Initialize
        tempArea             = 0d0
        tempLai              = 0d0
+       tempLaiCm            = 0d0
+       tempLaiNm            = 0d0
        sumArea              = map(I,J)%sumarea
        IJLOOP               = ( (J-1) * IIPAR ) + I
-       GC_LAI   (I,J)       = 0d0
+       GC_LAI(I,J)          = 0d0
 
        ! If a new month of MODIS LAI data was just read from disk,
        ! then also initialize the appropriate data arrays here.
@@ -262,23 +298,24 @@ CONTAINS
 
           ! Sum of areas corresponding to each Olson
           ! for "coarse" GEOS-Chem grid box (I,J)
-          tempArea(type)    = tempArea(type) + area 
+          tempArea(type)    = tempArea(type)  + area 
 
           ! Compute the total leaf area in "coarse" GEOS-Chem 
           ! grid box (I,J) corresponding to each Olson land type
-          tempLai(type)     = tempLai(type)  + ( MODIS_LAI(II,JJ)    * area )
+          tempLaiCm(type)   = tempLaiCm(type) + ( MODIS_LAI_CM(II,JJ) * area )
+          tempLaiNm(type)   = tempLaiNm(type) + ( MODIS_LAI_NM(II,JJ) * area )
 
           ! Compute the total leaf area in "coarse" GEOS-Chem
           ! grid box (I,J), irrespective of Olson land type
-          GC_LAI(I,J)       = GC_LAI(I,J)    + ( MODIS_LAI(II,JJ)    * area )
+          GC_LAI(I,J)       = GC_LAI(I,J)     + ( MODIS_LAI(II,JJ)    * area )
 
           ! If a new month of MODIS LAI data was just read from disk,
           ! then also compute the corresponding total leaf areas in the 
           ! "coarse" GEOS-Chem grid box (I,J).
           IF ( wasModisRead ) THEN
-             GC_LAI_PM(I,J) = GC_LAI_PM(I,J) + ( MODIS_LAI_PM(II,JJ) * area )
-             GC_LAI_CM(I,J) = GC_LAI_CM(I,J) + ( MODIS_LAI_CM(II,JJ) * area )
-             GC_LAI_NM(I,J) = GC_LAI_NM(I,J) + ( MODIS_LAI_NM(II,JJ) * area )
+             GC_LAI_PM(I,J) = GC_LAI_PM(I,J)  + ( MODIS_LAI_PM(II,JJ) * area )
+             GC_LAI_CM(I,J) = GC_LAI_CM(I,J)  + ( MODIS_LAI_CM(II,JJ) * area )
+             GC_LAI_NM(I,J) = GC_LAI_NM(I,J)  + ( MODIS_LAI_NM(II,JJ) * area )
           ENDIF
        ENDDO
 
@@ -310,19 +347,99 @@ CONTAINS
           ! Skip land types that are not in "coarse" grid box (I,J)
           IF ( tempArea(C) > 0d0 ) THEN
           
+             ! Ordering for ILAND, IUSE, XLAI, XYLAI etc arrays
+             K = map(I,J)%ordOlson(C)
+
              ! Convert leaf area [cm2 leaf] to LAI [cm2 leaf/cm2 grid box]
-             tempLai(C) = tempLai(C) / tempArea(C)
+             tempLaiCm(C) = tempLaiCm(C) / tempArea(C)
+             tempLaiNm(C) = tempLaiNm(C) / tempArea(C)
 
-             ! Save into GEOS-Chem arrays for backwards compatibility
-             XLAI ( I, J,   map(I,J)%ordOlson(C) ) = tempLai(C)
-             XYLAI( IJLOOP, map(I,J)%ordOlson(C) ) = tempLai(C)
+             ! Round off to 1 digit of precision to mimic the fact that
+             ! the LAI in the lai*.global files only had one decimal point
+             tempLaiCm(C) = RoundOff( tempLaiCm(C), 1 )
+             tempLaiNm(C) = RoundOff( tempLaiNm(C), 1 )
 
+             ! This IF statement mimics the algorithm in the obsolete
+             ! routine rdlai.F.  We need to keep the same algorithm
+             ! for backwards compatibility.
+             IF ( FIRST ) THEN 
+
+                !----------------------------------------------------------
+                ! %%%%% START OF SIMULATION, FIRST LAI DATA READ %%%%%
+                !
+                ! Follow original algorithm in the old rdland.F
+                ! (1) XLAI  gets read in as the current month of LAI data
+                ! (2) XLAI2 gets read in as the next    month of LAI data
+                ! (3) XLAI2 is recomputed as the Delta-LAI this month
+                !     ([ next month - this month ] / # of days in month)
+                ! (4) XLAI is incremented by the amount 
+                !      ( Delta-LAI ) * # of days since start of month
+                !----------------------------------------------------------
+                XLAI2(I,J,K) = ( tempLaiNm(C) - tempLaiCm(C) ) / DITD
+                XLAI (I,J,K) = ( tempLaiCm(C) ) + ( XLAI2(I,J,K) * DIMUL )
+
+                IF ( I==22 .and. J==10 .and. C==63  ) THEN
+                   PRINT*, '###----------------'
+                   print*, '### comp_modis_lai: first timestep'
+                   print*, '### ILAND    : ', C
+                   print*, '### templaiCm: ', tempLaiCm(C)
+                   print*, '### templaiNm: ', tempLaiNm(C)
+                   print*, '### ITD, IMUL: ', ITD, IMUL
+                   print*, '### XLAI     : ', XLAI (I,J,K)
+                   print*, '### XLAI2    : ', XLAI2(I,J,K)
+                ENDIF
+                
+             ELSE
+
+                IF ( wasModisRead ) THEN
+
+                   !----------------------------------------------------------
+                   ! %%%% SUBSEQUENT DATA READ @ START OF NEW LAI MONTH %%%%
+                   !
+                   ! Follow original algorithm in the old rdland.F
+                   ! (1) XLAI  gets read in as the current month of LAI data
+                   ! (2) XLAI2 is computed as the Delta-LAI this month
+                   !     (i.e. [next month - this month ] / # of days
+                   !----------------------------------------------------------
+                   XLAI2(I,J,K) = ( tempLaiNm(C) - tempLaiCm(C) ) / DITD
+                   XLAI (I,J,K) = ( tempLaiCm(C)                )
+ 
+                   IF ( I==22 .and. J==10 .and. ILAND(I,J,K)==63 ) THEN
+                      PRINT*, '###----------------'
+                      print*, '### comp_modis_lai: new data read'
+                      print*, '### ILAND    : ', ILAND(I,J,K)
+                      print*, '### XLAI  a  : ', XLAI(I,J,K)
+                      print*, '### XLAI2 a  : ', XLAI2(I,J,K)
+                   ENDIF
+
+                ELSE
+                
+                   !----------------------------------------------------------
+                   ! %%%%% ALL OTHER TIMES OF THE MONTH (NO DATA READS %%%%%
+                   !
+                   ! Follow original algorithm in the old rdland.F
+                   ! (1) Increment LAI by the this month's Delta-LAI
+                   !----------------------------------------------------------
+                   XLAI(I,J,K)  = XLAI(I,J,K) + XLAI2(I,J,K)
+
+                   IF ( I==22 .and. J==10 .and. C==63  ) THEN
+                      PRINT*, '###----------------'
+                      print*, '### comp_modis_lai: all other times'
+                      print*, '### ILAND    : ', C
+                      print*, '### XLAI     : ', XLAI (I,J,K)
+                      print*, '### XLAI2    : ', XLAI2(I,J,K)
+                   ENDIF
+
+                ENDIF
+             ENDIF
           ENDIF
        ENDDO
-
     ENDDO
     ENDDO
     !$OMP END PARALLEL DO
+
+    ! Save
+    FIRST = .FALSE.
 
   END SUBROUTINE Compute_Modis_Lai
 !EOC
@@ -624,8 +741,7 @@ CONTAINS
 !  (2 ) Add the current simulation year as input & the current LAI as output.
 !       This is necessary for reading in MODIS LAI (mpb,2009).
 !  08 Dec 2009 - R. Yantosca - Added ProTeX headers
-!  03 Apr 2012 - R. Yantosca - Copied to this module as a PRIVATE routine
-!  03 Apr 2012 - R. Yantosca - Renamed to FIND_LAI_MONTH
+!  03 Apr 2012 - R. Yantosca - Renamed to FIND_LAI_MONTH; made PUBLIC
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -657,10 +773,72 @@ CONTAINS
 !------------------------------------------------------------------------------
 !BOP
 !
+! !IROUTINE: RoundOff
+!
+! !DESCRIPTION: Rounds a number X to N decimal places of precision.
+!\\
+!\\
+! !INTERFACE:
+!
+  FUNCTION RoundOff( X, N ) RESULT( Y )
+!
+! !INPUT PARAMETERS:
+! 
+    REAL*8,  INTENT(IN) :: X   ! Number to be rounded
+    INTEGER, INTENT(IN) :: N   ! Number of decimal places to keep
+!
+! !RETURN VALUE:
+!
+    REAL*8              :: Y   ! Number rounded to N decimal places
+!
+! !REMARKS:
+!  The algorithm to round X to N decimal places is as follows:
+!  (1) Multiply X by 10**(N+1)
+!  (2) If X < 0, then add -5 to X; otherwise add 5 to X
+!  (3) Take the integer part of X
+!  (4) Divide X by 10**(N+1)
+!  (5) Truncate X to N decimal places: INT( X * 10**N ) / 10**N
+!                                                                             .
+!  Rounding algorithm from: Hultquist, P.F, "Numerical Methods for Engineers 
+!   and Computer Scientists", Benjamin/Cummings, Menlo Park CA, 1988, p. 20.
+!                                                                             .
+!  Truncation algorithm from: http://en.wikipedia.org/wiki/Truncation
+!                                                                             .
+!  The two algorithms have been merged together for efficiency.
+!
+! !REVISION HISTORY:
+!  06 Apr 2012 - R. Yantosca - Initial version
+!  09 Apr 2012 - R. Yantosca - Changed all variables & arguments to REAL*8
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+!
+! !LOCAL VARIABLES
+!
+    REAL*8 :: TEN_TO_THE_N                   ! Term for 10**N
+    REAL*8 :: TEN_TO_THE_Np1                 ! Term for 10**(N+1)
+
+    ! Pre-compute exponential terms
+    TEN_TO_THE_N   = 10d0**N
+    TEN_TO_THE_Np1 = 10d0**(N+1)
+    
+    ! Steps (1) through (4) above
+    Y = INT( ( X * TEN_TO_THE_Np1 ) + SIGN( 5d0, X ) ) / TEN_TO_THE_Np1
+
+    ! Step (5) above
+    Y = INT( Y * TEN_TO_THE_N ) / TEN_TO_THE_N
+  
+  END FUNCTION RoundOff
+!EOC
+!------------------------------------------------------------------------------
+!          Harvard University Atmospheric Chemistry Modeling Group            !
+!------------------------------------------------------------------------------
+!BOP
+!
 ! !IROUTINE: init_modis
 !
-! !DESCRIPTION: Subroutine INIT\_OLSON\_LANDMAP reads Olson land map 
-! information from disk (in netCDF format).
+! !DESCRIPTION: Subroutine INIT\_MODIS\_LAI initializes and allocates
+!  all module variables.
 !\\
 !\\
 ! !INTERFACE:
@@ -680,7 +858,6 @@ CONTAINS
     !======================================================================
     ! Allocate arrays on the "coarse" GEOS-Chem grid
     !======================================================================
-
     ALLOCATE( GC_LAI( IIPAR, JJPAR ), STAT=as ) 
     IF ( AS /= 0 ) CALL ALLOC_ERR( 'GC_LAI' )
     GC_LAI = 0d0
@@ -701,11 +878,15 @@ CONTAINS
     ! Allocate arrays on the "fine" MODIS grid grid
     !======================================================================
     IF ( USE_OLSON_2001 ) THEN
-       I_MODIS = 1440             ! For Olson 2001, use MODIS LAI
-       J_MODIS = 720              ! on the 0.25 x 0.25 native grid
+       I_MODIS     = 1440             ! For Olson 2001, use MODIS LAI
+       J_MODIS     = 720              ! on the 0.25 x 0.25 native grid
+       MODIS_START = 2000             ! First year of MODIS data  
+       MODIS_END   = 2010             ! Last  year of MODIS data
     ELSE
-       I_MODIS = 720              ! For Olson 1992, use MODIS LAI
-       J_MODIS = 360              ! on the 0.5 x 0.5 native grid
+       I_MODIS     = 720              ! For Olson 1992, use MODIS LAI
+       J_MODIS     = 360              ! on the 0.5 x 0.5 native grid
+       MODIS_START = 2000             ! First year of MODIS data  
+       MODIS_END   = 2008             ! Last  year of MODIS data
     ENDIF
 
     ALLOCATE( MODIS_LAI( I_MODIS, J_MODIS ), STAT=as ) 
@@ -751,6 +932,7 @@ CONTAINS
     IF ( ALLOCATED( GC_LAI_CM    ) ) DEALLOCATE( GC_LAI_CM    )
     IF ( ALLOCATED( GC_LAI_NM    ) ) DEALLOCATE( GC_LAI_NM    )
     IF ( ALLOCATED( MODIS_LAI    ) ) DEALLOCATE( MODIS_LAI    )
+    IF ( ALLOCATED( MODIS_LAI_PM ) ) DEALLOCATE( MODIS_LAI_PM )
     IF ( ALLOCATED( MODIS_LAI_CM ) ) DEALLOCATE( MODIS_LAI_CM )
     IF ( ALLOCATED( MODIS_LAI_NM ) ) DEALLOCATE( MODIS_LAI_NM )
 

@@ -6,10 +6,10 @@
 ! !MODULE: olson_landmap_mod
 !
 ! !DESCRIPTION: Module OLSON\_LANDMAP\_MOD reads the Olson land map and
-!  computes the IREG, ILAND, and IUSE (and also IJREG, IJLAND, and
-!  IJUSE) arrays.  This module was written to facilitate Grid-Independent
-!  GEOS-Chem development while still keeping backwards compatibility
-!  with existing code.  It replaces the old routine rdland.F.
+!  computes the IREG, ILAND, and IUSE arrays.  This module was written to
+!  facilitate Grid-Independent GEOS-Chem development while still keeping 
+!  backwards compatibility with existing legacy code.  It replaces the old 
+!  routine rdland.F.
 !\\
 !\\
 ! !INTERFACE: 
@@ -21,7 +21,6 @@ MODULE Olson_LandMap_Mod
   USE CMN_GCTM_MOD                      ! Physical constants
   USE CMN_DEP_MOD                       ! IREG, ILAND, IUSE, FRCLND arrays
   USE CMN_SIZE_MOD                      ! Size parameters
-  USE CMN_VEL_MOD                       ! IJREG, IJLAND, IJUSE arrays
   USE DIRECTORY_MOD                     ! Disk directory paths   
   USE ERROR_MOD                         ! Error checking routines
   USE GRID_MOD                          ! Horizontal grid definition
@@ -72,9 +71,9 @@ MODULE Olson_LandMap_Mod
 !  (1) IREG   (in CMN_DEP_mod.F): # of Olson land types per G-C grid box 
 !  (2) ILAND  (in CMN_DEP_mod.F): List of all Olson land types in G-C grid box
 !  (3) IUSE   (in CMN_DEP_mod.F): Coverage of each Olson type in G-C grid box
-!  (4) IJREG  (in CMN_VEL_mod.F): Same as IREG,  but has 1 spatial dimension
-!  (5) IJLAND (in CMN_VEL_mod.F): Same as ILAND, but has 1 spatial dimension
-!  (6) IJUSE  (in CMN_VEL_mod.F): Same as IUSE,  but has 1 spatial dimension
+!  (4) IJREG  (in CMN_VEL_mod.F): %%%%% OBSOLETE: NOW REPLACED BY IREG  %%%%%
+!  (5) IJLAND (in CMN_VEL_mod.F): %%%%% OBSOLETE: NOW REPLACED BY ILAND %%%%%
+!  (6) IJUSE  (in CMN_VEL_mod.F): %%%%% OBSOLETE: NOW REPLACED BY IUSE  %%%%%
 !  (7) FRCLND (in CMN_DEP_mod.F): Fraction of G-C grid box that is not water
 !                                                                             .
 !  NOTES: 
@@ -148,6 +147,9 @@ MODULE Olson_LandMap_Mod
 !  02 Apr 2012 - R. Yantosca - Now reference mapping_mod.F90
 !  02 Apr 2012 - R. Yantosca - Moved routine GET_MAP_WT to mapping_mod.F90
 !  02 Apr 2012 - R. Yantosca - Now Save mapping info for later use
+!  09 Apr 2012 - R. Yantosca - Removed IJREG, IJUSE, IJLAND; these are now
+!                              replaced by IREG, IUSE, ILAND arrays
+!  09 Apr 2012 - R. Yantosca - Removed reference to CMN_VEL_mod.F
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -207,6 +209,9 @@ CONTAINS
 !                              A_CM2 (read from disk) instead of computing it
 !  02 Apr 2012 - R. Yantosca - Now pass MAP (mapping weight object) via the
 !                              arg list, to save the mapping info for later
+!  09 Apr 2012 - R. Yantosca - Remove IJLOOP variable
+!  09 Apr 2012 - R. Yantosca - Now do not compute IJREG, IJLAND, IJUSE; these
+!                              are replaced by IREG, ILAND, IUSE arrays
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -215,12 +220,12 @@ CONTAINS
 !
     ! Scalars
     LOGICAL :: isGlobal
-    INTEGER :: I,        J,         II,       III
-    INTEGER :: JJ,       T,         N,        type
-    INTEGER :: IJLOOP,   uniqOlson, sumIuse,  C
-    REAL*4  :: xedge_w,  xedge_e,   yedge_s,  yedge_n
-    REAL*4  :: xedgeC_w, xedgeC_e,  yedgeC_s, yedgeC_n
-    REAL*4  :: dxdy,     dxdy4,     mapWt,    area
+    INTEGER :: I,         J,         II,       III
+    INTEGER :: JJ,        T,         N,        type
+    INTEGER :: uniqOlson, sumIuse,   C
+    REAL*4  :: xedge_w,   xedge_e,   yedge_s,  yedge_n
+    REAL*4  :: xedgeC_w,  xedgeC_e,  yedgeC_s, yedgeC_n
+    REAL*4  :: dxdy,      dxdy4,     mapWt,    area
     REAL*4  :: sumArea
     
     ! Generic arrays
@@ -266,9 +271,6 @@ CONTAINS
     IREG               = 0
     ILAND              = 0
     IUSE               = 0
-    IJREG              = 0
-    IJLAND             = 0
-    IJUSE              = 0
     FRCLND             = 1000e0
     isGlobal           = ( .not. ITS_A_NESTED_GRID() )
 
@@ -281,7 +283,7 @@ CONTAINS
     !$OMP PRIVATE( yedgeC_n, dxdy4,   sumArea,  JJ,       III      ) &
     !$OMP PRIVATE( dxdy,     mapWt,   II,       xedge_w,  yedge_s  ) &
     !$OMP PRIVATE( xedge_e,  yedge_n, area,     type,     maxIuse  ) &
-    !$OMP PRIVATE( sumIUse,  IJLOOP,  uniqOlson, C                 )
+    !$OMP PRIVATE( sumIUse,  uniqOlson, C                          )
     DO J = 1, JJPAR
     DO I = 1, IIPAR
 
@@ -377,8 +379,8 @@ CONTAINS
           ENDIF
 
           ! Save mapping information for later use in modis_lai_mod.F90
-          ! in order to prepare the XLAI and XYLAI arrays for use with
-          ! the legacy dry-deposition and soil NOx emissions codes.
+          ! in order to prepare the XLAI array for use with the legacy 
+          ! dry-deposition and soil NOx emissions codes.
           C                 = C + 1
           map(I,J)%count    = C
           map(I,J)%II(C)    = II
@@ -439,20 +441,8 @@ CONTAINS
           IUSE(I,J,maxIUse) = IUSE(I,J,maxIUse) + ( 1000 - sumIUse )
        ENDIF
       
-       ! 1-D grid box index for IJ* arrays
-       IJLOOP               = ( (J-1) * IIPAR ) + I
-
-       ! Copy IREG into IJREG (for drydep)
-       IJREG(IJLOOP)        = IREG(I,J) 
-
        ! Loop over land types in the GEOS-CHEM GRID BOX
        DO T = 1, IREG(I,J)
-
-          ! Copy ILAND into IJLAND (for drydep)
-          IJLAND(IJLOOP,T)  = ILAND(I,J,T)
-
-          ! Copy IUSE into IJUSE (for drydep)
-          IJUSE (IJLOOP,T)  = IUSE (I,J,T)
 
           ! If the current Olson land type is water (type 0),
           ! subtract the coverage fraction (IUSE) from FRCLND.

@@ -108,6 +108,9 @@
       USE A6_READ_MOD           ! For reading A6 data (all other met)
       USE I6_READ_MOD           ! For reading I6 data (all other met)
 
+      !### DEBUG
+      use cmn_dep_mod
+
       IMPLICIT NONE
 
 #     include "define.h"
@@ -601,17 +604,19 @@
             ! NMISOLAI) are now replaced by arrays GC_LAI, GC_LAI_PM, 
             ! GC_LAI_CM, and GC_LAI_NM) from modis_lai_mod.F.
             !
-            ! We have validated that the new scheme generates identical
-            ! XLAI and XYLAI arrays to the old scheme.  The arrays
-            ! GC_LAI etc. differ from the ISOLAI etc. arrays slightly;
-            ! however, this is to be expected given that we are now
-            ! regridding from finer resolution than 1x1.
+            ! We have validated that the new scheme generates identical 
+            ! XLAI and XYLAI arrays w/r/t the old scheme.  The arrays 
+            ! GC_LAI etc. differ from the ISOLAI etc. arrays slightly 
+            ! (but generally agree to within 0.001).  This is due to 
+            ! the fact that the ISOLAI arrays were regridded from 1 x 1
+            ! native resolution, but now we are regridding from much 
+            ! finer resolution (either  0.5 x 0.5 or 0.25 x 0.25).
             !
             ! NOTE: At the present time, we have not yet disabled
             ! the RDISOLAI function.  We will do so in the future,
             ! and will validate this with a separate benchmark.
             ! 
-            !      -- Bob Yantosca (04 Apr 2012)
+            !      -- Bob Yantosca (09 Apr 2012)
             !-----------------------------------------------------------
 
             ! Find the proper month and year for LAI  based on the current 
@@ -626,6 +631,17 @@
             ! Interpolate LAI quantities from native grid to GEOS-Chem grid
             CALL Compute_Modis_Lai( day_of_year, laiMM, 
      &                              mapping,     wasModisRead )
+
+!##############################################################################
+!### DEBUG
+            DO J = 1, JJPAR
+            DO I = 1, IIPAR
+               write( 700, 200 ) I, J, XLAI( I,J, 1:IREG(I,J) )
+ 200           format( 2i3,1x, 20f5.1 )
+            ENDDO
+            ENDDO
+!##############################################################################
+
 
             ! For MEGAN biogenics ...
             IF ( LMEGAN ) THEN

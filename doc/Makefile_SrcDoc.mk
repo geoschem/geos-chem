@@ -50,10 +50,11 @@
 #  28 Feb 2012 - R. Yantosca - Added pbl_mix_mod
 #  05 Mar 2012 - M. Payer    - Added tracer_mod
 #  06 Mar 2012 - R. Yantosca - Added photoj.F and set_prof.F
-#   7 Mar 2012 - M. Payer    - Added global_ch4_mod
+#  07 Mar 2012 - M. Payer    - Added global_ch4_mod
 #  22 Mar 2012 - M. Payer    - Added c2h6_mod, olson_landmap_mod
 #  29 Mar 2012 - R. Yantosca - Added lai_mod
 #  29 Mar 2012 - R. Yantosca - Added modis_lai_mod and mapping_mod
+#  09 Apr 2012 - R. Yantosca - Added modules from Headers/ directory
 #EOP
 #------------------------------------------------------------------------------
 #BOC
@@ -64,10 +65,20 @@ SRC1 :=                              \
 ./headers.geos-chem                  \
 $(HDR)/define.h                      \
 $(HDR)/CMN_SIZE_mod.F                \
+$(HDR)/CMN_DEP_mod.F                 \
 $(HDR)/CMN_DIAG_mod.F                \
+$(HDR)/CMN_GCTM_mod.F                \
+$(HDR)/CMN_NOX_mod.F                 \
+$(HDR)/CMN_O3_mod.F                  \
+$(HDR)/CMN_mod.F                     \
 $(HDR)/cmn_fj_mod.F                  \
+$(HDR)/commsoil_mod.F                \
+$(HDR)/comode_loop_mod.F             \
 $(HDR)/jv_cmn_mod.F                  \
 $(HDR)/jv_mie_mod.F                  \
+$(HDR)/smv_dimension_mod.F           \
+$(HDR)/smv_errcode_mod.F             \
+$(HDR)/smv_physconst_mod.F           \
 $(CORE)/main.F                       \
 $(CORE)/acetone_mod.F                \
 $(CORE)/aerosol_mod.F                \
