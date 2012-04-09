@@ -347,7 +347,8 @@
       ! Regrid anthro emissions to current resolution
       !GEOS_1x1(:,:,1) = E_NOx_1x1(:,:)
       !CALL DO_REGRID_1x1( 'unitless', GEOS_1x1, TEMP_TOT )  
-      LLFILENAME = TRIM( DATA_DIR_1x1) //'latlon_generic.txt'
+      LLFILENAME = TRIM( DATA_DIR_1x1) //
+     &   'MAP_A2A_Regrid_200312/latlon_generic.txt'
         ALLOCATE(INGRID(I1x1,J1x1-1))
         ALLOCATE(OUTGRID(IIPAR,JJPAR))
         INGRID = E_NOx_1x1(:,:)
@@ -848,7 +849,8 @@
 
       ! Regrid CO emissions to current model resolution [kg/yr]
       !CALL DO_REGRID_1x1( 'kg/yr', GEOS_1x1, E_CO )
-      LLFILENAME = TRIM( DATA_DIR_1x1) //'latlon_generic.txt'
+      LLFILENAME = TRIM( DATA_DIR_1x1) //
+     &   'MAP_A2A_Regrid_200312/latlon_generic.txt'
         ALLOCATE(INGRID(I1x1,J1x1-1))
         ALLOCATE(OUTGRID(IIPAR,JJPAR))
         INGRID = E_CO_1x1
@@ -1066,7 +1068,8 @@
 
       ! Regrid SO2 emissions to current model resolution [kg/yr]
       !CALL DO_REGRID_1x1( 'kg/yr', GEOS_1x1, E_SO2 )
-      LLFILENAME = TRIM( DATA_DIR_1x1) //'latlon_generic.txt'
+      LLFILENAME = TRIM( DATA_DIR_1x1) //
+     &   'MAP_A2A_Regrid_200312/latlon_generic.txt'
         ALLOCATE(INGRID(I1x1,J1x1-1))
         ALLOCATE(OUTGRID(IIPAR,JJPAR))
         INGRID = E_SO2_1x1
@@ -1391,7 +1394,8 @@
       !E_SO2_SHIP_1x1(:,:) = E_SO2_SHIP_1x1(:,:) * ARRAY(:,:,1)
 
       ! Regrid to current model resolution
-      LLFILENAME = TRIM( DATA_DIR_1x1) //'latlon_geos1x1.txt'
+      LLFILENAME = TRIM( DATA_DIR_1x1) //
+     &   'MAP_A2A_Regrid_200312/latlon_geos1x1.txt'
         ALLOCATE(INGRID(I1x1,J1x1))
         ALLOCATE(OUTGRID(IIPAR,JJPAR))
         INGRID = ARRAY(:,:,1)
@@ -2098,7 +2102,8 @@
       ! [atoms C/cm2/s] (ccc, 3/9/09)
       !GEOS1x1(:,:,1) = ARRAY(:,:)
       !CALL DO_REGRID_1x1('atoms C/cm2/s', GEOS1x1, TEMP)
-      LLFILENAME = TRIM( DATA_DIR_1x1) //'latlon_geos1x1.txt'
+      LLFILENAME = TRIM( DATA_DIR_1x1) //
+     &   'MAP_A2A_Regrid_200312/latlon_geos1x1.txt'
         ALLOCATE(INGRID(I1x1,J1x1))
         ALLOCATE(OUTGRID(IIPAR,JJPAR))
         INGRID = ARRAY
@@ -2223,7 +2228,8 @@
       ! [atoms C/cm2/s] (ccc, 3/9/09)
       !GEOS1x1(:,:,1) = ARRAY(:,:)
       !CALL DO_REGRID_1x1('atoms C/cm2/s', GEOS1x1, TEMP)
-      LLFILENAME = TRIM( DATA_DIR_1x1) //'latlon_geos1x1.txt'
+      LLFILENAME = TRIM( DATA_DIR_1x1) //
+     &   'MAP_A2A_Regrid_200312/latlon_geos1x1.txt'
         ALLOCATE(INGRID(I1x1,J1x1))
         ALLOCATE(OUTGRID(IIPAR,JJPAR))
         INGRID = ARRAY
@@ -2302,7 +2308,8 @@
       ! [atoms C/cm2/s] (ccc, 3/9/09)
       !GEOS1x1(:,:,1) = ARRAY(:,:)
       !CALL DO_REGRID_1x1('atoms C/cm2/s', GEOS1x1, TEMP)
-      LLFILENAME = TRIM( DATA_DIR_1x1) //'latlon_geos1x1.txt'
+      LLFILENAME = TRIM( DATA_DIR_1x1) //
+     &   'MAP_A2A_Regrid_200312/latlon_geos1x1.txt'
         ALLOCATE(INGRID(I1x1,J1x1))
         ALLOCATE(OUTGRID(IIPAR,JJPAR))
         INGRID = ARRAY

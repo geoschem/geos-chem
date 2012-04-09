@@ -396,7 +396,7 @@
 
       ! Read lat/lon edges:  File name
       LLFILENAME = TRIM( DATA_DIR_1x1) //
-     &           'EMEP_200510/latlon_geos1x1.txt'
+     &           'MAP_A2A_Regrid_200312/latlon_geos1x1.txt'
         ALLOCATE(INGRID(I1x1,J1x1))
         ALLOCATE(OUTGRID(IIPAR,JJPAR))
 
@@ -1017,7 +1017,7 @@
      &            'EMEP_200911/EMEP_mask.geos.1x1'
 
       LLFILENAME = TRIM( DATA_DIR_1x1) //
-     &           'EMEP_200911/latlon_geos1x1.txt'
+     &           'MAP_A2A_Regrid_200312/latlon_geos1x1.txt'
 
       ! Echo info
       WRITE( 6, 100 ) TRIM( FILENAME )
@@ -1253,7 +1253,7 @@
 
 
       LLFILENAME = TRIM( DATA_DIR_1x1) //
-     &           'EMEP_200911/latlon_geos1x1.txt'
+     &           'MAP_A2A_Regrid_200312/latlon_geos1x1.txt'
         ALLOCATE(INGRID(I1x1,J1x1))
         ALLOCATE(OUTGRID(IIPAR,JJPAR))
         INGRID=ARRAY_1x1(:,:,1) !Units kg/yr

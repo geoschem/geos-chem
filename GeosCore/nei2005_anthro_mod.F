@@ -443,7 +443,8 @@
      $                IDTALD2, IDTCH2O, IDTPRPE, IDTMEK
      $     /)
 
-      LLFILENAME = TRIM( DATA_DIR_1x1) //'latlon_geos1x1.txt'
+      LLFILENAME = TRIM( DATA_DIR_1x1) //
+     &   'MAP_A2A_Regrid_200312/latlon_geos1x1.txt'
       ALLOCATE(INGRID(I1x1,J1x1))
       ALLOCATE(OUTGRID(IIPAR,JJPAR))
 
@@ -1335,7 +1336,8 @@
 
       !CALL DO_REGRID_1x1( 5, 'unitless', ARRAY, ARRAY_R8 )
 
-      LLFILENAME = TRIM( DATA_DIR_1x1) //'latlon_geos1x1.txt'
+      LLFILENAME = TRIM( DATA_DIR_1x1) //
+     &   'MAP_A2A_Regrid_200312/latlon_geos1x1.txt'
       ALLOCATE(INGRID(I1x1,J1x1))
       ALLOCATE(OUTGRID(IIPAR,JJPAR))
 
@@ -1577,7 +1579,8 @@
       CALL GET_VISTAS_SEASON( ARRAY )
 
       !CALL DO_REGRID_1x1( 5, 'unitless', ARRAY, ARRAY_R8 )
-      LLFILENAME = TRIM( DATA_DIR_1x1) //'latlon_geos1x1.txt'
+      LLFILENAME = TRIM( DATA_DIR_1x1) //
+     &   'MAP_A2A_Regrid_200312/latlon_geos1x1.txt'
       ALLOCATE(INGRID(I1x1,J1x1))
       ALLOCATE(OUTGRID(IIPAR,JJPAR))
 
@@ -1764,7 +1767,8 @@
       ARRAY(:,:,:) = 0.d0
 
       CALL GET_NEI99_WKSCALE( TRACER, ARRAY )
-      LLFILENAME = TRIM( DATA_DIR_1x1) //'latlon_generic.txt'
+      LLFILENAME = TRIM( DATA_DIR_1x1) //
+     &   'MAP_A2A_Regrid_200312/latlon_generic.txt'
       ALLOCATE(INGRID(I1x1,J1x1))
       ALLOCATE(OUTGRID(IIPAR,JJPAR))
       !CALL DO_REGRID_1x1( 5, 'unitless', ARRAY, ARRAY_R8 )
@@ -1854,7 +1858,8 @@
 
       ! Regrid from GEOS 1x1 --> current model resolution
       !CALL DO_REGRID_1x1( 'unitless', GEOS_1x1, USA_MASK )
-       LLFILENAME = TRIM( DATA_DIR_1x1) //'latlon_generic.txt'
+       LLFILENAME = TRIM( DATA_DIR_1x1) //
+     &   'MAP_A2A_Regrid_200312/latlon_generic.txt'
        ALLOCATE(INGRID(I1x1,J1x1))
        ALLOCATE(OUTGRID(IIPAR,JJPAR)) 
        INGRID = GEOS_1x1(:,:,1)

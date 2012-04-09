@@ -1107,7 +1107,8 @@
       GEN_1x1(:,:) = ARRAY(:,:,1)
 
       ! Regrid from GENERIC 1x1 --> current model resolution
-        LLFILENAME = TRIM( DATA_DIR_1x1) //'latlon_generic.txt' 
+        LLFILENAME = TRIM( DATA_DIR_1x1) //
+     &   'MAP_A2A_Regrid_200312/latlon_generic.txt' 
         ALLOCATE(INGRID(I1x1,J1x1-1))
         ALLOCATE(OUTGRID(IIPAR,JJPAR))
         INGRID = GEN_1x1
@@ -2064,7 +2065,8 @@
       !CALL DO_REGRID_1x1( 'unitless', GEOS_1x1, MASK_CHINA )
 
       ! Regrid from GENERIC 1x1 to current model resolution
-      LLFILENAME = TRIM( DATA_DIR_1x1) //'latlon_generic.txt'
+      LLFILENAME = TRIM( DATA_DIR_1x1) //
+     &   'MAP_A2A_Regrid_200312/latlon_generic.txt'
         ALLOCATE(INGRID(I1x1,J1x1-1))
         ALLOCATE(OUTGRID(IIPAR,JJPAR))
         INGRID = GEN_1x1

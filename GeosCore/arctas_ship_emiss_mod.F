@@ -355,7 +355,8 @@
       
       ! Regrid from GENERIC 1x1 --> Current Model Resolution
 
-      LLFILENAME = TRIM( DATA_DIR_1x1) //'latlon_generic.txt'
+      LLFILENAME = TRIM( DATA_DIR_1x1) //
+     &   'MAP_A2A_Regrid_200312/latlon_generic.txt'
 
         ALLOCATE(INGRID(I1x1,J1x1-1))
         INGRID=GEN_1X1(:,:)

@@ -136,7 +136,8 @@
      &                 TAU0,      I1x1,   J1x1,    
      &                 1,         ARRAY,  QUIET=.TRUE. )
 
-      LLFILENAME = TRIM( DATA_DIR_1x1) //'latlon_geos1x1.txt'
+      LLFILENAME = TRIM( DATA_DIR_1x1) //
+     &   'MAP_A2A_Regrid_200312/latlon_geos1x1.txt'
 
         ALLOCATE(INGRID(I1x1,J1x1))
         INGRID=ARRAY(:,:,1)
@@ -263,7 +264,8 @@
       MODIS_CLIM = TRIM( DATA_DIR_1x1 ) // 'MODIS_LAI_200911/' //
      &             '1985/MODIS.LAIv.V5.geos.1x1.1985'
 
-      LLFILENAME = TRIM( DATA_DIR_1x1) //'latlon_geos1x1.txt'
+      LLFILENAME = TRIM( DATA_DIR_1x1) //
+     &   'MAP_A2A_Regrid_200312/latlon_geos1x1.txt'
 
       IYYYY = 0
       PYYYY = 0

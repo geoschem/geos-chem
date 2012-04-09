@@ -105,7 +105,7 @@
 
       ! Read lat/lon edges:  File name
       LLFILENAME = TRIM( DATA_DIR_1x1) //
-     &           'anth_scale_factors_201111/latlon_generic.txt'
+     &           'MAP_A2A_Regrid_200312/latlon_generic.txt'
 
 
         ALLOCATE(INGRID(I1x1,J1x1-1))

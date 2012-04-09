@@ -5918,7 +5918,8 @@
       ! Array regridding has to be done level by level since the array
       ! has a different vertical dimension than expected
 
-      LLFILENAME = TRIM( DATA_DIR_1x1) //'latlon_generic.txt'
+      LLFILENAME = TRIM( DATA_DIR_1x1) //
+     &   'MAP_A2A_Regrid_200312/latlon_generic.txt'
       ALLOCATE(INGRID(I1x1,J1x1-1))
       ALLOCATE(OUTGRID(IIPAR,JJPAR))
 
@@ -6036,7 +6037,8 @@
          ! Array regridding has to be done level by level since the array
          ! has a different vertical dimension than expected
 
-      LLFILENAME = TRIM( DATA_DIR_1x1) //'latlon_generic.txt'
+      LLFILENAME = TRIM( DATA_DIR_1x1) //
+     &   'MAP_A2A_Regrid_200312/latlon_generic.txt'
         ALLOCATE(INGRID(I1x1,J1x1-1))
         ALLOCATE(OUTGRID(IIPAR,JJPAR))
 
@@ -6560,7 +6562,7 @@
      &                    1,         ARRAY1(:,:,1), QUIET=.TRUE. ) 
 
       LLFILENAME = TRIM( DATA_DIR_1x1) //
-     &           'SST_200508/latlon_geos1x1.txt'
+     &           'MAP_A2A_Regrid_200312/latlon_geos1x1.txt'
         ALLOCATE(INGRID(I1x1,J1x1))
         INGRID=ARRAY1(:,:,1)
         ALLOCATE(OUTGRID(IIPAR,JJPAR))

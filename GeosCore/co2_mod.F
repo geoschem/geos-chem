@@ -1674,7 +1674,8 @@
 
       ! Regrid from GENERIC 1x1 --> current model resolution
 
-      LLFILENAME = TRIM( DATA_DIR_1x1) //'latlon_generic.txt'
+      LLFILENAME = TRIM( DATA_DIR_1x1) //
+     &   'MAP_A2A_Regrid_200312/latlon_generic.txt'
         ALLOCATE(INGRID(I1x1,J1x1-1))
         ALLOCATE(OUTGRID(IIPAR,JJPAR))
         INGRID=GEN_1x1(:,:,1)
@@ -1820,7 +1821,8 @@
      &           'CO2_201003/ship_ICOADS/co2_'  // 
      &           MONTH_STR // '.geos.1x1'
 
-      LLFILENAME = TRIM( DATA_DIR_1x1) //'latlon_geos1x1.txt'
+      LLFILENAME = TRIM( DATA_DIR_1x1) //
+     &   'MAP_A2A_Regrid_200312/latlon_geos1x1.txt'
 	
       ! Echo info
       WRITE( 6, 100 ) TRIM( FILENAME )
