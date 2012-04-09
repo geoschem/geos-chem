@@ -378,17 +378,6 @@ CONTAINS
                 XLAI2(I,J,K) = ( tempLaiNm(C) - tempLaiCm(C) ) / DITD
                 XLAI (I,J,K) = ( tempLaiCm(C) ) + ( XLAI2(I,J,K) * DIMUL )
 
-                IF ( I==22 .and. J==10 .and. C==63  ) THEN
-                   PRINT*, '###----------------'
-                   print*, '### comp_modis_lai: first timestep'
-                   print*, '### ILAND    : ', C
-                   print*, '### templaiCm: ', tempLaiCm(C)
-                   print*, '### templaiNm: ', tempLaiNm(C)
-                   print*, '### ITD, IMUL: ', ITD, IMUL
-                   print*, '### XLAI     : ', XLAI (I,J,K)
-                   print*, '### XLAI2    : ', XLAI2(I,J,K)
-                ENDIF
-                
              ELSE
 
                 IF ( wasModisRead ) THEN
@@ -404,14 +393,6 @@ CONTAINS
                    XLAI2(I,J,K) = ( tempLaiNm(C) - tempLaiCm(C) ) / DITD
                    XLAI (I,J,K) = ( tempLaiCm(C)                )
  
-                   IF ( I==22 .and. J==10 .and. ILAND(I,J,K)==63 ) THEN
-                      PRINT*, '###----------------'
-                      print*, '### comp_modis_lai: new data read'
-                      print*, '### ILAND    : ', ILAND(I,J,K)
-                      print*, '### XLAI  a  : ', XLAI(I,J,K)
-                      print*, '### XLAI2 a  : ', XLAI2(I,J,K)
-                   ENDIF
-
                 ELSE
                 
                    !----------------------------------------------------------
@@ -421,14 +402,6 @@ CONTAINS
                    ! (1) Increment LAI by the this month's Delta-LAI
                    !----------------------------------------------------------
                    XLAI(I,J,K)  = XLAI(I,J,K) + XLAI2(I,J,K)
-
-                   IF ( I==22 .and. J==10 .and. C==63  ) THEN
-                      PRINT*, '###----------------'
-                      print*, '### comp_modis_lai: all other times'
-                      print*, '### ILAND    : ', C
-                      print*, '### XLAI     : ', XLAI (I,J,K)
-                      print*, '### XLAI2    : ', XLAI2(I,J,K)
-                   ENDIF
 
                 ENDIF
              ENDIF
