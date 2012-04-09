@@ -99,7 +99,7 @@ MODULE Modis_Lai_Mod
 !  To resolve these issues, we have created a new module (modis_lai_mod.F90)
 !  which reads from the MODIS LAI data in netCDF format at the native 
 !  resolution and then regrids the LAI data to GEOS-Chem resolution on-the-
-!  fly.  The XLAI array are populated for backwards compatibility with the 
+!  fly.  The XLAI array is populated for backwards compatibility with the 
 !  existing legacy codes.  The LAI arrays used for MEGAN (ISOLAI, PMISOLAI, 
 !  MISOLAI, and NMISOLAI) are now replaced by arrays GC_LAI, GC_LAI_PM, 
 !  GC_LAI_CM, and GC_LAI_NM) from modis_lai_mod.F.
@@ -111,14 +111,16 @@ MODULE Modis_Lai_Mod
 !  resolution, but now we are regridding from much finer resolution 
 !  (either 0.5 x 0.5 or 0.25 x 0.25).
 !                                                                             .
-!  NOTE: At the present time (April 2012), we have not yet disabled the 
-!  RDISOLAI function.  We will do so in the future, and will validate this 
-!  with a separate full-chemistry benchmark simulation
-!                                                                             .
+!  NOTES:
+!  (1) At the present time, we have removed all references to the obsolete 
+!      XYLAI array and its parent module CMN_VEL_mod.F.
+!  (2) At the present time, we have not yet disabled the RDISOLAI function.  
+!      We will do so in the future, and will validate this with a separate 
+!      benchmark.
+!
 !      -- Bob Yantosca (geos-chem-support@as.harvard.edu), 09 Apr 2012
 !                                                                             .
 !                                                                             .
-!
 !  LAI arrays and where they are (or will be) used in GEOS-Chem:
 !  ===========================================================================
 !  (1) XLAI      --> Used in Soil NOx module

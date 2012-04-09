@@ -598,23 +598,27 @@
             ! (modis_lai_mod.F90) which reads from the MODIS LAI data
             ! in netCDF format at the native resolution and then
             ! regrids the LAI data to GEOS-Chem resolution on-the-fly.
-            ! The XLAI and XYLAI arrays are populated for backwards
+            ! The XLAI array is are populated for backwards
             ! compatibility with the existing legacy codes.  The LAI
             ! arrays used for MEGAN (ISOLAI, PMISOLAI, MISOLAI, and
             ! NMISOLAI) are now replaced by arrays GC_LAI, GC_LAI_PM, 
             ! GC_LAI_CM, and GC_LAI_NM) from modis_lai_mod.F.
             !
             ! We have validated that the new scheme generates identical 
-            ! XLAI and XYLAI arrays w/r/t the old scheme.  The arrays 
-            ! GC_LAI etc. differ from the ISOLAI etc. arrays slightly 
-            ! (but generally agree to within 0.001).  This is due to 
-            ! the fact that the ISOLAI arrays were regridded from 1 x 1
-            ! native resolution, but now we are regridding from much 
-            ! finer resolution (either  0.5 x 0.5 or 0.25 x 0.25).
+            ! XLAI arrays w/r/t the old scheme.  The arrays GC_LAI etc. 
+            ! differ from the ISOLAI etc. arrays slightly (but generally 
+            ! agree to within 0.001).  This is due to the fact that the 
+            ! ISOLAI arrays were regridded from 1 x 1 native resolution, 
+            ! but now we are regridding from much finer resolution 
+            ! (either 0.5 x 0.5 or 0.25 x 0.25).
             !
-            ! NOTE: At the present time, we have not yet disabled
-            ! the RDISOLAI function.  We will do so in the future,
-            ! and will validate this with a separate benchmark.
+            ! NOTES:
+            ! (1) At the present time, we have removed all references
+            !     to the obsolete XYLAI array and its parent module
+            !     CMN_VEL_mod.F.
+            ! (2) At the present time, we have not yet disabled 
+            !      the RDISOLAI function.  We will do so in the future,
+            !      and will validate this with a separate benchmark.
             ! 
             !      -- Bob Yantosca (09 Apr 2012)
             !-----------------------------------------------------------
