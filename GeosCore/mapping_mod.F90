@@ -18,6 +18,7 @@ MODULE Mapping_Mod
 ! !USES:
 !
   USE CMN_SIZE_MOD                    ! Size parameters
+  USE LOGICAL_MOD                     
 
   IMPLICIT NONE
   PRIVATE
@@ -90,22 +91,32 @@ CONTAINS
 !
 ! !REVISION HISTORY:
 !  03 Apr 2012 - R. Yantosca - Initial version
+!  10 Apr 2012 - R. Yantosca - Now add a different # to FINE_PER_COARSE
+!                              depending on which Olson map we are using
 !EOP
 !------------------------------------------------------------------------------
 !BOC
 !
 ! !LOCAL VARIABLES:
 !    
-    INTEGER :: I, J, FINE_PER_COARSE, as
+    INTEGER :: I, J, FINE_PER_COARSE, ADD, as
 
     !======================================================================
     ! INIT_MAPPING begins here!
     !======================================================================
 
+    ! Define a number of extra boxes to add to FINE_PER_COARSE
+    ! in order to prevent out-of-bounds errors
+    IF ( USE_OLSON_2001 ) THEN
+       ADD = 10
+    ELSE
+       ADD = 5
+    ENDIF
+
     ! Number of "fine" grid boxes that fit into the "coarse" grid box
-    ! (roughly, use the +5 to make sure it is big enough)
+    ! (roughly, use the +ADD to make sure it is big enough)
     FINE_PER_COARSE = ( DBLE( I_FINE ) / DBLE( I_COARSE ) ) &
-                    * ( DBLE( J_FINE ) / DBLE( J_COARSE ) ) + 5
+                    * ( DBLE( J_FINE ) / DBLE( J_COARSE ) ) + ADD
     
     ! For saving mapping weights
     IF ( .not. ASSOCIATED( map ) ) THEN

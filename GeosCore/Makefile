@@ -781,7 +781,8 @@ main.o                      : main.F                                         \
                               diag63_mod.o            olson_landmap_mod.o    \
                               mapping_mod.o           modis_lai_mod.o
 
-mapping_mod.o               : mapping_mod.F90
+mapping_mod.o               : mapping_mod.F90                                \
+                              logical_mod.o
 
 MATIN4.o                    : MATIN4.F
 

@@ -517,16 +517,32 @@ CONTAINS
     ! Read current month's LAI
     !======================================================================
 
-    ! Pick either the proper year of MODIS data (2000-2008),
-    ! or if outside that range, the climatology (1985)
+    ! Test if yyyy is w/in the valid range of MODIS data
     IF ( yyyy >= MODIS_START .and. yyyy <= MODIS_END ) THEN
+
+       ! Here, yyyy lies w/in the MODIS data timespan
        nc_file  = nc_tmpl
        yyyymmdd = yyyy*10000 + mm*100 + 01
        CALL Expand_Date( nc_file, yyyymmdd, 000000 )
+
     ELSE
+
+       ! Here, yyyy lies outside the MODIS data timespan,
+       ! so we have to read data from a different year.
+       IF ( USE_OLSON_2001 ) THEN
+          IF ( yyyy > MODIS_END ) THEN                    !%%% OLSON 2001 %%%
+             yyyymmdd = MODIS_END*10000   + Pmm*100 + 01  ! Use final year
+          ELSE IF ( yyyy < MODIS_START ) THEN             !
+             yyyymmdd = MODIS_START*10000 + Pmm*100 + 01  ! Use 1st year
+          ENDIF
+       ELSE                                               !%%% OLSON 1992 %%%
+          yyyymmdd = 19850001 + Pmm*100                   ! Use climatology
+       ENDIF
+
+       ! Expand date tokens in filename
        nc_file  = nc_tmpl
-       yyyymmdd = 19850001 + mm*100
        CALL Expand_Date( nc_file, yyyymmdd, 000000 )
+
     ENDIF
 
     ! Open file for read
@@ -563,10 +579,10 @@ CONTAINS
     ! Read previous month's LAI
     !======================================================================
 
-    ! Previous month
+    ! Previous LAI month
     Pmm = mm - 1
 
-    ! Previous year (readjust accordingly if this month is January)
+    ! Year corresponding to previous LAI month (readjust for January)
     IF ( Pmm == 0 ) THEN
        Pmm   = 12
        Pyyyy = yyyy - 1
@@ -574,16 +590,32 @@ CONTAINS
        Pyyyy = yyyy
     ENDIF
 
-    ! Pick either the proper year of MODIS data (2000-2008),
-    ! or if outside that range, the climatology (1985)
+    ! Test if Pyyy is w/in the valid range of MODIS data
     IF ( Pyyyy >= MODIS_START .and. Pyyyy <= MODIS_END ) THEN
+
+       ! Here, Pyyyy lies w/in the MODIS data timespan
        nc_file  = nc_tmpl
        yyyymmdd = Pyyyy*10000 + Pmm*100 + 01
        CALL Expand_Date( nc_file, yyyymmdd, 000000 )
+
     ELSE
+
+       ! Here, yyyy lies outside the MODIS data timespan,
+       ! so we have to read data from a different year.
+       IF ( USE_OLSON_2001 ) THEN
+          IF ( Pyyyy > MODIS_END ) THEN                   !%%% OLSON 2001 %%%
+             yyyymmdd = MODIS_END*10000   + Pmm*100 + 01  ! Use final year
+          ELSE IF ( Pyyyy < MODIS_START ) THEN            !
+             yyyymmdd = MODIS_START*10000 + Pmm*100 + 01  ! Use 1st year
+          ENDIF
+       ELSE                                               !%%% OLSON 1992 %%%
+          yyyymmdd = 19850001 + Pmm*100                   ! Use climatology
+       ENDIF
+
+       ! Expand date tokens in filename
        nc_file  = nc_tmpl
-       yyyymmdd = 19850001 + Pmm*100
        CALL Expand_Date( nc_file, yyyymmdd, 000000 )
+          
     ENDIF
 
     ! Open file for read
@@ -620,10 +652,10 @@ CONTAINS
     ! Read next month's LAI
     !======================================================================
 
-    ! Previous month
+    ! Next LAI month
     Nmm = mm + 1
 
-    ! Previous year (readjust accordingly if this month is December)
+    ! Year corresponding to next LAI month (readjust for December)
     IF ( Nmm == 13 ) THEN
        Nmm   = 1
        Nyyyy = yyyy + 1
@@ -631,16 +663,32 @@ CONTAINS
        Nyyyy = yyyy
     ENDIF
 
-    ! Pick either the proper year of MODIS data (2000-2008),
-    ! or if outside that range, the climatology (1985)
+    ! Test if Nyyy is w/in the valid range of MODIS data
     IF ( Nyyyy >= MODIS_START .and. Nyyyy <= MODIS_END ) THEN
+
+       ! Here, Nyyyy lies w/in the MODIS data timespan
        nc_file  = nc_tmpl
        yyyymmdd = Nyyyy*10000 + Nmm*100 + 01
        CALL Expand_Date( nc_file, yyyymmdd, 000000 )
+
     ELSE
+
+       ! Here, yyyy lies outside the MODIS data timespan,
+       ! so we have to read data from a different year.
+       IF ( USE_OLSON_2001 ) THEN
+          IF ( Nyyyy > MODIS_END ) THEN                   !%%% OLSON 2001 %%%
+             yyyymmdd = MODIS_END*10000   + Nmm*100 + 01  ! Use final year
+          ELSE IF ( Nyyyy < MODIS_START ) THEN            !
+             yyyymmdd = MODIS_START*10000 + Nmm*100 + 01  ! Use 1st year
+          ENDIF
+       ELSE                                               !%%% OLSON 1992 %%%
+          yyyymmdd = 19850001 + Nmm*100                   ! Use climatology
+       ENDIF
+
+       ! Expand date tokens in filename
        nc_file  = nc_tmpl
-       yyyymmdd = 19850001 + Nmm*100
        CALL Expand_Date( nc_file, yyyymmdd, 000000 )
+          
     ENDIF
 
     ! Open file for read
@@ -855,8 +903,8 @@ CONTAINS
     IF ( USE_OLSON_2001 ) THEN
        I_MODIS     = 1440             ! For Olson 2001, use MODIS LAI
        J_MODIS     = 720              ! on the 0.25 x 0.25 native grid
-       MODIS_START = 2000             ! First year of MODIS data  
-       MODIS_END   = 2010             ! Last  year of MODIS data
+       MODIS_START = 2005             ! First year of MODIS data  
+       MODIS_END   = 2009             ! Last  year of MODIS data
     ELSE
        I_MODIS     = 720              ! For Olson 1992, use MODIS LAI
        J_MODIS     = 360              ! on the 0.5 x 0.5 native grid
