@@ -6338,7 +6338,7 @@
       !%%% in order to facilitate the SEAC4RS simulations.  Eventually
       !%%% this will replace Olson 1992 for all other met field types,
       !%%% once more rigorous testing & validation has been done.
-      USE_OLSON_2001 = .TRUE.
+!      USE_OLSON_2001 = .TRUE.
       !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 #endif
 
