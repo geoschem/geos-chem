@@ -108,9 +108,6 @@
       USE A6_READ_MOD           ! For reading A6 data (all other met)
       USE I6_READ_MOD           ! For reading I6 data (all other met)
 
-      !### DEBUG
-      use cmn_dep_mod
-
       IMPLICIT NONE
 
 #     include "define.h"
@@ -635,17 +632,6 @@
             ! Interpolate LAI quantities from native grid to GEOS-Chem grid
             CALL Compute_Modis_Lai( day_of_year, laiMM, 
      &                              mapping,     wasModisRead )
-
-!##############################################################################
-!### DEBUG
-            DO J = 1, JJPAR
-            DO I = 1, IIPAR
-               write( 700, 200 ) I, J, XLAI( I,J, 1:IREG(I,J) )
- 200           format( 2i3,1x, 20f5.1 )
-            ENDDO
-            ENDDO
-!##############################################################################
-
 
             ! For MEGAN biogenics ...
             IF ( LMEGAN ) THEN
