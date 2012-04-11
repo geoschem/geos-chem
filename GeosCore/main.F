@@ -646,7 +646,7 @@
                !
                ! Read daily leaf-area-index
                ! Now include the year (mpb,11/19/09)
-               CALL RDISOLAI( DAY_OF_YEAR, MONTH, YEAR )
+               !CALL RDISOLAI( DAY_OF_YEAR, MONTH, YEAR )
                !--------------------------------------------------------
 
                ! Compute 15-day average temperature for MEGAN
@@ -665,7 +665,7 @@
                !%%% with a benchmark simulation. (bmy, 4/4/12)
                !
                ! Read AVHRR daily leaf-area-index
-               CALL RDISOLAI( DAY_OF_YEAR, MONTH, YEAR )
+               !CALL RDISOLAI( DAY_OF_YEAR, MONTH, YEAR )
                !--------------------------------------------------------
 
             ENDIF 
