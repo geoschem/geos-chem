@@ -158,7 +158,7 @@ dao_mod.o                isoropiaII_mod.o        tcorr.o                     \
 decomp.o                 jsparse.o               toms_mod.o                  \
 diag03_mod.o             jv_index.o              tpcore_bc_mod.o             \
 diag04_mod.o             ksparse.o               tpcore_fvdas_mod.o          \
-diag1.o                  lai_mod.o               tpcore_geos5_window_mod.o   \
+diag1.o                  tpcore_geos5_window_mod.o   \
 diag3.o                  lightning_nox_mod.o     tpcore_mod.o                \
 diag41_mod.o             linoz_mod.o             tpcore_window_mod.o         \
 diag42_mod.o             logical_mod.o           tracer_mod.o                \
@@ -404,7 +404,7 @@ cleanup.o                   : cleanup.F                                      \
                               global_no3_mod.o        global_nox_mod.o       \
                               global_o1d_mod.o        global_oh_mod.o        \
                               h2_hd_mod.o             hcn_ch3cn_mod.o        \
-                              lai_mod.o               land_mercury_mod.o     \
+                              modis_lai_mod.o         land_mercury_mod.o     \
                               lightning_nox_mod.o     linoz_mod.o            \
                               megan_mod.o             mercury_mod.o          \
                               ocean_mercury_mod.o     pbl_mix_mod.o          \
@@ -476,7 +476,7 @@ diag48_mod.o                : diag48_mod.F                                   \
                               tracerid_mod.o          tracer_mod.o  
 
 diag49_mod.o                : diag49_mod.F                                   \
-                              dao_mod.o               lai_mod.o              \
+                              dao_mod.o               modis_lai_mod.o        \
                               pbl_mix_mod.o           tracerid_mod.o         \
                               tracer_mod.o  
 
@@ -487,13 +487,13 @@ diag50_mod.o                : diag50_mod.F                                   \
                               tropopause_mod.o  
 
 diag51_mod.o                : diag51_mod.F                                   \
-                              dao_mod.o               lai_mod.o              \
+                              dao_mod.o               modis_lai_mod.o        \
                               logical_mod.o           pbl_mix_mod.o          \
                               tracerid_mod.o          tracer_mod.o           \
                               tropopause_mod.o  
 
 diag51b_mod.o               : diag51b_mod.F                                  \
-                              dao_mod.o               lai_mod.o              \
+                              dao_mod.o               modis_lai_mod.o        \
                               logical_mod.o           pbl_mix_mod.o          \
                               tracerid_mod.o          tracer_mod.o           \
                               tropopause_mod.o  
@@ -501,9 +501,8 @@ diag51b_mod.o               : diag51b_mod.F                                  \
 diag56_mod.o                : diag56_mod.F
 
 diag63_mod.o                : diag63_mod.F                                   \
-                              dao_mod.o               lai_mod.o              \
-                              pbl_mix_mod.o           tracerid_mod.o         \
-                              tracer_mod.o
+                              dao_mod.o               pbl_mix_mod.o          \
+                              tracerid_mod.o          tracer_mod.o
 
 diag_2pm.o                  : diag_2pm.F                                     \
                               diag_mod.o              tropopause_mod.o
@@ -751,11 +750,10 @@ jv_index.o                  : jv_index.F
 
 ksparse.o                   : ksparse.F
 
-lai_mod.o                   : lai_mod.F               logical_mod.o
 
 land_mercury_mod.o          : land_mercury_mod.F                             \
                               biomass_mod.o           dao_mod.o              \
-                              depo_mercury_mod.o      lai_mod.o              \
+                              depo_mercury_mod.o      modis_lai_mod.o        \
                               logical_mod.o           tracerid_mod.o         \
 
 LEGND0.o                    : LEGND0.F
@@ -785,7 +783,7 @@ main.o                      : main.F                                         \
                               depo_mercury_mod.o      drydep_mod.o           \
                               emissions_mod.o         global_ch4_mod.o       \
                               gcap_read_mod.o         i6_read_mod.o          \
-                              input_mod.o             lai_mod.o              \
+                              input_mod.o             modis_lai_mod.o        \
                               lightning_nox_mod.o     linoz_mod.o            \
                               logical_mod.o           megan_mod.o            \
                               pbl_mix_mod.o           ocean_mercury_mod.o    \
@@ -798,14 +796,14 @@ main.o                      : main.F                                         \
                               merra_a1_mod.o          merra_a3_mod.o         \
                               merra_i6_mod.o          geos57_read_mod.o      \
                               diag63_mod.o            olson_landmap_mod.o    \
-                              mapping_mod.o           modis_lai_mod.o
+                              mapping_mod.o
 
 mapping_mod.o               : mapping_mod.F90
 
 MATIN4.o                    : MATIN4.F
 
 megan_mod.o                 : megan_mod.F             a3_read_mod.o          \
-                              lai_mod.o               logical_mod.o          \
+                              modis_lai_mod.o         logical_mod.o          \
                               meganut_mod.o           merra_a1_mod.o         \
                               dao_mod.o               geos57_read_mod.o
 
@@ -816,7 +814,7 @@ mercury_mod.o               : mercury_mod.F                                  \
                               diag03_mod.o            diag_mod.o             \
                               drydep_mod.o            global_br_mod.o        \
                               global_o3_mod.o         global_oh_mod.o        \
-                              land_mercury_mod.o      lai_mod.o              \
+                              land_mercury_mod.o                             \
                               logical_mod.o           ocean_mercury_mod.o    \
                               pbl_mix_mod.o           RnPbBe_mod.o           \
                               tracerid_mod.o          tracer_mod.o           \
@@ -915,8 +913,6 @@ readchem.o                  : readchem.F                                     \
                               logical_mod.o
 
 reader.o                    : reader.F
-
-readlai.o                   : readlai.F               logical_mod.o
 
 restart_mod.o               : restart_mod.F                                  \
                               comode_mod.o            dao_mod.o              \

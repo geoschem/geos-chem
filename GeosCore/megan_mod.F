@@ -2794,7 +2794,11 @@
       USE FILE_MOD,         ONLY : IU_A3
       USE JULDAY_MOD,       ONLY : CALDATE
       USE ERROR_MOD,        ONLY : ALLOC_ERR
-      USE LAI_MOD,          ONLY : INIT_LAI
+!------------------------------------------------------------------------------
+! Prior to 4/11/12:
+! Retire lai_mod.F; replace it with modis_lai_mod.F90 (bmy, 4/11/12)
+!      USE LAI_MOD,          ONLY : INIT_LAI
+!------------------------------------------------------------------------------
       USE LOGICAL_MOD,      ONLY : LUNZIP
       USE TIME_MOD,         ONLY : GET_FIRST_A3_TIME, GET_JD
       USE TIME_MOD,         ONLY : ITS_A_LEAPYEAR,    YMD_EXTRACT
@@ -2812,6 +2816,8 @@
 !  22 Nov 2011 - R. Yantosca - Do not use erroneous AEF's for nested grids
 !  08 Feb 2012 - R. Yantosca - Now read surface temperature for GEOS-5.7.x
 !  28 Feb 2012 - R. Yantosca - Removed support for GEOS-3
+!  11 Apr 2012 - R. Yantosca - Now remove the call to INIT_LAI; we shall 
+!                              initialize the LAI arrays from main.F
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -2967,8 +2973,13 @@
       ! For global and nested simulations (lzh, bmy, 11/22/11)
       CALL GET_AEF
 
-      ! Initialize LAI arrays
-      CALL INIT_LAI
+!------------------------------------------------------------------------------
+! Prior to 4/11/12:
+! Now remove the call to INIT_LAI; we shall initialize the LAI arrays from 
+! main.F (bmy, 4/11/12)
+!       ! Initialize LAI arrays
+!      CALL INIT_LAI
+!------------------------------------------------------------------------------
 
       !=================================================================
       ! Read A3 fields for the 15 days before the start of the run

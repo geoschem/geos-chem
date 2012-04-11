@@ -40,6 +40,7 @@
 !  12 Apr 2011 - J. Fisher   - Add missing code from Holmes 2010
 !  08 Feb 2012 - R. Yantosca - Treat GEOS-5.7.x in the same way as MERRA
 !  01 Mar 2012 - R. Yantosca - Now reference new grid_mod.F90
+!  11 Apr 2012 - R. Yantosca - Now reference new modis_lai_mod.F90
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -472,13 +473,18 @@
 !
 ! !USES:
 !
-      USE LAI_MOD,  ONLY : ISOLAI, MISOLAI, PMISOLAI, DAYS_BTW_M
-      USE DAO_MOD,  ONLY : RADSWG, SUNCOS, TS, IS_LAND
-      USE TIME_MOD, ONLY : GET_MONTH, ITS_A_NEW_MONTH
-      USE TIME_MOD, ONLY : GET_TS_EMIS
-      USE GRID_MOD, ONLY : GET_AREA_M2
-      USE DAO_MOD,  ONLY : SNOW, SNOMAS
-      USE DAO_MOD,  ONLY : FRSNO, FRLAND
+!------------------------------------------------------------------------------
+! Prior to 4/11/12:
+! Replace lai_mod.F with modis_lai_mod.F90 (bmy, 4/11/12)
+!      USE LAI_MOD,  ONLY : ISOLAI, MISOLAI, PMISOLAI, DAYS_BTW_M
+!------------------------------------------------------------------------------
+      USE MODIS_LAI_MOD, ONLY : ISOLAI  => GC_LAI
+      USE DAO_MOD,       ONLY : RADSWG, SUNCOS, TS, IS_LAND
+      USE TIME_MOD,      ONLY : GET_MONTH, ITS_A_NEW_MONTH
+      USE TIME_MOD,      ONLY : GET_TS_EMIS
+      USE GRID_MOD,      ONLY : GET_AREA_M2
+      USE DAO_MOD,       ONLY : SNOW, SNOMAS
+      USE DAO_MOD,       ONLY : FRSNO, FRLAND
 
       USE CMN_SIZE_MOD     ! Size parameters
       USE CMN_DEP_MOD      ! FRCLND
@@ -526,6 +532,7 @@
 !  10 Feb 2012 - R. Yantosca - Extend #if statement for SOIL_EMIS_FAC in order
 !                              to get the code to compile w/o error.
 !  01 Mar 2012 - R. Yantosca - Now use GET_AREA_CM2(I,J,L) from grid_mod.F90
+!  11 Apr 2012 - R. Yantosca - Replace lai_mod.F with modis_lai_mod.F90
 !EOP
 !------------------------------------------------------------------------------
 !BOC

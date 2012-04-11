@@ -4423,6 +4423,8 @@
 !  (2 ) EHg0_an, EHg2_an, EHgP_an are now 2-D arrays.  Now modified for 
 !        updated ocean mercury module. (eck, cdh, sas, bmy, 4/6/06)
 !  27 Sep 2011 - H. Amos - remove LHg_WETDasHNO3 logical, it's obsolete
+!  11 Apr 2012 - R. Yantosca - Now retire lai_mod.F; remove call to INIT_LAI
+!  11 Apr 2012 - R. Yantosca - Now move LAI initialization to main.F
 !******************************************************************************
 !
       ! References to F90 modules
@@ -4432,7 +4434,12 @@
       USE LOGICAL_MOD , ONLY : LGTMM
       USE TRACER_MOD  , ONLY : N_TRACERS
       USE TRACERID_MOD, ONLY : N_Hg_CATS
-      USE LAI_MOD     , ONLY : INIT_LAI
+!------------------------------------------------------------------------------
+! Prior to 4/11/12:
+! Replace lai_mod.F with modis_lai_mod.F.  Also now initialize the LAI
+! arrays from main.F instead of from within this module. (bmy, 4/11/12)
+!      USE LAI_MOD     , ONLY : INIT_LAI
+!------------------------------------------------------------------------------
 
       USE CMN_SIZE_MOD     ! Size parameters
       USE CMN_DIAG_MOD     ! ND44
@@ -4547,9 +4554,12 @@
       IF ( AS /= 0 ) CALL ALLOC_ERR( 'JNO2' )
       JNO2 = 0d0
 
-      ! Initialize LAI arrays
-      CALL INIT_LAI
-      
+!------------------------------------------------------------------------------
+! Prior to 4/11/12:
+! Replace lai_mod.F with modis_lai_mod.F.  Also now initialize the LAI
+! arrays from main.F instead of from within this module. (bmy, 4/11/12)
+!      CALL INIT_LAI
+!------------------------------------------------------------------------------
 
       !=================================================================
       ! Allocate & initialize arrays for tagged tracer indices

@@ -173,30 +173,35 @@
 !
 ! !USES:
 !
-      USE BPCH2_MOD,    ONLY : BPCH2,   OPEN_BPCH2_FOR_WRITE
-      USE DAO_MOD,      ONLY : AD,      AIRDEN, BXHEIGHT, CLDF 
-      USE DAO_MOD,      ONLY : CLDTOPS, OPTD,   RH,       SLP     
-      USE DAO_MOD,      ONLY : T,       UWND,   VWND
-      USE DAO_MOD,      ONLY : TS
-      USE DAO_MOD,      ONLY : PARDF, PARDR
-      USE LAI_MOD,      ONLY : ISOLAI
-      USE FILE_MOD,     ONLY : IU_ND49
-      USE GRID_MOD,     ONLY : GET_XOFFSET,        GET_YOFFSET
-      USE TIME_MOD,     ONLY : EXPAND_DATE
-      USE TIME_MOD,     ONLY : GET_NYMD,           GET_NHMS
-      USE TIME_MOD,     ONLY : GET_NYMD_DIAG,      GET_TS_DIAG
-      USE TIME_MOD,     ONLY : GET_TAU,            GET_HOUR
-      USE TIME_MOD,     ONLY : ITS_A_NEW_DAY,      TIMESTAMP_STRING
-      USE PBL_MIX_MOD,  ONLY : GET_PBL_TOP_L,      GET_PBL_TOP_m
-      USE TRACER_MOD,   ONLY : ITS_A_FULLCHEM_SIM, N_TRACERS
-      USE TRACER_MOD,   ONLY : STT,                TCVV
-      USE TRACER_MOD,   ONLY : XNUMOLAIR
-      USE PRESSURE_MOD, ONLY : GET_PEDGE
-      USE TRACERID_MOD, ONLY : IDTHNO3, IDTHNO4, IDTN2O5, IDTNOX  
-      USE TRACERID_MOD, ONLY : IDTPAN,  IDTPMN,  IDTPPN,  IDTOX   
-      USE TRACERID_MOD, ONLY : IDTR4N2, IDTSALA, IDTSALC 
+      USE BPCH2_MOD,     ONLY : BPCH2,   OPEN_BPCH2_FOR_WRITE
+      USE DAO_MOD,       ONLY : AD,      AIRDEN, BXHEIGHT, CLDF 
+      USE DAO_MOD,       ONLY : CLDTOPS, OPTD,   RH,       SLP     
+      USE DAO_MOD,       ONLY : T,       UWND,   VWND
+      USE DAO_MOD,       ONLY : TS
+      USE DAO_MOD,       ONLY : PARDF, PARDR
+!------------------------------------------------------------------------------
+! Prior to 4/11/12:
+! Retire obsolete lai_mod.F, replace w/ modis_lai_mod.F90 (bmy, 4/11/12)
+!      USE LAI_MOD,      ONLY : ISOLAI
+!------------------------------------------------------------------------------
+      USE MODIS_LAI_MOD, ONLY : ISOLAI => GC_LAI
+      USE FILE_MOD,      ONLY : IU_ND49
+      USE GRID_MOD,      ONLY : GET_XOFFSET,        GET_YOFFSET
+      USE TIME_MOD,      ONLY : EXPAND_DATE
+      USE TIME_MOD,      ONLY : GET_NYMD,           GET_NHMS
+      USE TIME_MOD,      ONLY : GET_NYMD_DIAG,      GET_TS_DIAG
+      USE TIME_MOD,      ONLY : GET_TAU,            GET_HOUR
+      USE TIME_MOD,      ONLY : ITS_A_NEW_DAY,      TIMESTAMP_STRING
+      USE PBL_MIX_MOD,   ONLY : GET_PBL_TOP_L,      GET_PBL_TOP_m
+      USE TRACER_MOD,    ONLY : ITS_A_FULLCHEM_SIM, N_TRACERS
+      USE TRACER_MOD,    ONLY : STT,                TCVV
+      USE TRACER_MOD,    ONLY : XNUMOLAIR
+      USE PRESSURE_MOD,  ONLY : GET_PEDGE
+      USE TRACERID_MOD,  ONLY : IDTHNO3, IDTHNO4, IDTN2O5, IDTNOX  
+      USE TRACERID_MOD,  ONLY : IDTPAN,  IDTPMN,  IDTPPN,  IDTOX   
+      USE TRACERID_MOD,  ONLY : IDTR4N2, IDTSALA, IDTSALC 
 
-      USE CMN_FJ_MOD, ONLY : IPAR, JPAR, LPAR, JPMAX, JPPJ        ! FAST-J stuff, includes CMN_SIZE
+      USE CMN_FJ_MOD,    ONLY : IPAR, JPAR, LPAR, JPMAX, JPPJ   ! FAST-J stuff
       USE JV_CMN_MOD        ! ODAER, QAA, QAA_AOD (clh)
       USE CMN_O3_MOD		! Pure O3, SAVENO2
       USE CMN_GCTM_MOD        ! XTRA2
@@ -227,6 +232,7 @@
 !  (14) Add outputs for EMISS_BVOC (10 tracers), TS, PARDR, PARDF and ISOLAI
 !        (mpb, 11/19/09)
 !  02 Dec 2010 - R. Yantosca - Added ProTeX headers
+!  11 Apr 2012 - R. Yantosca - Replace lai_mod.F with modis_lai_mod.F90
 !EOP
 !------------------------------------------------------------------------------
 !BOC

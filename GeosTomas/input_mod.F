@@ -1845,6 +1845,9 @@ c$$$      WRITE( 6, 100     ) '30-BIN DUST AEROSOLS?       : ', LDUST30
 !  28 Feb 2012 - R. Yantosca - Removed support for GEOS-3
 !  05 Apr 2012 - R. Yantosca - Now call INIT_MODIS_LAI
 !  05 Apr 2012 - R. Yantosca - Reorganized USE statements for clarity
+!  10 Apr 2012 - R. Yantosca - Bug fix: do not turn off LAVHRRLAI or LMODISLAI
+!                              when emissions are turned off.  LAI is used
+!                              in other areas of the code.
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -2132,8 +2135,13 @@ c$$$      WRITE( 6, 100     ) '30-BIN DUST AEROSOLS?       : ', LDUST30
       LOTDLOC           = ( LOTDLOC        .and. LEMIS     )
       LSOILNOX          = ( LSOILNOX       .and. LEMIS     )
       LFERTILIZERNOX    = ( LFERTILIZERNOX .and. LEMIS     )
-      LAVHRRLAI         = ( LAVHRRLAI      .and. LEMIS     )
-      LMODISLAI         = ( LMODISLAI      .and. LEMIS     )       
+      !---------------------------------------------------------------------
+      ! Prior to 4/10/12:
+      ! Bug fix: if emissions are turned off then this also turns off
+      ! AVHRR LAI and MODIS LAI, which is also used for drydep.
+      !LAVHRRLAI         = ( LAVHRRLAI      .and. LEMIS     )
+      !LMODISLAI         = ( LMODISLAI      .and. LEMIS     )       
+      !---------------------------------------------------------------------
 
       ! Define these flags for backwards compatibility
       LFOSSIL           = LANTHRO

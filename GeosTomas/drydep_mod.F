@@ -27,7 +27,6 @@
       USE DIRECTORY_MOD                         ! Data directory paths
       USE ERROR_MOD                             ! Error handling routines
       USE GRID_MOD,       ONLY : GET_AREA_CM2   ! Grid box surface areas [cm2]
-      USE LAI_MOD                               ! Leaf area index module
       USE LOGICAL_MOD                           ! GEOS-Chem logical switches
       USE PBL_MIX_MOD                           ! Boundary layer quantities
       USE PRESSURE_MOD,   ONLY : GET_PEDGE      ! Pressure @ level edges

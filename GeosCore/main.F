@@ -89,7 +89,11 @@
       ! GEOS-Chem emissions modules
       !-----------------------------------------------------------------
       USE EMISSIONS_MOD         ! Driver routines for emissions
-      USE LAI_MOD               ! For MODIS leaf area indices (deprecated)
+!------------------------------------------------------------------------------
+! Prior to 4/11/12:
+! Module lai_mod.F has been replaced by modis_lai_mod.F90 (bmy, 4/11/12)
+!      USE LAI_MOD               ! For MODIS leaf area indices (deprecated)
+!------------------------------------------------------------------------------
       USE MODIS_LAI_MOD         ! For MODIS leaf area indices (replacement)
       USE LIGHTNING_NOX_MOD     ! For lightning NOx emissions  
       USE MEGAN_MOD             ! For biogenic emissions
@@ -174,6 +178,10 @@
 !  04 Apr 2012 - R. Yantosca - Now call updated LAI routines from new module
 !                              modis_lai_mod.F90.  Retire routine RDLAI.
 !  05 Apr 2012 - R. Yantosca - Removed reference to LXTRA, it's obsolete
+!  11 Apr 2012 - R. Yantosca - Replace lai_mod.F with modis_lai_mod.F90
+!  11 Apr 2012 - R. Yantosca - Now call INIT_MODIS_LAI (in modis_lai_mod.F90)
+!                              here so that we don't have to call it from 
+!                              megan_mod.F and mercury_mod.F separately.
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -300,16 +308,16 @@
       ! Initialize the derived type object containing
       ! mapping information for the MODIS LAI routines
       IF ( USE_OLSON_2001 ) THEN
-         CALL INIT_MAPPING( 1440, 720, IIPAR, JJPAR, mapping )
+         CALL Init_Mapping( 1440, 720, IIPAR, JJPAR, mapping )
       ELSE
-         CALL INIT_MAPPING(  720, 360, IIPAR, JJPAR, mapping )
+         CALL Init_Mapping(  720, 360, IIPAR, JJPAR, mapping )
       ENDIF
 
       ! Compute the Olson land types that occur in each grid box
       ! (i.e. this is a replacement for rdland.F and vegtype.global)
-      CALL INIT_OLSON_LANDMAP()
-      CALL COMPUTE_OLSON_LANDMAP( mapping )
-      CALL CLEANUP_OLSON_LANDMAP()
+      CALL Init_Olson_Landmap()
+      CALL Compute_Olson_Landmap( mapping )
+      CALL Cleanup_Olson_Landmap()
 
       ! Initialize PBL quantities but do not do mixing
       ! Add option for non-local PBL (Lin, 03/31/09) 
@@ -613,9 +621,6 @@
             ! (1) At the present time, we have removed all references
             !     to the obsolete XYLAI array and its parent module
             !     CMN_VEL_mod.F.
-            ! (2) At the present time, we have not yet disabled 
-            !      the RDISOLAI function.  We will do so in the future,
-            !      and will validate this with a separate benchmark.
             ! 
             !      -- Bob Yantosca (09 Apr 2012)
             !-----------------------------------------------------------
@@ -633,43 +638,11 @@
             CALL Compute_Modis_Lai( day_of_year, laiMM, 
      &                              mapping,     wasModisRead )
 
-            ! For MEGAN biogenics ...
+            ! For MEGAN biogenics, compute 15-day average temperature
             IF ( LMEGAN ) THEN
-
-               !--------------------------------------------------------
-               !%%% NOTE: For consistency, we shall eventually disable 
-               !%%% RDISOLAI in favor of computing LAI directly from
-               !%%% the native resolution via routines from the new
-               !%%% modis_lai_mod.F90.  This will result in changes to
-               !%%% the biogenic emissions, which need to be validated
-               !%%% with a benchmark simulation. (bmy, 4/4/12)
-               !
-               ! Read daily leaf-area-index
-               ! Now include the year (mpb,11/19/09)
-               !CALL RDISOLAI( DAY_OF_YEAR, MONTH, YEAR )
-               !--------------------------------------------------------
-
-               ! Compute 15-day average temperature for MEGAN
                CALL UPDATE_T_15_AVG
             ENDIF
 
-            ! For mercury simulations ...
-            IF ( ITS_A_MERCURY_SIM() ) THEN
-
-               !--------------------------------------------------------
-               !%%% NOTE: For consistency, we shall eventually disable 
-               !%%% RDISOLAI in favor of computing LAI directly from
-               !%%% the native resolution via routines from the new
-               !%%% modis_lai_mod.F90.  This will result in changes to
-               !%%% the biogenic emissions, which need to be validated
-               !%%% with a benchmark simulation. (bmy, 4/4/12)
-               !
-               ! Read AVHRR daily leaf-area-index
-               !CALL RDISOLAI( DAY_OF_YEAR, MONTH, YEAR )
-               !--------------------------------------------------------
-
-            ENDIF 
-               
             ! Also read soil-type info for fullchem simulation
             IF ( ITS_A_FULLCHEM_SIM() .or. ITS_A_H2HD_SIM() ) THEN
                CALL RDSOIL 
