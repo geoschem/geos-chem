@@ -182,7 +182,11 @@
 !\\
 ! !INTERFACE:
 !
+#if defined( DEVEL )
+      SUBROUTINE GET_MERRA_CN_FIELDS( NYMD, NHMS, LOCAL_MET )
+#else
       SUBROUTINE GET_MERRA_CN_FIELDS( NYMD, NHMS )
+#endif
 !
 ! !USES:
 !
@@ -191,11 +195,20 @@
       USE DAO_MOD, ONLY : FRLANDIC   ! Fraction of grid box that is land ice
       USE DAO_MOD, ONLY : FROCEAN    ! Fraction of grid box that is ocean
       USE DAO_MOD, ONLY : PHIS       ! Surface geopotential height
+#if defined( DEVEL )
+      USE GC_TYPE_MOD, ONLY : GC_MET_LOCAL
+#endif
 !
 ! !INPUT PARAMETERS: 
 !
       INTEGER, INTENT(IN) :: NYMD    ! YYYYMMDD date 
       INTEGER, INTENT(IN) :: NHMS    !  and hhmmss time of desired data
+!
+! !INPUT/OUTPUT PARAMETERS:
+!
+#if defined( DEVEL )
+      TYPE(GC_MET_LOCAL), INTENT(INOUT) :: LOCAL_MET  ! Obj w/ met fields
+#endif
 ! 
 ! !REVISION HISTORY: 
 !  19 Aug 2010 - R. Yantosca - Initial version, based on i6_read_mod.f
@@ -212,6 +225,14 @@
      &              FRLANDIC = FRLANDIC, 
      &              FROCEAN  = FROCEAN, 
      &              PHIS     = PHIS      )
+
+#if defined( DEVEL )
+      LOCAL_MET%FRLAKE   = FRLAKE
+      LOCAL_MET%FRLAND   = FRLAND
+      LOCAL_MET%FRLANDIC = FRLANDIC
+      LOCAL_MET%FROCEAN  = FROCEAN
+      LOCAL_MET%PHIS     = PHIS
+#endif
       
       END SUBROUTINE GET_MERRA_CN_FIELDS
 !EOC

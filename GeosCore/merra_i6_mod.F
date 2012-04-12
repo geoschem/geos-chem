@@ -176,17 +176,30 @@
 !\\
 ! !INTERFACE:
 !
+#if defined( DEVEL )
+      SUBROUTINE GET_MERRA_I6_FIELDS_1( NYMD, NHMS, LOCAL_MET )
+#else
       SUBROUTINE GET_MERRA_I6_FIELDS_1( NYMD, NHMS )
+#endif
 !
 ! !USES:
 !
       USE DAO_MOD, ONLY : PS1       ! Surface pressure  [hPa]
       USE DAO_MOD, ONLY : RH1       ! Relative humidity [fraction]
+#if defined( DEVEL )
+      USE GC_TYPE_MOD, ONLY : GC_MET_LOCAL
+#endif
 !
 ! !INPUT PARAMETERS: 
 !
       INTEGER, INTENT(IN) :: NYMD   ! YYYYMMDD date 
       INTEGER, INTENT(IN) :: NHMS   !  and hhmmss time of desired data
+!
+! !INPUT/OUTPUT PARAMETERS:
+!
+#if defined( DEVEL )
+      TYPE(GC_MET_LOCAL), INTENT(INOUT) :: LOCAL_MET  ! Obj w/ met fields
+#endif
 ! 
 ! !REVISION HISTORY: 
 !  19 Aug 2010 - R. Yantosca - Initial version, based on i6_read_mod.f
@@ -200,6 +213,11 @@
      &              NHMS = NHMS, 
      &              PS   = PS1, 
      &              RH   = RH1   )
+
+#if defined( DEVEL )
+      LOCAL_MET%PS1 = PS1
+      LOCAL_MET%RH1 = RH1
+#endif
       
       END SUBROUTINE GET_MERRA_I6_FIELDS_1
 !EOC
@@ -216,17 +234,30 @@
 !\\
 ! !INTERFACE:
 !
+#if defined( DEVEL )
+      SUBROUTINE GET_MERRA_I6_FIELDS_2( NYMD, NHMS, LOCAL_MET )
+#else
       SUBROUTINE GET_MERRA_I6_FIELDS_2( NYMD, NHMS )
+#endif
 !
 ! !USES:
 !
       USE DAO_MOD, ONLY : PS2       ! Surface pressure  [hPa]
       USE DAO_MOD, ONLY : RH2       ! Relative humidity [fraction]
+#if defined( DEVEL )
+      USE GC_TYPE_MOD, ONLY : GC_MET_LOCAL
+#endif
 !
 ! !INPUT PARAMETERS: 
 !
       INTEGER, INTENT(IN) :: NYMD   ! YYYYMMDD date 
       INTEGER, INTENT(IN) :: NHMS   !  and hhmmss time of desired data
+!
+! !INPUT/OUTPUT PARAMETERS:
+!
+#if defined( DEVEL )
+      TYPE(GC_MET_LOCAL), INTENT(INOUT) :: LOCAL_MET  ! Obj w/ met fields
+#endif
 ! 
 ! !REVISION HISTORY: 
 !  19 Aug 2010 - R. Yantosca - Initial version, based on i6_read_mod.f
@@ -240,6 +271,11 @@
      &              NHMS = NHMS,
      &              PS   = PS2, 
      &              RH   = RH2   )
+
+#if defined( DEVEL )
+      LOCAL_MET%PS2 = PS2
+      LOCAL_MET%RH2 = RH2
+#endif
       
       END SUBROUTINE GET_MERRA_I6_FIELDS_2
 !EOC

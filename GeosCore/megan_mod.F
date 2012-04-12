@@ -2739,7 +2739,11 @@
 !\\
 ! !INTERFACE:
 !
+#if defined( DEVEL )
+      SUBROUTINE INIT_MEGAN( LOCAL_MET )
+#else
       SUBROUTINE INIT_MEGAN
+#endif
 !
 ! !USES:
 !
@@ -2753,6 +2757,9 @@
       USE LOGICAL_MOD,      ONLY : LUNZIP
       USE TIME_MOD,         ONLY : GET_FIRST_A3_TIME, GET_JD
       USE TIME_MOD,         ONLY : ITS_A_LEAPYEAR,    YMD_EXTRACT
+#if defined( DEVEL )
+      USE GC_TYPE_MOD,      ONLY : GC_MET_LOCAL
+#endif
 ! 
 ! !REVISION HISTORY: 
 !  (1 ) Change the logic in the #if block for G4AHEAD. (bmy, 12/6/05)
@@ -2780,6 +2787,10 @@
       INTEGER              :: I,         J,         G4AHEAD
       INTEGER              :: THISYEAR,  THISMONTH, THISDAY, BACK_ONE
       REAL*8               :: JD_T15b,   JD_T15
+
+#if defined( DEVEL )
+      TYPE(GC_MET_LOCAL), INTENT(INOUT) :: LOCAL_MET  ! Obj w/ met fields
+#endif
       
       !=================================================================
       ! INIT_MEGAN begins here!
@@ -3015,7 +3026,12 @@
             ! GEOS-5.7.x met fields
             ! Sfc temp is hourly data
             !-----------------------------
+#if defined( DEVEL )
+            CALL GEOS57_READ_A1( NYMD_T15, 010000*J + G4AHEAD,
+     &                           LOCAL_MET ) 
+#else
             CALL GEOS57_READ_A1( NYMD_T15, 010000*J + G4AHEAD ) 
+#endif
 
 #elif   defined( MERRA )
 
@@ -3028,7 +3044,12 @@
             CALL OPEN_MERRA_A1_FIELDS( NYMD_T15, 010000*J + G4AHEAD )
 
             ! Read A1 fields from disk
+#if defined( DEVEL )
+            CALL GET_MERRA_A1_FIELDS(  NYMD_T15, 010000*J + G4AHEAD,
+     &                                 LOCAL_MET ) 
+#else
             CALL GET_MERRA_A1_FIELDS(  NYMD_T15, 010000*J + G4AHEAD ) 
+#endif
 
 #else
             !-----------------------------
@@ -3040,7 +3061,12 @@
             CALL OPEN_A3_FIELDS( NYMD_T15, 030000*J + G4AHEAD )
 
             ! Read A3 fields from disk
-            CALL GET_A3_FIELDS(  NYMD_T15, 030000*J + G4AHEAD ) 
+#if defined( DEVEL )
+            CALL GET_A3_FIELDS(  NYMD_T15, 030000*J + G4AHEAD, 
+     &                           LOCAL_MET ) 
+#else
+            CALL GET_A3_FIELDS(  NYMD_T15, 030000*J + G4AHEAD )
+#endif
 
 #endif
 

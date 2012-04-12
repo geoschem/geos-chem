@@ -457,7 +457,11 @@
 !\\
 ! !INTERFACE:
 !
+#if defined( DEVEL )
+      SUBROUTINE GET_A3_FIELDS( NYMD, NHMS, LOCAL_MET )
+#else
       SUBROUTINE GET_A3_FIELDS( NYMD, NHMS )
+#endif
 !
 ! !USES:
 !
@@ -468,6 +472,9 @@
       USE DAO_MOD, ONLY : SNODP,   SNOW,   TROPP,  TS,       TSKIN
       USE DAO_MOD, ONLY : U10M,    USTAR,  V10M,   Z0, EFLUX
       USE DAO_MOD, ONLY : FRLAND,  FROCEAN,FRLAKE, FRLANDIC
+#if defined( DEVEL )
+      USE GC_TYPE_MOD, ONLY : GC_MET_LOCAL
+#endif
 
       USE CMN_SIZE_MOD  ! Size parameters
 !
@@ -475,6 +482,12 @@
 !
       INTEGER, INTENT(IN) :: NYMD   ! YYYY/MM/DD
       INTEGER, INTENT(IN) :: NHMS   !  and hh:mm:ss of desired data
+!
+! !INPUT/OUTPUT PARAMETERS:
+!
+#if defined( DEVEL )
+      TYPE(GC_MET_LOCAL), INTENT(INOUT) :: LOCAL_MET  ! Obj w/ met fields
+#endif
 ! 
 ! !REVISION HISTORY: 
 !  23 Jun 2003 - R. Yantosca - Initial version
@@ -586,6 +599,43 @@
       ! Save NYMD, NHMS for next call
       LASTNYMD = NYMD
       LASTNHMS = NHMS
+
+#if defined( DEVEL )
+      LOCAL_MET%ALBD     = ALBD
+      LOCAL_MET%CLDFRC   = CLDFRC
+      LOCAL_MET%EFLUX    = EFLUX
+      LOCAL_MET%EVAP     = EVAP
+      LOCAL_MET%FRLAKE   = FRLAKE
+      LOCAL_MET%FRLAND   = FRLAND
+      LOCAL_MET%FRLANDIC = FRLANDIC
+      LOCAL_MET%FROCEAN  = FROCEAN
+      LOCAL_MET%GRN      = GRN
+      LOCAL_MET%GWETROOT = GWETROOT
+      LOCAL_MET%GWETTOP  = GWETTOP
+      LOCAL_MET%HFLUX    = HFLUX
+      LOCAL_MET%LAI      = LAI
+      LOCAL_MET%MOLENGTH = MOLENGTH
+      LOCAL_MET%OICE     = OICE
+      LOCAL_MET%PARDF    = PARDF
+      LOCAL_MET%PARDR    = PARDR
+      LOCAL_MET%PBLH     = PBL
+      LOCAL_MET%PRECTOT  = PREACC
+      LOCAL_MET%PRECCON  = PRECON
+      LOCAL_MET%PRECSNO  = PRECSNO
+      LOCAL_MET%RADLWG   = RADLWG
+      LOCAL_MET%RADSWG   = RADSWG
+      LOCAL_MET%SNICE    = SNICE
+      LOCAL_MET%SNODP    = SNODP
+      LOCAL_MET%SNOMAS   = SNOMAS
+      LOCAL_MET%SNOW     = SNOW
+      LOCAL_MET%TROPP    = TROPP
+      LOCAL_MET%TS       = TS
+      LOCAL_MET%TSKIN    = TSKIN
+      LOCAL_MET%U10M     = U10M
+      LOCAL_MET%USTAR    = USTAR
+      LOCAL_MET%V10M     = V10M
+      LOCAL_MET%Z0       = Z0
+#endif
 
       END SUBROUTINE GET_A3_FIELDS
 !EOC

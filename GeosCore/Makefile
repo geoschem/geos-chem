@@ -247,10 +247,12 @@ exehg:                                             # Create Hg/GTMM exec file
 #==============================================================================
 
 a3_read_mod.o               : a3_read_mod.F           dao_mod.o              \
-                              diag_mod.o              logical_mod.o
+                              diag_mod.o              logical_mod.o          \
+                              gc_type_mod.o
 
 a6_read_mod.o               : a6_read_mod.F           dao_mod.o              \
-                              diag_mod.o              logical_mod.o
+                              diag_mod.o              logical_mod.o          \
+                              gc_type_mod.o
 
 acetone_mod.o               : acetone_mod.F           dao_mod.o              \
                               diag_mod.o              megan_mod.o 
@@ -625,7 +627,8 @@ gcap_convect_mod.o          : gcap_convect_mod.F                             \
                               dao_mod.o               diag_mod.o
 
 gcap_read_mod.o             : gcap_read_mod.F         dao_mod.o              \
-                              diag_mod.o              logical_mod.o        
+                              diag_mod.o              logical_mod.o          \
+                              gc_type_mod.o       
 
 geia_mod.o                  : geia_mod.F
 
@@ -633,7 +636,7 @@ GEN.o                       : GEN.F
 
 
 geos57_read_mod.o           : geos57_read_mod.F90                            \
-                              dao_mod.o
+                              dao_mod.o               gc_type_mod.o
 
 get_global_ch4.o            : get_global_ch4.F                               \
                               future_emissions_mod.o  logical_mod.o
@@ -688,7 +691,7 @@ hcn_ch3cn_mod.o             : hcn_ch3cn_mod.F                                \
 
 i6_read_mod.o               : i6_read_mod.F                                  \
                               dao_mod.o               diag_mod.o             \
-                              logical_mod.o           
+                              logical_mod.o           gc_type_mod.o
 
 icoads_ship_mod.o           : icoads_ship_mod.F                              \
                               future_emissions_mod.o  logical_mod.o          \
@@ -806,16 +809,20 @@ mercury_mod.o               : mercury_mod.F                                  \
                               tropopause_mod.o        vdiff_pre_mod.o
 
 merra_a1_mod.o              : merra_a1_mod.F                                 \
-                              logical_mod.o           dao_mod.o
+                              logical_mod.o           dao_mod.o              \
+                              gc_type_mod.o
 
 merra_a3_mod.o              : merra_a3_mod.F                                 \
-                              logical_mod.o           dao_mod.o
+                              logical_mod.o           dao_mod.o              \
+                              gc_type_mod.o
 
 merra_cn_mod.o              : merra_cn_mod.F                                 \
-                              logical_mod.o           dao_mod.o
+                              logical_mod.o           dao_mod.o              \
+                              gc_type_mod.o
 
 merra_i6_mod.o              : merra_i6_mod.F                                 \
-                              logical_mod.o           dao_mod.o
+                              logical_mod.o           dao_mod.o              \
+                              gc_type_mod.o
 
 MIESCT.o                    : MIESCT.F
 

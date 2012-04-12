@@ -259,7 +259,11 @@
 !\\
 ! !INTERFACE:
 !
+#if defined( DEVEL )
+      SUBROUTINE GET_MERRA_A1_FIELDS( NYMD, NHMS, LOCAL_MET )
+#else
       SUBROUTINE GET_MERRA_A1_FIELDS( NYMD, NHMS )
+#endif
 !
 ! !USES:
 !
@@ -274,6 +278,9 @@
       USE DAO_MOD, ONLY : SLP,      SNODP,    SNOMAS,   TROPP
       USE DAO_MOD, ONLY : TS,       TSKIN,    U10M,     USTAR
       USE DAO_MOD, ONLY : V10M,     Z0 
+#if defined( DEVEL )
+      USE GC_TYPE_MOD, ONLY : GC_MET_LOCAL
+#endif
 
       USE CMN_SIZE_MOD            ! Size parameters
 !
@@ -281,6 +288,12 @@
 !
       INTEGER, INTENT(IN) :: NYMD   ! YYYYMMDD 
       INTEGER, INTENT(IN) :: NHMS   !  and hhmmss of data to read from disk
+!
+! !INPUT/OUTPUT PARAMETERS:
+!
+#if defined( DEVEL )
+      TYPE(GC_MET_LOCAL), INTENT(INOUT) :: LOCAL_MET  ! Obj w/ met fields
+#endif
 ! 
 ! !REVISION HISTORY: 
 !  19 Aug 2010 - R. Yantosca - Initial version, based on a3_read_mod.f
@@ -357,6 +370,51 @@
       ! Save NYMD, NHMS for next call
       LASTNYMD = NYMD
       LASTNHMS = NHMS
+
+#if defined( DEVEL )
+      LOCAL_MET%ALBD     = ALBD
+      LOCAL_MET%CLDFRC   = CLDFRC
+      LOCAL_MET%EFLUX    = EFLUX
+      LOCAL_MET%EVAP     = EVAP
+      LOCAL_MET%FRSEAICE = FRSEAICE
+      LOCAL_MET%FRSNO    = FRSNO
+      LOCAL_MET%GRN      = GRN
+      LOCAL_MET%GWETROOT = GWETROOT
+      LOCAL_MET%GWETTOP  = GWETTOP
+      LOCAL_MET%HFLUX    = HFLUX
+      LOCAL_MET%LAI      = LAI
+      LOCAL_MET%LWI      = LWI
+      LOCAL_MET%PARDR    = PARDR
+      LOCAL_MET%PARDF    = PARDF
+      LOCAL_MET%PBLH     = PBL
+      LOCAL_MET%PRECANV  = PREANV
+      LOCAL_MET%PRECCON  = PRECON
+      LOCAL_MET%PRECTOT  = PREACC
+      LOCAL_MET%PRECLSC  = PRELSC
+      LOCAL_MET%PRECSNO  = PRECSNO
+      LOCAL_MET%RADLWG   = RADLWG
+      LOCAL_MET%RADSWG   = RADSWG
+      LOCAL_MET%SEAICE00 = SEAICE00
+      LOCAL_MET%SEAICE10 = SEAICE10
+      LOCAL_MET%SEAICE20 = SEAICE20
+      LOCAL_MET%SEAICE30 = SEAICE30
+      LOCAL_MET%SEAICE40 = SEAICE40
+      LOCAL_MET%SEAICE50 = SEAICE50
+      LOCAL_MET%SEAICE60 = SEAICE60
+      LOCAL_MET%SEAICE70 = SEAICE70
+      LOCAL_MET%SEAICE80 = SEAICE80
+      LOCAL_MET%SEAICE90 = SEAICE90
+      LOCAL_MET%SLP      = SLP
+      LOCAL_MET%SNODP    = SNODP
+      LOCAL_MET%SNOMAS   = SNOMAS
+      LOCAL_MET%TROPP    = TROPP
+      LOCAL_MET%TS       = TS
+      LOCAL_MET%TSKIN    = TSKIN
+      LOCAL_MET%U10M     = U10M
+      LOCAL_MET%USTAR    = USTAR
+      LOCAL_MET%V10M     = V10M
+      LOCAL_MET%Z0       = Z0
+#endif
 
       END SUBROUTINE GET_MERRA_A1_FIELDS
 !EOC

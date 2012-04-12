@@ -269,7 +269,11 @@
 
       ! Initialize MEGAN arrays, get 15-day avg temperatures
       IF ( LMEGAN ) THEN
+#if defined( DEVEL )
+         CALL INIT_MEGAN( LOCAL_MET )
+#else
          CALL INIT_MEGAN
+#endif
          CALL INITIALIZE( 2 )
          CALL INITIALIZE( 3 )
          IF ( LPRT ) CALL DEBUG_MSG( '### MAIN: a INIT_MEGAN' )
@@ -1312,19 +1316,35 @@
 #if   defined( GEOS_57 )
 
       ! Read time-invariant data
+#if defined( DEVEL )
+      CALL GEOS57_READ_CN( LOCAL_MET )
+#else
       CALL GEOS57_READ_CN()
+#endif
 
       ! Read 1-hr time-averaged data
       DATE = GET_FIRST_A1_TIME()
+#if defined( DEVEL )
+      CALL GEOS57_READ_A1( DATE(1), DATE(2), LOCAL_MET )
+#else
       CALL GEOS57_READ_A1( DATE(1), DATE(2) )
-      
+#endif
+
       ! Read 3-hr time averaged data
       DATE = GET_FIRST_A3_TIME()
+#if defined( DEVEL )
+      CALL GEOS57_READ_A3( DATE(1), DATE(2), LOCAL_MET )
+#else
       CALL GEOS57_READ_A3( DATE(1), DATE(2) )
+#endif
 
       ! Read 3-hr time averaged data
       DATE = GET_FIRST_I3_TIME()
+#if defined( DEVEL )
+      CALL GEOS57_READ_I3_1( DATE(1), DATE(2), LOCAL_MET )
+#else
       CALL GEOS57_READ_I3_1( DATE(1), DATE(2) )
+#endif
 
 #elif defined( MERRA )
 
@@ -1338,25 +1358,41 @@
       ! Open constant fields
       DATE = (/ 20000101, 000000 /)
       CALL OPEN_MERRA_CN_FIELDS( DATE(1), DATE(2) )
+#if defined( DEVEL )
+      CALL GET_MERRA_CN_FIELDS(  DATE(1), DATE(2), LOCAL_MET )
+#else
       CALL GET_MERRA_CN_FIELDS(  DATE(1), DATE(2) )
+#endif
       IF ( LPRT ) CALL DEBUG_MSG( '### MAIN: a 1st MERRA CN TIME' )
 
       ! Open and read A-1 fields
       DATE = GET_FIRST_A1_TIME()
       CALL OPEN_MERRA_A1_FIELDS( DATE(1), DATE(2), RESET=.TRUE. )
+#if defined( DEVEL )
+      CALL GET_MERRA_A1_FIELDS(  DATE(1), DATE(2), LOCAL_MET )
+#else
       CALL GET_MERRA_A1_FIELDS(  DATE(1), DATE(2) )
+#endif
       IF ( LPRT ) CALL DEBUG_MSG( '### MAIN: a 1st MERRA A1 TIME' )
 
       ! Open and read A-3 fields
       DATE = GET_FIRST_A3_TIME()
       CALL OPEN_MERRA_A3_FIELDS( DATE(1), DATE(2) )
+#if defined( DEVEL )
+      CALL GET_MERRA_A3_FIELDS(  DATE(1), DATE(2), LOCAL_MET )
+#else
       CALL GET_MERRA_A3_FIELDS(  DATE(1), DATE(2) )
+#endif
       IF ( LPRT ) CALL DEBUG_MSG( '### MAIN: a 1st MERRA A3 TIME' )
 
       ! Open & read I-6 fields
       DATE = GET_FIRST_I6_TIME()
       CALL OPEN_MERRA_I6_FIELDS(  DATE(1), DATE(2) )
+#if defined( DEVEL )
+      CALL GET_MERRA_I6_FIELDS_1( DATE(1), DATE(2), LOCAL_MET )
+#else
       CALL GET_MERRA_I6_FIELDS_1( DATE(1), DATE(2) )
+#endif
       IF ( LPRT ) CALL DEBUG_MSG( '### MAIN: a 1st I6 TIME' )
 
 #else
@@ -1417,7 +1453,11 @@
       ! Open and read A-3 fields
       DATE = GET_FIRST_A3_TIME()
       CALL OPEN_A3_FIELDS( DATE(1), DATE(2), RESET=.TRUE. )
+#if defined( DEVEL )
+      CALL GET_A3_FIELDS(  DATE(1), DATE(2), LOCAL_MET )
+#else
       CALL GET_A3_FIELDS(  DATE(1), DATE(2) )
+#endif
       IF ( LPRT ) CALL DEBUG_MSG( '### MAIN: a 1st A3 TIME' )
 
       ! For MEGAN biogenics, update hourly temps w/in 15-day window
@@ -1439,7 +1479,11 @@
       ! Open & read I-6 fields
       DATE = GET_FIRST_I6_TIME()
       CALL OPEN_I6_FIELDS(  DATE(1), DATE(2) )
+#if defined( DEVEL )
+      CALL GET_I6_FIELDS_1( DATE(1), DATE(2), LOCAL_MET )
+#else
       CALL GET_I6_FIELDS_1( DATE(1), DATE(2) )
+#endif
       IF ( LPRT ) CALL DEBUG_MSG( '### MAIN: a 1st I6 TIME' )
       
 #if   defined( GCAP )
@@ -1450,7 +1494,11 @@
 
       ! Read GCAP PHIS and LWI fields (if necessary)
       CALL OPEN_GCAP_FIELDS
+#if defined( DEVEL )
+      CALL GET_GCAP_FIELDS( LOCAL_MET )
+#else
       CALL GET_GCAP_FIELDS
+#endif
 
       ! Remove temporary file (if necessary)
       IF ( LUNZIP ) THEN
@@ -1506,7 +1554,11 @@
       !---------------------------------
       IF ( ITS_TIME_FOR_A1() ) THEN
          DATE = GET_A1_TIME()
+#if defined( DEVEL )
+         CALL GEOS57_READ_A1( DATE(1), DATE(2), LOCAL_MET )
+#else
          CALL GEOS57_READ_A1( DATE(1), DATE(2) )
+#endif
       ENDIF
 
       !----------------------------------
@@ -1514,7 +1566,11 @@
       !----------------------------------
       IF ( ITS_TIME_FOR_A3() ) THEN
          DATE = GET_A3_TIME()
+#if defined( DEVEL )
+         CALL GEOS57_READ_A3( DATE(1), DATE(2), LOCAL_MET )
+#else
          CALL GEOS57_READ_A3( DATE(1), DATE(2) )
+#endif
 
          ! Since CLDTOPS is an A-3 field, update the
          ! lightning NOx emissions [molec/box/6h]
@@ -1526,7 +1582,11 @@
       !----------------------------------
       IF ( ITS_TIME_ FOR_I3() ) THEN
          DATE = GET_I3_TIME()
+#if defined( DEVEL )
+         CALL GEOS57_READ_I3_2( DATE(1), DATE(2), LOCAL_MET )
+#else
          CALL GEOS57_READ_I3_2( DATE(1), DATE(2) )
+#endif
 
          ! Compute avg pressure at polar caps 
          CALL AVGPOLE( PS2 )
@@ -1546,7 +1606,11 @@
 
          ! Open & read A-3 fields
          CALL OPEN_MERRA_A1_FIELDS( DATE(1), DATE(2) )
+#if defined( DEVEL )
+         CALL GET_MERRA_A1_FIELDS ( DATE(1), DATE(2), LOCAL_MET )
+#else
          CALL GET_MERRA_A1_FIELDS ( DATE(1), DATE(2) )
+#endif
 
          !%%% NEED TO UPDATE FOR MERRA %%%
          ! Update daily mean temperature archive for MEGAN biogenics
@@ -1565,7 +1629,11 @@
 
          ! Open and read A-6 fields
          CALL OPEN_MERRA_A3_FIELDS( DATE(1), DATE(2) )
+#if defined( DEVEL )
+         CALL GET_MERRA_A3_FIELDS ( DATE(1), DATE(2), LOCAL_MET )
+#else
          CALL GET_MERRA_A3_FIELDS ( DATE(1), DATE(2) )
+#endif
 
          ! Since CLDTOPS is an A-3 field, update the
          ! lightning NOx emissions [molec/box/6h]
@@ -1584,7 +1652,11 @@
 
          ! Open and read files
          CALL OPEN_MERRA_I6_FIELDS ( DATE(1), DATE(2) )
+#if defined( DEVEL )
+         CALL GET_MERRA_I6_FIELDS_2( DATE(1), DATE(2), LOCAL_MET )
+#else
          CALL GET_MERRA_I6_FIELDS_2( DATE(1), DATE(2) )
+#endif
 
          ! Compute avg pressure at polar caps 
          CALL AVGPOLE( PS2 )
@@ -1645,7 +1717,11 @@
 
          ! Open & read A-3 fields
          CALL OPEN_A3_FIELDS( DATE(1), DATE(2) )
+#if defined( DEVEL )
+         CALL GET_A3_FIELDS(  DATE(1), DATE(2), LOCAL_MET )
+#else
          CALL GET_A3_FIELDS(  DATE(1), DATE(2) )
+#endif
 
          ! Update daily mean temperature archive for MEGAN biogenics
          IF ( LMEGAN ) CALL UPDATE_T_DAY 
@@ -1685,7 +1761,11 @@
 
          ! Open and read files
          CALL OPEN_I6_FIELDS(  DATE(1), DATE(2) )
+#if defined( DEVEL )
+         CALL GET_I6_FIELDS_2( DATE(1), DATE(2), LOCAL_MET )
+#else
          CALL GET_I6_FIELDS_2( DATE(1), DATE(2) )
+#endif
 
          ! Compute avg pressure at polar caps 
          CALL AVGPOLE( PS2 )
@@ -1757,7 +1837,12 @@
 
             ! Get the overhead O3 column for FAST-J.  Take either the
             ! TOMS O3 data or the column O3 directly from the met fields
+#if defined( DEVEL )
+            CALL COMPUTE_OVERHEAD_O3( DAY, USE_O3_FROM_MET, 
+     &                                LOCAL_MET%TO3 )
+#else
             CALL COMPUTE_OVERHEAD_O3( DAY, USE_O3_FROM_MET, TO3 )
+#endif
          ENDIF
       ENDIF
 

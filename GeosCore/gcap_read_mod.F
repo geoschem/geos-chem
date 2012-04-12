@@ -284,7 +284,11 @@
 
 !------------------------------------------------------------------------------
 
+#if defined( DEVEL )
+      SUBROUTINE GET_GCAP_FIELDS( LOCAL_MET )
+#else
       SUBROUTINE GET_GCAP_FIELDS
+#endif
 !
 !******************************************************************************
 !  Subroutine GET_GCAP_FIELDS is a wrapper for routine READ_PHIS.  This routine
@@ -298,9 +302,15 @@
 ! 
       ! References to F90 modules
       USE DAO_MOD, ONLY : PHIS, LWI_GISS
+#if defined( DEVEL )
+      USE GC_TYPE_MOD, ONLY : GC_MET_LOCAL
+#endif
 
       ! Local variables
       INTEGER          :: NYMD, NHMS 
+#if defined( DEVEL )
+      TYPE(GC_MET_LOCAL), INTENT(INOUT) :: LOCAL_MET  ! Obj w/ met fields
+#endif
 
       !=================================================================
       ! GET_PHIS_FIELD begins here!
@@ -312,6 +322,11 @@
 
       ! For GCAP met fields: read PHIS and LWI_GISS
       CALL READ_GCAP( NYMD=NYMD, NHMS=NHMS, PHIS=PHIS, LWI=LWI_GISS )
+
+#if defined( DEVEL )
+      LOCAL_MET%PHIS     = PHIS
+      LOCAL_MET%LWI_GISS = LWI_GISS
+#endif
 
       ! Return to calling program
       END SUBROUTINE GET_GCAP_FIELDS

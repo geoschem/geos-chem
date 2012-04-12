@@ -241,7 +241,11 @@
 !\\
 ! !INTERFACE:
 !
+#if defined( DEVEL )
+      SUBROUTINE GET_MERRA_A3_FIELDS( NYMD, NHMS, LOCAL_MET )
+#else
       SUBROUTINE GET_MERRA_A3_FIELDS( NYMD, NHMS )
+#endif
 !
 ! !USES:
 !
@@ -252,6 +256,9 @@
       USE DAO_MOD, ONLY : QL,      SPHU,     REEVAPCN, REEVAPLS
       USE DAO_MOD, ONLY : T,       TAUCLI,   TAUCLW,   UWND
       USE DAO_MOD, ONLY : VWND
+#if defined( DEVEL )
+      USE GC_TYPE_MOD, ONLY : GC_MET_LOCAL
+#endif
 
       USE CMN_SIZE_MOD            ! Size parameters
 !
@@ -259,6 +266,12 @@
 !
       INTEGER, INTENT(IN) :: NYMD   ! YYYYMMDD and
       INTEGER, INTENT(IN) :: NHMS   !  hhmmss of desired data fields
+!
+! !INPUT/OUTPUT PARAMETERS:
+!
+#if defined( DEVEL )
+      TYPE(GC_MET_LOCAL), INTENT(INOUT) :: LOCAL_MET  ! Obj w/ met fields
+#endif
 ! 
 ! !REVISION HISTORY: 
 !  20 Aug 2010 - R. Yantosca - Initial version, based on a3_read_mod.f
@@ -317,6 +330,34 @@
       ! Save NYMD and NHMS for next call
       LASTNYMD = NYMD
       LASTNHMS = NHMS
+
+#if defined( DEVEL )
+      LOCAL_MET%CLDF     = CLDF
+      LOCAL_MET%CLDTOPS  = CLDTOPS
+      LOCAL_MET%CMFMC    = CMFMC
+      LOCAL_MET%DQRCU    = DQRCU
+      LOCAL_MET%DQRLSAN  = DQRLSAN
+      LOCAL_MET%DQIDTMST = DQIDTMST
+      LOCAL_MET%DQLDTMST = DQLDTMST
+      LOCAL_MET%DQVDTMST = DQVDTMST
+      LOCAL_MET%DTRAIN   = DTRAIN
+      LOCAL_MET%MOISTQ   = MOISTQ
+      LOCAL_MET%OPTD     = OPTDEP
+      LOCAL_MET%PFICU    = PFICU
+      LOCAL_MET%PFILSAN  = PFILSAN
+      LOCAL_MET%PFLCU    = PFLCU
+      LOCAL_MET%PFLLSAN  = PFLLSAN
+      LOCAL_MET%QI       = QI
+      LOCAL_MET%QL       = QL
+      LOCAL_MET%SPHU     = SPHU
+      LOCAL_MET%REEVAPCN = REEVAPCN
+      LOCAL_MET%REEVAPLS = REEVAPLS
+      LOCAL_MET%T        = T
+      LOCAL_MET%TAUCLI   = TAUCLI
+      LOCAL_MET%TAUCLW   = TAUCLW
+      LOCAL_MET%U        = UWND
+      LOCAL_MET%V        = VWND
+#endif
 
       END SUBROUTINE GET_MERRA_A3_FIELDS
 !EOC

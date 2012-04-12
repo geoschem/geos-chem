@@ -419,7 +419,11 @@
 
 !------------------------------------------------------------------------------
 
+#if defined( DEVEL )
+      SUBROUTINE GET_I6_FIELDS_1( NYMD, NHMS, LOCAL_MET )
+#else
       SUBROUTINE GET_I6_FIELDS_1( NYMD, NHMS )
+#endif
 !
 !******************************************************************************
 !  Subroutine GET_I6_FIELDS_1 is a wrapper for routine READ_I6.  This routine
@@ -441,10 +445,16 @@
 !      
       ! References to F90 modules
       USE DAO_MOD, ONLY : ALBD1, LWI,  PS1,   SLP,    SPHU1, T
-      USE DAO_MOD, ONLY : TO31,   TTO3, TMPU1, TROPP1, UWND1, VWND1
+      USE DAO_MOD, ONLY : TO31,  TTO3, TMPU1, TROPP1, UWND1, VWND1
+#if defined( DEVEL )
+      USE GC_TYPE_MOD, ONLY : GC_MET_LOCAL
+#endif
 
       ! Arguments
       INTEGER, INTENT(IN) :: NYMD, NHMS 
+#if defined( DEVEL )
+      TYPE(GC_MET_LOCAL), INTENT(INOUT) :: LOCAL_MET  ! Obj w/ met fields
+#endif
 
 #if   defined( GEOS_4 )
 
@@ -471,12 +481,25 @@
 
 #endif
       
+#if defined( DEVEL )
+      LOCAL_MET%LWI   = LWI
+      LOCAL_MET%PS1   = PS1
+      LOCAL_MET%SLP   = SLP
+      LOCAL_MET%TROPP = TROPP1
+      LOCAL_MET%TO3   = TO31
+      LOCAL_MET%TTO3  = TTO3
+#endif
+
       ! Return to calling program
       END SUBROUTINE GET_I6_FIELDS_1
 
 !-----------------------------------------------------------------------------
 
+#if defined( DEVEL )
+      SUBROUTINE GET_I6_FIELDS_2( NYMD, NHMS, LOCAL_MET )
+#else
       SUBROUTINE GET_I6_FIELDS_2( NYMD, NHMS )
+#endif
 !
 !******************************************************************************
 !  Subroutine GET_I6_FIELDS_2 is a wrapper for routine READ_I6.  This routine
@@ -498,11 +521,17 @@
 !
       ! References to F90 modules
       USE DAO_MOD, ONLY : ALBD2,  LWI,   PS2,   SLP,    SPHU2
-      USE DAO_MOD, ONLY : T,      TO32,   TTO3,  TMPU1,  TMPU2
+      USE DAO_MOD, ONLY : T,      TO32,  TTO3,  TMPU1,  TMPU2
       USE DAO_MOD, ONLY : TROPP2, UWND2, VWND2
+#if defined( DEVEL )
+      USE GC_TYPE_MOD, ONLY : GC_MET_LOCAL
+#endif
 
       ! Arguments
       INTEGER, INTENT(IN) :: NYMD, NHMS 
+#if defined( DEVEL )
+      TYPE(GC_MET_LOCAL), INTENT(INOUT) :: LOCAL_MET  ! Obj w/ met fields
+#endif
 
 #if   defined( GEOS_4 )
 
@@ -528,6 +557,15 @@
       !=================================================================
       CALL READ_I6( NYMD=NYMD, NHMS=NHMS, PS=PS2, SLP=SLP )
 
+#endif
+
+#if defined( DEVEL )
+      LOCAL_MET%LWI   = LWI
+      LOCAL_MET%PS2   = PS2
+      LOCAL_MET%SLP   = SLP
+      LOCAL_MET%TROPP = TROPP2
+      LOCAL_MET%TO3   = TO32
+      LOCAL_MET%TTO3  = TTO3
 #endif
 
       ! Return to calling program
