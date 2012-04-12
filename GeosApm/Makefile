@@ -48,6 +48,7 @@
 #  05 Apr 2012 - R. Yantosca - Add c2h6_mod.o to emfossil.F dependency
 #  05 Apr 2012 - R. Yantosca - Remove reference to rdlai.F
 #  11 Apr 2012 - R. Yantosca - Remove reference to obsolete lai_mod.F
+#  12 Apr 2012 - R. Yantosca - Remove reference to findmon.F
 #EOP
 #------------------------------------------------------------------------------
 #BOC
@@ -116,7 +117,7 @@ diagoh.o                 drydep_mod.o            dust_dead_mod.o	     \
 dust_mod.o               edgar_mod.o             emep_mod.o		     \
 emf_scale.o              emfossil.o              emissdr.o		     \
 emissions_mod.o          epa_nei_mod.o		 mapping_mod.o               \
-fast_j.o                 fertadd.o               findmon.o		     \
+fast_j.o                 fertadd.o                                           \
 fjfunc.o                 fjx_acet_mod.o          future_emissions_mod.o	     \
 fvdas_convect_mod.o      fyhoro.o                fyrno3.o		     \
 gamap_mod.o              gasconc.o               gc_biomass_mod.o	     \
@@ -605,8 +606,6 @@ fast_j.o                    : fast_j.F                                       \
                               dao_mod.o               toms_mod.o
 
 fertadd.o                   : fertadd.F               logical_mod.o
-
-findmon.o                   : findmon.F
 
 fjfunc.o                    : fjfunc.F
 

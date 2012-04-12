@@ -70,6 +70,7 @@
 #  05 Apr 2012 - R. Yantosca - Added c2h6_mod.o to emfossil.F dependency
 #  05 Apr 2012 - R. Yantosca - Now compile the NcdfUtil routines
 #  05 Apr 2012 - R. Yantosca - Remove reference to rdland.F, rdlai.F, readlai.F
+#  12 Apr 2012 - R. Yantosca - Remove reference to findmon.F
 #EOP
 #------------------------------------------------------------------------------
 #BOC
@@ -122,8 +123,7 @@ MIESCT.o                 emissions_mod.o         rd_prof.o                   \
 NOABS.o                  modis_lai_mod.o                                     \
 OPMIE.o                  epa_nei_mod.o                                       \
 RD_TJPL.o                fast_j.o                                            \
-RnPbBe_mod.o             fertadd.o                                           \
-SPHERE.o                 findmon.o                                           \
+RnPbBe_mod.o             fertadd.o               SPHERE.o                    \
 XSEC1D.o                 fjfunc.o                rdsoil.o                    \
 XSECO2.o                 fjx_acet_mod.o          readchem.o                  \
 XSECO3.o                 future_emissions_mod.o  reader.o                    \
@@ -590,8 +590,6 @@ fast_j.o                    : fast_j.F                                       \
                               dao_mod.o               toms_mod.o
 
 fertadd.o                   : fertadd.F               logical_mod.o
-
-findmon.o                   : findmon.F
 
 fjfunc.o                    : fjfunc.F
 

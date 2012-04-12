@@ -104,6 +104,7 @@
 #  11 Apr 2012 - R. Yantosca - Now retire obsolete lai_mod.F
 #  11 Apr 2012 - R. Yantosca - Reference modis_lai_mod.F90 in timeseries diag
 #  11 Apr 2012 - R. Yantosca - Remove all references to obsolete lai_mod.F
+#  12 Apr 2012 - R. Yantosca - Remove reference to findmon.F
 #EOP
 #------------------------------------------------------------------------------
 #BOC
@@ -574,8 +575,6 @@ fast_j.o                    : fast_j.F                                       \
                               dao_mod.o               toms_mod.o
 
 fertadd.o                   : fertadd.F               logical_mod.o
-
-findmon.o                   : findmon.F
 
 fjfunc.o                    : fjfunc.F
 
