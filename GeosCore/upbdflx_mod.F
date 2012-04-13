@@ -15,6 +15,9 @@
 !
 ! !USES:
 !
+#if defined( DEVEL )
+      USE OMP_LIB
+#endif
       IMPLICIT NONE
 #     include "define.h"
       PRIVATE
@@ -105,6 +108,7 @@
       USE LINOZ_MOD,   ONLY : DO_LINOZ
 
       USE CMN_SIZE_MOD  ! Size parameters
+
 ! 
 ! !REVISION HISTORY: 
 !  11 Mar 2003 - R. Yantosca - Initial version
@@ -311,6 +315,10 @@
 #else  
       INTEGER, PARAMETER   :: J30S = 61, J30N = 121    ! 1x1 global grid
 #endif
+
+#elif defined( EXTERNAL_GRID )
+      ! THIS HAS TO BE DEFINED SPECIFICALLY! HOW?
+      INTEGER, PARAMETER   :: J30S = 31, J30N = 61
 
 #endif
 
@@ -522,7 +530,7 @@
       USE BPCH2_MOD,      ONLY : GET_TAU0,     READ_BPCH2
       USE DAO_MOD,        ONLY : AD
       USE DIRECTORY_MOD,  ONLY : DATA_DIR
-      USE ERROR_MOD,      ONLY : ERROR_STOP    
+      USE ERROR_MOD,      ONLY : ERROR_STOP, ALLOC_ERR
       USE TRACERID_MOD,   ONLY : IDTNOX,       IDTHNO3
       USE TIME_MOD,       ONLY : GET_TS_DYN,   GET_MONTH
       USE TIME_MOD,       ONLY : ITS_A_NEW_MONTH
@@ -595,23 +603,38 @@
 !
 ! !LOCAL VARIABLES:
 !
-      INTEGER              :: I, J, L, LMIN
+      INTEGER              :: I, J, L, LMIN, AS
       INTEGER, SAVE        :: LASTMONTH = -99
+      LOGICAL, SAVE        :: FIRST = .TRUE.
 
       REAL*4               :: DTDYN, AIRDENS, PNOY
       REAL*4               :: ARRAY(1,JJPAR,LGLOB)
 
+#if defined( DEVEL )
       ! Ratio of ( [NO] + [NO2] ) / [NOy] 
-      REAL*4, SAVE         :: XRATIO(JJPAR,LLPAR) 
+      REAL*4, ALLOCATABLE, SAVE  :: XRATIO(:,:)
 
       ! Arrays for P(NOY), NO, NO2, and HNO3 concentrations
-      REAL*4, SAVE         :: STRATPNOY(JJPAR,LLPAR)
-      REAL*4, SAVE         :: STRATNO(JJPAR,LLPAR)
-      REAL*4, SAVE         :: STRATNO2(JJPAR,LLPAR)
-      REAL*4, SAVE         :: STRATHNO3(JJPAR,LLPAR)
+      REAL*4, ALLOCATABLE, SAVE  :: STRATPNOY(:,:)
+      REAL*4, ALLOCATABLE, SAVE  :: STRATNO(:,:)
+      REAL*4, ALLOCATABLE, SAVE  :: STRATNO2(:,:)
+      REAL*4, ALLOCATABLE, SAVE  :: STRATHNO3(:,:)
 
       ! For P(NOy) above 10 mb
-      REAL*4, SAVE         :: SPNOY10mb(JJPAR)
+      REAL*4, ALLOCATABLE, SAVE  :: SPNOY10mb(:)
+#else
+      ! Ratio of ( [NO] + [NO2] ) / [NOy] 
+      REAL*4, SAVE  :: XRATIO(JJPAR,LLPAR)
+
+      ! Arrays for P(NOY), NO, NO2, and HNO3 concentrations
+      REAL*4, SAVE  :: STRATPNOY(JJPAR,LLPAR)
+      REAL*4, SAVE  :: STRATNO(JJPAR,LLPAR)
+      REAL*4, SAVE  :: STRATNO2(JJPAR,LLPAR)
+      REAL*4, SAVE  :: STRATHNO3(JJPAR,LLPAR)
+
+      ! For P(NOy) above 10 mb
+      REAL*4, SAVE  :: SPNOY10mb(JJPAR)
+#endif
 
       ! TAU values for indexing the punch file 
       REAL*8               :: XTAU
@@ -626,6 +649,25 @@
       !=================================================================
       ! UPBDFLX_NOY begins here! 
       !=================================================================
+
+#if defined( DEVEL )
+      IF (FIRST) THEN
+         ALLOCATE( STRATPNOY(JJPAR,LLPAR), STAT=AS )
+         IF (AS /=0) CALL ALLOC_ERR( 'STRATPNOY' )
+         ALLOCATE( STRATNO(JJPAR,LLPAR), STAT=AS )
+         IF (AS /=0) CALL ALLOC_ERR( 'STRATNO' )
+         ALLOCATE( STRATNO2(JJPAR,LLPAR), STAT=AS )
+         IF (AS /=0) CALL ALLOC_ERR( 'STRATNO2' )
+         ALLOCATE( STRATHNO3(JJPAR,LLPAR), STAT=AS )
+         IF (AS /=0) CALL ALLOC_ERR( 'STRATHNO3' )
+         ALLOCATE( XRATIO(JJPAR,LLPAR), STAT=AS)
+         IF (AS /=0) CALL ALLOC_ERR( 'XRATIO' )
+         ALLOCATE( SPNOY10mb(JJPAR), STAT=AS)
+         IF (AS /=0) CALL ALLOC_ERR( 'SPNOY10mb' )
+         
+         FIRST = .FALSE.
+      ENDIF
+#endif
 
       ! Dynamic timestep [s]
       DTDYN = GET_TS_DYN() * 60d0
@@ -744,7 +786,11 @@
          LMIN = GET_MIN_TPAUSE_LEVEL()
 
 !$OMP PARALLEL DO
+#if defined( DEVEL )
 !$OMP+DEFAULT( SHARED )
+#else
+!$OMP+DEFAULT( SHARED ) SHARED(XRATIO)
+#endif
 !$OMP+PRIVATE( I, J, L, PNOY )
 !$OMP+SCHEDULE( DYNAMIC )
 !----------------------------------
@@ -796,7 +842,7 @@
          LMIN = GET_MIN_TPAUSE_LEVEL()
 
 !$OMP PARALLEL DO
-!$OMP+DEFAULT( SHARED )
+!$OMP+DEFAULT( SHARED ) SHARED(XRATIO)
 !$OMP+PRIVATE( I, J, L, PNOY )
 !$OMP+SCHEDULE( DYNAMIC )
 !--------------------------------
@@ -927,6 +973,10 @@
 #else  
       INTEGER, PARAMETER   :: J30S = 61, J30N = 121    ! 1x1 global grid
 #endif
+
+#elif defined( EXTERNAL_GRID )
+      ! THIS HAS TO BE DEFINED SPECIFICALLY! HOW?
+      INTEGER, PARAMETER   :: J30S = 31, J30N = 61
 
 #endif
 

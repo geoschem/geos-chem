@@ -20,8 +20,7 @@
 !
 #     include "define.h"
 
-      USE CMN_SIZE_MOD, ONLY : NDUST, NAER, NRH
-      USE CMN_FJ_MOD,   ONLY : IPAR,  JPAR, LPAR
+      USE CMN_SIZE_MOD, ONLY : NDUST, NAER, NRH,  LLPAR
       USE CMN_FJ_MOD,   ONLY : JPMAX, JPPJ, JPNL, ZPJ
       USE JV_CMN_MOD,   ONLY : ZJ,    U0,   SZA,  SZAMAX
 
@@ -36,15 +35,15 @@
       INTEGER, INTENT(IN)    :: MONTH                 ! Current month
       INTEGER, INTENT(IN)    :: DAY                   ! Day of month
       REAL*8,  INTENT(IN)    :: CSZA                  ! Cosine(SZA) [unitless]
-      REAL*8,  INTENT(IN)    :: T(LPAR)               ! Temperature [K]
+      REAL*8,  INTENT(IN)    :: T(LLPAR)              ! Temperature [K]
       REAL*8,  INTENT(IN)    :: SA                    ! UV albedo [unitless]
-      REAL*8,  INTENT(IN)    :: OD(LPAR)              ! Visible OD [unitless]
+      REAL*8,  INTENT(IN)    :: OD(LLPAR)             ! Visible OD [unitless]
       REAL*8,  INTENT(IN)    :: O3COL                 ! Overhead O3 column [DU]
 !
 ! !INPUT/OUTPUT PARAMETERS:
 !
-      REAL*8,  INTENT(INOUT) :: OPTDUST(LPAR,NDUST)   ! Dust OD [unitless]
-      REAL*8,  INTENT(INOUT) :: OPTAER(LPAR,NAER*NRH) ! Aerosol OD [unitless]
+      REAL*8,  INTENT(INOUT) :: OPTDUST(LLPAR,NDUST)   ! Dust OD [unitless]
+      REAL*8,  INTENT(INOUT) :: OPTAER(LLPAR,NAER*NRH) ! Aerosol OD [unitless]
 !
 ! !AUTHOR:
 !  Oliver Wild & Michael Prather

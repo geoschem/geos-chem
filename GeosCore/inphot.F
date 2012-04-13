@@ -33,7 +33,8 @@
 
 #     include "define.h"
 
-      USE CMN_FJ_MOD, ONLY : IPAR, JPAR, LPAR, JPMAX, JPPJ, JPNL
+      USE CMN_FJ_MOD,   ONLY : JPMAX, JPPJ, JPNL
+      USE CMN_SIZE_MOD, ONLY : LLPAR
       USE JV_CMN_MOD
 
       IMPLICIT NONE
@@ -52,8 +53,8 @@
       JPPJ  = NREACS + 4         
 
       ! Error check # of layers
-      IF ( JPNL > LPAR ) THEN 
-         CALL ERROR_STOP( 'JPNL > LPAR!', 'inphot.f' )
+      IF ( JPNL > LLPAR ) THEN 
+         CALL ERROR_STOP( 'JPNL > LLPAR!', 'inphot.f' )
       ENDIF
 
       ! Error check # of rxns

@@ -123,6 +123,46 @@
          FIRST = .FALSE.
       ENDIF
 
+!------------------------------------------------------------------------------
+! Prior to 8/13/10:
+! Rewrite logic more cleanly, treat MERRA like GEOS-5 (bmy, 8/13/10)
+!!-----------------------------------
+!! Prior to 5/20/10
+!!#if   defined( GRIDREDUCED )
+!!-----------------------------------
+!! CDH added extra cases for GEOS5
+!! Also changed default file location
+!#if   defined( GRIDREDUCED ) && defined( GEOS_5 )
+!
+!      ! Filename for 47-level GEOS5 model
+!      FILENAME = 
+!     &           '/home/cdh/GC/Archived-Br/MERGE.O3.47L.' // 
+!     &           GET_NAME_EXT() // '.' // GET_RES_EXT()
+!
+!#elif defined( GEOS_5 )
+!
+!      ! Filename for full level GEOS5 model
+!      FILENAME = 
+!     &           '/home/cdh/GC/Archived-Br/MERGE.O3.' // 
+!     &           GET_NAME_EXT() // '.' // GET_RES_EXT()
+!
+!#elif   defined( GRIDREDUCED )
+!
+!      ! Filename for 30-level model
+!      FILENAME = TRIM( DATA_DIR )                           // 
+!     &           'sulfate_sim_200508/offline/MERGE.O3.30L.' // 
+!     &           GET_NAME_EXT() // '.' // GET_RES_EXT()
+!
+!#else
+!      ! Filename for full vertical grid
+!      FILENAME = TRIM( DATA_DIR )                           // 
+!     &           'sulfate_sim_200508/offline/MERGE.O3.'     // 
+!     &           GET_NAME_EXT() // '.' // GET_RES_EXT()
+!
+!#endif
+!------------------------------------------------------------------------------
+
+
 #if   defined( GEOS_5 ) || defined( MERRA ) || defined( GEOS_57 )
 
       !----------------------------------------------------------------

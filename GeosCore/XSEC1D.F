@@ -5,7 +5,6 @@ c  Quantum yields for O3 --> O2 + O(1D) interpolated across 3 temps
 !-----------------------------------------------------------------------
 #     include "define.h"
 
-      USE CMN_FJ_MOD, ONLY : IPAR, JPAR, LPAR, JPMAX, JPPJ
       USE JV_CMN_MOD
 
       IMPLICIT NONE

@@ -3954,7 +3954,11 @@ c
 
 !------------------------------------------------------------------------------
 
+#if defined( DEVEL )
+      SUBROUTINE EMISSCARBON(EMISSIONS)
+#else
       SUBROUTINE EMISSCARBON
+#endif
 !
 !******************************************************************************
 !  Subroutine EMISSCARBON is the interface between the GEOS-CHEM model
@@ -3992,12 +3996,20 @@ c
       USE CMN_SIZE_MOD    ! Size parameters
       USE CMN_DIAG_MOD    ! ND07
 
+#if defined( DEVEL )
+      USE TRACERID_MOD, ONLY : IDTBCPI, IDTBCPO, IDTOCPI, IDTOCPO
+      USE TRACER_MOD, ONLY   : N_TRACERS 
+#endif
+
       ! Local variables
       LOGICAL, SAVE        :: FIRST = .TRUE.
       INTEGER              :: I, J, MONTH, N
       REAL*8               :: BCSRC(IIPAR,JJPAR,2)
       REAL*8               :: OCSRC(IIPAR,JJPAR,2)
 
+#if defined( DEVEL )
+      REAL*8, INTENT(INOUT)      :: EMISSIONS(IIPAR,JJPAR,N_TRACERS+1)
+#endif
       !=================================================================
       ! EMISSCARBON begins here!
       !
@@ -4162,6 +4174,17 @@ c
       ! Sum up all carbon tracers throughout the boundary layer
       CALL EMITHIGH( BCSRC, OCSRC )
       IF ( LPRT ) CALL DEBUG_MSG( '### EMISCARB: after EMITHIGH' )
+
+#if defined( DEVEL )
+      IF (IDTBCPI /= 0) EMISSIONS(:,:,IDTBCPI) = 
+     &                    EMISSIONS(:,:,IDTBCPI) + BCSRC(:,:,1) ! Hydrophylic BC
+      IF (IDTBCPI /= 0) EMISSIONS(:,:,IDTBCPO) = 
+     &                    EMISSIONS(:,:,IDTBCPO) + BCSRC(:,:,2) ! Hydrophobic BC
+      IF (IDTBCPI /= 0) EMISSIONS(:,:,IDTOCPI) = 
+     &                    EMISSIONS(:,:,IDTOCPI) + OCSRC(:,:,1) ! Hydrophylic OC
+      IF (IDTBCPI /= 0) EMISSIONS(:,:,IDTOCPO) = 
+     &                    EMISSIONS(:,:,IDTOCPO) + OCSRC(:,:,2) ! Hydrophylic OC
+#endif
 
       !=================================================================
       ! ND07 diagnostic: Carbon aerosol emissions [kg/timestep]
@@ -7241,6 +7264,15 @@ c
       ! Definition of the N. American bounding box
       ! with LL corner (10N,165W) and UR corner (90N,40W)
       !            Lon_LL  Lat_LL  Lon_UR  Lat_UR
+#if defined( DEVEL )
+
+      I1_NA = 0
+      J1_NA = 0
+      I2_NA = 0
+      J2_NA = 0
+
+#else
+
       COORDS = (/ -165d0,  10d0,  -40d0,   90d0  /)
       
       ! Get the indices corresponding to the lon/lat values in COORDS
@@ -7252,6 +7284,7 @@ c
       I2_NA = INDICES(3)
       J2_NA = INDICES(4)
 
+#endif
 #endif
               
       ! Reset IS_INIT before exiting

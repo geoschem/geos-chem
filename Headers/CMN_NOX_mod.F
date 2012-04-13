@@ -23,7 +23,11 @@
 ! 
       ! NOTE: Keep this for backwards compatibility for now (bmy, 10/2/07)
       ! GEMISNOX2 = Soil Nox [molec NOx/cm3/s]
+#if defined( DEVEL )
+      REAL*8, ALLOCATABLE :: GEMISNOX2(:,:)
+#else
       REAL*8 :: GEMISNOX2(IIPAR,JJPAR)
+#endif
 
 ! !REMARKS:
 !  !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -43,5 +47,21 @@
 !  23 Aug 2011 - M. Long    - Converted to Module from Header file
 !-----------------------------------------------------------------------------
 !BOC
-	END MODULE CMN_NOX_MOD
+#if defined( DEVEL )
+      CONTAINS
+
+      SUBROUTINE SET_CMN_NOX_MOD
+
+      IMPLICIT NONE
+
+      INTEGER AS
+      
+      ALLOCATE(
+     &     GEMISNOX2(IIPAR,JJPAR),
+     &     STAT=AS)
+
+      END SUBROUTINE SET_CMN_NOX_MOD
+#endif
+
+      END MODULE CMN_NOX_MOD
 !EOC

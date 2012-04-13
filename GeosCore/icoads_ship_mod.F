@@ -203,7 +203,11 @@
 !\\
 ! !INTERFACE:
 !
+#if defined( DEVEL )
+      SUBROUTINE EMISS_ICOADS_SHIP( EMISS )
+#else
       SUBROUTINE EMISS_ICOADS_SHIP
+#endif
 !
 ! !USES:
 ! 
@@ -216,6 +220,12 @@
 
       USE CMN_SIZE_MOD          ! Size parameters
       USE CMN_O3_MOD            ! FSCALYR
+
+#if defined( DEVEL )
+      USE TRACER_MOD,   ONLY : XNUMOL, N_TRACERS
+      USE TRACERID_MOD, ONLY : IDTNOx, IDTCO, IDTSO2, IDTNH3
+#endif
+
 !
 ! !REVISION HISTORY: 
 !  21 Jul 2009 - Chulkyu Lee & P. Le Sager - Initial Version
@@ -235,6 +245,12 @@
       CHARACTER(LEN=255)         :: FILENAME
       CHARACTER(LEN=4)           :: SYEAR, SNAME
       CHARACTER (LEN=2)          :: SMONTH
+
+#if defined( DEVEL )
+      REAL*8, INTENT(INOUT)      :: EMISS(IIPAR, JJPAR, N_TRACERS)
+      INTEGER                    :: YEAR, MONTH
+      REAL*8                     :: SEC_IN_MONTH
+#endif
 
       !=================================================================
       ! EMISS_ICOADS_SHIP begins here!
@@ -335,6 +351,32 @@
       IF ( LFUTURE ) THEN 
          CALL ICOADS_SCALE_FUTURE
       ENDIF
+
+#if defined( DEVEL )
+! Get emissions year
+      YEAR = GET_YEAR()
+! Get emissions month      
+      MONTH = GET_MONTH()
+      
+      IF ( (MONTH == 4) .OR. (MONTH == 6) .OR.
+     &     (MONTH == 9) .OR. (MONTH == 11) ) THEN
+         SEC_IN_MONTH = 86400D0*30.0D0
+      ELSE IF (MONTH == 2) THEN
+! ICOADS ship emissions for 2002
+         IF (MOD(YEAR,4) == 0) THEN
+            SEC_IN_MONTH = 86400D0*29.0D0
+         ELSE
+            SEC_IN_MONTH = 86400D0*28.0D0
+         ENDIF
+      ELSE
+         SEC_IN_MONTH = 86400D0*31.0D0
+      ENDIF
+
+      ! Convert from Kg/Month -> Kg/S
+      EMISS(:,:,IDTNOx) = NOx / SEC_IN_MONTH
+      EMISS(:,:,IDTCO)  = CO  / SEC_IN_MONTH
+      EMISS(:,:,IDTSO2) = SO2 / SEC_IN_MONTH
+#endif
 
       !--------------------------
       ! Print emission totals

@@ -329,6 +329,8 @@
       ! Close input file
       CLOSE( IU_GEOS )
 
+#if ! defined ESMF_ 
+#if ! defined GCM
       ! Allocate diagnostic arrays (phs, 11/18/08)
       CALL NDXX_SETUP
 
@@ -338,6 +340,8 @@
 
       ! Make sure all directories are valid
       CALL VALIDATE_DIRECTORIES
+#endif
+#endif
 
       ! Check GEOS-CHEM timesteps
       CALL CHECK_TIME_STEPS
@@ -878,11 +882,15 @@
      &                   L1=1,      L2=LLPAR  )
 
       ! Compute grid parameters in grid_mod.F90
+#if ! defined ESMF_ 
+#if ! defined GCM
       CALL COMPUTE_GRID( I1=1,      I2=IIPAR,  
      &                   J1=1,      J2=JJPAR,  
      &                   JSP=JSP,   JNP=JNP,   
      &                   L1=1,      L2=LLPAR,  
      &                   DLON=DLON, DLAT=DLAT )
+#endif
+#endif
 
       END SUBROUTINE INITIALIZE_GEOS_GRID
 !EOC
@@ -2769,6 +2777,8 @@
       MAX_DYN = 10
 #elif defined( GRID05x0666   )
       MAX_DYN = 10 
+#elif defined( EXTERNAL_FORCING )
+      MAX_DYN = 10
 #endif
 
       ! If TS_DYN is greater than MAX_DYN, then stop w/ error

@@ -34,6 +34,8 @@
 ! 
 ! !USES:
 !
+      USE ERROR_MOD, ONLY: ALLOC_ERR
+
       IMPLICIT NONE
 #     include "define.h"
       PRIVATE
@@ -306,7 +308,11 @@
 !\\
 ! !INTERFACE:
 !
+#if defined( DEVEL )
+      SUBROUTINE EMISS_EMEP( EMISS )
+#else
       SUBROUTINE EMISS_EMEP
+#endif
 !
 ! !USES:
 ! 
@@ -321,6 +327,16 @@
 
       USE CMN_SIZE_MOD       ! Size parameters
       USE CMN_O3_MOD         ! SCALEYEAR
+
+#if defined( DEVEL )
+      USE TRACERID_MOD, ONLY : IDTNOX,  IDTCO,   IDTALK4, IDTMEK
+      USE TRACERID_MOD, ONLY : IDTALD2, IDTPRPE, IDTC2H6, IDTSO2
+      USE TRACERID_MOD, ONLY : IDTNH3
+      USE TRACER_MOD,   ONLY : XNUMOL
+      USE TRACER_MOD,   ONLY : N_TRACERS
+      USE GRID_MOD,     ONLY : GET_AREA_CM2
+      USE LOGICAL_MOD,  ONLY : LEMEPSHIP
+#endif
 !
 ! !REVISION HISTORY: 
 !  01 Nov 2005 - B. Field, R. Yantosca - Initial version
@@ -353,12 +369,24 @@
       CHARACTER(LEN=40)       :: UNIT     
       CHARACTER(LEN=40)       :: RESERVED
 
+#if defined( DEVEL )
+      REAL*8, INTENT(INOUT) :: EMISS(IIPAR, JJPAR, N_TRACERS)
+      REAL*8, ALLOCATABLE   :: A(:,:)
+      INTEGER AS
+#endif
+
       !=================================================================
       ! EMISS_EMEP begins here!
       !=================================================================
 
       ! First-time initialization
       IF ( FIRST ) THEN
+#if defined( DEVEL )
+         ALLOCATE( A( IIPAR, JJPAR ), STAT=AS )
+         IF ( AS /= 0 ) CALL ALLOC_ERR( 'EMEP:A' )
+         A = 0d0
+#endif         
+         
          CALL INIT_EMEP
          FIRST = .FALSE.
       ENDIF
@@ -507,6 +535,62 @@
          CALL EMEP_SCALE_FUTURE
       ENDIF
 
+#if defined( DEVEL )
+      DO I=1,IIPAR
+      DO J=1,JJPAR
+         A(I,J)  = GET_AREA_CM2( I, J, 1 ) 
+      ENDDO
+      ENDDO
+
+      IF ( LEMEPSHIP ) THEN
+         EMISS(:,:,IDTNOx) = EMEP_NOx_SHIP(:,:)
+     &        * A / XNUMOL(IDTNOx)
+      ELSE 
+         EMISS(:,:,IDTNOx) = EMEP_NOx(:,:)
+     &        * A / XNUMOL(IDTNOx)
+      ENDIF
+      IF ( LEMEPSHIP ) THEN
+         EMISS(:,:,IDTCO) = EMEP_CO_SHIP(:,:)
+     &        * A / XNUMOL(IDTCO)
+      ELSE 
+         EMISS(:,:,IDTCO) = EMEP_CO(:,:)
+     &        * A / XNUMOL(IDTCO)
+      ENDIF
+
+      ! ALK4 (>= C4 alkanes)
+      EMISS(:,:,IDTALK4) = EMEP_ALK4(:,:)
+     &        * A / XNUMOL(IDTALK4)
+
+      ! MEK
+      EMISS(:,:,IDTMEK) = EMEP_MEK(:,:)
+     &        * A / XNUMOL(IDTMEK)
+
+      ! ALD2 (acetaldehyde)
+      EMISS(:,:,IDTALD2) = EMEP_ALD2(:,:)
+     &        * A / XNUMOL(IDTALD2)
+
+      ! PRPE (>= C3 alkenes)
+      EMISS(:,:,IDTPRPE) = EMEP_PRPE(:,:)
+     &        * A / XNUMOL(IDTPRPE)
+
+      ! C2H6 
+      EMISS(:,:,IDTC2H6) = EMEP_C2H6(:,:)
+     &        * A / XNUMOL(IDTC2H6)
+         
+      ! SO2
+      IF ( LEMEPSHIP ) THEN
+         EMISS(:,:,IDTSO2) = EMEP_SO2_SHIP(:,:)
+     &        * A / XNUMOL(IDTSO2)
+      ELSE 
+         EMISS(:,:,IDTSO2) = EMEP_SO2(:,:)
+     &        * A / XNUMOL(IDTSO2)
+      ENDIF
+
+      ! NH3
+      EMISS(:,:,IDTNH3) = EMEP_NH3(:,:)
+     &        * A / XNUMOL(IDTNH3)
+#endif
+
       !=================================================================
       ! Print emission totals
       !=================================================================
@@ -529,7 +613,11 @@
 !\\
 ! !INTERFACE:
 !
+#if defined( DEVEL )
+      SUBROUTINE EMISS_EMEP_05x0666( EMISS )
+#else
       SUBROUTINE EMISS_EMEP_05x0666
+#endif
 !
 ! !USES:
 !
@@ -543,6 +631,17 @@
 
       USE CMN_SIZE_MOD       ! Size parameters
       USE CMN_O3_MOD         ! SCALEYEAR
+
+#if defined( DEVEL )
+      USE TRACERID_MOD, ONLY : IDTNOX,  IDTCO,   IDTALK4, IDTMEK
+      USE TRACERID_MOD, ONLY : IDTALD2, IDTPRPE, IDTC2H6, IDTSO2
+      USE TRACERID_MOD, ONLY : IDTNH3
+      USE TRACER_MOD,   ONLY : XNUMOL
+      USE TRACER_MOD,   ONLY : N_TRACERS
+      USE GRID_MOD,     ONLY : GET_AREA_CM2
+      USE LOGICAL_MOD,  ONLY : LEMEPSHIP
+#endif
+
 !
 ! !REVISION HISTORY:
 !  23 Oct 2006 - A. v. Donkelaar - Initial version, modified from EMISS_EMEP
@@ -573,12 +672,24 @@
       CHARACTER(LEN=40)       :: UNIT
       CHARACTER(LEN=40)       :: RESERVED
 
+#if defined( DEVEL )
+      REAL*8, INTENT(INOUT) :: EMISS(IIPAR, JJPAR, N_TRACERS)
+      REAL*8, ALLOCATABLE   :: A(:,:)
+      INTEGER AS
+#endif
+
       !=================================================================
       ! EMISS_EMEP begins here!
       !=================================================================
 
       ! First-time initialization
       IF ( FIRST ) THEN
+#if defined( DEVEL )
+         ALLOCATE( A( IIPAR, JJPAR ), STAT=AS )
+         IF ( AS /= 0 ) CALL ALLOC_ERR( 'EMEP:A' )
+         A = 0d0
+#endif         
+         
          CALL INIT_EMEP
          FIRST = .FALSE.
       ENDIF
@@ -674,7 +785,6 @@
          CALL GET_ANNUAL_SCALAR_05x0666_NESTED(73,1990,SCALEYEAR,Sc)
          EMEP_SO2(:,:) = EMEP_SO2(:,:) * Sc(:,:)
 !         EMEP_SO2_SHIP = EMEP_SO2_SHIP * Sc  ! do not scale SHIP
-
       ENDIF
 
 
@@ -684,6 +794,62 @@
       IF ( LFUTURE ) THEN
          CALL EMEP_SCALE_FUTURE
       ENDIF
+
+#if defined( DEVEL )
+      DO I=1,IIPAR
+      DO J=1,JJPAR
+         A(I,J)  = GET_AREA_CM2( I, J, 1 ) 
+      ENDDO
+      ENDDO
+
+      IF ( LEMEPSHIP ) THEN
+         EMISS(:,:,IDTNOx) = EMEP_NOx_SHIP(:,:)
+     &        * A / XNUMOL(IDTNOx)
+      ELSE 
+         EMISS(:,:,IDTNOx) = EMEP_NOx(:,:)
+     &        * A / XNUMOL(IDTNOx)
+      ENDIF
+      IF ( LEMEPSHIP ) THEN
+         EMISS(:,:,IDTCO) = EMEP_CO_SHIP(:,:)
+     &        * A / XNUMOL(IDTCO)
+      ELSE 
+         EMISS(:,:,IDTCO) = EMEP_CO(:,:)
+     &        * A / XNUMOL(IDTCO)
+      ENDIF
+
+      ! ALK4 (>= C4 alkanes)
+      EMISS(:,:,IDTALK4) = EMEP_ALK4(:,:)
+     &        * A / XNUMOL(IDTALK4)
+
+      ! MEK
+      EMISS(:,:,IDTMEK) = EMEP_MEK(:,:)
+     &        * A / XNUMOL(IDTMEK)
+
+      ! ALD2 (acetaldehyde)
+      EMISS(:,:,IDTALD2) = EMEP_ALD2(:,:)
+     &        * A / XNUMOL(IDTALD2)
+
+      ! PRPE (>= C3 alkenes)
+      EMISS(:,:,IDTPRPE) = EMEP_PRPE(:,:)
+     &        * A / XNUMOL(IDTPRPE)
+
+      ! C2H6 
+      EMISS(:,:,IDTC2H6) = EMEP_C2H6(:,:)
+     &        * A / XNUMOL(IDTC2H6)
+         
+      ! SO2
+      IF ( LEMEPSHIP ) THEN
+         EMISS(:,:,IDTSO2) = EMEP_SO2_SHIP(:,:)
+     &        * A / XNUMOL(IDTSO2)
+      ELSE 
+         EMISS(:,:,IDTSO2) = EMEP_SO2(:,:)
+     &        * A / XNUMOL(IDTSO2)
+      ENDIF
+
+      ! NH3
+      EMISS(:,:,IDTNH3) = EMEP_NH3(:,:)
+     &        * A / XNUMOL(IDTNH3)
+#endif
 
       !=================================================================
       ! Print emission totals

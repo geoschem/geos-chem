@@ -674,6 +674,9 @@
 #elif defined( GEOS_57 )
       MODELNAME = 'GEOS57'
 
+#elif defined( EXTERNAL_FORCING  ) & defined ( EXTERNAL_GRID ) 
+      MODELNAME = 'EXTERNAL'
+
 #endif
 
       ! Return to calling program
@@ -716,6 +719,10 @@
 #elif defined( MERRA )
       CHARACTER(LEN=5) :: NAME_EXT
       NAME_EXT = 'geos5'
+
+#elif defined( EXTERNAL_FORCING )
+      CHARACTER(LEN=5) :: NAME_EXT
+      NAME_EXT = 'ext'
 
 #endif
 !
@@ -825,6 +832,10 @@
 #elif defined( GRID025x03125 )
       CHARACTER(LEN=9) :: RES_EXT
       RES_EXT = '025x03125'
+
+#elif defined( EXTERNAL_GRID )
+      CHARACTER(LEN=8) :: RES_EXT
+      RES_EXT = 'external'
 
 #endif
 !

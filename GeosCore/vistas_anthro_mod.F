@@ -156,7 +156,11 @@
 !\\
 ! !INTERFACE:
 !
+#if defined( DEVEL )
+      SUBROUTINE EMISS_VISTAS_ANTHRO(EMISS)
+#else
       SUBROUTINE EMISS_VISTAS_ANTHRO
+#endif
 !
 ! !USES:
 ! 
@@ -169,6 +173,15 @@
 
       USE CMN_SIZE_MOD          ! Size parameters
       USE CMN_O3_MOD            ! FSCALYR
+
+#if defined( DEVEL )
+      USE TIME_MOD,     ONLY : GET_DAY_OF_WEEK
+      USE TRACER_MOD,   ONLY : N_TRACERS
+      USE TRACER_MOD,   ONLY : XNUMOL
+      USE TRACERID_MOD, ONLY : IDTNOx
+      USE GRID_MOD,     ONLY : GET_AREA_CM2
+      USE ERROR_MOD,    ONLY : ALLOC_ERR
+#endif
 !
 ! !REVISION HISTORY: 
 !  28 Jan 2009 - A. v. Donkelaar, P. Le Sager - Initial Version
@@ -190,12 +203,25 @@
       CHARACTER(LEN=2)           :: SMN
       CHARACTER(LEN=1)           :: SSMN
 
+#if defined( DEVEL )
+      INTEGER               :: DAY_NUM
+      LOGICAL               :: WEEKDAY
+      REAL*8, INTENT(INOUT) :: EMISS(IIPAR, JJPAR, N_TRACERS)
+      REAL*8, ALLOCATABLE   :: A(:,:)
+      INTEGER AS
+#endif
+
       !=================================================================
       ! EMISS_VISTAS_ANTHRO begins here!
       !=================================================================
 
       ! First-time initialization
       IF ( FIRST ) THEN
+#if defined( DEVEL )
+         ALLOCATE( A( IIPAR, JJPAR ), STAT=AS )
+         IF ( AS /= 0 ) CALL ALLOC_ERR( 'EMISS_EPA_NEI:A' )
+         A = 0d0
+#endif         
          CALL INIT_VISTAS_ANTHRO
          FIRST = .FALSE.
       ENDIF
@@ -318,6 +344,28 @@
       IF ( LFUTURE ) THEN 
          CALL VISTAS_SCALE_FUTURE
       ENDIF
+
+#if defined( DEVEL )
+      !--------------------------
+      ! Give to global bundle
+      !--------------------------
+      DAY_NUM = GET_DAY_OF_WEEK()
+      WEEKDAY = ( DAY_NUM > 0 .and. DAY_NUM < 6 )
+
+      DO I=1,IIPAR
+      DO J=1,JJPAR
+         A(I,J)  = GET_AREA_CM2( I, J, 1 ) 
+      ENDDO
+      ENDDO
+
+      IF ( WEEKDAY ) THEN
+         IF ( IDTNOX > 0) EMISS(:,:,IDTNOX) = 
+     &        VISTAS_WD_NOx(:,:) * A / XNUMOL(IDTNOX)
+      ELSE
+         IF ( IDTNOX > 0) EMISS(:,:,IDTNOX) = 
+     &        VISTAS_WE_NOx(:,:) * A / XNUMOL(IDTNOX)
+      ENDIF
+#endif
 
       !--------------------------
       ! Print emission totals

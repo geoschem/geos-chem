@@ -110,7 +110,11 @@
 !\\
 ! !INTERFACE:
 !
+#if defined( DEVEL )
+      SUBROUTINE EMISS_H2_HD( BIO_EMISS )
+#else
       SUBROUTINE EMISS_H2_HD
+#endif
 !
 ! !USES:
 !
@@ -183,6 +187,10 @@
       ! External functions
       REAL*8, EXTERNAL       :: BOXVL
       REAL*8, EXTERNAL       :: EMCH3OH
+
+#if defined( DEVEL )
+      REAL*8, INTENT(INOUT)  :: BIO_EMISS(:,:,:)
+#endif
 
       !=================================================================
       ! EMISS_H2_HD begins here!
@@ -494,7 +502,11 @@
       !       biofuel burning array (bmy, 6/8/01).
       !=================================================================
       IF ( LBIOFUEL ) THEN
+#if defined( DEVEL )
+         CALL BIOFUEL_BURN( BIO_EMISS )
+#else
          CALL BIOFUEL_BURN
+#endif
 
 !$OMP PARALLEL DO
 !$OMP+DEFAULT( SHARED )

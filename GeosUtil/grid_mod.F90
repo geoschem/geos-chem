@@ -44,6 +44,11 @@ MODULE Grid_Mod
   PUBLIC  :: Its_A_Nested_Grid
   PUBLIC  :: Set_xOffSet
   PUBLIC  :: Set_yOffSet
+
+#if defined( DEVEL )
+!      PUBLIC  :: AREA_M2 ! Permit setting this externally
+      PUBLIC  :: YMID, XMID, YEDGE, XEDGE
+#endif
 !
 ! !REVISION HISTORY:
 !  23 Feb 2012 - R. Yantosca - Initial version, based on grid_mod.F

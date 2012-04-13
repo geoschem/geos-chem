@@ -112,6 +112,13 @@
       USE A6_READ_MOD           ! For reading A6 data (all other met)
       USE I6_READ_MOD           ! For reading I6 data (all other met)
 
+#if defined( DEVEL )
+      USE LOGICAL_MOD,        ONLY : DO_DIAG_WRITE
+      USE GC_ENVIRONMENT_MOD, ONLY : ALLOCATE_ALL, INIT_ALL
+      USE GC_TYPE2_MOD,       ONLY : CHEMSTATE
+      USE GC_TYPE_MOD,        ONLY : GC_MET_LOCAL
+#endif
+
       IMPLICIT NONE
 
 #     include "define.h"
@@ -206,17 +213,25 @@
 
       ! Arrays
       INTEGER                  :: DATE(2)
-      REAL*8                   :: HGPFRAC(IIPAR,JJPAR,LLPAR)
 
       ! Derived type objects
       TYPE(MapWeight), POINTER :: mapping(:,:)
+
+#if defined( DEVEL )
+      TYPE(CHEMSTATE)          :: CHEM_STATE
+      TYPE(GC_MET_LOCAL)       :: LOCAL_MET
+#endif
 
       !=================================================================
       ! GEOS-CHEM starts here!                                            
       !=================================================================
 
       RC=0 ! Error flag. Default 0 is "no error"
-      
+
+#if defined( DEVEL )
+      CALL ALLOCATE_ALL
+#endif
+
       ! Display current grid resolution and data set type
       CALL DISPLAY_GRID_AND_MODEL
 
@@ -227,6 +242,11 @@
       ! Read input file and call init routines from other modules
       CALL READ_INPUT_FILE 
       IF ( LPRT ) CALL DEBUG_MSG( '### MAIN: a READ_INPUT_FILE' )
+
+#if defined( DEVEL )
+      ! Initialize all of CHEMSTATE
+      CALL INIT_ALL(LOCAL_MET, CHEM_STATE)
+#endif
 
       ! Initialize met field arrays from "dao_mod.f"
       CALL INIT_DAO
@@ -296,7 +316,11 @@
       CALL SET_FLOATING_PRESSURE( PS1 )
       IF ( LPRT ) CALL DEBUG_MSG( '### MAIN: a SET_FLT_PRS' )
 
+#if defined( DEVEL )
+      CALL AIRQNT(LOCAL_MET)
+#else
       CALL AIRQNT
+#endif
       IF ( LPRT ) CALL DEBUG_MSG( '### MAIN: a AIRQNT' )
 
       ! Compute lightning NOx emissions [molec/box/6h]
@@ -431,11 +455,12 @@
             CALL SET_DIAGe( TAU )
 
             ! Write bpch file
-            CALL DIAG3  
+            IF ( DO_DIAG_WRITE ) THEN
+               CALL DIAG3  
 
             ! Flush file units
-            CALL CTM_FLUSH
-
+               CALL CTM_FLUSH
+            ENDIF
             !===========================================================
             !    *****  W R I T E   R E S T A R T   F I L E S  *****
             !===========================================================
@@ -671,7 +696,11 @@
          IF ( .not. LTRAN ) CALL SET_FLOATING_PRESSURE( PSC2 )
 
          ! Compute airmass quantities at each grid box 
+#if defined( DEVEL )
+         CALL AIRQNT(LOCAL_MET)
+#else
          CALL AIRQNT
+#endif
 
          ! Compute the cosine of the solar zenith angle array
          ! SUNCOS         = cos(SZA) at the current time
@@ -725,7 +754,11 @@
             IF ( LTRAN ) CALL DO_TRANSPORT               
 
             ! Reset air mass quantities
-            CALL AIRQNT
+#if defined( DEVEL )
+      CALL AIRQNT(LOCAL_MET)
+#else
+      CALL AIRQNT
+#endif
 
             ! Repartition [NOy] species after transport
             IF ( LUPBD .and. ITS_A_FULLCHEM_SIM() ) THEN
@@ -763,7 +796,11 @@
             !========================================================
             !             ***** E M I S S I O N S *****
             !========================================================
+#if defined( DEVEL )
+            IF ( LEMIS ) CALL DO_EMISSIONS(CHEM_STATE)
+#else
             IF ( LEMIS ) CALL DO_EMISSIONS
+#endif
 
             IF ( ITS_TIME_FOR_UNIT() )
      &         CALL CONVERT_UNITS( 1, N_TRACERS, TCVV, AD, STT ) ! kg -> v/v
@@ -842,7 +879,11 @@
             !========================================================
             !             ***** E M I S S I O N S *****
             !========================================================
+#if defined( DEVEL )
+            IF ( LEMIS ) CALL DO_EMISSIONS(CHEM_STATE)
+#else
             IF ( LEMIS ) CALL DO_EMISSIONS
+#endif
          ENDIF    
 
 
@@ -860,7 +901,21 @@
             CALL SET_CT_CHEM( INCREMENT=.TRUE. )
 
             ! Call the appropriate chemistry routine
+#if defined( DEVEL )
+! vvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvv!
+! BELOW IS A TMP KLUGE TO TEST PASSING STT !
+! TO "DO_CHEMISTRY" VIA THE "CHEM_STATE"   !
+! DERIVED TYPE                             !
+!
+!    >-- STT SHOULD BE IN KG HERE --<
+!
+!^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^!
+            CHEM_STATE%TRACERS(:,:,:,:N_TRACERS) = STT
+! FIN DE KLUGE
+            CALL DO_CHEMISTRY(CHEM_STATE)
+#else
             CALL DO_CHEMISTRY
+#endif
 
          ENDIF 
 
@@ -908,7 +963,7 @@
          ! (ccc, 5/13/09)
  
          ! Plane following diagnostic
-         IF ( ND40 > 0 ) THEN 
+         IF ( ND40 > 0 .and. DO_DIAG_WRITE ) THEN 
          
             ! Call SETUP_PLANEFLIGHT routine if necessary
             IF ( ITS_A_NEW_DAY() ) THEN
@@ -1448,7 +1503,11 @@
       ! Open & read A-6 fields
       DATE = GET_FIRST_A6_TIME()
       CALL OPEN_A6_FIELDS( DATE(1), DATE(2) ) 
+#if defined( DEVEL )
+      CALL GET_A6_FIELDS(  DATE(1), DATE(2), LOCAL_MET )      
+#else
       CALL GET_A6_FIELDS(  DATE(1), DATE(2) )      
+#endif
       IF ( LPRT ) CALL DEBUG_MSG( '### MAIN: a 1st A6 TIME' )
 
       ! Open & read I-6 fields
@@ -1679,7 +1738,11 @@
 
          ! Open and read A-6 fields
          CALL OPEN_A6_FIELDS( DATE(1), DATE(2) )
+#if defined( DEVEL )
+         CALL GET_A6_FIELDS(  DATE(1), DATE(2), LOCAL_MET )      
+#else
          CALL GET_A6_FIELDS(  DATE(1), DATE(2) )
+#endif
 
          ! Since CLDTOPS is an A-6 field, update the
          ! lightning NOx emissions [molec/box/6h]

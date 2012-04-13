@@ -195,18 +195,27 @@
 !\\
 ! !INTERFACE:
 !
+#if defined( DEVEL )
+      SUBROUTINE EMISS_ARCTAS_SHIP( YEAR, EMISSIONS )
+#else
       SUBROUTINE EMISS_ARCTAS_SHIP( YEAR )
+#endif
 !
 ! !USES:
 ! 
       USE DIRECTORY_MOD,  ONLY : DATA_DIR_1x1 
-      USE TRACER_MOD,     ONLY : ITS_A_CO2_SIM
+      USE TRACER_MOD,     ONLY : ITS_A_CO2_SIM, N_TRACERS
 
       USE CMN_SIZE_MOD       ! Size parameters
 !
 ! !INPUT PARAMETERS: 
 !
       INTEGER, INTENT(IN)     :: YEAR   ! Year of data to read
+
+#if defined( DEVEL )
+      REAL*8,  INTENT(INOUT)  :: EMISSIONS(IIPAR,JJPAR)
+#endif
+
 !
 ! !REVISION HISTORY: 
 !  28 Jan 2009 - P. Le Sager - Initial Version
@@ -249,6 +258,10 @@
          CALL READ_ARCTAS_SHIP( FILENAME, 'CO2-SRCE', 1, CO2_SHIP,
      $        YEAR )
             
+#if defined( DEVEL )
+         EMISSIONS(:,:) = EMISSIONS(:,:) +
+     &                           CO2_SHIP(:,:)
+#endif
       ELSE
 
          !--------------------------
@@ -263,6 +276,10 @@
          CALL READ_ARCTAS_SHIP( FILENAME, 'ANTHSRCE', 26, SO2_SHIP,
      $        YEAR )
          
+#if defined( DEVEL )
+         EMISSIONS(:,:) = EMISSIONS(:,:) +
+     &                           SO2_SHIP(:,:)
+#endif
 
       ENDIF
      

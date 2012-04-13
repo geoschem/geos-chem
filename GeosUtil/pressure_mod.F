@@ -313,7 +313,7 @@
 !
 ! !DESCRIPTION: Function GET\_PEDGE\_FULLGRID returns the pressure at the
 !  bottom edge of level L of the unreduced vertical grid.  L=1 is the surface, 
-!  L=LLGLOB+1 is the atm top.
+!  L=LLLPAR+1 is the atm top.
 !\\
 !\\
 ! !INTERFACE:

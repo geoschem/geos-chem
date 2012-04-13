@@ -175,7 +175,11 @@
 
 !------------------------------------------------------------------------------
 
+#if defined( DEVEL )
+      SUBROUTINE COMPUTE_BIOMASS_EMISSIONS( YEAR, MONTH, BIOEMISSIONS )
+#else
       SUBROUTINE COMPUTE_BIOMASS_EMISSIONS( YEAR, MONTH )
+#endif
 !
 !******************************************************************************
 !  Subroutine COMPUTE_BIOMASS_EMISSIONS is a wrapper which allows us to select
@@ -236,7 +240,10 @@
 
       ! Arguments
       INTEGER, INTENT(IN)        :: YEAR, MONTH
-
+#if defined( DEVEL )
+      REAL*8,  INTENT(INOUT)     :: BIOEMISSIONS(:,:,:) ! MSL
+!      REAL*8,  INTENT(INOUT)     :: BIOEMISSIONS(IIPAR,JJPAR,NBIOMAX) ! MSL
+#endif
       ! Local variables
       LOGICAL, SAVE              :: FIRST = .TRUE.
       LOGICAL                    :: DO_ND28, DO_ND29, DO_ND32
@@ -330,6 +337,11 @@
                ! Get CO2 emissions [molec/cm2/s]
                CALL GC_READ_BIOMASS_CO2( YEAR, MONTH,
      &                                   BIOMASS(:,:,IDBCO2) )
+
+#if defined( DEVEL )
+               BIOEMISSIONS(:,:,IDBCO2) = BIOEMISSIONS(:,:,IDBCO2) +
+     &                                    BIOMASS(:,:,IDBCO2)
+#endif
             ELSE
 
                !------------------------------
@@ -352,11 +364,21 @@
      &                                      BIOMASS(:,:,IDBSO2) )
                ENDIF
 
+#if defined( DEVEL )
+               BIOEMISSIONS(:,:,IDBSO2) = BIOEMISSIONS(:,:,IDBSO2) +
+     &                                    BIOMASS(:,:,IDBSO2)
+#endif
+
                ! Get biomass NH3 [molec/cm2/s]
                IF ( IDTNH3 > 0 ) THEN
                   CALL GC_READ_BIOMASS_NH3( YEAR, MONTH,
      &                                      BIOMASS(:,:,IDBNH3) )
                ENDIF
+
+#if defined( DEVEL )
+               BIOEMISSIONS(:,:,IDBNH3) = BIOEMISSIONS(:,:,IDBNH3) +
+     &                                    BIOMASS(:,:,IDBNH3)
+#endif
 
                ! Get biomass BC & OC [molec/cm2/s]
                IF ( IDTBCPO > 0 .and. IDTOCPO > 0 ) THEN
@@ -364,6 +386,12 @@
      &                                       BIOMASS(:,:,IDBBC), 
      &                                       BIOMASS(:,:,IDBOC) ) 
                ENDIF
+#if defined( DEVEL )
+               BIOEMISSIONS(:,:,IDBBC) = BIOEMISSIONS(:,:,IDBBC) +
+     &                                   BIOMASS(:,:,IDBBC)
+               BIOEMISSIONS(:,:,IDBOC) = BIOEMISSIONS(:,:,IDBOC) +
+     &                                   BIOMASS(:,:,IDBOC)
+#endif
             ENDIF
 
             ! Irrespective of inventory type, we need to scale biomass
@@ -380,6 +408,10 @@
                ELSE IF ( ITS_A_TAGCO_SIM() ) THEN
                   BIOMASS(:,:,IDBCO) = BIOMASS(:,:,IDBCO) * 1.11d0
                ENDIF
+#if defined( DEVEL )
+               BIOEMISSIONS(:,:,IDBCO) = BIOEMISSIONS(:,:,IDBCO) +
+     &                                   BIOMASS(:,:,IDBCO)
+#endif
             ENDIF
          ENDIF
 

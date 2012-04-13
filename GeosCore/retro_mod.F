@@ -56,21 +56,18 @@
 !------------------------------------------------------------------------------
 !BOC
       CONTAINS
-!EOC
-!------------------------------------------------------------------------------
-!          University of Minnesota Atmospheric Chemistry Group
-!------------------------------------------------------------------------------
-!BOP
-!
-! !IROUTINE: emiss_retro
-!
-! !DESCRIPTION: Subroutine EMISS\_RETRO reads all RETRO emissions at the 
-!  beginning of each month. 
-!\\
-!\\
-! !INTERFACE:
-!
+
+!-----------------------------------------------------------------------
+#if defined( DEVEL )
+      SUBROUTINE EMISS_RETRO( EMISSIONS )
+#else
       SUBROUTINE EMISS_RETRO
+#endif
+!***********************************************************************
+!  Subroutine EMISS_RETRO reads all RETRO emissions at the beginning of
+!  each month. (wfr, 3/8/11)
+!***********************************************************************
+
 !
 ! !USES:
 !
@@ -88,6 +85,15 @@
       USE TIME_MOD,             ONLY : EXPAND_DATE
       USE TIME_MOD,             ONLY : GET_MONTH
       USE CMN_SIZE_MOD               ! Size parameters
+
+#if defined( DEVEL )
+      USE TRACERID_MOD,         ONLY : IDTALK4, IDTACET, IDTMEK,
+     & IDTALD2, IDTPRPE, IDTC3H8, IDTC2H6, IDTCH2O, IDTBENZ,
+     & IDTTOLU, IDTXYLE, IDTC2H4, IDTC2H2
+      USE TRACER_MOD,           ONLY : N_TRACERS, TRACER_MW_KG
+      USE GRID_MOD,             ONLY : GET_AREA_CM2
+      USE ERROR_MOD,            ONLY : ALLOC_ERR
+#endif
 ! 
 ! !REVISION HISTORY: 
 !  08 Mar 2011 - W. Reinhart - Initial version
@@ -103,6 +109,11 @@
       REAL*8             :: C2H6ff, VOCff
       CHARACTER(LEN=255) :: FILENAME
 
+#if defined( DEVEL )
+      REAL*8, INTENT(INOUT)         :: EMISSIONS(IIPAR,JJPAR,N_TRACERS)
+      REAL*8, ALLOCATABLE   :: A(:,:)
+      INTEGER AS
+#endif
       !=================================================================
       !  EMISS_RETRO begins here
       !=================================================================
@@ -111,6 +122,12 @@
       IF ( FIRST ) THEN
 
          ! Allocate arrays
+#if defined( DEVEL )
+         ALLOCATE( A( IIPAR, JJPAR ), STAT=AS )
+         IF ( AS /= 0 ) CALL ALLOC_ERR( 'EMISS_EPA_NEI:A' )
+         A = 0d0
+#endif         
+
          CALL INIT_RETRO
 
          ! Reset first-time flag
@@ -187,6 +204,43 @@
       ! Fancy output
       WRITE(6, '(a)' ) REPEAT( '=', 79)
 
+#if defined( DEVEL )
+      DO I=1,IIPAR
+      DO J=1,JJPAR
+         A(I,J)  = GET_AREA_CM2( I, J, 1 ) 
+      ENDDO
+      ENDDO
+
+      IF ( IDTALK4 > 0 ) EMISSIONS(:,:,IDTALK4) = RETRO_ALK4(:,:) * 
+     & A * 6.0225d-23 * TRACER_MW_KG(IDTALK4)
+      IF ( IDTACET > 0 ) EMISSIONS(:,:,IDTACET) = RETRO_ACET(:,:) * 
+     & A * 6.0225d-23 * TRACER_MW_KG(IDTACET)
+      IF ( IDTMEK  > 0 ) EMISSIONS(:,:,IDTMEK)  = RETRO_MEK(:,:)  * 
+     & A * 6.0225d-23 * TRACER_MW_KG(IDTMEK)
+      IF ( IDTALD2 > 0 ) EMISSIONS(:,:,IDTALD2) = RETRO_ALD2(:,:) * 
+     & A * 6.0225d-23 * TRACER_MW_KG(IDTALD2)
+      IF ( IDTPRPE > 0 ) EMISSIONS(:,:,IDTPRPE) = RETRO_PRPE(:,:) * 
+     & A * 6.0225d-23 * TRACER_MW_KG(IDTPRPE)
+      IF ( IDTC3H8 > 0 ) EMISSIONS(:,:,IDTC3H8) = RETRO_C3H8(:,:) * 
+     & A * 6.0225d-23 * TRACER_MW_KG(IDTC3H8)
+      IF ( IDTC2H6 > 0 ) EMISSIONS(:,:,IDTC2H6) = RETRO_C2H6(:,:) * 
+     & A * 6.0225d-23 * TRACER_MW_KG(IDTC2H6)
+      IF ( IDTCH2O > 0 ) EMISSIONS(:,:,IDTCH2O) = RETRO_CH2O(:,:) * 
+     & A * 6.0225d-23 * TRACER_MW_KG(IDTCH2O)
+      IF ( IDTBENZ > 0 ) EMISSIONS(:,:,IDTBENZ) = RETRO_BENZ(:,:) * 
+     & A * 6.0225d-23 * TRACER_MW_KG(IDTBENZ)
+      IF ( IDTTOLU > 0 ) EMISSIONS(:,:,IDTTOLU) = RETRO_TOLU(:,:) * 
+     & A * 6.0225d-23 * TRACER_MW_KG(IDTTOLU)
+      IF ( IDTXYLE > 0 ) EMISSIONS(:,:,IDTXYLE) = RETRO_XYLE(:,:) * 
+     & A * 6.0225d-23 * TRACER_MW_KG(IDTXYLE)
+      IF ( IDTC2H4 > 0 ) EMISSIONS(:,:,IDTC2H4) = RETRO_C2H4(:,:) * 
+     & A * 6.0225d-23 * TRACER_MW_KG(IDTC2H4)
+      IF ( IDTC2H2 > 0 ) EMISSIONS(:,:,IDTC2H2) = RETRO_C2H2(:,:) * 
+     & A * 6.0225d-23 * TRACER_MW_KG(IDTC2H2)
+
+#endif
+
+      ! Return to calling program
       END SUBROUTINE EMISS_RETRO
 !EOC
 !------------------------------------------------------------------------------

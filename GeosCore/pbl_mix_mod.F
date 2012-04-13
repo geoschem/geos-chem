@@ -33,6 +33,11 @@
       PUBLIC  :: GET_PBL_THICK
       PUBLIC  :: INIT_PBL_MIX
       PUBLIC  :: COMPUTE_PBL_HEIGHT
+
+#if defined ( DEVEL )
+      PUBLIC :: PBL_TOP_L, PBL_TOP_m
+#endif
+
 !
 ! !PRIVATE MEMBER FUNCTIONS:
 !

@@ -218,50 +218,53 @@
 !      !-----------------------------------------------------------------
 !      ! Column met fields
 !      !-----------------------------------------------------------------
-!      TYPE :: GC_MET_1D
-!         REAL*8           :: ALBD         ! Visible surface albedo [unitless]
-!         REAL*8           :: AREA_M2      ! Grid box surface area [cm2]
-!         REAL*8           :: CLDFRC       ! Column cloud fraction [unitless]
-!         REAL*8           :: FRCLND       ! Olson land fraction [unitless]
-!         REAL*8           :: GWETTOP      ! Top soil moisture [unitless]
-!         REAL*8           :: HFLUX        ! Sensible heat flux [W/m2]
-!         REAL*8           :: LWI          ! Land/water indices [unitless]
-!         REAL*8           :: PARDR        ! Direct  photsyn active rad [W/m2]
-!         REAL*8           :: PARDF        ! Diffuse photsyn active rad [W/m2]
-!         REAL*8           :: PBLH         ! PBL height [m]
-!         REAL*8           :: PRECCON      ! Conv  precip @ ground [kg/m2/s]
-!         REAL*8           :: PRECTOT      ! Total precip @ ground [kg/m2/s]
-!         REAL*8           :: RADSWG       ! Solar radiation @ ground [W/m2]
-!         REAL*8           :: SST          ! Sea surface temperature [K]
-!         REAL*8           :: SUNCOS       ! Cosine of solar zenith angle
-!         REAL*8           :: TO3          ! Total overhead O3 column [DU]
-!         REAL*8           :: TROPP        ! Tropopause pressure [hPa]
-!         REAL*8           :: TS           ! Surface temperature [K]
-!         REAL*8           :: U10M         ! E/W wind speed @ 10m height [m/s]
-!         REAL*8           :: USTAR        ! Friction velocity [m/s]
-!         REAL*8           :: UVALBEDO     ! UV surface albedo [unitless]
-!         REAL*8           :: V10M         ! N/S wind speed @ 10m height [m/s]
-!         REAL*8           :: Z0           ! Surface roughness height [m]
-!         REAL*8,  POINTER :: AD(:)        ! Air mass [kg]
-!         REAL*8,  POINTER :: AIRDENS(:)   ! Air density [kg/m3]
-!         REAL*8,  POINTER :: AIRVOL(:)    ! Grid box volume [m3]
-!         REAL*8,  POINTER :: BXHEIGHT(:)  ! Grid box height [m]
-!         REAL*8,  POINTER :: CLDF(:)      ! 3-D cloud fraction [unitless]
-!         REAL*8,  POINTER :: CMFMC(:)     ! Cloud mass flux [kg/m2/s]
-!         REAL*8,  POINTER :: DQIDTMST(:)  ! Ice tendency, mst proc [kg/kg/s]
-!         REAL*8,  POINTER :: DQLDTMST(:)  ! H2O tendency, mst proc [kg/kg/s]
-!         REAL*8,  POINTER :: DQVDTMST(:)  ! Vapor tendency, mst proc [kg/kg/s]
-!         REAL*8,  POINTER :: DTRAIN(:)    ! Detrainment flux [kg/m2/s]
-!         REAL*8,  POINTER :: MOISTQ(:)    ! Tendency in sp. humidity [kg/kg/s]
-!         REAL*8,  POINTER :: OPTD(:)      ! Visible optical depth [unitless]
-!         REAL*8,  POINTER :: PEDGE(:)     ! Pressure @ level edges [Pa]
-!         REAL*8,  POINTER :: PMID(:)      ! Pressure @ level centers [Pa]
-!         REAL*8,  POINTER :: RH(:)        ! Relative humidity [unitless]
-!         REAL*8,  POINTER :: SPHU(:)      ! Specific humidity [kg/kg]
-!         REAL*8,  POINTER :: T(:)         ! Temperature [K]
-!         REAL*8,  POINTER :: TAUCLI(:)    ! Opt depth of ice clouds [unitless]
-!         REAL*8,  POINTER :: TAUCLW(:)    ! Opt depth of H2O clouds [unitless]
-!      END TYPE GC_MET_1D
+      TYPE :: GC_MET_LOCAL
+! 2-D Arrays
+         REAL*8, ALLOCATABLE :: ALBD(:,:)   ! Visible surface albedo [unitless]
+         REAL*8, ALLOCATABLE :: AREA_M2(:,:)! Grid box surface area [cm2]
+         REAL*8, ALLOCATABLE :: CLDFRC(:,:) ! Column cloud fraction [unitless]
+         REAL*8, ALLOCATABLE :: FRCLND(:,:) ! Olson land fraction [unitless]
+         REAL*8, ALLOCATABLE :: GWETTOP(:,:)! Top soil moisture [unitless]
+         REAL*8, ALLOCATABLE :: HFLUX(:,:)  ! Sensible heat flux [W/m2]
+         REAL*8, ALLOCATABLE :: LWI(:,:)    ! Land/water indices [unitless]
+         REAL*8, ALLOCATABLE :: PARDR(:,:)  ! Direct  photsyn active rad [W/m2]
+         REAL*8, ALLOCATABLE :: PARDF(:,:)  ! Diffuse photsyn active rad [W/m2]
+         REAL*8, ALLOCATABLE :: PBLH(:,:)   ! PBL height [m]
+         REAL*8, ALLOCATABLE :: PRECCON(:,:)! Conv  precip @ ground [kg/m2/s]
+         REAL*8, ALLOCATABLE :: PRECTOT(:,:)! Total precip @ ground [kg/m2/s]
+         REAL*8, ALLOCATABLE :: RADSWG(:,:) ! Solar radiation @ ground [W/m2]
+         REAL*8, ALLOCATABLE :: SST(:,:)    ! Sea surface temperature [K]
+         REAL*8, ALLOCATABLE :: SUNCOS(:,:) ! Cosine of solar zenith angle
+         REAL*8, ALLOCATABLE :: TO3(:,:)    ! Total overhead O3 column [DU]
+         REAL*8, ALLOCATABLE :: TROPP(:,:)  ! Tropopause pressure [hPa]
+         REAL*8, ALLOCATABLE :: TS(:,:)     ! Surface temperature [K]
+         REAL*8, ALLOCATABLE :: U10M(:,:)   ! E/W wind speed @ 10m height [m/s]
+         REAL*8, ALLOCATABLE :: USTAR(:,:)  ! Friction velocity [m/s]
+         REAL*8, ALLOCATABLE :: UVALBEDO(:,:)! UV surface albedo [unitless]
+         REAL*8, ALLOCATABLE :: V10M(:,:)   ! N/S wind speed @ 10m height [m/s]
+         REAL*8, ALLOCATABLE :: Z0(:,:)     ! Surface roughness height [m]
+! 3-D Arrays
+         REAL*8, ALLOCATABLE :: AD(:,:,:)        ! Air mass [kg]
+         REAL*8, ALLOCATABLE :: AIRDENS(:,:,:)   ! Air density [kg/m3]
+         REAL*8, ALLOCATABLE :: AIRVOL(:,:,:)    ! Grid box volume [m3]
+         REAL*8, ALLOCATABLE :: BXHEIGHT(:,:,:)  ! Grid box height [m]
+         REAL*8, ALLOCATABLE :: CLDF(:,:,:)      ! 3-D cloud fraction [unitless]
+         REAL*8, ALLOCATABLE :: CMFMC(:,:,:)     ! Cloud mass flux [kg/m2/s]
+         REAL*8, ALLOCATABLE :: DQIDTMST(:,:,:)  ! Ice tendency, mst proc [kg/kg/s]
+         REAL*8, ALLOCATABLE :: DQLDTMST(:,:,:)  ! H2O tendency, mst proc [kg/kg/s]
+         REAL*8, ALLOCATABLE :: DQVDTMST(:,:,:)  ! Vapor tendency, mst proc [kg/kg/s]
+         REAL*8, ALLOCATABLE :: DTRAIN(:,:,:)    ! Detrainment flux [kg/m2/s]
+         REAL*8, ALLOCATABLE :: MOISTQ(:,:,:)    ! Tendency in sp. humidity [kg/kg/s]
+         REAL*8, ALLOCATABLE :: OPTD(:,:,:)      ! Visible optical depth [unitless]
+         REAL*8, ALLOCATABLE :: PEDGE(:,:,:)     ! Pressure @ level edges [Pa]
+         REAL*8, ALLOCATABLE :: PMID(:,:,:)      ! Pressure @ level centers [Pa]
+         REAL*8, ALLOCATABLE :: DELP(:,:,:)      ! Delta-P extent  of a grid box [mb]
+         REAL*8, ALLOCATABLE :: RH(:,:,:)        ! Relative humidity [unitless]
+         REAL*8, ALLOCATABLE :: SPHU(:,:,:)      ! Specific humidity [kg/kg]
+         REAL*8, ALLOCATABLE :: T(:,:,:)         ! Temperature [K]
+         REAL*8, ALLOCATABLE :: TAUCLI(:,:,:)    ! Opt depth of ice clouds [unitless]
+         REAL*8, ALLOCATABLE :: TAUCLW(:,:,:)    ! Opt depth of H2O clouds [unitless]
+      END TYPE GC_MET_LOCAL
 !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
       !-----------------------------------------------------------------
@@ -300,18 +303,18 @@
 !                              USE_WETDEP, USE_EMISSIONS flags to GC_OPTIONS
 !  24 Aug 2009 - R. Yantosca - Added GC_TIME type
 !  30 Oct 2008 - R. Yantosca - Added GC_GEOLOC type
-!  05 Nov 2009 - R. Yantosca - Added GC_MET_1D type
+!  05 Nov 2009 - R. Yantosca - Added GC_MET_LOCAL type
 !  13 Apr 2010 - R. Yantosca - Added N_MEMBERS to GC_DIMS type
 !  16 Apr 2010 - R. Yantosca - Added all chemical species to ID_SPEC
 !  16 Apr 2010 - R. Yantosca - Added N_SPECIES, N_JV to GC_DIMS
 !  23 Apr 2010 - R. Yantosca - Added GC_IDENT object
-!  29 Apr 2010 - R. Yantosca - Added TO3, FRCLND to GC_MET_1D object
+!  29 Apr 2010 - R. Yantosca - Added TO3, FRCLND to GC_MET_LOCAL object
 !  30 Apr 2010 - R. Yantosca - Change character lengths in GC_IDENT
 !  13 May 2010 - R. Yantosca - Updated comments  
 !  17 May 2010 - R. Yantosca - Added L_COLUMN to DIMINFO
 !  02 Jun 2010 - R. Yantosca - Added VERBOSE to GC_IDENT
-!  02 Jun 2010 - R. Yantosca - Added TAUCLI, TAUCLW to GC_MET_1D
-!  02 Jun 2010 - R. Yantosca - Added DQ*DTMST fields to GC_MET_1D
+!  02 Jun 2010 - R. Yantosca - Added TAUCLI, TAUCLW to GC_MET_LOCAL
+!  02 Jun 2010 - R. Yantosca - Added DQ*DTMST fields to GC_MET_LOCAL
 !  02 Jun 2010 - R. Yantosca - Moved type SCOX_1d here from schem_mod.F
 !EOP
 !------------------------------------------------------------------------------

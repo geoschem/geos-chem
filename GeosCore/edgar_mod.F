@@ -129,7 +129,11 @@
 
 !------------------------------------------------------------------------------
 
+#if defined( DEVEL )
+      SUBROUTINE EMISS_EDGAR( YEAR, MONTH, EMISSIONS )
+#else
       SUBROUTINE EMISS_EDGAR( YEAR, MONTH )
+#endif
 !
 !******************************************************************************
 !  Subroutine EMISS_EDGAR fills emission arrays with emissions based upon 
@@ -150,7 +154,15 @@
       USE REGRID_1x1_MOD, ONLY : DO_REGRID_1x1
 
       USE CMN_SIZE_MOD       ! Size parameters
- 
+
+#if defined( DEVEL )
+      USE TRACERID_MOD,   ONLY : IDTCO, IDTSO2, IDTNOX
+      USE TRACER_MOD,     ONLY : N_TRACERS
+      USE FUTURE_EMISSIONS_MOD, ONLY : GET_FUTURE_SCALE_SO2ff
+      USE FUTURE_EMISSIONS_MOD, ONLY : GET_FUTURE_SCALE_NOxff
+      USE FUTURE_EMISSIONS_MOD, ONLY : GET_FUTURE_SCALE_COff
+      USE LOGICAL_MOD,          ONLY : LFUTURE
+#endif 
       ! Arguments
       INTEGER, INTENT(IN)     :: YEAR, MONTH
 
@@ -173,6 +185,13 @@
      &                                        'JUL', 'AUG', 'SEP', 
      &                                        'OCT', 'NOV', 'DEC' /)
 
+#if defined( DEVEL )
+      REAL*8, INTENT(INOUT)  :: EMISSIONS(IIPAR,JJPAR,N_TRACERS)
+      REAL*8  :: SO2_FUTURE_SCALE(IIPAR,JJPAR)
+      REAL*8  :: NOX_FUTURE_SCALE(IIPAR,JJPAR)
+      REAL*8  :: CO_FUTURE_SCALE(IIPAR,JJPAR)
+      INTEGER :: I, J
+#endif
       !=================================================================
       ! EMISS_EDGAR begins here!
       !=================================================================
@@ -266,6 +285,68 @@
       !CALL OUTPUT_TOTAL_2D( 'EDGAR NOx', EDGAR_NOx, 'kg/season' )
       !CALL OUTPUT_TOTAL_2D( 'EDGAR CO',  EDGAR_CO , 'kg/yr'     )
       !CALL OUTPUT_TOTAL_2D( 'EDGAR SO2', EDGAR_SO2, 'kg/season' )
+
+#if defined( DEVEL )
+
+      IF ( LFUTURE ) THEN
+         DO I=1,IIPAR
+            DO J=1,JJPAR
+               SO2_FUTURE_SCALE(I,J) = GET_FUTURE_SCALE_SO2ff(I,J)
+               CO_FUTURE_SCALE(I,J)  = GET_FUTURE_SCALE_COff(I,J)
+               NOX_FUTURE_SCALE(I,J) = GET_FUTURE_SCALE_NOXff(I,J)
+            ENDDO
+         ENDDO
+      ENDIF
+
+      ! CO is yearly
+      ! NOx and anthro SOx are seasonal
+      ! Ship SOx are monthly
+      ! Result is emission tendency in kg/gridbox/s
+      IF (LEDGARSHIP) THEN
+         IF ( LFUTURE ) THEN
+            EMISSIONS(:,:,IDTSO2) = EMISSIONS(:,:,IDTSO2) +
+     &    (((EDGAR_SO2/SEC_IN_SEASON)+(EDGAR_SO2_SHIP/SEC_IN_MONTH)) *
+     &      SO2_FUTURE_SCALE )
+
+            EMISSIONS(:,:,IDTCO) = EMISSIONS(:,:,IDTCO) +
+     &    ((EDGAR_CO+EDGAR_CO_SHIP)   * (1.d0/SEC_IN_2000) *
+     &      CO_FUTURE_SCALE )
+
+            EMISSIONS(:,:,IDTNOX) = EMISSIONS(:,:,IDTNOX) +
+     &    ((EDGAR_NOX+EDGAR_NOX_SHIP) * (1.d0/SEC_IN_SEASON) *
+     &      NOX_FUTURE_SCALE )
+         ELSE
+            EMISSIONS(:,:,IDTSO2) = EMISSIONS(:,:,IDTSO2) +
+     &    (((EDGAR_SO2/SEC_IN_SEASON)+(EDGAR_SO2_SHIP/SEC_IN_MONTH)) )
+
+            EMISSIONS(:,:,IDTCO) = EMISSIONS(:,:,IDTCO) +
+     &    ((EDGAR_CO+EDGAR_CO_SHIP)   * (1.d0/SEC_IN_2000) )
+
+            EMISSIONS(:,:,IDTNOX) = EMISSIONS(:,:,IDTNOX) +
+     &    ((EDGAR_NOX+EDGAR_NOX_SHIP) * (1.d0/SEC_IN_SEASON) )
+         ENDIF
+      ELSE
+         IF ( LFUTURE ) THEN
+            EMISSIONS(:,:,IDTSO2) = EMISSIONS(:,:,IDTSO2) +
+     &    ((EDGAR_SO2/SEC_IN_SEASON) * SO2_FUTURE_SCALE )
+
+            EMISSIONS(:,:,IDTCO) = EMISSIONS(:,:,IDTCO) +
+     &    (EDGAR_CO*(1.d0/SEC_IN_2000) * CO_FUTURE_SCALE )
+
+            EMISSIONS(:,:,IDTNOX) = EMISSIONS(:,:,IDTNOX) +
+     &    (EDGAR_NOX*(1.d0/SEC_IN_SEASON) * NOX_FUTURE_SCALE )
+         ELSE
+            EMISSIONS(:,:,IDTSO2) = EMISSIONS(:,:,IDTSO2) +
+     &    (EDGAR_SO2/SEC_IN_SEASON)
+
+            EMISSIONS(:,:,IDTCO) = EMISSIONS(:,:,IDTCO) +
+     &    (EDGAR_CO * (1.d0/SEC_IN_2000) )
+
+            EMISSIONS(:,:,IDTNOX) = EMISSIONS(:,:,IDTNOX) +
+     &    (EDGAR_NOX * (1.d0/SEC_IN_SEASON) )
+         ENDIF
+      ENDIF
+#endif
 
       ! Return to calling program
       END SUBROUTINE EMISS_EDGAR

@@ -80,7 +80,11 @@
 !\\
 ! !INTERFACE:
 !
+#if defined( DEVEL )
+      SUBROUTINE DO_EMISSIONS(CHEM_STATE)
+#else
       SUBROUTINE DO_EMISSIONS
+#endif
 !
 ! !USES:
 !
@@ -122,6 +126,13 @@
 
       USE CMN_SIZE_MOD                 ! Size parameters
       USE CMN_O3_MOD                   ! FSCLYR
+
+#if defined( DEVEL )
+      USE GC_TYPE_MOD ,           ONLY : GC_MET_LOCAL
+      USE GC_TYPE2_MOD,           ONLY : CHEMSTATE, NULL 
+      USE TRACERID_MOD,           ONLY : IDTSO2, IDTC2H6
+#endif
+
 !
 ! !REVISION HISTORY: 
 !  (1 ) Now references DEBUG_MSG from "error_mod.f" (bmy, 8/7/03)
@@ -170,9 +181,12 @@
 ! !LOCAL VARIABLES:
 !
       INTEGER                     :: MONTH, YEAR
-!
-! !DEFINED PARAMETERS:
-!
+      ! BIOMASS not used (hotp 8/3/09)
+      !REAL*8                      :: BIOMASS(IIPAR,JJPAR,NBIOMAX)
+#if defined( DEVEL )
+      TYPE(CHEMSTATE),    INTENT(INOUT) :: CHEM_STATE
+!      TYPE(GC_MET_LOCAL), INTENT(INOUT) :: LOCAL_MET
+#endif
 
       !=================================================================
       ! DO_EMISSIONS begins here!
@@ -194,7 +208,12 @@
 !#### HARDWIRE SWITCH : use YEAR instead of GET_YEAR() to use the same
 !#### base year as anthropogenic emissions
 !         CALL COMPUTE_BIOMASS_EMISSIONS( YEAR, MONTH )
+#if defined( DEVEL )
+         CALL COMPUTE_BIOMASS_EMISSIONS( GET_YEAR(), MONTH,             &
+     &                 CHEM_STATE%TRAC_BTEND(:,:,1,:) )
+#else
          CALL COMPUTE_BIOMASS_EMISSIONS( GET_YEAR(), MONTH )
+#endif
       ENDIF
          
       ! Test by simulation type
@@ -206,10 +225,20 @@
 
          ! Read David Streets' emisisons over China / SE ASia
          IF ( LSTREETS .and. ITS_A_NEW_MONTH() ) THEN
+#if defined( DEVEL )
+#if   defined(GRID05x0666)
+            CALL EMISS_STREETS_ANTHRO_05x0666 
+     &           (CHEM_STATE%TRAC_TEND(:,:,1,:))
+#else
+            CALL EMISS_STREETS_ANTHRO
+     &           (CHEM_STATE%TRAC_TEND(:,:,1,:))
+#endif
+#else
 #if   defined(GRID05x0666)
             CALL EMISS_STREETS_ANTHRO_05x0666      !(dan)
 #else
             CALL EMISS_STREETS_ANTHRO
+#endif
 #endif
          ENDIF
 
@@ -217,47 +246,100 @@
          ! the NOx diurnal scale factors, and the EDGAR emissions 
          ! if necessary (amv, phs, 3/11/08)
          IF ( ITS_A_NEW_MONTH() ) THEN
+#if defined( DEVEL )
+            CALL EMISS_EDGAR
+     &           ( YEAR, MONTH, CHEM_STATE%TRAC_TEND(:,:,1,:) )
+#else
             CALL EMISS_EDGAR( YEAR, MONTH )
+#endif
          ENDIF
 
          ! Read RETRO emissions once per month (wfr, 3/8/11)
-         IF ( LRETRO .and. ITS_A_NEW_MONTH() ) THEN
-            CALL EMISS_RETRO
-         ENDIF
+#if defined( DEVEL )
+         IF ( LRETRO .and. ITS_A_NEW_MONTH() ) CALL EMISS_RETRO
+     &       ( CHEM_STATE%TRAC_TEND(:,:,1,:) )
+#else
+         IF ( LRETRO .and. ITS_A_NEW_MONTH() ) CALL EMISS_RETRO
+#endif
 
          ! Read EPA/NEI99 (USA) emissions once per month
-         IF ( LNEI99 .and. ITS_A_NEW_MONTH() ) THEN
-            CALL EMISS_EPA_NEI
-         ENDIF
-
+#if defined( DEVEL )
+         IF ( LNEI99 .and. ITS_A_NEW_MONTH() ) CALL EMISS_EPA_NEI(
+     &       CHEM_STATE%TRAC_TEND(:,:,1,:),
+     &       CHEM_STATE%TRAC_BTEND(:,:,1,:))
+#else
+         IF ( LNEI99 .and. ITS_A_NEW_MONTH() ) CALL EMISS_EPA_NEI
+#endif
          ! Read VISTAS (USA) emissions once per month
          IF ( LVISTAS .and. ITS_A_NEW_MONTH() ) THEN
+#if defined( DEVEL )
+            CALL EMISS_VISTAS_ANTHRO(
+     &           CHEM_STATE%TRAC_TEND(:,:,1,:))
+#else
             CALL EMISS_VISTAS_ANTHRO
+#endif
          ENDIF
 
          ! Read BRAVO (Mexico) emissions once per year
+#if defined( DEVEL )
+         IF ( LBRAVO .and. ITS_A_NEW_YEAR()  ) 
+     &   CALL EMISS_BRAVO(CHEM_STATE%TRAC_TEND(:,:,1,:))
+#else
          IF ( LBRAVO .and. ITS_A_NEW_YEAR()  ) CALL EMISS_BRAVO
+#endif
 
          ! Read EMEP (Europe) emissions once per year
          IF ( LEMEP  .and. ITS_A_NEW_MONTH()  ) THEN
+#if defined( DEVEL )
+#if   defined(GRID05x0666)
+            CALL EMISS_EMEP_05x0666(CHEM_STATE%TRAC_TEND(:,:,1,:))
+#else
+            CALL EMISS_EMEP(CHEM_STATE%TRAC_TEND(:,:,1,:))
+#endif
+#else
 #if   defined(GRID05x0666)
             CALL EMISS_EMEP_05x0666
 #else
             CALL EMISS_EMEP
 #endif
+#endif
          ENDIF
 
          ! Read CAC (Canada) emissions
          IF ( LCAC .and. ITS_A_NEW_YEAR() ) THEN
+#if defined( DEVEL )
+#if   defined( GRID05x0666 )
+            CALL EMISS_CAC_ANTHRO_05x0666
+     &      (CHEM_STATE%TRAC_TEND(:,:,1,:))
+#else
+            CALL EMISS_CAC_ANTHRO(CHEM_STATE%TRAC_TEND)
+#endif
+#else
 #if   defined( GRID05x0666 )
             CALL EMISS_CAC_ANTHRO_05x0666
 #else
             CALL EMISS_CAC_ANTHRO
 #endif
+#endif
          ENDIF
 
          ! Read NEI2005 (USA) emissions
          IF ( LNEI05 .and. ITS_A_NEW_MONTH() ) THEN
+#if defined( DEVEL )
+#if   defined( GRID05x0666 )
+            CALL EMISS_EPA_NEI(                  ! Use NEI99 biofuel, nested
+     &       CHEM_STATE%TRAC_TEND(:,:,1,:),
+     &       CHEM_STATE%TRAC_BTEND(:,:,1,:))
+            CALL EMISS_NEI2005_ANTHRO_05x0666(   ! Use NEI05 anthro,  nested
+     &           CHEM_STATE%TRAC_TEND)
+#else
+            CALL EMISS_EPA_NEI(                  ! Use NEI99 biofuel, global
+     &       CHEM_STATE%TRAC_TEND(:,:,1,:),
+     &       CHEM_STATE%TRAC_BTEND(:,:,1,:))
+            CALL EMISS_NEI2005_ANTHRO(           ! Use NEI05 anthro,  global
+     &           CHEM_STATE%TRAC_TEND)
+#endif
+#else
 #if   defined( GRID05x0666 )
             CALL EMISS_EPA_NEI                  ! Use NEI99 biofuel, nested
             CALL EMISS_NEI2005_ANTHRO_05x0666   ! Use NEI05 anthrho, nested
@@ -265,16 +347,25 @@
             CALL EMISS_EPA_NEI                  ! Use NEI99 biofuel, global
             CALL EMISS_NEI2005_ANTHRO           ! Use NEI05 anthro,  global
 #endif
+#endif
          ENDIF
 
          ! Read SO2 ARCTAS emissions
          IF ( LARCSHIP .AND. ITS_A_NEW_YEAR() )
-     $        CALL EMISS_ARCTAS_SHIP( YEAR )
-
+#if defined( DEVEL )
+     &        CALL EMISS_ARCTAS_SHIP( YEAR, 
+     &                   CHEM_STATE%TRAC_TEND(:,:,1,IDTSO2))
+#else
+     &        CALL EMISS_ARCTAS_SHIP( YEAR )
+#endif
          ! Read ICOADS ship emissions once per month (cklee, 7/09/09)
-         IF ( LICOADSSHIP .and. ITS_A_NEW_MONTH() ) THEN 
-              CALL EMISS_ICOADS_SHIP
-         ENDIF
+         IF ( LICOADSSHIP .and. ITS_A_NEW_MONTH() ) 
+#if defined( DEVEL )
+     &        CALL EMISS_ICOADS_SHIP( CHEM_STATE%TRAC_TEND(:,:,1,:) )
+#else
+     &        CALL EMISS_ICOADS_SHIP
+#endif
+!         ENDIF
 
          ! Read look up tables for PARANOX ship plume model (mpayer, 2/7/12)
          IF ( ( LICOADSSHIP .or. LEDGARSHIP .or. LEMEPSHIP ) 
@@ -284,16 +375,38 @@
 
          ! C2H6 emissions using RETRO are too low, use Yaping Xiao's
          ! offline C2H6 emissions instead (mpayer, 3/22/12)
+#if defined( DEVEL )
+         CALL EMISSC2H6( 
+     &        CHEM_STATE%TRAC_TEND (:,:,1,IDTC2H6),
+     &        CHEM_STATE%TRAC_BTEND(:,:,1,:)       )
+#else
          CALL EMISSC2H6
+#endif
 
          ! NOx-Ox-HC (w/ or w/o aerosols)
+#if defined( DEVEL )
+         write(*,*) 'TRAC_TEND:', shape(CHEM_STATE%TRAC_TEND)
+         CALL EMISSDR( CHEM_STATE%TRAC_TEND, CHEM_STATE%TRAC_BTEND )
+#else
          CALL EMISSDR
+#endif
 
          ! Emissions for various aerosol types
+#if defined( DEVEL )
+         IF ( LSSALT            ) 
+     &      CALL EMISSSEASALT(CHEM_STATE%TRAC_TEND(:,:,:,:))
+         IF ( LSULF .or. LCRYST ) 
+     &      CALL EMISSSULFATE(CHEM_STATE%TRAC_TEND(:,:,:,:))
+         IF ( LCARB             ) 
+     &      CALL EMISSCARBON(CHEM_STATE%TRAC_TEND(:,:,1,:))
+         IF ( LDUST             ) 
+     &      CALL EMISSDUST(CHEM_STATE%TRAC_TEND(:,:,:,:))
+#else
          IF ( LSSALT            ) CALL EMISSSEASALT
          IF ( LSULF .or. LCRYST ) CALL EMISSSULFATE
          IF ( LCARB             ) CALL EMISSCARBON
          IF ( LDUST             ) CALL EMISSDUST
+#endif
 
       ELSE IF ( ITS_AN_AEROSOL_SIM() ) THEN
          
@@ -303,32 +416,76 @@
 
          ! Read David Streets' emisisons over China / SE ASia
          IF ( LSTREETS .and. ITS_A_NEW_MONTH() ) THEN
+#if defined( DEVEL )
+#if   defined(GRID05x0666)
+            CALL EMISS_STREETS_ANTHRO_05x0666 
+     &           (CHEM_STATE%TRAC_TEND(:,:,1,:))
+#else
+            CALL EMISS_STREETS_ANTHRO
+     &           (CHEM_STATE%TRAC_TEND(:,:,1,:))
+#endif
+#else
 #if   defined( GRID05x0666 )
             CALL EMISS_STREETS_ANTHRO_05x0666      !(dan)
 #else
             CALL EMISS_STREETS_ANTHRO
 #endif
+#endif
          ENDIF
 
          ! Read CAC emissions
          IF ( LCAC .and. ITS_A_NEW_YEAR() ) THEN
+#if defined( DEVEL )
+#if   defined( GRID05x0666 )
+            CALL EMISS_CAC_ANTHRO_05x0666(CHEM_STATE%TRAC_TEND(:,:,1,:))
+#else
+            CALL EMISS_CAC_ANTHRO(CHEM_STATE%TRAC_TEND(:,:,1,:))
+#endif
+#else
 #if   defined(GRID05x0666)
             CALL EMISS_CAC_ANTHRO_05x0666
 #else
             CALL EMISS_CAC_ANTHRO
 #endif
+#endif
          ENDIF
 
          ! Read EDGAR emissions once per month
          IF ( ITS_A_NEW_MONTH() ) THEN
+#if defined( DEVEL )
+            CALL EMISS_EDGAR
+     &       ( YEAR, MONTH, CHEM_STATE%TRAC_TEND(:,:,1,:) )
+#else
             CALL EMISS_EDGAR( YEAR, MONTH )
+#endif
          ENDIF
 
          ! Read EPA/NEI99 emissions once per month
+#if defined( DEVEL )
+         IF ( LNEI99 .and. ITS_A_NEW_MONTH() ) CALL EMISS_EPA_NEI(
+     &       CHEM_STATE%TRAC_TEND(:,:,1,:),
+     &       CHEM_STATE%TRAC_BTEND(:,:,1,:))
+#else
          IF ( LNEI99 .and. ITS_A_NEW_MONTH() ) CALL EMISS_EPA_NEI
+#endif
 
          ! Read NEI2005 emissions once per month
          IF ( LNEI05 .and. ITS_A_NEW_MONTH() ) THEN
+#if defined( DEVEL )
+#if   defined( GRID05x0666 )
+            CALL EMISS_EPA_NEI(                  ! Use NEI99 biofuel, nested
+     &       CHEM_STATE%TRAC_TEND(:,:,1,:),
+     &       CHEM_STATE%TRAC_BTEND(:,:,1,:))
+            CALL EMISS_NEI2005_ANTHRO_05x0666(   ! Use NEI05 anthro,  nested
+     &           CHEM_STATE%TRAC_TEND)
+#else
+            CALL EMISS_EPA_NEI(                  ! Use NEI99 biofuel, global
+     &       CHEM_STATE%TRAC_TEND(:,:,1,:),
+     &       CHEM_STATE%TRAC_BTEND(:,:,1,:))
+            CALL EMISS_NEI2005_ANTHRO(           ! Use NEI05 anthro,  global
+     &           CHEM_STATE%TRAC_TEND)
+#endif
+#else
 #if    defined( GRID05x0666 )
             CALL EMISS_EPA_NEI                  ! Use NEI99 biofuel, nested
             CALL EMISS_NEI2005_ANTHRO_05x0666   ! Use NEI05 anthro,  global
@@ -336,27 +493,50 @@
             CALL EMISS_EPA_NEI                  ! Use NEI99 biofuel, nested
             CALL EMISS_NEI2005_ANTHRO           ! Use NEI05 anthro,  global
 #endif
+#endif
          ENDIF
 
          ! Read BRAVO (Mexico) emissions once per year
+#if defined( DEVEL )
+         IF ( LBRAVO .and. ITS_A_NEW_YEAR()  ) 
+     &   CALL EMISS_BRAVO(CHEM_STATE%TRAC_TEND(:,:,1,:))
+#else
          IF ( LBRAVO .and. ITS_A_NEW_YEAR()  ) CALL EMISS_BRAVO
+#endif
 
          ! Read EMEP (Europe) emissions once per year
          IF ( LEMEP  .and. ITS_A_NEW_YEAR()  ) THEN
+#if defined( DEVEL )
+#if   defined(GRID05x0666)
+            CALL EMISS_EMEP_05x0666(CHEM_STATE%TRAC_TEND(:,:,1,:))
+#else
+            CALL EMISS_EMEP(CHEM_STATE%TRAC_TEND(:,:,1,:))
+#endif
+#else
 #if   defined( GRID05x0666 )
             CALL EMISS_EMEP_05x0666
 #else       
             CALL EMISS_EMEP
 #endif
+#endif
          ENDIF
 
          ! Read SO2 ARCTAS emissions
          IF ( LARCSHIP .AND. ITS_A_NEW_YEAR() )
-     $        CALL EMISS_ARCTAS_SHIP( YEAR )
+#if defined( DEVEL )
+     &        CALL EMISS_ARCTAS_SHIP( YEAR,
+     &             CHEM_STATE%TRAC_TEND(:,:,1,IDTSO2))
+#else
+     &        CALL EMISS_ARCTAS_SHIP( YEAR )
+#endif
 
          ! Read ICOADS ship emissions once per month !(cklee, 7/09/09)
          IF ( LICOADSSHIP .and. ITS_A_NEW_MONTH() ) THEN
+#if defined( DEVEL )
+            CALL EMISS_ICOADS_SHIP( CHEM_STATE%TRAC_TEND(:,:,1,:) )
+#else
             CALL EMISS_ICOADS_SHIP
+#endif
          ENDIF
 
          ! Read look up tables for PARANOX ship plume model (mpayer, 2/7/12)
@@ -366,10 +546,21 @@
          ENDIF
 
          ! Emissions for various aerosol types
+#if defined( DEVEL )
+         IF ( LSSALT            ) 
+     &   CALL EMISSSEASALT(CHEM_STATE%TRAC_TEND(:,:,:,:))
+         IF ( LSULF .or. LCRYST ) 
+     &   CALL EMISSSULFATE(CHEM_STATE%TRAC_TEND(:,:,:,:))
+         IF ( LCARB             ) 
+     &   CALL EMISSCARBON(CHEM_STATE%TRAC_TEND(:,:,1,:))
+         IF ( LDUST             ) 
+     &   CALL EMISSDUST(CHEM_STATE%TRAC_TEND(:,:,:,:))
+#else
          IF ( LSSALT            ) CALL EMISSSEASALT
          IF ( LSULF .or. LCRYST ) CALL EMISSSULFATE
          IF ( LCARB             ) CALL EMISSCARBON
          IF ( LDUST             ) CALL EMISSDUST
+#endif
 
       ELSE IF ( ITS_A_RnPbBe_SIM() ) THEN
          
@@ -385,7 +576,11 @@
          !--------------------
 
          ! Emit CH3I
+#if defined( DEVEL )
+         CALL EMISSCH3I( CHEM_STATE%TRAC_BTEND(:,:,1,:) )
+#else
          CALL EMISSCH3I
+#endif
 
       ELSE IF ( ITS_A_HCN_SIM() ) THEN
 
@@ -403,32 +598,77 @@
          ! Read David Streets' emisisons over China / SE ASia
          ! Bug fix: call every month now (pdk, phs, 3/17/09)
          IF ( LSTREETS .and. ITS_A_NEW_MONTH() ) THEN
+#if defined( DEVEL )
+#if   defined(GRID05x0666)
+            CALL EMISS_STREETS_ANTHRO_05x0666 
+     &           (CHEM_STATE%TRAC_TEND(:,:,1,:))
+#else
+            CALL EMISS_STREETS_ANTHRO
+     &           (CHEM_STATE%TRAC_TEND(:,:,1,:))
+#endif
+#else
 #if   defined( GRID05x0666 )
             CALL EMISS_STREETS_ANTHRO_05x0666   ! (dan)
 #else
             CALL EMISS_STREETS_ANTHRO           
 #endif
+#endif
          ENDIF
 
          ! Read CAC emissions
          IF ( LCAC .and. ITS_A_NEW_YEAR() ) THEN
+#if defined( DEVEL )
+#if   defined( GRID05x0666 )
+            CALL EMISS_CAC_ANTHRO_05x0666
+     &      (CHEM_STATE%TRAC_TEND(:,:,1,:))
+#else
+            CALL EMISS_CAC_ANTHRO(CHEM_STATE%TRAC_TEND(:,:,1,:))
+#endif
+#else
 #if   defined( GRID05x0666 )
             CALL EMISS_CAC_ANTHRO_05x0666
 #else
             CALL EMISS_CAC_ANTHRO
 #endif
+#endif
          ENDIF
 
          ! Read EDGAR emissions once per month
          IF ( ITS_A_NEW_MONTH() ) THEN
+#if defined( DEVEL )
+            CALL EMISS_EDGAR
+     &       ( YEAR, MONTH, CHEM_STATE%TRAC_TEND(:,:,1,:) )
+#else
             CALL EMISS_EDGAR( YEAR, MONTH )
+#endif
          ENDIF
 
          ! Read EPA (USA) emissions once per month
+#if defined( DEVEL )
+         IF ( LNEI99 .and. ITS_A_NEW_MONTH() ) CALL EMISS_EPA_NEI(
+     &       CHEM_STATE%TRAC_TEND(:,:,1,:),
+     &       CHEM_STATE%TRAC_BTEND(:,:,1,:))
+#else
          IF ( LNEI99 .and. ITS_A_NEW_MONTH() ) CALL EMISS_EPA_NEI
+#endif
 
          ! Read NEI2005 (USA) emissions once per year
          IF ( LNEI05 .and. ITS_A_NEW_MONTH() ) THEN
+#if defined( DEVEL )
+#if   defined( GRID05x0666 )
+            CALL EMISS_EPA_NEI(                  ! Use NEI99 biofuel, nested
+     &       CHEM_STATE%TRAC_TEND(:,:,1,:),
+     &       CHEM_STATE%TRAC_BTEND(:,:,1,:))
+            CALL EMISS_NEI2005_ANTHRO_05x0666(   ! Use NEI05 anthro,  nested
+     &           CHEM_STATE%TRAC_TEND)
+#else
+            CALL EMISS_EPA_NEI(                  ! Use NEI99 biofuel, global
+     &       CHEM_STATE%TRAC_TEND(:,:,1,:),
+     &       CHEM_STATE%TRAC_BTEND(:,:,1,:))
+            CALL EMISS_NEI2005_ANTHRO(           ! Use NEI05 anthro,  global
+     &           CHEM_STATE%TRAC_TEND)
+#endif
+#else
 #if   defined( GRID05x0666 )
             CALL EMISS_EPA_NEI                  ! Use NEI99 biofuel, nested
             CALL EMISS_NEI2005_ANTHRO_05x0666   ! Use NEI05 anthro,  nested
@@ -436,23 +676,41 @@
             CALL EMISS_EPA_NEI                  ! Use NEI99 biofuel, global
             CALL EMISS_NEI2005_ANTHRO           ! Use NEI05 anthro,  global
 #endif
+#endif
          ENDIF
 
          ! Read BRAVO (Mexico) emissions once per year
+#if defined( DEVEL )
+         IF ( LBRAVO .and. ITS_A_NEW_YEAR()  ) 
+     &        CALL EMISS_BRAVO(CHEM_STATE%TRAC_TEND(:,:,1,:))
+#else
          IF ( LBRAVO .and. ITS_A_NEW_YEAR()  ) CALL EMISS_BRAVO
+#endif
 
          ! Read EPA (Europe) emissions once per year
          IF ( LEMEP  .and. ITS_A_NEW_YEAR()  ) THEN
+#if defined( DEVEL )
+#if   defined(GRID05x0666)
+            CALL EMISS_EMEP_05x0666(CHEM_STATE%TRAC_TEND(:,:,1,:))
+#else
+            CALL EMISS_EMEP(CHEM_STATE%TRAC_TEND(:,:,1,:))
+#endif
+#else
 #if   defined(GRID05x0666)
             CALL EMISS_EMEP_05x0666
 #else
             CALL EMISS_EMEP
 #endif
+#endif
          ENDIF
 
          ! Read ICOADS ship emissions once per month (cklee, 7/09/09)
          IF ( LICOADSSHIP .and. ITS_A_NEW_MONTH() ) THEN
+#if defined( DEVEL )
+            CALL EMISS_ICOADS_SHIP( CHEM_STATE%TRAC_TEND(:,:,1,:) )
+#else
             CALL EMISS_ICOADS_SHIP
+#endif
          ENDIF
 
          ! Read look up tables for PARANOX ship plume model (mpayer, 2/7/12)
@@ -476,7 +734,13 @@
          !--------------------
 
          ! Emit C2H6
+#if defined( DEVEL )
+         CALL EMISSC2H6( 
+     &        CHEM_STATE%TRAC_TEND (:,:,1,IDTC2H6),
+     &        CHEM_STATE%TRAC_BTEND(:,:,1,:)       )
+#else
          CALL EMISSC2H6
+#endif
 
       ELSE IF ( ITS_A_CH4_SIM() ) THEN
 
@@ -487,10 +751,20 @@
          ! Read David Streets' emisisons over China / SE ASia
          ! Bug fix: call every month now (phs, 3/17/09)
          IF ( LSTREETS .and. ITS_A_NEW_MONTH() ) THEN
+#if defined( DEVEL )
+#if   defined(GRID05x0666)
+            CALL EMISS_STREETS_ANTHRO_05x0666 
+     &           (CHEM_STATE%TRAC_TEND(:,:,1,:))
+#else
+            CALL EMISS_STREETS_ANTHRO
+     &           (CHEM_STATE%TRAC_TEND(:,:,1,:))
+#endif
+#else
 #if   defined( GRID05x0666 )
             CALL EMISS_STREETS_ANTHRO_05x0666      !(dan)
 #else
             CALL EMISS_STREETS_ANTHRO
+#endif
 #endif
          ENDIF
 
@@ -513,17 +787,31 @@
          ! Read David Streets' emisisons over China / SE ASia
          ! Bug fix: call every month now (phs, 3/17/09)         
          IF ( LSTREETS .and. ITS_A_NEW_MONTH() ) THEN
+#if defined( DEVEL )
+#if   defined(GRID05x0666)
+            CALL EMISS_STREETS_ANTHRO_05x0666 
+     &           (CHEM_STATE%TRAC_TEND(:,:,1,:))
+#else
+            CALL EMISS_STREETS_ANTHRO
+     &           (CHEM_STATE%TRAC_TEND(:,:,1,:))
+#endif
+#else
 #if   defined( GRID05x0666 )
             CALL EMISS_STREETS_ANTHRO_05x0666      !(dan)
 #else
             CALL EMISS_STREETS_ANTHRO
 #endif
+#endif
          ENDIF
 
          ! Read CO2 ARCTAS SHIP emissions
          IF ( LARCSHIP .and. ITS_A_NEW_YEAR() )
-     $        CALL EMISS_ARCTAS_SHIP( YEAR )
-
+#if defined( DEVEL )
+     &        CALL EMISS_ARCTAS_SHIP( YEAR,
+     &                   CHEM_STATE%TRAC_TEND(:,:,1,NULL))
+#else
+     &        CALL EMISS_ARCTAS_SHIP( YEAR )
+#endif
          ! Emit CO2
          CALL EMISSCO2
 
@@ -536,56 +824,120 @@
          ! Read David Streets' emisisons over China / SE ASia
          ! Bug fix: call every month now (phs, 3/17/09)
          IF ( LSTREETS .and. ITS_A_NEW_MONTH() ) THEN
+#if defined( DEVEL )
+#if   defined(GRID05x0666)
+            CALL EMISS_STREETS_ANTHRO_05x0666 
+     &           (CHEM_STATE%TRAC_TEND(:,:,1,:))
+#else
+            CALL EMISS_STREETS_ANTHRO
+     &           (CHEM_STATE%TRAC_TEND(:,:,1,:))
+#endif
+#else
 #if   defined( GRID05x0666 )
             CALL EMISS_STREETS_ANTHRO_05x0666      !(dan)
 #else
             CALL EMISS_STREETS_ANTHRO
 #endif
+#endif
          ENDIF
 
          ! Read EDGAR emissions once per month
          IF ( ITS_A_NEW_MONTH() ) THEN
+#if defined( DEVEL )
+            CALL EMISS_EDGAR
+     &       ( YEAR, MONTH, CHEM_STATE%TRAC_TEND(:,:,1,:) )
+#else
             CALL EMISS_EDGAR( YEAR, MONTH )
+#endif
          ENDIF
 
          ! Read CAC (Canada) emissions
          IF ( LCAC .and. ITS_A_NEW_YEAR() ) THEN
+#if defined( DEVEL )
+#if   defined( GRID05x0666 )
+            CALL EMISS_CAC_ANTHRO_05x0666(CHEM_STATE%TRAC_TEND(:,:,1,:))
+#else
+            CALL EMISS_CAC_ANTHRO(CHEM_STATE%TRAC_TEND(:,:,1,:))
+#endif
+#else
 #if   defined( GRID05x0666 )
             CALL EMISS_CAC_ANTHRO_05x0666
 #else
             CALL EMISS_CAC_ANTHRO
 #endif
+#endif
          ENDIF
 
          ! Read EPA (USA) emissions once per month
+#if defined( DEVEL )
+         IF ( LNEI99 .and. ITS_A_NEW_MONTH() ) CALL EMISS_EPA_NEI(
+     &       CHEM_STATE%TRAC_TEND(:,:,1,:),
+     &       CHEM_STATE%TRAC_BTEND(:,:,1,:))
+#else
          IF ( LNEI99 .and. ITS_A_NEW_MONTH() ) CALL EMISS_EPA_NEI
+#endif
 
          ! Read NEI2005 (USA) emissions
          IF ( LNEI05 .and. ITS_A_NEW_MONTH() ) THEN
+#if defined( DEVEL )
 #if   defined( GRID05x0666 )
-            CALL EMISS_EPA_NEI                  ! Use NEI99 biofuel, nested
+            CALL EMISS_EPA_NEI(                  ! Use NEI99 biofuel, nested
+     &       CHEM_STATE%TRAC_TEND(:,:,1,:),
+     &       CHEM_STATE%TRAC_BTEND(:,:,1,:))
+            CALL EMISS_NEI2005_ANTHRO_05x0666(   ! Use NEI05 anthro,  nested
+     &           CHEM_STATE%TRAC_TEND)
+#else
+            CALL EMISS_EPA_NEI(                  ! Use NEI99 biofuel, nested
+     &       CHEM_STATE%TRAC_TEND(:,:,1,:),
+     &       CHEM_STATE%TRAC_BTEND(:,:,1,:))
+            CALL EMISS_NEI2005_ANTHRO(           ! Use NEI05 anthro,  global
+     &           CHEM_STATE%TRAC_TEND)
+#endif
+#else
+#if   defined( GRID05x0666 )
+            CALL EMISS_EPA_NEI(                  ! Use NEI99 biofuel, nested
+     &       CHEM_STATE%TRAC_TEND(:,:,1,:),
+     &       CHEM_STATE%TRAC_BTEND(:,:,1,:))
             CALL EMISS_NEI2005_ANTHRO_05x0666   ! Use NEI05 anthro,  nested
 #else
             CALL EMISS_EPA_NEI                  ! Use NEI99 biofuel, global
             CALL EMISS_NEI2005_ANTHRO           ! Use NEI05 anthro,  global
 #endif
+#endif
          ENDIF
 
          ! Read BRAVO (Mexico) emissions once per year
+#if defined( DEVEL )
+         IF ( LBRAVO .and. ITS_A_NEW_YEAR()  ) 
+     &        CALL EMISS_BRAVO(CHEM_STATE%TRAC_TEND(:,:,1,:))
+#else
          IF ( LBRAVO .and. ITS_A_NEW_YEAR()  ) CALL EMISS_BRAVO
+#endif
 
          ! Read EPA (Europe) emissions once per year
          IF ( LEMEP  .and. ITS_A_NEW_YEAR()  ) THEN
+#if defined( DEVEL )
+#if   defined(GRID05x0666)
+            CALL EMISS_EMEP_05x0666(CHEM_STATE%TRAC_TEND(:,:,1,:))
+#else
+            CALL EMISS_EMEP(CHEM_STATE%TRAC_TEND(:,:,1,:))
+#endif
+#else
 #if   defined( GRID05x0666 )
             CALL EMISS_EMEP_05x0666
 #else
             CALL EMISS_EMEP
 #endif
+#endif
          ENDIF
 
          ! Read ICOADS ship emissions once per month !(cklee, 7/09/09)
          IF ( LICOADSSHIP .and. ITS_A_NEW_MONTH() ) THEN
+#if defined( DEVEL )
+            CALL EMISS_ICOADS_SHIP( CHEM_STATE%TRAC_TEND(:,:,1,:) )
+#else
             CALL EMISS_ICOADS_SHIP
+#endif
          ENDIF
 
          ! Read look up tables for PARANOX ship plume model (mpayer, 2/7/12)
@@ -595,7 +947,11 @@
          ENDIF
 
          ! Emit H2/HD
+#if defined( DEVEL ) 
+         CALL EMISS_H2_HD( CHEM_STATE%TRAC_BTEND(:,:,1,:) )
+#else
          CALL EMISS_H2_HD
+#endif
 
       ENDIF
 

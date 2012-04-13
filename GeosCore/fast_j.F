@@ -29,7 +29,7 @@
 ! !USES:
 !
       USE DAO_MOD,      ONLY : T, CLDF
-      USE ERROR_MOD,    ONLY : ERROR_STOP
+      USE ERROR_MOD,    ONLY : ERROR_STOP, ALLOC_ERR
       USE GRID_MOD,     ONLY : GET_YMID
       USE PRESSURE_MOD, ONLY : GET_PEDGE
       USE TIME_MOD,     ONLY : GET_MONTH, GET_DAY, GET_DAY_OF_YEAR
@@ -40,7 +40,10 @@
 
       USE CMN_SIZE_MOD, ONLY : IIPAR, JJPAR, LLPAR
       USE CMN_SIZE_MOD, ONLY : NDUST, MAXIJ, NAER, NRH
-      USE CMN_FJ_MOD, ONLY : IPAR, JPAR, LPAR, JPMAX, JPPJ
+#if !defined( DEVEL )
+      USE CMN_FJ_MOD, ONLY : IPAR, JPAR, LPAR
+#endif
+      USE CMN_FJ_MOD, ONLY : JPMAX, JPPJ
       USE JV_CMN_MOD, ONLY : ODMDUST, PJ, NB, ODAER
 
       IMPLICIT NONE
@@ -132,7 +135,12 @@
       ! Local variables for cloud overlap (hyl, phs)
       INTEGER           :: NUMB, KK, I
       INTEGER            :: INDIC(LLPAR+1)
-      INTEGER            :: INDGEN(LLPAR+1) = (/ (i,i=1,LLPAR+1) /)
+!#if defined( DEVEL )
+!      INTEGER, ALLOCATABLE :: INDGEN(:)
+!      INTEGER              :: AS
+!#else
+      INTEGER            :: INDGEN(LLPAR+1)! = (/ (i,i=1,LLPAR+1) /)
+!#endif
       INTEGER            :: KBOT(LLPAR)
       INTEGER            :: KTOP(LLPAR)
       INTEGER            :: INDICATOR(LLPAR+2)
@@ -154,6 +162,20 @@
       !=================================================================
       ! FAST_J begins here!
       !=================================================================
+
+#if defined( DEVEL )
+      IF ( FIRST ) THEN
+
+!         ALLOCATE ( INDGEN(LLPAR+1), STAT=AS)
+!         IF ( AS /=0 ) CALL ALLOC_ERR( 'INDGEN' )
+
+         DO i = 1,LLPAR+1
+            INDGEN(i) = i       !(/(i,i=1,LLPAR+1)/)
+         ENDDO
+         FIRST = .FALSE.
+
+      ENDIF
+#endif
 
       ! Get day of year (0-365 or 0-366)
       DAY_OF_YR = GET_DAY_OF_YEAR()
