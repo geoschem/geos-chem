@@ -314,7 +314,7 @@
       REAL*8                  :: E_NOX_SHIP_1x1(I1x1,J1x1-1)
       REAL*8                  :: E_NOX_HRLY_1x1(I1x1,J1x1-1,N_HOURS)
       REAL*4                  :: SC_NOx(IIPAR,JJPAR)
-      REAL*8                  :: GEOS_1x1(I1x1,J1x1,1)
+      !REAL*8                  :: GEOS_1x1(I1x1,J1x1,1)
       REAL*8                  :: TEMP_HRLY(IIPAR,JJPAR)
       REAL*8                  :: TEMP_TOT(IIPAR,JJPAR)
       CHARACTER(LEN=255)      :: NAME
@@ -329,7 +329,7 @@
       ! Initialize
       E_NOx_1x1      = 0d0
       E_NOX_HRLY_1x1 = 0d0
-      GEOS_1x1       = 0d0
+      !GEOS_1x1       = 0d0
       SC_NOx     = 1d0
 
       !----------------------------------
@@ -389,7 +389,7 @@
 
       ! Regrid NOx emissions to current model resolution [kg/yr]
       !CALL DO_REGRID_1x1( 'kg/yr', GEOS_1x1, E_NOx )
-        INGRID = GEOS_1x1(:,:,1)
+        INGRID = E_NOx_1x1(:,:)
         CALL DO_REGRID_A2A(LLFILENAME,360,181,INGRID,OUTGRID,1)
       !Apply scaling factor
         E_NOx=OUTGRID * SC_NOx
@@ -401,11 +401,11 @@
       IF ( LEDGARSHIP ) THEN
 
          ! Re-initialize
-         GEOS_1x1(:,:,:) = 0d0
+         !GEOS_1x1(:,:,:) = 0d0
 
          ! Regrid NOX emissions to current model resolution [kg/yr]
          !CALL DO_REGRID_1x1( 'kg/yr', GEOS_1x1, E_NOX_SHIP )
-        INGRID = GEOS_1x1(:,:,1)
+        INGRID = E_NOX_SHIP_1x1(:,:)
         CALL DO_REGRID_A2A(LLFILENAME,360,181,INGRID,OUTGRID,1)
         E_NOX_SHIP=OUTGRID * SC_NOX(:,:) 
 

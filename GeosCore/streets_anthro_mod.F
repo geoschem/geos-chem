@@ -591,7 +591,7 @@
          BASE_YEAR = 2000
 
          ! Read data
-         CALL READ_STREETS( FILENAME, 'CH4-EMIS', 1, TAU2000, CH4 )
+         CALL READ_STREETS( FILENAME, 'CH4-EMIS', 1, TAU2000, CH4, 1 )
 
       ELSE IF ( ITS_A_CO2_SIM() ) THEN
 
@@ -607,7 +607,7 @@
          BASE_YEAR = 2000
 
          ! Read data
-         CALL READ_STREETS( FILENAME, 'CO2-SRCE', 1, TAU2000, CO2 )
+         CALL READ_STREETS( FILENAME, 'CO2-SRCE', 1, TAU2000, CO2, 1 )
 
       ELSE
 
@@ -636,7 +636,7 @@
             ENDIF
  
             ! Read data
-            CALL READ_STREETS( FILENAME, 'ANTHSRCE', 1, TAU, TEMP )
+            CALL READ_STREETS( FILENAME, 'ANTHSRCE', 1, TAU, TEMP, 0 )
    
             NOX = NOX + TEMP * ONOFF( NSOURCE ) * SCALE2020( NSOURCE )
 
@@ -676,7 +676,7 @@
          ENDIF
          
          CALL READ_STREETS( FILENAME,     'RATIO-2D', 71,
-     $                      TAUMONTH_2004, TEMP,     'unitless' )
+     $                      TAUMONTH_2004, TEMP,      1 )
 
          NOX = NOX * TEMP
 
@@ -696,7 +696,7 @@
 
                ! Read data
                CALL READ_STREETS( FILENAME, 'ANTHSRCE', 4,
-     $                            TAU2006,  TEMP )
+     $                            TAU2006,  TEMP,       0 )
 
                ! No scaling for 2006-2020
                CO = CO + TEMP * ONOFF( NSOURCE )
@@ -710,7 +710,7 @@
      &                  'Streets_2001_CO_MonthFctr_total.generic.1x1'
 
             CALL READ_STREETS( FILENAME,     'RATIO-2D', 72,
-     $                         TAUMONTH_2001, TEMP,     'unitless' )
+     $                         TAUMONTH_2001, TEMP,      1 )
 
             CO = CO * TEMP
 
@@ -726,7 +726,8 @@
      &                 'Streets_CO_FF_2000.generic.1x1'
 
             ! Read data
-            CALL READ_STREETS( FILENAME, 'ANTHSRCE', 4, TAU2000, CO )
+            CALL READ_STREETS( FILENAME, 'ANTHSRCE', 4,
+     &                         TAU2000,  CO,         0 )
 
             ! Annual scalar factor (amv, phs, 3/10/08)
             CALL GET_ANNUAL_SCALAR( 72, 2000, SIM_YEAR, SCALFAC )
@@ -740,7 +741,7 @@
 
             ! Read data 
             CALL READ_STREETS( FILENAME,      'ANTHSRCE', 4,
-     $                         TAUMONTH_2001, TEMP)
+     $                         TAUMONTH_2001, TEMP,       0 )
 
             ! Annual scalar factor (amv, phs, 3/10/08)
             CALL GET_ANNUAL_SCALAR( 72, 2001, SIM_YEAR, SCALFAC )
@@ -777,7 +778,8 @@
             ENDIF
 
             ! Read data
-            CALL READ_STREETS( FILENAME, 'ANTHSRCE', 26, TAU, TEMP )
+            CALL READ_STREETS( FILENAME, 'ANTHSRCE', 26,
+     &                         TAU,      TEMP,       1 )
 
             SO2 = SO2 + TEMP * ONOFF( NSOURCE )
 
@@ -807,7 +809,8 @@
      &                 'Streets_NH3_FF_2000.generic.1x1'
 
             ! Old file has NH3 as tracer #30
-            CALL READ_STREETS( FILENAME, 'ANTHSRCE', 30, TAU2000, NH3 )
+            CALL READ_STREETS( FILENAME, 'ANTHSRCE', 30, 
+     &                         TAU2000,  NH3,        1 )
 
             ! switch and scale
             NH3 = NH3 * ONOFF( 1 ) * ONOFFNH3
@@ -830,7 +833,8 @@
                FILENAME  = TRIM( STREETS_DIR ) // 'Streets_ACET_'// 
      &                     SOURCES( NSOURCE ) // '_2006.generic.1x1'
 
-               CALL READ_STREETS( FILENAME, 'ANTHSRCE', 9, TAU, TEMP )
+               CALL READ_STREETS( FILENAME, 'ANTHSRCE', 9,
+     &                            TAU,      TEMP,       1 )
       
                ACET = ACET + TEMP * ONOFF( NSOURCE ) 
      &                            * SCALE2020( NSOURCE )
@@ -846,7 +850,8 @@
      &                     SOURCES( NSOURCE ) // '_2006.generic.1x1'
 
                ! Read data [atom C/yr]
-               CALL READ_STREETS( FILENAME, 'ANTHSRCE', 21, TAU, TEMP )
+               CALL READ_STREETS( FILENAME, 'ANTHSRCE', 21,
+     &                            TAU,       TEMP,      1 )
       
                C2H6 = C2H6 + TEMP * ONOFF( NSOURCE )
      &                            * SCALE2020( NSOURCE )
@@ -862,7 +867,8 @@
      &                     SOURCES( NSOURCE ) // '_2006.generic.1x1'
 
                ! Read data [atom C/yr]
-               CALL READ_STREETS( FILENAME, 'ANTHSRCE', 20, TAU, TEMP )
+               CALL READ_STREETS( FILENAME, 'ANTHSRCE', 20,
+     &                            TAU,       TEMP,      1 )
       
                CH2O = CH2O + TEMP * ONOFF( NSOURCE )
      &                            * SCALE2020( NSOURCE )
@@ -877,7 +883,8 @@
      &                     SOURCES( NSOURCE ) // '_2006.generic.1x1'
    
                ! Read data [atom C/yr]
-               CALL READ_STREETS( FILENAME, 'ANTHSRCE', 19, TAU, TEMP )
+               CALL READ_STREETS( FILENAME, 'ANTHSRCE', 19,
+     &                            TAU,      TEMP,       1 )
 
                C3H8 = C3H8 + TEMP * ONOFF( NSOURCE )
      &                            * SCALE2020( NSOURCE )
@@ -893,7 +900,8 @@
      &                     SOURCES( NSOURCE ) // '_2006.generic.1x1'
 
                ! Read data [atom C/yr]
-               CALL READ_STREETS( FILENAME, 'ANTHSRCE', 18, TAU, TEMP )
+               CALL READ_STREETS( FILENAME, 'ANTHSRCE', 18,
+     &                            TAU,      TEMP,       1 )
          
                PRPE = PRPE + TEMP * ONOFF( NSOURCE )
      &                            * SCALE2020( NSOURCE )
@@ -909,7 +917,8 @@
      &                     SOURCES( NSOURCE ) // '_2006.generic.1x1'
 
                ! Read data [atom C/yr]
-               CALL READ_STREETS( FILENAME, 'ANTHSRCE', 11, TAU, TEMP )
+               CALL READ_STREETS( FILENAME, 'ANTHSRCE', 11,
+     &                            TAU,      TEMP,       1 )
          
                ALD2 = ALD2 + TEMP * ONOFF( NSOURCE )
      &                            * SCALE2020( NSOURCE )
@@ -926,7 +935,8 @@
      &                     SOURCES( NSOURCE ) // '_2006.generic.1x1'
 
                ! Read data [atom C/yr]
-               CALL READ_STREETS( FILENAME, 'ANTHSRCE', 10, TAU, TEMP )
+               CALL READ_STREETS( FILENAME, 'ANTHSRCE', 10,
+     &                            TAU,      TEMP,       1 )
    
                MEK = MEK + TEMP * ONOFF( NSOURCE )
      &                          * SCALE2020( NSOURCE )
@@ -942,7 +952,8 @@
      &                     SOURCES( NSOURCE ) // '_2006.generic.1x1'
 
                ! Read data [atom C/yr]
-               CALL READ_STREETS( FILENAME, 'ANTHSRCE', 5, TAU, TEMP )
+               CALL READ_STREETS( FILENAME, 'ANTHSRCE', 5,
+     &                            TAU,      TEMP,       1 )
       
                ALK4 = ALK4 + TEMP * ONOFF( NSOURCE )
      &                            * SCALE2020( NSOURCE )
@@ -985,7 +996,7 @@
 !------------------------------------------------------------------------------
 
       SUBROUTINE READ_STREETS( FILENAME, CATEGORY, TRACERN, TAU, ARR,
-     $                         UNIT )
+     $                         PERAREA )
 !
 !******************************************************************************
 !     Subroutine READ_STREETS reads data from one STREETS data file
@@ -1025,9 +1036,10 @@
       ! Arguments
       CHARACTER(LEN=*), INTENT(IN)    :: FILENAME, CATEGORY
       INTEGER,          INTENT(IN)    :: TRACERN
+      INTEGER,          INTENT(IN)    :: PERAREA          ! Used for regridding
       REAL*8,           INTENT(INOUT) :: ARR(IIPAR,JJPAR)
       REAL*8,           INTENT(IN)    :: TAU
-      CHARACTER(LEN=*), OPTIONAL      :: UNIT
+      !CHARACTER(LEN=*), OPTIONAL      :: UNIT
       
       ! Local variables
       REAL*4                  :: ARRAY(I1x1,J1x1-1,1)
@@ -1056,12 +1068,12 @@
       ARRAY = 0.
 
       ! check if data is concentration or not 
-      IF ( PRESENT( UNIT) ) THEN
-         THISUNIT = UNIT
-      ELSE
-         THISUNIT = 'kg/yr'
-      ENDIF
-      
+!      IF ( PRESENT( UNIT) ) THEN
+!         THISUNIT = UNIT
+!      ELSE
+!         THISUNIT = 'kg/yr'
+!      ENDIF
+
       ! Read data
       CALL READ_BPCH2( FILENAME,  CATEGORY,  TRACERN, 
      &                 TAU,       I1x1,      J1x1-1,     
@@ -1112,7 +1124,8 @@
         ALLOCATE(INGRID(I1x1,J1x1-1))
         ALLOCATE(OUTGRID(IIPAR,JJPAR))
         INGRID = GEN_1x1
-        CALL DO_REGRID_A2A(LLFILENAME,360,181,INGRID,OUTGRID,1)
+        !CALL DO_REGRID_A2A(LLFILENAME,360,181,INGRID,OUTGRID,1)
+        CALL DO_REGRID_A2A(LLFILENAME,360,181,INGRID,OUTGRID,PERAREA)
         ARR=OUTGRID
 
         DEALLOCATE(INGRID)
@@ -2070,7 +2083,7 @@
         ALLOCATE(INGRID(I1x1,J1x1-1))
         ALLOCATE(OUTGRID(IIPAR,JJPAR))
         INGRID = GEN_1x1
-        CALL DO_REGRID_A2A(LLFILENAME,360,181,INGRID,OUTGRID,1)
+        CALL DO_REGRID_A2A(LLFILENAME,360,181,INGRID,OUTGRID,0)
         MASK_CHINA=OUTGRID
 
 
