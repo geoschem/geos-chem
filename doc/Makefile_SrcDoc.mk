@@ -55,6 +55,7 @@
 #  29 Mar 2012 - R. Yantosca - Added lai_mod
 #  29 Mar 2012 - R. Yantosca - Added modis_lai_mod and mapping_mod
 #  09 Apr 2012 - R. Yantosca - Added modules from Headers/ directory
+#  13 Apr 2012 - R. Yantosca - Removed findmon.F, rdlai.F, lai_mod.F
 #EOP
 #------------------------------------------------------------------------------
 #BOC
@@ -123,19 +124,18 @@ $(CORE)/h2_hd_mod.F                  \
 $(CORE)/icoads_ship_mod.F            \
 $(CORE)/input_mod.F                  \
 $(CORE)/isoropiaII_mod.F             \
-$(CORE)/lai_mod.F                    \
 $(CORE)/land_mercury_mod.F           \
 $(CORE)/lightning_nox_mod.F          \
 $(CORE)/linoz_mod.F                  \
 $(CORE)/logical_mod.F                \
-$(CORE)/mapping_mod.F                \
+$(CORE)/mapping_mod.F90              \
 $(CORE)/megan_mod.F                  \
 $(CORE)/meganut_mod.F                \
 $(CORE)/merra_a1_mod.F               \
 $(CORE)/merra_a3_mod.F               \
 $(CORE)/merra_cn_mod.F               \
 $(CORE)/merra_i6_mod.F               \
-$(CORE)/modis_lai_mod.F              \
+$(CORE)/modis_lai_mod.F90            \
 $(CORE)/nei2005_anthro_mod.F         \
 $(CORE)/olson_landmap_mod.F90        \
 $(CORE)/optdepth_mod.F               \
@@ -171,17 +171,14 @@ $(CORE)/emf_scale.F                  \
 $(CORE)/fast_j.F                     \
 $(CORE)/photoj.F                     \
 $(CORE)/set_prof.F                   \
-$(CORE)/findmon.F                    \
 $(CORE)/initialize.F                 \
 $(CORE)/ndxx_setup.F                 \
 $(CORE)/ohsave.F                     \
-$(CORE)/rdlai.F                      \
 $(CORE)/rdsoil.F                     \
 $(CORE)/readlai.F                    \
 $(CORE)/ruralbox.F                   \
 $(CORE)/setemis.F                    \
-$(CORE)/sfcwindsqr.F                 \
-$(CORE)/tcorr.F
+$(CORE)/sfcwindsqr.F
 
 
 # Output file names

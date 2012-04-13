@@ -11,14 +11,14 @@
 !  for the following GEOS-Chem modules, routines, and data files:
 !
 ! \begin{itemize}
-! \item lai_mod.F
+! \item lai\_mod.F
 ! \item readlai.F
 ! \item rdlai.F
 ! \item findmon.F
 ! \item The \texttt{lai*.global} input files
+! \item CMN\_VEL\_mod.F
 ! \end{itemize}
-!\\
-!\\
+!
 ! !INTERFACE: 
 !
 MODULE Modis_Lai_Mod
