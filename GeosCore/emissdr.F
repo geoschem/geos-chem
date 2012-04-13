@@ -277,8 +277,6 @@
 ! LIGHTNING EMISSIONS NOX [molecules/cm3/s]
 !
 #if defined( DEVEL )
-            write(*,*) 'EMISS_TEND:', shape(EMISS_TEND)
-            write(*,*) 'BIOEMISS_TEND:', shape(BIOEMISS_TEND)
             IF ( LLIGHTNOX .AND. I == 1 .AND. J == 1 ) 
      &           CALL EMLIGHTNING( EMISS_TEND(:,:,:,IDTNOX) )
 #else

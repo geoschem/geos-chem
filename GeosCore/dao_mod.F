@@ -480,8 +480,8 @@
          ! Pressure difference between top & bottom edges [hPa]
          DELP(L,I,J) = P1 - P2
 #if defined( DEVEL )
-         DELP(L,I,J) = LOCAL_MET%DELP(L,I,J)
-!         LOCAL_MET%DELP(L,I,J) = DELP(L,I,J)
+!         DELP(L,I,J) = LOCAL_MET%DELP(L,I,J)
+         LOCAL_MET%DELP(L,I,J) = DELP(L,I,J)
 #endif            
             !===========================================================
             ! BXHEIGHT is the height (Delta-Z) of grid box (I,J,L) 
@@ -494,8 +494,8 @@
             !===========================================================
          BXHEIGHT(I,J,L) = Rdg0 * T(I,J,L) * LOG( P1 / P2 )
 #if defined( DEVEL )
-         BXHEIGHT(I,J,L) = LOCAL_MET%BXHEIGHT(I,J,L)
-!         LOCAL_MET%BXHEIGHT(I,J,L) = BXHEIGHT(I,J,L)
+!         BXHEIGHT(I,J,L) = LOCAL_MET%BXHEIGHT(I,J,L)
+         LOCAL_MET%BXHEIGHT(I,J,L) = BXHEIGHT(I,J,L)
 #endif            
 
             !===========================================================
@@ -517,8 +517,8 @@
             !===========================================================
          AIRVOL(I,J,L) = BXHEIGHT(I,J,L) * AREA_M2
 #if defined( DEVEL )
-         AIRVOL(I,J,L) = LOCAL_MET%AIRVOL(I,J,L)
-!         LOCAL_MET%AIRVOL(I,J,L) = AIRVOL(I,J,L)
+!         AIRVOL(I,J,L) = LOCAL_MET%AIRVOL(I,J,L)
+         LOCAL_MET%AIRVOL(I,J,L) = AIRVOL(I,J,L)
 #endif            
 
             !===========================================================
@@ -535,8 +535,8 @@
             !===========================================================
          AD(I,J,L) = DELP(L,I,J) * G0_100 * AREA_M2
 #if defined( DEVEL )
-          AD(I,J,L) = LOCAL_MET%AD(I,J,L)
-!         LOCAL_MET%AD(I,J,L) = AD(I,J,L)
+!          AD(I,J,L) = LOCAL_MET%AD(I,J,L)
+         LOCAL_MET%AD(I,J,L) = AD(I,J,L)
 #endif            
 
             !===========================================================
@@ -544,8 +544,8 @@
             !===========================================================
          AIRDEN(L,I,J) = AD(I,J,L) / AIRVOL(I,J,L)
 #if defined( DEVEL )
-         AIRDEN(L,I,J) = LOCAL_MET%AIRDENS(L,I,J)
-!         LOCAL_MET%AIRDENS(L,I,J) = AIRDEN(L,I,J)
+!         AIRDEN(L,I,J) = LOCAL_MET%AIRDENS(L,I,J)
+         LOCAL_MET%AIRDENS(L,I,J) = AIRDEN(L,I,J)
 #endif            
       ENDDO
       ENDDO

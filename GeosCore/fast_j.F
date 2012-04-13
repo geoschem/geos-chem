@@ -135,12 +135,12 @@
       ! Local variables for cloud overlap (hyl, phs)
       INTEGER           :: NUMB, KK, I
       INTEGER            :: INDIC(LLPAR+1)
-#if defined( DEVEL )
-      INTEGER, ALLOCATABLE :: INDGEN(:)
-      INTEGER              :: AS
-#else
-      INTEGER            :: INDGEN(LLPAR+1) = (/ (i,i=1,LLPAR+1) /)
-#endif
+!#if defined( DEVEL )
+!      INTEGER, ALLOCATABLE :: INDGEN(:)
+!      INTEGER              :: AS
+!#else
+      INTEGER            :: INDGEN(LLPAR+1)! = (/ (i,i=1,LLPAR+1) /)
+!#endif
       INTEGER            :: KBOT(LLPAR)
       INTEGER            :: KTOP(LLPAR)
       INTEGER            :: INDICATOR(LLPAR+2)
@@ -166,8 +166,8 @@
 #if defined( DEVEL )
       IF ( FIRST ) THEN
 
-         ALLOCATE ( INDGEN(LLPAR+1), STAT=AS)
-         IF ( AS /=0 ) CALL ALLOC_ERR( 'INDGEN' )
+!         ALLOCATE ( INDGEN(LLPAR+1), STAT=AS)
+!         IF ( AS /=0 ) CALL ALLOC_ERR( 'INDGEN' )
 
          DO i = 1,LLPAR+1
             INDGEN(i) = i       !(/(i,i=1,LLPAR+1)/)
