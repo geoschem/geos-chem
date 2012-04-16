@@ -28,10 +28,10 @@
 !
 ! !PUBLIC DATA MEMBERS:
 !
-      PUBLIC :: IIPAR, JJPAR, LLPAR         ! from "F77_CMN_SIZE"
-      PUBLIC :: IDEMS, NEMIS, NCS, NDRYDEP  ! from "comode.h"
-      PUBLIC :: EMISRR, EMISRRN             ! from "F77_CMN_O3"
-      PUBLIC :: ND15, ND44                  ! from "F77_CMN_DIAG"
+      PUBLIC :: IIPAR, JJPAR, LLPAR         ! from "CMN_SIZE_mod"
+      PUBLIC :: IDEMS, NEMIS, NCS, NDRYDEP  ! from "comode_loop_mod"
+      PUBLIC :: EMISRR, EMISRRN             ! from "CMN_O3_mod"
+      PUBLIC :: ND15, ND44                  ! from "CMN_DIAG_mod"
       PUBLIC :: emis_save
 
       ! Make sure MAXTRACERS >= N_TRACERS

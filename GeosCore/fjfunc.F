@@ -13,7 +13,7 @@
 !  (6  ) NAME    : SMVGEAR species name (read from "chem.dat")
 !
 !  NOTES:
-!  (1  ) "cmn_fj.h" also includes "F77_CMN_SIZE" and "define.h".
+!  (1  ) "cmn_fj.h" also includes "CMN_SIZE" and "define.h".
 !  (2  ) J-values are stored in array "ZPJ" from "cmn_fj.h".
 !  (3  ) Now references ERROR_STOP from "error_mod.f".  Updated comments,
 !         and made some cosmetic changes. (bmy, 10/15/02)

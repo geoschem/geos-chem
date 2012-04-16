@@ -65,14 +65,17 @@
 !  21 Dec 2009 - R. Yantosca - Added support for 0.5 x 0.666 nested grids
 !  13 Aug 2010 - R. Yantosca - Add modifications for MERRA (treat like GEOS-5)
 !  27 Jul 2011 - R. Yantosca - Removed typo in EMISS_NEI2005_ANTHRO_05x0666
+!  08 Feb 2012 - R. Yantosca - Add modifications for GEOS-5.7.x met
+!  28 Feb 2012 - R. Yantosca - Removed support for GEOS-3
+!  01 Mar 2012 - R. Yantosca - Now reference new grid_mod.F90
+!   2 Mar 2012 - R. Yantosca - Remove A_CM2 array, use GET_AREA_CM2 instead
+!  22 Mar 2012 - M. Payer    - C2H6 emissions are too low. Use Yaping
+!                              Xiao's C2H6 emissions instead.
 !EOP
 !------------------------------------------------------------------------------
 !
 ! !PRIVATE TYPES:
 !
-      ! Array for surface area
-      REAL*8,  ALLOCATABLE :: A_CM2(:)
-
       ! Arrays for emissions
       REAL*8,  ALLOCATABLE :: NOx(:,:,:)
       REAL*8,  ALLOCATABLE :: CO(:,:,:)
@@ -133,6 +136,7 @@
 !
 ! !USES:
 !
+      USE GRID_MOD,     ONLY : GET_AREA_CM2
       USE TRACER_MOD,   ONLY : XNUMOL
       USE TRACERID_MOD, ONLY : IDTACET, IDTALK4, IDTC2H6, IDTC3H8
       USE TRACERID_MOD, ONLY : IDTALD2, IDTCH2O, IDTPRPE, IDTMEK
@@ -156,7 +160,11 @@
       REAL*8                        :: VALUE     
 !
 ! !REVISION HISTORY: 
-!    7 Oct 2009 - A. van Donkelaar - initial version
+!  07 Oct 2009 - A. van Donkelaar - initial version
+!  01 Mar 2012 - R. Yantosca - Now use GET_AREA_CM2(I,J,L) from grid_mod.F90
+!  01 Mar 2012 - R. Yantosca - Remove A_CM2 array, use GET_AREA_CM2 instead
+!  22 Mar 2012 - M. Payer    - C2H6 emissions are too low. Use Yaping
+!                              Xiao's C2H6 emissions instead.  
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -235,8 +243,12 @@
 
          ELSE IF ( N == IDTC2H6 ) THEN
 
-            ! [kg C/yr]
-            VALUE = C2H6(I,J,L)
+!------------------------------------------------------------------------------
+! Prior to 3/22/12:
+!            ! [kg C/yr]
+!            VALUE = C2H6(I,J,L)
+!------------------------------------------------------------------------------
+            VALUE = -1d0
 
          ELSE IF ( N == IDTALD2 ) THEN
 
@@ -310,8 +322,12 @@
 
          ELSE IF ( N == IDTC2H6 ) THEN
 
-            ! [kg C/yr]
-            VALUE = C2H6_WKEND(I,J,L)
+!------------------------------------------------------------------------------
+! Prior to 3/22/12:
+!            ! [kg C/yr]
+!            VALUE = C2H6_WKEND(I,J,L)
+!------------------------------------------------------------------------------
+            VALUE = -1d0
  
          ELSE IF ( N == IDTALD2 ) THEN
 
@@ -341,7 +357,8 @@
 
          ! Convert NOx from [kg/yr] to [molec/cm2/s] or from
          ! [kg C/yr] to [atom C/cm2/s] 
-         VALUE = VALUE * XNUMOL(N) / ( A_CM2(J) * SEC_IN_YEAR )
+         VALUE = ( VALUE                   * XNUMOL(N)   )
+     &         / ( GET_AREA_CM2( I, J, L ) * SEC_IN_YEAR )
 
       ENDIF
 
@@ -373,6 +390,7 @@
       USE REGRID_A2A_MOD,    ONLY : DO_REGRID_A2A
       USE TIME_MOD,          ONLY : GET_YEAR, GET_MONTH
       USE SCALE_ANTHRO_MOD,  ONLY : GET_ANNUAL_SCALAR_1x1
+      USE TRACER_MOD,        ONLY : ITS_A_FULLCHEM_SIM
       USE TRACERID_MOD, ONLY : IDTACET, IDTALK4, IDTC2H6, IDTC3H8
       USE TRACERID_MOD, ONLY : IDTALD2, IDTCH2O, IDTPRPE, IDTMEK
       USE TRACERID_MOD, ONLY : IDTNOx,  IDTCO,   IDTSO2,  IDTNH3
@@ -388,6 +406,8 @@
 !                              in updated files (by Aaron van Donkelaar) to
 !                              fix a problem in the VOC emissions.
 !  13 Aug 2010 - R. Yantosca - Treat MERRA like GEOS-5
+!  08 Feb 2012 - R. Yantosca - Treat GEOS-5.7.x in the same way as MERRA
+!  28 Feb 2012 - R. Yantosca - Removed support for GEOS-3
 !  13 Mar 2012 - M. Cooper   - Changed regrid algorithm to map_a2a
 !EOP
 !------------------------------------------------------------------------------
@@ -398,6 +418,7 @@
       LOGICAL, SAVE              :: FIRST = .TRUE.
       INTEGER                    :: I, J,   THISYEAR,       SNo, ScNo
       INTEGER                    :: L, KLM, SPECIES_ID(15), ID,  MN
+      INTEGER                    :: OFFLINE_ID(15)
       REAL*4                     :: ARRAY(I1x1,J1x1,5)
       REAL*8                     :: GEOS_1x1(I1x1,J1x1,5)
       REAL*8                     :: SC_1x1(I1x1,J1x1)
@@ -428,20 +449,23 @@
          THISYEAR = FSCALYR
       ENDIF
 
-#if   defined( GEOS_5 ) || defined( MERRA )
+#if   defined( GEOS_5 ) || defined( MERRA ) || defined( GEOS_57 )
       SNAME = 'GEOS5'
 #elif defined( GEOS_4 )
       SNAME = 'GEOS4'
-#elif defined( GEOS_3 )
-      SNAME = 'GEOS3'
 #endif
 
       ! list of ID of available species
       SPECIES_ID = (/ IDTNOX,  IDTCO,   IDTSO2,  IDTSO4, IDTNH3,
-     $                IDTACET, IDTALK4, IDTC2H6, IDTC3H8,
-     $                IDTOCPI, IDTBCPI,
-     $                IDTALD2, IDTCH2O, IDTPRPE, IDTMEK
-     $     /)
+     &                IDTACET, IDTALK4, IDTC2H6, IDTC3H8,
+     &                IDTOCPI, IDTBCPI,
+     &                IDTALD2, IDTCH2O, IDTPRPE, IDTMEK
+     &     /)
+
+      ! ID #'s for that are not tied to IDTxxxx flags
+      OFFLINE_ID = (/ 1,       4,       26,      27,      30,
+     &                9,       5,       21,      19,      35,           
+     &                34,      11,      20,      18,      10       /)
 
       LLFILENAME = TRIM( DATA_DIR_1x1) //
      &   'MAP_A2A_Regrid_200312/latlon_geos1x1.txt'
@@ -451,13 +475,20 @@
       ! Loop over species
       DO KLM = 1, SIZE( SPECIES_ID )
 
-         SNo  = SPECIES_ID( KLM )
+         IF ( ITS_A_FULLCHEM_SIM() ) THEN
+            SNo = SPECIES_ID( KLM ) 
+         ELSE
+            SNo = OFFLINE_ID( KLM )
+         ENDIF
+
+         ! Skip undefined tracers
+         IF ( SNo == 0 ) CYCLE
 
          ! corresponding annual scale factor # if any
          ScNo = 0
-         IF ( SNo == IDTNOx                    ) ScNo = 71
-         IF ( SNo == IDTCO                     ) ScNo = 72
-         IF ( SNo == IDTSO2 .or. SNo == IDTSO4 ) ScNo = 73
+         IF ( SNo == 1                 ) ScNo = 71
+         IF ( SNo == 4                 ) ScNo = 72
+         IF ( SNo == 26 .or. SNo == 27 ) ScNo = 73
          
          ! TAU values for 2005
          TAU2005 = GET_TAU0( 1, 1, 2005 )
@@ -491,7 +522,7 @@
          ENDIF
 
          ! Apply Seasonality
-         IF ( SNo .eq. IDTNOx ) THEN
+         IF ( SNo .eq. 1 ) THEN
             CALL GET_VISTAS_SEASON( ARRAY )
          ELSE
             CALL GET_NEI99_SEASON( SNo, ARRAY )
@@ -504,7 +535,7 @@
 
          
          ! Regrid from GEOS 1x1 --> current model resolution
-         IF ( SNo .eq. IDTNOx ) THEN
+         IF ( SNo .eq. 1 ) THEN
 
 !            CALL DO_REGRID_1x1( 5, 'kg/yr', GEOS_1x1, NOx )
 !            CALL DO_REGRID_1x1( 5, 'kg/yr', 
@@ -525,7 +556,7 @@
      &                NOx_WKEND(:,:,L) * USA_MASK(:,:)
             ENDDO
 
-         ELSEIF ( SNo .eq. IDTCO ) THEN
+         ELSEIF ( SNo .eq. 4 ) THEN
 
 !            CALL DO_REGRID_1x1( 5, 'kg/yr', GEOS_1x1, CO )
 !            CALL DO_REGRID_1x1( 5, 'kg/yr',
@@ -545,7 +576,7 @@
      &                CO_WKEND(:,:,L) * USA_MASK(:,:)
             ENDDO
 
-         ELSEIF ( SNo .eq. IDTSO2 ) THEN
+         ELSEIF ( SNo .eq. 26 ) THEN
 
 !            CALL DO_REGRID_1x1( 5, 'kg/yr', GEOS_1x1, SO2 )
 !            CALL DO_REGRID_1x1( 5, 'kg/yr',
@@ -565,7 +596,7 @@
                SO2(:,:,L) = SO2(:,:,L) * USA_MASK(:,:)
             ENDDO
 
-         ELSEIF ( SNo .eq. IDTSO4 ) THEN
+         ELSEIF ( SNo .eq. 27 ) THEN
 
 !            CALL DO_REGRID_1x1( 5, 'kg/yr', GEOS_1x1, SO4 )
 !            CALL DO_REGRID_1x1( 5, 'kg/yr',
@@ -585,7 +616,7 @@
                SO4(:,:,L) = SO4(:,:,L) * USA_MASK(:,:)
             ENDDO
 
-         ELSEIF ( SNo .eq. IDTNH3 ) THEN
+         ELSEIF ( SNo .eq. 30 ) THEN
 
 !            CALL DO_REGRID_1x1( 5, 'kg/yr', GEOS_1x1, NH3 )
 !            CALL DO_REGRID_1x1( 5, 'kg/yr',
@@ -605,7 +636,7 @@
                NH3(:,:,L) = NH3(:,:,L) * USA_MASK(:,:)
             ENDDO
 
-         ELSEIF ( SNo .eq. IDTOCPI ) THEN
+         ELSEIF ( SNo .eq. 35 ) THEN
 
 !            CALL DO_REGRID_1x1( 5, 'kg/yr', GEOS_1x1, OC )
 !            CALL DO_REGRID_1x1( 5, 'kg/yr',
@@ -625,7 +656,7 @@
                OC(:,:,L) = OC(:,:,L) * USA_MASK(:,:)
             ENDDO
 
-         ELSEIF ( SNo .eq. IDTBCPI ) THEN
+         ELSEIF ( SNo .eq. 34 ) THEN
 
 !            CALL DO_REGRID_1x1( 5, 'kg/yr', GEOS_1x1, BC )
 !            CALL DO_REGRID_1x1( 5, 'kg/yr',
@@ -646,7 +677,7 @@
             ENDDO
 
          !--VOC   
-         ELSEIF ( SNo == IDTALK4 ) THEN
+         ELSEIF ( SNo == 5 ) THEN
 
 !            CALL DO_REGRID_1x1( 5, 'kg/yr', GEOS_1x1, ALK4 )
 !            CALL DO_REGRID_1x1( 5, 'kg/yr',
@@ -666,7 +697,7 @@
                ALK4(:,:,L) = ALK4(:,:,L) * USA_MASK(:,:)
             ENDDO
 
-         ELSE IF ( SNo == IDTACET ) THEN
+         ELSE IF ( SNo == 9 ) THEN
 
 !            CALL DO_REGRID_1x1( 5, 'kg/yr', GEOS_1x1, ACET )
 !            CALL DO_REGRID_1x1( 5, 'kg/yr',
@@ -686,7 +717,7 @@
                ACET(:,:,L) = ACET(:,:,L) * USA_MASK(:,:)
             ENDDO
 
-         ELSE IF ( SNo == IDTMEK ) THEN
+         ELSE IF ( SNo == 10 ) THEN
 
 !            CALL DO_REGRID_1x1( 5, 'kg/yr', GEOS_1x1, MEK )
 !            CALL DO_REGRID_1x1( 5, 'kg/yr',
@@ -706,7 +737,7 @@
                MEK(:,:,L) = MEK(:,:,L) * USA_MASK(:,:)
             ENDDO
 
-         ELSE IF ( SNo == IDTPRPE ) THEN
+         ELSE IF ( SNo == 18 ) THEN
 
 !            CALL DO_REGRID_1x1( 5, 'kg/yr', GEOS_1x1, PRPE )
 !            CALL DO_REGRID_1x1( 5, 'kg/yr',
@@ -726,7 +757,7 @@
                PRPE(:,:,L) = PRPE(:,:,L) * USA_MASK(:,:)
             ENDDO
 
-         ELSE IF ( SNo == IDTC3H8 ) THEN
+         ELSE IF ( SNo == 19 ) THEN
 
 !            CALL DO_REGRID_1x1( 5, 'kg/yr', GEOS_1x1, C3H8 )
 !            CALL DO_REGRID_1x1( 5, 'kg/yr',
@@ -746,7 +777,7 @@
                C3H8(:,:,L) = C3H8(:,:,L) * USA_MASK(:,:)
             ENDDO
 
-         ELSE IF ( SNo == IDTCH2O ) THEN
+         ELSE IF ( SNo == 20 ) THEN
 
 !            CALL DO_REGRID_1x1( 5, 'kg/yr', GEOS_1x1, CH2O )
 !            CALL DO_REGRID_1x1( 5, 'kg/yr',
@@ -766,7 +797,7 @@
                CH2O(:,:,L) = CH2O(:,:,L) * USA_MASK(:,:)
             ENDDO
 
-         ELSE IF ( SNo == IDTC2H6 ) THEN
+         ELSE IF ( SNo == 21 ) THEN
 
 !            CALL DO_REGRID_1x1( 5, 'kg/yr', GEOS_1x1, C2H6 )
 !            CALL DO_REGRID_1x1( 5, 'kg/yr',
@@ -786,7 +817,7 @@
                C2H6(:,:,L) = C2H6(:,:,L) * USA_MASK(:,:)
             ENDDO
 
-         ELSE IF ( SNo == IDTALD2 ) THEN
+         ELSE IF ( SNo == 11 ) THEN
 
 !            CALL DO_REGRID_1x1( 5, 'kg/yr', GEOS_1x1, ALD2 )
 !            CALL DO_REGRID_1x1( 5, 'kg/yr',
@@ -850,6 +881,7 @@
       USE LOGICAL_MOD,       ONLY : LFUTURE
       USE TIME_MOD,          ONLY : GET_YEAR, GET_MONTH
       USE SCALE_ANTHRO_MOD,  ONLY : GET_ANNUAL_SCALAR_05x0666_NESTED
+      USE TRACER_MOD,        ONLY : ITS_A_FULLCHEM_SIM
       USE TRACERID_MOD, ONLY : IDTACET, IDTALK4, IDTC2H6, IDTC3H8
       USE TRACERID_MOD, ONLY : IDTALD2, IDTCH2O, IDTPRPE, IDTMEK
       USE TRACERID_MOD, ONLY : IDTNOx,  IDTCO,   IDTSO2,  IDTNH3
@@ -866,6 +898,8 @@
 !  13 Aug 2010 - R. Yantosca - Treat MERRA like GEOS-5 (leave for future use)
 !  27 Jul 2011 - R. Yantosca - Fixed typo: now *really* point to the NEI2005
 !                              data directory NEI2005_101007/
+!  08 Feb 2012 - R. Yantosca - Treat GEOS-5.7.x like MERRA
+!  28 Feb 2012 - R. Yantosca - Removed support for GEOS-3
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -875,6 +909,7 @@
       LOGICAL, SAVE              :: FIRST = .TRUE.
       INTEGER                    :: I, J,   THISYEAR,       SNo, ScNo
       INTEGER                    :: L, KLM, SPECIES_ID(15), ID,  MN
+      INTEGER                    :: OFFLINE_ID(15)
       REAL*4                     :: ARRAY(IIPAR,JJPAR,5)
       REAL*8                     :: GEOS_05x0666(IIPAR,JJPAR,5)
       REAL*4                     :: SC_05x0666(IIPAR,JJPAR)
@@ -902,31 +937,41 @@
          THISYEAR = FSCALYR
       ENDIF
 
-#if   defined( GEOS_5 ) || defined( MERRA )
+#if   defined( GEOS_5 ) || defined( MERRA ) || defined( GEOS_57 )
       SNAME = 'GEOS5'
 #elif defined( GEOS_4 )
       SNAME = 'GEOS4'
-#elif defined( GEOS_3 )
-      SNAME = 'GEOS3'
 #endif
 
       ! list of ID of available species
       SPECIES_ID = (/ IDTNOX,  IDTCO,   IDTSO2,  IDTSO4, IDTNH3,
-     $                IDTACET, IDTALK4, IDTC2H6, IDTC3H8,
-     $                IDTOCPI, IDTBCPI,
-     $                IDTALD2, IDTCH2O, IDTPRPE, IDTMEK
-     $     /)
+     &                IDTACET, IDTALK4, IDTC2H6, IDTC3H8,
+     &                IDTOCPI, IDTBCPI,
+     &                IDTALD2, IDTCH2O, IDTPRPE, IDTMEK
+     &     /)
+
+      ! ID #'s for that are not tied to IDTxxxx flags
+      OFFLINE_ID = (/ 1,       4,       26,      27,      30,
+     &                9,       5,       21,      19,      35,           
+     &                34,      11,      20,      18,      10       /)
 
       ! Loop over species
       DO KLM = 1, SIZE( SPECIES_ID )
 
-         SNo  = SPECIES_ID( KLM )
+         IF ( ITS_A_FULLCHEM_SIM() ) THEN
+            SNo = SPECIES_ID( KLM ) 
+         ELSE
+            SNo = OFFLINE_ID( KLM )
+         ENDIF
+
+         ! Skip undefined tracers
+         IF ( SNo == 0 ) CYCLE
 
          ! corresponding annual scale factor # if any
          ScNo = 0
-         IF ( SNo == IDTNOx                    ) ScNo = 71
-         IF ( SNo == IDTCO                     ) ScNo = 72
-         IF ( SNo == IDTSO2 .or. SNo == IDTSO4 ) ScNo = 73
+         IF ( SNo == 1                 ) ScNo = 71
+         IF ( SNo == 4                 ) ScNo = 72
+         IF ( SNo == 26 .or. SNo == 27 ) ScNo = 73
 
          ! TAU values for 2005
          TAU2005 = GET_TAU0( 1, 1, 2005 )
@@ -962,7 +1007,7 @@
          ENDIF
 
          ! Apply Seasonality
-         IF ( SNo .eq. IDTNOx ) THEN
+         IF ( SNo .eq. 1 ) THEN
             CALL GET_VISTAS_SEASON_05x0666( ARRAY )
          ELSE
             CALL GET_NEI99_SEASON_05x0666( SNo, ARRAY )
@@ -972,7 +1017,7 @@
 
          CALL GET_NEI99_WKSCALE_05x0666( SNo, ARRAY )
 
-         IF ( SNo .eq. IDTNOx) THEN
+         IF ( SNo .eq. 1 ) THEN
 
             NOx(:,:,:) = GEOS_05x0666
             NOx_WKEND(:,:,:) = GEOS_05x0666 * ARRAY(:,:,:)
@@ -982,7 +1027,7 @@
      &                NOx_WKEND(:,:,L) * USA_MASK(:,:)
             ENDDO
 
-         ELSEIF ( SNo .eq. IDTCO ) THEN
+         ELSEIF ( SNo .eq. 4 ) THEN
 
             CO(:,:,:) = GEOS_05x0666
             CO_WKEND(:,:,:) = GEOS_05x0666 * ARRAY(:,:,:)
@@ -992,7 +1037,7 @@
      &                CO_WKEND(:,:,L) * USA_MASK(:,:)
             ENDDO
 
-         ELSEIF ( SNo .eq. IDTSO2 ) THEN
+         ELSEIF ( SNo .eq. 26 ) THEN
 
             SO2(:,:,:) = GEOS_05x0666
             SO2_WKEND(:,:,:) = GEOS_05x0666 * ARRAY(:,:,:)
@@ -1002,7 +1047,7 @@
                SO2(:,:,L) = SO2(:,:,L) * USA_MASK(:,:)
             ENDDO
 
-         ELSEIF ( SNo .eq. IDTSO4 ) THEN
+         ELSEIF ( SNo .eq. 27 ) THEN
 
             SO4(:,:,:) = GEOS_05x0666
             SO4_WKEND(:,:,:) = GEOS_05x0666 * ARRAY(:,:,:)
@@ -1012,7 +1057,7 @@
                SO4(:,:,L) = SO4(:,:,L) * USA_MASK(:,:)
             ENDDO
 
-         ELSEIF ( SNo .eq. IDTNH3 ) THEN
+         ELSEIF ( SNo .eq. 30 ) THEN
 
             NH3(:,:,:) = GEOS_05x0666
             NH3_WKEND(:,:,:) = GEOS_05x0666 * ARRAY(:,:,:)
@@ -1022,7 +1067,7 @@
                NH3(:,:,L) = NH3(:,:,L) * USA_MASK(:,:)
             ENDDO
 
-         ELSEIF ( SNo .eq. IDTOCPI ) THEN
+         ELSEIF ( SNo .eq. 35 ) THEN
 
             OC(:,:,:) = GEOS_05x0666
             OC_WKEND(:,:,:) = GEOS_05x0666 * ARRAY(:,:,:)
@@ -1032,7 +1077,7 @@
                OC(:,:,L) = OC(:,:,L) * USA_MASK(:,:)
             ENDDO
 
-         ELSEIF ( SNo .eq. IDTBCPI ) THEN
+         ELSEIF ( SNo .eq. 34 ) THEN
 
             BC(:,:,:) = GEOS_05x0666
             BC_WKEND(:,:,:) = GEOS_05x0666 * ARRAY(:,:,:)
@@ -1043,7 +1088,7 @@
             ENDDO
 
          !--VOC
-         ELSEIF ( SNo == IDTALK4 ) THEN
+         ELSEIF ( SNo == 5 ) THEN
 
             ALK4(:,:,:) = GEOS_05x0666
             ALK4_WKEND(:,:,:) = GEOS_05x0666 * ARRAY(:,:,:)
@@ -1053,7 +1098,7 @@
                ALK4(:,:,L) = ALK4(:,:,L) * USA_MASK(:,:)
             ENDDO
 
-         ELSE IF ( SNo == IDTACET ) THEN
+         ELSE IF ( SNo == 9 ) THEN
 
             ACET(:,:,:) = GEOS_05x0666
             ACET_WKEND(:,:,:) = GEOS_05x0666 * ARRAY(:,:,:)
@@ -1063,7 +1108,7 @@
                ACET(:,:,L) = ACET(:,:,L) * USA_MASK(:,:)
             ENDDO
 
-         ELSE IF ( SNo == IDTMEK ) THEN
+         ELSE IF ( SNo == 10 ) THEN
 
             MEK(:,:,:) = GEOS_05x0666
             MEK_WKEND(:,:,:) = GEOS_05x0666 * ARRAY(:,:,:)
@@ -1073,7 +1118,7 @@
                MEK(:,:,L) = MEK(:,:,L) * USA_MASK(:,:)
             ENDDO
 
-         ELSE IF ( SNo == IDTPRPE ) THEN
+         ELSE IF ( SNo == 18 ) THEN
 
             PRPE(:,:,:) = GEOS_05x0666
             PRPE_WKEND(:,:,:) = GEOS_05x0666 * ARRAY(:,:,:)
@@ -1083,7 +1128,7 @@
                PRPE(:,:,L) = PRPE(:,:,L) * USA_MASK(:,:)
             ENDDO
 
-         ELSE IF ( SNo == IDTC3H8 ) THEN
+         ELSE IF ( SNo == 19 ) THEN
 
             C3H8(:,:,:) = GEOS_05x0666
             C3H8_WKEND(:,:,:) = GEOS_05x0666 * ARRAY(:,:,:)
@@ -1093,7 +1138,7 @@
                C3H8(:,:,L) = C3H8(:,:,L) * USA_MASK(:,:)
             ENDDO
 
-         ELSE IF ( SNo == IDTCH2O ) THEN
+         ELSE IF ( SNo == 20 ) THEN
 
             CH2O(:,:,:) = GEOS_05x0666
             CH2O_WKEND(:,:,:) = GEOS_05x0666 * ARRAY(:,:,:)
@@ -1103,7 +1148,7 @@
                CH2O(:,:,L) = CH2O(:,:,L) * USA_MASK(:,:)
             ENDDO
 
-         ELSE IF ( SNo == IDTC2H6 ) THEN
+         ELSE IF ( SNo == 21 ) THEN
 
             C2H6(:,:,:) = GEOS_05x0666
             C2H6_WKEND(:,:,:) = GEOS_05x0666 * ARRAY(:,:,:)
@@ -1113,7 +1158,7 @@
                C2H6(:,:,L) = C2H6(:,:,L) * USA_MASK(:,:)
             ENDDO
 
-         ELSE IF ( SNo == IDTALD2 ) THEN
+         ELSE IF ( SNo == 11 ) THEN
 
             ALD2(:,:,:) = GEOS_05x0666
             ALD2_WKEND(:,:,:) = GEOS_05x0666 * ARRAY(:,:,:)
@@ -1214,10 +1259,10 @@
       ThisMN = GET_MONTH()
 
       ! lzh, amv, 12/11/2009 add NH3 emission seasonality
-      IF ( TRACER == IDTALD2 .or. TRACER == IDTCH2O ) THEN
+      IF ( TRACER == 11 .or. TRACER == 20 ) THEN
          AS = 1.d0
          RETURN
-      ELSEIF ( TRACER == IDTNH3 ) THEN
+      ELSEIF ( TRACER == 30 ) THEN
          AS = NH3_SCALE(ThisMN) / NH3_SCALE(8)   ! Normalize to August
          RETURN
       ENDIF 
@@ -1657,8 +1702,8 @@
       MN = GET_MONTH()
 
       ! NH3/ALD2/ISOP not available
-      IF (( TRACER .eq. IDTNH3 ) .or. (TRACER .eq. IDTALD2) .or.
-     &    ( TRACER .eq. IDTCH2O )) THEN
+      IF (( TRACER .eq. 30 ) .or. (TRACER .eq. 11 ) .or.
+     &    ( TRACER .eq. 20 )) THEN
          AS(:,:,:) = 1.d0
          RETURN
       ENDIF
@@ -2023,7 +2068,8 @@
       INTEGER, INTENT(IN) :: YEAR   ! Year of data to compute totals
 !
 ! !REVISION HISTORY: 
-!    7 Oct 2009 - A. van Donkelaar - initial version
+!   7 Oct 2009 - A. van Donkelaar - initial version
+!  22 Mar 2012 - M. Payer         - Remove print for C2H6 emissions.
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -2108,12 +2154,19 @@
       WRITE( 6, 110 ) 'PRPE ', YEAR, T_PRPE, '[Tg C]'
       WRITE( 6, 110 ) 'C3H8 ', YEAR, T_C3H8, '[Tg C]'
       WRITE( 6, 110 ) 'CH2O ', YEAR, T_CH2O, '[Tg C]'
-      WRITE( 6, 110 ) 'C2H6 ', YEAR, T_C2H6, '[Tg C]'
+!------------------------------------------------------------------------------
+! Prior to 3/22/12:
+!      WRITE( 6, 110 ) 'C2H6 ', YEAR, T_C2H6, '[Tg C]'
+!------------------------------------------------------------------------------
       WRITE( 6, 110 ) 'ALD2 ', YEAR, T_ALD2, '[Tg C]'
 
       ! Format statement
  110  FORMAT( 'NEI2005 anthro ', a5, 
      &        'for year ', i4, ': ', f11.4, 1x, a8 )
+
+      WRITE( 6, '(/,a,/)' ) 'NEI2005_ANTHRO_MOD: NEI05 C2H6 ' //
+     &   'anthro emissions are too low. Using offline C2H6 '  //
+     &   'emissions from Yaping Xiao.'
 
       ! Fancy output
       WRITE( 6, '(a)' ) REPEAT( '=', 79 )
@@ -2139,12 +2192,12 @@
 ! !USES:
 ! 
       USE ERROR_MOD,   ONLY : ALLOC_ERR
-      USE GRID_MOD,    ONLY : GET_AREA_CM2
       USE LOGICAL_MOD, ONLY : LNEI05
 
       USE CMN_SIZE_MOD    ! Size parameters
 !
-! !REVISION HISTORY: 
+! !REVISION HISTORY:
+!  02 Mar 2012 - R. Yantosca - Remove A_CM2 array
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -2291,19 +2344,6 @@
       IF ( AS /= 0 ) CALL ALLOC_ERR( 'CH2O_WKEND' )
       CH2O_WKEND = 0d0 
 
-      !---------------------------------------------------
-      ! Pre-store array for grid box surface area in cm2
-      !---------------------------------------------------
-
-      ! Allocate array
-      ALLOCATE( A_CM2( JJPAR ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'A_CM2' )
-
-      ! Fill array
-      DO J = 1, JJPAR
-         A_CM2(J) = GET_AREA_CM2( J )
-      ENDDO
-
       ! Return to calling program
       END SUBROUTINE INIT_NEI2005_ANTHRO
 !EOC
@@ -2323,6 +2363,7 @@
       SUBROUTINE CLEANUP_NEI2005_ANTHRO
 !
 ! !REVISION HISTORY: 
+!  01 Mar 2012 - R. Yantosca - Remove reference to A_CM2 array
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -2331,7 +2372,6 @@
       !=================================================================
       ! USA mask
       IF ( ALLOCATED( USA_MASK) ) DEALLOCATE( USA_MASK )
-      IF ( ALLOCATED( A_CM2   ) ) DEALLOCATE( A_CM2 )
       IF ( ALLOCATED( NOx     ) ) DEALLOCATE( NOx   )
       IF ( ALLOCATED( CO      ) ) DEALLOCATE( CO    )
       IF ( ALLOCATED( SO2     ) ) DEALLOCATE( SO2   )

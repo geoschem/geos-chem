@@ -27,7 +27,7 @@
       ! Use this array to determine if emissions are handled here (hotp 8/3/09)
       USE BIOMASS_MOD,       ONLY : BIOBGAS
       USE COMODE_MOD,        ONLY : JLOP,      REMIS,   VOLUME
-      USE COMODE_MOD,        ONLY : IYSAVE
+      USE COMODE_MOD,        ONLY : IXSAVE,    IYSAVE,  IZSAVE
       USE DIAG_MOD,          ONLY : AD12
       USE GRID_MOD,          ONLY : GET_AREA_CM2
       USE LIGHTNING_NOX_MOD, ONLY : EMIS_LI_NOx
@@ -124,9 +124,9 @@
 !        now in units of [molec CO/cm2/s].  Adjust unit conversion accordingly.
 !        Also replace NBIOMAX with NBIOMAX_GAS, since aerosol biomass is
 !        handled elsewhere.  (bdf, phs, bmy, 9/27/06)
-!  (28) Now replace GEMISNOX array (from F77_CMN_NOX) with module arrays
+!  (28) Now replace GEMISNOX array (from CMN_NOX) with module arrays
 !        EMIS_LI_NOx and EMIS_AC_NOx (ltm, bmy, 10/3/07)
-!  (29) Bug fix: resize EMISRR to be consistent w/ F77_CMN_O3 (bmy, jaf, 6/11/08)
+!  (29) Bug fix: resize EMISRR to be consistent w/ CMN_O3 (bmy, jaf, 6/11/08)
 !  (30) Limit emissions into the surface level only (lin, 5/29/09)
 !  (31) Bug fix: cycle if IDEMIS(NN) <= 0 to avoid array-out-of-bounds
 !        errors (bmy, 8/6/09)
@@ -136,6 +136,8 @@
 !  16 Dec 2010 - R. Yantosca - Removed obsolete, commented-out code
 !  16 Dec 2010 - R. Yantosca - Added ProTeX headers
 !  21 Dec 2010 - R. Yantosca - Now set REMIS=0d0.  Also updated comments.
+!  01 Mar 2012 - R. Yantosca - Now use GET_AREA_CM2(I,J,L) from grid_mod.F90
+!  01 Mar 2012 - R. Yantosca - Now reference IXSAVE, IZSAVE from comode_mod.F
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -447,7 +449,9 @@
                      IF (LNLPBL) DELTPRES = TOTPRES
  
                      ! Grid box area [cm2]
-                     A_CM2    = GET_AREA_CM2( IYSAVE(JLOOP) )
+                     A_CM2    = GET_AREA_CM2( IXSAVE(JLOOP),
+     &                                        IYSAVE(JLOOP),
+     &                                        IZSAVE(JLOOP)  )
                
                      ! Biomass burning is in [molec/cm2/s], so we need to 
                      ! multiply by A_CM2 to convert it to [molec/box/s].

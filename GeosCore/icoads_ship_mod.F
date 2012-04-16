@@ -42,15 +42,14 @@
 !
 ! !REVISION HISTORY:
 !  21 Jul 2009 - Chulkyu Lee & P. Le Sager - Initial Version
+!  01 Mar 2012 - R. Yantosca - Now reference new grid_mod.F90
+!  01 Mar 2012 - R. Yantosca - Remove A_CM2 array, use GET_AREA_CM2 instead
 !EOP
 !------------------------------------------------------------------------------
 !BOC
 !
 ! !PRIVATE DATA MEMBERS:
 !
-      ! Array for surface area
-      REAL*8,  ALLOCATABLE :: A_CM2(:)
-
       ! Arrays for emissions
       REAL*8,  ALLOCATABLE :: NOx(:,:)
       REAL*8,  ALLOCATABLE :: CO(:,:)
@@ -77,6 +76,7 @@
 !
 ! !USES:
 !
+      USE GRID_MOD,     ONLY : GET_AREA_CM2
       USE TRACER_MOD,   ONLY : XNUMOL
       USE TRACERID_MOD, ONLY : IDTNOx, IDTCO, IDTSO2, IDTNH3
       USE TIME_MOD,     ONLY : GET_YEAR, GET_MONTH
@@ -99,6 +99,7 @@
 !
 ! !REVISION HISTORY: 
 !  21 Jul 2009 - Chulkyu Lee & P. Le Sager - Initial Version
+!  01 Mar 2012 - R. Yantosca - Now use GET_AREA_CM2(I,J,L) from grid_mod.F90
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -182,7 +183,8 @@
       ELSE IF ( DO_MCS ) THEN
 
          ! Convert NOx from [kg/month] to [molec/cm2/s]
-         VALUE = VALUE * XNUMOL(N) / ( A_CM2(J) * SEC_IN_MONTH )
+         VALUE = ( VALUE                   * XNUMOL(N)    )
+     &         / ( GET_AREA_CM2( I, J, 1 ) * SEC_IN_MONTH )
 
       ENDIF
 
@@ -507,13 +509,13 @@
 ! !USES:
 ! 
       USE ERROR_MOD,   ONLY : ALLOC_ERR
-      USE GRID_MOD,    ONLY : GET_AREA_CM2
       USE LOGICAL_MOD, ONLY : LICOADSSHIP
 
       USE CMN_SIZE_MOD    ! Size parameters
 !
 ! !REVISION HISTORY: 
 !  21 Jul 2009 - Chulkyu Lee & P. Le Sager - Initial Version
+!  02 Mar 2012 - R. Yantosca - Remove A_CM2 array
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -545,19 +547,6 @@
       IF ( AS /= 0 ) CALL ALLOC_ERR( 'SO2' )
       SO2 = 0d0
 
-      !---------------------------------------------------
-      ! Pre-store array for grid box surface area in cm2
-      !---------------------------------------------------
-
-      ! Allocate array
-      ALLOCATE( A_CM2( JJPAR ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'A_CM2' )
-
-      ! Fill array
-      DO J = 1, JJPAR
-         A_CM2(J) = GET_AREA_CM2( J )
-      ENDDO
-
       END SUBROUTINE INIT_ICOADS_SHIP
 !EOC
 !------------------------------------------------------------------------------
@@ -581,10 +570,9 @@
 !------------------------------------------------------------------------------
 !BOC
 !
-      IF ( ALLOCATED( A_CM2          ) ) DEALLOCATE( A_CM2          )
-      IF ( ALLOCATED( NOx            ) ) DEALLOCATE( NOx            )
-      IF ( ALLOCATED( CO             ) ) DEALLOCATE( CO             )
-      IF ( ALLOCATED( SO2            ) ) DEALLOCATE( SO2            )
+      IF ( ALLOCATED( NOx ) ) DEALLOCATE( NOx )
+      IF ( ALLOCATED( CO  ) ) DEALLOCATE( CO  )
+      IF ( ALLOCATED( SO2 ) ) DEALLOCATE( SO2 )
 
       END SUBROUTINE CLEANUP_ICOADS_SHIP
 !EOC

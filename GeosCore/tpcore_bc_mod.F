@@ -142,6 +142,7 @@
 !        Unternally defined boundary condition regions for NA, EU and CH.
 !        (amv, bmy, 12/18/09)
 !  16 Feb 2011 - R. Yantosca - Add modifications for APM microphysics (G. Luo)
+!  01 Mar 2012 - R. Yantosca - Now reference new grid_mod.F90
 !******************************************************************************
 !
       IMPLICIT NONE
@@ -266,7 +267,7 @@
       !=================================================================
 
       ! Only open file if it's a new day
-      IF ( ITS_A_NEW_DAY() ) THEN
+      IF ( ITS_A_NEW_DAY(.TRUE.) ) THEN
 
          ! File name for BC's
          IF ( WINDOW .eq. 5 ) THEN
@@ -917,7 +918,9 @@
 !
 !  NOTES:
 !  (1 ) Rename arguments to avoid conflict w/ I1x1, J1x1 parameters in 
-!        F77_CMN_SIZE. (bmy, 10/24/05)
+!        CMN_SIZE. (bmy, 10/24/05)
+!  01 Mar 2012 - R. Yantosca - Now use GET_XMID(I,J,L) from grid_mod.F90
+!  01 Mar 2012 - R. Yantosca - Now use GET_YMID(I,J,L) from grid_mod.F90
 !******************************************************************************
 !
       ! References to F90 modules
@@ -970,51 +973,51 @@
          ! Save in the MAP1x1 array for future reference
          !==============================================================
          DO J = 1, JJPAR
-            Y = GET_YMID( J )  
+         DO I = 1, IIPAR
 
-            DO I = 1, IIPAR
-               X = GET_XMID( I )
+            X = GET_XMID( I, J, 1 )
+            Y = GET_YMID( I, J, 1 )  
 
-               ! Loop over 4x5 longitudes
-               DO II = 1, 72
+            ! Loop over 4x5 longitudes
+            DO II = 1, 72
 
-                  ! If the 1x1 center lon lies w/in the 4x5 lon edges
-                  ! then we have found the proper 4x5 box!
-                  IF ( X > XE4x5(II) .and. X < XE4x5(II+1) ) THEN
-                     MAP1x1(I,J,1) = II
-                     EXIT
-                  ENDIF
-               ENDDO
-
-               ! Loop over 4x5 latitudes
-               DO JJ = 1, 46
-            
-                  ! If the 1x1 lat center lies between the 4x5 lat
-                  ! edges, we have found the proper 4x5 box!
-                  IF ( Y > YE4x5(JJ) .and. Y < YE4x5(JJ+1) ) THEN
-                     MAP1x1(I,J,2) = JJ
-                     MAP1x1(I,J,3) = 0
-                     EXIT
-
-                  ! If the 1x1 lat center equals the 4x5 lower lat
-                  ! edge, then we need to average this 4x5 box and
-                  ! the box just south of it
-                  ELSE IF ( Y == YE4x5(JJ) ) THEN
-                     MAP1x1(I,J,2) = JJ-1
-                     MAP1x1(I,J,3) = JJ
-                     EXIT
-
-                  ! If the 1x1 lat center equals the 4x5 lower lat
-                  ! edge, then we need to average this 4x5 box and
-                  ! the box just north of it                 
-                  ELSE IF ( Y == YE4x5(JJ+1) ) THEN
-                     MAP1x1(I,J,2) = JJ
-                     MAP1x1(I,J,3) = JJ+1
-                     EXIT
-
-                  ENDIF
-               ENDDO
+               ! If the 1x1 center lon lies w/in the 4x5 lon edges
+               ! then we have found the proper 4x5 box!
+               IF ( X > XE4x5(II) .and. X < XE4x5(II+1) ) THEN
+                  MAP1x1(I,J,1) = II
+                  EXIT
+               ENDIF
             ENDDO
+
+            ! Loop over 4x5 latitudes
+            DO JJ = 1, 46
+            
+               ! If the 1x1 lat center lies between the 4x5 lat
+               ! edges, we have found the proper 4x5 box!
+               IF ( Y > YE4x5(JJ) .and. Y < YE4x5(JJ+1) ) THEN
+                  MAP1x1(I,J,2) = JJ
+                  MAP1x1(I,J,3) = 0
+                  EXIT
+                  
+               ! If the 1x1 lat center equals the 4x5 lower lat
+               ! edge, then we need to average this 4x5 box and
+               ! the box just south of it
+               ELSE IF ( Y == YE4x5(JJ) ) THEN
+                  MAP1x1(I,J,2) = JJ-1
+                  MAP1x1(I,J,3) = JJ
+                  EXIT
+
+               ! If the 1x1 lat center equals the 4x5 lower lat
+               ! edge, then we need to average this 4x5 box and
+               ! the box just north of it                 
+               ELSE IF ( Y == YE4x5(JJ+1) ) THEN
+                  MAP1x1(I,J,2) = JJ
+                  MAP1x1(I,J,3) = JJ+1
+                  EXIT
+
+               ENDIF
+            ENDDO
+         ENDDO
          ENDDO
 
          ! Reset first-time flag
@@ -1116,51 +1119,52 @@
          ! Save in the MAP1x1 array for future reference
          !==============================================================
          DO J = 1, JJPAR
-            Y = GET_YMID( J )
+         DO I = 1, IIPAR
 
-            DO I = 1, IIPAR
-               X = GET_XMID( I )
+            ! Grid box longitude and latitude [degrees]
+            X = GET_XMID( I, J, 1 )
+            Y = GET_YMID( I, J, 1 )
 
-               ! Loop over 2x25 longitudes
-               DO II = 1, 144
+            ! Loop over 2x25 longitudes
+            DO II = 1, 144
 
-                  ! If the 1x1 center lon lies w/in the 2x25 lon edges
-                  ! then we have found the proper 2x25 box!
-                  IF ( X > XE2x25(II) .and. X < XE2x25(II+1) ) THEN
-                     MAP1x1(I,J,1) = II
-                     EXIT
-                  ENDIF
-               ENDDO
-
-               ! Loop over 2x25 latitudes
-               DO JJ = 1, 91
-
-                  ! If the 1x1 lat center lies between the 2x25 lat
-                  ! edges, we have found the proper 2x25 box!
-                  IF ( Y > YE2x25(JJ) .and. Y < YE2x25(JJ+1) ) THEN
-                     MAP1x1(I,J,2) = JJ
-                     MAP1x1(I,J,3) = 0
-                     EXIT
-
-                  ! If the 1x1 lat center equals the 2x25 lower lat
-                  ! edge, then we need to average this 2x25 box and
-                  ! the box just south of it
-                  ELSE IF ( Y == YE2x25(JJ) ) THEN
-                     MAP1x1(I,J,2) = JJ-1
-                     MAP1x1(I,J,3) = JJ
-                     EXIT
-
-                  ! If the 1x1 lat center equals the 2x25 lower lat
-                  ! edge, then we need to average this 2x25 box and
-                  ! the box just north of it
-                  ELSE IF ( Y == YE2x25(JJ+1) ) THEN
-                     MAP1x1(I,J,2) = JJ
-                     MAP1x1(I,J,3) = JJ+1
-                     EXIT
-
-                  ENDIF
-               ENDDO
+               ! If the 1x1 center lon lies w/in the 2x25 lon edges
+               ! then we have found the proper 2x25 box!
+               IF ( X > XE2x25(II) .and. X < XE2x25(II+1) ) THEN
+                  MAP1x1(I,J,1) = II
+                  EXIT
+               ENDIF
             ENDDO
+
+            ! Loop over 2x25 latitudes
+            DO JJ = 1, 91
+
+               ! If the 1x1 lat center lies between the 2x25 lat
+               ! edges, we have found the proper 2x25 box!
+               IF ( Y > YE2x25(JJ) .and. Y < YE2x25(JJ+1) ) THEN
+                  MAP1x1(I,J,2) = JJ
+                  MAP1x1(I,J,3) = 0
+                  EXIT
+
+               ! If the 1x1 lat center equals the 2x25 lower lat
+               ! edge, then we need to average this 2x25 box and
+               ! the box just south of it
+               ELSE IF ( Y == YE2x25(JJ) ) THEN
+                  MAP1x1(I,J,2) = JJ-1
+                  MAP1x1(I,J,3) = JJ
+                  EXIT
+
+               ! If the 1x1 lat center equals the 2x25 lower lat
+               ! edge, then we need to average this 2x25 box and
+               ! the box just north of it
+               ELSE IF ( Y == YE2x25(JJ+1) ) THEN
+                  MAP1x1(I,J,2) = JJ
+                  MAP1x1(I,J,3) = JJ+1
+                  EXIT
+
+               ENDIF
+            ENDDO
+         ENDDO
          ENDDO
 
          ! Reset first-time flag

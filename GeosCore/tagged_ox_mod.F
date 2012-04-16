@@ -48,6 +48,8 @@
 !  (12) Now use LD65 instead of LLTROP everywhere (phs, 11/17/08)
 !  (13) Updates for LINOZ (dbj, jliu, bmy, 10/26/09)
 !  19 Nov 2010 - R. Yantosca - Added ProTeX headers
+!  28 Feb 2012 - R. Yantosca - Removed support for GEOS-3
+!  01 Mar 2012 - R. Yantosca - Now reference new grid_mod.F90
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -328,7 +330,7 @@
 !  19 Aug 2003 - A. Fiore - Initial version
 !  (1 ) Updated from the old routine "chemo3_split.f" (rch, bmy, 8/20/03)
 !  (2 ) For GEOS-4, convert PBL from [m] to [hPa] w/ the hydrostatic law.
-!        Now references SCALE_HEIGHT from "F77_CMN_GCTM". (bmy, 1/15/04)
+!        Now references SCALE_HEIGHT from "CMN_GCTM". (bmy, 1/15/04)
 !  (3 ) Now uses model levels instead of pressure in order to delineate
 !        between PBL, MT, and UT regions (amf, rch, bmy, 5/27/04)
 !  (4 ) Now references ITS_IN_THE_TROP from "tropopause_mod.f".  Now remove
@@ -338,6 +340,9 @@
 !  (7 ) Now use LLTROP instead of LLTROP_FIX (bmy, 12/4/07)
 !  (8 ) Now use LD65 instead of LLTROP (phs, 11/17/08)
 !  08 Dec 2009 - R. Yantosca - Added ProTeX headers
+!  28 Feb 2012 - R. Yantosca - Removed support for GEOS-3
+!  01 Mar 2012 - R. Yantosca - Now use GET_XMID(I,J,L) from grid_mod.F90
+!  01 Mar 2012 - R. Yantosca - Now use GET_YMID(I,J,L) from grid_mod.F90
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -373,18 +378,15 @@
       !=================================================================      
 
       ! Longitude [degrees]
-      X          = GET_XMID( I )   
-      Y          = GET_YMID( J )
+      X          = GET_XMID( I, J, L )   
+      Y          = GET_YMID( I, J, L )
 
       ! PBLTOP is the model level at ~ 750 hPa
       ! MTTOP  is the model level at ~ 350 hPa
-#if   defined( GEOS_3 ) 
-      PBLTOP = 10
-      MTTOP  = 16
-#elif defined( GEOS_4 )
+#if   defined( GEOS_4 )
       PBLTOP = 5
       MTTOP  = 10
-#elif defined( GEOS_5 )
+#elif defined( GEOS_5 ) || defined( MERRA ) || defined( GEOS_57 )
       PBLTOP = 5
       MTTOP  = 10
 #endif
@@ -548,6 +550,7 @@
 !  (9 ) Now use LD65 instead of LLTROP (phs, 11/17/08)
 !  (10) Now only compute loss rate in troposphere (dbj, bmy, 10/26/09)
 !  08 Dec 2009 - R. Yantosca - Added ProTeX headers
+!  01 Mar 2012 - R. Yantosca - Now use GET_AREA_CM2(I,J,L) from grid_mod.F90
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -703,8 +706,8 @@
                      IF ( ND44 > 0 .and. Ox_LOST > 0d0 ) THEN
 
                         ! Convert from [kg] to [molec/cm2/s]
-                        FLUX = Ox_LOST         * XNUMOL(IDTOX) / 
-     &                         GET_AREA_CM2(J) / DTCHEM 
+                        FLUX = Ox_LOST             * XNUMOL(IDTOX) / 
+     &                         GET_AREA_CM2(I,J,L) / DTCHEM 
                      
                         ! Store dryd flx in ND44_TMP as a placeholder
                         ND44_TMP(I,J,L) = ND44_TMP(I,J,L) + FLUX

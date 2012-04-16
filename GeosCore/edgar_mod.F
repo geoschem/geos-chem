@@ -64,6 +64,7 @@
 !        READ_C2H2_05x0666 for 0.5x0.666 resolution emissions. 
 !        They are PUBLIC routines as they are used by anthroems.f.(ccc, 3/2/09)
 !  (6 ) Fixed typos in READ_C2H2 and READ_C2H4 (tmf, bmy, 12/20/10)
+!  01 Mar 2012 - R. Yantosca - Now reference the new grid_mod.F90
 !******************************************************************************
 !
       IMPLICIT NONE
@@ -113,7 +114,6 @@
       REAL*8,  PARAMETER   :: XNUMOL_SO2  = 6.0225d23  / 64d-3
 
       ! Arrays
-      REAL*8,  ALLOCATABLE :: A_CM2(:)
       REAL*8,  ALLOCATABLE :: EDGAR_NOx(:,:)
       REAL*8,  ALLOCATABLE :: EDGAR_CO(:,:)
       REAL*8,  ALLOCATABLE :: EDGAR_SO2(:,:)
@@ -292,6 +292,8 @@
 !  (4 ) E_NOX_SHIP (REAL*4 ) : EDGAR NOx ship emissions [kg NO2/season]
 !
 !  NOTES:
+!  08 Mar 2012 - M. Payer    - Added modifications for historical emissions of
+!                              NOx (E. Leibensperger)
 !******************************************************************************
 !
       ! References to F90 modules
@@ -301,6 +303,10 @@
       USE TIME_MOD,          ONLY : EXPAND_DATE
       USE REGRID_A2A_MOD,    ONLY : DO_REGRID_A2A
       USE SCALE_ANTHRO_MOD,  ONLY : GET_ANNUAL_SCALAR
+![eml
+      USE LOGICAL_MOD,       ONLY : LHIST
+!eml]
+
       USE CMN_SIZE_MOD       ! Size parameters
 
       ! Arguments
@@ -391,8 +397,15 @@
       !CALL DO_REGRID_1x1( 'kg/yr', GEOS_1x1, E_NOx )
         INGRID = E_NOx_1x1(:,:)
         CALL DO_REGRID_A2A(LLFILENAME,360,181,INGRID,OUTGRID,1)
+
       !Apply scaling factor
-        E_NOx=OUTGRID * SC_NOx
+![eml Skip scaling if using historical emissions
+      IF ( .not. LHIST ) 
+         E_NOx=OUTGRID * SC_NOx
+      ELSE
+         E_NOx=OUTGRID
+      ENDIF
+!eml]
 
       !----------------------------------
       ! Scale ship NOX and regrid
@@ -435,12 +448,22 @@
 !
 !  NOTES:
 !  (1 ) Now pass the unit string to DO_REGRID_G2G_1x1 (bmy, 8/9/06)
-!  (2 ) No longer regridding to the GEOS 1x1 grid. Regridding is done later
+!  08 Mar 2012 - M. Payer    - Added modifications for historical emissions of
+!                              NOx (E. Leibensperger)
+!  13 Mar 2012 - M. Cooper   - No longer regridding to the GEOS 1x1 grid.
+!                              Regridding is done later
 !******************************************************************************
 !
       ! References to F90 modules
+      USE DIRECTORY_MOD,  ONLY : DATA_DIR_1x1
       USE LOGICAL_MOD,    ONLY : LEDGARSHIP
       USE DIRECTORY_MOD,  ONLY : DATA_DIR_1x1
+![eml
+      USE TIME_MOD,       ONLY : GET_HISTYR
+      USE LOGICAL_MOD,    ONLY : LHIST
+      USE BPCH2_MOD,      ONLY : GET_TAU0, READ_BPCH2
+!eml]
+
       USE CMN_SIZE_MOD       ! Size parameters
 
       ! Arguments
@@ -450,11 +473,16 @@
                               
       ! Local variables       
       INTEGER                 :: H
-      REAL*4                  :: E_IN(I1x1,J1x1)
+      REAL*4                  :: E_IN(I1x1,J1x1-1)
       REAL*8                  :: SC(N_HOURS)    
       !REAL*8                  :: T_1x1(I1x1,J1x1-1)
       !REAL*8                  :: T_SHIP_1x1(I1x1,J1x1-1)
       !REAL*8                  :: T_HRLY_1x1(I1x1,J1x1-1,N_HOURS)
+![eml
+      REAL*8                  :: TAU0
+      CHARACTER(LEN=  4)      :: CHISTYR
+      CHARACTER(LEN=255)      :: FILENAME
+!eml]
 
       !=================================================================
       ! READ_EDGAR_NOx begins here!
@@ -470,98 +498,101 @@
       T_SHIP_1x1 = 0d0
       T_HRLY_1x1 = 0d0
 
-      !-----------------------------------------------------------------
-      ! F10 - Industry (fuel combustion)
-      !-----------------------------------------------------------------
+![eml The older NOx emissions are not sectorized. Read in a lumped diurnal
+!     scale factor and those lumped emissions if LHIST.
+      IF( .not. LHIST ) THEN
+         !-----------------------------------------------------------------
+         ! F10 - Industry (fuel combustion)
+         !-----------------------------------------------------------------
 
-       ! Hourly scale factors
-      SC(:) = (/ 0.75d0, 0.75d0, 0.78d0, 0.82d0, 0.88d0, 0.95d0,
-     &           1.02d0, 1.09d0, 1.16d0, 1.22d0, 1.28d0, 1.30d0,
-     &           1.22d0, 1.24d0, 1.25d0, 1.16d0, 1.08d0, 1.01d0,
-     &           0.95d0, 0.90d0, 0.85d0, 0.81d0, 0.78d0, 0.75d0 /)
+          ! Hourly scale factors
+         SC(:) = (/ 0.75d0, 0.75d0, 0.78d0, 0.82d0, 0.88d0, 0.95d0,
+     &              1.02d0, 1.09d0, 1.16d0, 1.22d0, 1.28d0, 1.30d0,
+     &              1.22d0, 1.24d0, 1.25d0, 1.16d0, 1.08d0, 1.01d0,
+     &              0.95d0, 0.90d0, 0.85d0, 0.81d0, 0.78d0, 0.75d0 /)
 
-      ! Read data
-      CALL READ_EDGAR_DATA( 'f1000nox', 1, E_IN )
+         ! Read data
+         CALL READ_EDGAR_DATA( 'f1000nox', 1, E_IN )
 
-      ! Add into cumulative arrays
-      CALL ADD_EDGAR_DATA( E_IN, T_1x1, SC, T_HRLY_1x1 )
+         ! Add into cumulative arrays
+         CALL ADD_EDGAR_DATA( E_IN, T_1x1, SC, T_HRLY_1x1 )
 
-      !-----------------------------------------------------------------
-      ! F20 - Power Generation (fuel combustion)
-      !-----------------------------------------------------------------
+         !-----------------------------------------------------------------
+         ! F20 - Power Generation (fuel combustion)
+         !-----------------------------------------------------------------
 
-      ! Hourly scale factors
-      SC(:) = (/ 0.79d0, 0.72d0, 0.72d0, 0.71d0, 0.74d0, 0.80d0,
-     &           0.92d0, 1.08d0, 1.19d0, 1.22d0, 1.21d0, 1.21d0,
-     &           1.17d0, 1.15d0, 1.14d0, 1.13d0, 1.10d0, 1.07d0,
-     &           1.04d0, 1.02d0, 1.02d0, 1.01d0, 0.96d0, 0.88d0 /)
+         ! Hourly scale factors
+         SC(:) = (/ 0.79d0, 0.72d0, 0.72d0, 0.71d0, 0.74d0, 0.80d0,
+     &              0.92d0, 1.08d0, 1.19d0, 1.22d0, 1.21d0, 1.21d0,
+     &              1.17d0, 1.15d0, 1.14d0, 1.13d0, 1.10d0, 1.07d0,
+     &              1.04d0, 1.02d0, 1.02d0, 1.01d0, 0.96d0, 0.88d0 /)
 
-      ! Read data
-      CALL READ_EDGAR_DATA( 'f2000nox', 1, E_IN )
+         ! Read data
+         CALL READ_EDGAR_DATA( 'f2000nox', 1, E_IN )
 
-      ! Add into cumulative arrays
-      CALL ADD_EDGAR_DATA( E_IN, T_1x1, SC, T_HRLY_1x1 )
+         ! Add into cumulative arrays
+         CALL ADD_EDGAR_DATA( E_IN, T_1x1, SC, T_HRLY_1x1 )
 
-      !-----------------------------------------------------------------
-      ! F30 - Conversion (fuel combustion)
-      !-----------------------------------------------------------------
+         !-----------------------------------------------------------------
+         ! F30 - Conversion (fuel combustion)
+         !-----------------------------------------------------------------
 
-      ! Hourly scale factors
-      SC(:) = 1e0 
+         ! Hourly scale factors
+         SC(:) = 1e0 
 
-      ! Read data
-      CALL READ_EDGAR_DATA( 'f3000nox', 1, E_IN )
+         ! Read data
+         CALL READ_EDGAR_DATA( 'f3000nox', 1, E_IN )
 
-      ! Add into cumulative arrays
-      CALL ADD_EDGAR_DATA( E_IN, T_1x1, SC, T_HRLY_1x1 )
+         ! Add into cumulative arrays
+         CALL ADD_EDGAR_DATA( E_IN, T_1x1, SC, T_HRLY_1x1 )
+       
+         !-----------------------------------------------------------------
+         ! F40 - Residential (fuel combustion)
+         !-----------------------------------------------------------------
 
-      !-----------------------------------------------------------------
-      ! F40 - Residential (fuel combustion)
-      !-----------------------------------------------------------------
+         ! Hourly scale factors
+         SC(:) = (/ 0.38d0, 0.36d0, 0.36d0, 0.36d0, 0.37d0, 0.50d0,
+     &              1.19d0, 1.53d0, 1.57d0, 1.56d0, 1.35d0, 1.16d0,
+     &              1.07d0, 1.06d0, 1.00d0, 0.98d0, 0.99d0, 1.12d0,
+     &              1.41d0, 1.52d0, 1.39d0, 1.35d0, 1.00d0, 0.42d0 /)
 
-      ! Hourly scale factors
-      SC(:) = (/ 0.38d0, 0.36d0, 0.36d0, 0.36d0, 0.37d0, 0.50d0,
-     &           1.19d0, 1.53d0, 1.57d0, 1.56d0, 1.35d0, 1.16d0,
-     &           1.07d0, 1.06d0, 1.00d0, 0.98d0, 0.99d0, 1.12d0,
-     &           1.41d0, 1.52d0, 1.39d0, 1.35d0, 1.00d0, 0.42d0 /)
+         ! Read data
+         CALL READ_EDGAR_DATA( 'f4000nox', 1, E_IN )
 
-      ! Read data
-      CALL READ_EDGAR_DATA( 'f4000nox', 1, E_IN )
+         ! Add into cumulative arrays
+         CALL ADD_EDGAR_DATA( E_IN, T_1x1, SC, T_HRLY_1x1 )
 
-      ! Add into cumulative arrays
-      CALL ADD_EDGAR_DATA( E_IN, T_1x1, SC, T_HRLY_1x1 )
+         !-----------------------------------------------------------------
+         ! F51 - Road Transport (fuel combustion)
+         !-----------------------------------------------------------------
 
-      !-----------------------------------------------------------------
-      ! F51 - Road Transport (fuel combustion)
-      !-----------------------------------------------------------------
+         ! Hourly scale factors
+         SC(:) = (/ 0.19d0, 0.09d0, 0.06d0, 0.05d0, 0.09d0, 0.22d0,
+     &              0.86d0, 1.84d0, 1.86d0, 1.41d0, 1.24d0, 1.20d0,
+     &              1.32d0, 1.44d0, 1.45d0, 1.59d0, 2.03d0, 2.08d0,
+     &              1.51d0, 1.06d0, 0.74d0, 0.62d0, 0.61d0, 0.44d0 /)
 
-      ! Hourly scale factors
-      SC(:) = (/ 0.19d0, 0.09d0, 0.06d0, 0.05d0, 0.09d0, 0.22d0,
-     &           0.86d0, 1.84d0, 1.86d0, 1.41d0, 1.24d0, 1.20d0,
-     &           1.32d0, 1.44d0, 1.45d0, 1.59d0, 2.03d0, 2.08d0,
-     &           1.51d0, 1.06d0, 0.74d0, 0.62d0, 0.61d0, 0.44d0 /)
+         ! Read data
+         CALL READ_EDGAR_DATA( 'f5100nox', 1, E_IN )
 
-      ! Read data
-      CALL READ_EDGAR_DATA( 'f5100nox', 1, E_IN )
+         ! Add into cumulative arrays
+         CALL ADD_EDGAR_DATA( E_IN, T_1x1, SC, T_HRLY_1x1 )
 
-      ! Add into cumulative arrays
-      CALL ADD_EDGAR_DATA( E_IN, T_1x1, SC, T_HRLY_1x1 )
+         !-----------------------------------------------------------------
+         ! F54 - Non-Road Land Transport (fuel combustion)
+         !-----------------------------------------------------------------
 
-      !-----------------------------------------------------------------
-      ! F54 - Non-Road Land Transport (fuel combustion)
-      !-----------------------------------------------------------------
+         ! Hourly scale factors
+         SC(:) = (/ 0.19d0, 0.09d0, 0.06d0, 0.05d0, 0.09d0, 0.22d0,
+     &              0.86d0, 1.84d0, 1.86d0, 1.41d0, 1.24d0, 1.20d0,
+     &              1.32d0, 1.44d0, 1.45d0, 1.59d0, 2.03d0, 2.08d0,
+     &              1.51d0, 1.06d0, 0.74d0, 0.62d0, 0.61d0, 0.44d0 /)
 
-      ! Hourly scale factors
-      SC(:) = (/ 0.19d0, 0.09d0, 0.06d0, 0.05d0, 0.09d0, 0.22d0,
-     &           0.86d0, 1.84d0, 1.86d0, 1.41d0, 1.24d0, 1.20d0,
-     &           1.32d0, 1.44d0, 1.45d0, 1.59d0, 2.03d0, 2.08d0,
-     &           1.51d0, 1.06d0, 0.74d0, 0.62d0, 0.61d0, 0.44d0 /)
+         ! Read data
+         CALL READ_EDGAR_DATA( 'f5400nox', 1, E_IN )
 
-      ! Read data
-      CALL READ_EDGAR_DATA( 'f5400nox', 1, E_IN )
-
-      ! Add into cumulative arrays
-      CALL ADD_EDGAR_DATA(  E_IN, T_1x1, SC, T_HRLY_1x1 )
+         ! Add into cumulative arrays
+         CALL ADD_EDGAR_DATA(  E_IN, T_1x1, SC, T_HRLY_1x1 )
 
 !------------------------------------------------------------------------------
 ! NOTE: We don't use EDGAR aircraft data, so comment out.  (avd, bmy, 7/14/06)
@@ -580,11 +611,144 @@
 !      CALL ADD_EDGAR_DATA(  E_IN, T_1x1, SC, T_HRLY_1x1 )
 !------------------------------------------------------------------------------
 
+         !-----------------------------------------------------------------
+         ! F80 - Oil Production (fuel combustion)
+         !-----------------------------------------------------------------
+
+         ! Hourly scale factors
+         SC(:) = 1d0
+
+         ! Read data
+         CALL READ_EDGAR_DATA( 'f8000nox', 1, E_IN )
+
+         ! Add into cumulative arrays
+         CALL ADD_EDGAR_DATA( E_IN, T_1x1, SC, T_HRLY_1x1 )
+
+         !-----------------------------------------------------------------
+         ! I10 - Iron and Steel Production
+         !-----------------------------------------------------------------
+
+         ! Hourly scale factors
+         SC(:) = 1d0
+
+         ! Read data
+         CALL READ_EDGAR_DATA( 'i1000nox', 1, E_IN )
+
+         ! Add into cumulative arrays
+         CALL ADD_EDGAR_DATA( E_IN, T_1x1, SC, T_HRLY_1x1 )
+
+         !-----------------------------------------------------------------
+         ! I30 - Chemical Production
+         !-----------------------------------------------------------------
+
+         ! Hourly scale factors
+         SC(:) = 1d0
+
+         ! Read data
+         CALL READ_EDGAR_DATA( 'i3000nox', 1, E_IN )
+
+         ! Add into cumulative arrays
+         CALL ADD_EDGAR_DATA( E_IN, T_1x1, SC, T_HRLY_1x1 )
+
+         !-----------------------------------------------------------------
+         ! I40 - Cement Production
+         !-----------------------------------------------------------------
+
+         ! Hourly scale factors
+         SC(:) = 1d0
+
+         ! Read data
+         CALL READ_EDGAR_DATA( 'i4000nox', 1, E_IN )
+
+         ! Add into cumulative arrays
+         CALL ADD_EDGAR_DATA( E_IN, T_1x1, SC, T_HRLY_1x1 )
+
+         !-----------------------------------------------------------------
+         ! I50 - Pulp and Paper Production
+         !-----------------------------------------------------------------
+
+         ! Hourly scale factors
+         SC(:) = 1d0
+
+         ! Read data
+         CALL READ_EDGAR_DATA( 'i5000nox', 1, E_IN )
+
+         ! Add into cumulative arrays
+         CALL ADD_EDGAR_DATA( E_IN, T_1x1, SC, T_HRLY_1x1 )
+
+         !-----------------------------------------------------------------
+         ! W40 - Waste Incineration
+         !-----------------------------------------------------------------
+
+         ! Hourly scale factors
+         SC(:) = 1d0
+
+         ! Read data
+         CALL READ_EDGAR_DATA( 'w4000nox', 1, E_IN )
+
+         ! Add into cumulative arrays
+         CALL ADD_EDGAR_DATA( E_IN, T_1x1, SC, T_HRLY_1x1 )
+
+      ELSE
+
+         !-----------------------------------------------------------------
+         ! Historical emissions of NOX
+         !-----------------------------------------------------------------
+
+         ! Make sure to do Ship nox
+
+         ! Read in lumped diurnal scale factors
+         FILENAME = TRIM( DATA_DIR_1x1 )                       // 
+     &              'historical_emissions_201203/NOx/'         //
+     &              'lumped_fnox_diurnal_scale_factors.dat'
+
+         OPEN(412, FILE=FILENAME, FORM='formatted')
+         READ(412,*) SC
+         CLOSE(412)
+
+         ! Get year
+         WRITE( CHISTYR, '(I4)' ) GET_HISTYR()
+
+         ! Get TAU0 for this year
+         TAU0 = GET_TAU0( 1, 1, GET_HISTYR() )
+
+         ! Read fossil fuel combustion NOx
+         FILENAME = TRIM( DATA_DIR_1x1 )                       // 
+     &              'historical_emissions_201203/NOx/'         //
+     &              'EDGAR.FCNOX.' // CHISTYR // 'generic.1x1'
+
+         WRITE( 6, 100 ) TRIM( FILENAME )
+ 100     FORMAT( '     - READ_EDGAR_NOx: Reading ', a )
+         CALL READ_BPCH2( TRIM(FILENAME), 'EDGAR-2D', 1,
+     &                    TAU0,           I1x1,       J1x1-1,
+     &                    1,              E_IN,       QUIET=.TRUE. )
+
+         CALL ADD_EDGAR_DATA( E_IN, T_1x1, SC, T_HRLY_1x1 )
+
+         ! Read industrial NOx
+         FILENAME = TRIM( DATA_DIR_1x1 )                       // 
+     &              'historical_emissions_201203/NOx/'         //
+     &              'EDGAR.INNOX.' // CHISTYR // 'generic.1x1'
+
+         WRITE( 6, 100 ) TRIM( FILENAME )
+ 110     FORMAT( '     - READ_EDGAR_NOx: Reading ', a )
+         CALL READ_BPCH2( TRIM(FILENAME), 'EDGAR-2D', 1,
+     &                    TAU0,            I1x1,      J1x1-1,
+     &                    1,               E_IN,      QUIET=.TRUE. )
+
+         SC(:) = 1
+
+         CALL ADD_EDGAR_DATA( E_IN, T_1x1, SC, T_HRLY_1x1 )
+
+      ENDIF
+!eml]
+
       !-----------------------------------------------------------------
-      ! F58 - Shipping (fuel combustion)
+      ! F58 - Shipping (fuel combustion) - done regardless of historical 
+      !       emissions
       !-----------------------------------------------------------------
       IF ( LEDGARSHIP ) THEN
-
+         
          ! Hourly scale factors
          SC(:) = 1d0 
          
@@ -594,84 +758,6 @@
          ! Add into cumulative arrays
          CALL ADD_EDGAR_DATA( E_IN, T_SHIP_1x1 )
       ENDIF
-
-      !-----------------------------------------------------------------
-      ! F80 - Oil Production (fuel combustion)
-      !-----------------------------------------------------------------
-
-      ! Hourly scale factors
-      SC(:) = 1d0
-
-      ! Read data
-      CALL READ_EDGAR_DATA( 'f8000nox', 1, E_IN )
-
-      ! Add into cumulative arrays
-      CALL ADD_EDGAR_DATA( E_IN, T_1x1, SC, T_HRLY_1x1 )
-
-      !-----------------------------------------------------------------
-      ! I10 - Iron and Steel Production
-      !-----------------------------------------------------------------
-
-      ! Hourly scale factors
-      SC(:) = 1d0
-
-      ! Read data
-      CALL READ_EDGAR_DATA( 'i1000nox', 1, E_IN )
-
-      ! Add into cumulative arrays
-      CALL ADD_EDGAR_DATA( E_IN, T_1x1, SC, T_HRLY_1x1 )
-
-      !-----------------------------------------------------------------
-      ! I30 - Chemical Production
-      !-----------------------------------------------------------------
-
-      ! Hourly scale factors
-      SC(:) = 1d0
-
-      ! Read data
-      CALL READ_EDGAR_DATA( 'i3000nox', 1, E_IN )
-
-      ! Add into cumulative arrays
-      CALL ADD_EDGAR_DATA( E_IN, T_1x1, SC, T_HRLY_1x1 )
-
-      !-----------------------------------------------------------------
-      ! I40 - Cement Production
-      !-----------------------------------------------------------------
-
-      ! Hourly scale factors
-      SC(:) = 1d0
-
-      ! Read data
-      CALL READ_EDGAR_DATA( 'i4000nox', 1, E_IN )
-
-      ! Add into cumulative arrays
-      CALL ADD_EDGAR_DATA( E_IN, T_1x1, SC, T_HRLY_1x1 )
-
-      !-----------------------------------------------------------------
-      ! I50 - Pulp and Paper Production
-      !-----------------------------------------------------------------
-
-      ! Hourly scale factors
-      SC(:) = 1d0
-
-      ! Read data
-      CALL READ_EDGAR_DATA( 'i5000nox', 1, E_IN )
-
-      ! Add into cumulative arrays
-      CALL ADD_EDGAR_DATA( E_IN, T_1x1, SC, T_HRLY_1x1 )
-
-      !-----------------------------------------------------------------
-      ! W40 - Waste Incineration
-      !-----------------------------------------------------------------
-
-      ! Hourly scale factors
-      SC(:) = 1d0
-
-      ! Read data
-      CALL READ_EDGAR_DATA( 'w4000nox', 1, E_IN )
-
-      ! Add into cumulative arrays
-      CALL ADD_EDGAR_DATA( E_IN, T_1x1, SC, T_HRLY_1x1 )
 
       !-----------------------------------------------------------------
       ! Force a seasonal variation onto the anthropogenic NOx emissions
@@ -1023,6 +1109,8 @@
 !  (4 ) E_SO2_SHIP (REAL*4 ) : EDGAR ship exhaust  SO2 emissions
 !
 !  NOTES:
+!  08 Mar 2012 - M. Payer    - Added modifications for historical emissions of
+!                              SO2 (E. Leibensperger)
 !******************************************************************************
 !
       ! References to F90 modules
@@ -1031,7 +1119,11 @@
       USE REGRID_1x1_MOD,    ONLY : DO_REGRID_1x1
       USE TIME_MOD,          ONLY : EXPAND_DATE
       USE SCALE_ANTHRO_MOD,  ONLY : GET_ANNUAL_SCALAR
-      USE REGRID_A2A_MOD, ONLY : DO_REGRID_A2A      
+      USE REGRID_A2A_MOD,    ONLY : DO_REGRID_A2A      
+![eml
+      USE LOGICAL_MOD,       ONLY : LHIST
+      USE BPCH2_MOD,         ONLY : READ_BPCH2
+!eml]
 
       USE CMN_SIZE_MOD       ! Size parameters
 
@@ -1085,7 +1177,13 @@
       !----------------------------------
 
       ! Apply scale factors at 1x1
-      E_SO2(:,:) = OUTGRID * SC_SO2
+![eml Skip scaling if using historical emissions
+      IF ( .not. LHIST ) THEN
+         E_SO2(:,:) = OUTGRID * SC_SO2
+      ELSE
+         E_SO2(:,:) = OUTGRID
+      ENDIF
+!eml]
 
       !----------------------------------
       ! Scale ship SO2 and regrid
@@ -1128,10 +1226,19 @@
 !
 !  NOTES:
 !  (1 ) Now pass the unit string to DO_REGRID_G2G_1x1 (bmy, 8/9/06)
+!  08 Mar 2012 - M. Payer    - Added modifications for historical emissions of
+!                              SO2 (E. Leibensperger)
 !******************************************************************************
 !
       ! Reference to F90 modules
+      USE DIRECTORY_MOD,  ONLY : DATA_DIR_1x1
       USE LOGICAL_MOD,    ONLY : LEDGARSHIP
+![eml
+      USE LOGICAL_MOD,    ONLY : LHIST
+      USE TIME_MOD,       ONLY : GET_HISTYR
+      USE BPCH2_MOD,      ONLY : GET_TAU0, READ_BPCH2
+!eml]
+
       USE CMN_SIZE_MOD       ! Size parameters
 
       ! Arguments
@@ -1140,6 +1247,11 @@
 
       ! Local variables
       REAL*4                  :: E_IN(I1x1,J1x1-1)
+![eml
+      REAL*8                  :: TAU0
+      CHARACTER(LEN=  4)      :: CHISTYR
+      CHARACTER(LEN=255)      :: FILENAME
+!eml]
 
       !=================================================================
       ! READ_EDGAR_SO2 begins here!
@@ -1150,35 +1262,106 @@
       T_SO2_1x1      = 0d0
       T_SO2_SHIP_1x1 = 0d0
 
-      !-----------------------------------------------------------------
-      ! Read anthropogenic SO2 and ship SO2 emissions
-      ! (on GENERIC 1x1 GRID)
-      !-----------------------------------------------------------------
+![eml
+      IF ( .not. LHIST ) THEN
+      
+         !-----------------------------------------------------------------
+         ! Read anthropogenic SO2 and ship SO2 emissions
+         ! (on GENERIC 1x1 GRID)
+         !-----------------------------------------------------------------
 
-      ! F10 - industrial (fossil fuel combustion)
-      CALL READ_EDGAR_DATA( 'f1000so2', 26, E_IN )
-      CALL ADD_EDGAR_DATA( E_IN, T_SO2_1x1 )
+         ! F10 - industrial (fossil fuel combustion)
+         CALL READ_EDGAR_DATA( 'f1000so2', 26, E_IN )
+         CALL ADD_EDGAR_DATA( E_IN, T_SO2_1x1 )
 
-      ! F20 - Power Generation (fossil fuel combustion)
-      CALL READ_EDGAR_DATA( 'f2000so2', 26, E_IN )
-      CALL ADD_EDGAR_DATA( E_IN, T_SO2_1x1 )
+         ! F20 - Power Generation (fossil fuel combustion)
+         CALL READ_EDGAR_DATA( 'f2000so2', 26, E_IN )
+         CALL ADD_EDGAR_DATA( E_IN, T_SO2_1x1 )
 
-      ! F30 - Conversion (fossil fuel combustion)
-      CALL READ_EDGAR_DATA( 'f3000so2', 26, E_IN )
-      CALL ADD_EDGAR_DATA( E_IN, T_SO2_1x1 )
+         ! F30 - Conversion (fossil fuel combustion)
+         CALL READ_EDGAR_DATA( 'f3000so2', 26, E_IN )
+         CALL ADD_EDGAR_DATA( E_IN, T_SO2_1x1 )
 
-      ! F40 - Residential + Commercial + Other  (fossil fuel combustion)
-      CALL READ_EDGAR_DATA( 'f4000so2', 26, E_IN )
-      CALL ADD_EDGAR_DATA( E_IN, T_SO2_1x1 )
+         ! F40 - Residential + Commercial + Other  (fossil fuel combustion)
+         CALL READ_EDGAR_DATA( 'f4000so2', 26, E_IN )
+         CALL ADD_EDGAR_DATA( E_IN, T_SO2_1x1 )
 
-      ! F51 - Road Transport (fossil fuel combustion)
-      CALL READ_EDGAR_DATA( 'f5100so2', 26, E_IN )
-      CALL ADD_EDGAR_DATA( E_IN, T_SO2_1x1 )
+         ! F51 - Road Transport (fossil fuel combustion)
+         CALL READ_EDGAR_DATA( 'f5100so2', 26, E_IN )
+         CALL ADD_EDGAR_DATA( E_IN, T_SO2_1x1 )
 
-      ! F54 - Land (Non-Road) Transport (fossil fuel combustion)
-      CALL READ_EDGAR_DATA( 'f5400so2', 26, E_IN )
-      CALL ADD_EDGAR_DATA( E_IN, T_SO2_1x1 )
+         ! F54 - Land (Non-Road) Transport (fossil fuel combustion)
+         CALL READ_EDGAR_DATA( 'f5400so2', 26, E_IN )
+         CALL ADD_EDGAR_DATA( E_IN, T_SO2_1x1 )
 
+         ! F80 - Oil Production (fossil fuel combustion)
+         CALL READ_EDGAR_DATA( 'f8000so2', 26, E_IN )
+         CALL ADD_EDGAR_DATA( E_IN, T_SO2_1x1 )
+
+         ! I10 - Iron and Steel Production
+         CALL READ_EDGAR_DATA( 'i1000so2', 26, E_IN )
+         CALL ADD_EDGAR_DATA( E_IN, T_SO2_1x1 )
+
+         ! I20 - Non-Ferrous Production
+         CALL READ_EDGAR_DATA( 'i2000so2', 26, E_IN )
+         CALL ADD_EDGAR_DATA( E_IN, T_SO2_1x1 )
+
+         ! I30 - Chemical Production
+         CALL READ_EDGAR_DATA( 'i3000so2', 26, E_IN )
+         CALL ADD_EDGAR_DATA( E_IN, T_SO2_1x1 )
+
+         ! I40 - Cement Production
+         CALL READ_EDGAR_DATA( 'i4000so2', 26, E_IN )
+         CALL ADD_EDGAR_DATA( E_IN, T_SO2_1x1 )
+ 
+         ! I50 - Pulp and Paper Production
+         CALL READ_EDGAR_DATA( 'i5000so2', 26, E_IN )
+         CALL ADD_EDGAR_DATA( E_IN, T_SO2_1x1 )
+ 
+         ! W40 - Waste Incineration
+         CALL READ_EDGAR_DATA( 'w4000so2', 26, E_IN )
+         CALL ADD_EDGAR_DATA( E_IN, T_SO2_1x1 )
+
+      ELSE
+
+         !-----------------------------------------------------------------
+         ! Historical emissions of SO2
+         !-----------------------------------------------------------------
+
+         WRITE( CHISTYR, '(I4)' ) GET_HISTYR()
+
+         ! Get TAU0 for this year
+         TAU0 = GET_TAU0( 1, 1, GET_HISTYR() )
+
+         ! Read fossil fuel combustion SO2
+         FILENAME = TRIM( DATA_DIR_1x1 )                       // 
+     &              'historical_emissions_201203/SO2/'         //
+     &              'EDGAR.FCSO2.' // CHISTYR // 'generic.1x1'
+
+         WRITE( 6, 100 ) TRIM( FILENAME )
+ 100     FORMAT( '     - READ_EDGAR_SO2: Reading ', a )
+         CALL READ_BPCH2( TRIM(FILENAME), 'EDGAR-2D', 26,
+     &                    TAU0,           I1x1,       J1x1-1,
+     &                    1,              E_IN,       QUIET=.TRUE. )
+
+         CALL ADD_EDGAR_DATA( E_IN, T_SO2_1x1 )
+
+         ! Read industrial SO2
+         FILENAME = TRIM( DATA_DIR_1x1 )                       // 
+     &              'historical_emissions_201203/SO2/'         //
+     &              'EDGAR.INSO2.' // CHISTYR // 'generic.1x1'
+
+         WRITE( 6, 110 ) TRIM( FILENAME )
+ 110     FORMAT( '     - READ_EDGAR_SO2: Reading ', a )
+         CALL READ_BPCH2( TRIM(FILENAME), 'EDGAR-2D', 26,
+     &                    TAU0,           I1x1,       J1x1-1,
+     &                    1,              E_IN,       QUIET=.TRUE. )
+         
+         CALL ADD_EDGAR_DATA( E_IN, T_SO2_1x1 )
+
+      ENDIF
+
+      ! Do aircraft and ship emissions even if using historical
       ! F57 - Air Transport (fossil fuel combustion)
       CALL READ_EDGAR_DATA( 'f5700so2', 26, E_IN )
       CALL ADD_EDGAR_DATA( E_IN, T_SO2_1x1 )
@@ -1189,34 +1372,7 @@
          CALL READ_EDGAR_DATA( 'f5800so2(IEA)', 26, E_IN )
          CALL ADD_EDGAR_DATA( E_IN, T_SO2_SHIP_1x1 )
       ENDIF
-
-      ! F80 - Oil Production (fossil fuel combustion)
-      CALL READ_EDGAR_DATA( 'f8000so2', 26, E_IN )
-      CALL ADD_EDGAR_DATA( E_IN, T_SO2_1x1 )
-
-      ! I10 - Iron and Steel Production
-      CALL READ_EDGAR_DATA( 'i1000so2', 26, E_IN )
-      CALL ADD_EDGAR_DATA( E_IN, T_SO2_1x1 )
-
-      ! I20 - Non-Ferrous Production
-      CALL READ_EDGAR_DATA( 'i2000so2', 26, E_IN )
-      CALL ADD_EDGAR_DATA( E_IN, T_SO2_1x1 )
-
-      ! I30 - Chemical Production
-      CALL READ_EDGAR_DATA( 'i3000so2', 26, E_IN )
-      CALL ADD_EDGAR_DATA( E_IN, T_SO2_1x1 )
-
-      ! I40 - Cement Production
-      CALL READ_EDGAR_DATA( 'i4000so2', 26, E_IN )
-      CALL ADD_EDGAR_DATA( E_IN, T_SO2_1x1 )
-
-      ! I50 - Pulp and Paper Production
-      CALL READ_EDGAR_DATA( 'i5000so2', 26, E_IN )
-      CALL ADD_EDGAR_DATA( E_IN, T_SO2_1x1 )
-
-      ! W40 - Waste Incineration
-      CALL READ_EDGAR_DATA( 'w4000so2', 26, E_IN )
-      CALL ADD_EDGAR_DATA( E_IN, T_SO2_1x1 )
+!eml]
 
       !-----------------------------------------------------------------
       ! Force a seasonal variation onto the anthropogenic SO2 emissions
@@ -1638,9 +1794,11 @@
 !
 !  NOTES:
 !  (1 ) Added the SHIP switch (phs, 5/13/08)
+!  01 Mar 2012 - R. Yantosca - Now use GET_AREA_CM2(I,J,L) from grid_mod.F90
 !******************************************************************************
 !
       ! References to F90 modules
+      USE GRID_MOD,             ONLY : GET_AREA_CM2
       USE FUTURE_EMISSIONS_MOD, ONLY : GET_FUTURE_SCALE_NOxff
       USE LOGICAL_MOD,          ONLY : LFUTURE
 
@@ -1699,7 +1857,8 @@
       ELSE IF ( DO_MCS ) THEN
 
          ! Convert to [molec/cm2/s]
-         NOx = NOx * XNUMOL_NO2 / ( A_CM2(J) * SEC_IN_SEASON )
+         NOx = NOx * XNUMOL_NO2 
+     &       / ( GET_AREA_CM2( I, J, 1 ) * SEC_IN_SEASON )
 
       ENDIF
 
@@ -1724,9 +1883,11 @@
 !
 !  NOTES:
 !  (1 ) Added the SHIP switch (phs, 5/13/08)
+!  01 Mar 2012 - R. Yantosca - Now use GET_AREA_CM2(I,J,L) from grid_mod.F90
 !******************************************************************************
 !
       ! References to F90 modules
+      USE GRID_MOD,             ONLY : GET_AREA_CM2
       USE FUTURE_EMISSIONS_MOD, ONLY : GET_FUTURE_SCALE_COff
       USE LOGICAL_MOD,          ONLY : LFUTURE
 
@@ -1775,7 +1936,8 @@
       ELSE IF ( DO_MCS ) THEN 
 
          ! Convert to [molec/cm2/s]
-         CO = CO * XNUMOL_CO / ( A_CM2(J) * SEC_IN_2000 )
+         CO = CO * XNUMOL_CO 
+     &      / ( GET_AREA_CM2( I, J, 1 ) * SEC_IN_2000 )
 
       ENDIF
 
@@ -1798,9 +1960,11 @@
 !  (4 ) MOLEC_CM2_S (LOGICAL) : OPTIONAL - Return data in [molec/cm2/s]
 !
 !  NOTES:
+!  01 Mar 2012 - R. Yantosca - Now use GET_AREA_CM2(I,J,L) from grid_mod.F90
 !******************************************************************************
 !
       ! References to F90 modules
+      USE GRID_MOD,             ONLY : GET_AREA_CM2
       USE FUTURE_EMISSIONS_MOD, ONLY : GET_FUTURE_SCALE_SO2ff
       USE LOGICAL_MOD,          ONLY : LFUTURE
 
@@ -1841,7 +2005,8 @@
       ELSE IF ( DO_MCS ) THEN 
 
          ! Convert to [molec/cm2/s]
-         SO2 = SO2 * XNUMOL_SO2 / ( A_CM2(J) * SEC_IN_SEASON )
+         SO2 = SO2 * XNUMOL_SO2 
+     &       / ( GET_AREA_CM2( I, J, 1 ) * SEC_IN_SEASON )
 
       ENDIF
 
@@ -1865,9 +2030,11 @@
 !  (4 ) MOLEC_CM2_S (LOGICAL) : OPTIONAL - Return data in [molec/cm2/s]
 !
 !  NOTES:
+!  01 Mar 2012 - R. Yantosca - Now use GET_AREA_CM2(I,J,L) from grid_mod.F90
 !******************************************************************************
 !
       ! References to F90 modules
+      USE GRID_MOD,             ONLY : GET_AREA_CM2
       USE FUTURE_EMISSIONS_MOD, ONLY : GET_FUTURE_SCALE_SO2ff
       USE LOGICAL_MOD,          ONLY : LFUTURE
 
@@ -1908,7 +2075,8 @@
       ELSE IF ( DO_MCS ) THEN 
 
          ! Convert to [molec/cm2/s]
-         SO2 = SO2 * XNUMOL_SO2 / ( A_CM2(J) * SEC_IN_MONTH )
+         SO2 = SO2 * XNUMOL_SO2 
+     &       / ( GET_AREA_CM2( I, J, 1 ) * SEC_IN_MONTH )
 
       ENDIF
 
@@ -1969,9 +2137,15 @@
 !  (1) Bug fix: now add IF (LEDGARSHIP) block before referencing any of the
 !       ship emissions arrays.  This will help prevent a seg fault error.
 !       (jensberg, bmy, 8/4/10)
+!  08 Mar 2012 - M. Payer    - Added modifications for historical emissions of
+!                              NOx and SO2 (E. Leibensperger)
 !******************************************************************************
 !
       USE LOGICAL_MOD, ONLY : LEDGARSHIP
+![eml
+      USE LOGICAL_MOD, ONLY : LHIST
+      USE TIME_MOD,    ONLY : GET_HISTYR
+!eml]
 
       ! Arguments
       INTEGER, INTENT(IN) :: YEAR, MONTH
@@ -2002,11 +2176,24 @@
       ! Print totals
       WRITE( 6, '(a)'   ) REPEAT( '=', 79 )
       WRITE( 6, '(a,/)' ) 'E D G A R   E M I S S I O N S'
-      WRITE( 6, 100     ) YEAR, SEASON_NAME, T_NOx
+![eml
+      IF( .not. LHIST ) THEN
+         WRITE( 6, 100     ) YEAR, SEASON_NAME, T_NOx
+      ELSE
+         WRITE( 6, 100     ) GET_HISTYR(), SEASON_NAME, T_NOx
+      ENDIF
+!eml]
       WRITE( 6, 105     ) YEAR, SEASON_NAME, T_NOxSh
       WRITE( 6, 110     ) YEAR,              T_CO
       WRITE( 6, 115     ) YEAR,              T_COSh
-      WRITE( 6, 120     ) YEAR, SEASON_NAME, T_SO2an
+![eml
+      IF( .not. LHIST ) THEN
+         WRITE( 6, 120     ) YEAR, SEASON_NAME, T_SO2an
+      ELSE
+         WRITE( 6, 100     ) GET_HISTYR(), SEASON_NAME, T_SO2an
+      ENDIF
+!eml]
+
       WRITE( 6, 130     ) YEAR, MONTH_NAME,  T_SO2sh
       WRITE( 6, '(a)'   ) REPEAT( '=', 79 )
 
@@ -2689,10 +2876,10 @@
 !
 !  NOTES:
 !  (1 ) Now allocates SHIP arrays only if LEDGARSHIP is TRUE (5/13/08)
+!  01 Mar 2012 - R. Yantosca - Removed ref to GET_AREA_CM2 and A_CM2 array
 !******************************************************************************
 !
       ! Reference to F90 modules
-      USE GRID_MOD,    ONLY : GET_AREA_CM2
       USE ERROR_MOD,   ONLY : ALLOC_ERR
       USE LOGICAL_MOD, ONLY : LEDGARSHIP
 
@@ -2737,17 +2924,6 @@
       IF (AS /= 0 ) CALL ALLOC_ERR( 'EDGAR_TODN' )
       EDGAR_TODN = 0d0
 
-      !---------------------------------------------------
-      ! Pre-store array for grid box surface area in cm2
-      !---------------------------------------------------
-
-      ALLOCATE( A_CM2( JJPAR ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'A_CM2' )
-
-      DO J = 1, JJPAR
-         A_CM2(J) = GET_AREA_CM2( J )
-      ENDDO
-
       ! Return to calling program
       END SUBROUTINE INIT_EDGAR
 
@@ -2764,7 +2940,6 @@
       !=================================================================
       ! CLEANUP_EDGAR begins here!
       !=================================================================
-      IF ( ALLOCATED( A_CM2          ) ) DEALLOCATE( A_CM2          )
       IF ( ALLOCATED( EDGAR_NOx      ) ) DEALLOCATE( EDGAR_NOx      )
       IF ( ALLOCATED( EDGAR_CO       ) ) DEALLOCATE( EDGAR_CO       )
       IF ( ALLOCATED( EDGAR_SO2      ) ) DEALLOCATE( EDGAR_SO2      )

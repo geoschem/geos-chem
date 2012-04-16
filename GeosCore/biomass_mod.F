@@ -36,6 +36,10 @@
 !
 !   CO2        24         1          [molec CO2 /cm2/s]
 !
+!  ----------------------------------------------------------------------------
+!  FOR CH4 SIMULATION ONLY (kjw)
+!
+!   CH4        25         1          [molec CH4 /cm2/s]!
 !
 !  Module Variables:
 !  ============================================================================
@@ -84,6 +88,7 @@
 !  (6 ) Now always scale biomass CO regardless of inventory (jaf, mak, 11/6/09)
 !  (7 ) Updates to remove all hard-wired order. (fp, 2/2/10)
 !  (8)  Updates to include GFED3 (psk, 1/5/11)
+!  14 Feb 2012 - M. Payer    - Add modifications for CH4 simulation (K. Wecht)
 !******************************************************************************
 !
       USE CMN_SIZE_MOD               ! Size parameters
@@ -100,9 +105,9 @@
       PRIVATE
 
       ! ... except these variables
-      ! FP: NBIOMAX now specified in F77_CMN_SIZE and is the max
+      ! FP: NBIOMAX now specified in CMN_SIZE_mod and is the max
       ! number of BB species allowed, used for array allocation (hotp 7/30/09)
-      ! if additional BB species are added, increase NBIOMAX in F77_CMN_SIZE
+      ! if additional BB species are added, increase NBIOMAX in CMN_SIZE_mod
       !PUBLIC :: NBIOMAX
       !PUBLIC :: NBIOMAX_GAS ! no longer needed (hotp 8/3/09)
       !FP_ISOP
@@ -138,7 +143,7 @@
       ! MODULE VARIABLES
       !=================================================================
 
-      ! FP Removed hard-wired IDBxxx and move NBIOMAX to F77_CMN_SIZE (hotp 7/30/09)      ! Parameters
+      ! FP Removed hard-wired IDBxxx and move NBIOMAX to CMN_SIZE_mod (hotp 7/30/09)      ! Parameters
 !      INTEGER, PARAMETER   :: NBIOMAX     = 24
 !      INTEGER, PARAMETER   :: NBIOMAX_GAS = 19
 !      INTEGER, PARAMETER   :: IDBNOX      = 1
@@ -445,6 +450,7 @@
       USE TRACERID_MOD, ONLY : IDBSO2,  IDBNH3
       USE TRACERID_MOD, ONLY : IDBBC,   IDBOC
       USE TRACERID_MOD, ONLY : IDBCO2
+      USE TRACERID_MOD, ONLY : IDBCH4   !kjw
       USE TRACERID_MOD, ONLY : IDBBENZ, IDBTOLU, IDBXYLE
       ! Add dicarbonyls
       USE TRACERID_MOD, ONLY : IDBGLYX, IDBMGLY, IDBC2H4
@@ -458,6 +464,8 @@
       USE TRACERID_MOD, ONLY : IDTBENZ, IDTTOLU, IDTXYLE
       USE TRACERID_MOD, ONLY : IDTHAC, IDTGLYC, IDTMGLY, IDTGLYX
       USE TRACERID_MOD, ONLY : IDTC2H2, IDTC2H4
+
+      USE TRACER_MOD,   ONLY : ITS_A_CH4_SIM ! (mpayer, 2/14/12)
 
       !=================================================================
       ! SET_BIOTRCE begins here!
@@ -574,6 +582,14 @@
       BIOTRCE( IDBCO2 ) = 1
       BIOBGAS( IDBCO2 ) = .FALSE.
 
+      ! For CH4 (kjw)
+      !  IDBCH4 is placed at end after all full chem tracers and CO2
+      IF ( ITS_A_CH4_SIM() ) THEN
+         IDBCH4            = NBIOTRCE + 1
+         BIOTRCE( IDBCH4 ) = 1
+         BIOBGAS( IDBCH4 ) = .FALSE.  ! not treated in setemis
+      ENDIF
+
       ! Error check 
       ! NBIOTRCE should be less than or equal to NBIOMAX (hotp 7/31/09)
       !IF ( NBIOTRCE > NBIOMAX ) THEN
@@ -584,7 +600,7 @@
       IF ( NBIOTRCE .GE. NBIOMAX ) THEN
           CALL ERROR_STOP ( 'NBIOTRCE too large!', '(biomass_mod)' )
           ! If you get this error, an appropriate fix is to increase
-          ! NBIOMAX in F77_CMN_SIZE (hotp 7/31/09)
+          ! NBIOMAX in CMN_SIZE_mod (hotp 7/31/09)
       ENDIF
 
       ! Echo biomass burning tracer information
@@ -704,7 +720,6 @@
       ! CLEANUP_BIOMASS begins here!
       !=================================================================
       IF ( ALLOCATED( BIOMASS ) ) DEALLOCATE( BIOMASS )
-
       ! Return to calling program
       END SUBROUTINE CLEANUP_BIOMASS
 

@@ -51,7 +51,11 @@
 
       IMPLICIT NONE
 #     include "define.h"
-
+!
+! !REMARKS:
+!  For now use GET_LOCALTIME( I, 1, 1 ) which will be independent of J and L
+!  for a pure cartesian grid.  This may need to be revisited once G-C is
+!  interfaced into a GCM.
 !
 ! !REVISION HISTORY:
 !  26 Mar 1999 - R. Yantosca - Initial version
@@ -70,6 +74,7 @@
 !       (ccc, 6/12/09)
 !  (8 ) Add LTO3 to accumulate O3 in ND45 at the same place as the
 !        chemistry (ccc, 7/17/09)
+!  01 Mar 2012 - R. Yantosca - Now use GET_LOCALTIME(I,J,L) from time_mod.F90
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -104,7 +109,7 @@
 
       ! Pre-compute local time 
       DO I = 1, IIPAR
-         LT(I) = GET_LOCALTIME( I )
+         LT(I) = GET_LOCALTIME( I, 1, 1 )
       ENDDO
 
 !$OMP PARALLEL DO

@@ -102,7 +102,9 @@
 !        on the tracers used in the simulation. (ccc, 4/23/09)
 !  (8 ) Adjust call to GFED2_AVAILABLE to reflect that monthly data for
 !        2008 is now available on disk (bmy, 7/8/09)
-!  (9 ) Change regrid algorithm to map_a2a (mjc, 3/13/12)
+!  14 Feb 2012 - M. Payer    - Add modifications for CH4 (K. Wecht)
+!  01 Mar 2012 - R. Yantosca - Now reference new grid_mod.F90
+!  13 Mar 2012 - M. Cooper   - Change regrid algorithm to map_a2a
 !******************************************************************************
 !
       IMPLICIT NONE
@@ -145,8 +147,8 @@
 
       ! Parameters
       INTEGER,          PARAMETER   :: N_EMFAC = 3
-!------------------------------------------------------------------------
-      INTEGER,          PARAMETER   :: N_SPEC  = 24
+      !INTEGER,          PARAMETER   :: N_SPEC  = 24
+      INTEGER,          PARAMETER   :: N_SPEC  = 25  !kjw
 
       ! Arrays
       INTEGER,          ALLOCATABLE :: VEG_GEN_1x1(:,:)
@@ -691,7 +693,8 @@
       USE FUTURE_EMISSIONS_MOD,   ONLY : GET_FUTURE_SCALE_OCbb
       USE FUTURE_EMISSIONS_MOD,   ONLY : GET_FUTURE_SCALE_SO2bb
       USE FUTURE_EMISSIONS_MOD,   ONLY : GET_FUTURE_SCALE_VOCbb
-      USE TRACER_MOD,             ONLY : ITS_A_CO2_SIM       
+      USE TRACER_MOD,             ONLY : ITS_A_CO2_SIM  
+      USE TRACER_MOD,             ONLY : ITS_A_CH4_SIM
 
       !Need IDBs from TRACERID_MOD now.
       USE TRACERID_MOD, ONLY : IDBNOx,  IDBCO,   IDBSO2 
@@ -704,6 +707,7 @@
 
       ! Local variables
       LOGICAL                         :: ITS_CO2
+      LOGICAL                         :: ITS_CH4
       INTEGER                         :: I, J, N
       
       !=================================================================
@@ -712,6 +716,8 @@
 
       ! Test if it's a CO2 simulation outside of the loop
       ITS_CO2 = ITS_A_CO2_SIM()
+      ITS_CH4 = ITS_A_CH4_SIM()
+
 
 !$OMP PARALLEL DO
 !$OMP+DEFAULT( SHARED )
@@ -761,7 +767,7 @@
             ! Future biomass OC [molec/cm2]
             BB(I,J,N) = BB(I,J,N) * GET_FUTURE_SCALE_OCbb( I, J )
 
-         ELSE IF ( ITS_CO2 ) THEN
+         ELSE IF ( ITS_CO2 .OR. ITS_CH4 ) THEN
 
             ! Nothing
 
@@ -795,6 +801,7 @@
 !  (2 ) MM      (INTEGER) : Currrent month
 !
 !  NOTES:
+!  01 Mar 2012 - R. Yantosca - Now use GET_AREA_CM2(I,J,L) from grid_mod.F90
 !******************************************************************************
 !
       ! References to F90 modules
@@ -824,16 +831,17 @@
          UNIT  = GFED2_SPEC_UNIT(N)
          TOTAL = 0d0
 
-         ! Loop over latitudes
+         ! Loop over surface boxes
          DO J = 1, JJPAR
-         
-            ! Convert to [Tg/gfed-period] (or [Tg C/gfed-period] for HC's)
-            CONV = GET_AREA_CM2( J ) * ( MOLWT / 6.023d23 ) * 1d-9
+         DO I = 1, IIPAR
 
-            ! Loop over longitudes
-            DO I = 1, IIPAR
-               TOTAL = TOTAL + ( GFED2_BIOMASS(I,J,N) * CONV )
-            ENDDO
+            ! Convert to [Tg/gfed-period] (or [Tg C/gfed-period] for HC's)
+            CONV = GET_AREA_CM2( I, J, 1 ) 
+     &           * ( MOLWT / 6.023d23 ) * 1d-9
+
+
+            TOTAL = TOTAL + ( GFED2_BIOMASS(I,J,N) * CONV )
+         ENDDO
          ENDDO
      
          ! Write totals
@@ -877,6 +885,7 @@
       USE TRACERID_MOD, ONLY : IDBGLYX, IDBMGLY, IDBBENZ
       USE TRACERID_MOD, ONLY : IDBTOLU, IDBXYLE, IDBC2H4
       USE TRACERID_MOD, ONLY : IDBC2H2, IDBGLYC, IDBHAC
+      USE TRACERID_MOD, ONLY : IDBCH4   !kjw
 
       USE CMN_SIZE_MOD      ! Size parameters
 
@@ -1117,6 +1126,10 @@
             CASE( 'CO2'  )
                BIO_SAVE(N)         = IDBCO2
                GFED2_SPEC_MOLWT(N) = 44d-3
+               GFED2_SPEC_UNIT(N)  = '[Tg  ]'
+            CASE( 'CH4' )
+               BIO_SAVE(N)         = IDBCH4
+               GFED2_SPEC_MOLWT(N) = 16d-3
                GFED2_SPEC_UNIT(N)  = '[Tg  ]'
             CASE DEFAULT
                ! Nothing

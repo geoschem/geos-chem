@@ -112,6 +112,7 @@ MODULE VDIFF_MOD
 !  02 Mar 2011 - R. Yantosca - Bug fixes for PGI compiler: these mostly
 !                              involve explicitly using "D" exponents
 !  25 Mar 2011 - R. Yantosca - Corrected bug fixes noted by Jintai Lin
+!  08 Feb 2012 - R. Yantosca - Add modifications for GEOS-5.7.2 met
 !EOP
 !------------------------------------------------------------------------------
 
@@ -883,11 +884,6 @@ contains
        rrho(i)  = rair*t(i,plev)/pmid(i,plev)
        if (present(taux) .and. present(tauy)) then
           ustr     = sqrt( sqrt( taux(i)**2 + tauy(i)**2 )*rrho(i) )
-          !---------------------------------------------------------------
-          ! Prior to 9/17/11:
-          ! Use double precision exponents (bmy, 9/17/11)
-          !ustar(i) = max( ustr,.01 )
-          !---------------------------------------------------------------
           ustar(i) = max( ustr,.01d0 )
        endif
        khfs(i)  = shflx(i)*rrho(i)/cpair
@@ -1803,7 +1799,7 @@ contains
     USE OCEAN_MERCURY_MOD,  ONLY : LHg2HalfAerosol !cdh
     USE DRYDEP_MOD,   ONLY : DRYHg0, DRYHg2, DRYHgP !cdh
     USE TRACER_MOD,   ONLY: ITS_A_FULLCHEM_SIM  !bmy
-
+    USE OCEAN_MERCURY_MOD, ONLY : Fp, Fg !hma
 
 #   include "define.h"
 
@@ -1832,6 +1828,10 @@ contains
 !  02 Mar 2011 - R. Yantosca - Bug fixes for PGI compiler: these mostly
 !                              involve explicitly using "D" exponents
 !  26 Apr 2011 - J. Fisher   - Use MERRA land fraction information
+!  25 Oct 2011 - H. Amos     - bring Hg2 gas-particle partitioning code into
+!                              v9-01-02
+!  08 Feb 2012 - R. Yantosca - Treat GEOS-5.7.2 in the same way as MERRA
+!  01 Mar 2012 - R. Yantosca - Now use GET_AREA_CM2(I,J,L) from grid_mod.F90
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -2001,8 +2001,9 @@ contains
           ! Should NOT use ID_EMITTED here, since it is only for gases 
           ! for SMVGEAR. (Lin, 06/10/08)
           do N = 1, N_TRACERS
-             eflx(I,J,N) = eflx(I,J,N) + emis_save(I,J,N)/GET_AREA_M2(J)/ &
-                                                         GET_TS_EMIS() / 60.d0
+             eflx(I,J,N) = eflx(I,J,N) + emis_save(I,J,N)       &
+                                       / GET_AREA_M2( I, J, 1 ) &
+                                       / GET_TS_EMIS() / 60.d0
           enddo
 
        ENDIF
@@ -2029,8 +2030,9 @@ contains
           ! Should NOT use ID_EMITTED here, since it is only for gases 
           ! for SMVGEAR. (Lin, 06/10/08)
           do N = 1, N_TRACERS
-             eflx(I,J,N) = eflx(I,J,N) + emis_save(I,J,N)/GET_AREA_M2(J)/ &
-                                                         GET_TS_EMIS() / 60.d0
+             eflx(I,J,N) = eflx(I,J,N) + emis_save(I,J,N) &
+                         / GET_AREA_M2( I, J, 1 )         &
+                         / GET_TS_EMIS() / 60.d0
           enddo
        endif
 
@@ -2039,8 +2041,9 @@ contains
        !----------------------------------------------------------------
        IF ( IS_Hg ) THEN
           do N = 1, N_TRACERS
-             eflx(I,J,N) = eflx(I,J,N) + emis_save(I,J,N)/GET_AREA_M2(J)/ &
-                  GET_TS_EMIS() / 60.d0
+             eflx(I,J,N) = eflx(I,J,N) + emis_save(I,J,N) & 
+                         / GET_AREA_M2( I, J, 1 )         &
+                         / GET_TS_EMIS() / 60.d0
           enddo
        ENDIF
 
@@ -2048,12 +2051,13 @@ contains
        ! Apply dry deposition frequencies
        !----------------------------------------------------------------
        do N = 1, NUMDEP ! NUMDEP includes all gases/aerosols
+          ! Now include sea salt dry deposition (jaegle 5/11/11)
           IF (TRIM( DEPNAME(N) ) == 'DST1'.OR. &
               TRIM( DEPNAME(N) ) == 'DST2'.OR. &
               TRIM( DEPNAME(N) ) == 'DST3'.OR. &
-              TRIM( DEPNAME(N) ) == 'DST4'.OR. &
-              TRIM( DEPNAME(N) ) == 'SALA'.OR. &
-              TRIM( DEPNAME(N) ) == 'SALC') CYCLE
+              TRIM( DEPNAME(N) ) == 'DST4') CYCLE
+              !TRIM( DEPNAME(N) ) == 'SALA'.OR. &
+              !TRIM( DEPNAME(N) ) == 'SALC') CYCLE
 
           ! gases + aerosols for full chemistry 
           NN   = NTRAIND(N)
@@ -2095,17 +2099,40 @@ contains
              ! avoid seg faults in parallelization (ccarouge, bmy, 12/20/10)
              dflx(I,J,NN) = DEPSAV(I,J,N) * as2_scal(I,J,NN) / TCVV(NN)
 
-             ! If flag is set to treat Hg2 as half aerosol, half gas, then
-             ! use average deposition velocity (cdh, 9/01/09)
-             IF ( LHG2HALFAEROSOL .AND. IS_HG2(NN) ) THEN
+             !------------------------------------------------------------------
+             !Prior to 25 Oct 2011, H Amos
+             !! If flag is set to treat Hg2 as half aerosol, half gas, then
+             !! use average deposition velocity (cdh, 9/01/09)
+             !IF ( LHG2HALFAEROSOL .AND. IS_HG2(NN) ) THEN
+             !
+             !   ! NOTE: Now use as2_scal(I,J,NN), instead of as2(I,J,1,NN) to 
+             !   ! avoid seg faults in parallelization (ccarouge, bmy, 12/20/10)
+             !   dflx(I,J,NN) =  &
+             !        ( DEPSAV(I,J,DRYHg2) +  DEPSAV(I,J,DRYHgP) ) / 2D0 * &
+             !        as2_scal(I,J,NN) / TCVV(NN) 
+             !   
+             !ENDIF
+             !
+             IF ( IS_HG2(NN) ) THEN
 
-                ! NOTE: Now use as2_scal(I,J,NN), instead of as2(I,J,1,NN) to 
-                ! avoid seg faults in parallelization (ccarouge, bmy, 12/20/10)
-                dflx(I,J,NN) =  &
-                     ( DEPSAV(I,J,DRYHg2) +  DEPSAV(I,J,DRYHgP) ) / 2D0 * &
-                     as2_scal(I,J,NN) / TCVV(NN) 
-                
+                IF ( LHG2HALFAEROSOL ) THEN
+                   ! NOTE: Now use as2_scal(I,J,NN), instead of as2(I,J,1,NN) to 
+                   ! avoid seg faults in parallelization (ccarouge, bmy, 12/20/10)
+
+                   ! partition Hg2 50/50 gas/particle
+                   dflx(I,J,NN) =  &
+                        ( DEPSAV(I,J,DRYHg2) +  DEPSAV(I,J,DRYHgP) ) / 2D0 * &
+                        as2_scal(I,J,NN) / TCVV(NN) 
+                ELSE
+                   
+                   ! temperature-dependent Hg2 partitioning
+                   dflx(I,J,NN) = ( DEPSAV(I,J,DRYHg2)*Fg(I,J,1) + &
+                                    DEPSAV(I,J,DRYHgP)*Fp(I,J,1) ) * &
+                                    as2_scal(I,J,NN) / TCVV(NN) 
+                ENDIF
+                   
              ENDIF
+             !------------------------------------------------------------------
           endif
           
 !--jaf.start          
@@ -2149,7 +2176,7 @@ contains
           ! Except in MERRA, we assume entire grid box is water or ice
           ! if conditions are met (jaf, 4/26/11)
           FRAC_NO_HG0_DEP = 1d0
-#if   defined( MERRA )
+#if   defined( MERRA ) || defined( GEOS_57 )
           FRAC_NO_HG0_DEP = &
                MIN(FROCEAN(I,J) + FRSNO(I,J) + FRLANDIC(I,J), 1d0)
           ZERO_HG0_DEP = ( FRAC_NO_HG0_DEP > 0d0 )
@@ -2218,7 +2245,7 @@ contains
        ! for deposition: additional step to convert from s-1 to kg/m2/s
        ! dflx(I,J,:) = dflx(I,J,:) * pmid(I,J,1) / rair / vtemp * BXHEIGHT(I,J,1)
        ! alternate method to convert from s-1 to kg/m2/s
-       dflx(I,J,:) = dflx(I,J,:) * AD(I,J,1) / GET_AREA_M2(J) 
+       dflx(I,J,:) = dflx(I,J,:) * AD(I,J,1) / GET_AREA_M2( I, J, 1 ) 
 
        ! surface flux = emissions - dry deposition
        sflx(I,J,:) = eflx(I,J,:) - dflx(I,J,:) ! kg/m2/s
@@ -2236,7 +2263,8 @@ contains
              NN = NTRAIND(N)
              
              ! Deposition mass, kg
-             DEP_KG = dflx( I, J, NN ) * GET_AREA_M2(J) * GET_TS_CONV() * 60d0
+             DEP_KG = dflx( I, J, NN ) * GET_AREA_M2( I, J, 1 ) &
+                    * GET_TS_CONV()    * 60d0
 
              IF ( IS_Hg2(NN) ) THEN 
                 
@@ -2265,8 +2293,10 @@ contains
        do N = 1, NUMDEP
           SELECT CASE ( DEPNAME(N) )
              ! non gases + aerosols for fully chemistry 
-             CASE ( 'DST1', 'DST2', 'DST3', 'DST4', 'SALA', &
-                    'SALC' )
+             !CASE ( 'DST1', 'DST2', 'DST3', 'DST4', 'SALA', &
+             !       'SALC' )
+	     ! now include sea salt dry deposition (jaegle 5/11/11)
+             CASE ( 'DST1', 'DST2', 'DST3', 'DST4')
                 CYCLE
              CASE DEFAULT
                 ! Locate position of each tracer in DEPSAV
@@ -2441,16 +2471,9 @@ contains
     ! re-compute PBL variables wrt derived pblh (in m)
     if (.not. pblh_ar) then
 
-#if   defined( GEOS_3 )
-       ! PBL in GEOS_3 is in hPa 
-       ! pint has been 'upside-down' (Lin, 05/28/08)
-       ! m -> hPa
-       ! PBL = pint(:,:,LLPAR+1) * pblh / SCALE_HEIGHT ! simplified formulation
-       PBL = pint(:,:,LLPAR+1) * (1.d0 - EXP( - pblh / SCALE_HEIGHT )) * 1.d-2
-#else
-       ! PBL in other meteo. datasets is in m 
+       ! PBL is in m 
        PBL = pblh 
-#endif
+
        CALL COMPUTE_PBL_HEIGHT
     endif
 

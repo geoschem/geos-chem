@@ -439,7 +439,8 @@
 !
 ! !REVISION HISTORY: 
 !  22 Jun 2006 - R. Park, F. Boersma, R. Yantosca - Initial version
-!  (1 ) Now YEAR is input to reflect scaling factors applied (phs, 3/17/08) 
+!  (1 ) Now YEAR is input to reflect scaling factors applied (phs, 3/17/08)
+!  01 Mar 2012 - R. Yantosca - Now use GET_AREA_CM2(I,J,L) from grid_mod.F90 
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -478,19 +479,17 @@
 
       ! Loop over latitudes
       DO J = 1, JJPAR
-            
+      DO I = 1, IIPAR
+
          ! Convert [molec/cm2/s] to [Tg]
          ! (Multiply by 1d-9 to convert from [kg] to [Tg])
-         A = GET_AREA_CM2( J ) * 365.25d0 * 86400d0 * 1d-9 
-         
-         ! Loop over longitudes
-         DO I = 1, IIPAR
+         A = GET_AREA_CM2( I, J, 1 ) * 365.25d0 * 86400d0 * 1d-9 
 
-            ! Sum emissions (list NOx as Tg N)
-            NOX = NOX + ( BRAVO_NOX(I,J) * A * B(1) )
-            CO  = CO  + ( BRAVO_CO (I,J) * A * B(2) )
-            SO2 = SO2 + ( BRAVO_SO2(I,J) * A * B(3) )
-         ENDDO
+         ! Sum emissions (list NOx as Tg N)
+         NOX = NOX + ( BRAVO_NOX(I,J) * A * B(1) )
+         CO  = CO  + ( BRAVO_CO (I,J) * A * B(2) )
+         SO2 = SO2 + ( BRAVO_SO2(I,J) * A * B(3) )
+      ENDDO
       ENDDO
  
       !----------------

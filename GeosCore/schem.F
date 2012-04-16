@@ -98,6 +98,8 @@
 !  (21) Now references XNUMOLAIR from "tracer_mod.f" (bmy, 10/25/05)
 !  13 Aug 2010 - R. Yantosca - Added ProTeX headers
 !  13 Aug 2010 - R. Yantosca - Treat MERRA in the same way as GEOS-5
+!  08 Feb 2012 - R. Yantosca - Treat GEOS-5.7.x in the same way as MERRA
+!  07 Mar 2012 - R. Yantosca - Start DO loops from L=1 instead of L=LMIN
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -218,7 +220,7 @@
 !%%%         ! Cast from REAL*4 to REAL*8 and resize to (JJPAR,LLPAR)
 !%%%         CALL TRANSFER_ZONAL( ARRAY(1,:,:), STRATOH )
 !%%%---------------------------------------------------------------------
-#if   defined( GEOS_5 )  || defined( MERRA )
+#if   defined( GEOS_5 )  || defined( MERRA ) || defined( GEOS_57 )
          ! Cast from REAL*4 to REAL*8
          STRATOH = ARRAY(1,:,:)
 #else
@@ -251,7 +253,7 @@
 !%%%            ! Cast from REAL*4 to REAL*8 and resize to (JJPAR,LLPAR) 
 !%%%            CALL TRANSFER_ZONAL( ARRAY(1,:,:), SJVALUE(:,:,NN) )
 !%%%---------------------------------------------------------------------
-#if   defined( GEOS_5 ) || defined( MERRA )
+#if   defined( GEOS_5 ) || defined( MERRA ) || defined( GEOS_57 )
             ! Cast from REAL*4 to REAL*8
             SJVALUE(:,:,NN) = ARRAY(1,:,:)
 #else
@@ -282,7 +284,7 @@
 !%%%         ! Cast from REAL*4 to REAL*8 and resize to (JJPAR,LLPAR) 
 !%%%         CALL TRANSFER_ZONAL( ARRAY(1,:,:), COPROD )
 !%%%---------------------------------------------------------------------
-#if   defined( GEOS_5 ) || defined( MERRA )
+#if   defined( GEOS_5 ) || defined( MERRA ) || defined( GEOS_57 )
          ! Cast from REAL*4 to REAL*8
          COPROD = ARRAY(1,:,:)
 #else
@@ -312,7 +314,7 @@
 !%%%         ! Cast from REAL*4 to REAL*8 and resize to (JJPAR,LLPAR) 
 !%%%         CALL TRANSFER_ZONAL( ARRAY(1,:,:), COLOSS )
 !%%%---------------------------------------------------------------------
-#if   defined( GEOS_5 ) || defined( MERRA )
+#if   defined( GEOS_5 ) || defined( MERRA ) || defined( GEOS_57 )
          ! Cast from REAL*4 to REAL*8
          COLOSS = ARRAY(1,:,:)
 #else
@@ -338,7 +340,11 @@
       DO NN = 1, NSPHOTO
          N = SPHOTOID(NN)
 
-         DO L = LMIN, LLPAR
+!---------------------------------
+! Prior to 3/7/12:
+!         DO L = LMIN, LLPAR
+!---------------------------------
+         DO L = 1,    LLPAR
          DO J = 1,    JJPAR
          DO I = 1,    IIPAR
 
@@ -374,7 +380,11 @@
 !$OMP+PRIVATE( I, J, L, N, M, TK, RC, k0, k1, RDLOSS, T1L )
 !$OMP+SCHEDULE( DYNAMIC )
       DO N = 1,    N_TRACERS
-      DO L = LMIN, LLPAR
+!---------------------------------
+! Prior to 3/7/12:
+!      DO L = LMIN, LLPAR
+!---------------------------------
+      DO L = 1,    LLPAR
       DO J = 1,    JJPAR
       DO I = 1,    IIPAR
 

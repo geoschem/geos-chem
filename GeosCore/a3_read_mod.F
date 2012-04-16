@@ -51,6 +51,7 @@
 !  (12) Now get the # of A-3 fields from the file ident string (bmy, 10/7/08)
 !  (13) Remove references to IN_CLOUD_OD (bmy, 10/15/09)
 !  21 Sep 2010 - R. Yantosca - Added ProTeX headers
+!  28 Feb 2012 - R. Yantosca - Removed support for GEOS-3
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -82,7 +83,7 @@
 ! !USES:
 !
       USE BPCH2_MOD,     ONLY : GET_RES_EXT
-      USE DIRECTORY_MOD, ONLY : DATA_DIR,   GCAP_DIR,   GEOS_3_DIR 
+      USE DIRECTORY_MOD, ONLY : DATA_DIR,   GCAP_DIR
       USE DIRECTORY_MOD, ONLY : GEOS_4_DIR, GEOS_5_DIR, TEMP_DIR 
       USE ERROR_MOD,     ONLY : ERROR_STOP
       USE TIME_MOD,      ONLY : EXPAND_DATE
@@ -108,6 +109,7 @@
 !  (5 ) Now make sure all USE statements are USE, ONLY (bmy, 10/3/05)
 !  (6 ) Remove support for GEOS-1 and GEOS-STRAT met fields (bmy, 8/4/06)
 !  21 Sep 2010 - R. Yantosca - Added ProTeX headers
+!  28 Feb 2012 - R. Yantosca - Removed support for GEOS-3
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -124,13 +126,7 @@
       !=================================================================
       IF ( PRESENT( NYMD ) ) THEN
 
-#if   defined( GEOS_3 )
-
-         ! Strings for directory & filename
-         GEOS_DIR = TRIM( GEOS_3_DIR )
-         A3_STR   = 'YYYYMMDD.a3.' // GET_RES_EXT()
-
-#elif defined( GEOS_4 )
+#if   defined( GEOS_4 )
 
          ! Strings for directory & filename
          GEOS_DIR = TRIM( GEOS_4_DIR )
@@ -252,6 +248,7 @@
 !                              days of A3 data @ start of run), then reset the
 !                              first-time flag.  This will prevent an error if
 !                              if the start time is not 00 GMT.
+!  28 Feb 2012 - R. Yantosca - Removed support for GEOS-3
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -281,23 +278,11 @@
          GOTO 999
       ENDIF
 
-#if   defined( GEOS_3 ) 
-
-      ! Open A-3 file if it's 00:00 GMT, or on the first call
-      IF ( NHMS == 000000 .or. FIRST ) THEN
-         DO_OPEN = .TRUE. 
-         GOTO 999
-      ENDIF
-
-#else
-
       ! Open A-3 file if it's 01:30 GMT,  or on the first call
       IF ( NHMS == 013000 .or. FIRST ) THEN
          DO_OPEN = .TRUE. 
          GOTO 999
       ENDIF
-
-#endif
 
       !=================================================================
       ! Reset quantities for next call
@@ -327,7 +312,7 @@
 ! !USES:
 !
       USE BPCH2_MOD,     ONLY : GET_RES_EXT
-      USE DIRECTORY_MOD, ONLY : DATA_DIR,   GCAP_DIR,   GEOS_3_DIR 
+      USE DIRECTORY_MOD, ONLY : DATA_DIR,   GCAP_DIR
       USE DIRECTORY_MOD, ONLY : GEOS_4_DIR, GEOS_5_DIR, TEMP_DIR 
       USE LOGICAL_MOD,   ONLY : LUNZIP
       USE ERROR_MOD,     ONLY : ERROR_STOP
@@ -347,7 +332,7 @@
 !  (1 ) Adapted from OPEN_MET_FIELDS of "dao_read_mod.f" (bmy, 6/13/03)
 !  (2 ) Now opens either zipped or unzipped files (bmy, 12/11/03)
 !  (3 ) Now skips past the GEOS-4 ident string (bmy, 12/12/03)
-!  (4 ) Now references "directory_mod.f" instead of F77_CMN_SETUP.  Also now
+!  (4 ) Now references "directory_mod.f" instead of CMN_SETUP.  Also now
 !        references LUNZIP from "logical_mod.f".  Also now prevents EXPAND_DATE
 !        from overwriting Y/M/D tokens in directory paths. (bmy, 7/20/04)
 !  (5 ) Now use FILE_EXISTS from "file_mod.f" to determine if file unit IU_A3
@@ -358,6 +343,7 @@
 !  (9 ) Now get the # of A-3 fields from the file ident string (bmy, 10/7/08)
 !  21 Sep 2010 - R. Yantosca - Added ProTeX headers
 !  21 Sep 2010 - R. Yantosca - Now pass RESET flag to DO_OPEN_A3
+!  28 Feb 2012 - R. Yantosca - Removed support for GEOS-3
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -386,13 +372,7 @@
       ! Open A-3 fields at the proper time, or on the first call
       IF ( DO_OPEN_A3( NYMD, NHMS, DO_RESET ) ) THEN
 
-#if   defined( GEOS_3 )
-
-         ! Strings for directory & filename
-         GEOS_DIR = TRIM( GEOS_3_DIR )
-         A3_FILE  = 'YYYYMMDD.a3.' // GET_RES_EXT()
-
-#elif defined( GEOS_4 )
+#if   defined( GEOS_4 )
 
          ! Strings for directory & filename
          GEOS_DIR = TRIM( GEOS_4_DIR )
@@ -447,8 +427,6 @@
          WRITE( 6, 100 ) TRIM( PATH )
  100     FORMAT( '     - Opening: ', a )
          
-#if   defined( GEOS_4 ) || defined( GEOS_5 ) || defined( GCAP )
-
          ! Skip past the ident string
          READ( IU_A3, IOSTAT=IOS ) IDENT
 
@@ -460,8 +438,6 @@
          ! is the # of fields contained in the file
          READ( IDENT(7:8), '(i2.2)' ) N_A3_FIELDS        
         
-#endif
-
       ENDIF
 
       END SUBROUTINE OPEN_A3_FIELDS
@@ -516,6 +492,7 @@
 !  (9 ) Now read FRLAND, FROCEAN, FRLANDIC and FRLAKE for methane
 !        (kjw, 8/18/09)
 !  21 Sep 2010 - R. Yantosca - Added ProTeX headers
+!  28 Feb 2012 - R. Yantosca - Removed support for GEOS-3
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -536,20 +513,7 @@
          RETURN
       ENDIF
 
-#if   defined( GEOS_3 ) 
-
-      !=================================================================
-      ! For GEOS-3, read the following fields:
-      !    HFLUX, RADSWG, PREACC, PRECON, USTAR, 
-      !    Z0,    PBL,    CLDFRC, U10M,   V10M
-      !=================================================================
-      CALL READ_A3( NYMD=NYMD,     NHMS=NHMS,     CLDFRC=CLDFRC,  
-     &              HFLUX=HFLUX,   PBL=PBL,       PREACC=PREACC, 
-     &              PRECON=PRECON, RADSWG=RADSWG, TS=TS,
-     &              U10M=U10M,     USTAR=USTAR,   V10M=V10M, 
-     &              Z0=Z0 )              
-
-#elif defined( GEOS_4 )
+#if   defined( GEOS_4 )
 
       !================================================================
       ! For GEOS-4, read the following fields:
@@ -664,26 +628,14 @@
 !  (5 ) Increase # of fields for GEOS-5 to 25 (bmy, 1/17/07)
 !  (6 ) Increase # of fields for GEOS-5 to 26 (EFLUX) (ccc, 5/21/09)
 !  21 Sep 2010 - R. Yantosca - Added ProTeX headers
+!  28 Feb 2012 - R. Yantosca - Removed support for GEOS-3
 !EOP
 !------------------------------------------------------------------------------
 !BOC
       !=================================================================
       ! GET_N_A3 begins here!
       !=================================================================
-#if   defined( GEOS_3 )
-
-      ! GEOS-3 for 1998, 1999 has 14 A-3 fields per file
-      ! GEOS-3 for 2000+      has 11 A-3 fields per file
-      SELECT CASE ( NYMD / 10000 )
-         CASE ( 1998, 1999 )
-            N_A3 = 14
-
-         CASE DEFAULT
-            N_A3 = 11
-      
-      END SELECT
-
-#elif defined( GEOS_4 )
+#if   defined( GEOS_4 )
 
       ! GEOS-4 has 19 A-3 fields
       N_A3 = 19

@@ -131,7 +131,7 @@
 !        (rjp, bec, bmy, 4/20/04)
 !  (7 ) Now references "logical_mod.f" & "tracer_mod.f".  Now references
 !        AEROSOL_CONC, AEROSOL_RURALBOX, and RDAER from "aerosol_mod.f".  
-!        Now includes "F77_CMN_DIAG" and "comode.h".  Also call READER, READCHEM, 
+!        Now includes "CMN_DIAG" and "comode.h".  Also call READER, READCHEM, 
 !        and INPHOT to initialize the FAST-J arrays so that we can save out !
 !        AOD's to the ND21 diagnostic for offline runs. (bmy, 7/20/04)
 !  (8 ) Now call routine CHEMMERCURY from "mercury_mod.f" for an offline
@@ -157,14 +157,16 @@
 !        local PBL (lin, ccc, 5/29/09)
 !  17 Dec 2009 - R. Yantosca - Added ProTeX headers
 !  28 Jan 2010 - C. Carouge, R. Yantosca - Modified for ISORROPIA II
+!  19 Mar 2012 - R. Yantosca - Add C-preprocessor switch to shut off 
+!                              ISORROPIA to facilitate debugging
 !EOP
 !------------------------------------------------------------------------------
 !BOC
 !
 ! !LOCAL VARIABLES:
 ! 
-      LOGICAL, SAVE            :: FIRST = .TRUE.
-      INTEGER                  :: N_TROP, MONTH, YEAR, WAVELENGTH
+      LOGICAL, SAVE :: FIRST = .TRUE.
+      INTEGER       :: N_TROP, MONTH, YEAR, WAVELENGTH
 
       !=================================================================
       ! DO_CHEMISTRY begins here!
@@ -188,7 +190,7 @@
             ! Call SMVGEAR routines
             CALL CHEMDR
 
-            ! Do seasalt aerosol chemistry
+             ! Do seasalt aerosol chemistry
              IF ( LSSALT ) CALL CHEMSEASALT
 
              ! Also do sulfate chemistry
@@ -200,8 +202,10 @@
                 ! Do aerosol thermodynamic equilibrium
                 IF ( LSSALT ) THEN
                 
+#if   !defined( NO_ISORROPIA )
                    ! ISOROPIA takes Na+, Cl- into account
-                   !CALL DO_ISOROPIAII
+                   CALL DO_ISOROPIAII
+#endif
                 
                 ELSE
  

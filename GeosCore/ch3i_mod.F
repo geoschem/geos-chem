@@ -55,6 +55,7 @@
 !  (11) Now make sure all USE statements are USE, ONLY (bmy, 10/3/05)
 !  (12) BIOMASS(:,:,IDBCO) from "biomass_mod.f" is now in units of 
 !        [molec CO/cm2/s].  Adjust unit conversion accordingly. (bmy, 9/27/06)
+!  01 Mar 2012 - R. Yantosca - Now use GET_AREA_M2(I,J,L) from grid_mod.F90
 !******************************************************************************
 !
       IMPLICIT NONE
@@ -92,7 +93,7 @@
 !        (surface water concentration should not exceed 8 ng/L)
 !  (2 ) CH3I emissions from rice and wetlands use Fung's CH4 emission
 !        inventory scaled with a constant factor from BIBLE observations.
-!  (3 ) Added "F77_CMN_SETUP" so that the proper path name to the /data/ctm
+!  (3 ) Added "CMN_SETUP" so that the proper path name to the /data/ctm
 !        directories can be supplied. (bmy, 3/18/99)
 !  (4 ) Trap I/O errors with subroutine IOERROR (bmy, 5/27/99)
 !  (5 ) OCDATA now holds the aqueous CH3I in [ng/L], as read from disk.
@@ -291,7 +292,7 @@
 !  (11) Fixed bugs in the expressions for H and FLUX (mgs, bmy, 5/15/99)
 !  (12) Now uses bilinear correlation with NPP and RADSWG for ocean source
 !       (before only NPP)   (mgs, 16 Jun 1999
-!  (13) FRCLND removed as argument, because F77_CMN_DEP now included 
+!  (13) FRCLND removed as argument, because CMN_DEP now included 
 !       (mgs, 06/16/99)
 !  (14) Ocean emissions now differetn parametrizations for 3 latitude regions.
 !        Emissions protocolled in more detail.
@@ -329,6 +330,7 @@
 !  (33) BIOMASS(:,:,IDBCO) from "biomass_mod.f" is now in units of 
 !        [molec CO/cm2/s].  Adjust unit conversion accordingly. (bmy, 9/27/06)
 !  (34) IDBCO is now defined in TRACERID_MOD. (fp, hotp 7/31/09)
+!  01 Mar 2012 - R. Yantosca - Now use GET_AREA_M2(I,J,L) from grid_mod.F90
 !******************************************************************************
 !
       ! Reference to F90 modules
@@ -588,11 +590,11 @@
       N = 1
       L = 1
       DO J = 1, JJPAR
+      DO I = 1, IIPAR
 
          ! Grid box surface area [m2]
-         AREA_M2 = GET_AREA_M2( J )
+         AREA_M2 = GET_AREA_M2( I, J, 1 )
 
-      DO I = 1, IIPAR
          IF ( TS(I,J) >= 271.15 .and. FRCLND(I,J) < 0.8 ) THEN
 
             ! surface air temp [K]
@@ -779,11 +781,10 @@
       N = 4
       L = 1
       DO J = 1, JJPAR
-
-         ! Grid box surface area [m2]
-         AREA_M2 = GET_AREA_M2( J )
-
          DO I = 1, IIPAR
+
+            ! Grid box surface area [m2]
+            AREA_M2 = GET_AREA_M2( I, J, 1 )
 
             ! First compute flux as kg/m2/time step
             FLUX = EFCH4R(I,J)
@@ -818,11 +819,10 @@
       N = 5
       L = 1
       DO J = 1, JJPAR
-
-         ! Grid box surface area [m2]
-         AREA_M2 = GET_AREA_M2( J )
-
          DO I = 1, IIPAR
+
+            ! Grid box surface area [m2]
+            AREA_M2 = GET_AREA_M2( I, J, 1 )
 
             ! First compute flux as kg/m2/time step
             FLUX = EFCH4W(I,J)

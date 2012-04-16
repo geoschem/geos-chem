@@ -32,6 +32,7 @@
 #  25 Jan 2010 - R. Yantosca - Added Makefile targets for TOMAS microphysics
 #  16 Feb 2011 - R. Yantosca - Added Makefile targets for APM microphysics
 #  04 Nov 2011 - R. Yantosca - Remove ESMF targets, those are not needed
+#  24 Jan 2012 - R. Yantosca - Also add libnc target to build netCDF utils
 #EOP
 #------------------------------------------------------------------------------
 #BOC
@@ -49,7 +50,7 @@ GTMM = GTMM
 # Makefile targets: type "make help" for a complete list!
 #=============================================================================
 
-.PHONY: all lib libkpp libutil exe clean realclean doc docclean help
+.PHONY: all lib libkpp libnc libutil exe clean realclean doc docclean help
 
 all:
 	@$(MAKE) -C $(GEOSDIR) all
@@ -63,11 +64,17 @@ libcore:
 libkpp:
 	@$(MAKE) -C $(GEOSDIR) libkpp
 
+libnc:
+	@$(MAKE) -C $(GEOSDIR) libnc	
+
 libutil:
 	@$(MAKE) -C $(GEOSDIR) libutil
 
 exe:
 	@$(MAKE) -C $(GEOSDIR) exe
+
+ncdfcheck:
+	@$(MAKE) -C $(GEOSDIR) ncdfcheck
 
 clean:
 	@$(MAKE) -C $(GEOSDIR) clean

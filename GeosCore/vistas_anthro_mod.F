@@ -36,6 +36,7 @@
 ! !REVISION HISTORY:
 !  24 Nov 2008 - A. v. Donkelaar - Initial version  
 !  28 Jan 2009 - P. Le Sager     - Initial Version in GEOS-Chem
+!  01 Mar 2012 - R. Yantosca     - Now reference new grid_mod.F90
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -45,9 +46,6 @@
       ! Arrays for weekday & weekend emissions
       REAL*8,  ALLOCATABLE :: VISTAS_WD_NOx(:,:)
       REAL*8,  ALLOCATABLE :: VISTAS_WE_NOx(:,:)
-
-      ! Array for surface area
-      REAL*8,  ALLOCATABLE :: A_CM2(:)
 
       CONTAINS
 !EOC
@@ -71,6 +69,7 @@
 !
 ! !USES:
 !
+      USE GRID_MOD,     ONLY : GET_AREA_CM2
       USE TRACER_MOD,   ONLY : XNUMOL
       USE TRACERID_MOD, ONLY : IDTNOx
 !
@@ -95,6 +94,7 @@
 !
 ! !REVISION HISTORY: 
 !  28 Jan 2009 - A. v. Donkelaar, P. Le Sager - Initial Version
+!  01 Mar 2012 - R. Yantosca - Now use GET_AREA_CM2(I,J,L) from grid_mod.F90
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -137,7 +137,7 @@
       IF ( DO_KGS ) THEN
             
          ! Convert from [molec/c,2/s] to [kg/s]
-         VALUE = VALUE * A_CM2(J) / XNUMOL(N)
+         VALUE = VALUE * GET_AREA_CM2( I, J, 1 ) / XNUMOL(N)
 
       ENDIF
 
@@ -423,6 +423,7 @@
 !
 ! !REVISION HISTORY: 
 !  28 Jan 2009 - P. Le Sager - Initial Version
+!  01 Mar 2012 - R. Yantosca - Now use GET_AREA_CM2(I,J,L) from grid_mod.F90
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -447,21 +448,20 @@
 
       ! Loop over latitudes
       DO J = 1, JJPAR
+      DO I = 1, IIPAR
 
          ! Surface area [cm2] * seconds in this month / AVOGADRO's number
          ! Also multiply by the factor 1d-9 to convert kg to Tg
-         A = GET_AREA_CM2( J ) * ( D(THISMONTH) * 86400d-9 ) / 6.0225d23
+         A       = GET_AREA_CM2( I, J, 1 ) 
+     &           * ( D(THISMONTH) * 86400d-9 ) / 6.0225d23
 
-         ! Loop over longitudes
-         DO I = 1, IIPAR
+         ! Weekday avg emissions
+         WD_NOX  = WD_NOX  + VISTAS_WD_NOX (I,J) * A * F_NOX
 
-            ! Weekday avg emissions
-            WD_NOX  = WD_NOX  + VISTAS_WD_NOX (I,J) * A * F_NOX
+         ! Weekend avg emissions
+         WE_NOX  = WE_NOX  + VISTAS_WE_NOX (I,J) * A * F_NOX
 
-            ! Weekend avg emissions
-            WE_NOX  = WE_NOX  + VISTAS_WE_NOX (I,J) * A * F_NOX
-
-         ENDDO
+      ENDDO
       ENDDO
 
       ! Fancy output
@@ -501,13 +501,13 @@
 ! !USES:
 ! 
       USE ERROR_MOD,   ONLY : ALLOC_ERR
-      USE GRID_MOD,    ONLY : GET_AREA_CM2
       USE LOGICAL_MOD, ONLY : LVISTAS
 
       USE CMN_SIZE_MOD    ! Size parameters
 !
 ! !REVISION HISTORY: 
 !  28 Jan 2009 - P. Le Sager - Initial Version
+!  01 Mar 2012 - R. Yantosca - Remove A_CM2 array, use GET_AREA_CM2 instead
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -535,19 +535,6 @@
       IF ( AS /= 0 ) CALL ALLOC_ERR( 'VISTAS_WE_NOx' )
       VISTAS_WE_NOx = 0d0
 
-      !---------------------------------------------------
-      ! Pre-store array for grid box surface area in cm2
-      !---------------------------------------------------
-
-      ! Allocate array
-      ALLOCATE( A_CM2( JJPAR ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'A_CM2' )
-
-      ! Fill array
-      DO J = 1, JJPAR
-         A_CM2(J) = GET_AREA_CM2( J )
-      ENDDO
-
       END SUBROUTINE INIT_VISTAS_ANTHRO
 !EOC
 !------------------------------------------------------------------------------
@@ -567,13 +554,13 @@
 !
 ! !REVISION HISTORY: 
 !  28 Jan 2009 - P. Le Sager - Initial Version
+!  02 Mar 2012 - R. Yantosca - Remove A_CM2 array
 !EOP
 !------------------------------------------------------------------------------
 !BOC
       !=================================================================
       ! CLEANUP_VISTAS_ANTHRO begins here!
       !=================================================================
-      IF ( ALLOCATED( A_CM2          ) ) DEALLOCATE( A_CM2          )
       IF ( ALLOCATED( VISTAS_WD_NOx  ) ) DEALLOCATE( VISTAS_WD_NOx  )
       IF ( ALLOCATED( VISTAS_WE_NOx  ) ) DEALLOCATE( VISTAS_WE_NOx  )
 

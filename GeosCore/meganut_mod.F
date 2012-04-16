@@ -69,10 +69,10 @@
 ! !REVISION HISTORY:
 !
 !                              Use C-preprocessor #include statement to 
-!                              include F77_CMN_SIZE, which has IIPAR, JJPAR, 
+!                              include CMN_SIZE, which has IIPAR, JJPAR, 
 !                              LLPAR, IIPAR, JJPAR, LGLOB.
 !  23 Jun 2000 - R. Yantosca - Now reference TS from "dao_mod.f" instead of 
-!                              from common block header file "F77_CMN_TS". 
+!                              from common block header file "CMN_TS". 
 !  31 Aug 2000 - R. Yantosca - Eliminated obsolete code from 6/23/00
 !  26 Sep 2001 - R. Yantosca - Now declare XLTMMP as REAL*8 w/in program body.
 !                              Also updated comments.

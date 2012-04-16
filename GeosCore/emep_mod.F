@@ -74,6 +74,8 @@
 !  31 Aug 2010 - R. Yantosca - Updated comments
 !  24 Nov 2010 - G. Vinken   - Updated EMEP mask file
 !  13 Mar 2012 - M. Cooper   - Changed gridding algorithm to map_a2a
+!  22 Mar 2012 - M. Payer    - C2H6 emissions are too low. Use Yaping
+!                              Xiao's C2H6 emissions instead.
 !EOP
 !------------------------------------------------------------------------------
 !
@@ -181,6 +183,9 @@
 !       (amv, 06/2008)
 !  (2 ) Now returns ship emissions if requested (phs, 6/08)
 !  (3 ) Added checks to avoid calling unavailable ship emissions (phs, 6/08)
+!  01 Mar 2012 - R. Yantosca - Now use GET_AREA_CM2(I,J,L) from grid_mod.F90
+!  22 Mar 2012 - M. Payer    - C2H6 emissions are too low. Use Yaping
+!                              Xiao's C2H6 emissions instead.
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -253,7 +258,11 @@
 
       ! C2H6 
       ELSE IF ( N == IDTC2H6 ) THEN
-         EMEP = EMEP_C2H6(I,J)
+!------------------------------------------------------------------------------
+! Prior to 3/22/12:
+!         EMEP = EMEP_C2H6(I,J)
+!------------------------------------------------------------------------------
+         EMEP = -1d0
 
       ! SO2
       ELSE IF ( N == IDTSO2 ) THEN
@@ -279,7 +288,7 @@
       !------------------------------
       IF ( DO_KGS ) THEN
 
-         EMEP = EMEP * GET_AREA_CM2(J) / XNUMOL(NN)
+         EMEP = EMEP * GET_AREA_CM2( I, J, 1 ) / XNUMOL(NN)
 
       ENDIF
 
@@ -840,6 +849,8 @@
 !  (4 ) Now emissions and base year are arguments. Output in Tg/month
 !        since this is called monthly (phs, 12/9/08)
 !  (5 ) Bug fix, now print out correct monthly EMEP totals (bmy, 1/30/09)
+!  01 Mar 2012 - R. Yantosca - Now use GET_AREA_M2(I,J,L) from grid_mod.F90
+!  22 Mar 2012 - M. Payer    - Remove print for C2H6 emissions.
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -910,31 +921,29 @@
       SO2      = 0d0 
       NH3      = 0d0 
 
-      ! Loop over latitudes
+      ! Loop over grid boxes
       DO J = 1, JJPAR
-            
+      DO I = 1, IIPAR
+
          ! Surface area [cm2] * seconds in this year 
          ! Multiply by 1d-9 to convert from [kg] to [Tg]
-         A = GET_AREA_CM2( J ) * DAYS_IN_MONTH * 86400d0 * 1d-9 
+         A = GET_AREA_CM2( I, J, 1 ) * DAYS_IN_MONTH * 86400d0 * 1d-9 
          
-         ! Loop over longitudes
-         DO I = 1, IIPAR
+         ! Sum emissions (list NOx as Tg N)
+         NOX  = NOX  + ( EMEP_NOX (I,J) + EMEP_NOX_SHIP(I,J) )
+     &        * A * B(1)
+         CO   = CO   + ( EMEP_CO  (I,J) + EMEP_CO_SHIP(I,J)  )
+     &        * A * B(2) 
+         SO2  = SO2  + ( EMEP_SO2 (I,J) + EMEP_SO2_SHIP(I,J) )
+     &        * A * B(8) 
 
-            ! Sum emissions (list NOx as Tg N)
-            NOX  = NOX  + ( EMEP_NOX (I,J) + EMEP_NOX_SHIP(I,J) )
-     $           * A * B(1)
-            CO   = CO   + ( EMEP_CO  (I,J) + EMEP_CO_SHIP(I,J)  )
-     $           * A * B(2) 
-            SO2  = SO2  + ( EMEP_SO2 (I,J) + EMEP_SO2_SHIP(I,J) )
-     $           * A * B(8) 
-
-            ALK4 = ALK4 + EMEP_ALK4(I,J) * A * B(3) 
-            MEK  = MEK  + EMEP_MEK (I,J) * A * B(4) 
-            ALD2 = ALD2 + EMEP_ALD2(I,J) * A * B(5) 
-            PRPE = PRPE + EMEP_PRPE(I,J) * A * B(6) 
-            C2H6 = C2H6 + EMEP_C2H6(I,J) * A * B(7) 
-            NH3  = NH3  + EMEP_NH3 (I,J) * A * B(9) 
-         ENDDO
+         ALK4 = ALK4 + EMEP_ALK4(I,J) * A * B(3) 
+         MEK  = MEK  + EMEP_MEK (I,J) * A * B(4) 
+         ALD2 = ALD2 + EMEP_ALD2(I,J) * A * B(5) 
+         PRPE = PRPE + EMEP_PRPE(I,J) * A * B(6) 
+         C2H6 = C2H6 + EMEP_C2H6(I,J) * A * B(7) 
+         NH3  = NH3  + EMEP_NH3 (I,J) * A * B(9) 
+      ENDDO
       ENDDO
  
       !----------------
@@ -950,9 +959,16 @@
       WRITE( 6, 110   ) 'MEK ', EMISS_YEAR, EMEP_MONTH, MEK,  ' C'
       WRITE( 6, 110   ) 'ALD2', EMISS_YEAR, EMEP_MONTH, ALD2, ' C'
       WRITE( 6, 110   ) 'PRPE', EMISS_YEAR, EMEP_MONTH, PRPE, ' C'
-      WRITE( 6, 110   ) 'C2H6', EMISS_YEAR, EMEP_MONTH, C2H6, ' C'
+!------------------------------------------------------------------------------
+! Prior to 3/22/12:
+!      WRITE( 6, 110   ) 'C2H6', EMISS_YEAR, EMEP_MONTH, C2H6, ' C'
+!------------------------------------------------------------------------------
  110  FORMAT( 'EMEP anthropogenic ', a4, ' for ', i4, '/', i2.2,
      &        ': ', f13.6, ' Tg', a2 )
+
+      WRITE( 6, '(/,a,/)' ) 'EMEP_MOD: EMEP C2H6 anthro '       //
+     &   'emissions are too low. Using offline C2H6 emissions ' //
+     &   'from Yaping Xiao.'
 
       ! Fancy output
       WRITE( 6, '(a)' ) REPEAT( '=', 79 )
@@ -1007,12 +1023,6 @@
       !=================================================================
 
       ! File name
-!-----------------------------------------------------------------------
-! Prior to 11/24/10:
-! Read in new mask file for EMEP emissions (gvinken, 11/24/10)
-!      FILENAME  = TRIM( DATA_DIR_1x1 ) // 
-!     &            'EMEP_200510/EMEP_mask.geos.1x1'
-!-----------------------------------------------------------------------
       FILENAME  = TRIM( DATA_DIR_1x1 ) // 
      &            'EMEP_200911/EMEP_mask.geos.1x1'
 
@@ -1141,6 +1151,7 @@
 !  28 Jan 2009 - P. Le Sager - Now account for LEMEPSHIP
 !  29 Oct 2009 - Added multi-species seasonality (amv)
 !  04 Jan 2010 - Extended to 2007, changed input format (amv)
+!  01 Mar 2012 - R. Yantosca - Now use GET_AREA_CM2(I,J,L) from grid_mod.F90
 !  13 Mar 2012 - M. Cooper   - Changed regrid algorithm to map_a2a
 !EOP
 !------------------------------------------------------------------------------
@@ -1215,23 +1226,38 @@
          ! Apply Monthly Factors over land
          TAU = GET_TAU0( GET_MONTH(), 1, 2005)
 
-         IF ( TRACER .eq. IDTNOx ) THEN
-            FILENAME = TRIM( DIR ) // 'SeasonalVariation/' 
-     &        // 'NOx-EMEP-SeasonalScalar.geos.1x1'
-            RATIOID = 71
-         ELSEIF ( TRACER .eq. IDTCO ) THEN
-            FILENAME = TRIM( DIR ) // 'SeasonalVariation/'
-     &        // 'CO-EMEP-SeasonalScalar.geos.1x1'
-            RATIOID = 72
-         ELSEIF ( TRACER .eq. IDTSO2 ) THEN
-            FILENAME = TRIM( DIR ) // 'SeasonalVariation/'
-     &        // 'SOx-EMEP-SeasonalScalar.geos.1x1'
-            RATIOID = 73
-         ELSEIF ( TRACER .eq. IDTNH3 ) THEN
-            FILENAME = TRIM( DIR ) // 'SeasonalVariation/'
-     &        // 'NH3-EMEP-SeasonalScalar.geos.1x1'
-            RATIOID = 74
-         ENDIF
+         ! Select proper filename & tracer #
+         SELECT CASE( TRACER )
+
+            ! NOx
+            CASE( 1 )
+               RATIOID = 71
+               FILENAME = TRIM( DIR )          //
+     &                    'SeasonalVariation/' //
+     &                    'NOx-EMEP-SeasonalScalar.geos.1x1'
+
+            ! CO
+            CASE( 4 )
+               RATIOID = 72
+               FILENAME = TRIM( DIR )          //
+     &                    'SeasonalVariation/' //
+     &                    'CO-EMEP-SeasonalScalar.geos.1x1'
+
+            ! SO2
+            CASE( 26 )
+               RATIOID = 73
+               FILENAME = TRIM( DIR )          //
+     &                    'SeasonalVariation/' //
+     &                    'SOx-EMEP-SeasonalScalar.geos.1x1'
+
+            ! SO2
+            CASE( 30 )
+               RATIOID = 74
+               FILENAME = TRIM( DIR )          //
+     &                    'SeasonalVariation/' //
+     &                    'NH3-EMEP-SeasonalScalar.geos.1x1'
+
+         END SELECT
 
          ! Echo info
          WRITE( 6, 101 ) TRIM( FILENAME )
@@ -1270,23 +1296,22 @@
       ! convert to molec/cm2 for consistency with previous
       ! emissions
       B = 0d0
-      IF ( IDTNOx .eq. TRACER ) B = 1.d3 / 46d0 * 6.0225d23
-      IF ( IDTCO  .eq. TRACER ) B = 1.d3 / 28d0 * 6.0225d23
-      IF ( IDTSO2 .eq. TRACER ) B = 1.d3 / 64d0 * 6.0225d23
-      IF ( IDTNH3 .eq. TRACER ) B = 1.d3 / 17d0 * 6.0225d23
+      IF ( TRACER .eq.  1 ) B = 1.d3 / 46d0 * 6.0225d23
+      IF ( TRACER .eq.  4 ) B = 1.d3 / 28d0 * 6.0225d23
+      IF ( TRACER .eq. 26 ) B = 1.d3 / 64d0 * 6.0225d23
+      IF ( TRACER .eq. 30 ) B = 1.d3 / 17d0 * 6.0225d23
 
-      ! Loop over latitudes
+      ! Loop over surface boxes
       DO J = 1, JJPAR
+      DO I = 1, IIPAR
 
          ! Surface area [cm2] * sec per year
-         A = GET_AREA_CM2( J ) * 365d0 * 86400d0
+         A = GET_AREA_CM2( I, J, 1 ) * 365d0 * 86400d0
 
-         ! Loop over longitudes
-         DO I = 1, IIPAR
+         ! Unit conversion
+         ARRAY(I,J) = ARRAY(I,J) / A * B
 
-            ARRAY(I,J) = ARRAY(I,J) / A * B
-
-         ENDDO
+      ENDDO
       ENDDO
 
       END SUBROUTINE READ_EMEP_UPDATED
@@ -1334,6 +1359,7 @@
 !  28 Jan 2009 - A. v. Donkelaar, P. Le Sager - Initial version
 !  28 Jan 2009 - P. Le Sager - Now account for LEMEPSHIP
 !  29 Oct 2009 - Added multi-species seasonality (amv)
+!  01 Mar 2012 - R. Yantosca - Now use GET_AREA_CM2(I,J,L) from grid_mod.F90
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -1413,23 +1439,38 @@
          ! Apply Monthly Factors over land
          TAU = GET_TAU0( GET_MONTH(), 1, 2005)
 
-         IF ( TRACER .eq. 1 ) THEN
-            FILENAME = TRIM( DIR ) // 'SeasonalVariation/'
-     &        // 'NOx-EMEP-SeasonalScalar.geos.05x0666'
-            RATIOID = 71
-         ELSEIF ( TRACER .eq. 4 ) THEN
-            FILENAME = TRIM( DIR ) // 'SeasonalVariation/'
-     &        // 'CO-EMEP-SeasonalScalar.geos.05x0666'
-            RATIOID = 72
-         ELSEIF ( TRACER .eq. 26 ) THEN
-            FILENAME = TRIM( DIR ) // 'SeasonalVariation/'
-     &        // 'SOx-EMEP-SeasonalScalar.geos.05x0666'
-            RATIOID = 73
-         ELSEIF ( TRACER .eq. 30 ) THEN
-            FILENAME = TRIM( DIR ) // 'SeasonalVariation/'
-     &        // 'NH3-EMEP-SeasonalScalar.geos.05x0666'
-            RATIOID = 74
-         ENDIF
+         ! Select proper filename & tracer #
+         SELECT CASE( TRACER )
+
+            ! NOx
+            CASE( 1 )
+               RATIOID = 71
+               FILENAME = TRIM( DIR )          //
+     &                    'SeasonalVariation/' //
+     &                    'NOx-EMEP-SeasonalScalar.geos.05x0666'
+
+            ! CO
+            CASE( 4 )
+               RATIOID = 72
+               FILENAME = TRIM( DIR )          //
+     &                    'SeasonalVariation/' //
+     &                    'CO-EMEP-SeasonalScalar.geos.05x0666'
+
+            ! SO2
+            CASE( 26 )
+               RATIOID = 73
+               FILENAME = TRIM( DIR )          //
+     &                    'SeasonalVariation/' //
+     &                    'SOx-EMEP-SeasonalScalar.geos.05x0666'
+
+            ! SO2
+            CASE( 30 )
+               RATIOID = 74
+               FILENAME = TRIM( DIR )          //
+     &                    'SeasonalVariation/' //
+     &                    'NH3-EMEP-SeasonalScalar.geos.05x0666'
+
+         END SELECT
 
          ! Echo info
          WRITE( 6, 101 ) TRIM( FILENAME )
@@ -1460,23 +1501,22 @@
       ! convert to molec/cm2 for consistency with previous
       ! emissions
       B = 0d0
-      IF ( IDTNOx .eq. TRACER ) B = 1.d3 / 46d0 * 6.0225d23
-      IF ( IDTCO  .eq. TRACER ) B = 1.d3 / 28d0 * 6.0225d23
-      IF ( IDTSO2 .eq. TRACER ) B = 1.d3 / 64d0 * 6.0225d23
-      IF ( IDTNH3 .eq. TRACER ) B = 1.d3 / 17d0 * 6.0225d23
+      IF ( TRACER .eq.  1 ) B = 1.d3 / 46d0 * 6.0225d23
+      IF ( TRACER .eq.  4 ) B = 1.d3 / 28d0 * 6.0225d23
+      IF ( TRACER .eq. 26 ) B = 1.d3 / 64d0 * 6.0225d23
+      IF ( TRACER .eq. 30 ) B = 1.d3 / 17d0 * 6.0225d23
 
-      ! Loop over latitudes
+      ! Loop over surface boxes
       DO J = 1, JJPAR
+      DO I = 1, IIPAR
 
          ! Surface area [cm2] * sec per year
-         A = GET_AREA_CM2( J ) * 365d0 * 86400d0
+         A = GET_AREA_CM2( I, J, 1 ) * 365d0 * 86400d0
 
-         ! Loop over longitudes
-         DO I = 1, IIPAR
+         ! Unit conversion
+         ARRAY(I,J) = ARRAY(I,J) / A * B
 
-            ARRAY(I,J) = ARRAY(I,J) / A * B
-
-         ENDDO
+      ENDDO
       ENDDO
 
       END SUBROUTINE READ_EMEP_UPDATED_05x0666

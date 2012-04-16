@@ -80,7 +80,7 @@
 !        * Allow option of mid-level scaling to match global avg ann flash
 !           rate between G-C and OTD-LIS 11-year climatology (new function)
 !        * Local Redist now a la Murray et al, 2007 in preparation (monthly)
-!        * Replace GEMISNOX (from F77_CMN_NOX) with module variable EMIS_LI_NOx
+!        * Replace GEMISNOX (from CMN_NOX) with module variable EMIS_LI_NOx
 !  (5 ) Added MFLUX, PRECON redistribution options (ltm, bmy, 11/29/07)
 !  (6 ) Updated OTD/LIS scaling for GEOS-5 to get more realistic totals
 !        (ltm, bmy, 2/20/08)
@@ -99,6 +99,8 @@
 !  13 Aug 2010 - R. Yantosca - Add modifications for MERRA
 !  10 Nov 2010 - L. Murray   - Updated OTD/LIS local scaling for MERRA 4x5
 !  10 Nov 2010 - R. Yantosca - Added ProTeX headers
+!  02 Feb 2012 - R. Yantosca - Added modifications for GEOS-5.7.x met fields
+!  01 Mar 2012 - R. Yantosca - Now reference new grid_mod.F90
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -258,21 +260,24 @@
 !$OMP+PRIVATE( RATE_SAVE,   VERTPROF                              )
 !$OMP+SCHEDULE( DYNAMIC )
 
-      ! Loop over latitudes
+      ! Loop over surface boxes
       DO J = 1, JJPAR
+      DO I = 1, IIPAR
 
-         ! Grid box surface areas in [m2] and [km2]
-         A_M2  = GET_AREA_M2( J )
-         A_KM2 = A_M2 / 1d6
+            !%%% NOTE: Use L=1 for GRID_MOD functions.  This is OK for the
+            !%%% existing GEOS-Chem with a pure cartesian grid, but may be an
+            !%%% issue when interfaced with a GCM with a non-regular grid
+            !%%% (bmy, 3/1/12)
 
-         ! Grid box latitude [degrees]
-         YMID  = GET_YMID( J )
+            ! Grid box surface areas in [m2] and [km2]
+            A_M2     = GET_AREA_M2( I, J, 1 )
+            A_KM2    = A_M2 / 1d6
 
-         ! Loop over longitudes
-         DO I = 1, IIPAR
+            ! Grid box latitude [degrees]
+            YMID     = GET_YMID( I, J, 1 )
 
             ! Grid box longitude [degrees]
-            XMID     = GET_XMID( I )
+            XMID     = GET_XMID( I, J, 1 )
 
             ! Initialize
             LBOTTOM  = 0
@@ -836,6 +841,7 @@
 !  (11) Now use the Ott et al. [2010] profiles, and apply consistently with
 !        GMI model [Allen et al., 2010] (ltm, bmy, 1/25/11).
 !  10 Nov 2010 - R. Yantosca - Added ProTeX headers
+!  01 Mar 2012 - R. Yantosca - Now use GET_AREA_CM2(I,J,L) from grid_mod.F90
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -855,7 +861,12 @@
       MTYPE    = 0
       VERTPROF = 0d0
       MONTH    = GET_MONTH()
-      YMID     = GET_YMID(J)
+
+      !%%% NOTE: Use L=1 for GRID_MOD functions.  This is OK for the
+      !%%% existing GEOS-Chem with a pure cartesian grid, but may be an
+      !%%% issue when interfaced with a GCM with a non-regular grid
+      !%%% (bmy, 3/1/12)
+      YMID     = GET_YMID( I, J, 1 )
 
       !=================================================================
       ! Test whether location (I,J) is continental, marine, or snow/ice
@@ -1205,6 +1216,7 @@
 !       new data directory. Special handling for GEOS5.1.0 and 5.2.0 added. 
 !       (ltm, bmy, 1/25/11)
 !  10 Nov 2010 - R. Yantosca - Added ProTeX headers
+!  02 Feb 2012 - R. Yantosca - Added modifications for GEOS-5.7.x met
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -1223,6 +1235,8 @@
       ! Get model name
 #if   defined( MERRA )
       MODELNAME = 'merra'
+#elif defined( GEOS_57 )
+         MODELNAME = 'geos5.7.2'
 #elif defined( GEOS_5 )
       ! GEOS-5 convection scheme changed in GCM post 9/1/2008
       IF ( GET_TAU() .ge. GET_TAU0( 9, 1, 2008 ) ) THEN
@@ -1302,14 +1316,14 @@
 ! !REVISION HISTORY: 
 !  09 Oct 1997 - R. Yantosca - Initial version
 !  (1 ) Remove IOFF, JOFF from the argument list.  Also remove references
-!        to header files "F77_CMN_O3" and "comtrid.h" (bmy, 3/16/00)
+!        to header files "CMN_O3" and "comtrid.h" (bmy, 3/16/00)
 !  (2 ) Now use allocatable array for ND32 diagnostic (bmy, 3/16/00)  
 !  (3 ) Now reference BXHEIGHT from "dao_mod.f".  Updated comments, cosmetic
 !        changes.  Replace LCONVM with the parameter LLCONVM. (bmy, 9/18/02)
 !  (4 ) Removed obsolete reference to "CMN".  Now bundled into 
 !        "lightning_mod.f" (bmy, 4/14/04)
 !  (5 ) Renamed from EMLIGHTNING_NL to EMLIGHTNING.  Now replace GEMISNOX
-!        (from F77_CMN_NOX) with module variable EMIS_LI_NOx. (ltm, bmy, 10/3/07)
+!        (from CMN_NOX) with module variable EMIS_LI_NOx. (ltm, bmy, 10/3/07)
 !  10 Nov 2010 - R. Yantosca - Added ProTeX headers
 !EOP
 !------------------------------------------------------------------------------
@@ -1392,6 +1406,8 @@
 !  (8 ) Reprocessed for error in CLDTOPS field; Updated for GEOS
 !        5.1.0 vs. 5.2.0; MERRA added; (ltm, bmy, 1/25/11)
 !  10 Nov 2010 - R. Yantosca - Added ProTeX headers
+!  02 Feb 2012 - R. Yantosca - Compute BETA for MERRA 2 x 2.5
+!  02 Feb 2012 - R. Yantosca - Compute BETA for GEOS-5.7.x
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -1458,7 +1474,32 @@
       ! Initialize
       BETA = 1d0
 
-#if   defined( MERRA ) && defined( GRID4x5 )
+#if   defined( GEOS_57 ) && defined( GRID4x5 ) 
+
+      !---------------------------------------
+      ! GEOS-5.7.x: 4 x 5 global simulation
+      !---------------------------------------
+      !%%% BMY KLUDGE (2/2/12)
+      !%%% Use same value as 4x5 MERRA during testing phase
+      BETA = ANN_AVG_FLASHRATE / 76.019042d0
+
+#elif defined( GEOS_57 ) && defined( GRID2x25 )
+
+      !---------------------------------------
+      ! GEOS 5: 2 x 2.5 global simulation
+      !---------------------------------------
+      !%%% BMY KLUDGE (2/2/12)
+      !%%% Use same value as 2x25 MERRA during testing phase
+      BETA = ANN_AVG_FLASHRATE / 253.55888d0
+
+#elif defined( MERRA ) && defined( GRID2x25 )
+
+      !---------------------------------------
+      ! MERRA: 2 x 2.5 global simulation
+      !---------------------------------------
+      BETA = ANN_AVG_FLASHRATE / 253.55888d0
+
+#elif   defined( MERRA ) && defined( GRID4x5 )
 
       !---------------------------------------
       ! MERRA: 4 x 5 global simulation
@@ -1579,7 +1620,6 @@
       USE ERROR_MOD,     ONLY : ALLOC_ERR
       USE FILE_MOD,      ONLY : IOERROR
       USE FILE_MOD,      ONLY : IU_FILE
-      USE GRID_MOD,      ONLY : GET_YEDGE
       USE GRID_MOD,      ONLY : GET_AREA_M2
       USE LOGICAL_MOD,   ONLY : LOTDLOC
 
@@ -1603,6 +1643,7 @@
 !  (8 ) Read in new Ott profiles from lightning_NOx_201101. Remove
 !        depreciated options. (ltm, bmy, 1/25/11)
 !  10 Nov 2010 - R. Yantosca - Added ProTeX headers
+!  01 Mar 2012 - R. Yantosca - Removed reference to GET_YEDGE
 !EOP
 !------------------------------------------------------------------------------
 !BOC

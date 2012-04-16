@@ -31,7 +31,6 @@
 ! !PRIVATE MEMBER FUNCTIONS:
 !
       PRIVATE :: GEOS4_GEOS5_GLOBAL_ADV      
-      PRIVATE :: GEOS3_GLOBAL_ADV            
       PRIVATE :: GCAP_GLOBAL_ADV             
       PRIVATE :: DO_GEOS5_WINDOW_TRANSPORT      
       PRIVATE :: DO_WINDOW_TRANSPORT   
@@ -65,6 +64,8 @@
 !  26 Feb 2010 - R. Yantosca - Added ProTex Headers
 !  08 Mar 2010 - C. Carouge  - Modify call to tpcore_fvdas. We do not re-order 
 !                              mass fluxes diagnostics anymore.
+!  28 Feb 2012 - R. Yantosca - Removed support for GEOS-3
+!  01 Mar 2012 - R. Yantosca - Now reference new grid_mod.F90
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -126,6 +127,8 @@
 !  26 Feb 2010 - R. Yantosca - Removed references to obsolete LEMBED switch
 !  26 Feb 2010 - R. Yantosca - Added ProTeX headers
 !  06 Oct 2010 - R. Yantosca - Treat MERRA in the same way as GEOS-5.
+!  28 Feb 2012 - R. Yantosca - Treat GEOS-5.7 in the same way as MERRA
+!  28 Feb 2012 - R. Yantosca - Removed support for GEOS-3
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -158,20 +161,15 @@
 #endif
       ELSE
 
-#if defined( GEOS_4 ) || defined( GEOS_5 ) || defined( MERRA )
-
-         ! Call TPCORE w/ proper settings for GEOS-4/GEOS-5 met
-         CALL GEOS4_GEOS5_GLOBAL_ADV
-
-#elif defined( GEOS_3 )
-
-         ! Call TPCORE w/ proper settings for GEOS-3 met
-         CALL GEOS3_GLOBAL_ADV
-
-#elif defined( GCAP )
+#if defined( GCAP )
 
          ! Call TPCORE w/ proper settings for GCAP met
          CALL GCAP_GLOBAL_ADV
+
+#else
+
+         ! Call TPCORE w/ proper settings for GEOS-4/GEOS-5/MERRA/GEOS-5.7
+         CALL GEOS4_GEOS5_GLOBAL_ADV
 
 #endif
       ENDIF
@@ -442,159 +440,6 @@
       IF ( LPRT ) CALL DEBUG_MSG( '### G4_G5_GLOB_ADV: a TPCORE' ) 
 
       END SUBROUTINE GEOS4_GEOS5_GLOBAL_ADV
-!EOC
-!------------------------------------------------------------------------------
-!          Harvard University Atmospheric Chemistry Modeling Group            !
-!------------------------------------------------------------------------------
-!BOP
-!
-! !IROUTINE: geos3_global_adv
-!
-! !DESCRIPTION: Subroutine GEOS3\_GLOBAL\_ADV is the driver routine for 
-!  TPCORE with the GMAO GEOS-3 met fields.
-!\\
-!\\
-! !INTERFACE:
-!
-      SUBROUTINE GEOS3_GLOBAL_ADV
-!
-! !USES:
-!
-      USE DAO_MOD,          ONLY : PSC2, UWND, VWND
-      USE DIAG_MOD,         ONLY : MASSFLEW, MASSFLNS, MASSFLUP
-      USE ERROR_MOD,        ONLY : IT_IS_NAN, DEBUG_MSG
-      USE LOGICAL_MOD,      ONLY : LFILL, LMFCT, LPRT, LWINDO
-      USE PRESSURE_MOD,     ONLY : GET_PEDGE, SET_FLOATING_PRESSURE
-      USE TIME_MOD,         ONLY : GET_TS_DYN
-      USE TPCORE_BC_MOD,    ONLY : SAVE_GLOBAL_TPCORE_BC
-      USE TPCORE_MOD,       ONLY : TPCORE
-      USE TRACER_MOD,       ONLY : N_TRACERS, STT, TCVV
-#if   defined( APM )
-      USE TRACER_MOD,       ONLY : N_APMTRA
-#endif
-
-      USE CMN_SIZE_MOD         ! Size parameters
-      USE CMN_DIAG_MOD         ! NDxx flags
-      USE CMN_GCTM_MOD         ! Physical constants
-! 
-! !REVISION HISTORY: 
-!  30 Oct 2007 - R. Yantosca - Initial version
-!  (1 ) Split off the GEOS-3 relevant parts from the previous routine
-!        DO_GLOBAL_TRANSPORT (bmy, 10/30/07)
-!  26 Feb 2010 - R. Yantosca - Removed references to obsolete LEMBED switch
-!  26 Feb 2010 - R. Yantosca - Added ProTeX headers
-!  16 Feb 2011 - R. Yantosca - Add modifications for APM microphysics (G. Luo)
-!EOP
-!------------------------------------------------------------------------------
-!BOC
-!
-! !LOCAL VARIABLES:
-!
-      INTEGER            :: I, J, L, N_DYN, N_TOT_TRC
-      REAL*8             :: A_DIFF, D_DYN, TR_DIFF
-      REAL*8             :: P_TP1(IIPAR,JJPAR)
-      REAL*8             :: P_TP2(IIPAR,JJPAR)
-      REAL*8             :: UTMP(IIPAR,JJPAR,LLPAR)
-      REAL*8             :: VTMP(IIPAR,JJPAR,LLPAR)
-      REAL*8             :: WW(IIPAR,JJPAR,LLPAR) 
-!
-! !DEFINED PARAMETERS:
-!
-      ! Parameters
-      INTEGER, PARAMETER :: IGD=0, J1=3
-      REAL*8,  PARAMETER :: Umax=200d0
-
-      !=================================================================
-      ! GEOS3_GLOBAL_ADV begins here!
-      !=================================================================
-
-      ! Pick the proper # of tracers
-#if   defined( APM )
-      N_TOT_TRC = N_TRACERS + N_APMTRA   ! G-C advected tracers + APM tracers
-#else
-      N_TOT_TRC = N_TRACERS              ! G-C advected tracers only
-#endif
-
-      ! Save boundary conditions (global grid) for future nested run
-      IF ( LWINDO ) CALL SAVE_GLOBAL_TPCORE_BC
-
-      ! Dynamic timestep [s]
-      N_DYN = GET_TS_DYN() * 60
-      D_DYN = DBLE( N_DYN )
-
-      !=================================================================
-      ! Prepare variables for calls to TPCORE
-      !
-      ! For GEOS-3 (pure sigma grid), the pressure at the bottom edge 
-      ! of grid box (I,J,L) is given by:
-      !
-      !    P(I,J,L) = Ap(L) + [ Bp(L) * ( Psurface(I,J) - PTOP ) ]
-      !
-      ! where Psurface is the true surface pressure (i.e. not PS-PTOP).
-      ! and Ap(L), Bp(L) define the vertical grid (see pressure_mod.f)
-      !
-      ! Therefore, we construct the 2-D surface pressure arrays that
-      ! are required for TPCORE:
-      !
-      !    P_TP1(I,J) = ( Psurf(I,J) - PTOP ) at midpt of dyn timestep
-      !    P_TP2(I,J) = ( Psurf(I,J) - PTOP ) at end   of dyn timestep
-      !
-      ! Note that P_TP1 and P_TP2 need to be ( Psurface - PTOP ) in 
-      ! order to be consistent with the definition of Ap and Bp that
-      ! defines the GEOS-3 pure-sigma grid.
-      !
-      ! Also note that TPCORE will call the pressure fixer internally, 
-      ! which will ensure mass conservation.  However, we must reset 
-      ! the floating pressure with the output pressure after advection.
-      !=================================================================
-
-!$OMP PARALLEL DO
-!$OMP+DEFAULT( SHARED )
-!$OMP+PRIVATE( I, J )
-      DO J = 1, JJPAR
-      DO I = 1, IIPAR
-
-         ! Psurface - PTOP at midpt of dynamic timestep [hPa]
-         P_TP1(I,J) = GET_PEDGE(I,J,1) - PTOP
-
-         ! Psurface - PTOP at end   of dynamic timestep [hPa]
-         P_TP2(I,J) = PSC2(I,J)        - PTOP
-
-      ENDDO
-      ENDDO
-!$OMP END PARALLEL DO
-      
-      !==============================================================
-      ! Call TPCORE to perform the advection
-      !==============================================================
-
-      ! Store winds in UTMP, VTMP to preserve UWND, VWND 
-      ! for diagnostics.  Flip in the vertical for TPCORE.
-      UTMP(:,:,1:LLPAR) = UWND(:,:,LLPAR:1:-1)
-      VTMP(:,:,1:LLPAR) = VWND(:,:,LLPAR:1:-1)
-
-      ! TPCORE v7.1.m transport scheme.  Pass P_TP1 and P_TP2, as are
-      ! computed above.  P_TP2 will be overwritten with the new value
-      ! of (Psurface-PTOP) after transport.  NOTE: TPCORE assumes that 
-      ! L=1 is atm top, so flip in the vertical. (bmy, 10/30/07)
-      CALL TPCORE( IGD,   STT(:,:,LLPAR:1:-1,:),
-     &             P_TP1, P_TP2, UTMP, VTMP,  WW,    
-     &             N_DYN, IORD,  JORD, KORD,  N_TOT_TRC, 
-     &             IIPAR, JJPAR, J1,   LLPAR, Ap,   
-     &             Bp,    PTOP,  Re,   LFILL, LMFCT, Umax )
-
-      !=================================================================
-      ! Reset surface pressure in order to ensure mass conservation
-      !=================================================================
-
-      ! Reset floating pressure w/ pressure adjusted by TPCORE
-      ! P_TP2 is PS-PTOP, so reset the pressure with P_TP2+PTOP.
-      CALL SET_FLOATING_PRESSURE( P_TP2 + PTOP )
-           
-      !### Debug
-      IF ( LPRT ) CALL DEBUG_MSG( '### GEOS3_GLOB_ADV: a TPCORE' ) 
-
-      END SUBROUTINE GEOS3_GLOBAL_ADV
 !EOC
 !------------------------------------------------------------------------------
 !          Harvard University Atmospheric Chemistry Modeling Group            !
@@ -1321,7 +1166,7 @@
 !  10 Mar 2003 - R. Yantosca - Initial version
 !  (1 ) Now references GET_TS_DYN from "time_mod.f", INIT_TPCORE_FVDAS from
 !        "tpcore_fvdas_mod.f90", and GET_YMID_R from "grid_mod.f".  Now also
-!        include "F77_CMN_SETUP".  (bdf, bmy, 4/28/03)
+!        include "CMN_SETUP".  (bdf, bmy, 4/28/03)
 !  (2 ) Remove reference to DSIG, it's obsolete. (bmy, 6/24/03)
 !  (3 ) Now references LEMBED & LTPFV from "logical_mod.f".  Now references
 !        N_TRACERS from "tracer_mod.f". (bmy, 7/20/04)
@@ -1331,6 +1176,9 @@
 !  (6 ) Deleted reference to CMN, it's not needed anymore (bmy, 11/6/08)
 !  26 Feb 2010 - R. Yantosca - Removed references to obsolete LEMBED switch
 !  26 Feb 2010 - R. Yantosca - Added ProTeX headers
+!  28 Feb 2012 - R. Yantosca - Removed support for GEOS-3
+!  01 Mar 2012 - R. Yantosca - Now use GET_AREA_M2(I,J,L) from grid_mod.F90
+!  01 Mar 2012 - R. Yantosca - Now use GET_YMID_R_W(I,J,L) from grid_mod.F90
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -1367,12 +1215,7 @@
          ! K runs from the top down
          K = ( LLPAR + 1 ) - L + 1
 
-#if   defined( GEOS_3 )
-         Ap(L) = GET_AP(K) / PTOP   ! Ap(L) = 1 for all levels L
-#else
          Ap(L) = GET_AP(K)          ! Ap(L) is in [hPa] 
-#endif
-
          Bp(L) = GET_BP(K)
       ENDDO
 
@@ -1384,13 +1227,12 @@
 
       ! Surface area [m2]
       DO J = 1, JJPAR
-         A_M2(J) = GET_AREA_M2( J )
+         A_M2(J) = GET_AREA_M2( 1, J, 1 )
       ENDDO
 
       !=================================================================
       ! Additional setup for the GEOS-4/fvDAS version of TPCORE
       !=================================================================
-#if   !defined( GEOS_3 )
 
       ! Initialize
       N_DYN = GET_TS_DYN() * 60
@@ -1400,14 +1242,13 @@
 
       ! YMID_R is latitude of grid box center [radians]
       DO J = 1,JJPAR
-         YMID_R(J) = GET_YMID_R(J)
+         YMID_R(J) = GET_YMID_R( 1, J, 1 )
       ENDDO
 
       ! Call INIT routine from "tpcore_fvdas_mod.f" 
       CALL INIT_TPCORE( IIPAR,  JJPAR, LLPAR,  JFIRST, JLAST, 
      &                  NG, MG, DBLE( N_DYN ), Re,     YMID_R )
 
-#endif
 
       END SUBROUTINE INIT_TRANSPORT
 
@@ -1452,6 +1293,8 @@
 !  06 Jun 2008 - D. Chen & R. Yantosca - Initial version
 !  26 Feb 2010 - R. Yantosca - Removed references to obsolete LEMBED switch
 !  26 Feb 2010 - R. Yantosca - Added ProTeX headers
+!  01 Mar 2012 - R. Yantosca - Now use GET_AREA_CM2(I,J,L) from grid_mod.F90
+!  01 Mar 2012 - R. Yantosca - Now use GET_YMID_R_W(I,J,L) from grid_mod.F90
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -1497,7 +1340,7 @@
 
       ! Surface area [m2]
       DO J = 1, JJPAR
-         A_M2(J) = GET_AREA_M2( J )
+         A_M2(J) = GET_AREA_M2( 1, J, 1 )
       ENDDO
 
       !=================================================================
@@ -1512,7 +1355,7 @@
 
       ! YMID_R is latitude of grid box center [radians]
       DO J =0, JJPAR+1
-         YMID_R_W(J) = GET_YMID_R_W(J)
+         YMID_R_W(J) = GET_YMID_R_W( 1, J, 1 )
       ENDDO
 
       ! Call INIT routine from "tpcore_geos5_fvdas_window_mod.f"
