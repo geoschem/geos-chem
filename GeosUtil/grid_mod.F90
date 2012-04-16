@@ -38,6 +38,7 @@ MODULE Grid_Mod
   PUBLIC  :: Get_yMid
   PUBLIC  :: Get_yMid_r
   PUBLIC  :: Get_yMid_r_w
+  PUBLIC  :: Get_ySin
   PUBLIC  :: Get_xOffSet
   PUBLIC  :: Get_yOffSet
   PUBLIC  :: Init_Grid
@@ -48,6 +49,7 @@ MODULE Grid_Mod
 ! !REVISION HISTORY:
 !  23 Feb 2012 - R. Yantosca - Initial version, based on grid_mod.F
 !  01 Mar 2012 - R. Yantosca - Validated for nested grids
+!  03 Apr 2012 - M. Payer    - Added ySin for map_a2a regrid (M. Cooper)
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -78,6 +80,7 @@ MODULE Grid_Mod
   REAL*8,  ALLOCATABLE :: XEDGE    (:,:,:)
   REAL*8,  ALLOCATABLE :: YMID     (:,:,:)
   REAL*8,  ALLOCATABLE :: YEDGE    (:,:,:)
+  REAL*8,  ALLOCATABLE :: YSIN     (:,:,:)
   REAL*8,  ALLOCATABLE :: YMID_R   (:,:,:)
   REAL*8,  ALLOCATABLE :: YEDGE_R  (:,:,:)
   REAL*8,  ALLOCATABLE :: YMID_R_W (:,:,:)
@@ -213,6 +216,9 @@ CONTAINS
           
           ! Lat edges (radians)
           YEDGE_R(I,J,L)  = ( PI_180  * YEDGE(I,J,L) )
+
+          ! mjc - Compute sine of latitude edges (needed for map_a2a regrid)
+          YSIN(I,J,L) = SIN ( YEDGE_R(I,J,L) )
 
        ENDDO
        ENDDO
@@ -666,7 +672,7 @@ CONTAINS
 !
 ! !IROUTINE: get_ymid_r_w
 !
-! !DESCRIPTION: Function GET\_YMID3_R\_W returns the latitude in radians at 
+! !DESCRIPTION: Function GET\_YMID3\_R\_W returns the latitude in radians at 
 !  the center of a GEOS-Chem grid box for the GEOS-5 nested grid.
 !\\
 !\\
@@ -740,6 +746,41 @@ CONTAINS
     Y = YEDGE_R(I,J,L)
 
   END FUNCTION Get_yEdge_R
+!EOC
+!------------------------------------------------------------------------------
+!          Harvard University Atmospheric Chemistry Modeling Group            !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: get_ysin
+!
+! !DESCRIPTION: Function GET\_YSIN returns the sine of the southern edge 
+! of a GEOS-Chem grid box. 
+!\\
+!\\
+! !INTERFACE:
+!
+      FUNCTION Get_ySin( I, J, L ) RESULT( Y ) 
+!   
+! !INPUT PARAMETERS:
+!                  
+    INTEGER, INTENT(IN) :: I   ! Longitude index
+    INTEGER, INTENT(IN) :: J   ! Latitude index
+    INTEGER, INTENT(IN) :: L   ! Level index
+!
+! !RETURN VALUE:
+!
+    REAL*8              :: Y   ! Sine of Latitude value @ S edge of grid box
+!
+! !REVISION HISTORY:
+!  03 Apr 2012 - M. Payer    -  Initial version (M. Cooper)
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+
+      Y = YSIN(I,J,L)
+
+      END FUNCTION Get_ySin
 !EOC
 !------------------------------------------------------------------------------
 !          Harvard University Atmospheric Chemistry Modeling Group            !
@@ -1001,6 +1042,10 @@ CONTAINS
     IF ( AS /= 0 ) CALL ALLOC_ERR( 'YEDGE' )
     YEDGE = 0d0
 
+    ALLOCATE( YSIN( I1:I2, J1:J2+1, L1:L2 ), STAT=AS )
+    IF ( AS /= 0 ) CALL ALLOC_ERR( 'YSIN' )
+    YSIN = 0d0
+
     ALLOCATE( YMID_R( I1:I2, J1:J2, L1:L2 ), STAT=AS )               
     IF ( AS /= 0 ) CALL ALLOC_ERR( 'YMID_R' )
     YMID_R = 0d0
@@ -1054,6 +1099,7 @@ CONTAINS
     IF ( ALLOCATED( XEDGE      ) ) DEALLOCATE( XEDGE      )
     IF ( ALLOCATED( YMID       ) ) DEALLOCATE( YMID       )
     IF ( ALLOCATED( YEDGE      ) ) DEALLOCATE( YEDGE      )
+    IF ( ALLOCATED( YSIN       ) ) DEALLOCATE( YSIN       )
     IF ( ALLOCATED( YMID_R     ) ) DEALLOCATE( YMID_R     )
     IF ( ALLOCATED( YMID_R_W   ) ) DEALLOCATE( YMID_R_W   )  
     IF ( ALLOCATED( YEDGE_R    ) ) DEALLOCATE( YEDGE_R    )
