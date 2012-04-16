@@ -1,9 +1,9 @@
 !------------------------------------------------------------------------------
 !          Matthew Cooper - Dalhousie University                              !
 !------------------------------------------------------------------------------
-! !MODULE: regrid_a2a_mod
+! !MODULE: regrid_a2a_mod.F90
 !
-! !DESCRIPTION: Regrid_a2a_mod uses an algorithm adapted from map_a2a code 
+! !DESCRIPTION: REGRID\_A2A\_MOD uses an algorithm adapted from MAP\_A2A code 
 !  to regrid from one horizonatal grid to another
 !\\
 !\\
