@@ -523,6 +523,23 @@
      &              T=T,           U=UWND,          V=VWND,        
      &              ZMEU=ZMEU,     ZMMD=ZMMD,       ZMMU=ZMMU ) 
 
+      ! Add met fields to object of type GC_MET_LOCAL
+#if defined( DEVEL )
+      LOCAL_MET%CLDF     = CLDF
+      LOCAL_MET%CLDTOPS  = CLDTOPS
+      LOCAL_MET%HKBETA   = HKBETA
+      LOCAL_MET%HKETA    = HKETA
+      LOCAL_MET%MOISTQ   = MOISTQ
+      LOCAL_MET%OPTD     = OPTDEP
+      LOCAL_MET%SPHU     = SPHU
+      LOCAL_MET%T        = T
+      LOCAL_MET%U        = UWND
+      LOCAL_MET%V        = VWND
+      LOCAL_MET%ZMEU     = ZMEU
+      LOCAL_MET%ZMMD     = ZMMD
+      LOCAL_MET%ZMMU     = ZMMU
+#endif
+
 #elif defined( GEOS_5 )
 
       !=================================================================      
@@ -545,6 +562,30 @@
      &              TAUCLI=TAUCLI,      TAUCLW=TAUCLW,     
      &              U=UWND,             V=VWND         ) 
 
+      ! Add met fields to object of type GC_MET_LOCAL
+#if defined( DEVEL )
+      LOCAL_MET%CLDF     = CLDF
+      LOCAL_MET%CLDTOPS  = CLDTOPS
+      LOCAL_MET%CMFMC    = CMFMC
+      LOCAL_MET%DQIDTMST = DQIDTMST
+      LOCAL_MET%DQLDTMST = DQLDTMST
+      LOCAL_MET%DQVDTMST = DQVDTMST
+      LOCAL_MET%DQRCU    = DQRCON
+      LOCAL_MET%DQRLSAN  = DQRLSC
+      LOCAL_MET%DTRAIN   = DTRAIN
+      LOCAL_MET%MOISTQ   = MOISTQ
+      LOCAL_MET%OPTD     = OPTDEP
+      LOCAL_MET%PV       = PV
+      LOCAL_MET%QI       = QI
+      LOCAL_MET%QL       = QL
+      LOCAL_MET%RH       = RH
+      LOCAL_MET%SPHU     = SPHU
+      LOCAL_MET%T        = T
+      LOCAL_MET%TAUCLI   = TAUCLI
+      LOCAL_MET%TAUCLW   = TAUCLW
+      LOCAL_MET%U        = UWND
+      LOCAL_MET%V        = VWND
+#endif
 
 #elif defined( GCAP ) 
 
@@ -566,47 +607,30 @@
       ! Create 2-D CLDFRC field from 3-D CLDF field
       CALL MAKE_GCAP_CLDFRC( CLDF, CLDFRC )
       
+      ! Add met fields to object of type GC_MET_LOCAL
+#if defined( DEVEL )
+      LOCAL_MET%CLDF     = CLDF
+      LOCAL_MET%CLDTOPS  = CLDTOPS
+      LOCAL_MET%DETRAINE = DETRAINE
+      LOCAL_MET%DETRAINN = DETRAINN
+      LOCAL_MET%DNDE     = DNDE
+      LOCAL_MET%DNDN     = DNDN
+      LOCAL_MET%ENTRAIN  = ENTRAIN
+      LOCAL_MET%MOISTQ   = MOISTQ
+      LOCAL_MET%OPTD     = OPTDEP
+      LOCAL_MET%SPHU     = SPHU
+      LOCAL_MET%T        = T
+      LOCAL_MET%U        = UWND
+      LOCAL_MET%UPDE     = UPDE
+      LOCAL_MET%UPDN     = UPDN
+      LOCAL_MET%V        = VWND
+#endif
+
 #endif
 
       ! Save NYMD and NHMS for next call
       LASTNYMD = NYMD
       LASTNHMS = NHMS
-
-#if defined( DEVEL )
-      LOCAL_MET%CLDF     = CLDF
-      LOCAL_MET%CLDTOPS  = CLDTOPS
-      LOCAL_MET%CMFMC    = CMFMC
-      LOCAL_MET%DETRAINE = DETRAINE
-      LOCAL_MET%DETRAINN = DETRAINN
-      LOCAL_MET%DNDE     = DNDE
-      LOCAL_MET%DNDN     = DNDN
-      LOCAL_MET%DQIDTMST = DQIDTMST
-      LOCAL_MET%DQLDTMST = DQLDTMST
-      LOCAL_MET%DQVDTMST = DQVDTMST
-      LOCAL_MET%DQRCU    = DQRCON
-      LOCAL_MET%DQRLSAN  = DQRLSC
-      LOCAL_MET%DTRAIN   = DTRAIN
-      LOCAL_MET%ENTRAIN  = ENTRAIN
-      LOCAL_MET%HKBETA   = HKBETA
-      LOCAL_MET%HKETA    = HKETA
-      LOCAL_MET%MOISTQ   = MOISTQ
-      LOCAL_MET%OPTD     = OPTDEP
-      LOCAL_MET%PV       = PV
-      LOCAL_MET%QI       = QI
-      LOCAL_MET%QL       = QL
-      LOCAL_MET%RH       = RH
-      LOCAL_MET%SPHU     = SPHU
-      LOCAL_MET%T        = T
-      LOCAL_MET%TAUCLI   = TAUCLI
-      LOCAL_MET%TAUCLW   = TAUCLW
-      LOCAL_MET%U        = UWND
-      LOCAL_MET%UPDE     = UPDE
-      LOCAL_MET%UPDN     = UPDN
-      LOCAL_MET%V        = VWND
-      LOCAL_MET%ZMEU     = ZMEU
-      LOCAL_MET%ZMMD     = ZMMD
-      LOCAL_MET%ZMMU     = ZMMU
-#endif
 
       ! Return to calling program
       END SUBROUTINE GET_A6_FIELDS

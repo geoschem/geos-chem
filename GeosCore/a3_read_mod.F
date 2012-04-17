@@ -548,6 +548,28 @@
      &              TS=TS,           TSKIN=TSKIN,   U10M=U10M,       
      &              USTAR=USTAR ,    V10M=V10M,     Z0=Z0 )
 
+      ! Add met fields to object of type GC_MET_LOCAL
+#if defined( DEVEL )
+      LOCAL_MET%ALBD    = ALBD
+      LOCAL_MET%CLDFRC  = CLDFRC
+      LOCAL_MET%GWETTOP = GWETTOP
+      LOCAL_MET%HFLUX   = HFLUX
+      LOCAL_MET%PARDF   = PARDF
+      LOCAL_MET%PARDR   = PARDR
+      LOCAL_MET%PBLH    = PBL
+      LOCAL_MET%PRECTOT = PREACC
+      LOCAL_MET%PRECCON = PRECON
+      LOCAL_MET%RADLWG  = RADLWG
+      LOCAL_MET%RADSWG  = RADSWG
+      LOCAL_MET%SNOW    = SNOW
+      LOCAL_MET%TS      = TS
+      LOCAL_MET%TSKIN   = TSKIN
+      LOCAL_MET%U10M    = U10M
+      LOCAL_MET%USTAR   = USTAR
+      LOCAL_MET%V10M    = V10M
+      LOCAL_MET%Z0      = Z0
+#endif
+
 #elif defined( GEOS_5 )
 
       !=================================================================
@@ -572,6 +594,40 @@
      &              EFLUX=EFLUX,       FRLAND=FRLAND,   FROCEAN=FROCEAN, 
      &              FRLAKE=FRLAKE,     FRLANDIC=FRLANDIC )
 
+      ! Add met fields to object of type GC_MET_LOCAL
+#if defined( DEVEL )
+      LOCAL_MET%ALBD     = ALBD
+      LOCAL_MET%CLDFRC   = CLDFRC
+      LOCAL_MET%EFLUX    = EFLUX
+      LOCAL_MET%EVAP     = EVAP
+      LOCAL_MET%FRLAKE   = FRLAKE
+      LOCAL_MET%FRLAND   = FRLAND
+      LOCAL_MET%FRLANDIC = FRLANDIC
+      LOCAL_MET%FROCEAN  = FROCEAN
+      LOCAL_MET%GRN      = GRN
+      LOCAL_MET%GWETROOT = GWETROOT
+      LOCAL_MET%GWETTOP  = GWETTOP
+      LOCAL_MET%HFLUX    = HFLUX
+      LOCAL_MET%LAI      = LAI
+      LOCAL_MET%PARDF    = PARDF
+      LOCAL_MET%PARDR    = PARDR
+      LOCAL_MET%PBLH     = PBL
+      LOCAL_MET%PRECTOT  = PREACC
+      LOCAL_MET%PRECCON  = PRECON
+      LOCAL_MET%PRECSNO  = PRECSNO
+      LOCAL_MET%RADLWG   = RADLWG
+      LOCAL_MET%RADSWG   = RADSWG
+      LOCAL_MET%SNODP    = SNODP
+      LOCAL_MET%SNOMAS   = SNOMAS
+      LOCAL_MET%TROPP    = TROPP
+      LOCAL_MET%TS       = TS
+      LOCAL_MET%TSKIN    = TSKIN
+      LOCAL_MET%U10M     = U10M
+      LOCAL_MET%USTAR    = USTAR
+      LOCAL_MET%V10M     = V10M
+      LOCAL_MET%Z0       = Z0
+#endif
+
 #elif defined( GCAP )
 
       !================================================================
@@ -594,26 +650,10 @@
       ! Convert [m] to [mm]
       SNOW = SNOW*1000.D0
 
-#endif
-
-      ! Save NYMD, NHMS for next call
-      LASTNYMD = NYMD
-      LASTNHMS = NHMS
-
+      ! Add met fields to object of type GC_MET_LOCAL
 #if defined( DEVEL )
       LOCAL_MET%ALBD     = ALBD
-      LOCAL_MET%CLDFRC   = CLDFRC
-      LOCAL_MET%EFLUX    = EFLUX
-      LOCAL_MET%EVAP     = EVAP
-      LOCAL_MET%FRLAKE   = FRLAKE
-      LOCAL_MET%FRLAND   = FRLAND
-      LOCAL_MET%FRLANDIC = FRLANDIC
-      LOCAL_MET%FROCEAN  = FROCEAN
-      LOCAL_MET%GRN      = GRN
-      LOCAL_MET%GWETROOT = GWETROOT
       LOCAL_MET%GWETTOP  = GWETTOP
-      LOCAL_MET%HFLUX    = HFLUX
-      LOCAL_MET%LAI      = LAI
       LOCAL_MET%MOLENGTH = MOLENGTH
       LOCAL_MET%OICE     = OICE
       LOCAL_MET%PARDF    = PARDF
@@ -621,21 +661,20 @@
       LOCAL_MET%PBLH     = PBL
       LOCAL_MET%PRECTOT  = PREACC
       LOCAL_MET%PRECCON  = PRECON
-      LOCAL_MET%PRECSNO  = PRECSNO
-      LOCAL_MET%RADLWG   = RADLWG
       LOCAL_MET%RADSWG   = RADSWG
       LOCAL_MET%SNICE    = SNICE
-      LOCAL_MET%SNODP    = SNODP
-      LOCAL_MET%SNOMAS   = SNOMAS
       LOCAL_MET%SNOW     = SNOW
-      LOCAL_MET%TROPP    = TROPP
       LOCAL_MET%TS       = TS
-      LOCAL_MET%TSKIN    = TSKIN
       LOCAL_MET%U10M     = U10M
       LOCAL_MET%USTAR    = USTAR
       LOCAL_MET%V10M     = V10M
-      LOCAL_MET%Z0       = Z0
 #endif
+
+#endif
+
+      ! Save NYMD, NHMS for next call
+      LASTNYMD = NYMD
+      LASTNHMS = NHMS
 
       END SUBROUTINE GET_A3_FIELDS
 !EOC

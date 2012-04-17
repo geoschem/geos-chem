@@ -464,6 +464,14 @@
       CALL READ_I6( NYMD=NYMD, NHMS=NHMS, 
      &              LWI=LWI,   PS=PS1,  SLP=SLP, TROPP=TROPP1 )
 
+      ! Add met fields to object of type GC_MET_LOCAL
+#if defined( DEVEL )
+      LOCAL_MET%LWI    = LWI
+      LOCAL_MET%PS1    = PS1
+      LOCAL_MET%SLP    = SLP
+      LOCAL_MET%TROPP1 = TROPP1
+#endif
+
 #elif defined( GEOS_5 )
 
       !=================================================================
@@ -472,6 +480,15 @@
       CALL READ_I6( NYMD=NYMD, NHMS=NHMS, 
      &              LWI=LWI,   PS=PS1,  SLP=SLP, TO3=TO31, TTO3=TTO3 )
 
+      ! Add met fields to object of type GC_MET_LOCAL
+#if defined( DEVEL )
+      LOCAL_MET%LWI   = LWI
+      LOCAL_MET%PS1   = PS1
+      LOCAL_MET%SLP   = SLP
+      LOCAL_MET%TO31  = TO31
+      LOCAL_MET%TTO3  = TTO3
+#endif
+
 #elif defined( GCAP )
 
       !=================================================================
@@ -479,15 +496,11 @@
       !=================================================================
       CALL READ_I6( NYMD=NYMD, NHMS=NHMS, PS=PS1, SLP=SLP )
 
-#endif
-      
 #if defined( DEVEL )
-      LOCAL_MET%LWI   = LWI
       LOCAL_MET%PS1   = PS1
       LOCAL_MET%SLP   = SLP
-      LOCAL_MET%TROPP = TROPP1
-      LOCAL_MET%TO3   = TO31
-      LOCAL_MET%TTO3  = TTO3
+#endif
+
 #endif
 
       ! Return to calling program
@@ -541,6 +554,14 @@
       CALL READ_I6( NYMD=NYMD, NHMS=NHMS, 
      &              LWI=LWI,   PS=PS2, SLP=SLP, TROPP=TROPP2 )
 
+      ! Add met fields to object of type GC_MET_LOCAL
+#if defined( DEVEL )
+      LOCAL_MET%LWI    = LWI
+      LOCAL_MET%PS2    = PS2
+      LOCAL_MET%SLP    = SLP
+      LOCAL_MET%TROPP2 = TROPP2
+#endif
+
 #elif defined( GEOS_5 )
 
       !=================================================================
@@ -549,6 +570,14 @@
       CALL READ_I6( NYMD=NYMD, NHMS=NHMS, 
      &              LWI=LWI,   PS=PS2,   SLP=SLP, TO3=TO32, TTO3=TTO3 )
 
+      ! Add met fields to object of type GC_MET_LOCAL
+#if defined( DEVEL )
+      LOCAL_MET%LWI   = LWI
+      LOCAL_MET%PS2   = PS2
+      LOCAL_MET%SLP   = SLP
+      LOCAL_MET%TO32  = TO32
+      LOCAL_MET%TTO3  = TTO3
+#endif
 
 #elif defined( GCAP )
 
@@ -557,15 +586,11 @@
       !=================================================================
       CALL READ_I6( NYMD=NYMD, NHMS=NHMS, PS=PS2, SLP=SLP )
 
-#endif
-
 #if defined( DEVEL )
-      LOCAL_MET%LWI   = LWI
       LOCAL_MET%PS2   = PS2
       LOCAL_MET%SLP   = SLP
-      LOCAL_MET%TROPP = TROPP2
-      LOCAL_MET%TO3   = TO32
-      LOCAL_MET%TTO3  = TTO3
+#endif
+
 #endif
 
       ! Return to calling program

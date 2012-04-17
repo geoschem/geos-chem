@@ -254,7 +254,7 @@ CONTAINS
 ! !INPUT/OUTPUT PARAMETERS:
 !
 #if defined( DEVEL )
-    TYPE(GC_MET_LOCAL), INTENT(INOUT) :: LOCAL_MET
+    TYPE(GC_MET_LOCAL), INTENT(INOUT) :: LOCAL_MET  ! Obj w/ met fields
 #endif
 !
 ! !REMARKS:
@@ -464,7 +464,7 @@ CONTAINS
 ! !INPUT/OUTPUT PARAMETERS:
 !
 #if defined( DEVEL )
-    TYPE(GC_MET_LOCAL), INTENT(INOUT) :: LOCAL_MET
+    TYPE(GC_MET_LOCAL), INTENT(INOUT) :: LOCAL_MET  ! Obj w/ met fields
 #endif
 !
 ! !REMARKS:
@@ -944,7 +944,7 @@ CONTAINS
 ! !INPUT/OUTPUT PARAMETERS:
 !
 #if defined( DEVEL )
-    TYPE(GC_MET_LOCAL), INTENT(INOUT) :: LOCAL_MET
+    TYPE(GC_MET_LOCAL), INTENT(INOUT) :: LOCAL_MET  ! Obj w/ met fields
 #endif
 !
 ! !REVISION HISTORY:
@@ -1044,7 +1044,7 @@ CONTAINS
 ! !INPUT/OUTPUT PARAMETERS:
 !
 #if defined( DEVEL )
-    TYPE(GC_MET_LOCAL), INTENT(INOUT) :: LOCAL_MET
+    TYPE(GC_MET_LOCAL), INTENT(INOUT) :: LOCAL_MET  ! Obj w/ met fields
 #endif
 !
 ! !REMARKS:
@@ -1228,7 +1228,7 @@ CONTAINS
 ! !INPUT/OUTPUT PARAMETERS:
 !
 #if defined( DEVEL )
-    TYPE(GC_MET_LOCAL), INTENT(INOUT) :: LOCAL_MET
+    TYPE(GC_MET_LOCAL), INTENT(INOUT) :: LOCAL_MET  ! Obj w/ met fields
 #endif
 !
 ! !REMARKS:
@@ -1453,7 +1453,7 @@ CONTAINS
 ! !INPUT/OUTPUT PARAMETERS:
 !
 #if defined( DEVEL )
-    TYPE(GC_MET_LOCAL), INTENT(INOUT) :: LOCAL_MET
+    TYPE(GC_MET_LOCAL), INTENT(INOUT) :: LOCAL_MET  ! Obj w/ met fields
 #endif
 !
 ! !REMARKS:
@@ -1624,7 +1624,7 @@ CONTAINS
 ! !INPUT/OUTPUT PARAMETERS:
 !
 #if defined( DEVEL )
-    TYPE(GC_MET_LOCAL), INTENT(INOUT) :: LOCAL_MET
+    TYPE(GC_MET_LOCAL), INTENT(INOUT) :: LOCAL_MET  ! Obj w/ met fields
 #endif
 !
 ! !REMARKS:
@@ -1794,7 +1794,7 @@ CONTAINS
 ! !INPUT/OUTPUT PARAMETERS:
 !
 #if defined( DEVEL )
-    TYPE(GC_MET_LOCAL), INTENT(INOUT) :: LOCAL_MET
+    TYPE(GC_MET_LOCAL), INTENT(INOUT) :: LOCAL_MET  ! Obj w/ met fields
 #endif
 !
 ! !REMARKS:
@@ -1924,7 +1924,7 @@ CONTAINS
 
 #if defined( DEVEL )
       LOCAL_MET%PS1   = PS1
-     !LOCAL_MET%PV    = PV
+     !LOCAL_MET%PV1   = PV1
       LOCAL_MET%SPHU1 = QV1
       LOCAL_MET%TMPU1 = T1
 #endif
@@ -1991,7 +1991,7 @@ CONTAINS
 ! !INPUT/OUTPUT PARAMETERS:
 !
 #if defined( DEVEL )
-    TYPE(GC_MET_LOCAL), INTENT(INOUT) :: LOCAL_MET
+    TYPE(GC_MET_LOCAL), INTENT(INOUT) :: LOCAL_MET  ! Obj w/ met fields
 #endif
 !
 ! !REMARKS:
@@ -2121,7 +2121,7 @@ CONTAINS
 
 #if defined( DEVEL )
       LOCAL_MET%PS2   = PS2
-     !LOCAL_MET%PV    = PV
+     !LOCAL_MET%PV2    = PV2
       LOCAL_MET%SPHU2 = QV2
       LOCAL_MET%TMPU2 = T2
 #endif
