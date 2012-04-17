@@ -189,6 +189,7 @@
 !  11 Apr 2012 - R. Yantosca - Now call INIT_MODIS_LAI (in modis_lai_mod.F90)
 !                              here so that we don't have to call it from 
 !                              megan_mod.F and mercury_mod.F separately.
+!  17 Apr 2012 - R. Yantosca - Need to set the mapping variable to NULL()
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -215,7 +216,7 @@
       INTEGER                  :: DATE(2)
 
       ! Derived type objects
-      TYPE(MapWeight), POINTER :: mapping(:,:)
+      TYPE(MapWeight), POINTER :: mapping(:,:) => NULL()
 
 #if defined( DEVEL )
       TYPE(CHEMSTATE)          :: CHEM_STATE

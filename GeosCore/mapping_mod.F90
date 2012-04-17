@@ -18,7 +18,8 @@ MODULE Mapping_Mod
 ! !USES:
 !
   USE CMN_SIZE_MOD                    ! Size parameters
-  USE LOGICAL_MOD                     
+  USE ERROR_MOD                       ! Error handling routines
+  USE LOGICAL_MOD                     ! Logical switches
 
   IMPLICIT NONE
   PRIVATE
@@ -58,6 +59,8 @@ MODULE Mapping_Mod
 !  03 Apr 2012 - R. Yantosca - Initial version
 !  05 Apr 2012 - R. Yantosca - Comment out mapwt field of MapWeight type,
 !                              leave this for future expansion
+!  17 Apr 2012 - R. Yantosca - Rename pointer
+
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -76,7 +79,7 @@ CONTAINS
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE Init_Mapping( I_FINE, J_FINE, I_COARSE, J_COARSE, map )
+  SUBROUTINE Init_Mapping( I_FINE, J_FINE, I_COARSE, J_COARSE, mapping )
 !
 ! !INPUT PARAMETERS:
 !
@@ -87,12 +90,16 @@ CONTAINS
 !
 ! !INPUT/OUTPUT PARAMETERS:
 ! 
-    TYPE(MapWeight), POINTER, INTENT(INOUT) :: map(:,:)  ! "fine" -> "coarse"
+    TYPE(MapWeight), POINTER, INTENT(INOUT) :: mapping(:,:) !"fine" -> "coarse"
 !
 ! !REVISION HISTORY:
 !  03 Apr 2012 - R. Yantosca - Initial version
 !  10 Apr 2012 - R. Yantosca - Now add a different # to FINE_PER_COARSE
 !                              depending on which Olson map we are using
+!  17 Apr 2012 - R. Yantosca - Rename to "map" to "mapping" to avoid confusion
+!                              with a F90 intrinsic function
+!  17 Apr 2012 - R. Yantosca - Add error check for mapping object
+
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -119,10 +126,11 @@ CONTAINS
                     * ( DBLE( J_FINE ) / DBLE( J_COARSE ) ) + ADD
     
     ! For saving mapping weights
-    IF ( .not. ASSOCIATED( map ) ) THEN
+    IF ( .not. ASSOCIATED( mapping ) ) THEN
 
        ! Allocate the mapping weight object
-       ALLOCATE( map( I_COARSE, J_COARSE ), STAT=as )
+       ALLOCATE( mapping( I_COARSE, J_COARSE ), STAT=as )
+       IF ( as /= 0 ) CALL ALLOC_ERR( 'map' )
 
        ! Populate the mapping weight object
        !$OMP PARALLEL DO DEFAULT( SHARED ) PRIVATE( I, J )
@@ -130,24 +138,42 @@ CONTAINS
        DO I = 1, I_COARSE
 
           ! Allocate sub-fields
-          ALLOCATE( map(I,J)%ii      ( FINE_PER_COARSE ), STAT=as )
-          ALLOCATE( map(I,J)%jj      ( FINE_PER_COARSE ), STAT=as )
-          ALLOCATE( map(I,J)%olson   ( FINE_PER_COARSE ), STAT=as )
-          ALLOCATE( map(I,J)%ordOlson( 0:NVEGTYPE-1    ), STAT=as )
-         !ALLOCATE( map(I,J)%mapWt   ( FINE_PER_COARSE ), STAT=as )
-          ALLOCATE( map(I,J)%area    ( FINE_PER_COARSE ), STAT=as )
+          ALLOCATE( mapping(I,J)%ii      ( FINE_PER_COARSE ), STAT=as )
+          IF ( as /= 0 ) CALL ALLOC_ERR( 'map%II' )
+
+          ALLOCATE( mapping(I,J)%jj      ( FINE_PER_COARSE ), STAT=as )
+          IF ( as /= 0 ) CALL ALLOC_ERR( 'map%JJ' )
+
+          ALLOCATE( mapping(I,J)%olson   ( FINE_PER_COARSE ), STAT=as )
+          IF ( as /= 0 ) CALL ALLOC_ERR( 'map%olson' )
+
+          ALLOCATE( mapping(I,J)%ordOlson( 0:NVEGTYPE-1    ), STAT=as )
+          IF ( as /= 0 ) CALL ALLOC_ERR( 'map%orOolson' )
+
+         !ALLOCATE( mapping(I,J)%mapWt   ( FINE_PER_COARSE ), STAT=as )
+         !IF ( as /= 0 ) CALL ALLOC_ERR( 'map%mapWt' )
+
+          ALLOCATE( mapping(I,J)%area    ( FINE_PER_COARSE ), STAT=as )
+          IF ( as /= 0 ) CALL ALLOC_ERR( 'map%area' )
 
           ! Initialize sub-fields
-          map(I,J)%count    = 0
-          map(I,J)%ii       = 0
-          map(I,J)%jj       = 0
-          map(I,J)%olson    = 0
-          map(I,J)%ordOlson = 0
-          map(I,J)%area     = 0e0
-          map(I,J)%sumarea  = 0e0
+          mapping(I,J)%count    = 0
+          mapping(I,J)%ii       = 0
+          mapping(I,J)%jj       = 0
+          mapping(I,J)%olson    = 0
+          mapping(I,J)%ordOlson = 0
+          mapping(I,J)%area     = 0e0
+          mapping(I,J)%sumarea  = 0e0
        ENDDO
        ENDDO
        !$OMP END PARALLEL DO
+    ENDIF
+
+    ! Stop w/ error if the MAPPING object is not dimensioned properly
+    IF ( SIZE( mapping, 1 ) /= I_COARSE  .or. &
+         SIZE( mapping, 2 ) /= J_COARSE ) THEN
+       CALL ERROR_STOP( 'MAPPING object has incorrect dimensions!', &
+                        'Init_Mapping (mapping_mod.F90)' )
     ENDIF
 
   END SUBROUTINE Init_Mapping
@@ -286,14 +312,16 @@ CONTAINS
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE Cleanup_Mapping( map )
+  SUBROUTINE Cleanup_Mapping( mapping )
 !
 ! !INPUT/OUTPUT PARAMETERS:
 !
-    TYPE(MapWeight), POINTER, INTENT(INOUT) :: map(:,:)
+    TYPE(MapWeight), POINTER, INTENT(INOUT) :: mapping(:,:)
 !
 ! !REVISION HISTORY:'
 !  03 Mar 2012 - R. Yantosca - Initial version
+!  17 Apr 2012 - R. Yantosca - Rename to "map" to "mapping to avoid name
+!                              confusion with a F90 intrinsic function
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -303,24 +331,24 @@ CONTAINS
     INTEGER :: I, J
 
     ! Test if MAP has been allocated memory
-    IF ( ASSOCIATED( map ) ) THEN
+    IF ( ASSOCIATED( mapping ) ) THEN
 
        ! First deallocate the pointer fields of the MAP object
        !$OMP PARALLEL DO DEFAULT( SHARED ) PRIVATE( I, J )
-       DO J = 1, SIZE( map, 2 )
-       DO I = 1, SIZE( map, 1 )
-          DEALLOCATE( map(I,J)%ii       )
-          DEALLOCATE( map(I,J)%jj       )
-          DEALLOCATE( map(I,J)%olson    )
-          DEALLOCATE( map(I,J)%ordOlson )
-         !DEALLOCATE( map(I,J)%mapWt    )
-          DEALLOCATE( map(I,J)%area     )
+       DO J = 1, SIZE( mapping, 2 )
+       DO I = 1, SIZE( mapping, 1 )
+          DEALLOCATE( mapping(I,J)%ii       )
+          DEALLOCATE( mapping(I,J)%jj       )
+          DEALLOCATE( mapping(I,J)%olson    )
+          DEALLOCATE( mapping(I,J)%ordOlson )
+         !DEALLOCATE( mapping(I,J)%mapWt    )
+          DEALLOCATE( mapping(I,J)%area     )
        ENDDO
        ENDDO
        !$OMP END PARALLEL DO
 
        ! Then deallocate the MAP object itself
-       DEALLOCATE( map )
+       DEALLOCATE( mapping )
     ENDIF
 
   END SUBROUTINE Cleanup_Mapping

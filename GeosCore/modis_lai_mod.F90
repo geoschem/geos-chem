@@ -180,13 +180,13 @@ CONTAINS
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE Compute_Modis_Lai( doy, mm, map, wasModisRead )
+  SUBROUTINE Compute_Modis_Lai( doy, mm, mapping, wasModisRead )
 !
 ! !INPUT PARAMETERS:
 !
     INTEGER,         INTENT(IN) :: doy           ! Day of year
     INTEGER,         INTENT(IN) :: mm            ! Month for LAI data
-    TYPE(MapWeight), POINTER    :: map(:,:)      ! "fine" -> "coarse" grid map
+    TYPE(MapWeight), POINTER    :: mapping(:,:)  ! "fine" -> "coarse" grid map
     LOGICAL,         INTENT(IN) :: wasModisRead  ! Was LAI data just read in?
 !
 ! !REMARKS:
@@ -200,6 +200,8 @@ CONTAINS
 !                              populating XLAI array
 !  09 Apr 2012 - R. Yantosca - Remove refs to CMN_VEL_mod.F and XYLAI array;
 !                              these are now obsolete
+!  17 Apr 2012 - R. Yantosca - Now rename "map" object to "mapping" to avoid
+!                              name confusion w/ an F90 intrinsic function
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -274,7 +276,7 @@ CONTAINS
        tempLai              = 0d0
        tempLaiCm            = 0d0
        tempLaiNm            = 0d0
-       sumArea              = map(I,J)%sumarea
+       sumArea              = mapping(I,J)%sumarea
        IJLOOP               = ( (J-1) * IIPAR ) + I
        GC_LAI(I,J)          = 0d0
 
@@ -290,13 +292,13 @@ CONTAINS
        ! Sum up the leaf area indices from all of the the "fine" grid 
        ! boxes (II,JJ) that are located within "coarse" grid box (I,J)
        !-------------------------------------------------------------------
-       DO C = 1, map(I,J)%count
+       DO C = 1, mapping(I,J)%count
 
           ! Extract fields from MAP object
-          II                = map(I,J)%II(C)
-          JJ                = map(I,J)%JJ(C)
-          type              = map(I,J)%olson(C)
-          area              = map(I,J)%area(C)
+          II                = mapping(I,J)%II(C)
+          JJ                = mapping(I,J)%JJ(C)
+          type              = mapping(I,J)%olson(C)
+          area              = mapping(I,J)%area(C)
 
           ! Sum of areas corresponding to each Olson
           ! for "coarse" GEOS-Chem grid box (I,J)
@@ -350,7 +352,7 @@ CONTAINS
           IF ( tempArea(C) > 0d0 ) THEN
           
              ! Ordering for ILAND, IUSE, XLAI, XYLAI etc arrays
-             K = map(I,J)%ordOlson(C)
+             K = mapping(I,J)%ordOlson(C)
 
              ! Convert leaf area [cm2 leaf] to LAI [cm2 leaf/cm2 grid box]
              tempLaiCm(C) = tempLaiCm(C) / tempArea(C)

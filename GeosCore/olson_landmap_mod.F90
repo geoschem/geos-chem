@@ -187,11 +187,11 @@ CONTAINS
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE Compute_Olson_LandMap( map )
+  SUBROUTINE Compute_Olson_LandMap( mapping )
 !
 ! !INPUT/OUTPUT PARAMETERS:
 !
-    TYPE(MapWeight), POINTER :: map(:,:)   ! "fine" -> "coarse" mapping
+    TYPE(MapWeight), POINTER :: mapping(:,:)   ! "fine" -> "coarse" mapping
 !
 ! !REMARKS:
 !  This routine supplies arrays that are required for legacy code routines:
@@ -212,6 +212,8 @@ CONTAINS
 !  09 Apr 2012 - R. Yantosca - Remove IJLOOP variable
 !  09 Apr 2012 - R. Yantosca - Now do not compute IJREG, IJLAND, IJUSE; these
 !                              are replaced by IREG, ILAND, IUSE arrays
+!  17 Apr 2012 - R. Yantosca - Rename "map" object to "mapping" to avoid name
+!                              confusion with an F90 intrinsic function
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -381,14 +383,14 @@ CONTAINS
           ! Save mapping information for later use in modis_lai_mod.F90
           ! in order to prepare the XLAI array for use with the legacy 
           ! dry-deposition and soil NOx emissions codes.
-          C                 = C + 1
-          map(I,J)%count    = C
-          map(I,J)%II(C)    = II
-          map(I,J)%JJ(C)    = JJ
-          map(I,J)%olson(C) = type
-         !map(I,J)%mapWt(C) = mapWt
-          map(I,J)%area(C)  = area
-          map(I,J)%sumarea  = sumarea
+          C                     = C + 1
+          mapping(I,J)%count    = C
+          mapping(I,J)%II(C)    = II
+          mapping(I,J)%JJ(C)    = JJ
+          mapping(I,J)%olson(C) = type
+         !mapping(I,J)%mapWt(C) = mapWt
+          mapping(I,J)%area(C)  = area
+          mapping(I,J)%sumarea  = sumarea
 
        ENDDO
        ENDDO
@@ -407,7 +409,7 @@ CONTAINS
 
           ! Save the ordering of Olson land types for later use 
           ! by routines in the module modis_lai_mod.F90
-          map(I,J)%ordOlson(T) = ordOlson(I,J,T)
+          mapping(I,J)%ordOlson(T) = ordOlson(I,J,T)
 
           ! Normalize the land type coverage 
           frOlson(I,J,T)                =  &
