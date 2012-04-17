@@ -196,7 +196,7 @@
 
 #if defined( DEVEL )
       TYPE(CHEMSTATE)    :: CHEM_STATE
-      TYPE(GC_MET_LOCAL) :: LOCAL_MET
+      TYPE(GC_MET_LOCAL) :: LOCAL_MET   ! Obj w/ met fields
 #endif
 
       CHARACTER(LEN=255) :: ZTYPE
@@ -315,7 +315,11 @@
 
       ! Compute lightning NOx emissions [molec/box/6h]
       IF ( LLIGHTNOX ) THEN
+#if defined( DEVEL )
+         CALL LIGHTNING( LOCAL_MET )
+#else
          CALL LIGHTNING
+#endif
          IF ( LPRT ) CALL DEBUG_MSG( '### MAIN: a LIGHTNING' )
       ENDIF
 
@@ -338,7 +342,11 @@
         CALL DO_PBL_MIX( .FALSE. )
         IF ( LPRT ) CALL DEBUG_MSG( '### MAIN: a TURBDAY:1' )
       ELSE
+#if defined( DEVEL )
+        CALL DO_PBL_MIX_2( .FALSE., LOCAL_MET )
+#else
         CALL DO_PBL_MIX_2( .FALSE. )
+#endif
         IF ( LPRT ) CALL DEBUG_MSG( '### MAIN: a NLPBL 1' )
       ENDIF
 
@@ -706,7 +714,11 @@
 
             ! Initialize wet scavenging and wetdep fields after
             ! the airmass quantities are reset after transport
+#if defined( DEVEL )
+            IF ( LCONV .or. LWETD ) CALL INIT_WETSCAV( LOCAL_MET )
+#else
             IF ( LCONV .or. LWETD ) CALL INIT_WETSCAV
+#endif
          ENDIF
 
 
@@ -724,13 +736,18 @@
             !========================================================
             !         ***** D R Y   D E P O S I T I O N *****
             !========================================================
+#if defined( DEVEL )
+            IF ( LDRYD .and. ( .not. ITS_A_H2HD_SIM() ) ) 
+     &         CALL DO_DRYDEP( LOCAL_MET )
+#else
             IF ( LDRYD .and. ( .not. ITS_A_H2HD_SIM() ) ) CALL DO_DRYDEP
+#endif
 
             !========================================================
             !             ***** E M I S S I O N S *****
             !========================================================
 #if defined( DEVEL )
-            IF ( LEMIS ) CALL DO_EMISSIONS(CHEM_STATE)
+            IF ( LEMIS ) CALL DO_EMISSIONS( LOCAL_MET, CHEM_STATE )
 #else
             IF ( LEMIS ) CALL DO_EMISSIONS
 #endif
@@ -756,7 +773,11 @@
                CALL DO_PBL_MIX( LTURB )
                IF ( LPRT ) CALL DEBUG_MSG( '### MAIN: a TURBDAY:1' )
             ELSE
+#if defined( DEVEL )
+               CALL DO_PBL_MIX_2( LTURB, LOCAL_MET )
+#else
                CALL DO_PBL_MIX_2( LTURB )
+#endif
                IF ( LPRT ) CALL DEBUG_MSG( '### MAIN: a NLPBL 2' )
             ENDIF
 
@@ -773,7 +794,11 @@
                   CALL PARTITIONHG( 1, STT )
                ENDIF
       
+#if defined( DEVEL )
+               CALL DO_CONVECTION( LOCAL_MET )
+#else
                CALL DO_CONVECTION
+#endif
 
                ! Return all reactive particulate Hg(II) to total Hg(II) tracer
                IF ( ITS_A_MERCURY_SIM() ) THEN
@@ -807,13 +832,18 @@
             !========================================================
             !         ***** D R Y   D E P O S I T I O N *****
             !========================================================
+#if defined( DEVEL )
+            IF ( LDRYD .and. ( .not. ITS_A_H2HD_SIM() ) ) 
+     &         CALL DO_DRYDEP( LOCAL_MET )
+#else
             IF ( LDRYD .and. ( .not. ITS_A_H2HD_SIM() ) ) CALL DO_DRYDEP
+#endif
 
             !========================================================
             !             ***** E M I S S I O N S *****
             !========================================================
 #if defined( DEVEL )
-            IF ( LEMIS ) CALL DO_EMISSIONS(CHEM_STATE)
+            IF ( LEMIS ) CALL DO_EMISSIONS( LOCAL_MET, CHEM_STATE )
 #else
             IF ( LEMIS ) CALL DO_EMISSIONS
 #endif
@@ -845,7 +875,7 @@
 !^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^!
             CHEM_STATE%TRACERS(:,:,:,:N_TRACERS) = STT
 ! FIN DE KLUGE
-            CALL DO_CHEMISTRY(CHEM_STATE)
+            CALL DO_CHEMISTRY( LOCAL_MET, CHEM_STATE )
 #else
             CALL DO_CHEMISTRY
 #endif
@@ -868,7 +898,11 @@
             ENDIF            
      
             ! Do wet deposition
+#if defined( DEVEL )
+            CALL DO_WETDEP( LOCAL_MET )
+#else
             CALL DO_WETDEP
+#endif
             
             ! Return all reactive particulate Hg(II) to total Hg(II) tracer
             IF ( ITS_A_MERCURY_SIM() ) THEN
@@ -925,7 +959,11 @@
             IF ( LPRT ) CALL DEBUG_MSG( '### MAIN: b DIAGNOSTICS' )
 
             ! Accumulate several diagnostic quantities
+#if defined( DEVEL )
+            CALL DIAG1( LOCAL_MET )
+#else
             CALL DIAG1
+#endif
             IF ( LPRT ) CALL DEBUG_MSG( '### MAIN: after DIAG1' )
 
             ! ND41: save PBL height in 1200-1600 LT (amf)
@@ -1574,7 +1612,11 @@
 
          ! Since CLDTOPS is an A-3 field, update the
          ! lightning NOx emissions [molec/box/6h]
+#if defined( DEVEL )
+         IF ( LLIGHTNOX ) CALL LIGHTNING( LOCAL_MET )
+#else
          IF ( LLIGHTNOX ) CALL LIGHTNING
+#endif
       ENDIF
 
       !----------------------------------
@@ -1748,7 +1790,11 @@
 
          ! Since CLDTOPS is an A-6 field, update the
          ! lightning NOx emissions [molec/box/6h]
+#if defined( DEVEL )
+         IF ( LLIGHTNOX ) CALL LIGHTNING( LOCAL_MET )
+#else
          IF ( LLIGHTNOX ) CALL LIGHTNING
+#endif
       ENDIF
 
       !==============================================================

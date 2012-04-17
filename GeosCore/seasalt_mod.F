@@ -777,7 +777,7 @@
 ! !INTERFACE:
 !
 #if defined( DEVEL )
-      SUBROUTINE EMISSSEASALT( SFLX )
+      SUBROUTINE EMISSSEASALT( LOCAL_MET, SFLX )
 #else
       SUBROUTINE EMISSSEASALT
 #endif
@@ -792,7 +792,14 @@
 
       USE CMN_SIZE_MOD       ! Size parameters
 #if defined( DEVEL )
+      USE GC_TYPE_MOD,  ONLY : GC_MET_LOCAL
       USE TRACER_MOD,   ONLY : N_TRACERS
+#endif
+!
+! !INPUT PARAMETERS:
+!
+#if defined( DEVEL )
+      TYPE(GC_MET_LOCAL), INTENT(IN) :: LOCAL_MET  ! Obj w/ met fields
 #endif
 !
 ! !REVISION HISTORY: 
@@ -847,13 +854,21 @@
 
       ! Accumulation mode emissions
       IF ( IDTSALA > 0 ) THEN
+#if defined( DEVEL )
+         CALL SRCSALT( STT(:,:,:,IDTSALA), 1, LOCAL_MET )
+#else
          CALL SRCSALT( STT(:,:,:,IDTSALA), 1 )
+#endif
          IF ( LPRT ) CALL DEBUG_MSG( '### EMISSEASALT: Accum' )
       ENDIF
 
       ! Coarse mode emissions
       IF ( IDTSALC > 0 ) THEN
+#if defined( DEVEL )
+         CALL SRCSALT( STT(:,:,:,IDTSALC), 2, LOCAL_MET )
+#else
          CALL SRCSALT( STT(:,:,:,IDTSALC), 2 )
+#endif
          IF ( LPRT ) CALL DEBUG_MSG( '### EMISSEASALT: Coarse' )
       ENDIF
 
@@ -906,7 +921,11 @@
 !\\
 ! !INTERFACE:
 !
+#if defined( DEVEL )
+      SUBROUTINE SRCSALT( TC, N, LOCAL_MET )
+#else
       SUBROUTINE SRCSALT( TC, N )
+#endif
 !
 ! !USES:
 !
@@ -920,6 +939,10 @@
       USE TIME_MOD,      ONLY : GET_TS_EMIS
       USE TRACER_MOD,    ONLY : SALA_REDGE_um, SALC_REDGE_um, XNUMOL
 
+#if defined( DEVEL )
+      USE GC_TYPE_MOD,   ONLY : GC_MET_LOCAL
+#endif
+
       USE CMN_SIZE_MOD        ! Size parameters
       USE CMN_DIAG_MOD        ! ND44, ND08
       USE CMN_GCTM_MOD        ! PI
@@ -927,6 +950,9 @@
 ! !INPUT PARAMETERS: 
 !
       INTEGER, INTENT(IN)    :: N  ! N=1 is accum mode; N=2 is coarse mode
+#if defined( DEVEL )
+      TYPE(GC_MET_LOCAL), INTENT(IN) :: LOCAL_MET  ! Obj w/ met fields
+#endif
 !
 ! !INPUT/OUTPUT PARAMETERS: 
 !
@@ -1135,7 +1161,11 @@
             A_M2 = GET_AREA_M2( I, J, 1 )
 
             ! Test if this is a water box
+#if defined( DEVEL )
+            IF ( IS_WATER( I, J, LOCAL_MET ) ) THEN
+#else
             IF ( IS_WATER(I,J) ) THEN
+#endif
 
                ! Wind speed at 10 m altitude [m/s]
                W10M = SQRT( SFCWINDSQR(I,J) )

@@ -255,12 +255,17 @@
 !\\
 ! !INTERFACE:
 !
+#if defined( DEVEL )
+      SUBROUTINE DO_DRYDEP( LOCAL_MET )
+#else
       SUBROUTINE DO_DRYDEP
+#endif
 !
 ! !USES:
 !
       USE DIAG_MOD,     ONLY : AD44
-      USE DAO_MOD,      ONLY : AD, ALBD, BXHEIGHT, SUNCOS_MID
+      !USE DAO_MOD,      ONLY : AD, ALBD, BXHEIGHT, SUNCOS_MID
+      USE DAO_MOD,      ONLY : AD, BXHEIGHT, SUNCOS_MID
       USE DAO_MOD,      ONLY : IS_LAND
       USE ERROR_MOD,    ONLY : DEBUG_MSG
       USE LOGICAL_MOD,  ONLY : LPRT
@@ -268,10 +273,20 @@
       USE TRACERID_MOD, ONLY : IDTDST1, IDTDST2, IDTDST3, IDTDST4
       USE TRACERID_MOD, ONLY : IDTACET
 
+#if defined( DEVEL )
+      USE GC_TYPE_MOD,  ONLY : GC_MET_LOCAL
+#endif
+
       USE CMN_SIZE_MOD       ! Size parameters
       USE CMN_DIAG_MOD       ! ND44
       USE CMN_GCTM_MOD       ! Physical constants
       USE CMN_DEP_MOD        ! IREG, ILAND, IUSE, etc.
+!
+! !INPUT PARAMETERS:
+!
+#if defined( DEVEL )
+      TYPE(GC_MET_LOCAL), INTENT(IN) :: LOCAL_MET  ! Obj w/ met fields
+#endif
 !
 ! !REMARKS:
 !  NOTE: Modeled aerosol dry deposition velocities over snow and ice surfaces 
@@ -364,8 +379,13 @@
       ! Call METERO to obtain meterological fields (all 1-D arrays)
       ! Added sfc pressure as PRESSU and 10m windspeed as W10 
       !  (jaegle 5/11/11, mpayer 1/10/12)
+#if defined( DEVEL )
+      CALL METERO( LOCAL_MET,  CZ1, TC0,   OBK, CFRAC,  RADIAT, 
+     &             AZO, USTAR, ZH,  LSNOW, RHB, PRESSU, W10 )
+#else
       CALL METERO( CZ1, TC0,   OBK, CFRAC, RADIAT, 
      &             AZO, USTAR, ZH,  LSNOW, RHB, PRESSU, W10 )
+#endif
 
       !=================================================================
       ! Call DEPVEL to compute dry deposition velocities [m/s]
@@ -418,7 +438,11 @@
             ! and not over the oceans.
             IF ( NN == IDTACET ) THEN
 
+#if defined( DEVEL )
+               IF ( IS_LAND( I, J, LOCAL_MET ) ) THEN
+#else
                IF ( IS_LAND( I, J ) ) THEN
+#endif
                   DVZ = 0.1 
                ELSE
                   DVZ = 0d0
@@ -544,8 +568,13 @@
 !\\
 ! !INTERFACE:
 !
+#if defined( DEVEL )
+      SUBROUTINE METERO( LOCAL_MET, CZ1, TC0,  OBK,  CFRAC,  RADIAT, 
+     &                   AZO, USTR, ZH,  LSNOW, RHB, PRESSU, W10 )
+#else
       SUBROUTINE METERO( CZ1, TC0,  OBK, CFRAC, RADIAT, 
      &                   AZO, USTR, ZH,  LSNOW, RHB, PRESSU, W10 )
+#endif
 !
 ! !USES:
 !
@@ -554,9 +583,18 @@
       USE PBL_MIX_MOD,  ONLY : GET_PBL_TOP_m
       USE MEGANUT_MOD,  ONLY : XLTMMP
       USE PRESSURE_MOD, ONLY : GET_PEDGE
+#if defined( DEVEL )
+      USE GC_TYPE_MOD,  ONLY : GC_MET_LOCAL
+#endif
                                   
       USE CMN_SIZE_MOD       ! Size parameters
       USE CMN_GCTM_MOD       ! Physical constants
+!
+! !INPUT PARAMETERS:
+!
+#if defined( DEVEL )
+      TYPE(GC_MET_LOCAL), INTENT(IN) :: LOCAL_MET  ! Obj w/ met fields
+#endif
 !
 ! !OUTPUT PARAMETERS:
 !
@@ -673,7 +711,11 @@
          CFRAC(IJLOOP)  = CLDFRC(I,J)
 
          ! Set logical LSNOW if snow and sea ice (ALBEDO > 0.4)
+#if defined( DEVEL )
+         LSNOW(IJLOOP)  = ( LOCAL_MET%ALBD(I,J) > 0.4 )
+#else
          LSNOW(IJLOOP)  = ( ALBD(I,J) > 0.4 )
+#endif
 
          ! Monin-Obhukov length [m]
          OBK(IJLOOP)    = GET_OBK( I, J )
@@ -1015,7 +1057,11 @@
 !\\
 ! !INTERFACE:
 !
+#if defined( DEVEL )
+      SUBROUTINE DRYFLXH2HD( LOCAL_MET )
+#else
       SUBROUTINE DRYFLXH2HD
+#endif
 !
 ! !USES:
 !
@@ -1030,12 +1076,21 @@
       USE PBL_MIX_MOD,  ONLY : GET_PBL_TOP_m
       USE PBL_MIX_MOD,  ONLY : GET_FRAC_UNDER_PBLTOP, GET_PBL_MAX_L
       USE MEGANUT_MOD,  ONLY : XLTMMP
+#if defined( DEVEL )
+      USE GC_TYPE_MOD,  ONLY : GC_MET_LOCAL
+#endif
       
       USE CMN_SIZE_MOD       ! Size parameters
       USE CMN_DIAG_MOD       ! Diagnostic switches & arrays
       USE CMN_VEL_MOD        ! IJLAND
       USE CMN_DEP_MOD        ! Dry deposition variables
       USE COMMSOIL_MOD       ! Soil pulsing & wetness variables
+!
+! !INPUT PARAMETERS:
+!
+#if defined( DEVEL )
+      TYPE(GC_MET_LOCAL), INTENT(IN) :: LOCAL_MET  ! Obj w/ met fields
+#endif
 ! 
 ! !REVISION HISTORY: 
 !  (1) Now deposit through the PBL. Commented but kept code related to soil
@@ -1127,9 +1182,16 @@
                ! Only apply dry deposition over land surfaces which
                     ! are not covered with ice or desert (albedo < 0.4)
                ! and if we are in the window simulation.
+#if defined( DEVEL )
+               IF ( (I.GE.1)       .AND. (I.LE.IIPAR)  .AND.
+     &              (J.GE.1)       .AND. (J.LE.JJPAR)  .AND.
+     &              (FSOIL > 0.d0) .AND. 
+     &              (LOCAL_MET%ALBD(I,J) < 0.4d0) ) THEN
+#else
                IF ( (I.GE.1)       .AND. (I.LE.IIPAR)  .AND.
      &              (J.GE.1)       .AND. (J.LE.JJPAR)  .AND.
      &              (FSOIL > 0.d0) .AND. (ALBD(I,J) < 0.4d0) ) THEN
+#endif
 
                   ! Grid box area in cm2
                   AREA_CM2 = GET_AREA_CM2( I, J, 1 )

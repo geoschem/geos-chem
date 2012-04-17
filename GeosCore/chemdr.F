@@ -11,7 +11,11 @@
 !\\
 ! !INTERFACE:
 !
+#if defined( DEVEL )
+      SUBROUTINE CHEMDR( LOCAL_MET )
+#else
       SUBROUTINE CHEMDR
+#endif
 !
 ! !USES:
 !
@@ -39,6 +43,9 @@
       USE RESTART_MOD,          ONLY : READ_CSPEC_FILE 
       USE TIME_MOD,             ONLY : GET_NYMD,     GET_NHMS
       USE LOGICAL_MOD,          ONLY : LSVCSPEC,     LLINOZ
+#if defined( DEVEL )
+      USE GC_TYPE_MOD,          ONLY : GC_MET_LOCAL
+#endif
 
       USE CMN_SIZE_MOD               ! Size parameters
       USE COMODE_LOOP_MOD            ! SMVGEAR variables
@@ -217,6 +224,10 @@
       ! To use CSPEC_FULL restart (dkh, 02/12/09) 
       LOGICAL                  :: IT_EXISTS 
 
+#if defined( DEVEL )
+      TYPE(GC_MET_LOCAL)       :: LOCAL_MET  ! Obj w/ met fields
+#endif
+
       !=================================================================
       ! CHEMDR begins here!
       !=================================================================
@@ -265,7 +276,11 @@
       !the grid mappings.
       JLOP_PREVIOUS(:,:,:) = JLOP(:,:,:)
 
+#if defined( DEVEL )
+      CALL RURALBOX( AD, T, AVGW, LOCAL_MET%ALBD )
+#else
       CALL RURALBOX( AD, T, AVGW, ALBD )
+#endif
 
       !vartrop fix (dkh, 05/08/11)
       !Use JLOP from this timestep the first time through
@@ -492,6 +507,7 @@
       !=================================================================
       CALL FAST_J( SUNCOS_MID, OPTD, UVALBEDO )              
 
+
       !### Debug
       IF ( LPRT ) CALL DEBUG_MSG( '### CHEMDR: after FAST-J' )
 
@@ -502,7 +518,11 @@
       ! PHYSPROC calls both CALCRATE, which computes rxn rates 
       ! and SMVGEAR (if we do not use the solver coded by kpp), which
       ! is the chemistry solver
+#if defined( DEVEL )
+      CALL PHYSPROC( SUNCOS_MID, LOCAL_MET )
+#else
       CALL PHYSPROC( SUNCOS_MID )
+#endif
 
       !### Debug
       IF ( LPRT ) CALL DEBUG_MSG( '### CHEMDR: after PHYSPROC' )

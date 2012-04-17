@@ -157,9 +157,16 @@
 
 !------------------------------------------------------------------------------
 
+#if defined( DEVEL )
+      SUBROUTINE FVDAS_CONVECT( TDT,   NTRACE, Q,     RPDEL, ETA, 
+     &                          BETA,  MU,     MD,    EU,    DP,    
+     &                          NSTEP, FRACIS, TCVV,  INDEXSOL,
+     &                          LOCAL_MET )
+#else
       SUBROUTINE FVDAS_CONVECT( TDT,   NTRACE, Q,     RPDEL, ETA, 
      &                          BETA,  MU,     MD,    EU,    DP,    
      &                          NSTEP, FRACIS, TCVV,  INDEXSOL )
+#endif
 !
 !******************************************************************************
 !  Subroutine FVDAS_CONVECT is the convection driver routine for GEOS-4/fvDAS
@@ -216,6 +223,10 @@
 !        problems with OpenMP for some compilers. (bmy, 12/13/05)
 !******************************************************************************
 
+#if defined( DEVEL )
+      USE GC_TYPE_MOD,  ONLY : GC_MET_LOCAL
+#endif
+
       USE CMN_SIZE_MOD      ! Size parameters
 
       ! Arguments
@@ -232,6 +243,9 @@
       REAL*8,  INTENT(IN)    :: DP(IIPAR,JJPAR,LLPAR)     
       REAL*8,  INTENT(IN)    :: FRACIS(IIPAR,JJPAR,LLPAR,NTRACE) 
       REAL*8,  INTENT(IN)    :: TCVV(NTRACE)
+#if defined( DEVEL )
+      TYPE(GC_MET_LOCAL), INTENT(IN) :: LOCAL_MET  ! Obj w/ met fields
+#endif
 
       ! Local variables
       INTEGER                :: I, J, L, N, LENGATH, ISTEP
@@ -276,10 +290,18 @@
             ! Only call CONVTRAN where convection happens
             ! (i.e. at latitudes where LENGATH > 0)
             IF ( LENGATH > 0 ) THEN
+#if defined( DEVEL )
+               CALL CONVTRAN( J,     NTRACE,    Q,      MUG,  MDG,      
+     &                        DUG,   EUG,       EDG,    DPG,  DSUBCLD,  
+     &                        JT,    MX,        IDEEP,  1,    LENGATH, 
+     &                        NSTEP, 0.5D0*TDT, FRACIS, TCVV, INDEXSOL,
+     &                        LOCAL_MET )
+#else
                CALL CONVTRAN( J,     NTRACE,    Q,      MUG,  MDG,      
      &                        DUG,   EUG,       EDG,    DPG,  DSUBCLD,  
      &                        JT,    MX,        IDEEP,  1,    LENGATH, 
      &                        NSTEP, 0.5D0*TDT, FRACIS, TCVV, INDEXSOL )
+#endif
             ENDIF
 
             !-----------------------------------
@@ -677,10 +699,18 @@
 
 !------------------------------------------------------------------------------
 
+#if defined( DEVEL )
+      SUBROUTINE CONVTRAN( J,     NTRACE, Q,      MU,   MD,       
+     &                     DU,    EU,     ED,     DP,   DSUBCLD,  
+     &                     JT,    MX,     IDEEP,  IL1G, IL2G,     
+     &                     NSTEP, DELT,   FRACIS, TCVV, INDEXSOL,
+     &                     LOCAL_MET )
+#else
       SUBROUTINE CONVTRAN( J,     NTRACE, Q,      MU,   MD,       
      &                     DU,    EU,     ED,     DP,   DSUBCLD,  
      &                     JT,    MX,     IDEEP,  IL1G, IL2G,     
      &                     NSTEP, DELT,   FRACIS, TCVV, INDEXSOL )
+#endif
 !
 !******************************************************************************
 !  Subroutine CONVTRAN applies the convective transport of trace species
@@ -766,6 +796,10 @@
       USE DEPO_MERCURY_MOD,  ONLY : ADD_Hg2_SNOWPACK !CDH
       USE DAO_MOD,           ONLY : SNOMAS, SNOW 
 
+#if defined( DEVEL )
+      USE GC_TYPE_MOD,       ONLY : GC_MET_LOCAL
+#endif
+
       USE CMN_SIZE_MOD          ! Size parameters
       USE CMN_DIAG_MOD          ! ND38, LD38, ND14, LD14
 
@@ -790,6 +824,9 @@
       REAL*8,  INTENT(IN)        :: FRACIS(IIPAR,JJPAR,LLPAR,NTRACE) 
       REAL*8,  INTENT(IN)        :: TCVV(NTRACE)
       INTEGER, INTENT(IN)        :: INDEXSOL(NTRACE)
+#if defined( DEVEL )
+      TYPE(GC_MET_LOCAL), INTENT(IN) :: LOCAL_MET  ! Obj w/ met fields
+#endif
 
       ! Local variables
       LOGICAL                    :: IS_Hg
@@ -1196,7 +1233,12 @@
 
                      ! Pass to "ocean_mercury_mod.f"
                      CALL ADD_Hg2_WD( II, J, M, WET_Hg2 )
+#if defined( DEVEL )
+                     CALL ADD_Hg2_SNOWPACK( II, J, M, WET_Hg2, 
+     &                                      LOCAL_MET )
+#else
                      CALL ADD_Hg2_SNOWPACK( II, J, M, WET_Hg2 )
+#endif
                   ENDIF
                   !eck/eds
                   IF ( IS_HgP( M ) ) THEN
@@ -1215,7 +1257,12 @@
 
                      ! Pass to "ocean_mercury_mod.f"
                      CALL ADD_HgP_WD( II, J, M, WET_HgP )
+#if defined( DEVEL )
+                     CALL ADD_Hg2_SNOWPACK( II, J, M, WET_HgP,
+     &                                      LOCAL_MET )
+#else
                      CALL ADD_Hg2_SNOWPACK( II, J, M, WET_HgP )
+#endif
                   ENDIF
                ENDIF
 

@@ -193,7 +193,11 @@
                LOCAL_MET%SST     (IIPAR, JJPAR), & ! Sea surface temperature [K]
                LOCAL_MET%SUNCOS  (IIPAR, JJPAR), & ! Cosine of solar zenith angle
                LOCAL_MET%TO3     (IIPAR, JJPAR), & ! Total overhead O3 column [DU]
+               LOCAL_MET%TO31    (IIPAR, JJPAR), & ! Total overhead O3 at start of timestep [DU]
+               LOCAL_MET%TO32    (IIPAR, JJPAR), & ! Total overhead O3 at end of timestep [DU]
                LOCAL_MET%TROPP   (IIPAR, JJPAR), & ! Tropopause pressure [hPa]
+               LOCAL_MET%TROPP1  (IIPAR, JJPAR), & ! Tropopause P at start of timestep [hPa]
+               LOCAL_MET%TROPP2  (IIPAR, JJPAR), & ! Tropopause P at end of timestep [hPa]
                LOCAL_MET%TS      (IIPAR, JJPAR), & ! Surface temperature at 2m [K]
                LOCAL_MET%TSKIN   (IIPAR, JJPAR), & ! Surface skin temperature [K]
                LOCAL_MET%TTO3    (IIPAR, JJPAR), & ! Tropospheric ozone column [DU]

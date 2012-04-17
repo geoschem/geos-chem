@@ -1353,7 +1353,11 @@ ctdf        print *,' no mobilisation candidates'
 
 !------------------------------------------------------------------------------
 
+#if defined( DEVEL )
+      SUBROUTINE GET_ORO( OROGRAPHY, LOCAL_MET )
+#else
       SUBROUTINE GET_ORO( OROGRAPHY )
+#endif
 !
 !******************************************************************************
 !  Subroutine GET_ORO creates a 2D orography array, OROGRAPHY, from the
@@ -1372,10 +1376,16 @@ ctdf        print *,' no mobilisation candidates'
 !
       ! References to F90 modules
       USE DAO_MOD, ONLY : IS_LAND, IS_WATER, IS_ICE
+#if defined( DEVEL )
+      USE GC_TYPE_MOD, ONLY : GC_MET_LOCAL
+#endif
 
       USE CMN_SIZE_MOD
 
       ! Arguments
+#if defined( DEVEL )
+      TYPE(GC_MET_LOCAL), INTENT(IN) :: LOCAL_MET  ! Obj w/ met fields
+#endif
       INTEGER, INTENT(OUT)  :: OROGRAPHY(IIPAR,JJPAR)
 
       ! Local variables
@@ -1390,6 +1400,17 @@ ctdf        print *,' no mobilisation candidates'
       DO J = 1, JJPAR
       DO I = 1, IIPAR
 
+#if defined( DEVEL )
+         ! Ocean
+         IF ( IS_WATER( I, J, LOCAL_MET ) ) OROGRAPHY(I,J) = 0
+
+         ! Land
+         IF ( IS_LAND(  I, J, LOCAL_MET ) ) OROGRAPHY(I,J) = 1
+
+         ! Ice
+         IF ( IS_ICE (  I, J, LOCAL_MET ) ) OROGRAPHY(I,J) = 2
+
+#else
          ! Ocean
          IF ( IS_WATER( I, J ) ) OROGRAPHY(I,J) = 0
 
@@ -1398,6 +1419,7 @@ ctdf        print *,' no mobilisation candidates'
 
          ! Ice
          IF ( IS_ICE (  I, J ) ) OROGRAPHY(I,J) = 2
+#endif
 
       ENDDO
       ENDDO

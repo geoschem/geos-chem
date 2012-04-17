@@ -498,7 +498,7 @@
 ! !INTERFACE:
 !
 #if defined( DEVEL )
-      SUBROUTINE EMISSDUST( SFLX )
+      SUBROUTINE EMISSDUST( LOCAL_MET, SFLX )
 #else
       SUBROUTINE EMISSDUST
 #endif
@@ -512,6 +512,7 @@
 
       USE CMN_SIZE_MOD       ! Size parameters
 #if defined( DEVEL )
+      USE GC_TYPE_MOD,  ONLY : GC_MET_LOCAL
       USE TRACER_MOD,   ONLY : N_TRACERS
       USE TIME_MOD,     ONLY : GET_TS_EMIS
 #endif
@@ -531,6 +532,7 @@
       LOGICAL, SAVE :: FIRST = .TRUE.
       
 #if defined( DEVEL )
+      TYPE(GC_MET_LOCAL), INTENT(IN) :: LOCAL_MET  ! Obj w/ met fields
       REAL*8, INTENT(INOUT) :: SFLX(IIPAR,JJPAR,LLPAR,N_TRACERS+1)
       REAL*8                :: STT_TMP(IIPAR,JJPAR,LLPAR,4)
 !      REAL*8                :: DTSRCE
@@ -568,7 +570,11 @@
       IF ( LDEAD ) THEN
 
          ! Use Zender's DEAD dust source function
+#if defined( DEVEL )
+         CALL SRC_DUST_DEAD( STT(:,:,:,IDTDST1:IDTDST4), LOCAL_MET )
+#else
          CALL SRC_DUST_DEAD( STT(:,:,:,IDTDST1:IDTDST4) )
+#endif
 
          !### Debug
          IF ( LPRT ) CALL DEBUG_MSG( '### EMISSDUST: a SRC_DUST_DEAD' )
@@ -603,7 +609,11 @@
 !\\
 ! !INTERFACE:
 !
+#if defined( DEVEL )
+      SUBROUTINE SRC_DUST_DEAD( TC, LOCAL_MET )
+#else
       SUBROUTINE SRC_DUST_DEAD( TC )
+#endif
 !
 ! !USES:
 !
@@ -623,6 +633,10 @@
       USE TIME_MOD,      ONLY : GET_DAY_OF_YEAR, ITS_A_NEW_MONTH
       USE TRANSFER_MOD,  ONLY : TRANSFER_2D
 
+#if defined( DEVEL )
+      USE GC_TYPE_MOD,       ONLY : GC_MET_LOCAL
+#endif
+
       USE CMN_SIZE_MOD        ! Size parameters
       USE CMN_DIAG_MOD        ! ND06
       USE CMN_GCTM_MOD        ! g0
@@ -630,6 +644,9 @@
 ! !INPUT/OUTPUT PARAMETERS: 
 ! 
       REAL*8, INTENT(INOUT) :: TC(IIPAR,JJPAR,LLPAR,NDSTBIN)  ! Dust mass [kg]
+#if defined( DEVEL )
+      TYPE(GC_MET_LOCAL), INTENT(IN) :: LOCAL_MET  ! Obj w/ met fields
+#endif
 !
 ! !REMARKS:
 !  Input:
@@ -763,7 +780,11 @@
       !=================================================================
 
       ! Make OROGRAPHY array from GEOS-CHEM LWI
+#if defined( DEVEL )
+      CALL GET_ORO( OROGRAPHY, LOCAL_MET )
+#else
       CALL GET_ORO( OROGRAPHY )
+#endif
 
 !$OMP PARALLEL DO
 !$OMP+DEFAULT( SHARED )

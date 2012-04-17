@@ -273,7 +273,11 @@
 
 !------------------------------------------------------------------------------
 
+#if defined( DEVEL )
+      SUBROUTINE CHEMCARBON( LOCAL_MET )
+#else
       SUBROUTINE CHEMCARBON
+#endif
 !
 !******************************************************************************
 !  Subroutine CHEMCARBON is the interface between the GEOS-CHEM main program 
@@ -308,7 +312,16 @@
       USE TRACERID_MOD,   ONLY : IDTSOG5, IDTSOA5  ! (dkh, 03/24/07)  
       USE TRACERID_MOD,   ONLY : IDTSOAG, IDTSOAM
 
+#if defined( DEVEL )
+      USE GC_TYPE_MOD,    ONLY : GC_MET_LOCAL
+#endif
+
       USE CMN_SIZE_MOD       ! Size parameters
+
+      !Arguments
+#if defined( DEVEL )
+      TYPE(GC_MET_LOCAL), INTENT(IN) :: LOCAL_MET  ! Obj w/ met fields
+#endif
 
       ! Local variables
       LOGICAL, SAVE           :: FIRSTCHEM = .TRUE.
@@ -461,7 +474,11 @@
             CALL GET_VCLDF
 
             ! Cloud uptake
+#if defined( DEVEL )
+            CALL SOAG_CLOUD( LOCAL_MET )
+#else
             CALL SOAG_CLOUD
+#endif
             IF ( LPRT )
      &         CALL DEBUG_MSG('### CHEMCARBON: a SOAG_CLOUD')        
 
@@ -479,7 +496,11 @@
             CALL GET_VCLDF
 
             ! Cloud uptake
+#if defined( DEVEL )
+            CALL SOAM_CLOUD( LOCAL_MET )
+#else
             CALL SOAM_CLOUD
+#endif
             IF ( LPRT ) 
      &         CALL DEBUG_MSG('### CHEMCARBON: a SOAM_CLOUD')        
 
@@ -6456,7 +6477,11 @@ c
 
 !------------------------------------------------------------------------------
 
+#if defined( DEVEL )
+      SUBROUTINE SOAG_CLOUD( LOCAL_MET )
+#else
       SUBROUTINE SOAG_CLOUD
+#endif
 !
 !******************************************************************************
 !  Subroutine SOAG_CLOUD produces SOAG from GLYX during a cloud event.
@@ -6484,8 +6509,17 @@ c
       USE TRACER_MOD,      ONLY : STT
       USE TRACERID_MOD,    ONLY : IDTGLYX, IDTSOAG
 
+#if defined( DEVEL )
+      USE GC_TYPE_MOD,     ONLY : GC_MET_LOCAL
+#endif
+
       USE CMN_SIZE_MOD    ! Size parameters
       USE CMN_DIAG_MOD     ! ND44, ND07, LD07
+
+      !Arguments
+#if defined( DEVEL )
+      TYPE(GC_MET_LOCAL), INTENT(IN) :: LOCAL_MET  ! Obj w/ met fields
+#endif
 
       ! Local variables
       INTEGER   :: I, J, L
@@ -6591,7 +6625,11 @@ c
      &        ( XGASMIX > MINDAT )  .AND. 
      &        ( XTEMP   > 258.0  ) ) THEN
 
+#if defined( DEVEL )
+            IF ( IS_LAND( I, J, LOCAL_MET ) ) THEN
+#else
             IF ( IS_LAND(I,J) ) THEN
+#endif
                XCLDR = XCLDR_CONT     ! Continental cloud droplet radius  [m]
             ELSE
                XCLDR = XCLDR_MARI     ! Marine cloud droplet radius  [m]
@@ -6660,7 +6698,11 @@ c
 
 !------------------------------------------------------------------------------
 
+#if defined( DEVEL )
+      SUBROUTINE SOAM_CLOUD( LOCAL_MET )
+#else
       SUBROUTINE SOAM_CLOUD
+#endif
 !
 !******************************************************************************
 !  Subroutine SOAM_CLOUD produces SOAM from MGLY during a cloud event.
@@ -6686,8 +6728,17 @@ c
       USE TRACER_MOD,      ONLY : STT
       USE TRACERID_MOD,    ONLY : IDTMGLY, IDTSOAM
 
+#if defined( DEVEL )
+      USE GC_TYPE_MOD,     ONLY : GC_MET_LOCAL
+#endif
+
       USE CMN_SIZE_MOD    ! Size parameters
       USE CMN_DIAG_MOD     ! ND44, ND07, LD07
+
+      !Arguments
+#if defined( DEVEL )
+      TYPE(GC_MET_LOCAL), INTENT(IN) :: LOCAL_MET  ! Obj w/ met fields
+#endif
 
       ! Local variables
       INTEGER   :: I, J, L
@@ -6790,7 +6841,11 @@ c
      &        ( XGASMIX > MINDAT )  .AND. 
      &        ( XTEMP   > 258.0  ) ) THEN
 
+#if defined( DEVEL )
+            IF ( IS_LAND( I, J, LOCAL_MET ) ) THEN
+#else
             IF ( IS_LAND(I,J) ) THEN
+#endif
                XCLDR = XCLDR_CONT     ! Continental cloud droplet radius  [m]
             ELSE
                XCLDR = XCLDR_MARI     ! Marine cloud droplet radius  [m]

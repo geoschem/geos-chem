@@ -67,7 +67,7 @@
 ! !INTERFACE:
 !
 #if defined( DEVEL )
-      SUBROUTINE DO_CHEMISTRY(CHEM_STATE)
+      SUBROUTINE DO_CHEMISTRY( LOCAL_MET, CHEM_STATE )
 #else
       SUBROUTINE DO_CHEMISTRY
 #endif
@@ -82,6 +82,7 @@
       USE CH3I_MOD,        ONLY : CHEMCH3I
       USE DAO_MOD,         ONLY : CLDF,    DELP
       USE DAO_MOD,         ONLY : OPTDEP,  OPTD,   T
+      USE DAO_MOD,         ONLY : ALBD ! mpayer
       USE DRYDEP_MOD,      ONLY : DRYFLX, DRYFLXRnPbBe, DRYFLXH2HD
       USE DUST_MOD,        ONLY : CHEMDUST, RDUST_ONLINE
       USE ERROR_MOD,       ONLY : DEBUG_MSG
@@ -121,7 +122,8 @@
       USE CMN_DIAG_MOD          ! NDxx flags
 
 #if defined( DEVEL )
-      USE GC_TYPE2_MOD,           ONLY : CHEMSTATE, NULL 
+      USE GC_TYPE2_MOD,    ONLY : CHEMSTATE, NULL
+      USE GC_TYPE_MOD,     ONLY : GC_MET_LOCAL
 #endif
 
 !
@@ -178,7 +180,8 @@
       INTEGER       :: N_TROP, MONTH, YEAR, WAVELENGTH
 
 #if defined( DEVEL )
-      TYPE(CHEMSTATE), INTENT(INOUT) :: CHEM_STATE
+      TYPE(CHEMSTATE),    INTENT(INOUT) :: CHEM_STATE
+      TYPE(GC_MET_LOCAL), INTENT(IN)    :: LOCAL_MET  ! Obj w/ met fields
 !      REAL*8                         :: STT(IIPAR,JJPAR,LLPAR,N_TRACERS)
 #endif
 
@@ -207,7 +210,11 @@
          IF ( ITS_A_FULLCHEM_SIM() ) THEN 
 
             ! Call SMVGEAR routines
+#if defined( DEVEL )
+            CALL CHEMDR( LOCAL_MET )
+#else
             CALL CHEMDR
+#endif
 
              ! Do seasalt aerosol chemistry
              IF ( LSSALT ) CALL CHEMSEASALT
@@ -236,7 +243,11 @@
              ENDIF
  
              ! Do carbonaceous aerosol chemistry
+#if defined( DEVEL )
+             IF ( LCARB ) CALL CHEMCARBON( LOCAL_MET )
+#else
              IF ( LCARB ) CALL CHEMCARBON
+#endif
  
              ! Do dust aerosol chemistry
              IF ( LDUST ) CALL CHEMDUST
@@ -251,7 +262,12 @@
  
              ! Remove acetone ocean sink
              IF ( IDTACET /= 0 ) THEN
-                CALL OCEAN_SINK_ACET( STT(:,:,1,IDTACET) ) 
+#if defined( DEVEL )
+                CALL OCEAN_SINK_ACET( LOCAL_MET%ALBD, 
+     &                                STT(:,:,1,IDTACET) ) 
+#else
+                CALL OCEAN_SINK_ACET( ALBD, STT(:,:,1,IDTACET) ) 
+#endif
              ENDIF
  
           !---------------------------------
@@ -318,7 +334,11 @@
              ENDIF
                 
              !*** CARBON AND 2NDARY ORGANIC AEROSOLS ***
+#if defined( DEVEL )
+             IF ( LCARB ) CALL CHEMCARBON( LOCAL_MET )
+#else
              IF ( LCARB ) CALL CHEMCARBON
+#endif
  
              !*** MINERAL DUST AEROSOLS ***
              IF ( LDUST ) THEN 
@@ -349,7 +369,11 @@
           ! HCN
           !---------------------------------
           ELSE IF ( ITS_A_HCN_SIM() ) THEN
-             CALL CHEM_HCN_CH3CN( N_TRACERS, STT )
+#if defined( DEVEL )
+             CALL CHEM_HCN_CH3CN( N_TRACERS, LOCAL_MET%ALBD, STT )
+#else
+             CALL CHEM_HCN_CH3CN( N_TRACERS, ALBD, STT )
+#endif
  
           !---------------------------------
           ! Tagged O3
@@ -385,14 +409,22 @@
           ELSE IF ( ITS_A_MERCURY_SIM() ) THEN
  
              ! Do Hg chemistry
+#if defined( DEVEL )
+             CALL CHEMMERCURY( LOCAL_MET )
+#else
              CALL CHEMMERCURY
+#endif
                
           !---------------------------------
           ! Offline H2/HD
           !---------------------------------
           ELSE IF ( ITS_A_H2HD_SIM() ) THEN
              CALL CHEM_H2_HD
+#if defined( DEVEL )
+             CALL DRYFLXH2HD( LOCAL_MET )
+#else
              CALL DRYFLXH2HD
+#endif
   
           ENDIF
 

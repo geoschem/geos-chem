@@ -11,13 +11,17 @@
 !\\
 ! !INTERFACE:
 !
+#if defined( DEVEL )
+      SUBROUTINE DIAG1( LOCAL_MET )
+#else
       SUBROUTINE DIAG1 
+#endif
 !
 ! !USES:
 !
       ! References to F90 modules
       USE DAO_MOD,        ONLY : AD,  AIRDEN, AVGW,     BXHEIGHT 
-      USE DAO_MOD,        ONLY : PBL, IS_ICE, IS_WATER, IS_LAND, IS_NEAR
+      USE DAO_MOD,        ONLY : PBL, IS_ICE, IS_WATER, IS_LAND!, IS_NEAR
       USE DIAG_MOD,       ONLY : AD30, AD31, AD33, AD35, AD45, AD54 
       USE DIAG_MOD,       ONLY : AD47, AD67, AD68, AD69, LTOTH, LTO3
       USE DIAG_MOD,       ONLY : AD57
@@ -37,6 +41,9 @@
 #if   defined( APM )
       USE TRACER_MOD,     ONLY : N_APMTRA
 #endif
+#if defined( DEVEL )
+      USE GC_TYPE_MOD,    ONLY : GC_MET_LOCAL
+#endif
 
       USE CMN_SIZE_MOD  ! Size parameters
       USE CMN_O3_MOD    ! FRACO3
@@ -46,6 +53,12 @@
       IMPLICIT NONE
 #     include "define.h"
 
+!
+! !INPUT PARAMETERS:
+!
+#if defined( DEVEL )
+      TYPE(GC_MET_LOCAL), INTENT(IN) :: LOCAL_MET  ! Obj w/ met fields
+#endif
 !
 ! !REVISION HISTORY:
 !  (1 ) This subroutine was reconstructed from gmg's version of (10/10/97)
@@ -197,9 +210,18 @@
 !$OMP+PRIVATE( I, J )
          DO J = 1, JJPAR
          DO I = 1, IIPAR
+#if defined( DEVEL )
+            IF ( IS_WATER( I, J, LOCAL_MET ) )
+     &           AD30(I,J) = AD30(I,J) + 0e0
+            IF ( IS_LAND ( I, J, LOCAL_MET ) )
+     &           AD30(I,J) = AD30(I,J) + 1e0
+            IF ( IS_ICE  ( I, J, LOCAL_MET ) )
+     &           AD30(I,J) = AD30(I,J) + 2e0
+#else
             IF ( IS_WATER( I, J ) ) AD30(I,J) = AD30(I,J) + 0e0
             IF ( IS_LAND ( I, J ) ) AD30(I,J) = AD30(I,J) + 1e0
             IF ( IS_ICE  ( I, J ) ) AD30(I,J) = AD30(I,J) + 2e0
+#endif
          ENDDO
          ENDDO
 !$OMP END PARALLEL DO

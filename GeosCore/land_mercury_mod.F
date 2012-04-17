@@ -64,7 +64,11 @@
 !\\
 ! !INTERFACE:
 !
+#if defined( DEVEL )
+      SUBROUTINE LAND_MERCURY_FLUX( LFLUX, LHGSNOW, LOCAL_MET )
+#else
       SUBROUTINE LAND_MERCURY_FLUX( LFLUX, LHGSNOW )
+#endif
 !
 ! !USES:
 !
@@ -76,11 +80,18 @@
       USE DAO_MOD,          ONLY : IS_ICE, IS_LAND
       USE DAO_MOD,          ONLY : FRSNO, FRSEAICE, FRLANDIC, FRLAND 
 
+#if defined( DEVEL )
+      USE GC_TYPE_MOD,   ONLY : GC_MET_LOCAL
+#endif
+
       USE CMN_SIZE_MOD         ! Size parameters
 !
 ! !INPUT PARAMETERS:
 !
       LOGICAL, INTENT(IN)  :: LHGSNOW                      ! Use Hg0 from snow?
+#if defined( DEVEL )
+      TYPE(GC_MET_LOCAL), INTENT(IN) :: LOCAL_MET          ! Obj w/ met fields
+#endif
 !
 ! !OUTPUT PARAMETERS:
 !
@@ -149,14 +160,33 @@
      &                           (FRAC_SNOW_OR_ICE > 0d0) )
 #elif defined( GEOS_5 )
          ! GEOS5 snow height (water equivalent) in mm. (Docs incorrectly say m)
+#if defined( DEVEL )
+         IS_SNOW_OR_ICE = 
+     &      ( (IS_ICE ( I, J, LOCAL_MET )) .OR. 
+     &        (IS_LAND( I, J, LOCAL_MET )  .AND. SNOMAS(I,J)>10d0) )
+         IS_LAND_OR_ICE =
+     &      ( (IS_LAND( I, J, LOCAL_MET )) .OR.
+     &        (IS_ICE ( I, J, LOCAL_MET )) )
+#else
          IS_SNOW_OR_ICE = 
      &      ( (IS_ICE(I,J)) .OR. (IS_LAND(I,J) .AND. SNOMAS(I,J)>10d0) )
          IS_LAND_OR_ICE = ( (IS_LAND(I,J)) .OR. (IS_ICE(I,J)) )
+#endif
+
 #else
          ! GEOS1-4 snow heigt (water equivalent) in mm
+#if defined( DEVEL )
+         IS_SNOW_OR_ICE =
+     &      ( (IS_ICE ( I, J, LOCAL_MET )) .OR.
+     &        (IS_LAND( I, J, LOCAL_MET ) .AND. SNOW(I,J)>10d0) )
+         IS_LAND_OR_ICE =
+     &      ( (IS_LAND( I, J, LOCAL_MET )) .OR.
+     &        (IS_ICE ( I, J, LOCAL_MET )) )
+#else
          IS_SNOW_OR_ICE =
      &      ( (IS_ICE(I,J)) .OR. (IS_LAND(I,J) .AND. SNOW(I,J)>10d0) )
          IS_LAND_OR_ICE = ( (IS_LAND(I,J)) .OR. (IS_ICE(I,J)) )
+#endif
 #endif 
 
          ! Reset land fractions if we are in a version prior to MERRA
@@ -325,7 +355,11 @@
 !
       ! Bug fix: VEGEMIS shouldn't be tied to GCAP emissions
       ! (jaf, eds, 4/1/11)
+#if defined( DEVEL )
+      SUBROUTINE VEGEMIS( LVEGEMIS, EHg0_dist, EHg0_vg, LOCAL_MET )
+#else
       SUBROUTINE VEGEMIS( LVEGEMIS, EHg0_dist, EHg0_vg )
+#endif
 !
 ! !USES:
 !
@@ -333,6 +367,10 @@
       USE TIME_MOD,       ONLY: GET_MONTH, ITS_A_NEW_MONTH
       USE TIME_MOD,       ONLY: GET_TS_EMIS
       USE GRID_MOD,       ONLY: GET_AREA_M2
+
+#if defined( DEVEL )
+      USE GC_TYPE_MOD,   ONLY : GC_MET_LOCAL
+#endif
 
       USE CMN_SIZE_MOD     ! Size parameters
       USE CMN_DEP_MOD      ! FRCLND
@@ -344,6 +382,9 @@
       !LOGICAL,                INTENT(IN)  :: LGCAPEMIS
       LOGICAL,                INTENT(IN)  :: LVEGEMIS
       REAL*8, DIMENSION(:,:), INTENT(IN)  :: EHg0_dist
+#if defined( DEVEL )
+      TYPE(GC_MET_LOCAL),     INTENT(IN)  :: LOCAL_MET  ! Obj w/ met fields
+#endif
 !
 ! !OUTPUT PARAMETERS:
 !
@@ -424,7 +465,11 @@
          DO J=1, JJPAR
          DO I=1, IIPAR
         
+#if defined( DEVEL )
+            IF (IS_LAND( I, J, LOCAL_MET )) THEN
+#else
             IF (IS_LAND(I,J)) THEN  
+#endif
 
                ! Dry soil Hg concentration, ng Hg /g soil
                DRYSOIL_HG = DRYSOIL_PREIND_HG * EHg0_dist(I,J)
@@ -468,7 +513,11 @@
 !\\
 ! !INTERFACE:
 !
+#if defined( DEVEL )
+      SUBROUTINE SOILEMIS( EHg0_dist, EHg0_so, LOCAL_MET )
+#else
       SUBROUTINE SOILEMIS( EHg0_dist, EHg0_so )
+#endif
 !
 ! !USES:
 !
@@ -480,12 +529,19 @@
       USE DAO_MOD,  ONLY : SNOW, SNOMAS
       USE DAO_MOD,  ONLY : FRSNO, FRLAND
 
+#if defined( DEVEL )
+      USE GC_TYPE_MOD, ONLY : GC_MET_LOCAL
+#endif
+
       USE CMN_SIZE_MOD     ! Size parameters
       USE CMN_DEP_MOD      ! FRCLND
 !
 ! !INPUT PARAMETERS:
 !
       REAL*8, DIMENSION(:,:), INTENT(IN) :: EHg0_dist
+#if defined( DEVEL )
+      TYPE(GC_MET_LOCAL),     INTENT(IN) :: LOCAL_MET  ! Obj w/ met fields
+#endif
 !
 ! !OUTPUT PARAMETERS:
 !
@@ -591,15 +647,28 @@ else  ! This sets a default value for GCM & ESMF COUPLING
          ! Except in MERRA, assume whole box is land if conditions met
          ! (jaf, 4/26/11)
          FRAC_SNOWFREE_LAND = 1d0
+
 #if   defined( MERRA ) || defined( GEOS_57 )
          FRAC_SNOWFREE_LAND = MAX(FRLAND(I,J) - FRSNO(I,J), 0d0)
          IS_SNOWFREE_LAND = (FRAC_SNOWFREE_LAND > 0d0)
+
 #elif defined( GEOS_5 )
          ! GEOS5 snow height (water equivalent) in mm. (Docs wrongly say m)
-         IS_SNOWFREE_LAND = ( IS_LAND(I,J) .AND. (SNOMAS(I,J) < 10d0) )
+#if defined( DEVEL )
+         IS_SNOWFREE_LAND = ( IS_LAND( I, J, LOCAL_MET ) .AND.
+     &                      ( SNOMAS(I,J) < 10d0) )
 #else
+         IS_SNOWFREE_LAND = ( IS_LAND(I,J) .AND. (SNOMAS(I,J) < 10d0) )
+#endif
+#else
+
          ! GEOS1-4 snow heigt (water equivalent) in mm
+#if defined( DEVEL )
+         IS_SNOWFREE_LAND = ( IS_LAND( I, J, LOCAL_MET ) .AND.
+     &                      ( SNOW(I,J) < 10d0) )
+#else
          IS_SNOWFREE_LAND = ( IS_LAND(I,J) .AND. (SNOW(I,J) < 10d0) )
+#endif
 #endif          
 
          IF ( IS_SNOWFREE_LAND ) THEN
@@ -866,7 +935,11 @@ else  ! This sets a default value for GCM & ESMF COUPLING
 !\\
 ! !INTERFACE: 
 !
+#if defined( DEVEL )
+      SUBROUTINE GTMM_DR( Hg0gtm, LOCAL_MET )
+#else
       SUBROUTINE GTMM_DR( Hg0gtm )
+#endif
 ! 
 ! !USES:
 !
@@ -879,10 +952,20 @@ else  ! This sets a default value for GCM & ESMF COUPLING
       USE DEPO_MERCURY_MOD,  ONLY : CHECK_DIMENSIONS
       USE DEPO_MERCURY_MOD,  ONLY : WD_Hg2, WD_HgP, DD_HgP, DD_Hg2
       USE DEPO_MERCURY_MOD,  ONLY : READ_GTMM_RESTART
+
+#if defined( DEVEL )
+      USE GC_TYPE_MOD,       ONLY : GC_MET_LOCAL
+#endif
     
       USE CMN_SIZE_MOD          ! Size parameters
 !
 ! !INPUT PARAMETERS: 
+!
+#if defined( DEVEL )
+      TYPE(GC_MET_LOCAL), INTENT(IN) :: LOCAL_MET  ! Obj w/ met fields
+#endif
+!
+! !OUTPUT PARAMETERS: 
 !
       ! Emission of Hg0 calculated by GTMM for the month [kg/s]
       REAL*8, INTENT(OUT)   :: Hg0gtm(IIPAR, JJPAR) 
@@ -1064,7 +1147,11 @@ else  ! This sets a default value for GCM & ESMF COUPLING
       ! Use LAND/OCEAN mask on the land emissions
       DO J = 1, JJPAR
       DO I = 1, IIPAR
+#if defined( DEVEL )
+         IF ( .NOT.(IS_LAND(I, J, LOCAL_MET )) ) Hg0gtm(I,J) = 0d0
+#else
          IF ( .NOT.(IS_LAND(I, J)) ) Hg0gtm(I,J) = 0d0
+#endif
       ENDDO
       ENDDO
 

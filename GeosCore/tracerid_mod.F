@@ -375,7 +375,7 @@
 
 #if defined(DEVEL)
       USE GC_TYPE2_MOD
-      USE GC_ENVIRONMENT_MOD, ONLY : TRACER_INDEX
+!      USE GC_ENVIRONMENT_MOD, ONLY : TRACER_INDEX
 #endif
 
       ! Local variables
@@ -430,7 +430,7 @@
 #if defined (DEVEL)
 !         CHEM_STATE%TRAC_ID(N) = N
 !         CHEM_STATE%TRAC_NAME(N)  = TRIM( TRACER_NAME(N) )
-         TRACER_INDEX(N) = N
+!         TRACER_INDEX(N) = N
 #endif
          ! Convert tracer name to upper case.  TCNAME is in the "CMN" header
          ! file -- we might use something better later on (bmy, 11/12/02)

@@ -292,7 +292,11 @@
 !\\
 ! !INTERFACE: 
 !
+#if defined( DEVEL )
+      SUBROUTINE ADD_HG2_SNOWPACK( I, J, N, DEP_Hg2, LOCAL_MET )
+#else
       SUBROUTINE ADD_HG2_SNOWPACK( I, J, N, DEP_Hg2 )
+#endif
 !
 ! !USES:
 !
@@ -302,6 +306,10 @@
       USE TRACERID_MOD,      ONLY : GET_Hg2_CAT, GET_HgP_CAT
       USE TRACERID_MOD,      ONLY : IS_Hg2,      IS_HgP
 
+#if defined( DEVEL )
+      USE GC_TYPE_MOD,   ONLY : GC_MET_LOCAL
+#endif
+
 #     include "define.h"
 !
 ! !INPUT PARAMETERS:
@@ -309,6 +317,9 @@
       ! Arguments as input
       INTEGER, INTENT(IN)   :: I, J, N
       REAL*8,  INTENT(IN)   :: Dep_Hg2
+#if defined( DEVEL )
+      TYPE(GC_MET_LOCAL), INTENT(IN) :: LOCAL_MET  ! Obj w/ met fields
+#endif
 !
 ! !REVISION HISTORY:
 !  02 Sep 2008 - C. Holmes   - Initial version
@@ -361,14 +372,26 @@
 #elif defined( GEOS_5 )
 
       ! Use GEOS5 snow height (water equivalent) in mm. (Docs wrongly say m)
+#if defined( DEVEL )
+      IS_SNOW_OR_ICE   = ( (IS_ICE ( I, J, LOCAL_MET )) .OR. 
+     &                     (IS_LAND( I, J, LOCAL_MET )  .AND. 
+     &                      SNOMAS(I,J) > 10d0) )
+#else
       IS_SNOW_OR_ICE   = ( (IS_ICE(I,J)) .OR. 
      &                     (IS_LAND(I,J) .AND. SNOMAS(I,J) > 10d0) )
+#endif
  
 #else
 
       ! Use GEOS1-4 snow height (water equivalent) in mm
+#if defined( DEVEL )
+      IS_SNOW_OR_ICE   = ( (IS_ICE ( I, J, LOCAL_MET )) .OR. 
+     &                     (IS_LAND( I, J, LOCAL_MET )  .AND. 
+     &                      SNOW(I,J) > 10d0) )
+#else
       IS_SNOW_OR_ICE   = ( (IS_ICE(I,J)) .OR. 
      &                     (IS_LAND(I,J) .AND. SNOW(I,J) > 10d0) )
+#endif
 
 #endif 
 

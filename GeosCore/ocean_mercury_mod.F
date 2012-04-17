@@ -539,7 +539,11 @@
 
 !------------------------------------------------------------------------------
 
+#if defined( DEVEL )
+      SUBROUTINE OCEAN_MERCURY_FLUX( FLUX, LOCAL_MET )
+#else
       SUBROUTINE OCEAN_MERCURY_FLUX( FLUX )
+#endif
 !
 !******************************************************************************
 !  Subroutine OCEAN_MERCURY_FLUX calculates emissions of Hg(0) from 
@@ -714,13 +718,18 @@
       USE TRANSFER_MOD,     ONLY : TRANSFER_2D
       USE DEPO_MERCURY_MOD, ONLY: DD_Hg2, WD_Hg2, DD_HgP, WD_HgP
  
+#if defined( DEVEL )
+      USE GC_TYPE_MOD,      ONLY : GC_MET_LOCAL
+#endif
 
       USE CMN_SIZE_MOD      ! Size parameters
       USE CMN_DEP_MOD       ! FRCLND
 
       ! Arguments 
       REAL*8,  INTENT(OUT)  :: FLUX(IIPAR,JJPAR,N_Hg_CATS)
-
+#if defined( DEVEL )
+      TYPE(GC_MET_LOCAL), INTENT(IN) :: LOCAL_MET  ! Obj w/ met fields
+#endif
 
       ! Local variables
       LOGICAL, SAVE         :: FIRST = .TRUE.
@@ -939,7 +948,12 @@
 #else
          FRAC_L     = FRCLND(I,J)
          FRAC_O     = 1d0 - FRAC_L
+#if defined( DEVEL )
+         IS_OCEAN_BOX = ( IS_WATER( I, J, LOCAL_MET ) )
+#else
          IS_OCEAN_BOX = ( IS_WATER(I,J) )
+#endif
+
 #endif
 !--jaf.end
 

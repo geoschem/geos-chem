@@ -1,5 +1,9 @@
 ! $Id: calcrate.f,v 1.6 2010/03/15 19:33:25 ccarouge Exp $
+#if defined( DEVEL )
+      SUBROUTINE CALCRATE( SUNCOS, LOCAL_MET )
+#else
       SUBROUTINE CALCRATE( SUNCOS )
+#endif
 !
 !******************************************************************************
 !  Subroutine CALCRATE computes reaction rates before passing them to the
@@ -110,6 +114,10 @@
       USE EMISSIONS_MOD,   ONLY : NOx_SCALING      
       USE PARANOX_MOD,     ONLY : INTERPOLATE_LUT2 !(mpayer, 2/7/12)
 
+#if defined( DEVEL )
+      USE GC_TYPE_MOD,     ONLY : GC_MET_LOCAL
+#endif
+
       USE CMN_SIZE_MOD          ! Size parameters
       USE COMODE_LOOP_MOD       ! SMVGEAR II arrays
       USE CMN_DIAG_MOD          ! ND22, LD22, ND52, LD52
@@ -123,6 +131,11 @@
       ! added LD52 and ND52 (jaegle 2/26/09)
       ! added FRCLND (jaegle 02/26/09)
       
+      ! Arguments
+#if defined( DEVEL )
+      TYPE(GC_MET_LOCAL), INTENT(IN) :: LOCAL_MET  ! Obj w/ met fields
+#endif
+
       ! Local variables
       INTEGER :: KLOOP,JLOOP,I,NK,JOLD2,JOLD,NK1,NKN,NH,MLOOP,J
       INTEGER :: NP,K,IFNC,IBRCH,IX,IY,IZ,IJWINDOW,INDEX,NN,ii,jj
@@ -853,9 +866,15 @@ c new OH+CO rate from JPL2006.
                      ! Find out whether we are in the continental
                      ! boundary layer and set the CONTINENTAL_PBL
                      ! flag to 1 (also assume that there is no ice/snow)
+#if defined( DEVEL )
+                     IF (  IZ <= GET_PBL_TOP_L( IX , IY ) .and.
+     &                     FRCLND(IX,IY) >= 0.5 .and.
+     &                     (.not. IS_ICE( IX,IY,LOCAL_MET) ) ) THEN 
+#else
                      IF (  IZ <= GET_PBL_TOP_L( IX , IY ) .and.
      &                     FRCLND(IX,IY) >= 0.5 .and.
      &                     (.not. IS_ICE(IX,IY) ) ) THEN 
+#endif
                         CONTINENTAL_PBL=1 
                      ELSE
                         CONTINENTAL_PBL=0

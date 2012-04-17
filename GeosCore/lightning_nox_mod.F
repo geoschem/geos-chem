@@ -147,7 +147,11 @@
 !\\
 ! !INTERFACE:
 !
+#if defined( DEVEL )
+      SUBROUTINE LIGHTNING( LOCAL_MET )
+#else
       SUBROUTINE LIGHTNING
+#endif
 !
 ! !USES:
 !
@@ -158,8 +162,18 @@
       USE PRESSURE_MOD, ONLY : GET_PEDGE, GET_PCENTER
       USE TIME_MOD,     ONLY : GET_MONTH, GET_YEAR
 
+#if defined( DEVEL )
+      USE GC_TYPE_MOD,  ONLY : GC_MET_LOCAL
+#endif
+
       USE CMN_SIZE_MOD     ! Size parameters
       USE CMN_GCTM_MOD     ! Physical constants
+!
+! !INPUT PARAMETERS:
+!
+#if defined( DEVEL )
+      TYPE(GC_MET_LOCAL), INTENT(IN) :: LOCAL_MET  ! Obj w/ met fields
+#endif
 !
 ! !REMARKS:
 !  Output Lightning NOX [molec/cm3/s] is stored in the EMIS_NOX_LI array.
@@ -548,7 +562,11 @@
             !--------------------------------------------------------
 
             ! Get lightning flash rate per minute and IC/CG ratio
+#if defined( DEVEL )
+            CALL FLASHES_CTH( I, J, H0, LOCAL_MET, FLASHRATE )
+#else
             CALL FLASHES_CTH( I, J, H0, FLASHRATE )
+#endif
 
             !===========================================================
             ! (6) COMPUTE TOTAL LNOx AND PARTITION INTO VERTICAL LAYERS
@@ -754,7 +772,12 @@
 
                ! Partition the column total NOx [molec/6h] from lightning 
                ! into the vertical using Pickering PDF functions
+#if defined( DEVEL )
+               CALL LIGHTDIST( I, J, LTOP, H0, YMID, TOTAL, LOCAL_MET,
+     &                         VERTPROF )
+#else
                CALL LIGHTDIST( I, J, LTOP, H0, YMID, TOTAL, VERTPROF )
+#endif
 
                ! Add vertically partitioned NOx into SLBASE array
                DO L = 1, LLPAR
@@ -780,17 +803,27 @@
 !\\
 ! !INTERFACE:
 !
+#if defined( DEVEL )
+      SUBROUTINE LIGHTDIST( I, J, LTOP, H0, XLAT, TOTAL, LOCAL_MET, 
+     &                      VERTPROF )
+#else
       SUBROUTINE LIGHTDIST( I, J, LTOP, H0, XLAT, TOTAL, VERTPROF )
+#endif
 !
 ! !USES:
 !
-      USE DAO_MOD,       ONLY : BXHEIGHT, IS_ICE,  IS_LAND
-      USE DAO_MOD,       ONLY : IS_NEAR,  IS_WATER
+      !USE DAO_MOD,       ONLY : BXHEIGHT, IS_ICE,  IS_LAND
+      !USE DAO_MOD,       ONLY : IS_NEAR,  IS_WATER
+      USE DAO_MOD,       ONLY : BXHEIGHT, IS_LAND,  IS_WATER
       USE DIRECTORY_MOD, ONLY : DATA_DIR
       USE ERROR_MOD,     ONLY : GEOS_CHEM_STOP
       USE FILE_MOD,      ONLY : IU_FILE,  IOERROR
       USE GRID_MOD,      ONLY : GET_YMID
       USE TIME_MOD,      ONLY : GET_MONTH
+
+#if defined( DEVEL )
+      USE GC_TYPE_MOD,   ONLY : GC_MET_LOCAL
+#endif
 
       USE CMN_SIZE_MOD                        ! Size parameters
 !
@@ -802,6 +835,9 @@
       REAL*8,  INTENT(IN)  :: H0                ! Conv cloud top height [m]
       REAL*8,  INTENT(IN)  :: XLAT              ! Latitude value [degrees]
       REAL*8,  INTENT(IN)  :: TOTAL             ! Column Total # of LNOx molec 
+#if defined( DEVEL )
+      TYPE(GC_MET_LOCAL), INTENT(IN) :: LOCAL_MET  ! Obj w/ met fields
+#endif
 !
 ! !OUTPUT PARAMETERS:
 !
@@ -890,7 +926,11 @@
       CASE ( 1,2,3,12 )
 
          IF ( ABS(YMID) .le. 15 ) THEN
+#if defined( DEVEL )
+            IF ( IS_LAND( I, J, LOCAL_MET ) ) THEN
+#else
             IF ( IS_LAND(I,J) ) THEN
+#endif
                MTYPE = 2        ! Tropical continental
             ELSE
                MTYPE = 1        ! Tropical marine
@@ -907,7 +947,11 @@
       CASE ( 4,5,10,11 )
 
          IF ( ABS(YMID) .le. 15 ) THEN
+#if defined( DEVEL )
+            IF ( IS_LAND( I, J, LOCAL_MET ) ) THEN
+#else
             IF ( IS_LAND(I,J) ) THEN
+#endif
                MTYPE = 2        ! Tropical continental
             ELSE
                MTYPE = 1        ! Tropical marine
@@ -922,7 +966,11 @@
       CASE ( 6,7,8,9 )
 
          IF ( ABS(YMID) .le. 15 ) THEN
+#if defined( DEVEL )
+            IF ( IS_LAND( I, J, LOCAL_MET ) ) THEN
+#else
             IF ( IS_LAND(I,J) ) THEN
+#endif
                MTYPE = 2        ! Tropical continental
             ELSE
                MTYPE = 1        ! Tropical marine
@@ -979,7 +1027,11 @@
 !\\
 ! !INTERFACE:
 !
+#if defined( DEVEL )
+      SUBROUTINE FLASHES_CTH( I, J, HEIGHT, LOCAL_MET, FLASHRATE )
+#else
       SUBROUTINE FLASHES_CTH( I, J, HEIGHT, FLASHRATE )
+#endif
 !
 ! !USES:
 !
@@ -988,12 +1040,20 @@
       USE DAO_MOD, ONLY : IS_ICE
       USE DAO_MOD, ONLY : IS_LAND
       USE DAO_MOD, ONLY : IS_WATER
+
+#if defined( DEVEL )
+      USE GC_TYPE_MOD, ONLY : GC_MET_LOCAL
+      USE CMN_SIZE_MOD      ! Size parameters
+#endif
 !
 ! !INPUT PARAMETERS: 
 !
       INTEGER, INTENT(IN)  :: I           ! Longitude index
       INTEGER, INTENT(IN)  :: J           ! Latitude index
       REAL*8,  INTENT(IN)  :: HEIGHT      ! Height of conv cloud top [m]
+#if defined( DEVEL )
+      TYPE(GC_MET_LOCAL), INTENT(IN) :: LOCAL_MET  ! Obj w/ met fields
+#endif
 !
 ! !OUTPUT PARAMETERS:
 !
@@ -1032,17 +1092,29 @@
       !================================================================
 
       ! Test for land type
+#if defined( DEVEL )
+      IF ( IS_LAND( I, J, LOCAL_MET ) ) THEN
+#else
       IF ( IS_LAND( I, J ) ) THEN
+#endif
 
          ! Flashes/min over land boxes
          FLASHRATE   = 3.44d-5 * ( ( HEIGHT * 1d-3 )**4.9d0  )
 
+#if defined( DEVEL )
+      ELSE IF ( IS_WATER( I, J, LOCAL_MET ) ) THEN
+#else
       ELSE IF ( IS_WATER( I, J ) ) THEN
+#endif
 
          ! Flahes/min over water
          FLASHRATE   = 6.4d-4  * ( ( HEIGHT * 1d-3 )**1.73d0 )
 
+#if defined( DEVEL )
+      ELSE IF ( IS_ICE( I, J, LOCAL_MET ) ) THEN
+#else
       ELSE IF ( IS_ICE( I, J ) ) THEN
+#endif
 
          ! Suppress lightning over snow/ice
          FLASHRATE   = 0d0

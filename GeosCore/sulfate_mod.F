@@ -3996,7 +3996,7 @@
 ! !INTERFACE:
 !
 #if defined( DEVEL )
-      SUBROUTINE EMISSSULFATE(EMISSIONS)
+      SUBROUTINE EMISSSULFATE( LOCAL_MET, EMISSIONS )
 #else
       SUBROUTINE EMISSSULFATE
 #endif
@@ -4016,10 +4016,18 @@
       USE GFED3_BIOMASS_MOD, ONLY : GFED3_IS_NEW
       USE LOGICAL_MOD,       ONLY : LANTHRO, LBIOFUEL
 
+#if defined( DEVEL )
+      USE GC_TYPE_MOD,       ONLY : GC_MET_LOCAL
+      USE TRACER_MOD,        ONLY : N_TRACERS 
+#endif
+
       USE CMN_SIZE_MOD            ! Size parameters
 
+!
+! !INPUT PARAMETERS:
+!
 #if defined( DEVEL )
-      USE TRACER_MOD, ONLY   : N_TRACERS 
+      TYPE(GC_MET_LOCAL), INTENT(IN) :: LOCAL_MET  ! Obj w/ met fields
 #endif
 
 ! 
@@ -4164,7 +4172,7 @@
       !=================================================================
 #if defined( DEVEL )
       IF ( IDTDMS /= 0 ) CALL SRCDMS( STT(:,:,:,IDTDMS),         
-     &                    EMISSIONS(:,:,1,IDTDMS))
+     &                    EMISSIONS(:,:,1,IDTDMS), LOCAL_MET )
       IF ( IDTSO2 /= 0 ) CALL SRCSO2( STT(:,:,:,IDTSO2), NSEASON,         
      &                    EMISSIONS(:,:,:,IDTSO2))
       IF ( IDTSO4 /= 0 ) CALL SRCSO4( STT(:,:,:,IDTSO4),                  
@@ -4283,7 +4291,7 @@
 ! !INTERFACE:
 !
 #if defined( DEVEL)
-      SUBROUTINE SRCDMS( TC, SFLX )
+      SUBROUTINE SRCDMS( TC, SFLX, LOCAL_MET )
 #else
       SUBROUTINE SRCDMS( TC )
 #endif
@@ -4297,6 +4305,10 @@
       USE TIME_MOD,     ONLY : GET_TS_EMIS
       USE TRACERID_MOD,   ONLY : IDTDMS ! (Lin, 03/31/09)
 
+#if defined( DEVEL )
+      USE GC_TYPE_MOD, ONLY : GC_MET_LOCAL
+#endif
+
       USE CMN_SIZE_MOD     ! Size parameters
       USE CMN_DIAG_MOD     ! ND13 (for now)
       USE CMN_GCTM_MOD     ! SCALE_HEIGHT
@@ -4306,6 +4318,7 @@
       REAL*8,  INTENT(INOUT) :: TC(IIPAR,JJPAR,LLPAR) ! Initial tracer mass 
 #if defined( DEVEL )
       REAL*8,  INTENT(INOUT) :: SFLX(IIPAR,JJPAR)
+      TYPE(GC_MET_LOCAL), INTENT(IN) :: LOCAL_MET     ! Obj w/ met fields
 #endif
                                                       ! [kg], plus DMS emiss
 !
@@ -4367,7 +4380,11 @@
          SST = SSTEMP(I,J) - 273.15d0
 
          ! Only do the following for water boxes
+#if defined( DEVEL )
+         IF ( IS_WATER( I, J, LOCAL_MET ) ) THEN
+#else
          IF ( IS_WATER(I,J) ) THEN
+#endif
 
             ! Schmidt number for DMS (Saltzman et al., 1993) 
             Sc = 2674.0d0         - 147.12d0*SST + 

@@ -1,4 +1,8 @@
+#if defined( DEVEL )
+      SUBROUTINE PHYSPROC( SUNCOS, LOCAL_MET )
+#else
       SUBROUTINE PHYSPROC( SUNCOS )
+#endif
 !
 !******************************************************************************
 !  Subroutine PHYSPROC is the driver for SMVGEAR II chemistry.  It calls both
@@ -38,6 +42,10 @@
       USE CHEMISTRY_MOD,   ONLY : GCKPP_DRIVER
       USE GCKPP_GLOBAL,    ONLY : NTT
 
+#if defined( DEVEL )
+      USE GC_TYPE_MOD, ONLY : GC_MET_LOCAL
+#endif
+
 #     include "define.h"
       USE CMN_SIZE_MOD  ! Size parameters
       USE COMODE_LOOP_MOD  ! SMVGEAR II arrays
@@ -74,6 +82,9 @@
 !
       ! Arguments
       REAL*8, INTENT(IN) :: SUNCOS(MAXIJ) !,  SUNCOSB(MAXIJ) (bmy, 4/28/10)
+#if defined( DEVEL )
+      TYPE(GC_MET_LOCAL), INTENT(IN) :: LOCAL_MET  ! Obj w/ met fields
+#endif
       
       ! Local variables
       INTEGER IDLAST,IMLAST,NMINADD,NHRADD,NDAYADD,NMONADD,NYEARAD
@@ -299,7 +310,11 @@
 ! *********************************************************************
 !
 
+#if defined( DEVEL )
+          CALL CALCRATE( SUNCOS, LOCAL_MET )
+#else
           CALL CALCRATE(SUNCOS)
+#endif
 !
 ! *********************************************************************
 ! *                        SOLVE CHEMICAL ODES                        *

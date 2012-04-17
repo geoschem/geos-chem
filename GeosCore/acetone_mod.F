@@ -318,12 +318,13 @@
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE OCEAN_SOURCE_ACET( I, J, ACETONE )
+      SUBROUTINE OCEAN_SOURCE_ACET( I, J, ALBD, ACETONE )
 !
 ! !USES:
 !
       USE ERROR_MOD, ONLY : CHECK_VALUE
-      USE DAO_MOD,   ONLY : ALBD, TS
+      !USE DAO_MOD,   ONLY : ALBD, TS
+      USE DAO_MOD,   ONLY : TS
       USE DIAG_MOD,  ONLY : AD11
       USE GRID_MOD,  ONLY : GET_AREA_CM2
       USE TIME_MOD,  ONLY : GET_TS_EMIS
@@ -334,12 +335,13 @@
 !
 ! !INPUT PARAMETERS: 
 !
-      INTEGER, INTENT(IN)    :: I         ! GEOS-Chem longitude index
-      INTEGER, INTENT(IN)    :: J         ! GEOS-Chem latitude index
+      INTEGER, INTENT(IN)    :: I                 ! GEOS-Chem longitude index
+      INTEGER, INTENT(IN)    :: J                 ! GEOS-Chem latitude index
+      REAL*8,  INTENT(IN)    :: ALBD(IIPAR,JJPAR) ! Sfc albedo [unitless]
 !
 ! !INPUT/OUTPUT PARAMETERS:
 !
-      REAL*8,  INTENT(INOUT) :: ACETONE   ! Acetone emission [atoms C/s]
+      REAL*8,  INTENT(INOUT) :: ACETONE           ! Acetone emiss [atoms C/s]
 !
 ! !REMARKS:
 
@@ -554,11 +556,11 @@
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE OCEAN_SINK_ACET( ACETONE )
+      SUBROUTINE OCEAN_SINK_ACET( ALBD, ACETONE )
 !
 ! !USES:
 !
-      USE DAO_MOD,  ONLY : ALBD
+      !USE DAO_MOD,  ONLY : ALBD
       USE DAO_MOD,  ONLY : TS
       USE DIAG_MOD, ONLY : AD11
       USE GRID_MOD, ONLY : GET_AREA_CM2
@@ -568,9 +570,14 @@
       USE CMN_DIAG_MOD                              ! ND11
       USE CMN_DEP_MOD                               ! FRCLND 
 !
+! !INPUT PARAMETERS:
+!
+      REAL*8, INTENT(IN)    :: ALBD(IIPAR,JJPAR)    ! Sfc albedo [unitless]
+
+!
 ! !INPUT/OUTPUT PARAMETERS: 
 !
-      REAL*8, INTENT(INOUT) :: ACETONE(IIPAR,JJPAR)   ! Acetone mass [kg C]
+      REAL*8, INTENT(INOUT) :: ACETONE(IIPAR,JJPAR) ! Acetone mass [kg C]
 ! 
 ! !REVISION HISTORY: 
 !  14 Sep 2001 - B. Field    - Initial version
@@ -612,8 +619,9 @@
       REAL*8            :: USTAR, CD
       REAL*8            :: AREA_CM2, DTCHEM, FOCEAN, OCEAN_ACET
       REAL*8            :: PRE_ACET
-
-      ! External functions
+!
+! !EXTERNAL FUNCTIONS:
+!
       REAL*8, EXTERNAL  :: BOXVL, SFCWINDSQR
 !
 ! !DEFINED PARAMETERS:

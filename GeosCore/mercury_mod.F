@@ -242,7 +242,11 @@
 
 !------------------------------------------------------------------------------
 
+#if defined( DEVEL )
+      SUBROUTINE CHEMMERCURY( LOCAL_MET )
+#else
       SUBROUTINE CHEMMERCURY
+#endif
 !
 !******************************************************************************
 !  Subroutine CHEMMERCURY is the driver routine for mercury chemistry
@@ -274,7 +278,16 @@
       USE OCEAN_MERCURY_MOD, ONLY : Fg, Fp  
       USE OCEAN_MERCURY_MOD, ONLY : PARTITION_Hg2
 
+#if defined( DEVEL )
+      USE GC_TYPE_MOD,       ONLY : GC_MET_LOCAL
+#endif
+
       USE CMN_SIZE_MOD        ! Size parameters
+
+      !Arguments
+#if defined( DEVEL )
+      TYPE(GC_MET_LOCAL), INTENT(IN) :: LOCAL_MET  ! Obj w/ met fields
+#endif
 
       ! Local variables
       LOGICAL, SAVE          :: FIRST = .TRUE.
@@ -322,7 +335,11 @@
 
       ! Calculate the rate of sea salt aerosol uptake of Hg2
       IF ( LDYNSEASALT .AND. ITS_TIME_FOR_A3() ) THEN
+#if defined( DEVEL )
+         CALL CALC_HG2_SEASALT_LOSSRATE( LOCAL_MET )
+#else
          CALL CALC_HG2_SEASALT_LOSSRATE
+#endif
          IF ( LPRT ) CALL DEBUG_MSG( 'CHEMMERCURY: a SEASALT_LOSSRATE' )
       ENDIF
 
@@ -352,7 +369,11 @@
 
          ! Dry deposition occurs with PBL mixing,
          ! pass zero deposition frequency
+#if defined( DEVEL )
+         CALL CHEM_Hg0_Hg2( ZERO_DVEL, ZERO_DVEL, LOCAL_MET )
+#else
          CALL CHEM_Hg0_Hg2( ZERO_DVEL, ZERO_DVEL)
+#endif
          
       ELSE
 
@@ -360,22 +381,39 @@
          
             ! Dry deposition active for both Hg0 and Hg2; 
             ! pass drydep frequency to CHEM_Hg0_Hg2 (NOTE: DEPSAV has units 1/s)
+#if defined( DEVEL )
+            CALL CHEM_Hg0_Hg2( K_DRYD2, DEPSAV(:,:,DRYHg0), LOCAL_MET )
+#else
             CALL CHEM_Hg0_Hg2( K_DRYD2, DEPSAV(:,:,DRYHg0) )
+#endif
             
          ELSEIF (DRYHg2 > 0 .and. DRYHg0 .le. 0) THEN
 
             ! Only Hg2 dry deposition is active
+#if defined( DEVEL )
+            CALL CHEM_Hg0_Hg2( K_DRYD2, ZERO_DVEL, LOCAL_MET )
+#else
             CALL CHEM_Hg0_Hg2( K_DRYD2, ZERO_DVEL) 
+#endif
             
          ELSEIF (DRYHg2 <= 0 .and. DRYHg0 > 0) THEN
 
             ! Only Hg0 dry deposition is active
+#if defined( DEVEL )
+            CALL CHEM_Hg0_Hg2( ZERO_DVEL , DEPSAV(:,:,DRYHg0),
+     &                         LOCAL_MET )
+#else
             CALL CHEM_Hg0_Hg2( ZERO_DVEL , DEPSAV(:,:,DRYHg0))
+#endif
             
          ELSE
 
             ! No dry deposition, pass zero deposition frequency
+#if defined( DEVEL )
+            CALL CHEM_Hg0_Hg2( ZERO_DVEL , ZERO_DVEL, LOCAL_MET )
+#else
             CALL CHEM_Hg0_Hg2( ZERO_DVEL , ZERO_DVEL)
+#endif
 
          ENDIF
 
@@ -410,7 +448,11 @@
 
 !------------------------------------------------------------------------------
 
+#if defined( DEVEL )
+      SUBROUTINE CHEM_Hg0_Hg2( V_DEP_Hg2, V_DEP_Hg0, LOCAL_MET )
+#else
       SUBROUTINE CHEM_Hg0_Hg2( V_DEP_Hg2, V_DEP_Hg0 )
+#endif
 !
 !******************************************************************************
 !  Subroutine CHEM_Hg0_Hg2 is the chemistry subroutine for the oxidation,
@@ -520,12 +562,19 @@
       USE DAO_MOD,          ONLY : LWI
       USE DAO_MOD,          ONLY : FRSNO, FRLANDIC, FROCEAN
 
+#if defined( DEVEL )
+      USE GC_TYPE_MOD,      ONLY : GC_MET_LOCAL
+#endif
+
       USE CMN_SIZE_MOD       ! Size parameters
       USE CMN_DIAG_MOD       ! ND44
 
       ! Arguments
       REAL*8, INTENT(IN)    :: V_DEP_Hg2(IIPAR,JJPAR)
       REAL*8, INTENT(IN)    :: V_DEP_Hg0(IIPAR,JJPAR)
+#if defined( DEVEL )
+      TYPE(GC_MET_LOCAL), INTENT(IN) :: LOCAL_MET  ! Obj w/ met fields
+#endif
 
       ! Local variables
       INTEGER               :: I, J, L, NN
@@ -635,7 +684,11 @@
          ! Monthly mean O3, OH Br concentrations [molec/cm3]
          C_O3        = GET_O3( I, J, L )
          C_OH        = GET_OH( I, J, L )
+#if defined( DEVEL )
+         C_BR        = GET_BR( I, J, L, LOCAL_MET, C_BRO )
+#else
          C_BR        = GET_BR( I, J, L, C_BRO )
+#endif
 
 #if   defined( GEOS_5 ) || defined( MERRA ) || defined( GEOS_57 )
 
@@ -691,7 +744,12 @@
          FA          = FA / ( 1d0 + FA )
 
          ! Cl- in sea-salt aerosol enhances solubility 2000X in MBL
+#if defined( DEVEL )
+         IF ( LRED_JNO2 .AND. ( F_PBL >0.1  )  .AND. 
+     &        IS_WATER( I, J, LOCAL_MET )) THEN
+#else
          IF (LRED_JNO2 .AND. (F_PBL >0.1) .AND. IS_WATER(I,J)) THEN
+#endif
             FA          = ( HL * 2D3 * R * T(I,J,L) * LWC )
             FA          = FA / ( 1d0 + FA )
             
@@ -751,7 +809,11 @@
          ! K_SALT, so that deposition doesn't occur over land.
          ! Remove the IF statement once HG2_SEASALT_LOSSRATE 
          ! is in the standard version. (cdh, 2/8/08)
+#if defined( DEVEL )
+         IF ( IS_WATER( I, J, LOCAL_MET ) ) THEN
+#else
          IF ( IS_WATER(I,J) ) THEN
+#endif
 
             IF (LDYNSEASALT) THEN
                ! Uptake based on sea-salt aerosol flux and salinity [/s]
@@ -799,16 +861,32 @@
          FRAC_NO_HG0_DEP =
      &        MIN(FROCEAN(I,J) + FRSNO(I,J) + FRLANDIC(I,J), 1d0) 
          ZERO_HG0_DEP = ( FRAC_NO_HG0_DEP > 0d0 )
+
 #elif defined( GEOS_5 )
          ! GEOS5 snow height (water equivalent) in mm. (Docs wrongly say m)
+#if defined( DEVEL )
+         ZERO_HG0_DEP = ( (LWI(I,J) == 0) .OR. 
+     &                    (IS_ICE ( I, J, LOCAL_MET )) .OR.
+     &                    (IS_LAND( I, J, LOCAL_MET )  .AND.
+     &                     SNOMAS ( I, J ) > 10d0) )
+#else
          ZERO_HG0_DEP = ( (LWI(I,J) == 0) .OR. 
      &                   (IS_ICE(I,J)) .OR.
      &                   (IS_LAND(I,J) .AND. SNOMAS(I,J) > 10d0) )
+#endif
+
 #else
          ! GEOS1-4 snow heigt (water equivalent) in mm
+#if defined( DEVEL )
+         ZERO_HG0_DEP = ( (LWI(I,J) == 0) .OR.
+     &                    (IS_ICE ( I, J, LOCAL_MET )) .OR. 
+     &                    (IS_LAND( I, J, LOCAL_MET )  .AND.
+     &                     SNOW   ( I, J ) > 10d0) )
+#else
          ZERO_HG0_DEP = ( (LWI(I,J) == 0) .OR.
      &                   (IS_ICE(I,J)) .OR. 
      &                   (IS_LAND(I,J) .AND. SNOW(I,J) > 10d0) )
+#endif
 #endif 
 
          K_DEP0 = K_DRYD0
@@ -955,7 +1033,12 @@
 
             ! Add deposited Hg(II) to the snowpack
             IF ( LHGSNOW .AND. (DEP_Hg2>0d0) ) THEN
+#if defined( DEVEL )
+               CALL ADD_HG2_SNOWPACK(I,J,ID_Hg2(NN),DEP_HG2_DRY,
+     &                               LOCAL_MET)
+#else
                CALL ADD_HG2_SNOWPACK(I,J,ID_Hg2(NN),DEP_HG2_DRY)
+#endif
             ENDIF
                
 
@@ -1936,7 +2019,12 @@
 
 !------------------------------------------------------------------------------
 
+#if defined( DEVEL )
+      SUBROUTINE EMISSMERCURY( LOCAL_MET )
+#else
       SUBROUTINE EMISSMERCURY
+
+#endif
 !
 !******************************************************************************
 !  Subroutine EMISSMERCURY is the driver routine for mercury emissions.
@@ -1973,7 +2061,16 @@
       USE LAND_MERCURY_MOD,  ONLY : GTMM_DR
       USE TRACERID_MOD,      ONLY : ID_Hg_tot, ID_Hg0
 
+#if defined( DEVEL )
+      USE GC_TYPE_MOD,       ONLY : GC_MET_LOCAL
+#endif
+
       USE CMN_SIZE_MOD          ! Size parameters
+
+      ! Arguments
+#if defined( DEVEL )
+      TYPE(GC_MET_LOCAL), INTENT(IN) :: LOCAL_MET  ! Obj w/ met fields
+#endif
 
       ! Local variables
       LOGICAL, SAVE :: FIRST = .TRUE. 
@@ -2004,29 +2101,49 @@
          ! (cdh, 4/30/09)
          EHg0_oc = 0d0
 
+#if defined( DEVEL )
+         CALL OCEAN_MERCURY_FLUX( EHg0_oc, LOCAL_MET )
+#else
          CALL OCEAN_MERCURY_FLUX( EHg0_oc )
+#endif
          IF ( LPRT ) CALL DEBUG_MSG( '### EMISSMERCURY: a OCEAN_FLUX' )
 
       ENDIF
 
       IF ( LGTMM ) THEN
          IF ( ITS_A_NEW_MONTH() ) THEN
+#if defined( DEVEL )
+            CALL GTMM_DR( EHg0_gtm(:,:), LOCAL_MET )
+#else
             CALL GTMM_DR(EHg0_gtm(:,:))
+#endif
             IF ( LPRT ) CALL DEBUG_MSG( '### EMISSMERCURY: a GTMM' )
          ENDIF
   
       ELSE
          
+#if defined( DEVEL )
+         CALL LAND_MERCURY_FLUX ( EHg0_ln, LHGSNOW, LOCAL_MET )
+#else
          CALL LAND_MERCURY_FLUX ( EHg0_ln, LHGSNOW )
+#endif
          IF ( LPRT ) CALL DEBUG_MSG( '### EMISSMERCURY: a LAND_FLUX' )
       
          ! Bug fix: VEGEMIS shouldn't be tied to GCAP emissions
          ! (jaf, eds, 4/1/11)
-         !CALL VEGEMIS( LGCAPEMIS, EHg0_dist, EHg0_vg )
+#if defined( DEVEL )
+         CALL VEGEMIS( LVEGEMIS, EHg0_dist, EHg0_vg, LOCAL_MET )
+#else
          CALL VEGEMIS( LVEGEMIS, EHg0_dist, EHg0_vg )
+#endif
          IF ( LPRT ) CALL DEBUG_MSG( '### EMISSMERCURY: a VEGEMIS' )
       
+
+#if defined( DEVEL )
+         CALL SOILEMIS( EHg0_dist, EHg0_so, LOCAL_MET )
+#else
          CALL SOILEMIS( EHg0_dist, EHg0_so )
+#endif
          IF ( LPRT ) CALL DEBUG_MSG( '### EMISSMERCURY: a SOILEMIS' )
 
       ENDIF
@@ -3538,7 +3655,12 @@
 
 !------------------------------------------------------------------------------
 
+#if defined( DEVEL )
+      FUNCTION GET_BR( I, J, L, LOCAL_MET, BRO_MOLEC_CM3 )
+     &   RESULT( BR_MOLEC_CM3 )
+#else
       FUNCTION GET_BR( I, J, L, BRO_MOLEC_CM3 ) RESULT( BR_MOLEC_CM3 )
+#endif
 !
 !******************************************************************************
 !  Function GET_BR returns instantaneous Br concentration calculated from
@@ -3569,9 +3691,13 @@
       USE PBL_MIX_MOD   , ONLY : GET_FRAC_UNDER_PBLTOP
       USE GRID_MOD      , ONLY : GET_YMID
       USE TIME_MOD      , ONLY : GET_MONTH
-      USE DAO_MOD       , ONLY : LWI, GET_OBK, IS_ICE
+      USE DAO_MOD       , ONLY : LWI, GET_OBK!, IS_ICE
       USE PRESSURE_MOD  , ONLY : GET_PCENTER
       USE ERROR_MOD     , ONLY : SAFE_DIV
+
+#if defined( DEVEL )
+      USE GC_TYPE_MOD,    ONLY : GC_MET_LOCAL
+#endif
 
       USE CMN_SIZE_MOD  ! Size parameters
       USE CMN_DEP_MOD   ! FRCLND
@@ -3579,6 +3705,9 @@
       ! Arguments
       INTEGER, INTENT(IN) :: I, J, L
       REAL*8, INTENT(OUT) :: BrO_MOLEC_CM3 
+#if defined( DEVEL )
+      TYPE(GC_MET_LOCAL), INTENT(IN) :: LOCAL_MET  ! Obj w/ met fields
+#endif
 
       ! Local variables
       INTEGER             :: JLOOP
@@ -3639,7 +3768,11 @@
       ! Fraction of grid box mass which is within the mixed layer
       FPBL = GET_FRAC_UNDER_PBLTOP(I,J,L)
 
+#if defined( DEVEL )
+      IF ( IS_WATER( I, J, LOCAL_MET ) .AND. (FPBL > 0d0) ) THEN
+#else
       IF ( IS_WATER(I,J) .AND. (FPBL > 0d0) ) THEN
+#endif
 
          ! Convert BrO concentration to corresponding Br based on
          ! photochemical steady state, pptv
@@ -4028,7 +4161,11 @@
 
 !------------------------------------------------------------------------------
 
+#if defined( DEVEL )
+      SUBROUTINE CALC_HG2_SEASALT_LOSSRATE( LOCAL_MET )
+#else
       SUBROUTINE CALC_HG2_SEASALT_LOSSRATE
+#endif
 !
 !******************************************************************************
 !  Subroutine HG2_SEASALT_LOSSRATE calculates the loss rate of RGM (/s) by 
@@ -4045,14 +4182,24 @@
 !  NOTES:
 !******************************************************************************
 !
+
       ! References to F90 modules
       USE DAO_MOD    , ONLY : IS_WATER, RH
       USE PBL_MIX_MOD, ONLY : GET_PBL_TOP_M
       USE FILE_MOD   , ONLY : IU_FILE
       USE RNPBBE_MOD , ONLY : SLQ
 
+#if defined( DEVEL )
+      USE GC_TYPE_MOD, ONLY : GC_MET_LOCAL
+#endif
+
       USE CMN_SIZE_MOD     ! Size parameters
       USE CMN_DEP_MOD      ! FRCLND
+
+      !Arguments
+#if defined( DEVEL )
+      TYPE(GC_MET_LOCAL), INTENT(IN) :: LOCAL_MET  ! Obj w/ met fields
+#endif
 
       ! Local variables
       REAL*8                :: U10M, S
@@ -4080,7 +4227,11 @@
       DO I = 1, IIPAR
 
          ! Only calculate deposition via sea salt over water
+#if defined( DEVEL )
+         IF ( IS_WATER( I, J, LOCAL_MET ) ) THEN
+#else
          IF ( IS_WATER(I,J) ) THEN
+#endif
 
             ! Wind speed at 10m altitude [m/s]
             U10M = SQRT( SFCWINDSQR(I,J) )

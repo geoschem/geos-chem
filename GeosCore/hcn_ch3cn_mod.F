@@ -473,7 +473,7 @@
 
 !------------------------------------------------------------------------------
 
-      SUBROUTINE CHEM_HCN_CH3CN( N_TRACERS, STT )
+      SUBROUTINE CHEM_HCN_CH3CN( N_TRACERS, ALBD, STT )
 !
 !******************************************************************************
 !  Subroutine CHEM_HCN_CH3CN computes the loss of HCN and CH3CN due to 
@@ -489,7 +489,8 @@
 !******************************************************************************
 ! 
       ! References to F90 modules
-      USE DAO_MOD,       ONLY : AD, ALBD, T, TS, U10M, V10M
+      !USE DAO_MOD,       ONLY : AD, ALBD, T, TS, U10M, V10M
+      USE DAO_MOD,       ONLY : AD, T, TS, U10M, V10M
       USE DIAG_MOD,      ONLY : AD09, AD09_em
       USE GLOBAL_OH_MOD, ONLY : OH, GET_GLOBAL_OH
       USE GRID_MOD,      ONLY : GET_AREA_CM2
@@ -502,6 +503,7 @@
 
       ! Arguments
       INTEGER, INTENT(IN)    :: N_TRACERS
+      REAL*8,  INTENT(IN)    :: ALBD(IIPAR,JJPAR) ! Sfc albedo [unitless]
       REAL*8,  INTENT(INOUT) :: STT(IIPAR,JJPAR,LLPAR,N_TRACERS)
       
       ! Local variables

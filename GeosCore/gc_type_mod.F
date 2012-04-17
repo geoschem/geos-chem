@@ -273,7 +273,11 @@
          REAL*8, ALLOCATABLE :: SST(:,:)     ! Sea surface temperature [K]
          REAL*8, ALLOCATABLE :: SUNCOS(:,:)  ! Cosine of solar zenith angle
          REAL*8, ALLOCATABLE :: TO3(:,:)     ! Total overhead O3 column [DU]
+         REAL*8, ALLOCATABLE :: TO31(:,:)    ! Total O3 at timestep start [DU]
+         REAL*8, ALLOCATABLE :: TO32(:,:)    ! Total O3 at timestep end [DU]
          REAL*8, ALLOCATABLE :: TROPP(:,:)   ! Tropopause pressure [hPa]
+         REAL*8, ALLOCATABLE :: TROPP1(:,:)  ! Trop P at timestep start [hPa]
+         REAL*8, ALLOCATABLE :: TROPP2(:,:)  ! Trop P at timestep end [hPa]
          REAL*8, ALLOCATABLE :: TS(:,:)      ! Surface temperature [K]
          REAL*8, ALLOCATABLE :: TSKIN(:,:)   ! Surface skin temperature [K]
          REAL*8, ALLOCATABLE :: TTO3(:,:)    ! Tropospheric ozone column [DU]

@@ -394,6 +394,12 @@
       USE GC_TYPE_MOD,  ONLY : GC_MET_LOCAL
 #endif
 !
+! !INPUT/OUTPUT PARAMETERS:
+!
+#if defined( DEVEL )
+      TYPE(GC_MET_LOCAL), INTENT(INOUT) :: LOCAL_MET  ! Obj w/ met fields
+#endif
+!
 ! !REMARKS:
 !  DAO met fields updated by AIRQNT:
 !  ========================================================================
@@ -448,9 +454,6 @@
 !EOP
 !------------------------------------------------------------------------------
 !BOC
-#if defined( DEVEL )
-      TYPE(GC_MET_LOCAL), INTENT(INOUT) :: LOCAL_MET
-#endif
 !
 ! !LOCAL VARIABLES:
 !
@@ -480,8 +483,8 @@
          ! Pressure difference between top & bottom edges [hPa]
          DELP(L,I,J) = P1 - P2
 #if defined( DEVEL )
-         DELP(L,I,J) = LOCAL_MET%DELP(L,I,J)
-!         LOCAL_MET%DELP(L,I,J) = DELP(L,I,J)
+!         DELP(L,I,J) = LOCAL_MET%DELP(L,I,J)
+         LOCAL_MET%DELP(L,I,J) = DELP(L,I,J)
 #endif            
             !===========================================================
             ! BXHEIGHT is the height (Delta-Z) of grid box (I,J,L) 
@@ -494,8 +497,8 @@
             !===========================================================
          BXHEIGHT(I,J,L) = Rdg0 * T(I,J,L) * LOG( P1 / P2 )
 #if defined( DEVEL )
-         BXHEIGHT(I,J,L) = LOCAL_MET%BXHEIGHT(I,J,L)
-!         LOCAL_MET%BXHEIGHT(I,J,L) = BXHEIGHT(I,J,L)
+!         BXHEIGHT(I,J,L) = LOCAL_MET%BXHEIGHT(I,J,L)
+         LOCAL_MET%BXHEIGHT(I,J,L) = BXHEIGHT(I,J,L)
 #endif            
 
             !===========================================================
@@ -517,8 +520,8 @@
             !===========================================================
          AIRVOL(I,J,L) = BXHEIGHT(I,J,L) * AREA_M2
 #if defined( DEVEL )
-         AIRVOL(I,J,L) = LOCAL_MET%AIRVOL(I,J,L)
-!         LOCAL_MET%AIRVOL(I,J,L) = AIRVOL(I,J,L)
+!         AIRVOL(I,J,L) = LOCAL_MET%AIRVOL(I,J,L)
+         LOCAL_MET%AIRVOL(I,J,L) = AIRVOL(I,J,L)
 #endif            
 
             !===========================================================
@@ -535,8 +538,8 @@
             !===========================================================
          AD(I,J,L) = DELP(L,I,J) * G0_100 * AREA_M2
 #if defined( DEVEL )
-          AD(I,J,L) = LOCAL_MET%AD(I,J,L)
-!         LOCAL_MET%AD(I,J,L) = AD(I,J,L)
+!          AD(I,J,L) = LOCAL_MET%AD(I,J,L)
+         LOCAL_MET%AD(I,J,L) = AD(I,J,L)
 #endif            
 
             !===========================================================
@@ -544,8 +547,8 @@
             !===========================================================
          AIRDEN(L,I,J) = AD(I,J,L) / AIRVOL(I,J,L)
 #if defined( DEVEL )
-         AIRDEN(L,I,J) = LOCAL_MET%AIRDENS(L,I,J)
-!         LOCAL_MET%AIRDENS(L,I,J) = AIRDEN(L,I,J)
+!         AIRDEN(L,I,J) = LOCAL_MET%AIRDENS(L,I,J)
+         LOCAL_MET%AIRDENS(L,I,J) = AIRDEN(L,I,J)
 #endif            
       ENDDO
       ENDDO
@@ -966,16 +969,26 @@
 !\\
 ! !INTERFACE:
 !
+#if defined( DEVEL )
+      FUNCTION IS_LAND( I, J, LOCAL_MET ) RESULT ( LAND )
+#else
       FUNCTION IS_LAND( I, J ) RESULT ( LAND )
+#endif
 !
 ! !USES:
 !
-      USE TIME_MOD, ONLY : GET_YEAR
+      USE TIME_MOD,    ONLY : GET_YEAR
+#if defined( DEVEL )
+      USE GC_TYPE_MOD, ONLY : GC_MET_LOCAL
+#endif
 !
 ! !INPUT PARAMETERS: 
 !
       INTEGER, INTENT(IN)  :: I           ! Longitude index of grid box
       INTEGER, INTENT(IN)  :: J           ! Latitude  index of grid box
+#if defined( DEVEL )
+      TYPE(GC_MET_LOCAL), INTENT(IN) :: LOCAL_MET  ! Obj w/ met fields
+#endif
 !
 ! !RETURN VALUE:
 !
@@ -1027,7 +1040,12 @@
       !--------------------------
 
       ! LWI=1 and ALBEDO less than 69.5% is a LAND box 
+#if defined( DEVEL )
+      LAND = ( NINT( LWI(I,J) ) == 1 .and.
+     &         LOCAL_MET%ALBD(I,J) < 0.695d0 )
+#else
       LAND = ( NINT( LWI(I,J) ) == 1 .and. ALBD(I,J) < 0.695d0 )
+#endif
 
     
 #endif
@@ -1047,16 +1065,26 @@
 !\\
 ! !INTERFACE:
 !
+#if defined( DEVEL )
+      FUNCTION IS_WATER( I, J, LOCAL_MET ) RESULT ( WATER )
+#else
       FUNCTION IS_WATER( I, J ) RESULT ( WATER )
+#endif
 !
 ! !USES:
 !
-      USE TIME_MOD, ONLY : GET_YEAR
+      USE TIME_MOD,    ONLY : GET_YEAR
+#if defined( DEVEL )
+      USE GC_TYPE_MOD, ONLY : GC_MET_LOCAL
+#endif
 !
 ! !INPUT PARAMETERS: 
 !
       INTEGER, INTENT(IN)  :: I           ! Longitude index of grid box
       INTEGER, INTENT(IN)  :: J           ! Latitude  index of grid box
+#if defined( DEVEL )
+      TYPE(GC_MET_LOCAL), INTENT(IN) :: LOCAL_MET  ! Obj w/ met fields
+#endif
 !
 ! !RETURN VALUE:
 !
@@ -1108,7 +1136,12 @@
       !---------------------------
 
       ! LWI=0 and ALBEDO less than 69.5% is a water box 
+#if defined( DEVEL )
+      WATER = ( NINT( LWI(I,J) ) == 0 .and.
+     &          LOCAL_MET%ALBD(I,J) < 0.695d0 )
+#else
       WATER = ( NINT( LWI(I,J) ) == 0 .and. ALBD(I,J) < 0.695d0 )
+#endif
 
 
 #endif
@@ -1128,16 +1161,26 @@
 !\\
 ! !INTERFACE:
 !
+#if defined( DEVEL )
+      FUNCTION IS_ICE( I, J, LOCAL_MET ) RESULT ( ICE )
+#else
       FUNCTION IS_ICE( I, J ) RESULT ( ICE )
+#endif
 !
 ! !USES:
 !
-      USE TIME_MOD, ONLY : GET_YEAR
+      USE TIME_MOD,    ONLY : GET_YEAR
+#if defined( DEVEL )
+      USE GC_TYPE_MOD, ONLY : GC_MET_LOCAL
+#endif
 !
 ! !INPUT PARAMETERS: 
 !
       INTEGER, INTENT(IN)  :: I           ! Longitude index of grid box
       INTEGER, INTENT(IN)  :: J           ! Latitude  index of grid box
+#if defined( DEVEL )
+      TYPE(GC_MET_LOCAL), INTENT(IN) :: LOCAL_MET  ! Obj w/ met fields
+#endif
 !
 ! !RETURN VALUE:
 !
@@ -1170,7 +1213,12 @@
       !--------------------------
 
       ! LWI=2 or ALBEDO > 69.5% is ice
+#if defined( DEVEL )
+      ICE = ( NINT( LWI(I,J) ) == 2 .or.
+     &        LOCAL_MET%ALBD(I,J) >= 0.695d0 )
+#else
       ICE = ( NINT( LWI(I,J) ) == 2 .or. ALBD(I,J) >= 0.695d0 )
+#endif
 
 #endif
 
@@ -1190,7 +1238,18 @@
 !\\
 ! !INTERFACE:
 !
+#if defined( DEVEL )
+      FUNCTION IS_NEAR( I, J, THRESH, NEIGHBOR, LOCAL_MET )
+     &   RESULT ( NEAR )
+#else
       FUNCTION IS_NEAR( I, J, THRESH, NEIGHBOR ) RESULT ( NEAR )
+#endif
+!
+! !USES:
+!
+#if defined( DEVEL )
+      USE GC_TYPE_MOD, ONLY : GC_MET_LOCAL
+#endif
 !
 ! !INPUT PARAMETERS: 
 !
@@ -1198,6 +1257,9 @@
       INTEGER, INTENT(IN) :: I, J        ! Lon & lat grid box indices
       INTEGER, INTENT(IN) :: NEIGHBOR    ! # of neighbor boxes to consider
       REAL*8,  INTENT(IN) :: THRESH      ! LWI threshold for near-land 
+#if defined( DEVEL )
+      TYPE(GC_MET_LOCAL), INTENT(IN) :: LOCAL_MET  ! Obj w/ met fields
+#endif
 !
 ! !RETURN VALUE:
 !
@@ -1256,7 +1318,11 @@
             IF ( LONGI > IIPAR ) LONGI = LONGI - IIPAR
             
             ! If it's an ice box, skip to next neighbor
+#if defined( DEVEL )
+            IF ( IS_ICE( LONGI, LATJ, LOCAL_MET ) ) CYCLE
+#else
             IF ( IS_ICE( LONGI, LATJ ) ) CYCLE
+#endif
 
 #if   defined( GCAP ) 
 

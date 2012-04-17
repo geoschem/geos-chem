@@ -180,14 +180,27 @@
 !\\
 ! !INTERFACE:
 !
+#if defined( DEVEL )
+      SUBROUTINE DO_WETDEP( LOCAL_MET )
+#else
       SUBROUTINE DO_WETDEP
+#endif
 !
 ! !USES:
 !
       USE ERROR_MOD,   ONLY : DEBUG_MSG
       USE LOGICAL_MOD, ONLY : LPRT
+#if defined( DEVEL )
+      USE GC_TYPE_MOD, ONLY : GC_MET_LOCAL
+#endif
 
       USE CMN_SIZE_MOD    ! Size parameters
+!
+! !INPUT PARAMETERS:
+!
+#if defined( DEVEL )
+      TYPE(GC_MET_LOCAL), INTENT(IN) :: LOCAL_MET  ! Obj w/ met fields
+#endif
 ! 
 ! !REMARKS:
 !  NOTE FROM HONGYU LIU (hyl@nianet.org) -- 3/5/08
@@ -223,7 +236,11 @@
       IF ( LPRT ) CALL DEBUG_MSG( '### DO_WETDEP: before LS wetdep' )
 
       ! Do wet deposition
+#if defined( DEVEL )
+      CALL WETDEP_MERRA(  LS=.TRUE., LOCAL_MET )
+#else
       CALL WETDEP_MERRA(  LS=.TRUE. )
+#endif
       IF ( LPRT ) CALL DEBUG_MSG( '### DO_WETDEP: after LS wetdep' )
 
 #elif defined( GEOS_5 )
@@ -237,7 +254,11 @@
       IF ( LPRT ) CALL DEBUG_MSG( '### DO_WETDEP: before LS wetdep' )
 
       ! Do wet deposition
+#if defined( DEVEL )
+      CALL WETDEP(  LOCAL_MET, LS=.TRUE. )
+#else
       CALL WETDEP(  LS=.TRUE. )
+#endif
       IF ( LPRT ) CALL DEBUG_MSG( '### DO_WETDEP: after LS wetdep' )
 
 #else
@@ -255,7 +276,11 @@
       IF ( LPRT ) CALL DEBUG_MSG( '### DO_WETDEP: before LS wetdep' )
 
       ! Do wet deposition
+#if defined( DEVEL )
+      CALL WETDEP(  LOCAL_MET, LS=.TRUE. )
+#else
       CALL WETDEP(  LS=.TRUE. )
+#endif
       IF ( LPRT ) CALL DEBUG_MSG( '### DO_WETDEP: after LS wetdep' )
 
       !---------------------
@@ -267,7 +292,11 @@
       IF ( LPRT ) CALL DEBUG_MSG( '### DO_WETDEP: before conv wetdep' )
 
       !  Do wet deposition
+#if defined( DEVEL )
+      CALL WETDEP(  LOCAL_MET, LS=.FALSE. )
+#else
       CALL WETDEP(  LS=.FALSE. )
+#endif
       IF ( LPRT ) CALL DEBUG_MSG( '### DO_WETDEP: after conv wetdep' )
 
 #endif
@@ -3983,7 +4012,11 @@
 !\\
 ! !INTERFACE:
 !
+#if defined( DEVEL )
+      SUBROUTINE WETDEP( LOCAL_MET, LS )
+#else
       SUBROUTINE WETDEP( LS )
+#endif
 !
 ! !USES:
 !
@@ -4001,6 +4034,10 @@
       USE DEPO_MERCURY_MOD,  ONLY : ADD_Hg2_SNOWPACK
       USE LOGICAL_MOD,       ONLY : LGTMM
 
+#if defined( DEVEL )
+      USE GC_TYPE_MOD,       ONLY : GC_MET_LOCAL
+#endif
+
       USE CMN_SIZE_MOD            ! Size parameters
       USE CMN_DIAG_MOD            ! Diagnostic arrays and switches
 !
@@ -4008,6 +4045,9 @@
 !
       LOGICAL, INTENT(IN) :: LS   ! =T denotes large-scale precip
                                   ! =F denotes convective precip
+#if defined( DEVEL )
+      TYPE(GC_MET_LOCAL), INTENT(IN) :: LOCAL_MET  ! Obj w/ met fields
+#endif
 !
 ! !REMARKS:
 !  Precipitation fields:
@@ -4538,13 +4578,23 @@
                IF ( IS_Hg2( N ) ) THEN
 
                   CALL ADD_Hg2_WD      ( I, J, N, DSTT(NN,1,I,J) )
+#if defined( DEVEL )
+                  CALL ADD_Hg2_SNOWPACK( I, J, N, DSTT(NN,1,I,J),
+     &                                   LOCAL_MET )
+#else
                   CALL ADD_Hg2_SNOWPACK( I, J, N, DSTT(NN,1,I,J) )
+#endif
 
                ! Check if it is a HgP tag
                ELSE IF ( IS_HgP( N ) ) THEN
                   
                   CALL ADD_HgP_WD      ( I, J, N, DSTT(NN,1,I,J) )
+#if defined( DEVEL )
+                  CALL ADD_Hg2_SNOWPACK( I, J, N, DSTT(NN,1,I,J),
+     &                                   LOCAL_MET )
+#else
                   CALL ADD_Hg2_SNOWPACK( I, J, N, DSTT(NN,1,I,J) )
+#endif
                   
                ENDIF
 
@@ -4573,7 +4623,11 @@
 !\\
 ! !INTERFACE:
 !
+#if defined( DEVEL )
+      SUBROUTINE WETDEP_MERRA( LS, LOCAL_MET )
+#else
       SUBROUTINE WETDEP_MERRA( LS )
+#endif
 !
 ! !USES:
 !
@@ -4594,6 +4648,10 @@
       USE DEPO_MERCURY_MOD,  ONLY : ADD_Hg2_SNOWPACK
       USE LOGICAL_MOD,       ONLY : LGTMM
 
+#if defined( DEVEL )
+      USE GC_TYPE_MOD,       ONLY : GC_MET_LOCAL
+#endif
+
       USE CMN_SIZE_MOD            ! Size parameters
       USE CMN_DIAG_MOD            ! Diagnostic arrays and switches
 !
@@ -4601,6 +4659,9 @@
 !
       LOGICAL, INTENT(IN) :: LS   ! =T denotes large-scale precip
                                   ! =F denotes convective precip
+#if defined( DEVEL )
+      TYPE(GC_MET_LOCAL), INTENT(IN) :: LOCAL_MET  ! Obj w/ met fields
+#endif
 !
 ! !REMARKS:
 !  Precipitation fields:
@@ -5035,13 +5096,23 @@
                IF ( IS_Hg2( N ) ) THEN
 
                   CALL ADD_Hg2_WD      ( I, J, N, DSTT(NN,1,I,J) )
+#if defined( DEVEL )
+                  CALL ADD_Hg2_SNOWPACK( I, J, N, DSTT(NN,1,I,J),
+     &                                   LOCAL_MET )
+#else
                   CALL ADD_Hg2_SNOWPACK( I, J, N, DSTT(NN,1,I,J) )
+#endif
 
                ! Check if it is a HgP tag
                ELSE IF ( IS_HgP( N ) ) THEN
                   
                   CALL ADD_HgP_WD      ( I, J, N, DSTT(NN,1,I,J) )
+#if defined( DEVEL )
+                  CALL ADD_Hg2_SNOWPACK( I, J, N, DSTT(NN,1,I,J),
+     &                                   LOCAL_MET )
+#else
                   CALL ADD_Hg2_SNOWPACK( I, J, N, DSTT(NN,1,I,J) )
+#endif
                   
                ENDIF
 
@@ -6746,7 +6817,11 @@
 !\\
 ! !INTERFACE:
 !
+#if defined( DEVEL )
+      SUBROUTINE INIT_WETSCAV( LOCAL_MET )
+#else
       SUBROUTINE INIT_WETSCAV
+#endif
 !
 ! !USES:
 !
@@ -6756,8 +6831,18 @@
       USE TRACER_MOD,   ONLY : STT
       USE TRACERID_MOD, ONLY : IDTH2O2, IDTSO2
 
+#if defined( DEVEL )
+      USE GC_TYPE_MOD,  ONLY : GC_MET_LOCAL
+#endif
+
       USE CMN_SIZE_MOD       ! Size parameters
 
+!
+! !INPUT PARAMETERS:
+!
+#if defined( DEVEL )
+      TYPE(GC_MET_LOCAL), INTENT(IN) :: LOCAL_MET  ! Obj w/ met fields
+#endif
 ! 
 ! !REVISION HISTORY: 
 !  23 Feb 2000 - R. Yantosca - Initial version
@@ -6869,7 +6954,11 @@
          ! Assume Vud is the same at all altitudes; the array can be 2-D
          !==============================================================
          IF ( L == 1 ) THEN
+#if defined( DEVEL )
+            IF ( IS_WATER( I, J, LOCAL_MET ) ) THEN
+#else
             IF ( IS_WATER( I, J ) ) THEN
+#endif
                Vud(I,J) = 5d0
             ELSE
                Vud(I,J) = 10d0

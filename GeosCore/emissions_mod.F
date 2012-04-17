@@ -81,7 +81,7 @@
 ! !INTERFACE:
 !
 #if defined( DEVEL )
-      SUBROUTINE DO_EMISSIONS(CHEM_STATE)
+      SUBROUTINE DO_EMISSIONS( LOCAL_MET, CHEM_STATE )
 #else
       SUBROUTINE DO_EMISSIONS
 #endif
@@ -185,7 +185,7 @@
       !REAL*8                      :: BIOMASS(IIPAR,JJPAR,NBIOMAX)
 #if defined( DEVEL )
       TYPE(CHEMSTATE),    INTENT(INOUT) :: CHEM_STATE
-!      TYPE(GC_MET_LOCAL), INTENT(INOUT) :: LOCAL_MET
+      TYPE(GC_MET_LOCAL), INTENT(IN)    :: LOCAL_MET  ! Obj w/ met fields
 #endif
 
       !=================================================================
@@ -386,7 +386,8 @@
          ! NOx-Ox-HC (w/ or w/o aerosols)
 #if defined( DEVEL )
          write(*,*) 'TRAC_TEND:', shape(CHEM_STATE%TRAC_TEND)
-         CALL EMISSDR( CHEM_STATE%TRAC_TEND, CHEM_STATE%TRAC_BTEND )
+         CALL EMISSDR( LOCAL_MET,            CHEM_STATE%TRAC_TEND, 
+     &                 CHEM_STATE%TRAC_BTEND )
 #else
          CALL EMISSDR
 #endif
@@ -394,13 +395,13 @@
          ! Emissions for various aerosol types
 #if defined( DEVEL )
          IF ( LSSALT            ) 
-     &      CALL EMISSSEASALT(CHEM_STATE%TRAC_TEND(:,:,:,:))
+     &      CALL EMISSSEASALT( LOCAL_MET, CHEM_STATE%TRAC_TEND(:,:,:,:))
          IF ( LSULF .or. LCRYST ) 
-     &      CALL EMISSSULFATE(CHEM_STATE%TRAC_TEND(:,:,:,:))
+     &      CALL EMISSSULFATE( LOCAL_MET, CHEM_STATE%TRAC_TEND(:,:,:,:))
          IF ( LCARB             ) 
      &      CALL EMISSCARBON(CHEM_STATE%TRAC_TEND(:,:,1,:))
          IF ( LDUST             ) 
-     &      CALL EMISSDUST(CHEM_STATE%TRAC_TEND(:,:,:,:))
+     &      CALL EMISSDUST(    LOCAL_MET, CHEM_STATE%TRAC_TEND(:,:,:,:))
 #else
          IF ( LSSALT            ) CALL EMISSSEASALT
          IF ( LSULF .or. LCRYST ) CALL EMISSSULFATE
@@ -548,13 +549,13 @@
          ! Emissions for various aerosol types
 #if defined( DEVEL )
          IF ( LSSALT            ) 
-     &   CALL EMISSSEASALT(CHEM_STATE%TRAC_TEND(:,:,:,:))
+     &   CALL EMISSSEASALT( LOCAL_MET, CHEM_STATE%TRAC_TEND(:,:,:,:))
          IF ( LSULF .or. LCRYST ) 
-     &   CALL EMISSSULFATE(CHEM_STATE%TRAC_TEND(:,:,:,:))
+     &   CALL EMISSSULFATE( LOCAL_MET, CHEM_STATE%TRAC_TEND(:,:,:,:))
          IF ( LCARB             ) 
      &   CALL EMISSCARBON(CHEM_STATE%TRAC_TEND(:,:,1,:))
          IF ( LDUST             ) 
-     &   CALL EMISSDUST(CHEM_STATE%TRAC_TEND(:,:,:,:))
+     &   CALL EMISSDUST( LOCAL_MET, CHEM_STATE%TRAC_TEND(:,:,:,:))
 #else
          IF ( LSSALT            ) CALL EMISSSEASALT
          IF ( LSULF .or. LCRYST ) CALL EMISSSULFATE
@@ -776,7 +777,11 @@
          !--------------------
          ! Mercury
          !--------------------
+#if defined( DEVEL )
+         CALL EMISSMERCURY( LOCAL_MET )
+#else
          CALL EMISSMERCURY
+#endif
 
       ELSE IF ( ITS_A_CO2_SIM() ) THEN
 

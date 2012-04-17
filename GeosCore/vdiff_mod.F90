@@ -1791,7 +1791,11 @@ contains
 !
 ! !INTERFACE:
 !
+#if defined( DEVEL )
+  SUBROUTINE VDIFFDR( as2, LOCAL_MET )
+#else
   SUBROUTINE VDIFFDR(as2)
+#endif
 !
 ! !USES:
 ! 
@@ -1833,6 +1837,10 @@ contains
     USE TRACER_MOD,   ONLY: ITS_A_FULLCHEM_SIM  !bmy
     USE OCEAN_MERCURY_MOD, ONLY : Fp, Fg !hma
 
+#if defined( DEVEL )
+    USE GC_TYPE_MOD,  ONLY : GC_MET_LOCAL
+#endif
+
 #   include "define.h"
 
     implicit none
@@ -1840,6 +1848,9 @@ contains
 ! !INPUT/OUTPUT PARAMETERS: 
 !
     real*8, intent(inout) :: as2(IIPAR,JJPAR,LLPAR,N_TRACERS) ! advected species
+#if defined( DEVEL )
+      TYPE(GC_MET_LOCAL), INTENT(IN) :: LOCAL_MET  ! Obj w/ met fields
+#endif
 
 !    REAL*8                :: SNOW_HT !cdh - obsolete
     REAL*8                :: FRAC_NO_HG0_DEP !jaf 
@@ -2212,16 +2223,33 @@ contains
           FRAC_NO_HG0_DEP = &
                MIN(FROCEAN(I,J) + FRSNO(I,J) + FRLANDIC(I,J), 1d0)
           ZERO_HG0_DEP = ( FRAC_NO_HG0_DEP > 0d0 )
+
 #elif defined( GEOS_5 )
           ! GEOS5 snow height (water equivalent) in mm. (Docs wrongly say m)
+#if defined( DEVEL )
+          ZERO_HG0_DEP = ( (LWI(I,J) == 0) .OR. &
+                           (IS_ICE ( I, J, LOCAL_MET )) .OR.  &
+                           (IS_LAND( I, J, LOCAL_MET )  .AND. &
+                            SNOMAS ( I, J ) > 10d0) )
+#else
           ZERO_HG0_DEP = ( (LWI(I,J) == 0) .OR. &
                           (IS_ICE(I,J)) .OR.   &
                           (IS_LAND(I,J) .AND. SNOMAS(I,J) > 10d0) )
+#endif
+
 #else
           ! GEOS1-4 snow heigt (water equivalent) in mm
+#if defined( DEVEL )
+          ZERO_HG0_DEP = ( (LWI(I,J) == 0) .OR. &
+                           (IS_ICE ( I, J, LOCAL_MET )) .OR.  &
+                           (IS_LAND( I, J, LOCAL_MET )  .AND. &
+                            SNOW   ( I, J ) > 10d0) )
+#else
           ZERO_HG0_DEP = ( (LWI(I,J) == 0) .OR. &
                           (IS_ICE(I,J)) .OR.   &
                           (IS_LAND(I,J) .AND. SNOW(I,J) > 10d0) )
+#endif
+
 #endif 
           
           IF ( IS_Hg .AND. IS_HG0(NN) ) THEN
@@ -2301,12 +2329,20 @@ contains
              IF ( IS_Hg2(NN) ) THEN 
                 
                 CALL ADD_HG2_DD( I, J, NN, DEP_KG )
-                CALL ADD_Hg2_SNOWPACK( I, J, NN, DEP_KG )
+#if defined( DEVEL )
+               CALL ADD_Hg2_SNOWPACK( I, J, NN, DEP_KG, LOCAL_MET )
+#else
+               CALL ADD_Hg2_SNOWPACK( I, J, NN, DEP_KG )
+#endif
 
              ELSE IF ( IS_HgP( NN ) ) THEN
                 
                 CALL ADD_HGP_DD( I, J, NN, DEP_KG )
+#if defined( DEVEL )
+                CALL ADD_Hg2_SNOWPACK( I, J, NN, DEP_KG, LOCAL_MET )
+#else
                 CALL ADD_Hg2_SNOWPACK( I, J, NN, DEP_KG )
+#endif
 
              ENDIF
 
@@ -2529,7 +2565,11 @@ contains
 !\\
 ! !INTERFACE:
 !
+#if defined( DEVEL )
+  SUBROUTINE DO_PBL_MIX_2( DO_TURBDAY, LOCAL_MET )
+#else
   SUBROUTINE DO_PBL_MIX_2( DO_TURBDAY )
+#endif
 !
 ! !USES:
 !
@@ -2541,6 +2581,10 @@ contains
     USE ERROR_MOD,     ONLY : DEBUG_MSG
     USE TIME_MOD,      ONLY : ITS_TIME_FOR_EMIS
 
+#if defined( DEVEL )
+    USE GC_TYPE_MOD,   ONLY : GC_MET_LOCAL
+#endif
+
     IMPLICIT NONE
 #     include "define.h"
 !
@@ -2548,6 +2592,9 @@ contains
 !
     LOGICAL, INTENT(IN) :: DO_TURBDAY  ! Switch which turns on PBL mixing of 
                                        ! tracers
+#if defined( DEVEL )
+    TYPE(GC_MET_LOCAL), INTENT(IN) :: LOCAL_MET  ! Obj w/ met fields
+#endif
 !
 ! !REVISION HISTORY: 
 !  11 Feb 2005 - R. Yantosca - Initial version
@@ -2592,7 +2639,11 @@ contains
 
     ! Do mixing of tracers in the PBL (if necessary)
     IF ( DO_TURBDAY ) THEN 
+#if defined( DEVEL )
+       CALL VDIFFDR( STT, LOCAL_MET )
+#else
        CALL VDIFFDR( STT )
+#endif
        IF( LPRT ) CALL DEBUG_MSG( '### DO_PBL_MIX_2: after VDIFFDR' )
     ENDIF
 

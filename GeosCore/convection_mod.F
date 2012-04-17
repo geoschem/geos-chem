@@ -82,7 +82,11 @@
 !\\
 ! !INTERFACE:
 !
+#if defined( DEVEL )
+      SUBROUTINE DO_CONVECTION( LOCAL_MET )
+#else
       SUBROUTINE DO_CONVECTION
+#endif
 !
 ! !USES:
 !
@@ -116,9 +120,18 @@
 #if   defined( APM )
       USE TRACER_MOD,   ONLY : N_APMTRA
 #endif
+#if defined( DEVEL )
+      USE GC_TYPE_MOD,  ONLY : GC_MET_LOCAL
+#endif
 
       USE CMN_SIZE_MOD     ! Size parameters
       USE CMN_DIAG_MOD     ! Diagnostic flags
+!
+! !INPUT PARAMETERS:
+!
+#if defined( DEVEL )
+      TYPE(GC_MET_LOCAL), INTENT(IN) :: LOCAL_MET  ! Obj w/ met fields
+#endif
 ! 
 ! !REVISION HISTORY: 
 !  25 May 2005 - S. Wu       - Initial version
@@ -173,7 +186,11 @@
       !=================================================================
 
       ! Call GEOS-4 driver routine
+#if defined( DEVEL )
+      CALL DO_GEOS4_CONVECT( LOCAL_MET )
+#else
       CALL DO_GEOS4_CONVECT
+#endif
 
 #elif defined( GEOS_5 )
 
@@ -189,7 +206,12 @@
 #endif
 
       ! Call the S-J Lin convection routine for GEOS-5
+#if defined( DEVEL )
+      CALL NFCLDMX( N_TOT_TRC, TCVV, CMFMC(:,:,2:LLPAR+1), DTRAIN, STT,
+     &              LOCAL_MET )
+#else
       CALL NFCLDMX( N_TOT_TRC, TCVV, CMFMC(:,:,2:LLPAR+1), DTRAIN, STT )
+#endif
 
 #elif defined( MERRA ) || defined( GEOS_57 )
 
@@ -318,6 +340,42 @@
          !--------------------------
          ! Do the cloud convection
          !--------------------------
+#if defined( DEVEL )
+         CALL DO_MERRA_CONVECTION( IDENT     = IDENT,
+     &                             DIMINFO   = DIMINFO,
+     &                             COEF      = COEF,
+     &                             IDT       = IDT,
+     &                             OPTIONS   = OPTIONS,
+     &                             AREA_M2   = AREA_M2,
+     &                             PEDGE     = PEDGE,
+     &                             TS_DYN    = DT, 
+     &                             F         = F,
+     &                             AD        = AD      (I,J, :        ),
+     &                             BXHEIGHT  = BXHEIGHT(I,J, :        ),
+     &                             CMFMC     = CMFMC   (I,J,2:LLPAR+1 ),
+     &                             DQRCU     = DQRCU   (I,J, :        ),
+     &                             DTRAIN    = DTRAIN  (I,J, :        ), 
+     &                             H2O2s     = H2O2s   (I,J, :        ),
+!----------------------------------------------------------------------------
+! Prior to 2/9/12:
+! Use temporary arrays so that the code will work properly with
+! both MERRA and GEOS-5.7.x met. (bmy, 2/9/12)
+!     &                             PFICU     = PFICU   (I,J, :        ),
+!     &                             PFLCU     = PFLCU   (I,J, :        ),
+!----------------------------------------------------------------------------
+     &                             PFICU     = T_PFICU,
+     &                             PFLCU     = T_PFLCU,
+     &                             REEVAPCN  = REEVAPCN(I,J, :        ),
+     &                             SO2s      = SO2s    (I,J, :        ),
+     &                             T         = T       (I,J, :        ),
+     &                             Q         = STT     (I,J, :,      :), 
+     &                             DIAG14    = DIAG14,
+     &                             DIAG38    = DIAG38,
+     &                             I         = I,
+     &                             J         = J,
+     &                             RC        = RC,
+     &                             LOCAL_MET = LOCAL_MET )
+#else
          CALL DO_MERRA_CONVECTION( IDENT    = IDENT,
      &                             DIMINFO  = DIMINFO,
      &                             COEF     = COEF,
@@ -351,6 +409,7 @@
      &                             I        = I,
      &                             J        = J,
      &                             RC       = RC )
+#endif
 
          ! Stop if error is encountered
          IF ( RC /= SMV_SUCCESS ) THEN
@@ -410,7 +469,11 @@
 !\\
 ! !INTERFACE:
 !
+#if defined( DEVEL )
+      SUBROUTINE DO_GEOS4_CONVECT( LOCAL_MET )
+#else
       SUBROUTINE DO_GEOS4_CONVECT
+#endif
 !
 ! !USES:
 !
@@ -426,9 +489,18 @@
 #if   defined( APM ) 
       USE TRACER_MOD,        ONLY : N_APMTRA
 #endif
+#if defined( DEVEL )
+      USE GC_TYPE_MOD,       ONLY : GC_MET_LOCAL
+#endif
 
       USE CMN_SIZE_MOD          ! Size parameters
       USE CMN_DIAG_MOD          ! ND37, LD37 
+!
+! !INPUT PARAMETERS:
+!
+#if defined( DEVEL )
+      TYPE(GC_MET_LOCAL), INTENT(IN) :: LOCAL_MET  ! Obj w/ met fields
+#endif
 ! 
 ! !REVISION HISTORY: 
 !  25 May 2005 - S. Wu       - Initial version
@@ -570,6 +642,23 @@
       !=================================================================
 
       ! Call the fvDAS convection routines (originally from NCAR!)
+#if defined( DEVEL )
+      CALL FVDAS_CONVECT( TDT,   
+     &                    N_TOT_TRC, 
+     &                    STT   (:,:,LLPAR:1:-1,:),    
+     &                    RPDEL,         
+     &                    HKETA (:,:,LLPAR:1:-1  ),
+     &                    HKBETA(:,:,LLPAR:1:-1  ), 
+     &                    ZMMU  (:,:,LLPAR:1:-1  ),    
+     &                    ZMMD  (:,:,LLPAR:1:-1  ),  
+     &                    ZMEU  (:,:,LLPAR:1:-1  ),  
+     &                    DP,     
+     &                    NSTEP,    
+     &                    F     (:,:,LLPAR:1:-1,:),         
+     &                    TCVV,   
+     &                    INDEXSOL,
+     &                    LOCAL_MET )
+#else
       CALL FVDAS_CONVECT( TDT,   
      &                    N_TOT_TRC, 
      &                    STT   (:,:,LLPAR:1:-1,:),    
@@ -584,6 +673,7 @@
      &                    F     (:,:,LLPAR:1:-1,:),         
      &                    TCVV,   
      &                    INDEXSOL )
+#endif
 
 
       ! Add a check to set negative values in STT to TINY
@@ -837,8 +927,11 @@
 !\\
 ! !INTERFACE:
 !
+#if defined( DEVEL )
+      SUBROUTINE NFCLDMX( NC, TCVV, CLDMAS, DTRN, Q, LOCAL_MET )
+#else
       SUBROUTINE NFCLDMX( NC, TCVV, CLDMAS, DTRN, Q )
-
+#endif
 !
 ! !USES:
 !
@@ -855,11 +948,13 @@
       USE DEPO_MERCURY_MOD, ONLY : ADD_Hg2_SNOWPACK !CDH
       USE DAO_MOD,          ONLY : SNOMAS, SNOW  !,   CLDMAS, DTRN=>DTRAIN
 
-      USE CMN_SIZE_MOD     ! Size parameters
-      USE CMN_DIAG_MOD     ! Diagnostic switches & arrays
 #if defined( DEVEL )
       USE ERROR_MOD,        ONLY : ALLOC_ERR
+      USE GC_TYPE_MOD,      ONLY : GC_MET_LOCAL
 #endif
+
+      USE CMN_SIZE_MOD     ! Size parameters
+      USE CMN_DIAG_MOD     ! Diagnostic switches & arrays
 
       IMPLICIT NONE
 #     include "define.h"
@@ -878,6 +973,10 @@
 
       ! MW air (g/mol) / MW of tracer (g/mol) [unitless]
       REAL*8,  INTENT(IN)    :: TCVV(NC)
+
+#if defined( DEVEL )
+      TYPE(GC_MET_LOCAL), INTENT(IN) :: LOCAL_MET  ! Obj w/ met fields
+#endif
 !
 ! !INPUT/OUTPUT PARAMETERS: 
 ! 
@@ -1472,7 +1571,12 @@
 
                         ! Pass to "ocean_mercury_mod.f"
                         CALL ADD_Hg2_WD( I, J, IC, WET_Hg2 )
+#if defined( DEVEL )
+                        CALL ADD_Hg2_SNOWPACK( I, J, IC, WET_Hg2,
+     &                                         LOCAL_MET )
+#else
                         CALL ADD_Hg2_SNOWPACK( I, J, IC, WET_Hg2 )
+#endif
                      ENDIF
 
                      IF ( IS_Hg .and. IS_HgP( IC ) ) THEN
@@ -1485,7 +1589,12 @@
 
                         ! Pass to "ocean_mercury_mod.f"
                         CALL ADD_HgP_WD( I, J, IC, WET_HgP )
+#if defined( DEVEL )
+                        CALL ADD_Hg2_SNOWPACK( I, J, IC, WET_HgP,
+     &                                         LOCAL_MET )
+#else
                         CALL ADD_Hg2_SNOWPACK( I, J, IC, WET_HgP )
+#endif
                      ENDIF
 
                   !=====================================================
@@ -1592,6 +1701,17 @@
 !\\
 ! !INTERFACE:
 !
+#if defined( DEVEL )
+      SUBROUTINE DO_MERRA_CONVECTION( IDENT,    DIMINFO,  COEF, 
+     &                                IDT,      OPTIONS,  AD,      
+     &                                AREA_M2,  BXHEIGHT, CMFMC,   
+     &                                DQRCU,    DTRAIN,   F,       
+     &                                PEDGE,    PFICU,    PFLCU,   
+     &                                REEVAPCN, T,        TS_DYN,   
+     &                                Q,        DIAG14,   DIAG38,   
+     &                                H2O2s,    SO2s,     I,        
+     &                                J,        RC,       LOCAL_MET )
+#else
       SUBROUTINE DO_MERRA_CONVECTION( IDENT,    DIMINFO,  COEF, 
      &                                IDT,      OPTIONS,  AD,      
      &                                AREA_M2,  BXHEIGHT, CMFMC,   
@@ -1601,6 +1721,7 @@
      &                                Q,        DIAG14,   DIAG38,   
      &                                H2O2s,    SO2s,     I,        
      &                                J,        RC )
+#endif
 !
 ! !USES:
 !
@@ -1615,6 +1736,9 @@
       USE WETSCAV_MOD,      ONLY : WASHOUT
       USE WETSCAV_MOD,      ONLY : LS_K_RAIN
       USE WETSCAV_MOD,      ONLY : LS_F_PRIME
+#if defined( DEVEL )
+      USE GC_TYPE_MOD,      ONLY : GC_MET_LOCAL
+#endif
 !
 ! !INPUT PARAMETERS:
 !  
@@ -1622,6 +1746,9 @@
       TYPE(GC_DIMS),     INTENT(IN) :: DIMINFO     ! Obj w/ array dimensions
       TYPE(ID_TRAC),     INTENT(IN) :: IDT         ! Obj w/ tracer ID flags
       TYPE(GC_OPTIONS),  INTENT(IN) :: OPTIONS     ! Obj w/ logical switches
+#if defined( DEVEL )
+      TYPE(GC_MET_LOCAL), INTENT(IN) :: LOCAL_MET  ! Obj w/ met fields
+#endif
       REAL*8,            INTENT(IN) :: AD(:)       ! Air mass [kg]    
       REAL*8,            INTENT(IN) :: AREA_M2     ! Surface area [m2]
       REAL*8,            INTENT(IN) :: BXHEIGHT(:) ! Box height [m]
@@ -2391,7 +2518,11 @@
 
                ! Pass to "ocean_mercury_mod.f"
                CALL ADD_Hg2_WD      ( I, J, IC, WET_Hg2 )
+#if defined( DEVEL )
+               CALL ADD_Hg2_SNOWPACK( I, J, IC, WET_Hg2, LOCAL_MET )
+#else
                CALL ADD_Hg2_SNOWPACK( I, J, IC, WET_Hg2 )
+#endif
             ENDIF
 
             !--------------------------------------
@@ -2407,7 +2538,11 @@
 
                ! Pass to "ocean_mercury_mod.f"
                CALL ADD_HgP_WD      ( I, J, IC, WET_HgP )
+#if defined( DEVEL )
+               CALL ADD_Hg2_SNOWPACK( I, J, IC, WET_HgP, LOCAL_MET )
+#else
                CALL ADD_Hg2_SNOWPACK( I, J, IC, WET_HgP )
+#endif
             ENDIF
 
          ENDDO 

@@ -1,6 +1,6 @@
 ! $Id: emissdr.f,v 1.6 2010/03/15 19:33:24 ccarouge Exp $
 #if defined( DEVEL )
-      SUBROUTINE EMISSDR( EMISS_TEND, BIOEMISS_TEND )
+      SUBROUTINE EMISSDR( LOCAL_MET, EMISS_TEND, BIOEMISS_TEND )
 #else
       SUBROUTINE EMISSDR
 #endif
@@ -98,6 +98,7 @@
       USE AIRCRAFT_NOX_MOD,  ONLY : AIREMISS
       USE BIOFUEL_MOD,       ONLY : BIOFUEL_BURN
       USE DAO_MOD,           ONLY : PARDF,         PARDR,     SUNCOS_MID       
+      USE DAO_MOD,           ONLY : ALBD      
       USE DIAG_MOD,          ONLY : AD29,          AD46
       USE GRID_MOD,          ONLY : GET_AREA_CM2
       USE GRID_MOD,          ONLY : GET_XOFFSET,   GET_YOFFSET
@@ -122,7 +123,11 @@
       USE MEGANUT_MOD,       ONLY : XLTMMP
       !FP_ISOP (6/2009)
       USE EMISSIONS_MOD,     ONLY : ISOP_SCALING 
-
+#if defined( DEVEL )
+      USE TRACERID_MOD,      ONLY : IDTNOX
+      USE TRACER_MOD,        ONLY : N_TRACERS
+      USE GC_TYPE_MOD,       ONLY : GC_MET_LOCAL
+#endif
  
       USE CMN_SIZE_MOD     ! Size parameters
       USE COMODE_LOOP_MOD     ! IVERT?
@@ -130,13 +135,17 @@
       USE CMN_DIAG_MOD     ! Diagnostic arrays and switches
       USE CMN_NOX_MOD      ! GEMISNOX2
 
-#if defined( DEVEL )
-      USE TRACERID_MOD,      ONLY : IDTNOX
-      USE TRACER_MOD,        ONLY : N_TRACERS
-#endif
-
       IMPLICIT NONE
 #     include "define.h"
+
+      !Arguments
+#if defined( DEVEL )
+      TYPE(GC_MET_LOCAL), INTENT(IN) :: LOCAL_MET  ! Obj w/ met fields
+
+      REAL*8, INTENT(INOUT)  :: 
+     &     EMISS_TEND(IIPAR,JJPAR,LLPAR,N_TRACERS+1),
+     &     BIOEMISS_TEND(IIPAR,JJPAR,LLPAR,N_TRACERS+1)
+#endif
 
       ! Local variables
       LOGICAL, SAVE          :: FIRSTEMISS = .TRUE. 
@@ -169,12 +178,6 @@
       REAL*8                 :: GAMMA_P
       REAL*8                 :: GAMMA_T
       REAL*8                 :: GAMMA_SM
-
-#if defined( DEVEL )
-      REAL*8, INTENT(INOUT)  :: 
-     &     EMISS_TEND(IIPAR,JJPAR,LLPAR,N_TRACERS+1),
-     &     BIOEMISS_TEND(IIPAR,JJPAR,LLPAR,N_TRACERS+1)
-#endif
 
 !
 !******************************************************************************
@@ -277,8 +280,8 @@
 ! LIGHTNING EMISSIONS NOX [molecules/cm3/s]
 !
 #if defined( DEVEL )
-            write(*,*) 'EMISS_TEND:', shape(EMISS_TEND)
-            write(*,*) 'BIOEMISS_TEND:', shape(BIOEMISS_TEND)
+!            write(*,*) 'EMISS_TEND:', shape(EMISS_TEND)
+!            write(*,*) 'BIOEMISS_TEND:', shape(BIOEMISS_TEND)
             IF ( LLIGHTNOX .AND. I == 1 .AND. J == 1 ) 
      &           CALL EMLIGHTNING( EMISS_TEND(:,:,:,IDTNOX) )
 #else
@@ -451,7 +454,12 @@
 
                
                   ! Also add ocean source of acetone [atoms C/box/s]
-                  CALL OCEAN_SOURCE_ACET( I, J, BIO_ACET )
+#if defined( DEVEL )
+                  CALL OCEAN_SOURCE_ACET( I, J, LOCAL_MET%ALBD, 
+     &                                    BIO_ACET )
+#else
+                  CALL OCEAN_SOURCE_ACET( I, J, ALBD, BIO_ACET )
+#endif
 
                   ! Add biogenic acetone to anthro source [atoms C/box/s]
                   ! NOTE: Don't save into EMISRR for the tagged CO 
