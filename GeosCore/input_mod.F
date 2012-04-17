@@ -2845,6 +2845,8 @@
 !  27 Aug 2010 - R. Yantosca - Now allow non-local PBL for MERRA met data
 !  27 Aug 2010 - R. Yantosca - Added ProTeX headers
 !  02 Feb 2012 - R. Yantosca - Added modifications for MERRA met data
+!  13 Apr 2012 - R. Yantosca - Fixed typo ( defined( GEOS_57 ) should have 
+!                              been !defined( GEOS_57 ) )
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -2883,8 +2885,8 @@
       ! Separator line
       CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_convection_menu:5' )
 
-      ! The non-local PBL scheme is valid only with GEOS-5 or MERRA!
-#if   !defined( GEOS_5 ) && !defined( MERRA ) && defined( GEOS_57 )
+      ! The non-local PBL scheme is valid only with GEOS-5/MERRA/GEOS-5.7.x
+#if   !defined( GEOS_5 ) && !defined( MERRA ) && !defined( GEOS_57 )
       IF ( LNLPBL ) THEN
          WRITE(*,*) '================================================='
          WRITE(*,*) 'The non-local PBL scheme is only valid for GEOS-5'

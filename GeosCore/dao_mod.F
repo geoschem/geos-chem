@@ -3216,6 +3216,7 @@
 !
 ! !REVISION HISTORY:
 !  06 Feb 2012 - R. Yantosca - Split off MERRA init from routine INIT_DAO
+!  17 Apr 2012 - R. Yantosca - Bug fix: allocate ALBD array (it was omitted)
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -3227,6 +3228,10 @@
       !=================================================================
       ! A1 fields
       !=================================================================
+
+      ALLOCATE( ALBD( IIPAR, JJPAR ), STAT=AS )
+      IF ( AS /= 0 ) CALL ALLOC_ERR( 'ALBD' )
+      ALBD = 0d0
 
       ALLOCATE( CLDFRC( IIPAR, JJPAR ), STAT=AS )
       IF ( AS /= 0 ) CALL ALLOC_ERR( 'CLDFRC' )
