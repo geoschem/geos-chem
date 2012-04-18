@@ -33,7 +33,6 @@ MODULE Mapping_Mod
      INTEGER, POINTER :: JJ(:)        ! Latitude  indices,  "fine"   grid
      INTEGER, POINTER :: olson(:)     ! Olson land type,    "fine"   grid
      INTEGER, POINTER :: ordOlson(:)  ! Ordering of Olson land types
-    !REAL*4,  POINTER :: mapWt(:)     ! Mapping weights,    "fine"   grid
      REAL*4,  POINTER :: area(:)      ! Surface areas,      "fine"   grid
      REAL*4           :: sumarea      ! Total surface area, "coarse" grid
   END TYPE MapWeight
@@ -59,8 +58,8 @@ MODULE Mapping_Mod
 !  03 Apr 2012 - R. Yantosca - Initial version
 !  05 Apr 2012 - R. Yantosca - Comment out mapwt field of MapWeight type,
 !                              leave this for future expansion
-!  17 Apr 2012 - R. Yantosca - Rename pointer
-
+!  17 Apr 2012 - R. Yantosca - Rename pointer object "map" to "mapping,
+!                              to remove confusion w/ F90 intrinsic
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -99,18 +98,27 @@ CONTAINS
 !  17 Apr 2012 - R. Yantosca - Rename to "map" to "mapping" to avoid confusion
 !                              with a F90 intrinsic function
 !  17 Apr 2012 - R. Yantosca - Add error check for mapping object
-
+!  18 Apr 2012 - R. Yantosca - Improve error check for sub-fields of mapping
+!                              object so as not to interfere w/ parallel loop
 !EOP
 !------------------------------------------------------------------------------
 !BOC
 !
 ! !LOCAL VARIABLES:
 !    
-    INTEGER :: I, J, FINE_PER_COARSE, ADD, as
+    ! Scalars
+    INTEGER :: I,   J,   FINE_PER_COARSE, ADD, as
+    INTEGER :: as1, as2, as3,             as4, as5 
+
+    ! Arrays
+    INTEGER :: err(I_COARSE,J_COARSE)
 
     !======================================================================
     ! INIT_MAPPING begins here!
     !======================================================================
+
+    ! Initialize
+    err = 0
 
     ! Define a number of extra boxes to add to FINE_PER_COARSE
     ! in order to prevent out-of-bounds errors
@@ -137,38 +145,41 @@ CONTAINS
        DO J = 1, J_COARSE
        DO I = 1, I_COARSE
 
-          ! Allocate sub-fields
-          ALLOCATE( mapping(I,J)%ii      ( FINE_PER_COARSE ), STAT=as )
-          IF ( as /= 0 ) CALL ALLOC_ERR( 'map%II' )
+          ! Allocate sub-fields of MAPPING object
+          ALLOCATE( mapping(I,J)%ii      ( FINE_PER_COARSE ), STAT=as1 )
+          ALLOCATE( mapping(I,J)%jj      ( FINE_PER_COARSE ), STAT=as2 )
+          ALLOCATE( mapping(I,J)%olson   ( FINE_PER_COARSE ), STAT=as3 )
+          ALLOCATE( mapping(I,J)%ordOlson( 0:NVEGTYPE-1    ), STAT=as4 )
+          ALLOCATE( mapping(I,J)%area    ( FINE_PER_COARSE ), STAT=as5 )
 
-          ALLOCATE( mapping(I,J)%jj      ( FINE_PER_COARSE ), STAT=as )
-          IF ( as /= 0 ) CALL ALLOC_ERR( 'map%JJ' )
-
-          ALLOCATE( mapping(I,J)%olson   ( FINE_PER_COARSE ), STAT=as )
-          IF ( as /= 0 ) CALL ALLOC_ERR( 'map%olson' )
-
-          ALLOCATE( mapping(I,J)%ordOlson( 0:NVEGTYPE-1    ), STAT=as )
-          IF ( as /= 0 ) CALL ALLOC_ERR( 'map%orOolson' )
-
-         !ALLOCATE( mapping(I,J)%mapWt   ( FINE_PER_COARSE ), STAT=as )
-         !IF ( as /= 0 ) CALL ALLOC_ERR( 'map%mapWt' )
-
-          ALLOCATE( mapping(I,J)%area    ( FINE_PER_COARSE ), STAT=as )
-          IF ( as /= 0 ) CALL ALLOC_ERR( 'map%area' )
+          ! Check for allocation error in such a way
+          ! as to not interfere w/ the parallel loop
+          IF ( as1 + as2 + as3 + as4 + as5 /= 0 ) THEN
+             err(I,J) = 1
+             EXIT
+          ENDIF
 
           ! Initialize sub-fields
-          mapping(I,J)%count    = 0
-          mapping(I,J)%ii       = 0
-          mapping(I,J)%jj       = 0
-          mapping(I,J)%olson    = 0
-          mapping(I,J)%ordOlson = 0
-          mapping(I,J)%area     = 0e0
-          mapping(I,J)%sumarea  = 0e0
+          IF ( err(I,J) == 0 ) THEN
+             mapping(I,J)%count    = 0
+             mapping(I,J)%ii       = 0
+             mapping(I,J)%jj       = 0
+             mapping(I,J)%olson    = 0
+             mapping(I,J)%ordOlson = 0
+             mapping(I,J)%area     = 0e0
+             mapping(I,J)%sumarea  = 0e0
+          ENDIF
        ENDDO
        ENDDO
        !$OMP END PARALLEL DO
     ENDIF
 
+    ! Stop if any sub-field of MAPPING was not allocated properly
+    IF ( SUM( err ) > 0 ) THEN
+       CALL ERROR_STOP( 'Error allocating sub-fields of MAPPING object!', &
+                        'Init_Mapping (mapping_mod.F90)' )
+    ENDIF
+       
     ! Stop w/ error if the MAPPING object is not dimensioned properly
     IF ( SIZE( mapping, 1 ) /= I_COARSE  .or. &
          SIZE( mapping, 2 ) /= J_COARSE ) THEN
@@ -341,7 +352,6 @@ CONTAINS
           DEALLOCATE( mapping(I,J)%jj       )
           DEALLOCATE( mapping(I,J)%olson    )
           DEALLOCATE( mapping(I,J)%ordOlson )
-         !DEALLOCATE( mapping(I,J)%mapWt    )
           DEALLOCATE( mapping(I,J)%area     )
        ENDDO
        ENDDO

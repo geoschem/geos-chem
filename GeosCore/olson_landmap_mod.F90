@@ -388,13 +388,12 @@ CONTAINS
           mapping(I,J)%II(C)    = II
           mapping(I,J)%JJ(C)    = JJ
           mapping(I,J)%olson(C) = type
-         !mapping(I,J)%mapWt(C) = mapWt
           mapping(I,J)%area(C)  = area
           mapping(I,J)%sumarea  = sumarea
 
        ENDDO
        ENDDO
-         
+
        !===================================================================
        ! Construct GEOS-Chem type output arrays from the binning that we 
        ! just have completed.  Preserve the ordering from "vegtype.global"
