@@ -6350,12 +6350,9 @@
       !%%% in order to facilitate the SEAC4RS simulations.  Eventually
       !%%% this will replace Olson 1992 for all other met field types,
       !%%% once more rigorous testing & validation has been done.
-!      USE_OLSON_2001 = .TRUE.
+      USE_OLSON_2001 = .TRUE.
       !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 #endif
-
-      !%%% KLUDGE, set to TRUE for testing GEOS-5 etc. (bmy, 3/27/12)
-      !USE_OLSON_2001 = .TRUE.
 
       END SUBROUTINE INIT_INPUT
 !EOC
