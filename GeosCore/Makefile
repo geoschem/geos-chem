@@ -105,6 +105,7 @@
 #  11 Apr 2012 - R. Yantosca - Reference modis_lai_mod.F90 in timeseries diag
 #  11 Apr 2012 - R. Yantosca - Remove all references to obsolete lai_mod.F
 #  12 Apr 2012 - R. Yantosca - Remove reference to findmon.F
+#  19 Apr 2012 - R. Yantosca - Remove reference to rd_prof.F
 #EOP
 #------------------------------------------------------------------------------
 #BOC
@@ -886,8 +887,6 @@ RD_AOD.o                    : RD_AOD.F
 
 rd_js.o                     : rd_js.F
 
-rd_prof.o                   : rd_prof.F
-
 rdsoil.o                    : rdsoil.F
 
 RD_TJPL.o                   : RD_TJPL.F
@@ -897,6 +896,8 @@ readchem.o                  : readchem.F                                     \
                               logical_mod.o
 
 reader.o                    : reader.F
+
+read_jv_atms_dat.o          : read_jv_atms_dat.F90
 
 restart_mod.o               : restart_mod.F                                  \
                               comode_mod.o            dao_mod.o              \

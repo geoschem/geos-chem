@@ -76,8 +76,13 @@
       CALL RD_AOD( IU_FASTJ, 'jv_spec_aod.dat' )
 
       ! Read in T & O3 climatology (cf. Nagatani/92 and McPeters/91)
-      CALL RD_PROF( IU_FASTJ, 'jv_atms.dat' )
- 
+!------------------------------------------------------------------------------
+! Prior to 4/19/12:
+! Now read "jv_atms.dat" T & O3 from netCDF format (bmy, 4/19/12)
+!      CALL RD_PROF( IU_FASTJ, 'jv_atms.dat' )
+!------------------------------------------------------------------------------
+      CALL READ_JV_ATMS_DAT( 'fastj.jv_atms_dat.nc' )
+
       ! Select Aerosol/Cloud types to be used
       CALL SET_AER
 

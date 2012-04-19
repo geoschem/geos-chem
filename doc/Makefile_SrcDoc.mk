@@ -56,6 +56,7 @@
 #  29 Mar 2012 - R. Yantosca - Added modis_lai_mod and mapping_mod
 #  09 Apr 2012 - R. Yantosca - Added modules from Headers/ directory
 #  13 Apr 2012 - R. Yantosca - Removed findmon.F, rdlai.F, lai_mod.F
+#  19 Apr 2012 - R. Yantosca - Added read_jv_atms_dat.F90
 #EOP
 #------------------------------------------------------------------------------
 #BOC
@@ -175,7 +176,7 @@ $(CORE)/initialize.F                 \
 $(CORE)/ndxx_setup.F                 \
 $(CORE)/ohsave.F                     \
 $(CORE)/rdsoil.F                     \
-$(CORE)/readlai.F                    \
+$(CORE)/read_jv_atms_dat.F90         \
 $(CORE)/ruralbox.F                   \
 $(CORE)/setemis.F                    \
 $(CORE)/sfcwindsqr.F
