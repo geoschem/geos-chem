@@ -46,6 +46,10 @@ c  Extend climatology to 100 km
           enddo
         enddo
       enddo
+      !### DEBUG
+      print*, '### in rd_prof.F'
+      print*, '### TREF: ', TREF(:,1,1)
+      print*, '### OREF: ', OREF(:,1,1)
 c
       return
  1000 format(1x,'Data: ',i3,' Lats x ',i2,' Months')
