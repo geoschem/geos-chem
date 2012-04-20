@@ -2081,7 +2081,10 @@
      &                 1,         ARRAY,     QUIET=.TRUE. )
 
       ! Regrid from 1x1 to the current grid (also cast to REAL*8)
-      CALL DO_REGRID_1x1( 'ug C/m2/hr', ARRAY, AEF_ACET ) 
+      !CALL DO_REGRID_1x1( 'ug C/m2/hr', ARRAY, AEF_ACET ) 
+      INGRID = ARRAY(:,:,1)
+      CALL DO_REGRID_A2A( LLFILENAME, 360, 182, INGRID, OUTGRID, 0 )
+      AEF_ACET = OUTGRID 
 
       ! Loop over surface boxes
       DO J = 1, JJPAR

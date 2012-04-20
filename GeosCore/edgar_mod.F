@@ -400,7 +400,7 @@
 
       !Apply scaling factor
 ![eml Skip scaling if using historical emissions
-      IF ( .not. LHIST ) 
+      IF ( .not. LHIST ) THEN
          E_NOx=OUTGRID * SC_NOx
       ELSE
          E_NOx=OUTGRID

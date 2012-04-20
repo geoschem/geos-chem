@@ -1275,7 +1275,8 @@
       USE TRANSFER_MOD,   ONLY : TRANSFER_2D
       USE TIME_MOD,       ONLY : GET_YEAR,        ITS_A_LEAPYEAR
       USE GRID_MOD,       ONLY : GET_AREA_CM2
-      USE REGRID_1x1_MOD, ONLY : DO_REGRID_1x1    !(lmw,05/16/11)
+      !USE REGRID_1x1_MOD, ONLY : DO_REGRID_1x1    !(lmw,05/16/11)
+      USE REGRID_A2A_MOD, ONLY : DO_REGRID_A2A
 
       USE CMN_SIZE_MOD      ! Size parameters
 !
@@ -1289,8 +1290,9 @@
 !                                      monthly_v2010 directories, which
 !                                      contain updated CO2 data from CDIAC
 !  01 Mar 2012 - R. Yantosca - Now use GET_AREA_CM2(I,J,L) from grid_mod.F90
-!   5 Mar 2012 - M. Payer            - Add modifications for nested-grid CO2
-!                                      (Yuxuan Wang, lmw)
+!  05 Mar 2012 - M. Payer    - Add modifications for nested-grid CO2
+!                              (Yuxuan Wang, lmw)
+!  06 Apr 2012 - M. Payer    - Changed regrid algorithm to map_a2a (M. Cooper)
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -1309,6 +1311,9 @@
       REAL*8             :: GEOS_1x1(I1x1,J1x1,1)    !(lmw,05/16/11)
       REAL*8             :: GEOS_GRID(IIPAR,JJPAR,1)
       REAL*4             :: REGION_1x1(360,181)
+      CHARACTER(LEN=255)  :: LLFILENAME
+      REAL*8, ALLOCATABLE :: OUTGRID(:,:)
+      REAL*8, ALLOCATABLE :: INGRID(:,:)
 
       !-----------------------------------------------------------------
       ! Read Generic or annual fossil fuel emissions file
@@ -1382,8 +1387,26 @@
       GEOS_1x1(:,:,1) = REGION_1x1(:,:)
 
       ! Regrid from GEOS 1x1 --> current model resolution
-      CALL DO_REGRID_1x1( 1, 'molec/cm2/s', GEOS_1x1, GEOS_GRID)
+      !CALL DO_REGRID_1x1( 1, 'molec/cm2/s', GEOS_1x1, GEOS_GRID)
   
+      ! File with lat/lon edges for regridding
+      LLFILENAME = TRIM( DATA_DIR_1x1) //
+     &             'MAP_A2A_Regrid_200312/latlon_geos1x1.txt'
+
+      ! Allocate arrays for regridding
+      ALLOCATE(INGRID(I1x1,J1x1))
+      ALLOCATE(OUTGRID(IIPAR,JJPAR))
+
+      ! Regrid to current model resolution
+      INGRID = GEOS_1x1(:,:,1)
+      CALL DO_REGRID_A2A( LLFILENAME, 360, 182, INGRID, OUTGRID, 0 )   
+      GEOS_GRID(:,:,1) = OUTGRID
+
+      ! Deallocate arrays for regridding
+      DEALLOCATE(INGRID)
+      DEALLOCATE(OUTGRID)
+
+      ! Cast to REAL*4
       REGION(:,:) = GEOS_GRID(:,:,1)      !(lmw,05/16/11)
 
       !-----------------------------------------------------------------
@@ -1567,7 +1590,8 @@
       USE BPCH2_MOD,      ONLY : GET_TAU0,        READ_BPCH2
       USE DIRECTORY_MOD,  ONLY : DATA_DIR,        DATA_DIR_1x1  !(lmw,05/16/11)
       USE TRANSFER_MOD,   ONLY : TRANSFER_2D
-      USE REGRID_1x1_MOD, ONLY : DO_REGRID_1x1    !(lmw,05/16/11)
+      !USE REGRID_1x1_MOD, ONLY : DO_REGRID_1x1    !(lmw,05/16/11)
+      USE REGRID_A2A_MOD, ONLY : DO_REGRID_A2A
 
       USE CMN_SIZE_MOD      ! Size parameters
 !
@@ -1579,8 +1603,10 @@
 ! !REVISION HISTORY: 
 !  16 Aug 2005 - P. Suntharalingam   - Initial version
 !  18 May 2010 - R. Nassar, D. Jones - Updated
-!   5 Mar 2012 - M. Payer            - Add modifications for nested-grid CO2
+!  05 Mar 2012 - M. Payer            - Add modifications for nested-grid CO2
 !                                      (Yuxuan Wang, lmw)
+!  06 Apr 2012 - M. Payer            - Changed regrid algorithm to map_a2a
+!                                      (M. Cooper)
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -1594,6 +1620,9 @@
       REAL*8                 :: GEOS_GRID(IIPAR,JJPAR,1)
       REAL*8                 :: GEOS_1x1(I1x1,J1x1,1)     !(lmw,05/16/11)
       CHARACTER(LEN=255)     :: FILENAME
+      CHARACTER(LEN=255)     :: LLFILENAME
+      REAL*8, ALLOCATABLE    :: OUTGRID(:,:)
+      REAL*8, ALLOCATABLE    :: INGRID(:,:)
 
       !=================================================================
       ! READ_ANNUAL_BIOFUELCO2 begins here!
@@ -1638,7 +1667,24 @@
       GEOS_1x1(:,:,1) = ARRAY(:,:,1)
       
       ! Regrid from GEOS 1x1 --> current model resolution
-      CALL DO_REGRID_1x1( 1, 'molec/cm2/s', GEOS_1x1, GEOS_GRID)
+      !CALL DO_REGRID_1x1( 1, 'molec/cm2/s', GEOS_1x1, GEOS_GRID)
+
+      ! File with lat/lon edges for regridding
+      LLFILENAME = TRIM( DATA_DIR_1x1) //
+     &             'MAP_A2A_Regrid_200312/latlon_geos1x1.txt'
+
+      ! Allocate arrays for regridding
+      ALLOCATE(INGRID(I1x1,J1x1))
+      ALLOCATE(OUTGRID(IIPAR,JJPAR))
+
+      ! Regrid to current model resolution
+      INGRID = GEOS_1x1(:,:,1)
+      CALL DO_REGRID_A2A( LLFILENAME, 360, 182, INGRID, OUTGRID, 0 )   
+      GEOS_GRID(:,:,1) = OUTGRID
+
+      ! Deallocate arrays for regridding
+      DEALLOCATE(INGRID)
+      DEALLOCATE(OUTGRID)
 
       EMBIOFUELCO2(:,:) = GEOS_GRID(:,:,1)   !(lmw,05/16/11)
 
@@ -2192,7 +2238,8 @@
       USE FILE_MOD,       ONLY : IU_FILE,           IOERROR
       USE TRANSFER_MOD,   ONLY : TRANSFER_2D
       USE LOGICAL_MOD,    ONLY : LBIONETORIG,       LBIONETCLIM
-      !USE REGRID_1x1_MOD, ONLY : DO_REGRID_G2G_1x1, DO_REGRID_1x1 
+      !USE REGRID_1x1_MOD, ONLY : DO_REGRID_G2G_1x1, DO_REGRID_1x1
+      USE REGRID_A2A_MOD, ONLY : DO_REGRID_A2A
 
       USE CMN_SIZE_MOD       ! Size parameters
 !
@@ -2211,8 +2258,10 @@
 ! !REVISION HISTORY: 
 !  16 Aug 2005 - P. Suntharalingam   - Initial version
 !  18 May 2010 - R. Nassar, D. Jones - Updated 
-!   5 Mar 2012 - M. Payer            - Add modifications for nested-grid CO2
+!  05 Mar 2012 - M. Payer            - Add modifications for nested-grid CO2
 !                                      (Yuxuan Wang, lmw)
+!  06 Apr 2012 - M. Payer            - Changed regrid algorithm to map_a2a
+!                                      (M. Cooper)
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -2228,6 +2277,9 @@
       REAL*8                 :: GEOS_GRID(IIPAR,JJPAR,1)
       REAL*8		     :: TAU
       CHARACTER(LEN=255)     :: FILENAME
+      CHARACTER(LEN=255)     :: LLFILENAME
+      REAL*8, ALLOCATABLE    :: OUTGRID(:,:)
+      REAL*8, ALLOCATABLE    :: INGRID(:,:)
 
       !=================================================================
       ! READ_ANNUAL_BIONET_CO2 begins here!
@@ -2308,8 +2360,23 @@
          ! Cast to REAL*8 before regridding
          GEOS_1x1(:,:,1) = ARRAY(:,:,1)
 
+         ! File with lat/lon edges for regridding
+         LLFILENAME = TRIM( DATA_DIR_1x1) //
+     &                'MAP_A2A_Regrid_200312/latlon_geos1x1.txt'
+
+         ! Allocate arrays for regridding
+         ALLOCATE(INGRID(I1x1,J1x1))
+         ALLOCATE(OUTGRID(IIPAR,JJPAR))
+
          ! Regrid from GEOS 1x1 --> current model resolution
-         CALL DO_REGRID_1x1( 1, 'molec/cm2/s', GEOS_1x1, GEOS_GRID)
+         !CALL DO_REGRID_1x1( 1, 'molec/cm2/s', GEOS_1x1, GEOS_GRID)
+         INGRID = GEOS_1x1(:,:,1)
+         CALL DO_REGRID_A2A( LLFILENAME, 360, 182, INGRID, OUTGRID, 0 )
+         GEOS_GRID(:,:,1) = OUTGRID  
+                  
+         ! Deallocate arrays for regridding
+         DEALLOCATE(INGRID)
+         DEALLOCATE(OUTGRID)
          
          EMBIONETCO2(:,:) = GEOS_GRID(:,:,1)  !(lmw,05/16/11)     
 
