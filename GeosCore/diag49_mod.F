@@ -179,11 +179,6 @@
       USE DAO_MOD,       ONLY : T,       UWND,   VWND
       USE DAO_MOD,       ONLY : TS
       USE DAO_MOD,       ONLY : PARDF, PARDR
-!------------------------------------------------------------------------------
-! Prior to 4/11/12:
-! Retire obsolete lai_mod.F, replace w/ modis_lai_mod.F90 (bmy, 4/11/12)
-!      USE LAI_MOD,      ONLY : ISOLAI
-!------------------------------------------------------------------------------
       USE MODIS_LAI_MOD, ONLY : ISOLAI => GC_LAI
       USE FILE_MOD,      ONLY : IU_ND49
       USE GRID_MOD,      ONLY : GET_XOFFSET,        GET_YOFFSET

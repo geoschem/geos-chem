@@ -89,11 +89,6 @@
       ! GEOS-Chem emissions modules
       !-----------------------------------------------------------------
       USE EMISSIONS_MOD         ! Driver routines for emissions
-!------------------------------------------------------------------------------
-! Prior to 4/11/12:
-! Module lai_mod.F has been replaced by modis_lai_mod.F90 (bmy, 4/11/12)
-!      USE LAI_MOD               ! For MODIS leaf area indices (deprecated)
-!------------------------------------------------------------------------------
       USE MODIS_LAI_MOD         ! For MODIS leaf area indices (replacement)
       USE LIGHTNING_NOX_MOD     ! For lightning NOx emissions  
       USE MEGAN_MOD             ! For biogenic emissions

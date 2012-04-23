@@ -356,10 +356,6 @@
       DO NN = 1, NSPHOTO
          N = SPHOTOID(NN)
 
-!---------------------------------
-! Prior to 3/7/12:
-!         DO L = LMIN, LLPAR
-!---------------------------------
          DO L = 1,    LLPAR
          DO J = 1,    JJPAR
          DO I = 1,    IIPAR
@@ -396,10 +392,6 @@
 !$OMP+PRIVATE( I, J, L, N, M, TK, RC, k0, k1, RDLOSS, T1L )
 !$OMP+SCHEDULE( DYNAMIC )
       DO N = 1,    N_TRACERS
-!---------------------------------
-! Prior to 3/7/12:
-!      DO L = LMIN, LLPAR
-!---------------------------------
       DO L = 1,    LLPAR
       DO J = 1,    JJPAR
       DO I = 1,    IIPAR

@@ -88,7 +88,7 @@
       INTEGER :: IIPAR
       INTEGER :: JJPAR
 #if   defined( GRIDREDUCED )
-      INTEGER :: LLPAR      = 30        ! Reduced vertical grid
+      INTEGER :: LLPAR      = 30                   ! Reduced vertical grid
       INTEGER, PARAMETER :: LLTROP     = 24        !  -- 30 levels
 #else
       INTEGER :: LLPAR     ! Full vertical grid
@@ -108,7 +108,7 @@
       INTEGER :: IIPAR
       INTEGER :: JJPAR
 #if   defined( GRIDREDUCED )
-      INTEGER :: LLPAR      = 30        ! Reduced vertical grid
+      INTEGER :: LLPAR      = 30                   ! Reduced vertical grid
       INTEGER, PARAMETER :: LLTROP     = 24        !  -- 30 levels
 #else
       INTEGER :: LLPAR     ! Full vertical grid
@@ -123,15 +123,15 @@
       ! GEOS-3: 1 x 1 
       !-----------------------------------------------------------------
 #if   defined( NESTED_CH )
-      INTEGER :: IGLOB      = 81        ! CHINA NESTED 1x1
+      INTEGER :: IGLOB      = 81                   ! CHINA NESTED 1x1
       INTEGER :: JGLOB      = 67
       INTEGER :: LGLOB      = 48           
 #elif defined( NESTED_NA )
-      INTEGER :: IGLOB      = 101       ! N. AMERICA NESTED 1x1
+      INTEGER :: IGLOB      = 101                  ! N. AMERICA NESTED 1x1
       INTEGER :: JGLOB      = 51    
       INTEGER :: LGLOB      = 48    
 #else
-      INTEGER :: IGLOB      = 360       ! GLOBAL GRID 1x1
+      INTEGER :: IGLOB      = 360                  ! GLOBAL GRID 1x1
       INTEGER :: JGLOB      = 181
       INTEGER :: LGLOB      = 48                 
 
@@ -139,10 +139,10 @@
       INTEGER :: IIPAR
       INTEGER :: JJPAR
 #if   defined( GRIDREDUCED )
-      INTEGER :: LLPAR      = 30        ! Reduced vertical grid
+      INTEGER :: LLPAR      = 30                   ! Reduced vertical grid
       INTEGER, PARAMETER :: LLTROP     = 24        !  -- 30 levels  
 #else
-      INTEGER :: LLPAR     ! Full vertical grid
+      INTEGER :: LLPAR                             ! Full vertical grid
       INTEGER, PARAMETER :: LLTROP     = 25        !  -- 48 levels
 #endif
       INTEGER, PARAMETER :: LLTROP_FIX = 20
@@ -159,10 +159,10 @@
       INTEGER :: IIPAR
       INTEGER :: JJPAR
 #if   defined( GRIDREDUCED ) 
-      INTEGER :: LLPAR      = 30        ! Reduced vertical grid
+      INTEGER :: LLPAR      = 30                   ! Reduced vertical grid
       INTEGER, PARAMETER :: LLTROP     = 22        !  -- 30 levels
 #else
-      INTEGER :: LLPAR     ! Full vertical grid
+      INTEGER :: LLPAR                             ! Full vertical grid
       INTEGER, PARAMETER :: LLTROP     = 23        !  -- 55 levels
 #endif
       INTEGER, PARAMETER :: LLTROP_FIX = 17
@@ -179,10 +179,10 @@
       INTEGER :: IIPAR
       INTEGER :: JJPAR
 #if   defined( GRIDREDUCED )
-      INTEGER :: LLPAR      = 30        ! Reduced vertical grid
+      INTEGER :: LLPAR      = 30                   ! Reduced vertical grid
       INTEGER, PARAMETER :: LLTROP     = 22        !  -- 30 levels
 #else 
-      INTEGER :: LLPAR     ! Full vertical grid
+      INTEGER :: LLPAR                             ! Full vertical grid
       INTEGER, PARAMETER :: LLTROP     = 23        !  -- 55 levels
 #endif
       INTEGER, PARAMETER :: LLTROP_FIX = 17
@@ -199,10 +199,10 @@
       INTEGER :: IIPAR
       INTEGER :: JJPAR
 #if   defined( GRIDREDUCED )
-      INTEGER :: LLPAR      = 30        ! Reduced vertical grid
+      INTEGER :: LLPAR      = 30                   ! Reduced vertical grid
       INTEGER, PARAMETER :: LLTROP     = 22        !  -- 30 levels
 #else 
-      INTEGER :: LLPAR     ! Full vertical grid
+      INTEGER :: LLPAR                             ! Full vertical grid
       INTEGER, PARAMETER :: LLTROP     = 23        !  -- 55 levels
 #endif
       INTEGER, PARAMETER :: LLTROP_FIX = 17
@@ -219,7 +219,7 @@
       INTEGER :: IIPAR
       INTEGER :: JJPAR
 #if   defined( GRIDREDUCED ) 
-      INTEGER :: LLPAR      = 47        ! Reduced vertical grid
+      INTEGER :: LLPAR      = 47                   ! Reduced vertical grid
       INTEGER, PARAMETER :: LLTROP_FIX = 38        !  -- 47 levels
       INTEGER, PARAMETER :: LLTROP     = 38  
 #else
@@ -240,7 +240,7 @@
       INTEGER :: IIPAR
       INTEGER :: JJPAR
 #if   defined( GRIDREDUCED )
-      INTEGER :: LLPAR      = 47        ! Reduced vertical grid
+      INTEGER :: LLPAR      = 47                   ! Reduced vertical grid
       INTEGER, PARAMETER :: LLTROP_FIX = 38        !  -- 47 levels
       INTEGER, PARAMETER :: LLTROP     = 38  
 #else 
@@ -261,7 +261,7 @@
       INTEGER :: IIPAR
       INTEGER :: JJPAR
 #if   defined( GRIDREDUCED )
-      INTEGER :: LLPAR      = 47        ! Reduced vertical grid
+      INTEGER :: LLPAR      = 47                   ! Reduced vertical grid
       INTEGER, PARAMETER :: LLTROP_FIX = 38        !  -- 47 levels
       INTEGER, PARAMETER :: LLTROP     = 38
 #else 
@@ -277,22 +277,22 @@
       ! GEOS-5: 0.5 x 0.666
       !-----------------------------------------------------------------
 #if   defined( NESTED_CH )
-      INTEGER :: IGLOB      = 121       ! NESTED CHINA   0.5x0.666
+      INTEGER :: IGLOB      = 121                 ! NESTED CHINA   0.5x0.666
       INTEGER :: JGLOB      = 133
       INTEGER :: LGLOB      = 72
 #elif defined( NESTED_NA )
-      INTEGER :: IGLOB      = 151       ! NESTED N.AMER. 0.5x0.666
+      INTEGER :: IGLOB      = 151                 ! NESTED N.AMER. 0.5x0.666
       INTEGER :: JGLOB      = 121
       INTEGER :: LGLOB      = 72
 #elif defined( NESTED_EU )
-      INTEGER :: IGLOB      = 121       ! NESTED EUROPE  0.5x0.666
+      INTEGER :: IGLOB      = 121                 ! NESTED EUROPE  0.5x0.666
       INTEGER :: JGLOB      = 81
       INTEGER :: LGLOB      = 72
 #endif
       INTEGER :: IIPAR  
       INTEGER :: JJPAR
 #if   defined( GRIDREDUCED )
-      INTEGER :: LLPAR      = 47        ! Reduced vertical grid
+      INTEGER :: LLPAR      = 47                   ! Reduced vertical grid
       INTEGER, PARAMETER :: LLTROP_FIX = 38        !  -- 47 levels
       INTEGER, PARAMETER :: LLTROP     = 38
 #else
@@ -313,7 +313,7 @@
       INTEGER :: IIPAR
       INTEGER :: JJPAR
 #if   defined( GRIDREDUCED ) 
-      INTEGER :: LLPAR      = 47        ! Reduced vertical grid
+      INTEGER :: LLPAR      = 47                   ! Reduced vertical grid
       INTEGER, PARAMETER :: LLTROP_FIX = 38        !  -- 47 levels
       INTEGER, PARAMETER :: LLTROP     = 38  
 #else
@@ -334,7 +334,7 @@
       INTEGER :: IIPAR
       INTEGER :: JJPAR
 #if   defined( GRIDREDUCED )
-      INTEGER :: LLPAR      = 47        ! Reduced vertical grid
+      INTEGER :: LLPAR      = 47                   ! Reduced vertical grid
       INTEGER, PARAMETER :: LLTROP_FIX = 38        !  -- 47 levels
       INTEGER, PARAMETER :: LLTROP     = 38  
 #else 
@@ -1122,11 +1122,6 @@
       ! NTYPE    - Maximum number of veg types in a CTM grid box
       ! NPOLY    - Number of coefficients for polynomial fits
       INTEGER, PARAMETER :: NVEGTYPE = 74
-!-----------------------------------------------------------------------------
-! Prior to 3/27/12:
-! Updated for Olson 2001 landmap (bmy, 3/27/12)
-!      INTEGER, PARAMETER :: NTYPE    = 15
-!-----------------------------------------------------------------------------
       INTEGER, PARAMETER :: NTYPE    = 25
       INTEGER, PARAMETER :: NPOLY    = 20
 

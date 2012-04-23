@@ -371,12 +371,6 @@
       USE DAO_MOD,        ONLY : TS
       ! Now included PAR direct and diffuse (mpb,2009)
       USE DAO_MOD,        ONLY : PARDF, PARDR
-!------------------------------------------------------------------------------
-! Prior to 4/11/12:
-! Retire obsolete lai_mod.F, replace w/ modis_lai_mod.F90 (bmy, 4/11/12)
-!      ! Now included current (MODIS) LAI (mpb,2009)
-!      USE LAI_MOD,        ONLY : ISOLAI
-!------------------------------------------------------------------------------
       USE MODIS_LAI_MOD,  ONLY : ISOLAI => GC_LAI
       USE PBL_MIX_MOD,    ONLY : GET_PBL_TOP_L,    GET_PBL_TOP_m
       USE PRESSURE_MOD,   ONLY : GET_PEDGE

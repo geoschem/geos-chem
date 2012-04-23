@@ -2135,13 +2135,6 @@ c$$$      WRITE( 6, 100     ) '30-BIN DUST AEROSOLS?       : ', LDUST30
       LOTDLOC           = ( LOTDLOC        .and. LEMIS     )
       LSOILNOX          = ( LSOILNOX       .and. LEMIS     )
       LFERTILIZERNOX    = ( LFERTILIZERNOX .and. LEMIS     )
-      !---------------------------------------------------------------------
-      ! Prior to 4/10/12:
-      ! Bug fix: if emissions are turned off then this also turns off
-      ! AVHRR LAI and MODIS LAI, which is also used for drydep.
-      !LAVHRRLAI         = ( LAVHRRLAI      .and. LEMIS     )
-      !LMODISLAI         = ( LMODISLAI      .and. LEMIS     )       
-      !---------------------------------------------------------------------
 
       ! Define these flags for backwards compatibility
       LFOSSIL           = LANTHRO

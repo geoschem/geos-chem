@@ -889,19 +889,9 @@
 !  Gong (2003) with the empirical sea surface temperature (SST) dependence of
 !  Jaegle et al. (2011). This SST dependence was derived based on comparisons
 !  to cruise observations of coarse mode sea salt mass concentrations.
-! 
+!\\
+!\\
 !  Contact: Lyatt Jaegle (jaegle@uw.edu)
-!
-!!-----------------------------------------------------------------------------
-!!Prior to 12/22/11: 
-!!  Subroutine SRCSALT updates the surface mixing ratio of dry sea salt
-!!  aerosols for NSALT size bins.  The generation of sea salt aerosols
-!!  has been parameterized following Monahan et al. [1986] parameterization
-!!  as described by Gong et al. [1997].  (bec, rjp, bmy, 4/20/04, 11/23/09)
-!! 
-!!  Contact: Becky Alexander (bec@io.harvard.edu) or 
-!!           Rokjin Park     (rjp@io.harvard.edu)
-!!-----------------------------------------------------------------------------
 !\\
 !\\
 ! !INTERFACE:

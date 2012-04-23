@@ -1364,22 +1364,9 @@
       ! Read region/continent file 
       !-----------------------------------------------------------------
       TAU      = GET_TAU0( 1, 1, 2004 )
-!------------------------------------------------------------------------------
-! Prior to 3/5/12:
-! Apply on-line regridding of 1x1 data to all resolutions (Y.Wang, lmw, mpayer)
-!      FILENAME = TRIM( DATA_DIR )                          //  
-!     &           'CO2_201003/Aviation_Regions.'            // 
-!     &           GET_NAME_EXT_2D() // '.' // GET_RES_EXT()
-!------------------------------------------------------------------------------
       FILENAME = TRIM( DATA_DIR_1x1)   //   
      &           'CO2_201003/Aviation_Regions.geos.1x1'
 
-!------------------------------------------------------------------------------
-! Prior to 3/5/12:
-!       CALL READ_BPCH2( FILENAME, 'CO2-SRCE', 1, 
-!     &                  TAU,       IIPAR,     JJPAR,     
-!     &                  1,         REGION,    QUIET=.TRUE. )
-!------------------------------------------------------------------------------
       CALL READ_BPCH2( FILENAME, 'CO2-SRCE',  1, 
      &                 TAU,       360,        181,     
      &                 1,         REGION_1x1, QUIET=.TRUE. )
@@ -1607,14 +1594,6 @@
       ! "Burn in fields" not included (this is already in GFED)
       !=================================================================
 
-!------------------------------------------------------------------------------
-! Prior to 3/5/12:
-! Apply on-line regridding of 1x1 data to all resolutions (Y.Wang, lmw, mpayer)
-!      FILENAME = TRIM( DATA_DIR )                 // 
-!     &          'CO2_201003/biofuel/biofuel_CO2.' // 
-!     &           GET_NAME_EXT_2D() // '.'         // 
-!     &           GET_RES_EXT()     // '-1995'
-!------------------------------------------------------------------------------
       FILENAME = TRIM( DATA_DIR_1x1)               //  
      &           'CO2_201003/biofuel/biofuel_CO2.' // 
      &            GET_NAME_EXT_2D()                // '.1x1-1995'
@@ -1627,15 +1606,6 @@
       TAU = GET_TAU0( 1, 1, 1995 )
       
       ! Read biofuel CO2 emissions [molec/cm2/s]
-!------------------------------------------------------------------------------
-! Prior to 3/5/12:
-!      CALL READ_BPCH2( FILENAME, 'CO2-SRCE', 5, 
-!     &                 TAU,       IIPAR,     JJPAR,     
-!     &                 1,         ARRAY,     QUIET=.TRUE. )
-!
-!      ! Cast from REAL*4 to REAL*8 and resize
-!      CALL TRANSFER_2D( ARRAY(:,:,1), EMBIOFUELCO2 )
-!------------------------------------------------------------------------------
       CALL READ_BPCH2( FILENAME, 'CO2-SRCE', 5, 
      &                 TAU,       360,       181,     
      &                 1,         ARRAY,     QUIET=.TRUE. )
@@ -2252,13 +2222,6 @@
          TAU = GET_TAU0( 1, 1, 2000 )
 
          ! Filename
-!------------------------------------------------------------------------------
-! Prior to 3/5/12:
-! Apply on-line regridding of 1x1 data to all resolutions (Y.Wang, lmw, mpayer)
-!         FILENAME = TRIM( DATA_DIR )                           //
-!     &              'CO2_201003/Net_terrestrial_exch_5.29Pg.'  //
-!     &              GET_NAME_EXT_2D() // '.' // GET_RES_EXT() 
-!------------------------------------------------------------------------------
          FILENAME = TRIM( DATA_DIR_1x1 )  //  
      &              'CO2_201003/Net_terrestrial_exch_5.29Pg.geos.1x1'
 	
@@ -2266,15 +2229,6 @@
          WRITE( 6, 100 ) TRIM( FILENAME )
 
          ! Read Net Terrestrial CO2 Exchange [molec/cm2/s]
-!------------------------------------------------------------------------------
-! Prior to 3/5/12:
-!         CALL READ_BPCH2( FILENAME, 'CO2-SRCE', 6, 
-!     &                    TAU,       IIPAR,     JJPAR,     
-!     &                    1,         ARRAY,     QUIET=.TRUE. )
-! 
-!         ! Cast to REAL*8 and resize if necessary
-!         CALL TRANSFER_2D( ARRAY(:,:,1), EMBIONETCO2 )
-!------------------------------------------------------------------------------
          CALL READ_BPCH2( FILENAME, 'CO2-SRCE', 6, 
      &                    TAU,       360,       181,     
      &                    1,         ARRAY,     QUIET=.TRUE. )

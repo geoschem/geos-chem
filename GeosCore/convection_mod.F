@@ -333,13 +333,6 @@
      &                             DQRCU    = DQRCU   (I,J, :        ),
      &                             DTRAIN   = DTRAIN  (I,J, :        ), 
      &                             H2O2s    = H2O2s   (I,J, :        ),
-!----------------------------------------------------------------------------
-! Prior to 2/9/12:
-! Use temporary arrays so that the code will work properly with
-! both MERRA and GEOS-5.7.x met. (bmy, 2/9/12)
-!     &                             PFICU    = PFICU   (I,J, :        ),
-!     &                             PFLCU    = PFLCU   (I,J, :        ),
-!----------------------------------------------------------------------------
      &                             PFICU    = T_PFICU,
      &                             PFLCU    = T_PFLCU,
      &                             REEVAPCN = REEVAPCN(I,J, :        ),

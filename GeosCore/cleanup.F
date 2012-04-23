@@ -57,11 +57,6 @@
       USE HCN_CH3CN_MOD,           ONLY : CLEANUP_HCN_CH3CN
       USE HDF_MOD,                 ONLY : CLEANUP_HDF
       USE ISOROPIAII_MOD,          ONLY : CLEANUP_ISOROPIAII
-!------------------------------------------------------------------------------
-! Prior to 4/11/12:
-! Replace lai_mod.F with modis_lai_mod.F90
-!      USE LAI_MOD,                 ONLY : CLEANUP_LAI
-!------------------------------------------------------------------------------
       USE LIGHTNING_NOX_MOD,       ONLY : CLEANUP_LIGHTNING_NOX
       USE LINOZ_MOD,               ONLY : CLEANUP_LINOZ
       USE MEGAN_MOD,               ONLY : CLEANUP_MEGAN
@@ -238,11 +233,6 @@
       CALL CLEANUP_HCN_CH3CN
       CALL CLEANUP_HDF
       CALL CLEANUP_ISOROPIAII
-!-----------------------------------------------------------------------------
-! Prior to 4/11/12:
-! lai_mod.F is now obsolete, replace w/ modis_lai_mod.F90 (bmy, 4/11/12)
-!      CALL CLEANUP_LAI
-!-----------------------------------------------------------------------------
       CALL CLEANUP_LIGHTNING_NOX
       CALL CLEANUP_LINOZ
       CALL CLEANUP_MEGAN

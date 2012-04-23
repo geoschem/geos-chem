@@ -1685,12 +1685,6 @@
             IF ( N > N_TRACERS ) CYCLE
             NN = N
             
-!------------------------------------------------------------------------------
-! Prior to 2/16/12:
-! Bug fix to account for output of a subset of model levels   
-!!            ARRAY(:,:,1:LD24) = MASSFLEW(:,:,1:LD24,N) / SCALEDYN
-!            ARRAY(:,:,1:LD24) = MASSFLEW(:,:,LD24:1:-1,N) / SCALEDYN
-!------------------------------------------------------------------------------
             ARRAY(:,:,1:LD24) = MASSFLEW(:,:,LLPAR:LLPAR-LD24+1:-1,N) /
      &                          SCALEDYN
 
@@ -1724,12 +1718,6 @@
             IF ( N > N_TRACERS ) CYCLE
             NN = N
 
-!------------------------------------------------------------------------------
-! Prior to 2/16/12:
-! Bug fix to account for output of a subset of model levels   
-!!            ARRAY(:,:,1:LD25) = MASSFLNS(:,:,1:LD25,N) / SCALEDYN
-!            ARRAY(:,:,1:LD25) = MASSFLNS(:,:,LD25:1:-1,N) / SCALEDYN
-!------------------------------------------------------------------------------
             ARRAY(:,:,1:LD25) = MASSFLNS(:,:,LLPAR:LLPAR-LD25+1:-1,N) /
      &                          SCALEDYN
 
@@ -1763,12 +1751,6 @@
             IF ( N > N_TRACERS ) CYCLE
             NN = N
             
-!------------------------------------------------------------------------------
-! Prior to 2/16/12:
-! Bug fix to account for output of a subset of model levels               
-!!            ARRAY(:,:,1:LD26) = MASSFLUP(:,:,1:LD26,N) / SCALEDYN
-!            ARRAY(:,:,1:LD26) = MASSFLUP(:,:,LD26:1:-1,N) / SCALEDYN
-!------------------------------------------------------------------------------
             ARRAY(:,:,1:LD26) = MASSFLUP(:,:,LLPAR:LLPAR-LD26+1:-1,N) /
      &                          SCALEDYN
                

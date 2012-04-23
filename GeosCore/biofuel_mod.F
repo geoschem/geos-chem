@@ -853,12 +853,6 @@
             !-----------------------------------------------------------
             IF ( LRETRO ) THEN
                IF ( (NN == IDTC2H2) .or. (NN == IDTC2H4) .or.
-!------------------------------------------------------------------------------
-! Prior to 12/8/11:
-! RETRO C2H6 emissions are too low. Use Yaping Xiao's C2H6 emissions instead
-! and don't zero BIOFUEL for C2H6. (mpayer, 3/22/12)
-!     &              (NN == IDTC2H6) .or. (NN == IDTPRPE) .or.
-!------------------------------------------------------------------------------
      &              (NN == IDTPRPE) .or.
      &              (NN == IDTC3H8) .or. (NN == IDTALK4) .or.
      &              (NN == IDTCH2O) .or. (NN == IDTALD2) .or. 
@@ -942,14 +936,6 @@
                      ENDIF
                   ENDIF
                ENDIF
-            
-               ! move below so that BIOFUEL array is complete before
-               ! archiving diagnostic info (hotp 11/23/09)
-!              ! ND34 -- archive biofuel burning species [molec/cm2/s]
-!              IF ( DO_ND34 ) THEN
-!                  AD34(I,J,N) = AD34(I,J,N) + ( BIOFUEL(N,I,J) * 
-!     &                                          BXHEIGHT_CM )
-!               ENDIF 
             ENDIF
          ENDDO  
 

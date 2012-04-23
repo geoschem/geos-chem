@@ -793,10 +793,6 @@
 #endif
 !$OMP+PRIVATE( I, J, L, PNOY )
 !$OMP+SCHEDULE( DYNAMIC )
-!----------------------------------
-! Prior to 3/7/12:
-!         DO L = LMIN, LLPAR
-!----------------------------------
          DO L = 1,    LLPAR
          DO J = 1,    JJPAR
          DO I = 1,    IIPAR

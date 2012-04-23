@@ -1138,11 +1138,6 @@
                      NTYP(I,J) = ILAND(I,J,K) + 1
                      
                      IF (NTYP(I,J) .eq. 52 .or. NTYP(I,J) .eq. 51) THEN 
-!------------------------------------------------------------------------------
-! Prior to 4/9/12:
-! Replace IJUSE with IUSE so that we can retire CMN_VEL_mod.F (bmy, 4/9/12)
-!		  	SVEL = SVEL*(1-(IJUSE(IJLOOP,K)/1.d3)) 
-!------------------------------------------------------------------------------
 		  	SVEL = SVEL*(1-(IUSE(I,J,K)/1.d3)) 
                      ENDIF
                      
@@ -1547,14 +1542,6 @@
 !* Olson land types, deposition land types, and surface resistance components
 !* are read from file 'drydep.table'; check that file for further details.
 !****************************************************************************
-!------------------------------------------------------------------------------
-! Prior to 4/9/12:
-! Replace IJREG, IJLAND, IJUSE, XYLAI by IREG, ILAND, IUSE, XLAI arrays
-! so that we can retire CMN_VEL_mod.F. (bmy, 4/9/12)
-!         DO 170 LDT = 1,IJREG(IJLOOP)
-!            IF (IJUSE(IJLOOP,LDT) .EQ. 0) GOTO 170
-!            IOLSON = IJLAND(IJLOOP,LDT)+1
-!------------------------------------------------------------------------------
 
          ! Loop over the # of Olson land types in this grid box (I,J)
          DO 170 LDT = 1, IREG(I,J)
@@ -1586,17 +1573,6 @@
 !** divide them by the leaf area index to get a cuticular resistance for the
 !** bulk canopy.  If IRLU is '9999' it means there are no cuticular
 !** surfaces on which to deposit so we impose a very large value for RLU.
-!-----------------------------------------------------------------------------
-! Prior to 4/9/12:
-! Replace XYLAI with XLAI so that we can retire CMN_VEL_mod.F (bmy, 4/9/12)
-!            IF (IRLU(II) .GE. 9999 .OR. 
-!     &           XYLAI(IJLOOP,LDT).LE.0.D0) THEN
-!     &           XLAI(I,J,LDT).LE.0.D0) THEN
-!               RLU(LDT)  = 1.D6
-!            ELSE
-!               RLU(LDT)= DBLE(IRLU(II))/XYLAI(IJLOOP,LDT)+RT
-!            ENDIF
-!-----------------------------------------------------------------------------
             IF ( IRLU(II) >= 9999 .or. XLAI(I,J,LDT) <= 0.D0 ) THEN
                RLU(LDT) = 1.D6
             ELSE
@@ -1649,14 +1625,6 @@
             IF (TEMPC .GT. 0.D0 .AND. TEMPC .LT. 40.D0)
      *           GFACT = 400.D0/TEMPC/(40.0D0-TEMPC)
             GFACI = 100.D0
-!------------------------------------------------------------------------------
-! Prior to 4/9/12:
-! Replace XYLAI with XLAI so that we can retire CMN_VEL_mod.F (bmy, 4/9/12)
-!            IF (RAD0.GT.0.D0 .AND. XYLAI(IJLOOP,LDT).GT.0.D0) THEN
-!               GFACI=1.D0/BIOFIT(DRYCOEFF,XYLAI(IJLOOP,LDT),
-!     *              SUNCOS(IJLOOP),CFRAC(IJLOOP))
-!            ENDIF
-!------------------------------------------------------------------------------
             IF ( RAD0 > 0.D0 .and. XLAI(I,J,LDT) > 0.D0 ) THEN
                GFACI = 1.D0 / BIOFIT( DRYCOEFF,       XLAI(I,J,LDT),
      &                                SUNCOS(IJLOOP), CFRAC(IJLOOP)  )
@@ -1814,13 +1782,6 @@
 !*                                 
          DO 190 K = 1,NUMDEP 
             IF (.NOT.LDEP(K)) GOTO 190
-!-----------------------------------------------------------------------------
-! Prior to 4/9/12:
-! Replace IJREG, IJUSE with IREG, IUSE so that we can retire
-! CMN_DEP_mod.F. (bmy, 4/9/12)
-!            DO 180 LDT = 1,IJREG(IJLOOP)
-!               IF (IJUSE(IJLOOP,LDT) .EQ. 0) GOTO 180
-!-----------------------------------------------------------------------------
             DO 180 LDT = 1,IREG(I,J)
                IF ( IUSE(I,J,LDT) == 0 ) GOTO 180
                RSURFC(K,LDT)= MAX(1.D0, MIN(RSURFC(K,LDT), 9999.D0))
@@ -1829,13 +1790,6 @@
 !*                                 
 !*    Loop through the different landuse types present in the grid square     
 !*                                 
-!-----------------------------------------------------------------------------
-! Prior to 4/9/12:
-! Replace IJREG, IJUSE with IREG, IUSE (bmy, 4/9/12)
-!         DO 500 LDT=1, IJREG(IJLOOP)
-!            IF (IJUSE(IJLOOP,LDT) .EQ. 0) GOTO 500
-!            IOLSON = IJLAND(IJLOOP,LDT)+1
-!-----------------------------------------------------------------------------
          DO 500 LDT = 1, IREG(I,J)
             IF ( IUSE(I,J,LDT) == 0 ) GOTO 500
             IOLSON = ILAND(I,J,LDT) + 1
@@ -2102,11 +2056,6 @@
             DO 400 K = 1,NUMDEP
                IF (.NOT.LDEP(K)) GOTO 400
                VK(K) = VD(K)
-!------------------------------------------------------------------------------
-! Prior to 4/9/12:
-! Replace IJUSE with IUSE so that we can retire CMN_DEP_mod.F (bmy, 4/9/12)
-!               VD(K) = VK(K) +.001D0*DBLE(IJUSE(IJLOOP,LDT))/C1X(K)
-!------------------------------------------------------------------------------
                VD(K) = VK(K) +.001D0*DBLE( IUSE(I,J,LDT) )/C1X(K)
  400        CONTINUE
  500     CONTINUE
@@ -2165,12 +2114,6 @@
 !$OMP END CRITICAL
             ENDIF
  550     CONTINUE
-!-----------------------------------------------------------------------------
-! Prior to 3/27/12:
-! Now loop over (I,J), then compute IJLOOP.  This will facilitate using
-! the leaf area indices stored in ISOLAI(I,J).
-! 560  CONTINUE
-!-----------------------------------------------------------------------------
       ENDDO
       ENDDO
 !$OMP END PARALLEL DO

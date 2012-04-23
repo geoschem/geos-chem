@@ -473,11 +473,6 @@
 !
 ! !USES:
 !
-!------------------------------------------------------------------------------
-! Prior to 4/11/12:
-! Replace lai_mod.F with modis_lai_mod.F90 (bmy, 4/11/12)
-!      USE LAI_MOD,  ONLY : ISOLAI, MISOLAI, PMISOLAI, DAYS_BTW_M
-!------------------------------------------------------------------------------
       USE MODIS_LAI_MOD, ONLY : ISOLAI  => GC_LAI
       USE DAO_MOD,       ONLY : RADSWG, SUNCOS, TS, IS_LAND
       USE TIME_MOD,      ONLY : GET_MONTH, ITS_A_NEW_MONTH

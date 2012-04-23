@@ -287,12 +287,6 @@
 !
             IF ( ( LSOILNOX .OR. LFERTILIZERNOX )
      &             .AND. I == 1 .AND. J == 1 ) 
-!------------------------------------------------------------------------------
-! Prior to 10/7/11:
-! Now call soil NOx emissions with the cos(SZA) computed @ the midpoint of
-! the chemistry timestep (bmy, 10/7/11)
-!     &         CALL SOILNOXEMS( SUNCOS )
-!------------------------------------------------------------------------------
 #if defined( DEVEL )
      &         CALL SOILNOXEMS( SUNCOS_MID, EMISS_TEND(:,:,1,IDTNOX) )
 #else

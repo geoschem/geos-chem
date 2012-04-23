@@ -58,14 +58,6 @@
       INTEGER, PARAMETER  :: NUM_DAYS       = 10       ! # of days to avg 
       REAL*8,  PARAMETER  :: WM2_TO_UMOLM2S = 4.766d0  ! W/m2 -> umol/m2/s
 
-!------------------------------------------------------------------------------
-! Prior to 4/11/12:
-! Be consistent and use conversion factors from CMN_GCTM_mod.F (bmy, 4/11/12)
-!     ! Some conversions factors (mpb,2009)
-!      REAL*8, PARAMETER   :: D2RAD =  3.14159d0 /   180.0d0  ! Deg -> Radians
-!      REAL*8, PARAMETER   :: RAD2D =    180.0d0 / 3.14159d0  ! Radians -> Deg
-!      REAL*8, PARAMETER   :: PI    =  3.14159d0              ! PI
-!------------------------------------------------------------------------------
       REAL*8, PARAMETER   :: D2RAD =  PI_180           ! Degrees to radians
       REAL*8, PARAMETER   :: RAD2D =  1d0 / PI_180     ! Radians to degrees
 !
@@ -185,11 +177,6 @@
 !
 ! !USES:
 !
-!------------------------------------------------------------------------------
-! Prior to 4/11/12:
-! Replace lai_mod.F with modis_lai_mod.F (bmy, 4/11/12)
-!      USE LAI_MOD,     ONLY : ISOLAI, MISOLAI, PMISOLAI, DAYS_BTW_M
-!------------------------------------------------------------------------------
       USE LOGICAL_MOD,   ONLY : LPECCA                     ! Use PCEEA model?
       USE MODIS_LAI_MOD, ONLY : ISOLAI     => GC_LAI       ! Daily LAI
       USE MODIS_LAI_MOD, ONLY : PMISOLAI   => GC_LAI_PM    ! Prev month's LAI
@@ -346,11 +333,6 @@
 !
 ! !USES:
 !
-!------------------------------------------------------------------------------
-! Prior to 4/11/12:
-! Replace lai_mod.F with modis_lai_mod.F (bmy, 4/11/12)
-!      USE LAI_MOD,     ONLY : ISOLAI, MISOLAI, PMISOLAI, DAYS_BTW_M
-!------------------------------------------------------------------------------
       USE LOGICAL_MOD,   ONLY : LPECCA                     ! Use PCEEA model?
       USE MODIS_LAI_MOD, ONLY : ISOLAI     => GC_LAI       ! Daily LAI
       USE MODIS_LAI_MOD, ONLY : PMISOLAI   => GC_LAI_PM    ! Prev month's LAI
@@ -503,11 +485,6 @@
 !
 ! !USES:
 !
-!------------------------------------------------------------------------------
-! Prior to 4/11/12:
-! Replace lai_mod.F with modis_lai_mod.F (bmy, 4/11/12)
-!      USE LAI_MOD,     ONLY : ISOLAI, MISOLAI, PMISOLAI, DAYS_BTW_M
-!------------------------------------------------------------------------------
       USE LOGICAL_MOD,   ONLY : LPECCA                     ! Use PCEEA model?
       USE MODIS_LAI_MOD, ONLY : ISOLAI     => GC_LAI       ! Daily LAI
       USE MODIS_LAI_MOD, ONLY : PMISOLAI   => GC_LAI_PM    ! Prev month's LAI
@@ -706,11 +683,6 @@
 !
 ! !USES:
 !
-!------------------------------------------------------------------------------
-! Prior to 4/11/12:
-! Replace lai_mod.F with modis_lai_mod.F (bmy, 4/11/12)
-!      USE LAI_MOD,     ONLY : ISOLAI, MISOLAI, PMISOLAI, DAYS_BTW_M
-!------------------------------------------------------------------------------
       USE LOGICAL_MOD,   ONLY : LMEGAN                     ! Is MEGAN used?
       USE LOGICAL_MOD,   ONLY : LPECCA                     ! Use PCEEA model?
       USE MODIS_LAI_MOD, ONLY : ISOLAI     => GC_LAI       ! Daily LAI
@@ -990,11 +962,6 @@
 !
 ! !USES:
 !
-!------------------------------------------------------------------------------
-! Prior to 4/11/12:
-! Replace lai_mod.F with modis_lai_mod.F (bmy, 4/11/12)
-!      USE LAI_MOD,     ONLY : ISOLAI, MISOLAI, PMISOLAI, DAYS_BTW_M
-!------------------------------------------------------------------------------
       USE LOGICAL_MOD,   ONLY : LPECCA                     ! Use PCEEA model?
       USE MODIS_LAI_MOD, ONLY : ISOLAI     => GC_LAI       ! Daily LAI
       USE MODIS_LAI_MOD, ONLY : PMISOLAI   => GC_LAI_PM    ! Prev month's LAI
@@ -2794,11 +2761,6 @@
       USE FILE_MOD,         ONLY : IU_A3
       USE JULDAY_MOD,       ONLY : CALDATE
       USE ERROR_MOD,        ONLY : ALLOC_ERR
-!------------------------------------------------------------------------------
-! Prior to 4/11/12:
-! Retire lai_mod.F; replace it with modis_lai_mod.F90 (bmy, 4/11/12)
-!      USE LAI_MOD,          ONLY : INIT_LAI
-!------------------------------------------------------------------------------
       USE LOGICAL_MOD,      ONLY : LUNZIP
       USE TIME_MOD,         ONLY : GET_FIRST_A3_TIME, GET_JD
       USE TIME_MOD,         ONLY : ITS_A_LEAPYEAR,    YMD_EXTRACT
@@ -2972,14 +2934,6 @@
 
       ! For global and nested simulations (lzh, bmy, 11/22/11)
       CALL GET_AEF
-
-!------------------------------------------------------------------------------
-! Prior to 4/11/12:
-! Now remove the call to INIT_LAI; we shall initialize the LAI arrays from 
-! main.F (bmy, 4/11/12)
-!       ! Initialize LAI arrays
-!      CALL INIT_LAI
-!------------------------------------------------------------------------------
 
       !=================================================================
       ! Read A3 fields for the 15 days before the start of the run
