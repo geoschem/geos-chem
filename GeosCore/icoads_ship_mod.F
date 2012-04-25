@@ -210,13 +210,12 @@
       USE BPCH2_MOD,         ONLY : GET_TAU0,      READ_BPCH2
       USE DIRECTORY_MOD,     ONLY : DATA_DIR_1x1 
       USE LOGICAL_MOD,       ONLY : LFUTURE
-      !USE REGRID_1x1_MOD,   ONLY : DO_REGRID_1x1
       USE TIME_MOD,          ONLY : GET_YEAR,      GET_MONTH
       USE SCALE_ANTHRO_MOD,  ONLY : GET_ANNUAL_SCALAR_1x1
-      USE REGRID_A2A_MOD, ONLY : DO_REGRID_A2A
+      USE REGRID_A2A_MOD,    ONLY : DO_REGRID_A2A
 
-      USE CMN_SIZE_MOD          ! Size parameters
-      USE CMN_O3_MOD            ! FSCALYR
+      USE CMN_SIZE_MOD            ! Size parameters
+      USE CMN_O3_MOD              ! FSCALYR
 !
 ! !REVISION HISTORY: 
 !  21 Jul 2009 - Chulkyu Lee & P. Le Sager - Initial Version
@@ -263,11 +262,13 @@
 
       WRITE( SMONTH, '(i2.2)' ) THISMONTH
 
+      ! File with lat/lon edges for regridding
       LLFILENAME = TRIM( DATA_DIR_1x1) //
-     &           'MAP_A2A_Regrid_200312/latlon_geos1x1.txt'
+     &             'MAP_A2A_Regrid_200312/latlon_geos1x1.txt'
 
-        ALLOCATE(INGRID(I1x1,J1x1))
-        ALLOCATE(OUTGRID(IIPAR,JJPAR))
+      ! Allocate arrays for regridding
+      ALLOCATE(INGRID(I1x1,J1x1))
+      ALLOCATE(OUTGRID(IIPAR,JJPAR))
 
       DO SPECIES = 1,3
 
@@ -317,36 +318,35 @@
 
 
          ! Regrid from GEOS 1x1 --> current model resolution
-
-         INGRID=GEOS_1x1(:,:,1)
+         INGRID = GEOS_1x1(:,:,1)
 
          IF ( SPECIES .eq. 1 ) THEN
 
-           CALL DO_REGRID_A2A(LLFILENAME,360,182,INGRID,OUTGRID,1)
-           NOx=OUTGRID
-            !CALL DO_REGRID_1x1( 'kg/month', GEOS_1x1, NOx )
+            CALL DO_REGRID_A2A( LLFILENAME, 360,     182,
+     &                          INGRID,     OUTGRID, 1 )
+            NOx = OUTGRID
 
          ELSEIF ( SPECIES .eq. 2 ) THEN
 
-           CALL DO_REGRID_A2A(LLFILENAME,360,182,INGRID,OUTGRID,1)
-           CO=OUTGRID
-            !CALL DO_REGRID_1x1( 'kg/month', GEOS_1x1, CO )
+            CALL DO_REGRID_A2A( LLFILENAME, 360,     182,
+     &                          INGRID,     OUTGRID, 1 )
+            CO  = OUTGRID
 
          ELSEIF ( SPECIES .eq. 3 ) THEN
 
             ! Convert SOx to SO2, where SOx is assumed to be 1.4% SO4 and
             ! 98.6% SO2 over NA, based upon Chin et al, 2000, and as
             ! utilized in sulfate_mod.f
-
-           INGRID = INGRID * 0.986
-           CALL DO_REGRID_A2A(LLFILENAME,360,182,INGRID,OUTGRID,1)
-           SO2=OUTGRID
-           !GEOS_1x1(:,:,1) = GEOS_1x1(:,:,1) * 0.986
-           !CALL DO_REGRID_1x1( 'kg/month', GEOS_1x1, SO2 )
+            INGRID = INGRID * 0.986
+            CALL DO_REGRID_A2A( LLFILENAME, 360,     182,
+     &                          INGRID,     OUTGRID, 1 )
+            SO2 = OUTGRID
 
          ENDIF
 
       ENDDO
+
+      ! Deallocate arrays for regridding
       DEALLOCATE(INGRID)
       DEALLOCATE(OUTGRID)
 

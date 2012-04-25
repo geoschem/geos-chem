@@ -386,18 +386,17 @@
       USE BPCH2_MOD,         ONLY : GET_TAU0,      READ_BPCH2
       USE DIRECTORY_MOD,     ONLY : DATA_DIR_1x1 
       USE LOGICAL_MOD,       ONLY : LFUTURE
-      !USE REGRID_1x1_MOD,   ONLY : DO_REGRID_1x1
       USE REGRID_A2A_MOD,    ONLY : DO_REGRID_A2A
       USE TIME_MOD,          ONLY : GET_YEAR, GET_MONTH
       USE SCALE_ANTHRO_MOD,  ONLY : GET_ANNUAL_SCALAR_1x1
       USE TRACER_MOD,        ONLY : ITS_A_FULLCHEM_SIM
-      USE TRACERID_MOD, ONLY : IDTACET, IDTALK4, IDTC2H6, IDTC3H8
-      USE TRACERID_MOD, ONLY : IDTALD2, IDTCH2O, IDTPRPE, IDTMEK
-      USE TRACERID_MOD, ONLY : IDTNOx,  IDTCO,   IDTSO2,  IDTNH3
-      USE TRACERID_MOD, ONLY : IDTSO4,  IDTOCPI, IDTBCPI
+      USE TRACERID_MOD,      ONLY : IDTACET, IDTALK4, IDTC2H6, IDTC3H8
+      USE TRACERID_MOD,      ONLY : IDTALD2, IDTCH2O, IDTPRPE, IDTMEK
+      USE TRACERID_MOD,      ONLY : IDTNOx,  IDTCO,   IDTSO2,  IDTNH3
+      USE TRACERID_MOD,      ONLY : IDTSO4,  IDTOCPI, IDTBCPI
 
-      USE CMN_SIZE_MOD          ! Size parameters
-      USE CMN_O3_MOD            ! FSCALYR
+      USE CMN_SIZE_MOD            ! Size parameters
+      USE CMN_O3_MOD              ! FSCALYR
 !
 ! !REVISION HISTORY: 
 !  07 Oct 2009 - A. van Donkelaar - initial version
@@ -467,8 +466,11 @@
      &                9,       5,       21,      19,      35,           
      &                34,      11,      20,      18,      10       /)
 
+      ! File with lat/lon edges for regridding
       LLFILENAME = TRIM( DATA_DIR_1x1) //
-     &   'MAP_A2A_Regrid_200312/latlon_geos1x1.txt'
+     &             'MAP_A2A_Regrid_200312/latlon_geos1x1.txt'
+
+      ! Allocate arrays for regridding
       ALLOCATE(INGRID(I1x1,J1x1))
       ALLOCATE(OUTGRID(IIPAR,JJPAR))
 
@@ -534,313 +536,298 @@
          CALL GET_NEI99_WKSCALE( SNo, ARRAY )
 
          
-         ! Regrid from GEOS 1x1 --> current model resolution
+         ! Regrid from GEOS 1x1 --> current model resolution [kg/yr]
          IF ( SNo .eq. 1 ) THEN
 
-!            CALL DO_REGRID_1x1( 5, 'kg/yr', GEOS_1x1, NOx )
-!            CALL DO_REGRID_1x1( 5, 'kg/yr', 
-!     &           GEOS_1x1(:,:,:) * ARRAY(:,:,:), NOx_WKEND )
+            DO L = 1, 5
 
-           DO L = 1, 5
+               INGRID = GEOS_1x1(:,:,L)
+               CALL DO_REGRID_A2A( LLFILENAME, 360,     182,
+     &                             INGRID,     OUTGRID, 1 )
+               NOx(:,:,L) = OUTGRID
 
-        INGRID = GEOS_1x1(:,:,L)
-        CALL DO_REGRID_A2A(LLFILENAME,360,182,INGRID,OUTGRID,1)
-        NOx(:,:,L)=OUTGRID
+               INGRID = GEOS_1x1(:,:,L) * ARRAY(:,:,L)
+               CALL DO_REGRID_A2A( LLFILENAME, 360,     182,
+     &                             INGRID,     OUTGRID, 1 )
+               NOx_WKEND(:,:,L) = OUTGRID
 
-        INGRID = GEOS_1x1(:,:,L) * ARRAY(:,:,L)
-        CALL DO_REGRID_A2A(LLFILENAME,360,182,INGRID,OUTGRID,1)
-        NOx_WKEND(:,:,L)=OUTGRID
+               NOx(:,:,L)       = NOx(:,:,L)       * USA_MASK(:,:)
+               NOx_WKEND(:,:,L) = NOx_WKEND(:,:,L) * USA_MASK(:,:)
 
-               NOx(:,:,L) = NOx(:,:,L) * USA_MASK(:,:)
-               NOx_WKEND(:,:,L) = 
-     &                NOx_WKEND(:,:,L) * USA_MASK(:,:)
             ENDDO
 
          ELSEIF ( SNo .eq. 4 ) THEN
 
-!            CALL DO_REGRID_1x1( 5, 'kg/yr', GEOS_1x1, CO )
-!            CALL DO_REGRID_1x1( 5, 'kg/yr',
-!     &           GEOS_1x1(:,:,:) * ARRAY(:,:,:), CO_WKEND )
             DO L = 1, 5
 
-        INGRID = GEOS_1x1(:,:,L)
-        CALL DO_REGRID_A2A(LLFILENAME,360,182,INGRID,OUTGRID,1)
-        CO(:,:,L)=OUTGRID
+               INGRID = GEOS_1x1(:,:,L)
+               CALL DO_REGRID_A2A( LLFILENAME, 360,     182,
+     &                             INGRID,     OUTGRID, 1 )
+               CO(:,:,L) = OUTGRID
 
-        INGRID = GEOS_1x1(:,:,L) * ARRAY(:,:,L)
-        CALL DO_REGRID_A2A(LLFILENAME,360,182,INGRID,OUTGRID,1)
-        CO_WKEND(:,:,L)=OUTGRID
+               INGRID = GEOS_1x1(:,:,L) * ARRAY(:,:,L)
+               CALL DO_REGRID_A2A( LLFILENAME, 360,     182,
+     &                             INGRID,     OUTGRID, 1 )
+               CO_WKEND(:,:,L) = OUTGRID
 
-               CO(:,:,L) = CO(:,:,L) * USA_MASK(:,:)
-               CO_WKEND(:,:,L) = 
-     &                CO_WKEND(:,:,L) * USA_MASK(:,:)
+               CO(:,:,L)       = CO(:,:,L)       * USA_MASK(:,:)
+               CO_WKEND(:,:,L) = CO_WKEND(:,:,L) * USA_MASK(:,:)
+
             ENDDO
 
          ELSEIF ( SNo .eq. 26 ) THEN
 
-!            CALL DO_REGRID_1x1( 5, 'kg/yr', GEOS_1x1, SO2 )
-!            CALL DO_REGRID_1x1( 5, 'kg/yr',
-!     &           GEOS_1x1(:,:,:) * ARRAY(:,:,:), SO2_WKEND )
             DO L = 1, 5
 
-        INGRID = GEOS_1x1(:,:,L)
-        CALL DO_REGRID_A2A(LLFILENAME,360,182,INGRID,OUTGRID,1)
-        SO2(:,:,L)=OUTGRID
+               INGRID = GEOS_1x1(:,:,L)
+               CALL DO_REGRID_A2A( LLFILENAME, 360,     182,
+     &                             INGRID,     OUTGRID, 1 )
+               SO2(:,:,L) = OUTGRID
 
-        INGRID = GEOS_1x1(:,:,L) * ARRAY(:,:,L)
-        CALL DO_REGRID_A2A(LLFILENAME,360,182,INGRID,OUTGRID,1)
-        SO2_WKEND(:,:,L)=OUTGRID
+               INGRID = GEOS_1x1(:,:,L) * ARRAY(:,:,L)
+               CALL DO_REGRID_A2A( LLFILENAME, 360,     182,
+     &                             INGRID,     OUTGRID, 1 )
+               SO2_WKEND(:,:,L) = OUTGRID
 
-               SO2_WKEND(:,:,L) =
-     &                SO2_WKEND(:,:,L) * USA_MASK(:,:)
-               SO2(:,:,L) = SO2(:,:,L) * USA_MASK(:,:)
+               SO2_WKEND(:,:,L) = SO2_WKEND(:,:,L) * USA_MASK(:,:)
+               SO2(:,:,L)       = SO2(:,:,L)       * USA_MASK(:,:)
+
             ENDDO
 
          ELSEIF ( SNo .eq. 27 ) THEN
 
-!            CALL DO_REGRID_1x1( 5, 'kg/yr', GEOS_1x1, SO4 )
-!            CALL DO_REGRID_1x1( 5, 'kg/yr',
-!     &           GEOS_1x1(:,:,:) * ARRAY(:,:,:), SO4_WKEND )
             DO L = 1, 5
 
-        INGRID = GEOS_1x1(:,:,L)
-        CALL DO_REGRID_A2A(LLFILENAME,360,182,INGRID,OUTGRID,1)
-        SO4(:,:,L)=OUTGRID
+               INGRID = GEOS_1x1(:,:,L)
+               CALL DO_REGRID_A2A( LLFILENAME, 360,     182,
+     &                             INGRID,     OUTGRID, 1 )
+               SO4(:,:,L) = OUTGRID
 
-        INGRID = GEOS_1x1(:,:,L) * ARRAY(:,:,L)
-        CALL DO_REGRID_A2A(LLFILENAME,360,182,INGRID,OUTGRID,1)
-        SO4_WKEND(:,:,L)=OUTGRID
+               INGRID = GEOS_1x1(:,:,L) * ARRAY(:,:,L)
+               CALL DO_REGRID_A2A( LLFILENAME, 360,     182,
+     &                             INGRID,     OUTGRID, 1 )
+               SO4_WKEND(:,:,L) = OUTGRID
 
-               SO4_WKEND(:,:,L) =
-     &                SO4_WKEND(:,:,L) * USA_MASK(:,:)
-               SO4(:,:,L) = SO4(:,:,L) * USA_MASK(:,:)
+               SO4_WKEND(:,:,L) = SO4_WKEND(:,:,L) * USA_MASK(:,:)
+               SO4(:,:,L)       = SO4(:,:,L)       * USA_MASK(:,:)
+
             ENDDO
 
          ELSEIF ( SNo .eq. 30 ) THEN
 
-!            CALL DO_REGRID_1x1( 5, 'kg/yr', GEOS_1x1, NH3 )
-!            CALL DO_REGRID_1x1( 5, 'kg/yr',
-!     &           GEOS_1x1(:,:,:) * ARRAY(:,:,:), NH3_WKEND )
             DO L = 1, 5
 
-        INGRID = GEOS_1x1(:,:,L)
-        CALL DO_REGRID_A2A(LLFILENAME,360,182,INGRID,OUTGRID,1)
-        NH3(:,:,L)=OUTGRID
+               INGRID = GEOS_1x1(:,:,L)
+               CALL DO_REGRID_A2A( LLFILENAME, 360,     182,
+     &                             INGRID,     OUTGRID, 1 )
+               NH3(:,:,L) = OUTGRID
 
-        INGRID = GEOS_1x1(:,:,L) * ARRAY(:,:,L)
-        CALL DO_REGRID_A2A(LLFILENAME,360,182,INGRID,OUTGRID,1)
-        NH3_WKEND(:,:,L)=OUTGRID
+               INGRID = GEOS_1x1(:,:,L) * ARRAY(:,:,L)
+               CALL DO_REGRID_A2A( LLFILENAME, 360,     182,
+     &                             INGRID,     OUTGRID, 1 )
+               NH3_WKEND(:,:,L) = OUTGRID
 
-               NH3_WKEND(:,:,L) =
-     &                NH3_WKEND(:,:,L) * USA_MASK(:,:)
-               NH3(:,:,L) = NH3(:,:,L) * USA_MASK(:,:)
+               NH3_WKEND(:,:,L) = NH3_WKEND(:,:,L) * USA_MASK(:,:)
+               NH3(:,:,L)       = NH3(:,:,L)       * USA_MASK(:,:)
+
             ENDDO
 
          ELSEIF ( SNo .eq. 35 ) THEN
 
-!            CALL DO_REGRID_1x1( 5, 'kg/yr', GEOS_1x1, OC )
-!            CALL DO_REGRID_1x1( 5, 'kg/yr',
-!     &           GEOS_1x1(:,:,:) * ARRAY(:,:,:), OC_WKEND )
             DO L = 1, 5
 
-        INGRID = GEOS_1x1(:,:,L)
-        CALL DO_REGRID_A2A(LLFILENAME,360,182,INGRID,OUTGRID,1)
-        OC(:,:,L)=OUTGRID
+               INGRID = GEOS_1x1(:,:,L)
+               CALL DO_REGRID_A2A( LLFILENAME, 360,     182,
+     &                             INGRID,     OUTGRID, 1 )
+               OC(:,:,L) = OUTGRID
 
-        INGRID = GEOS_1x1(:,:,L) * ARRAY(:,:,L)
-        CALL DO_REGRID_A2A(LLFILENAME,360,182,INGRID,OUTGRID,1)
-        OC_WKEND(:,:,L)=OUTGRID
+               INGRID = GEOS_1x1(:,:,L) * ARRAY(:,:,L)
+               CALL DO_REGRID_A2A( LLFILENAME, 360,     182,
+     &                             INGRID,     OUTGRID, 1 )
+               OC_WKEND(:,:,L) = OUTGRID
 
-               OC_WKEND(:,:,L) =
-     &                OC_WKEND(:,:,L) * USA_MASK(:,:)
-               OC(:,:,L) = OC(:,:,L) * USA_MASK(:,:)
+               OC_WKEND(:,:,L) = OC_WKEND(:,:,L) * USA_MASK(:,:)
+               OC(:,:,L)       = OC(:,:,L)       * USA_MASK(:,:)
+
             ENDDO
 
          ELSEIF ( SNo .eq. 34 ) THEN
 
-!            CALL DO_REGRID_1x1( 5, 'kg/yr', GEOS_1x1, BC )
-!            CALL DO_REGRID_1x1( 5, 'kg/yr',
-!     &           GEOS_1x1(:,:,:) * ARRAY(:,:,:), BC_WKEND )
             DO L = 1, 5
 
-        INGRID = GEOS_1x1(:,:,L)
-        CALL DO_REGRID_A2A(LLFILENAME,360,182,INGRID,OUTGRID,1)
-        BC(:,:,L)=OUTGRID
+               INGRID = GEOS_1x1(:,:,L)
+               CALL DO_REGRID_A2A( LLFILENAME, 360,     182,
+     &                             INGRID,     OUTGRID, 1 )
+               BC(:,:,L) = OUTGRID
 
-        INGRID = GEOS_1x1(:,:,L) * ARRAY(:,:,L)
-        CALL DO_REGRID_A2A(LLFILENAME,360,182,INGRID,OUTGRID,1)
-        BC_WKEND(:,:,L)=OUTGRID
+               INGRID = GEOS_1x1(:,:,L) * ARRAY(:,:,L)
+               CALL DO_REGRID_A2A( LLFILENAME, 360,     182,
+     &                             INGRID,     OUTGRID, 1 )
+               BC_WKEND(:,:,L) = OUTGRID
 
-               BC_WKEND(:,:,L) =
-     &               BC_WKEND(:,:,L) * USA_MASK(:,:)
-               BC(:,:,L) = BC(:,:,L) * USA_MASK(:,:)
+               BC_WKEND(:,:,L) = BC_WKEND(:,:,L) * USA_MASK(:,:)
+               BC(:,:,L)       = BC(:,:,L)       * USA_MASK(:,:)
+
             ENDDO
 
          !--VOC   
          ELSEIF ( SNo == 5 ) THEN
 
-!            CALL DO_REGRID_1x1( 5, 'kg/yr', GEOS_1x1, ALK4 )
-!            CALL DO_REGRID_1x1( 5, 'kg/yr',
-!     &           GEOS_1x1(:,:,:) * ARRAY(:,:,:), ALK4_WKEND )
             DO L = 1, 5
 
-        INGRID = GEOS_1x1(:,:,L)
-        CALL DO_REGRID_A2A(LLFILENAME,360,182,INGRID,OUTGRID,1)
-        ALK4(:,:,L)=OUTGRID
+               INGRID = GEOS_1x1(:,:,L)
+               CALL DO_REGRID_A2A( LLFILENAME, 360,     182,
+     &                             INGRID,     OUTGRID, 1 )
+               ALK4(:,:,L) = OUTGRID
 
-        INGRID = GEOS_1x1(:,:,L) * ARRAY(:,:,L)
-        CALL DO_REGRID_A2A(LLFILENAME,360,182,INGRID,OUTGRID,1)
-        ALK4_WKEND(:,:,L)=OUTGRID
+               INGRID = GEOS_1x1(:,:,L) * ARRAY(:,:,L)
+               CALL DO_REGRID_A2A( LLFILENAME, 360,     182,
+     &                             INGRID,     OUTGRID, 1 )
+               ALK4_WKEND(:,:,L) = OUTGRID
 
-               ALK4_WKEND(:,:,L) =
-     &                ALK4_WKEND(:,:,L) * USA_MASK(:,:)
-               ALK4(:,:,L) = ALK4(:,:,L) * USA_MASK(:,:)
+               ALK4_WKEND(:,:,L) = ALK4_WKEND(:,:,L) * USA_MASK(:,:)
+               ALK4(:,:,L)       = ALK4(:,:,L)       * USA_MASK(:,:)
+
             ENDDO
 
          ELSE IF ( SNo == 9 ) THEN
 
-!            CALL DO_REGRID_1x1( 5, 'kg/yr', GEOS_1x1, ACET )
-!            CALL DO_REGRID_1x1( 5, 'kg/yr',
-!     &           GEOS_1x1(:,:,:) * ARRAY(:,:,:), ACET_WKEND )
             DO L = 1, 5
 
-        INGRID = GEOS_1x1(:,:,L)
-        CALL DO_REGRID_A2A(LLFILENAME,360,182,INGRID,OUTGRID,1)
-        ACET(:,:,L)=OUTGRID
+               INGRID = GEOS_1x1(:,:,L)
+               CALL DO_REGRID_A2A( LLFILENAME, 360,     182,
+     &                             INGRID,     OUTGRID, 1 )
+               ACET(:,:,L) = OUTGRID
 
-        INGRID = GEOS_1x1(:,:,L) * ARRAY(:,:,L)
-        CALL DO_REGRID_A2A(LLFILENAME,360,182,INGRID,OUTGRID,1)
-        ACET_WKEND(:,:,L)=OUTGRID
+               INGRID = GEOS_1x1(:,:,L) * ARRAY(:,:,L)
+               CALL DO_REGRID_A2A( LLFILENAME, 360,     182,
+     &                             INGRID,     OUTGRID, 1 )
+               ACET_WKEND(:,:,L) = OUTGRID
 
-               ACET_WKEND(:,:,L) =
-     &                ACET_WKEND(:,:,L) * USA_MASK(:,:)
-               ACET(:,:,L) = ACET(:,:,L) * USA_MASK(:,:)
+               ACET_WKEND(:,:,L) = ACET_WKEND(:,:,L) * USA_MASK(:,:)
+               ACET(:,:,L)       = ACET(:,:,L)       * USA_MASK(:,:)
+
             ENDDO
 
          ELSE IF ( SNo == 10 ) THEN
 
-!            CALL DO_REGRID_1x1( 5, 'kg/yr', GEOS_1x1, MEK )
-!            CALL DO_REGRID_1x1( 5, 'kg/yr',
-!     &           GEOS_1x1(:,:,:) * ARRAY(:,:,:), MEK_WKEND )
             DO L = 1, 5
 
-        INGRID = GEOS_1x1(:,:,L)
-        CALL DO_REGRID_A2A(LLFILENAME,360,182,INGRID,OUTGRID,1)
-        MEK(:,:,L)=OUTGRID
+               INGRID = GEOS_1x1(:,:,L)
+               CALL DO_REGRID_A2A( LLFILENAME, 360,     182,
+     &                             INGRID,     OUTGRID, 1 )
+               MEK(:,:,L) = OUTGRID
 
-        INGRID = GEOS_1x1(:,:,L) * ARRAY(:,:,L)
-        CALL DO_REGRID_A2A(LLFILENAME,360,182,INGRID,OUTGRID,1)
-        MEK_WKEND(:,:,L)=OUTGRID
+               INGRID = GEOS_1x1(:,:,L) * ARRAY(:,:,L)
+               CALL DO_REGRID_A2A( LLFILENAME, 360,     182,
+     &                             INGRID,     OUTGRID, 1 )
+               MEK_WKEND(:,:,L) = OUTGRID
 
-               MEK_WKEND(:,:,L) =
-     &                MEK_WKEND(:,:,L) * USA_MASK(:,:)
-               MEK(:,:,L) = MEK(:,:,L) * USA_MASK(:,:)
+               MEK_WKEND(:,:,L) = MEK_WKEND(:,:,L) * USA_MASK(:,:)
+               MEK(:,:,L)       = MEK(:,:,L)       * USA_MASK(:,:)
+
             ENDDO
 
          ELSE IF ( SNo == 18 ) THEN
 
-!            CALL DO_REGRID_1x1( 5, 'kg/yr', GEOS_1x1, PRPE )
-!            CALL DO_REGRID_1x1( 5, 'kg/yr',
-!     &           GEOS_1x1(:,:,:) * ARRAY(:,:,:), PRPE_WKEND )
             DO L = 1, 5
 
-        INGRID = GEOS_1x1(:,:,L)
-        CALL DO_REGRID_A2A(LLFILENAME,360,182,INGRID,OUTGRID,1)
-        PRPE(:,:,L)=OUTGRID
+               INGRID = GEOS_1x1(:,:,L)
+               CALL DO_REGRID_A2A( LLFILENAME, 360,     182,
+     &                             INGRID,     OUTGRID, 1 )
+               PRPE(:,:,L) = OUTGRID
 
-        INGRID = GEOS_1x1(:,:,L) * ARRAY(:,:,L)
-        CALL DO_REGRID_A2A(LLFILENAME,360,182,INGRID,OUTGRID,1)
-        PRPE_WKEND(:,:,L)=OUTGRID
+               INGRID = GEOS_1x1(:,:,L) * ARRAY(:,:,L)
+               CALL DO_REGRID_A2A( LLFILENAME, 360,     182,
+     &                             INGRID,     OUTGRID, 1 )
+               PRPE_WKEND(:,:,L) = OUTGRID
 
-               PRPE_WKEND(:,:,L) =
-     &                PRPE_WKEND(:,:,L) * USA_MASK(:,:)
-               PRPE(:,:,L) = PRPE(:,:,L) * USA_MASK(:,:)
+               PRPE_WKEND(:,:,L) = PRPE_WKEND(:,:,L) * USA_MASK(:,:)
+               PRPE(:,:,L)       = PRPE(:,:,L)       * USA_MASK(:,:)
+
             ENDDO
 
          ELSE IF ( SNo == 19 ) THEN
 
-!            CALL DO_REGRID_1x1( 5, 'kg/yr', GEOS_1x1, C3H8 )
-!            CALL DO_REGRID_1x1( 5, 'kg/yr',
-!     &           GEOS_1x1(:,:,:) * ARRAY(:,:,:), C3H8_WKEND )
             DO L = 1, 5
 
-        INGRID = GEOS_1x1(:,:,L)
-        CALL DO_REGRID_A2A(LLFILENAME,360,182,INGRID,OUTGRID,1)
-        C3H8(:,:,L)=OUTGRID
+               INGRID = GEOS_1x1(:,:,L)
+               CALL DO_REGRID_A2A( LLFILENAME, 360,     182,
+     &                             INGRID,     OUTGRID, 1 )
+               C3H8(:,:,L) = OUTGRID
 
-        INGRID = GEOS_1x1(:,:,L) * ARRAY(:,:,L)
-        CALL DO_REGRID_A2A(LLFILENAME,360,182,INGRID,OUTGRID,1)
-        C3H8_WKEND(:,:,L)=OUTGRID
+               INGRID = GEOS_1x1(:,:,L) * ARRAY(:,:,L)
+               CALL DO_REGRID_A2A( LLFILENAME, 360,     182,
+     &                             INGRID,     OUTGRID, 1 )
+               C3H8_WKEND(:,:,L) = OUTGRID
 
-               C3H8_WKEND(:,:,L) =
-     &                C3H8_WKEND(:,:,L) * USA_MASK(:,:)
-               C3H8(:,:,L) = C3H8(:,:,L) * USA_MASK(:,:)
+               C3H8_WKEND(:,:,L) = C3H8_WKEND(:,:,L) * USA_MASK(:,:)
+               C3H8(:,:,L)       = C3H8(:,:,L)       * USA_MASK(:,:)
+
             ENDDO
 
          ELSE IF ( SNo == 20 ) THEN
 
-!            CALL DO_REGRID_1x1( 5, 'kg/yr', GEOS_1x1, CH2O )
-!            CALL DO_REGRID_1x1( 5, 'kg/yr',
-!     &           GEOS_1x1(:,:,:) * ARRAY(:,:,:), CH2O_WKEND )
             DO L = 1, 5
 
-        INGRID = GEOS_1x1(:,:,L)
-        CALL DO_REGRID_A2A(LLFILENAME,360,182,INGRID,OUTGRID,1)
-        CH2O(:,:,L)=OUTGRID
+               INGRID = GEOS_1x1(:,:,L)
+               CALL DO_REGRID_A2A( LLFILENAME, 360,     182,
+     &                             INGRID,     OUTGRID, 1 )
+               CH2O(:,:,L) = OUTGRID
 
-        INGRID = GEOS_1x1(:,:,L) * ARRAY(:,:,L)
-        CALL DO_REGRID_A2A(LLFILENAME,360,182,INGRID,OUTGRID,1)
-        CH2O_WKEND(:,:,L)=OUTGRID
+               INGRID = GEOS_1x1(:,:,L) * ARRAY(:,:,L)
+               CALL DO_REGRID_A2A( LLFILENAME, 360,     182,
+     &                             INGRID,     OUTGRID, 1 )
+               CH2O_WKEND(:,:,L) = OUTGRID
 
-               CH2O_WKEND(:,:,L) =
-     &                CH2O_WKEND(:,:,L) * USA_MASK(:,:)
-               CH2O(:,:,L) = CH2O(:,:,L) * USA_MASK(:,:)
+               CH2O_WKEND(:,:,L) = CH2O_WKEND(:,:,L) * USA_MASK(:,:)
+               CH2O(:,:,L)       = CH2O(:,:,L)       * USA_MASK(:,:)
+
             ENDDO
 
          ELSE IF ( SNo == 21 ) THEN
 
-!            CALL DO_REGRID_1x1( 5, 'kg/yr', GEOS_1x1, C2H6 )
-!            CALL DO_REGRID_1x1( 5, 'kg/yr',
-!     &           GEOS_1x1(:,:,:) * ARRAY(:,:,:), C2H6_WKEND )
             DO L = 1, 5
 
-        INGRID = GEOS_1x1(:,:,L)
-        CALL DO_REGRID_A2A(LLFILENAME,360,182,INGRID,OUTGRID,1)
-        C2H6(:,:,L)=OUTGRID
+               INGRID = GEOS_1x1(:,:,L)
+               CALL DO_REGRID_A2A( LLFILENAME, 360,     182,
+     &                             INGRID,     OUTGRID, 1 )
+               C2H6(:,:,L) = OUTGRID
 
-        INGRID = GEOS_1x1(:,:,L) * ARRAY(:,:,L)
-        CALL DO_REGRID_A2A(LLFILENAME,360,182,INGRID,OUTGRID,1)
-        C2H6_WKEND(:,:,L)=OUTGRID
+               INGRID = GEOS_1x1(:,:,L) * ARRAY(:,:,L)
+               CALL DO_REGRID_A2A( LLFILENAME, 360,     182,
+     &                             INGRID,     OUTGRID, 1 )
+               C2H6_WKEND(:,:,L) = OUTGRID
 
-               C2H6_WKEND(:,:,L) =
-     &                C2H6_WKEND(:,:,L) * USA_MASK(:,:)
-               C2H6(:,:,L) = C2H6(:,:,L) * USA_MASK(:,:)
+               C2H6_WKEND(:,:,L) = C2H6_WKEND(:,:,L) * USA_MASK(:,:)
+               C2H6(:,:,L)       = C2H6(:,:,L)       * USA_MASK(:,:)
+
             ENDDO
 
          ELSE IF ( SNo == 11 ) THEN
 
-!            CALL DO_REGRID_1x1( 5, 'kg/yr', GEOS_1x1, ALD2 )
-!            CALL DO_REGRID_1x1( 5, 'kg/yr',
-!     &           GEOS_1x1(:,:,:) * ARRAY(:,:,:), ALD2_WKEND )
             DO L = 1, 5
 
-        INGRID = GEOS_1x1(:,:,L)
-        CALL DO_REGRID_A2A(LLFILENAME,360,182,INGRID,OUTGRID,1)
-        ALD2(:,:,L)=OUTGRID
+               INGRID = GEOS_1x1(:,:,L)
+               CALL DO_REGRID_A2A( LLFILENAME, 360,     182,
+     &                             INGRID,     OUTGRID, 1 )
+               ALD2(:,:,L) = OUTGRID
 
-        INGRID = GEOS_1x1(:,:,L) * ARRAY(:,:,L)
-        CALL DO_REGRID_A2A(LLFILENAME,360,182,INGRID,OUTGRID,1)
-        ALD2_WKEND(:,:,L)=OUTGRID
+               INGRID = GEOS_1x1(:,:,L) * ARRAY(:,:,L)
+               CALL DO_REGRID_A2A( LLFILENAME, 360,     182,
+     &                             INGRID,     OUTGRID, 1 )
+               ALD2_WKEND(:,:,L) = OUTGRID
 
-               ALD2_WKEND(:,:,L) =
-     &                ALD2_WKEND(:,:,L) * USA_MASK(:,:)
-               ALD2(:,:,L) = ALD2(:,:,L) * USA_MASK(:,:)
+               ALD2_WKEND(:,:,L) = ALD2_WKEND(:,:,L) * USA_MASK(:,:)
+               ALD2(:,:,L)       = ALD2(:,:,L)       * USA_MASK(:,:)
+
             ENDDO
 
          ENDIF
 
       ENDDO
       
+      ! Deallocate arrays for regridding
       DEALLOCATE(INGRID)
       DEALLOCATE(OUTGRID)
 
@@ -1342,34 +1329,33 @@
 !
 ! !USES:
 !
-      !USE REGRID_1x1_MOD,    ONLY : DO_REGRID_1x1
       USE REGRID_A2A_MOD, ONLY : DO_REGRID_A2A
       USE DIRECTORY_MOD,  ONLY : DATA_DIR_1x1
-      USE CMN_SIZE_MOD                         ! Size parameters
+      USE CMN_SIZE_MOD         ! Size parameters
 !
 ! !INPUT PARAMETERS:
 !
-      INTEGER, INTENT(IN)       :: TRACER   ! Tracer number
+      INTEGER, INTENT(IN)     :: TRACER   ! Tracer number
 !
 ! !INPUT/OUTPUT PARAMETERS:
 !
-      REAL*4,  INTENT(INOUT) :: AS(IIPAR,JJPAR,5)  ! Scale factor array
+      REAL*4,  INTENT(INOUT)  :: AS(IIPAR,JJPAR,5)  ! Scale factor array
       CHARACTER(LEN=255)      :: LLFILENAME
       REAL*8, ALLOCATABLE     :: OUTGRID(:,:)
       REAL*8, ALLOCATABLE     :: INGRID(:,:)
-      INTEGER                 :: I,L
+      INTEGER                 :: L
 
 !
 ! !REVISION HISTORY:
 !  30 Oct 2009 - A. van Donkelaar - Initial Version
+!  13 Mar 2012 - M. Cooper        - Changed regrid algorithm to map_a2a
 !EOP
 !------------------------------------------------------------------------------
 !BOC
 !
 ! !LOCAL VARIABLES:
 !
-      REAL*4                     :: ARRAY(I1x1,J1x1,5)
-      REAL*8                     :: ARRAY_R8(IIPAR,JJPAR,5)
+      REAL*4                  :: ARRAY(I1x1,J1x1,5)
 
       !=================================================================
       ! GET_NEI99_SEASON_05x0666 begins here!
@@ -1379,21 +1365,25 @@
 
       CALL GET_NEI99_SEASON( TRACER, ARRAY )
 
-      !CALL DO_REGRID_1x1( 5, 'unitless', ARRAY, ARRAY_R8 )
-
+      ! File with lat/lon edges for regridding
       LLFILENAME = TRIM( DATA_DIR_1x1) //
-     &   'MAP_A2A_Regrid_200312/latlon_geos1x1.txt'
+     &             'MAP_A2A_Regrid_200312/latlon_geos1x1.txt'
+
+      ! Allocate arrays for regridding
       ALLOCATE(INGRID(I1x1,J1x1))
       ALLOCATE(OUTGRID(IIPAR,JJPAR))
 
+      ! Regrid to current model resolution [unitless]
       DO L = 1, 5
-        INGRID = ARRAY(:,:,L)
-        CALL DO_REGRID_A2A(LLFILENAME,360,181,INGRID,OUTGRID,1)
-        AS(:,:,L) = OUTGRID
+         INGRID = ARRAY(:,:,L)
+         CALL DO_REGRID_A2A( LLFILENAME, 360, 181, INGRID, OUTGRID, 1 )
+         AS(:,:,L) = OUTGRID
       ENDDO
 
-        DEALLOCATE(OUTGRID)
-        DEALLOCATE(INGRID)
+      ! Deallocate arrays for regridding
+      DEALLOCATE(OUTGRID)
+      DEALLOCATE(INGRID)
+
       END SUBROUTINE GET_NEI99_SEASON_05x0666
 !EOC
 !------------------------------------------------------------------------------
@@ -1589,31 +1579,29 @@
 !
 ! !USES:
 !
-      !USE REGRID_1x1_MOD,    ONLY : DO_REGRID_1x1
       USE REGRID_A2A_MOD, ONLY : DO_REGRID_A2A
       USE DIRECTORY_MOD,  ONLY : DATA_DIR_1x1
 
-      USE CMN_SIZE_MOD                         ! Size parameters
+      USE CMN_SIZE_MOD         ! Size parameters
 !
 ! !INPUT/OUTPUT PARAMETERS:
 !
-      REAL*4,  INTENT(INOUT) :: AS(IIPAR,JJPAR,5)  ! Scale factor array
+      REAL*4,  INTENT(INOUT)  :: AS(IIPAR,JJPAR,5)  ! Scale factor array
 !
 ! !REVISION HISTORY:
 !  03 Nov 2009 - A. van Donkelaar - Initial Version
-!  13 Mar 2012 - M. Cooper   - Changed regrid algorithm to map_a2a
+!  13 Mar 2012 - M. Cooper        - Changed regrid algorithm to map_a2a
 !EOP
 !------------------------------------------------------------------------------
 !BOC
 !
 ! !LOCAL VARIABLES:
 !
-      REAL*4                     :: ARRAY(I1x1,J1x1,5)
-      REAL*8                     :: ARRAY_R8(IIPAR,JJPAR,5)
-      CHARACTER(LEN=255)         :: LLFILENAME
-      REAL*8, ALLOCATABLE        :: OUTGRID(:,:)
-      REAL*8, ALLOCATABLE        :: INGRID(:,:)
-      INTEGER                    :: L
+      REAL*4                  :: ARRAY(I1x1,J1x1,5)
+      CHARACTER(LEN=255)      :: LLFILENAME
+      REAL*8, ALLOCATABLE     :: OUTGRID(:,:)
+      REAL*8, ALLOCATABLE     :: INGRID(:,:)
+      INTEGER                 :: L
 
       !=================================================================
       ! GET_VISTAS_SEASON_05x0666 begins here!
@@ -1623,18 +1611,22 @@
 
       CALL GET_VISTAS_SEASON( ARRAY )
 
-      !CALL DO_REGRID_1x1( 5, 'unitless', ARRAY, ARRAY_R8 )
+      ! File with lat/lon edges for regridding
       LLFILENAME = TRIM( DATA_DIR_1x1) //
-     &   'MAP_A2A_Regrid_200312/latlon_geos1x1.txt'
+     &             'MAP_A2A_Regrid_200312/latlon_geos1x1.txt'
+
+      ! Allocate arrays for regridding
       ALLOCATE(INGRID(I1x1,J1x1))
       ALLOCATE(OUTGRID(IIPAR,JJPAR))
 
+      ! Regrid to current model resolution [unitless]
       DO L = 1, 5
          INGRID = ARRAY(:,:,L)
-        CALL DO_REGRID_A2A(LLFILENAME,360,181,INGRID,OUTGRID,1)
-        AS(:,:,L) = OUTGRID
+         CALL DO_REGRID_A2A( LLFILENAME, 360, 181, INGRID, OUTGRID, 1 )
+         AS(:,:,L) = OUTGRID
       ENDDO
 
+      ! Deallocate arrays for regridding
       DEALLOCATE(INGRID)
       DEALLOCATE(OUTGRID)
 
@@ -1776,18 +1768,17 @@
 !
 ! !USES:
 !
-      !USE REGRID_1x1_MOD,    ONLY : DO_REGRID_1x1
       USE REGRID_A2A_MOD, ONLY : DO_REGRID_A2A
       USE DIRECTORY_MOD,  ONLY : DATA_DIR_1x1
-      USE CMN_SIZE_MOD                         ! Size parameters
+      USE CMN_SIZE_MOD         ! Size parameters
 !
 ! !INPUT PARAMETERS:
 !
-      INTEGER, INTENT(IN)       :: TRACER   ! Tracer number
+      INTEGER, INTENT(IN)     :: TRACER   ! Tracer number
 !
 ! !INPUT/OUTPUT PARAMETERS:
 !
-      REAL*4,  INTENT(INOUT) :: AS(IIPAR,JJPAR,5)  ! Scale factor array
+      REAL*4,  INTENT(INOUT)  :: AS(IIPAR,JJPAR,5)  ! Scale factor array
 !
 ! !REVISION HISTORY:
 !  30 Oct 2009 - A. van Donkelaar - Initial Version
@@ -1798,8 +1789,7 @@
 !
 ! !LOCAL VARIABLES:
 !
-      REAL*4                     :: ARRAY(I1x1,J1x1,5)
-      REAL*8                     :: ARRAY_R8(IIPAR,JJPAR,5)
+      REAL*4                  :: ARRAY(I1x1,J1x1,5)
       CHARACTER(LEN=255)      :: LLFILENAME
       REAL*8, ALLOCATABLE     :: OUTGRID(:,:)
       REAL*8, ALLOCATABLE     :: INGRID(:,:)
@@ -1812,15 +1802,20 @@
       ARRAY(:,:,:) = 0.d0
 
       CALL GET_NEI99_WKSCALE( TRACER, ARRAY )
+
+      ! File with lat/lon edges for regridding
       LLFILENAME = TRIM( DATA_DIR_1x1) //
-     &   'MAP_A2A_Regrid_200312/latlon_geos1x1.txt'
+     &             'MAP_A2A_Regrid_200312/latlon_geos1x1.txt'
+
+      ! Allocate arrays for regridding
       ALLOCATE(INGRID(I1x1,J1x1))
       ALLOCATE(OUTGRID(IIPAR,JJPAR))
-      !CALL DO_REGRID_1x1( 5, 'unitless', ARRAY, ARRAY_R8 )
+
+      ! Regrid to current model resolution [unitless]
       DO L = 1, 5
-        INGRID = ARRAY(:,:,L)
-        CALL DO_REGRID_A2A(LLFILENAME,360,182,INGRID,OUTGRID,1)
-        AS(:,:,L) = OUTGRID
+         INGRID = ARRAY(:,:,L)
+         CALL DO_REGRID_A2A( LLFILENAME, 360, 182, INGRID, OUTGRID, 1 )
+         AS(:,:,L) = OUTGRID
       ENDDO
 
       END SUBROUTINE GET_NEI99_WKSCALE_05x0666
@@ -1846,11 +1841,10 @@
       USE BPCH2_MOD,      ONLY : GET_TAU0,        READ_BPCH2
       USE LOGICAL_MOD,    ONLY : LCAC,            LBRAVO
       USE DIRECTORY_MOD,  ONLY : DATA_DIR_1x1
-      !USE REGRID_1x1_MOD, ONLY : DO_REGRID_1x1
       USE REGRID_A2A_MOD, ONLY : DO_REGRID_A2A
       USE TRANSFER_MOD,   ONLY : TRANSFER_2D
 
-      USE CMN_SIZE_MOD        ! Size parameters
+      USE CMN_SIZE_MOD         ! Size parameters
 !
 ! !REMARKS:
 !     temporary mask: same as EPA 99
@@ -1865,9 +1859,9 @@
 !
 ! !LOCAL VARIABLES:
 !
-      REAL*4             :: ARRAY2(I1x1,J1x1,1)
-      REAL*8             :: XTAU, GEOS_1x1(I1x1,J1x1,1)
-      CHARACTER(LEN=255) :: FILENAME, SNAME
+      REAL*4                  :: ARRAY2(I1x1,J1x1,1)
+      REAL*8                  :: XTAU, GEOS_1x1(I1x1,J1x1,1)
+      CHARACTER(LEN=255)      :: FILENAME, SNAME
       CHARACTER(LEN=255)      :: LLFILENAME
       REAL*8, ALLOCATABLE     :: OUTGRID(:,:)
       REAL*8, ALLOCATABLE     :: INGRID(:,:)
@@ -1901,22 +1895,25 @@
       ! Cast to REAL*8 before regridding
       GEOS_1x1(:,:,:) = ARRAY2(:,:,:)
 
-      ! Regrid from GEOS 1x1 --> current model resolution
-      !CALL DO_REGRID_1x1( 'unitless', GEOS_1x1, USA_MASK )
-       LLFILENAME = TRIM( DATA_DIR_1x1) //
-     &   'MAP_A2A_Regrid_200312/latlon_geos1x1.txt'
-       ALLOCATE(INGRID(I1x1,J1x1))
-       ALLOCATE(OUTGRID(IIPAR,JJPAR)) 
-       INGRID = GEOS_1x1(:,:,1)
-       CALL DO_REGRID_A2A(LLFILENAME,360,182,INGRID,OUTGRID,1)
-       USA_MASK = OUTGRID
-       DEALLOCATE(INGRID)
-       DEALLOCATE(OUTGRID)
-    
+      ! File with lat/lon edges for regridding
+      LLFILENAME = TRIM( DATA_DIR_1x1) //
+     &             'MAP_A2A_Regrid_200312/latlon_geos1x1.txt'
+
+      ! Allocate arrays for regridding
+      ALLOCATE(INGRID(I1x1,J1x1))
+      ALLOCATE(OUTGRID(IIPAR,JJPAR))
+
+      ! Regrid from GEOS 1x1 --> current model resolution [unitless]
+      INGRID = GEOS_1x1(:,:,1)
+      CALL DO_REGRID_A2A( LLFILENAME, 360, 182, INGRID, OUTGRID, 1 )
+      USA_MASK = OUTGRID
+
+      ! Deallocate arrays for regridding
+      DEALLOCATE(INGRID)
+      DEALLOCATE(OUTGRID)
 
       WHERE ( USA_MASK /= 0D0 ) USA_MASK = 1D0
 
-      
       ! Return to calling program
       END SUBROUTINE READ_NEI2005_MASK
 !------------------------------------------------------------------------------

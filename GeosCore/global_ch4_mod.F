@@ -68,7 +68,6 @@
 !  08 Feb 2012 - R. Yantosca - Added modifications for GEOS-5.7.x
 !  01 Mar 2012 - R. Yantosca - Now reference new grid_mod.F90
 !  07 Mar 2012 - M. Payer    - Added ProTeX headers
-!  13 Mar 2012 - M. Cooper   - Changed regrid algorithm to map_a2a
 !EOP
 !------------------------------------------------------------------------------
 !BOC

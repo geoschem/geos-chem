@@ -1275,10 +1275,9 @@
       USE TRANSFER_MOD,   ONLY : TRANSFER_2D
       USE TIME_MOD,       ONLY : GET_YEAR,        ITS_A_LEAPYEAR
       USE GRID_MOD,       ONLY : GET_AREA_CM2
-      !USE REGRID_1x1_MOD, ONLY : DO_REGRID_1x1    !(lmw,05/16/11)
       USE REGRID_A2A_MOD, ONLY : DO_REGRID_A2A
 
-      USE CMN_SIZE_MOD      ! Size parameters
+      USE CMN_SIZE_MOD         ! Size parameters
 !
 ! !INPUT PARAMETERS:
 !
@@ -1363,22 +1362,10 @@
       ! Read region/continent file 
       !-----------------------------------------------------------------
       TAU      = GET_TAU0( 1, 1, 2004 )
-!------------------------------------------------------------------------------
-! Prior to 3/5/12:
-! Apply on-line regridding of 1x1 data to all resolutions (Y.Wang, lmw, mpayer)
-!      FILENAME = TRIM( DATA_DIR )                          //  
-!     &           'CO2_201003/Aviation_Regions.'            // 
-!     &           GET_NAME_EXT_2D() // '.' // GET_RES_EXT()
-!------------------------------------------------------------------------------
+
       FILENAME = TRIM( DATA_DIR_1x1)   //   
      &           'CO2_201003/Aviation_Regions.geos.1x1'
 
-!------------------------------------------------------------------------------
-! Prior to 3/5/12:
-!       CALL READ_BPCH2( FILENAME, 'CO2-SRCE', 1, 
-!     &                  TAU,       IIPAR,     JJPAR,     
-!     &                  1,         REGION,    QUIET=.TRUE. )
-!------------------------------------------------------------------------------
       CALL READ_BPCH2( FILENAME, 'CO2-SRCE',  1, 
      &                 TAU,       360,        181,     
      &                 1,         REGION_1x1, QUIET=.TRUE. )
@@ -1386,9 +1373,6 @@
       ! Cast to REAL*8 before regridding
       GEOS_1x1(:,:,1) = REGION_1x1(:,:)
 
-      ! Regrid from GEOS 1x1 --> current model resolution
-      !CALL DO_REGRID_1x1( 1, 'molec/cm2/s', GEOS_1x1, GEOS_GRID)
-  
       ! File with lat/lon edges for regridding
       LLFILENAME = TRIM( DATA_DIR_1x1) //
      &             'MAP_A2A_Regrid_200312/latlon_geos1x1.txt'
@@ -1590,10 +1574,9 @@
       USE BPCH2_MOD,      ONLY : GET_TAU0,        READ_BPCH2
       USE DIRECTORY_MOD,  ONLY : DATA_DIR,        DATA_DIR_1x1  !(lmw,05/16/11)
       USE TRANSFER_MOD,   ONLY : TRANSFER_2D
-      !USE REGRID_1x1_MOD, ONLY : DO_REGRID_1x1    !(lmw,05/16/11)
       USE REGRID_A2A_MOD, ONLY : DO_REGRID_A2A
 
-      USE CMN_SIZE_MOD      ! Size parameters
+      USE CMN_SIZE_MOD         ! Size parameters
 !
 ! !REMARKS:
 !  References:
@@ -1630,14 +1613,6 @@
       ! "Burn in fields" not included (this is already in GFED)
       !=================================================================
 
-!------------------------------------------------------------------------------
-! Prior to 3/5/12:
-! Apply on-line regridding of 1x1 data to all resolutions (Y.Wang, lmw, mpayer)
-!      FILENAME = TRIM( DATA_DIR )                 // 
-!     &          'CO2_201003/biofuel/biofuel_CO2.' // 
-!     &           GET_NAME_EXT_2D() // '.'         // 
-!     &           GET_RES_EXT()     // '-1995'
-!------------------------------------------------------------------------------
       FILENAME = TRIM( DATA_DIR_1x1)               //  
      &           'CO2_201003/biofuel/biofuel_CO2.' // 
      &            GET_NAME_EXT_2D()                // '.1x1-1995'
@@ -1650,15 +1625,6 @@
       TAU = GET_TAU0( 1, 1, 1995 )
       
       ! Read biofuel CO2 emissions [molec/cm2/s]
-!------------------------------------------------------------------------------
-! Prior to 3/5/12:
-!      CALL READ_BPCH2( FILENAME, 'CO2-SRCE', 5, 
-!     &                 TAU,       IIPAR,     JJPAR,     
-!     &                 1,         ARRAY,     QUIET=.TRUE. )
-!
-!      ! Cast from REAL*4 to REAL*8 and resize
-!      CALL TRANSFER_2D( ARRAY(:,:,1), EMBIOFUELCO2 )
-!------------------------------------------------------------------------------
       CALL READ_BPCH2( FILENAME, 'CO2-SRCE', 5, 
      &                 TAU,       360,       181,     
      &                 1,         ARRAY,     QUIET=.TRUE. )
@@ -1666,9 +1632,6 @@
       ! Cast to REAL*8 before regridding
       GEOS_1x1(:,:,1) = ARRAY(:,:,1)
       
-      ! Regrid from GEOS 1x1 --> current model resolution
-      !CALL DO_REGRID_1x1( 1, 'molec/cm2/s', GEOS_1x1, GEOS_GRID)
-
       ! File with lat/lon edges for regridding
       LLFILENAME = TRIM( DATA_DIR_1x1) //
      &             'MAP_A2A_Regrid_200312/latlon_geos1x1.txt'
@@ -1713,12 +1676,11 @@
       USE BPCH2_MOD,      ONLY : GET_TAU0,        READ_BPCH2
       USE DIRECTORY_MOD,  ONLY : DATA_DIR, DATA_DIR_1x1
       USE TRANSFER_MOD,   ONLY : TRANSFER_2D
-      !USE REGRID_1x1_MOD, ONLY : DO_REGRID_G2G_1x1, DO_REGRID_1x1 
       USE REGRID_A2A_MOD, ONLY : DO_REGRID_A2A
       USE GRID_MOD,       ONLY : GET_AREA_CM2
       USE TIME_MOD,       ONLY : GET_YEAR
 	
-      USE CMN_SIZE_MOD       ! Size parameters
+      USE CMN_SIZE_MOD         ! Size parameters
 !
 ! !REVISION HISTORY: 
 !  18 May 2010 - R. Nassar, D. Jones - Initial version
@@ -1730,23 +1692,21 @@
 !
 ! !LOCAL VARIABLES:
 !
-      INTEGER            :: I, J, N, YEAR
-      REAL*4		 :: A_CM2(IIPAR,JJPAR)
-      REAL*4             :: ARRAY(360,180,1)
-      REAL*8             :: GEN_1x1(360,180,1)
-      REAL*8             :: GEOS_1x1(I1x1,J1x1,1)
-      REAL*8             :: GEOS_GRID(IIPAR,JJPAR,1)
-      REAL*8             :: TAU
-      REAL*8,  PARAMETER :: SEC_IN_YEAR = 86400d0 * 365.25d0
-      REAL*8,  PARAMETER :: GlobSTot = 0.117 
+      INTEGER             :: I, J, N, YEAR
+      REAL*4		  :: A_CM2(IIPAR,JJPAR)
+      REAL*4              :: ARRAY(360,180,1)
+      REAL*8              :: GEN_1x1(360,180,1)
+      REAL*8              :: GEOS_GRID(IIPAR,JJPAR,1)
+      REAL*8              :: TAU
+      REAL*8,  PARAMETER  :: SEC_IN_YEAR = 86400d0 * 365.25d0
+      REAL*8,  PARAMETER  :: GlobSTot = 0.117 
                              ! EDGAR global total value in PgC/yr
-      REAL*8             :: GlobSTotNew(25) 
+      REAL*8              :: GlobSTotNew(25) 
                              ! For scaling to a specified global total PgC/yr
-
-      CHARACTER(LEN=255)      :: FILENAME
-      CHARACTER(LEN=255)      :: LLFILENAME
-      REAL*8, ALLOCATABLE     :: OUTGRID(:,:)
-      REAL*8, ALLOCATABLE     :: INGRID(:,:)
+      CHARACTER(LEN=255)  :: FILENAME
+      CHARACTER(LEN=255)  :: LLFILENAME
+      REAL*8, ALLOCATABLE :: OUTGRID(:,:)
+      REAL*8, ALLOCATABLE :: INGRID(:,:)
 
       !=================================================================
       ! READ_SHIPCO2_EDGAR begins here!
@@ -1780,22 +1740,22 @@
       ! Cast to REAL*8 before regridding
       GEN_1x1(:,:,1) = ARRAY(:,:,1)
 
-      ! Regrid from GENERIC 1x1 --> current model resolution
-
+      ! File with lat/lon edges for regridding
       LLFILENAME = TRIM( DATA_DIR_1x1) //
-     &   'MAP_A2A_Regrid_200312/latlon_generic.txt'
-        ALLOCATE(INGRID(I1x1,J1x1-1))
-        ALLOCATE(OUTGRID(IIPAR,JJPAR))
-        INGRID=GEN_1x1(:,:,1)
+     &             'MAP_A2A_Regrid_200312/latlon_generic.txt'
 
-        CALL DO_REGRID_A2A(LLFILENAME,360,181,INGRID,OUTGRID,1)   
+      ! Allocate arrays for regridding
+      ALLOCATE(INGRID(I1x1,J1x1-1))
+      ALLOCATE(OUTGRID(IIPAR,JJPAR))
 
-        DEALLOCATE(INGRID)
-        GEOS_GRID(:,:,1)=OUTGRID
-        DEALLOCATE(OUTGRID)
+      ! Regrid from GENERIC 1x1 --> current model resolution
+      INGRID = GEN_1x1(:,:,1)
+      CALL DO_REGRID_A2A( LLFILENAME, 360, 181, INGRID, OUTGRID, 1 )   
+      GEOS_GRID(:,:,1) = OUTGRID
 
-      !CALL DO_REGRID_G2G_1x1( 'kg/yr', GEN_1x1, GEOS_1x1 )
-      !CALL DO_REGRID_1x1( 1, 'kg/yr', GEOS_1x1, GEOS_GRID)
+      ! Deallocate arrays for regridding
+      DEALLOCATE(INGRID)
+      DEALLOCATE(OUTGRID)
 
       ! Convert units kg CO2 / yr --> molecules/cm2/s 
       DO J = 1, JJPAR
@@ -1861,10 +1821,10 @@
       USE DIRECTORY_MOD,  ONLY : DATA_DIR, DATA_DIR_1x1
       USE TRANSFER_MOD,   ONLY : TRANSFER_2D
       USE FILE_MOD,       ONLY : IU_FILE, IOERROR
-      !USE REGRID_1x1_MOD, ONLY : DO_REGRID_G2G_1x1, DO_REGRID_1x1 
       USE TIME_MOD,       ONLY : GET_YEAR, GET_MONTH
       USE REGRID_A2A_MOD, ONLY : DO_REGRID_A2A	
-      USE CMN_SIZE_MOD       ! Size parameters
+
+      USE CMN_SIZE_MOD         ! Size parameters
 !
 ! !REMARKS:
 !  This subroutine reads from bpch files at GEOS 1x1 (half-polar) resolution
@@ -1906,7 +1866,6 @@
                                 !ICOADS global total value in PgC/yr
       REAL*8                 :: GlobSTotNew(25) 
                                 !For scaling to a specified global total PgC/yr
-
       CHARACTER(LEN=255)     :: FILENAME
       CHARACTER(LEN=2)       :: MONTH_STR
       CHARACTER(LEN=255)     :: LLFILENAME
@@ -1925,9 +1884,6 @@
       FILENAME = TRIM( DATA_DIR_1x1 )           // 
      &           'CO2_201003/ship_ICOADS/co2_'  // 
      &           MONTH_STR // '.geos.1x1'
-
-      LLFILENAME = TRIM( DATA_DIR_1x1) //
-     &   'MAP_A2A_Regrid_200312/latlon_geos1x1.txt'
 	
       ! Echo info
       WRITE( 6, 100 ) TRIM( FILENAME )
@@ -1944,17 +1900,22 @@
       ! Cast to REAL*8 before regridding
       GEOS_1x1(:,:,1) = ARRAY(:,:,1)
 
+      ! File with lat/lon edges for regridding
+      LLFILENAME = TRIM( DATA_DIR_1x1) //
+     &             'MAP_A2A_Regrid_200312/latlon_geos1x1.txt'
+
+      ! Allocate arrays for regridding
+      ALLOCATE(INGRID(I1x1,J1x1))
+      ALLOCATE(OUTGRID(IIPAR,JJPAR))
+
       ! Regrid to current model resolution
-        ALLOCATE(INGRID(I1x1,J1x1))
-        ALLOCATE(OUTGRID(IIPAR,JJPAR))
-        INGRID=GEOS_1x1(:,:,1)
+      INGRID = GEOS_1x1(:,:,1)
+      CALL DO_REGRID_A2A( LLFILENAME, 360, 182, INGRID, OUTGRID, 0 )   
+      GEOS_GRID(:,:,1) = OUTGRID
 
-      !CALL DO_REGRID_1x1( 1, 'molec/cm2/s', GEOS_1x1, GEOS_GRID )
-      CALL DO_REGRID_A2A(LLFILENAME,360,182,INGRID,OUTGRID,0)   
-
-        DEALLOCATE(INGRID)
-        GEOS_GRID(:,:,1)=OUTGRID
-        DEALLOCATE(OUTGRID)
+      ! Deallocate arrays for regridding
+      DEALLOCATE(INGRID)
+      DEALLOCATE(OUTGRID)
 
       DO J = 1, JJPAR
          EMSHIPCO2(:,J) = GEOS_GRID(:,J,1) 
@@ -2238,10 +2199,9 @@
       USE FILE_MOD,       ONLY : IU_FILE,           IOERROR
       USE TRANSFER_MOD,   ONLY : TRANSFER_2D
       USE LOGICAL_MOD,    ONLY : LBIONETORIG,       LBIONETCLIM
-      !USE REGRID_1x1_MOD, ONLY : DO_REGRID_G2G_1x1, DO_REGRID_1x1
       USE REGRID_A2A_MOD, ONLY : DO_REGRID_A2A
 
-      USE CMN_SIZE_MOD       ! Size parameters
+      USE CMN_SIZE_MOD         ! Size parameters
 !
 ! !REMARKS:
 !  The two choices are:
@@ -2269,7 +2229,6 @@
 ! !LOCAL VARIABLES:
 !
       INTEGER                :: I, J, IOS
-      !REAL*4                 :: ARRAY(IIPAR,JJPAR,1)
       REAL*4                 :: ARRAY(I1x1,J1x1,1)  !(lmw,05/16/11)
       REAL*4                 :: ARRAY_1x1(360,180,1)
       REAL*8                 :: GEN_1x1(360,180,1)
@@ -2330,13 +2289,6 @@
          TAU = GET_TAU0( 1, 1, 2000 )
 
          ! Filename
-!------------------------------------------------------------------------------
-! Prior to 3/5/12:
-! Apply on-line regridding of 1x1 data to all resolutions (Y.Wang, lmw, mpayer)
-!         FILENAME = TRIM( DATA_DIR )                           //
-!     &              'CO2_201003/Net_terrestrial_exch_5.29Pg.'  //
-!     &              GET_NAME_EXT_2D() // '.' // GET_RES_EXT() 
-!------------------------------------------------------------------------------
          FILENAME = TRIM( DATA_DIR_1x1 )  //  
      &              'CO2_201003/Net_terrestrial_exch_5.29Pg.geos.1x1'
 	
@@ -2344,15 +2296,6 @@
          WRITE( 6, 100 ) TRIM( FILENAME )
 
          ! Read Net Terrestrial CO2 Exchange [molec/cm2/s]
-!------------------------------------------------------------------------------
-! Prior to 3/5/12:
-!         CALL READ_BPCH2( FILENAME, 'CO2-SRCE', 6, 
-!     &                    TAU,       IIPAR,     JJPAR,     
-!     &                    1,         ARRAY,     QUIET=.TRUE. )
-! 
-!         ! Cast to REAL*8 and resize if necessary
-!         CALL TRANSFER_2D( ARRAY(:,:,1), EMBIONETCO2 )
-!------------------------------------------------------------------------------
          CALL READ_BPCH2( FILENAME, 'CO2-SRCE', 6, 
      &                    TAU,       360,       181,     
      &                    1,         ARRAY,     QUIET=.TRUE. )
@@ -2369,7 +2312,6 @@
          ALLOCATE(OUTGRID(IIPAR,JJPAR))
 
          ! Regrid from GEOS 1x1 --> current model resolution
-         !CALL DO_REGRID_1x1( 1, 'molec/cm2/s', GEOS_1x1, GEOS_GRID)
          INGRID = GEOS_1x1(:,:,1)
          CALL DO_REGRID_A2A( LLFILENAME, 360, 182, INGRID, OUTGRID, 0 )
          GEOS_GRID(:,:,1) = OUTGRID  
@@ -2379,37 +2321,6 @@
          DEALLOCATE(OUTGRID)
          
          EMBIONETCO2(:,:) = GEOS_GRID(:,:,1)  !(lmw,05/16/11)     
-
-!-----------------------------------------------------------------------
-! Commented block of code below is nearly equivalent to the block of code 
-! above but regrids during the model run from generic 1x1. This approach  
-! is better for working with resolutions finer than 2x2.5, but at present,
-! requires a 2-step regridding which is not exaclty equivalent.
-!-----------------------------------------------------------------------
-!
-!         FILENAME = TRIM( DATA_DIR_1x1 )             //
-!     &      'CO2_201003/Net_terrestrial_exch_1x1_4.47Pg.bpch'
-!	
-!         ! Echo info
-!         WRITE( 6, 100 ) TRIM( FILENAME )
-!
-!         ! Read Net Terrestrial CO2 Exchange [molec/cm2/s]
-!         CALL READ_BPCH2( FILENAME, 'CO2-SRCE',  6, 
-!     &                 TAU,       360,           180,     
-!     &                 1,         ARRAY_1x1,     QUIET=.TRUE. )
-!
-!         ! Cast to REAL*8 before regridding
-!         GEN_1x1(:,:,1) = ARRAY_1x1(:,:,1)
-!
-!         ! Regrid from GENERIC 1x1 --> GEOS 1x1 
-!         CALL DO_REGRID_G2G_1x1( 'molec/cm2/s', GEN_1x1, GEOS_1x1 )
-!
-!         ! Regrid from GEOS 1x1 --> current model resolution
-!         CALL DO_REGRID_1x1( 1, 'molec/cm2/s', GEOS_1x1, GEOS_GRID)
-!
-!	   EMBIONETCO2(:,:) = GEOS_GRID(:,:,1)
-!
-!-----------------------------------------------------------------------
 
       ENDIF
 

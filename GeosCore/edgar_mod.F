@@ -294,12 +294,12 @@
 !  NOTES:
 !  08 Mar 2012 - M. Payer    - Added modifications for historical emissions of
 !                              NOx (E. Leibensperger)
+!  13 Mar 2012 - M. Cooper   - Changed regrid algorithm to map_a2a
 !******************************************************************************
 !
       ! References to F90 modules
       USE DIRECTORY_MOD,     ONLY : DATA_DIR_1x1
       USE LOGICAL_MOD,       ONLY : LEDGARSHIP
-      !USE REGRID_1x1_MOD,   ONLY : DO_REGRID_1x1
       USE TIME_MOD,          ONLY : EXPAND_DATE
       USE REGRID_A2A_MOD,    ONLY : DO_REGRID_A2A
       USE SCALE_ANTHRO_MOD,  ONLY : GET_ANNUAL_SCALAR
@@ -307,7 +307,7 @@
       USE LOGICAL_MOD,       ONLY : LHIST
 !eml]
 
-      USE CMN_SIZE_MOD       ! Size parameters
+      USE CMN_SIZE_MOD            ! Size parameters
 
       ! Arguments
       INTEGER, INTENT(IN)            :: YEAR, MONTH
@@ -315,18 +315,17 @@
       REAL*8,  INTENT(OUT), OPTIONAL :: E_NOX_SHIP(IIPAR,JJPAR)
 
       ! Local variables
-      INTEGER                 :: I, J, H, YYYYMMDD
-      REAL*8                  :: E_NOX_1x1(I1x1,J1x1-1)
-      REAL*8                  :: E_NOX_SHIP_1x1(I1x1,J1x1-1)
-      REAL*8                  :: E_NOX_HRLY_1x1(I1x1,J1x1-1,N_HOURS)
-      REAL*4                  :: SC_NOx(IIPAR,JJPAR)
-      !REAL*8                  :: GEOS_1x1(I1x1,J1x1,1)
-      REAL*8                  :: TEMP_HRLY(IIPAR,JJPAR)
-      REAL*8                  :: TEMP_TOT(IIPAR,JJPAR)
-      CHARACTER(LEN=255)      :: NAME
-      CHARACTER(LEN=255)      :: LLFILENAME
-      REAL*8, ALLOCATABLE     :: OUTGRID(:,:)
-      REAL*8, ALLOCATABLE     :: INGRID(:,:)
+      INTEGER                    :: I, J, H, YYYYMMDD
+      REAL*8                     :: E_NOX_1x1(I1x1,J1x1-1)
+      REAL*8                     :: E_NOX_SHIP_1x1(I1x1,J1x1-1)
+      REAL*8                     :: E_NOX_HRLY_1x1(I1x1,J1x1-1,N_HOURS)
+      REAL*4                     :: SC_NOx(IIPAR,JJPAR)
+      REAL*8                     :: TEMP_HRLY(IIPAR,JJPAR)
+      REAL*8                     :: TEMP_TOT(IIPAR,JJPAR)
+      CHARACTER(LEN=255)         :: NAME
+      CHARACTER(LEN=255)         :: LLFILENAME
+      REAL*8, ALLOCATABLE        :: OUTGRID(:,:)
+      REAL*8, ALLOCATABLE        :: INGRID(:,:)
 
       !=================================================================
       ! COMPUTE_EDGAR_NOx begins here!
@@ -335,8 +334,7 @@
       ! Initialize
       E_NOx_1x1      = 0d0
       E_NOX_HRLY_1x1 = 0d0
-      !GEOS_1x1       = 0d0
-      SC_NOx     = 1d0
+      SC_NOx         = 1d0
 
       !----------------------------------
       ! Read NOx data from disk
@@ -350,27 +348,26 @@
       ! (these average out to 1.0)
       !----------------------------------
 
-      ! Regrid anthro emissions to current resolution
-      !GEOS_1x1(:,:,1) = E_NOx_1x1(:,:)
-      !CALL DO_REGRID_1x1( 'unitless', GEOS_1x1, TEMP_TOT )  
+      ! File with lat/lon edges for regridding
       LLFILENAME = TRIM( DATA_DIR_1x1) //
-     &   'MAP_A2A_Regrid_200312/latlon_generic.txt'
-        ALLOCATE(INGRID(I1x1,J1x1-1))
-        ALLOCATE(OUTGRID(IIPAR,JJPAR))
-        INGRID = E_NOx_1x1(:,:)
-        CALL DO_REGRID_A2A(LLFILENAME,360,181,INGRID,OUTGRID,1)
-        TEMP_TOT=OUTGRID  
+     &             'MAP_A2A_Regrid_200312/latlon_generic.txt'
+      
+      ! Allocate arrays for regridding
+      ALLOCATE(INGRID(I1x1,J1x1-1))
+      ALLOCATE(OUTGRID(IIPAR,JJPAR))
 
+      ! Regrid anthro emissions to current resolution
+      INGRID = E_NOx_1x1(:,:)
+      CALL DO_REGRID_A2A( LLFILENAME, 360, 181, INGRID, OUTGRID, 1 )
+      TEMP_TOT = OUTGRID  
 
       ! Loop over hours
       DO H = 1, N_HOURS
 
          ! Regrid hourly emissions to current resolution
-         !GEOS_1x1(:,:,1) = E_NOx_HRLY_1x1(:,:,H)
-         !CALL DO_REGRID_1x1( 'unitless', GEOS_1x1, TEMP_HRLY )
-        INGRID = E_NOx_HRLY_1x1(:,:,H)
-        CALL DO_REGRID_A2A(LLFILENAME,360,181,INGRID,OUTGRID,1)
-        TEMP_HRLY=OUTGRID 
+         INGRID = E_NOx_HRLY_1x1(:,:,H)
+         CALL DO_REGRID_A2A( LLFILENAME, 360, 181, INGRID, OUTGRID, 1 )
+         TEMP_HRLY = OUTGRID 
 
          ! Scale factors are just the normalized hourly emissions
          DO J = 1, JJPAR
@@ -394,16 +391,15 @@
       !----------------------------------
 
       ! Regrid NOx emissions to current model resolution [kg/yr]
-      !CALL DO_REGRID_1x1( 'kg/yr', GEOS_1x1, E_NOx )
-        INGRID = E_NOx_1x1(:,:)
-        CALL DO_REGRID_A2A(LLFILENAME,360,181,INGRID,OUTGRID,1)
+      INGRID = E_NOx_1x1(:,:)
+      CALL DO_REGRID_A2A( LLFILENAME, 360, 181, INGRID, OUTGRID, 1 )
 
-      !Apply scaling factor
+      ! Apply scaling factor
 ![eml Skip scaling if using historical emissions
       IF ( .not. LHIST ) THEN
-         E_NOx=OUTGRID * SC_NOx
+         E_NOx = OUTGRID * SC_NOx
       ELSE
-         E_NOx=OUTGRID
+         E_NOx = OUTGRID
       ENDIF
 !eml]
 
@@ -413,17 +409,14 @@
 
       IF ( LEDGARSHIP ) THEN
 
-         ! Re-initialize
-         !GEOS_1x1(:,:,:) = 0d0
-
          ! Regrid NOX emissions to current model resolution [kg/yr]
-         !CALL DO_REGRID_1x1( 'kg/yr', GEOS_1x1, E_NOX_SHIP )
-        INGRID = E_NOX_SHIP_1x1(:,:)
-        CALL DO_REGRID_A2A(LLFILENAME,360,181,INGRID,OUTGRID,1)
-        E_NOX_SHIP=OUTGRID * SC_NOX(:,:) 
+         INGRID = E_NOX_SHIP_1x1(:,:)
+         CALL DO_REGRID_A2A( LLFILENAME, 360, 181, INGRID, OUTGRID, 1 )
+         E_NOX_SHIP = OUTGRID * SC_NOX(:,:) 
 
       ENDIF
     
+      ! Deallocate arrays for regridding
       DEALLOCATE(INGRID)
       DEALLOCATE(OUTGRID)
 
@@ -464,7 +457,7 @@
       USE BPCH2_MOD,      ONLY : GET_TAU0, READ_BPCH2
 !eml]
 
-      USE CMN_SIZE_MOD       ! Size parameters
+      USE CMN_SIZE_MOD         ! Size parameters
 
       ! Arguments
       REAL*8,  INTENT(OUT)    :: T_1x1(I1x1,J1x1-1)
@@ -475,9 +468,6 @@
       INTEGER                 :: H
       REAL*4                  :: E_IN(I1x1,J1x1-1)
       REAL*8                  :: SC(N_HOURS)    
-      !REAL*8                  :: T_1x1(I1x1,J1x1-1)
-      !REAL*8                  :: T_SHIP_1x1(I1x1,J1x1-1)
-      !REAL*8                  :: T_HRLY_1x1(I1x1,J1x1-1,N_HOURS)
 ![eml
       REAL*8                  :: TAU0
       CHARACTER(LEN=  4)      :: CHISTYR
@@ -491,9 +481,6 @@
       ! Initialize
       SC         = 0e0
       E_IN       = 0e0
-!      E_1x1      = 0d0
-!      E_SHIP_1x1 = 0d0
-!      E_HRLY_1x1 = 0d0
       T_1x1      = 0d0
       T_SHIP_1x1 = 0d0
       T_HRLY_1x1 = 0d0
@@ -772,21 +759,6 @@
       ! Convert [kg NO2/yr] to [kg NO2/season]
       CALL SEASCL_EDGAR_NOx( T_1x1, T_SHIP_1x1, T_HRLY_1x1 )
 
-!------------------------------------------------------------------------
-!      !-----------------------------------------------------------------
-!      ! Regrid from GENERIC 1x1 grid to GEOS 1x1 grid
-!      !-----------------------------------------------------------------
-!
-!      ! Total NOx [kg NO2/season]
-!      CALL DO_REGRID_G2G_1x1( 'kg/season', T_1x1,      E_1x1 )
-!      CALL DO_REGRID_G2G_1x1( 'kg/season', T_SHIP_1x1, E_SHIP_1x1 )
-!      
-!      ! Hourly NOx [kg NO2/season]
-!      DO H = 1, N_HOURS
-!         CALL DO_REGRID_G2G_1x1( 'kg/season', T_HRLY_1x1(:,:,H), 
-!     &                                        E_HRLY_1x1(:,:,H) )
-!      ENDDO
-!--------------------------------------------------------------------------
       ! Return to calling program
       END SUBROUTINE READ_EDGAR_NOx
 
@@ -823,7 +795,7 @@
       USE BPCH2_MOD,     ONLY : READ_BPCH2
       USE DIRECTORY_MOD, ONLY : DATA_DIR_1x1
 
-      USE CMN_SIZE_MOD      ! Size parameters
+      USE CMN_SIZE_MOD        ! Size parameters
  
       ! Arguments
       REAL*8,  INTENT(INOUT) :: E_NOx_1x1(I1x1,J1x1-1)
@@ -888,16 +860,16 @@
 !  (3 ) E_CO_SHIP (REAL*4 ) : EDGAR CO shipping emissions [kg CO/year]
 !
 !  NOTES:
+!  13 Mar 2012 - M. Cooper   - Changed regrid algorithm to map_a2a
 !******************************************************************************
 !
       ! References to F90 modules
       USE DIRECTORY_MOD,    ONLY : DATA_DIR_1x1
-      !USE REGRID_1x1_MOD,   ONLY : DO_REGRID_1x1
       USE LOGICAL_MOD,      ONLY : LEDGARSHIP
       USE TIME_MOD,         ONLY : EXPAND_DATE
       USE SCALE_ANTHRO_MOD, ONLY : GET_ANNUAL_SCALAR
       USE REGRID_A2A_MOD,   ONLY : DO_REGRID_A2A
-      USE CMN_SIZE_MOD       ! Size parameters
+      USE CMN_SIZE_MOD           ! Size parameters
 
       ! Arguments
       INTEGER, INTENT(IN)           :: YEAR
@@ -905,22 +877,21 @@
       REAL*8, INTENT(OUT), OPTIONAL :: E_CO_SHIP(IIPAR,JJPAR)
 
       ! Local variables
-      INTEGER                 :: I, J, H, YYYYMMDD
-      REAL*8                  :: E_CO_1x1(I1x1,J1x1-1)
-      REAL*8                  :: E_CO_SHIP_1x1(I1x1,J1x1-1)
-      REAL*4                  :: SC_CO(IIPAR,JJPAR)
-      CHARACTER(LEN=255)      :: NAME
-      CHARACTER(LEN=255)      :: LLFILENAME
-      REAL*8, ALLOCATABLE     :: OUTGRID(:,:)
-      REAL*8, ALLOCATABLE     :: INGRID(:,:)
+      INTEGER                       :: I, J, H, YYYYMMDD
+      REAL*8                        :: E_CO_1x1(I1x1,J1x1-1)
+      REAL*8                        :: E_CO_SHIP_1x1(I1x1,J1x1-1)
+      REAL*4                        :: SC_CO(IIPAR,JJPAR)
+      CHARACTER(LEN=255)            :: NAME
+      CHARACTER(LEN=255)            :: LLFILENAME
+      REAL*8, ALLOCATABLE           :: OUTGRID(:,:)
+      REAL*8, ALLOCATABLE           :: INGRID(:,:)
 
       !=================================================================
       ! COMPUTE_EDGAR_CO begins here!
       !=================================================================
 
       ! Initialize
-      !GEOS_1x1(:,:,:) = 0e0
-      SC_CO(:,:)  = 1e0
+      SC_CO(:,:) = 1e0
 
       !----------------------------------
       ! Read CO data from disk
@@ -933,15 +904,18 @@
       ! Do the regridding
       !----------------------------------
 
-      ! Regrid CO emissions to current model resolution [kg/yr]
-      !CALL DO_REGRID_1x1( 'kg/yr', GEOS_1x1, E_CO )
+      ! File with lat/lon edges for regridding
       LLFILENAME = TRIM( DATA_DIR_1x1) //
-     &   'MAP_A2A_Regrid_200312/latlon_generic.txt'
-        ALLOCATE(INGRID(I1x1,J1x1-1))
-        ALLOCATE(OUTGRID(IIPAR,JJPAR))
-        INGRID = E_CO_1x1
-        CALL DO_REGRID_A2A(LLFILENAME,360,181,INGRID,OUTGRID,1)
-        E_CO=OUTGRID
+     &             'MAP_A2A_Regrid_200312/latlon_generic.txt'
+
+      ! Allocate arrays for regridding
+      ALLOCATE(INGRID(I1x1,J1x1-1))
+      ALLOCATE(OUTGRID(IIPAR,JJPAR))
+
+      ! Regrid CO emissions to current model resolution [kg/yr]
+      INGRID = E_CO_1x1
+      CALL DO_REGRID_A2A( LLFILENAME, 360, 181, INGRID, OUTGRID, 1 )
+      E_CO = OUTGRID
 
       !----------------------------------
       ! Scale CO from 2000 -> this year
@@ -958,16 +932,18 @@
       IF ( LEDGARSHIP ) THEN
 
          ! Regrid CO emissions to current model resolution [kg/yr]
-         !CALL DO_REGRID_1x1( 'kg/yr', GEOS_1x1, E_CO_SHIP )
-        INGRID = E_CO_SHIP_1x1
-        CALL DO_REGRID_A2A(LLFILENAME,360,181,INGRID,OUTGRID,1)
+         INGRID = E_CO_SHIP_1x1
+         CALL DO_REGRID_A2A( LLFILENAME, 360, 181, INGRID, OUTGRID, 1 )
 
          ! Apply scale factors
          E_CO_SHIP = OUTGRID * SC_CO
 
       ENDIF
-        DEALLOCATE(INGRID)
-        DEALLOCATE(OUTGRID)
+
+      ! Deallocate arrays for regridding
+      DEALLOCATE(INGRID)
+      DEALLOCATE(OUTGRID)
+
       ! Return to calling program
       END SUBROUTINE COMPUTE_EDGAR_CO
 
@@ -990,18 +966,16 @@
 !******************************************************************************
 !
       ! Reference to F90 modules
-      USE LOGICAL_MOD,    ONLY : LEDGARSHIP
+      USE LOGICAL_MOD, ONLY : LEDGARSHIP
 
-      USE CMN_SIZE_MOD       ! Size parameters
+      USE CMN_SIZE_MOD      ! Size parameters
 
       ! Arguments
-      REAL*8, INTENT(OUT)     :: T_CO_1x1(I1x1,J1x1-1)
-      REAL*8, INTENT(OUT)     :: T_CO_SHIP_1x1(I1x1,J1x1-1)
+      REAL*8, INTENT(OUT)  :: T_CO_1x1(I1x1,J1x1-1)
+      REAL*8, INTENT(OUT)  :: T_CO_SHIP_1x1(I1x1,J1x1-1)
 
       ! Local variables
-      REAL*4                  :: E_IN(I1x1,J1x1-1)
-      !REAL*8                  :: T_CO_1x1(I1x1,J1x1-1)
-      !REAL*8                  :: T_CO_SHIP_1x1(I1x1,J1x1-1)
+      REAL*4               :: E_IN(I1x1,J1x1-1)
 
       !=================================================================
       ! READ_EDGAR_CO begins here!
@@ -1070,18 +1044,6 @@
       CALL READ_EDGAR_DATA( 'w4095co', 4, E_IN )
       CALL ADD_EDGAR_DATA( E_IN, T_CO_1x1 )
 
-!------------------------------------------------
-! Regrid from GENERIC 1x1 GRID to GEOS 1x1 GRID
-! -> Regridding algorithms replaced. No longer needed
-!------------------------------------------------
-!
-!      ! Anthro CO [kg/yr] 
-!      !CALL DO_REGRID_G2G_1x1( 'kg/yr', T_CO_1x1, E_CO_1x1 )
-!
-!      ! Ship CO [kg/yr] 
-!      !CALL DO_REGRID_G2G_1x1( 'kg/yr', T_CO_SHIP_1x1, E_CO_SHIP_1x1 )
-!
-!-------------------------------------------------
       ! Return to calling program
       END SUBROUTINE READ_EDGAR_CO
 
@@ -1111,12 +1073,12 @@
 !  NOTES:
 !  08 Mar 2012 - M. Payer    - Added modifications for historical emissions of
 !                              SO2 (E. Leibensperger)
+!  13 Mar 2012 - M. Cooper   - Changed regrid algorithm to map_a2a
 !******************************************************************************
 !
       ! References to F90 modules
       USE DIRECTORY_MOD,     ONLY : DATA_DIR_1x1
       USE LOGICAL_MOD,       ONLY : LEDGARSHIP
-      USE REGRID_1x1_MOD,    ONLY : DO_REGRID_1x1
       USE TIME_MOD,          ONLY : EXPAND_DATE
       USE SCALE_ANTHRO_MOD,  ONLY : GET_ANNUAL_SCALAR
       USE REGRID_A2A_MOD,    ONLY : DO_REGRID_A2A      
@@ -1125,30 +1087,28 @@
       USE BPCH2_MOD,         ONLY : READ_BPCH2
 !eml]
 
-      USE CMN_SIZE_MOD       ! Size parameters
+      USE CMN_SIZE_MOD            ! Size parameters
 
       ! Arguments
-      INTEGER, INTENT(IN)            :: YEAR, MONTH
-      REAL*8,  INTENT(OUT)           :: E_SO2(IIPAR,JJPAR)
+      INTEGER, INTENT(IN)              :: YEAR, MONTH
+      REAL*8,  INTENT(OUT)             :: E_SO2(IIPAR,JJPAR)
       REAL*8,  INTENT(INOUT), OPTIONAL :: E_SO2_SHIP(IIPAR,JJPAR)
 
       ! Local variables
-      INTEGER                 :: I, J, H, YYYYMMDD
-      REAL*8                  :: E_SO2_1x1(I1x1,J1x1-1)
-      REAL*8                  :: E_SO2_SHIP_1x1(I1x1,J1x1-1)
-      REAL*4                  :: SC_SO2(IIPAR,JJPAR)
-      !REAL*8                  :: GEOS_1x1(I1x1,J1x1,1)
-      CHARACTER(LEN=255)      :: NAME
-      CHARACTER(LEN=255)      :: LLFILENAME
-      REAL*8, ALLOCATABLE     :: OUTGRID(:,:)
-      REAL*8, ALLOCATABLE     :: INGRID(:,:)
+      INTEGER                          :: I, J, H, YYYYMMDD
+      REAL*8                           :: E_SO2_1x1(I1x1,J1x1-1)
+      REAL*8                           :: E_SO2_SHIP_1x1(I1x1,J1x1-1)
+      REAL*4                           :: SC_SO2(IIPAR,JJPAR)
+      CHARACTER(LEN=255)               :: NAME
+      CHARACTER(LEN=255)               :: LLFILENAME
+      REAL*8, ALLOCATABLE              :: OUTGRID(:,:)
+      REAL*8, ALLOCATABLE              :: INGRID(:,:)
 
       !=================================================================
       ! COMPUTE_EDGAR_SO2 begins here!
       !=================================================================
 
       ! Initialize
-      !GEOS_1x1(:,:,:) = 0d0
       SC_SO2(:,:) = 1d0
 
       !----------------------------------
@@ -1158,14 +1118,17 @@
       ! Read EDGAR anthro SO2 and ship SO2
       CALL READ_EDGAR_SO2( E_SO2_1x1, E_SO2_SHIP_1x1 )
 
-      ! Regrid SO2 emissions to current model resolution [kg/yr]
-      !CALL DO_REGRID_1x1( 'kg/yr', GEOS_1x1, E_SO2 )
+      ! File with lat/lon edges for regridding
       LLFILENAME = TRIM( DATA_DIR_1x1) //
-     &   'MAP_A2A_Regrid_200312/latlon_generic.txt'
-        ALLOCATE(INGRID(I1x1,J1x1-1))
-        ALLOCATE(OUTGRID(IIPAR,JJPAR))
-        INGRID = E_SO2_1x1
-        CALL DO_REGRID_A2A(LLFILENAME,360,181,INGRID,OUTGRID,1)
+     &             'MAP_A2A_Regrid_200312/latlon_generic.txt'
+
+      ! Allocate arrays for regridding
+      ALLOCATE(INGRID(I1x1,J1x1-1))
+      ALLOCATE(OUTGRID(IIPAR,JJPAR))
+
+      ! Regrid SO2 emissions to current model resolution [kg/yr]
+      INGRID = E_SO2_1x1
+      CALL DO_REGRID_A2A( LLFILENAME, 360, 181, INGRID, OUTGRID, 1 )
 
       !----------------------------------
       ! Scale SO2 from 2000 -> this year
@@ -1173,10 +1136,10 @@
       CALL GET_ANNUAL_SCALAR( 73, 2000, YEAR, SC_SO2 ) 
 
       !----------------------------------
-      ! Scale anthro SO2 and regrid
+      ! Scale anthro SO2
       !----------------------------------
 
-      ! Apply scale factors at 1x1
+      ! Apply scale factors
 ![eml Skip scaling if using historical emissions
       IF ( .not. LHIST ) THEN
          E_SO2(:,:) = OUTGRID * SC_SO2
@@ -1192,17 +1155,18 @@
       IF ( LEDGARSHIP ) THEN
 
          ! Regrid SO2 emissions to current model resolution [kg/yr]
-         !CALL DO_REGRID_1x1( 'kg/yr', GEOS_1x1, E_SO2_SHIP )
-         INGRID= E_SO2_SHIP_1x1
-         CALL DO_REGRID_A2A(LLFILENAME,360,181,INGRID,OUTGRID,1)
+         INGRID = E_SO2_SHIP_1x1
+         CALL DO_REGRID_A2A( LLFILENAME, 360, 181, INGRID, OUTGRID, 1 )
                 
          ! Apply scale factors
          E_SO2_SHIP = OUTGRID * SC_SO2
+
          ! Apply seasonal scaling
          CALL SEASCL_EDGAR_SHIP_SO2( E_SO2_SHIP )
 
       ENDIF
 
+      ! Deallocate arrays for regridding
       DEALLOCATE(INGRID)
       DEALLOCATE(OUTGRID)
 
@@ -1239,7 +1203,7 @@
       USE BPCH2_MOD,      ONLY : GET_TAU0, READ_BPCH2
 !eml]
 
-      USE CMN_SIZE_MOD       ! Size parameters
+      USE CMN_SIZE_MOD         ! Size parameters
 
       ! Arguments
       REAL*8,  INTENT(OUT)    :: T_SO2_1x1(I1x1,J1x1-1)
@@ -1387,18 +1351,6 @@
       ! Convert [kg SO2/yr] to [kg SO2/season]
       CALL SEASCL_EDGAR_ANTH_SO2( T_SO2_1x1 )
 
-!-----------------------------------------------------------------
-! Regrid SO2 from GENERIC 1x1 GRID to GEOS 1x1 GRID
-! ->No longer needed. Regridding algorithm changed.
-!-----------------------------------------------------------------
-!
-!      ! Anthro SO2 [kg/season]
-!      CALL DO_REGRID_G2G_1x1( 'kg/season', T_SO2_1x1, E_SO2_1x1 )
-!
-!      ! Ship SO2 [kg/season] 
-!      CALL DO_REGRID_G2G_1x1( 'kg/season', T_SO2_SHIP_1x1, 
-!     &                                     E_SO2_SHIP_1x1 )
-!-------------------------------------------------------------------------
       !-----------------------------------------------------------------
       ! Force a monthly variation onto the anthropogenic SO2 emissions
       ! by applying monthly scale factors.  The scale factors are the
@@ -1411,7 +1363,8 @@
       !-----------------------------------------------------------------
 
       ! Convert [kg SO2/yr] to [kg SO2/month]
-      ! ->Temporarily moved to compute_edgar_so2, where scaling is done at model resolution
+      ! ->Temporarily moved to compute_edgar_so2, where scaling is done at
+      !   model resolution
       !CALL SEASCL_EDGAR_SHIP_SO2( T_SO2_SHIP_1x1 )
 
       ! Return to calling program
@@ -1445,7 +1398,7 @@
       USE BPCH2_MOD,     ONLY : READ_BPCH2
       USE DIRECTORY_MOD, ONLY : DATA_DIR_1x1
 
-      USE CMN_SIZE_MOD      ! Size parameters
+      USE CMN_SIZE_MOD        ! Size parameters
  
       ! Arguments
       REAL*8,  INTENT(INOUT) :: E_SO2_1x1(I1x1,J1x1-1)
@@ -1504,25 +1457,25 @@
 !  (1 ) E_SO2_SHIP (REAL*8 ) : Ship SO2 array [kg SO2/month]
 !
 !  NOTES:
+!  13 Mar 2012 - M. Cooper   - Changed regrid algorithm to map_a2a
 !******************************************************************************
 !
       ! References to F90 modules
-      USE BPCH2_MOD,     ONLY : READ_BPCH2
-      USE DIRECTORY_MOD, ONLY : DATA_DIR_1x1
+      USE BPCH2_MOD,      ONLY : READ_BPCH2
+      USE DIRECTORY_MOD,  ONLY : DATA_DIR_1x1
       USE REGRID_A2A_MOD, ONLY : DO_REGRID_A2A
 
-      USE CMN_SIZE_MOD      ! Size parameters
+      USE CMN_SIZE_MOD         ! Size parameters
  
       ! Arguments
-      !REAL*8,  INTENT(INOUT) :: E_SO2_SHIP_1x1(I1x1,J1x1)
-      REAL*8,  INTENT(INOUT) :: E_SO2_SHIP(IIPAR,JJPAR) 
+      REAL*8,  INTENT(INOUT)  :: E_SO2_SHIP(IIPAR,JJPAR) 
 
       ! Local variables
-      INTEGER                :: I, J
-      REAL*4                 :: ARRAY(I1x1,J1x1,1)
-      REAL*8                 :: THIS_TAU
-      CHARACTER(LEN=3)       :: THIS_MON
-      CHARACTER(LEN=255)     :: FILENAME
+      INTEGER                 :: I, J
+      REAL*4                  :: ARRAY(I1x1,J1x1,1)
+      REAL*8                  :: THIS_TAU
+      CHARACTER(LEN=3)        :: THIS_MON
+      CHARACTER(LEN=255)      :: FILENAME
       CHARACTER(LEN=255)      :: LLFILENAME
       REAL*8, ALLOCATABLE     :: OUTGRID(:,:)
       REAL*8, ALLOCATABLE     :: INGRID(:,:)
@@ -1544,19 +1497,23 @@
       CALL READ_BPCH2( FILENAME,  'EDGAR-2D', 73, 
      &                 MONTH_TAU0, I1x1,      J1x1,     
      &                 1,          ARRAY,     QUIET=.TRUE. ) 
-
       
-      ! Apply monthly scale factors to ship SO2
-      !E_SO2_SHIP_1x1(:,:) = E_SO2_SHIP_1x1(:,:) * ARRAY(:,:,1)
+      ! File with lat/lon edges for regridding
+      LLFILENAME = TRIM( DATA_DIR_1x1) //
+     &             'MAP_A2A_Regrid_200312/latlon_geos1x1.txt'
+
+      ! Allocate arrays for regridding
+      ALLOCATE(INGRID(I1x1,J1x1))
+      ALLOCATE(OUTGRID(IIPAR,JJPAR))
 
       ! Regrid to current model resolution
-      LLFILENAME = TRIM( DATA_DIR_1x1) //
-     &   'MAP_A2A_Regrid_200312/latlon_geos1x1.txt'
-        ALLOCATE(INGRID(I1x1,J1x1))
-        ALLOCATE(OUTGRID(IIPAR,JJPAR))
-        INGRID = ARRAY(:,:,1)
-        CALL DO_REGRID_A2A(LLFILENAME,360,182,INGRID,OUTGRID,1)
-        E_SO2_SHIP = E_SO2_SHIP * OUTGRID
+      INGRID = ARRAY(:,:,1)
+      CALL DO_REGRID_A2A( LLFILENAME, 360, 182, INGRID, OUTGRID, 1 )
+
+      ! Apply monthly scale factors to ship SO2
+      E_SO2_SHIP = E_SO2_SHIP * OUTGRID
+
+      ! Deallocate arrays for regridding
       DEALLOCATE(INGRID)
       DEALLOCATE(OUTGRID)
 
@@ -1584,7 +1541,7 @@
       USE DIRECTORY_MOD,        ONLY : DATA_DIR_1x1
       USE BPCH2_MOD,            ONLY : GET_TAU0, READ_BPCH2
 
-      USE CMN_SIZE_MOD             ! Size parameters
+      USE CMN_SIZE_MOD               ! Size parameters
 
       ! Arguments
       INTEGER,          INTENT(IN)  :: TRACER
@@ -1657,7 +1614,7 @@
 !  NOTES:
 !******************************************************************************
 !
-      USE CMN_SIZE_MOD             ! Size parameters
+      USE CMN_SIZE_MOD               ! Size parameters
 
       ! Arguments
       REAL*4, INTENT(IN)            :: E(I1x1,J1x1-1)
@@ -2234,34 +2191,31 @@
 !                         [molec/cm2/s]  (tmf, 7/8/05)
 !
 !  NOTES:
+!  13 Mar 2012 - M. Cooper   - Changed regrid algorithm to map_a2a
 !******************************************************************************
 !
       ! References to F90 modules
       USE BPCH2_MOD
-      USE DIRECTORY_MOD, ONLY : DATA_DIR_1x1
-      USE REGRID_1x1_MOD,       ONLY : DO_REGRID_1x1
+      USE DIRECTORY_MOD,  ONLY : DATA_DIR_1x1
       USE REGRID_A2A_MOD, ONLY : DO_REGRID_A2A
+
+      USE CMN_SIZE_MOD         ! Size parameters
 
 !      IMPLICIT NONE
 #     include "define.h"
 
-      USE CMN_SIZE_MOD            ! Size parameters
-
       ! Arguments
-      REAL*4, INTENT(OUT) :: E_BENZ(IIPAR,JJPAR )
-      REAL*4, INTENT(OUT) :: E_TOLU(IIPAR,JJPAR )
-      REAL*4, INTENT(OUT) :: E_XYLE(IIPAR,JJPAR )
+      REAL*4, INTENT(OUT)     :: E_BENZ(IIPAR,JJPAR )
+      REAL*4, INTENT(OUT)     :: E_TOLU(IIPAR,JJPAR )
+      REAL*4, INTENT(OUT)     :: E_XYLE(IIPAR,JJPAR )
 
       ! Local variables
-      INTEGER                       :: L
-      REAL*4                        :: ARRAY(I1x1,J1x1 )
-      CHARACTER(LEN=255)            :: FILENAME
-      REAL*8 :: GEOS1x1(I1x1,J1x1,1)
-      REAL*8 :: TEMP(IIPAR,JJPAR)
+      INTEGER                 :: L
+      REAL*4                  :: ARRAY(I1x1,J1x1 )
+      CHARACTER(LEN=255)      :: FILENAME
       CHARACTER(LEN=255)      :: LLFILENAME
       REAL*8, ALLOCATABLE     :: OUTGRID(:,:)
       REAL*8, ALLOCATABLE     :: INGRID(:,:)
-      INTEGER                 :: I
 
       !=================================================================
       ! READ_AROMATICS begins here!
@@ -2278,23 +2232,26 @@
       !=================================================================
       FILENAME = TRIM( DATA_DIR_1x1 )//
      &         'EDGAR_200607/BENZ/BENZ_1985_FF_IND_EDGAR2.1x1geos.bpch'
+
       ! Write file name to stdout
       WRITE( 6, 100 ) TRIM( FILENAME )
 
-      CALL READ_BPCH2( FILENAME, 'ANTHSRCE',    57, 
-     &                 0.d0,       I1x1,        J1x1,     
-     &                    1,         ARRAY,        QUIET=.TRUE. )
+      CALL READ_BPCH2( FILENAME, 'ANTHSRCE',  57, 
+     &                 0.d0,     I1x1,        J1x1,     
+     &                 1,        ARRAY,       QUIET=.TRUE. )
          
+      ! File with lat/lon edges for regridding
+      LLFILENAME = TRIM( DATA_DIR_1x1) //
+     &             'MAP_A2A_Regrid_200312/latlon_geos1x1.txt'
+
+      ! Allocate arrays for regridding
+      ALLOCATE(INGRID(I1x1,J1x1))
+      ALLOCATE(OUTGRID(IIPAR,JJPAR))
+
       ! Regrid BENZ from GEOS 1x1 to current model resolution
       ! [atoms C/cm2/s] (ccc, 3/9/09)
-      !GEOS1x1(:,:,1) = ARRAY(:,:)
-      !CALL DO_REGRID_1x1('atoms C/cm2/s', GEOS1x1, TEMP)
-      LLFILENAME = TRIM( DATA_DIR_1x1) //
-     &   'MAP_A2A_Regrid_200312/latlon_geos1x1.txt'
-        ALLOCATE(INGRID(I1x1,J1x1))
-        ALLOCATE(OUTGRID(IIPAR,JJPAR))
-        INGRID = ARRAY
-        CALL DO_REGRID_A2A(LLFILENAME,360,181,INGRID,OUTGRID,0)
+      INGRID = ARRAY
+      CALL DO_REGRID_A2A( LLFILENAME, 360, 181, INGRID, OUTGRID, 0 )
       E_BENZ = OUTGRID
 
       !=================================================================
@@ -2302,20 +2259,18 @@
       !=================================================================
       FILENAME = TRIM( DATA_DIR_1x1 )//
      &         'EDGAR_200607/TOLU/TOLU_1985_FF_IND_EDGAR2.1x1geos.bpch'
+
       ! Write file name to stdout
       WRITE( 6, 100 ) TRIM( FILENAME )
 
-      CALL READ_BPCH2( FILENAME, 'ANTHSRCE',    58, 
-     &                 0.d0,       I1x1,        J1x1,     
-     &                    1,         ARRAY,        QUIET=.TRUE. )
+      CALL READ_BPCH2( FILENAME, 'ANTHSRCE',  58, 
+     &                 0.d0,     I1x1,        J1x1,     
+     &                 1,        ARRAY,       QUIET=.TRUE. )
          
       ! Regrid TOLU from GEOS 1x1 to current model resolution
       ! [atoms C/cm2/s] (ccc, 3/9/09)
-      !GEOS1x1(:,:,1) = ARRAY(:,:)
-      !CALL DO_REGRID_1x1('atoms C/cm2/s', GEOS1x1, TEMP)
-
-      INGRID=ARRAY
-      CALL DO_REGRID_A2A(LLFILENAME,360,181,INGRID,OUTGRID,0)
+      INGRID = ARRAY
+      CALL DO_REGRID_A2A( LLFILENAME, 360, 181, INGRID, OUTGRID, 0 )
       E_TOLU = OUTGRID
 
       !=================================================================
@@ -2323,27 +2278,27 @@
       !=================================================================
       FILENAME = TRIM( DATA_DIR_1x1 )//
      &         'EDGAR_200607/XYLE/XYLE_1985_FF_IND_EDGAR2.1x1geos.bpch'
+
       ! Write file name to stdout
       WRITE( 6, 100 ) TRIM( FILENAME )
 
-
-      CALL READ_BPCH2( FILENAME, 'ANTHSRCE',    59, 
-     &                 0.d0,       I1x1,        J1x1,     
-     &                    1,         ARRAY,        QUIET=.TRUE. )
+      CALL READ_BPCH2( FILENAME, 'ANTHSRCE',  59, 
+     &                 0.d0,     I1x1,        J1x1,     
+     &                 1,        ARRAY,       QUIET=.TRUE. )
          
       ! Regrid XYLE from GEOS 1x1 to current model resolution
       ! [atoms C/cm2/s] (ccc, 3/9/09)
-      !GEOS1x1(:,:,1) = ARRAY(:,:)
-      !CALL DO_REGRID_1x1('atoms C/cm2/s', GEOS1x1, TEMP)
-      INGRID=ARRAY
-      CALL DO_REGRID_A2A(LLFILENAME,360,181,INGRID,OUTGRID,0)
+      INGRID = ARRAY
+      CALL DO_REGRID_A2A( LLFILENAME, 360, 181, INGRID, OUTGRID, 0 )
       E_XYLE = OUTGRID
 
 
  100  FORMAT( 'READ_AROMATICS: Reading ', a )
 
+      ! Deallocate arrays for regridding
       DEALLOCATE(INGRID)
       DEALLOCATE(OUTGRID)
+
       ! Return to calling program
       END SUBROUTINE READ_AROMATICS
 
@@ -2363,28 +2318,26 @@
 !
 !  NOTES:
 !  (1) Bug fix: EDGAR200607 should be EDGAR_200607 (tmf, bmy, 12/20/10)
+!  13 Mar 2012 - M. Cooper   - Changed regrid algorithm to map_a2a
 !******************************************************************************
 !
       ! References to F90 modules
       USE BPCH2_MOD
-      USE DIRECTORY_MOD, ONLY : DATA_DIR_1x1
-      USE REGRID_1x1_MOD,       ONLY : DO_REGRID_1x1
+      USE DIRECTORY_MOD,  ONLY : DATA_DIR_1x1
       USE REGRID_A2A_MOD, ONLY : DO_REGRID_A2A
+
+      USE CMN_SIZE_MOD         ! Size parameters
 
 !      IMPLICIT NONE
 #     include "define.h"
 
-      USE CMN_SIZE_MOD            ! Size parameters
-
       ! Arguments
-      REAL*4, INTENT(OUT) :: E_C2H4(IIPAR,JJPAR )
+      REAL*4, INTENT(OUT)     :: E_C2H4(IIPAR,JJPAR )
 
       ! Local variables
-      INTEGER                       :: L
-      REAL*4                        :: ARRAY(I1x1,J1x1 )
-      CHARACTER(LEN=255)            :: FILENAME
-      REAL*8 :: GEOS1x1(I1x1,J1x1,1)
-      REAL*8 :: TEMP(IIPAR,JJPAR)
+      INTEGER                 :: L
+      REAL*4                  :: ARRAY(I1x1,J1x1 )
+      CHARACTER(LEN=255)      :: FILENAME
       CHARACTER(LEN=255)      :: LLFILENAME
       REAL*8, ALLOCATABLE     :: OUTGRID(:,:)
       REAL*8, ALLOCATABLE     :: INGRID(:,:)
@@ -2406,22 +2359,25 @@
       !=================================================================
       ! Read C2H4 (tracer #63): aseasonal
       !=================================================================
-      CALL READ_BPCH2( FILENAME, 'ANTHSRCE',    63, 
-     &                 0.d0,       I1x1,        J1x1,     
-     &                    1,         ARRAY,        QUIET=.TRUE. )
-         
+      CALL READ_BPCH2( FILENAME, 'ANTHSRCE',  63, 
+     &                 0.d0,     I1x1,        J1x1,     
+     &                 1,        ARRAY,       QUIET=.TRUE. )
+
+      ! File with lat/lon edges for regridding
+      LLFILENAME = TRIM( DATA_DIR_1x1) //
+     &             'MAP_A2A_Regrid_200312/latlon_geos1x1.txt'
+
+      ! Allocate arrays for regridding
+      ALLOCATE(INGRID(I1x1,J1x1))
+      ALLOCATE(OUTGRID(IIPAR,JJPAR))
 
       ! Regrid C2H4 from GEOS 1x1 to current model resolution
       ! [atoms C/cm2/s] (ccc, 3/9/09)
-      !GEOS1x1(:,:,1) = ARRAY(:,:)
-      !CALL DO_REGRID_1x1('atoms C/cm2/s', GEOS1x1, TEMP)
-      LLFILENAME = TRIM( DATA_DIR_1x1) //
-     &   'MAP_A2A_Regrid_200312/latlon_geos1x1.txt'
-        ALLOCATE(INGRID(I1x1,J1x1))
-        ALLOCATE(OUTGRID(IIPAR,JJPAR))
-        INGRID = ARRAY
-        CALL DO_REGRID_A2A(LLFILENAME,360,181,INGRID,OUTGRID,0)
+      INGRID = ARRAY
+      CALL DO_REGRID_A2A( LLFILENAME, 360, 181, INGRID, OUTGRID, 0 )
       E_C2H4 = OUTGRID
+
+      ! Deallocate arrays for regridding
       DEALLOCATE(INGRID)
       DEALLOCATE(OUTGRID)
 
@@ -2444,28 +2400,26 @@
 !
 !  NOTES:
 !  (1) Bug fix: EDGAR200607 should be EDGAR_200607 (tmf, bmy, 12/20/10)
+!  13 Mar 2012 - M. Cooper   - Changed regrid algorithm to map_a2a
 !******************************************************************************
 !
       ! References to F90 modules
       USE BPCH2_MOD  
-      USE DIRECTORY_MOD, ONLY : DATA_DIR_1x1
-      USE REGRID_1x1_MOD,       ONLY : DO_REGRID_1x1
+      USE DIRECTORY_MOD,  ONLY : DATA_DIR_1x1
       USE REGRID_A2A_MOD, ONLY : DO_REGRID_A2A
+
+      USE CMN_SIZE_MOD         ! Size parameters
 
 !      IMPLICIT NONE
 #     include "define.h"
 
-      USE CMN_SIZE_MOD            ! Size parameters
-
       ! Arguments
-      REAL*4, INTENT(OUT) :: E_C2H2(IIPAR,JJPAR )
+      REAL*4, INTENT(OUT)     :: E_C2H2(IIPAR,JJPAR )
 
       ! Local variables
-      INTEGER                       :: L
-      REAL*4                        :: ARRAY(I1x1,J1x1 )
-      CHARACTER(LEN=255)            :: FILENAME
-      REAL*8 :: GEOS1x1(I1x1,J1x1,1)
-      REAL*8 :: TEMP(IIPAR,JJPAR)
+      INTEGER                 :: L
+      REAL*4                  :: ARRAY(I1x1,J1x1 )
+      CHARACTER(LEN=255)      :: FILENAME
       CHARACTER(LEN=255)      :: LLFILENAME
       REAL*8, ALLOCATABLE     :: OUTGRID(:,:)
       REAL*8, ALLOCATABLE     :: INGRID(:,:)
@@ -2487,23 +2441,28 @@
       !=================================================================
       ! Read C2H2 (tracer #64): aseasonal
       !=================================================================
-      CALL READ_BPCH2( FILENAME, 'ANTHSRCE',    64, 
-     &                 0.d0,       I1x1,        J1x1,     
-     &                    1,         ARRAY,        QUIET=.TRUE. )
+      CALL READ_BPCH2( FILENAME, 'ANTHSRCE',  64, 
+     &                 0.d0,     I1x1,        J1x1,     
+     &                 1,        ARRAY,       QUIET=.TRUE. )
          
+      ! File with lat/lon edges for regridding
+      LLFILENAME = TRIM( DATA_DIR_1x1) //
+     &             'MAP_A2A_Regrid_200312/latlon_geos1x1.txt'
+
+      ! Allocate arrays for regridding
+      ALLOCATE(INGRID(I1x1,J1x1))
+      ALLOCATE(OUTGRID(IIPAR,JJPAR))
+
       ! Regrid C2H2 from GEOS 1x1 to current model resolution
       ! [atoms C/cm2/s] (ccc, 3/9/09)
-      !GEOS1x1(:,:,1) = ARRAY(:,:)
-      !CALL DO_REGRID_1x1('atoms C/cm2/s', GEOS1x1, TEMP)
-      LLFILENAME = TRIM( DATA_DIR_1x1) //
-     &   'MAP_A2A_Regrid_200312/latlon_geos1x1.txt'
-        ALLOCATE(INGRID(I1x1,J1x1))
-        ALLOCATE(OUTGRID(IIPAR,JJPAR))
-        INGRID = ARRAY
-        CALL DO_REGRID_A2A(LLFILENAME,360,181,INGRID,OUTGRID,0)
+      INGRID = ARRAY
+      CALL DO_REGRID_A2A( LLFILENAME, 360, 181, INGRID, OUTGRID, 0 )
       E_C2H2 = OUTGRID
+
+      ! Deallocate arrays for regridding
       DEALLOCATE(INGRID)
       DEALLOCATE(OUTGRID)
+
       ! Return to calling program
       END SUBROUTINE READ_C2H2
 

@@ -232,12 +232,11 @@
       USE BPCH2_MOD,         ONLY : GET_TAU0,      READ_BPCH2
       USE DIRECTORY_MOD,     ONLY : DATA_DIR_1x1 
       USE LOGICAL_MOD,       ONLY : LFUTURE
-      !USE REGRID_1x1_MOD,    ONLY : DO_REGRID_1x1
       USE TIME_MOD,          ONLY : GET_YEAR
       USE SCALE_ANTHRO_MOD,  ONLY : GET_ANNUAL_SCALAR_1x1
-      USE REGRID_A2A_MOD, ONLY : DO_REGRID_A2A
-      USE CMN_SIZE_MOD          ! Size parameters
-      USE CMN_O3_MOD            ! FSCALYR
+      USE REGRID_A2A_MOD,    ONLY : DO_REGRID_A2A
+      USE CMN_SIZE_MOD            ! Size parameters
+      USE CMN_O3_MOD              ! FSCALYR
 !
 ! !REVISION HISTORY: 
 !  28 Jan 2009 - P. Le Sager - Initial Version
@@ -285,12 +284,13 @@
          THISYEAR = FSCALYR
       ENDIF
 
+      ! File with lat/lon edges for regridding
       LLFILENAME = TRIM( DATA_DIR_1x1) //
-     &           'MAP_A2A_Regrid_200312/latlon_geos1x1.txt'
+     &             'MAP_A2A_Regrid_200312/latlon_geos1x1.txt'
+
+      ! Allocate arrays for regridding
       ALLOCATE(INGRID(I1x1,J1x1))
       ALLOCATE(OUTGRID(IIPAR,JJPAR))
-
-
 
       DO SPECIES = 1,4
 
@@ -329,7 +329,6 @@
 
             ! Read data
             CALL READ_BPCH2( FILENAME, 'ANTHSRCE', SNo, 
-!phs     &                       TAU,      I1x1,       J1x1-1,     
      &                       TAU,      I1x1,       J1x1,     
      &                       1,        ARRAY,      QUIET=.TRUE. ) 
 
@@ -368,7 +367,6 @@
 
             ! Read data
             CALL READ_BPCH2( FILENAME, 'ANTHSRCE', SNo,
-!phs     &                       TAU2002,   I1x1,      J1x1-1,
      &                       TAU2002,   I1x1,      J1x1,
      &                       1,         ARRAY,     QUIET=.TRUE. )
 
@@ -384,7 +382,6 @@
 
             ! Read data
             CALL READ_BPCH2( FILENAME, 'ANTHSRCE', SNo,
-!phs     &                       TAU2005,   I1x1,      J1x1-1,
      &                       TAU2005,   I1x1,      J1x1,
      &                       1,         ARRAY,     QUIET=.TRUE. )
 
@@ -398,19 +395,21 @@
 
          ENDIF
 
-         ! Regrid from GEOS 1x1 --> current model resolution
-         INGRID=GEOS_1x1(:,:,1)
+         ! Regrid from GEOS 1x1 --> current model resolution [kg/yr]
+         INGRID = GEOS_1x1(:,:,1)
+
          IF ( SPECIES .eq. 1 ) THEN
 
-            !CALL DO_REGRID_1x1( 'kg/yr', GEOS_1x1, NOx )
-        CALL DO_REGRID_A2A(LLFILENAME,360,182,INGRID,OUTGRID,1)
-        NOx=OUTGRID
+            CALL DO_REGRID_A2A( LLFILENAME, 360,     182, 
+     &                          INGRID,     OUTGRID, 1 )
+            NOx = OUTGRID
 
          ELSEIF ( SPECIES .eq. 2 ) THEN
 
-            !CALL DO_REGRID_1x1( 'kg/yr', GEOS_1x1, CO )
-         CALL DO_REGRID_A2A(LLFILENAME,360,182,INGRID,OUTGRID,1)
-         CO=OUTGRID
+            CALL DO_REGRID_A2A( LLFILENAME, 360,     182,
+     &                          INGRID,     OUTGRID, 1 )
+            CO = OUTGRID
+
          ELSEIF ( SPECIES .eq. 3 ) THEN
 
             ! Convert SOx to SO2, where SOx is assumed to be 1.4% SO4 and
@@ -418,19 +417,24 @@
             ! utilized in sulfate_mod.f
             !GEOS_1x1(:,:,1) = GEOS_1x1(:,:,1) * 0.986
             INGRID = INGRID * 0.986
-            !CALL DO_REGRID_1x1( 'kg/yr', GEOS_1x1, SO2 )
-         CALL DO_REGRID_A2A(LLFILENAME,360,182,INGRID,OUTGRID,1)
-         SO2=OUTGRID
+
+            CALL DO_REGRID_A2A( LLFILENAME, 360,     182,
+     &                          INGRID,     OUTGRID, 1 )
+            SO2 = OUTGRID
+
          ELSEIF ( SPECIES .eq. 4 ) THEN
 
-            !CALL DO_REGRID_1x1( 'kg/yr', GEOS_1x1, NH3 )
-         CALL DO_REGRID_A2A(LLFILENAME,360,182,INGRID,OUTGRID,1)
-         NH3=OUTGRID
-         ENDIF
+            CALL DO_REGRID_A2A( LLFILENAME, 360,     182,
+     &                          INGRID,     OUTGRID, 1 )
+            NH3 = OUTGRID
 
+         ENDIF
       ENDDO
+
+      ! Deallocate arrays for regridding
       DEALLOCATE(INGRID)
       DEALLOCATE(OUTGRID)
+
       !--------------------------
       ! Compute future emissions
       !--------------------------
@@ -812,13 +816,13 @@
 ! 
       USE BPCH2_MOD,      ONLY : GET_TAU0, READ_BPCH2
       USE DIRECTORY_MOD,  ONLY : DATA_DIR_1x1
-      !USE REGRID_1x1_MOD, ONLY : DO_REGRID_G2G_1x1, DO_REGRID_1x1
       USE REGRID_A2A_MOD, ONLY : DO_REGRID_A2A
 
-      USE CMN_SIZE_MOD       ! Size parameters
+      USE CMN_SIZE_MOD         ! Size parameters
 !
 ! !REVISION HISTORY: 
 !  28 Jan 2009 - P. Le Sager - Initial Version
+!  13 Mar 2012 - M. Cooper   - Changed regrid algorithm to map_a2a
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -844,8 +848,9 @@
       FILENAME  = TRIM( DATA_DIR_1x1 ) // 
      &            'CAC_200801/CanadaMask.geos.1x1'
 
+      ! File with lat/lon edges for regridding
       LLFILENAME = TRIM( DATA_DIR_1x1) //
-     &   'MAP_A2A_Regrid_200312/latlon_geos1x1.txt'
+     &             'MAP_A2A_Regrid_200312/latlon_geos1x1.txt'
 
       ! Echo info
       WRITE( 6, 100 ) TRIM( FILENAME )
@@ -862,20 +867,18 @@
       ! Save the 1x1 China mask for future use
       MASK_CANADA_1x1(:,:) = GEOS_1x1(:,:,1)
 
-      ! Regrid from GENERIC 1x1 to current model resolution
-        ALLOCATE(INGRID(I1x1,J1x1))
-        ALLOCATE(OUTGRID(IIPAR,JJPAR))
-        INGRID=GEOS_1x1(:,:,1)
-        CALL DO_REGRID_A2A(LLFILENAME,360,181,INGRID,OUTGRID,1)
-        DEALLOCATE(INGRID)
-        MASK_CANADA=OUTGRID
-        DEALLOCATE(OUTGRID)
+      ! Allocate arrays for regridding
+      ALLOCATE(INGRID(I1x1,J1x1))
+      ALLOCATE(OUTGRID(IIPAR,JJPAR))
 
-      ! Regrid from GENERIC 1x1 GRID to GEOS 1x1 GRID
-!      CALL DO_REGRID_G2G_1x1( 'unitless', GEN_1x1, GEOS_1x1(:,:,1) )
+      ! Regrid from GENERIC 1x1 to current model resolution [unitless]
+      INGRID = GEOS_1x1(:,:,1)
+      CALL DO_REGRID_A2A( LLFILENAME, 360, 181, INGRID, OUTGRID, 1 )
+      MASK_CANADA=OUTGRID
 
-      ! Regrid from GEOS 1x1 GRID to current model resolution
-!      CALL DO_REGRID_1x1( 'unitless', GEOS_1x1, MASK_CANADA )
+      ! Deallocate arrays for regridding
+      DEALLOCATE(INGRID)
+      DEALLOCATE(OUTGRID)
 
       END SUBROUTINE READ_CANADA_MASK
 !EOC

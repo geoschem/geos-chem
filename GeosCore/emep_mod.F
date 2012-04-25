@@ -315,14 +315,13 @@
       USE FILE_MOD,         ONLY : IU_FILE,      IOERROR
       USE DIRECTORY_MOD,    ONLY : DATA_DIR_1x1 
       USE LOGICAL_MOD,      ONLY : LFUTURE
-      !USE REGRID_1x1_MOD,   ONLY : DO_REGRID_1x1
       USE REGRID_A2A_MOD,   ONLY : DO_REGRID_A2A
       USE TIME_MOD,         ONLY : EXPAND_DATE,  GET_YEAR
       USE TIME_MOD,         ONLY : GET_MONTH
       USE SCALE_ANTHRO_MOD, ONLY : GET_ANNUAL_SCALAR
 
-      USE CMN_SIZE_MOD       ! Size parameters
-      USE CMN_O3_MOD         ! SCALEYEAR
+      USE CMN_SIZE_MOD           ! Size parameters
+      USE CMN_O3_MOD             ! SCALEYEAR
 !
 ! !REVISION HISTORY: 
 !  01 Nov 2005 - B. Field, R. Yantosca - Initial version
@@ -403,11 +402,13 @@
       ! Open file
       CALL OPEN_BPCH2_FOR_READ( IU_FILE, FILENAME )
 
-      ! Read lat/lon edges:  File name
+      ! File with lat/lon edges for regridding
       LLFILENAME = TRIM( DATA_DIR_1x1) //
-     &           'MAP_A2A_Regrid_200312/latlon_geos1x1.txt'
-        ALLOCATE(INGRID(I1x1,J1x1))
-        ALLOCATE(OUTGRID(IIPAR,JJPAR))
+     &             'MAP_A2A_Regrid_200312/latlon_geos1x1.txt'
+
+      ! Allocate arrays for regridding
+      ALLOCATE(INGRID(I1x1,J1x1))
+      ALLOCATE(OUTGRID(IIPAR,JJPAR))
 
       ! Read the entire file in one pass (for I/O optimization)
       DO 
@@ -440,50 +441,52 @@
 
             ! NOx [molec/cm2/s]
             CASE( 1  )
-              INGRID=ARRAY(:,:,1)
-              CALL DO_REGRID_A2A(LLFILENAME,360,182,INGRID,OUTGRID,0)
-              EMEP_NOx=OUTGRID
+               INGRID     = ARRAY(:,:,1)
+               CALL DO_REGRID_A2A( LLFILENAME, 360,     182,
+     &                             INGRID,     OUTGRID, 0 )
+               EMEP_NOx   = OUTGRID
 
             ! CO [molec/cm2/s]
             CASE( 4  )
-              INGRID=ARRAY(:,:,1)
-              CALL DO_REGRID_A2A(LLFILENAME,360,182,INGRID,OUTGRID,0)
-              EMEP_CO=OUTGRID
+               INGRID     = ARRAY(:,:,1)
+               CALL DO_REGRID_A2A( LLFILENAME, 360,     182,
+     &                             INGRID,     OUTGRID, 0 )
+               EMEP_CO    = OUTGRID
                
             ! ALK4 [atoms C/cm2/s]
             CASE( 5  )
-              INGRID=ARRAY(:,:,1)
-              CALL DO_REGRID_A2A(LLFILENAME,360,182,INGRID,OUTGRID,0)
-              EMEP_ALK4=OUTGRID
-               !CALL DO_REGRID_1x1( UNIT, ARRAY, EMEP_ALK4 )
+               INGRID     = ARRAY(:,:,1)
+               CALL DO_REGRID_A2A( LLFILENAME, 360,     182,
+     &                             INGRID,     OUTGRID, 0 )
+               EMEP_ALK4  = OUTGRID
 
             ! MEK [atoms C/cm2/s]
             CASE( 10 )
-              INGRID=ARRAY(:,:,1)
-              CALL DO_REGRID_A2A(LLFILENAME,360,182,INGRID,OUTGRID,0)
-              EMEP_MEK=OUTGRID
-               !CALL DO_REGRID_1x1( UNIT, ARRAY, EMEP_MEK  )
+               INGRID    = ARRAY(:,:,1)
+               CALL DO_REGRID_A2A( LLFILENAME, 360,     182,
+     &                             INGRID,     OUTGRID, 0 )
+               EMEP_MEK  = OUTGRID
 
             ! ALD2 [atoms C/cm2/s]
             CASE( 11 )
-              INGRID=ARRAY(:,:,1)
-              CALL DO_REGRID_A2A(LLFILENAME,360,182,INGRID,OUTGRID,0)
-              EMEP_ALD2=OUTGRID
-               !CALL DO_REGRID_1x1( UNIT, ARRAY, EMEP_ALD2 )
+               INGRID    = ARRAY(:,:,1)
+               CALL DO_REGRID_A2A( LLFILENAME, 360,     182,
+     &                             INGRID,     OUTGRID, 0 )
+               EMEP_ALD2 = OUTGRID
 
             ! PRPE [atoms C/cm2/s]
             CASE( 18 )
-              INGRID=ARRAY(:,:,1)
-              CALL DO_REGRID_A2A(LLFILENAME,360,182,INGRID,OUTGRID,0)
-              EMEP_PRPE=OUTGRID
-               !CALL DO_REGRID_1x1( UNIT, ARRAY, EMEP_PRPE )
+               INGRID    = ARRAY(:,:,1)
+               CALL DO_REGRID_A2A( LLFILENAME, 360,     182,
+     &                             INGRID,     OUTGRID, 0 )
+               EMEP_PRPE = OUTGRID
 
             ! C2H6 [atoms C/cm2/s]
             CASE( 21 )
-              INGRID=ARRAY(:,:,1)
-              CALL DO_REGRID_A2A(LLFILENAME,360,182,INGRID,OUTGRID,0)
-              EMEP_C2H6=OUTGRID
-               !CALL DO_REGRID_1x1( UNIT, ARRAY, EMEP_C2H6 )
+               INGRID    = ARRAY(:,:,1)
+               CALL DO_REGRID_A2A( LLFILENAME, 360,     182,
+     &                             INGRID,     OUTGRID, 0 )
+               EMEP_C2H6 = OUTGRID
 
             CASE DEFAULT
                ! Nothing
@@ -491,8 +494,11 @@
          END SELECT
 
       ENDDO
+
+      ! Deallocate arrays for regridding
       DEALLOCATE(INGRID)
       DEALLOCATE(OUTGRID)
+
       ! Close file
       CLOSE( IU_FILE )
 
@@ -994,9 +1000,8 @@
 ! 
       USE BPCH2_MOD,      ONLY : READ_BPCH2
       USE DIRECTORY_MOD,  ONLY : DATA_DIR_1x1
-      !USE REGRID_1x1_MOD, ONLY : DO_REGRID_1x1
       USE REGRID_A2A_MOD, ONLY : DO_REGRID_A2A
-      USE CMN_SIZE_MOD       ! Size parameters
+      USE CMN_SIZE_MOD         ! Size parameters
 !
 ! !REVISION HISTORY: 
 !  18 Oct 2006 - R. Yantosca - Initial version
@@ -1016,7 +1021,6 @@
       CHARACTER(LEN=255)      :: LLFILENAME
       REAL*8, ALLOCATABLE     :: OUTGRID(:,:)
       REAL*8, ALLOCATABLE     :: INGRID(:,:)
-      INTEGER                 :: I
 
       !=================================================================
       ! READ_EUROPE_MASK begins here!
@@ -1026,8 +1030,9 @@
       FILENAME  = TRIM( DATA_DIR_1x1 ) // 
      &            'EMEP_200911/EMEP_mask.geos.1x1'
 
+      ! File with lat/lon edges for regridding
       LLFILENAME = TRIM( DATA_DIR_1x1) //
-     &           'MAP_A2A_Regrid_200312/latlon_geos1x1.txt'
+     &             'MAP_A2A_Regrid_200312/latlon_geos1x1.txt'
 
       ! Echo info
       WRITE( 6, 100 ) TRIM( FILENAME )
@@ -1038,16 +1043,18 @@
      &                 0d0,       I1x1,     J1x1,     
      &                 1,         ARRAY,    QUIET=.TRUE. ) 
 
-      ! Regrid from GEOS 1x1 GRID to current model resolution
-      !CALL DO_REGRID_1x1( 'unitless', ARRAY, EUROPE_MASK )
-        ALLOCATE(INGRID(I1x1,J1x1))
-        INGRID=ARRAY(:,:,1)
-        ALLOCATE(OUTGRID(IIPAR,JJPAR))
-        CALL DO_REGRID_A2A(LLFILENAME,360,182,INGRID,OUTGRID,1)  
-        EUROPE_MASK=OUTGRID 
-        DEALLOCATE(INGRID)
-        DEALLOCATE(OUTGRID)
+      ! Allocate arrays for regridding
+      ALLOCATE(INGRID(I1x1,J1x1))
+      ALLOCATE(OUTGRID(IIPAR,JJPAR))
 
+      ! Regrid from GEOS 1x1 GRID to current model resolution
+      INGRID = ARRAY(:,:,1)
+      CALL DO_REGRID_A2A( LLFILENAME, 360, 182, INGRID, OUTGRID, 1 )  
+      EUROPE_MASK = OUTGRID 
+
+      ! Deallocate arrays for regridding
+      DEALLOCATE(INGRID)
+      DEALLOCATE(OUTGRID)
 
       END SUBROUTINE READ_EUROPE_MASK
 !EOC
@@ -1128,13 +1135,13 @@
       USE BPCH2_MOD,      ONLY : READ_BPCH2, GET_TAU0
       USE TIME_MOD,       ONLY : EXPAND_DATE, GET_MONTH
       USE DIRECTORY_MOD,  ONLY : DATA_DIR_1x1 
-      !USE REGRID_1x1_MOD, ONLY : DO_REGRID_1x1
       USE LOGICAL_MOD,    ONLY : LEMEPSHIP
       USE GRID_MOD,       ONLY : GET_AREA_CM2
       USE TRACERID_MOD,   ONLY : IDTNOx, IDTCO, IDTSO2, IDTNH3
       USE REGRID_A2A_MOD, ONLY : DO_REGRID_A2A
-      USE CMN_SIZE_MOD       ! Size parameters
-      USE CMN_O3_MOD         ! SCALEYEAR
+
+      USE CMN_SIZE_MOD         ! Size parameters
+      USE CMN_O3_MOD           ! SCALEYEAR
 !
 ! !INPUT PARAMETERS:
 !
@@ -1264,8 +1271,8 @@
 
          ! Read data
          CALL READ_BPCH2( FILENAME, 'RATIO-2D', RATIOID,
-     &                    TAU,   I1x1,      J1x1,
-     &                    1,         ARRAY_1x1,     QUIET=.TRUE. )
+     &                    TAU,      I1x1,       J1x1,
+     &                    1,        ARRAY_1x1,  QUIET=.TRUE. )
 
          ARRAY_1x1_LAND(:,:,1) = ARRAY_1x1_LAND(:,:,1) 
      &                           * ARRAY_1x1(:,:,1)
@@ -1277,17 +1284,22 @@
      &                                       ARRAY_1x1_SHIP(:,:,1)
       IF ( wSHIP .eq. 2 ) ARRAY_1x1(:,:,1) = ARRAY_1x1_SHIP(:,:,1)
 
-
+      ! File with lat/lon edges for regridding
       LLFILENAME = TRIM( DATA_DIR_1x1) //
-     &           'MAP_A2A_Regrid_200312/latlon_geos1x1.txt'
-        ALLOCATE(INGRID(I1x1,J1x1))
-        ALLOCATE(OUTGRID(IIPAR,JJPAR))
-        INGRID=ARRAY_1x1(:,:,1) !Units kg/yr
-        CALL DO_REGRID_A2A(LLFILENAME,360,181,INGRID,OUTGRID,1)
-        ARRAY=OUTGRID
-        DEALLOCATE(INGRID)
-        DEALLOCATE(OUTGRID)
-      !CALL DO_REGRID_1x1('kg/yr', ARRAY_1x1, ARRAY)
+     &             'MAP_A2A_Regrid_200312/latlon_geos1x1.txt'
+
+      ! Allocate arrays for regridding
+      ALLOCATE(INGRID(I1x1,J1x1))
+      ALLOCATE(OUTGRID(IIPAR,JJPAR))
+
+      ! Regrid to current model resolution [kg/yr]
+      INGRID = ARRAY_1x1(:,:,1)
+      CALL DO_REGRID_A2A( LLFILENAME, 360, 181, INGRID, OUTGRID, 1 )
+      ARRAY  = OUTGRID
+
+      ! Deallocate arrays for regridding
+      DEALLOCATE(INGRID)
+      DEALLOCATE(OUTGRID)
 
       ! Convert SOx to SO2 assuming a SOx is 95% SO2 over Europe, as used
       ! throughout GEOS-Chem, and as per Chin et al, 2000

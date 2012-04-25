@@ -180,14 +180,12 @@
       USE BPCH2_MOD,        ONLY : GET_TAU0,      READ_BPCH2
       USE DIRECTORY_MOD,    ONLY : DATA_DIR_1x1 
       USE LOGICAL_MOD,      ONLY : LFUTURE
-      !USE REGRID_1x1_MOD,   ONLY : DO_REGRID_1x1, DO_REGRID_G2G_1x1
-      USE SCALE_ANTHRO_MOD, ONLY : GET_ANNUAL_SCALAR_1x1
       USE SCALE_ANTHRO_MOD, ONLY : GET_ANNUAL_SCALAR
       USE TIME_MOD,         ONLY : GET_YEAR
       USE REGRID_A2A_MOD,   ONLY : DO_REGRID_A2A
 
-      USE CMN_SIZE_MOD         ! Size parameters
-      USE CMN_O3_MOD           ! 
+      USE CMN_SIZE_MOD           ! Size parameters
+      USE CMN_O3_MOD             ! 
 !
 ! !REVISION HISTORY: 
 !  22 Jun 2006 - R. Park, F. Boersma, R. Yantosca - Initial version
@@ -200,11 +198,9 @@
 ! !LOCAL VARIABLES:
 !
       LOGICAL, SAVE           :: FIRST = .TRUE.
-      INTEGER                 :: SCALEYEAR, I
+      INTEGER                 :: SCALEYEAR
       REAL*4                  :: ARRAY(I1x1,J1x1-1,1)
       REAL*8                  :: GEN_1x1(I1x1,J1x1-1)
-      REAL*8                  :: GEOS_1x1(I1x1,J1x1,1)
-      REAL*8                  :: SC_1x1(I1x1,J1x1)
       REAL*4                  :: SC(IIPAR,JJPAR)
       REAL*8                  :: TAU0
       CHARACTER(LEN=255)      :: FILENAME
@@ -257,20 +253,21 @@
       ! Cast from REAL*4 to REAL*8
       GEN_1x1(:,:) = ARRAY(:,:,1)
 
-      !Regrid to current model resolution
+      ! File with lat/lon edges for regridding
       LLFILENAME = TRIM( DATA_DIR_1x1) //
-     &   'MAP_A2A_Regrid_200312/latlon_generic.txt'
+     &             'MAP_A2A_Regrid_200312/latlon_generic.txt'
 
-        ALLOCATE(INGRID(I1x1,J1x1-1))
-        INGRID=GEN_1x1(:,:)
-        ALLOCATE(OUTGRID(IIPAR,JJPAR))
+      ! Allocate arrays for regridding
+      ALLOCATE(INGRID(I1x1,J1x1-1))
+      ALLOCATE(OUTGRID(IIPAR,JJPAR))
 
-       CALL DO_REGRID_A2A(LLFILENAME,360,181,INGRID,OUTGRID,0)
-       CALL GET_ANNUAL_SCALAR( 71, 1999, SCALEYEAR, SC )
-       BRAVO_NOx=OUTGRID * SC
+      ! Regrid to NOx [molec/cm2/s] current model resolution
+      INGRID = GEN_1x1(:,:)
+      CALL DO_REGRID_A2A( LLFILENAME, 360, 181, INGRID, OUTGRID, 0 )
 
-        DEALLOCATE(INGRID)
-        DEALLOCATE(OUTGRID)
+      ! Get & apply scaling factor
+      CALL GET_ANNUAL_SCALAR( 71, 1999, SCALEYEAR, SC )
+      BRAVO_NOx = OUTGRID * SC
 
       !---------------------
       ! Read and regrid CO
@@ -292,17 +289,12 @@
       GEN_1x1(:,:) = ARRAY(:,:,1)
 
       ! Regrid CO [molec/cm2/s] to current model resolution
+      INGRID = GEN_1x1(:,:)
+      CALL DO_REGRID_A2A( LLFILENAME, 360, 181, INGRID, OUTGRID, 0 )
 
-        ALLOCATE(INGRID(I1x1,J1x1-1))
-        INGRID=GEN_1x1(:,:)
-        ALLOCATE(OUTGRID(IIPAR,JJPAR))
-
-       CALL DO_REGRID_A2A(LLFILENAME,360,181,INGRID,OUTGRID,0)
-       CALL GET_ANNUAL_SCALAR( 72, 1999, SCALEYEAR, SC )
-       BRAVO_CO=OUTGRID * SC
-
-        DEALLOCATE(INGRID)
-        DEALLOCATE(OUTGRID)
+      ! Get & apply scaling factor
+      CALL GET_ANNUAL_SCALAR( 72, 1999, SCALEYEAR, SC )
+      BRAVO_CO=OUTGRID * SC
 
       !---------------------
       ! Read and regrid SO2
@@ -323,17 +315,17 @@
       ! Cast from REAL*4 to REAL*8
       GEN_1x1(:,:) = ARRAY(:,:,1)
 
-      ! Regrid SO2 [molec/cm2/s] to GEOS 1x1 GRID
-        ALLOCATE(INGRID(I1x1,J1x1-1))
-        INGRID=GEN_1x1(:,:)
-        ALLOCATE(OUTGRID(IIPAR,JJPAR))
+      ! Regrid SO2 [molec/cm2/s] to current model resolution
+      INGRID = GEN_1x1(:,:)
+      CALL DO_REGRID_A2A( LLFILENAME, 360, 181, INGRID, OUTGRID, 0 )
 
-       CALL DO_REGRID_A2A(LLFILENAME,360,181,INGRID,OUTGRID,0)
-       CALL GET_ANNUAL_SCALAR( 73, 1999, SCALEYEAR, SC )
-       BRAVO_SO2=OUTGRID * SC
+      ! Get & apply scaling factor
+      CALL GET_ANNUAL_SCALAR( 73, 1999, SCALEYEAR, SC )
+      BRAVO_SO2 = OUTGRID * SC
 
-        DEALLOCATE(INGRID)
-        DEALLOCATE(OUTGRID)
+      ! Deallocate arrays for regridding
+      DEALLOCATE(INGRID)
+      DEALLOCATE(OUTGRID)
 
       !=================================================================
       ! Compute IPCC future emissions (if necessary)
@@ -531,11 +523,10 @@
       USE BPCH2_MOD,      ONLY : GET_NAME_EXT_2D, GET_RES_EXT
       USE BPCH2_MOD,      ONLY : GET_TAU0,        READ_BPCH2
       USE DIRECTORY_MOD,  ONLY : DATA_DIR_1x1
-      !USE REGRID_1x1_MOD, ONLY : DO_REGRID_1x1,   DO_REGRID_G2G_1x1
       USE REGRID_A2A_MOD, ONLY : DO_REGRID_A2A
       USE TRANSFER_MOD,   ONLY : TRANSFER_2D
 
-      USE CMN_SIZE_MOD       ! Size parameters
+      USE CMN_SIZE_MOD         ! Size parameters
 !
 ! !REVISION HISTORY: 
 !  22 Jun 2006 - R. Park, F. Boersma, R. Yantosca - Initial version
@@ -549,7 +540,6 @@
 !
       REAL*4                  :: ARRAY(I1x1,J1x1-1,1)
       REAL*8                  :: GEN_1x1(I1x1,J1x1-1)
-      REAL*8                  :: GEOS_1x1(I1x1,J1x1,1)
       REAL*8                  :: XTAU
       CHARACTER(LEN=255)      :: FILENAME 
       CHARACTER(LEN=255)      :: LLFILENAME
@@ -578,12 +568,6 @@
 
       ! Cast from REAL*4 to REAL*8
       GEN_1x1(:,:) = ARRAY(:,:,1) 
-
-      ! Regrid from GENERIC 1x1 GRID to GEOS 1x1 GRID
-      !CALL DO_REGRID_G2G_1x1( 'unitless', GEN_1x1, GEOS_1x1(:,:,1) )
-      
-      ! Regrid from GEOS 1x1 GRID to current model resolution
-      !CALL DO_REGRID_1x1( 'unitless', GEOS_1x1, BRAVO_MASK )
 
       ! File with lat/lon edges for regridding
       LLFILENAME = TRIM( DATA_DIR_1x1) //

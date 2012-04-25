@@ -1063,36 +1063,32 @@
       ! References to F90 modules
       USE BPCH2_MOD,      ONLY : GET_TAU0,      READ_BPCH2
       USE DIRECTORY_MOD,  ONLY : DATA_DIR_1x1
-      !USE REGRID_1x1_MOD, ONLY : DO_REGRID_1x1
-      !USE REGRID_1x1_MOD, ONLY : DO_REGRID_G2G_1x1
       USE TIME_MOD,       ONLY : GET_MONTH
       USE TRACERID_MOD,   ONLY : IDTNH3
       USE REGRID_A2A_MOD, ONLY : DO_REGRID_A2A
 
-      USE CMN_SIZE_MOD        ! Size parameters
+      USE CMN_SIZE_MOD         ! Size parameters
   
       ! Arguments
       CHARACTER(LEN=*), INTENT(IN)    :: FILENAME, CATEGORY
       INTEGER,          INTENT(IN)    :: TRACERN
-      INTEGER,          INTENT(IN)    :: PERAREA          ! Used for regridding
+      INTEGER,          INTENT(IN)    :: PERAREA           ! For MAP_A2A regrid
       REAL*8,           INTENT(INOUT) :: ARR(IIPAR,JJPAR)
       REAL*8,           INTENT(IN)    :: TAU
-      !CHARACTER(LEN=*), OPTIONAL      :: UNIT
       
       ! Local variables
-      REAL*4                  :: ARRAY(I1x1,J1x1-1,1)
-      REAL*8                  :: GEN_1x1(I1x1,J1x1-1)
-      REAL*8                  :: GEOS_1x1(I1x1,J1x1,1)
-      CHARACTER(LEN=50)       :: THISUNIT
-      CHARACTER(LEN=255)      :: LLFILENAME
-      REAL*8, ALLOCATABLE     :: OUTGRID(:,:)
-      REAL*8, ALLOCATABLE     :: INGRID(:,:)
+      REAL*4                          :: ARRAY(I1x1,J1x1-1,1)
+      REAL*8                          :: GEN_1x1(I1x1,J1x1-1)
+      CHARACTER(LEN=50)               :: THISUNIT
+      CHARACTER(LEN=255)              :: LLFILENAME
+      REAL*8, ALLOCATABLE             :: OUTGRID(:,:)
+      REAL*8, ALLOCATABLE             :: INGRID(:,:)
 
       ! Variables for seasonal scaling of NH3 (jaf, 3/2/11)
-      REAL*4            :: SCALAR_1x1(I1x1,J1x1-1,1)
-      REAL*8            :: TAU1995
-      INTEGER           :: RATIOID, I
-      CHARACTER(LEN=250):: FILENAME_S
+      REAL*4                          :: SCALAR_1x1(I1x1,J1x1-1,1)
+      REAL*8                          :: TAU1995
+      INTEGER                         :: RATIOID
+      CHARACTER(LEN=250)              :: FILENAME_S
 
       !=================================================================
       ! Read emission data from diskR
@@ -1104,13 +1100,6 @@
 
       ARR   = 0d0
       ARRAY = 0.
-
-      ! check if data is concentration or not 
-!      IF ( PRESENT( UNIT) ) THEN
-!         THISUNIT = UNIT
-!      ELSE
-!         THISUNIT = 'kg/yr'
-!      ENDIF
 
       ! Read data
       CALL READ_BPCH2( FILENAME,  CATEGORY,  TRACERN, 
@@ -1156,23 +1145,23 @@
       ! Cast to REAL*8 before regridding
       GEN_1x1(:,:) = ARRAY(:,:,1)
 
+      ! File with lat/lon edges for regridding
+      LLFILENAME = TRIM( DATA_DIR_1x1) //
+     &             'MAP_A2A_Regrid_200312/latlon_generic.txt' 
+
+      ! Allocate arrays for regridding
+      ALLOCATE(INGRID(I1x1,J1x1-1))
+      ALLOCATE(OUTGRID(IIPAR,JJPAR))
+
       ! Regrid from GENERIC 1x1 --> current model resolution
-        LLFILENAME = TRIM( DATA_DIR_1x1) //
-     &   'MAP_A2A_Regrid_200312/latlon_generic.txt' 
-        ALLOCATE(INGRID(I1x1,J1x1-1))
-        ALLOCATE(OUTGRID(IIPAR,JJPAR))
-        INGRID = GEN_1x1
-        !CALL DO_REGRID_A2A(LLFILENAME,360,181,INGRID,OUTGRID,1)
-        CALL DO_REGRID_A2A(LLFILENAME,360,181,INGRID,OUTGRID,PERAREA)
-        ARR=OUTGRID
+      INGRID = GEN_1x1
+      CALL DO_REGRID_A2A( LLFILENAME, 360,     181, 
+     &                    INGRID,     OUTGRID, PERAREA )
+      ARR = OUTGRID
 
-        DEALLOCATE(INGRID)
-        DEALLOCATE(OUTGRID)
-
-      ! Regrid from GENERIC 1x1 --> GEOS 1x1 --> current model resolution
-      !CALL DO_REGRID_G2G_1x1( THISUNIT, GEN_1x1, GEOS_1x1(:,:,1) )
-      !CALL DO_REGRID_1x1( THISUNIT, GEOS_1x1, ARR )
-
+      ! Deallocate arrays for regridding
+      DEALLOCATE(INGRID)
+      DEALLOCATE(OUTGRID)
 
       END SUBROUTINE READ_STREETS
 
@@ -2107,25 +2096,23 @@
 !
 !  NOTES:
 !  (1 ) Now also save 1x1 CHINA MASK for use in other routines. (bmy, 9/5/06)
+!  13 Mar 2012 - M. Cooper   - Changed regrid algorithm to map_a2a
 !******************************************************************************
 !
       ! References to F90 modules
       USE BPCH2_MOD,      ONLY : READ_BPCH2
       USE DIRECTORY_MOD,  ONLY : DATA_DIR_1x1
-      !USE REGRID_1x1_MOD, ONLY : DO_REGRID_G2G_1x1, DO_REGRID_1x1
       USE REGRID_A2A_MOD, ONLY : DO_REGRID_A2A
 
-      USE CMN_SIZE_MOD       ! Size parameters
+      USE CMN_SIZE_MOD         ! Size parameters
 
       ! Local variables
       REAL*4                  :: ARRAY(I1x1,J1x1-1,1)
       REAL*8                  :: GEN_1x1(I1x1,J1x1-1)
-      REAL*8                  :: GEOS_1x1(I1x1,J1x1,1)
       CHARACTER(LEN=255)      :: FILENAME
       CHARACTER(LEN=255)      :: LLFILENAME
       REAL*8, ALLOCATABLE     :: OUTGRID(:,:)
       REAL*8, ALLOCATABLE     :: INGRID(:,:)
-      INTEGER                 :: I
 
       !=================================================================
       ! READ_STREETS_MASKS begins here!
@@ -2154,20 +2141,18 @@
       ! Save the 1x1 China mask for future use
       MASK_CHINA_1x1(:,:) = GEN_1x1(:,:)
 
-      ! Regrid from GENERIC 1x1 GRID to GEOS 1x1 GRID
-      !CALL DO_REGRID_G2G_1x1( 'unitless', GEN_1x1, GEOS_1x1(:,:,1) )
-      ! Regrid from GEOS 1x1 GRID to current model resolution
-      !CALL DO_REGRID_1x1( 'unitless', GEOS_1x1, MASK_CHINA )
+      ! File with lat/lon edges for regridding
+      LLFILENAME = TRIM( DATA_DIR_1x1) //
+     &             'MAP_A2A_Regrid_200312/latlon_generic.txt'
+ 
+      ! Allocate arrays for regridding
+      ALLOCATE(INGRID(I1x1,J1x1-1))
+      ALLOCATE(OUTGRID(IIPAR,JJPAR))
 
       ! Regrid from GENERIC 1x1 to current model resolution
-      LLFILENAME = TRIM( DATA_DIR_1x1) //
-     &   'MAP_A2A_Regrid_200312/latlon_generic.txt'
-        ALLOCATE(INGRID(I1x1,J1x1-1))
-        ALLOCATE(OUTGRID(IIPAR,JJPAR))
-        INGRID = GEN_1x1
-        CALL DO_REGRID_A2A(LLFILENAME,360,181,INGRID,OUTGRID,0)
-        MASK_CHINA=OUTGRID
-
+      INGRID = GEN_1x1
+      CALL DO_REGRID_A2A( LLFILENAME, 360, 181, INGRID, OUTGRID, 0 )
+      MASK_CHINA = OUTGRID
 
       !------------------------------------
       ! SE Asia Mask (for 2000 emissions)
@@ -2189,13 +2174,11 @@
       GEN_1x1(:,:) = ARRAY(:,:,1)
 
       ! Regrid from GENERIC 1x1 GRID to GEOS 1x1 GRID
-      !CALL DO_REGRID_G2G_1x1( 'unitless', GEN_1x1, GEOS_1x1(:,:,1) )
-      ! Regrid from GEOS 1x1 GRID to current model resolution
-      !CALL DO_REGRID_1x1( 'unitless', GEOS_1x1, MASK_SE_ASIA )
-        INGRID = GEN_1x1
-        CALL DO_REGRID_A2A(LLFILENAME,360,181,INGRID,OUTGRID,1)
-        MASK_SE_ASIA=OUTGRID
+      INGRID = GEN_1x1
+      CALL DO_REGRID_A2A( LLFILENAME, 360, 181, INGRID, OUTGRID, 1 )
+      MASK_SE_ASIA = OUTGRID
 
+      ! Deallocate arrays for regridding
       DEALLOCATE(INGRID)
       DEALLOCATE(OUTGRID)
 

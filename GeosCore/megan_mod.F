@@ -1860,7 +1860,6 @@
       ! References to F90 modules
       USE BPCH2_MOD,      ONLY : GET_RES_EXT, READ_BPCH2
       USE DIRECTORY_MOD,  ONLY : DATA_DIR_1x1
-      !USE REGRID_1x1_MOD, ONLY : DO_REGRID_1x1
       USE REGRID_A2A_MOD, ONLY : DO_REGRID_A2A
       USE TIME_MOD,       ONLY : GET_TS_EMIS
       USE GRID_MOD,       ONLY : GET_AREA_M2
@@ -1953,21 +1952,18 @@
      &                 0d0,       I1x1,      J1x1,     
      &                 1,         ARRAY,     QUIET=.TRUE. )
 
-      ! Regrid from 1x1 to the current grid (also cast to REAL*8)
-      !CALL DO_REGRID_1x1( 'ug C/m2/hr', ARRAY, AEF_ISOP ) 
-      print*,"Array size"
-      print*,SIZE(ARRAY,1)
-      print*,SIZE(ARRAY,2)
-      print*,SIZE(ARRAY,3)
-      call flush(6)
+      ! File with lat/lon edges for regridding
       LLFILENAME = TRIM( DATA_DIR_1x1) //
-     &   'MAP_A2A_Regrid_200312/latlon_geos1x1.txt'
-        ALLOCATE(INGRID(I1x1,J1x1))
-        ALLOCATE(OUTGRID(IIPAR,JJPAR))
-        INGRID = ARRAY(:,:,1)
-        CALL DO_REGRID_A2A(LLFILENAME,360,182,INGRID,OUTGRID,0)
-        AEF_ISOP=OUTGRID
+     &             'MAP_A2A_Regrid_200312/latlon_geos1x1.txt'
 
+      ! Allocate arrays for regridding
+      ALLOCATE(INGRID(I1x1,J1x1))
+      ALLOCATE(OUTGRID(IIPAR,JJPAR))
+
+      ! Regrid from 1x1 to the current grid (also cast to REAL*8)
+      INGRID   = ARRAY(:,:,1)
+      CALL DO_REGRID_A2A( LLFILENAME, 360, 182, INGRID, OUTGRID, 0 )
+      AEF_ISOP = OUTGRID
 
       ! Loop over surface boxes
       DO J = 1, JJPAR
@@ -2002,10 +1998,9 @@
      &                 1,         ARRAY,     QUIET=.TRUE. )
 
       ! Regrid from 1x1 to the current grid (also cast to REAL*8)
-      !CALL DO_REGRID_1x1( 'ug C/m2/hr', ARRAY, AEF_MONOT ) 
-        INGRID = ARRAY(:,:,1)
-        CALL DO_REGRID_A2A(LLFILENAME,360,182,INGRID,OUTGRID,0)
-        AEF_MONOT=OUTGRID
+      INGRID    = ARRAY(:,:,1)
+      CALL DO_REGRID_A2A( LLFILENAME, 360, 182, INGRID, OUTGRID, 0 )
+      AEF_MONOT = OUTGRID
 
       ! Loop over surface boxes
       DO J = 1, JJPAR
@@ -2040,10 +2035,9 @@
      &                 1,         ARRAY,     QUIET=.TRUE. )
 
       ! Regrid from 1x1 to the current grid (also cast to REAL*8)
-      !CALL DO_REGRID_1x1( 'ug C/m2/hr', ARRAY, AEF_MBO ) 
-        INGRID = ARRAY(:,:,1)
-        CALL DO_REGRID_A2A(LLFILENAME,360,182,INGRID,OUTGRID,0)
-        AEF_MBO=OUTGRID
+      INGRID  = ARRAY(:,:,1)
+      CALL DO_REGRID_A2A( LLFILENAME, 360, 182, INGRID, OUTGRID, 0 )
+      AEF_MBO = OUTGRID
 
       ! Loop over surface boxes
       DO J = 1, JJPAR
@@ -2081,8 +2075,7 @@
      &                 1,         ARRAY,     QUIET=.TRUE. )
 
       ! Regrid from 1x1 to the current grid (also cast to REAL*8)
-      !CALL DO_REGRID_1x1( 'ug C/m2/hr', ARRAY, AEF_ACET ) 
-      INGRID = ARRAY(:,:,1)
+      INGRID   = ARRAY(:,:,1)
       CALL DO_REGRID_A2A( LLFILENAME, 360, 182, INGRID, OUTGRID, 0 )
       AEF_ACET = OUTGRID 
 
@@ -2119,10 +2112,9 @@
      &                 1,         ARRAY,     QUIET=.TRUE. )
 
       ! Regrid from 1x1 to the current grid (also cast to REAL*8)
-      !CALL DO_REGRID_1x1( 'ug C/m2/hr', ARRAY, AEF_OVOC ) 
-        INGRID = ARRAY(:,:,1)
-        CALL DO_REGRID_A2A(LLFILENAME,360,182,INGRID,OUTGRID,0)
-        AEF_OVOC=OUTGRID
+      INGRID   = ARRAY(:,:,1)
+      CALL DO_REGRID_A2A( LLFILENAME, 360, 182, INGRID, OUTGRID, 0 )
+      AEF_OVOC = OUTGRID
 
       ! Loop over surface boxes
       DO J = 1, JJPAR
@@ -2159,10 +2151,9 @@
      &                 1,         ARRAY,     QUIET=.TRUE. )
 
       ! Regrid from 1x1 to the current grid (also cast to REAL*8)
-      !CALL DO_REGRID_1x1( 'ug C/m2/hr', ARRAY, AEF_APINE ) 
-        INGRID = ARRAY(:,:,1)
-        CALL DO_REGRID_A2A(LLFILENAME,360,182,INGRID,OUTGRID,0)
-        AEF_APINE=OUTGRID
+      INGRID    = ARRAY(:,:,1)
+      CALL DO_REGRID_A2A( LLFILENAME, 360, 182, INGRID, OUTGRID, 0 )
+      AEF_APINE = OUTGRID
 
       ! Loop over surface boxes
       DO J = 1, JJPAR
@@ -2195,10 +2186,9 @@
      &                 1,         ARRAY,     QUIET=.TRUE. )
 
       ! Regrid from 1x1 to the current grid (also cast to REAL*8)
-      !CALL DO_REGRID_1x1( 'ug C/m2/hr', ARRAY, AEF_BPINE ) 
-        INGRID = ARRAY(:,:,1)
-        CALL DO_REGRID_A2A(LLFILENAME,360,182,INGRID,OUTGRID,0)
-        AEF_BPINE=OUTGRID
+      INGRID    = ARRAY(:,:,1)
+      CALL DO_REGRID_A2A( LLFILENAME, 360, 182, INGRID, OUTGRID, 0 )
+      AEF_BPINE = OUTGRID
 
       ! Loop over surface boxes
       DO J = 1, JJPAR
@@ -2231,10 +2221,9 @@
      &                 1,         ARRAY,     QUIET=.TRUE. )
 
       ! Regrid from 1x1 to the current grid (also cast to REAL*8)
-      !CALL DO_REGRID_1x1( 'ug C/m2/hr', ARRAY, AEF_LIMON ) 
-        INGRID = ARRAY(:,:,1)
-        CALL DO_REGRID_A2A(LLFILENAME,360,182,INGRID,OUTGRID,0)
-        AEF_LIMON=OUTGRID
+      INGRID    = ARRAY(:,:,1)
+      CALL DO_REGRID_A2A( LLFILENAME, 360, 182, INGRID, OUTGRID, 0 )
+      AEF_LIMON = OUTGRID
 
       ! Loop over surface boxes
       DO J = 1, JJPAR
@@ -2267,10 +2256,9 @@
      &                 1,         ARRAY,     QUIET=.TRUE. )
 
       ! Regrid from 1x1 to the current grid (also cast to REAL*8)
-      !CALL DO_REGRID_1x1( 'ug C/m2/hr', ARRAY, AEF_SABIN ) 
-        INGRID = ARRAY(:,:,1)
-        CALL DO_REGRID_A2A(LLFILENAME,360,182,INGRID,OUTGRID,0)
-        AEF_SABIN=OUTGRID
+      INGRID    = ARRAY(:,:,1)
+      CALL DO_REGRID_A2A( LLFILENAME, 360, 182, INGRID, OUTGRID, 0 )
+      AEF_SABIN = OUTGRID
 
       ! Loop over surface boxes
       DO J = 1, JJPAR
@@ -2303,10 +2291,9 @@
      &                 1,         ARRAY,     QUIET=.TRUE. )
 
       ! Regrid from 1x1 to the current grid (also cast to REAL*8)
-      !CALL DO_REGRID_1x1( 'ug C/m2/hr', ARRAY, AEF_MYRCN ) 
-        INGRID = ARRAY(:,:,1)
-        CALL DO_REGRID_A2A(LLFILENAME,360,182,INGRID,OUTGRID,0)
-        AEF_MYRCN=OUTGRID
+      INGRID    = ARRAY(:,:,1)
+      CALL DO_REGRID_A2A( LLFILENAME, 360, 182, INGRID, OUTGRID, 0 )
+      AEF_MYRCN = OUTGRID
 
       ! Loop over surface boxes
       DO J = 1, JJPAR
@@ -2339,10 +2326,9 @@
      &                 1,         ARRAY,     QUIET=.TRUE. )
 
       ! Regrid from 1x1 to the current grid (also cast to REAL*8)
-      !CALL DO_REGRID_1x1( 'ug C/m2/hr', ARRAY, AEF_CAREN ) 
-        INGRID = ARRAY(:,:,1)
-        CALL DO_REGRID_A2A(LLFILENAME,360,182,INGRID,OUTGRID,0)
-        AEF_CAREN=OUTGRID
+      INGRID    = ARRAY(:,:,1)
+      CALL DO_REGRID_A2A( LLFILENAME, 360, 182, INGRID, OUTGRID, 0 )
+      AEF_CAREN = OUTGRID
 
       ! Loop over surface boxes
       DO J = 1, JJPAR
@@ -2375,10 +2361,9 @@
      &                 1,         ARRAY,     QUIET=.TRUE. )
 
       ! Regrid from 1x1 to the current grid (also cast to REAL*8)
-      !CALL DO_REGRID_1x1( 'ug C/m2/hr', ARRAY, AEF_OCIMN ) 
-        INGRID = ARRAY(:,:,1)
-        CALL DO_REGRID_A2A(LLFILENAME,360,182,INGRID,OUTGRID,0)
-        AEF_OCIMN=OUTGRID
+      INGRID    = ARRAY(:,:,1)
+      CALL DO_REGRID_A2A( LLFILENAME, 360, 182, INGRID, OUTGRID, 0 )
+      AEF_OCIMN = OUTGRID
 
       ! Loop over surface boxes
       DO J = 1, JJPAR
@@ -2420,7 +2405,6 @@
 !
       USE BPCH2_MOD,      ONLY : GET_RES_EXT, READ_BPCH2
       USE DIRECTORY_MOD,  ONLY : DATA_DIR_1x1
-      USE REGRID_1x1_MOD, ONLY : DO_REGRID_1x1
       USE REGRID_1x1_MOD, ONLY : DO_REGRID_05x0666
       USE TIME_MOD,       ONLY : GET_TS_EMIS
       USE GRID_MOD,       ONLY : GET_AREA_M2

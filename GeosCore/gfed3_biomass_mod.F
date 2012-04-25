@@ -337,8 +337,6 @@
       USE LOGICAL_MOD,    ONLY : LGFED3BB
       USE TIME_MOD,       ONLY : EXPAND_DATE
       USE TIME_MOD,       ONLY : TIMESTAMP_STRING
-      !USE REGRID_1x1_MOD, ONLY : DO_REGRID_1x1
-      !USE REGRID_1x1_MOD, ONLY : DO_REGRID_G2G_1x1
       USE REGRID_A2A_MOD, ONLY : DO_REGRID_A2A
       USE TIME_MOD,       ONLY : GET_DAY
       USE TIME_MOD,       ONLY : GET_HOUR
@@ -365,34 +363,34 @@
 ! !REVISION HISTORY: 
 !  07 Sep 2011 - P. Kasibhatla - Initial version, based on GFED2
 !  07 Sep 2011 - R. Yantosca   - Added ProTeX headers 
+!  13 Mar 2012 - M. Cooper     - Change regrid algorithm to map_a2a
 !EOP
 !------------------------------------------------------------------------------
 !BOC
 !
 ! !LOCAL VARIABLES:
 !
-      LOGICAL, SAVE      :: FIRST = .TRUE.
-      INTEGER            :: I,    J,  N,   NF 
-      INTEGER            :: YYYY, MM, MM1, YYYY1
-      INTEGER            :: YYYYMMDD, HHMMSS
-      REAL*8             :: GFED3_EMFACX
-      REAL*4             :: ARRAY_1x1(I1x1,J1x1-1)
-      REAL*4             :: DM_GEN_1x1(I1x1,J1x1-1,6)
-      REAL*8             :: BIOM_GEN_1x1(I1x1,J1x1-1,N_SPEC)
-      REAL*8             :: BIOM_GEOS_1x1(I1x1,J1x1,N_SPEC)
-      REAL*8             :: TAU0, TAU1, JD8DAY
-      REAL*4             :: TMP
-      CHARACTER(LEN=255) :: FILENAME1
-      CHARACTER(LEN=255) :: FILENAME2
-      CHARACTER(LEN=255) :: FILENAME3
-      CHARACTER(LEN=255) :: FILENAME4
-      CHARACTER(LEN=255) :: FILENAME5
-      CHARACTER(LEN=255) :: FILENAME6
-      CHARACTER(LEN=16 ) :: TIME_STR
-      INTEGER            :: DD, HH, DOY
-      CHARACTER(LEN=255)       :: LLFILENAME
-      REAL*8, ALLOCATABLE      :: OUTGRID(:,:)
-      REAL*8, ALLOCATABLE      :: INGRID(:,:)
+      LOGICAL, SAVE        :: FIRST = .TRUE.
+      INTEGER              :: I,    J,  N,   NF 
+      INTEGER              :: YYYY, MM, MM1, YYYY1
+      INTEGER              :: YYYYMMDD, HHMMSS
+      REAL*8               :: GFED3_EMFACX
+      REAL*4               :: ARRAY_1x1(I1x1,J1x1-1)
+      REAL*4               :: DM_GEN_1x1(I1x1,J1x1-1,6)
+      REAL*8               :: BIOM_GEN_1x1(I1x1,J1x1-1,N_SPEC)
+      REAL*8               :: TAU0, TAU1, JD8DAY
+      REAL*4               :: TMP
+      CHARACTER(LEN=255)   :: FILENAME1
+      CHARACTER(LEN=255)   :: FILENAME2
+      CHARACTER(LEN=255)   :: FILENAME3
+      CHARACTER(LEN=255)   :: FILENAME4
+      CHARACTER(LEN=255)   :: FILENAME5
+      CHARACTER(LEN=255)   :: FILENAME6
+      CHARACTER(LEN=16 )   :: TIME_STR
+      INTEGER              :: DD, HH, DOY
+      CHARACTER(LEN=255)   :: LLFILENAME
+      REAL*8, ALLOCATABLE  :: OUTGRID(:,:)
+      REAL*8, ALLOCATABLE  :: INGRID(:,:)
 
       !=================================================================
       ! GFED3_COMPUTE_BIOMASS begins here!
@@ -601,30 +599,26 @@
          ENDDO
 !$OMP END PARALLEL DO
 
-!         ! Regrid each species from GENERIC 1x1 GRID to GEOS-Chem 1x1 GRID
-!         CALL DO_REGRID_G2G_1x1( 'molec/cm2',
-!     &                            BIOM_GEN_1x1(:,:,N), 
-!     &                            BIOM_GEOS_1x1(:,:,N) )
+         ! File with lat/lon edges for regridding
+         LLFILENAME = TRIM( DATA_DIR_1x1) //
+     &                'MAP_A2A_Regrid_200312/latlon_generic.txt'
 
-       LLFILENAME = TRIM( DATA_DIR_1x1) //
-     &   'MAP_A2A_Regrid_200312/latlon_generic.txt'
+         ! Allocate arrays for regridding
+         ALLOCATE(INGRID(I1x1,J1x1-1))
+         ALLOCATE(OUTGRID(IIPAR,JJPAR))
 
-        ALLOCATE(INGRID(I1x1,J1x1-1))
-        INGRID=BIOM_GEN_1X1(:,:,N)
-        ALLOCATE(OUTGRID(IIPAR,JJPAR))
+         ! Regrid each species from GENERIC 1x1 to current model resolution
+         ! (The unit 'molec/cm2' is just used to denote that the quantity
+         ! is per unit area.)
+         INGRID = BIOM_GEN_1X1(:,:,N)
+         CALL DO_REGRID_A2A( LLFILENAME, 360, 181, INGRID, OUTGRID, 0 )
+         GFED3_BIOMASS(:,:,N) = OUTGRID
 
-       CALL DO_REGRID_A2A(LLFILENAME,360,181,INGRID,OUTGRID,0)
+         ! Deallocate arrays for regridding
+         DEALLOCATE(INGRID)
+         DEALLOCATE(OUTGRID)
 
-        DEALLOCATE(INGRID)
-        GFED3_BIOMASS(:,:,N)=OUTGRID
-        DEALLOCATE(OUTGRID)
       ENDDO
-
-!      ! Regrid from GEOS 1x1 grid to current grid.  (The unit 'molec/cm2' 
-!      ! is just used to denote that the quantity is per unit area.)
-!      CALL DO_REGRID_1x1( N_SPEC,       'molec/cm2', 
-!     &                    BIOM_GEOS_1x1, GFED3_BIOMASS ) 
-
 
       ! Compute future biomass emissions (if necessary)
       IF ( LFUTURE ) THEN
