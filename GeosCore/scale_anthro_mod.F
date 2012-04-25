@@ -148,6 +148,8 @@
 !                              all years, made necessary input changes
 !  10 Aug 2011 - D. Millet   - Now use updated scale factor file for CO, which
 !                              corrects a problem over Botswana/S. Africa
+!  25 Apr 2012 - M. Payer    - Add kludge to set TARG_YEAR=1985 for 1986 thru
+!                              1989 (B. Yantosca)
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -171,6 +173,13 @@
       ! limit scaling between available years
       BASE_YEAR = MAX( MIN( B_YEAR, 2006 ), 1985 )
       TARG_YEAR = MAX( MIN( T_YEAR, 2006 ), 1985 )
+
+      !### KLUDGE: Set years properly for 1986 thru 1989
+      !### which have no data in the file.  Use 1985
+      IF ( T_YEAR == 1986 ) TARG_YEAR = 1985
+      IF ( T_YEAR == 1987 ) TARG_YEAR = 1985
+      IF ( T_YEAR == 1988 ) TARG_YEAR = 1985
+      IF ( T_YEAR == 1989 ) TARG_YEAR = 1985
 
       WRITE( BASE_YYYY_STR, '(i4.4)' ) BASE_YEAR
       WRITE( TARG_YYYY_STR, '(i4.4)' ) TARG_YEAR
