@@ -91,6 +91,11 @@
 #  10 Feb 2012 - R. Yantosca - Remove -CU from the DEBUG option (IFORT only)
 #  19 Mar 2012 - R. Yantosca - Add optional NO_ISO switch, which will turn off
 #                              the ISORROPIA ATE package for testing
+#  05 Apr 2012 - R. Yantosca - Now assume netCDF is always used
+#  05 Apr 2012 - R. Yantosca - Change BL_INC_NETCDF to INC_NETCDF
+#  05 Apr 2012 - R. Yantosca - Change BL_INC_HDF5   to INC_HDF5
+#  05 Apr 2012 - R. Yantosca - Change BL_LIB_NETCDF to LIB_NETCDF
+#  05 Apr 2012 - R. Yantosca - Change BL_LIB_HDF5   to LIB_HDF5
 #EOP
 #------------------------------------------------------------------------------
 #BOC
@@ -112,11 +117,6 @@ endif
 # HDF5 I/O is turned off by default
 ifndef HDF5
 HDF5      := no
-endif
-
-# netCDF I/O is turned on by default
-ifndef NETCDF
-NETCDF    := yes
 endif
 
 # Use precise FP math optimization (i.e. to avoid numerical noise)
@@ -146,29 +146,25 @@ H5L       := \
 -L/home/bmy/NASA/basedir/x86_64-unknown-linux-gnu/ifort/Linux/lib \
 -lhdf5_fortran -lhdf5_hl -lhdf5hl_fortran -lhdf5 -lsz -lz -lm
 
-# If you have netCDF installed on your system, then define both the include
-# (NCI) and library (NCL) paths here.  Otherwise leave these blank!
-NCI       := -I$(BL_INC_NETCDF) -I$(BL_INC_HDF5)
-NCL       := -L$(BL_LIB_NETCDF) -lnetcdf \
-             -L$(BL_LIB_HDF5) -lhdf5_hl \
-             -L$(BL_LIB_HDF5) -lhdf5 \
-             -L$(BL_LIB_ZLIB) -lz
+# Define the netCDF, HDF5, and ZLIB library and include paths
+NCI       := -I$(INC_NETCDF) -I$(INC_HDF5)
+NCL       := -L$(LIB_NETCDF) -lnetcdf \
+             -L$(LIB_HDF5) -lhdf5_hl \
+             -L$(LIB_HDF5) -lhdf5 \
+             -L$(LIB_ZLIB) -lz
 
-# Link to library files created from code in the various subdirs
-# NOTE: -lHeaders should always be last!
+# Command to link to the various library files (-lHeaders should be last!)
 LINK      := -L$(LIB) -lKpp -lIsoropia -lGeosUtil -lHeaders
-LHG       := -L$(LIB) -lKpp -lIsoropia -lHg -lGeosUtil -lHeaders
+LINK      := $(LINK) -lNcUtils $(NCL)
 
-# Add the HDF5 library link commands if necessary
+# Commands to link to libraries, for GTMM code (-lHeaders should be last!)
+LHG       := -L$(LIB) -lKpp -lIsoropia -lHg -lGeosUtil -lHeaders
+LHG       := $(LINK) -lNcUtils $(NCL)
+
+# Add the HDF5 library link commands (optional)
 ifeq ($(HDF5),yes) 
 LINK      := $(LINK) -L$(H5L)
 LHG       := $(LINK) -L$(H5L)
-endif
-
-# Add the netCDF library link commands if necessary
-ifeq ($(NETCDF),yes)
-LINK      := $(LINK) -lNcUtils $(NCL)
-LHG       := $(LINK) -lNcUtils $(NCL)
 endif
 
 # For ESMF development
@@ -194,8 +190,12 @@ endif
 ifdef DEBUG
 FFLAGS    := -cpp -w -O0 -auto -noalign -convert big_endian -g
 else
-FFLAGS    := -cpp -w -O2 -auto -noalign -convert big_endian -vec-report0
+FFLAGS    := -cpp -w -O2 -auto -noalign -convert big_endian -vec-report0 
 endif
+
+# Add options for medium memory model (IFORT only).  This is to prevent G-C 
+# from running out of memory at hi-res, especially when using netCDF I/O.
+FFLAGS    += -mcmodel=medium -i-dynamic
 
 # Prevent any optimizations that would change numerical results
 # This is needed to prevent numerical noise from ISORROPIA (bmy, 8/25/11)
@@ -239,18 +239,11 @@ FFLAGS    += -DNO_ISORROPIA
 endif
 
 # Include options (i.e. for finding *.h, *.mod files)
-INCLUDE   := -I$(HDR) -module $(MOD)
+INCLUDE   := -I$(HDR) -module $(MOD) $(NCI)
 
-# Also append HDF5 include commands if necessary
+# Also append HDF5 include commands (optional)
 ifeq ($(HDF5),yes)
 INCLUDE   += -DUSE_HDF5 -I$(H5I)
-FFLAGS    +=  -mcmodel=medium -i-dynamic
-endif
-
-# Also append netCDF include commands if necessary
-ifeq ($(NETCDF),yes)
-INCLUDE   += -DUSE_NETCDF $(NCI)
-FFLAGS    +=  -mcmodel=medium -i-dynamic
 endif
 
 # Also add ESMF linking option
@@ -263,11 +256,16 @@ FFLAGS    += -DESMF_TESTBED_
 INCLUDE   += -I$(HDR)
 endif
 
-CC        :=
-F90       := ifort $(FFLAGS) $(INCLUDE)
-LD        := ifort $(FFLAGS)
-FREEFORM  := -free
-R8        := -r8
+# DEVELOPMENT FLAG - MSL
+ifeq ($(DEVEL),yes)
+FFLAGS  += -DDEVEL
+endif
+
+CC       =
+F90      = ifort $(FFLAGS) $(INCLUDE)
+LD       = ifort $(FFLAGS)
+FREEFORM = -free
+R8       = -r8
 
 endif
 
@@ -314,16 +312,11 @@ FFLAGS    += -DNO_ISORROPIA
 endif
 
 # Include options (i.e. for finding *.h, *.mod files)
-INCLUDE   := -I$(HDR) -module $(MOD)
+INCLUDE   := -I$(HDR) -module $(MOD) $(NCI)
 
-# Also append HDF5 include commands if necessary
+# Also append HDF5 include commands (optional)
 ifeq ($(HDF5),yes)
 INCLUDE   += -DUSE_HDF5 -I$(H5I)
-endif
-
-# Also append netCDF include commands if necessary
-ifeq ($(NETCDF),yes)
-INCLUDE   += -DUSE_NETCDF $(NCI)
 endif
 
 CC        := gcc
@@ -380,16 +373,11 @@ FFLAGS    += -DNO_ISORROPIA
 endif
 
 # Include options (i.e. for finding *.h, *.mod files)
-INCLUDE   := -I$(HDR) -moddir=$(MOD) -M$(MOD)
+INCLUDE   := -I$(HDR) -moddir=$(MOD) -M$(MOD) $(NCI)
 
-# Also append HDF5 include commands if necessary
+# Also append HDF5 include commands (optional)
 ifeq ($(HDF5),yes)
 INCLUDE   += -DUSE_HDF5 -I$(H5I)
-endif
-
-# Also append netCDF include commands if necessary
-ifeq ($(NETCDF),yes)
-INCLUDE   += -DUSE_NETCDF $(NCI)
 endif
 
 CC        :=
@@ -451,16 +439,11 @@ FFLAGS    += -DNO_ISORROPIA
 endif
 
 # Include options (i.e. for finding *.h, *.mod files)
-INCLUDE  = -I$(HDR) -I $(MOD)
+INCLUDE  = -I$(HDR) -I $(MOD) $(NCI)
 
 # Also append HDF5 include commands if necessary
 ifeq ($(HDF5),yes)
 INCLUDE += -DUSE_HDF5 -I$(H5I)
-endif
-
-# Also append netCDF include commands if necessary
-ifeq ($(NETCDF),yes)
-INCLUDE += -DUSE_NETCDF $(NCI)
 endif
 
 CC       =

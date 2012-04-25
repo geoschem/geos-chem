@@ -39,13 +39,13 @@
 !
 ! !USES:
 !
-      USE ERROR_MOD, ONLY : ERROR_STOP
+      USE CMN_SIZE_MOD                                 ! Size parameters
+      USE CMN_GCTM_MOD                                 ! Physical constants
+      USE ERROR_MOD                                    ! Error trapping
 
-      USE CMN_SIZE_MOD                               ! Size parameters
       IMPLICIT NONE
 #     include "define.h"
       PRIVATE
-
 !
 ! !DEFINED PARAMETERS:
 ! 
@@ -58,10 +58,8 @@
       INTEGER, PARAMETER  :: NUM_DAYS       = 10       ! # of days to avg 
       REAL*8,  PARAMETER  :: WM2_TO_UMOLM2S = 4.766d0  ! W/m2 -> umol/m2/s
 
-      ! Some conversions factors (mpb,2009)
-      REAL*8, PARAMETER   :: D2RAD =  3.14159d0 /   180.0d0  ! Deg -> Radians
-      REAL*8, PARAMETER   :: RAD2D =    180.0d0 / 3.14159d0  ! Radians -> Deg
-      REAL*8, PARAMETER   :: PI    =  3.14159d0              ! PI
+      REAL*8, PARAMETER   :: D2RAD =  PI_180           ! Degrees to radians
+      REAL*8, PARAMETER   :: RAD2D =  1d0 / PI_180     ! Radians to degrees
 !
 ! !PRIVATE TYPES:
 !
@@ -96,11 +94,7 @@
       REAL*8, ALLOCATABLE :: AEF_MYRCN(:,:)     ! Myrcene
       REAL*8, ALLOCATABLE :: AEF_CAREN(:,:)     ! 3-Carene
       REAL*8, ALLOCATABLE :: AEF_OCIMN(:,:)     ! Ocimene
-      !evf, acetone update (5/24/2011)
       REAL*8, ALLOCATABLE :: AEF_ACET(:,:)      ! Acetone
-
-      ! bug fix: causes issues in parallel (hotp 3/10/10) 
-      !REAL*8, ALLOCATABLE :: AEF_SPARE(:,:)     ! Temp array for monoterp's
 
       ! Path to MEGAN emission factors
       CHARACTER(LEN=20)   :: MEGAN_SUBDIR = 'MEGAN_200909/'
@@ -109,7 +103,6 @@
 !
       PUBLIC  :: ACTIVITY_FACTORS
       PUBLIC  :: CLEANUP_MEGAN
-      ! evf, acetone update (5/24/2011)
       PUBLIC  :: GET_EMACET_MEGAN    
       PUBLIC  :: GET_EMISOP_MEGAN  
       PUBLIC  :: GET_EMMBO_MEGAN    
@@ -159,6 +152,7 @@
 !  28 Feb 2012 - R. Yantosca - Removed support for GEOS-3
 !  01 Mar 2012 - R. Yantosca - Now reference new grid_mod.F90
 !  01 Mar 2012 - R. Yantosca - Use updated GET_LOCALTIME from time_mod.F
+!  11 Apr 2012 - R. Yantosca - Replace lai_mod.F with modis_lai_mod.F90
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -183,22 +177,25 @@
 !
 ! !USES:
 !
-      USE LAI_MOD,     ONLY : ISOLAI, MISOLAI, PMISOLAI, DAYS_BTW_M
-      USE LOGICAL_MOD, ONLY : LPECCA 
+      USE LOGICAL_MOD,   ONLY : LPECCA                     ! Use PCEEA model?
+      USE MODIS_LAI_MOD, ONLY : ISOLAI     => GC_LAI       ! Daily LAI
+      USE MODIS_LAI_MOD, ONLY : PMISOLAI   => GC_LAI_PM    ! Prev month's LAI
+      USE MODIS_LAI_MOD, ONLY : MISOLAI    => GC_LAI_CM    ! Curr month's LAI
+      USE MODIS_LAI_MOD, ONLY : NMISOLAI   => GC_LAI_NM    ! Next month's LAI
+      USE MODIS_LAI_MOD, ONLY : DAYS_BTW_M => DAYS_BTW_MON ! LAI month interval
 !
 ! !INPUT PARAMETERS: 
 !
-      ! Arguments
-      INTEGER, INTENT(IN) :: I, J    ! GEOS-Chem lon & lat indices
-      REAL*8,  INTENT(IN) :: SUNCOS  ! Solar zenith angle [unitless]
-      REAL*8,  INTENT(IN) :: TS      ! Surface temperature [K]
-      REAL*8,  INTENT(IN) :: Q_DIR   ! Flux of direct PAR above canopy [W/m2]
-      REAL*8,  INTENT(IN) :: Q_DIFF  ! Flux of diffuse PAR above canopy [W/m2]
-      REAL*8,  INTENT(IN) :: XNUMOL  ! Number of atoms C / kg C 
+      INTEGER, INTENT(IN) :: I, J     ! GEOS-Chem lon & lat indices
+      REAL*8,  INTENT(IN) :: SUNCOS   ! Solar zenith angle [unitless]
+      REAL*8,  INTENT(IN) :: TS       ! Surface temperature [K]
+      REAL*8,  INTENT(IN) :: Q_DIR    ! Flux of direct PAR above canopy [W/m2]
+      REAL*8,  INTENT(IN) :: Q_DIFF   ! Flux of diffuse PAR above canopy [W/m2]
+      REAL*8,  INTENT(IN) :: XNUMOL   ! Number of atoms C / kg C 
 !
 ! !RETURN VALUE:
 !
-      REAL*8              :: EMISOP  ! Isoprene emissions [atoms C/box]
+      REAL*8              :: EMISOP   ! Isoprene emissions [atoms C/box]
 !
 ! !REMARKS:
 !  References (see above for full citations):
@@ -215,20 +212,22 @@
 !        carefully distinguished from TSKIN. (tmf, 11/20/04)
 !  (3 ) Restructing of function & implementation of activity factors (mpb,2009)
 !  17 Dec 2009 - R. Yantosca - Added ProTeX headers
+!  11 Apr 2012 - R. Yantosca - Now use data from modis_lai_mod.F90
+!  11 Apr 2012 - R. Yantosca - Cosmetic changes
 !EOP
 !------------------------------------------------------------------------------
 !BOC
 !
 ! !LOCAL VARIABLES:
 !
-      INTEGER             :: IJLOOP
-      REAL*8              :: GAMMA_LAI
-      REAL*8              :: GAMMA_LEAF_AGE
-      REAL*8              :: GAMMA_P
-      REAL*8              :: GAMMA_P_PECCA
-      REAL*8              :: GAMMA_T
-      REAL*8              :: GAMMA_SM
-      REAL*8              :: D_BTW_M, Q_DIR_2, Q_DIFF_2
+      INTEGER :: IJLOOP
+      REAL*8  :: GAMMA_LAI
+      REAL*8  :: GAMMA_LEAF_AGE
+      REAL*8  :: GAMMA_P
+      REAL*8  :: GAMMA_P_PECCA
+      REAL*8  :: GAMMA_T
+      REAL*8  :: GAMMA_SM
+      REAL*8  :: D_BTW_M, Q_DIR_2, Q_DIFF_2
             
       !=================================================================
       ! GET_EMISOP_MEGAN begins here!
@@ -334,8 +333,12 @@
 !
 ! !USES:
 !
-      USE LAI_MOD,     ONLY : ISOLAI, MISOLAI, PMISOLAI, DAYS_BTW_M
-      USE LOGICAL_MOD, ONLY : LPECCA 
+      USE LOGICAL_MOD,   ONLY : LPECCA                     ! Use PCEEA model?
+      USE MODIS_LAI_MOD, ONLY : ISOLAI     => GC_LAI       ! Daily LAI
+      USE MODIS_LAI_MOD, ONLY : PMISOLAI   => GC_LAI_PM    ! Prev month's LAI
+      USE MODIS_LAI_MOD, ONLY : MISOLAI    => GC_LAI_CM    ! Curr month's LAI
+      USE MODIS_LAI_MOD, ONLY : NMISOLAI   => GC_LAI_NM    ! Next month's LAI
+      USE MODIS_LAI_MOD, ONLY : DAYS_BTW_M => DAYS_BTW_MON ! LAI month interval
 !
 ! !INPUT PARAMETERS: 
 !
@@ -365,19 +368,23 @@
 !        carefully distinguished from TSKIN. (tmf, 11/20/04)
 !  (3 ) Restructing of function & implementation of activity factors (mpb,2009)
 !  17 Dec 2009 - R. Yantosca - Added ProTeX headers
+!  11 Apr 2012 - R. Yantosca - Now use data from modis_lai_mod.F90
 !EOP
 !------------------------------------------------------------------------------
 !BOC
 !
 ! !LOCAL VARIABLES:
 !
-      REAL*8              :: GAMMA_LAI
-      REAL*8              :: GAMMA_LEAF_AGE
-      REAL*8              :: GAMMA_P
-      REAL*8              :: GAMMA_T
-      REAL*8              :: GAMMA_SM
-      REAL*8              :: D_BTW_M, Q_DIR_2, Q_DIFF_2
-      REAL*8, PARAMETER   :: BETA = 0.09
+      REAL*8            :: GAMMA_LAI
+      REAL*8            :: GAMMA_LEAF_AGE
+      REAL*8            :: GAMMA_P
+      REAL*8            :: GAMMA_T
+      REAL*8            :: GAMMA_SM
+      REAL*8            :: D_BTW_M, Q_DIR_2, Q_DIFF_2
+!
+! !DEFINED PARAMETERS:
+!
+      REAL*8, PARAMETER :: BETA = 0.09
 
       !=================================================================
       ! GET_EMMBO_MEGAN begins here!
@@ -478,8 +485,12 @@
 !
 ! !USES:
 !
-      USE LAI_MOD,     ONLY : ISOLAI, MISOLAI, PMISOLAI, DAYS_BTW_M
-      USE LOGICAL_MOD, ONLY : LPECCA 
+      USE LOGICAL_MOD,   ONLY : LPECCA                     ! Use PCEEA model?
+      USE MODIS_LAI_MOD, ONLY : ISOLAI     => GC_LAI       ! Daily LAI
+      USE MODIS_LAI_MOD, ONLY : PMISOLAI   => GC_LAI_PM    ! Prev month's LAI
+      USE MODIS_LAI_MOD, ONLY : MISOLAI    => GC_LAI_CM    ! Curr month's LAI
+      USE MODIS_LAI_MOD, ONLY : NMISOLAI   => GC_LAI_NM    ! Next month's LAI
+      USE MODIS_LAI_MOD, ONLY : DAYS_BTW_M => DAYS_BTW_MON ! LAI month interval
 !
 ! !INPUT PARAMETERS: 
 !
@@ -508,6 +519,7 @@
 !        calling of a new temperature algorithm which use a beta factor.
 !        (mpb,2008)
 !  17 Dec 2009 - R. Yantosca - Added ProTeX headers
+!  11 Apr 2012 - R. Yantosca - Now use data from modis_lai_mod.F90
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -527,9 +539,7 @@
       REAL*8            :: D_BTW_M
       REAL*8            :: LDF 
       REAL*8            :: Q_DIR_2, Q_DIFF_2
-      ! bug fix: need local AEF_SPARE (hotp 3/10/10)
-      ! AEF_SPARE is a scaler
-      REAL*8              :: AEF_SPARE
+      REAL*8            :: AEF_SPARE
 
       !=================================================================
       ! GET_EMMONOT_MEGAN begins here!
@@ -636,18 +646,15 @@
       ! Monoterpene emission is the product of all these; must be 
       ! careful to distinguish between canopy & PECCA models.
       IF ( LPECCA ) THEN
-         ! removed I,J from AEF_SPARE (hotp 3/10/10)
-         !EMMONOT    = AEF_SPARE(I,J) * GAMMA_LEAF_AGE * GAMMA_T 
          EMMONOT    = AEF_SPARE * GAMMA_LEAF_AGE * GAMMA_T 
-     &                               * GAMMA_SM       * GAMMA_LAI
-     &                       * ( (1.d0 - LDF) + (LDF * GAMMA_P) )
+     &                          * GAMMA_SM       * GAMMA_LAI
+     &                          * ( (1.d0 - LDF) + (LDF * GAMMA_P) )
 
       ELSE 
 
          ! removed I,J from AEF_SPARE (hotp 3/10/10)
-         !EMMONOT    = AEF_SPARE(I,J) * GAMMA_LEAF_AGE * GAMMA_T
          EMMONOT    = AEF_SPARE * GAMMA_LEAF_AGE * GAMMA_T 
-     &                               * GAMMA_SM       
+     &                          * GAMMA_SM       
      &                * (  GAMMA_LAI * (1.d0 - LDF) + (LDF * GAMMA_P) )
 
       END IF 
@@ -676,10 +683,13 @@
 !
 ! !USES:
 !
-      USE LAI_MOD,     ONLY : ISOLAI, MISOLAI, PMISOLAI, DAYS_BTW_M
-      USE LOGICAL_MOD, ONLY : LPECCA 
-
-      USE CMN_SIZE_MOD      ! Size parameters
+      USE LOGICAL_MOD,   ONLY : LMEGAN                     ! Is MEGAN used?
+      USE LOGICAL_MOD,   ONLY : LPECCA                     ! Use PCEEA model?
+      USE MODIS_LAI_MOD, ONLY : ISOLAI     => GC_LAI       ! Daily LAI
+      USE MODIS_LAI_MOD, ONLY : PMISOLAI   => GC_LAI_PM    ! Prev month's LAI
+      USE MODIS_LAI_MOD, ONLY : MISOLAI    => GC_LAI_CM    ! Curr month's LAI
+      USE MODIS_LAI_MOD, ONLY : NMISOLAI   => GC_LAI_NM    ! Next month's LAI
+      USE MODIS_LAI_MOD, ONLY : DAYS_BTW_M => DAYS_BTW_MON ! LAI month interval
 !
 ! !INPUT PARAMETERS: 
 !
@@ -709,6 +719,8 @@
 !  24 May 2011 - E. Fischer  - Modified for acetone. Function GET_EMACET_MEGAN
 !                              is called from "acetone_mod.f"
 !  06 Dec 2011 - M. Payer    - Added ProTeX headers
+!  27 Mar 2012 - R. Yantosca - Avoid segfault errors if LMEGAN=.FALSE.
+!  11 Apr 2012 - R. Yantosca - Now use data from modis_lai_mod.F90
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -717,6 +729,7 @@
 !
       ! Fraction of emission that is light dependent (A. Guenther 5/25/2011)
       REAL*8, PARAMETER   :: LDF    = 0.20d0
+
       ! Temperature response factor for light-independent emissions
       ! (A. Guenther 5/25/2011)
       REAL*8, PARAMETER   :: BETA   = 0.10d0
@@ -743,6 +756,11 @@
       GAMMA_LEAF_AGE  = 1.d0
       GAMMA_P         = 0.d0
       GAMMA_SM        = 0.d0
+
+      ! For safety's sake: exit with EMACET=0d0 if MEGAN emissions
+      ! are turned off.  This prevents a segfault error caused by
+      ! trying to access unallocated arrays. (bmy, 3/27/12)
+      IF ( .not. LMEGAN ) RETURN
 
       ! Number of days between MISOLAI and PMISOLAI
       D_BTW_M  = DBLE( DAYS_BTW_M )
@@ -808,7 +826,8 @@
 
          ELSE
 
-            ! set activity factors to zero, except leaf age dependence for acetone
+            ! set activity factors to zero, 
+            ! except leaf age dependence for acetone
             GAMMA_T         = 0.d0
             GAMMA_LAI       = 0.d0
             GAMMA_LEAF_AGE  = 1.d0
@@ -821,13 +840,13 @@
       ! careful to distinguish between canopy & PECCA models.
       IF ( LPECCA ) THEN
 
-         EMACET    = AEF_ACET(I,J) * GAMMA_LEAF_AGE * GAMMA_T 
+         EMACET   = AEF_ACET(I,J) * GAMMA_LEAF_AGE * GAMMA_T 
      &            * GAMMA_SM       * GAMMA_LAI
      &            * ( (1.d0 - LDF) + (LDF * GAMMA_P) )
 
       ELSE 
 
-         EMACET    = AEF_ACET(I,J) * GAMMA_LEAF_AGE * GAMMA_T 
+         EMACET   = AEF_ACET(I,J) * GAMMA_LEAF_AGE * GAMMA_T 
      &            * GAMMA_SM       
      &            * (  GAMMA_LAI * (1.d0 - LDF) + (LDF * GAMMA_P) )
 
@@ -856,10 +875,6 @@
      &                            TS, Q_DIR, Q_DIFF, XNUMOL ) 
      &            RESULT( EMMONOT )
 !
-! !USES:
-!
-      USE LAI_MOD,    ONLY : ISOLAI, MISOLAI, PMISOLAI, DAYS_BTW_M
-!
 ! !INPUT PARAMETERS: 
 !
       INTEGER, INTENT(IN) :: I, J      ! Lon & lat indices
@@ -884,18 +899,25 @@
 !  17 Dec 2009 - R. Yantosca - Added ProTeX headers
 !  09 Mar 2010 - H.O.T. Pye  - Change order of arguments in call to 
 !                              routine GET_EMMONOG_MEGAN
+!  11 Apr 2012 - R. Yantosca - Now use data from modis_lai_mod.F90
 !EOP
 !------------------------------------------------------------------------------
 !BOC
 !
+! !DEFINED PARAMETERS:
+!
+      INTEGER, PARAMETER :: N = 7
+!
 ! !LOCAL VARIABLES:
 !
-      REAL*8                        :: MONO
-      INTEGER                       :: K 
-      INTEGER, PARAMETER            :: N = 7
-      CHARACTER(LEN=5),DIMENSION(7) :: SPECIES      
-      SPECIES = ( / 'APINE' , 'BPINE' , 'LIMON' , 'SABIN' , 'MYRCN' ,
-     &            'CAREN' , 'OCIMN' / )
+      ! Scalars
+      REAL*8             :: MONO
+      INTEGER            :: K 
+
+      ! Arrays
+      CHARACTER(LEN=5)   :: SPECIES(N) = (/ 'APINE', 'BPINE', 'LIMON', 
+     &                                      'SABIN', 'MYRCN', 'CAREN', 
+     &                                      'OCIMN'                   /)
 
       !=================================================================
       ! GET_EMMONOT_MEGAN begins here!
@@ -904,10 +926,15 @@
       ! Initialize
       EMMONOT = 0.d0
 
-      DO K = 1 , N
-         MONO = GET_EMMONOG_MEGAN( I , J , SUNCOS, TS , Q_DIR ,
-     &                             Q_DIFF , XNUMOL , SPECIES(K) ) 
+      ! Loop over all species
+      DO K = 1, N
 
+         ! Get contribution from each individual species [atoms C/box]
+         MONO = GET_EMMONOG_MEGAN( I ,     J ,       SUNCOS, 
+     &                             TS ,    Q_DIR ,   Q_DIFF, 
+     &                             XNUMOL ,SPECIES(K)        ) 
+
+         ! Compute overall total
          EMMONOT = EMMONOT + MONO
       ENDDO
 
@@ -935,8 +962,12 @@
 !
 ! !USES:
 !
-      USE LAI_MOD,     ONLY : ISOLAI, MISOLAI, PMISOLAI, DAYS_BTW_M
-      USE LOGICAL_MOD, ONLY : LPECCA 
+      USE LOGICAL_MOD,   ONLY : LPECCA                     ! Use PCEEA model?
+      USE MODIS_LAI_MOD, ONLY : ISOLAI     => GC_LAI       ! Daily LAI
+      USE MODIS_LAI_MOD, ONLY : PMISOLAI   => GC_LAI_PM    ! Prev month's LAI
+      USE MODIS_LAI_MOD, ONLY : MISOLAI    => GC_LAI_CM    ! Curr month's LAI
+      USE MODIS_LAI_MOD, ONLY : NMISOLAI   => GC_LAI_NM    ! Next month's LAI
+      USE MODIS_LAI_MOD, ONLY : DAYS_BTW_M => DAYS_BTW_MON ! LAI month interval
 !
 ! !INPUT PARAMETERS: 
 !
@@ -960,6 +991,7 @@
 ! !REVISION HISTORY: 
 !  (1 ) Original code written by Michael Barkley (mpb,2009).
 !  17 Dec 2009 - R. Yantosca - Added ProTeX headers
+!  11 Apr 2012 - R. Yantosca - Now use data from modis_lai_mod.F90
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -1005,8 +1037,10 @@
                GAMMA_LAI = GET_GAMMA_LAI( MISOLAI(I,J) )
 
                ! Activity factor for light 
-               GAMMA_P = GET_GAMMA_P_PECCA( I, J, Q_DIR_2, Q_DIFF_2,
-     &                        PARDR_15_AVG(I,J), PARDF_15_AVG(I,J) )
+               GAMMA_P = GET_GAMMA_P_PECCA( I,       J, 
+     &                                      Q_DIR_2, Q_DIFF_2,
+     &                                      PARDR_15_AVG(I,J), 
+     &                                      PARDF_15_AVG(I,J)  )
             ELSE 
 
                ! Using a canopy model set this to 1
@@ -1014,14 +1048,16 @@
 
                ! Activity factor for light 
                GAMMA_P = GET_GAMMA_P( ISOLAI(I,J), SUNCOS,
-     &                                 Q_DIR_2, Q_DIFF_2 )
+     &                                Q_DIR_2,     Q_DIFF_2 )
  
             ENDIF
 
             ! Activity factor for leaf age 
             GAMMA_LEAF_AGE = GET_GAMMA_LEAF_AGE( MISOLAI(I,J), 
-     &                                 PMISOLAI(I,J), D_BTW_M, 
-     &                                'ISOP' , T_15_AVG(I,J) )
+     &                                           PMISOLAI(I,J), 
+     &                                           D_BTW_M, 
+     &                                           'ISOP' , 
+     &                                           T_15_AVG(I,J) )
          
             ! Activity factor for temperature
             GAMMA_T = GET_GAMMA_T_ISOP( TS, T_15_AVG(I,J), 
@@ -1067,8 +1103,6 @@
       USE TIME_MOD,   ONLY : GET_DAY_OF_YEAR
       USE TIME_MOD,   ONLY : GET_LOCALTIME
       USE GRID_MOD,   ONLY : GET_YMID  
-
-      USE CMN_GCTM_MOD   ! Physical constants (why?!)
 !
 ! !INPUT PARAMETERS: 
 !
@@ -1103,14 +1137,14 @@
 !
 ! !LOCAL VARIABLES:
 !
-      REAL*8              :: LUT , LAT 
-      REAL*8              :: mmPARDR_DAILY
-      REAL*8              :: mmPARDF_DAILY
-      REAL*8              :: PAC_DAILY, PAC_INSTANT, C_PPFD
-      REAL*8              :: PTOA, PHI
-      REAL*8              :: BETA,   SINbeta 
-      INTEGER             :: DOY 
-      REAL*8              :: AAA, BBB
+      REAL*8  :: LUT , LAT 
+      REAL*8  :: mmPARDR_DAILY
+      REAL*8  :: mmPARDF_DAILY
+      REAL*8  :: PAC_DAILY, PAC_INSTANT, C_PPFD
+      REAL*8  :: PTOA, PHI
+      REAL*8  :: BETA,   SINbeta 
+      INTEGER :: DOY 
+      REAL*8  :: AAA, BBB
 
       !-----------------------------------------------------------------
       ! Compute GAMMA_P_PECCA
@@ -1185,10 +1219,6 @@
 !
       FUNCTION SOLAR_ANGLE( DOY, SHOUR, LAT ) RESULT( SINbeta )
 !
-! !USES:
-!
-
-!
 ! !INPUT PARAMETERS: 
 !
       ! Arguments
@@ -1214,9 +1244,8 @@
 !
 ! !LOCAL VARIABLES:
 !
-      ! Local variables
-      REAL*8    :: BETA                 ! solar elevation angle
-      REAL*8    :: sindelta, cosdelta, A, B
+      REAL*8 :: BETA                        ! solar elevation angle
+      REAL*8 :: sindelta, cosdelta, A, B
 
       ! Calculation of sin beta 
       sindelta = -SIN( 0.40907d0 ) * 
@@ -1396,10 +1425,6 @@
 !
       FUNCTION GET_GAMMA_P( LAI, SUNCOS1, Q_DIR_2, Q_DIFF_2 ) 
      &              RESULT( GAMMA_P )
-!
-! !USES:
-!
-      USE CMN_GCTM_MOD   ! Physical constants
 !
 ! !INPUT PARAMETERS: 
 !
@@ -1610,7 +1635,7 @@
 ! !INTERFACE:
 !
       FUNCTION GET_GAMMA_LEAF_AGE( CMLAI, PMLAI, T, SPECIES, TT ) 
-     &            RESULT( GAMMA_LEAF_AGE )
+     &         RESULT( GAMMA_LEAF_AGE )
 !
 ! !INPUT PARAMETERS: 
 !
@@ -1857,7 +1882,6 @@
 !
 ! !USES:
 !
-      ! References to F90 modules
       USE BPCH2_MOD,      ONLY : GET_RES_EXT, READ_BPCH2
       USE DIRECTORY_MOD,  ONLY : DATA_DIR_1x1
       USE REGRID_A2A_MOD, ONLY : DO_REGRID_A2A
@@ -2629,12 +2653,6 @@
 !
       INTEGER           :: I, J, D
 
-!--- Moved all functions to module MEGANUT_MOD
-!      ! External functions
-!      REAL*8, EXTERNAL  :: XLTMMP
-!      REAL*8, EXTERNAL  :: XLPARDR ! (mpb,2009)
-!      REAL*8, EXTERNAL  :: XLPARDF ! (mpb,2009)
-
       !=================================================================
       ! UPDATE_T_DAY begins here!
       !=================================================================
@@ -2683,12 +2701,6 @@
 ! !INTERFACE:
 !
       SUBROUTINE UPDATE_T_15_AVG
-!
-! !USES:
-!
-      IMPLICIT NONE
-#     include "define.h"
-#     include "define.h"
 ! 
 ! !REVISION HISTORY: 
 !  01 Oct 1995 - M. Prather  - Initial version
@@ -2786,7 +2798,6 @@
       USE FILE_MOD,         ONLY : IU_A3
       USE JULDAY_MOD,       ONLY : CALDATE
       USE ERROR_MOD,        ONLY : ALLOC_ERR
-      USE LAI_MOD,          ONLY : INIT_LAI
       USE LOGICAL_MOD,      ONLY : LUNZIP
       USE TIME_MOD,         ONLY : GET_FIRST_A3_TIME, GET_JD
       USE TIME_MOD,         ONLY : ITS_A_LEAPYEAR,    YMD_EXTRACT
@@ -2804,6 +2815,8 @@
 !  22 Nov 2011 - R. Yantosca - Do not use erroneous AEF's for nested grids
 !  08 Feb 2012 - R. Yantosca - Now read surface temperature for GEOS-5.7.x
 !  28 Feb 2012 - R. Yantosca - Removed support for GEOS-3
+!  11 Apr 2012 - R. Yantosca - Now remove the call to INIT_LAI; we shall 
+!                              initialize the LAI arrays from main.F
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -2863,7 +2876,6 @@
 
 
       ! New monoterpene species (mpb,2008)
-
       ALLOCATE( AEF_APINE( IIPAR, JJPAR ), STAT=AS )
       IF ( AS /= 0 ) CALL ALLOC_ERR( 'AEF_APINE' )
       AEF_APINE = 0d0
@@ -2892,10 +2904,6 @@
       IF ( AS /= 0 ) CALL ALLOC_ERR( 'AEF_OCIMN' )
       AEF_OCIMN = 0d0
 
-      ! AEF_SPARE no longer "global" to module (hotp 3/10/10)
-      !ALLOCATE( AEF_SPARE( IIPAR, JJPAR ), STAT=AS )
-      !IF ( AS /= 0 ) CALL ALLOC_ERR( 'AEF_SPARE' )
-      !AEF_SPARE = 0d0
 
       ! Allocate arrays for light (mpb,2009)
 
@@ -2963,9 +2971,6 @@
 
       ! For global and nested simulations (lzh, bmy, 11/22/11)
       CALL GET_AEF
-
-      ! Initialize LAI arrays
-      CALL INIT_LAI
 
       !=================================================================
       ! Read A3 fields for the 15 days before the start of the run
@@ -3129,34 +3134,30 @@
       ! CLEANUP_MEGAN begins here!
       !=================================================================
 
-      IF ( ALLOCATED( T_DAY         ) ) DEALLOCATE( T_DAY         )
-      IF ( ALLOCATED( T_15          ) ) DEALLOCATE( T_15          )
-      IF ( ALLOCATED( T_15_AVG      ) ) DEALLOCATE( T_15_AVG      )
-      IF ( ALLOCATED( T_DAILY       ) ) DEALLOCATE( T_DAILY       )
-      IF ( ALLOCATED( PARDR_DAY     ) ) DEALLOCATE( PARDR_DAY     )
-      IF ( ALLOCATED( PARDR_15      ) ) DEALLOCATE( PARDR_15      )
-      IF ( ALLOCATED( PARDR_15_AVG  ) ) DEALLOCATE( PARDR_15_AVG  )
-      IF ( ALLOCATED( PARDR_DAILY   ) ) DEALLOCATE( PARDR_DAILY   )
-      IF ( ALLOCATED( PARDF_DAY     ) ) DEALLOCATE( PARDF_DAY     )
-      IF ( ALLOCATED( PARDF_15      ) ) DEALLOCATE( PARDF_15      )
-      IF ( ALLOCATED( PARDF_15_AVG  ) ) DEALLOCATE( PARDF_15_AVG  )
-      IF ( ALLOCATED( PARDF_DAILY   ) ) DEALLOCATE( PARDF_DAILY   )
-
-      IF ( ALLOCATED( AEF_ISOP  ) ) DEALLOCATE( AEF_ISOP  )
-      IF ( ALLOCATED( AEF_MONOT ) ) DEALLOCATE( AEF_MONOT )
-      IF ( ALLOCATED( AEF_MBO   ) ) DEALLOCATE( AEF_MBO   )
-      IF ( ALLOCATED( AEF_OVOC  ) ) DEALLOCATE( AEF_OVOC  )
-      ! evf, acetone update (5/24/2011):
-      IF ( ALLOCATED( AEF_ACET  ) ) DEALLOCATE( AEF_ACET  )
-      IF ( ALLOCATED( AEF_APINE ) ) DEALLOCATE( AEF_APINE )
-      IF ( ALLOCATED( AEF_BPINE ) ) DEALLOCATE( AEF_BPINE )
-      IF ( ALLOCATED( AEF_LIMON ) ) DEALLOCATE( AEF_LIMON )
-      IF ( ALLOCATED( AEF_SABIN ) ) DEALLOCATE( AEF_SABIN )
-      IF ( ALLOCATED( AEF_MYRCN ) ) DEALLOCATE( AEF_MYRCN )
-      IF ( ALLOCATED( AEF_CAREN ) ) DEALLOCATE( AEF_CAREN )
-      IF ( ALLOCATED( AEF_OCIMN ) ) DEALLOCATE( AEF_OCIMN )
-      ! bug fix (hotp 3/10/10)
-      !IF ( ALLOCATED( AEF_SPARE ) ) DEALLOCATE( AEF_SPARE )
+      IF ( ALLOCATED( T_DAY        ) ) DEALLOCATE( T_DAY        )
+      IF ( ALLOCATED( T_15         ) ) DEALLOCATE( T_15         )
+      IF ( ALLOCATED( T_15_AVG     ) ) DEALLOCATE( T_15_AVG     )
+      IF ( ALLOCATED( T_DAILY      ) ) DEALLOCATE( T_DAILY      )
+      IF ( ALLOCATED( PARDR_DAY    ) ) DEALLOCATE( PARDR_DAY    )
+      IF ( ALLOCATED( PARDR_15     ) ) DEALLOCATE( PARDR_15     )
+      IF ( ALLOCATED( PARDR_15_AVG ) ) DEALLOCATE( PARDR_15_AVG )
+      IF ( ALLOCATED( PARDR_DAILY  ) ) DEALLOCATE( PARDR_DAILY  )
+      IF ( ALLOCATED( PARDF_DAY    ) ) DEALLOCATE( PARDF_DAY    )
+      IF ( ALLOCATED( PARDF_15     ) ) DEALLOCATE( PARDF_15     )
+      IF ( ALLOCATED( PARDF_15_AVG ) ) DEALLOCATE( PARDF_15_AVG )
+      IF ( ALLOCATED( PARDF_DAILY  ) ) DEALLOCATE( PARDF_DAILY  )
+      IF ( ALLOCATED( AEF_ISOP     ) ) DEALLOCATE( AEF_ISOP     )
+      IF ( ALLOCATED( AEF_MONOT    ) ) DEALLOCATE( AEF_MONOT    )
+      IF ( ALLOCATED( AEF_MBO      ) ) DEALLOCATE( AEF_MBO      )
+      IF ( ALLOCATED( AEF_OVOC     ) ) DEALLOCATE( AEF_OVOC     )
+      IF ( ALLOCATED( AEF_ACET     ) ) DEALLOCATE( AEF_ACET     )
+      IF ( ALLOCATED( AEF_APINE    ) ) DEALLOCATE( AEF_APINE    )
+      IF ( ALLOCATED( AEF_BPINE    ) ) DEALLOCATE( AEF_BPINE    )
+      IF ( ALLOCATED( AEF_LIMON    ) ) DEALLOCATE( AEF_LIMON    )
+      IF ( ALLOCATED( AEF_SABIN    ) ) DEALLOCATE( AEF_SABIN    )
+      IF ( ALLOCATED( AEF_MYRCN    ) ) DEALLOCATE( AEF_MYRCN    )
+      IF ( ALLOCATED( AEF_CAREN    ) ) DEALLOCATE( AEF_CAREN    )
+      IF ( ALLOCATED( AEF_OCIMN    ) ) DEALLOCATE( AEF_OCIMN    )
 
       END SUBROUTINE CLEANUP_MEGAN
 !EOC

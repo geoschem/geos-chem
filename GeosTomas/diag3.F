@@ -181,6 +181,8 @@
 !  08 Feb 2012 - R. Yantosca - Add counter for I3 (inst 3hr) met fields
 !  28 Feb 2012 - R. Yantosca - Removed support for GEOS-3
 !  01 Mar 2012 - R. Yantosca - Now use GET_AREA_M2(I,J,L) from grid_mod.F90
+!  05 Apr 2012 - R. Yantosca - Bug fix: use hourly scale for SLP in the
+!                              ND67 diagnostic for GEOS-5.7.x met fields
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -1683,12 +1685,6 @@
             IF ( N > N_TRACERS ) CYCLE
             NN = N
             
-!------------------------------------------------------------------------------
-! Prior to 2/16/12:
-! Bug fix to account for output of a subset of model levels   
-!!            ARRAY(:,:,1:LD24) = MASSFLEW(:,:,1:LD24,N) / SCALEDYN
-!            ARRAY(:,:,1:LD24) = MASSFLEW(:,:,LD24:1:-1,N) / SCALEDYN
-!------------------------------------------------------------------------------
             ARRAY(:,:,1:LD24) = MASSFLEW(:,:,LLPAR:LLPAR-LD24+1:-1,N) /
      &                          SCALEDYN
 
@@ -1722,12 +1718,6 @@
             IF ( N > N_TRACERS ) CYCLE
             NN = N
 
-!------------------------------------------------------------------------------
-! Prior to 2/16/12:
-! Bug fix to account for output of a subset of model levels   
-!!            ARRAY(:,:,1:LD25) = MASSFLNS(:,:,1:LD25,N) / SCALEDYN
-!            ARRAY(:,:,1:LD25) = MASSFLNS(:,:,LD25:1:-1,N) / SCALEDYN
-!------------------------------------------------------------------------------
             ARRAY(:,:,1:LD25) = MASSFLNS(:,:,LLPAR:LLPAR-LD25+1:-1,N) /
      &                          SCALEDYN
 
@@ -1761,12 +1751,6 @@
             IF ( N > N_TRACERS ) CYCLE
             NN = N
             
-!------------------------------------------------------------------------------
-! Prior to 2/16/12:
-! Bug fix to account for output of a subset of model levels               
-!!            ARRAY(:,:,1:LD26) = MASSFLUP(:,:,1:LD26,N) / SCALEDYN
-!            ARRAY(:,:,1:LD26) = MASSFLUP(:,:,LD26:1:-1,N) / SCALEDYN
-!------------------------------------------------------------------------------
             ARRAY(:,:,1:LD26) = MASSFLUP(:,:,LLPAR:LLPAR-LD26+1:-1,N) /
      &                          SCALEDYN
                
@@ -4188,7 +4172,7 @@
                   UNIT   = 'm'
                CASE ( 16 )
 #if   defined( MERRA ) || defined( GEOS_57 )
-                  SCALEX = SCALE_A3     ! MERRA CLDTOPS is a 3-hr time avg'd
+                  SCALEX = SCALE_A3     ! MERRA/GEOS-5.7.x CLDTOPS 3-hr avg'd
 #else 
                   SCALEX = SCALE_A6     ! Otherwise CLDTOPS is 6-hr time avg'd
 #endif
@@ -4197,10 +4181,10 @@
                   SCALEX = SCALE_ND67
                   UNIT   = 'hPa'
                CASE ( 18 ) 
-#if   defined( MERRA )
-                 SCALEX = SCALE_A1     ! MERRA SLP is hourly
+#if   defined( MERRA ) || defined( GEOS_57 )
+                 SCALEX = SCALE_A1      ! MERRA/GEOS-5.7.x SLP is hourly
 #else
-                 SCALEX = SCALE_I6     ! Otherwise SLP is 6-h inst.
+                 SCALEX = SCALE_I6      ! Otherwise SLP is 6-h inst.
 #endif
                   UNIT   = 'hPa'
                CASE ( 19 )

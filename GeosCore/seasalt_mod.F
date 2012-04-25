@@ -776,7 +776,11 @@
 !\\
 ! !INTERFACE:
 !
+#if defined( DEVEL )
+      SUBROUTINE EMISSSEASALT( SFLX )
+#else
       SUBROUTINE EMISSSEASALT
+#endif
 !
 ! !USES:
 !
@@ -787,6 +791,9 @@
       USE VDIFF_PRE_MOD,ONLY : emis_save ! (Lin, 03/31/09)
 
       USE CMN_SIZE_MOD       ! Size parameters
+#if defined( DEVEL )
+      USE TRACER_MOD,   ONLY : N_TRACERS
+#endif
 !
 ! !REVISION HISTORY: 
 !  (1 ) Now references LPRT from "logical_mod.f" and STT from "tracer_mod.f".
@@ -806,6 +813,9 @@
       LOGICAL, SAVE         :: FIRST = .TRUE.
       INTEGER               :: I, J, L, N
 
+#if defined( DEVEL )
+      REAL*8, INTENT(INOUT) :: SFLX(IIPAR,JJPAR,LLPAR,N_TRACERS+1)
+#endif
       !=================================================================
       ! EMISSSEASALT begins here! 
       !=================================================================
@@ -847,6 +857,11 @@
          IF ( LPRT ) CALL DEBUG_MSG( '### EMISSEASALT: Coarse' )
       ENDIF
 
+#if defined( DEVEL )
+      SFLX(:,:,1,IDTSALA) = SFLX(:,:,1,IDTSALA) + ALK_EMIS(:,:,1,1)
+      SFLX(:,:,1,IDTSALC) = SFLX(:,:,1,IDTSALC) + ALK_EMIS(:,:,1,2)
+#endif
+
       ! save surface emis for non-local PBL mixing (vdiff_mod.f) (units: kg)
       ! (Lin, 06/09/08) 
       IF (LNLPBL) THEN
@@ -874,19 +889,9 @@
 !  Gong (2003) with the empirical sea surface temperature (SST) dependence of
 !  Jaegle et al. (2011). This SST dependence was derived based on comparisons
 !  to cruise observations of coarse mode sea salt mass concentrations.
-! 
+!\\
+!\\
 !  Contact: Lyatt Jaegle (jaegle@uw.edu)
-!
-!!-----------------------------------------------------------------------------
-!!Prior to 12/22/11: 
-!!  Subroutine SRCSALT updates the surface mixing ratio of dry sea salt
-!!  aerosols for NSALT size bins.  The generation of sea salt aerosols
-!!  has been parameterized following Monahan et al. [1986] parameterization
-!!  as described by Gong et al. [1997].  (bec, rjp, bmy, 4/20/04, 11/23/09)
-!! 
-!!  Contact: Becky Alexander (bec@io.harvard.edu) or 
-!!           Rokjin Park     (rjp@io.harvard.edu)
-!!-----------------------------------------------------------------------------
 !\\
 !\\
 ! !INTERFACE:

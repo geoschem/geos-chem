@@ -16,12 +16,16 @@ MODULE VDIFF_MOD
 ! !USES:
 !
   USE TRACER_MOD,    ONLY : pcnst => N_TRACERS
-  USE VDIFF_PRE_MOD, ONLY : LLPAR
   USE LOGICAL_MOD,   ONLY : LPRT
   USE ERROR_MOD,     ONLY : DEBUG_MSG
-  
+#if defined( DEVEL )
+  USE VDIFF_PRE_MOD, ONLY : plev  => LLPAR
+  USE CMN_SIZE_MOD,  ONLY : IIPAR, JJPAR, LLPAR
+#else
+  USE VDIFF_PRE_MOD, ONLY : LLPAR
+#endif  
+
   IMPLICIT NONE
-#     include "define.h"
 #     include "define.h"
   
   PRIVATE
@@ -34,7 +38,12 @@ MODULE VDIFF_MOD
 !  
   save
   
+
+#if defined( DEVEL ) 
+  integer :: plevp
+#else  
   integer, parameter :: plev = LLPAR, plevp = plev + 1
+#endif
   
   real*8, parameter ::          &
        rearth = 6.37122d6,      & ! radius earth (m)
@@ -81,7 +90,11 @@ MODULE VDIFF_MOD
 !-----------------------------------------------------------------------
   real*8 :: &
        zkmin            ! minimum kneutral*f(ri)
+#if defined( DEVEL )
+  real*8, allocatable :: ml2(:)   ! mixing lengths squaredB
+#else
   real*8 :: ml2(plevp)   ! mixing lengths squared
+#endif
   real*8, allocatable :: qmincg(:)   ! min. constituent concentration 
                                      !  counter-gradient term
   
@@ -154,6 +167,10 @@ contains
 !-----------------------------------------------------------------------
 ! 	... basic constants
 !-----------------------------------------------------------------------
+#if defined( DEVEL )
+    plevp = plev+1
+#endif
+
     g    = gravx
     onet = 1d0/3.d0
     
@@ -1650,7 +1667,7 @@ contains
 ! !USES:
 ! 
     USE PRESSURE_MOD, ONLY : GET_AP, GET_BP
-    USE ERROR_MOD,   ONLY : ALLOC_ERR
+    USE ERROR_MOD,    ONLY : ALLOC_ERR
     
     implicit none
 !
@@ -1669,12 +1686,22 @@ contains
     
     integer :: AS
     
+#if defined( DEVEL )
+    real*8, allocatable :: ref_pmid(:)
+#else
     real*8 :: ref_pmid(LLPAR)
+#endif
 
     !=================================================================
     ! vdinti begins here!
     !=================================================================
 
+#if defined( DEVEL )
+    ALLOCATE( ref_pmid(LLPAR), STAT=AS )
+    IF ( AS /= 0 ) CALL ALLOC_ERR( 'ref_pmid' )
+    ref_pmid = 0.d0
+    plevp = plev+1
+#endif
 !-----------------------------------------------------------------------
 ! 	... hard-wired numbers.
 !           zkmin = minimum k = kneutral*f(ri)
@@ -1714,6 +1741,11 @@ contains
 !-----------------------------------------------------------------------
 ! 	... set the square of the mixing lengths
 !-----------------------------------------------------------------------
+#if defined( DEVEL )
+    ALLOCATE( ml2(plevp), STAT=AS )
+    IF ( AS /= 0 ) CALL ALLOC_ERR( 'ml2' )
+#endif
+
     ml2(1) = 0.d0
     do k = 2,plev
        ml2(k) = (30.d0)**2
@@ -2510,7 +2542,6 @@ contains
     USE TIME_MOD,      ONLY : ITS_TIME_FOR_EMIS
 
     IMPLICIT NONE
-#     include "define.h"
 #     include "define.h"
 !
 ! !INPUT PARAMETERS:

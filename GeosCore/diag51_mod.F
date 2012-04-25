@@ -251,6 +251,8 @@
 !EOP
 !------------------------------------------------------------------------------
 !BOC
+      USE LOGICAL_MOD, ONLY : DO_DIAG_WRITE
+
 !
 ! !LOCAL VARIABLES:
 !
@@ -267,7 +269,7 @@
       CALL ACCUMULATE_DIAG51
 
       ! Write data to disk at the proper time
-      IF ( ITS_TIME_FOR_WRITE_DIAG51( TAU_W ) ) THEN
+      IF ( ITS_TIME_FOR_WRITE_DIAG51( TAU_W ) .and. DO_DIAG_WRITE ) THEN
          CALL WRITE_DIAG51( TAU_W )
       ENDIF
 
@@ -370,8 +372,7 @@
       USE DAO_MOD,        ONLY : TS
       ! Now included PAR direct and diffuse (mpb,2009)
       USE DAO_MOD,        ONLY : PARDF, PARDR
-      ! Now included current (MODIS) LAI (mpb,2009)
-      USE LAI_MOD,        ONLY : ISOLAI
+      USE MODIS_LAI_MOD,  ONLY : ISOLAI => GC_LAI
       USE PBL_MIX_MOD,    ONLY : GET_PBL_TOP_L,   GET_PBL_TOP_m
       USE PRESSURE_MOD,   ONLY : GET_PEDGE
       USE TIME_MOD,       ONLY : GET_ELAPSED_MIN, GET_TS_CHEM 
@@ -384,7 +385,7 @@
       USE TRACERID_MOD,   ONLY : IDTR4N2, IDTSALA, IDTSALC 
       USE TROPOPAUSE_MOD, ONLY : ITS_IN_THE_TROP
 
-      USE CMN_FJ_MOD, ONLY : IPAR, JPAR, LPAR, JPMAX, JPPJ  ! includes CMN_SIZE
+      USE CMN_FJ_MOD,     ONLY : JPMAX, JPPJ  ! includes F77_CMN_SIZE
       USE JV_CMN_MOD  ! ODAER, QAA, QAA_AOD
       USE CMN_O3_MOD    ! FRACO3, FRACNO, SAVEO3, SAVENO2, SAVEHO2, FRACNO2
       USE CMN_GCTM_MOD  ! SCALE_HEIGHT
@@ -421,6 +422,7 @@
 !  12 Nov 2010 - R. Yantosca - Now save out PEDGE-$ (pressure at level edges)
 !                              rather than Psurface - PTOP
 !  02 Dec 2010 - R. Yantosca - Added ProTeX headers
+!  11 Apr 2012 - R. Yantosca - Replace lai_mod.F with modis_lai_mod.F90
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -1869,7 +1871,11 @@
      &                  TAU0,         TAU1,         RESERVED,  
      &                  ND51_NI,      ND51_NJ,      GMNL,     
      &                  ND51_IMIN+I0, ND51_JMIN+J0, ND51_LMIN, 
+#if defined( DEVEL )
      &                  REAL(Q(1:ND51_NI, 1:ND51_NJ, 1:GMNL, W)))
+#else
+     &                  REAL(Q(1:ND51_NI, 1:ND51_NJ, 1:GMNL, W)))
+#endif
          ENDIF
       ENDDO
 

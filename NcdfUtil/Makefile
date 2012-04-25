@@ -35,6 +35,10 @@
 #  04 Aug 2009 - R. Yantosca - Initial version
 #  24 Jan 2012 - R. Yantosca - Now explicitly list all dependencies
 #  25 Jan 2012 - R. Yantosca - Now use := for the assignment statement
+#  05 Apr 2012 - R. Yantosca - Change BL_INC_NETCDF to INC_NETCDF
+#  05 Apr 2012 - R. Yantosca - Change BL_INC_HDF5   to INC_HDF5
+#  05 Apr 2012 - R. Yantosca - Change BL_LIB_NETCDF to LIB_NETCDF
+#  05 Apr 2012 - R. Yantosca - Change BL_LIB_HDF5   to LIB_HDF5
 #EOP
 #------------------------------------------------------------------------------
 #BOC
@@ -58,10 +62,10 @@ include ../Makefile_header.mk
 # Linking paths for building the executable which tests if 
 # the netCDF libraries were installed correctly
 NCL     := -L../lib -lNcUtils \
-           -L$(BL_LIB_NETCDF) -lnetcdf \
-           -L$(BL_LIB_HDF5) -lhdf5_hl \
-           -L$(BL_LIB_HDF5) -lhdf5 \
-           -L$(BL_LIB_ZLIB) -lz \
+           -L$(LIB_NETCDF) -lnetcdf \
+           -L$(LIB_HDF5) -lhdf5_hl \
+           -L$(LIB_HDF5) -lhdf5 \
+           -L$(LIB_ZLIB) -lz \
 
 #==============================================================================
 # Filename section

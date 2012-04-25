@@ -73,7 +73,6 @@
 !  (10) Now do not scale AOD output (now recalculated in RDAER and DUST_MOD)
 !       Minor bug fix with the accumulation of ODAER across RH bins
 !       (skim, 02/03/11)
-!  01 Mar 2012 - R. Yantosca - Use updated GET_LOCALTIME from time_mod.F
 !******************************************************************************
 !
       IMPLICIT NONE
@@ -153,7 +152,6 @@
 !  (9 ) Now save SLP under tracer #18 in "DAO-FLDS" (tai, bmy, 10/13/09)
 !  12 Nov 2010 - R. Yantosca - Save out PEDGE-$ (pressure @ level edges) rather
 !                              than PSURFACE - PTOP.
-!  01 Mar 2012 - R. Yantosca - Now use GET_LOCALTIME(I,J,L) from time_mod.F90
 !******************************************************************************
 !
       ! References to F90 modules
@@ -176,10 +174,11 @@
       USE TRACERID_MOD, ONLY : IDTPAN,  IDTPMN,  IDTPPN,  IDTOX   
       USE TRACERID_MOD, ONLY : IDTR4N2, IDTSALA, IDTSALC 
 
-      USE CMN_FJ_MOD, ONLY : IPAR, JPAR, LPAR, JPMAX, JPPJ    ! Size parameters + FAST-J stuff
+      USE CMN_FJ_MOD,   ONLY : JPMAX, JPPJ    ! Size parameters + FAST-J stuff
       USE JV_CMN_MOD    ! ODAER, ODMDUST, QAA, QAA_OUT
       USE CMN_O3_MOD      ! XNUMOLAIR
       USE CMN_GCTM_MOD    ! SCALE_HEIGHT
+      USE LOGICAL_MOD,  ONLY : DO_DIAG_WRITE
 
       ! Local variables
       LOGICAL, SAVE      :: IS_CLDTOPS,  IS_OPTD, IS_SEASALT, IS_SLP
@@ -223,8 +222,12 @@
          FILENAME = TRIM( ND48_OUTPUT_FILE )
          CALL EXPAND_DATE( FILENAME, GET_NYMD(), GET_NHMS() )
 
-         ! Open file for writing
-         CALL OPEN_ND48_FILE( FILENAME )
+         IF ( DO_DIAG_WRITE ) THEN
+
+            ! Open file for writing
+            CALL OPEN_ND48_FILE( FILENAME )
+
+         ENDIF
 
          ! Reset first-time flag
          FIRST = .FALSE.
@@ -247,7 +250,7 @@
          N = ND48_N(W)
 
          ! Get local time
-         LT = GET_LOCALTIME( I, J, L )
+         LT = GET_LOCALTIME( I , J, L )
 
          ! Initialize
          Q(:) = 0
@@ -701,14 +704,18 @@
 
          ENDIF
          
+         IF ( DO_DIAG_WRITE ) THEN
+
          !==============================================================
          ! Write each station to a bpch file
          !==============================================================
-         CALL BPCH2( IU_ND48,   MODELNAME, LONRES,   LATRES,       
-     &               HALFPOLAR, CENTER180, CATEGORY, GMTRC,        
-     &               UNIT,      TAU,       TAU,      RESERVED,  
-     &               1,         1,         K,        I+I0,         
-     &               J+J0,      1,         REAL( Q(1:K),4 ) )
+            CALL BPCH2( IU_ND48,   MODELNAME, LONRES,   LATRES,       
+     &           HALFPOLAR, CENTER180, CATEGORY, GMTRC,        
+     &           UNIT,      TAU,       TAU,      RESERVED,  
+     &           1,         1,         K,        I+I0,         
+     &           J+J0,      1,         REAL( Q(1:K),4 ) )
+            
+         ENDIF
 
       ENDDO
 
@@ -729,8 +736,12 @@
 !         CLOSE( IU_ND49 ) 
 !      ENDIF
 
-      ! Flush the file once per day
-      IF ( ITS_A_NEW_DAY() ) CALL FLUSH( IU_ND48 ) 
+      IF ( DO_DIAG_WRITE ) THEN
+
+         ! Flush the file once per day
+         IF ( ITS_A_NEW_DAY() ) CALL FLUSH( IU_ND48 ) 
+
+      ENDIF
 
       ! Return to calling program
       END SUBROUTINE DIAG48

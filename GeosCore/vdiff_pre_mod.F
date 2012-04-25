@@ -33,11 +33,18 @@
       PUBLIC :: EMISRR, EMISRRN             ! from "CMN_O3_mod"
       PUBLIC :: ND15, ND44                  ! from "CMN_DIAG_mod"
       PUBLIC :: emis_save
+#if defined( DEVEL )
+      PUBLIC :: SET_VDIFF_PRE_MOD
+#endif
 
       ! Make sure MAXTRACERS >= N_TRACERS
       INTEGER, PARAMETER :: MAXTRACERS = 100 
 
+#if defined( DEVEL )
+      REAL*8, ALLOCATABLE :: emis_save(:,:,:)!(IIPAR, JJPAR, MAXTRACERS)
+#else
       REAL*8 :: emis_save(IIPAR, JJPAR, MAXTRACERS) = 0.d0
+#endif
 !
 ! !REVISION HISTORY:
 !  01 Jun 2009 - C. Carouge & J. Lin - Initial version  
@@ -45,5 +52,20 @@
 !EOP
 !------------------------------------------------------------------------------
 !BOC
+#if defined( DEVEL )
+      CONTAINS
+
+      SUBROUTINE SET_VDIFF_PRE_MOD
+
+      IMPLICIT NONE
+
+      INTEGER AS
+
+      ALLOCATE(emis_save(IIPAR, JJPAR, MAXTRACERS), STAT=AS)
+      emis_save=0.d0
+      
+      END SUBROUTINE SET_VDIFF_PRE_MOD
+#endif
+
       END MODULE VDIFF_PRE_MOD
 !EOC

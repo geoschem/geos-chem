@@ -5,7 +5,6 @@ c  Cross-sections for O3 for all processes interpolated across 3 temps
 !-----------------------------------------------------------------------
 #     include "define.h"
 
-      USE CMN_FJ_MOD, ONLY : IPAR, JPAR, LPAR, JPMAX, JPPJ
       USE JV_CMN_MOD
 
       IMPLICIT NONE

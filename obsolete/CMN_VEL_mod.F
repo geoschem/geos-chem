@@ -20,12 +20,21 @@
       PUBLIC
 
       ! NOTE: This should be split off into a "landtype_mod.f"
+#if defined( DEVEL )
+      INTEGER, ALLOCATABLE :: IJREG(:)
+      INTEGER, ALLOCATABLE :: IJLAND(:,:)
+      INTEGER, ALLOCATABLE :: IJUSE(:,:)
+
+      ! NOTE: This should be split off into a "lai_mod.f"
+      REAL*8, ALLOCATABLE  :: XYLAI(:,:)
+#else
       INTEGER :: IJREG(MAXIJ)
       INTEGER :: IJLAND(MAXIJ,NTYPE)
       INTEGER :: IJUSE(MAXIJ,NTYPE)
 
       ! NOTE: This should be split off into a "lai_mod.f"
       REAL*8  :: XYLAI(MAXIJ,NTYPE)
+#endif
 !
 ! !REMARKS:
 !  %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -42,5 +51,23 @@
 !EOP
 !-------------------------X-----------------------------------------------------
 !BOC
- 	END MODULE CMN_VEL_MOD
+#if defined( DEVEL )
+      CONTAINS
+
+      SUBROUTINE SET_CMN_VEL_MOD
+
+      IMPLICIT NONE
+
+      INTEGER AS
+
+      ALLOCATE(
+     &  IJREG(MAXIJ),
+     &  IJLAND(MAXIJ,NTYPE),
+     &  IJUSE(MAXIJ,NTYPE),
+     &  XYLAI(MAXIJ,NTYPE),
+     &  STAT=AS)
+
+      END SUBROUTINE SET_CMN_VEL_MOD
+#endif
+      END MODULE CMN_VEL_MOD
 !EOC

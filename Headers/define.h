@@ -93,6 +93,7 @@
 !  01 Feb 2012 - R. Yantosca - Modify error trap to allow GEOS-5.7.x met
 !  10 Feb 2012 - R. Yantosca - Added GRID025x03125 C-preprocessor switch
 !  28 Feb 2012 - R. Yantosca - Removed support for GEOS-3
+!  23 Apr 2012 - R. Yantosca - Cosmetic changes
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -129,30 +130,31 @@
 !==============================================================================
 
 !----- Model types -----
-!#define GCAP          'GCAP'
-!#define GEOS_4        'GEOS_4'
-#define GEOS_5        'GEOS_5'
-!#define MERRA         'MERRA'
-!#define GEOS_57       'GEOS_57'
+!#define GCAP             'GCAP'
+!#define GEOS_4           'GEOS_4'
+#define GEOS_5           'GEOS_5'
+!#define MERRA            'MERRA'
+!#define GEOS_57          'GEOS_57'
+!#define EXTERNAL_FORCING 'EXTERNAL_FORCING'
 
 !----- Grid sizes -----
-!#define NESTED_CH     'NESTED_CH'
-!#define NESTED_NA     'NESTED_NA'
-!#define NESTED_EU     'NESTED_EU'
-!#define GRID025x03125 'GRID025x03125'
-!#define GRID05x0666   'GRID05x0666'
-!#define GRID1x1       'GRID1x1'
-!#define GRID1x125     'GRID1x125'
-!#define GRID2x25      'GRID2x25'
-#define GRID4x5       'GRID4x5'
-#define GRIDREDUCED   'GRIDREDUCED'
+!#define NESTED_CH        'NESTED_CH'
+!#define NESTED_NA        'NESTED_NA'
+!#define NESTED_EU        'NESTED_EU'
+!#define GRID05x0666      'GRID05x0666'
+!#define GRID1x1          'GRID1x1'
+!#define GRID1x125        'GRID1x125'
+!#define GRID2x25         'GRID2x25'
+#define GRID4x5          'GRID4x5'
+#define GRIDREDUCED      'GRIDREDUCED'
+!#define EXTERNAL_GRID    'EXTERNAL_GRID'
 
 !----- Compilers -----
-!#define IBM_AIX       'IBM_AIX'
-!#define IBM_XLF       'IBM_XLF'
-!#define LINUX_PGI     'LINUX_PGI'
-#define LINUX_IFORT   'LINUX_IFORT'
-!#define SPARC         'SPARC'
+!#define IBM_AIX          'IBM_AIX'
+!#define IBM_XLF          'IBM_XLF'
+!#define LINUX_PGI        'LINUX_PGI'
+#define LINUX_IFORT      'LINUX_IFORT'
+!#define SPARC            'SPARC'
 
 !----- Simulation type -----
 !#define GTMM_Hg
@@ -160,7 +162,7 @@
 !==============================================================================
 ! Force a compile error if a model type is undefined
 !==============================================================================
-#if !defined(GEOS_4) && !defined(GEOS_5) && !defined(MERRA) && !defined(GCAP) && !defined(GEOS_57)
+#if !defined(GEOS_4) && !defined(GEOS_5) && !defined(MERRA) && !defined(GCAP) && !defined(GEOS_57) && !defined(EXTERNAL_FORCING)
 #error "ERROR: GEOS_4, GEOS_5, GEOS-5.7, MERRA, and GCAP"
 #error "are ALL undefined in header file define.h"
 #endif
@@ -168,7 +170,7 @@
 !==============================================================================
 ! Force a compile error if a grid type is undefined
 !==============================================================================
-#if !defined(GRID2x25) && !defined(GRID4x5) && !defined(GRID1x125) && !defined(GRID1x1) && !defined(GRID05x0666) && !defined(GRID025x03125)
+#if !defined(GRID2x25) && !defined(GRID4x5) && !defined(GRID1x125) && !defined(GRID1x1) && !defined(GRID05x0666) && !defined(GRID025x03125) && !defined(EXTERNAL_GRID)
 #error "ERROR: GRID4x5, GRID2x25, GRID1x125, GRID1x1, "
 #error " GRID05x0666, and GRID025x03125"
 #error "are ALL undefined in header file define.h"

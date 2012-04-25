@@ -173,7 +173,11 @@
 !\\
 ! !INTERFACE:
 !
+#if defined( DEVEL )
+      SUBROUTINE EMISS_BRAVO(EMISSIONS)
+#else
       SUBROUTINE EMISS_BRAVO
+#endif
 !
 ! !USES:
 ! 
@@ -186,6 +190,11 @@
 
       USE CMN_SIZE_MOD           ! Size parameters
       USE CMN_O3_MOD             ! 
+
+#if defined( DEVEL )
+      USE TRACER_MOD,   ONLY : N_TRACERS
+      USE TRACERID_MOD, ONLY : IDTNOX, IDTCO, IDTSO2
+#endif
 !
 ! !REVISION HISTORY: 
 !  22 Jun 2006 - R. Park, F. Boersma, R. Yantosca - Initial version
@@ -208,6 +217,9 @@
       REAL*8, ALLOCATABLE     :: OUTGRID(:,:)
       REAL*8, ALLOCATABLE     :: INGRID(:,:)
 
+#if defined( DEVEL )
+      REAL*8, INTENT(INOUT)   :: EMISSIONS(IIPAR,JJPAR,N_TRACERS)
+#endif
       
       !=================================================================
       ! EMISS_BRAVO begins here!
@@ -338,6 +350,17 @@
       ! Print emission totals
       !=================================================================
       CALL TOTAL_ANTHRO_TG( SCALEYEAR )
+
+#if defined( DEVEL )
+      EMISSIONS(:,:,IDTNOX) = EMISSIONS(:,:,IDTNOX) +
+     &                        BRAVO_NOx
+
+      EMISSIONS(:,:,IDTCO)  = EMISSIONS(:,:,IDTCO) +
+     &                        BRAVO_CO
+
+      EMISSIONS(:,:,IDTSO2) = EMISSIONS(:,:,IDTSO2) +
+     &                        BRAVO_SO2
+#endif      
 
       END SUBROUTINE EMISS_BRAVO
 !EOC

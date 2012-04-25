@@ -58,8 +58,17 @@
 !  01 Mar 2012 - R. Yantosca - Now use GET_AREA_M2(I,J,L) from grid_mod.F90
 !******************************************************************************
 !
+      USE CMN_SIZE_MOD  ! Size parameters
+
       IMPLICIT NONE
 #     include "define.h"
+
+#if defined( DEVEL )
+      REAL*8, ALLOCATABLE :: OCDATA(:,:) ! ocean field for emiss. flux
+      REAL*8, ALLOCATABLE :: EFCH4R(:,:) ! emission flux from rice
+      REAL*8, ALLOCATABLE :: EFCH4W(:,:) ! emission flux from wetlands
+      REAL*8              :: CH3ISUM(5)          ! sum of emissions in kg/yr
+#endif
 
       !=================================================================
       ! MODULE ROUTINES -- follow below the "CONTAINS" statement 
@@ -130,13 +139,22 @@
       ! Arguments
       INTEGER, INTENT(IN) ::  THISMONTH    ! month of the year (1, 2, .., 12)
 
+#if defined( DEVEL )
+!      ! Local common blocks (shared with OPEN_CH3I_FILES)      
+!      REAL*8              :: OCDATA(IIPAR,JJPAR) ! ocean field for emiss. flux
+!      REAL*8              :: EFCH4R(IIPAR,JJPAR) ! emission flux from rice
+!      REAL*8              :: EFCH4W(IIPAR,JJPAR) ! emission flux from wetlands
+!      REAL*8              :: CH3ISUM(5)          ! sum of emissions in kg/yr
+!      COMMON /CH3IFLDS/ OCDATA, EFCH4R, EFCH4W, CH3ISUM
+#else
       ! Local common blocks (shared with OPEN_CH3I_FILES)      
       REAL*8              :: OCDATA(IIPAR,JJPAR) ! ocean field for emiss. flux
       REAL*8              :: EFCH4R(IIPAR,JJPAR) ! emission flux from rice
       REAL*8              :: EFCH4W(IIPAR,JJPAR) ! emission flux from wetlands
       REAL*8              :: CH3ISUM(5)          ! sum of emissions in kg/yr
       COMMON /CH3IFLDS/ OCDATA, EFCH4R, EFCH4W, CH3ISUM
-      
+#endif     
+ 
       ! Local variables
       REAL*4              :: Q1(IIPAR,JJPAR,1)
       REAL*8              :: XTAU
@@ -233,7 +251,11 @@
 
 !------------------------------------------------------------------------------
 
+#if defined( DEVEL )
+      SUBROUTINE EMISSCH3I( BIO_EMISS )
+#else
       SUBROUTINE EMISSCH3I
+#endif
 !
 !******************************************************************************
 !  Subroutine EMISSCH3I (mgs, bmy, 11/23/98, 9/27/06) specifies methyl 
@@ -353,6 +375,14 @@
       USE CMN_DIAG_MOD    ! Diagnostic switches
       USE CMN_DEP_MOD     ! RADIAT, FRCLND
 
+#if defined( DEVEL )
+      ! Local common blocks (shared with OPEN_CH3I_FILES)
+!      REAL*8 :: OCDATA(IIPAR,JJPAR)   ! scaled ocean net primary prod.
+!      REAL*8 :: EFCH4R(IIPAR,JJPAR)  ! scaled emission flux from rice
+!      REAL*8 :: EFCH4W(IIPAR,JJPAR)  ! scaled emission flux from wetlands
+!      REAL*8 :: CH3ISUM(5)           ! sum of emissions in kg/yr
+      REAL*8, INTENT(INOUT) :: BIO_EMISS(:,:,:)
+#else
       ! Local common blocks (shared with OPEN_CH3I_FILES)
       REAL*8 :: OCDATA(IIPAR,JJPAR)   ! scaled ocean net primary prod.
       REAL*8 :: EFCH4R(IIPAR,JJPAR)  ! scaled emission flux from rice
@@ -360,7 +390,7 @@
       REAL*8 :: CH3ISUM(5)           ! sum of emissions in kg/yr
 
       COMMON /CH3IFLDS/ OCDATA, EFCH4R, EFCH4W, CH3ISUM
-
+#endif
       ! Local variables:
       LOGICAL, SAVE      :: FIRSTEMISS = .TRUE.
       INTEGER            :: I, IJLOOP, J,    L,    N
@@ -740,7 +770,11 @@
       ENDIF
 
       ! Now reference routine BIOFUEL_BURN from "biofuel_mod.f" (bmy, 9/12/00)
+#if defined( DEVEL )
+      CALL BIOFUEL_BURN( BIO_EMISS )
+#else
       CALL BIOFUEL_BURN
+#endif
 
       N = 3
       L = 1
@@ -1095,6 +1129,22 @@
       ! Return to calling program
       END SUBROUTINE CHEMCH3I
 
+#if defined( DEVEL )
+!------------------------------------------------------------------------------
+      SUBROUTINE SET_CH3I_MOD
+
+      IMPLICIT NONE
+
+      INTEGER AS
+
+      ALLOCATE(
+     &  OCDATA(IIPAR,JJPAR),      ! ocean field for emiss. flux
+     &  EFCH4R(IIPAR,JJPAR),      ! emission flux from rice
+     &  EFCH4W(IIPAR,JJPAR),      ! emission flux from wetlands
+     &  STAT=AS)
+ 
+      END SUBROUTINE SET_CH3I_MOD
+#endif
 !------------------------------------------------------------------------------
 
       END MODULE CH3I_MOD

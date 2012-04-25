@@ -341,11 +341,6 @@
 
          ELSE IF ( N == IDTC2H6 ) THEN
 
-!------------------------------------------------------------------------------
-! Prior to 3/22/12:
-!            ! SO2 [kg/yr]
-!            VALUE = C2H6(I,J)
-!------------------------------------------------------------------------------
             VALUE = -1d0
 
          ELSE IF ( N == IDTMEK ) THEN
@@ -413,7 +408,11 @@
 
 !------------------------------------------------------------------------------
 
+#if defined( DEVEL )
+      SUBROUTINE EMISS_STREETS_ANTHRO(EMISSIONS)
+#else
       SUBROUTINE EMISS_STREETS_ANTHRO
+#endif
 !
 !******************************************************************************
 !  Subroutine EMISS_STREETS_ANTHRO reads the David Streets et al emission 
@@ -449,6 +448,13 @@
       USE CMN_SIZE_MOD         ! Size parameters
       USE CMN_O3_MOD           ! FSCALYR
 
+#if defined( DEVEL )
+      USE TRACER_MOD,       ONLY : N_TRACERS
+      USE TRACERID_MOD,     ONLY : IDTNOx, IDTCO, IDTSO2, IDTNH3
+      USE TRACERID_MOD,     ONLY : IDTACET, IDTALK4, IDTC2H6
+      USE TRACERID_MOD,     ONLY : IDTCH2O, IDTMEK,  IDTALD2
+      USE TRACERID_MOD,     ONLY : IDTPRPE, IDTC3H8
+#endif
       ! Local variables
       LOGICAL, SAVE              :: FIRST = .TRUE.
       INTEGER                    :: BASE_YEAR,       SIM_YEAR
@@ -473,6 +479,9 @@
       REAL*8                     :: TAU2000,       TAU2004,      TAU2006
       REAL*8                     :: TAUMONTH_2001, TAUMONTH_2004, TAU
 
+#if defined( DEVEL )
+      REAL*8,INTENT(INOUT)       :: EMISSIONS(IIPAR,JJPAR,N_TRACERS)
+#endif
       !=================================================================
       ! EMISS_STREETS_ANTHRO begins here!
       !=================================================================
@@ -738,7 +747,7 @@
 
             ENDDO
                   
-            ! Monthly Variability for 2006 Base Year. Variability has
+           !  Monthly Variability for 2006 Base Year. Variability has
             ! been obtained from 2001 data, and thus affects only China
             ! (phs, 12/2/08)
             FILENAME  = TRIM( STREETS_DIR ) // 
@@ -1028,6 +1037,21 @@
       !--------------------------
       CALL TOTAL_ANTHRO_Tg( SIM_YEAR, BASE_YEAR )
 
+#if defined( DEVEL )
+      EMISSIONS(:,:,IDTNOX)  = EMISSIONS(:,:,IDTNOX)  + NOX
+      EMISSIONS(:,:,IDTCO)   = EMISSIONS(:,:,IDTCO)   + CO
+      EMISSIONS(:,:,IDTSO2)  = EMISSIONS(:,:,IDTSO2)  + SO2
+      EMISSIONS(:,:,IDTNH3)  = EMISSIONS(:,:,IDTNH3)  + NH3
+      EMISSIONS(:,:,IDTACET) = EMISSIONS(:,:,IDTACET) + ACET
+      EMISSIONS(:,:,IDTC2H6) = EMISSIONS(:,:,IDTC2H6) + C2H6
+      EMISSIONS(:,:,IDTCH2O) = EMISSIONS(:,:,IDTCH2O) + CH2O
+      EMISSIONS(:,:,IDTC3H8) = EMISSIONS(:,:,IDTC3H8) + C3H8
+      EMISSIONS(:,:,IDTPRPE) = EMISSIONS(:,:,IDTPRPE) + PRPE
+      EMISSIONS(:,:,IDTALD2) = EMISSIONS(:,:,IDTALD2) + ALD2
+      EMISSIONS(:,:,IDTMEK)  = EMISSIONS(:,:,IDTMEK)  + MEK
+      EMISSIONS(:,:,IDTALK4) = EMISSIONS(:,:,IDTALK4) + ALK4
+#endif
+
       ! Return to calling program
       END SUBROUTINE EMISS_STREETS_ANTHRO
 
@@ -1228,7 +1252,11 @@
 
 !------------------------------------------------------------------------------
 
+#if defined( DEVEL )
+      SUBROUTINE EMISS_STREETS_ANTHRO_05x0666(EMISSIONS)
+#else
       SUBROUTINE EMISS_STREETS_ANTHRO_05x0666
+#endif
 !
 !******************************************************************************
 !  Subroutine EMISS_STREETS_ANTHRO_05x0666 reads the David Streets et al 
@@ -1264,6 +1292,13 @@
       USE CMN_SIZE_MOD       ! Size parameters
       USE CMN_O3_MOD         ! FSCALYR
 
+#if defined( DEVEL )
+      USE TRACER_MOD,       ONLY : N_TRACERS
+      USE TRACERID_MOD,     ONLY : IDTNOx, IDTCO, IDTSO2, IDTNH3
+      USE TRACERID_MOD,     ONLY : IDTACET, IDTALK4, IDTC2H6
+      USE TRACERID_MOD,     ONLY : IDTCH2O, IDTMEK,  IDTALD2
+      USE TRACERID_MOD,     ONLY : IDTPRPE, IDTC3H8
+#endif
       ! Local variables
       LOGICAL, SAVE              :: FIRST = .TRUE.
       INTEGER                    :: BASE_YEAR,       SIM_YEAR
@@ -1288,6 +1323,9 @@
       REAL*8                     :: TAU2000,       TAU2004,      TAU2006
       REAL*8                     :: TAUMONTH_2001, TAUMONTH_2004, TAU
 
+#if defined( DEVEL )
+      REAL*8,INTENT(INOUT)       :: EMISSIONS(IIPAR,JJPAR,N_TRACERS)
+#endif
       
       !=================================================================
       ! EMISS_STREETS_ANTHRO begins here!
@@ -1870,6 +1908,21 @@
       !--------------------------
       CALL TOTAL_ANTHRO_Tg( SIM_YEAR, BASE_YEAR )
 
+#if defined( DEVEL )
+      EMISSIONS(:,:,IDTNOX)  = EMISSIONS(:,:,IDTNOX)  + NOX
+      EMISSIONS(:,:,IDTCO)   = EMISSIONS(:,:,IDTCO)   + CO
+      EMISSIONS(:,:,IDTSO2)  = EMISSIONS(:,:,IDTSO2)  + SO2
+      EMISSIONS(:,:,IDTNH3)  = EMISSIONS(:,:,IDTNH3)  + NH3
+      EMISSIONS(:,:,IDTACET) = EMISSIONS(:,:,IDTACET) + ACET
+      EMISSIONS(:,:,IDTC2H6) = EMISSIONS(:,:,IDTC2H6) + C2H6
+      EMISSIONS(:,:,IDTCH2O) = EMISSIONS(:,:,IDTCH2O) + CH2O
+      EMISSIONS(:,:,IDTC3H8) = EMISSIONS(:,:,IDTC3H8) + C3H8
+      EMISSIONS(:,:,IDTPRPE) = EMISSIONS(:,:,IDTPRPE) + PRPE
+      EMISSIONS(:,:,IDTALD2) = EMISSIONS(:,:,IDTALD2) + ALD2
+      EMISSIONS(:,:,IDTMEK)  = EMISSIONS(:,:,IDTMEK)  + MEK
+      EMISSIONS(:,:,IDTALK4) = EMISSIONS(:,:,IDTALK4) + ALK4
+#endif
+
       END SUBROUTINE EMISS_STREETS_ANTHRO_05x0666
 
 !-----------------------------------------------------------------------------
@@ -2058,10 +2111,6 @@
             WRITE( 6, 110 ) 'PRPE ', YEAR, MONTH, T_PRPE, '[Tg C   ]'
             WRITE( 6, 110 ) 'C3H8 ', YEAR, MONTH, T_C3H8, '[Tg C   ]'
             WRITE( 6, 110 ) 'CH2O ', YEAR, MONTH, T_CH2O, '[Tg Ch2O]'
-!------------------------------------------------------------------------------
-! Prior to 3/22/12:
-!            WRITE( 6, 110 ) 'C2H6 ', YEAR, MONTH, T_C2H6, '[Tg C   ]'
-!------------------------------------------------------------------------------
             WRITE( 6, 110 ) 'ALD2 ', YEAR, MONTH, T_ALD2, '[Tg C   ]'
 
          ENDIF

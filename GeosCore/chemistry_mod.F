@@ -66,7 +66,11 @@
 !\\
 ! !INTERFACE:
 !
+#if defined( DEVEL )
+      SUBROUTINE DO_CHEMISTRY(CHEM_STATE)
+#else
       SUBROUTINE DO_CHEMISTRY
+#endif
 !
 ! !USES:
 !
@@ -115,6 +119,11 @@
       USE CMN_SIZE_MOD          ! Size parameters
       USE COMODE_LOOP_MOD       ! NPHOT
       USE CMN_DIAG_MOD          ! NDxx flags
+
+#if defined( DEVEL )
+      USE GC_TYPE2_MOD,           ONLY : CHEMSTATE, NULL 
+#endif
+
 !
 ! !REVISION HISTORY: 
 !  (1 ) Now reference DELP, T from "dao_mod.f" since we need to pass this
@@ -168,9 +177,19 @@
       LOGICAL, SAVE :: FIRST = .TRUE.
       INTEGER       :: N_TROP, MONTH, YEAR, WAVELENGTH
 
+#if defined( DEVEL )
+      TYPE(CHEMSTATE), INTENT(INOUT) :: CHEM_STATE
+!      REAL*8                         :: STT(IIPAR,JJPAR,LLPAR,N_TRACERS)
+#endif
+
       !=================================================================
       ! DO_CHEMISTRY begins here!
       !=================================================================
+
+#if defined( DEVEL )
+      ! Transfer tracer array to local
+      STT = CHEM_STATE%TRACERS(:,:,:,:N_TRACERS)
+#endif
 
       ! Compute optical depths (except for CH4 simulation)
       IF ( .not. ITS_A_CH4_SIM() ) THEN
@@ -277,7 +296,7 @@
              IF ( LSSALT ) THEN
              
                 ! ISOROPIA takes Na+, Cl- into account
-                CALL DO_ISOROPIAII
+!                CALL DO_ISOROPIAII
              
              ELSE
  
@@ -381,6 +400,10 @@
          IF ( LPRT ) CALL DEBUG_MSG( '### MAIN: a CHEMISTRY' )
       ENDIF
          
+#if defined( DEVEL )
+      ! Transfer tracer array back to non-local
+      CHEM_STATE%TRACERS(:,:,:,:N_TRACERS) = STT
+#endif
       ! Return to calling program
       END SUBROUTINE DO_CHEMISTRY
 !EOC

@@ -36,6 +36,13 @@
 
       USE CMN_SIZE_MOD        ! Size parameters
 
+#if defined( DEVEL )
+
+      USE GC_TYPE2_MOD,   ONLY : EXT_STRATOH, EXT_SJVALUE
+      USE GC_TYPE2_MOD,   ONLY : EXT_COLOSS, EXT_COPROD
+
+#endif
+
       IMPLICIT NONE
 #     include "define.h"
 
@@ -172,6 +179,14 @@
          COLOSS = 0e0
       ENDIF
 
+#if defined( EXTERNAL_FORCING )
+
+         STRATOH = EXT_STRATOH
+         SJVALUE = EXT_SJVALUE
+         COPROD  = EXT_COPROD
+         COLOSS  = EXT_COLOSS
+
+#else
       !=================================================================
       ! If it is a new month (or the first call to SCHEM), 
       ! do the following:
@@ -324,6 +339,7 @@
 !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
       ENDIF
+#endif
 
       !=================================================================
       ! Do photolysis for selected tracers with this 
@@ -340,10 +356,6 @@
       DO NN = 1, NSPHOTO
          N = SPHOTOID(NN)
 
-!---------------------------------
-! Prior to 3/7/12:
-!         DO L = LMIN, LLPAR
-!---------------------------------
          DO L = 1,    LLPAR
          DO J = 1,    JJPAR
          DO I = 1,    IIPAR
@@ -380,10 +392,6 @@
 !$OMP+PRIVATE( I, J, L, N, M, TK, RC, k0, k1, RDLOSS, T1L )
 !$OMP+SCHEDULE( DYNAMIC )
       DO N = 1,    N_TRACERS
-!---------------------------------
-! Prior to 3/7/12:
-!      DO L = LMIN, LLPAR
-!---------------------------------
       DO L = 1,    LLPAR
       DO J = 1,    JJPAR
       DO I = 1,    IIPAR

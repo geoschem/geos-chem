@@ -112,7 +112,6 @@
       USE DAO_MOD,      ONLY : T,       UWND,   VWND
       USE DAO_MOD,      ONLY : TS
       USE DAO_MOD,      ONLY : PARDF, PARDR
-      USE LAI_MOD,      ONLY : ISOLAI
       USE FILE_MOD,     ONLY : IU_ND63
       USE GRID_MOD,     ONLY : GET_XOFFSET,        GET_YOFFSET
       USE TIME_MOD,     ONLY : EXPAND_DATE
@@ -138,6 +137,7 @@
 ! !REVISION HISTORY:
 !  25 Feb 2011 - G. Vinken   - Initial version based on DIAG49 
 !  07 Feb 2012 - M. Payer    - Added ProTeX headers
+!  11 Apr 2012 - R. Yantosca - Remove reference to lai_mod.F, it's not needed
 !EOP
 !------------------------------------------------------------------------------
 !BOC

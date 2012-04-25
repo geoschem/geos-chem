@@ -1,5 +1,9 @@
 ! $Id: emissdr.f,v 1.6 2010/03/15 19:33:24 ccarouge Exp $
+#if defined( DEVEL )
+      SUBROUTINE EMISSDR( EMISS_TEND, BIOEMISS_TEND )
+#else
       SUBROUTINE EMISSDR
+#endif
 !
 !******************************************************************************
 !  Subroutine EMISSDR computes emissions for the full chemistry simulation
@@ -126,6 +130,11 @@
       USE CMN_DIAG_MOD     ! Diagnostic arrays and switches
       USE CMN_NOX_MOD      ! GEMISNOX2
 
+#if defined( DEVEL )
+      USE TRACERID_MOD,      ONLY : IDTNOX
+      USE TRACER_MOD,        ONLY : N_TRACERS
+#endif
+
       IMPLICIT NONE
 #     include "define.h"
 
@@ -160,6 +169,13 @@
       REAL*8                 :: GAMMA_P
       REAL*8                 :: GAMMA_T
       REAL*8                 :: GAMMA_SM
+
+#if defined( DEVEL )
+      REAL*8, INTENT(INOUT)  :: 
+     &     EMISS_TEND(IIPAR,JJPAR,LLPAR,N_TRACERS+1),
+     &     BIOEMISS_TEND(IIPAR,JJPAR,LLPAR,N_TRACERS+1)
+#endif
+
 !
 !******************************************************************************
 !  EMISSDR begins here!
@@ -260,21 +276,40 @@
 !-----------------------------------------------------------------------------
 ! LIGHTNING EMISSIONS NOX [molecules/cm3/s]
 !
+#if defined( DEVEL )
+            IF ( LLIGHTNOX .AND. I == 1 .AND. J == 1 ) 
+     &           CALL EMLIGHTNING( EMISS_TEND(:,:,:,IDTNOX) )
+#else
             IF ( LLIGHTNOX ) CALL EMLIGHTNING( I, J )
+#endif
 !-----------------------------------------------------------------------------
 ! SOIL EMISSIONS NOX [molecules/cm3/s]
 !
             IF ( ( LSOILNOX .OR. LFERTILIZERNOX )
      &             .AND. I == 1 .AND. J == 1 ) 
+#if defined( DEVEL )
+     &         CALL SOILNOXEMS( SUNCOS_MID, EMISS_TEND(:,:,1,IDTNOX) )
+#else
      &         CALL SOILNOXEMS( SUNCOS_MID )
+#endif
 !-----------------------------------------------------------------------------
 ! AIRCRAFT emissions NOx [molecules/cm3/s]
 !
+#if defined( DEVEL )
+            IF ( LAIRNOX .AND. I == 1 .AND. J == 1 ) 
+     &           CALL AIREMISS( EMISS_TEND(:,:,:,IDTNOX) )
+#else
             IF ( LAIRNOX .AND. I == 1 .AND. J == 1 ) CALL AIREMISS
+#endif
 !-----------------------------------------------------------------------------
 ! NOx AND CO from biofuel combustion [kg/box]  
 !
+#if defined( DEVEL )
+            IF ( LWOODCO .AND. I == 1 .AND. J == 1 ) 
+     &           CALL BIOFUEL_BURN( BIOEMISS_TEND(:,:,1,:) )
+#else
             IF ( LWOODCO .AND. I == 1 .AND. J == 1 ) CALL BIOFUEL_BURN
+#endif
 !----------------------------------------------------------------------------
 ! BIOGENIC EMISSIONS OF VARIOUS QUANTITIES [Atoms C/box/time step]
 !
@@ -395,6 +430,7 @@
                      ENDIF
                   ENDIF
 
+                  ! MSL -- INCLUDE THIS IN THE CHEM_STATE%TEND array?
                   ! Compute biogenic acetone emissions [atoms C/box/s]
                  ! CALL EMISS_BIOACET( I,    J,    TMMP,  EMMO, 
     ! &                                EMIS, EMMB, GRASS, BIO_ACET )

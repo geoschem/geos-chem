@@ -1298,6 +1298,49 @@
 !\\
 ! !INTERFACE:
 !
+#if defined( DEVEL )
+      SUBROUTINE EMLIGHTNING( EMISS )
+
+!
+! !USES:
+!
+      USE DAO_MOD,  ONLY : BXHEIGHT
+      USE DIAG_MOD, ONLY : AD32_li
+
+      USE CMN_SIZE_MOD         ! Size parameters
+      USE CMN_DIAG_MOD         ! ND32
+
+      REAL*8, INTENT(INOUT) :: EMISS(:,:,:)
+
+      INTEGER             :: I,J,L
+      REAL*8              :: TMP
+
+      ! External functions
+      REAL*8, EXTERNAL    :: BOXVL
+
+      !=================================================================
+      ! EMLIGHTNING begins here!
+      !=================================================================
+      DO I = 1, IIPAR
+         DO J = 1,JJPAR
+            DO L = 1, LLCONVM 
+               
+! SLBASE(I,J,L) has units [molec NOx/6h/box], convert units:
+! [molec/6h/box] * [6h/21600s] * [box/BOXVL cm3] = [molec/cm3/s]
+               TMP         = SLBASE(I,J,L) / ( 21600.d0 * BOXVL(I,J,L) )
+
+               EMIS_LI_NOx(I,J,L) = TMP
+               EMISS      (I,J,L) = TMP
+               
+! ND32 Diagnostic: Lightning NOx [molec NOx/cm2/s]
+               IF ( ND32 > 0 ) THEN
+                  AD32_li(I,J,L) = AD32_li(I,J,L) + 
+     &                 ( TMP * BXHEIGHT(I,J,L) * 1d2 )
+               ENDIF
+            ENDDO
+         ENDDO
+      ENDDO
+#else
       SUBROUTINE EMLIGHTNING( I, J )
 !
 ! !USES:
@@ -1353,7 +1396,7 @@
      &                        ( TMP * BXHEIGHT(I,J,L) * 1d2 )
           ENDIF
       ENDDO
-
+#endif
       END SUBROUTINE EMLIGHTNING
 !EOC
 !------------------------------------------------------------------------------

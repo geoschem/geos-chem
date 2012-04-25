@@ -242,12 +242,6 @@
             VALUE = CH2O(I,J,L)
 
          ELSE IF ( N == IDTC2H6 ) THEN
-
-!------------------------------------------------------------------------------
-! Prior to 3/22/12:
-!            ! [kg C/yr]
-!            VALUE = C2H6(I,J,L)
-!------------------------------------------------------------------------------
             VALUE = -1d0
 
          ELSE IF ( N == IDTALD2 ) THEN
@@ -321,12 +315,6 @@
             VALUE = CH2O_WKEND(I,J,L)
 
          ELSE IF ( N == IDTC2H6 ) THEN
-
-!------------------------------------------------------------------------------
-! Prior to 3/22/12:
-!            ! [kg C/yr]
-!            VALUE = C2H6_WKEND(I,J,L)
-!------------------------------------------------------------------------------
             VALUE = -1d0
  
          ELSE IF ( N == IDTALD2 ) THEN
@@ -379,7 +367,11 @@
 !\\
 ! !INTERFACE:
 !
+#if defined( DEVEL )
+      SUBROUTINE EMISS_NEI2005_ANTHRO( EMISS )
+#else
       SUBROUTINE EMISS_NEI2005_ANTHRO
+#endif
 !
 ! !USES:
 ! 
@@ -397,6 +389,15 @@
 
       USE CMN_SIZE_MOD            ! Size parameters
       USE CMN_O3_MOD              ! FSCALYR
+
+#if defined( DEVEL )
+      USE TRACERID_MOD, ONLY : IDTACET, IDTALK4, IDTC2H6, IDTC3H8
+      USE TRACERID_MOD, ONLY : IDTALD2, IDTCH2O, IDTPRPE, IDTMEK
+      USE TRACERID_MOD, ONLY : IDTNOx,  IDTCO,   IDTSO2,  IDTNH3
+      USE TRACERID_MOD, ONLY : IDTSO4,  IDTOCPI, IDTBCPI
+      USE TRACER_MOD,   ONLY : N_TRACERS
+      USE TIME_MOD,     ONLY : GET_DAY_OF_WEEK
+#endif
 !
 ! !REVISION HISTORY: 
 !  07 Oct 2009 - A. van Donkelaar - initial version
@@ -431,6 +432,11 @@
       REAL*8, ALLOCATABLE        :: OUTGRID(:,:)
       REAL*8, ALLOCATABLE        :: INGRID(:,:)
 
+#if defined( DEVEL )
+      INTEGER               :: DAY_NUM
+      LOGICAL               :: WEEKDAY
+      REAL*8, INTENT(INOUT) :: EMISS(IIPAR, JJPAR, LLPAR, N_TRACERS)
+#endif
       !=================================================================
       ! EMISS_NEI2005_ANTHRO begins here!
       !=================================================================
@@ -838,6 +844,40 @@
          CALL NEI2005_SCALE_FUTURE
       ENDIF
 
+#if defined( DEVEL )
+      DAY_NUM = GET_DAY_OF_WEEK()
+      WEEKDAY = ( DAY_NUM > 0 .and. DAY_NUM < 6 )
+
+      IF ( WEEKDAY ) THEN       !Kg/Yr
+         EMISS(:,:,1:5,IDTNOx)  = NOx
+         EMISS(:,:,1:5,IDTCO)   = CO
+         EMISS(:,:,1:5,IDTSO2)  = SO2
+         EMISS(:,:,1:5,IDTSO4)  = SO4
+         EMISS(:,:,1:5,IDTNH3)  = NH3
+         EMISS(:,:,1:5,IDTALK4) = ALK4
+         EMISS(:,:,1:5,IDTACET) = ACET
+         EMISS(:,:,1:5,IDTMEK)  = MEK
+         EMISS(:,:,1:5,IDTPRPE) = PRPE
+         EMISS(:,:,1:5,IDTC3H8) = C3H8
+         EMISS(:,:,1:5,IDTCH2O) = CH2O
+         EMISS(:,:,1:5,IDTC2H6) = C2H6
+         EMISS(:,:,1:5,IDTALD2) = ALD2
+      ELSE
+         EMISS(:,:,1:5,IDTNOx)  = NOx_WKEND
+         EMISS(:,:,1:5,IDTCO)   = CO_WKEND
+         EMISS(:,:,1:5,IDTSO2)  = SO2_WKEND
+         EMISS(:,:,1:5,IDTSO4)  = SO4_WKEND
+         EMISS(:,:,1:5,IDTNH3)  = NH3_WKEND
+         EMISS(:,:,1:5,IDTALK4) = ALK4_WKEND
+         EMISS(:,:,1:5,IDTACET) = ACET_WKEND
+         EMISS(:,:,1:5,IDTMEK)  = MEK_WKEND
+         EMISS(:,:,1:5,IDTPRPE) = PRPE_WKEND
+         EMISS(:,:,1:5,IDTC3H8) = C3H8_WKEND
+         EMISS(:,:,1:5,IDTCH2O) = CH2O_WKEND
+         EMISS(:,:,1:5,IDTC2H6) = C2H6_WKEND
+         EMISS(:,:,1:5,IDTALD2) = ALD2_WKEND
+      ENDIF
+#endif
       !--------------------------
       ! Print emission totals
       !--------------------------
@@ -859,7 +899,11 @@
 !\\
 ! !INTERFACE:
 !
+#if defined( DEVEL )
+      SUBROUTINE EMISS_NEI2005_ANTHRO_05x0666( EMISS )
+#else
       SUBROUTINE EMISS_NEI2005_ANTHRO_05x0666
+#endif
 !
 ! !USES:
 !
@@ -876,6 +920,16 @@
 
       USE CMN_SIZE_MOD          ! Size parameters
       USE CMN_O3_MOD            ! FSCALYR
+
+#if defined( DEVEL )
+      USE TRACERID_MOD, ONLY : IDTACET, IDTALK4, IDTC2H6, IDTC3H8
+      USE TRACERID_MOD, ONLY : IDTALD2, IDTCH2O, IDTPRPE, IDTMEK
+      USE TRACERID_MOD, ONLY : IDTNOx,  IDTCO,   IDTSO2,  IDTNH3
+      USE TRACERID_MOD, ONLY : IDTSO4,  IDTOCPI, IDTBCPI
+      USE TRACER_MOD,   ONLY : N_TRACERS
+      USE TIME_MOD,     ONLY : GET_DAY_OF_WEEK
+#endif
+
 !
 ! !REVISION HISTORY:
 !  03 Nov 2009 - A. van Donkelaar - initial version
@@ -906,6 +960,13 @@
       CHARACTER(LEN=5)           :: SNAME
       CHARACTER(LEN=1)           :: SSMN
       CHARACTER(LEN=2)           :: SMN
+
+
+#if defined( DEVEL )
+      INTEGER               :: DAY_NUM
+      LOGICAL               :: WEEKDAY
+      REAL*8, INTENT(INOUT) :: EMISS(IIPAR, JJPAR, LLPAR, N_TRACERS)
+#endif
 
       !=================================================================
       ! EMISS_NEI2005_ANTHRO begins here!
@@ -1165,6 +1226,41 @@
       IF ( LFUTURE ) THEN
          CALL NEI2005_SCALE_FUTURE
       ENDIF
+
+#if defined( DEVEL )
+      DAY_NUM = GET_DAY_OF_WEEK()
+      WEEKDAY = ( DAY_NUM > 0 .and. DAY_NUM < 6 )
+
+      IF ( WEEKDAY ) THEN       !Kg/Yr
+         EMISS(:,:,:,IDTNOx)  = NOx
+         EMISS(:,:,:,IDTCO)   = CO
+         EMISS(:,:,:,IDTSO2)  = SO2
+         EMISS(:,:,:,IDTSO4)  = SO4
+         EMISS(:,:,:,IDTNH3)  = NH3
+         EMISS(:,:,:,IDTALK4) = ALK4
+         EMISS(:,:,:,IDTACET) = ACET
+         EMISS(:,:,:,IDTMEK)  = MEK
+         EMISS(:,:,:,IDTPRPE) = PRPE
+         EMISS(:,:,:,IDTC3H8) = C3H8
+         EMISS(:,:,:,IDTCH2O) = CH2O
+         EMISS(:,:,:,IDTC2H6) = C2H6
+         EMISS(:,:,:,IDTALD2) = ALD2
+      ELSE
+         EMISS(:,:,:,IDTNOx)  = NOx_WKEND
+         EMISS(:,:,:,IDTCO)   = CO_WKEND
+         EMISS(:,:,:,IDTSO2)  = SO2_WKEND
+         EMISS(:,:,:,IDTSO4)  = SO4_WKEND
+         EMISS(:,:,:,IDTNH3)  = NH3_WKEND
+         EMISS(:,:,:,IDTALK4) = ALK4_WKEND
+         EMISS(:,:,:,IDTACET) = ACET_WKEND
+         EMISS(:,:,:,IDTMEK)  = MEK_WKEND
+         EMISS(:,:,:,IDTPRPE) = PRPE_WKEND
+         EMISS(:,:,:,IDTC3H8) = C3H8_WKEND
+         EMISS(:,:,:,IDTCH2O) = CH2O_WKEND
+         EMISS(:,:,:,IDTC2H6) = C2H6_WKEND
+         EMISS(:,:,:,IDTALD2) = ALD2_WKEND
+      ENDIF
+#endif
 
       !--------------------------
       ! Print emission totals
@@ -2151,10 +2247,6 @@
       WRITE( 6, 110 ) 'PRPE ', YEAR, T_PRPE, '[Tg C]'
       WRITE( 6, 110 ) 'C3H8 ', YEAR, T_C3H8, '[Tg C]'
       WRITE( 6, 110 ) 'CH2O ', YEAR, T_CH2O, '[Tg C]'
-!------------------------------------------------------------------------------
-! Prior to 3/22/12:
-!      WRITE( 6, 110 ) 'C2H6 ', YEAR, T_C2H6, '[Tg C]'
-!------------------------------------------------------------------------------
       WRITE( 6, 110 ) 'ALD2 ', YEAR, T_ALD2, '[Tg C]'
 
       ! Format statement

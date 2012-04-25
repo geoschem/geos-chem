@@ -63,6 +63,8 @@
 !  24 Jan 2011 - L. Murray   - Remove LOTDREG, LCTH, LMFLUX, LPRECON,
 !                               and LOTDSCALE for lightning
 !  07 Sep 2011 - P. Kasibhatla - Modified to include GFED3
+!  26 Mar 2012 - R. Yantosca - Add USE_OLSON_2001 switch, which will use the
+!                              newer Olson 2001 land map & drydep inputs
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -98,6 +100,7 @@
       !%%%% Deposition %%%%
       LOGICAL :: LDRYD           ! Use dry deposition?
       LOGICAL :: LWETD           ! Use wet deposition?
+      LOGICAL :: USE_OLSON_2001  ! Use the Olson 2001 land map & drydep info?
 
       !%%%% Emissions %%%%
       LOGICAL :: LAIRNOX         ! Use aircraft NOx emissions?
@@ -236,6 +239,9 @@
       LOGICAL :: LND50_HDF       ! Save ND50  diagnostic in HDF5?
       LOGICAL :: LND51_HDF       ! Save ND51  diagnostic in HDF5?
       LOGICAL :: LND51b_HDF      ! Save ND51b diagnostic in HDF5?
+ 
+      !%%%% For interface with GCM's in MPI environments
+      LOGICAL :: DO_DIAG_WRITE = .TRUE.  ! TURN ON/OFF DIAGNOSTIC WRITING
 
       END MODULE LOGICAL_MOD
 !EOC

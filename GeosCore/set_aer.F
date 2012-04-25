@@ -8,7 +8,7 @@ c     MIEDX    Index of aerosol types in jv_spec.dat - hardwire in here
 !-----------------------------------------------------------------------
 #     include "define.h"
 
-      USE CMN_FJ_MOD, ONLY : IPAR, JPAR, LPAR, JPMAX, JPPJ
+      USE CMN_FJ_MOD, ONLY : JPMAX, JPPJ
       USE JV_CMN_MOD
 
       IMPLICIT NONE

@@ -380,12 +380,19 @@
 !\\
 ! !INTERFACE:
 !
+#if defined( DEVEL )
+      SUBROUTINE AIRQNT(LOCAL_MET)
+#else
       SUBROUTINE AIRQNT
+#endif
 !
 ! !USES:
 !
       USE GRID_MOD,     ONLY : GET_AREA_M2
       USE PRESSURE_MOD, ONLY : GET_BP, GET_PEDGE
+#if defined( DEVEL )
+      USE GC_TYPE_MOD,  ONLY : GC_MET_LOCAL
+#endif
 !
 ! !REMARKS:
 !  DAO met fields updated by AIRQNT:
@@ -441,9 +448,13 @@
 !EOP
 !------------------------------------------------------------------------------
 !BOC
+#if defined( DEVEL )
+      TYPE(GC_MET_LOCAL), INTENT(INOUT) :: LOCAL_MET
+#endif
 !
 ! !LOCAL VARIABLES:
 !
+
       INTEGER :: I,  J,  L
       REAL*8  :: P1, P2, AREA_M2
 
@@ -468,55 +479,74 @@
 
          ! Pressure difference between top & bottom edges [hPa]
          DELP(L,I,J) = P1 - P2
-         
-         !===========================================================
-         ! BXHEIGHT is the height (Delta-Z) of grid box (I,J,L) 
-         ! in meters. 
-         !
-         ! The formula for BXHEIGHT is just the hydrostatic eqn.  
-         ! Rd = 287 J/K/kg is the value for the ideal gas constant
-         ! R for air (M.W = 0.02897 kg/mol),  or 
-         ! Rd = 8.31 J/(mol*K) / 0.02897 kg/mol. 
-         !===========================================================
+#if defined( DEVEL )
+!         DELP(L,I,J) = LOCAL_MET%DELP(L,I,J)
+         LOCAL_MET%DELP(L,I,J) = DELP(L,I,J)
+#endif            
+            !===========================================================
+            ! BXHEIGHT is the height (Delta-Z) of grid box (I,J,L) 
+            ! in meters. 
+            !
+            ! The formula for BXHEIGHT is just the hydrostatic eqn.  
+            ! Rd = 287 J/K/kg is the value for the ideal gas constant
+            ! R for air (M.W = 0.02897 kg/mol),  or 
+            ! Rd = 8.31 J/(mol*K) / 0.02897 kg/mol. 
+            !===========================================================
          BXHEIGHT(I,J,L) = Rdg0 * T(I,J,L) * LOG( P1 / P2 )
+#if defined( DEVEL )
+!         BXHEIGHT(I,J,L) = LOCAL_MET%BXHEIGHT(I,J,L)
+         LOCAL_MET%BXHEIGHT(I,J,L) = BXHEIGHT(I,J,L)
+#endif            
 
-         !===========================================================
-         ! AIRVOL is the volume of grid box (I,J,L) in meters^3
-         !
-         ! AREA_M2 is the Delta-X * Delta-Y surface area of grid
-         ! boxes (I,J,L=1), that is, at the earth's surface.
-         !
-         ! Since the thickness of the atmosphere is much smaller 
-         ! than the radius of the earth, we can make the "thin 
-         ! atmosphere" approximation, namely:
-         !
-         !               (Rearth + h) ~ Rearth
-         !
-         ! Therefore, the Delta-X * Delta-Y surface area of grid
-         ! boxes that are above the earth's surface will be 
-         ! approx. the same as AREA_M2.  Thus we are justified 
-         ! in using AREA_M2 for grid boxes (I, J, L > 1)
-         !===========================================================
+            !===========================================================
+            ! AIRVOL is the volume of grid box (I,J,L) in meters^3
+            !
+            ! AREA_M2 is the Delta-X * Delta-Y surface area of grid
+            ! boxes (I,J,L=1), that is, at the earth's surface.
+            !
+            ! Since the thickness of the atmosphere is much smaller 
+            ! than the radius of the earth, we can make the "thin 
+            ! atmosphere" approximation, namely:
+            !
+            !               (Rearth + h) ~ Rearth
+            !
+            ! Therefore, the Delta-X * Delta-Y surface area of grid
+            ! boxes that are above the earth's surface will be 
+            ! approx. the same as AREA_M2.  Thus we are justified 
+            ! in using AREA_M2 for grid boxes (I, J, L > 1)
+            !===========================================================
          AIRVOL(I,J,L) = BXHEIGHT(I,J,L) * AREA_M2
+#if defined( DEVEL )
+!         AIRVOL(I,J,L) = LOCAL_MET%AIRVOL(I,J,L)
+         LOCAL_MET%AIRVOL(I,J,L) = AIRVOL(I,J,L)
+#endif            
 
-         !===========================================================
-         ! AD = (dry) mass of air in grid box (I,J,L) in kg, 
-         ! given by:        
-         !
-         !  Mass    Pressure        100      1        Surface area 
-         !        = difference   *  ---  *  ---   *   of grid box 
-         !          in grid box      1       g          AREA_M2
-         !
-         !   kg         mb          Pa      s^2           m^2
-         !  ----  =    ----      * ----  * -----  *      -----
-         !    1          1          mb       m             1
-         !===========================================================
+            !===========================================================
+            ! AD = (dry) mass of air in grid box (I,J,L) in kg, 
+            ! given by:        
+            !
+            !  Mass    Pressure        100      1        Surface area 
+            !        = difference   *  ---  *  ---   *   of grid box 
+            !          in grid box      1       g          AREA_M2
+            !
+            !   kg         mb          Pa      s^2           m^2
+            !  ----  =    ----      * ----  * -----  *      -----
+            !    1          1          mb       m             1
+            !===========================================================
          AD(I,J,L) = DELP(L,I,J) * G0_100 * AREA_M2
+#if defined( DEVEL )
+!          AD(I,J,L) = LOCAL_MET%AD(I,J,L)
+         LOCAL_MET%AD(I,J,L) = AD(I,J,L)
+#endif            
 
-         !===========================================================
-         ! AIRDEN = density of air (AD / AIRVOL) in kg / m^3 
-         !===========================================================
+            !===========================================================
+            ! AIRDEN = density of air (AD / AIRVOL) in kg / m^3 
+            !===========================================================
          AIRDEN(L,I,J) = AD(I,J,L) / AIRVOL(I,J,L)
+#if defined( DEVEL )
+!         AIRDEN(L,I,J) = LOCAL_MET%AIRDENS(L,I,J)
+         LOCAL_MET%AIRDENS(L,I,J) = AIRDEN(L,I,J)
+#endif            
       ENDDO
       ENDDO
       ENDDO
@@ -3186,6 +3216,7 @@
 !
 ! !REVISION HISTORY:
 !  06 Feb 2012 - R. Yantosca - Split off MERRA init from routine INIT_DAO
+!  17 Apr 2012 - R. Yantosca - Bug fix: allocate ALBD array (it was omitted)
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -3197,6 +3228,10 @@
       !=================================================================
       ! A1 fields
       !=================================================================
+
+      ALLOCATE( ALBD( IIPAR, JJPAR ), STAT=AS )
+      IF ( AS /= 0 ) CALL ALLOC_ERR( 'ALBD' )
+      ALBD = 0d0
 
       ALLOCATE( CLDFRC( IIPAR, JJPAR ), STAT=AS )
       IF ( AS /= 0 ) CALL ALLOC_ERR( 'CLDFRC' )

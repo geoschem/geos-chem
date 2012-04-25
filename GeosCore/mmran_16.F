@@ -52,8 +52,8 @@
 !
 #     include "define.h"
 
-      USE CMN_SIZE_MOD, ONLY : NDUST, NAER, NRH
-      USE CMN_FJ_MOD, ONLY : IPAR, JPAR, LPAR, JPMAX, JPPJ, JPNL, ZPJ      ! IPAR, JPAR, LPAR, CMN_SIZE
+      USE CMN_SIZE_MOD, ONLY : NDUST, NAER, NRH, LLPAR
+      USE CMN_FJ_MOD, ONLY : JPMAX, JPPJ, JPNL, ZPJ
 !      USE JV_CMN_MOD, ONLY : ZPJ
 
       IMPLICIT NONE
@@ -63,21 +63,21 @@
       INTEGER, INTENT(IN)    :: NLON, NLAT
       REAL*8,  INTENT(IN)    :: CSZA, SFCA, YLAT
       INTEGER, INTENT(IN)    :: DAY, MONTH, DAY_OF_YR
-      REAL*8,  INTENT(IN)    :: TEMP(LPAR)
-      REAL*8,  INTENT(IN)    :: OPTDUST(LPAR,NDUST)
-      REAL*8,  INTENT(IN)    :: OPTAER(LPAR,NAER*NRH)
+      REAL*8,  INTENT(IN)    :: TEMP(LLPAR)
+      REAL*8,  INTENT(IN)    :: OPTDUST(LLPAR,NDUST)
+      REAL*8,  INTENT(IN)    :: OPTAER(LLPAR,NAER*NRH)
       INTEGER, INTENT(IN)    :: MAXBLK
       REAL*8,  INTENT(IN)    :: FMAX(MAXBLK)
-      REAL*8,  INTENT(IN)    :: ODNEW(LPAR)
-      INTEGER, INTENT(IN)    :: KBOT(LPAR)
-      INTEGER, INTENT(IN)    :: KTOP(LPAR)
+      REAL*8,  INTENT(IN)    :: ODNEW(LLPAR)
+      INTEGER, INTENT(IN)    :: KBOT(LLPAR)
+      INTEGER, INTENT(IN)    :: KTOP(LLPAR)
 
       ! Local variables
       INTEGER    :: II,  JJ,  KK,  LL,  MM,  NN
       INTEGER    :: II2, JJ2,      LL2, MM2, NN2
       REAL*8     :: P1, P2, P3, P4, P5, P6
-      REAL*8     :: JSUM(LPAR,JPMAX)
-      REAL*8     :: OPTD(LPAR)
+      REAL*8     :: JSUM(LLPAR,JPMAX)
+      REAL*8     :: OPTD(LLPAR)
 
 
       !=================================================================

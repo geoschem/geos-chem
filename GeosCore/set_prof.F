@@ -24,7 +24,8 @@
 !
 #     include "define.h"
 
-      USE CMN_FJ_MOD, ONLY : IPAR, JPAR, LPAR, JPMAX, JPPJ  
+      USE CMN_SIZE_MOD,  ONLY : LLPAR
+      USE CMN_FJ_MOD,    ONLY : JPMAX, JPPJ  
       USE JV_CMN_MOD            
 
       IMPLICIT NONE
@@ -36,15 +37,15 @@
       REAL*8,  INTENT(IN)    :: YLAT                   ! Latitude [degrees]
       INTEGER, INTENT(IN)    :: MONTH                  ! Current month
       INTEGER, INTENT(IN)    :: DAY                    ! Day of month
-      REAL*8,  INTENT(IN)    :: T(LPAR)                ! Temperature [K]
+      REAL*8,  INTENT(IN)    :: T(LLPAR)               ! Temperature [K]
       REAL*8,  INTENT(IN)    :: SA                     ! UV albedo [unitless]
-      REAL*8,  INTENT(IN)    :: OPTDUST(LPAR,NDUST)    ! Dust OD [unitless]
-      REAL*8,  INTENT(IN)    :: OPTAER(LPAR,NAER*NRH)  ! Aerosol OD [unitless]
+      REAL*8,  INTENT(IN)    :: OPTDUST(LLPAR,NDUST)   ! Dust OD [unitless]
+      REAL*8,  INTENT(IN)    :: OPTAER(LLPAR,NAER*NRH) ! Aerosol OD [unitless]
       REAL*8,  INTENT(IN)    :: O3COL                  ! Overhd O3 column [DU]
 !
 ! !INPUT/OUTPUT PARAMETERS: 
 !
-      REAL*8,  INTENT(INOUT) :: ODCOL(LPAR)            ! Visible OD [unitless]
+      REAL*8,  INTENT(INOUT) :: ODCOL(LLPAR)           ! Visible OD [unitless]
 !
 ! !AUTHOR:
 !  Oliver Wild & Michael Prather
@@ -174,7 +175,7 @@
       ! Calculate effective altitudes using scale height at each level
       !=================================================================
       Z(1) = 0.D0
-      DO I = 1, LPAR
+      DO I = 1, LLPAR
          SCALEH = 1.3806D-19 * MASFAC * TJ(I)
          Z(I+1) = Z(I) - ( LOG( PJ(I+1) / PJ(I) ) * SCALEH )
       ENDDO
@@ -185,7 +186,7 @@
       ! independent of wavelength; assume limiting temperature for 
       ! ice of -40 deg C.
       !=================================================================
-      DO I = 1, LPAR
+      DO I = 1, LLPAR
          AER(1,I) = DBC(I) * 10.D0 * ( Z(I+1) - Z(I) )
 
          ! Turn off uniform black carbon profile (rvm, bmy, 2/27/02)
@@ -212,7 +213,7 @@
       ENDDO
 
       DO K = 1, MX
-         AER(K,LPAR+1) = 0.D0
+         AER(K,LLPAR+1) = 0.D0
       ENDDO
 
       !=================================================================

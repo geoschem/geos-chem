@@ -27,6 +27,7 @@
       USE FILE_MOD              ! For file I/O
       USE INPUT_MOD             ! For reading settings from "input.geos"
       USE LOGICAL_MOD           ! Logical flags to toggle G-C options
+      USE MAPPING_MOD           ! For regridding MODIS LAI
       USE OLSON_LANDMAP_MOD     ! Computes IREG, ILAND, IUSE from Olson map
       USE PRESSURE_MOD          ! For computing pressure at grid boxes
       USE RESTART_MOD           ! For restart file I/O
@@ -88,7 +89,7 @@
       ! GEOS-Chem emissions modules
       !-----------------------------------------------------------------
       USE EMISSIONS_MOD         ! Driver routines for emissions
-      USE LAI_MOD               ! For MODIS leaf-area-indices
+      USE MODIS_LAI_MOD         ! For MODIS leaf area indices (replacement)
       USE LIGHTNING_NOX_MOD     ! For lightning NOx emissions  
       USE MEGAN_MOD             ! For biogenic emissions
 
@@ -105,6 +106,13 @@
       USE A3_READ_MOD           ! For reading A3 data (all other met)
       USE A6_READ_MOD           ! For reading A6 data (all other met)
       USE I6_READ_MOD           ! For reading I6 data (all other met)
+
+#if defined( DEVEL )
+      USE LOGICAL_MOD,        ONLY : DO_DIAG_WRITE
+      USE GC_ENVIRONMENT_MOD, ONLY : ALLOCATE_ALL, INIT_ALL
+      USE GC_TYPE2_MOD,       ONLY : CHEMSTATE
+      USE GC_TYPE_MOD,        ONLY : GC_MET_LOCAL
+#endif
 
       IMPLICIT NONE
 
@@ -169,6 +177,14 @@
 !                              "set_prof.F" to facilitate the GI model.
 !  19 Mar 2012 - R. Yantosca - Now call routines from olson_landmap_mod.F90
 !                              to read the Olson land map data
+!  04 Apr 2012 - R. Yantosca - Now call updated LAI routines from new module
+!                              modis_lai_mod.F90.  Retire routine RDLAI.
+!  05 Apr 2012 - R. Yantosca - Removed reference to LXTRA, it's obsolete
+!  11 Apr 2012 - R. Yantosca - Replace lai_mod.F with modis_lai_mod.F90
+!  11 Apr 2012 - R. Yantosca - Now call INIT_MODIS_LAI (in modis_lai_mod.F90)
+!                              here so that we don't have to call it from 
+!                              megan_mod.F and mercury_mod.F separately.
+!  17 Apr 2012 - R. Yantosca - Need to set the mapping variable to NULL()
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -176,27 +192,42 @@
 ! !LOCAL VARIABLES:
 !
       ! Scalars
-      LOGICAL            :: FIRST = .TRUE.
-      LOGICAL            :: LXTRA 
-      INTEGER            :: I,             IOS,   J,         K,      L
-      INTEGER            :: N,             JDAY,  NDIAGTIME, N_DYN,  NNN
-      INTEGER            :: N_DYN_STEPS,   NSECb, N_STEP,    DATE(2)
-      INTEGER            :: YEAR,          MONTH, DAY,       DAY_OF_YEAR
-      INTEGER            :: SEASON,        NYMD,  NYMDb,     NHMS
-      INTEGER            :: ELAPSED_SEC,   NHMSb, RC
-      INTEGER            :: ELAPSED_TODAY, HOUR,  MINUTE
-      REAL*8             :: TAU,           TAUb         
-      CHARACTER(LEN=255) :: ZTYPE
+      LOGICAL                  :: FIRST = .TRUE.
+      LOGICAL                  :: wasModisRead
+      INTEGER                  :: I,             IOS,         J
+      INTEGER                  :: K,             L,           N
+      INTEGER                  :: JDAY,          NDIAGTIME,   N_DYN
+      INTEGER                  :: NNN,           N_DYN_STEPS, NSECb 
+      INTEGER                  :: N_STEP,        YEAR,        MONTH
+      INTEGER                  :: DAY,           DAY_OF_YEAR, SEASON
+      INTEGER                  :: NYMD,          NYMDb,       NHMS
+      INTEGER                  :: ELAPSED_SEC,   NHMSb,       RC
+      INTEGER                  :: ELAPSED_TODAY, HOUR,        MINUTE
+      INTEGER                  :: laiYYYY,       laiMM
+      REAL*8                   :: TAU,           TAUb         
+      CHARACTER(LEN=255)       :: ZTYPE
 
       ! Arrays
-      REAL*8             :: HGPFRAC(IIPAR,JJPAR,LLPAR)
+      INTEGER                  :: DATE(2)
+
+      ! Derived type objects
+      TYPE(MapWeight), POINTER :: mapping(:,:) => NULL()
+
+#if defined( DEVEL )
+      TYPE(CHEMSTATE)          :: CHEM_STATE
+      TYPE(GC_MET_LOCAL)       :: LOCAL_MET
+#endif
 
       !=================================================================
       ! GEOS-CHEM starts here!                                            
       !=================================================================
 
       RC=0 ! Error flag. Default 0 is "no error"
-      
+
+#if defined( DEVEL )
+      CALL ALLOCATE_ALL
+#endif
+
       ! Display current grid resolution and data set type
       CALL DISPLAY_GRID_AND_MODEL
 
@@ -207,6 +238,11 @@
       ! Read input file and call init routines from other modules
       CALL READ_INPUT_FILE 
       IF ( LPRT ) CALL DEBUG_MSG( '### MAIN: a READ_INPUT_FILE' )
+
+#if defined( DEVEL )
+      ! Initialize all of CHEMSTATE
+      CALL INIT_ALL(LOCAL_MET, CHEM_STATE)
+#endif
 
       ! Initialize met field arrays from "dao_mod.f"
       CALL INIT_DAO
@@ -253,10 +289,6 @@
          IF ( LPRT ) CALL DEBUG_MSG( '### MAIN: a INIT_MEGAN' )
       ENDIF
 
-      ! Local flag for reading XTRA fields for GEOS-3
-      !LXTRA = ( LDUST .or. LMEGAN )
-      LXTRA = LMEGAN
-
       ! Define time variables for use below
       NHMS  = GET_NHMS()
       NHMSb = GET_NHMSb()
@@ -280,7 +312,11 @@
       CALL SET_FLOATING_PRESSURE( PS1 )
       IF ( LPRT ) CALL DEBUG_MSG( '### MAIN: a SET_FLT_PRS' )
 
+#if defined( DEVEL )
+      CALL AIRQNT(LOCAL_MET)
+#else
       CALL AIRQNT
+#endif
       IF ( LPRT ) CALL DEBUG_MSG( '### MAIN: a AIRQNT' )
 
       ! Compute lightning NOx emissions [molec/box/6h]
@@ -289,18 +325,19 @@
          IF ( LPRT ) CALL DEBUG_MSG( '### MAIN: a LIGHTNING' )
       ENDIF
 
-!------------------------------------------------------------------------------
-! Prior to 3/13/12:
-! Replace this with routines from olson_landmap_mod.F90
-!      ! Read land types and fractions from "vegtype.global"
-!      CALL RDLAND   
-!      IF ( LPRT ) CALL DEBUG_MSG( '### MAIN: a RDLAND' )
-!------------------------------------------------------------------------------
+      ! Initialize the derived type object containing
+      ! mapping information for the MODIS LAI routines
+      IF ( USE_OLSON_2001 ) THEN
+         CALL Init_Mapping( 1440, 720, IIPAR, JJPAR, mapping )
+      ELSE
+         CALL Init_Mapping(  720, 360, IIPAR, JJPAR, mapping )
+      ENDIF
 
       ! Compute the Olson land types that occur in each grid box
       ! (i.e. this is a replacement for rdland.F and vegtype.global)
-      CALL INIT_OLSON_LANDMAP()
-      CALL COMPUTE_OLSON_LANDMAP()
+      CALL Init_Olson_Landmap()
+      CALL Compute_Olson_Landmap( mapping )
+      CALL Cleanup_Olson_Landmap()
 
       ! Initialize PBL quantities but do not do mixing
       ! Add option for non-local PBL (Lin, 03/31/09) 
@@ -414,11 +451,12 @@
             CALL SET_DIAGe( TAU )
 
             ! Write bpch file
-            CALL DIAG3  
+            IF ( DO_DIAG_WRITE ) THEN
+               CALL DIAG3  
 
             ! Flush file units
-            CALL CTM_FLUSH
-
+               CALL CTM_FLUSH
+            ENDIF
             !===========================================================
             !    *****  W R I T E   R E S T A R T   F I L E S  *****
             !===========================================================
@@ -547,29 +585,85 @@
          !==============================================================
          IF ( ITS_A_NEW_DAY() ) THEN 
 
-            ! Read leaf-area index (needed for drydep)
-            ! Now include the year (mpb,11/19/09)
-            CALL RDLAI( DAY_OF_YEAR, MONTH, YEAR )
+            !-----------------------------------------------------------
+            !    %%%%%%% UPDATED LEAF AREA INDEX ALGORITHM %%%%%%%
+            ! 
+            ! Note that GEOS-Chem uses LAI data from two separate
+            ! sources.  The dry deposition and soil NOx modules rely
+            ! on the data from lai*.global ASCII files.  These files
+            ! (which are pre-processed offline by IDL codes) are 
+            ! generated for each specific GEOS-Chem grid configuration
+            ! (e.g. 4x5, 2x25, 0.5x0.666 nested grids).  These files
+            ! are read from disk by routine RDLAI, which saves
+            ! the LAI data into the XLAI and XYLAI arrays.  XLAI and
+            ! XYLAI store the leaf area index as a function of Olson 
+            ! land type (cf Olson 1992 land map).
+            !
+            ! However, the MEGAN biogenic emissions code relies on 
+            ! LAI data stored at 1x1 resolution stored in bpch format.
+            ! These binary files are read by routine RDISOLAI (and
+            ! other underlying routines in lai_mod.F), and are
+            ! regridded on-the-fly to the current GEOS-Chem grid
+            ! resolution.
+            !
+            ! Therefore, these two sources of LAI data present an
+            ! inconsistency that should be resolved.  Also, for the 
+            ! Grid-Indpendent GEOS-Chem project, we must move away
+            ! from ASCII files (which prevent interfacing with 
+            ! external GCMs).  We also cannot assume any particular
+            ! horizontal grid, since that is now to be specified at
+            ! the start of the simulation.
+            !
+            ! Also, to facilitate simulations at ultra-fine horizontal
+            ! resolution, we will eventually adopt the Olson 2001 land 
+            ! map, which has a native resolution of 0.25 x 0.25 
+            ! degrees, and likewise use an updated version of the 
+            ! MODIS LAI data at 0.25 x 0.25 resolution.
+            !
+            ! To resolve these issues, we have created a new module
+            ! (modis_lai_mod.F90) which reads from the MODIS LAI data
+            ! in netCDF format at the native resolution and then
+            ! regrids the LAI data to GEOS-Chem resolution on-the-fly.
+            ! The XLAI array is are populated for backwards
+            ! compatibility with the existing legacy codes.  The LAI
+            ! arrays used for MEGAN (ISOLAI, PMISOLAI, MISOLAI, and
+            ! NMISOLAI) are now replaced by arrays GC_LAI, GC_LAI_PM, 
+            ! GC_LAI_CM, and GC_LAI_NM) from modis_lai_mod.F.
+            !
+            ! We have validated that the new scheme generates identical 
+            ! XLAI arrays w/r/t the old scheme.  The arrays GC_LAI etc. 
+            ! differ from the ISOLAI etc. arrays slightly (but generally 
+            ! agree to within 0.001).  This is due to the fact that the 
+            ! ISOLAI arrays were regridded from 1 x 1 native resolution, 
+            ! but now we are regridding from much finer resolution 
+            ! (either 0.5 x 0.5 or 0.25 x 0.25).
+            !
+            ! NOTES:
+            ! (1) At the present time, we have removed all references
+            !     to the obsolete XYLAI array and its parent module
+            !     CMN_VEL_mod.F.
+            ! 
+            !      -- Bob Yantosca (09 Apr 2012)
+            !-----------------------------------------------------------
 
-            ! For MEGAN biogenics ...
+            ! Find the proper month and year for LAI  based on the current 
+            ! month & year.  LAI months begin in the middle of the month.
+            CALL Find_Lai_Month( day_of_year, month, year, 
+     &                                        laiMM, laiYYYY )
+            
+            ! Read MODIS LAI from disk (if it is a new LAI month)
+            ! Logical flag MODISREAD determines if data was just read in
+            CALL Read_Modis_Lai( laiYYYY, laiMM, wasModisRead )
+
+            ! Interpolate LAI quantities from native grid to GEOS-Chem grid
+            CALL Compute_Modis_Lai( day_of_year, laiMM, 
+     &                              mapping,     wasModisRead )
+
+            ! For MEGAN biogenics, compute 15-day average temperature
             IF ( LMEGAN ) THEN
-
-               ! Read daily leaf-area-index
-               ! Now include the year (mpb,11/19/09)
-               CALL RDISOLAI( DAY_OF_YEAR, MONTH, YEAR )
-
-               ! Compute 15-day average temperature for MEGAN
                CALL UPDATE_T_15_AVG
             ENDIF
 
-            ! For mercury simulations ...
-            IF ( ITS_A_MERCURY_SIM() ) THEN
-
-               ! Read AVHRR daily leaf-area-index
-               CALL RDISOLAI( DAY_OF_YEAR, MONTH, YEAR )
-
-            ENDIF 
-               
             ! Also read soil-type info for fullchem simulation
             IF ( ITS_A_FULLCHEM_SIM() .or. ITS_A_H2HD_SIM() ) THEN
                CALL RDSOIL 
@@ -598,7 +692,11 @@
          IF ( .not. LTRAN ) CALL SET_FLOATING_PRESSURE( PSC2 )
 
          ! Compute airmass quantities at each grid box 
+#if defined( DEVEL )
+         CALL AIRQNT(LOCAL_MET)
+#else
          CALL AIRQNT
+#endif
 
          ! Compute the cosine of the solar zenith angle array
          ! SUNCOS         = cos(SZA) at the current time
@@ -652,7 +750,11 @@
             IF ( LTRAN ) CALL DO_TRANSPORT               
 
             ! Reset air mass quantities
-            CALL AIRQNT
+#if defined( DEVEL )
+      CALL AIRQNT(LOCAL_MET)
+#else
+      CALL AIRQNT
+#endif
 
             ! Repartition [NOy] species after transport
             IF ( LUPBD .and. ITS_A_FULLCHEM_SIM() ) THEN
@@ -690,7 +792,11 @@
             !========================================================
             !             ***** E M I S S I O N S *****
             !========================================================
+#if defined( DEVEL )
+            IF ( LEMIS ) CALL DO_EMISSIONS(CHEM_STATE)
+#else
             IF ( LEMIS ) CALL DO_EMISSIONS
+#endif
 
             IF ( ITS_TIME_FOR_UNIT() )
      &         CALL CONVERT_UNITS( 1, N_TRACERS, TCVV, AD, STT ) ! kg -> v/v
@@ -769,7 +875,11 @@
             !========================================================
             !             ***** E M I S S I O N S *****
             !========================================================
+#if defined( DEVEL )
+            IF ( LEMIS ) CALL DO_EMISSIONS(CHEM_STATE)
+#else
             IF ( LEMIS ) CALL DO_EMISSIONS
+#endif
          ENDIF    
 
 
@@ -787,7 +897,21 @@
             CALL SET_CT_CHEM( INCREMENT=.TRUE. )
 
             ! Call the appropriate chemistry routine
+#if defined( DEVEL )
+! vvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvv!
+! BELOW IS A TMP KLUGE TO TEST PASSING STT !
+! TO "DO_CHEMISTRY" VIA THE "CHEM_STATE"   !
+! DERIVED TYPE                             !
+!
+!    >-- STT SHOULD BE IN KG HERE --<
+!
+!^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^!
+            CHEM_STATE%TRACERS(:,:,:,:N_TRACERS) = STT
+! FIN DE KLUGE
+            CALL DO_CHEMISTRY(CHEM_STATE)
+#else
             CALL DO_CHEMISTRY
+#endif
 
          ENDIF 
 
@@ -835,7 +959,7 @@
          ! (ccc, 5/13/09)
  
          ! Plane following diagnostic
-         IF ( ND40 > 0 ) THEN 
+         IF ( ND40 > 0 .and. DO_DIAG_WRITE ) THEN 
          
             ! Call SETUP_PLANEFLIGHT routine if necessary
             IF ( ITS_A_NEW_DAY() ) THEN
@@ -999,6 +1123,9 @@
 
       ! Deallocate dynamic module arrays
       CALL CLEANUP
+
+      ! Deallocate the derived type object w/ mapping info
+      CALL CLEANUP_MAPPING( mapping )
 
 #if defined( GTMM_Hg )
       ! Deallocate arrays from GTMM model for mercury simulation
@@ -1372,7 +1499,11 @@
       ! Open & read A-6 fields
       DATE = GET_FIRST_A6_TIME()
       CALL OPEN_A6_FIELDS( DATE(1), DATE(2) ) 
+#if defined( DEVEL )
+      CALL GET_A6_FIELDS(  DATE(1), DATE(2), LOCAL_MET )      
+#else
       CALL GET_A6_FIELDS(  DATE(1), DATE(2) )      
+#endif
       IF ( LPRT ) CALL DEBUG_MSG( '### MAIN: a 1st A6 TIME' )
 
       ! Open & read I-6 fields
@@ -1603,7 +1734,11 @@
 
          ! Open and read A-6 fields
          CALL OPEN_A6_FIELDS( DATE(1), DATE(2) )
+#if defined( DEVEL )
+         CALL GET_A6_FIELDS(  DATE(1), DATE(2), LOCAL_MET )      
+#else
          CALL GET_A6_FIELDS(  DATE(1), DATE(2) )
+#endif
 
          ! Since CLDTOPS is an A-6 field, update the
          ! lightning NOx emissions [molec/box/6h]

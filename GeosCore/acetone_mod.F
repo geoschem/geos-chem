@@ -967,7 +967,6 @@
       ! Acetone Emissions from MEGAN (atoms C / box / step)         
       EMISS_MEGAN = GET_EMACET_MEGAN(I, J, SUNCOS, TMMP, 
      &              Q_DIR, Q_DIFF, XNUMOL_C )
-
      
       !convert MEGAN Acetone Emissions to atoms C/box/s (evf, 5/25/2011)
       EMISS_MEGAN = EMISS_MEGAN / DTSRCE

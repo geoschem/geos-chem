@@ -91,7 +91,11 @@
 !\\
 ! !INTERFACE:
 !
+#if defined( DEVEL )      
+      SUBROUTINE EMISSC2H6(EMISS, BIO_EMISS)
+#else
       SUBROUTINE EMISSC2H6
+#endif
 !
 ! !USES:
 !
@@ -113,6 +117,13 @@
       USE CMN_O3_MOD          ! EMISTC2H6
       USE CMN_DIAG_MOD        ! Diagnostic arrays & switches
       USE CMN_MOD             ! STT, etc.
+!
+! !INPUT/OUTPUT PARAMETERS:
+!
+#if defined( DEVEL )
+      REAL*8, INTENT(INOUT)  :: EMISS(IIPAR,JJPAR)
+      REAL*8, INTENT(INOUT)  :: BIO_EMISS(:,:,:)
+#endif
 !
 ! !REVISION HISTORY:
 !  (1 ) BURNEMIS and BIOFUEL are now dimensioned with IIPAR,JJPAR instead of
@@ -223,7 +234,11 @@
          IF ( ITS_A_C2H6_SIM() ) THEN
 
             ! Read biofuel burning emissions (and update ND34 diagnostic)
+#if defined( DEVEL )
+            CALL BIOFUEL_BURN( BIO_EMISS )
+#else
             CALL BIOFUEL_BURN
+#endif
 
 !$OMP PARALLEL DO
 !$OMP+DEFAULT( SHARED )
@@ -319,6 +334,10 @@
          ENDIF
       ENDIF
          
+#if defined( DEVEL )
+      EMISS(:,:) = EMISS(:,:) + NGASC2H6(:,:)
+#endif
+
       END SUBROUTINE EMISSC2H6
 !EOC
 !------------------------------------------------------------------------------

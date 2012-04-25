@@ -129,6 +129,10 @@
       ! and routines from being seen outside "tpcore_mod.f"
       !=================================================================
 
+#if defined( DEVEL )
+      USE ERROR_MOD, ONLY : ALLOC_ERR
+#endif
+
       ! Make everything PRIVATE ...
       PRIVATE
 
@@ -3289,7 +3293,7 @@ c        AL(i,k) = median(AL(i,k), qmin, qmax)
      &                             1-IGZD:JM_W+IGZD+1,LLPAR)
 
       ! Local variables
-      INTEGER                :: I, J, K, K2, L
+      INTEGER                :: I, J, K, K2, L, AS
       REAL*8                 :: DTC, DTDYN, NSDYN, SUM1, SUM2
 !%%%
 !%%% MODIFICATION FOR NESTED GRID (yxw, bmy, 3/10/03)
@@ -3304,8 +3308,13 @@ c        AL(i,k) = median(AL(i,k), qmin, qmax)
       REAL*8 :: VMFLX(1-IGZD:IM_W+IGZD,   1-IGZD:JM_W+IGZD+1, LLPAR   )
 
       ! Local SAVEd variables
+#if defined( DEVEL )
+      LOGICAL, SAVE       :: FIRST = .TRUE.
+      REAL*8, ALLOCATABLE, SAVE :: DXYP(:)
+#else
       LOGICAL, SAVE :: FIRST = .TRUE.
       REAL*8,  SAVE :: DXYP(JJPAR)
+#endif
 
       !=================================================================
       ! PRESS_FIX begins here!
@@ -3337,6 +3346,11 @@ c        AL(i,k) = median(AL(i,k), qmin, qmax)
 
       ! Save grid box surface areas [m2] into the local DXYP array
       IF ( FIRST ) THEN
+#if defined( DEVEL )
+         ALLOCATE( DXYP(JJPAR), STAT=AS)
+         IF ( AS /=0 ) CALL ALLOC_ERR( 'DXYP_DYN0')
+#endif
+
          DO J = 1, JJPAR
             DXYP(J) = GET_AREA_M2( 1, J, 1 )
          ENDDO
@@ -3594,7 +3608,7 @@ c        AL(i,k) = median(AL(i,k), qmin, qmax)
       ! Local variables
       LOGICAL       :: LSP, LNP, LEW
       INTEGER       :: IIX, JJX, KM, JB, JE, IEPZ, IMZ
-      INTEGER       :: I, J, J2, K, L
+      INTEGER       :: I, J, J2, K, L, AS
       REAL*8        :: ALFAX, UFILT, VFILT, PCTM8, G100
       REAL*8        :: AIRQAV, AWE, SUMAD0, SUMAW0, AIRWET
       REAL*8        :: AIRH2O, AIRQKG ,SUM1, SUMA, SUMP, SUMQ
@@ -3615,8 +3629,13 @@ c        AL(i,k) = median(AL(i,k), qmin, qmax)
 
       ! Local saved variables
       LOGICAL, SAVE :: FIRST = .TRUE.
+#if defined( DEVEL )
+      REAL*8, ALLOCATABLE, SAVE :: DXYP(:)
+      REAL*8, ALLOCATABLE, SAVE :: DSIG(:)
+#else
       REAL*8,  SAVE :: DXYP(JJPAR)
       REAL*8,  SAVE :: DSIG(LLPAR)
+#endif
 
       !=================================================================
       ! DYN0 begins here!
@@ -3727,12 +3746,21 @@ c        AL(i,k) = median(AL(i,k), qmin, qmax)
       IF ( FIRST ) THEN
          
          ! Surface area [m2]
+#if defined( DEVEL )
+         ALLOCATE( DXYP(JJPAR), STAT=AS)
+         IF ( AS /=0 ) CALL ALLOC_ERR( 'DXYP_DYN0')
+
+         ALLOCATE( DSIG(LLPAR), STAT=AS)
+         IF ( AS /=0 ) CALL ALLOC_ERR( 'DSIG_DYN0')
+#endif
+
          DO J = 1, JJPAR
             DXYP(J) = GET_AREA_M2( 1, J, 1 )
          ENDDO
 
          ! Sigma-level thickness [unitless]
          ! Assumes we are using a pure-sigma grid
+
          DO L = 1, LLPAR        
             DSIG(L) = GET_BP(L) - GET_BP(L+1)
          ENDDO
@@ -4648,12 +4676,16 @@ c        AL(i,k) = median(AL(i,k), qmin, qmax)
       REAL*8,  INTENT(IN) :: ACOSP(-10:Jmax)
        
       ! Local variables
-      INTEGER             :: I, J, JREF, K, K2
+      INTEGER             :: I, J, JREF, K, K2, AS
       REAL*8              :: DTC, DTDYN
 
       ! Local SAVEd variables
       LOGICAL, SAVE       :: FIRST = .TRUE.
-      REAL*8,  SAVE       :: DXYP(JJPAR)
+#if defined( DEVEL )
+      REAL*8, ALLOCATABLE :: DXYP(:)
+#else
+      REAL*8, SAVE        :: DXYP(JJPAR)
+#endif
 
       !=================================================================
       ! DIAG_FLUX begins here!
@@ -4686,6 +4718,11 @@ c        AL(i,k) = median(AL(i,k), qmin, qmax)
       IF ( FIRST ) THEN
          
          ! Surface area [m2]
+#if defined( DEVEL )
+         ALLOCATE( DXYP(JJPAR), STAT=AS)
+         IF ( AS /=0 ) CALL ALLOC_ERR( 'DXYP_')
+#endif
+
          DO J = 1, JJPAR
             DXYP(J) = GET_AREA_M2( 1, J, 1 )
          ENDDO

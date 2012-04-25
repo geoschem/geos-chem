@@ -419,6 +419,7 @@
      &         STATUS = 'OLD',         ACCESS = 'SEQUENTIAL',  
      &         FORM   = 'UNFORMATTED', IOSTAT = IOS )
                
+         write(*,*) 'FILENAME: ', TRIM(PATH)
          IF ( IOS /= 0 ) THEN
             CALL IOERROR( IOS, IU_A3, 'open_a3_fields:1' )
          ENDIF

@@ -66,6 +66,11 @@
 #  23 Sep 2010 - R. Yantosca - Updated dependencies for v9-01-01
 #  06 Dec 2011 - R. Yantosca - Remove #ifdef blocks for GI model code
 #  16 Feb 2012 - M. Payer    - Remove references to ESMF directory
+#  05 Apr 2012 - R. Yantosca - Always assume netCDF will be used
+#  05 Apr 2012 - R. Yantosca - Added c2h6_mod.o to emfossil.F dependency
+#  05 Apr 2012 - R. Yantosca - Now compile the NcdfUtil routines
+#  05 Apr 2012 - R. Yantosca - Remove reference to rdland.F, rdlai.F, readlai.F
+#  12 Apr 2012 - R. Yantosca - Remove reference to findmon.F
 #EOP
 #------------------------------------------------------------------------------
 #BOC
@@ -84,6 +89,7 @@ ISO     := $(ROOTDIR)/ISOROPIA
 LIB     := $(ROOTDIR)/lib
 KPP     := $(ROOTDIR)/KPP
 MOD     := $(ROOTDIR)/mod
+NCDF    := $(ROOTDIR)/NcdfUtil
 UTIL    := $(ROOTDIR)/GeosUtil
 GTMM    := $(ROOTDIR)/GTMM
 
@@ -110,19 +116,18 @@ FLINT.o                  emep_mod.o              physproc.o                  \
 GAUSSP.o                 emf_scale.o             pjc_pfix_geos5_window_mod.o \
 GEN.o                    emfossil.o              pjc_pfix_mod.o              \
 JRATET.o                 planeflight_mod.o       geos57_read_mod.o           \
-JVALUE.o                 precipfrac.o                                        \
-LEGND0.o                 pulsing.o                                           \
+JVALUE.o                 precipfrac.o            olson_landmap_mod.o         \
+LEGND0.o                 pulsing.o               mapping_mod.o               \
 MATIN4.o                 emissdr.o               rd_js.o                     \
 MIESCT.o                 emissions_mod.o         rd_prof.o                   \
-NOABS.o                                                                      \
-OPMIE.o                  epa_nei_mod.o           rdlai.o                     \
-RD_TJPL.o                fast_j.o                rdland.o                    \
-RnPbBe_mod.o             fertadd.o                                           \
-SPHERE.o                 findmon.o                                           \
+NOABS.o                  modis_lai_mod.o                                     \
+OPMIE.o                  epa_nei_mod.o                                       \
+RD_TJPL.o                fast_j.o                                            \
+RnPbBe_mod.o             fertadd.o               SPHERE.o                    \
 XSEC1D.o                 fjfunc.o                rdsoil.o                    \
 XSECO2.o                 fjx_acet_mod.o          readchem.o                  \
 XSECO3.o                 future_emissions_mod.o  reader.o                    \
-a3_read_mod.o            fvdas_convect_mod.o     readlai.o                   \
+a3_read_mod.o            fvdas_convect_mod.o                                 \
 a6_read_mod.o            fyhoro.o                restart_mod.o               \
 acetone_mod.o            fyrno3.o                rpmares_mod.o               \
 aerosol_mod.o            gamap_mod.o             ruralbox.o                  \
@@ -153,7 +158,7 @@ dao_mod.o                isoropiaII_mod.o        tcorr.o                     \
 decomp.o                 jsparse.o               toms_mod.o                  \
 diag03_mod.o             jv_index.o              tpcore_bc_mod.o             \
 diag04_mod.o             ksparse.o               tpcore_fvdas_mod.o          \
-diag1.o                  lai_mod.o               tpcore_geos5_window_mod.o   \
+diag1.o                  tpcore_geos5_window_mod.o   \
 diag3.o                  lightning_nox_mod.o     tpcore_mod.o                \
 diag41_mod.o             linoz_mod.o             tpcore_window_mod.o         \
 diag42_mod.o             logical_mod.o           tracer_mod.o                \
@@ -184,38 +189,43 @@ all:
 	@$(MAKE) TOMAS=yes lib
 	@$(MAKE) TOMAS=yes exe
 
-lib:                                                 # Build normal GEOS-Chem
-	@$(MAKE) libgc				     
-
-libgc:                                               # Compile everything
+lib:                                               # Build normal GEOS-Chem
+	@$(MAKE) libnc				     
 	@$(MAKE) libheaders         		     
 	@$(MAKE) libkpp             		     
 	@$(MAKE) libutil 			     
 	@$(MAKE) libiso 			     
 	@$(MAKE) libtomas
 
-libtomas: $(OBJ)                                     # Build code in GeosTomas/
+libtomas: $(OBJ)                                   # Build code in GeosTomas/
 
-libiso:                                              # Build code in ISOROPIA/
+libiso:                                            # Build code in ISOROPIA/
 	@$(MAKE) -C $(ISO)
 
-libkpp:                                              # Build code in KPP/
+libkpp:                                            # Build code in KPP/
 	@$(MAKE) -C $(KPP)
 
-libutil:                                             # Build code in GeosUtil/
+libnc:                                             # Build code in NcdfUtil/
+	@$(MAKE) -C $(NCDF) lib
+
+ncdfcheck:                                         # Check netCDF library
+	@$(MAKE) libnc
+	@$(MAKE) -C $(NCDF) check
+
+libutil:                                           # Build code in GeosUtil/
 	@$(MAKE) -C $(UTIL)
 
-libheaders:                                          # Build code in Headers/ 
+libheaders:                                        # Build code in Headers/ 
 	@$(MAKE) -C $(HDR)			     
 
-exe:                                                 # Build executable
+exe:                                               # Build executable
 	$(LD) $(OBJ) $(LINK) -o $(EXE)
 	cp -f $(EXE) $(BIN)
 
-clean:                                               # Remove files here
+clean:                                             # Remove files here
 	rm -f *.o *.mod geos geosapm geostomas
 
-realclean:                                           # Remove files everywhere
+realclean:                                         # Remove files everywhere
 	@$(MAKE) clean
 	@$(MAKE) -C $(ISO) clean
 	@$(MAKE) -C $(KPP) realclean
@@ -228,13 +238,13 @@ realclean:                                           # Remove files everywhere
 	rm -f $(MOD)/*.mod
 	rm -f $(BIN)/geos*
 
-doc:                                                 # Build documentation
+doc:                                               # Build documentation
 	@$(MAKE) -C $(DOC) all
 
-docclean:                                            # Remove documentation
+docclean:                                          # Remove documentation
 	@$(MAKE) -C $(DOC) clean
 
-help:                                                # Show help screen
+help:                                              # Show help screen
 	@$(MAKE) -C $(HELP)
 
 #==============================================================================
@@ -394,7 +404,7 @@ cleanup.o                   : cleanup.F                                      \
                               global_no3_mod.o        global_nox_mod.o       \
                               global_o1d_mod.o        global_oh_mod.o        \
                               h2_hd_mod.o             hcn_ch3cn_mod.o        \
-                              lai_mod.o               land_mercury_mod.o     \
+                              modis_lai_mod.o         land_mercury_mod.o     \
                               lightning_nox_mod.o     linoz_mod.o            \
                               megan_mod.o             mercury_mod.o          \
                               ocean_mercury_mod.o     pbl_mix_mod.o          \
@@ -466,7 +476,7 @@ diag48_mod.o                : diag48_mod.F                                   \
                               tracerid_mod.o          tracer_mod.o  
 
 diag49_mod.o                : diag49_mod.F                                   \
-                              dao_mod.o               lai_mod.o              \
+                              dao_mod.o               modis_lai_mod.o        \
                               pbl_mix_mod.o           tracerid_mod.o         \
                               tracer_mod.o  
 
@@ -477,13 +487,13 @@ diag50_mod.o                : diag50_mod.F                                   \
                               tropopause_mod.o  
 
 diag51_mod.o                : diag51_mod.F                                   \
-                              dao_mod.o               lai_mod.o              \
+                              dao_mod.o               modis_lai_mod.o        \
                               logical_mod.o           pbl_mix_mod.o          \
                               tracerid_mod.o          tracer_mod.o           \
                               tropopause_mod.o  
 
 diag51b_mod.o               : diag51b_mod.F                                  \
-                              dao_mod.o               lai_mod.o              \
+                              dao_mod.o               modis_lai_mod.o        \
                               logical_mod.o           pbl_mix_mod.o          \
                               tracerid_mod.o          tracer_mod.o           \
                               tropopause_mod.o  
@@ -491,9 +501,8 @@ diag51b_mod.o               : diag51b_mod.F                                  \
 diag56_mod.o                : diag56_mod.F
 
 diag63_mod.o                : diag63_mod.F                                   \
-                              dao_mod.o               lai_mod.o              \
-                              pbl_mix_mod.o           tracerid_mod.o         \
-                              tracer_mod.o
+                              dao_mod.o               pbl_mix_mod.o          \
+                              tracerid_mod.o          tracer_mod.o
 
 diag_2pm.o                  : diag_2pm.F                                     \
                               diag_mod.o              tropopause_mod.o
@@ -546,7 +555,7 @@ emfossil.o                  : emfossil.F                                     \
                               logical_mod.o           nei2005_anthro_mod.o   \
                               streets_anthro_mod.o    tracer_mod.o           \
                               tracerid_mod.o          vistas_anthro_mod.o    \
-                              retro_mod.o   
+                              retro_mod.o             c2h6_mod.o
 
 emissdr.o                   : emissdr.F                                      \
                               acetone_mod.o           aircraft_nox_mod.o     \
@@ -581,8 +590,6 @@ fast_j.o                    : fast_j.F                                       \
                               dao_mod.o               toms_mod.o
 
 fertadd.o                   : fertadd.F               logical_mod.o
-
-findmon.o                   : findmon.F
 
 fjfunc.o                    : fjfunc.F
 
@@ -741,11 +748,10 @@ jv_index.o                  : jv_index.F
 
 ksparse.o                   : ksparse.F
 
-lai_mod.o                   : lai_mod.F               logical_mod.o
 
 land_mercury_mod.o          : land_mercury_mod.F                             \
                               biomass_mod.o           dao_mod.o              \
-                              depo_mercury_mod.o      lai_mod.o              \
+                              depo_mercury_mod.o      modis_lai_mod.o        \
                               logical_mod.o           tracerid_mod.o         \
 
 LEGND0.o                    : LEGND0.F
@@ -775,7 +781,7 @@ main.o                      : main.F                                         \
                               depo_mercury_mod.o      drydep_mod.o           \
                               emissions_mod.o         global_ch4_mod.o       \
                               gcap_read_mod.o         i6_read_mod.o          \
-                              input_mod.o             lai_mod.o              \
+                              input_mod.o             modis_lai_mod.o        \
                               lightning_nox_mod.o     linoz_mod.o            \
                               logical_mod.o           megan_mod.o            \
                               pbl_mix_mod.o           ocean_mercury_mod.o    \
@@ -787,12 +793,15 @@ main.o                      : main.F                                         \
                               wetscav_mod.o           merra_cn_mod.o         \
                               merra_a1_mod.o          merra_a3_mod.o         \
                               merra_i6_mod.o          geos57_read_mod.o      \
-                              diag63_mod.o
+                              diag63_mod.o            olson_landmap_mod.o    \
+                              mapping_mod.o
+
+mapping_mod.o               : mapping_mod.F90
 
 MATIN4.o                    : MATIN4.F
 
 megan_mod.o                 : megan_mod.F             a3_read_mod.o          \
-                              lai_mod.o               logical_mod.o          \
+                              modis_lai_mod.o         logical_mod.o          \
                               meganut_mod.o           merra_a1_mod.o         \
                               dao_mod.o               geos57_read_mod.o
 
@@ -803,7 +812,7 @@ mercury_mod.o               : mercury_mod.F                                  \
                               diag03_mod.o            diag_mod.o             \
                               drydep_mod.o            global_br_mod.o        \
                               global_o3_mod.o         global_oh_mod.o        \
-                              land_mercury_mod.o      lai_mod.o              \
+                              land_mercury_mod.o                             \
                               logical_mod.o           ocean_mercury_mod.o    \
                               pbl_mix_mod.o           RnPbBe_mod.o           \
                               tracerid_mod.o          tracer_mod.o           \
@@ -822,6 +831,9 @@ merra_i6_mod.o              : merra_i6_mod.F                                 \
                               logical_mod.o           dao_mod.o
 
 MIESCT.o                    : MIESCT.F
+
+modis_lai_mod.o             : modis_lai_mod.F90                              \
+                              mapping_mod.o
 
 ndxx_setup.o                : ndxx_setup.F                                   \
                               biofuel_mod.o           diag_mod.o             \
@@ -845,6 +857,9 @@ ocean_mercury_mod.o         : ocean_mercury_mod.F                            \
 
 ohsave.o                    : ohsave.F                comode_mod.o           \
                               diag_mod.o              tracerid_mod.o
+
+olson_landmap_mod.o         : olson_landmap_mod.F90                          \
+                              mapping_mod.o
 
 optdepth_mod.o              : optdepth_mod.F          diag_mod.o  
 
@@ -887,10 +902,6 @@ rd_js.o                     : rd_js.F
 
 rd_prof.o                   : rd_prof.F
 
-rdlai.o                     : rdlai.F
-
-rdland.o                    : rdland.F                logical_mod.o
-
 rdsoil.o                    : rdsoil.F
 
 RD_TJPL.o                   : RD_TJPL.F
@@ -900,8 +911,6 @@ readchem.o                  : readchem.F                                     \
                               logical_mod.o
 
 reader.o                    : reader.F
-
-readlai.o                   : readlai.F               logical_mod.o
 
 restart_mod.o               : restart_mod.F                                  \
                               comode_mod.o            dao_mod.o              \
