@@ -41,10 +41,20 @@
       PUBLIC :: GET_GLOBAL_Br   
       PUBLIC :: INIT_GLOBAL_Br
       PUBLIC :: CLEANUP_GLOBAL_Br
+
+! !REFERENCES
+!  (1 ) Holmes, C. D., et al. (2006), Global lifetime of elemental mercury
+!       against oxidation by atomic bromine in the free troposphere, Geophys.
+!       Res. Lett., 33(20).
+!  (2 ) Holmes, C.D., et al. (2010) Global atmospheric model for mercury 
+!       including oxidation by bromine atoms, AC&P, 10, 12,037-12,057. 
+!  (3 ) Parrella, J. et al. (2012), Tropospheric bromine chemistry:     
+!       implications for present and pre-industrial ozone and mercury, ACP.
 !
 ! !REVISION HISTORY:
 !  05 Jul 2006 - C. Holmes   - Copied from "global_oh_mod.f"
 !  01 Dec 2010 - R. Yantosca - Added ProTeX headers
+!  19 Apr 2012 - E.S. Corbitt - Added LGCBROMINE to use GEOS-Chem bromine.
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -79,6 +89,7 @@
       USE TRANSFER_MOD,   ONLY : TRANSFER_3D
       USE TRANSFER_MOD,   ONLY : TRANSFER_3D_TROP
       USE TROPOPAUSE_MOD, ONLY : GET_TPAUSE_LEVEL
+      USE OCEAN_MERCURY_MOD, ONLY: LGCBROMINE     !eds 4/19/12
 
       USE CMN_SIZE_MOD                 ! Size parameters
 
@@ -127,10 +138,53 @@
          FIRST = .FALSE.
       ENDIF
 
-      ! Get the TAU0 value for the start of the given month
-      XTAU = GET_TAU0( THISMONTH, 1, 1985 ) !eds;  cdh-is this OK?
 
+      ! EDS NOTE (4/19/12): need to move Br to directory, note the years used,
+      ! and regrid for other resolutions
       BR_DIR = TRIM( DATA_DIR ) // 'mercury_201007/'
+
+      IF ( LGCBROMINE ) THEN
+
+      !-----------------------------------------------------------------
+      ! Read Br from GEOS-Chem
+      !-----------------------------------------------------------------
+      
+      ! Filename
+      FILENAME = TRIM( BR_DIR ) // 'BrOx.GC.' //
+     &           GET_NAME_EXT() // '.' // GET_RES_EXT()
+
+      ! Get the TAU0 value for the start of the given month
+      XTAU = GET_TAU0( THISMONTH, 1, 2007 ) 
+
+      ! Echo some information to the standard output
+      WRITE( 6, 120 ) TRIM( FILENAME )
+ 120  FORMAT( '     - GET_GLOBAL_BR: Reading BR from: ', a )
+
+      CALL READ_BPCH2( FILENAME, 'IJ-AVG-$', 45,
+     &                 XTAU,	  IIPAR,     JJPAR,
+     &                 LGLOB,     ARRAY,     QUIET=.FALSE. )
+
+      ! Assign data from ARRAY to the module variable BR
+      CALL TRANSFER_3D( ARRAY, BR_TROP )
+
+      ! Convert	ppbv ->	pptv
+      BR_TROP  = BR_TROP * 1D3                         
+
+      !-----------------------------------------------------------------
+      ! Read BrO from GEOS-Chem
+      !-----------------------------------------------------------------
+
+      CALL READ_BPCH2( FILENAME, 'IJ-AVG-$', 46,
+     &                 XTAU,	  IIPAR,     JJPAR,
+     &                 LGLOB,     ARRAY,     QUIET=.TRUE. )
+
+      ! Assign data from ARRAY to the module variable BRO
+      CALL TRANSFER_3D( ARRAY, BRO_TROP )
+    
+      ! Convert ppbv -> pptv
+      BRO_TROP  = BRO_TROP * 1D3 
+
+      ELSE
 
       !-----------------------------------------------------------------
       ! Read Br from pTOMCAT biogenic bromocarbons
@@ -140,9 +194,12 @@
       FILENAME = TRIM( BR_DIR ) // 'BrOx.TOMCAT_org.' //
      &           GET_NAME_EXT() // '.' // GET_RES_EXT() 
 
+      ! Get the TAU0 value for the start of the given month
+      XTAU = GET_TAU0( THISMONTH, 1, 1985 ) 
+
       ! Echo some information to the standard output
-      WRITE( 6, 120 ) TRIM( FILENAME )
- 120  FORMAT( '     - GET_GLOBAL_BR: Reading BR from: ', a )
+      WRITE( 6, 130 ) TRIM( FILENAME )
+ 130  FORMAT( '     - GET_GLOBAL_BR: Reading BR from: ', a )
 
       ! Read BR data from the binary punch file
       CALL READ_BPCH2( FILENAME, 'CHEM-L=$', 6,     
@@ -164,6 +221,8 @@
       ! Assign data from ARRAY to the module variable BRO
       CALL TRANSFER_3D( ARRAY, BRO_TROP )
 
+      ENDIF
+
       !-----------------------------------------------------------------
       ! Read Br from GMI for stratosphere
       !-----------------------------------------------------------------
@@ -171,6 +230,9 @@
       ! Filename
       FILENAME = TRIM( BR_DIR ) // 'BrOx.GMI.' //
      &           GET_NAME_EXT() // '.'         // GET_RES_EXT()
+
+      ! Get the TAU0 value for the start of the given month
+      XTAU = GET_TAU0( THISMONTH, 1, 1985 )
 
       ! Echo some information to the standard output
       WRITE( 6, 120 ) TRIM( FILENAME )
@@ -196,10 +258,11 @@
       CALL TRANSFER_3D( ARRAY, BRO_STRAT )
 
       !-----------------------------------------------------------------
-      ! Use pTOMCAT exclusively in the troposphere.
+      ! Use pTOMCAT or GEOS-Chem exclusively in the troposphere.
       ! In the stratosphere, use the greater value from either COMBO or
-      ! pTOMCAT. COMBO source gases include CH3Br and halons, while pTOMCAT 
-      ! includes CH3Br and shorter-lived gases.
+      ! the tropospheric model. COMBO source gases include CH3Br and 
+      ! halons, while pTOMCAT and GEOS-Chem includes CH3Br and 
+      ! shorter-lived gases.
       !-----------------------------------------------------------------
 
       BR_MERGE  = BR_TROP

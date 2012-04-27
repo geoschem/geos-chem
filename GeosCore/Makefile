@@ -626,7 +626,8 @@ gfed3_biomass_mod.o         : gfed3_biomass_mod.F                            \
                               future_emissions_mod.o  logical_mod.o          \
                               tracer_mod.o            tracerid_mod.o
 
-global_br_mod.o             : global_br_mod.F         tropopause_mod.o 
+global_br_mod.o             : global_br_mod.F         tropopause_mod.o       \
+                              ocean_mercury_mod.o
 
 global_ch4_mod.o            : global_ch4_mod.F                               \
                               dao_mod.o               diag_mod.o             \

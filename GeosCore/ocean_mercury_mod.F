@@ -104,6 +104,9 @@
 !  (4 ) Include updates from S. Strode and C. Holmes (cdh, sas, bmy, 4/6/06)
 !  (5 ) Change HgC (colloidal) to HgP (particulate) or HgPaq. (ccc, 7/20/10)
 !  12 Apr 2011 - J. Fisher   - Add missing code from Holmes 2010
+!  27 Sep 2011 - H. Amos     - remove LHg_WETDasHNO3 logical, it's obsolete
+!  25 Oct 2011 - H. Amos     - bring in code for Hg2 gas-particle partitioning
+!  19 Apr 2012 - E.S. Corbitt - Added LGCBROMINE to use GEOS-Chem bromine.
 !******************************************************************************
 !
       IMPLICIT NONE
@@ -127,10 +130,13 @@
       PUBLIC :: LGEIA05 !(add for 2005 GEIA, eck 10/19/11)
       PUBLIC :: LVEGEMIS ! jaf
       PUBLIC :: LRED_JNO2,   LGEOSLWC
-      PUBLIC :: LHg2HalfAerosol,        LHg_WETDasHNO3
+      PUBLIC :: LHg2HalfAerosol
       PUBLIC :: STRAT_BR_FACTOR,        LAnthroHgOnly
       PUBLIC :: LOHO3CHEM,              LnoUSAemis
-         
+      PUBLIC :: LGCBROMINE !eds 4/19/12         
+      PUBLIC :: PARTITION_Hg2 ! hma       
+      PUBLIC :: Fp, Fg        ! hma 
+
       !=================================================================
       ! MODULE VARIABLES
       !=================================================================
@@ -164,6 +170,20 @@
       REAL*8,  ALLOCATABLE :: RAD(:,:)
       REAL*8,  ALLOCATABLE :: UPVEL(:,:)
       REAL*8,  ALLOCATABLE :: CHL(:,:)                              
+! added by hma for Hg2 partitioning --------------------------------------
+      REAL*8,  ALLOCATABLE :: BULK_CONC(:,:,:)  
+      REAL*8,  ALLOCATABLE :: Fp(:,:,:)     
+      REAL*8,  ALLOCATABLE :: Fg(:,:,:)   
+      REAL*8,  ALLOCATABLE :: SO4_GC(:,:,:)  
+      REAL*8,  ALLOCATABLE :: NH4_CONC(:,:,:)  
+      REAL*8,  ALLOCATABLE :: NIT_CONC(:,:,:)
+      REAL*8,  ALLOCATABLE :: OC_CONC(:,:,:) 
+      REAL*8,  ALLOCATABLE :: BC_CONC(:,:,:)
+      REAL*8,  ALLOCATABLE :: DST_CONC(:,:,:) 
+      REAL*8,  ALLOCATABLE :: R(:,:,:) 
+      REAL*8,  ALLOCATABLE :: SO4_WAC(:,:,:) 
+      REAL*8,  ALLOCATABLE :: SO4_CONC(:,:,:) 
+!-------------------------------------------------------------------------
 
       ! Logical switches for the mercury simulation, all of which are 
       ! set in INIT_MERCURY (cdh, 9/1/09)
@@ -171,8 +191,9 @@
       LOGICAL   :: LGEIA05 !eck, 10/19/11
       LOGICAL   :: LVEGEMIS ! jaf
       LOGICAL   :: LRED_JNO2,   LGEOSLWC
-      LOGICAL   :: LHg2HalfAerosol,        LHg_WETDasHNO3
+      LOGICAL   :: LHg2HalfAerosol
       LOGICAL   :: LAnthroHgOnly,          LOHO3CHEM
+      LOGICAL   :: LGCBROMINE !eds 4/19/12
       LOGICAL   :: LnoUSAemis
       REAL*8    :: STRAT_BR_FACTOR
 
@@ -189,6 +210,402 @@
       CONTAINS
 
 !-------------------------------------------------------------------------
+
+      SUBROUTINE PARTITION_Hg2(THISMONTH)
+
+!****************************************************************************  
+!  SUBROUTINE PARTITION_Hg2 calculates the fractions of Hg(II) is the particle 
+!     gas phases.
+!
+!
+!  Arguments as Input:
+!  ===========================================================================
+!  (1 ) THISMONTH (INTEGER) : Current month number (1-12)
+!
+!
+!  Description of gas-particle partitioning of Hg2 
+!  ===========================================================================
+!
+!  References:
+!   (1) Yamasaki et al (1982). Effects of Ambient Temperature on Aspects of 
+!       Airbone Polycyclic Aromatic Hydrocarbons, Env Sci & Tech
+!   (2) Pankow (1994). An Absorption Model of Gas/Particle Partitioning of
+!       Organic Comounds in the Atmosphere, Atmos Env
+!   (3) Rutter and Schauer (2007). The effect of temperature on the gas-
+!       particle partitioning of reactive mercury in atmospheric aerosols,
+!       Atmos Env
+!   (4) Vijayaraghavan et al (2008). Plume-in-grid modeling of atmopsheric 
+!       mercury   
+!   (5) Amos et al. (2012, ACPD). Gas-particle partitioning of Hg(II)
+!       and its effect on global mercury deposition
+!
+!  Ratio of reactive mercury adsorbed onto particulate matter to reactive
+!  mercury in the gas phase:
+! 
+!  (PHg,ads)/RGM = 10^(b/T - a)* PM     
+! 
+!      PHg,ads  =  adsorbed RGM                        (pg m^-3)
+!      RGM      =  reactive gaseous mercury            (pg m^-3)
+!      T        =  temperature                         (K)
+!      PM       =  ambient aerosol concentration       (ug m^-3)
+!      b        =  slope from simple linear regression
+!      a        =  y-intercept from simple linear regression
+!
+!
+!  Aerosol concentrations are being taken from a GEOS-Chem v8-02-03,
+!  GEOS-5, 4x5, full-chem simulation run for 2007 by Lin Zhang. The units
+!  reported by GEOS-Chem are ppb for aerosol mixing ratio (IJ-AVG-$).
+!  Units must be converted from mol/mol to ug/m3. 
+!  
+!  Converting aerosol concentration ppbv --> ug/m3: 
+!   ( Modeled after SUBROUTINE CONVER_UNITS in dao_mod.f )
+!
+!      1 ppbv = 1e-9 mol/mol
+!      AIRDEN = air density,  [kg/m3]
+!      CU     = aerosol molecular weight / molecular weight of air
+!             = [(aero kg/mol) / (air kg/mol)]
+!
+!            aero mol     air kg   aero kg/mol     1e9 ug
+!      PM = ---------- x ------- x ------------ x -------
+!            air  mol     air m3    air kg/mol       kg
+!
+!      PM = (IJ-AVG-$) * AIRDEN * CU
+! 
+!
+!  The objective of this subroutine is to determine the fraction of reactive
+!  mercury in the gas-phase (Fg) and the fraction in the particle-phase (Fp).
+!  That can be done easily once R is calculated, where R is the ratio of
+!  particle to gas:
+!
+!      R  = (HgP,ads)/RGM                              (unitless)
+!      Fg = 1/(R + 1)                                  (unitless)
+!      Fp = 1 - Fg   *or*  = R/(R + 1)                 (unitless)
+!
+!  Notes:
+!  ===========================================================================
+!  (1 ) Scaling factor for dust emissions --> Fairlie et al., 'Impact of
+!       mineral dust on nitrate, sulfate, and ozone in transpacific Asian
+!       pollution plumes'. (2009) - in preparation. [hma, 22 Oct 09]
+!  (2 ) SUBROUTINE PARTITION_Hg2 moved from mercury_mod.f to ocean_mercury_mod.f!    
+!       because partitioning needs to happen before vdiff_mod.f90 (in terms of
+!       the order in which modules are compiled.)
+!  (3 ) Use benchmark V8-02-01 geos5 runs for aerosol concentration (ppbv)
+!       and aerosol surface area (cm2/cm3). hma 3 Feb 10
+!  (4 ) Exclude sea-salt from BULK_CONC and BULK_SA. Chris already takes care
+!       of Hg uptake on sea-salt aerosols in a different routine. 
+!       (hma 6 Feb 10)
+!  (5 ) R is no longer computed using aerosol surface area. (hma 20100713)
+!  (6 ) Exclude coarse dust (dst2-4), sea-salt SO4 (SO4s), and sea-salt NO3 (NITS).
+!         (hma 20100712)
+!  23 Feb 2011 - H Amos - The aerosol mixing ratios read from file here were
+!                         run with 54 tracers. The 54-tracer run is now obsolete
+!                         and has been extended to 59 tracers.
+!  09 Mar 2011 - H Amos - clean up comments
+!  25 Oct 2011 - H Amos - brought into v9-01-02
+!  23 Nov 2011 - H Amos - add stratospheric aerosols
+!*****************************************************************************
+     
+      ! References F90 modules
+      USE DAO_MOD      , ONLY : T, AIRDEN  
+      USE BPCH2_MOD    , ONLY : GET_NAME_EXT , GET_RES_EXT
+      USE BPCH2_MOD    , ONLY : GET_TAU0     , READ_BPCH2
+      USE DIRECTORY_MOD, ONLY : DATA_DIR
+      USE TRANSFER_MOD , ONLY : TRANSFER_3D  , TRANSFER_3D_TROP
+      USE DIAG03_MOD   , ONLY : AD03_Fg      , AD03_Fp 
+      USE DIAG03_MOD   , ONLY : ND03                
+      USE TIME_MOD     , ONLY : SET_Hg2_DIAG        
+      USE DIRECTORY_MOD, ONLY : DATA_DIR      
+      USE ERROR_MOD    , ONLY : GEOS_CHEM_STOP
+
+      USE CMN_SIZE_MOD  ! Size parameters3
+      USE CMN_DIAG_MOD  ! Diagnostic arrays & parameters
+
+      ! Arguments
+      INTEGER, INTENT(IN)  :: THISMONTH
+
+      ! Arrays to hold aerosol concentrations  
+      REAL*4               :: ARRAYso4(  IGLOB, JGLOB, LGLOB )  ! so4
+      REAL*4               :: ARRAYnit(  IGLOB, JGLOB, LGLOB )  ! nit
+      REAL*4               :: ARRAYnh4(  IGLOB, JGLOB, LGLOB )  ! nh4
+      REAL*4               :: ARRAYbcpi( IGLOB, JGLOB, LGLOB )  ! bcpi
+      REAL*4               :: ARRAYocpi( IGLOB, JGLOB, LGLOB )  ! ocpi
+      REAL*4               :: ARRAYbcpo( IGLOB, JGLOB, LGLOB )  ! bcpo
+      REAL*4               :: ARRAYocpo( IGLOB, JGLOB, LGLOB )  ! ocpo
+      REAL*4               :: ARRAYdst1( IGLOB, JGLOB, LGLOB )  ! dst1
+      REAL*4               :: ARRAY_UTLS(IGLOB, JGLOB, LGLOB )  ! UTLS SO4 
+
+      ! Arrays to hold bulk concentration and surface area
+      REAL*4               :: ARRAYconc(IGLOB,JGLOB,LGLOB)  ! concentration
+
+      ! Local variables
+      REAL*8               :: XTAU
+      INTEGER              :: I, J, L, NN
+      CHARACTER(LEN=155)   :: FILENAME, FILENAME2
+      CHARACTER(LEN=2)     :: MON                 ! for months 10-12
+      CHARACTER(LEN=1)     :: SMON                ! for months 1-9
+      REAL*8, PARAMETER    :: TINY  = 1d-16       ! to prevent NaN
+      REAL*8, DIMENSION(5) :: AERO_MW             ! to hold aerosol molec weights 
+      REAL*8               :: AIR_MW = 2.897D-02  ! avg molecular weight of air 
+      REAL*8, DIMENSION(5) :: CU                  ! ratio of aerosol/air MW
+
+      !----------------------------------------!
+      ! Molecular weights, for unit conversion !
+      !----------------------------------------!
+
+      ! aerosol molecular weights, [kg/mol]
+      AERO_MW(1) = 9.6D-02    ! SO4, SO4s
+      AERO_MW(2) = 1.2D-02    ! OC, BC
+      AERO_MW(3) = 6.2D-02    ! NIT, NITs
+      AERO_MW(4) = 1.8D-02    ! NH4
+      AERO_MW(5) = 2.9D-02    ! DST 
+
+      ! ratio of aerosol molecular weight / air molecular weight
+      CU = AERO_MW / AIR_MW   !  [kg aerosol / kg air]
+
+#if defined( GRID4x5 )
+      ! tropospheric aerosols (v8-02-03, GEOS5, 4x5)
+      FILENAME = TRIM( DATA_DIR )   //
+     &           'mercury_201007/Hg_partitioning/' //
+     &           'aero.IJ_AVG.2007.geos5.4x5'
+#elif defined( GRID2x25 )
+      FILENAME = '/home/h/hamos/GC/input_files/aerosols/' //
+     &           'GEOS5/aero.IJ_AVG.2007.geos5.2x25'
+
+#endif
+
+      ! Echo some information to the standard output
+      WRITE( 6, 110 )  FILENAME 
+ 110  FORMAT( '     -PARTITION_Hg2: Reading ', a )
+
+
+      ! UT/LS aerosols (WACCM)
+#if defined( GRID4x5 )
+      FILENAME2 = '/home/h/hamos/GC/input_files/aerosols/'//
+     &            'WACCM/WACCM.aerosol.4x5.47L.bpch'
+#elif defined( GRID2x25 )
+      FILENAME2 = '/home/h/hamos/GC/input_files/aerosols/'//
+     &            'WACCM/WACCM.aerosol.2x25.47L.bpch'
+#endif
+
+      ! Echo some information to the standard output
+      WRITE( 6, 100 )  FILENAME2 
+ 100  FORMAT( '     -PARTITION_Hg2: Reading ', a )
+
+      !------------------------------------------------------!
+      ! Put aerosol mixing ratio (mol/mol) into arrays.     
+      !------------------------------------------------------!
+
+      !---------------------------
+      ! Tropospheric aerosols
+      !---------------------------
+      
+      ! Get the TAU0 value for the start of the given month
+      ! Assume "generic" year 1985 (TAU0 = [0, 744, ... 8016])
+      XTAU = GET_TAU0( THISMONTH, 1, 2007 )  
+
+
+      ! so4, tracer = 27
+      CALL READ_BPCH2( FILENAME, 'IJ-AVG-$', 27,      
+     &                 XTAU,      IGLOB,     JGLOB,
+     &                 LGLOB,     ARRAYso4,  QUIET=.TRUE. )
+
+      ! convert REAL*4 to REAL*8 
+      CALL TRANSFER_3D_TROP( ARRAYso4, SO4_GC ) 
+     
+      ! nh4, tracer = 31
+      CALL READ_BPCH2( FILENAME, 'IJ-AVG-$', 31,      
+     &                 XTAU,      IGLOB,     JGLOB,
+     &                 LGLOB,     ARRAYnh4,  QUIET=.TRUE. )
+
+      ! convert REAL*4 to REAL*8 
+      CALL TRANSFER_3D_TROP( ARRAYnh4, NH4_CONC ) 
+
+      ! nit, tracer = 32
+      CALL READ_BPCH2( FILENAME, 'IJ-AVG-$', 32,      
+     &                 XTAU,      IGLOB,     JGLOB,
+     &                 LGLOB,     ARRAYnit,  QUIET=.TRUE. )
+
+      ! convert REAL*4 to REAL*8 
+      CALL TRANSFER_3D_TROP( ARRAYnit, NIT_CONC ) 
+
+      ! bcpi, tracer = 34
+      CALL READ_BPCH2( FILENAME, 'IJ-AVG-$', 34,      
+     &                 XTAU,      IGLOB,     JGLOB,
+     &                 LGLOB,     ARRAYbcpi, QUIET=.TRUE. )
+
+      ! bcpo, tracer = 36
+      CALL READ_BPCH2( FILENAME, 'IJ-AVG-$', 36,      
+     &                 XTAU,      IGLOB,     JGLOB,
+     &                 LGLOB,     ARRAYbcpo, QUIET=.TRUE. )
+
+      ! convert REAL*4 to REAL*8 
+      CALL TRANSFER_3D_TROP( ARRAYbcpi + ARRAYbcpo , BC_CONC ) 
+
+      ! ocpi, tracer = 35
+      CALL READ_BPCH2( FILENAME, 'IJ-AVG-$', 35,      
+     &                 XTAU,      IGLOB,     JGLOB,
+     &                 LGLOB,     ARRAYocpi, QUIET=.TRUE. )
+
+      ! ocpo, tracer = 37
+      CALL READ_BPCH2( FILENAME, 'IJ-AVG-$', 37,      
+     &                 XTAU,      IGLOB,     JGLOB,
+     &                 LGLOB,     ARRAYocpo, QUIET=.TRUE. )
+
+      ! convert REAL*4 to REAL*8 
+      CALL TRANSFER_3D_TROP( ARRAYocpi + ARRAYocpo , OC_CONC ) 
+
+      ! dst1, tracer = 38   
+      CALL READ_BPCH2( FILENAME, 'IJ-AVG-$', 49,  
+     &                 XTAU,      IGLOB,     JGLOB,
+     &                 LGLOB,     ARRAYdst1, QUIET=.TRUE. )
+ 
+      ! convert REAL*4 to REAL*8 
+      CALL TRANSFER_3D_TROP( ARRAYdst1 , DST_CONC ) 
+
+      !---------------------------
+      ! UT/LS aerosols (mol/mol)
+      !---------------------------
+      
+      ! Get the TAU0 value for the start of the given month
+      ! Assume "generic" year 1985 (TAU0 = [0, 744, ... 8016])
+      XTAU = GET_TAU0( THISMONTH, 1, 2005 ) 
+
+      ! UT/LS sulfate (WACCM simulation)  
+      CALL READ_BPCH2( FILENAME2, 'SULF-MR' ,  1,  
+     &                 XTAU,      IGLOB,     JGLOB,
+     &                 LGLOB,     ARRAY_UTLS, QUIET=.TRUE. )
+ 
+      ! convert REAL*4 to REAL*8 
+      CALL TRANSFER_3D_TROP( ARRAY_UTLS , SO4_WAC )
+
+#if defined( GRID2x25 )
+      ! convert mol/mol to ppb
+      ! Note: At 4x5, both GC and WACCM aerosols are read in
+      !       as mol/mol. At 2x2.5, GC aerosols are read in as
+      !       ppb and WACCM aerosols as mol/mol. It's an IDL 
+      !       idiosyncracy. Convert WACCM aerosols to same units
+      !       as GC aerosols. (hma, 20120104)
+      SO4_WAC = 1d9 * SO4_WAC
+#endif
+
+!$OMP PARALLEL DO
+!$OMP+DEFAULT( SHARED )
+!$OMP+PRIVATE( I, J, L )
+
+      ! Below ~10 km, use GEOS-Chem sulfate aerosol
+      ! Above ~10 km, use WACCM sulfate aerosol
+      ! 10km is about level 30 if using 47L reduced grid. 
+      ! (H Amos, 29 Nov 2011)
+
+      !DO L = 1, 30
+      DO J = 1, JJPAR
+      DO I = 1, IIPAR
+
+        DO L = 1, 30
+           SO4_CONC(I,J,L) = SO4_GC(I,J,L)
+        ENDDO
+
+        DO L = 31, 47
+           SO4_CONC(I,J,L) = SO4_WAC(I,J,L)
+        ENDDO
+
+      ENDDO
+      ENDDO 
+
+!$OMP END PARALLEL DO
+
+
+!$OMP PARALLEL DO
+!$OMP+DEFAULT( SHARED )
+!$OMP+PRIVATE( I, J, L )
+
+      DO L = 1, LLPAR
+      DO J = 1, JJPAR
+      DO I = 1, IIPAR
+
+        ! Sum aerosol types (ppbv) to get bulk aerosol                     
+        !                                                                  
+        ! - Multiply species by CU factor as part of unit conversion from  
+        !    ppbv --> ug/m3 
+        ! Scale dust from 4x5 run (ref: Fairlie et al. (2010))            
+        BULK_CONC(I,J,L) = CU(1)*SO4_CONC(I,J,L)                   +
+     &                     CU(2)*(BC_CONC(I,J,L) + OC_CONC(I,J,L)) +
+     &                     CU(3)*NIT_CONC(I,J,L)                   +
+     &                     CU(4)*NH4_CONC(I,J,L) +
+     &                     CU(5)*(DST_CONC(I,J,L)*2d0)           
+      
+        ! convert bulk aerosol mass concentration  to ug/m3
+        ! Note: Even though both bpch files say the unit is 'ppb',
+        !       4x5 gets read in as mol/mol and 2x2.5 gets read in
+        !       as ppb, so only 4x5 needs to be scaled by 1d9.
+        !       (hma, 20120104)
+#if defined( GRID4x5 )
+        BULK_CONC(I,J,L) = 1d9 * ( BULK_CONC(I,J,L) * AIRDEN(L,I,J)  )
+#elif defined( GRID2x25 )
+        BULK_CONC(I,J,L) = ( BULK_CONC(I,J,L) * AIRDEN(L,I,J)  )
+#endif 
+
+        ! Calculate R = HgP_ads/RGM (i.e. the ratio of Hg2
+        ! adsorbed onto aerosol to Hg2 in the  gas phase) 
+        R(I,J,L) = BULK_CONC(I,J,L)*
+     &           ( 10d0**( ( 2.5d3 / T(I,J,L)) - 10d0 ))
+
+        ! Fraction of Hg(II) in the gas phase (unitless)
+        Fg(I,J,L) = 1d0 / (R(I,J,L) + 1d0)   
+            
+        ! Fraction of Hg(II) in the particle phase (unitless)
+        Fp(I,J,L) = 1d0 - Fg(I,J,L)
+  
+      ENDDO
+      ENDDO
+      ENDDO 
+
+!$OMP END PARALLEL DO
+
+      !-------------------------------------------!
+      ! Store Fg and Fp in ND03 diagnostic.       ! 
+      !-------------------------------------------!
+
+!$OMP PARALLEL DO
+!$OMP+DEFAULT( SHARED )
+!$OMP+PRIVATE( I, J, L )
+      DO L = 1, LLPAR
+      DO J = 1, JJPAR
+      DO I = 1, IIPAR
+
+            ! error check 
+            IF (Fg(I,J,L)+Fp(I,J,L) > 1) THEN
+               PRINT*, ' Fg + Fp > 1 @ ocean_mercury_mod.f'
+               CALL GEOS_CHEM_STOP 
+            ENDIF
+
+            ! write AD03 diagnostics
+            IF ( ND03 > 0 ) THEN
+
+               ! Hg(II) gas fraction
+               AD03_Fg(I,J,L) = AD03_Fg(I,J,L) + Fg(I,J,L)
+
+               ! Hg(II) particle-bound fraction
+               AD03_Fp(I,J,L) = AD03_Fp(I,J,L) + Fp(I,J,L) 
+
+            ENDIF
+
+      ENDDO
+      ENDDO
+      ENDDO 
+!$OMP END PARALLEL DO
+
+
+      ! Increment diagnostic timestep counter. 
+      CALL SET_Hg2_DIAG( INCREMENT=.TRUE. )
+
+      ! Return to calling program.
+      END SUBROUTINE PARTITION_Hg2
+
+!------------------------------------------------------------------------------
+
+
+!------------------------------------------------------------------------------
 
       SUBROUTINE OCEAN_MERCURY_FLUX( FLUX )
 !
@@ -341,6 +758,8 @@
 !  12 Apr 2011 - J. Fisher   - Add missing code from Holmes 2010
 !  27 Jul 2011 - R. Yantosca - Use the D exponent in the defnition of KD_PART, 
 !                              or else the PGI compiler will crash
+!  09 Nov 2011 - H. Amos     - Apply Anne's bug fix for the Hg(0) evasion 
+!                              and uptake diagnostics
 !******************************************************************************
 !
       ! References to F90 modules
@@ -1122,32 +1541,36 @@
                ! TURN OFF EVASION
 !               FLUX(I,J,NN)= MIN(0.,FLUX(I,J,NN))
 
-               
-               !Xtra diagnostic: compute flux up and flux down
-               FUP(I,J,NN)   = ( Kw * CHg0aq )
-               FDOWN(I,J,NN) = ( Kw * CHg0 / H )                          
+               !Prior to 09 Nov 2011, H Amos ---------------------
+               !Extra diagnostic: compute flux up and flux down
+               !FUP(I,J,NN)   = ( Kw * CHg0aq )
+               !FDOWN(I,J,NN) = ( Kw * CHg0 / H )     
+               !--------------------------------------------------
 
 
                ! Convert [cm/h*ng/L] --> [kg/m2/s] --> [kg/s]
                ! Also account for ocean fraction of grid box
                FLUX(I,J,NN)  = FLUX(I,J,NN) * TO_KGM2S * A_M2 * FRAC_O 
 
-               FUP(I,J,NN)  = FUP(I,J,NN) * TO_KGM2S * A_M2 * FRAC_O
-               FDOWN(I,J,NN)  = FDOWN(I,J,NN) * TO_KGM2S * A_M2 * FRAC_O
+               !Prior to 09 Nov 2011, H Amos ---------------------             
+               !FUP(I,J,NN)  = FUP(I,J,NN) * TO_KGM2S * A_M2 * FRAC_O
+               !FDOWN(I,J,NN)  = FDOWN(I,J,NN) * TO_KGM2S * A_M2 * FRAC_O
+               !--------------------------------------------------
+
                !--------------------------------------------------------
                ! Flux limited by ocean and atm Hg(0)
                !--------------------------------------------------------
 
+               !Prior to 09 Nov 2011, H Amos --------------------- 
                ! Cap the flux w/ the available Hg(0) ocean mass
+               !IF ( FLUX(I,J,NN) * DTSRCE > Hg0aq(I,J,NN) ) THEN 
+               !   FLUX(I,J,NN) = Hg0aq(I,J,NN) / DTSRCE 
+               !   FUP(I,J,NN)  = FLUX(I,J,NN)-FDOWN(I,J,NN)
+               !ENDIF
                IF ( FLUX(I,J,NN) * DTSRCE > Hg0aq(I,J,NN) ) THEN 
                   FLUX(I,J,NN) = Hg0aq(I,J,NN) / DTSRCE 
-                  FUP(I,J,NN)  = FLUX(I,J,NN)-FDOWN(I,J,NN)
                ENDIF
-               
-               ! Cap FUP with available Hg(0) ocean mass (eck)
-!               IF (FUP(I,J,NN)*DTSRCE>Hg0aq(I,J,NN)) THEN
-!                  FUP(I,J,NN) = Hg0aq(I,J,NN)/DTSRCE
-!               ENDIF
+               !--------------------------------------------------
 
                 
                ! Cap the neg flux w/ the available Hg(0) atm mass
@@ -1199,9 +1622,18 @@
                ! HgP ocean mass [kg]
                AD03(I,J,11) = AD03(I,J,11) + HgPaq(I,J) 
 
+               !Prior to 09 Nov 2011, H Amos --------------------------
                ! flux up and down (eck)
-               AD03(I,J,16) = AD03(I,J,16) + FUP(I,J,ID_Hg_tot)*DTSRCE
-               AD03(I,J,17) = AD03(I,J,17) + FDOWN(I,J,ID_Hg_tot)*DTSRCE
+               !AD03(I,J,16) = AD03(I,J,16) + FUP(I,J,ID_Hg_tot)*DTSRCE
+               !AD03(I,J,17) = AD03(I,J,17) + FDOWN(I,J,ID_Hg_tot)*DTSRCE
+               IF (FLUX(I,J,ID_Hg_tot) > 0d0) THEN
+                  AD03(I,J,16) = AD03(I,J,16) 
+     &                           + FLUX(I,J,ID_Hg_tot) * DTSRCE
+               ELSE IF (FLUX(I,J,ID_Hg_tot) < 0d0) THEN
+                  AD03(I,J,17) = AD03(I,J,17) 
+     &                           + ( abs(FLUX(I,J,ID_Hg_tot) * DTSRCE ))
+               ENDIF
+               !-------------------------------------------------------
 
             ENDIF
 
@@ -2856,6 +3288,55 @@
       IF ( AS /= 0 ) CALL ALLOC_ERR( 'UPVEL' )
       UPVEL = 0d0
 
+      ALLOCATE( Fg( IIPAR, JJPAR, LLPAR ), STAT=AS )
+      IF ( AS /= 0 ) CALL ALLOC_ERR( 'Fg' )
+      Fg = 0d0    
+
+      ALLOCATE( Fp( IIPAR, JJPAR, LLPAR ), STAT=AS )
+      IF ( AS /= 0 ) CALL ALLOC_ERR( 'Fp' )
+      Fp = 0d0  
+     
+      ALLOCATE( BULK_CONC( IIPAR, JJPAR, LLPAR ), STAT=AS )
+      IF ( AS /= 0 ) CALL ALLOC_ERR( 'BULK_CONC' )
+      BULK_CONC = 0d0  
+
+      ALLOCATE( SO4_GC( IIPAR, JJPAR, LLPAR ), STAT=AS )
+      IF ( AS /= 0 ) CALL ALLOC_ERR( 'SO4_GC' )
+      SO4_GC = 0d0 
+
+      ALLOCATE( NIT_CONC( IIPAR, JJPAR, LLPAR ), STAT=AS )
+      IF ( AS /= 0 ) CALL ALLOC_ERR( 'NIT_CONC' )
+      NIT_CONC = 0d0 
+
+      ALLOCATE( NH4_CONC( IIPAR, JJPAR, LLPAR ), STAT=AS )
+      IF ( AS /= 0 ) CALL ALLOC_ERR( 'NH4_CONC' )
+      NH4_CONC = 0d0 
+
+      ALLOCATE( OC_CONC( IIPAR, JJPAR, LLPAR ), STAT=AS )
+      IF ( AS /= 0 ) CALL ALLOC_ERR( 'OC_CONC' )
+      OC_CONC = 0d0 
+
+      ALLOCATE( BC_CONC( IIPAR, JJPAR, LLPAR ), STAT=AS )
+      IF ( AS /= 0 ) CALL ALLOC_ERR( 'BC_CONC' )
+      BC_CONC = 0d0 
+
+      ALLOCATE( DST_CONC( IIPAR, JJPAR, LLPAR ), STAT=AS )
+      IF ( AS /= 0 ) CALL ALLOC_ERR( 'DST_CONC' )
+      DST_CONC = 0d0 
+
+      ALLOCATE( R( IIPAR, JJPAR, LLPAR ), STAT=AS )
+      IF ( AS /= 0 ) CALL ALLOC_ERR( 'R' )
+      R = 0d0 
+
+      ALLOCATE( SO4_WAC( IIPAR, JJPAR, LLPAR ), STAT=AS )
+      IF ( AS /= 0 ) CALL ALLOC_ERR( 'SO4_WAC' )
+      SO4_WAC = 0d0 
+
+      ALLOCATE( SO4_CONC( IIPAR, JJPAR, LLPAR ), STAT=AS )
+      IF ( AS /= 0 ) CALL ALLOC_ERR( 'SO4_CONC' )
+      SO4_CONC = 0d0 
+
+
       ! Return to calling program
       END SUBROUTINE INIT_OCEAN_MERCURY
 
@@ -2873,21 +3354,35 @@
 !  (2 ) Now just deallocate arrays.  We have moved the writing of the Hg
 !        restart file to MAKE_OCEAN_Hg_RESTART.  Now also deallocate HgP, dMLD
 !        and MLDav arrays. (sas, cdh, bmy, 3/28/06)
+!  25 Oct 2011 - H. Amos - bring Hg2 gas-particle partitioning code into
+!                          v9-01-02
 !******************************************************************************
 !     
       !=================================================================
       ! CLEANUP_OCEAN_MERCURY begins here!
       !=================================================================
-      IF ( ALLOCATED( dMLD    ) ) DEALLOCATE( dMLD    )
-      IF ( ALLOCATED( Hg0aq   ) ) DEALLOCATE( Hg0aq   )  
-      IF ( ALLOCATED( Hg2aq   ) ) DEALLOCATE( Hg2aq   )
-      IF ( ALLOCATED( HgPaq   ) ) DEALLOCATE( HgPaq   )  
-      IF ( ALLOCATED( MLD     ) ) DEALLOCATE( MLD     )
-      IF ( ALLOCATED( MLDav   ) ) DEALLOCATE( MLDav   )
-      IF ( ALLOCATED( newMLD  ) ) DEALLOCATE( newMLD  )
-      IF ( ALLOCATED( NPP     ) ) DEALLOCATE( NPP     )
-      IF ( ALLOCATED( CHL     ) ) DEALLOCATE( CHL     )
-      IF ( ALLOCATED( UPVEL   ) ) DEALLOCATE( UPVEL   )
+      IF ( ALLOCATED( dMLD      ) ) DEALLOCATE( dMLD      )
+      IF ( ALLOCATED( Hg0aq     ) ) DEALLOCATE( Hg0aq     )  
+      IF ( ALLOCATED( Hg2aq     ) ) DEALLOCATE( Hg2aq     )
+      IF ( ALLOCATED( HgPaq     ) ) DEALLOCATE( HgPaq     )  
+      IF ( ALLOCATED( MLD       ) ) DEALLOCATE( MLD       )
+      IF ( ALLOCATED( MLDav     ) ) DEALLOCATE( MLDav     )
+      IF ( ALLOCATED( newMLD    ) ) DEALLOCATE( newMLD    )
+      IF ( ALLOCATED( NPP       ) ) DEALLOCATE( NPP       )
+      IF ( ALLOCATED( CHL       ) ) DEALLOCATE( CHL       )
+      IF ( ALLOCATED( UPVEL     ) ) DEALLOCATE( UPVEL     )
+      IF ( ALLOCATED( BULK_CONC ) ) DEALLOCATE( BULK_CONC )
+      IF ( ALLOCATED( Fg        ) ) DEALLOCATE( Fg        )
+      IF ( ALLOCATED( Fp        ) ) DEALLOCATE( Fp        )
+      IF ( ALLOCATED( SO4_GC    ) ) DEALLOCATE( SO4_GC    )
+      IF ( ALLOCATED( NIT_CONC  ) ) DEALLOCATE( NIT_CONC  )
+      IF ( ALLOCATED( NH4_CONC  ) ) DEALLOCATE( NH4_CONC  )
+      IF ( ALLOCATED( OC_CONC   ) ) DEALLOCATE( OC_CONC   )
+      IF ( ALLOCATED( BC_CONC   ) ) DEALLOCATE( BC_CONC   )
+      IF ( ALLOCATED( DST_CONC  ) ) DEALLOCATE( DST_CONC  )
+      IF ( ALLOCATED( R         ) ) DEALLOCATE( R         )
+      IF ( ALLOCATED( SO4_WAC   ) ) DEALLOCATE( SO4_WAC   )
+      IF ( ALLOCATED( SO4_CONC  ) ) DEALLOCATE( SO4_CONC  )
 
       ! Return to calling program
       END SUBROUTINE CLEANUP_OCEAN_MERCURY
