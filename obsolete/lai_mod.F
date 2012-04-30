@@ -1,35 +1,48 @@
-! $Id: lai_mod.f,v 1.2 2009/11/30 19:57:56 ccarouge Exp $
+!------------------------------------------------------------------------------
+!          Harvard University Atmospheric Chemistry Modeling Group            !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !MODULE: lai_mod
+!
+! !DESCRIPTION: Module LAI\_MOD reads and stores either AVHRR or MODIS LAI 
+!  for calculating MEGAN biogenic VOC emissions.  These LAI values can also
+!  be used to replace the data read from the obsolete lai*.global files 
+!  (which is used for backwards compatibility w/ legacy code).
+!\\
+!\\
+! !INTERFACE: 
+!
       MODULE LAI_MOD
 !
-!******************************************************************************
-!  Module LAI_MOD reads and stores AVHRR LAI for calculating MEGAN biogenic 
-!  VOC emissions. (dsa, tmf, bmy, 10/20/05, 11/6/08)
+! !USES:
 !
-!  Module Variables:
-!  ============================================================================
-!  (1 ) ISOLAI     (REAL*8 ) : AVHRR LAI data for the current day
-!  (2 ) MISOLAI    (REAL*8 ) : AVHRR LAI data for the current month
-!  (3 ) NMISOLAI   (REAL*8 ) : AVHRR LAI data for the next month 
-!  (4 ) PMISOLAI   (REAL*8 ) : AVHRR LAI data for the previous month
-!  (5 ) DAYS_BTW_M (INTEGER) : days btw the current & previous months for LAI
+      IMPLICIT NONE
+      PRIVATE
+#     include "define.h"
 !
-!  Module Routines:
-!  ============================================================================
-!  (1 ) READISOLAI           : Reads monthly AVHRR LAI data
-!  (2 ) RDISOLAI             : Calls READISOLAI and interpolates to daily LAI
-!  (8 ) INIT_LAI             : Allocate and initialize data array
-!  (9 ) CLEANUP_LAI          : Deallocate data array
+! !PUBLIC MEMBER FUNCTIONS:
 !
-!  GEOS-CHEM modules referenced by megan_mod.f
-!  ============================================================================
-!  (1 ) bpch2_mod.f          : Module w/ routines for binary punch file I/O
-!  (2 ) error_mod.f          : Module w/ I/O error and NaN check routines
-!  (3 ) transfer_mod.f       : Module w/ routines to cast & resize arrays
+      PUBLIC :: READISOLAI_AVHRR
+      PUBLIC :: READISOLAI_MODIS
+      PUBLIC :: READISOLAI_05x0666
+      PUBLIC :: RDISOLAI
+      PUBLIC :: INIT_LAI
+      PUBLIC :: CLEANUP_LAI
 !
-!  References:
-!  ============================================================================
+! !PUBLIC DATA MEMBERS:
 !
-!  NOTES:
+      ! Scalars
+      INTEGER, PUBLIC              :: DAYS_BTW_M     ! Days btw the current
+                                                     !  and previous months 
+
+      ! Arrays
+      REAL*8,  PUBLIC, ALLOCATABLE :: ISOLAI(:,:)    ! LAI for current day
+      REAL*8,  PUBLIC, ALLOCATABLE :: MISOLAI(:,:)   ! LAI for current month
+      REAL*8,  PUBLIC, ALLOCATABLE :: NMISOLAI(:,:)  ! LAI for next month
+      REAL*8,  PUBLIC, ALLOCATABLE :: PMISOLAI(:,:)  ! LAI for previous month
+!
+! !REVISION HISTORY:
 !  (1 ) Original code (biogen_em_mod.f) by Dorian Abbot (7/8/03).  Updated  
 !        and modified for the standard code by May Fu (11/2004).
 !  (2 ) MEGAN is currently locked to use AVHRR LAI data.  
@@ -38,69 +51,63 @@
 !  (3 ) Modifications for 0.5 x 0.667 nested grid.  Added routine 
 !        READISOLAI_05x0666 to read finer-resolution data for GEOS-5 nested
 !        grids. (yxw, dan, bmy, 11/6/08)
-!******************************************************************************
-!
-      IMPLICIT NONE
-#     include "define.h"
-
-      !=================================================================
-      ! MODULE PRIVATE DECLARATIONS -- keep certain internal variables 
-      ! and routines from being seen outside "lai_mod.f"
-      !=================================================================
-
-      ! PRIVATE module variables
-
-      !=================================================================
-      ! MODULE VARIABLES
-      !=================================================================
-      REAL*8, ALLOCATABLE :: ISOLAI(:,:)
-      REAL*8, ALLOCATABLE :: MISOLAI(:,:)
-      REAL*8, ALLOCATABLE :: NMISOLAI(:,:)
-      REAL*8, ALLOCATABLE :: PMISOLAI(:,:)
-      INTEGER             :: DAYS_BTW_M
-
-      !=================================================================
-      ! MODULE ROUTINES -- follow below the "CONTAINS" statement 
-      !=================================================================
-      CONTAINS
-
+!  29 Mar 2012 - R. Yantosca - Added ProTeX headers
+!  29 Mar 2012 - R. Yantosca - Updated out-of-date comments
+!EOP
 !------------------------------------------------------------------------------
-
+!BOC
+      CONTAINS
+!EOC
+!------------------------------------------------------------------------------
+!          Harvard University Atmospheric Chemistry Modeling Group            !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: readisolai_avhrr
+!
+! !DESCRIPTION: Subroutine READISOLAI_AVHRR reads AVHRR LAI data from bpch 
+!  file for the current month, the previous month, and the next month.
+!\\
+!\\
+! !INTERFACE:
+!
       SUBROUTINE READISOLAI_AVHRR( MM )
 !
-!******************************************************************************
-!  Subroutine READISOLAI reads AVHRR LAI data from bpch file for the current 
-!  month, the previous month, and the next month. (dsa, tmf, bmy, 10/18/05)
+! !USES:
 !
-!  Arguments as Input:
-!  ============================================================================
-!  (1 ) MM (INTEGER) : Current month number (1-12)
+      USE CMN_SIZE_MOD                           ! Size parameters
+      USE BPCH2_MOD,      ONLY : GET_TAU0        ! Date to TAU0 conversion
+      USE BPCH2_MOD,      ONLY : READ_BPCH2      ! Read from bpch format
+      USE BPCH2_MOD,      ONLY : GET_RES_EXT     ! Get resolution string
+      USE DIRECTORY_MOD,  ONLY : DATA_DIR_1x1    ! Data directory path
+      USE REGRID_A2A_MOD, ONLY : DO_REGRID_A2A   ! Regrdidding routine
+      USE TRANSFER_MOD,   ONLY : TRANSFER_2D     ! Cast to REAL*8
 !
-!  NOTES:
+! !INPUT PARAMETERS: 
+!
+      INTEGER, INTENT(IN) :: MM                  ! Current month (1-12)
+! 
+! !REVISION HISTORY: 
+!  18 Oct 2005 - D. Abbot, T-M Fu - Initial version
 !  (1 ) Original code (biogen_em_mod.f) by Dorian Abbot (7/8/03).  Updated  
 !        and modified for the standard code by May Fu (11/2004).
 !  (2 ) Renamed to READISOLAI_AVHRR to differentiate from the newer routine for
 !       reading in the MODIS LAI (mpb,2009).
-!******************************************************************************
+!  13 Mar 2012 - M. Cooper   - Changed regrid algorithm to map_a2a
+!  29 Mar 2012 - R. Yantosca - Added ProTeX headers
+!EOP
+!------------------------------------------------------------------------------
+!BOC
 !
-      USE BPCH2_MOD,      ONLY : GET_TAU0, READ_BPCH2, GET_RES_EXT
-      USE DIRECTORY_MOD,  ONLY : DATA_DIR_1x1
-      USE REGRID_1x1_MOD, ONLY : DO_REGRID_1x1
-      USE TRANSFER_MOD,   ONLY : TRANSFER_2D
-    
-      USE CMN_SIZE_MOD      ! Size parameters
-   
-      IMPLICIT NONE
-#     include "define.h"
-
-      ! Arguments
-      INTEGER, INTENT(IN)    :: MM
-
-      ! Local variables
-      INTEGER                :: I, J, K, INDEX, MMM, PMM, IJLOOP
-      REAL*4                 :: ARRAY(I1x1,J1x1,1)
-      REAL*8                 :: TAU0
-      CHARACTER(LEN=255)     :: FILENAME
+! !LOCAL VARIABLES:
+!
+      INTEGER            :: I, J, K, INDEX, MMM, PMM, IJLOOP
+      REAL*4             :: ARRAY(I1x1,J1x1,1)
+      REAL*8             :: TAU0
+      CHARACTER(LEN=255) :: FILENAME
+      CHARACTER(LEN=255)     :: LLFILENAME
+      REAL*8, ALLOCATABLE    :: OUTGRID(:,:)
+      REAL*8, ALLOCATABLE    :: INGRID(:,:)
 
       !=================================================================
       ! READISOLAI begins here!
@@ -131,8 +138,18 @@
      &                 TAU0,      I1x1,   J1x1,    
      &                 1,         ARRAY,  QUIET=.TRUE. )
 
+      ! File with lat/lon edges for regridding
+      LLFILENAME = TRIM( DATA_DIR_1x1) //
+     &             'MAP_A2A_Regrid_200312/latlon_geos1x1.txt'
+
+      ! Allocate arrays for regridding
+      ALLOCATE(INGRID(I1x1,J1x1))
+      ALLOCATE(OUTGRID(IIPAR,JJPAR))
+
       ! Regrid from 1x1 to current grid resolution
-      CALL DO_REGRID_1x1( 'cm2/cm2', ARRAY, MISOLAI )
+      INGRID  = ARRAY(:,:,1)
+      CALL DO_REGRID_A2A( LLFILENAME, 360, 182, INGRID, OUTGRID, 0 )
+      MISOLAI = OUTGRID
 
       !------------------------------------
       ! Read next month's lai at (I,J) 
@@ -151,7 +168,9 @@
      &                 1,         ARRAY,  QUIET=.TRUE. )
 
       ! Regrid from 1x1 to current grid resolution
-      CALL DO_REGRID_1x1( 'cm2/cm2', ARRAY, NMISOLAI )
+      INGRID = ARRAY(:,:,1)        
+      CALL DO_REGRID_A2A( LLFILENAME, 360, 182, INGRID, OUTGRID, 0 )
+      NMISOLAI = OUTGRID
 
       !------------------------------------
       ! Read previous month's lai at (I,J) 
@@ -170,49 +189,65 @@
      &                 1,         ARRAY,  QUIET=.TRUE. )
 
       ! Regrid from 1x1 to current grid resolution
-      CALL DO_REGRID_1x1( 'cm2/cm2', ARRAY, PMISOLAI )
+      INGRID = ARRAY(:,:,1)   
+      CALL DO_REGRID_A2A( LLFILENAME, 360, 182, INGRID, OUTGRID, 0 )
+      PMISOLAI = OUTGRID
 
-      ! Return to calling program
+      ! Deallocate arrays for regridding
+      DEALLOCATE(INGRID)
+      DEALLOCATE(OUTGRID)
+
       END SUBROUTINE READISOLAI_AVHRR
-
+!EOC
 !------------------------------------------------------------------------------
-
-      SUBROUTINE READISOLAI_MODIS( MM , YYYY )
+!          Harvard University Atmospheric Chemistry Modeling Group            !
+!------------------------------------------------------------------------------
+!BOP
 !
-!******************************************************************************
-!  Subroutine READISOLAI reads MODIS LAI data from bpch file for the current 
-!  month, the previous month, and the next month. (mpb,2009)
+! !IROUTINE: readisolai_modis
 !
-!  Arguments as Input:
-!  ============================================================================
-!  (1 ) MM    (INTEGER) : Current month number (1-12)
-!  (2 ) YYYY  (INTEGER) : Current year 
+! !DESCRIPTION: Subroutine READISOLAI\_MODIS reads MODIS LAI data from bpch 
+!  file for the current  month, the previous month, and the next month.
+!\\
+!\\
+! !INTERFACE:
 !
-!  NOTES:
+      SUBROUTINE READISOLAI_MODIS( MM, YYYY )
+!
+! !USES:
+!
+      USE CMN_SIZE_MOD                           ! Size parameters
+      USE BPCH2_MOD,      ONLY : GET_TAU0        ! Date to TAU0 conversion
+      USE BPCH2_MOD,      ONLY : READ_BPCH2      ! Read from bpch format
+      USE BPCH2_MOD,      ONLY : GET_RES_EXT     ! Get resolution string
+      USE DIRECTORY_MOD,  ONLY : DATA_DIR_1x1    ! Data directory path
+      USE REGRID_A2A_MOD, ONLY : DO_REGRID_A2A   ! Regrdidding routine
+      USE TRANSFER_MOD,   ONLY : TRANSFER_2D     ! Cast to REAL*8
+!                                                
+! !INPUT PARAMETERS:                             
+!                                                
+      INTEGER, INTENT(IN)    :: MM               ! Current month (1-12)
+      INTEGER, INTENT(IN)    :: YYYY             ! Current year
+! 
+! !REVISION HISTORY: 
+!  03 Jan 2009 - M. Barkley  - Initial version
 !  (1 ) I'm sure there is a much easier way of coding this (mpb,2009).
+!  29 Mar 2012 - R. Yantosca - Added ProTeX headers
+!EOP
+!------------------------------------------------------------------------------
+!BOC
 !
-!******************************************************************************
+! !LOCAL VARIABLES:
 !
-      USE BPCH2_MOD,      ONLY : GET_TAU0, READ_BPCH2, GET_RES_EXT
-      USE DIRECTORY_MOD,  ONLY : DATA_DIR_1x1
-      USE REGRID_1x1_MOD, ONLY : DO_REGRID_1x1
-      USE TRANSFER_MOD,   ONLY : TRANSFER_2D
-     
-      USE CMN_SIZE_MOD      ! Size parameters
-   
-      IMPLICIT NONE
-#     include "define.h"
-
-      ! Arguments
-      INTEGER, INTENT(IN)    :: MM , YYYY
-
-      ! Local variables
       INTEGER                :: I, J, K, INDEX, MMM, PMM, IJLOOP
       REAL*4                 :: ARRAY(I1x1,J1x1,1)
       REAL*8                 :: TAU0
       CHARACTER(LEN=255)     :: FILENAME 
+      CHARACTER(LEN=255)     :: LLFILENAME
+      REAL*8, ALLOCATABLE    :: OUTGRID(:,:)
+      REAL*8, ALLOCATABLE    :: INGRID(:,:)
 
-      ! For MODIS add past, current and next years (mpb,2009)                   
+      ! For MODIS add past, current and next years (mpb,2009)
       CHARACTER(LEN=4)       :: YEAR 
       INTEGER                :: IYYYY !Current Year
       INTEGER                :: NYYYY !Next Year
@@ -221,7 +256,7 @@
       CHARACTER(LEN=255)     :: MODIS_CLIM
 
       !=================================================================
-      ! READISOLAI begins here!
+      ! READISOLAI_MODIS begins here!
       !=================================================================     
 
       ! Zero arrays
@@ -233,6 +268,10 @@
       !MODIS_CLIM =  TRIM( DATA_DIR_1x1 ) // 
       MODIS_CLIM = TRIM( DATA_DIR_1x1 ) // 'MODIS_LAI_200911/' //
      &             '1985/MODIS.LAIv.V5.geos.1x1.1985'
+
+      ! File with lat/lon edges for regridding
+      LLFILENAME = TRIM( DATA_DIR_1x1) //
+     &             'MAP_A2A_Regrid_200312/latlon_geos1x1.txt'
 
       IYYYY = 0
       PYYYY = 0
@@ -280,8 +319,14 @@
      &                 TAU0,      I1x1,   J1x1,    
      &                 1,         ARRAY,  QUIET=.TRUE. )
 
+      ! Allocate arrays for regridding
+      ALLOCATE(INGRID(I1x1,J1x1))
+      ALLOCATE(OUTGRID(IIPAR,JJPAR))
+
       ! Regrid from 1x1 to current grid resolution
-      CALL DO_REGRID_1x1( 'cm2/cm2', ARRAY, MISOLAI )
+      INGRID = ARRAY(:,:,1)
+      CALL DO_REGRID_A2A( LLFILENAME, 360, 182, INGRID, OUTGRID, 0 )
+      MISOLAI = OUTGRID
 
       ! ++++++++++++++++++++++++++++++++++
       ! Get LAI data for NEXT month
@@ -362,7 +407,9 @@
      &                 1,         ARRAY,  QUIET=.TRUE. )
 
       ! Regrid from 1x1 to current grid resolution
-      CALL DO_REGRID_1x1( 'cm2/cm2', ARRAY, NMISOLAI )
+      INGRID = ARRAY(:,:,1)
+      CALL DO_REGRID_A2A( LLFILENAME, 360, 182, INGRID, OUTGRID, 0 )
+      NMISOLAI = OUTGRID
 
       ! ++++++++++++++++++++++++++++++++++
       ! Get LAI data for PAST month
@@ -442,50 +489,62 @@
      &                 1,         ARRAY,  QUIET=.TRUE. )
 
       ! Regrid from 1x1 to current grid resolution
-      CALL DO_REGRID_1x1( 'cm2/cm2', ARRAY, PMISOLAI )
+      INGRID = ARRAY(:,:,1)
+      CALL DO_REGRID_A2A( LLFILENAME, 360, 182, INGRID, OUTGRID, 0 )
+      PMISOLAI = OUTGRID
+
+      ! Deallocate arrays for regridding
+      DEALLOCATE(INGRID)
+      DEALLOCATE(OUTGRID)
 
 100   FORMAT( '     - READISOLAI: Reading ', a )
      
-      ! Return to calling program
       END SUBROUTINE READISOLAI_MODIS
-
-
+!EOC
 !------------------------------------------------------------------------------
-
+!          Harvard University Atmospheric Chemistry Modeling Group            !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: rdisolai_05x0666
+!
+! !DESCRIPTION: Subroutine READISOLAI reads AVHRR LAI data from bpch file 
+!  for the current month, the previous month, and the next month.  
+!  Specially constructed to read hi-res data for the GEOS-5 0.5 x 0.666 
+!  nested grid simulations.
+!\\
+!\\
+! !INTERFACE:
+!
       SUBROUTINE READISOLAI_05x0666( MM )
 !
-!******************************************************************************
-!  Subroutine READISOLAI reads AVHRR LAI data from bpch file for the current 
-!  month, the previous month, and the next month.  Specially constructed to
-!  read hi-res data for the GEOS-5 0.5 x 0.666 nested grid simulations.
-!  (yxw, bmy, dan, 11/6/08)
+! !USES:
 !
-!  Arguments as Input:
-!  ============================================================================
-!  (1 ) MM (INTEGER) : Current month number (1-12)
-!
-!  NOTES:
-!******************************************************************************
-!
-      ! Modules
-      USE BPCH2_MOD,      ONLY : GET_TAU0, READ_BPCH2, GET_RES_EXT
-      USE DIRECTORY_MOD,  ONLY : DATA_DIR_1x1
-      USE TRANSFER_MOD,   ONLY : TRANSFER_2D
+      USE CMN_SIZE_MOD                           ! Size parameters
+      USE BPCH2_MOD,      ONLY : GET_TAU0        ! Date to TAU0 conversion
+      USE BPCH2_MOD,      ONLY : READ_BPCH2      ! Read from bpch format
+      USE BPCH2_MOD,      ONLY : GET_RES_EXT     ! Get resolution string
+      USE DIRECTORY_MOD,  ONLY : DATA_DIR_1x1    ! Data directory path
+      USE TRANSFER_MOD,   ONLY : TRANSFER_2D     ! Cast to REAL*8
       USE DIRECTORY_MOD,  ONLY : DATA_DIR
-
-      USE CMN_SIZE_MOD       ! Size parameters
-
-      IMPLICIT NONE
-#     include "define.h"
-
-      ! Arguments
-      INTEGER, INTENT(IN)     :: MM
-
-      ! Local variables
-      INTEGER                 :: I, J, K, INDEX, MMM, PMM, IJLOOP
-      REAL*4                  :: ARRAY(IIPAR,JJPAR,1)
-      REAL*8                  :: TAU0
-      CHARACTER(LEN=255)      :: FILENAME
+!
+! !INPUT PARAMETERS: 
+!
+      INTEGER, INTENT(IN) :: MM                  ! Current month (1-12)
+!
+! !REVISION HISTORY: 
+!  06 Nov 2008 - Y. Wang, D. Chen - Initial version
+!  29 Mar 2012 - R. Yantosca - Added ProTeX headers
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+!
+! !LOCAL VARIABLES:
+!
+      INTEGER            :: I, J, K, INDEX, MMM, PMM, IJLOOP
+      REAL*4             :: ARRAY(IIPAR,JJPAR,1)
+      REAL*8             :: TAU0
+      CHARACTER(LEN=255) :: FILENAME
 
       !=================================================================
       ! READISOLAI begins here!
@@ -506,7 +565,7 @@
 
       ! Echo info
       WRITE( 6, 100 ) TRIM( FILENAME )
-100   FORMAT( '     - READISOLAI: Reading ', a )
+ 100  FORMAT( '     - READISOLAI: Reading ', a )
 
       ! Get TAU0 value
       TAU0 = GET_TAU0( MM, 1, 2000 )
@@ -557,41 +616,49 @@
 
       CALL TRANSFER_2D( ARRAY(:,:,1), PMISOLAI )
 
-
-      ! Return to calling program
       END SUBROUTINE READISOLAI_05x0666
-
+!EOC
 !------------------------------------------------------------------------------
-
+!          Harvard University Atmospheric Chemistry Modeling Group            !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: rdisolai
+!
+! !DESCRIPTION: Subroutine RDISOLAI sets ISOLAI daily.  The stored monthly 
+!  LAI are used for the middle day in the month and LAIs are interpolated 
+!  for other days.
+!\\
+!\\
+! !INTERFACE:
+!
       SUBROUTINE RDISOLAI( JDAY, MONTH, YEAR )
 !
-!******************************************************************************
-!  Subroutine RDISOLAI sets ISOLAI daily.  The stored monthly LAI are used for
-!  the middle day in the month and LAIs are interpolated for other days.
-!  (dsa, tmf, bmy, 10/20/05, 11/6/08)
+! !USES:
 !
-!  Arguments as Input:
-!  ============================================================================
-!  (1 ) JDAY  (INTEGER) : Julian Day
-!  (2 ) MONTH (INTEGER) : Calendar month JDAY is in.  
+      USE CMN_SIZE_MOD                         ! Size parameters
+      USE TIME_MOD,    ONLY : ITS_A_LEAPYEAR   ! Leap year determination
+      USE LOGICAL_MOD, ONLY : LMODISLAI        ! Use MODIS or AVHRR LAI
 !
-!  NOTES:
+! !INPUT PARAMETERS: 
+!
+      INTEGER, INTENT(IN) :: JDAY              ! Day of year (0-365 or 366)
+      INTEGER, INTENT(IN) :: MONTH             ! Current month (1-12)
+      INTEGER, INTENT(IN) :: YEAR              ! Current year
+!
+! !REVISION HISTORY: 
+!  20 Oct 2005 - D. Abbot, T-M Fu - Initial version
 !  (1 ) Original code (biogen_em_mod.f) by Dorian Abbot (7/8/03).  Updated  
 !        and modified for the standard code by May Fu (11/2004).
 !  (2 ) Now call READISOLAI_05x0666 to read hi-res LAI data if we are doing a 
 !        GEOS-5 0.5 x 0.666 nested grid simulation. (yxw, dan, bmy, 11/6/08)
-!******************************************************************************
+!  29 Mar 2012 - R. Yantosca - Added ProTeX headers
+!EOP
+!------------------------------------------------------------------------------
+!BOC
 !
-      ! References to F90 modules
-      USE TIME_MOD,   ONLY : ITS_A_LEAPYEAR
-      USE LOGICAL_MOD, ONLY : LMODISLAI ! Include sensor (mpb,2009)
-
-      USE CMN_SIZE_MOD   ! Size parameters
-   
-      ! Arguments
-      INTEGER, INTENT(IN) :: JDAY, MONTH, YEAR ! Include year (mpb,2009)
-
-      ! Local variables
+! !LOCAL VARIABLES:
+!
       INTEGER             :: I, J, IMUL, ITD, IJLOOP, MM
       INTEGER             :: YYYY              ! Include year (mpb,2009)
       INTEGER, SAVE       :: LAST_MM = -1 
@@ -654,31 +721,50 @@
       ENDDO
       ENDDO
 
-      ! Return to calling program
       END SUBROUTINE RDISOLAI
-
+!EOC
 !------------------------------------------------------------------------------
-
+!          Harvard University Atmospheric Chemistry Modeling Group            !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: init_lai
+!
+! !DESCRIPTION: Subroutine INIT_LAI allocates and initializes arrays for 
+!  either AVHRR or MODIS LAI.
+!\\
+!\\
+! !INTERFACE:
+!
       SUBROUTINE INIT_LAI
 !
-!******************************************************************************
-!  Subroutine INIT_ISOLAI allocates and initializes arrays for AVHRR LAI.
-!  (dsa, tmf, 7/8/03, 11/20/04)
+! !USES:
 !
-!  NOTES:
-!******************************************************************************
+      USE CMN_SIZE_MOD                  ! Size parameters
+      USE ERROR_MOD, ONLY : ALLOC_ERR   ! Allocation error trapping
+! 
+! !REVISION HISTORY: 
+!  08 Jul 2003 - D. Abbot, T-M. Fu - Initial version
+!  29 Mar 2012 - R. Yantosca - Added ProTeX headers
+!  29 Mar 2012 - R. Yantosca - Exit if we have already called INIT_LAI before
+!EOP
+!------------------------------------------------------------------------------
+!BOC
 !
-      ! References to F90 modules
-      USE ERROR_MOD, ONLY    : ALLOC_ERR
-
-      USE CMN_SIZE_MOD     ! Size parameters
-
-      ! Local Variables
-      INTEGER               :: AS
-
+! !LOCAL VARIABLES:
+!
+      LOGICAL, SAVE :: FIRST = .TRUE.
+      INTEGER       :: AS
+  
       !=================================================================
-      ! INIT_ISOLAI begins here!
+      ! INIT_LAI begins here!
       !=================================================================
+
+      ! Skip if we have already called this routine before
+      IF ( .not. FIRST ) THEN
+         FIRST = .FALSE.
+         RETURN
+      ENDIF
 
       ALLOCATE( ISOLAI( IIPAR, JJPAR ), STAT=AS )
       IF ( AS /= 0 ) CALL ALLOC_ERR( 'ISOLAI' )
@@ -696,19 +782,31 @@
       IF ( AS /= 0 ) CALL ALLOC_ERR( 'PMISOLAI' )
       PMISOLAI = 0d0        
 
-      ! Return to calling program
       END SUBROUTINE INIT_LAI
-
+!EOC
 !------------------------------------------------------------------------------
-
+!          Harvard University Atmospheric Chemistry Modeling Group            !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: cleanup_lai
+!
+! !DESCRIPTION: Subroutine CLEANUP\_ISOLAI deallocates all allocated arrays 
+!  at the end of a GEOS-CHEM model run.
+!\\
+!\\
+! !INTERFACE:
+!
       SUBROUTINE CLEANUP_LAI
+! 
+! !REVISION HISTORY: 
+!  08 Jul 2003 - D. Abbot, T-M. Fu - Initial version
+!  29 Mar 2012 - R. Yantosca - Added ProTeX headers
+!EOP
+!------------------------------------------------------------------------------
+!BOC
 !
-!******************************************************************************
-!  Subroutine CLEANUP_ISOLAI deallocates all allocated arrays at the
-!  end of a GEOS-CHEM model run. (dsa 7/8/03)
-!
-!  NOTES:
-!******************************************************************************
+! !LOCAL VARIABLES:
 !
       !=================================================================
       ! CLEANUP_ISOLAI begins here!
@@ -718,10 +816,6 @@
       IF ( ALLOCATED( NMISOLAI ) ) DEALLOCATE( NMISOLAI )
       IF ( ALLOCATED( PMISOLAI ) ) DEALLOCATE( PMISOLAI )
 
-      ! Return to calling program
       END SUBROUTINE CLEANUP_LAI
-
-!------------------------------------------------------------------------------
-
-      ! End of module
+!EOC
       END MODULE LAI_MOD

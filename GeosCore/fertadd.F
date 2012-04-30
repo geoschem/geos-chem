@@ -26,6 +26,7 @@
 !        cosmetic changes. (bmy, 2/11/03)
 !  (2 ) Add LANTHRO switch to correctly turn off anthropogenic emissions. 
 !        (ccc, 4/15/09)
+!  01 Mar 2012 - R. Yantosca - Now use GET_AREA_M2(I,J,L) from grid_mod.F90
 !******************************************************************************
 !
       ! References to F90 modules
@@ -65,7 +66,9 @@
       IF (.not.LANTHRO) RETURN 
 
       ! Latitude of grid box [degrees]
-      Y = GET_YMID( J )
+      ! NOTE: For now set I and L to 1.  The soil NOx routines will
+      ! be replaced shortly. (bmy, 3/2/12)
+      Y = GET_YMID( 1, J, 1 )
 
       !=================================================================
       ! Case 1: Northern Hemisphere midlatitudes ( Y > 28 degrees )

@@ -46,6 +46,7 @@
       USE ERROR_MOD,               ONLY : DEBUG_MSG
       USE GC_BIOMASS_MOD,          ONLY : CLEANUP_GC_BIOMASS
       USE GFED2_BIOMASS_MOD,       ONLY : CLEANUP_GFED2_BIOMASS
+      USE GFED3_BIOMASS_MOD,       ONLY : CLEANUP_GFED3_BIOMASS
       USE GLOBAL_CH4_MOD,          ONLY : CLEANUP_GLOBAL_CH4
       USE GLOBAL_HNO3_MOD,         ONLY : CLEANUP_GLOBAL_HNO3
       USE GLOBAL_NO3_MOD,          ONLY : CLEANUP_GLOBAL_NO3
@@ -56,11 +57,11 @@
       USE HCN_CH3CN_MOD,           ONLY : CLEANUP_HCN_CH3CN
       USE HDF_MOD,                 ONLY : CLEANUP_HDF
       USE ISOROPIAII_MOD,          ONLY : CLEANUP_ISOROPIAII
-      USE LAI_MOD,                 ONLY : CLEANUP_LAI
       USE LIGHTNING_NOX_MOD,       ONLY : CLEANUP_LIGHTNING_NOX
       USE LINOZ_MOD,               ONLY : CLEANUP_LINOZ
       USE MEGAN_MOD,               ONLY : CLEANUP_MEGAN
       USE MERCURY_MOD,             ONLY : CLEANUP_MERCURY
+      USE MODIS_LAI_MOD,           ONLY : CLEANUP_MODIS_LAI
       USE OCEAN_MERCURY_MOD,       ONLY : CLEANUP_OCEAN_MERCURY
       USE DEPO_MERCURY_MOD,        ONLY : CLEANUP_DEPO_MERCURY
       USE LAND_MERCURY_MOD,        ONLY : CLEANUP_LAND_MERCURY
@@ -83,12 +84,16 @@
       USE VISTAS_ANTHRO_MOD,       ONLY : CLEANUP_VISTAS_ANTHRO
       USE WETSCAV_MOD,             ONLY : CLEANUP_WETSCAV
       USE ICOADS_SHIP_MOD,         ONLY : CLEANUP_ICOADS_SHIP  !(cklee,7/09/09)
+      USE RETRO_MOD,               ONLY : CLEANUP_RETRO
+#if   defined( APM )
+      USE APM_WETS_MOD,            ONLY : CLEANUP_WETSCAVBIN
+#endif
 
       IMPLICIT NONE
-
 #     include "define.h"
+
 !
-! !REVISION HISTORY:
+! !REVISION HISTORY: 
 !  29 Nov 1999 - R. Yantosca - Initial version
 !  (1 ) CLEANUP is written in Fixed-Format F90.
 !  (2 ) Now calls CLEANUP_WETSCAV, which deallocates arrays from 
@@ -167,11 +172,14 @@
 !  (41) Now references CLEANUP_VISTAS_ANTHRO (phs, 3/10/08)
 !  (41) Now references CLEANUP_LINOZ (phs, 10/16/09)
 !  (42) Now references CLEANUP_HDF (amv, bmy, 12/21/09)
-!  (43) Now references CLEANUP_TOMAS (win, bmy, 1/25/10)
-!  (44) Now references CLEANUP_ISOROPIAII (ccc, bmy, 1/29/09)
-!  (45) Now references CLEANUP_DEPO_MERCURY and CLEANUP_LAND_MERCURY
+!  (43) Now references CLEANUP_ISOROPIAII (ccc, bmy, 1/29/09)
+!  (44) Now references CLEANUP_DEPO_MERCURY and CLEANUP_LAND_MERCURY
 !       (ccc, 5/6/10)
 !  13 Aug 2010 - R. Yantosca - Added ProTeX headers
+!  22 Aug 2011 - R. Yantosca - Add modifications for APM microphysics (G. Luo)
+!  07 Sep 2011 - P. Kasibhatla - Add modifications for GFED3
+!  05 Apr 2012 - R. Yantosca - Now call CLEANUP_MODIS_LAI
+!  11 Apr 2012 - R. Yantosca - Remove reference to obsolete lai_mod.F
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -214,6 +222,7 @@
       CALL CLEANUP_EPA_NEI
       CALL CLEANUP_GC_BIOMASS
       CALL CLEANUP_GFED2_BIOMASS
+      CALL CLEANUP_GFED3_BIOMASS
       CALL CLEANUP_GLOBAL_CH4
       CALL CLEANUP_GLOBAL_HNO3
       CALL CLEANUP_GLOBAL_NO3
@@ -225,11 +234,11 @@
       CALL CLEANUP_HCN_CH3CN
       CALL CLEANUP_HDF
       CALL CLEANUP_ISOROPIAII
-      CALL CLEANUP_LAI
       CALL CLEANUP_LIGHTNING_NOX
       CALL CLEANUP_LINOZ
       CALL CLEANUP_MEGAN
       CALL CLEANUP_MERCURY
+      CALL CLEANUP_MODIS_LAI
       CALL CLEANUP_OCEAN_MERCURY
       CALL CLEANUP_DEPO_MERCURY
       CALL CLEANUP_LAND_MERCURY
@@ -249,8 +258,11 @@
       CALL CLEANUP_VISTAS_ANTHRO
       CALL CLEANUP_WETSCAV
       CALL CLEANUP_ICOADS_SHIP !(cklee,7/09/09)
-      !if ( IDTNK1 > 0 ) CALL CLEANUP_TOMAS !(win, 7/28/09)
-      CALL CLEANUP_TOMAS
+      CALL CLEANUP_RETRO
+
+#if   defined( APM )
+      CALL CLEANUP_WETSCAVBIN  ! Cleanup arrays for APM wet scavenging
+#endif
 
 #if   defined( GEOS_5 ) && defined( GRID05x0666 )
       CALL EXIT_GEOS5_TPCORE_WINDOW 

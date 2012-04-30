@@ -243,14 +243,6 @@
       ! NOTE : 
       ! (1 ) copy CSPEC_FULL to CSPEC depending on READ_CSPEC (hotp, 2/25/09)
 
-!-----------------------------------------------------------------------
-! Prior to 10/18/11:
-! Do not overwrite CSPEC with CSPEC_FULL prior to partitioning 
-! (dkh, mpayer, 10/18/11)
-!      ! IF ( LVARTROP .or. FIRSTCHEM ) CALL COPY_FULL_TROP
-!
-!      IF ( LVARTROP .or. FIRSTCHEM .or. READ_CSPEC ) CALL COPY_FULL_TROP
-!-----------------------------------------------------------------------
       IF ( FIRSTCHEM .or. READ_CSPEC ) CALL COPY_FULL_TROP
 
 !  ********************************************************************

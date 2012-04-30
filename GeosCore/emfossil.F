@@ -32,6 +32,7 @@
       USE LOGICAL_MOD,        ONLY : LICARTT,          LNEI05
       USE LOGICAL_MOD,        ONLY : LRETRO
       USE RETRO_MOD,          ONLY : GET_RETRO_ANTHRO
+      USE C2H6_MOD,           ONLY : GET_C2H6_ANTHRO
       USE NEI2005_ANTHRO_MOD, ONLY : GET_NEI2005_ANTHRO
       USE NEI2005_ANTHRO_MOD, ONLY : NEI05_MASK => USA_MASK
       USE LOGICAL_MOD,        ONLY : LICOADSSHIP !(cklee, 6/30/09)
@@ -44,18 +45,20 @@
       USE TRACER_MOD,         ONLY : XNUMOL
       USE TRACERID_MOD,       ONLY : IDENOX, IDEOX,    IDEHNO3
       USE TRACERID_MOD,       ONLY : IDTOX,  IDTCO,    IDTHNO3
+      USE TRACERID_MOD,       ONLY : IDTC2H6
       USE VISTAS_ANTHRO_MOD,  ONLY : GET_VISTAS_ANTHRO
       USE ICOADS_SHIP_MOD,    ONLY : GET_ICOADS_SHIP !(cklee, 7/09/09)
+![eml
+      USE LOGICAL_MOD,        ONLY : LHIST
+!eml]
 
-      USE CMN_SIZE_MOD               ! Size parameters
-      USE COMODE_LOOP_MOD               ! IHOUR
-      USE CMN_O3_MOD                 ! EMISR, EMISRR, etc...
-      USE CMN_DIAG_MOD               ! Diagnostic switches & arrays
+      USE CMN_SIZE_MOD             ! Size parameters
+      USE COMODE_LOOP_MOD          ! IHOUR
+      USE CMN_O3_MOD               ! EMISR, EMISRR, etc...
+      USE CMN_DIAG_MOD             ! Diagnostic switches & arrays
 
       IMPLICIT NONE
 #     include "define.h"
-
-
 !
 ! !INPUT PARAMETERS: 
 !
@@ -70,6 +73,11 @@
 ! !REMARKS:
 !  In most cases, I0=J0=0, so IREF=I and JREF=J.  The offsets I0 and J0 are
 !  mostly historical baggage.
+!                                                                             .
+!  NOTE: The source code for ship emissions has been commented out, but left
+!  in place.  Although PARANOX computes ship emissions in CALCRATE, we may
+!  have to disable this for the Grid-Independent model (because we have to
+!  have a clean separation between emissions & chemistry).
 ! 
 ! !REVISION HISTORY: 
 !  19 Apr 1999 - R. Yantosca - Initial version
@@ -133,6 +141,12 @@
 !        array (e.g. ship O3 or HNO3) they no longer get overwritten.
 !        (gvinken, 11/16/10)
 !  19 Nov 2010 - R. Yantosca - Added ProTeX headers
+!  24 Feb 2012 - M. Payer    - Commented out ship emissions, which has been
+!                              moved to calcrate.F for PARANOX.  Left original
+!                              code in place, but commented out.
+!  01 Mar 2012 - R. Yantosca - Now use GET_AREA_CM2(I,J,L) from grid_mod.F90
+!  22 Mar 2012 - M. Payer    - Update for C2H6. RETRO ethane emissions are too
+!                              low so we will use Yaping Xiao's offline emiss.
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -148,6 +162,7 @@
       REAL*8  :: BRAVO, EPA_NEI, EMEP,   EDGAR, STREETS
       REAL*8  :: CAC,   SHIP,    VISTAS, NEI05
       REAL*8  :: RETRO
+      REAL*8  :: C2H6_ANTHRO
 
       !=================================================================
       ! EMFOSSIL begins here!
@@ -157,7 +172,7 @@
       DTSRCE   = GET_TS_EMIS() * 60d0
 
       ! Surface area of grid box
-      AREA_CM2 = GET_AREA_CM2( J )
+      AREA_CM2 = GET_AREA_CM2( I, J, 1 )
 
       ! GMT hour of day
       HOUR     = GET_HOUR()
@@ -229,8 +244,9 @@
             !-----------------------------------------------------------
 
             ! If we are using EMEP ...
-            IF ( LEMEP ) THEN
-
+![eml Don't apply regional overwrites of NOx over global historical emissions
+            IF ( LEMEP .and. .not. LHIST ) THEN
+!eml]
                ! If we are over the European region ...
                IF ( GET_EUROPE_MASK( I, J ) > 0d0 ) THEN 
 
@@ -261,7 +277,9 @@
             !-----------------------------------------------------------
 
             ! If we are using EPA/NEI emissions
-            IF ( LNEI99 ) THEN
+![eml 
+            IF ( LNEI99 .and. .not. LHIST ) THEN
+!eml]
 
                ! If we are over the USA ...               
                IF ( GET_USA_MASK( I, J ) > 0d0 ) THEN 
@@ -288,8 +306,9 @@
                ENDIF
             ENDIF
 
-            IF ( LVISTAS ) THEN
-
+![eml
+            IF ( LVISTAS .and. .not. LHIST ) THEN
+!eml]
                ! If we are over the USA ...
                IF ( GET_USA_MASK( I, J ) > 0d0 ) THEN
 
@@ -318,8 +337,9 @@
             !-----------------------------------------------------------
 
             ! If we are using David Streets' emissions
-            IF ( LSTREETS ) THEN
-
+![eml
+            IF ( LSTREETS .and. .not. LHIST ) THEN
+!eml]
                ! If we are over the SE Asia region
                IF ( GET_SE_ASIA_MASK( I, J ) > 0d0 ) THEN
 
@@ -352,8 +372,9 @@
             !-----------------------------------------------------------
 
             ! If we are using BRAVO ...
-            IF ( LBRAVO ) THEN
-
+![eml
+            IF ( LBRAVO .and. .not. LHIST ) THEN
+!eml]
                ! If we are over the Mexican region ...
                IF ( GET_BRAVO_MASK( I, J ) > 0d0 ) THEN 
 
@@ -392,8 +413,9 @@
             !-----------------------------------------------------------
 
             ! If we are using CAC emissions
-            IF ( LCAC ) THEN
-
+![eml
+            IF ( LCAC .and. .not. LHIST ) THEN
+!eml]
                ! If we are over the SE Asia region
                IF ( GET_CANADA_MASK( I, J ) > 0d0 ) THEN
 
@@ -434,8 +456,9 @@
                ENDIF
             ENDIF
 
-            IF ( LNEI05 ) THEN
-
+![eml
+            IF ( LNEI05 .and. .not. LHIST ) THEN
+!eml]
                ! If we are over the USA and CAN/MEX
                IF ( NEI05_MASK( I, J ) > 0d0 ) THEN
 
@@ -455,90 +478,75 @@
 
             ENDIF
 
-            !-----------------------------------------------------------
-            ! Add ship emissions emitted as HNO3 and 10*O3,
-            ! i.e., ozone production efficiency (OPE)=10.
-            ! See : Chen, G., et al. (2005), An investigation of the 
-            ! chemistry of ship emission plumes during ITCT 2002, 
-            ! J. Geophys. Res., 110, D10S90, doi:10.1029/2004JD005236.
-            ! (djj, phs, 3/4/08)
-            ! Now also process EMEP NOx ship emissions, available
-            ! from 1990 with EMEP 2005 (phs, 6/08)
-            ! Correctly handle LEMEPSHIP=.TRUE. (phs 7/9/09) 
-            !-----------------------------------------------------------
-            ! DO it only once (1st level)
-            IF ( LL == 1 ) THEN
-
-               ! Reset
-               SHIP = 0D0
-
-               ! handle global inventory first
-               IF ( LEDGARSHIP ) THEN 
-
-                  ! Get SHIP EDGAR emissions for NOx [molec/cm2/s]
-                  SHIP = GET_EDGAR_NOx( I, J, 
-     &                                  MOLEC_CM2_S=.TRUE., SHIP=.TRUE.)
-                  
-               ! ICOADS ship emissions (cklee,7/09/09)
-               ELSE IF ( LICOADSSHIP ) THEN
-
-                  ! Get ICOADS  emissions for NOx [molec/cm2/s]
-                  SHIP = GET_ICOADS_SHIP( I, J, NN, MOLEC_CM2_S=.TRUE. )
-                  
-               ENDIF
-
-               ! Overwrite Europe
-               IF ( LEMEPSHIP ) THEN
-                 
-                  IF ( GET_EUROPE_MASK( I, J ) > 0d0 )
-
-                  ! Get SHIP EMEP emissions for NOx [molec/cm2/s]
-     &            SHIP = GET_EMEP_ANTHRO( I, J, NN, SHIP=.TRUE.)
-
-               ENDIF
-                  
-
-!---------------------------------------------------------------               
-! Prior to cdh 10/20/2011, HNO3 and O3 emissions were incorrectly scaled
-!     to ship NOx, due to molar masses being in the wrong place
-!               ! Convert molec/cm2/s to kg/box/timestep to get same
-!               ! units as EMISRN, ie default GEIA emiss (phs, 7/9/09)
-!               SHIP = SHIP * ( DTSRCE * AREA_CM2 ) / XNUMOL(NN) 
-!         
+!%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+! Prior to 2/24/12:
+! Comment this out and leave this here, in case we have to re-install it
+! in the context of the Grid-Independent model (bmy, 2/24/12) 
+!
+!            !SHIP EMISSIONS NOW DONE IN CALCRATE.F (gvinken, 07/27/10)
+!
+!            !-----------------------------------------------------------
+!            ! Add ship emissions emitted as HNO3 and 10*O3,
+!            ! i.e., ozone production efficiency (OPE)=10.
+!            ! See : Chen, G., et al. (2005), An investigation of the 
+!            ! chemistry of ship emission plumes during ITCT 2002, 
+!            ! J. Geophys. Res., 110, D10S90, doi:10.1029/2004JD005236.
+!            ! (djj, phs, 3/4/08)
+!            ! Now also process EMEP NOx ship emissions, available
+!            ! from 1990 with EMEP 2005 (phs, 6/08)
+!            ! Correctly handle LEMEPSHIP=.TRUE. (phs 7/9/09) 
+!            !-----------------------------------------------------------
+!
+!
+!            ! DO it only once (1st level)
+!            IF ( LL == 1 ) THEN
+!
+!               ! Reset
+!               SHIP = 0D0
+!
+!               ! handle global inventory first
+!               IF ( LEDGARSHIP ) THEN 
+!
+!                  ! Get SHIP EDGAR emissions for NOx [molec/cm2/s]
+!                  SHIP = GET_EDGAR_NOx( I, J, 
+!     &                                  MOLEC_CM2_S=.TRUE., SHIP=.TRUE.)
+!                  
+!               ! ICOADS ship emissions (cklee,7/09/09)
+!               ELSE IF ( LICOADSSHIP ) THEN
+!
+!                  ! Get ICOADS  emissions for NOx [molec/cm2/s]
+!                  SHIP = GET_ICOADS_SHIP( I, J, NN, MOLEC_CM2_S=.TRUE. )
+!                  
+!               ENDIF
+!
+!               ! Overwrite Europe
+!               IF ( LEMEPSHIP ) THEN
+!                 
+!                  IF ( GET_EUROPE_MASK( I, J ) > 0d0 )
+!
+!                  ! Get SHIP EMEP emissions for NOx [molec/cm2/s]
+!     &            SHIP = GET_EMEP_ANTHRO( I, J, NN, SHIP=.TRUE.)
+!
+!               ENDIF
+!                  
 !               ! Store as HNO3 and O3
-!               EMISRR(I,J,IDEHNO3) = SHIP * XNUMOL(IDTHNO3) / DTSRCE
-!               EMISRR(I,J,IDEOX)   = 10D0 * SHIP * 
-!     &                               XNUMOL(IDTOX) / DTSRCE
+!               ! Convert molec/cm2/s to molec/box/s (cdh, 10/20/2011)
+!               EMISRR(I,J,IDEHNO3) = SHIP * AREA_CM2
+!               EMISRR(I,J,IDEOX)   = 10D0 * SHIP * AREA_CM2 
 !               
 !               ! ND36 = Anthro source diagnostic...store as [molec/cm2]
 !               ! and convert to [molec/cm2/s] in DIAG3.F
 !               IF ( ND36 > 0 ) THEN
 !
-!                  AD36(I,J,IDEHNO3) = AD36(I,J,IDEHNO3) + SHIP * 
-!     &                                XNUMOL(IDTHNO3) / AREA_CM2
+!                  AD36(I,J,IDEHNO3) = AD36(I,J,IDEHNO3) + SHIP * DTSRCE
 !
-!                  AD36(I,J,IDEOX) = AD36(I,J,IDEOX) + SHIP * 
-!     &                              10D0 * XNUMOL(IDTOX) / AREA_CM2
+!                  AD36(I,J,IDEOX) = AD36(I,J,IDEOX) + 10D0 * SHIP * 
+!     &                              DTSRCE
 !                  
 !               ENDIF
-!---------------------------------------------------------------               
-               ! Store as HNO3 and O3
-               ! Convert molec/cm2/s to molec/box/s (cdh, 10/20/2011)
-               EMISRR(I,J,IDEHNO3) = SHIP * AREA_CM2
-               EMISRR(I,J,IDEOX)   = 10D0 * SHIP * AREA_CM2 
-               
-               ! ND36 = Anthro source diagnostic...store as [molec/cm2]
-               ! and convert to [molec/cm2/s] in DIAG3.F
-               IF ( ND36 > 0 ) THEN
-
-                  AD36(I,J,IDEHNO3) = AD36(I,J,IDEHNO3) + SHIP * DTSRCE
-
-                  AD36(I,J,IDEOX) = AD36(I,J,IDEOX) + 10D0 * SHIP * 
-     &                              DTSRCE
-                  
-               ENDIF
-                  
-            ENDIF
+!                  
+!            ENDIF
+!%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 
             !-----------------------------------------------------------
@@ -603,7 +611,7 @@
          ! Get CO emissions from RETRO inventory
          !--------------------------------------------------------------
         
-        ! If we are using RETRO emissions ...
+         ! If we are using RETRO emissions ...
          IF ( LRETRO ) THEN
 
 	    ! Get RETRO emissions
@@ -614,14 +622,32 @@
 
 	       ! Apply time-of-day factor
 	       RETRO = RETRO * TODX
-           ! Convert from molec/cm2/s to kg/box/timestep in order
-           ! to be in the proper units for EMISRR array
 
-	    EMX(1) = RETRO * ( DTSRCE * AREA_CM2 ) / XNUMOL(NN)	    
+               ! Convert from molec/cm2/s to kg/box/timestep in order
+               ! to be in the proper units for EMISRR array
+	       EMX(1) = RETRO * ( DTSRCE * AREA_CM2 ) / XNUMOL(NN)	    
 
 	    ENDIF  
          ENDIF
 
+         !--------------------------------------------------------------
+         ! Get C2H6 emissions from Yaping Xiao's inventory (mpayer, 3/22/12)
+         !--------------------------------------------------------------
+
+         ! If C2H6 is a defined tracer ...
+         IF ( NN == IDTC2H6 ) THEN
+
+               C2H6_ANTHRO = GET_C2H6_ANTHRO( I, J, NN )
+
+               ! Apply time-of-day factor
+	       C2H6_ANTHRO = C2H6_ANTHRO * TODX
+
+               ! Convert from molC/cm2/s to kg/box/timestep in order
+               ! to be in the proper units for EMISRR array
+               EMX(1) = C2H6_ANTHRO * ( DTSRCE * AREA_CM2 ) / XNUMOL(NN)
+
+         ENDIF
+  
          !--------------------------------------------------------------
          ! Get CO & Hydrocarbons from EMEP inventory over Europe
          !--------------------------------------------------------------

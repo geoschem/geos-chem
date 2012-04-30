@@ -245,14 +245,14 @@
 !  (2 ) STT    : Tracer array (kg)         dim=(IIPAR,JJPAR,LLPAR,NNPAR)
 !  (3 ) TCVV   : Air MW / Tracer MW array, dim=(NNPAR)
 !
-!  Passed via F77_CMN_DIAG:
+!  Passed via CMN_DIAG_mod:
 !  ============================================================================
 !  (1 ) TRCOFFSET : Offset for special tracers (like Rn, HCN, etc)
 ! 
 !  NOTES:
 !  (1 ) Now check that N = NTRACER - TRCOFFSET is valid.  
 !        Also reorganize some print statements  (bmy, 10/25/99)
-!  (2 ) Now pass LFORCE, LSPLIT via F77_CMN_SETUP. (bmy, 11/4/99)
+!  (2 ) Now pass LFORCE, LSPLIT via CMN_SETUP. (bmy, 11/4/99)
 !  (3 ) Cosmetic changes, added comments (bmy, 3/17/00)
 !  (4 ) Now use function NYMD_STRING from "time_mod.f" to generate a
 !        Y2K compliant string for all data sets. (bmy, 6/22/00)

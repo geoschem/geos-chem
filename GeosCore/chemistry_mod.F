@@ -66,7 +66,11 @@
 !\\
 ! !INTERFACE:
 !
+#if defined( DEVEL )
+      SUBROUTINE DO_CHEMISTRY(CHEM_STATE)
+#else
       SUBROUTINE DO_CHEMISTRY
+#endif
 !
 ! !USES:
 !
@@ -115,6 +119,11 @@
       USE CMN_SIZE_MOD          ! Size parameters
       USE COMODE_LOOP_MOD       ! NPHOT
       USE CMN_DIAG_MOD          ! NDxx flags
+
+#if defined( DEVEL )
+      USE GC_TYPE2_MOD,           ONLY : CHEMSTATE, NULL 
+#endif
+
 !
 ! !REVISION HISTORY: 
 !  (1 ) Now reference DELP, T from "dao_mod.f" since we need to pass this
@@ -131,7 +140,7 @@
 !        (rjp, bec, bmy, 4/20/04)
 !  (7 ) Now references "logical_mod.f" & "tracer_mod.f".  Now references
 !        AEROSOL_CONC, AEROSOL_RURALBOX, and RDAER from "aerosol_mod.f".  
-!        Now includes "F77_CMN_DIAG" and "comode.h".  Also call READER, READCHEM, 
+!        Now includes "CMN_DIAG" and "comode.h".  Also call READER, READCHEM, 
 !        and INPHOT to initialize the FAST-J arrays so that we can save out !
 !        AOD's to the ND21 diagnostic for offline runs. (bmy, 7/20/04)
 !  (8 ) Now call routine CHEMMERCURY from "mercury_mod.f" for an offline
@@ -157,18 +166,30 @@
 !        local PBL (lin, ccc, 5/29/09)
 !  17 Dec 2009 - R. Yantosca - Added ProTeX headers
 !  28 Jan 2010 - C. Carouge, R. Yantosca - Modified for ISORROPIA II
+!  19 Mar 2012 - R. Yantosca - Add C-preprocessor switch to shut off 
+!                              ISORROPIA to facilitate debugging
 !EOP
 !------------------------------------------------------------------------------
 !BOC
 !
 ! !LOCAL VARIABLES:
 ! 
-      LOGICAL, SAVE            :: FIRST = .TRUE.
-      INTEGER                  :: N_TROP, MONTH, YEAR, WAVELENGTH
+      LOGICAL, SAVE :: FIRST = .TRUE.
+      INTEGER       :: N_TROP, MONTH, YEAR, WAVELENGTH
+
+#if defined( DEVEL )
+      TYPE(CHEMSTATE), INTENT(INOUT) :: CHEM_STATE
+!      REAL*8                         :: STT(IIPAR,JJPAR,LLPAR,N_TRACERS)
+#endif
 
       !=================================================================
       ! DO_CHEMISTRY begins here!
       !=================================================================
+
+#if defined( DEVEL )
+      ! Transfer tracer array to local
+      STT = CHEM_STATE%TRACERS(:,:,:,:N_TRACERS)
+#endif
 
       ! Compute optical depths (except for CH4 simulation)
       IF ( .not. ITS_A_CH4_SIM() ) THEN
@@ -188,7 +209,7 @@
             ! Call SMVGEAR routines
             CALL CHEMDR
 
-            ! Do seasalt aerosol chemistry
+             ! Do seasalt aerosol chemistry
              IF ( LSSALT ) CALL CHEMSEASALT
 
              ! Also do sulfate chemistry
@@ -200,8 +221,10 @@
                 ! Do aerosol thermodynamic equilibrium
                 IF ( LSSALT ) THEN
                 
+#if   !defined( NO_ISORROPIA )
                    ! ISOROPIA takes Na+, Cl- into account
                    CALL DO_ISOROPIAII
+#endif
                 
                 ELSE
  
@@ -273,7 +296,7 @@
              IF ( LSSALT ) THEN
              
                 ! ISOROPIA takes Na+, Cl- into account
-                CALL DO_ISOROPIAII
+!                CALL DO_ISOROPIAII
              
              ELSE
  
@@ -377,6 +400,10 @@
          IF ( LPRT ) CALL DEBUG_MSG( '### MAIN: a CHEMISTRY' )
       ENDIF
          
+#if defined( DEVEL )
+      ! Transfer tracer array back to non-local
+      CHEM_STATE%TRACERS(:,:,:,:N_TRACERS) = STT
+#endif
       ! Return to calling program
       END SUBROUTINE DO_CHEMISTRY
 !EOC

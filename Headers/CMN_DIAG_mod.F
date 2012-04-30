@@ -133,7 +133,11 @@
       INTEGER, PARAMETER :: PD62=NNPAR        
       INTEGER, PARAMETER :: PD63=0           
       INTEGER, PARAMETER :: PD64=0
+#if defined( DEVEL )
+      INTEGER :: PD65
+#else
       INTEGER, PARAMETER :: PD65=LLPAR*MAXFAM 
+#endif
       INTEGER, PARAMETER :: PD66=6           
       INTEGER, PARAMETER :: PD67=23 ! (Lin, 31/03/09)
       INTEGER, PARAMETER :: PD68=4            
@@ -175,7 +179,7 @@
       INTEGER :: LD24, LD25, LD26, LD37, LD38, LD39, LD43, LD45, LD47
       INTEGER :: LD54, LD64, LD65, LD66, LD68, LD01, LD02, LD05, LD07
       INTEGER :: LD09, LD10, LD31, LD52, LD19, LD57, LD58, LD59, LD60
-      INTEGER :: LD61
+      INTEGER :: LD61, LD62
 
       !=================================================================
       ! NDxx diagnostic flags
@@ -253,6 +257,17 @@
 !EOP
 !------------------------------------------------------------------------------
 !BOC
-	END MODULE CMN_DIAG_MOD
+#if defined( DEVEL )
+      CONTAINS
+
+      SUBROUTINE SET_CMN_DIAG_MOD
+      
+        IMPLICIT NONE
+
+        PD65=LLPAR*MAXFAM 
+
+      END SUBROUTINE SET_CMN_DIAG_MOD
+#endif
+      END MODULE CMN_DIAG_MOD
 !EOC
 

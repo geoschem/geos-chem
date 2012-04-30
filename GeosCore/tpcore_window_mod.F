@@ -121,12 +121,17 @@
 !        this results in NaN's.  All other parallel loops may be left 
 !        activated.  Also, now place all parallel loops in all routines w/in 
 !        an #if defined block. (bmy, 11/5/08)
+!  01 Mar 2012 - R. Yantosca - Now reference new grid_mod.F90
 !******************************************************************************
 !
       !=================================================================
       ! MODULE PRIVATE DECLARATIONS -- keep certain internal variables 
       ! and routines from being seen outside "tpcore_mod.f"
       !=================================================================
+
+#if defined( DEVEL )
+      USE ERROR_MOD, ONLY : ALLOC_ERR
+#endif
 
       ! Make everything PRIVATE ...
       PRIVATE
@@ -3259,6 +3264,7 @@ c        AL(i,k) = median(AL(i,k), qmin, qmax)
 !
 !  NOTES:
 !  (1 ) Differences from "tpcore_mod" denoted by !%%% (bmy, 3/10/03)
+!  01 Mar 2012 - R. Yantosca - Now use GET_AREA_M2(I,J,L) from grid_mod.F90
 !******************************************************************************
 !
       ! References to F90 modules
@@ -3287,7 +3293,7 @@ c        AL(i,k) = median(AL(i,k), qmin, qmax)
      &                             1-IGZD:JM_W+IGZD+1,LLPAR)
 
       ! Local variables
-      INTEGER                :: I, J, K, K2, L
+      INTEGER                :: I, J, K, K2, L, AS
       REAL*8                 :: DTC, DTDYN, NSDYN, SUM1, SUM2
 !%%%
 !%%% MODIFICATION FOR NESTED GRID (yxw, bmy, 3/10/03)
@@ -3302,8 +3308,13 @@ c        AL(i,k) = median(AL(i,k), qmin, qmax)
       REAL*8 :: VMFLX(1-IGZD:IM_W+IGZD,   1-IGZD:JM_W+IGZD+1, LLPAR   )
 
       ! Local SAVEd variables
+#if defined( DEVEL )
+      LOGICAL, SAVE       :: FIRST = .TRUE.
+      REAL*8, ALLOCATABLE, SAVE :: DXYP(:)
+#else
       LOGICAL, SAVE :: FIRST = .TRUE.
       REAL*8,  SAVE :: DXYP(JJPAR)
+#endif
 
       !=================================================================
       ! PRESS_FIX begins here!
@@ -3335,8 +3346,13 @@ c        AL(i,k) = median(AL(i,k), qmin, qmax)
 
       ! Save grid box surface areas [m2] into the local DXYP array
       IF ( FIRST ) THEN
+#if defined( DEVEL )
+         ALLOCATE( DXYP(JJPAR), STAT=AS)
+         IF ( AS /=0 ) CALL ALLOC_ERR( 'DXYP_DYN0')
+#endif
+
          DO J = 1, JJPAR
-            DXYP(J) = GET_AREA_M2( J )
+            DXYP(J) = GET_AREA_M2( 1, J, 1 )
          ENDDO
 
          ! Reset first-time flag
@@ -3378,7 +3394,8 @@ c        AL(i,k) = median(AL(i,k), qmin, qmax)
 !%%% Now use DXYP(J+J0_w) instead of DXYP(J) 
 !%%%         UMFLX(I,J,K2) = FX(I,J,K) * ( G0_100 * DXYP(J) ) / DTDYN
 !%%%
-            UMFLX(I,J,K2) = FX(I,J,K) * ( G0_100 * DXYP(J+J0_w))/ DTDYN
+            UMFLX(I,J,K2) = FX(I,J,K) * 
+     &                      ( G0_100 * DXYP(J+J0_w))/ DTDYN
          ENDDO
          ENDDO
 
@@ -3386,9 +3403,11 @@ c        AL(i,k) = median(AL(i,k), qmin, qmax)
          DO I = 1-IGZD, IM_W+IGZD
          DO J = 1-IGZD, JM_W+IGZD+1
             IF ( FY(I,J,K) .GE. 0 ) THEN
-               DTC = FY(I,J,K) * G0_100 * ACOSP(J)  * DXYP(J+J0_w)/DTDYN
+               DTC = FY(I,J,K) * G0_100 * ACOSP(J)  * 
+     &               DXYP(J+J0_w)/DTDYN
             ELSE
-            DTC = FY(I,J,K) * G0_100 * ACOSP(J-1)* DXYP(J-1+J0_w)/DTDYN
+            DTC = FY(I,J,K) * G0_100 * ACOSP(J-1)* 
+     &           DXYP(J-1+J0_w)/DTDYN
             ENDIF
             
             VMFLX(I,J,K2) = DTC
@@ -3544,6 +3563,7 @@ c        AL(i,k) = median(AL(i,k), qmin, qmax)
 !  NOTES:
 !  (1 ) Differences from "tpcore_mod.f" denoted by !%%% (bmy, 3/10/03)
 !  (2 ) Removed reference to CMN (bmy, 7/20/04)
+!  01 Mar 2012 - R. Yantosca - Now use GET_AREA_CM2(I,J,L) from grid_mod.F90
 !******************************************************************************
 !
       ! References to F90 modules
@@ -3588,7 +3608,7 @@ c        AL(i,k) = median(AL(i,k), qmin, qmax)
       ! Local variables
       LOGICAL       :: LSP, LNP, LEW
       INTEGER       :: IIX, JJX, KM, JB, JE, IEPZ, IMZ
-      INTEGER       :: I, J, J2, K, L
+      INTEGER       :: I, J, J2, K, L, AS
       REAL*8        :: ALFAX, UFILT, VFILT, PCTM8, G100
       REAL*8        :: AIRQAV, AWE, SUMAD0, SUMAW0, AIRWET
       REAL*8        :: AIRH2O, AIRQKG ,SUM1, SUMA, SUMP, SUMQ
@@ -3609,8 +3629,13 @@ c        AL(i,k) = median(AL(i,k), qmin, qmax)
 
       ! Local saved variables
       LOGICAL, SAVE :: FIRST = .TRUE.
+#if defined( DEVEL )
+      REAL*8, ALLOCATABLE, SAVE :: DXYP(:)
+      REAL*8, ALLOCATABLE, SAVE :: DSIG(:)
+#else
       REAL*8,  SAVE :: DXYP(JJPAR)
       REAL*8,  SAVE :: DSIG(LLPAR)
+#endif
 
       !=================================================================
       ! DYN0 begins here!
@@ -3721,12 +3746,21 @@ c        AL(i,k) = median(AL(i,k), qmin, qmax)
       IF ( FIRST ) THEN
          
          ! Surface area [m2]
+#if defined( DEVEL )
+         ALLOCATE( DXYP(JJPAR), STAT=AS)
+         IF ( AS /=0 ) CALL ALLOC_ERR( 'DXYP_DYN0')
+
+         ALLOCATE( DSIG(LLPAR), STAT=AS)
+         IF ( AS /=0 ) CALL ALLOC_ERR( 'DSIG_DYN0')
+#endif
+
          DO J = 1, JJPAR
-            DXYP(J) = GET_AREA_M2( J )
+            DXYP(J) = GET_AREA_M2( 1, J, 1 )
          ENDDO
 
          ! Sigma-level thickness [unitless]
          ! Assumes we are using a pure-sigma grid
+
          DO L = 1, LLPAR        
             DSIG(L) = GET_BP(L) - GET_BP(L+1)
          ENDDO
@@ -4614,6 +4648,7 @@ c        AL(i,k) = median(AL(i,k), qmin, qmax)
 !  (1 ) Differences from "tpcore_mod.f" denoted by !%%% (bmy, 3/10/03)
 !  (2 ) Now references TCVV & ITS_A_CH4_SIM from "tracer_mod.f" (bmy, 7/20/04)
 !  (3 ) Remove code for the CO-OH simulation (bmy, 6/24/05)
+!  01 Mar 2012 - R. Yantosca - Now use GET_AREA_CM2(I,J,L) from grid_mod.F90
 !******************************************************************************
 !
       ! References to F90 modules
@@ -4641,12 +4676,16 @@ c        AL(i,k) = median(AL(i,k), qmin, qmax)
       REAL*8,  INTENT(IN) :: ACOSP(-10:Jmax)
        
       ! Local variables
-      INTEGER             :: I, J, JREF, K, K2
+      INTEGER             :: I, J, JREF, K, K2, AS
       REAL*8              :: DTC, DTDYN
 
       ! Local SAVEd variables
       LOGICAL, SAVE       :: FIRST = .TRUE.
-      REAL*8,  SAVE       :: DXYP(JJPAR)
+#if defined( DEVEL )
+      REAL*8, ALLOCATABLE :: DXYP(:)
+#else
+      REAL*8, SAVE        :: DXYP(JJPAR)
+#endif
 
       !=================================================================
       ! DIAG_FLUX begins here!
@@ -4679,8 +4718,13 @@ c        AL(i,k) = median(AL(i,k), qmin, qmax)
       IF ( FIRST ) THEN
          
          ! Surface area [m2]
+#if defined( DEVEL )
+         ALLOCATE( DXYP(JJPAR), STAT=AS)
+         IF ( AS /=0 ) CALL ALLOC_ERR( 'DXYP_')
+#endif
+
          DO J = 1, JJPAR
-            DXYP(J) = GET_AREA_M2( J )
+            DXYP(J) = GET_AREA_M2( 1, J, 1 )
          ENDDO
 
          ! Reset first-time flag

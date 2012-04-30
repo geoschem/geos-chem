@@ -24,9 +24,15 @@
 ! !DEFINED PARAMETERS:
 !
       ! Global array sizes in longitude, latitude, altitude
+#if defined( DEVEL )
+!      INTEGER :: IPAR
+!      INTEGER :: JPAR
+!      INTEGER :: LPAR
+#else
       INTEGER, PARAMETER :: IPAR = IIPAR
       INTEGER, PARAMETER :: JPAR = JJPAR
       INTEGER, PARAMETER :: LPAR = LLPAR
+#endif
 
       ! max # of photolysis rxns = 4 + IPHOT (see comode.h)
       ! FP increased JPMAX since IPHOT was increased (hotp 7/31/09)
@@ -52,7 +58,11 @@
       INTEGER            :: RINDEX(JPMAX)
 
       ! Output J-values
+#if defined( DEVEL )
+      REAL*8, ALLOCATABLE :: ZPJ(:,:,:,:)
+#else
       REAL*8             :: ZPJ(LPAR,JPMAX,IPAR,JPAR)
+#endif
 ! 
 ! !REMARKS:
 !  Based on code from Oliver Wild (9 Jul 1999)
@@ -78,5 +88,18 @@
 !EOP
 !------------------------------------------------------------------------------
 !BOC
+#if defined( DEVEL )
+      CONTAINS
+
+      SUBROUTINE SET_CMN_FJ_MOD
+
+      IMPLICIT NONE
+
+      INTEGER AS
+
+      ALLOCATE(ZPJ(LLPAR,JPMAX,IIPAR,JJPAR), STAT=AS)
+
+      END SUBROUTINE SET_CMN_FJ_MOD
+#endif
       END MODULE CMN_FJ_MOD
 !EOC

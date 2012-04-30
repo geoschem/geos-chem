@@ -81,6 +81,7 @@
 !  (33) Modifications for GEOS-5 nested grids (bmy, 11/6/08)
 !  20 Nov 2009 - R. Yantosca - Added ProTeX headers
 !  13 Aug 2010 - R. Yantosca - Added modifications for MERRA
+!  28 Feb 2012 - R. Yantosca - Removed support for GEOS-3
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -640,17 +641,13 @@
 !  (6 ) Rename GRID30LEV to GRIDREDUCED (bmy, 2/7/07)
 !  20 Nov 2009 - R. Yantosca - Added ProTeX header
 !  13 Aug 2010 - R. Yantosca - Added MERRA model names
+!  01 Feb 2012 - R. Yantosca - Added GEOS-5.7.x model names
+!  28 Feb 2012 - R. Yantosca - Removed support for GEOS-3
 !EOP
 !------------------------------------------------------------------------------
 !BOC
 
-#if   defined( GEOS_3 ) && defined( GRIDREDUCED )
-      MODELNAME = 'GEOS3_30L'
-
-#elif defined( GEOS_3 )
-      MODELNAME = 'GEOS3'
-
-#elif defined( GEOS_4 ) && defined( GRIDREDUCED )
+#if   defined( GEOS_4 ) && defined( GRIDREDUCED )
       MODELNAME = 'GEOS4_30L'
 
 #elif defined( GEOS_4 )
@@ -670,6 +667,15 @@
       
 #elif defined( MERRA ) 
       MODELNAME = 'MERRA'
+
+#elif defined( GEOS_57 ) && defined( GRIDREDUCED )
+      MODELNAME = 'GEOS57_47L'
+
+#elif defined( GEOS_57 )
+      MODELNAME = 'GEOS57'
+
+#elif defined( EXTERNAL_FORCING  ) & defined ( EXTERNAL_GRID ) 
+      MODELNAME = 'EXTERNAL'
 
 #endif
 
@@ -698,15 +704,11 @@
 !
 ! !RETURN VALUE:
 !
-#if   defined( GEOS_3 )
-      CHARACTER(LEN=5) :: NAME_EXT
-      NAME_EXT = 'geos3'
-
-#elif defined( GEOS_4 )
+#if   defined( GEOS_4 )
       CHARACTER(LEN=5) :: NAME_EXT
       NAME_EXT = 'geos4'
 
-#elif defined( GEOS_5 )
+#elif defined( GEOS_5 ) || defined( GEOS_57 )
       CHARACTER(LEN=5) :: NAME_EXT
       NAME_EXT = 'geos5'
 
@@ -718,6 +720,10 @@
       CHARACTER(LEN=5) :: NAME_EXT
       NAME_EXT = 'geos5'
 
+#elif defined( EXTERNAL_FORCING )
+      CHARACTER(LEN=5) :: NAME_EXT
+      NAME_EXT = 'ext'
+
 #endif
 !
 ! !REVISION HISTORY:
@@ -728,6 +734,8 @@
 !  20 Nov 2009 - R. Yantosca - Added ProTeX header
 !  13 Aug 2010 - R. Yantosca - MERRA uses "geos5" name extension since its
 !                              grid is identical to GEOS-5.
+!  01 Feb 2012 - R. Yantosca - Now also define output for GEOS-5.7.x met
+!  28 Feb 2012 - R. Yantosca - Removed support for GEOS-3
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -821,12 +829,22 @@
       CHARACTER(LEN=7) :: RES_EXT
       RES_EXT = '05x0666'
 
+#elif defined( GRID025x03125 )
+      CHARACTER(LEN=9) :: RES_EXT
+      RES_EXT = '025x03125'
+
+#elif defined( EXTERNAL_GRID )
+      CHARACTER(LEN=8) :: RES_EXT
+      RES_EXT = 'external'
+
 #endif
 !
 ! !REVISION HISTORY:
 !  (1 ) Added extension for 1 x 1.25 grid (bmy, 12/1/04)
 !  (2 ) Added extension for 0.5 x 0.666 grid (yxw, dan, bmy, 11/6/08)
 !  20 Nov 2009 - R. Yantosca - Added ProTeX header
+!  10 Feb 2012 - R. Yantosca - Added extension for 0.25 x 0.3125 grids
+
 !EOP
 !------------------------------------------------------------------------------
 !BOC

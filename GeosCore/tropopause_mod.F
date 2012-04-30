@@ -32,6 +32,10 @@
       PUBLIC  :: ITS_IN_THE_STRAT
       PUBLIC  :: READ_TROPOPAUSE
       PUBLIC  :: SAVE_FULL_TROP
+#if defined( DEVEL)
+      PUBLIC  :: LMIN, LMAX
+#endif
+
 !
 ! !PRIVATE MEMBER FUNCTIONS:
 !

@@ -34,10 +34,10 @@
 !
 ! !REMARKS:
 !
-!  Hybrid Grid Coordinate Definition: (dsa, bmy, 8/27/02, 8/13/10)
+!  Hybrid Grid Coordinate Definition: (dsa, bmy, 8/27/02, 2/2/12)
 !  ============================================================================
 !                                                                             .
-!  GEOS-4, GEOS-5, and MERRA (hybrid grids):
+!  GEOS-4, GEOS-5, GEOS-5.7, and MERRA (hybrid grids):
 !  ----------------------------------------------------------------------------
 !  For GEOS-4/GEOS-5/MERRA met data products, the pressure at the bottom edge 
 !  of grid box (I,J,L) is defined as follows:
@@ -90,6 +90,8 @@
 !  20 Nov 2009 - R. Yantosca - Added ProTeX headers
 !  13 Aug 2010 - R. Yantosca - Added modifications for MERRA met fields
 !  30 Aug 2010 - R. Yantosca - Updated comments
+!  02 Feb 2012 - R. Yantosca - Added modifications for GEOS-5.7.x met fields
+!  28 Feb 2012 - R. Yantosca - Removed support for GEOS-3
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -119,7 +121,7 @@
 !
 ! !USES:
 !
-      USE CMN_SIZE_MOD              ! Size parameters
+      USE CMN_SIZE_MOD                ! Size parameters
 !
 ! !INPUT PARAMETERS: 
 !
@@ -157,7 +159,7 @@
 !
 ! !USES:
 !
-      USE CMN_SIZE_MOD              ! Size parameters
+      USE CMN_SIZE_MOD                ! Size parameters
 !
 ! !INPUT PARAMETERS: 
 !
@@ -199,7 +201,6 @@
       USE ERROR_MOD, ONLY : CHECK_VALUE
 
       USE CMN_SIZE_MOD  ! Size parameters
-  
 !
 ! !INPUT PARAMETERS: 
 !
@@ -276,11 +277,12 @@
 !  (2 ) Now treat GEOS-5 the same way as GEOS-4 (bmy, 10/30/07)
 !  20 Nov 2009 - R. Yantosca - Added ProTeX header
 !  13 Aug 2010 - R. Yantosca - Compute PEDGE for MERRA the same as for GEOS-5
+!  02 Feb 2012 - R. Yantosca - Compute PEDGE for GEOS-5.7.2 the same as MERRA
 !EOP
 !------------------------------------------------------------------------------
 !BOC
 
-#if   defined( GEOS_4 ) || defined( GEOS_5 ) || defined( MERRA )
+#if   defined( GEOS_4 ) || defined( GEOS_5 ) || defined( MERRA ) || defined( GEOS_57 )
 
       !-----------------------------
       ! GEOS-4 & GEOS-5 met fields
@@ -311,7 +313,7 @@
 !
 ! !DESCRIPTION: Function GET\_PEDGE\_FULLGRID returns the pressure at the
 !  bottom edge of level L of the unreduced vertical grid.  L=1 is the surface, 
-!  L=LLGLOB+1 is the atm top.
+!  L=LLLPAR+1 is the atm top.
 !\\
 !\\
 ! !INTERFACE:
@@ -334,6 +336,7 @@
 !
 ! !REVISION HISTORY:
 !  (1 ) Modified from GET_PEDGE (cdh, 1/22/09)
+!  02 Feb 2012 - R. Yantosca - Compute PEDGE for GEOS-5.7.2 the same as MERRA
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -341,7 +344,7 @@
       ! GET_PEDGE_FULLGRID begins here!
       !=================================================================
 
-#if   defined( GEOS_4 ) || defined( GEOS_5 )
+#if   defined( GEOS_4 ) || defined( GEOS_5 ) || defined( MERRA ) || defined( GEOS_57 )
 
       !-----------------------------
       ! GEOS-4 & GEOS-5 met fields
@@ -448,7 +451,10 @@
 !                              GEOS-5.  The vertical grids are identical.
 !  30 Aug 2010 - R. Yantosca - Updated comments
 !  30 Nov 2010 - R. Yantosca - Further improved comments about how GEOS-4 and
-!                              GEOS-5 vertical levels are lumped together.
+!                              GEOS-5 vertical levels are lumped together.\
+!  02 Feb 2012 - R. Yantosca - Compute Ap and Bp for GEOS-5.7.x in the same way
+!                              as for GEOS-5 and MERRA (grids are identical)
+!  28 Feb 2012 - R. Yantosca - Removed support for GEOS-3
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -484,7 +490,7 @@
       IF ( AS /= 0 ) CALL ALLOC_ERR( 'BP_FULLGRID' )
       BP = 0d0
 
-#if   defined( GEOS_5 ) || defined( MERRA )
+#if   defined( GEOS_5 ) || defined( MERRA ) || defined( GEOS_57 )
 
       !=================================================================
       ! GEOS-5/MERRA vertical coordinates (47 or 72 levels)
@@ -781,80 +787,6 @@
 
 #endif
 
-#elif defined( GEOS_3 ) 
-
-      !=================================================================
-      ! GEOS-3 vertical coordinates (30 or 48 levels)
-      !=================================================================
-
-#if   defined( GRIDREDUCED )
-
-      !-----------------------------------------------------------------
-      ! GEOS-3 30 level grid
-      !-----------------------------------------------------------------
-
-      ! AP [hPa] is just PTOP for a pure-sigma grid
-      AP = PTOP
-
-      ! BP [unitless] is just SIGE for a pure-sigma grid
-      BP = (/ 1.000000d0, 0.997095d0, 0.991200d0, 0.981500d0, 
-     &        0.967100d0, 0.946800d0, 0.919500d0, 0.884000d0, 
-     &        0.839000d0, 0.783000d0, 0.718200d0, 0.647600d0, 
-     &        0.574100d0, 0.500000d0, 0.427800d0, 0.359500d0, 
-     &        0.297050d0, 0.241950d0, 0.194640d0, 0.155000d0, 
-     &        0.122680d0, 0.096900d0, 0.076480d0, 0.047610d0, 
-     &        0.029600d0, 0.018380d0, 0.007040d0, 0.002530d0, 
-     &        0.000765d0, 0.000155d0, 0.000000d0 /)
-
-      !-----------------------------------
-      ! GEOS-3 48 level grid
-      !-----------------------------------
-
-      ! AP [hPa] is just PTOP for a pure-sigma grid
-      AP_FULLGRID = PTOP
-         
-      ! BP [unitless] is just SIGE for a pure-sigma grid
-      BP_FULLGRID =
-     &     (/ 1.000000d0, 0.997095d0, 0.991200d0, 0.981500d0,    
-     &        0.967100d0, 0.946800d0, 0.919500d0, 0.884000d0,    
-     &        0.839000d0, 0.783000d0, 0.718200d0, 0.647600d0,    
-     &        0.574100d0, 0.500000d0, 0.427800d0, 0.359500d0,    
-     &        0.297050d0, 0.241950d0, 0.194640d0, 0.155000d0,    
-     &        0.122680d0, 0.096900d0, 0.076480d0, 0.060350d0,   
-     &        0.047610d0, 0.037540d0, 0.029600d0, 0.023330d0,   
-     &        0.018380d0, 0.014480d0, 0.011405d0, 0.008975d0,  
-     &        0.007040d0, 0.005500d0, 0.004280d0, 0.003300d0,  
-     &        0.002530d0, 0.001900d0, 0.001440d0, 0.001060d0,  
-     &        0.000765d0, 0.000540d0, 0.000370d0, 0.000245d0, 
-     &        0.000155d0, 9.20000d-5, 4.75000d-5, 1.76800d-5, 
-     &        0.000000d0 /)
-
-#else
-
-      !-----------------------------------------------------------------
-      ! GEOS-3 48 level grid
-      !-----------------------------------------------------------------
-
-      ! AP [hPa] is just PTOP for a pure-sigma grid
-      AP = PTOP
-         
-      ! BP [unitless] is just SIGE for a pure-sigma grid
-      BP = (/ 1.000000d0, 0.997095d0, 0.991200d0, 0.981500d0,    
-     &        0.967100d0, 0.946800d0, 0.919500d0, 0.884000d0,    
-     &        0.839000d0, 0.783000d0, 0.718200d0, 0.647600d0,    
-     &        0.574100d0, 0.500000d0, 0.427800d0, 0.359500d0,    
-     &        0.297050d0, 0.241950d0, 0.194640d0, 0.155000d0,    
-     &        0.122680d0, 0.096900d0, 0.076480d0, 0.060350d0,   
-     &        0.047610d0, 0.037540d0, 0.029600d0, 0.023330d0,   
-     &        0.018380d0, 0.014480d0, 0.011405d0, 0.008975d0,  
-     &        0.007040d0, 0.005500d0, 0.004280d0, 0.003300d0,  
-     &        0.002530d0, 0.001900d0, 0.001440d0, 0.001060d0,  
-     &        0.000765d0, 0.000540d0, 0.000370d0, 0.000245d0, 
-     &        0.000155d0, 9.20000d-5, 4.75000d-5, 1.76800d-5, 
-     &        0.000000d0 /)
-       
-#endif  
-
 #elif defined( GCAP )
 
       !=================================================================
@@ -920,11 +852,11 @@
 !EOP
 !------------------------------------------------------------------------------
 !BOC
-      IF ( ALLOCATED( AP   ) ) DEALLOCATE( AP   )
-      IF ( ALLOCATED( BP   ) ) DEALLOCATE( BP   )
-      IF ( ALLOCATED( AP_FULLGRID   ) ) DEALLOCATE( AP_FULLGRID   )
-      IF ( ALLOCATED( BP_FULLGRID   ) ) DEALLOCATE( BP_FULLGRID   )
-      IF ( ALLOCATED( PFLT ) ) DEALLOCATE( PFLT )
+      IF ( ALLOCATED( AP          ) ) DEALLOCATE( AP          )
+      IF ( ALLOCATED( BP          ) ) DEALLOCATE( BP          )
+      IF ( ALLOCATED( AP_FULLGRID ) ) DEALLOCATE( AP_FULLGRID )
+      IF ( ALLOCATED( BP_FULLGRID ) ) DEALLOCATE( BP_FULLGRID )
+      IF ( ALLOCATED( PFLT        ) ) DEALLOCATE( PFLT        )
 
       END SUBROUTINE CLEANUP_PRESSURE
 !EOC

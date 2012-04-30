@@ -35,6 +35,7 @@
 #
 # !REVISION HISTORY: 
 #  23 Aug 2011 - M. Long     - Initial version
+#  09 Apr 2012 - R. Yantosca - Removed CMN_VEL_mod.F; it's obsolete
 #EOP
 #------------------------------------------------------------------------------
 #BOC
@@ -107,8 +108,6 @@ CMN_NOX_mod.o       : CMN_NOX_mod.F          CMN_SIZE_mod.o
 CMN_O3_mod.o        : CMN_O3_mod.F           CMN_SIZE_mod.o
 
 CMN_SIZE_mod.o      : CMN_SIZE_mod.F       
-
-CMN_VEL_mod.o       : CMN_VEL_mod.F          CMN_SIZE_mod.o
 
 CMN_mod.o           : CMN_mod.F              CMN_SIZE_mod.o
 

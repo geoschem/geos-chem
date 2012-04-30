@@ -15,6 +15,9 @@
 !
 ! !USES:
 !
+#if defined( DEVEL )
+      USE OMP_LIB
+#endif
       IMPLICIT NONE
 #     include "define.h"
       PRIVATE
@@ -65,6 +68,9 @@
 !  (26) Added support for LINOZ (dbj, jliu, bmy, 10/16/09)
 !  13 Aug 2010 - R. Yantosca - Add modifications for MERRA (treat like GEOS-5)
 !  02 Dec 2010 - R. Yantosca - Added ProTeX headers
+!  08 Feb 2012 - R. Yantosca - Add modifications for GEOS-5.7.2 met data
+!  28 Feb 2012 - R. Yantosca - Removed support for GEOS-3
+!  07 Mar 2012 - R. Yantosca - Change DO loop boundaries for GI model
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -102,6 +108,7 @@
       USE LINOZ_MOD,   ONLY : DO_LINOZ
 
       USE CMN_SIZE_MOD  ! Size parameters
+
 ! 
 ! !REVISION HISTORY: 
 !  11 Mar 2003 - R. Yantosca - Initial version
@@ -211,7 +218,7 @@
 ! 
 ! !REVISION HISTORY:
 !  13 Dec 1999 - Q. Li, R. Martin - Initial version
-!  (1 ) The parameter Rdg0 from "F77_CMN_GCTM" = R / g0 = 28.97. 
+!  (1 ) The parameter Rdg0 from "CMN_GCTM" = R / g0 = 28.97. 
 !  (2 ) Pass PW = PS - PTOP to UPBDFLX via "CMN".
 !  (3 ) Now pass IORD, JORD, KORD as arguments (bmy, 12/6/00)
 !  (4 ) Now compute the proper value of PO3_vmr that will yield 475 Tg O3/yr
@@ -224,7 +231,7 @@
 !                                                                             .
 !  (5 ) Added to "upbdflx_mod.f".  Also updated comments and made some
 !        cosmetic changes. (bmy, 6/28/01)
-!  (6 ) Now reference F77_CMN_SETUP for LSPLIT.  Also store strat O3 into
+!  (6 ) Now reference CMN_SETUP for LSPLIT.  Also store strat O3 into
 !        tracer #11 for multi-tracer Ox run. (amf, bmy, 7/3/01)
 !  (7 ) Removed IREF, JREF -- these are obsolete.  Also T(IREF,JREF,L) is
 !        now T(I,J,L). (bmy, 9/27/01)
@@ -264,6 +271,9 @@
 !  (28) Now do not call ADD_STRAT_POx for tagged Ox (dbj, bmy, 10/16/09)
 !  13 Aug 2010 - R. Yantosca - Treat MERRA like GEOS-5 (bmy, 8/13/10)
 !  02 Dec 2010 - R. Yantosca - Added ProTeX headers
+!  08 Feb 2012 - R. Yantosca - Treat GEOS-5.7.2 in the same way as MERRA
+!  10 Feb 2012 - R. Yantosca - Modified for 0.25 x 0.3125 grids
+!  28 Feb 2012 - R. Yantosca - Removed support for GEOS-3
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -295,6 +305,9 @@
 #elif defined( GRID05x0666 )
       INTEGER, PARAMETER   :: J30S = 1, J30N = JJPAR
 
+#elif defined( GRID025x03125 )
+      INTEGER, PARAMETER   :: J30S = 1, J30N = JJPAR
+
 #elif defined( GRID1x1 ) 
 
 #if   defined( NESTED_CH ) || defined( NESTED_NA )
@@ -302,6 +315,10 @@
 #else  
       INTEGER, PARAMETER   :: J30S = 61, J30N = 121    ! 1x1 global grid
 #endif
+
+#elif defined( EXTERNAL_GRID )
+      ! THIS HAS TO BE DEFINED SPECIFICALLY! HOW?
+      INTEGER, PARAMETER   :: J30S = 31, J30N = 61
 
 #endif
 
@@ -337,16 +354,10 @@
       !                                     be the default)
       !  (2) IORD = 5, JORD = 5, KORD = 7 
       !=================================================================
-#if defined( GEOS_3 )
-
-      PO3_vmr = 5.14d-14                                 ! 3,3,7
-      IF ( IORD + JORD + KORD == 17 ) PO3_vmr = 4.07d-14 ! 5,5,7
-
-#elif defined( GEOS_4 )
-
+#if   defined( GEOS_4 )
       PO3_vmr = 5.14d-14                                 ! 3,3,7
 
-#elif defined( GEOS_5 ) || defined( MERRA )
+#elif defined( GEOS_5 ) || defined( MERRA ) || defined( GEOS_57 )
 
       ! For now assume GEOS-5 has same PO3_vmr value 
       ! as GEOS-4; we can redefine later (bmy, 5/25/05)
@@ -519,7 +530,7 @@
       USE BPCH2_MOD,      ONLY : GET_TAU0,     READ_BPCH2
       USE DAO_MOD,        ONLY : AD
       USE DIRECTORY_MOD,  ONLY : DATA_DIR
-      USE ERROR_MOD,      ONLY : ERROR_STOP    
+      USE ERROR_MOD,      ONLY : ERROR_STOP, ALLOC_ERR
       USE TRACERID_MOD,   ONLY : IDTNOX,       IDTHNO3
       USE TIME_MOD,       ONLY : GET_TS_DYN,   GET_MONTH
       USE TIME_MOD,       ONLY : ITS_A_NEW_MONTH
@@ -585,29 +596,45 @@
 !  (21) Remove support for GEOS-1 and GEOS-STRAT met fields (bmy, 8/4/06)
 !  (22) Cap 1-XRATIO to avoid numerical problems later (bmy, 6/30/08)
 !  02 Dec 2010 - R. Yantosca - Added ProTeX headers
+!  07 Mar 2012 - R. Yantosca - Start DO loops from L=1 instead of L=LMIN
 !EOP
 !------------------------------------------------------------------------------
 !BOC
 !
 ! !LOCAL VARIABLES:
 !
-      INTEGER              :: I, J, L, LMIN
+      INTEGER              :: I, J, L, LMIN, AS
       INTEGER, SAVE        :: LASTMONTH = -99
+      LOGICAL, SAVE        :: FIRST = .TRUE.
 
       REAL*4               :: DTDYN, AIRDENS, PNOY
       REAL*4               :: ARRAY(1,JJPAR,LGLOB)
 
+#if defined( DEVEL )
       ! Ratio of ( [NO] + [NO2] ) / [NOy] 
-      REAL*4, SAVE         :: XRATIO(JJPAR,LLPAR) 
+      REAL*4, ALLOCATABLE, SAVE  :: XRATIO(:,:)
 
       ! Arrays for P(NOY), NO, NO2, and HNO3 concentrations
-      REAL*4, SAVE         :: STRATPNOY(JJPAR,LLPAR)
-      REAL*4, SAVE         :: STRATNO(JJPAR,LLPAR)
-      REAL*4, SAVE         :: STRATNO2(JJPAR,LLPAR)
-      REAL*4, SAVE         :: STRATHNO3(JJPAR,LLPAR)
+      REAL*4, ALLOCATABLE, SAVE  :: STRATPNOY(:,:)
+      REAL*4, ALLOCATABLE, SAVE  :: STRATNO(:,:)
+      REAL*4, ALLOCATABLE, SAVE  :: STRATNO2(:,:)
+      REAL*4, ALLOCATABLE, SAVE  :: STRATHNO3(:,:)
 
       ! For P(NOy) above 10 mb
-      REAL*4, SAVE         :: SPNOY10mb(JJPAR)
+      REAL*4, ALLOCATABLE, SAVE  :: SPNOY10mb(:)
+#else
+      ! Ratio of ( [NO] + [NO2] ) / [NOy] 
+      REAL*4, SAVE  :: XRATIO(JJPAR,LLPAR)
+
+      ! Arrays for P(NOY), NO, NO2, and HNO3 concentrations
+      REAL*4, SAVE  :: STRATPNOY(JJPAR,LLPAR)
+      REAL*4, SAVE  :: STRATNO(JJPAR,LLPAR)
+      REAL*4, SAVE  :: STRATNO2(JJPAR,LLPAR)
+      REAL*4, SAVE  :: STRATHNO3(JJPAR,LLPAR)
+
+      ! For P(NOy) above 10 mb
+      REAL*4, SAVE  :: SPNOY10mb(JJPAR)
+#endif
 
       ! TAU values for indexing the punch file 
       REAL*8               :: XTAU
@@ -622,6 +649,25 @@
       !=================================================================
       ! UPBDFLX_NOY begins here! 
       !=================================================================
+
+#if defined( DEVEL )
+      IF (FIRST) THEN
+         ALLOCATE( STRATPNOY(JJPAR,LLPAR), STAT=AS )
+         IF (AS /=0) CALL ALLOC_ERR( 'STRATPNOY' )
+         ALLOCATE( STRATNO(JJPAR,LLPAR), STAT=AS )
+         IF (AS /=0) CALL ALLOC_ERR( 'STRATNO' )
+         ALLOCATE( STRATNO2(JJPAR,LLPAR), STAT=AS )
+         IF (AS /=0) CALL ALLOC_ERR( 'STRATNO2' )
+         ALLOCATE( STRATHNO3(JJPAR,LLPAR), STAT=AS )
+         IF (AS /=0) CALL ALLOC_ERR( 'STRATHNO3' )
+         ALLOCATE( XRATIO(JJPAR,LLPAR), STAT=AS)
+         IF (AS /=0) CALL ALLOC_ERR( 'XRATIO' )
+         ALLOCATE( SPNOY10mb(JJPAR), STAT=AS)
+         IF (AS /=0) CALL ALLOC_ERR( 'SPNOY10mb' )
+         
+         FIRST = .FALSE.
+      ENDIF
+#endif
 
       ! Dynamic timestep [s]
       DTDYN = GET_TS_DYN() * 60d0
@@ -740,10 +786,14 @@
          LMIN = GET_MIN_TPAUSE_LEVEL()
 
 !$OMP PARALLEL DO
+#if defined( DEVEL )
 !$OMP+DEFAULT( SHARED )
+#else
+!$OMP+DEFAULT( SHARED ) SHARED(XRATIO)
+#endif
 !$OMP+PRIVATE( I, J, L, PNOY )
 !$OMP+SCHEDULE( DYNAMIC )
-         DO L = LMIN, LLPAR
+         DO L = 1,    LLPAR
          DO J = 1,    JJPAR
          DO I = 1,    IIPAR
 
@@ -788,10 +838,13 @@
          LMIN = GET_MIN_TPAUSE_LEVEL()
 
 !$OMP PARALLEL DO
-!$OMP+DEFAULT( SHARED )
+!$OMP+DEFAULT( SHARED ) SHARED(XRATIO)
 !$OMP+PRIVATE( I, J, L, PNOY )
 !$OMP+SCHEDULE( DYNAMIC )
-         DO L = LMIN, LLPAR
+!--------------------------------
+!         DO L = LMIN, LLPAR
+!-----------------------------
+         DO L = 1,    LLPAR
          DO J = 1,    JJPAR
          DO I = 1,    IIPAR
 
@@ -873,6 +926,9 @@
 !  (27) Remove support for COMPAQ compiler (bmy, 7/8/09)
 !  13 Aug 2010 - R. Yantosca - Treat MERRA like GEOS-5
 !  02 Dec 2010 - R. Yantosca - Added ProTeX headers
+!  08 Feb 2012 - R. Yantosca - Treat GEOS-5.7.2 in the same way as MERRA
+!  10 Feb 2012 - R. Yantosca - Modified for 0.25 x 0.3125 grids
+!  28 Feb 2012 - R. Yantosca - Removed support for GEOS-3
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -903,6 +959,9 @@
 #elif defined( GRID05x0666 )
       INTEGER, PARAMETER   :: J30S = 1, J30N = JJPAR
 
+#elif defined( GRID025x03125 )
+      INTEGER, PARAMETER   :: J30S = 1, J30N = JJPAR
+
 #elif defined( GRID1x1 ) 
 
 #if   defined( NESTED_CH ) || defined( NESTED_NA )
@@ -910,6 +969,10 @@
 #else  
       INTEGER, PARAMETER   :: J30S = 61, J30N = 121    ! 1x1 global grid
 #endif
+
+#elif defined( EXTERNAL_GRID )
+      ! THIS HAS TO BE DEFINED SPECIFICALLY! HOW?
+      INTEGER, PARAMETER   :: J30S = 31, J30N = 61
 
 #endif
 
@@ -932,22 +995,11 @@
       ! PHD_vmr [v/v/s]
       ! For now uses the GEOS-3 scale factor for all cases (phs)
       !=================================================================
-
-#if   defined( GEOS_3 )
-
-! Lyatt Jaegle uses older value as of 2003/06/11:
-!      PO3_vmr = 4.2d-14                                  ! 3,3,7
-! However, O3 flux has been changed to 500 Tg/yr for GEOS-3 few months later
-!  (mje, bmy, 9/15/03), as follows:
-!   Impact on SCALE_HD (phs)? 
-      PO3_vmr = 5.14d-14                                 ! 3,3,7
-      IF ( IORD + JORD + KORD == 17 ) PO3_vmr = 4.07d-14 ! 5,5,7
-
-#elif defined( GEOS_4 )
+#if   defined( GEOS_4 )
 
       PO3_vmr = 5.14d-14                                 ! 3,3,7
 
-#elif defined( GEOS_5 ) || defined( MERRA )
+#elif defined( GEOS_5 ) || defined( MERRA ) || defined( GEOS_57 )
 
       ! For now assume GEOS-5 has same PO3_vmr value 
       ! as GEOS-4; we can redefine later (bmy, 5/25/05)

@@ -50,6 +50,7 @@
 !  (1 ) Bug fix for Linux/PGI compiler in routines ADJUST_PRESS and 
 !        INIT_PRESS_FIX. (bmy, 6/23/03)
 !  (2 ) Now make P1, P2 true surface pressure in DO_PJC_PFIX (bmy, 10/27/03)
+!  01 Mar 2012 - R. Yantosca - Now reference new grid_mod.F90
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -441,7 +442,7 @@
 !   Philip Cameron-Smith and John Tannahill, GMI project @ LLNL (2003)
 ! 
 ! !REMARKS:
-!   Now reference PI from "F77_CMN_GCTM" for consistency.  Also force
+!   Now reference PI from "CMN_GCTM" for consistency.  Also force
 !   double-precision with the "D" exponent. (bmy, 5/6/03)
 !
 ! !REVISION HISTORY: 
@@ -1920,7 +1921,9 @@ c     --------------------------------------
 !   Brendan Field and Bob Yantosca (5/8/03)
 ! 
 ! !REVISION HISTORY: 
-!   02 Dec 2008 - R. Yantosca - Updated documentation and added ProTeX headers.
+!  02 Dec 2008 - R. Yantosca - Updated documentation and added ProTeX headers.
+!  01 Mar 2012 - R. Yantosca - Now use GET_AREA_CM2(I,J,L) from grid_mod.F90
+!  01 Mar 2012 - R. Yantosca - Now use GET_YMID_R(I,J,L) from grid_mod.F90
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -2039,7 +2042,7 @@ c     --------------------------------------
       ! Grid box surface areas [m2]
       DO J = JU1_GL, J2_GL
       DO I =  I1_GL, I2_GL
-         MCOR(I,J) = GET_AREA_M2(J)
+         MCOR(I,J) = GET_AREA_M2( I, J, 1 )
       ENDDO
       ENDDO
 
@@ -2065,7 +2068,7 @@ c     --------------------------------------
          
       ! Grid box center latitudes [radians]
       DO J = JU1_GL, J2_GL
-         CLAT_FV(J) = GET_YMID_R(J)
+         CLAT_FV(J) = GET_YMID_R( 1, J, 1 )
       ENDDO
 
       ! Longitude spacing

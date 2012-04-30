@@ -115,6 +115,7 @@
 !  02 Dec 2010 - R. Yantosca - Added ProTeX headers
 !  03 Feb 2011 - S. Kim      - Now do not scale the AOD output
 !                              (recalculated in RDAER AND DUST_MOD)
+!  01 Mar 2012 - R. Yantosca - Use updated GET_LOCALTIME from time_mod.F
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -250,6 +251,8 @@
 !EOP
 !------------------------------------------------------------------------------
 !BOC
+      USE LOGICAL_MOD, ONLY : DO_DIAG_WRITE
+
 !
 ! !LOCAL VARIABLES:
 !
@@ -266,7 +269,7 @@
       CALL ACCUMULATE_DIAG51
 
       ! Write data to disk at the proper time
-      IF ( ITS_TIME_FOR_WRITE_DIAG51( TAU_W ) ) THEN
+      IF ( ITS_TIME_FOR_WRITE_DIAG51( TAU_W ) .and. DO_DIAG_WRITE ) THEN
          CALL WRITE_DIAG51( TAU_W )
       ENDIF
 
@@ -295,6 +298,11 @@
 
       USE CMN_SIZE_MOD   ! Size parameters
 ! 
+! !REMARKS:
+!  For now use GET_LOCALTIME( I, 1, 1 ) which will be independent of J and L
+!  for a pure cartesian grid.  This may need to be revisited once G-C is
+!  interfaced into a GCM.
+!
 ! !REVISION HISTORY: 
 !  20 Jul 2004 - R. Yantosca - Initial version
 !  (1 ) The 1d-3 in the computation of XLOCTM is to remove roundoff ambiguity 
@@ -309,6 +317,7 @@
 !  (7 ) We need to substract TS_DYN to the time to get the local time at 
 !        the beginning of previous time step. (ccc, 8/11/09)
 !  02 Dec 2010 - R. Yantosca - Added ProTeX headers
+!  01 Mar 2012 - R. Yantosca - Now use GET_LOCALTIME(I,J,L) from time_mod.F90
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -327,7 +336,7 @@
       DO I = 1, IIPAR
 
          ! Get local time
-         LT = GET_LOCALTIME(I) - TS_DYN
+         LT = GET_LOCALTIME( I, 1, 1 ) - TS_DYN
          IF ( LT < 0  ) LT = LT + 24d0
 
          ! GOOD indicates which boxes have local times between HR1 and HR2
@@ -363,8 +372,7 @@
       USE DAO_MOD,        ONLY : TS
       ! Now included PAR direct and diffuse (mpb,2009)
       USE DAO_MOD,        ONLY : PARDF, PARDR
-      ! Now included current (MODIS) LAI (mpb,2009)
-      USE LAI_MOD,        ONLY : ISOLAI
+      USE MODIS_LAI_MOD,  ONLY : ISOLAI => GC_LAI
       USE PBL_MIX_MOD,    ONLY : GET_PBL_TOP_L,   GET_PBL_TOP_m
       USE PRESSURE_MOD,   ONLY : GET_PEDGE
       USE TIME_MOD,       ONLY : GET_ELAPSED_MIN, GET_TS_CHEM 
@@ -377,7 +385,7 @@
       USE TRACERID_MOD,   ONLY : IDTR4N2, IDTSALA, IDTSALC 
       USE TROPOPAUSE_MOD, ONLY : ITS_IN_THE_TROP
 
-      USE CMN_FJ_MOD, ONLY : IPAR, JPAR, LPAR, JPMAX, JPPJ  ! includes F77_CMN_SIZE
+      USE CMN_FJ_MOD,     ONLY : JPMAX, JPPJ  ! includes F77_CMN_SIZE
       USE JV_CMN_MOD  ! ODAER, QAA, QAA_AOD
       USE CMN_O3_MOD    ! FRACO3, FRACNO, SAVEO3, SAVENO2, SAVEHO2, FRACNO2
       USE CMN_GCTM_MOD  ! SCALE_HEIGHT
@@ -414,6 +422,7 @@
 !  12 Nov 2010 - R. Yantosca - Now save out PEDGE-$ (pressure at level edges)
 !                              rather than Psurface - PTOP
 !  02 Dec 2010 - R. Yantosca - Added ProTeX headers
+!  11 Apr 2012 - R. Yantosca - Replace lai_mod.F with modis_lai_mod.F90
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -900,14 +909,6 @@
                !-----------------------------------
                ! PEDGE-$ (prs @ level edges) [hPa]
                !-----------------------------------
-!----------------------------------------------------------------------------
-! Prior to 11/12/10
-! Now save out PEDGE-$ instead of Psurface - PTOP (bmy, 11/12/10)
-!               IF ( K == 1 ) THEN
-!                  Q(X,Y,K,W) = Q(X,Y,K,W) + 
-!     &                         ( GET_PEDGE(I,J,K) - PTOP ) * GOOD(I)
-!               ENDIF
-!----------------------------------------------------------------------------
                Q(X,Y,K,W) = Q(X,Y,K,W) + ( GET_PEDGE(I,J,K) * GOOD(I) )
 
             ELSE IF ( N == 100 ) THEN 
@@ -1662,10 +1663,6 @@
             !---------------------
             CATEGORY = 'PEDGE-$'
             UNIT     = 'hPa'
-            !-------------------------
-            ! Prior to 11/12/10:
-            !GMNL     = 1
-            !-------------------------
             GMNL     = ND51_NL
             GMTRC    = 1
 
@@ -1874,7 +1871,11 @@
      &                  TAU0,         TAU1,         RESERVED,  
      &                  ND51_NI,      ND51_NJ,      GMNL,     
      &                  ND51_IMIN+I0, ND51_JMIN+J0, ND51_LMIN, 
+#if defined( DEVEL )
      &                  REAL(Q(1:ND51_NI, 1:ND51_NJ, 1:GMNL, W)))
+#else
+     &                  REAL(Q(1:ND51_NI, 1:ND51_NJ, 1:GMNL, W)))
+#endif
          ENDIF
       ENDDO
 

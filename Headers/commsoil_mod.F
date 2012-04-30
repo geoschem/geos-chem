@@ -75,6 +75,16 @@
       !%%% NOTE: still to be determined
       INTEGER, PARAMETER :: NLAND = 5536
 
+#elif defined( GRID025x03125 ) && defined( NESTED_CH )
+
+      !%%% NOTE: still to be determined, use fudge factor for now
+      INTEGER, PARAMETER :: NLAND = 5536
+#if defined( DEVEL )
+#elif defined( EXTERNAL_GRID )
+
+      !%%% NOTE: still to be determined!!!
+      INTEGER, PARAMETER :: NLAND = 5536
+#endif
 #endif
 !
 ! !PUBLIC DATA MEMBERS:
@@ -103,13 +113,21 @@
       REAL*8  :: PULSDECAY(NPULSE)
 
       ! Stores output
+#if defined( DEVEL )
+      REAL*8, ALLOCATABLE  :: SOILNOX(:,:)
+#else
       REAL*8  :: SOILNOX(IIPAR,JJPAR) 
+#endif
 
       ! Olson->soil type,nvegtype in commbio.h
       INTEGER :: NCONSOIL(NVEGTYPE) 
 
       ! Track NOx within canopy dry dep.
+#if defined( DEVEL )
+      REAL*8, ALLOCATABLE  :: CANOPYNOX(:,:)
+#else
       REAL*8  :: CANOPYNOX(MAXIJ,NTYPE) 
+#endif
 
       ! Canopy wind extinction coeff from Y&L
       REAL*8  :: SOILTA(NSOIL)
@@ -179,5 +197,21 @@
 !EOP
 !------------------------------------------------------------------------------
 !BOC
+#if defined( DEVEL )
+      CONTAINS
+
+      SUBROUTINE SET_COMMSOIL_MOD
+
+      IMPLICIT NONE
+
+      INTEGER AS
+
+      ALLOCATE(
+     &     SOILNOX(IIPAR,JJPAR),
+     &     CANOPYNOX(MAXIJ,NTYPE), 
+     &     STAT=AS)
+
+      END SUBROUTINE SET_COMMSOIL_MOD
+#endif
       END MODULE COMMSOIL_MOD
 !EOC

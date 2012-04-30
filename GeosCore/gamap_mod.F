@@ -73,12 +73,13 @@
 !        nm from 400 nm.  Add additional dust AOD bins.  Output values to 
 !        hdf_mod. (amv, bmy, 12/1/09)
 !  03 Aug 2010 - R. Yantosca - Added ProTeX headers
-!  03 Aug 2010 - R. Yantosca - Now move the #include "F77_CMN_SIZE" and
-!                              #include "F77_CMN_DIAG" to the top of module
+!  03 Aug 2010 - R. Yantosca - Now move the #include "CMN_SIZE" and
+!                              #include "CMN_DIAG" to the top of module
 !  13 Aug 2010 - R. Yantosca - Added modifications for MERRA
 !  21 Sep 2010 - R. Yantosca - Removed duplicates in INIT_DIAGINFO
 !  21 Oct 2010 - R. Yantosca - Bug fix in INIT_DIAGINFO
 !  09 Dec 2010 - C. Carouge  - Modify MAXTRACER definition to account for 
+!   8 Feb 2012 - R. Yantosca - Add modifications for GEOS-5.7.x
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -523,8 +524,13 @@
             NAME_NEW = 'PROD' // C
             
             ! Write tracers [kg] to "tracerinfo.dat"
-            CALL WRITE_TINFO( NAME_NEW, NAME_NEW,  1e0, 
+#if defined( DEVEL )
+            CALL WRITE_TINFO( NAME_NEW, NAME_NEW,    REAL(1e0,4), 
+     &                        1,        REAL(1e0,4), 'kg/kg', N )
+#else
+            CALL WRITE_TINFO( NAME_NEW, NAME_NEW,  1e0,
      &                        1,        1e0,      'kg/kg', N )
+#endif
          ENDDO
 
       ENDIF
@@ -1293,6 +1299,12 @@
       DESCRIPT(N) = 'Wetland Fraction'
       OFFSET(N)   = SPACING * 51
 
+      N           = N + 1
+      CATEGORY(N) = 'SHIP-$$$'
+      DESCRIPT(N) = 'Ship diagnostics'
+      OFFSET(N)   = SPACING * 59
+
+
 ! NEED TO DO THAT AT ONE POINT      
 !      ! New for CSPEC
 !      N           = N + 1
@@ -1333,6 +1345,7 @@
       USE DIAG51_MOD,   ONLY : DO_SAVE_DIAG51
       USE DIAG51b_MOD,  ONLY : DO_SAVE_DIAG51b
       USE DIAG56_MOD,   ONLY : ND56
+      USE DIAG63_MOD,   ONLY:  DO_SAVE_DIAG63
       USE DIAG_PL_MOD,  ONLY : DO_SAVE_PL,  GET_NFAM
       USE DIAG_PL_MOD,  ONLY : GET_FAM_MWT, GET_FAM_NAME
       USE DRYDEP_MOD,   ONLY : DEPNAME,     NUMDEP,    NTRAIND
@@ -1388,8 +1401,14 @@
 !  03 Aug 2010 - R. Yantosca - Added ProTeX headers
 !  13 Aug 2010 - R. Yantosca - Treat MERRA in the same way as GEOS-5
 !  02 Sep 2010 - R. Yantosca - In ND28: Omit SOA tracers if LSOA = .FALSE.
+!  09-Dec-2010 - H. Amos     - Added RGM, RPM, Fg, and Fp tracers for the
+!                              mercury simulation
+!  09-Dec-2010 - H. Amos     - fix spacing and #s for PL-HG2-$ diagnostics
 !  12 Nov 2010 - R. Yantosca - Need to save out surface pressure line to 
 !                              tracerinfo.dat for the timeseries diagnostics
+!  24 Jan 2012 - M. Payer    - Change scale factors for Rn-Pb-Be simulation so
+!                              units are in mBq/SCM
+!  08 Feb 2012 - R. Yantosca - Treat GEOS-5.7.x in the same way as MERRA
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -1440,14 +1459,14 @@
          IF ( ITS_A_RnPbBe_SIM() ) THEN
             SELECT CASE( T ) 
                CASE( 1 )
-                  UNIT (T,45) = 'pCi/SCM'
-                  SCALE(T,45) = 1.5243e21
+                  UNIT (T,45) = 'mBq/SCM'
+                  SCALE(T,45) = 5.6397E+22
                CASE( 2 ) 
-                  UNIT (T,45) = 'fCi/SCM'
-                  SCALE(T,45) = 7.0651e20
+                  UNIT (T,45) = 'mBq/SCM'
+                  SCALE(T,45) = 2.6141E+19
                CASE( 3 )
-                  UNIT (T,45) = 'fCi/SCM'
-                  SCALE(T,45) = 1.0938e23
+                  UNIT (T,45) = 'mBq/SCM'
+                  SCALE(T,45) = 4.0513E+21
                CASE DEFAULT
                   ! Nothing
             END SELECT
@@ -1542,26 +1561,16 @@
                   FNAME(T,03) = 'Anthro particulate Hg'
                   INDEX(T,03) = T + ( SPACING * 34 )
                CASE( 10 )
-!                  NAME (T,03) = 'KwHg'
-!                  FNAME(T,03) = 'Henry''s Law exchange constant'
-!                  UNIT (T,03) = 'cm/h'
                   NAME (T,03) = 'Hgaq_tot'
                   FNAME(T,03) = 'Total oceanic mercury'
                   UNIT (T,03) = 'kg'
                   INDEX(T,03) = T + ( SPACING * 34 )
                   MWT  (T,03) = 0e0
                CASE( 11 )
-!                  NAME (T,03) = 'HgC'
-!                  FNAME(T,03) = 'Hg in Colloidal phase'
                   NAME (T,03) = 'HgP_aq'
                   FNAME(T,03) = 'Ocean mass of particulate Hg'
                   INDEX(T,03) = T + ( SPACING * 34 )
                CASE( 12 )
-!                  NAME (T,03) = 'Hg_to_C'
-!                  FNAME(T,03) = 'Hg converted to colloidal'
-!                  NAME (T,03) = 'Hg_to_P'
-!                  FNAME(T,03) = 'Hg converted to particulate'
-!                  UNIT (T,03) = 'kg/m2/s'
                   NAME (T,03) = 'JorgC'
                   FNAME(T,03) = 'Mass of orgC sunk in ocean'
                   UNIT (T,03) = 'kg'
@@ -1646,6 +1655,26 @@
                   NAME (T,03) = 'BrO'
                   FNAME(T,03) = 'BrO concentration'
                   INDEX(T,03) = ( N ) + ( SPACING * 35 )
+               CASE( 9 )    
+                  NAME (T,03) = 'Fg'
+                  FNAME(T,03) = 'Hg2 gas fraction'
+                  UNIT (T,03) = 'unitless'  
+                  INDEX(T,03) = ( N ) + ( SPACING * 35 )
+               CASE( 10 )
+                  NAME (T,03) = 'Fp'
+                  FNAME(T,03) = 'Hg2 particle fraction'
+                  UNIT (T,03) = 'unitless'
+                  INDEX(T,03) = ( N ) + ( SPACING * 35 ) 
+               CASE( 11 )
+                  NAME (T,03) = 'RPM'
+                  FNAME(T,03) = 'Reactive particulate mercury'
+                  UNIT (T,03) = 'pptv'
+                  INDEX(T,03) = ( N ) + ( SPACING * 35 )      
+               CASE( 12 )
+                  NAME (T,03) = 'RGM'
+                  FNAME(T,03) = 'Reactive gaseous mercury'
+                  UNIT (T,03) = 'pptv'
+                  INDEX(T,03) = ( N ) + ( SPACING * 35 ) 
                CASE DEFAULT
                   ! Nothing
             END SELECT
@@ -3575,6 +3604,51 @@
       ENDIF
 
       !-------------------------------------      
+      ! SHIP DIAGNOSTICS (ND63)
+      !-------------------------------------      
+      IF ( DO_SAVE_DIAG63 ) THEN 
+
+         ! Number of tracers
+         NTRAC(63) = 5
+
+         ! Loop over tracers
+         DO T = 1, NTRAC(63)
+
+            ! Define quantities
+            INDEX(T,63) = T + ( SPACING * 59 )
+            MOLC (T,63) = 0
+            MWT  (T,63) = 0e0
+            SCALE(T,63) = 1e0
+            UNIT (T,63) = 'unitless'
+
+            ! Get name, long-name (and others where necessary)
+            SELECT CASE( T )
+               CASE( 1  )
+                  NAME (T,63) = 'Frac_NOx'
+                  FNAME(T,63) = 'Fraction of NOx remaining'
+               CASE( 2  )
+                  NAME (T,63) = 'IntOPE'
+                  FNAME(T,63) = 'Integrated OPE'
+               CASE( 3  )
+                  NAME (T,63) = 'Frac_NOx*SHIP'
+                  FNAME(T,63) = 'Integrated OPE'
+                  UNIT (T,63) = 'kg/box/timestep'
+               CASE( 4  )
+                  NAME (T,63) = 'IntOPE*(1-Frac_NOx)*SHIP'
+                  FNAME(T,63) = 'Integrated OPE'
+                  UNIT (T,63) = 'kg/box/timestep'
+               CASE( 5  )
+                  NAME (T,63) = 'Ship_emissions'
+                  FNAME(T,63) = 'Ship emissions'
+                  UNIT (T,63) = 'kg/box/timestep'
+               CASE DEFAULT
+                  ! Nothing
+            END SELECT
+
+         ENDDO
+      ENDIF
+
+      !-------------------------------------      
       ! Family prod & loss (ND65)
       !-------------------------------------      
       IF ( DO_SAVE_PL ) THEN
@@ -3630,7 +3704,7 @@
 #if   defined( GEOS_4 )
                   NAME(T,66) = 'ZMMU'
                   UNIT(T,66) = 'Pa/s'
-#elif defined( GEOS_5 ) || defined( MERRA )
+#elif defined( GEOS_5 ) || defined( MERRA ) || defined( GEOS_57 )
                   NAME(T,66) = 'CMFMC'
                   UNIT(T,66) = 'kg/m2/s'
 #else

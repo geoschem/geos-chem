@@ -57,7 +57,7 @@
 !  (47 ) IDDRYPAN  (INTEGER) : DRYPAN index w/in CSPEC array ("comode_mod.f")
 !  (48 ) IDDRYNO2  (INTEGER) : DRYNO2 index w/in CSPEC array ("comode_mod.f")
 !  (49 ) IDTNOX    (INTEGER) : NOx   index w/in STT array ("tracer_mod.f")
-!  (50 ) IDTOX     (INTEGER) : Ox    index w/in STT array ("CMN")     
+!  (50 ) IDTOX     (INTEGER) : Ox    index w/in STT array ("CMN_mod.F")     
 !  (51 ) IDTPAN    (INTEGER) : PAN   index w/in STT array ("tracer_mod.f")
 !  (52 ) IDTCO     (INTEGER) : CO    index w/in STT array ("tracer_mod.f")     
 !  (53 ) IDTALK4   (INTEGER) : ALK4  index w/in STT array ("tracer_mod.f")    
@@ -113,18 +113,18 @@
 !  (103) IDTDST4   (INTEGER) : DST4  index w/in STT array ("tracer_mod.f")
 !  (104) IDTSALA   (INTEGER) : SALA  index w/in STT array ("tracer_mod.f")
 !  (105) IDTSALC   (INTEGER) : SALC  index w/in STT array ("tracer_mod.f")
-!  (109) IDENOX    (INTEGER) : NOx   index w/in EMISRRN array ("F77_CMN_O3")  
-!  (110) IDEOX     (INTEGER) : Ox    index w/in EMISRR  array ("F77_CMN_O3")  
-!  (111) IDECO     (INTEGER) : CO    index w/in EMISRR  array ("F77_CMN_O3")     
-!  (112) IDEPRPE   (INTEGER) : PRPE  index w/in EMISRR  array ("F77_CMN_O3")     
-!  (113) IDEC3H8   (INTEGER) : C3H8  index w/in EMISRR  array ("F77_CMN_O3")     
-!  (114) IDEALK4   (INTEGER) : ALK4  index w/in EMISRR  array ("F77_CMN_O3")     
-!  (115) IDEC2H6   (INTEGER) : C2H6  index w/in EMISRR  array ("F77_CMN_O3")    
-!  (116) IDEISOP   (INTEGER) : ISOP  index w/in EMISRR  array ("F77_CMN_O3")    
-!  (117) IDEACET   (INTEGER) : ACET  index w/in EMISRR  array ("F77_CMN_O3")     
-!  (118) IDEMEK    (INTEGER) : MEK   index w/in EMISRR  array ("F77_CMN_O3")     
-!  (119) IDEALD2   (INTEGER) : ALD2  index w/in EMISRR  array ("F77_CMN_O3")    
-!  (120) IDECH2O   (INTEGER) : CH2O  index w/in EMISRR  array ("F77_CMN_O3")     
+!  (109) IDENOX    (INTEGER) : NOx   index w/in EMISRRN array ("CMN_O3")  
+!  (110) IDEOX     (INTEGER) : Ox    index w/in EMISRR  array ("CMN_O3")  
+!  (111) IDECO     (INTEGER) : CO    index w/in EMISRR  array ("CMN_O3")     
+!  (112) IDEPRPE   (INTEGER) : PRPE  index w/in EMISRR  array ("CMN_O3")     
+!  (113) IDEC3H8   (INTEGER) : C3H8  index w/in EMISRR  array ("CMN_O3")     
+!  (114) IDEALK4   (INTEGER) : ALK4  index w/in EMISRR  array ("CMN_O3")     
+!  (115) IDEC2H6   (INTEGER) : C2H6  index w/in EMISRR  array ("CMN_O3")    
+!  (116) IDEISOP   (INTEGER) : ISOP  index w/in EMISRR  array ("CMN_O3")    
+!  (117) IDEACET   (INTEGER) : ACET  index w/in EMISRR  array ("CMN_O3")     
+!  (118) IDEMEK    (INTEGER) : MEK   index w/in EMISRR  array ("CMN_O3")     
+!  (119) IDEALD2   (INTEGER) : ALD2  index w/in EMISRR  array ("CMN_O3")    
+!  (120) IDECH2O   (INTEGER) : CH2O  index w/in EMISRR  array ("CMN_O3")     
 !  (121) NEMBIOG   (INTEGER) : # of biogenic emission species for SMVGEAR
 !  (122) NEMANTHRO (INTEGER) : # of anthro   emission species for SMVGEAR
 !  (132) IDBFPRPE  (INTEGER) : PRPE index w/in BURNEMIS array (biofuel_mod.f)
@@ -177,12 +177,15 @@
 !  17 Feb 2011 - R. Yantosca - Add modifications for APM microphysics (G. Luo)
 !******************************************************************************
 !
+
+      USE CMN_SIZE_MOD, ONLY : NNNTRID=>NNPAR
+
       IMPLICIT NONE
 #     include "define.h"
 
       ! for CTM tracers
 !-- add tracers for new isoprene chemistry. (fp, 01/27/10)
-      INTEGER, PARAMETER :: NNNTRID  = 75
+!MSL      INTEGER, PARAMETER :: NNNTRID  = 75
 !      INTEGER, PARAMETER :: MMMEMBER = 10
 !      INTEGER, PARAMETER :: NNNTRID  = 100
       INTEGER, PARAMETER :: MMMEMBER = 15
@@ -295,6 +298,9 @@
       INTEGER            :: IDBSO2,  IDBNH3
       INTEGER            :: IDBBC,   IDBOC
       INTEGER            :: IDBCO2
+!kjw
+      INTEGER            :: IDBCH4
+!kjw
 
       INTEGER            :: IDBTOLU, IDBBENZ, IDBXYLE
       ! add dicarbonyl emissions (ccc, 01/27/10)
@@ -350,6 +356,8 @@
 !  (22) Add writing check on IDs. (hotp, 01/10)
 !  17 Aug 2011 - R. Yantosca - Print values of 3 extra emission IDExxx flags
 !  22 Aug 2011 - R. Yantosca - Add modifications for APM microphysics (G. Luo)
+!  16 Feb 2012 - M. Payer    - Account for alternate spellings of the Rn and Pb
+!                              tracers in input.geos
 !******************************************************************************
 !
       ! References to F90 modules
@@ -364,6 +372,11 @@
 
       USE CMN_SIZE_MOD      ! Size parameters
       USE COMODE_LOOP_MOD   ! IDEMS
+
+#if defined(DEVEL)
+      USE GC_TYPE2_MOD
+      USE GC_ENVIRONMENT_MOD, ONLY : TRACER_INDEX
+#endif
 
       ! Local variables
       INTEGER              :: N, COUNT, COUNT_Hg0, COUNT_Hg2, COUNT_HgP
@@ -382,16 +395,16 @@
 
       ! Array dimension check (hotp 8/1/09)
       ! NNNTRID is used in this module to dimension some arrays
-      ! NNNTRID should be the same as NNPAR in F77_CMN_SIZE
+      ! NNNTRID should be the same as NNPAR in CMN_SIZE
       IF ( NNNTRID .NE. NNPAR ) THEN
 #if   defined( APM )
          write(*,*)'NNNTRID .NE. NNPAR!',NNNTRID,NNPAR
 #else
          CALL ERROR_STOP ( 'NNNTRID .NE. NNPAR!',
-     &                                     'tracerid_mod,F77_CMN_SIZE' )
+     &                                     'tracerid_mod,CMN_SIZE' )
 #endif
          ! If you get this error, an appropriate fix is to increase 
-         ! either NNNTRID (in tracerid_mod) or NNPAR (in F77_CMN_SIZE) so
+         ! either NNNTRID (in tracerid_mod) or NNPAR (in CMN_SIZE) so
          ! they are the same and greater than or equal to the number 
          ! of tracers in your simulation (hotp 8/1/09)
       ENDIF
@@ -414,6 +427,11 @@
       !=================================================================
       DO N = 1, N_TRACERS
 
+#if defined (DEVEL)
+!         CHEM_STATE%TRAC_ID(N) = N
+!         CHEM_STATE%TRAC_NAME(N)  = TRIM( TRACER_NAME(N) )
+!         TRACER_INDEX(N) = N
+#endif
          ! Convert tracer name to upper case.  TCNAME is in the "CMN" header
          ! file -- we might use something better later on (bmy, 11/12/02)
          NAME = TRACER_NAME(N)
@@ -910,10 +928,10 @@
             !--------------------------------
             ! Rn-Pb-Be tracers
             !--------------------------------
-            CASE ( 'RN' )
+            CASE ( 'RN', 'RN222' )
                IDTRN    = N
  
-            CASE ( 'PB' )
+            CASE ( 'PB', 'PB210' )
                IDTPB    = N
 
             CASE ( 'BE7' )
@@ -2143,6 +2161,9 @@
       IDBGLYC   = 0
       IDBGLYX   = 0
       IDBMGLY   = 0
+!kjw
+      IDBCH4    = 0
+!kjw
 
       !-----------------------------------
       ! Initialize tagged Hg index arrays

@@ -125,6 +125,8 @@
 !        READ_ACETONE and INIT_TAGGED_CO are public now. Variable
 !        EMACET is public now.  (phs, 9/18/07)
 !  13 Aug 2010 - R. Yantosca - Add modifications for MERRA (treat like GEOS-5)
+!  08 Feb 2012 - R. Yantosca - Add modifications for GEOS-5.7.2 met
+!  01 Mar 2012 - R. Yantosca - Now reference new grid_mod.F90
 !******************************************************************************
 !
       IMPLICIT NONE
@@ -199,6 +201,8 @@
 !  (5 ) Removed obsolete code from 9/28/01 (bmy, 10/22/01)
 !  (6 ) Now uses routines GET_XMID and GET_YMID from "grid_mod.f" to compute
 !        grid box lon & lat.  Remove XMID, YMID from arg list. (bmy, 2/3/03)
+!  01 Mar 2012 - R. Yantosca - Now use GET_XMID(I,J,L) from grid_mod.F90
+!  01 Mar 2012 - R. Yantosca - Now use GET_YMID(I,J,L) from grid_mod.F90
 !******************************************************************************
 !
       ! References to F90 modules
@@ -222,37 +226,38 @@
 !$OMP+DEFAULT( SHARED ) 
 !$OMP+PRIVATE( I, J, X, Y )
       DO J = 1, JJPAR
-         Y = GET_YMID( J )         ! Latitude [degrees]
+      DO I = 1, IIPAR
 
-         DO I = 1, IIPAR
-            X = GET_XMID( I )      ! Longitude [degrees]
+         ! Longitude & latitude [degrees]
+         X = GET_XMID( I, J, 1 )
+         Y = GET_YMID( I, J, 1 )
          
-            ! Region #2 -- North American FF CO 
-            IF ( ( X >= -172.5 .and. X < -17.5 )   .and. 
-     &           ( Y >=   24.0 .and. Y <  88.0 ) ) THEN
-               REGION(I,J) = 2
+         ! Region #2 -- North American FF CO 
+         IF ( ( X >= -172.5 .and. X < -17.5 )   .and. 
+     &        ( Y >=   24.0 .and. Y <  88.0 ) ) THEN
+            REGION(I,J) = 2
             
-            ! Region #3 -- European FF CO (1st sub-box)
-            ELSE IF ( ( X >= -17.5 .and. X < 72.5 )  .and. 
-     &                ( Y >=  36.0 .and. Y < 45.0 ) ) THEN
-               REGION(I,J) = 3
+         ! Region #3 -- European FF CO (1st sub-box)
+         ELSE IF ( ( X >= -17.5 .and. X < 72.5 )  .and. 
+     &             ( Y >=  36.0 .and. Y < 45.0 ) ) THEN
+            REGION(I,J) = 3
 
-            ! Region #3 -- European FF CO (2nd sub-box)
-            ELSE IF ( ( X >= -17.5 .and. X < 172.5 )  .and. 
-     &                ( Y >=  45.0 .and. Y <  88.0 ) ) THEN
-               REGION(I,J) = 3
+         ! Region #3 -- European FF CO (2nd sub-box)
+         ELSE IF ( ( X >= -17.5 .and. X < 172.5 )  .and. 
+     &             ( Y >=  45.0 .and. Y <  88.0 ) ) THEN
+            REGION(I,J) = 3
 
-            ! Region #4 -- Asian FF CO (1st sub-box) 
-            ELSE IF ( ( X >= 70.0 .and. X < 152.5 )  .and.
-     &                ( Y >=  8.0 .and. Y <  45.0 ) ) THEN
-               REGION(I,J) = 4
+         ! Region #4 -- Asian FF CO (1st sub-box) 
+         ELSE IF ( ( X >= 70.0 .and. X < 152.5 )  .and.
+     &             ( Y >=  8.0 .and. Y <  45.0 ) ) THEN
+            REGION(I,J) = 4
    
             ! Region #5 -- FF CO from everywhere else
-            ELSE
-               REGION(I,J) = 5
+         ELSE
+            REGION(I,J) = 5
                
-            ENDIF
-         ENDDO
+         ENDIF
+      ENDDO
       ENDDO
 !$OMP END PARALLEL DO
 
@@ -281,6 +286,8 @@
 !  (5 ) Removed obsolete code from 9/28/01 (bmy, 10/22/01)
 !  (6 ) Now uses routines GET_XMID and GET_YMID from "grid_mod.f" to compute
 !        grid box lon & lat.  Remove XMID, YMID from arg list. (bmy, 2/3/03)
+!  01 Mar 2012 - R. Yantosca - Now use GET_XMID(I,J,L) from grid_mod.F90
+!  01 Mar 2012 - R. Yantosca - Now use GET_YMID(I,J,L) from grid_mod.F90
 !******************************************************************************
 !
       ! References to F90 modules
@@ -303,48 +310,49 @@
 !$OMP+DEFAULT( SHARED ) 
 !$OMP+PRIVATE( I, J, X, Y )
       DO J = 1, JJPAR
-         Y = GET_YMID( J )      ! Latitude [degrees]
+      DO I = 1, IIPAR
 
-         DO I = 1, IIPAR
-            X = GET_XMID( I )   ! Longitude [degrees]
+          ! Longitude & latitude [degrees]
+          X = GET_XMID( I, J, 1 )
+          Y = GET_YMID( I, J, 1 )
 
-            ! Region #6 -- South American BB CO 
-            IF ( ( X >= -112.5 .and. X < -32.5 )  .and.
-     &           ( Y >=  -56.0 .and. Y <  24.0 ) ) THEN
-               REGION(I,J) = 6
+          ! Region #6 -- South American BB CO 
+          IF ( ( X >= -112.5 .and. X < -32.5 )  .and.
+     &         ( Y >=  -56.0 .and. Y <  24.0 ) ) THEN
+             REGION(I,J) = 6
 
-            ! Region #7 -- African BB CO 
-            ELSE IF ( ( X >= -17.5 .and. X < 70.0 )  .and.
-     &                ( Y >= -48.0 .and. Y < 36.0 ) ) THEN
-               REGION(I,J) = 7
+          ! Region #7 -- African BB CO 
+          ELSE IF ( ( X >= -17.5 .and. X < 70.0 )  .and.
+     &              ( Y >= -48.0 .and. Y < 36.0 ) ) THEN
+             REGION(I,J) = 7
 
-            ! Region #8 -- SE Asian BB CO (1st sub-box) 
-            ELSE IF ( ( X >= 70.0 .and. X < 152.5 )  .and.
-     &                ( Y >=  8.0 .and. Y <  45.0 ) ) THEN
-               REGION(I,J) = 8
+          ! Region #8 -- SE Asian BB CO (1st sub-box) 
+          ELSE IF ( ( X >= 70.0 .and. X < 152.5 )  .and.
+     &              ( Y >=  8.0 .and. Y <  45.0 ) ) THEN
+             REGION(I,J) = 8
 
-            ! Region #9 -- Oceania BB CO 
-            ELSE IF ( ( X >= 70.0 .and. X < 170.0 )  .and.
-     &                ( Y <  8.0 ) ) THEN
-               REGION(I,J) = 9
+          ! Region #9 -- Oceania BB CO 
+          ELSE IF ( ( X >= 70.0 .and. X < 170.0 )  .and.
+     &              ( Y <  8.0 ) ) THEN
+             REGION(I,J) = 9
 
-            ! Region #10 -- European BB CO (1st sub-box)
-            ELSE IF ( ( X >= -17.5 .and. X < 72.5 )  .and.
-     &                ( Y >=  36.0 .and. Y < 45.0 ) ) THEN
-               REGION(I,J) = 10
+          ! Region #10 -- European BB CO (1st sub-box)
+          ELSE IF ( ( X >= -17.5 .and. X < 72.5 )  .and.
+     &              ( Y >=  36.0 .and. Y < 45.0 ) ) THEN
+             REGION(I,J) = 10
 
-            ! Region #10 -- European BB CO (2nd sub-box)
-            ELSE IF ( ( X >= -17.5 .and. X < 172.5 )  .and.
-     &                ( Y >=  45.0 .and. Y <  88.0 ) ) THEN
-               REGION(I,J) = 10 
+          ! Region #10 -- European BB CO (2nd sub-box)
+          ELSE IF ( ( X >= -17.5 .and. X < 172.5 )  .and.
+     &              ( Y >=  45.0 .and. Y <  88.0 ) ) THEN
+             REGION(I,J) = 10 
 
-            ! Region #11 -- North America BB CO  
-            ! (rest of world = North America)
-            ELSE 
-               REGION(I,J) = 11
+          ! Region #11 -- North America BB CO  
+          ! (rest of world = North America)
+          ELSE 
+             REGION(I,J) = 11
 
-            ENDIF
-         ENDDO
+          ENDIF
+       ENDDO
       ENDDO
 !$OMP END PARALLEL DO
 
@@ -416,6 +424,8 @@
 !        (jaf, 3/10/09)
 !  (25) Move XLTMMP to module MEGANUT_MOD (ccc, 11/20/09)
 !  (26) IDBCO is now defined in tracerid_mod.f (fp, 6/09)
+!  08 Dec 2011 - M. Payer    - Remove GEIA biogenic emission option
+!  01 Mar 2012 - R. Yantosca - Now use GET_AREA_CM2(I,J,L) from grid_mod.F90
 !******************************************************************************
 !
       ! References to F90 modules
@@ -423,10 +433,9 @@
       !IDBCO now in tracerid_mod (fp, 6/2009)
       USE BIOMASS_MOD,  ONLY : BIOMASS!,     IDBCO
       ! Add variables for MEGAN (jaf, 3/10/09)
-      USE DAO_MOD,      ONLY : SUNCOS,           PARDF,       PARDR
+      USE DAO_MOD,      ONLY : SUNCOS,        PARDF,       PARDR
       USE DIAG_MOD,     ONLY : AD29,          AD46
       USE GRID_MOD,     ONLY : GET_XOFFSET,   GET_YOFFSET, GET_AREA_CM2
-      USE GRID_MOD,     ONLY : GET_AREA_CM2
       USE LOGICAL_MOD,  ONLY : LSPLIT,        LANTHRO
       USE LOGICAL_MOD,  ONLY : LBIOMASS,      LBIOFUEL
       ! Add switches for biogenic MEGAN (jaf, 3/10/09)
@@ -454,7 +463,7 @@
       INTEGER                :: AS, IREF, JREF, IJLOOP, PBL_MAX
       INTEGER, SAVE          :: LASTMONTH = -999
 
-      ! For now these are defined in F77_CMN_O3
+      ! For now these are defined in CMN_O3_mod
       !REAL*4                 :: EMISTCO(IIPAR,JJPAR)
       !REAL*4                 :: FLIQCO2(IIPAR,JJPAR)
 
@@ -465,10 +474,8 @@
       REAL*8                 :: SC,   PDF,  PDR
       
       ! External functions
-!-- XLTMMP moved to meganut_mod.f (ccc, 11/20/09)
-!      REAL*8, EXTERNAL       :: XLTMMP,  EMISOP, BOXVL
-      REAL*8, EXTERNAL       :: EMISOP, BOXVL
-      REAL*8, EXTERNAL       :: EMMONOT, EMCH3OH
+      REAL*8, EXTERNAL       :: BOXVL
+      REAL*8, EXTERNAL       :: EMCH3OH
 
       !=================================================================
       ! EMISS_TAGGED_CO begins here!
@@ -586,15 +593,11 @@
 !$OMP PARALLEL DO
 !$OMP+DEFAULT( SHARED )
 !$OMP+PRIVATE( E_CO, I, J, L, F_OF_PBL, N, AREA_CM2 )
-
-         ! Loop over latitudes
          DO J = 1, JJPAR
-
-            ! Grid box surface area [cm2]
-            AREA_CM2 = GET_AREA_CM2( J )
-
-         ! Loop over longitudes
          DO I = 1, IIPAR
+               
+            ! Grid box surface area [cm2]
+            AREA_CM2 = GET_AREA_CM2( I, J, 1 )
 
             ! Convert [molec CO/cm2/s] to [kg CO] and store in E_CO
             E_CO = ( BIOMASS(I,J,IDBCO) / XNUMOL_CO ) *
@@ -678,98 +681,81 @@
 ! Add some private declarations for use with MEGAN
 !$OMP+PRIVATE( SC, PDR, PDF )
       DO J = 1, JJPAR
+      DO I = 1, IIPAR
 
          ! Grid box surface area [cm2]
-         AREA_CM2 = GET_AREA_CM2( J )
+         AREA_CM2 = GET_AREA_CM2( I, J, 1 )
 
-         DO I = 1, IIPAR
+         ! To be safe, zero coefficients (jaf, 3/10/09)
+         EMIS = 0d0
+         EMMO = 0d0
+         EMAC = 0d0
 
-            ! To be safe, zero coefficients (jaf, 3/10/09)
-            EMIS = 0d0
-            EMMO = 0d0
-            EMAC = 0d0
+         ! 1-D array index 
+         IJLOOP = ( (J-1) * IIPAR ) + I
 
-            ! 1-D array index 
-            IJLOOP = ( (J-1) * IIPAR ) + I
+         !===========================================================
+         ! The CO yields from ISOP, MONOTERPENES, and CH3OH will be
+         ! computed in subroutine CHEM_TAGGED_CO.  P(CO) from CH3OH
+         ! will be scaled to isoprene emissions within subroutine
+         ! CHEM_TAGGED_CO (bnd, bmy, 6/14/01)
+         !===========================================================
 
-            !===========================================================
-            ! The CO yields from ISOP, MONOTERPENES, and CH3OH will be
-            ! computed in subroutine CHEM_TAGGED_CO.  P(CO) from CH3OH
-            ! will be scaled to isoprene emissions within subroutine
-            ! CHEM_TAGGED_CO (bnd, bmy, 6/14/01)
-            !===========================================================
-
-            ! Surface air temperature [K]
-            TMMP = XLTMMP(I,J,IJLOOP)
+         ! Surface air temperature [K]
+         TMMP = XLTMMP(I,J,IJLOOP)
       
-            ! Add MEGAN biogenics (jaf, 3/10/09)
-            IF ( LMEGAN ) THEN
+         ! Add MEGAN biogenics (jaf, 3/10/09)
+         IF ( LMEGAN ) THEN
+            !------------------
+            ! MEGAN biogenics
+            !------------------
 
-               !------------------
-               ! MEGAN biogenics
-               !------------------
+            ! Cosine of solar zenith angle
+            SC = SUNCOS(IJLOOP)
 
-               ! Cosine of solar zenith angle
-               SC = SUNCOS(IJLOOP)
+            ! Diffuse and direct PAR
+            PDR = PARDR(I,J)
+            PDF = PARDF(I,J)
 
-               ! Diffuse and direct PAR
-               PDR = PARDR(I,J)
-               PDF = PARDF(I,J)
+            ! Isoprene [atoms C/box/timestep]
+            EMIS = GET_EMISOP_MEGAN(  I, J,     SC, TMMP,
+     &                                PDR, PDF, XNUMOL_ISOP )
 
-               ! Isoprene [atoms C/box/timestep]
-!--- Change arguments order for coherence with other MEGAN functions
-!    (ccc, 11/23/09)
-!               EMIS = GET_EMISOP_MEGAN(  I, J,     SC, TMMP,
-!     &                                   XNUMOL_ISOP, PDR, PDF )
-               EMIS = GET_EMISOP_MEGAN(  I, J,     SC, TMMP,
-     &                                   PDR, PDF, XNUMOL_ISOP )
-               ! Monoterpene [atoms C/box/timestep]
-! Previous to MEGAN v2.1
-!               EMMO = GET_EMMONOT_MEGAN( I, J, TMMP, XNUMOL_MONO)
-               EMMO = GET_EMMONOT_MEGAN( I, J,  SC, TMMP, 
-     &                                   PDR, PDF, XNUMOL_MONO )
-            ELSE
+            ! Monoterpene [atoms C/box/timestep]
+            EMMO = GET_EMMONOT_MEGAN( I, J,  SC, TMMP, 
+     &                                PDR, PDF, XNUMOL_MONO )
 
-               !------------------
-               ! GEIA biogenics 
-               !------------------
+         ENDIF
 
-               ! Isoprene [atoms C/box/timestep]
-               EMIS = EMISOP( I, J, IJLOOP, SUNCOS, TMMP, XNUMOL_ISOP )
-               ! Monoterpene [atoms C/box/timestep]
-               EMMO = EMMONOT( IJLOOP, TMMP, XNUMOL_MONO )
+         ! Store ISOP and MONOTERPENE emissions [atoms C/box/time step]
+         ! for later use in the subroutine CHEM_TAGGED_CO
+         SUMISOPCO(I,J) = SUMISOPCO(I,J) + EMIS
+         SUMMONOCO(I,J) = SUMMONOCO(I,J) + EMMO
 
-            ENDIF
+         ! ND46 -- save biogenic emissions [atoms C/cm2/s] here 
+         IF ( ND46 > 0 ) THEN
 
-            ! Store ISOP and MONOTERPENE emissions [atoms C/box/time step]
-            ! for later use in the subroutine CHEM_TAGGED_CO
-            SUMISOPCO(I,J) = SUMISOPCO(I,J) + EMIS
-            SUMMONOCO(I,J) = SUMMONOCO(I,J) + EMMO
+            ! Isoprene 
+            AD46(I,J,1) = AD46(I,J,1) + ( EMIS / AREA_CM2 / DTSRCE )
 
-            ! ND46 -- save biogenic emissions [atoms C/cm2/s] here 
-            IF ( ND46 > 0 ) THEN
+            ! Monoterpenes 
+            AD46(I,J,4) = AD46(I,J,4) + ( EMMO / AREA_CM2 / DTSRCE )
 
-               ! Isoprene 
-               AD46(I,J,1) = AD46(I,J,1) + ( EMIS / AREA_CM2 / DTSRCE )
+         ENDIF
 
-               ! Monoterpenes 
-               AD46(I,J,4) = AD46(I,J,4) + ( EMMO / AREA_CM2 / DTSRCE )
+         !===========================================================
+         ! For GEOS-1, GEOS-STRAT, GEOS-3, extract acetone emission
+         ! fluxes the EMACET array for the current month
+         !===========================================================
 
-            ENDIF
+         ! EMAC = [atoms C/box/s] from acetone
+         EMAC = EMACET( I, J )
 
-            !===========================================================
-            ! For GEOS-1, GEOS-STRAT, GEOS-3, extract acetone emission
-            ! fluxes the EMACET array for the current month
-            !===========================================================
-
-            ! EMAC = [atoms C/box/s] from acetone
-            EMAC = EMACET( I, J )
-
-            ! Sum acetone loss for use in chemco_decay
-            ! Units = [atoms C/box/timestep]
-            SUMACETCO(I,J) = SUMACETCO(I,J) + (EMAC * DTSRCE * AREA_CM2)
+         ! Sum acetone loss for use in chemco_decay
+         ! Units = [atoms C/box/timestep]
+         SUMACETCO(I,J) = SUMACETCO(I,J) + (EMAC * DTSRCE * AREA_CM2)
             
-         ENDDO
+      ENDDO
       ENDDO
 !$OMP END PARALLEL DO
       ENDIF
@@ -831,6 +817,8 @@
 !  (19) Now make sure all USE statements are USE, ONLY (bmy, 10/3/05)
 !  (20) Remove reference to "global_ch4_mod.f" (bmy, 5/31/06)
 !  (21) Use newest JPL 2006 rate constant for CO+OH (jaf, jmao, 3/4/09)
+!  01 Mar 2012 - R. Yantosca - Now use GET_AREA_CM2(I,J,L) from grid_mod.F90
+!  01 Mar 2012 - R. Yantosca - Now use GET_YMID(I,J,L) from grid_mod.F90
 !******************************************************************************
 !
       ! References to F90 modules
@@ -952,14 +940,13 @@
 
       DO L = 1, LLPAR
       DO J = 1, JJPAR
+      DO I = 1, IIPAR
 
          ! Latitude of grid box
-         YMID = GET_YMID( J )
+         YMID     = GET_YMID( I, J, L )
 
          ! Grid box surface areas [cm2] (jaf, 3/10/09)
-         AREA_CM2 = GET_AREA_CM2( J )
-
-      DO I = 1, IIPAR
+         AREA_CM2 = GET_AREA_CM2( I, J, L )
 
          !==============================================================
          ! (0) Define useful quantities
@@ -1501,6 +1488,7 @@
 !  (7 ) Now references DATA_DIR from "directory_mod.f" (bmy, 7/20/04)
 !  (8 ) Now make sure all USE statements are USE, ONLY (bmy, 10/3/05)
 !  13 Aug 2010 - R. Yantosca - Treat MERRA in the same way as GEOS-5
+!  08 Feb 2012 - R. Yantosca - Treat GEOS-5.7.2 in the same way as MERRA
 !******************************************************************************
 !
       ! References to F90 modules
@@ -1554,7 +1542,7 @@
 !%%%      ! Cast from REAL*4 to REAL*8 and resize to (JJPAR,LLPAR)
 !%%%      CALL TRANSFER_ZONAL( ARRAY(1,:,:), CO_PRODS )
 !%%%---------------------------------------------------------------------
-#if   defined( GEOS_5 ) || defined( MERRA )
+#if   defined( GEOS_5 ) || defined( MERRA ) || defined( GEOS_57 )
       ! Cast from REAL*4 to REAL*8
       CO_PRODS = ARRAY(1,:,:)
 #else
@@ -1585,7 +1573,7 @@
 !%%%      ! Cast from REAL*4 to REAL*8 and resize to (JJPAR,LLPAR)
 !%%%      CALL TRANSFER_ZONAL( ARRAY(1,:,:), CO_LOSSS )
 !%%%---------------------------------------------------------------------
-#if   defined( GEOS_5 ) || defined( MERRA )
+#if   defined( GEOS_5 ) || defined( MERRA ) || defined( GEOS_57 )
       ! Cast from REAL*4 to REAL*8
       CO_LOSSS = ARRAY(1,:,:)
 #else

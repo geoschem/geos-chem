@@ -19,6 +19,7 @@
 
 #     include "define.h"
       PRIVATE
+      PRIVATE :: HG2_DIAG !hma, 25 Oct 2011
 !
 ! !PUBLIC MEMBER FUNCTIONS:
 !
@@ -34,9 +35,10 @@
       PUBLIC  :: SET_CT_DYN
       PUBLIC  :: SET_CT_EMIS
       PUBLIC  :: SET_CT_DIAG
-      PUBLIC  :: SET_CT_A1
+      PUBLIC  :: SET_CT_A1 
       PUBLIC  :: SET_CT_A3
       PUBLIC  :: SET_CT_A6
+      PUBLIC  :: SET_CT_I3
       PUBLIC  :: SET_CT_I6
       PUBLIC  :: SET_CT_XTRA
       PUBLIC  :: SET_ELAPSED_MIN
@@ -73,10 +75,6 @@
       PUBLIC  :: GET_TS_DYN
       PUBLIC  :: GET_TS_EMIS
       PUBLIC  :: GET_TS_UNIT
-!-----------------------------------
-! Prior to 10/7/11:
-!      PUBLIC  :: GET_TS_SUN_2
-!-----------------------------------
       PUBLIC  :: GET_CT_CHEM
       PUBLIC  :: GET_CT_CONV
       PUBLIC  :: GET_CT_DYN
@@ -84,16 +82,19 @@
       PUBLIC  :: GET_CT_A1
       PUBLIC  :: GET_CT_A3
       PUBLIC  :: GET_CT_A6
+      PUBLIC  :: GET_CT_I3
       PUBLIC  :: GET_CT_I6
       PUBLIC  :: GET_CT_XTRA
       PUBLIC  :: GET_CT_DIAG
       PUBLIC  :: GET_A1_TIME
       PUBLIC  :: GET_A3_TIME
       PUBLIC  :: GET_A6_TIME
+      PUBLIC  :: GET_I3_TIME
       PUBLIC  :: GET_I6_TIME
       PUBLIC  :: GET_FIRST_A1_TIME
       PUBLIC  :: GET_FIRST_A3_TIME
       PUBLIC  :: GET_FIRST_A6_TIME
+      PUBLIC  :: GET_FIRST_I3_TIME
       PUBLIC  :: GET_FIRST_I6_TIME
       PUBLIC  :: ITS_TIME_FOR_CHEM
       PUBLIC  :: ITS_TIME_FOR_CONV
@@ -104,6 +105,7 @@
       PUBLIC  :: ITS_TIME_FOR_A1
       PUBLIC  :: ITS_TIME_FOR_A3
       PUBLIC  :: ITS_TIME_FOR_A6
+      PUBLIC  :: ITS_TIME_FOR_I3
       PUBLIC  :: ITS_TIME_FOR_I6
       PUBLIC  :: ITS_TIME_FOR_UNZIP     
       PUBLIC  :: ITS_TIME_FOR_DEL
@@ -123,6 +125,12 @@
       PUBLIC  :: SYSTEM_TIMESTAMP
       PUBLIC  :: TIMESTAMP_DIAG
       PUBLIC  :: GET_NYMD_DIAG
+      PUBLIC  :: GET_Hg2_DIAG !hma, 25 Oct 2011
+      PUBLIC  :: SET_Hg2_DIAG !hma, 25 Oct 2011
+![eml
+      PUBLIC  :: SET_HISTYR
+      PUBLIC  :: GET_HISTYR
+!eml]
 #if   defined( APM )
       PUBLIC  :: ITS_TIME_FOR_A6UPDATE
 #endif
@@ -191,6 +199,12 @@
 !  07 Oct 2011 - R. Yantosca - Remove obsolete TS_SUN_2, GET_TS_SUN_2
 !  07 Oct 2011 - R. Yantosca - Remove obsolete OFFSET argument to GET_LOCALTIME
 !  12 Oct 2011 - R. Yantosca - Modified ITS_A_NEW_MONTH for central chem step
+!  25 Oct 2011 - H. Amos     - bring Hg2 gas-particle partitioning code into
+!                              v9-01-02
+!  02 Feb 2012 - R. Yantosca - Added modifications for GEOS-5.7.x met fields
+!  03 Feb 2012 - R. Yantosca - Added I3 fields timestep variable & routines
+!  28 Feb 2012 - R. Yantosca - Removed support for GEOS-3
+!  01 Mar 2012 - R. Yantosca - GET_LOCALTIME now takes (I,J,L,GMT) as args
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -202,6 +216,9 @@
       INTEGER           :: HOUR,       MINUTE,      SECOND
       INTEGER           :: NSEASON,    DAY_OF_YEAR, ELAPSED_MIN
       INTEGER           :: NDIAGTIME
+![eml
+      INTEGER           :: HISTYRA
+!eml]
       REAL*8            :: TAU,        TAUb,        TAUe  
       REAL*8            :: GMT,        DIAGb,       DIAGe
 
@@ -212,8 +229,9 @@
       ! Timestep counters
       INTEGER           :: CT_CHEM,    CT_CONV,     CT_DYN    
       INTEGER           :: CT_EMIS,    CT_A3,       CT_A6
-      INTEGER           :: CT_I6,      CT_XTRA,     CT_DIAG
-      INTEGER           :: CT_A1
+      INTEGER           :: CT_I3,      CT_I6,       CT_XTRA    
+      INTEGER           :: CT_DIAG,    CT_A1
+      INTEGER           :: Hg2_DIAG
 
       ! Number of leap years we have encountered since start of simulation
       REAL*8            :: LEAP_YEAR_DAYS
@@ -612,11 +630,6 @@
 !
       SUBROUTINE SET_TIMESTEPS( CHEMISTRY, CONVECTION, DYNAMICS,  
      &                          EMISSION,  UNIT_CONV,  DIAGNOS )
-!------------------------------------------------------------------------------
-! Prior to 10/5/11:
-! Remove SUNCOS argument, it's obsolete (bmy, 10/5/11)
-!     &                          SUNCOS )
-!------------------------------------------------------------------------------
 !
 ! !INPUT PARAMETERS:
 !
@@ -626,11 +639,6 @@
       INTEGER, INTENT(IN) :: EMISSION     ! Emission   timestep [min]
       INTEGER, INTENT(IN) :: UNIT_CONV    ! Unit conve timestep [min]
       INTEGER, INTENT(IN) :: DIAGNOS      ! Diagnostic timestep [min]
-!------------------------------------------------------------------------------
-! Prior to 10/5/11:
-! Remove SUNCOS argument, it's obsolete (bmy, 10/5/11)
-!      INTEGER, INTENT(IN) :: SUNCOS       ! 1/2 of timestep for SUNCOS [min]
-!------------------------------------------------------------------------------
 ! 
 ! !REVISION HISTORY: 
 !  05 Feb 2003 - R. Yantosca - Initial Version
@@ -652,22 +660,18 @@
       TS_EMIS  = EMISSION
       TS_UNIT  = UNIT_CONV
       TS_DIAG  = DIAGNOS
-!------------------------------------------------------------------------------
-! Prior to 10/5/11:
-! Remove SUNCOS argument, it's obsolete (bmy, 10/5/11)
-!      TS_SUN_2 = SUNCOS
-!------------------------------------------------------------------------------
 
       ! Zero timestep counters
-      CT_CHEM = 0
-      CT_CONV = 0
-      CT_DYN  = 0
-      CT_EMIS = 0
-      CT_A3   = 0
-      CT_A6   = 0
-      CT_I6   = 0
-      CT_XTRA = 0
-      CT_DIAG = 0
+      CT_CHEM  = 0
+      CT_CONV  = 0
+      CT_DYN   = 0
+      CT_EMIS  = 0
+      CT_A3    = 0
+      CT_A6    = 0
+      CT_I6    = 0
+      CT_XTRA  = 0
+      CT_DIAG  = 0
+      Hg2_DIAG = 0
 
       ! Echo to stdout
       WRITE( 6, '(/,a)' ) 'SET_TIMESTEPS: setting GEOS-Chem timesteps!'
@@ -678,11 +682,6 @@
       WRITE( 6, '(''Emission   Timestep [min] : '', i4 )' ) TS_EMIS
       WRITE( 6, '(''Unit Conv  Timestep [min] : '', i4 )' ) TS_UNIT
       WRITE( 6, '(''Diagnostic Timestep [min] : '', i4 )' ) TS_DIAG
-!------------------------------------------------------------------------------
-! Prior to 10/5/11:
-! Remove SUNCOS argument, it's obsolete (bmy, 10/5/11)
-!      WRITE( 6, '(''Offset for SUNCOS   [min] : '', i4 )' ) TS_SUN_2
-!------------------------------------------------------------------------------
 
       ! Return to calling program
       END SUBROUTINE SET_TIMESTEPS
@@ -720,6 +719,42 @@
       ENDIF
 
       END SUBROUTINE SET_CT_CHEM
+
+!EOC
+!------------------------------------------------------------------------------
+!          Harvard University Atmospheric Chemistry Modeling Group            !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: set_hg2_diag
+!
+! !DESCRIPTION: Subroutine SET\_Hg2\_DIAG increments Hg2\_DIAG, the counter for
+!  the number of times AAD03\_Fg and AD03\_Fp are recorded. (hma 20100218)
+!\\
+!\\
+! !INTERFACE:
+!
+      SUBROUTINE SET_Hg2_DIAG( INCREMENT, RESET )
+!
+! !INPUT PARAMETERS:
+!
+      LOGICAL, INTENT(IN), OPTIONAL :: INCREMENT  ! Increment counter?
+      LOGICAL, INTENT(IN), OPTIONAL :: RESET      ! Reset counter?
+! 
+! !REVISION HISTORY:
+!  18 Feb 2012 - H. Amos     - Initial version 
+!  07 Mar 2012 - M. Payer    - Added ProTeX headers
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+      IF ( PRESENT( INCREMENT ) ) THEN
+         Hg2_DIAG = Hg2_DIAG + 1
+      ELSE IF ( PRESENT( RESET ) ) THEN
+         Hg2_DIAG = 0
+      ENDIF
+
+      END SUBROUTINE SET_Hg2_DIAG
+
 !EOC
 !------------------------------------------------------------------------------
 !          Harvard University Atmospheric Chemistry Modeling Group            !
@@ -957,6 +992,39 @@
       ENDIF
 
       END SUBROUTINE SET_CT_A6
+!EOC
+!------------------------------------------------------------------------------
+!          Harvard University Atmospheric Chemistry Modeling Group            !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: set_ct_i3
+!
+! !DESCRIPTION: Subroutine SET\_CT\_I3 increments CT\_I3, the counter of the 
+!  number of times we have read in I-3 fields.
+!\\
+!\\
+! !INTERFACE:
+!
+      SUBROUTINE SET_CT_I3( INCREMENT, RESET )
+!
+! !INPUT PARAMETERS:
+!
+      LOGICAL, INTENT(IN), OPTIONAL :: INCREMENT  ! Increment counter?
+      LOGICAL, INTENT(IN), OPTIONAL :: RESET      ! Reset counter?
+! 
+! !REVISION HISTORY:
+!  03 Feb 2012 - R. Yantosca - Initial version, for GEOS-5.7.2
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+      IF ( PRESENT( INCREMENT ) ) THEN
+         CT_I3 = CT_I3 + 1
+      ELSE IF ( PRESENT( RESET ) ) THEN
+         CT_I3 = 0
+      ENDIF
+
+      END SUBROUTINE SET_CT_I3
 !EOC
 !------------------------------------------------------------------------------
 !          Harvard University Atmospheric Chemistry Modeling Group            !
@@ -1553,6 +1621,64 @@
 !------------------------------------------------------------------------------
 !BOP
 !
+! !IROUTINE: set_histyr
+!
+! !DESCRIPTION: Function SET\_HISTYR returns the year stored in HISTYR w/o
+!  needing to include the CMN\_O3 common block (eml, 8/20/08)
+!\\
+!\\
+! !INTERFACE:
+!
+      SUBROUTINE SET_HISTYR( YEARIN )
+!
+! !INPUT PARAMETERS:
+!
+      INTEGER, INTENT(IN) :: YEARIN
+! 
+! !REVISION HISTORY:
+!  20 Aug 2008 - E. Leibensperger - Initial version
+!  07 Mar 2012 - M. Payer         - Added ProTeX headers
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+      HISTYRA = YEARIN
+      
+      END SUBROUTINE SET_HISTYR
+!EOC
+!------------------------------------------------------------------------------
+!          Harvard University Atmospheric Chemistry Modeling Group            !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: get_histyr
+!
+! !DESCRIPTION: Function GET\_HISTYR returns the year stored in HISTYR w/o
+!  needing to include the CMN\_O3 common block (eml, 8/20/08)
+!\\
+!\\
+! !INTERFACE:
+!
+      FUNCTION GET_HISTYR() RESULT( HISTYEAR )
+!
+! !RETURN VALUE:
+!
+      INTEGER :: HISTYEAR
+! 
+! !REVISION HISTORY:
+!  20 Aug 2008 - E. Leibensperger - Initial version
+!  07 Mar 2012 - M. Payer         - Added ProTeX headers
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+      HISTYEAR = HISTYRA
+
+      END FUNCTION GET_HISTYR
+!EOC
+!------------------------------------------------------------------------------
+!          Harvard University Atmospheric Chemistry Modeling Group            !
+!------------------------------------------------------------------------------
+!BOP
+!
 ! !IROUTINE: get_hour
 !
 ! !DESCRIPTION: Function GET\_HOUR returns the current GMT hour.
@@ -1912,7 +2038,7 @@
 !\\
 ! !INTERFACE:
 !
-      FUNCTION GET_LOCALTIME( I, GMT ) RESULT( THISLOCALTIME )
+      FUNCTION GET_LOCALTIME( I, J, L, GMT ) RESULT( THISLOCALTIME )
 !
 ! !USES:
 !
@@ -1921,6 +2047,8 @@
 ! !INPUT PARAMETERS:
 !
       INTEGER, INTENT(IN)           :: I              ! Longitude index
+      INTEGER, INTENT(IN)           :: J              ! Latitude index
+      INTEGER, INTENT(IN)           :: L              ! Level index
       REAL*8,  INTENT(IN), OPTIONAL :: GMT            ! GMT time of day [hrs]
 !
 ! !RETURN VALUE:
@@ -1939,6 +2067,8 @@
 !                              (e.g. at the halfway point of an interval)
 !  05 Oct 2011 - R. Yantosca - Now add GMT as an optional argument
 !  07 Oct 2011 - R. Yantosca - Removed obsolete OFFSET argument
+!  01 Mar 2012 - R. Yantosca - Now use GET_XMID(I,J,L) from grid_mod.F90, and
+!                              add J, L indices to the argument list
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -1955,8 +2085,8 @@
          GMT_HRS = GET_GMT()
       ENDIF
 
-      ! Local time  = GMT time [hrs] +   longitude     / 15
-      THISLOCALTIME = GMT_HRS        + ( GET_XMID( I ) / 15d0 ) 
+      ! Local time  = GMT time [hrs] +   longitude           / 15
+      THISLOCALTIME = GMT_HRS        + ( GET_XMID( I, J, L ) / 15d0 ) 
 
       ! Make sure that THISLOCALTIME is in the range 0-24 hours
       IF ( THISLOCALTIME > 24 ) THISLOCALTIME = THISLOCALTIME - 24d0 
@@ -2167,40 +2297,6 @@
       THIS_TS_UNIT = TS_UNIT
 
       END FUNCTION GET_TS_UNIT
-!------------------------------------------------------------------------------
-! Prior to 10/7/11:
-! Remove obsolete GET_TS_SUN_2 function (bmy, 10/7/11)
-!!EOC
-!!------------------------------------------------------------------------------
-!!          Harvard University Atmospheric Chemistry Modeling Group            !
-!!------------------------------------------------------------------------------
-!!BOP
-!!
-!! !IROUTINE: get_ts_sun_2
-!!
-!! !DESCRIPTION: Function GET\_TS\_SUN\_2 returns TS\_SUN\_2, which is 1/2 of
-!!  the interval at which we are computing the cosine of the solar zenith
-!!  angle, aka SUNCOS.  This is required to move the time at which we compute
-!!  SUNCOS to the middle of the chemistry timestep interval.
-!!\\
-!!\\
-!! !INTERFACE:
-!!
-!      FUNCTION GET_TS_SUN_2() RESULT( THIS_TS_SUN_2 )
-!!
-!! !RETURN VALUE:
-!!
-!      INTEGER :: THIS_TS_SUN_2  ! 1/2 of SUNCOS interval [min]
-!! 
-!! !REVISION HISTORY: 
-!!  27 Apr 2010 - R. Yantosca - Initial version
-!!EOP
-!!------------------------------------------------------------------------------
-!!BOC
-!      THIS_TS_SUN_2 = TS_SUN_2
-!
-!      END FUNCTION GET_TS_SUN_2
-!------------------------------------------------------------------------------
 !EOC
 !------------------------------------------------------------------------------
 !          Harvard University Atmospheric Chemistry Modeling Group            !
@@ -2412,6 +2508,34 @@
 !------------------------------------------------------------------------------
 !BOP
 !
+! !IROUTINE: get_ct_i3
+!
+! !DESCRIPTION: Function GET\_CT\_I3 returns the I-3 fields timestep counter
+!  to the calling program
+!\\
+!\\
+! !INTERFACE:
+!
+      FUNCTION GET_CT_I3() RESULT( THIS_CT_I3 )
+!
+! !RETURN VALUE:
+!
+      INTEGER :: THIS_CT_I3   ! # of I-6 timesteps
+! 
+! !REVISION HISTORY: 
+!  03 Feb 2012 - R. Yantosca - Initial version, for GEOS-5.7.2
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+      THIS_CT_I3 = CT_I3
+
+      END FUNCTION GET_CT_I3
+!EOC
+!------------------------------------------------------------------------------
+!          Harvard University Atmospheric Chemistry Modeling Group            !
+!------------------------------------------------------------------------------
+!BOP
+!
 ! !IROUTINE: get_ct_i6
 !
 ! !DESCRIPTION: Function GET\_CT\_I6 returns the I-6 fields timestep counter
@@ -2483,7 +2607,7 @@
 ! !RETURN VALUE:
 !
       INTEGER :: THIS_CT_DIAG   ! # of diagnostic timesteps
- ! 
+! 
 ! !REVISION HISTORY: 
 !  21 May 2009 - C. Carouge  - Initial Version
 !  15 Jan 2010 - R. Yantosca - Added ProTeX headers
@@ -2493,6 +2617,35 @@
       THIS_CT_DIAG = CT_DIAG
 
       END FUNCTION GET_CT_DIAG
+!EOC
+!------------------------------------------------------------------------------
+!          Harvard University Atmospheric Chemistry Modeling Group            !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: get_hg2_diag
+!
+! !DESCRIPTION: Function GET\_Hg2\_DIAG returns the DIAG timestep counter to
+!  the calling program. (hma 20100218)
+!\\
+!\\
+! !INTERFACE:
+!
+      FUNCTION GET_Hg2_DIAG() RESULT( THIS_Hg2_DIAG )
+!
+! !RETURN VALUE:
+!
+      INTEGER :: THIS_Hg2_DIAG  ! # of diagnostic timesteps
+! 
+! !REVISION HISTORY:
+!  18 Feb 2012 - H. Amos     - Initial version 
+!  07 Mar 2012 - M. Payer    - Added ProTeX headers
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+      THIS_Hg2_DIAG = Hg2_DIAG
+
+      END FUNCTION GET_Hg2_DIAG
 !EOC
 !------------------------------------------------------------------------------
 !          Harvard University Atmospheric Chemistry Modeling Group            !
@@ -2519,14 +2672,15 @@
 ! 
 ! !REVISION HISTORY: 
 !  19 Aug 2010 - R. Yantosca - Initial version
+!  02 Feb 2012 - R. Yantosca - Added modifications for GEOS-5.7.x met fields
 !EOP
 !------------------------------------------------------------------------------
 !BOC
 
-#if   defined( MERRA )
+#if   defined( MERRA ) || defined( GEOS_57 )
 
-      ! MERRA met fields are 1-hour time-averages, timestamped at the
-      ! center of the averaging periods (00:30, 01:30, 02:30 ... 23:30)
+      ! MERRA and GEOS-5.7.x met fields are 1-hour time-averages, timestamped 
+      ! at the center of the averaging periods (00:30, 01:30, 02:30 ... 23:30)
       DATE = GET_TIME_AHEAD( 30 )
 
 #else
@@ -2567,27 +2721,16 @@
 !  (2 ) Remove reference to FIRST variable (bmy, 12/10/04)
 !  (3 ) Now modified for GCAP and GEOS-5 met fields (swu, bmy, 5/24/05)
 !  (4 ) Remove support for GEOS-1 and GEOS-STRAT met fields (bmy, 8/4/06)
-
 !  15 Jan 2010 - R. Yantosca - Added ProTeX headers
+!  28 Feb 2012 - R. Yantosca - Removed support for GEOS-3
 !EOP
 !------------------------------------------------------------------------------
 !BOC
-
-#if   defined( GEOS_3 )
-
-      ! For GEOS-1, GEOS-STRAT, GEOS-3, the A-3 fields are timestamped 
-      ! by ending time.  Therefore, the difference between the actual time
-      ! when the fields are read and the A-3 timestamp time is 180 minutes.
-      DATE = GET_TIME_AHEAD( 180 )      
-
-#else
 
       ! For GEOS-4, GEOS-5, or GCAP data: The A-3 fields are timestamped 
       ! by center time.  Therefore, the difference between the actual time 
       ! when the fields are read and the A-3 timestamp time is 90 minutes.
       DATE = GET_TIME_AHEAD( 90 )   
-
-#endif
 
       END FUNCTION GET_A3_TIME
 !EOC
@@ -2633,6 +2776,79 @@
 #endif
 
       END FUNCTION GET_A6_TIME
+!EOC
+!------------------------------------------------------------------------------
+!          Harvard University Atmospheric Chemistry Modeling Group            !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: get_i3_time
+!
+! !DESCRIPTION: Function GET\_I3\_TIME returns the correct YYYYMMDD and 
+!  HHMMSS values that are needed to read in the next instantaneous 3-hour 
+!  (I-3) fields. 
+!\\
+!\\
+! !INTERFACE:
+!
+      FUNCTION GET_I3_TIME() RESULT( DATE )
+!
+! !RETURN VALUE:
+!
+      INTEGER :: DATE(2)   ! YYYYMMDD and HHMMSS values
+!  
+! !REMARKS:
+!  Modified for start times other than 0 GMT.
+!
+! !REVISION HISTORY: 
+!   6 Feb 2012 - R. Yantosca - Initial version
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+!
+! !LOCAL VARIABLES:
+! 
+      LOGICAL, SAVE :: FIRST = .TRUE.
+      INTEGER       :: HH, MM, SS, MINS, OFFSET
+
+      !=================================================================
+      ! ALL MET FIELDS:
+      !=================================================================
+ 
+      IF ( FIRST ) THEN
+
+         !--------------------------------------------------------------
+         ! FIRST-TIME ONLY!  Get the proper # of hours until the next 
+         ! I6 time.  Also works for start times other than 0 GMT.
+         !--------------------------------------------------------------
+
+         ! Split NHMS into hours, mins, seconds
+         CALL YMD_EXTRACT( NHMS, HH, MM, SS )
+
+         ! Compute minutes elapsed in the 6-hour interval
+         MINS   = MOD( HH, 3 )*60 + MM
+
+         ! Compute offset to next I-3 time
+         OFFSET = 180 - MINS
+
+         ! Get YYYY/MM/DD and hh:mm:ss to next I-6 time
+         DATE   = GET_TIME_AHEAD( OFFSET ) 
+
+         ! Reset first-time flag
+         FIRST = .FALSE.
+
+      ELSE
+
+         !--------------------------------------------------------------
+         ! Other than the 1st time: Search 360 mins ahead
+         !--------------------------------------------------------------
+
+         ! We need to read in the I-6 fields 6h (180 mins) ahead of time
+         DATE = GET_TIME_AHEAD( 180 )
+
+      ENDIF
+
+      END FUNCTION GET_I3_TIME
 !EOC
 !------------------------------------------------------------------------------
 !          Harvard University Atmospheric Chemistry Modeling Group            !
@@ -2791,6 +3007,7 @@
 !  (2 ) Remove support for GEOS-1 and GEOS-STRAT met fields (bmy, 8/4/06)
 !  15 Jan 2010 - R. Yantosca - Added ProTeX headers
 !  27 Sep 2010 - R. Yantosca - Modified for start times other than 0 GMT
+!  28 Feb 2012 - R. Yantosca - Removed support for GEOS-3
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -2798,17 +3015,6 @@
 ! !LOCAL VARIABLES:
 !
       INTEGER :: HH, MM, SS, MINS, OFFSET
-
-#if   defined( GEOS_3 )
-
-      !==================================================================
-      ! GEOS-3: A3 fields indexed by start time
-      !==================================================================
-
-      ! For GEOS-1, GEOS-STRAT, GEOS-3: Return the current date/time
-      DATE = (/ NYMD, NHMS /)
-
-#else
 
       !==================================================================
       ! GEOS-4, GEOS-5, MERRA, GCAP: 
@@ -2826,8 +3032,6 @@
 
       ! Get YYYY/MM/DD and hh:mm:ss at midpoint of 3hr interval
       DATE   = GET_TIME_AHEAD( OFFSET )
-
-#endif
 
       END FUNCTION GET_FIRST_A3_TIME
 !EOC
@@ -2905,6 +3109,53 @@
 #endif
 
       END FUNCTION GET_FIRST_A6_TIME
+!EOC
+!------------------------------------------------------------------------------
+!          Harvard University Atmospheric Chemistry Modeling Group            !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: get_first_i3_time
+!
+! !DESCRIPTION: Function GET\_FIRST\_I3\_TIME returns the correct YYYYMMDD and
+!  HHMMSS values the first time that I-3 fields are read in from disk.
+!\\
+!\\
+! !INTERFACE:
+!
+      FUNCTION GET_FIRST_I3_TIME() RESULT( DATE )
+!
+! !RETURN VALUE:
+!
+      INTEGER :: DATE(2)    ! YYYYMMDD, HHMMSS values
+! 
+! !REVISION HISTORY: 
+!  03 Feb 2012 - R. Yantosca - Initial version, for GEOS-5.7.2
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+!
+! !LOCAL VARIABLES:
+!
+      INTEGER :: HH, MM, SS, MINS, OFFSET
+
+      !==================================================================
+      ! Compute first I-6 time for all met field types
+      !==================================================================
+
+      ! Split NYMS into hours, mins, seconds
+      CALL YMD_EXTRACT( NHMS, HH, MM, SS )        
+
+      ! Compute minutes elapsed in the 3-hour interval
+      MINS   = MOD( HH, 3 )*60 + MM
+
+      ! Compute offset to nearest I-6 time
+      OFFSET = -MINS
+
+      ! Get YYYY/MM/DD and hh:mm:ss to nearest I-6 time
+      DATE   = GET_TIME_AHEAD( OFFSET ) 
+
+      END FUNCTION GET_FIRST_I3_TIME
 !EOC
 !------------------------------------------------------------------------------
 !          Harvard University Atmospheric Chemistry Modeling Group            !
@@ -2997,12 +3248,6 @@
       M = MAX( M/2, 1 )
 
       ! Is it time for chemistry?
-!-----------------------------------------------------------------------
-! Prior to 9/27/11:
-! Chemistry time step is now in the center of transport time steps. The
-! previous setup was TCTTT, now TTCTT (lzh, mpayer, 9/27/11)
-!      FLAG = ( MOD( ELAPSED_MIN, TS_CHEM ) == 0 )
-!-----------------------------------------------------------------------
       ! Chemistry time step is now in the center of transport time steps
       FLAG = ( MOD( ELAPSED_MIN, TS_CHEM ) == (M-1)*TS_DYN )
 
@@ -3114,12 +3359,6 @@
       M = MAX( M/2, 1 )
 
       ! Is it time for emissions?
-!-----------------------------------------------------------------------
-! Prior to 9/27/11:
-! Emission time step is now in the center of transport time steps. The
-! previous setup was TCTTT, now TTCTT (lzh, mpayer, 9/27/11)
-!      FLAG = ( MOD( ELAPSED_MIN, TS_EMIS ) == 0 )
-!-----------------------------------------------------------------------
       ! Emission time step is now in the center of transport time steps
       FLAG = ( MOD( ELAPSED_MIN, TS_EMIS ) == (M-1)*TS_DYN )
 
@@ -3399,6 +3638,42 @@
 
 !EOC
 #endif
+!------------------------------------------------------------------------------
+!          Harvard University Atmospheric Chemistry Modeling Group            !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: its_time_for_i3
+!
+! !DESCRIPTION: Function ITS\_TIME\_FOR\_I3 returns TRUE if it is time to read 
+!  in I2 (instantaneous 3-hr fields) and FALSE otherwise.
+!\\
+!\\
+! !INTERFACE:
+!
+      FUNCTION ITS_TIME_FOR_I3() RESULT( FLAG )
+!
+! !RETURN VALUE:
+!
+      LOGICAL :: FLAG 
+! 
+! !REVISION HISTORY: 
+!  03 Feb 2012 - R. Yantosca - Initial version, for GEOS-5.7.2
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+!
+! !LOCAL VARAIABLES:
+!
+      LOGICAL, SAVE :: FIRST = .TRUE.
+      
+      ! We read in I-6 fields at 00, 03, 06, 09, 12, 15, 18, 21 GMT
+      FLAG = ( ( MOD( NHMS, 030000 ) == 0 ) .or. FIRST )
+      
+      FIRST = .FALSE.
+
+      END FUNCTION ITS_TIME_FOR_I3
+!EOC
 !------------------------------------------------------------------------------
 !          Harvard University Atmospheric Chemistry Modeling Group            !
 !------------------------------------------------------------------------------
@@ -4015,12 +4290,6 @@
 !BOC
 
       ! Test for the 16th of the month at 0 GMT
-!----------------------------------------------------------------------------
-! Prior to 10/14/11:
-! Now use ITS_A_NEW_DAY to tell if it's the first data read time of the day.
-! This will account for the central chemistry timestep option. (bmy, 10/14/11) 
-!      IS_MIDMONTH = ( DAY == 16 .and. NHMS == 000000 )
-!----------------------------------------------------------------------------
       IS_MIDMONTH = ( DAY == 16 .and. ITS_A_NEW_DAY() )
 
       END FUNCTION ITS_MIDMONTH

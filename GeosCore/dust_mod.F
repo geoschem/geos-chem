@@ -55,6 +55,8 @@
 !       (clh, 05/07/10)
 !  25 Aug 2010 - R. Yantosca - Added ProTeX headers
 !  03 Sep 2010 - R. Yantosca - Bug fix in SRC_DUST_DEAD
+!  08 Feb 2012 - R. Yantosca - Add modifications for GEOS-5.7.x
+!  01 Mar 2012 - R. Yantosca - Now reference the new grid_mod.F90
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -67,6 +69,10 @@
       REAL*8,  ALLOCATABLE   :: DUSTREFF(:)
       REAL*8,  ALLOCATABLE   :: DUSTDEN(:)
       
+#if defined( DEVEL )
+      REAL*8, ALLOCATABLE, SAVE :: SRCE_FUNC(:,:,:)
+#endif
+
       CONTAINS
 !EOC
 !------------------------------------------------------------------------------
@@ -209,6 +215,7 @@
 !  (2 ) Remove reference to CMN, it's not needed (bmy, 7/20/04)
 !  (3 ) Now references XNUMOL from "tracer_mod.f" (bmy, 10/25/05)
 !  25 Aug 2010 - R. Yantosca - Added ProTeX headers
+!  01 Mar 2012 - R. Yantosca - Now use GET_AREA_CM2(I,J,L) from grid_mod.F90
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -274,12 +281,12 @@
          ! Loop over latitudes
          DO J = 1, JJPAR
 
-            ! Surface area [cm2]
-            AREA_CM2 = GET_AREA_CM2(J)
-
             ! Loop over longitudes
             DO I = 1, IIPAR
-            
+
+               ! Surface area [cm2]
+               AREA_CM2 = GET_AREA_CM2( I, J, 1 )
+
                ! Initialize settling velocity
                DO L = 1, LLPAR
                   VTS(L) = 0d0
@@ -413,6 +420,7 @@
 !  30 Mar 2004 - T. D. Fairlie - Initial version
 !  (1 ) Now references XNUMOL from "tracer_mod.f" (bmy, 10/25/05)
 !  25 Aug 2010 - R. Yantosca - Added ProTeX headers
+!  01 Mar 2012 - R. Yantosca - Now use GET_AREA_CM2(I,J,L) from grid_mod.F90
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -441,11 +449,11 @@
          ! Loop over latitudes
          DO J = 1, JJPAR
 
-            ! Surface area [cm2]
-            AREA_CM2 = GET_AREA_CM2(J)
-
             ! Loop over longitudes
             DO I = 1, IIPAR
+
+               ! Surface area [cm2]
+               AREA_CM2 = GET_AREA_CM2( I, J, 1 )
 
                ! Original dust concentration at surface
                OLD = TC(I,J,1,N)
@@ -489,7 +497,11 @@
 !\\
 ! !INTERFACE:
 !
+#if defined( DEVEL )
+      SUBROUTINE EMISSDUST( SFLX )
+#else
       SUBROUTINE EMISSDUST
+#endif
 !
 ! !USES:
 !
@@ -499,6 +511,10 @@
       USE TRACERID_MOD, ONLY : IDTDST1, IDTDST2, IDTDST3, IDTDST4
 
       USE CMN_SIZE_MOD       ! Size parameters
+#if defined( DEVEL )
+      USE TRACER_MOD,   ONLY : N_TRACERS
+      USE TIME_MOD,     ONLY : GET_TS_EMIS
+#endif
 ! 
 ! !REVISION HISTORY: 
 !  30 Mar 2004 - T. D. Fairlie - Initial version
@@ -514,6 +530,11 @@
 !
       LOGICAL, SAVE :: FIRST = .TRUE.
       
+#if defined( DEVEL )
+      REAL*8, INTENT(INOUT) :: SFLX(IIPAR,JJPAR,LLPAR,N_TRACERS+1)
+      REAL*8                :: STT_TMP(IIPAR,JJPAR,LLPAR,4)
+!      REAL*8                :: DTSRCE
+#endif
       !=================================================================
       ! EMISSDUST begins here!
       !=================================================================
@@ -541,6 +562,9 @@
       !=================================================================
       ! Call appropriate emissions routine
       !=================================================================
+#if defined( DEVEL )
+      STT_TMP(:,:,:,:) = STT(:,:,:,IDTDST1:IDTDST4)
+#endif
       IF ( LDEAD ) THEN
 
          ! Use Zender's DEAD dust source function
@@ -558,6 +582,10 @@
          IF ( LPRT ) CALL DEBUG_MSG( '### EMISSDUST: a SRC_DUST_GINOUX')
 
       ENDIF     
+
+#if defined( DEVEL )
+      SFLX(:,:,:,IDTDST1:IDTDST4) = (STT(:,:,:,IDTDST1:IDTDST4)-STT_TMP)/(GET_TS_EMIS()*60.d0)
+#endif
 
       END SUBROUTINE EMISSDUST
 !EOC
@@ -641,6 +669,8 @@
 !  03 Sep 2010 - R. Yantosca - Bug fix, SNOMAS was mislabled in GEOS-5
 !                              and has units of mm H2O instead of m H2O
 !                              so we need to convert to m H2O.
+!  08 Feb 2012 - R. Yantosca - Treat GEOS-5.7.x in the same way as MERRA
+!  01 Mar 2012 - R. Yantosca - Now use GET_YMID_R(I,J,L) from grid_mod.F90
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -778,7 +808,7 @@
             ORO(I)         = OROGRAPHY(I,J) 
 
             ! Snow height [m H2O]
-#if   defined( GEOS_5 ) || defined( MERRA )
+#if   defined( GEOS_5 ) || defined( MERRA ) || defined( GEOS_57 )
             SNW_HGT_LQD(I) = SNOMAS(I,J) / 1000d0
 #else
             SNW_HGT_LQD(I) = SNOW(I,J) / 1000d0
@@ -794,7 +824,7 @@
          !==============================================================
          
          ! Latitude in RADIANS
-         YMID_R = GET_YMID_R(J)
+         YMID_R = GET_YMID_R( 1, J, 1 )
 
          ! Call DEAD dust mobilization
          CALL DST_MBL( DOY,    BHT2,  J,     YMID_R, ORO,    
@@ -904,6 +934,7 @@
 !  (1 ) Added OpenMP parallelization (bmy, 4/8/04)
 !  (2 ) Now references DATA_DIR from "directory_mod.f" (bmy, 7/20/04)
 !  25 Aug 2010 - R. Yantosca - Added ProTeX headers
+!  01 Mar 2012 - R. Yantosca - Now use GET_AREA_M2(I,J,L) from grid_mod.F90
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -914,11 +945,13 @@
       INTEGER                :: I, J, N, M, IOS
       INTEGER                :: IPOINT(NDSTBIN) = (/3, 2, 2, 2/)
       REAL*4                 :: ARRAY(IIPAR,JJPAR,3)
-      REAL*8, SAVE           :: SRCE_FUNC(IIPAR,JJPAR,3)
       REAL*8                 :: W10M,   DEN,  DIAM,   U_TS0, U_TS
       REAL*8                 :: SRCE_P, DSRC, REYNOL, ALPHA, BETA
       REAL*8                 :: GAMMA,  CW,   DTSRCE, AREA_M2
       CHARACTER(LEN=255)     :: FILENAME
+#if !defined( DEVEL )
+      REAL*8, SAVE           :: SRCE_FUNC(IIPAR,JJPAR,3)
+#endif
 
       ! Transfer coeff for type natural source  (kg*s2/m5)
       REAL*8, PARAMETER      :: CH_DUST  = 9.375d-10
@@ -1018,11 +1051,11 @@
          ! Loop over latitudes
          DO J = 1, JJPAR
             
-            ! Get grid box surface area [m2]
-            AREA_M2 = GET_AREA_M2(J)
-
             ! Loop over longitudes
             DO I = 1, IIPAR
+
+               ! Get grid box surface area [m2]
+               AREA_M2 = GET_AREA_M2( I, J, 1 )
 
                ! Fraction of emerged surfaces 
                ! (subtract lakes, coastal ocean,...)
@@ -1099,7 +1132,7 @@
       USE COMODE_MOD,    ONLY : WTAREA, WERADIUS
       USE DAO_MOD,       ONLY : RH
 
-      USE CMN_FJ_MOD,    ONLY : IPAR, JPAR, LPAR, JPMAX, JPPJ      
+!      USE CMN_FJ_MOD,    ONLY : IPAR, JPAR, LPAR, JPMAX, JPPJ      
       USE JV_CMN_MOD          ! ODMDUST, QAA, RAA, QAA_AOD (clh)
       USE COMODE_LOOP_MOD     ! NTTLOOP
 
@@ -1341,7 +1374,7 @@
 
 #     include "define.h"
 
-      USE CMN_FJ_MOD,    ONLY : IPAR, JPAR, LPAR, JPMAX, JPPJ
+      USE CMN_FJ_MOD,    ONLY : JPMAX, JPPJ
       USE JV_CMN_MOD,    ONLY : ODMDUST, QAA, RAA, RAA_AOD, QAA_AOD
       USE COMODE_LOOP_MOD     ! NTTLOOP
       USE CMN_DIAG_MOD        ! ND21, LD21
@@ -1361,7 +1394,7 @@
 !        binary files is pretty fast.  And it's only done once a month.
 !  (3 ) Now references punch file utility routines from F90 module
 !        "bpch2_mod.f".  Also reference variable DATA_DIR from the
-!         header file "F77_CMN_SETUP". (bmy, 9/30/00) 
+!         header file "CMN_SETUP". (bmy, 9/30/00) 
 !  (4 ) Now selects proper GEOS-STRAT dust field for 1996 or 1997.
 !        Also need to pass THISYEAR thru the arg list. (rvm, bmy, 11/21/00)
 !  (5 ) CONC is now declared as REAL*8 (rvm, bmy, 12/15/00)
@@ -1699,6 +1732,12 @@
          IF ( AS /= 0 ) CALL ALLOC_ERR( 'FRAC_S' )
          FRAC_S(1:NDSTBIN)   = (/ 0.095d0, 0.3d0, 0.3d0, 0.3d0 /)
       ENDIF
+
+#if defined( DEVEL )
+      ALLOCATE( SRCE_FUNC(IIPAR,JJPAR,3), STAT=AS )
+      IF ( AS /= 0 ) CALL ALLOC_ERR( 'SRCE_FUNC' )
+      SRCE_FUNC = 0.d0
+#endif
 
       ! Reset flag
       IS_INIT = .TRUE.
