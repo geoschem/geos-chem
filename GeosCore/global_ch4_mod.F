@@ -891,7 +891,7 @@
          YEAR    = 2004
          WRITE( CYEAR, '(i4)' ) YEAR
 
-         FILENAME = TRIM( DATA_DIR ) // TRIM( CH4_DIR )        //
+         FILENAME = TRIM( DATA_DIR ) // 'CH4_201203/wetlands/' //
      &              'TSKIN.'         // GET_NAME_EXT()         //
      &              '.'              // GET_RES_EXT()          //
      &              '_NA.'           // CYEAR                  //

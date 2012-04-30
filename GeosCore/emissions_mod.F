@@ -895,9 +895,7 @@
 #endif
 #else
 #if   defined( GRID05x0666 )
-            CALL EMISS_EPA_NEI(                  ! Use NEI99 biofuel, nested
-     &       CHEM_STATE%TRAC_TEND(:,:,1,:),
-     &       CHEM_STATE%TRAC_BTEND(:,:,1,:))
+            CALL EMISS_EPA_NEI                  ! Use NEI99 biofuel, nested
             CALL EMISS_NEI2005_ANTHRO_05x0666   ! Use NEI05 anthro,  nested
 #else
             CALL EMISS_EPA_NEI                  ! Use NEI99 biofuel, global
