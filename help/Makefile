@@ -34,6 +34,7 @@
 #                              about tomas target.
 #  26 Aug 2011 - R. Yantosca - Added info about APM targets
 #  26 Aug 2011 - R. Yantosca - Add info about the PRECISE=no option
+
 #EOP
 #------------------------------------------------------------------------------
 #BOC
@@ -80,6 +81,8 @@ help:
 	@echo ''
 	@echo 'OPTIONAL-FLAGS may be:'
 	@echo 'COMPILER=___   Options: ifort pgi sun xlf (default is ifort)'
+	@echo 'NETCDF3=yes    Specifies that we are using a netCDF-3 build'
+	@echo '                (default is to assume netCDF-4)'
 	@echo 'PRECISE=no     Disable precise floating point math optimization (for speed)'
 	@echo 'HDF5=yes       Enables writing diagnostic timeseries output to HDF5 files'
 	@echo 'DEBUG=yes      Builds GEOS-Chem for a debugger (with -g -O0)'

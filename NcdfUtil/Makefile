@@ -61,11 +61,15 @@ include ../Makefile_header.mk
 
 # Linking paths for building the executable which tests if 
 # the netCDF libraries were installed correctly
+ifeq ($(NETCDF3),yes) 
+NCL     := -L../lib -lNcUtils -L$(LIB_NETCDF) -lnetcdf
+else
 NCL     := -L../lib -lNcUtils \
            -L$(LIB_NETCDF) -lnetcdf \
            -L$(LIB_HDF5) -lhdf5_hl \
            -L$(LIB_HDF5) -lhdf5 \
-           -L$(LIB_ZLIB) -lz \
+           -L$(LIB_ZLIB) -lz
+endif
 
 #==============================================================================
 # Filename section
