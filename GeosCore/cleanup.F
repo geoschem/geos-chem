@@ -53,6 +53,8 @@
       USE GLOBAL_NOX_MOD,          ONLY : CLEANUP_GLOBAL_NOX
       USE GLOBAL_O1D_MOD,          ONLY : CLEANUP_GLOBAL_O1D
       USE GLOBAL_OH_MOD,           ONLY : CLEANUP_GLOBAL_OH
+      USE GLOBAL_GRID_MOD,         ONLY : CLEANUP_GLOBAL_GRID
+      USE GRID_MOD,                ONLY : CLEANUP_GRID
       USE H2_HD_MOD,               ONLY : CLEANUP_H2_HD
       USE HCN_CH3CN_MOD,           ONLY : CLEANUP_HCN_CH3CN
       USE HDF_MOD,                 ONLY : CLEANUP_HDF
@@ -179,6 +181,8 @@
 !  07 Sep 2011 - P. Kasibhatla - Add modifications for GFED3
 !  05 Apr 2012 - R. Yantosca - Now call CLEANUP_MODIS_LAI
 !  11 Apr 2012 - R. Yantosca - Remove reference to obsolete lai_mod.F
+!  01 May 2012 - M. Payer    - Added calls for CLEANUP_GLOBAL_GRID and
+!                              CLEANUP_GRID
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -229,6 +233,8 @@
       CALL CLEANUP_GLOBAL_NO3
       CALL CLEANUP_GLOBAL_O1D
       CALL CLEANUP_GLOBAL_OH
+      CALL CLEANUP_GLOBAL_GRID
+      CALL CLEANUP_GRID
       CALL CLEANUP_H2_HD
       CALL CLEANUP_HCN_CH3CN
       CALL CLEANUP_HDF

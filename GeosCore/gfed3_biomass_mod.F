@@ -16,7 +16,9 @@
 ! !USES:
 !
       IMPLICIT NONE
+#     include "define.h"
       PRIVATE
+
 !
 ! !PUBLIC MEMBER FUNCTIONS:
 !
@@ -365,10 +367,10 @@
       USE TIME_MOD,       ONLY : GET_HOUR
       USE TIME_MOD,       ONLY : GET_DAY_OF_YEAR
       USE TIME_MOD,       ONLY : ITS_A_LEAPYEAR
-      USE GRID_MOD,       ONLY : GET_IIIPAR
-      USE GRID_MOD,       ONLY : GET_JJJPAR
-      USE GRID_MOD,       ONLY : GET_XEDGE_G
-      USE GRID_MOD,       ONLY : GET_YEDGE_G
+      USE GLOBAL_GRID_MOD, ONLY : GET_XEDGE_G
+      USE GLOBAL_GRID_MOD, ONLY : GET_YEDGE_G
+      USE GRID_MOD,       ONLY : GET_XEDGE
+      USE GRID_MOD,       ONLY : GET_YEDGE
       USE GRID_MOD,       ONLY : GET_XOFFSET
       USE GRID_MOD,       ONLY : GET_YOFFSET
       USE ERROR_MOD,      ONLY : ALLOC_ERR
@@ -393,7 +395,11 @@
 ! !REVISION HISTORY: 
 !  07 Sep 2011 - P. Kasibhatla - Initial version, based on GFED2
 !  07 Sep 2011 - R. Yantosca   - Added ProTeX headers 
-!  13 Mar 2012 - M. Cooper     - Change regrid algorithm to map_a2a
+!  03 May 2012 - M. Payer      - Now use 3D indices for grid_mod.F90 routines
+!                                GET_XEDGE and GET_YEDGE. Nested grids still 
+!                                use 1D indices for routines GET_XEDGE_G and
+!                                GET_YEDGE_G found in global_grid_mod.90. This
+!                                will maintain grid-independent functionality.
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -435,14 +441,11 @@
 
       ! First-time initialization
       IF ( FIRST ) THEN
-         IIIPAR0 = GET_IIIPAR()
-         JJJPAR0 = GET_JJJPAR()
          CALL INIT_GFED3_BIOMASS
 
          DEG2RAD = (4. * ATAN(1.) ) /180.
 
-      ! Define GFED3 grid box lat and lon edges
-
+         ! Define GFED3 grid box lat and lon edges
          XEDGE_GFED3( 1 ) = -180.d0
          DO I = 2,IGFED3+1
             XEDGE_GFED3( I ) = XEDGE_GFED3( I-1 ) + 5.d-1
@@ -457,7 +460,11 @@
             YEDGE_GFED3( J ) = SIN( YEDGE_GFED3( J ) * DEG2RAD)
          END DO
 
-      ! Define global grid box lat and lon edges at model resolution
+         ! Define global grid box lat and lon edges at model resolution
+#if   defined( GRID05x0666 ) || defined( GRID025x03125 )
+
+         ! Note: Nested grids utilize global longitude and latidude extent
+         ! parameters IIIPAR and JJJPAR (from global_grid_mod)
 
          DO I = 1,IIIPAR0+1
             XEDGE_MODELG( I ) = GET_XEDGE_G ( I )
@@ -470,6 +477,25 @@
          DO J = 1,JJJPAR0+1
             YEDGE_MODELG( J ) = SIN( YEDGE_MODELG( J ) * DEG2RAD)
          END DO
+
+#else
+
+         ! Note: Global grids utilize window longitude and latidude extent
+         ! parameters IIPAR and JJPAR (from CMN_SIZE_mod)
+
+         DO I = 1,IIPAR+1
+            XEDGE_MODELG( I ) = GET_XEDGE( I, 1, 1 )
+         END DO
+
+         DO J = 1,JJPAR+1
+            YEDGE_MODELG( J ) = GET_YEDGE( 1, J, 1 )
+         END DO
+
+         DO J = 1,JJPAR+1
+            YEDGE_MODELG( J ) = SIN( YEDGE_MODELG( J ) * DEG2RAD)
+         END DO
+
+#endif
 
          FIRST = .FALSE.
 
@@ -778,7 +804,8 @@
          ENDDO
          ENDDO
 
-      ! Regrid emissions from GFED3 grid to model grid
+         ! Regrid emissions from GFED3 grid to model grid
+#if   defined( GRID05x0666 ) || defined( GRID025x03125 )
 
          ALLOCATE( bq1( IGFED3, JGFED3 ), STAT=AS )
          IF ( AS /= 0 ) CALL ALLOC_ERR( 'bq1' )
@@ -786,9 +813,26 @@
          IF ( AS /= 0 ) CALL ALLOC_ERR( 'bq2' )
 
          bq1(:,:)=BIOMASS_GFED3(:,:,N)
+
          CALL GRID_GFED3( IGFED3, JGFED3, XEDGE_GFED3, YEDGE_GFED3, 
      &      bq1, IIIPAR0, JJJPAR0, XEDGE_MODELG, YEDGE_MODELG, bq2,
      &      0, 0)
+
+#else
+
+         ALLOCATE( bq1( IGFED3, JGFED3 ), STAT=AS )
+         IF ( AS /= 0 ) CALL ALLOC_ERR( 'bq1' )
+         ALLOCATE( bq2( IIPAR, JJPAR ), STAT=AS )
+         IF ( AS /= 0 ) CALL ALLOC_ERR( 'bq2' )
+
+         bq1(:,:)=BIOMASS_GFED3(:,:,N)
+
+         CALL GRID_GFED3( IGFED3, JGFED3, XEDGE_GFED3, YEDGE_GFED3, 
+     &      bq1, IIPAR, JJPAR, XEDGE_MODELG, YEDGE_MODELG, bq2,
+     &      0, 0)
+
+#endif
+
          I0    = GET_XOFFSET( GLOBAL=.TRUE. )
          J0    = GET_YOFFSET( GLOBAL=.TRUE. )
          DO JJ=1,JJPAR
@@ -1062,6 +1106,8 @@
       USE TRACERID_MOD,  ONLY : IDBTOLU, IDBXYLE, IDBC2H4
       USE TRACERID_MOD,  ONLY : IDBC2H2, IDBGLYC, IDBHAC
       USE TRACERID_MOD,  ONLY : IDBCH4   !kjw
+      USE GLOBAL_GRID_MOD, ONLY : GET_IIIPAR
+      USE GLOBAL_GRID_MOD, ONLY : GET_JJJPAR
 
       USE CMN_SIZE_MOD        ! Size parameters
 
@@ -1096,6 +1142,12 @@
       IF ( AS /= 0 ) CALL ALLOC_ERR( 'YEDGE_GFED3' )
       YEDGE_GFED3 = 0.d0
 
+#if   defined( GRID05x0666 ) || defined( GRID025x03125 )
+
+      ! Get global longitude/latitude extent [# of boxes]
+      IIIPAR0 = GET_IIIPAR()
+      JJJPAR0 = GET_JJJPAR()
+
       ! Allocate array to hold GEOS-Chem grid box lon edges
       ALLOCATE( XEDGE_MODELG( IIIPAR0+1 ), STAT=AS )
       IF ( AS /= 0 ) CALL ALLOC_ERR( 'XEDGE_MODELG' )
@@ -1105,6 +1157,20 @@
       ALLOCATE( YEDGE_MODELG( JJJPAR0+1 ), STAT=AS )
       IF ( AS /= 0 ) CALL ALLOC_ERR( 'YEDGE_MODELG' )
       YEDGE_MODELG = 0.d0
+
+#else
+
+      ! Allocate array to hold GEOS-Chem grid box lon edges
+      ALLOCATE( XEDGE_MODELG( IIPAR+1 ), STAT=AS )
+      IF ( AS /= 0 ) CALL ALLOC_ERR( 'XEDGE_MODELG' )
+      XEDGE_MODELG = 0.d0
+
+      ! Allocate array to hold GEOS-Chem grid box lat edges
+      ALLOCATE( YEDGE_MODELG( JJPAR+1 ), STAT=AS )
+      IF ( AS /= 0 ) CALL ALLOC_ERR( 'YEDGE_MODELG' )
+      YEDGE_MODELG = 0.d0
+
+#endif
 
       ! Allocate array to hold GFED3 species emissions on model grid
       ALLOCATE( BIOMASS_MODEL( IIPAR, JJPAR, N_SPEC ), STAT=AS )

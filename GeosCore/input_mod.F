@@ -791,14 +791,22 @@
 ! !USES:
 !
       USE CMN_SIZE_MOD
-      USE GRID_MOD,     ONLY : INIT_GRID, COMPUTE_GRID
+      USE GLOBAL_GRID_MOD, ONLY : COMPUTE_GLOBAL_GRID
+      USE GRID_MOD,        ONLY : INIT_GRID, COMPUTE_GRID
 ! 
 ! !REMARKS:
 !  The module grid_mod.F90 has been modified to save grid parameters in 3D
 !  format, which will facilitate interfacing GEOS-Chem to a GCM.
+!                                                                             .
+!  The module global_grid_mod.F90 contains several of the global grid arrays
+!  (*_g) originally in grid_mod.F. These arrays are used in regridding GFED3
+!  biomass emissions, which are available on a 0.5x0.5 global grid. The global
+!  arrays may need to be used in the future for regridding other emissions for
+!  nested grids.
 !
 ! !REVISION HISTORY: 
 !  01 Mar 2012 - R. Yantosca - Initial version
+!  01 May 2012 - M. Payer    - Add call to COMPUTE_GLOBAL_GRID for nested grids
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -866,6 +874,8 @@
 
 #elif defined( GRID05x0666 )
 
+      CALL COMPUTE_GLOBAL_GRID
+
       !-------------------=---------
       ! Nested 0.5 x 0.666 grids
       !-----------------------------
@@ -875,6 +885,8 @@
       DLAT            = 0.5d0              ! Delta-latitude array [degrees]
 
 #elif defined( GRID025x03125 )
+
+      CALL COMPUTE_GLOBAL_GRID
 
       !-----------------------------
       ! Nested 0.25 x 0.3125 grids
