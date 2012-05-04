@@ -34,9 +34,6 @@
       PRIVATE :: GFED3_TOTAL_Tg
       PRIVATE :: INIT_GFED3_BIOMASS
       PRIVATE :: REARRANGE_BIOM
-      PRIVATE :: GRID_GFED3
-      PRIVATE :: YMAP_GFED3
-      PRIVATE :: XMAP_GFED3
       PRIVATE :: READ_BPCH2_GFED3
 !
 ! !REMARKS:
@@ -376,6 +373,7 @@
       USE GRID_MOD,        ONLY : GET_XOFFSET
       USE GRID_MOD,        ONLY : GET_YOFFSET
       USE ERROR_MOD,       ONLY : ALLOC_ERR
+      USE REGRID_A2A_MOD,  ONLY : MAP_A2A
 
       USE CMN_SIZE_MOD                                       ! Size parameters
 !
@@ -434,8 +432,8 @@
       INTEGER             :: DD, HH, DOY
       INTEGER             :: IT3HR, IT3H
       REAL*4              :: DEG2RAD
-      REAL*4, ALLOCATABLE :: bq1(:,:)
-      REAL*4, ALLOCATABLE :: bq2(:,:)
+      REAL*8, ALLOCATABLE :: bq1(:,:)
+      REAL*8, ALLOCATABLE :: bq2(:,:)
 
       !=================================================================
       ! GFED3_COMPUTE_BIOMASS begins here!
@@ -572,24 +570,18 @@
       SECONDS  = ( TAU1 - TAU0 ) * 3600d0
 
       ! File name with GFED3 DM emissions
-!      FILENAME1 = TRIM( DATA_DIR_NATIVE ) //
-      FILENAME1 = '/as/data/geos/GEOS_NATIVE/' //
-     &    'GFED3_daily_3h/GFED3/YYYY/Monthly/GFED3_DM_AGW_YYYYMM'
-!      FILENAME2 = TRIM( DATA_DIR_NATIVE ) //
-      FILENAME2 = '/as/data/geos/GEOS_NATIVE/' //
-     &    'GFED3_daily_3h/GFED3/YYYY/Monthly/GFED3_DM_DEF_YYYYMM'
-!      FILENAME3 = TRIM( DATA_DIR_NATIVE ) //
-      FILENAME3 = '/as/data/geos/GEOS_NATIVE/' //
-     &    'GFED3_daily_3h/GFED3/YYYY/Monthly/GFED3_DM_FOR_YYYYMM'
-!      FILENAME4 = TRIM( DATA_DIR_NATIVE ) //
-      FILENAME4 = '/as/data/geos/GEOS_NATIVE/' //
-     &    'GFED3_daily_3h/GFED3/YYYY/Monthly/GFED3_DM_PET_YYYYMM'
-!      FILENAME5 = TRIM( DATA_DIR_NATIVE ) //
-      FILENAME5 = '/as/data/geos/GEOS_NATIVE/' //
-     &    'GFED3_daily_3h/GFED3/YYYY/Monthly/GFED3_DM_SAV_YYYYMM'
-!      FILENAME6 = TRIM( DATA_DIR_NATIVE ) //
-      FILENAME6 = '/as/data/geos/GEOS_NATIVE/' //
-     &    'GFED3_daily_3h/GFED3/YYYY/Monthly/GFED3_DM_WDL_YYYYMM'
+      FILENAME1 = TRIM( DATA_DIR_NATIVE ) //
+     &            'GFED3_201203/YYYY/Monthly/GFED3_DM_AGW_YYYYMM'
+      FILENAME2 = TRIM( DATA_DIR_NATIVE ) //
+     &            'GFED3_201203/YYYY/Monthly/GFED3_DM_DEF_YYYYMM'
+      FILENAME3 = TRIM( DATA_DIR_NATIVE ) //
+     &            'GFED3_201203/YYYY/Monthly/GFED3_DM_FOR_YYYYMM'
+      FILENAME4 = TRIM( DATA_DIR_NATIVE ) //
+     &            'GFED3_201203/YYYY/Monthly/GFED3_DM_PET_YYYYMM'
+      FILENAME5 = TRIM( DATA_DIR_NATIVE ) //
+     &            'GFED3_201203/YYYY/Monthly/GFED3_DM_SAV_YYYYMM'
+      FILENAME6 = TRIM( DATA_DIR_NATIVE ) //
+     &            'GFED3_201203/YYYY/Monthly/GFED3_DM_WDL_YYYYMM'
 
       !=================================================================
       ! Read GFED3 DM burnt [g/m2/month]
@@ -680,9 +672,8 @@
             HHMMSS = IT3H*10000
             TAU0 = GET_TAU0( MM, DD, YYYY, IT3H )
 
-!            FILENAME7 = TRIM( DATA_DIR_NATIVE ) //
-            FILENAME7 = '/as/data/geos/GEOS_NATIVE/' //
-     &       'GFED3_daily_3h/GFED3/YYYY/3hourly/GFED3_FR_3HR_YYYYMMDDhh'
+            FILENAME7 = TRIM( DATA_DIR_NATIVE ) //
+     &         'GFED3_201203/YYYY/3hourly/GFED3_FR_3HR_YYYYMMDDhh'
 
             ! Replace YYYY/MM/HH in the file name
             CALL EXPAND_DATE( FILENAME7, YYYYMMDD, HHMMSS )
@@ -744,9 +735,8 @@
          ! Create YYYYMMDD integer value
          YYYYMMDD = YYYY*10000 + MM*100 + DD
 
-!         FILENAME8 = TRIM( DATA_DIR_NATIVE ) //
-         FILENAME8 = '/as/data/geos/GEOS_NATIVE/' //
-     &      'GFED3_daily_3h/GFED3/YYYY/Daily/GFED3_FR_DAY_YYYYMMDD'
+         FILENAME8 = TRIM( DATA_DIR_NATIVE ) //
+     &               'GFED3_201203/YYYY/Daily/GFED3_FR_DAY_YYYYMMDD'
 
          ! Replace YYYY/MM in the file name
          CALL EXPAND_DATE( FILENAME8, YYYYMMDD, 000000 )
@@ -837,10 +827,10 @@
 
          bq1(:,:)=BIOMASS_GFED3(:,:,N)
 
-         CALL GRID_GFED3( IGFED3,      JGFED3,       XEDGE_GFED3,
-     &                    YEDGE_GFED3, bq1,          IIIPAR0,
-     &                    JJJPAR0,     XEDGE_MODELG, YEDGE_MODELG,
-     &                    bq2,         0,            0 )
+         CALL MAP_A2A( IGFED3,      JGFED3,       XEDGE_GFED3,
+     &                 YEDGE_GFED3, bq1,          IIIPAR0,
+     &                 JJJPAR0,     XEDGE_MODELG, YEDGE_MODELG,
+     &                 bq2,         0,            0 )
 
 #else
 
@@ -851,10 +841,10 @@
 
          bq1(:,:)=BIOMASS_GFED3(:,:,N)
 
-         CALL GRID_GFED3( IGFED3,      JGFED3,       XEDGE_GFED3,
-     &                    YEDGE_GFED3, bq1,          IIPAR,
-     &                    JJPAR,       XEDGE_MODELG, YEDGE_MODELG,
-     &                    bq2,         0,            0 )
+         CALL MAP_A2A( IGFED3,      JGFED3,       XEDGE_GFED3,
+     &                 YEDGE_GFED3, bq1,          IIPAR,
+     &                 JJPAR,       XEDGE_MODELG, YEDGE_MODELG,
+     &                 bq2,         0,            0 )
 
 #endif
 
@@ -1261,9 +1251,8 @@
       !=================================================================
      
       ! File name
-!      FILENAME = TRIM( DATA_DIR_NATIVE) // 
-      FILENAME = '/as/data/geos/GEOS_NATIVE/' //
-     &           'GFED3_daily_3h/GFED3/GFED3_emission_factors.txt'
+      FILENAME = TRIM( DATA_DIR_NATIVE) // 
+     &           'GFED3_201203/GFED3_emission_factors.txt'
 
       Print*, FILENAME
 
@@ -1302,9 +1291,8 @@
       !=================================================================
 
       ! File name
-!      FILENAME = TRIM( DATA_DIR_NATIVE ) //
-      FILENAME = '/as/data/geos/GEOS_NATIVE/' //
-     &           'GFED3_daily_3h/GFED3/GFED3_humtropmap'
+      FILENAME = TRIM( DATA_DIR_NATIVE ) //
+     &           'GFED3_201203/GFED3_humtropmap'
 
       ! Read GFED3 veg map
       CALL READ_BPCH2_GFED3( FILENAME, 'LANDMAP',     1,
@@ -1518,428 +1506,6 @@
       IF ( ALLOCATED( BIOMASS_MODEL    ) ) DEALLOCATE( BIOMASS_MODEL   )
       
       END SUBROUTINE CLEANUP_GFED3_BIOMASS
-!EOC
-!------------------------------------------------------------------------------
-!          Prasad Kasibhatla, Duke University                                 !
-!------------------------------------------------------------------------------
-!BOP
-!
-! !IROUTINE: GRID_GFED3
-!
-! !DESCRIPTION: Subroutine GRID\_GFED3 regrids 0.5x0.5 GFED3 emissions
-!  to GEOS-Chem grid at model resolutin - adapted from Map_A2A
-!  S-J Lin.
-!\\
-!\\
-! !INTERFACE:
-!
-      SUBROUTINE GRID_GFED3( im, jm, lon1, sin1, q1,
-     &                        in, jn, lon2, sin2, q2, ig, iv )
-!
-! !INPUT PARAMETERS:
-!   
-    
-      ! Longitude and Latitude dimensions of INPUT grid
-      INTEGER, INTENT(IN)  :: im, jm
-    
-      ! Longitude and Latitude dimensions of OUTPUT grid
-      INTEGER, INTENT(IN)  :: in, jn
-
-      ! IG=0: pole to pole; 
-      ! IG=1 J=1 is half-dy north of south pole
-      INTEGER, INTENT(IN)  :: ig
-    
-      ! IV=0: Regrid scalar quantity
-      ! IV=1: Regrid vector quantity
-      INTEGER, INTENT(IN)  :: iv
-
-      ! Longitude edges (degrees) of INPUT and OUTPUT grids
-      REAL*8,  INTENT(IN)  :: lon1(im+1), lon2(in+1)
-    
-      ! Sine of Latitude Edges (radians) of INPUT and OUTPUT grids
-      REAL*8,  INTENT(IN)  :: sin1(jm+1), sin2(jn+1)
-
-      !  Quantity on INPUT grid
-      REAL*4,  INTENT(IN)  :: q1(im,jm)
-!
-! !OUTPUT PARAMETERS:
-
-      ! Regridded quantity on OUTPUT grid
-      REAL*4,  INTENT(OUT) :: q2(in,jn)
-! 
-! !AUTHOR:
-!   Original Map_A2A subroutine by S-J Lin (GSFC)
-!   Adapted by Prasad Kasibhatla (Duke University)
-!
-! !REVISION HISTORY:
-!   06 Mar 2012 - Prasad Kasibhatla - added to code
-!EOP
-!------------------------------------------------------------------------------
-!BOC
-!
-! !LOCAL VARIABLES:
-!
-      INTEGER              :: i,j,k
-      REAL*4               :: qtmp(in,jm)
-
-      !===================================================================
-      ! GRID_GFED3 begins here!
-      !
-      ! Mapping in the E-W direction
-      !===================================================================
-      CALL XMAP_GFED3(im, jm-ig, lon1, 
-     &                q1(1,1+ig),in, lon2, qtmp(1,1+ig) )
-
-      !===================================================================
-      ! Mapping in the N-S direction
-      !===================================================================
-      CALL YMAP_GFED3(in, jm, sin1, qtmp(1,1+ig), jn, sin2, 
-     &                q2(1,1+ig), ig, iv)
-
-      END SUBROUTINE GRID_GFED3
-!EOC
-!------------------------------------------------------------------------------
-!          Prasad Kasibhatla - Duke University                                !
-!------------------------------------------------------------------------------
-!BOP
-!
-! !IROUTINE: YMAP_GFED3
-!
-! !DESCRIPTION: Subroutine YMAP_GFED3 performs area preserving mapping in N-S from 
-!  an arbitrary resolution to another. NOTE - only works with lat-lon grids
-!\\
-!\\
-! !INTERFACE:
-!
-      SUBROUTINE YMAP_GFED3( im, jm, sin1, q1, jn, sin2, q2, ig, iv )
-
-!
-! !INPUT PARAMETERS:
-!
-
-      ! original E-W dimension
-      INTEGER, INTENT(IN)  :: im            
-
-      ! original N-S dimension
-      INTEGER, INTENT(IN)  :: jm            
-
-      ! Target N-S dimension
-      INTEGER, INTENT(IN)  :: jn           
-
-      ! IG=0: scalars from SP to NP (D-grid v-wind is also IG=0)
-      ! IG=1: D-grid u-wind
-      INTEGER, INTENT(IN)  :: ig            
-  
-      ! IV=0: scalar; 
-      ! IV=1: vector
-      INTEGER, INTENT(IN)  :: iv            
-  
-      ! Original southern edge of the cell sin(lat1)  
-      REAL*8,  INTENT(IN)  :: sin1(jm+1-ig) 
-                                              
-      ! Original data at center of the cell
-      REAL*4,  INTENT(IN)  :: q1(im,jm)      
-                                            
-      ! Target cell's southern edge sin(lat2)
-      REAL*8,  INTENT(IN)  :: sin2(jn+1-ig) 
-!
-! !OUTPUT PARAMETERS:
-!
-      ! Mapped data at the target resolution
-      REAL*4,  INTENT(OUT) :: q2(im,jn)     
-!
-! !REMARKS:
-!
-!   sin1 (1) = -1 must be south pole; sin1(jm+1)=1 must be N pole.
-!
-!   sin1(1) < sin1(2) < sin1(3) < ... < sin1(jm) < sin1(jm+1)
-!   sin2(1) < sin2(2) < sin2(3) < ... < sin2(jn) < sin2(jn+1)!
-!
-! !AUTHOR:
-!   Developer: Prasad Kasibhatla
-!   March 6, 2012
-!EOP
-!------------------------------------------------------------------------------
-!BOC
-!
-! !LOCAL VARIABLES:
-!
-      INTEGER              :: i, j0, m, mm, j
-      REAL*8               :: dy1(jm)
-      REAL*8               :: dy
-      REAL*4               :: qsum, sum
-    
-      ! YMAP begins here!
-      do j=1,jm-ig
-         dy1(j) = sin1(j+1) - sin1(j)
-      enddo
-
-      !===============================================================
-      ! Area preserving mapping
-      !===============================================================
-
-      do 1000 i=1,im
-         j0 = 1
-         do 555 j=1,jn-ig
-         do 100 m=j0,jm-ig
-  
-            !=========================================================
-            ! locate the southern edge: sin2(i)
-            !=========================================================
-            if(sin2(j) .ge. sin1(m) .and. sin2(j) .le. sin1(m+1)) then
-               
-               if(sin2(j+1) .le. sin1(m+1)) then
-                  
-                  ! entire new cell is within the original cell
-                  q2(i,j)=q1(i,m)
-                  j0 = m
-                  goto 555
-               else
-
-                  ! South most fractional area
-                  qsum=(sin1(m+1)-sin2(j))*q1(i,m)
-
-                  do mm=m+1,jm-ig
-
-                     ! locate the northern edge: sin2(j+1)
-                     if(sin2(j+1) .gt. sin1(mm+1) ) then
-  
-                        ! Whole layer
-                        qsum = qsum + dy1(mm)*q1(i,mm)
-                     else
-  
-                        ! North most fractional area
-                        dy = sin2(j+1)-sin1(mm)
-                        qsum=qsum+dy*q1(i,mm)
-                        j0 = mm
-                        goto 123
-                     endif
-                  enddo
-                  goto 123
-               endif
-            endif
-100      continue
-123      q2(i,j) = qsum / ( sin2(j+1) - sin2(j) )
-555      continue
-1000  continue
-
-      !===================================================================
-      ! Final processing for poles
-      !===================================================================
-      if ( ig .eq. 0 .and. iv .eq. 0 ) then
-         
-         ! South pole
-         sum = 0.
-         do i=1,im
-            sum = sum + q2(i,1)
-         enddo
-          
-         sum = sum / float(im)
-         do i=1,im
-            q2(i,1) = sum
-         enddo
-         
-         ! North pole:
-         sum = 0.
-         do i=1,im
-            sum = sum + q2(i,jn)
-         enddo
-          
-         sum = sum / float(im)
-         do i=1,im
-            q2(i,jn) = sum
-         enddo
- 
-      endif
-
-      END SUBROUTINE YMAP_GFED3
-!EOC
-!------------------------------------------------------------------------------
-!          Prasad Kasibhatla, Duke University                                 !
-!------------------------------------------------------------------------------
-!BOP
-!
-! !IROUTINE: XMAP_GFED3
-!
-! !DESCRIPTION: Subroutine Xmap performs area preserving mapping in E-W 
-!  from an arbitrary resolution to another.  Periodic domain will be assumed, 
-!  i.e., the eastern wall bounding cell im is $lon1(im+1) = lon1(1)$; 
-!  Note the equal sign is true geophysically.
-!\\
-!\\
-! !INTERFACE:
-!
-      SUBROUTINE XMAP_GFED3( im, jm, lon1, q1, in, lon2, q2 )
-!
-! !INPUT PARAMETERS:
-!
-      ! Original E-W dimension
-      INTEGER, INTENT(IN)  :: im           
-
-      ! Target E-W dimension
-      INTEGER, INTENT(IN)  :: in           
-  
-      ! Original N-S dimension
-      INTEGER, INTENT(IN)  :: jm           
-  
-      ! Original western edge of the cell
-      REAL*8,  INTENT(IN)  :: lon1(im+1)   
-  
-      ! Original data at center of the cell
-      REAL*4,  INTENT(IN)  :: q1(im,jm)    
-  
-      ! Target cell's western edge
-      REAL*8,  INTENT(IN)  :: lon2(in+1)   
-!
-! !OUTPUT PARAMETERS:
-!
-    ! Mapped data at the target resolution
-      REAL*4,  INTENT(OUT) :: q2(in,jm)    
-!
-! !REMARKS:
-!   lon1(1) < lon1(2) < lon1(3) < ... < lon1(im) < lon1(im+1)
-!   lon2(1) < lon2(2) < lon2(3) < ... < lon2(in) < lon2(in+1)
-!
-! !AUTHOR:
-!   Developer: Prasad Kasibhatla
-!   March 6, 2012
-!EOP
-!------------------------------------------------------------------------------
-!BOC
-!
-! !LOCAL VARIABLES:
-!
-      INTEGER              :: i1, i2, i, i0, m, mm, j
-      REAL*4               :: qtmp(-im:im+im)
-      REAL*8               :: x1(-im:im+im+1)
-      REAL*8               :: dx1(-im:im+im)
-      REAL*8               :: dx
-      REAL*4               :: qsum
-      LOGICAL              :: found
-!
-
-      ! XMAP begins here!
-      do i=1,im+1
-         x1(i) = lon1(i)
-      enddo
-  
-      do i=1,im
-         dx1(i) = x1(i+1) - x1(i)
-      enddo
-    
-      !===================================================================
-      ! check to see if ghosting is necessary
-      ! Western edge:
-      !===================================================================
-      found = .false.
-      i1 = 1
-      do while ( .not. found )
-         if( lon2(1) .ge. x1(i1) ) then
-            found = .true.
-         else
-            i1 = i1 - 1
-            if (i1 .lt. -im) then
-               write(6,*) 'failed in xmap'
-               stop
-            else
-               x1(i1) = x1(i1+1) - dx1(im+i1)
-               dx1(i1) = dx1(im+i1)
-            endif
-         endif
-      enddo
-    
-      !===================================================================
-      ! Eastern edge:
-      !===================================================================
-      found = .false.
-      i2 = im+1
-      do while ( .not. found )
-         if( lon2(in+1) .le. x1(i2) ) then
-            found = .true.
-         else
-            i2 = i2 + 1
-            if (i2 .gt. 2*im) then
-               write(6,*) 'failed in xmap'
-               stop
-            else
-               dx1(i2-1) = dx1(i2-1-im)
-               x1(i2) = x1(i2-1) + dx1(i2-1)
-            endif
-         endif
-      enddo
-      
-      do 1000 j=1,jm
-
-         !=================================================================
-         ! Area preserving mapping
-         !================================================================
-  
-          qtmp(0)=q1(im,j)
-          do i=1,im
-             qtmp(i)=q1(i,j)
-          enddo
-          qtmp(im+1)=q1(1,j)
-
-         ! check to see if ghosting is necessary
-         ! Western edge
-         if ( i1 .le. 0 ) then
-            do i=i1,0
-               qtmp(i) = qtmp(im+i)
-            enddo
-         endif
-       
-         ! Eastern edge:
-         if ( i2 .gt. im+1 ) then
-            do i=im+1,i2-1
-               qtmp(i) = qtmp(i-im)
-            enddo
-         endif
-        
-         i0 = i1
-        
-         do 555 i=1,in
-         do 100 m=i0,i2-1
-
-            !=============================================================  
-            ! locate the western edge: lon2(i)
-            !=============================================================  
-            if(lon2(i) .ge. x1(m) .and. lon2(i) .le. x1(m+1)) then
-               
-               if(lon2(i+1) .le. x1(m+1)) then
-                  
-                  ! entire new grid is within the original grid
-                  q2(i,j)=qtmp(m)
-                  i0 = m
-                  goto 555
-               else
-  
-                  ! Left most fractional area
-                  qsum=(x1(m+1)-lon2(i))*qtmp(m)
-                  do mm=m+1,i2-1
-
-                     ! locate the eastern edge: lon2(i+1)
-                     if(lon2(i+1) .gt. x1(mm+1) ) then
-  
-                        ! Whole layer
-                        qsum = qsum + dx1(mm)*qtmp(mm)
-  
-                     else
-                        ! Right most fractional area
-                        dx = lon2(i+1)-x1(mm)
-                        qsum=qsum+dx*qtmp(mm)
-                      i0 = mm
-                      goto 123
-                     endif
-                  enddo
-                  goto 123
-               endif
-            endif
-100         continue
-123         q2(i,j) = qsum / ( lon2(i+1) - lon2(i) )
-555      continue
-1000  continue
-
-      END SUBROUTINE XMAP_GFED3
 !EOC
 !------------------------------------------------------------------------------
 !          Prasad Kasibhatla - Duke University                                !
