@@ -263,10 +263,10 @@
          ! First-time initialization
          IF ( FIRST ) THEN
             CALL INIT_BIOMASS
-            FIRST    = .FALSE.
-            USE_GFED2 = LGFED2BB .or. L8DAYBB .or. LSYNOPBB .or. L3HRBB
-            USE_GFED3 = LGFED3BB .or. LDAYBB3 .or. L3HRBB3
-            USE_GFED = USE_GFED2. or. USE_GFED3
+            FIRST     = .FALSE.
+            USE_GFED2 = LGFED2BB  .or. L8DAYBB .or. LSYNOPBB .or. L3HRBB
+            USE_GFED3 = LGFED3BB  .or. LDAYBB3 .or. L3HRBB3
+            USE_GFED  = USE_GFED2 .or. USE_GFED3
          ENDIF
          
          ! Define diagnostic flags

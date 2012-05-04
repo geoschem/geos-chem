@@ -23,7 +23,6 @@
 !
       CHARACTER(LEN=255) :: DATA_DIR      ! Main DAO met field directory
       CHARACTER(LEN=255) :: DATA_DIR_1x1  ! Root data dir for 1x1 emissions
-      CHARACTER(LEN=255) :: DATA_DIR_GFED3 ! Root data dir for GFED3 emissions
       CHARACTER(LEN=255) :: GCAP_DIR      ! Subdir for GCAP met data
       CHARACTER(LEN=255) :: GEOS_1_DIR    ! !%%% OBSOLETE %%%
       CHARACTER(LEN=255) :: GEOS_S_DIR    ! !%%% OBSOLETE 
@@ -47,7 +46,6 @@
 !  20 Nov 2009 - R. Yantosca - Added ProTeX header
 !  18 Dec 2009 - Aaron van D - Added TPBC_DIR_NA, TPBC_DIR_EU, TPBC_DIR_CH
 !  13 Aug 2010 - R. Yantosca - Added MERRA_DIR for MERRA met fields
-!  17 Jan 2012 - P. Kasibhatla - Added DATA_DIR_GFED3 for GFED3 emissions
 !  01 Feb 2012 - R. Yantosca - Added GEOS_57_DIR for GEOS-5.7.x met fields
 !  28 Feb 2012 - R. Yantosca - Removed support for GEOS-3
 !EOP

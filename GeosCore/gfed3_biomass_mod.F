@@ -97,7 +97,6 @@
       ! N_SPEC  : Number of species
       !=================================================================
       INTEGER,          PARAMETER   :: N_EMFAC = 6
-      !INTEGER,          PARAMETER   :: N_SPEC  = 24
       INTEGER,          PARAMETER   :: N_SPEC  = 25  !kjw
 
 !
@@ -246,33 +245,36 @@
       INTEGER :: NEW_T3HR
       
       ! Reset to default
-      UPDATED = .FALSE.
+      UPDATED     = .FALSE.
       UPDATED_MON = .FALSE.
       UPDATED_DAY = .FALSE.
       UPDATED_3HR = .FALSE.
 
       ! Check if it is a new month
       IF ( ITS_A_NEW_MONTH() ) THEN
-            UPDATED = .TRUE.
+            UPDATED     = .TRUE.
             UPDATED_MON = .TRUE.
       ENDIF
       
       ! Check if it is a new day
       IF ( LDAYBB3 ) THEN
          IF ( ITS_A_NEW_DAY() ) THEN
-            UPDATED = .TRUE.
+            UPDATED     = .TRUE.
             UPDATED_DAY = .TRUE.
          ENDIF
       ENDIF
 
       ! Check if it is a new 3-hr period
       IF ( L3HRBB3 ) THEN
+
          NEW_T3HR = INT( HH / 3 ) * 3
+
          IF ( NEW_T3HR .NE. T3HR ) THEN
-            UPDATED = .TRUE.
+            UPDATED     = .TRUE.
             UPDATED_3HR = .TRUE.
-            T3HR    = NEW_T3HR
-         ENDIF         
+            T3HR        = NEW_T3HR
+         ENDIF     
+    
       ENDIF
       
       END SUBROUTINE CHECK_GFED3
@@ -353,27 +355,27 @@
 !
 ! !USES:
 !
-      USE BPCH2_MOD,      ONLY : GET_TAU0
-      USE DIRECTORY_MOD,  ONLY : DATA_DIR_GFED3
-      USE JULDAY_MOD,     ONLY : JULDAY
-      USE JULDAY_MOD,     ONLY : CALDATE
-      USE LOGICAL_MOD,    ONLY : LFUTURE
-      USE LOGICAL_MOD,    ONLY : LDAYBB3
-      USE LOGICAL_MOD,    ONLY : L3HRBB3
-      USE LOGICAL_MOD,    ONLY : LGFED3BB
-      USE TIME_MOD,       ONLY : EXPAND_DATE
-      USE TIME_MOD,       ONLY : TIMESTAMP_STRING
-      USE TIME_MOD,       ONLY : GET_DAY
-      USE TIME_MOD,       ONLY : GET_HOUR
-      USE TIME_MOD,       ONLY : GET_DAY_OF_YEAR
-      USE TIME_MOD,       ONLY : ITS_A_LEAPYEAR
+      USE BPCH2_MOD,       ONLY : GET_TAU0
+      USE DIRECTORY_MOD,   ONLY : DATA_DIR_NATIVE => DATA_DIR_1x1
+      USE JULDAY_MOD,      ONLY : JULDAY
+      USE JULDAY_MOD,      ONLY : CALDATE
+      USE LOGICAL_MOD,     ONLY : LFUTURE
+      USE LOGICAL_MOD,     ONLY : LDAYBB3
+      USE LOGICAL_MOD,     ONLY : L3HRBB3
+      USE LOGICAL_MOD,     ONLY : LGFED3BB
+      USE TIME_MOD,        ONLY : EXPAND_DATE
+      USE TIME_MOD,        ONLY : TIMESTAMP_STRING
+      USE TIME_MOD,        ONLY : GET_DAY
+      USE TIME_MOD,        ONLY : GET_HOUR
+      USE TIME_MOD,        ONLY : GET_DAY_OF_YEAR
+      USE TIME_MOD,        ONLY : ITS_A_LEAPYEAR
       USE GLOBAL_GRID_MOD, ONLY : GET_XEDGE_G
       USE GLOBAL_GRID_MOD, ONLY : GET_YEDGE_G
-      USE GRID_MOD,       ONLY : GET_XEDGE
-      USE GRID_MOD,       ONLY : GET_YEDGE
-      USE GRID_MOD,       ONLY : GET_XOFFSET
-      USE GRID_MOD,       ONLY : GET_YOFFSET
-      USE ERROR_MOD,      ONLY : ALLOC_ERR
+      USE GRID_MOD,        ONLY : GET_XEDGE
+      USE GRID_MOD,        ONLY : GET_YEDGE
+      USE GRID_MOD,        ONLY : GET_XOFFSET
+      USE GRID_MOD,        ONLY : GET_YOFFSET
+      USE ERROR_MOD,       ONLY : ALLOC_ERR
 
       USE CMN_SIZE_MOD                                       ! Size parameters
 !
@@ -406,32 +408,32 @@
 !
 ! !LOCAL VARIABLES:
 !
-      LOGICAL, SAVE      :: FIRST = .TRUE.
-      INTEGER            :: I,    J,  N,   NF , IT3
-      INTEGER            :: AS
-      INTEGER            :: II,   JJ
-      INTEGER            :: I0,   J0
-      INTEGER            :: YYYY, MM, MM1, YYYY1
-      INTEGER            :: YYYYMMDD, HHMMSS
-      REAL*8             :: GFED3_EMFACX
-      REAL*4             :: ARRAY_GFED3(IGFED3, JGFED3, 1)
-      REAL*4             :: FR_GFED3_DAY(IGFED3, JGFED3)
-      REAL*8             :: DM_GFED3(IGFED3, JGFED3, N_EMFAC)
-      REAL*8             :: BIOMASS_GFED3(IGFED3, JGFED3, N_SPEC)
-      REAL*8             :: TAU0, TAU1
-      REAL*4             :: TMP
-      CHARACTER(LEN=255) :: FILENAME1
-      CHARACTER(LEN=255) :: FILENAME2
-      CHARACTER(LEN=255) :: FILENAME3
-      CHARACTER(LEN=255) :: FILENAME4
-      CHARACTER(LEN=255) :: FILENAME5
-      CHARACTER(LEN=255) :: FILENAME6
-      CHARACTER(LEN=255) :: FILENAME7
-      CHARACTER(LEN=255) :: FILENAME8
-      CHARACTER(LEN=16 ) :: TIME_STR
-      INTEGER            :: DD, HH, DOY
-      INTEGER            :: IT3HR, IT3H
-      REAL*4             :: DEG2RAD
+      LOGICAL, SAVE       :: FIRST = .TRUE.
+      INTEGER             :: I,    J,  N,   NF , IT3
+      INTEGER             :: AS
+      INTEGER             :: II,   JJ
+      INTEGER             :: I0,   J0
+      INTEGER             :: YYYY, MM, MM1, YYYY1
+      INTEGER             :: YYYYMMDD, HHMMSS
+      REAL*8              :: GFED3_EMFACX
+      REAL*4              :: ARRAY_GFED3(IGFED3, JGFED3, 1)
+      REAL*4              :: FR_GFED3_DAY(IGFED3, JGFED3)
+      REAL*8              :: DM_GFED3(IGFED3, JGFED3, N_EMFAC)
+      REAL*8              :: BIOMASS_GFED3(IGFED3, JGFED3, N_SPEC)
+      REAL*8              :: TAU0, TAU1
+      REAL*4              :: TMP
+      CHARACTER(LEN=255)  :: FILENAME1
+      CHARACTER(LEN=255)  :: FILENAME2
+      CHARACTER(LEN=255)  :: FILENAME3
+      CHARACTER(LEN=255)  :: FILENAME4
+      CHARACTER(LEN=255)  :: FILENAME5
+      CHARACTER(LEN=255)  :: FILENAME6
+      CHARACTER(LEN=255)  :: FILENAME7
+      CHARACTER(LEN=255)  :: FILENAME8
+      CHARACTER(LEN=16 )  :: TIME_STR
+      INTEGER             :: DD, HH, DOY
+      INTEGER             :: IT3HR, IT3H
+      REAL*4              :: DEG2RAD
       REAL*4, ALLOCATABLE :: bq1(:,:)
       REAL*4, ALLOCATABLE :: bq2(:,:)
 
@@ -570,18 +572,24 @@
       SECONDS  = ( TAU1 - TAU0 ) * 3600d0
 
       ! File name with GFED3 DM emissions
-      FILENAME1 = TRIM( DATA_DIR_GFED3 ) //
-     &    'YYYY/Monthly/GFED3_DM_AGW_YYYYMM'
-      FILENAME2 = TRIM( DATA_DIR_GFED3 ) //
-     &    'YYYY/Monthly/GFED3_DM_DEF_YYYYMM'
-      FILENAME3 = TRIM( DATA_DIR_GFED3 ) //
-     &    'YYYY/Monthly/GFED3_DM_FOR_YYYYMM'
-      FILENAME4 = TRIM( DATA_DIR_GFED3 ) //
-     &    'YYYY/Monthly/GFED3_DM_PET_YYYYMM'
-      FILENAME5 = TRIM( DATA_DIR_GFED3 ) //
-     &    'YYYY/Monthly/GFED3_DM_SAV_YYYYMM'
-      FILENAME6 = TRIM( DATA_DIR_GFED3 ) //
-     &    'YYYY/Monthly/GFED3_DM_WDL_YYYYMM'
+!      FILENAME1 = TRIM( DATA_DIR_NATIVE ) //
+      FILENAME1 = '/as/data/geos/GEOS_NATIVE/' //
+     &    'GFED3_daily_3h/GFED3/YYYY/Monthly/GFED3_DM_AGW_YYYYMM'
+!      FILENAME2 = TRIM( DATA_DIR_NATIVE ) //
+      FILENAME2 = '/as/data/geos/GEOS_NATIVE/' //
+     &    'GFED3_daily_3h/GFED3/YYYY/Monthly/GFED3_DM_DEF_YYYYMM'
+!      FILENAME3 = TRIM( DATA_DIR_NATIVE ) //
+      FILENAME3 = '/as/data/geos/GEOS_NATIVE/' //
+     &    'GFED3_daily_3h/GFED3/YYYY/Monthly/GFED3_DM_FOR_YYYYMM'
+!      FILENAME4 = TRIM( DATA_DIR_NATIVE ) //
+      FILENAME4 = '/as/data/geos/GEOS_NATIVE/' //
+     &    'GFED3_daily_3h/GFED3/YYYY/Monthly/GFED3_DM_PET_YYYYMM'
+!      FILENAME5 = TRIM( DATA_DIR_NATIVE ) //
+      FILENAME5 = '/as/data/geos/GEOS_NATIVE/' //
+     &    'GFED3_daily_3h/GFED3/YYYY/Monthly/GFED3_DM_SAV_YYYYMM'
+!      FILENAME6 = TRIM( DATA_DIR_NATIVE ) //
+      FILENAME6 = '/as/data/geos/GEOS_NATIVE/' //
+     &    'GFED3_daily_3h/GFED3/YYYY/Monthly/GFED3_DM_WDL_YYYYMM'
 
       !=================================================================
       ! Read GFED3 DM burnt [g/m2/month]
@@ -598,40 +606,41 @@
       ! Read GFED3 DM emissions [g DM/m2/month] in the following order
       ! AGW, DEF, FOR, PET, SAV, WDL
       CALL READ_BPCH2_GFED3( FILENAME1, 'GFED3-BB',   91, 
-     &                 TAU0,      IGFED3,        JGFED3,     
-     &                 1,         ARRAY_GFED3,  QUIET=.TRUE. )
+     &                       TAU0,      IGFED3,       JGFED3,     
+     &                       1,         ARRAY_GFED3,  QUIET=.TRUE. )
  
-      DM_GFED3_MON(:,:,1)=ARRAY_GFED3(:,:,1)
+      DM_GFED3_MON(:,:,1) = ARRAY_GFED3(:,:,1)
 
       CALL READ_BPCH2_GFED3( FILENAME2, 'GFED3-BB',   92, 
-     &                 TAU0,      IGFED3,        JGFED3,   
-     &                 1,         ARRAY_GFED3,  QUIET=.TRUE. ) 
+     &                       TAU0,      IGFED3,       JGFED3,   
+     &                       1,         ARRAY_GFED3,  QUIET=.TRUE. ) 
 
-      DM_GFED3_MON(:,:,2)=ARRAY_GFED3(:,:,1)
+      DM_GFED3_MON(:,:,2) = ARRAY_GFED3(:,:,1)
 
       CALL READ_BPCH2_GFED3( FILENAME3, 'GFED3-BB',   93, 
-     &                 TAU0,      IGFED3,        JGFED3,   
-     &                 1,         ARRAY_GFED3,  QUIET=.TRUE. ) 
+     &                       TAU0,      IGFED3,       JGFED3,   
+     &                       1,         ARRAY_GFED3,  QUIET=.TRUE. ) 
 
-      DM_GFED3_MON(:,:,3)=ARRAY_GFED3(:,:,1)
+      DM_GFED3_MON(:,:,3) = ARRAY_GFED3(:,:,1)
 
       CALL READ_BPCH2_GFED3( FILENAME4, 'GFED3-BB',   94, 
-     &                 TAU0,      IGFED3,        JGFED3,   
-     &                 1,         ARRAY_GFED3,  QUIET=.TRUE. ) 
+     &                       TAU0,      IGFED3,       JGFED3,   
+     &                       1,         ARRAY_GFED3,  QUIET=.TRUE. ) 
 
-      DM_GFED3_MON(:,:,4)=ARRAY_GFED3(:,:,1)
+      DM_GFED3_MON(:,:,4) = ARRAY_GFED3(:,:,1)
 
       CALL READ_BPCH2_GFED3( FILENAME5, 'GFED3-BB',   95, 
-     &                 TAU0,      IGFED3,        JGFED3,   
-     &                 1,         ARRAY_GFED3,  QUIET=.TRUE. ) 
+     &                       TAU0,      IGFED3,       JGFED3,   
+     &                       1,         ARRAY_GFED3,  QUIET=.TRUE. ) 
 
-      DM_GFED3_MON(:,:,5)=ARRAY_GFED3(:,:,1)
+      DM_GFED3_MON(:,:,5) = ARRAY_GFED3(:,:,1)
 
       CALL READ_BPCH2_GFED3( FILENAME6, 'GFED3-BB',   96, 
-     &                 TAU0,      IGFED3,        JGFED3,   
-     &                 1,         ARRAY_GFED3,  QUIET=.TRUE. ) 
+     &                       TAU0,      IGFED3,       JGFED3,   
+     &                       1,         ARRAY_GFED3,  QUIET=.TRUE. ) 
 
-      DM_GFED3_MON(:,:,6)=ARRAY_GFED3(:,:,1)
+      DM_GFED3_MON(:,:,6) = ARRAY_GFED3(:,:,1)
+
       WRITE(6,*)'DM_GFED3_MON'
       WRITE(6,*)(DM_GFED3_MON(589,175,NF),NF=1,6)
 
@@ -666,23 +675,30 @@
 
       IF ( L3HRBB3 ) THEN
          DO IT3 = 1,8
+
             IT3H = (IT3-1)*3
             HHMMSS = IT3H*10000
             TAU0 = GET_TAU0( MM, DD, YYYY, IT3H )
-            FILENAME7 = TRIM( DATA_DIR_GFED3 ) //
-     &                 'YYYY/3hourly/GFED3_FR_3HR_YYYYMMDDhh'
+
+!            FILENAME7 = TRIM( DATA_DIR_NATIVE ) //
+            FILENAME7 = '/as/data/geos/GEOS_NATIVE/' //
+     &       'GFED3_daily_3h/GFED3/YYYY/3hourly/GFED3_FR_3HR_YYYYMMDDhh'
+
             ! Replace YYYY/MM/HH in the file name
             CALL EXPAND_DATE( FILENAME7, YYYYMMDD, HHMMSS )
-            CALL READ_BPCH2_GFED3( FILENAME7, 'GFED3-BB',   89,
-     &                             TAU0,  IGFED3,      JGFED3,
-     &                             1,  ARRAY_GFED3, QUIET=.TRUE. )
+
+            CALL READ_BPCH2_GFED3( FILENAME7, 'GFED3-BB',  89,
+     &                             TAU0,      IGFED3,      JGFED3,
+     &                             1,         ARRAY_GFED3, QUIET=.TRUE.)
+
             FR_GFED3_3HR(:,:,IT3) = ARRAY_GFED3(:,:,1)
+
          END DO
+
          WRITE(6,*)'FR_GFED3_3HR'
          WRITE(6,*)(FR_GFED3_3HR(589,175,IT3),IT3=1,8)
 
       ENDIF
-
 
 999   CONTINUE
 
@@ -721,19 +737,26 @@
       !
       !================================================================= 
 
-! Read daily fractions
+      ! Read daily fractions
       IF ( UPDATED_DAY) THEN
          TAU0 = GET_TAU0( MM, DD, YYYY )
+
          ! Create YYYYMMDD integer value
          YYYYMMDD = YYYY*10000 + MM*100 + DD
-         FILENAME8 = TRIM( DATA_DIR_GFED3 ) //
-     &      'YYYY/Daily/GFED3_FR_DAY_YYYYMMDD'
+
+!         FILENAME8 = TRIM( DATA_DIR_NATIVE ) //
+         FILENAME8 = '/as/data/geos/GEOS_NATIVE/' //
+     &      'GFED3_daily_3h/GFED3/YYYY/Daily/GFED3_FR_DAY_YYYYMMDD'
+
          ! Replace YYYY/MM in the file name
          CALL EXPAND_DATE( FILENAME8, YYYYMMDD, 000000 )
+
          CALL READ_BPCH2_GFED3( FILENAME8, 'GFED3-BB',   88,
-     &                 TAU0,      IGFED3,      JGFED3,
-     &                 1,         ARRAY_GFED3,  QUIET=.TRUE. )
-         FR_GFED3_DAY(:,:)=ARRAY_GFED3(:,:,1)
+     &                          TAU0,      IGFED3,       JGFED3,
+     &                          1,         ARRAY_GFED3,  QUIET=.TRUE. )
+
+         FR_GFED3_DAY(:,:) = ARRAY_GFED3(:,:,1)
+
          WRITE(6,*)'FR_GFED3_DAY'
          WRITE(6,*)FR_GFED3_DAY(589,175)
       ENDIF
@@ -814,9 +837,10 @@
 
          bq1(:,:)=BIOMASS_GFED3(:,:,N)
 
-         CALL GRID_GFED3( IGFED3, JGFED3, XEDGE_GFED3, YEDGE_GFED3, 
-     &      bq1, IIIPAR0, JJJPAR0, XEDGE_MODELG, YEDGE_MODELG, bq2,
-     &      0, 0)
+         CALL GRID_GFED3( IGFED3,      JGFED3,       XEDGE_GFED3,
+     &                    YEDGE_GFED3, bq1,          IIIPAR0,
+     &                    JJJPAR0,     XEDGE_MODELG, YEDGE_MODELG,
+     &                    bq2,         0,            0 )
 
 #else
 
@@ -827,14 +851,16 @@
 
          bq1(:,:)=BIOMASS_GFED3(:,:,N)
 
-         CALL GRID_GFED3( IGFED3, JGFED3, XEDGE_GFED3, YEDGE_GFED3, 
-     &      bq1, IIPAR, JJPAR, XEDGE_MODELG, YEDGE_MODELG, bq2,
-     &      0, 0)
+         CALL GRID_GFED3( IGFED3,      JGFED3,       XEDGE_GFED3,
+     &                    YEDGE_GFED3, bq1,          IIPAR,
+     &                    JJPAR,       XEDGE_MODELG, YEDGE_MODELG,
+     &                    bq2,         0,            0 )
 
 #endif
 
          I0    = GET_XOFFSET( GLOBAL=.TRUE. )
          J0    = GET_YOFFSET( GLOBAL=.TRUE. )
+
          DO JJ=1,JJPAR
          DO II=1,IIPAR
             BIOMASS_MODEL(II,JJ,N)=bq2(II+I0,JJ+J0)
@@ -1025,7 +1051,7 @@
 !
       USE GRID_MOD,    ONLY : GET_AREA_CM2
 
-      USE CMN_SIZE_MOD              ! Size parameters
+      USE CMN_SIZE_MOD      ! Size parameters
 !
 ! !REVISION HISTORY: 
 !  07 Sep 2011 - P. Kasibhatla - Initial version, based on GFED2
@@ -1092,28 +1118,26 @@
 !
 ! !USES:
 !
-      USE DIRECTORY_MOD, ONLY : DATA_DIR_GFED3
-      USE ERROR_MOD,     ONLY : ALLOC_ERR
-      USE FILE_MOD,      ONLY : IOERROR
-      USE FILE_MOD,      ONLY : IU_FILE
-      USE LOGICAL_MOD,   ONLY : LDICARB
-      USE TRACERID_MOD,  ONLY : IDBNOx,  IDBCO,   IDBALK4
-      USE TRACERID_MOD,  ONLY : IDBACET, IDBMEK,  IDBALD2
-      USE TRACERID_MOD,  ONLY : IDBPRPE, IDBC3H8, IDBCH2O
-      USE TRACERID_MOD,  ONLY : IDBC2H6, IDBBC,   IDBOC
-      USE TRACERID_MOD,  ONLY : IDBSO2,  IDBNH3,  IDBCO2
-      USE TRACERID_MOD,  ONLY : IDBGLYX, IDBMGLY, IDBBENZ
-      USE TRACERID_MOD,  ONLY : IDBTOLU, IDBXYLE, IDBC2H4
-      USE TRACERID_MOD,  ONLY : IDBC2H2, IDBGLYC, IDBHAC
-      USE TRACERID_MOD,  ONLY : IDBCH4   !kjw
+      USE DIRECTORY_MOD,   ONLY : DATA_DIR_NATIVE => DATA_DIR_1x1
+      USE ERROR_MOD,       ONLY : ALLOC_ERR
+      USE FILE_MOD,        ONLY : IOERROR
+      USE FILE_MOD,        ONLY : IU_FILE
+      USE LOGICAL_MOD,     ONLY : LDICARB
+      USE LOGICAL_MOD,     ONLY : LDAYBB3
+      USE LOGICAL_MOD,     ONLY : L3HRBB3
+      USE TRACERID_MOD,    ONLY : IDBNOx,  IDBCO,   IDBALK4
+      USE TRACERID_MOD,    ONLY : IDBACET, IDBMEK,  IDBALD2
+      USE TRACERID_MOD,    ONLY : IDBPRPE, IDBC3H8, IDBCH2O
+      USE TRACERID_MOD,    ONLY : IDBC2H6, IDBBC,   IDBOC
+      USE TRACERID_MOD,    ONLY : IDBSO2,  IDBNH3,  IDBCO2
+      USE TRACERID_MOD,    ONLY : IDBGLYX, IDBMGLY, IDBBENZ
+      USE TRACERID_MOD,    ONLY : IDBTOLU, IDBXYLE, IDBC2H4
+      USE TRACERID_MOD,    ONLY : IDBC2H2, IDBGLYC, IDBHAC
+      USE TRACERID_MOD,    ONLY : IDBCH4   !kjw
       USE GLOBAL_GRID_MOD, ONLY : GET_IIIPAR
       USE GLOBAL_GRID_MOD, ONLY : GET_JJJPAR
 
-      USE CMN_SIZE_MOD        ! Size parameters
-
-      USE LOGICAL_MOD, ONLY : LDAYBB3
-      USE LOGICAL_MOD, ONLY : L3HRBB3
-
+      USE CMN_SIZE_MOD          ! Size parameters
 ! 
 ! !REVISION HISTORY: 
 !  07 Sep 2011 - P. Kasibhatla - Initial version, based on GFED2
@@ -1185,16 +1209,16 @@
 
       ! Allocate array to hold daily GFED3 DM burnt GFED3 grid
       IF ( LDAYBB3 ) THEN
-       ALLOCATE( DM_GFED3_DAY( IGFED3, JGFED3, N_SPEC ), STAT=AS )
-       IF ( AS /= 0 ) CALL ALLOC_ERR( 'DM_GFED3_DAY' )
-       DM_GFED3_DAY = 0d0
+         ALLOCATE( DM_GFED3_DAY( IGFED3, JGFED3, N_SPEC ), STAT=AS )
+         IF ( AS /= 0 ) CALL ALLOC_ERR( 'DM_GFED3_DAY' )
+         DM_GFED3_DAY = 0d0
       ENDIF
 
       ! Allocate array to hold 3hourly fractions on GFED3 grid
       IF ( L3HRBB3 ) THEN
-       ALLOCATE( FR_GFED3_3HR( IGFED3,JGFED3, 8 ), STAT=AS )
-       IF ( AS /= 0 ) CALL ALLOC_ERR( 'FR_GFED3_3HR' )
-       FR_GFED3_3HR = 0d0
+         ALLOCATE( FR_GFED3_3HR( IGFED3,JGFED3, 8 ), STAT=AS )
+         IF ( AS /= 0 ) CALL ALLOC_ERR( 'FR_GFED3_3HR' )
+         FR_GFED3_3HR = 0d0
       ENDIF
 
       ! Allocate array for emission factors
@@ -1228,7 +1252,6 @@
       IF ( AS /= 0 ) CALL ALLOC_ERR( 'BIO_SAVE' )
       BIO_SAVE = 0
 
-
       ! Set default values for module variables
       T3HR    = -1
 
@@ -1238,8 +1261,11 @@
       !=================================================================
      
       ! File name
-      FILENAME = TRIM( DATA_DIR_GFED3) // 
-     &           'GFED3_emission_factors.txt'
+!      FILENAME = TRIM( DATA_DIR_NATIVE) // 
+      FILENAME = '/as/data/geos/GEOS_NATIVE/' //
+     &           'GFED3_daily_3h/GFED3/GFED3_emission_factors.txt'
+
+      Print*, FILENAME
 
       ! Open emission factor file (ASCII format)
       OPEN( IU_FILE, FILE=TRIM( FILENAME ), STATUS='OLD', IOSTAT=IOS )
@@ -1276,18 +1302,17 @@
       !=================================================================
 
       ! File name
-      FILENAME = TRIM( DATA_DIR_GFED3 ) //
-     &           '/GFED3_humtropmap'
+!      FILENAME = TRIM( DATA_DIR_NATIVE ) //
+      FILENAME = '/as/data/geos/GEOS_NATIVE/' //
+     &           'GFED3_daily_3h/GFED3/GFED3_humtropmap'
 
       ! Read GFED3 veg map
-      CALL READ_BPCH2_GFED3( FILENAME, 'LANDMAP',  1,
-     &                 0d0,       IGFED3,      JGFED3,     
-     &                 1,         ARRAY_LANDMAP,     QUIET=.TRUE. )
+      CALL READ_BPCH2_GFED3( FILENAME, 'LANDMAP',     1,
+     &                       0d0,      IGFED3,        JGFED3,     
+     &                       1,        ARRAY_LANDMAP, QUIET=.TRUE. )
 
       ! Cast from REAL*4 to INTEGER
       HUMTROP_GFED3(:,:) = ARRAY_LANDMAP(:,:,1)
-
-
       
       !=================================================================
       ! Define local ID flags and arrays for the names, units, 
@@ -1404,7 +1429,7 @@
                ! Nothing
                BIO_SAVE(N)         = 0
 
-              WRITE(*,*) 'NAME',TRIM( GFED3_SPEC_NAME(N) )
+            WRITE(*,*) 'NAME',TRIM( GFED3_SPEC_NAME(N) )
          END SELECT
       ENDDO
 
@@ -1644,7 +1669,7 @@
       REAL*8               :: dy
       REAL*4               :: qsum, sum
     
-    ! YMAP begins here!
+      ! YMAP begins here!
       do j=1,jm-ig
          dy1(j) = sin1(j+1) - sin1(j)
       enddo
@@ -1930,8 +1955,8 @@
 ! !INTERFACE:
 !
       SUBROUTINE READ_BPCH2_GFED3( FILENAME, CATEGORY_IN, TRACER_IN,
-     &                       TAU0_IN,  IX,          JX,
-     &                       LX,       ARRAY,       QUIET )
+     &                             TAU0_IN,  IX,          JX,
+     &                             LX,       ARRAY,       QUIET )
 !
 ! !USES:
 !
