@@ -100,6 +100,24 @@
          !==============================================================
          ! Read in soil type data (first pass only)
          !==============================================================
+         
+         !==============================================================
+         !Initialize deposition arrays
+         !==============================================================          
+$
+          DRY_NO2  = 0.d0
+          DRY_PAN  = 0.d0
+          DRY_HNO3 = 0.d0
+          DRY_NH3  = 0.d0
+          DRY_NH4  = 0.d0
+          DRY_NIT  = 0.d0
+          WET_HNO3 = 0.d0
+          WET_NH3  = 0.d0
+          WET_NH4  = 0.d0
+          WET_NIT  = 0.d0
+
+          TOTAL_WETOLD = 0.0 ! Testing
+          TOTAL_DRYOLD = 0.0 ! Testing
 
          ! Define soiltype file name
          FILENAME = TRIM( DATA_DIR ) // 'soil_NOx_200203/soiltype.dat'
@@ -131,7 +149,36 @@
          !==============================================================
 
          ! Define fertilizer file name
-         FILENAME = TRIM( DATA_DIR ) // 'soil_NOx_200203/fert_scale.dat'
+         FILENAME = TRIM( DATA_DIR ) // 'soil_NOx_201004/fert_res.dat'
+
+         ! Echo filename
+         WRITE( 6, 100 ) TRIM( FILENAME )
+
+         ! Open file
+         OPEN( IUNIT, FILE=TRIM( FILENAME ), STATUS='OLD', IOSTAT=IOS )
+         IF ( IOS /= 0 ) CALL IOERROR( IOS, IUNIT, 'rdsoil:4' )
+
+         ! Read data -- save (I,J) pairs into INDEXSOIL array
+         DO M = 1, NFERT
+	    READ( IUNIT,*, IOSTAT=IOS ) 
+     &           ( INDEXSOIL(I,M), I=1,2 ), SOILFERT(M)
+            IF ( IOS /= 0 ) CALL IOERROR( IOS, IUNIT, 'rdsoil:5' )
+         ENDDO
+
+         DO M = 1, NLAND
+                INDEXSOIL(1,M) = INDEX_INT(1,(1 + (M-1)*365))
+                INDEXSOIL(2,M) = INDEX_INT(2,(1 + (M-1)*365))
+         ENDDO
+
+         ! Close file
+         CLOSE( IUNIT )
+
+         
+!      !=================================================================
+!      ! Read in climate type ###Rynda
+!      !=================================================================
+         ! Define arid/semi-arid 1-0 dataset location
+         FILENAME = TRIM( DATA_DIR ) // 'soil_NOx_201004/clim.dat'
 
          ! Echo filename
          WRITE( 6, 100 ) TRIM( FILENAME )
@@ -143,66 +190,65 @@
          ! Read data -- save (I,J) pairs into INDEXSOIL array
          DO M = 1, NLAND
 	    READ( IUNIT,*, IOSTAT=IOS ) 
-     &           ( INDEXSOIL(I,M), I=1,2 ), SOILFERT(M)
+     &           ( INDEXSOIL(I,M), I=1,2 ), CLIM(M)
             IF ( IOS /= 0 ) CALL IOERROR( IOS, IUNIT, 'rdsoil:5' )
          ENDDO
 
          ! Close file
          CLOSE( IUNIT )
 
-      ENDIF
-         
-      !=================================================================
-      ! Read in monthly soil precipitation data
-      !=================================================================
+      ENDIF  
+!      !=================================================================
+!      ! Read in monthly soil precipitation data
+!      !=================================================================
 
-      ! Only read data when we have entered a new month...
-      IF ( MONSAVE /= MONTH ) THEN
+!      ! Only read data when we have entered a new month...
+!      IF ( MONSAVE /= MONTH ) THEN
       
-         ! Save the current month 
-         MONSAVE = MONTH
+!         ! Save the current month 
+!         MONSAVE = MONTH
       
-         ! M1 is the previous month
-         IF ( MONTH == 1 ) THEN
-            M1 = 12
-         ELSE
-            M1 = MONTH - 1
-         END IF
+!         ! M1 is the previous month
+!         IF ( MONTH == 1 ) THEN
+!            M1 = 12
+!         ELSE
+!            M1 = MONTH - 1
+!         END IF
 
-         ! Define soil precip file name
-         FILENAME = TRIM( DATA_DIR ) // 'soil_NOx_200203/climatprep' //
-     &              GET_RES_EXT()    // '.dat'
+!        ! Define soil precip file name
+!         FILENAME = TRIM( DATA_DIR ) // 'soil_NOx_200203/climatprep' //
+!     &              GET_RES_EXT()    // '.dat'
 
-         ! Echo filename
-         WRITE( 6, 100 ) TRIM( FILENAME )
+!         ! Echo filename
+!         WRITE( 6, 100 ) TRIM( FILENAME )
 
-         ! Open soil precip file
-         OPEN( IUNIT, FILE=TRIM( FILENAME ), STATUS='OLD', IOSTAT=IOS )
-         IF ( IOS /= 0 ) CALL IOERROR( IOS, IUNIT, 'rdsoil:6' )
+!         ! Open soil precip file
+!         OPEN( IUNIT, FILE=TRIM( FILENAME ), STATUS='OLD', IOSTAT=IOS )
+!         IF ( IOS /= 0 ) CALL IOERROR( IOS, IUNIT, 'rdsoil:6' )
 
-         ! Loop over Olson land types
-         DO M = 1, NLAND
-
-            ! Read monthly soil precip data for each (I,J) box
-            READ( IUNIT, *, IOSTAT=IOS ) I, J, ( TMP(K), K=1,12 )
-            IF ( IOS /= 0 ) CALL IOERROR( IOS, IUNIT, 'rdsoil:7' )
-
-            ! Error check -- make sure that each (I,J) pair has both
-            ! soil precip data and fertilizer data defined
-            IF ( INDEXSOIL(1,M) /= I .OR. INDEXSOIL(2,M) /= J ) THEN
-               WRITE(6,*) 'CORRUPTED TEMPCORR OR CLMATPRECIP DATA'
-               WRITE(6,*) 'CHECK (I,J)',I,J
-               CALL GEOS_CHEM_STOP
-            ELSE
-               SOILPREP(1,M) = TMP(M1)
-               SOILPREP(2,M) = TMP(MONTH)
-            ENDIF
-         ENDDO
-
-         ! Close file
-         CLOSE( IUNIT )
-
-      ENDIF
+!         ! Loop over Olson land types
+!         DO M = 1, NLAND
+!
+!            ! Read monthly soil precip data for each (I,J) box
+!            READ( IUNIT, *, IOSTAT=IOS ) I, J, ( TMP(K), K=1,12 )
+!            IF ( IOS /= 0 ) CALL IOERROR( IOS, IUNIT, 'rdsoil:7' )
+!
+!            ! Error check -- make sure that each (I,J) pair has both
+!            ! soil precip data and fertilizer data defined
+!            IF ( INDEXSOIL(1,M) /= I .OR. INDEXSOIL(2,M) /= J ) THEN
+!               WRITE(6,*) 'CORRUPTED TEMPCORR OR CLMATPRECIP DATA'
+!               WRITE(6,*) 'CHECK (I,J)',I,J
+!               CALL GEOS_CHEM_STOP
+!            ELSE
+!               SOILPREP(1,M) = TMP(M1)
+!               SOILPREP(2,M) = TMP(MONTH)
+!            ENDIF
+!         ENDDO
+!
+!         ! Close file
+!         CLOSE( IUNIT )
+!
+!      ENDIF
 
       ! Return to calling program
       END SUBROUTINE RDSOIL

@@ -92,6 +92,9 @@
       USE MODIS_LAI_MOD         ! For MODIS leaf area indices (replacement)
       USE LIGHTNING_NOX_MOD     ! For lightning NOx emissions  
       USE MEGAN_MOD             ! For biogenic emissions
+      USE LOGICAL_MOD,       ONLY : LSOILNOX
+      USE SOILNOX_RESTART_MOD, ONLY: READ_SOIL_RESTART
+      USE SOILNOX_RESTART_MOD, ONLY: MAKE_SOILNOX_RESTART
 
       !-----------------------------------------------------------------
       ! GEOS-Chem met field I/O modules
@@ -357,6 +360,13 @@
       CALL READ_RESTART_FILE( NYMDb, NHMSb )
       IF ( LPRT ) CALL DEBUG_MSG( '### MAIN: a READ_RESTART_FILE' )
 
+      ! Read soil NOx initial conditions
+      IF ( LSOILNOX ) THEN
+         CALL READ_SOIL_RESTART( NYMDb , NHMSb )
+         IF ( LPRT ) CALL DEBUG_MSG( '### MAIN: a READ_SOIL_RESTART' )
+      ENDIF
+
+
       ! add support for making restart files of APROD and GPROD (dkh, 11/09/06)  
       IF ( LSOA ) THEN
 
@@ -465,6 +475,11 @@
                ! Make atmospheric restart file
                CALL MAKE_RESTART_FILE( NYMD, NHMS, TAU )
                   
+               ! Make soil restart file
+               IF ( LSOILNOX ) THEN
+                  CALL MAKE_SOILNOx_RESTART( NYMD, NHMS, TAU )
+               ENDIF
+
                ! Make ocean mercury restart file
                IF ( ITS_A_MERCURY_SIM() .and. LDYNOCEAN ) THEN
                   CALL MAKE_OCEAN_Hg_RESTART( NYMD, NHMS, TAU )
@@ -664,6 +679,9 @@
                CALL UPDATE_T_15_AVG
             ENDIF
 
+            ! Note: this daily call to rdsoil left
+            !for backward compatibility.
+            ! To be revised later.
             ! Also read soil-type info for fullchem simulation
             IF ( ITS_A_FULLCHEM_SIM() .or. ITS_A_H2HD_SIM() ) THEN
                CALL RDSOIL 

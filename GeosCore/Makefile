@@ -325,6 +325,9 @@ calcrate.o                  : calcrate.F                                     \
                               logical_mod.o           pbl_mix_mod.o          \
                               planeflight_mod.o       tracerid_mod.o
 
+canopy_nox_mod.o            : canopy_nox_mod.F                               \
+                              dao_mod.o               drydep_mod.o
+
 carbon_mod.o                : carbon_mod.F                                   \
                               biomass_mod.o           comode_mod.o           \
                               dao_mod.o               diag_mod.o             \
@@ -509,7 +512,7 @@ drydep_mod.o                : drydep_mod.F            comode_mod.o          \
                               dao_mod.o               diag_mod.o            \
                               logical_mod.o           pbl_mix_mod.o         \
                               tracerid_mod.o          tracer_mod.o          \
-                              meganut_mod.o 
+                              meganut_mod.o           get_ndep_mod.o
 
 diagoh.o                    : diagoh.F                diag_mod.o
 
@@ -550,7 +553,8 @@ emissdr.o                   : emissdr.F                                      \
                               diag_mod.o              emissions_mod.o        \
 			      lightning_nox_mod.o     logical_mod.o          \
                               megan_mod.o             tracer_mod.o           \
-                              tracerid_mod.o          meganut_mod.o
+                              tracerid_mod.o          meganut_mod.o          \
+                              canopy_nox_mod.o        soil_nox_mod.o
 
 emissions_mod.o             : emissions_mod.F                                \
                               arctas_ship_emiss_mod.o biomass_mod.o          \
@@ -636,6 +640,8 @@ geos57_read_mod.o           : geos57_read_mod.F90                            \
 
 get_global_ch4.o            : get_global_ch4.F                               \
                               future_emissions_mod.o  logical_mod.o          
+
+get_ndep_mod.o              : get_ndep_mod.F          tracerid_mod.o         
 
 getifsun.o                  : getifsun.F              comode_mod.o
 
@@ -959,18 +965,9 @@ soaprod_mod.o               : soaprod_mod.F                                  \
                               carbon_mod.o            dao_mod.o              \
                               logical_mod.o           tracer_mod.o
 
-soilbase.o                  : soilbase.F
+soil_nox_mod.o              : soil_nox_mod.F
 
-soilcrf.o                   : soilcrf.F
-
-soilnoxems.o                : soilnoxems.F                                   \
-                              dao_mod.o               diag_mod.o             \
-                              future_emissions_mod.o  logical_mod.o          \
-                              meganut_mod.o
-
-soiltemp.o                  : soiltemp.F
-
-soiltype.o                  : soiltype.F
+soilnox_restart_mod.o       : soilnox_restart_mod.F   logical_mod.o
 
 SPHERE.o                    : SPHERE.F
 
@@ -1095,7 +1092,8 @@ wetscav_mod.o               : wetscav_mod.F                                  \
                               dao_mod.o               diag_mod.o             \
                               depo_mercury_mod.o      logical_mod.o          \
                               mercury_mod.o           ocean_mercury_mod.o    \
-                              tracerid_mod.o          tracer_mod.o
+                              tracerid_mod.o          tracer_mod.o           \
+                              get_ndep_mod.o
 
 XSEC1D.o                    : XSEC1D.F
 

@@ -16,6 +16,7 @@
 ! !USES:
 !
       USE CMN_SIZE_MOD, ONLY : IIPAR, JJPAR, MAXIJ, NTYPE, NVEGTYPE
+      USE CMN_SIZE_MOD, ONLY : IGLOB, JGLOB
 
       IMPLICIT NONE
       PUBLIC
@@ -34,11 +35,13 @@
 
       ! There are 1118 land boxes for the 4 x 5 GLOBAL GRID
       INTEGER, PARAMETER :: NLAND = 1118
+      INTEGER, PARAMETER :: NFERT = 408070
 
 #elif defined( GRID2x25 )
 
       ! There are 3920 land boxes for the 2 x 2.5 GLOBAL GRID
       INTEGER, PARAMETER :: NLAND = 3920 
+      INTEGER, PARAMETER :: NFERT = 1430800
 
 #elif defined( GRID1x125 )
 
@@ -96,6 +99,7 @@
 
       ! i,j of the grid
       INTEGER :: INDEXSOIL(2,NLAND) 
+      INTEGER :: INDEX_INT(2,NFERT)
 
       ! Tracking of wet/dry & three types of pulsing (Y&L, 94)
       REAL*8  :: SOILPULS(NPULSE+1,NLAND) 
@@ -108,6 +112,17 @@
 
       ! Pulsing factors
       REAL*8  :: PULSFACT(NPULSE)
+      !###Rynda Start
+      ! Decided to carry these as I,J values because they will be
+      ! in restart which would be hard to look at as NLAND
+      ! Could also convert this later in writing out the restart
+      ! Will let Bob decide :)
+      INTEGER CLIM(NLAND)
+      REAL*4 :: LAND2(IGLOB,JGLOB,24)  !MODIS LANDTYPE
+      REAL*4 :: DRYPERIOD(IGLOB,JGLOB)  ! Dry period length
+      REAL*4 :: PFACTOR(IGLOB,JGLOB)     ! Pulse Factor
+      REAL*4 :: GWET_PREV(IGLOB,JGLOB)     ! Pulse Factor
+      !###Rynda End
 
       ! Pulsing decay per timestep
       REAL*8  :: PULSDECAY(NPULSE)
@@ -118,6 +133,10 @@
 #else
       REAL*8  :: SOILNOX(IIPAR,JJPAR) 
 #endif
+
+      !###Rynda Diag49
+      REAL*8 INST_SOIL(IGLOB,JGLOB) !instantaneous soil nox
+      REAL*8 INST_FERT(IGLOB,JGLOB) !instantaneous fert nox
 
       ! Olson->soil type,nvegtype in commbio.h
       INTEGER :: NCONSOIL(NVEGTYPE) 
@@ -135,6 +154,32 @@
       REAL*8  :: SOILAW(NSOIL)
       REAL*8  :: SOILAD(NSOIL)
       REAL*8  :: SOILEXC(NSOIL)     
+
+      !###Rynda
+      INTEGER TEST_DYNTS
+      REAL*8 TOTAL_WETOLD
+      REAL*8 TOTAL_DRYOLD
+      REAL*8 DRY_NO2(IGLOB,JGLOB)
+      REAL*8 DRY_PAN(IGLOB,JGLOB)
+      REAL*8 DRY_HNO3(IGLOB,JGLOB)
+      REAL*8 DRY_NH3(IGLOB,JGLOB)
+      REAL*8 DRY_NH4(IGLOB,JGLOB)
+      REAL*8 DRY_NIT(IGLOB,JGLOB)
+      REAL*8 DEP_RESERVOIR(IGLOB,JGLOB)
+      REAL*8 WET_HNO3(IGLOB,JGLOB)
+      REAL*8 WET_NH3(IGLOB,JGLOB)
+      REAL*8 WET_NH4(IGLOB,JGLOB)
+      REAL*8 WET_NIT(IGLOB,JGLOB)
+
+      COMMON /SOIL/ SOILNOX,  INDEXSOIL, NCONSOIL, SOILPULS,            &
+     &              SOILPREP, SOILFERT,  CANOPYNOX, DRYPERIOD,
+     &              PFACTOR,  GWET_PREV, INDEX_INT,
+     &              DRY_NO2, DRY_PAN,
+     &              DRY_HNO3, DRY_NH3,   DRY_NH4,   DRY_NIT,
+     &              DEP_RESERVOIR, WET_HNO3, WET_NH3, WET_NH4,
+     &              WET_NIT,  TEST_DYNTS, TOTAL_WETOLD, TOTAL_DRYOLD,
+     &              INST_SOIL, INST_FERT, CLIM , LAND2!###Rynda Diag49
+
 
       ! The correct sequence of PULSFACT is 5, 10, 15 
       DATA PULSFACT  / 5.D0,    10.D0,   15.D0   /

@@ -35,6 +35,7 @@
       USE DIAG56_MOD
       USE DIAG_PL_MOD
       USE LOGICAL_MOD
+      USE COMMSOIL_MOD
 
       IMPLICIT NONE
 
@@ -326,6 +327,9 @@
          ! Echo output
          WRITE( 6, '(a)' ) '     - INITIALIZE: Diag counters zeroed!'
       ENDIF
- 
+
+      TEST_DYNTS = 0
+      WRITE(6,*) 'TEST_DYNTS = 0 INITIALIZE'
+
       END SUBROUTINE INITIALIZE
 !EOC

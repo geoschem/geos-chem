@@ -24,6 +24,7 @@
 !
       ! Logical file unit numbers for ...
       INTEGER, PUBLIC, PARAMETER :: IU_RST     = 1   ! Tracer restart file
+      INTEGER, PUBLIC, PARAMETER :: IU_SOIL    = 2   ! Soil restart file
       INTEGER, PUBLIC, PARAMETER :: IU_CHEMDAT = 7   ! "chem.dat" 
       INTEGER, PUBLIC, PARAMETER :: IU_FASTJ   = 8   ! FAST-J input files
       INTEGER, PUBLIC, PARAMETER :: IU_GEOS    = 10  ! "input.geos" 

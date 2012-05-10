@@ -4000,9 +4000,13 @@
       USE TRACERID_MOD,      ONLY : IS_HgP
       USE DEPO_MERCURY_MOD,  ONLY : ADD_Hg2_SNOWPACK
       USE LOGICAL_MOD,       ONLY : LGTMM
+      USE LOGICAL_MOD,       ONLY : LSOILNOX
+      USE GET_NDEP_MOD,      ONLY : SOIL_WETDEP
+
 
       USE CMN_SIZE_MOD            ! Size parameters
       USE CMN_DIAG_MOD            ! Diagnostic arrays and switches
+      USE COMMSOIL_MOD
 !
 ! !INPUT PARAMETERS: 
 !
@@ -5231,6 +5235,8 @@
       USE DIAG_MOD,    ONLY : CT17                     ! ND17 diag counter
       USE ERROR_MOD,   ONLY : IT_IS_NAN                ! Test for NaN
       USE LOGICAL_MOD, ONLY : LGTMM                    ! Use GTMM for Hg sim?
+      USE LOGICAL_MOD, ONLY : LSOILNOX
+      USE GET_NDEP_MOD,      ONLY : SOIL_WETDEP
 
       USE CMN_SIZE_MOD                                 ! Size parameters
       USE CMN_DIAG_MOD                                 ! Diagnostic flags
@@ -5354,6 +5360,12 @@
             AD39(I,J,L,NN) = AD39(I,J,L,NN) + WETLOSS / DT
          ENDIF
 
+         !Arcive wet loss in kg/s
+         IF ( LSOILNOX ) THEN
+            CALL SOIL_WETDEP ( I, J, L, N, WETLOSS / DT )
+         ENDIF
+
+
          !--------------------------------------------------------------
          ! Error checks
          !--------------------------------------------------------------
@@ -5423,9 +5435,10 @@
       USE TRACERID_MOD, ONLY : IDTSO4                  ! ID flag for SO4
       USE LOGICAL_MOD,  ONLY : LGTMM                   ! Use GTMM w/ Hg sim?
       USE ERROR_MOD,    ONLY : IT_IS_NAN               ! Check for NaN 
-
+      USE LOGICAL_MOD,  ONLY : LSOILNOX
       USE CMN_SIZE_MOD                                 ! Size parameters
       USE CMN_DIAG_MOD                                 ! Diagnostic flags
+      USE GET_NDEP_MOD,      ONLY : SOIL_WETDEP
 !
 ! !INPUT PARAMETERS: 
 !     
@@ -5719,6 +5732,12 @@
          IF ( ( ND39 > 0 .or. LGTMM ) .and. L <= LD39 ) THEN
             AD39(I,J,L,NN) = AD39(I,J,L,NN) + WETLOSS / DT
          ENDIF
+
+         !Archive wet loss in kg/s
+         IF ( LSOILNOX ) THEN
+           CALL SOIL_WETDEP ( I, J, L, N, WETLOSS / DT )
+         ENDIF
+
   
          !--------------------------------------------------------------
          ! Error checks
@@ -5779,9 +5798,10 @@
       USE TRACERID_MOD, ONLY : IDTSO2                  ! ID flag for SO2
       USE TRACERID_MOD, ONLY : IDTSO4                  ! ID flag for SO4
       USE LOGICAL_MOD,  ONLY : LGTMM                   ! Use GTMM w/ Hg sim?
-
+      USE LOGICAL_MOD,  ONLY : LSOILNOX
       USE CMN_SIZE_MOD                                 ! Size parameters
       USE CMN_DIAG_MOD                                 ! Diagnostic flags
+      USE GET_NDEP_MOD,      ONLY : SOIL_WETDEP
 !
 ! !INPUT PARAMETERS: 
 !     
@@ -5851,6 +5871,12 @@
          IF ( ( ND39 > 0 .or. LGTMM ) .and. L <= LD39 ) THEN
             AD39(I,J,L,NN) = AD39(I,J,L,NN) + ( WETLOSS / DT )
          ENDIF
+
+         !Archive wet loss in kg/s
+         IF ( LSOILNOX ) THEN
+           CALL SOIL_WETDEP ( I, J, L, N, WETLOSS / DT )
+         ENDIF
+
 
          !--------------------------------------------------------------
          ! Error checks

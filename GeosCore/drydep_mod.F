@@ -49,6 +49,7 @@
       PUBLIC :: DRYFLXRnPbBe       
       PUBLIC :: DVZ_MINVAL         
       PUBLIC :: INIT_DRYDEP
+
 !
 ! !PUBLIC DATA MEMBERS:
 !
@@ -58,6 +59,8 @@
       PUBLIC :: NUMDEP
       PUBLIC :: NTRAIND
       PUBLIC :: DRYHg0, DRYHg2, DryHgP    !CDH
+      PUBLIC :: IDEP, IRGSS, IRAC, IRCLS
+      PUBLIC :: IRGSO, IRLU, IRI, IRCLO, DRYCOEFF
 !
 ! !REMARKS:
 !  References:
@@ -760,6 +763,11 @@
 !
 ! !LOCAL VARIABLES:
 !
+      USE LOGICAL_MOD,  ONLY : LSOILNOX
+      USE GET_NDEP_MOD, ONLY : SOIL_DRYDEP
+      USE TRACERID_MOD, ONLY : IDTHNO3
+
+
       INTEGER :: I, J, JJ, JLOOP, L, L_PBLTOP, N, NK, NN
       REAL*8  :: DTCHEM, PBL_MAX, TDRYFX, AREA_CM2
 
@@ -768,7 +776,7 @@
       !=================================================================
 
       ! Return unless we have turned on ND44 drydep diagnostic
-      IF ( ND44 == 0 ) RETURN
+      !IF ( ND44 == 0 ) RETURN
 
       ! There is only drydep in the surface layer, which
       ! is accounted for in the "URBAN" chemistry slot
@@ -789,12 +797,15 @@
       !=================================================================
 !$OMP PARALLEL DO
 !$OMP+DEFAULT( SHARED )
-!$OMP+PRIVATE( I, J, L, N, NK, JJ, JLOOP, TDRYFX )
+!$OMP+PRIVATE( I, J, L, N, NN, NK, JJ, JLOOP, TDRYFX )
 !$OMP+SCHEDULE( DYNAMIC )
       DO N = 1, NUMDEP
 
          ! Index for drydep species #N, from SMVGEAR
          NK = NTDEP(N)
+
+         ! Dry deposition tracer id
+         NN =  NTRAIND(N) 
 
          ! If NK <= 0, then skip to the next tracer.  
          ! This avoids array-out-of-bounds errors (bmy, 5/2/00)
@@ -832,8 +843,15 @@
                TDRYFX        = TDRYFX / ( AREA_CM2 * DTCHEM ) 
                     
 !$OMP CRITICAL
+               IF ( ND44 /= 0 ) THEN 
                ! Save into AD44 diagnostic array
                AD44(I,J,N,1) = AD44(I,J,N,1) + TDRYFX
+               ENDIF 
+
+               ! Archive dry deposited N species for use in soil_nox_mod
+               IF (LSOILNOX ) THEN
+                 CALL SOIL_DRYDEP ( I, J, L, NN, TDRYFX)
+               ENDIF
 !$OMP END CRITICAL
 
             ENDIF
@@ -995,7 +1013,7 @@
 !\\
 !\\
 ! !INTERFACE:
-!
+
       SUBROUTINE DRYFLXH2HD
 !
 ! !USES:
@@ -1051,9 +1069,9 @@
       ! Chemistry timestep in seconds
       DTCHEM = GET_TS_CHEM() * 60d0
 
-      ! Call soiltype to determine whether soil is dry or
+      ! Obsolete - Call soiltype to determine whether soil is dry or
       ! wet for all land grid-boxes
-      CALL SOILTYPE
+      !CALL SOILTYPE
 
       ! Only do the following if DRYDEP is turned on
       IF ( .not. LDRYD ) RETURN

@@ -97,9 +97,15 @@
       USE ACETONE_MOD,       ONLY : READ_JO1D,     READ_RESP
       USE AIRCRAFT_NOX_MOD,  ONLY : AIREMISS
       USE BIOFUEL_MOD,       ONLY : BIOFUEL_BURN
+      USE CANOPY_NOX_MOD,    ONLY : GET_CANOPY_NOX
       USE DAO_MOD,           ONLY : PARDF,         PARDR,     SUNCOS_MID       
       USE DIAG_MOD,          ONLY : AD29,          AD46
+      USE DIAG_MOD,          ONLY : AD32_fe,     AD32_so
+      USE DAO_MOD,           ONLY : PREACC, PRECON, TS, U10M, V10M
+      USE DAO_MOD,           ONLY : BXHEIGHT, GWETTOP
       USE GRID_MOD,          ONLY : GET_AREA_CM2
+      USE GRID_MOD,          ONLY : GET_YMID
+      USE GRID_MOD,          ONLY : GET_XMID
       USE GRID_MOD,          ONLY : GET_XOFFSET,   GET_YOFFSET
       USE LIGHTNING_NOX_MOD, ONLY : EMLIGHTNING
       USE LOGICAL_MOD,       ONLY : LANTHRO,       LLIGHTNOX, LSOILNOX
@@ -110,8 +116,11 @@
       USE MEGAN_MOD,         ONLY : GET_EMISOP_MEGAN
       USE MEGAN_MOD,         ONLY : GET_EMMBO_MEGAN
       USE MEGAN_MOD,         ONLY : GET_EMMONOT_MEGAN
+      USE SOIL_NOX_MOD,      ONLY : SOIL_NOX_EMISSION   
+      USE GET_NDEP_MOD,      ONLY : GET_DEP_N 
       USE TIME_MOD,          ONLY : GET_MONTH,     GET_TAU
       USE TIME_MOD,          ONLY : GET_TS_EMIS,   GET_LOCALTIME
+      USE TIME_MOD,          ONLY : GET_DAY_OF_YEAR
       USE TRACER_MOD,        ONLY : ITS_A_TAGCO_SIM
       USE TRACERID_MOD,      ONLY : IDEACET,       IDTISOP,   IDEISOP   
       USE TRACERID_MOD,      ONLY : IDECO,         IDEPRPE,   NEMANTHRO 
@@ -129,6 +138,8 @@
       USE CMN_O3_MOD       ! Emissions arrays
       USE CMN_DIAG_MOD     ! Diagnostic arrays and switches
       USE CMN_NOX_MOD      ! GEMISNOX2
+      USE COMMSOIL_MOD
+      USE CMN_DEP_MOD
 
 #if defined( DEVEL )
       USE TRACERID_MOD,      ONLY : IDTNOX
@@ -150,6 +161,14 @@
       REAL*8                 :: TMPVAL,  EMMB,     GRASS, BIO_ACET
       REAL*8                 :: CONVERT(NVEGTYPE), GMONOT(NVEGTYPE)
       REAL*8                 :: SC, PDF, PDR
+      INTEGER                :: DOY, MONTH, RC, M
+      REAL*8                 :: LAT, FERTDIAG
+      REAL*8                 :: TS_EMIS
+      REAL*8                 :: LON ! Just for testing
+      REAL*8                 :: TOTALPULSE
+      REAL*8                 :: SOILFRT, SOILPRC(2)
+      REAL*8                 :: DEP_FERT, TEMP_FERT
+
 
       ! Add biogenic emission scale factor for ethene (tmf, 1/13/06)
       REAL*8                 :: BIOSCALEC2H4
@@ -194,6 +213,131 @@
       ! Get nested-grid offsets
       I0 = GET_XOFFSET()
       J0 = GET_YOFFSET()
+
+!%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+! SOIL EMISSIONS NOX [molecules/cm3/s]
+! Pulled call to soil NOx mod out of I,J, Loop to just loop over land boxes
+
+       WRITE(6,*) '# DYNTS' , TEST_DYNTS
+
+      IF ( LSOILNOX ) THEN
+               
+
+         ! Just for now initialize Pfactor and DrySpell this way 
+         IF ( FIRSTEMISS ) THEN
+
+         PFACTOR(:,:)   = 0.0 
+         DRYPERIOD(:,:) = 0.0
+         GWET_PREV(:,:) = 0.0
+         INST_SOIL(:,:) = 0.0
+         INST_FERT(:,:) = 0.0
+         ENDIF
+
+         !***************************************************************
+         !first zero the arrays in which emissions will be stored
+         !GEMISNOX2(I,J)   = Array which stores NOx emissions from soils.
+         !                    Units are [molec NOx/cm3/s].
+         GEMISNOX2   = 0d0
+         !***************************************************************
+
+         ! Now need to call GET_CANOPY_NOX to break ugly dependency between
+         ! drydep and soil NOx emissions. (bmy, 6/22/09) 
+         ! Compute the CANOPYNOX array in commsoil.h
+         CALL GET_CANOPY_NOX
+               
+         !Get day of year/month and timestep information
+         DOY     = GET_DAY_OF_YEAR() 
+         TS_EMIS = GET_TS_EMIS()           
+         MONTH   = GET_MONTH()
+
+         ! Loop over each land grid-box
+         DO M = 1, NLAND
+            IREF   = INDEXSOIL(1,M)
+            JREF   = INDEXSOIL(2,M)
+            I      = IREF - I0
+            J      = JREF - J0
+            IJLOOP = ( (J-1) * IIPAR ) + I
+
+
+            ! Get Deposited Fertilizer
+             CALL GET_DEP_N( I, J, TS_EMIS, DEP_FERT )
+            !Ryn Change for testing without deposition
+            !DEP_FERT = 0.d0
+            CALL FLUSH(6)
+
+            ! Get New Fertilizer 
+            !SOILFRT =  SOILFERT(M) 
+            SOILFRT =  SOILFERT( GET_DAY_OF_YEAR() + (M-1)*365) 
+
+            ! Just this month and previous month
+            SOILPRC(1) =  SOILPREP(1,M) 
+            SOILPRC(2) =  SOILPREP(2,M) 
+
+            !Put in constraint if dry period gt 1 yr, keep at 1yr to
+            !avoid unrealistic pulse
+            IF ( DRYPERIOD(I,J) .GT. 8760.) DRYPERIOD(I,J) = 8760.
+ 
+ 
+ 
+            ! Return NOx emission from soils [molec/cm2/s]
+            CALL SOIL_NOX_EMISSION( TS(I,J), GWETTOP(I,J),
+     &                              SOILFRT,  
+     &                              GWET_PREV(I,J),
+     &                              DRYPERIOD(I,J),
+     &                              PFACTOR(I,J),
+     &                              GEMISNOX2(I,J),
+     &                              DEP_FERT, 
+     &                              FERTDIAG, 
+     &                              CLIM(M),
+     &                              LAND2(I,J,:),
+     &                              RC )
+
+            !Archive emissions
+            IF ( ND32 > 0 ) THEN
+              AD32_so(I,J) = AD32_so(I,J) + GEMISNOX2(I,J)
+              AD32_fe(I,J) = AD32_fe(I,J) + FERTDIAG
+            ENDIF
+            IF ( I == 69 .and. J == 51 ) THEN 
+            WRITE(6,*) LON, LAT,  ' SOIL TOT = ', GEMISNOX2(I,J)
+            WRITE(6,*) LON, LAT,  ' DIAG TOT = ', AD32_so(I,J)
+            WRITE(6,*) LON, LAT,  ' FERT TOT = ', AD32_fe(I,J)
+            WRITE(6,*) LON, LAT,  ' DEP FERT = ', DEP_FERT
+
+
+           ENDIF
+
+            
+            INST_SOIL(I,J) = GEMISNOX2(I,J) !###Rynda Diag49
+            INST_FERT(I,J) = FERTDIAG !###Rynda Diag49
+
+            GEMISNOX2(I,J) = GEMISNOX2(I,J) / 
+     &                        ( BXHEIGHT(I,J,1) * 100d0 )
+
+
+           
+         ENDDO
+
+
+         !Zero arrays. This code assumes that ts_chem = ts_emiss
+         DRY_HNO3 = 0.d0
+         DRY_NH4  = 0.d0
+         DRY_NH3  = 0.d0
+         DRY_NIT  = 0.d0
+         DRY_NO2  = 0.d0
+         DRY_PAN  = 0.d0
+
+         WET_HNO3 = 0.d0
+         WET_NH4  = 0.d0
+         WET_NH3  = 0.d0
+         WET_NIT  = 0.d0
+
+
+         TEST_DYNTS = 0
+
+
+      ENDIF
+
+!%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 !******************************************************************************
 !  BE CAREFUL WITH USING A WINDOW RELATIVE TO THE EMISSIONS WINDOW
@@ -274,6 +418,14 @@
             ENDIF
 
 !-----------------------------------------------------------------------------
+!###Start Rynda
+! SOIL EMISSIONS NOX [molecules/cm3/s]
+! Now have to pass SUNCOS to SOILNOXEMS and SOILCRF (bmy, 10/20/99)
+
+!            IF ( LSOILNOX .AND. I == 1 .AND. J == 1 ) 
+!     &         CALL SOILNOXEMS( SUNCOS )170
+!###End Rynda
+!-----------------------------------------------------------------------------
 ! LIGHTNING EMISSIONS NOX [molecules/cm3/s]
 !
 #if defined( DEVEL )
@@ -285,13 +437,13 @@
 !-----------------------------------------------------------------------------
 ! SOIL EMISSIONS NOX [molecules/cm3/s]
 !
-            IF ( ( LSOILNOX .OR. LFERTILIZERNOX )
-     &             .AND. I == 1 .AND. J == 1 ) 
-#if defined( DEVEL )
-     &         CALL SOILNOXEMS( SUNCOS_MID, EMISS_TEND(:,:,1,IDTNOX) )
-#else
-     &         CALL SOILNOXEMS( SUNCOS_MID )
-#endif
+!            IF ( ( LSOILNOX .OR. LFERTILIZERNOX )
+!     &             .AND. I == 1 .AND. J == 1 ) 
+!#if defined( DEVEL )
+!     &         CALL SOILNOXEMS( SUNCOS_MID, EMISS_TEND(:,:,1,IDTNOX) )
+!#else
+!     &         CALL SOILNOXEMS( SUNCOS_MID )
+!#endif
 !-----------------------------------------------------------------------------
 ! AIRCRAFT emissions NOx [molecules/cm3/s]
 !

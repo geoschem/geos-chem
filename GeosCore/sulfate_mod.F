@@ -3241,6 +3241,8 @@
       USE TIME_MOD,     ONLY : GET_TS_CHEM
       USE TRACER_MOD,   ONLY : STT, TCVV, XNUMOL
       USE TRACERID_MOD, ONLY : IDTNH3
+      USE LOGICAL_MOD,  ONLY : LSOILNOX  
+      USE GET_NDEP_MOD, ONLY : SOIL_DRYDEP
 
       USE CMN_SIZE_MOD       ! Size parameters
       USE CMN_DIAG_MOD       ! ND44    
@@ -3292,21 +3294,7 @@
       ! Model level where maximum PBL height occurs 
       PBL_MAX = GET_PBL_MAX_L()
 
-      ! Zero ND44_TMP array
-      IF ( ND44 > 0 ) THEN
-!$OMP PARALLEL DO
-!$OMP+DEFAULT( SHARED )
-!$OMP+PRIVATE( I, J, L )
-!$OMP+SCHEDULE( DYNAMIC )
-         DO L = 1, LLTROP 
-         DO J = 1, JJPAR
-         DO I = 1, IIPAR
-            ND44_TMP(I,J,L) = 0d0
-         ENDDO
-         ENDDO
-         ENDDO
-!$OMP END PARALLEL DO
-      ENDIF
+      ND44_TMP = 0d0
 
 !$OMP PARALLEL DO
 !$OMP+DEFAULT( SHARED )
@@ -3347,7 +3335,9 @@
                !========================================================
                ! ND44 diagnostic: Drydep flux of NH3 [molec/cm2/s]
                !========================================================
-               IF ( ND44 > 0 .and. NH3 > 0d0 ) THEN
+               !###Rynda - remove check since will do this most of the time               
+               !IF ( ND44 > 0 .and. NH3 > 0d0 ) THEN
+               IF ( NH3 > 0d0 ) THEN
 
                   ! Surface area [cm2]
                   AREA_CM2 = GET_AREA_CM2( I, J, L )
@@ -3377,7 +3367,14 @@
          DO J = 1, JJPAR
          DO I = 1, IIPAR
          DO L = 1, PBL_MAX
+            IF (ND44 > 0) THEN
             AD44(I,J,DRYNH3,1) = AD44(I,J,DRYNH3,1) + ND44_TMP(I,J,L)
+            ENDIF
+
+            IF (LSOILNOX) THEN
+            CALL SOIL_DRYDEP ( I, J, L, IDTNH3, ND44_TMP(I,J,L) )
+            ENDIF
+
          ENDDO
          ENDDO
          ENDDO
@@ -3411,6 +3408,8 @@
       USE TIME_MOD,     ONLY : GET_TS_CHEM
       USE TRACER_MOD,   ONLY : STT, TCVV, XNUMOL
       USE TRACERID_MOD, ONLY : IDTNH4
+      USE LOGICAL_MOD,  ONLY : LSOILNOX  
+      USE GET_NDEP_MOD, ONLY : SOIL_DRYDEP
 
       USE CMN_SIZE_MOD       ! Size parameters
       USE CMN_DIAG_MOD       ! ND44
@@ -3463,19 +3462,7 @@
       PBL_MAX = GET_PBL_MAX_L()
 
       ! Zero ND44_TMP array
-      IF ( ND44 > 0 ) THEN
-!$OMP PARALLEL DO
-!$OMP+DEFAULT( SHARED )
-!$OMP+PRIVATE( I, J, L )
-         DO L = 1, LLTROP 
-         DO J = 1, JJPAR
-         DO I = 1, IIPAR
-            ND44_TMP(I,J,L) = 0d0
-         ENDDO
-         ENDDO
-         ENDDO
-!$OMP END PARALLEL DO
-      ENDIF
+      ND44_TMP = 0d0
 
 !$OMP PARALLEL DO
 !$OMP+DEFAULT( SHARED )
@@ -3546,7 +3533,14 @@
          DO J = 1, JJPAR
          DO I = 1, IIPAR
          DO L = 1, PBL_MAX
+            IF (ND44 > 0 ) THEN
             AD44(I,J,DRYNH4,1) = AD44(I,J,DRYNH4,1) + ND44_TMP(I,J,L)
+            ENDIF
+
+            IF (LSOILNOX) THEN
+            CALL SOIL_DRYDEP ( I, J, L, IDTNH4, ND44_TMP(I,J,L) )
+            ENDIF
+
          ENDDO
          ENDDO
          ENDDO
@@ -3580,6 +3574,8 @@
       USE TIME_MOD,     ONLY : GET_TS_CHEM
       USE TRACER_MOD,   ONLY : STT, TCVV, XNUMOL
       USE TRACERID_MOD, ONLY : IDTNH4aq
+      USE LOGICAL_MOD,  ONLY : LSOILNOX  
+      USE GET_NDEP_MOD, ONLY : SOIL_DRYDEP
 
       USE CMN_SIZE_MOD       ! Size parameters
       USE CMN_DIAG_MOD       ! ND44
@@ -3619,19 +3615,7 @@
       PBL_MAX = GET_PBL_MAX_L()      
 
       ! Zero T44 array
-      IF ( ND44 > 0 ) THEN
-!$OMP PARALLEL DO
-!$OMP+DEFAULT( SHARED )
-!$OMP+PRIVATE( I, J, L )
-         DO L = 1, LLTROP 
-         DO J = 1, JJPAR
-         DO I = 1, IIPAR
-            T44(I,J,L) = 0d0
-         ENDDO
-         ENDDO
-         ENDDO
-!$OMP END PARALLEL DO
-      ENDIF
+      T44 = 0d0
 
 !$OMP PARALLEL DO
 !$OMP+DEFAULT( SHARED )
@@ -3703,7 +3687,14 @@
          DO J = 1, JJPAR
          DO I = 1, IIPAR
          DO L = 1, PBL_MAX
+            IF ( ND44 > 0 ) THEN
             AD44(I,J,DRYNH4aq,1) = AD44(I,J,DRYNH4aq,1) + T44(I,J,L)
+            ENDIF
+
+            IF (LSOILNOX) THEN
+            CALL SOIL_DRYDEP ( I, J, L, IDTNH4aq, T44(I,J,L) )
+            ENDIF
+
          ENDDO
          ENDDO
          ENDDO
@@ -3738,6 +3729,9 @@
       USE TIME_MOD,     ONLY : GET_TS_CHEM
       USE TRACER_MOD,   ONLY : STT, TCVV, XNUMOL
       USE TRACERID_MOD, ONLY : IDTNIT, IDTNITs
+
+      USE LOGICAL_MOD,  ONLY : LSOILNOX  
+      USE GET_NDEP_MOD, ONLY : SOIL_DRYDEP
 
       USE CMN_SIZE_MOD       ! Size parameters
       USE CMN_DIAG_MOD       ! ND44
@@ -3798,21 +3792,7 @@
       N_ND44 = 2 
 
       ! Zero ND44 array
-      IF ( ND44 > 0 ) THEN
-!$OMP PARALLEL DO
-!$OMP+DEFAULT( SHARED )
-!$OMP+PRIVATE( I, J, L, N )
-         DO N = 1, N_ND44
-         DO L = 1, LLTROP 
-         DO J = 1, JJPAR
-         DO I = 1, IIPAR
-            T44(I,J,L,N) = 0d0
-         ENDDO
-         ENDDO
-         ENDDO
-         ENDDO
-!$OMP END PARALLEL DO
-      ENDIF
+      T44 = 0d0
 
 !$OMP PARALLEL DO
 !$OMP+DEFAULT( SHARED )
@@ -3970,8 +3950,16 @@
          DO J = 1, JJPAR
          DO I = 1, IIPAR
          DO L = 1, PBL_MAX
+            IF ( ND44 > 0) THEN
             AD44(I,J,DRYNIT, 1) = AD44(I,J,DRYNIT, 1) + T44(I,J,L,1)
             AD44(I,J,DRYNITs,1) = AD44(I,J,DRYNITs,1) + T44(I,J,L,2)
+            ENDIF
+
+            IF (LSOILNOX) THEN
+            CALL SOIL_DRYDEP ( I, J, L, IDTNIT,  T44(I,J,L,1) )
+            CALL SOIL_DRYDEP ( I, J, L, IDTNITs, T44(I,J,L,2) )
+            ENDIF
+
          ENDDO
          ENDDO
          ENDDO
