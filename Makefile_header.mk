@@ -102,6 +102,7 @@
 #  30 Apr 2012 - R. Yantosca - Also add -mcmodel=medium flag for PGI compiler
 #  09 May 2012 - R. Yantosca - Now try to get the proper linking sequence 
 #                              for netCDF etc w/ nf-config and nc-config.
+#  11 May 2012 - R. Yantosca - Now export NCL (netCDF linking sequence)
 #EOP
 #------------------------------------------------------------------------------
 #BOC
@@ -505,6 +506,7 @@ export LD
 export LINK
 export R8
 export SHELL
+export NCL
 
 #EOC
 #==============================================================================
