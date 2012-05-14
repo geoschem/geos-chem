@@ -333,14 +333,16 @@
       ! Array containing output data
       REAL*8,           INTENT(INOUT) :: ARR(IIPAR,JJPAR)
 !
-! !REVISION HISTORY: 
-!  28 Jan 2009 - P. Le Sager - Initial Version
-!  13 Mar 2012 - M. Cooper   - Changed regrid algorithm to map_a2a
 !
 ! !REMARKS:
 !  (1) Even though the inventory was prepared for Arctas 2008 campaign, CO2 
 !       base year is 2000, and SO2 base year is 2006. Input YEAR is used to 
 !       scale SO2 into 1985-2005 
+!
+! !REVISION HISTORY: 
+!  28 Jan 2009 - P. Le Sager - Initial Version
+!  13 Mar 2012 - M. Cooper   - Changed regrid algorithm to map_a2a
+!  14 May 2012 - R. Yantosca - Bug fix: SC should be defined w/ IIPAR,JJPAR
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -349,7 +351,12 @@
 !
       REAL*4              :: ARRAY(I1x1,J1x1-1,1)
       REAL*8              :: GEN_1x1(I1x1,J1x1-1)
-      REAL*4              :: SC(I1x1,J1x1)
+!-----------------------------------------------------------------------------
+! Prior to 5/14/12:
+! Bug fix: SC should be dimensioned with IIPAR,JJPAR (bmy,mpayer,5/14/12)
+!     REAL*4              :: SC(I1x1,J1x1)
+!-----------------------------------------------------------------------------
+      REAL*4              :: SC(IIPAR,JJPAR)
       REAL*8              :: TAU2008
       CHARACTER(LEN=255)  :: LLFILENAME
       REAL*8, ALLOCATABLE :: OUTGRID(:,:)
