@@ -83,7 +83,7 @@
       !      box edge (in 4x5 or 2x2.5)... so
       !      the midpoint will work fine as
       !      an indicator. >= is unnecessary... but ok.
-      if ( get_ymid(ilat) >= -30.0 ) then
+      if ( get_ymid(1,ilat,1) >= -30.0 ) then
          ! no seasonal dependence for this range
          ! that covers the NH.
          DF = 0.5d0
@@ -208,11 +208,10 @@
 
       ! Loop over Lat and Long boxes
       DO J = 1, NLAT
+      DO I = 1, NLONG
 
          ! store the surface area of the box
-         AREA_M2 = GET_AREA_M2( J )
-
-         DO I = 1, NLONG
+         AREA_M2 = GET_AREA_M2( I, J, 1 )
 
             ! store the emission for use inside SMVGEAR
             ! in [molecules/box/s]
@@ -228,10 +227,8 @@
      &              AREA_M2 ) * ( MWT_BR2 / AVG )
             endif
 
-         ENDDO
-
       ENDDO
-
+      ENDDO
 
       print*, 'jpp: through EMIT_Br2'
       call flush(6)

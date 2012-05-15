@@ -127,7 +127,7 @@
       USE DIAG_MOD,          ONLY : AD46
       USE BPCH2_MOD,         ONLY : GET_TAU0,  READ_BPCH2
       USE TIME_MOD,          ONLY : GET_MONTH
-      USE GRID_MOD,          ONLY : GET_AREA_M2, GET_YMID, GET_YEDGE
+      USE GRID_MOD,          ONLY : GET_YMID,  GET_YEDGE
       USE TRANSFER_MOD,      ONLY : transfer_2d
 
 
@@ -208,7 +208,7 @@
       ! Calculating the CHBr3 emission rate [molecules/box/s]
       ! from Qing Liang's emissions distribution.
       ! --------------------------------------------------------
-      if ( GET_YMID(J) > 30.d0 ) then
+      if ( GET_YMID(I,J,1) > 30.d0 ) then
          ! use seasonal scaling
          E_R_CHBr3 = chbr3_emiss(I,J) * 
      &        nh_scale(this_month)
@@ -405,7 +405,7 @@
       !===================================
       ! Modules Called within this routine
       !===================================
-      USE GRID_MOD,     ONLY : GET_AREA_M2, GET_YMID, GET_YEDGE
+      USE GRID_MOD,     ONLY : GET_AREA_M2, GET_YEDGE
 
 
       USE CMN_SIZE_MOD      !grid box loops and other size params
@@ -441,13 +441,13 @@
       ! SUBROUTINE SEA_SURFACE BEGINS HERE
       !===================================
 
-      ! do loop over latitudes
+      ! Loop over grid boxes
       DO J = 1, JJPAR
+      DO I = 1, IIPAR
 
-         
          ! Get ABS( latitude ) at S and N edges of grid box
-         LAT_S      = ABS( GET_YEDGE(J)   ) 
-         LAT_N      = ABS( GET_YEDGE(J+1) )
+         LAT_S      = ABS( GET_YEDGE(I,J,1)   ) 
+         LAT_N      = ABS( GET_YEDGE(I,J+1,1) )
          LAT_H      = MAX( LAT_S, LAT_N )
          LAT_L      = MIN( LAT_S, LAT_N ) 
 
@@ -469,10 +469,8 @@
          END IF
 
          ! Grid box surface area [m2]-- it's only a fn' of latitude
-         A_M2(J)    = GET_AREA_M2( J )
+         A_M2(J)    = GET_AREA_M2( I, J, 1 )
 
-      ! Loop over longitudes
-         DO I = 1, IIPAR
 
 ! use this if you have problems selecting only ocean.
 ! they used something like this in ocean_mercury_mod.
@@ -508,10 +506,8 @@
             TOT_OC_AREA(2) = TOT_OC_AREA(2) + FRAC_IN_ab(2,I,J) *
      &           A_M2(J)
 
-         END DO                 !END i-loop over longitudes
-
-      END DO                    !END j-loop over latitudes
-      
+      END DO                 !END i-loop over longitudes
+      END DO                 !END j-loop over latitudes
 
       END SUBROUTINE SEA_SURFACE
 !=============================================================================
@@ -621,7 +617,7 @@
       ! jpp: 2/12/08, continue to edit!!!
       ! jpp: 2/13/08, trying based on box midpoints
 
-      ! do loop over latitudes
+      ! Loop over grid boxes
       DO J = 1, JJPAR
          DO I = 1, IIPAR
             DO L = 1, LLPAR
@@ -632,7 +628,7 @@
 
                   ! base lat band selection on midpoint
                   ! latitude of the box
-                  LAT_MID = GET_YMID(J)
+                  LAT_MID = GET_YMID( I, J, L )
 
                   ! Selecting the latitude bands:
                   IF ( LAT_MID > 55d0 ) THEN
@@ -1022,10 +1018,12 @@
 
       ! Calculating the CHBr3 emission rate [molecules/box/s]
       ! from Qing Liang's emissions distribution...
-      do j = 1, JJPAR
+      DO J = 1, JJPAR
+      DO I = 1, IIPAR
+
          ! Grid box surface area [m2]-- it's only a fn' of latitude
-         A_M2(J)    = GET_AREA_M2( J )
-         do i = 1, IIPAR
+         A_M2(J)    = GET_AREA_M2( I, J, 1 )
+
             ! Conversions:
             ! kg/m2/s ---> molecules/box/second
             chbr3_emiss(i,j) = chbr3_emiss(i,j) / MWT_CHBr3
@@ -1034,8 +1032,8 @@
             ch2br2_emiss(i,j) = ch2br2_emiss(i,j) / MWT_CH2Br2
      &           * AVG * A_M2(J)
 
-         enddo
-      enddo
+      ENDDO
+      ENDDO
 
       IF ( LPRT ) CALL DEBUG_MSG( ' ### Post-Reading VSL files' )
 
