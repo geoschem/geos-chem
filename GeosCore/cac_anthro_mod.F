@@ -40,6 +40,8 @@
 !  28 Jan 2009 - P. Le Sager - Initial Version
 !  18 Dec 2009 - Aaron van D - Added EMISS_CAC_ANTHRO_05x0666 routine
 !  18 Dec 2009 - Aaron van D - Added READ_CANADA_MASK_05x0666 routine
+!  01 Mar 2012 - R. Yantosca - Remove A_CM2 array, use the new function
+!                              GET_AREA_CM2( I, J, L ) from grid_mod.F90 
 !EOP
 !------------------------------------------------------------------------------
 !
@@ -50,9 +52,6 @@
       INTEGER, ALLOCATABLE :: MASK_CANADA_1x1(:,:)
       REAL*8,  ALLOCATABLE :: MASK_CANADA(:,:)
       
-      ! Array for surface area
-      REAL*8,  ALLOCATABLE :: A_CM2(:)
-
       ! Arrays for emissions
       REAL*8,  ALLOCATABLE :: NOx(:,:)
       REAL*8,  ALLOCATABLE :: CO(:,:)
@@ -123,6 +122,7 @@
 !
 ! !USES:
 !
+      USE GRID_MOD,     ONLY : GET_AREA_CM2
       USE TRACER_MOD,   ONLY : XNUMOL
       USE TRACERID_MOD, ONLY : IDTNOx, IDTCO, IDTSO2, IDTNH3
 !
@@ -204,7 +204,8 @@
       ELSE IF ( DO_MCS ) THEN
 
          ! Convert NOx from [kg/yr] to [molec/cm2/s]
-         VALUE = VALUE * XNUMOL(N) / ( A_CM2(J) * SEC_IN_YEAR )
+         VALUE = ( VALUE       * XNUMOL(N)               )
+     &         / ( SEC_IN_YEAR * GET_AREA_CM2( I, J, 1 ) )
 
       ENDIF
 
@@ -224,19 +225,27 @@
 !\\
 ! !INTERFACE:
 !
+#if defined( DEVEL )
+      SUBROUTINE EMISS_CAC_ANTHRO(EMISSIONS)
+#else
       SUBROUTINE EMISS_CAC_ANTHRO
+#endif
 !
 ! !USES:
 ! 
       USE BPCH2_MOD,         ONLY : GET_TAU0,      READ_BPCH2
       USE DIRECTORY_MOD,     ONLY : DATA_DIR_1x1 
       USE LOGICAL_MOD,       ONLY : LFUTURE
-      USE REGRID_1x1_MOD,    ONLY : DO_REGRID_1x1
       USE TIME_MOD,          ONLY : GET_YEAR
       USE SCALE_ANTHRO_MOD,  ONLY : GET_ANNUAL_SCALAR_1x1
+      USE REGRID_A2A_MOD,    ONLY : DO_REGRID_A2A
+      USE CMN_SIZE_MOD            ! Size parameters
+      USE CMN_O3_MOD              ! FSCALYR
 
-      USE CMN_SIZE_MOD          ! Size parameters
-      USE CMN_O3_MOD            ! FSCALYR
+#if defined( DEVEL )
+      USE TRACERID_MOD, ONLY : IDTNOx, IDTCO, IDTSO2, IDTNH3
+      USE TRACER_MOD, ONLY   : N_TRACERS 
+#endif
 !
 ! !REVISION HISTORY: 
 !  28 Jan 2009 - P. Le Sager - Initial Version
@@ -246,6 +255,7 @@
 !        (except NH3) between 1985-2003 if needed (phs, 3/10/08)
 !  (2 ) Now accounts for FSCALYR (phs, 3/17/08)
 !  18 Dec 2009 - Aaron van D - Use 2005 scale factors for years beyond 2005
+!  13 Mar 2012 - M. Cooper   - Changed regrid algorithm to map_a2a
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -262,7 +272,13 @@
       REAL*8                     :: TAU2002, TAU2005, TAU
       CHARACTER(LEN=255)         :: FILENAME
       CHARACTER(LEN=4)           :: SYEAR, SNAME
+      CHARACTER(LEN=255)         :: LLFILENAME
+      REAL*8, ALLOCATABLE        :: OUTGRID(:,:)
+      REAL*8, ALLOCATABLE        :: INGRID(:,:)
 
+#if defined( DEVEL )
+      REAL*8, INTENT(INOUT)      :: EMISSIONS(IIPAR,JJPAR,N_TRACERS+1)
+#endif
       !=================================================================
       ! EMISS_CAC_ANTHRO begins here!
       !=================================================================
@@ -280,6 +296,13 @@
          THISYEAR = FSCALYR
       ENDIF
 
+      ! File with lat/lon edges for regridding
+      LLFILENAME = TRIM( DATA_DIR_1x1) //
+     &             'MAP_A2A_Regrid_200312/latlon_geos1x1.txt'
+
+      ! Allocate arrays for regridding
+      ALLOCATE(INGRID(I1x1,J1x1))
+      ALLOCATE(OUTGRID(IIPAR,JJPAR))
 
       DO SPECIES = 1,4
 
@@ -318,7 +341,6 @@
 
             ! Read data
             CALL READ_BPCH2( FILENAME, 'ANTHSRCE', SNo, 
-!phs     &                       TAU,      I1x1,       J1x1-1,     
      &                       TAU,      I1x1,       J1x1,     
      &                       1,        ARRAY,      QUIET=.TRUE. ) 
 
@@ -357,7 +379,6 @@
 
             ! Read data
             CALL READ_BPCH2( FILENAME, 'ANTHSRCE', SNo,
-!phs     &                       TAU2002,   I1x1,      J1x1-1,
      &                       TAU2002,   I1x1,      J1x1,
      &                       1,         ARRAY,     QUIET=.TRUE. )
 
@@ -373,7 +394,6 @@
 
             ! Read data
             CALL READ_BPCH2( FILENAME, 'ANTHSRCE', SNo,
-!phs     &                       TAU2005,   I1x1,      J1x1-1,
      &                       TAU2005,   I1x1,      J1x1,
      &                       1,         ARRAY,     QUIET=.TRUE. )
 
@@ -387,31 +407,45 @@
 
          ENDIF
 
-         ! Regrid from GEOS 1x1 --> current model resolution
+         ! Regrid from GEOS 1x1 --> current model resolution [kg/yr]
+         INGRID = GEOS_1x1(:,:,1)
+
          IF ( SPECIES .eq. 1 ) THEN
 
-            CALL DO_REGRID_1x1( 'kg/yr', GEOS_1x1, NOx )
+            CALL DO_REGRID_A2A( LLFILENAME, 360,     182, 
+     &                          INGRID,     OUTGRID, 1 )
+            NOx = OUTGRID
 
          ELSEIF ( SPECIES .eq. 2 ) THEN
 
-            CALL DO_REGRID_1x1( 'kg/yr', GEOS_1x1, CO )
+            CALL DO_REGRID_A2A( LLFILENAME, 360,     182,
+     &                          INGRID,     OUTGRID, 1 )
+            CO = OUTGRID
 
          ELSEIF ( SPECIES .eq. 3 ) THEN
 
             ! Convert SOx to SO2, where SOx is assumed to be 1.4% SO4 and
             ! 98.6% SO2 over NA, based upon Chin et al, 2000, and as
             ! utilized in sulfate_mod.f
-            GEOS_1x1(:,:,1) = GEOS_1x1(:,:,1) * 0.986
+            !GEOS_1x1(:,:,1) = GEOS_1x1(:,:,1) * 0.986
+            INGRID = INGRID * 0.986
 
-            CALL DO_REGRID_1x1( 'kg/yr', GEOS_1x1, SO2 )
+            CALL DO_REGRID_A2A( LLFILENAME, 360,     182,
+     &                          INGRID,     OUTGRID, 1 )
+            SO2 = OUTGRID
 
          ELSEIF ( SPECIES .eq. 4 ) THEN
 
-            CALL DO_REGRID_1x1( 'kg/yr', GEOS_1x1, NH3 )
+            CALL DO_REGRID_A2A( LLFILENAME, 360,     182,
+     &                          INGRID,     OUTGRID, 1 )
+            NH3 = OUTGRID
 
          ENDIF
-
       ENDDO
+
+      ! Deallocate arrays for regridding
+      DEALLOCATE(INGRID)
+      DEALLOCATE(OUTGRID)
 
       !--------------------------
       ! Compute future emissions
@@ -424,6 +458,13 @@
       ! Print emission totals
       !--------------------------
       CALL TOTAL_ANTHRO_Tg( THISYEAR )
+
+#if defined( DEVEL )
+      EMISSIONS(:,:,IDTNH3) = EMISSIONS(:,:,IDTNH3)+NH3
+      EMISSIONS(:,:,IDTSO2) = EMISSIONS(:,:,IDTSO2)+SO2
+      EMISSIONS(:,:,IDTNOx) = EMISSIONS(:,:,IDTNOx)+NOx
+      EMISSIONS(:,:,IDTCO)  = EMISSIONS(:,:,IDTCO) +CO
+#endif
 
       END SUBROUTINE EMISS_CAC_ANTHRO
 !EOC
@@ -441,7 +482,11 @@
 !\\
 ! !INTERFACE:
 !
+#if defined( DEVEL )
+      SUBROUTINE EMISS_CAC_ANTHRO_05x0666(EMISSIONS)
+#else
       SUBROUTINE EMISS_CAC_ANTHRO_05x0666
+#endif
 !
 ! !USES:
 !
@@ -453,6 +498,10 @@
 
       USE CMN_SIZE_MOD          ! Size parameters
       USE CMN_O3_MOD            ! FSCALYR
+#if defined( DEVEL )
+      USE TRACERID_MOD, ONLY : IDTNOx, IDTCO, IDTSO2, IDTNH3
+      USE TRACER_MOD,   ONLY : N_TRACERS 
+#endif
 !
 ! !REVISION HISTORY:
 !  03 Nov 2009 - A. van Donkelaar - Initial Version
@@ -478,6 +527,9 @@
       CHARACTER(LEN=255)         :: FILENAME
       CHARACTER(LEN=4)           :: SYEAR, SNAME
 
+#if defined( DEVEL )
+      REAL*8, INTENT(INOUT)      :: EMISSIONS(IIPAR,JJPAR,N_TRACERS+1)
+#endif
       !=================================================================
       ! EMISS_CAC_ANTHRO begins here!
       !=================================================================
@@ -638,6 +690,13 @@
       !--------------------------
       CALL TOTAL_ANTHRO_Tg( THISYEAR )
 
+#if defined( DEVEL )
+      EMISSIONS(:,:,IDTNH3) = EMISSIONS(:,:,IDTNH3)+NH3
+      EMISSIONS(:,:,IDTSO2) = EMISSIONS(:,:,IDTSO2)+SO2
+      EMISSIONS(:,:,IDTNOx) = EMISSIONS(:,:,IDTNOx)+NOx
+      EMISSIONS(:,:,IDTCO)  = EMISSIONS(:,:,IDTCO) +CO
+#endif
+
       END SUBROUTINE EMISS_CAC_ANTHRO_05x0666
 !EOC
 !------------------------------------------------------------------------------
@@ -794,12 +853,13 @@
 ! 
       USE BPCH2_MOD,      ONLY : GET_TAU0, READ_BPCH2
       USE DIRECTORY_MOD,  ONLY : DATA_DIR_1x1
-      USE REGRID_1x1_MOD, ONLY : DO_REGRID_G2G_1x1, DO_REGRID_1x1
+      USE REGRID_A2A_MOD, ONLY : DO_REGRID_A2A
 
-      USE CMN_SIZE_MOD       ! Size parameters
+      USE CMN_SIZE_MOD         ! Size parameters
 !
 ! !REVISION HISTORY: 
 !  28 Jan 2009 - P. Le Sager - Initial Version
+!  13 Mar 2012 - M. Cooper   - Changed regrid algorithm to map_a2a
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -810,6 +870,10 @@
       REAL*8                  :: GEOS_1x1(I1x1,J1x1,1)
       REAL*8                  :: TAU2000
       CHARACTER(LEN=255)      :: FILENAME
+      CHARACTER(LEN=255)      :: LLFILENAME
+      REAL*8, ALLOCATABLE     :: OUTGRID(:,:)
+      REAL*8, ALLOCATABLE     :: INGRID(:,:)
+      INTEGER                 :: I
 
       !=================================================================
       ! READ_CANADA_MASK begins here!
@@ -820,6 +884,10 @@
       ! File name
       FILENAME  = TRIM( DATA_DIR_1x1 ) // 
      &            'CAC_200801/CanadaMask.geos.1x1'
+
+      ! File with lat/lon edges for regridding
+      LLFILENAME = TRIM( DATA_DIR_1x1) //
+     &             'MAP_A2A_Regrid_200312/latlon_geos1x1.txt'
 
       ! Echo info
       WRITE( 6, 100 ) TRIM( FILENAME )
@@ -836,11 +904,18 @@
       ! Save the 1x1 China mask for future use
       MASK_CANADA_1x1(:,:) = GEOS_1x1(:,:,1)
 
-      ! Regrid from GENERIC 1x1 GRID to GEOS 1x1 GRID
-!      CALL DO_REGRID_G2G_1x1( 'unitless', GEN_1x1, GEOS_1x1(:,:,1) )
+      ! Allocate arrays for regridding
+      ALLOCATE(INGRID(I1x1,J1x1))
+      ALLOCATE(OUTGRID(IIPAR,JJPAR))
 
-      ! Regrid from GEOS 1x1 GRID to current model resolution
-      CALL DO_REGRID_1x1( 'unitless', GEOS_1x1, MASK_CANADA )
+      ! Regrid from GENERIC 1x1 to current model resolution [unitless]
+      INGRID = GEOS_1x1(:,:,1)
+      CALL DO_REGRID_A2A( LLFILENAME, 360, 181, INGRID, OUTGRID, 1 )
+      MASK_CANADA=OUTGRID
+
+      ! Deallocate arrays for regridding
+      DEALLOCATE(INGRID)
+      DEALLOCATE(OUTGRID)
 
       END SUBROUTINE READ_CANADA_MASK
 !EOC
@@ -863,7 +938,7 @@
 !
       USE BPCH2_MOD,      ONLY : GET_TAU0, READ_BPCH2
       USE DIRECTORY_MOD,  ONLY : DATA_DIR
-      USE REGRID_1x1_MOD, ONLY : DO_REGRID_G2G_1x1, DO_REGRID_1x1
+
 
       USE CMN_SIZE_MOD       ! Size parameters
 !
@@ -922,13 +997,14 @@
 ! !USES:
 ! 
       USE ERROR_MOD,   ONLY : ALLOC_ERR
-      USE GRID_MOD,    ONLY : GET_AREA_CM2
       USE LOGICAL_MOD, ONLY : LCAC
 
       USE CMN_SIZE_MOD    ! Size parameters
 !
 ! !REVISION HISTORY: 
 !  28 Jan 2009 - P. Le Sager - Initial Version
+!  01 Mar 2012 - R. Yantosca - Delete the A_CM2 array, we will now just
+!                              use the function directly
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -963,19 +1039,6 @@
       ALLOCATE( NH3( IIPAR, JJPAR ), STAT=AS )
       IF ( AS /= 0 ) CALL ALLOC_ERR( 'NH3' )
       NH3 = 0d0
-
-      !---------------------------------------------------
-      ! Pre-store array for grid box surface area in cm2
-      !---------------------------------------------------
-
-      ! Allocate array
-      ALLOCATE( A_CM2( JJPAR ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'A_CM2' )
-
-      ! Fill array
-      DO J = 1, JJPAR
-         A_CM2(J) = GET_AREA_CM2( J )
-      ENDDO
 
       !---------------------------------------------------
       ! Read & Regrid masks for CAC emissions
@@ -1017,7 +1080,6 @@
       !=================================================================
       ! CLEANUP_STREETS begins here!
       !=================================================================
-      IF ( ALLOCATED( A_CM2          ) ) DEALLOCATE( A_CM2          )
       IF ( ALLOCATED( MASK_CANADA_1x1) ) DEALLOCATE( MASK_CANADA_1x1) 
       IF ( ALLOCATED( MASK_CANADA    ) ) DEALLOCATE( MASK_CANADA    ) 
       IF ( ALLOCATED( NOx            ) ) DEALLOCATE( NOx            )

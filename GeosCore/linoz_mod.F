@@ -71,6 +71,7 @@
 !  24 Jun 2003 - B. Field & D. Jones - Further updates for GEOS-Chem
 !  28 May 2009 - D. Jones            - Further modifications
 !  18 Nov 2009 - D. Jones            - Further modifications
+!  01 Mar 2012 - R. Yantosca - Now reference new grid_mod.F90
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -164,6 +165,7 @@
 !                                      to avoid issues with spin ups
 !  08 Feb 2010 - R. Yantosca         - Deleted obsolete local variables
 !  22 Oct 2010 - R. Yantosca         - Added OMP parallel loop
+!  01 Mar 2012 - R. Yantosca - Now use GET_AREA_CM2(I,J,L) from grid_mod.F90
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -289,12 +291,12 @@
                ! bdf stt is in v/v, make conversion to DU
                if (l.eq.lm) then !top model layer
                   dcolo3(i,j,l) = (stt(i,j,l,NTRACER)*AD(I,J,L)/
-     &                 TCVV(NTRACER))/ GET_AREA_CM2(J) *
+     &                 TCVV(NTRACER))/ GET_AREA_CM2(I,J,L) *
      &                 6.022d23/(28.97/TCVV(NTRACER)*1d-3)/ 2.687d16
                   colo3(i,j,l) = dcolo3(i,j,l)*0.5
                else
                   dcolo3(i,j,l) = (stt(i,j,l,NTRACER)*AD(I,J,L)/
-     &                 TCVV(NTRACER))/ GET_AREA_CM2(J) *
+     &                 TCVV(NTRACER))/ GET_AREA_CM2(I,J,L) *
      &                 6.022d23/(28.97/TCVV(NTRACER)*1d-3)/ 2.687d16
                   colo3(i,j,l) = colo3(i,j,l+1) +
      &                 (dcolo3(i,j,l)+dcolo3(i,j,l+1))*0.5
@@ -380,6 +382,7 @@
 !
 ! !REVISION HISTORY: 
 !  24 Jun 2003 - B. Field & D. Jones - Further updates for GEOS-Chem
+!  01 Mar 2012 - R. Yantosca - Now use GET_YMID(I,J,L) from grid_mod.F90
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -458,7 +461,7 @@ c latitude interpolation
 
 
       DO J = 1,JJPAR
-        JXXX     = int(0.1d0 * GET_YMID(J) +10.d0)   ! (dbj 6/25/03)
+        JXXX     = int(0.1d0 * GET_YMID(1,J,1) +10.d0)   ! (dbj 6/25/03)
         JLATMD(J) = MIN(18,MAX(1,JXXX)) !index of nearest Linoz data column
       ENDDO
 

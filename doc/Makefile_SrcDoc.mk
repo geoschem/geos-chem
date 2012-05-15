@@ -42,7 +42,22 @@
 #  19 Jul 2011 - R. Yantosca - Changed *.f* to *.F* for ESMF compatibility
 #  29 Jul 2011 - R. Yantosca - Added planeflight_mod
 #  22 Aug 2011 - R. Yantosca - Added retro_mod
-#   7 Sep 2011 - R. Yantosca - Added gfed3_biomass_mod, *jv*_mod files
+#  07 Sep 2011 - R. Yantosca - Added gfed3_biomass_mod, *jv*_mod files
+#  22 Dec 2011 - M. Payer    - Added aerosol_mod, drydep_mod, seasalt_mod,
+#                              and sulfate_mod
+#  07 Feb 2012 - M. Payer    - Added paranox_mod, diag63_mod
+#  08 Feb 2012 - R. Yantosca - Added geos57_read_mod.F90
+#  28 Feb 2012 - R. Yantosca - Added pbl_mix_mod
+#  05 Mar 2012 - M. Payer    - Added tracer_mod
+#  06 Mar 2012 - R. Yantosca - Added photoj.F and set_prof.F
+#  07 Mar 2012 - M. Payer    - Added global_ch4_mod
+#  22 Mar 2012 - M. Payer    - Added c2h6_mod, olson_landmap_mod
+#  29 Mar 2012 - R. Yantosca - Added lai_mod
+#  29 Mar 2012 - R. Yantosca - Added modis_lai_mod and mapping_mod
+#  09 Apr 2012 - R. Yantosca - Added modules from Headers/ directory
+#  13 Apr 2012 - R. Yantosca - Removed findmon.F, rdlai.F, lai_mod.F
+#  19 Apr 2012 - R. Yantosca - Added read_jv_atms_dat.F90
+#  15 May 2012 - R. Yantosca - Added tpcore_bc_mod.F
 #EOP
 #------------------------------------------------------------------------------
 #BOC
@@ -53,14 +68,26 @@ SRC1 :=                              \
 ./headers.geos-chem                  \
 $(HDR)/define.h                      \
 $(HDR)/CMN_SIZE_mod.F                \
+$(HDR)/CMN_DEP_mod.F                 \
 $(HDR)/CMN_DIAG_mod.F                \
+$(HDR)/CMN_GCTM_mod.F                \
+$(HDR)/CMN_NOX_mod.F                 \
+$(HDR)/CMN_O3_mod.F                  \
+$(HDR)/CMN_mod.F                     \
 $(HDR)/cmn_fj_mod.F                  \
+$(HDR)/commsoil_mod.F                \
+$(HDR)/comode_loop_mod.F             \
 $(HDR)/jv_cmn_mod.F                  \
 $(HDR)/jv_mie_mod.F                  \
+$(HDR)/smv_dimension_mod.F           \
+$(HDR)/smv_errcode_mod.F             \
+$(HDR)/smv_physconst_mod.F           \
 $(CORE)/main.F                       \
 $(CORE)/acetone_mod.F                \
+$(CORE)/aerosol_mod.F                \
 $(CORE)/arctas_ship_emiss_mod.F	     \
 $(CORE)/bravo_mod.F                  \
+$(CORE)/c2h6_mod.F                   \
 $(CORE)/cac_anthro_mod.F             \
 $(CORE)/chemistry_mod.F              \
 $(CORE)/co2_mod.F                    \
@@ -76,16 +103,20 @@ $(CORE)/diag49_mod.F                 \
 $(CORE)/diag50_mod.F                 \
 $(CORE)/diag51b_mod.F                \
 $(CORE)/diag56_mod.F                 \
+$(CORE)/diag63_mod.F                 \
 $(CORE)/diag_pl_mod.F                \
 $(CORE)/diag_oh_mod.F                \
 $(CORE)/diag_mod.F                   \
+$(CORE)/drydep_mod.F                 \
 $(CORE)/dust_mod.F                   \
 $(CORE)/emep_mod.F                   \
 $(CORE)/emissions_mod.F              \
 $(CORE)/fjx_acet_mod.F               \
 $(CORE)/gamap_mod.F                  \
+$(CORE)/geos57_read_mod.F90          \
 $(CORE)/gfed3_biomass_mod.F          \
 $(CORE)/global_br_mod.F              \
+$(CORE)/global_ch4_mod.F             \
 $(CORE)/global_no3_mod.F             \
 $(CORE)/global_nox_mod.F             \
 $(CORE)/global_o1d_mod.F             \
@@ -99,21 +130,30 @@ $(CORE)/land_mercury_mod.F           \
 $(CORE)/lightning_nox_mod.F          \
 $(CORE)/linoz_mod.F                  \
 $(CORE)/logical_mod.F                \
+$(CORE)/mapping_mod.F90              \
 $(CORE)/megan_mod.F                  \
 $(CORE)/meganut_mod.F                \
 $(CORE)/merra_a1_mod.F               \
 $(CORE)/merra_a3_mod.F               \
 $(CORE)/merra_cn_mod.F               \
 $(CORE)/merra_i6_mod.F               \
+$(CORE)/modis_lai_mod.F90            \
 $(CORE)/nei2005_anthro_mod.F         \
+$(CORE)/olson_landmap_mod.F90        \
 $(CORE)/optdepth_mod.F               \
+$(CORE)/paranox_mod.F                \
+$(CORE)/pbl_mix_mod.F                \
 $(CORE)/pjc_pfix_mod.F               \
 $(CORE)/planeflight_mod.F            \
 $(CORE)/retro_mod.F                  \
 $(CORE)/RnPbBe_mod.F                 \
 $(CORE)/scale_anthro_mod.F           \
+$(CORE)/seasalt_mod.F                \
+$(CORE)/sulfate_mod.F                \
 $(CORE)/tagged_ox_mod.F              \
 $(CORE)/toms_mod.F                   \
+$(CORE)/tpcore_bc_mod.F              \
+$(CORE)/tracer_mod.F                 \
 $(CORE)/tropopause_mod.F             \
 $(CORE)/tpcore_fvdas_mod.F90         \
 $(CORE)/tpcore_geos5_window_mod.F90  \
@@ -131,22 +171,17 @@ $(CORE)/diag_2pm.F                   \
 $(CORE)/diagoh.F                     \
 $(CORE)/emfossil.F                   \
 $(CORE)/emf_scale.F                  \
-$(CORE)/emmonot.F                    \
 $(CORE)/fast_j.F                     \
-$(CORE)/findmon.F                    \
+$(CORE)/photoj.F                     \
+$(CORE)/set_prof.F                   \
 $(CORE)/initialize.F                 \
 $(CORE)/ndxx_setup.F                 \
 $(CORE)/ohsave.F                     \
-$(CORE)/rdlai.F                      \
-$(CORE)/rdland.F                     \
 $(CORE)/rdsoil.F                     \
-$(CORE)/rdlight.F                    \
-$(CORE)/rdmonot.F                    \
-$(CORE)/readlai.F                    \
+$(CORE)/read_jv_atms_dat.F90         \
 $(CORE)/ruralbox.F                   \
 $(CORE)/setemis.F                    \
-$(CORE)/sfcwindsqr.F                 \
-$(CORE)/tcorr.F
+$(CORE)/sfcwindsqr.F
 
 
 # Output file names

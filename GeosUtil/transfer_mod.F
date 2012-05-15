@@ -34,7 +34,6 @@
       PUBLIC  :: TRANSFER_3D
       PUBLIC  :: TRANSFER_3D_Lp1
       PUBLIC  :: TRANSFER_3D_TROP
-      PUBLIC  :: TRANSFER_3D_NOLUMP
       PUBLIC  :: TRANSFER_G5_PLE
       PUBLIC  :: TRANSFER_ZONAL
       PUBLIC  :: TRANSFER_TO_1D
@@ -78,10 +77,10 @@
 !
 ! !REMARKS:
 !
-!  Hybrid Grid Coordinate Definition: (dsa, bmy, 8/27/02, 8/13/10)
+!  Hybrid Grid Coordinate Definition: (dsa, bmy, 8/27/02, 2/2/12)
 !  ============================================================================
 !                                                                             .
-!  GEOS-4, GEOS-5, and MERRA (hybrid grids):
+!  GEOS-4, GEOS-5, GEOS-5.7, and MERRA (hybrid grids):
 !  ----------------------------------------------------------------------------
 !  For GEOS-4 and GEOS-5, the pressure at the bottom edge of grid box (I,J,L) 
 !  is defined as follows:
@@ -151,6 +150,9 @@
 !  (16) Modified for GEOS-5.  Rewritten for clarity. (bmy, 10/30/07)
 !  13 Aug 2010 - R. Yantosca - Added modifications for MERRA met fields
 !  13 Aug 2010 - R. Yantosca - Added ProTeX headers
+!  02 Feb 2012 - R. Yantosca - Added modifications for GEOS-5.7.x met fields
+!  28 Feb 2012 - R. Yantosca - Removed support for GEOS-3
+!  01 Mar 2012 - R. Yantosca - Updated to use grid_mod.F90 for the GI model
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -209,6 +211,8 @@
 !  13 Aug 2010 - R. Yantosca - Added ProTeX headers
 !  13 Aug 2010 - R. Yantosca - Treat MERRA the same way as GEOS-5, because
 !                              the vertical grids are identical
+!  02 Feb 2012 - R. Yantosca - Treat GEOS-5.7.x the same way as MERRA
+!  28 Feb 2012 - R. Yantosca - Removed support for GEOS-3
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -251,26 +255,7 @@
          ! Store vertical column at (IREF,JREF) in a 1-D vector
          INCOL = IN( I+I0, J+J0, 1:LGLOB )
             
-#if   defined( GEOS_3 ) 
-
-         !--------------------------------------------------------------
-         ! GEOS-3: Lump 48 levels into 30 levels, starting above L=22.  
-         ! Lump levels in groups of 2, then 4. (cf. Mat Evans)
-         !--------------------------------------------------------------
-
-         ! Lump 2 levels together at a time, starting at L=23
-         OUT(23,I,J) = LUMP_2( INCOL, LGLOB, 23 )
-         OUT(24,I,J) = LUMP_2( INCOL, LGLOB, 25 )
-         OUT(25,I,J) = LUMP_2( INCOL, LGLOB, 27 )
-
-         ! Lump 4 levels together at a time, starting at L=29
-         OUT(26,I,J) = LUMP_4( INCOL, LGLOB, 29 )
-         OUT(27,I,J) = LUMP_4( INCOL, LGLOB, 33 )
-         OUT(28,I,J) = LUMP_4( INCOL, LGLOB, 37 ) 
-         OUT(29,I,J) = LUMP_4( INCOL, LGLOB, 41 ) 
-         OUT(30,I,J) = LUMP_4( INCOL, LGLOB, 45 ) 
-
-#elif defined( GEOS_4 )
+#if   defined( GEOS_4 )
 
          !--------------------------------------------------------------
          ! GEOS-4: Lump 55 levels into 30 levels, starting above L=20
@@ -292,7 +277,7 @@
          OUT(29,I,J) = LUMP_4( INCOL, LGLOB, 48 ) 
          OUT(30,I,J) = LUMP_4( INCOL, LGLOB, 52 ) 
 
-#elif defined( GEOS_5 ) || defined( MERRA )
+#elif defined( GEOS_5 ) || defined( MERRA ) || defined( GEOS_57 )
 
          !--------------------------------------------------------------
          ! GEOS-5/MERRA: Lump 72 levels into 47 levels, starting above 
@@ -359,6 +344,8 @@
 !  13 Aug 2010 - R. Yantosca - Added ProTeX headers
 !  13 Aug 2010 - R. Yantosca - Treat MERRA the same way as GEOS-5, because
 !                              the vertical grids are identical
+!  02 Feb 2012 - R. Yantosca - Treat GEOS-5.7.x the same way as MERRA
+!  28 Feb 2012 - R. Yantosca - Removed support for GEOS-3
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -392,26 +379,7 @@
          ! Copy a vertical column into INCOL
          INCOL = IN( I+I0, J+J0, 1:LGLOB )
 
-#if   defined( GEOS_3 ) 
-
-         !--------------------------------------------------------------
-         ! GEOS-3: Lump 48 levels into 30 levels, starting above L=22.  
-         ! Lump levels in groups of 2, then 4. (cf. Mat Evans)
-         !--------------------------------------------------------------
-
-         ! Lump 2 levels together at a time, starting at L=23
-         OUT(I,J,23) = LUMP_2( INCOL, LGLOB, 23 )
-         OUT(I,J,24) = LUMP_2( INCOL, LGLOB, 25 )
-         OUT(I,J,25) = LUMP_2( INCOL, LGLOB, 27 )
-
-         ! Lump 4 levels together at a time, starting at L=29
-         OUT(I,J,26) = LUMP_4( INCOL, LGLOB, 29 )
-         OUT(I,J,27) = LUMP_4( INCOL, LGLOB, 33 )
-         OUT(I,J,28) = LUMP_4( INCOL, LGLOB, 37 ) 
-         OUT(I,J,29) = LUMP_4( INCOL, LGLOB, 41 ) 
-         OUT(I,J,30) = LUMP_4( INCOL, LGLOB, 45 ) 
-
-#elif defined( GEOS_4 )
+#if   defined( GEOS_4 )
 
          !--------------------------------------------------------------
          ! GEOS-4: Lump 55 levels into 30 levels, starting above L=20
@@ -433,7 +401,7 @@
          OUT(I,J,29) = LUMP_4( INCOL, LGLOB, 48 ) 
          OUT(I,J,30) = LUMP_4( INCOL, LGLOB, 52 ) 
 
-#elif defined( GEOS_5 ) || defined( MERRA )
+#elif defined( GEOS_5 ) || defined( MERRA ) || defined( GEOS_57 )
 
          !--------------------------------------------------------------
          ! GEOS-5/MERRA Lump 72 levels into 47 levels, starting above 
@@ -468,48 +436,6 @@
 !------------------------------------------------------------------------------
 !BOP
 !
-! !IROUTINE: 
-!
-! !DESCRIPTION: Subroutine TRANSFER\_3D transfers 3-dimensional data from a 
-!  REAL*4  array to a REAL*8 array.  Vertical layers are collapsed (from LGLOB
-!  to LLPAR) if necessary.
-!\\
-!\\
-! !INTERFACE:
-!
-      SUBROUTINE TRANSFER_3D_NOLUMP( IN, OUT )
-!
-! !INPUT PARAMETERS: 
-!
-      REAL*4,  INTENT(IN)  :: IN(IIPAR,JJPAR,LGLOB)    ! Input data
-!
-! !OUTPUT PARAMETERS:
-!
-      REAL*8,  INTENT(OUT) :: OUT(IIPAR,JJPAR,LGLOB)   ! Output data
-! 
-! !REVISION HISTORY: 
-!  04 Aug 2011 - C. Holmes - Initial version, copied from TRANSFER_3D
-!EOP
-!------------------------------------------------------------------------------
-!BOC
-!
-! !LOCAL VARIABLES:
-!
-     
-      !================================================================
-      ! TRANSFER_3D begins here!
-      !================================================================
-
-      ! Copy the first L_COPY levels
-      OUT(:,:,:) = IN( 1+I0:IIPAR+I0, 1+J0:JJPAR+J0, : )
-
-      END SUBROUTINE TRANSFER_3D_NOLUMP
-!EOC
-!------------------------------------------------------------------------------
-!          Harvard University Atmospheric Chemistry Modeling Group            !
-!------------------------------------------------------------------------------
-!BOP
-!
 ! !IROUTINE: transfer_g5_ple
 !
 ! !DESCRIPTION: Subroutine TRANSFER\_G5\_PLE transfers GEOS-5/MERRA pressure 
@@ -533,6 +459,7 @@
 !  13 Aug 2010 - R. Yantosca - Added ProTeX headers
 !  13 Aug 2010 - R. Yantosca - Treat MERRA the same way as GEOS-5, because
 !                              the vertical grids are identical
+!  02 Feb 2012 - R. Yantosca - Treat GEOS-5.7.x the same way as MERRA
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -555,7 +482,7 @@
       ! Return GEOS-5 pressure edges for reduced grid
       !================================================================
 
-#if   defined( GEOS_5 ) || defined( MERRA )
+#if   defined( GEOS_5 ) || defined( MERRA ) || defined( GEOS_57 )
 
 !$OMP PARALLEL DO
 !$OMP+DEFAULT( SHARED )
@@ -616,6 +543,7 @@
 !  13 Aug 2010 - R. Yantosca - Added ProTeX headers
 !  13 Aug 2010 - R. Yantosca - Treat MERRA the same way as GEOS-5, because
 !                              the vertical grids are identical
+!  02 Feb 2012 - R. Yantosca - Treat GEOS-5.7.x the same way as MERRA
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -646,7 +574,7 @@
       ! %%% above about 120 hPa. (bmy, 2/8/07)
       !=================================================================
       
-#if   defined( GEOS_5 ) || defined( MERRA )
+#if   defined( GEOS_5 ) || defined( MERRA ) || defined( GEOS_57 )
 
 !$OMP PARALLEL DO
 !$OMP+DEFAULT( SHARED )
@@ -762,6 +690,8 @@
 !  13 Aug 2010 - R. Yantosca - Added ProTeX headers
 !  13 Aug 2010 - R. Yantosca - Treat MERRA the same way as GEOS-5, because
 !                              the vertical grids are identical
+!  02 Feb 2012 - R. Yantosca - Treat GEOS-5.7.x the same way as MERRA
+!  28 Feb 2012 - R. Yantosca - Removed support for GEOS-3
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -794,26 +724,7 @@
          ! Store vertical column at (I,J) in a 1-D vector
          INCOL = IN( J+J0, 1:LGLOB )
 
-#if   defined( GEOS_3 )
-
-         !--------------------------------------------------------------
-         ! GEOS-3: Lump 48 levels into 30 levels, starting above L=22.  
-         ! Lump levels in groups of 2, then 4. (cf. Mat Evans)
-         !--------------------------------------------------------------
-
-         ! Lump 2 levels together at a time
-         OUT(J,23) = LUMP_2( INCOL, LGLOB, 23 )
-         OUT(J,24) = LUMP_2( INCOL, LGLOB, 25 )
-         OUT(J,25) = LUMP_2( INCOL, LGLOB, 27 )
-
-         ! Lump 4 levels together at a time
-         OUT(J,26) = LUMP_4( INCOL, LGLOB, 29 )
-         OUT(J,27) = LUMP_4( INCOL, LGLOB, 33 )
-         OUT(J,28) = LUMP_4( INCOL, LGLOB, 37 ) 
-         OUT(J,29) = LUMP_4( INCOL, LGLOB, 41 ) 
-         OUT(J,30) = LUMP_4( INCOL, LGLOB, 45 ) 
-
-#elif defined( GEOS_4 )
+#if   defined( GEOS_4 )
       
          !--------------------------------------------------------------
          ! GEOS-4: Lump 55 levels into 30 levels, starting above L=20
@@ -835,7 +746,7 @@
          OUT(J,29) = LUMP_4( INCOL, LGLOB, 48 ) 
          OUT(J,30) = LUMP_4( INCOL, LGLOB, 52 ) 
 
-#elif defined( GEOS_5 ) || defined( MERRA )
+#elif defined( GEOS_5 ) || defined( MERRA ) || defined( GEOS_57 )
 
          !--------------------------------------------------------------
          ! GEOS-5/MERRA: Lump 72 levels into 47 levels, starting above 
@@ -901,6 +812,8 @@
 !  13 Aug 2010 - R. Yantosca - Added ProTeX headers
 !  13 Aug 2010 - R. Yantosca - Treat MERRA the same way as GEOS-5, because
 !                              the vertical grids are identical
+!  02 Feb 2012 - R. Yantosca - Treat GEOS-5.7.x the same way as MERRA
+!  28 Feb 2012 - R. Yantosca - Removed support for GEOS-3
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -933,26 +846,7 @@
          ! Store vertical column at (I,J) in a 1-D vector
          INCOL = IN( J+J0, 1:LGLOB )
 
-#if   defined( GEOS_3 )
-
-         !--------------------------------------------------------------
-         ! GEOS-3: Lump 48 levels into 30 levels, starting above L=22.  
-         ! Lump levels in groups of 2, then 4. (cf. Mat Evans)
-         !--------------------------------------------------------------
-
-         ! Lump 2 levels together at a time
-         OUT(J,23) = LUMP_2( INCOL, LGLOB, 23 )
-         OUT(J,24) = LUMP_2( INCOL, LGLOB, 25 )
-         OUT(J,25) = LUMP_2( INCOL, LGLOB, 27 )
-
-         ! Lump 4 levels together at a time
-         OUT(J,26) = LUMP_4( INCOL, LGLOB, 29 )
-         OUT(J,27) = LUMP_4( INCOL, LGLOB, 33 )
-         OUT(J,28) = LUMP_4( INCOL, LGLOB, 37 ) 
-         OUT(J,29) = LUMP_4( INCOL, LGLOB, 41 ) 
-         OUT(J,30) = LUMP_4( INCOL, LGLOB, 45 ) 
-
-#elif defined( GEOS_4 )
+#if   defined( GEOS_4 )
 
          !--------------------------------------------------------------
          ! GEOS-4: Lump 55 levels into 30 levels, starting above L=20
@@ -974,7 +868,7 @@
          OUT(J,29) = LUMP_4( INCOL, LGLOB, 48 ) 
          OUT(J,30) = LUMP_4( INCOL, LGLOB, 52 ) 
 
-#elif defined( GEOS_5 ) || defined( MERRA )
+#elif defined( GEOS_5 ) || defined( MERRA ) || defined( GEOS_57 )
 
          !--------------------------------------------------------------
          ! GEOS-5/MERRA: Lump 72 levels into 47 levels, starting above 
@@ -1659,6 +1553,8 @@
 !  13 Aug 2010 - R. Yantosca - Added ProTeX headers
 !  13 Aug 2010 - R. Yantosca - Treat MERRA the same way as GEOS-5, because
 !                              the vertical grids are identical
+!  02 Feb 2012 - R. Yantosca - Treat GEOS-5.7.x the same way as MERRA
+!  28 Feb 2012 - R. Yantosca - Removed support for GEOS-3
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -1691,15 +1587,15 @@
 
       ELSE
 
-#if   defined( GEOS_3 )
-         L_COPY = 22       ! GEOS-3: Copy up to L=22
-#elif defined( GEOS_4 )
+#if   defined( GEOS_4  )
          L_COPY = 19       ! GEOS-4: Copy up to L=19
-#elif defined( GEOS_5 )
+#elif defined( GEOS_5  )
          L_COPY = 36       ! GEOS-5: Copy up to L=36
-#elif defined( MERRA  )
+#elif defined( GEOS_57 )
+         L_COPY = 36       ! GEOS-5.7.x: Copy up to L=36
+#elif defined( MERRA   )
          L_COPY = 36       ! MERRA: Copy up to L=36
-#elif defined( GCAP   )
+#elif defined( GCAP    )
          L_COPY = LGLOB    ! GCAP: Copy all levels
 #endif
 
@@ -1714,7 +1610,7 @@
       IF ( AS /= 0 ) CALL ALLOC_ERR( 'EDGE_IN' )
       EDGE_IN = 0d0
 
-#if   defined( GEOS_5 ) || defined( MERRA ) 
+#if   defined( GEOS_5 ) || defined( MERRA ) || defined( GEOS_57 )
 
       !-----------------------------------------------------------------
       ! For GEOS-5/MERRA, levels 1-31 are "terrain-following" 
@@ -1776,26 +1672,6 @@
      &              0.159495d0,   0.119703d0,   0.089345d0,   
      &              0.066000d0,   0.047585d0,   0.032700d0,   
      &              0.020000d0,   0.010000d0 /)
-
-#elif defined( GEOS_3 ) 
-
-      !-----------------------------------------------------------------
-      ! For GEOS-3, this is a pure-sigma grid.  
-      ! Initialize EDGE_IN with the original 49 sigma edges.
-      !-----------------------------------------------------------------
-      EDGE_IN = (/ 1.000000d0, 0.997095d0, 0.991200d0, 0.981500d0,    
-     &             0.967100d0, 0.946800d0, 0.919500d0, 0.884000d0,    
-     &             0.839000d0, 0.783000d0, 0.718200d0, 0.647600d0,    
-     &             0.574100d0, 0.500000d0, 0.427800d0, 0.359500d0,    
-     &             0.297050d0, 0.241950d0, 0.194640d0, 0.155000d0,    
-     &             0.122680d0, 0.096900d0, 0.076480d0, 0.060350d0,   
-     &             0.047610d0, 0.037540d0, 0.029600d0, 0.023330d0,   
-     &             0.018380d0, 0.014480d0, 0.011405d0, 0.008975d0,  
-     &             0.007040d0, 0.005500d0, 0.004280d0, 0.003300d0,  
-     &             0.002530d0, 0.001900d0, 0.001440d0, 0.001060d0,  
-     &             0.000765d0, 0.000540d0, 0.000370d0, 0.000245d0, 
-     &             0.000155d0, 9.20000d-5, 4.75000d-5, 1.76800d-5, 
-     &             0.000000d0 /)
 
 #endif
 

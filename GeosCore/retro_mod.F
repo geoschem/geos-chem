@@ -49,25 +49,25 @@
 !  18 Aug 2011 - D. Millet   - Partition ketones into 25% MEK and 75% ACET
 !  18 Aug 2011 - D. Millet   - Remove call to GET_ANNUAL_SCALAR
 !  22 Aug 2011 - R. Yantosca - Added ProTeX headers
+!  01 Mar 2012 - R. Yantosca - Now reference new grid_mod.F90
+!  22 Mar 2012 - M. Payer    - RETRO C2H6 emissions are too low. Use
+!                              Yaping Xiao's C2H6 emissions instead.
 !EOP
 !------------------------------------------------------------------------------
 !BOC
       CONTAINS
-!EOC
-!------------------------------------------------------------------------------
-!          University of Minnesota Atmospheric Chemistry Group
-!------------------------------------------------------------------------------
-!BOP
-!
-! !IROUTINE: emiss_retro
-!
-! !DESCRIPTION: Subroutine EMISS\_RETRO reads all RETRO emissions at the 
-!  beginning of each month. 
-!\\
-!\\
-! !INTERFACE:
-!
+
+!-----------------------------------------------------------------------
+#if defined( DEVEL )
+      SUBROUTINE EMISS_RETRO( EMISSIONS )
+#else
       SUBROUTINE EMISS_RETRO
+#endif
+!***********************************************************************
+!  Subroutine EMISS_RETRO reads all RETRO emissions at the beginning of
+!  each month. (wfr, 3/8/11)
+!***********************************************************************
+
 !
 ! !USES:
 !
@@ -85,6 +85,15 @@
       USE TIME_MOD,             ONLY : EXPAND_DATE
       USE TIME_MOD,             ONLY : GET_MONTH
       USE CMN_SIZE_MOD               ! Size parameters
+
+#if defined( DEVEL )
+      USE TRACERID_MOD,         ONLY : IDTALK4, IDTACET, IDTMEK,
+     & IDTALD2, IDTPRPE, IDTC3H8, IDTC2H6, IDTCH2O, IDTBENZ,
+     & IDTTOLU, IDTXYLE, IDTC2H4, IDTC2H2
+      USE TRACER_MOD,           ONLY : N_TRACERS, TRACER_MW_KG
+      USE GRID_MOD,             ONLY : GET_AREA_CM2
+      USE ERROR_MOD,            ONLY : ALLOC_ERR
+#endif
 ! 
 ! !REVISION HISTORY: 
 !  08 Mar 2011 - W. Reinhart - Initial version
@@ -100,6 +109,11 @@
       REAL*8             :: C2H6ff, VOCff
       CHARACTER(LEN=255) :: FILENAME
 
+#if defined( DEVEL )
+      REAL*8, INTENT(INOUT)         :: EMISSIONS(IIPAR,JJPAR,N_TRACERS)
+      REAL*8, ALLOCATABLE   :: A(:,:)
+      INTEGER AS
+#endif
       !=================================================================
       !  EMISS_RETRO begins here
       !=================================================================
@@ -108,6 +122,12 @@
       IF ( FIRST ) THEN
 
          ! Allocate arrays
+#if defined( DEVEL )
+         ALLOCATE( A( IIPAR, JJPAR ), STAT=AS )
+         IF ( AS /= 0 ) CALL ALLOC_ERR( 'EMISS_EPA_NEI:A' )
+         A = 0d0
+#endif         
+
          CALL INIT_RETRO
 
          ! Reset first-time flag
@@ -184,6 +204,43 @@
       ! Fancy output
       WRITE(6, '(a)' ) REPEAT( '=', 79)
 
+#if defined( DEVEL )
+      DO I=1,IIPAR
+      DO J=1,JJPAR
+         A(I,J)  = GET_AREA_CM2( I, J, 1 ) 
+      ENDDO
+      ENDDO
+
+      IF ( IDTALK4 > 0 ) EMISSIONS(:,:,IDTALK4) = RETRO_ALK4(:,:) * 
+     & A * 6.0225d-23 * TRACER_MW_KG(IDTALK4)
+      IF ( IDTACET > 0 ) EMISSIONS(:,:,IDTACET) = RETRO_ACET(:,:) * 
+     & A * 6.0225d-23 * TRACER_MW_KG(IDTACET)
+      IF ( IDTMEK  > 0 ) EMISSIONS(:,:,IDTMEK)  = RETRO_MEK(:,:)  * 
+     & A * 6.0225d-23 * TRACER_MW_KG(IDTMEK)
+      IF ( IDTALD2 > 0 ) EMISSIONS(:,:,IDTALD2) = RETRO_ALD2(:,:) * 
+     & A * 6.0225d-23 * TRACER_MW_KG(IDTALD2)
+      IF ( IDTPRPE > 0 ) EMISSIONS(:,:,IDTPRPE) = RETRO_PRPE(:,:) * 
+     & A * 6.0225d-23 * TRACER_MW_KG(IDTPRPE)
+      IF ( IDTC3H8 > 0 ) EMISSIONS(:,:,IDTC3H8) = RETRO_C3H8(:,:) * 
+     & A * 6.0225d-23 * TRACER_MW_KG(IDTC3H8)
+      IF ( IDTC2H6 > 0 ) EMISSIONS(:,:,IDTC2H6) = RETRO_C2H6(:,:) * 
+     & A * 6.0225d-23 * TRACER_MW_KG(IDTC2H6)
+      IF ( IDTCH2O > 0 ) EMISSIONS(:,:,IDTCH2O) = RETRO_CH2O(:,:) * 
+     & A * 6.0225d-23 * TRACER_MW_KG(IDTCH2O)
+      IF ( IDTBENZ > 0 ) EMISSIONS(:,:,IDTBENZ) = RETRO_BENZ(:,:) * 
+     & A * 6.0225d-23 * TRACER_MW_KG(IDTBENZ)
+      IF ( IDTTOLU > 0 ) EMISSIONS(:,:,IDTTOLU) = RETRO_TOLU(:,:) * 
+     & A * 6.0225d-23 * TRACER_MW_KG(IDTTOLU)
+      IF ( IDTXYLE > 0 ) EMISSIONS(:,:,IDTXYLE) = RETRO_XYLE(:,:) * 
+     & A * 6.0225d-23 * TRACER_MW_KG(IDTXYLE)
+      IF ( IDTC2H4 > 0 ) EMISSIONS(:,:,IDTC2H4) = RETRO_C2H4(:,:) * 
+     & A * 6.0225d-23 * TRACER_MW_KG(IDTC2H4)
+      IF ( IDTC2H2 > 0 ) EMISSIONS(:,:,IDTC2H2) = RETRO_C2H2(:,:) * 
+     & A * 6.0225d-23 * TRACER_MW_KG(IDTC2H2)
+
+#endif
+
+      ! Return to calling program
       END SUBROUTINE EMISS_RETRO
 !EOC
 !------------------------------------------------------------------------------
@@ -343,16 +400,6 @@
          SCALEYEAR = FSCALYR
       ENDIF
 
-!------------------------------------------------------------------------------
-! Prior to 8/18/11:
-! This shouldn't be here (dbm, 8/18/2011)
-!      ! Set base year to 2000
-!      BASEYEAR = 2000
-!
-!      CALL GET_ANNUAL_SCALAR( 71, BASEYEAR, SCALEYEAR, SC)
-!      ALK4(:,:) = ALK4(:,:) * SC(:,:)
-!------------------------------------------------------------------------------
-
       END SUBROUTINE READ_RETRO
 !EOC
 !------------------------------------------------------------------------------
@@ -387,7 +434,8 @@
 ! !REVISION HISTORY: 
 !  08 Mar 2011 - W. Reinhart - Initial Version 
 !  22 Aug 2011 - R. Yantosca - Added ProTeX headers
-
+!  01 Mar 2012 - R. Yantosca - Now use GET_AREA_CM2(I,J,L) from grid_mod.F90
+!  22 Mar 2012 - M. Payer    - Remove print for C2H6 emissions
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -459,55 +507,58 @@
       !=================================================================
       !  Sum anthropogenic emissions
       !=================================================================
-      ! Loop over latitudes
+
+      ! Loop over surface boxes
       DO J = 1, JJPAR
+      DO I = 1, IIPAR
 
          ! Surface area [cm2] * seconds in the month / Avogadro's number
          ! Also multiply by the factor 1d-9 to convert kg to Tg
-         A = GET_AREA_CM2( J ) * ( D(THISMONTH) * 86400d-9 ) / 6.0225d23
-      
-         ! Loop over longitudes
-         DO I = 1, IIPAR
+         A     = GET_AREA_CM2( I, J, 1 ) 
+     &         * ( D(THISMONTH) * 86400d-9 ) / 6.0225d23
 
-            ! Anthro emissions
-            ALK4  = ALK4  + RETRO_ALK4(I,J)  * A * F_ALK4
-            ACET  = ACET  + RETRO_ACET(I,J)  * A * F_ACET
-            MEK   = MEK   + RETRO_MEK(I,J)   * A * F_MEK
-            ALD2  = ALD2  + RETRO_ALD2(I,J)  * A * F_ALD2
-            PRPE  = PRPE  + RETRO_PRPE(I,J)  * A * F_PRPE
-            C3H8  = C3H8  + RETRO_C3H8(I,J)  * A * F_C3H8
-            CH2O  = CH2O  + RETRO_CH2O(I,J)  * A * F_CH2O
-            C2H6  = C2H6  + RETRO_C2H6(I,J)  * A * F_C2H6
-            BENZ  = BENZ  + RETRO_BENZ(I,J)  * A * F_BENZ
-            TOLU  = TOLU  + RETRO_TOLU(I,J)  * A * F_TOLU
-            XYLE  = XYLE  + RETRO_XYLE(I,J)  * A * F_XYLE
-            C2H4  = C2H4  + RETRO_C2H4(I,J)  * A * F_C2H4
-            C2H2  = C2H2  + RETRO_C2H2(I,J)  * A * F_C2H2
+         ! Anthro emissions
+         ALK4  = ALK4  + RETRO_ALK4(I,J)  * A * F_ALK4
+         ACET  = ACET  + RETRO_ACET(I,J)  * A * F_ACET
+         MEK   = MEK   + RETRO_MEK(I,J)   * A * F_MEK
+         ALD2  = ALD2  + RETRO_ALD2(I,J)  * A * F_ALD2
+         PRPE  = PRPE  + RETRO_PRPE(I,J)  * A * F_PRPE
+         C3H8  = C3H8  + RETRO_C3H8(I,J)  * A * F_C3H8
+         CH2O  = CH2O  + RETRO_CH2O(I,J)  * A * F_CH2O
+         C2H6  = C2H6  + RETRO_C2H6(I,J)  * A * F_C2H6
+         BENZ  = BENZ  + RETRO_BENZ(I,J)  * A * F_BENZ
+         TOLU  = TOLU  + RETRO_TOLU(I,J)  * A * F_TOLU
+         XYLE  = XYLE  + RETRO_XYLE(I,J)  * A * F_XYLE
+         C2H4  = C2H4  + RETRO_C2H4(I,J)  * A * F_C2H4
+         C2H2  = C2H2  + RETRO_C2H2(I,J)  * A * F_C2H2
 
-            ENDDO
-         ENDDO
+      ENDDO
+      ENDDO
 
-         !==============================================================
-         !  Print info
-         !==============================================================
-         WRITE( 6, '(a)' )
-         WRITE( 6, 100   ) 'ALK4', THISMONTH, ALK4, ' C'
-         WRITE( 6, 100   ) 'ACET', THISMONTH, ACET, ' C'
-         WRITE( 6, 100   ) 'MEK',  THISMONTH, MEK,  ' C'
-         WRITE( 6, 100   ) 'ALD2', THISMONTH, ALD2, ' C'
-         WRITE( 6, 100   ) 'PRPE', THISMONTH, PRPE, ' C'
-         WRITE( 6, 100   ) 'C3H8', THISMONTH, C3H8, ' C'
-         WRITE( 6, 100   ) 'CH2O', THISMONTH, CH2O, ' C'
-         WRITE( 6, 100   ) 'C2H6', THISMONTH, C2H6, ' C'
-         WRITE( 6, 100   ) 'BENZ', THISMONTH, BENZ, ' C'
-         WRITE( 6, 100   ) 'TOLU', THISMONTH, TOLU, ' C'
-         WRITE( 6, 100   ) 'XYLE', THISMONTH, XYLE, ' C'
-         WRITE( 6, 100   ) 'C2H4', THISMONTH, C2H4, ' C'
-         WRITE( 6, 100   ) 'C2H2', THISMONTH, C2H2, ' C'
- 100     FORMAT( 'Total anthro ', a4, ' for 2000/',
-     &           i2.2, ': ', f13.6, ' Tg', a2 )
+      !==============================================================
+      !  Print info
+      !==============================================================
+      WRITE( 6, '(a)' )
+      WRITE( 6, 100   ) 'ALK4', THISMONTH, ALK4, ' C'
+      WRITE( 6, 100   ) 'ACET', THISMONTH, ACET, ' C'
+      WRITE( 6, 100   ) 'MEK',  THISMONTH, MEK,  ' C'
+      WRITE( 6, 100   ) 'ALD2', THISMONTH, ALD2, ' C'
+      WRITE( 6, 100   ) 'PRPE', THISMONTH, PRPE, ' C'
+      WRITE( 6, 100   ) 'C3H8', THISMONTH, C3H8, ' C'
+      WRITE( 6, 100   ) 'CH2O', THISMONTH, CH2O, ' C'
+      WRITE( 6, 100   ) 'BENZ', THISMONTH, BENZ, ' C'
+      WRITE( 6, 100   ) 'TOLU', THISMONTH, TOLU, ' C'
+      WRITE( 6, 100   ) 'XYLE', THISMONTH, XYLE, ' C'
+      WRITE( 6, 100   ) 'C2H4', THISMONTH, C2H4, ' C'
+      WRITE( 6, 100   ) 'C2H2', THISMONTH, C2H2, ' C'
+ 100  FORMAT( 'Total anthro ', a4, ' for 2000/',
+     &         i2.2, ': ', f13.6, ' Tg', a2 )
 
-         END SUBROUTINE TOTAL_ANTHRO_TG
+      WRITE( 6, '(/,a,/)' ) 'RETRO_MOD: RETRO C2H6 anthro ' //
+     &   'emissions are too low. Using offline C2H6 '       //
+     &   'emissions from Yaping Xiao.'
+
+      END SUBROUTINE TOTAL_ANTHRO_TG
 !EOC
 !------------------------------------------------------------------------------
 !             University of Minnesota Atmospheric Chemistry Group
@@ -547,6 +598,8 @@
 !  08 Mar 2011 - W. Reinhart - Initial Version 
 !  18 Aug 2011 - D. Millet   - Partition RETRO ketones into 75% acetone 
 !                              and 25% MEK
+!  22 Mar 2012 - M. Payer    - RETRO C2H6 emissions are too low. Use
+!                              Yaping Xiao's C2H6 emissions instead.
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -560,13 +613,6 @@
 
       IF ( N == IDTALK4 )      THEN
          RETRO = RETRO_ALK4(I,J)
-!------------------------------------------------------------------------------
-!      ! Partition RETRO ketones into 75% acetone and 25% MEK (dbm, 8/18/2011)
-!      ELSE IF ( N == IDTACET ) THEN
-!         RETRO = RETRO_ACET(I,J)
-!      ELSE IF ( N == IDTMEK )  THEN
-!         RETRO = RETRO_MEK(I,J)
-!------------------------------------------------------------------------------
       ELSE IF ( N == IDTACET ) THEN
          RETRO = 0.75d0*RETRO_MEK(I,J)   ! RETRO ketones --> 75% ACET
       ELSE IF ( N == IDTMEK )  THEN
@@ -580,7 +626,7 @@
       ELSE IF ( N == IDTCH2O ) THEN
          RETRO = RETRO_CH2O(I,J)
       ELSE IF ( N == IDTC2H6 ) THEN
-         RETRO = RETRO_C2H6(I,J)
+         RETRO = -1d0
       ELSE IF ( N == IDTBENZ ) THEN
          RETRO = RETRO_BENZ(I,J)
       ELSE IF ( N == IDTTOLU ) THEN

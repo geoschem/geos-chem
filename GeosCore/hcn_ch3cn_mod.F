@@ -77,6 +77,7 @@
 !  (4 ) Now modified for new "biomass_mod.f" (bmy, 4/5/06)
 !  (5 ) BIOMASS(:,:,IDBCO) from "biomass_mod.f" is now in units of 
 !        [molec CO/cm2/s].  Adjust unit conversion accordingly. (bmy, 9/27/06)
+!  01 Mar 2012 - R. Yantosca - Now reference new grid_mod.F90
 !******************************************************************************
 !
       IMPLICIT NONE
@@ -139,7 +140,9 @@
 !  ============================================================================
 !  (1 ) REGION (INTEGER) : Array of Fossil Fuel CO regions
 ! 
-!  NOTES: 
+!  NOTES:
+!  01 Mar 2012 - R. Yantosca - Now use GET_XMID(I,J,L) from grid_mod.F90 
+!  01 Mar 2012 - R. Yantosca - Now use GET_YMID(I,J,L) from grid_mod.F90 
 !******************************************************************************
 !
       ! References to F90 modules
@@ -160,36 +163,32 @@
 !$OMP+DEFAULT( SHARED ) 
 !$OMP+PRIVATE( I, J, X, Y )
       DO J = 1, JJPAR
-
-         ! Latitude [degrees]
-         Y = GET_YMID( J )
-
-         ! Loop over longitudes
-         DO I = 1, IIPAR
+      DO I = 1, IIPAR
          
-            ! Longitude [degrees]
-            X = GET_XMID( I )
+         ! Longitude and latitude [degrees]
+         X = GET_XMID( I, J, 1 )
+         Y = GET_YMID( I, J, 1 )
 
-            ! Region #3: SE Asian BB HCN (1st sub-box)
-            IF      ( ( X >= 72.5 .AND. X < 127.5 )  .AND.
-     &                ( Y >=  8.0 .AND. Y <  28.0 ) ) THEN
-               HCN_REG_bb(I,J) = 3
+         ! Region #3: SE Asian BB HCN (1st sub-box)
+         IF      ( ( X >= 72.5 .AND. X < 127.5 )  .AND.
+     &             ( Y >=  8.0 .AND. Y <  28.0 ) ) THEN
+            HCN_REG_bb(I,J) = 3
 
-            ! Region #3: SE Asian HCN BB (2nd sub-box)
-            ELSE IF ( ( X >= 72.5 .AND. X < 152.5 )  .AND.
-     &                ( Y >= 28.0 .AND. Y <  48.0 ) ) THEN
-               HCN_REG_bb(I,J) = 3
+         ! Region #3: SE Asian HCN BB (2nd sub-box)
+         ELSE IF ( ( X >= 72.5 .AND. X < 152.5 )  .AND.
+     &             ( Y >= 28.0 .AND. Y <  48.0 ) ) THEN
+            HCN_REG_bb(I,J) = 3
   
-            ! Region #4: HCN BB from elsewhere
-            ELSE
-               HCN_REG_bb(I,J) = 4
+         ! Region #4: HCN BB from elsewhere
+         ELSE
+            HCN_REG_bb(I,J) = 4
 
-            ENDIF
+         ENDIF
 
-            ! CH3CN tracer #'s are HCN tagged tracers + 4
-            CH3CN_REG_bb(I,J)  = HCN_REG_bb(I,J) + 4
+         ! CH3CN tracer #'s are HCN tagged tracers + 4
+         CH3CN_REG_bb(I,J)  = HCN_REG_bb(I,J) + 4
 
-         ENDDO
+      ENDDO
       ENDDO
 !$OMP END PARALLEL DO
 
@@ -208,7 +207,9 @@
 !  ============================================================================
 !  (1 ) REGION (INTEGER) : Array of Fossil Fuel regions 
 !
-!  NOTES:
+!  NOTES
+!  01 Mar 2012 - R. Yantosca - Now use GET_XMID(I,J,L) from grid_mod.F90
+!  01 Mar 2012 - R. Yantosca - Now use GET_YMID(I,J,L) from grid_mod.F90
 !******************************************************************************
 !
       ! References to F90 modules
@@ -230,15 +231,13 @@
 !$OMP+PRIVATE( I, J, X, Y )
       DO J = 1, JJPAR
          
-         ! Latitude [degrees]
-         Y = GET_YMID( J )         
-
          ! Loop over longitudes
          DO I = 1, IIPAR
 
-            ! Longitude [degrees]
-            X = GET_XMID( I )
-
+            ! Longitude and latitude [degrees]
+            X = GET_XMID( I, J, 1 )
+            Y = GET_YMID( I, J, 1 )         
+         
             ! Region #5: HCN Asian DF (1st sub-box)
             IF      ( ( X >= 72.5 .AND. X < 127.5 )  .AND.
      &                ( Y >=  8.0 .AND. Y <  28.0 ) ) THEN
@@ -284,6 +283,7 @@
 !  (3 ) BIOMASS(:,:,IDBCO) from "biomass_mod.f" is now in units of 
 !        [molec CO/cm2/s].  Adjust unit conversion accordingly. (bmy, 9/27/06)
 !  (4 ) IDBCO is now defined in TRACERID_MOD. (fp, 6/2009)
+!  01 Mar 2012 - R. Yantosca - Now use GET_AREA_CM2(I,J,L) from grid_mod.F90
 !******************************************************************************
 !
       ! References to F90 modules
@@ -356,7 +356,7 @@
       DO I = 1, IIPAR
 
          ! Grid area in [cm2]
-         ACM2 = GET_AREA_CM2( J )
+         ACM2 = GET_AREA_CM2( I, J, 1 )
 
          !-----------------------------------------------------------------
          ! (1) Process biomass burning HCN/CH3CN emissions
@@ -657,7 +657,7 @@
          IF ( FOCEAN > 0.5d0 .AND. ALBD(I,J) <= 0.4d0 ) THEN
 
             ! Grid box area in [cm2]
-            ACM2         = GET_AREA_CM2( J ) 
+            ACM2         = GET_AREA_CM2( I, J, 1 ) 
             
             ! Wind speed [m/s] at 10m above the surface 
             U            = SQRT( U10M(I,J)**2 + V10M(I,J)**2 )

@@ -282,7 +282,7 @@
 ! 
 ! !REVISION HISTORY: 
 !  07 Jul 2004 - R. Yantosca - Initial version
-!  (1 ) Remove references to CO-OH simulation and to F77_CMN_DIAG (bmy, 6/24/05)
+!  (1 ) Remove references to CO-OH simulation and to CMN_DIAG (bmy, 6/24/05)
 !  15 Sep 2010 - R. Yantosca - Added ProTeX headers
 !EOP
 !------------------------------------------------------------------------------

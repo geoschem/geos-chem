@@ -3,7 +3,7 @@
 !------------------------------------------------------------------------------
 !BOP
 !
-! !MODULE: 
+! !MODULE: chemistry_mod
 !
 ! !DESCRIPTION: Module CHEMISTRY\_MOD is used to call the proper chemistry 
 !  subroutine for the various GEOS-Chem simulations. 
@@ -23,6 +23,7 @@
 !
       PUBLIC :: DO_CHEMISTRY
       PUBLIC :: GCKPP_DRIVER
+      PUBLIC :: RECOMPUTE_OD
 !
 ! !REVISION HISTORY: 
 !  (1 ) Bug fix in DO_CHEMISTRY (bnd, bmy, 4/14/03)
@@ -44,6 +45,7 @@
 !  (15) Remove support for GEOS-1 and GEOS-STRAT met fields (bmy, 8/4/06)
 !  (16) For now, replace use RPMARES instead of ISORROPIA. (bmy, 4/2/08)
 !  (17) Added KPP chemistry driver subroutine (phs,ks,dhk, 09/15/09)
+!  (18) Added public member function recompute_OD (skim, 02/03/11)
 !  17 Dec 2009 - R. Yantosca - Added ProTeX headers
 !  28 Jan 2010 - C. Carouge, R. Yantosca - Modified for ISORROPIA II
 !EOP
@@ -59,7 +61,7 @@
 ! !IROUTINE: do_chemistry
 !
 ! !DESCRIPTION: Subroutine DO\_CHEMISTRY is the driver routine which calls 
-!  the appropriate chemistry subroutine for the various GEOS-Chem simulations. 
+!  the appropriate chemistry subroutine for the various GEOS-Chem simulations.
 !\\
 !\\
 ! !INTERFACE:
@@ -158,14 +160,16 @@
 !  17 Dec 2009 - R. Yantosca - Added ProTeX headers
 !  25 Jan 2010 - R. Yantosca - Now call DO_TOMAS for TOMAS microphysics
 !  28 Jan 2010 - C. Carouge, R. Yantosca - Modified for ISORROPIA II
+!  19 Mar 2012 - R. Yantosca - Add C-preprocessor switch to shut off 
+!                              ISORROPIA to facilitate debugging
 !EOP
 !------------------------------------------------------------------------------
 !BOC
 !
 ! !LOCAL VARIABLES:
 ! 
-      LOGICAL, SAVE            :: FIRST = .TRUE.
-      INTEGER                  :: N_TROP
+      LOGICAL, SAVE :: FIRST = .TRUE.
+      INTEGER       :: N_TROP, MONTH, YEAR, WAVELENGTH
 
       !=================================================================
       ! DO_CHEMISTRY begins here!
@@ -191,18 +195,20 @@
 
              ! Do seasalt aerosol chemistry
              IF ( LSSALT ) CALL CHEMSEASALT
- 
+
              ! Also do sulfate chemistry
              IF ( LSULF ) THEN
- 
+
                 ! Do sulfate chemistry
                 CALL CHEMSULFATE
  
                 ! Do aerosol thermodynamic equilibrium
                 IF ( LSSALT ) THEN
                 
+#if   !defined( NO_ISORROPIA )
                    ! ISOROPIA takes Na+, Cl- into account
                    CALL DO_ISOROPIAII
+#endif
                 
                 ELSE
  
@@ -210,6 +216,7 @@
                    CALL DO_RPMARES
  
                 ENDIF
+                
              ENDIF
  
              ! Do carbonaceous aerosol chemistry
@@ -265,8 +272,12 @@
              ! (NOTE: SOILDUST in "aerosol_mod.f" is computed here)
              CALL AEROSOL_CONC
  
-             ! Compute AOD's and surface areas
-             CALL RDAER
+             ! Compute AOD's and surface areas at 999 nm
+             MONTH = 0
+             YEAR  = 0
+             WAVELENGTH = 0
+
+             CALL RDAER( MONTH, YEAR, WAVELENGTH )
  
              !*** AEROSOL THERMODYNAMIC EQUILIBRIUM ***
              IF ( LSSALT ) THEN
@@ -473,7 +484,6 @@
 !
 ! !LOCAL VARIABLES:
 !
-      ! Local variables
       REAL*8        :: T, TIN, TOUT
       INTEGER       :: ICNTRL(20)
       REAL(kind=dp) :: RCNTRL(20)
@@ -490,7 +500,8 @@
 
       ! Suggested tolerance for Rosenbrock solvers
       DO i=1,NVAR
-         RTOL(i) = 2.d-1
+!         RTOL(i) = 2.d-1
+         RTOL(i) = 1.d-1
          ATOL(i) = 1.d-2
       END DO
 
@@ -662,12 +673,6 @@
          CALL Shuffle_kpp2user(VAR,V_CSPEC)  
 
          ! Pass KPP concentrations V_CSPEC to geos-chem CSPEC
-         !---------------------------------------------------------
-         ! Prior to 1/20/10:
-         ! Now use NSPEC_GC (# of active species in GEOS-Chem).
-         ! (ccc, 01/20/10)   
-         !DO N =1, NVAR
-         !---------------------------------------------------------
          DO N =1, NSPEC_GC
             CSPEC(JLOOP,N) = V_CSPEC(N)
          ENDDO

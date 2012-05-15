@@ -24,12 +24,17 @@
 #  14 Sep 2010 - R. Yantosca - Initial version, split off from Makefile
 #  16 Dec 2010 - R. Yantosca - Renamed output files to "GC_Ref_Vol_2.*"
 #  19 Jul 2011 - R. Yantosca - Changed *.f* to *.F* for ESMF compatibility
+#   3 Apr 2012 - M. Payer    - Added *.F90 so that grid_mod.F90 and 
+#                              regrid_a2a_mod.F90 are included
 #EOP
 #------------------------------------------------------------------------------
 #BOC
 
 # List of source code files
-SRC3 := ./intro.util $(wildcard $(UTIL)/*.F)
+SRC3 :=                     \
+./intro.util                \
+$(wildcard $(UTIL)/*.F)     \
+$(wildcard $(UTIL)/*.F90)
 
 
 # Output file names

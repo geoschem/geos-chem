@@ -117,6 +117,7 @@
 ! !REVISION HISTORY: 
 !  8/2008 - 10/2010 - F. Yu & G. Luo  - Initial versions
 !  08 Nov 2010 - R. Yantosca - Added ProTeX headers
+!  01 Mar 2012 - R. Yantosca - Now reference new grid_mod.F90
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -556,6 +557,7 @@
 ! !REVISION HISTORY: 
 !  17 Mar 2010 - F. Yu       - Initial version  
 !  08 Nov 2010 - R. Yantosca - Added ProTeX headers
+!  01 Mar 2012 - R. Yantosca - Now use GET_AREA_CM2(I,J,L) from grid_mod.F90
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -566,9 +568,8 @@
       REAL*8  :: XLON,XLAT,YPR,YQ,YPSURF
 
       DO J = 1, JJPAR
-        XLAT= GET_YMID( J )  ! Grid box latitude center [degree]
         DO I = 1, IIPAR
-          XLON = GET_XMID( I )  !Grid box longitude [degrees]
+
 
           YPSURF = GET_PEDGE(I,J,1)  !surface P in mb
           IF( IS_WATER( I, J ) .or. IS_ICE( I, J )) THEN
@@ -577,7 +578,9 @@
              ISURF = 1
           ENDIF
           DO L = 1, LLPAR
-             YPR =  GET_PCENTER(I,J,L)   ! in mb
+             XLON = GET_XMID( I, J, L  )  ! Grid box longitude [degrees]
+             XLAT = GET_YMID( I, J, L  )  ! Grid box latitude center [degree]
+             YPR  = GET_PCENTER(I,J,L)    ! in mb
              CALL IONRATE0(ISURF, YPSURF, XLON, XLAT, YPR, YQ)
              XQ3D(I,J,L)= YQ
           ENDDO

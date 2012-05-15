@@ -17,7 +17,12 @@ c
 !-----------------------------------------------------------------------
 #     include "define.h"
 
+#if defined( DEVEL )
+      USE CMN_FJ_MOD, ONLY : JPMAX, JPPJ
+#else
       USE CMN_FJ_MOD, ONLY : IPAR, JPAR, LPAR, JPMAX, JPPJ
+#endif
+      USE CMN_SIZE_MOD, ONLY : LLPAR
       USE JV_CMN_MOD
 
       IMPLICIT NONE
@@ -55,7 +60,7 @@ c  Air Mass Factors all zero if below the tangent height
         IF (RZ(J).LT.TANHT) GOTO 16
 c  Ascend from layer J calculating AMFs
         XMU1=ABS(GMU)
-        DO 12 I=J,lpar
+        DO 12 I=J,LLPAR
           XMU2=DSQRT(1.0D0-RQ(I)*(1.0D0-XMU1**2))
           XL=RZ(I+1)*XMU2-RZ(I)*XMU1
           AMF(I,J)=XL/(RZ(I+1)-RZ(I))

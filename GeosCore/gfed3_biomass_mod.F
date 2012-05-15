@@ -78,6 +78,8 @@
 ! !REVISION HISTORY: 
 !  07 Sep 2011 - P. Kasibhatla - Initial version, based on GFED2
 !  07 Sep 2011 - R. Yantosca   - Added ProTeX headers 
+!  14 Feb 2012 - M. Payer      - Add modifications for CH4 (K. Wecht)
+!  01 Mar 2012 - R. Yantosca   - Now reference new grid_mod.F90
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -91,7 +93,9 @@
       ! N_SPEC  : Number of species
       !=================================================================
       INTEGER,          PARAMETER   :: N_EMFAC = 6
-      INTEGER,          PARAMETER   :: N_SPEC  = 24
+      !INTEGER,          PARAMETER   :: N_SPEC  = 24
+      INTEGER,          PARAMETER   :: N_SPEC  = 25  !kjw
+
 !
 ! PRIVATE TYPES:
 !
@@ -333,8 +337,7 @@
       USE LOGICAL_MOD,    ONLY : LGFED3BB
       USE TIME_MOD,       ONLY : EXPAND_DATE
       USE TIME_MOD,       ONLY : TIMESTAMP_STRING
-      USE REGRID_1x1_MOD, ONLY : DO_REGRID_1x1
-      USE REGRID_1x1_MOD, ONLY : DO_REGRID_G2G_1x1
+      USE REGRID_A2A_MOD, ONLY : DO_REGRID_A2A
       USE TIME_MOD,       ONLY : GET_DAY
       USE TIME_MOD,       ONLY : GET_HOUR
       USE TIME_MOD,       ONLY : GET_DAY_OF_YEAR
@@ -360,31 +363,34 @@
 ! !REVISION HISTORY: 
 !  07 Sep 2011 - P. Kasibhatla - Initial version, based on GFED2
 !  07 Sep 2011 - R. Yantosca   - Added ProTeX headers 
+!  13 Mar 2012 - M. Cooper     - Change regrid algorithm to map_a2a
 !EOP
 !------------------------------------------------------------------------------
 !BOC
 !
 ! !LOCAL VARIABLES:
 !
-      LOGICAL, SAVE      :: FIRST = .TRUE.
-      INTEGER            :: I,    J,  N,   NF 
-      INTEGER            :: YYYY, MM, MM1, YYYY1
-      INTEGER            :: YYYYMMDD, HHMMSS
-      REAL*8             :: GFED3_EMFACX
-      REAL*4             :: ARRAY_1x1(I1x1,J1x1-1)
-      REAL*4             :: DM_GEN_1x1(I1x1,J1x1-1,6)
-      REAL*8             :: BIOM_GEN_1x1(I1x1,J1x1-1,N_SPEC)
-      REAL*8             :: BIOM_GEOS_1x1(I1x1,J1x1,N_SPEC)
-      REAL*8             :: TAU0, TAU1, JD8DAY
-      REAL*4             :: TMP
-      CHARACTER(LEN=255) :: FILENAME1
-      CHARACTER(LEN=255) :: FILENAME2
-      CHARACTER(LEN=255) :: FILENAME3
-      CHARACTER(LEN=255) :: FILENAME4
-      CHARACTER(LEN=255) :: FILENAME5
-      CHARACTER(LEN=255) :: FILENAME6
-      CHARACTER(LEN=16 ) :: TIME_STR
-      INTEGER            :: DD, HH, DOY
+      LOGICAL, SAVE        :: FIRST = .TRUE.
+      INTEGER              :: I,    J,  N,   NF 
+      INTEGER              :: YYYY, MM, MM1, YYYY1
+      INTEGER              :: YYYYMMDD, HHMMSS
+      REAL*8               :: GFED3_EMFACX
+      REAL*4               :: ARRAY_1x1(I1x1,J1x1-1)
+      REAL*4               :: DM_GEN_1x1(I1x1,J1x1-1,6)
+      REAL*8               :: BIOM_GEN_1x1(I1x1,J1x1-1,N_SPEC)
+      REAL*8               :: TAU0, TAU1, JD8DAY
+      REAL*4               :: TMP
+      CHARACTER(LEN=255)   :: FILENAME1
+      CHARACTER(LEN=255)   :: FILENAME2
+      CHARACTER(LEN=255)   :: FILENAME3
+      CHARACTER(LEN=255)   :: FILENAME4
+      CHARACTER(LEN=255)   :: FILENAME5
+      CHARACTER(LEN=255)   :: FILENAME6
+      CHARACTER(LEN=16 )   :: TIME_STR
+      INTEGER              :: DD, HH, DOY
+      CHARACTER(LEN=255)   :: LLFILENAME
+      REAL*8, ALLOCATABLE  :: OUTGRID(:,:)
+      REAL*8, ALLOCATABLE  :: INGRID(:,:)
 
       !=================================================================
       ! GFED3_COMPUTE_BIOMASS begins here!
@@ -427,7 +433,7 @@
       !-------------------------------
       IF ( LGFED3BB ) THEN
          
-         CALL GFED3_AVAILABLE( YYYY, 1997, 2009 )
+         CALL GFED3_AVAILABLE( YYYY, 1997, 2010 )
 
          WRITE( 6, 410 ) YYYY, MM
  410     FORMAT( 'for year and month: ', i4, '/', i2.2, / )
@@ -593,16 +599,26 @@
          ENDDO
 !$OMP END PARALLEL DO
 
-         ! Regrid each species from GENERIC 1x1 GRID to GEOS-Chem 1x1 GRID
-         CALL DO_REGRID_G2G_1x1( 'molec/cm2',
-     &                            BIOM_GEN_1x1(:,:,N), 
-     &                            BIOM_GEOS_1x1(:,:,N) )
-      ENDDO
+         ! File with lat/lon edges for regridding
+         LLFILENAME = TRIM( DATA_DIR_1x1) //
+     &                'MAP_A2A_Regrid_200312/latlon_generic.txt'
 
-      ! Regrid from GEOS 1x1 grid to current grid.  (The unit 'molec/cm2' 
-      ! is just used to denote that the quantity is per unit area.)
-      CALL DO_REGRID_1x1( N_SPEC,       'molec/cm2', 
-     &                    BIOM_GEOS_1x1, GFED3_BIOMASS ) 
+         ! Allocate arrays for regridding
+         ALLOCATE(INGRID(I1x1,J1x1-1))
+         ALLOCATE(OUTGRID(IIPAR,JJPAR))
+
+         ! Regrid each species from GENERIC 1x1 to current model resolution
+         ! (The unit 'molec/cm2' is just used to denote that the quantity
+         ! is per unit area.)
+         INGRID = BIOM_GEN_1X1(:,:,N)
+         CALL DO_REGRID_A2A( LLFILENAME, 360, 181, INGRID, OUTGRID, 0 )
+         GFED3_BIOMASS(:,:,N) = OUTGRID
+
+         ! Deallocate arrays for regridding
+         DEALLOCATE(INGRID)
+         DEALLOCATE(OUTGRID)
+
+      ENDDO
 
       ! Compute future biomass emissions (if necessary)
       IF ( LFUTURE ) THEN
@@ -651,7 +667,8 @@
       USE FUTURE_EMISSIONS_MOD,   ONLY : GET_FUTURE_SCALE_OCbb
       USE FUTURE_EMISSIONS_MOD,   ONLY : GET_FUTURE_SCALE_SO2bb
       USE FUTURE_EMISSIONS_MOD,   ONLY : GET_FUTURE_SCALE_VOCbb
-      USE TRACER_MOD,             ONLY : ITS_A_CO2_SIM       
+      USE TRACER_MOD,             ONLY : ITS_A_CO2_SIM 
+      USE TRACER_MOD,             ONLY : ITS_A_CH4_SIM
       USE TRACERID_MOD,           ONLY : IDBNOx,  IDBCO,   IDBSO2 
       USE TRACERID_MOD,           ONLY : IDBNH3,  IDBBC,   IDBOC 
 
@@ -672,6 +689,7 @@
 ! !LOCAL VARIABLES:
 !
       LOGICAL :: ITS_CO2
+      LOGICAL :: ITS_CH4
       INTEGER :: I, J, N
       
       !=================================================================
@@ -680,6 +698,7 @@
 
       ! Test if it's a CO2 simulation outside of the loop
       ITS_CO2 = ITS_A_CO2_SIM()
+      ITS_CH4 = ITS_A_CH4_SIM()
 
 !$OMP PARALLEL DO
 !$OMP+DEFAULT( SHARED )
@@ -721,7 +740,8 @@
             ! Future biomass OC [molec/cm2]
             BB(I,J,N) = BB(I,J,N) * GET_FUTURE_SCALE_OCbb( I, J )
 
-         ELSE IF ( ITS_CO2 ) THEN
+         ! Don't scale future emissions if CO2 or CH4
+         ELSE IF ( ITS_CO2 .OR. ITS_CH4 ) THEN
 
             ! Nothing
 
@@ -768,6 +788,7 @@
 ! !REVISION HISTORY: 
 !  07 Sep 2011 - P. Kasibhatla - Initial version, based on GFED2
 !  07 Sep 2011 - R. Yantosca   - Added ProTeX headers 
+!  01 Mar 2012 - R. Yantosca - Now use GET_AREA_M2(I,J,L) from grid_mod.F90
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -792,16 +813,16 @@
          UNIT  = GFED3_SPEC_UNIT(N)
          TOTAL = 0d0
 
-         ! Loop over latitudes
+         ! Loop over surface boxes
          DO J = 1, JJPAR
-         
-            ! Convert to [Tg/gfed-period] (or [Tg C/gfed-period] for HC's)
-            CONV = GET_AREA_CM2( J ) * ( MOLWT / 6.023d23 ) * 1d-9
+         DO I = 1, IIPAR
 
-            ! Loop over longitudes
-            DO I = 1, IIPAR
-               TOTAL = TOTAL + ( GFED3_BIOMASS(I,J,N) * CONV )
-            ENDDO
+            ! Convert to [Tg/gfed-period] (or [Tg C/gfed-period] for HC's)
+            CONV  = GET_AREA_CM2( I, J, 1 ) 
+     &            * ( MOLWT / 6.023d23 ) * 1d-9
+
+            TOTAL = TOTAL + ( GFED3_BIOMASS(I,J,N) * CONV )
+         ENDDO
          ENDDO
      
          ! Write totals
@@ -843,6 +864,7 @@
       USE TRACERID_MOD,  ONLY : IDBGLYX, IDBMGLY, IDBBENZ
       USE TRACERID_MOD,  ONLY : IDBTOLU, IDBXYLE, IDBC2H4
       USE TRACERID_MOD,  ONLY : IDBC2H2, IDBGLYC, IDBHAC
+      USE TRACERID_MOD,  ONLY : IDBCH4   !kjw
 
       USE CMN_SIZE_MOD        ! Size parameters
 ! 
@@ -912,7 +934,6 @@
       ! File name
       FILENAME = TRIM( DATA_DIR_1x1) // 
      &           'GFED3_201110/GFED3_emission_factors.txt'
-
       ! Open emission factor file (ASCII format)
       OPEN( IU_FILE, FILE=TRIM( FILENAME ), STATUS='OLD', IOSTAT=IOS )
       IF ( IOS /= 0 ) CALL IOERROR( IOS, IU_FILE, 'init_gfed3:1' )
@@ -1068,6 +1089,10 @@
                BIO_SAVE(N)         = IDBCO2
                GFED3_SPEC_MOLWT(N) = 44d-3
                GFED3_SPEC_UNIT(N)  = '[Tg  ]'
+            CASE( 'CH4' )
+               BIO_SAVE(N)         = IDBCH4
+               GFED3_SPEC_MOLWT(N) = 16d-3
+               GFED3_SPEC_UNIT(N)  = '[Tg  ]'
             CASE DEFAULT
                ! Nothing
                BIO_SAVE(N)         = 0
@@ -1083,7 +1108,7 @@
 !------------------------------------------------------------------------------
 !BOP
 !
-! !IROUTINE: 
+! !IROUTINE: rearrange_biom
 !
 ! !DESCRIPTION: Subroutine REARRANGE\_BIOM takes GFED3 emissions (which have 
 !  their own, unique ID numbers and associates them with the IDBxxxs of 

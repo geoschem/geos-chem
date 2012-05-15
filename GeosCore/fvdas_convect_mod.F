@@ -49,6 +49,7 @@
 !        (bmy, 9/5/06)
 !  (10) Bug fix in CONVTRAN to avoid div potential div by zero.  Make SMALLEST
 !        = 1d-60 to avoid problems (bmy, 12/19/06)
+!  01 Mar 2012 - R. Yantosca - Now references the new grid_mod.F90
 !******************************************************************************
 !
       IMPLICIT NONE
@@ -730,7 +731,7 @@
 !  (13) SMALL   (REAL*8 )  : A small number
 ! 
 !  NOTES:
-!  (1 ) Added references to "diag_mod.f", "grid_mod.f", and "F77_CMN_DIAG.  
+!  (1 ) Added references to "diag_mod.f", "grid_mod.f", and "CMN_DIAG.  
 !        Also added TCVV and INDEXSOL as arguments.  Now only save LD38
 !        levels of the ND38 diagnostic.  Now place NTRACE before Q in the
 !        arg list. (swu, bmy, 1/21/04)
@@ -751,6 +752,7 @@
 !        conserve mixing ratio (swu, bmy, 6/27/06)
 !  (8 ) Bug fix: avoid div by zero in formula for CHAT (bmy, 12/19/06)
 !  (9 ) Updates for mercury simulation (ccc, 5/6/10)
+!  01 Mar 2012 - R. Yantosca - Now use GET_AREA_M2(I,J,L) from grid_mod.F90
 !******************************************************************************
 !
       ! References to F90 modules
@@ -1095,7 +1097,7 @@
                   LL = LLPAR - K + 1
 
                   ! Grid box surface area [m]
-                  AREA_M2 = GET_AREA_M2( JJ ) 
+                  AREA_M2 = GET_AREA_M2( II, JJ, LL ) 
 
                   ! Only save from levels 1..LD14 
                   IF ( LL < LD14 ) THEN
@@ -1151,7 +1153,7 @@
                   IF ( LL <= LD38 ) THEN
                   
                      ! Grid box surface area [m2] 
-                     AREA_M2 = GET_AREA_M2( JJ )  
+                     AREA_M2 = GET_AREA_M2( II, JJ, LL )  
 
                      ! Save loss in [kg/s]
                      AD38(II,JJ,LL,NN) = AD38(II,JJ,LL,NN) +
@@ -1185,7 +1187,7 @@
                      JJ      = J
 
                      ! Grid box surface area [m2] 
-                     AREA_M2 = GET_AREA_M2( JJ )
+                     AREA_M2 = GET_AREA_M2( II, JJ, 1 )
 
                      ! Hg2 wet-scavenged out of the column [kg]
                      WET_Hg2 = MU(I,KP1) * AREA_M2     * 100d0         / 
@@ -1204,7 +1206,7 @@
                      JJ      = J
 
                      ! Grid box surface area [m2] 
-                     AREA_M2 = GET_AREA_M2( JJ )
+                     AREA_M2 = GET_AREA_M2( II, JJ, 1 )
 
                      ! Hg2 wet-scavenged out of the column [kg]
                      WET_HgP = MU(I,KP1) * AREA_M2     * 100d0         / 

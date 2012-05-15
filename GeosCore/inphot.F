@@ -14,7 +14,7 @@
 !
 !  NOTES: 
 !  (1 ) Remove PTOP from the arg list, since it is now a 
-!        parameter in "F77_CMN_SIZE" (bmy, 2/10/00).
+!        parameter in "CMN_SIZE" (bmy, 2/10/00).
 !  (2 ) Remove SIGE from the argument list, since we are now using
 !        a hybrid pressure specification.  Now define ETAA and ETAB
 !        for use in "set_prof.f". (bmy, 8/23/02)
@@ -33,7 +33,8 @@
 
 #     include "define.h"
 
-      USE CMN_FJ_MOD, ONLY : IPAR, JPAR, LPAR, JPMAX, JPPJ, JPNL
+      USE CMN_FJ_MOD,   ONLY : JPMAX, JPPJ, JPNL
+      USE CMN_SIZE_MOD, ONLY : LLPAR
       USE JV_CMN_MOD
 
       IMPLICIT NONE
@@ -52,8 +53,8 @@
       JPPJ  = NREACS + 4         
 
       ! Error check # of layers
-      IF ( JPNL > LPAR ) THEN 
-         CALL ERROR_STOP( 'JPNL > LPAR!', 'inphot.f' )
+      IF ( JPNL > LLPAR ) THEN 
+         CALL ERROR_STOP( 'JPNL > LLPAR!', 'inphot.f' )
       ENDIF
 
       ! Error check # of rxns
@@ -75,8 +76,13 @@
       CALL RD_AOD( IU_FASTJ, 'jv_spec_aod.dat' )
 
       ! Read in T & O3 climatology (cf. Nagatani/92 and McPeters/91)
-      CALL RD_PROF( IU_FASTJ, 'jv_atms.dat' )
- 
+!------------------------------------------------------------------------------
+! Prior to 4/19/12:
+! Now read "jv_atms.dat" T & O3 from netCDF format (bmy, 4/19/12)
+!      CALL RD_PROF( IU_FASTJ, 'jv_atms.dat' )
+!------------------------------------------------------------------------------
+      CALL READ_JV_ATMS_DAT( 'fastj.jv_atms_dat.nc' )
+
       ! Select Aerosol/Cloud types to be used
       CALL SET_AER
 

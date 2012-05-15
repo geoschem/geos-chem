@@ -48,6 +48,8 @@
 !  (14) Now make sure all USE statements are USE, ONLY (bmy, 10/3/05)
 !  (15) Modifications for 0.5 x 0.666 nested grids (yxw, dan, bmy, 11/6/08)
 !  (16) Modifications for reading data on GEOS-4 1 x 1.25 grids (bmy, 1/13/10)
+!  01 Mar 2012 - R. Yantosca - Now reference new grid_mod.F90
+!  01 Mar 2012 - R. Yantosca - Use updated GET_LOCALTIME from time_mod.F
 !******************************************************************************
 !
       IMPLICIT NONE
@@ -256,7 +258,7 @@
 !  (3 ) Now use IOS /= 0 to trap both I/O errors and EOF (bmy, 9/13/00)
 !  (4 ) Now read files directly from DATA_DIR/fossil_200104 subdirectory.
 !        Also echo the file name to stdout.  Now reference DATA_DIR from
-!        the "F77_CMN_SETUP" header file. (bmy, 4/3/02)
+!        the "CMN_SETUP" header file. (bmy, 4/3/02)
 !  (5 ) Now reference IU_FILE and IOERROR from "file_mod.f".  Also deleted
 !        obsolete code from April 2002 (bmy, 6/27/02)
 !  (6 ) Now references DATA_DIR from "directory_mod.f" (bmy, 7/20/04)
@@ -463,7 +465,7 @@
 !        ASCII merge file (bmy, 4/23/01)
 !  (5 ) Now read files directly from DATA_DIR/fossil_obsolete subdirectory.
 !        Also echo the file name to stdout.  Now reference DATA_DIR from
-!        the "F77_CMN_SETUP" header file. (bmy, 4/3/02)
+!        the "CMN_SETUP" header file. (bmy, 4/3/02)
 !  (6 ) Now reference IU_FILE and IOERROR from "file_mod.f".  Also deleted
 !        obsolete code from April 2002 (bmy, 6/27/02)
 !  (7 ) Now references DATA_DIR from "directory_mod.f" (bmy, 7/20/04)
@@ -948,6 +950,11 @@
 !  ============================================================================
 !  (1 ) IHOUR  (INTEGER) : Index for scale factor arrays
 !
+! !REMARKS:
+!  For now use GET_LOCALTIME( I, 1, 1 ) which will be independent of J and L
+!  for a pure cartesian grid.  This may need to be revisited once G-C is
+!  interfaced into a GCM.
+!
 !  NOTES:
 !  (1 ) COMPUTE IHOUR TO DETERMINE TIME OF DAY FACTOR FOR EMISSIONS
 !        THIS TOFDAY IS IN GREENWICH TIME(GMT); WE NEED TO CHANGE IT TO
@@ -985,7 +992,7 @@
 
       ! IHOUR ranges from 1-6 
       ! Modified to use NINT instead of INT (ccc, 4/15/09)
-      IHOUR = NINT( ( GET_LOCALTIME( I ) ) / 4 ) + 1
+      IHOUR = NINT( ( GET_LOCALTIME( I, 1, 1 ) ) / 4 ) + 1
       IF ( IHOUR == 7 ) IHOUR = 1
 
       ! Return to calling program
@@ -1013,6 +1020,7 @@
 !      Bryan Duncan (bnd@io.harvard.edu), and Daniel Jacob (djj@io.harvard.edu)
 !  (2) Now replace DXYP(J)*1d4 with routine GET_AREA_CM2 from "grid_mod.f".
 !       (bmy, 2/4/03)
+!  01 Mar 2012 - R. Yantosca - Now use GET_AREA_M2(I,J,L) from grid_mod.F90
 !******************************************************************************
 !
       ! References to F90 modules
@@ -1041,13 +1049,13 @@
 
       DO L = 1, LX
       DO J = 1, JX
-            
+      DO I = 1, IX
+
          ! Grid box surface area [cm2]
-         A_CM2 = GET_AREA_CM2( J )
-         
-         DO I = 1, IX
-            TOTAL = TOTAL + FFARRAY(I,J,L) * A_CM2 * ( MOLWT/ 6.023d23 )
-         ENDDO
+         A_CM2 = GET_AREA_CM2( I, J, L )
+
+         TOTAL = TOTAL + FFARRAY(I,J,L) * A_CM2 * ( MOLWT/ 6.023d23 )
+      ENDDO
       ENDDO
       ENDDO
 
