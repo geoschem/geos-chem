@@ -160,10 +160,6 @@
       ! Molecular weight of CH2Br2 [kg/mol], (jpp, 9/16/07)
       REAL*8,  PARAMETER     :: MWT_CH2Br2 = 1.74d-1
 
-!      !jpp: debugging
-!      REAL*8                 :: CHBr3_SUM
-!      REAL*8                 :: CH2Br2_SUM
-
       ! External functions
       REAL*8, EXTERNAL       :: BOXVL,   EMISOP 
       REAL*8, EXTERNAL       :: EMMONOT, EMISOP_MB, EMISOP_GRASS
@@ -230,10 +226,6 @@
       EMISRR      = 0d0
       GEMISNOX2   = 0d0
       EMISS_BVOC  = 0d0  ! Add BVOC emissions (mpb,2009)
-!      !jpp: debugging
-!      ! calculate the sums of emissions just to be careful.
-!      CHBr3_SUM   = 0d0
-!      CH2Br2_SUM  = 0d0
       
       ! Loop over latitudes
       IJLOOP = 0
@@ -658,8 +650,6 @@
                ! Scale emissions
                EMISRR(I,J,IDECHBr3) = EMISRR(I,J,IDECHBr3) * Br_SCALING
 
-!               !jpp: debugging
-!               CHBr3_SUM  = CHBr3_SUM  + EMISRR(I,J,IDECHBr3)
             ENDIF
 
             IF ( IDECH2Br2 /= 0 ) THEN
@@ -669,15 +659,7 @@
                EMISRR(I,J,IDECH2Br2) = EMISRR(I,J,IDECH2Br2) * 
      &                                 Br_SCALING
 
-!               !jpp: debugging
-!               CH2Br2_SUM = CH2Br2_SUM + EMISRR(I,J,IDECH2Br2)
             ENDIF
-
-!jp            IF ( EMISRR(I,J,IDECHBr3) .GT. 0d0 ) THEN
-!jp               WRITE(6,*) 'jpp in emissdr.f'
-!jp               WRITE(6,*) 'EMISRR(I,J,IDECHBr3) =', EMISRR(I,J,IDECHBr3)
-!jp            ENDIF
-
 
 !
 !******************************************************************************
@@ -769,17 +751,6 @@
             ENDIF
          ENDDO
       ENDDO
-
-!      IF ( ( IDECHBr3 /= 0 ) .and. (IDECH2Br2 /= 0) ) THEN
-!         !jpp: debugging
-!         CHBr3_SUM  = ( CHBr3_SUM ) * ( MWT_CHBr3 / AVG ) * 
-!     &       (3.1536d+7) / (1.d6)
-!         CH2Br2_SUM = ( CH2Br2_SUM ) * ( MWT_CH2Br2/AVG ) *
-!     &        (3.1536d+7) / (1.d6)
-!         WRITE(6,*) 'jpp in emissdr: total over all boxes'
-!         WRITE(6,*) 'CHBr3_SUM =', CHBr3_SUM
-!         WRITE(6,*) 'CH2Br2_SUM =', CH2Br2_SUM
-!      ENDIF
 
       ! Return to calling program
       END SUBROUTINE EMISSDR                                                

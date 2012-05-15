@@ -3066,7 +3066,7 @@
 !******************************************************************************
 !  ND46: Biogenic source diagnostic
 !
-!   # : Field : Description    : Units         : Scale Factor
+!   # : Field  : Description    : Units         : Scale Factor
 !  ---------------------------------------------------------------------------
 !  (1)  ISOP   : Isoprene       : atoms C/cm2/s : SCALE3
 !  (2)  ACET   : Acetone        : atoms C/cm2/s : SCALE3
@@ -3074,9 +3074,16 @@
 !  (4)  MONOT  : Monoterpenes   : atoms C/cm2/s : SCALE3
 !  (5)  MBO    : Methyl Butenol : atoms C/cm2/s : SCALE3
 !  (6)  C2H4   : Ethene         : atoms C/cm2/s : SCALE3
-!  (7)  CHBr3  : Bromoform      :      kg/m2/s  : SCALESRCE
-!  (8)  CH2Br2 : Dibromomethane :      kg/m2/s  : SCALESRCE
-!  (9)  Br2    : Molec. Bromine :      kg/m2/s  : SCALESRCE
+!  (7 ) APINE  : Alpha pinene   : atoms C/cm2/s : SCALE3
+!  (8 ) BPINE  : Beta pinene    : atoms C/cm2/s : SCALE3
+!  (9 ) LIMON  : Limonene       : atoms C/cm2/s : SCALE3
+!  (10) SABIN  : Sabinene       : atoms C/cm2/s : SCALE3
+!  (11) MYRCN  : Mycrene        : atoms C/cm2/s : SCALE3
+!  (12) CAREN  : 3-Carene       : atoms C/cm2/s : SCALE3
+!  (13) OCIMN  : Ocimene        : atoms C/cm2/s : SCALE3
+!  (14) CHBr3  : Bromoform      :      kg/m2/s  : SCALESRCE
+!  (15) CH2Br2 : Dibromomethane :      kg/m2/s  : SCALESRCE
+!  (16) Br2    : Molec. Bromine :      kg/m2/s  : SCALESRCE
 !
 !  NOTES:
 !  (1) ND46 now uses allocatable array AD46 instead of AIJ (bmy, 3/16/00)

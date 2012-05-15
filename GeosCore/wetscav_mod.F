@@ -714,7 +714,7 @@
       USE TRACERID_MOD, ONLY : IDTIEPOX, IDTRIP
       USE TRACERID_MOD, ONLY : IDTMAP
       ! jpp 4/27/09
-      USE TRACERID_MOD, ONLY : IDTHOBr,  IDTBrNO3, IDTHBr,  IDTBr2
+      USE TRACERID_MOD, ONLY : IDTHOBr,  IDTHBr,   IDTBr2
       USE OCEAN_MERCURY_MOD,  ONLY : LHg_WETDasHNO3 
 
       USE CMN_SIZE_MOD                         ! Size parameters
@@ -1070,62 +1070,6 @@
          ! ND38 index
          ISOL = GET_ISOL( N )
 
-
-!jpt      !-------------------------------
-!jpt      ! BrNO3 (liquid phase only)
-!jpt      ! jpp 4/27/09
-!jpt      !-------------------------------
-!jpt      ELSE IF ( N == IDTBrNO3 ) THEN 
-!jpt         
-!jpt         ! No scavenging at the surface
-!jpt         F(:,:,1) = 0d0
-!jpt
-!jpt         ! Apply scavenging in levels 2 and higher
-!jpt         DO L = 2, LLPAR
-!jpt         DO J = 1, JJPAR
-!jpt         DO I = 1, IIPAR
-!jpt
-!jpt            !    For bromine nitrate, Sander 1999 recommends an infinite
-!jpt            !    henry's law constant. Thus, I am specifying no temperature
-!jpt            !    dependence (dH_f = 0.d0) and setting the adjusted henry's
-!jpt            !    law to an arbitrarily large numer (1.d20). jpp, 4/27/09)
-!jpt            CALL COMPUTE_L2G( 1.0d20, 0.d0, 
-!jpt     &                        T(I,J,L), CLDLIQ(I,J,L), L2G )
-!jpt
-!jpt            ! Fraction of BrNO3 in liquid phase 
-!jpt            C_TOT = 1d0 + L2G
-!jpt            F_L   = L2G / C_TOT
-!jpt
-!jpt            ! Compute the rate constant K.
-!jpt            IF ( T(I,J,L) >= 268d0 ) THEN
-!jpt               K = KC * F_L  
-!jpt
-!jpt            ELSE IF ( T(I,J,L) > 248d0 .and. T(I,J,L) < 268d0 ) THEN
-!jpt               ! jpp 4/27/09: changed "K = KC * ( 2d-2 * F_L )" to
-!jpt               ! K = KC * ( 5d-2 * F_L ) because I chose to call
-!jpt               ! R_i = 0.05 instead of 0.02, which is what was used for
-!jpt               ! CH2O. 0.05 is used for H2O2. Check this with Daniel.
-!jpt!               K = KC * ( 5d-2 * F_L ) 
-!jpt               K = KC * F_L ! made R=1 on djj's advice (jpp, 7/08/09)
-!jpt
-!jpt            ELSE
-!jpt               K = 0d0
-!jpt
-!jpt            ENDIF
-!jpt
-!jpt            ! Distance between grid box centers [m]
-!jpt            TMP = 0.5d0 * ( BXHEIGHT(I,J,L-1) + BXHEIGHT(I,J,L) ) 
-!jpt               
-!jpt            ! F is the fraction of BrNO3 scavenged out of the updraft
-!jpt            ! (Eq. 2, Jacob et al, 2000)
-!jpt            F(I,J,L) = 1d0 - EXP( -K * TMP / Vud(I,J) )
-!jpt
-!jpt         ENDDO
-!jpt         ENDDO
-!jpt         ENDDO
-!jpt
-!jpt         ! ND38 index
-!jpt         ISOL = GET_ISOL( N ) 
 
       !------------------------------
       ! Br2 (liquid phase only), jpp
@@ -2466,7 +2410,7 @@
       USE TRACERID_MOD, ONLY : IDTISOPN, IDTMMN
       USE TRACERID_MOD, ONLY : IDTIEPOX, IDTRIP, IDTMAP
       ! jpp 4/27/09
-      USE TRACERID_MOD, ONLY : IDTHOBr, IDTBrNO3, IDTHBr,  IDTBr2
+      USE TRACERID_MOD, ONLY : IDTHOBr, IDTHBr,   IDTBr2
       USE TRACER_MOD,   ONLY : ITS_A_MERCURY_SIM 
       USE OCEAN_MERCURY_MOD,  ONLY : LHg_WETDasHNO3
 
@@ -3105,44 +3049,6 @@
          ! (Eq. 10, Jacob et al, 2000)
          RAINFRAC = GET_RAINFRAC( K, F, DT ) 
 
-!jpt      !------------------------------
-!jpt      ! BrNO3 (liquid phase only), jpp
-!jpt      !------------------------------
-!jpt      ELSE IF ( N == IDTBrNO3 ) THEN
-!jpt
-!jpt         ! Compute liquid to gas ratio for BrNO3:
-!jpt         !    For bromine nitrate, Sander 1999 recommends an infinite
-!jpt         !    henry's law constant. Thus, I am specifying no temperature
-!jpt         !    dependence (dH_f = 0.d0) and setting the adjusted henry's
-!jpt         !    law to an arbitrarily large numer (1.d20). jpp, 4/27/09)
-!jpt         CALL COMPUTE_L2G( 1.0d20, 0.d0, 
-!jpt     &        T(I,J,L), CLDLIQ(I,J,L), L2G )
-!jpt
-!jpt         ! Fraction of BrNO3 in liquid phase
-!jpt         C_TOT = 1d0 + L2G
-!jpt         F_L   = L2G / C_TOT
-!jpt
-!jpt         ! Compute the rate constant K.
-!jpt         IF ( TK >= 268d0 ) THEN
-!jpt            K = K_RAIN * F_L  
-!jpt
-!jpt         ELSE IF ( TK > 248d0 .and. TK < 268d0 ) THEN
-!jpt            ! jpp 4/27/09: changed "K = KC * ( 2d-2 * F_L )" to
-!jpt            ! K = KC * ( 5d-2 * F_L ) because I chose to call
-!jpt            ! R_i = 0.05 instead of 0.02, which is what was used for
-!jpt            ! CH2O. 0.05 is used for H2O2. Check this with Daniel.
-!jpt!            K = K_RAIN * ( 5d-2 * F_L ) 
-!jpt            K = K_RAIN * ( F_L )  ! changed retention factor to 1, jpp 7/08/09
-!jpt            
-!jpt         ELSE
-!jpt            K = 0d0
-!jpt               
-!jpt         ENDIF
-!jpt  
-!jpt         ! Compute RAINFRAC, the fraction of rained-out BrNO3
-!jpt         ! (Eq. 10, Jacob et al, 2000)
-!jpt         RAINFRAC = GET_RAINFRAC( K, F, DT ) 
-
       !------------------------------
       ! Br2 (liquid phase only), jpp
       !------------------------------
@@ -3608,7 +3514,7 @@
       USE TRACERID_MOD, ONLY : IDTISOPN, IDTMMN
       USE TRACERID_MOD, ONLY : IDTIEPOX, IDTRIP, IDTMAP
       ! jpp 4/27/09
-      USE TRACERID_MOD, ONLY : IDTHOBr,  IDTBrNO3, IDTHBr,  IDTBr2
+      USE TRACERID_MOD, ONLY : IDTHOBr,  IDTHBr,   IDTBr2
       USE OCEAN_MERCURY_MOD,  ONLY : LHg_WETDasHNO3 ! (cdh 5/20/09)
 
       USE CMN_SIZE_MOD               ! Size parameters
@@ -3751,14 +3657,6 @@
          AER      = .FALSE.
          CALL WASHFRAC_LIQ_GAS( 7.1d13, -10200.d0, PP,   DT,       F,
      &                          DZ,     TK,      K_WASH, WASHFRAC, AER )
-
-!jpt      !------------------------------
-!jpt      ! BrNO3 (liquid & gas phases) jpp
-!jpt      !------------------------------
-!jpt      ELSE IF ( N == IDTBrNO3 ) THEN 
-!jpt         AER      = .FALSE. ! not an aerosol
-!jpt         CALL WASHFRAC_LIQ_GAS( 1.0d20, 0.d0, PP,     DT,       F,
-!jpt     &                          DZ,     TK,   K_WASH, WASHFRAC, AER 
 
       !------------------------------
       ! Br2 (liquid & gas phases) jpp
@@ -6448,7 +6346,7 @@
       USE TRACERID_MOD, ONLY : IDTISOPN,  IDTMMN
       USE TRACERID_MOD, ONLY : IDTIEPOX,  IDTRIP,    IDTMAP
       ! jpp 4/27/09
-      USE TRACERID_MOD, ONLY : IDTHOBr,   IDTBrNO3,   IDTHBr, IDTBr2
+      USE TRACERID_MOD, ONLY : IDTHOBr,   IDTHBr,    IDTBr2
 
       USE CMN_SIZE_MOD  ! Size parameters
 ! 
@@ -6539,10 +6437,6 @@
          ELSE IF ( N == IDTHBr ) THEN
             NSOL         = NSOL + 1
             IDWETD(NSOL) = IDTHBr
-
-!jpt         ELSE IF ( N == IDTBrNO3 ) THEN
-!jpt            NSOL         = NSOL + 1
-!jpt            IDWETD(NSOL) = IDTBrNO3
 
          ELSE IF ( N == IDTBr2 ) THEN
             NSOL         = NSOL + 1
@@ -6863,9 +6757,7 @@
          IF ( LSSALT )   NMAX = NMAX + 2        ! plus 2 seasalts
 
          ! jpp, 4/27/09:( 1) add space for 3 bromine species to
-         !                   be wet-deposited: HBr, HOBr, and BrNO3.
-         !              ( 2) added space for Br2, replaced 3 with 4.
-         ! jpp, 3/7/11: ( 3) add 3 for when we throw out BrNO3 wetscav
+         !                   be wet-deposited: HBr, HOBr, and Br2.
          NMAX = NMAX + 3
 
          IF ( LSOA ) THEN
