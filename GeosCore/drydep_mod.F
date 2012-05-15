@@ -340,11 +340,9 @@
       USE LOGICAL_MOD,  ONLY : LPRT
       USE TRACERID_MOD, ONLY : IDTSALA, IDTSALC, IDTSO4s, IDTNITs
       USE TRACERID_MOD, ONLY : IDTDST1, IDTDST2, IDTDST3, IDTDST4
-      ! jpp, debugging.. . this is used to create
-      ! array for use in ND49 diagnostic
+      ! jpp, debugging.. . this is used to create array for use in ND49 diag
       USE TRACERID_MOD, ONLY : IDTHOBr,   IDTHBr
-      ! jpp, using get_gmt to output at the proper
-      ! gmt time
+      ! jpp, using get_gmt to output at the proper gmt time
       USE TIME_MOD,     ONLY : GET_GMT
 
       USE CMN_SIZE_MOD       ! Size parameters
@@ -3726,8 +3724,6 @@
          ! HOBr
          ELSE IF ( N == IDTHOBR ) THEN
             NUMDEP          = NUMDEP + 1
-            ! jpp, debugging
-            write(6,*) 'jpp, drydep: HOBr identified: ', numdep
             NTRAIND(NUMDEP) = IDTHOBr
             NDVZIND(NUMDEP) = NUMDEP
             DEPNAME(NUMDEP) = 'HOBr'
@@ -3740,11 +3736,9 @@
             !  2. Frenzel et al. 1996 (this is an estimate, 6.1E3)
             !  3. Mozurkewich et al. 1995 (thermo calculation, 1.8E0)
             !
-            ! -----------------------------------
-            ! jpp 1/14/2011: changing Hstar from
-            !                2.8d3 to 6.1d3, consistent
+            ! jpp 1/14/2011: changing Hstar from 2.8d3 to 6.1d3, consistent
             !                with p-TOMCAT. ref: Freznel et al. 1998
-            HSTAR(NUMDEP)   = 6.1d+3 !2.8d+3
+            HSTAR(NUMDEP)   = 6.1d+3
             F0(NUMDEP)      = 0.0d0
             XMW(NUMDEP)     = 97d-3
             AIROSOL(NUMDEP) = .FALSE.
@@ -3752,17 +3746,15 @@
          ! HBr
          ELSE IF ( N == IDTHBR ) THEN
             NUMDEP          = NUMDEP + 1
-            ! jpp, debugging
-            write(6,*) 'jpp, drydep: HBr identified: ', numdep
             NTRAIND(NUMDEP) = IDTHBr
             NDVZIND(NUMDEP) = NUMDEP
             DEPNAME(NUMDEP) = 'HBr'
             ! R. Sander's compilation sheet...
             ! Chameides [1992]
-!            HSTAR(NUMDEP)   = 7.2d-1
-!            HSTAR(NUMDEP)   = 7.1d+8
-!            HSTAR(NUMDEP)   = 2.9d+7
-! from my own calculation:
+            !HSTAR(NUMDEP)   = 7.2d-1
+            !HSTAR(NUMDEP)   = 7.1d+8
+            !HSTAR(NUMDEP)   = 2.9d+7
+            !
             ! jpp 4/27/09: This adjusted Henry's Law
             !           coefficient is calculated as
             !           the average of the adjusted
@@ -3771,11 +3763,11 @@
             !   1. Brimblecombe and Clegg 1989
             !   2. Wagman et al. 1982
             !   3. Chameides and Stelson 1992
-!            HSTAR(NUMDEP)   = 2.97d+16
+            !HSTAR(NUMDEP)   = 2.97d+16
+            !
             ! jpp, 1/14/2011: made Hstar consistent with
             !                 p-TOMCAT. Ref: Dean 1992.
-            !                 Assuming a pH of 7 for the
-            !                 plant stomata.
+            !                 Assuming a pH of 7 for the plant stomata.
             HSTAR(NUMDEP)   = 7.1d+15
             F0(NUMDEP)      = 0.0d0
             XMW(NUMDEP)     = 81d-3
@@ -3784,8 +3776,6 @@
          ! BrNO3
          ELSE IF ( N == IDTBRNO3 ) THEN
             NUMDEP          = NUMDEP + 1
-            ! jpp, debugging
-            write(6,*) 'jpp, drydep: BrNO3 identified: ', numdep
             NTRAIND(NUMDEP) = IDTBrNO3
             NDVZIND(NUMDEP) = NUMDEP
             DEPNAME(NUMDEP) = 'BrNO3'
@@ -3795,12 +3785,9 @@
             F0(NUMDEP)      = 0.0d0
             XMW(NUMDEP)     = 142.d-3
             AIROSOL(NUMDEP) = .FALSE.
-         !--------------------------------------------
 
          ELSE IF ( N == IDTBR2 ) THEN
             NUMDEP          = NUMDEP + 1
-            ! jpp, debugging
-            write(6,*) 'jpp, drydep: Br2 identified: ', numdep
             NTRAIND(NUMDEP) = IDTBr2
             NDVZIND(NUMDEP) = NUMDEP
             DEPNAME(NUMDEP) = 'Br2'

@@ -296,9 +296,7 @@
       INTEGER            :: IDEHAC
       !%%%%(bmy 4/13/11)
       INTEGER            :: IDERCHO, IDEHCOOH, IDEACTA       
-      !jpp, 8/24/07: emission ID's for Br biogenic emissions in
-      !              Fullchem runs
-      !jpp, 3/2/10:  added emission ID for sea-salt Br2.
+      !jpp, 8/24/07: emission ID's for Br biogenic emissions in fullchem runs
       INTEGER            :: IDECHBr3, IDECH2Br2, IDEBr2      
 
       ! GEOS-CHEM biofuel ID's
@@ -767,13 +765,9 @@
             CASE ( 'SALC' )
                IDTSALC  = N
 
-
-            !*******************************
-            ! jpp, 6/13/07, adding bromine
-            ! added BrNO2 on 6/21/07
-            ! jpp, 7/27/07:
-            ! added CHBr3, CH2Br2, & CH3Br
-            !*******************************
+            !--------------------------------
+            ! Bromine (jpp, 6/13/07)
+            !--------------------------------
 
             CASE ( 'BR2' )
                IDTBr2     = N
@@ -1122,28 +1116,7 @@
 
          END SELECT
       ENDDO
-
-      !jpp: debugging
-!      WRITE(6,*) 'jpp printing out ids'
-!      WRITE(6,*) 'dryO3:', IDDRYO3
-!      WRITE(6,*) 'IDTOX:', IDTOX
-!      WRITE(6,*) 'IDO3:', IDO3
-!      WRITE(6,*) 'dryNO2:', IDDRYNO2
-!      WRITE(6,*) 'IDTNOX:', IDTNOX
-!      WRITE(6,*) 'IDNO2:', IDNO2
-!      WRITE(6,*) 'Br2:', IDTBr2
-!      WRITE(6,*) 'Br:', IDTBr 
-!      WRITE(6,*) 'BrO:', IDTBrO
-!      WRITE(6,*) 'HOBr:', IDTHOBr
-!      WRITE(6,*) 'HBr:',  IDTHBr
-!      WRITE(6,*) 'BrNO3:', IDTBrNO3
-!      WRITE(6,*) 'BrNO2:', IDTBrNO2
-!      WRITE(6,*) 'CH3Br:', IDTCH3Br
-!      WRITE(6,*) 'CH2Br2:', IDTCH2Br2
-!      WRITE(6,*) 'CHBr3:', IDTCHBr3
-!      call flush(6)
-!      stop
-      
+     
       !=================================================================
       ! Initialize the IDExxx flags, which denote tracers that
       ! are emitted.  Remove the old previous hardwiring
@@ -1303,10 +1276,6 @@
       ! NOTE: IDEMS is in "comode.h", maybe later split this off into
       ! an F90 module somehow.  Think about this later. (bmy, 11/12/02)
       !=================================================================
-      ! jpp 8/24/07: added IDECHBr3 to IDEMS as well...
-      !=================================================================
-      ! jpp 9/16/07: added IDECH2Br2 to IDEMS as well...
-      !=================================================================
       IF ( IDENOX  /= 0 ) IDEMS(IDENOX ) = IDTNOX
       IF ( IDECO   /= 0 ) IDEMS(IDECO  ) = IDTCO
       IF ( IDEPRPE /= 0 ) IDEMS(IDEPRPE) = IDTPRPE
@@ -1337,7 +1306,7 @@
       IF ( IDEGLYC /= 0 ) IDEMS(IDEGLYC) = IDTGLYC
       IF ( IDEHAC /= 0 )  IDEMS(IDEHAC ) = IDTHAC
       ! jpp:
-      IF ( IDECHBr3 /= 0  ) IDEMS(IDECHBr3 ) = IDTCHBr3
+      IF ( IDECHBr3  /= 0 ) IDEMS(IDECHBr3 ) = IDTCHBr3
       IF ( IDECH2Br2 /= 0 ) IDEMS(IDECH2Br2) = IDTCH2Br2
       IF ( IDEBr2    /= 0 ) IDEMS(IDEBr2   ) = IDTBr2
 
@@ -1507,9 +1476,7 @@
          IF ( NAMEGAS(I) == 'MPAN'   ) IDMPAN    = I
          IF ( NAMEGAS(I) == 'NIPAN'  ) IDNIPAN   = I
          ! ++++++++++++++++++++++++++++++++++++++++++++++++++++++
-         !jpp: namegas(I) stores the names of species as
-         !     written in globchem.dat... make sure comparison
-         !     strings are the same in case etc...
+         !jpp: for bromine
          IF ( NAMEGAS(I) == 'Br2'     ) IDBr2     = I
          IF ( NAMEGAS(I) == 'Br'      ) IDBr      = I
          IF ( NAMEGAS(I) == 'BrO'     ) IDBrO     = I
@@ -1520,12 +1487,9 @@
          IF ( NAMEGAS(I) == 'CH3Br'   ) IDCH3Br   = I
          IF ( NAMEGAS(I) == 'CH2Br2'  ) IDCH2Br2  = I
          IF ( NAMEGAS(I) == 'CHBr3'   ) IDCHBr3   = I
-         !jpp, 2/27/08, adding for dry deposition...
-         ! might not be necessary though, since not all
-         ! of the dry dep'd species are here
          IF ( NAMEGAS(I) == 'DRYHOBr' ) IDDRYHOBr = I
          IF ( NAMEGAS(I) == 'DRYHBr'  ) IDDRYHBr  = I
-         IF ( NAMEGAS(I) == 'DRYBrNO3') IDDRYBrNO3= I ! wasn't in v7, jpp
+         IF ( NAMEGAS(I) == 'DRYBrNO3') IDDRYBrNO3= I
          ! ++++++++++++++++++++++++++++++++++++++++++++++++++++++
 
          IF ( NAMEGAS(I) == 'DRYAPAN' )  IDDRYAPAN  = I
@@ -2096,12 +2060,8 @@
       IDLXRO2H  = 0
       IDLXRO2N  = 0
 
-      !****************
+      ! +++++++++++++++++
       !jpp, 6/13/07,
-      !BrNO2 on 6/21/07
-      !7/27/07: CHBr3,
-      !CH2Br2, & CH3Br
-      !****************
       IDBr2     = 0
       IDBr      = 0
       IDBrO     = 0
@@ -2112,14 +2072,12 @@
       IDCHBr3   = 0
       IDCH2Br2  = 0
       IDCH3Br   = 0
-      !*************
       !jpp, 2/27/08
-      !ID's for dry
-      !dep
+      !ID's for drydep
       IDDRYHOBr = 0
       IDDRYHBr  = 0
       IDDRYBrNO3= 0
-      !*************
+      ! +++++++++++++++++
 
       ! GEOS-CHEM Tracer ID #'s
       IDTNOX    = 0
@@ -2263,12 +2221,9 @@
       IDEMBO    = 0
       IDEGLYC   = 0
       IDEHAC    = 0
-      ! jpp, 8/30/07
-      IDECHBr3  = 0
-      ! jpp, 9/16/07
-      IDECH2Br2  = 0
-      ! jpp, 3/2/10
-      IDEBr2     = 0
+      IDECHBr3  = 0 ! jpp, 8/30/07
+      IDECH2Br2 = 0 ! jpp, 9/16/07
+      IDEBr2    = 0 ! jpp, 3/2/10
 
       ! GEOS-CHEM Biofuel ID #'s
       IDBFNOX   = 0

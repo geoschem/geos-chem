@@ -555,7 +555,6 @@
       USE TRACER_MOD,   ONLY : STT
       USE TRACERID_MOD, ONLY : IDTSALA, IDTSALC
       USE VDIFF_PRE_MOD,ONLY : emis_save ! (Lin, 03/31/09)
-      USE LOGICAL_MOD,  ONLY : LBrCHEM   ! (mpayer, 12/28/11)
 
       USE CMN_SIZE_MOD       ! Size parameters
 
@@ -574,7 +573,8 @@
       !=================================================================
 
       ! Initialize Br2 emission arrays
-      tmpbr2(:,:) = 0.d0; SSA_Br2(:,:) = 0.d0
+      tmpbr2(:,:) = 0.d0
+      IF ( PRESENT ( SSA_Br2 ) ) SSA_Br2(:,:) = 0.d0
 
       !### Debug
       IF ( LPRT ) CALL DEBUG_MSG( '### in EMISSEASALT' )
@@ -607,10 +607,11 @@
          IF ( LPRT ) CALL DEBUG_MSG( '### EMISSEASALT: Accum' )
       ENDIF
 
-      IF ( LBrCHEM ) THEN
+      IF ( PRESENT ( SSA_Br2 ) ) THEN
          ! 1. store contributions of Br2 emissions
          !    from accumulation mode: (jpp, 3/2/10)
          SSA_Br2(:,:) = tmpbr2(:,:)
+
          ! reset the temporary variable
          tmpbr2(:,:)  = 0.d0
       ENDIF
@@ -621,7 +622,7 @@
          IF ( LPRT ) CALL DEBUG_MSG( '### EMISSEASALT: Coarse' )
       ENDIF
 
-      IF ( LBrCHEM ) THEN
+      IF ( PRESENT ( SSA_Br2 ) ) THEN
          ! 2. add in contributions of Br2 emissions
          !    from the coarse mode: (jpp, 3/2/10)
          SSA_Br2(:,:) = SSA_Br2(:,:) + tmpbr2(:,:)
@@ -700,7 +701,6 @@
       USE TIME_MOD,      ONLY : GET_TS_EMIS
       USE TRACER_MOD,    ONLY : SALA_REDGE_um, SALC_REDGE_um, XNUMOL
       USE SSA_BROMINE_MOD, ONLY : EMISS_SSA_BROMINE
-      USE LOGICAL_MOD,     ONLY : LBrCHEM ! (mpayer, 12/28/11)
 
       USE CMN_SIZE_MOD        ! Size parameters
       USE CMN_DIAG_MOD        ! ND44, ND08
@@ -868,26 +868,23 @@
                   SALT_N(I,J) = SALT_N(I,J) +
      &                          ( SRC_N(R,N) * A_M2 * W10M**3.41d0 )
 
-                  IF ( LBrCHEM ) THEN
-                     ! jpp, 3/3/10: since the SALT arrays are integrations
-                     !              I cannot use them for each independent
-                     !              radius... that's why I'm getting too
-                     !              much bromine. So I'm making a tmp
-                     !              array to store only the current
-                     !              Dry Radius bin. [kg]
-                     salt_current = ( SRC(R,N)   * A_M2 * W10M**3.41d0 )
+                  ! jpp, 3/3/10: since the SALT arrays are integrations
+                  !              I cannot use them for each independent
+                  !              radius... that's why I'm getting too
+                  !              much bromine. So I'm making a tmp
+                  !              array to store only the current
+                  !              Dry Radius bin. [kg]
+                  salt_current = ( SRC(R,N)   * A_M2 * W10M**3.41d0 )
 
-                     ! --------------------------------------------------
-                     ! jpp, 3/2/10: Accounting for the bromine emissions
-                     ! now. Store mass flux [kg] of Br2 based on how much
-                     ! aerosol there is emitted in this box.
-                     ! --------------------------------------------------
-                     CALL EMISS_SSA_BROMINE( J, RMID(R, N), 
+                  ! --------------------------------------------------
+                  ! jpp, 3/2/10: Accounting for the bromine emissions
+                  ! now. Store mass flux [kg] of Br2 based on how much
+                  ! aerosol there is emitted in this box.
+                  ! --------------------------------------------------
+                  CALL EMISS_SSA_BROMINE( J, RMID(R, N), 
      &                  salt_current, br2_kg_emiss )
 
-                     SSA_Br2(I,J) = SSA_Br2(I,J) + br2_kg_emiss
-
-                  ENDIF
+                  SSA_Br2(I,J) = SSA_Br2(I,J) + br2_kg_emiss
 
                ENDDO
             ENDIF

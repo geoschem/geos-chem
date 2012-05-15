@@ -171,7 +171,6 @@
 
       ! jpp, 2/12/08: for setting CH3Br concentrations in pbl
       USE BROMOCARB_MOD,     ONLY : SET_CH3Br, SET_BRO
-      USE LOGICAL_MOD,       ONLY : LBrCHEM ! (mpayer, 12/28/11)
 
       USE CMN_SIZE_MOD            ! Size parameters
       USE COMODE_LOOP_MOD         ! SMVGEAR common blocks
@@ -1071,17 +1070,15 @@
             ! Kludge: eventually I want to keep the concentration
             !         entirely fixed! Ask around on how to...
             !========================================================
-            IF ( LEMIS .and. LBrCHEM ) 
-     &         CALL SET_CH3Br( N_TRACERS, TCVV, AD, STT, 
-     &                         ITS_TIME_FOR_UNIT() )
+            IF ( LEMIS ) CALL SET_CH3Br( N_TRACERS, TCVV, AD, STT, 
+     &                                   ITS_TIME_FOR_UNIT() )
 
             ! ----------------------------------------------------
-            ! If selected in input.br.geos, then set the MBL
+            ! If selected in input.geos, then set the MBL
             ! concentration of BrO equal to 1 pptv during daytime.
             ! ----------------------------------------------------
-            IF ( LEMIS .and. LBrCHEM ) 
-     &         CALL SET_BRO( N_TRACERS, TCVV, AD, SUNCOS,
-     &                       STT, ITS_TIME_FOR_UNIT() )
+            IF ( LEMIS ) CALL SET_BRO( N_TRACERS, TCVV, AD, SUNCOS,
+     &                                 STT, ITS_TIME_FOR_UNIT() )
 
          ENDIF
 
@@ -1166,17 +1163,15 @@
             ! Kludge: eventually I want to keep the concentration
             !         entirely fixed! Ask around on how to...
             !========================================================
-            IF ( LEMIS .and. LBrCHEM ) 
-     &         CALL SET_CH3Br( N_TRACERS, TCVV, AD, STT,
-     &                         ITS_TIME_FOR_UNIT() )
+            IF ( LEMIS ) CALL SET_CH3Br( N_TRACERS, TCVV, AD, STT,
+     &                                   ITS_TIME_FOR_UNIT() )
 
             ! ----------------------------------------------------
-            ! If selected in input.br.geos, then set the MBL
+            ! If selected in input.geos, then set the MBL
             ! concentration of BrO equal to 1 pptv during daytime.
             ! ----------------------------------------------------
-            IF ( LEMIS .and. LBrCHEM )
-     &         CALL SET_BRO( N_TRACERS, TCVV, AD, SUNCOS,
-     &                       STT, ITS_TIME_FOR_UNIT() )
+            IF ( LEMIS ) CALL SET_BRO( N_TRACERS, TCVV, AD, SUNCOS,
+     &                                 STT, ITS_TIME_FOR_UNIT() )
 
          ENDIF    
 

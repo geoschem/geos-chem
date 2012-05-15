@@ -118,9 +118,10 @@
       USE MEGANUT_MOD,       ONLY : XLTMMP
       !FP_ISOP (6/2009)
       USE EMISSIONS_MOD,     ONLY : ISOP_SCALING
-      !jpp, 8/24/07: adding a USE, ONLY statement to see IDECHBr3
+      !jpp, 8/24/07
       USE TRACERID_MOD,      ONLY : IDECHBr3, IDECH2Br2
       USE BROMOCARB_MOD,     ONLY : EMIS_CHBr3, EMIS_CH2Br2
+      USE BROMOCARB_MOD,     ONLY : Br_SCALING
  
       USE CMN_SIZE_MOD     ! Size parameters
       USE COMODE_LOOP_MOD     ! IVERT?
@@ -151,15 +152,17 @@
       ! Molecules C / kg C
       REAL*8,  PARAMETER     :: XNUMOL_C = 6.022d+23 / 12d-3 
 
-      ! +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-      ! jpp
-      REAL*8                 :: AREA_M2 !jpp 9/10/07: wanted m^2 area of boxes
-      REAL*8,  PARAMETER     :: MWT_CHBr3  = 2.53d-1 !Molecular weight of CHBr3 [kg/mol], (jpp, 9/10/07)
-      REAL*8,  PARAMETER     :: MWT_CH2Br2 = 1.74d-1 !Molecular weight of CH2Br2 [kg/mol], (jpp, 9/16/07)
-      !jpp: debugging
-      REAL*8                 :: CHBr3_SUM
-      REAL*8                 :: CH2Br2_SUM
-      ! +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+      REAL*8                 :: AREA_M2 !jpp 9/10/07
+
+      ! Molecular weight of CHBr3 [kg/mol], (jpp, 9/10/07)
+      REAL*8,  PARAMETER     :: MWT_CHBr3  = 2.53d-1
+
+      ! Molecular weight of CH2Br2 [kg/mol], (jpp, 9/16/07)
+      REAL*8,  PARAMETER     :: MWT_CH2Br2 = 1.74d-1
+
+!      !jpp: debugging
+!      REAL*8                 :: CHBr3_SUM
+!      REAL*8                 :: CH2Br2_SUM
 
       ! External functions
       REAL*8, EXTERNAL       :: BOXVL,   EMISOP 
@@ -227,10 +230,10 @@
       EMISRR      = 0d0
       GEMISNOX2   = 0d0
       EMISS_BVOC  = 0d0  ! Add BVOC emissions (mpb,2009)
-      !jpp: debugging
-      ! calculate the sums of emissions just to be careful.
-      CHBr3_SUM   = 0d0
-      CH2Br2_SUM  = 0d0
+!      !jpp: debugging
+!      ! calculate the sums of emissions just to be careful.
+!      CHBr3_SUM   = 0d0
+!      CH2Br2_SUM  = 0d0
       
       ! Loop over latitudes
       IJLOOP = 0
@@ -652,15 +655,22 @@
             IF ( IDECHBr3 /= 0 ) THEN
                EMISRR(I,J,IDECHBr3) = EMIS_CHBr3(I,J)
 
-               !jpp: debugging
-               CHBr3_SUM  = CHBr3_SUM  + EMISRR(I,J,IDECHBr3)
+               ! Scale emissions
+               EMISRR(I,J,IDECHBr3) = EMISRR(I,J,IDECHBr3) * Br_SCALING
+
+!               !jpp: debugging
+!               CHBr3_SUM  = CHBr3_SUM  + EMISRR(I,J,IDECHBr3)
             ENDIF
 
             IF ( IDECH2Br2 /= 0 ) THEN
                EMISRR(I,J,IDECH2Br2) = EMIS_CH2Br2(I,J)
 
-               !jpp: debugging
-               CH2Br2_SUM = CH2Br2_SUM + EMISRR(I,J,IDECH2Br2)
+               ! Scale emissions
+               EMISRR(I,J,IDECH2Br2) = EMISRR(I,J,IDECH2Br2) * 
+     &                                 Br_SCALING
+
+!               !jpp: debugging
+!               CH2Br2_SUM = CH2Br2_SUM + EMISRR(I,J,IDECH2Br2)
             ENDIF
 
 !jp            IF ( EMISRR(I,J,IDECHBr3) .GT. 0d0 ) THEN
@@ -745,17 +755,13 @@
 
                ! ++++++++++++++++++++++++++++++++++++++++++++++++++++
 
-               IF ( IDECHBr3 /= 0 ) THEN
-                 ! CHBr3 emissions [kg/m2/s] -- tracer #14
-                 AD46(I,J,14) = AD46(I,J,14) + ( EMISRR(I,J,IDECHBr3) / 
-     &                 AREA_M2) * ( MWT_CHBr3 / AVG )
-               ENDIF
+               ! CHBr3 emissions [kg/m2/s] -- tracer #14
+               AD46(I,J,14) = AD46(I,J,14) + ( EMISRR(I,J,IDECHBr3) / 
+     &                        AREA_M2) * ( MWT_CHBr3 / AVG )
 
-               IF ( IDECH2Br2 /= 0 ) THEN
-                 ! CH2Br2 emissions [kg/m2/s] -- tracer #15
-                 AD46(I,J,15) = AD46(I,J,15) + ( EMISRR(I,J,IDECH2Br2) / 
-     &                 AREA_M2) * ( MWT_CH2Br2 / AVG )
-               ENDIF
+               ! CH2Br2 emissions [kg/m2/s] -- tracer #15
+               AD46(I,J,15) = AD46(I,J,15) + ( EMISRR(I,J,IDECH2Br2) / 
+     &                        AREA_M2) * ( MWT_CH2Br2 / AVG )
 
                ! Note: IDEBr2 is added to AD46(I,J,16) in ssa_bromine_mod.F
                
@@ -764,16 +770,16 @@
          ENDDO
       ENDDO
 
-      IF ( ( IDECHBr3 /= 0 ) .and. (IDECH2Br2 /= 0) ) THEN
-         !jpp: debugging
-         CHBr3_SUM  = ( CHBr3_SUM ) * ( MWT_CHBr3 / AVG ) * 
-     &       (3.1536d+7) / (1.d6)
-         CH2Br2_SUM = ( CH2Br2_SUM ) * ( MWT_CH2Br2/AVG ) *
-     &        (3.1536d+7) / (1.d6)
-         WRITE(6,*) 'jpp in emissdr: total over all boxes'
-         WRITE(6,*) 'CHBr3_SUM =', CHBr3_SUM
-         WRITE(6,*) 'CH2Br2_SUM =', CH2Br2_SUM
-      ENDIF
+!      IF ( ( IDECHBr3 /= 0 ) .and. (IDECH2Br2 /= 0) ) THEN
+!         !jpp: debugging
+!         CHBr3_SUM  = ( CHBr3_SUM ) * ( MWT_CHBr3 / AVG ) * 
+!     &       (3.1536d+7) / (1.d6)
+!         CH2Br2_SUM = ( CH2Br2_SUM ) * ( MWT_CH2Br2/AVG ) *
+!     &        (3.1536d+7) / (1.d6)
+!         WRITE(6,*) 'jpp in emissdr: total over all boxes'
+!         WRITE(6,*) 'CHBr3_SUM =', CHBr3_SUM
+!         WRITE(6,*) 'CH2Br2_SUM =', CH2Br2_SUM
+!      ENDIF
 
       ! Return to calling program
       END SUBROUTINE EMISSDR                                                

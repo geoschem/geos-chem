@@ -3104,9 +3104,9 @@
             IF ( N == 3 .and. IDTPRPE == 0 ) CYCLE
             IF ( N == 6 .and. IDTC2H4 == 0 ) CYCLE
             ! jpp, 6/7/09
-            IF ( N == 7 .and. IDTCHBr3  == 0 ) CYCLE
-            IF ( N == 8 .and. IDTCH2Br2 == 0 ) CYCLE
-            IF ( N == 9 .and. IDTBr2    == 0 ) CYCLE
+            IF ( N == 14 .and. IDTCHBr3  == 0 ) CYCLE
+            IF ( N == 15 .and. IDTCH2Br2 == 0 ) CYCLE
+            IF ( N == 16 .and. IDTBr2    == 0 ) CYCLE
 
             ARRAY(:,:,1) = AD46(:,:,N) / SCALESRCE
                

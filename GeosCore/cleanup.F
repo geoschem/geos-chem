@@ -84,8 +84,7 @@
       USE WETSCAV_MOD,             ONLY : CLEANUP_WETSCAV
       USE ICOADS_SHIP_MOD,         ONLY : CLEANUP_ICOADS_SHIP  !(cklee,7/09/09)
       USE RETRO_MOD,               ONLY : CLEANUP_RETRO
-      ! jpp, 6/17/09
-      USE bromocarb_mod,           only : cleanup_bromocarb
+      USE BROMOCARB_MOD,           ONLY : CLEANUP_BROMOCARB    ! jpp, 6/17/09
 #if   defined( APM )
       USE APM_WETS_MOD,            ONLY : CLEANUP_WETSCAVBIN
 #endif
@@ -198,7 +197,7 @@
       CALL CLEANUP_BIOMASS
       CALL CLEANUP_BIOFUEL
       CALL CLEANUP_BRAVO
-      call cleanup_bromocarb  ! jpp, 6/17/09
+      CALL CLEANUP_BROMOCARB  ! jpp, 6/17/09
       CALL CLEANUP_C2H6
       CALL CLEANUP_CAC_ANTHRO
       CALL CLEANUP_CARBON

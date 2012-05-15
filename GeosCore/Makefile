@@ -537,7 +537,8 @@ emissdr.o                   : emissdr.F                                      \
                               diag_mod.o              emissions_mod.o        \
 			      lightning_nox_mod.o     logical_mod.o          \
                               megan_mod.o             tracer_mod.o           \
-                              tracerid_mod.o          meganut_mod.o
+                              tracerid_mod.o          meganut_mod.o          \
+			      bromocarb_mod.o
 
 emissions_mod.o             : emissions_mod.F                                \
                               arctas_ship_emiss_mod.o biomass_mod.o          \
@@ -708,7 +709,7 @@ input_mod.o                 : input_mod.F                                    \
                               restart_mod.o           tpcore_bc_mod.o        \
                               tracerid_mod.o          tracer_mod.o           \
                               transport_mod.o         upbdflx_mod.o          \
-                              wetscav_mod.o
+                              wetscav_mod.o           bromocarb_mod.o
 
 isoropiaII_mod.o            : isoropiaII_mod.F                               \
                               dao_mod.o               global_hno3_mod.o      \
@@ -966,9 +967,9 @@ soiltype.o                  : soiltype.F
 SPHERE.o                    : SPHERE.F
 
 ssa_bromine_mod.o           : ssa_bromine_mod.F                              \
-                              comode_mod.o            logical_mod.o          \
-                              pbl_mix_mod.o           tracerid_mod.o         \
-                              tropopause_mod.o
+                              bromocarb_mod.o         comode_mod.o           \
+                              logical_mod.o           pbl_mix_mod.o          \
+                              tracerid_mod.o          tropopause_mod.o
 
 streets_anthro_mod.o        : streets_anthro_mod.F                           \
                               future_emissions_mod.o  logical_mod.o          \

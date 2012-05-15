@@ -125,6 +125,7 @@
 ! **********************************************************
 !
 
+      USE BROMOCARB_MOD,     ONLY : Br_SCALING
       USE COMODE_MOD,        ONLY : JLOP,      REMIS,   VOLUME
       USE GRID_MOD,          ONLY : GET_AREA_M2
       USE LOGICAL_MOD,       ONLY : LVARTROP, LSSABr2
@@ -216,6 +217,9 @@
             ! store the emission for use inside SMVGEAR
             ! in [molecules/box/s]
             EMISRR(I,J,IDEBr2) = SSA_Br2(I,J)
+
+            ! Scale emissions
+            EMISRR(I,J,IDEBr2) = EMISRR(I,J,IDEBr2) * Br_SCALING
 
             if ( ND46 > 0 ) then
                ! store the emission in the AD46 Biogenic Emissions

@@ -714,7 +714,7 @@
       USE TRACERID_MOD, ONLY : IDTIEPOX, IDTRIP
       USE TRACERID_MOD, ONLY : IDTMAP
       ! jpp 4/27/09
-      USE TRACERID_MOD, ONLY : IDTHOBr,   IDTBrNO3,   IDTHBr, IDTBr2
+      USE TRACERID_MOD, ONLY : IDTHOBr,  IDTBrNO3, IDTHBr,  IDTBr2
       USE OCEAN_MERCURY_MOD,  ONLY : LHg_WETDasHNO3 
 
       USE CMN_SIZE_MOD                         ! Size parameters
@@ -808,27 +808,6 @@
       ! 0.6 is ( sticking  coeff  NH3 / sticking  coeff  water )
       ! 0.9 is ( molecular weight NH3 / molecular weight water )
       REAL*8, PARAMETER    :: CONV_NH3  = 5.69209978831d-1
-
-      ! ---------------------------------------------------------------
-      ! jpp, 4/29/09: adding parameter for the ice to gas ratios of
-      !               HBr, HOBr, and BrNO3. The CONV_ bromine values
-      !               exclude the accomodation coefficients of the
-      !               bromine species to allow for their inclusion later,
-      !               when we have temperature information.
-      
-      ! CONV_HBr = 1/0.5 * SQRT(  ), used for the ice to gas ratio for NH3
-      ! 1/.5 is ( 1 / sticking  coeff  water )
-      ! 0.9 is ( molecular weight HBr / molecular weight water )
-      REAL*8, PARAMETER    :: CONV_HBr = 9.4281d-1
-
-      ! CONV_HOBr = 1/0.5 * SQRT(  ), used for the ice to gas ratio for NH3
-      ! 1/.5 is ( 1 / sticking  coeff  water )
-      ! 0.9 is ( molecular weight HOBr / molecular weight water )
-      REAL*8, PARAMETER    :: CONV_HOBr = 8.6155d-1
-
-      ! Dummy variable for the bromine species alpha (accomodation
-      ! coefficients).
-      REAL*8 :: alpha_brs, alpha_hobr1, alpha_hobr2
 
       !=================================================================
       ! COMPUTE_F begins here!
@@ -966,9 +945,8 @@
          ISOL = GET_ISOL( N ) 
 
       !-------------------------------
+      ! HOBr (liquid phase only)
       ! jpp 4/27/09
-      !-------------------------------
-      ! HOBr (liquid and ice)
       !-------------------------------
       ELSE IF ( N == IDTHOBr ) THEN 
 
@@ -992,9 +970,9 @@
             CALL COMPUTE_L2G( 6.1d3, -6014.d0, 
      &                        T(I,J,L), CLDLIQ(I,J,L), L2G )
 
-            ! Fraction of H2O2 in liquid & ice phases
+            ! Fraction of HOBr in liquid phase
             ! (Eqs. 4, 5, 6, Jacob et al, 2000)
-            C_TOT = 1d0 + L2G + I2G
+            C_TOT = 1d0 + L2G
             F_L   = L2G / C_TOT
 
             ! Compute the rate constant K.
@@ -1015,7 +993,7 @@
             ! Distance between grid box centers [m]
             TMP = 0.5d0 * ( BXHEIGHT(I,J,L-1) + BXHEIGHT(I,J,L) ) 
                
-            ! F is the fraction of CH2O scavenged out of the updraft
+            ! F is the fraction of HOBr scavenged out of the updraft
             ! (Eq. 2, Jacob et al, 2000)
             F(I,J,L) = 1d0 - EXP( -K * TMP / Vud(I,J) )
 
@@ -1027,9 +1005,8 @@
          ISOL = GET_ISOL( N ) 
 
       !-------------------------------
+      ! HBr (liquid phase only)
       ! jpp 4/27/09
-      !-------------------------------
-      ! HBr
       !-------------------------------
       ELSE IF ( N == IDTHBr ) THEN 
 
@@ -1050,14 +1027,12 @@
      &                        T(I,J,L), CLDLIQ(I,J,L), L2G )
 
 
-            ! Fraction of H2O2 in liquid & ice phases
+            ! Fraction of HBr in liquid phase
             ! (Eqs. 4, 5, 6, Jacob et al, 2000)
-            C_TOT = 1d0 + L2G + I2G
+            C_TOT = 1d0 + L2G
             F_L   = L2G / C_TOT
 
-            ! Compute the rate constant K.  The retention factor for 
-            ! liquid H2O2 is 0.05 for 248 K < T < 268 K and 1.0 for 
-            ! T >= 268 K. (Eq. 1, Jacob et al, 2000)
+            ! Compute the rate constant K.
             IF ( T(I,J,L) >= 268d0 ) THEN
 
                K = KC * F_L
@@ -1083,7 +1058,7 @@
             ! Distance between grid box centers [m]
             TMP = 0.5d0 * ( BXHEIGHT(I,J,L-1) + BXHEIGHT(I,J,L) ) 
 
-            ! F is the fraction of CH2O scavenged out of the updraft
+            ! F is the fraction of HBr scavenged out of the updraft
             ! (Eq. 2, Jacob et al, 2000)
             F(I,J,L) = 1d0 - EXP( -K * TMP / Vud(I,J) )
 
@@ -1096,10 +1071,9 @@
          ISOL = GET_ISOL( N )
 
 
-      !-------------------------------
-      ! jpp 4/27/09
 !jpt      !-------------------------------
 !jpt      ! BrNO3 (liquid phase only)
+!jpt      ! jpp 4/27/09
 !jpt      !-------------------------------
 !jpt      ELSE IF ( N == IDTBrNO3 ) THEN 
 !jpt         
@@ -1118,15 +1092,11 @@
 !jpt            CALL COMPUTE_L2G( 1.0d20, 0.d0, 
 !jpt     &                        T(I,J,L), CLDLIQ(I,J,L), L2G )
 !jpt
-!jpt            ! Fraction of CH2O in liquid phase 
-!jpt            ! NOTE: CH2O does not exist in the ice phase!
-!jpt            ! (Eqs. 4, 5, 6, Jacob et al, 2000)
+!jpt            ! Fraction of BrNO3 in liquid phase 
 !jpt            C_TOT = 1d0 + L2G
 !jpt            F_L   = L2G / C_TOT
 !jpt
-!jpt            ! Compute the rate constant K.  The retention factor
-!jpt            ! for liquid CH2O is 0.0 for T <= 248K and 0.02 for 
-!jpt            ! 248 K < T < 268 K. (Eq. 1, Jacob et al, 2000)
+!jpt            ! Compute the rate constant K.
 !jpt            IF ( T(I,J,L) >= 268d0 ) THEN
 !jpt               K = KC * F_L  
 !jpt
@@ -1146,7 +1116,7 @@
 !jpt            ! Distance between grid box centers [m]
 !jpt            TMP = 0.5d0 * ( BXHEIGHT(I,J,L-1) + BXHEIGHT(I,J,L) ) 
 !jpt               
-!jpt            ! F is the fraction of CH2O scavenged out of the updraft
+!jpt            ! F is the fraction of BrNO3 scavenged out of the updraft
 !jpt            ! (Eq. 2, Jacob et al, 2000)
 !jpt            F(I,J,L) = 1d0 - EXP( -K * TMP / Vud(I,J) )
 !jpt
@@ -1199,7 +1169,7 @@
             ! Distance between grid box centers [m]
             TMP = 0.5d0 * ( BXHEIGHT(I,J,L-1) + BXHEIGHT(I,J,L) ) 
                   
-            ! F is the fraction of CH2O scavenged out of the updraft
+            ! F is the fraction of Br2 scavenged out of the updraft
             ! (Eq. 2, Jacob et al, 2000)
             F(I,J,L) = 1d0 - EXP( -K * TMP / Vud(I,J) )
 
@@ -2496,7 +2466,7 @@
       USE TRACERID_MOD, ONLY : IDTISOPN, IDTMMN
       USE TRACERID_MOD, ONLY : IDTIEPOX, IDTRIP, IDTMAP
       ! jpp 4/27/09
-      USE TRACERID_MOD, ONLY : IDTHOBr,   IDTBrNO3,   IDTHBr, IDTBr2
+      USE TRACERID_MOD, ONLY : IDTHOBr, IDTBrNO3, IDTHBr,  IDTBr2
       USE TRACER_MOD,   ONLY : ITS_A_MERCURY_SIM 
       USE OCEAN_MERCURY_MOD,  ONLY : LHg_WETDasHNO3
 
@@ -3058,9 +3028,7 @@
       !!!!! end FP additional tracers for ISOP (6/2009)
 
       !----------------------------------
-      ! HOBr (liquid phase and ice), jpp
-      !  ** 7/08/09: included ice phase
-      !              (jpp)
+      ! HOBr (liquid phase only), jpp
       !----------------------------------
       ELSE IF ( N == IDTHOBr ) THEN
 
@@ -3075,16 +3043,13 @@
          CALL COMPUTE_L2G( 6.1d3, -6014.d0,
      &        TK, CLDLIQ(I,J,L), L2G )      
 
-         ! ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-         ! Fraction of H2O2 in liquid & ice phases
+         ! Fraction of HOBr in liquid phase
          ! (Eqs. 4, 5, 6, Jacob et al, 2000)
-         C_TOT = 1d0 + L2G + I2G
+         C_TOT = 1d0 + L2G
          F_L   = L2G / C_TOT
          F_I   = I2G / C_TOT
 
-         ! Compute the rate constant K.  The retention factor  
-         ! for liquid NH3 is 0.05 for 248 K < T < 268 K, and 
-         ! 1.0 for T >= 268 K.  (Eq. 1, Jacob et al, 2000)
+         ! Compute the rate constant K.
          IF ( TK >= 268d0 ) THEN
             K = K_RAIN * F_L 
          ELSE IF ( TK > 248d0  .and. TK < 268d0 ) THEN
@@ -3094,15 +3059,13 @@
          ELSE
             K = 0.d0
          ENDIF
-         ! ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 
-         ! Compute RAINFRAC, the fraction of rained-out CH3OOH
+         ! Compute RAINFRAC, the fraction of rained-out HOBr
          ! (Eq. 10, Jacob et al, 2000)
          RAINFRAC = GET_RAINFRAC( K, F, DT ) 
 
       !-----------------------------------
-      ! HBr (liquid and ice phase), jpp
-      ! updated for ice too: jpp, 7/8/09
+      ! HBr (liquid phase only), jpp
       !-----------------------------------
       ELSE IF ( N == IDTHBr ) THEN
 
@@ -3114,16 +3077,12 @@
          CALL COMPUTE_L2G( 7.1d13, -10200.0d0,
      &        T(I,J,L), CLDLIQ(I,J,L), L2G )
 
-         ! ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-         ! Fraction of H2O2 in liquid & ice phases
+         ! Fraction of HBr in liquid phase
          ! (Eqs. 4, 5, 6, Jacob et al, 2000)
-         C_TOT = 1d0 + L2G + I2G
+         C_TOT = 1d0 + L2G
          F_L   = L2G / C_TOT
-         F_I   = I2G / C_TOT
 
-         ! Compute the rate constant K.  The retention factor  
-         ! for liquid NH3 is 0.05 for 248 K < T < 268 K, and 
-         ! 1.0 for T >= 268 K.  (Eq. 1, Jacob et al, 2000)
+         ! Compute the rate constant K.
          IF ( TK >= 268d0 ) THEN
             K = K_RAIN * F_L 
          ELSE IF ( TK > 248d0  .and. TK < 268d0 ) THEN
@@ -3141,18 +3100,17 @@
          ELSE
             K = 0.d0
          ENDIF
-         ! ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
   
-         ! Compute RAINFRAC, the fraction of rained-out CH3OOH
+         ! Compute RAINFRAC, the fraction of rained-out HBr
          ! (Eq. 10, Jacob et al, 2000)
          RAINFRAC = GET_RAINFRAC( K, F, DT ) 
 
-      !------------------------------
+!jpt      !------------------------------
 !jpt      ! BrNO3 (liquid phase only), jpp
 !jpt      !------------------------------
 !jpt      ELSE IF ( N == IDTBrNO3 ) THEN
 !jpt
-!jpt         ! Compute liquid to gas ratio for HOBr:
+!jpt         ! Compute liquid to gas ratio for BrNO3:
 !jpt         !    For bromine nitrate, Sander 1999 recommends an infinite
 !jpt         !    henry's law constant. Thus, I am specifying no temperature
 !jpt         !    dependence (dH_f = 0.d0) and setting the adjusted henry's
@@ -3160,15 +3118,11 @@
 !jpt         CALL COMPUTE_L2G( 1.0d20, 0.d0, 
 !jpt     &        T(I,J,L), CLDLIQ(I,J,L), L2G )
 !jpt
-!jpt         ! Fraction of CH3OOH in liquid phase
-!jpt         ! NOTE: CH3OOH does not exist in the ice phase!
-!jpt         ! (Eqs. 4, 5, Jacob et al, 2000)
+!jpt         ! Fraction of BrNO3 in liquid phase
 !jpt         C_TOT = 1d0 + L2G
 !jpt         F_L   = L2G / C_TOT
 !jpt
-!jpt         ! Compute the rate constant K.  The retention factor  
-!jpt         ! for liquid CH3OOH is 0.02 for 248 K < T < 268 K, and 
-!jpt         ! 1.0 for T > 268 K. (Eq. 1, Jacob et al, 2000)
+!jpt         ! Compute the rate constant K.
 !jpt         IF ( TK >= 268d0 ) THEN
 !jpt            K = K_RAIN * F_L  
 !jpt
@@ -3185,7 +3139,7 @@
 !jpt               
 !jpt         ENDIF
 !jpt  
-!jpt         ! Compute RAINFRAC, the fraction of rained-out CH3OOH
+!jpt         ! Compute RAINFRAC, the fraction of rained-out BrNO3
 !jpt         ! (Eq. 10, Jacob et al, 2000)
 !jpt         RAINFRAC = GET_RAINFRAC( K, F, DT ) 
 
@@ -3200,9 +3154,7 @@
          CALL COMPUTE_L2G( 0.76d0, -3.72d3,
      &        T(I,J,L), CLDLIQ(I,J,L), L2G )
 
-         ! Fraction of CH3OOH in liquid phase
-         ! NOTE: CH3OOH does not exist in the ice phase!
-         ! (Eqs. 4, 5, Jacob et al, 2000)
+         ! Fraction of HBr in liquid phase
          C_TOT = 1d0 + L2G
          F_L   = L2G / C_TOT
 
@@ -3215,7 +3167,7 @@
             K = 0d0   
          ENDIF
   
-         ! Compute RAINFRAC, the fraction of rained-out CH3OOH
+         ! Compute RAINFRAC, the fraction of rained-out HBr
          ! (Eq. 10, Jacob et al, 2000)
          RAINFRAC = GET_RAINFRAC( K, F, DT ) 
 
@@ -3656,7 +3608,7 @@
       USE TRACERID_MOD, ONLY : IDTISOPN, IDTMMN
       USE TRACERID_MOD, ONLY : IDTIEPOX, IDTRIP, IDTMAP
       ! jpp 4/27/09
-      USE TRACERID_MOD, ONLY : IDTHOBr,   IDTBrNO3,   IDTHBr, IDTBr2
+      USE TRACERID_MOD, ONLY : IDTHOBr,  IDTBrNO3, IDTHBr,  IDTBr2
       USE OCEAN_MERCURY_MOD,  ONLY : LHg_WETDasHNO3 ! (cdh 5/20/09)
 
       USE CMN_SIZE_MOD               ! Size parameters
@@ -6913,7 +6865,8 @@
          ! jpp, 4/27/09:( 1) add space for 3 bromine species to
          !                   be wet-deposited: HBr, HOBr, and BrNO3.
          !              ( 2) added space for Br2, replaced 3 with 4.
-         NMAX = NMAX + 3 ! add 4; 3 for when we throw out BrNO3 wetscav (jpp, 3/7/2011)
+         ! jpp, 3/7/11: ( 3) add 3 for when we throw out BrNO3 wetscav
+         NMAX = NMAX + 3
 
          IF ( LSOA ) THEN
             IF ( LCARB ) NMAX = NMAX + 17       ! carbon + SOA aerosols

@@ -30,10 +30,15 @@
       PUBLIC :: INIT_BROMOCARB
       PUBLIC :: CLEANUP_BROMOCARB
 
+      PUBLIC :: Br_SCALING
 
       !===============================================
       ! Declare Module Variables
       !===============================================
+
+      ! For scaling bromine emissions (mpayer, 5/15/12)
+      REAL*8              :: Br_SCALING
+
       ! For TOT_OC_AREA:
       ! first element represents region a = between 20S and 20
       ! 2nd element represents region b = (20 to 50, NH + SH)

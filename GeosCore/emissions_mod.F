@@ -169,7 +169,7 @@
 ! !LOCAL VARIABLES:
 !
       INTEGER                     :: MONTH, YEAR
-      ! jpp, 3/2/10: adding variable for sea-salt emissions of Br2.
+      ! jpp, 3/2/10: Sea-salt emissions of Br2.
       REAL*8                      :: SSA_Br2(IIPAR,JJPAR)
 !
 ! !DEFINED PARAMETERS:
@@ -357,7 +357,7 @@
          ENDIF
 
          ! Emissions for various aerosol types
-         IF ( LSSALT            ) CALL EMISSSEASALT(ssa_br2) !jpp, 3/2/10
+         IF ( LSSALT            ) CALL EMISSSEASALT()
          IF ( LSULF .or. LCRYST ) CALL EMISSSULFATE
          IF ( LCARB             ) CALL EMISSCARBON
          IF ( LDUST             ) CALL EMISSDUST
