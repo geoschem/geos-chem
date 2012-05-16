@@ -149,7 +149,7 @@ OBJ := $(TMP:.F90=.o)
 # Makefile targets: type "make help" for a complete listing!
 #=============================================================================
 
-.PHONY: clean realclean doc docclean help
+.PHONY: clean realclean doc docclean help distclean
 
 all:                                               # Build libraries
 	@$(MAKE) lib                               #  and the executable
@@ -190,6 +190,9 @@ exe:                                               # Build executable
 
 clean:                                             # Remove files here
 	rm -f *.o *.mod geos geosapm geostomas
+
+distclean:                                         # Synonym for "realclean"
+	@$(MAKE) realclean
 
 realclean:                                         # Remove files everywhere
 	@$(MAKE) clean

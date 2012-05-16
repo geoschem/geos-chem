@@ -100,6 +100,9 @@
 #  30 Apr 2012 - R. Yantosca - Use separate netCDF link and include paths
 #                              for netCDF3 and for netCDF4
 #  30 Apr 2012 - R. Yantosca - Also add -mcmodel=medium flag for PGI compiler
+#  09 May 2012 - R. Yantosca - Now try to get the proper linking sequence 
+#                              for netCDF etc w/ nf-config and nc-config.
+#  11 May 2012 - R. Yantosca - Now export NCL (netCDF linking sequence)
 #EOP
 #------------------------------------------------------------------------------
 #BOC
@@ -143,23 +146,26 @@ SHELL     := /bin/sh
 # If your system uses "/bin/bash", then uncomment this line!
 #SHELL     := /bin/bash
 
-# If you have HDF5 installed on your system, then define both the include
-# (H5I) and library (H5L) paths here!  Otherwise leave these blank.
-# %%% NOTE: If you use netCDF4, then you already link to the HDF5 library! %%%
-H5I       := -I$(INC_HDF5)
-H5L       := -L$(LIB_HDF5) -lhdf5_fortran -lhdf5_hl -lhdf5hl_fortran -lhdf5 -lsz -lz -lm
+# Library include path
+NCI       := -I$(GC_INCLUDE)
 
-# Define the link & include paths for either netCDF-3 or netCDF-4
-ifeq ($(NETCDF3),yes)
-NCI       := -I$(INC_NETCDF)
-NCL       := -L$(LIB_NETCDF) -lnetcdf
-else
-NCI       := -I$(INC_NETCDF) -I$(INC_HDF5)
-NCL       := -L$(LIB_NETCDF) -lnetcdf \
-             -L$(LIB_HDF5) -lhdf5_hl \
-             -L$(LIB_HDF5) -lhdf5 \
-             -L$(LIB_ZLIB) -lz
+# Library link path: first try to get the list of proper linking flags
+# for this build of netCDF with nf-config and nc-config. 
+NCL       := $(shell $(GC_BIN)/nf-config --flibs)
+NCL       += $(shell $(GC_BIN)/nc-config --libs)
+NCL       := $(filter -l%,$(NCL))
+
+#%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+#%%%% NOTE TO GEOS-CHEM USERS: If you do not have netCDF-4.2 installed
+#%%%% Then you can add/modify the linking sequence here.  (This sequence
+#%%%% is a guess, but is probably good enough for other netCDF builds.)
+ifeq ($(NCL),) 
+NCL       := -lnetcdf -lhdf5_hl -lhdf5 -lz
 endif
+#%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+# Prepend the library directory path to the linking sequence
+NCL       := -L$(GC_LIB) $(NCL)
 
 # Command to link to the various library files (-lHeaders should be last!)
 LINK      := -L$(LIB) -lKpp -lIsoropia -lGeosUtil -lHeaders
@@ -500,6 +506,7 @@ export LD
 export LINK
 export R8
 export SHELL
+export NCL
 
 #EOC
 #==============================================================================
@@ -513,4 +520,4 @@ export SHELL
 #	@@echo "f90     : $(F90)"
 #	@@echo "cc      : $(CC)"
 #	@@echo "include : $(INCLUDE)"
-
+#	@@echo "link    : $(LINK)"
