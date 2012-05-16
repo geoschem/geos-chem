@@ -371,8 +371,8 @@
       INTEGER, PARAMETER :: NNPAR   = 154   ! For APM (G. Luo, 3/8/11)
 #else
       ! increase NNPAR to 100 (FP 8/2009)
-      INTEGER, PARAMETER :: NNPAR   = 75    ! For non-TOMAS simulations
-      !INTEGER, PARAMETER :: NNPAR   = 100
+!      INTEGER, PARAMETER :: NNPAR   = 75    ! For non-TOMAS simulations
+      INTEGER, PARAMETER :: NNPAR   = 100   ! eds for tagged Hg
 #endif
 
       ! Nempara increased to 26. (fp, 2/8/10)

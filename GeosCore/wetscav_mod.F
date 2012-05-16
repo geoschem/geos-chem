@@ -140,8 +140,8 @@
 !BOC
 !
 ! !DEFINED PARAMETERS:
-!
-      INTEGER, PARAMETER   :: NSOLMAX = 50      ! Max # of soluble tracers
+!                                               !upped from 50 (eds)
+      INTEGER, PARAMETER   :: NSOLMAX = 60      ! Max # of soluble tracers
       REAL*8,  PARAMETER   :: EPSILON = 1d-32   ! A very small positive #
 !
 ! !LOCAL VARIABLES:
@@ -6546,7 +6546,7 @@
          ! Mercury simulation
          !-----------------------
          NMAX = 2                               ! Hg2, HgP
-         IF ( LSPLIT ) NMAX = NMAX + 14         ! Tagged tracers
+         IF ( LSPLIT ) NMAX = 58                ! Tagged tracers (eds)
 
       ELSE 
 

@@ -1359,14 +1359,15 @@
 
             ! To output only the species asked in input.geos 
             ! (ccc, 5/15/09)
-            MM  = 1
-            MMB = 0
-            DO WHILE ( MMB /= NN .AND. MM <= TMAX(17) )
-               MMB = TINDEX(17,MM)
-               MM  = MM + 1
-            ENDDO
-            
-            IF ( MMB /= NN ) CYCLE
+!eds 9/7/10
+!            MM  = 1
+!            MMB = 0
+!            DO WHILE ( MMB /= NN .AND. MM <= TMAX(17) )
+!               MMB = TINDEX(17,MM)
+!               MM  = MM + 1
+!            ENDDO  
+!            
+!            IF ( MMB /= NN ) CYCLE
 
             ! Large-scale rainout/washout fractions
             CATEGORY = 'WD-LSR-$'
@@ -1424,15 +1425,16 @@
             NN = GET_WETDEP_IDWETD( N )
 
             ! To output only the species asked in input.geos 
-            ! (ccc, 5/15/09)
-            MM  = 1
-            MMB = 0
-            DO WHILE ( MMB /= NN .AND. MM <= TMAX(18) )
-               MMB = TINDEX(18,MM)
-               MM  = MM + 1
-            ENDDO
-            
-            IF ( MMB /= NN ) CYCLE
+            ! (ccc, 5/15/09
+!eds 9/7/10
+!            MM  = 1
+!            MMB = 0
+!            DO WHILE ( MMB /= NN .AND. MM <= TMAX(18) )
+!               MMB = TINDEX(18,MM)
+!               MM  = MM + 1
+!            ENDDO
+!            
+!            IF ( MMB /= NN ) CYCLE
 
             ! Large-scale rainout/washout fractions
             CATEGORY = 'WD-LSW-$'
@@ -2457,14 +2459,15 @@
 
             ! To output only the species asked in input.geos 
             ! (ccc, 5/15/09)
-            MM  = 1
-            MMB = 0
-            DO WHILE ( MMB /= NN .AND. MM <= TMAX(37) )
-               MMB = TINDEX(37,MM)
-               MM  = MM + 1
-            ENDDO
-            
-            IF ( MMB /= NN ) CYCLE
+!eds 9/7/10
+!            MM  = 1
+!            MMB = 0
+!            DO WHILE ( MMB /= NN .AND. MM <= TMAX(37) )
+!               MMB = TINDEX(37,MM)
+!               MM  = MM + 1
+!            ENDDO
+!            
+!            IF ( MMB /= NN ) CYCLE
 
             DO L = 1, LD37
                ARRAY(:,:,L) = AD37(:,:,L,N) / SCALECONV
@@ -2504,14 +2507,15 @@
 
             ! To output only the species asked in input.geos 
             ! (ccc, 5/15/09)
-            MM  = 1
-            MMB = 0
-            DO WHILE ( MMB /= NN .AND. MM <= TMAX(38) )
-               MMB = TINDEX(38,MM)
-               MM  = MM + 1
-            ENDDO
-            
-            IF ( MMB /= NN ) CYCLE
+!eds 9/7/10
+!            MM  = 1
+!            MMB = 0
+!            DO WHILE ( MMB /= NN .AND. MM <= TMAX(38) )
+!               MMB = TINDEX(38,MM)
+!               MM  = MM + 1
+!            ENDDO
+!            
+!            IF ( MMB /= NN ) CYCLE
 
             ! Divide by # of convective timesteps
             DO L = 1, LD38
@@ -2551,14 +2555,15 @@
 
             ! To output only the species asked in input.geos 
             ! (ccc, 5/15/09)
-            MM  = 1
-            MMB = 0
-            DO WHILE ( MMB /= NN .AND. MM <= TMAX(39) )
-               MMB = TINDEX(39,MM)
-               MM  = MM + 1
-            ENDDO
-               
-            IF ( MMB /= NN ) CYCLE
+!eds 9/7/10
+!            MM  = 1
+!            MMB = 0
+!            DO WHILE ( MMB /= NN .AND. MM <= TMAX(39) )
+!               MMB = TINDEX(39,MM)
+!               MM  = MM + 1
+!            ENDDO
+!               
+!            IF ( MMB /= NN ) CYCLE
 
             ! Divide by # of wetdep (= dynamic) timesteps
             DO L = 1, LD39
@@ -2812,13 +2817,14 @@
             ENDIF
 
             ! To output only the species asked in input.geos 
-            ! (ccc, 5/15/09)
-            MM  = 1
-            MMB = 0
-            DO WHILE ( MMB /= NN .AND. MM <= TMAX(44) )
-               MMB = TINDEX(44,MM)
-               MM  = MM + 1
-            ENDDO
+            ! (ccc, 5/15/09)\
+!eds 9/7/10
+!            MM  = 1
+!            MMB = 0
+!            DO WHILE ( MMB /= NN .AND. MM <= TMAX(44) )
+!               MMB = TINDEX(44,MM)
+!               MM  = MM + 1
+!            ENDDO
           
             IF ( ITS_A_FULLCHEM_SIM() ) THEN
                ! Special case for tracers with several dry dep. tracers
@@ -2899,12 +2905,13 @@
             NN           = NTRAIND(N)
             ! To output only the species asked in input.geos 
             ! (ccc, 5/15/09)
-            MM  = 1
-            MMB = 0
-            DO WHILE ( MMB /= NN .AND. MM <= TMAX(44) )
-               MMB = TINDEX(44,MM)
-               MM  = MM + 1
-            ENDDO
+!eds 9/7/10
+!            MM  = 1
+!            MMB = 0
+!            DO WHILE ( MMB /= NN .AND. MM <= TMAX(44) )
+!               MMB = TINDEX(44,MM)
+!               MM  = MM + 1
+!            ENDDO
 
             IF ( ITS_A_FULLCHEM_SIM() ) THEN
                ! Special case for tracers with several dry dep. tracers

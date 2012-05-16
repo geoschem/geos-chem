@@ -90,36 +90,47 @@
 !  (2 ) Hg(II) a.k.a. Hg2  : Divalent    mercury
 !  (3 ) HgP                : Particulate mercury
 !
-!  Mercury Tracers (1-3 are always defined; 4-21 are defined for tagged runs)
+!  Mercury Tracers (1-3 are always defined; 4-87 are defined for tagged runs)
 !  ============================================================================
 !  (1 ) Hg(0)              : Hg(0)  - total tracer
 !  (2 ) Hg(II)             : Hg(II) - total tracer 
 !  (3 ) HgP                : HgP    - total tracer
 !  ------------------------+---------------------------------------------------
-!  (4 ) Hg(0)_an           : Hg(0)  - North American anthropogenic
-!  (5 ) Hg(0)_ae           : Hg(0)  - European Anthropogenic
-!  (6 ) Hg(0)_aa           : Hg(0)  - Asian anthropogenic
-!  (7 ) Hg(0)_ar           : Hg(0)  - Rest of World Anthropogenic
-!  (8 ) Hg(0)_oc           : Hg(0)  - Ocean emission
-!  (9 ) Hg(0)_ln           : Hg(0)  - Land reemission
-!  (10) Hg(0)_nt           : Hg(0)  - Land natural emission
+!  (4 ) Hg0_can            : Hg(0) - Canadian Anthropogenic
+!  (5 ) Hg0_usa            : Hg(0) - USA Anthropogenic
+!  (6 ) Hg0_cam            : Hg(0) - Central American  Anthropogenic
+!  (7 ) Hg0_sam            : Hg(0) - South American Anthropogenic
+!  (8 ) Hg0_waf            : Hg(0) - West African Anthropogenic
+!  (9 ) Hg0_eaf            : Hg(0) - East African Anthropogenic
+!  (10) Hg0_saf            : Hg(0) - South African Anthropogenic
+!  (11) Hg0_naf            : Hg(0) - North African Anthropogenic
+!  (12) Hg0_eur            : Hg(0) - OECD European Anthropogenic
+!  (13) Hg0_eeu            : Hg(0) - Eastern European Anthropogenic
+!  (14) Hg0_sov            : Hg(0) - Former USSR Anthropogenic
+!  (15) Hg0_mde            : Hg(0) - Middle Eastern Anthropogenic
+!  (16) Hg0_sas            : Hg(0) - South Asian Anthropogenic
+!  (17) Hg0_eas            : Hg(0) - East Asian Anthropogenic
+!  (18) Hg0_sea            : Hg(0) - Southeast Asian Anthropogenic
+!  (19) Hg0_jpn            : Hg(0) - Japanese Anthropogenic
+!  (20) Hg0_ocn            : Hg(0) - Oceanian Anthropogenic
 !  ------------------------+---------------------------------------------------
-!  (11) Hg(II)_an          : Hg(II) - North American anthropogenic
-!  (12) Hg(II)_ae          : Hg(II) - European Anthropogenic
-!  (13) Hg(II)_aa          : Hg(II) - Asian anthropogenic
-!  (14) Hg(II)_ar          : Hg(II) - Rest of World Anthropogenic
-!  (15) Hg(II)_oc          : Hg(II) - Ocean emission
-!  (16) Hg(II)_ln          : Hg(II) - Land reemission
-!  (17) Hg(II)_nt          : Hg(II) - Land natural emission
+!  (21) Hg0_so             : Hg(0) - Organic Soils
+!  (22) Hg0_bb             : Hg(0) - Biomass Burning
+!  (23) Hg0_geo            : Hg(0) - Geogenic
 !  ------------------------+---------------------------------------------------
-!  (18) HgP_an             : HgP    - North American anthropogenic
-!  (19) HgP_ae             : HgP    - European anthropogenic
-!  (20) HgP_aa             : HgP    - Asian anthropogenic
-!  (21) HgP_ar             : HgP    - Rest of world anthropogenic
+!  (24) Hg0_atl            : Hg(0) - Middle Atlantic Subsurface Waters
+!  (25) Hg0_nat            : Hg(0) - North Atlantic Subsurface Waters
+!  (26) Hg0_sat            : Hg(0) - South Atlantic Subsurface Waters
+!  (27) Hg0_npa            : Hg(0) - North Pacific Subsurface Waters
+!  (28) Hg0_arc            : Hg(0) - Arctic Subsurface Waters
+!  (29) Hg0_ant            : Hg(0) - Antarctic Subsurface Waters
+!  (30) Hg0_oce            : Hg(0) - Indo-Pacific Subsurface Waters
 !  ------------------------+---------------------------------------------------
-!  (22) HgP_oc             : HgP    - Ocean emission        (FOR FUTURE USE)
-!  (23) HgP_ln             : HgP    - Land reemission       (FOR FUTURE USE)
-!  (24) HgP_nt             : HgP    - Land natural emission (FOR FUTURE USE)
+!  (31) Hg0_str            : Hg(0) - Stratospheric Hg from Intial Conditions
+!  ------------------------+---------------------------------------------------
+!  (32-59) Same as (4-31) but for Hg(II)
+!  ------------------------+---------------------------------------------------
+!  (60-87) Same as (4-31) but for Hg(P)
 !
 !  References:
 !  ============================================================================
@@ -144,7 +155,12 @@
 !       1305-1334.
 !  (7 ) Soerensen, A. et al. (2010), An improved global model for air-sea 
 !       exchange of mercury: High concentrations over the North Atlantic, 
-!       Environ. Sci. Technol., 44, 8574-8580, 2010
+!       Environ. Sci. Technol., 44, 8574-8580.
+!  (8 ) Corbitt, E.S. et al. (2011), Global source-receptor relationships for
+!       mercury deposition under present-day and 2050 emissions scenarios,
+!       Environ. Sci. Technol., 45, 10477-10484.
+!  (9 ) Street, D.G. et al. (2009), Projections of global mercury emissions
+!       in 2050, Environ. Sci. Technol., 43, 2983-2988.
 !
 !  NOTES:
 !  (1 ) Updated for reduction rxn and online Hg0 ocean flux.  Now use 
@@ -160,6 +176,7 @@
 !  13 Aug 2010 - R. Yantosca - Add modifications for MERRA (treat like GEOS-5)
 !  01 Apr 2011 - H. Amos      - added LVEGEMIS, distinct from LGCAPEMIS
 !  27 Sep 2011 - H. Amos     - Remove LHg_WETDasHNO3 logical, it's obsolete
+!  07 Feb 2012 - E. Corbitt - Imported tagged tracers; renamed nt to geo.
 !******************************************************************************
 !
       ! References to F90 modules
@@ -209,13 +226,73 @@
       INTEGER, ALLOCATABLE :: AN_HgP(:,:)
       REAL*8,  ALLOCATABLE :: COSZM(:,:)
       REAL*8,  ALLOCATABLE :: EHg0_an(:,:)
+!- eds 8/31/10 --------------------------------------
+      REAL*8,  ALLOCATABLE :: EHg0_can(:,:)
+      REAL*8,  ALLOCATABLE :: EHg0_usa(:,:)
+      REAL*8,  ALLOCATABLE :: EHg0_cam(:,:)
+      REAL*8,  ALLOCATABLE :: EHg0_sam(:,:)
+      REAL*8,  ALLOCATABLE :: EHg0_waf(:,:)
+      REAL*8,  ALLOCATABLE :: EHg0_eaf(:,:)
+      REAL*8,  ALLOCATABLE :: EHg0_saf(:,:)
+      REAL*8,  ALLOCATABLE :: EHg0_naf(:,:)
+      REAL*8,  ALLOCATABLE :: EHg0_eur(:,:)
+      REAL*8,  ALLOCATABLE :: EHg0_eeu(:,:)
+      REAL*8,  ALLOCATABLE :: EHg0_mde(:,:)
+      REAL*8,  ALLOCATABLE :: EHg0_sov(:,:)
+      REAL*8,  ALLOCATABLE :: EHg0_sas(:,:)
+      REAL*8,  ALLOCATABLE :: EHg0_eas(:,:)
+      REAL*8,  ALLOCATABLE :: EHg0_sea(:,:)
+      REAL*8,  ALLOCATABLE :: EHg0_jpn(:,:)
+      REAL*8,  ALLOCATABLE :: EHg0_oce(:,:)
+!---------------------------------------------------
       REAL*8,  ALLOCATABLE :: EHg0_am(:,:)
       REAL*8,  ALLOCATABLE :: EHg2_an(:,:)
+!- eds 8/31/10 --------------------------------------
+      REAL*8,  ALLOCATABLE :: EHg2_can(:,:)
+      REAL*8,  ALLOCATABLE :: EHg2_usa(:,:)
+      REAL*8,  ALLOCATABLE :: EHg2_cam(:,:)
+      REAL*8,  ALLOCATABLE :: EHg2_sam(:,:)
+      REAL*8,  ALLOCATABLE :: EHg2_waf(:,:)
+      REAL*8,  ALLOCATABLE :: EHg2_eaf(:,:)
+      REAL*8,  ALLOCATABLE :: EHg2_saf(:,:)
+      REAL*8,  ALLOCATABLE :: EHg2_naf(:,:)
+      REAL*8,  ALLOCATABLE :: EHg2_eur(:,:)
+      REAL*8,  ALLOCATABLE :: EHg2_eeu(:,:)
+      REAL*8,  ALLOCATABLE :: EHg2_mde(:,:)
+      REAL*8,  ALLOCATABLE :: EHg2_sov(:,:)
+      REAL*8,  ALLOCATABLE :: EHg2_sas(:,:)
+      REAL*8,  ALLOCATABLE :: EHg2_eas(:,:)
+      REAL*8,  ALLOCATABLE :: EHg2_sea(:,:)
+      REAL*8,  ALLOCATABLE :: EHg2_jpn(:,:)
+      REAL*8,  ALLOCATABLE :: EHg2_oce(:,:)
+!---------------------------------------------------
       REAL*8,  ALLOCATABLE :: EHgP_an(:,:)
+!- eds 8/31/10 --------------------------------------
+      REAL*8,  ALLOCATABLE :: EHgP_can(:,:)
+      REAL*8,  ALLOCATABLE :: EHgP_usa(:,:)
+      REAL*8,  ALLOCATABLE :: EHgP_cam(:,:)
+      REAL*8,  ALLOCATABLE :: EHgP_sam(:,:)
+      REAL*8,  ALLOCATABLE :: EHgP_waf(:,:)
+      REAL*8,  ALLOCATABLE :: EHgP_eaf(:,:)
+      REAL*8,  ALLOCATABLE :: EHgP_saf(:,:)
+      REAL*8,  ALLOCATABLE :: EHgP_naf(:,:)
+      REAL*8,  ALLOCATABLE :: EHgP_eur(:,:)
+      REAL*8,  ALLOCATABLE :: EHgP_eeu(:,:)
+      REAL*8,  ALLOCATABLE :: EHgP_mde(:,:)
+      REAL*8,  ALLOCATABLE :: EHgP_sov(:,:)
+      REAL*8,  ALLOCATABLE :: EHgP_sas(:,:)
+      REAL*8,  ALLOCATABLE :: EHgP_eas(:,:)
+      REAL*8,  ALLOCATABLE :: EHgP_sea(:,:)
+      REAL*8,  ALLOCATABLE :: EHgP_jpn(:,:)
+      REAL*8,  ALLOCATABLE :: EHgP_oce(:,:)
+!---------------------------------------------------
       REAL*8,  ALLOCATABLE :: EHg0_oc(:,:,:)
       REAL*8,  ALLOCATABLE :: EHg0_ln(:,:,:)
       REAL*8,  ALLOCATABLE :: EHg0_dist(:,:)
-      REAL*8,  ALLOCATABLE :: EHg0_nt(:,:)
+!- eds 8/31/10 --------------------------------------
+!      REAL*8,  ALLOCATABLE :: EHg0_nt(:,:)
+      REAL*8,  ALLOCATABLE :: EHg0_geo(:,:)
+!----------------------------------------------------
       REAL*8,  ALLOCATABLE :: EHg0_bb(:,:)
       REAL*8,  ALLOCATABLE :: EHg0_vg(:,:)
       REAL*8,  ALLOCATABLE :: EHg0_so(:,:)
@@ -987,23 +1064,41 @@
                ! Store chemistry diagnostics only for total tracer
                IF ( ID_HG0(NN) == ID_HG_TOT) THEN
 
-                  AD03_Hg2_Hg0(I,J,L)= AD03_Hg2_Hg0(I,J,L) + NET_OX
-                  AD03_Hg2_Br(I,J,L) = AD03_Hg2_Br(I,J,L)  + GROSS_OX_BR 
-                  AD03_Hg2_OH(I,J,L) = AD03_Hg2_OH(I,J,L)  + GROSS_OX_OH
-                  AD03_Hg2_O3(I,J,L) = AD03_Hg2_O3(I,J,L)  + GROSS_OX_O3
+!- eds 8/31/10 -------------------------------------------------------------
+!                  AD03_Hg2_Hg0(I,J,L)= AD03_Hg2_Hg0(I,J,L) + NET_OX
+!                  AD03_Hg2_Br(I,J,L) = AD03_Hg2_Br(I,J,L)  + GROSS_OX_BR 
+!                  AD03_Hg2_OH(I,J,L) = AD03_Hg2_OH(I,J,L)  + GROSS_OX_OH
+!                  AD03_Hg2_O3(I,J,L) = AD03_Hg2_O3(I,J,L)  + GROSS_OX_O3
+!---------------------------------------------------------------------------
 
                   AD03_Br(I,J,L,1) = AD03_Br(I,J,L,1) + C_BR
                   AD03_Br(I,J,L,2) = AD03_Br(I,J,L,2) + C_BRO
 
 
                ENDIF
+
+!- eds 8/31/10 ------------------------------------------------------------
+
+                  AD03_Hg2_Hg0(I,J,L,NN)= AD03_Hg2_Hg0(I,J,L,NN) 
+     &                                    + NET_OX
+                  AD03_Hg2_Br(I,J,L,NN) = AD03_Hg2_Br(I,J,L,NN)  
+     &                                    + GROSS_OX_BR !cdh added diagnostic
+                  AD03_Hg2_OH(I,J,L,NN) = AD03_Hg2_OH(I,J,L,NN)  
+     &                                    + GROSS_OX_OH
+                  AD03_Hg2_O3(I,J,L,NN) = AD03_Hg2_O3(I,J,L,NN)  
+     &                                    + GROSS_OX_O3
+
+!--------------------------------------------------------------------------
                
                ! Sea salt diagnostic is 2-D [kg]
                AD03_Hg2_SS(I,J,NN) = AD03_Hg2_SS(I,J,NN) + DEP_HG2_SALT
 
                ! Sea-salt loss rate diagnostic [/s]
                IF ( L == 1 ) THEN
-                  AD03_Hg2_SSR(I,J) = AD03_Hg2_SSR(I,J) + K_SALT
+!- eds 8/31/10 -----------------------------------------------------------
+!                  AD03_Hg2_SSR(I,J) = AD03_Hg2_SSR(I,J) + K_SALT
+                  AD03_Hg2_SSR(I,J,NN) = AD03_Hg2_SSR(I,J,NN) + K_SALT
+!-------------------------------------------------------------------------
                ENDIF
                
             ENDIF               
@@ -2147,15 +2242,29 @@
       USE LOGICAL_MOD,  ONLY : LSPLIT, LPREINDHG, LGTMM
       USE PBL_MIX_MOD,  ONLY : GET_FRAC_OF_PBL, GET_PBL_MAX_L
       USE TIME_MOD,     ONLY : GET_TS_EMIS
-      USE TRACERID_MOD, ONLY : ID_Hg_tot, ID_Hg_na, ID_Hg_eu, ID_Hg_as
-      USE TRACERID_MOD, ONLY : ID_Hg_rw,  ID_Hg_oc, ID_Hg_ln, ID_Hg_nt
+!- eds 8/31/10 ---------------------------------------------------------
+!      USE TRACERID_MOD, ONLY : ID_Hg_tot, ID_Hg_na, ID_Hg_eu, ID_Hg_as
+!      USE TRACERID_MOD, ONLY : ID_Hg_rw,  ID_Hg_oc, ID_Hg_ln, ID_Hg_nt
+      USE TRACERID_MOD, ONLY : ID_Hg_tot,  ID_Hg_can,  ID_Hg_usa
+      USE TRACERID_MOD, ONLY : ID_Hg_cam,  ID_Hg_sam,  ID_Hg_waf
+      USE TRACERID_MOD, ONLY : ID_Hg_eaf,  ID_Hg_saf,  ID_Hg_naf
+      USE TRACERID_MOD, ONLY : ID_Hg_eur,  ID_Hg_eeu,  ID_Hg_sov
+      USE TRACERID_MOD, ONLY : ID_Hg_mde,  ID_Hg_sas,  ID_Hg_eas
+      USE TRACERID_MOD, ONLY : ID_Hg_sea,  ID_Hg_jpn,  ID_Hg_oce
+      USE TRACERID_MOD, ONLY : ID_Hg_so,   ID_Hg_bb,   ID_Hg_geo
+      USE TRACERID_MOD, ONLY : ID_Hg_atl,  ID_Hg_nat,  ID_Hg_sat
+      USE TRACERID_MOD, ONLY : ID_Hg_npa,  ID_Hg_arc,  ID_Hg_ant
+      USE TRACERID_MOD, ONLY : ID_Hg_ocn,  ID_Hg_str
+!---------------------------------------------------------------------------
       USE TRACERID_MOD, ONLY : ID_Hg0
+      USE TRACERID_MOD, ONLY : N_HG_CATS !eds 9/9/10
       
       USE CMN_SIZE_MOD     ! Size parameters
       USE CMN_DEP_MOD      ! FRCLND
 
       ! Local variables
       INTEGER               :: I,      J,    L,        N,    PBL_MAX
+      INTEGER               :: NN !eds 9/9/10 
       REAL*8                :: DTSRCE, E_Hg, F_OF_PBL, T_Hg, T_Hg_An
 
       !=================================================================
@@ -2171,7 +2280,7 @@
       ! Loop over grid boxes
 !$OMP PARALLEL DO
 !$OMP+DEFAULT( SHARED )
-!$OMP+PRIVATE( I, J, L, N, T_Hg_An, T_Hg, F_OF_PBL, E_Hg)
+!$OMP+PRIVATE( I, J, L, N, T_Hg_An, T_Hg, F_OF_PBL, E_Hg, NN)
       DO J = 1, JJPAR
       DO I = 1, IIPAR
 
@@ -2192,7 +2301,10 @@
                ! No other emissions
                EHg0_bb = 0D0
                EHg0_oc = 0D0
-               EHg0_nt = 0D0
+!- eds 8/31/10 ---------------------------------------------------------------
+!               EHg0_nt = 0D0
+               EHg0_geo = 0D0
+!-----------------------------------------------------------------------------
                EHg0_snow = 0D0
                IF ( LGTMM ) THEN
                   EHg0_gtm = 0D0
@@ -2210,7 +2322,10 @@
             T_Hg = T_Hg_An +
      &             EHg0_bb(I,J) +
      &             EHg0_oc(I,J,ID_Hg_tot) + 
-     &             EHg0_nt(I,J) +
+!- eds 8/31/10 ------------------------------------------------------------
+!     &             EHg0_nt(I,J) +
+     &             EHg0_geo(I,J) +
+!--------------------------------------------------------------------------
      &             EHg0_gtm(I,J) +
      &             EHg0_snow(I,J,ID_Hg_tot)
          ELSE
@@ -2218,7 +2333,10 @@
      &             EHg0_bb(I,J) +
      &             EHg0_oc(I,J,ID_Hg_tot) + 
      &             EHg0_ln(I,J,ID_Hg_tot) +
-     &             EHg0_nt(I,J) +
+!- eds 8/31/10 ------------------------------------------------------------
+!     &             EHg0_nt(I,J) +
+     &             EHg0_geo(I,J) +
+!--------------------------------------------------------------------------
      &             EHg0_vg(I,J) +
      &             EHg0_so(I,J) +
      &             EHg0_snow(I,J,ID_Hg_tot)
@@ -2250,136 +2368,661 @@
                !--------------------
                ! Primary emissions
                !--------------------
-
-               ! Anthro Hg0 by region
-               N            = AN_Hg0(I,J)
-               E_Hg         = F_OF_PBL * T_Hg_an * DTSRCE
-               CALL EMITHG( I, J, L, N, E_Hg )
+!- eds 8/31/10 ---------------------------------------------------------
+!               ! Anthro Hg0 by region
+!               N            = AN_Hg0(I,J)
+!               E_Hg         = F_OF_PBL * T_Hg_an * DTSRCE
+!               CALL EMITHG( I, J, L, N, E_Hg )
                
+               ! Anthro Canada Hg0
+               N            = ID_Hg0(ID_Hg_can)
+               E_Hg         = F_OF_PBL * EHg0_can(I,J) * DTSRCE
+               CALL EMITHG( I, J, L, N, E_Hg )
 
-               ! Natural land sources of Hg0
-               N            = ID_Hg0(ID_Hg_nt)
+               ! Anthro United States Hg0
+               N            = ID_Hg0(ID_Hg_usa)
+               E_Hg         = F_OF_PBL * EHg0_usa(I,J) * DTSRCE
+               CALL EMITHG( I, J, L, N, E_Hg )
 
-               E_Hg         = F_OF_PBL * EHg0_nt(I,J) * DTSRCE
+               ! Anthro Central America Hg0
+               N            = ID_Hg0(ID_Hg_cam)
+               E_Hg         = F_OF_PBL * EHg0_cam(I,J) * DTSRCE
+               CALL EMITHG( I, J, L, N, E_Hg )
+
+               ! Anthro South America Hg0
+               N            = ID_Hg0(ID_Hg_sam)
+               E_Hg         = F_OF_PBL * EHg0_sam(I,J) * DTSRCE
+               CALL EMITHG( I, J, L, N, E_Hg )
+
+               ! Anthro West Africa Hg0
+               N            = ID_Hg0(ID_Hg_waf)
+               E_Hg         = F_OF_PBL * EHg0_waf(I,J) * DTSRCE
+               CALL EMITHG( I, J, L, N, E_Hg )
+
+               ! Anthro East Africa Hg0
+               N            = ID_Hg0(ID_Hg_eaf)
+               E_Hg         = F_OF_PBL * EHg0_eaf(I,J) * DTSRCE
+               CALL EMITHG( I, J, L, N, E_Hg )
+
+               ! Anthro South Africa Hg0
+               N            = ID_Hg0(ID_Hg_saf)
+               E_Hg         = F_OF_PBL * EHg0_saf(I,J) * DTSRCE
+               CALL EMITHG( I, J, L, N, E_Hg )
+
+               ! Anthro North Africa Hg0
+               N            = ID_Hg0(ID_Hg_naf)
+               E_Hg         = F_OF_PBL * EHg0_naf(I,J) * DTSRCE
+               CALL EMITHG( I, J, L, N, E_Hg )
+
+               ! Anthro OECD Europe Hg0
+               N            = ID_Hg0(ID_Hg_eur)
+               E_Hg         = F_OF_PBL * EHg0_eur(I,J) * DTSRCE
+               CALL EMITHG( I, J, L, N, E_Hg )
+
+               ! Anthro Eastern Europe Hg0
+               N            = ID_Hg0(ID_Hg_eeu)
+               E_Hg         = F_OF_PBL * EHg0_eeu(I,J) * DTSRCE
+               CALL EMITHG( I, J, L, N, E_Hg )
+
+               ! Anthro Middle East Hg0
+               N            = ID_Hg0(ID_Hg_mde)
+               E_Hg         = F_OF_PBL * EHg0_mde(I,J) * DTSRCE
+               CALL EMITHG( I, J, L, N, E_Hg )
+
+               ! Anthro Former USSR Hg0
+               N            = ID_Hg0(ID_Hg_sov)
+               E_Hg         = F_OF_PBL * EHg0_sov(I,J) * DTSRCE
+               CALL EMITHG( I, J, L, N, E_Hg )
+
+               ! Anthro South Asia Hg0
+               N            = ID_Hg0(ID_Hg_sas)
+               E_Hg         = F_OF_PBL * EHg0_sas(I,J) * DTSRCE
+               CALL EMITHG( I, J, L, N, E_Hg )
+
+               ! Anthro East Asia Hg0
+               N            = ID_Hg0(ID_Hg_eas)
+               E_Hg         = F_OF_PBL * EHg0_eas(I,J) * DTSRCE
+               CALL EMITHG( I, J, L, N, E_Hg )
+
+               ! Anthro Southeast Asia Hg0
+               N            = ID_Hg0(ID_Hg_sea)
+               E_Hg         = F_OF_PBL * EHg0_sea(I,J) * DTSRCE
+               CALL EMITHG( I, J, L, N, E_Hg )
+
+               ! Anthro Japan Hg0
+               N            = ID_Hg0(ID_Hg_jpn)
+               E_Hg         = F_OF_PBL * EHg0_jpn(I,J) * DTSRCE
+               CALL EMITHG( I, J, L, N, E_Hg )
+
+               ! Anthro Oceania Hg0
+               N            = ID_Hg0(ID_Hg_oce)
+               E_Hg         = F_OF_PBL * EHg0_oce(I,J) * DTSRCE
+               CALL EMITHG( I, J, L, N, E_Hg )
+
+
+!               ! Natural land sources of Hg0
+!               N            = ID_Hg0(ID_Hg_nt)
+!               E_Hg         = F_OF_PBL * EHg0_nt(I,J) * DTSRCE
+!               CALL EMITHG( I, J, L, N, E_Hg )
+
+               ! Soil emissions
+               N            = ID_Hg0(ID_Hg_so)
+               E_Hg         = F_OF_PBL * EHg0_so(I,J) * DTSRCE
+               CALL EMITHG( I, J, L, N, E_Hg )
+
+               ! Biomass burning emissions             
+               N            = ID_Hg0(ID_Hg_bb)
+               E_Hg         = F_OF_PBL * EHg0_bb(I,J) * DTSRCE
+               CALL EMITHG( I, J, L, N, E_Hg )
+
+               ! Geogenic emissions             
+               N            = ID_Hg0(ID_Hg_geo)
+               E_Hg         = F_OF_PBL * EHg0_geo(I,J) * DTSRCE
                CALL EMITHG( I, J, L, N, E_Hg )
 
                !--------------------
                ! Ocean re-emissions
                !--------------------
 
-               ! Anthro re-emission from ocean in N. AMERICA
-               N            = ID_Hg0(ID_Hg_na)
-               E_Hg         = F_OF_PBL * EHg0_oc(I,J,ID_Hg_na) * DTSRCE
-               CALL EMITHG( I, J, L, N, E_Hg )
+!               ! Anthro re-emission from ocean in N. AMERICA
+!               N            = ID_Hg0(ID_Hg_na)
+!               E_Hg         = F_OF_PBL * EHg0_oc(I,J,ID_Hg_na) * DTSRCE
+!               CALL EMITHG( I, J, L, N, E_Hg )
+!
+!               ! Anthro re-emission from ocean in EUROPE
+!               N            = ID_Hg0(ID_Hg_eu)
+!               E_Hg         = F_OF_PBL * EHg0_oc(I,J,ID_Hg_eu) * DTSRCE
+!               CALL EMITHG( I, J, L, N, E_Hg )
+!
+!               ! Anthro re-emission from ocean in ASIA
+!               N            = ID_Hg0(ID_Hg_as)
+!               E_Hg         = F_OF_PBL * EHg0_oc(I,J,ID_Hg_as) * DTSRCE
+!               CALL EMITHG( I, J, L, N, E_Hg )
+!
+!               ! Anthro re-emission from ocean in REST OF WORLD
+!               N            = ID_Hg0(ID_Hg_rw)
+!               E_Hg         = F_OF_PBL * EHg0_oc(I,J,ID_Hg_rw) * DTSRCE
+!               CALL EMITHG( I, J, L, N, E_Hg )
+!
+!               ! Re-emission from ocean in OCEAN 
+!               N            = ID_Hg0(ID_Hg_oc)
+!               E_Hg         = F_OF_PBL * EHg0_oc(I,J,ID_Hg_oc) * DTSRCE
+!               CALL EMITHG( I, J, L, N, E_Hg )
+!
+!               ! Re-emission from ocean in LAND REEMISSION
+!               N            = ID_Hg0(ID_Hg_ln)
+!               E_Hg         = F_OF_PBL * EHg0_oc(I,J,ID_Hg_ln) * DTSRCE
+!               CALL EMITHG( I, J, L, N, E_Hg )
+!
+!               ! Re-emission from ocean in NATURAL
+!               N            = ID_Hg0(ID_Hg_nt)
+!               E_Hg         = F_OF_PBL * EHg0_oc(I,J,ID_Hg_nt) * DTSRCE
+!               CALL EMITHG( I, J, L, N, E_Hg )
 
-               ! Anthro re-emission from ocean in EUROPE
-               N            = ID_Hg0(ID_Hg_eu)
-               E_Hg         = F_OF_PBL * EHg0_oc(I,J,ID_Hg_eu) * DTSRCE
-               CALL EMITHG( I, J, L, N, E_Hg )
-
-               ! Anthro re-emission from ocean in ASIA
-               N            = ID_Hg0(ID_Hg_as)
-               E_Hg         = F_OF_PBL * EHg0_oc(I,J,ID_Hg_as) * DTSRCE
-               CALL EMITHG( I, J, L, N, E_Hg )
-
-               ! Anthro re-emission from ocean in REST OF WORLD
-               N            = ID_Hg0(ID_Hg_rw)
-               E_Hg         = F_OF_PBL * EHg0_oc(I,J,ID_Hg_rw) * DTSRCE
-               CALL EMITHG( I, J, L, N, E_Hg )
-
-               ! Re-emission from ocean in OCEAN 
-               N            = ID_Hg0(ID_Hg_oc)
-               E_Hg         = F_OF_PBL * EHg0_oc(I,J,ID_Hg_oc) * DTSRCE
-               CALL EMITHG( I, J, L, N, E_Hg )
-
-               ! Re-emission from ocean in LAND REEMISSION
-               N            = ID_Hg0(ID_Hg_ln)
-               E_Hg         = F_OF_PBL * EHg0_oc(I,J,ID_Hg_ln) * DTSRCE
-               CALL EMITHG( I, J, L, N, E_Hg )
-
-               ! Re-emission from ocean in NATURAL
-               N            = ID_Hg0(ID_Hg_nt)
-               E_Hg         = F_OF_PBL * EHg0_oc(I,J,ID_Hg_nt) * DTSRCE
-               CALL EMITHG( I, J, L, N, E_Hg )
               
+               ! Anthro Canada re-emission from ocean
+               N            = ID_Hg0(ID_Hg_can)
+               E_Hg         = F_OF_PBL * EHg0_oc(I,J,ID_Hg_can) * DTSRCE
+               CALL EMITHG( I, J, L, N, E_Hg )
+
+               ! Anthro United States re-emission from ocean 
+               N            = ID_Hg0(ID_Hg_usa)
+               E_Hg         = F_OF_PBL * EHg0_oc(I,J,ID_Hg_usa) * DTSRCE
+               CALL EMITHG( I, J, L, N, E_Hg )
+
+               ! Anthro Central America re-emission from ocean 
+               N            = ID_Hg0(ID_Hg_cam)
+               E_Hg         = F_OF_PBL * EHg0_oc(I,J,ID_Hg_cam) * DTSRCE
+               CALL EMITHG( I, J, L, N, E_Hg )
+
+               ! Anthro South America re-emission from ocean 
+               N            = ID_Hg0(ID_Hg_sam)
+               E_Hg         = F_OF_PBL * EHg0_oc(I,J,ID_Hg_sam) * DTSRCE
+               CALL EMITHG( I, J, L, N, E_Hg )
+
+               ! Anthro West Africa re-emission from ocean 
+               N            = ID_Hg0(ID_Hg_waf)
+               E_Hg         = F_OF_PBL * EHg0_oc(I,J,ID_Hg_waf) * DTSRCE
+               CALL EMITHG( I, J, L, N, E_Hg )
+
+               ! Anthro East Africa re-emission from ocean 
+               N            = ID_Hg0(ID_Hg_eaf)
+               E_Hg         = F_OF_PBL * EHg0_oc(I,J,ID_Hg_eaf) * DTSRCE
+               CALL EMITHG( I, J, L, N, E_Hg )
+
+               ! Anthro South Africa re-emission from ocean 
+               N            = ID_Hg0(ID_Hg_saf)
+               E_Hg         = F_OF_PBL * EHg0_oc(I,J,ID_Hg_saf) * DTSRCE
+               CALL EMITHG( I, J, L, N, E_Hg )
+
+               ! Anthro North Africa re-emission from ocean 
+               N            = ID_Hg0(ID_Hg_naf)
+               E_Hg         = F_OF_PBL * EHg0_oc(I,J,ID_Hg_naf) * DTSRCE
+               CALL EMITHG( I, J, L, N, E_Hg )
+
+               ! Anthro OECD Europe re-emission from ocean 
+               N            = ID_Hg0(ID_Hg_eur)
+               E_Hg         = F_OF_PBL * EHg0_oc(I,J,ID_Hg_eur) * DTSRCE
+               CALL EMITHG( I, J, L, N, E_Hg )
+
+               ! Anthro Eastern Europe re-emission from ocean 
+               N            = ID_Hg0(ID_Hg_eeu)
+               E_Hg         = F_OF_PBL * EHg0_oc(I,J,ID_Hg_eeu) * DTSRCE
+               CALL EMITHG( I, J, L, N, E_Hg )
+
+               ! Anthro Middle East re-emission from ocean 
+               N            = ID_Hg0(ID_Hg_mde)
+               E_Hg         = F_OF_PBL * EHg0_oc(I,J,ID_Hg_mde) * DTSRCE
+               CALL EMITHG( I, J, L, N, E_Hg )
+
+               ! Anthro Former Soviet Union re-emission from ocean 
+               N            = ID_Hg0(ID_Hg_sov)
+               E_Hg         = F_OF_PBL * EHg0_oc(I,J,ID_Hg_sov) * DTSRCE
+               CALL EMITHG( I, J, L, N, E_Hg )
+
+               ! Anthro South Asia re-emission from ocean 
+               N            = ID_Hg0(ID_Hg_sas)
+               E_Hg         = F_OF_PBL * EHg0_oc(I,J,ID_Hg_sas) * DTSRCE
+               CALL EMITHG( I, J, L, N, E_Hg )
+
+               ! Anthro East Asia re-emission from ocean 
+               N            = ID_Hg0(ID_Hg_eas)
+               E_Hg         = F_OF_PBL * EHg0_oc(I,J,ID_Hg_eas) * DTSRCE
+               CALL EMITHG( I, J, L, N, E_Hg )
+
+               ! Anthro Southeast Asia re-emission from ocean 
+               N            = ID_Hg0(ID_Hg_sea)
+               E_Hg         = F_OF_PBL * EHg0_oc(I,J,ID_Hg_sea) * DTSRCE
+               CALL EMITHG( I, J, L, N, E_Hg )
+
+               ! Anthro Japan re-emission from ocean 
+               N            = ID_Hg0(ID_Hg_jpn)
+               E_Hg         = F_OF_PBL * EHg0_oc(I,J,ID_Hg_jpn) * DTSRCE
+               CALL EMITHG( I, J, L, N, E_Hg )
+
+               ! Anthro Oceania re-emission from ocean 
+               N            = ID_Hg0(ID_Hg_oce)
+               E_Hg         = F_OF_PBL * EHg0_oc(I,J,ID_Hg_oce) * DTSRCE
+               CALL EMITHG( I, J, L, N, E_Hg )
+
+               ! Soil re-emission from ocean 
+               N            = ID_Hg0(ID_Hg_so)
+               E_Hg         = F_OF_PBL * EHg0_oc(I,J,ID_Hg_so) * DTSRCE
+               CALL EMITHG( I, J, L, N, E_Hg )
+
+               ! Biomass burning re-emission from ocean 
+               N            = ID_Hg0(ID_Hg_bb)
+               E_Hg         = F_OF_PBL * EHg0_oc(I,J,ID_Hg_bb) * DTSRCE
+               CALL EMITHG( I, J, L, N, E_Hg )
+
+               ! Geogenic re-emission from ocean 
+               N            = ID_Hg0(ID_Hg_geo)
+               E_Hg         = F_OF_PBL * EHg0_oc(I,J,ID_Hg_geo) * DTSRCE
+               CALL EMITHG( I, J, L, N, E_Hg )
+
+               ! Below Mixed Layer Mid-Atlantic re-emission from ocean 
+               N            = ID_Hg0(ID_Hg_atl)
+               E_Hg         = F_OF_PBL * EHg0_oc(I,J,ID_Hg_atl) * DTSRCE
+               CALL EMITHG( I, J, L, N, E_Hg )
+
+               ! Below Mixed Layer North Atlantic re-emission from ocean 
+               N            = ID_Hg0(ID_Hg_nat)
+               E_Hg         = F_OF_PBL * EHg0_oc(I,J,ID_Hg_nat) * DTSRCE
+               CALL EMITHG( I, J, L, N, E_Hg )
+
+               ! Below Mixed Layer South Atlantic re-emission from ocean 
+               N            = ID_Hg0(ID_Hg_sat)
+               E_Hg         = F_OF_PBL * EHg0_oc(I,J,ID_Hg_sat) * DTSRCE
+               CALL EMITHG( I, J, L, N, E_Hg )
+
+               ! Below Mixed Layer North Pacific re-emission from ocean
+               N            = ID_Hg0(ID_Hg_npa)
+               E_Hg         = F_OF_PBL * EHg0_oc(I,J,ID_Hg_npa) * DTSRCE
+               CALL EMITHG( I, J, L, N, E_Hg )
+
+               ! Below Mixed Layer Arctic re-emission from ocean 
+               N            = ID_Hg0(ID_Hg_arc)
+               E_Hg         = F_OF_PBL * EHg0_oc(I,J,ID_Hg_arc) * DTSRCE
+               CALL EMITHG( I, J, L, N, E_Hg )
+
+               ! Below Mixed Layer Antarctic re-emission from ocean 
+               N            = ID_Hg0(ID_Hg_ant)
+               E_Hg         = F_OF_PBL * EHg0_oc(I,J,ID_Hg_ant) * DTSRCE
+               CALL EMITHG( I, J, L, N, E_Hg )
+
+               ! Below Mixed Layer All Other Ocean re-emission from ocean
+               N            = ID_Hg0(ID_Hg_ocn)
+               E_Hg         = F_OF_PBL * EHg0_oc(I,J,ID_Hg_ocn) * DTSRCE
+               CALL EMITHG( I, J, L, N, E_Hg )
+
+               ! Residual Stratosphere from Spin-up re-emission from ocean 
+               N            = ID_Hg0(ID_Hg_str)
+               E_Hg         = F_OF_PBL * EHg0_oc(I,J,ID_Hg_str) * DTSRCE
+               CALL EMITHG( I, J, L, N, E_Hg )
+
 
                !--------------------
                ! Land re-emissions
                !--------------------
 
-               ! Anthro re-emission from ocean in N. AMERICA
-               N            = ID_Hg0(ID_Hg_na)
-               E_Hg         = F_OF_PBL * EHg0_ln(I,J,ID_Hg_na) * DTSRCE
+!               ! Anthro re-emission from land in N. AMERICA
+!               N            = ID_Hg0(ID_Hg_na)
+!               E_Hg         = F_OF_PBL * EHg0_ln(I,J,ID_Hg_na) * DTSRCE
+!               CALL EMITHG( I, J, L, N, E_Hg )
+!
+!               ! Anthro re-emission from land in EUROPE
+!               N            = ID_Hg0(ID_Hg_eu)
+!               E_Hg         = F_OF_PBL * EHg0_ln(I,J,ID_Hg_eu) * DTSRCE
+!               CALL EMITHG( I, J, L, N, E_Hg )
+!
+!               ! Anthro re-emission from land in ASIA
+!               N            = ID_Hg0(ID_Hg_as)
+!               E_Hg         = F_OF_PBL * EHg0_ln(I,J,ID_Hg_as) * DTSRCE
+!               CALL EMITHG( I, J, L, N, E_Hg )
+!
+!               ! Anthro re-emission from land in REST OF WORLD
+!               N            = ID_Hg0(ID_Hg_rw)
+!               E_Hg         = F_OF_PBL * EHg0_ln(I,J,ID_Hg_rw) * DTSRCE
+!               CALL EMITHG( I, J, L, N, E_Hg )
+!
+!               ! Re-emission from land in OCEAN 
+!               N            = ID_Hg0(ID_Hg_oc)
+!               E_Hg         = F_OF_PBL * EHg0_ln(I,J,ID_Hg_oc) * DTSRCE
+!               CALL EMITHG( I, J, L, N, E_Hg )
+!
+!               ! Re-emission from land in LAND REEMISSION
+!               N            = ID_Hg0(ID_Hg_ln)
+!               E_Hg         = F_OF_PBL * EHg0_ln(I,J,ID_Hg_ln) * DTSRCE
+!               CALL EMITHG( I, J, L, N, E_Hg )
+!
+!               ! Re-emission from land in NATURAL
+!               N            = ID_Hg0(ID_Hg_nt)
+!               E_Hg         = F_OF_PBL * EHg0_ln(I,J,ID_Hg_nt) * DTSRCE
+!               CALL EMITHG( I, J, L, N, E_Hg )
+
+              
+               ! Anthro Canada re-emission from land
+               N            = ID_Hg0(ID_Hg_can)
+               E_Hg         = F_OF_PBL * EHg0_ln(I,J,ID_Hg_can) * DTSRCE
                CALL EMITHG( I, J, L, N, E_Hg )
 
-               ! Anthro re-emission from ocean in EUROPE
-               N            = ID_Hg0(ID_Hg_eu)
-               E_Hg         = F_OF_PBL * EHg0_ln(I,J,ID_Hg_eu) * DTSRCE
+               ! Anthro United States re-emission from land 
+               N            = ID_Hg0(ID_Hg_usa)
+               E_Hg         = F_OF_PBL * EHg0_ln(I,J,ID_Hg_usa) * DTSRCE
                CALL EMITHG( I, J, L, N, E_Hg )
 
-               ! Anthro re-emission from ocean in ASIA
-               N            = ID_Hg0(ID_Hg_as)
-               E_Hg         = F_OF_PBL * EHg0_ln(I,J,ID_Hg_as) * DTSRCE
+               ! Anthro Central America re-emission from land 
+               N            = ID_Hg0(ID_Hg_cam)
+               E_Hg         = F_OF_PBL * EHg0_ln(I,J,ID_Hg_cam) * DTSRCE
                CALL EMITHG( I, J, L, N, E_Hg )
 
-               ! Anthro re-emission from ocean in REST OF WORLD
-               N            = ID_Hg0(ID_Hg_rw)
-               E_Hg         = F_OF_PBL * EHg0_ln(I,J,ID_Hg_rw) * DTSRCE
+               ! Anthro South America re-emission from land 
+               N            = ID_Hg0(ID_Hg_sam)
+               E_Hg         = F_OF_PBL * EHg0_ln(I,J,ID_Hg_sam) * DTSRCE
                CALL EMITHG( I, J, L, N, E_Hg )
 
-               ! Re-emission from ocean in OCEAN 
-               N            = ID_Hg0(ID_Hg_oc)
-               E_Hg         = F_OF_PBL * EHg0_ln(I,J,ID_Hg_oc) * DTSRCE
+               ! Anthro West Africa re-emission from land 
+               N            = ID_Hg0(ID_Hg_waf)
+               E_Hg         = F_OF_PBL * EHg0_ln(I,J,ID_Hg_waf) * DTSRCE
                CALL EMITHG( I, J, L, N, E_Hg )
 
-               ! Re-emission from ocean in LAND REEMISSION
-               N            = ID_Hg0(ID_Hg_ln)
-               E_Hg         = F_OF_PBL * EHg0_ln(I,J,ID_Hg_ln) * DTSRCE
+               ! Anthro East Africa re-emission from land 
+               N            = ID_Hg0(ID_Hg_eaf)
+               E_Hg         = F_OF_PBL * EHg0_ln(I,J,ID_Hg_eaf) * DTSRCE
                CALL EMITHG( I, J, L, N, E_Hg )
 
-               ! Re-emission from ocean in NATURAL
-               N            = ID_Hg0(ID_Hg_nt)
-               E_Hg         = F_OF_PBL * EHg0_ln(I,J,ID_Hg_nt) * DTSRCE
+               ! Anthro South Africa re-emission from land 
+               N            = ID_Hg0(ID_Hg_saf)
+               E_Hg         = F_OF_PBL * EHg0_ln(I,J,ID_Hg_saf) * DTSRCE
                CALL EMITHG( I, J, L, N, E_Hg )
+
+               ! Anthro North Africa re-emission from land 
+               N            = ID_Hg0(ID_Hg_naf)
+               E_Hg         = F_OF_PBL * EHg0_ln(I,J,ID_Hg_naf) * DTSRCE
+               CALL EMITHG( I, J, L, N, E_Hg )
+
+               ! Anthro OECD Europe re-emission from land 
+               N            = ID_Hg0(ID_Hg_eur)
+               E_Hg         = F_OF_PBL * EHg0_ln(I,J,ID_Hg_eur) * DTSRCE
+               CALL EMITHG( I, J, L, N, E_Hg )
+
+               ! Anthro Eastern Europe re-emission from land 
+               N            = ID_Hg0(ID_Hg_eeu)
+               E_Hg         = F_OF_PBL * EHg0_ln(I,J,ID_Hg_eeu) * DTSRCE
+               CALL EMITHG( I, J, L, N, E_Hg )
+
+               ! Anthro Middle East re-emission from land 
+               N            = ID_Hg0(ID_Hg_mde)
+               E_Hg         = F_OF_PBL * EHg0_ln(I,J,ID_Hg_mde) * DTSRCE
+               CALL EMITHG( I, J, L, N, E_Hg )
+
+               ! Anthro Former Soviet Union re-emission from land 
+               N            = ID_Hg0(ID_Hg_sov)
+               E_Hg         = F_OF_PBL * EHg0_ln(I,J,ID_Hg_sov) * DTSRCE
+               CALL EMITHG( I, J, L, N, E_Hg )
+
+               ! Anthro South Asia re-emission from land 
+               N            = ID_Hg0(ID_Hg_sas)
+               E_Hg         = F_OF_PBL * EHg0_ln(I,J,ID_Hg_sas) * DTSRCE
+               CALL EMITHG( I, J, L, N, E_Hg )
+
+               ! Anthro East Asia re-emission from land 
+               N            = ID_Hg0(ID_Hg_eas)
+               E_Hg         = F_OF_PBL * EHg0_ln(I,J,ID_Hg_eas) * DTSRCE
+               CALL EMITHG( I, J, L, N, E_Hg )
+
+               ! Anthro Southeast Asia re-emission from land 
+               N            = ID_Hg0(ID_Hg_sea)
+               E_Hg         = F_OF_PBL * EHg0_ln(I,J,ID_Hg_sea) * DTSRCE
+               CALL EMITHG( I, J, L, N, E_Hg )
+
+               ! Anthro Japan re-emission from land 
+               N            = ID_Hg0(ID_Hg_jpn)
+               E_Hg         = F_OF_PBL * EHg0_ln(I,J,ID_Hg_jpn) * DTSRCE
+               CALL EMITHG( I, J, L, N, E_Hg )
+
+               ! Anthro Oceania re-emission from land 
+               N            = ID_Hg0(ID_Hg_oce)
+               E_Hg         = F_OF_PBL * EHg0_ln(I,J,ID_Hg_oce) * DTSRCE
+               CALL EMITHG( I, J, L, N, E_Hg )
+
+               ! Soil re-emission from land 
+               N            = ID_Hg0(ID_Hg_so)
+               E_Hg         = F_OF_PBL * EHg0_ln(I,J,ID_Hg_so) * DTSRCE
+               CALL EMITHG( I, J, L, N, E_Hg )
+
+               ! Biomass burning re-emission from land 
+               N            = ID_Hg0(ID_Hg_bb)
+               E_Hg         = F_OF_PBL * EHg0_ln(I,J,ID_Hg_bb) * DTSRCE
+               CALL EMITHG( I, J, L, N, E_Hg )
+
+               ! Geogenic re-emission from land 
+               N            = ID_Hg0(ID_Hg_geo)
+               E_Hg         = F_OF_PBL * EHg0_ln(I,J,ID_Hg_geo) * DTSRCE
+               CALL EMITHG( I, J, L, N, E_Hg )
+
+               ! Below Mixed Layer Mid-Atlantic re-emission from land 
+               N            = ID_Hg0(ID_Hg_atl)
+               E_Hg         = F_OF_PBL * EHg0_ln(I,J,ID_Hg_atl) * DTSRCE
+               CALL EMITHG( I, J, L, N, E_Hg )
+
+               ! Below Mixed Layer North Atlantic re-emission from land 
+               N            = ID_Hg0(ID_Hg_nat)
+               E_Hg         = F_OF_PBL * EHg0_ln(I,J,ID_Hg_nat) * DTSRCE
+               CALL EMITHG( I, J, L, N, E_Hg )
+
+               ! Below Mixed Layer South Atlantic re-emission from land 
+               N            = ID_Hg0(ID_Hg_sat)
+               E_Hg         = F_OF_PBL * EHg0_ln(I,J,ID_Hg_sat) * DTSRCE
+               CALL EMITHG( I, J, L, N, E_Hg )
+
+               ! Below Mixed Layer North Pacific re-emission from land
+               N            = ID_Hg0(ID_Hg_npa)
+               E_Hg         = F_OF_PBL * EHg0_ln(I,J,ID_Hg_npa) * DTSRCE
+               CALL EMITHG( I, J, L, N, E_Hg )
+
+               ! Below Mixed Layer Arctic re-emission from land 
+               N            = ID_Hg0(ID_Hg_arc)
+               E_Hg         = F_OF_PBL * EHg0_ln(I,J,ID_Hg_arc) * DTSRCE
+               CALL EMITHG( I, J, L, N, E_Hg )
+
+               ! Below Mixed Layer Antarctic re-emission from land 
+               N            = ID_Hg0(ID_Hg_ant)
+               E_Hg         = F_OF_PBL * EHg0_ln(I,J,ID_Hg_ant) * DTSRCE
+               CALL EMITHG( I, J, L, N, E_Hg )
+
+               ! Below Mixed Layer All Other Ocean re-emission from land
+               N            = ID_Hg0(ID_Hg_ocn)
+               E_Hg         = F_OF_PBL * EHg0_ln(I,J,ID_Hg_ocn) * DTSRCE
+               CALL EMITHG( I, J, L, N, E_Hg )
+
+               ! Residual Stratosphere from Spin-up re-emission from land 
+               N            = ID_Hg0(ID_Hg_str)
+               E_Hg         = F_OF_PBL * EHg0_ln(I,J,ID_Hg_str) * DTSRCE
+               CALL EMITHG( I, J, L, N, E_Hg )
+
                
                !--------------------
                ! Snow re-emissions
                !--------------------
 
-               ! Anthro re-emission from snow in N. AMERICA
-               N          = ID_Hg0(ID_Hg_na)
-               E_Hg       = F_OF_PBL * EHg0_snow(I,J,ID_Hg_na) * DTSRCE
+!               ! Anthro re-emission from snow in N. AMERICA
+!               N          = ID_Hg0(ID_Hg_na)
+!               E_Hg       = F_OF_PBL * EHg0_snow(I,J,ID_Hg_na) * DTSRCE
+!               CALL EMITHG( I, J, L, N, E_Hg )
+!
+!               ! Anthro re-emission from snow in EUROPE
+!               N          = ID_Hg0(ID_Hg_eu)
+!               E_Hg       = F_OF_PBL * EHg0_snow(I,J,ID_Hg_eu) * DTSRCE
+!               CALL EMITHG( I, J, L, N, E_Hg )
+!
+!               ! Anthro re-emission from snow in ASIA
+!               N          = ID_Hg0(ID_Hg_as)
+!               E_Hg       = F_OF_PBL * EHg0_snow(I,J,ID_Hg_as) * DTSRCE
+!               CALL EMITHG( I, J, L, N, E_Hg )
+!
+!               ! Anthro re-emission from snow in REST OF WORLD
+!               N          = ID_Hg0(ID_Hg_rw)
+!               E_Hg       = F_OF_PBL * EHg0_snow(I,J,ID_Hg_rw) * DTSRCE
+!               CALL EMITHG( I, J, L, N, E_Hg )
+!
+!               ! Re-emission from snow in OCEAN 
+!               N          = ID_Hg0(ID_Hg_oc)
+!               E_Hg       = F_OF_PBL * EHg0_snow(I,J,ID_Hg_oc) * DTSRCE
+!               CALL EMITHG( I, J, L, N, E_Hg )
+!
+!               ! Re-emission from snow in LAND REEMISSION
+!               N          = ID_Hg0(ID_Hg_ln)
+!               E_Hg       = F_OF_PBL * EHg0_snow(I,J,ID_Hg_ln) * DTSRCE
+!               CALL EMITHG( I, J, L, N, E_Hg )
+!
+!               ! Re-emission from snow in NATURAL
+!               N          = ID_Hg0(ID_Hg_nt)
+!               E_Hg     = F_OF_PBL * EHg0_snow(I,J,ID_Hg_nt) * DTSRCE
+!               CALL EMITHG( I, J, L, N, E_Hg )
+
+              
+               ! Anthro Canada re-emission from snow
+               N            = ID_Hg0(ID_Hg_can)
+               E_Hg    = F_OF_PBL * EHg0_snow(I,J,ID_Hg_can) * DTSRCE
                CALL EMITHG( I, J, L, N, E_Hg )
 
-               ! Anthro re-emission from snow in EUROPE
-               N          = ID_Hg0(ID_Hg_eu)
-               E_Hg       = F_OF_PBL * EHg0_snow(I,J,ID_Hg_eu) * DTSRCE
+               ! Anthro United States re-emission from snow 
+               N            = ID_Hg0(ID_Hg_usa)
+               E_Hg     = F_OF_PBL * EHg0_snow(I,J,ID_Hg_usa) * DTSRCE
                CALL EMITHG( I, J, L, N, E_Hg )
 
-               ! Anthro re-emission from snow in ASIA
-               N          = ID_Hg0(ID_Hg_as)
-               E_Hg       = F_OF_PBL * EHg0_snow(I,J,ID_Hg_as) * DTSRCE
+               ! Anthro Central America re-emission from snow 
+               N            = ID_Hg0(ID_Hg_cam)
+               E_Hg     = F_OF_PBL * EHg0_snow(I,J,ID_Hg_cam) * DTSRCE
                CALL EMITHG( I, J, L, N, E_Hg )
 
-               ! Anthro re-emission from snow in REST OF WORLD
-               N          = ID_Hg0(ID_Hg_rw)
-               E_Hg       = F_OF_PBL * EHg0_snow(I,J,ID_Hg_rw) * DTSRCE
+               ! Anthro South America re-emission from snow 
+               N            = ID_Hg0(ID_Hg_sam)
+               E_Hg     = F_OF_PBL * EHg0_snow(I,J,ID_Hg_sam) * DTSRCE
                CALL EMITHG( I, J, L, N, E_Hg )
 
-               ! Re-emission from snow in OCEAN 
-               N          = ID_Hg0(ID_Hg_oc)
-               E_Hg       = F_OF_PBL * EHg0_snow(I,J,ID_Hg_oc) * DTSRCE
+               ! Anthro West Africa re-emission from snow 
+               N            = ID_Hg0(ID_Hg_waf)
+               E_Hg     = F_OF_PBL * EHg0_snow(I,J,ID_Hg_waf) * DTSRCE
                CALL EMITHG( I, J, L, N, E_Hg )
 
-               ! Re-emission from snow in LAND REEMISSION
-               N          = ID_Hg0(ID_Hg_ln)
-               E_Hg       = F_OF_PBL * EHg0_snow(I,J,ID_Hg_ln) * DTSRCE
+               ! Anthro East Africa re-emission from snow 
+               N            = ID_Hg0(ID_Hg_eaf)
+               E_Hg     = F_OF_PBL * EHg0_snow(I,J,ID_Hg_eaf) * DTSRCE
                CALL EMITHG( I, J, L, N, E_Hg )
 
-               ! Re-emission from snow in NATURAL
-               N          = ID_Hg0(ID_Hg_nt)
-               E_Hg       = F_OF_PBL * EHg0_snow(I,J,ID_Hg_nt) * DTSRCE
+               ! Anthro South Africa re-emission from snow 
+               N            = ID_Hg0(ID_Hg_saf)
+               E_Hg     = F_OF_PBL * EHg0_snow(I,J,ID_Hg_saf) * DTSRCE
                CALL EMITHG( I, J, L, N, E_Hg )
+
+               ! Anthro North Africa re-emission from snow 
+               N            = ID_Hg0(ID_Hg_naf)
+               E_Hg     = F_OF_PBL * EHg0_snow(I,J,ID_Hg_naf) * DTSRCE
+               CALL EMITHG( I, J, L, N, E_Hg )
+
+               ! Anthro OECD Europe re-emission from snow 
+               N            = ID_Hg0(ID_Hg_eur)
+               E_Hg     = F_OF_PBL * EHg0_snow(I,J,ID_Hg_eur) * DTSRCE
+               CALL EMITHG( I, J, L, N, E_Hg )
+
+               ! Anthro Eastern Europe re-emission from snow 
+               N            = ID_Hg0(ID_Hg_eeu)
+               E_Hg     = F_OF_PBL * EHg0_snow(I,J,ID_Hg_eeu) * DTSRCE
+               CALL EMITHG( I, J, L, N, E_Hg )
+
+               ! Anthro Middle East re-emission from snow 
+               N            = ID_Hg0(ID_Hg_mde)
+               E_Hg     = F_OF_PBL * EHg0_snow(I,J,ID_Hg_mde) * DTSRCE
+               CALL EMITHG( I, J, L, N, E_Hg )
+
+               ! Anthro Former Soviet Union re-emission from snow 
+               N            = ID_Hg0(ID_Hg_sov)
+               E_Hg     = F_OF_PBL * EHg0_snow(I,J,ID_Hg_sov) * DTSRCE
+               CALL EMITHG( I, J, L, N, E_Hg )
+
+               ! Anthro South Asia re-emission from snow 
+               N            = ID_Hg0(ID_Hg_sas)
+               E_Hg     = F_OF_PBL * EHg0_snow(I,J,ID_Hg_sas) * DTSRCE
+               CALL EMITHG( I, J, L, N, E_Hg )
+
+               ! Anthro East Asia re-emission from snow 
+               N            = ID_Hg0(ID_Hg_eas)
+               E_Hg     = F_OF_PBL * EHg0_snow(I,J,ID_Hg_eas) * DTSRCE
+               CALL EMITHG( I, J, L, N, E_Hg )
+
+               ! Anthro Southeast Asia re-emission from snow 
+               N            = ID_Hg0(ID_Hg_sea)
+               E_Hg     = F_OF_PBL * EHg0_snow(I,J,ID_Hg_sea) * DTSRCE
+               CALL EMITHG( I, J, L, N, E_Hg )
+
+               ! Anthro Japan re-emission from snow 
+               N            = ID_Hg0(ID_Hg_jpn)
+               E_Hg     = F_OF_PBL * EHg0_snow(I,J,ID_Hg_jpn) * DTSRCE
+               CALL EMITHG( I, J, L, N, E_Hg )
+
+               ! Anthro Oceania re-emission from snow 
+               N            = ID_Hg0(ID_Hg_oce)
+               E_Hg    = F_OF_PBL * EHg0_snow(I,J,ID_Hg_oce) * DTSRCE
+               CALL EMITHG( I, J, L, N, E_Hg )
+
+               ! Soil re-emission from snow
+               N            = ID_Hg0(ID_Hg_so)
+               E_Hg     = F_OF_PBL * EHg0_snow(I,J,ID_Hg_so) * DTSRCE
+               CALL EMITHG( I, J, L, N, E_Hg )
+
+               ! Biomass burning re-emission from snow 
+               N            = ID_Hg0(ID_Hg_bb)
+               E_Hg     = F_OF_PBL * EHg0_snow(I,J,ID_Hg_bb) * DTSRCE
+               CALL EMITHG( I, J, L, N, E_Hg )
+
+               ! Geogenic re-emission from snow 
+               N            = ID_Hg0(ID_Hg_geo)
+               E_Hg     = F_OF_PBL * EHg0_snow(I,J,ID_Hg_geo) * DTSRCE
+               CALL EMITHG( I, J, L, N, E_Hg )
+
+               ! Below Mixed Layer Mid-Atlantic re-emission from snow 
+               N            = ID_Hg0(ID_Hg_atl)
+               E_Hg     = F_OF_PBL * EHg0_snow(I,J,ID_Hg_atl) * DTSRCE
+               CALL EMITHG( I, J, L, N, E_Hg )
+
+               ! Below Mixed Layer North Atlantic re-emission from snow 
+               N            = ID_Hg0(ID_Hg_nat)
+               E_Hg     = F_OF_PBL * EHg0_snow(I,J,ID_Hg_nat) * DTSRCE
+               CALL EMITHG( I, J, L, N, E_Hg )
+
+               ! Below Mixed Layer South Atlantic re-emission from snow 
+               N            = ID_Hg0(ID_Hg_sat)
+               E_Hg     = F_OF_PBL * EHg0_snow(I,J,ID_Hg_sat) * DTSRCE
+               CALL EMITHG( I, J, L, N, E_Hg )
+
+               ! Below Mixed Layer North Pacific re-emission from snow
+               N            = ID_Hg0(ID_Hg_npa)
+               E_Hg    = F_OF_PBL * EHg0_snow(I,J,ID_Hg_npa) * DTSRCE
+               CALL EMITHG( I, J, L, N, E_Hg )
+
+               ! Below Mixed Layer Arctic re-emission from snow 
+               N            = ID_Hg0(ID_Hg_arc)
+               E_Hg     = F_OF_PBL * EHg0_snow(I,J,ID_Hg_arc) * DTSRCE
+               CALL EMITHG( I, J, L, N, E_Hg )
+
+               ! Below Mixed Layer Antarctic re-emission from snow 
+               N            = ID_Hg0(ID_Hg_ant)
+               E_Hg     = F_OF_PBL * EHg0_snow(I,J,ID_Hg_ant) * DTSRCE
+               CALL EMITHG( I, J, L, N, E_Hg )
+
+               ! Below Mixed Layer All Other Ocean re-emission from snow
+               N            = ID_Hg0(ID_Hg_ocn)
+               E_Hg     = F_OF_PBL * EHg0_snow(I,J,ID_Hg_ocn) * DTSRCE
+               CALL EMITHG( I, J, L, N, E_Hg )
+
+               ! Residual Stratosphere from Spin-up re-emission from snow 
+               N            = ID_Hg0(ID_Hg_str)
+               E_Hg     = F_OF_PBL * EHg0_snow(I,J,ID_Hg_str) * DTSRCE
+               CALL EMITHG( I, J, L, N, E_Hg )
+
+!----------------------------------------------------------------------------------
                
             ENDIF
          ENDDO
@@ -2388,25 +3031,57 @@
          ! ND03 diagnostic: Total Hg(0) emissions [kg]
          ! 1=anthro; 3=from ocean; 4=land re-emission; 5=natural src
          !==============================================================
+
+!- eds 8/31/10 -------------------------------------------------------------
          IF ( ND03 > 0 ) THEN
-            N = ID_Hg_tot
+!            N = ID_Hg_tot !eds 9/9/10
             IF ( LGTMM ) THEN
-               AD03(I,J,1) = AD03(I,J,1) + ( T_Hg_An        * DTSRCE )
-               AD03(I,J,3) = AD03(I,J,3) + ( EHg0_oc(I,J,N) * DTSRCE )
-               AD03(I,J,4) = AD03(I,J,4) + ( EHg0_gtm(I,J)  * DTSRCE )
-               AD03(I,J,5) = AD03(I,J,5) + ( EHg0_nt(I,J) * DTSRCE )
-               AD03(I,J,13)= AD03(I,J,13)+ ( EHg0_bb(I,J)*DTSRCE)
-               AD03(I,J,18)= AD03(I,J,18)+ ( EHg0_snow(I,J,N)*DTSRCE)
+!               AD03(I,J,1) = AD03(I,J,1) + (T_Hg_An        * DTSRCE)
+!               AD03(I,J,3) = AD03(I,J,3) + (EHg0_oc(I,J,N) * DTSRCE)
+!               AD03(I,J,4) = AD03(I,J,4) + (EHg0_gtm(I,J)  * DTSRCE)
+!               AD03(I,J,5) = AD03(I,J,5) + (EHg0_nt(I,J) * DTSRCE)
+!               AD03(I,J,13)= AD03(I,J,13)+ (EHg0_bb(I,J)*DTSRCE)
+!               AD03(I,J,18)= AD03(I,J,18)+ (EHg0_snow(I,J,N)*DTSRCE)
+
+               !eds 9/9/10 
+              DO NN = 1, N_HG_CATS ! N -> NN 
+
+              AD03(I,J,1,NN) = AD03(I,J,1,NN) + (T_Hg_An * DTSRCE)
+              AD03(I,J,3,NN) = AD03(I,J,3,NN)+(EHg0_oc(I,J,NN) * DTSRCE)
+              AD03(I,J,4,NN) = AD03(I,J,4,NN)+(EHg0_gtm(I,J)  * DTSRCE)
+              AD03(I,J,5,NN) = AD03(I,J,5,NN) + (EHg0_geo(I,J) * DTSRCE)
+              AD03(I,J,13,NN)= AD03(I,J,13,NN)+ (EHg0_bb(I,J)*DTSRCE)
+              AD03(I,J,18,NN)=AD03(I,J,18,NN)+(EHg0_snow(I,J,NN)*DTSRCE)
+
+              ENDDO
+
+
             ELSE
-               AD03(I,J,1) = AD03(I,J,1) + ( T_Hg_An        * DTSRCE )
-               AD03(I,J,3) = AD03(I,J,3) + ( EHg0_oc(I,J,N) * DTSRCE )
-               AD03(I,J,4) = AD03(I,J,4) + ( EHg0_ln(I,J,N) * DTSRCE )
-               AD03(I,J,5) = AD03(I,J,5) + ( EHg0_nt(I,J)  * DTSRCE )
-               AD03(I,J,13)= AD03(I,J,13)+ ( EHg0_bb(I,J)*DTSRCE)
-               AD03(I,J,14)= AD03(I,J,14)+ ( EHg0_vg(I,J)*DTSRCE)
-               AD03(I,J,15)= AD03(I,J,15)+ ( EHg0_so(I,J)*DTSRCE)
-               AD03(I,J,18)= AD03(I,J,18)+ ( EHg0_snow(I,J,N)*DTSRCE)
+!               AD03(I,J,1) = AD03(I,J,1) + (T_Hg_An * DTSRCE)
+!               AD03(I,J,3) = AD03(I,J,3) + (EHg0_oc(I,J,N) * DTSRCE)
+!               AD03(I,J,4) = AD03(I,J,4) + (EHg0_ln(I,J,N) * DTSRCE)
+!               AD03(I,J,5) = AD03(I,J,5) + (EHg0_nt(I,J)  * DTSRCE)
+!               AD03(I,J,13)= AD03(I,J,13)+ (EHg0_bb(I,J)*DTSRCE)
+!               AD03(I,J,14)= AD03(I,J,14)+ (EHg0_vg(I,J)*DTSRCE)
+!               AD03(I,J,15)= AD03(I,J,15)+ (EHg0_so(I,J)*DTSRCE)
+!               AD03(I,J,18)= AD03(I,J,18)+ (EHg0_snow(I,J,N)*DTSRCE)
+
+       	       !eds 9/9/10 
+       	      DO NN = 1, N_HG_CATS ! N -> NN
+
+       	      AD03(I,J,1,NN) = AD03(I,J,1,NN) + (T_Hg_An * DTSRCE)
+              AD03(I,J,3,NN) =AD03(I,J,3,NN)+(EHg0_oc(I,J,NN) * DTSRCE)
+              AD03(I,J,4,NN) =AD03(I,J,4,NN)+(EHg0_ln(I,J,NN) * DTSRCE)
+              AD03(I,J,5,NN) = AD03(I,J,5,NN)+ (EHg0_geo(I,J) * DTSRCE)
+              AD03(I,J,13,NN)= AD03(I,J,13,NN)+ (EHg0_bb(I,J)*DTSRCE)
+              AD03(I,J,14,NN)= AD03(I,J,14,NN)+ (EHg0_vg(I,J)*DTSRCE)
+              AD03(I,J,15,NN)= AD03(I,J,15,NN)+ (EHg0_so(I,J)*DTSRCE)
+              AD03(I,J,18,NN)=AD03(I,J,18,NN)+(EHg0_snow(I,J,NN)*DTSRCE)
+
+              ENDDO
+
             ENDIF
+!------------------------------------------------------------------------------
 
             ! for preindustrial simulation, archive only soil,
             ! CDH- WHY ONLY SOIL??
@@ -2417,14 +3092,20 @@
             ELSE
                IF ( LGTMM ) THEN
                   AD03_nat(I,J,N) = DTSRCE * (
-     &                 EHg0_nt(I,J)     + 
+!- eds 8/31/10 ----------------------------------------------
+!     &                 EHg0_nt(I,J)     + 
+     &                 EHg0_geo(I,J)    +
+!------------------------------------------------------------
      &                 EHg0_bb(I,J)     +
      &                 EHg0_gtm(I,J)    + 
      &                 EHg0_snow(I,J,N)  ) 
                ELSE
                   AD03_nat(I,J,N) = DTSRCE * (
      &                 EHg0_ln(I,J,N) + 
-     &                 EHg0_nt(I,J) + 
+!- eds 8/31/10 ----------------------------------------------
+!     &                 EHg0_nt(I,J) + 
+     &                 EHg0_geo(I,J) +
+!------------------------------------------------------------
      &                 EHg0_bb(I,J) +
      &                 EHg0_vg(I,J) + 
      &                 EHg0_so(I,J) + 
@@ -2468,7 +3149,20 @@
       USE LOGICAL_MOD,  ONLY : LSPLIT, LPREINDHG
       USE PBL_MIX_MOD,  ONLY : GET_FRAC_OF_PBL, GET_PBL_MAX_L
       USE TIME_MOD,     ONLY : GET_TS_EMIS
+!- eds 8/31/10 ------------------------------------------------------------
       USE TRACERID_MOD, ONLY : ID_Hg_tot, ID_Hg2
+      USE TRACERID_MOD, ONLY : ID_Hg_can,  ID_Hg_usa
+      USE TRACERID_MOD, ONLY : ID_Hg_cam,  ID_Hg_sam,  ID_Hg_waf
+      USE TRACERID_MOD, ONLY : ID_Hg_eaf,  ID_Hg_saf,  ID_Hg_naf
+      USE TRACERID_MOD, ONLY : ID_Hg_eur,  ID_Hg_eeu,  ID_Hg_sov
+      USE TRACERID_MOD, ONLY : ID_Hg_mde,  ID_Hg_sas,  ID_Hg_eas
+      USE TRACERID_MOD, ONLY : ID_Hg_sea,  ID_Hg_jpn,  ID_Hg_oce
+      USE TRACERID_MOD, ONLY : ID_Hg_so,   ID_Hg_bb,   ID_Hg_geo
+      USE TRACERID_MOD, ONLY : ID_Hg_atl,  ID_Hg_nat,  ID_Hg_sat
+      USE TRACERID_MOD, ONLY : ID_Hg_npa,  ID_Hg_arc,  ID_Hg_ant
+      USE TRACERID_MOD, ONLY : ID_Hg_ocn,  ID_Hg_str
+!---------------------------------------------------------------------------
+
 
       USE CMN_SIZE_MOD     ! Size parameters
 
@@ -2514,8 +3208,97 @@
                ! Tagged anthro Hg(II) [kg]
                !---------------------------
                IF ( LSPLIT ) THEN 
-                  N            = AN_Hg2(I,J)
-                  CALL EMITHG( I, J, L, N, E_Hg )
+
+!- eds 8/31/10 --------------------------------------------------------
+!                  N            = AN_Hg2(I,J)
+!                  CALL EMITHG( I, J, L, N, E_Hg )
+
+               ! Anthro Canada Hg2
+               N            = ID_Hg2(ID_Hg_can)
+               E_Hg         = F_OF_PBL * EHg2_can(I,J) * DTSRCE
+               CALL EMITHG( I, J, L, N, E_Hg )
+
+               ! Anthro United States Hg2
+               N            = ID_Hg2(ID_Hg_usa)
+               E_Hg         = F_OF_PBL * EHg2_usa(I,J) * DTSRCE
+               CALL EMITHG( I, J, L, N, E_Hg )
+
+               ! Anthro Central America Hg2
+               N            = ID_Hg2(ID_Hg_cam)
+               E_Hg         = F_OF_PBL * EHg2_cam(I,J) * DTSRCE
+               CALL EMITHG( I, J, L, N, E_Hg )
+
+               ! Anthro South America Hg2
+               N            = ID_Hg2(ID_Hg_sam)
+               E_Hg         = F_OF_PBL * EHg2_sam(I,J) * DTSRCE
+               CALL EMITHG( I, J, L, N, E_Hg )
+
+               ! Anthro West Africa Hg2
+               N            = ID_Hg2(ID_Hg_waf)
+               E_Hg         = F_OF_PBL * EHg2_waf(I,J) * DTSRCE
+               CALL EMITHG( I, J, L, N, E_Hg )
+
+               ! Anthro East Africa Hg2
+               N            = ID_Hg2(ID_Hg_eaf)
+               E_Hg         = F_OF_PBL * EHg2_eaf(I,J) * DTSRCE
+               CALL EMITHG( I, J, L, N, E_Hg )
+
+               ! Anthro South Africa Hg2
+               N            = ID_Hg2(ID_Hg_saf)
+               E_Hg         = F_OF_PBL * EHg2_saf(I,J) * DTSRCE
+               CALL EMITHG( I, J, L, N, E_Hg )
+
+               ! Anthro North Africa Hg2
+               N            = ID_Hg2(ID_Hg_naf)
+               E_Hg         = F_OF_PBL * EHg2_naf(I,J) * DTSRCE
+               CALL EMITHG( I, J, L, N, E_Hg )
+
+               ! Anthro OECD Europe Hg2
+               N            = ID_Hg2(ID_Hg_eur)
+               E_Hg         = F_OF_PBL * EHg2_eur(I,J) * DTSRCE
+               CALL EMITHG( I, J, L, N, E_Hg )
+
+               ! Anthro Eastern Europe Hg2
+               N            = ID_Hg2(ID_Hg_eeu)
+               E_Hg         = F_OF_PBL * EHg2_eeu(I,J) * DTSRCE
+               CALL EMITHG( I, J, L, N, E_Hg )
+
+               ! Anthro Middle East Hg2
+               N            = ID_Hg2(ID_Hg_mde)
+               E_Hg         = F_OF_PBL * EHg2_mde(I,J) * DTSRCE
+               CALL EMITHG( I, J, L, N, E_Hg )
+
+               ! Anthro Former USSR Hg2
+               N            = ID_Hg2(ID_Hg_sov)
+               E_Hg         = F_OF_PBL * EHg2_sov(I,J) * DTSRCE
+               CALL EMITHG( I, J, L, N, E_Hg )
+
+               ! Anthro South Asia Hg2
+               N            = ID_Hg2(ID_Hg_sas)
+               E_Hg         = F_OF_PBL * EHg2_sas(I,J) * DTSRCE
+               CALL EMITHG( I, J, L, N, E_Hg )
+
+               ! Anthro East Asia Hg2
+               N            = ID_Hg2(ID_Hg_eas)
+               E_Hg         = F_OF_PBL * EHg2_eas(I,J) * DTSRCE
+               CALL EMITHG( I, J, L, N, E_Hg )
+
+               ! Anthro Southeast Asia Hg2
+               N            = ID_Hg2(ID_Hg_sea)
+               E_Hg         = F_OF_PBL * EHg2_sea(I,J) * DTSRCE
+               CALL EMITHG( I, J, L, N, E_Hg )
+
+               ! Anthro Japan Hg2
+               N            = ID_Hg2(ID_Hg_jpn)
+               E_Hg         = F_OF_PBL * EHg2_jpn(I,J) * DTSRCE
+               CALL EMITHG( I, J, L, N, E_Hg )
+
+               ! Anthro Oceania Hg2
+               N            = ID_Hg2(ID_Hg_oce)
+               E_Hg         = F_OF_PBL * EHg2_oce(I,J) * DTSRCE
+               CALL EMITHG( I, J, L, N, E_Hg )
+
+!-----------------------------------------------------------------------
 
                ENDIF
             ENDDO
@@ -2524,7 +3307,10 @@
             ! ND03 diag: Anthro Hg(II) [kg]
             !-------------------------------
             IF ( ND03 > 0 ) THEN
-               AD03(I,J,6) = AD03(I,J,6) + ( EHg2_an(I,J) * DTSRCE )
+!- eds 8/31/10 --------------------------------------------------------
+!               AD03(I,J,6) = AD03(I,J,6) + ( EHg2_an(I,J) * DTSRCE )
+               AD03(I,J,6,1) = AD03(I,J,6,1) + ( EHg2_an(I,J) * DTSRCE )
+!----------------------------------------------------------------------
             ENDIF
          ENDDO
          ENDDO
@@ -2563,7 +3349,20 @@
       USE LOGICAL_MOD,  ONLY : LSPLIT, LPREINDHG
       USE PBL_MIX_MOD,  ONLY : GET_FRAC_OF_PBL, GET_PBL_MAX_L
       USE TIME_MOD,     ONLY : GET_TS_EMIS 
+!- eds 8/31/10 ------------------------------------------------------------
       USE TRACERID_MOD, ONLY : ID_Hg_tot, ID_HgP
+      USE TRACERID_MOD, ONLY : ID_Hg_can,  ID_Hg_usa
+      USE TRACERID_MOD, ONLY : ID_Hg_cam,  ID_Hg_sam,  ID_Hg_waf
+      USE TRACERID_MOD, ONLY : ID_Hg_eaf,  ID_Hg_saf,  ID_Hg_naf
+      USE TRACERID_MOD, ONLY : ID_Hg_eur,  ID_Hg_eeu,  ID_Hg_sov
+      USE TRACERID_MOD, ONLY : ID_Hg_mde,  ID_Hg_sas,  ID_Hg_eas
+      USE TRACERID_MOD, ONLY : ID_Hg_sea,  ID_Hg_jpn,  ID_Hg_oce
+      USE TRACERID_MOD, ONLY : ID_Hg_so,   ID_Hg_bb,   ID_Hg_geo
+      USE TRACERID_MOD, ONLY : ID_Hg_atl,  ID_Hg_nat,  ID_Hg_sat
+      USE TRACERID_MOD, ONLY : ID_Hg_npa,  ID_Hg_arc,  ID_Hg_ant
+      USE TRACERID_MOD, ONLY : ID_Hg_ocn,  ID_Hg_str
+!---------------------------------------------------------------------------
+
 
       USE CMN_SIZE_MOD     ! Size paramters
 
@@ -2610,10 +3409,99 @@
                ! Tagged anthro HgP [kg]
                !------------------------
                IF ( LSPLIT ) THEN
-                  N            = AN_HgP(I,J)
-!                  STT(I,J,L,N) = STT(I,J,L,N) + E_Hg
-!                  STT(I,J,L,N) = MAX( STT(I,J,L,N), SMALLNUM )
-                  CALL EMITHG( I, J, L, N, E_Hg )
+
+!- eds 8/31/10 --------------------------------------------------------
+!                  N            = AN_HgP(I,J)
+!!                  STT(I,J,L,N) = STT(I,J,L,N) + E_Hg
+!!                  STT(I,J,L,N) = MAX( STT(I,J,L,N), SMALLNUM )
+!                  CALL EMITHG( I, J, L, N, E_Hg )
+
+               ! Anthro Canada HgP
+               N            = ID_HgP(ID_Hg_can)
+               E_Hg         = F_OF_PBL * EHgP_can(I,J) * DTSRCE
+               CALL EMITHG( I, J, L, N, E_Hg )
+
+               ! Anthro United States HgP
+               N            = ID_HgP(ID_Hg_usa)
+               E_Hg         = F_OF_PBL * EHgP_usa(I,J) * DTSRCE
+               CALL EMITHG( I, J, L, N, E_Hg )
+
+               ! Anthro Central America HgP
+               N            = ID_HgP(ID_Hg_cam)
+               E_Hg         = F_OF_PBL * EHgP_cam(I,J) * DTSRCE
+               CALL EMITHG( I, J, L, N, E_Hg )
+
+               ! Anthro South America HgP
+               N            = ID_HgP(ID_Hg_sam)
+               E_Hg         = F_OF_PBL * EHgP_sam(I,J) * DTSRCE
+               CALL EMITHG( I, J, L, N, E_Hg )
+
+               ! Anthro West Africa HgP
+               N            = ID_HgP(ID_Hg_waf)
+               E_Hg         = F_OF_PBL * EHgP_waf(I,J) * DTSRCE
+               CALL EMITHG( I, J, L, N, E_Hg )
+
+               ! Anthro East Africa HgP
+               N            = ID_HgP(ID_Hg_eaf)
+               E_Hg         = F_OF_PBL * EHgP_eaf(I,J) * DTSRCE
+               CALL EMITHG( I, J, L, N, E_Hg )
+
+               ! Anthro South Africa HgP
+               N            = ID_HgP(ID_Hg_saf)
+               E_Hg         = F_OF_PBL * EHgP_saf(I,J) * DTSRCE
+               CALL EMITHG( I, J, L, N, E_Hg )
+
+               ! Anthro North Africa HgP
+               N            = ID_HgP(ID_Hg_naf)
+               E_Hg         = F_OF_PBL * EHgP_naf(I,J) * DTSRCE
+               CALL EMITHG( I, J, L, N, E_Hg )
+
+               ! Anthro OECD Europe HgP
+               N            = ID_HgP(ID_Hg_eur)
+               E_Hg         = F_OF_PBL * EHgP_eur(I,J) * DTSRCE
+               CALL EMITHG( I, J, L, N, E_Hg )
+
+               ! Anthro Eastern Europe HgP
+               N            = ID_HgP(ID_Hg_eeu)
+               E_Hg         = F_OF_PBL * EHgP_eeu(I,J) * DTSRCE
+               CALL EMITHG( I, J, L, N, E_Hg )
+
+               ! Anthro Middle East HgP
+               N            = ID_HgP(ID_Hg_mde)
+               E_Hg         = F_OF_PBL * EHgP_mde(I,J) * DTSRCE
+               CALL EMITHG( I, J, L, N, E_Hg )
+
+               ! Anthro Former USSR HgP
+               N            = ID_HgP(ID_Hg_sov)
+               E_Hg         = F_OF_PBL * EHgP_sov(I,J) * DTSRCE
+               CALL EMITHG( I, J, L, N, E_Hg )
+
+               ! Anthro South Asia HgP
+               N            = ID_HgP(ID_Hg_sas)
+               E_Hg         = F_OF_PBL * EHgP_sas(I,J) * DTSRCE
+               CALL EMITHG( I, J, L, N, E_Hg )
+
+               ! Anthro East Asia HgP
+               N            = ID_HgP(ID_Hg_eas)
+               E_Hg         = F_OF_PBL * EHgP_eas(I,J) * DTSRCE
+               CALL EMITHG( I, J, L, N, E_Hg )
+
+               ! Anthro Southeast Asia HgP
+               N            = ID_HgP(ID_Hg_sea)
+               E_Hg         = F_OF_PBL * EHgP_sea(I,J) * DTSRCE
+               CALL EMITHG( I, J, L, N, E_Hg )
+
+               ! Anthro Japan HgP
+               N            = ID_HgP(ID_Hg_jpn)
+               E_Hg         = F_OF_PBL * EHgP_jpn(I,J) * DTSRCE
+               CALL EMITHG( I, J, L, N, E_Hg )
+
+               ! Anthro Oceania HgP
+               N            = ID_HgP(ID_Hg_oce)
+               E_Hg         = F_OF_PBL * EHgP_oce(I,J) * DTSRCE
+               CALL EMITHG( I, J, L, N, E_Hg )
+
+!---------------------------------------------------------------------
 
                ENDIF
             ENDDO
@@ -2622,7 +3510,10 @@
             ! ND03 diag: Anthro HgP [kg]
             !----------------------------
             IF ( ND03 > 0 ) THEN
-               AD03(I,J,9)  = AD03(I,J,9) + ( EHgP_an(I,J) * DTSRCE )
+!- eds 8/31/10 --------------------------------------------------------
+!               AD03(I,J,9)  = AD03(I,J,9) + ( EHgP_an(I,J) * DTSRCE )
+               AD03(I,J,9,1) = AD03(I,J,9,1) + (EHgP_an(I,J) * DTSRCE)
+!----------------------------------------------------------------------
             ENDIF
          
          ENDDO 
@@ -2651,7 +3542,8 @@
 !  (4 ) Now read anthro emissions on GEOS 1x1 grid in DATA_1x1_DIR.  Also
 !        keep 2x25 and 4x5 files together in DATA_1x1_DIR.  Also now use new
 !        land re-emissions files from Noelle Selin. (eck, bmy, 4/6/06)
-!  (5 ) Now
+!  (5 ) Now reads anthro emissions for 17 world regions from David Streets
+!       for use in tagged simulations. (eds 2/7/12)
 !******************************************************************************
 !
       ! References to F90 modules
@@ -2659,6 +3551,9 @@
       USE BPCH2_MOD,      ONLY : GET_TAU0,        READ_BPCH2
       USE DIRECTORY_MOD,  ONLY : DATA_DIR_1x1, DATA_DIR
       USE LOGICAL_MOD,    ONLY : LDYNOCEAN, LPREINDHG
+!- eds 8/31/10 ----------------------------------------------------------
+      USE LOGICAL_MOD,    ONLY : LSPLIT
+!------------------------------------------------------------------------
       USE REGRID_1x1_MOD, ONLY : DO_REGRID_1x1
       USE TIME_MOD,       ONLY : EXPAND_DATE
       USE TRANSFER_MOD,   ONLY : TRANSFER_2D
@@ -2700,14 +3595,26 @@
          
          IF (LGCAPEMIS) THEN
             ! Use Bess' GCAP emissions
-   
-            ! Mercury data is either for 2006
-            NYMD     = ( 2006 * 10000 ) + 0101
-            XTAU     = GET_TAU0( 1, 1, 2006 )
+ 
+!- eds 8/31/10 ----------------------------------------------------  
+!            ! Mercury data is scaled to 2006
+!            NYMD     = ( 2006 * 10000 ) + 0101
+             XTAU     = GET_TAU0( 1, 1, 2006 )
+             NYMD = ( ANTHRO_Hg_YEAR * 10000 ) + 0101
+!             XTAU = GET_TAU0( 1, 1, ANTHRO_Hg_YEAR )
+!------------------------------------------------------------------
 
             ! Filename for anthropogenic mercury source
-            FILENAME = TRIM( DATA_DIR_1x1 )       // 
-     &           'mercury_201002/GEIA_Streets_Hg0.geos.1x1.YYYY'
+!            FILENAME = '/home/cdh/GC/Archived-Br/' // 
+!     &           'GEIA_Streets_Hg0.geos.1x1.YYYY'
+
+!- eds 8/31/10 ---------------------------------------------------
+!            FILENAME = TRIM( DATA_DIR_1x1 )       // 
+!     &           'mercury_201002/GEIA_Streets_Hg0.geos.1x1.YYYY'
+
+            FILENAME = '/home/eds/GCAP/' //
+     &           'GEIA_Streets2006_Hg0.geos.1x1.YYYY'
+!-----------------------------------------------------------------
 
             ! Add year to the filename
             CALL EXPAND_DATE( FILENAME, NYMD, 000000 )
@@ -2725,7 +3632,409 @@
             CALL DO_REGRID_1x1( 'kg', ARRAY1, EHg0_an )
 
             ! Convert from [kg/yr] to [kg/s]
-            EHg0_an = EHg0_an / SEC_PER_YR            
+            EHg0_an = EHg0_an / SEC_PER_YR
+
+!- eds 8/31/10 ------------------------------------------------------
+         IF (LSPLIT) THEN
+
+!            ! Mercury data is scaled to 2006
+!            NYMD     = ( 2006 * 10000 ) + 0101
+            XTAU     = GET_TAU0( 1, 1, 2006 )
+     	    NYMD = ( ANTHRO_Hg_YEAR * 10000 ) + 0101
+!      	     XTAU = GET_TAU0( 1, 1, ANTHRO_Hg_YEAR )
+!-------------------------------------------------------------------
+
+         !Anthro Canada Hg0
+            FILENAME = '/home/eds/GCAP/TAGGED/' //
+     &           'GEIA_Streets2006_Hg0_CAN.geos.1x1.YYYY'
+
+            ! Add year to the filename
+            CALL EXPAND_DATE( FILENAME, NYMD, 000000 )
+
+            ! Echo info
+            WRITE( 6, 101 ) TRIM( FILENAME )
+ 101        FORMAT( '     - MERCURY_READYR: Reading ', a )
+
+            ! Read data in [kg/yr]
+            CALL READ_BPCH2( FILENAME, 'HG-SRCE', 1,
+     &           XTAU,      I1x1,     J1x1,
+     &           1,         ARRAY1,   QUIET=.TRUE. )
+
+            ! Regrid from 1x1 to the current grid
+            CALL DO_REGRID_1x1( 'kg', ARRAY1, EHg0_can )
+
+            ! Convert from [kg/yr] to [kg/s]
+            EHg0_can = EHg0_can / SEC_PER_YR
+
+
+         !Anthro United States Hg0
+            FILENAME = '/home/eds/GCAP/TAGGED/' //
+     &           'GEIA_Streets2006_Hg0_USA.geos.1x1.YYYY'
+
+            ! Add year to the filename
+            CALL EXPAND_DATE( FILENAME, NYMD, 000000 )
+
+            ! Echo info
+            WRITE( 6, 102 ) TRIM( FILENAME )
+ 102        FORMAT( '     - MERCURY_READYR: Reading ', a )
+
+            ! Read data in [kg/yr]
+            CALL READ_BPCH2( FILENAME, 'HG-SRCE', 1,
+     &           XTAU,      I1x1,     J1x1,
+     &           1,         ARRAY1,   QUIET=.TRUE. )
+
+            ! Regrid from 1x1 to the current grid
+            CALL DO_REGRID_1x1( 'kg', ARRAY1, EHg0_usa )
+
+            ! Convert from [kg/yr] to [kg/s]
+            EHg0_usa = EHg0_usa / SEC_PER_YR
+
+
+         !Anthro Central America Hg0
+            FILENAME = '/home/eds/GCAP/TAGGED/' //
+     &           'GEIA_Streets2006_Hg0_CAM.geos.1x1.YYYY'
+
+            ! Add year to the filename
+            CALL EXPAND_DATE( FILENAME, NYMD, 000000 )
+
+            ! Echo info
+            WRITE( 6, 103 ) TRIM( FILENAME )
+ 103        FORMAT( '     - MERCURY_READYR: Reading ', a )
+
+            ! Read data in [kg/yr]
+            CALL READ_BPCH2( FILENAME, 'HG-SRCE', 1,
+     &           XTAU,      I1x1,     J1x1,
+     &           1,         ARRAY1,   QUIET=.TRUE. )
+
+            ! Regrid from 1x1 to the current grid
+            CALL DO_REGRID_1x1( 'kg', ARRAY1, EHg0_cam )
+
+            ! Convert from [kg/yr] to [kg/s]
+            EHg0_cam = EHg0_cam / SEC_PER_YR
+
+
+         !Anthro South America Hg0
+            FILENAME = '/home/eds/GCAP/TAGGED/' //
+     &           'GEIA_Streets2006_Hg0_SAM.geos.1x1.YYYY'
+
+            ! Add year to the filename
+            CALL EXPAND_DATE( FILENAME, NYMD, 000000 )
+
+            ! Echo info
+            WRITE( 6, 104 ) TRIM( FILENAME )
+ 104        FORMAT( '     - MERCURY_READYR: Reading ', a )
+
+            ! Read data in [kg/yr]
+            CALL READ_BPCH2( FILENAME, 'HG-SRCE', 1,
+     &           XTAU,      I1x1,     J1x1,
+     &           1,         ARRAY1,   QUIET=.TRUE. )
+
+            ! Regrid from 1x1 to the current grid
+            CALL DO_REGRID_1x1( 'kg', ARRAY1, EHg0_sam )
+
+            ! Convert from [kg/yr] to [kg/s]
+            EHg0_sam = EHg0_sam / SEC_PER_YR
+
+
+         !Anthro West Africa Hg0
+            FILENAME = '/home/eds/GCAP/TAGGED/' //
+     &           'GEIA_Streets2006_Hg0_WAF.geos.1x1.YYYY'
+
+            ! Add year to the filename
+            CALL EXPAND_DATE( FILENAME, NYMD, 000000 )
+
+            ! Echo info
+            WRITE( 6, 105 ) TRIM( FILENAME )
+ 105        FORMAT( '     - MERCURY_READYR: Reading ', a )
+
+            ! Read data in [kg/yr]
+            CALL READ_BPCH2( FILENAME, 'HG-SRCE', 1,
+     &           XTAU,      I1x1,     J1x1,
+     &           1,         ARRAY1,   QUIET=.TRUE. )
+
+            ! Regrid from 1x1 to the current grid
+            CALL DO_REGRID_1x1( 'kg', ARRAY1, EHg0_waf )
+
+            ! Convert from [kg/yr] to [kg/s]
+            EHg0_waf = EHg0_waf / SEC_PER_YR
+
+
+         !Anthro East Africa Hg0
+            FILENAME = '/home/eds/GCAP/TAGGED/' //
+     &           'GEIA_Streets2006_Hg0_EAF.geos.1x1.YYYY'
+
+            ! Add year to the filename
+            CALL EXPAND_DATE( FILENAME, NYMD, 000000 )
+
+            ! Echo info
+            WRITE( 6, 106 ) TRIM( FILENAME )
+ 106        FORMAT( '     - MERCURY_READYR: Reading ', a )
+
+            ! Read data in [kg/yr]
+            CALL READ_BPCH2( FILENAME, 'HG-SRCE', 1,
+     &           XTAU,      I1x1,     J1x1,
+     &           1,         ARRAY1,   QUIET=.TRUE. )
+
+            ! Regrid from 1x1 to the current grid
+            CALL DO_REGRID_1x1( 'kg', ARRAY1, EHg0_eaf )
+
+            ! Convert from [kg/yr] to [kg/s]
+            EHg0_eaf = EHg0_eaf / SEC_PER_YR
+
+
+         !Anthro South Africa Hg0
+            FILENAME = '/home/eds/GCAP/TAGGED/' //
+     &           'GEIA_Streets2006_Hg0_SAF.geos.1x1.YYYY'
+
+            ! Add year to the filename
+            CALL EXPAND_DATE( FILENAME, NYMD, 000000 )
+
+            ! Echo info
+            WRITE( 6, 107 ) TRIM( FILENAME )
+ 107        FORMAT( '     - MERCURY_READYR: Reading ', a )
+
+            ! Read data in [kg/yr]
+            CALL READ_BPCH2( FILENAME, 'HG-SRCE', 1,
+     &           XTAU,      I1x1,     J1x1,
+     &           1,         ARRAY1,   QUIET=.TRUE. )
+
+            ! Regrid from 1x1 to the current grid
+            CALL DO_REGRID_1x1( 'kg', ARRAY1, EHg0_saf )
+
+            ! Convert from [kg/yr] to [kg/s]
+            EHg0_saf = EHg0_saf / SEC_PER_YR
+
+
+         !Anthro North Africa Hg0
+            FILENAME = '/home/eds/GCAP/TAGGED/' //
+     &           'GEIA_Streets2006_Hg0_NAF.geos.1x1.YYYY'
+
+            ! Add year to the filename
+            CALL EXPAND_DATE( FILENAME, NYMD, 000000 )
+
+            ! Echo info
+            WRITE( 6, 108 ) TRIM( FILENAME )
+ 108        FORMAT( '     - MERCURY_READYR: Reading ', a )
+
+            ! Read data in [kg/yr]
+            CALL READ_BPCH2( FILENAME, 'HG-SRCE', 1,
+     &           XTAU,      I1x1,     J1x1,
+     &           1,         ARRAY1,   QUIET=.TRUE. )
+
+            ! Regrid from 1x1 to the current grid
+            CALL DO_REGRID_1x1( 'kg', ARRAY1, EHg0_naf )
+
+            ! Convert from [kg/yr] to [kg/s]
+            EHg0_naf = EHg0_naf / SEC_PER_YR
+
+         !Anthro OECD Europe Hg0
+            FILENAME = '/home/eds/GCAP/TAGGED/' //
+     &           'GEIA_Streets2006_Hg0_EUR.geos.1x1.YYYY'
+
+            ! Add year to the filename
+            CALL EXPAND_DATE( FILENAME, NYMD, 000000 )
+
+            ! Echo info
+            WRITE( 6, 109 ) TRIM( FILENAME )
+ 109        FORMAT( '     - MERCURY_READYR: Reading ', a )
+
+            ! Read data in [kg/yr]
+            CALL READ_BPCH2( FILENAME, 'HG-SRCE', 1,
+     &           XTAU,      I1x1,     J1x1,
+     &           1,         ARRAY1,   QUIET=.TRUE. )
+
+            ! Regrid from 1x1 to the current grid
+            CALL DO_REGRID_1x1( 'kg', ARRAY1, EHg0_eur )
+
+            ! Convert from [kg/yr] to [kg/s]
+            EHg0_eur = EHg0_eur / SEC_PER_YR
+
+
+         !Anthro Eastern Europe Hg0
+            FILENAME = '/home/eds/GCAP/TAGGED/' //
+     &           'GEIA_Streets2006_Hg0_EEU.geos.1x1.YYYY'
+
+            ! Add year to the filename
+            CALL EXPAND_DATE( FILENAME, NYMD, 000000 )
+
+            ! Echo info
+            WRITE( 6, 110 ) TRIM( FILENAME )
+ 110        FORMAT( '     - MERCURY_READYR: Reading ', a )
+
+            ! Read data in [kg/yr]
+            CALL READ_BPCH2( FILENAME, 'HG-SRCE', 1,
+     &           XTAU,      I1x1,     J1x1,
+     &           1,         ARRAY1,   QUIET=.TRUE. )
+
+            ! Regrid from 1x1 to the current grid
+            CALL DO_REGRID_1x1( 'kg', ARRAY1, EHg0_eeu )
+
+            ! Convert from [kg/yr] to [kg/s]
+            EHg0_eeu = EHg0_eeu / SEC_PER_YR
+
+
+         !Anthro Middle East Hg0
+            FILENAME = '/home/eds/GCAP/TAGGED/' //
+     &           'GEIA_Streets2006_Hg0_MDE.geos.1x1.YYYY'
+
+            ! Add year to the filename
+            CALL EXPAND_DATE( FILENAME, NYMD, 000000 )
+
+            ! Echo info
+            WRITE( 6, 111 ) TRIM( FILENAME )
+ 111        FORMAT( '     - MERCURY_READYR: Reading ', a )
+
+            ! Read data in [kg/yr]
+            CALL READ_BPCH2( FILENAME, 'HG-SRCE', 1,
+     &           XTAU,      I1x1,     J1x1,
+     &           1,         ARRAY1,   QUIET=.TRUE. )
+
+            ! Regrid from 1x1 to the current grid
+            CALL DO_REGRID_1x1( 'kg', ARRAY1, EHg0_mde )
+
+            ! Convert from [kg/yr] to [kg/s]
+            EHg0_mde = EHg0_mde / SEC_PER_YR
+
+
+         !Anthro Former USSR Hg0
+            FILENAME = '/home/eds/GCAP/TAGGED/' //
+     &           'GEIA_Streets2006_Hg0_SOV.geos.1x1.YYYY'
+
+            ! Add year to the filename
+            CALL EXPAND_DATE( FILENAME, NYMD, 000000 )
+
+            ! Echo info
+            WRITE( 6, 112 ) TRIM( FILENAME )
+ 112        FORMAT( '     - MERCURY_READYR: Reading ', a )
+
+            ! Read data in [kg/yr]
+            CALL READ_BPCH2( FILENAME, 'HG-SRCE', 1,
+     &           XTAU,      I1x1,     J1x1,
+     &           1,         ARRAY1,   QUIET=.TRUE. )
+
+            ! Regrid from 1x1 to the current grid
+            CALL DO_REGRID_1x1( 'kg', ARRAY1, EHg0_sov )
+
+            ! Convert from [kg/yr] to [kg/s]
+            EHg0_sov = EHg0_sov / SEC_PER_YR
+
+
+         !Anthro South Asia Hg0
+            FILENAME = '/home/eds/GCAP/TAGGED/' //
+     &           'GEIA_Streets2006_Hg0_SAS.geos.1x1.YYYY'
+
+            ! Add year to the filename
+            CALL EXPAND_DATE( FILENAME, NYMD, 000000 )
+
+            ! Echo info
+            WRITE( 6, 113 ) TRIM( FILENAME )
+ 113        FORMAT( '     - MERCURY_READYR: Reading ', a )
+
+            ! Read data in [kg/yr]
+            CALL READ_BPCH2( FILENAME, 'HG-SRCE', 1,
+     &           XTAU,      I1x1,     J1x1,
+     &           1,         ARRAY1,   QUIET=.TRUE. )
+
+            ! Regrid from 1x1 to the current grid
+            CALL DO_REGRID_1x1( 'kg', ARRAY1, EHg0_sas )
+
+            ! Convert from [kg/yr] to [kg/s]
+            EHg0_sas = EHg0_sas / SEC_PER_YR
+
+
+         !Anthro East Asia Hg0
+            FILENAME = '/home/eds/GCAP/TAGGED/' //
+     &           'GEIA_Streets2006_Hg0_EAS.geos.1x1.YYYY'
+
+            ! Add year to the filename
+            CALL EXPAND_DATE( FILENAME, NYMD, 000000 )
+
+            ! Echo info
+            WRITE( 6, 114 ) TRIM( FILENAME )
+ 114        FORMAT( '     - MERCURY_READYR: Reading ', a )
+
+            ! Read data in [kg/yr]
+            CALL READ_BPCH2( FILENAME, 'HG-SRCE', 1,
+     &           XTAU,      I1x1,     J1x1,
+     &           1,         ARRAY1,   QUIET=.TRUE. )
+
+            ! Regrid from 1x1 to the current grid
+            CALL DO_REGRID_1x1( 'kg', ARRAY1, EHg0_eas )
+
+            ! Convert from [kg/yr] to [kg/s]
+            EHg0_eas = EHg0_eas / SEC_PER_YR
+
+
+         !Anthro Southeast Asia Hg0
+            FILENAME = '/home/eds/GCAP/TAGGED/' //
+     &           'GEIA_Streets2006_Hg0_SEA.geos.1x1.YYYY'
+
+            ! Add year to the filename
+            CALL EXPAND_DATE( FILENAME, NYMD, 000000 )
+
+            ! Echo info
+            WRITE( 6, 115 ) TRIM( FILENAME )
+ 115        FORMAT( '     - MERCURY_READYR: Reading ', a )
+
+            ! Read data in [kg/yr]
+            CALL READ_BPCH2( FILENAME, 'HG-SRCE', 1,
+     &           XTAU,      I1x1,     J1x1,
+     &           1,         ARRAY1,   QUIET=.TRUE. )
+
+            ! Regrid from 1x1 to the current grid
+            CALL DO_REGRID_1x1( 'kg', ARRAY1, EHg0_sea )
+
+            ! Convert from [kg/yr] to [kg/s]
+            EHg0_sea = EHg0_sea / SEC_PER_YR
+
+
+         !Anthro Japan Hg0
+            FILENAME = '/home/eds/GCAP/TAGGED/' //
+     &           'GEIA_Streets2006_Hg0_JPN.geos.1x1.YYYY'
+
+            ! Add year to the filename
+            CALL EXPAND_DATE( FILENAME, NYMD, 000000 )
+
+            ! Echo info
+            WRITE( 6, 116 ) TRIM( FILENAME )
+ 116        FORMAT( '     - MERCURY_READYR: Reading ', a )
+
+            ! Read data in [kg/yr]
+            CALL READ_BPCH2( FILENAME, 'HG-SRCE', 1,
+     &           XTAU,      I1x1,     J1x1,
+     &           1,         ARRAY1,   QUIET=.TRUE. )
+
+            ! Regrid from 1x1 to the current grid
+            CALL DO_REGRID_1x1( 'kg', ARRAY1, EHg0_jpn )
+
+            ! Convert from [kg/yr] to [kg/s]
+            EHg0_jpn = EHg0_jpn / SEC_PER_YR
+
+
+         !Anthro Oceania Hg0
+            FILENAME = '/home/eds/GCAP/TAGGED/' //
+     &           'GEIA_Streets2006_Hg0_OCE.geos.1x1.YYYY'
+
+            ! Add year to the filename
+            CALL EXPAND_DATE( FILENAME, NYMD, 000000 )
+
+            ! Echo info
+            WRITE( 6, 117 ) TRIM( FILENAME )
+ 117        FORMAT( '     - MERCURY_READYR: Reading ', a )
+
+            ! Read data in [kg/yr]
+            CALL READ_BPCH2( FILENAME, 'HG-SRCE', 1,
+     &           XTAU,      I1x1,     J1x1,
+     &           1,         ARRAY1,   QUIET=.TRUE. )
+
+            ! Regrid from 1x1 to the current grid
+            CALL DO_REGRID_1x1( 'kg', ARRAY1, EHg0_oce )
+
+            ! Convert from [kg/yr] to [kg/s]
+            EHg0_oce = EHg0_oce / SEC_PER_YR
+
+         ENDIF
+!----------------------------------------------------------------            
         
          ELSEIF (LGEIA05) THEN
             ! Use GEIA 2005 emissions inventory (eck, 10/19/11)
@@ -2868,8 +4177,13 @@
             ! Use Bess' GCAP emissions
 
             ! Filename for anthropogenic mercury source
-            FILENAME = TRIM( DATA_DIR_1x1 )               // 
-     &           'mercury_201002/GEIA_Streets_Hg2.geos.1x1.YYYY'
+!- eds 8/31/10 ---------------------------------------------------
+!            FILENAME = TRIM( DATA_DIR_1x1 )       //
+!     &           'mercury_201002/GEIA_Streets_Hg2.geos.1x1.YYYY'
+
+            FILENAME = '/home/eds/GCAP/' //
+     &           'GEIA_Streets2006_Hg2.geos.1x1.YYYY'
+!-----------------------------------------------------------------
 
             ! Add year to the filename
             CALL EXPAND_DATE( FILENAME, NYMD, 000000 )
@@ -2888,6 +4202,408 @@
 
             ! Convert from [kg/yr] to [kg/s]
             EHg2_an = EHg2_an / SEC_PER_YR
+
+!- eds 8/31/10 ----------------------------------------------------
+         IF (LSPLIT) THEN
+
+!            ! Mercury data is scaled to 2006
+!            NYMD     = ( 2006 * 10000 ) + 0101
+            XTAU     = GET_TAU0( 1, 1, 2006 )
+            NYMD = ( ANTHRO_Hg_YEAR * 10000 ) + 0101
+!            XTAU = GET_TAU0( 1, 1, ANTHRO_Hg_YEAR )
+!------------------------------------------------------------------ 
+
+         !Anthro Canada Hg2
+            FILENAME = '/home/eds/GCAP/TAGGED/' //
+     &           'GEIA_Streets2006_Hg2_CAN.geos.1x1.YYYY'
+
+            ! Add year to the filename
+            CALL EXPAND_DATE( FILENAME, NYMD, 000000 )
+
+            ! Echo info
+            WRITE( 6, 118 ) TRIM( FILENAME )
+ 118        FORMAT( '     - MERCURY_READYR: Reading ', a )
+
+            ! Read data in [kg/yr]
+            CALL READ_BPCH2( FILENAME, 'HG-SRCE', 6,
+     &           XTAU,      I1x1,     J1x1,
+     &           1,         ARRAY1,   QUIET=.TRUE. )
+
+            ! Regrid from 1x1 to the current grid
+            CALL DO_REGRID_1x1( 'kg', ARRAY1, EHg2_can )
+
+            ! Convert from [kg/yr] to [kg/s]
+            EHg2_can = EHg2_can / SEC_PER_YR
+
+
+         !Anthro United States Hg2
+            FILENAME = '/home/eds/GCAP/TAGGED/' //
+     &           'GEIA_Streets2006_Hg2_USA.geos.1x1.YYYY'
+
+            ! Add year to the filename
+            CALL EXPAND_DATE( FILENAME, NYMD, 000000 )
+
+            ! Echo info
+            WRITE( 6, 119 ) TRIM( FILENAME )
+ 119        FORMAT( '     - MERCURY_READYR: Reading ', a )
+
+            ! Read data in [kg/yr]
+            CALL READ_BPCH2( FILENAME, 'HG-SRCE', 6,
+     &           XTAU,      I1x1,     J1x1,
+     &           1,         ARRAY1,   QUIET=.TRUE. )
+
+            ! Regrid from 1x1 to the current grid
+            CALL DO_REGRID_1x1( 'kg', ARRAY1, EHg2_usa )
+
+            ! Convert from [kg/yr] to [kg/s]
+            EHg2_usa = EHg2_usa / SEC_PER_YR
+
+
+         !Anthro Central America Hg2
+            FILENAME = '/home/eds/GCAP/TAGGED/' //
+     &           'GEIA_Streets2006_Hg2_CAM.geos.1x1.YYYY'
+
+            ! Add year to the filename
+            CALL EXPAND_DATE( FILENAME, NYMD, 000000 )
+
+            ! Echo info
+            WRITE( 6, 120 ) TRIM( FILENAME )
+ 120        FORMAT( '     - MERCURY_READYR: Reading ', a )
+
+            ! Read data in [kg/yr]
+            CALL READ_BPCH2( FILENAME, 'HG-SRCE', 6,
+     &           XTAU,      I1x1,     J1x1,
+     &           1,         ARRAY1,   QUIET=.TRUE. )
+
+            ! Regrid from 1x1 to the current grid
+            CALL DO_REGRID_1x1( 'kg', ARRAY1, EHg2_cam )
+
+            ! Convert from [kg/yr] to [kg/s]
+            EHg2_cam = EHg2_cam / SEC_PER_YR
+
+
+         !Anthro South America Hg2
+            FILENAME = '/home/eds/GCAP/TAGGED/' //
+     &           'GEIA_Streets2006_Hg2_SAM.geos.1x1.YYYY'
+
+            ! Add year to the filename
+            CALL EXPAND_DATE( FILENAME, NYMD, 000000 )
+
+            ! Echo info
+            WRITE( 6, 121 ) TRIM( FILENAME )
+ 121        FORMAT( '     - MERCURY_READYR: Reading ', a )
+
+            ! Read data in [kg/yr]
+            CALL READ_BPCH2( FILENAME, 'HG-SRCE', 6,
+     &           XTAU,      I1x1,     J1x1,
+     &           1,         ARRAY1,   QUIET=.TRUE. )
+
+            ! Regrid from 1x1 to the current grid
+            CALL DO_REGRID_1x1( 'kg', ARRAY1, EHg2_sam )
+
+            ! Convert from [kg/yr] to [kg/s]
+            EHg2_sam = EHg2_sam / SEC_PER_YR
+
+
+         !Anthro West Africa Hg2
+            FILENAME = '/home/eds/GCAP/TAGGED/' //
+     &           'GEIA_Streets2006_Hg2_WAF.geos.1x1.YYYY'
+
+            ! Add year to the filename
+            CALL EXPAND_DATE( FILENAME, NYMD, 000000 )
+
+            ! Echo info
+            WRITE( 6, 122 ) TRIM( FILENAME )
+ 122        FORMAT( '     - MERCURY_READYR: Reading ', a )
+
+            ! Read data in [kg/yr]
+            CALL READ_BPCH2( FILENAME, 'HG-SRCE', 6,
+     &           XTAU,      I1x1,     J1x1,
+     &           1,         ARRAY1,   QUIET=.TRUE. )
+
+            ! Regrid from 1x1 to the current grid
+            CALL DO_REGRID_1x1( 'kg', ARRAY1, EHg2_waf )
+
+            ! Convert from [kg/yr] to [kg/s]
+            EHg2_waf = EHg2_waf / SEC_PER_YR
+
+
+         !Anthro East Africa Hg2
+            FILENAME = '/home/eds/GCAP/TAGGED/' //
+     &           'GEIA_Streets2006_Hg2_EAF.geos.1x1.YYYY'
+
+            ! Add year to the filename
+            CALL EXPAND_DATE( FILENAME, NYMD, 000000 )
+
+            ! Echo info
+            WRITE( 6, 123 ) TRIM( FILENAME )
+ 123        FORMAT( '     - MERCURY_READYR: Reading ', a )
+
+            ! Read data in [kg/yr]
+            CALL READ_BPCH2( FILENAME, 'HG-SRCE', 6,
+     &           XTAU,      I1x1,     J1x1,
+     &           1,         ARRAY1,   QUIET=.TRUE. )
+
+            ! Regrid from 1x1 to the current grid
+            CALL DO_REGRID_1x1( 'kg', ARRAY1, EHg2_eaf )
+
+            ! Convert from [kg/yr] to [kg/s]
+            EHg2_eaf = EHg2_eaf / SEC_PER_YR
+
+
+         !Anthro South Africa Hg2
+            FILENAME = '/home/eds/GCAP/TAGGED/' //
+     &           'GEIA_Streets2006_Hg2_SAF.geos.1x1.YYYY'
+
+            ! Add year to the filename
+            CALL EXPAND_DATE( FILENAME, NYMD, 000000 )
+
+            ! Echo info
+            WRITE( 6, 124 ) TRIM( FILENAME )
+ 124        FORMAT( '     - MERCURY_READYR: Reading ', a )
+
+            ! Read data in [kg/yr]
+            CALL READ_BPCH2( FILENAME, 'HG-SRCE', 6,
+     &           XTAU,      I1x1,     J1x1,
+     &           1,         ARRAY1,   QUIET=.TRUE. )
+
+            ! Regrid from 1x1 to the current grid
+            CALL DO_REGRID_1x1( 'kg', ARRAY1, EHg2_saf )
+
+            ! Convert from [kg/yr] to [kg/s]
+            EHg2_saf = EHg2_saf / SEC_PER_YR
+
+
+         !Anthro North Africa Hg2
+            FILENAME = '/home/eds/GCAP/TAGGED/' //
+     &           'GEIA_Streets2006_Hg2_NAF.geos.1x1.YYYY'
+
+            ! Add year to the filename
+            CALL EXPAND_DATE( FILENAME, NYMD, 000000 )
+
+            ! Echo info
+            WRITE( 6, 125 ) TRIM( FILENAME )
+ 125        FORMAT( '     - MERCURY_READYR: Reading ', a )
+
+            ! Read data in [kg/yr]
+            CALL READ_BPCH2( FILENAME, 'HG-SRCE', 6,
+     &           XTAU,      I1x1,     J1x1,
+     &           1,         ARRAY1,   QUIET=.TRUE. )
+
+            ! Regrid from 1x1 to the current grid
+            CALL DO_REGRID_1x1( 'kg', ARRAY1, EHg2_naf )
+
+            ! Convert from [kg/yr] to [kg/s]
+            EHg2_naf = EHg2_naf / SEC_PER_YR
+
+         !Anthro OECD Europe Hg2
+            FILENAME = '/home/eds/GCAP/TAGGED/' //
+     &           'GEIA_Streets2006_Hg2_EUR.geos.1x1.YYYY'
+
+            ! Add year to the filename
+            CALL EXPAND_DATE( FILENAME, NYMD, 000000 )
+
+            ! Echo info
+            WRITE( 6, 126 ) TRIM( FILENAME )
+ 126        FORMAT( '     - MERCURY_READYR: Reading ', a )
+
+            ! Read data in [kg/yr]
+            CALL READ_BPCH2( FILENAME, 'HG-SRCE', 6,
+     &           XTAU,      I1x1,     J1x1,
+     &           1,         ARRAY1,   QUIET=.TRUE. )
+
+            ! Regrid from 1x1 to the current grid
+            CALL DO_REGRID_1x1( 'kg', ARRAY1, EHg2_eur )
+
+            ! Convert from [kg/yr] to [kg/s]
+            EHg2_eur = EHg2_eur / SEC_PER_YR
+
+
+         !Anthro Eastern Europe Hg2
+            FILENAME = '/home/eds/GCAP/TAGGED/' //
+     &           'GEIA_Streets2006_Hg2_EEU.geos.1x1.YYYY'
+
+            ! Add year to the filename
+            CALL EXPAND_DATE( FILENAME, NYMD, 000000 )
+
+            ! Echo info
+            WRITE( 6, 127 ) TRIM( FILENAME )
+ 127        FORMAT( '     - MERCURY_READYR: Reading ', a )
+
+            ! Read data in [kg/yr]
+            CALL READ_BPCH2( FILENAME, 'HG-SRCE', 6,
+     &           XTAU,      I1x1,     J1x1,
+     &           1,         ARRAY1,   QUIET=.TRUE. )
+
+            ! Regrid from 1x1 to the current grid
+            CALL DO_REGRID_1x1( 'kg', ARRAY1, EHg2_eeu )
+
+            ! Convert from [kg/yr] to [kg/s]
+            EHg2_eeu = EHg2_eeu / SEC_PER_YR
+
+
+         !Anthro Middle East Hg2
+            FILENAME = '/home/eds/GCAP/TAGGED/' //
+     &           'GEIA_Streets2006_Hg2_MDE.geos.1x1.YYYY'
+
+            ! Add year to the filename
+            CALL EXPAND_DATE( FILENAME, NYMD, 000000 )
+
+            ! Echo info
+            WRITE( 6, 128 ) TRIM( FILENAME )
+ 128        FORMAT( '     - MERCURY_READYR: Reading ', a )
+
+            ! Read data in [kg/yr]
+            CALL READ_BPCH2( FILENAME, 'HG-SRCE', 6,
+     &           XTAU,      I1x1,     J1x1,
+     &           1,         ARRAY1,   QUIET=.TRUE. )
+
+            ! Regrid from 1x1 to the current grid
+            CALL DO_REGRID_1x1( 'kg', ARRAY1, EHg2_mde )
+
+            ! Convert from [kg/yr] to [kg/s]
+            EHg2_mde = EHg2_mde / SEC_PER_YR
+
+
+         !Anthro Former USSR Hg2
+            FILENAME = '/home/eds/GCAP/TAGGED/' //
+     &           'GEIA_Streets2006_Hg2_SOV.geos.1x1.YYYY'
+
+            ! Add year to the filename
+            CALL EXPAND_DATE( FILENAME, NYMD, 000000 )
+
+            ! Echo info
+            WRITE( 6, 129 ) TRIM( FILENAME )
+ 129        FORMAT( '     - MERCURY_READYR: Reading ', a )
+
+            ! Read data in [kg/yr]
+            CALL READ_BPCH2( FILENAME, 'HG-SRCE', 6,
+     &           XTAU,      I1x1,     J1x1,
+     &           1,         ARRAY1,   QUIET=.TRUE. )
+
+            ! Regrid from 1x1 to the current grid
+            CALL DO_REGRID_1x1( 'kg', ARRAY1, EHg2_sov )
+
+            ! Convert from [kg/yr] to [kg/s]
+            EHg2_sov = EHg2_sov / SEC_PER_YR
+
+
+         !Anthro South Asia Hg2
+            FILENAME = '/home/eds/GCAP/TAGGED/' //
+     &           'GEIA_Streets2006_Hg2_SAS.geos.1x1.YYYY'
+
+            ! Add year to the filename
+            CALL EXPAND_DATE( FILENAME, NYMD, 000000 )
+
+            ! Echo info
+            WRITE( 6, 130 ) TRIM( FILENAME )
+ 130        FORMAT( '     - MERCURY_READYR: Reading ', a )
+
+            ! Read data in [kg/yr]
+            CALL READ_BPCH2( FILENAME, 'HG-SRCE', 6,
+     &           XTAU,      I1x1,     J1x1,
+     &           1,         ARRAY1,   QUIET=.TRUE. )
+
+            ! Regrid from 1x1 to the current grid
+            CALL DO_REGRID_1x1( 'kg', ARRAY1, EHg2_sas )
+
+            ! Convert from [kg/yr] to [kg/s]
+            EHg2_sas = EHg2_sas / SEC_PER_YR
+
+
+         !Anthro East Asia Hg2
+            FILENAME = '/home/eds/GCAP/TAGGED/' //
+     &           'GEIA_Streets2006_Hg2_EAS.geos.1x1.YYYY'
+
+            ! Add year to the filename
+            CALL EXPAND_DATE( FILENAME, NYMD, 000000 )
+
+            ! Echo info
+            WRITE( 6, 131 ) TRIM( FILENAME )
+ 131        FORMAT( '     - MERCURY_READYR: Reading ', a )
+
+            ! Read data in [kg/yr]
+            CALL READ_BPCH2( FILENAME, 'HG-SRCE', 6,
+     &           XTAU,      I1x1,     J1x1,
+     &           1,         ARRAY1,   QUIET=.TRUE. )
+
+            ! Regrid from 1x1 to the current grid
+            CALL DO_REGRID_1x1( 'kg', ARRAY1, EHg2_eas )
+
+            ! Convert from [kg/yr] to [kg/s]
+            EHg2_eas = EHg2_eas / SEC_PER_YR
+
+
+         !Anthro Southeast Asia Hg2
+            FILENAME = '/home/eds/GCAP/TAGGED/' //
+     &           'GEIA_Streets2006_Hg2_SEA.geos.1x1.YYYY'
+
+            ! Add year to the filename
+            CALL EXPAND_DATE( FILENAME, NYMD, 000000 )
+
+            ! Echo info
+            WRITE( 6, 132 ) TRIM( FILENAME )
+ 132        FORMAT( '     - MERCURY_READYR: Reading ', a )
+
+            ! Read data in [kg/yr]
+            CALL READ_BPCH2( FILENAME, 'HG-SRCE', 6,
+     &           XTAU,      I1x1,     J1x1,
+     &           1,         ARRAY1,   QUIET=.TRUE. )
+
+            ! Regrid from 1x1 to the current grid
+            CALL DO_REGRID_1x1( 'kg', ARRAY1, EHg2_sea )
+
+            ! Convert from [kg/yr] to [kg/s]
+            EHg2_sea = EHg2_sea / SEC_PER_YR
+
+
+         !Anthro Japan Hg2
+            FILENAME = '/home/eds/GCAP/TAGGED/' //
+     &           'GEIA_Streets2006_Hg2_JPN.geos.1x1.YYYY'
+
+            ! Add year to the filename
+            CALL EXPAND_DATE( FILENAME, NYMD, 000000 )
+
+            ! Echo info
+            WRITE( 6, 133 ) TRIM( FILENAME )
+ 133        FORMAT( '     - MERCURY_READYR: Reading ', a )
+
+            ! Read data in [kg/yr]
+            CALL READ_BPCH2( FILENAME, 'HG-SRCE', 6,
+     &           XTAU,      I1x1,     J1x1,
+     &           1,         ARRAY1,   QUIET=.TRUE. )
+
+            ! Regrid from 1x1 to the current grid
+            CALL DO_REGRID_1x1( 'kg', ARRAY1, EHg2_jpn )
+
+            ! Convert from [kg/yr] to [kg/s]
+            EHg2_jpn = EHg2_jpn / SEC_PER_YR
+
+
+         !Anthro Oceania Hg2
+            FILENAME = '/home/eds/GCAP/TAGGED/' //
+     &           'GEIA_Streets2006_Hg2_OCE.geos.1x1.YYYY'
+
+            ! Add year to the filename
+            CALL EXPAND_DATE( FILENAME, NYMD, 000000 )
+
+            ! Echo info
+            WRITE( 6, 134 ) TRIM( FILENAME )
+ 134        FORMAT( '     - MERCURY_READYR: Reading ', a )
+
+            ! Read data in [kg/yr]
+            CALL READ_BPCH2( FILENAME, 'HG-SRCE', 6,
+     &           XTAU,      I1x1,     J1x1,
+     &           1,         ARRAY1,   QUIET=.TRUE. )
+
+            ! Regrid from 1x1 to the current grid
+            CALL DO_REGRID_1x1( 'kg', ARRAY1, EHg2_oce )
+
+            ! Convert from [kg/yr] to [kg/s]
+            EHg2_oce = EHg2_oce / SEC_PER_YR
+
+         ENDIF
+!----------------------------------------------------------------
         
          ELSEIF (LGEIA05) THEN
             ! Use GEIA 2005 emissions (eck, 10/19/11)
@@ -2956,8 +4672,13 @@
             ! Use Bess' GCAP emissions
 
             ! Filename for anthropogenic mercury source
-            FILENAME = TRIM( DATA_DIR_1x1)   //
-     &           'mercury_201002/GEIA_Streets_HgP.geos.1x1.YYYY'
+!- eds 8/31/10 ---------------------------------------------------
+!            FILENAME = TRIM( DATA_DIR_1x1 )       //
+!     &           'mercury_201002/GEIA_Streets_HgP.geos.1x1.YYYY'
+
+            FILENAME = '/home/eds/GCAP/' //
+     &           'GEIA_Streets2006_HgP.geos.1x1.YYYY'
+!-----------------------------------------------------------------
 
             ! Add year to the filename
             CALL EXPAND_DATE( FILENAME, NYMD, 000000 )
@@ -2975,6 +4696,409 @@
 
             ! Convert from [kg/yr] to [kg/s]
             EHgP_an = EHgP_an / SEC_PER_YR
+
+!- eds 8/31/10 ----------------------------------------------------
+         IF (LSPLIT) THEN
+
+!            ! Mercury data is scaled to 2006
+!            NYMD     = ( 2006 * 10000 ) + 0101
+            XTAU     = GET_TAU0( 1, 1, 2006 )
+            NYMD = ( ANTHRO_Hg_YEAR * 10000 ) + 0101
+!             XTAU = GET_TAU0( 1, 1, ANTHRO_Hg_YEAR )
+!------------------------------------------------------------------ 
+
+         !Anthro Canada HgP
+            FILENAME = '/home/eds/GCAP/TAGGED/' //
+     &           'GEIA_Streets2006_HgP_CAN.geos.1x1.YYYY'
+
+            ! Add year to the filename
+            CALL EXPAND_DATE( FILENAME, NYMD, 000000 )
+
+            ! Echo info
+            WRITE( 6, 135 ) TRIM( FILENAME )
+ 135        FORMAT( '     - MERCURY_READYR: Reading ', a )
+
+            ! Read data in [kg/yr]
+            CALL READ_BPCH2( FILENAME, 'HG-SRCE', 9,
+     &           XTAU,      I1x1,     J1x1,
+     &           1,         ARRAY1,   QUIET=.TRUE. )
+
+            ! Regrid from 1x1 to the current grid
+            CALL DO_REGRID_1x1( 'kg', ARRAY1, EHgP_can )
+
+            ! Convert from [kg/yr] to [kg/s]
+            EHgP_can = EHgP_can / SEC_PER_YR
+
+
+         !Anthro United States HgP
+            FILENAME = '/home/eds/GCAP/TAGGED/' //
+     &           'GEIA_Streets2006_HgP_USA.geos.1x1.YYYY'
+
+            ! Add year to the filename
+            CALL EXPAND_DATE( FILENAME, NYMD, 000000 )
+
+            ! Echo info
+            WRITE( 6, 136 ) TRIM( FILENAME )
+ 136        FORMAT( '     - MERCURY_READYR: Reading ', a )
+
+            ! Read data in [kg/yr]
+            CALL READ_BPCH2( FILENAME, 'HG-SRCE', 9,
+     &           XTAU,      I1x1,     J1x1,
+     &           1,         ARRAY1,   QUIET=.TRUE. )
+
+            ! Regrid from 1x1 to the current grid
+            CALL DO_REGRID_1x1( 'kg', ARRAY1, EHgP_usa )
+
+            ! Convert from [kg/yr] to [kg/s]
+            EHgP_usa = EHgP_usa / SEC_PER_YR
+
+
+         !Anthro Central America HgP
+            FILENAME = '/home/eds/GCAP/TAGGED/' //
+     &           'GEIA_Streets2006_HgP_CAM.geos.1x1.YYYY'
+
+            ! Add year to the filename
+            CALL EXPAND_DATE( FILENAME, NYMD, 000000 )
+
+            ! Echo info
+            WRITE( 6, 137 ) TRIM( FILENAME )
+ 137        FORMAT( '     - MERCURY_READYR: Reading ', a )
+
+            ! Read data in [kg/yr]
+            CALL READ_BPCH2( FILENAME, 'HG-SRCE', 9,
+     &           XTAU,      I1x1,     J1x1,
+     &           1,         ARRAY1,   QUIET=.TRUE. )
+
+            ! Regrid from 1x1 to the current grid
+            CALL DO_REGRID_1x1( 'kg', ARRAY1, EHgP_cam )
+
+            ! Convert from [kg/yr] to [kg/s]
+            EHgP_cam = EHgP_cam / SEC_PER_YR
+
+
+         !Anthro South America HgP
+            FILENAME = '/home/eds/GCAP/TAGGED/' //
+     &           'GEIA_Streets2006_HgP_SAM.geos.1x1.YYYY'
+
+            ! Add year to the filename
+            CALL EXPAND_DATE( FILENAME, NYMD, 000000 )
+
+            ! Echo info
+            WRITE( 6, 138 ) TRIM( FILENAME )
+ 138        FORMAT( '     - MERCURY_READYR: Reading ', a )
+
+            ! Read data in [kg/yr]
+            CALL READ_BPCH2( FILENAME, 'HG-SRCE', 9,
+     &           XTAU,      I1x1,     J1x1,
+     &           1,         ARRAY1,   QUIET=.TRUE. )
+
+            ! Regrid from 1x1 to the current grid
+            CALL DO_REGRID_1x1( 'kg', ARRAY1, EHgP_sam )
+
+            ! Convert from [kg/yr] to [kg/s]
+            EHgP_sam = EHgP_sam / SEC_PER_YR
+
+
+         !Anthro West Africa HgP
+            FILENAME = '/home/eds/GCAP/TAGGED/' //
+     &           'GEIA_Streets2006_HgP_WAF.geos.1x1.YYYY'
+
+            ! Add year to the filename
+            CALL EXPAND_DATE( FILENAME, NYMD, 000000 )
+
+            ! Echo info
+            WRITE( 6, 139 ) TRIM( FILENAME )
+ 139        FORMAT( '     - MERCURY_READYR: Reading ', a )
+
+            ! Read data in [kg/yr]
+            CALL READ_BPCH2( FILENAME, 'HG-SRCE', 9,
+     &           XTAU,      I1x1,     J1x1,
+     &           1,         ARRAY1,   QUIET=.TRUE. )
+
+            ! Regrid from 1x1 to the current grid
+            CALL DO_REGRID_1x1( 'kg', ARRAY1, EHgP_waf )
+
+            ! Convert from [kg/yr] to [kg/s]
+            EHgP_waf = EHgP_waf / SEC_PER_YR
+
+
+         !Anthro East Africa HgP
+            FILENAME = '/home/eds/GCAP/TAGGED/' //
+     &           'GEIA_Streets2006_HgP_EAF.geos.1x1.YYYY'
+
+            ! Add year to the filename
+            CALL EXPAND_DATE( FILENAME, NYMD, 000000 )
+
+            ! Echo info
+            WRITE( 6, 140 ) TRIM( FILENAME )
+ 140        FORMAT( '     - MERCURY_READYR: Reading ', a )
+
+            ! Read data in [kg/yr]
+            CALL READ_BPCH2( FILENAME, 'HG-SRCE', 9,
+     &           XTAU,      I1x1,     J1x1,
+     &           1,         ARRAY1,   QUIET=.TRUE. )
+
+            ! Regrid from 1x1 to the current grid
+            CALL DO_REGRID_1x1( 'kg', ARRAY1, EHgP_eaf )
+
+            ! Convert from [kg/yr] to [kg/s]
+            EHgP_eaf = EHgP_eaf / SEC_PER_YR
+
+
+         !Anthro South Africa HgP
+            FILENAME = '/home/eds/GCAP/TAGGED/' //
+     &           'GEIA_Streets2006_HgP_SAF.geos.1x1.YYYY'
+
+            ! Add year to the filename
+            CALL EXPAND_DATE( FILENAME, NYMD, 000000 )
+
+            ! Echo info
+            WRITE( 6, 141 ) TRIM( FILENAME )
+ 141        FORMAT( '     - MERCURY_READYR: Reading ', a )
+
+            ! Read data in [kg/yr]
+            CALL READ_BPCH2( FILENAME, 'HG-SRCE', 9,
+     &           XTAU,      I1x1,     J1x1,
+     &           1,         ARRAY1,   QUIET=.TRUE. )
+
+            ! Regrid from 1x1 to the current grid
+            CALL DO_REGRID_1x1( 'kg', ARRAY1, EHgP_saf )
+
+            ! Convert from [kg/yr] to [kg/s]
+            EHgP_saf = EHgP_saf / SEC_PER_YR
+
+
+         !Anthro North Africa HgP
+            FILENAME = '/home/eds/GCAP/TAGGED/' //
+     &           'GEIA_Streets2006_HgP_NAF.geos.1x1.YYYY'
+
+            ! Add year to the filename
+            CALL EXPAND_DATE( FILENAME, NYMD, 000000 )
+
+            ! Echo info
+            WRITE( 6, 142 ) TRIM( FILENAME )
+ 142        FORMAT( '     - MERCURY_READYR: Reading ', a )
+
+            ! Read data in [kg/yr]
+            CALL READ_BPCH2( FILENAME, 'HG-SRCE', 9,
+     &           XTAU,      I1x1,     J1x1,
+     &           1,         ARRAY1,   QUIET=.TRUE. )
+
+            ! Regrid from 1x1 to the current grid
+            CALL DO_REGRID_1x1( 'kg', ARRAY1, EHgP_naf )
+
+            ! Convert from [kg/yr] to [kg/s]
+            EHgP_naf = EHgP_naf / SEC_PER_YR
+
+         !Anthro OECD Europe HgP
+            FILENAME = '/home/eds/GCAP/TAGGED/' //
+     &           'GEIA_Streets2006_HgP_EUR.geos.1x1.YYYY'
+
+            ! Add year to the filename
+            CALL EXPAND_DATE( FILENAME, NYMD, 000000 )
+
+            ! Echo info
+            WRITE( 6, 143 ) TRIM( FILENAME )
+ 143        FORMAT( '     - MERCURY_READYR: Reading ', a )
+
+            ! Read data in [kg/yr]
+            CALL READ_BPCH2( FILENAME, 'HG-SRCE', 9,
+     &           XTAU,      I1x1,     J1x1,
+     &           1,         ARRAY1,   QUIET=.TRUE. )
+
+            ! Regrid from 1x1 to the current grid
+            CALL DO_REGRID_1x1( 'kg', ARRAY1, EHgP_eur )
+
+            ! Convert from [kg/yr] to [kg/s]
+            EHgP_eur = EHgP_eur / SEC_PER_YR
+
+
+         !Anthro Eastern Europe HgP
+            FILENAME = '/home/eds/GCAP/TAGGED/' //
+     &           'GEIA_Streets2006_HgP_EEU.geos.1x1.YYYY'
+
+            ! Add year to the filename
+            CALL EXPAND_DATE( FILENAME, NYMD, 000000 )
+
+            ! Echo info
+            WRITE( 6, 144 ) TRIM( FILENAME )
+ 144        FORMAT( '     - MERCURY_READYR: Reading ', a )
+
+            ! Read data in [kg/yr]
+            CALL READ_BPCH2( FILENAME, 'HG-SRCE', 9,
+     &           XTAU,      I1x1,     J1x1,
+     &           1,         ARRAY1,   QUIET=.TRUE. )
+
+            ! Regrid from 1x1 to the current grid
+            CALL DO_REGRID_1x1( 'kg', ARRAY1, EHgP_eeu )
+
+            ! Convert from [kg/yr] to [kg/s]
+            EHgP_eeu = EHgP_eeu / SEC_PER_YR
+
+
+         !Anthro Middle East HgP
+            FILENAME = '/home/eds/GCAP/TAGGED/' //
+     &           'GEIA_Streets2006_HgP_MDE.geos.1x1.YYYY'
+
+            ! Add year to the filename
+            CALL EXPAND_DATE( FILENAME, NYMD, 000000 )
+
+            ! Echo info
+            WRITE( 6, 145 ) TRIM( FILENAME )
+ 145        FORMAT( '     - MERCURY_READYR: Reading ', a )
+
+            ! Read data in [kg/yr]
+            CALL READ_BPCH2( FILENAME, 'HG-SRCE', 9,
+     &           XTAU,      I1x1,     J1x1,
+     &           1,         ARRAY1,   QUIET=.TRUE. )
+
+            ! Regrid from 1x1 to the current grid
+            CALL DO_REGRID_1x1( 'kg', ARRAY1, EHgP_mde )
+
+            ! Convert from [kg/yr] to [kg/s]
+            EHgP_mde = EHgP_mde / SEC_PER_YR
+
+
+         !Anthro Former USSR HgP
+            FILENAME = '/home/eds/GCAP/TAGGED/' //
+     &           'GEIA_Streets2006_HgP_SOV.geos.1x1.YYYY'
+
+            ! Add year to the filename
+            CALL EXPAND_DATE( FILENAME, NYMD, 000000 )
+
+            ! Echo info
+            WRITE( 6, 146 ) TRIM( FILENAME )
+ 146        FORMAT( '     - MERCURY_READYR: Reading ', a )
+
+            ! Read data in [kg/yr]
+            CALL READ_BPCH2( FILENAME, 'HG-SRCE', 9,
+     &           XTAU,      I1x1,     J1x1,
+     &           1,         ARRAY1,   QUIET=.TRUE. )
+
+            ! Regrid from 1x1 to the current grid
+            CALL DO_REGRID_1x1( 'kg', ARRAY1, EHgP_sov )
+
+            ! Convert from [kg/yr] to [kg/s]
+            EHgP_sov = EHgP_sov / SEC_PER_YR
+
+
+         !Anthro South Asia HgP
+            FILENAME = '/home/eds/GCAP/TAGGED/' //
+     &           'GEIA_Streets2006_HgP_SAS.geos.1x1.YYYY'
+
+            ! Add year to the filename
+            CALL EXPAND_DATE( FILENAME, NYMD, 000000 )
+
+            ! Echo info
+            WRITE( 6, 147 ) TRIM( FILENAME )
+ 147        FORMAT( '     - MERCURY_READYR: Reading ', a )
+
+            ! Read data in [kg/yr]
+            CALL READ_BPCH2( FILENAME, 'HG-SRCE', 9,
+     &           XTAU,      I1x1,     J1x1,
+     &           1,         ARRAY1,   QUIET=.TRUE. )
+
+            ! Regrid from 1x1 to the current grid
+            CALL DO_REGRID_1x1( 'kg', ARRAY1, EHgP_sas )
+
+            ! Convert from [kg/yr] to [kg/s]
+            EHgP_sas = EHgP_sas / SEC_PER_YR
+
+
+         !Anthro East Asia HgP
+            FILENAME = '/home/eds/GCAP/TAGGED/' //
+     &           'GEIA_Streets2006_HgP_EAS.geos.1x1.YYYY'
+
+            ! Add year to the filename
+            CALL EXPAND_DATE( FILENAME, NYMD, 000000 )
+
+            ! Echo info
+            WRITE( 6, 148 ) TRIM( FILENAME )
+ 148        FORMAT( '     - MERCURY_READYR: Reading ', a )
+
+            ! Read data in [kg/yr]
+            CALL READ_BPCH2( FILENAME, 'HG-SRCE', 9,
+     &           XTAU,      I1x1,     J1x1,
+     &           1,         ARRAY1,   QUIET=.TRUE. )
+
+            ! Regrid from 1x1 to the current grid
+            CALL DO_REGRID_1x1( 'kg', ARRAY1, EHgP_eas )
+
+            ! Convert from [kg/yr] to [kg/s]
+            EHgP_eas = EHgP_eas / SEC_PER_YR
+
+
+         !Anthro Southeast Asia HgP
+            FILENAME = '/home/eds/GCAP/TAGGED/' //
+     &           'GEIA_Streets2006_HgP_SEA.geos.1x1.YYYY'
+
+            ! Add year to the filename
+            CALL EXPAND_DATE( FILENAME, NYMD, 000000 )
+
+            ! Echo info
+            WRITE( 6, 149 ) TRIM( FILENAME )
+ 149        FORMAT( '     - MERCURY_READYR: Reading ', a )
+
+            ! Read data in [kg/yr]
+            CALL READ_BPCH2( FILENAME, 'HG-SRCE', 9,
+     &           XTAU,      I1x1,     J1x1,
+     &           1,         ARRAY1,   QUIET=.TRUE. )
+
+            ! Regrid from 1x1 to the current grid
+            CALL DO_REGRID_1x1( 'kg', ARRAY1, EHgP_sea )
+
+            ! Convert from [kg/yr] to [kg/s]
+            EHgP_sea = EHgP_sea / SEC_PER_YR
+
+
+         !Anthro Japan HgP
+            FILENAME = '/home/eds/GCAP/TAGGED/' //
+     &           'GEIA_Streets2006_HgP_JPN.geos.1x1.YYYY'
+
+            ! Add year to the filename
+            CALL EXPAND_DATE( FILENAME, NYMD, 000000 )
+
+            ! Echo info
+            WRITE( 6, 150 ) TRIM( FILENAME )
+ 150        FORMAT( '     - MERCURY_READYR: Reading ', a )
+
+            ! Read data in [kg/yr]
+            CALL READ_BPCH2( FILENAME, 'HG-SRCE', 9,
+     &           XTAU,      I1x1,     J1x1,
+     &           1,         ARRAY1,   QUIET=.TRUE. )
+
+            ! Regrid from 1x1 to the current grid
+            CALL DO_REGRID_1x1( 'kg', ARRAY1, EHgP_jpn )
+
+            ! Convert from [kg/yr] to [kg/s]
+            EHgP_jpn = EHgP_jpn / SEC_PER_YR
+
+
+         !Anthro Oceania HgP
+            FILENAME = '/home/eds/GCAP/TAGGED/' //
+     &           'GEIA_Streets2006_HgP_OCE.geos.1x1.YYYY'
+
+            ! Add year to the filename
+            CALL EXPAND_DATE( FILENAME, NYMD, 000000 )
+
+            ! Echo info
+            WRITE( 6, 151 ) TRIM( FILENAME )
+ 151        FORMAT( '     - MERCURY_READYR: Reading ', a )
+
+            ! Read data in [kg/yr]
+            CALL READ_BPCH2( FILENAME, 'HG-SRCE', 9,
+     &           XTAU,      I1x1,     J1x1,
+     &           1,         ARRAY1,   QUIET=.TRUE. )
+
+            ! Regrid from 1x1 to the current grid
+            CALL DO_REGRID_1x1( 'kg', ARRAY1, EHgP_oce )
+
+            ! Convert from [kg/yr] to [kg/s]
+            EHgP_oce = EHgP_oce / SEC_PER_YR
+
+        ENDIF
+
+!----------------------------------------------------------------
 
          ELSEIF (LGEIA05) THEN
             ! Use GEIA 2005 emissions (eck, 10/19/11)
@@ -3112,15 +5236,17 @@
      &                 1,         ARRAY(:,:,1), QUIET=.TRUE. )
 
       ! Cast to REAL*8 and resize
-      CALL TRANSFER_2D( ARRAY(:,:,1), EHg0_nt )
+!- eds 8/31/10 ---------------------------------------------------------
+!      CALL TRANSFER_2D( ARRAY(:,:,1), EHg0_nt )
+      CALL TRANSFER_2D( ARRAY(:,:,1), EHg0_geo )
 
       ! Convert from [kg/yr] to [kg/s]
-      EHg0_nt = EHg0_nt / SEC_PER_YR 
+      EHg0_geo = EHg0_geo / SEC_PER_YR 
 
       !Recommended for v8-03-02 and later: 
       !Reduce Geogenic emissions by 50%
       !Ref: Soerensen et al., 2010
-      EHg0_nt = EHg0_nt *0.5d0
+      EHg0_geo = EHg0_geo *0.5d0
 
       !=================================================================
       ! Read offline ocean Hg0 emissions (if LDYNOCEAN = .FALSE.)
@@ -3160,29 +5286,32 @@
       ! Print totals to the screen in [Gg/yr]
       !=================================================================
       WRITE( 6, '(a)' ) REPEAT( '=', 79 )
-      WRITE( 6, 110   )
+      WRITE( 6, 210   )
       WRITE( 6, '(a)' )
-      WRITE( 6, 111   ) SUM( EHg0_an ) * SEC_PER_YR * 1d-6
-      WRITE( 6, 113   ) SUM( EHg0_ln ) * SEC_PER_YR * 1d-6
-      WRITE( 6, 114   ) SUM( EHg0_nt ) * SEC_PER_YR * 1d-6
+      WRITE( 6, 211   ) SUM( EHg0_an ) * SEC_PER_YR * 1d-6
+      WRITE( 6, 213   ) SUM( EHg0_ln ) * SEC_PER_YR * 1d-6
+!- eds 8/31/10 ----------------------------------------------------------
+!      WRITE( 6, 114   ) SUM( EHg0_nt ) * SEC_PER_YR * 1d-6
+      WRITE( 6, 214   ) SUM( EHg0_geo ) * SEC_PER_YR * 1d-6
+!------------------------------------------------------------------------
 
       ! Only write ocean total if we are doing offline ocean
       IF ( .not. LDYNOCEAN ) THEN
-         WRITE( 6, 117   ) SUM( EHg0_oc ) * SEC_PER_YR * 1d-6 
+         WRITE( 6, 217   ) SUM( EHg0_oc ) * SEC_PER_YR * 1d-6 
       ENDIF
 
-      WRITE( 6, 115   ) SUM( EHg2_an ) * SEC_PER_YR * 1d-6
-      WRITE( 6, 116   ) SUM( EHgP_an ) * SEC_PER_YR * 1d-6
+      WRITE( 6, 215   ) SUM( EHg2_an ) * SEC_PER_YR * 1d-6
+      WRITE( 6, 216   ) SUM( EHgP_an ) * SEC_PER_YR * 1d-6
       WRITE( 6, '(a)' ) REPEAT( '=', 79 )
 
       ! FORMAT strings
- 110  FORMAT( 'M E R C U R Y   E M I S S I O N S' )
- 111  FORMAT( 'Total Anthro     Hg(0)  : ', f7.3, ' [Gg/yr]' )
- 113  FORMAT( 'Total Re-Emitted Hg(0)  : ', f7.3, ' [Gg/yr]' )
- 114  FORMAT( 'Total Natural    Hg(0)  : ', f7.3, ' [Gg/yr]' )
- 115  FORMAT( 'Total Anthro     Hg(II) : ', f7.3, ' [Gg/yr]' )
- 116  FORMAT( 'Total Anthro     HgP    : ', f7.3, ' [Gg/yr]' )
- 117  FORMAT( 'Total Ocean      Hg(0)  : ', f7.3, ' [Gg/yr]' )
+ 210  FORMAT( 'M E R C U R Y   E M I S S I O N S' )
+ 211  FORMAT( 'Total Anthro     Hg(0)  : ', f7.3, ' [Gg/yr]' )
+ 213  FORMAT( 'Total Re-Emitted Hg(0)  : ', f7.3, ' [Gg/yr]' )
+ 214  FORMAT( 'Total Natural    Hg(0)  : ', f7.3, ' [Gg/yr]' )
+ 215  FORMAT( 'Total Anthro     Hg(II) : ', f7.3, ' [Gg/yr]' )
+ 216  FORMAT( 'Total Anthro     HgP    : ', f7.3, ' [Gg/yr]' )
+ 217  FORMAT( 'Total Ocean      Hg(0)  : ', f7.3, ' [Gg/yr]' )
 
       ! Return to calling program
       END SUBROUTINE MERCURY_READYR
@@ -3760,132 +5889,132 @@
       ! Return to calling program
       END SUBROUTINE OHNO3TIME
 
-!------------------------------------------------------------------------------
-
-      SUBROUTINE DEFINE_TAGGED_Hg
-!
-!******************************************************************************
-!  Subroutine DEFINE_TAGGED_Hg defines the tagged tracer numbers for
-!  anthropogenic (by geographic region) Hg0, Hg2, and HgP.  The position of 
-!  Hg2 and HgP in the DEPSAV array is also computed for future use.  This 
-!  routine only has to be called once at the start of the simulation. 
-!  (eck, cdh, bmy, 12/15/04, 4/6/06)
-!
-!  NOTES:
-!  (1 ) Now only define AN_Hg0, AN_Hg2, AN_HgP.  Now use ID_Hg0, ID_Hg2, and
-!        ID_HgP index arrays from "tracerid_mod.f". (eck, cdh, bmy, 4/6/06)
-!******************************************************************************
-!
-      ! References to F90 modules
-      USE GRID_MOD    , ONLY : GET_XMID  , GET_YMID
-      USE ERROR_MOD   , ONLY : ERROR_STOP
-      USE TRACER_MOD  , ONLY : N_TRACERS
-      USE TRACERID_MOD, ONLY : ID_Hg0    , ID_Hg2  , ID_HgP
-      USE TRACERID_MOD, ONLY : ID_Hg_tot , ID_Hg_na, ID_Hg_eu, ID_Hg_as
-      USE TRACERID_MOD, ONLY : ID_Hg_rw  , ID_Hg_oc, ID_Hg_ln, ID_Hg_nt
-
-      USE CMN_SIZE_MOD     ! Size parameters
-
-      ! Local variables
-      INTEGER               :: I, J
-      REAL*8                :: X, Y
-      CHARACTER(LEN=255)    :: LOCATION
-
-      !=================================================================
-      ! DEFINE_TAGGED_Hg begins here!
-      !=================================================================
-
-      ! Location string for ERROR_STOP
-      LOCATION = 'DEFINE_TAGGED_Hg ("mercury_mod.f")'
-
-      !---------------------------------
-      ! Anthropogenic tracer indices
-      !---------------------------------
-
-      ! Loop over latitudes
-!$OMP PARALLEL DO 
-!$OMP+DEFAULT( SHARED ) 
-!$OMP+PRIVATE( I, J, X, Y )
-      DO J = 1, JJPAR
-
-         ! Grid-box latitude [degrees]
-         Y = GET_YMID( J )
-         
-         ! Loop over longitudes
-         DO I = 1, IIPAR
-
-            ! Grid box longitude [degrees]
-            X = GET_XMID( I )
-
-            ! North American Anthro Hg 
-            IF ( ( X >= -172.5 .and. X < -17.5 )   .and. 
-     &           ( Y >=   24.0 .and. Y <  88.0 ) ) THEN
-               AN_Hg0(I,J) = ID_Hg0(ID_Hg_na)
-               AN_Hg2(I,J) = ID_Hg2(ID_Hg_na)
-               AN_HgP(I,J) = ID_HgP(ID_Hg_na)
-            
-            ! European Anthro Hg (1st sub-box)
-            ELSE IF ( ( X >= -17.5 .and. X < 72.5 )  .and. 
-     &                ( Y >=  36.0 .and. Y < 45.0 ) ) THEN
-               AN_Hg0(I,J) = ID_Hg0(ID_Hg_eu)
-               AN_Hg2(I,J) = ID_Hg2(ID_Hg_eu)
-               AN_HgP(I,J) = ID_HgP(ID_Hg_eu)
-
-            ! European Anthro Hg (2nd sub-box)
-            ELSE IF ( ( X >= -17.5 .and. X < 172.5 )  .and. 
-     &                ( Y >=  45.0 .and. Y <  88.0 ) ) THEN
-               AN_Hg0(I,J) = ID_Hg0(ID_Hg_eu)
-               AN_Hg2(I,J) = ID_Hg2(ID_Hg_eu)
-               AN_HgP(I,J) = ID_HgP(ID_Hg_eu)
-
-            ! Asian Anthro Hg 
-            ELSE IF ( ( X >= 70.0 .and. X < 152.5 )  .and.
-     &                ( Y >=  8.0 .and. Y <  45.0 ) ) THEN
-               AN_Hg0(I,J) = ID_Hg0(ID_Hg_as)
-               AN_Hg2(I,J) = ID_Hg2(ID_Hg_as)
-               AN_HgP(I,J) = ID_HgP(ID_Hg_as)
-
-            ! Rest-of-world Anthro Hg 
-            ELSE
-               AN_Hg0(I,J) = ID_Hg0(ID_Hg_rw)
-               AN_Hg2(I,J) = ID_Hg2(ID_Hg_rw)
-               AN_HgP(I,J) = ID_HgP(ID_Hg_rw)
-
-            ENDIF
-         ENDDO
-      ENDDO
-!$OMP END PARALLEL DO
-
-      !=================================================================
-      ! Error check tracers: make sure they are not zero
-      ! since this can cause array-out-of-bounds errors
-      !=================================================================
-
-      ! Tagged Hg0
-      IF ( ANY( AN_Hg0 == 0 ) ) THEN
-         CALL ERROR_STOP( 'AN_Hg0 tracers are undefined!', LOCATION )   
-      ENDIF
-      
-      ! Tagged Hg2
-      IF ( ANY( AN_Hg2 == 0 ) ) THEN
-         CALL ERROR_STOP( 'AN_Hg2 tracers are undefined!', LOCATION )   
-      ENDIF
-
-      ! Tagged Hg2
-      IF ( ANY( AN_HgP == 0 ) ) THEN
-         CALL ERROR_STOP( 'AN_HgP tracer are undefined!', LOCATION )   
-      ENDIF
-
-      !---------------------------------
-      ! Error check # of tracers
-      !---------------------------------
-      IF ( N_TRACERS < 21 ) THEN 
-         CALL ERROR_STOP( 'Too few Hg tagged tracers!',
-     &                    'DEFINE_TAGGED_Hg ("mercury_mod.f")' )
-      ENDIF
-
-      ! Return to calling program
-      END SUBROUTINE DEFINE_TAGGED_Hg
+c$$$!------------------------------------------------------------------------------
+c$$$! eds 2/7/2012 no longer use this routine - replaced by new tagged tracers
+c$$$      SUBROUTINE DEFINE_TAGGED_Hg
+c$$$!
+c$$$!******************************************************************************
+c$$$!  Subroutine DEFINE_TAGGED_Hg defines the tagged tracer numbers for
+c$$$!  anthropogenic (by geographic region) Hg0, Hg2, and HgP.  The position of 
+c$$$!  Hg2 and HgP in the DEPSAV array is also computed for future use.  This 
+c$$$!  routine only has to be called once at the start of the simulation. 
+c$$$!  (eck, cdh, bmy, 12/15/04, 4/6/06)
+c$$$!
+c$$$!  NOTES:
+c$$$!  (1 ) Now only define AN_Hg0, AN_Hg2, AN_HgP.  Now use ID_Hg0, ID_Hg2, and
+c$$$!        ID_HgP index arrays from "tracerid_mod.f". (eck, cdh, bmy, 4/6/06)
+c$$$!******************************************************************************
+c$$$!
+c$$$!      ! References to F90 modules
+c$$$      USE GRID_MOD,     ONLY : GET_XMID, GET_YMID
+c$$$      USE ERROR_MOD,    ONLY : ERROR_STOP
+c$$$      USE TRACER_MOD,   ONLY : N_TRACERS
+c$$$      USE TRACERID_MOD, ONLY : ID_Hg0,    ID_Hg2,   ID_HgP
+c$$$      USE TRACERID_MOD, ONLY : ID_Hg_tot, ID_Hg_na, ID_Hg_eu, ID_Hg_as
+c$$$      USE TRACERID_MOD, ONLY : ID_Hg_rw,  ID_Hg_oc, ID_Hg_ln, ID_Hg_nt
+c$$$
+c$$$      USE CMN_SIZE_MOD     ! Size parameters
+c$$$
+c$$$      ! Local variables
+c$$$      INTEGER               :: I, J
+c$$$      REAL*8                :: X, Y
+c$$$      CHARACTER(LEN=255)    :: LOCATION
+c$$$
+c$$$      !=================================================================
+c$$$      ! DEFINE_TAGGED_Hg begins here!
+c$$$      !=================================================================
+c$$$
+c$$$      ! Location string for ERROR_STOP
+c$$$      LOCATION = 'DEFINE_TAGGED_Hg ("mercury_mod.f")'
+c$$$
+c$$$      !---------------------------------
+c$$$      ! Anthropogenic tracer indices
+c$$$      !---------------------------------
+c$$$
+c$$$      ! Loop over latitudes
+c$$$!$OMP PARALLEL DO 
+c$$$!$OMP+DEFAULT( SHARED ) 
+c$$$!$OMP+PRIVATE( I, J, X, Y )
+c$$$      DO J = 1, JJPAR
+c$$$
+c$$$         ! Grid-box latitude [degrees]
+c$$$         Y = GET_YMID( J )
+c$$$         
+c$$$         ! Loop over longitudes
+c$$$         DO I = 1, IIPAR
+c$$$
+c$$$            ! Grid box longitude [degrees]
+c$$$            X = GET_XMID( I )
+c$$$
+c$$$            ! North American Anthro Hg 
+c$$$            IF ( ( X >= -172.5 .and. X < -17.5 )   .and. 
+c$$$     &           ( Y >=   24.0 .and. Y <  88.0 ) ) THEN
+c$$$               AN_Hg0(I,J) = ID_Hg0(ID_Hg_na)
+c$$$               AN_Hg2(I,J) = ID_Hg2(ID_Hg_na)
+c$$$               AN_HgP(I,J) = ID_HgP(ID_Hg_na)
+c$$$            
+c$$$            ! European Anthro Hg (1st sub-box)
+c$$$            ELSE IF ( ( X >= -17.5 .and. X < 72.5 )  .and. 
+c$$$     &                ( Y >=  36.0 .and. Y < 45.0 ) ) THEN
+c$$$               AN_Hg0(I,J) = ID_Hg0(ID_Hg_eu)
+c$$$               AN_Hg2(I,J) = ID_Hg2(ID_Hg_eu)
+c$$$               AN_HgP(I,J) = ID_HgP(ID_Hg_eu)
+c$$$
+c$$$            ! European Anthro Hg (2nd sub-box)
+c$$$            ELSE IF ( ( X >= -17.5 .and. X < 172.5 )  .and. 
+c$$$     &                ( Y >=  45.0 .and. Y <  88.0 ) ) THEN
+c$$$               AN_Hg0(I,J) = ID_Hg0(ID_Hg_eu)
+c$$$               AN_Hg2(I,J) = ID_Hg2(ID_Hg_eu)
+c$$$               AN_HgP(I,J) = ID_HgP(ID_Hg_eu)
+c$$$
+c$$$            ! Asian Anthro Hg 
+c$$$            ELSE IF ( ( X >= 70.0 .and. X < 152.5 )  .and.
+c$$$     &                ( Y >=  8.0 .and. Y <  45.0 ) ) THEN
+c$$$               AN_Hg0(I,J) = ID_Hg0(ID_Hg_as)
+c$$$               AN_Hg2(I,J) = ID_Hg2(ID_Hg_as)
+c$$$               AN_HgP(I,J) = ID_HgP(ID_Hg_as)
+c$$$
+c$$$            ! Rest-of-world Anthro Hg 
+c$$$            ELSE
+c$$$               AN_Hg0(I,J) = ID_Hg0(ID_Hg_rw)
+c$$$               AN_Hg2(I,J) = ID_Hg2(ID_Hg_rw)
+c$$$               AN_HgP(I,J) = ID_HgP(ID_Hg_rw)
+c$$$
+c$$$            ENDIF
+c$$$         ENDDO
+c$$$      ENDDO
+c$$$!$OMP END PARALLEL DO
+c$$$
+c$$$      !=================================================================
+c$$$      ! Error check tracers: make sure they are not zero
+c$$$      ! since this can cause array-out-of-bounds errors
+c$$$      !=================================================================
+c$$$
+c$$$      ! Tagged Hg0
+c$$$      IF ( ANY( AN_Hg0 == 0 ) ) THEN
+c$$$         CALL ERROR_STOP( 'AN_Hg0 tracers are undefined!', LOCATION )   
+c$$$      ENDIF
+c$$$      
+c$$$      ! Tagged Hg2
+c$$$      IF ( ANY( AN_Hg2 == 0 ) ) THEN
+c$$$         CALL ERROR_STOP( 'AN_Hg2 tracers are undefined!', LOCATION )   
+c$$$      ENDIF
+c$$$
+c$$$      ! Tagged Hg2
+c$$$      IF ( ANY( AN_HgP == 0 ) ) THEN
+c$$$         CALL ERROR_STOP( 'AN_HgP tracer are undefined!', LOCATION )   
+c$$$      ENDIF
+c$$$
+c$$$      !---------------------------------
+c$$$      ! Error check # of tracers
+c$$$      !---------------------------------
+c$$$      IF ( N_TRACERS < 21 ) THEN 
+c$$$         CALL ERROR_STOP( 'Too few Hg tagged tracers!',
+c$$$     &                    'DEFINE_TAGGED_Hg ("mercury_mod.f")' )
+c$$$      ENDIF
+c$$$
+c$$$      ! Return to calling program
+c$$$      END SUBROUTINE DEFINE_TAGGED_Hg
 
 !------------------------------------------------------------------------------
 
@@ -4188,6 +6317,7 @@
       USE ERROR_MOD        , ONLY : SAFE_DIV  , GEOS_CHEM_STOP
       USE TRACERID_MOD     , ONLY : ID_HG2    , ID_HGP
       USE TRACER_MOD       , ONLY : N_TRACERS
+      USE TRACERID_MOD,     ONLY  : N_HG_CATS                   !eds
       USE OCEAN_MERCURY_MOD, ONLY : Fp        , Fg
 
       USE CMN_SIZE_MOD  ! Size parameters
@@ -4196,6 +6326,7 @@
       REAL*8, INTENT(INOUT)   :: STT_COPY(IIPAR,JJPAR,LLPAR,N_TRACERS)
 
       INTEGER                 :: I,J,L
+      INTEGER                 :: NN !eds 
 
 
       !=================================================================
@@ -4212,10 +6343,11 @@
 
 !$OMP PARALLEL DO
 !$OMP+DEFAULT( SHARED )
-!$OMP+PRIVATE( I, J, L )
+!$OMP+PRIVATE( I, J, L, NN)
             DO L=1, LLPAR
             DO J=1, JJPAR
             DO I=1, IIPAR
+            DO NN=1, N_HG_CATS
 
               IF ( LHG2HALFAEROSOL ) THEN 
                 !----------------------------
@@ -4223,22 +6355,23 @@
                 !----------------------------
 
                 ! Put particulate Hg(II) into the Hg(p) tracer
-                STT_COPY(I,J,L,ID_HGP(1)) = 
-     &               0.5D0 * STT_COPY(I,J,L,ID_HG2(1))
-                STT_COPY(I,J,L,ID_HG2(1)) = 0.5D0 *
-     &               STT_COPY(I,J,L,ID_HG2(1))
+                STT_COPY(I,J,L,ID_HGP(NN)) =                       !eds NN
+     &               0.5D0 * STT_COPY(I,J,L,ID_HG2(NN))
+                STT_COPY(I,J,L,ID_HG2(NN)) = 0.5D0 *
+     &               STT_COPY(I,J,L,ID_HG2(NN))
               ELSE 
                !--------------------------------------------
                ! temperature dependent Hg(II) partitioning
                !--------------------------------------------
 
                 ! Put particulate Hg(II) into the Hg(p) tracer
-                STT_COPY(I,J,L,ID_HGP(1)) = 
-     &               Fp(I,J,L) * STT_COPY(I,J,L,ID_HG2(1))
-                STT_COPY(I,J,L,ID_HG2(1)) = Fg(I,J,L) *
-     &               STT_COPY(I,J,L,ID_HG2(1))
+                STT_COPY(I,J,L,ID_HGP(NN)) = 
+     &               Fp(I,J,L) * STT_COPY(I,J,L,ID_HG2(NN))
+                STT_COPY(I,J,L,ID_HG2(NN)) = Fg(I,J,L) *          !eds NN
+     &               STT_COPY(I,J,L,ID_HG2(NN))
               ENDIF
                   
+            ENDDO
             ENDDO
             ENDDO
             ENDDO
@@ -4248,17 +6381,18 @@
             
 !$OMP PARALLEL DO
 !$OMP+DEFAULT( SHARED )
-!$OMP+PRIVATE( I, J, L )
+!$OMP+PRIVATE( I, J, L, NN )
             DO L=1, LLPAR
             DO J=1, JJPAR
             DO I=1, IIPAR
-               STT_COPY(I,J,L,ID_HG2(1)) = STT_COPY(I,J,L,ID_HG2(1)) +
-     &                                     STT_COPY(I,J,L,ID_HGP(1))
-               STT_COPY(I,J,L,ID_HGP(1)) = 0d0
+            DO NN=1, N_HG_CATS
+               STT_COPY(I,J,L,ID_HG2(NN)) = STT_COPY(I,J,L,ID_HG2(NN)) +
+     &                                      STT_COPY(I,J,L,ID_HGP(NN))
+               STT_COPY(I,J,L,ID_HGP(NN)) = 0d0
             ENDDO
             ENDDO
             ENDDO               
-
+            ENDDO
 !$OMP END PARALLEL DO
 
          CASE DEFAULT
@@ -4332,6 +6466,77 @@
       IF ( AS /= 0 ) CALL ALLOC_ERR( 'EHg0_an' )
       EHg0_an = 0d0
 
+!- eds 8/31/10 ---------------------------------------------------------
+      ALLOCATE( EHg0_can( IIPAR, JJPAR ), STAT=AS )
+      IF ( AS /= 0 ) CALL ALLOC_ERR( 'EHg0_can' )
+      EHg0_can = 0d0
+
+      ALLOCATE( EHg0_usa( IIPAR, JJPAR ), STAT=AS )
+      IF ( AS /= 0 ) CALL ALLOC_ERR( 'EHg0_usa' )
+      EHg0_usa = 0d0
+
+      ALLOCATE( EHg0_cam( IIPAR, JJPAR ), STAT=AS )
+      IF ( AS /= 0 ) CALL ALLOC_ERR( 'EHg0_cam' )
+      EHg0_cam = 0d0
+
+      ALLOCATE( EHg0_sam( IIPAR, JJPAR ), STAT=AS )
+      IF ( AS /= 0 ) CALL ALLOC_ERR( 'EHg0_sam' )
+      EHg0_sam = 0d0
+
+      ALLOCATE( EHg0_waf( IIPAR, JJPAR ), STAT=AS )
+      IF ( AS /= 0 ) CALL ALLOC_ERR( 'EHg0_waf' )
+      EHg0_waf = 0d0
+
+      ALLOCATE( EHg0_eaf( IIPAR, JJPAR ), STAT=AS )
+      IF ( AS /= 0 ) CALL ALLOC_ERR( 'EHg0_eaf' )
+      EHg0_eaf = 0d0
+
+      ALLOCATE( EHg0_saf( IIPAR, JJPAR ), STAT=AS )
+      IF ( AS /= 0 ) CALL ALLOC_ERR( 'EHg0_saf' )
+      EHg0_saf = 0d0
+
+      ALLOCATE( EHg0_naf( IIPAR, JJPAR ), STAT=AS )
+      IF ( AS /= 0 ) CALL ALLOC_ERR( 'EHg0_naf' )
+      EHg0_naf = 0d0
+
+      ALLOCATE( EHg0_eur( IIPAR, JJPAR ), STAT=AS )
+      IF ( AS /= 0 ) CALL ALLOC_ERR( 'EHg0_eur' )
+      EHg0_eur = 0d0
+
+      ALLOCATE( EHg0_eeu( IIPAR, JJPAR ), STAT=AS )
+      IF ( AS /= 0 ) CALL ALLOC_ERR( 'EHg0_eeu' )
+      EHg0_eeu = 0d0
+
+      ALLOCATE( EHg0_mde( IIPAR, JJPAR ), STAT=AS )
+      IF ( AS /= 0 ) CALL ALLOC_ERR( 'EHg0_mde' )
+      EHg0_mde = 0d0
+
+      ALLOCATE( EHg0_sov( IIPAR, JJPAR ), STAT=AS )
+      IF ( AS /= 0 ) CALL ALLOC_ERR( 'EHg0_sov' )
+      EHg0_sov = 0d0
+
+      ALLOCATE( EHg0_sas( IIPAR, JJPAR ), STAT=AS )
+      IF ( AS /= 0 ) CALL ALLOC_ERR( 'EHg0_sas' )
+      EHg0_sas = 0d0
+
+      ALLOCATE( EHg0_eas( IIPAR, JJPAR ), STAT=AS )
+      IF ( AS /= 0 ) CALL ALLOC_ERR( 'EHg0_eas' )
+      EHg0_eas = 0d0
+
+      ALLOCATE( EHg0_sea( IIPAR, JJPAR ), STAT=AS )
+      IF ( AS /= 0 ) CALL ALLOC_ERR( 'EHg0_sea' )
+      EHg0_sea = 0d0
+
+      ALLOCATE( EHg0_jpn( IIPAR, JJPAR ), STAT=AS )
+      IF ( AS /= 0 ) CALL ALLOC_ERR( 'EHg0_jpn' )
+      EHg0_jpn = 0d0
+
+      ALLOCATE( EHg0_oce( IIPAR, JJPAR ), STAT=AS )
+      IF ( AS /= 0 ) CALL ALLOC_ERR( 'EHg0_oce' )
+      EHg0_oce = 0d0
+
+!------------------------------------------------------
+
       ALLOCATE( EHg0_am( IIPAR, JJPAR ), STAT=AS )
       IF ( AS /= 0 ) CALL ALLOC_ERR( 'EHg0_am' )
       EHg0_am = 0d0
@@ -4340,9 +6545,152 @@
       IF ( AS /= 0 ) CALL ALLOC_ERR( 'EHg2_an' )
       EHg2_an = 0d0
 
+
+!- eds 8/31/10 ---------------------------------------------------------
+      ALLOCATE( EHg2_can( IIPAR, JJPAR ), STAT=AS )
+      IF ( AS /= 0 ) CALL ALLOC_ERR( 'EHg2_can' )
+      EHg2_can = 0d0
+
+      ALLOCATE( EHg2_usa( IIPAR, JJPAR ), STAT=AS )
+      IF ( AS /= 0 ) CALL ALLOC_ERR( 'EHg2_usa' )
+      EHg2_usa = 0d0
+
+      ALLOCATE( EHg2_cam( IIPAR, JJPAR ), STAT=AS )
+      IF ( AS /= 0 ) CALL ALLOC_ERR( 'EHg2_cam' )
+      EHg2_cam = 0d0
+
+      ALLOCATE( EHg2_sam( IIPAR, JJPAR ), STAT=AS )
+      IF ( AS /= 0 ) CALL ALLOC_ERR( 'EHg2_sam' )
+      EHg2_sam = 0d0
+
+      ALLOCATE( EHg2_waf( IIPAR, JJPAR ), STAT=AS )
+      IF ( AS /= 0 ) CALL ALLOC_ERR( 'EHg2_waf' )
+      EHg2_waf = 0d0
+
+      ALLOCATE( EHg2_eaf( IIPAR, JJPAR ), STAT=AS )
+      IF ( AS /= 0 ) CALL ALLOC_ERR( 'EHg2_eaf' )
+      EHg2_eaf = 0d0
+
+      ALLOCATE( EHg2_saf( IIPAR, JJPAR ), STAT=AS )
+      IF ( AS /= 0 ) CALL ALLOC_ERR( 'EHg2_saf' )
+      EHg2_saf = 0d0
+
+      ALLOCATE( EHg2_naf( IIPAR, JJPAR ), STAT=AS )
+      IF ( AS /= 0 ) CALL ALLOC_ERR( 'EHg2_naf' )
+      EHg2_naf = 0d0
+
+      ALLOCATE( EHg2_eur( IIPAR, JJPAR ), STAT=AS )
+      IF ( AS /= 0 ) CALL ALLOC_ERR( 'EHg2_eur' )
+      EHg2_eur = 0d0
+
+      ALLOCATE( EHg2_eeu( IIPAR, JJPAR ), STAT=AS )
+      IF ( AS /= 0 ) CALL ALLOC_ERR( 'EHg2_eeu' )
+      EHg2_eeu = 0d0
+
+      ALLOCATE( EHg2_mde( IIPAR, JJPAR ), STAT=AS )
+      IF ( AS /= 0 ) CALL ALLOC_ERR( 'EHg2_mde' )
+      EHg2_mde = 0d0
+
+      ALLOCATE( EHg2_sov( IIPAR, JJPAR ), STAT=AS )
+      IF ( AS /= 0 ) CALL ALLOC_ERR( 'EHg2_sov' )
+      EHg2_sov = 0d0
+
+      ALLOCATE( EHg2_sas( IIPAR, JJPAR ), STAT=AS )
+      IF ( AS /= 0 ) CALL ALLOC_ERR( 'EHg2_sas' )
+      EHg2_sas = 0d0
+
+      ALLOCATE( EHg2_eas( IIPAR, JJPAR ), STAT=AS )
+      IF ( AS /= 0 ) CALL ALLOC_ERR( 'EHg2_eas' )
+      EHg2_eas = 0d0
+
+      ALLOCATE( EHg2_sea( IIPAR, JJPAR ), STAT=AS )
+      IF ( AS /= 0 ) CALL ALLOC_ERR( 'EHg2_sea' )
+      EHg2_sea = 0d0
+
+      ALLOCATE( EHg2_jpn( IIPAR, JJPAR ), STAT=AS )
+      IF ( AS /= 0 ) CALL ALLOC_ERR( 'EHg2_jpn' )
+      EHg2_jpn = 0d0
+
+      ALLOCATE( EHg2_oce( IIPAR, JJPAR ), STAT=AS )
+      IF ( AS /= 0 ) CALL ALLOC_ERR( 'EHg2_oce' )
+      EHg2_oce = 0d0
+
+!------------------------------------------------------
+
       ALLOCATE( EHgP_an( IIPAR, JJPAR ), STAT=AS )
       IF ( AS /= 0 ) CALL ALLOC_ERR( 'EHgP_an' )
       EHgP_an = 0d0
+
+!- eds 8/31/10 ---------------------------------------------------------
+      ALLOCATE( EHgP_can( IIPAR, JJPAR ), STAT=AS )
+      IF ( AS /= 0 ) CALL ALLOC_ERR( 'EHgP_can' )
+      EHgP_can = 0d0
+
+      ALLOCATE( EHgP_usa( IIPAR, JJPAR ), STAT=AS )
+      IF ( AS /= 0 ) CALL ALLOC_ERR( 'EHgP_usa' )
+      EHgP_usa = 0d0
+
+      ALLOCATE( EHgP_cam( IIPAR, JJPAR ), STAT=AS )
+      IF ( AS /= 0 ) CALL ALLOC_ERR( 'EHgP_cam' )
+      EHgP_cam = 0d0
+
+      ALLOCATE( EHgP_sam( IIPAR, JJPAR ), STAT=AS )
+      IF ( AS /= 0 ) CALL ALLOC_ERR( 'EHgP_sam' )
+      EHgP_sam = 0d0
+
+      ALLOCATE( EHgP_waf( IIPAR, JJPAR ), STAT=AS )
+      IF ( AS /= 0 ) CALL ALLOC_ERR( 'EHgP_waf' )
+      EHgP_waf = 0d0
+
+      ALLOCATE( EHgP_eaf( IIPAR, JJPAR ), STAT=AS )
+      IF ( AS /= 0 ) CALL ALLOC_ERR( 'EHgP_eaf' )
+      EHgP_eaf = 0d0
+
+      ALLOCATE( EHgP_saf( IIPAR, JJPAR ), STAT=AS )
+      IF ( AS /= 0 ) CALL ALLOC_ERR( 'EHgP_saf' )
+      EHgP_saf = 0d0
+
+      ALLOCATE( EHgP_naf( IIPAR, JJPAR ), STAT=AS )
+      IF ( AS /= 0 ) CALL ALLOC_ERR( 'EHgP_naf' )
+      EHgP_naf = 0d0
+
+      ALLOCATE( EHgP_eur( IIPAR, JJPAR ), STAT=AS )
+      IF ( AS /= 0 ) CALL ALLOC_ERR( 'EHgP_eur' )
+      EHgP_eur = 0d0
+
+      ALLOCATE( EHgP_eeu( IIPAR, JJPAR ), STAT=AS )
+      IF ( AS /= 0 ) CALL ALLOC_ERR( 'EHgP_eeu' )
+      EHgP_eeu = 0d0
+
+      ALLOCATE( EHgP_mde( IIPAR, JJPAR ), STAT=AS )
+      IF ( AS /= 0 ) CALL ALLOC_ERR( 'EHgP_mde' )
+      EHgP_mde = 0d0
+
+      ALLOCATE( EHgP_sov( IIPAR, JJPAR ), STAT=AS )
+      IF ( AS /= 0 ) CALL ALLOC_ERR( 'EHgP_sov' )
+      EHgP_sov = 0d0
+
+      ALLOCATE( EHgP_sas( IIPAR, JJPAR ), STAT=AS )
+      IF ( AS /= 0 ) CALL ALLOC_ERR( 'EHgP_sas' )
+      EHgP_sas = 0d0
+
+      ALLOCATE( EHgP_eas( IIPAR, JJPAR ), STAT=AS )
+      IF ( AS /= 0 ) CALL ALLOC_ERR( 'EHgP_eas' )
+      EHgP_eas = 0d0
+
+      ALLOCATE( EHgP_sea( IIPAR, JJPAR ), STAT=AS )
+      IF ( AS /= 0 ) CALL ALLOC_ERR( 'EHgP_sea' )
+      EHgP_sea = 0d0
+
+      ALLOCATE( EHgP_jpn( IIPAR, JJPAR ), STAT=AS )
+      IF ( AS /= 0 ) CALL ALLOC_ERR( 'EHgP_jpn' )
+      EHgP_jpn = 0d0
+
+      ALLOCATE( EHgP_oce( IIPAR, JJPAR ), STAT=AS )
+      IF ( AS /= 0 ) CALL ALLOC_ERR( 'EHgP_oce' )
+      EHgP_oce = 0d0
+
+!------------------------------------------------------
 
       ALLOCATE( EHg0_oc( IIPAR, JJPAR, N_Hg_CATS ), STAT=AS )
       IF ( AS /= 0 ) CALL ALLOC_ERR( 'EHg0_oc' )
@@ -4352,9 +6700,15 @@
       IF ( AS /= 0 ) CALL ALLOC_ERR( 'EHg0_dist' )
       EHg0_dist = 0d0
 
-      ALLOCATE( EHg0_nt( IIPAR, JJPAR ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'EHg0_nt' )
-      EHg0_nt = 0d0
+!- eds 8/31/10 ------------------------------------------------
+!      ALLOCATE( EHg0_nt( IIPAR, JJPAR ), STAT=AS )
+!      IF ( AS /= 0 ) CALL ALLOC_ERR( 'EHg0_nt' )
+!      EHg0_nt = 0d0
+
+      ALLOCATE( EHg0_geo( IIPAR, JJPAR ), STAT=AS )
+      IF ( AS /= 0 ) CALL ALLOC_ERR( 'EHg0_geo' )
+      EHg0_geo = 0d0
+!--------------------------------------------------------------
 
       ALLOCATE( EHg0_bb( IIPAR, JJPAR ), STAT=AS )
       IF ( AS /= 0 ) CALL ALLOC_ERR( 'EHg0_bb' )
@@ -4433,7 +6787,7 @@
          AN_HgP = 0d0
 
          ! Define the tagged tracer indices 
-         CALL DEFINE_TAGGED_Hg
+!         CALL DEFINE_TAGGED_Hg                    !eds
 
       ENDIF
 
@@ -4450,9 +6804,9 @@
       ! This is temporary
       ! Bess's changes: rescale GEIA to use Streets' 2006 regional totals
       ! With these emissions, Bess found the best chemistry results
-      LGCAPEMIS=.FALSE.
+      LGCAPEMIS=.TRUE.
       ! Use GEIA 2005 inventory
-      LGEIA05=.TRUE.
+      LGEIA05=.FALSE.
 
       ! no Hg emitted through transpiration (VEGEMIS off)
       LVEGEMIS=.FALSE.
@@ -4515,26 +6869,78 @@
       !=================================================================
       ! CLEANUP_MERCURY begins here!
       !=================================================================
-      IF ( ALLOCATED( AN_Hg0    ) ) DEALLOCATE( AN_Hg0    )  
-      IF ( ALLOCATED( AN_Hg2    ) ) DEALLOCATE( AN_Hg2    )      
-      IF ( ALLOCATED( AN_HgP    ) ) DEALLOCATE( AN_HgP    )      
-      IF ( ALLOCATED( COSZM     ) ) DEALLOCATE( COSZM     )       
-      IF ( ALLOCATED( EHg0_an   ) ) DEALLOCATE( EHg0_an   )
-      IF ( ALLOCATED( EHg0_am   ) ) DEALLOCATE( EHg0_am   )
-      IF ( ALLOCATED( EHg2_an   ) ) DEALLOCATE( EHg2_an   )
-      IF ( ALLOCATED( EHgP_an   ) ) DEALLOCATE( EHgP_an   )
-      IF ( ALLOCATED( EHg0_oc   ) ) DEALLOCATE( EHg0_oc   )
-      IF ( ALLOCATED( EHg0_ln   ) ) DEALLOCATE( EHg0_ln   )
-      IF ( ALLOCATED( EHg0_snow ) ) DEALLOCATE( EHg0_snow )
-      IF ( ALLOCATED( EHg0_nt   ) ) DEALLOCATE( EHg0_nt   )
-      IF ( ALLOCATED( EHg0_bb   ) ) DEALLOCATE( EHg0_bb   )
-      IF ( ALLOCATED( EHg0_gtm  ) ) DEALLOCATE( EHg0_gtm  )
-      IF ( ALLOCATED( EHg0_vg   ) ) DEALLOCATE( EHg0_vg   )
-      IF ( ALLOCATED( EHg0_so   ) ) DEALLOCATE( EHg0_so   )
-      IF ( ALLOCATED( EHg0_dist ) ) DEALLOCATE( EHg0_dist )
-      IF ( ALLOCATED( TCOSZ     ) ) DEALLOCATE( TCOSZ     )
-      IF ( ALLOCATED( TTDAY     ) ) DEALLOCATE( TTDAY     )
-      IF ( ALLOCATED( ZERO_DVEL ) ) DEALLOCATE( ZERO_DVEL )
+      IF ( ALLOCATED( AN_Hg0   ) ) DEALLOCATE( AN_Hg0  )  
+      IF ( ALLOCATED( AN_Hg2   ) ) DEALLOCATE( AN_Hg2  )      
+      IF ( ALLOCATED( AN_HgP   ) ) DEALLOCATE( AN_HgP  )      
+      IF ( ALLOCATED( COSZM    ) ) DEALLOCATE( COSZM   )      
+      IF ( ALLOCATED( EHg0_an  ) ) DEALLOCATE( EHg0_an )
+      IF ( ALLOCATED( EHg0_can ) ) DEALLOCATE( EHg0_can )
+      IF ( ALLOCATED( EHg0_usa ) ) DEALLOCATE( EHg0_usa )
+      IF ( ALLOCATED( EHg0_sam ) ) DEALLOCATE( EHg0_sam )
+      IF ( ALLOCATED( EHg0_eaf ) ) DEALLOCATE( EHg0_eaf )
+      IF ( ALLOCATED( EHg0_waf ) ) DEALLOCATE( EHg0_waf )
+      IF ( ALLOCATED( EHg0_saf ) ) DEALLOCATE( EHg0_saf )
+      IF ( ALLOCATED( EHg0_naf ) ) DEALLOCATE( EHg0_naf )
+      IF ( ALLOCATED( EHg0_eur ) ) DEALLOCATE( EHg0_eur )
+      IF ( ALLOCATED( EHg0_eeu ) ) DEALLOCATE( EHg0_eeu )
+      IF ( ALLOCATED( EHg0_sov ) ) DEALLOCATE( EHg0_sov )
+      IF ( ALLOCATED( EHg0_mde ) ) DEALLOCATE( EHg0_mde )
+      IF ( ALLOCATED( EHg0_sas ) ) DEALLOCATE( EHg0_sas )
+      IF ( ALLOCATED( EHg0_eas ) ) DEALLOCATE( EHg0_eas )
+      IF ( ALLOCATED( EHg0_sea ) ) DEALLOCATE( EHg0_sea )
+      IF ( ALLOCATED( EHg0_jpn ) ) DEALLOCATE( EHg0_jpn )
+      IF ( ALLOCATED( EHg0_oce ) ) DEALLOCATE( EHg0_oce )
+      IF ( ALLOCATED( EHg0_am  ) ) DEALLOCATE( EHg0_am  )
+      IF ( ALLOCATED( EHg2_an  ) ) DEALLOCATE( EHg2_an  )
+      IF ( ALLOCATED( EHg2_can ) ) DEALLOCATE( EHg2_can )
+      IF ( ALLOCATED( EHg2_usa ) ) DEALLOCATE( EHg2_usa )
+      IF ( ALLOCATED( EHg2_sam ) ) DEALLOCATE( EHg2_sam )
+      IF ( ALLOCATED( EHg2_eaf ) ) DEALLOCATE( EHg2_eaf )
+      IF ( ALLOCATED( EHg2_waf ) ) DEALLOCATE( EHg2_waf )
+      IF ( ALLOCATED( EHg2_saf ) ) DEALLOCATE( EHg2_saf )
+      IF ( ALLOCATED( EHg2_naf ) ) DEALLOCATE( EHg2_naf )
+      IF ( ALLOCATED( EHg2_eur ) ) DEALLOCATE( EHg2_eur )
+      IF ( ALLOCATED( EHg2_eeu ) ) DEALLOCATE( EHg2_eeu )
+      IF ( ALLOCATED( EHg2_sov ) ) DEALLOCATE( EHg2_sov )
+      IF ( ALLOCATED( EHg2_mde ) ) DEALLOCATE( EHg2_mde )
+      IF ( ALLOCATED( EHg2_sas ) ) DEALLOCATE( EHg2_sas )
+      IF ( ALLOCATED( EHg2_eas ) ) DEALLOCATE( EHg2_eas )
+      IF ( ALLOCATED( EHg2_sea ) ) DEALLOCATE( EHg2_sea )
+      IF ( ALLOCATED( EHg2_jpn ) ) DEALLOCATE( EHg2_jpn )
+      IF ( ALLOCATED( EHg2_oce ) ) DEALLOCATE( EHg2_oce )
+      IF ( ALLOCATED( EHgP_an  ) ) DEALLOCATE( EHgP_an  )
+      IF ( ALLOCATED( EHgP_can ) ) DEALLOCATE( EHgP_can )
+      IF ( ALLOCATED( EHgP_usa ) ) DEALLOCATE( EHgP_usa )
+      IF ( ALLOCATED( EHgP_sam ) ) DEALLOCATE( EHgP_sam )
+      IF ( ALLOCATED( EHgP_eaf ) ) DEALLOCATE( EHgP_eaf )
+      IF ( ALLOCATED( EHgP_waf ) ) DEALLOCATE( EHgP_waf )
+      IF ( ALLOCATED( EHgP_saf ) ) DEALLOCATE( EHgP_saf )
+      IF ( ALLOCATED( EHgP_naf ) ) DEALLOCATE( EHgP_naf )
+      IF ( ALLOCATED( EHgP_eur ) ) DEALLOCATE( EHgP_eur )
+      IF ( ALLOCATED( EHgP_eeu ) ) DEALLOCATE( EHgP_eeu )
+      IF ( ALLOCATED( EHgP_sov ) ) DEALLOCATE( EHgP_sov )
+      IF ( ALLOCATED( EHgP_mde ) ) DEALLOCATE( EHgP_mde )
+      IF ( ALLOCATED( EHgP_sas ) ) DEALLOCATE( EHgP_sas )
+      IF ( ALLOCATED( EHgP_eas ) ) DEALLOCATE( EHgP_eas )
+      IF ( ALLOCATED( EHgP_sea ) ) DEALLOCATE( EHgP_sea )
+      IF ( ALLOCATED( EHgP_jpn ) ) DEALLOCATE( EHgP_jpn )
+      IF ( ALLOCATED( EHgP_oce ) ) DEALLOCATE( EHgP_oce )
+      IF ( ALLOCATED( EHg0_oc  ) ) DEALLOCATE( EHg0_oc  )
+      IF ( ALLOCATED( EHg0_ln  ) ) DEALLOCATE( EHg0_ln  )
+      IF ( ALLOCATED( EHg0_snow) ) DEALLOCATE( EHg0_snow )
+!- eds 8/31/10 ---------------------------------------------------------
+!      IF ( ALLOCATED( EHg0_nt  ) ) DEALLOCATE( EHg0_nt )
+      IF ( ALLOCATED( EHg0_geo ) ) DEALLOCATE( EHg0_geo )
+!-----------------------------------------------------------------------
+      IF ( ALLOCATED( EHg0_bb  ) ) DEALLOCATE( EHg0_bb )
+      IF ( ALLOCATED( EHg0_gtm  ) ) DEALLOCATE( EHg0_gtm )
+      IF ( ALLOCATED( EHg0_vg  ) ) DEALLOCATE( EHg0_vg )
+      IF ( ALLOCATED( EHg0_so  ) ) DEALLOCATE( EHg0_so )
+      IF ( ALLOCATED( EHg0_dist) ) DEALLOCATE( EHg0_dist )
+      IF ( ALLOCATED( TCOSZ    ) ) DEALLOCATE( TCOSZ   )
+      IF ( ALLOCATED( TTDAY    ) ) DEALLOCATE( TTDAY   )
+!      IF ( ALLOCATED( TRANSP   ) ) DEALLOCATE( TRANSP  )
+      IF ( ALLOCATED( ZERO_DVEL) ) DEALLOCATE( ZERO_DVEL )
       IF ( ALLOCATED( HG2_SEASALT_LOSSRATE ) ) 
      &     DEALLOCATE( HG2_SEASALT_LOSSRATE   ) 
       IF ( ALLOCATED( JNO2      ) ) DEALLOCATE( JNO2      ) 
