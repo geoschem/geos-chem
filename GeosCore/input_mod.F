@@ -5106,6 +5106,7 @@
 !
       LOGICAL            :: USE_CHECKS
       INTEGER            :: ANTHRO_Hg_YEAR,  N 
+      CHARACTER(LEN=255) :: HG_SCENARIO  !eds 5/17/12
       CHARACTER(LEN=255) :: SUBSTRS(MAXDIM), Hg_RST_FILE
       CHARACTER(LEN=255) :: GTMM_RST_FILE
 
@@ -5117,32 +5118,36 @@
       CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_mercury_menu:1' )
       READ( SUBSTRS(1:N), * ) ANTHRO_Hg_YEAR
 
-      ! Use error check for tag/tot Hg?
+      ! Use future emissions scenario?   !eds 5/17/12
       CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_mercury_menu:2' )
+      READ( SUBSTRS(1:N), '(a)' ) HG_SCENARIO
+
+      ! Use error check for tag/tot Hg?
+      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_mercury_menu:3' )
       READ( SUBSTRS(1:N), * ) USE_CHECKS
 
       ! Use dynamic ocean model?
-      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_mercury_menu:3' )
+      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_mercury_menu:4' )
       READ( SUBSTRS(1:N), * ) LDYNOCEAN
 
       ! Use preindustrial simulation?
-      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read mercury_menu:4' )
+      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read mercury_menu:5' )
       READ( SUBSTRS(1:N), * ) LPREINDHG
 
       ! Name of ocean restart file
-      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_mercury_menu:5' )
+      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_mercury_menu:6' )
       READ( SUBSTRS(1:N), '(a)' ) Hg_RST_FILE
 
       ! Use GTMM ?
-      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_mercury_menu:6' )
+      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_mercury_menu:7' )
       READ( SUBSTRS(1:N), * ) LGTMM
 
       ! Name of GTMM restart file
-      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_mercury_menu:7' )
+      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_mercury_menu:8' )
       READ( SUBSTRS(1:N), * ) GTMM_RST_FILE
 
       ! Separator line
-      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_mercury_menu:8' )
+      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_mercury_menu:9' )
 
       ! Check on logical
       IF (.NOT.( ITS_A_MERCURY_SIM() ) ) THEN
@@ -5157,6 +5162,8 @@
       WRITE( 6, '(  a)' ) '------------'
       WRITE( 6, 100     ) 'Anthro Hg emissions year    : ', 
      &                     ANTHRO_Hg_YEAR
+      WRITE( 6, 120     ) 'Future emissions scenario   : ',  !eds 5/17/12
+     &                     TRIM( HG_SCENARIO )
       WRITE( 6, 110     ) 'Error check tag & total Hg? : ', USE_CHECKS
       WRITE( 6, 110     ) 'Use dynamic ocean Hg model? : ', LDYNOCEAN
       WRITE( 6, 110     ) 'Preindustrial simulation?   : ', LPREINDHG
@@ -5175,7 +5182,7 @@
       IF ( ITS_A_MERCURY_SIM() ) THEN 
 
          ! Initialize "mercury_mod.f"
-         CALL INIT_MERCURY( ANTHRO_Hg_YEAR )
+         CALL INIT_MERCURY( ANTHRO_Hg_YEAR, HG_SCENARIO ) !eds 5/17/12
          CALL INIT_LAND_MERCURY()
          CALL INIT_DEPO_MERCURY(TRIM( GTMM_RST_FILE ))
 

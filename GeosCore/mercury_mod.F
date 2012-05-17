@@ -217,6 +217,8 @@
       ! Scalars 
       INTEGER              :: ANTHRO_Hg_YEAR
 
+      CHARACTER(LEN=255)   :: SCENARIO !eds 5/17/12
+
       ! Parameters
       REAL*8,  PARAMETER   :: SMALLNUM = 1D-20
 
@@ -3551,9 +3553,7 @@
       USE BPCH2_MOD,      ONLY : GET_TAU0,        READ_BPCH2
       USE DIRECTORY_MOD,  ONLY : DATA_DIR_1x1, DATA_DIR
       USE LOGICAL_MOD,    ONLY : LDYNOCEAN, LPREINDHG
-!- eds 8/31/10 ----------------------------------------------------------
-      USE LOGICAL_MOD,    ONLY : LSPLIT
-!------------------------------------------------------------------------
+      USE LOGICAL_MOD,    ONLY : LSPLIT !eds 8/31/10
       USE REGRID_1x1_MOD, ONLY : DO_REGRID_1x1
       USE TIME_MOD,       ONLY : EXPAND_DATE
       USE TRANSFER_MOD,   ONLY : TRANSFER_2D
@@ -3574,7 +3574,6 @@
       ! MERCURY_READYR begins here! 
       !=================================================================
 
-
       !=================================================================
       ! Anthropogenic Emissions
       !=================================================================
@@ -3594,26 +3593,28 @@
          
          
          IF (LGCAPEMIS) THEN
-            ! Use Bess' GCAP emissions
+            ! Use Bess' GCAP emissions from David Streets
+
+            !===========================================================
+            ! Note: Emissions scenario must be selected in the mercury
+            ! menu in input.geos:
+            ! Use anthro Hg emiss for : 2006 or 2050
+            ! Use future emissions?   : PRESENT, A1B, A2, B1, or B2
+            !===========================================================
+
  
-!- eds 8/31/10 ----------------------------------------------------  
-!            ! Mercury data is scaled to 2006
-!            NYMD     = ( 2006 * 10000 ) + 0101
-             XTAU     = GET_TAU0( 1, 1, 2006 )
+!- eds 5/17/12 ---------------------------------------------------- 
+            ! GEIA 2005 emissions are scaled to 2006 or 2050
              NYMD = ( ANTHRO_Hg_YEAR * 10000 ) + 0101
-!             XTAU = GET_TAU0( 1, 1, ANTHRO_Hg_YEAR )
-!------------------------------------------------------------------
+             XTAU = GET_TAU0( 1, 1, ANTHRO_Hg_YEAR )
 
             ! Filename for anthropogenic mercury source
 !            FILENAME = '/home/cdh/GC/Archived-Br/' // 
 !     &           'GEIA_Streets_Hg0.geos.1x1.YYYY'
 
-!- eds 8/31/10 ---------------------------------------------------
-!            FILENAME = TRIM( DATA_DIR_1x1 )       // 
-!     &           'mercury_201002/GEIA_Streets_Hg0.geos.1x1.YYYY'
-
-            FILENAME = '/home/eds/GCAP/' //
-     &           'GEIA_Streets2006_Hg0.geos.1x1.YYYY'
+            FILENAME = TRIM( DATA_DIR_1x1) // 'mercury_201205/' // 
+     &           'GEIA_Streets_' // TRIM( SCENARIO ) //
+     &           '_Hg0.geos.1x1.YYYY'
 !-----------------------------------------------------------------
 
             ! Add year to the filename
@@ -3636,17 +3637,18 @@
 
 !- eds 8/31/10 ------------------------------------------------------
          IF (LSPLIT) THEN
+              
+            !- eds 5/17/12 -----------------------------------------
+            ! GEIA 2005 emissions are scaled to 2006 or 2050
+             NYMD = ( ANTHRO_Hg_YEAR * 10000 ) + 0101
+             XTAU = GET_TAU0( 1, 1, ANTHRO_Hg_YEAR )
 
-!            ! Mercury data is scaled to 2006
-!            NYMD     = ( 2006 * 10000 ) + 0101
-            XTAU     = GET_TAU0( 1, 1, 2006 )
-     	    NYMD = ( ANTHRO_Hg_YEAR * 10000 ) + 0101
-!      	     XTAU = GET_TAU0( 1, 1, ANTHRO_Hg_YEAR )
-!-------------------------------------------------------------------
 
-         !Anthro Canada Hg0
-            FILENAME = '/home/eds/GCAP/TAGGED/' //
-     &           'GEIA_Streets2006_Hg0_CAN.geos.1x1.YYYY'
+            ! Anthro Canada Hg0
+            FILENAME = TRIM( DATA_DIR_1x1) // 'mercury_201205/' //
+     &           'GEIA_Streets_' // TRIM( SCENARIO ) //
+     &           '_Hg0_CAN.geos.1x1.YYYY'
+            !--------------------------------------------------------
 
             ! Add year to the filename
             CALL EXPAND_DATE( FILENAME, NYMD, 000000 )
@@ -3668,8 +3670,9 @@
 
 
          !Anthro United States Hg0
-            FILENAME = '/home/eds/GCAP/TAGGED/' //
-     &           'GEIA_Streets2006_Hg0_USA.geos.1x1.YYYY'
+            FILENAME = TRIM( DATA_DIR_1x1 ) // 'mercury_201205/' //
+     &           'GEIA_Streets_' // TRIM( SCENARIO ) //
+     &           '_Hg0_USA.geos.1x1.YYYY'
 
             ! Add year to the filename
             CALL EXPAND_DATE( FILENAME, NYMD, 000000 )
@@ -3691,8 +3694,9 @@
 
 
          !Anthro Central America Hg0
-            FILENAME = '/home/eds/GCAP/TAGGED/' //
-     &           'GEIA_Streets2006_Hg0_CAM.geos.1x1.YYYY'
+            FILENAME = TRIM( DATA_DIR_1x1 ) // 'mercury_201205/' //
+     &           'GEIA_Streets_' // TRIM( SCENARIO ) //
+     &           '_Hg0_CAM.geos.1x1.YYYY'
 
             ! Add year to the filename
             CALL EXPAND_DATE( FILENAME, NYMD, 000000 )
@@ -3714,8 +3718,9 @@
 
 
          !Anthro South America Hg0
-            FILENAME = '/home/eds/GCAP/TAGGED/' //
-     &           'GEIA_Streets2006_Hg0_SAM.geos.1x1.YYYY'
+            FILENAME = TRIM( DATA_DIR_1x1 ) // 'mercury_201205/' //
+     &           'GEIA_Streets_' // TRIM( SCENARIO ) //
+     &           '_Hg0_SAM.geos.1x1.YYYY'
 
             ! Add year to the filename
             CALL EXPAND_DATE( FILENAME, NYMD, 000000 )
@@ -3737,8 +3742,9 @@
 
 
          !Anthro West Africa Hg0
-            FILENAME = '/home/eds/GCAP/TAGGED/' //
-     &           'GEIA_Streets2006_Hg0_WAF.geos.1x1.YYYY'
+            FILENAME = TRIM( DATA_DIR_1x1 ) // 'mercury_201205/' //
+     &           'GEIA_Streets_' // TRIM( SCENARIO ) //
+     &           '_Hg0_WAF.geos.1x1.YYYY'
 
             ! Add year to the filename
             CALL EXPAND_DATE( FILENAME, NYMD, 000000 )
@@ -3760,8 +3766,9 @@
 
 
          !Anthro East Africa Hg0
-            FILENAME = '/home/eds/GCAP/TAGGED/' //
-     &           'GEIA_Streets2006_Hg0_EAF.geos.1x1.YYYY'
+            FILENAME = TRIM( DATA_DIR_1x1 ) // 'mercury_201205/' //
+     &           'GEIA_Streets_' // TRIM( SCENARIO ) //
+     &           '_Hg0_EAF.geos.1x1.YYYY'
 
             ! Add year to the filename
             CALL EXPAND_DATE( FILENAME, NYMD, 000000 )
@@ -3783,8 +3790,9 @@
 
 
          !Anthro South Africa Hg0
-            FILENAME = '/home/eds/GCAP/TAGGED/' //
-     &           'GEIA_Streets2006_Hg0_SAF.geos.1x1.YYYY'
+            FILENAME = TRIM( DATA_DIR_1x1 ) // 'mercury_201205/' //
+     &           'GEIA_Streets_' // TRIM( SCENARIO ) //
+     &           '_Hg0_SAF.geos.1x1.YYYY'
 
             ! Add year to the filename
             CALL EXPAND_DATE( FILENAME, NYMD, 000000 )
@@ -3806,8 +3814,9 @@
 
 
          !Anthro North Africa Hg0
-            FILENAME = '/home/eds/GCAP/TAGGED/' //
-     &           'GEIA_Streets2006_Hg0_NAF.geos.1x1.YYYY'
+            FILENAME = TRIM( DATA_DIR_1x1 ) // 'mercury_201205/' //
+     &           'GEIA_Streets_' // TRIM( SCENARIO ) //
+     &           '_Hg0_NAF.geos.1x1.YYYY'
 
             ! Add year to the filename
             CALL EXPAND_DATE( FILENAME, NYMD, 000000 )
@@ -3828,8 +3837,9 @@
             EHg0_naf = EHg0_naf / SEC_PER_YR
 
          !Anthro OECD Europe Hg0
-            FILENAME = '/home/eds/GCAP/TAGGED/' //
-     &           'GEIA_Streets2006_Hg0_EUR.geos.1x1.YYYY'
+            FILENAME = TRIM( DATA_DIR_1x1 ) // 'mercury_201205/' //
+     &           'GEIA_Streets_' // TRIM( SCENARIO ) //
+     &           '_Hg0_EUR.geos.1x1.YYYY'
 
             ! Add year to the filename
             CALL EXPAND_DATE( FILENAME, NYMD, 000000 )
@@ -3851,8 +3861,9 @@
 
 
          !Anthro Eastern Europe Hg0
-            FILENAME = '/home/eds/GCAP/TAGGED/' //
-     &           'GEIA_Streets2006_Hg0_EEU.geos.1x1.YYYY'
+            FILENAME = TRIM( DATA_DIR_1x1 ) // 'mercury_201205/' //
+     &           'GEIA_Streets_' // TRIM( SCENARIO ) //
+     &           '_Hg0_EEU.geos.1x1.YYYY'
 
             ! Add year to the filename
             CALL EXPAND_DATE( FILENAME, NYMD, 000000 )
@@ -3874,8 +3885,9 @@
 
 
          !Anthro Middle East Hg0
-            FILENAME = '/home/eds/GCAP/TAGGED/' //
-     &           'GEIA_Streets2006_Hg0_MDE.geos.1x1.YYYY'
+            FILENAME = TRIM( DATA_DIR_1x1 ) // 'mercury_201205/' //
+     &           'GEIA_Streets_' // TRIM( SCENARIO ) //
+     &           '_Hg0_MDE.geos.1x1.YYYY'
 
             ! Add year to the filename
             CALL EXPAND_DATE( FILENAME, NYMD, 000000 )
@@ -3897,8 +3909,9 @@
 
 
          !Anthro Former USSR Hg0
-            FILENAME = '/home/eds/GCAP/TAGGED/' //
-     &           'GEIA_Streets2006_Hg0_SOV.geos.1x1.YYYY'
+            FILENAME = TRIM( DATA_DIR_1x1 ) // 'mercury_201205/' //
+     &           'GEIA_Streets_' // TRIM( SCENARIO ) //
+     &           '_Hg0_SOV.geos.1x1.YYYY'
 
             ! Add year to the filename
             CALL EXPAND_DATE( FILENAME, NYMD, 000000 )
@@ -3920,8 +3933,9 @@
 
 
          !Anthro South Asia Hg0
-            FILENAME = '/home/eds/GCAP/TAGGED/' //
-     &           'GEIA_Streets2006_Hg0_SAS.geos.1x1.YYYY'
+            FILENAME = TRIM( DATA_DIR_1x1 ) // 'mercury_201205/' //
+     &           'GEIA_Streets_' // TRIM( SCENARIO ) //
+     &           '_Hg0_SAS.geos.1x1.YYYY'
 
             ! Add year to the filename
             CALL EXPAND_DATE( FILENAME, NYMD, 000000 )
@@ -3943,8 +3957,9 @@
 
 
          !Anthro East Asia Hg0
-            FILENAME = '/home/eds/GCAP/TAGGED/' //
-     &           'GEIA_Streets2006_Hg0_EAS.geos.1x1.YYYY'
+            FILENAME = TRIM( DATA_DIR_1x1 ) // 'mercury_201205/' //
+     &           'GEIA_Streets_' // TRIM( SCENARIO ) //
+     &           '_Hg0_EAS.geos.1x1.YYYY'
 
             ! Add year to the filename
             CALL EXPAND_DATE( FILENAME, NYMD, 000000 )
@@ -3966,8 +3981,9 @@
 
 
          !Anthro Southeast Asia Hg0
-            FILENAME = '/home/eds/GCAP/TAGGED/' //
-     &           'GEIA_Streets2006_Hg0_SEA.geos.1x1.YYYY'
+            FILENAME = TRIM( DATA_DIR_1x1 ) // 'mercury_201205/' //
+     &           'GEIA_Streets_' // TRIM( SCENARIO ) //
+     &           '_Hg0_SEA.geos.1x1.YYYY'
 
             ! Add year to the filename
             CALL EXPAND_DATE( FILENAME, NYMD, 000000 )
@@ -3989,8 +4005,9 @@
 
 
          !Anthro Japan Hg0
-            FILENAME = '/home/eds/GCAP/TAGGED/' //
-     &           'GEIA_Streets2006_Hg0_JPN.geos.1x1.YYYY'
+            FILENAME = TRIM( DATA_DIR_1x1 ) // 'mercury_201205/' //
+     &           'GEIA_Streets_' // TRIM( SCENARIO ) //
+     &           '_Hg0_JPN.geos.1x1.YYYY'
 
             ! Add year to the filename
             CALL EXPAND_DATE( FILENAME, NYMD, 000000 )
@@ -4012,8 +4029,9 @@
 
 
          !Anthro Oceania Hg0
-            FILENAME = '/home/eds/GCAP/TAGGED/' //
-     &           'GEIA_Streets2006_Hg0_OCE.geos.1x1.YYYY'
+            FILENAME = TRIM( DATA_DIR_1x1 ) // 'mercury_201205/' //
+     &           'GEIA_Streets_' // TRIM( SCENARIO ) //
+     &           '_Hg0_OCE.geos.1x1.YYYY'
 
             ! Add year to the filename
             CALL EXPAND_DATE( FILENAME, NYMD, 000000 )
@@ -4176,18 +4194,22 @@
          IF (LGCAPEMIS) THEN
             ! Use Bess' GCAP emissions
 
-            ! Filename for anthropogenic mercury source
-!- eds 8/31/10 ---------------------------------------------------
-!            FILENAME = TRIM( DATA_DIR_1x1 )       //
-!     &           'mercury_201002/GEIA_Streets_Hg2.geos.1x1.YYYY'
+!- eds 5/17/12 ----------------------------------------------------
+            ! GEIA 2005 emissions are scaled to 2006 or 2050
+             NYMD = ( ANTHRO_Hg_YEAR * 10000 ) + 0101
+             XTAU = GET_TAU0( 1, 1, ANTHRO_Hg_YEAR )
 
-            FILENAME = '/home/eds/GCAP/' //
-     &           'GEIA_Streets2006_Hg2.geos.1x1.YYYY'
+            ! Filename for anthropogenic mercury source
+!            FILENAME = '/home/cdh/GC/Archived-Br/' //
+!     &           'GEIA_Streets_Hg2.geos.1x1.YYYY'
+
+            FILENAME = TRIM( DATA_DIR_1x1) // 'mercury_201205/' //
+     &           'GEIA_Streets_' // TRIM( SCENARIO ) //
+     &           '_Hg2.geos.1x1.YYYY'
 !-----------------------------------------------------------------
 
             ! Add year to the filename
             CALL EXPAND_DATE( FILENAME, NYMD, 000000 )
-            XTAU     = GET_TAU0( 1, 1, 2006 )
 
             ! Echo info
             WRITE( 6, 100 ) TRIM( FILENAME )
@@ -4206,16 +4228,16 @@
 !- eds 8/31/10 ----------------------------------------------------
          IF (LSPLIT) THEN
 
-!            ! Mercury data is scaled to 2006
-!            NYMD     = ( 2006 * 10000 ) + 0101
-            XTAU     = GET_TAU0( 1, 1, 2006 )
-            NYMD = ( ANTHRO_Hg_YEAR * 10000 ) + 0101
-!            XTAU = GET_TAU0( 1, 1, ANTHRO_Hg_YEAR )
-!------------------------------------------------------------------ 
+!- eds 5/17/12 ----------------------------------------------------
+            ! GEIA 2005 emissions are scaled to 2006 or 2050
+             NYMD = ( ANTHRO_Hg_YEAR * 10000 ) + 0101
+             XTAU = GET_TAU0( 1, 1, ANTHRO_Hg_YEAR )
+!-----------------------------------------------------------------
 
-         !Anthro Canada Hg2
-            FILENAME = '/home/eds/GCAP/TAGGED/' //
-     &           'GEIA_Streets2006_Hg2_CAN.geos.1x1.YYYY'
+            !Anthro Canada Hg2
+            FILENAME = TRIM( DATA_DIR_1x1 ) // 'mercury_201205/' //
+     &           'GEIA_Streets_' // TRIM( SCENARIO ) //
+     &           '_Hg2_CAN.geos.1x1.YYYY'
 
             ! Add year to the filename
             CALL EXPAND_DATE( FILENAME, NYMD, 000000 )
@@ -4237,8 +4259,9 @@
 
 
          !Anthro United States Hg2
-            FILENAME = '/home/eds/GCAP/TAGGED/' //
-     &           'GEIA_Streets2006_Hg2_USA.geos.1x1.YYYY'
+            FILENAME = TRIM( DATA_DIR_1x1 ) // 'mercury_201205/' //
+     &           'GEIA_Streets_' // TRIM( SCENARIO ) //
+     &           '_Hg2_USA.geos.1x1.YYYY'
 
             ! Add year to the filename
             CALL EXPAND_DATE( FILENAME, NYMD, 000000 )
@@ -4260,8 +4283,9 @@
 
 
          !Anthro Central America Hg2
-            FILENAME = '/home/eds/GCAP/TAGGED/' //
-     &           'GEIA_Streets2006_Hg2_CAM.geos.1x1.YYYY'
+            FILENAME = TRIM( DATA_DIR_1x1 ) // 'mercury_201205/' //
+     &           'GEIA_Streets_' // TRIM( SCENARIO ) //
+     &           '_Hg2_CAM.geos.1x1.YYYY'
 
             ! Add year to the filename
             CALL EXPAND_DATE( FILENAME, NYMD, 000000 )
@@ -4283,8 +4307,9 @@
 
 
          !Anthro South America Hg2
-            FILENAME = '/home/eds/GCAP/TAGGED/' //
-     &           'GEIA_Streets2006_Hg2_SAM.geos.1x1.YYYY'
+            FILENAME = TRIM( DATA_DIR_1x1 ) // 'mercury_201205/' //
+     &           'GEIA_Streets_' // TRIM( SCENARIO ) //
+     &           '_Hg2_SAM.geos.1x1.YYYY'
 
             ! Add year to the filename
             CALL EXPAND_DATE( FILENAME, NYMD, 000000 )
@@ -4306,8 +4331,9 @@
 
 
          !Anthro West Africa Hg2
-            FILENAME = '/home/eds/GCAP/TAGGED/' //
-     &           'GEIA_Streets2006_Hg2_WAF.geos.1x1.YYYY'
+            FILENAME = TRIM( DATA_DIR_1x1 ) // 'mercury_201205/' //
+     &           'GEIA_Streets_' // TRIM( SCENARIO ) //
+     &           '_Hg2_WAF.geos.1x1.YYYY'
 
             ! Add year to the filename
             CALL EXPAND_DATE( FILENAME, NYMD, 000000 )
@@ -4329,8 +4355,9 @@
 
 
          !Anthro East Africa Hg2
-            FILENAME = '/home/eds/GCAP/TAGGED/' //
-     &           'GEIA_Streets2006_Hg2_EAF.geos.1x1.YYYY'
+            FILENAME = TRIM( DATA_DIR_1x1 ) // 'mercury_201205/' //
+     &           'GEIA_Streets_' // TRIM( SCENARIO ) //
+     &           '_Hg2_EAF.geos.1x1.YYYY'
 
             ! Add year to the filename
             CALL EXPAND_DATE( FILENAME, NYMD, 000000 )
@@ -4352,8 +4379,9 @@
 
 
          !Anthro South Africa Hg2
-            FILENAME = '/home/eds/GCAP/TAGGED/' //
-     &           'GEIA_Streets2006_Hg2_SAF.geos.1x1.YYYY'
+            FILENAME = TRIM( DATA_DIR_1x1 ) // 'mercury_201205/' //
+     &           'GEIA_Streets_' // TRIM( SCENARIO ) //
+     &           '_Hg2_SAF.geos.1x1.YYYY'
 
             ! Add year to the filename
             CALL EXPAND_DATE( FILENAME, NYMD, 000000 )
@@ -4375,8 +4403,9 @@
 
 
          !Anthro North Africa Hg2
-            FILENAME = '/home/eds/GCAP/TAGGED/' //
-     &           'GEIA_Streets2006_Hg2_NAF.geos.1x1.YYYY'
+            FILENAME = TRIM( DATA_DIR_1x1 ) // 'mercury_201205/' //
+     &           'GEIA_Streets_' // TRIM( SCENARIO ) //
+     &           '_Hg2_NAF.geos.1x1.YYYY'
 
             ! Add year to the filename
             CALL EXPAND_DATE( FILENAME, NYMD, 000000 )
@@ -4397,8 +4426,9 @@
             EHg2_naf = EHg2_naf / SEC_PER_YR
 
          !Anthro OECD Europe Hg2
-            FILENAME = '/home/eds/GCAP/TAGGED/' //
-     &           'GEIA_Streets2006_Hg2_EUR.geos.1x1.YYYY'
+            FILENAME = TRIM( DATA_DIR_1x1 ) // 'mercury_201205/' //
+     &           'GEIA_Streets_' // TRIM( SCENARIO ) //
+     &           '_Hg2_EUR.geos.1x1.YYYY'
 
             ! Add year to the filename
             CALL EXPAND_DATE( FILENAME, NYMD, 000000 )
@@ -4420,8 +4450,9 @@
 
 
          !Anthro Eastern Europe Hg2
-            FILENAME = '/home/eds/GCAP/TAGGED/' //
-     &           'GEIA_Streets2006_Hg2_EEU.geos.1x1.YYYY'
+            FILENAME = TRIM( DATA_DIR_1x1 ) // 'mercury_201205/' //
+     &           'GEIA_Streets_' // TRIM( SCENARIO ) //
+     &           '_Hg2_EEU.geos.1x1.YYYY'
 
             ! Add year to the filename
             CALL EXPAND_DATE( FILENAME, NYMD, 000000 )
@@ -4443,8 +4474,9 @@
 
 
          !Anthro Middle East Hg2
-            FILENAME = '/home/eds/GCAP/TAGGED/' //
-     &           'GEIA_Streets2006_Hg2_MDE.geos.1x1.YYYY'
+            FILENAME = TRIM( DATA_DIR_1x1 ) // 'mercury_201205/' //
+     &           'GEIA_Streets_' // TRIM( SCENARIO ) //
+     &           '_Hg2_MDE.geos.1x1.YYYY'
 
             ! Add year to the filename
             CALL EXPAND_DATE( FILENAME, NYMD, 000000 )
@@ -4466,8 +4498,9 @@
 
 
          !Anthro Former USSR Hg2
-            FILENAME = '/home/eds/GCAP/TAGGED/' //
-     &           'GEIA_Streets2006_Hg2_SOV.geos.1x1.YYYY'
+            FILENAME = TRIM( DATA_DIR_1x1 ) // 'mercury_201205/' //
+     &           'GEIA_Streets_' // TRIM( SCENARIO ) //
+     &           '_Hg2_SOV.geos.1x1.YYYY'
 
             ! Add year to the filename
             CALL EXPAND_DATE( FILENAME, NYMD, 000000 )
@@ -4489,8 +4522,9 @@
 
 
          !Anthro South Asia Hg2
-            FILENAME = '/home/eds/GCAP/TAGGED/' //
-     &           'GEIA_Streets2006_Hg2_SAS.geos.1x1.YYYY'
+            FILENAME = TRIM( DATA_DIR_1x1 ) // 'mercury_201205/' //
+     &           'GEIA_Streets_' // TRIM( SCENARIO ) //
+     &           '_Hg2_SAS.geos.1x1.YYYY'
 
             ! Add year to the filename
             CALL EXPAND_DATE( FILENAME, NYMD, 000000 )
@@ -4512,8 +4546,9 @@
 
 
          !Anthro East Asia Hg2
-            FILENAME = '/home/eds/GCAP/TAGGED/' //
-     &           'GEIA_Streets2006_Hg2_EAS.geos.1x1.YYYY'
+            FILENAME = TRIM( DATA_DIR_1x1 ) // 'mercury_201205/' //
+     &           'GEIA_Streets_' // TRIM( SCENARIO ) //
+     &           '_Hg2_EAS.geos.1x1.YYYY'
 
             ! Add year to the filename
             CALL EXPAND_DATE( FILENAME, NYMD, 000000 )
@@ -4535,8 +4570,9 @@
 
 
          !Anthro Southeast Asia Hg2
-            FILENAME = '/home/eds/GCAP/TAGGED/' //
-     &           'GEIA_Streets2006_Hg2_SEA.geos.1x1.YYYY'
+            FILENAME = TRIM( DATA_DIR_1x1 ) // 'mercury_201205/' //
+     &           'GEIA_Streets_' // TRIM( SCENARIO ) //
+     &           '_Hg2_SEA.geos.1x1.YYYY'
 
             ! Add year to the filename
             CALL EXPAND_DATE( FILENAME, NYMD, 000000 )
@@ -4558,8 +4594,9 @@
 
 
          !Anthro Japan Hg2
-            FILENAME = '/home/eds/GCAP/TAGGED/' //
-     &           'GEIA_Streets2006_Hg2_JPN.geos.1x1.YYYY'
+            FILENAME = TRIM( DATA_DIR_1x1 ) // 'mercury_201205/' //
+     &           'GEIA_Streets_' // TRIM( SCENARIO ) //
+     &           '_Hg2_JPN.geos.1x1.YYYY'
 
             ! Add year to the filename
             CALL EXPAND_DATE( FILENAME, NYMD, 000000 )
@@ -4581,8 +4618,9 @@
 
 
          !Anthro Oceania Hg2
-            FILENAME = '/home/eds/GCAP/TAGGED/' //
-     &           'GEIA_Streets2006_Hg2_OCE.geos.1x1.YYYY'
+            FILENAME = TRIM( DATA_DIR_1x1 ) // 'mercury_201205/' //
+     &           'GEIA_Streets_' // TRIM( SCENARIO ) //
+     &           '_Hg2_OCE.geos.1x1.YYYY'
 
             ! Add year to the filename
             CALL EXPAND_DATE( FILENAME, NYMD, 000000 )
@@ -4671,14 +4709,17 @@
          IF (LGCAPEMIS) THEN
             ! Use Bess' GCAP emissions
 
-            ! Filename for anthropogenic mercury source
-!- eds 8/31/10 ---------------------------------------------------
-!            FILENAME = TRIM( DATA_DIR_1x1 )       //
-!     &           'mercury_201002/GEIA_Streets_HgP.geos.1x1.YYYY'
+            !- eds 5/17/12 -----------------------------------------
+            ! GEIA 2005 emissions are scaled to 2006 or 2050
+             NYMD = ( ANTHRO_Hg_YEAR * 10000 ) + 0101
+             XTAU = GET_TAU0( 1, 1, ANTHRO_Hg_YEAR )
 
-            FILENAME = '/home/eds/GCAP/' //
-     &           'GEIA_Streets2006_HgP.geos.1x1.YYYY'
-!-----------------------------------------------------------------
+
+            ! Anthro Canada HgP
+            FILENAME = TRIM( DATA_DIR_1x1) // 'mercury_201205/' //
+     &           'GEIA_Streets_' // TRIM( SCENARIO ) //
+     &           '_HgP_CAN.geos.1x1.YYYY'
+            !--------------------------------------------------------   
 
             ! Add year to the filename
             CALL EXPAND_DATE( FILENAME, NYMD, 000000 )
@@ -4700,16 +4741,16 @@
 !- eds 8/31/10 ----------------------------------------------------
          IF (LSPLIT) THEN
 
-!            ! Mercury data is scaled to 2006
-!            NYMD     = ( 2006 * 10000 ) + 0101
-            XTAU     = GET_TAU0( 1, 1, 2006 )
-            NYMD = ( ANTHRO_Hg_YEAR * 10000 ) + 0101
-!             XTAU = GET_TAU0( 1, 1, ANTHRO_Hg_YEAR )
-!------------------------------------------------------------------ 
+!- eds 5/17/12 ----------------------------------------------------
+            ! GEIA 2005 emissions are scaled to 2006 or 2050
+             NYMD = ( ANTHRO_Hg_YEAR * 10000 ) + 0101
+             XTAU = GET_TAU0( 1, 1, ANTHRO_Hg_YEAR )   
+!-----------------------------------------------------------------
 
          !Anthro Canada HgP
-            FILENAME = '/home/eds/GCAP/TAGGED/' //
-     &           'GEIA_Streets2006_HgP_CAN.geos.1x1.YYYY'
+            FILENAME = TRIM( DATA_DIR_1x1 ) // 'mercury_201205/' //
+     &           'GEIA_Streets_' // TRIM( SCENARIO ) //
+     &           '_HgP_CAN.geos.1x1.YYYY'
 
             ! Add year to the filename
             CALL EXPAND_DATE( FILENAME, NYMD, 000000 )
@@ -4731,8 +4772,9 @@
 
 
          !Anthro United States HgP
-            FILENAME = '/home/eds/GCAP/TAGGED/' //
-     &           'GEIA_Streets2006_HgP_USA.geos.1x1.YYYY'
+            FILENAME = TRIM( DATA_DIR_1x1 ) // 'mercury_201205/' //
+     &           'GEIA_Streets_' // TRIM( SCENARIO ) //
+     &           '_HgP_USA.geos.1x1.YYYY'
 
             ! Add year to the filename
             CALL EXPAND_DATE( FILENAME, NYMD, 000000 )
@@ -4754,8 +4796,9 @@
 
 
          !Anthro Central America HgP
-            FILENAME = '/home/eds/GCAP/TAGGED/' //
-     &           'GEIA_Streets2006_HgP_CAM.geos.1x1.YYYY'
+            FILENAME = TRIM( DATA_DIR_1x1 ) // 'mercury_201205/' //
+     &           'GEIA_Streets_' // TRIM( SCENARIO ) //
+     &           '_HgP_CAM.geos.1x1.YYYY'
 
             ! Add year to the filename
             CALL EXPAND_DATE( FILENAME, NYMD, 000000 )
@@ -4777,8 +4820,9 @@
 
 
          !Anthro South America HgP
-            FILENAME = '/home/eds/GCAP/TAGGED/' //
-     &           'GEIA_Streets2006_HgP_SAM.geos.1x1.YYYY'
+            FILENAME = TRIM( DATA_DIR_1x1 ) // 'mercury_201205/' //
+     &           'GEIA_Streets_' // TRIM( SCENARIO ) //
+     &           '_HgP_SAM.geos.1x1.YYYY'
 
             ! Add year to the filename
             CALL EXPAND_DATE( FILENAME, NYMD, 000000 )
@@ -4800,8 +4844,9 @@
 
 
          !Anthro West Africa HgP
-            FILENAME = '/home/eds/GCAP/TAGGED/' //
-     &           'GEIA_Streets2006_HgP_WAF.geos.1x1.YYYY'
+            FILENAME = TRIM( DATA_DIR_1x1 ) // 'mercury_201205/' //
+     &           'GEIA_Streets_' // TRIM( SCENARIO ) //
+     &           '_HgP_WAF.geos.1x1.YYYY'
 
             ! Add year to the filename
             CALL EXPAND_DATE( FILENAME, NYMD, 000000 )
@@ -4823,8 +4868,9 @@
 
 
          !Anthro East Africa HgP
-            FILENAME = '/home/eds/GCAP/TAGGED/' //
-     &           'GEIA_Streets2006_HgP_EAF.geos.1x1.YYYY'
+            FILENAME = TRIM( DATA_DIR_1x1 ) // 'mercury_201205/' //
+     &           'GEIA_Streets_' // TRIM( SCENARIO ) //
+     &           '_HgP_EAF.geos.1x1.YYYY'
 
             ! Add year to the filename
             CALL EXPAND_DATE( FILENAME, NYMD, 000000 )
@@ -4846,8 +4892,9 @@
 
 
          !Anthro South Africa HgP
-            FILENAME = '/home/eds/GCAP/TAGGED/' //
-     &           'GEIA_Streets2006_HgP_SAF.geos.1x1.YYYY'
+            FILENAME = TRIM( DATA_DIR_1x1 ) // 'mercury_201205/' //
+     &           'GEIA_Streets_' // TRIM( SCENARIO ) //
+     &           '_HgP_SAF.geos.1x1.YYYY'
 
             ! Add year to the filename
             CALL EXPAND_DATE( FILENAME, NYMD, 000000 )
@@ -4869,8 +4916,9 @@
 
 
          !Anthro North Africa HgP
-            FILENAME = '/home/eds/GCAP/TAGGED/' //
-     &           'GEIA_Streets2006_HgP_NAF.geos.1x1.YYYY'
+            FILENAME = TRIM( DATA_DIR_1x1 ) // 'mercury_201205/' //
+     &           'GEIA_Streets_' // TRIM( SCENARIO ) //
+     &           '_HgP_NAF.geos.1x1.YYYY'
 
             ! Add year to the filename
             CALL EXPAND_DATE( FILENAME, NYMD, 000000 )
@@ -4891,8 +4939,9 @@
             EHgP_naf = EHgP_naf / SEC_PER_YR
 
          !Anthro OECD Europe HgP
-            FILENAME = '/home/eds/GCAP/TAGGED/' //
-     &           'GEIA_Streets2006_HgP_EUR.geos.1x1.YYYY'
+            FILENAME = TRIM( DATA_DIR_1x1 ) // 'mercury_201205/' //
+     &           'GEIA_Streets_' // TRIM( SCENARIO ) //
+     &           '_HgP_EUR.geos.1x1.YYYY'
 
             ! Add year to the filename
             CALL EXPAND_DATE( FILENAME, NYMD, 000000 )
@@ -4914,8 +4963,9 @@
 
 
          !Anthro Eastern Europe HgP
-            FILENAME = '/home/eds/GCAP/TAGGED/' //
-     &           'GEIA_Streets2006_HgP_EEU.geos.1x1.YYYY'
+            FILENAME = TRIM( DATA_DIR_1x1 ) // 'mercury_201205/' //
+     &           'GEIA_Streets_' // TRIM( SCENARIO ) //
+     &           '_HgP_EEU.geos.1x1.YYYY'
 
             ! Add year to the filename
             CALL EXPAND_DATE( FILENAME, NYMD, 000000 )
@@ -4937,8 +4987,9 @@
 
 
          !Anthro Middle East HgP
-            FILENAME = '/home/eds/GCAP/TAGGED/' //
-     &           'GEIA_Streets2006_HgP_MDE.geos.1x1.YYYY'
+            FILENAME = TRIM( DATA_DIR_1x1 ) // 'mercury_201205/' //
+     &           'GEIA_Streets_' // TRIM( SCENARIO ) //
+     &           '_HgP_MDE.geos.1x1.YYYY'
 
             ! Add year to the filename
             CALL EXPAND_DATE( FILENAME, NYMD, 000000 )
@@ -4960,8 +5011,9 @@
 
 
          !Anthro Former USSR HgP
-            FILENAME = '/home/eds/GCAP/TAGGED/' //
-     &           'GEIA_Streets2006_HgP_SOV.geos.1x1.YYYY'
+            FILENAME = TRIM( DATA_DIR_1x1 ) // 'mercury_201205/' //
+     &           'GEIA_Streets_' // TRIM( SCENARIO ) //
+     &           '_HgP_SOV.geos.1x1.YYYY'
 
             ! Add year to the filename
             CALL EXPAND_DATE( FILENAME, NYMD, 000000 )
@@ -4983,8 +5035,9 @@
 
 
          !Anthro South Asia HgP
-            FILENAME = '/home/eds/GCAP/TAGGED/' //
-     &           'GEIA_Streets2006_HgP_SAS.geos.1x1.YYYY'
+            FILENAME = TRIM( DATA_DIR_1x1 ) // 'mercury_201205/' //
+     &           'GEIA_Streets_' // TRIM( SCENARIO ) //
+     &           '_HgP_SAS.geos.1x1.YYYY'
 
             ! Add year to the filename
             CALL EXPAND_DATE( FILENAME, NYMD, 000000 )
@@ -5006,8 +5059,9 @@
 
 
          !Anthro East Asia HgP
-            FILENAME = '/home/eds/GCAP/TAGGED/' //
-     &           'GEIA_Streets2006_HgP_EAS.geos.1x1.YYYY'
+            FILENAME = TRIM( DATA_DIR_1x1 ) // 'mercury_201205/' //
+     &           'GEIA_Streets_' // TRIM( SCENARIO ) //
+     &           '_HgP_EAS.geos.1x1.YYYY'
 
             ! Add year to the filename
             CALL EXPAND_DATE( FILENAME, NYMD, 000000 )
@@ -5029,8 +5083,9 @@
 
 
          !Anthro Southeast Asia HgP
-            FILENAME = '/home/eds/GCAP/TAGGED/' //
-     &           'GEIA_Streets2006_HgP_SEA.geos.1x1.YYYY'
+            FILENAME = TRIM( DATA_DIR_1x1 ) // 'mercury_201205/' //
+     &           'GEIA_Streets_' // TRIM( SCENARIO ) //
+     &           '_HgP_SEA.geos.1x1.YYYY'
 
             ! Add year to the filename
             CALL EXPAND_DATE( FILENAME, NYMD, 000000 )
@@ -5052,8 +5107,9 @@
 
 
          !Anthro Japan HgP
-            FILENAME = '/home/eds/GCAP/TAGGED/' //
-     &           'GEIA_Streets2006_HgP_JPN.geos.1x1.YYYY'
+            FILENAME = TRIM( DATA_DIR_1x1 ) // 'mercury_201205/' //
+     &           'GEIA_Streets_' // TRIM( SCENARIO ) //
+     &           '_HgP_JPN.geos.1x1.YYYY'
 
             ! Add year to the filename
             CALL EXPAND_DATE( FILENAME, NYMD, 000000 )
@@ -5075,8 +5131,9 @@
 
 
          !Anthro Oceania HgP
-            FILENAME = '/home/eds/GCAP/TAGGED/' //
-     &           'GEIA_Streets2006_HgP_OCE.geos.1x1.YYYY'
+            FILENAME = TRIM( DATA_DIR_1x1 ) // 'mercury_201205/' //
+     &           'GEIA_Streets_' // TRIM( SCENARIO ) //
+     &           '_HgP_OCE.geos.1x1.YYYY'
 
             ! Add year to the filename
             CALL EXPAND_DATE( FILENAME, NYMD, 000000 )
@@ -6407,7 +6464,7 @@ c$$$      END SUBROUTINE DEFINE_TAGGED_Hg
 !-----------------------------------------------------------------------------
 
 
-      SUBROUTINE INIT_MERCURY( THIS_ANTHRO_Hg_YEAR )
+      SUBROUTINE INIT_MERCURY( THIS_ANTHRO_Hg_YEAR, HG_SCENARIO )
 !
 !******************************************************************************
 !  Subroutine INIT_MERCURY allocates and zeroes all module arrays.
@@ -6435,7 +6492,8 @@ c$$$      END SUBROUTINE DEFINE_TAGGED_Hg
       USE CMN_DIAG_MOD     ! ND44
 
       ! Arguments
-      INTEGER, INTENT(IN)   :: THIS_ANTHRO_Hg_YEAR
+      INTEGER, INTENT(IN)            :: THIS_ANTHRO_Hg_YEAR
+      CHARACTER(LEN=255), INTENT(IN) :: HG_SCENARIO !eds 5/17/12
 
       ! Local variables
       LOGICAL, SAVE         :: IS_INIT = .FALSE. 
@@ -6451,6 +6509,9 @@ c$$$      END SUBROUTINE DEFINE_TAGGED_Hg
 
       ! Anthropogenic Hg emissions year
       ANTHRO_Hg_YEAR = THIS_ANTHRO_Hg_YEAR
+
+      ! Future emissions scenario  !eds 5/17/12
+      SCENARIO = HG_SCENARIO
 
       ! Location string for ERROR_STOP
       LOCATION       = 'DEFINE_TAGGED_Hg ("mercury_mod.f")'
