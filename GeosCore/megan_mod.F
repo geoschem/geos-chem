@@ -2571,11 +2571,25 @@
 !\\
 ! !INTERFACE:
 !
+#if defined( DEVEL )
+      SUBROUTINE UPDATE_T_DAY( LOCAL_MET )
+#else
       SUBROUTINE UPDATE_T_DAY
+#endif
 !
 ! !USES:
 !
       USE MEGANUT_MOD     ! We use all functions from the module
+      USE DAO_MOD,     ONLY : PARDR, PARDF, TS
+#if defined( DEVEL )
+      USE GC_TYPE_MOD, ONLY : GC_MET_LOCAL
+#endif
+!
+! !INPUT PARAMETERS: 
+!
+#if defined( DEVEL )
+      TYPE(GC_MET_LOCAL), INTENT(IN) :: LOCAL_MET  ! Obj w/ met fields
+#endif
 ! 
 ! !REVISION HISTORY: 
 !  (1 ) All MEGAN biogenic emission are currently calculated using TS from DAO 
@@ -2591,12 +2605,6 @@
 ! !LOCAL VARIABLES:
 !
       INTEGER           :: I, J, D
-
-!--- Moved all functions to module MEGANUT_MOD
-!      ! External functions
-!      REAL*8, EXTERNAL  :: XLTMMP
-!      REAL*8, EXTERNAL  :: XLPARDR ! (mpb,2009)
-!      REAL*8, EXTERNAL  :: XLPARDF ! (mpb,2009)
 
       !=================================================================
       ! UPDATE_T_DAY begins here!
@@ -2616,9 +2624,15 @@
          ENDDO
             
          ! Store 
-         T_DAY(I,J,1)     = XLTMMP(I,J)
-         PARDF_DAY(I,J,1) = XLPARDF(I,J)
-         PARDR_DAY(I,J,1) = XLPARDR(I,J)
+#if defined( DEVEL )
+         T_DAY(I,J,1)     = XLTMMP ( I, J, LOCAL_MET%TS    )
+         PARDF_DAY(I,J,1) = XLPARDF( I, J, LOCAL_MET%PARDF )
+         PARDR_DAY(I,J,1) = XLPARDR( I, J, LOCAL_MET%PARDR )
+#else
+         T_DAY(I,J,1)     = XLTMMP ( I, J, TS    )
+         PARDF_DAY(I,J,1) = XLPARDF( I, J, PARDF )
+         PARDR_DAY(I,J,1) = XLPARDR( I, J, PARDR )
+#endif
 
       ENDDO
       ENDDO
@@ -3017,6 +3031,9 @@
             CALL UNZIP_A3_FIELDS( 'unzip foreground', NYMD_T15 )
          ENDIF
 
+
+#if defined( DEVEL )
+
          ! Loop over 3h periods during day
          DO J = 0, DAY_DIM-1  
 
@@ -3026,12 +3043,8 @@
             ! GEOS-5.7.x met fields
             ! Sfc temp is hourly data
             !-----------------------------
-#if defined( DEVEL )
             CALL GEOS57_READ_A1( NYMD_T15, 010000*J + G4AHEAD,
      &                           LOCAL_MET ) 
-#else
-            CALL GEOS57_READ_A1( NYMD_T15, 010000*J + G4AHEAD ) 
-#endif
 
 #elif   defined( MERRA )
 
@@ -3044,12 +3057,8 @@
             CALL OPEN_MERRA_A1_FIELDS( NYMD_T15, 010000*J + G4AHEAD )
 
             ! Read A1 fields from disk
-#if defined( DEVEL )
             CALL GET_MERRA_A1_FIELDS(  NYMD_T15, 010000*J + G4AHEAD,
      &                                 LOCAL_MET ) 
-#else
-            CALL GET_MERRA_A1_FIELDS(  NYMD_T15, 010000*J + G4AHEAD ) 
-#endif
 
 #else
             !-----------------------------
@@ -3061,18 +3070,60 @@
             CALL OPEN_A3_FIELDS( NYMD_T15, 030000*J + G4AHEAD )
 
             ! Read A3 fields from disk
-#if defined( DEVEL )
             CALL GET_A3_FIELDS(  NYMD_T15, 030000*J + G4AHEAD, 
      &                           LOCAL_MET ) 
-#else
-            CALL GET_A3_FIELDS(  NYMD_T15, 030000*J + G4AHEAD )
+
 #endif
+
+            ! Update hourly temperatures
+            CALL UPDATE_T_DAY( LOCAL_MET )
+         ENDDO     
+
+#else
+
+         ! Loop over 3h periods during day
+         DO J = 0, DAY_DIM-1  
+
+#if   defined( GEOS_57 )
+
+            !-----------------------------
+            ! GEOS-5.7.x met fields
+            ! Sfc temp is hourly data
+            !-----------------------------
+            CALL GEOS57_READ_A1( NYMD_T15, 010000*J + G4AHEAD ) 
+
+#elif   defined( MERRA )
+
+            !-----------------------------
+            ! MERRA met fields
+            ! Sfc temp is hourly data
+            !-----------------------------
+
+            ! Open A1 fields
+            CALL OPEN_MERRA_A1_FIELDS( NYMD_T15, 010000*J + G4AHEAD )
+
+            ! Read A1 fields from disk
+            CALL GET_MERRA_A1_FIELDS(  NYMD_T15, 010000*J + G4AHEAD ) 
+
+#else
+            !-----------------------------
+            ! All other met field types!
+            ! Sfc temp is 3-hourly data
+            !-----------------------------
+
+            ! Open A3 fields
+            CALL OPEN_A3_FIELDS( NYMD_T15, 030000*J + G4AHEAD )
+
+            ! Read A3 fields from disk
+            CALL GET_A3_FIELDS(  NYMD_T15, 030000*J + G4AHEAD )
 
 #endif
 
             ! Update hourly temperatures
             CALL UPDATE_T_DAY
          ENDDO     
+
+#endif   ! DEVEL
 
          ! Compute 15-day average temperatures
          CALL UPDATE_T_15_AVG

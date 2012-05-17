@@ -225,6 +225,70 @@
 !------------------------------------------------------------------------------
 !BOC
 
+#if defined( DEVEL )
+
+#if   defined( MERRA ) || defined( GEOS_57 )
+
+      !=================================================================
+      ! MERRA: Only do wet deposition for large-scale + anvil precip
+      !=================================================================
+
+      ! Create precip fields
+      CALL MAKE_QQ( LOCAL_MET, LS=.TRUE. )
+      IF ( LPRT ) CALL DEBUG_MSG( '### DO_WETDEP: before LS wetdep' )
+
+      ! Do wet deposition
+      CALL WETDEP_MERRA(  LOCAL_MET, LS=.TRUE. )
+      IF ( LPRT ) CALL DEBUG_MSG( '### DO_WETDEP: after LS wetdep' )
+
+#elif defined( GEOS_5 )
+
+      !=================================================================
+      ! GEOS5: Only do wet deposition for large-scale + anvil precip
+      !=================================================================
+
+      ! Create precip fields
+      CALL MAKE_QQ( LOCAL_MET, LS=.TRUE. )
+      IF ( LPRT ) CALL DEBUG_MSG( '### DO_WETDEP: before LS wetdep' )
+
+      ! Do wet deposition
+      CALL WETDEP(  LOCAL_MET, LS=.TRUE. )
+      IF ( LPRT ) CALL DEBUG_MSG( '### DO_WETDEP: after LS wetdep' )
+
+#else
+
+      !=================================================================
+      ! Other met fields: Do wetdep for both LS & convective precip
+      !=================================================================
+
+      !---------------------
+      ! Large-scale precip
+      !---------------------
+
+      ! Create precip fields
+      CALL MAKE_QQ( LOCAL_MET, LS=.TRUE. )
+      IF ( LPRT ) CALL DEBUG_MSG( '### DO_WETDEP: before LS wetdep' )
+
+      ! Do wet deposition
+      CALL WETDEP(  LOCAL_MET, LS=.TRUE. )
+      IF ( LPRT ) CALL DEBUG_MSG( '### DO_WETDEP: after LS wetdep' )
+
+      !---------------------
+      ! Convective precip
+      !---------------------
+
+      ! Create precip fields
+      CALL MAKE_QQ( LOCAL_MET, LS=.FALSE. )
+      IF ( LPRT ) CALL DEBUG_MSG( '### DO_WETDEP: before conv wetdep' )
+
+      !  Do wet deposition
+      CALL WETDEP(  LOCAL_MET, LS=.FALSE. )
+      IF ( LPRT ) CALL DEBUG_MSG( '### DO_WETDEP: after conv wetdep' )
+
+#endif
+
+#else
+
 #if   defined( MERRA ) || defined( GEOS_57 )
 
       !=================================================================
@@ -236,11 +300,7 @@
       IF ( LPRT ) CALL DEBUG_MSG( '### DO_WETDEP: before LS wetdep' )
 
       ! Do wet deposition
-#if defined( DEVEL )
-      CALL WETDEP_MERRA(  LS=.TRUE., LOCAL_MET )
-#else
       CALL WETDEP_MERRA(  LS=.TRUE. )
-#endif
       IF ( LPRT ) CALL DEBUG_MSG( '### DO_WETDEP: after LS wetdep' )
 
 #elif defined( GEOS_5 )
@@ -254,11 +314,7 @@
       IF ( LPRT ) CALL DEBUG_MSG( '### DO_WETDEP: before LS wetdep' )
 
       ! Do wet deposition
-#if defined( DEVEL )
-      CALL WETDEP(  LOCAL_MET, LS=.TRUE. )
-#else
       CALL WETDEP(  LS=.TRUE. )
-#endif
       IF ( LPRT ) CALL DEBUG_MSG( '### DO_WETDEP: after LS wetdep' )
 
 #else
@@ -276,11 +332,7 @@
       IF ( LPRT ) CALL DEBUG_MSG( '### DO_WETDEP: before LS wetdep' )
 
       ! Do wet deposition
-#if defined( DEVEL )
-      CALL WETDEP(  LOCAL_MET, LS=.TRUE. )
-#else
       CALL WETDEP(  LS=.TRUE. )
-#endif
       IF ( LPRT ) CALL DEBUG_MSG( '### DO_WETDEP: after LS wetdep' )
 
       !---------------------
@@ -292,14 +344,12 @@
       IF ( LPRT ) CALL DEBUG_MSG( '### DO_WETDEP: before conv wetdep' )
 
       !  Do wet deposition
-#if defined( DEVEL )
-      CALL WETDEP(  LOCAL_MET, LS=.FALSE. )
-#else
       CALL WETDEP(  LS=.FALSE. )
-#endif
       IF ( LPRT ) CALL DEBUG_MSG( '### DO_WETDEP: after conv wetdep' )
 
 #endif
+
+#endif  ! DEVEL
 
       END SUBROUTINE DO_WETDEP
 !EOC
@@ -316,14 +366,21 @@
 !\\
 ! !INTERFACE:
 !
+#if defined( DEVEL )
+      SUBROUTINE MAKE_QQ( LOCAL_MET, LS )
+#else
       SUBROUTINE MAKE_QQ( LS )
+#endif
 !
 ! !USES:
 !
       USE DAO_MOD,   ONLY : AIRDEN,  BXHEIGHT, DQRLSAN
       USE DAO_MOD,   ONLY : MOISTQ,  PFLLSAN,  PFILSAN
-      USE DAO_MOD,   ONLY : PREACC,  PRECON,   REEVAPLS
+      USE DAO_MOD,   ONLY : PREACC,  PRECON
       USE ERROR_MOD, ONLY : ALLOC_ERR
+#if defined( DEVEL )
+      USE GC_TYPE_MOD, ONLY : GC_MET_LOCAL
+#endif
       
       USE CMN_SIZE_MOD      ! Size parameters
 !
@@ -331,6 +388,9 @@
 !
       LOGICAL, INTENT(IN) :: LS   ! =T, denotes large scale precip
                                   ! =F, denotes convective precip
+#if defined( DEVEL )
+      TYPE(GC_MET_LOCAL), INTENT(IN) :: LOCAL_MET  ! Obj w/ met fields
+#endif
 ! 
 ! !REMARKS:
 !  %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -471,6 +531,157 @@
       !=================================================================
       ! Loop over surface grid boxes
       !=================================================================
+#if defined( DEVEL )
+
+!$OMP PARALLEL DO
+!$OMP+DEFAULT( SHARED )
+!$OMP+PRIVATE( I, J, FRAC, L, PTEMP )
+!$OMP+SCHEDULE( DYNAMIC )
+      DO J = 1, JJPAR
+      DO I = 1, IIPAR
+
+#if   defined( GEOS_57 )
+
+         !==============================================================
+         ! %%%%% FOR GEOS-5.7.x MET FIELDS ONLY %%%%%  
+         !
+         ! In GEOS-5.7.x, the PFILSAN and PFLLSAN fields are defined
+         ! on level edges.  Therefore, we must use L+1 to index them.
+         !==============================================================
+
+         ! Loop over vertical levels
+         DO L = 1, LLPAR
+
+            ! Rate of new precipitation formation in grid box (I,J,L)
+            ! [cm3 H2O/cm3 air/s]
+            QQ(L,I,J)    = ( DQRLSAN(I,J,L)                   )
+     &                   * ( AIRDEN(L,I,J)  / 1000d0          )
+
+            ! Column precipitation [cm3 H2O/cm2 air/s]
+            PDOWN(L,I,J) = ( ( PFLLSAN(I,J,L+1) / 1000d0 ) 
+     &                   +   ( PFILSAN(I,J,L+1) /  917d0 ) ) * 100d0
+
+         ENDDO
+
+#elif   defined( MERRA )
+
+         !==============================================================
+         ! %%%%% FOR MERRA MET FIELDS ONLY %%%%%  
+         !==============================================================
+
+         ! Loop over vertical levels
+         DO L = 1, LLPAR
+
+            ! Rate of new precipitation formation in grid box (I,J,L)
+            ! [cm3 H2O/cm3 air/s]
+            QQ(L,I,J)    = ( DQRLSAN(I,J,L)                   )
+     &                   * ( AIRDEN(L,I,J)  / 1000d0          )
+
+            ! Column precipitation [cm3 H2O/cm2 air/s]
+            PDOWN(L,I,J) = ( ( PFLLSAN(I,J,L) / 1000d0 ) 
+     &                   +   ( PFILSAN(I,J,L) /  917d0 ) ) * 100d0
+
+         ENDDO
+
+#else 
+
+         !==============================================================
+         ! %%%%% FOR ALL OTHER MET FIELDS EXCEPT MERRA %%%%%
+         !==============================================================
+         IF ( PREACC(I,J) > 0d0 ) THEN
+
+            ! Large scale or convective fraction of precipitation
+            IF ( LS ) THEN
+               FRAC = ( LOCAL_MET%PRECTOT(I,J) - LOCAL_MET%PRECCON(I,J)) 
+     &                / LOCAL_MET%PRECTOT(I,J) 
+            ELSE
+               FRAC =   LOCAL_MET%PRECCON(I,J) / LOCAL_MET%PRECTOT(I,J)
+            ENDIF
+
+           !##################################################################
+           !### KLUDGE: On July 22, 2010, there is an error where PREACC
+           !### is set to a very small number (but nonzero).  This causes
+           !### FRAC to blow up to near infinity and PDOWN to be a very
+           !### large number.  For now, limit FRAC to be between 0 and 1.
+           !### 
+           IF ( FRAC > 1d0 ) FRAC = 1d0
+           IF ( FRAC < 0d0 ) FRAC = 0d0 
+           !##################################################################
+
+            ! Start at the top of the atmosphere
+            L = LLPAR
+
+            ! Compute QQ and PDOWN.  Keep PTEMP for the next level
+            QQ(L,I,J)    = FRAC * MOISTQ(L,I,J) * AIRDEN(L,I,J) / 1d3
+            PTEMP        = QQ(L,I,J) * BXHEIGHT(I,J,L) * 1d2
+            PDOWN(L,I,J) = PTEMP
+
+            ! PDOWN cannot be negative
+            IF ( PDOWN(L,I,J) < 0d0 ) PDOWN(L,I,J) = 0.d0
+
+            ! Loop down from LLPAR to the surface
+            DO L = LLPAR-1, 1, -1
+               
+               ! Compute QQ and PDOWN.  Keep PTEMP for the next level.
+               QQ(L,I,J)    = FRAC * MOISTQ(L,I,J) * AIRDEN(L,I,J) / 1d3
+               PDOWN(L,I,J) = PTEMP + QQ(L,I,J) * BXHEIGHT(I,J,L) * 1d2  
+               PTEMP        = PDOWN(L,I,J)
+
+               ! PDOWN cannot be negative
+               IF ( PDOWN(L,I,J) < 0.0d0 ) PDOWN(L,I,J) = 0.d0
+            ENDDO
+  
+         !==============================================================
+         ! If there is no precipitation reaching the surface in the 
+         ! (I,J) column, then assume any precipitation at altitude to 
+         ! be large-scale.
+         ! 
+         ! (1) Assume the large scale fraction = 1d0, 
+         !                convective fraction  = 0d0
+         ! (2) Compute QQ as described above
+         ! (3) Compute PDOWN as described above
+         !==============================================================
+         ELSE
+
+            ! Assume large-scale precipitation!
+            IF ( LS ) THEN
+               FRAC = 1d0
+            ELSE         
+               FRAC = 0d0
+            ENDIF
+
+            ! Start at the top of the atmosphere
+            L = LLPAR
+
+            ! Compute QQ and PDOWN.  Keep PTEMP for the next level
+            QQ(L,I,J)    = FRAC * MOISTQ(L,I,J) * AIRDEN(L,I,J) / 1d3
+            PTEMP        = QQ(L,I,J) * BXHEIGHT(I,J,L) * 1d2
+            PDOWN(L,I,J) = PTEMP
+           
+            ! PDOWN cannot be negative
+            IF( PDOWN(L,I,J) < 0d0 ) PDOWN(L,I,J) = 0.d0
+
+            ! Loop down from LLPAR to the surface
+            DO L = LLPAR-1, 1, -1
+              
+               ! Compute QQ and PDOWN.  Keep PTEMP for the next level
+               QQ(L,I,J)    = FRAC * MOISTQ(L,I,J) * AIRDEN(L,I,J) / 1d3
+               PDOWN(L,I,J) = PTEMP + QQ(L,I,J) * BXHEIGHT(I,J,L) * 1d2 
+               PTEMP        = PDOWN(L,I,J)
+
+               ! PDOWN cannot be negative
+               IF ( PDOWN(L,I,J) < 0.0d0 ) PDOWN(L,I,J) = 0.d0
+            ENDDO
+         ENDIF
+
+#endif
+
+      ENDDO  
+      ENDDO
+!$OMP END PARALLEL DO
+
+#else
+
 !$OMP PARALLEL DO
 !$OMP+DEFAULT( SHARED )
 !$OMP+PRIVATE( I, J, FRAC, L, PTEMP )
@@ -616,6 +827,8 @@
       ENDDO  
       ENDDO
 !$OMP END PARALLEL DO
+
+#endif  ! DEVEL
 
       END SUBROUTINE MAKE_QQ
 !EOC
@@ -4624,7 +4837,7 @@
 ! !INTERFACE:
 !
 #if defined( DEVEL )
-      SUBROUTINE WETDEP_MERRA( LS, LOCAL_MET )
+      SUBROUTINE WETDEP_MERRA( LOCAL_MET, LS )
 #else
       SUBROUTINE WETDEP_MERRA( LS )
 #endif
@@ -4634,7 +4847,6 @@
       USE DAO_MOD,           ONLY : BXHEIGHT
       USE DAO_MOD,           ONLY : AIRDEN     
       USE DAO_MOD,           ONLY : DQRLSAN
-      USE DAO_MOD,           ONLY : REEVAPLS
       USE LOGICAL_MOD,       ONLY : LDYNOCEAN
       USE DEPO_MERCURY_MOD,  ONLY : ADD_Hg2_WD
       USE DEPO_MERCURY_MOD,  ONLY : ADD_HgP_WD
@@ -5479,9 +5691,6 @@
 !
       USE DAO_MOD,      ONLY : T                       ! air temperature [K]
       USE DAO_MOD,      ONLY : BXHEIGHT                ! Grid box height [m]  
-      USE DAO_MOD,      ONLY : REEVAPLS                ! Evap of precip'ing
-                                                       !  LS+anvil cloud
-                                                       !  condensate [kg/kg/s]
       USE DIAG_MOD,     ONLY : AD16                    ! ND16 diag array
       USE DIAG_MOD,     ONLY : AD17                    ! ND17 diag array
       USE DIAG_MOD,     ONLY : AD18                    ! ND18 diag array

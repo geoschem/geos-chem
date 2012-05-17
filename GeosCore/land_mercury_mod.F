@@ -148,6 +148,40 @@
          FRAC_SNOW_OR_ICE = 0d0
          FRAC_SNOWFREE_LAND  = 1d0
 
+#if defined( DEVEL )
+
+#if   defined( MERRA ) || defined( GEOS_57 )
+         ! Distinguish between ice/snow and snow-free land
+         FRAC_SNOW_OR_ICE    = MIN( LOCAL_MET%FRSNO(I,J)     +
+     &                              LOCAL_MET%FRSEAICE(I,J)  + 
+     &                              LOCAL_MET%FRLANDIC(I,J), 1d0)
+         FRAC_SNOWFREE_LAND  = MAX( LOCAL_MET%FRLAND(I,J)    - 
+     &                              LOCAL_MET%FRSNO(I,J),    0d0)
+
+         ! Set this to FALSE in MERRA to avoid overwriting fractions
+         IS_SNOW_OR_ICE      = .FALSE.
+         IS_LAND_OR_ICE      = (( FRAC_SNOWFREE_LAND > 0d0 ) .OR.
+     &                          ( FRAC_SNOW_OR_ICE   > 0d0 ))
+
+#elif defined( GEOS_5 )
+         ! GEOS5 snow height (water equivalent) in mm. (Docs incorrectly say m)
+         IS_SNOW_OR_ICE = (( IS_ICE ( I, J, LOCAL_MET     ))  .OR. 
+     &                     ( IS_LAND( I, J, LOCAL_MET     )   .AND.
+     &                       LOCAL_MET%SNOMAS(I,J) > 10d0 ))
+         IS_LAND_OR_ICE = (( IS_LAND( I, J, LOCAL_MET     ))  .OR.
+     &                     ( IS_ICE ( I, J, LOCAL_MET     )))
+
+#else
+         ! GEOS1-4 snow heigt (water equivalent) in mm
+         IS_SNOW_OR_ICE = (( IS_ICE ( I, J, LOCAL_MET     ))  .OR.
+     &                     ( IS_LAND( I, J, LOCAL_MET     )   .AND. 
+     &                       LOCAL_MET%SNOW(I,J)   > 10d0 ))
+         IS_LAND_OR_ICE = (( IS_LAND( I, J, LOCAL_MET     ))  .OR.
+     &                     ( IS_ICE ( I, J, LOCAL_MET     )))
+#endif
+
+#else
+
 #if   defined( MERRA ) || defined( GEOS_57 )
          ! Distinguish between ice/snow and snow-free land
          FRAC_SNOW_OR_ICE    =  MIN(FRSNO(I,J) 
@@ -160,33 +194,16 @@
      &                           (FRAC_SNOW_OR_ICE > 0d0) )
 #elif defined( GEOS_5 )
          ! GEOS5 snow height (water equivalent) in mm. (Docs incorrectly say m)
-#if defined( DEVEL )
-         IS_SNOW_OR_ICE = 
-     &      ( (IS_ICE ( I, J, LOCAL_MET )) .OR. 
-     &        (IS_LAND( I, J, LOCAL_MET )  .AND. SNOMAS(I,J)>10d0) )
-         IS_LAND_OR_ICE =
-     &      ( (IS_LAND( I, J, LOCAL_MET )) .OR.
-     &        (IS_ICE ( I, J, LOCAL_MET )) )
-#else
          IS_SNOW_OR_ICE = 
      &      ( (IS_ICE(I,J)) .OR. (IS_LAND(I,J) .AND. SNOMAS(I,J)>10d0) )
          IS_LAND_OR_ICE = ( (IS_LAND(I,J)) .OR. (IS_ICE(I,J)) )
-#endif
-
 #else
          ! GEOS1-4 snow heigt (water equivalent) in mm
-#if defined( DEVEL )
-         IS_SNOW_OR_ICE =
-     &      ( (IS_ICE ( I, J, LOCAL_MET )) .OR.
-     &        (IS_LAND( I, J, LOCAL_MET ) .AND. SNOW(I,J)>10d0) )
-         IS_LAND_OR_ICE =
-     &      ( (IS_LAND( I, J, LOCAL_MET )) .OR.
-     &        (IS_ICE ( I, J, LOCAL_MET )) )
-#else
          IS_SNOW_OR_ICE =
      &      ( (IS_ICE(I,J)) .OR. (IS_LAND(I,J) .AND. SNOW(I,J)>10d0) )
          IS_LAND_OR_ICE = ( (IS_LAND(I,J)) .OR. (IS_ICE(I,J)) )
 #endif
+
 #endif 
 
          ! Reset land fractions if we are in a version prior to MERRA
@@ -363,7 +380,7 @@
 !
 ! !USES:
 !
-      USE DAO_MOD,        ONLY: RADSWG, IS_LAND
+      USE DAO_MOD,        ONLY: IS_LAND
       USE TIME_MOD,       ONLY: GET_MONTH, ITS_A_NEW_MONTH
       USE TIME_MOD,       ONLY: GET_TS_EMIS
       USE GRID_MOD,       ONLY: GET_AREA_M2
@@ -522,7 +539,7 @@
 ! !USES:
 !
       USE LAI_MOD,  ONLY : ISOLAI, MISOLAI, PMISOLAI, DAYS_BTW_M
-      USE DAO_MOD,  ONLY : RADSWG, SUNCOS, TS, IS_LAND
+      USE DAO_MOD,  ONLY : RADSWG, SUNCOS,  IS_LAND
       USE TIME_MOD, ONLY : GET_MONTH, ITS_A_NEW_MONTH
       USE TIME_MOD, ONLY : GET_TS_EMIS
       USE GRID_MOD, ONLY : GET_AREA_M2
@@ -648,27 +665,37 @@ else  ! This sets a default value for GCM & ESMF COUPLING
          ! (jaf, 4/26/11)
          FRAC_SNOWFREE_LAND = 1d0
 
+#if defined( DEVEL )
+
 #if   defined( MERRA ) || defined( GEOS_57 )
-         FRAC_SNOWFREE_LAND = MAX(FRLAND(I,J) - FRSNO(I,J), 0d0)
-         IS_SNOWFREE_LAND = (FRAC_SNOWFREE_LAND > 0d0)
+         FRAC_SNOWFREE_LAND = MAX( LOCAL_MET%FRLAND(I,J) - 
+     &                             LOCAL_MET%FRSNO(I,J), 0d0 )
+         IS_SNOWFREE_LAND   = ( FRAC_SNOWFREE_LAND > 0d0 )
 
 #elif defined( GEOS_5 )
          ! GEOS5 snow height (water equivalent) in mm. (Docs wrongly say m)
-#if defined( DEVEL )
          IS_SNOWFREE_LAND = ( IS_LAND( I, J, LOCAL_MET ) .AND.
-     &                      ( SNOMAS(I,J) < 10d0) )
+     &                      ( LOCAL_MET%SNOMAS(I,J) < 10d0 ))
+
 #else
-         IS_SNOWFREE_LAND = ( IS_LAND(I,J) .AND. (SNOMAS(I,J) < 10d0) )
+         ! GEOS1-4 snow heigt (water equivalent) in mm
+         IS_SNOWFREE_LAND = ( IS_LAND( I, J, LOCAL_MET ) .AND.
+     &                      ( LOCAL_MET%SNOW(I,J)   < 10d0 ))
 #endif
+
 #else
 
-         ! GEOS1-4 snow heigt (water equivalent) in mm
-#if defined( DEVEL )
-         IS_SNOWFREE_LAND = ( IS_LAND( I, J, LOCAL_MET ) .AND.
-     &                      ( SNOW(I,J) < 10d0) )
+#if   defined( MERRA ) || defined( GEOS_57 )
+         FRAC_SNOWFREE_LAND = MAX(FRLAND(I,J) - FRSNO(I,J), 0d0)
+         IS_SNOWFREE_LAND = (FRAC_SNOWFREE_LAND > 0d0)
+#elif defined( GEOS_5 )
+         ! GEOS5 snow height (water equivalent) in mm. (Docs wrongly say m)
+         IS_SNOWFREE_LAND = ( IS_LAND(I,J) .AND. (SNOMAS(I,J) < 10d0) )
 #else
+         ! GEOS1-4 snow heigt (water equivalent) in mm
          IS_SNOWFREE_LAND = ( IS_LAND(I,J) .AND. (SNOW(I,J) < 10d0) )
 #endif
+
 #endif          
 
          IF ( IS_SNOWFREE_LAND ) THEN
@@ -692,9 +719,15 @@ else  ! This sets a default value for GCM & ESMF COUPLING
             DRYSOIL_HG = DRYSOIL_PREIND_HG * EHg0_dist(I,J)           
 
             ! Soil emissions, ng /m2 /h
+#if defined( DEVEL )
+            SOIL_EMIS = 
+     &           EXP( 0.0011 * LOCAL_MET%RADSWG(I,J) * LIGHTFRAC ) *
+     &           DRYSOIL_HG * SOIL_EMIS_FAC
+#else
             SOIL_EMIS = 
      &           EXP( 0.0011 * RADSWG(I,J) * LIGHTFRAC ) *
      &           DRYSOIL_HG * SOIL_EMIS_FAC
+#endif
      
             ! Grid box surface area [m2]
             AREA_M2   = GET_AREA_M2( I, J, 1 )

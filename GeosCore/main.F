@@ -298,6 +298,27 @@
       ! Read the initial met fields from disk
       CALL READ_INITIAL_MET_FIELDS()
 
+#if defined( DEVEL )
+
+      ! Compute avg surface pressure near polar caps
+      CALL AVGPOLE( LOCAL_MET%PS1 )
+      IF ( LPRT ) CALL DEBUG_MSG( '### MAIN: a AVGPOLE' )
+
+      ! Call AIRQNT to compute air mass quantities from PS1
+      CALL SET_FLOATING_PRESSURE( LOCAL_MET%PS1 )
+      IF ( LPRT ) CALL DEBUG_MSG( '### MAIN: a SET_FLT_PRS' )
+
+      CALL AIRQNT(LOCAL_MET)
+      IF ( LPRT ) CALL DEBUG_MSG( '### MAIN: a AIRQNT' )
+
+      ! Compute lightning NOx emissions [molec/box/6h]
+      IF ( LLIGHTNOX ) THEN
+         CALL LIGHTNING( LOCAL_MET )
+         IF ( LPRT ) CALL DEBUG_MSG( '### MAIN: a LIGHTNING' )
+      ENDIF
+
+#else
+
       ! Compute avg surface pressure near polar caps
       CALL AVGPOLE( PS1 )
       IF ( LPRT ) CALL DEBUG_MSG( '### MAIN: a AVGPOLE' )
@@ -306,22 +327,16 @@
       CALL SET_FLOATING_PRESSURE( PS1 )
       IF ( LPRT ) CALL DEBUG_MSG( '### MAIN: a SET_FLT_PRS' )
 
-#if defined( DEVEL )
-      CALL AIRQNT(LOCAL_MET)
-#else
       CALL AIRQNT
-#endif
       IF ( LPRT ) CALL DEBUG_MSG( '### MAIN: a AIRQNT' )
 
       ! Compute lightning NOx emissions [molec/box/6h]
       IF ( LLIGHTNOX ) THEN
-#if defined( DEVEL )
-         CALL LIGHTNING( LOCAL_MET )
-#else
          CALL LIGHTNING
-#endif
          IF ( LPRT ) CALL DEBUG_MSG( '### MAIN: a LIGHTNING' )
       ENDIF
+
+#endif  ! DEVEL
 
 !------------------------------------------------------------------------------
 ! Prior to 3/13/12:
@@ -338,17 +353,23 @@
 
       ! Initialize PBL quantities but do not do mixing
       ! Add option for non-local PBL (Lin, 03/31/09) 
+#if defined( DEVEL )
+      IF ( .NOT. LNLPBL ) THEN
+         CALL DO_PBL_MIX  ( .FALSE., LOCAL_MET )
+         IF ( LPRT ) CALL DEBUG_MSG( '### MAIN: a TURBDAY:1' )
+      ELSE
+         CALL DO_PBL_MIX_2( .FALSE., LOCAL_MET )
+         IF ( LPRT ) CALL DEBUG_MSG( '### MAIN: a NLPBL 1' )
+      ENDIF
+#else
       IF ( .NOT. LNLPBL ) THEN
         CALL DO_PBL_MIX( .FALSE. )
         IF ( LPRT ) CALL DEBUG_MSG( '### MAIN: a TURBDAY:1' )
       ELSE
-#if defined( DEVEL )
-        CALL DO_PBL_MIX_2( .FALSE., LOCAL_MET )
-#else
         CALL DO_PBL_MIX_2( .FALSE. )
-#endif
         IF ( LPRT ) CALL DEBUG_MSG( '### MAIN: a NLPBL 1' )
       ENDIF
+#endif
 
       !=================================================================
       !       *****  I N I T I A L   C O N D I T I O N S *****
@@ -622,6 +643,35 @@
          !   ***** I N T E R P O L A T E   Q U A N T I T I E S *****   
          !==============================================================
          
+#if defined( DEVEL )
+         ! Interpolate I-6 fields to current dynamic timestep, 
+         ! based on their values at NSEC and NSEC+N_DYN
+         CALL INTERP( NSECb, ELAPSED_TODAY, N_DYN, LOCAL_MET )
+
+         ! Case of variable tropopause:
+         ! Check LLTROP and set LMIN, LMAX, and LPAUSE
+         ! since this is not done with READ_TROPOPAUSE anymore.
+         ! (Need to double-check that LMIN, Lmax are not used before-phs) 
+         IF ( LVARTROP ) CALL CHECK_VAR_TROP( LOCAL_MET )
+
+         ! If we are not doing transport, then make sure that
+         ! the floating pressure is set to PSC2 (bdf, bmy, 8/22/02)
+         IF ( .not. LTRAN ) CALL SET_FLOATING_PRESSURE( LOCAL_MET%PSC2 )
+
+         ! Compute airmass quantities at each grid box 
+         CALL AIRQNT( LOCAL_MET )
+
+         ! Compute the cosine of the solar zenith angle array
+         ! SUNCOS         = cos(SZA) at the current time
+         ! SUNCOS_MID     = cos(SZA) at the midpt of the chem timestep
+         ! SUNCOS_MID_5hr = cos(SZA) at the midpt of the chem timestep 5hrs ago
+         CALL GET_COSINE_SZA( SUNCOS, SUNCOS_MID, SUNCOS_MID_5hr )
+
+         ! Compute tropopause height for ND55 diagnostic
+         IF ( ND55 > 0 ) CALL DIAG_TROPOPAUSE( LOCAL_MET )
+
+#else
+
          ! Interpolate I-6 fields to current dynamic timestep, 
          ! based on their values at NSEC and NSEC+N_DYN
          CALL INTERP( NSECb, ELAPSED_TODAY, N_DYN )
@@ -631,17 +681,13 @@
          ! since this is not done with READ_TROPOPAUSE anymore.
          ! (Need to double-check that LMIN, Lmax are not used before-phs) 
          IF ( LVARTROP ) CALL CHECK_VAR_TROP
-         
+
          ! If we are not doing transport, then make sure that
          ! the floating pressure is set to PSC2 (bdf, bmy, 8/22/02)
          IF ( .not. LTRAN ) CALL SET_FLOATING_PRESSURE( PSC2 )
 
          ! Compute airmass quantities at each grid box 
-#if defined( DEVEL )
-         CALL AIRQNT(LOCAL_MET)
-#else
          CALL AIRQNT
-#endif
 
          ! Compute the cosine of the solar zenith angle array
          ! SUNCOS         = cos(SZA) at the current time
@@ -651,6 +697,8 @@
 
          ! Compute tropopause height for ND55 diagnostic
          IF ( ND55 > 0 ) CALL DIAG_TROPOPAUSE
+
+#endif
 
          ! Update dynamic timestep
          CALL SET_CT_DYN( INCREMENT=.TRUE. )
@@ -662,7 +710,11 @@
          ! (NOTE: maybe improve this later on)
          ! Placed after interpolation to get correct value of TROPP. 
          ! (ccc, 12/9/08)
+#if defined( DEVEL )
+         CALL DIAG_2PM( LOCAL_MET )
+#else
          CALL DIAG_2PM
+#endif
 
          ! Get the overhead column O3 for use with FAST-J
          CALL GET_OVERHEAD_O3_FOR_FASTJ()
@@ -680,7 +732,11 @@
          !==============================================================
          !     ***** S T R A T O S P H E R I C   F L U X E S *****
          !==============================================================
+#if defined( DEVEL )
+         IF ( LUPBD ) CALL DO_UPBDFLX( LOCAL_MET )
+#else
          IF ( LUPBD ) CALL DO_UPBDFLX
+#endif
 
          !==============================================================
          !              ***** T R A N S P O R T *****
@@ -692,7 +748,11 @@
             IF ( LWINDO ) CALL SAVE_GLOBAL_TPCORE_BC
 
             ! Call the appropritate version of TPCORE
+#if defined( DEVEL )
+            IF ( LTRAN ) CALL DO_TRANSPORT( LOCAL_MET )
+#else
             IF ( LTRAN ) CALL DO_TRANSPORT               
+#endif
 
             ! Reset air mass quantities
 #if defined( DEVEL )
@@ -703,7 +763,11 @@
 
             ! Repartition [NOy] species after transport
             IF ( LUPBD .and. ITS_A_FULLCHEM_SIM() ) THEN
+#if defined( DEVEL )
+               CALL UPBDFLX_NOY( 2, LOCAL_MET )
+#else
                CALL UPBDFLX_NOY( 2 )
+#endif
             ENDIF   
 
 #if   !defined( GEOS_5 ) && !defined( MERRA ) && !defined( GEOS_57 )
@@ -769,17 +833,23 @@
             !      ***** M I X E D   L A Y E R   M I X I N G *****
             !===========================================================
             ! Add option for non-local PBL. (Lin, 03/31/09)
+#if defined( DEVEL )
+            IF ( .NOT. LNLPBL ) THEN
+               CALL DO_PBL_MIX  ( LTURB, LOCAL_MET )
+               IF ( LPRT ) CALL DEBUG_MSG( '### MAIN: a TURBDAY:1' )
+            ELSE
+               CALL DO_PBL_MIX_2( LTURB, LOCAL_MET )
+               IF ( LPRT ) CALL DEBUG_MSG( '### MAIN: a NLPBL 2' )
+            ENDIF
+#else
             IF ( .NOT. LNLPBL ) THEN
                CALL DO_PBL_MIX( LTURB )
                IF ( LPRT ) CALL DEBUG_MSG( '### MAIN: a TURBDAY:1' )
             ELSE
-#if defined( DEVEL )
-               CALL DO_PBL_MIX_2( LTURB, LOCAL_MET )
-#else
                CALL DO_PBL_MIX_2( LTURB )
-#endif
                IF ( LPRT ) CALL DEBUG_MSG( '### MAIN: a NLPBL 2' )
             ENDIF
+#endif
 
             !### Debug
             IF ( LPRT ) CALL DEBUG_MSG( '### MAIN: a TURBDAY:2' )
@@ -976,7 +1046,11 @@
             IF ( LPRT ) CALL DEBUG_MSG( '### MAIN: after DIAG42' )
 
             ! 24-hr timeseries
+#if defined( DEVEL )
+            IF ( DO_SAVE_DIAG50 ) CALL DIAG50( LOCAL_MET )
+#else
             IF ( DO_SAVE_DIAG50 ) CALL DIAG50
+#endif
 
             ! Increment diagnostic timestep counter. (ccc, 5/13/09)
             CALL SET_CT_DIAG( INCREMENT=.TRUE. )
@@ -986,7 +1060,11 @@
                
                print*, 'Call planeflight'
                ! Archive data along the flight track
+#if defined( DEVEL )
+               CALL PLANEFLIGHT( LOCAL_MET )
+#else
                CALL PLANEFLIGHT
+#endif
             ENDIF
             IF ( LPRT ) CALL DEBUG_MSG( '### MAIN: after DIAG40' )
 
@@ -1005,11 +1083,19 @@
          IF ( LPRT ) CALL DEBUG_MSG( '### MAIN: before TIMESERIES' )
 
          ! Station timeseries
+#if defined( DEVEL )
+         IF ( ITS_TIME_FOR_DIAG48() ) CALL DIAG48( LOCAL_MET )
+#else
          IF ( ITS_TIME_FOR_DIAG48() ) CALL DIAG48
+#endif
          IF ( LPRT ) CALL DEBUG_MSG( '### MAIN: after DIAG48' )
 
          ! 3-D timeseries
+#if defined( DEVEL )
+         IF ( ITS_TIME_FOR_DIAG49() ) CALL DIAG49( LOCAL_MET )
+#else
          IF ( ITS_TIME_FOR_DIAG49() ) CALL DIAG49
+#endif
          IF ( LPRT ) CALL DEBUG_MSG( '### MAIN: after DIAG49' )
 
          ! Ship timeseries
@@ -1017,8 +1103,13 @@
          IF ( LPRT ) CALL DEBUG_MSG( '### MAIN: after DIAG63' )
 
          ! Morning or afternoon timeseries
+#if defined( DEVEL )
+         IF ( DO_SAVE_DIAG51 ) CALL DIAG51( LOCAL_MET )
+         IF ( DO_SAVE_DIAG51b ) CALL DIAG51b( LOCAL_MET )
+#else
          IF ( DO_SAVE_DIAG51 ) CALL DIAG51 
          IF ( DO_SAVE_DIAG51b ) CALL DIAG51b 
+#endif
          IF ( LPRT ) CALL DEBUG_MSG( '### MAIN: after DIAG51' )
 
          ! Comment out for now 
@@ -1057,7 +1148,11 @@
       !     The I-3 or I-6 fields at the end of this outer timestep 
       !     become the fields at the beginning of the next timestep
       !=================================================================
+#if defined( DEVEL )
+      CALL COPY_I3_I6_FIELDS( LOCAL_MET )
+#else
       CALL COPY_I3_I6_FIELDS
+#endif
       IF ( LPRT ) CALL DEBUG_MSG( '### MAIN: after COPY_I3_I6_FIELDS' )
 
       ENDDO
@@ -1500,7 +1595,11 @@
 
       ! For MEGAN biogenics, update hourly temps w/in 15-day window
       IF ( LMEGAN ) THEN
+#if defined( DEVEL )
+         CALL UPDATE_T_DAY( LOCAL_MET )
+#else
          CALL UPDATE_T_DAY
+#endif
          IF ( LPRT ) CALL DEBUG_MSG( '### MAIN: UPDATE T_DAY' )
       ENDIF
 
@@ -1626,12 +1725,17 @@
          DATE = GET_I3_TIME()
 #if defined( DEVEL )
          CALL GEOS57_READ_I3_2( DATE(1), DATE(2), LOCAL_MET )
+
+         ! Compute avg pressure at polar caps 
+         CALL AVGPOLE( LOCAL_MET%PS2 )
+
 #else
          CALL GEOS57_READ_I3_2( DATE(1), DATE(2) )
-#endif
 
          ! Compute avg pressure at polar caps 
          CALL AVGPOLE( PS2 )
+
+#endif
       ENDIF
 
 #elif defined( MERRA )
@@ -1656,7 +1760,11 @@
 
          !%%% NEED TO UPDATE FOR MERRA %%%
          ! Update daily mean temperature archive for MEGAN biogenics
+!#if defined( DEVEL )
+         !IF ( LMEGAN ) CALL UPDATE_T_DAY( LOCAL_MET )
+!#else
          !IF ( LMEGAN ) CALL UPDATE_T_DAY 
+!#endif
       ENDIf
 
       !==============================================================
@@ -1696,12 +1804,17 @@
          CALL OPEN_MERRA_I6_FIELDS ( DATE(1), DATE(2) )
 #if defined( DEVEL )
          CALL GET_MERRA_I6_FIELDS_2( DATE(1), DATE(2), LOCAL_MET )
+
+         ! Compute avg pressure at polar caps 
+         CALL AVGPOLE( LOCAL_MET%PS2 )
+
 #else
          CALL GET_MERRA_I6_FIELDS_2( DATE(1), DATE(2) )
-#endif
 
          ! Compute avg pressure at polar caps 
          CALL AVGPOLE( PS2 )
+
+#endif
       ENDIF
 
 #else
@@ -1766,7 +1879,11 @@
 #endif
 
          ! Update daily mean temperature archive for MEGAN biogenics
+#if defined( DEVEL )
+         IF ( LMEGAN ) CALL UPDATE_T_DAY( LOCAL_MET )
+#else
          IF ( LMEGAN ) CALL UPDATE_T_DAY 
+#endif
 
       ENDIF
 
@@ -1809,12 +1926,17 @@
          CALL OPEN_I6_FIELDS(  DATE(1), DATE(2) )
 #if defined( DEVEL )
          CALL GET_I6_FIELDS_2( DATE(1), DATE(2), LOCAL_MET )
+
+         ! Compute avg pressure at polar caps 
+         CALL AVGPOLE( LOCAL_MET%PS2 )
+
 #else
          CALL GET_I6_FIELDS_2( DATE(1), DATE(2) )
-#endif
 
          ! Compute avg pressure at polar caps 
          CALL AVGPOLE( PS2 )
+
+#endif
       ENDIF
 
 #endif

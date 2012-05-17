@@ -1,5 +1,9 @@
 ! $Id: CO_strat_pl.f,v 1.1 2009/09/16 14:06:49 bmy Exp $
+#if defined( DEVEL )
+      SUBROUTINE CO_STRAT_PL( COPROD, COLOSS, LOCAL_MET )
+#else
       SUBROUTINE CO_STRAT_PL( COPROD, COLOSS )
+#endif
 !
 !******************************************************************************
 !  Subroutine CO_STRAT_PL computes net production of CO above the 
@@ -34,6 +38,9 @@
       USE TRACER_MOD,     ONLY : STT,   XNUMOL,   XNUMOLAIR
       USE TRACERID_MOD,   ONLY : IDTCO,           IDTCH2O
       USE TROPOPAUSE_MOD, ONLY : ITS_IN_THE_TROP, GET_MIN_TPAUSE_LEVEL
+#if defined( DEVEL )
+      USE GC_TYPE_MOD,    ONLY : GC_MET_LOCAL
+#endif
 
       USE CMN_SIZE_MOD   ! Size parameters
 
@@ -43,6 +50,9 @@
       ! Arguments
       REAL*4,  INTENT(IN) :: COPROD(JJPAR,LLPAR)
       REAL*4,  INTENT(IN) :: COLOSS(JJPAR,LLPAR)
+#if defined( DEVEL )
+      TYPE(GC_MET_LOCAL), INTENT(IN) :: LOCAL_MET  ! Obj w/ met fields
+#endif
 
       ! Local variables
       INTEGER             :: I, J, L, M, N, LMIN
@@ -85,7 +95,11 @@
       DO I = 1,    IIPAR
 
          ! Skip tropospheric grid boxes
+#if defined( DEVEL )
+         IF ( ITS_IN_THE_TROP( I, J, L, LOCAL_MET ) ) CYCLE
+#else
          IF ( ITS_IN_THE_TROP(I,J,L) ) CYCLE
+#endif
 
          ! conversion factor from [kg/box] to [molec/cm3]
          STTTOGCO = 6.022d23 / ( 28d-3 * BOXVL(I,J,L) )

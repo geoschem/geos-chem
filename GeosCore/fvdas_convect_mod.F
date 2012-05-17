@@ -794,7 +794,6 @@
       USE TRACER_MOD,        ONLY : ITS_A_MERCURY_SIM
       USE TRACERID_MOD,      ONLY : IS_Hg2, IS_HgP !eck/eds
       USE DEPO_MERCURY_MOD,  ONLY : ADD_Hg2_SNOWPACK !CDH
-      USE DAO_MOD,           ONLY : SNOMAS, SNOW 
 
 #if defined( DEVEL )
       USE GC_TYPE_MOD,       ONLY : GC_MET_LOCAL

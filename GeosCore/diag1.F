@@ -380,8 +380,13 @@
             DO L = 1, LD54
             DO J = 1, JJPAR
             DO I = 1, IIPAR
+#if defined( DEVEL )
+               IF ( ITS_IN_THE_TROP( I, J, L, LOCAL_MET ) )
+     &              AD54(I,J,L) = AD54(I,J,L) + 1.
+#else
                IF ( ITS_IN_THE_TROP(I,J,L) )
      &              AD54(I,J,L) = AD54(I,J,L) + 1.
+#endif
             ENDDO   
             ENDDO
             ENDDO
@@ -419,8 +424,14 @@
          DO I = 1, IIPAR
 
             ! PBL is in [m], use hydrostatic law to get [hPa]
+#if defined( DEVEL )
+            AD67(I,J,13) = AD67(I,J,13) + 
+     &                   ( GET_PEDGE(I,J,1) * EXP( -LOCAL_MET%PBLH(I,J)
+     &                   / SCALE_HEIGHT ) )
+#else
             AD67(I,J,13) = AD67(I,J,13) + 
      &           ( GET_PEDGE(I,J,1) * EXP( -PBL(I,J) / SCALE_HEIGHT ) )
+#endif
 
          ENDDO
          ENDDO

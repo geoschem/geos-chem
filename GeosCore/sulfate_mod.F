@@ -411,7 +411,11 @@
 !\\
 ! !INTERFACE:
 !
+#if defined( DEVEL )
+      SUBROUTINE CHEMSULFATE( LOCAL_MET )
+#else
       SUBROUTINE CHEMSULFATE
+#endif
 !
 ! !USES:
 !
@@ -427,8 +431,17 @@
       USE TRACER_MOD,     ONLY : STT,             TCVV 
       USE TRACER_MOD,     ONLY : N_TRACERS,       ITS_AN_AEROSOL_SIM
       USE TRACERID_MOD,   ONLY : IDTNITs,         IDTSO4s
+#if defined( DEVEL )
+      USE GC_TYPE_MOD,    ONLY : GC_MET_LOCAL
+#endif
  
       USE CMN_SIZE_MOD         ! Size parameters
+!
+! !INPUT PARAMETERS: 
+!
+#if defined( DEVEL )
+      TYPE(GC_MET_LOCAL), INTENT(IN) :: LOCAL_MET  ! Obj w/ met fields
+#endif
 !
 ! !REVISION HISTORY: 
 !  (1 ) Now reference all arguments except FIRSTCHEM and RH from either F90 
@@ -530,6 +543,78 @@
       CALL CONVERT_UNITS( 1, N_TRACERS, TCVV, AD, STT )
       IF ( LPRT ) CALL DEBUG_MSG( '### CHEMSULFATE: a CONVERT UNITS' )
 
+#if defined( DEVEL )
+
+      ! For offline runs only ...
+      IF ( ITS_AN_AEROSOL_SIM() ) THEN
+         
+         ! DMS (offline only)
+         CALL CHEM_DMS(LOCAL_MET )
+         IF ( LPRT ) CALL DEBUG_MSG( '### CHEMSULFATE: a CHEM_DMS' ) 
+      
+         ! H2O2 (offline only)
+         CALL CHEM_H2O2( LOCAL_MET )
+         IF ( LPRT ) CALL DEBUG_MSG( '### CHEMSULFATE: a CHEM_H2O2' )
+
+      ENDIF
+
+      ! SO2 
+      CALL GET_VCLDF
+      IF ( LPRT ) CALL DEBUG_MSG( '### CHEMSULFATE: a get VCLDF' )
+      CALL CHEM_SO2( LOCAL_MET )
+      IF ( LPRT ) CALL DEBUG_MSG( '### CHEMSULFATE: a CHEM_SO2' )
+
+      ! SO4 
+      CALL CHEM_SO4( LOCAL_MET )
+      IF ( LPRT ) CALL DEBUG_MSG( '### CHEMSULFATE: a CHEM_SO4' )
+
+!-----------------------------------------------------------------------------
+!%%% Currently under development (rjp, bmy, 3/15/05)
+!%%%      ! Only do the following if the crystalline sulfate & aqueous 
+!%%%      ! tracers (AS, AHS, LET, SO4aq, NH4aq) are defined
+!%%%      IF ( LCRYST ) THEN
+!%%%         
+!%%%         ! Phase change
+!%%%         CALL PHASE_SO4
+!%%%         IF ( LPRT ) CALL DEBUG_MSG( '### CHEMSULFATE: a PHASE_SO4' )
+!%%%      
+!%%%         ! Radiative forcing
+!%%%         CALL PHASE_RADIATIVE
+!%%%         IF ( LPRT ) CALL DEBUG_MSG( '### CHEMSULFATE: a PHASE_RAD' )
+!%%%      
+!%%%      ENDIF
+!-----------------------------------------------------------------------------
+
+      ! MSA 
+      CALL CHEM_MSA( LOCAL_MET )
+      IF ( LPRT ) CALL DEBUG_MSG( '### CHEMSULFATE: a CHEM_MSA' )
+
+      ! NH3 
+      CALL CHEM_NH3
+      IF ( LPRT ) CALL DEBUG_MSG( '### CHEMSULFATE: a CHEM_NH3' )
+
+      ! NH4 (gas-phase)
+      CALL CHEM_NH4
+      IF ( LPRT ) CALL DEBUG_MSG( '### CHEMSULFATE: a CHEM_NH4' )
+
+!-----------------------------------------------------------------------------
+!%%% Currently under development (rjp, bmy, 3/15/05)
+!%%%      ! NH4 (aqueous phase)
+!%%%      IF ( LCRYST ) THEN
+!%%%         CALL CHEM_NH4aq
+!%%%         IF ( LPRT ) CALL DEBUG_MSG( '### CHEMSULFATE: a CHEM_NH4aq' )
+!%%%      ENDIF
+!-----------------------------------------------------------------------------
+
+      ! Sulfur Nitrate 
+      CALL CHEM_NIT
+      IF ( LPRT ) CALL DEBUG_MSG( '### CHEMSULFATE: a CHEM_NIT' )
+ 
+      ! Convert STT from [v/v] -> [kg]
+      CALL CONVERT_UNITS( 2, N_TRACERS, TCVV, AD, STT )
+
+#else
+
       ! For offline runs only ...
       IF ( ITS_AN_AEROSOL_SIM() ) THEN
          
@@ -597,6 +682,8 @@
  
       ! Convert STT from [v/v] -> [kg]
       CALL CONVERT_UNITS( 2, N_TRACERS, TCVV, AD, STT )
+
+#endif
 
       ! We have already gone thru one chemistry iteration
       FIRSTCHEM = .FALSE. 
@@ -909,7 +996,11 @@
 !\\
 ! !INTERFACE:
 !
+#if defined( DEVEL )
+      SUBROUTINE CHEM_DMS( LOCAL_MET )
+#else
       SUBROUTINE CHEM_DMS
+#endif
 !
 ! !USES:
 !
@@ -920,10 +1011,19 @@
       USE TRACER_MOD,     ONLY : STT, ITS_A_FULLCHEM_SIM, XNUMOL
       USE TRACERID_MOD,   ONLY : IDTDMS
       USE TROPOPAUSE_MOD, ONLY : ITS_IN_THE_STRAT
+#if defined( DEVEL )
+      USE GC_TYPE_MOD,    ONLY : GC_MET_LOCAL
+#endif
 
       USE CMN_SIZE_MOD         ! Size parameters
       USE CMN_DIAG_MOD         ! ND05, LD05
       USE CMN_GCTM_MOD         ! AIRMW
+!
+! !INPUT PARAMETERS: 
+!
+#if defined( DEVEL )
+      TYPE(GC_MET_LOCAL), INTENT(IN) :: LOCAL_MET  ! Obj w/ met fields
+#endif
 !             
 ! !REMARKS:
 !  Reaction List (by Mian Chin, chin@rondo.gsfc.nasa.gov)                  
@@ -1024,7 +1124,11 @@
       DO I = 1, IIPAR
 
          ! Skip stratospheric boxes
+#if defined( DEVEL )
+         IF ( ITS_IN_THE_STRAT( I, J, L, LOCAL_MET ) ) CYCLE
+#else
          IF ( ITS_IN_THE_STRAT( I, J, L ) ) CYCLE
+#endif
 
          ! IJLOOP is the 1-D grid box index for SUNCOS
          IJLOOP = ( (J-1) * IIPAR ) + I
@@ -1185,7 +1289,11 @@
 !\\
 ! !INTERFACE:
 !
+#if defined( DEVEL )
+      SUBROUTINE CHEM_H2O2( LOCAL_MET )
+#else
       SUBROUTINE CHEM_H2O2
+#endif
 !
 ! !USES:
 !
@@ -1203,11 +1311,20 @@
       USE TRANSFER_MOD,   ONLY : TRANSFER_3D_TROP
       USE UVALBEDO_MOD,   ONLY : UVALBEDO
       USE TROPOPAUSE_MOD, ONLY : ITS_IN_THE_STRAT
- 
+#if defined( DEVEL )
+      USE GC_TYPE_MOD,    ONLY : GC_MET_LOCAL
+#endif 
+
       USE CMN_SIZE_MOD
       USE CMN_FJ_MOD, ONLY     : JPMAX, JPPJ
       USE CMN_DIAG_MOD         ! ND44
       USE CMN_GCTM_MOD         ! AIRMW
+!
+! !INPUT PARAMETERS: 
+!
+#if defined( DEVEL )
+      TYPE(GC_MET_LOCAL), INTENT(IN) :: LOCAL_MET  ! Obj w/ met fields
+#endif
 ! 
 ! !REVISION HISTORY:
 !  (1 ) Bug fix: need to multiply DXYP by 1d4 for cm2 (bmy, 3/23/03)
@@ -1334,7 +1451,11 @@
          FREQ = 0d0
 
          ! Skip stratospheric boxes
+#if defined( DEVEL )
+         IF ( ITS_IN_THE_STRAT( I, J, L, LOCAL_MET ) ) CYCLE
+#else
          IF ( ITS_IN_THE_STRAT( I, J, L ) ) CYCLE
+#endif
 
          ! Density of air [molec/cm3]
          M     = AIRDEN(L,I,J) * f  
@@ -1430,7 +1551,11 @@
 !\\
 ! !INTERFACE:
 !
+#if defined( DEVEL )
+      SUBROUTINE CHEM_SO2( LOCAL_MET )
+#else
       SUBROUTINE CHEM_SO2
+#endif
 !
 ! !USES:
 !
@@ -1452,6 +1577,9 @@
       USE SEASALT_MOD,     ONLY : GET_ALK
       USE WETSCAV_MOD,     ONLY : H2O2s,   SO2s
       USE TROPOPAUSE_MOD,  ONLY : ITS_IN_THE_STRAT
+#if defined( DEVEL )
+      USE GC_TYPE_MOD,     ONLY : GC_MET_LOCAL
+#endif
 
       ! For LWC from met fields in GEOS-5 (jaf, 6/30/10)
       USE DAO_MOD,         ONLY : AIRDEN, QL, CLDF 
@@ -1459,6 +1587,12 @@
       USE CMN_SIZE_MOD          ! Size parameters
       USE CMN_DIAG_MOD          ! LD05, ND05, ND44
       USE CMN_GCTM_MOD          ! AIRMW
+!
+! !INPUT PARAMETERS: 
+!
+#if defined( DEVEL )
+      TYPE(GC_MET_LOCAL), INTENT(IN) :: LOCAL_MET  ! Obj w/ met fields
+#endif
 !
 ! !REMARKS:
 !  Reaction List (by Rokjin Park, rjp@io.harvard.edu)                      
@@ -1586,7 +1720,11 @@
          Ld       = 0d0
 
          ! Skip stratospheric boxes
+#if defined( DEVEL )
+         IF ( ITS_IN_THE_STRAT( I, J, L, LOCAL_MET ) ) CYCLE
+#else
          IF ( ITS_IN_THE_STRAT( I, J, L ) ) CYCLE
+#endif
 
          ! Initial SO2, H2O2 and O3 [v/v]
          SO20   = STT(I,J,L,IDTSO2)         
@@ -2592,7 +2730,11 @@
 !\\
 ! !INTERFACE:
 !
+#if defined( DEVEL )
+      SUBROUTINE CHEM_SO4( LOCAL_MET )
+#else
       SUBROUTINE CHEM_SO4
+#endif
 !
 ! !USES:
 !
@@ -2607,9 +2749,18 @@
       USE TRACERID_MOD,   ONLY : IDTSO4, IDTSO4s,  IDTAS,   IDTAHS 
       USE TRACERID_MOD,   ONLY : IDTLET, IDTSO4aq, IDTNH4aq
       USE TROPOPAUSE_MOD, ONLY : ITS_IN_THE_STRAT
+#if defined( DEVEL )
+      USE GC_TYPE_MOD,    ONLY : GC_MET_LOCAL
+#endif
 
       USE CMN_SIZE_MOD         ! Size parameters
       USE CMN_DIAG_MOD         ! ND44
+!
+! !INPUT PARAMETERS: 
+!
+#if defined( DEVEL )
+      TYPE(GC_MET_LOCAL), INTENT(IN) :: LOCAL_MET  ! Obj w/ met fields
+#endif
 !                                                                           
 ! !REMARKS:
 !  Reaction List (by Mian Chin, chin@rondo.gsfc.nasa.gov)                  
@@ -2735,7 +2886,11 @@
 !------------------------------------------------------------------------------
 
          ! Skip stratospheric boxes
+#if defined( DEVEL )
+         IF ( ITS_IN_THE_STRAT( I, J, L, LOCAL_MET ) ) CYCLE
+#else
          IF ( ITS_IN_THE_STRAT( I, J, L ) ) CYCLE
+#endif
 
          !==============================================================
          ! Initial concentrations before chemistry
@@ -3038,7 +3193,11 @@
 !\\
 ! !INTERFACE:
 !
+#if defined( DEVEL )
+      SUBROUTINE CHEM_MSA( LOCAL_MET )
+#else
       SUBROUTINE CHEM_MSA
+#endif
 !
 ! !USES:
 !
@@ -3051,10 +3210,19 @@
       USE TRACER_MOD,     ONLY : STT, TCVV, XNUMOL
       USE TRACERID_MOD,   ONLY : IDTMSA
       USE TROPOPAUSE_MOD, ONLY : ITS_IN_THE_STRAT
+#if defined( DEVEL )
+      USE GC_TYPE_MOD,    ONLY : GC_MET_LOCAL
+#endif
 
       USE CMN_SIZE_MOD         ! Size parameters
       USE CMN_DIAG_MOD         ! ND44
       USE CMN_GCTM_MOD         ! AIRMW
+!
+! !INPUT PARAMETERS: 
+!
+#if defined( DEVEL )
+      TYPE(GC_MET_LOCAL), INTENT(IN) :: LOCAL_MET  ! Obj w/ met fields
+#endif
 !
 ! !REMARKS:
 !  Reaction List (by Mian Chin, chin@rondo.gsfc.nasa.gov)                  
@@ -3136,7 +3304,11 @@
       DO I = 1, IIPAR
 
          ! Skip stratospheric boxes
+#if defined( DEVEL )
+         IF ( ITS_IN_THE_STRAT( I, J, L, LOCAL_MET ) ) CYCLE      
+#else
          IF ( ITS_IN_THE_STRAT( I, J, L ) ) CYCLE      
+#endif
 
          ! Fraction of box (I,J,L) underneath the PBL top [unitless]
          F_UNDER_TOP = GET_FRAC_UNDER_PBLTOP( I, J, L )
@@ -4299,7 +4471,8 @@
 ! !USES:
 !
       USE DIAG_MOD,     ONLY : AD13_DMS
-      USE DAO_MOD,      ONLY : IS_WATER, LWI, PBL
+      USE DAO_MOD,      ONLY : IS_WATER
+      USE DAO_MOD,      ONLY : U10M, V10M
       USE GRID_MOD,     ONLY : GET_AREA_M2
       USE PBL_MIX_MOD,  ONLY : GET_FRAC_OF_PBL, GET_PBL_TOP_L
       USE TIME_MOD,     ONLY : GET_TS_EMIS
@@ -4404,8 +4577,13 @@
             !                         Sc = 660  (20oC, seawater)             
             !                         Sc = 428  (25oC, Erickson 93)   
             !===========================================================
-            CONC = DMSo(I,J)            
-            W10  = SQRT( SFCWINDSQR(I,J) )
+            CONC = DMSo(I,J)    
+#if defined( DEVEL )        
+            W10  = SQRT( SFCWINDSQR( I, J,
+     &                               LOCAL_MET%U10M, LOCAL_MET%V10M ) )
+#else
+            W10  = SQRT( SFCWINDSQR( I, J, U10M, V10M ) )
+#endif
 
             !-----------------------------------------------------------
             ! Tans et al. (1990) 
@@ -4532,7 +4710,7 @@
       USE DIAG_MOD,       ONLY     : AD13_SO2_bb,      AD13_SO2_nv
       USE DIAG_MOD,       ONLY     : AD13_SO2_ev,      AD13_SO2_bf
       USE DIAG_MOD,       ONLY     : AD13_SO2_sh
-      USE DAO_MOD,        ONLY     : BXHEIGHT, PBL
+      USE DAO_MOD,        ONLY     : BXHEIGHT
       USE EPA_NEI_MOD,    ONLY     : GET_EPA_ANTHRO,   GET_EPA_BIOFUEL
       USE EPA_NEI_MOD,    ONLY     : GET_USA_MASK
       USE ERROR_MOD,      ONLY     : ERROR_STOP,       GEOS_CHEM_STOP
@@ -5168,7 +5346,6 @@
       USE CAC_ANTHRO_MOD,     ONLY : GET_CANADA_MASK,  GET_CAC_ANTHRO
       USE NEI2005_ANTHRO_MOD, ONLY : GET_NEI2005_ANTHRO
       USE NEI2005_ANTHRO_MOD, ONLY : NEI05_MASK => USA_MASK
-      USE DAO_MOD,            ONLY : PBL
       USE DIAG_MOD,           ONLY : AD13_SO4_an,     AD13_SO4_bf
       USE EPA_NEI_MOD,        ONLY : GET_EPA_ANTHRO,  GET_EPA_BIOFUEL
       USE EPA_NEI_MOD,        ONLY : GET_USA_MASK
@@ -5478,7 +5655,6 @@
       USE NEI2005_ANTHRO_MOD, ONLY : NEI05_MASK => USA_MASK
       USE DIAG_MOD,           ONLY : AD13_NH3_an, AD13_NH3_bb
       USE DIAG_MOD,           ONLY : AD13_NH3_bf, AD13_NH3_na
-      USE DAO_MOD,            ONLY : PBL
       USE GRID_MOD,           ONLY : GET_AREA_CM2
       USE EPA_NEI_MOD,        ONLY : GET_EPA_ANTHRO, GET_EPA_BIOFUEL
       USE EPA_NEI_MOD,        ONLY : GET_USA_MASK

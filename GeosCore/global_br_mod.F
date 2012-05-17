@@ -64,9 +64,11 @@
 !\\
 ! !INTERFACE:
 !
-      ! Rename to GET_GLOBAL_Br
-      !SUBROUTINE GET_GLOBAL_Br_NEW( THISMONTH )
+#if defined( DEVEL )
+      SUBROUTINE GET_GLOBAL_Br( THISMONTH, LOCAL_MET )
+#else
       SUBROUTINE GET_GLOBAL_Br( THISMONTH )
+#endif
 !
 ! !USES:
 !
@@ -79,6 +81,9 @@
       USE TRANSFER_MOD,   ONLY : TRANSFER_3D
       USE TRANSFER_MOD,   ONLY : TRANSFER_3D_TROP
       USE TROPOPAUSE_MOD, ONLY : GET_TPAUSE_LEVEL
+#if defined( DEVEL )
+      USE GC_TYPE_MOD,    ONLY : GC_MET_LOCAL
+#endif
 
       USE CMN_SIZE_MOD                 ! Size parameters
 
@@ -86,6 +91,9 @@
 ! !INPUT PARAMETERS: 
 !
       INTEGER, INTENT(IN) :: THISMONTH   ! Current month
+#if defined( DEVEL )
+      TYPE(GC_MET_LOCAL), INTENT(IN) :: LOCAL_MET  ! Obj w/ met fields
+#endif
 !
 ! !REMARKS:
 !  THIS IS A NEW VERSION OF THIS SUBROUTINE WHICH COMBINES Br CONCENTRATIONS
@@ -212,7 +220,11 @@
       DO J=1, JJPAR      
          
          ! First layer in the stratosphere
+#if defined( DEVEL )
+         TPL = GET_TPAUSE_LEVEL( I, J, LOCAL_MET )
+#else
          TPL = GET_TPAUSE_LEVEL(I,J)
+#endif
 
          BR_MERGE(I,J,TPL:LLPAR) = MERGE(
      &        BR_STRAT(I,J,TPL:LLPAR), 

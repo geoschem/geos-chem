@@ -95,7 +95,11 @@
 !\\
 ! !INTERFACE:
 !
+#if defined( DEVEL )
+      SUBROUTINE DO_UPBDFLX( LOCAL_MET )
+#else
       SUBROUTINE DO_UPBDFLX
+#endif
 !
 ! !USES:
 !
@@ -106,9 +110,17 @@
       USE TRACER_MOD,  ONLY : ITS_A_TAGOX_SIM
       USE TRACER_MOD,  ONLY : ITS_A_H2HD_SIM
       USE LINOZ_MOD,   ONLY : DO_LINOZ
+#if defined( DEVEL )
+      USE GC_TYPE_MOD, ONLY : GC_MET_LOCAL
+#endif
 
       USE CMN_SIZE_MOD  ! Size parameters
-
+!
+! !INPUT PARAMETERS: 
+!
+#if defined( DEVEL )
+      TYPE(GC_MET_LOCAL), INTENT(IN) :: LOCAL_MET  ! Obj w/ met fields
+#endif
 ! 
 ! !REVISION HISTORY: 
 !  11 Mar 2003 - R. Yantosca - Initial version
@@ -135,13 +147,21 @@
          ! Ox from strat 
          ! dbj changed for linoz
          IF ( LLINOZ ) THEN 
+#if defined( DEVEL )
+            CALL DO_LINOZ( LOCAL_MET )
+#else
             CALL DO_LINOZ
+#endif
          ELSE
             CALL UPBDFLX_O3
          ENDIF
 
          ! NOy from strat
+#if defined( DEVEL )
+         CALL UPBDFLX_NOY( 1, LOCAL_MET )
+#else
          CALL UPBDFLX_NOY( 1 )
+#endif
 
       ELSE IF ( ITS_A_TAGOX_SIM() ) THEN
 
@@ -152,7 +172,11 @@
          ! Ox from strat
          ! dbj changed for linoz
          IF ( LLINOZ ) THEN 
+#if defined( DEVEL )
+            CALL DO_LINOZ( LOCAL_MET )
+#else
             CALL DO_LINOZ
+#endif
          ELSE
             CALL UPBDFLX_O3
          ENDIF
@@ -191,7 +215,7 @@
 !
 ! !USES:
 !
-      USE DAO_MOD,        ONLY : AD, BXHEIGHT, T, TROPP
+      USE DAO_MOD,        ONLY : AD, BXHEIGHT, T!, TROPP
       USE ERROR_MOD,      ONLY : ERROR_STOP
       USE LOGICAL_MOD,    ONLY : LVARTROP 
       USE PRESSURE_MOD,   ONLY : GET_PEDGE, GET_PCENTER
@@ -522,7 +546,11 @@
 !\\
 ! !INTERFACE:
 !
+#if defined( DEVEL )
+      SUBROUTINE UPBDFLX_NOy( IFLAG, LOCAL_MET )
+#else
       SUBROUTINE UPBDFLX_NOy( IFLAG )
+#endif
 !
 ! !USES:
 !
@@ -538,6 +566,9 @@
       USE TRANSFER_MOD,   ONLY : TRANSFER_ZONAL
       USE TROPOPAUSE_MOD, ONLY : GET_MIN_TPAUSE_LEVEL
       USE TROPOPAUSE_MOD, ONLY : ITS_IN_THE_STRAT
+#if defined( DEVEL )
+      USE GC_TYPE_MOD,    ONLY : GC_MET_LOCAL
+#endif
 
       USE CMN_SIZE_MOD       ! Size parameters
 !
@@ -546,6 +577,9 @@
       ! IFLAG=1 will partition    [NOy] before transport
       ! IFLAG=2 will re-partition [NOy] after  transport
       INTEGER, INTENT(IN) :: IFLAG
+#if defined( DEVEL )
+      TYPE(GC_MET_LOCAL), INTENT(IN) :: LOCAL_MET  ! Obj w/ met fields
+#endif
 ! 
 ! !REVISION HISTORY: 
 !  22 Dec 1999 - Q. Li, R. Martin - Initial version
@@ -802,7 +836,11 @@
          DO I = 1,    IIPAR
 
             ! Skip over tropospheric boxes
+#if defined( DEVEL )
+            IF ( ITS_IN_THE_STRAT( I, J, L, LOCAL_MET ) ) THEN 
+#else
             IF ( ITS_IN_THE_STRAT( I, J, L ) ) THEN 
+#endif
 
                ! PNOY = P(NOy) converted from [v/v/s] to [v/v] 
                PNOY = STRATPNOY(J,L) * DTDYN 
@@ -853,7 +891,11 @@
          DO I = 1,    IIPAR
 
             ! Skip over tropospheric boxes
+#if defined( DEVEL )
+            IF ( ITS_IN_THE_STRAT( I, J, L, LOCAL_MET ) ) THEN
+#else
             IF ( ITS_IN_THE_STRAT( I, J, L ) ) THEN
+#endif
 
                ! Compute the new total [NOy] by summing up [NOx] + [HNO3]
                PNOY = STT(I,J,L,IDTNOX) + STT(I,J,L,IDTHNO3)

@@ -362,6 +362,30 @@
       ! overwritten (jaf, 4/25/11)
       FRAC_SNOW_OR_ICE = 1d0
 
+#if defined( DEVEL )
+
+#if   defined( MERRA ) || defined( GEOS_57 )
+      ! Don't let fraction be greater than 1
+      FRAC_SNOW_OR_ICE = MIN( LOCAL_MET%FRSNO(I,J)     +
+     &                        LOCAL_MET%FRSEAICE(I,J)  + 
+     &                        LOCAL_MET%FRLANDIC(I,J), 1d0)
+      IS_SNOW_OR_ICE   = ( FRAC_SNOW_OR_ICE > 0d0 )
+
+#elif defined( GEOS_5 )
+      ! Use GEOS5 snow height (water equivalent) in mm. (Docs wrongly say m)
+      IS_SNOW_OR_ICE   = (( IS_ICE ( I, J, LOCAL_MET     )) .OR. 
+     &                    ( IS_LAND( I, J, LOCAL_MET     )  .AND. 
+     &                      LOCAL_MET%SNOMAS(I,J) > 10d0 ))
+
+#else
+      ! Use GEOS1-4 snow height (water equivalent) in mm
+      IS_SNOW_OR_ICE   = (( IS_ICE ( I, J, LOCAL_MET     )) .OR. 
+     &                    ( IS_LAND( I, J, LOCAL_MET     )  .AND. 
+     &                      LOCAL_MET%SNOW(I,J)   > 10d0 ))
+#endif
+
+#else
+
 #if   defined( MERRA ) || defined( GEOS_57 )
 
       ! Don't let fraction be greater than 1
@@ -372,23 +396,12 @@
 #elif defined( GEOS_5 )
 
       ! Use GEOS5 snow height (water equivalent) in mm. (Docs wrongly say m)
-#if defined( DEVEL )
-      IS_SNOW_OR_ICE   = ( (IS_ICE ( I, J, LOCAL_MET )) .OR. 
-     &                     (IS_LAND( I, J, LOCAL_MET )  .AND. 
-     &                      SNOMAS(I,J) > 10d0) )
-#else
       IS_SNOW_OR_ICE   = ( (IS_ICE(I,J)) .OR. 
      &                     (IS_LAND(I,J) .AND. SNOMAS(I,J) > 10d0) )
-#endif
  
 #else
 
       ! Use GEOS1-4 snow height (water equivalent) in mm
-#if defined( DEVEL )
-      IS_SNOW_OR_ICE   = ( (IS_ICE ( I, J, LOCAL_MET )) .OR. 
-     &                     (IS_LAND( I, J, LOCAL_MET )  .AND. 
-     &                      SNOW(I,J) > 10d0) )
-#else
       IS_SNOW_OR_ICE   = ( (IS_ICE(I,J)) .OR. 
      &                     (IS_LAND(I,J) .AND. SNOW(I,J) > 10d0) )
 #endif

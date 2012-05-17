@@ -318,13 +318,12 @@
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE OCEAN_SOURCE_ACET( I, J, ALBD, ACETONE )
+      SUBROUTINE OCEAN_SOURCE_ACET( I,  J,  ALBD, TS, U10M, V10M,
+     &                              ACETONE )
 !
 ! !USES:
 !
       USE ERROR_MOD, ONLY : CHECK_VALUE
-      !USE DAO_MOD,   ONLY : ALBD, TS
-      USE DAO_MOD,   ONLY : TS
       USE DIAG_MOD,  ONLY : AD11
       USE GRID_MOD,  ONLY : GET_AREA_CM2
       USE TIME_MOD,  ONLY : GET_TS_EMIS
@@ -338,6 +337,9 @@
       INTEGER, INTENT(IN)    :: I                 ! GEOS-Chem longitude index
       INTEGER, INTENT(IN)    :: J                 ! GEOS-Chem latitude index
       REAL*8,  INTENT(IN)    :: ALBD(IIPAR,JJPAR) ! Sfc albedo [unitless]
+      REAL*8,  INTENT(IN)    :: TS(IIPAR,JJPAR)   ! Sfc temperature at 2m [K]
+      REAL*8,  INTENT(IN)    :: U10M(IIPAR,JJPAR) ! E/W wind speed @ 10m [m/s]
+      REAL*8,  INTENT(IN)    :: V10M(IIPAR,JJPAR) ! N/S wind speed @ 10m [m/s]
 !
 ! !INPUT/OUTPUT PARAMETERS:
 !
@@ -457,7 +459,7 @@
          ! Magnitude of resultant wind [m/s]
          ! SFCWINDSQR(I,J) is needed since this will compute the square
          ! of the surface wind correctly for all GEOS models (bmy, 9/5/01)
-         U        = SQRT( SFCWINDSQR( I, J ) )
+         U        = SQRT( SFCWINDSQR( I, J, U10M, V10M ) )
 
          ! TC is temperature in Celsius
          ! Also make sure -5 <= TC <= 30 (mje, rvm, bmy, 11/26/01)
@@ -556,12 +558,10 @@
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE OCEAN_SINK_ACET( ALBD, ACETONE )
+      SUBROUTINE OCEAN_SINK_ACET( ALBD, TS, U10M, V10M, ACETONE )
 !
 ! !USES:
 !
-      !USE DAO_MOD,  ONLY : ALBD
-      USE DAO_MOD,  ONLY : TS
       USE DIAG_MOD, ONLY : AD11
       USE GRID_MOD, ONLY : GET_AREA_CM2
       USE TIME_MOD, ONLY : GET_TS_CHEM
@@ -573,7 +573,9 @@
 ! !INPUT PARAMETERS:
 !
       REAL*8, INTENT(IN)    :: ALBD(IIPAR,JJPAR)    ! Sfc albedo [unitless]
-
+      REAL*8, INTENT(IN)    :: TS(IIPAR,JJPAR)      ! Sfc temperature at 2m [K]
+      REAL*8, INTENT(IN)    :: U10M(IIPAR,JJPAR)    ! E/W wind speed @10m [m/s]
+      REAL*8, INTENT(IN)    :: V10M(IIPAR,JJPAR)    ! N/S wind speed @10m [m/s]
 !
 ! !INPUT/OUTPUT PARAMETERS: 
 !
@@ -663,15 +665,14 @@
             !===========================================================
             IF ( FOCEAN > 0.5d0 .and. ALBD(I,J) <= 0.4d0 ) THEN
 
-               ! Updated Henry's Law to 27 M/atm following Benkelberg et al. [1995],
-               ! Johnson [2010], and Zhou and Mopper [1990](evf, 5/11/11)
-
-                HSTAR = (660d0)*EXP(-5090d0*(1./298d0 - 1./TS(I,J)))
+               ! Updated Henry's Law to 27 M/atm following Benkelberg et al.
+               ! [1995], Johnson [2010], and Zhou and Mopper [1990]
+               ! (evf, 5/11/11)
+               HSTAR = (660d0)*EXP(-5090d0*(1./298d0 - 1./TS(I,J)))
   
                ! Want Henry constant exressed as
                ! concentration in air/concentration in water.
-               ! Take reciprocal.(evf, 5/11/11) 
- 
+               ! Take reciprocal.(evf, 5/11/11)  
                HSTAR = 1d0/HSTAR
 
                ! Now HENCONST = dimensionless H 
@@ -680,7 +681,7 @@
                ! Magnitude of surface wind [m/s]
                ! SFCWINDSQR(I,J) is needed since this will compute the 
                ! square of the surface wind correctly for all GEOS models 
-               U     = SQRT( SFCWINDSQR( I, J ) )
+               U     = SQRT( SFCWINDSQR( I, J, U10M, V10M ) )
             
                ! TC is temperature in Celsius
                ! Bug fix: make sure -5 <= TC <= 30 (mje, rvm, bmy, 11/26/01) 

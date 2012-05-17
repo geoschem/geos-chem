@@ -107,14 +107,27 @@
 !\\
 ! !INTERFACE:
 !
+#if defined( DEVEL )
+      SUBROUTINE DO_TRANSPORT( LOCAL_MET )
+#else
       SUBROUTINE DO_TRANSPORT
+#endif
 !
 ! !USES:
 !
       USE GRID_MOD,      ONLY : ITS_A_NESTED_GRID
       USE TPCORE_BC_MOD, ONLY : INIT_TPCORE_BC
+#if defined( DEVEL )
+      USE GC_TYPE_MOD,   ONLY : GC_MET_LOCAL
+#endif
 
       USE CMN_SIZE_MOD      ! Size parameters
+!
+! !INPUT PARAMETERS: 
+!
+#if defined( DEVEL )
+      TYPE(GC_MET_LOCAL), INTENT(IN) :: LOCAL_MET  ! Obj w/ met fields
+#endif
 ! 
 ! !REVISION HISTORY: 
 !  10 Mar 2003 - R. Yantosca - Initial version
@@ -151,6 +164,35 @@
          FIRST = .FALSE.
       ENDIF
 
+#if defined( DEVEL )
+
+      ! Choose the proper version of TPCORE for the nested-grid window 
+      ! region (usually 1x1 grids) or for the entire globe
+      IF ( ITS_A_NESTED_GRID() ) THEN
+
+#if   defined( GRID1x1 )
+         CALL DO_WINDOW_TRANSPORT( LOCAL_MET )
+#elif defined( GRID05x0666 )
+         CALL DO_GEOS5_WINDOW_TRANSPORT( LOCAL_MET )
+#endif
+
+      ELSE
+
+#if defined( GCAP )
+
+         ! Call TPCORE w/ proper settings for GCAP met
+         CALL GCAP_GLOBAL_ADV( LOCAL_MET )
+
+#else
+
+         ! Call TPCORE w/ proper settings for GEOS-4/GEOS-5/MERRA/GEOS-5.7
+         CALL GEOS4_GEOS5_GLOBAL_ADV( LOCAL_MET )
+
+#endif
+      ENDIF
+
+#else
+
       ! Choose the proper version of TPCORE for the nested-grid window 
       ! region (usually 1x1 grids) or for the entire globe
       IF ( ITS_A_NESTED_GRID() ) THEN
@@ -174,6 +216,8 @@
 #endif
       ENDIF
 
+#endif  ! DEVEL
+
       ! Return to calling program
       END SUBROUTINE DO_TRANSPORT
 !EOC
@@ -190,7 +234,11 @@
 !\\
 ! !INTERFACE:
 !
+#if defined( DEVEL )
+      SUBROUTINE GEOS4_GEOS5_GLOBAL_ADV( LOCAL_MET )
+#else
       SUBROUTINE GEOS4_GEOS5_GLOBAL_ADV
+#endif
 !
 ! !USES:
 !
@@ -207,10 +255,19 @@
 #if   defined( APM )
       USE TRACER_MOD,       ONLY : N_APMTRA
 #endif
+#if defined( DEVEL )
+      USE GC_TYPE_MOD,      ONLY : GC_MET_LOCAL
+#endif
 
       USE CMN_SIZE_MOD         ! Size parameters        
       USE CMN_DIAG_MOD         ! NDxx flags
       USE CMN_GCTM_MOD         ! Physical constants
+!
+! !INPUT PARAMETERS: 
+!
+#if defined( DEVEL )
+      TYPE(GC_MET_LOCAL), INTENT(IN) :: LOCAL_MET  ! Obj w/ met fields
+#endif
 ! 
 ! !REVISION HISTORY: 
 !  30 Oct 2007 - R. Yantosca - Initial version
@@ -286,7 +343,11 @@
          P_TP1(I,J) = GET_PEDGE(I,J,1)
 
          ! True surface pressure at end of dynamic timestep [hPa]
+#if defined( DEVEL )
+         P_TP2(I,J) = LOCAL_MET%PSC2(I,J)    
+#else
          P_TP2(I,J) = PSC2(I,J)    
+#endif
    
       ENDDO
       ENDDO
@@ -454,7 +515,11 @@
 !\\
 ! !INTERFACE:
 !
+#if defined( DEVEL )
+      SUBROUTINE GCAP_GLOBAL_ADV( LOCAL_MET )
+#else
       SUBROUTINE GCAP_GLOBAL_ADV
+#endif
 !
 ! !USES:
 !
@@ -470,10 +535,19 @@
 #if   defined( APM )
       USE TRACER_MOD,       ONLY : N_APMTRA
 #endif
+#if defined( DEVEL )
+      USE GC_TYPE_MOD,      ONLY : GC_MET_LOCAL
+#endif
 
       USE CMN_SIZE_MOD         ! Size parameters
       USE CMN_DIAG_MOD         ! NDxx flags
       USE CMN_GCTM_MOD         ! Physical constants
+!
+! !INPUT PARAMETERS: 
+!
+#if defined( DEVEL )
+      TYPE(GC_MET_LOCAL), INTENT(IN) :: LOCAL_MET  ! Obj w/ met fields
+#endif
 ! 
 ! !REVISION HISTORY: 
 !  30 Oct 2007 - R. Yantosca - Initial version
@@ -553,7 +627,11 @@
          P_TP1(I,J) = GET_PEDGE(I,J,1) - PTOP
 
          ! Psurface - PTOP at end of dynamic timestep [hPa]
+#if defined( DEVEL )
+         P_TP2(I,J) = LOCAL_MET%PSC2(I,J) - PTOP
+#else
          P_TP2(I,J) = PSC2(I,J)        - PTOP
+#endif
 
       ENDDO
       ENDDO
@@ -721,7 +799,11 @@
 !\\
 ! !INTERFACE:
 !
+#if defined( DEVEL )
+      SUBROUTINE DO_GEOS5_WINDOW_TRANSPORT( LOCAL_MET )
+#else
       SUBROUTINE DO_GEOS5_WINDOW_TRANSPORT 
+#endif
 !
 ! !USES:
 !
@@ -745,10 +827,19 @@
 #if   defined( APM )
       USE TRACER_MOD,                ONLY : N_APMTRA
 #endif
+#if defined( DEVEL )
+      USE GC_TYPE_MOD,               ONLY : GC_MET_LOCAL
+#endif
 
       USE CMN_SIZE_MOD                  ! Size parameters
       USE CMN_DIAG_MOD                  ! NDxx flags
       USE CMN_GCTM_MOD                  ! Physical constants
+!
+! !INPUT PARAMETERS: 
+!
+#if defined( DEVEL )
+      TYPE(GC_MET_LOCAL), INTENT(IN) :: LOCAL_MET  ! Obj w/ met fields
+#endif
 ! 
 ! !REVISION HISTORY: 
 !  10 Mar 2003 - R. Yantosca - Initial version
@@ -822,7 +913,11 @@
          P_TP1(I,J) = GET_PEDGE(I,J,1)
 
          ! True surface pressure at end of dynamic timestep [hPa]
+#if defined( DEVEL )
+         P_TP2(I,J) = LOCAL_MET%PSC2(I,J)
+#else
          P_TP2(I,J) = PSC2(I,J)
+#endif
   
       ENDDO
       ENDDO
@@ -940,7 +1035,11 @@
 !\\
 ! !INTERFACE:
 !
+#if defined( DEVEL )
+      SUBROUTINE DO_WINDOW_TRANSPORT( LOCAL_MET )
+#else
       SUBROUTINE DO_WINDOW_TRANSPORT
+#endif
 !
 ! !USES:
 !
@@ -958,9 +1057,18 @@
 #if   defined( APM )
       USE TRACER_MOD,        ONLY : N_APMTRA
 #endif
+#if defined( DEVEL )
+      USE GC_TYPE_MOD,       ONLY : GC_MET_LOCAL
+#endif
 
       USE CMN_SIZE_MOD          ! Size parameters
       USE CMN_GCTM_MOD          ! Re
+!
+! !INPUT PARAMETERS: 
+!
+#if defined( DEVEL )
+      TYPE(GC_MET_LOCAL), INTENT(IN) :: LOCAL_MET  ! Obj w/ met fields
+#endif
 ! 
 ! !REVISION HISTORY: 
 !  07 Aug 2003 - Y. Wang & R. Yantosca - Initial version
@@ -1021,13 +1129,26 @@
       DO J = 1, JJPAR
       DO I = 1, IIPAR
          P_TP1(I,J) = GET_PEDGE(I,J,1) - PTOP
+#if defined( DEVEL )
+         P_TP2(I,J) = LOCAL_MET%PSC2(I,J) - PTOP
+#else
          P_TP2(I,J) = PSC2(I,J) - PTOP
+#endif
       ENDDO
       ENDDO
 
       ! Call the nested-grid window version of TPCORE (v.7.1)
       ! Use the pressures at the middle and the end of the 
       ! dynamic timestep (P = PS-PTOP; P_TEMP = PSC2-PTOP).
+#if defined( DEVEL )
+      CALL TPCORE_WINDOW( IGD,   STT,       P_TP1, P_TP2,  UTMP,  
+     &                    VTMP,  WW,        N_DYN, IORD,   JORD,   
+     &                    KORD,  N_TOT_TRC, IIPAR, JJPAR,  J1,    
+     &                    I0,    J0,        I0_W,  J0_W,   I1_W,  
+     &                    J1_W,  I2_W,      J2_W,  IM_W,   JM_W,  
+     &                    IGZD,  LLPAR,     AP,    BP,     PTOP,  
+     &                    Re,    LFILL,     LMFCT, Umax,   LOCAL_MET )
+#else
       CALL TPCORE_WINDOW( IGD,   STT,       P_TP1, P_TP2,  UTMP,  
      &                    VTMP,  WW,        N_DYN, IORD,   JORD,   
      &                    KORD,  N_TOT_TRC, IIPAR, JJPAR,  J1,    
@@ -1035,6 +1156,7 @@
      &                    J1_W,  I2_W,      J2_W,  IM_W,   JM_W,  
      &                    IGZD,  LLPAR,     AP,    BP,     PTOP,  
      &                    Re,    LFILL,     LMFCT, Umax )
+#endif
 
       ! Reset floating pressure w/ output of TPCORE
       CALL SET_FLOATING_PRESSURE( P_TP2 + PTOP )

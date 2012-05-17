@@ -337,7 +337,7 @@
                ENDIF
 
             !-----------------------------------------------
-            ! FRLAKE: Fraction of box covered by lakes
+            ! FRLAND: Fraction of box covered by land
             !-----------------------------------------------
             CASE ( 'FRLAND' )
                READ( IU_CN, IOSTAT=IOS ) XYMD, XHMS, Q2

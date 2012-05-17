@@ -303,14 +303,20 @@
 !\\
 ! !INTERFACE:
 !
+#if defined( DEVEL )
+      SUBROUTINE GET_REGIONAL_POX( I, J, L, PP, LOCAL_MET )
+#else
       SUBROUTINE GET_REGIONAL_POX( I, J, L, PP )
+#endif
 !
 ! !USES:
 !
-      USE DAO_MOD,        ONLY : PBL
       USE GRID_MOD,       ONLY : GET_XMID,  GET_YMID
       USE TIME_MOD,       ONLY : GET_TS_CHEM
       USE TROPOPAUSE_MOD, ONLY : ITS_IN_THE_TROP
+#if defined( DEVEL )
+      USE GC_TYPE_MOD,    ONLY : GC_MET_LOCAL
+#endif
 
       USE CMN_SIZE_MOD       ! Size parameters
       USE CMN_DIAG_MOD       ! ND44, ND65, LD65
@@ -320,6 +326,9 @@
 !
       ! GEOS-Chem grid box indices for lon, lat, alt
       INTEGER, INTENT(IN)  :: I, J, L
+#if defined( DEVEL )
+      TYPE(GC_MET_LOCAL), INTENT(IN) :: LOCAL_MET  ! Obj w/ met fields
+#endif
 !
 ! !OUTPUT PARAMETERS:
 !
@@ -367,7 +376,11 @@
       PP(I,J,L,:) = 0d0
       
       ! IS TROP is TRUE if we are in the troposphere
+#if defined( DEVEL )
+      ITS_IN_TROP = ITS_IN_THE_TROP( I, J, L, LOCAL_MET )
+#else
       ITS_IN_TROP = ITS_IN_THE_TROP( I, J, L )
+#endif
       
       ! Skip stratospheric boxes
       IF ( .not. ITS_IN_TROP ) RETURN
@@ -499,7 +512,11 @@
 !\\
 ! !INTERFACE:
 !
+#if defined( DEVEL )
+      SUBROUTINE CHEM_TAGGED_OX( LOCAL_MET )
+#else
       SUBROUTINE CHEM_TAGGED_OX 
+#endif
 !
 ! !USES:
 !
@@ -520,6 +537,9 @@
       USE TRACERID_MOD,   ONLY : IDTOX
       USE TROPOPAUSE_MOD, ONLY : ITS_IN_THE_TROP
       USE LOGICAL_MOD,    ONLY : LNLPBL
+#if defined( DEVEL )
+      USE GC_TYPE_MOD,  ONLY   : GC_MET_LOCAL
+#endif
 
       USE CMN_SIZE_MOD  ! Size parameters
       USE CMN_DIAG_MOD  ! ND44, ND65, LD65
@@ -527,6 +547,12 @@
       IMPLICIT NONE
 #     include "define.h"
 
+!
+! !INPUT PARAMETERS: 
+!
+#if defined( DEVEL )
+      TYPE(GC_MET_LOCAL), INTENT(IN) :: LOCAL_MET  ! Obj w/ met fields
+#endif
 ! 
 ! !REVISION HISTORY:
 !  20 Aug 2003 - R. Hudman   - Initial version
@@ -640,6 +666,19 @@
             ! Get P(Ox) and L(Ox) for each tagged tracer in [kg]
             !===========================================================
 
+#if defined( DEVEL )
+            ! P(Ox) is a function of geographic & altitude location
+            ! NOTE: We call this only when N==1 for optimal looping
+            IF ( N == 1 ) CALL GET_REGIONAL_POX( I, J, L, PP,
+     &                                           LOCAL_MET   )
+            
+            ! L(Ox) is originally in [1/cm3/s]; convert to [kg] 
+            IF ( ITS_IN_THE_TROP( I, J, L, LOCAL_MET ) ) THEN
+               LL = STT(I,J,L,N) * L24H(I,J,L) * BOXVL(I,J,L) * DTCHEM
+            ELSE
+               LL = 0.0d0
+            ENDIF 
+#else
             ! P(Ox) is a function of geographic & altitude location
             ! NOTE: We call this only when N==1 for optimal looping
             IF ( N == 1 ) CALL GET_REGIONAL_POX( I, J, L, PP )
@@ -650,6 +689,7 @@
             ELSE
                LL = 0.0d0
             ENDIF 
+#endif
                            
             !===========================================================
             ! ND65 diagnostic: Chemical prod/loss [kg/s]

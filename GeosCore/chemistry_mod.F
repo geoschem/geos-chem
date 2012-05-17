@@ -222,6 +222,28 @@
              ! Also do sulfate chemistry
              IF ( LSULF ) THEN
 
+#if defined( DEVEL )
+
+                ! Do sulfate chemistry
+                CALL CHEMSULFATE( LOCAL_MET )
+ 
+                ! Do aerosol thermodynamic equilibrium
+                IF ( LSSALT ) THEN
+                
+#if   !defined( NO_ISORROPIA )
+                   ! ISOROPIA takes Na+, Cl- into account
+                   CALL DO_ISOROPIAII( LOCAL_MET )
+#endif
+
+                ELSE
+
+                   ! RPMARES does not take Na+, Cl- into account
+                   CALL DO_RPMARES( LOCAL_MET )
+
+                ENDIF
+
+#else
+
                 ! Do sulfate chemistry
                 CALL CHEMSULFATE
  
@@ -239,6 +261,7 @@
                    CALL DO_RPMARES
  
                 ENDIF
+#endif
                 
              ENDIF
  
@@ -263,10 +286,12 @@
              ! Remove acetone ocean sink
              IF ( IDTACET /= 0 ) THEN
 #if defined( DEVEL )
-                CALL OCEAN_SINK_ACET( LOCAL_MET%ALBD, 
+                CALL OCEAN_SINK_ACET( LOCAL_MET%ALBD, LOCAL_MET%TS,
+     &                                LOCAL_MET%U10M, LOCAL_MET%V10M,
      &                                STT(:,:,1,IDTACET) ) 
 #else
-                CALL OCEAN_SINK_ACET( ALBD, STT(:,:,1,IDTACET) ) 
+                CALL OCEAN_SINK_ACET( ALBD, TS, U10M, V10M, 
+     &                                STT(:,:,1,IDTACET) ) 
 #endif
              ENDIF
  
@@ -277,7 +302,11 @@
  
              ! Define loop index and other SMVGEAR arrays
              ! N_TROP, the # of trop boxes, is returned
+#if defined( DEVEL )
+             CALL AEROSOL_RURALBOX( N_TROP, LOCAL_MET )
+#else
              CALL AEROSOL_RURALBOX( N_TROP )
+#endif
  
              ! Initialize FAST-J quantities for computing AOD's
              IF ( FIRST ) THEN
@@ -308,11 +337,33 @@
 
              CALL RDAER( MONTH, YEAR, WAVELENGTH )
  
+#if defined( DEVEL )
+
              !*** AEROSOL THERMODYNAMIC EQUILIBRIUM ***
              IF ( LSSALT ) THEN
-             
+
+#if   !defined( NO_ISORROPIA )
                 ! ISOROPIA takes Na+, Cl- into account
-!                CALL DO_ISOROPIAII
+                CALL DO_ISOROPIAII( LOCAL_MET )
+#endif
+             
+             ELSE
+ 
+                ! RPMARES does not take Na+, Cl- into account
+                ! (skip for crystalline & aqueous offline run)
+                IF ( .not. LCRYST ) CALL DO_RPMARES( LOCAL_MET )
+ 
+             ENDIF
+
+#else
+ 
+             !*** AEROSOL THERMODYNAMIC EQUILIBRIUM ***
+             IF ( LSSALT ) THEN
+
+#if   !defined( NO_ISORROPIA )
+                ! ISOROPIA takes Na+, Cl- into account
+                CALL DO_ISOROPIAII
+#endif
              
              ELSE
  
@@ -321,6 +372,7 @@
                 IF ( .not. LCRYST ) CALL DO_RPMARES
  
              ENDIF
+#endif
  
              !*** SEASALT AEROSOLS ***
              IF ( LSSALT ) CALL CHEMSEASALT
@@ -329,8 +381,11 @@
              IF ( LSULF .or. LCRYST ) THEN
  
                 ! Do sulfate chemistry
+#if defined( DEVEL )
+                CALL CHEMSULFATE( LOCAL_MET )
+#else
                 CALL CHEMSULFATE
- 
+#endif 
              ENDIF
                 
              !*** CARBON AND 2NDARY ORGANIC AEROSOLS ***
@@ -356,7 +411,11 @@
           ! Rn-Pb-Be
           !---------------------------------                 
           ELSE IF ( ITS_A_RnPbBe_SIM() ) THEN
+#if defined( DEVEL )
+             CALL CHEMRnPbBe( LOCAL_MET )
+#else
              CALL CHEMRnPbBe 
+#endif
              CALL DRYFLXRnPbBe
                    
           !---------------------------------
@@ -370,22 +429,30 @@
           !---------------------------------
           ELSE IF ( ITS_A_HCN_SIM() ) THEN
 #if defined( DEVEL )
-             CALL CHEM_HCN_CH3CN( N_TRACERS, LOCAL_MET%ALBD, STT )
+             CALL CHEM_HCN_CH3CN( N_TRACERS, LOCAL_MET, STT )
 #else
-             CALL CHEM_HCN_CH3CN( N_TRACERS, ALBD, STT )
+             CALL CHEM_HCN_CH3CN( N_TRACERS, STT )
 #endif
  
           !---------------------------------
           ! Tagged O3
           !---------------------------------
           ELSE IF ( ITS_A_TAGOX_SIM() ) THEN 
+#if defined( DEVEL )
+             CALL CHEM_TAGGED_OX( LOCAL_MET )
+#else
              CALL CHEM_TAGGED_OX
+#endif
  
           !---------------------------------
           ! Tagged CO
           !---------------------------------
           ELSE IF ( ITS_A_TAGCO_SIM() ) THEN
+#if defined( DEVEL )
+             CALL CHEM_TAGGED_CO( LOCAL_MET )
+#else
              CALL CHEM_TAGGED_CO
+#endif
  
           !---------------------------------
           ! C2H6
@@ -419,10 +486,11 @@
           ! Offline H2/HD
           !---------------------------------
           ELSE IF ( ITS_A_H2HD_SIM() ) THEN
-             CALL CHEM_H2_HD
 #if defined( DEVEL )
+             CALL CHEM_H2_HD( LOCAL_MET )
              CALL DRYFLXH2HD( LOCAL_MET )
 #else
+             CALL CHEM_H2_HD
              CALL DRYFLXH2HD
 #endif
   

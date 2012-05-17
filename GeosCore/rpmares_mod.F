@@ -76,7 +76,11 @@
 
 !------------------------------------------------------------------------------
 
+#if defined( DEVEL )
+      SUBROUTINE DO_RPMARES( LOCAL_MET )
+#else
       SUBROUTINE DO_RPMARES
+#endif
 !
 !******************************************************************************
 !  Subroutine DO_RPMARES is the interface between the GEOS-CHEM model
@@ -115,8 +119,16 @@
       USE APM_INIT_MOD,    ONLY : IDTCTSO4,IDTSO4BIN1,IDTCTSEA
       USE APM_INIT_MOD,    ONLY : IDTCTBCOC, IDTCTDST
 #endif
+#if defined( DEVEL )
+      USE GC_TYPE_MOD,     ONLY : GC_MET_LOCAL
+#endif
 
       USE CMN_SIZE_MOD     ! Size parameters
+
+      ! Arguments
+#if defined( DEVEL )
+      TYPE(GC_MET_LOCAL), INTENT(IN) :: LOCAL_MET  ! Obj w/ met fields
+#endif
 
       ! Local variables
       LOGICAL, SAVE          :: FIRST     = .TRUE.
@@ -187,7 +199,11 @@
       DO I = 1, IIPAR
          
          ! Skip if we are in the stratosphere (bmy, 4/3/08)
+#if defined( DEVEL )
+         IF ( ITS_IN_THE_STRAT( I, J, L, LOCAL_MET ) ) CYCLE
+#else
          IF ( ITS_IN_THE_STRAT( I, J, L ) ) CYCLE
+#endif
 
          ! Temperature [K], RH [unitless], and volume [m3]
          ATEMP = T(I,J,L)

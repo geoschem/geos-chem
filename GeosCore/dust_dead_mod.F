@@ -247,12 +247,21 @@
 
 !------------------------------------------------------------------------------
 
+#if defined( DEVEL )
+      SUBROUTINE DST_MBL( DOY,         HGT_MDP,     LAT_IDX,
+     &                    LAT_RDN,     ORO,         PRS_DLT,
+     &                    PRS_MDP,     Q_H2O_VPR,   DSRC,
+     &                    SNW_HGT_LQD, TM_ADJ,      TPT_MDP,
+     &                    TPT_PTN_MDP, WND_MRD_MDP, WND_ZNL_MDP,
+     &                    FIRST,       NSTEP,       LOCAL_MET )
+#else
       SUBROUTINE DST_MBL( DOY,         HGT_MDP,     LAT_IDX,
      &                    LAT_RDN,     ORO,         PRS_DLT,
      &                    PRS_MDP,     Q_H2O_VPR,   DSRC,
      &                    SNW_HGT_LQD, TM_ADJ,      TPT_MDP,
      &                    TPT_PTN_MDP, WND_MRD_MDP, WND_ZNL_MDP,
      &                    FIRST,       NSTEP )
+#endif
 !
 !******************************************************************************
 !  Subroutine DST_MBL is the driver for aerosol mobilization (DEAD model).
@@ -304,9 +313,12 @@
 !******************************************************************************
 !
       ! References to F90 modules
-      USE DAO_MOD,   ONLY : USTAR, Z0
+      USE DAO_MOD,   ONLY : USTAR, Z0, TS, GWETTOP
       USE GRID_MOD,  ONLY : GET_AREA_M2
       USE ERROR_MOD, ONLY : ERROR_STOP
+#if defined( DEVEL )
+      USE GC_TYPE_MOD, ONLY : GC_MET_LOCAL
+#endif
 
       USE CMN_SIZE_MOD      ! Size parameters
 
@@ -328,6 +340,9 @@
       INTEGER, INTENT(IN)    :: NSTEP
       LOGICAL, INTENT(IN)    :: FIRST
       REAL*8,  INTENT(INOUT) :: DSRC(IIPAR,NDSTBIN)
+#if defined( DEVEL )
+      TYPE(GC_MET_LOCAL), INTENT(IN) :: LOCAL_MET  ! Obj w/ met fields
+#endif
 
       !--------------
       ! Parameters
@@ -585,16 +600,34 @@
      &    LAT_IDX,             ! I [idx] Latitude index
      &    SRCE_FUNC_SLICE )    ! O [frc] GOCART source function
 
+
+#if defined( DEVEL )
       ! Get volumetric water content from GWET
       CALL VWC_SFC_GET(
      &    LAT_IDX,             ! I [idx] Latitude index
+     &    LOCAL_MET%GWETTOP,   ! I [unitless] Top soil moisture
+     &    VWC_SFC_SLICE )      ! O [m3 m-3] Volumetric water content
+
+      ! Get surface and soil temperature
+      CALL TPT_GND_SOI_GET(
+     &    LAT_IDX,            ! I [idx] Latitude index!
+     &    LOCAL_MET%TS,       ! I [K] Sfc temperature at 2m
+     &    TPT_GND_SLICE,      ! O [K] Ground temperature
+     &    TPT_SOI_SLICE )     ! O [K] Soil temperature
+#else
+      ! Get volumetric water content from GWET
+      CALL VWC_SFC_GET(
+     &    LAT_IDX,             ! I [idx] Latitude index
+     &    GWETTOP,             ! I [unitless] Top soil moisture
      &    VWC_SFC_SLICE )      ! O [m3 m-3] Volumetric water content
 
       ! Get surface and soil temperature
       CALL TPT_GND_SOI_GET(
      &     LAT_IDX,            ! I [idx] Latitude index!
+     &     TS,                 ! I [K] Sfc temperature at 2m
      &     TPT_GND_SLICE,      ! O [K] Ground temperature
      &     TPT_SOI_SLICE )     ! O [K] Soil temperature
+#endif
 
       ! Get time-varying vegetation area index
       CALL DST_TVBDS_GET(
@@ -677,8 +710,13 @@ ctdf        print *,' no mobilisation candidates'
 
          ! Just assign for flag mobilisation candidates
          IF ( FLG_MBL_SLICE(I) ) THEN
+#if defined( DEVEL )
+            WND_FRC_GEOS(I) = LOCAL_MET%USTAR(I,LAT_IDX)
+            Z0_GEOS(I)      = LOCAL_MET%Z0(I,LAT_IDX)
+#else
             WND_FRC_GEOS(I) = USTAR(I,LAT_IDX)
             Z0_GEOS(I)      = Z0(I,LAT_IDX)
+#endif
          ELSE
             WND_FRC_GEOS(I) = 0.0D0
             Z0_GEOS(I)      = 0.0D0
@@ -1056,7 +1094,7 @@ ctdf        print *,' no mobilisation candidates'
 
 !------------------------------------------------------------------------------
 
-      SUBROUTINE TPT_GND_SOI_GET( J, TPT_GND_OUT, TPT_SOI_OUT )
+      SUBROUTINE TPT_GND_SOI_GET( J, TS, TPT_GND_OUT, TPT_SOI_OUT )
 !
 !******************************************************************************
 !  Subroutine TPT_GND_SOI_GET returns a latitude slice of soil temperature and
@@ -1065,6 +1103,7 @@ ctdf        print *,' no mobilisation candidates'
 !  Arguments as Input:
 !  ============================================================================
 !  (1 ) J           (INTEGER) : Grid box latitude index
+!  (2 ) TS          (REAL*8)  : Surface temperature at 2m [K]
 !
 !  Arguments as Output:
 !  ============================================================================
@@ -1076,12 +1115,11 @@ ctdf        print *,' no mobilisation candidates'
 !******************************************************************************
 !
       ! References to F90 modules
-      USE DAO_MOD, ONLY : TS
-
-      USE CMN_SIZE_MOD   ! IIPAR
+      USE CMN_SIZE_MOD      ! Size parameters
 
       ! Arguments
       INTEGER, INTENT(IN)  :: J
+      REAL*8,  INTENT(IN)  :: TS(IIPAR,JJPAR)
       REAL*8,  INTENT(OUT) :: TPT_GND_OUT(IIPAR)
       REAL*8,  INTENT(OUT) :: TPT_SOI_OUT(IIPAR)
 
@@ -1103,7 +1141,7 @@ ctdf        print *,' no mobilisation candidates'
 
 !------------------------------------------------------------------------------
 
-      SUBROUTINE VWC_SFC_GET( J, VWC_SFC_OUT )
+      SUBROUTINE VWC_SFC_GET( J, GWETTOP, VWC_SFC_OUT )
 !
 !******************************************************************************
 !  Subroutine TPT_GND_SOI_GET returns a latitude slice of volumetric water
@@ -1111,23 +1149,23 @@ ctdf        print *,' no mobilisation candidates'
 !
 !  Arguments as Input:
 !  ============================================================================
-!  (1 ) J      (INTEGER) : Grid box latitude index
+!  (1 ) J       (INTEGER) : Grid box latitude index
+!  (2 ) GWETTOP (REAL*8)  : Top soil moisture [unitless]
 !
 !  Arguments as Output:
 !  ============================================================================
-!  VWC_SFC_OUT (REAL*8 ) : Volumetric water content [m3/m3]
+!  VWC_SFC_OUT  (REAL*8 ) : Volumetric water content [m3/m3]
 !
 !  NOTES
 !  (1 ) Updated comments & cosmetic changes (bmy, 3/30/04)
 !******************************************************************************
 !
       ! References to F90 modules
-      USE DAO_MOD, ONLY : GWETTOP
-
-      USE CMN_SIZE_MOD   ! IIPAR
+      USE CMN_SIZE_MOD      ! Size parameters
 
       ! Arguments
       INTEGER, INTENT(IN)  :: J
+      REAL*8,  INTENT(IN)  :: GWETTOP(IIPAR,JJPAR)
       REAL*8,  INTENT(OUT) :: VWC_SFC_OUT(IIPAR)
 
       ! Local variables
@@ -1859,7 +1897,6 @@ ctdf        print *,' no mobilisation candidates'
 !******************************************************************************
 !
       ! References to F90 modules
-      USE DAO_MOD,   ONLY : USTAR
       USE ERROR_MOD, ONLY : ERROR_STOP
 
       USE CMN_SIZE_MOD    ! Size parameters

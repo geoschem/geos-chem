@@ -11,12 +11,10 @@
 !\\
 ! !INTERFACE:
 !
-      REAL*8 FUNCTION SFCWINDSQR( I, J ) 
+      REAL*8 FUNCTION SFCWINDSQR( I, J, U10M, V10M ) 
 !
 ! !USES:
 !
-      USE DAO_MOD, ONLY : U10M, V10M
-
       IMPLICIT NONE
 #     include "define.h"
 !  
@@ -24,6 +22,8 @@
 !
       INTEGER, INTENT(IN) :: I   ! Longitude index
       INTEGER, INTENT(IN) :: J   ! Latitude index
+      REAL*8,  INTENT(IN) :: U10M(IIPAR,JJPAR) ! E/W wind speed @ 10m [m/s]
+      REAL*8,  INTENT(IN) :: V10M(IIPAR,JJPAR) ! N/S wind speed @ 10m [m/s]
 ! 
 ! !REVISION HISTORY: 
 !  21 Dec 1998 - R. Yantosca - Initial version

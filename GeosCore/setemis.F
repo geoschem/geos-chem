@@ -17,7 +17,11 @@
 !\\
 ! !INTERFACE:
 !
+#if defined( DEVEL )
+      SUBROUTINE SETEMIS( EMISRR, EMISRRN, LOCAL_MET )
+#else
       SUBROUTINE SETEMIS( EMISRR, EMISRRN )
+#endif
 !
 ! !USES:
 !
@@ -37,9 +41,11 @@
       USE TROPOPAUSE_MOD,    ONLY : ITS_IN_THE_STRAT
       USE LOGICAL_MOD,       ONLY : LNLPBL ! (Lin, 03/31/09)
       USE LOGICAL_MOD, ONLY : LPRT
-
       ! NOx emissions scaling FP 15/12/09
       USE EMISSIONS_MOD,     ONLY : NOx_SCALING
+#if defined( DEVEL )
+      USE GC_TYPE_MOD,       ONLY : GC_MET_LOCAL
+#endif
 
 #     include "define.h"
       USE CMN_SIZE_MOD  ! Size parameters
@@ -57,6 +63,10 @@
 
       ! Multi-level NOx emissions  [molec NOx/box/s]
       REAL*8,  INTENT(IN) :: EMISRRN(IIPAR,JJPAR,NOXEXTENT)  
+
+#if defined( DEVEL )
+      TYPE(GC_MET_LOCAL), INTENT(IN) :: LOCAL_MET  ! Obj w/ met fields
+#endif
 !
 ! !REMARKS:
 !  Developers: lwh, jyl, gmg, djj, bdf, bmy, 6/8/98, 6/11/08
@@ -354,7 +364,11 @@
                   ! Now use ITS_IN_THE_STRAT to test if we have passed from
                   ! the trop into the strat.  We only want to partition
                   ! emissions in the troposphere. (bmy, 9/10/10)
+#if defined( DEVEL )
+                  IF ( ITS_IN_THE_STRAT( I, J, L, LOCAL_MET ) ) EXIT
+#else
                   IF ( ITS_IN_THE_STRAT(I,J,L) ) EXIT
+#endif
                   
                   JLOOP   = JLOP(I,J,L)
                   EMIS_BL = 0d0

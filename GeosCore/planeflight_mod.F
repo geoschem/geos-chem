@@ -1056,7 +1056,11 @@
 !\\
 ! !INTERFACE:
 !
+#if defined( DEVEL )
+      SUBROUTINE PLANEFLIGHT( LOCAL_MET )
+#else
       SUBROUTINE PLANEFLIGHT
+#endif
 !
 ! !USES:
 !
@@ -1072,9 +1076,18 @@
       USE PRESSURE_MOD, ONLY : GET_PEDGE
       USE TIME_MOD,     ONLY : GET_TAU,        GET_TS_DIAG
       USE TRACER_MOD,   ONLY : STT,            TCVV
+#if defined( DEVEL )
+      USE GC_TYPE_MOD,  ONLY : GC_MET_LOCAL
+#endif
 
       USE JV_CMN_MOD         ! ODAER, QAA, QAA_AOD
       USE COMODE_LOOP_MOD    ! CSPEC, etc.
+!
+! !INPUT PARAMETERS: 
+!
+#if defined( DEVEL )
+      TYPE(GC_MET_LOCAL), INTENT(IN) :: LOCAL_MET  ! Obj w/ met fields
+#endif
 ! 
 ! !REVISION HISTORY: 
 !  08 Jul 2002 - M. Evans    - Initial version
@@ -1320,6 +1333,31 @@
                      VARI(V) = L
 
 #if   defined( MERRA ) || defined( GEOS_57 )
+#if defined( DEVEL )
+                  !--------------------------
+                  ! GEOS-Chem SEAICE frac's
+                  !--------------------------
+                  CASE ( 1100 )
+                     VARI(V) = LOCAL_MET%SEAICE00(I,J)
+                  CASE ( 1101 )
+                     VARI(V) = LOCAL_MET%SEAICE10(I,J)
+                  CASE ( 1102 )
+                     VARI(V) = LOCAL_MET%SEAICE20(I,J)
+                  CASE ( 1103 )
+                     VARI(V) = LOCAL_MET%SEAICE30(I,J)
+                  CASE ( 1104 )
+                     VARI(V) = LOCAL_MET%SEAICE40(I,J)
+                  CASE ( 1105 )
+                     VARI(V) = LOCAL_MET%SEAICE50(I,J)
+                  CASE ( 1106 )
+                     VARI(V) = LOCAL_MET%SEAICE60(I,J)
+                  CASE ( 1107 )
+                     VARI(V) = LOCAL_MET%SEAICE70(I,J)
+                  CASE ( 1108 )
+                     VARI(V) = LOCAL_MET%SEAICE80(I,J)
+                  CASE ( 1109 )
+                     VARI(V) = LOCAL_MET%SEAICE90(I,J)
+#else
                   !--------------------------
                   ! GEOS-Chem SEAICE frac's
                   !--------------------------
@@ -1343,6 +1381,7 @@
                      VARI(V) = SEAICE80(I,J)
                   CASE ( 1109 )
                      VARI(V) = SEAICE90(I,J)
+#endif  ! DEVEL
 #endif
 
                   !--------------------------
@@ -1489,7 +1528,6 @@
       USE COMODE_MOD,     ONLY : JLOP
       USE PRESSURE_MOD,   ONLY : GET_PEDGE
       USE TRACER_MOD,     ONLY : ITS_A_FULLCHEM_SIM
-      USE TROPOPAUSE_MOD, ONLY : ITS_IN_THE_TROP
       USE GRID_MOD,       ONLY : GET_XOFFSET
       USE GRID_MOD,       ONLY : GET_YOFFSET
 

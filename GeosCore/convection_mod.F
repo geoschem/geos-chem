@@ -365,7 +365,7 @@
 !----------------------------------------------------------------------------
      &                             PFICU     = T_PFICU,
      &                             PFLCU     = T_PFLCU,
-     &                             REEVAPCN  = REEVAPCN(I,J, :        ),
+     &                             REEVAPCN = LOCAL_MET%REEVAPCN(I,J,:),
      &                             SO2s      = SO2s    (I,J, :        ),
      &                             T         = T       (I,J, :        ),
      &                             Q         = STT     (I,J, :,      :), 
@@ -946,7 +946,6 @@
       USE TRACERID_MOD,     ONLY : IS_Hg2, IS_HgP 
       USE WETSCAV_MOD,      ONLY : COMPUTE_F
       USE DEPO_MERCURY_MOD, ONLY : ADD_Hg2_SNOWPACK !CDH
-      USE DAO_MOD,          ONLY : SNOMAS, SNOW  !,   CLDMAS, DTRN=>DTRAIN
 
 #if defined( DEVEL )
       USE ERROR_MOD,        ONLY : ALLOC_ERR

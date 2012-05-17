@@ -1247,10 +1247,18 @@ c new OH+CO rate from JPL2006.
 
                ! Determine fraction of NOx remaining and integrated Ozone
                ! Production Efficiency for ship emiss (gvinken,mpayer,2/7/12)
+#if defined( DEVEL )
+               CALL INTERPOLATE_LUT2( IX,                IY,           
+     &                             CBLK(KLOOP,IDO3),  CBLK(KLOOP,IDNO),
+     &                             CBLK(KLOOP,IDNO2), DENAIR(KLOOP),
+     &                             LOCAL_MET,
+     &                             fraction_nox,      int_ope )
+#else
                CALL INTERPOLATE_LUT2( IX,                IY,           
      &                             CBLK(KLOOP,IDO3),  CBLK(KLOOP,IDNO),
      &                             CBLK(KLOOP,IDNO2), DENAIR(KLOOP),
      &                             fraction_nox,      int_ope )
+#endif
 
                !===========================================================
                ! STORE EMISSIONS DIRECTLY IN REMIS ARRAY, based on setemis.f

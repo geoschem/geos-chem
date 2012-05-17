@@ -111,7 +111,6 @@
       USE DAO_MOD,      ONLY : CLDTOPS, OPTD,   RH,       SLP     
       USE DAO_MOD,      ONLY : T,       UWND,   VWND
       USE DAO_MOD,      ONLY : TS
-      USE DAO_MOD,      ONLY : PARDF, PARDR
       USE LAI_MOD,      ONLY : ISOLAI
       USE FILE_MOD,     ONLY : IU_ND63
       USE GRID_MOD,     ONLY : GET_XOFFSET,        GET_YOFFSET
@@ -161,23 +160,6 @@
       !=================================================================
       ! DIAG63 begins here!
       !=================================================================
-
-      ! Set logical flags on first timestep
-      IF ( FIRST ) THEN
-         IS_CLDTOPS  = ALLOCATED( CLDTOPS )
-         IS_OPTD     = ALLOCATED( OPTD    )
-         IS_SLP      = ALLOCATED( SLP     )
-         IS_FULLCHEM = ITS_A_FULLCHEM_SIM()
-         IS_SEASALT  = ( IDTSALA > 0 .and. IDTSALC > 0 )
-         IS_Ox       = ( IS_FULLCHEM .and. IDTOX   > 0 )
-         IS_NOx      = ( IS_FULLCHEM .and. IDTNOX  > 0 )
-         IS_NOy      = ( IS_FULLCHEM .and. 
-     &                   IDTNOX  > 0 .and. IDTPAN  > 0 .and.
-     &                   IDTHNO3 > 0 .and. IDTPMN  > 0 .and.
-     &                   IDTPPN  > 0 .and. IDTR4N2 > 0 .and.
-     &                   IDTN2O5 > 0 .and. IDTHNO4 > 0 ) 
-         FIRST       = .FALSE.
-      ENDIF
 
       !=================================================================
       ! If it's a new day, open a new BPCH file and write file header

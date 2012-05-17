@@ -299,7 +299,11 @@
 !\\
 ! !INTERFACE:
 !
+#if defined( DEVEL )
+      SUBROUTINE EMISSCH4( LOCAL_MET )
+#else
       SUBROUTINE EMISSCH4
+#endif
 !
 ! !USES:
 !
@@ -317,10 +321,19 @@
       USE LOGICAL_MOD,   ONLY : LBFCH4
       USE VDIFF_PRE_MOD, ONLY : EMIS_SAVE ! (ccc, 08/31/09)
       USE LOGICAL_MOD,   ONLY : LNLPBL    ! (ccc, 08/31/09)
-      
+#if defined( DEVEL )
+      USE GC_TYPE_MOD,   ONLY : GC_MET_LOCAL
+#endif
 
       USE CMN_SIZE_MOD        ! Size parameters
       USE CMN_DIAG_MOD        ! Diagnostic switches
+
+!
+! !INPUT PARAMETERS:
+!
+#if defined( DEVEL )
+      TYPE(GC_MET_LOCAL), INTENT(IN) :: LOCAL_MET  ! Obj w/ met fields
+#endif
 ! 
 ! !REMARKS:
 !  WARNING: Soil absorption has to be the 11th field in CH4_EMIS
@@ -417,7 +430,11 @@
 
       !4.1 Wetland emissions
       IF ( LWETL ) THEN
+#if defined( DEVEL )
+         CALL WETLAND_EMIS( LOCAL_MET )
+#else
          CALL WETLAND_EMIS 
+#endif
       ENDIF
 
       ! ==================================================================
@@ -609,12 +626,16 @@
 !\\
 ! !INTERFACE:
 !
+#if defined( DEVEL )
+      SUBROUTINE WETLAND_EMIS( LOCAL_MET )
+#else
       SUBROUTINE WETLAND_EMIS
+#endif
 !
 ! !USES:
 !
       USE DAO_MOD,       ONLY : GWETTOP,      LWI
-      USE DAO_MOD,       ONLY : TSKIN,        TS
+      USE DAO_MOD,       ONLY : TSKIN
       USE DAO_MOD,       ONLY : FRLAND,       FRLAKE
       USE DAO_MOD,       ONLY : FROCEAN,      FRLANDIC
       USE BPCH2_MOD,     ONLY : GET_RES_EXT,  GET_MODELNAME
@@ -627,9 +648,18 @@
       USE TIME_MOD,      ONLY : ITS_A_NEW_MONTH, ITS_A_NEW_YEAR
       USE TRANSFER_MOD,  ONLY : TRANSFER_2D
       USE DIAG_MOD,      ONLY : AD60, AD58
+#if defined( DEVEL )
+      USE GC_TYPE_MOD,   ONLY : GC_MET_LOCAL
+#endif
 
       USE CMN_SIZE_MOD        ! Size parameters
       USE CMN_DIAG_MOD        ! Diagnostic switches
+!
+! !INPUT PARAMETERS:
+!
+#if defined( DEVEL )
+      TYPE(GC_MET_LOCAL), INTENT(IN) :: LOCAL_MET  ! Obj w/ met fields
+#endif
 ! 
 ! !REVISION HISTORY:
 !  (1 ) Adapted by Jérôme Drevet (3/06) from the BIOME-TG Wetland-Methane
@@ -743,6 +773,81 @@
       ! REALWET is the actual inundated fraction of a box
       REALWET(:,:) = 0d0
 
+#if defined( DEVEL )
+
+      ! GEOS4 calculation of inundated fraction
+#if   defined( GEOS_4 )
+!$OMP PARALLEL DO
+!$OMP+DEFAULT( SHARED )
+!$OMP+PRIVATE( J, I )
+      DO J = 1, JJPAR
+      DO I = 1, IIPAR
+
+	 ! We don't want emissions in frozen regions
+	 IF ( LOCAL_MET%TSKIN(I,J) > 273d0 ) THEN
+
+         ! We want emissions from land boxes only
+         IF ( LOCAL_MET%LWI(I,J) == 1 ) THEN
+
+	    ! If wetness>0.1, the wetland fraction is equal
+            ! to the maximal potential wetland fraction
+            IF (LOCAL_MET%GWETTOP(I,J) > 0.1d0) THEN
+               REALWET(I,J) = WETFRAC(I,J)
+            ELSE
+               REALWET(I,J) = 0.d0
+            ENDIF
+
+         ENDIF
+	 ENDIF	
+      ENDDO
+      ENDDO
+!$OMP END PARALLEL DO
+
+      ! GEOS5 Calculation of inundated fraction
+#elif defined( GEOS_5 ) || defined( MERRA ) || defined( GEOS_57 )
+!$OMP PARALLEL DO
+!$OMP+DEFAULT( SHARED )
+!$OMP+PRIVATE( J, I )
+      DO J = 1, JJPAR
+      DO I = 1, IIPAR
+
+	 ! We don't want emissions in frozen regions
+	 IF ( LOCAL_MET%TSKIN(I,J) > 273d0 ) THEN
+
+         ! We want emissions from any box that contains some land
+         ! FRLAND is fraction of grid box that is land
+         IF ( LOCAL_MET%FRLAND(I,J) > 0) THEN 
+
+            ! Actual wetness of land /= GWETTOP because GWETTOP includes
+            ! wetness in lakes, ocean, and ice.  Below is a scheme to
+            ! calculate effective GWETTOP of the land fraction
+            EFF_GWET(I,J) = ( LOCAL_MET%GWETTOP(I,J)  - 
+     &         ( LOCAL_MET%FROCEAN(I,J)     + LOCAL_MET%FRLAKE(I,J) + 
+     &           LOCAL_MET%FRLANDIC(I,J) )) / LOCAL_MET%FRLAND(I,J)
+
+            ! Catch for negative EFF_GWET
+            IF ( EFF_GWET(I,J) < 0d0 ) THEN
+               EFF_GWET(I,J) = 0d0
+            ENDIF
+
+	    ! If wetness>0.1, the wetland fraction is equal
+            ! to the maximal potential wetland fraction
+            IF (EFF_GWET(I,J) > 0.1d0) THEN
+		REALWET(I,J) = WETFRAC(I,J)
+            ELSE
+		REALWET(I,J) = 0.d0
+            ENDIF
+
+	 ENDIF
+	 ENDIF	
+      ENDDO
+      ENDDO
+!$OMP END PARALLEL DO
+
+#endif
+
+#else
+
       ! GEOS4 calculation of inundated fraction
 #if   defined( GEOS_4 )
 !$OMP PARALLEL DO
@@ -805,6 +910,8 @@
 !$OMP END PARALLEL DO
 
 #endif
+
+#endif  ! DEVEL
 
       ! Update Wetland Fraction Diagnostic
       GM = GET_MONTH()
@@ -952,12 +1059,21 @@
       DO J = 1, JJPAR
       DO I = 1, IIPAR
         
+#if defined( DEVEL )
+	 IF ( LOCAL_MET%TSKIN(I,J) < 233.d0 ) THEN
+	    F_TEMP = 0d0
+	 ELSE
+	    F_TEMP = exp(308.56d0*(1.0d0/56.02d0-
+     &           1.0d0/(LOCAL_MET%TSKIN(I,J)-227.13d0))) !Lloyd & Taylor 1994
+         ENDIF
+#else
 	 IF ( tskin(I,J) < 233.d0 ) THEN
 	    F_TEMP = 0d0
 	 ELSE
 	    F_TEMP = exp(308.56d0*(1.0d0/56.02d0-
      &           1.0d0/(tskin(I,J)-227.13d0))) !Lloyd & Taylor 1994	
 	 ENDIF
+#endif
 
          ! Calculate Heterotrophic respiration
          litterfast = 0.985d0 * LITTER_C(i,j)

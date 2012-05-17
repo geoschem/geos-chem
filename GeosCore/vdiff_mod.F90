@@ -1804,10 +1804,17 @@ contains
                              TRACER_NAME
     USE TRACER_MOD,   ONLY : ITS_A_TAGOX_SIM, ITS_A_TAGCO_SIM
     USE TRACER_MOD,   ONLY : ITS_A_CH4_SIM
-    USE DAO_MOD,      ONLY : um1 => UWND, vm1 => VWND, tadv => T, &
-                             hflx => HFLUX, eflux => EFLUX, &
-                             USTAR, BXHEIGHT, shp => SPHU, PS => PSC2, &
-                             AD,PBL
+    USE DAO_MOD,      ONLY : um1   => UWND,  &
+                             vm1   => VWND,  &
+                             tadv  => T,     &
+                             hflx  => HFLUX, &
+                             eflux => EFLUX, &
+                             USTAR,          &
+                             BXHEIGHT,       &
+                             shp   => SPHU,  &
+                            !PS    => PSC2,  &
+                             AD,             &
+                             PBL
     USE PRESSURE_MOD, ONLY : GET_PEDGE, GET_PCENTER
     USE TIME_MOD,     ONLY : GET_TS_CONV, GET_TS_EMIS
     USE COMODE_MOD,   ONLY : JLOP,      REMIS,   VOLUME
@@ -1946,7 +1953,11 @@ contains
 
     dtime = GET_TS_CONV()*60d0 ! min -> second
     
+#if defined( DEVEL )
+    shflx = LOCAL_MET%EFLUX / latvap ! latent heat -> water vapor flux
+#else
     shflx = eflux / latvap ! latent heat -> water vapor flux
+#endif
     
 !$OMP PARALLEL DO DEFAULT( SHARED ) PRIVATE( I, J, L )
     do J = 1, JJPAR
@@ -2219,32 +2230,43 @@ contains
           ! Except in MERRA, we assume entire grid box is water or ice
           ! if conditions are met (jaf, 4/26/11)
           FRAC_NO_HG0_DEP = 1d0
+
+#if defined( DEVEL )
+
+#if   defined( MERRA ) || defined( GEOS_57 )
+          FRAC_NO_HG0_DEP = MIN( LOCAL_MET%FROCEAN(I,J) + &
+                                 LOCAL_MET%FRSNO(I,J)   + &
+                                 LOCAL_MET%FRLANDIC(I,J), 1d0)
+          ZERO_HG0_DEP    = ( FRAC_NO_HG0_DEP > 0d0 )
+
+#elif defined( GEOS_5 )
+          ! GEOS5 snow height (water equivalent) in mm. (Docs wrongly say m)
+          ZERO_HG0_DEP = (( LOCAL_MET%LWI(I,J) == 0      )  .OR.  &
+                          ( IS_ICE ( I, J, LOCAL_MET     )) .OR.  &
+                          ( IS_LAND( I, J, LOCAL_MET     )  .AND. &
+                            LOCAL_MET%SNOMAS(I,J) > 10d0 ))
+
+#else
+          ! GEOS1-4 snow heigt (water equivalent) in mm
+          ZERO_HG0_DEP = (( LOCAL_MET%LWI(I,J) == 0      )  .OR.  &
+                          ( IS_ICE ( I, J, LOCAL_MET     )) .OR.  &
+                          ( IS_LAND( I, J, LOCAL_MET     )  .AND. &
+                            LOCAL_MET%SNOW(I,J)   > 10d0 ))
+#endif
+
+#else
+
 #if   defined( MERRA ) || defined( GEOS_57 )
           FRAC_NO_HG0_DEP = &
                MIN(FROCEAN(I,J) + FRSNO(I,J) + FRLANDIC(I,J), 1d0)
           ZERO_HG0_DEP = ( FRAC_NO_HG0_DEP > 0d0 )
-
 #elif defined( GEOS_5 )
           ! GEOS5 snow height (water equivalent) in mm. (Docs wrongly say m)
-#if defined( DEVEL )
-          ZERO_HG0_DEP = ( (LWI(I,J) == 0) .OR. &
-                           (IS_ICE ( I, J, LOCAL_MET )) .OR.  &
-                           (IS_LAND( I, J, LOCAL_MET )  .AND. &
-                            SNOMAS ( I, J ) > 10d0) )
-#else
           ZERO_HG0_DEP = ( (LWI(I,J) == 0) .OR. &
                           (IS_ICE(I,J)) .OR.   &
                           (IS_LAND(I,J) .AND. SNOMAS(I,J) > 10d0) )
-#endif
-
 #else
           ! GEOS1-4 snow heigt (water equivalent) in mm
-#if defined( DEVEL )
-          ZERO_HG0_DEP = ( (LWI(I,J) == 0) .OR. &
-                           (IS_ICE ( I, J, LOCAL_MET )) .OR.  &
-                           (IS_LAND( I, J, LOCAL_MET )  .AND. &
-                            SNOW   ( I, J ) > 10d0) )
-#else
           ZERO_HG0_DEP = ( (LWI(I,J) == 0) .OR. &
                           (IS_ICE(I,J)) .OR.   &
                           (IS_LAND(I,J) .AND. SNOW(I,J) > 10d0) )
@@ -2433,6 +2455,17 @@ contains
 
 !$OMP PARALLEL DO DEFAULT( SHARED )      &
 !$OMP PRIVATE( J )     
+#if defined( DEVEL )
+       do J = 1, JJPAR
+          call vdiff( J,      1,     um1,    vm1,             &
+                      tadv,   pmid,  pint,   rpdel,           &
+                      rpdeli, dtime, zm,     LOCAL_MET%HFLUX, &
+                      sflx,   thp,   as2,    pblh,            &
+                      kvh,    kvm,   tpert,  qpert,           &
+                      cgs,    shp,   shflx,  IIPAR,           &
+                      ustar_arg=ustar)
+       enddo
+#else
        do J = 1, JJPAR
           call vdiff( J, 1, um1, vm1, tadv,        &
                       pmid, pint, rpdel,           &
@@ -2444,6 +2477,7 @@ contains
                       cgs, shp,                    &
                       shflx, IIPAR, ustar_arg=ustar)
        enddo
+#endif
 !$OMP END PARALLEL DO
 
        !### Debug
@@ -2542,7 +2576,11 @@ contains
        ! PBL is in m 
        PBL = pblh 
 
+#if defined( DEVEL )
+       CALL COMPUTE_PBL_HEIGHT( LOCAL_MET )
+#else
        CALL COMPUTE_PBL_HEIGHT
+#endif
     endif
 
 !      !### Debug
@@ -2621,7 +2659,11 @@ contains
     ENDIF
 
     ! Compute PBL height and related quantities
+#if defined( DEVEL )
+    CALL COMPUTE_PBL_HEIGHT( LOCAL_MET )
+#else
     CALL COMPUTE_PBL_HEIGHT
+#endif
 
     !=================================================================
     ! For full-chemistry simulations, call routine SETEMIS
@@ -2631,7 +2673,11 @@ contains
 
        ! If it's time to do emissions, call SETEMIS
        IF ( ITS_TIME_FOR_EMIS() ) THEN 
+#if defined( DEVEL )
+          CALL SETEMIS( EMISRR, EMISRRN, LOCAL_MET )
+#else
           CALL SETEMIS( EMISRR, EMISRRN )
+#endif
           IF ( LPRT ) CALL DEBUG_MSG( '### DO_PBL_MIX_2: aft SETEMIS' )
        ENDIF
 

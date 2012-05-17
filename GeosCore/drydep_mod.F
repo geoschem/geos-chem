@@ -580,8 +580,8 @@
 !
       USE DAO_MOD,      ONLY : ALBD,   BXHEIGHT, CLDFRC, GET_OBK
       USE DAO_MOD,      ONLY : RADSWG, RH,       TS,     USTAR,   Z0
+      USE DAO_MOD,      ONLY : U10M,   V10M
       USE PBL_MIX_MOD,  ONLY : GET_PBL_TOP_m
-      USE MEGANUT_MOD,  ONLY : XLTMMP
       USE PRESSURE_MOD, ONLY : GET_PEDGE
 #if defined( DEVEL )
       USE GC_TYPE_MOD,  ONLY : GC_MET_LOCAL
@@ -702,20 +702,57 @@
          ! Return meterological quantities as 1-D arrays for DEPVEL
          !==============================================================
 
+#if defined( DEVEL )
+
+#if   !defined( GCAP )
+         ! For GEOS: Roughness height [m] is a function of lat/lon
+         AZO(IJLOOP)    = LOCAL_MET%Z0(I,J)
+#endif
+
+         ! Column cloud fraction [unitless]
+         CFRAC(IJLOOP)  = LOCAL_MET%CLDFRC(I,J)
+
+         ! Set logical LSNOW if snow and sea ice (ALBEDO > 0.4)
+         LSNOW(IJLOOP)  = ( LOCAL_MET%ALBD(I,J) > 0.4 )
+
+         ! Monin-Obhukov length [m]
+         OBK(IJLOOP)    = GET_OBK( I, J, LOCAL_MET )
+
+         ! Solar insolation @ ground [W/m2]
+         RADIAT(IJLOOP) = LOCAL_MET%RADSWG(I,J) 
+
+         ! Surface temperature [K]
+         TC0(IJLOOP)    = LOCAL_MET%TS(I,J)
+
+         ! Friction velocity [m/s]
+         USTR(IJLOOP)   = LOCAL_MET%USTAR(I,J)
+
+         ! Mixed layer depth [m]
+         ZH(IJLOOP)     = GET_PBL_TOP_m( I, J )
+
+         ! Relative humidity @ surface [unitless] (bec, bmy, 4/13/05)
+         !RHB(IJLOOP)    = MIN( 0.99d0, RH(I,J,1) * 1.d-2 ) 
+         !  changed to 98% due to vapor pressure lowering above sea water
+         !  (Lewis & Schwartz, 2004)
+         !  jaegle (5/11/11)
+         RHB(IJLOOP)    = MIN( 0.98d0, RH(I,J,1) * 1.d-2 )
+
+         ! 10m windspeed (jaegle 5/11/11)
+         W10(IJLOOP)    =  SQRT( SFCWINDSQR( I, J,
+     &                                       LOCAL_MET%U10M,
+     &                                       LOCAL_MET%V10M ) )
+
+#else
+
 #if   !defined( GCAP )
          ! For GEOS: Roughness height [m] is a function of lat/lon
          AZO(IJLOOP)    = Z0(I,J)
 #endif
-
          ! Column cloud fraction [unitless]
          CFRAC(IJLOOP)  = CLDFRC(I,J)
 
          ! Set logical LSNOW if snow and sea ice (ALBEDO > 0.4)
-#if defined( DEVEL )
-         LSNOW(IJLOOP)  = ( LOCAL_MET%ALBD(I,J) > 0.4 )
-#else
          LSNOW(IJLOOP)  = ( ALBD(I,J) > 0.4 )
-#endif
 
          ! Monin-Obhukov length [m]
          OBK(IJLOOP)    = GET_OBK( I, J )
@@ -725,7 +762,7 @@
 
          ! Surface temperature [K]
          TC0(IJLOOP)    = TS(I,J)
-         
+
          ! Friction velocity [m/s]
          USTR(IJLOOP)   = USTAR(I,J)
 
@@ -740,7 +777,8 @@
          RHB(IJLOOP)    = MIN( 0.98d0, RH(I,J,1) * 1.d-2 )
 
          ! 10m windspeed (jaegle 5/11/11)
-         W10(IJLOOP)    =  SQRT( SFCWINDSQR(I,J) )
+         W10(IJLOOP)    =  SQRT( SFCWINDSQR( I, J, U10M, V10M ) )
+#endif
 
       ENDDO
       ENDDO
@@ -1075,7 +1113,7 @@
       USE DAO_MOD,      ONLY : BXHEIGHT
       USE PBL_MIX_MOD,  ONLY : GET_PBL_TOP_m
       USE PBL_MIX_MOD,  ONLY : GET_FRAC_UNDER_PBLTOP, GET_PBL_MAX_L
-      USE MEGANUT_MOD,  ONLY : XLTMMP
+      !USE MEGANUT_MOD,  ONLY : XLTMMP
 #if defined( DEVEL )
       USE GC_TYPE_MOD,  ONLY : GC_MET_LOCAL
 #endif
@@ -1114,8 +1152,6 @@
       REAL*8      :: F_UNDER_TOP
 
       ! External functions, for calculating soil temperature
-!-- XLTMMP moved to meganut_mod.f (ccc, 11/20/09)
-!      REAL*8, EXTERNAL   :: SOILTEMP, XLTMMP
       REAL*8, EXTERNAL   :: SOILTEMP
 
       !=================================================================
@@ -1231,8 +1267,13 @@
                   ! by 1/2, and additional 1/2 below -15C(hup, 6/21/2005)
                   ! for now use surface temperature (TS) instead of
                   ! air temperature (T) jaegle, 12/12/2005
+#if defined( DEVEL )
+		  IF (LOCAL_MET%TS(I,J) <= 273.15d0) SVEL = SVEL / 2.0d0
+		  IF (LOCAL_MET%TS(I,J) <= 258.15d0) SVEL = SVEL / 2.0d0
+#else
 		  IF (TS(I,J) <= 273.15d0) SVEL = SVEL / 2.0d0
 		  IF (TS(I,J) <= 258.15d0) SVEL =  SVEL / 2.0d0
+#endif
                   
 		  ! if desert, set deposition velocity to zero by multiplying
 		  ! dep vel by the fraction covered by desert(hup, 5/1/2006)

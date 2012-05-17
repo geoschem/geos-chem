@@ -462,7 +462,11 @@
          ! Compute SOA chemistry
          ! NOTE: This is SOA production from the reversible mechanism only 
          ! (tmf, 12/07/07) 
+#if defined( DEVEL )
+         CALL SOA_CHEMISTRY( LOCAL_MET )
+#else
          CALL SOA_CHEMISTRY
+#endif
          IF ( LPRT ) CALL DEBUG_MSG( '### CHEMCARBON: a SOA_CHEM' )
 
          ! If SOAG and SOAM are declared, switch on 
@@ -1248,7 +1252,6 @@
       USE TIME_MOD,     ONLY : GET_TS_CHEM, GET_MONTH
       USE TRACER_MOD,   ONLY : STT 
       USE TRACERID_MOD, ONLY : IDTGLYX, IDTSOAG
-      USE TROPOPAUSE_MOD, ONLY : ITS_IN_THE_TROP
 
       USE CMN_SIZE_MOD         ! Size parameters
       USE COMODE_LOOP_MOD      ! AD, WTAIR, other SMVGEAR variables
@@ -1448,7 +1451,6 @@
       USE TIME_MOD,     ONLY : GET_TS_CHEM, GET_MONTH
       USE TRACER_MOD,   ONLY : STT 
       USE TRACERID_MOD, ONLY : IDTMGLY, IDTSOAM
-      USE TROPOPAUSE_MOD, ONLY : ITS_IN_THE_TROP
 
       USE CMN_SIZE_MOD         ! Size parameters
       USE COMODE_LOOP_MOD      ! AD, WTAIR, other SMVGEAR variables
@@ -1626,7 +1628,11 @@
 
 !------------------------------------------------------------------------------
 
+#if defined( DEVEL )
+      SUBROUTINE SOA_CHEMISTRY( LOCAL_MET )
+#else
       SUBROUTINE SOA_CHEMISTRY
+#endif
 !
 !******************************************************************************
 !  Subroutine SOA_CHEMISTRY performs SOA formation.  This code is from the
@@ -1711,10 +1717,18 @@
       USE TIME_MOD,     ONLY : GET_TS_CHEM,      GET_MONTH
       USE TIME_MOD,     ONLY : ITS_TIME_FOR_BPCH
       USE LOGICAL_MOD,  ONLY : LPRT   !(bmy, 4/21/10)
+#if defined( DEVEL )
+      USE GC_TYPE_MOD,  ONLY : GC_MET_LOCAL
+#endif
 
       USE CMN_SIZE_MOD       ! Size parameters
       USE CMN_O3_MOD         ! XNUMOL
       USE CMN_DIAG_MOD       ! ND44
+
+      ! Arguments
+#if defined( DEVEL )
+      TYPE(GC_MET_LOCAL), INTENT(IN) :: LOCAL_MET  ! Obj w/ met fields
+#endif
 
       ! Local variables
       LOGICAL, SAVE         :: FIRST = .TRUE.
@@ -1781,8 +1795,13 @@
          ! Get SOA yield parameters
          ! ALPHA is a module variable now. (ccc, 2/2/10)
          !CALL SOA_PARA( I, J, L, RTEMP, KO3, KOH, KNO3, ALPHA, KOM )
+#if defined( DEVEL )
+         CALL SOA_PARA( RTEMP, KO3, KOH, KNO3, KOM,
+     &                  I,     J,   L,   LOCAL_MET  )
+#else
          CALL SOA_PARA( RTEMP, KO3, KOH, KNO3, KOM, ! ) (dkh, 10/09/05)  
      &                  I,     J,   L                     )
+#endif
 
          ! Partition mass of gas & aerosol tracers 
          ! according to 5 VOC classes & 3 oxidants
@@ -2431,10 +2450,13 @@ c
 
 !------------------------------------------------------------------------------
 
-!      SUBROUTINE SOA_PARA( II,  JJ,  LL,   TEMP, 
-!     &                     KO3, KOH, KNO3, RALPHA, KOM )
+#if defined( DEVEL )
       SUBROUTINE SOA_PARA( TEMP, KO3, KOH, KNO3, KOM,
-     &                     II,   JJ,  LL                      ) ! (dkh, 10/09/05)
+     &                     II,   JJ,  LL,  LOCAL_MET  )
+#else
+      SUBROUTINE SOA_PARA( TEMP, KO3, KOH, KNO3, KOM,
+     &                     II,   JJ,  LL              )
+#endif
 !
 !******************************************************************************
 !  Subroutine SOA_PARA gves mass-based stoichiometric coefficients for semi-
@@ -2493,6 +2515,9 @@ c
 !
       ! References to F90 modules
       USE TROPOPAUSE_MOD, ONLY : ITS_IN_THE_TROP
+#if defined( DEVEL )
+      USE GC_TYPE_MOD,    ONLY : GC_MET_LOCAL
+#endif
 
       ! Arguments
       INTEGER, INTENT(IN)  :: II, JJ, LL
@@ -2501,6 +2526,9 @@ c
       ! make RAPLPHA a module variable, defined only once
       !REAL*8,  INTENT(OUT) :: RALPHA(NPROD,MHC), KOM(NPROD,MHC)
       REAL*8, INTENT(OUT)  :: KOM(MNOX,MPROD,MHC)
+#if defined( DEVEL )
+      TYPE(GC_MET_LOCAL), INTENT(IN) :: LOCAL_MET  ! Obj w/ met fields
+#endif
 
       ! Local variables
       INTEGER              :: IPR,  JHC,  J
@@ -2573,7 +2601,11 @@ c
       ! If we are in the troposphere, then calculate ISOP oxidation rates
       ! If we are in the stratosphere, set ISOP oxidation rates to zero
       ! (dkh, bmy, 5/22/06)
+#if defined( DEVEL )
+      IF ( ITS_IN_THE_TROP( II, JJ, LL, LOCAL_MET ) ) THEN
+#else
       IF ( ITS_IN_THE_TROP( II, JJ, LL ) ) THEN
+#endif
          KO3(6)  = 1.05d-14 * EXP(-2000.d0 / TEMP )
          KOH(6)  = 2.70d-11 * EXP( 390.d0 / TEMP )
          KNO3(6) = 3.03d-12 * EXP(-446.d0 / TEMP )
@@ -3976,7 +4008,7 @@ c
 !------------------------------------------------------------------------------
 
 #if defined( DEVEL )
-      SUBROUTINE EMISSCARBON(EMISSIONS)
+      SUBROUTINE EMISSCARBON( LOCAL_MET, EMISSIONS )
 #else
       SUBROUTINE EMISSCARBON
 #endif
@@ -4005,7 +4037,6 @@ c
 !
       ! References to F90 modules
       USE DIAG_MOD,          ONLY : AD07
-      USE DAO_MOD,           ONLY : PBL
       USE ERROR_MOD,         ONLY : DEBUG_MSG
       USE LOGICAL_MOD,       ONLY : LSOA,      LPRT,  LCOOKE
       USE TIME_MOD,          ONLY : GET_MONTH, ITS_A_NEW_MONTH
@@ -4018,8 +4049,9 @@ c
       USE CMN_DIAG_MOD    ! ND07
 
 #if defined( DEVEL )
+      USE GC_TYPE_MOD,  ONLY : GC_MET_LOCAL
       USE TRACERID_MOD, ONLY : IDTBCPI, IDTBCPO, IDTOCPI, IDTOCPO
-      USE TRACER_MOD, ONLY   : N_TRACERS 
+      USE TRACER_MOD,   ONLY : N_TRACERS 
 #endif
 
       ! Local variables
@@ -4028,7 +4060,9 @@ c
       REAL*8               :: BCSRC(IIPAR,JJPAR,2)
       REAL*8               :: OCSRC(IIPAR,JJPAR,2)
 
+      ! Arguments
 #if defined( DEVEL )
+      TYPE(GC_MET_LOCAL), INTENT(IN) :: LOCAL_MET  ! Obj w/ met fields
       REAL*8, INTENT(INOUT)      :: EMISSIONS(IIPAR,JJPAR,N_TRACERS+1)
 #endif
       !=================================================================
@@ -4133,7 +4167,11 @@ c
       !--------------------------
       ! Compute biogenic OC
       !--------------------------
+#if defined( DEVEL )
+      CALL BIOGENIC_OC( LOCAL_MET )
+#else
       CALL BIOGENIC_OC
+#endif
       IF ( LPRT ) CALL DEBUG_MSG( '### EMISSCARB: after BIOGENIC_OC' )
 
       !=================================================================
@@ -4275,7 +4313,11 @@ c
 
 !------------------------------------------------------------------------------
 
+#if defined( DEVEL )
+      SUBROUTINE BIOGENIC_OC( LOCAL_MET )
+#else
       SUBROUTINE BIOGENIC_OC
+#endif
 !
 !******************************************************************************
 !  Subroutine BIOGENIC_OC emits secondary organic carbon aerosols.
@@ -4317,10 +4359,18 @@ c
       USE TIME_MOD,      ONLY : GET_TS_EMIS,      ITS_A_NEW_MONTH
       USE TRANSFER_MOD,  ONLY : TRANSFER_2D
       ! For monoterpenes (mpb,2009)
-      USE DAO_MOD,       ONLY : PARDF, PARDR
+      USE DAO_MOD,       ONLY : PARDF, PARDR, TS
       USE MEGANUT_MOD,   ONLY : XLTMMP
+#if defined( DEVEL )
+      USE GC_TYPE_MOD, ONLY   : GC_MET_LOCAL
+#endif
 
       USE CMN_SIZE_MOD      ! Size parameters
+
+      ! Arguments
+#if defined( DEVEL )
+      TYPE(GC_MET_LOCAL), INTENT(IN) :: LOCAL_MET  ! Obj w/ met fields
+#endif
 
       ! Local variables
       LOGICAL, SAVE          :: FIRST = .TRUE.
@@ -4364,8 +4414,22 @@ c
             ! 1-D loop index
             IJLOOP         = ( (J-1) * IIPAR ) + I
 
+#if defined( DEVEL )
              ! Surface temperature [K]
-            TMMP           = XLTMMP(I,J,IJLOOP)
+            TMMP           = XLTMMP( I, J, LOCAL_MET%TS, IJLOOP )
+
+            ! +++++++++++++++++++++++++++++++++++++++++
+            ! ** MEGAN v2.1 **
+            ! Cosine of solar zenith angle   (mpb,2009) 
+            ! Diffuse and direct PAR         (mpb,2009)
+            SC   = SUNCOS_MID(IJLOOP)   
+            PDR  = LOCAL_MET%PARDR(I,J)
+            PDF  = LOCAL_MET%PARDF(I,J)
+            ! +++++++++++++++++++++++++++++++++++++++++
+#else
+
+             ! Surface temperature [K]
+            TMMP           = XLTMMP( I, J, TS, IJLOOP )
 
             ! +++++++++++++++++++++++++++++++++++++++++
             ! ** MEGAN v2.1 **
@@ -4375,6 +4439,7 @@ c
             PDR  = PARDR(I,J)
             PDF  = PARDF(I,J)
             ! +++++++++++++++++++++++++++++++++++++++++
+#endif
 
             ! Get monoterpenes from MEGAN [kg C/box]
             IF ( LMEGANMONO ) THEN
@@ -4441,8 +4506,23 @@ c
             ! 1-D loop index
             IJLOOP         = ( (J-1) * IIPAR ) + I
 
+#if defined( DEVEL )
             ! Surface temperature [K]
-            TMMP           = XLTMMP(I,J,IJLOOP)
+            TMMP           = XLTMMP( I, J, LOCAL_MET%TS, IJLOOP )
+
+            ! Monoterpene emission [kg C/box/timestep]
+
+            ! +++++++++++++++++++++++++++++++++++++++++
+            ! ** MEGAN v2.1 **
+            ! Cosine of solar zenith angle   (mpb,2009) 
+            ! Diffuse and direct PAR         (mpb,2009)
+            SC   = SUNCOS_MID(IJLOOP)   
+            PDR  = LOCAL_MET%PARDR(I,J)
+            PDF  = LOCAL_MET%PARDF(I,J)
+            ! +++++++++++++++++++++++++++++++++++++++++
+#else
+            ! Surface temperature [K]
+            TMMP           = XLTMMP(I,J,TS,IJLOOP)
 
             ! Monoterpene emission [kg C/box/timestep]
 
@@ -4454,6 +4534,7 @@ c
             PDR  = PARDR(I,J)
             PDF  = PARDF(I,J)
             ! +++++++++++++++++++++++++++++++++++++++++
+#endif
 
             ! Get monoterpenes from MEGAN [kg C/box]
             IF ( LMEGANMONO ) THEN
@@ -6563,7 +6644,11 @@ c
       DO I = 1, IIPAR
 
          ! Skip stratospheric boxes
+#if defined( DEVEL )
+         IF ( ITS_IN_THE_STRAT( I, J, L, LOCAL_MET ) ) CYCLE
+#else
          IF ( ITS_IN_THE_STRAT( I, J, L ) ) CYCLE
+#endif
 
          ! initialize for safety
          XUPTKMAX = 0d0
@@ -6782,7 +6867,11 @@ c
       DO I = 1, IIPAR
 
          ! Skip stratospheric boxes
+#if defined( DEVEL )
+         IF ( ITS_IN_THE_STRAT( I, J, L, LOCAL_MET ) ) CYCLE
+#else
          IF ( ITS_IN_THE_STRAT( I, J, L ) ) CYCLE
+#endif
 
          ! initialize for safety
          XUPTKMAX = 0d0

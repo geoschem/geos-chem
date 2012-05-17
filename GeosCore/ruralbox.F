@@ -12,7 +12,11 @@
 !\\
 ! !INTERFACE:
 !
+#if defined( DEVEL )
+      SUBROUTINE RURALBOX( AD, T, AVGW, ALBD, LOCAL_MET )
+#else
       SUBROUTINE RURALBOX( AD, T, AVGW, ALBD )
+#endif
 !
 ! !USES:
 !
@@ -20,6 +24,9 @@
       USE COMODE_MOD,     ONLY : IZSAVE, JLOP,     PRESS3, T3,  VOLUME 
       USE PRESSURE_MOD,   ONLY : GET_PCENTER,      GET_PEDGE
       USE TROPOPAUSE_MOD, ONLY : ITS_IN_THE_STRAT, ITS_IN_THE_TROP
+#if defined( DEVEL )
+      USE GC_TYPE_MOD,    ONLY : GC_MET_LOCAL
+#endif
 
 #     include "define.h"
 
@@ -35,6 +42,9 @@
       REAL*8,  INTENT(IN) :: T(IIPAR,JJPAR,LLPAR)      ! Temperature [K]
       REAL*8,  INTENT(IN) :: AVGW(IIPAR,JJPAR,LLPAR)   ! Mix rat. of H2O [v/v]
       REAL*8,  INTENT(IN) :: ALBD(IIPAR,JJPAR)         ! Sfc albedo [unitless]
+#if defined( DEVEL )
+      TYPE(GC_MET_LOCAL), INTENT(IN) :: LOCAL_MET  ! Obj w/ met fields
+#endif
 !
 ! !REMARKS:
 !  Developers: amf, bey, ljm, lwh, gmg, bdf, bmy, 7/16/01, 2/25/10)
@@ -111,7 +121,11 @@
                !=======================================================
                ! Skip over strat boxes
                !=======================================================
+#if defined( DEVEL )
+               IF ( ITS_IN_THE_STRAT( I, J, L, LOCAL_MET ) ) GOTO 40
+#else
                IF ( ITS_IN_THE_STRAT( I, J, L ) ) GOTO 40
+#endif
 
                ! Increment JLOOP for trop boxes
                JLOOP          = JLOOP + 1
@@ -138,7 +152,11 @@
                JLOOP          = JLOOP + 1
                JLOP(I,J,L)    = JLOOP
 
+#if defined( DEVEL )
+               IF ( ITS_IN_THE_TROP( I, J, L, LOCAL_MET ) ) THEN
+#else
                IF ( ITS_IN_THE_TROP( I, J, L ) ) THEN
+#endif
 
                   ! Tropospheric boxes go into the SMVGEAR II "URBAN" slot
                   NTLOOPNCS(NCSURBAN) = NTLOOPNCS(NCSURBAN) + 1

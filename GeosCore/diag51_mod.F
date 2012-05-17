@@ -241,7 +241,24 @@
 !\\
 ! !INTERFACE:
 !
+#if defined( DEVEL )
+      SUBROUTINE DIAG51( LOCAL_MET )
+#else
       SUBROUTINE DIAG51
+#endif
+!
+! !USES:
+!
+      USE LOGICAL_MOD, ONLY : DO_DIAG_WRITE
+#if defined( DEVEL )
+      USE GC_TYPE_MOD, ONLY : GC_MET_LOCAL
+#endif
+!
+! !INPUT PARAMETERS:
+!
+#if defined( DEVEL )
+      TYPE(GC_MET_LOCAL), INTENT(IN) :: LOCAL_MET  ! Obj w/ met fields
+#endif
 ! 
 ! !REVISION HISTORY: 
 !  20 Jul 2004 - R. Yantosca - Initial version
@@ -251,8 +268,6 @@
 !EOP
 !------------------------------------------------------------------------------
 !BOC
-      USE LOGICAL_MOD, ONLY : DO_DIAG_WRITE
-
 !
 ! !LOCAL VARIABLES:
 !
@@ -266,7 +281,11 @@
       CALL GET_LOCAL_TIME
 
       ! Accumulate data in the Q array
+#if defined( DEVEL )
+      CALL ACCUMULATE_DIAG51( LOCAL_MET )
+#else
       CALL ACCUMULATE_DIAG51
+#endif
 
       ! Write data to disk at the proper time
       IF ( ITS_TIME_FOR_WRITE_DIAG51( TAU_W ) .and. DO_DIAG_WRITE ) THEN
@@ -360,7 +379,11 @@
 !\\
 ! !INTERFACE:
 !
+#if defined( DEVEL )
+      SUBROUTINE ACCUMULATE_DIAG51( LOCAL_MET )
+#else
       SUBROUTINE ACCUMULATE_DIAG51
+#endif
 !
 ! !USES:
 !
@@ -385,11 +408,20 @@
       USE TRACERID_MOD,   ONLY : IDTPAN,  IDTPMN,  IDTPPN,  IDTOX   
       USE TRACERID_MOD,   ONLY : IDTR4N2, IDTSALA, IDTSALC 
       USE TROPOPAUSE_MOD, ONLY : ITS_IN_THE_TROP
+#if defined( DEVEL )
+      USE GC_TYPE_MOD,    ONLY : GC_MET_LOCAL
+#endif
 
       USE CMN_FJ_MOD,     ONLY : JPMAX, JPPJ  ! includes F77_CMN_SIZE
       USE JV_CMN_MOD  ! ODAER, QAA, QAA_AOD
       USE CMN_O3_MOD    ! FRACO3, FRACNO, SAVEO3, SAVENO2, SAVEHO2, FRACNO2
       USE CMN_GCTM_MOD  ! SCALE_HEIGHT
+!
+! !INPUT PARAMETERS:
+!
+#if defined( DEVEL )
+      TYPE(GC_MET_LOCAL), INTENT(IN) :: LOCAL_MET  ! Obj w/ met fields
+#endif
 ! 
 ! !REVISION HISTORY: 
 !  20 Jul 2004 - R. Yantosca - Initial version
@@ -448,8 +480,13 @@
       ! Set logical flags on first call
       IF ( FIRST ) THEN
          IS_OPTD     = ALLOCATED( OPTD    )
+#if defined( DEVEL )
+         IS_CLDTOPS  = ALLOCATED( LOCAL_MET%CLDTOPS )
+         IS_SLP      = ALLOCATED( LOCAL_MET%SLP     )
+#else
          IS_CLDTOPS  = ALLOCATED( CLDTOPS )
          IS_SLP      = ALLOCATED( SLP     )
+#endif
          IS_FULLCHEM = ITS_A_FULLCHEM_SIM()
          IS_SEASALT  = ( IDTSALA > 0 .and. IDTSALC > 0 )
          IS_NOx      = ( IS_FULLCHEM .and. IDTNOX  > 0 )
@@ -533,9 +570,15 @@
             I = GET_I( X )
 
             ! Only increment if we are in the trop
+#if defined( DEVEL )
+            IF ( ITS_IN_THE_TROP( I, J, L, LOCAL_MET ) ) THEN
+               COUNT_CHEM3D(X,Y,K) = COUNT_CHEM3D(X,Y,K) + GOOD(I)
+            ENDIF
+#else
             IF ( ITS_IN_THE_TROP( I, J, L ) ) THEN
                COUNT_CHEM3D(X,Y,K) = COUNT_CHEM3D(X,Y,K) + GOOD(I)
             ENDIF
+#endif
          ENDDO
          ENDDO
          ENDDO
@@ -716,7 +759,11 @@
                ! CLOUD TOP HEIGHTS [mb]
                !--------------------------------------
                IF ( K == 1 ) THEN
+#if defined( DEVEL )
+                  TMP        = GET_PEDGE( I, J, LOCAL_MET%CLDTOPS(I,J) )
+#else
                   TMP        = GET_PEDGE( I, J, CLDTOPS(I,J) )
+#endif
                   Q(X,Y,K,W) = Q(X,Y,K,W) + ( TMP * GOOD(I) )
                ENDIF
 
@@ -887,7 +934,12 @@
                ! SEA LEVEL PRESSURE [hPa]
                !-----------------------------------               
                IF ( K == 1 ) THEN
+#if defined( DEVEL )
+                  Q(X,Y,K,W) = Q(X,Y,K,W) +
+     &                         ( LOCAL_MET%SLP(I,J) * GOOD(I) )
+#else
                   Q(X,Y,K,W) = Q(X,Y,K,W) + ( SLP(I,J) * GOOD(I) )
+#endif
                ENDIF
 
             ELSE IF ( N == 97 ) THEN
@@ -929,8 +981,13 @@
               
                IF ( K == 1 ) THEN
               
+#if defined( DEVEL )
+                  Q(X,Y,K,W) = Q(X,Y,K,W) +
+     &                       ( LOCAL_MET%PARDR(I,J) * GOOD(I) )
+#else
                   Q(X,Y,K,W) =  Q(X,Y,K,W) +
      &                     ( PARDR(I,J) * GOOD(I) ) 
+#endif
                ENDIF
 
             ELSE IF ( N == 102 ) THEN 
@@ -941,8 +998,13 @@
               
                IF ( K == 1 ) THEN
               
+#if defined( DEVEL )
+                  Q(X,Y,K,W) = Q(X,Y,K,W) +
+     &                       ( LOCAL_MET%PARDF(I,J) * GOOD(I) )
+#else
                   Q(X,Y,K,W) =  Q(X,Y,K,W) +
      &                     ( PARDF(I,J) * GOOD(I) ) 
+#endif
                ENDIF
 
             ELSE IF ( N == 103 ) THEN 
@@ -966,7 +1028,12 @@
               
                IF ( K == 1 ) THEN
 
+#if defined( DEVEL )
+                  Q(X,Y,K,W) = Q(X,Y,K,W) +
+     &                       ( LOCAL_MET%TS(I,J) * GOOD(I) )
+#else
                   Q(X,Y,K,W) = Q(X,Y,K,W) + ( TS(I,J) * GOOD(I) )
+#endif
 
                ENDIF
 

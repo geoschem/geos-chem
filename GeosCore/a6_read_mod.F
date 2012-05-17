@@ -610,6 +610,7 @@
       ! Add met fields to object of type GC_MET_LOCAL
 #if defined( DEVEL )
       LOCAL_MET%CLDF     = CLDF
+      LOCAL_MET%CLDFRC   = CLDFRC
       LOCAL_MET%CLDTOPS  = CLDTOPS
       LOCAL_MET%DETRAINE = DETRAINE
       LOCAL_MET%DETRAINN = DETRAINN

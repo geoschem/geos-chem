@@ -97,8 +97,11 @@
       USE ACETONE_MOD,       ONLY : READ_JO1D,     READ_RESP
       USE AIRCRAFT_NOX_MOD,  ONLY : AIREMISS
       USE BIOFUEL_MOD,       ONLY : BIOFUEL_BURN
+#if !defined( DEVEL )
       USE DAO_MOD,           ONLY : PARDF,         PARDR,     SUNCOS_MID       
-      USE DAO_MOD,           ONLY : ALBD      
+      USE DAO_MOD,           ONLY : ALBD,          TS
+      USE DAO_MOD,           ONLY : U10M,          V10M
+#endif
       USE DIAG_MOD,          ONLY : AD29,          AD46
       USE GRID_MOD,          ONLY : GET_AREA_CM2
       USE GRID_MOD,          ONLY : GET_XOFFSET,   GET_YOFFSET
@@ -276,58 +279,66 @@
                ENDDO
             ENDIF
 
+#if defined( DEVEL )
 !-----------------------------------------------------------------------------
 ! LIGHTNING EMISSIONS NOX [molecules/cm3/s]
 !
-#if defined( DEVEL )
 !            write(*,*) 'EMISS_TEND:', shape(EMISS_TEND)
 !            write(*,*) 'BIOEMISS_TEND:', shape(BIOEMISS_TEND)
             IF ( LLIGHTNOX .AND. I == 1 .AND. J == 1 ) 
      &           CALL EMLIGHTNING( EMISS_TEND(:,:,:,IDTNOX) )
-#else
-            IF ( LLIGHTNOX ) CALL EMLIGHTNING( I, J )
-#endif
 !-----------------------------------------------------------------------------
 ! SOIL EMISSIONS NOX [molecules/cm3/s]
 !
             IF ( ( LSOILNOX .OR. LFERTILIZERNOX )
      &             .AND. I == 1 .AND. J == 1 ) 
-!------------------------------------------------------------------------------
-! Prior to 10/7/11:
-! Now call soil NOx emissions with the cos(SZA) computed @ the midpoint of
-! the chemistry timestep (bmy, 10/7/11)
-!     &         CALL SOILNOXEMS( SUNCOS )
-!------------------------------------------------------------------------------
-#if defined( DEVEL )
-     &         CALL SOILNOXEMS( SUNCOS_MID, EMISS_TEND(:,:,1,IDTNOX) )
-#else
-     &         CALL SOILNOXEMS( SUNCOS_MID )
-#endif
+     &         CALL SOILNOXEMS( SUNCOS_MID, LOCAL_MET, 
+     &                          EMISS_TEND(:,:,1,IDTNOX) )
 !-----------------------------------------------------------------------------
 ! AIRCRAFT emissions NOx [molecules/cm3/s]
 !
-#if defined( DEVEL )
             IF ( LAIRNOX .AND. I == 1 .AND. J == 1 ) 
      &           CALL AIREMISS( EMISS_TEND(:,:,:,IDTNOX) )
-#else
-            IF ( LAIRNOX .AND. I == 1 .AND. J == 1 ) CALL AIREMISS
-#endif
 !-----------------------------------------------------------------------------
 ! NOx AND CO from biofuel combustion [kg/box]  
 !
-#if defined( DEVEL )
             IF ( LWOODCO .AND. I == 1 .AND. J == 1 ) 
      &           CALL BIOFUEL_BURN( BIOEMISS_TEND(:,:,1,:) )
+
 #else
+
+!-----------------------------------------------------------------------------
+! LIGHTNING EMISSIONS NOX [molecules/cm3/s]
+!
+            IF ( LLIGHTNOX ) CALL EMLIGHTNING( I, J )
+!-----------------------------------------------------------------------------
+! SOIL EMISSIONS NOX [molecules/cm3/s]
+!
+            IF ( ( LSOILNOX .OR. LFERTILIZERNOX )
+     &             .AND. I == 1 .AND. J == 1 ) 
+     &         CALL SOILNOXEMS( SUNCOS_MID )
+!-----------------------------------------------------------------------------
+! AIRCRAFT emissions NOx [molecules/cm3/s]
+!
+            IF ( LAIRNOX .AND. I == 1 .AND. J == 1 ) CALL AIREMISS
+!-----------------------------------------------------------------------------
+! NOx AND CO from biofuel combustion [kg/box]  
+!
             IF ( LWOODCO .AND. I == 1 .AND. J == 1 ) CALL BIOFUEL_BURN
+
 #endif
+
 !----------------------------------------------------------------------------
 ! BIOGENIC EMISSIONS OF VARIOUS QUANTITIES [Atoms C/box/time step]
 !
             IF ( LBIOGENIC ) THEN
 
                ! Temperature
-               TMMP  = XLTMMP(I,J,IJLOOP)
+#if defined( DEVEL )
+               TMMP  = XLTMMP( I, J, LOCAL_MET%TS, IJLOOP )
+#else
+               TMMP  = XLTMMP( I, J, TS, IJLOOP )
+#endif
             
                ! Modified to choose MEGAN inventory indenpendantly 
                ! for ISOP and MONX/MBO. (ccc, 1/20/09)
@@ -341,8 +352,13 @@
                   SC   = SUNCOS_MID(IJLOOP)
                
                   ! Diffuse and direct PAR
+#if defined( DEVEL )
+                  PDR  = LOCAL_MET%PARDR(I,J)
+                  PDF  = LOCAL_MET%PARDF(I,J)
+#else
                   PDR  = PARDR(I,J)
                   PDF  = PARDF(I,J)
+#endif
 
                   ! Isoprene         
                   EMIS = GET_EMISOP_MEGAN(  I, J,     SC, TMMP, 
@@ -455,10 +471,15 @@
                
                   ! Also add ocean source of acetone [atoms C/box/s]
 #if defined( DEVEL )
-                  CALL OCEAN_SOURCE_ACET( I, J, LOCAL_MET%ALBD, 
+                  CALL OCEAN_SOURCE_ACET( I, J, 
+     &                                    LOCAL_MET%ALBD,
+     &                                    LOCAL_MET%TS,
+     &                                    LOCAL_MET%U10M,
+     &                                    LOCAL_MET%V10M,
      &                                    BIO_ACET )
 #else
-                  CALL OCEAN_SOURCE_ACET( I, J, ALBD, BIO_ACET )
+                  CALL OCEAN_SOURCE_ACET( I, J, ALBD, TS, U10M, V10M, 
+     &                                    BIO_ACET )
 #endif
 
                   ! Add biogenic acetone to anthro source [atoms C/box/s]

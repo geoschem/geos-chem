@@ -582,7 +582,11 @@
       ELSE
 
          ! Use Paul Ginoux's dust source function
+#if defined( DEVEL )
+         CALL SRC_DUST_GINOUX( STT(:,:,:,IDTDST1:IDTDST4, LOCAL_MET ) )
+#else
          CALL SRC_DUST_GINOUX( STT(:,:,:,IDTDST1:IDTDST4) )
+#endif
 
          !### Debug
          IF ( LPRT ) CALL DEBUG_MSG( '### EMISSDUST: a SRC_DUST_GINOUX')
@@ -590,7 +594,8 @@
       ENDIF     
 
 #if defined( DEVEL )
-      SFLX(:,:,:,IDTDST1:IDTDST4) = (STT(:,:,:,IDTDST1:IDTDST4)-STT_TMP)/(GET_TS_EMIS()*60.d0)
+      SFLX(:,:,:,IDTDST1:IDTDST4) = (STT(:,:,:,IDTDST1:IDTDST4)-STT_TMP)
+     &                            / (GET_TS_EMIS()*60.d0)
 #endif
 
       END SUBROUTINE EMISSDUST
@@ -617,9 +622,9 @@
 !
 ! !USES:
 !
-      USE DAO_MOD,       ONLY : BXHEIGHT,     GWETTOP,   LWI
+      USE DAO_MOD,       ONLY : BXHEIGHT,     GWETTOP
       USE DAO_MOD,       ONLY : SNOW,         SPHU,      T    
-      USE DAO_MOD,       ONLY : TS,           UWND,      VWND
+      USE DAO_MOD,       ONLY : UWND,         VWND
       USE DAO_MOD,       ONLY : SNOMAS
       USE DUST_DEAD_MOD, ONLY : GET_TIME_INVARIANT_DATA, GET_ORO
       USE DUST_DEAD_MOD, ONLY : GET_MONTHLY_DATA,        DST_MBL
@@ -721,8 +726,6 @@
       REAL*8                 :: SNW_HGT_LQD(IIPAR)   ! equivalent snow ht.
       REAL*8                 :: DSRC(IIPAR,NDSTBIN)  ! dust mixing ratio incr.
 
-      ! External functions
-      REAL*8,  EXTERNAL       :: SFCWINDSQR
 !
 ! !DEFINED PARAMETERS:
 !
@@ -829,11 +832,24 @@
             ORO(I)         = OROGRAPHY(I,J) 
 
             ! Snow height [m H2O]
+#if defined( DEVEL )
+
+#if   defined( GEOS_5 ) || defined( MERRA ) || defined( GEOS_57 )
+            SNW_HGT_LQD(I) = LOCAL_MET%SNOMAS(I,J) / 1000d0
+#else
+            SNW_HGT_LQD(I) = LOCAL_MET%SNOW(I,J) / 1000d0
+#endif
+
+#else
+
 #if   defined( GEOS_5 ) || defined( MERRA ) || defined( GEOS_57 )
             SNW_HGT_LQD(I) = SNOMAS(I,J) / 1000d0
 #else
             SNW_HGT_LQD(I) = SNOW(I,J) / 1000d0
 #endif
+
+#endif  ! DEVEL
+
             ! Dust tracer and increments
             DO N = 1, NDSTBIN
                DSRC(I,N)   = 0.0d0
@@ -848,10 +864,17 @@
          YMID_R = GET_YMID_R( 1, J, 1 )
 
          ! Call DEAD dust mobilization
+#if defined( DEVEL )
+         CALL DST_MBL( DOY,    BHT2,  J,      YMID_R, ORO,    
+     &                 PTHICK, PMID,  Q_H2O,  DSRC,   SNW_HGT_LQD, 
+     &                 DTSRCE, TLON,  THLON,  VLON,   ULON,
+     &                 FIRST,  J,     LOCAL_MET )
+#else
          CALL DST_MBL( DOY,    BHT2,  J,     YMID_R, ORO,    
      &                 PTHICK, PMID,  Q_H2O, DSRC,   SNW_HGT_LQD, 
      &                 DTSRCE, TLON,  THLON, VLON,   ULON,
      &                 FIRST,  J )
+#endif
 
          ! Update
          DO N = 1, NDSTBIN
@@ -893,17 +916,24 @@
 !\\
 ! !INTERFACE:
 !
+#if defined( DEVEL )
+      SUBROUTINE SRC_DUST_GINOUX( TC, LOCAL_MET )
+#else
       SUBROUTINE SRC_DUST_GINOUX( TC )
+#endif
 !
 ! !USES:
 !
       USE BPCH2_MOD,     ONLY : GET_RES_EXT
-      USE DAO_MOD,       ONLY : GWETTOP   
+      USE DAO_MOD,       ONLY : GWETTOP, U10M, V10M  
       USE DIAG_MOD,      ONLY : AD06
       USE DIRECTORY_MOD, ONLY : DATA_DIR
       USE FILE_MOD,      ONLY : IOERROR
       USE TIME_MOD,      ONLY : GET_TS_EMIS
       USE GRID_MOD,      ONLY : GET_AREA_M2
+#if defined( DEVEL )
+      USE GC_TYPE_MOD, ONLY : GC_MET_LOCAL
+#endif
 
       USE CMN_SIZE_MOD        ! Size parameters
       USE CMN_DIAG_MOD        ! ND19, LD13 (for now)
@@ -912,6 +942,9 @@
 ! !INPUT/OUTPUT PARAMETERS: 
 ! 
       REAL*8, INTENT(INOUT) :: TC(IIPAR,JJPAR,LLPAR,NDSTBIN)  ! Dust mass [kg]
+#if defined( DEVEL )
+      TYPE(GC_MET_LOCAL), INTENT(IN) :: LOCAL_MET  ! Obj w/ met fields
+#endif
 !
 ! !REMARKS:
 !  Input:
@@ -1097,7 +1130,13 @@
                ENDIF
 
                ! 10m wind speed [m/s]
-               W10M   = SQRT( SFCWINDSQR(I,J) )
+#if defined( DEVEL )
+               W10M   = SQRT( SFCWINDSQR( I, J,
+     &                                    LOCAL_MET%U10M,
+     &                                    LOCAL_MET%V10M ) )
+#else
+               W10M   = SQRT( SFCWINDSQR( I, J, U10M, V10M ) )
+#endif
 
                ! Units are m2
                SRCE_P = FRAC_S(N) * SRCE_FUNC(I,J,M) * AREA_M2

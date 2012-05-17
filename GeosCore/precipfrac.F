@@ -1,5 +1,9 @@
 ! $Id: precipfrac.f,v 1.1 2009/09/16 14:06:15 bmy Exp $
+#if defined( DEVEL )
+      SUBROUTINE PRECIPFRAC( I, J, RATE, FRAC, LOCAL_MET )
+#else
       SUBROUTINE PRECIPFRAC( I, J, RATE, FRAC )
+#endif
 !
 !*****************************************************************************
 !  Subroutine PRECIPFRAC computes the fraction of a grid box that is 
@@ -43,6 +47,9 @@
       ! Reference to F90 modules
       USE DAO_MOD,  ONLY : PREACC, PRECON
       USE GRID_MOD, ONLY : GET_YOFFSET
+#if defined( DEVEL )
+      USE GC_TYPE_MOD, ONLY : GC_MET_LOCAL
+#endif
 
       USE CMN_SIZE_MOD   ! JJPAR
 
@@ -52,6 +59,9 @@
       ! Arguments
       INTEGER, INTENT(IN)  :: I, J
       REAL*8,  INTENT(OUT) :: RATE, FRAC
+#if defined( DEVEL )
+      TYPE(GC_MET_LOCAL), INTENT(IN) :: LOCAL_MET  ! Obj w/ met fields
+#endif
 
       ! Local variables
       INTEGER              :: JREF
@@ -78,11 +88,20 @@
       ! assume that it covers 7% of the area of grid box(I,J).  Store 
       ! this value in the variable FRAC_LS.
       !=================================================================
+#if defined( DEVEL )
+      IF ( ( LOCAL_MET%PRECTOT(I,J) - LOCAL_MET%PRECCON(I,J) ) 
+     &     > 0.0d0 ) THEN
+         FRAC_LS = 7.0d-2
+      ELSE
+         FRAC_LS = 0.0d0
+      ENDIF
+#else
       IF ( ( PREACC(I,J) - PRECON(I,J) ) > 0.0d0 ) THEN
          FRAC_LS = 7.0d-2
       ELSE
          FRAC_LS = 0.0d0
       ENDIF
+#endif
 
       !=================================================================
       ! Convective precipitation at (I,J) = PRECON(I,:J)
@@ -91,11 +110,19 @@
       !  assume that it covers 0.3% of the area of grid box (I,J). 
       !  Store this value in the variable FRAC_CONV.
       !=================================================================
-      IF ( PRECON(I,J) > 0.0d0 ) THEN
+#if defined( DEVEL )
+      IF ( LOCAL_MET%PRECCON(I,J) > 0.0d0 ) THEN
          FRAC_CONV = 3.0d-3
       ELSE
          FRAC_CONV = 0.0d0
       ENDIF
+#else
+      IF ( PRECCON(I,J) > 0.0d0 ) THEN
+         FRAC_CONV = 3.0d-3
+      ELSE
+         FRAC_CONV = 0.0d0
+      ENDIF
+#endif
 
       !=================================================================
       ! FRAC = total fraction of grid box (I,J) covered by precip
@@ -111,11 +138,19 @@
       !
       ! To get RATE, take total precip at (I,J) and divide it by FRAC.
       !=================================================================
+#if defined( DEVEL )
+      IF ( FRAC > 0.0d0 ) THEN
+         RATE = LOCAL_MET%PRECTOT(I,J) / FRAC
+      ELSE   
+         RATE = 0.0d0
+      ENDIF
+#else
       IF ( FRAC > 0.0d0 ) THEN
          RATE = PREACC(I,J) / FRAC
       ELSE   
          RATE = 0.0d0
       ENDIF
+#endif
 
       ! Return to calling program
       END SUBROUTINE PRECIPFRAC

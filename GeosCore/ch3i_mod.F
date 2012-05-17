@@ -252,7 +252,7 @@
 !------------------------------------------------------------------------------
 
 #if defined( DEVEL )
-      SUBROUTINE EMISSCH3I( BIO_EMISS )
+      SUBROUTINE EMISSCH3I( LOCAL_MET, BIO_EMISS )
 #else
       SUBROUTINE EMISSCH3I
 #endif
@@ -360,7 +360,7 @@
       ! IDBCO now in tracerid_mod (fp, hotp 7/31/09)
       USE BIOMASS_MOD,  ONLY : BIOMASS !,   IDBCO
       USE TRACERID_MOD, ONLY : IDBCO
-      USE DAO_MOD,      ONLY : AIRVOL,    BXHEIGHT, TS
+      USE DAO_MOD,      ONLY : AIRVOL,    BXHEIGHT, TS, U10M, V10M
       USE DIAG_MOD,     ONLY : AD29,      AD36
       USE GRID_MOD,     ONLY : GET_AREA_M2
       USE ERROR_MOD,    ONLY : ERROR_STOP
@@ -369,7 +369,9 @@
      &                         GET_MONTH, GET_TS_EMIS
       USE TRACER_MOD,   ONLY : STT,       N_TRACERS
       USE TRACERID_MOD, ONLY : IDBFCO
-
+#if defined( DEVEL )
+      USE GC_TYPE_MOD,  ONLY : GC_MET_LOCAL
+#endif
 
       USE CMN_SIZE_MOD    ! Size parameters
       USE CMN_DIAG_MOD    ! Diagnostic switches
@@ -381,7 +383,8 @@
 !      REAL*8 :: EFCH4R(IIPAR,JJPAR)  ! scaled emission flux from rice
 !      REAL*8 :: EFCH4W(IIPAR,JJPAR)  ! scaled emission flux from wetlands
 !      REAL*8 :: CH3ISUM(5)           ! sum of emissions in kg/yr
-      REAL*8, INTENT(INOUT) :: BIO_EMISS(:,:,:)
+      TYPE(GC_MET_LOCAL), INTENT(IN)    :: LOCAL_MET  ! Obj w/ met fields
+      REAL*8,             INTENT(INOUT) :: BIO_EMISS(:,:,:)
 #else
       ! Local common blocks (shared with OPEN_CH3I_FILES)
       REAL*8 :: OCDATA(IIPAR,JJPAR)   ! scaled ocean net primary prod.
@@ -625,10 +628,20 @@
          ! Grid box surface area [m2]
          AREA_M2 = GET_AREA_M2( I, J, 1 )
 
+#if defined( DEVEL )
+
+         IF ( LOCAL_MET%TS(I,J) >= 271.15 .and. FRCLND(I,J) < 0.8 ) THEN
+
+            ! surface air temp [K]
+            TK = LOCAL_MET%TS(I,J)        
+
+#else
          IF ( TS(I,J) >= 271.15 .and. FRCLND(I,J) < 0.8 ) THEN
 
             ! surface air temp [K]
             TK = TS(I,J)        
+
+#endif
 
             ! sea surface temp [C] 
             ! (use TS as surrogate for SST) 
@@ -641,7 +654,12 @@
             Sc = MVR__ * ( 2004. - 93.5*TC + 1.39*TC**2 )
             
             ! 10-m wind speed 
-            W10  = SQRT( SFCWINDSQR(I,J) )
+#if defined( DEVEL )
+            W10  = SQRT( SFCWINDSQR( I, J,
+     &                               LOCAL_MET%U10M, LOCAL_MET%V10M ) )
+#else
+            W10  = SQRT( SFCWINDSQR( I, J, U10M, V10M ) )
+#endif
 
             ! Piston velocity [cm/h], cf Nightingale et al [2000b] 
             ! (swu, bmy, 8/16/05)

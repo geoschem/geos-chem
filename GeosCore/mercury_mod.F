@@ -313,8 +313,11 @@
          IF ( LPRT ) CALL DEBUG_MSG( '### CHEMMERC: a GET_GLOBAL_O3' )
 
          ! Renamed to GET_GLOBAL_BR
-         !CALL GET_GLOBAL_BR_NEW( MONTH )
+#if defined( DEVEL )
+         CALL GET_GLOBAL_BR( MONTH, LOCAL_MET )
+#else
          CALL GET_GLOBAL_BR( MONTH )
+#endif
          IF ( LPRT ) CALL DEBUG_MSG( '### CHEMMERC: a GET_GLOBAL_BR' )
 
          IF (LRED_JNO2) THEN
@@ -857,37 +860,49 @@
          ! Except in MERRA, we assume entire grid box is water or ice
          ! if conditions are met (jaf, 4/26/11)
          FRAC_NO_HG0_DEP = 1d0
+
+#if defined( DEVEL )
+
 #if   defined( MERRA ) || defined( GEOS_57 )
-         FRAC_NO_HG0_DEP =
-     &        MIN(FROCEAN(I,J) + FRSNO(I,J) + FRLANDIC(I,J), 1d0) 
+         FRAC_NO_HG0_DEP = MIN( LOCAL_MET%FROCEAN(I,J) + 
+     &                          LOCAL_MET%FRSNO(I,J)   +
+     &                          LOCAL_MET%FRLANDIC(I,J), 1d0 ) 
          ZERO_HG0_DEP = ( FRAC_NO_HG0_DEP > 0d0 )
 
 #elif defined( GEOS_5 )
          ! GEOS5 snow height (water equivalent) in mm. (Docs wrongly say m)
-#if defined( DEVEL )
-         ZERO_HG0_DEP = ( (LWI(I,J) == 0) .OR. 
-     &                    (IS_ICE ( I, J, LOCAL_MET )) .OR.
-     &                    (IS_LAND( I, J, LOCAL_MET )  .AND.
-     &                     SNOMAS ( I, J ) > 10d0) )
-#else
-         ZERO_HG0_DEP = ( (LWI(I,J) == 0) .OR. 
-     &                   (IS_ICE(I,J)) .OR.
-     &                   (IS_LAND(I,J) .AND. SNOMAS(I,J) > 10d0) )
-#endif
+         ZERO_HG0_DEP = (( LOCAL_MET%LWI(I,J)   == 0    )  .OR. 
+     &                   ( IS_ICE ( I, J, LOCAL_MET     )) .OR.
+     &                   ( IS_LAND( I, J, LOCAL_MET     )  .AND.
+     &                     LOCAL_MET%SNOMAS(I,J) > 10d0 ))
 
 #else
          ! GEOS1-4 snow heigt (water equivalent) in mm
-#if defined( DEVEL )
-         ZERO_HG0_DEP = ( (LWI(I,J) == 0) .OR.
-     &                    (IS_ICE ( I, J, LOCAL_MET )) .OR. 
-     &                    (IS_LAND( I, J, LOCAL_MET )  .AND.
-     &                     SNOW   ( I, J ) > 10d0) )
+         ZERO_HG0_DEP = (( LOCAL_MET%LWI(I,J) == 0    )  .OR.
+     &                   ( IS_ICE ( I, J, LOCAL_MET   )) .OR. 
+     &                   ( IS_LAND( I, J, LOCAL_MET   )  .AND.
+     &                     LOCAL_MET%SNOW(I,J) > 10d0 ))
+#endif 
+
 #else
+
+#if   defined( MERRA ) || defined( GEOS_57 )
+         FRAC_NO_HG0_DEP =
+     &        MIN(FROCEAN(I,J) + FRSNO(I,J) + FRLANDIC(I,J), 1d0) 
+         ZERO_HG0_DEP = ( FRAC_NO_HG0_DEP > 0d0 )
+#elif defined( GEOS_5 )
+         ! GEOS5 snow height (water equivalent) in mm. (Docs wrongly say m)
+         ZERO_HG0_DEP = ( (LWI(I,J) == 0) .OR. 
+     &                   (IS_ICE(I,J)) .OR.
+     &                   (IS_LAND(I,J) .AND. SNOMAS(I,J) > 10d0) )
+#else
+         ! GEOS1-4 snow heigt (water equivalent) in mm
          ZERO_HG0_DEP = ( (LWI(I,J) == 0) .OR.
      &                   (IS_ICE(I,J)) .OR. 
      &                   (IS_LAND(I,J) .AND. SNOW(I,J) > 10d0) )
 #endif
-#endif 
+
+#endif  ! DEVEL
 
          K_DEP0 = K_DRYD0
          IF ( ZERO_HG0_DEP ) THEN
@@ -1928,7 +1943,7 @@
       ENDDO
 !$OMP END PARALLEL DO
 
-      ! Return to callwing program
+      ! Return to calling program
       END SUBROUTINE CHEM_HgP
 
 !------------------------------------------------------------------------------
@@ -3681,17 +3696,17 @@
 !******************************************************************************
 !
       ! References to F90 modules
-      USE DAO_MOD       , ONLY : SUNCOS, AD, T
+      USE DAO_MOD       , ONLY : SUNCOS,    AD,       T
+      USE DAO_MOD       , ONLY : LWI,       GET_OBK
+      USE DAO_MOD       , ONLY : IS_WATER
       USE GLOBAL_BR_MOD , ONLY : BR_MERGE,  BR_TROP,  BR_STRAT, J_BRO
       USE GLOBAL_BR_MOD , ONLY : BRO_MERGE, BRO_TROP, BRO_STRAT
       USE TIME_MOD      , ONLY : GET_TS_CHEM, GET_LOCALTIME 
       USE TIME_MOD      , ONLY : ITS_A_NEW_DAY
-      USE TROPOPAUSE_MOD, ONLY : ITS_IN_THE_TROP, ITS_IN_THE_STRAT
-      USE DAO_MOD       , ONLY : IS_WATER
+      USE TROPOPAUSE_MOD, ONLY : ITS_IN_THE_STRAT
       USE PBL_MIX_MOD   , ONLY : GET_FRAC_UNDER_PBLTOP
       USE GRID_MOD      , ONLY : GET_YMID
       USE TIME_MOD      , ONLY : GET_MONTH
-      USE DAO_MOD       , ONLY : LWI, GET_OBK!, IS_ICE
       USE PRESSURE_MOD  , ONLY : GET_PCENTER
       USE ERROR_MOD     , ONLY : SAFE_DIV
 
@@ -3753,8 +3768,13 @@
       BRO_PPTV = BRO_MERGE(I,J,L)
 
       ! Multiple stratospheric concentrations by Factor, if necessary
+#if defined( DEVEL )
+      IF ( (ITS_IN_THE_STRAT( I, J, L, LOCAL_MET )) .AND.
+     &     (ABS(STRAT_BR_FACTOR - 1d0) > 1d-2) )    THEN
+#else
       IF ( (ITS_IN_THE_STRAT(I,J,L)) .AND.
      &     (ABS(STRAT_BR_FACTOR - 1d0) > 1d-2) ) THEN
+#endif
 
          BR_PPTV  = BR_PPTV  * STRAT_BR_FACTOR
          BRO_PPTV = BRO_PPTV * STRAT_BR_FACTOR
@@ -3800,9 +3820,17 @@
       ! 1-D grid box index for SUNCOS
       JLOOP = ( (J-1) * IIPAR ) + I
 
+#if defined( DEVEL )
+      IF ( ( LPOLARBR ) .AND. ( FPBL >  0d0   ) .AND.
+     &     ( SUNCOS(JLOOP)           >  0D0   ) .AND. 
+     &     ( LOCAL_MET%T(I,J,1)      <= 268D0 ) .AND.
+     &     ( LOCAL_MET%LWI(I,J)      == 2     ) .AND. 
+     &       GET_OBK(I,J,LOCAL_MET)  >  0D0   ) THEN
+#else
       IF ( (LPOLARBR)         .AND. (FPBL > 0d0) .AND.
      &     (SUNCOS(JLOOP) > 0D0) .AND. (T(I,J,1) <= 268D0) .AND.
      &     ( LWI(I,J)==2 )  .AND. GET_OBK(I,J) > 0D0 ) THEN
+#endif
 
          IF ( ( (GET_YMID(I,J,L) > 60D0) .AND. 
      &          (GET_MONTH() >= 3) .AND. (GET_MONTH() <= 5)  ) .OR.
@@ -4184,7 +4212,7 @@
 !
 
       ! References to F90 modules
-      USE DAO_MOD    , ONLY : IS_WATER, RH
+      USE DAO_MOD    , ONLY : IS_WATER, RH, U10M, V10M
       USE PBL_MIX_MOD, ONLY : GET_PBL_TOP_M
       USE FILE_MOD   , ONLY : IU_FILE
       USE RNPBBE_MOD , ONLY : SLQ
@@ -4234,7 +4262,12 @@
 #endif
 
             ! Wind speed at 10m altitude [m/s]
-            U10M = SQRT( SFCWINDSQR(I,J) )
+#if defined( DEVEL )
+            U10M = SQRT( SFCWINDSQR( I, J,
+     &                               LOCAL_MET%U10M, LOCAL_MET%V10M ) )
+#else
+            U10M = SQRT( SFCWINDSQR( I, J, U10M, V10M) )
+#endif
             
             ! Don't allow wind >20 m/s which is the limit of this 
             ! parameterization

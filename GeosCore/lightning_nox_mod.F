@@ -155,7 +155,7 @@
 !
 ! !USES:
 !
-      USE DAO_MOD,      ONLY : BXHEIGHT,  CLDTOPS,    PRECON,   T, ZMMU
+      USE DAO_MOD,      ONLY : BXHEIGHT,  CLDTOPS,    T, ZMMU
       USE DIAG56_MOD,   ONLY : AD56,      ND56
       USE GRID_MOD,     ONLY : GET_YMID,  GET_XMID,   GET_AREA_M2
       USE LOGICAL_MOD,  ONLY : LOTDLOC
@@ -412,7 +412,11 @@
             !===========================================================
 
             ! Cloud top level
+#if defined( DEVEL )
+            LTOP = LOCAL_MET%CLDTOPS(I,J)
+#else
             LTOP = CLDTOPS(I,J)
+#endif
             
             ! Error check LTOP
             IF ( LTOP == 0 ) CYCLE

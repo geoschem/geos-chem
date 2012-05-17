@@ -414,7 +414,7 @@
 !------------------------------------------------------------------------------
 
 #if defined( DEVEL )
-      SUBROUTINE EMISS_STREETS_ANTHRO(EMISSIONS)
+      SUBROUTINE EMISS_STREETS_ANTHRO( LOCAL_MET, EMISSIONS )
 #else
       SUBROUTINE EMISS_STREETS_ANTHRO
 #endif
@@ -454,6 +454,7 @@
       USE CMN_O3_MOD           ! FSCALYR
 
 #if defined( DEVEL )
+      USE GC_TYPE_MOD,      ONLY : GC_MET_LOCAL
       USE TRACER_MOD,       ONLY : N_TRACERS
       USE TRACERID_MOD,     ONLY : IDTNOx, IDTCO, IDTSO2, IDTNH3
       USE TRACERID_MOD,     ONLY : IDTACET, IDTALK4, IDTC2H6
@@ -485,7 +486,8 @@
       REAL*8                     :: TAUMONTH_2001, TAUMONTH_2004, TAU
 
 #if defined( DEVEL )
-      REAL*8,INTENT(INOUT)       :: EMISSIONS(IIPAR,JJPAR,N_TRACERS)
+      TYPE(GC_MET_LOCAL), INTENT(IN) :: LOCAL_MET  ! Obj w/ met fields
+      REAL*8,INTENT(INOUT)           :: EMISSIONS(IIPAR,JJPAR,N_TRACERS)
 #endif
       !=================================================================
       ! EMISS_STREETS_ANTHRO begins here!
@@ -567,7 +569,11 @@
       IF (.NOT. IS_2006) THEN
          DO J = 1, JJPAR
          DO I = 1, IIPAR
+#if defined( DEVEL )
+            IF ( LOCAL_MET%FROCEAN(I,J) == 1d0 ) SCALOC(I,J) = 0d0
+#else
             IF ( FROCEAN(I,J) == 1d0 ) SCALOC(I,J) = 0d0
+#endif
          ENDDO
          ENDDO
       ENDIF 
@@ -1242,7 +1248,7 @@
 !------------------------------------------------------------------------------
 
 #if defined( DEVEL )
-      SUBROUTINE EMISS_STREETS_ANTHRO_05x0666(EMISSIONS)
+      SUBROUTINE EMISS_STREETS_ANTHRO_05x0666( LOCAL_MET, EMISSIONS)
 #else
       SUBROUTINE EMISS_STREETS_ANTHRO_05x0666
 #endif
@@ -1282,6 +1288,7 @@
       USE CMN_O3_MOD         ! FSCALYR
 
 #if defined( DEVEL )
+      USE GC_TYPE_MOD,      ONLY : GC_MET_LOCAL
       USE TRACER_MOD,       ONLY : N_TRACERS
       USE TRACERID_MOD,     ONLY : IDTNOx, IDTCO, IDTSO2, IDTNH3
       USE TRACERID_MOD,     ONLY : IDTACET, IDTALK4, IDTC2H6
@@ -1313,7 +1320,8 @@
       REAL*8                     :: TAUMONTH_2001, TAUMONTH_2004, TAU
 
 #if defined( DEVEL )
-      REAL*8,INTENT(INOUT)       :: EMISSIONS(IIPAR,JJPAR,N_TRACERS)
+      TYPE(GC_MET_LOCAL), INTENT(IN) :: LOCAL_MET  ! Obj w/ met fields
+      REAL*8,INTENT(INOUT)           :: EMISSIONS(IIPAR,JJPAR,N_TRACERS)
 #endif
       
       !=================================================================
@@ -1403,7 +1411,11 @@
       IF (.NOT. IS_2006) THEN
          DO J = 1, JJPAR
          DO I = 1, IIPAR
+#if defined( DEVEL )
+            IF ( LOCAL_MET%FROCEAN(I,J) == 1d0 ) SCALOC(I,J) = 0d0
+#else
             IF ( FROCEAN(I,J) == 1d0 ) SCALOC(I,J) = 0d0
+#endif
          ENDDO
          ENDDO
       ENDIF 

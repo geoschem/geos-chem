@@ -13,7 +13,11 @@
 !\\
 ! !INTERFACE:
 !
+#if defined( DEVEL )
+      SUBROUTINE SCHEM( LOCAL_MET )
+#else
       SUBROUTINE SCHEM
+#endif
 !
 ! !USES:
 !
@@ -37,15 +41,19 @@
       USE CMN_SIZE_MOD        ! Size parameters
 
 #if defined( DEVEL )
-
+      USE GC_TYPE_MOD,    ONLY : GC_MET_LOCAL
       USE GC_TYPE2_MOD,   ONLY : EXT_STRATOH, EXT_SJVALUE
-      USE GC_TYPE2_MOD,   ONLY : EXT_COLOSS, EXT_COPROD
-
+      USE GC_TYPE2_MOD,   ONLY : EXT_COLOSS,  EXT_COPROD
 #endif
 
       IMPLICIT NONE
 #     include "define.h"
-
+!
+! !INPUT PARAMETERS: 
+!
+#if defined( DEVEL )
+      TYPE(GC_MET_LOCAL), INTENT(IN) :: LOCAL_MET  ! Obj w/ met fields
+#endif
 ! 
 ! !REVISION HISTORY: 
 !  01 Oct 1995 - M. Prather  - Initial version
@@ -365,12 +373,21 @@
          DO I = 1,    IIPAR
 
             ! Only proceed for stratospheric boxes
+#if defined( DEVEL )
+            IF ( ITS_IN_THE_STRAT( I, J, L, LOCAL_MET ) ) THEN
+
+               ! Compute photolysis loss 
+               STT(I,J,L,N) = STT(I,J,L,N) * 
+     &                        EXP( -SJVALUE(J,L,NN) * DTCHEM )
+            ENDIF
+#else
             IF ( ITS_IN_THE_STRAT( I, J, L ) ) THEN
 
                ! Compute photolysis loss 
                STT(I,J,L,N) = STT(I,J,L,N) * 
      &                        EXP( -SJVALUE(J,L,NN) * DTCHEM )
             ENDIF
+#endif
 
          ENDDO
          ENDDO
@@ -384,7 +401,11 @@
       ! CO is special -- 
       ! use archived P, L rates for CO chemistry in stratosphere
       !=================================================================
+#if defined( DEVEL )
+      CALL CO_STRAT_PL( COPROD, COLOSS, LOCAL_MET )
+#else
       CALL CO_STRAT_PL( COPROD, COLOSS )
+#endif
 
       !=================================================================
       ! Reaction with OH -- compute rate constants for each tracer
@@ -405,7 +426,11 @@
       DO I = 1,    IIPAR
 
          ! Only proceed for stratospheric boxes
+#if defined( DEVEL )
+         IF ( ITS_IN_THE_STRAT( I, J, L, LOCAL_MET ) ) THEN
+#else
          IF ( ITS_IN_THE_STRAT( I, J, L ) ) THEN
+#endif
 
             ! Density of air at grid box (I,J,L) in molec/cm3
             M = AD(I,J,L) / BOXVL(I,J,L) * XNUMOLAIR

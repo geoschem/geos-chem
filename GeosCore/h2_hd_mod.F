@@ -111,7 +111,7 @@
 ! !INTERFACE:
 !
 #if defined( DEVEL )
-      SUBROUTINE EMISS_H2_HD( BIO_EMISS )
+      SUBROUTINE EMISS_H2_HD( LOCAL_MET, BIO_EMISS )
 #else
       SUBROUTINE EMISS_H2_HD
 #endif
@@ -122,7 +122,7 @@
       USE BIOMASS_MOD,      ONLY : BIOMASS
       USE DAO_MOD,          ONLY : SUNCOS,      BXHEIGHT
       USE DAO_MOD,          ONLY : PARDF,       PARDR
-      USE DAO_MOD,          ONLY : SUNCOS_MID
+      USE DAO_MOD,          ONLY : SUNCOS_MID,  TS
       USE DIAG_MOD,         ONLY : AD29,        AD46,          AD10em
       USE GEIA_MOD,         ONLY : GET_IHOUR,   GET_DAY_INDEX, READ_GEIA
       USE GEIA_MOD,         ONLY : READ_LIQCO2, READ_TOTCO2,   READ_TODX
@@ -143,10 +143,20 @@
       USE TAGGED_CO_MOD,    ONLY : INIT_TAGGED_CO
       USE TAGGED_CO_MOD,    ONLY : READ_ACETONE,  EMACET
       USE SCALE_ANTHRO_MOD, ONLY : GET_ANNUAL_SCALAR
+#if defined( DEVEL )
+      USE GC_TYPE_MOD,      ONLY : GC_MET_LOCAL
+#endif
       
       USE CMN_SIZE_MOD      ! Size parameters
       USE CMN_O3_MOD        ! FSCALYR, SCNR89, TODH, EMISTCO
       USE CMN_DIAG_MOD      ! Diagnostic arrays & switches
+!
+! !INPUT PARAMETERS: 
+!
+#if defined( DEVEL )
+      TYPE(GC_MET_LOCAL), INTENT(IN) :: LOCAL_MET        ! Obj w/ met fields
+      REAL*8, INTENT(INOUT)          :: BIO_EMISS(:,:,:)
+#endif
 ! 
 ! !REVISION HISTORY: 
 !  18 Sep 2007 - L. Jaegle, H. U. Price, P. Le Sager -- Initial version
@@ -187,10 +197,6 @@
       ! External functions
       REAL*8, EXTERNAL       :: BOXVL
       REAL*8, EXTERNAL       :: EMCH3OH
-
-#if defined( DEVEL )
-      REAL*8, INTENT(INOUT)  :: BIO_EMISS(:,:,:)
-#endif
 
       !=================================================================
       ! EMISS_H2_HD begins here!
@@ -575,8 +581,11 @@
             !===========================================================
 
             ! Surface air temperature [K]
-            TMMP = XLTMMP(I,J,IJLOOP)
-
+#if defined( DEVEL )
+            TMMP = XLTMMP( I, J, LOCAL_MET%TS, IJLOOP )
+#else
+            TMMP = XLTMMP( I, J, TS, IJLOOP )
+#endif
 
             ! MEGAN biogenic emissions (mpayer,12/8/11)
             IF ( LMEGAN ) THEN
@@ -585,8 +594,13 @@
                SC   = SUNCOS_MID(IJLOOP)
 
                ! Diffuse and direct PAR
+#if defined( DEVEL )
+               PDR  = LOCAL_MET%PARDR(I,J)
+               PDF  = LOCAL_MET%PARDF(I,J)
+#else
                PDR  = PARDR(I,J)
                PDF  = PARDF(I,J)
+#endif
 
                ! ISOP and MONOTERPENE emissions in [atoms C/box/time step]
                EMXX = GET_EMISOP_MEGAN(  I,   J,   SC,    TMMP, 
@@ -682,7 +696,11 @@
 !\\
 ! !INTERFACE:
 !
+#if defined( DEVEL )
+      SUBROUTINE CHEM_H2_HD( LOCAL_MET )
+#else
       SUBROUTINE CHEM_H2_HD
+#endif
 !
 ! !USES:
 !
@@ -702,10 +720,19 @@
       USE TRACERID_MOD,   ONLY : IDTH2, IDTHD
       USE TAGGED_CO_MOD,  ONLY : GET_ALPHA_ISOP,    READ_PCO_LCO_STRAT
       USE TAGGED_CO_MOD,  ONLY : GET_PCO_LCO_STRAT
+#if defined( DEVEL )
+      USE GC_TYPE_MOD,    ONLY : GC_MET_LOCAL
+#endif
 
       USE CMN_SIZE_MOD     ! Size parameters
       USE CMN_DIAG_MOD     ! ND65
       USE CMN_DEP_MOD      ! FRCLND
+!
+! !INPUT PARAMETERS: 
+!
+#if defined( DEVEL )
+      TYPE(GC_MET_LOCAL), INTENT(IN) :: LOCAL_MET  ! Obj w/ met fields
+#endif
 ! 
 ! !REVISION HISTORY: 
 !  18 Sep 2007 - L. Jaegle, H. U. Price, P. Le Sager -- Initial version
@@ -838,7 +865,11 @@
          H2_CH4 = 0d0
 
          ! Test level for stratosphere or troposphere
+#if defined( DEVEL )
+         IF ( ITS_IN_THE_STRAT( I, J, L, LOCAL_MET ) ) THEN
+#else
          IF ( ITS_IN_THE_STRAT( I, J, L ) ) THEN
+#endif
 
             !===========================================================
             ! (1a-1) Production of H2 from CH4 in the stratosphere
@@ -1111,7 +1142,11 @@
          HD_O1D = 0.d0
 
          ! Select out tropospheric or stratospheric boxes
+#if defined( DEVEL )
+         IF ( ITS_IN_THE_STRAT( I, J, L, LOCAL_MET ) ) THEN
+#else
          IF ( ITS_IN_THE_STRAT( I, J, L ) ) THEN
+#endif
 
             !===========================================================
             ! (2a-1) Stratospheric loss H2 HD due to chem rxn w/OH & O1D

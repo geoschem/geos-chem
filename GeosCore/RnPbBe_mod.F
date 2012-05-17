@@ -255,7 +255,11 @@
 !\\
 ! !INTERFACE:
 !
+#if defined( DEVEL )
+      SUBROUTINE EMISSRnPbBe( LOCAL_MET )
+#else
       SUBROUTINE EMISSRnPbBe
+#endif
 !
 ! !USES:
 !
@@ -269,10 +273,19 @@
       USE TRACER_MOD,     ONLY : STT, N_TRACERS
       USE TROPOPAUSE_MOD, ONLY : ITS_IN_THE_STRAT
       USE PRESSURE_MOD,   ONLY : GET_PCENTER
+#if defined( DEVEL )
+      USE GC_TYPE_MOD,    ONLY : GC_MET_LOCAL
+#endif
 
       USE CMN_SIZE_MOD       ! Size parameters
       USE CMN_DIAG_MOD       ! ND02 
       USE CMN_DEP_MOD        ! FRCLND
+!
+! !INPUT PARAMETERS: 
+!
+#if defined( DEVEL )
+      TYPE(GC_MET_LOCAL), INTENT(IN) :: LOCAL_MET  ! Obj w/ met fields
+#endif
 ! 
 ! !REVISION HISTORY: 
 !  28 May 1999 - I. Bey - Initial version
@@ -460,7 +473,11 @@
          ENDIF
 
          ! For boxes below freezing, reduce 222Rn emissions by 3x
+#if defined( DEVEL )
+         IF ( LOCAL_MET%TS(I,J) < 273.15 ) ADD_Rn = ADD_Rn / 3d0
+#else
          IF ( TS(I,J) < 273.15 ) ADD_Rn = ADD_Rn / 3d0
+#endif
 
          ! Save 222Rn into STT array [kg]
          STT(I,J,1,1) = STT(I,J,1,1) + ADD_Rn
@@ -513,9 +530,15 @@
             ADD_Be  = Be_TMP * DTSRCE / XNUMOL_Be 
 
             ! Correct the strat-trop exchange of 7Be
+#if defined( DEVEL )
+            IF ( ITS_IN_THE_STRAT( I, J, L, LOCAL_MET ) ) THEN
+               CALL CORRECT_STE( ADD_Be )
+            ENDIF
+#else
             IF ( ITS_IN_THE_STRAT( I, J, L ) ) THEN
                CALL CORRECT_STE( ADD_Be )
             ENDIF
+#endif
 
             ! Add 7Be into STT tracer array [kg]
             STT(I,J,L,3) = STT(I,J,L,3) + ADD_Be
@@ -548,7 +571,11 @@
 !\\
 ! !INTERFACE:
 !
+#if defined( DEVEL )
+      SUBROUTINE CHEMRnPbBe( LOCAL_MET )
+#else
       SUBROUTINE CHEMRnPbBe
+#endif
 !
 ! !USES:
 !
@@ -556,9 +583,18 @@
       USE TIME_MOD,       ONLY : GET_TS_CHEM
       USE TRACER_MOD,     ONLY : STT, N_TRACERS
       USE TROPOPAUSE_MOD, ONLY : ITS_IN_THE_STRAT
+#if defined( DEVEL )
+      USE GC_TYPE_MOD,    ONLY : GC_MET_LOCAL
+#endif
 
       USE CMN_SIZE_MOD       ! Size parameters
       USE CMN_DIAG_MOD       ! ND01, ND02
+!
+! !INPUT PARAMETERS: 
+!
+#if defined( DEVEL )
+      TYPE(GC_MET_LOCAL), INTENT(IN) :: LOCAL_MET  ! Obj w/ met fields
+#endif
 ! 
 ! !REVISION HISTORY:
 !  31 Oct 1999 - H. Liu - Initial version
@@ -657,9 +693,15 @@
             ADD_Pb = Rn_LOST(I,J,L) * Pb_Rn_RATIO 
 
             ! Correct strat-trop exchange of 210Pb in stratosphere
+#if defined( DEVEL )
+            IF ( ITS_IN_THE_STRAT( I, J, L, LOCAL_MET ) ) THEN
+               CALL CORRECT_STE( ADD_Pb )
+            ENDIF
+#else
             IF ( ITS_IN_THE_STRAT( I, J, L ) ) THEN
                CALL CORRECT_STE( ADD_Pb )
             ENDIF
+#endif
 
             ! ND01 diag: 210Pb emission from 222Rn decay [kg/s]
             IF ( ND01 > 0 .and. L <= LD01 ) THEN

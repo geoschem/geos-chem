@@ -228,10 +228,10 @@
 #if defined( DEVEL )
 #if   defined(GRID05x0666)
             CALL EMISS_STREETS_ANTHRO_05x0666 
-     &           (CHEM_STATE%TRAC_TEND(:,:,1,:))
+     &           ( LOCAL_MET, CHEM_STATE%TRAC_TEND(:,:,1,:) )
 #else
             CALL EMISS_STREETS_ANTHRO
-     &           (CHEM_STATE%TRAC_TEND(:,:,1,:))
+     &           ( LOCAL_MET, CHEM_STATE%TRAC_TEND(:,:,1,:) )
 #endif
 #else
 #if   defined(GRID05x0666)
@@ -399,9 +399,9 @@
          IF ( LSULF .or. LCRYST ) 
      &      CALL EMISSSULFATE( LOCAL_MET, CHEM_STATE%TRAC_TEND(:,:,:,:))
          IF ( LCARB             ) 
-     &      CALL EMISSCARBON(CHEM_STATE%TRAC_TEND(:,:,1,:))
+     &      CALL EMISSCARBON ( LOCAL_MET, CHEM_STATE%TRAC_TEND(:,:,1,:))
          IF ( LDUST             ) 
-     &      CALL EMISSDUST(    LOCAL_MET, CHEM_STATE%TRAC_TEND(:,:,:,:))
+     &      CALL EMISSDUST   ( LOCAL_MET, CHEM_STATE%TRAC_TEND(:,:,:,:))
 #else
          IF ( LSSALT            ) CALL EMISSSEASALT
          IF ( LSULF .or. LCRYST ) CALL EMISSSULFATE
@@ -420,10 +420,10 @@
 #if defined( DEVEL )
 #if   defined(GRID05x0666)
             CALL EMISS_STREETS_ANTHRO_05x0666 
-     &           (CHEM_STATE%TRAC_TEND(:,:,1,:))
+     &           ( LOCAL_MET, CHEM_STATE%TRAC_TEND(:,:,1,:) )
 #else
             CALL EMISS_STREETS_ANTHRO
-     &           (CHEM_STATE%TRAC_TEND(:,:,1,:))
+     &           ( LOCAL_MET, CHEM_STATE%TRAC_TEND(:,:,1,:) )
 #endif
 #else
 #if   defined( GRID05x0666 )
@@ -553,9 +553,9 @@
          IF ( LSULF .or. LCRYST ) 
      &   CALL EMISSSULFATE( LOCAL_MET, CHEM_STATE%TRAC_TEND(:,:,:,:))
          IF ( LCARB             ) 
-     &   CALL EMISSCARBON(CHEM_STATE%TRAC_TEND(:,:,1,:))
+     &   CALL EMISSCARBON ( LOCAL_MET, CHEM_STATE%TRAC_TEND(:,:,1,:))
          IF ( LDUST             ) 
-     &   CALL EMISSDUST( LOCAL_MET, CHEM_STATE%TRAC_TEND(:,:,:,:))
+     &   CALL EMISSDUST   ( LOCAL_MET, CHEM_STATE%TRAC_TEND(:,:,:,:))
 #else
          IF ( LSSALT            ) CALL EMISSSEASALT
          IF ( LSULF .or. LCRYST ) CALL EMISSSULFATE
@@ -568,7 +568,11 @@
          !--------------------
          ! Rn-Pb-Be
          !--------------------
+#if defined( DEVEL )
+         CALL EMISSRnPbBe( LOCAL_MET )
+#else
          CALL EMISSRnPbBe
+#endif
 
       ELSE IF ( ITS_A_CH3I_SIM() ) THEN
 
@@ -578,7 +582,7 @@
 
          ! Emit CH3I
 #if defined( DEVEL )
-         CALL EMISSCH3I( CHEM_STATE%TRAC_BTEND(:,:,1,:) )
+         CALL EMISSCH3I( LOCAL_MET%TS, CHEM_STATE%TRAC_BTEND(:,:,1,:) )
 #else
          CALL EMISSCH3I
 #endif
@@ -602,10 +606,10 @@
 #if defined( DEVEL )
 #if   defined(GRID05x0666)
             CALL EMISS_STREETS_ANTHRO_05x0666 
-     &           (CHEM_STATE%TRAC_TEND(:,:,1,:))
+     &           ( LOCAL_MET, CHEM_STATE%TRAC_TEND(:,:,1,:) )
 #else
             CALL EMISS_STREETS_ANTHRO
-     &           (CHEM_STATE%TRAC_TEND(:,:,1,:))
+     &           ( LOCAL_MET, CHEM_STATE%TRAC_TEND(:,:,1,:) )
 #endif
 #else
 #if   defined( GRID05x0666 )
@@ -726,7 +730,11 @@
          CALL EMISSDR 
          
          ! Emit tagged CO
+#if defined( DEVEL )
+         CALL EMISS_TAGGED_CO( LOCAL_MET )
+#else
          CALL EMISS_TAGGED_CO
+#endif
 
       ELSE IF ( ITS_A_C2H6_SIM() ) THEN
 
@@ -755,10 +763,10 @@
 #if defined( DEVEL )
 #if   defined(GRID05x0666)
             CALL EMISS_STREETS_ANTHRO_05x0666 
-     &           (CHEM_STATE%TRAC_TEND(:,:,1,:))
+     &           ( LOCAL_MET, CHEM_STATE%TRAC_TEND(:,:,1,:) )
 #else
             CALL EMISS_STREETS_ANTHRO
-     &           (CHEM_STATE%TRAC_TEND(:,:,1,:))
+     &           ( LOCAL_MET, CHEM_STATE%TRAC_TEND(:,:,1,:) )
 #endif
 #else
 #if   defined( GRID05x0666 )
@@ -770,7 +778,11 @@
          ENDIF
 
          ! Emit CH4
+#if defined( DEVEL )
+         CALL EMISSCH4( LOCAL_MET )
+#else
          CALL EMISSCH4
+#endif
 
       ELSE IF ( ITS_A_MERCURY_SIM() ) THEN
 
@@ -795,10 +807,10 @@
 #if defined( DEVEL )
 #if   defined(GRID05x0666)
             CALL EMISS_STREETS_ANTHRO_05x0666 
-     &           (CHEM_STATE%TRAC_TEND(:,:,1,:))
+     &           ( LOCAL_MET, CHEM_STATE%TRAC_TEND(:,:,1,:) )
 #else
             CALL EMISS_STREETS_ANTHRO
-     &           (CHEM_STATE%TRAC_TEND(:,:,1,:))
+     &           ( LOCAL_MET, CHEM_STATE%TRAC_TEND(:,:,1,:) )
 #endif
 #else
 #if   defined( GRID05x0666 )
@@ -832,10 +844,10 @@
 #if defined( DEVEL )
 #if   defined(GRID05x0666)
             CALL EMISS_STREETS_ANTHRO_05x0666 
-     &           (CHEM_STATE%TRAC_TEND(:,:,1,:))
+     &           ( LOCAL_MET, CHEM_STATE%TRAC_TEND(:,:,1,:) )
 #else
             CALL EMISS_STREETS_ANTHRO
-     &           (CHEM_STATE%TRAC_TEND(:,:,1,:))
+     &           ( LOCAL_MET, CHEM_STATE%TRAC_TEND(:,:,1,:) )
 #endif
 #else
 #if   defined( GRID05x0666 )
@@ -953,7 +965,7 @@
 
          ! Emit H2/HD
 #if defined( DEVEL ) 
-         CALL EMISS_H2_HD( CHEM_STATE%TRAC_BTEND(:,:,1,:) )
+         CALL EMISS_H2_HD( LOCAL_MET, CHEM_STATE%TRAC_BTEND(:,:,1,:) )
 #else
          CALL EMISS_H2_HD
 #endif

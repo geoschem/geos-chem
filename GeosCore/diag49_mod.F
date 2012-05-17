@@ -169,7 +169,11 @@
 !\\
 ! !INTERFACE:
 !
+#if defined( DEVEL )
+      SUBROUTINE DIAG49( LOCAL_MET )
+#else
       SUBROUTINE DIAG49
+#endif
 !
 ! !USES:
 !
@@ -195,13 +199,21 @@
       USE TRACERID_MOD, ONLY : IDTHNO3, IDTHNO4, IDTN2O5, IDTNOX  
       USE TRACERID_MOD, ONLY : IDTPAN,  IDTPMN,  IDTPPN,  IDTOX   
       USE TRACERID_MOD, ONLY : IDTR4N2, IDTSALA, IDTSALC 
+#if defined( DEVEL )
+      USE GC_TYPE_MOD,  ONLY : GC_MET_LOCAL
+#endif
 
       USE CMN_FJ_MOD,   ONLY : JPMAX, JPPJ        ! FAST-J stuff, includes F77_CMN_SIZE
       USE JV_CMN_MOD        ! ODAER, QAA, QAA_AOD (clh)
       USE CMN_O3_MOD		! Pure O3, SAVENO2
       USE CMN_GCTM_MOD        ! XTRA2
       USE LOGICAL_MOD,  ONLY : DO_DIAG_WRITE
-
+!
+! !INPUT PARAMETERS:
+!
+#if defined( DEVEL )
+      TYPE(GC_MET_LOCAL), INTENT(IN) :: LOCAL_MET  ! Obj w/ met fields
+#endif
 !
 ! !REVISION HISTORY: 
 !  09 Apr 1999 - I. Bey, R. Martin, R. Yantosca - Initial version
@@ -258,9 +270,14 @@
 
       ! Set logical flags on first timestep
       IF ( FIRST ) THEN
+#if defined( DEVEL )
+         IS_CLDTOPS  = ALLOCATED( LOCAL_MET%CLDTOPS )
+         IS_SLP      = ALLOCATED( LOCAL_MET%SLP     )
+#else
          IS_CLDTOPS  = ALLOCATED( CLDTOPS )
-         IS_OPTD     = ALLOCATED( OPTD    )
          IS_SLP      = ALLOCATED( SLP     )
+#endif
+         IS_OPTD     = ALLOCATED( OPTD    )
          IS_FULLCHEM = ITS_A_FULLCHEM_SIM()
          IS_SEASALT  = ( IDTSALA > 0 .and. IDTSALC > 0 )
          IS_Ox       = ( IS_FULLCHEM .and. IDTOX   > 0 )
@@ -649,7 +666,11 @@
                J = JOFF + Y
             DO X = 1, ND49_NI
                I = GET_I( X )
+#if defined( DEVEL )
+               Q(X,Y,K) = GET_PEDGE( I, J, LOCAL_MET%CLDTOPS(I,J) )
+#else
                Q(X,Y,K) = GET_PEDGE( I, J, CLDTOPS(I,J) )
+#endif
             ENDDO
             ENDDO
             ENDDO
@@ -992,7 +1013,11 @@
                J = JOFF + Y
             DO X = 1, ND49_NI
                I = GET_I( X )
+#if defined( DEVEL )
+               Q(X,Y,1) = LOCAL_MET%SLP(I,J)
+#else
                Q(X,Y,1) = SLP(I,J)
+#endif
             ENDDO
             ENDDO
 !$OMP END PARALLEL DO
@@ -1114,7 +1139,11 @@
                J = JOFF + Y
             DO X = 1, ND49_NI
                I = GET_I( X )
+#if defined( DEVEL )
+               Q(X,Y,1) = LOCAL_MET%PARDF(I,J)
+#else
                Q(X,Y,1) = PARDF(I,J)
+#endif
             ENDDO
             ENDDO
 !$OMP END PARALLEL DO
@@ -1136,7 +1165,11 @@
                J = JOFF + Y
             DO X = 1, ND49_NI
                I = GET_I( X )
+#if defined( DEVEL )
+               Q(X,Y,1) = LOCAL_MET%PARDR(I,J)
+#else
                Q(X,Y,1) = PARDR(I,J)
+#endif
             ENDDO
             ENDDO
 !$OMP END PARALLEL DO
@@ -1181,7 +1214,11 @@
                J = JOFF + Y
             DO X = 1, ND49_NI
                I = GET_I( X )
+#if defined( DEVEL )
+               Q(X,Y,1) = LOCAL_MET%TS( I , J )
+#else
                Q(X,Y,1) = TS( I , J )
+#endif
             ENDDO
             ENDDO
 !$OMP END PARALLEL DO

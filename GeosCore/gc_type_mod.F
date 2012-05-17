@@ -223,7 +223,7 @@
          REAL*8, ALLOCATABLE :: ALBD(:,:)    ! Visible sfc albedo [unitless]
          REAL*8, ALLOCATABLE :: AREA_M2(:,:) ! Grid box surface area [cm2]
          REAL*8, ALLOCATABLE :: CLDFRC(:,:)  ! Column cloud fraction [unitless]
-         REAL*8, ALLOCATABLE :: CLDTOPS(:,:) ! Max cloud top height [levels]
+         INTEGER, ALLOCATABLE :: CLDTOPS(:,:) ! Max cloud top height [levels]
          REAL*8, ALLOCATABLE :: EFLUX(:,:)   ! Latent heat flux [W/m2]
          REAL*8, ALLOCATABLE :: EVAP(:,:)    ! Surface evap [kg/m2/s]
          REAL*8, ALLOCATABLE :: FRCLND(:,:)  ! Olson land fraction [unitless]
@@ -253,6 +253,7 @@
          REAL*8, ALLOCATABLE :: PRECSNO(:,:) ! Snow precip [kg/m2/s]
          REAL*8, ALLOCATABLE :: PS1(:,:)     ! Sfc press at timestep start[hPa]
          REAL*8, ALLOCATABLE :: PS2(:,:)     ! Sfc press at timestep end [hPa]
+         REAL*8, ALLOCATABLE :: PSC2(:,:)    ! Interpolated sfc pressure [hPa]
          REAL*8, ALLOCATABLE :: RADLWG(:,:)  ! Net LW radiation @ ground [W/m2]
          REAL*8, ALLOCATABLE :: RADSWG(:,:)  ! Solar radiation @ ground [W/m2]
          REAL*8, ALLOCATABLE :: SEAICE00(:,:)! Sea ice coverage 00-10%

@@ -473,7 +473,11 @@
 
 !------------------------------------------------------------------------------
 
-      SUBROUTINE CHEM_HCN_CH3CN( N_TRACERS, ALBD, STT )
+#if defined( DEVEL )
+      SUBROUTINE CHEM_HCN_CH3CN( N_TRACERS, LOCAL_MET, STT )
+#else
+      SUBROUTINE CHEM_HCN_CH3CN( N_TRACERS, STT )
+#endif
 !
 !******************************************************************************
 !  Subroutine CHEM_HCN_CH3CN computes the loss of HCN and CH3CN due to 
@@ -489,13 +493,15 @@
 !******************************************************************************
 ! 
       ! References to F90 modules
-      !USE DAO_MOD,       ONLY : AD, ALBD, T, TS, U10M, V10M
-      USE DAO_MOD,       ONLY : AD, T, TS, U10M, V10M
+      USE DAO_MOD,       ONLY : AD, ALBD, T, TS, U10M, V10M
       USE DIAG_MOD,      ONLY : AD09, AD09_em
       USE GLOBAL_OH_MOD, ONLY : OH, GET_GLOBAL_OH
       USE GRID_MOD,      ONLY : GET_AREA_CM2
       USE LOGICAL_MOD,   ONLY : LSPLIT
       USE TIME_MOD,      ONLY : GET_TS_CHEM, GET_MONTH, ITS_A_NEW_MONTH
+#if defined( DEVEL )
+      USE GC_TYPE_MOD,   ONLY : GC_MET_LOCAL
+#endif
 
       USE CMN_SIZE_MOD     ! Size parameters 
       USE CMN_DIAG_MOD     ! ND09
@@ -503,8 +509,10 @@
 
       ! Arguments
       INTEGER, INTENT(IN)    :: N_TRACERS
-      REAL*8,  INTENT(IN)    :: ALBD(IIPAR,JJPAR) ! Sfc albedo [unitless]
       REAL*8,  INTENT(INOUT) :: STT(IIPAR,JJPAR,LLPAR,N_TRACERS)
+#if defined( DEVEL )
+      TYPE(GC_MET_LOCAL), INTENT(IN) :: LOCAL_MET  ! Obj w/ met fields
+#endif      
       
       ! Local variables
       LOGICAL, SAVE          :: FIRST = .TRUE.
@@ -655,6 +663,30 @@
          OCEAN_HCN       = 0d0
          OCEAN_CH3CN     = 0d0
 
+#if defined( DEVEL )
+
+         ! Make sure there is > 50% ocean (not ice) in the grid box
+         IF ( FOCEAN > 0.5d0 .AND. LOCAL_MET%ALBD(I,J) <= 0.4d0 ) THEN
+
+            ! Grid box area in [cm2]
+            ACM2         = GET_AREA_CM2( I, J, 1 ) 
+            
+            ! Wind speed [m/s] at 10m above the surface 
+            U            = SQRT( LOCAL_MET%U10M(I,J)**2 + 
+     &                           LOCAL_MET%V10M(I,J)**2 )
+
+            ! Surface temperature [C]
+            TC           = LOCAL_MET%TS(I,J) - 273.15d0  
+
+            !-----------------------------------------------------------
+            ! (1) HCN ocean uptake
+            !-----------------------------------------------------------
+
+            ! Henry's law constant for HCN [unitless]
+            H            = 7.93d4 * EXP( -5000d0 / LOCAL_MET%TS(I,J) ) 
+
+#else
+
          ! Make sure there is > 50% ocean (not ice) in the grid box
          IF ( FOCEAN > 0.5d0 .AND. ALBD(I,J) <= 0.4d0 ) THEN
 
@@ -673,6 +705,7 @@
 
             ! Henry's law constant for HCN [unitless]
             H            = 7.93d4 * EXP( -5000d0 / TS(I,J) ) 
+#endif
             
             ! SC is Schmidt # for HCN in seawater [unitless]
             SC           = A0 + TC * ( A1 + TC * ( A2 + TC * ( A3 )))
@@ -719,7 +752,11 @@
             !-----------------------------------------------------------
 
             ! Henry's law constant for CH3CN [unitless]
+#if defined( DEVEL )
+            H            = 861.7d0 * EXP( -4100d0 / LOCAL_MET%TS(I,J) ) 
+#else
             H            = 861.7d0 * EXP( -4100d0 / TS(I,J) ) 
+#endif
 
             ! SC is Schmidt # for HCN in seawater [unitless]
             SC           = B0 + TC * ( B1 + TC * ( B2 + TC * ( B3 )))

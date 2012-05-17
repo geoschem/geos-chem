@@ -107,7 +107,11 @@
 !\\
 ! !INTERFACE:
 !
+#if defined( DEVEL )
+      SUBROUTINE DO_PBL_MIX( DO_TURBDAY, LOCAL_MET )
+#else
       SUBROUTINE DO_PBL_MIX( DO_TURBDAY )
+#endif
 !
 ! !USES:
 !
@@ -116,12 +120,17 @@
 #if   defined( APM ) 
       USE TRACER_MOD,  ONLY : N_APMTRA
 #endif
-
+#if defined( DEVEL )
+      USE GC_TYPE_MOD, ONLY : GC_MET_LOCAL
+#endif
 !
 ! !INPUT PARAMETERS: 
 !
       LOGICAL, INTENT(IN) :: DO_TURBDAY   ! =T means call TURBDAY 
                                           !    for full PBL mixing
+#if defined( DEVEL )
+      TYPE(GC_MET_LOCAL), INTENT(IN) :: LOCAL_MET  ! Obj w/ met fields
+#endif
 !
 ! !REVISION HISTORY: 
 !  11 Feb 2005 - R. Yantosca - Initial version
@@ -154,7 +163,11 @@
       ENDIF
          
       ! Compute PBL height and related quantities
+#if defined( DEVEL )
+      CALL COMPUTE_PBL_HEIGHT( LOCAL_MET )
+#else
       CALL COMPUTE_PBL_HEIGHT
+#endif
 
       ! Do complete mixing of tracers in the PBL (if necessary)
       IF ( DO_TURBDAY ) CALL TURBDAY( N_TOT_TRC, STT, TCVV )
@@ -174,16 +187,29 @@
 !\\
 ! !INTERFACE:
 !
+#if defined( DEVEL )
+      SUBROUTINE COMPUTE_PBL_HEIGHT( LOCAL_MET )
+#else
       SUBROUTINE COMPUTE_PBL_HEIGHT
+#endif
 !
 ! !USES:
 !
       USE DAO_MOD,      ONLY : BXHEIGHT, PBL
       USE ERROR_MOD,    ONLY : ERROR_STOP
       USE PRESSURE_MOD, ONLY : GET_PEDGE
+#if defined( DEVEL )
+      USE GC_TYPE_MOD,  ONLY : GC_MET_LOCAL
+#endif
 
       USE CMN_SIZE_MOD       ! Size parameters
       USE CMN_GCTM_MOD       ! Scale height
+!
+! !INPUT PARAMETERS: 
+!
+#if defined( DEVEL )
+      TYPE(GC_MET_LOCAL), INTENT(IN) :: LOCAL_MET  ! Obj w/ met fields
+#endif
 !
 ! !REVISION HISTORY: 
 !  11 Feb 2005 - R. Yantosca - Initial version
@@ -231,7 +257,11 @@
 
          ! BLTOP = pressure at PBL top [hPa]
          ! Use barometric law since PBL is in [m]
+#if defined( DEVEL )
+         BLTOP  = P(0) * EXP( -LOCAL_MET%PBLH(I,J) / SCALE_HEIGHT )
+#else
          BLTOP  = P(0) * EXP( -PBL(I,J) / SCALE_HEIGHT )
+#endif
 
          ! BLTHIK is PBL thickness [hPa]
          BLTHIK = P(0) - BLTOP

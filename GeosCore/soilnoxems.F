@@ -1,6 +1,6 @@
 ! $Id: soilnoxems.f,v 1.3 2010/03/15 19:33:20 ccarouge Exp $
 #if defined( DEVEL )
-      SUBROUTINE SOILNOXEMS( SUNCOS, EMISS )
+      SUBROUTINE SOILNOXEMS( SUNCOS, LOCAL_MET, EMISS )
 #else
       SUBROUTINE SOILNOXEMS( SUNCOS )
 #endif
@@ -64,7 +64,8 @@
 !******************************************************************************
 !
       ! References to F90 modules
-      USE DAO_MOD,              ONLY : BXHEIGHT
+      USE DAO_MOD,              ONLY : BXHEIGHT,    TS
+      USE DAO_MOD,              ONLY : U10M,        V10M
       USE DIAG_MOD,             ONLY : AD32_fe,     AD32_so
       USE FUTURE_EMISSIONS_MOD, ONLY : GET_FUTURE_SCALE_NOxft
       USE GRID_MOD,             ONLY : GET_XOFFSET, GET_YOFFSET
@@ -72,6 +73,9 @@
       !USE LOGICAL_MOD,          ONLY : LFUTURE
       USE LOGICAL_MOD,          ONLY : LFUTURE, LSOILNOX, LFERTILIZERNOX
       USE MEGANUT_MOD,          ONLY : XLTMMP
+#if defined( DEVEL )
+      USE GC_TYPE_MOD,          ONLY : GC_MET_LOCAL
+#endif
 
       USE CMN_SIZE_MOD             ! Size parameters
       USE CMN_DIAG_MOD             ! Diagnostic switches & arrays
@@ -85,7 +89,8 @@
       ! Arguments
       REAL*8, INTENT(IN)            :: SUNCOS(MAXIJ)
 #if defined( DEVEL )
-      REAL*8, INTENT(INOUT)         :: EMISS(IIPAR,JJPAR)
+      TYPE(GC_MET_LOCAL), INTENT(IN) :: LOCAL_MET  ! Obj w/ met fields
+      REAL*8, INTENT(INOUT)          :: EMISS(IIPAR,JJPAR)
 #endif
       ! Local variables
       INTEGER                       :: I,    J,       M,      III,    NN  
@@ -99,8 +104,6 @@
       ! External functions
       REAL*8, EXTERNAL              :: BOXVL,      FERTADD,  PULSING
       REAL*8, EXTERNAL              :: SFCWINDSQR, SOILBASE, SOILCRF
-!-- XLTMMP moved to meganut_mod.f (ccc, 11/20/09)
-!      REAL*8, EXTERNAL              :: SOILTEMP,   XLTMMP
       REAL*8, EXTERNAL              :: SOILTEMP
 
       !=================================================================
@@ -148,9 +151,15 @@
             ! CANOPY REDkUCTION
             ! SOIL NOX EMISSIONS (WATCH OUT FOR TROP. EVERGREEN)
             !===========================================================
-            TMMP    = XLTMMP(I,J,IJLOOP)-273.15
-            WINDSQR = SFCWINDSQR(I,J)
+#if defined( DEVEL )
+            TMMP    = XLTMMP( I, J, LOCAL_MET%TS, IJLOOP ) - 273.15
+            WINDSQR = SFCWINDSQR( I, J, LOCAL_MET%U10M, LOCAL_MET%V10M )
+            RPULSE  = PULSING( I, J, M, LOCAL_MET ) 
+#else
+            TMMP    = XLTMMP( I, J, TS, IJLOOP ) - 273.15
+            WINDSQR = SFCWINDSQR( I, J, U10M, V10M )
             RPULSE  = PULSING( I, J, M ) 
+#endif
 
             DO K = 1, IREG(IREF,JREF)
                NN = NCONSOIL(ILAND(IREF,JREF,K)+1)

@@ -127,7 +127,11 @@
 
 !------------------------------------------------------------------------------
 
+#if defined( DEVEL )
+      SUBROUTINE DIAG48( LOCAL_MET )
+#else
       SUBROUTINE DIAG48 
+#endif
 !
 !******************************************************************************
 !  Subroutine DIAG48 saves station time series diagnostics to disk.
@@ -173,12 +177,20 @@
       USE TRACERID_MOD, ONLY : IDTHNO3, IDTN2O5, IDTHNO4, IDTNOX
       USE TRACERID_MOD, ONLY : IDTPAN,  IDTPMN,  IDTPPN,  IDTOX   
       USE TRACERID_MOD, ONLY : IDTR4N2, IDTSALA, IDTSALC 
+#if defined( DEVEL )
+      USE GC_TYPE_MOD,  ONLY : GC_MET_LOCAL
+#endif
 
       USE CMN_FJ_MOD,   ONLY : JPMAX, JPPJ    ! Size parameters + FAST-J stuff
       USE JV_CMN_MOD    ! ODAER, ODMDUST, QAA, QAA_OUT
       USE CMN_O3_MOD      ! XNUMOLAIR
       USE CMN_GCTM_MOD    ! SCALE_HEIGHT
       USE LOGICAL_MOD,  ONLY : DO_DIAG_WRITE
+
+      ! Arguments
+#if defined( DEVEL )
+      TYPE(GC_MET_LOCAL), INTENT(IN) :: LOCAL_MET  ! Obj w/ met fields
+#endif
 
       ! Local variables
       LOGICAL, SAVE      :: IS_CLDTOPS,  IS_OPTD, IS_SEASALT, IS_SLP
@@ -205,9 +217,14 @@
       IF ( FIRST ) THEN
 
          ! Set logical flags on first timestep
+#if defined( DEVEL )
+         IS_CLDTOPS  = ALLOCATED( LOCAL_MET%CLDTOPS )
+         IS_SLP      = ALLOCATED( LOCAL_MET%SLP     )
+#else
          IS_CLDTOPS  = ALLOCATED( CLDTOPS )
-         IS_OPTD     = ALLOCATED( OPTD    )
          IS_SLP      = ALLOCATED( SLP     )
+#endif
+         IS_OPTD     = ALLOCATED( OPTD    )
          IS_FULLCHEM = ITS_A_FULLCHEM_SIM()
          IS_SEASALT  = ( IDTSALA > 0 .and. IDTSALC > 0 )
          IS_Ox       = ( IS_FULLCHEM .and. IDTOX   > 0 )
@@ -443,7 +460,11 @@
             GMTRC    = 21
 
             IF ( K == 1 ) THEN
+#if defined( DEVEL )
+               Q(1) = GET_PEDGE( I, J, LOCAL_MET%CLDTOPS(I,J) )
+#else
                Q(1) = GET_PEDGE( I, J, CLDTOPS(I,J) )
+#endif
             ENDIF
 
          ELSE IF ( N == 84 ) THEN
@@ -642,7 +663,11 @@
             GMTRC    = 18
 
             IF ( K == 1 ) THEN
+#if defined( DEVEL )
+               Q(1) = LOCAL_MET%SLP(I,J)
+#else
                Q(1) = SLP(I,J)
+#endif
             ENDIF
 
          ELSE IF ( N == 97 ) THEN

@@ -91,13 +91,26 @@
 !\\
 ! !INTERFACE:
 !
+#if defined( DEVEL )
+      SUBROUTINE DO_LINOZ( LOCAL_MET )
+#else
       SUBROUTINE DO_LINOZ   
+#endif
 !
 ! !USES:
 !
       USE TIME_MOD
+#if defined( DEVEL )
+      USE GC_TYPE_MOD,  ONLY : GC_MET_LOCAL
+#endif
 
       USE CMN_SIZE_MOD
+!
+! !INPUT PARAMETERS: 
+!
+#if defined( DEVEL )
+      TYPE(GC_MET_LOCAL), INTENT(IN) :: LOCAL_MET  ! Obj w/ met fields
+#endif
 !
 ! !REVISION HISTORY: 
 !  24 Jun 2003 - B. Field & D. Jones - Further updates for GEOS-Chem
@@ -121,7 +134,11 @@
       NSCHEM = GET_TS_CHEM() * 60D0 
 
       ! Call the Linoz chemistry
+#if defined( DEVEL )
+      CALL LINOZ_CHEM3( NSCHEM, LOCAL_MET )
+#else
       CALL LINOZ_CHEM3( NSCHEM )
+#endif
 
       END SUBROUTINE DO_LINOZ    
 !EOC
@@ -138,7 +155,11 @@
 !\\
 ! !INTERFACE:
 !
+#if defined( DEVEL )
+      SUBROUTINE LINOZ_CHEM3( DTCHEM, LOCAL_MET )
+#else
       SUBROUTINE LINOZ_CHEM3( DTCHEM )
+#endif
 !
 ! !USES:
 !
@@ -150,6 +171,9 @@
       USE TROPOPAUSE_MOD, ONLY : GET_MAX_TPAUSE_LEVEL
       USE PRESSURE_MOD,   ONLY : GET_PEDGE
       USE PRESSURE_MOD,   ONLY : GET_PCENTER
+#if defined( DEVEL )
+      USE GC_TYPE_MOD,    ONLY : GC_MET_LOCAL
+#endif
   
       USE CMN_SIZE_MOD
       USE CMN_MOD
@@ -157,6 +181,9 @@
 ! !INPUT PARAMETERS:
 !
       REAL*8, INTENT(IN) :: DTCHEM    ! Time step [seconds]
+#if defined( DEVEL )
+      TYPE(GC_MET_LOCAL), INTENT(IN) :: LOCAL_MET  ! Obj w/ met fields
+#endif
 !
 ! !REVISION HISTORY: 
 !  24 Jun 2003 - B. Field & D. Jones - Further updates for GEOS-Chem
@@ -260,7 +287,11 @@
 !------------------------------------------------------------------------------
          DO J = 1, JM
          DO I = 1, IM
+#if defined( DEVEL )
+            LBOT = GET_TPAUSE_LEVEL( I, J, LOCAL_MET ) + 1
+#else
             LBOT = GET_TPAUSE_LEVEL(I,J)+1
+#endif
             LPOS = 1
             DO WHILE (GET_PEDGE(I,J,LPOS+1) .GE. 0.3D0)
               LPOS = LPOS +1

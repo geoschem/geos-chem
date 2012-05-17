@@ -929,9 +929,10 @@
 !
 ! !USES:
 !
-      USE DAO_MOD,       ONLY : PBL, AD, IS_WATER, AIRVOL
+      USE DAO_MOD,       ONLY : AD, IS_WATER, AIRVOL
       ! Add TSKIN (jaegle 5/11/11)
       USE DAO_MOD,       ONLY : TSKIN ! jaegle
+      USE DAO_MOD,       ONLY : U10M, V10 M
       USE DIAG_MOD,      ONLY : AD08
       USE ERROR_MOD,     ONLY : DEBUG_MSG, ERROR_STOP
       USE GRID_MOD,      ONLY : GET_AREA_M2
@@ -1163,18 +1164,29 @@
             ! Test if this is a water box
 #if defined( DEVEL )
             IF ( IS_WATER( I, J, LOCAL_MET ) ) THEN
-#else
-            IF ( IS_WATER(I,J) ) THEN
-#endif
 
                ! Wind speed at 10 m altitude [m/s]
-               W10M = SQRT( SFCWINDSQR(I,J) )
+               W10M = SQRT( SFCWINDSQR( I, J,
+     &                                  LOCAL_MET%U10M,
+     &                                  LOCAL_MET%V10M) )
+
+               ! Sea surface temperature in Celcius (jaegle 5/11/11)
+               SST = LOCAL_MET%TSKIN(I,J) - 273.15d0
+
+#else
+            IF ( IS_WATER(I,J) ) THEN
+
+               ! Wind speed at 10 m altitude [m/s]
+               W10M = SQRT( SFCWINDSQR( I, J, U10M, V10M) )
 
                ! Sea surface temperature in Celcius (jaegle 5/11/11)
                SST = TSKIN(I,J) - 273.15d0
+#endif
+
                ! Limit SST to 0-30C range
-               SST = MAX( SST , 0d0 ) ! limit to  0C
+               SST = MAX( SST , 0d0 )  ! limit to  0C
                SST = MIN( SST , 30d0 ) ! limit to 30C
+
                ! Empirical SST scaling factor (jaegle 5/11/11)
                SCALE = 0.329d0 + 0.0904d0*SST -
      &                 0.00717d0*SST**2d0 + 0.000207d0*SST**3d0
@@ -1182,9 +1194,10 @@
                ! Reset to using original Gong (2003) emissions (jaegle 6/30/11)
 	       !SCALE = 1.0d0
 
-! The source function calculated with GEOS-4 2x2.5 wind speeds is too high compared to GEOS-5
-! at the same resolution. The 10m winds in GEOS-4 are too rapid. To correct this, apply a global
-! scaling factor of 0.72 (jaegle 5/11/11)
+               ! The source function calculated with GEOS-4 2x2.5 wind speeds
+               ! is too high compared to GEOS-5 at the same resolution.
+               ! The 10m winds in GEOS-4 are too rapid. To correct this,
+               ! apply a global scaling factor of 0.72 (jaegle 5/11/11)
 #if   defined( GEOS_4 )
                 SCALE = SCALE * 0.72d0
 #endif

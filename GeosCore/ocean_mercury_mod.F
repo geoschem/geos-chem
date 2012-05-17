@@ -705,6 +705,7 @@
       ! References to F90 modules
       USE DAO_MOD,          ONLY : AIRVOL, ALBD, TSKIN, RADSWG, IS_WATER 
       USE DAO_MOD,          ONLY : FRLAND, FROCEAN, FRSEAICE, SEAICE00 ! jaf
+      USE DAO_MOD,          ONLY : U10M,   V10M
       USE DIAG03_MOD,       ONLY : AD03, ND03
       USE DIRECTORY_MOD,    ONLY : DATA_DIR
       USE GRID_MOD,         ONLY : GET_AREA_M2, GET_XMID, GET_YMID 
@@ -864,6 +865,20 @@
          ! Use fractional land type information in MERRA (jaf, 4/26/11)
          ! FROCEAN is a constant, so to get correct ocean fraction we
          ! need to subtract the sea ice fraction.
+#if defined( DEVEL )
+
+#if   defined( MERRA ) || defined( GEOS_57 )
+         NPP_tot = NPP_tot+ NPP(I,J) * A_M2 * 
+     &             ( LOCAL_MET%FROCEAN(I,J) - LOCAL_MET%FRSEAICE(I,J) )
+         A_ocean = A_ocean + A_M2 * 
+     &             ( LOCAL_MET%FROCEAN(I,J) - LOCAL_MET%FRSEAICE(I,J) )
+#else
+         NPP_tot = NPP_tot+ NPP(I,J) * A_M2 * ( 1d0 - FRCLND(I,J))
+         A_ocean = A_ocean + A_M2 * ( 1 - FRCLND(I,J) ) 
+#endif
+
+#else
+
 #if   defined( MERRA ) || defined( GEOS_57 )
          NPP_tot = NPP_tot+ NPP(I,J) * A_M2 * 
      &             ( FROCEAN(I,J) - FRSEAICE(I,J) )
@@ -874,6 +889,7 @@
          A_ocean = A_ocean + A_M2 * ( 1 - FRCLND(I,J) ) 
 #endif
 
+#endif
       ENDDO
       ENDDO
 
@@ -941,6 +957,22 @@
          ! FROCEAN is a constant, so to get correct ocean fraction we
          ! need to subtract the sea ice fraction. Don't let the fraction
          ! be less than zero (jaf, 4/26/11)
+#if   defined( DEVEL )
+
+#if   defined( MERRA ) || defined( GEOS_57 )
+         FRAC_L       = LOCAL_MET%FRLAND(I,J)
+         FRAC_O       = MAX( LOCAL_MET%FROCEAN(I,J) -
+     &                       LOCAL_MET%FRSEAICE(I,J), 0d0 )
+         IS_OCEAN_BOX = (( FRAC_O > 0d0 ) .and. 
+                         ( LOCAL_MET%SEAICE00(I,J)  > 0.5d0 ))
+#else
+         FRAC_L       = LOCAL_MET%FRCLND(I,J)
+         FRAC_O       = 1d0 - FRAC_L
+         IS_OCEAN_BOX = ( IS_WATER( I, J, LOCAL_MET ) )
+#endif
+
+#else
+
 #if   defined( MERRA ) || defined( GEOS_57 )
          FRAC_L     = FRLAND(I,J)
          FRAC_O     = MAX(FROCEAN(I,J) - FRSEAICE(I,J), 0d0)
@@ -948,9 +980,6 @@
 #else
          FRAC_L     = FRCLND(I,J)
          FRAC_O     = 1d0 - FRAC_L
-#if defined( DEVEL )
-         IS_OCEAN_BOX = ( IS_WATER( I, J, LOCAL_MET ) )
-#else
          IS_OCEAN_BOX = ( IS_WATER(I,J) )
 #endif
 
@@ -958,8 +987,12 @@
 !--jaf.end
 
          ! Change ocean mass due to mixed layer depth change
-         ! Keep before next IF so that we adjust mass in ice-covered boxes 
+         ! Keep before next IF so that we adjust mass in ice-covered boxes
+#if   defined( DEVEL )
+         CALL MLD_ADJUSTMENT( I, J, OLDMLD*1d-2, MLDcm*1d-2, LOCAL_MET )
+#else
          CALL MLD_ADJUSTMENT( I, J, OLDMLD*1d-2, MLDcm*1d-2 )
+#endif
 
 
          !===========================================================
@@ -988,8 +1021,14 @@
             EC     = (EC_w + ( EC_doc * C_doc * ( NPP(I,J) / NPP_avg ) ) 
      &               + ( ECchla * CHL(I,J) / 1000 ) )             
 
+#if   defined( DEVEL )
+            RADz   = ( 1 / ( MLDcm * 1d-2 ))
+     &               * (LOCAL_MET%RADSWG(I,J) / EC )    
+     &               * ( 1 - EXP( -EC * ( MLDcm * 1d-2) ) )
+#else
             RADz   = ( 1 / ( MLDcm * 1d-2 )) * ( RADSWG(I,J) / EC )    
      &               * ( 1 - EXP( -EC * ( MLDcm * 1d-2) ) )
+#endif
 
             !--------------------------------------------------------
             ! Hg(tot)aq reduction rate constants
@@ -1068,7 +1107,11 @@
             ! where TSKIN is the temperature (K) at the ground/sea surface
             ! (Use as surrogate for SST, cap at freezing point)
 
+#if defined( DEVEL )
+            TK     = MAX( LOCAL_MET%TSKIN(I,J), 273.15d0 )
+#else
             TK     = MAX( TSKIN(I,J), 273.15d0 )                           
+#endif
 
             TC     = TK - 273.15d0
 
@@ -1111,9 +1154,11 @@
             ScCO2  = 644.7d0 + TC * ( -6.16d0 + TC * ( 0.11d0 ) ) 
 
             ! Square of surface (actually 10m) wind speed [m2/s2]
-
-            Usq    = SFCWINDSQR(I,J)
-
+#if defined( DEVEL )
+            Usq    = SFCWINDSQR( I, J, LOCAL_MET%U10M, LOCAL_MET%V10M )
+#else
+            Usq    = SFCWINDSQR( I, J, U10M, V10M )
+#endif
             !------------------------------------------------------
             ! Parameterizations for calculating water side mass trasfer coefficient 
             !------------------------------------------------------
@@ -1865,7 +1910,11 @@
 
 !------------------------------------------------------------------------------
 
+#if defined( DEVEL )
+      SUBROUTINE MLD_ADJUSTMENT( I, J, MLDold, MLDnew, LOCAL_MET )
+#else
       SUBROUTINE MLD_ADJUSTMENT( I, J, MLDold, MLDnew )
+#endif
 !
 !******************************************************************************
 !  Subroutine MLD_ADJUSTMENT entrains new water when mixed layer depth deepens
@@ -1897,6 +1946,9 @@
       USE TRACER_MOD,   ONLY : TRACER_MW_KG
       USE TRACERID_MOD, ONLY : ID_Hg_tot, ID_Hg_oc, N_Hg_CATS
       USE DAO_MOD,      ONLY : FROCEAN, FRSEAICE ! jaf
+#if defined( DEVEL )
+      USE GC_TYPE_MOD,  ONLY : GC_MET_LOCAL
+#endif
 
       USE CMN_SIZE_MOD     ! Size parameters
       USE CMN_DEP_MOD      ! FRCLND
@@ -1904,6 +1956,9 @@
       ! Arguments
       INTEGER, INTENT(IN)   :: I, J 
       REAL*8,  INTENT(IN)   :: MLDold, MLDnew  
+#if defined( DEVEL )
+      TYPE(GC_MET_LOCAL), INTENT(IN) :: LOCAL_MET  ! Obj w/ met fields
+#endif
 
       ! Local variables
       INTEGER               :: C,    NN,     N_tot_oc    
@@ -1929,12 +1984,24 @@
       ! Use fractional land type information in MERRA (jaf, 4/26/11)
       ! FROCEAN is a constant, so to get correct ocean fraction we
       ! need to subtract the sea ice fraction.
+#if defined( DEVEL )
+
+#if   defined( MERRA ) || defined( GEOS_57 )
+      FRAC_O     = MAX( LOCAL_MET%FROCEAN(I,J) - 
+     &                  LOCAL_MET%FRSEAICE(I,J), 0d0)
+#else
+      FRAC_O = 1d0 - FRCLND(I,J)
+#endif
+
+#else
+
 #if   defined( MERRA ) || defined( GEOS_57 )
       FRAC_O     = MAX(FROCEAN(I,J) - FRSEAICE(I,J), 0d0)
 #else
       FRAC_O = 1d0 - FRCLND(I,J)
 #endif
       
+#endif
       ! Molecular weight of Hg (valid for all tagged tracers)
       MHg    = TRACER_MW_KG(ID_Hg_tot)
 

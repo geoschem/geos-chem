@@ -173,6 +173,7 @@
                LOCAL_MET%PRECSNO (IIPAR, JJPAR), & ! Snow precip [kg/m2/s]
                LOCAL_MET%PS1     (IIPAR, JJPAR), & ! Surface pressure at start of timestep [hPa]
                LOCAL_MET%PS2     (IIPAR, JJPAR), & ! Surface pressure at end of timestep [hPa]
+               LOCAL_MET%PSC2    (IIPAR, JJPAR), & ! Interpolated sfc pressure [hPa]
                LOCAL_MET%RADLWG  (IIPAR, JJPAR), & ! Net LW radiation @ ground [W/m2]
                LOCAL_MET%RADSWG  (IIPAR, JJPAR), & ! Solar radiation @ ground [W/m2]
                LOCAL_MET%SEAICE00(IIPAR, JJPAR), & ! Sea ice coverage 00-10%

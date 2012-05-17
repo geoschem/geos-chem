@@ -105,7 +105,11 @@
 !\\
 ! !INTERFACE:
 !
+#if defined( DEVEL )
+      SUBROUTINE AEROSOL_RURALBOX( N_TROP, LOCAL_MET )
+#else
       SUBROUTINE AEROSOL_RURALBOX( N_TROP )
+#endif
 !
 ! !USES:
 !
@@ -114,9 +118,18 @@
       USE DAO_MOD,        ONLY : AD,     AVGW,    MAKE_AVGW, T
       USE TROPOPAUSE_MOD, ONLY : ITS_IN_THE_TROP
       USE LOGICAL_MOD,    ONLY : LVARTROP
+#if defined( DEVEL )
+      USE GC_TYPE_MOD,    ONLY : GC_MET_LOCAL
+#endif
 
       USE CMN_SIZE_MOD         ! Size parameters
       USE COMODE_LOOP_MOD      ! AD, AVG, WTAIR, other SMVGEAR variables
+!
+! !INPUT PARAMETERS: 
+!
+#if defined( DEVEL )
+      TYPE(GC_MET_LOCAL), INTENT(IN) :: LOCAL_MET  ! Obj w/ met fields
+#endif
 !
 ! !OUTPUT PARAMETERS:
 !
@@ -177,7 +190,11 @@
             !----------------------------------
             ! Boxes w/in ann mean tropopause
             !----------------------------------
+#if defined( DEVEL )
+            IF ( ITS_IN_THE_TROP( I, J, L, LOCAL_MET ) ) THEN
+#else
             IF ( ITS_IN_THE_TROP( I, J, L ) ) THEN
+#endif
 
                ! Increment JLOOP for trop boxes
                JLOOP          = JLOOP + 1

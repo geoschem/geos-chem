@@ -277,7 +277,7 @@
       JLOP_PREVIOUS(:,:,:) = JLOP(:,:,:)
 
 #if defined( DEVEL )
-      CALL RURALBOX( AD, T, AVGW, LOCAL_MET%ALBD )
+      CALL RURALBOX( AD, T, AVGW, LOCAL_MET%ALBD, LOCAL_MET )
 #else
       CALL RURALBOX( AD, T, AVGW, ALBD )
 #endif
@@ -420,6 +420,44 @@
       !     file (dkh, hotp, ccc,2/26/09)
       !=================================================================
       IT_EXISTS = .FALSE.
+#if defined( DEVEL )
+      IF ( FIRSTCHEM .AND. LSVCSPEC ) THEN 
+
+         CALL READ_CSPEC_FILE( GET_NYMD(), GET_NHMS(), IT_EXISTS ) 
+   
+         IF ( .not. IT_EXISTS ) THEN 
+             
+            ! Use default background values 
+            WRITE(6,*) 
+     &   '    - CHEMDR: CSPEC restart not found, use background values'
+ 
+            CALL GASCONC( FIRSTCHEM,              N_TRACERS, 
+     &                    STT(:,:,:,1:N_TRACERS), XNUMOL(1:N_TRACERS),    
+     &                    FRCLND,                 IT_EXISTS,
+     &                    LOCAL_MET )
+         ELSE 
+
+            ! Use restart values 
+            WRITE(6,*) 
+     &   '    - CHEMDR: using CSPEC values from restart file'                  
+
+            ! Call GASCONC but don't reset CSPEC values
+            CALL GASCONC( .FALSE.,                 N_TRACERS, 
+     &                     STT(:,:,:,1:N_TRACERS), XNUMOL(1:N_TRACERS),    
+     &                     FRCLND,                 IT_EXISTS,
+     &                     LOCAL_MET )
+
+         ENDIF 
+
+      ELSE 
+
+         CALL GASCONC(  FIRSTCHEM,              N_TRACERS, 
+     &                  STT(:,:,:,1:N_TRACERS), XNUMOL(1:N_TRACERS),  
+     &                  FRCLND,                 IT_EXISTS,
+     &                  LOCAL_MET )
+
+      ENDIF 
+#else
       IF ( FIRSTCHEM .AND. LSVCSPEC ) THEN 
 
          CALL READ_CSPEC_FILE( GET_NYMD(), GET_NHMS(), IT_EXISTS ) 
@@ -453,6 +491,7 @@
      &                  FRCLND,                 IT_EXISTS )
 
       ENDIF 
+#endif
       IT_EXISTS = .FALSE.
 
       !### Debug
@@ -461,7 +500,11 @@
       !=================================================================  
       ! Call SETEMIS which sets emission rates REMIS 
       !=================================================================
+#if defined( DEVEL )
+      CALL SETEMIS( EMISRR, EMISRRN, LOCAL_MET )
+#else
       CALL SETEMIS( EMISRR, EMISRRN )
+#endif
       
       !### Debug
       IF ( LPRT ) CALL DEBUG_MSG( '### CHEMDR: after SETEMIS' )
@@ -532,7 +575,11 @@
       !
       ! NOTE: SCHEM still needs to be called whether or not LINOZ is
       ! used.  LINOZ is just a replacement for SYNOZ. (bmy, 4/28/10)
+#if defined( DEVEL )
+      CALL SCHEM( LOCAL_MET )
+#else
       CALL SCHEM
+#endif
 
       !### Debug
       IF ( LPRT ) CALL DEBUG_MSG( '### CHEMDR: after SCHEM' )

@@ -106,7 +106,11 @@
 !\\
 ! !INTERFACE:
 !
+#if defined( DEVEL )
+      SUBROUTINE DO_ISOROPIAII( LOCAL_MET )
+#else
       SUBROUTINE DO_ISOROPIAII
+#endif
 !
 ! !USES:
 !
@@ -125,8 +129,17 @@
       USE APM_INIT_MOD,    ONLY : IDTSO4BIN1,IDTCTSEA
       USE APM_INIT_MOD,    ONLY : IDTCTBCOC, IDTCTDST,IDTCTSO4
 #endif
+#if defined( DEVEL )
+      USE GC_TYPE_MOD,     ONLY : GC_MET_LOCAL
+#endif
 
       USE CMN_SIZE_MOD        ! Size parameters
+!
+! !INPUT PARAMETERS: 
+!
+#if defined( DEVEL )
+      TYPE(GC_MET_LOCAL), INTENT(IN) :: LOCAL_MET  ! Obj w/ met fields
+#endif
 !
 ! !REMARKS:
 !  Original isoropia v1.3 implmentation: (rjp, bec, bmy, 12/17/01, 8/22/05)
@@ -270,7 +283,11 @@
       DO I = 1, IIPAR
 
          ! Skip strat boxes 
+#if defined( DEVEL )
+         IF ( ITS_IN_THE_STRAT( I, J, L, LOCAL_MET ) ) CYCLE
+#else
          IF ( ITS_IN_THE_STRAT( I, J, L ) ) CYCLE
+#endif
 
          ! Initialize WI, WT
          DO N = 1, NCOMPA

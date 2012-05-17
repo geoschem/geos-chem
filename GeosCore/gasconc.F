@@ -1,6 +1,11 @@
 ! $Id: gasconc.f,v 1.2 2010/03/15 19:33:23 ccarouge Exp $
+#if defined( DEVEL )
+      SUBROUTINE GASCONC( FIRSTCHEM,  NTRACER,  STT, XNUMOL, FRCLND,
+     &                    READ_CSPEC, LOCAL_MET )
+#else
       SUBROUTINE GASCONC( FIRSTCHEM, NTRACER, STT, XNUMOL, FRCLND,
      &                    READ_CSPEC )
+#endif
 !
 !******************************************************************************
 !  Subroutine GASCONC initializes gas concentrations for SMVGEAR II.
@@ -47,9 +52,12 @@
       USE PRESSURE_MOD,   ONLY : GET_PCENTER
       USE ERROR_MOD,      ONLY : ERROR_STOP ! (dkh, 10/06/06)  
       USE LOGICAL_MOD,    ONLY : LSOA ! (dkh, 10/06/06)  
+#if defined( DEVEL )
+      USE GC_TYPE_MOD,    ONLY : GC_MET_LOCAL
+#endif
       
-      USE CMN_SIZE_MOD       ! Size parameters
-      USE COMODE_LOOP_MOD       ! SMVGEAR II arrays
+      USE CMN_SIZE_MOD         ! Size parameters
+      USE COMODE_LOOP_MOD      ! SMVGEAR II arrays
 
       IMPLICIT NONE
 #     include "define.h"
@@ -62,6 +70,9 @@
       REAL*8,  INTENT(IN)     :: FRCLND(IIPAR,JJPAR)
       ! cspecrestart hotp 2/25/09
       LOGICAL, INTENT(IN)     :: READ_CSPEC
+#if defined( DEVEL )
+      TYPE(GC_MET_LOCAL), INTENT(IN) :: LOCAL_MET  ! Obj w/ met fields
+#endif
 !
 ! *********************************************************************
 ! ************       WRITTEN BY MARK JACOBSON (1991-4)     ************
@@ -185,7 +196,12 @@
                      !---------------------------
                      ! Test for troposphere
                      !---------------------------
+#if defined( DEVEL )
+                     IF ( ITS_IN_THE_TROP( IX, IY, IZ, 
+     &                                     LOCAL_MET ) ) THEN
+#else
                      IF ( ITS_IN_THE_TROP( IX, IY, IZ ) ) THEN
+#endif
                       
                         ! Free troposphere: 0.6 ppbv MOH
                         CSPEC_FULL(IX,IY,IZ,JGAS) = 0.600d-9 * CONST

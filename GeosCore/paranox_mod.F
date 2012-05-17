@@ -147,7 +147,12 @@
 !\\
 ! !INTERFACE:
 !
+#if defined( DEVEL )
+      SUBROUTINE INTERPOLATE_LUT( I,     J,     LOCAL_MET, 
+     &                            fraction_nox, int_ope ) 
+#else
       SUBROUTINE INTERPOLATE_LUT( I, J, fraction_nox, int_ope ) 
+#endif
 !
 ! !USES:
 !
@@ -157,6 +162,9 @@
       USE TRACER_MOD,   ONLY : STT,  TCVV
       USE TIME_MOD,     ONLY : GET_LOCALTIME
       USE ERROR_MOD,    ONLY : ERROR_STOP
+#if defined( DEVEL )
+      USE GC_TYPE_MOD,  ONLY : GC_MET_LOCAL
+#endif
 
       USE CMN_FJ_MOD         ! Photolysis parameters
       USE CMN_O3_MOD         ! fracnox, intope, jvalues
@@ -164,6 +172,9 @@
 ! !INPUT PARAMETERS: 
 !
       INTEGER, INTENT(IN)        :: I, J
+#if defined( DEVEL )
+      TYPE(GC_MET_LOCAL), INTENT(IN) :: LOCAL_MET  ! Obj w/ met fields
+#endif
 !
 ! !OUTPUT PARAMETERS: 
 !
@@ -247,8 +258,13 @@
 !      PRINT*,"This is grid cell: ",I,J
       
       ! Temperature
+!#if defined( DEVEL )
+!      PRINT*,"Temperature here is: ",LOCAL_MET%TS(I,J)
+!      PRINT*,"USA: ",LOCAL_MET%TS(32,64)
+!#else
 !      PRINT*,"Temperature here is: ",TS(I,J)
 !      PRINT*,"USA: ",TS(32,64)
+!#endif
 
       ! Tracer concentrations in v/v
 !      PRINT*,"[O3] is: ",STT(I,J,1,IDTOX)/ AD(I,J,1) * TCVV(IDTOX)
@@ -269,7 +285,11 @@
       
       ! Set the variables
       IJLOOP       = ( (J-1) * IIPAR ) + I 
+#if defined( DEVEL )
+      var_array(1) = LOCAL_MET%TS(I,J)                ! Temperature
+#else
       var_array(1) = TS(I,J)                          ! Temperature
+#endif
       var_array(2) = jvalues(I,J,1)                   ! J(NO2)
       var_array(3) = STT(I,J,1,IDTOX)/ AD(I,J,1) *    ! [O3] in ppbv 
      $               TCVV(IDTOX) * 1.E9   
@@ -539,8 +559,13 @@
 !\\
 ! !INTERFACE:
 !
+#if defined( DEVEL )
+      SUBROUTINE INTERPOLATE_LUT2( I, J, o3, no, no2, dens, LOCAL_MET,
+     &                             fraction_nox, int_ope ) 
+#else
       SUBROUTINE INTERPOLATE_LUT2( I, J, o3, no, no2, dens,
      &                             fraction_nox, int_ope ) 
+#endif
 !
 ! !USES:
 !
@@ -548,6 +573,9 @@
       USE DAO_MOD,   ONLY : SUNCOS_MID,  SUNCOS_MID_5hr
       USE TIME_MOD,  ONLY : GET_LOCALTIME
       USE ERROR_MOD, ONLY : ERROR_STOP
+#if defined( DEVEL )
+      USE GC_TYPE_MOD, ONLY : GC_MET_LOCAL
+#endif
 
       USE CMN_FJ_MOD      ! Photolysis parameters
       USE CMN_O3_MOD      ! fracnox, intope, jvalues
@@ -556,6 +584,9 @@
 !
       INTEGER, INTENT(IN)        :: I, J
       REAL*8,  INTENT(IN)        :: o3, no, no2, dens
+#if defined( DEVEL )
+      TYPE(GC_MET_LOCAL), INTENT(IN) :: LOCAL_MET  ! Obj w/ met fields
+#endif
 !
 ! !OUTPUT PARAMETERS: 
 !
@@ -647,8 +678,13 @@
 !      PRINT*,"This is grid cell: ",I,J
       
       ! Temperature
+!#if defined( DEVEL )
+!      PRINT*,"Temperature here is: ",LOCAL_MET%TS(I,J)
+!      PRINT*,"USA: ",LOCAL_MET%TS(32,64)
+!#else
 !      PRINT*,"Temperature here is: ",TS(I,J)
 !      PRINT*,"USA: ",TS(32,64)
+!#endif
 
       ! Tracer concentrations in v/v
 !      PRINT*,"[O3] is: ",STT(I,J,1,IDTOX)/ AD(I,J,1) * TCVV(IDTOX)
@@ -669,7 +705,11 @@
       
       ! Set the variables
       IJLOOP       = ( (J-1) * IIPAR ) + I
+#if defined( DEVEL )
+      var_array(1) = LOCAL_MET%TS(I,J)                ! Temperature
+#else
       var_array(1) = TS(I,J)                          ! Temperature
+#endif
       var_array(2) = jvalues(I,J,1)                   ! J(NO2)
       var_array(3) = o3 / dens * 1.E9                 ! [O3] in ppbv
       var_array(4) = ASIND(SUNCOS_MID_5hr(IJLOOP))    ! alfa0
