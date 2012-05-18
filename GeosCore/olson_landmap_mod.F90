@@ -6,10 +6,10 @@
 ! !MODULE: olson_landmap_mod
 !
 ! !DESCRIPTION: Module OLSON\_LANDMAP\_MOD reads the Olson land map and
-!  computes the IREG, ILAND, and IUSE (and also IJREG, IJLAND, and
-!  IJUSE) arrays.  This module was written to facilitate Grid-Independent
-!  GEOS-Chem development while still keeping backwards compatibility
-!  with existing code.  It replaces the old routine rdland.F.
+!  computes the IREG, ILAND, and IUSE arrays.  This module was written to
+!  facilitate Grid-Independent GEOS-Chem development while still keeping 
+!  backwards compatibility with existing legacy code.  It replaces the old 
+!  routine rdland.F.
 !\\
 !\\
 ! !INTERFACE: 
@@ -18,13 +18,15 @@ MODULE Olson_LandMap_Mod
 !
 ! !USES:
 !
-  USE CMN_GCTM_MOD                                  ! Physical constants
-  USE CMN_DEP_MOD                                   ! IREG, ILAND, IUSE, FRCLND
-  USE CMN_SIZE_MOD                                  ! Size parameters
-  USE CMN_VEL_MOD                                   ! IJREG, IJLAND, IJUSE
-  USE DIRECTORY_MOD                                 ! Disk directory paths   
-  USE GRID_MOD                                      ! Horizontal grid
-  
+  USE CMN_GCTM_MOD                      ! Physical constants
+  USE CMN_DEP_MOD                       ! IREG, ILAND, IUSE, FRCLND arrays
+  USE CMN_SIZE_MOD                      ! Size parameters
+  USE DIRECTORY_MOD                     ! Disk directory paths   
+  USE ERROR_MOD                         ! Error checking routines
+  USE GRID_MOD                          ! Horizontal grid definition
+  USE LOGICAL_MOD                       ! Logical switches
+  USE MAPPING_MOD                       ! Mapping weights & areas
+
   IMPLICIT NONE
   PRIVATE
 !
@@ -32,11 +34,8 @@ MODULE Olson_LandMap_Mod
 !
   PUBLIC  :: Init_Olson_Landmap
   PUBLIC  :: Compute_Olson_Landmap
+  PUBLIC  :: Cleanup_Olson_LandMap
 !
-! !PRIVATE MEMBER FUNCTIONS:
-!
-  PRIVATE :: Get_Map_Wt
-
 ! !REMARKS:
 !  The Olson land types are as follows:
 !  ============================================================================
@@ -72,9 +71,9 @@ MODULE Olson_LandMap_Mod
 !  (1) IREG   (in CMN_DEP_mod.F): # of Olson land types per G-C grid box 
 !  (2) ILAND  (in CMN_DEP_mod.F): List of all Olson land types in G-C grid box
 !  (3) IUSE   (in CMN_DEP_mod.F): Coverage of each Olson type in G-C grid box
-!  (4) IJREG  (in CMN_VEL_mod.F): Same as IREG,  but has 1 spatial dimension
-!  (5) IJLAND (in CMN_VEL_mod.F): Same as ILAND, but has 1 spatial dimension
-!  (6) IJUSE  (in CMN_VEL_mod.F): Same as IUSE,  but has 1 spatial dimension
+!  (4) IJREG  (in CMN_VEL_mod.F): %%%%% OBSOLETE: NOW REPLACED BY IREG  %%%%%
+!  (5) IJLAND (in CMN_VEL_mod.F): %%%%% OBSOLETE: NOW REPLACED BY ILAND %%%%%
+!  (6) IJUSE  (in CMN_VEL_mod.F): %%%%% OBSOLETE: NOW REPLACED BY IUSE  %%%%%
 !  (7) FRCLND (in CMN_DEP_mod.F): Fraction of G-C grid box that is not water
 !                                                                             .
 !  NOTES: 
@@ -140,24 +139,35 @@ MODULE Olson_LandMap_Mod
 !  13 Mar 2012 - R. Yantosca - Initial version
 !  19 Mar 2012 - R. Yantosca - Minor last-minute bug fixes
 !  21 Mar 2012 - R. Yantosca - Now use REAL*4 for computations
+!  22 Mar 2012 - R. Yantosca - Now read surface area from the file
+!  22 Mar 2012 - R. Yantosca - Now make lon, lat, OLSON, A_CM2 allocatable
+!  22 Mar 2012 - R. Yantosca - Now define I_OLSON, J_OLSON, N_OLSON, D_LON,
+!                              and D_LAT in routine Init_Olson_LandMap
+!  27 Mar 2012 - R. Yantosca - Now reference USE_OLSON_2001 from logical_mod.F
+!  02 Apr 2012 - R. Yantosca - Now reference mapping_mod.F90
+!  02 Apr 2012 - R. Yantosca - Moved routine GET_MAP_WT to mapping_mod.F90
+!  02 Apr 2012 - R. Yantosca - Now Save mapping info for later use
+!  09 Apr 2012 - R. Yantosca - Removed IJREG, IJUSE, IJLAND; these are now
+!                              replaced by IREG, IUSE, ILAND arrays
+!  09 Apr 2012 - R. Yantosca - Removed reference to CMN_VEL_mod.F
 !EOP
 !------------------------------------------------------------------------------
 !BOC
 !
-! !DEFINED PARAMETERS:
-!
-  ! Parameters for the Olson land map NATIVE GRID
-  INTEGER, PARAMETER :: I_OLSON = 720              ! # of lons (0.5 x 0.5)
-  INTEGER, PARAMETER :: J_OLSON = 360              ! # of lats (0.5 x 0.5)
-  REAL*8,  PARAMETER :: D_LON   = 0.5d0            ! Delta longitude [degrees]
-  REAL*8,  PARAMETER :: D_LAT   = 0.5d0            ! Delta latitude [degrees]
-!
 ! !PRIVATE TYPES:
 !
-  ! Arrays for the Olson land map NATIVE GRID
-  REAL*4             :: lon  (I_OLSON          )   ! Lon centers [degrees]
-  REAL*4             :: lat  (        J_OLSON  )   ! Lat centers [degrees]
-  INTEGER            :: OLSON(I_OLSON,J_OLSON,1)   ! Olson land types (0-73)
+  ! Scalars
+  INTEGER              :: I_OLSON       ! # of lons (0.5 x 0.5)
+  INTEGER              :: J_OLSON       ! # of lats (0.5 x 0.5)
+  INTEGER              :: N_OLSON       ! Number of Olson land types 
+  REAL*8               :: D_LON         ! Delta longitude, Olson grid [degrees]
+  REAL*8               :: D_LAT         ! Delta latitude,  Olson grid [degrees]
+
+  ! Arrays
+  REAL*4,  ALLOCATABLE :: lon  (:    )  ! Lon centers, Olson grid [degrees]
+  REAL*4,  ALLOCATABLE :: lat  (  :  )  ! Lat centers, Olson grid [degrees]
+  INTEGER, ALLOCATABLE :: OLSON(:,:,:)  ! Olson land types
+  REAL*4,  ALLOCATABLE :: A_CM2(:,:,:)  ! Surface areas [cm2]
 
 CONTAINS
 !EOC
@@ -177,7 +187,11 @@ CONTAINS
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE Compute_Olson_LandMap()
+  SUBROUTINE Compute_Olson_LandMap( mapping )
+!
+! !INPUT/OUTPUT PARAMETERS:
+!
+    TYPE(MapWeight), POINTER :: mapping(:,:)   ! "fine" -> "coarse" mapping
 !
 ! !REMARKS:
 !  This routine supplies arrays that are required for legacy code routines:
@@ -191,6 +205,15 @@ CONTAINS
 !  19 Mar 2012 - R. Yantosca - Compute the FRCLND array (from CMN_DEP_mod.F)
 !  21 Mar 2012 - R. Yantosca - Now use REAL*4 for computation, to reduce
 !                              roundoff errors at high-resolution
+!  22 Mar 2012 - R. Yantosca - Now get surface area directly from variable
+!                              A_CM2 (read from disk) instead of computing it
+!  02 Apr 2012 - R. Yantosca - Now pass MAP (mapping weight object) via the
+!                              arg list, to save the mapping info for later
+!  09 Apr 2012 - R. Yantosca - Remove IJLOOP variable
+!  09 Apr 2012 - R. Yantosca - Now do not compute IJREG, IJLAND, IJUSE; these
+!                              are replaced by IREG, ILAND, IUSE arrays
+!  17 Apr 2012 - R. Yantosca - Rename "map" object to "mapping" to avoid name
+!                              confusion with an F90 intrinsic function
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -199,28 +222,27 @@ CONTAINS
 !
     ! Scalars
     LOGICAL :: isGlobal
-    INTEGER :: I,        J,         II,       III
-    INTEGER :: JJ,       T,         N,        type
-    INTEGER :: IJLOOP,   uniqOlson, sumIuse
-    REAL*4  :: xedge_w,  xedge_e,   yedge_s,  yedge_n
-    REAL*4  :: xedgeC_w, xedgeC_e,  yedgeC_s, yedgeC_n
-    REAL*4  :: dxdy,     dxdy4,     mapWt,    area
+    INTEGER :: I,         J,         II,       III
+    INTEGER :: JJ,        T,         N,        type
+    INTEGER :: uniqOlson, sumIuse,   C
+    REAL*4  :: xedge_w,   xedge_e,   yedge_s,  yedge_n
+    REAL*4  :: xedgeC_w,  xedgeC_e,  yedgeC_s, yedgeC_n
+    REAL*4  :: dxdy,      dxdy4,     mapWt,    area
     REAL*4  :: sumArea
     
     ! Generic arrays
     INTEGER :: maxIuse(1)
     
     ! Arrays on the Olson land map NATIVE GRID
-    INTEGER :: indLon  (I_OLSON                )    ! Index array for lons
-    INTEGER :: shiftLon(I_OLSON                )    ! Shifted indLon array
-    REAL*4  :: a_cm2   (          J_OLSON      )    ! Surface areas [cm2]
-    REAL*4  :: lonedge (I_OLSON+1              )    ! Lon edges   [degrees]
-    REAL*4  :: latedge (          J_OLSON+1    )    ! Lat edges   [degrees]
+    INTEGER :: indLon  (I_OLSON                     ) ! Index array for lons
+    INTEGER :: shiftLon(I_OLSON                     ) ! Shifted indLon array
+    REAL*4  :: lonedge (I_OLSON+1                   ) ! Lon edges   [degrees]
+    REAL*4  :: latedge (          J_OLSON+1         ) ! Lat edges   [degrees]
     
     ! Arrays on the GEOS-CHEM GRID                 
-    INTEGER :: ctOlson (IIPAR,    JJPAR,   0:73)    ! Count of land types/box
-    REAL*4  :: frOlson (IIPAR,    JJPAR,   0:73)    ! Frac of land types/box
-    INTEGER :: ordOlson(IIPAR,    JJPAR,   0:73)
+    INTEGER :: ctOlson (IIPAR,    JJPAR, 0:N_OLSON-1) ! Count of land types/box
+    REAL*4  :: frOlson (IIPAR,    JJPAR, 0:N_OLSON-1) ! Frac of land types/box
+    INTEGER :: ordOlson(IIPAR,    JJPAR, 0:N_OLSON-1) ! Order of land types
 
     !======================================================================
     ! NATIVE GRID parameters (i.e. 0.5 x 0.5 "GENERIC")
@@ -239,13 +261,6 @@ CONTAINS
     ENDDO
     latedge(J_OLSON+1) = latedge(J_OLSON) + D_LAT
     
-    ! Surface area, native grid [m2]
-    DO J = 1, J_OLSON
-       a_cm2(J)        = ( D_LON * PI_180 ) * Re**2              &
-                       * ( SIN( latedge(J+1) * PI_180 )          &
-                       -   SIN( latedge(J  ) * PI_180 ) ) * 1d4
-    ENDDO
-
     ! Shift longitudes by 2 degrees to the west for date-line handling
     shiftLon           = CSHIFT( indLon, -20 )
 
@@ -258,21 +273,19 @@ CONTAINS
     IREG               = 0
     ILAND              = 0
     IUSE               = 0
-    IJREG              = 0
-    IJLAND             = 0
-    IJUSE              = 0
     FRCLND             = 1000e0
     isGlobal           = ( .not. ITS_A_NESTED_GRID() )
 
     !======================================================================
     ! Loop over all GEOS-CHEM GRID BOXES and initialize variables
     !======================================================================
-    !$OMP PARALLEL DO                                                        &
-    !$OMP DEFAULT( SHARED )                                                  &
-    !$OMP PRIVATE( I,     J,       xedgeC_w, yedgeC_s, xedgeC_e, yedgeC_n  ) &
-    !$OMP PRIVATE( dxdy4, sumArea, JJ,       III,      dxdy,     mapWt     ) &
-    !$OMP PRIVATE( II,    xedge_w, yedge_s,  xedge_e,  yedge_n,  area      ) &
-    !$OMP PRIVATE( type,  maxIuse, T,        sumIUse,  IJLOOP,   uniqOlson )
+    !$OMP PARALLEL DO                                                &
+    !$OMP DEFAULT( SHARED )                                          &
+    !$OMP PRIVATE( I,        J,       xedgeC_w, yedgeC_s, xedgeC_e ) &
+    !$OMP PRIVATE( yedgeC_n, dxdy4,   sumArea,  JJ,       III      ) &
+    !$OMP PRIVATE( dxdy,     mapWt,   II,       xedge_w,  yedge_s  ) &
+    !$OMP PRIVATE( xedge_e,  yedge_n, area,     type,     maxIuse  ) &
+    !$OMP PRIVATE( sumIUse,  uniqOlson, C                          )
     DO J = 1, JJPAR
     DO I = 1, IIPAR
 
@@ -290,6 +303,9 @@ CONTAINS
 
        ! Reset counter of olson land types found per box
        uniqOlson = 0e0
+
+       ! Counter for mapping object
+       C         = 0
 
        !===================================================================
        ! Find each 0.5 x 0.5 NATIVE GRID BOX that fits into the GEOS-CHEM
@@ -339,7 +355,7 @@ CONTAINS
           IF ( mapWt <= 0e0 .or. mapWt > 1e0 ) CYCLE
 
           ! Area of the NATIVE GRID BOX that lies w/in the GEOS-CHEM GRID BOX
-          area              = a_cm2(JJ) * mapWt
+          area              = A_CM2(II,JJ,1) * mapWt
            
           ! Keep a total of the area
           sumArea           = sumArea + area
@@ -363,9 +379,21 @@ CONTAINS
              ordOlson(I,J,type) = uniqOlson
 
           ENDIF
+
+          ! Save mapping information for later use in modis_lai_mod.F90
+          ! in order to prepare the XLAI array for use with the legacy 
+          ! dry-deposition and soil NOx emissions codes.
+          C                     = C + 1
+          mapping(I,J)%count    = C
+          mapping(I,J)%II(C)    = II
+          mapping(I,J)%JJ(C)    = JJ
+          mapping(I,J)%olson(C) = type
+          mapping(I,J)%area(C)  = area
+          mapping(I,J)%sumarea  = sumarea
+
        ENDDO
        ENDDO
-         
+
        !===================================================================
        ! Construct GEOS-Chem type output arrays from the binning that we 
        ! just have completed.  Preserve the ordering from "vegtype.global"
@@ -376,7 +404,11 @@ CONTAINS
        maxIUse = 0
 
        ! Loop over all land types
-       DO T = 0, 73
+       DO T = 0, N_OLSON-1
+
+          ! Save the ordering of Olson land types for later use 
+          ! by routines in the module modis_lai_mod.F90
+          mapping(I,J)%ordOlson(T) = ordOlson(I,J,T)
 
           ! Normalize the land type coverage 
           frOlson(I,J,T)                =  &
@@ -410,20 +442,8 @@ CONTAINS
           IUSE(I,J,maxIUse) = IUSE(I,J,maxIUse) + ( 1000 - sumIUse )
        ENDIF
       
-       ! 1-D grid box index for IJ* arrays
-       IJLOOP               = ( (J-1) * IIPAR ) + I
-
-       ! Copy IREG into IJREG (for drydep)
-       IJREG(IJLOOP)        = IREG(I,J) 
-
        ! Loop over land types in the GEOS-CHEM GRID BOX
        DO T = 1, IREG(I,J)
-
-          ! Copy ILAND into IJLAND (for drydep)
-          IJLAND(IJLOOP,T)  = ILAND(I,J,T)
-
-          ! Copy IUSE into IJUSE (for drydep)
-          IJUSE (IJLOOP,T)  = IUSE (I,J,T)
 
           ! If the current Olson land type is water (type 0),
           ! subtract the coverage fraction (IUSE) from FRCLND.
@@ -450,7 +470,15 @@ CONTAINS
 !###                                    ( iuse (i,j,t), t=1,ireg(i,j) )
 !###    enddo
 !###    enddo
-   
+!###   
+!###    ! ### DEBUG OUTPUT
+!###    C = map(23,34)%count
+!###    print*, '### count   : ', C
+!###    print*, '### II      : ', map(23,34)%II(1:C)
+!###    print*, '### JJ      : ', map(23,34)%JJ(1:C)
+!###    print*, '### area    : ', map(23,34)%area(1:C)
+!###    print*, '### sumarea : ', map(23,34)%sumarea
+
   END SUBROUTINE Compute_Olson_LandMap
 !EOC
 !------------------------------------------------------------------------------
@@ -460,8 +488,8 @@ CONTAINS
 !
 ! !IROUTINE: init_olson_landmap
 !
-! !DESCRIPTION: Subroutine INIT\_OLSON\_LANDMAP reads 0.5 x 0.5 degree Olson 
-!  land map information from disk (in netCDF format).
+! !DESCRIPTION: Subroutine INIT\_OLSON\_LANDMAP reads Olson land map 
+! information from disk (in netCDF format).
 !\\
 !\\
 ! !INTERFACE:
@@ -472,6 +500,7 @@ CONTAINS
 !
     USE m_netcdf_io_open
     USE m_netcdf_io_read
+    USE m_netcdf_io_readattr
     USE m_netcdf_io_close
     
     IMPLICIT NONE
@@ -485,6 +514,10 @@ CONTAINS
 !
 ! !REVISION HISTORY:
 !  13 Mar 2012 - R. Yantosca - Initial version
+!  22 Mar 2012 - R. Yantosca - Also read in surface areas [m2] from file
+!  27 Mar 2012 - R. Yantosca - Now read the "units" attribute of each variable
+!  27 Mar 2012 - R. Yantosca - Now echo file I/O status info to stdout
+!  27 Mar 2012 - R. Yantosca - Now can read Olson 1992 or Olson 2001 land map
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -496,27 +529,73 @@ CONTAINS
     !======================================================================
     
     ! Scalars
+    INTEGER            :: I, J               ! Loop indices
     INTEGER            :: fId                ! netCDF file ID
+    INTEGER            :: as                 ! Allocation status
     
     ! Character strings
+    CHARACTER(LEN=255) :: nc_dir             ! netCDF directory name
     CHARACTER(LEN=255) :: nc_file            ! netCDF file name
+    CHARACTER(LEN=255) :: nc_path            ! netCDF path name
     CHARACTER(LEN=255) :: v_name             ! netCDF variable name 
+    CHARACTER(LEN=255) :: a_name             ! netCDF attribute name
+    CHARACTER(LEN=255) :: a_val              ! netCDF attribute value
      
     ! Arrays for netCDF start and count values
     INTEGER            :: st1d(1), ct1d(1)   ! For 1D arrays    
     INTEGER            :: st3d(3), ct3d(3)   ! For 3D arrays 
      
     !======================================================================
+    ! Initialize variables
+    !======================================================================
+    IF ( USE_OLSON_2001 ) THEN
+
+       !--------------------------------
+       ! Settings for Olson 2001 grid
+       !--------------------------------
+       I_OLSON = 1440                                     ! # lons (0.25x0.25)
+       J_OLSON = 720                                      ! # lats (0.25x0.25)
+       N_OLSON = 74                                       ! # of land types
+       D_LON   = 0.25d0                                   ! Delta lon [degrees]
+       D_LAT   = 0.25d0                                   ! Delta lat [degrees]
+       nc_file = 'Olson_2001_Land_Map.025x025.generic.nc' ! Input file name
+
+    ELSE
+
+       !--------------------------------
+       ! Settings for Olson 1992 grid
+       !--------------------------------
+       I_OLSON = 720                                      ! # lons (0.5x0.5)
+       J_OLSON = 360                                      ! # lats (0.5x0.5)
+       N_OLSON = 74                                       ! # of land types
+       D_LON   = 0.5d0                                    ! Delta lon [degrees]
+       D_LAT   = 0.5d0                                    ! Delta lat [degrees]
+       nc_file = 'Olson_1992_Land_Map.05x05.generic.nc'   ! Input file name
+
+    ENDIF
+
+    ! Allocate arrays
+    ALLOCATE( lon  ( I_OLSON             ), STAT=as )  
+    ALLOCATE( lat  ( J_OLSON             ), STAT=as )
+    ALLOCATE( OLSON( I_OLSON, J_OLSON, 1 ), STAT=as ) 
+    ALLOCATE( A_CM2( I_OLSON, J_OLSON, 1 ), STAT=as )
+
+    !======================================================================
     ! Open and read data from the netCDF file
     !======================================================================
 
-    ! Pick file name
-    nc_file =  TRIM( DATA_DIR_1x1 ) // &
-                'Olson_Land_Map_201203/Olson_1992_Land_Map.05x05.generic.nc'
+    ! Construct file path from directory & file name
+    nc_dir  = TRIM( DATA_DIR_1x1 ) // 'Olson_Land_Map_201203/'
+    nc_path = TRIM( nc_dir ) // TRIM( nc_file )
 
     ! Open file for read
-    CALL Ncop_Rd( fId, TRIM(nc_file) )
+    CALL Ncop_Rd( fId, TRIM(nc_path) )
      
+    ! Echo info to stdout
+    WRITE( 6, 100 ) REPEAT( '%', 79 )
+    WRITE( 6, 110 ) TRIM(nc_file)
+    WRITE( 6, 120 ) TRIM(nc_dir)
+
     !----------------------------------------
     ! VARIABLE: lon
     !----------------------------------------
@@ -528,7 +607,14 @@ CONTAINS
     st1d   = (/ 1       /)
     ct1d   = (/ I_OLSON /)
     CALL NcRd( lon, fId, TRIM(v_name), st1d, ct1d )
-     
+ 
+    ! Read the lon:units attribute
+    a_name = "units"
+    CALL NcGet_Var_Attributes( fId,TRIM(v_name),TRIM(a_name),a_val )
+    
+    ! Echo info to stdout
+    WRITE( 6, 130 ) TRIM(v_name), TRIM(a_val)     
+
     !----------------------------------------
     ! VARIABLE: lat
     !----------------------------------------
@@ -541,6 +627,13 @@ CONTAINS
     ct1d   = (/ J_OLSON /)
     CALL NcRd( lat, fId, TRIM(v_name), st1d, ct1d )
      
+    ! Read the lat:units attribute
+    a_name = "units"
+    CALL NcGet_Var_Attributes( fId,TRIM(v_name),TRIM(a_name),a_val )
+    
+    ! Echo info to stdout
+    WRITE( 6, 130 ) TRIM(v_name), TRIM(a_val) 
+
     !----------------------------------------
     ! VARIABLE: OLSON
     !----------------------------------------
@@ -552,7 +645,37 @@ CONTAINS
     st3d   = (/ 1,       1,       1 /)
     ct3d   = (/ I_OLSON, J_OLSON, 1 /)
     CALL NcRd( OLSON, fId, TRIM(v_name), st3d, ct3d )
+
+    ! Read the OLSON:units attribute
+    a_name = "units"
+    CALL NcGet_Var_Attributes( fId,TRIM(v_name),TRIM(a_name),a_val )
     
+    ! Echo info to stdout
+    WRITE( 6, 130 ) TRIM(v_name), TRIM(a_val) 
+
+    !----------------------------------------
+    ! VARIABLE: DXYP 
+    ! Convert from m2 to cm2; store as A_CM2 
+    !----------------------------------------
+    
+    ! Variable name
+    v_name = "DXYP"
+    
+    ! Read OLSON from file
+    st3d   = (/ 1,       1,       1 /)
+    ct3d   = (/ I_OLSON, J_OLSON, 1 /)
+    CALL NcRd( A_CM2, fId, TRIM(v_name), st3d, ct3d )
+    
+    ! Read the DXYP:units attribute
+    a_name = "units"
+    CALL NcGet_Var_Attributes( fId,TRIM(v_name),TRIM(a_name),a_val )
+    
+    ! Echo info to stdout
+    WRITE( 6, 130 ) TRIM(v_name), TRIM(a_val) 
+
+    ! Convert from [m2] to [cm2]
+    A_CM2  = A_CM2 * 1e4
+
     !=================================================================
     ! Cleanup and quit
     !=================================================================
@@ -560,6 +683,17 @@ CONTAINS
     ! Close netCDF file
     CALL NcCl( fId )
     
+    ! Echo info to stdout
+    WRITE( 6, 140 )
+    WRITE( 6, 100 ) REPEAT( '%', 79 )
+
+    ! FORMAT statements
+100 FORMAT( a                                              )
+110 FORMAT( '%% Opening file  : ',         a               )
+120 FORMAT( '%%  in directory : ',         a, / , '%%'     )
+130 FORMAT( '%% Successfully read ',       a, ' [', a, ']' )
+140 FORMAT( '%% Successfully closed file!'                 )
+
   END SUBROUTINE Init_Olson_LandMap
 !EOC
 !------------------------------------------------------------------------------
@@ -567,118 +701,26 @@ CONTAINS
 !------------------------------------------------------------------------------
 !BOP
 !
-! !IROUTINE: get_map_wt
+! !IROUTINE: cleanup_olson_landmap
 !
-! !DESCRIPTION: Subroutine GET\_MAP\_WT returns the "mapping weight", that
-!  is, the fraction that each "fine" grid box fits into each "coarse" grid
-!  box.
+! !DESCRIPTION: Subroutine CLEANUP\_OLSON\_LANDMAP deallocates all allocated
+!  global module variables.
 !\\
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE Get_Map_Wt( xedge_w, xedge_e, xedgeC_w, xedgeC_e,   &
-                         yedge_s, yedge_n, yedgeC_s, yedgeC_n,   &
-                         mapWt                                  )
+  SUBROUTINE Cleanup_Olson_LandMap
 !
-! !INPUT PARAMETERS:
-!
-    REAL*4, INTENT(IN)  :: xedge_w,  xedge_e    ! Lon edges, fine grid
-    REAL*4, INTENT(IN)  :: xedgeC_w, xedgeC_e   ! Lon edges, coarse grid
-    REAL*4, INTENT(IN)  :: yedge_s,  yedge_n    ! Lat edges, fine grid
-    REAL*4, INTENT(IN)  :: yedgeC_s, yedgeC_n   ! Lat edges, coarse grid
-    REAL*4, INTENT(OUT) :: mapWt                ! Mapping weight
-!
-! !REMARKS:
-!  Follows the algorithm from GAMAP routine ctm_getweight.pro
-!
-! !REVISION HISTORY:
-!  30 Jan 2012 - R. Yantosca - Initial version
-!  21 Mar 2012 - R. Yantosca - Typo: set xOverLap to zero if it is out of the
-!                              range of 0-1.  (We had set yOverLap=0 before)
-!  21 Mar 2012 - R. Yantosca - Now use REAL*4 for computations to avoid
-!                              roundoff errors at hi-res grids
+! !REVISION HISTORY:'
+!  22 Mar 2012 - R. Yantosca - Initial version
 !EOP
 !------------------------------------------------------------------------------
 !BOC
-!
-! !LOCAL VARIABLES:
-!
-    REAL*8 :: ox1, ox2, nx1, nx2, ov1, ov2, xOverLap
-    REAL*8 :: oy1, oy2, ny1, ny2,           yOverLap
+    IF ( ALLOCATED( lon   ) ) DEALLOCATE( lon   )
+    IF ( ALLOCATED( lat   ) ) DEALLOCATE( lat   )
+    IF ( ALLOCATED( OLSON ) ) DEALLOCATE( OLSON )
+    IF ( ALLOCATED( A_CM2 ) ) DEALLOCATE( A_CM2 )
 
-    !======================================================================
-    ! Get overlap in longitude
-    !======================================================================
-
-    ! OX1, OX2 are the lon edges of the "fine" grid box
-    ox1 = xedge_w
-    ox2 = xedge_e
-    
-    ! NX1, NX2 are the lon edges of the coarse grid box
-    nx1 = xedgeC_w
-    nx2 = xedgeC_e
-    
-    ! Deal with over-the-dateline cases (phs, 9/26/07)
-    ! That fixes a problem when going from GEOS-5
-    ! 0.66667 x 0.5 to GENERIC 1 x 1.
-    ! Maybe it fixes also the kludges below ?? ## need checking 
-    if ( ox2 .lt. nx1 ) then
-       ox1 = ox1 + 360e0
-       ox2 = ox2 + 360e0
-    endif
-    
-    if ( ox1 .gt. nx2 ) then
-       ox1 = ox1 - 360e0
-       ox2 = ox2 - 360e0
-    endif
-    
-    ! convert to equivalent longitudes where necessary
-    if ( nx1 < -90. .AND. ox1 > 0. ) nx1 = nx1 + 360e0
-    if ( nx2 < -90. .AND. ox2 > 0. ) nx2 = nx2 + 360e0
-    
-    ! OV1 is the greater of OX1 and NX1
-    ! OV2 is the lesser of OX2 and NX2
-    ov1 = MAX( ox1, nx1 )
-    ov2 = MIN( nx2, ox2 )
-    
-    ! XOVERLAP is the fraction of the old (fine) grid box that 
-    ! occupies the new (coarse) grid box in the longitude
-    xOverLap = ( ov2 - ov1 ) / ( ox2 - ox1 )
-    
-    ! If XOVERLAP is not in the range of 0-1, then it means that the "fine" 
-    ! grid box lies completely outside the "coarse" grid box (in longitude).
-    ! Set to zero to avoid erroneous results in the calling routine.
-    if ( xOverLap < 0e0 .or. xOverLap > 1e0 ) xOverlap = 0e0
-    
-    !======================================================================
-    ! Get overlap in latitude
-    !======================================================================
-
-    ! OY1 and OY2 are lat edges of the "fine" grid
-    oy1 = yedge_s
-    oy2 = yedge_n
-    
-    ! NY1 and NY2 are consecutive Y-edges for the coarse
-    ny1 = yedgeC_s
-    ny2 = yedgeC_n
-     
-    ! OV1 is the greater of OY1 and NY1
-    ! OV2 is the lesser of OY2 and NY2
-    ov1 = MAX( oy1, ny1 )
-    ov2 = MIN( ny2, oy2 )
-    
-    ! YOVERLAP is the fraction of the old (fine) grid box that 
-    ! occupies the new (coarse) grid box in latitude 
-    yoverlap = ( ov2 - ov1 ) / ( oy2 - oy1 )
-    
-    ! If YOVERLAP is not in the range of 0-1, then it means that the "fine" 
-    ! grid box lies completely outside the "coarse" grid box (in latitude).
-    ! Set to zero to avoid erroneous results in the calling routine.
-    if ( yOverLap < 0e0 .or. yOverLap > 1e0 ) yOverlap = 0e0
-
-    ! Resultant mapping weight
-    mapWt = xOverLap * yOverLap
-
-  END SUBROUTINE Get_Map_Wt
+  END SUBROUTINE Cleanup_Olson_LandMap
 !EOC
 END MODULE Olson_LandMap_Mod

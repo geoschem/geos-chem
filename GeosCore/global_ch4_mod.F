@@ -1252,7 +1252,6 @@
       CHARACTER(LEN=255)     :: FILENAME
       CHARACTER(LEN=4  )     :: CYEAR
 
-
       WRITE( 6, '(a)' ) '% EMISSCH4 --- BEGIN RICE_EMIS'
 
       !=================================================================

@@ -1960,10 +1960,6 @@
       WRITE( 6, 100   ) 'PRPE', THISMONTH, WD_PRPE, ' C'
       WRITE( 6, 100   ) 'C3H8', THISMONTH, WD_C3H8, ' C'
       WRITE( 6, 100   ) 'CH2O', THISMONTH, WD_CH2O, '  '
-!------------------------------------------------------------------------------
-! Prior to 3/22/12:
-!      WRITE( 6, 100   ) 'C2H6', THISMONTH, WD_C2H6, ' C'
-!------------------------------------------------------------------------------
       WRITE( 6, 100   ) 'SO2 ', THISMONTH, WD_SO2,  '  '
       WRITE( 6, 100   ) 'SO4 ', THISMONTH, WD_SO4,  '  '
       WRITE( 6, 100   ) 'NH3 ', THISMONTH, WD_NH3,  '  '
@@ -1980,10 +1976,6 @@
       WRITE( 6, 110   ) 'PRPE', THISMONTH, WE_PRPE, ' C'
       WRITE( 6, 110   ) 'C3H8', THISMONTH, WE_C3H8, ' C'
       WRITE( 6, 110   ) 'CH2O', THISMONTH, WE_CH2O, '  '
-!------------------------------------------------------------------------------
-! Prior to 3/22/12:
-!      WRITE( 6, 110   ) 'C2H6', THISMONTH, WE_C2H6, ' C'
-!------------------------------------------------------------------------------
       WRITE( 6, 110   ) 'SO2 ', THISMONTH, WE_SO2,  '  '
       WRITE( 6, 110   ) 'SO4 ', THISMONTH, WE_SO4,  '  '
       WRITE( 6, 110   ) 'NH3 ', THISMONTH, WE_NH3,  '  '
@@ -2320,10 +2312,6 @@
             EPA_NEI = EPA_WD_AN_CH2O(I,J)
 
          ELSE IF ( N == IDTC2H6 ) THEN
-!------------------------------------------------------------------------------
-! Prior to 3/22/12:
-!            EPA_NEI = EPA_WD_AN_C2H6(I,J)
-!------------------------------------------------------------------------------
             EPA_NEI = -1d0
 
          ELSE IF ( N == IDTSO2 ) THEN
@@ -2372,10 +2360,6 @@
             EPA_NEI = EPA_WE_AN_CH2O(I,J)
 
          ELSE IF ( N == IDTC2H6 ) THEN
-!------------------------------------------------------------------------------
-! Prior to 3/22/12:
-!            EPA_NEI = EPA_WE_AN_C2H6(I,J)
-!------------------------------------------------------------------------------
             EPA_NEI = -1d0
 
          ELSE IF ( N == IDTSO2 ) THEN

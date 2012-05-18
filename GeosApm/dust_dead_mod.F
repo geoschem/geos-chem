@@ -4767,10 +4767,6 @@ c Fix up for negative argument, erf, etc.
       ! and size bins (Zender et al., 2K3, Equ. 12, and Table 1)
       !=================================================================
       CALL OVR_SRC_SNK_FRC_GET( DST_SRC_NBR,   DMT_VMA_SRC,
-!-----------------------------------------------------------------------------
-! Prior to 2/15/11:
-!     &                          GSD_ANL_SRC,   NDSTBIN,
-!-----------------------------------------------------------------------------
      &                          GSD_ANL_SRC,   N_DST_BIN,
      &                          DMT_MIN,       DMT_MAX,
      &                          OVR_SRC_SNK_FRC )
@@ -4783,10 +4779,6 @@ c Fix up for negative argument, erf, etc.
       ! dust flux into transport
       !==============================================================
       CALL DST_PSD_MSS( OVR_SRC_SNK_FRC, MSS_FRC_SRC,
-!-----------------------------------------------------------------------------
-! Prior to 2/15/11:
-!     &                  OVR_SRC_SNK_MSS, NDSTBIN, DST_SRC_NBR )
-!-----------------------------------------------------------------------------
      &                  OVR_SRC_SNK_MSS, N_DST_BIN, DST_SRC_NBR )
 
       !=================================================================
@@ -5135,25 +5127,6 @@ c Fix up for negative argument, erf, etc.
       IF ( AS /= 0 ) CALL ALLOC_ERR( 'TAI' )
       TAI = 0d0
 
-!------------------------------------------------------------------------------
-! Prior to 2/15/11:
-!      ALLOCATE( DMT_VWR( NDSTBIN ), STAT=AS )
-!      IF ( AS /= 0 ) CALL ALLOC_ERR( 'DMT_VWR' )
-!      DMT_VWR = 0d0
-!
-!      ALLOCATE( DNS_AER( NDSTBIN ), STAT=AS )
-!      IF ( AS /= 0 ) CALL ALLOC_ERR( 'DNS_AER' )
-!      DNS_AER = 0d0
-!
-!      ALLOCATE( OVR_SRC_SNK_FRC( DST_SRC_NBR, NDSTBIN ), STAT=AS )
-!      IF ( AS /= 0 ) CALL ALLOC_ERR( 'OVR_SRC_SNK_FRC' )
-!      OVR_SRC_SNK_FRC = 0d0
-!
-!      ALLOCATE( OVR_SRC_SNK_MSS( DST_SRC_NBR, NDSTBIN ), STAT=AS )
-!      IF ( AS /= 0 ) CALL ALLOC_ERR( 'OVR_SRC_SNK_MSS' )
-!      OVR_SRC_SNK_MSS = 0d0
-!------------------------------------------------------------------------------
-
       ALLOCATE( DMT_VWR( N_DST_BIN ), STAT=AS )
       IF ( AS /= 0 ) CALL ALLOC_ERR( 'DMT_VWR' )
       DMT_VWR = 0d0
@@ -5173,25 +5146,6 @@ c Fix up for negative argument, erf, etc.
       ALLOCATE( OROGRAPHY( IIPAR, JJPAR ), STAT=AS )
       IF ( AS /= 0 ) CALL ALLOC_ERR( 'OROGRAPHY' )
       OROGRAPHY = 0
-
-!------------------------------------------------------------------------------
-! Prior to 2/15/11:
-!      ! Bin size min diameter [m]
-!      ALLOCATE( DMT_MIN( NDSTBIN ), STAT=AS )
-!      IF ( AS /= 0 ) CALL ALLOC_ERR( 'DMT_MIN' )
-!      DMT_MIN(1) = 0.2d-6
-!      DMT_MIN(2) = 2.0d-6
-!      DMT_MIN(3) = 3.6d-6
-!      DMT_MIN(4) = 6.0d-6
-!
-!      ! Bin size max diameter [m]
-!      ALLOCATE( DMT_MAX( NDSTBIN ), STAT=AS )
-!      IF ( AS /= 0 ) CALL ALLOC_ERR( 'DMT_MAX' )
-!      DMT_MAX(1) = 2.0d-6
-!      DMT_MAX(2) = 3.6d-6
-!      DMT_MAX(3) = 6.0d-6
-!      DMT_MAX(4) = 1.2d-5
-!------------------------------------------------------------------------------
 
       ! Bin size min diameter [m]
       ALLOCATE( DMT_MIN( N_DST_BIN ), STAT=AS )

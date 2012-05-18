@@ -546,10 +546,6 @@
       WRITE( 6, 100   ) 'PRPE', THISMONTH, PRPE, ' C'
       WRITE( 6, 100   ) 'C3H8', THISMONTH, C3H8, ' C'
       WRITE( 6, 100   ) 'CH2O', THISMONTH, CH2O, ' C'
-!------------------------------------------------------------------------------
-! Prior to 3/22/12:
-!      WRITE( 6, 100   ) 'C2H6', THISMONTH, C2H6, ' C'
-!------------------------------------------------------------------------------
       WRITE( 6, 100   ) 'BENZ', THISMONTH, BENZ, ' C'
       WRITE( 6, 100   ) 'TOLU', THISMONTH, TOLU, ' C'
       WRITE( 6, 100   ) 'XYLE', THISMONTH, XYLE, ' C'
@@ -617,13 +613,6 @@
 
       IF ( N == IDTALK4 )      THEN
          RETRO = RETRO_ALK4(I,J)
-!------------------------------------------------------------------------------
-!      ! Partition RETRO ketones into 75% acetone and 25% MEK (dbm, 8/18/2011)
-!      ELSE IF ( N == IDTACET ) THEN
-!         RETRO = RETRO_ACET(I,J)
-!      ELSE IF ( N == IDTMEK )  THEN
-!         RETRO = RETRO_MEK(I,J)
-!------------------------------------------------------------------------------
       ELSE IF ( N == IDTACET ) THEN
          RETRO = 0.75d0*RETRO_MEK(I,J)   ! RETRO ketones --> 75% ACET
       ELSE IF ( N == IDTMEK )  THEN
@@ -637,10 +626,6 @@
       ELSE IF ( N == IDTCH2O ) THEN
          RETRO = RETRO_CH2O(I,J)
       ELSE IF ( N == IDTC2H6 ) THEN
-!------------------------------------------------------------------------------
-! Prior to 3/22/12:
-!         RETRO = RETRO_C2H6(I,J)
-!------------------------------------------------------------------------------
          RETRO = -1d0
       ELSE IF ( N == IDTBENZ ) THEN
          RETRO = RETRO_BENZ(I,J)

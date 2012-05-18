@@ -194,6 +194,7 @@
 !                              biofuel contributions to avoid double-counting
 !  08 Mar 2012 - M. Payer    - Added modifications for historical emissions of
 !                              NOx (E. Leibensperger)
+!  06 Apr 2012 - M. Payer    - Changed regrid algorithm to map_a2a (M. Cooper)
 !******************************************************************************
 !
       ! References to F90 modules
@@ -224,12 +225,12 @@
 ![eml 
       USE LOGICAL_MOD,          ONLY : LHIST
       USE TIME_MOD,             ONLY : GET_HISTYR
-      USE REGRID_1x1_MOD,       ONLY : DO_REGRID_1x1, DO_REGRID_G2G_1x1
+      USE REGRID_A2A_MOD,       ONLY : DO_REGRID_A2A
 !eml]
 
-      USE CMN_SIZE_MOD             ! Size parameters
-      USE CMN_O3_MOD               ! FSCLYR
-      USE CMN_DIAG_MOD             ! ND29, ND32, ND34
+      USE CMN_SIZE_MOD               ! Size parameters
+      USE CMN_O3_MOD                 ! FSCLYR
+      USE CMN_DIAG_MOD               ! ND29, ND32, ND34
 
       IMPLICIT NONE
 #     include "define.h"
@@ -250,9 +251,11 @@
       CHARACTER(LEN=255)            :: ED_FILENAME
       REAL*4                        :: GENERIC_1x1(I1x1,J1x1-1)
       REAL*8                        :: GENERIC8_1x1(I1x1,J1x1-1)
-      REAL*8                        :: GEOS_1x1(I1x1,J1x1,1)
-      REAL*8                        :: TEMP_ED(IGLOB,JGLOB,1), HIST_TAU
+      REAL*8                        :: TEMP_ED(IIPAR,JJPAR,1), HIST_TAU
 !eml]
+      CHARACTER(LEN=255)            :: LLFILENAME
+      REAL*8, ALLOCATABLE           :: OUTGRID(:,:)
+      REAL*8, ALLOCATABLE           :: INGRID(:,:)
       
       ! External functions
       REAL*8,  EXTERNAL             :: BOXVL
@@ -359,13 +362,23 @@
                   ! Cast from REAL*4 to REAL*8
                   GENERIC8_1x1 = GENERIC_1x1
 
-                  !Convert to GEOS-Chem grid
-                  CALL DO_REGRID_G2G_1x1('kg/yr', GENERIC8_1x1,
-     &                                            GEOS_1x1(:,:,1) )
+                  ! File with lat/lon edges for regridding
+                  LLFILENAME = TRIM( DATA_DIR_1x1) //
+     &               'MAP_A2A_Regrid_200312/latlon_generic.txt'
 
-                  ! Regrid to current resolution
-                  CALL DO_REGRID_1x1(1, 'kg/yr', GEOS_1x1, TEMP_ED )
-                  BIOFUEL_KG(N,:,:) = TEMP_ED(:,:,1)
+                  ! Allocate arrays for regridding
+                  ALLOCATE(INGRID(I1x1,J1x1-1))
+                  ALLOCATE(OUTGRID(IIPAR,JJPAR))
+
+                  ! Regrid to current model resolution
+                  INGRID = GENERIC8_1x1
+                  CALL DO_REGRID_A2A( LLFILENAME, 360,     181,
+     &                                INGRID,     OUTGRID, 1 )
+                  BIOFUEL_KG(N,:,:) = OUTGRID  
+                  
+                  ! Deallocate arrays for regridding
+                  DEALLOCATE(INGRID)
+                  DEALLOCATE(OUTGRID)
 
                ELSE
 
@@ -853,12 +866,6 @@
             !-----------------------------------------------------------
             IF ( LRETRO ) THEN
                IF ( (NN == IDTC2H2) .or. (NN == IDTC2H4) .or.
-!------------------------------------------------------------------------------
-! Prior to 12/8/11:
-! RETRO C2H6 emissions are too low. Use Yaping Xiao's C2H6 emissions instead
-! and don't zero BIOFUEL for C2H6. (mpayer, 3/22/12)
-!     &              (NN == IDTC2H6) .or. (NN == IDTPRPE) .or.
-!------------------------------------------------------------------------------
      &              (NN == IDTPRPE) .or.
      &              (NN == IDTC3H8) .or. (NN == IDTALK4) .or.
      &              (NN == IDTCH2O) .or. (NN == IDTALD2) .or. 
@@ -942,14 +949,6 @@
                      ENDIF
                   ENDIF
                ENDIF
-            
-               ! move below so that BIOFUEL array is complete before
-               ! archiving diagnostic info (hotp 11/23/09)
-!              ! ND34 -- archive biofuel burning species [molec/cm2/s]
-!              IF ( DO_ND34 ) THEN
-!                  AD34(I,J,N) = AD34(I,J,N) + ( BIOFUEL(N,I,J) * 
-!     &                                          BXHEIGHT_CM )
-!               ENDIF 
             ENDIF
          ENDDO  
 

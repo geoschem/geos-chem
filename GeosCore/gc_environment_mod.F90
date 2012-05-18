@@ -76,7 +76,6 @@
           USE CMN_DEP_MOD,       ONLY : SET_CMN_DEP_MOD
           USE CMN_NOX_MOD,       ONLY : SET_CMN_NOX_MOD
           USE CMN_O3_MOD,        ONLY : SET_CMN_O3_MOD
-          USE CMN_VEL_MOD,       ONLY : SET_CMN_VEL_MOD
           USE CMN_MOD,           ONLY : SET_CMN_MOD
           USE CMN_FJ_MOD,        ONLY : SET_CMN_FJ_MOD
           USE JV_CMN_MOD,        ONLY : SET_JV_CMN_MOD
@@ -93,7 +92,6 @@
           CALL SET_CMN_DIAG_MOD
           CALL SET_CMN_NOX_MOD
           CALL SET_CMN_O3_MOD
-          CALL SET_CMN_VEL_MOD
           CALL SET_CMN_MOD
           CALL SET_CMN_FJ_MOD
           CALL SET_COMMSOIL_MOD

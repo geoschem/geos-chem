@@ -55,6 +55,7 @@
 #                              HDF5 include path $(HDF5_INC).
 #  01 Mar 2012 - R. Yantosca - Replace grid_mod.F with grid_mod.F90, to
 #                              facilitate work on the GI model
+#  03 Apr 2012 - M. Payer    - Add new module regrid_a2a_mod.F90 (M. Cooper)
 #EOP
 #------------------------------------------------------------------------------
 #BOC
@@ -125,20 +126,21 @@ help:
 #      listed dependency.
 #=============================================================================
 
-bpch2_mod.o      : bpch2_mod.F      error_mod.o    file_mod.o   julday_mod.o
+bpch2_mod.o      : bpch2_mod.F        error_mod.o    file_mod.o   julday_mod.o
 charpak_mod.o    : charpak_mod.F
 directory_mod.o  : directory_mod.F
 error_mod.o      : error_mod.F
-file_mod.o       : file_mod.F       error_mod.o
-grid_mod.o       : grid_mod.F90     error_mod.o
+file_mod.o       : file_mod.F         error_mod.o
+grid_mod.o       : grid_mod.F90       error_mod.o
 ifort_errmsg.o   : ifort_errmsg.F
 julday_mod.o     : julday_mod.F
 linux_err.o      : linux_err.c
-pressure_mod.o   : pressure_mod.F   error_mod.o
-regrid_1x1_mod.o : regrid_1x1_mod.F charpak_mod.o  error_mod.o  grid_mod.o
-time_mod.o       : time_mod.F       charpak_mod.o  error_mod.o  grid_mod.o  \
-                                    julday_mod.o 
-transfer_mod.o   : transfer_mod.F   error_mod.o
+pressure_mod.o   : pressure_mod.F     error_mod.o
+regrid_1x1_mod.o : regrid_1x1_mod.F   charpak_mod.o  error_mod.o  grid_mod.o
+regrid_a2a_mod.o : regrid_a2a_mod.F90 file_mod.o     grid_mod.o
+time_mod.o       : time_mod.F         charpak_mod.o  error_mod.o  grid_mod.o  \
+                                      julday_mod.o 
+transfer_mod.o   : transfer_mod.F     error_mod.o
 unix_cmds_mod.o  : unix_cmds_mod.F
 
 # NOTE: if HDF5=yes then we need to also look for the hdf5.mod 

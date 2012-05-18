@@ -117,6 +117,7 @@
 !  16 Feb 2011 - R. Yantosca - Add modifications for APM from G. Luo
 !  07 Sep 2011 - P. Kasibhatla - Modified to include GFED3
 !  08 Feb 2012 - R. Yantosca - Add modifications for GEOS-5.7.x met data
+!  28 Feb 2012 - R. Yantosca - Removed support for GEOS-3
 !  01 Mar 2012 - R. Yantosca - Now reference new grid_mod.F90
 !EOP
 !------------------------------------------------------------------------------
@@ -1517,32 +1518,13 @@
 !
 ! !USES:
 !
-      USE ERROR_MOD,   ONLY : ERROR_STOP
-      USE LOGICAL_MOD, ONLY : LAIRNOX,    LANTHRO,   LAVHRRLAI, LBBSEA    
-      USE LOGICAL_MOD, ONLY : LBIOFUEL,   LBIOGENIC, LBIOMASS,  LBIONOX
-      USE LOGICAL_MOD, ONLY : LCOOKE
-      USE LOGICAL_MOD, ONLY : LEMIS,      LFOSSIL,   LLIGHTNOX, LMONOT    
-      USE LOGICAL_MOD, ONLY : LNEI99,     LSHIPSO2,  LSOILNOX,  LTOMSAI   
-      USE LOGICAL_MOD, ONLY : LWOODCO,    LMEGAN,    LMEGANMONO,LEMEP
-      USE LOGICAL_MOD, ONLY : LFERTILIZERNOX
-      USE LOGICAL_MOD, ONLY : LOTDLOC
-      USE LOGICAL_MOD, ONLY : LBRAVO,    LEDGAR    
-      USE LOGICAL_MOD, ONLY : LEDGARNOx,  LEDGARCO,  LEDGARSOx 
-      USE LOGICAL_MOD, ONLY : LEDGARSHIP, LSTREETS,  LCAC,      LVISTAS
-      USE LOGICAL_MOD, ONLY : LARCSHIP,   LEMEPSHIP, LICARTT,   LGFED2BB 
-      USE LOGICAL_MOD, ONLY : LGFED3BB 
-      USE LOGICAL_MOD, ONLY : LICOADSSHIP,LNEI05 
-      USE LOGICAL_MOD, ONLY : L8DAYBB,    L3HRBB,    LSYNOPBB
-      USE LOGICAL_MOD, ONLY : L8DAYBB3,   L3HRBB3,   LSYNOPBB3
-      USE TRACER_MOD,  ONLY : ITS_A_FULLCHEM_SIM
-      USE LOGICAL_MOD, ONLY : LMODISLAI , LPECCA  !(mpb,2009)
+      USE ERROR_MOD,     ONLY : ERROR_STOP
+      USE LOGICAL_MOD
+      USE MODIS_LAI_MOD, ONLY : INIT_MODIS_LAI
       USE EMISSIONS_MOD, ONLY : ISOP_SCALING 
       USE EMISSIONS_MOD, ONLY : NOx_SCALING
-      USE LOGICAL_MOD, ONLY : LRETRO  !(wfr, 3/8/11)
-![eml 
-      USE LOGICAL_MOD, ONLY : LHIST
-      USE TIME_MOD,    ONLY : SET_HISTYR
-!eml]
+      USE TIME_MOD,      ONLY : SET_HISTYR
+      USE TRACER_MOD,    ONLY : ITS_A_FULLCHEM_SIM
 
       USE CMN_SIZE_MOD      ! Size parameters
       USE CMN_O3_MOD        ! FSCALYR
@@ -1597,6 +1579,11 @@
 !  07 Sep 2011 - P. Kasibhatla - Add modifications for GFED3
 !  14 Feb 2012 - R. Yantosca - Reorganize error checks for logical switches
 !  28 Feb 2012 - R. Yantosca - Removed support for GEOS-3
+!  05 Apr 2012 - R. Yantosca - Now call INIT_MODIS_LAI
+!  05 Apr 2012 - R. Yantosca - Reorganized USE statements for clarity
+!  10 Apr 2012 - R. Yantosca - Bug fix: do not turn off LAVHRRLAI or LMODISLAI
+!                              when emissions are turned off.  LAI is used
+!                              in other areas of the code.
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -1884,8 +1871,6 @@
       LOTDLOC           = ( LOTDLOC        .and. LEMIS     )
       LSOILNOX          = ( LSOILNOX       .and. LEMIS     )
       LFERTILIZERNOX    = ( LFERTILIZERNOX .and. LEMIS     )
-      LAVHRRLAI         = ( LAVHRRLAI      .and. LEMIS     )
-      LMODISLAI         = ( LMODISLAI      .and. LEMIS     )       
 
       ! Define these flags for backwards compatibility
       LFOSSIL           = LANTHRO
@@ -2095,8 +2080,6 @@
          LGFED3BB = .FALSE.
       ENDIF
 
-
-
       ! Force to use MODIS LAI if we use MEGAN. (ccc, 2/23/10)
       IF ( LMEGAN .OR. LMEGANMONO ) THEN
          LMODISLAI = .TRUE.
@@ -2106,22 +2089,15 @@
       ENDIF
 
       !=================================================================
-      ! Error check LAI switches (i.e. AVHRR or MODIS) (mpb,2009)
+      ! Error checks
       !=================================================================
       IF ( LAVHRRLAI .AND. LMODISLAI ) THEN
             CALL ERROR_STOP( 
      &         ' AVHRR LAI &  MODIS LAI cannot both be turned on!', 
      &         ' READ_EMISSIONS_MENU ("input_mod.f")' )
          ENDIF
-      ! ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-      
-#if   defined( GEOS_5 )
-         
-         !--------------------------------
-         ! GEOS-5 warnings & error traps
-         !--------------------------------
 
-#elif defined( GCAP     )
+#if    defined( GCAP )
 
          !--------------------------------
          ! GCAP error message 
@@ -2136,6 +2112,14 @@
          ENDIF
 
 #endif
+
+      !=================================================================
+      ! Initialization
+      !=================================================================
+
+      !%%% NOTE: For now turn on INIT_MODIS_LAI regardless of whether
+      !%%% MODIS or LAVHRRLAI is used.  The
+      CALL INIT_MODIS_LAI()
 
       !=================================================================
       ! Print to screen
@@ -2854,6 +2838,8 @@
 !  27 Aug 2010 - R. Yantosca - Now allow non-local PBL for MERRA met data
 !  27 Aug 2010 - R. Yantosca - Added ProTeX headers
 !  02 Feb 2012 - R. Yantosca - Added modifications for MERRA met data
+!  13 Apr 2012 - R. Yantosca - Fixed typo ( defined( GEOS_57 ) should have 
+!                              been !defined( GEOS_57 ) )
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -2892,8 +2878,8 @@
       ! Separator line
       CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_convection_menu:5' )
 
-      ! The non-local PBL scheme is valid only with GEOS-5 or MERRA!
-#if   !defined( GEOS_5 ) && !defined( MERRA ) && defined( GEOS_57 )
+      ! The non-local PBL scheme is valid only with GEOS-5/MERRA/GEOS-5.7.x
+#if   !defined( GEOS_5 ) && !defined( MERRA ) && !defined( GEOS_57 )
       IF ( LNLPBL ) THEN
          WRITE(*,*) '================================================='
          WRITE(*,*) 'The non-local PBL scheme is only valid for GEOS-5'
@@ -2940,6 +2926,7 @@
       USE DRYDEP_MOD,  ONLY : INIT_DRYDEP
       USE LOGICAL_MOD, ONLY : LCONV,             LDRYD
       USE LOGICAL_MOD, ONLY : LWETD,             LSPLIT
+      USE LOGICAL_MOD, ONLY : USE_OLSON_2001
       USE TRACER_MOD,  ONLY : ITS_A_C2H6_SIM,    ITS_A_CH3I_SIM
       USE TRACER_MOD,  ONLY : ITS_A_CH4_SIM,     ITS_A_HCN_SIM
       USE TRACER_MOD,  ONLY : ITS_A_MERCURY_SIM, ITS_A_TAGCO_SIM
@@ -3003,7 +2990,7 @@
       IF ( ITS_A_TAGCO_SIM()   ) LWETD = .FALSE.
       IF ( ITS_A_C2H6_SIM()    ) LWETD = .FALSE.
       IF ( ITS_A_CH4_SIM()     ) LWETD = .FALSE.
-      
+
       !=================================================================
       ! Print to screen
       !=================================================================
@@ -3011,6 +2998,8 @@
       WRITE( 6, '(  a)' ) '---------------'
       WRITE( 6, 100     ) 'Turn on dry deposition?     : ', LDRYD
       WRITE( 6, 100     ) 'Turn on wet deposition?     : ', LWETD
+      WRITE( 6, 100     ) 'Use Olson 2001 land map?    : ', 
+     &                                                  USE_OLSON_2001
 
       ! FORMAT statements
  100  FORMAT( A, L5 )
@@ -5085,11 +5074,9 @@
 ! !USES:
 !
       USE DIRECTORY_MOD, ONLY : TPBC_DIR
-      USE DIRECTORY_MOD, ONLY : TPBC_DIR_NA, TPBC_DIR_EU
-      USE DIRECTORY_MOD, ONLY : TPBC_DIR_CH
-      USE LOGICAL_MOD,   ONLY : LWINDO, LWINDO2x25
-      USE LOGICAL_MOD,   ONLY : LWINDO_NA, LWINDO_EU, LWINDO_CH
-      USE LOGICAL_MOD,   ONLY : LWINDO_CU
+      USE DIRECTORY_MOD, ONLY : TPBC_DIR_NA, TPBC_DIR_EU, TPBC_DIR_CH
+      USE LOGICAL_MOD,   ONLY : LWINDO,      LWINDO2x25,  LWINDO_CU
+      USE LOGICAL_MOD,   ONLY : LWINDO_NA,   LWINDO_EU,   LWINDO_CH
       USE TPCORE_BC_MOD, ONLY : INIT_TPCORE_BC
 ! 
 ! !REVISION HISTORY: 
@@ -6228,6 +6215,10 @@
 !  27 Aug 2010 - R. Yantosca - Added ProTeX headers
 !  07 Sep 2011 - P. Kasibhatla - Modified for GFED3
 !   8 Feb 2012 - R. Yantosca - Rewrote USE statements for clarity
+!  28 Feb 2012 - R. Yantosca - Removed support for GEOS-3
+!  26 Mar 2012 - R. Yantosca - Now turn off switch USE_OLSON_2001 by default
+!                              (except for GEOS-5.7.2 met)
+!  27 Mar 2012 - R. Yantosca - Cosmetic changes
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -6236,113 +6227,123 @@
       !=================================================================
 
       ! Initialize directories
-      DATA_DIR     = ''
-      DATA_DIR_1x1 = ''
-      GEOS_1_DIR   = ''
-      GEOS_S_DIR   = ''
-      GEOS_4_DIR   = ''
-      TEMP_DIR     = ''
-      RUN_DIR      = ''
-      OH_DIR       = ''
-      O3PL_DIR     = ''
-      TPBC_DIR     = ''
+      DATA_DIR       = ''
+      DATA_DIR_1x1   = ''
+      GEOS_1_DIR     = ''
+      GEOS_S_DIR     = ''
+      GEOS_4_DIR     = ''
+      TEMP_DIR       = ''
+      RUN_DIR        = ''
+      OH_DIR         = ''
+      O3PL_DIR       = ''
+      TPBC_DIR       = ''
 
       ! Initialize logicals
-      LATEQ        = .FALSE.
-      LAVHRRLAI    = .FALSE.
-      LCARB        = .FALSE.
-      LDEAD        = .FALSE.
-      LDUST        = .FALSE.
-      LSULF        = .FALSE.
-      LSOA         = .FALSE.
-      LSSALT       = .FALSE.
-      LCHEM        = .FALSE.
-      LCONV        = .FALSE.
-      LDBUG        = .FALSE.
-      LDIAG        = .FALSE.
-      LPRT         = .FALSE.
-      LSTDRUN      = .FALSE.
-      LDRYD        = .FALSE.
-      LAIRNOX      = .FALSE.
-      LANTHRO      = .FALSE.
-      LBIONOX      = .FALSE.
-      LBIOMASS     = .FALSE.
-      LBIOFUEL     = .FALSE.
-      LBIOGENIC    = .FALSE.
-      LBBSEA       = .FALSE.
-      LDYNOCEAN    = .FALSE.
-      LEMEP        = .FALSE.
-      LEMIS        = .FALSE.
-      LEDGAR       = .FALSE.
-      LEDGARNOx    = .FALSE. 
-      LEDGARCO     = .FALSE. 
-      LEDGARSHIP   = .FALSE. 
-      LEDGARSOx    = .FALSE. 
-      LFFNOX       = .FALSE.
-      LFOSSIL      = .FALSE.
-      LFUTURE      = .FALSE.
-      LGFED2BB     = .FALSE.
-      LGFED3BB     = .FALSE.
-      LLIGHTNOX    = .FALSE.
-      LMEGAN       = .FALSE.
-      LMEGANMONO   = .FALSE.
-      LMONOT       = .FALSE.
-      LNEI99       = .FALSE.
-      LNEI05       = .FALSE.
-      LOTDLOC      = .FALSE.
-      LSHIPSO2     = .FALSE.
-      LSOILNOX     = .FALSE.
-      LTOMSAI      = .FALSE.
-      LWOODCO      = .FALSE.
-      LFILL        = .FALSE.
-      LMFCT        = .FALSE.
-      LTRAN        = .FALSE.
-      LTPFV        = .FALSE.
-      LUPBD        = .FALSE.
-      LWINDO       = .FALSE.
-      LUNZIP       = .FALSE.
-      LWAIT        = .FALSE.
-      LTURB        = .FALSE.
-      LSVGLB       = .FALSE.
-      ! >> (dkh, 02/12/09) 
-      LSVCSPEC     = .FALSE.
-      ! << 
-      LSPLIT       = .FALSE.
-      LWETD        = .FALSE.
-      LVARTROP     = .FALSE.
-      LLINOZ       = .FALSE.
-      LPREINDHG    = .FALSE.
+      LATEQ          = .FALSE.
+      LAVHRRLAI      = .FALSE.
+      LCARB          = .FALSE.
+      LDEAD          = .FALSE.
+      LDUST          = .FALSE.
+      LSULF          = .FALSE.
+      LSOA           = .FALSE.
+      LSSALT         = .FALSE.
+      LCHEM          = .FALSE.
+      LCONV          = .FALSE.
+      LDBUG          = .FALSE.
+      LDIAG          = .FALSE.
+      LPRT           = .FALSE.
+      LSTDRUN        = .FALSE.
+      LDRYD          = .FALSE.
+      LAIRNOX        = .FALSE.
+      LANTHRO        = .FALSE.
+      LBIONOX        = .FALSE.
+      LBIOMASS       = .FALSE.
+      LBIOFUEL       = .FALSE.
+      LBIOGENIC      = .FALSE.
+      LBBSEA         = .FALSE.
+      LDYNOCEAN      = .FALSE.
+      LEMEP          = .FALSE.
+      LEMIS          = .FALSE.
+      LEDGAR         = .FALSE.
+      LEDGARNOx      = .FALSE. 
+      LEDGARCO       = .FALSE. 
+      LEDGARSHIP     = .FALSE. 
+      LEDGARSOx      = .FALSE. 
+      LFFNOX         = .FALSE.
+      LFOSSIL        = .FALSE.
+      LFUTURE        = .FALSE.
+      LGFED2BB       = .FALSE.
+      LGFED3BB       = .FALSE.
+      LLIGHTNOX      = .FALSE.
+      LMEGAN         = .FALSE.
+      LMEGANMONO     = .FALSE.
+      LMONOT         = .FALSE.
+      LNEI99         = .FALSE.
+      LNEI05         = .FALSE.
+      LOTDLOC        = .FALSE.
+      LSHIPSO2       = .FALSE.
+      LSOILNOX       = .FALSE.
+      LTOMSAI        = .FALSE.
+      LWOODCO        = .FALSE.
+      LFILL          = .FALSE.
+      LMFCT          = .FALSE.
+      LTRAN          = .FALSE.
+      LTPFV          = .FALSE.
+      LUPBD          = .FALSE.
+      LWINDO         = .FALSE.
+      LUNZIP         = .FALSE.
+      LWAIT          = .FALSE.
+      LTURB          = .FALSE.
+      LSVGLB         = .FALSE.
+      LSVCSPEC       = .FALSE.
+      LSPLIT         = .FALSE.
+      LWETD          = .FALSE.
+      LVARTROP       = .FALSE.
+      LLINOZ         = .FALSE.
+      LPREINDHG      = .FALSE.
+      USE_OLSON_2001 = .FALSE.
 
       !Specifically for CO2 simulation (R Nassar, 2009-03-02)
-      LGENFF       = .FALSE.
-      LANNFF       = .FALSE.
-      LMONFF       = .FALSE.
-      LSEASBB      = .FALSE.
-      LBIONETORIG  = .FALSE.
-      LBIONETCLIM  = .FALSE.
-      LBIODAILY    = .FALSE.
-      LBIODIURNAL  = .FALSE.
-      LOCN1997     = .FALSE.
-      LOCN2009ANN  = .FALSE.
-      LOCN2009MON  = .FALSE.
-      LFFBKGRD     = .FALSE.
-      LBIOSPHTAG   = .FALSE.
-      LFOSSILTAG   = .FALSE.
-      LSHIPEDG     = .FALSE.
-      LSHIPICO     = .FALSE.
-      LSHIPSCALE   = .FALSE.
-      LSHIPTAG     = .FALSE.
-      LPLANE       = .FALSE.
-      LPLANESCALE  = .FALSE.
-      LPLANETAG    = .FALSE.
-      LCHEMCO2     = .FALSE.
-
-      LRETRO       = .FALSE.  !(wfr, 3/8/11)
+      LGENFF         = .FALSE.
+      LANNFF         = .FALSE.
+      LMONFF         = .FALSE.
+      LSEASBB        = .FALSE.
+      LBIONETORIG    = .FALSE.
+      LBIONETCLIM    = .FALSE.
+      LBIODAILY      = .FALSE.
+      LBIODIURNAL    = .FALSE.
+      LOCN1997       = .FALSE.
+      LOCN2009ANN    = .FALSE.
+      LOCN2009MON    = .FALSE.
+      LFFBKGRD       = .FALSE.
+      LBIOSPHTAG     = .FALSE.
+      LFOSSILTAG     = .FALSE.
+      LSHIPEDG       = .FALSE.
+      LSHIPICO       = .FALSE.
+      LSHIPSCALE     = .FALSE.
+      LSHIPTAG       = .FALSE.
+      LPLANE         = .FALSE.
+      LPLANESCALE    = .FALSE.
+      LPLANETAG      = .FALSE.
+      LCHEMCO2       = .FALSE.
+                     
+      LRETRO         = .FALSE.  !(wfr, 3/8/11)
       
       ! Initialize counters
-      CT1          = 0
-      CT2          = 0
-      CT3          = 0
+      CT1            = 0
+      CT2            = 0
+      CT3            = 0
+
+#if   defined( GEOS_57 ) 
+      !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+      !%%% KLUDGE FOR TESTING GEOS-5.7.2 (bmy, 3/26/12)
+      !%%% Use the Olson 2001 land map, which is at 0.25 x 0.25 resolution
+      !%%% in order to facilitate the SEAC4RS simulations.  Eventually
+      !%%% this will replace Olson 1992 for all other met field types,
+      !%%% once more rigorous testing & validation has been done.
+      USE_OLSON_2001 = .TRUE.
+      !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+#endif
 
       END SUBROUTINE INIT_INPUT
 !EOC

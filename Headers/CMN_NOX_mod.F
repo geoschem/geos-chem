@@ -5,7 +5,7 @@
 !
 ! !MODULE: CMN_NOX_mod
 !
-! !DESCRIPTION: CMN_NOX_mod is the module file for containing NOx from soils.
+! !DESCRIPTION: CMN\_NOX\_mod is the module file for containing NOx from soils.
 !\\
 !\\
 ! !INTERFACE: 

@@ -3700,6 +3700,7 @@
 !
 ! !REVISION HISTORY:
 !  06 Feb 2012 - R. Yantosca - Split off MERRA init from routine INIT_DAO
+!  17 Apr 2012 - R. Yantosca - Bug fix: allocate ALBD array (it was omitted)
 !EOP
 !------------------------------------------------------------------------------
 !BOC

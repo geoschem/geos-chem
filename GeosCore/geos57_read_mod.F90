@@ -15,13 +15,11 @@ MODULE Geos57_Read_Mod
 !
 ! !USES:
 !
-#if defined( USE_NETCDF )
   ! NcdfUtil modules for netCDF I/O
   USE m_netcdf_io_open                    ! netCDF open
   USE m_netcdf_io_get_dimlen              ! netCDF dimension queries
   USE m_netcdf_io_read                    ! netCDF data reads
   USE m_netcdf_io_close                   ! netCDF close
-#endif
 
   ! GEOS-Chem modules
   USE CMN_SIZE_MOD                        ! Size parameters
@@ -37,9 +35,7 @@ MODULE Geos57_Read_Mod
   IMPLICIT NONE
   PRIVATE
 
-#if defined( USE_NETCDF )
 # include "netcdf.inc"                    ! Include file for netCDF library
-#endif
 !
 ! !PRIVATE MEMBER FUNCTIONS:
 !
@@ -67,6 +63,7 @@ MODULE Geos57_Read_Mod
 !  03 Feb 2012 - R. Yantosca - Add Geos57_Read_A3 wrapper function
 !  07 Feb 2012 - R. Yantosca - Now echo info after reading fields from disk
 !  10 Feb 2012 - R. Yantosca - Add function Get_Resolution_String
+!  05 Apr 2012 - R. Yantosca - Convert units for specific humidity properly
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -290,8 +287,6 @@ CONTAINS
     INTEGER            :: st3d(3), ct3d(3)   ! Start + count, for 3D arrays 
     REAL*4             :: Q(IIPAR,JJPAR)     ! Temporary data arrray
 
-#if defined( USE_NETCDF )
-
     !======================================================================
     ! Open the netCDF file
     !======================================================================
@@ -383,8 +378,6 @@ CONTAINS
 
     ! Close netCDF file
     CALL NcCl( fId )
-
-#endif
 
   END SUBROUTINE Geos57_Read_CN
 !EOC
@@ -521,8 +514,6 @@ CONTAINS
     ! Arrays                                 
     INTEGER            :: st3d(3), ct3d(3)   ! Start + count, for 3D arrays 
     REAL*4             :: Q(IIPAR,JJPAR)     ! Temporary data arrray
-
-#if defined( USE_NETCDF )
 
     !======================================================================
     ! Open the netCDF file
@@ -902,8 +893,6 @@ CONTAINS
     lastDate = YYYYMMDD
     lastTime = HHMMSS
 
-#endif
-
   END SUBROUTINE Geos57_Read_A1
 !EOC
 !------------------------------------------------------------------------------
@@ -1060,6 +1049,7 @@ CONTAINS
 !  30 Jan 2012 - R. Yantosca - Initial version
 !  07 Feb 2012 - R. Yantosca - Now echo info after reading fields from disk
 !  10 Feb 2012 - R. Yantosca - Now get a string for the model resolution
+!  05 Apr 2012 - R. Yantosca - Fixed bug: TAUCLI was overwritten w/ TAUCLW
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -1080,8 +1070,6 @@ CONTAINS
     ! Arrays                                 
     INTEGER            :: st4d(4), ct4d(4)         ! Start & count indices
     REAL*4             :: Q(IIPAR,JJPAR,LGLOB)     ! Temporary data arrray
-
-#if defined( USE_NETCDF )
 
     !======================================================================
     ! Open the netCDF file
@@ -1184,8 +1172,6 @@ CONTAINS
     ! Close netCDF file
     CALL NcCl( fId )
 
-#endif
-
   END SUBROUTINE GEOS57_READ_A3cld
 !EOC
 !------------------------------------------------------------------------------
@@ -1266,8 +1252,6 @@ CONTAINS
     INTEGER            :: st4d(4), ct4d(4)         ! Start & count indices
     REAL*4             :: Q (IIPAR,JJPAR,LGLOB  )  ! Temporary data arrray
     REAL*4             :: Qe(IIPAR,JJPAR,LGLOB+1)  ! Temporary data arrray
-
-#if defined( USE_NETCDF )
 
     !======================================================================
     ! Open the netCDF file
@@ -1411,8 +1395,6 @@ CONTAINS
     ! Close netCDF file
     CALL NcCl( fId )
 
-#endif
-
   END SUBROUTINE GEOS57_READ_A3dyn
 !EOC
 !------------------------------------------------------------------------------
@@ -1490,8 +1472,6 @@ CONTAINS
     ! Arrays                                 
     INTEGER            :: st4d(4), ct4d(4)         ! Start & count indices
     REAL*4             :: Q (IIPAR,JJPAR,LGLOB)    ! Temporary data arrray
-
-#if defined( USE_NETCDF )
 
     !======================================================================
     ! Open the netCDF file
@@ -1582,8 +1562,6 @@ CONTAINS
     ! Close netCDF file
     CALL NcCl( fId )
 
-#endif
-
   END SUBROUTINE GEOS57_READ_A3mstC
 !EOC
 !------------------------------------------------------------------------------
@@ -1661,8 +1639,6 @@ CONTAINS
     ! Arrays                                 
     INTEGER            :: st4d(4), ct4d(4)         ! Start & count indices
     REAL*4             :: Qe(IIPAR,JJPAR,LGLOB+1)  ! Temporary data arrray
-
-#if defined( USE_NETCDF )
 
     !======================================================================
     ! Open the netCDF file
@@ -1753,8 +1729,6 @@ CONTAINS
     ! Close netCDF file
     CALL NcCl( fId )
 
-#endif
-
   END SUBROUTINE Geos57_Read_A3mstE
 !EOC
 !------------------------------------------------------------------------------
@@ -1810,6 +1784,7 @@ CONTAINS
 !  30 Jan 2012 - R. Yantosca - Initial version
 !  07 Feb 2012 - R. Yantosca - Now echo info after reading fields from disk
 !  10 Feb 2012 - R. Yantosca - Now get a string for the model resolution
+!  05 Apr 2012 - R. Yantosca - Now convert QV1 from [kg/kg] to [g/kg]
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -1833,8 +1808,6 @@ CONTAINS
     INTEGER            :: st4d(4), ct4d(4)         ! Start & count indices
     REAL*4             :: Q2(IIPAR,JJPAR      )    ! 2D temporary data arrray
     REAL*4             :: Q3(IIPAR,JJPAR,LGLOB)    ! 3D temporary data arrray
-
-#if defined( USE_NETCDF )
 
     !======================================================================
     ! Open the netCDF file
@@ -1934,6 +1907,22 @@ CONTAINS
     WRITE( 6, 10 ) stamp
  10 FORMAT( '     - Found all 4  GEOS-5.7-x I3     met fields for ', a )
 
+    !-------------------------------------------------
+    ! Unit conversions & special handling
+    !-------------------------------------------------
+    WHERE ( QV1 < 0d0 ) 
+
+       ! NOTE: Now set negative Q to a small positive # 
+       ! instead of zero, so as not to blow up logarithms
+       QV1 = 1d-32
+
+    ELSEWHERE
+
+       ! Convert GEOS-5.7.x specific humidity from [kg/kg] to [g/kg]
+       QV1 = QV1 * 1000d0
+
+    ENDWHERE
+
     !======================================================================
     ! Diagnostics, cleanup, and quit
     !======================================================================
@@ -1949,8 +1938,6 @@ CONTAINS
        AD66(:,:,1:LD66,3) = AD66(:,:,1:LD66,3) + T1 (:,:,1:LD66) ! [K   ]
        AD66(:,:,1:LD66,4) = AD66(:,:,1:LD66,4) + QV1(:,:,1:LD66) ! [g/kg]
     ENDIF
-
-#endif
 
   END SUBROUTINE Geos57_Read_I3_1
 !EOC
@@ -2007,6 +1994,7 @@ CONTAINS
 !  30 Jan 2012 - R. Yantosca - Initial version
 !  07 Feb 2012 - R. Yantosca - Now echo info after reading fields from disk
 !  10 Feb 2012 - R. Yantosca - Now get a string for the model resolution
+!  05 Apr 2012 - R. Yantosca - Now convert QV2 from [kg/kg] to [g/kg]
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -2030,8 +2018,6 @@ CONTAINS
     INTEGER            :: st4d(4), ct4d(4)         ! Start & count indices
     REAL*4             :: Q2(IIPAR,JJPAR      )    ! 2D temporary data arrray
     REAL*4             :: Q3(IIPAR,JJPAR,LGLOB)    ! 3D temporary data arrray
-
-#if defined( USE_NETCDF )
 
     !======================================================================
     ! Open the netCDF file
@@ -2131,6 +2117,22 @@ CONTAINS
     WRITE( 6, 10 ) stamp
  10 FORMAT( '     - Found all 4  GEOS-5.7-x I3     met fields for ', a )
 
+    !-------------------------------------------------
+    ! Unit conversions & special handling
+    !-------------------------------------------------
+    WHERE ( QV2 < 0d0 ) 
+
+       ! NOTE: Now set negative Q to a small positive # 
+       ! instead of zero, so as not to blow up logarithms
+       QV2 = 1d-32
+
+    ELSEWHERE
+
+       ! Convert GEOS-5.7.x specific humidity from [kg/kg] to [g/kg]
+       QV2 = QV2 * 1000d0
+
+    ENDWHERE
+
     !======================================================================
     ! Diagnostics, cleanup, and quit
     !======================================================================
@@ -2146,8 +2148,6 @@ CONTAINS
        AD66(:,:,1:LD66,3) = AD66(:,:,1:LD66,3) + T2 (:,:,1:LD66) ! [K   ]
        AD66(:,:,1:LD66,4) = AD66(:,:,1:LD66,4) + QV2(:,:,1:LD66) ! [g/kg]
     ENDIF
-
-#endif
 
   END SUBROUTINE Geos57_Read_I3_2
 !EOC

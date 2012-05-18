@@ -29,10 +29,11 @@ package StrTrim;
 #  &splitLine($$)
 #
 # !CALLING SEQUENCE:
-#  use StrTrim qw( trim splitLine );
+#  use StrTrim qw( trim splitLine extractFile );
 #
 # !REVISION HISTORY: 
 #  30 Jan 2012 - R. Yantosca - Initial version
+#  26 Mar 2012 - R. Yantosca - Add function &extractFile
 #EOP
 #------------------------------------------------------------------------------
 #BOC
@@ -46,7 +47,7 @@ BEGIN {
 
   $VERSION   = 1.00;                                   # version number
   @ISA       = qw( Exporter );                         # export method
-  @EXPORT_OK = qw( &trim &splitLine );
+  @EXPORT_OK = qw( &trim &splitLine &extractFile );
 }
 #EOC
 #------------------------------------------------------------------------------
@@ -129,6 +130,59 @@ sub splitLine($$) {
  
   # Return substrings
   return( $name, $value );
+}
+#EOP
+#------------------------------------------------------------------------------
+#          Harvard University Atmospheric Chemistry Modeling Group            !
+#------------------------------------------------------------------------------
+#BOP
+#
+# !IROUTINE: extractFile
+#
+# !DESCRIPTION: Routine extractFile splits a full Unix path name into a 
+#  directory string and a file name.  
+#\\
+#\\
+# !INTERFACE:
+#
+sub extractFile($) {
+#
+# !INPUT PARAMETERS:
+#
+  # Full Unix path name 
+  my( $path ) = @_;
+#
+# !CALLING SEQUENCE:
+# ( $file, $dir ) = &extractFile( $path );
+#
+# !REVISION HISTORY:
+#  26 Mar 2012 - R. Yantosca - Initial version
+#EOP
+#------------------------------------------------------------------------------
+#BOC
+#
+# !LOCAL VARIABLES:
+#
+  my $pos      = -1;
+  my $lastPos  = -1;
+  my $dir      = "";
+  my $file     = "";
+
+  # Search for the last "/" character in the file path
+  # This is the place where to split the file & directory
+  while ( ( $pos = index( $path, '/', $pos ) ) > -1 ) {
+    $lastPos = $pos;
+    $pos++;
+  }				
+
+  # Directory part of the path
+  $dir  = substr( $path, 0, $lastPos+1 );
+
+  # Filename part of the path
+  $file = substr( $path, $lastPos+1, length( $path ) - $lastPos  );
+
+  # Return substrings
+  return( $file, $dir );
 }
 #EOC
 END {}

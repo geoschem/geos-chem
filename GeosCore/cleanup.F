@@ -57,11 +57,11 @@
       USE HCN_CH3CN_MOD,           ONLY : CLEANUP_HCN_CH3CN
       USE HDF_MOD,                 ONLY : CLEANUP_HDF
       USE ISOROPIAII_MOD,          ONLY : CLEANUP_ISOROPIAII
-      USE LAI_MOD,                 ONLY : CLEANUP_LAI
       USE LIGHTNING_NOX_MOD,       ONLY : CLEANUP_LIGHTNING_NOX
       USE LINOZ_MOD,               ONLY : CLEANUP_LINOZ
       USE MEGAN_MOD,               ONLY : CLEANUP_MEGAN
       USE MERCURY_MOD,             ONLY : CLEANUP_MERCURY
+      USE MODIS_LAI_MOD,           ONLY : CLEANUP_MODIS_LAI
       USE OCEAN_MERCURY_MOD,       ONLY : CLEANUP_OCEAN_MERCURY
       USE DEPO_MERCURY_MOD,        ONLY : CLEANUP_DEPO_MERCURY
       USE LAND_MERCURY_MOD,        ONLY : CLEANUP_LAND_MERCURY
@@ -177,6 +177,8 @@
 !  13 Aug 2010 - R. Yantosca - Added ProTeX headers
 !  22 Aug 2011 - R. Yantosca - Add modifications for APM microphysics (G. Luo)
 !  07 Sep 2011 - P. Kasibhatla - Add modifications for GFED3
+!  05 Apr 2012 - R. Yantosca - Now call CLEANUP_MODIS_LAI
+!  11 Apr 2012 - R. Yantosca - Remove reference to obsolete lai_mod.F
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -231,11 +233,11 @@
       CALL CLEANUP_HCN_CH3CN
       CALL CLEANUP_HDF
       CALL CLEANUP_ISOROPIAII
-      CALL CLEANUP_LAI
       CALL CLEANUP_LIGHTNING_NOX
       CALL CLEANUP_LINOZ
       CALL CLEANUP_MEGAN
       CALL CLEANUP_MERCURY
+      CALL CLEANUP_MODIS_LAI
       CALL CLEANUP_OCEAN_MERCURY
       CALL CLEANUP_DEPO_MERCURY
       CALL CLEANUP_LAND_MERCURY

@@ -35,6 +35,12 @@
 #  04 Aug 2009 - R. Yantosca - Initial version
 #  24 Jan 2012 - R. Yantosca - Now explicitly list all dependencies
 #  25 Jan 2012 - R. Yantosca - Now use := for the assignment statement
+#  05 Apr 2012 - R. Yantosca - Change BL_INC_NETCDF to INC_NETCDF
+#  05 Apr 2012 - R. Yantosca - Change BL_INC_HDF5   to INC_HDF5
+#  05 Apr 2012 - R. Yantosca - Change BL_LIB_NETCDF to LIB_NETCDF
+#  05 Apr 2012 - R. Yantosca - Change BL_LIB_HDF5   to LIB_HDF5
+#  11 May 2012 - R. Yantosca - Now use exported NCL from Makefile_header.mk
+
 #EOP
 #------------------------------------------------------------------------------
 #BOC
@@ -54,14 +60,6 @@ MOD     := ../mod
 # Include header file.  This returns variables F90, LD, LINK_NC
 # as well as the default Makefile compilation rules for source code files.
 include ../Makefile_header.mk
-
-# Linking paths for building the executable which tests if 
-# the netCDF libraries were installed correctly
-NCL     := -L../lib -lNcUtils \
-           -L$(BL_LIB_NETCDF) -lnetcdf \
-           -L$(BL_LIB_HDF5) -lhdf5_hl \
-           -L$(BL_LIB_HDF5) -lhdf5 \
-           -L$(BL_LIB_ZLIB) -lz \
 
 #==============================================================================
 # Filename section
@@ -111,7 +109,7 @@ m_netcdf_io_open.o       : m_netcdf_io_open.F90         \
 m_netcdf_io_read.o       : m_netcdf_io_read.F90         \
                            m_do_err_out.o
 
-m_netcdf_io_read.o       : m_netcdf_io_readattr.F90     \
+m_netcdf_io_readattr.o   : m_netcdf_io_readattr.F90     \
                            m_do_err_out.o
 
 m_netcdf_io_write.o      : m_netcdf_io_write.F90        \
@@ -140,7 +138,7 @@ lib: $(OBJ)
 	mv libNcUtils.a $(LIB)
 
 check: $(OBJx)
-	$(LD) $(OBJx) $(NCL) -lNcUtils -o $(EXE)
+	$(LD) $(OBJx) -L$(LIB) -lNcUtils $(NCL) -o $(EXE)
 	$(EXE) 
 
 clean:

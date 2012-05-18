@@ -186,16 +186,6 @@
       ! Get day of month
       DAY       = GET_DAY()
 
-!----------------------------------------------------------------------------
-! Prior to 3/6/12:
-! This is now read in main.F (bmy, 3/6/12)
-!      ! Read TOMS O3 columns if it's a new month
-!      IF ( MONTH /= LASTMONTH ) THEN
-!         CALL READ_TOMS( MONTH, GET_YEAR() )
-!         LASTMONTH = MONTH
-!      ENDIF
-!----------------------------------------------------------------------------
-
       !=================================================================
       ! For each (NLON,NLAT) location, call subroutine PHOTOJ (in a 
       ! parallel loop to compute J-values for the entire column.  

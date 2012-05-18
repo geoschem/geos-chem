@@ -311,10 +311,11 @@
 ! !USES:
 ! 
       USE BPCH2_MOD,        ONLY : GET_TAU0,      READ_BPCH2
-      USE REGRID_1x1_MOD,   ONLY : DO_REGRID_1x1, DO_REGRID_G2G_1x1
-      USE SCALE_ANTHRO_MOD, ONLY : GET_ANNUAL_SCALAR_1x1
+      USE REGRID_A2A_MOD,   ONLY : DO_REGRID_A2A
+      USE DIRECTORY_MOD,    ONLY : DATA_DIR_1x1      
+      USE SCALE_ANTHRO_MOD, ONLY : GET_ANNUAL_SCALAR
 
-      USE CMN_SIZE_MOD         ! Size parameters
+      USE CMN_SIZE_MOD           ! Size parameters
 !
 ! !INPUT PARAMETERS: 
 !
@@ -332,30 +333,40 @@
       ! Array containing output data
       REAL*8,           INTENT(INOUT) :: ARR(IIPAR,JJPAR)
 !
-! !REVISION HISTORY: 
-!  28 Jan 2009 - P. Le Sager - Initial Version
 !
 ! !REMARKS:
 !  (1) Even though the inventory was prepared for Arctas 2008 campaign, CO2 
 !       base year is 2000, and SO2 base year is 2006. Input YEAR is used to 
 !       scale SO2 into 1985-2005 
+!
+! !REVISION HISTORY: 
+!  28 Jan 2009 - P. Le Sager - Initial Version
+!  13 Mar 2012 - M. Cooper   - Changed regrid algorithm to map_a2a
+!  14 May 2012 - R. Yantosca - Bug fix: SC should be defined w/ IIPAR,JJPAR
 !EOP
 !------------------------------------------------------------------------------
 !BOC
 !
 ! !LOCAL VARIABLES:
 !
-      REAL*4         :: ARRAY(I1x1,J1x1-1,1)
-      REAL*8         :: GEN_1x1(I1x1,J1x1-1)
-      REAL*8         :: GEOS_1x1(I1x1,J1x1,1)
-      REAL*8         :: SC_1x1(I1x1,J1x1)
-      REAL*8         :: TAU2008
+      REAL*4              :: ARRAY(I1x1,J1x1-1,1)
+      REAL*8              :: GEN_1x1(I1x1,J1x1-1)
+!-----------------------------------------------------------------------------
+! Prior to 5/14/12:
+! Bug fix: SC should be dimensioned with IIPAR,JJPAR (bmy,mpayer,5/14/12)
+!     REAL*4              :: SC(I1x1,J1x1)
+!-----------------------------------------------------------------------------
+      REAL*4              :: SC(IIPAR,JJPAR)
+      REAL*8              :: TAU2008
+      CHARACTER(LEN=255)  :: LLFILENAME
+      REAL*8, ALLOCATABLE :: OUTGRID(:,:)
+      REAL*8, ALLOCATABLE :: INGRID(:,:)
 
       ! TAU0 values for 2008
       TAU2008 = GET_TAU0( 1, 1, 2008 )
 
       ! Initialize
-      SC_1x1 = 1d0
+      SC = 1d0
 
       ! Read data
       CALL READ_BPCH2( FILENAME,  CATEGORY,  TRACERN, 
@@ -365,19 +376,26 @@
       ! Cast to REAL*8 before regridding
       GEN_1x1(:,:) = ARRAY(:,:,1)
       
-      ! Regrid from GENERIC 1x1 --> GEOS 1x1 
-      CALL DO_REGRID_G2G_1x1( 'kg/yr', GEN_1x1, GEOS_1x1(:,:,1) )
+      ! File with lat/lon edges for regridding
+      LLFILENAME = TRIM( DATA_DIR_1x1) //
+     &             'MAP_A2A_Regrid_200312/latlon_generic.txt'
 
+      ! Allocate arrays for regridding
+      ALLOCATE(INGRID(I1x1,J1x1-1))
+      ALLOCATE(OUTGRID(IIPAR,JJPAR))
 
-      ! Get & apply scaling factor to GEOS 1x1
+      ! Regrid from GENERIC 1x1 --> Current Model Resolution
+      INGRID = GEN_1X1(:,:)
+      CALL DO_REGRID_A2A( LLFILENAME, 360, 181, INGRID, OUTGRID, 1 )
+
+      ! Get & apply scaling factor
       IF ( TRACERN == 26 )
-     $     CALL GET_ANNUAL_SCALAR_1x1( 73, 2000, YEAR, SC_1x1 )
+     $     CALL GET_ANNUAL_SCALAR( 73, 2000, YEAR, SC )
+      ARR = OUTGRID * SC
 
-      GEOS_1x1(:,:,1) = GEOS_1x1(:,:,1) * SC_1x1(:,:)
-
-
-      ! Regrid from GEOS 1x1 --> current model resolution
-      CALL DO_REGRID_1x1( 'kg/yr', GEOS_1x1, ARR )
+      ! Deallocate arrays for regridding
+      DEALLOCATE(INGRID)
+      DEALLOCATE(OUTGRID)
 
       END SUBROUTINE READ_ARCTAS_SHIP
 !EOC

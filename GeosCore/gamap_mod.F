@@ -1458,19 +1458,6 @@
          ! Special handling for Rn-Pb-Be simulation (bmy, 5/11/05)
          IF ( ITS_A_RnPbBe_SIM() ) THEN
             SELECT CASE( T ) 
-!------------------------------------------------------------------------------
-! Prior to 1/24/12:
-! Now report Rn-Pb-Be in mBq/SCM (mpayer, 1/24/12)
-!               CASE( 1 )
-!                  UNIT (T,45) = 'pCi/SCM'
-!                  SCALE(T,45) = 1.5243e21
-!               CASE( 2 ) 
-!                  UNIT (T,45) = 'fCi/SCM'
-!                  SCALE(T,45) = 7.0651e20
-!               CASE( 3 )
-!                  UNIT (T,45) = 'fCi/SCM'
-!                  SCALE(T,45) = 1.0938e23
-!------------------------------------------------------------------------------
                CASE( 1 )
                   UNIT (T,45) = 'mBq/SCM'
                   SCALE(T,45) = 5.6397E+22

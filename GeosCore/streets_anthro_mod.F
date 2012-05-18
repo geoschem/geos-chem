@@ -40,7 +40,7 @@
 !  (4 ) future_emissions_mod.f : Module w/ routines for IPCC future emissions
 !  (5 ) grid_mod.f             : Module w/ horizontal grid information
 !  (6 ) logical_mod.f          : Module w/ GEOS-Chem logical switches
-!  (7 ) regrid_1x1_mod.f       : Module w/ routines to regrid 1x1 data  
+!  (7 ) regrid_a2a_mod.f       : Module w/ routines to regrid data  
 !  (8 ) time_mod.f             : Module w/ routines for computing time & date
 !  (9 ) tracerid_mod.f         : Module w/ pointers to tracers & emissions  
 !
@@ -341,11 +341,6 @@
 
          ELSE IF ( N == IDTC2H6 ) THEN
 
-!------------------------------------------------------------------------------
-! Prior to 3/22/12:
-!            ! SO2 [kg/yr]
-!            VALUE = C2H6(I,J)
-!------------------------------------------------------------------------------
             VALUE = -1d0
 
          ELSE IF ( N == IDTMEK ) THEN
@@ -644,7 +639,7 @@
          BASE_YEAR = 2000
 
          ! Read data
-         CALL READ_STREETS( FILENAME, 'CH4-EMIS', 1, TAU2000, CH4 )
+         CALL READ_STREETS( FILENAME, 'CH4-EMIS', 1, TAU2000, CH4, 1 )
 
       ELSE IF ( ITS_A_CO2_SIM() ) THEN
 
@@ -660,7 +655,7 @@
          BASE_YEAR = 2000
 
          ! Read data
-         CALL READ_STREETS( FILENAME, 'CO2-SRCE', 1, TAU2000, CO2 )
+         CALL READ_STREETS( FILENAME, 'CO2-SRCE', 1, TAU2000, CO2, 1 )
 
       ELSE
 
@@ -689,7 +684,7 @@
             ENDIF
  
             ! Read data
-            CALL READ_STREETS( FILENAME, 'ANTHSRCE', 1, TAU, TEMP )
+            CALL READ_STREETS( FILENAME, 'ANTHSRCE', 1, TAU, TEMP, 0 )
    
             ! Set emissions over water (ship emissions) to zero (jaf, 1/31/12)
             !NOX = NOX + TEMP * ONOFF( NSOURCE ) * SCALE2020( NSOURCE )
@@ -731,7 +726,7 @@
          ENDIF
          
          CALL READ_STREETS( FILENAME,     'RATIO-2D', 71,
-     $                      TAUMONTH_2004, TEMP,     'unitless' )
+     $                      TAUMONTH_2004, TEMP,      1 )
 
          NOX = NOX * TEMP
 
@@ -751,7 +746,7 @@
 
                ! Read data
                CALL READ_STREETS( FILENAME, 'ANTHSRCE', 4,
-     $                            TAU2006,  TEMP )
+     $                            TAU2006,  TEMP,       0 )
 
                ! No scaling for 2006-2020
                CO = CO + TEMP * ONOFF( NSOURCE )
@@ -765,7 +760,7 @@
      &                  'Streets_2001_CO_MonthFctr_total.generic.1x1'
 
             CALL READ_STREETS( FILENAME,     'RATIO-2D', 72,
-     $                         TAUMONTH_2001, TEMP,     'unitless' )
+     $                         TAUMONTH_2001, TEMP,      1 )
 
             CO = CO * TEMP
 
@@ -781,7 +776,8 @@
      &                 'Streets_CO_FF_2000.generic.1x1'
 
             ! Read data
-            CALL READ_STREETS( FILENAME, 'ANTHSRCE', 4, TAU2000, CO )
+            CALL READ_STREETS( FILENAME, 'ANTHSRCE', 4,
+     &                         TAU2000,  CO,         0 )
 
             ! Set emissions over water (ship emissions) to zero (jaf, 1/31/12)
             ! Only necessary for 2000 emissions
@@ -797,7 +793,7 @@
 
             ! Read data 
             CALL READ_STREETS( FILENAME,      'ANTHSRCE', 4,
-     $                         TAUMONTH_2001, TEMP)
+     $                         TAUMONTH_2001, TEMP,       0 )
 
             ! Annual scalar factor (amv, phs, 3/10/08)
             CALL GET_ANNUAL_SCALAR( 72, 2001, SIM_YEAR, SCALFAC )
@@ -833,7 +829,8 @@
             ENDIF
 
             ! Read data
-            CALL READ_STREETS( FILENAME, 'ANTHSRCE', 26, TAU, TEMP )
+            CALL READ_STREETS( FILENAME, 'ANTHSRCE', 26,
+     &                         TAU,      TEMP,       1 )
 
             ! Set emissions over water (ship emissions) to zero (jaf, 1/31/12)
             !SO2 = SO2 + TEMP * ONOFF( NSOURCE )
@@ -865,7 +862,8 @@
      &                 'Streets_NH3_FF_2000.generic.1x1'
 
             ! Old file has NH3 as tracer #30
-            CALL READ_STREETS( FILENAME, 'ANTHSRCE', 30, TAU2000, NH3 )
+            CALL READ_STREETS( FILENAME, 'ANTHSRCE', 30, 
+     &                         TAU2000,  NH3,        1 )
 
             ! switch and scale
             NH3 = NH3 * ONOFF( 1 ) * ONOFFNH3
@@ -888,7 +886,8 @@
                FILENAME  = TRIM( STREETS_DIR ) // 'Streets_ACET_'// 
      &                     SOURCES( NSOURCE ) // '_2006.generic.1x1'
 
-               CALL READ_STREETS( FILENAME, 'ANTHSRCE', 9, TAU, TEMP )
+               CALL READ_STREETS( FILENAME, 'ANTHSRCE', 9,
+     &                            TAU,      TEMP,       1 )
       
                ACET = ACET + TEMP * ONOFF( NSOURCE ) 
      &                            * SCALE2020( NSOURCE )
@@ -904,7 +903,8 @@
      &                     SOURCES( NSOURCE ) // '_2006.generic.1x1'
 
                ! Read data [atom C/yr]
-               CALL READ_STREETS( FILENAME, 'ANTHSRCE', 21, TAU, TEMP )
+               CALL READ_STREETS( FILENAME, 'ANTHSRCE', 21,
+     &                            TAU,       TEMP,      1 )
       
                C2H6 = C2H6 + TEMP * ONOFF( NSOURCE )
      &                            * SCALE2020( NSOURCE )
@@ -920,7 +920,8 @@
      &                     SOURCES( NSOURCE ) // '_2006.generic.1x1'
 
                ! Read data [atom C/yr]
-               CALL READ_STREETS( FILENAME, 'ANTHSRCE', 20, TAU, TEMP )
+               CALL READ_STREETS( FILENAME, 'ANTHSRCE', 20,
+     &                            TAU,       TEMP,      1 )
       
                CH2O = CH2O + TEMP * ONOFF( NSOURCE )
      &                            * SCALE2020( NSOURCE )
@@ -935,7 +936,8 @@
      &                     SOURCES( NSOURCE ) // '_2006.generic.1x1'
    
                ! Read data [atom C/yr]
-               CALL READ_STREETS( FILENAME, 'ANTHSRCE', 19, TAU, TEMP )
+               CALL READ_STREETS( FILENAME, 'ANTHSRCE', 19,
+     &                            TAU,      TEMP,       1 )
 
                C3H8 = C3H8 + TEMP * ONOFF( NSOURCE )
      &                            * SCALE2020( NSOURCE )
@@ -951,7 +953,8 @@
      &                     SOURCES( NSOURCE ) // '_2006.generic.1x1'
 
                ! Read data [atom C/yr]
-               CALL READ_STREETS( FILENAME, 'ANTHSRCE', 18, TAU, TEMP )
+               CALL READ_STREETS( FILENAME, 'ANTHSRCE', 18,
+     &                            TAU,      TEMP,       1 )
          
                PRPE = PRPE + TEMP * ONOFF( NSOURCE )
      &                            * SCALE2020( NSOURCE )
@@ -967,7 +970,8 @@
      &                     SOURCES( NSOURCE ) // '_2006.generic.1x1'
 
                ! Read data [atom C/yr]
-               CALL READ_STREETS( FILENAME, 'ANTHSRCE', 11, TAU, TEMP )
+               CALL READ_STREETS( FILENAME, 'ANTHSRCE', 11,
+     &                            TAU,      TEMP,       1 )
          
                ALD2 = ALD2 + TEMP * ONOFF( NSOURCE )
      &                            * SCALE2020( NSOURCE )
@@ -984,7 +988,8 @@
      &                     SOURCES( NSOURCE ) // '_2006.generic.1x1'
 
                ! Read data [atom C/yr]
-               CALL READ_STREETS( FILENAME, 'ANTHSRCE', 10, TAU, TEMP )
+               CALL READ_STREETS( FILENAME, 'ANTHSRCE', 10,
+     &                            TAU,      TEMP,       1 )
    
                MEK = MEK + TEMP * ONOFF( NSOURCE )
      &                          * SCALE2020( NSOURCE )
@@ -1000,7 +1005,8 @@
      &                     SOURCES( NSOURCE ) // '_2006.generic.1x1'
 
                ! Read data [atom C/yr]
-               CALL READ_STREETS( FILENAME, 'ANTHSRCE', 5, TAU, TEMP )
+               CALL READ_STREETS( FILENAME, 'ANTHSRCE', 5,
+     &                            TAU,      TEMP,       1 )
       
                ALK4 = ALK4 + TEMP * ONOFF( NSOURCE )
      &                            * SCALE2020( NSOURCE )
@@ -1058,7 +1064,7 @@
 !------------------------------------------------------------------------------
 
       SUBROUTINE READ_STREETS( FILENAME, CATEGORY, TRACERN, TAU, ARR,
-     $                         UNIT )
+     $                         PERAREA )
 !
 !******************************************************************************
 !     Subroutine READ_STREETS reads data from one STREETS data file
@@ -1081,37 +1087,38 @@
 !        still correct.
 !  02 Mar 2011 - J. Fisher   - Added seasonality for NH3 emissions
 !  02 Mar 2011 - R. Yantosca - Added ProTeX headers
+!  13 Mar 2012 - M. Cooper   - Changed regrid algorithm to map_a2a
 !******************************************************************************
 !
       ! References to F90 modules
       USE BPCH2_MOD,      ONLY : GET_TAU0,      READ_BPCH2
-      USE REGRID_1x1_MOD, ONLY : DO_REGRID_1x1, DO_REGRID_G2G_1x1
       USE DIRECTORY_MOD,  ONLY : DATA_DIR_1x1
-      USE REGRID_1x1_MOD, ONLY : DO_REGRID_1x1
-      USE REGRID_1x1_MOD, ONLY : DO_REGRID_G2G_1x1
       USE TIME_MOD,       ONLY : GET_MONTH
       USE TRACERID_MOD,   ONLY : IDTNH3
+      USE REGRID_A2A_MOD, ONLY : DO_REGRID_A2A
 
-      USE CMN_SIZE_MOD        ! Size parameters
+      USE CMN_SIZE_MOD         ! Size parameters
   
       ! Arguments
       CHARACTER(LEN=*), INTENT(IN)    :: FILENAME, CATEGORY
       INTEGER,          INTENT(IN)    :: TRACERN
+      INTEGER,          INTENT(IN)    :: PERAREA           ! For MAP_A2A regrid
       REAL*8,           INTENT(INOUT) :: ARR(IIPAR,JJPAR)
       REAL*8,           INTENT(IN)    :: TAU
-      CHARACTER(LEN=*), OPTIONAL      :: UNIT
       
       ! Local variables
-      REAL*4            :: ARRAY(I1x1,J1x1-1,1)
-      REAL*8            :: GEN_1x1(I1x1,J1x1-1)
-      REAL*8            :: GEOS_1x1(I1x1,J1x1,1)
-      CHARACTER(LEN=50) :: THISUNIT
+      REAL*4                          :: ARRAY(I1x1,J1x1-1,1)
+      REAL*8                          :: GEN_1x1(I1x1,J1x1-1)
+      CHARACTER(LEN=50)               :: THISUNIT
+      CHARACTER(LEN=255)              :: LLFILENAME
+      REAL*8, ALLOCATABLE             :: OUTGRID(:,:)
+      REAL*8, ALLOCATABLE             :: INGRID(:,:)
 
       ! Variables for seasonal scaling of NH3 (jaf, 3/2/11)
-      REAL*4            :: SCALAR_1x1(I1x1,J1x1-1,1)
-      REAL*8            :: TAU1995
-      INTEGER           :: RATIOID
-      CHARACTER(LEN=250):: FILENAME_S
+      REAL*4                          :: SCALAR_1x1(I1x1,J1x1-1,1)
+      REAL*8                          :: TAU1995
+      INTEGER                         :: RATIOID
+      CHARACTER(LEN=250)              :: FILENAME_S
 
       !=================================================================
       ! Read emission data from diskR
@@ -1124,13 +1131,6 @@
       ARR   = 0d0
       ARRAY = 0.
 
-      ! check if data is concentration or not 
-      IF ( PRESENT( UNIT) ) THEN
-         THISUNIT = UNIT
-      ELSE
-         THISUNIT = 'kg/yr'
-      ENDIF
-      
       ! Read data
       CALL READ_BPCH2( FILENAME,  CATEGORY,  TRACERN, 
      &                 TAU,       I1x1,      J1x1-1,     
@@ -1174,13 +1174,24 @@
 
       ! Cast to REAL*8 before regridding
       GEN_1x1(:,:) = ARRAY(:,:,1)
-      
-      ! Regrid from GENERIC 1x1 --> GEOS 1x1 
-      CALL DO_REGRID_G2G_1x1( THISUNIT, GEN_1x1, GEOS_1x1(:,:,1) )
 
-      ! Regrid from GEOS 1x1 --> current model resolution
-      CALL DO_REGRID_1x1( THISUNIT, GEOS_1x1, ARR )
+      ! File with lat/lon edges for regridding
+      LLFILENAME = TRIM( DATA_DIR_1x1) //
+     &             'MAP_A2A_Regrid_200312/latlon_generic.txt' 
 
+      ! Allocate arrays for regridding
+      ALLOCATE(INGRID(I1x1,J1x1-1))
+      ALLOCATE(OUTGRID(IIPAR,JJPAR))
+
+      ! Regrid from GENERIC 1x1 --> current model resolution
+      INGRID = GEN_1x1
+      CALL DO_REGRID_A2A( LLFILENAME, 360,     181, 
+     &                    INGRID,     OUTGRID, PERAREA )
+      ARR = OUTGRID
+
+      ! Deallocate arrays for regridding
+      DEALLOCATE(INGRID)
+      DEALLOCATE(OUTGRID)
 
       END SUBROUTINE READ_STREETS
 
@@ -2112,10 +2123,6 @@
             WRITE( 6, 110 ) 'PRPE ', YEAR, MONTH, T_PRPE, '[Tg C   ]'
             WRITE( 6, 110 ) 'C3H8 ', YEAR, MONTH, T_C3H8, '[Tg C   ]'
             WRITE( 6, 110 ) 'CH2O ', YEAR, MONTH, T_CH2O, '[Tg Ch2O]'
-!------------------------------------------------------------------------------
-! Prior to 3/22/12:
-!            WRITE( 6, 110 ) 'C2H6 ', YEAR, MONTH, T_C2H6, '[Tg C   ]'
-!------------------------------------------------------------------------------
             WRITE( 6, 110 ) 'ALD2 ', YEAR, MONTH, T_ALD2, '[Tg C   ]'
 
          ENDIF
@@ -2150,20 +2157,23 @@
 !
 !  NOTES:
 !  (1 ) Now also save 1x1 CHINA MASK for use in other routines. (bmy, 9/5/06)
+!  13 Mar 2012 - M. Cooper   - Changed regrid algorithm to map_a2a
 !******************************************************************************
 !
       ! References to F90 modules
       USE BPCH2_MOD,      ONLY : READ_BPCH2
       USE DIRECTORY_MOD,  ONLY : DATA_DIR_1x1
-      USE REGRID_1x1_MOD, ONLY : DO_REGRID_G2G_1x1, DO_REGRID_1x1
+      USE REGRID_A2A_MOD, ONLY : DO_REGRID_A2A
 
-      USE CMN_SIZE_MOD       ! Size parameters
+      USE CMN_SIZE_MOD         ! Size parameters
 
       ! Local variables
       REAL*4                  :: ARRAY(I1x1,J1x1-1,1)
       REAL*8                  :: GEN_1x1(I1x1,J1x1-1)
-      REAL*8                  :: GEOS_1x1(I1x1,J1x1,1)
       CHARACTER(LEN=255)      :: FILENAME
+      CHARACTER(LEN=255)      :: LLFILENAME
+      REAL*8, ALLOCATABLE     :: OUTGRID(:,:)
+      REAL*8, ALLOCATABLE     :: INGRID(:,:)
 
       !=================================================================
       ! READ_STREETS_MASKS begins here!
@@ -2192,11 +2202,18 @@
       ! Save the 1x1 China mask for future use
       MASK_CHINA_1x1(:,:) = GEN_1x1(:,:)
 
-      ! Regrid from GENERIC 1x1 GRID to GEOS 1x1 GRID
-      CALL DO_REGRID_G2G_1x1( 'unitless', GEN_1x1, GEOS_1x1(:,:,1) )
+      ! File with lat/lon edges for regridding
+      LLFILENAME = TRIM( DATA_DIR_1x1) //
+     &             'MAP_A2A_Regrid_200312/latlon_generic.txt'
+ 
+      ! Allocate arrays for regridding
+      ALLOCATE(INGRID(I1x1,J1x1-1))
+      ALLOCATE(OUTGRID(IIPAR,JJPAR))
 
-      ! Regrid from GEOS 1x1 GRID to current model resolution
-      CALL DO_REGRID_1x1( 'unitless', GEOS_1x1, MASK_CHINA )
+      ! Regrid from GENERIC 1x1 to current model resolution
+      INGRID = GEN_1x1
+      CALL DO_REGRID_A2A( LLFILENAME, 360, 181, INGRID, OUTGRID, 0 )
+      MASK_CHINA = OUTGRID
 
       !------------------------------------
       ! SE Asia Mask (for 2000 emissions)
@@ -2218,10 +2235,13 @@
       GEN_1x1(:,:) = ARRAY(:,:,1)
 
       ! Regrid from GENERIC 1x1 GRID to GEOS 1x1 GRID
-      CALL DO_REGRID_G2G_1x1( 'unitless', GEN_1x1, GEOS_1x1(:,:,1) )
+      INGRID = GEN_1x1
+      CALL DO_REGRID_A2A( LLFILENAME, 360, 181, INGRID, OUTGRID, 1 )
+      MASK_SE_ASIA = OUTGRID
 
-      ! Regrid from GEOS 1x1 GRID to current model resolution
-      CALL DO_REGRID_1x1( 'unitless', GEOS_1x1, MASK_SE_ASIA )
+      ! Deallocate arrays for regridding
+      DEALLOCATE(INGRID)
+      DEALLOCATE(OUTGRID)
 
       ! Return to calling program
       END SUBROUTINE READ_STREETS_MASKS

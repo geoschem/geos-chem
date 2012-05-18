@@ -167,12 +167,12 @@
       USE BPCH2_MOD,         ONLY : GET_TAU0,      READ_BPCH2
       USE DIRECTORY_MOD,     ONLY : DATA_DIR_1x1 
       USE LOGICAL_MOD,       ONLY : LFUTURE
-      USE REGRID_1x1_MOD,    ONLY : DO_REGRID_1x1
+      USE REGRID_A2A_MOD,    ONLY : DO_REGRID_A2A
       USE TIME_MOD,          ONLY : GET_YEAR, GET_MONTH
       USE SCALE_ANTHRO_MOD,  ONLY : GET_ANNUAL_SCALAR_1x1
 
-      USE CMN_SIZE_MOD          ! Size parameters
-      USE CMN_O3_MOD            ! FSCALYR
+      USE CMN_SIZE_MOD            ! Size parameters
+      USE CMN_O3_MOD              ! FSCALYR
 
 #if defined( DEVEL )
       USE TIME_MOD,     ONLY : GET_DAY_OF_WEEK
@@ -185,6 +185,7 @@
 !
 ! !REVISION HISTORY: 
 !  28 Jan 2009 - A. v. Donkelaar, P. Le Sager - Initial Version
+!  13 Mar 2012 - M. Cooper   - Changed regrid algorithm to map_a2a
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -202,6 +203,10 @@
       CHARACTER(LEN=4)           :: SYEAR, SNAME
       CHARACTER(LEN=2)           :: SMN
       CHARACTER(LEN=1)           :: SSMN
+      CHARACTER(LEN=255)         :: LLFILENAME
+      REAL*8, ALLOCATABLE        :: OUTGRID(:,:)
+      REAL*8, ALLOCATABLE        :: INGRID(:,:)
+
 
 #if defined( DEVEL )
       INTEGER               :: DAY_NUM
@@ -298,15 +303,7 @@
       ! Apply Ozone Season Scalars
       GEOS_1x1(:,:,1) = GEOS_1x1(:,:,1) * ARRAY(:,:,1)
 
-      ! Apply Annual Scalar
-      IF ( THISYEAR .ne. 2002 ) THEN
-         CALL GET_ANNUAL_SCALAR_1x1( ScNo,     2002,
-     &                             THISYEAR, SC_1x1 )
-
-         GEOS_1x1(:,:,1) = GEOS_1x1(:,:,1) * SC_1x1(:,:)
-      ENDIF
-
-      ! Load/Apply weekend/weekday factors
+      ! Load/Apply weekend factors
       TAU = GET_TAU0( MN, 1, 1999)
       FILENAME  = TRIM( VISTAS_DIR )
      &            // 'wkend_an_scalar.nei99.geos.1x1'
@@ -316,13 +313,24 @@
 
       ! Read data
       CALL READ_BPCH2( FILENAME, 'WD-WE-$', 2,
-     &                    TAU,   I1x1,      J1x1,
-     &                    1,         ARRAY,     QUIET=.TRUE. )
+     &                 TAU,      I1x1,      J1x1,
+     &                 1,        ARRAY,     QUIET=.TRUE. )
 
-      ! Regrid from GEOS 1x1 --> current model resolution
-      CALL DO_REGRID_1x1( 'molec/cm2/s', GEOS_1x1 * ARRAY, 
-     &                        VISTAS_WE_NOx )
+      ! File with lat/lon edges for regridding
+      LLFILENAME = TRIM( DATA_DIR_1x1) //
+     &             'MAP_A2A_Regrid_200312/latlon_geos1x1.txt'
 
+      ! Allocate arrays for regridding
+      ALLOCATE(INGRID(I1x1,J1x1))
+      ALLOCATE(OUTGRID(IIPAR,JJPAR))
+  
+      ! Regrid to current model resolution
+      INGRID = GEOS_1x1(:,:,1) * ARRAY(:,:,1)
+      CALL DO_REGRID_A2A( LLFILENAME, 360,     182,
+     &                    INGRID,     OUTGRID, 0 )
+      VISTAS_WE_NOx = OUTGRID
+
+      ! Load/Apply weekday factors
       FILENAME  = TRIM( VISTAS_DIR )
      &            // 'wkday_an_scalar.nei99.geos.1x1'
 
@@ -331,12 +339,19 @@
 
       ! Read data
       CALL READ_BPCH2( FILENAME, 'WD-WE-$', 1,
-     &                    TAU,   I1x1,      J1x1,
-     &                    1,         ARRAY,     QUIET=.TRUE. )
+     &                 TAU,      I1x1,      J1x1,
+     &                 1,        ARRAY,     QUIET=.TRUE. )
 
+ 
       ! Regrid from GEOS 1x1 --> current model resolution
-      CALL DO_REGRID_1x1( 'molec/cm2/s', GEOS_1x1 * ARRAY, 
-     &                        VISTAS_WD_NOx )
+      INGRID = GEOS_1x1(:,:,1) * ARRAY(:,:,1)
+      CALL DO_REGRID_A2A( LLFILENAME, 360,     182,
+     &                    INGRID,     OUTGRID, 0 )
+      VISTAS_WD_NOx = OUTGRID
+
+      ! Deallocate arrays for regridding
+      DEALLOCATE(INGRID)
+      DEALLOCATE(OUTGRID)
 
       !--------------------------
       ! Compute future emissions
