@@ -583,7 +583,7 @@
 
          ! Use Paul Ginoux's dust source function
 #if defined( DEVEL )
-         CALL SRC_DUST_GINOUX( STT(:,:,:,IDTDST1:IDTDST4, LOCAL_MET ) )
+         CALL SRC_DUST_GINOUX( STT(:,:,:,IDTDST1:IDTDST4 ), LOCAL_MET )
 #else
          CALL SRC_DUST_GINOUX( STT(:,:,:,IDTDST1:IDTDST4) )
 #endif

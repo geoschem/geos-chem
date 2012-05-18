@@ -82,7 +82,7 @@
       USE CH3I_MOD,        ONLY : CHEMCH3I
       USE DAO_MOD,         ONLY : CLDF,    DELP
       USE DAO_MOD,         ONLY : OPTDEP,  OPTD,   T
-      USE DAO_MOD,         ONLY : ALBD ! mpayer
+      USE DAO_MOD,         ONLY : ALBD,    TS,     U10M, V10M ! mpayer
       USE DRYDEP_MOD,      ONLY : DRYFLX, DRYFLXRnPbBe, DRYFLXH2HD
       USE DUST_MOD,        ONLY : CHEMDUST, RDUST_ONLINE
       USE ERROR_MOD,       ONLY : DEBUG_MSG

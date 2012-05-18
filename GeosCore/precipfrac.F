@@ -117,7 +117,7 @@
          FRAC_CONV = 0.0d0
       ENDIF
 #else
-      IF ( PRECCON(I,J) > 0.0d0 ) THEN
+      IF ( PRECON(I,J) > 0.0d0 ) THEN
          FRAC_CONV = 3.0d-3
       ELSE
          FRAC_CONV = 0.0d0

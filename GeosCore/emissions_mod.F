@@ -582,7 +582,7 @@
 
          ! Emit CH3I
 #if defined( DEVEL )
-         CALL EMISSCH3I( LOCAL_MET%TS, CHEM_STATE%TRAC_BTEND(:,:,1,:) )
+         CALL EMISSCH3I( LOCAL_MET, CHEM_STATE%TRAC_BTEND(:,:,1,:) )
 #else
          CALL EMISSCH3I
 #endif

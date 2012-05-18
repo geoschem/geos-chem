@@ -97,11 +97,9 @@
       USE ACETONE_MOD,       ONLY : READ_JO1D,     READ_RESP
       USE AIRCRAFT_NOX_MOD,  ONLY : AIREMISS
       USE BIOFUEL_MOD,       ONLY : BIOFUEL_BURN
-#if !defined( DEVEL )
       USE DAO_MOD,           ONLY : PARDF,         PARDR,     SUNCOS_MID       
       USE DAO_MOD,           ONLY : ALBD,          TS
       USE DAO_MOD,           ONLY : U10M,          V10M
-#endif
       USE DIAG_MOD,          ONLY : AD29,          AD46
       USE GRID_MOD,          ONLY : GET_AREA_CM2
       USE GRID_MOD,          ONLY : GET_XOFFSET,   GET_YOFFSET

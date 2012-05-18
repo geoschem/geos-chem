@@ -313,7 +313,7 @@
 !******************************************************************************
 !
       ! References to F90 modules
-      USE DAO_MOD,   ONLY : USTAR, Z0, TS, GWETTOP
+      USE DAO_MOD,   ONLY : USTAR, Z0, TS, GWETTOP, U10M, V10M
       USE GRID_MOD,  ONLY : GET_AREA_M2
       USE ERROR_MOD, ONLY : ERROR_STOP
 #if defined( DEVEL )
@@ -682,7 +682,12 @@ ctdf        print *,' no mobilisation candidates'
       ! Get reference wind at 10m
       !=================================================================
       DO I = 1, IIPAR
-         W10M = SQRT( SFCWINDSQR( I, LAT_IDX ) )
+#if defined( DEVEL )
+         W10M = SQRT( SFCWINDSQR( I,              LAT_IDX,
+     &                            LOCAL_MET%U10M, LOCAL_MET%V10M ) )
+#else
+         W10M = SQRT( SFCWINDSQR( I, LAT_IDX, U10M, V10M ) )
+#endif
 
          ! add mobilisation criterion flag
          IF ( FLG_MBL_SLICE(I) ) THEN

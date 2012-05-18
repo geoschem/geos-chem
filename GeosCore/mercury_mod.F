@@ -4151,7 +4151,8 @@
 !
 
       ! References to F90 modules
-      USE DAO_MOD    , ONLY : IS_WATER, RH, U10M, V10M
+      USE DAO_MOD    , ONLY : IS_WATER, RH
+      USE DAO_MOD    , ONLY : U => U10M, V => V10M
       USE PBL_MIX_MOD, ONLY : GET_PBL_TOP_M
       USE FILE_MOD   , ONLY : IU_FILE
       USE RNPBBE_MOD , ONLY : SLQ
@@ -4205,7 +4206,7 @@
             U10M = SQRT( SFCWINDSQR( I, J,
      &                               LOCAL_MET%U10M, LOCAL_MET%V10M ) )
 #else
-            U10M = SQRT( SFCWINDSQR( I, J, U10M, V10M) )
+            U10M = SQRT( SFCWINDSQR( I, J, U, V ) )
 #endif
             
             ! Don't allow wind >20 m/s which is the limit of this 
