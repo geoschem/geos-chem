@@ -1591,7 +1591,7 @@
 !
 ! !LOCAL VARIABLES:
 !
-      INTEGER            :: N, I
+      INTEGER            :: N
       CHARACTER(LEN=255) :: SUBSTRS(MAXDIM), MSG, LOC
 ![eml
       INTEGER            :: HISTYR
@@ -2657,7 +2657,7 @@
 !
 ! !LOCAL VARIABLES:
 !
-      INTEGER            :: N, I
+      INTEGER            :: N
       CHARACTER(LEN=255) :: SUBSTRS(MAXDIM), MSG
 
       !=================================================================

@@ -282,8 +282,10 @@
              !*** AEROSOL THERMODYNAMIC EQUILIBRIUM ***
              IF ( LSSALT ) THEN
              
+#if   !defined( NO_ISORROPIA )
                 ! ISOROPIA takes Na+, Cl- into account
                 CALL DO_ISOROPIAII
+#endif
              
              ELSE
  

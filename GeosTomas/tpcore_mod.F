@@ -90,6 +90,7 @@
 !  (19) Modify subroutine YTP for a complete saving of diagnostic array fy1_tp 
 !      (win,7/17/09)
 !  (20) Modify subroutine FZPPM extending the loop for fz1_tp (win, 7/17/09)
+!  01 Mar 2012 - R. Yantosca - Now reference new grid_mod.F90
 !******************************************************************************
 !
       !=================================================================
@@ -3015,7 +3016,7 @@ c        AL(i,k) = median(AL(i,k), qmin, qmax)
 !  (3 ) Now declare DXYP as a local array, and initialize it with calls
 !        to routine GET_AREA_M2 of "grid_mod.f".  Now use function GET_TS_DYN
 !        from "time_mod.f".  Remove reference to CMN header file. (bmy, 2/4/03)
-!  01 Mar 2012 - R. Yantosca - Now use GET_AREA_CM2(I,J,L) from grid_mod.F90
+!  01 Mar 2012 - R. Yantosca - Now use GET_AREA_M2(I,J,L) from grid_mod.F90
 !******************************************************************************
 !
       ! References to F90 modules

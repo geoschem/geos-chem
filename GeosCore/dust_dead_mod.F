@@ -4193,7 +4193,6 @@ ctdf        print *,' no mobilisation candidates'
 !******************************************************************************
 !
        IMPLICIT NONE
-#     include "define.h"
 
        ! Arguments
        REAL*8, INTENT(IN) :: X
@@ -4315,7 +4314,6 @@ ctdf        print *,' no mobilisation candidates'
 !******************************************************************************
 !
       IMPLICIT NONE
-#     include "define.h"
       INTEGER I,JINT
       REAL*8  A,ARG,B,C,D,DEL,FOUR,HALF,P,ONE,Q,RESULT,SIXTEN,SQRPI,
      &   TWO,THRESH,X,XBIG,XDEN,XHUGE,XINF,XMAX,XNEG,XNUM,XSMALL,

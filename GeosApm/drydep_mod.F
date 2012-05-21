@@ -182,7 +182,13 @@
 !
 ! !DEFINED PARAMETERS:
 !
-      INTEGER, PARAMETER :: MAXDEP    = 51      ! Max # of depositing species
+!------------------------------------------------------------------------------
+! Prior to 12/28/11:
+! Increase MAXDEP by 4 to include drydep for HBr, HOBr, BrNO3, and Br2
+! (jpp, mpayer, 12/28/11)
+!      INTEGER, PARAMETER :: MAXDEP    = 51      ! Max # of depositing species
+!------------------------------------------------------------------------------
+      INTEGER, PARAMETER :: MAXDEP    = 55      ! Max # of depositing species
       REAL*8,  PARAMETER :: XCKMAN    = 0.4d0   ! Von Karman's constant
       INTEGER, PARAMETER :: NR_MAX    = 200     ! # of seasalt bins 
       INTEGER, PARAMETER :: NDRYDTYPE = 11      ! # of drydep land types
@@ -4333,7 +4339,87 @@
             HSTAR(NUMDEP)   = 0d0
             F0(NUMDEP)      = 0d0
             XMW(NUMDEP)     = 0d0
-            AIROSOL(NUMDEP) = .FALSE.   
+            AIROSOL(NUMDEP) = .FALSE.
+
+         !--------------------------------------------
+         ! jpp, 2/27/08, adding HOBr and HBr dry dep
+         ! HOBr
+         ELSE IF ( N == IDTHOBR ) THEN
+            NUMDEP          = NUMDEP + 1
+            NTRAIND(NUMDEP) = IDTHOBr
+            NDVZIND(NUMDEP) = NUMDEP
+            DEPNAME(NUMDEP) = 'HOBr'
+            ! from R. Sander's compilation...
+            ! jpp 4/27/09: This adjusted Henry's Law
+            !              coefficient is calculated as the avg
+            !              of the following values (as found in
+            !              R. Sander's document).
+            !  1. Blatchley et al. 1992 (they said > 1.9E3, so I make it 2E3
+            !  2. Frenzel et al. 1996 (this is an estimate, 6.1E3)
+            !  3. Mozurkewich et al. 1995 (thermo calculation, 1.8E0)
+            !
+            ! jpp 1/14/2011: changing Hstar from 2.8d3 to 6.1d3, consistent
+            !                with p-TOMCAT. ref: Freznel et al. 1998
+            HSTAR(NUMDEP)   = 6.1d+3
+            F0(NUMDEP)      = 0.0d0
+            XMW(NUMDEP)     = 97d-3
+            AIROSOL(NUMDEP) = .FALSE.
+
+         ! HBr
+         ELSE IF ( N == IDTHBR ) THEN
+            NUMDEP          = NUMDEP + 1
+            NTRAIND(NUMDEP) = IDTHBr
+            NDVZIND(NUMDEP) = NUMDEP
+            DEPNAME(NUMDEP) = 'HBr'
+            ! R. Sander's compilation sheet...
+            ! Chameides [1992]
+            !HSTAR(NUMDEP)   = 7.2d-1
+            !HSTAR(NUMDEP)   = 7.1d+8
+            !HSTAR(NUMDEP)   = 2.9d+7
+            !
+            ! jpp 4/27/09: This adjusted Henry's Law
+            !           coefficient is calculated as
+            !           the average of the adjusted
+            !           quantities from the following sources
+            !           (all listed in R. Sander's Henry's law document)
+            !   1. Brimblecombe and Clegg 1989
+            !   2. Wagman et al. 1982
+            !   3. Chameides and Stelson 1992
+            !HSTAR(NUMDEP)   = 2.97d+16
+            !
+            ! jpp, 1/14/2011: made Hstar consistent with
+            !                 p-TOMCAT. Ref: Dean 1992.
+            !                 Assuming a pH of 7 for the plant stomata.
+            HSTAR(NUMDEP)   = 7.1d+15
+            F0(NUMDEP)      = 0.0d0
+            XMW(NUMDEP)     = 81d-3
+            AIROSOL(NUMDEP) = .FALSE.
+
+         ! BrNO3
+         ELSE IF ( N == IDTBRNO3 ) THEN
+            NUMDEP          = NUMDEP + 1
+            NTRAIND(NUMDEP) = IDTBrNO3
+            NDVZIND(NUMDEP) = NUMDEP
+            DEPNAME(NUMDEP) = 'BrNO3'
+            ! see R. Sander's compilation...
+            ! infininte Hstar
+            HSTAR(NUMDEP)   = 1.d+20
+            F0(NUMDEP)      = 0.0d0
+            XMW(NUMDEP)     = 142.d-3
+            AIROSOL(NUMDEP) = .FALSE.
+
+         ELSE IF ( N == IDTBR2 ) THEN
+            NUMDEP          = NUMDEP + 1
+            NTRAIND(NUMDEP) = IDTBr2
+            NDVZIND(NUMDEP) = NUMDEP
+            DEPNAME(NUMDEP) = 'Br2'
+            ! taken from Table 2 of Yang et al. 2005, assuming
+            ! that the temperature = 298 K (jpp, 1/13/2011)
+            HSTAR(NUMDEP)   = 0.76d0
+            F0(NUMDEP)      = 0.0d0
+            XMW(NUMDEP)     = 160.d-3
+            AIROSOL(NUMDEP) = .FALSE.
+         !--------------------------------------------
 
          !FP_ISOP
          ! !ISOPN=ISOPNDISOPNB

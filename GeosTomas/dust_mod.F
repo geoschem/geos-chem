@@ -57,6 +57,7 @@
 !  25 Aug 2010 - R. Yantosca - Added ProTeX headers
 !  03 Sep 2010 - R. Yantosca - Bug fix in SRC_DUST_DEAD
 !  08 Feb 2012 - R. Yantosca - Add modifications for GEOS-5.7.x
+!  01 Mar 2012 - R. Yantosca - Now reference the new grid_mod.F90
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -672,7 +673,7 @@
 !BOC
 !
 ! !LOCAL VARIABLES:
-!      
+!
       LOGICAL, SAVE :: FIRST = .TRUE.
       INTEGER       :: I, J, K   !(win, 7/17/09)
       REAL*8        :: MEMIS, MINIT(IIPAR,JJPAR,1,IBINS)  !(win, 7/17/09)
@@ -859,7 +860,7 @@ c$$$      ENDIF
 !                                                                             .
 !  Parameters used in GEOS-CHEM
 !                                                                             .
-!  Longitude: IIPAR 
+!  Longitude: IIPAR
 !  Latitude : JJPAR 
 !  Levels   : LLPAR  =  20 (GEOS-1), 26 (GEOS-strat), 30 (GEOS-terra)
 !  Size bins: NDSTBIN  =   4
@@ -1104,7 +1105,7 @@ c$$$      ENDIF
       USE CMN_DIAG_MOD        ! ND19, LD13 (for now)
       USE CMN_GCTM_MOD        ! g0
 !
-! !INPUT/OUTPUT PARAMETERS:
+! !INPUT/OUTPUT PARAMETERS: 
 ! 
       REAL*8, INTENT(INOUT) :: TC(IIPAR,JJPAR,LLPAR,NDSTBIN)  ! Dust mass [kg]
 !
@@ -1150,7 +1151,7 @@ c$$$      ENDIF
 !  (1 ) Added OpenMP parallelization (bmy, 4/8/04)
 !  (2 ) Now references DATA_DIR from "directory_mod.f" (bmy, 7/20/04)
 !  25 Aug 2010 - R. Yantosca - Added ProTeX headers
-!  01 Mar 2012 - R. Yantosca - Now use GET_AREA_CM2(I,J,L) from grid_mod.F90
+!  01 Mar 2012 - R. Yantosca - Now use GET_AREA_M2(I,J,L) from grid_mod.F90
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -1376,7 +1377,7 @@ c$$$      ENDIF
       USE COMODE_MOD,    ONLY : WTAREA, WERADIUS
       USE DAO_MOD,       ONLY : RH
 
-      USE CMN_FJ_MOD,    ONLY : IPAR, JPAR, LPAR, JPMAX, JPPJ      
+!      USE CMN_FJ_MOD,    ONLY : IPAR, JPAR, LPAR, JPMAX, JPPJ      
       USE JV_CMN_MOD          ! ODMDUST, QAA, RAA, QAA_AOD (clh)
       USE COMODE_LOOP_MOD     ! NTTLOOP
 
@@ -1394,13 +1395,13 @@ c$$$      ENDIF
 !        the L-dimension for ND21 diagnostics. (bmy, 7/20/04)
 !  (3 ) Archive only hydrophilic aerosol/aqueous dust surface area 
 !       (excluding BCPO and OCPO), WTAREA and WERADIUS. (tmf, 3/6/09)
+!  25 Aug 2010 - R. Yantosca - Added ProTeX headers
 !  03 Feb 2011 - S. Kim.     - Include wavelength argument to determine the 
 !                              wavelength at which the AOD should be computed. 
 !                              This will set the optical properties that are
 !                              used for the calculation of the AOD. The ND21 
 !                              diagnostic should only be updated when 
 !                              WAVELENGTH = 1. (skim, 02/03/11)
-!  25 Aug 2010 - R. Yantosca - Added ProTeX headers
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -1618,7 +1619,7 @@ c$$$      ENDIF
 
 #     include "define.h"
 
-      USE CMN_FJ_MOD,    ONLY : IPAR, JPAR, LPAR, JPMAX, JPPJ
+      USE CMN_FJ_MOD,    ONLY : JPMAX, JPPJ
       USE JV_CMN_MOD,    ONLY : ODMDUST, QAA, RAA, RAA_AOD, QAA_AOD
       USE COMODE_LOOP_MOD     ! NTTLOOP
       USE CMN_DIAG_MOD        ! ND21, LD21
@@ -1632,7 +1633,7 @@ c$$$      ENDIF
       ! Determine which wavelength to use for optical properties
       INTEGER, INTENT(IN) :: WAVELENGTH  
 !
-! !REVISION HISTORY:
+! !REVISION HISTORY: 
 !  (1 ) RDUST was patterned after rdaerosol.f (rvm, 9/30/00)
 !  (2 ) Don't worry about rewinding the binary file...reading from
 !        binary files is pretty fast.  And it's only done once a month.
@@ -1723,7 +1724,7 @@ c$$$      ENDIF
          XTAU = GET_TAU0( THISMONTH, 1, 1985 )
          
          ! Select proper dust file name for GEOS-1, GEOS-3, or GEOS-4
-         FILENAME = TRIM( DATA_DIR ) // 'dust_200203/dust.' // !added GEOS-5 data file dmw
+         FILENAME = TRIM( DATA_DIR ) // 'dust_200203/dust.' //
      &              GET_NAME_EXT()   // '.'                 // 
      &              GET_RES_EXT()
 
@@ -1948,7 +1949,7 @@ c$$$      ENDIF
 !BOC
 !
 ! !LOCAL VARIABLES:
-!      
+!
       LOGICAL, SAVE :: IS_INIT = .FALSE.
       INTEGER       :: AS   
       INTEGER       :: I    !(win, 7/17/09) 

@@ -641,7 +641,6 @@ geia_mod.o                  : geia_mod.F
 
 GEN.o                       : GEN.F
 
-
 geos57_read_mod.o           : geos57_read_mod.F90                            \
                               dao_mod.o
 
@@ -800,7 +799,7 @@ mapping_mod.o               : mapping_mod.F90                                \
 MATIN4.o                    : MATIN4.F
 
 megan_mod.o                 : megan_mod.F             a3_read_mod.o          \
-                              modis_lai_mod.o          logical_mod.o         \
+                              modis_lai_mod.o         logical_mod.o          \
                               meganut_mod.o           merra_a1_mod.o         \
                               geos57_read_mod.o
 
@@ -855,7 +854,6 @@ ocean_mercury_mod.o         : ocean_mercury_mod.F                            \
 
 ohsave.o                    : ohsave.F                comode_mod.o           \
                               diag_mod.o              tracerid_mod.o
-
 
 olson_landmap_mod.o         : olson_landmap_mod.F90                          \
                               mapping_mod.o

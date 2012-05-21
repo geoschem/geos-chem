@@ -145,9 +145,11 @@
 !  (7 ) Modifications for 0.5 x 0.667 grid (yxw, dan, bmy, 11/6/08)
 !  (8 ) Updates for nested grids (amv, bmy, 12/18/09)
 !  28 Feb 2012 - R. Yantosca - Removed support for GEOS-3
+!  01 Mar 2012 - R. Yantosca - Now reference new grid_mod.F90
 !******************************************************************************
 !
       IMPLICIT NONE
+#     include "define.h"
 
       !=================================================================
       ! MODULE PRIVATE DECLARATIONS -- keep certain internal variables

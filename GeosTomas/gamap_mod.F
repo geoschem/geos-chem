@@ -1510,19 +1510,6 @@
          ! Special handling for Rn-Pb-Be simulation (bmy, 5/11/05)
          IF ( ITS_A_RnPbBe_SIM() ) THEN
             SELECT CASE( T ) 
-!------------------------------------------------------------------------------
-! Prior to 1/24/12:
-! Now report Rn-Pb-Be in mBq/SCM (mpayer, 1/24/12)
-!               CASE( 1 )
-!                  UNIT (T,45) = 'pCi/SCM'
-!                  SCALE(T,45) = 1.5243e21
-!               CASE( 2 ) 
-!                  UNIT (T,45) = 'fCi/SCM'
-!                  SCALE(T,45) = 7.0651e20
-!               CASE( 3 )
-!                  UNIT (T,45) = 'fCi/SCM'
-!                  SCALE(T,45) = 1.0938e23
-!------------------------------------------------------------------------------
                CASE( 1 )
                   UNIT (T,45) = 'mBq/SCM'
                   SCALE(T,45) = 5.6397E+22
@@ -2494,7 +2481,7 @@
             !------------------
 
             ! Number of tracers
-            NTRAC(22) = 8
+            NTRAC(22) = 14 ! Increase for bromine (jpp, mpayer, 12/28/11)
 
             ! Loop over tracers
             DO T = 1, NTRAC(22)
@@ -2513,11 +2500,22 @@
                      NAME(T,22) = 'JO3'
                   CASE( 6  )
                      NAME(T,22) = 'POH'
-
                   CASE( 7  )
                      NAME(T,22) = 'JGLYX'
                   CASE( 8  )
                      NAME(T,22) = 'JMGLY'
+                  CASE( 9  )
+                     NAME(T,22) = 'JBrO'
+                  CASE( 10 )
+                     NAME(T,22) = 'JHOBr'
+                  CASE( 11 )
+                     NAME(T,22) = 'JBrNO2'
+                  CASE( 12 )
+                     NAME(T,22) = 'JBrNO3'
+                  CASE( 13 )
+                     NAME(T,22) = 'JCHBr3'
+                  CASE( 14 )
+                     NAME(T,22) = 'JBr2'
                  CASE DEFAULT
                   ! Nothing
                END SELECT
@@ -3284,7 +3282,7 @@ c$$$            ENDDO
       IF ( ND46 > 0 ) THEN 
 
          ! Number of tracers
-         NTRAC(46) = 13 ! was 6 (mpb,2009)
+         NTRAC(46) = 16 ! Increase for bromine (jpp, mpayer, 12/28/11)
 
          ! Loop over tracers
          DO T = 1, NTRAC(46)
@@ -3330,16 +3328,42 @@ c$$$            ENDDO
                CASE( 13)
                   NAME(T,46) = 'OCIMN'
                   MOLC(T,46) = 10
+               !jpp, 9/6/07
+               CASE( 14 )
+                  INDEX(T,46)  = T + ( SPACING * 21 )
+                  NAME  (T,46) = 'CHBr3'
+                  FNAME (T,46) = 'Ocean bromoform emissions'
+                  UNIT  (T,46) = 'kg/m2/s'
+                  MWT   (T,46) = 2.53e-1   !in [kg/mol]
+                  SCALE(T,46) = 1e0
+               CASE( 15 )
+                  INDEX (T,46)  = T + ( SPACING * 21 )
+                  NAME  (T,46) = 'CH2Br2'
+                  FNAME (T,46) = 'Ocean dibromomethane emissions'
+                  UNIT  (T,46) = 'kg/m2/s'
+                  MWT   (T,46) = 1.74e-1   !in [kg/mol]
+                  SCALE (T,46) = 1e0
+               CASE( 16 )
+                  INDEX (T,46)  = T + ( SPACING * 21 )
+                  NAME  (T,46) = 'SSBr2'
+                  FNAME (T,46) = 'sea-salt Br2 emissions'
+                  UNIT  (T,46) = 'kg/m2/s'
+                  MWT   (T,46) = 1.60e-1   !in [kg/mol]
+                  SCALE (T,46) = 1e0
                CASE DEFAULT
                   ! Nothing
             END SELECT
 
-            ! Define the rest of the quantities
-            INDEX(T,46) = T + ( SPACING * 21 )
-            FNAME(T,46) = TRIM( NAME(T,46) ) // ' emissions'
-            UNIT (T,46) = 'atoms C/cm2/s'
-            MWT  (T,46) = 12e-3
-            SCALE(T,46) = 1e0
+            !jpp, 9/6/07: preventing these default quantities
+            !             from overwriting CHBr3's info.
+            IF ( T < 14 ) THEN
+               ! Define the rest of the quantities
+               INDEX(T,46) = T + ( SPACING * 21 )
+               FNAME(T,46) = TRIM( NAME(T,46) ) // ' emissions'
+               UNIT (T,46) = 'atoms C/cm2/s'
+               MWT  (T,46) = 12e-3
+               SCALE(T,46) = 1e0
+            ENDIF
          ENDDO
       ENDIF
 

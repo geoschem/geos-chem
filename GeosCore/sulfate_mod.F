@@ -1223,7 +1223,7 @@
 !  (5 ) Now use diurnally-varying JO1D.  Now use new unit conversion for
 !        the ND44 diagnostic. (rjp, bmy, 3/30/04)
 !  (6 ) Now use parallel DO-loop to zero ND44_TMP.  Now uses ITS_A_NEW_MONTH
-!        fro      USE TRACER_MOD,     ONLY : STT,       TCVV,        XNUMOL
+!        from time_mod.f. (bmy, 4/14/04)
 !  (7 ) Now reference STT & TCVV from "tracer_mod.f".  Also replace IJSURF
 !        with an analytic function.  Now references DATA_DIR from 
 !        "directory_mod.f". (bmy, 7/20/04)
@@ -3979,8 +3979,6 @@
       ENDIF
 
       END SUBROUTINE CHEM_NIT
-
-!-----------------------------------------------------------------------------
 !EOC
 !------------------------------------------------------------------------------
 !          Harvard University Atmospheric Chemistry Modeling Group            !
@@ -4502,6 +4500,19 @@
       END SUBROUTINE SRCDMS 
 !EOC
 !------------------------------------------------------------------------------
+!          Harvard University Atmospheric Chemistry Modeling Group            !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: srcso2
+!
+! !DESCRIPTION: Subroutine SRCSO2 (originally from Mian Chin) computes SO2
+!  emissons from aircraft, biomass, and anthro sources. (rjp, bdf, bmy, 6/2/00,
+!  12/3/09)
+!\\
+!\\
+! !INTERFACE:
+!
 #if defined( DEVEL )
       SUBROUTINE SRCSO2( TC, NSEASON, SFLX )
 #else
@@ -5564,7 +5575,7 @@
             ! until further notice.  Comment out the lines below until 
             ! further notice.  (bmy, 11/17/04) 
             !! Grid box surface area [cm2]
-            AREA_CM2 = GET_AREA_CM2( I, J, 1  )
+            AREA_CM2 = GET_AREA_CM2( I, J, 1 )
             !----------------------------------------------------------------
 
             ! Top of the boundary layer
@@ -6693,19 +6704,19 @@
          DO I = 1, IIPAR
 
             ! Grid box surface area [cm2]
-            AREA_CM2     = GET_AREA_CM2( I, J, L )
+            AREA_CM2 = GET_AREA_CM2( I, J, L )
             
             ! Longitude and latitude [degrees]
-            X        = GET_XMID( I, J, L )
-            Y        = GET_YMID( I, J, L )
+            X = GET_XMID( I, J, L )
+            Y = GET_YMID( I, J, L )
 
             ! First scale SOx to the given fossil fuel year
             E_SOx(I,J,L) = E_SOx(I,J,L) * SOx_SCALE(I,J)
             
             ! Compute future SOx emissions (if necessary)
             IF ( LFUTURE ) THEN
-                  E_SOx(I,J,L) = E_SOx(I,J,L)                  * 
-     &                           GET_FUTURE_SCALE_SO2ff( I, J )
+               E_SOx(I,J,L) = E_SOx(I,J,L)                  * 
+     &                        GET_FUTURE_SCALE_SO2ff( I, J )
             ENDIF
 
             ! Compute SO4/SOx fraction for EUROPE
@@ -6738,7 +6749,7 @@
 
                   ! Overwrite GEIA SO2 w/ David Streets' SO2 [kg SO2/s]
                   ESO2_an(I,J,1) = GET_STREETS_ANTHRO( I, J, IDTSO2, 
-     &                                                    KG_S=.TRUE. )
+     &                                                 KG_S=.TRUE. )
 
                   ! Zero 2nd level of emissions
                   ESO2_an(I,J,2) = 0d0
@@ -7263,7 +7274,7 @@
 !------------------------------------------------------------------------------
 !BOP
 !
-! !IROUTINE: gread_aircraft_so2
+! !IROUTINE: read_aircraft_so2
 !
 ! !DESCRIPTION: Subroutine READ\_AIRCRAFT\_SO2 reads monthly mean aircraft fuel
 !  emissions and converts them to SO2 emissions. (rjp, bdf, bmy, 9/18/02,
@@ -7549,7 +7560,7 @@
             ! Apply future emissions (if necessary)
             IF ( LFUTURE ) THEN
                ESO2_sh(I,J) = ESO2_sh(I,J) *
-     &              GET_FUTURE_SCALE_SO2ff( I, J ) 
+     &                        GET_FUTURE_SCALE_SO2ff( I, J ) 
             ENDIF
 
             IF ( LEMEPSHIP ) THEN

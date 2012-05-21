@@ -306,7 +306,6 @@
 !
 ! !DEFINED PARAMETERS:
 !      
-      ! Parameters
       REAL*8,  PARAMETER     :: C1 =  0.7674d0 
       REAL*8,  PARAMETER     :: C2 =  3.079d0 
       REAL*8,  PARAMETER     :: C3 =  2.573d-11
@@ -329,7 +328,6 @@
       ! sigma of the size distribution
       REAL*8,  PARAMETER     ::   SIG_A = 1.5d0
       REAL*8,  PARAMETER     ::   SIG_C = 1.8d0
-
 
       !=================================================================
       ! WET_SETTLING begins here!
@@ -795,7 +793,7 @@
 
       USE CMN_SIZE_MOD       ! Size parameters
 !
-! !INPUT PARAMETERS:
+! !OUTPUT PARAMETERS:
 !
       REAL*8, INTENT(OUT), OPTIONAL :: SSA_Br2(IIPAR, JJPAR)
 !
@@ -918,8 +916,7 @@
 !  Gong (2003) with the empirical sea surface temperature (SST) dependence of
 !  Jaegle et al. (2011). This SST dependence was derived based on comparisons
 !  to cruise observations of coarse mode sea salt mass concentrations.
-!\\
-!\\
+! 
 !  Contact: Lyatt Jaegle (jaegle@uw.edu)
 !\\
 !\\
