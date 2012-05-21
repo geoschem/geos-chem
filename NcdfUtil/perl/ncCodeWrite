@@ -474,9 +474,9 @@ EOF2
       WRITE( 6, 100 ) REPEAT( '%', 79 )
 
       ! FORMAT statements
- 100  FORMAT( a                            )
- 130  FORMAT( '%% Successfully wrote ', a  )
- 140  FORMAT( '%%', /, '%% Closed file!'   )
+ 100  FORMAT( a                                )
+ 130  FORMAT( '%% Successfully wrote ',      a )
+ 140  FORMAT( '%% Successfully closed file!'   )
 
       END SUBROUTINE WRITE_TO_NETCDF_FILE
 !EOC

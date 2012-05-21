@@ -134,7 +134,7 @@
       INTEGER, PARAMETER :: PD63=0           
       INTEGER, PARAMETER :: PD64=0
 #if defined( DEVEL )
-      INTEGER :: PD65
+      INTEGER            :: PD65
 #else
       INTEGER, PARAMETER :: PD65=LLPAR*MAXFAM 
 #endif

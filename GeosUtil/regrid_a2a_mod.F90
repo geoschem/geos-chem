@@ -97,10 +97,8 @@ MODULE REGRID_A2A_MOD
     !==========================================================================
     !INTEGER                      :: IG, IV
     INTEGER                       :: I, J
-    INTEGER, PARAMETER            :: IN = IIPAR 
-    INTEGER, PARAMETER            :: JN = JJPAR
     REAL*8, ALLOCATABLE           :: INSIN(:), INLON(:)
-    REAL*8                        :: LON2(IN+1), SIN2(JN+1)
+    REAL*8                        :: LON2(IIPAR+1), SIN2(JJPAR+1)
     CHARACTER(LEN=15)             :: HEADER1
     INTEGER                       :: IOS, M
     REAL*8                        :: INAREA,RLAT
@@ -155,13 +153,13 @@ MODULE REGRID_A2A_MOD
        ENDDO
     ENDIF
 
-    CALL MAP_A2A( IM, JM-1, INLON, INSIN, INGRID,   &
-                  IN, JN, LON2, SIN2, OUTGRID, 0, 0)
+    CALL MAP_A2A( IM,    JM-1,  INLON, INSIN, INGRID,   &
+                  IIPAR, JJPAR, LON2,  SIN2,  OUTGRID,  0, 0)
 
     !Convert back from "per area" if necessary
     IF( PERAREA==1 ) THEN
-       DO J=1, JN
-       DO I=1, IN
+       DO J=1, JJPAR
+       DO I=1, IIPAR
           OUTGRID(I,J)=OUTGRID(I,J)*GET_AREA_CM2(I, J, 1)
        ENDDO
        ENDDO

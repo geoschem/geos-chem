@@ -59,6 +59,8 @@ MODULE m_netcdf_io_readattr
 !
 ! !REVISION HISTORY:
 !  25 Jan 2012 - R. Yantosca - Initial version
+!  30 Apr 2012 - R. Yantosca - Modified for compatibility with netCDF-3
+!  30 Apr 2012 - R. Yantosca - Added comments
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -69,6 +71,9 @@ CONTAINS
 !
 ! !IROUTINE: NcGet_Var_Attr_C
 !
+! !DESCRIPTION: Returns a variable attribute of type CHARACTER.
+!\\
+!\\
 ! !INTERFACE:
 !
   SUBROUTINE NcGet_Var_Attr_C( fid, varName, attName, attValue )
@@ -92,6 +97,8 @@ CONTAINS
 ! !REVISION HISTORY:
 !  25 Jan 2012 - R. Yantosca - Initial version
 !  31 Jan 2012 - R. Yantosca - Zero attValue before reading attributes
+!  30 Apr 2012 - R. Yantosca - Use netCDF library function NF_GET_ATT_TEXT,
+!                              which is compatible w/ netCDF3
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -115,7 +122,7 @@ CONTAINS
     ENDIF
 
     !  Get the attribute
-    status = Nf_Get_Att( fId, vId, attName, attValue )
+    status = Nf_Get_Att_Text( fId, vId, attName, attValue )
     
     ! Exit w/ error message if unsuccessful
     IF ( status /= NF_NOERR ) THEN
@@ -131,6 +138,9 @@ CONTAINS
 !
 ! !IROUTINE: NcGet_Var_Attr_I4
 !
+! !DESCRIPTION: Returns a variable attribute of type INTEGER*4.
+!\\
+!\\
 ! !INTERFACE:
 !
   SUBROUTINE NcGet_Var_Attr_I4( fid, varName, attName, attValue )
@@ -154,6 +164,8 @@ CONTAINS
 ! !REVISION HISTORY:
 !  25 Jan 2012 - R. Yantosca - Initial version
 !  31 Jan 2012 - R. Yantosca - Zero attValue before reading attributes
+!  30 Apr 2012 - R. Yantosca - Use netCDF library function NF_GET_ATT_INT,
+!                              which is compatible w/ netCDF3
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -193,6 +205,9 @@ CONTAINS
 !
 ! !IROUTINE: NcGet_Var_Attr_R4
 !
+! !DESCRIPTION: Returns a variable attribute of type REAL*4.
+!\\
+!\\
 ! !INTERFACE:
 !
   SUBROUTINE NcGet_Var_Attr_R4( fid, varName, attName, attValue )
@@ -216,6 +231,8 @@ CONTAINS
 ! !REVISION HISTORY:
 !  25 Jan 2012 - R. Yantosca - Initial version
 !  31 Jan 2012 - R. Yantosca - Zero attValue before reading attributes
+!  30 Apr 2012 - R. Yantosca - Use netCDF library function NF_GET_ATT_REAL,
+!                              which is compatible w/ netCDF3
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -255,6 +272,9 @@ CONTAINS
 !
 ! !IROUTINE: NcGet_Var_Attr_R4
 !
+! !DESCRIPTION: Returns a variable attribute of type REAL*8.
+!\\
+!\\
 ! !INTERFACE:
 !
   SUBROUTINE NcGet_Var_Attr_R8( fid, varName, attName, attValue )
@@ -278,6 +298,8 @@ CONTAINS
 ! !REVISION HISTORY:
 !  25 Jan 2012 - R. Yantosca - Initial version
 !  31 Jan 2012 - R. Yantosca - Zero attValue before reading attributes
+!  30 Apr 2012 - R. Yantosca - Use internal function NF_GET_ATT_DOUBLE,
+!                              which is compatible w/ netCDF3
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -301,7 +323,7 @@ CONTAINS
     ENDIF
 
     ! Get the attribute
-    status = Nf_Get_Att_Real( fId, vId, attName, attValue )
+    status = Nf_Get_Att_Double( fId, vId, attName, attValue )
     
     ! Exit w/ error message if unsuccessful
     IF ( status /= NF_NOERR ) THEN
@@ -317,6 +339,9 @@ CONTAINS
 !
 ! !IROUTINE: NcGet_Glob_Attr_C
 !
+! !DESCRIPTION: Returns a variable attribute of type CHARACTER.
+!\\
+!\\
 ! !INTERFACE:
 !
   SUBROUTINE NcGet_Glob_Attr_C( fid, attName, attValue )
@@ -339,6 +364,8 @@ CONTAINS
 ! !REVISION HISTORY:
 !  25 Jan 2012 - R. Yantosca - Initial version
 !  31 Jan 2012 - R. Yantosca - Zero attValue before reading attributes
+!  30 Apr 2012 - R. Yantosca - Use netCDF library function NF_GET_ATT_TEXT,
+!                              which is compatible w/ netCDF3
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -352,7 +379,7 @@ CONTAINS
     attValue = ''
 
     ! Get the attribute
-    status = Nf_Get_Att( fId, NF_GLOBAL, attName, attValue )
+    status = Nf_Get_Att_Text( fId, NF_GLOBAL, attName, attValue )
     
     ! Exit w/ error message if unsuccessful
     IF ( status /= NF_NOERR ) THEN
@@ -369,6 +396,9 @@ CONTAINS
 !
 ! !IROUTINE: NcGet_Glob_Attr_I4
 !
+! !DESCRIPTION: Returns a variable attribute of type INTEGER*4.
+!\\
+!\\
 ! !INTERFACE:
 !
   SUBROUTINE NcGet_Glob_Attr_I4( fid, attName, attValue )
@@ -391,6 +421,8 @@ CONTAINS
 ! !REVISION HISTORY:
 !  25 Jan 2012 - R. Yantosca - Initial version
 !  31 Jan 2012 - R. Yantosca - Zero attValue before reading attributes
+!  30 Apr 2012 - R. Yantosca - Use netCDF library function NF_GET_ATT_INT,
+!                              which is compatible w/ netCDF3
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -404,7 +436,7 @@ CONTAINS
     attValue = 0
 
     ! Get the attribute
-    status = Nf_Get_Att( fId, NF_GLOBAL, attName, attValue )
+    status = Nf_Get_Att_Int( fId, NF_GLOBAL, attName, attValue )
     
     ! Exit w/ error message if unsuccessful
     IF ( status /= NF_NOERR ) THEN
@@ -420,6 +452,9 @@ CONTAINS
 !
 ! !IROUTINE: NcGet_Glob_Attr_R4
 !
+! !DESCRIPTION: Returns a variable attribute of type REAL*4.
+!\\
+!\\
 ! !INTERFACE:
 !
   SUBROUTINE NcGet_Glob_Attr_R4( fid, attName, attValue )
@@ -442,6 +477,8 @@ CONTAINS
 ! !REVISION HISTORY:
 !  25 Jan 2012 - R. Yantosca - Initial version
 !  31 Jan 2012 - R. Yantosca - Zero attValue before reading attributes
+!  30 Apr 2012 - R. Yantosca - Use netCDF library function NF_GET_ATT_REAL,
+!                              which is compatible w/ netCDF3
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -455,7 +492,7 @@ CONTAINS
     attValue = 0e0
 
     ! Get the attribute
-    status = Nf_Get_Att( fId, NF_GLOBAL, attName, attValue )
+    status = Nf_Get_Att_Real( fId, NF_GLOBAL, attName, attValue )
     
     ! Exit w/ error message if unsuccessful
     IF ( status /= NF_NOERR ) THEN
@@ -471,6 +508,9 @@ CONTAINS
 !
 ! !IROUTINE: NcGet_Glob_Attr_R8
 !
+! !DESCRIPTION: Returns a variable attribute of type REAL*8.
+!\\
+!\\
 ! !INTERFACE:
 !
   SUBROUTINE NcGet_Glob_Attr_R8( fid, attName, attValue )
@@ -493,6 +533,8 @@ CONTAINS
 ! !REVISION HISTORY:
 !  25 Jan 2012 - R. Yantosca - Initial version
 !  31 Jan 2012 - R. Yantosca - Zero attValue before reading attributes
+!  30 Apr 2012 - R. Yantosca - Use netCDF library function NF_GET_ATT_DOUBLE,
+!                              which is compatible w/ netCDF3
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -506,7 +548,7 @@ CONTAINS
     attValue = 0d0
 
     ! Get the attribute
-    status = Nf_Get_Att( fId, NF_GLOBAL, attName, attValue )
+    status = Nf_Get_Att_Double( fId, NF_GLOBAL, attName, attValue )
     
     ! Exit w/ error message if unsuccessful
     IF ( status /= NF_NOERR ) THEN

@@ -563,15 +563,15 @@ EOF4
       CALL NcCl( $F_ID )
 
       ! Echo info to stdout
-      WRITE( 6, 140 ) TRIM(nc_file)
+      WRITE( 6, 140 )
       WRITE( 6, 100 ) REPEAT( '%', 79 )
 
       ! FORMAT statements
- 100  FORMAT( a                                        )
- 110  FORMAT( '%% Opening file  : ',  a                )
- 120  FORMAT( '%%  in directory : ',  a, / , '%%'      )
- 130  FORMAT( '%% Successfully read ', a, ' [', a, ']' )
- 140  FORMAT( '%%', /, '%% Closed file: ',      a      )
+ 100  FORMAT( a                                              )
+ 110  FORMAT( '%% Opening file  : ',         a               )
+ 120  FORMAT( '%%  in directory : ',         a, / , '%%'     )
+ 130  FORMAT( '%% Successfully read ',       a, ' [', a, ']' )
+ 140  FORMAT( '%% Successfully closed file!'                 )
 
       END SUBROUTINE READ_FROM_NETCDF_FILE
 !EOC

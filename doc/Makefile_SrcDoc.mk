@@ -57,6 +57,7 @@
 #  09 Apr 2012 - R. Yantosca - Added modules from Headers/ directory
 #  13 Apr 2012 - R. Yantosca - Removed findmon.F, rdlai.F, lai_mod.F
 #  19 Apr 2012 - R. Yantosca - Added read_jv_atms_dat.F90
+#  15 May 2012 - R. Yantosca - Added tpcore_bc_mod.F
 #EOP
 #------------------------------------------------------------------------------
 #BOC
@@ -151,6 +152,7 @@ $(CORE)/seasalt_mod.F                \
 $(CORE)/sulfate_mod.F                \
 $(CORE)/tagged_ox_mod.F              \
 $(CORE)/toms_mod.F                   \
+$(CORE)/tpcore_bc_mod.F              \
 $(CORE)/tracer_mod.F                 \
 $(CORE)/tropopause_mod.F             \
 $(CORE)/tpcore_fvdas_mod.F90         \
