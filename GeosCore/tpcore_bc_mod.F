@@ -203,7 +203,7 @@
 ! !IROUTINE: 
 !
 ! !DESCRIPTION: Subroutine SET\_CLEAN\_BC initializes the CLEAN\_BC logical 
-!  flag.  CLEAN_BC decides whether or not we will zero the nested-grid 
+!  flag.  CLEAN\_BC decides whether or not we will zero the nested-grid 
 !  tpcore boundary conditions.
 !\\
 !\\
@@ -954,7 +954,6 @@
 !
 ! !DESCRIPTION: Function GET\_4x5\_BC returns a value from the 4x5 BC 
 !  boundary conditions array at the location of a nested grid box.
- 
 !\\
 !\\
 ! !INTERFACE:
