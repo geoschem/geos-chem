@@ -1,102 +1,103 @@
-      SUBROUTINE cldice_HBrHOBr_rxn( DENAIR, airvol, !I
-     &     temp, QI, CLDF, AD, hbr, hobr,            !I
-     &     k_hbr, k_hobr, AREA)                      !O
-! -------------------------------------------------------------------------
-! This subroutine calculates the rate constant
-! for heterogeneous cycling of BrNO3 off of
-! cloud particles, assuming:
+!------------------------------------------------------------------------------
+!          Harvard University Atmospheric Chemistry Modeling Group            !
+!------------------------------------------------------------------------------
+!BOP
 !
-!  1. A sticking coefficient of 0.1 [JPL 2006], Abbatt [1994], Chai et al. [2000]
-!  2. An effective radius is assumed as a function of
-!     (i) temperature and (ii) ice water content (IWC). This
-!     relationship is taken from Wyser [1998].
+! !IROUTINE: cldice_hbrhobr_rxn
 !
+! !DESCRIPTION: Subroutine CLDICE\_HBrHOBr\_RXN calculates the rate constants
+! for HBr and HOBr pseudo-reactions with ice.
+!\\
+!\\
+! !INTERFACE:
 !
-! ** Calculation of a 1st order rate constent barrowed from 
-!    the subroutine arsl1k.f. Below are comments from that
-!    code.
+      SUBROUTINE CLDICE_HBrHOBr_RXN( DENAIR, airvol, TEMP, QI,
+     &                               CLDF,   AD,     hbr,  hobr,
+     &                               k_hbr,  k_hobr, AREA  )
+! 
+! !USES:
 !
-! !REMARKS:
-!  The 1st-order loss rate on wet aerosol (Dentener's Thesis, p. 14)
-!  is computed as:
-!                                                                             .
-!      ARSL1K [1/s] = area / [ radius/dfkg + 4./(stkcf * nu) ]        
-!                                                                             .
-!  where nu   = Mean molecular speed [cm/s] = sqrt(8R*TK/pi/M) for Maxwell 
-!        DFKG = Gas phase diffusion coeff [cm2/s] (order of 0.1)
-!
-! Input Variables:
-! `````````````````
-! ( 1) I, J, K  :: spatial indices
-! ( 2) DENAIR   :: air density [#/cm3]
-! ( 3) hbr      :: concentration of HBr  in [#/cm3]
-! ( 4) hobr     :: concentration of HOBr in [#/cm3]
-! ( 5) AIRVOL   :: volume of air in a box [m3]
-! ( 6) temp     :: temperature in a given box [K]
-! ( 7) QI       :: cloud ice mixing ratio [kg/kg]
-! ( 8) AD       :: dry air mass [kg]
-! ( 9) CLDF     :: 3D cloud fraction
-!
-! Output Variables:
-! `````````````````
-! ( 1) k_hbr  :: rate constant for HBr  + ice pseudo-rxn [cm3/s]
-! ( 2) k_hobr :: rate constant for HOBr + ice pseudo-rxn [cm3/s]
-!
-!
-! Variables:
-! ```````````
-! ( 1) SQM      ::  square root of the molecular weight [g/mol]
-! ( 2) STK      ::  square root of the temperature [K]
-! ( 3) DFKG     ::  gas diffusion coefficient [cm2/s]
-! ( 4) 
-!
-! -------------------------------------------------------------------------
-!     Justin Parrella, 6/16/2011
-!     parrella@fas.harvard.edu
-!
-! -------------------------------------------------------------------------
-
-      USE ERROR_MOD,       ONLY : is_safe_div, it_is_nan
-      USE ERROR_MOD,       ONLY : geos_chem_stop
+      USE ERROR_MOD,   ONLY : IS_SAFE_DIV, IT_IS_NAN
+      USE ERROR_MOD,   ONLY : GEOS_CHEM_STOP
 
       IMPLICIT NONE
+!
+! !INPUT PARAMETERS:
+!
+      REAL*8,  INTENT(IN)  :: DENAIR   ! Density of air             [#/cm3]
+      REAL*8,  INTENT(IN)  :: AIRVOL   ! Volume of air in a box     [m3]
+      REAL*8,  INTENT(IN)  :: TEMP     ! Temperature in a given box [K]
+      REAL*8,  INTENT(IN)  :: QI       ! Cloud ice mixing ratio     [kg/kg]
+      REAL*8,  INTENT(IN)  :: CLDF     ! 3D cloud fraction          [unitless]
+      REAL*8,  INTENT(IN)  :: AD       ! Dry air mass               [kg]
+      REAL*8,  INTENT(IN)  :: hbr      ! Concentration of HBr       [#/cm3]
+      REAL*8,  INTENT(IN)  :: hobr     ! Concentration of HOBr      [#/cm3]
+!
+! !OUTPUT PARAMETERS:
+!
+      REAL*8,  INTENT(OUT) :: k_hbr    ! Rate constant for HBr  + ice
+                                       !   pseudo-rxn [cm3/s]
+      REAL*8,  INTENT(OUT) :: k_hobr   ! Rate constant for HOBr + ice
+                                       !   pseudo-rxn [cm3/s]
+      REAL*8,  INTENT(OUT) :: AREA     ! Surface area [cm2/cm3]
+!
+! !REMARKS:
+!  The rate constant is calculated assuming:
+!                                                                             .
+!    1. A sticking coefficient of 0.1 [JPL 2006], Abbatt [1994],
+!       Chai et al. [2000]
+!    2. An effective radius is assumed as a function of (i) temperature and
+!       ice water content (IWC). This relationship is taken from Wyser [1998].
+!                                                                             .
+!  ** Calculations of a 1st order rate constent are borrowed from the
+!     subroutine arsl1k.F. Below are comments from that code:
+!                                                                             .
+!       The 1st-order loss rate on wet aerosol (Dentener's Thesis, p. 14)
+!       is computed as:
+!                                                                             .
+!         ARSL1K [1/s] = area / [ radius/dfkg + 4./(stkcf * nu) ]        
+!                                                                             .
+!       where nu   = Mean molecular speed [cm/s] = sqrt(8R*TK/pi/M) for Maxwell
+!             DFKG = Gas phase diffusion coeff [cm2/s] (order of 0.1)
+!
+! !REVISION HISTORY:
+!  16 Jun 2011 - J. Parrella - Initial version
+!  22 May 2012 - M. Payer    - Added ProTeX headers
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+!
+! !DEFINED PARAMETERS:
+!
+      REAL*8, PARAMETER :: R        = 8.314472                  ! [J/mol/K]
+      REAL*8, PARAMETER :: pi       = 3.14159265358979323846d0  ! [unitless]
+      REAL*8, PARAMETER :: dens_ice = 0.9167d-3                 ! [kg/cm3]
+      REAL*8, PARAMETER :: mw_hbr   = 0.081                     ! [kg/mol]
+      REAL*8, PARAMETER :: mw_hobr  = 0.097                     ! [kg/mol]
+!
+! !LOCAL VARIABLES:
+!
+      REAL*8            :: MW_spec  ! Molecular weight of species
+      REAL*8            :: RADIUS   ! Radius of ice particles        [cm]
+      REAL*8            :: STK      ! Square root of the temperature [K]
+      REAL*8            :: DFKG     ! Gas diffusion coefficient      [cm2/s]
+      REAL*8            :: Vc       ! Volume of ice in cloud         [cm3]
+      REAL*8            :: SQM_hbr  ! Square root of molec. weight   [g/mol]
+      REAL*8            :: SQM_hobr ! Square root of molec. weight   [g/mol]
+      REAL*8            :: b_param
+      REAL*8            :: XAIRCM3  ! Volume of air                  [cm3]
+      REAL*8            :: iwc
+      REAL*8            :: gamma
+      REAL*8            :: gamma_hobr, gamma_hbr
+      REAL*8            :: hbr_rtemp,  hobr_rtemp
+      REAL*8            :: cld1k_hbr,  cld1k_hobr
+      LOGICAL           :: yn_div_safe
+      LOGICAL           :: yn_nan
+      LOGICAL           :: yn_stop
 
-      ! --------------------
-      ! input the variables
-      ! --------------------
-      REAL*8,  INTENT(IN)  :: hbr, hobr
-      REAL*8,  INTENT(IN)  :: DENAIR, AIRVOL, temp, QI
-      REAL*8,  INTENT(IN)  :: CLDF, AD
-
-   
-      ! --------------------
-      ! the output variables
-      ! --------------------
-      REAL*8,  INTENT(OUT)   :: k_hbr, k_hobr, AREA
-!      REAL*8,  INTENT(INOUT) :: AREA
-   
-      ! --------------------
-      ! local variables
-      ! --------------------
-      real*8  :: MW_spec ! molecular weight of species
-      real*8  :: RADIUS, STK, DFKG, Vc
-      real*8  :: SQM_hbr, SQM_hobr, b_param
-      real*8  :: XAIRCM3
-      real*8  :: iwc, gamma, gamma_hobr, gamma_hbr
-      real*8  :: hbr_rtemp, hobr_rtemp
-      real*8  :: cld1k_hbr, cld1k_hobr
-      logical :: yn_div_safe
-      logical :: yn_nan, yn_stop
-   
-      ! --------------------
-      ! parameters
-      ! --------------------
-      REAL*8, PARAMETER :: R = 8.314472 ! J /mol /K
-      real*8, parameter :: pi = 3.14159265358979323846d0
-      real*8, parameter :: dens_ice = 0.9167d-3 ! kg/cm3
-      real*8, parameter :: mw_hbr  = 0.081 ! kg/mol
-      real*8, parameter :: mw_hobr = 0.097 ! kg/mol
-
+      !=================================================================
+      ! CLDICE_HBrHOBr_RXN begins here!
+      !=================================================================
 
       ! ----------------------------------------------
       ! 1.
@@ -108,9 +109,9 @@
       !   Using QI which is in [kg_ice/kg_air]
       ! ----------------------------------------------
 
-      ! IWC in [kg_ice/m3]; note, QI is [kg/kg] m.r.
-      iwc = CLDF * QI * AD / AIRVOL   ! AIRVOL is in [m3], AD in [kg]
-      iwc = iwc / 1.d3  ! IWC in [g_ice/cm3]
+      ! IWC in [kg_ice/m3]
+      iwc = CLDF * QI * AD / AIRVOL
+      iwc = iwc / 1.d3
 
       ! ----------------------------------------------
       ! calculate the temperature dependent reactive
@@ -123,15 +124,16 @@
       !
       !  ** using g = 0.1 for cold and mixed clouds
       ! ----------------------------------------------
-      if ( (temp >= 180.d0) .and. (temp <= 268.d0) ) then
+      IF ( (temp >= 180.d0) .and. (temp <= 268.d0) ) THEN
          gamma = 0.1d0
-      else ! if temperature moves above 228K, then
-           ! turn off the reaction and do nothing
+      ELSE
+         ! if temperature moves above 228K, then
+         ! turn off the reaction and do nothing
          gamma  = 0.d0
          k_hbr  = 0.d0
          k_hobr = 0.d0
          RETURN
-      endif
+      ENDIF
 
       ! set the sticking coefficients for HBr and
       ! HOBr independently, following JPL [2011]
@@ -212,14 +214,14 @@
 
       ! make sure there's enough ice in the box we're
       ! looking at to do chemistry:
-      if ( (iwc == 0.0) .or. (QI == 0.0) .or.
+      IF ( (iwc == 0.0) .or. (QI == 0.0) .or.
      &     (it_is_nan( log10(iwc/50.0))) .or.
-     &     (CLDF == 0.0) .or. (RADIUS <= 0.0) ) then
+     &     (CLDF == 0.0) .or. (RADIUS <= 0.0) ) THEN
          gamma  = 0.d0
          k_hbr  = 0.d0
          k_hobr = 0.d0
          RETURN
-      endif
+      ENDIF
 
       ! store the volume of air [cm3]
       XAIRCM3 = AIRVOL * (100.d0)**3
@@ -232,14 +234,15 @@
 
       ! Convert cross-sectional area to surface area, making assumption
       ! given in Lawrence and Crutzen [1998]
-      AREA    = 1.d-4 * (iwc * (100.d0)**3)**(0.9d0) ! iwc must be in g/m3, not g/cm3 for Lawrence param.
+      ! iwc must be in g/m3, not g/cm3 for Lawrence param.
+      AREA    = 1.d-4 * (iwc * (100.d0)**3)**(0.9d0)
       AREA    = 2.d0 * AREA ! in [cm2/cm3]
 
-      if ( AREA > 1.0d-4 ) then
+      IF ( AREA > 1.0d-4 ) THEN
          print *, 'jpp: debugging cloud ice area'
          print *, 'AREA = ', AREA, ' cm2/cm3'
          print *, 'IWC  = ', iwc
-      endif
+      ENDIF
 
       ! ----------------------------------------------------
       ! 3.
@@ -293,50 +296,50 @@
       ! to avoid having to keep setting equality in
       ! SMVGEAR solver. (jpp, 5/10/2011)
       ! ---------------------------------------------
-      if ( hbr_rtemp > hobr_rtemp ) then
+      IF ( hbr_rtemp > hobr_rtemp ) THEN
 
          ! 1. is it safe to divide?
          yn_div_safe = is_safe_div( 
      &        cld1k_hobr * hobr, hbr )
-         if (yn_div_safe) then
+         IF (yn_div_safe) THEN
             ! 2. if it is safe, then go ahead
             cld1k_hbr = hobr_rtemp / hbr
-         else
+         ELSE
             !    if not, then set rates really small...
             !    b/c the largest contributor is very small.
             cld1k_hobr = TINY(1.d0)
             cld1k_hbr  = TINY(1.d0)
-         endif
+         ENDIF
 
-      else ! if HOBr rate is larger than HBr rate
+      ELSE ! if HOBr rate is larger than HBr rate
            ! 1. is it safe to divide?
          yn_div_safe = is_safe_div( 
      &        cld1k_hbr * hbr, hobr )
-         if (yn_div_safe) then
+         IF (yn_div_safe) THEN
             ! 2. if it is safe, then go ahead
             cld1k_hobr = hbr_rtemp / hobr
-         else
+         ELSE
             !    if not, then set rates really small...
             !    b/c the largest contributor is very small.
             cld1k_hobr = TINY(1.d0)
             cld1k_hbr  = TINY(1.d0)
-         endif
+         ENDIF
 
-      endif
+      ENDIF
 
       ! store the rate constants
       k_hbr  = cld1k_hbr
       k_hobr = cld1k_hobr
 
       ! test if they're are NaN's calculated
-      yn_stop = .false.
+      yn_stop = .FALSE.
       yn_nan = it_is_nan( k_hbr  )
-      if ( yn_nan ) yn_stop = .true.
+      IF ( yn_nan ) yn_stop = .TRUE.
 
       yn_nan = it_is_nan( k_hobr )
-      if ( yn_nan ) yn_stop = .true.
+      IF ( yn_nan ) yn_stop = .TRUE.
 
-      if (yn_stop) then
+      IF (yn_stop) THEN
          print*, 'stopping inside of cldice_hbrhobr_rxn().'
          print*, 'Calculated NaN rate constants for ice chem.'
          print*, 'debugging values:'
@@ -349,11 +352,9 @@
          print*, 'b_param =', b_param
          print*, 'iwc =', iwc
 !         read(*,*) yn_stop
-         call geos_chem_stop
-      endif
-
-
+         CALL GEOS_CHEM_STOP
+      ENDIF
 
       RETURN
-
-      end subroutine cldice_HBrHOBr_rxn
+!EOC
+      END SUBROUTINE CLDICE_HBrHOBr_RXN

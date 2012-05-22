@@ -2128,83 +2128,100 @@ c new OH+CO rate from JPL2006.
       ! Return to CALCRATE
       END FUNCTION HO2
 
-! *********************************************************************
+!------------------------------------------------------------------------------
+!          Harvard University Atmospheric Chemistry Modeling Group            !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: cld1k_brno3
+!
+! !DESCRIPTION: Function CLD1K_BrNO3 calculates the rate constant for
+!  heterogeneous cycling of BrNO3 off of cloud particles.
+!\\
+!\\
+! !INTERFACE:
+!
+      FUNCTION CLD1K_BrNO3( I,      J,    L,      DENAIR, 
+     &                      AIRVOL, TEMP, FRLAND, FROCEAN,
+     &                      QL,     CLDF, AD )    RESULT( cld1k )
+!
+! !INPUT PARAMETERS:
+!
+      INTEGER, INTENT(IN) :: I        ! Longitude index
+      INTEGER, INTENT(IN) :: J        ! Latitude  index
+      INTEGER, INTENT(IN) :: L        ! Altitude  index
+      REAL*8,  INTENT(IN) :: DENAIR   ! Density of air             [#/cm3]
+      REAL*8,  INTENT(IN) :: AIRVOL   ! Volume of air in a box     [m3]
+      REAL*8,  INTENT(IN) :: temp     ! Temperature in a given box [K]
+      REAL*8,  INTENT(IN) :: FRLAND   ! Fraction of land           [unitless]
+      REAL*8,  INTENT(IN) :: FROCEAN  ! Fraction of ocean          [unitless]
+      REAL*8,  INTENT(IN) :: QL       ! Cloud water mixing ratio   [kg/kg]
+      REAL*8,  INTENT(IN) :: CLDF     ! 3D cloud fraction          [unitless]
+      REAL*8,  INTENT(IN) :: AD       ! Dry air mass               [kg]
+!
+! !RETURN VALUE:
+!
+      REAL*8              :: cld1k    ! Rate constant for heterogeneous cycling
+                                      ! of BrNO3 off of cloud particles
+!
+! !REMARKS:
+!  The rate constant for heterogeneous cycling of BrNO3 off of cloud particles
+!  is calculated assuming:
+!                                                                             .
+!    1. A sticking coefficient of 0.3 [Yang et al. 2005]
+!    2. uniform cloud droplet size for 2 types of clouds
+!       - continental warm clouds: r =  6d-4 [cm]
+!       - marine warm clouds:      r = 10d-4 [cm]
+!       * no distributions are assumed
+!
+!  ** Calculation of a 1st order rate constent barrowed from the
+!     subroutine arsl1k.f. Below are comments from that code:
+!                                                                             .
+!       The 1st-order loss rate on wet aerosol (Dentener's Thesis, p. 14)
+!       is computed as:
+!                                                                             .
+!         ARSL1K [1/s] = area / [ radius/dfkg + 4./(stkcf * nu) ]        
+!                                                                             .
+!       where nu   = Mean molecular speed [cm/s] = sqrt(8R*TK/pi/M) for Maxwell
+!             DFKG = Gas phase diffusion coeff [cm2/s] (order of 0.1)
+!
+! !REVISION HISTORY:
+!  27 Feb 2011 - J. Parrella - Initial version
+!  22 May 2012 - M. Payer    - Added ProTeX headers
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+!
+! !DEFINED PARAMETERS:
+!
+      ! Cloud droplet radius in continental warm clouds [cm]
+      REAL*8, PARAMETER :: XCLDR_CONT =  6.d-4
 
-      function CLD1K_BrNO3(I, J, L, DENAIR, AIRVOL,
-     &     temp, FRLAND, FROCEAN, QL, CLDF, AD ) RESULT(cld1k)
+      ! Cloud droplet radius in marine warm clouds [cm]
+      REAL*8, PARAMETER :: XCLDR_MARI = 10.d-4
 
-      ! -----------------------------------------------------------------------
-      ! jpp, 3/22/2011
-      ! This subroutine calculates the rate constant
-      ! for heterogeneous cycling of BrNO3 off of
-      ! cloud particles, assuming:
-      !
-      !  1. A sticking coefficient of 0.3 [Yang et al. 2005]
-      !  2. uniform cloud droplet size for 2 types of clouds
-      !     - continental warm clouds: r =  6d-4 [cm]
-      !     - marine warm clouds:      r = 10d-4 [cm]
-      !     * no distributions are assumed
-      !
-      !
-      ! ** Calculation of a 1st order rate constent barrowed from 
-      !    the subroutine arsl1k.f. Below are comments from that
-      !    code.
-      !
-      ! !REMARKS:
-      !  The 1st-order loss rate on wet aerosol (Dentener's Thesis, p. 14)
-      !  is computed as:
-      !                                                                       .
-      !      ARSL1K [1/s] = area / [ radius/dfkg + 4./(stkcf * nu) ]        
-      !                                                                       .
-      !  where nu  = Mean molecular speed [cm/s] = sqrt(8R*TK/pi/M) for Maxwell
-      !       DFKG = Gas phase diffusion coeff [cm2/s] (order of 0.1)
-      !
-      !
-      ! Variables:
-      ! ```````````
-      ! ( 1) SQM      ::  square root of the molecular weight [g/mol]
-      ! ( 2) STK      ::  square root of the temperature [K]
-      ! ( 3) DFKG     ::  gas diffusion coefficient [cm2/s]
-      ! ( 4) 
-      !
-      ! -----------------------------------------------------------------------
-      !     implemented by Justin Parrella, 2/27/2011
-      !     parrella@fas.harvard.edu
-      !
-      ! -----------------------------------------------------------------------
-
-
-      ! --------------------
-      ! input the variables
-      ! --------------------
-      INTEGER, intent(in) :: I, J, L
-      ! Density of air [#/cm3]
-      REAL*8,  INTENT(IN) :: DENAIR, AIRVOL, temp, FRLAND,
-     &     FROCEAN, QL, CLDF, AD
-
-      ! --------------------
-      ! the output variables
-      ! --------------------
-      real*8  :: cld1k
+      REAL*8, PARAMETER :: R = 8.314472                  ! [J/mol/K]
+      REAL*8, PARAMETER :: mw_brno3 = 0.142              ! [kg/mol]
+      rEAL*8, PARAMETER :: pi = 3.14159265358979323846d0 ! [unitless]
+      REAL*8, PARAMETER :: alpha = 0.3                   ! sticking coefficient
+      REAL*8, PARAMETER :: dens_h2o = 0.001d0            ! [kg/cm3]
+!
+! !LOCAL VARIABLES:
+!
+      REAL*8            :: nu         ! Mean molecular speed
+      REAL*8            :: RADIUS     ! Radius of cloud droplet      [cm]
+      REAL*8            :: SQM        ! Square root of molec. weight [g/mol]
+      REAL*8            :: STK        ! Square root of temperature   [K]
+      REAL*8            :: AREA       ! Surface area                 [m2]
+      REAL*8            :: DFKG       ! Gas diffusion coefficient    [cm2/s]
+      REAL*8            :: Vc         ! Volume of the cloud          [cm3]
+      REAL*8            :: XAIRM3     ! Volume of air                [m3]
+      !REAL*8            :: calc_vcldf
+      LOGICAL           :: yn_continue
    
-      ! --------------------
-      ! local variables
-      ! --------------------
-      real*8  :: nu ! mean molecular speed
-      real*8  :: RADIUS, SQM, STK, AREA, DFKG, Vc
-      real*8  :: XAIRM3 ! , calc_vcldf
-      logical :: yn_continue
-   
-      ! --------------------
-      ! parameters
-      ! --------------------
-      REAL*8, PARAMETER :: XCLDR_CONT =  6.d-4 ! Cloud droplet radius in continental warm clouds [cm]
-      REAL*8, PARAMETER :: XCLDR_MARI = 10.d-4 ! Cloud droplet radius in marine warm clouds [cm]
-      REAL*8, PARAMETER :: R = 8.314472 ! J /mol /K
-      real*8, parameter :: mw_brno3 = 0.142 ! kg/mol
-      real*8, parameter :: pi = 3.14159265358979323846d0
-      real*8, parameter :: alpha = 0.3 ! sticking coefficient
-      real*8, parameter :: dens_h2o = 0.001d0 ! kg/cm3
+      !=================================================================
+      ! CLD1K_BrNO3 begins here!
+      !=================================================================
 
       ! ----------------------------------------------
       ! 1.
@@ -2220,23 +2237,23 @@ c new OH+CO rate from JPL2006.
       ! ----------------------------------------------
 
       ! continental or marine clouds only...
-      IF ( (FRLAND > 0) .or. (FROCEAN > 0) ) then
+      IF ( (FRLAND > 0) .or. (FROCEAN > 0) ) THEN
          ! do we have clouds? and do we have warm temperatures?
-         IF ( (CLDF > 0) .and. (temp > 258.0) ) then
-            yn_continue = .true.
-         else
-            yn_continue = .false.
-         endif
-      else
-         yn_continue = .false.
-      endif
+         IF ( (CLDF > 0) .and. (temp > 258.0) ) THEN
+            yn_continue = .TRUE.
+         ELSE
+            yn_continue = .FALSE.
+         ENDIF
+      ELSE
+         yn_continue = .FALSE.
+      ENDIF
 
       ! test
-      if ( .not. yn_continue ) then
+      IF ( .not. yn_continue ) THEN
          ! nothing to calculate...
          cld1k = 0.d0
-         return
-      endif
+         RETURN
+      ENDIF
 
 
       ! ----------------------------------------------
@@ -2329,8 +2346,8 @@ c new OH+CO rate from JPL2006.
      &     * SQM/(alpha*STK) )
 
 
-      end function CLD1K_BrNO3
-
+      END FUNCTION CLD1K_BrNO3
+!EOC
 !
 ! *********************************************************************
 ! ******************** END OF SUBROUTINE CALCRATE *********************

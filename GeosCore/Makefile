@@ -331,7 +331,8 @@ calcrate.o                  : calcrate.F                                     \
                               diag_mod.o              diag63_mod.o           \
                               drydep_mod.o            emissions_mod.o        \
                               logical_mod.o           pbl_mix_mod.o          \
-                              planeflight_mod.o       tracerid_mod.o
+                              planeflight_mod.o       tracerid_mod.o         \
+                              cldice_HBrHOBr_rxn.o
 
 carbon_mod.o                : carbon_mod.F                                   \
                               biomass_mod.o           comode_mod.o           \
