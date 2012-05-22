@@ -147,9 +147,8 @@
       LOGICAL :: L8DAYBB         ! Use GFED2 8-day biomass burning?
       LOGICAL :: L3HRBB          ! Use GFED2 3-hr biomass burning?
       LOGICAL :: LSYNOPBB        ! Use GFED2 synoptic biomass burning
-      LOGICAL :: L8DAYBB3        ! Use GFED3 8-day biomass burning?
+      LOGICAL :: LDAYBB3         ! Use GFED3 daily biomass burning?
       LOGICAL :: L3HRBB3         ! Use GFED3 3-hr biomass burning?
-      LOGICAL :: LSYNOPBB3       ! Use GFED3 synoptic biomass burning
       LOGICAL :: LMODISLAI       ! MODIS LAI (mpb, 2009)
       LOGICAL :: LPECCA          ! PCEEA BVOC emission model (mpb,2009)
       LOGICAL :: LRETRO          ! RETRO anthropogenic emissions (wfr, 3/8/11)

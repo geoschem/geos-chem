@@ -126,26 +126,29 @@ help:
 #      listed dependency.
 #=============================================================================
 
-bpch2_mod.o      : bpch2_mod.F        error_mod.o    file_mod.o   julday_mod.o
-charpak_mod.o    : charpak_mod.F
-directory_mod.o  : directory_mod.F
-error_mod.o      : error_mod.F
-file_mod.o       : file_mod.F         error_mod.o
-grid_mod.o       : grid_mod.F90       error_mod.o
-ifort_errmsg.o   : ifort_errmsg.F
-julday_mod.o     : julday_mod.F
-linux_err.o      : linux_err.c
-pressure_mod.o   : pressure_mod.F     error_mod.o
-regrid_1x1_mod.o : regrid_1x1_mod.F   charpak_mod.o  error_mod.o  grid_mod.o
-regrid_a2a_mod.o : regrid_a2a_mod.F90 file_mod.o     grid_mod.o
-time_mod.o       : time_mod.F         charpak_mod.o  error_mod.o  grid_mod.o  \
-                                      julday_mod.o 
-transfer_mod.o   : transfer_mod.F     error_mod.o
-unix_cmds_mod.o  : unix_cmds_mod.F
+bpch2_mod.o       : bpch2_mod.F         error_mod.o    file_mod.o   \
+                                        julday_mod.o
+charpak_mod.o     : charpak_mod.F
+directory_mod.o   : directory_mod.F
+error_mod.o       : error_mod.F
+file_mod.o        : file_mod.F          error_mod.o
+global_grid_mod.o : global_grid_mod.F90 error_mod.o    grid_mod.o
+grid_mod.o        : grid_mod.F90        error_mod.o
+ifort_errmsg.o    : ifort_errmsg.F
+julday_mod.o      : julday_mod.F
+linux_err.o       : linux_err.c
+pressure_mod.o    : pressure_mod.F      error_mod.o
+regrid_1x1_mod.o  : regrid_1x1_mod.F    charpak_mod.o  error_mod.o  \
+                                        grid_mod.o
+regrid_a2a_mod.o  : regrid_a2a_mod.F90  file_mod.o     grid_mod.o
+time_mod.o        : time_mod.F          charpak_mod.o  error_mod.o  \
+                                        grid_mod.o     julday_mod.o 
+transfer_mod.o    : transfer_mod.F      error_mod.o
+unix_cmds_mod.o   : unix_cmds_mod.F
 
 # NOTE: if HDF5=yes then we need to also look for the hdf5.mod 
 # in the HDF5 include path (bmy, 12/21/09)
-hdf_mod.o        : hdf_mod.F       error_mod.o    grid_mod.o
+hdf_mod.o        : hdf_mod.F            error_mod.o    grid_mod.o
 ifeq ($(HDF5),yes)
 	$(F90) -DUSE_HDF5 -I$(HDF_INC) -c $<
 endif

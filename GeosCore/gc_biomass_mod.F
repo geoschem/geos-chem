@@ -616,7 +616,6 @@
       REAL*8,           INTENT(OUT) :: BIOMASS(IIPAR,JJPAR,NBIOMAX)
 
       ! Local variables
-      INTEGER                       :: N
       REAL*4                        :: ARRAY(IIPAR,JJPAR,1)
 
       ! Add storage of CO emissions to calculate emissions 
@@ -635,13 +634,10 @@
       ! Initialize the BIOMASS array
       BIOMASS = 0d0
 
-! We don't need the loop any more. We calculate emissions if IDBxxx > 0
-! (ccc, 01/29/10)
-!      ! Loop over only the emitted biomass tracers
-!      DO N = 1, NBIOMAX
+      ! We don't need the loop any more. We calculate emissions if IDBxxx > 0
+      ! (ccc, 01/29/10)
           
          ! Do scaling if necessary and print totals in Tg
-         !IF ( N == 1 ) THEN
          IF  ( IDBNOX > 0 ) THEN
 
             !----------
@@ -667,7 +663,6 @@
 
          !FP_ISOP (6/2009) removed hardwired IDBs
          IF  ( IDBCO > 0 ) THEN
-         !ELSE IF ( N == 2 ) THEN
  
             !----------
             ! CO
@@ -696,7 +691,6 @@
 
          !FP_ISOP
          IF  ( IDBALK4 > 0 ) THEN
-         !ELSE IF ( N == 3 ) THEN
 
             !----------
             ! ALK4
@@ -721,7 +715,6 @@
 
          !FP_ISOP
          IF  ( IDBACET > 0 ) THEN
-         !ELSE IF ( N == 4 ) THEN
 
             !----------
             ! ACET
@@ -736,7 +729,7 @@
             CALL TRANSFER_2D( ARRAY(:,:,1), BIOMASS(:,:,IDBACET) )
 
             ! ACET -- Convert from [molec/cm2/month] to [molec C/cm2/month] 
-            BIOMASS(:,:,N) = BIOMASS(:,:,IDBACET) * 3d0  
+            BIOMASS(:,:,IDBACET) = BIOMASS(:,:,IDBACET) * 3d0  
 
             ! Scale to yearly value for biogenic acetone (bdf, bmy, 7/23/01)
             CALL SCALE_BIOMASS_ACET( BIOMASS(:,:,IDBACET) )
@@ -752,7 +745,6 @@
 
          !FP_ISOP
          IF  ( IDBMEK > 0 ) THEN
-         !ELSE IF ( N == 5 ) THEN
 
             !----------
             ! MEK
@@ -777,7 +769,6 @@
 
          !FP_ISOP
          IF  ( IDBALD2 > 0 ) THEN
-         !ELSE IF ( N == 6 ) THEN
 
             !----------
             ! ALD2
@@ -802,7 +793,6 @@
 
          !FP_ISOP
          IF  ( IDBPRPE > 0 ) THEN
-         !ELSE IF ( N == 7 ) THEN
 
             !----------
             ! PRPE
@@ -827,8 +817,7 @@
          ENDIF
 
          !FP_ISOP
-         IF  ( N == IDBC3H8 ) THEN
-         !ELSE IF ( N == 8 ) THEN
+         IF  ( IDBC3H8 > 0 ) THEN
                
             !----------
             ! C3H8
@@ -843,7 +832,7 @@
             CALL TRANSFER_2D( ARRAY(:,:,1), BIOMASS(:,:,IDBC3H8) )
 
             ! C3H8 -- convert from [molec/cm2/month] to [molec C/cm2/month] 
-            BIOMASS(:,:,N) = BIOMASS(:,:,IDBC3H8) * 3d0 
+            BIOMASS(:,:,IDBC3H8) = BIOMASS(:,:,IDBC3H8) * 3d0 
 
             ! Compute future C3H8 emissions (if necessary)
             IF ( LFUTURE ) THEN
@@ -856,7 +845,6 @@
 
          !FP_ISOP
          IF  ( IDBCH2O > 0 ) THEN
-         !ELSE IF ( N == 9 ) THEN
 
             !----------
             ! CH2O
@@ -881,7 +869,6 @@
 
          !FP_ISOP
          IF  ( IDBC2H6 > 0 ) THEN
-         !ELSE IF ( N == 10 ) THEN
 
             !----------
             ! C2H6
@@ -896,7 +883,7 @@
             CALL TRANSFER_2D( ARRAY(:,:,1), BIOMASS(:,:,IDBC2H6) )
 
             ! C2H6 --convert from [molec/cm2/month] to [molec C/cm2/month]
-            BIOMASS(:,:,N) = BIOMASS(:,:,IDBC2H6) * 2d0 
+            BIOMASS(:,:,IDBC2H6) = BIOMASS(:,:,IDBC2H6) * 2d0 
 
             ! Compute future C2H6 emissions (if necessary)
             IF ( LFUTURE ) THEN

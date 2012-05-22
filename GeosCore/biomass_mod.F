@@ -221,7 +221,7 @@
       USE GFED3_BIOMASS_MOD, ONLY : GFED3_COMPUTE_BIOMASS
       USE LOGICAL_MOD,       ONLY : LBIOMASS, LGFED2BB, LGFED3BB
       USE LOGICAL_MOD,       ONLY : L8DAYBB,  LSYNOPBB, L3HRBB
-      USE LOGICAL_MOD,       ONLY : L8DAYBB3,  LSYNOPBB3, L3HRBB3
+      USE LOGICAL_MOD,       ONLY : LDAYBB3,  L3HRBB3
       USE TIME_MOD,          ONLY : ITS_A_NEW_MONTH
       USE TRACER_MOD,        ONLY : ITS_A_CO2_SIM
       USE TRACER_MOD,        ONLY : ITS_A_H2HD_SIM
@@ -263,11 +263,10 @@
          ! First-time initialization
          IF ( FIRST ) THEN
             CALL INIT_BIOMASS
-            FIRST    = .FALSE.
-            USE_GFED2 = LGFED2BB .or. L8DAYBB .or. LSYNOPBB .or. L3HRBB
-            USE_GFED3 = LGFED3BB .or.
-     &                  L8DAYBB3 .or. LSYNOPBB3 .or. L3HRBB3
-            USE_GFED = USE_GFED2. or. USE_GFED3
+            FIRST     = .FALSE.
+            USE_GFED2 = LGFED2BB  .or. L8DAYBB .or. LSYNOPBB .or. L3HRBB
+            USE_GFED3 = LGFED3BB  .or. LDAYBB3 .or. L3HRBB3
+            USE_GFED  = USE_GFED2 .or. USE_GFED3
          ENDIF
          
          ! Define diagnostic flags
@@ -306,6 +305,7 @@
 
             ! Get emissions [molec/cm2/s] or [atoms C/cm2/s]
             CALL GFED3_COMPUTE_BIOMASS( YEAR, MONTH, BIOMASS )
+            WRITE(6,*)'BIOMASS_IDBCO', BIOMASS(60,23,IDBCO)
 
             ! Irrespective of inventory type, we need to scale biomass
             ! CO to account for CO production from VOC's that are not

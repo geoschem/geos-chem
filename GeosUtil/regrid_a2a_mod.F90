@@ -22,11 +22,11 @@ MODULE REGRID_A2A_MOD
 !
   PRIVATE :: XMAP
   PRIVATE :: YMAP
-  PRIVATE :: MAP_A2A
 !
 ! !PUBLIC MEMBER FUNCTIONS:
 !
-  PUBLIC :: DO_REGRID_A2A
+  PUBLIC  :: DO_REGRID_A2A
+  PUBLIC  :: MAP_A2A
 
 !
 ! !REVISION HISTORY:
@@ -70,7 +70,7 @@ MODULE REGRID_A2A_MOD
     ! FILENAME : Name of file with longitude and latitude edge info
     ! IM       : Length of longitude edge vector
     ! JM       : Length of latitude edge vector
-    ! INGRID   : Input grid
+    ! INGRID   : Input data array to be regridded
     ! PERAREA  : =1 if need to convert ingrid to per area
     !==========================================================================
     INTEGER                        :: IM
@@ -91,12 +91,14 @@ MODULE REGRID_A2A_MOD
 !
 ! !LOCAL VARIABLES:
 !
+    !==========================================================================
+    ! INLON    : Longitude edges of input grid
+    ! INSIN    : Sine of input grid latitude edges
+    !==========================================================================
     !INTEGER                      :: IG, IV
     INTEGER                       :: I, J
-    INTEGER, PARAMETER            :: IN = IIPAR 
-    INTEGER, PARAMETER            :: JN = JJPAR
     REAL*8, ALLOCATABLE           :: INSIN(:), INLON(:)
-    REAL*8                        :: LON2(IN+1), SIN2(JN+1)
+    REAL*8                        :: LON2(IIPAR+1), SIN2(JJPAR+1)
     CHARACTER(LEN=15)             :: HEADER1
     INTEGER                       :: IOS, M
     REAL*8                        :: INAREA,RLAT
@@ -151,13 +153,13 @@ MODULE REGRID_A2A_MOD
        ENDDO
     ENDIF
 
-    CALL MAP_A2A( IM, JM-1, INLON, INSIN, INGRID,   &
-                  IN, JN, LON2, SIN2, OUTGRID, 0, 0)
+    CALL MAP_A2A( IM,    JM-1,  INLON, INSIN, INGRID,   &
+                  IIPAR, JJPAR, LON2,  SIN2,  OUTGRID,  0, 0)
 
     !Convert back from "per area" if necessary
     IF( PERAREA==1 ) THEN
-       DO J=1, JN
-       DO I=1, IN
+       DO J=1, JJPAR
+       DO I=1, IIPAR
           OUTGRID(I,J)=OUTGRID(I,J)*GET_AREA_CM2(I, J, 1)
        ENDDO
        ENDDO
@@ -176,28 +178,43 @@ MODULE REGRID_A2A_MOD
 !
 ! !IROUTINE: map_a2a
 !
-! !DESCRIPTION: Subroutine MAP\_A2A is a orizontal arbitrary grid to arbitrary 
+! !DESCRIPTION: Subroutine MAP\_A2A is a horizontal arbitrary grid to arbitrary
 !  grid conservative high-order mapping regridding routine by S-J Lin.
 !\\
 !\\
 ! !INTERFACE:
 !
-!  (1 ) INLON   (REAL*8   ) : Longitude edges of input grid
-!  (2 ) INSIN   (REAL*8   ) : Sine of input grid latitude edges
-!  (3 ) INGRID  (REAL*8   ) : Data array to be regridded
-
   SUBROUTINE map_a2a( im, jm, lon1, sin1, q1, &
                       in, jn, lon2, sin2, q2, ig, iv)
 !
 ! !INPUT PARAMETERS:
 !
-    INTEGER, INTENT(IN)  :: im, jm, in, jn, ig, iv
+    ! Longitude and Latitude dimensions of INPUT grid
+    INTEGER, INTENT(IN)  :: im, jm
+
+    ! Longitude and Latitude dimensions of OUTPUT grid
+    INTEGER, INTENT(IN)  :: in, jn
+
+    ! IG=0: pole to pole; 
+    ! IG=1 J=1 is half-dy north of south pole
+    INTEGER, INTENT(IN)  :: ig
+
+    ! IV=0: Regrid scalar quantity
+    ! IV=1: Regrid vector quantity
+    INTEGER, INTENT(IN)  :: iv
+
+    ! Longitude edges (degrees) of INPUT and OUTPUT grids
     REAL*8,  INTENT(IN)  :: lon1(im+1), lon2(in+1)
+
+    ! Sine of Latitude Edges (radians) of INPUT and OUTPUT grids
     REAL*8,  INTENT(IN)  :: sin1(jm+1), sin2(jn+1)
+
+    ! Quantity on INPUT grid
     REAL*8,  INTENT(IN)  :: q1(im,jm)
 !
 ! !OUTPUT PARAMETERS:
 !
+    ! Regridded quantity on OUTPUT grid
     REAL*8,  INTENT(OUT) :: q2(in,jn)
 !
 !  !REVISION HISTORY:
