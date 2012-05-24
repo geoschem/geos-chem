@@ -1902,20 +1902,23 @@
 !  17 Dec 2009 - R. Yantosca - Added ProTeX headers
 !  01 Mar 2012 - R. Yantosca - Now use GET_AREA_M2(I,J,L) from grid_mod.F90
 !  13 Mar 2012 - M. Cooper   - Changed regrid algorithm to map_a2a
+!  24 May 2012 - R. Yantosca - Fixed minor bugs in map_a2a implementation
 !EOP
 !------------------------------------------------------------------------------
 !BOC
 !
 ! !LOCAL VARIABLES:
 !
-      INTEGER                 :: I, J, IJLOOP
-      REAL*4                  :: ARRAY(I1x1,J1x1,1)
-      REAL*8                  :: DTSRCE, AREA_M2, FACTOR
-      CHARACTER(LEN=255)      :: FILENAME
-      CHARACTER(LEN=255)      :: LLFILENAME
-      REAL*8, ALLOCATABLE     :: OUTGRID(:,:)
-      REAL*8, ALLOCATABLE     :: INGRID(:,:)
+      ! Scalars
+      INTEGER            :: I, J, IJLOOP
+      REAL*8             :: DTSRCE, AREA_M2, FACTOR
+      CHARACTER(LEN=255) :: FILENAME
+      CHARACTER(LEN=255) :: LLFILENAME
 
+      ! Arrays
+      REAL*4             :: ARRAY(I1x1,J1x1,1)
+      REAL*8             :: INGRID(I1x1,J1x1)
+      REAL*8             :: OUTGRID(IIPAR,JJPAR)
 
       ! ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
       ! In MEGAN v2.1 the emission factors are expressed in units of:
@@ -1978,15 +1981,12 @@
 
       ! File with lat/lon edges for regridding
       LLFILENAME = TRIM( DATA_DIR_1x1) //
-     &             'MAP_A2A_Regrid_200312/latlon_geos1x1.txt'
-
-      ! Allocate arrays for regridding
-      ALLOCATE(INGRID(I1x1,J1x1))
-      ALLOCATE(OUTGRID(IIPAR,JJPAR))
+     &             'MAP_A2A_Regrid_200312/latlon_geos1x1_new.txt'
 
       ! Regrid from 1x1 to the current grid (also cast to REAL*8)
       INGRID   = ARRAY(:,:,1)
-      CALL DO_REGRID_A2A( LLFILENAME, 360, 182, INGRID, OUTGRID, 0 )
+      CALL DO_REGRID_A2A( LLFILENAME, I1x1,    J1x1, 
+     &                    INGRID,     OUTGRID, PERAREA=0 )
       AEF_ISOP = OUTGRID
 
       ! Loop over surface boxes
@@ -2023,7 +2023,8 @@
 
       ! Regrid from 1x1 to the current grid (also cast to REAL*8)
       INGRID    = ARRAY(:,:,1)
-      CALL DO_REGRID_A2A( LLFILENAME, 360, 182, INGRID, OUTGRID, 0 )
+      CALL DO_REGRID_A2A( LLFILENAME, I1x1,    J1x1, 
+     &                    INGRID,     OUTGRID, PERAREA=0 )
       AEF_MONOT = OUTGRID
 
       ! Loop over surface boxes
@@ -2060,7 +2061,8 @@
 
       ! Regrid from 1x1 to the current grid (also cast to REAL*8)
       INGRID  = ARRAY(:,:,1)
-      CALL DO_REGRID_A2A( LLFILENAME, 360, 182, INGRID, OUTGRID, 0 )
+      CALL DO_REGRID_A2A( LLFILENAME, I1x1,    J1x1, 
+     &                    INGRID,     OUTGRID, PERAREA=0 )
       AEF_MBO = OUTGRID
 
       ! Loop over surface boxes
@@ -2100,7 +2102,8 @@
 
       ! Regrid from 1x1 to the current grid (also cast to REAL*8)
       INGRID   = ARRAY(:,:,1)
-      CALL DO_REGRID_A2A( LLFILENAME, 360, 182, INGRID, OUTGRID, 0 )
+      CALL DO_REGRID_A2A( LLFILENAME, I1x1,    J1x1, 
+     &                    INGRID,     OUTGRID, PERAREA=0 )
       AEF_ACET = OUTGRID 
 
       ! Loop over surface boxes
@@ -2137,7 +2140,8 @@
 
       ! Regrid from 1x1 to the current grid (also cast to REAL*8)
       INGRID   = ARRAY(:,:,1)
-      CALL DO_REGRID_A2A( LLFILENAME, 360, 182, INGRID, OUTGRID, 0 )
+      CALL DO_REGRID_A2A( LLFILENAME, I1x1,    J1x1, 
+     &                    INGRID,     OUTGRID, PERAREA=0 )
       AEF_OVOC = OUTGRID
 
       ! Loop over surface boxes
@@ -2176,7 +2180,8 @@
 
       ! Regrid from 1x1 to the current grid (also cast to REAL*8)
       INGRID    = ARRAY(:,:,1)
-      CALL DO_REGRID_A2A( LLFILENAME, 360, 182, INGRID, OUTGRID, 0 )
+      CALL DO_REGRID_A2A( LLFILENAME, I1x1,    J1x1, 
+     &                    INGRID,     OUTGRID, PERAREA=0 )
       AEF_APINE = OUTGRID
 
       ! Loop over surface boxes
@@ -2211,7 +2216,8 @@
 
       ! Regrid from 1x1 to the current grid (also cast to REAL*8)
       INGRID    = ARRAY(:,:,1)
-      CALL DO_REGRID_A2A( LLFILENAME, 360, 182, INGRID, OUTGRID, 0 )
+      CALL DO_REGRID_A2A( LLFILENAME, I1x1,    J1x1, 
+     &                    INGRID,     OUTGRID, PERAREA=0 )
       AEF_BPINE = OUTGRID
 
       ! Loop over surface boxes
@@ -2246,7 +2252,8 @@
 
       ! Regrid from 1x1 to the current grid (also cast to REAL*8)
       INGRID    = ARRAY(:,:,1)
-      CALL DO_REGRID_A2A( LLFILENAME, 360, 182, INGRID, OUTGRID, 0 )
+      CALL DO_REGRID_A2A( LLFILENAME, I1x1,    J1x1,
+     &                    INGRID,     OUTGRID, PERAREA=0 )
       AEF_LIMON = OUTGRID
 
       ! Loop over surface boxes
@@ -2281,7 +2288,8 @@
 
       ! Regrid from 1x1 to the current grid (also cast to REAL*8)
       INGRID    = ARRAY(:,:,1)
-      CALL DO_REGRID_A2A( LLFILENAME, 360, 182, INGRID, OUTGRID, 0 )
+      CALL DO_REGRID_A2A( LLFILENAME, I1x1,    J1x1, 
+     &                    INGRID,     OUTGRID, PERAREA=0 )
       AEF_SABIN = OUTGRID
 
       ! Loop over surface boxes
@@ -2316,7 +2324,8 @@
 
       ! Regrid from 1x1 to the current grid (also cast to REAL*8)
       INGRID    = ARRAY(:,:,1)
-      CALL DO_REGRID_A2A( LLFILENAME, 360, 182, INGRID, OUTGRID, 0 )
+      CALL DO_REGRID_A2A( LLFILENAME, I1x1,    J1x1,
+     &                    INGRID,     OUTGRID, PERAREA=0 )
       AEF_MYRCN = OUTGRID
 
       ! Loop over surface boxes
@@ -2351,7 +2360,8 @@
 
       ! Regrid from 1x1 to the current grid (also cast to REAL*8)
       INGRID    = ARRAY(:,:,1)
-      CALL DO_REGRID_A2A( LLFILENAME, 360, 182, INGRID, OUTGRID, 0 )
+      CALL DO_REGRID_A2A( LLFILENAME, I1x1,    J1x1, 
+     &                    INGRID,     OUTGRID, PERAREA=0 )
       AEF_CAREN = OUTGRID
 
       ! Loop over surface boxes
@@ -2386,7 +2396,8 @@
 
       ! Regrid from 1x1 to the current grid (also cast to REAL*8)
       INGRID    = ARRAY(:,:,1)
-      CALL DO_REGRID_A2A( LLFILENAME, 360, 182, INGRID, OUTGRID, 0 )
+      CALL DO_REGRID_A2A( LLFILENAME, I1x1,    J1x1, 
+     &                    INGRID,     OUTGRID, PERAREA=0 )
       AEF_OCIMN = OUTGRID
 
       ! Loop over surface boxes
@@ -2404,8 +2415,7 @@
             
       ENDDO
       ENDDO
-      DEALLOCATE(INGRID)
-      DEALLOCATE(OUTGRID)
+
       END SUBROUTINE GET_AEF
 !EOC
 !------------------------------------------------------------------------------

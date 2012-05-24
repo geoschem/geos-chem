@@ -256,6 +256,7 @@
 !  (2 ) Now accounts for FSCALYR (phs, 3/17/08)
 !  18 Dec 2009 - Aaron van D - Use 2005 scale factors for years beyond 2005
 !  13 Mar 2012 - M. Cooper   - Changed regrid algorithm to map_a2a
+!  24 May 2012 - R. Yantosca - Fixed minor bug in map_a2a implementation
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -298,7 +299,7 @@
 
       ! File with lat/lon edges for regridding
       LLFILENAME = TRIM( DATA_DIR_1x1) //
-     &             'MAP_A2A_Regrid_200312/latlon_geos1x1.txt'
+     &             'MAP_A2A_Regrid_200312/latlon_geos1x1_new.txt'
 
       ! Allocate arrays for regridding
       ALLOCATE(INGRID(I1x1,J1x1))
@@ -412,14 +413,14 @@
 
          IF ( SPECIES .eq. 1 ) THEN
 
-            CALL DO_REGRID_A2A( LLFILENAME, 360,     182, 
-     &                          INGRID,     OUTGRID, 1 )
+            CALL DO_REGRID_A2A( LLFILENAME, I1x1,    J1x1, 
+     &                          INGRID,     OUTGRID, PERAREA=1 )
             NOx = OUTGRID
 
          ELSEIF ( SPECIES .eq. 2 ) THEN
 
-            CALL DO_REGRID_A2A( LLFILENAME, 360,     182,
-     &                          INGRID,     OUTGRID, 1 )
+            CALL DO_REGRID_A2A( LLFILENAME, I1x1,    J1x1,
+     &                          INGRID,     OUTGRID, PERAREA=1 )
             CO = OUTGRID
 
          ELSEIF ( SPECIES .eq. 3 ) THEN
@@ -430,14 +431,14 @@
             !GEOS_1x1(:,:,1) = GEOS_1x1(:,:,1) * 0.986
             INGRID = INGRID * 0.986
 
-            CALL DO_REGRID_A2A( LLFILENAME, 360,     182,
-     &                          INGRID,     OUTGRID, 1 )
+            CALL DO_REGRID_A2A( LLFILENAME, I1x1,    J1x1,
+     &                          INGRID,     OUTGRID, PERAREA=1 )
             SO2 = OUTGRID
 
          ELSEIF ( SPECIES .eq. 4 ) THEN
 
-            CALL DO_REGRID_A2A( LLFILENAME, 360,     182,
-     &                          INGRID,     OUTGRID, 1 )
+            CALL DO_REGRID_A2A( LLFILENAME, I1x1,    J1x1,
+     &                          INGRID,     OUTGRID, PERAREA=1 )
             NH3 = OUTGRID
 
          ENDIF
@@ -887,7 +888,7 @@
 
       ! File with lat/lon edges for regridding
       LLFILENAME = TRIM( DATA_DIR_1x1) //
-     &             'MAP_A2A_Regrid_200312/latlon_geos1x1.txt'
+     &             'MAP_A2A_Regrid_200312/latlon_geos1x1_new.txt'
 
       ! Echo info
       WRITE( 6, 100 ) TRIM( FILENAME )
@@ -910,7 +911,8 @@
 
       ! Regrid from GENERIC 1x1 to current model resolution [unitless]
       INGRID = GEOS_1x1(:,:,1)
-      CALL DO_REGRID_A2A( LLFILENAME, 360, 181, INGRID, OUTGRID, 1 )
+      CALL DO_REGRID_A2A( LLFILENAME, I1x1,    J1x1, 
+     &                    INGRID,     OUTGRID, PERAREA=1 )
       MASK_CANADA=OUTGRID
 
       ! Deallocate arrays for regridding

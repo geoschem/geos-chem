@@ -158,7 +158,7 @@ MODULE REGRID_A2A_MOD
     CALL MAP_A2A( IM,    JM-1,  INLON, INSIN, INGRID,   &
                   IIPAR, JJPAR, LON2,  SIN2,  OUTGRID,  0, 0 )
 
-    !Convert back from "per area" if necessary
+    ! Convert back from "per area" if necessary
     IF ( PERAREA == 1 ) THEN
        DO J = 1, JJPAR
        DO I = 1, IIPAR

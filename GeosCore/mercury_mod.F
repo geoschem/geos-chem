@@ -2664,6 +2664,7 @@
 !  01 Mar 2012 - R. Yantosca - Now use GET_XMID(I,J,L) from grid_mod.F90
 !  01 Mar 2012 - R. Yantosca - Now use GET_YMID(I,J,L) from grid_mod.F90
 !  13 Mar 2012 - M. Cooper   - Changed regrid algorithm to map_a2a
+!  24 May 2012 - R. Yantosca - Fixed minor bugs in map_a2a algorithm
 !******************************************************************************
 !
       ! References to F90 modules
@@ -2682,14 +2683,13 @@
       INTEGER                 :: NYMD, I, J
       REAL*4                  :: ARRAY(IIPAR,JJPAR,1)
       REAL*4                  :: ARRAY1(I1x1,J1x1-1,1)
-      REAL*8                  :: GEN_1x1(I1x1,J1x1-1)
+      REAL*8, TARGET          :: GEN_1x1(I1x1,J1x1-1)
       REAL*8                  :: XTAU
       REAL*8                  :: X, Y
       REAL*8, PARAMETER       :: SEC_PER_YR = 365.25d0 * 86400d0
       CHARACTER(LEN=255)      :: FILENAME
       CHARACTER(LEN=255)      :: LLFILENAME
-      REAL*8, ALLOCATABLE     :: OUTGRID(:,:)
-      REAL*8, ALLOCATABLE     :: INGRID(:,:)
+      REAL*8, POINTER         :: INGRID(:,:) => NULL()
 
       !=================================================================
       ! MERCURY_READYR begins here! 
@@ -2715,12 +2715,8 @@
 
          ! File with lat/lon edges for regridding
          LLFILENAME = TRIM( DATA_DIR_1x1) //
-     &                'MAP_A2A_Regrid_200312/latlon_generic.txt'
+     &                'MAP_A2A_Regrid_200312/latlon_generic_new.txt'
 
-         ! Allocate arrays for regridding
-         ALLOCATE(INGRID(I1x1,J1x1-1))
-         ALLOCATE(OUTGRID(IIPAR,JJPAR))   
-         
          IF (LGCAPEMIS) THEN
             ! Use Bess' GCAP emissions
    
@@ -2748,14 +2744,16 @@
             GEN_1x1(:,:) = ARRAY1(:,:,1)
 
             ! Regrid from GENERIC 1x1 to the current grid
-            INGRID  = GEN_1x1(:,:)
-            CALL DO_REGRID_A2A( LLFILENAME, 360,     181,
-     &                          INGRID,     OUTGRID, 1 )
-            EHg0_an = OUTGRID
+            INGRID  => GEN_1x1(:,:)
+            CALL DO_REGRID_A2A( LLFILENAME, I1x1,    J1x1-1,
+     &                          INGRID,     EHg0_an, PERAREA=1 )
 
             ! Convert from [kg/yr] to [kg/s]
             EHg0_an = EHg0_an / SEC_PER_YR            
         
+            ! Free pointer
+            NULLIFY( INGRID )
+
          ELSEIF (LGEIA05) THEN
             ! Use GEIA 2005 emissions inventory (eck, 10/19/11)
    
@@ -2782,10 +2780,9 @@
             GEN_1x1(:,:) = ARRAY1(:,:,1)
 
             ! Regrid from GENERIC 1x1 to the current grid
-            INGRID  = GEN_1x1(:,:)
-            CALL DO_REGRID_A2A( LLFILENAME, 360,     181,
-     &                          INGRID,     OUTGRID, 1 )
-            EHg0_an = OUTGRID
+            INGRID  => GEN_1x1(:,:)
+            CALL DO_REGRID_A2A( LLFILENAME, I1x1,    J1x1-1,
+     &                          INGRID,     EHg0_an, PERAREA=1 )
 
             ! Convert from [kg/yr] to [kg/s]
             EHg0_an = EHg0_an / SEC_PER_YR    
@@ -2797,6 +2794,9 @@
             ! Implemented 10/19/11 by eck
             EHg0_an=1.24d0*EHg0_an
             
+            ! Free pointer
+            NULLIFY( INGRID )
+
          ELSE
             ! Otherwise use Selin et al. 2008 emissions
 
@@ -2823,10 +2823,9 @@
             GEN_1x1(:,:) = ARRAY1(:,:,1)
 
             ! Regrid from GENERIC 1x1 to the current grid
-            INGRID  = GEN_1x1(:,:)
-            CALL DO_REGRID_A2A( LLFILENAME, 360,     181,
-     &                          INGRID,     OUTGRID, 1 )
-            EHg0_an = OUTGRID
+            INGRID  => GEN_1x1(:,:)
+            CALL DO_REGRID_A2A( LLFILENAME, I1x1,    J1x1-1,
+     &                          INGRID,     EHg0_an, PERAREA=1 )
 
             ! Convert from [kg/yr] to [kg/s]
             EHg0_an = EHg0_an / SEC_PER_YR
@@ -2856,6 +2855,9 @@
 
             ENDDO
             ENDDO 
+
+            ! Free pointer
+            NULLIFY( INGRID )
 
          ENDIF
 
@@ -2924,14 +2926,16 @@
             GEN_1x1(:,:) = ARRAY1(:,:,1)
 
             ! Regrid from GENERIC 1x1 to the current grid
-            INGRID  = GEN_1x1(:,:)
-            CALL DO_REGRID_A2A( LLFILENAME, 360,     181,
-     &                          INGRID,     OUTGRID, 1 )
-            EHg2_an = OUTGRID
+            INGRID  => GEN_1x1(:,:)
+            CALL DO_REGRID_A2A( LLFILENAME, I1x1,    J1x1-1,
+     &                          INGRID,     EHg2_an, PERAREA=1 )
 
             ! Convert from [kg/yr] to [kg/s]
             EHg2_an = EHg2_an / SEC_PER_YR
         
+            ! Free pointer
+            NULLIFY( INGRID )
+
          ELSEIF (LGEIA05) THEN
             ! Use GEIA 2005 emissions (eck, 10/19/11)
 
@@ -2955,10 +2959,9 @@
             GEN_1x1(:,:) = ARRAY1(:,:,1)
 
             ! Regrid from GENERIC 1x1 to the current grid
-            INGRID  = GEN_1x1(:,:)
-            CALL DO_REGRID_A2A( LLFILENAME, 360,     181,
-     &                          INGRID,     OUTGRID, 1 )
-            EHg2_an = OUTGRID
+            INGRID  => GEN_1x1(:,:)
+            CALL DO_REGRID_A2A( LLFILENAME, I1x1,    J1x1-1,
+     &                          INGRID,     EHg2_an, PERAREA=1 )
 
             ! Convert from [kg/yr] to [kg/s]
             EHg2_an = EHg2_an / SEC_PER_YR
@@ -2969,6 +2972,9 @@
             ! Refs: Amos et al. (2011, ACPD), Y. Zhang et al. (2011, in prep)
             ! Implemented 10/19/11 by eck
             EHg2_an=0.45d0*EHg2_an
+
+            ! Free pointer
+            NULLIFY( INGRID )
 
          ELSE
             ! Otherwise use Selin et al. 2008 emissions
@@ -2993,13 +2999,15 @@
             GEN_1x1(:,:) = ARRAY1(:,:,1)
 
             ! Regrid from GENERIC 1x1 to the current grid
-            INGRID  = GEN_1x1(:,:)
-            CALL DO_REGRID_A2A( LLFILENAME, 360,     181,
-     &                          INGRID,     OUTGRID, 1 )
-            EHg2_an = OUTGRID
+            INGRID  => GEN_1x1(:,:)
+            CALL DO_REGRID_A2A( LLFILENAME, I1x1,    J1x1-1,
+     &                          INGRID,     EHg2_an, PERAREA=1 )
 
             ! Convert from [kg/yr] to [kg/s]; increase Pacyna by 30%
             EHg2_an = EHg2_an * 1.3d0 / SEC_PER_YR
+
+            ! Free pointer
+            NULLIFY( INGRID )
 
          ENDIF
 
@@ -3029,13 +3037,15 @@
             GEN_1x1(:,:) = ARRAY1(:,:,1)
 
             ! Regrid from GENERIC 1x1 to the current grid
-            INGRID  = GEN_1x1(:,:)
-            CALL DO_REGRID_A2A( LLFILENAME, 360,     181,
-     &                          INGRID,     OUTGRID, 1 )
-            EHgP_an = OUTGRID
+            INGRID  => GEN_1x1(:,:)
+            CALL DO_REGRID_A2A( LLFILENAME, I1x1,    J1x1-1,
+     &                          INGRID,     EHgP_an, PERAREA=1 )
 
             ! Convert from [kg/yr] to [kg/s]
             EHgP_an = EHgP_an / SEC_PER_YR
+
+            ! Free pointer
+            NULLIFY( INGRID )
 
          ELSEIF (LGEIA05) THEN
             ! Use GEIA 2005 emissions (eck, 10/19/11)
@@ -3059,10 +3069,9 @@
             GEN_1x1(:,:) = ARRAY1(:,:,1)
 
             ! Regrid from GENERIC 1x1 to the current grid
-            INGRID  = GEN_1x1(:,:)
-            CALL DO_REGRID_A2A( LLFILENAME, 360,     181,
-     &                          INGRID,     OUTGRID, 1 )
-            EHgP_an = OUTGRID
+            INGRID  => GEN_1x1(:,:)
+            CALL DO_REGRID_A2A( LLFILENAME, I1x1,    J1x1-1,
+     &                          INGRID,     EHgP_an, PERAREA=1 )
 
             ! Convert from [kg/yr] to [kg/s]
             EHgP_an = EHgP_an / SEC_PER_YR
@@ -3073,6 +3082,9 @@
             ! Refs: Amos et al. (2011, ACPD), Y. Zhang et al. (2011, in prep)
             ! Implemented 10/19/11 by eck
             EHgP_an=0.55d0*EHgP_an
+
+            ! Free pointer
+            NULLIFY( INGRID )
 
          ELSE
             ! Otherwise use Selin et al. 2008 emissions
@@ -3096,13 +3108,15 @@
             GEN_1x1(:,:) = ARRAY1(:,:,1)
 
             ! Regrid from GENERIC 1x1 to the current grid
-            INGRID  = GEN_1x1(:,:)
-            CALL DO_REGRID_A2A( LLFILENAME, 360,     181,
-     &                          INGRID,     OUTGRID, 1 )
-            EHgP_an = OUTGRID
+            INGRID  => GEN_1x1(:,:)
+            CALL DO_REGRID_A2A( LLFILENAME, I1x1,    J1x1-1,
+     &                          INGRID,     EHgP_an, PERAREA=1 )
 
             ! Convert from [kg/yr] to [kg/s];increase Pacyna by 30%
             EHgP_an = EHgP_an * 1.3D0 / SEC_PER_YR
+
+            ! Free pointer
+            NULLIFY( INGRID )
 
          ENDIF
 
@@ -3257,9 +3271,6 @@
  116  FORMAT( 'Total Anthro     HgP    : ', f7.3, ' [Gg/yr]' )
  117  FORMAT( 'Total Ocean      Hg(0)  : ', f7.3, ' [Gg/yr]' )
  
-      DEALLOCATE(INGRID)
-      DEALLOCATE(OUTGRID)
-
       ! Return to calling program
       END SUBROUTINE MERCURY_READYR
 

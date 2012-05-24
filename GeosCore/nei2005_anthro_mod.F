@@ -71,45 +71,46 @@
 !   2 Mar 2012 - R. Yantosca - Remove A_CM2 array, use GET_AREA_CM2 instead
 !  22 Mar 2012 - M. Payer    - C2H6 emissions are too low. Use Yaping
 !                              Xiao's C2H6 emissions instead.
+!  24 May 2012 - R. Yantosca - Make all module arrays targets for pointers
 !EOP
 !------------------------------------------------------------------------------
 !
 ! !PRIVATE TYPES:
 !
       ! Arrays for emissions
-      REAL*8,  ALLOCATABLE :: NOx(:,:,:)
-      REAL*8,  ALLOCATABLE :: CO(:,:,:)
-      REAL*8,  ALLOCATABLE :: SO2(:,:,:)
-      REAL*8,  ALLOCATABLE :: SO4(:,:,:)
-      REAL*8,  ALLOCATABLE :: NH3(:,:,:)
-      REAL*8,  ALLOCATABLE :: OC(:,:,:)
-      REAL*8,  ALLOCATABLE :: BC(:,:,:)
+      REAL*8,  ALLOCATABLE, TARGET :: NOx(:,:,:)
+      REAL*8,  ALLOCATABLE, TARGET :: CO(:,:,:)
+      REAL*8,  ALLOCATABLE, TARGET :: SO2(:,:,:)
+      REAL*8,  ALLOCATABLE, TARGET :: SO4(:,:,:)
+      REAL*8,  ALLOCATABLE, TARGET :: NH3(:,:,:)
+      REAL*8,  ALLOCATABLE, TARGET :: OC(:,:,:)
+      REAL*8,  ALLOCATABLE, TARGET :: BC(:,:,:)
 
-      REAL*8,  ALLOCATABLE :: ALK4(:,:,:) ! 105
-      REAL*8,  ALLOCATABLE :: ACET(:,:,:) ! 109
-      REAL*8,  ALLOCATABLE :: MEK (:,:,:) ! 110
-      REAL*8,  ALLOCATABLE :: ALD2(:,:,:) ! 111
-      REAL*8,  ALLOCATABLE :: PRPE(:,:,:) ! 118
-      REAL*8,  ALLOCATABLE :: C2H6(:,:,:) ! 121
-      REAL*8,  ALLOCATABLE :: C3H8(:,:,:) ! 119
-      REAL*8,  ALLOCATABLE :: CH2O(:,:,:) ! 120
+      REAL*8,  ALLOCATABLE, TARGET :: ALK4(:,:,:) ! 105
+      REAL*8,  ALLOCATABLE, TARGET :: ACET(:,:,:) ! 109
+      REAL*8,  ALLOCATABLE, TARGET :: MEK (:,:,:) ! 110
+      REAL*8,  ALLOCATABLE, TARGET :: ALD2(:,:,:) ! 111
+      REAL*8,  ALLOCATABLE, TARGET :: PRPE(:,:,:) ! 118
+      REAL*8,  ALLOCATABLE, TARGET :: C2H6(:,:,:) ! 121
+      REAL*8,  ALLOCATABLE, TARGET :: C3H8(:,:,:) ! 119
+      REAL*8,  ALLOCATABLE, TARGET :: CH2O(:,:,:) ! 120
       
-      REAL*8,  ALLOCATABLE :: NOx_WKEND(:,:,:)
-      REAL*8,  ALLOCATABLE :: CO_WKEND(:,:,:)
-      REAL*8,  ALLOCATABLE :: SO2_WKEND(:,:,:)
-      REAL*8,  ALLOCATABLE :: SO4_WKEND(:,:,:)
-      REAL*8,  ALLOCATABLE :: NH3_WKEND(:,:,:)
-      REAL*8,  ALLOCATABLE :: OC_WKEND(:,:,:)
-      REAL*8,  ALLOCATABLE :: BC_WKEND(:,:,:)
+      REAL*8,  ALLOCATABLE, TARGET :: NOx_WKEND(:,:,:)
+      REAL*8,  ALLOCATABLE, TARGET :: CO_WKEND(:,:,:)
+      REAL*8,  ALLOCATABLE, TARGET :: SO2_WKEND(:,:,:)
+      REAL*8,  ALLOCATABLE, TARGET :: SO4_WKEND(:,:,:)
+      REAL*8,  ALLOCATABLE, TARGET :: NH3_WKEND(:,:,:)
+      REAL*8,  ALLOCATABLE, TARGET :: OC_WKEND(:,:,:)
+      REAL*8,  ALLOCATABLE, TARGET :: BC_WKEND(:,:,:)
 
-      REAL*8,  ALLOCATABLE :: ALK4_WKEND(:,:,:) ! 105
-      REAL*8,  ALLOCATABLE :: ACET_WKEND(:,:,:) ! 109
-      REAL*8,  ALLOCATABLE :: MEK_WKEND(:,:,:)  ! 110
-      REAL*8,  ALLOCATABLE :: ALD2_WKEND(:,:,:) ! 111
-      REAL*8,  ALLOCATABLE :: PRPE_WKEND(:,:,:) ! 118
-      REAL*8,  ALLOCATABLE :: C2H6_WKEND(:,:,:) ! 121
-      REAL*8,  ALLOCATABLE :: C3H8_WKEND(:,:,:) ! 119
-      REAL*8,  ALLOCATABLE :: CH2O_WKEND(:,:,:) ! 120
+      REAL*8,  ALLOCATABLE, TARGET :: ALK4_WKEND(:,:,:) ! 105
+      REAL*8,  ALLOCATABLE, TARGET :: ACET_WKEND(:,:,:) ! 109
+      REAL*8,  ALLOCATABLE, TARGET :: MEK_WKEND(:,:,:)  ! 110
+      REAL*8,  ALLOCATABLE, TARGET :: ALD2_WKEND(:,:,:) ! 111
+      REAL*8,  ALLOCATABLE, TARGET :: PRPE_WKEND(:,:,:) ! 118
+      REAL*8,  ALLOCATABLE, TARGET :: C2H6_WKEND(:,:,:) ! 121
+      REAL*8,  ALLOCATABLE, TARGET :: C3H8_WKEND(:,:,:) ! 119
+      REAL*8,  ALLOCATABLE, TARGET :: CH2O_WKEND(:,:,:) ! 120
 !
 ! !DEFINED PARAMETERS:
 !
@@ -409,6 +410,7 @@
 !  08 Feb 2012 - R. Yantosca - Treat GEOS-5.7.x in the same way as MERRA
 !  28 Feb 2012 - R. Yantosca - Removed support for GEOS-3
 !  13 Mar 2012 - M. Cooper   - Changed regrid algorithm to map_a2a
+!  24 May 2012 - R. Yantosca - Fixed minor bugs in map_a2a implementation
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -420,7 +422,7 @@
       INTEGER                    :: L, KLM, SPECIES_ID(15), ID,  MN
       INTEGER                    :: OFFLINE_ID(15)
       REAL*4                     :: ARRAY(I1x1,J1x1,5)
-      REAL*8                     :: GEOS_1x1(I1x1,J1x1,5)
+      REAL*8, TARGET             :: GEOS_1x1(I1x1,J1x1,5)
       REAL*8                     :: SC_1x1(I1x1,J1x1)
       REAL*8                     :: TAU2005, TAU
       CHARACTER(LEN=255)         :: FILENAME
@@ -429,8 +431,8 @@
       CHARACTER(LEN=1)           :: SSMN
       CHARACTER(LEN=2)           :: SMN
       CHARACTER(LEN=255)         :: LLFILENAME
-      REAL*8, ALLOCATABLE        :: OUTGRID(:,:)
-      REAL*8, ALLOCATABLE        :: INGRID(:,:)
+      REAL*8, POINTER            :: OUTGRID(:,:) => NULL()
+      REAL*8, POINTER            :: INGRID (:,:) => NULL()
 
 #if defined( DEVEL )
       INTEGER               :: DAY_NUM
@@ -474,7 +476,7 @@
 
       ! File with lat/lon edges for regridding
       LLFILENAME = TRIM( DATA_DIR_1x1) //
-     &             'MAP_A2A_Regrid_200312/latlon_geos1x1.txt'
+     &             'MAP_A2A_Regrid_200312/latlon_geos1x1_new.txt'
 
       ! Allocate arrays for regridding
       ALLOCATE(INGRID(I1x1,J1x1))
@@ -547,16 +549,40 @@
 
             DO L = 1, 5
 
-               INGRID = GEOS_1x1(:,:,L)
-               CALL DO_REGRID_A2A( LLFILENAME, 360,     182,
-     &                             INGRID,     OUTGRID, 1 )
-               NOx(:,:,L) = OUTGRID
+               !-----------------
+               ! NOx
+               !-----------------
 
-               INGRID = GEOS_1x1(:,:,L) * ARRAY(:,:,L)
-               CALL DO_REGRID_A2A( LLFILENAME, 360,     182,
-     &                             INGRID,     OUTGRID, 1 )
-               NOx_WKEND(:,:,L) = OUTGRID
+               ! Point to array slices
+               INGRID  => GEOS_1x1(:,:,L)
+               OUTGRID => NOx(:,:,L)
 
+               ! Regrid
+               CALL DO_REGRID_A2A( LLFILENAME, I1x1,    J1x1,
+     &                             INGRID,     OUTGRID, PERAREA=1 )
+
+               ! Free pointers
+               NULLIFY( INGRID, OUTGRID )
+
+               !-----------------
+               ! NOx_WKEND
+               !-----------------
+
+               ! Point to array slices
+               INGRID  => GEOS_1x1(:,:,L)
+               INGRID  =  INGRID * ARRAY(:,:,L)
+               OUTGRID => NOx_WKEND(:,:,L)
+
+               ! Regrid
+               CALL DO_REGRID_A2A( LLFILENAME, I1x1,    J1x1,
+     &                             INGRID,     OUTGRID, PERAREA=1 )
+
+               ! Free pointers
+               NULLIFY( INGRID, OUTGRID )
+
+               !-----------------
+               ! Apply masks
+               !-----------------
                NOx(:,:,L)       = NOx(:,:,L)       * USA_MASK(:,:)
                NOx_WKEND(:,:,L) = NOx_WKEND(:,:,L) * USA_MASK(:,:)
 
@@ -566,16 +592,40 @@
 
             DO L = 1, 5
 
-               INGRID = GEOS_1x1(:,:,L)
-               CALL DO_REGRID_A2A( LLFILENAME, 360,     182,
-     &                             INGRID,     OUTGRID, 1 )
-               CO(:,:,L) = OUTGRID
+               !-----------------
+               ! CO
+               !-----------------
 
-               INGRID = GEOS_1x1(:,:,L) * ARRAY(:,:,L)
-               CALL DO_REGRID_A2A( LLFILENAME, 360,     182,
-     &                             INGRID,     OUTGRID, 1 )
-               CO_WKEND(:,:,L) = OUTGRID
+               ! Point to array slices
+               INGRID  => GEOS_1x1(:,:,L)
+               OUTGRID => CO(:,:,L)
 
+               ! Regrid
+               CALL DO_REGRID_A2A( LLFILENAME, I1x1,    J1x1,
+     &                             INGRID,     OUTGRID, PERAREA=1 )
+
+               ! Free pointers
+               NULLIFY( INGRID, OUTGRID )
+
+               !-----------------
+               ! CO_WKEND
+               !-----------------
+
+               ! Point to array slices
+               INGRID  => GEOS_1x1(:,:,L)
+               INGRID  =  INGRID * ARRAY(:,:,L)
+               OUTGRID => CO_WKEND(:,:,L)
+
+               ! Regrid
+               CALL DO_REGRID_A2A( LLFILENAME, I1x1,    J1x1,
+     &                             INGRID,     OUTGRID, PERAREA=1 )
+
+               ! Free pointers
+               NULLIFY( INGRID, OUTGRID )
+
+               !-----------------
+               ! Apply masks
+               !-----------------
                CO(:,:,L)       = CO(:,:,L)       * USA_MASK(:,:)
                CO_WKEND(:,:,L) = CO_WKEND(:,:,L) * USA_MASK(:,:)
 
@@ -585,16 +635,39 @@
 
             DO L = 1, 5
 
-               INGRID = GEOS_1x1(:,:,L)
-               CALL DO_REGRID_A2A( LLFILENAME, 360,     182,
-     &                             INGRID,     OUTGRID, 1 )
-               SO2(:,:,L) = OUTGRID
+               !-----------------
+               ! SO2
+               !-----------------
 
-               INGRID = GEOS_1x1(:,:,L) * ARRAY(:,:,L)
-               CALL DO_REGRID_A2A( LLFILENAME, 360,     182,
-     &                             INGRID,     OUTGRID, 1 )
-               SO2_WKEND(:,:,L) = OUTGRID
+               ! Point to array slices
+               INGRID  => GEOS_1x1(:,:,L)
+               OUTGRID => SO2(:,:,L)
 
+               ! Regrid
+               CALL DO_REGRID_A2A( LLFILENAME, I1x1,    J1x1,
+     &                             INGRID,     OUTGRID, PERAREA=1 )
+
+               ! Free pointers
+               NULLIFY( INGRID, OUTGRID )
+
+               !-----------------
+               ! SO2_WKEND
+               !-----------------
+
+               INGRID  => GEOS_1x1(:,:,L)
+               INGRID  =  INGRID * ARRAY(:,:,L)
+               OUTGRID => SO2_WKEND(:,:,L)
+
+               ! Regrid
+               CALL DO_REGRID_A2A( LLFILENAME, I1x1,    J1x1,
+     &                             INGRID,     OUTGRID, PERAREA=1 )
+
+               ! Free pointers
+               NULLIFY( INGRID, OUTGRID )
+
+               !-----------------
+               ! Apply masks
+               !-----------------
                SO2_WKEND(:,:,L) = SO2_WKEND(:,:,L) * USA_MASK(:,:)
                SO2(:,:,L)       = SO2(:,:,L)       * USA_MASK(:,:)
 
@@ -604,16 +677,38 @@
 
             DO L = 1, 5
 
-               INGRID = GEOS_1x1(:,:,L)
-               CALL DO_REGRID_A2A( LLFILENAME, 360,     182,
-     &                             INGRID,     OUTGRID, 1 )
-               SO4(:,:,L) = OUTGRID
+               !-----------------
+               ! SO4
+               !-----------------
 
-               INGRID = GEOS_1x1(:,:,L) * ARRAY(:,:,L)
-               CALL DO_REGRID_A2A( LLFILENAME, 360,     182,
-     &                             INGRID,     OUTGRID, 1 )
-               SO4_WKEND(:,:,L) = OUTGRID
+               ! Point to array slices
+               INGRID  => GEOS_1x1(:,:,L)
+               OUTGRID => SO4(:,:,L)
 
+               CALL DO_REGRID_A2A( LLFILENAME, I1x1,    J1x1,
+     &                             INGRID,     OUTGRID, PERAREA=1 )
+
+               ! Free pointers
+               NULLIFY( INGRID, OUTGRID )
+
+               !-----------------
+               ! SO4_WKEND
+               !-----------------
+
+               ! Point to array slices
+               INGRID  => GEOS_1x1(:,:,L)
+               INGRID  =  INGRID * ARRAY(:,:,L)
+               OUTGRID => SO4_WKEND(:,:,L)
+
+               ! Regrid
+               CALL DO_REGRID_A2A( LLFILENAME, I1x1,    J1x1,
+     &                             INGRID,     OUTGRID, PERAREA=1 )
+
+               ! Free pointers
+               NULLIFY( INGRID, OUTGRID )
+               !-----------------
+               ! Apply masks
+               !-----------------
                SO4_WKEND(:,:,L) = SO4_WKEND(:,:,L) * USA_MASK(:,:)
                SO4(:,:,L)       = SO4(:,:,L)       * USA_MASK(:,:)
 
@@ -623,16 +718,40 @@
 
             DO L = 1, 5
 
-               INGRID = GEOS_1x1(:,:,L)
-               CALL DO_REGRID_A2A( LLFILENAME, 360,     182,
-     &                             INGRID,     OUTGRID, 1 )
-               NH3(:,:,L) = OUTGRID
+               !-----------------
+               ! NH3
+               !-----------------
+               
+               ! Point to array slices
+               INGRID  => GEOS_1x1(:,:,L)
+               OUTGRID => NH3(:,:,L)
 
-               INGRID = GEOS_1x1(:,:,L) * ARRAY(:,:,L)
-               CALL DO_REGRID_A2A( LLFILENAME, 360,     182,
-     &                             INGRID,     OUTGRID, 1 )
-               NH3_WKEND(:,:,L) = OUTGRID
+               ! Regrid
+               CALL DO_REGRID_A2A( LLFILENAME, I1x1,    J1x1,
+     &                             INGRID,     OUTGRID, PERAREA=1 )
 
+               ! Free pointers
+               NULLIFY( INGRID, OUTGRID )
+
+               !-----------------
+               ! NH3_WKEND
+               !-----------------
+
+               ! Point to array slices
+               INGRID  => GEOS_1x1(:,:,L) 
+               INGRID  =  INGRID * ARRAY(:,:,L)
+               OUTGRID => NH3_WKEND(:,:,L)
+
+               ! Regrid
+               CALL DO_REGRID_A2A( LLFILENAME, I1x1,    J1x1,
+     &                             INGRID,     OUTGRID, PERAREA=1 )
+
+               ! Free pointers
+               NULLIFY( INGRID, OUTGRID )
+
+               !-----------------
+               ! Apply masks
+               !-----------------
                NH3_WKEND(:,:,L) = NH3_WKEND(:,:,L) * USA_MASK(:,:)
                NH3(:,:,L)       = NH3(:,:,L)       * USA_MASK(:,:)
 
@@ -642,16 +761,39 @@
 
             DO L = 1, 5
 
-               INGRID = GEOS_1x1(:,:,L)
-               CALL DO_REGRID_A2A( LLFILENAME, 360,     182,
-     &                             INGRID,     OUTGRID, 1 )
-               OC(:,:,L) = OUTGRID
+               !-----------------
+               ! OC
+               !-----------------
 
-               INGRID = GEOS_1x1(:,:,L) * ARRAY(:,:,L)
-               CALL DO_REGRID_A2A( LLFILENAME, 360,     182,
-     &                             INGRID,     OUTGRID, 1 )
-               OC_WKEND(:,:,L) = OUTGRID
+               ! Point to array slices
+               INGRID  => GEOS_1x1(:,:,L)
+               OUTGRID => OC(:,:,L)
 
+               ! Regrid
+               CALL DO_REGRID_A2A( LLFILENAME, I1x1,    J1x1,
+     &                             INGRID,     OUTGRID, PERAREA=1 )
+               ! Free pointers
+               NULLIFY( INGRID, OUTGRID )
+
+               !-----------------
+               ! OC_WKEND
+               !-----------------
+
+               ! Point to array slices
+               INGRID  => GEOS_1x1(:,:,L)
+               INGRID  =  INGRID * ARRAY(:,:,L)
+               OUTGRID => OC_WKEND(:,:,L)
+
+               ! Regrid
+               CALL DO_REGRID_A2A( LLFILENAME, I1x1,    J1x1,
+     &                             INGRID,     OUTGRID, PERAREA=1 )
+
+               ! Free pointers
+               NULLIFY( INGRID, OUTGRID )
+
+               !-----------------
+               ! Apply masks
+               !-----------------
                OC_WKEND(:,:,L) = OC_WKEND(:,:,L) * USA_MASK(:,:)
                OC(:,:,L)       = OC(:,:,L)       * USA_MASK(:,:)
 
@@ -661,16 +803,34 @@
 
             DO L = 1, 5
 
-               INGRID = GEOS_1x1(:,:,L)
-               CALL DO_REGRID_A2A( LLFILENAME, 360,     182,
-     &                             INGRID,     OUTGRID, 1 )
-               BC(:,:,L) = OUTGRID
+               !-----------------
+               ! BC
+               !-----------------
 
-               INGRID = GEOS_1x1(:,:,L) * ARRAY(:,:,L)
-               CALL DO_REGRID_A2A( LLFILENAME, 360,     182,
-     &                             INGRID,     OUTGRID, 1 )
-               BC_WKEND(:,:,L) = OUTGRID
+               ! Point to array slices
+               INGRID  => GEOS_1x1(:,:,L)
+               OUTGRID => BC(:,:,L)
+               
+               ! Regrid
+               CALL DO_REGRID_A2A( LLFILENAME, I1x1,    J1x1,
+     &                             INGRID,     OUTGRID, PERAREA=1 )
 
+               ! Free pointers
+               NULLIFY( INGRID, OUTGRID )
+
+
+               !-----------------
+               ! BC_WKEND
+               !-----------------
+               INGRID  => GEOS_1x1(:,:,L)
+               INGRID  =  INGRID * ARRAY(:,:,L)
+               OUTGRID => BC_WKEND(:,:,L)
+
+               CALL DO_REGRID_A2A( LLFILENAME, I1x1,    J1x1,
+     &                             INGRID,     OUTGRID, PERAREA=1 )
+               !-----------------
+               ! Apply masks
+               !-----------------
                BC_WKEND(:,:,L) = BC_WKEND(:,:,L) * USA_MASK(:,:)
                BC(:,:,L)       = BC(:,:,L)       * USA_MASK(:,:)
 
@@ -681,16 +841,40 @@
 
             DO L = 1, 5
 
-               INGRID = GEOS_1x1(:,:,L)
-               CALL DO_REGRID_A2A( LLFILENAME, 360,     182,
-     &                             INGRID,     OUTGRID, 1 )
-               ALK4(:,:,L) = OUTGRID
+               !-----------------
+               ! ALK4
+               !-----------------
 
-               INGRID = GEOS_1x1(:,:,L) * ARRAY(:,:,L)
-               CALL DO_REGRID_A2A( LLFILENAME, 360,     182,
-     &                             INGRID,     OUTGRID, 1 )
-               ALK4_WKEND(:,:,L) = OUTGRID
+               ! Point to array slices
+               INGRID  => GEOS_1x1(:,:,L)
+               OUTGRID => ALK4(:,:,L)
 
+               ! Regrid
+               CALL DO_REGRID_A2A( LLFILENAME, I1x1,    J1x1,
+     &                             INGRID,     OUTGRID, PERAREA=1 )
+
+               ! Free pointers
+               NULLIFY( INGRID, OUTGRID )
+
+               !-----------------
+               ! ALK4_WKEND
+               !-----------------
+
+               ! Point to array slices
+               INGRID  => GEOS_1x1(:,:,L)
+               INGRID  =  INGRID * ARRAY(:,:,L)
+               OUTGRID => ALK4_WKEND(:,:,L)
+
+               ! Regrid
+               CALL DO_REGRID_A2A( LLFILENAME, I1x1,    J1x1,
+     &                             INGRID,     OUTGRID, PERAREA=1 )
+
+               ! Free pointers
+               NULLIFY( INGRID, OUTGRID )
+
+               !-----------------
+               ! Apply masks
+               !-----------------
                ALK4_WKEND(:,:,L) = ALK4_WKEND(:,:,L) * USA_MASK(:,:)
                ALK4(:,:,L)       = ALK4(:,:,L)       * USA_MASK(:,:)
 
@@ -700,16 +884,40 @@
 
             DO L = 1, 5
 
-               INGRID = GEOS_1x1(:,:,L)
-               CALL DO_REGRID_A2A( LLFILENAME, 360,     182,
-     &                             INGRID,     OUTGRID, 1 )
-               ACET(:,:,L) = OUTGRID
+               !-----------------
+               ! ACET
+               !-----------------
 
-               INGRID = GEOS_1x1(:,:,L) * ARRAY(:,:,L)
-               CALL DO_REGRID_A2A( LLFILENAME, 360,     182,
-     &                             INGRID,     OUTGRID, 1 )
-               ACET_WKEND(:,:,L) = OUTGRID
+               ! Point to array slices
+               INGRID  => GEOS_1x1(:,:,L)
+               OUTGRID => ACET(:,:,L)
 
+               ! Regrid
+               CALL DO_REGRID_A2A( LLFILENAME, I1x1,    J1x1,
+     &                             INGRID,     OUTGRID, PERAREA=1 )
+
+               ! Free pointers
+               NULLIFY( INGRID, OUTGRID )
+
+               !-----------------
+               ! ACET_WKEND
+               !-----------------
+
+               ! Point to array slices
+               INGRID  => GEOS_1x1(:,:,L)
+               INGRID  =  INGRID * ARRAY(:,:,L)
+               OUTGRID => ACET_WKEND(:,:,L)
+
+               ! Regrid
+               CALL DO_REGRID_A2A( LLFILENAME, I1x1,    J1x1,
+     &                             INGRID,     OUTGRID, PERAREA=1 )
+
+               ! Free pointers
+               NULLIFY( INGRID, OUTGRID )
+
+               !-----------------
+               ! Apply masks
+               !-----------------
                ACET_WKEND(:,:,L) = ACET_WKEND(:,:,L) * USA_MASK(:,:)
                ACET(:,:,L)       = ACET(:,:,L)       * USA_MASK(:,:)
 
@@ -719,16 +927,40 @@
 
             DO L = 1, 5
 
-               INGRID = GEOS_1x1(:,:,L)
-               CALL DO_REGRID_A2A( LLFILENAME, 360,     182,
-     &                             INGRID,     OUTGRID, 1 )
-               MEK(:,:,L) = OUTGRID
+               !-----------------
+               ! MEK
+               !-----------------
 
-               INGRID = GEOS_1x1(:,:,L) * ARRAY(:,:,L)
-               CALL DO_REGRID_A2A( LLFILENAME, 360,     182,
-     &                             INGRID,     OUTGRID, 1 )
-               MEK_WKEND(:,:,L) = OUTGRID
+               ! Point to array slices
+               INGRID  => GEOS_1x1(:,:,L)
+               OUTGRID => MEK(:,:,L)
 
+               ! Regrid
+               CALL DO_REGRID_A2A( LLFILENAME, I1x1,    J1x1,
+     &                             INGRID,     OUTGRID, PERAREA=1 )
+
+               ! Free pointers
+               NULLIFY( INGRID, OUTGRID )
+
+               !-----------------
+               ! MEK_WKEND
+               !-----------------
+
+               ! Point to array slices
+               INGRID  => GEOS_1x1(:,:,L)
+               INGRID  =  INGRID * ARRAY(:,:,L)
+               OUTGRID => MEK_WKEND(:,:,L)
+
+               ! Regrid
+               CALL DO_REGRID_A2A( LLFILENAME, I1x1,    J1x1,
+     &                             INGRID,     OUTGRID, PERAREA=1 )
+
+               ! Free pointers
+               NULLIFY( INGRID, OUTGRID )
+
+               !-----------------
+               ! Apply masks
+               !-----------------
                MEK_WKEND(:,:,L) = MEK_WKEND(:,:,L) * USA_MASK(:,:)
                MEK(:,:,L)       = MEK(:,:,L)       * USA_MASK(:,:)
 
@@ -738,16 +970,36 @@
 
             DO L = 1, 5
 
-               INGRID = GEOS_1x1(:,:,L)
-               CALL DO_REGRID_A2A( LLFILENAME, 360,     182,
-     &                             INGRID,     OUTGRID, 1 )
-               PRPE(:,:,L) = OUTGRID
+               !-----------------
+               ! PRPE
+               !-----------------
+               INGRID  => GEOS_1x1(:,:,L)
+               OUTGRID => PRPE(:,:,L)
 
-               INGRID = GEOS_1x1(:,:,L) * ARRAY(:,:,L)
-               CALL DO_REGRID_A2A( LLFILENAME, 360,     182,
-     &                             INGRID,     OUTGRID, 1 )
-               PRPE_WKEND(:,:,L) = OUTGRID
+               CALL DO_REGRID_A2A( LLFILENAME, I1x1,    J1x1,
+     &                             INGRID,     OUTGRID, PERAREA=1 )
 
+               ! Free pointers
+               NULLIFY( INGRID, OUTGRID )
+
+               !-----------------
+               ! PRPE_WKEND
+               !-----------------
+
+               ! Point to array slices
+               INGRID  => GEOS_1x1(:,:,L)
+               INGRID  =  INGRID * ARRAY(:,:,L)
+               OUTGRID => PRPE_WKEND(:,:,L)
+
+               CALL DO_REGRID_A2A( LLFILENAME, I1x1,    J1x1,
+     &                             INGRID,     OUTGRID, PERAREA=1 )
+
+               ! Free pointers
+               NULLIFY( INGRID, OUTGRID )
+
+               !-----------------
+               ! Apply masks
+               !-----------------
                PRPE_WKEND(:,:,L) = PRPE_WKEND(:,:,L) * USA_MASK(:,:)
                PRPE(:,:,L)       = PRPE(:,:,L)       * USA_MASK(:,:)
 
@@ -757,16 +1009,37 @@
 
             DO L = 1, 5
 
-               INGRID = GEOS_1x1(:,:,L)
-               CALL DO_REGRID_A2A( LLFILENAME, 360,     182,
-     &                             INGRID,     OUTGRID, 1 )
-               C3H8(:,:,L) = OUTGRID
+               !-----------------
+               ! C3H8
+               !-----------------
+               INGRID  => GEOS_1x1(:,:,L)
+               OUTGRID => C3H8(:,:,L)
 
-               INGRID = GEOS_1x1(:,:,L) * ARRAY(:,:,L)
-               CALL DO_REGRID_A2A( LLFILENAME, 360,     182,
-     &                             INGRID,     OUTGRID, 1 )
-               C3H8_WKEND(:,:,L) = OUTGRID
+               ! Regrid
+               CALL DO_REGRID_A2A( LLFILENAME, I1x1,    J1x1,
+     &                             INGRID,     OUTGRID, PERAREA=1 )
+               ! Free pointers
+               NULLIFY( INGRID, OUTGRID )
 
+               !-----------------
+               ! C3H8_WKEND
+               !-----------------
+
+               ! Point to array slices
+               INGRID  => GEOS_1x1(:,:,L)
+               INGRID  =  INGRID * ARRAY(:,:,L)
+               OUTGRID => C3H8_WKEND(:,:,L)
+
+               ! Regrid
+               CALL DO_REGRID_A2A( LLFILENAME, I1x1,    J1x1,
+     &                             INGRID,     OUTGRID, PERAREA=1 )
+
+               ! Free pointers
+               NULLIFY( INGRID, OUTGRID )
+
+               !-----------------
+               ! Apply masks
+               !-----------------
                C3H8_WKEND(:,:,L) = C3H8_WKEND(:,:,L) * USA_MASK(:,:)
                C3H8(:,:,L)       = C3H8(:,:,L)       * USA_MASK(:,:)
 
@@ -776,16 +1049,40 @@
 
             DO L = 1, 5
 
-               INGRID = GEOS_1x1(:,:,L)
-               CALL DO_REGRID_A2A( LLFILENAME, 360,     182,
-     &                             INGRID,     OUTGRID, 1 )
-               CH2O(:,:,L) = OUTGRID
+               !-----------------
+               ! CH2O
+               !-----------------
 
-               INGRID = GEOS_1x1(:,:,L) * ARRAY(:,:,L)
-               CALL DO_REGRID_A2A( LLFILENAME, 360,     182,
-     &                             INGRID,     OUTGRID, 1 )
-               CH2O_WKEND(:,:,L) = OUTGRID
+               ! Point to array slices
+               INGRID  => GEOS_1x1(:,:,L)
+               OUTGRID => CH2O(:,:,L)
 
+               ! Regrid
+               CALL DO_REGRID_A2A( LLFILENAME, I1x1,    J1x1,
+     &                             INGRID,     OUTGRID, PERAREA=1 )
+
+               ! Free pointers
+               NULLIFY( INGRID, OUTGRID )
+
+               !-----------------
+               ! C3H8_WKEND
+               !-----------------
+
+               ! Point to array slices
+               INGRID  => GEOS_1x1(:,:,L)
+               INGRID  =  INGRID * ARRAY(:,:,L)
+               OUTGRID => CH2O_WKEND(:,:,L)
+
+               ! Regrid
+               CALL DO_REGRID_A2A( LLFILENAME, I1x1,    J1x1,
+     &                             INGRID,     OUTGRID, PERAREA=1 )
+
+               ! Free pointers
+               NULLIFY( INGRID, OUTGRID )
+
+               !-----------------
+               ! Apply masks
+               !-----------------
                CH2O_WKEND(:,:,L) = CH2O_WKEND(:,:,L) * USA_MASK(:,:)
                CH2O(:,:,L)       = CH2O(:,:,L)       * USA_MASK(:,:)
 
@@ -795,16 +1092,40 @@
 
             DO L = 1, 5
 
-               INGRID = GEOS_1x1(:,:,L)
-               CALL DO_REGRID_A2A( LLFILENAME, 360,     182,
-     &                             INGRID,     OUTGRID, 1 )
-               C2H6(:,:,L) = OUTGRID
+               !-----------------
+               ! C2H6
+               !-----------------
 
-               INGRID = GEOS_1x1(:,:,L) * ARRAY(:,:,L)
-               CALL DO_REGRID_A2A( LLFILENAME, 360,     182,
-     &                             INGRID,     OUTGRID, 1 )
-               C2H6_WKEND(:,:,L) = OUTGRID
+               ! Point to array slices
+               INGRID  => GEOS_1x1(:,:,L)
+               OUTGRID => C2H6(:,:,L)
 
+               ! Regrid
+               CALL DO_REGRID_A2A( LLFILENAME, I1x1,    J1x1,
+     &                             INGRID,     OUTGRID, PERAREA=1 )
+
+               ! Free pointers
+               NULLIFY( INGRID, OUTGRID )
+
+               !-----------------
+               ! C3H8_WKEND
+               !-----------------
+
+               ! Point to array slices
+               INGRID  => GEOS_1x1(:,:,L)
+               INGRID  =  INGRID * ARRAY(:,:,L)
+               OUTGRID => C2H6_WKEND(:,:,L)
+
+               ! Regrid
+               CALL DO_REGRID_A2A( LLFILENAME, I1x1,    J1x1,
+     &                             INGRID,     OUTGRID, PERAREA=1 )
+
+               ! Free pointers
+               NULLIFY( INGRID, OUTGRID )
+
+               !-----------------
+               ! Apply masks
+               !-----------------
                C2H6_WKEND(:,:,L) = C2H6_WKEND(:,:,L) * USA_MASK(:,:)
                C2H6(:,:,L)       = C2H6(:,:,L)       * USA_MASK(:,:)
 
@@ -814,16 +1135,37 @@
 
             DO L = 1, 5
 
-               INGRID = GEOS_1x1(:,:,L)
-               CALL DO_REGRID_A2A( LLFILENAME, 360,     182,
-     &                             INGRID,     OUTGRID, 1 )
-               ALD2(:,:,L) = OUTGRID
+               !-----------------
+               ! C2H6
+               !-----------------
 
-               INGRID = GEOS_1x1(:,:,L) * ARRAY(:,:,L)
-               CALL DO_REGRID_A2A( LLFILENAME, 360,     182,
-     &                             INGRID,     OUTGRID, 1 )
-               ALD2_WKEND(:,:,L) = OUTGRID
+               INGRID  => GEOS_1x1(:,:,L)
+               OUTGRID => ALD2(:,:,L)
 
+               CALL DO_REGRID_A2A( LLFILENAME, I1x1,    J1x1,
+     &                             INGRID,     OUTGRID, PERAREA=1 )
+
+               ! Free pointers
+               NULLIFY( INGRID, OUTGRID )
+
+               !-----------------
+               ! C3H8_WKEND
+               !-----------------
+
+               ! Point to array slices
+               INGRID  => GEOS_1x1(:,:,L)
+               INGRID  =  INGRID * ARRAY(:,:,L)
+               OUTGRID => ALD2_WKEND(:,:,L)
+
+               CALL DO_REGRID_A2A( LLFILENAME, I1x1,    J1x1,
+     &                             INGRID,     OUTGRID, PERAREA=1 )
+
+               ! Free pointers
+               NULLIFY( INGRID, OUTGRID )
+
+               !-----------------
+               ! Apply masks
+               !-----------------
                ALD2_WKEND(:,:,L) = ALD2_WKEND(:,:,L) * USA_MASK(:,:)
                ALD2(:,:,L)       = ALD2(:,:,L)       * USA_MASK(:,:)
 
@@ -833,10 +1175,6 @@
 
       ENDDO
       
-      ! Deallocate arrays for regridding
-      DEALLOCATE(INGRID)
-      DEALLOCATE(OUTGRID)
-
       !--------------------------
       ! Compute future emissions
       !--------------------------
@@ -1955,12 +2293,12 @@
 !
 ! !LOCAL VARIABLES:
 !
-      REAL*4                  :: ARRAY2(I1x1,J1x1,1)
-      REAL*8                  :: XTAU, GEOS_1x1(I1x1,J1x1,1)
-      CHARACTER(LEN=255)      :: FILENAME, SNAME
-      CHARACTER(LEN=255)      :: LLFILENAME
-      REAL*8, ALLOCATABLE     :: OUTGRID(:,:)
-      REAL*8, ALLOCATABLE     :: INGRID(:,:)
+      REAL*4             :: ARRAY2(I1x1,J1x1,1)
+      REAL*8             :: XTAU
+      REAL*8, TARGET     :: GEOS_1x1(I1x1,J1x1,1)
+      CHARACTER(LEN=255) :: FILENAME, SNAME
+      CHARACTER(LEN=255) :: LLFILENAME
+      REAL*8, POINTER    :: INGRID(:,:)
 
       !=================================================================
       ! Mask specific to NEI2005 data
@@ -1993,20 +2331,12 @@
 
       ! File with lat/lon edges for regridding
       LLFILENAME = TRIM( DATA_DIR_1x1) //
-     &             'MAP_A2A_Regrid_200312/latlon_geos1x1.txt'
-
-      ! Allocate arrays for regridding
-      ALLOCATE(INGRID(I1x1,J1x1))
-      ALLOCATE(OUTGRID(IIPAR,JJPAR))
+     &             'MAP_A2A_Regrid_200312/latlon_geos1x1_new.txt'
 
       ! Regrid from GEOS 1x1 --> current model resolution [unitless]
-      INGRID = GEOS_1x1(:,:,1)
-      CALL DO_REGRID_A2A( LLFILENAME, 360, 182, INGRID, OUTGRID, 1 )
-      USA_MASK = OUTGRID
-
-      ! Deallocate arrays for regridding
-      DEALLOCATE(INGRID)
-      DEALLOCATE(OUTGRID)
+      INGRID => GEOS_1x1(:,:,1)
+      CALL DO_REGRID_A2A( LLFILENAME, I1x1,     J1x1,
+     &                    INGRID,     USA_MASK, PERAREA=1 )
 
       WHERE ( USA_MASK /= 0D0 ) USA_MASK = 1D0
 

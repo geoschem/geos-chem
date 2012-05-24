@@ -1102,11 +1102,10 @@
       
       ! Local variables
       REAL*4                          :: ARRAY(I1x1,J1x1-1,1)
-      REAL*8                          :: GEN_1x1(I1x1,J1x1-1)
+      REAL*8, TARGET                  :: GEN_1x1(I1x1,J1x1-1)
       CHARACTER(LEN=50)               :: THISUNIT
       CHARACTER(LEN=255)              :: LLFILENAME
-      REAL*8, ALLOCATABLE             :: OUTGRID(:,:)
-      REAL*8, ALLOCATABLE             :: INGRID(:,:)
+      REAL*8, POINTER                 :: INGRID(:,:) => NULL()
 
       ! Variables for seasonal scaling of NH3 (jaf, 3/2/11)
       REAL*4                          :: SCALAR_1x1(I1x1,J1x1-1,1)
@@ -1171,21 +1170,15 @@
 
       ! File with lat/lon edges for regridding
       LLFILENAME = TRIM( DATA_DIR_1x1) //
-     &             'MAP_A2A_Regrid_200312/latlon_generic.txt' 
-
-      ! Allocate arrays for regridding
-      ALLOCATE(INGRID(I1x1,J1x1-1))
-      ALLOCATE(OUTGRID(IIPAR,JJPAR))
+     &             'MAP_A2A_Regrid_200312/latlon_generic_new.txt' 
 
       ! Regrid from GENERIC 1x1 --> current model resolution
-      INGRID = GEN_1x1
-      CALL DO_REGRID_A2A( LLFILENAME, 360,     181, 
-     &                    INGRID,     OUTGRID, PERAREA )
-      ARR = OUTGRID
+      INGRID => GEN_1x1
+      CALL DO_REGRID_A2A( LLFILENAME, I1x1, J1x1-1, 
+     &                    INGRID,     ARR,  PERAREA )
 
-      ! Deallocate arrays for regridding
-      DEALLOCATE(INGRID)
-      DEALLOCATE(OUTGRID)
+      ! Free pointer
+      NULLIFY( INGRID )
 
       END SUBROUTINE READ_STREETS
 
@@ -2146,6 +2139,7 @@
 !  NOTES:
 !  (1 ) Now also save 1x1 CHINA MASK for use in other routines. (bmy, 9/5/06)
 !  13 Mar 2012 - M. Cooper   - Changed regrid algorithm to map_a2a
+!  24 May 2012 - R. Yantosca - Fixed minor bugs in calls to map_a2a
 !******************************************************************************
 !
       ! References to F90 modules
@@ -2157,11 +2151,9 @@
 
       ! Local variables
       REAL*4                  :: ARRAY(I1x1,J1x1-1,1)
-      REAL*8                  :: GEN_1x1(I1x1,J1x1-1)
+      REAL*8, TARGET          :: GEN_1x1(I1x1,J1x1-1)
       CHARACTER(LEN=255)      :: FILENAME
       CHARACTER(LEN=255)      :: LLFILENAME
-      REAL*8, ALLOCATABLE     :: OUTGRID(:,:)
-      REAL*8, ALLOCATABLE     :: INGRID(:,:)
 
       !=================================================================
       ! READ_STREETS_MASKS begins here!
@@ -2192,16 +2184,11 @@
 
       ! File with lat/lon edges for regridding
       LLFILENAME = TRIM( DATA_DIR_1x1) //
-     &             'MAP_A2A_Regrid_200312/latlon_generic.txt'
+     &             'MAP_A2A_Regrid_200312/latlon_generic_new.txt'
  
-      ! Allocate arrays for regridding
-      ALLOCATE(INGRID(I1x1,J1x1-1))
-      ALLOCATE(OUTGRID(IIPAR,JJPAR))
-
       ! Regrid from GENERIC 1x1 to current model resolution
-      INGRID = GEN_1x1
-      CALL DO_REGRID_A2A( LLFILENAME, 360, 181, INGRID, OUTGRID, 0 )
-      MASK_CHINA = OUTGRID
+      CALL DO_REGRID_A2A( LLFILENAME, I1x1,       J1x1-1, 
+     &                    GEN_1x1,    MASK_CHINA, PERAREA=0  )
 
       !------------------------------------
       ! SE Asia Mask (for 2000 emissions)
@@ -2222,14 +2209,9 @@
       ! Cast to REAL*8 before regridding
       GEN_1x1(:,:) = ARRAY(:,:,1)
 
-      ! Regrid from GENERIC 1x1 GRID to GEOS 1x1 GRID
-      INGRID = GEN_1x1
-      CALL DO_REGRID_A2A( LLFILENAME, 360, 181, INGRID, OUTGRID, 1 )
-      MASK_SE_ASIA = OUTGRID
-
-      ! Deallocate arrays for regridding
-      DEALLOCATE(INGRID)
-      DEALLOCATE(OUTGRID)
+      ! Regrid from GENERIC 1x1 GRID to current model resolution
+      CALL DO_REGRID_A2A( LLFILENAME, I1x1,         J1x1-1, 
+     &                    GEN_1x1,    MASK_SE_ASIA, PERAREA=1 )
 
       ! Return to calling program
       END SUBROUTINE READ_STREETS_MASKS

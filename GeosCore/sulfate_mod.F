@@ -6203,6 +6203,7 @@
 !  (7 ) Volcanic data have been updated. Use a new directory. (ccc, 9/30/10)
 !  22 Dec 2011 - M. Payer    - Added ProTeX headers
 !  13 Mar 2012 - M. Cooper   - Changed regrid algorithm to map_a2a
+!  24 May 2012 - R. Yantosca - Fixed minor bugs in map_a2a implementation
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -6210,14 +6211,14 @@
 ! !LOCAL VARIABLES:
 !
       REAL*4               :: ARRAY_GEN(I1x1,J1x1-1,LVOLC)
-      REAL*8               :: ARRAY_GEN8(I1x1,J1x1-1)
-      REAL*8               :: ARRAY(IIPAR,JJPAR,LVOLC)
+      REAL*8, TARGET       :: ARRAY_GEN8(I1x1,J1x1-1)
+      REAL*8, TARGET       :: ARRAY(IIPAR,JJPAR,LVOLC)
       REAL*8               :: XTAU
       INTEGER              :: THISYEAR, THISDAY, YYYYMMDD, L
       CHARACTER(LEN=255)   :: FILENAME
       CHARACTER(LEN=255)   :: LLFILENAME
-      REAL*8, ALLOCATABLE  :: OUTGRID(:,:)
-      REAL*8, ALLOCATABLE  :: INGRID(:,:)
+      REAL*8, POINTER      :: OUTGRID(:,:) => NULL()
+      REAL*8, POINTER      :: INGRID(:,:)  => NULL()
 
 
       !=================================================================
@@ -6260,11 +6261,7 @@
 
       ! File with lat/lon edges for regridding
       LLFILENAME = TRIM( DATA_DIR_1x1) //
-     &             'MAP_A2A_Regrid_200312/latlon_generic.txt'
-
-      ! Allocate arrays for regridding
-      ALLOCATE(INGRID(I1x1,J1x1-1))
-      ALLOCATE(OUTGRID(IIPAR,JJPAR))
+     &             'MAP_A2A_Regrid_200312/latlon_generic_new.txt'
 
       ! Array regridding has to be done level by level since the array
       ! has a different vertical dimension than expected
@@ -6273,17 +6270,18 @@
          ! Cast from REAL*4 to REAL*8
          ARRAY_GEN8 = ARRAY_GEN(:,:,L)
 
-         INGRID = ARRAY_GEN8  !Units kg 
-         CALL DO_REGRID_A2A( LLFILENAME, 360, 181, INGRID, OUTGRID, 1 )
+         ! Point to input & output arrays
+         INGRID  => ARRAY_GEN8                     !Units kg 
+         OUTGRID => ARRAY(:,:,L)
 
-         ! Save into correct level of ARRAY
-         ARRAY(:,:,L) = OUTGRID
+         ! Regrid
+         CALL DO_REGRID_A2A( LLFILENAME, I1x1,    J1x1-1,
+     &                       INGRID,     OUTGRID, PERAREA=1 )
+
+         ! Free pointers
+         NULLIFY( INGRID, OUTGRID )
 
       ENDDO
-
-      ! Deallocate arrays for regridding
-      DEALLOCATE(INGRID)
-      DEALLOCATE(OUTGRID)
 
       ! Unit conversion: [kg SO2/box/day] -> [kg SO2/box/s]
       ENV = ARRAY / ( 24.d0 * 3600.d0 )
@@ -6340,14 +6338,14 @@
 ! !LOCAL VARIABLES:
 !
       REAL*4               :: ARRAY_GEN(I1x1,J1x1-1,LVOLC)
-      REAL*8               :: ARRAY_GEN8(I1x1,J1x1-1)
-      REAL*8               :: ARRAY(IIPAR,JJPAR,LVOLC)
+      REAL*8, TARGET       :: ARRAY_GEN8(I1x1,J1x1-1)
+      REAL*8, TARGET       :: ARRAY(IIPAR,JJPAR,LVOLC)
       REAL*8               :: XTAU
       INTEGER              :: YYYYMMDD, L
       CHARACTER(LEN=255)   :: FILENAME
       CHARACTER(LEN=255)   :: LLFILENAME
-      REAL*8, ALLOCATABLE  :: OUTGRID(:,:)
-      REAL*8, ALLOCATABLE  :: INGRID(:,:)
+      REAL*8, POINTER      :: OUTGRID(:,:) => NULL()
+      REAL*8, POINTER      :: INGRID (:,:) => NULL()
      
       !==================================================================
       ! READ_ERUP_VOLC begins here
@@ -6384,30 +6382,27 @@
 
          ! File with lat/lon edges for regridding
          LLFILENAME = TRIM( DATA_DIR_1x1) //
-     &                'MAP_A2A_Regrid_200312/latlon_generic.txt'
-
-         ! Allocate arrays for regridding
-         ALLOCATE(INGRID(I1x1,J1x1-1))
-         ALLOCATE(OUTGRID(IIPAR,JJPAR))
+     &                'MAP_A2A_Regrid_200312/latlon_generic_new.txt'
 
          ! Array regridding has to be done level by level since the array
          ! has a different vertical dimension than expected
          DO L = 1, LVOLC
 
             ! Cast from REAL*4 to REAL*8
-             ARRAY_GEN8 = ARRAY_GEN(:,:,L)
+            ARRAY_GEN8 = ARRAY_GEN(:,:,L)
 
-            INGRID = ARRAY_GEN8  !Units kg 
-            CALL DO_REGRID_A2A( LLFILENAME, 360,     181,
-     &                          INGRID,     OUTGRID, 1 )
+            ! Point to input & output arrays
+            INGRID  => ARRAY_GEN8                      !Units kg 
+            OUTGRID => ARRAY(:,:,L)
+            
+            ! Regrid
+            CALL DO_REGRID_A2A( LLFILENAME, I1x1,    J1x1-1,
+     &                          INGRID,     OUTGRID, PERAREA=1 )
 
-            ! Save into correct level of ARRAY
-            ARRAY(:,:,L) = OUTGRID
+            ! Free pointer
+            NULLIFY( INGRID, OUTGRID )
+
          ENDDO
-
-         ! Deallocate arrays for regridding
-         DEALLOCATE(INGRID)
-         DEALLOCATE(OUTGRID)
 
          ! Unit conversion: [kg SO2/box/day] -> [kg SO2/box/s]
          EEV = ARRAY / ( 24.d0 * 3600.d0 )
@@ -6891,6 +6886,7 @@
 !  (7 ) Last year of data is now 2008 (bmy, 7/13/09)
 !  22 Dec 2011 - M. Payer    - Added ProTeX headers
 !  13 Mar 2012 - M. Cooper   - Changed regrid algorithm to map_a2a
+!  24 May 2012 - R. Yantosca - Fixed minor bugs in map_a2a implementation
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -6903,8 +6899,7 @@
       CHARACTER(LEN=4)        :: SYEAR
       CHARACTER(LEN=255)      :: FILENAME
       CHARACTER(LEN=255)      :: LLFILENAME
-      REAL*8, ALLOCATABLE     :: OUTGRID(:,:)
-      REAL*8, ALLOCATABLE     :: INGRID(:,:)
+      REAL*8                  :: INGRID(I1x1,J1x1)
 
       !==================================================================
       ! READ_SST begins here!
@@ -6939,20 +6934,12 @@
 
          ! File with lat/lon edges for regridding
          LLFILENAME = TRIM( DATA_DIR_1x1) //
-     &                'MAP_A2A_Regrid_200312/latlon_geos1x1.txt'
-
-         ! Allocate arrays for regridding
-         ALLOCATE(INGRID(I1x1,J1x1))
-         ALLOCATE(OUTGRID(IIPAR,JJPAR))
+     &                'MAP_A2A_Regrid_200312/latlon_geos1x1_new.txt'
 
          ! Regrid from 1x1 and cast to REAL*8
          INGRID = ARRAY1(:,:,1)
-         CALL DO_REGRID_A2A( LLFILENAME, 360, 181, INGRID, OUTGRID, 0 ) 
-         SSTEMP = OUTGRID
-
-         ! Deallocate arrays for regridding
-         DEALLOCATE(INGRID)
-         DEALLOCATE(OUTGRID)
+         CALL DO_REGRID_A2A( LLFILENAME, I1x1,   J1x1,
+     &                       INGRID,     SSTEMP, PERAREA=0 ) 
 
       ELSE
 
@@ -7066,13 +7053,13 @@
       CHARACTER(LEN=4  )            :: CYEAR
       CHARACTER(LEN=255)            :: FILENAME
       CHARACTER(LEN=255)            :: LLFILENAME
-      REAL*8, ALLOCATABLE           :: OUTGRID(:,:)
-      REAL*8, ALLOCATABLE           :: INGRID(:,:)
+      REAL*8, POINTER               :: OUTGRID(:,:) => NULL()
+      REAL*8, POINTER               :: INGRID (:,:) => NULL()
 ![eml
       CHARACTER(LEN=4  )            :: CHISTYR
       REAL*4                        :: ESO2_GEN(I1x1,J1x1-1)
-      REAL*8                        :: ESO2_GEN8(I1x1,J1x1-1)
-      REAL*8                        :: TEMP_ED(IIPAR,JJPAR,1)
+      REAL*8, TARGET                :: ESO2_GEN8(I1x1,J1x1-1)
+      REAL*8, TARGET                :: TEMP_ED(IIPAR,JJPAR,1)
 !eml]
       ! Days per month              
       REAL*8 :: NMDAY(12) = (/ 31d0, 28d0, 31d0, 30d0, 31d0, 30d0, 
@@ -7165,20 +7152,18 @@
 
          ! File with lat/lon edges for regridding
          LLFILENAME = TRIM( DATA_DIR_1x1) //
-     &                'MAP_A2A_Regrid_200312/latlon_generic.txt'
+     &                'MAP_A2A_Regrid_200312/latlon_generic_new.txt'
 
-         ! Allocate arrays for regridding
-         ALLOCATE(INGRID(I1x1,J1x1-1))
-         ALLOCATE(OUTGRID(IIPAR,JJPAR))
+         ! Point to input & output arrays
+         INGRID  => ESO2_GEN8
+         OUTGRID => TEMP_ED(:,:,1)
 
          ! Regrid to current model resolution [kg/yr]
-         INGRID  = ESO2_GEN8
-         CALL DO_REGRID_A2A( LLFILENAME, 360, 181, INGRID, OUTGRID, 0 )
-         TEMP_ED(:,:,1) = OUTGRID
+         CALL DO_REGRID_A2A( LLFILENAME, I1x1,    J1x1-1, 
+     &                       INGRID,     OUTGRID, PERAREA=0 )
 
-         ! Deallocate arrays for regridding
-         DEALLOCATE(INGRID)
-         DEALLOCATE(OUTGRID)
+         ! Free pointers
+         NULLIFY( INGRID, OUTGRID )
 
          ! Convert from kg SO2/yr to kg SO2/s
          ESO2_bf = TEMP_ED(:,:,1) / (365.25d0 * 86400.d0)
