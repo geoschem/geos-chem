@@ -573,7 +573,7 @@
       ! actual mercury simulation
       REAL*8, PARAMETER :: SOIL_EMIS_FAC = -9.0D99
       !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-else  ! This sets a default value for GCM & ESMF COUPLING
+#elif ! This sets a default value for GCM & ESMF COUPLING
       REAL*8, PARAMETER ::SOIL_EMIS_FAC = 2.4D-2*.5742d0 ! for sunlight function
 #endif
 

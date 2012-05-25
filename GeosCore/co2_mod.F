@@ -2243,8 +2243,10 @@
       CHARACTER(LEN=255)     :: LLFILENAME
 
       ! Arrays and pointers
-      REAL*4                 :: ARRAY    (I1x1,J1x1,  1)  !(lmw,05/16/11)
-      REAL*8,  TARGET        :: GEOS_1x1 (I1x1,J1x1,  1)
+      !REAL*4                :: ARRAY    (I1x1,J1x1,  1)  !(lmw,05/16/11)
+      REAL*4                 :: ARRAY    (IIPAR,JJPAR,1)
+      !REAL*8,  TARGET       :: GEOS_1x1 (I1x1,J1x1,  1)
+      REAL*8,  TARGET        :: GEOS_1x1 (IIPAR,JJPAR,1)
       REAL*4                 :: ARRAY_1x1(I1x1,J1x1-1,1)
       REAL*8                 :: GEN_1x1  (I1x1,J1x1-1,1)
       REAL*8,  TARGET        :: GEOS_GRID(IIPAR,JJPAR,1)

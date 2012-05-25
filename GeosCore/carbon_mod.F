@@ -4645,7 +4645,8 @@ c
       CHARACTER(LEN=255)            :: FILENAME
 ![eml
       CHARACTER(LEN=  4)            :: CHISTYR
-      REAL*4                        :: GENERIC_1x1(I1x1,J1x1-1,1)
+!     REAL*4                        :: GENERIC_1x1(I1x1,J1x1-1,1)
+      REAL*4                        :: GENERIC_1x1(IIPAR,JJPAR,1)
 
 !eml]
 
