@@ -432,7 +432,7 @@
       ! AVGPOLE begins here!                                                  
       !=================================================================
 
-#if   defined( GRID1x1   ) || defined( GRID05x0666 ) 
+#if   defined( GRID1x1   ) || defined( GRID05x0666 ) || defined( GRID025x03125 )
 #if   defined( NESTED_CH ) || defined( NESTED_NA   ) 
       ! NOTE: Only do this for 1x1 nested grids (bmy, 12/1/04)
       ! 1x1 window grid does not extend to poles

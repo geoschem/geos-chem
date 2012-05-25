@@ -560,7 +560,7 @@
       !=================================================================
       IF ( FOUND ) THEN 
 
-#if   defined( GRID1x1 )   || defined( GRID05x0666 )
+#if   defined( GRID1x1 ) || defined( GRID05x0666 ) || defined( GRID025x03125 )
 
 #if   defined(NESTED_CH) || defined(NESTED_NA) || defined( NESTED_EU ) 
          ! *** NOTE: now use NESTED_CH/NESTED_NA/NESTED_EU cpp switches ***
@@ -718,7 +718,7 @@
 
 #elif defined( MERRA )
       CHARACTER(LEN=5) :: NAME_EXT
-      NAME_EXT = 'geos5'
+      NAME_EXT = 'merra'
 
 #elif defined( EXTERNAL_FORCING )
       CHARACTER(LEN=5) :: NAME_EXT

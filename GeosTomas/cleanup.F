@@ -266,6 +266,8 @@
 
 #if   defined( GEOS_5 ) && defined( GRID05x0666 )
       CALL EXIT_GEOS5_TPCORE_WINDOW 
+#elif defined( GEOS_57 ) && defined ( GRID025x03125 )
+      CALL EXIT_GEOS57_TPCORE_WINDOW
 #else
       CALL EXIT_TPCORE
 #endif
