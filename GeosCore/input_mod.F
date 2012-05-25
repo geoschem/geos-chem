@@ -2747,6 +2747,8 @@
       MAX_DYN = 10
 #elif defined( GRID05x0666   )
       MAX_DYN = 10 
+#elif defined( GRID025x03125 )
+      MAX_DYN = 5
 #elif defined( EXTERNAL_FORCING )
       MAX_DYN = 10
 #endif

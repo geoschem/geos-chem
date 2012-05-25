@@ -404,6 +404,7 @@ cleanup.o                   : cleanup.F                                      \
                               vistas_anthro_mod.o     wetscav_mod.o          \
                               icoads_ship_mod.o       tpcore_fvdas_mod.o     \
                               tpcore_geos5_window_mod.o                      \
+                              tpcore_geos57_window_mod.o                     \
                               retro_mod.o                                    
 
 CLDSRF.o                    : CLDSRF.F
@@ -876,6 +877,8 @@ physproc.o                  : physproc.F                                     \
 
 pjc_pfix_geos5_window_mod.o : pjc_pfix_geos5_window_mod.F
 
+pjc_pfix_geos57_window_mod.o: pjc_pfix_geos57_window_mod.F
+
 pjc_pfix_mod.o              : pjc_pfix_mod.F
 
 planeflight_mod.o           : planeflight_mod.F                              \
@@ -1034,6 +1037,9 @@ tpcore_bc_mod.o             : tpcore_bc_mod.F                                \
 tpcore_geos5_window_mod.o   : tpcore_geos5_window_mod.F90
 	$(F90) -c $(FREEFORM) $(R8) $<
 
+tpcore_geos57_window_mod.o  : tpcore_geos57_window_mod.F90
+	$(F90) -c $(FREEFORM) $(R8) $<
+
 tpcore_mod.o                : tpcore_mod.F            dao_mod.o              \
                               diag_mod.o              global_ch4_mod.o       \
                               tracer_mod.o
@@ -1057,7 +1063,9 @@ transport_mod.o             : transport_mod.F                                \
                               tpcore_fvdas_mod.o      tpcore_window_mod.o    \
                               tracer_mod.o                                   \
                               tpcore_geos5_window_mod.o                      \
-                              pjc_pfix_geos5_window_mod.o
+                              tpcore_geos57_window_mod.o                     \
+                              pjc_pfix_geos5_window_mod.o                    \
+                              pjc_pfix_geos57_window_mod.o
 
 
 tropopause.o                : tropopause.F                                   \

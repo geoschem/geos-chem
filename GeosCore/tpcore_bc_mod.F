@@ -1001,7 +1001,8 @@
 ! !LOCAL VARIABLES:
 !
       LOGICAL, SAVE :: FIRST = .TRUE.
-      INTEGER       :: I, II, J, JJ, JJ1
+      !clb
+      INTEGER       :: I, II, II1, J, JJ, JJ1
       REAL*8        :: X,         Y
       REAL*8,  SAVE :: XE4x5(73), YE4x5(47)
 
@@ -1049,8 +1050,22 @@
                ! then we have found the proper 4x5 box!
                IF ( X > XE4x5(II) .and. X < XE4x5(II+1) ) THEN
                   MAP1x1(I,J,1) = II
+                  MAP1x1(I,J,2) = 0
+                  EXIT
+               ELSE IF ( X == XE4x5(II) .and. II == 1) THEN
+                  MAP1x1(I,J,1) = II
+                  MAP1x1(I,J,2) = 0
+                  EXIT
+               ELSE IF ( X == XE4x5(II) .and. II .ne. 1) THEN
+                  MAP1x1(I,J,1) = II - 1
+                  MAP1x1(I,J,2) = II
+                  EXIT
+               ELSE IF ( X == XE4x5(II+1) ) THEN
+                  MAP1x1(I,J,1) = II
+                  MAP1x1(I,J,2) = II + 1
                   EXIT
                ENDIF
+
             ENDDO
 
             ! Loop over 4x5 latitudes
@@ -1059,24 +1074,30 @@
                ! If the 1x1 lat center lies between the 4x5 lat
                ! edges, we have found the proper 4x5 box!
                IF ( Y > YE4x5(JJ) .and. Y < YE4x5(JJ+1) ) THEN
-                  MAP1x1(I,J,2) = JJ
-                  MAP1x1(I,J,3) = 0
+                  MAP1x1(I,J,3) = JJ
+                  MAP1x1(I,J,4) = 0
                   EXIT
                   
                ! If the 1x1 lat center equals the 4x5 lower lat
                ! edge, then we need to average this 4x5 box and
                ! the box just south of it
-               ELSE IF ( Y == YE4x5(JJ) ) THEN
-                  MAP1x1(I,J,2) = JJ-1
+               ELSE IF ( Y == YE4x5(JJ) .and. JJ == 1) THEN
                   MAP1x1(I,J,3) = JJ
+                  MAP1x1(I,J,4) = 0
+                  EXIT
+
+               ELSE IF ( Y == YE4x5(JJ) .and. JJ .ne. 1) THEN
+                  MAP1x1(I,J,3) = JJ-1
+                  MAP1x1(I,J,4) = JJ
                   EXIT
 
                ! If the 1x1 lat center equals the 4x5 lower lat
                ! edge, then we need to average this 4x5 box and
-               ! the box just north of it                 
+               ! the box just north of it              
+   
                ELSE IF ( Y == YE4x5(JJ+1) ) THEN
-                  MAP1x1(I,J,2) = JJ
-                  MAP1x1(I,J,3) = JJ+1
+                  MAP1x1(I,J,3) = JJ
+                  MAP1x1(I,J,4) = JJ+1
                   EXIT
 
                ENDIF
@@ -1095,15 +1116,21 @@
 
       ! Get lon indices
       II  = MAP1x1( I_1x1, J_1x1, 1 ) - I0_BC
+      II1 = MAP1x1( I_1x1, J_1x1, 2 ) - I0_BC
 
       ! Get lat indices
-      JJ  = MAP1x1( I_1x1, J_1x1, 2 ) - J0_BC
-      JJ1 = MAP1x1( I_1x1, J_1x1, 3 ) - J0_BC
+      JJ  = MAP1x1( I_1x1, J_1x1, 3 ) - J0_BC
+      JJ1 = MAP1x1( I_1x1, J_1x1, 4 ) - J0_BC
 
       ! Locate the 4x5 box(es) corresponding to the 1x1 box
       ! If our 1x1 box straddles 2 4x5 boxes, average the 4x5 values
-      IF ( MAP1x1( I_1x1, J_1x1, 3 ) > 0 ) THEN
-         VALUE = 0.5 * ( BC(II,JJ,L_1x1,N_1x1) + BC(II,JJ1,L_1x1,N_1x1))
+      IF (MAP1x1(I_1x1,J_1x1,2)>0 .and. MAP1x1(I_1x1,J_1x1,4)>0) THEN
+         VALUE = 0.25 * (BC(II,JJ,L_1x1,N_1x1) + BC(II,JJ1,L_1x1,N_1x1)
+     &               + BC(II1,JJ,L_1x1,N_1x1)+ BC(II1,JJ1,L_1x1,N_1x1))
+      ELSE IF (MAP1x1(I_1x1,J_1x1,2)>0 ) THEN
+         VALUE = 0.5 *( BC(II,JJ,L_1x1,N_1x1) + BC(II1,JJ,L_1x1,N_1x1))
+      ELSE IF (MAP1x1(I_1x1,J_1x1,4)>0 ) THEN
+         VALUE = 0.5 *( BC(II,JJ,L_1x1,N_1x1) + BC(II,JJ1,L_1x1,N_1x1))
       ELSE
          VALUE = BC(II,JJ,L_1x1,N_1x1)
       ENDIF
