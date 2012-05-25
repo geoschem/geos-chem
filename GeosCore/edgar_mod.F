@@ -436,9 +436,8 @@
       
       ! Regrid anthro emissions to current resolution
       INGRID => E_NOx_1x1(:,:)
-      CALL DO_REGRID_A2A( LLFILENAME, I1x1,    J1x1-1, 
-     &                    INGRID,     OUTGRID, PERAREA=1 )
-      TEMP_TOT = OUTGRID  
+      CALL DO_REGRID_A2A( LLFILENAME, I1x1,     J1x1-1, 
+     &                    INGRID,     TEMP_TOT, PERAREA=1 )
       NULLIFY( INGRID )
 
       ! Loop over hours
@@ -446,9 +445,8 @@
 
          ! Regrid hourly emissions to current resolution
          INGRID => E_NOx_HRLY_1x1(:,:,H)
-         CALL DO_REGRID_A2A( LLFILENAME, I1x1,    J1x1-1, 
-     &                       INGRID,     OUTGRID, PERAREA=1 )
-         TEMP_HRLY = OUTGRID 
+         CALL DO_REGRID_A2A( LLFILENAME, I1x1,      J1x1-1, 
+     &                       INGRID,     TEMP_HRLY, PERAREA=1 )
          NULLIFY( INGRID )
 
          ! Scale factors are just the normalized hourly emissions
@@ -474,6 +472,7 @@
 
       ! Regrid NOx emissions to current model resolution [kg/yr]
       INGRID => E_NOx_1x1(:,:)
+
       CALL DO_REGRID_A2A( LLFILENAME, I1x1,    J1x1-1, 
      &                    INGRID,     OUTGRID, PERAREA=1 )
       NULLIFY( INGRID )
@@ -494,8 +493,9 @@
       IF ( LEDGARSHIP ) THEN
 
          ! Regrid NOX emissions to current model resolution [kg/yr]
-         INGRID = E_NOX_SHIP_1x1(:,:)
-         CALL DO_REGRID_A2A( LLFILENAME, 360, 181, INGRID, OUTGRID, 1 )
+         INGRID => E_NOX_SHIP_1x1(:,:)
+         CALL DO_REGRID_A2A( LLFILENAME,  I1x1,    J1x1-1, 
+     &                       INGRID,      OUTGRID, PERAREA=1 )
          E_NOX_SHIP = OUTGRID * SC_NOX(:,:) 
          NULLIFY( INGRID )
 

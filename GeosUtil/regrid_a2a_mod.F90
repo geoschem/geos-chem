@@ -73,7 +73,7 @@ MODULE REGRID_A2A_MOD
     INTEGER,          INTENT(IN)    :: JM
 
     ! Data array on the input grid
-    REAL*8,           INTENT(INOUT) :: INGRID(IM,JM)
+    REAL*8,           INTENT(IN)    :: INGRID(IM,JM)
 
     ! =1 if we need to convert INGRID to per unit area
     INTEGER,          INTENT(IN)    :: PERAREA
@@ -88,6 +88,9 @@ MODULE REGRID_A2A_MOD
 !  13 Mar 2012 - M. Cooper   - Initial version
 !  22 May 2012 - L. Murray   - Bug fix: INSIN should be allocated w/ JM+1.
 !  22 May 2012 - R. Yantosca - Updated comments, cosmetic changes
+!  25 May 2012 - R. Yantosca - Bug fix: declare the INGRID argument as
+!                              INTENT(IN) to preserve the values of INGRID
+!                              in the calling routine
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -95,23 +98,24 @@ MODULE REGRID_A2A_MOD
 ! !LOCAL VARIABLES:
 !
     ! Scalars
-    INTEGER             :: I,       J
-    INTEGER             :: IOS,     M
-    REAL*8              :: INAREA,  RLAT
-    CHARACTER(LEN=15)   :: HEADER1
-    CHARACTER(LEN=20)   :: FMT_LAT, FMT_LON, FMT_LEN
+    INTEGER           :: I,       J
+    INTEGER           :: IOS,     M
+    REAL*8            :: INAREA,  RLAT
+    CHARACTER(LEN=15) :: HEADER1
+    CHARACTER(LEN=20) :: FMT_LAT, FMT_LON, FMT_LEN
 
     ! Arrays
-    REAL*8, ALLOCATABLE :: INSIN(:),      INLON(:)
-    REAL*8              :: LON2(IIPAR+1), SIN2(JJPAR+1)
+    REAL*8            :: INLON  (IM   +1)  ! Lon edges        on INPUT GRID
+    REAL*8            :: INSIN  (JM   +1)  ! SIN( lat edges ) on INPUT GRID
+    REAL*8            :: LON2   (IIPAR+1)  ! Lon edges        on OUTPUT GRID
+    REAL*8            :: SIN2   (JJPAR+1)  ! SIN( lat edges ) on OUTPUT GRID
+    REAL*8            :: IN_GRID(IM,JM  )  ! Shadow variable for INGRID
 
     !======================================================================
-    ! DO_REGRID_A2A BEGINS HERE
+    ! Initialization
+    !
+    ! NOTE: In the near future ASCII input will be replaced by netCDF!
     !======================================================================
-
-    ! Allocate temporary arrays
-    ALLOCATE( INSIN(JM+1) )
-    ALLOCATE( INLON(IM+1) )
 
     ! Longitude edges on the OUTPUT GRID
     ! NOTE: May have to make LON2 a 2-D array later for the GI model
@@ -143,19 +147,27 @@ MODULE REGRID_A2A_MOD
     ! Close file
     CLOSE( IU_REGRID )
     
+    !======================================================================
+    ! Regridding
+    !======================================================================
+
+    ! Copy the input argument INGRID to a local shadow variable,
+    ! so that we can preserve the value of INGRID in the calling routine
+    IN_GRID = INGRID
+
     ! Convert input to per area units if necessary
     IF ( PERAREA == 1 ) THEN
        DO J = 1, JM
           RLAT = INSIN(J+1) - INSIN(J)
           INAREA = 2d0*PI*Re*RLAT*1d4*Re / DBLE( IM )
           DO I = 1, IM
-             INGRID(I,J) = INGRID(I,J) / INAREA
+             IN_GRID(I,J) = IN_GRID(I,J) / INAREA
           ENDDO
        ENDDO
     ENDIF
 
     ! Call MAP_A2A to do the regridding
-    CALL MAP_A2A( IM,    JM-1,  INLON, INSIN, INGRID,   &
+    CALL MAP_A2A( IM,    JM-1,  INLON, INSIN, IN_GRID,        &
                   IIPAR, JJPAR, LON2,  SIN2,  OUTGRID,  0, 0 )
 
     ! Convert back from "per area" if necessary
@@ -166,10 +178,6 @@ MODULE REGRID_A2A_MOD
        ENDDO
        ENDDO
     ENDIF
-
-    ! Deallocate temporary arrays
-    DEALLOCATE( INSIN )
-    DEALLOCATE( INLON )
 
   END SUBROUTINE DO_REGRID_A2A
 !EOC
