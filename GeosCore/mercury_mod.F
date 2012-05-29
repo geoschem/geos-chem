@@ -3134,13 +3134,13 @@
          !-----------------------
 #if   defined( GEOS_5 ) && defined( GRID4x5 )
         FILENAME= TRIM( DATA_DIR )            //
-        &     'mercury_201110/soilHg.102311.preind.bpch'
+     &            'mercury_201110/soilHg.102311.preind.bpch'
 #elif defined( GEOS_5 ) && defined( GRID2x25 )
         FILENAME= TRIM( DATA_DIR )            //
-        &     'mercury_201110/soilHg.102311.preind.bpch'
+     &            'mercury_201110/soilHg.102311.preind.bpch'
 #elif defined( MERRA ) && defined( GRID4x5 )
         FILENAME= TRIM( DATA_DIR )            //
-        &     'mercury_201110/soilHg.merra.preind.bpch'
+     &            'mercury_201110/soilHg.merra.preind.bpch'
 #else
       CALL ERROR_STOP('You need to make a Hg soil file. ')
 #endif
@@ -3151,13 +3151,13 @@
          !-----------------------
 #if   defined( GEOS_5 ) && defined( GRID4x5 )
         FILENAME= TRIM( DATA_DIR )            //
-        &     'mercury_201110/soilHg.102311.presentday.bpch'
+     &            'mercury_201110/soilHg.102311.presentday.bpch'
 #elif defined( GEOS_5 ) && defined( GRID2x25 )
         FILENAME= TRIM( DATA_DIR )            //
-        &     'mercury_201110/soilHg.102311.presentday.bpch'
+     &            'mercury_201110/soilHg.102311.presentday.bpch'
 #elif defined( MERRA ) && defined( GRID4x5 )
         FILENAME= TRIM( DATA_DIR )            //
-        &     'mercury_201110/soilHg.merra.presentday.bpch'
+     &            'mercury_201110/soilHg.merra.presentday.bpch'
 #else
       CALL ERROR_STOP('You need to make a Hg soil file. ')
 #endif
