@@ -1150,6 +1150,7 @@
 !$OMP+DEFAULT( SHARED )
 !$OMP+PRIVATE( I, J, R, A_M2, W10M )
 !$OMP+PRIVATE( SST , SCALE         ) !(jaegle 5/11/11)
+!$OMP+PRIVATE( salt_current, br2_kg_emiss )
 !$OMP+SCHEDULE( DYNAMIC )
 
       ! Loop over latitudes
