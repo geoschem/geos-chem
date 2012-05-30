@@ -265,9 +265,6 @@
       ENDDO
       ENDDO
 
-      print*, 'jpp: through EMIT_Br2'
-      call flush(6)
-
       RETURN
       
       END SUBROUTINE EMIT_Br2

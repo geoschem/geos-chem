@@ -20,7 +20,7 @@
       USE BPCH2_MOD,      ONLY : GET_NAME_EXT,     GET_RES_EXT
       USE BPCH2_MOD,      ONLY : GET_TAU0,         READ_BPCH2
       USE DAO_MOD,        ONLY : AD, T
-      USE DIRECTORY_MOD,  ONLY : DATA_DIR,         RUN_DIR
+      USE DIRECTORY_MOD,  ONLY : DATA_DIR
       USE ERROR_MOD,      ONLY : ALLOC_ERR
       USE TIME_MOD,       ONLY : GET_MONTH,        GET_TAU
       USE TIME_MOD,       ONLY : GET_TS_CHEM,      TIMESTAMP_STRING
@@ -361,14 +361,14 @@
          !==============================================================
 
          ! the daytime concentrations
-         dayfile = trim(RUN_DIR)//'/CCM_stratosphere_Bry/' //
-     &           'Bry_Stratosphere_day.bpch.'//GET_NAME_EXT()//'.'//
-     &           GET_RES_EXT()
+         dayfile = TRIM( DATA_DIR ) // 'bromine_201205/' //
+     &             'CCM_stratosphere_Bry/Bry_Stratosphere_day.bpch.'//
+     &             GET_NAME_EXT()   // '.' // GET_RES_EXT()
 
          ! the nighttime concentrations
-         nightfile = trim(RUN_DIR)//'/CCM_stratosphere_Bry/' //
-     &           'Bry_Stratosphere_night.bpch.'//GET_NAME_EXT()//'.'//
-     &           GET_RES_EXT()
+         nightfile = TRIM(DATA_DIR) // 'bromine_201205/' //
+     &             'CCM_stratosphere_Bry/Bry_Stratosphere_night.bpch.'//
+     &             GET_NAME_EXT()   // '.' // GET_RES_EXT()
 
          DO NN = 1, 6
 

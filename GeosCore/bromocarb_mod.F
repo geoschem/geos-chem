@@ -492,8 +492,6 @@
       DO N = 1, N_TRACERS
          IF(TRACER_NAME(N) == 'CH3Br') THEN
             CH3Br_sel = N
-            print *, 'jpp: test worked in bromocarb_mod.f'
-            print *, N
          ENDIF
       ENDDO
 
@@ -731,7 +729,7 @@
       USE ERROR_MOD,      ONLY : ALLOC_ERR, DEBUG_MSG
       USE LOGICAL_MOD,    ONLY : LPRT
       USE GRID_MOD,       ONLY : GET_AREA_M2
-      USE DIRECTORY_MOD,  ONLY : RUN_DIR
+      USE DIRECTORY_MOD,  ONLY : DATA_DIR
 
       USE CMN_SIZE_MOD         ! Size parameters
       USE COMODE_LOOP_MOD      ! Avogadro's #, called 'AVG' = 6.02252d+23
@@ -797,7 +795,7 @@
       ! ----------------------------------------------------
 
       ! VSL DIRECTORY
-      VSLDIR = TRIM(RUN_DIR)//'VSL_emissions/'
+      VSLDIR = TRIM( DATA_DIR )// 'bromine_201205/VSL_emissions/'
 
 #if   defined( GRID2x25 )
       vsl_file = 'SLBromine_Emission_2x2.5.dat'

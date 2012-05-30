@@ -1883,6 +1883,8 @@
       LMEGAN            = ( LMEGAN         .and. LBIOGENIC )
       LPECCA            = ( LPECCA         .and. LBIOGENIC )
       LMEGANMONO        = ( LMEGANMONO     .and. LBIOGENIC )
+      LWARWICK_VSLS     = ( LWARWICK_VSLS  .and. LBIOGENIC )
+      LSSABr2           = ( LSSABr2        .and. LBIOGENIC )
 
       ! Biomass
       LTOMSAI           = ( LTOMSAI        .and. LBIOMASS  )
