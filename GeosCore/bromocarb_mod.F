@@ -43,21 +43,6 @@
 !
 ! !DEFINED PARAMETERS:
 !
-      REAL*8,  PARAMETER   :: Gg_CHBr3_yr  = 500d0
-      ! jpp, 7/15/09: FLAG, trying the Quack 2003 parameterization and scaling
-      !               by NPP to get spatial distribution.
-      !REAL*8,  PARAMETER   :: Gg_CHBr3_yr  = 2530d0
-
-      REAL*8,  PARAMETER   :: Gg_CH2Br2_yr = 113d0
-
-      REAL*8,  PARAMETER   :: Gg2Kg = 1.d6          ![kg/Gg]
-      REAL*8,  PARAMETER   :: yr2sec = 3.1536d7     !number of seconds per year
-
-      ! Fraction of total VSLB emissions in region a (20S to 20N) and 
-      ! region b (20 to 50, NH + SH)
-      REAL*8,  PARAMETER   :: EMISS_F_a = 0.75d0
-      REAL*8,  PARAMETER   :: EMISS_F_b = 0.25d0 
-
       ! Molecular weight of CHBr3  [kg/mol]
       REAL*8,  PARAMETER   :: MWT_CHBr3  = 2.53d-1
 
@@ -78,17 +63,10 @@
       ! Surface area of the box; only depends on latitude
       REAL*8,  ALLOCATABLE :: A_M2(:)
 
-      REAL*8,  ALLOCATABLE :: Kg_CHBr3_sec(:)
-      REAL*8,  ALLOCATABLE :: Kg_CH2Br2_sec(:)
-      REAL*4,  ALLOCATABLE :: ARRAY(:,:,:)
-      REAL*8,  ALLOCATABLE :: NPP(:,:)
-
       ! Qing Liang's emissions variables
       REAL*8,  ALLOCATABLE :: chbr3_emiss(:,:)
       REAL*8,  ALLOCATABLE :: ch2br2_emiss(:,:)
 
-      REAL*8               :: total_ocean_sarea
-      REAL*8               :: molec_chbr3_sec, tot_npp
       LOGICAL, SAVE        :: FIRST_INIT = .TRUE.
 
       CONTAINS
@@ -111,14 +89,9 @@
 ! 
 ! !USES:
 !
-      USE ERROR_MOD,    ONLY : DEBUG_MSG,      IS_SAFE_DIV
-      USE ERROR_MOD,    ONLY : GEOS_CHEM_STOP, IT_IS_FINITE
-      USE LOGICAL_MOD,  ONLY : LPRT,           LWARWICK_VSLS !, LDYNOCEAN
-      USE DIAG_MOD,     ONLY : AD46
-      USE BPCH2_MOD,    ONLY : GET_TAU0,       READ_BPCH2
+      USE LOGICAL_MOD,  ONLY : LWARWICK_VSLS
       USE TIME_MOD,     ONLY : GET_MONTH
-      USE GRID_MOD,     ONLY : GET_YMID,       GET_YEDGE
-      USE TRANSFER_MOD, ONLY : TRANSFER_2D
+      USE GRID_MOD,     ONLY : GET_YMID
 
       USE CMN_SIZE_MOD       ! Size parameters
       USE CMN_DIAG_MOD       ! ND57 -- diagnostics
@@ -160,17 +133,9 @@
 !
 ! !LOCAL VARIABLES:
 !
-      LOGICAL, SAVE          :: FIRST = .TRUE. 
-
       ! Northern lats (>30 degrees) seasonal cycle scaling
       REAL*8,  DIMENSION(12) :: nh_scale
       INTEGER                :: this_month
-
-      ! variables for dealing with NPP
-      REAL*8                 :: XTAU
-      INTEGER                :: ix, iy
-      CHARACTER(LEN=255)     :: FILENAME
-      LOGICAL                :: err_check
 
       !=================================================================
       ! EMIS_CHBr3 begins here!
@@ -288,11 +253,6 @@
 !EOP
 !------------------------------------------------------------------------------
 !BOC
-!
-! !LOCAL VARIABLES:
-!
-      LOGICAL, SAVE :: FIRST = .TRUE. 
-
       !=================================================================
       ! EMIS_CH2Br2 begins here!
       !=================================================================
@@ -321,63 +281,6 @@
 
       END FUNCTION EMIS_CH2Br2
 !EOC
-!------------------------------------------------------------------------------
-!jp      FUNCTION SRC_VSLB(I,J) RESULT( ECHBr3 ) ! in [molecules/box/s]
-!jp!
-!jp!******************************************************************************
-!jp!  Subroutine SRC_VSLB is the subroutine for bromoform emissions.  
-!jp!  Emissions of CHBr3 will be distributed throughout the boundary layer. 
-!jp!
-!jp! 
-!jp!  Arguments as Input/Output:
-!jp!  ============================================================================
-!jp!  (1 ) (REAL*8) : Tracer concentration of CHBr3 [kg]
-!jp!
-!jp!  NOTES:
-!jp!  (1 ) SMVGear will mix emissions evenly throughout the PBL for the fullchem()
-!jp!       runs... so we don't need a mixing scheme for fullchem, (jpp, 8/24/07)
-!jp!  (2 ) We do need to implement our own PBL mixing for an offline run
-!jp!
-!jp!  (3 ) Can't use STT either for a fullchem run, though that will be the method
-!jp!       for an off-line simulation... for fullchem, we must write the emissions
-!jp!       rates into the array EMISRR(I,J,N) inside the emissdr.f emission driver
-!jp!       - necessary units for STT: [kg]
-!jp!       - necessary units for EMISRR: [molecules/box/s]
-!jp!
-!jp!******************************************************************************
-!jp!
-!jp      ! Reference to diagnostic arrays
-!jp!jp      USE DIAG03_MOD,   ONLY : AD03, ND03
-!jp!jp      USE ERROR_MOD,    ONLY : ERROR_STOP
-!jp!jp      USE LOGICAL_MOD,  ONLY : LSPLIT
-!jp      USE PBL_MIX_MOD,  ONLY : GET_FRAC_OF_PBL, GET_PBL_MAX_L
-!jp      USE TIME_MOD,     ONLY : GET_TS_EMIS !returns in minutes
-!jp!jp      USE TRACER_MOD,   ONLY : STT
-!jp      USE TRACERID_MOD, ONLY : IDTCHBr3
-!jp      USE DIAG_MOD,     ONLY : AD57
-!jp 
-!jp 
-!jp#     include "CMN_SIZE"     ! Size parameters
-!jp#     include "CMN_DEP"      ! FRCLND == fraction of box that's land
-!jp#     include "CMN_DIAG"     ! ND57 -- diagnostics
-!jp#     include "comode.h"     ! Avogadro's #, called 'AVG' = 6.02252d+23
-!jp 
-!jp      ! Local variables
-!jp      INTEGER, INTENT(IN)  :: I,     J   !,     N ,    PBL_MAX
-!jp 
-!jp      ! For a given box (I, J):
-!jp      ! Calculating the CHBr3 emission rate [molecules/box/s]
-!jp      ECHBr3(I,J) = ( EMISS_F_a*FRAC_IN_ab(1,I,J)/TOT_OC_AREA(1) + 
-!jp     &     EMISS_F_b*FRAC_IN_ab(2,I,J)/TOT_OC_AREA(2) ) *
-!jp     &     Kg_CHBr3_sec(1) * AVG / MWT_CHBr3
-!jp 
-!jp      ! For ND575 diagnostic: store emission rate in [kg/m2/s]
-!jp      IF ( ND57 > 0 ) THEN
-!jp         AD57(I,J) = ( ECHBr3(I,J) / A_M2 ) * ( MWT_CHBr3 / AVG )
-!jp      END IF
-!jp 
-!jp      ! Return to calling program
-!jp      END FUNCTION SRC_VSLB
 !------------------------------------------------------------------------------
 !          Harvard University Atmospheric Chemistry Modeling Group            !
 !------------------------------------------------------------------------------
@@ -413,7 +316,7 @@
 !
 ! !LOCAL VARIABLES:
 !
-      INTEGER :: I,          J,          L,         N
+      INTEGER :: I,          J
       REAL*8  :: LAT_H,      LAT_L,      F_LAND,    F_WATER
       REAL*8  :: F_ABOVE_50, F_BELOW_20
       REAL*8  :: LAT_S,      LAT_N
@@ -520,8 +423,8 @@
 ! 
 ! !USES:
 !
-      USE GRID_MOD,      ONLY : GET_YMID, GET_YEDGE
-      USE PBL_MIX_MOD,   ONLY : GET_FRAC_UNDER_PBLTOP, GET_PBL_MAX_L
+      USE GRID_MOD,      ONLY : GET_YMID
+      USE PBL_MIX_MOD,   ONLY : GET_FRAC_UNDER_PBLTOP
       USE TRACER_MOD,    ONLY : TRACER_NAME
       USE LOGICAL_MOD,   ONLY : LWARWICK_VSLS
 
@@ -676,13 +579,11 @@
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE SET_BRO( N_TRACERS, TCVV, AD, SUNCOS, 
-     &     STT, unit_flag )
+      SUBROUTINE SET_BRO( N_TRACERS, TCVV, AD, SUNCOS, STT, unit_flag )
 ! 
 ! !USES:
 !
-      USE GRID_MOD,      ONLY : GET_YMID, GET_YEDGE
-      USE PBL_MIX_MOD,   ONLY : GET_FRAC_UNDER_PBLTOP, GET_PBL_MAX_L
+      USE PBL_MIX_MOD,   ONLY : GET_FRAC_UNDER_PBLTOP
       USE TRACER_MOD,    ONLY : TRACER_NAME
       USE LOGICAL_MOD,   ONLY : LFIX_PBL_BRO
       USE DAO_MOD,       ONLY : IS_WATER
@@ -725,12 +626,8 @@
 !
       INTEGER :: I,  J,  L,  N
       INTEGER :: IJLOOP
-      INTEGER :: Bro_sel
-      REAL*8  :: Bro_conc
-
-      ! for testing
-      INTEGER :: count
-      LOGICAL :: FIRST_COUNT = .TRUE.
+      INTEGER :: BrO_sel
+      REAL*8  :: BrO_conc
 
       ! -----------------------------------------
       ! If we aren't using this 1pptv experiment
@@ -745,13 +642,10 @@
       ! ------------------------------------------------------
       BrO_conc = 1.0d-12
 
-      count = 0
       ! get ID # for Bro
       DO N = 1, N_TRACERS
          IF(TRACER_NAME(N) == 'BrO') THEN
             BrO_sel = N
-            print *, 'jpp: test worked in bromocarb_mod.f'
-            print *, N
          ENDIF
       ENDDO
 
@@ -835,8 +729,7 @@
 ! !USES:
 !
       USE ERROR_MOD,      ONLY : ALLOC_ERR, DEBUG_MSG
-!      USE GRID_MOD,          ONLY : GET_XMID, GET_YMID
-      USE LOGICAL_MOD,    ONLY : LPRT           !, LDYNOCEAN
+      USE LOGICAL_MOD,    ONLY : LPRT
       USE GRID_MOD,       ONLY : GET_AREA_M2
       USE DIRECTORY_MOD,  ONLY : RUN_DIR
 
@@ -865,14 +758,6 @@
       ! Allocate and zero arrays
       !--------------------------
 
-!jp      ALLOCATE( ECHBr3( IIPAR, JJPAR ), STAT=AS )
-!jp      IF ( AS /= 0 ) CALL ALLOC_ERR( 'bromocarb_emiss_CHBr3' )
-!jp      ECHBr3 = 0d0
-!jp 
-!jp      ALLOCATE( ECH2Br2( IIPAR, JJPAR ), STAT=AS )
-!jp      IF ( AS /= 0 ) CALL ALLOC_ERR( 'bromocarb_emiss_CH2Br2' )
-!jp      ECH2Br2 = 0d0
-
       ! Total regional areas
       ALLOCATE( TOT_OC_AREA( NUM_REGIONS ), STAT=AS )
       IF ( AS /= 0 ) CALL ALLOC_ERR( 'TOT_OC_AREA' )
@@ -886,22 +771,6 @@
       ALLOCATE( A_M2( JJPAR ), STAT=AS )
       IF ( AS /= 0 ) CALL ALLOC_ERR( 'A_M2' )
       A_M2 = 0d0
-
-      ! CHBr3 [kg/s]
-      ALLOCATE( Kg_CHBr3_sec(1), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'Kg_CHBr3_sec' )
-      Kg_CHBr3_sec = 0d0
-
-      ! CH2Br2 [kg/s]
-      ALLOCATE( Kg_CH2Br2_sec(1), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'Kg_CH2Br2_sec' )
-      Kg_CH2Br2_sec = 0d0
-
-      ALLOCATE( ARRAY(IIPAR, JJPAR, 1), STAT=AS)
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'ARRAY' )
-
-      ALLOCATE( NPP(IIPAR, JJPAR), STAT=AS)
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'NPP' )
 
       ! CHBr3 emissions [kg(CHBr3)/m2/s]
       ALLOCATE( chbr3_emiss(IIPAR, JJPAR), STAT=AS)
@@ -1047,10 +916,6 @@
       IF ( ALLOCATED( TOT_OC_AREA   ) ) DEALLOCATE( TOT_OC_AREA   )
       IF ( ALLOCATED( FRAC_IN_ab    ) ) DEALLOCATE( FRAC_IN_ab    )
       IF ( ALLOCATED( A_M2          ) ) DEALLOCATE( A_M2          )
-      IF ( ALLOCATED( Kg_CHBr3_sec  ) ) DEALLOCATE( Kg_CHBr3_sec  )
-      IF ( ALLOCATED( Kg_CH2Br2_sec ) ) DEALLOCATE( Kg_CH2Br2_sec )
-      IF ( ALLOCATED( ARRAY         ) ) DEALLOCATE( ARRAY         )
-      IF ( ALLOCATED( NPP           ) ) DEALLOCATE( NPP           )
       IF ( ALLOCATED( chbr3_emiss   ) ) DEALLOCATE( chbr3_emiss   )
       IF ( ALLOCATED( ch2br2_emiss  ) ) DEALLOCATE( ch2br2_emiss  )
 

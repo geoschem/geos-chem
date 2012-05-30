@@ -79,7 +79,7 @@
 ! !LOCAL VARIABLES:
 !
 
-      INTEGER :: i, j, k, month
+      INTEGER :: month
       REAL*8  :: DF
 
       !=================================================================
@@ -157,19 +157,14 @@
 ! !USES:
 !
       USE BROMOCARB_MOD,  ONLY : Br_SCALING
-      USE COMODE_MOD,     ONLY : JLOP,      REMIS,   VOLUME
       USE GRID_MOD,       ONLY : GET_AREA_M2
-      USE LOGICAL_MOD,    ONLY : LVARTROP, LSSABr2
-      USE PBL_MIX_MOD,    ONLY : GET_PBL_TOP_L
-      USE PRESSURE_MOD,   ONLY : GET_PEDGE
-      USE TRACERID_MOD,   ONLY : CTRMB,     IDEMIS,  IDEBr2
-      USE TROPOPAUSE_MOD, ONLY : GET_TPAUSE_LEVEL
+      USE LOGICAL_MOD,    ONLY : LSSABr2
+      USE TRACERID_MOD,   ONLY : IDEBr2
       USE TIME_MOD,       ONLY : GET_TS_EMIS
-      USE LOGICAL_MOD,    ONLY : LNLPBL ! (Lin, 03/31/09) nonlocal PBL
       USE DIAG_MOD,       ONLY : AD46
 
       USE CMN_SIZE_MOD         ! Size parameters
-      USE COMODE_LOOP_MOD      ! IDEMS, NEMIS, AVG(avagadro's #)
+      USE COMODE_LOOP_MOD      ! AVG(avagadro's #)
       USE CMN_DIAG_MOD         ! Diagnostic integers...
       USE CMN_O3_MOD           ! for EMISRR array
 !
@@ -190,9 +185,9 @@
 !
 ! !LOCAL VARIABLES:
 !
-      INTEGER                 :: I, J,  JLOOP, JLOOP1, LTROP
-      INTEGER                 :: L, LL, N, NN,  NBB, NBF, TOP
-      REAL*8                  :: DTEMIS, AREA_M2
+      INTEGER                 :: I, J
+      REAL*8                  :: DTEMIS
+      REAL*8                  :: AREA_M2
 
       ! testing
       REAL*8                  :: total_br2
