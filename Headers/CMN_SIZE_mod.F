@@ -279,13 +279,13 @@
 #endif
       REAL*8,  PARAMETER :: PTOP       = 0.01d0
 
-#elif defined( GEOS_57 ) && defined( GRID025x03125 ) && defined( NESTED_CH )
+#elif defined( GEOS_57 ) && defined( GRID025x03125 ) && defined( SEAC4RS )
 
       !-----------------------------------------------------------------
-      ! GEOS-5.7.x: SEA4CRS nested china grid
+      ! GEOS-5.7.x: SEA4CRS Grid
       !-----------------------------------------------------------------
-      INTEGER            :: IGLOB      = 257
-      INTEGER            :: JGLOB      = 281
+      INTEGER            :: IGLOB      = 177
+      INTEGER            :: JGLOB      = 161
       INTEGER            :: LGLOB      = 72
       INTEGER            :: IIPAR
       INTEGER            :: JJPAR
@@ -300,6 +300,26 @@
 #endif
       REAL*8,  PARAMETER :: PTOP       = 0.01d0
 
+#elif defined( GEOS_57 ) && defined( GRID025x03125 ) && defined( NESTED_CH )
+
+      !-----------------------------------------------------------------
+      ! GEOS-5.7.x: Nested China Grid
+      !-----------------------------------------------------------------
+      INTEGER            :: IGLOB      = 225
+      INTEGER            :: JGLOB      = 161
+      INTEGER            :: LGLOB      = 72
+      INTEGER            :: IIPAR
+      INTEGER            :: JJPAR
+#if   defined( GRIDREDUCED )
+      INTEGER            :: LLPAR      = 47        ! Reduced vertical grid
+      INTEGER, PARAMETER :: LLTROP_FIX = 38        !  -- 47 levels
+      INTEGER, PARAMETER :: LLTROP     = 38  
+#else 
+      INTEGER            :: LLPAR                  ! Full vertical grid
+      INTEGER, PARAMETER :: LLTROP_FIX = 40        !  -- 72 levels
+      INTEGER, PARAMETER :: LLTROP     = 40  
+#endif
+      REAL*8,  PARAMETER :: PTOP       = 0.01d0
 
 #elif defined( GEOS_57 ) && defined( GRID2x25 )
 
@@ -684,11 +704,12 @@
       LLPAR      = LGLOB     ! Full vertical grid
 #endif
 
+#elif defined( GEOS_57 ) && defined( GRID025x03125 )
 
-#elif defined( GEOS_57 ) && defined( GRID025x03125 ) && defined( NESTED_CH )
+#if   defined( NESTED_CH ) || defined( SEAC4RS )
 
       !-----------------------------------------------------------------
-      ! GEOS-5.7.x: SEA4CRS nested china grid
+      ! GEOS-5.7.x: Nested Grids
       !-----------------------------------------------------------------
       IIPAR      = IGLOB
       JJPAR      = JGLOB
@@ -696,6 +717,8 @@
 
 #else
       LLPAR      = LGLOB     ! Full vertical grid
+#endif
+
 #endif
 
 #elif defined( GEOS_57 ) && defined( GRID2x25 )
@@ -1019,13 +1042,13 @@
 #endif
       REAL*8,  PARAMETER :: PTOP       = 0.01d0
 
-#elif defined( GEOS_57 ) && defined( GRID025x03125 ) && defined( NESTED_CH )
+#elif defined( GEOS_57 ) && defined( GRID025x03125 ) && defined( SEAC4RS )
 
       !-----------------------------------------------------------------
-      ! GEOS-5.7.x: SEA4CRS nested china grid
+      ! GEOS-5.7.x: SEA4CRS Grid
       !-----------------------------------------------------------------
-      INTEGER, PARAMETER :: IGLOB      = 257
-      INTEGER, PARAMETER :: JGLOB      = 281
+      INTEGER, PARAMETER :: IGLOB      = 177
+      INTEGER, PARAMETER :: JGLOB      = 161
       INTEGER, PARAMETER :: LGLOB      = 72
       INTEGER, PARAMETER :: IIPAR      = IGLOB
       INTEGER, PARAMETER :: JJPAR      = JGLOB
@@ -1040,6 +1063,26 @@
 #endif
       REAL*8,  PARAMETER :: PTOP       = 0.01d0
 
+#elif defined( GEOS_57 ) && defined( GRID025x03125 ) && defined( NESTED_CH )
+
+      !-----------------------------------------------------------------
+      ! GEOS-5.7.x: Nested China Grid
+      !-----------------------------------------------------------------
+      INTEGER            :: IGLOB      = 225
+      INTEGER            :: JGLOB      = 161
+      INTEGER            :: LGLOB      = 72
+      INTEGER            :: IIPAR
+      INTEGER            :: JJPAR
+#if   defined( GRIDREDUCED )
+      INTEGER            :: LLPAR      = 47        ! Reduced vertical grid
+      INTEGER, PARAMETER :: LLTROP_FIX = 38        !  -- 47 levels
+      INTEGER, PARAMETER :: LLTROP     = 38  
+#else 
+      INTEGER            :: LLPAR                  ! Full vertical grid
+      INTEGER, PARAMETER :: LLTROP_FIX = 40        !  -- 72 levels
+      INTEGER, PARAMETER :: LLTROP     = 40  
+#endif
+      REAL*8,  PARAMETER :: PTOP       = 0.01d0
 
 #elif defined( GEOS_57 ) && defined( GRID2x25 )
 
@@ -1278,6 +1321,7 @@
 !  10 Feb 2012 - R. Yantosca - Added #if blocks for GEOS-5.7.x nested CH grid
 !  28 Feb 2012 - R. Yantosca - Removed support for GEOS-3
 !  27 Mar 2012 - R. Yantosca - Increase NTYPE from 15 to 25 for Olson 2001 map
+!  29 May 2012 - S. Kim      - Separate the SEAC4RS and Nested China Grids
 !EOP
 !------------------------------------------------------------------------------
 !BOC

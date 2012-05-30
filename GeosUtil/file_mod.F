@@ -40,6 +40,7 @@
       INTEGER, PUBLIC, PARAMETER :: IU_BC_NA   = 20  ! TPCORE BC files: NA grid
       INTEGER, PUBLIC, PARAMETER :: IU_BC_EU   = 21  ! TPCORE BC files: EU grid
       INTEGER, PUBLIC, PARAMETER :: IU_BC_CH   = 22  ! TPCORE BC files: CH grid
+      INTEGER, PUBLIC, PARAMETER :: IU_BC_SE   = 24  ! TPCORE BC files: SEAC4RS
       INTEGER, PUBLIC, PARAMETER :: IU_ND63    = 25  ! ND63 output
       INTEGER, PUBLIC, PARAMETER :: IU_FILE    = 65  ! Generic file
       INTEGER, PUBLIC, PARAMETER :: IU_REGRID  = 66  ! Lat/Lon file for regrid
@@ -96,6 +97,7 @@
 !  15 Mar 2010 - D. Henze    - Add IU_OAP for SOA restart file.  
 !  19 Aug 2010 - R. Yantosca - Added IU_CN and IU_A1 parameters for MERRA
 !  19 Aug 2010 - R. Yantosca - Remove IU_KZZ
+!  29 May 2010 - S. Kim      - Add IU_BC_SE for the SEAC4RS grid
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -389,6 +391,7 @@
 !  18 Dec 2009 - Aaron van D - Now close files IU_BC_NA, IU_BC_EU, IU_BC_CH 
 !  19 Aug 2010 - R. Yantosca - Remove IU_KZZ  
 !  19 Aug 2010 - R. Yantosca - Now close IU_A1
+!  29 May 2010 - S. Kim      - Now close IU_BC_SE
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -409,6 +412,7 @@
       CLOSE( IU_BC_NA   )
       CLOSE( IU_BC_EU   )
       CLOSE( IU_BC_CH   )
+      CLOSE( IU_BC_SE   )
       CLOSE( IU_FILE    )
       CLOSE( IU_REGRID  )
       CLOSE( IU_PH      )

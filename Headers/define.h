@@ -94,6 +94,7 @@
 !  10 Feb 2012 - R. Yantosca - Added GRID025x03125 C-preprocessor switch
 !  28 Feb 2012 - R. Yantosca - Removed support for GEOS-3
 !  23 Apr 2012 - R. Yantosca - Cosmetic changes
+!  29 May 2012 - S. Kim      - Added SEAC4RS C-preprocessor switch
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -115,6 +116,7 @@
 #undef GRID05x0666
 #undef NESTED_NA
 #undef NESTED_CH
+#undef SEAC4RS
 #undef NESTED_EU
 #undef IBM_AIX
 #undef IBM_XLF
@@ -141,6 +143,7 @@
 !#define NESTED_CH        'NESTED_CH'
 !#define NESTED_NA        'NESTED_NA'
 !#define NESTED_EU        'NESTED_EU'
+!#define SEAC4RS          'SEAC4RS'
 !#define GRID025x03125     'GRID025x03125'
 !#define GRID05x0666      'GRID05x0666'
 !#define GRID1x1          'GRID1x1'

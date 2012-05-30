@@ -349,10 +349,8 @@
 
 #elif defined(NESTED_CH)  
       REAL*8,  PARAMETER     :: FLX_MSS_FDG_FCT = 3.23d-4
-#elif defined(NESTED_EU)
+#elif defined(SEAC4RS)
       REAL*8,  PARAMETER     :: FLX_MSS_FDG_FCT = 4.54d-4
-#elif defined(NESTED_NA)
-      REAL*8,  PARAMETER     :: FLX_MSS_FDG_FCT = 2.16d-4
 #endif
 
       ! Global mass flux tuning factor (a posteriori) [frc]

@@ -7975,7 +7975,7 @@ ccc
       I2_NA = IIPAR
       J2_NA = JJPAR
 
-#elif defined( NESTED_CH )
+#elif defined( NESTED_CH ) || defined( SEAC4RS )
       ! For 1x1 China nested grid: we don't cover N. America region
       ! Setting these to zero will turn off Cooke/RJP emissions
       I1_NA = 0

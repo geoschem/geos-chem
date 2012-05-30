@@ -195,7 +195,7 @@ CONTAINS
           ! Lat centers (radians)
           YMID_R(I,J,L)   = ( PI_180 * YMID(I,J,L)  )
 
-#if defined( NESTED_CH ) || defined( NESTED_EU ) || defined( NESTED_NA )
+#if defined( NESTED_CH ) || defined( NESTED_EU ) || defined( NESTED_NA ) || defined( SEAC4RS )
 
           ! Lat centers (radians), for nested grid window array
           YMID_R_W(I,J,L) = YMID_R(I,J,L)
@@ -702,7 +702,7 @@ CONTAINS
 !------------------------------------------------------------------------------
 !BOC
 
-#if defined( NESTED_CH ) || defined( NESTED_EU ) || defined( NESTED_NA )
+#if defined( NESTED_CH ) || defined( NESTED_EU ) || defined( NESTED_NA ) || defined( SEAC4RS )
 
     ! For nested grids, return the latitude center of the window
     ! region (in radians)
@@ -1063,7 +1063,7 @@ CONTAINS
     IF ( AS /= 0 ) CALL ALLOC_ERR( 'AREA_M2' )
     AREA_M2 = 0d0
 
-#if defined( NESTED_CH ) || defined( NESTED_EU ) || defined( NESTED_NA )
+#if defined( NESTED_CH ) || defined( NESTED_EU ) || defined( NESTED_NA ) || defined( SEAC4RS )
 
     !======================================================================
     ! Special settings for nested-grid simulations only

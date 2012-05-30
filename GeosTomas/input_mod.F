@@ -2201,7 +2201,7 @@ c$$$      WRITE( 6, 100     ) '30-BIN DUST AEROSOLS?       : ', LDUST30
       !=================================================================
       ! Enforce emissions options for Nested China on native GEOS-5 grid
       !=================================================================
-#if   defined ( NESTED_CH )
+#if   defined ( NESTED_CH ) || defined ( SEAC4RS )
 
       ! Turn off emissions options that are
       ! not appropriate for the Nested CH grid
@@ -5384,10 +5384,10 @@ c$$$         IS_ALL = .FALSE.
 !
       USE DIRECTORY_MOD, ONLY : TPBC_DIR
       USE DIRECTORY_MOD, ONLY : TPBC_DIR_NA, TPBC_DIR_EU
-      USE DIRECTORY_MOD, ONLY : TPBC_DIR_CH
+      USE DIRECTORY_MOD, ONLY : TPBC_DIR_CH, TPBC_DIR_SE
       USE LOGICAL_MOD,   ONLY : LWINDO, LWINDO2x25
       USE LOGICAL_MOD,   ONLY : LWINDO_NA, LWINDO_EU, LWINDO_CH
-      USE LOGICAL_MOD,   ONLY : LWINDO_CU
+      USE LOGICAL_MOD,   ONLY : LWINDO_CU, LWINDO_SE
       USE TPCORE_BC_MOD, ONLY : INIT_TPCORE_BC
 ! 
 ! !REVISION HISTORY: 
@@ -5440,32 +5440,40 @@ c$$$         IS_ALL = .FALSE.
       CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_nested_grid_menu:8' )
       READ( SUBSTRS(1:N), '(a)' ) TPBC_DIR_CH
 
-      ! Save out TPCORE BC's over Custom Region
+      ! Save out TPCORE BC's over SEAC4RS region
       CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_nested_grid_menu:9' )
+      READ( SUBSTRS(1:N), * ) LWINDO_SE
+
+      ! Directory where SEAC4RS TPCORE BC's are stored
+      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_nested_grid_menu:10' )
+      READ( SUBSTRS(1:N), '(a)' ) TPBC_DIR_SE
+
+      ! Save out TPCORE BC's over Custom Region
+      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_nested_grid_menu:11' )
       READ( SUBSTRS(1:N), * ) LWINDO_CU
 
       ! Directory where TPCORE BC's are stored
-      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_nested_grid_menu:10' )
+      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_nested_grid_menu:12' )
       READ( SUBSTRS(1:N), '(a)' ) TPBC_DIR
 
       ! Timestep for 4x5 TPCORE BC's
-      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_nested_grid_menu:11' )
+      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_nested_grid_menu:13' )
       READ( SUBSTRS(1:N), * ) TS
 
       ! Lower left box
-      CALL SPLIT_ONE_LINE( SUBSTRS, N, 2, 'read_nested_grid_menu:12' )
+      CALL SPLIT_ONE_LINE( SUBSTRS, N, 2, 'read_nested_grid_menu:14' )
       READ( SUBSTRS(1:N), * ) I1, J1
 
       ! Timestep for 4x5 TPCORE BC's
-      CALL SPLIT_ONE_LINE( SUBSTRS, N, 2, 'read_nested_grid_menu:13' )
+      CALL SPLIT_ONE_LINE( SUBSTRS, N, 2, 'read_nested_grid_menu:15' )
       READ( SUBSTRS(1:N), * ) I2, J2
 
       ! 1x1 transport region offsets 
-      CALL SPLIT_ONE_LINE( SUBSTRS, N, 2, 'read_nested_grid_menu:14' )
+      CALL SPLIT_ONE_LINE( SUBSTRS, N, 2, 'read_nested_grid_menu:16' )
       READ( SUBSTRS(1:N), * ) I0W, J0W     
 
       ! Separator line
-      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_nested_grid_menu:15' )
+      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_nested_grid_menu:17' )
 
       !=================================================================
       ! Print to screen
@@ -6087,12 +6095,14 @@ c$$$         IS_ALL = .FALSE.
 
       ! Only validate the TPCORE BC directory if we need it
       IF ( ITS_A_NESTED_GRID() ) THEN
-#if   defined( NESTED_NA)
+#if   defined( NESTED_NA )
          CALL CHECK_DIRECTORY( TPBC_DIR_NA )
-#elif defined( NESTED_EU)
+#elif defined( NESTED_EU )
          CALL CHECK_DIRECTORY( TPBC_DIR_EU )
-#elif defined( NESTED_CH)
+#elif defined( NESTED_CH )
          CALL CHECK_DIRECTORY( TPBC_DIR_CH )
+#elif defined( SEAC4RS )
+         CALL CHECK_DIRECTORY( TPBC_DIR_SE )
 #endif
 
       ENDIF
@@ -6107,6 +6117,9 @@ c$$$         IS_ALL = .FALSE.
       ENDIF
       IF ( LWINDO_CH ) THEN
          CALL CHECK_DIRECTORY( TPBC_DIR_CH )
+      ENDIF
+      IF ( LWINDO_SE ) THEN
+         CALL CHECK_DIRECTORY( TPBC_DIR_SE )
       ENDIF
 
 #if   defined( GEOS_4 )
