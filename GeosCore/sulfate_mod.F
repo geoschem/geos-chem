@@ -3335,9 +3335,9 @@
                !========================================================
                ! ND44 diagnostic: Drydep flux of NH3 [molec/cm2/s]
                !========================================================
-               !###Rynda - remove check since will do this most of the time               
-               !IF ( ND44 > 0 .and. NH3 > 0d0 ) THEN
-               IF ( NH3 > 0d0 ) THEN
+               !###Rynda - remove check since will do this most of the time, !maasa, added check.               
+               IF ( ND44 > 0 .and. NH3 > 0d0 ) THEN
+               !IF ( NH3 > 0d0 ) THEN
 
                   ! Surface area [cm2]
                   AREA_CM2 = GET_AREA_CM2( I, J, L )
@@ -3360,7 +3360,7 @@
       ! ND44: Sum drydep fluxes by level into the AD44 array in
       ! order to ensure that  we get the same results w/ sp or mp 
       !===============================================================
-      IF ( ND44 > 0 ) THEN 
+      IF ( ND44 > 0 .or. LSOILNOX) THEN 
 !$OMP PARALLEL DO
 !$OMP+DEFAULT( SHARED )
 !$OMP+PRIVATE( I, J, L )
@@ -3462,7 +3462,9 @@
       PBL_MAX = GET_PBL_MAX_L()
 
       ! Zero ND44_TMP array
+	IF ( ND44 > 0 ) THEN
       ND44_TMP = 0d0
+	ENDIF
 
 !$OMP PARALLEL DO
 !$OMP+DEFAULT( SHARED )
@@ -3526,13 +3528,14 @@
       ! ND44: Sum drydep fluxes by level into the AD44 array in
       ! order to ensure that  we get the same results w/ sp or mp 
       !===============================================================
-      IF ( ND44 > 0 ) THEN 
+      IF ( ND44 > 0 .or. LSOILNOX) THEN 
 !$OMP PARALLEL DO
 !$OMP+DEFAULT( SHARED )
 !$OMP+PRIVATE( I, J, L )
          DO J = 1, JJPAR
          DO I = 1, IIPAR
          DO L = 1, PBL_MAX
+
             IF (ND44 > 0 ) THEN
             AD44(I,J,DRYNH4,1) = AD44(I,J,DRYNH4,1) + ND44_TMP(I,J,L)
             ENDIF
@@ -3680,7 +3683,7 @@
       ! ND44: Sum drydep fluxes by level into the AD44 array in
       ! order to ensure that  we get the same results w/ sp or mp 
       !===============================================================
-      IF ( ND44 > 0 ) THEN 
+      IF ( ND44 > 0 .or. LSOILNOX ) THEN 
 !$OMP PARALLEL DO
 !$OMP+DEFAULT( SHARED )
 !$OMP+PRIVATE( I, J, L )
@@ -3943,7 +3946,7 @@
       ! ND44: Sum drydep fluxes by level into the AD44 array in
       ! order to ensure that  we get the same results w/ sp or mp 
       !===============================================================
-      IF ( ND44 > 0 ) THEN 
+      IF ( ND44 > 0 .or. LSOILNOX ) THEN 
 !$OMP PARALLEL DO
 !$OMP+DEFAULT( SHARED )
 !$OMP+PRIVATE( I, J, L )

@@ -767,6 +767,12 @@
       USE GET_NDEP_MOD, ONLY : SOIL_DRYDEP
       USE TRACERID_MOD, ONLY : IDTHNO3
 
+      USE CMN_SIZE_MOD       ! Size parameters
+      USE CMN_DIAG_MOD       ! Diagnostic switches & arrays
+      USE CMN_DEP_MOD        ! Dry deposition variables
+      USE COMMSOIL_MOD       ! Soil pulsing & wetness variables
+      USE COMODE_MOD
+
 
       INTEGER :: I, J, JJ, JLOOP, L, L_PBLTOP, N, NK, NN
       REAL*8  :: DTCHEM, PBL_MAX, TDRYFX, AREA_CM2

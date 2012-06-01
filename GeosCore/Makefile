@@ -557,7 +557,8 @@ emissdr.o                   : emissdr.F                                      \
 			      lightning_nox_mod.o     logical_mod.o          \
                               megan_mod.o             tracer_mod.o           \
                               tracerid_mod.o          meganut_mod.o          \
-                              canopy_nox_mod.o        soil_nox_mod.o
+                              canopy_nox_mod.o        soil_nox_mod.o         \
+			      get_ndep_mod.o
 
 emissions_mod.o             : emissions_mod.F                                \
                               arctas_ship_emiss_mod.o biomass_mod.o          \
@@ -644,7 +645,8 @@ geos57_read_mod.o           : geos57_read_mod.F90                            \
 get_global_ch4.o            : get_global_ch4.F                               \
                               future_emissions_mod.o  logical_mod.o          
 
-get_ndep_mod.o              : get_ndep_mod.F          tracerid_mod.o         
+get_ndep_mod.o              : get_ndep_mod.F          tracerid_mod.o         \
+			      diag_mod.o 
 
 getifsun.o                  : getifsun.F              comode_mod.o
 
@@ -789,7 +791,8 @@ main.o                      : main.F                                         \
                               merra_a1_mod.o          merra_a3_mod.o         \
                               merra_i6_mod.o          gc_environment_mod.o   \
                               geos57_read_mod.o       diag63_mod.o           \
-                              olson_landmap_mod.o     mapping_mod.o
+                              olson_landmap_mod.o     mapping_mod.o	     \
+			      soilnox_restart_mod.o 
 
 mapping_mod.o               : mapping_mod.F90                                \
                               logical_mod.o
@@ -997,7 +1000,7 @@ sulfate_mod.o               : sulfate_mod.F                                  \
                               streets_anthro_mod.o    tracerid_mod.o         \
                               tracer_mod.o            tropopause_mod.o       \
                               uvalbedo_mod.o          vdiff_pre_mod.o        \
-                              wetscav_mod.o           
+                              wetscav_mod.o           get_ndep_mod.o  
 
 sunparam.o                  : sunparam.F
 

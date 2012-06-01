@@ -20,6 +20,12 @@
       USE FILE_MOD,      ONLY : IU_FILE, IOERROR
       USE ERROR_MOD,     ONLY : GEOS_CHEM_STOP
       USE TIME_MOD,      ONLY : GET_MONTH
+
+!maasa
+      USE BPCH2_MOD,   ONLY : OPEN_BPCH2_FOR_READ
+      USE ERROR_MOD,   ONLY : DEBUG_MSG
+      USE FILE_MOD,    ONLY : IU_SOIL
+!maasa end
       
       USE CMN_SIZE_MOD   ! Size parameters
       USE COMMSOIL_MOD ! Soil variables
@@ -81,6 +87,20 @@
       ! Name of file to read in
       CHARACTER(LEN=255) :: FILENAME
 
+!Maasa
+      INTEGER             :: NI,     NJ, NL, N
+      INTEGER             :: IFIRST, JFIRST, LFIRST
+      INTEGER             :: NTRACER,   NSKIP
+      INTEGER             :: HALFPOLAR, CENTER180
+      REAL*4              :: LONRES,    LATRES
+      REAL*8              :: ZTAU0,     ZTAU1
+      CHARACTER(LEN=20)   :: MODELNAME
+      CHARACTER(LEN=40)   :: CATEGORY
+      CHARACTER(LEN=40)   :: UNIT     
+      CHARACTER(LEN=40)   :: RESERVED
+      REAL*4              :: TMPLND(IIPAR,JJPAR)
+!Maasa end
+
       !=================================================================
       ! RDSOIL begins here!
       !=================================================================
@@ -97,9 +117,7 @@
          ! Reset First-time flag
          FIRST = .FALSE.
 
-         !==============================================================
-         ! Read in soil type data (first pass only)
-         !==============================================================
+ 
          
          !==============================================================
          !Initialize deposition arrays
@@ -118,6 +136,70 @@ $
 
           TOTAL_WETOLD = 0.0 ! Testing
           TOTAL_DRYOLD = 0.0 ! Testing
+
+!||||||||||||||||||||||||||||||||||||||
+!Read landtype module, maasa
+!||||||||||||||||||||||||||||||||||||||
+
+ !FILENAME = TRIM( DATA_DIR ) // 'soil_NOx_201004/Landtype.bpch' !Maasa
+	FILENAME = '/as/home/m/maasakkers/data/soil_NOx_201004/Landtype.bpch'
+
+      WRITE(6,*) FILENAME
+
+      ! Open the binary punch file for input
+      CALL OPEN_BPCH2_FOR_READ( IU_SOIL, FILENAME )
+      
+      
+      !Loop over 24 Landtypes
+
+      N=1
+
+      DO
+      
+
+         READ( IU_SOIL, IOSTAT=IOS )       
+     &         MODELNAME, LONRES, LATRES, HALFPOLAR, CENTER180
+      
+         ! IOS < 0 is end-of-file, so exit
+         IF ( IOS < 0 ) EXIT
+
+         ! IOS > 0 is a real I/O error -- print error message
+         IF ( IOS > 0 ) CALL IOERROR(IOS,IU_SOIL,'read_soil_Aws:1')
+
+         READ( IU_SOIL, IOSTAT=IOS ) 
+     &         CATEGORY, NTRACER,  UNIT, ZTAU0,  ZTAU1,  RESERVED,
+     &         NI,       NJ,    NL, IFIRST, JFIRST, LFIRST,
+     &         NSKIP
+
+         IF ( IOS /= 0 ) CALL IOERROR(IOS,IU_SOIL,'read_soil_Aws:2')
+
+
+         ! Put land fraction into temporary array
+         READ( IU_SOIL, IOSTAT=IOS ) 
+     &       ( (   TMPLND(I,J), I=1,NI ), J=1,NJ  )
+
+         IF ( IOS /= 0 ) CALL IOERROR(IOS,IU_SOIL,'read_soil_Aws:3')
+
+         !WRITE(6,*) 'I = 100 J =61 ', N, ':', TMPLND(100,61) 
+
+
+         ! Put into global array
+         LAND2(:,:,N) = TMPLND
+
+         N=N+1
+  
+      ENDDO
+         CLOSE( IU_SOIL )
+
+         !WRITE(6,*) 'I = 100 J =61 ', land2(100,61,:)
+
+!||||||||||||||||||||||||||||||||||||||
+!End of landtype module, maasa
+!||||||||||||||||||||||||||||||||||||||
+
+        !==============================================================
+         ! Read in soil type data (first pass only)
+         !==============================================================
 
          ! Define soiltype file name
          FILENAME = TRIM( DATA_DIR ) // 'soil_NOx_200203/soiltype.dat'
@@ -149,7 +231,8 @@ $
          !==============================================================
 
          ! Define fertilizer file name
-         FILENAME = TRIM( DATA_DIR ) // 'soil_NOx_201004/fert_res.dat'
+         !FILENAME = TRIM( DATA_DIR ) // 'soil_NOx_201004/fert_res.dat' !Maasatemp
+	 FILENAME = '/as/home/m/maasakkers/data/soil_NOx_201004/fert_res.dat'
 
          ! Echo filename
          WRITE( 6, 100 ) TRIM( FILENAME )
@@ -161,13 +244,14 @@ $
          ! Read data -- save (I,J) pairs into INDEXSOIL array
          DO M = 1, NFERT
 	    READ( IUNIT,*, IOSTAT=IOS ) 
-     &           ( INDEXSOIL(I,M), I=1,2 ), SOILFERT(M)
+     &           ( INDEX_INT(I,M), I=1,2 ), SOIL_INT(M) !maasatemp
             IF ( IOS /= 0 ) CALL IOERROR( IOS, IUNIT, 'rdsoil:5' )
          ENDDO
 
          DO M = 1, NLAND
                 INDEXSOIL(1,M) = INDEX_INT(1,(1 + (M-1)*365))
                 INDEXSOIL(2,M) = INDEX_INT(2,(1 + (M-1)*365))
+		SOILFERT(M)    = SOIL_INT((1 + (M-1)*365))
          ENDDO
 
          ! Close file
@@ -178,7 +262,8 @@ $
 !      ! Read in climate type ###Rynda
 !      !=================================================================
          ! Define arid/semi-arid 1-0 dataset location
-         FILENAME = TRIM( DATA_DIR ) // 'soil_NOx_201004/clim.dat'
+  	 !FILENAME = TRIM( DATA_DIR ) // 'soil_NOx_201004/clim.dat' !Maasatemp
+		FILENAME = '/as/home/m/maasakkers/data/soil_NOx_201004/clim.dat'
 
          ! Echo filename
          WRITE( 6, 100 ) TRIM( FILENAME )

@@ -402,6 +402,8 @@
       WRITE( 6, '(a)' ) REPEAT( '*', 44 )
       WRITE( 6, '(a)' ) 
 
+	CALL CHECK_STT( 'start' ) !maasatemp
+
       ! NSTEP is the number of dynamic timesteps w/in the outer loop
 #if   defined( GEOS_57 ) 
       N_DYN_STEPS = 180 / GET_TS_DYN()     ! GEOS-5.7.x has a 3-hr interval
@@ -1088,7 +1090,10 @@
 #if   defined( GEOS_5 ) && defined( GRID05x0666 )
             CALL CHECK_STT_05x0666( 'after dynamics step' )
 #endif
-
+	!maasatemp
+	print*,'Checking tracers...'
+	call flush(6)
+	!maasatemp
             CALL CHECK_STT( 'End of Dynamic Loop' )
          ENDIF
           

@@ -166,7 +166,7 @@
       REAL*8                 :: TS_EMIS
       REAL*8                 :: LON ! Just for testing
       REAL*8                 :: TOTALPULSE
-      REAL*8                 :: SOILFRT, SOILPRC(2)
+      REAL*8                 :: SOILFRT !removed soilprc
       REAL*8                 :: DEP_FERT, TEMP_FERT
 
 
@@ -231,6 +231,10 @@
          GWET_PREV(:,:) = 0.0
          INST_SOIL(:,:) = 0.0
          INST_FERT(:,:) = 0.0
+
+	 ! Set first-time flag to false !Maasa
+         FIRSTEMISS = .FALSE.		!Maasa
+
          ENDIF
 
          !***************************************************************
@@ -258,6 +262,10 @@
             J      = JREF - J0
             IJLOOP = ( (J-1) * IIPAR ) + I
 
+ 		! Get Lat/Lon maasa
+            LAT     = GET_YMID( I,J,1 ) !Maasa
+            LON     = GET_XMID( I,J,1 ) !Just for testing maasa
+
 
             ! Get Deposited Fertilizer
              CALL GET_DEP_N( I, J, TS_EMIS, DEP_FERT )
@@ -266,12 +274,12 @@
             CALL FLUSH(6)
 
             ! Get New Fertilizer 
-            !SOILFRT =  SOILFERT(M) 
-            SOILFRT =  SOILFERT( GET_DAY_OF_YEAR() + (M-1)*365) 
+            SOILFRT =  SOILFERT(M) 
+            !SOILFRT =  SOILFERT( GET_DAY_OF_YEAR() + (M-1)*365) 
 
             ! Just this month and previous month
-            SOILPRC(1) =  SOILPREP(1,M) 
-            SOILPRC(2) =  SOILPREP(2,M) 
+!            SOILPRC(1) =  SOILPREP(1,M) 
+!            SOILPRC(2) =  SOILPREP(2,M) 
 
             !Put in constraint if dry period gt 1 yr, keep at 1yr to
             !avoid unrealistic pulse
@@ -280,7 +288,7 @@
  
  
             ! Return NOx emission from soils [molec/cm2/s]
-            CALL SOIL_NOX_EMISSION( TS(I,J), GWETTOP(I,J),
+            CALL SOIL_NOX_EMISSION( TS_EMIS, TS(I,J), GWETTOP(I,J),
      &                              SOILFRT,  
      &                              GWET_PREV(I,J),
      &                              DRYPERIOD(I,J),
@@ -290,7 +298,7 @@
      &                              FERTDIAG, 
      &                              CLIM(M),
      &                              LAND2(I,J,:),
-     &                              RC )
+     &                              RC, I, J ) !maasa
 
             !Archive emissions
             IF ( ND32 > 0 ) THEN
@@ -421,7 +429,7 @@
 !###Start Rynda
 ! SOIL EMISSIONS NOX [molecules/cm3/s]
 ! Now have to pass SUNCOS to SOILNOXEMS and SOILCRF (bmy, 10/20/99)
-
+!
 !            IF ( LSOILNOX .AND. I == 1 .AND. J == 1 ) 
 !     &         CALL SOILNOXEMS( SUNCOS )170
 !###End Rynda

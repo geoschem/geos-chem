@@ -105,10 +105,11 @@
       REAL*8  :: SOILPULS(NPULSE+1,NLAND) 
 
       ! Two month observed precip
-      REAL*8  :: SOILPREP(2,NLAND)  
+      !REAL*8  :: SOILPREP(2,NLAND)  
 
       ! Fertilizers
-      REAL*8  :: SOILFERT(NLAND)    
+      REAL*8  :: SOILFERT(NLAND)    !maasatemp
+      REAL*8  :: SOIL_INT(NFERT)    !maasatemp
 
       ! Pulsing factors
       REAL*8  :: PULSFACT(NPULSE)
@@ -172,13 +173,15 @@
       REAL*8 WET_NIT(IGLOB,JGLOB)
 
       COMMON /SOIL/ SOILNOX,  INDEXSOIL, NCONSOIL, SOILPULS,            &
-     &              SOILPREP, SOILFERT,  CANOPYNOX, DRYPERIOD,
+     &              SOILFERT,  CANOPYNOX, DRYPERIOD,
      &              PFACTOR,  GWET_PREV, INDEX_INT,
      &              DRY_NO2, DRY_PAN,
      &              DRY_HNO3, DRY_NH3,   DRY_NH4,   DRY_NIT,
      &              DEP_RESERVOIR, WET_HNO3, WET_NH3, WET_NH4,
      &              WET_NIT,  TEST_DYNTS, TOTAL_WETOLD, TOTAL_DRYOLD,
-     &              INST_SOIL, INST_FERT, CLIM , LAND2!###Rynda Diag49
+     &              INST_SOIL, INST_FERT, CLIM , LAND2 !###Rynda Diag49
+	
+	!Removed soilprep
 
 
       ! The correct sequence of PULSFACT is 5, 10, 15 

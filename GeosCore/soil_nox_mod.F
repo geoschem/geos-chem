@@ -35,13 +35,16 @@
 ! 
 ! !USES:
 !
+!      USE LAI_LAND_INFO_MOD	!maasa, not required
+      USE SMV_ERRCODE_MOD 	!maasa
       USE CMN_SIZE_MOD
 
       IMPLICIT NONE
-      PRIVATE
-   
-#     include "lai_land_info.h"
 
+#     include "define.h" !maasa
+!#     include "lai_land_info.h" !maasa
+
+      PRIVATE
 !
 ! !PUBLIC MEMBER FUNCTIONS:
 !
@@ -168,7 +171,7 @@
       REAL*8,  PARAMETER :: A_BIOME(NSOIL)          =                (/ 
      &   0.00, 0.00, 0.00, 0.00, 0.00, 0.06, 0.09, 0.09, 0.01, 
      &   0.84, 0.84, 0.24, 0.42, 0.62, 0.03, 0.36, 0.36, 0.35, 
-     &   1.66, 0.08, 0.44, 0.57,0.57,0.57     /)
+     &   1.66, 0.08, 0.44, 0.57, 0.57, 0.57     /)
 
 
       ! "A" coefficients for converting surface temp to soil temp
@@ -218,7 +221,7 @@ C     &                                             0.05d0           /)
 #if   defined( GRID4x5  ) 
       REAL*8, PARAMETER :: FERT_SCALE = 1.  ! not correct
 #elif defined( GRID2x25 )
-      REAL*8, PARAMETER :: FERT_SCALE =  0.0068 
+      REAL*8, PARAMETER :: FERT_SCALE = 0.0068 
 #endif
 
       CONTAINS
@@ -237,18 +240,18 @@ C     &                                             0.05d0           /)
 ! !INTERFACE:
 !
       SUBROUTINE SOIL_NOx_EMISSION(  
-     &                              TK, GWET,
+     &                              TS_EMIS, TK, GWET,
      &                              SOILFRT,  GWET_PREV,
      &                              DRYPERIOD, PFACTOR,  SOILNOx, 
      &                              DEPN,      FERTDIAG, 
-     &                              CLIM, LANDFRAC, RC)
+     &                              CLIM, LANDFRAC, RC, I, J ) !maasa
 
       USE SMV_ERRCODE_MOD, ONLY : SMV_SUCCESS
-      USE TIME_MOD,        ONLY : GET_TS_EMIS
+      !USE TIME_MOD,        ONLY : GET_TS_EMIS
 !
 ! !INPUT PARAMETERS: 
 
-!      !REAL*8,  INTENT(IN)  :: TS_EMIS     ! Emission timestep [min]
+!      REAL*8,  INTENT(IN)  :: TS_EMIS     ! Emission timestep [min]
 !      REAL*8,  INTENT(IN)  :: TK          ! surface temperature [K]
 !      REAL*8,  INTENT(IN)  :: GWET        ! Top soil wetness [unitless]
 !      REAL*8,  INTENT(IN)  :: DEPN        ! Dry Dep Fert term [ng N/m2/s]
@@ -259,12 +262,15 @@ C     &                                             0.05d0           /)
       !INTEGER, INTENT(IN)  :: J ! Temporary       
 
       !REAL*8,  INTENT(IN)  :: TS_EMIS     ! Emission timestep [min]
+      REAL*8  :: TS_EMIS     ! Emission timestep [min]
       REAL*8  :: TK          ! surface temperature [K]
       REAL*8  :: GWET        ! Top soil wetness [unitless]
       REAL*8  :: DEPN        ! Dry Dep Fert term [ng N/m2/s]
       REAL*8  :: SOILFRT     ! Fertilizer emissions [ng N/m2/s]
       INTEGER :: CLIM        ! Arid/SemiArid = 1
       REAL*4  :: LANDFRAC(:)    ! Fraction of landtypes
+      INTEGER, INTENT(IN)  :: I ! Temporary
+      INTEGER, INTENT(IN)  :: J ! Temporary
 
 
 ! !OUTPUT PARAMETERS:
@@ -311,7 +317,7 @@ C     &                                             0.05d0           /)
       !REAL*8  :: TC,        TEMP_TERM, WINDSQR  
       REAL*8  :: TC,        TEMP_TERM
       REAL*8  :: WET_TERM,  A_FERT
-      REAL*8  :: TS_EMIS
+      
 
       !=================================================================
       ! Initialize
@@ -330,7 +336,7 @@ C     &                                             0.05d0           /)
       ! Surface wind speed, squared
       !WINDSQR        = U10M**2 + V10M**2
 
-      TS_EMIS = GET_TS_EMIS()
+      !TS_EMIS = GET_TS_EMIS()
 
       !=================================================================
       ! Compute soil NOx emissions
@@ -371,21 +377,45 @@ C     &                                             0.05d0           /)
          ! Sum into SOILNOX variable for overall soil NOx emissions
         
 
-         SOILNOX   = SOILNOX 
+         SOILNOX   = (SOILNOX 
      &              + ( A_BIOME(K) + A_FERT )
      &             * ( TEMP_TERM * WET_TERM * PULSE ) 
-     &             * LANDFRAC(K)
+     &             * LANDFRAC(K) )
 !     &             * ( 1d0                       - CRF_TERM  ) 
 !     &             * ( DBLE( IUSE(K) )           / 1000d0    )
 
 
-         FERTDIAG  = FERTDIAG +
+         FERTDIAG  = (FERTDIAG
      &             + ( A_FERT )
      &             * ( TEMP_TERM * WET_TERM * PULSE ) 
-     &             * LANDFRAC(K)
+     &             * LANDFRAC(K) )
 !     &             * ( 1d0                       - CRF_TERM  ) 
 !     &             * ( DBLE( IUSE(K) )           / 1000d0    )
 
+
+	 IF ( I == 69 .and. J == 51 .and. LANDFRAC(K) .NE. 0. ) THEN 
+
+           WRITE(6,*) '===========TEST==================='
+           WRITE(6,*) 'IX = ', I, 'JX =', J
+           WRITE(6,*) 'SOILNOX = ',  SOILNOX 
+           WRITE(6,*) 'SOILTEMP = ', TEMP_TERM 
+           WRITE(6,*) 'SOILBASE = ', WET_TERM 
+           WRITE(6,*) 'LANDTYPE',   K
+           WRITE(6,*) 'LANDFRAC',   LANDFRAC(K)
+           WRITE(6,*) 'DEP = ',   DEPN 
+           WRITE(6,*) 'FRT = ',   SOILFRT 
+           WRITE(6,*) 'A_FERT = ',   A_FERT
+           WRITE(6,*) 'A_BIOME = ',   A_BIOME(K)
+           !WRITE(6,*) 'CRF =', 1d0 - CRF_TERM 
+           !WRITE(6,*) 'IUSE % = ',  DBLE( IUSE(K) )/ 1000d0            
+           !WRITE(6,*) 'IUSE # = ', IUSE(K)
+           WRITE(6,*) 'PULSE = ', PULSE
+           !WRITE(6,*) 'PRECTOT ', PRECTOT
+           !WRITE(6,*) 'PRECCON ', PRECCON
+           WRITE(6,*) 'TS_EMIS ', TS_EMIS
+           WRITE(6,*) '==================================='
+	
+	ENDIF !Maasa, test
 
       ENDDO
 
@@ -773,7 +803,7 @@ C     &                                             0.05d0           /)
 !\\
 ! !INTERFACE:
 
-      FUNCTION FERTADD( SOILFERT, DEPN ) 
+      FUNCTION FERTADD( SOILFERT, DEPN) 
      &         RESULT( FERT_ADD )
 
 !
@@ -786,7 +816,6 @@ C     &                                             0.05d0           /)
       REAL*8,  INTENT(IN) :: SOILFERT   ! N emissions from fertilizers
                                         !  read in from disk and passed
                                         !  here as an argument [ng N/m2/s]
-      REAL*8              :: FERT_SCALE
 !
 ! !RETURN_VALUE:
 ! 
@@ -794,6 +823,11 @@ C     &                                             0.05d0           /)
 
       REAL*8,  PARAMETER :: SECPERYEAR    = 86400.d0 * 365.
 !
+!#if   defined( GRID4x5  ) 
+!      REAL*8, PARAMETER :: FERT_SCALE = 1.  ! not correct
+!#elif defined( GRID2x25 )
+!      REAL*8, PARAMETER :: FERT_SCALE = 0.0068 
+!#endif
 !
 ! !REMARKS:
 !
@@ -855,6 +889,15 @@ C     &                                             0.05d0           /)
        ! Convert [ng N/m2] --> [ng N /m2/s] (scale needed to force
        ! fert emiss of 1.8 Tg N/yr w/o canopy uptake.
       FERT_ADD = FERT_ADD / SECPERYEAR * FERT_SCALE
+
+
+	   !Maasa, error search
+	   !WRITE(6,*) '~~~~~~~~~~~~~~~FERT_TEST~~~~~~~~~~~~~~~~'
+           !WRITE(6,*) 'SOILFERT = ',  SOILFERT 
+           !WRITE(6,*) 'DEPN = ', DEPN
+           !WRITE(6,*) 'FERT_SCALE = ', FERT_SCALE 
+	   !WRITE(6,*) 'FERT_ADD = ', FERT_ADD
+	   !WRITE(6,*) '________________________________________'
 
     
       ! Section 4.2.1 of Yienger & Levy [1995] states that over rice 

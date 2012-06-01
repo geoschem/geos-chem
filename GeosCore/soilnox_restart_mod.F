@@ -137,7 +137,7 @@
       CALL EXPAND_DATE( FILENAME, YYYYMMDD, HHMMSS )
 
       WRITE( 6, 100 ) TRIM( FILENAME )
- 100  FORMAT( '     - MAKE_RESTART_FILE: Writing Soil', a )
+ 100  FORMAT( '     - MAKE_SOILNOX_RESTART_FILE: Writing: ', a )
 
       CALL FLUSH(6)
 
@@ -162,7 +162,7 @@
 
 
       ! PFACTOR 
-      UNIT     = 'unitess'
+      UNIT     = 'unitless'
       CATEGORY = 'RST-SOIL'
       N = 2
 

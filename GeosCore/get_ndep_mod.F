@@ -60,7 +60,9 @@
       USE TRACERID_MOD,      ONLY : IDTNH4,    IDTNIT, IDTNH4aq 
       USE TRACERID_MOD,      ONLY : IDTHNO3,   IDTNH3, IDTNITs
       USE TRACERID_MOD,      ONLY : IDTNOx,    IDTPAN
+      USE TRACERID_MOD,      ONLY : IDTNIT
       USE COMMSOIL_MOD
+      USE CMN_SIZE_MOD
 
       INTEGER, INTENT(IN)  :: I           ! I
       INTEGER, INTENT(IN)  :: J           ! J
@@ -100,7 +102,10 @@
       ! Reference to F90 modules
       USE TRACERID_MOD,      ONLY : IDTNH4,    IDTNIT, IDTNH4aq 
       USE TRACERID_MOD,      ONLY : IDTHNO3,   IDTNH3, IDTNITs
+      USE TRACERID_MOD,      ONLY : IDTNIT
       USE COMMSOIL_MOD
+      USE CMN_SIZE_MOD
+
 
       INTEGER, INTENT(IN)  :: I           ! I
       INTEGER, INTENT(IN)  :: J           ! J
@@ -136,7 +141,12 @@
       SUBROUTINE GET_DEP_N ( I, J, TS_EMIS, DEP_FERT )
 
       !Just for testing
+	!Rynda Testing !maasatemp
+      USE GRID_MOD,          ONLY : GET_YMID !Maasatemp
+      USE GRID_MOD,          ONLY : GET_XMID !Maasatemp
+      USE TRACERID_MOD,      ONLY : IDTNH3, IDTNH4, IDTHNO3, IDTNIT
       USE COMMSOIL_MOD
+      USE CMN_SIZE_MOD
 
 
       INTEGER,  INTENT(IN)  :: I
@@ -218,9 +228,14 @@
 !
       FUNCTION SOURCE_DRYN( I, J  ) RESULT( DRYN )
 
-      USE COMMSOIL_MOD      
+      USE TRACERID_MOD,      ONLY : IDTNH3, IDTNH4, IDTHNO3, IDTNIT
+      USE COMMSOIL_MOD   
+      USE CMN_DIAG_MOD    
       !Just for testing
+      USE GRID_MOD,          ONLY : GET_YMID !Maasatemp
+      USE GRID_MOD,          ONLY : GET_XMID !Maasatemp
       USE DIAG_MOD,          ONLY : AD44 !TESTING
+       
 !
 ! !INPUT PARAMETERS: 
 !
@@ -250,6 +265,10 @@
       IF ( I == 41 .and. J == 65) THEN
       CONV = CM2_PER_M2 / AVO * MW * NG_PER_GRAM 
 
+      !Rynda Testing !maasatemp
+      LAT     = GET_YMID( I,J,1 ) !maasatemp
+      LON     = GET_XMID( I,J,1 ) !maasatemp
+
 
       WRITE(6,*)   LON, LAT     
       WRITE(6,*)  'DRY NO2_SOURCE(ng)', DRY_NO2(I,J) * CONV 
@@ -257,13 +276,17 @@
       WRITE(6,*)  'DRY HNO3_SOURCE(ng)', DRY_HNO3(I,J) * CONV 
       WRITE(6,*)  'DRY HNO3_SOURCE(molec/cm2/s)', DRY_HNO3(I,J) 
       !Testing
-      WRITE(6,*)  'AD44 HNO3', AD44(I,J,4,1)  - TOTAL_DRYOLD
+      	IF ( ND44 > 0 ) THEN
+      	WRITE(6,*)  'AD44 HNO3', AD44(I,J,4,1)  - TOTAL_DRYOLD
+      	ENDIF
       WRITE(6,*)  'DRY NIT_SOURCE(ng)',  DRY_NIT(I,J)  * CONV
       WRITE(6,*)  'DRY NH4_SOURCE(ng)',  DRY_NH4(I,J)  * CONV
-      WRITE(6,*)  'DRY NH3_SOURCE(ng)',  DRY_NH3(I,J)  * CONV 
+      WRITE(6,*)  'DRY NH3_SOURCE(ng)',  DRY_NH3(I,J)  * CONV    
       CALL FLUSH(6)
       
-      TOTAL_DRYOLD =  AD44(I,J,4,1) 
+	IF ( ND44 > 0 ) THEN
+      	TOTAL_DRYOLD =  AD44(I,J,4,1)
+	ENDIF 
 
       ENDIF
 
@@ -287,11 +310,15 @@
 
 
       !Rynda Testing
+      USE GRID_MOD,          ONLY : GET_YMID !Maasatemp
+      USE GRID_MOD,          ONLY : GET_XMID !Maasatemp
       USE TIME_MOD,          ONLY : GET_TS_EMIS
       USE TIME_MOD,          ONLY : GET_TS_DYN
       USE DIAG_MOD,          ONLY : AD38, AD39 !TESTING
       USE COMMSOIL_MOD
       USE GRID_MOD,          ONLY : GET_AREA_M2
+      USE CMN_DIAG_MOD
+      USE TRACERID_MOD,      ONLY : IDTNH3, IDTNH4, IDTHNO3, IDTNIT
 
 ! !INPUT PARAMETERS: 
 !
@@ -343,7 +370,11 @@
       !Total N wet dep
       WETN = HNO3NG + NH3NG  + NH4NG + NITNG  
 
-      IF ( I == 41 .and. J == 65) THEN
+	IF ( ND38 > 0 .and. ND39 > 0 ) THEN
+      		IF ( I == 41 .and. J == 65) THEN
+	!Rynda Testing Maasa
+      LAT     = GET_YMID( I,J,1 ) !maasatemp
+      LON     = GET_XMID( I,J,1 ) !maasatemp
 
       WRITE(6,*)   LON, LAT
       WRITE(6,*)  '# DYN TS in getdep', NTS
@@ -354,6 +385,7 @@
       WRITE(6,*)  'WET NH3_SOURCE(ng)',  NH3NG
       CALL FLUSH(6)
 
+	
       TOTAL_HNO3 = 0.
       DO L = 1,30          
          TOTAL_HNO3 = TOTAL_HNO3 + AD39(I,J,L,1) + AD38(I,J,L,1)
@@ -362,8 +394,9 @@
       WRITE(6,*)  'WET DIAG HNO3(kg/s)', TOTAL_HNO3 - TOTAL_WETOLD
 
       TOTAL_WETOLD = TOTAL_HNO3
-      
-      ENDIF
+
+		ENDIF
+      	ENDIF
 
 
       END FUNCTION SOURCE_WETN

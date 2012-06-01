@@ -1387,8 +1387,8 @@ c new OH+CO rate from JPL2006.
                     
                      ! Convert ship O3 emissions from [molec NO/box/s]
                      ! to [molec NO/cm3/s] and store in the REMIS array
-                     REMIS(JLOOP,IDEOX) = REMIS(JLOOP,IDEOX) + 
-     &                                    EMIS_BL / VOLUME(JLOOP)
+!                     REMIS(JLOOP,IDEOX) = REMIS(JLOOP,IDEOX) + 		!maasatemp
+!     &                                    EMIS_BL / VOLUME(JLOOP)		!maasatemp
                   ENDIF
                ENDDO
            

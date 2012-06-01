@@ -4222,6 +4222,11 @@
       !=================================================================
       ! (2)  L o o p   O v e r   (I, J)   S u r f a c e   B o x e s
       !=================================================================
+!###RYNDATEST
+      IF (IDX == 1) TEST_DYNTS = TEST_DYNTS + 1
+      IF (IDX == 1) WRITE(6,*) 'IAM HERE DYNTS', TEST_DYNTS
+!Maasatemp
+
 !$OMP PARALLEL DO
 !$OMP+DEFAULT( SHARED )
 !$OMP+PRIVATE( I,       J,      FTOP,      ERRMSG,    F          )
@@ -4289,6 +4294,11 @@
      &                               IDX, ERRMSG, F,   K_RAIN, 
      &                               DT,  STT,    DSTT         )
             ENDIF
+
+ 		!###Rynda arcive wet loss in kg/s
+                  IF ( LSOILNOX ) THEN
+                  CALL SOIL_WETDEP ( I, J, L, N, WETLOSS / DT )
+                  ENDIF
 
             ! Save FTOP for the next lower level 
             FTOP = F
@@ -4409,7 +4419,14 @@
                CALL DO_RAINOUT_ONLY( LS,  I,      J,         L,   
      &                               IDX, ERRMSG, F_RAINOUT, K_RAIN,  
      &                               DT,  STT,    DSTT               )
-            ENDIF
+            
+
+ 		!###Rynda arcive wet loss in kg/s
+                  IF ( LSOILNOX ) THEN
+                  CALL SOIL_WETDEP ( I, J, L, N, WETLOSS / DT )
+                  ENDIF
+
+		ENDIF
 
             !==============================================================
             ! (5)  W a s h o u t   i n   t h e   m i d d l e   l e v e l s
@@ -4449,7 +4466,14 @@
      &                               QDOWN,     Q,    F_WASHOUT, 
      &                               F_RAINOUT, DT,   PDOWN,     
      &                               STT,       DSTT             )
-            ENDIF
+            
+
+ 		!###Rynda arcive wet loss in kg/s
+                  IF ( LSOILNOX ) THEN
+                  CALL SOIL_WETDEP ( I, J, L, N, WETLOSS / DT )
+                  ENDIF
+
+		ENDIF
 
             !===========================================================
             ! (6)  N o   D o w n w a r d   P r e c i p i t a t i o n 
@@ -4478,6 +4502,11 @@
 
             ! Save FTOP for next level
             FTOP = F_RAINOUT + F_WASHOUT
+
+		!###Rynda arcive wet loss in kg/s
+                  IF ( LSOILNOX ) THEN
+                  CALL SOIL_WETDEP ( I, J, L, N, WETLOSS / DT )
+                  ENDIF
              
          ENDDO               
 
@@ -4515,7 +4544,13 @@
                CALL DO_WASHOUT_AT_SFC( LS,  I,      J,     L,         
      &                                 IDX, ERRMSG, QDOWN, F,   
      &                                 DT,  STT,    DSTT      )
-            ENDIF    
+            ENDIF   
+
+		!###Rynda arcive wet loss in kg/s
+                  IF ( LSOILNOX ) THEN
+                  CALL SOIL_WETDEP ( I, J, L, N, WETLOSS / DT )
+                  ENDIF
+ 
          ENDIF
 
          !==============================================================
@@ -5938,9 +5973,11 @@
       USE TRACERID_MOD, ONLY : IDTSO2                  ! ID flag for SO2
       USE TRACERID_MOD, ONLY : IDTSO4                  ! ID flag for SO4
       USE LOGICAL_MOD,  ONLY : LGTMM                   ! Use GTMM w/ Hg sim?
+      USE LOGICAL_MOD,  ONLY : LSOILNOX
 
       USE CMN_SIZE_MOD                                 ! Size parameters
       USE CMN_DIAG_MOD                                 ! Diagnostic flags
+      USE GET_NDEP_MOD,      ONLY : SOIL_WETDEP
 !
 ! !INPUT PARAMETERS: 
 !     
@@ -6053,6 +6090,11 @@
          ! Add LGTMM in condition for AD39 (ccc, 11/18/09)
          IF ( ( ND39 > 0 .or. LGTMM ) .and. L <= LD39 ) THEN
             AD39(I,J,L,NN) = AD39(I,J,L,NN) + WETLOSS / DT
+         ENDIF
+
+         !Arcive wet loss in kg/s !maasa
+         IF ( LSOILNOX ) THEN
+            CALL SOIL_WETDEP ( I, J, L, N, WETLOSS / DT )
          ENDIF
 
          !-----------------------------------------------------
