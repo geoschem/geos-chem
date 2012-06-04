@@ -298,7 +298,13 @@
      &                              FERTDIAG, 
      &                              CLIM(M),
      &                              LAND2(I,J,:),
-     &                              RC, I, J ) !maasa
+     &                              RC, I, J, 
+     &                              SUNCOS_MID(IJLOOP),
+     &				    U10M(I,J), V10M(I,J), 
+     &                              CANOPYNOX(IJLOOP,:), 
+     &                              XLAI(I,J,:), 
+     &				    ILAND(I,J,:),
+     &				    IREG(I,J) ) !maasaCRF
 
             !Archive emissions
             IF ( ND32 > 0 ) THEN

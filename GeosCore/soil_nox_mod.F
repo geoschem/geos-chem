@@ -54,7 +54,7 @@
 !
       PRIVATE :: SOILTEMP
       PRIVATE :: SOILWET
-!      PRIVATE :: SOILCRF
+      PRIVATE :: SOILCRF !maasaCRF
       PRIVATE :: FERTADD
       PRIVATE :: PULSING  
 !fertilizer file name
@@ -103,7 +103,7 @@
       REAL*8,  PARAMETER :: UNITCONV = 4.3d9
 
       ! Number of soil biome types
-      !INTEGER, PARAMETER :: NSOIL    = 11
+      INTEGER, PARAMETER :: VIANSOIL    = 11 !VIA
 
       !New soil biomes based on Steinkamp et al., 2011
       INTEGER, PARAMETER :: NSOIL    = 24
@@ -157,14 +157,11 @@
 !     &                                             8.8d0            /)
   
 
-      ! Canopy wind extinction coefficients 
+      ! Canopy wind extinction coefficients !VIA
       ! (cf. Yienger & Levy [1995], Sec 5)
-!       REAL*8,  PARAMETER :: SOILEXC(NSOIL)    = (/ 0.1d0,   4.d0,    
-!      &                                             4.d0,    4.d0,    
-!     &                                             4.d0,    2.d0,  
-!     &                                             1.d0,    2.d0,    
-!     &                                             2.d0,    0.5d0,   
-!     &                                             0.1d0            /)
+       REAL*8,  PARAMETER :: SOILEXC(VIANSOIL)    = (/ 
+     &  0.10, 4.00, 4.00, 4.00, 4.00, 2.00,  
+     &  1.00, 2.00, 2.00, 0.50, 0.10		/) 
 
 
       ! Steinkamp and Lawrence, 2011 A values
@@ -244,7 +241,9 @@ C     &                                             0.05d0           /)
      &                              SOILFRT,  GWET_PREV,
      &                              DRYPERIOD, PFACTOR,  SOILNOx, 
      &                              DEPN,      FERTDIAG, 
-     &                              CLIM, LANDFRAC, RC, I, J ) !maasa
+     &                              CLIM, LANDFRAC, RC, I, J,
+     &                              SUNCOS, U10M, V10M, R_CANOPY, 
+     &				    LAI, ILAND, IREG) !maasa
 
       USE SMV_ERRCODE_MOD, ONLY : SMV_SUCCESS
       !USE TIME_MOD,        ONLY : GET_TS_EMIS
@@ -269,8 +268,18 @@ C     &                                             0.05d0           /)
       REAL*8  :: SOILFRT     ! Fertilizer emissions [ng N/m2/s]
       INTEGER :: CLIM        ! Arid/SemiArid = 1
       REAL*4  :: LANDFRAC(:)    ! Fraction of landtypes
-      INTEGER, INTENT(IN)  :: I ! Temporary
-      INTEGER, INTENT(IN)  :: J ! Temporary
+      INTEGER :: I ! Temporary
+      INTEGER :: J ! Temporary
+
+	!maasaCRF
+      REAL*8  :: SUNCOS      ! Cosine of solar zenith angle
+      REAL*8  :: U10M        ! E/W wind speed @ 10m altitude [m]
+      REAL*8  :: V10M        ! N/S wind speed @ 10m altitude [m]
+      REAL*8  :: R_CANOPY(:) ! Resist. of canopy to NOx [1/s]
+      REAL*8  :: LAI(:)      ! Leaf area indices [cm2/cm2]
+
+      INTEGER :: ILAND(:)    ! Olson land type indices in grid box	!VIA
+      INTEGER :: IREG        ! # of Olson land types per grid box	!VIA
 
 
 ! !OUTPUT PARAMETERS:
@@ -311,11 +320,11 @@ C     &                                             0.05d0           /)
 !      INTEGER :: K,         NN
 !BOP
 !
-      INTEGER :: K
-      !REAL*8  :: BASE_TERM, CRF_TERM,  PULSE
-      REAL*8  :: BASE_TERM, PULSE
-      !REAL*8  :: TC,        TEMP_TERM, WINDSQR  
-      REAL*8  :: TC,        TEMP_TERM
+      INTEGER :: K,	VIA,	VIAB, CRF_K !VIA
+      REAL*8  :: BASE_TERM, CRF_TERM,  PULSE, CRF_TERM_TEMP !maasaCRF
+      !REAL*8  :: BASE_TERM, PULSE
+      REAL*8  :: TC,        TEMP_TERM, WINDSQR  !maasaCRF
+      !REAL*8  :: TC,        TEMP_TERM
       REAL*8  :: WET_TERM,  A_FERT
       
 
@@ -334,7 +343,7 @@ C     &                                             0.05d0           /)
       TC             = TK - 273.15d0
 
       ! Surface wind speed, squared
-      !WINDSQR        = U10M**2 + V10M**2
+      WINDSQR        = U10M**2 + V10M**2 !maasaCRF
 
       !TS_EMIS = GET_TS_EMIS()
 
@@ -368,8 +377,85 @@ C     &                                             0.05d0           /)
          ! Fertilizer emission  
          !A_FERT = FERTADD( NN, MONTH, LAT, SOILFRT , DEPN)
          A_FERT = FERTADD( SOILFRT , DEPN)
-         ! Canopy reduction factor term
-         !CRF_TERM  = SOILCRF( NN, LAI(K), R_CANOPY(K), WINDSQR, SUNCOS )
+
+	!VIA PROJECT, TRANSFORM K(MODIS/Koppen) into VIA(Olson land type) and VIAB (Olson biome)
+	SELECT CASE (K)
+   		CASE (1)
+     			VIA = 1
+   		CASE (2)
+     			VIA = 10
+   		CASE (3)
+     			VIA = 1
+   		CASE (4)
+     			VIA = 1
+   		CASE (5)
+     			VIA = 1
+   		CASE (6)
+     			VIA = 1
+   		CASE (7)
+     			VIA = 11
+   		CASE (8)
+     			VIA = 11
+   		CASE (9)
+     			VIA = 11
+   		CASE (10)
+     			VIA = 7
+   		CASE (11)
+     			VIA = 7
+   		CASE (12)
+     			VIA = 7
+   		CASE (13)
+     			VIA = 7
+   		CASE (14)
+     			VIA = 6
+   		CASE (15)
+     			VIA = 5
+   		CASE (16)
+     			VIA = 2
+   		CASE (17)
+     			VIA = 4
+   		CASE (18)
+     			VIA = 3
+   		CASE (19)
+     			VIA = 3
+   		CASE (20)
+     			VIA = 4
+   		CASE (21)
+     			VIA = 2
+   		CASE (22)
+     			VIA = 8
+   		CASE (23)
+     			VIA = 1
+   		CASE (24)
+     			VIA = 8
+	END SELECT
+
+	!VIAB        = NCONSOIL( ILAND(VIA)+1 )
+	!END VIA PROJECT
+	
+	!VIA PROJECT
+	CRF_TERM = 0.
+	CRF_K = 0
+
+	DO VIAB = 1, IREG
+         	! Canopy reduction factor term
+	 	CRF_TERM_TEMP  = 0.
+         	CRF_TERM_TEMP  = SOILCRF( VIA, LAI(VIAB), 
+     &                                    R_CANOPY(VIAB),
+     & 			                  WINDSQR, SUNCOS ) !maasaCRF !VIA
+
+		IF ( CRF_TERM_TEMP .NE. 0. )THEN
+			CRF_TERM = CRF_TERM + CRF_TERM_TEMP
+			CRF_K = CRF_K + 1
+		ENDIF
+	ENDDO
+	
+	IF (CRF_TERM .NE. 0 .and. CRF_K .NE. 0) THEN
+		CRF_TERM = CRF_TERM / CRF_K
+	ELSE
+		CRF_TERM = 0.
+	ENDIF
+	!END VIA PROJECT
 
          !CRF_TERM = 1.0
 
@@ -381,17 +467,13 @@ C     &                                             0.05d0           /)
      &              + ( A_BIOME(K) + A_FERT )
      &             * ( TEMP_TERM * WET_TERM * PULSE ) 
      &             * LANDFRAC(K) )
-!     &             * ( 1d0                       - CRF_TERM  ) 
-!     &             * ( DBLE( IUSE(K) )           / 1000d0    )
-
+     &             * ( 1d0                       - CRF_TERM  ) !maasaCRF
 
          FERTDIAG  = (FERTDIAG
      &             + ( A_FERT )
      &             * ( TEMP_TERM * WET_TERM * PULSE ) 
      &             * LANDFRAC(K) )
-!     &             * ( 1d0                       - CRF_TERM  ) 
-!     &             * ( DBLE( IUSE(K) )           / 1000d0    )
-
+     &             * ( 1d0                       - CRF_TERM  ) !maasaCRF
 
 	 IF ( I == 69 .and. J == 51 .and. LANDFRAC(K) .NE. 0. ) THEN 
 
@@ -702,22 +784,22 @@ C     &                                             0.05d0           /)
 !\\
 !\\
 ! !INTERFACE:
-!
-!      FUNCTION SOILCRF( NN,        LAI, 
-!     &                  CANOPYNOX, WINDSQR, 
-!     &                  SUNCOS              ) RESULT( SOIL_CRF )
+!	!maasaCRF
+      FUNCTION SOILCRF( VIAB,        LAI, 
+     &                  CANOPYNOX, WINDSQR, 
+     &                  SUNCOS              ) RESULT( SOIL_CRF ) !VIA
 !
 ! !INPUT PARAMETERS: 
 !
-!      INTEGER, INTENT(IN) :: NN         ! Soil biome type  
-!      REAL*8,  INTENT(IN) :: LAI        ! Leaf area index [cm2/cm2]
-!      REAL*8,  INTENT(IN) :: CANOPYNOX  ! Bulk sfc resistance to NOx [1/s]
-!      REAL*8,  INTENT(IN) :: WINDSQR    ! Square of sfc wind speed [m2/s2]
-!      REAL*8,  INTENT(IN) :: SUNCOS     ! Cosine of solar zenith angle
+      INTEGER, INTENT(IN) :: VIAB         ! Soil biome type  !VIA
+      REAL*8,  INTENT(IN) :: LAI        ! Leaf area index [cm2/cm2]
+      REAL*8,  INTENT(IN) :: CANOPYNOX  ! Bulk sfc resistance to NOx [1/s]
+      REAL*8,  INTENT(IN) :: WINDSQR    ! Square of sfc wind speed [m2/s2]
+      REAL*8,  INTENT(IN) :: SUNCOS     ! Cosine of solar zenith angle
 !
 ! !RETURN_VALUE:
 ! 
-!      REAL*8              :: SOIL_CRF   ! Canopy reduction factor (see below)
+      REAL*8              :: SOIL_CRF   ! Canopy reduction factor (see below)
 
 ! !REMARKS:
 !  From Yienger & Levy [1995], Section 5:
@@ -754,41 +836,41 @@ C     &                                             0.05d0           /)
 ! !DEFINED PARAMETERS:
 !
       ! Ventilation velocity for NOx, day & night values [m/s]
-!      REAL*8,  PARAMETER :: VFDAY   = 1.0d-2
-!      REAL*8,  PARAMETER :: VFNIGHT = 0.2d-2 
+      REAL*8,  PARAMETER :: VFDAY   = 1.0d-2
+      REAL*8,  PARAMETER :: VFNIGHT = 0.2d-2 
 !
 ! !LOCAL VARIABLES:
 !
-!      REAL*8 :: VFNEW
+      REAL*8 :: VFNEW
 
 !      ! Pick proper ventilation velocity for day or night
-!      IF ( SUNCOS > 0d0 ) THEN
-!         VFNEW = VFDAY              
-!      ELSE 
-!         VFNEW = VFNIGHT            
-!      ENDIF
+      IF ( SUNCOS > 0d0 ) THEN
+         VFNEW = VFDAY              
+      ELSE 
+         VFNEW = VFNIGHT            
+      ENDIF
 
       ! If the leaf area index and the bulk surface resistance
       ! of the canopy to NOx deposition are both nonzero ...
-!      IF ( LAI > 0d0 .and. CANOPYNOX > 0d0 ) THEN
+      IF ( LAI > 0d0 .and. CANOPYNOX > 0d0 ) THEN
 
          ! Adjust the ventilation velocity.  
          ! NOTE: SOILEXC(2) is the canopy wind extinction 
          ! coefficient for the tropical rainforest biome.
-!         VFNEW    = VFNEW * SQRT( WINDSQR/9d0 * 7d0/LAI     ) *
-!     &                          ( SOILEXC(2)  / SOILEXC(NN) )
+         VFNEW    = VFNEW * SQRT( WINDSQR/9d0 * 7d0/LAI     ) *
+     &                          ( SOILEXC(2)  / SOILEXC(VIAB) )	!VIA
 
          ! Soil canopy reduction factor
-!         SOIL_CRF = CANOPYNOX / ( CANOPYNOX + VFNEW )
+         SOIL_CRF = CANOPYNOX / ( CANOPYNOX + VFNEW )
 
-!      ELSE
+      ELSE
      
          ! Otherwise set the soil canopy reduction factor to zero
-!         SOIL_CRF = 0d0
+         SOIL_CRF = 0d0
 
-!      ENDIF
+      ENDIF
 
-!      END FUNCTION SOILCRF
+      END FUNCTION SOILCRF
 !EOC
 !-----------------------------------------------------------------------------
 
