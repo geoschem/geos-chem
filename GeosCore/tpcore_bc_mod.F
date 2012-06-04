@@ -573,7 +573,7 @@
 
             ! Echo info
             STAMP = TIMESTAMP_STRING()
-            WRITE( 6, 113 ) STAMP
+            WRITE( 6, 114 ) STAMP
  114  FORMAT( '   - SAVE_GLOBAL_TPCORE_BC: Wrote SEAC4RS BC''s at ', a )
             
          ENDIF
@@ -1570,26 +1570,28 @@
 
 #if   defined( GRID4x5 )
 
-#if   defined( GEOS_57 ) && defined ( SEAC4RS )
-         !%%%%% 4x5 BC REGION FOR SEAC4RS GRID (GEOS-5.7 only) %%%%%
-         I1_BC_SE = 52                       ! 4x5 lon index, LL corner
-         J1_BC_SE = 21                       ! 4x5 lat index, LL corner
-         I2_BC_SE = 63                       ! 4x5 lon index, UR corner
-         J2_BC_SE = 31                       ! 4x5 lat index, UR corner
+#if   defined( GEOS_57 ) || defined( SEAC4RS ) || defined( NESTED_CH )
 
-#elif defined( GEOS_57 ) && defined( NESTED_CH )
+         !%%%%% 4x5 BC REGION FOR SEAC4RS GRID (GEOS-5.7 only) %%%%%
+         I1_BC_SE = 52          ! 4x5 lon index, LL corner
+         J1_BC_SE = 21          ! 4x5 lat index, LL corner
+         I2_BC_SE = 63          ! 4x5 lon index, UR corner
+         J2_BC_SE = 31          ! 4x5 lat index, UR corner
+         
          !%%%%% 4x5 BC REGION FOR NESTED CHINA GRID (GEOS-5.7 only) %%%%%
-         I1_BC_CH = 51                       ! 4x5 lon index, LL corner
-         J1_BC_CH = 27                       ! 4x5 lat index, LL corner
-         I2_BC_CH = 65                       ! 4x5 lon index, UR corner
-         J2_BC_CH = 37                       ! 4x5 lat index, UR corner
+         I1_BC_CH = 51          ! 4x5 lon index, LL corner
+         J1_BC_CH = 27          ! 4x5 lat index, LL corner
+         I2_BC_CH = 65          ! 4x5 lon index, UR corner
+         J2_BC_CH = 37          ! 4x5 lat index, UR corner
 
 #else
+
          !%%%%% 4x5 BC REGION FOR TRADITIONAL GEOS-5 CHINA NESTED GRID %%%%%
          I1_BC_CH = 51                       ! 4x5 lon index, LL corner
          J1_BC_CH = 21                       ! 4x5 lat index, LL corner
          I2_BC_CH = 67                       ! 4x5 lon index, UR corner
          J2_BC_CH = 37                       ! 4x5 lat index, UR corner
+
 #endif
 
 #endif
@@ -1598,14 +1600,14 @@
 
 #if   defined( GRID2x25 )
 
-#if   defined( GEOS_57 ) && defined( SEAC4RS )
+#if   defined( GEOS_57 ) || defined( SEAC4RS ) || defined( NESTED_CH )
+
          !%%%%% 2x25 BC REGION FOR SEAC4RS GRID (GEOS-5.7 only) %%%%%
          I1_BC_SE = 103                      ! 2x25 lon index, LL corner
          J1_BC_SE = 41                       ! 2x25 lat index, LL corner
          I2_BC_SE = 125                      ! 2x25 lon index, UR corner
          J2_BC_SE = 61                       ! 2x25 lat index, UR corner
 
-#elif defined( GEOS_57 ) && defined( NESTED_CH )
          !%%%%% 2x25 BC REGION FOR NESTED CHINA GRID (GEOS-5.7 only) %%%%%
          I1_BC_CH = 101                      ! 2x25 lon index, LL corner
          J1_BC_CH = 53                       ! 2x25 lat index, LL corner
@@ -1613,6 +1615,7 @@
          J2_BC_CH = 74                       ! 2x25 lat index, UR corner
 
 #else
+
          !%%%%% 2x25 BC REGION FOR TRADITIONAL GEOS-5 CHINA NESTED GRID %%%%%
          I1_BC_CH = 101                      ! 2x25 lon index, LL corner
          J1_BC_CH = 40                       ! 2x25 lat index, LL corner
@@ -1625,7 +1628,7 @@
 
       ENDIF
       
-#if   defined( NESTED_CH )
+      IF ( LWINDO_CH ) THEN
  
          ! Extent of coarse-grid CH BC REGION
          IM_BC_CH = I2_BC_CH - I1_BC_CH + 1
@@ -1635,7 +1638,9 @@
          I0_BC_CH = I1_BC_CH - 1
          J0_BC_CH = J1_BC_CH - 1
 
-#elif defined( SEAC4RS )
+      ENDIF
+
+      IF ( LWINDO_SE ) THEN
 
          ! Extent of coarse-grid SEAC4RS BC REGION
          IM_BC_SE = I2_BC_SE - I1_BC_SE + 1
@@ -1645,7 +1650,7 @@
          I0_BC_SE = I1_BC_SE - 1
          J0_BC_SE = J1_BC_SE - 1
 
-#endif
+      ENDIF
 
       ! Return if we are not saving 4x5 BC's
       ! or if it's not a nested grid simulation
@@ -1676,7 +1681,7 @@
       IF ( LWINDO_SE ) THEN
          ALLOCATE( BC_SE( IM_BC_SE, JM_BC_SE, 
      &                    LLPAR,    N_TRACERS ), STAT=AS )
-         IF ( AS /= 0 ) CALL ALLOC_ERR( 'BC_CH' )
+         IF ( AS /= 0 ) CALL ALLOC_ERR( 'BC_SE' )
          BC_SE = 0e0
       ENDIF
 

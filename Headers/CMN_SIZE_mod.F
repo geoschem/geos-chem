@@ -713,6 +713,7 @@
       !-----------------------------------------------------------------
       IIPAR      = IGLOB
       JJPAR      = JGLOB
+
 #if   defined( GRIDREDUCED ) 
 
 #else
@@ -1068,17 +1069,17 @@
       !-----------------------------------------------------------------
       ! GEOS-5.7.x: Nested China Grid
       !-----------------------------------------------------------------
-      INTEGER            :: IGLOB      = 225
-      INTEGER            :: JGLOB      = 161
-      INTEGER            :: LGLOB      = 72
-      INTEGER            :: IIPAR
-      INTEGER            :: JJPAR
+      INTEGER, PARAMETER :: IGLOB      = 225
+      INTEGER, PARAMETER :: JGLOB      = 161
+      INTEGER, PARAMETER :: LGLOB      = 72
+      INTEGER, PARAMETER :: IIPAR      = IGLOB
+      INTEGER, PARAMETER :: JJPAR      = JGLOB
 #if   defined( GRIDREDUCED )
-      INTEGER            :: LLPAR      = 47        ! Reduced vertical grid
+      INTEGER, PARAMETER :: LLPAR      = 47        ! Reduced vertical grid
       INTEGER, PARAMETER :: LLTROP_FIX = 38        !  -- 47 levels
       INTEGER, PARAMETER :: LLTROP     = 38  
 #else 
-      INTEGER            :: LLPAR                  ! Full vertical grid
+      INTEGER, PARAMETER :: LLPAR      = LGLOB     ! Full vertical grid
       INTEGER, PARAMETER :: LLTROP_FIX = 40        !  -- 72 levels
       INTEGER, PARAMETER :: LLTROP     = 40  
 #endif
