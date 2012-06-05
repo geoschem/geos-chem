@@ -305,7 +305,6 @@
 
             ! Get emissions [molec/cm2/s] or [atoms C/cm2/s]
             CALL GFED3_COMPUTE_BIOMASS( YEAR, MONTH, BIOMASS )
-            WRITE(6,*)'BIOMASS_IDBCO', BIOMASS(60,23,IDBCO)
 
             ! Irrespective of inventory type, we need to scale biomass
             ! CO to account for CO production from VOC's that are not

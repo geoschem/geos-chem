@@ -463,9 +463,6 @@
          ! Define global grid box lat and lon edges at model resolution
 #if   defined( GRID05x0666 ) || defined( GRID025x03125 )
 
-         ! Note: Nested grids utilize global longitude and latidude extent
-         ! parameters IIIPAR and JJJPAR (from global_grid_mod)
-
          DO I = 1,IIIPAR0+1
             XEDGE_MODELG( I ) = GET_XEDGE_G ( I )
          END DO
@@ -480,18 +477,15 @@
 
 #else
 
-         ! Note: Global grids utilize window longitude and latidude extent
-         ! parameters IIPAR and JJPAR (from CMN_SIZE_mod)
-
-         DO I = 1,IIPAR+1
+         DO I = 1,IIIPAR0+1
             XEDGE_MODELG( I ) = GET_XEDGE( I, 1, 1 )
          END DO
 
-         DO J = 1,JJPAR+1
+         DO J = 1,JJJPAR0+1
             YEDGE_MODELG( J ) = GET_YEDGE( 1, J, 1 )
          END DO
 
-         DO J = 1,JJPAR+1
+         DO J = 1,JJJPAR0+1
             YEDGE_MODELG( J ) = SIN( YEDGE_MODELG( J ) * DEG2RAD)
          END DO
 
@@ -633,9 +627,6 @@
 
       DM_GFED3_MON(:,:,6) = ARRAY_GFED3(:,:,1)
 
-      WRITE(6,*)'DM_GFED3_MON'
-      WRITE(6,*)(DM_GFED3_MON(589,175,NF),NF=1,6)
-
       !=================================================================
       ! Convert [g DM/m2/month] to [kg DM/cm2/month]
       !
@@ -685,9 +676,6 @@
             FR_GFED3_3HR(:,:,IT3) = ARRAY_GFED3(:,:,1)
 
          END DO
-
-         WRITE(6,*)'FR_GFED3_3HR'
-         WRITE(6,*)(FR_GFED3_3HR(589,175,IT3),IT3=1,8)
 
       ENDIF
 
@@ -747,8 +735,6 @@
 
          FR_GFED3_DAY(:,:) = ARRAY_GFED3(:,:,1)
 
-         WRITE(6,*)'FR_GFED3_DAY'
-         WRITE(6,*)FR_GFED3_DAY(589,175)
       ENDIF
 
 ! Convert DM burnt from kg/cm2/month to kg/cm2/day or
@@ -777,11 +763,6 @@
          ENDDO
  
       END DO
-
-      WRITE(6,*)'IT3HR', IT3HR
-      WRITE(6,*)'DM_GFED3'
-      WRITE(6,*)(DM_GFED3(589,175,NF),NF=1,6)
-
 
       !=================================================================
       ! Calculate biomass species emissions on GFED3 grid
@@ -818,8 +799,6 @@
          ENDDO
 
          ! Regrid emissions from GFED3 grid to model grid
-#if   defined( GRID05x0666 ) || defined( GRID025x03125 )
-
          ALLOCATE( bq1( IGFED3, JGFED3 ), STAT=AS )
          IF ( AS /= 0 ) CALL ALLOC_ERR( 'bq1' )
          ALLOCATE( bq2( IIIPAR0, JJJPAR0 ), STAT=AS )
@@ -831,22 +810,6 @@
      &                 YEDGE_GFED3, bq1,          IIIPAR0,
      &                 JJJPAR0,     XEDGE_MODELG, YEDGE_MODELG,
      &                 bq2,         0,            0 )
-
-#else
-
-         ALLOCATE( bq1( IGFED3, JGFED3 ), STAT=AS )
-         IF ( AS /= 0 ) CALL ALLOC_ERR( 'bq1' )
-         ALLOCATE( bq2( IIPAR, JJPAR ), STAT=AS )
-         IF ( AS /= 0 ) CALL ALLOC_ERR( 'bq2' )
-
-         bq1(:,:)=BIOMASS_GFED3(:,:,N)
-
-         CALL MAP_A2A( IGFED3,      JGFED3,       XEDGE_GFED3,
-     &                 YEDGE_GFED3, bq1,          IIPAR,
-     &                 JJPAR,       XEDGE_MODELG, YEDGE_MODELG,
-     &                 bq2,         0,            0 )
-
-#endif
 
          I0    = GET_XOFFSET( GLOBAL=.TRUE. )
          J0    = GET_YOFFSET( GLOBAL=.TRUE. )
@@ -861,11 +824,6 @@
          DEALLOCATE( bq2 )
 
       END DO
-
-      WRITE(6,*)'I0, J0', I0, J0
-      WRITE(6,*)'HUMTROP_GFED3', HUMTROP_GFED3(589,175)
-      WRITE(6,*)'BIOMASS_GFED3', BIOMASS_GFED3(589,175,2)
-      WRITE(6,*)'BIOMASS_MODEL', BIOMASS_MODEL(60,23,2)
 
       ! Compute future biomass emissions (if necessary)
       IF ( LFUTURE ) THEN
@@ -1146,6 +1104,23 @@
       ! INIT_GFED3_BIOMASS begins here!
       !=================================================================
 
+      ! Get global longitude/latitude extent [# of boxes]
+#if   defined( GRID05x0666 ) || defined( GRID025x03125 )
+
+      ! Nested grids utilize global longitude and latidude extent
+      ! parameters IIIPAR and JJJPAR (from global_grid_mod)
+      IIIPAR0 = GET_IIIPAR()
+      JJJPAR0 = GET_JJJPAR()
+
+#else
+
+      ! Global grids utilize window longitude and latidude extent
+      ! parameters IIPAR and JJPAR (from CMN_SIZE_mod)
+      IIIPAR0 = IIPAR
+      JJJPAR0 = JJPAR
+
+#endif
+
       ! Allocate array to hold GFED3 grid box lon edges
       ALLOCATE( XEDGE_GFED3( IGFED3+1 ), STAT=AS )
       IF ( AS /= 0 ) CALL ALLOC_ERR( 'XEDGE_GFED3' )
@@ -1155,12 +1130,6 @@
       ALLOCATE( YEDGE_GFED3( JGFED3+1 ), STAT=AS )
       IF ( AS /= 0 ) CALL ALLOC_ERR( 'YEDGE_GFED3' )
       YEDGE_GFED3 = 0.d0
-
-#if   defined( GRID05x0666 ) || defined( GRID025x03125 )
-
-      ! Get global longitude/latitude extent [# of boxes]
-      IIIPAR0 = GET_IIIPAR()
-      JJJPAR0 = GET_JJJPAR()
 
       ! Allocate array to hold GEOS-Chem grid box lon edges
       ALLOCATE( XEDGE_MODELG( IIIPAR0+1 ), STAT=AS )
@@ -1172,25 +1141,10 @@
       IF ( AS /= 0 ) CALL ALLOC_ERR( 'YEDGE_MODELG' )
       YEDGE_MODELG = 0.d0
 
-#else
-
-      ! Allocate array to hold GEOS-Chem grid box lon edges
-      ALLOCATE( XEDGE_MODELG( IIPAR+1 ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'XEDGE_MODELG' )
-      XEDGE_MODELG = 0.d0
-
-      ! Allocate array to hold GEOS-Chem grid box lat edges
-      ALLOCATE( YEDGE_MODELG( JJPAR+1 ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'YEDGE_MODELG' )
-      YEDGE_MODELG = 0.d0
-
-#endif
-
       ! Allocate array to hold GFED3 species emissions on model grid
       ALLOCATE( BIOMASS_MODEL( IIPAR, JJPAR, N_SPEC ), STAT=AS )
       IF ( AS /= 0 ) CALL ALLOC_ERR( 'BIOMASS_MODEL' )
       BIOMASS_MODEL = 0d0
-
 
       ! Allocate array to hold monthly GFED3 DM burnt GFED3 grid
       ALLOCATE( DM_GFED3_MON( IGFED3, JGFED3, N_SPEC ), STAT=AS )
