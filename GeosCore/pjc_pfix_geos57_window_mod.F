@@ -1236,8 +1236,8 @@ c     --------------------------------------
         ri2   = i2_gl
         rj2m1 = j2_gl - 1
 
-        dl    = 2.0d0 * PI / 540D0    !(dan)
-        dp    = PI /360D0            !(dan)
+        dl    = 2.0d0 * PI / 1152D0  !(dan)
+        dp    = PI /720D0            !(dan)
 
         dtdy  = tdt / (Re * dp)
         dtdy5 = 0.5d0 * dtdy
@@ -1390,8 +1390,8 @@ c     --------------------------------------
         ri2   = i2_gl
         rj2m1 = j2_gl - 1
 
-        dl    = 2.0d0 * PI /540D0   !(dan) 
-        dp    = PI /360D0 !(dan) 
+        dl    = 2.0d0 * PI /1152D0   !(dan) 
+        dp    = PI /720D0            !(dan) 
 
         facty  = 0.5d0 * tdt / (Re * dp)
 

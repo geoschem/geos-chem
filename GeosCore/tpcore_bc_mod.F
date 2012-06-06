@@ -1568,9 +1568,9 @@
       !-----------------------------------------------------------------
       IF (.not. LWINDO2x25 ) THEN 
 
-#if   defined( GRID4x5 )
+#if   defined( GRID4x5 ) || defined( NESTED_CH ) || defined( SEAC4RS )
 
-#if   defined( GEOS_57 ) || defined( SEAC4RS ) || defined( NESTED_CH )
+#if   defined( GEOS_57 )
 
          !%%%%% 4x5 BC REGION FOR SEAC4RS GRID (GEOS-5.7 only) %%%%%
          I1_BC_SE = 52          ! 4x5 lon index, LL corner
@@ -1598,9 +1598,9 @@
 
       ELSE
 
-#if   defined( GRID2x25 )
+#if   defined( GRID2x25 ) || defined( SEAC4RS ) || defined( NESTED_CH )
 
-#if   defined( GEOS_57 ) || defined( SEAC4RS ) || defined( NESTED_CH )
+#if   defined( GEOS_57 )
 
          !%%%%% 2x25 BC REGION FOR SEAC4RS GRID (GEOS-5.7 only) %%%%%
          I1_BC_SE = 103                      ! 2x25 lon index, LL corner
@@ -1757,7 +1757,7 @@
       IF ( AS /= 0 ) CALL ALLOC_ERR( 'BC' )
       BC = 0e0
 
-      ALLOCATE( MAP1x1( IIPAR, JJPAR, 3 ) , STAT=AS )
+      ALLOCATE( MAP1x1( IIPAR, JJPAR, 4 ) , STAT=AS )
       IF ( AS /= 0 ) CALL ALLOC_ERR( 'MAP1x1' )
       MAP1x1 = 0
 
