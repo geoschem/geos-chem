@@ -31,7 +31,7 @@
       USE TRACER_MOD,     ONLY : XNUMOLAIR
       USE TRACERID_MOD,   ONLY : IDTOX
       USE TROPOPAUSE_MOD, ONLY : ITS_IN_THE_TROP
-      USE DIAG03_MOD       , ONLY : AD03_RGM, AD03_RPM, ND03   
+      USE DIAG03_MOD       , ONLY : AD03_RGM, AD03_PBM, ND03   
       USE OCEAN_MERCURY_MOD, ONLY : Fg, Fp, PARTITION_Hg2
 
 #if   defined( APM )
@@ -161,7 +161,7 @@
 ! H Amos, 25 Oct 2011--------------------------------------------------
 
       !-----------------------------------------------!
-      ! Write ND03 diagnostics for RGM and RPM (pptv) !
+      ! Write ND03 diagnostics for RGM and PBM (pptv) !
       !-----------------------------------------------!
        IF(ND03 > 0) THEN
 
@@ -177,8 +177,8 @@
           AD03_RGM(I,J,L) = AD03_RGM(I,J,L)+
      &      Fg(I,J,L) * STT(I,J,L,2) * TCVV(2) / AD(I,J,L) *1D12
 
-          ! Reactive particulate mercury, RPM
-          AD03_RPM(I,J,L) = AD03_RPM(I,J,L) + 
+          ! Reactive particulate mercury, PBM
+          AD03_PBM(I,J,L) = AD03_PBM(I,J,L) + 
      &      Fp(I,J,L)* STT(I,J,L,2) * TCVV(2) / AD(I,J,L) *1D12
                                                        
         ENDDO

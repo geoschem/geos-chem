@@ -309,7 +309,6 @@
       USE BPCH2_MOD    , ONLY : GET_TAU0     , READ_BPCH2
       USE DIRECTORY_MOD, ONLY : DATA_DIR
       USE TRANSFER_MOD , ONLY : TRANSFER_3D  , TRANSFER_3D_TROP
-      USE DIAG03_MOD   , ONLY : AD03_Fg      , AD03_Fp 
       USE DIAG03_MOD   , ONLY : ND03                
       USE TIME_MOD     , ONLY : SET_Hg2_DIAG        
       USE DIRECTORY_MOD, ONLY : DATA_DIR      
@@ -509,17 +508,6 @@
             IF (Fg(I,J,L)+Fp(I,J,L) > 1) THEN
                PRINT*, ' Fg + Fp > 1 @ ocean_mercury_mod.f'
                CALL GEOS_CHEM_STOP 
-            ENDIF
-
-            ! write AD03 diagnostics
-            IF ( ND03 > 0 ) THEN
-
-               ! Hg(II) gas fraction
-               AD03_Fg(I,J,L) = AD03_Fg(I,J,L) + Fg(I,J,L)
-
-               ! Hg(II) particle-bound fraction
-               AD03_Fp(I,J,L) = AD03_Fp(I,J,L) + Fp(I,J,L) 
-
             ENDIF
 
       ENDDO
