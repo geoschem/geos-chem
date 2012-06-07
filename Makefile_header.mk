@@ -73,6 +73,36 @@
 #  19 Jan 2010 - R. Yantosca - Minor fix, add -m64 if SUN32 is not defined.
 #  25 Jan 2010 - R. Yantosca - Now add -DTOMAS to FFLAGS if necessary
 #  28 Jan 2010 - C. Carouge  - Add -lIsoropia to LINK, for ISORROPIA II
+#  16 Feb 2011 - R. Yantosca - Now add -DAPM to FFLAGS if necessary
+#  25 Aug 2011 - R. Yantosca - Add "-fp-model source" to FFLAGS for IFORT 
+#                              compiler.  This will prevent aggressive 
+#                              optimizations from changing numerical results.
+#  25 Aug 2011 - R. Yantosca - Add -CU (check for uninit'd variables) to 
+#                              FFLAGS when using IFORT w/ the DEBUG option.
+#  26 Aug 2011 - R. Yantosca - Allow for deactivation of the "-fp-model source"
+#                              option by using the PRECISE=no env variable
+#  24 Jan 2012 - R. Yantosca - If NETCDF=yes, GEOS-Chem will link and include
+#                              to the netCDF dir paths that are specified
+#  24 Jan 2012 - R. Yantosca - Now use := for makefile assignment statements
+#  10 Feb 2012 - R. Yantosca - When compiling with NETCDF=yes or HDF5=yes,
+#                              we must also add the flags -mcmodel=medium 
+#                              -i-dynamic to FFLAGS in order to avoid memory 
+#                              errors (for IFORT only)
+#  10 Feb 2012 - R. Yantosca - Remove -CU from the DEBUG option (IFORT only)
+#  19 Mar 2012 - R. Yantosca - Add optional NO_ISO switch, which will turn off
+#                              the ISORROPIA ATE package for testing
+#  05 Apr 2012 - R. Yantosca - Now assume netCDF is always used
+#  05 Apr 2012 - R. Yantosca - Change BL_INC_NETCDF to INC_NETCDF
+#  05 Apr 2012 - R. Yantosca - Change BL_INC_HDF5   to INC_HDF5
+#  05 Apr 2012 - R. Yantosca - Change BL_LIB_NETCDF to LIB_NETCDF
+#  05 Apr 2012 - R. Yantosca - Change BL_LIB_HDF5   to LIB_HDF5
+#  30 Apr 2012 - R. Yantosca - Add NETCDF3=[yes|no] makefile option
+#  30 Apr 2012 - R. Yantosca - Use separate netCDF link and include paths
+#                              for netCDF3 and for netCDF4
+#  30 Apr 2012 - R. Yantosca - Also add -mcmodel=medium flag for PGI compiler
+#  09 May 2012 - R. Yantosca - Now try to get the proper linking sequence 
+#                              for netCDF etc w/ nf-config and nc-config.
+#  11 May 2012 - R. Yantosca - Now export NCL (netCDF linking sequence)
 #EOP
 #------------------------------------------------------------------------------
 #BOC
@@ -83,22 +113,27 @@
 
 # IFORT is default compiler
 ifndef COMPILER
-COMPILER = ifort
+COMPILER  := ifort
 endif
 
 # OpenMP is turned on by default
 ifndef OMP
-OMP = yes
+OMP       := yes
 endif
 
-# HDF5 output is turned off by defautl
+# HDF5 I/O is turned off by default
 ifndef HDF5
-HDF5 = no
+HDF5      := no
 endif
+
+# Use precise FP math optimization (i.e. to avoid numerical noise)
+ifndef PRECISE
+PRECISE   := yes
+endif 
 
 # TOMAS runs on single processor (at least for now!)
 ifeq ($(TOMAS),yes)
-OMP = no
+OMP       := no
 endif
 
 #==============================================================================
@@ -106,27 +141,54 @@ endif
 #==============================================================================
 
 # If your system uses "/bin/sh", then uncomment this line!
-SHELL = /bin/sh
+SHELL     := /bin/sh
 
 # If your system uses "/bin/bash", then uncomment this line!
-#SHELL = /bin/bash
+#SHELL     := /bin/bash
 
-# If you have HDF5 installed on your system, then define both the include
-# (H5I) and library paths (H5L) here!  Otherwise leave these blank.
-H5I = /home/bmy/NASA/basedir/x86_64-unknown-linux-gnu/ifort/Linux/include/hdf5
-H5L = /home/bmy/NASA/basedir/x86_64-unknown-linux-gnu/ifort/Linux/lib
+# Library include path
+NCI       := -I$(GC_INCLUDE)
 
-# Link to library files created from code in the various subdirs
-# NOTE: -lGeosUtil should always be last!
-LINK  = -L$(LIB) -lKpp -lIsoropia -lGeosUtil
-LHG   = -L$(LIB) -lKpp -lIsoropia -lHg -lGeosUtil
+# Library link path: first try to get the list of proper linking flags
+# for this build of netCDF with nf-config and nc-config. 
+NCL       := $(shell $(GC_BIN)/nf-config --flibs)
+NCL       += $(shell $(GC_BIN)/nc-config --libs)
+NCL       := $(filter -l%,$(NCL))
 
-# Add the HDF5 library link commands if necessary
+#%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+#%%%% NOTE TO GEOS-CHEM USERS: If you do not have netCDF-4.2 installed
+#%%%% Then you can add/modify the linking sequence here.  (This sequence
+#%%%% is a guess, but is probably good enough for other netCDF builds.)
+ifeq ($(NCL),) 
+NCL       := -lnetcdf -lhdf5_hl -lhdf5 -lz
+endif
+#%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+# Prepend the library directory path to the linking sequence
+NCL       := -L$(GC_LIB) $(NCL)
+
+# Command to link to the various library files (-lHeaders should be last!)
+LINK      := -L$(LIB) -lKpp -lIsoropia -lGeosUtil -lHeaders
+LINK      := $(LINK) -lNcUtils $(NCL)
+
+# Commands to link to libraries, for GTMM code (-lHeaders should be last!)
+LHG       := -L$(LIB) -lKpp -lIsoropia -lHg -lGeosUtil -lHeaders
+LHG       := $(LINK) -lNcUtils $(NCL)
+
+# Add the HDF5 library link commands (optional)
 ifeq ($(HDF5),yes) 
-LINK += -L$(H5L) -lhdf5_fortran -lhdf5_hl -lhdf5hl_fortran -lhdf5 -lsz -lz -lm
-LHG  += -L$(H5L) -lhdf5_fortran -lhdf5_hl -lhdf5hl_fortran -lhdf5 -lsz -lz -lm
+LINK      := $(LINK) -L$(H5L)
+LHG       := $(LINK) -L$(H5L)
 endif
 
+# For ESMF development
+ifeq ($(ESMF),yes)
+LINK      += -lESMF $(LIB_CHEM_BASE) $(LIB_CHEM_SHARED) $(LIB_PILGRIM)   \
+                    $(LIB_MAPL_BASE) $(LIB_CFIO) $(LIB_GFIO) $(LIB_MPEU) \
+                    $(LIB_ESMF) $(LIB_SDF) $(LIB_SYS) $(LIB_MPI)         \
+                    $(ESMF_LDFLAGS) -lmpi_cxx -lstdc++ -limf -lrt -ldl
+LHG       += -lESMF
+endif
 
 #==============================================================================
 # IFORT compilation options (default)
@@ -135,47 +197,82 @@ ifeq ($(COMPILER),ifort)
 
 # Turn on -traceback option by default for debugging runs
 ifdef DEBUG
-TRACEBACK=yes
+TRACEBACK := yes
 endif
 
 # Pick compiler options for debug run or regular run 
 ifdef DEBUG
-FFLAGS   = -cpp -w -O0 -auto -noalign -convert big_endian -g
+FFLAGS    := -cpp -w -O0 -auto -noalign -convert big_endian -g
 else
-FFLAGS   = -cpp -w -O2 -auto -noalign -convert big_endian -vec-report0
+FFLAGS    := -cpp -w -O2 -auto -noalign -convert big_endian -vec-report0 
+endif
+
+# Add options for medium memory model.  This is to prevent G-C from 
+# running out of memory at hi-res, especially when using netCDF I/O.
+FFLAGS    += -mcmodel=medium -i-dynamic
+
+# Prevent any optimizations that would change numerical results
+# This is needed to prevent numerical noise from ISORROPIA (bmy, 8/25/11)
+ifeq ($(PRECISE),yes)
+FFLAGS    += -fp-model source
 endif
 
 # Turn on OpenMP parallelization
 ifeq ($(OMP),yes) 
-FFLAGS  += -openmp -Dmultitask
+FFLAGS    += -openmp -Dmultitask
 endif
 
 # Also add TOMAS aerosol microphysics option
 ifeq ($(TOMAS),yes) 
-FFLAGS  += -DTOMAS
+FFLAGS    += -DTOMAS
+endif
+
+# Also add APM aerosol microphysics option
+ifeq ($(APM),yes) 
+FFLAGS    += -DAPM
 endif
 
 # Add special IFORT optimization commands
 ifdef IPO
-FFLAGS  += -ipo -static
+FFLAGS    += -ipo -static
 endif
 
 # Add option for "array out of bounds" checking
 ifdef BOUNDS
-FFLAGS  += -CB
+FFLAGS    += -CB
 endif
 
 # Also add traceback option
 ifdef TRACEBACK
-FFLAGS  += -traceback
+FFLAGS    += -traceback
+endif
+
+# Option to turn off ISORROPIA for testing
+ifdef NO_ISO
+FFLAGS    += -DNO_ISORROPIA
 endif
 
 # Include options (i.e. for finding *.h, *.mod files)
-INCLUDE  = -I$(HDR) -module $(MOD)
+INCLUDE   := -I$(HDR) -module $(MOD) $(NCI)
 
-# Also append HDF5 include commands if necessary
+# Also append HDF5 include commands (optional)
 ifeq ($(HDF5),yes)
-INCLUDE += -DUSE_HDF5 -I$(H5I)
+INCLUDE   += -DUSE_HDF5 -I$(H5I)
+endif
+
+# Also add ESMF linking option
+ifeq ($(ESMF),yes)
+FFLAGS    += -DESMF_
+endif
+
+ifeq ($(ESMF_TESTBED),yes)
+FFLAGS    += -DESMF_TESTBED_
+INCLUDE   += -I$(HDR)
+endif
+
+# DEVELOPMENT FLAG - MSL
+ifeq ($(DEVEL),yes)
+FFLAGS  += -DDEVEL
 endif
 
 CC       =
@@ -193,153 +290,196 @@ ifeq ($(COMPILER),pgi)
 
 # Pick compiler options for debug run or regular run 
 ifdef DEBUG 
-FFLAGS   = -byteswapio -Mpreprocess -Bstatic -g -O0 
+FFLAGS    := -byteswapio -Mpreprocess -Bstatic -g -O0 
 else
-FFLAGS   = -byteswapio -Mpreprocess -Bstatic -fast 
+FFLAGS    := -byteswapio -Mpreprocess -Bstatic -fast 
 endif
+
+# Add options for medium memory model.  This is to prevent G-C from 
+# running out of memory at hi-res, especially when using netCDF I/O.
+FFLAGS    += -mcmodel=medium
 
 # Turn on OpenMP parallelization
 ifeq ($(OMP),yes) 
-FFLAGS  += -mp -Mnosgimp -Dmultitask
+FFLAGS    += -mp -Mnosgimp -Dmultitask
 endif
 
 # Add option for suppressing PGI non-uniform memory access (numa) library 
 ifeq ($(NONUMA),yes) 
-FFLAGS  += -mp=nonuma
+FFLAGS    += -mp=nonuma
 endif
 
 # Also add TOMAS aerosol microphysics option
 ifeq ($(TOMAS),yes) 
-FFLAGS  += -DTOMAS
+FFLAGS    += -DTOMAS
+endif
+
+# Also add APM aerosol microphysics option
+ifeq ($(APM),yes) 
+FFLAGS    += -DAPM
 endif
 
 # Add option for "array out of bounds" checking
 ifdef BOUNDS
-FFLAGS  += -C
+FFLAGS    += -C
+endif
+
+# Option to turn off ISORROPIA for testing
+ifdef NO_ISO
+FFLAGS    += -DNO_ISORROPIA
 endif
 
 # Include options (i.e. for finding *.h, *.mod files)
-INCLUDE  = -I$(HDR) -module $(MOD)
+INCLUDE   := -I$(HDR) -module $(MOD) $(NCI)
 
-# Also append HDF5 include commands if necessary
+# Also append HDF5 include commands (optional)
 ifeq ($(HDF5),yes)
-INCLUDE += -DUSE_HDF5 -I$(H5I)
+INCLUDE   += -DUSE_HDF5 -I$(H5I)
 endif
 
-CC       = gcc
-F90      = pgf90 $(FFLAGS) $(INCLUDE)
-LD       = pgf90 $(FFLAGS)
-FREEFORM = -Mfree
-R8       = -Mextend -r8
-
-endif
-
-#==============================================================================
-# SunStudio compilation options
-#==============================================================================
-ifeq ($(COMPILER),sun) 
-
-# Pick compiler options for debug run or regular run 
-# NOTE: -native builds in proper options for whichever chipset you have!
-ifdef DEBUG 
-FFLAGS   = -fpp -g -O0 -stackvar -xfilebyteorder=big16:%all -native
-else
-FFLAGS   = -fpp -fast -stackvar -xfilebyteorder=big16:%all -native
-endif
-
-# Build Sun for 32-bit platform
-ifdef SUN32
-FFLAGS  += -m32
-else
-FFLAGS  += -m64
-endif
-
-# Turn on OpenMP parallelization
-ifeq ($(OMP),yes) 
-FFLAGS  += -openmp=parallel -Dmultitask
-endif
-
-# Also add TOMAS aerosol microphysics option
-ifeq ($(TOMAS),yes) 
-FFLAGS  += -DTOMAS
-endif
-
-# Add option for "array out of bounds" checking
-ifdef BOUNDS
-FFLAGS  += -C
-endif
-
-# Include options (i.e. for finding *.h, *.mod files)
-INCLUDE  = -I$(HDR) -moddir=$(MOD) -M$(MOD)
-
-# Also append HDF5 include commands if necessary
-ifeq ($(HDF5),yes)
-INCLUDE += -DUSE_HDF5 -I$(H5I)
-endif
-
-CC       =
-#---------------------------------------------------------------
-# If your compiler is under the name "f90", use these lines!
-F90      = f90 $(FFLAGS) $(INCLUDE)
-LD       = f90 $(FFLAGS)
-#---------------------------------------------------------------
-# If your compiler is under the name "sunf90", use these lines!
-#F90      = sunf90 $(FFLAGS) $(INCLUDE)
-#LD       = sunf90 $(FFLAGS)
-#---------------------------------------------------------------
-FREEFORM = -free
-R8       = -xtypemap=real:64
+CC        := gcc
+F90       := pgf90 $(FFLAGS) $(INCLUDE)
+LD        := pgf90 $(FFLAGS)
+FREEFORM  := -Mfree
+R8        := -Mextend -r8
 
 endif
 
-#==============================================================================
-# IBM/XLF compilation options
-# NOTE: someone who runs on IBM compiler should check this !!!
-#==============================================================================
-ifeq ($(COMPILER),xlf) 
-
-# Default compilation options
-FFLAGS = -bmaxdata:0x80000000 -bmaxstack:0x80000000 -qfixed -qsuffix=cpp=f -q64
-
-# Add optimization options
-FFLAGS += -O3 -qarch=auto -qtune=auto -qcache=auto -qmaxmem=-1 -qstrict 
-
-# Turn on OpenMP parallelization
-ifeq ($(OMP),yes) 
-FFLAGS += -qsmp=omp:opt -WF,-Dmultitask -qthreaded
-endif
-
-# Prior to 11/19/09:
-## Add more options for parallel run
-#ifndef DEBUG
+#%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+# Prior to 4/30/12:
+# For now, remove SunStudio compiler option.  Pretty much everyone now is using
+# a Linux-like O/S and can use either IFORT or PGI compilers. (bmy, 4/30/12)
+##==============================================================================
+## SunStudio compilation options
+##==============================================================================
+#ifeq ($(COMPILER),sun) 
+#
+## Pick compiler options for debug run or regular run 
+## NOTE: -native builds in proper options for whichever chipset you have!
+#ifdef DEBUG 
+#FFLAGS    := -fpp -g -O0 -stackvar -xfilebyteorder=big16:%all -native
+#else
+#FFLAGS    := -fpp -fast -stackvar -xfilebyteorder=big16:%all -native
+#endif
+#
+## Build Sun for 32-bit platform
+#ifdef SUN32
+#FFLAGS    += -m32
+#else
+#FFLAGS    += -m64
+#endif
+#
+## Turn on OpenMP parallelization
+#ifeq ($(OMP),yes) 
+#FFLAGS    += -openmp=parallel -Dmultitask
+#endif
+#
+## Also add TOMAS aerosol microphysics option
+#ifeq ($(TOMAS),yes) 
+#FFLAGS    += -DTOMAS
+#endif
+#
+## Also add APM aerosol microphysics option
+#ifeq ($(APM),yes) 
+#FFLAGS    += -DAPM
+#endif
+#
+## Add option for "array out of bounds" checking
+#ifdef BOUNDS
+#FFLAGS    += -C
+#endif
+#
+## Option to turn off ISORROPIA for testing
+#ifdef NO_ISO
+#FFLAGS    += -DNO_ISORROPIA
+#endif
+#
+## Include options (i.e. for finding *.h, *.mod files)
+#INCLUDE   := -I$(HDR) -moddir=$(MOD) -M$(MOD) $(NCI)
+#
+## Also append HDF5 include commands (optional)
+#ifeq ($(HDF5),yes)
+#INCLUDE   += -DUSE_HDF5 -I$(H5I)
+#endif
+#
+#CC        :=
+##---------------------------------------------------------------
+## If your compiler is under the name "f90", use these lines!
+#F90       := f90 $(FFLAGS) $(INCLUDE)
+#LD        := f90 $(FFLAGS)
+##---------------------------------------------------------------
+## If your compiler is under the name "sunf90", use these lines!
+##F90       := sunf90 $(FFLAGS) $(INCLUDE)
+##LD        := sunf90 $(FFLAGS)
+##---------------------------------------------------------------
+#FREEFORM  := -free
+#R8        := -xtypemap=real:64
+#
+#endif
+#
+#%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+# Prior to 4/30/12:
+# For now, remove IBM/XLF compiler option.  Pretty much everyone now is using
+# a Linux-like O/S and can use either IFORT or PGI compilers. (bmy, 4/30/12)
+##==============================================================================
+## IBM/XLF compilation options
+## NOTE: someone who runs on IBM compiler should check this !!!
+##==============================================================================
+#ifeq ($(COMPILER),xlf) 
+#
+## Default compilation options
+#FFLAGS = -bmaxdata:0x80000000 -bmaxstack:0x80000000 -qfixed -qsuffix=cpp=f -q64
+#
+## Add optimization options
+#FFLAGS += -O3 -qarch=auto -qtune=auto -qcache=auto -qmaxmem=-1 -qstrict 
+#
+## Turn on OpenMP parallelization
+#ifeq ($(OMP),yes) 
 #FFLAGS += -qsmp=omp:opt -WF,-Dmultitask -qthreaded
 #endif
-
-# Also add TOMAS aerosol microphysics option
-ifeq ($(TOMAS),yes) 
-FFLAGS  += -DTOMAS
-endif
-
-# Add option for "array out of bounds" checking
-ifdef BOUNDS
-FFLAGS += -C
-endif
-
-# Include options (i.e. for finding *.h, *.mod files)
-INCLUDE  = -I$(HDR) -I $(MOD)
-
-# Also append HDF5 include commands if necessary
-ifeq ($(HDF5),yes)
-INCLUDE += -DUSE_HDF5 -I$(H5I)
-endif
-
-CC       =
-F90      = xlf90_r $(FFLAGS) $(INCLUDE)
-LD       = xlf90_r $(FFLAGS)
-FREEFORM = -qrealsize=8
-R8       = -r8
-
-endif
+#
+## Prior to 11/19/09:
+### Add more options for parallel run
+##ifndef DEBUG
+##FFLAGS += -qsmp=omp:opt -WF,-Dmultitask -qthreaded
+##endif
+#
+## Also add TOMAS aerosol microphysics option
+#ifeq ($(TOMAS),yes) 
+#FFLAGS  += -DTOMAS
+#endif
+#
+## Also add APM aerosol microphysics option
+#ifeq ($(APM),yes) 
+#FFLAGS  += -DAPM
+#endif
+#
+## Add option for "array out of bounds" checking
+#ifdef BOUNDS
+#FFLAGS += -C
+#endif
+#
+## Option to turn off ISORROPIA for testing
+#ifdef NO_ISO
+#FFLAGS    += -DNO_ISORROPIA
+#endif
+#
+## Include options (i.e. for finding *.h, *.mod files)
+#INCLUDE  = -I$(HDR) -I $(MOD) $(NCI)
+#
+## Also append HDF5 include commands if necessary
+#ifeq ($(HDF5),yes)
+#INCLUDE += -DUSE_HDF5 -I$(H5I)
+#endif
+#
+#CC       =
+#F90      = xlf90_r $(FFLAGS) $(INCLUDE)
+#LD       = xlf90_r $(FFLAGS)
+#FREEFORM = -qrealsize=8
+#R8       = -r8
+#
+#endif
+#%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 #==============================================================================
 # Specify pattern rules for compiliation 
@@ -366,11 +506,12 @@ export LD
 export LINK
 export R8
 export SHELL
+export NCL
 
 #EOC
 #==============================================================================
 # Print variables for testing/debugging purposes (uncomment if necessary)
-#==============================================================================
+##=============================================================================
 #headerinfo:
 #	@@echo '####### in Makefile_header.mk ########' 
 #	@@echo "compiler: $(COMPILER)"
@@ -378,3 +519,5 @@ export SHELL
 #	@@echo "bounds  : $(BOUNDS)"
 #	@@echo "f90     : $(F90)"
 #	@@echo "cc      : $(CC)"
+#	@@echo "include : $(INCLUDE)"
+#	@@echo "link    : $(LINK)"
