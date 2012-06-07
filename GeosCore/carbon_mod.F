@@ -1293,6 +1293,9 @@
             ! Get 1-D index
             JLOOP   = JLOP( I, J, L )
 
+            ! JLOP equal 0 if we're not in the tropopause. (ccc,10/16/09)
+            IF ( JLOOP == 0 ) CYCLE
+
             ! Get RH  
             XRH     = RH( I, J, L )   ![%]
 
@@ -1495,6 +1498,9 @@
 
             ! Get 1-D index
             JLOOP   = JLOP( I, J, L )
+
+            ! JLOP equal 0 if we're not in the tropopause. (ccc,10/16/09)
+            IF ( JLOOP == 0 ) CYCLE
 
             ! Get RH  
             XRH     = RH( I, J, L )   ![%]
