@@ -223,6 +223,7 @@
          WRITE( 6, *       ) 'ND23: Mass-Weighted OH Concentration'
          WRITE( 6, *       ) 'Mean OH = ', OHCONC, ' [1e5 molec/cm3]' 
          WRITE( 6, '(  a)' ) REPEAT( '=', 79 ) 
+
          ! Avoid divide-by-zero errors
          IF ( ITS_A_CH4_SIM() ) THEN
             IF ( SUM_OHLOSS > 0 ) THEN

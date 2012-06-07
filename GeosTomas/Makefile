@@ -71,6 +71,7 @@
 #  05 Apr 2012 - R. Yantosca - Now compile the NcdfUtil routines
 #  05 Apr 2012 - R. Yantosca - Remove reference to rdland.F, rdlai.F, readlai.F
 #  12 Apr 2012 - R. Yantosca - Remove reference to findmon.F
+#  19 Apr 2012 - R. Yantosca - Remove reference to rd_prof.F
 #EOP
 #------------------------------------------------------------------------------
 #BOC
@@ -119,7 +120,7 @@ JRATET.o                 planeflight_mod.o       geos57_read_mod.o           \
 JVALUE.o                 precipfrac.o            olson_landmap_mod.o         \
 LEGND0.o                 pulsing.o               mapping_mod.o               \
 MATIN4.o                 emissdr.o               rd_js.o                     \
-MIESCT.o                 emissions_mod.o         rd_prof.o                   \
+MIESCT.o                 emissions_mod.o                                     \
 NOABS.o                  modis_lai_mod.o                                     \
 OPMIE.o                  epa_nei_mod.o                                       \
 RD_TJPL.o                fast_j.o                                            \
@@ -154,7 +155,7 @@ cleanup.o                icoads_ship_mod.o       sulfate_mod.o               \
 co2_mod.o                initialize.o            sunparam.o                  \
 comode_mod.o             inphot.o                tagged_co_mod.o             \
 convection_mod.o         input_mod.o             tagged_ox_mod.o             \
-dao_mod.o                isoropiaII_mod.o        tcorr.o                     \
+dao_mod.o                isoropiaII_mod.o                                    \
 decomp.o                 jsparse.o               toms_mod.o                  \
 diag03_mod.o             jv_index.o              tpcore_bc_mod.o             \
 diag04_mod.o             ksparse.o               tpcore_fvdas_mod.o          \
@@ -177,7 +178,8 @@ aero_drydep.o            tomas_mod.o                                         \
 tomas_tpcore_mod.o       RD_AOD.o                depo_mercury_mod.o          \
 land_mercury_mod.o       global_br_mod.o         merra_a1_mod.o              \
 merra_a3_mod.o           merra_cn_mod.o          merra_i6_mod.o              \
-diag63_mod.o             paranox_mod.o
+diag63_mod.o             paranox_mod.o           read_jv_atms_dat.o          \
+bromocarb_mod.o          cldice_HBrHOBr_rxn.o    ssa_bromine_mod.o
 
 #=============================================================================
 # Makefile targets: type "make help" for a complete listing!
@@ -268,7 +270,7 @@ a6_read_mod.o               : a6_read_mod.F           dao_mod.o              \
                               diag_mod.o              logical_mod.o
 
 acetone_mod.o               : acetone_mod.F           dao_mod.o              \
-                              diag_mod.o              megan_mod.o           
+                              diag_mod.o              megan_mod.o 
 
 aerosol_mod.o               : aerosol_mod.F           comode_mod.o           \
                               dao_mod.o               diag_mod.o             \
@@ -288,7 +290,7 @@ anthroems.o                 : anthroems.F                                    \
 
 arctas_ship_emiss_mod.o     : arctas_ship_emiss_mod.F                        \
                               logical_mod.o           scale_anthro_mod.o     \
-                              tracerid_mod.o          tracer_mod.o  
+                              tracerid_mod.o          tracer_mod.o           
 
 arsl1k.o                    : arsl1k.F
 
@@ -317,7 +319,12 @@ boxvl.o                     : boxvl.F                 dao_mod.o
 
 bravo_mod.o                 : bravo_mod.F                                    \
                               future_emissions_mod.o  logical_mod.o          \
-                              scale_anthro_mod.o      tracerid_mod.o    
+                              scale_anthro_mod.o      tracerid_mod.o         
+
+bromocarb_mod.o             : bromocarb_mod.F                                \
+                              dao_mod.o               diag_mod.o             \
+                              logical_mod.o           pbl_mix_mod.o          \
+                              tracer_mod.o
 
 c2h6_mod.o                  : c2h6_mod.F                                     \
                               biofuel_mod.o           biomass_mod.o          \
@@ -329,7 +336,7 @@ c2h6_mod.o                  : c2h6_mod.F                                     \
 cac_anthro_mod.o            : cac_anthro_mod.F                               \
                               future_emissions_mod.o  logical_mod.o          \
                               scale_anthro_mod.o      tracerid_mod.o         \
-                              tracer_mod.o  
+                              tracer_mod.o            
 
 calcrate.o                  : calcrate.F                                     \
                               comode_mod.o            dao_mod.o              \
@@ -415,13 +422,16 @@ cleanup.o                   : cleanup.F                                      \
                               tropopause_mod.o        uvalbedo_mod.o         \
                               vistas_anthro_mod.o     wetscav_mod.o          \
                               icoads_ship_mod.o       tpcore_fvdas_mod.o     \
-                              tpcore_geos5_window_mod.o  tomas_mod.o
+                              tpcore_geos5_window_mod.o                      \
+                              retro_mod.o             tomas_mod.o
+
+cldice_HBrHOBr_rxn.o        : cldice_HBrHOBr_rxn.F
 
 CLDSRF.o                    : CLDSRF.F
 
 co2_mod.o                   : co2_mod.F               biomass_mod.o          \
                               diag04_mod.o            tracer_mod.o           \
-	                      tracerid_mod.o 
+	                      tracerid_mod.o          
 
 CO_strat_pl.o               : CO_strat_pl.F                                  \
                               dao_mod.o               tracer_mod.o           \
@@ -435,7 +445,7 @@ convection_mod.o            : convection_mod.F                               \
                               gc_type_mod.o           gcap_convect_mod.o     \
                               logical_mod.o           mercury_mod.o          \
                               tracer_mod.o            tracerid_mod.o         \
-                              wetscav_mod.o
+                              wetscav_mod.o          
 
 dao_mod.o                   : dao_mod.F                                      \
                               logical_mod.o           tracer_mod.o           
@@ -543,7 +553,7 @@ EFOLD.o                     : EFOLD.F
 emep_mod.o                  : emep_mod.F                                     \
                               future_emissions_mod.o  logical_mod.o          \
                               scale_anthro_mod.o      tracerid_mod.o         \
-                              tracer_mod.o  
+                              tracer_mod.o            
 
 emf_scale.o                 : emf_scale.F             tracerid_mod.o
 
@@ -555,7 +565,7 @@ emfossil.o                  : emfossil.F                                     \
                               logical_mod.o           nei2005_anthro_mod.o   \
                               streets_anthro_mod.o    tracer_mod.o           \
                               tracerid_mod.o          vistas_anthro_mod.o    \
-                              retro_mod.o             c2h6_mod.o
+			      retro_mod.o             c2h6_mod.o
 
 emissdr.o                   : emissdr.F                                      \
                               acetone_mod.o           aircraft_nox_mod.o     \
@@ -563,7 +573,8 @@ emissdr.o                   : emissdr.F                                      \
                               diag_mod.o              emissions_mod.o        \
 			      lightning_nox_mod.o     logical_mod.o          \
                               megan_mod.o             tracer_mod.o           \
-                              tracerid_mod.o          meganut_mod.o
+                              tracerid_mod.o          meganut_mod.o          \
+			      bromocarb_mod.o
 
 emissions_mod.o             : emissions_mod.F                                \
                               arctas_ship_emiss_mod.o biomass_mod.o          \
@@ -647,17 +658,17 @@ geos57_read_mod.o           : geos57_read_mod.F90                            \
                               dao_mod.o
 
 get_global_ch4.o            : get_global_ch4.F                               \
-                              future_emissions_mod.o  logical_mod.o
+                              future_emissions_mod.o  logical_mod.o          
 
 getifsun.o                  : getifsun.F              comode_mod.o
 
 gfed2_biomass_mod.o         : gfed2_biomass_mod.F                            \
                               future_emissions_mod.o  logical_mod.o          \
-                              tracer_mod.o            tracerid_mod.o
+                              tracer_mod.o            tracerid_mod.o         
 
 gfed3_biomass_mod.o         : gfed3_biomass_mod.F                            \
                               future_emissions_mod.o  logical_mod.o          \
-                              tracer_mod.o            tracerid_mod.o
+                              tracer_mod.o            tracerid_mod.o         
 
 global_br_mod.o             : global_br_mod.F         tropopause_mod.o 
 
@@ -704,7 +715,7 @@ i6_read_mod.o               : i6_read_mod.F                                  \
 icoads_ship_mod.o           : icoads_ship_mod.F                              \
                               future_emissions_mod.o  logical_mod.o          \
                               scale_anthro_mod.o      tracerid_mod.o         \
-                              tracer_mod.o  
+                              tracer_mod.o            
 
 initialize.o                : initialize.F                                   \
                               diag_mod.o              diag03_mod.o           \
@@ -731,7 +742,7 @@ input_mod.o                 : input_mod.F                                    \
                               tracerid_mod.o          tracer_mod.o           \
                               transport_mod.o         upbdflx_mod.o          \
                               wetscav_mod.o           tomas_mod.o            \
-                              diag63_mod.o
+                              diag63_mod.o            bromocarb_mod.o
 
 isoropiaII_mod.o            : isoropiaII_mod.F                               \
                               dao_mod.o               global_hno3_mod.o      \
@@ -747,7 +758,6 @@ JVALUE.o                    : JVALUE.F
 jv_index.o                  : jv_index.F
 
 ksparse.o                   : ksparse.F
-
 
 land_mercury_mod.o          : land_mercury_mod.F                             \
                               biomass_mod.o           dao_mod.o              \
@@ -796,14 +806,15 @@ main.o                      : main.F                                         \
                               diag63_mod.o            olson_landmap_mod.o    \
                               mapping_mod.o
 
-mapping_mod.o               : mapping_mod.F90
+mapping_mod.o               : mapping_mod.F90                                \
+                              logical_mod.o
 
 MATIN4.o                    : MATIN4.F
 
 megan_mod.o                 : megan_mod.F             a3_read_mod.o          \
                               modis_lai_mod.o         logical_mod.o          \
                               meganut_mod.o           merra_a1_mod.o         \
-                              dao_mod.o               geos57_read_mod.o
+                              geos57_read_mod.o
 
 meganut_mod.o               : meganut_mod.F           dao_mod.o     
 
@@ -890,7 +901,7 @@ pjc_pfix_mod.o              : pjc_pfix_mod.F
 
 planeflight_mod.o           : planeflight_mod.F                              \
                               comode_mod.o            dao_mod.o              \
-                              tracer_mod.o            tropopause_mod.o  
+                              tracer_mod.o            tropopause_mod.o       
 
 precipfrac.o                : precipfrac.F            dao_mod.o
 
@@ -899,8 +910,6 @@ pulsing.o                   : pulsing.F
 RD_AOD.o                    : RD_AOD.F
 
 rd_js.o                     : rd_js.F
-
-rd_prof.o                   : rd_prof.F
 
 rdsoil.o                    : rdsoil.F
 
@@ -911,6 +920,8 @@ readchem.o                  : readchem.F                                     \
                               logical_mod.o
 
 reader.o                    : reader.F
+
+read_jv_atms_dat.o          : read_jv_atms_dat.F90
 
 restart_mod.o               : restart_mod.F                                  \
                               comode_mod.o            dao_mod.o              \
@@ -934,7 +945,7 @@ rpmares_mod.o               : rpmares_mod.F                                  \
 ruralbox.o                  : ruralbox.F                                     \
                               comode_mod.o            tropopause_mod.o
 
-scale_anthro_mod.o          : scale_anthro_mod.F
+scale_anthro_mod.o          : scale_anthro_mod.F      
 
 schem.o                     : schem.F                 dao_mod.o              \
                               tracerid_mod.o          tracer_mod.o           \
@@ -945,7 +956,7 @@ seasalt_mod.o               : seasalt_mod.F                                  \
                               drydep_mod.o            logical_mod.o          \
                               pbl_mix_mod.o           tracerid_mod.o         \
                               tracer_mod.o            vdiff_pre_mod.o        \
-                              tomas_mod.o
+                              tomas_mod.o             ssa_bromine_mod.o
 
 set_aer.o                   : set_aer.F
 
@@ -988,10 +999,15 @@ soiltype.o                  : soiltype.F
 
 SPHERE.o                    : SPHERE.F
 
+ssa_bromine_mod.o           : ssa_bromine_mod.F                              \
+                              bromocarb_mod.o         comode_mod.o           \
+                              logical_mod.o           pbl_mix_mod.o          \
+                              tracerid_mod.o          tropopause_mod.o
+
 streets_anthro_mod.o        : streets_anthro_mod.F                           \
                               future_emissions_mod.o  logical_mod.o          \
                               scale_anthro_mod.o      tracerid_mod.o         \
-                              tracer_mod.o  
+                              tracer_mod.o            
 
 subfun.o                    : subfun.F
 
@@ -1098,7 +1114,7 @@ vdiff_mod.o                 : vdiff_mod.F90                                  \
 vistas_anthro_mod.o         : vistas_anthro_mod.F                            \
                               future_emissions_mod.o  epa_nei_mod.o          \
                               logical_mod.o           scale_anthro_mod.o     \
-                              tracerid_mod.o          tracer_mod.o  
+                              tracerid_mod.o          tracer_mod.o           
 
 wetscav_mod.o               : wetscav_mod.F                                  \
                               dao_mod.o               diag_mod.o             \

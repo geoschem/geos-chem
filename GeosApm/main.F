@@ -92,6 +92,7 @@
       USE MODIS_LAI_MOD         ! For MODIS leaf area indices (replacement)
       USE LIGHTNING_NOX_MOD     ! For lightning NOx emissions  
       USE MEGAN_MOD             ! For biogenic emissions
+      USE BROMOCARB_MOD         ! For setting CH3Br concentrations in PBL, jpp
 
       !-----------------------------------------------------------------
       ! GEOS-Chem met field I/O modules
@@ -120,7 +121,7 @@
       USE TRACER_MOD,        ONLY : N_APMTRA
 #endif
 
-      IMPLICIT NONE     
+      IMPLICIT NONE
 
 #     include "define.h"
 !
@@ -190,6 +191,7 @@
 !  11 Apr 2012 - R. Yantosca - Now call INIT_MODIS_LAI (in modis_lai_mod.F90)
 !                              here so that we don't have to call it from 
 !                              megan_mod.F and mercury_mod.F separately.
+!  17 Apr 2012 - R. Yantosca - Need to set the mapping variable to NULL()
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -214,10 +216,9 @@
 
       ! Arrays
       INTEGER                  :: DATE(2)
-      REAL*8                   :: HGPFRAC(IIPAR,JJPAR,LLPAR)
 
       ! Derived type objects
-      TYPE(MapWeight), POINTER :: mapping(:,:)
+      TYPE(MapWeight), POINTER :: mapping(:,:) => NULL()
 
       ! For APM
       INTEGER                  :: N_TRC_TOT
@@ -346,9 +347,6 @@
       CALL Compute_Olson_Landmap( mapping )
       CALL Cleanup_Olson_Landmap()
 
-      ! Initialize the MODIS leaf area index arrays
-      CALL Init_Modis_Lai()
-
       ! Initialize PBL quantities but do not do mixing
       ! Add option for non-local PBL (Lin, 03/31/09) 
       IF ( .NOT. LNLPBL ) THEN
@@ -461,11 +459,12 @@
             CALL SET_DIAGe( TAU )
 
             ! Write bpch file
-            CALL DIAG3  
+            IF ( DO_DIAG_WRITE ) THEN
+               CALL DIAG3  
 
             ! Flush file units
-            CALL CTM_FLUSH
-
+               CALL CTM_FLUSH
+            ENDIF
             !===========================================================
             !    *****  W R I T E   R E S T A R T   F I L E S  *****
             !===========================================================
@@ -802,6 +801,24 @@
 
             IF ( ITS_TIME_FOR_UNIT() )
      &         CALL CONVERT_UNITS( 1, N_TRC_TOT, TCVV, AD, STT ) ! kg -> v/v
+
+            !========================================================
+            !jpp, 2/12/08: putting a call to SET_CH3Br
+            !              which is in bromocarb_mod.f
+            !       ***** Fix CH3Br Concentration in PBL *****
+            ! Kludge: eventually I want to keep the concentration
+            !         entirely fixed! Ask around on how to...
+            !========================================================
+            IF ( LEMIS ) CALL SET_CH3Br( N_TRACERS, TCVV, AD, STT, 
+     &                                   ITS_TIME_FOR_UNIT() )
+
+            ! ----------------------------------------------------
+            ! If selected in input.geos, then set the MBL
+            ! concentration of BrO equal to 1 pptv during daytime.
+            ! ----------------------------------------------------
+            IF ( LEMIS ) CALL SET_BRO( N_TRACERS, TCVV, AD, SUNCOS,
+     &                                 STT, ITS_TIME_FOR_UNIT() )
+
          ENDIF
 
          !-------------------------------
@@ -877,6 +894,24 @@
             !             ***** E M I S S I O N S *****
             !========================================================
             IF ( LEMIS ) CALL DO_EMISSIONS
+
+            !========================================================
+            !jpp, 2/12/08: putting a call to SET_CH3Br
+            !              which is in bromocarb_mod.f
+            !       ***** Fix CH3Br Concentration in PBL *****
+            ! Kludge: eventually I want to keep the concentration
+            !         entirely fixed! Ask around on how to...
+            !========================================================
+            IF ( LEMIS ) CALL SET_CH3Br( N_TRACERS, TCVV, AD, STT,
+     &                                   ITS_TIME_FOR_UNIT() )
+
+            ! ----------------------------------------------------
+            ! If selected in input.geos, then set the MBL
+            ! concentration of BrO equal to 1 pptv during daytime.
+            ! ----------------------------------------------------
+            IF ( LEMIS ) CALL SET_BRO( N_TRACERS, TCVV, AD, SUNCOS,
+     &                                 STT, ITS_TIME_FOR_UNIT() )
+
          ENDIF    
 
 
@@ -957,7 +992,7 @@
          ! (ccc, 5/13/09)
  
          ! Plane following diagnostic
-         IF ( ND40 > 0 ) THEN 
+         IF ( ND40 > 0 .and. DO_DIAG_WRITE ) THEN 
          
             ! Call SETUP_PLANEFLIGHT routine if necessary
             IF ( ITS_A_NEW_DAY() ) THEN

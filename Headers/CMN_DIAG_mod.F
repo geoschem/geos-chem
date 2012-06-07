@@ -64,6 +64,9 @@
       ! Now set PD52 to 1 (jaegle 2/26/09)
       ! Increase PD46 from 6 to 13 (mpb, ccc, 11/19/09)
       ! increase PD21 from 20 to 27 (clh, 05/06/10)
+      ! changed PD44 (drydep) to 53 (jpp, 6/13/09)
+      ! changed PD39 (wetdep) to 38 (jpp, 7/08/09)
+      ! Now set PD46 to 16 (jpp, 6/7/09)
       !=================================================================
       INTEGER, PARAMETER :: PD01=3            
       INTEGER, PARAMETER :: PD02=3
@@ -84,7 +87,7 @@
       INTEGER, PARAMETER :: PD19=0            
       INTEGER, PARAMETER :: PD20=0 
       INTEGER, PARAMETER :: PD21=27
-      INTEGER, PARAMETER :: PD22=8
+      INTEGER, PARAMETER :: PD22=14      !jpp replaced 8, 4/24/2011... for Br.
       INTEGER, PARAMETER :: PD23=0           
       INTEGER, PARAMETER :: PD24=NNPAR        
       INTEGER, PARAMETER :: PD25=NNPAR       
@@ -101,12 +104,12 @@
       INTEGER, PARAMETER :: PD36=NNPAR        
       INTEGER, PARAMETER :: PD37=35        
       INTEGER, PARAMETER :: PD38=35 
-      INTEGER, PARAMETER :: PD39=35            
+      INTEGER, PARAMETER :: PD39=38      !jpp replaced 35
       INTEGER, PARAMETER :: PD40=4       
       INTEGER, PARAMETER :: PD43=5  
-      INTEGER, PARAMETER :: PD44=41
+      INTEGER, PARAMETER :: PD44=53      !jpp replaced 41
       INTEGER, PARAMETER :: PD45=NNPAR+1      
-      INTEGER, PARAMETER :: PD46=13
+      INTEGER, PARAMETER :: PD46=16      !jpp replaced 13
       INTEGER, PARAMETER :: PD47=NNPAR+1
       INTEGER, PARAMETER :: PD48=2            
       INTEGER, PARAMETER :: PD49=0                

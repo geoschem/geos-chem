@@ -1150,13 +1150,13 @@
 !        the L-dimension for ND21 diagnostics. (bmy, 7/20/04)
 !  (3 ) Archive only hydrophilic aerosol/aqueous dust surface area 
 !       (excluding BCPO and OCPO), WTAREA and WERADIUS. (tmf, 3/6/09)
+!  25 Aug 2010 - R. Yantosca - Added ProTeX headers
 !  03 Feb 2011 - S. Kim.     - Include wavelength argument to determine the 
 !                              wavelength at which the AOD should be computed. 
 !                              This will set the optical properties that are
 !                              used for the calculation of the AOD. The ND21 
 !                              diagnostic should only be updated when 
 !                              WAVELENGTH = 1. (skim, 02/03/11)
-!  25 Aug 2010 - R. Yantosca - Added ProTeX headers
 !EOP
 !------------------------------------------------------------------------------
 !BOC

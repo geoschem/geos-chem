@@ -58,6 +58,8 @@
 #  13 Apr 2012 - R. Yantosca - Removed findmon.F, rdlai.F, lai_mod.F
 #  19 Apr 2012 - R. Yantosca - Added read_jv_atms_dat.F90
 #  15 May 2012 - R. Yantosca - Added tpcore_bc_mod.F
+#  22 May 2012 - M. Payer    - Add bromocarb_mod.F, cldice_HBrHOBr_rxn.F,
+#                              and ssa_bromine_mod.F
 #EOP
 #------------------------------------------------------------------------------
 #BOC
@@ -87,6 +89,7 @@ $(CORE)/acetone_mod.F                \
 $(CORE)/aerosol_mod.F                \
 $(CORE)/arctas_ship_emiss_mod.F	     \
 $(CORE)/bravo_mod.F                  \
+$(CORE)/bromocarb_mod.F              \
 $(CORE)/c2h6_mod.F                   \
 $(CORE)/cac_anthro_mod.F             \
 $(CORE)/chemistry_mod.F              \
@@ -149,6 +152,7 @@ $(CORE)/retro_mod.F                  \
 $(CORE)/RnPbBe_mod.F                 \
 $(CORE)/scale_anthro_mod.F           \
 $(CORE)/seasalt_mod.F                \
+$(CORE)/ssa_bromine_mod.F            \
 $(CORE)/sulfate_mod.F                \
 $(CORE)/tagged_ox_mod.F              \
 $(CORE)/toms_mod.F                   \
@@ -165,6 +169,7 @@ $(CORE)/vistas_anthro_mod.F          \
 ./subs.geos-chem                     \
 $(CORE)/anthroems.F                  \
 $(CORE)/boxvl.F                      \
+$(CORE)/cldice_HBrHOBr_rxn.F         \
 $(CORE)/diag1.F                      \
 $(CORE)/diag3.F                      \
 $(CORE)/diag_2pm.F                   \

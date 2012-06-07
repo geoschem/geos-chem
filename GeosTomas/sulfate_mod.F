@@ -126,7 +126,8 @@
 !  07 Sep 2011 - P. Kasibathla - Modified to include GFED3
 !  22 Dec 2011 - M. Payer      - Added ProTeX headers 
 !  08 Feb 2012 - R. Yantosca   - Add modifications for GEOS-5.7.2 met
-!  01 Mar 2012 - R. Yantosca - Now reference new grid_mod.F90
+!  01 Mar 2012 - R. Yantosca   - Now reference new grid_mod.F90
+!  13 Mar 2012 - M. Cooper     - Changed regrid algorithm to map_a2a
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -1221,7 +1222,7 @@
       USE TROPOPAUSE_MOD, ONLY : ITS_IN_THE_STRAT
  
       USE CMN_SIZE_MOD
-      USE CMN_FJ_MOD, ONLY     : IPAR, JPAR, LPAR, JPMAX, JPPJ
+      USE CMN_FJ_MOD, ONLY     : JPMAX, JPPJ
       USE CMN_DIAG_MOD         ! ND44
       USE CMN_GCTM_MOD         ! AIRMW
 ! 
@@ -1403,7 +1404,7 @@
             FLUX = H2O20 * FREQ * DT / ( 1.D0 + FREQ * DT )
             FLUX = FLUX * AD(I,J,L) / TCVV(IDTH2O2)
             FLUX = FLUX * XNUMOL(IDTH2O2) 
-     &           / ( GET_AREA_CM2( I, J, L ) * DT )
+     &            / ( GET_AREA_CM2( I, J, L ) * DT )
 
             ! Save dryd flx in ND44_TMP as a placeholder
             ND44_TMP(I,J,L) = ND44_TMP(I,J,L) + FLUX
@@ -6763,7 +6764,7 @@ c      print *,BINMASS(24,11,2,:)
 !
       USE BPCH2_MOD,      ONLY : GET_TAU0, READ_BPCH2
       USE DIRECTORY_MOD,  ONLY : DATA_DIR_1x1
-      USE REGRID_1x1_MOD, ONLY : DO_REGRID_1x1, DO_REGRID_G2G_1x1
+      USE REGRID_A2A_MOD, ONLY : DO_REGRID_A2A
       USE TIME_MOD,       ONLY : EXPAND_DATE
 
       USE CMN_SIZE_MOD         ! Size parameters
@@ -6786,6 +6787,7 @@ c      print *,BINMASS(24,11,2,:)
 !       (ccc, 9/30/10)
 !  (7 ) Volcanic data have been updated. Use a new directory. (ccc, 9/30/10)
 !  22 Dec 2011 - M. Payer    - Added ProTeX headers
+!  13 Mar 2012 - M. Cooper   - Changed regrid algorithm to map_a2a
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -6794,12 +6796,14 @@ c      print *,BINMASS(24,11,2,:)
 !
       REAL*4               :: ARRAY_GEN(I1x1,J1x1-1,LVOLC)
       REAL*8               :: ARRAY_GEN8(I1x1,J1x1-1)
-      REAL*8               :: ARRAY_1x1(I1x1,J1x1,1)
-      REAL*8               :: ARRAY_1LEV(IIPAR,JJPAR)
       REAL*8               :: ARRAY(IIPAR,JJPAR,LVOLC)
       REAL*8               :: XTAU
       INTEGER              :: THISYEAR, THISDAY, YYYYMMDD, L
       CHARACTER(LEN=255)   :: FILENAME
+      CHARACTER(LEN=255)   :: LLFILENAME
+      REAL*8, ALLOCATABLE  :: OUTGRID(:,:)
+      REAL*8, ALLOCATABLE  :: INGRID(:,:)
+
 
       !=================================================================
       ! READ_NONERUP_VOLC begins here!
@@ -6807,9 +6811,6 @@ c      print *,BINMASS(24,11,2,:)
 
       ! Set year based on availability of volcanic emission files
       THISYEAR = INYEAR
-!-- Previous to (ccc, 9/30/10). Add parameters for edge years.
-!      IF ( INYEAR < 1985 ) THISYEAR = 1985
-!      IF ( INYEAR > 2007 ) THISYEAR = 2007
       THISYEAR = MAX( INYEAR, MNYEAR_VOLC )
       THISYEAR = MIN( INYEAR, MXYEAR_VOLC )
 
@@ -6823,11 +6824,6 @@ c      print *,BINMASS(24,11,2,:)
       YYYYMMDD = 10000 * THISYEAR + 100 * INMONTH + THISDAY
 
       ! File name
-!-- Previous to (ccc, 9/30/10). New directory.
-!      FILENAME = TRIM( DATA_DIR_1x1 )  //
-!     &           'volcano_SO2_200909/' //
-!     &           'YYYY/SO2_volc.nonerup.YYYYMM.generic.1x1'
-
       FILENAME = TRIM( DATA_DIR_1x1 )  //
      &           'volcano_SO2_201010/' //
      &           'YYYY/SO2_volc.nonerup.YYYYMM.generic.1x1'
@@ -6847,21 +6843,32 @@ c      print *,BINMASS(24,11,2,:)
      &                 XTAU,      I1x1,             J1x1-1,
      &                 LVOLC,     ARRAY_GEN(:,:,:), QUIET=.TRUE. )
 
+      ! File with lat/lon edges for regridding
+      LLFILENAME = TRIM( DATA_DIR_1x1) //
+     &             'MAP_A2A_Regrid_200312/latlon_generic.txt'
+
+      ! Allocate arrays for regridding
+      ALLOCATE(INGRID(I1x1,J1x1-1))
+      ALLOCATE(OUTGRID(IIPAR,JJPAR))
+
       ! Array regridding has to be done level by level since the array
       ! has a different vertical dimension than expected
       DO L = 1, LVOLC
+
          ! Cast from REAL*4 to REAL*8
          ARRAY_GEN8 = ARRAY_GEN(:,:,L)
 
-         ! Regrid from GENERIC 1x1 GRID to GEOS-Chem 1x1 GRID.
-         CALL DO_REGRID_G2G_1x1( 'kg', ARRAY_GEN8, ARRAY_1x1(:,:,1) )
-
-         ! Regrid from 1x1 to correct grid
-         CALL DO_REGRID_1x1( 'kg', ARRAY_1x1, ARRAY_1LEV )
+         INGRID = ARRAY_GEN8  !Units kg 
+         CALL DO_REGRID_A2A( LLFILENAME, 360, 181, INGRID, OUTGRID, 1 )
 
          ! Save into correct level of ARRAY
-         ARRAY(:,:,L) = ARRAY_1LEV
+         ARRAY(:,:,L) = OUTGRID
+
       ENDDO
+
+      ! Deallocate arrays for regridding
+      DEALLOCATE(INGRID)
+      DEALLOCATE(OUTGRID)
 
       ! Unit conversion: [kg SO2/box/day] -> [kg SO2/box/s]
       ENV = ARRAY / ( 24.d0 * 3600.d0 )
@@ -6887,7 +6894,7 @@ c      print *,BINMASS(24,11,2,:)
 !
       USE BPCH2_MOD,      ONLY : GET_TAU0, READ_BPCH2
       USE DIRECTORY_MOD,  ONLY : DATA_DIR_1x1
-      USE REGRID_1x1_MOD, ONLY : DO_REGRID_1x1, DO_REGRID_G2G_1x1
+      USE REGRID_A2A_MOD, ONLY : DO_REGRID_A2A
       USE TIME_MOD,       ONLY : EXPAND_DATE
       
       USE CMN_SIZE_MOD         ! Size parameters
@@ -6910,6 +6917,7 @@ c      print *,BINMASS(24,11,2,:)
 !       (ccc, 9/30/10)
 !  (7 ) Volcanic data have been updated. Use a new directory. (ccc, 9/30/10)
 !  22 Dec 2011 - M. Payer    - Added ProTeX headers
+!  13 Mar 2012 - M. Cooper   - Changed regrid algorithm to map_a2a
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -6918,12 +6926,13 @@ c      print *,BINMASS(24,11,2,:)
 !
       REAL*4               :: ARRAY_GEN(I1x1,J1x1-1,LVOLC)
       REAL*8               :: ARRAY_GEN8(I1x1,J1x1-1)
-      REAL*8               :: ARRAY_1x1(I1x1,J1x1,1)
-      REAL*8               :: ARRAY_1LEV(IIPAR,JJPAR)
       REAL*8               :: ARRAY(IIPAR,JJPAR,LVOLC)
       REAL*8               :: XTAU
       INTEGER              :: YYYYMMDD, L
       CHARACTER(LEN=255)   :: FILENAME
+      CHARACTER(LEN=255)   :: LLFILENAME
+      REAL*8, ALLOCATABLE  :: OUTGRID(:,:)
+      REAL*8, ALLOCATABLE  :: INGRID(:,:)
      
       !==================================================================
       ! READ_ERUP_VOLC begins here
@@ -6931,8 +6940,6 @@ c      print *,BINMASS(24,11,2,:)
 
       ! If the current year falls within the range of available data,
       ! get eruptive volcanic emissions (jaf, 10/15/09)
-!-- Previous to (ccc, 9/30/10). Add parameters for edge years
-!      IF ( ( INYEAR .GE. 1985 ) .AND. ( INYEAR .LE. 2007 ) ) THEN
       IF ( ( INYEAR .GE. MNYEAR_VOLC )  .AND. 
      &     ( INYEAR .LE. MXYEAR_VOLC ) ) THEN
 
@@ -6940,11 +6947,6 @@ c      print *,BINMASS(24,11,2,:)
          YYYYMMDD = 10000 * INYEAR + 100 * INMONTH + INDAY
 
          ! File name
-!-- Previous to (ccc, 9/30/10). New directory.
-!         FILENAME = TRIM( DATA_DIR_1x1 )  //
-!     &              'volcano_SO2_200909/' //
-!     &              'YYYY/SO2_volc.erup.YYYYMM.generic.1x1'
-
          FILENAME = TRIM( DATA_DIR_1x1 )  //
      &              'volcano_SO2_201010/' //
      &              'YYYY/SO2_volc.erup.YYYYMM.generic.1x1'
@@ -6964,21 +6966,33 @@ c      print *,BINMASS(24,11,2,:)
      &                    XTAU,      I1x1,             J1x1-1,
      &                    LVOLC,     ARRAY_GEN(:,:,:), QUIET=.TRUE. )
 
+
+         ! File with lat/lon edges for regridding
+         LLFILENAME = TRIM( DATA_DIR_1x1) //
+     &                'MAP_A2A_Regrid_200312/latlon_generic.txt'
+
+         ! Allocate arrays for regridding
+         ALLOCATE(INGRID(I1x1,J1x1-1))
+         ALLOCATE(OUTGRID(IIPAR,JJPAR))
+
          ! Array regridding has to be done level by level since the array
          ! has a different vertical dimension than expected
          DO L = 1, LVOLC
+
             ! Cast from REAL*4 to REAL*8
-            ARRAY_GEN8 = ARRAY_GEN(:,:,L)
+             ARRAY_GEN8 = ARRAY_GEN(:,:,L)
 
-            ! Regrid from GENERIC 1x1 GRID to GEOS-Chem 1x1 GRID.
-            CALL DO_REGRID_G2G_1x1( 'kg', ARRAY_GEN8, ARRAY_1x1(:,:,1) )
-
-            ! Regrid from 1x1 to correct grid
-            CALL DO_REGRID_1x1( 'kg', ARRAY_1x1, ARRAY_1LEV )
+            INGRID = ARRAY_GEN8  !Units kg 
+            CALL DO_REGRID_A2A( LLFILENAME, 360,     181,
+     &                          INGRID,     OUTGRID, 1 )
 
             ! Save into correct level of ARRAY
-            ARRAY(:,:,L) = ARRAY_1LEV
+            ARRAY(:,:,L) = OUTGRID
          ENDDO
+
+         ! Deallocate arrays for regridding
+         DEALLOCATE(INGRID)
+         DEALLOCATE(OUTGRID)
 
          ! Unit conversion: [kg SO2/box/day] -> [kg SO2/box/s]
          EEV = ARRAY / ( 24.d0 * 3600.d0 )
@@ -6989,12 +7003,6 @@ c      print *,BINMASS(24,11,2,:)
       ! Year parameters are defined at the beginning of the module.
       ! (ccc, 9/30/10)
       ELSE
-
-!-- Previous to (ccc, 9/30/10). Add parameters for edge years
-!         WRITE(6, *) 'WARNING: Eruptive SO2 emissions only available'//
-!     &               ' for 1985-2007. You are outside the window.'
-!         WRITE(6, *) 'Eruptive SO2 emissions are being set to zero!'
-
 
          WRITE(6, 110) MNYEAR_VOLC, MXYEAR_VOLC
          WRITE(6, *) 'Eruptive SO2 emissions are being set to zero!'
@@ -7312,10 +7320,10 @@ c      print *,BINMASS(24,11,2,:)
 
             ! Grid box surface area [cm2]
             AREA_CM2 = GET_AREA_CM2( I, J, L )
-
+            
             ! Longitude and latitude [degrees]
-            X        = GET_XMID( I, J, L )
-            Y        = GET_YMID( I, J, L )
+            X = GET_XMID( I, J, L )
+            Y = GET_YMID( I, J, L )
 
             ! First scale SOx to the given fossil fuel year
             E_SOx(I,J,L) = E_SOx(I,J,L) * SOx_SCALE(I,J)
@@ -7372,9 +7380,8 @@ c      print *,BINMASS(24,11,2,:)
      &                                              KG_S=.TRUE. ) 
 
                   ESO2_an(I,J,2) = 0d0
- 
                ENDIF
-                  
+
             ENDIF
 
             ESO4_an(I,J,L) = ESO2_an(I,J,L) * Fe / (1.d0-Fe)
@@ -7487,7 +7494,7 @@ c      print *,BINMASS(24,11,2,:)
       USE BPCH2_MOD,      ONLY : GET_NAME_EXT_2D, GET_RES_EXT
       USE BPCH2_MOD,      ONLY : GET_TAU0,        READ_BPCH2
       USE DIRECTORY_MOD,  ONLY : DATA_DIR,        DATA_DIR_1x1
-      USE REGRID_1x1_MOD, ONLY : DO_REGRID_1x1
+      USE REGRID_A2A_MOD, ONLY : DO_REGRID_A2A
       USE TRANSFER_MOD,   ONLY : TRANSFER_2D
 
       USE CMN_SIZE_MOD         ! Size parameters
@@ -7509,6 +7516,7 @@ c      print *,BINMASS(24,11,2,:)
 !  (6 ) Now read int'annual SST data on the GEOS 1x1 grid (bmy, 11/17/05)
 !  (7 ) Last year of data is now 2008 (bmy, 7/13/09)
 !  22 Dec 2011 - M. Payer    - Added ProTeX headers
+!  13 Mar 2012 - M. Cooper   - Changed regrid algorithm to map_a2a
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -7520,6 +7528,9 @@ c      print *,BINMASS(24,11,2,:)
       REAL*8                  :: XTAU
       CHARACTER(LEN=4)        :: SYEAR
       CHARACTER(LEN=255)      :: FILENAME
+      CHARACTER(LEN=255)      :: LLFILENAME
+      REAL*8, ALLOCATABLE     :: OUTGRID(:,:)
+      REAL*8, ALLOCATABLE     :: INGRID(:,:)
 
       !==================================================================
       ! READ_SST begins here!
@@ -7552,8 +7563,22 @@ c      print *,BINMASS(24,11,2,:)
      &                    XTAU,      I1x1,          J1x1,     
      &                    1,         ARRAY1(:,:,1), QUIET=.TRUE. ) 
 
+         ! File with lat/lon edges for regridding
+         LLFILENAME = TRIM( DATA_DIR_1x1) //
+     &                'MAP_A2A_Regrid_200312/latlon_geos1x1.txt'
+
+         ! Allocate arrays for regridding
+         ALLOCATE(INGRID(I1x1,J1x1))
+         ALLOCATE(OUTGRID(IIPAR,JJPAR))
+
          ! Regrid from 1x1 and cast to REAL*8
-         CALL DO_REGRID_1x1( 'K', ARRAY1, SSTEMP )
+         INGRID = ARRAY1(:,:,1)
+         CALL DO_REGRID_A2A( LLFILENAME, 360, 181, INGRID, OUTGRID, 0 ) 
+         SSTEMP = OUTGRID
+
+         ! Deallocate arrays for regridding
+         DEALLOCATE(INGRID)
+         DEALLOCATE(OUTGRID)
 
       ELSE
 
@@ -7603,8 +7628,6 @@ c      print *,BINMASS(24,11,2,:)
 ! !USES:
 !
       USE BIOMASS_MOD,          ONLY : BIOMASS
-      ! IDBSO2 is not used anymore (ccc, 01/29/10)
-      !USE BIOMASS_MOD,          ONLY : BIOMASS,         IDBSO2
       USE BPCH2_MOD,            ONLY : GET_NAME_EXT_2D, GET_RES_EXT
       USE BPCH2_MOD,            ONLY : GET_TAU0,        READ_BPCH2
       USE DIRECTORY_MOD,        ONLY : DATA_DIR,        DATA_DIR_1x1
@@ -7614,10 +7637,10 @@ c      print *,BINMASS(24,11,2,:)
       USE TRACER_MOD,           ONLY : XNUMOL
       USE TRACERID_MOD,         ONLY : IDTSO2
       USE TRANSFER_MOD,         ONLY : TRANSFER_2D
+      USE REGRID_A2A_MOD,       ONLY : DO_REGRID_A2A
 ![eml
       USE LOGICAL_MOD,          ONLY : LHIST
       USE TIME_MOD,             ONLY : GET_HISTYR
-      USE REGRID_1x1_MOD,       ONLY : DO_REGRID_G2G_1x1, DO_REGRID_1x1
 !eml]
       
       USE CMN_SIZE_MOD               ! Size parameters
@@ -7655,6 +7678,7 @@ c      print *,BINMASS(24,11,2,:)
 !  01 Mar 2012 - R. Yantosca - Removed reference to GET_AREA_CM2
 !  08 Mar 2012 - M. Payer    - Added modifications for historical emissions of
 !                              SO2 (E. Leibensperger)
+!  06 Apr 2012 - M. Payer    - Changed regrid algorithm to map_a2a (M. Cooper)
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -7667,11 +7691,13 @@ c      print *,BINMASS(24,11,2,:)
       REAL*8                        :: XTAU
       CHARACTER(LEN=4  )            :: CYEAR
       CHARACTER(LEN=255)            :: FILENAME
+      CHARACTER(LEN=255)            :: LLFILENAME
+      REAL*8, ALLOCATABLE           :: OUTGRID(:,:)
+      REAL*8, ALLOCATABLE           :: INGRID(:,:)
 ![eml
       CHARACTER(LEN=4  )            :: CHISTYR
       REAL*4                        :: ESO2_GEN(I1x1,J1x1-1)
       REAL*8                        :: ESO2_GEN8(I1x1,J1x1-1)
-      REAL*8                        :: ESO2_GEO(I1x1,J1x1,1)
       REAL*8                        :: TEMP_ED(IIPAR,JJPAR,1)
 !eml]
       ! Days per month              
@@ -7760,10 +7786,25 @@ c      print *,BINMASS(24,11,2,:)
      &                    XTAU,           I1x1,       J1x1-1,
      &                    1,              ESO2_GEN,   QUIET=.TRUE. )
 
+         ! Cast from REAL*4 to REAL*8
          ESO2_GEN8 = ESO2_GEN
 
-         CALL DO_REGRID_G2G_1x1( 'kg/yr', ESO2_GEN8, ESO2_GEO(:,:,1) )
-         CALL DO_REGRID_1x1(1, 'kg/yr', ESO2_GEO, TEMP_ED )
+         ! File with lat/lon edges for regridding
+         LLFILENAME = TRIM( DATA_DIR_1x1) //
+     &                'MAP_A2A_Regrid_200312/latlon_generic.txt'
+
+         ! Allocate arrays for regridding
+         ALLOCATE(INGRID(I1x1,J1x1-1))
+         ALLOCATE(OUTGRID(IIPAR,JJPAR))
+
+         ! Regrid to current model resolution [kg/yr]
+         INGRID  = ESO2_GEN8
+         CALL DO_REGRID_A2A( LLFILENAME, 360, 181, INGRID, OUTGRID, 0 )
+         TEMP_ED(:,:,1) = OUTGRID
+
+         ! Deallocate arrays for regridding
+         DEALLOCATE(INGRID)
+         DEALLOCATE(OUTGRID)
 
          ! Convert from kg SO2/yr to kg SO2/s
          ESO2_bf = TEMP_ED(:,:,1) / (365.25d0 * 86400.d0)
@@ -7833,11 +7874,10 @@ c      print *,BINMASS(24,11,2,:)
          ! Conversion factor for [cm2 * kg/molec]
          CONV = GET_AREA_CM2( I, J, 1 ) / XNUMOL(IDTSO2)
 
-
          ! Convert biomass SO2 from [molec SO2/cm2/s] -> [kg SO2/s] 
          ! NOTE: Future scale has already been applied by this point
          ESO2_bb(I,J) = BIOMASS(I,J,IDBSO2) * CONV
-
+            
       ENDDO
       ENDDO
 !$OMP END PARALLEL DO
@@ -8046,6 +8086,7 @@ c      print *,BINMASS(24,11,2,:)
 !       GET_EMEP_ANTHRO to get ARCTAS and EMEP SO2 ship emissions (phs,12/5/08)
 !  (7 ) Now get ICOADS ship SO2 if necessary (phs, cklee, 6/30/09) 
 !  22 Dec 2011 - M. Payer    - Added ProTeX headers
+!  01 Mar 2012 - R. Yantosca - Now use GET_AREA_CM2(I,J,L) from grid_mod.F90
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -8127,7 +8168,7 @@ c      print *,BINMASS(24,11,2,:)
 
             ! Grid box surface area [cm2]
             AREA_CM2 = GET_AREA_CM2( I, J, 1 )
-            
+
             ! Convert [molec SO2/cm2/s] to [kg SO2/box/s]
             ESO2_sh(I,J) = SHIPSO2(I,J) * AREA_CM2 / XNUMOL(IDTSO2)
 
@@ -8142,7 +8183,7 @@ c      print *,BINMASS(24,11,2,:)
      &              ESO2_sh(I,J) = GET_EMEP_ANTHRO(I, J, IDTSO2,
      &                                     KG_S=.TRUE., SHIP=.TRUE.)
             ENDIF               
-
+             
          ENDDO 
          ENDDO
 
@@ -8227,7 +8268,7 @@ c      print *,BINMASS(24,11,2,:)
       USE BPCH2_MOD,            ONLY : GET_TAU0,        READ_BPCH2
       USE DIRECTORY_MOD,        ONLY : DATA_DIR
       USE EMEP_MOD,             ONLY : GET_EMEP_ANTHRO
-      USe EMEP_MOD,             ONLY : GET_EUROPE_MASK
+      USE EMEP_MOD,             ONLY : GET_EUROPE_MASK
       USE FUTURE_EMISSIONS_MOD, ONLY : GET_FUTURE_SCALE_NH3an
       USE LOGICAL_MOD,          ONLY : LFUTURE,         LSTREETS
       USE LOGICAL_MOD,          ONLY : LEMEP
@@ -8617,9 +8658,6 @@ c      print *,BINMASS(24,11,2,:)
       !=================================================================
       ! READ_BIOMASSBURN_NH3 begins here!
       !=================================================================
-
-      ! Convert units
-
 !$OMP PARALLEL DO
 !$OMP+DEFAULT( SHARED )
 !$OMP+PRIVATE( I, J, CONV )
@@ -8627,7 +8665,7 @@ c      print *,BINMASS(24,11,2,:)
       ! Loop over surface grid boxes
       DO J = 1, JJPAR
       DO I = 1, IIPAR
- 
+
          ! Conversion factor for [cm2 * kg/molec]
          CONV = GET_AREA_CM2( I, J, 1 ) / XNUMOL(IDTNH3)
 

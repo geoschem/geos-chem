@@ -1166,7 +1166,7 @@
 
       ! Format statement
  100  FORMAT( I3, 1x, A10, 6x, F6.1 )
- 110  FORMAT( 5x, '===> ', f4.1, 1x, A4  )
+ 110  FORMAT( 5x, '===> ', f4.1, 1x, A6  )
  120  FORMAT( 5x, '---> ', f4.1, 1x, A4  )
 
       !=================================================================
@@ -1536,11 +1536,12 @@
       USE MODIS_LAI_MOD, ONLY : INIT_MODIS_LAI
       USE EMISSIONS_MOD, ONLY : ISOP_SCALING 
       USE EMISSIONS_MOD, ONLY : NOx_SCALING
+      USE BROMOCARB_MOD, ONLY : Br_SCALING
       USE TIME_MOD,      ONLY : SET_HISTYR
       USE TRACER_MOD,    ONLY : ITS_A_FULLCHEM_SIM
 
-      USE CMN_SIZE_MOD      ! Size parameters
-      USE CMN_O3_MOD        ! FSCALYR
+      USE CMN_SIZE_MOD        ! Size parameters
+      USE CMN_O3_MOD          ! FSCALYR
 ! 
 ! !REVISION HISTORY: 
 !  20 Jul 2004 - R. Yantosca - Initial version
@@ -1819,10 +1820,29 @@
       CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_emissions_menu:50' )
       READ( SUBSTRS(1:N), * ) HISTYR
       CALL SET_HISTYR( HISTYR )
+!eml]
+
+      ! Separator line (start of bromine emissions)
+      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_emissions_menu:52' )
+
+      ! Use the Warwick(2006), scenario 3? (400Gg/yr of CHBr3)
+      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_emissions_menu:53' )
+      READ( SUBSTRS(1:N), * ) LWARWICK_VSLS
+
+      ! Use sea-salt Br2 emissions? Currently Monahan w/ Yang et al. 2005
+      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_emissions_menu:54' )
+      READ( SUBSTRS(1:N), * ) LSSABr2
+
+      ! Set PBL BrO concentrations equal to 1ppt during the day?
+      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_emissions_menu:55' )
+      READ( SUBSTRS(1:N), * ) LFIX_PBL_BRO
+
+      ! Bromine Emissions scaling
+      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_emissions_menu:56' )
+      READ( SUBSTRS(1:N), * ) Br_SCALING
 
       ! Separator line
-      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_emissions_menu:51' )
-!eml]
+      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_emissions_menu:57' )
 
       !=================================================================
       ! Error check logical flags
@@ -1863,6 +1883,8 @@
       LMEGAN            = ( LMEGAN         .and. LBIOGENIC )
       LPECCA            = ( LPECCA         .and. LBIOGENIC )
       LMEGANMONO        = ( LMEGANMONO     .and. LBIOGENIC )
+      LWARWICK_VSLS     = ( LWARWICK_VSLS  .and. LBIOGENIC )
+      LSSABr2           = ( LSSABr2        .and. LBIOGENIC )
 
       ! Biomass
       LTOMSAI           = ( LTOMSAI        .and. LBIOMASS  )
@@ -2092,23 +2114,37 @@
             CALL ERROR_STOP( 
      &         ' AVHRR LAI &  MODIS LAI cannot both be turned on!', 
      &         ' READ_EMISSIONS_MENU ("input_mod.f")' )
-         ENDIF
+      ENDIF
 
 #if    defined( GCAP )
 
-         !--------------------------------
-         ! GCAP error message 
-         !--------------------------------
+      !--------------------------------
+      ! GCAP error message 
+      !--------------------------------
 
-         IF ( LOTDLOC ) THEN
+      IF ( LOTDLOC ) THEN
             MSG = 'Lightning rescaling not available nor very ' //
      &            'appropriate for GCAP sim because of window ' // 
      &            'of OTD/LIS satellite observations.  Select ' //
      &            'one of the raw params without redist.'
-            CALL ERROR_STOP( MSG, LOC )
-         ENDIF
+         CALL ERROR_STOP( MSG, LOC )
+       ENDIF
 
 #endif
+
+      !=================================================================
+      ! Error check Bromine switches
+      !=================================================================
+      ! jpp, 5/10/10: if we're using the 1ppt daytime PBL BrO option,
+      !              then shut off the LSSABr2 emissions if they were
+      !              accidentally left on.
+      IF ( LFIX_PBL_BRO .and. LSSABr2 ) THEN
+         LSSABr2 = .FALSE. ! turn off sea-salt emissions to avoid conflict.
+         write(6,'(/,a,/)') 'Warning in input_mod.f: LSSABr2 was'
+     &        // ' left ON when LFIX_PBL_BRO was also selected.'
+         write(6,'(a)') 'Turning off sea-salt emissions and'
+     &        // ' selecting the 1pptv PBL daytime BrO simulation.'
+      ENDIF
 
       !=================================================================
       ! Initialization
@@ -2177,6 +2213,11 @@
 ![eml
       WRITE( 6, 100     ) 'Turn on historical emiss?   : ', LHIST
 !eml]
+      WRITE( 6, 100     ) 'Turn on the Warwick VSLs?   : ', 
+     &     LWARWICK_VSLS
+      WRITE( 6, 100     ) 'Use seasalt Br2 emissions?  : ', LSSABr2
+      WRITE( 6, 100     ) 'Set day PBL BrO conc to 1ppt: ', LFIX_PBL_BRO
+      WRITE( 6, 100     ) 'Bromine emiss scale factor  : ', Br_SCALING
 
       ! FORMAT statements
  100  FORMAT( A, L5 )
@@ -2636,8 +2677,6 @@
       WRITE( 6, 110     ) 'Chemistry timestep [min]    : ', TS_CHEM
       WRITE( 6, 100     ) 'Use CSPEC restart?          : ', LSVCSPEC
       WRITE( 6, 100     ) 'Use solver coded by KPP?    : ', LKPP
-
-         
       
       ! FORMAT statements
  100  FORMAT( A, L5  )
@@ -6308,6 +6347,10 @@
       LCHEMCO2       = .FALSE.
                      
       LRETRO         = .FALSE.  !(wfr, 3/8/11)
+
+      LWARWICK_VSLS  = .FALSE.
+      LSSABr2        = .FALSE.
+      LFIX_PBL_BRO   = .FALSE.
       
       ! Initialize counters
       CT1            = 0

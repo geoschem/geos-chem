@@ -119,6 +119,7 @@
       USE VISTAS_ANTHRO_MOD,      ONLY : EMISS_VISTAS_ANTHRO
       USE ICOADS_SHIP_MOD,        ONLY : EMISS_ICOADS_SHIP !(cklee,7/09/09)
       USE PARANOX_MOD,            ONLY : READ_PARANOX_LUT
+      USE SSA_BROMINE_MOD,        ONLY : EMIT_Br2          !jpp, 8/4/10
  
       USE TRACERID_MOD,           ONLY : IDTSS1           ! (win, 1/25/10)
       USE TRACERID_MOD,           ONLY : IDTSF1           ! (win, 1/25/10)
@@ -171,6 +172,7 @@
 !  07 Feb 2011 - R. Yantosca - Use NEI99 biofuels when useing NEI05 anthro
 !  17 Aug 2011 - R. Yantosca - Added call to RETRO anthro emissions
 !  07 Feb 2012 - M. Payer    - Added call to read PARANOX look up tables
+!  22 Mar 2012 - M. Payer    - Added call to EMISSC2H6
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -178,9 +180,8 @@
 ! !LOCAL VARIABLES:
 !
       INTEGER                     :: MONTH, YEAR
-!
-! !DEFINED PARAMETERS:
-!
+      ! jpp, 3/2/10: Sea-salt emissions of Br2.
+      REAL*8                      :: SSA_Br2(IIPAR,JJPAR)
 
       !=================================================================
       ! DO_EMISSIONS begins here!
@@ -289,6 +290,10 @@
             CALL READ_PARANOX_LUT
          ENDIF
 
+         ! C2H6 emissions using RETRO are too low, use Yaping Xiao's
+         ! offline C2H6 emissions instead (mpayer, 3/22/12)
+         CALL EMISSC2H6
+
          ! NOx-Ox-HC (w/ or w/o aerosols)
          CALL EMISSDR
 
@@ -298,11 +303,18 @@ c$$$         IF ( LSSALT            ) CALL EMISSSEASALT
 c$$$         IF ( LSULF .or. LCRYST ) CALL EMISSSULFATE
 c$$$         IF ( LCARB             ) CALL EMISSCARBON
 c$$$         IF ( LDUST             ) CALL EMISSDUST
-         IF ( LSSALT .or. IDTSS1 > 0  ) CALL EMISSSEASALT
+         IF ( LSSALT .or. IDTSS1 > 0  ) CALL EMISSSEASALT(ssa_br2) !jpp, 3/2/10
          IF ( LSULF .or. LCRYST .or. IDTSF1 > 0 ) CALL EMISSSULFATE
          IF ( LCARB .or. ( IDTECIL1 > 0 .and.   IDTECOB1 > 0 .and. 
      &        IDTOCIL1 > 0 .and. IDTOCOB1 > 0 ) ) CALL EMISSCARBON
          IF ( LDUST .or. IDTDUST1 > 0  ) CALL EMISSDUST
+
+         ! jpp, 3/2/10:
+         ! Now distribute the Br2 emitted from SSA, through
+         ! the full mixed layer.
+         IF ( LSSABr2 ) THEN
+            CALL EMIT_BR2(SSA_Br2)
+         ENDIF
 
       ELSE IF ( ITS_AN_AEROSOL_SIM() ) THEN
          
@@ -375,7 +387,7 @@ c$$$         IF ( LDUST             ) CALL EMISSDUST
          ENDIF
 
          ! Emissions for various aerosol types
-         IF ( LSSALT            ) CALL EMISSSEASALT
+         IF ( LSSALT            ) CALL EMISSSEASALT()
          IF ( LSULF .or. LCRYST ) CALL EMISSSULFATE
          IF ( LCARB             ) CALL EMISSCARBON
          IF ( LDUST             ) CALL EMISSDUST

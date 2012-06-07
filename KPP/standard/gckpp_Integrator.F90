@@ -13,8 +13,8 @@
 !        R. Sander, Max-Planck Institute for Chemistry, Mainz, Germany
 ! 
 ! File                 : gckpp_Integrator.f90
-! Time                 : Fri May 29 16:36:46 2009
-! Working directory    : /home/phs/KPP/v8-02-01_43t
+! Time                 : Fri Apr 27 11:48:11 2012
+! Working directory    : /mnt/as/home/m/mpayer/KPP
 ! Equation file        : gckpp.kpp
 ! Output root filename : gckpp
 ! 
@@ -58,9 +58,8 @@ MODULE gckpp_Integrator
   
 !~~~>  Statistics on the work performed by the Rosenbrock method
   INTEGER, PARAMETER :: Nfun=1, Njac=2, Nstp=3, Nacc=4, &
-       Nrej=5, Ndec=6, Nsol=7, Nsng=8, &
-       Ntexit=1, Nhexit=2, Nhnew = 3!,  &
-!       Nierr=20                             !== was added for GC but not needed anymore
+                        Nrej=5, Ndec=6, Nsol=7, Nsng=8, &
+                        Ntexit=1, Nhexit=2, Nhnew = 3
 
 CONTAINS
 
@@ -523,10 +522,8 @@ CONTAINS !  SUBROUTINES internal to Rosenbrock
 
 !~~~> Time loop begins below
 
-!TimeLoop: DO WHILE ( (Direction > 0).AND.((T-Tend)+Roundoff <= ZERO) &
-!       .OR. (Direction < 0).AND.((Tend-T)+Roundoff <= ZERO) )
-TimeLoop: DO WHILE ( (Direction > 0).AND.((T-Tend)+Roundoff*abs(Tend) <= ZERO) &
-        .OR. (Direction < 0).AND.((Tend-T)+Roundoff*abs(Tend) <= ZERO) )  ! Added *abs(Tend) by KS, A.Sandu for boundary cases
+TimeLoop: DO WHILE ( (Direction > 0).AND.((T-Tend)+Roundoff <= ZERO) &
+       .OR. (Direction < 0).AND.((Tend-T)+Roundoff <= ZERO) )
 
    IF ( ISTATUS(Nstp) > Max_no_steps ) THEN  ! Too many steps
       CALL ros_ErrorMsg(-6,T,H,IERR)
@@ -1201,7 +1198,7 @@ SUBROUTINE FunTemplate( T, Y, Ydot )
  USE gckpp_Parameters, ONLY: NVAR, LU_NONZERO
  USE gckpp_Global, ONLY: FIX, RCONST, TIME
  USE gckpp_Function, ONLY: Fun
-! USE gckpp_Rates, ONLY: Update_SUN, Update_RCONST
+ USE gckpp_Rates, ONLY: Update_SUN, Update_RCONST
 !~~~> Input variables
    REAL(kind=dp) :: T, Y(NVAR)
 !~~~> Output variables
@@ -1211,8 +1208,8 @@ SUBROUTINE FunTemplate( T, Y, Ydot )
 
    Told = TIME
    TIME = T
-!   CALL Update_SUN()
-!   CALL Update_RCONST()
+   CALL Update_SUN()
+   CALL Update_RCONST()
    CALL Fun( Y, FIX, RCONST, Ydot )
    TIME = Told
 
@@ -1229,7 +1226,7 @@ SUBROUTINE JacTemplate( T, Y, Jcb )
  USE gckpp_Global, ONLY: FIX, RCONST, TIME
  USE gckpp_Jacobian, ONLY: Jac_SP, LU_IROW, LU_ICOL
  USE gckpp_LinearAlgebra
-! USE gckpp_Rates, ONLY: Update_SUN, Update_RCONST
+ USE gckpp_Rates, ONLY: Update_SUN, Update_RCONST
 !~~~> Input variables
     REAL(kind=dp) :: T, Y(NVAR)
 !~~~> Output variables
@@ -1246,8 +1243,8 @@ SUBROUTINE JacTemplate( T, Y, Jcb )
 
     Told = TIME
     TIME = T
-!    CALL Update_SUN()
-!    CALL Update_RCONST()
+    CALL Update_SUN()
+    CALL Update_RCONST()
 #ifdef FULL_ALGEBRA    
     CALL Jac_SP(Y, FIX, RCONST, JV)
     DO j=1,NVAR

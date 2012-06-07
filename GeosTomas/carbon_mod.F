@@ -1,4 +1,4 @@
-! $Id: carbon_mod.f,v 1.2 2010/03/15 19:33:20 ccarouge Exp $
+! $Id: carbon_mod.f,v 1.6 2010/03/15 19:33:25 ccarouge Exp $
       MODULE CARBON_MOD
 !
 !******************************************************************************
@@ -173,8 +173,7 @@
 !  (25) Bug fix for EMIS_SAVE in EMITHIGH (bmy, 1/11/10)
 !  (26) Modifications for TOMAS (win, bmy, 1/25/10)
 !  (27) Bug fix: call SOA_PARA_INIT (ensberg, bmy, 6/30/10)
-!  (28) Bug fix: call SOA_PARA_INIT (ensberg, bmy, 6/30/10)
-!  (29) Modified to include GFED3 (psk, 1/5/11)
+!  (28) Modified to include GFED3 (psk, 1/5/11)
 !  01 Mar 2012 - R. Yantosca - Now reference new grid_mod.F90
 !******************************************************************************
 !
@@ -6008,50 +6007,48 @@ ccc
 !$OMP+DEFAULT( SHARED )
 !$OMP+PRIVATE( I, J, BIOBC, BIOOC, A_CM2, FUT_SCL )
 
-      ! Loop over latitudes
+      ! Loop over surface boxes
       DO J = 1, JJPAR
+      DO I = 1, IIPAR
 
          ! Grid box area [cm2]
          A_CM2 = GET_AREA_CM2( I, J, 1 )
-         
-         ! Loop over longitudes
-         DO I = 1, IIPAR
+      
+         ! Convert [molec/cm2/s] --> [kg C/timestep]
+         IF ( LBIOMASS ) THEN
+            BIOBC         = BIOMASS(I,J,IDBBC) * A_CM2 * CONV_BC
+            BIOOC         = BIOMASS(I,J,IDBOC) * A_CM2 * CONV_OC
+         ELSE
+            BIOBC         = 0d0
+            BIOOC         = 0d0
+         ENDIF
 
-            ! Convert [molec/cm2/s] --> [kg C/timestep]
-            IF ( LBIOMASS ) THEN
-               BIOBC         = BIOMASS(I,J,IDBBC) * A_CM2 * CONV_BC
-               BIOOC         = BIOMASS(I,J,IDBOC) * A_CM2 * CONV_OC
-            ELSE
-               BIOBC         = 0d0
-               BIOOC         = 0d0
-            ENDIF
+         ! Hydrophilic BLACK CARBON from biomass [kg C/timestep]
+         BIOB_BLKC(I,J,1) =          FHB   * BIOBC
+      
+         ! Hydrophobic BLACK CARBON from biomass [kg C/timestep]
+         BIOB_BLKC(I,J,2) = ( 1.D0 - FHB ) * BIOBC
 
-            ! Hydrophilic BLACK CARBON from biomass [kg C/timestep]
-            BIOB_BLKC(I,J,1) =          FHB   * BIOBC
-         
-            ! Hydrophobic BLACK CARBON from biomass [kg C/timestep]
-            BIOB_BLKC(I,J,2) = ( 1.D0 - FHB ) * BIOBC
+         ! Hydrophilic ORGANIC CARBON from biomass [kg C/timestep]
+         BIOB_ORGC(I,J,1) =          FHO   * BIOOC
 
-            ! Hydrophilic ORGANIC CARBON from biomass [kg C/timestep]
-            BIOB_ORGC(I,J,1) =          FHO   * BIOOC
+         ! Hydrophobic ORGANIC CARBON from biomass [kg C/timestep]
+         BIOB_ORGC(I,J,2) = ( 1.D0 - FHO ) * BIOOC
 
-            ! Hydrophobic ORGANIC CARBON from biomass [kg C/timestep]
-            BIOB_ORGC(I,J,2) = ( 1.D0 - FHO ) * BIOOC
+         ! Apply future emissions for GCAP (if necessary)
+         IF ( LFUTURE ) THEN
 
-            ! Apply future emissions for GCAP (if necessary)
-            IF ( LFUTURE ) THEN
+            ! Compute future emissions of ORGANIC CARBON
+            FUT_SCL          = GET_FUTURE_SCALE_OCbb( I, J )
+            BIOB_ORGC(I,J,1) = BIOB_ORGC(I,J,1) * FUT_SCL
+            BIOB_ORGC(I,J,2) = BIOB_ORGC(I,J,2) * FUT_SCL
 
-               ! Compute future emissions of ORGANIC CARBON
-               FUT_SCL          = GET_FUTURE_SCALE_OCbb( I, J )
-               BIOB_ORGC(I,J,1) = BIOB_ORGC(I,J,1) * FUT_SCL
-               BIOB_ORGC(I,J,2) = BIOB_ORGC(I,J,2) * FUT_SCL
-
-               ! Compute future emissions of BLACK CARBON
-               FUT_SCL          = GET_FUTURE_SCALE_BCbb( I, J )
-               BIOB_BLKC(I,J,1) = BIOB_BLKC(I,J,1) * FUT_SCL
-               BIOB_BLKC(I,J,2) = BIOB_BLKC(I,J,2) * FUT_SCL
-            ENDIF 
-         ENDDO
+            ! Compute future emissions of BLACK CARBON
+            FUT_SCL          = GET_FUTURE_SCALE_BCbb( I, J )
+            BIOB_BLKC(I,J,1) = BIOB_BLKC(I,J,1) * FUT_SCL
+            BIOB_BLKC(I,J,2) = BIOB_BLKC(I,J,2) * FUT_SCL
+         ENDIF 
+      ENDDO
       ENDDO
 !$OMP END PARALLEL DO  
 
@@ -6347,6 +6344,8 @@ ccc
 !  (3 ) Now store the peak SUNCOS value for each surface grid box (I,J) in 
 !        the COSZM array. (rjp, bmy, 3/30/04)
 !  (4 ) Also added parallel loop over grid boxes (bmy, 1/18/05)
+!  01 Mar 2012 - R. Yantosca - Now use GET_XMID(I,J,L) from grid_mod.F90
+!  01 Mar 2012 - R. Yantosca - Now use GET_YMID_R(I,J,L) from grid_mod.F90
 !******************************************************************************
 !
       ! References to F90 modules
@@ -6415,7 +6414,7 @@ ccc
                ! Increment IJLOOP
                IJLOOP = ( (J-1) * IIPAR ) + I
                TIMLOC = real(LHR0) + real(NT)/3600.0 + 
-     &                  GET_XMID( I, J, 1 )/15.0
+     &                  GET_XMID( I, J, 1 ) / 15.0
          
                DO WHILE (TIMLOC .lt. 0)
                   TIMLOC = TIMLOC + 24.0
@@ -7592,6 +7591,7 @@ ccc
 
 !------------------------------------------------------------------------------
 
+
 ! use soaprod_mod.f
 !      SUBROUTINE WRITE_GPROD_APROD( YYYYMMDD, HHMMSS, TAU )
 !!
@@ -7701,7 +7701,7 @@ ccc
 !      ! Return to calling program
 !      END SUBROUTINE WRITE_GPROD_APROD
 !
-!!------------------------------------------------------------------------------
+!!------------------------------------------------------------------------------!
 !
 !      SUBROUTINE READ_GPROD_APROD( YYYYMMDD, HHMMSS, TAU )
 !!
@@ -7781,7 +7781,7 @@ ccc
 !      ! Return to calling program
 !      END SUBROUTINE READ_GPROD_APROD
 !
-!!------------------------------------------------------------------------------
+!------------------------------------------------------------------------------
 
       SUBROUTINE INIT_CARBON
 !

@@ -387,9 +387,15 @@
 #elif defined( APM )
       INTEGER, PARAMETER :: NNPAR   = 154   ! For APM (G. Luo, 3/8/11)
 #else
-      ! increase NNPAR to 100 (FP 8/2009)
-      INTEGER, PARAMETER :: NNPAR   = 75    ! For non-TOMAS simulations
-      !INTEGER, PARAMETER :: NNPAR   = 100
+!------------------------------------------------------------------------------
+! Prior to 12/27/11:
+! Changed NNPAR from 75 to 85 to accommodate 10 bromine species added
+! (J. Parrella, mpayer, 12/27/11)
+!      ! increase NNPAR to 100 (FP 8/2009)
+!      INTEGER, PARAMETER :: NNPAR   = 75    ! For non-TOMAS simulations
+!      !INTEGER, PARAMETER :: NNPAR   = 100
+!------------------------------------------------------------------------------
+      INTEGER, PARAMETER :: NNPAR   = 85    ! For non-TOMAS simulations
 #endif
 
       ! Nempara increased to 26. (fp, 2/8/10)
@@ -401,9 +407,15 @@
       !INTEGER, PARAMETER :: NEMPARA = 26 
       INTEGER, PARAMETER :: NEMPARA = 29
 
-      ! Add biogenic emissions: MBO, MONX. (tmf, 1/7/09) 
-!      INTEGER, PARAMETER :: NEMPARB = 3
-      INTEGER, PARAMETER :: NEMPARB = 17
+!------------------------------------------------------------------------------
+! Prior to 12/27/11:
+! Added 3 to NEMPARB, to allow for biogenic VSL emissions of CH2Br2 and CHBr3
+! and seasalt emissions of Br2 (J. Parrella, mpayer, 12/27/11)
+!      ! Add biogenic emissions: MBO, MONX. (tmf, 1/7/09) 
+!!      INTEGER, PARAMETER :: NEMPARB = 3
+!      INTEGER, PARAMETER :: NEMPARB = 17
+!------------------------------------------------------------------------------
+      INTEGER, PARAMETER :: NEMPARB = 20
 
       !=================================================================
       ! OTHER PARAMETERS 
@@ -437,7 +449,8 @@
       ! MAXMEM is maximum number of families of prod and loss
       ! moved from input_mod and diag_pl_mod to here (hotp 7/31/09)
       ! MAXMEM also increased from 10 to 20 by FP
-      INTEGER, PARAMETER :: MAXMEM = 20
+      ! MAXMEM increased from 20 to 22 for bromine (jpp, mpayer, 12/28/11)
+      INTEGER, PARAMETER :: MAXMEM = 22
 
       ! MAXPL increased from 100 to 500 and moved from diag_pl_mod
       ! to here by FP (hotp 7/31/09)
@@ -546,6 +559,8 @@
 !                              the Cpp switch GRIDREDUCED is not set).
 !  09 Mar 2011 - R. Yantosca - Updated NNPAR for APM (G. Luo)
 !  23 Aug 2011 - M. Long     - Converted to Module from Header file
+!  27 Dec 2011 - M. Payer    - Updated NNPAR, NEMPARB, MAXMEM for bromine
+!                              chemistry (J. Parrella) 
 !  10 Feb 2012 - R. Yantosca - Added #if blocks for GEOS-5.7.x nested CH grid
 !  28 Feb 2012 - R. Yantosca - Removed support for GEOS-3
 !  27 Mar 2012 - R. Yantosca - Increase NTYPE from 15 to 25 for Olson 2001 map
@@ -1116,9 +1131,15 @@
 #elif defined( APM )
       INTEGER, PARAMETER :: NNPAR   = 154   ! For APM (G. Luo, 3/8/11)
 #else
-      ! increase NNPAR to 100 (FP 8/2009)
-      INTEGER, PARAMETER :: NNPAR   = 75    ! For non-TOMAS simulations
-      !INTEGER, PARAMETER :: NNPAR   = 100
+!------------------------------------------------------------------------------
+! Prior to 12/27/11:
+! Changed NNPAR from 75 to 85 to accommodate 10 bromine species added
+! (J. Parrella, mpayer, 12/27/11)
+!      ! increase NNPAR to 100 (FP 8/2009)
+!      INTEGER, PARAMETER :: NNPAR   = 75    ! For non-TOMAS simulations
+!      !INTEGER, PARAMETER :: NNPAR   = 100
+!------------------------------------------------------------------------------
+      INTEGER, PARAMETER :: NNPAR   = 85    ! For non-TOMAS simulations
 #endif
 
       ! Nempara increased to 26. (fp, 2/8/10)
@@ -1130,9 +1151,15 @@
       !INTEGER, PARAMETER :: NEMPARA = 26 
       INTEGER, PARAMETER :: NEMPARA = 29
 
-      ! Add biogenic emissions: MBO, MONX. (tmf, 1/7/09) 
-!      INTEGER, PARAMETER :: NEMPARB = 3
-      INTEGER, PARAMETER :: NEMPARB = 17
+!------------------------------------------------------------------------------
+! Prior to 12/27/11:
+! Added 3 to NEMPARB, to allow for biogenic VSL emissions of CH2Br2 and CHBr3
+! and seasalt emissions of Br2 (J. Parrella, mpayer, 12/27/11)
+!      ! Add biogenic emissions: MBO, MONX. (tmf, 1/7/09) 
+!!      INTEGER, PARAMETER :: NEMPARB = 3
+!      INTEGER, PARAMETER :: NEMPARB = 17
+!------------------------------------------------------------------------------
+      INTEGER, PARAMETER :: NEMPARB = 20
 
       !=================================================================
       ! OTHER PARAMETERS 
@@ -1166,7 +1193,8 @@
       ! MAXMEM is maximum number of families of prod and loss
       ! moved from input_mod and diag_pl_mod to here (hotp 7/31/09)
       ! MAXMEM also increased from 10 to 20 by FP
-      INTEGER, PARAMETER :: MAXMEM = 20
+      ! MAXMEM increased from 20 to 22 for bromine (jpp, mpayer, 12/28/11)
+      INTEGER, PARAMETER :: MAXMEM = 22
 
       ! MAXPL increased from 100 to 500 and moved from diag_pl_mod
       ! to here by FP (hotp 7/31/09)
@@ -1275,6 +1303,8 @@
 !                              the Cpp switch GRIDREDUCED is not set).
 !  09 Mar 2011 - R. Yantosca - Updated NNPAR for APM (G. Luo)
 !  23 Aug 2011 - M. Long     - Converted to Module from Header file
+!  27 Dec 2011 - M. Payer    - Updated NNPAR, NEMPARB, MAXMEM for bromine
+!                              chemistry (J. Parrella) 
 !  10 Feb 2012 - R. Yantosca - Added #if blocks for GEOS-5.7.x nested CH grid
 !  28 Feb 2012 - R. Yantosca - Removed support for GEOS-3
 !  27 Mar 2012 - R. Yantosca - Increase NTYPE from 15 to 25 for Olson 2001 map
