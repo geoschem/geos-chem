@@ -172,6 +172,7 @@
       LOGICAL :: LWINDO_EU
       LOGICAL :: LWINDO_CH
       LOGICAL :: LWINDO_CU
+      LOGICAL :: LWINDO_SE
 
       !%%%% Met fields %%%%
       LOGICAL :: LUNZIP          ! Unzip met fields on-the-fly?

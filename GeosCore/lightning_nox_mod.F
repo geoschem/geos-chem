@@ -1256,8 +1256,17 @@
 
       ! Prefix directory to file name
 #if !defined( GEOS_57 )
+
       FILENAME = TRIM( DATA_DIR ) // TRIM( FILENAME ) 
 #endif      
+
+      ! For GEOS-57 nested grids, append a suffix to denote either
+      ! SEAC4RS or the China domain (skim, 5/29/12)
+#if   defined( GEOS_57 ) && defined( NESTED_CH )
+      FILENAME = TRIM( FILENAME ) // '.CH'
+#elif defined( GEOS_57 ) && defined( SEAC4RS )
+      FILENAME = TRIM( FILENAME ) // '.SE'
+#endif
 
       ! For GEOS-5 nested grids, append the a suffix to denote either 
       ! CHINA or NORTH AMERICA nested regions (ltm, bmy, 11/14/08)
@@ -1534,6 +1543,28 @@
 
       !---------------------------------------
       ! GEOS-5.7.x: 2 x 2.5 global simulation
+      !---------------------------------------
+      
+      ! ltm: Will need to be updated when other months/years become available
+      IF ( GET_YEAR() .eq. 2011 .and. GET_MONTH() .eq. 9 ) THEN
+         BETA = 0.20604515d0
+      ENDIF
+
+#elif defined( GEOS_57 ) && defined( GRID025x0325 ) && defined( NESTED_CH )
+
+      !---------------------------------------
+      ! GEOS-5.7.x: Nested China simulation
+      !---------------------------------------
+      
+      ! ltm: Will need to be updated when other months/years become available
+      IF ( GET_YEAR() .eq. 2011 .and. GET_MONTH() .eq. 9 ) THEN
+         BETA = 0.20604515d0
+      ENDIF
+
+#elif defined( GEOS_57 ) && defined( GRID025x0325 ) && defined( SEAC4RS )
+
+      !---------------------------------------
+      ! GEOS-5.7.x: Nested SEAC4RS simulation
       !---------------------------------------
       
       ! ltm: Will need to be updated when other months/years become available

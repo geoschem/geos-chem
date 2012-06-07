@@ -79,6 +79,12 @@
 
       !%%% NOTE: still to be determined, use fudge factor for now
       INTEGER, PARAMETER :: NLAND = 5536
+
+#elif defined( GRID025x03125 ) && defined( SEAC4RS )
+
+      !%%% NOTE: still to be determined, use fudge factor for now
+      INTEGER, PARAMETER :: NLAND = 5536
+
 #if defined( DEVEL )
 #elif defined( EXTERNAL_GRID )
 
