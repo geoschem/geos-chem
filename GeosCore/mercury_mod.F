@@ -2665,6 +2665,7 @@
 !  01 Mar 2012 - R. Yantosca - Now use GET_YMID(I,J,L) from grid_mod.F90
 !  13 Mar 2012 - M. Cooper   - Changed regrid algorithm to map_a2a
 !  24 May 2012 - R. Yantosca - Fixed minor bugs in map_a2a algorithm
+!  24 May 2012 - H. Amos     - updated file paths for soil Hg files
 !******************************************************************************
 !
       ! References to F90 modules
@@ -2676,6 +2677,7 @@
       USE TIME_MOD,       ONLY : EXPAND_DATE
       USE TRANSFER_MOD,   ONLY : TRANSFER_2D
       USE GRID_MOD,       ONLY : GET_XMID,    GET_YMID
+      USE ERROR_MOD,      ONLY : ERROR_STOP
 
       USE CMN_SIZE_MOD         ! Size parameters
 
@@ -3129,7 +3131,8 @@
 
       !=================================================================
       ! Read distribution of Hg on land.
-      ! See explanation in Selin et al., GBC 2008
+      ! See explanation in Selin et al., GBC 2008 or the GEOS-Chem Hg
+      !  wiki.
       !
       ! EHg0_dist is a dimensionless spatial scaling factor that distributes
       ! the soil Hg content according to deposition. It also accounts for
@@ -3144,11 +3147,16 @@
          ! Pre-industrial 
          !-----------------------
 #if   defined( GEOS_5 ) && defined( GRID4x5 )
-         FILENAME = '/home/h/hamos/GC/input_files/Hg/soilHg/'//
-     &              'soilHg.preind.4x5.bpch'  !hma, 09  Jun 2011
+        FILENAME= TRIM( DATA_DIR )            //
+     &            'mercury_201110/soilHg.102311.preind.bpch'
 #elif defined( GEOS_5 ) && defined( GRID2x25 )
-         FILENAME = '/home/h/hamos/GC/input_files/Hg/soilHg/'//
-     &              'soilHg.preind.2x25.bpch' ! hma, 19 Dec 2011
+        FILENAME= TRIM( DATA_DIR )            //
+     &            'mercury_201110/soilHg.102311.preind.bpch'
+#elif defined( MERRA ) && defined( GRID4x5 )
+        FILENAME= TRIM( DATA_DIR )            //
+     &            'mercury_201110/soilHg.merra.preind.bpch'
+#else
+      CALL ERROR_STOP('You need to make a Hg soil file. ')
 #endif
 
       ELSE
@@ -3156,11 +3164,16 @@
          ! Present day
          !-----------------------
 #if   defined( GEOS_5 ) && defined( GRID4x5 )
-         FILENAME = '/home/h/hamos/GC/input_files/Hg/soilHg/'//
-     &              'soilHg.presentday.4x5.bpch'  !hma, 09  Jun 2011
+        FILENAME= TRIM( DATA_DIR )            //
+     &            'mercury_201110/soilHg.102311.presentday.bpch'
 #elif defined( GEOS_5 ) && defined( GRID2x25 )
-         FILENAME = '/home/h/hamos/GC/input_files/Hg/soilHg/'//
-     &              'soilHg.presentday.2x25.bpch' ! hma, 19 Dec 2011
+        FILENAME= TRIM( DATA_DIR )            //
+     &            'mercury_201110/soilHg.102311.presentday.bpch'
+#elif defined( MERRA ) && defined( GRID4x5 )
+        FILENAME= TRIM( DATA_DIR )            //
+     &            'mercury_201110/soilHg.merra.presentday.bpch'
+#else
+      CALL ERROR_STOP('You need to make a Hg soil file. ')
 #endif
 
       ENDIF
