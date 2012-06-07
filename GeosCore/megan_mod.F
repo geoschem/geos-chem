@@ -1981,7 +1981,7 @@
 
       ! File with lat/lon edges for regridding
       LLFILENAME = TRIM( DATA_DIR_1x1) //
-     &             'MAP_A2A_Regrid_200312/latlon_geos1x1_new.txt'
+     &             'MAP_A2A_Regrid_201203/latlon_geos1x1_new.txt'
 
       ! Regrid from 1x1 to the current grid (also cast to REAL*8)
       INGRID   = ARRAY(:,:,1)

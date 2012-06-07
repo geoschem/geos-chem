@@ -476,11 +476,7 @@
 
       ! File with lat/lon edges for regridding
       LLFILENAME = TRIM( DATA_DIR_1x1) //
-     &             'MAP_A2A_Regrid_200312/latlon_geos1x1_new.txt'
-
-      ! Allocate arrays for regridding
-      ALLOCATE(INGRID(I1x1,J1x1))
-      ALLOCATE(OUTGRID(IIPAR,JJPAR))
+     &             'MAP_A2A_Regrid_201203/latlon_geos1x1_new.txt'
 
       ! Loop over species
       DO KLM = 1, SIZE( SPECIES_ID )
@@ -1065,7 +1061,7 @@
                NULLIFY( INGRID, OUTGRID )
 
                !-----------------
-               ! C3H8_WKEND
+               ! CH2O_WKEND
                !-----------------
 
                ! Point to array slices
@@ -1108,7 +1104,7 @@
                NULLIFY( INGRID, OUTGRID )
 
                !-----------------
-               ! C3H8_WKEND
+               ! C2H6_WKEND
                !-----------------
 
                ! Point to array slices
@@ -1136,7 +1132,7 @@
             DO L = 1, 5
 
                !-----------------
-               ! C2H6
+               ! ALD2
                !-----------------
 
                INGRID  => GEOS_1x1(:,:,L)
@@ -1149,7 +1145,7 @@
                NULLIFY( INGRID, OUTGRID )
 
                !-----------------
-               ! C3H8_WKEND
+               ! ALD2_WKEND
                !-----------------
 
                ! Point to array slices
@@ -1774,15 +1770,11 @@
 ! !INPUT/OUTPUT PARAMETERS:
 !
       REAL*4,  INTENT(INOUT)  :: AS(IIPAR,JJPAR,5)  ! Scale factor array
-      CHARACTER(LEN=255)      :: LLFILENAME
-      REAL*8, ALLOCATABLE     :: OUTGRID(:,:)
-      REAL*8, ALLOCATABLE     :: INGRID(:,:)
-      INTEGER                 :: L
-
 !
 ! !REVISION HISTORY:
 !  30 Oct 2009 - A. van Donkelaar - Initial Version
 !  13 Mar 2012 - M. Cooper        - Changed regrid algorithm to map_a2a
+!  07 Jun 2012 - M. Payer         - Fix minor bugs in map_a2a implementation
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -1790,6 +1782,10 @@
 ! !LOCAL VARIABLES:
 !
       REAL*4                  :: ARRAY(I1x1,J1x1,5)
+      CHARACTER(LEN=255)      :: LLFILENAME
+      REAL*8                  :: OUTGRID(IIPAR,JJPAR)
+      REAL*8                  :: INGRID(I1x1,J1x1)
+      INTEGER                 :: L
 
       !=================================================================
       ! GET_NEI99_SEASON_05x0666 begins here!
@@ -1801,22 +1797,15 @@
 
       ! File with lat/lon edges for regridding
       LLFILENAME = TRIM( DATA_DIR_1x1) //
-     &             'MAP_A2A_Regrid_200312/latlon_geos1x1.txt'
-
-      ! Allocate arrays for regridding
-      ALLOCATE(INGRID(I1x1,J1x1))
-      ALLOCATE(OUTGRID(IIPAR,JJPAR))
+     &             'MAP_A2A_Regrid_201203/latlon_geos1x1_new.txt'
 
       ! Regrid to current model resolution [unitless]
       DO L = 1, 5
          INGRID = ARRAY(:,:,L)
-         CALL DO_REGRID_A2A( LLFILENAME, 360, 181, INGRID, OUTGRID, 1 )
+         CALL DO_REGRID_A2A( LLFILENAME, I1x1,    J1x1,
+     &                       INGRID,     OUTGRID, PERAREA=1 )
          AS(:,:,L) = OUTGRID
       ENDDO
-
-      ! Deallocate arrays for regridding
-      DEALLOCATE(OUTGRID)
-      DEALLOCATE(INGRID)
 
       END SUBROUTINE GET_NEI99_SEASON_05x0666
 !EOC
@@ -2025,6 +2014,7 @@
 ! !REVISION HISTORY:
 !  03 Nov 2009 - A. van Donkelaar - Initial Version
 !  13 Mar 2012 - M. Cooper        - Changed regrid algorithm to map_a2a
+!  07 Jun 2012 - M. Payer         - Fix minor bugs in map_a2a implementation
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -2033,8 +2023,8 @@
 !
       REAL*4                  :: ARRAY(I1x1,J1x1,5)
       CHARACTER(LEN=255)      :: LLFILENAME
-      REAL*8, ALLOCATABLE     :: OUTGRID(:,:)
-      REAL*8, ALLOCATABLE     :: INGRID(:,:)
+      REAL*8                  :: OUTGRID(IIPAR,JJPAR)
+      REAL*8                  :: INGRID(I1x1,J1x1)
       INTEGER                 :: L
 
       !=================================================================
@@ -2047,22 +2037,15 @@
 
       ! File with lat/lon edges for regridding
       LLFILENAME = TRIM( DATA_DIR_1x1) //
-     &             'MAP_A2A_Regrid_200312/latlon_geos1x1.txt'
-
-      ! Allocate arrays for regridding
-      ALLOCATE(INGRID(I1x1,J1x1))
-      ALLOCATE(OUTGRID(IIPAR,JJPAR))
+     &             'MAP_A2A_Regrid_201203/latlon_geos1x1_new.txt'
 
       ! Regrid to current model resolution [unitless]
       DO L = 1, 5
          INGRID = ARRAY(:,:,L)
-         CALL DO_REGRID_A2A( LLFILENAME, 360, 181, INGRID, OUTGRID, 1 )
+         CALL DO_REGRID_A2A( LLFILENAME, I1x1,    J1x1,
+     &                       INGRID,     OUTGRID, PERAREA=1 )
          AS(:,:,L) = OUTGRID
       ENDDO
-
-      ! Deallocate arrays for regridding
-      DEALLOCATE(INGRID)
-      DEALLOCATE(OUTGRID)
 
       END SUBROUTINE GET_VISTAS_SEASON_05x0666
 !EOC
@@ -2216,7 +2199,8 @@
 !
 ! !REVISION HISTORY:
 !  30 Oct 2009 - A. van Donkelaar - Initial Version
-!  13 Mar 2012 - M. Cooper   - Changed regrid algorithm to map_a2a
+!  13 Mar 2012 - M. Cooper        - Changed regrid algorithm to map_a2a
+!  07 Jun 2012 - M. Payer         - Fix minor bugs in map_a2a implementation
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -2225,8 +2209,8 @@
 !
       REAL*4                  :: ARRAY(I1x1,J1x1,5)
       CHARACTER(LEN=255)      :: LLFILENAME
-      REAL*8, ALLOCATABLE     :: OUTGRID(:,:)
-      REAL*8, ALLOCATABLE     :: INGRID(:,:)
+      REAL*8                  :: OUTGRID(IIPAR,JJPAR)
+      REAL*8                  :: INGRID(I1x1,J1x1)
       INTEGER                 :: L
 
       !=================================================================
@@ -2239,16 +2223,13 @@
 
       ! File with lat/lon edges for regridding
       LLFILENAME = TRIM( DATA_DIR_1x1) //
-     &             'MAP_A2A_Regrid_200312/latlon_geos1x1.txt'
-
-      ! Allocate arrays for regridding
-      ALLOCATE(INGRID(I1x1,J1x1))
-      ALLOCATE(OUTGRID(IIPAR,JJPAR))
+     &             'MAP_A2A_Regrid_201203/latlon_geos1x1_new.txt'
 
       ! Regrid to current model resolution [unitless]
       DO L = 1, 5
          INGRID = ARRAY(:,:,L)
-         CALL DO_REGRID_A2A( LLFILENAME, 360, 182, INGRID, OUTGRID, 1 )
+         CALL DO_REGRID_A2A( LLFILENAME, I1x1,    J1x1,
+     &                       INGRID,     OUTGRID, PERAREA=1 )
          AS(:,:,L) = OUTGRID
       ENDDO
 
@@ -2287,6 +2268,7 @@
 !   20 Oct 2009 - P. Le Sager - init
 !   26 Oct 2009 - P. Le Sager - new masks
 !   13 Mar 2012 - M. Cooper   - Changed regrid algorithm to map_a2a
+!   24 May 2012 - R. Yantosca - Fixed minor bugs in map_a2a implementation
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -2298,7 +2280,7 @@
       REAL*8, TARGET     :: GEOS_1x1(I1x1,J1x1,1)
       CHARACTER(LEN=255) :: FILENAME, SNAME
       CHARACTER(LEN=255) :: LLFILENAME
-      REAL*8, POINTER    :: INGRID(:,:)
+      REAL*8, POINTER    :: INGRID(:,:) => NULL()
 
       !=================================================================
       ! Mask specific to NEI2005 data
@@ -2331,12 +2313,15 @@
 
       ! File with lat/lon edges for regridding
       LLFILENAME = TRIM( DATA_DIR_1x1) //
-     &             'MAP_A2A_Regrid_200312/latlon_geos1x1_new.txt'
+     &             'MAP_A2A_Regrid_201203/latlon_geos1x1_new.txt'
 
       ! Regrid from GEOS 1x1 --> current model resolution [unitless]
       INGRID => GEOS_1x1(:,:,1)
       CALL DO_REGRID_A2A( LLFILENAME, I1x1,     J1x1,
      &                    INGRID,     USA_MASK, PERAREA=1 )
+
+      ! Free pointer
+      NULLIFY( INGRID )
 
       WHERE ( USA_MASK /= 0D0 ) USA_MASK = 1D0
 

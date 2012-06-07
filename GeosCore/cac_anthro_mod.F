@@ -266,7 +266,7 @@
       LOGICAL, SAVE              :: FIRST = .TRUE.
       INTEGER                    :: I, J, THISYEAR, SPECIES, SNo, ScNo
       REAL*4                     :: ARRAY(I1x1,J1x1,1)
-      REAL*8                     :: GEOS_1x1(I1x1,J1x1,1)
+      REAL*8, TARGET             :: GEOS_1x1(I1x1,J1x1,1)
       REAL*8                     :: GEOS_1x1_2002(I1x1,J1x1,1)
       REAL*8                     :: GEOS_1x1_2005(I1x1,J1x1,1)
       REAL*8                     :: SC_1x1(I1x1,J1x1)
@@ -274,8 +274,7 @@
       CHARACTER(LEN=255)         :: FILENAME
       CHARACTER(LEN=4)           :: SYEAR, SNAME
       CHARACTER(LEN=255)         :: LLFILENAME
-      REAL*8, ALLOCATABLE        :: OUTGRID(:,:)
-      REAL*8, ALLOCATABLE        :: INGRID(:,:)
+      REAL*8, POINTER            :: INGRID(:,:) => NULL()
 
 #if defined( DEVEL )
       REAL*8, INTENT(INOUT)      :: EMISSIONS(IIPAR,JJPAR,N_TRACERS+1)
@@ -299,11 +298,7 @@
 
       ! File with lat/lon edges for regridding
       LLFILENAME = TRIM( DATA_DIR_1x1) //
-     &             'MAP_A2A_Regrid_200312/latlon_geos1x1_new.txt'
-
-      ! Allocate arrays for regridding
-      ALLOCATE(INGRID(I1x1,J1x1))
-      ALLOCATE(OUTGRID(IIPAR,JJPAR))
+     &             'MAP_A2A_Regrid_201203/latlon_geos1x1_new.txt'
 
       DO SPECIES = 1,4
 
@@ -409,19 +404,17 @@
          ENDIF
 
          ! Regrid from GEOS 1x1 --> current model resolution [kg/yr]
-         INGRID = GEOS_1x1(:,:,1)
+         INGRID => GEOS_1x1(:,:,1)
 
          IF ( SPECIES .eq. 1 ) THEN
 
             CALL DO_REGRID_A2A( LLFILENAME, I1x1,    J1x1, 
-     &                          INGRID,     OUTGRID, PERAREA=1 )
-            NOx = OUTGRID
+     &                          INGRID,     NOx,     PERAREA=1 )
 
          ELSEIF ( SPECIES .eq. 2 ) THEN
 
             CALL DO_REGRID_A2A( LLFILENAME, I1x1,    J1x1,
-     &                          INGRID,     OUTGRID, PERAREA=1 )
-            CO = OUTGRID
+     &                          INGRID,     CO,      PERAREA=1 )
 
          ELSEIF ( SPECIES .eq. 3 ) THEN
 
@@ -432,21 +425,19 @@
             INGRID = INGRID * 0.986
 
             CALL DO_REGRID_A2A( LLFILENAME, I1x1,    J1x1,
-     &                          INGRID,     OUTGRID, PERAREA=1 )
-            SO2 = OUTGRID
+     &                          INGRID,     SO2,     PERAREA=1 )
 
          ELSEIF ( SPECIES .eq. 4 ) THEN
 
             CALL DO_REGRID_A2A( LLFILENAME, I1x1,    J1x1,
-     &                          INGRID,     OUTGRID, PERAREA=1 )
-            NH3 = OUTGRID
+     &                          INGRID,     NH3,     PERAREA=1 )
 
          ENDIF
-      ENDDO
 
-      ! Deallocate arrays for regridding
-      DEALLOCATE(INGRID)
-      DEALLOCATE(OUTGRID)
+         ! Free pointer
+         NULLIFY( INGRID )
+
+      ENDDO
 
       !--------------------------
       ! Compute future emissions
@@ -861,6 +852,7 @@
 ! !REVISION HISTORY: 
 !  28 Jan 2009 - P. Le Sager - Initial Version
 !  13 Mar 2012 - M. Cooper   - Changed regrid algorithm to map_a2a
+!  07 Jun 2012 - M. Payer    - Fixed minor bugs in map_a2a implementation
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -868,13 +860,11 @@
 ! !LOCAL VARIABLES:
 !
       REAL*4                  :: ARRAY(I1x1,J1x1,1)
-      REAL*8                  :: GEOS_1x1(I1x1,J1x1,1)
+      REAL*8, TARGET          :: GEOS_1x1(I1x1,J1x1,1)
       REAL*8                  :: TAU2000
       CHARACTER(LEN=255)      :: FILENAME
       CHARACTER(LEN=255)      :: LLFILENAME
-      REAL*8, ALLOCATABLE     :: OUTGRID(:,:)
-      REAL*8, ALLOCATABLE     :: INGRID(:,:)
-      INTEGER                 :: I
+      REAL*8, POINTER         :: INGRID(:,:) => NULL()
 
       !=================================================================
       ! READ_CANADA_MASK begins here!
@@ -888,7 +878,7 @@
 
       ! File with lat/lon edges for regridding
       LLFILENAME = TRIM( DATA_DIR_1x1) //
-     &             'MAP_A2A_Regrid_200312/latlon_geos1x1_new.txt'
+     &             'MAP_A2A_Regrid_201203/latlon_geos1x1_new.txt'
 
       ! Echo info
       WRITE( 6, 100 ) TRIM( FILENAME )
@@ -905,19 +895,13 @@
       ! Save the 1x1 China mask for future use
       MASK_CANADA_1x1(:,:) = GEOS_1x1(:,:,1)
 
-      ! Allocate arrays for regridding
-      ALLOCATE(INGRID(I1x1,J1x1))
-      ALLOCATE(OUTGRID(IIPAR,JJPAR))
-
       ! Regrid from GENERIC 1x1 to current model resolution [unitless]
-      INGRID = GEOS_1x1(:,:,1)
-      CALL DO_REGRID_A2A( LLFILENAME, I1x1,    J1x1, 
-     &                    INGRID,     OUTGRID, PERAREA=1 )
-      MASK_CANADA=OUTGRID
+      INGRID => GEOS_1x1(:,:,1)
+      CALL DO_REGRID_A2A( LLFILENAME, I1x1,        J1x1, 
+     &                    INGRID,     MASK_CANADA, PERAREA=1 )
 
-      ! Deallocate arrays for regridding
-      DEALLOCATE(INGRID)
-      DEALLOCATE(OUTGRID)
+      ! Free pointer
+      NULLIFY( INGRID )
 
       END SUBROUTINE READ_CANADA_MASK
 !EOC

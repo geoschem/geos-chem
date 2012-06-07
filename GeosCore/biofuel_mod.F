@@ -365,15 +365,15 @@
 
                   ! File with lat/lon edges for regridding
                   LLFILENAME = TRIM( DATA_DIR_1x1) //
-     &               'MAP_A2A_Regrid_200312/latlon_generic_new.txt'
+     &               'MAP_A2A_Regrid_201203/latlon_generic_new.txt'
 
                   ! Regrid to current model resolution
                   INGRID => GENERIC_8_1x1
-                  CALL DO_REGRID_A2A( LLFILENAME, 360,     181,
-     &                                INGRID,     OUTGRID, 1 )
+                  CALL DO_REGRID_A2A( LLFILENAME, I1x1,    J1x1-1,
+     &                                INGRID,     OUTGRID, PERAREA=1 )
                   BIOFUEL_KG(N,:,:) = OUTGRID  
                   
-                  ! Deallocate arrays for regridding
+                  ! Free pointer
                   NULLIFY( INGRID )
 
                ELSE

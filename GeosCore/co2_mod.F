@@ -1382,11 +1382,7 @@
 
       ! File with lat/lon edges for regridding
       LLFILENAME = TRIM( DATA_DIR_1x1) //
-     &             'MAP_A2A_Regrid_200312/latlon_geos1x1_new.txt'
-
-      ! Allocate arrays for regridding
-      ALLOCATE(INGRID(I1x1,J1x1))
-      ALLOCATE(OUTGRID(IIPAR,JJPAR))
+     &             'MAP_A2A_Regrid_201203/latlon_geos1x1_new.txt'
 
       ! Regrid to current model resolution
       INGRID  => GEOS_1x1 (:,:,1)
@@ -1642,14 +1638,13 @@
       
       ! File with lat/lon edges for regridding
       LLFILENAME = TRIM( DATA_DIR_1x1) //
-     &             'MAP_A2A_Regrid_200312/latlon_geos1x1_new.txt'
+     &             'MAP_A2A_Regrid_201203/latlon_geos1x1_new.txt'
 
       ! Regrid to current model resolution
       INGRID  => GEOS_1x1(:,:,1)
       OUTGRID => GEOS_GRID(:,:,1)
       CALL DO_REGRID_A2A( LLFILENAME, I1x1,    J1x1, 
      &                    INGRID,     OUTGRID, PERAREA=0 )   
-!      GEOS_GRID(:,:,1) = OUTGRID
 
       EMBIOFUELCO2(:,:) = GEOS_GRID(:,:,1)   !(lmw,05/16/11)
 
@@ -1691,6 +1686,7 @@
 !  18 May 2010 - R. Nassar, D. Jones - Initial version
 !  01 Mar 2012 - R. Yantosca - Now use GET_AREA_CM2(I,J,L) from grid_mod.F90
 !  13 Mar 2012 - M. Cooper   - Changed regrid algorithm to map_a2a
+!  24 May 2012 - R. Yantosca - Fixed minor bugs in map_a2a impelementation
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -1750,8 +1746,7 @@
 
       ! File with lat/lon edges for regridding
       LLFILENAME = TRIM( DATA_DIR_1x1) //
-     &             'MAP_A2A_Regrid_200312/latlon_generic_new.txt'
-
+     &             'MAP_A2A_Regrid_201203/latlon_generic_new.txt'
 
       ! Regrid from GENERIC 1x1 --> current model resolution
       INGRID  => GEN_1x1  (:,:,1)
@@ -1854,6 +1849,7 @@
 !  18 May 2010 - R. Nassar, D. Jones - Initial version
 !  01 Mar 2012 - R. Yantosca - Now use GET_AREA_M2(I,J,L) from grid_mod.F90
 !  13 Mar 2012 - M. Cooper   - Changed regrid algorithm to map_a2a
+!  24 May 2012 - R. Yantosca - Fixed minor bugs in map_a2a implementation
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -1909,11 +1905,7 @@
 
       ! File with lat/lon edges for regridding
       LLFILENAME = TRIM( DATA_DIR_1x1) //
-     &             'MAP_A2A_Regrid_200312/latlon_geos1x1_new.txt'
-
-      ! Allocate arrays for regridding
-      ALLOCATE(INGRID(I1x1,J1x1))
-      ALLOCATE(OUTGRID(IIPAR,JJPAR))
+     &             'MAP_A2A_Regrid_201203/latlon_geos1x1_new.txt'
 
       ! Regrid to current model resolution
       INGRID  => GEOS_1x1 (:,:,1)
@@ -2318,7 +2310,7 @@
 
          ! File with lat/lon edges for regridding
          LLFILENAME = TRIM( DATA_DIR_1x1) //
-     &                'MAP_A2A_Regrid_200312/latlon_geos1x1_new.txt'
+     &                'MAP_A2A_Regrid_201203/latlon_geos1x1_new.txt'
 
          ! Regrid from GEOS 1x1 --> current model resolution
          INGRID  => GEOS_1x1 (:,:,1)

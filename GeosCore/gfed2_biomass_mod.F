@@ -609,7 +609,7 @@
 
       ! File with lat/lon edges for regridding
       LLFILENAME = TRIM( DATA_DIR_1x1) //
-     &             'MAP_A2A_Regrid_200312/latlon_generic_new.txt'
+     &             'MAP_A2A_Regrid_201203/latlon_generic_new.txt'
 
       ! Regrid each species from GENERIC 1x1 to current model resolution
       ! (The unit 'molec/cm2' is just used to denote that the quantity

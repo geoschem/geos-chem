@@ -6272,7 +6272,7 @@
 
       ! File with lat/lon edges for regridding
       LLFILENAME = TRIM( DATA_DIR_1x1) //
-     &             'MAP_A2A_Regrid_200312/latlon_generic_new.txt'
+     &             'MAP_A2A_Regrid_201203/latlon_generic_new.txt'
 
       ! Array regridding has to be done level by level since the array
       ! has a different vertical dimension than expected
@@ -6342,6 +6342,7 @@
 !  (7 ) Volcanic data have been updated. Use a new directory. (ccc, 9/30/10)
 !  22 Dec 2011 - M. Payer    - Added ProTeX headers
 !  13 Mar 2012 - M. Cooper   - Changed regrid algorithm to map_a2a
+!  24 May 2012 - R. Yantosca - Fixed minor bugs in map_a2a implementation
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -6393,7 +6394,7 @@
 
          ! File with lat/lon edges for regridding
          LLFILENAME = TRIM( DATA_DIR_1x1) //
-     &                'MAP_A2A_Regrid_200312/latlon_generic_new.txt'
+     &                'MAP_A2A_Regrid_201203/latlon_generic_new.txt'
 
          ! Array regridding has to be done level by level since the array
          ! has a different vertical dimension than expected
@@ -6945,7 +6946,7 @@
 
          ! File with lat/lon edges for regridding
          LLFILENAME = TRIM( DATA_DIR_1x1) //
-     &                'MAP_A2A_Regrid_200312/latlon_geos1x1_new.txt'
+     &                'MAP_A2A_Regrid_201203/latlon_geos1x1_new.txt'
 
          ! Regrid from 1x1 and cast to REAL*8
          INGRID = ARRAY1(:,:,1)
@@ -7051,6 +7052,7 @@
 !  08 Mar 2012 - M. Payer    - Added modifications for historical emissions of
 !                              SO2 (E. Leibensperger)
 !  06 Apr 2012 - M. Payer    - Changed regrid algorithm to map_a2a (M. Cooper)
+!  24 May 2012 - R. Yantosca - Fixed minor bugs in map_a2a implementation
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -7163,7 +7165,7 @@
 
          ! File with lat/lon edges for regridding
          LLFILENAME = TRIM( DATA_DIR_1x1) //
-     &                'MAP_A2A_Regrid_200312/latlon_generic_new.txt'
+     &                'MAP_A2A_Regrid_201203/latlon_generic_new.txt'
 
          ! Point to input & output arrays
          INGRID  => ESO2_GEN8

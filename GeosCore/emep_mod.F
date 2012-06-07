@@ -427,7 +427,7 @@
 
       ! File with lat/lon edges for regridding
       LLFILENAME = TRIM( DATA_DIR_1x1) //
-     &             'MAP_A2A_Regrid_200312/latlon_geos1x1_new.txt'
+     &             'MAP_A2A_Regrid_201203/latlon_geos1x1_new.txt'
 
       ! Read the entire file in one pass (for I/O optimization)
       DO 
@@ -1174,7 +1174,7 @@
 
       ! File with lat/lon edges for regridding
       LLFILENAME = TRIM( DATA_DIR_1x1) //
-     &             'MAP_A2A_Regrid_200312/latlon_geos1x1_new.txt'
+     &             'MAP_A2A_Regrid_201203/latlon_geos1x1_new.txt'
 
       ! Echo info
       WRITE( 6, 100 ) TRIM( FILENAME )
@@ -1423,7 +1423,7 @@
 
       ! File with lat/lon edges for regridding
       LLFILENAME = TRIM( DATA_DIR_1x1) //
-     &             'MAP_A2A_Regrid_200312/latlon_geos1x1_new.txt'
+     &             'MAP_A2A_Regrid_201203/latlon_geos1x1_new.txt'
 
       ! Regrid to current model resolution [kg/yr]
       INGRID = ARRAY_1x1(:,:,1)
