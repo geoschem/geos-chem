@@ -15,7 +15,7 @@
 !
 ! !USES:
 !
-      USE ACETONE_MOD,             ONLY : CLEANUP_ACETONE
+      !USE ACETONE_MOD,             ONLY : CLEANUP_ACETONE
       USE AEROSOL_MOD,             ONLY : CLEANUP_AEROSOL
       USE AIRCRAFT_NOX_MOD,        ONLY : CLEANUP_AIRCRAFT_NOX
       USE ARCTAS_SHIP_EMISS_MOD,   ONLY : CLEANUP_ARCTAS_SHIP
@@ -181,6 +181,8 @@
 !  13 Aug 2010 - R. Yantosca - Added ProTeX headers
 !  22 Aug 2011 - R. Yantosca - Add modifications for APM microphysics (G. Luo)
 !  07 Sep 2011 - P. Kasibhatla - Add modifications for GFED3
+!  19 Mar 2012 - M. Payer    - Remove call to CLEANUP_ACETONE. It is no longer
+!                              needed after removal of JO1D and RESP routines.
 !  05 Apr 2012 - R. Yantosca - Now call CLEANUP_MODIS_LAI
 !  11 Apr 2012 - R. Yantosca - Remove reference to obsolete lai_mod.F
 !  01 May 2012 - M. Payer    - Added calls for CLEANUP_GLOBAL_GRID and
@@ -197,7 +199,7 @@
  100  FORMAT( '     - CLEANUP: deallocating arrays now...' )
 
       ! Call cleanup routines from individual F90 modules
-      CALL CLEANUP_ACETONE
+      !CALL CLEANUP_ACETONE
       CALL CLEANUP_AEROSOL
       CALL CLEANUP_AIRCRAFT_NOX
       CALL CLEANUP_ARCTAS_SHIP

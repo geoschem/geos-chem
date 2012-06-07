@@ -67,6 +67,7 @@
       ! changed PD44 (drydep) to 53 (jpp, 6/13/09)
       ! changed PD39 (wetdep) to 38 (jpp, 7/08/09)
       ! Now set PD46 to 16 (jpp, 6/7/09)
+      ! Changed PD11 from 7 to 5 (efischer, mpayer, 3/19/12)
       !=================================================================
       INTEGER, PARAMETER :: PD01=3            
       INTEGER, PARAMETER :: PD02=3
@@ -76,7 +77,7 @@
       INTEGER, PARAMETER :: PD08=2
       INTEGER, PARAMETER :: PD09=6
       INTEGER, PARAMETER :: PD10=20            
-      INTEGER, PARAMETER :: PD11=7           
+      INTEGER, PARAMETER :: PD11=5
       INTEGER, PARAMETER :: PD12=0     
       INTEGER, PARAMETER :: PD13=1            
       INTEGER, PARAMETER :: PD14=NNPAR       
