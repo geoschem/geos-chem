@@ -107,8 +107,8 @@ MODULE REGRID_A2A_MOD
     ! Arrays
     REAL*8            :: INLON  (IM   +1)  ! Lon edges        on INPUT GRID
     REAL*8            :: INSIN  (JM   +1)  ! SIN( lat edges ) on INPUT GRID
-    REAL*8            :: LON2   (IIPAR+1)  ! Lon edges        on OUTPUT GRID
-    REAL*8            :: SIN2   (JJPAR+1)  ! SIN( lat edges ) on OUTPUT GRID
+    REAL*8            :: OUTLON (IIPAR+1)  ! Lon edges        on OUTPUT GRID
+    REAL*8            :: OUTSIN (JJPAR+1)  ! SIN( lat edges ) on OUTPUT GRID
     REAL*8            :: IN_GRID(IM,JM  )  ! Shadow variable for INGRID
 
     !======================================================================
@@ -118,15 +118,15 @@ MODULE REGRID_A2A_MOD
     !======================================================================
 
     ! Longitude edges on the OUTPUT GRID
-    ! NOTE: May have to make LON2 a 2-D array later for the GI model
+    ! NOTE: May have to make OUTLON a 2-D array later for the GI model
     DO I = 1, IIPAR+1
-       LON2(I) = GET_XEDGE( I, 1, 1 )
+       OUTLON(I) = GET_XEDGE( I, 1, 1 )
     ENDDO
 
     ! SIN( lat edges ) on the OUTPUT GRID
-    ! NOTE: May have to make SIN2 a 2-D array later for the GI model
+    ! NOTE: May have to make OUTSIN a 2-D array later for the GI model
     DO J = 1, JJPAR+1
-       SIN2(J) = GET_YSIN( 1, J, 1 )
+       OUTSIN(J) = GET_YSIN( 1, J, 1 )
     ENDDO
 
     ! Open file containing lon & lat edges on the INPUT GRID
@@ -167,8 +167,8 @@ MODULE REGRID_A2A_MOD
     ENDIF
 
     ! Call MAP_A2A to do the regridding
-    CALL MAP_A2A( IM,    JM-1,  INLON, INSIN, IN_GRID,        &
-                  IIPAR, JJPAR, LON2,  SIN2,  OUTGRID,  0, 0 )
+    CALL MAP_A2A( IM,    JM,    INLON,  INSIN,  IN_GRID,        &
+                  IIPAR, JJPAR, OUTLON, OUTSIN, OUTGRID, 0, 0 )
 
     ! Convert back from "per area" if necessary
     IF ( PERAREA == 1 ) THEN

@@ -82,17 +82,18 @@
 ! !REVISION HISTORY: 
 !  28 Jan 2009 - A. v. Donkelaar and P. Le Sager - Initial Version
 !  13 Mar 2012 - M. Cooper   - Changed regrid algorithm to map_a2a
+!  07 Jun 2012 - M. Payer    - Fixed minor bugs in map_a2a calls (M. Cooper)
 !EOP
 !------------------------------------------------------------------------------
 !BOC
 !
 ! !LOCAL VARIABLES:
 !
-      REAL*8                  :: AS_1x1(I1x1,J1x1)
-      REAL*8                  :: AS_1x1x1(I1x1,J1x1,1)
+      REAL*8, TARGET          :: AS_1x1(I1x1,J1x1)
+      REAL*8, TARGET          :: AS_1x1x1(I1x1,J1x1,1)
       CHARACTER(LEN=255)      :: LLFILENAME
-      REAL*8, ALLOCATABLE     :: OUTGRID(:,:)
-      REAL*8, ALLOCATABLE     :: INGRID(:,:)
+      REAL*8                  :: OUTGRID(IIPAR,JJPAR)
+      REAL*8, POINTER         :: INGRID(:,:) => NULL()
 
       ! Read 1x1 scale factors
       CALL GET_ANNUAL_SCALAR_1x1( TRACER, B_YEAR, T_YEAR, AS_1x1 )
@@ -102,22 +103,18 @@
 
       ! File with lat/lon edges for regridding
       LLFILENAME = TRIM( DATA_DIR_1x1) //
-     &             'MAP_A2A_Regrid_200312/latlon_geos1x1.txt'
-
-      ! Allocate arrays for regridding
-      ALLOCATE(INGRID(I1x1,J1x1))
-      ALLOCATE(OUTGRID(IIPAR,JJPAR))
+     &             'MAP_A2A_Regrid_201203/latlon_geos1x1_new.txt'
   
       ! Regrid emissions factors to current model resolution
-      INGRID = AS_1x1x1(:,:,1)
-      CALL DO_REGRID_A2A( LLFILENAME, 360, 181, INGRID, OUTGRID, 0 )
+      INGRID => AS_1x1x1(:,:,1)
+      CALL DO_REGRID_A2A( LLFILENAME, I1x1,    J1x1, 
+     &                    INGRID,     OUTGRID, PERAREA=0 )
 
       ! Cast to REAL*4
       AS(:,:) = OUTGRID(:,:)
 
-      ! Deallocate arrays for regridding
-      DEALLOCATE(INGRID)
-      DEALLOCATE(OUTGRID)
+      ! Free pointer
+      NULLIFY( INGRID )
 
       END SUBROUTINE GET_ANNUAL_SCALAR
 !EOC
@@ -332,6 +329,7 @@
 !                              retrieve and regrid scale factors by calling 
 !                              GET_ANNUAL_SCALAR_1x1 and regridding on fly
 !  06 Apr 2012 - M. Payer    - Changed regrid algorithm to map_a2a (M. Cooper)
+!  07 Jun 2012 - M. Payer    - Fixed minor bugs in map_a2a calls (M. Cooper)
 !
 ! !REMARKS:
 !  (1) Scaling factors are for years between 1985 and 2005, on the GEOS-Chem
@@ -342,11 +340,11 @@
 !
 ! ! LOCAL VARIABLES:
 !
-      REAL*8                  :: AS_1x1(I1x1,J1x1,1)
+      REAL*8, TARGET          :: AS_1x1(I1x1,J1x1,1)
       REAL*8                  :: AS_R8(IIPAR, JJPAR)
       CHARACTER(LEN=255)      :: LLFILENAME
-      REAL*8, ALLOCATABLE     :: OUTGRID(:,:)
-      REAL*8, ALLOCATABLE     :: INGRID(:,:)
+      REAL*8                  :: OUTGRID(IIPAR,JJPAR)
+      REAL*8, POINTER         :: INGRID(:,:) => NULL()
 
       !=================================================================
       ! GET_ANNUAL_SCALAR_05x0666_NESTED begins here!
@@ -356,18 +354,18 @@
 
       ! File with lat/lon edges for regridding
       LLFILENAME = TRIM( DATA_DIR_1x1) //
-     &             'MAP_A2A_Regrid_200312/latlon_geos1x1.txt'
-
-      ! Allocate arrays for regridding
-      ALLOCATE(INGRID(I1x1,J1x1))
-      ALLOCATE(OUTGRID(IIPAR,JJPAR))
+     &             'MAP_A2A_Regrid_201203/latlon_geos1x1_new.txt'
   
       ! Regrid emissions factors to current model resolution [unitless]
-      INGRID = AS_1x1(I1x1,J1x1,1)
-      CALL DO_REGRID_A2A( LLFILENAME, 360, 181, INGRID, OUTGRID, 0 )
+      INGRID => AS_1x1(:,:,1)
+      CALL DO_REGRID_A2A( LLFILENAME, I1x1,    J1x1, 
+     &                    INGRID,     OUTGRID, PERAREA=0 )
 
       ! Cast to REAL*4
       AS(:,:) = OUTGRID(:,:)
+
+      ! Free pointer
+      NULLIFY( INGRID )
 
       END SUBROUTINE GET_ANNUAL_SCALAR_05x0666_NESTED
 !EOC

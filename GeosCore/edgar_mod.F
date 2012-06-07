@@ -432,7 +432,7 @@
 
       ! File with lat/lon edges for regridding
       LLFILENAME = TRIM( DATA_DIR_1x1) //
-     &             'MAP_A2A_Regrid_200312/latlon_generic_new.txt'
+     &             'MAP_A2A_Regrid_201203/latlon_generic_new.txt'
       
       ! Regrid anthro emissions to current resolution
       INGRID => E_NOx_1x1(:,:)
@@ -472,7 +472,6 @@
 
       ! Regrid NOx emissions to current model resolution [kg/yr]
       INGRID => E_NOx_1x1(:,:)
-
       CALL DO_REGRID_A2A( LLFILENAME, I1x1,    J1x1-1, 
      &                    INGRID,     OUTGRID, PERAREA=1 )
       NULLIFY( INGRID )
@@ -988,7 +987,7 @@
 
       ! File with lat/lon edges for regridding
       LLFILENAME = TRIM( DATA_DIR_1x1) //
-     &             'MAP_A2A_Regrid_200312/latlon_generic_new.txt'
+     &             'MAP_A2A_Regrid_201203/latlon_generic_new.txt'
 
       ! Regrid CO emissions to current model resolution [kg/yr]
       INGRID => E_CO_1x1
@@ -998,7 +997,6 @@
 
       ! Free pointer
       NULLIFY( INGRID )
-
 
       !----------------------------------
       ! Scale CO from 2000 -> this year
@@ -1204,7 +1202,7 @@
 
       ! File with lat/lon edges for regridding
       LLFILENAME = TRIM( DATA_DIR_1x1) //
-     &             'MAP_A2A_Regrid_200312/latlon_generic_new.txt'
+     &             'MAP_A2A_Regrid_201203/latlon_generic_new.txt'
 
       ! Regrid SO2 emissions to current model resolution [kg/yr]
       INGRID => E_SO2_1x1
@@ -1585,7 +1583,7 @@
       
       ! File with lat/lon edges for regridding
       LLFILENAME = TRIM( DATA_DIR_1x1) //
-     &             'MAP_A2A_Regrid_200312/latlon_geos1x1_new.txt'
+     &             'MAP_A2A_Regrid_201203/latlon_geos1x1_new.txt'
 
       ! Regrid to current model resolution
       INGRID = ARRAY(:,:,1)
@@ -2321,7 +2319,7 @@
          
       ! File with lat/lon edges for regridding
       LLFILENAME = TRIM( DATA_DIR_1x1) //
-     &             'MAP_A2A_Regrid_200312/latlon_geos1x1_new.txt'
+     &             'MAP_A2A_Regrid_201203/latlon_geos1x1_new.txt'
 
       ! Regrid BENZ from GEOS 1x1 to current model resolution
       ! [atoms C/cm2/s] (ccc, 3/9/09)
@@ -2440,7 +2438,7 @@
 
       ! File with lat/lon edges for regridding
       LLFILENAME = TRIM( DATA_DIR_1x1) //
-     &             'MAP_A2A_Regrid_200312/latlon_geos1x1_new.txt'
+     &             'MAP_A2A_Regrid_201203/latlon_geos1x1_new.txt'
 
       ! Regrid C2H4 from GEOS 1x1 to current model resolution
       ! [atoms C/cm2/s] (ccc, 3/9/09)
@@ -2517,7 +2515,7 @@
          
       ! File with lat/lon edges for regridding
       LLFILENAME = TRIM( DATA_DIR_1x1) //
-     &             'MAP_A2A_Regrid_200312/latlon_geos1x1_new.txt'
+     &             'MAP_A2A_Regrid_201203/latlon_geos1x1_new.txt'
 
       ! Regrid C2H2 from GEOS 1x1 to current model resolution
       ! [atoms C/cm2/s] (ccc, 3/9/09)

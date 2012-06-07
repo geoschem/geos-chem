@@ -380,7 +380,7 @@
       
       ! File with lat/lon edges for regridding
       LLFILENAME = TRIM( DATA_DIR_1x1) //
-     &             'MAP_A2A_Regrid_200312/latlon_generic_new.txt'
+     &             'MAP_A2A_Regrid_201203/latlon_generic_new.txt'
 
       ! Regrid from GENERIC 1x1 --> Current Model Resolution
       INGRID => GEN_1x1(:,:)
@@ -391,6 +391,9 @@
       IF ( TRACERN == 26 )
      $     CALL GET_ANNUAL_SCALAR( 73, 2000, YEAR, SC )
       ARR = OUTGRID * SC
+
+      ! Free pointer
+      NULLIFY( INGRID )
 
       END SUBROUTINE READ_ARCTAS_SHIP
 !EOC
