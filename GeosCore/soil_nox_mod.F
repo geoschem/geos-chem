@@ -243,7 +243,7 @@ C     &                                             0.05d0           /)
      &                              DEPN,      FERTDIAG, 
      &                              CLIM, LANDFRAC, RC, I, J,
      &                              SUNCOS, U10M, V10M, R_CANOPY, 
-     &				    LAI, ILAND, IREG) !maasa
+     &				    LAI, IREG, IUSE) !maasa
 
       USE SMV_ERRCODE_MOD, ONLY : SMV_SUCCESS
       !USE TIME_MOD,        ONLY : GET_TS_EMIS
@@ -278,8 +278,10 @@ C     &                                             0.05d0           /)
       REAL*8  :: R_CANOPY(:) ! Resist. of canopy to NOx [1/s]
       REAL*8  :: LAI(:)      ! Leaf area indices [cm2/cm2]
 
-      INTEGER :: ILAND(:)    ! Olson land type indices in grid box	!VIA
+      !INTEGER :: ILAND(:)    ! Olson land type indices in grid box	!VIA
       INTEGER :: IREG        ! # of Olson land types per grid box	!VIA
+
+      INTEGER :: IUSE(:)     ! Fraction of Olson land type usage	!CRFW
 
 
 ! !OUTPUT PARAMETERS:
@@ -321,7 +323,7 @@ C     &                                             0.05d0           /)
 !BOP
 !
       INTEGER :: K,	VIA,	VIAB, CRF_K !VIA
-      REAL*8  :: BASE_TERM, CRF_TERM,  PULSE, CRF_TERM_TEMP !maasaCRF
+      REAL*8  :: BASE_TERM, CRF_TERM,  PULSE, CRF_TERM_TEMP, CRF_W !maasaCRF
       !REAL*8  :: BASE_TERM, PULSE
       REAL*8  :: TC,        TEMP_TERM, WINDSQR  !maasaCRF
       !REAL*8  :: TC,        TEMP_TERM
@@ -378,84 +380,111 @@ C     &                                             0.05d0           /)
          !A_FERT = FERTADD( NN, MONTH, LAT, SOILFRT , DEPN)
          A_FERT = FERTADD( SOILFRT , DEPN)
 
-	!VIA PROJECT, TRANSFORM K(MODIS/Koppen) into VIA(Olson land type) and VIAB (Olson biome)
+	!VIA PROJECT, TRANSFORM K(MODIS/Koppen) into VIAB (Olson biome)
 	SELECT CASE (K)
    		CASE (1)
-     			VIA = 1
+     			VIAB = 1
    		CASE (2)
-     			VIA = 10
+     			VIAB = 10
    		CASE (3)
-     			VIA = 1
+     			VIAB = 1
    		CASE (4)
-     			VIA = 1
+     			VIAB = 1
    		CASE (5)
-     			VIA = 1
+     			VIAB = 1
    		CASE (6)
-     			VIA = 1
+     			VIAB = 1
    		CASE (7)
-     			VIA = 11
+     			VIAB = 11
    		CASE (8)
-     			VIA = 11
+     			VIAB = 11
    		CASE (9)
-     			VIA = 11
+     			VIAB = 11
    		CASE (10)
-     			VIA = 7
+     			VIAB = 7
    		CASE (11)
-     			VIA = 7
+     			VIAB = 7
    		CASE (12)
-     			VIA = 7
+     			VIAB = 7
    		CASE (13)
-     			VIA = 7
+     			VIAB = 7
    		CASE (14)
-     			VIA = 6
+     			VIAB = 6
    		CASE (15)
-     			VIA = 5
+     			VIAB = 5
    		CASE (16)
-     			VIA = 2
+     			VIAB = 2
    		CASE (17)
-     			VIA = 4
+     			VIAB = 4
    		CASE (18)
-     			VIA = 3
+     			VIAB = 3
    		CASE (19)
-     			VIA = 3
+     			VIAB = 3
    		CASE (20)
-     			VIA = 4
+     			VIAB = 4
    		CASE (21)
-     			VIA = 2
+     			VIAB = 2
    		CASE (22)
-     			VIA = 8
+     			VIAB = 8
    		CASE (23)
-     			VIA = 1
+     			VIAB = 1
    		CASE (24)
-     			VIA = 8
+     			VIAB = 8
 	END SELECT
 
 	!VIAB        = NCONSOIL( ILAND(VIA)+1 )
 	!END VIA PROJECT
 	
-	!VIA PROJECT
+	!VIA PROJECT, loop over Olson land types (VIA) using Olson biome (VIAB)
 	CRF_TERM = 0.
 	CRF_K = 0
+	CRF_W = 0.
 
-	DO VIAB = 1, IREG
+	IF (LANDFRAC(K) .NE. 0.) THEN
+	DO VIA = 1, IREG
          	! Canopy reduction factor term
 	 	CRF_TERM_TEMP  = 0.
-         	CRF_TERM_TEMP  = SOILCRF( VIA, LAI(VIAB), 
-     &                                    R_CANOPY(VIAB),
+         	CRF_TERM_TEMP  = SOILCRF( VIAB, LAI(VIA), 
+     &                                    R_CANOPY(VIA),
      & 			                  WINDSQR, SUNCOS ) !maasaCRF !VIA
 
 		IF ( CRF_TERM_TEMP .NE. 0. )THEN
-			CRF_TERM = CRF_TERM + CRF_TERM_TEMP
-			CRF_K = CRF_K + 1
+			CRF_TERM = CRF_TERM + ( DBLE( IUSE(VIA) ) * CRF_TERM_TEMP ) / 1000.
+			!CRF_K = CRF_K + 1			CRFK
+			CRF_W = CRF_W + (DBLE( IUSE(VIA) ) / 1000.)	!CRFW
 		ENDIF
+
+	IF ( I == 69 .and. J == 51 .and. LANDFRAC(K) .NE. 0. ) THEN 
+
+           WRITE(6,*) '===========TESTCRF==================='
+           WRITE(6,*) 'IX = ', I, 'JX =', J
+	   WRITE(6,*) 'VIA = ', VIA
+	   WRITE(6,*) 'IREG = ', IREG
+           WRITE(6,*) 'CRF_TERM = ',  CRF_TERM 
+           WRITE(6,*) 'CRF_W = ', CRF_W 
+           WRITE(6,*) 'VIAB = ', VIAB 
+           WRITE(6,*) 'LAI(VIA) = ',  LAI(VIA) 
+           WRITE(6,*) 'R_CANOPY = ', R_CANOPY(VIA) 
+           WRITE(6,*) 'WINDSQR = ', WINDSQR
+	   WRITE(6,*) 'SUNCOS = ', SUNCOS
+           WRITE(6,*) '==================================='
+	
+	ENDIF !Maasa, test
+	
 	ENDDO
 	
-	IF (CRF_TERM .NE. 0 .and. CRF_K .NE. 0) THEN
-		CRF_TERM = CRF_TERM / CRF_K
+	!IF (CRF_TERM .NE. 0 .and. CRF_K .NE. 0) THEN 		CRFK
+		!CRF_TERM = CRF_TERM / CRF_K			CRFK
+	IF (CRF_TERM .NE. 0 .and. CRF_W .NE. 0) THEN		!CRFW
+		CRF_TERM = CRF_TERM / CRF_W			!CRFW
 	ELSE
 		CRF_TERM = 0.
 	ENDIF
 	!END VIA PROJECT
+
+	ENDIF
+
+
 
          !CRF_TERM = 1.0
 
@@ -466,14 +495,14 @@ C     &                                             0.05d0           /)
          SOILNOX   = (SOILNOX 
      &              + ( A_BIOME(K) + A_FERT )
      &             * ( TEMP_TERM * WET_TERM * PULSE ) 
-     &             * LANDFRAC(K) )
-     &             * ( 1d0                       - CRF_TERM  ) !maasaCRF
+     &             * LANDFRAC(K)
+     &             * ( 1.d0 - CRF_TERM  ) ) !maasaCRF
 
          FERTDIAG  = (FERTDIAG
      &             + ( A_FERT )
      &             * ( TEMP_TERM * WET_TERM * PULSE ) 
-     &             * LANDFRAC(K) )
-     &             * ( 1d0                       - CRF_TERM  ) !maasaCRF
+     &             * LANDFRAC(K)
+     &             * ( 1.d0 - CRF_TERM  ) ) !maasaCRF
 
 	 IF ( I == 69 .and. J == 51 .and. LANDFRAC(K) .NE. 0. ) THEN 
 
@@ -857,8 +886,8 @@ C     &                                             0.05d0           /)
          ! Adjust the ventilation velocity.  
          ! NOTE: SOILEXC(2) is the canopy wind extinction 
          ! coefficient for the tropical rainforest biome.
-         VFNEW    = VFNEW * SQRT( WINDSQR/9d0 * 7d0/LAI     ) *
-     &                          ( SOILEXC(2)  / SOILEXC(VIAB) )	!VIA
+         VFNEW    = (VFNEW * SQRT( WINDSQR/9d0 * 7d0/LAI     ) *
+     &                          ( SOILEXC(2)  / SOILEXC(VIAB) ))	!VIA
 
          ! Soil canopy reduction factor
          SOIL_CRF = CANOPYNOX / ( CANOPYNOX + VFNEW )
@@ -914,7 +943,7 @@ C     &                                             0.05d0           /)
 ! !REMARKS:
 !
 !  We use a new spatially explicit data set of chemical and manure fert
-!  (native resolution 0.5°x0.5°) from Potter et al., [2010] 
+!  (native resolution 0.5\B0x0.5\B0) from Potter et al., [2010] 
 !  distributed using MODIS EVI seasonality as described in 
 !  N.E. Moore thesis, and Hudman et al., in prep.
 !    

@@ -274,8 +274,7 @@
             CALL FLUSH(6)
 
             ! Get New Fertilizer 
-            SOILFRT =  SOILFERT(M) 
-            !SOILFRT =  SOILFERT( GET_DAY_OF_YEAR() + (M-1)*365) 
+            SOILFRT =  SOILFERT( GET_DAY_OF_YEAR() + (M-1)*365) 
 
             ! Just this month and previous month
 !            SOILPRC(1) =  SOILPREP(1,M) 
@@ -303,8 +302,8 @@
      &				    U10M(I,J), V10M(I,J), 
      &                              CANOPYNOX(IJLOOP,:), 
      &                              XLAI(I,J,:), 
-     &				    ILAND(I,J,:),
-     &				    IREG(I,J) ) !maasaCRF
+     &				    IREG(I,J),
+     &				    IUSE(I,J,:) ) !maasaCRF !CRFW
 
             !Archive emissions
             IF ( ND32 > 0 ) THEN

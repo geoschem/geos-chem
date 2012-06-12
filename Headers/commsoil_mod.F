@@ -108,8 +108,7 @@
       !REAL*8  :: SOILPREP(2,NLAND)  
 
       ! Fertilizers
-      REAL*8  :: SOILFERT(NLAND)    !maasatemp
-      REAL*8  :: SOIL_INT(NFERT)    !maasatemp
+      REAL*8  :: SOILFERT(NFERT)    !maasatemp
 
       ! Pulsing factors
       REAL*8  :: PULSFACT(NPULSE)

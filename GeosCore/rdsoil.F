@@ -142,7 +142,7 @@ $
 !||||||||||||||||||||||||||||||||||||||
 
  !FILENAME = TRIM( DATA_DIR ) // 'soil_NOx_201004/Landtype.bpch' !Maasa
-	FILENAME = '/as/home/m/maasakkers/data/soil_NOx_201004/Landtype.bpch'
+	FILENAME = '/home/maasakkers/data/soil_NOx_201004/Landtype.bpch'
 
       WRITE(6,*) FILENAME
 
@@ -232,7 +232,7 @@ $
 
          ! Define fertilizer file name
          !FILENAME = TRIM( DATA_DIR ) // 'soil_NOx_201004/fert_res.dat' !Maasatemp
-	 FILENAME = '/as/home/m/maasakkers/data/soil_NOx_201004/fert_res.dat'
+	 FILENAME = '/home/maasakkers/data/soil_NOx_201004/fert_res.dat'
 
          ! Echo filename
          WRITE( 6, 100 ) TRIM( FILENAME )
@@ -244,14 +244,13 @@ $
          ! Read data -- save (I,J) pairs into INDEXSOIL array
          DO M = 1, NFERT
 	    READ( IUNIT,*, IOSTAT=IOS ) 
-     &           ( INDEX_INT(I,M), I=1,2 ), SOIL_INT(M) !maasatemp
+     &           ( INDEX_INT(I,M), I=1,2 ), SOILFERT(M) !maasatemp
             IF ( IOS /= 0 ) CALL IOERROR( IOS, IUNIT, 'rdsoil:5' )
          ENDDO
 
          DO M = 1, NLAND
                 INDEXSOIL(1,M) = INDEX_INT(1,(1 + (M-1)*365))
                 INDEXSOIL(2,M) = INDEX_INT(2,(1 + (M-1)*365))
-		SOILFERT(M)    = SOIL_INT((1 + (M-1)*365))
          ENDDO
 
          ! Close file
@@ -263,7 +262,7 @@ $
 !      !=================================================================
          ! Define arid/semi-arid 1-0 dataset location
   	 !FILENAME = TRIM( DATA_DIR ) // 'soil_NOx_201004/clim.dat' !Maasatemp
-		FILENAME = '/as/home/m/maasakkers/data/soil_NOx_201004/clim.dat'
+		FILENAME = '/home/maasakkers/data/soil_NOx_201004/clim.dat'
 
          ! Echo filename
          WRITE( 6, 100 ) TRIM( FILENAME )
