@@ -22,9 +22,9 @@
       USE AEROSOL_MOD,          ONLY : AEROSOL_CONC, RDAER, SOILDUST
       USE COMODE_MOD,           ONLY : ABSHUM, CSPEC, ERADIUS, TAREA
       USE COMODE_MOD,           ONLY : JLOP,   JLOP_PREVIOUS
-      USE DAO_MOD,              ONLY : AD,       AIRVOL,    ALBD, AVGW
-      USE DAO_MOD,              ONLY : BXHEIGHT, MAKE_AVGW, OPTD  
-      USE DAO_MOD,              ONLY : T,        SUNCOS_MID
+      USE DAO_MOD,              ONLY : AD,        ALBD,      AVGW
+      USE DAO_MOD,              ONLY : MAKE_AVGW, OPTD  
+      USE DAO_MOD,              ONLY : T,         SUNCOS_MID
       USE DIAG_OH_MOD,          ONLY : DO_DIAG_OH
       USE DIAG_PL_MOD,          ONLY : DO_DIAG_PL
       USE DUST_MOD,             ONLY : RDUST_ONLINE, RDUST_OFFLINE
@@ -56,14 +56,18 @@
 
       IMPLICIT NONE
 #     include "define.h"
-
+!
+! !INPUT/OUTPUT PARAMETERS:
+!
+#if defined( DEVEL )
+      TYPE(GC_MET_LOCAL), INTENT(INOUT) :: LOCAL_MET  ! Obj w/ met fields
+#endif
 !
 ! !REMARKS:
 !  Important input variables from "dao_mod.f" and "uvalbedo_mod.f":
 !  ============================================================================
 !  ALBD        : DAO visible albedo                         [unitless]
 !  AVGW        : Mixing ratio of water vapor                [v/v] 
-!  BXHEIGHT    : Grid box heights                           [m]
 !  OPTD        : DAO grid-box optical depths (for FAST-J)   [unitless]
 !  SUNCOS      : Cosine of solar zenith angle               [unitless]
 !  SUNCOSB     : Cosine of solar zenith angle 1 hr from now [unitless]
@@ -224,10 +228,6 @@
       ! To use CSPEC_FULL restart (dkh, 02/12/09) 
       LOGICAL                  :: IT_EXISTS 
 
-#if defined( DEVEL )
-      TYPE(GC_MET_LOCAL)       :: LOCAL_MET  ! Obj w/ met fields
-#endif
-
       !=================================================================
       ! CHEMDR begins here!
       !=================================================================
@@ -246,7 +246,11 @@
       !=================================================================
       ! Compute AVGW, the mixing ratio of water vapor
       !=================================================================
+#if defined( DEVEL )
+      CALL MAKE_AVGW( LOCAL_MET )
+#else
       CALL MAKE_AVGW
+#endif
 
       !=================================================================
       ! Open "smv2.log" output file and read chem mechanism switches
@@ -277,7 +281,7 @@
       JLOP_PREVIOUS(:,:,:) = JLOP(:,:,:)
 
 #if defined( DEVEL )
-      CALL RURALBOX( AD, T, AVGW, LOCAL_MET%ALBD, LOCAL_MET )
+      CALL RURALBOX( LOCAL_MET )
 #else
       CALL RURALBOX( AD, T, AVGW, ALBD )
 #endif
@@ -406,7 +410,11 @@
       IF ( LSULF .or. LCARB .or. LDUST .or. LSSALT ) THEN
 
          ! Skip this section if all these are turned off
+#if defined( DEVEL )
+         CALL AEROSOL_CONC( LOCAL_MET )
+#else
          CALL AEROSOL_CONC
+#endif
 
       ENDIF
 
@@ -516,7 +524,11 @@
       ! Call RDAER to compute AOD for FAST-J (skim, 02/03/11)
       WAVELENGTH = 0
 
+#if defined( DEVEL )
+      CALL RDAER( MONTH, YEAR, WAVELENGTH, LOCAL_MET )
+#else
       CALL RDAER( MONTH, YEAR, WAVELENGTH )
+#endif
 
       !### Debug
       IF ( LPRT ) CALL DEBUG_MSG( '### CHEMDR: after RDAER' )
@@ -530,11 +542,19 @@
       ! in GEOS-CHEM...so read monthly-mean dust files from disk.
       ! (rjp, tdf, bmy, 4/1/04)
       !=================================================================
+#if defined( DEVEL )
+      IF ( LDUST ) THEN
+         CALL RDUST_ONLINE(  SOILDUST,    WAVELENGTH, LOCAL_MET )
+      ELSE
+         CALL RDUST_OFFLINE( MONTH, YEAR, WAVELENGTH, LOCAL_MET )
+      ENDIF
+#else
       IF ( LDUST ) THEN
          CALL RDUST_ONLINE( SOILDUST, WAVELENGTH )
       ELSE
          CALL RDUST_OFFLINE( MONTH, YEAR, WAVELENGTH )
       ENDIF
+#endif
 
       !### Debug
       IF ( LPRT ) CALL DEBUG_MSG( '### CHEMDR: after RDUST' )

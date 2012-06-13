@@ -558,13 +558,21 @@
 !\\
 ! !INTERFACE:
 !
+#if defined( DEVEL )
+      SUBROUTINE OCEAN_SINK_ACET( ALBD, TS, U10M, V10M, ACETONE,
+     &                            LOCAL_MET )
+#else
       SUBROUTINE OCEAN_SINK_ACET( ALBD, TS, U10M, V10M, ACETONE )
+#endif
 !
 ! !USES:
 !
       USE DIAG_MOD, ONLY : AD11
       USE GRID_MOD, ONLY : GET_AREA_CM2
       USE TIME_MOD, ONLY : GET_TS_CHEM
+#if defined( DEVEL )
+      USE GC_TYPE_MOD, ONLY : GC_MET_LOCAL
+#endif
 
       USE CMN_SIZE_MOD                              ! Size parameters 
       USE CMN_DIAG_MOD                              ! ND11
@@ -576,6 +584,9 @@
       REAL*8, INTENT(IN)    :: TS(IIPAR,JJPAR)      ! Sfc temperature at 2m [K]
       REAL*8, INTENT(IN)    :: U10M(IIPAR,JJPAR)    ! E/W wind speed @10m [m/s]
       REAL*8, INTENT(IN)    :: V10M(IIPAR,JJPAR)    ! N/S wind speed @10m [m/s]
+#if defined( DEVEL )
+      TYPE(GC_MET_LOCAL), INTENT(IN) :: LOCAL_MET   ! Obj w/ met fields
+#endif
 !
 ! !INPUT/OUTPUT PARAMETERS: 
 !
@@ -715,7 +726,11 @@
                KKL   = KKL / 3600d0       
 
                ! CG is the gas concentration of acetone [kg C/cm3]
+#if defined( DEVEL )
+               CG    = ACETONE(I,J) / BOXVL(I,J,1,LOCAL_MET)
+#else
                CG    = ACETONE(I,J) / BOXVL(I,J,1)
+#endif
 
                ! FLUX is the air-to-sea flux of acetone in [kg C/cm2/s].
                FLUX  = KKL * CG / HSTAR    

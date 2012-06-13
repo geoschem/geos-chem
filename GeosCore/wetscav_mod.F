@@ -554,12 +554,13 @@
 
             ! Rate of new precipitation formation in grid box (I,J,L)
             ! [cm3 H2O/cm3 air/s]
-            QQ(L,I,J)    = ( DQRLSAN(I,J,L)                   )
+            QQ(L,I,J)    = ( LOCAL_MET%DQRLSAN(I,J,L)         )
      &                   * ( AIRDEN(L,I,J)  / 1000d0          )
 
             ! Column precipitation [cm3 H2O/cm2 air/s]
-            PDOWN(L,I,J) = ( ( PFLLSAN(I,J,L+1) / 1000d0 ) 
-     &                   +   ( PFILSAN(I,J,L+1) /  917d0 ) ) * 100d0
+            PDOWN(L,I,J) = ( ( LOCAL_MET%PFLLSAN(I,J,L+1) / 1000d0 ) 
+     &                   +   ( LOCAL_MET%PFILSAN(I,J,L+1) /  917d0 ) )
+     &                   * 100d0
 
          ENDDO
 
@@ -574,12 +575,13 @@
 
             ! Rate of new precipitation formation in grid box (I,J,L)
             ! [cm3 H2O/cm3 air/s]
-            QQ(L,I,J)    = ( DQRLSAN(I,J,L)                   )
+            QQ(L,I,J)    = ( LOCAL_MET%DQRLSAN(I,J,L)         )
      &                   * ( AIRDEN(L,I,J)  / 1000d0          )
 
             ! Column precipitation [cm3 H2O/cm2 air/s]
-            PDOWN(L,I,J) = ( ( PFLLSAN(I,J,L) / 1000d0 ) 
-     &                   +   ( PFILSAN(I,J,L) /  917d0 ) ) * 100d0
+            PDOWN(L,I,J) = ( ( LOCAL_MET%PFLLSAN(I,J,L) / 1000d0 ) 
+     &                   +   ( LOCAL_MET%PFILSAN(I,J,L) /  917d0 ) )
+     &                   * 100d0
 
          ENDDO
 
@@ -613,7 +615,7 @@
 
             ! Compute QQ and PDOWN.  Keep PTEMP for the next level
             QQ(L,I,J)    = FRAC * MOISTQ(L,I,J) * AIRDEN(L,I,J) / 1d3
-            PTEMP        = QQ(L,I,J) * BXHEIGHT(I,J,L) * 1d2
+            PTEMP        = QQ(L,I,J) * LOCAL_MET%BXHEIGHT(I,J,L) * 1d2
             PDOWN(L,I,J) = PTEMP
 
             ! PDOWN cannot be negative
@@ -624,7 +626,8 @@
                
                ! Compute QQ and PDOWN.  Keep PTEMP for the next level.
                QQ(L,I,J)    = FRAC * MOISTQ(L,I,J) * AIRDEN(L,I,J) / 1d3
-               PDOWN(L,I,J) = PTEMP + QQ(L,I,J) * BXHEIGHT(I,J,L) * 1d2  
+               PDOWN(L,I,J) = PTEMP + QQ(L,I,J) *
+     &                        LOCAL_MET%BXHEIGHT(I,J,L) * 1d2  
                PTEMP        = PDOWN(L,I,J)
 
                ! PDOWN cannot be negative
@@ -655,7 +658,7 @@
 
             ! Compute QQ and PDOWN.  Keep PTEMP for the next level
             QQ(L,I,J)    = FRAC * MOISTQ(L,I,J) * AIRDEN(L,I,J) / 1d3
-            PTEMP        = QQ(L,I,J) * BXHEIGHT(I,J,L) * 1d2
+            PTEMP        = QQ(L,I,J) * LOCAL_MET%BXHEIGHT(I,J,L) * 1d2
             PDOWN(L,I,J) = PTEMP
            
             ! PDOWN cannot be negative
@@ -666,7 +669,8 @@
               
                ! Compute QQ and PDOWN.  Keep PTEMP for the next level
                QQ(L,I,J)    = FRAC * MOISTQ(L,I,J) * AIRDEN(L,I,J) / 1d3
-               PDOWN(L,I,J) = PTEMP + QQ(L,I,J) * BXHEIGHT(I,J,L) * 1d2 
+               PDOWN(L,I,J) = PTEMP + QQ(L,I,J) *
+     &                        LOCAL_MET%BXHEIGHT(I,J,L) * 1d2 
                PTEMP        = PDOWN(L,I,J)
 
                ! PDOWN cannot be negative
@@ -965,7 +969,11 @@
 !\\
 ! !INTERFACE:
 !
+#if defined( DEVEL )
+      SUBROUTINE COMPUTE_F( N, F, ISOL, LOCAL_MET )
+#else
       SUBROUTINE COMPUTE_F( N, F, ISOL )
+#endif
 !
 ! !USES:
 !
@@ -988,12 +996,18 @@
       USE TRACERID_MOD, ONLY : IDTISOPN, IDTMMN
       USE TRACERID_MOD, ONLY : IDTIEPOX, IDTRIP
       USE TRACERID_MOD, ONLY : IDTMAP
+#if defined( DEVEL )
+      USE GC_TYPE_MOD,  ONLY : GC_MET_LOCAL
+#endif
 
       USE CMN_SIZE_MOD                               ! Size parameters
 !
 ! !INPUT PARAMETERS: 
 !
       INTEGER, INTENT(IN)  :: N                      ! Tracer number
+#if defined( DEVEL )
+      TYPE(GC_MET_LOCAL), INTENT(IN) :: LOCAL_MET  ! Obj w/ met fields
+#endif
 !
 ! !OUTPUT PARAMETERS:
 !
@@ -1093,14 +1107,22 @@
       ! 210Pb and 7Be (aerosols)
       !-------------------------------
       IF ( N == IDTPb .or. N == IDTBe7 ) THEN
-         CALL F_AEROSOL( KC,N, F )
+#if defined( DEVEL )
+         CALL F_AEROSOL( KC, N, F, LOCAL_MET )
+#else
+         CALL F_AEROSOL( KC, N, F )
+#endif
          ISOL = GET_ISOL( N )
 
       !-------------------------------
       ! HNO3 (aerosol)
       !-------------------------------
       ELSE IF ( N == IDTHNO3 ) THEN
-         CALL F_AEROSOL( KC,N, F )
+#if defined( DEVEL )
+         CALL F_AEROSOL( KC, N, F, LOCAL_MET )
+#else
+         CALL F_AEROSOL( KC, N, F )
+#endif
          ISOL = GET_ISOL( N ) 
 
       !-------------------------------
@@ -1151,7 +1173,12 @@
             ENDIF
 
             ! Distance between grid box centers [m]
+#if defined( DEVEL )
+            TMP = 0.5d0 * ( LOCAL_MET%BXHEIGHT(I,J,L-1) +
+     &                      LOCAL_MET%BXHEIGHT(I,J,L) ) 
+#else
             TMP = 0.5d0 * ( BXHEIGHT(I,J,L-1) + BXHEIGHT(I,J,L) ) 
+#endif
             
             ! Compute F, the fraction of scavenged H2O2.
             ! (Eq. 2, Jacob et al, 2000)
@@ -1204,7 +1231,12 @@
             ENDIF
 
             ! Distance between grid box centers [m]
+#if defined( DEVEL )
+            TMP = 0.5d0 * ( LOCAL_MET%BXHEIGHT(I,J,L-1) +
+     &                      LOCAL_MET%BXHEIGHT(I,J,L) ) 
+#else
             TMP = 0.5d0 * ( BXHEIGHT(I,J,L-1) + BXHEIGHT(I,J,L) ) 
+#endif
                
             ! F is the fraction of CH2O scavenged out of the updraft
             ! (Eq. 2, Jacob et al, 2000)
@@ -1259,7 +1291,12 @@
             ENDIF
 
             ! Distance between grid box centers [m]
+#if defined( DEVEL )
+            TMP = 0.5d0 * ( LOCAL_MET%BXHEIGHT(I,J,L-1) +
+     &                      LOCAL_MET%BXHEIGHT(I,J,L) ) 
+#else
             TMP = 0.5d0 * ( BXHEIGHT(I,J,L-1) + BXHEIGHT(I,J,L) ) 
+#endif
                
             ! F is the fraction of GLYX scavenged out of the updraft
             ! (Eq. 2, Jacob et al, 2000)
@@ -1314,7 +1351,12 @@
             ENDIF
 
             ! Distance between grid box centers [m]
+#if defined( DEVEL )
+            TMP = 0.5d0 * ( LOCAL_MET%BXHEIGHT(I,J,L-1) +
+     &                      LOCAL_MET%BXHEIGHT(I,J,L) ) 
+#else
             TMP = 0.5d0 * ( BXHEIGHT(I,J,L-1) + BXHEIGHT(I,J,L) ) 
+#endif
                
             ! F is the fraction of MGLY scavenged out of the updraft
             ! (Eq. 2, Jacob et al, 2000)
@@ -1369,7 +1411,12 @@
             ENDIF
 
             ! Distance between grid box centers [m]
+#if defined( DEVEL )
+            TMP = 0.5d0 * ( LOCAL_MET%BXHEIGHT(I,J,L-1) +
+     &                      LOCAL_MET%BXHEIGHT(I,J,L) ) 
+#else
             TMP = 0.5d0 * ( BXHEIGHT(I,J,L-1) + BXHEIGHT(I,J,L) ) 
+#endif
                
             ! F is the fraction of MGLY scavenged out of the updraft
             ! (Eq. 2, Jacob et al, 2000)
@@ -1422,7 +1469,12 @@
             ENDIF
                
             ! Distance between grid box centers [m]
+#if defined( DEVEL )
+            TMP = 0.5d0 * ( LOCAL_MET%BXHEIGHT(I,J,L-1) +
+     &                      LOCAL_MET%BXHEIGHT(I,J,L) ) 
+#else
             TMP = 0.5d0 * ( BXHEIGHT(I,J,L-1) + BXHEIGHT(I,J,L) ) 
+#endif
 
             ! F is the fraction of CH3OOH scavenged out of the updraft
             ! (Eq. 2, Jacob et al, 2000)
@@ -1441,7 +1493,11 @@
       ELSE IF ( N == IDTSO2 ) THEN
 
          ! Compute fraction of SO2 scavenged
+#if defined( DEVEL )
+         CALL F_AEROSOL( KC, N, F, LOCAL_MET )
+#else
          CALL F_AEROSOL( KC,N, F )
+#endif
          ISOL = GET_ISOL( N )
 
          !==============================================================
@@ -1490,14 +1546,22 @@
       !-------------------------------
       ELSE IF ( N == IDTSO4 .or. N == IDTSO4s .or. N == IDTSO4aq ) THEN
 
+#if defined( DEVEL )
+         CALL F_AEROSOL( KC, N, F, LOCAL_MET ) 
+#else
          CALL F_AEROSOL( KC,N, F ) 
+#endif
          ISOL = GET_ISOL( N ) 
 
       !-------------------------------
       ! MSA (aerosol)
       !-------------------------------
       ELSE IF ( N == IDTMSA ) THEN
+#if defined( DEVEL )
+         CALL F_AEROSOL( KC, N, F, LOCAL_MET ) 
+#else
          CALL F_AEROSOL( KC,N, F )
+#endif
          ISOL = GET_ISOL( N )
 
       !-------------------------------
@@ -1549,7 +1613,12 @@
   
             ! F is the fraction of NH3 scavenged out of the updraft
             ! (Eq. 2, Jacob et al, 2000)
+#if defined( DEVEL )
+            F(I,J,L) = 1d0 - EXP( -K * LOCAL_MET%BXHEIGHT(I,J,L) /
+     &                            Vud(I,J) )
+#else
             F(I,J,L) = 1d0 - EXP( -K * BXHEIGHT(I,J,L) / Vud(I,J) )
+#endif
          ENDDO
          ENDDO
          ENDDO
@@ -1562,7 +1631,11 @@
       ! NH4aq (aqueous aerosol)
       !-------------------------------
       ELSE IF ( N == IDTNH4 .or. N == IDTNH4aq ) THEN
+#if defined( DEVEL )
+         CALL F_AEROSOL( KC, N, F, LOCAL_MET ) 
+#else
          CALL F_AEROSOL( KC,N, F )
+#endif
          ISOL = GET_ISOL( N )
          
       !-------------------------------
@@ -1571,7 +1644,11 @@
       ELSE IF ( N == IDTNIT  .or. N == IDTNITs .or.
      &          N == IDTAS   .or. N == IDTAHS  .or. 
      &          N == IDTLET ) THEN 
+#if defined( DEVEL )
+         CALL F_AEROSOL( KC, N, F, LOCAL_MET ) 
+#else
          CALL F_AEROSOL( KC,N, F )
+#endif
          ISOL = GET_ISOL( N )
 
       !-------------------------------
@@ -1581,7 +1658,11 @@
       !-------------------------------
       ELSE IF ( N == IDTBCPI .or. N == IDTOCPI .or.
      &          N == IDTBCPO ) THEN
+#if defined( DEVEL )
+         CALL F_AEROSOL( KC, N, F, LOCAL_MET ) 
+#else
          CALL F_AEROSOL( KC,N, F )
+#endif
          ISOL = GET_ISOL( N )
 
       !-------------------------------
@@ -1599,7 +1680,11 @@
       !-------------------------------
       ELSE IF ( N == IDTDST1 .or. N == IDTDST2 .or.
      &          N == IDTDST3 .or. N == IDTDST4 ) THEN
+#if defined( DEVEL )
+         CALL F_AEROSOL( KC, N, F, LOCAL_MET ) 
+#else
          CALL F_AEROSOL( KC,N, F )
+#endif
          ISOL = GET_ISOL( N )
 
       !-------------------------------
@@ -1607,7 +1692,11 @@
       ! Coarse mode seasalt (aerosol)
       !-------------------------------
       ELSE IF ( N == IDTSALA .or. N == IDTSALC ) THEN
+#if defined( DEVEL )
+         CALL F_AEROSOL( KC, N, F, LOCAL_MET ) 
+#else
          CALL F_AEROSOL( KC,N, F )
+#endif
          ISOL = GET_ISOL( N )
 
       !-------------------------------
@@ -1649,7 +1738,12 @@
             ENDIF
                
             ! Distance between grid box centers [m]
+#if defined( DEVEL )
+            TMP = 0.5d0 * ( LOCAL_MET%BXHEIGHT(I,J,L-1) +
+     &                      LOCAL_MET%BXHEIGHT(I,J,L) ) 
+#else
             TMP = 0.5d0 * ( BXHEIGHT(I,J,L-1) + BXHEIGHT(I,J,L) ) 
+#endif
 
             ! F is the fraction of ALPH scavenged out of the updraft
             ! (Eq. 2, Jacob et al, 2000)
@@ -1700,7 +1794,12 @@
             ENDIF
                
             ! Distance between grid box centers [m]
+#if defined( DEVEL )
+            TMP = 0.5d0 * ( LOCAL_MET%BXHEIGHT(I,J,L-1) +
+     &                      LOCAL_MET%BXHEIGHT(I,J,L) ) 
+#else
             TMP = 0.5d0 * ( BXHEIGHT(I,J,L-1) + BXHEIGHT(I,J,L) ) 
+#endif
 
             ! F is the fraction of LIMO scavenged out of the updraft
             ! (Eq. 2, Jacob et al, 2000)
@@ -1752,7 +1851,12 @@
             ENDIF
                
             ! Distance between grid box centers [m]
+#if defined( DEVEL )
+            TMP = 0.5d0 * ( LOCAL_MET%BXHEIGHT(I,J,L-1) +
+     &                      LOCAL_MET%BXHEIGHT(I,J,L) ) 
+#else
             TMP = 0.5d0 * ( BXHEIGHT(I,J,L-1) + BXHEIGHT(I,J,L) ) 
+#endif
 
             ! F is the fraction of ALCO scavenged out of the updraft
             ! (Eq. 2, Jacob et al, 2000)
@@ -1811,7 +1915,12 @@
             ENDIF
                
             ! Distance between grid box centers [m]
+#if defined( DEVEL )
+            TMP = 0.5d0 * ( LOCAL_MET%BXHEIGHT(I,J,L-1) +
+     &                      LOCAL_MET%BXHEIGHT(I,J,L) ) 
+#else
             TMP = 0.5d0 * ( BXHEIGHT(I,J,L-1) + BXHEIGHT(I,J,L) ) 
+#endif
 
             ! F is the fraction of GAS1 scavenged out of the updraft
             ! (Eq. 2, Jacob et al, 2000)
@@ -1834,7 +1943,11 @@
       ELSE IF ( N == IDTSOA1 .or. N == IDTSOA2  .or. 
      &          N == IDTSOA3 .or. N == IDTSOA4  .or. 
      &          N == IDTSOA5                    ) THEN
+#if defined( DEVEL )
+         CALL F_AEROSOL( KC, N, F, LOCAL_MET ) 
+#else
          CALL F_AEROSOL( KC,N, F )
+#endif
 
          DO L = 2, LLPAR
          DO J = 1, JJPAR
@@ -1853,7 +1966,11 @@
       ! Scavenging efficiency for SOA is 0.8
       !------------------------------------------
       ELSE IF ( N == IDTSOAG .or. N == IDTSOAM ) THEN
+#if defined( DEVEL )
+         CALL F_AEROSOL( KC, N, F, LOCAL_MET ) 
+#else
          CALL F_AEROSOL( KC,N, F )
+#endif
 
          DO L = 2, LLPAR
          DO J = 1, JJPAR
@@ -1908,7 +2025,12 @@
             ENDIF
 
             ! Distance between grid box centers [m]
+#if defined( DEVEL )
+            TMP = 0.5d0 * ( LOCAL_MET%BXHEIGHT(I,J,L-1) +
+     &                      LOCAL_MET%BXHEIGHT(I,J,L) ) 
+#else
             TMP = 0.5d0 * ( BXHEIGHT(I,J,L-1) + BXHEIGHT(I,J,L) ) 
+#endif
               
             ! F is the fraction of HgCl2 scavenged out of the updraft
             ! (Eq. 2, Jacob et al, 2000)
@@ -1926,7 +2048,11 @@
       !-------------------------------
       ELSE IF ( IS_HgP( N ) ) THEN
 
+#if defined( DEVEL )
+         CALL F_AEROSOL( KC, N, F, LOCAL_MET ) 
+#else
          CALL F_AEROSOL( KC,N, F ) 
+#endif
          ISOL = GET_ISOL( N )
 
       ! Additional tracers for isoprene
@@ -1977,7 +2103,12 @@
             ENDIF
                
             ! Distance between grid box centers [m]
+#if defined( DEVEL )
+            TMP = 0.5d0 * ( LOCAL_MET%BXHEIGHT(I,J,L-1) +
+     &                      LOCAL_MET%BXHEIGHT(I,J,L) ) 
+#else
             TMP = 0.5d0 * ( BXHEIGHT(I,J,L-1) + BXHEIGHT(I,J,L) ) 
+#endif
 
             ! F is the fraction of LIMO scavenged out of the updraft
             ! (Eq. 2, Jacob et al, 2000)
@@ -2031,7 +2162,12 @@
             ENDIF
                
             ! Distance between grid box centers [m]
+#if defined( DEVEL )
+            TMP = 0.5d0 * ( LOCAL_MET%BXHEIGHT(I,J,L-1) +
+     &                      LOCAL_MET%BXHEIGHT(I,J,L) ) 
+#else
             TMP = 0.5d0 * ( BXHEIGHT(I,J,L-1) + BXHEIGHT(I,J,L) ) 
+#endif
 
             ! F is the fraction of LIMO scavenged out of the updraft
             ! (Eq. 2, Jacob et al, 2000)
@@ -2084,7 +2220,12 @@
             ENDIF
                
             ! Distance between grid box centers [m]
+#if defined( DEVEL )
+            TMP = 0.5d0 * ( LOCAL_MET%BXHEIGHT(I,J,L-1) +
+     &                      LOCAL_MET%BXHEIGHT(I,J,L) ) 
+#else
             TMP = 0.5d0 * ( BXHEIGHT(I,J,L-1) + BXHEIGHT(I,J,L) ) 
+#endif
 
             ! F is the fraction of LIMO scavenged out of the updraft
             ! (Eq. 2, Jacob et al, 2000)
@@ -2137,7 +2278,12 @@
             ENDIF
                
             ! Distance between grid box centers [m]
+#if defined( DEVEL )
+            TMP = 0.5d0 * ( LOCAL_MET%BXHEIGHT(I,J,L-1) +
+     &                      LOCAL_MET%BXHEIGHT(I,J,L) ) 
+#else
             TMP = 0.5d0 * ( BXHEIGHT(I,J,L-1) + BXHEIGHT(I,J,L) ) 
+#endif
 
             ! F is the fraction of LIMO scavenged out of the updraft
             ! (Eq. 2, Jacob et al, 2000)
@@ -2186,7 +2332,12 @@
             ENDIF
                
             ! Distance between grid box centers [m]
+#if defined( DEVEL )
+            TMP = 0.5d0 * ( LOCAL_MET%BXHEIGHT(I,J,L-1) +
+     &                      LOCAL_MET%BXHEIGHT(I,J,L) ) 
+#else
             TMP = 0.5d0 * ( BXHEIGHT(I,J,L-1) + BXHEIGHT(I,J,L) ) 
+#endif
 
             ! F is the fraction of LIMO scavenged out of the updraft
             ! (Eq. 2, Jacob et al, 2000)
@@ -2230,7 +2381,12 @@
             ENDIF
                
             ! Distance between grid box centers [m]
+#if defined( DEVEL )
+            TMP = 0.5d0 * ( LOCAL_MET%BXHEIGHT(I,J,L-1) +
+     &                      LOCAL_MET%BXHEIGHT(I,J,L) ) 
+#else
             TMP = 0.5d0 * ( BXHEIGHT(I,J,L-1) + BXHEIGHT(I,J,L) ) 
+#endif
 
             ! F is the fraction of LIMO scavenged out of the updraft
             ! (Eq. 2, Jacob et al, 2000)
@@ -2275,7 +2431,12 @@
             ENDIF
                
             ! Distance between grid box centers [m]
+#if defined( DEVEL )
+            TMP = 0.5d0 * ( LOCAL_MET%BXHEIGHT(I,J,L-1) +
+     &                      LOCAL_MET%BXHEIGHT(I,J,L) ) 
+#else
             TMP = 0.5d0 * ( BXHEIGHT(I,J,L-1) + BXHEIGHT(I,J,L) ) 
+#endif
 
             ! F is the fraction of LIMO scavenged out of the updraft
             ! (Eq. 2, Jacob et al, 2000)
@@ -2312,13 +2473,20 @@
 !\\
 ! !INTERFACE:
 !
+#if defined( DEVEL )
+      SUBROUTINE F_AEROSOL( KC, N, F, LOCAL_MET ) 
+#else
       SUBROUTINE F_AEROSOL( KC,N, F ) 
+#endif
 !
 ! !USES:
 !
       USE DAO_MOD, ONLY : BXHEIGHT, T
       USE TRACERID_MOD, ONLY : IDTBCPO,  IDTDST1,  IDTHNO3 
       USE TRACERID_MOD, ONLY : IDTDST2,  IDTDST3,  IDTDST4
+#if defined( DEVEL )
+      USE GC_TYPE_MOD,  ONLY : GC_MET_LOCAL
+#endif
 
       USE CMN_SIZE_MOD   ! Size parameters
 !
@@ -2328,6 +2496,9 @@
       REAL*8, INTENT(IN)  :: KC
       !Add N to idendify tracers (qq,10/11/2011)
       INTEGER, INTENT(IN) :: N
+#if defined( DEVEL )
+      TYPE(GC_MET_LOCAL), INTENT(IN) :: LOCAL_MET  ! Obj w/ met fields
+#endif
 !
 ! !OUTPUT PARAMETERS:
 !
@@ -2362,7 +2533,12 @@
       DO I = 1, IIPAR
                 
          ! Distance between grid box centers [m]
+#if defined( DEVEL )
+         TMP = 0.5d0 * ( LOCAL_MET%BXHEIGHT(I,J,L-1) +
+     &                   LOCAL_MET%BXHEIGHT(I,J,L) ) 
+#else
          TMP = 0.5d0 * ( BXHEIGHT(I,J,L-1) + BXHEIGHT(I,J,L) ) 
+#endif
        
          ! (Eq. 2, Jacob et al, 2000, with K = Kc)
          F(I,J,L) = 1d0 - EXP( -KC * TMP / Vud(I,J) )
@@ -4233,7 +4409,6 @@
 !
 ! !USES:
 !
-      USE DAO_MOD,           ONLY : BXHEIGHT
       USE LOGICAL_MOD,       ONLY : LDYNOCEAN
       USE DEPO_MERCURY_MOD,  ONLY : ADD_Hg2_WD
       USE DEPO_MERCURY_MOD,  ONLY : ADD_HgP_WD
@@ -4693,11 +4868,19 @@
                ERRMSG = 'WASHOUT: Middle levels'
 
                ! Do the washout
+#if defined( DEVEL )
+               CALL DO_WASHOUT_ONLY( LS,        I,    J,     
+     &                               L,         IDX,  ERRMSG, 
+     &                               QDOWN,     Q,    F_WASHOUT, 
+     &                               F_RAINOUT, DT,   PDOWN,     
+     &                               STT,       DSTT, LOCAL_MET  )
+#else
                CALL DO_WASHOUT_ONLY( LS,        I,    J,     
      &                               L,         IDX,  ERRMSG, 
      &                               QDOWN,     Q,    F_WASHOUT, 
      &                               F_RAINOUT, DT,   PDOWN,     
      &                               STT,       DSTT             )
+#endif
             ENDIF
 
             !===========================================================
@@ -4761,9 +4944,15 @@
 
             ! Only compute washout if F > 0.
             IF ( F > 0d0 ) THEN
+#if defined( DEVEL )
+               CALL DO_WASHOUT_AT_SFC( LS,  I,      J,     L,         
+     &                                 IDX, ERRMSG, QDOWN, F,   
+     &                                 DT,  STT,    DSTT,  LOCAL_MET )
+#else
                CALL DO_WASHOUT_AT_SFC( LS,  I,      J,     L,         
      &                                 IDX, ERRMSG, QDOWN, F,   
      &                                 DT,  STT,    DSTT      )
+#endif
             ENDIF    
          ENDIF
 
@@ -4844,9 +5033,7 @@
 !
 ! !USES:
 !
-      USE DAO_MOD,           ONLY : BXHEIGHT
       USE DAO_MOD,           ONLY : AIRDEN     
-      USE DAO_MOD,           ONLY : DQRLSAN
       USE LOGICAL_MOD,       ONLY : LDYNOCEAN
       USE DEPO_MERCURY_MOD,  ONLY : ADD_Hg2_WD
       USE DEPO_MERCURY_MOD,  ONLY : ADD_HgP_WD
@@ -5210,11 +5397,19 @@
                ERRMSG = 'WASHOUT'
 
                ! Do the washout
+#if defined( DEVEL )
+               CALL DO_WASHOUT_ONLY( LS,        I,   J,     
+     &                               L,         IDX, ERRMSG,   
+     &                               QDOWN,     Q,   F_WASHOUT, 
+     &                               F_RAINOUT, DT,  PDOWN,     
+     &                               STT,       DSTT, LOCAL_MET )
+#else
                CALL DO_WASHOUT_ONLY( LS,        I,   J,     
      &                               L,         IDX, ERRMSG,   
      &                               QDOWN,     Q,   F_WASHOUT, 
      &                               F_RAINOUT, DT,  PDOWN,     
      &                               STT,       DSTT            )
+#endif
 
             ENDIF
 
@@ -5280,7 +5475,7 @@
             IF ( F > 0d0 ) THEN
                CALL DO_WASHOUT_AT_SFC( LS,  I,      J,     L,         
      &                                 IDX, ERRMSG, QDOWN, F,   
-     &                                 DT,  STT,    DSTT      )
+     &                                 DT,  STT,    DSTT,  LOCAL_MET )
             ENDIF    
          ENDIF
 
@@ -5506,7 +5701,6 @@
 !
 ! !USES:
 !
-      USE DAO_MOD,     ONLY : BXHEIGHT                 ! Grid box height [m]
       USE DIAG_MOD,    ONLY : AD16                     ! ND16 diag array
       USE DIAG_MOD,    ONLY : AD17                     ! ND17 diag array
       USE DIAG_MOD,    ONLY : AD39                     ! ND39 diag array
@@ -5682,10 +5876,18 @@
 !\\
 ! !INTERFACE:
 !
+#if defined( DEVEL )
+      SUBROUTINE DO_WASHOUT_ONLY( LS,        I,         J,      L,
+     &                            IDX,       ERRMSG,    QDOWN,  Q,
+     &                            F_WASHOUT, F_RAINOUT, DT,     PDOWN,
+     &                            STT,       DSTT,      
+     &                            LOCAL_MET, REEVAP     )
+#else
       SUBROUTINE DO_WASHOUT_ONLY( LS,        I,         J,      L,         
      &                            IDX,       ERRMSG,    QDOWN,  Q,    
      &                            F_WASHOUT, F_RAINOUT, DT,     PDOWN,  
      &                            STT,       DSTT,      REEVAP        )
+#endif
 !
 ! !USES:
 !
@@ -5703,6 +5905,9 @@
       USE TRACERID_MOD, ONLY : IDTSO4                  ! ID flag for SO4
       USE LOGICAL_MOD,  ONLY : LGTMM                   ! Use GTMM w/ Hg sim?
       USE ERROR_MOD,    ONLY : IT_IS_NAN               ! Check for NaN 
+#if defined( DEVEL )
+      USE GC_TYPE_MOD,  ONLY : GC_MET_LOCAL
+#endif
 
       USE CMN_SIZE_MOD                                 ! Size parameters
       USE CMN_DIAG_MOD                                 ! Diagnostic flags
@@ -5726,6 +5931,9 @@
                                                        !  undergoing rainout
       REAL*8,           INTENT(IN)    :: DT            ! Rainout timestep [s]
       REAL*8,           INTENT(IN)    :: PDOWN(:,:,:)  ! Precip 
+#if defined( DEVEL )
+      TYPE(GC_MET_LOCAL), INTENT(IN)  :: LOCAL_MET     ! Obj w/ met fields
+#endif
 !
 ! !INPUT/OUTPUT PARAMETERS: 
 !
@@ -5854,10 +6062,18 @@
 
          ! Call WASHOUT to compute the fraction of 
          ! tracer lost to washout in grid box (I,J,L)
+#if defined( DEVEL )
+         CALL WASHOUT( L,         N,
+     &                 LOCAL_MET%BXHEIGHT(I,J,L), 
+     &                 TK,        QDOWN,        DT,   
+     &                 TF,        H2O2s(I,J,L), SO2s(I,J,L), 
+     &                 WASHFRAC,  KIN )
+#else
          CALL WASHOUT( L,         N,            BXHEIGHT(I,J,L), 
      &                 TK,        QDOWN,        DT,   
      &                 TF,        H2O2s(I,J,L), SO2s(I,J,L), 
      &                 WASHFRAC,  KIN )
+#endif
 
 #if    defined( MERRA ) || defined( GEOS_57 )
          !%%% BUG FIX: Only apply this section of when running
@@ -5892,8 +6108,13 @@
 
             ! Define ALPHA, the fraction of the raindrops that 
             ! re-evaporate when falling from (I,J,L+1) to (I,J,L)
+#if defined( DEVEL )
+            ALPHA = ( ABS( Q ) * LOCAL_MET%BXHEIGHT(I,J,L) * 100d0 )
+     &            / ( PDOWN(L+1,I,J)                               )
+#else
             ALPHA = ( ABS( Q ) * BXHEIGHT(I,J,L) * 100d0 )
      &            / ( PDOWN(L+1,I,J)                     )
+#endif
 
             ! Restrict ALPHA to be less than 1 (>1 is unphysical)
             ! (hma, 24-Dec-2010)
@@ -6047,7 +6268,6 @@
 !
 ! !USES:
 !
-      USE DAO_MOD,      ONLY : BXHEIGHT                ! Grid box height [m]  
       USE DIAG_MOD,     ONLY : AD16                    ! ND16 diag array
       USE DIAG_MOD,     ONLY : AD17                    ! ND17 diag array
       USE DIAG_MOD,     ONLY : AD18                    ! ND18 diag array
@@ -6173,9 +6393,15 @@
 !\\
 ! !INTERFACE:
 !
+#if defined( DEVEL )
+      SUBROUTINE DO_WASHOUT_AT_SFC( LS,  I,      J,     L,         
+     &                              IDX, ERRMSG, QDOWN, F,   
+     &                              DT,  STT,    DSTT,  LOCAL_MET )
+#else
       SUBROUTINE DO_WASHOUT_AT_SFC( LS,  I,      J,     L,         
      &                              IDX, ERRMSG, QDOWN, F,   
      &                              DT,  STT,    DSTT      )
+#endif
 !
 ! !USES:
 !
@@ -6192,6 +6418,9 @@
       USE TRACERID_MOD, ONLY : IDTSO2                  ! ID flag for SO2
       USE TRACERID_MOD, ONLY : IDTSO4                  ! ID flag for SO4
       USE LOGICAL_MOD,  ONLY : LGTMM                   ! Use GTMM w/ Hg sim?
+#if defined( DEVEL )
+      USE GC_TYPE_MOD,  ONLY : GC_MET_LOCAL
+#endif
 
       USE CMN_SIZE_MOD                                 ! Size parameters
       USE CMN_DIAG_MOD                                 ! Diagnostic flags
@@ -6209,6 +6438,9 @@
       REAL*8,           INTENT(IN)    :: F             ! Fraction of grid box 
                                                        !  undergoing precip
       REAL*8,           INTENT(IN)    :: DT            ! Rainout timestep [s]
+#if defined( DEVEL )
+      TYPE(GC_MET_LOCAL), INTENT(IN)  :: LOCAL_MET     ! Obj w/ met fields
+#endif
 !
 ! !INPUT/OUTPUT PARAMETERS: 
 !
@@ -6264,10 +6496,18 @@
 
          ! Call WASHOUT to compute the fraction of tracer 
          ! in grid box (I,J,L) that is lost to washout.  
+#if defined( DEVEL )
+         CALL WASHOUT( L,        N,
+     &                 LOCAL_MET%BXHEIGHT(I,J,L), 
+     &                 TK ,      QDOWN,        DT,   
+     &                 F,        H2O2s(I,J,L), SO2s(I,J,L), 
+     &                 WASHFRAC, KIN )
+#else
          CALL WASHOUT( L,        N,            BXHEIGHT(I,J,L), 
      &                 TK ,      QDOWN,        DT,   
      &                 F,        H2O2s(I,J,L), SO2s(I,J,L), 
      &                 WASHFRAC, KIN )
+#endif
 
          ! NOTE: for HNO3 and aerosols, there is an F factor
          ! already present in WASHFRAC.  For other soluble

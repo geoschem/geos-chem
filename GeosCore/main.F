@@ -387,7 +387,11 @@
       !=================================================================
 
       ! Read initial tracer conditions
+#if defined( DEVEL )
+      CALL READ_RESTART_FILE( NYMDb, NHMSb, LOCAL_MET )
+#else
       CALL READ_RESTART_FILE( NYMDb, NHMSb )
+#endif
       IF ( LPRT ) CALL DEBUG_MSG( '### MAIN: a READ_RESTART_FILE' )
 
       ! add support for making restart files of APROD and GPROD (dkh, 11/09/06)  
@@ -496,7 +500,11 @@
             IF ( LSVGLB ) THEN
 
                ! Make atmospheric restart file
+#if defined( DEVEL )
+               CALL MAKE_RESTART_FILE( NYMD, NHMS, TAU, LOCAL_MET )
+#else
                CALL MAKE_RESTART_FILE( NYMD, NHMS, TAU )
+#endif
                   
                ! Make ocean mercury restart file
                IF ( ITS_A_MERCURY_SIM() .and. LDYNOCEAN ) THEN
@@ -790,8 +798,11 @@
          !   ***** U N I T   C O N V E R S I O N  ( kg -> v/v ) *****
          !==============================================================
          IF ( ITS_TIME_FOR_UNIT() ) THEN
+#if defined( DEVEL )
+            CALL CONVERT_UNITS( 1,  N_TRACERS, TCVV, LOCAL_MET%AD, STT )
+#else
             CALL CONVERT_UNITS( 1,  N_TRACERS, TCVV, AD, STT )
-
+#endif
             !### Debug
             IF ( LPRT ) CALL DEBUG_MSG( '### MAIN: a CONVERT_UNITS:1' )
          ENDIF
@@ -840,7 +851,11 @@
 #if   !defined( GEOS_5 ) && !defined( MERRA ) && !defined( GEOS_57 )
             ! Get relative humidity (after recomputing pressures)
             ! NOTE: for GEOS-5 we'll read this from disk instead
+#if defined( DEVEL )
+            CALL MAKE_RH( LOCAL_MET )
+#else
             CALL MAKE_RH
+#endif
 #endif
 
             ! Initialize wet scavenging and wetdep fields after
@@ -858,8 +873,14 @@
          !-------------------------------
          IF ( LNLPBL .AND. ITS_TIME_FOR_EMIS() ) THEN
 
+#if defined( DEVEL )
+            IF ( ITS_TIME_FOR_UNIT() )
+     &         CALL CONVERT_UNITS( 2, N_TRACERS, TCVV,
+     &                             LOCAL_MET%AD, STT ) ! v/v -> kg
+#else
             IF ( ITS_TIME_FOR_UNIT() )
      &         CALL CONVERT_UNITS( 2, N_TRACERS, TCVV, AD, STT ) ! v/v -> kg
+#endif
 
             ! Increment emission counter
             CALL SET_CT_EMIS( INCREMENT=.TRUE. )
@@ -879,12 +900,16 @@
             !========================================================
 #if defined( DEVEL )
             IF ( LEMIS ) CALL DO_EMISSIONS( LOCAL_MET, CHEM_STATE )
+
+            IF ( ITS_TIME_FOR_UNIT() )
+     &         CALL CONVERT_UNITS( 1, N_TRACERS, TCVV, 
+     &                             LOCAL_MET% AD, STT ) ! kg -> v/v
 #else
             IF ( LEMIS ) CALL DO_EMISSIONS
-#endif
 
             IF ( ITS_TIME_FOR_UNIT() )
      &         CALL CONVERT_UNITS( 1, N_TRACERS, TCVV, AD, STT ) ! kg -> v/v
+#endif
 
          ENDIF
 
@@ -952,7 +977,11 @@
          !    ***** U N I T   C O N V E R S I O N  ( v/v -> kg ) *****
          !==============================================================
          IF ( ITS_TIME_FOR_UNIT() ) THEN 
+#if defined( DEVEL )
+            CALL CONVERT_UNITS( 2, N_TRACERS, TCVV, LOCAL_MET%AD, STT )
+#else
             CALL CONVERT_UNITS( 2, N_TRACERS, TCVV, AD, STT )
+#endif
 
             !### Debug
             IF ( LPRT ) CALL DEBUG_MSG( '### MAIN: a CONVERT_UNITS:2' )
@@ -1012,6 +1041,7 @@
 !^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^!
             CHEM_STATE%TRACERS(:,:,:,:N_TRACERS) = STT
 ! FIN DE KLUGE
+
             CALL DO_CHEMISTRY( LOCAL_MET, CHEM_STATE )
 #else
             CALL DO_CHEMISTRY
@@ -1056,7 +1086,11 @@
          ! diagnostic and only on a chemistry timestep.
          ! (skim, 02/05/11)
          IF ( ITS_TIME_FOR_CHEM() ) THEN
+#if defined( DEVEL )
+            CALL RECOMPUTE_OD( LOCAL_MET )
+#else
             CALL RECOMPUTE_OD
+#endif
          ENDIF
 
          !==============================================================
@@ -1109,7 +1143,11 @@
             IF ( LPRT ) CALL DEBUG_MSG( '### MAIN: after DIAG41' )
 
             ! ND42: SOA concentrations [ug/m3]
+#if defined( DEVEL )
+            IF ( ND42 > 0 ) CALL DIAG42( LOCAL_MET )
+#else
             IF ( ND42 > 0 ) CALL DIAG42
+#endif
             IF ( LPRT ) CALL DEBUG_MSG( '### MAIN: after DIAG42' )
 
             ! 24-hr timeseries

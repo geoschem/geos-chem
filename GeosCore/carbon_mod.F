@@ -473,16 +473,27 @@
          !    SOA production from dicarbonyls (tmf, 12/07/07) 
          IF ( IDTSOAG > 0 ) THEN
 
+#if defined( DEVEL )
+            ! Get grid box cloud fraction (tmf, 2/26/07)
+            ! NOTE: We skip this for GEOS-5/MERRA met (skim, bmy, 1/14/10)
+            CALL GET_VCLDF( LOCAL_MET )
+
+            ! Cloud uptake
+            CALL SOAG_CLOUD( LOCAL_MET )
+            IF ( LPRT )
+     &         CALL DEBUG_MSG('### CHEMCARBON: a SOAG_CLOUD')
+
+            ! Aqueous aerosol uptake
+            CALL SOAG_LIGGIO_DIFF( LOCAL_MET )
+            IF ( LPRT )
+     &         CALL DEBUG_MSG('### CHEMCARBON: a SOAG_LIGGIO_DIFF')
+#else
             ! Get grid box cloud fraction (tmf, 2/26/07)
             ! NOTE: We skip this for GEOS-5/MERRA met (skim, bmy, 1/14/10)
             CALL GET_VCLDF
 
             ! Cloud uptake
-#if defined( DEVEL )
-            CALL SOAG_CLOUD( LOCAL_MET )
-#else
             CALL SOAG_CLOUD
-#endif
             IF ( LPRT )
      &         CALL DEBUG_MSG('### CHEMCARBON: a SOAG_CLOUD')        
 
@@ -490,21 +501,33 @@
             CALL SOAG_LIGGIO_DIFF
             IF ( LPRT ) 
      &         CALL DEBUG_MSG('### CHEMCARBON: a SOAG_LIGGIO_DIFF')        
+#endif
 
          ENDIF
 
          IF ( IDTSOAM > 0 ) THEN
          
+#if defined( DEVEL )
+            ! Get grid box cloud fraction (tmf, 2/26/07)
+            ! NOTE: We skip this for GEOS-5/MERRA met (skim, bmy, 1/14/10)
+            CALL GET_VCLDF( LOCAL_MET )
+
+            ! Cloud uptake
+            CALL SOAM_CLOUD( LOCAL_MET )
+            IF ( LPRT )
+     &         CALL DEBUG_MSG('### CHEMCARBON: a SOAM_CLOUD')
+
+            ! Aqueous aerosol uptake
+            CALL SOAM_LIGGIO_DIFF( LOCAL_MET )
+            IF ( LPRT )
+     &         CALL DEBUG_MSG( '### CHEMCARBON: a SOAM_LIGGIO_DIFF' )
+#else
             ! Get grid box cloud fraction (tmf, 2/26/07)
             ! NOTE: We skip this for GEOS-5/MERRA met (skim, bmy, 1/14/10)
             CALL GET_VCLDF
 
             ! Cloud uptake
-#if defined( DEVEL )
-            CALL SOAM_CLOUD( LOCAL_MET )
-#else
             CALL SOAM_CLOUD
-#endif
             IF ( LPRT ) 
      &         CALL DEBUG_MSG('### CHEMCARBON: a SOAM_CLOUD')        
 
@@ -512,6 +535,7 @@
             CALL SOAM_LIGGIO_DIFF
             IF ( LPRT ) 
      &         CALL DEBUG_MSG( '### CHEMCARBON: a SOAM_LIGGIO_DIFF' )        
+#endif
            
          ENDIF
    
@@ -1226,7 +1250,11 @@
 
 !-------------------------------------------------------------------------------
 
+#if defined( DEVEL )
+      SUBROUTINE SOAG_LIGGIO_DIFF( LOCAL_MET )
+#else
       SUBROUTINE SOAG_LIGGIO_DIFF
+#endif
 !
 !******************************************************************************
 !  Subroutine SOAG_LIGGIO_DIFF produces SOA on aqueous aerosol surfaces
@@ -1252,12 +1280,19 @@
       USE TIME_MOD,     ONLY : GET_TS_CHEM, GET_MONTH
       USE TRACER_MOD,   ONLY : STT 
       USE TRACERID_MOD, ONLY : IDTGLYX, IDTSOAG
+#if defined( DEVEL )
+      USE GC_TYPE_MOD,  ONLY : GC_MET_LOCAL
+#endif
 
       USE CMN_SIZE_MOD         ! Size parameters
       USE COMODE_LOOP_MOD      ! AD, WTAIR, other SMVGEAR variables
       USE CMN_O3_MOD           ! XNUMOL
       USE CMN_DIAG_MOD         ! ND44, ND07, LD07
 
+      ! Input parameters
+#if defined( DEVEL )
+      TYPE(GC_MET_LOCAL), INTENT(IN) :: LOCAL_MET  ! Obj w/ met fields
+#endif
 
       ! Local variables
       INTEGER              :: I, J, L, JLOOP, N
@@ -1317,6 +1352,26 @@
             ! Get 1-D index
             JLOOP   = JLOP( I, J, L )
 
+#if defined( DEVEL )
+            ! Get RH  
+            XRH     = LOCAL_MET%RH( I, J, L )   ![%]
+
+            ! initialize for safety
+            XUPTK0   = 0d0
+            XUPTK1   = 0d0
+            XUPTKSUM = 0d0
+            XUPTK    = 0d0
+
+            ! Get T
+            XTEMP   = T( I, J, L )
+            XSQTEMP = SQRT( XTEMP )
+
+            ! Get air density  [molec/cm3]
+            XAD     = AIRDENS( JLOOP )
+
+            ! Get air volumne [m3]
+            XAIRM3   = LOCAL_MET%AIRVOL( I, J, L )
+#else
             ! Get RH  
             XRH     = RH( I, J, L )   ![%]
 
@@ -1335,6 +1390,7 @@
 
             ! Get air volumne [m3]
             XAIRM3  = AIRVOL( I, J, L )
+#endif
 
             ! Get gas mass at grid box [kg]
             XGASM   = STT( I, J, L, IDTGLYX )
@@ -1425,7 +1481,11 @@
 
 !------------------------------------------------------------------------------
 
+#if defined( DEVEL )
+      SUBROUTINE SOAM_LIGGIO_DIFF( LOCAL_MET )
+#else
       SUBROUTINE SOAM_LIGGIO_DIFF
+#endif
 !
 !******************************************************************************
 !  Subroutine SOAG_LIGGIO_DIFF produces SOA on aqueous aerosol surfaces
@@ -1451,12 +1511,19 @@
       USE TIME_MOD,     ONLY : GET_TS_CHEM, GET_MONTH
       USE TRACER_MOD,   ONLY : STT 
       USE TRACERID_MOD, ONLY : IDTMGLY, IDTSOAM
+#if defined( DEVEL )
+      USE GC_TYPE_MOD,  ONLY : GC_MET_LOCAL
+#endif
 
       USE CMN_SIZE_MOD         ! Size parameters
       USE COMODE_LOOP_MOD      ! AD, WTAIR, other SMVGEAR variables
       USE CMN_O3_MOD           ! XNUMOL
       USE CMN_DIAG_MOD         ! ND44, ND07, LD07
 
+      ! Input parameters
+#if defined( DEVEL )
+      TYPE(GC_MET_LOCAL), INTENT(IN) :: LOCAL_MET  ! Obj w/ met fields
+#endif
 
       ! Local variables
       INTEGER              :: I, J, L, JLOOP, N
@@ -1506,9 +1573,6 @@
       ! Uptake coefficient from Liggio et al. [2005b]
       XGAMMA = 2.9d-3
 
-      ! Create RH field -- relative humidity (in dao_mod.f)
-!      CALL MAKE_RH
-
       !=================================================================
       ! Loop over grid boxes
       !=================================================================
@@ -1519,6 +1583,26 @@
             ! Get 1-D index
             JLOOP   = JLOP( I, J, L )
 
+#if defined( DEVEL )
+            ! Get RH  
+            XRH     = LOCAL_MET%RH( I, J, L )   ![%]
+
+            ! initialize for safety
+            XUPTK0   = 0d0
+            XUPTK1   = 0d0
+            XUPTKSUM = 0d0
+            XUPTK    = 0d0
+
+            ! Get T
+            XTEMP   = T( I, J, L )
+            XSQTEMP = SQRT( XTEMP )
+
+            ! Get air density  [molec/cm3]
+            XAD     = AIRDENS( JLOOP )
+
+            ! Get air volumne [m3]
+            XAIRM3  = LOCAL_MET%AIRVOL( I, J, L )
+#else
             ! Get RH  
             XRH     = RH( I, J, L )   ![%]
 
@@ -1537,6 +1621,7 @@
 
             ! Get air volumne [m3]
             XAIRM3  = AIRVOL( I, J, L )
+#endif
 
             ! Get gas mass at grid box [kg]
             XGASM   = STT( I, J, L, IDTMGLY )
@@ -1781,13 +1866,21 @@
       DO I = 1, IIPAR
 
          ! Volume of grid box [m3]
+#if defined( DEVEL )
+         VOL    = LOCAL_MET%AIRVOL(I,J,L)
+#else
          VOL    = AIRVOL(I,J,L)    
+#endif
 
          ! conversion factor from kg to ug/m3
          FAC    = 1.D9 / VOL       
 
          ! air conc. in kg/m3
+#if defined( DEVEL )
+         CAIR   = LOCAL_MET%AD(I,J,L) / VOL
+#else
          CAIR   = AD(I,J,L) / VOL  
+#endif
 
          ! Temperature [K]
          RTEMP  = T(I,J,L)         
@@ -1815,7 +1908,11 @@
          ! Compute oxidation of hydrocarbons by O3, OH, NO3
          ! ALPHA is a module variable now (ccc, 2/2/10)
          !CALL CHEM_NVOC( I, J, L, KO3, KOH, KNO3, ALPHA, GM0 )
+#if defined( DEVEL )
+         CALL CHEM_NVOC( I, J, L, KO3, KOH, KNO3, GM0, LOCAL_MET )
+#else
          CALL CHEM_NVOC( I, J, L, KO3, KOH, KNO3, GM0 )
+#endif
 
          !==============================================================
          ! Equilibrium calculation between GAS (SOG) and Aerosol (SOA)
@@ -1846,7 +1943,11 @@
 
          ! No need to proceed because there is no
          ! products that need to be re-equilibrated.
+#if defined( DEVEL )
+         IF ( ( MPRODUCT / LOCAL_MET%AD(I,J,L) ) <= 29.D-18 ) CYCLE
+#else
          IF ( ( MPRODUCT / AD(I,J,L) ) <= 29.D-18 ) CYCLE
+#endif
 
          ! Individual SOA's; units: [ug/m3]
          DO JHC = 1, MHC
@@ -1997,7 +2098,11 @@
                 !GM0(IPR,JHC) = GM0(IPR,JHC) + AM0(IPR,JHC)
                 !AM0(IPR,JHC) = 1.D-18 * AD(I,J,L)
                 GM0(NOX,IPR,JHC) = GM0(NOX,IPR,JHC) + AM0(NOX,IPR,JHC)
+#if defined( DEVEL )
+                AM0(NOX,IPR,JHC) = 1.D-18 * LOCAL_MET%AD(I,J,L)
+#else
                 AM0(NOX,IPR,JHC) = 1.D-18 * AD(I,J,L)
+#endif
              ENDDO
              ENDDO
              ENDDO
@@ -3103,8 +3208,11 @@ c
 !------------------------------------------------------------------------------
 
       !SUBROUTINE CHEM_NVOC( I, J, L, KO3, KOH, KNO3, ALPHA, GM0 )
+#if defined( DEVEL )
+      SUBROUTINE CHEM_NVOC( I, J, L, KO3, KOH, KNO3, GM0, LOCAL_MET )
+#else
       SUBROUTINE CHEM_NVOC( I, J, L, KO3, KOH, KNO3, GM0 )
-
+#endif
 !
 !******************************************************************************
 !  Subroutine CHEM_NVOC computes the oxidation of Hydrocarbon by O3, OH, and 
@@ -3136,6 +3244,9 @@ c
       USE TRACER_MOD,    ONLY : STT
       USE TRACERID_MOD,  ONLY : IDTALCO,     IDTALPH,  IDTLIMO
       USE TIME_MOD,      ONLY : GET_TS_CHEM, GET_MONTH
+#if defined( DEVEL )
+      USE GC_TYPE_MOD,   ONLY : GC_MET_LOCAL
+#endif
 
       USE CMN_SIZE_MOD      ! Size parameters
 
@@ -3145,6 +3256,9 @@ c
       !REAL*8,  INTENT(IN)    :: ALPHA(NPROD,MHC)
       !REAL*8,  INTENT(INOUT) :: GM0(NPROD,MHC)
       REAL*8,  INTENT(INOUT) :: GM0(MNOX,MPROD,MHC)
+#if defined( DEVEL )
+      TYPE(GC_MET_LOCAL), INTENT(IN) :: LOCAL_MET  ! Obj w/ met fields
+#endif
 
       ! Local variables
       INTEGER                :: JHC, IPR, NOX
@@ -3161,9 +3275,15 @@ c
       DTCHEM  = GET_TS_CHEM() * 60d0 
 
       ! Get offline OH, NO3, O3 concentrations [molec/cm3]
+#if defined( DEVEL )
+      OHMC    = GET_OH(  I, J, L ) 
+      TTNO3   = GET_NO3( I, J, L, LOCAL_MET )
+      TTO3    = GET_O3(  I, J, L, LOCAL_MET ) 
+#else
       OHMC    = GET_OH(  I, J, L ) 
       TTNO3   = GET_NO3( I, J, L )
       TTO3    = GET_O3(  I, J, L ) 
+#endif
 
       ! 6 classes NVOC concentrations followed by 4 primary species
       NMVOC(1) = STT(I,J,L,IDTALPH)
@@ -5928,7 +6048,11 @@ c
 
 !------------------------------------------------------------------------------
 
+#if defined( DEVEL )
+      FUNCTION GET_NO3( I, J, L, LOCAL_MET ) RESULT( NO3_MOLEC_CM3 ) 
+#else
       FUNCTION GET_NO3( I, J, L ) RESULT( NO3_MOLEC_CM3 ) 
+#endif
 !
 !******************************************************************************
 !  Function GET_NO3 returns NO3 from SMVGEAR's CSPEC array (for coupled runs)
@@ -5953,12 +6077,18 @@ c
       USE GLOBAL_NO3_MOD, ONLY : NO3
       USE TRACER_MOD,     ONLY : ITS_A_FULLCHEM_SIM, ITS_AN_AEROSOL_SIM
       USE TRACERID_MOD,   ONLY : IDNO3
+#if defined( DEVEL )
+      USE GC_TYPE_MOD,    ONLY : GC_MET_LOCAL
+#endif
 
       USE CMN_SIZE_MOD  ! Size parameters
       USE CMN_MOD       ! NSRCX
 
       ! Arguments
       INTEGER, INTENT(IN) :: I, J, L
+#if defined( DEVEL )
+      TYPE(GC_MET_LOCAL), INTENT(IN) :: LOCAL_MET  ! Obj w/ met fields
+#endif
 
       ! Local variables
       INTEGER             :: JLOOP
@@ -6026,11 +6156,20 @@ c
          ELSE
 
             ! At night: Get NO3 [v/v] and convert it to [kg]
+#if defined( DEVEL )
+            NO3_MOLEC_CM3 = NO3(I,J,L) * LOCAL_MET%AD(I,J,L) *
+     &                      ( 62d0/28.97d0 )
+
+            ! Convert NO3 from [kg] to [molec/cm3]
+            NO3_MOLEC_CM3 = NO3_MOLEC_CM3 * XNUMOL_NO3 /
+     &                      BOXVL(I,J,L,LOCAL_MET)
+#else
             NO3_MOLEC_CM3 = NO3(I,J,L) * AD(I,J,L) * ( 62d0/28.97d0 ) 
-               
+
             ! Convert NO3 from [kg] to [molec/cm3]
             NO3_MOLEC_CM3 = NO3_MOLEC_CM3 * XNUMOL_NO3 / BOXVL(I,J,L)
-                  
+#endif
+                     
          ENDIF
             
          ! Make sure NO3 is not negative
@@ -6051,7 +6190,11 @@ c
 
 !------------------------------------------------------------------------------
 
+#if defined( DEVEL )
+      FUNCTION GET_O3( I, J, L, LOCAL_MET ) RESULT( O3_MOLEC_CM3 )
+#else
       FUNCTION GET_O3( I, J, L ) RESULT( O3_MOLEC_CM3 )
+#endif
 !
 !******************************************************************************
 !  Function GET_O3 returns monthly mean O3 for offline sulfate aerosol
@@ -6076,11 +6219,17 @@ c
       USE TRACER_MOD,    ONLY : ITS_A_FULLCHEM_SIM, ITS_AN_AEROSOL_SIM
       USE TRACER_MOD,    ONLY : XNUMOLAIR
       USE TRACERID_MOD,  ONLY : IDO3
+#if defined( DEVEL )
+      USE GC_TYPE_MOD,   ONLY : GC_MET_LOCAL
+#endif
 
       USE CMN_SIZE_MOD  ! Size parameters
 
       ! Arguments
       INTEGER, INTENT(IN) :: I, J, L
+#if defined( DEVEL )
+      TYPE(GC_MET_LOCAL), INTENT(IN) :: LOCAL_MET  ! Obj w/ met fields
+#endif
 
       ! Local variables
       INTEGER             :: JLOOP
@@ -6121,10 +6270,19 @@ c
          IF ( L <= LLTROP ) THEN
 
             ! Get O3 [v/v] and convert it to [kg]
+#if defined( DEVEL )
+            O3_MOLEC_CM3 = O3(I,J,L) * LOCAL_MET%AD(I,J,L) *
+     &                     ( 48d0/28.97d0 )
+               
+            ! Convert O3 from [kg] to [molec/cm3]
+            O3_MOLEC_CM3 = O3_MOLEC_CM3 * XNUMOL_O3 /
+     &                     BOXVL(I,J,L,LOCAL_MET)
+#else
             O3_MOLEC_CM3 = O3(I,J,L) * AD(I,J,L) * ( 48d0/28.97d0 )
                
             ! Convert O3 from [kg] to [molec/cm3]
             O3_MOLEC_CM3 = O3_MOLEC_CM3 * XNUMOL_O3 / BOXVL(I,J,L)
+#endif
          ELSE
             O3_MOLEC_CM3 = 0d0
          ENDIF
@@ -6438,7 +6596,11 @@ c
 
 !------------------------------------------------------------------------------
 
+#if defined( DEVEL )
+      SUBROUTINE GET_VCLDF( LOCAL_MET )
+#else
       SUBROUTINE GET_VCLDF
+#endif
 !
 !******************************************************************************
 !  Subroutine GET_VCLDF computes the volume cloud fraction for SO2 chemistry.
@@ -6456,8 +6618,16 @@ c
       ! References to F90 modules 
       USE DAO_MOD,      ONLY : RH
       USE PRESSURE_MOD, ONLY : GET_PCENTER, GET_PEDGE
+#if defined( DEVEL )
+      USE GC_TYPE_MOD,  ONLY : GC_MET_LOCAL
+#endif
 
       USE CMN_SIZE_MOD   ! Size parameters
+
+      ! Arguments
+#if defined( DEVEL )
+      TYPE(GC_MET_LOCAL), INTENT(IN) :: LOCAL_MET  ! Obj w/ met fields
+#endif
 
       ! Local variables
       INTEGER              :: I,    J,    L
@@ -6489,7 +6659,11 @@ c
 
          ! RH (from "dao_mod.f") is relative humidity [%]
          ! Convert to fraction and store in RH2
+#if defined( DEVEL )
+         RH2  = LOCAL_MET%RH(I,J,L) * 1.0d-2
+#else
          RH2  = RH(I,J,L) * 1.0d-2
+#endif
 
          ! Terms from Sundqvist ???
          R0   = ZRT + ( ZRS - ZRT ) * EXP( 1d0 - ( PSFC / PRES )**2.5 )
@@ -6646,9 +6820,22 @@ c
          ! Skip stratospheric boxes
 #if defined( DEVEL )
          IF ( ITS_IN_THE_STRAT( I, J, L, LOCAL_MET ) ) CYCLE
+
+         ! initialize for safety
+         XUPTKMAX = 0d0
+         XUPTK    = 0d0
+
+         ! Get temperature
+         XTEMP   = LOCAL_MET%T( I, J, L )
+
+         ! Get air mass  [kg/box]
+         XAIRM   = LOCAL_MET%AD( I, J, L  )
+
+         ! Get air volumne [m3]
+         XAIRM3  = LOCAL_MET%AIRVOL( I, J, L )
+
 #else
          IF ( ITS_IN_THE_STRAT( I, J, L ) ) CYCLE
-#endif
 
          ! initialize for safety
          XUPTKMAX = 0d0
@@ -6662,6 +6849,8 @@ c
 
          ! Get air volumne [m3]
          XAIRM3  = AIRVOL( I, J, L )
+
+#endif
 
          ! Get gas mass at grid box [kg]
          XGASM   = STT( I, J, L, IDTGLYX )
@@ -6684,7 +6873,11 @@ c
 
          ! Get liquid water content within cloud [g/m3] directly from met
          ! Units: [kg H2O/kg air] * [kg air/m3] * [1000 g/kg] = [g H2O/m3]
+#if defined( DEVEL )
+         LWC     = LOCAL_MET%QL(I,J,L) * AIRDEN(L,I,J) * 1d3
+#else
          LWC     = QL(I,J,L) * AIRDEN(L,I,J) * 1d3
+#endif
 
          !%%% NOTE: Someone should investigate effect of dividing LWC by the
          !%%% cloud fraction, as is done in sulfate_mod.f (bmy, 5/27/11)
@@ -6869,9 +7062,22 @@ c
          ! Skip stratospheric boxes
 #if defined( DEVEL )
          IF ( ITS_IN_THE_STRAT( I, J, L, LOCAL_MET ) ) CYCLE
+
+         ! initialize for safety
+         XUPTKMAX = 0d0
+         XUPTK    = 0d0
+
+         ! Get temperature
+         XTEMP   = LOCAL_MET%T( I, J, L )
+
+         ! Get air mass  [kg/box]
+         XAIRM   = LOCAL_MET%AD( I, J, L  )
+
+         ! Get air volumne [m3]
+         XAIRM3  = LOCAL_MET%AIRVOL( I, J, L )
+
 #else
          IF ( ITS_IN_THE_STRAT( I, J, L ) ) CYCLE
-#endif
 
          ! initialize for safety
          XUPTKMAX = 0d0
@@ -6885,6 +7091,8 @@ c
 
          ! Get air volumne [m3]
          XAIRM3  = AIRVOL( I, J, L )
+
+#endif
 
          ! Get gas mass at grid box [kg]
          XGASM   = STT( I, J, L, IDTMGLY )
@@ -6907,7 +7115,11 @@ c
 
          ! Get liquid water content within cloud [g/m3] directly from met
          ! Units: [kg H2O/kg air] * [kg air/m3] * [1000 g/kg] = [g H2O/m3]
+#if defined( DEVEL )
+         LWC     = LOCAL_MET%QL(I,J,L) * AIRDEN(L,I,J) * 1d3
+#else
          LWC     = QL(I,J,L) * AIRDEN(L,I,J) * 1d3
+#endif
 
 #else
          !---------------------------------------------

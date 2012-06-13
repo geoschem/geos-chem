@@ -1521,7 +1521,12 @@
      &                         ( A_M2          * FRAC_O ) / MLDcm 
                
                ! Gas phase Hg(0) concentration: convert [kg] -> [ng/L]
+#if defined( DEVEL )
+               CHg0          = STT(I,J,1,N) * 1.0D9 /
+     &                         LOCAL_MET%AIRVOL(I,J,1)
+#else
                CHg0          = STT(I,J,1,N) * 1.0D9 / AIRVOL(I,J,1)
+#endif
                
                !--------------------------------------------------------
                ! Compute flux of Hg(0) from the ocean to the air

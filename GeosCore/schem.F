@@ -417,18 +417,25 @@
       DO J = 1,    JJPAR
       DO I = 1,    IIPAR
 
-         ! Only proceed for stratospheric boxes
 #if defined( DEVEL )
+         ! Only proceed for stratospheric boxes
          IF ( ITS_IN_THE_STRAT( I, J, L, LOCAL_MET ) ) THEN
+
+            ! Density of air at grid box (I,J,L) in molec/cm3
+            M = LOCAL_MET%AD(I,J,L) / BOXVL(I,J,L,LOCAL_MET) * XNUMOLAIR
+
+            ! Temperature at grid box (I,J,L) in K
+            TK = LOCAL_MET%T(I,J,L)
 #else
+         ! Only proceed for stratospheric boxes
          IF ( ITS_IN_THE_STRAT( I, J, L ) ) THEN
-#endif
 
             ! Density of air at grid box (I,J,L) in molec/cm3
             M = AD(I,J,L) / BOXVL(I,J,L) * XNUMOLAIR
 
             ! Temperature at grid box (I,J,L) in K
             TK = T(I,J,L)
+#endif
 
             ! Select proper reaction rate w/ OH for the given tracer
             ! Some rates are temperature or density dependent

@@ -196,19 +196,32 @@ contains
 !\\
 ! !INTERFACE:
 !
+#if defined( DEVEL )
+  subroutine vdiff( lat,        ip,        uwnd,       vwnd,        &
+                    tadv,       pmid,      pint,       rpdel_arg,   &
+                    rpdeli_arg, ztodt,     zm_arg,     shflx_arg,   &
+                    sflx,       thp_arg,   as2,        pblh_arg,    &
+                    kvh_arg,    kvm_arg,   tpert_arg,  qpert_arg,   &
+                    cgs_arg,    shp,       wvflx_arg,  plonl,       &
+                    LOCAL_MET,  taux_arg,   tauy_arg,  ustar_arg )
+#else
   subroutine vdiff( lat, ip, uwnd, vwnd, tadv, &
                     pmid, pint, rpdel_arg, rpdeli_arg, ztodt, &
                     zm_arg, shflx_arg, sflx, &
                     thp_arg, as2, pblh_arg, kvh_arg, &
                     kvm_arg, tpert_arg, qpert_arg, cgs_arg, shp, &
                     wvflx_arg, plonl, taux_arg, tauy_arg, ustar_arg)
+#endif
 !
 ! !USES:
 !
-    USE DIAG_MOD,     ONLY : TURBFLUP
+    USE DIAG_MOD,      ONLY : TURBFLUP
     USE VDIFF_PRE_MOD, ONLY : ND15
-    USE TRACER_MOD,   ONLY : TCVV
-    USE DAO_MOD,      ONLY : AD
+    USE TRACER_MOD,    ONLY : TCVV
+    USE DAO_MOD,       ONLY : AD
+#if defined( DEVEL )
+      USE GC_TYPE_MOD, ONLY : GC_MET_LOCAL
+#endif
 
     implicit none
 !
@@ -216,41 +229,44 @@ contains
 !
     integer, intent(in) :: lat, ip ! latitude index, long tile index
     integer, intent(in) :: plonl   ! number of local longitudes
-    real*8, intent(in) :: &
+    real*8,  intent(in) ::   &
          ztodt                     ! 2 delta-t
-    real*8, intent(in) :: &
-         uwnd(:,:,:), &        ! u wind input
-         vwnd(:,:,:), &        ! v wind input
-         tadv(:,:,:), &        ! temperature input
-         pmid(:,:,:), &     ! midpoint pressures
-         pint(:,:,:), &    ! interface pressures
-         rpdel_arg(:,:,:), &      ! 1./pdel  (thickness bet interfaces)
-         rpdeli_arg(:,:,:), &     ! 1./pdeli (thickness bet midpoints)
-         zm_arg(:,:,:), &         ! midpoint geoptl height above sfc
-         shflx_arg(:,:), &           ! surface sensible heat flux (w/m2)
-         sflx(:,:,:), &      ! surface constituent flux (kg/m2/s)
-         wvflx_arg(:,:)              ! water vapor flux (kg/m2/s)
+    real*8,  intent(in) ::   &
+         uwnd(:,:,:),        &     ! u wind input
+         vwnd(:,:,:),        &     ! v wind input
+         tadv(:,:,:),        &     ! temperature input
+         pmid(:,:,:),        &     ! midpoint pressures
+         pint(:,:,:),        &     ! interface pressures
+         rpdel_arg(:,:,:),   &     ! 1./pdel  (thickness bet interfaces)
+         rpdeli_arg(:,:,:),  &     ! 1./pdeli (thickness bet midpoints)
+         zm_arg(:,:,:),      &     ! midpoint geoptl height above sfc
+         shflx_arg(:,:),     &     ! surface sensible heat flux (w/m2)
+         sflx(:,:,:),        &     ! surface constituent flux (kg/m2/s)
+         wvflx_arg(:,:)            ! water vapor flux (kg/m2/s)
+#if defined( DEVEL )
+      TYPE(GC_MET_LOCAL), INTENT(IN) :: LOCAL_MET  ! Obj w/ met fields
+#endif
 !
 ! !INPUT/OUTPUT PARAMETERS: 
 !
     real*8, intent(inout) :: &
-         as2(:,:,:,:), &  ! moist, tracers after vert. diff
-         shp(:,:,:), &       ! specific humidity (kg/kg)
-         thp_arg(:,:,:)           ! pot temp after vert. diffusion
+         as2(:,:,:,:),       &     ! moist, tracers after vert. diff
+         shp(:,:,:),         &     ! specific humidity (kg/kg)
+         thp_arg(:,:,:)            ! pot temp after vert. diffusion
 !
 ! !OUTPUT PARAMETERS: 
 !
-    real*8, intent(out) :: &
-         kvh_arg(:,:,:), &       ! coefficient for heat and tracers
-         kvm_arg(:,:,:), &       ! coefficient for momentum
-         tpert_arg(:,:), &           ! convective temperature excess
-         qpert_arg(:,:), &           ! convective humidity excess
-         cgs_arg(:,:,:)          ! counter-grad star (cg/flux)
+    real*8, intent(out) ::   &
+         kvh_arg(:,:,:),     &     ! coefficient for heat and tracers
+         kvm_arg(:,:,:),     &     ! coefficient for momentum
+         tpert_arg(:,:),     &     ! convective temperature excess
+         qpert_arg(:,:),     &     ! convective humidity excess
+         cgs_arg(:,:,:)            ! counter-grad star (cg/flux)
 
     real*8, optional, intent(inout) :: &
-         taux_arg(:,:), &            ! x surface stress (n)
-         tauy_arg(:,:), &            ! y surface stress (n)
-         ustar_arg(:,:)              ! surface friction velocity
+         taux_arg(:,:),      &     ! x surface stress (n)
+         tauy_arg(:,:),      &     ! y surface stress (n)
+         ustar_arg(:,:)            ! surface friction velocity
 
     real*8, intent(inout) :: pblh_arg(:,:) ! boundary-layer height [m]
 
@@ -747,9 +763,16 @@ contains
           ! Arrays in vdiff are upside-down
           K = plev - L + 1
           ! qp1 and qp0 are volume mixing ratio
+#if defined( DEVEL )
+          TURBFLUP(I,lat,k,M) = TURBFLUP(I,lat,k,M) &
+                              + (qp1(I,L,M) - qp0(I,L,M)) &
+                              * LOCAL_MET%AD(I,lat,k) &
+                              / ( TCVV(M) * ztodt )
+#else
           TURBFLUP(I,lat,k,M) = TURBFLUP(I,lat,k,M) &
                               + (qp1(I,L,M) - qp0(I,L,M)) * AD(I,lat,k) &
                               / ( TCVV(M) * ztodt )
+#endif
        enddo
        enddo
        ENDDO
@@ -1807,14 +1830,16 @@ contains
     USE DAO_MOD,      ONLY : um1   => UWND,  &
                              vm1   => VWND,  &
                              tadv  => T,     &
-                             hflx  => HFLUX, &
-                             eflux => EFLUX, &
                              USTAR,          &
                              BXHEIGHT,       &
-                             shp   => SPHU,  &
                             !PS    => PSC2,  &
+                             shp   => SPHU,  &
                              AD,             &
                              PBL
+#if !defined( DEVEL )
+    USE DAO_MOD,      ONLY : hflx  => HFLUX, &
+                             eflux => EFLUX
+#endif
     USE PRESSURE_MOD, ONLY : GET_PEDGE, GET_PCENTER
     USE TIME_MOD,     ONLY : GET_TS_CONV, GET_TS_EMIS
     USE COMODE_MOD,   ONLY : JLOP,      REMIS,   VOLUME
@@ -1901,6 +1926,7 @@ contains
     real*8, dimension(IIPAR,JJPAR,LLPAR) :: t1
     real*8, dimension(IIPAR,JJPAR,LLPAR,N_TRACERS) :: as ! save tracer MR 
                                                          ! before vdiffdr
+!    real*8, dimension(IIPAR,JJPAR,LLPAR) :: shp ! specific humidity 
     real*8 :: vtemp
     real*8 :: p0 = 1.d5
     real*8 :: dtime
@@ -1984,8 +2010,13 @@ contains
     ! Use temperature instead of virtual temperature to be consistent with 
     ! the calculation of BXHEIGHT. (lin, 06/02/08)
     !zm(I,J,L) = sum(BXHEIGHT(I,J,1:L))
+#if defined( DEVEL )
+       zm(I,J,L) = sum( LOCAL_MET%BXHEIGHT(I,J,1:L)) &
+                 - log( pmid(I,J,L)/pint(I,J,L+1) )  * r_g * tadv(I,J,L)
+#else
        zm(I,J,L) = sum(BXHEIGHT(I,J,1:L)) &
                    - log(pmid(I,J,L)/pint(I,J,L+1)) * r_g * tadv(I,J,L)
+#endif
     enddo
     enddo
     enddo
@@ -2041,7 +2072,12 @@ contains
           enddo
 
           ! additional step to convert from molec spec/cm3/s to kg/m2/s
+#if defined( DEVEL )
+          eflx(I,J,:) = eflx(I,J,:) * LOCAL_MET%BXHEIGHT(I,J,1) / &
+                        6.022d23    * 1.d6
+#else
           eflx(I,J,:) = eflx(I,J,:) * BXHEIGHT(I,J,1) / 6.022d23 * 1.d6
+#endif
 
           !add the tracer coef. (i.e., one ISOP molecule has five carbon atoms)
           ! (lin, 06/07/08) 
@@ -2130,9 +2166,16 @@ contains
              pbl_top = GET_PBL_MAX_L() ! the highest layer the PBL reaches, 
              ! globally
              do L = 1, pbl_top
+#if defined( DEVEL )
+                wk1 = wk1 + as2(I,J,L,NN) * LOCAL_MET%AD(I,J,L)* &
+                      GET_FRAC_UNDER_PBLTOP(I,J,L)
+                wk2 = wk2 + LOCAL_MET%AD(I,J,L) * &
+                      GET_FRAC_UNDER_PBLTOP(I,J,L)
+#else
                 wk1 = wk1 + as2(I,J,L,NN)*AD(I,J,L)* &
                       GET_FRAC_UNDER_PBLTOP(I,J,L)
                 wk2 = wk2 + AD(I,J,L)*GET_FRAC_UNDER_PBLTOP(I,J,L)
+#endif
              enddo
              ! since we only use the ratio of wk1 / wk2, there should not be
              ! a problem even if the PBL top is lower than the top of the 
@@ -2142,8 +2185,15 @@ contains
              
              ! consistency with the standard GEOS-Chem setup (Lin, 07/14/08)
              if (drydep_back_cons) then 
+#if defined( DEVEL )
+                dflx(I,J,NN) = dflx(I,J,NN) * (wk2+1.d-30) / &
+                               LOCAL_MET%AD(I,J,1)         * &
+                               LOCAL_MET%BXHEIGHT(I,J,1)   / &
+                               GET_PBL_TOP_m(I,J)
+#else
                 dflx(I,J,NN) = dflx(I,J,NN) * (wk2+1.d-30) / AD(I,J,1) * &
                                BXHEIGHT(I,J,1) / GET_PBL_TOP_m(I,J)
+#endif
              endif
           else
 
@@ -2297,9 +2347,16 @@ contains
                 pbl_top = GET_PBL_MAX_L() ! the highest layer the PBL reaches,
                                           ! globally
                 do L = 1, pbl_top
+#if defined( DEVEL )
+                   wk1 = wk1 + as2(I,J,L,N) * LOCAL_MET%AD(I,J,L) * &
+                               GET_FRAC_UNDER_PBLTOP(I,J,L)
+                   wk2 = wk2 + LOCAL_MET%AD(I,J,L) * &
+                               GET_FRAC_UNDER_PBLTOP(I,J,L)
+#else
                    wk1 = wk1 + as2(I,J,L,N)*AD(I,J,L)* &
                                GET_FRAC_UNDER_PBLTOP(I,J,L)
                    wk2 = wk2 + AD(I,J,L)*GET_FRAC_UNDER_PBLTOP(I,J,L)
+#endif
                 enddo
                 ! since we only use the ratio of wk1 / wk2, there should not be
                 ! a problem even if the PBL top is lower than the top of the 
@@ -2309,8 +2366,15 @@ contains
 
                 ! Consistent with the standard GEOS-Chem setup.(Lin, 07/14/08) 
                 if (drydep_back_cons) then 
+#if defined( DEVEL )
+                   dflx(I,J,N) = dflx(I,J,N) * (wk2+1.d-30) / &
+                                 LOCAL_MET%AD(I,J,1)        * &
+                                 LOCAL_MET%BXHEIGHT(I,J,1)  / &
+                                 GET_PBL_TOP_m(I,J)
+#else
                    dflx(I,J,N) = dflx(I,J,N) * (wk2+1.d-30) / AD(I,J,1) * &
                                  BXHEIGHT(I,J,1) / GET_PBL_TOP_m(I,J)
+#endif
                 endif
              else 
                 ! only use the lowest model layer for calculating drydep fluxes
@@ -2327,7 +2391,12 @@ contains
        ! for deposition: additional step to convert from s-1 to kg/m2/s
        ! dflx(I,J,:) = dflx(I,J,:) * pmid(I,J,1) / rair / vtemp * BXHEIGHT(I,J,1)
        ! alternate method to convert from s-1 to kg/m2/s
+#if defined( DEVEL )
+       dflx(I,J,:) = dflx(I,J,:) * LOCAL_MET%AD(I,J,1) / &
+                     GET_AREA_M2( I, J, 1 ) 
+#else
        dflx(I,J,:) = dflx(I,J,:) * AD(I,J,1) / GET_AREA_M2( I, J, 1 ) 
+#endif
 
        ! surface flux = emissions - dry deposition
        sflx(I,J,:) = eflx(I,J,:) - dflx(I,J,:) ! kg/m2/s
@@ -2448,7 +2517,11 @@ contains
           as2(:,:,:,N) = as2(:,:,LLPAR:1:-1,N) / TCVV(N) 
        ENDDO
 
+!#if defined( DEVEL )
+!       shp    = LOCAL_MET%SPHU( :, :, LLPAR  :1:-1 ) * 1.d-3 ! g/kg -> kg/kg
+!#else
        shp    = shp   ( :, :, LLPAR  :1:-1 ) * 1.d-3 ! g/kg -> kg/kg
+!#endif
 
        !### Debug
        IF ( LPRT ) CALL DEBUG_MSG( '### VDIFFDR: before vdiff' )
@@ -2463,7 +2536,8 @@ contains
                       sflx,   thp,   as2,    pblh,            &
                       kvh,    kvm,   tpert,  qpert,           &
                       cgs,    shp,   shflx,  IIPAR,           &
-                      ustar_arg=ustar)
+                      LOCAL_MET,                              &
+                      ustar_arg=ustar )
        enddo
 #else
        do J = 1, JJPAR

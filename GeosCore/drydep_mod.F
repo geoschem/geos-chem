@@ -437,7 +437,11 @@
          IJLOOP  = ( (J-1) * IIPAR ) + I
 
          ! THIK = thickness of surface layer [m]
+#if defined( DEVEL )
+         THIK    = LOCAL_MET%BXHEIGHT(I,J,1)
+#else
          THIK    = BXHEIGHT(I,J,1)
+#endif
          
          ! Now we calculate drydep throughout the entire PBL.  
          ! Make sure that the PBL depth is greater than or equal 
@@ -698,7 +702,11 @@
          IJLOOP         = ( (J-1) * IIPAR ) + I
 
          ! THIK = thickness of layer 1 [m]
+#if defined( DEVEL )
+         THIK           = LOCAL_MET%BXHEIGHT(I,J,1)
+#else
          THIK           = BXHEIGHT(I,J,1)
+#endif
 
          ! Midpoint height of first model level [m]
          CZ1(IJLOOP)    = THIK / 2.0d0
@@ -746,7 +754,7 @@
          !  changed to 98% due to vapor pressure lowering above sea water
          !  (Lewis & Schwartz, 2004)
          !  jaegle (5/11/11)
-         RHB(IJLOOP)    = MIN( 0.98d0, RH(I,J,1) * 1.d-2 )
+         RHB(IJLOOP)    = MIN( 0.98d0, LOCAL_MET%RH(I,J,1) * 1.d-2 )
 
          ! 10m windspeed (jaegle 5/11/11)
          W10(IJLOOP)    =  SQRT( SFCWINDSQR( I, J,
@@ -1265,7 +1273,11 @@
                   MLD = GET_PBL_TOP_m( I, J )
       
                   ! THIK = thickness of surface layer [m]
+#if defined( DEVEL )
+                  THIK    = LOCAL_MET%BXHEIGHT(I,J,1)
+#else
                   THIK    = BXHEIGHT(I,J,1)
+#endif
                   ! Add option for non-local PBL mixing scheme: 
                   ! only the surface (Lin, 03/31/09) 
                   IF (.NOT. LNLPBL) THIK    = MAX( MLD, THIK ) 

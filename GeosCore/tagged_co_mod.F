@@ -660,8 +660,13 @@
          DO I = 1, IIPAR
 
             ! Convert biofuel CO from [molec CO/cm3/s] to [kg CO]
+#if defined( DEVEL )
+            E_CO = BIOFUEL(IDBFCO,I,J)    / XNUMOL_CO * 
+     &             BOXVL(I,J,1,LOCAL_MET) * DTSRCE
+#else
             E_CO = BIOFUEL(IDBFCO,I,J) / XNUMOL_CO * 
      &             BOXVL(I,J,1)        * DTSRCE
+#endif
 
             ! Add biofuel CO burning to tracer #1 -- total CO [kg CO]
             STT(I,J,1,1) = STT(I,J,1,1) + E_CO
@@ -985,6 +990,19 @@
          ! (0) Define useful quantities
          !==============================================================
 
+#if defined( DEVEL )
+         ! STTCO [molec CO/cm3/kg CO] converts [kg CO] --> [molec CO/cm3]
+         ! kg CO/box * box/cm3 * mole/0.028 kg CO * Avog.#/mole
+         STTCO = 1d0     / LOCAL_MET%AIRVOL(I,J,L) / 1d6 /
+     &           FMOL_CO * 6.023d23
+
+         ! GCO is CO concentration in [molec CO/cm3]
+         GCO   = STT(I,J,L,1) * STTCO
+
+         ! DENS is the number density of air [molec air/cm3]
+         DENS  = LOCAL_MET%AD(I,J,L)    * 1000.d0   /
+     &           BOXVL(I,J,L,LOCAL_MET) * 6.023d23  / WTAIR
+#else
          ! STTCO [molec CO/cm3/kg CO] converts [kg CO] --> [molec CO/cm3]
          ! kg CO/box * box/cm3 * mole/0.028 kg CO * Avog.#/mole
          STTCO = 1d0 / AIRVOL(I,J,L) / 1d6 / FMOL_CO * 6.023d23
@@ -994,6 +1012,7 @@
 
          ! DENS is the number density of air [molec air/cm3]
          DENS  = AD(I,J,L) * 1000.d0 / BOXVL(I,J,L) * 6.023d23  / WTAIR
+#endif
 
          !==============================================================
          ! (1a) Production of CO by reaction with CH4
@@ -1103,6 +1122,16 @@
             !
             ! Units of ALPHA_ISOP are [molec CO/molec ISOP]
             ! Units of CO_ISOP are [molec CO/cm3]
+#if defined( DEVEL )
+            CO_ISOP = SUMISOPCO(I,J) / BOXVL(I,J,L,LOCAL_MET) /
+     &                5.d0           * ALPHA_ISOP
+
+            ! P(CO) from CH3OH is scaled to Isoprene Flux (see above)
+            ! Units are [molec CO/cm3]
+            CO_CH3OH = ( SUMISOPCO(I,J) / BOXVL(I,J,L,LOCAL_MET) ) * 
+     &                 ( 100d0          / 397d0                  ) * 
+     &                 ( 12d0           / 28d0                   )
+#else
             CO_ISOP = SUMISOPCO(I,J) / BOXVL(I,J,L) / 5.d0 * ALPHA_ISOP
 
             ! P(CO) from CH3OH is scaled to Isoprene Flux (see above)
@@ -1110,6 +1139,7 @@
             CO_CH3OH = ( SUMISOPCO(I,J) / BOXVL(I,J,L) ) * 
      &                 ( 100d0          / 397d0        ) * 
      &                 ( 12d0           / 28d0         )
+#endif
  
             ! Zero SUMISOPCO and SUMCH3OHCO for the next emission step
             SUMISOPCO(I,J)  = 0d0
@@ -1170,7 +1200,12 @@
 
             ! P(CO) from Monoterpene Flux =  alpha * Flux(Mono)
             ! Units are [molec CO/cm3]
+#if defined( DEVEL )
+            CO_MONO = ( SUMMONOCO(I,J) / BOXVL(I,J,L,LOCAL_MET) ) *
+     &                ALPHA_MONO
+#else
             CO_MONO = ( SUMMONOCO(I,J) / BOXVL(I,J,L) ) * ALPHA_MONO
+#endif
 
             ! Zero SUMMONOCO for the next emission step
             SUMMONOCO(I,J) = 0d0
@@ -1211,7 +1246,12 @@
             ALPHA_ACET = 2.D0 / 3.D0
             
             ! Units are [molec CO/cc]
+#if defined( DEVEL )
+            CO_ACET = SUMACETCO(I,J) / BOXVL(I,J,L,LOCAL_MET) *
+     &                ALPHA_ACET
+#else
             CO_ACET = SUMACETCO(I,J) / BOXVL(I,J,L) * ALPHA_ACET
+#endif
 
             ! Zero SUMACETCO for the next emission step
             SUMACETCO(I,J) = 0d0

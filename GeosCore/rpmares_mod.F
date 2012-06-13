@@ -201,14 +201,19 @@
          ! Skip if we are in the stratosphere (bmy, 4/3/08)
 #if defined( DEVEL )
          IF ( ITS_IN_THE_STRAT( I, J, L, LOCAL_MET ) ) CYCLE
+
+         ! Temperature [K], RH [unitless], and volume [m3]
+         ATEMP = LOCAL_MET%T(I,J,L)
+         ARH   = LOCAL_MET%RH(I,J,L) * 1.d-2
+         AVOL  = LOCAL_MET%AIRVOL(I,J,L)
 #else
          IF ( ITS_IN_THE_STRAT( I, J, L ) ) CYCLE
-#endif
 
          ! Temperature [K], RH [unitless], and volume [m3]
          ATEMP = T(I,J,L)
          ARH   = RH(I,J,L) * 1.d-2
          AVOL  = AIRVOL(I,J,L)
+#endif
 
 #if   defined( APM )
 
@@ -239,7 +244,11 @@
          IF ( IDTHNO3 > 0 ) THEN
             GNO3 = MAX( STT(I,J,L,IDTHNO3) * 1.d9 / AVOL, CONMIN )
          ELSE
+#if defined( DEVEL )
+            GNO3 = MAX( GET_HNO3( I, J, L, LOCAL_MET ), CONMIN )
+#else
             GNO3 = MAX( GET_HNO3( I, J, L ), CONMIN )
+#endif
          ENDIF
 
          !==============================================================
@@ -284,7 +293,11 @@
 
 !------------------------------------------------------------------------------
 
+#if defined( DEVEL )
+      FUNCTION GET_HNO3( I, J, L, LOCAL_MET ) RESULT ( HNO3_UGM3 )
+#else
       FUNCTION GET_HNO3( I, J, L ) RESULT ( HNO3_UGM3 )
+#endif
 !
 !******************************************************************************
 !  Subroutine GET_HNO3 allows the HNO3 concentrations to evolve with time,
@@ -307,9 +320,15 @@
       ! References to F90 modules
       USE GLOBAL_HNO3_MOD, ONLY : GET_HNO3_UGM3
       USE TIME_MOD,        ONLY : GET_ELAPSED_MIN
+#if defined( DEVEL )
+      USE GC_TYPE_MOD,     ONLY : GC_MET_LOCAL
+#endif
 
       ! Arguments
       INTEGER, INTENT(IN) :: I, J, L
+#if defined( DEVEL )
+      TYPE(GC_MET_LOCAL), INTENT(IN) :: LOCAL_MET  ! Obj w/ met fields
+#endif
 
       ! Local variables
       REAL*8              :: HNO3_UGM3
@@ -321,7 +340,11 @@
       ! Relax to monthly mean HNO3 concentrations every 3 hours
       ! Otherwise just return the concentration in HNO3_sav
       IF ( MOD( GET_ELAPSED_MIN(), 180 ) == 0 ) THEN
+#if defined( DEVEL )
+         HNO3_UGM3 = GET_HNO3_UGM3( I, J, L, LOCAL_MET )
+#else
          HNO3_UGM3 = GET_HNO3_UGM3( I, J, L )
+#endif
       ELSE
          HNO3_UGM3 = HNO3_sav(I,J,L)
       ENDIF

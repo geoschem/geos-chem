@@ -427,7 +427,12 @@
       !=================================================================
 
       ! P(Ox) [kg]
+#if defined( DEVEL )
+      PPROD = P24H(I,J,L)     * BOXVL(I,J,L,LOCAL_MET) *
+     &        ( GET_TS_CHEM() * 60d0 )
+#else
       PPROD = P24H(I,J,L) * BOXVL(I,J,L) * ( GET_TS_CHEM() * 60d0 )
+#endif
 
       !-----------------------
       ! #1: Total P(Ox)
@@ -674,7 +679,8 @@
             
             ! L(Ox) is originally in [1/cm3/s]; convert to [kg] 
             IF ( ITS_IN_THE_TROP( I, J, L, LOCAL_MET ) ) THEN
-               LL = STT(I,J,L,N) * L24H(I,J,L) * BOXVL(I,J,L) * DTCHEM
+               LL = STT(I,J,L,N)           * L24H(I,J,L) *
+     &              BOXVL(I,J,L,LOCAL_MET) * DTCHEM
             ELSE
                LL = 0.0d0
             ENDIF 
@@ -696,6 +702,18 @@
             !===========================================================
             IF ( ND65 > 0 ) THEN
 
+#if defined( DEVEL )
+               ! Only archive chemical production if this
+               ! region has production to begin with [kg/s]
+               IF ( PP(I,J,L,N) > 0d0 ) THEN
+                  PL            = P24H(I,J,L) * BOXVL(I,J,L,LOCAL_MET)
+                  AD65(I,J,L,N) = AD65(I,J,L,N) + PL
+               ENDIF
+
+               ! Archive loss for all tracers [kg/s]
+               PL = STT(I,J,L,N) * L24H(I,J,L) * BOXVL(I,J,L,LOCAL_MET)
+               AD65(I,J,L,N_TRACERS+N) = AD65(I,J,L,N_TRACERS+N) + PL
+#else
                ! Only archive chemical production if this
                ! region has production to begin with [kg/s]
                IF ( PP(I,J,L,N) > 0d0 ) THEN
@@ -706,6 +724,7 @@
                ! Archive loss for all tracers [kg/s]
                PL = STT(I,J,L,N) * L24H(I,J,L) * BOXVL(I,J,L)
                AD65(I,J,L,N_TRACERS+N) = AD65(I,J,L,N_TRACERS+N) + PL
+#endif
             ENDIF
 
             !===========================================================

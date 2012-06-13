@@ -760,7 +760,6 @@
       !=================================================================
       ! ITS_IN_THE_STRAT begins here
       !=================================================================
-
       ! Make the algorithm more robust by making ITS_IN_THE_STRAT be the 
       ! exact opposite of function ITS_IN_THE_TROP.  This should avoid
       ! numerical issues. (phs, 11/14/08)
@@ -893,7 +892,7 @@
             ! Get height (from surface to top edge) of all boxes that lie
             ! totally w/in the troposphere.  NOTE: Grid box (I,J,L_TP-1)
             ! is the highest purely tropospheric grid box in the column.
-            H    = SUM( BXHEIGHT( I, J, 1:L_TP-1 ) )
+            H    = SUM( LOCAL_MET%BXHEIGHT( I, J, 1:L_TP-1 ) )
 
             ! Get the pressures [hPa] at the bottom and top edges
             ! of the grid box in which the tropopause occurs
@@ -906,7 +905,7 @@
 
             ! Add to H the height [m] of the purely tropospheric 
             ! fraction of grid box (I,J,L_TP)
-            H    = H + ( FRAC * BXHEIGHT(I,J,L_TP) )
+            H    = H + ( FRAC * LOCAL_MET%BXHEIGHT(I,J,L_TP) )
 
             !---------------------------
             ! Archive into ND55 array
@@ -994,7 +993,11 @@
       ! H (in m) is the height of the midpoint of layer L (hyl, 03/28/99)
       DO J = 1, JJPAR
       DO I = 1, IIPAR
+#if defined( DEVEL )
+         H(I,J,1) = LOCAL_MET%BXHEIGHT(I,J,1) / 2.d0
+#else
          H(I,J,1) = BXHEIGHT(I,J,1) / 2.d0
+#endif
       ENDDO
       ENDDO
 
@@ -1002,8 +1005,14 @@
       DO L = 1, LLPAR-1
       DO J = 1, JJPAR
       DO I = 1, IIPAR
+#if defined( DEVEL )
+         H(I,J,L+1) = H(I,J,L) + 
+     &               ( LOCAL_MET%BXHEIGHT(I,J,L) +
+     &                 LOCAL_MET%BXHEIGHT(I,J,L+1) ) / 2.d0
+#else
          H(I,J,L+1) = H(I,J,L) + 
      &               ( BXHEIGHT(I,J,L) + BXHEIGHT(I,J,L+1) ) / 2.d0
+#endif
       ENDDO
       ENDDO
       ENDDO

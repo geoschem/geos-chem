@@ -162,8 +162,13 @@
          DO L = 1, LLPAR
          DO J = 1, JJPAR
          DO I = 1, IIPAR
+#if defined( DEVEL )
+            STT_VV(I,J,L,N) = 
+     &         MAX( STT(I,J,L,N) * TCVV(N) / LOCAL_MET%AD(I,J,L), 0d0 )
+#else
             STT_VV(I,J,L,N) = 
      &           MAX( STT(I,J,L,N) * TCVV(N) / AD(I,J,L), 0d0 )
+#endif
          ENDDO
          ENDDO
          ENDDO
@@ -186,6 +191,17 @@
         DO J = 1, JJPAR
         DO I = 1, IIPAR
 
+#if defined( DEVEL )
+          ! Reactive gaseous mercury, RGM
+          AD03_RGM(I,J,L) = AD03_RGM(I,J,L) +
+     &                      Fg(I,J,L) * STT(I,J,L,2) * TCVV(2) /
+     &                      LOCAL_MET%AD(I,J,L) *1D12
+
+          ! Reactive particulate mercury, RPM
+          AD03_RPM(I,J,L) = AD03_RPM(I,J,L) + 
+     &                      Fp(I,J,L)* STT(I,J,L,2) * TCVV(2) /
+     &                      LOCAL_MET%AD(I,J,L) *1D12
+#else
           ! Reactive gaseous mercury, RGM
           AD03_RGM(I,J,L) = AD03_RGM(I,J,L)+
      &      Fg(I,J,L) * STT(I,J,L,2) * TCVV(2) / AD(I,J,L) *1D12
@@ -193,6 +209,7 @@
           ! Reactive particulate mercury, RPM
           AD03_RPM(I,J,L) = AD03_RPM(I,J,L) + 
      &      Fp(I,J,L)* STT(I,J,L,2) * TCVV(2) / AD(I,J,L) *1D12
+#endif
                                                        
         ENDDO
         ENDDO
@@ -448,7 +465,11 @@
       IF ( ND68 > 0 ) THEN
 
          ! Set a flag for whether AVGW is allocated or not
+#if defined( DEVEL )
+         AVGW_ALLOCATED = ALLOCATED( LOCAL_MET%AVGW )
+#else
          AVGW_ALLOCATED = ALLOCATED( AVGW )
+#endif
 
 !$OMP PARALLEL DO 
 !$OMP+DEFAULT( SHARED )
@@ -456,6 +477,17 @@
          DO L = 1, LD68
          DO J = 1, JJPAR
          DO I = 1, IIPAR
+#if defined( DEVEL )
+            AD68(I,J,L,1) = AD68(I,J,L,1) + LOCAL_MET%BXHEIGHT(I,J,L)
+            AD68(I,J,L,2) = AD68(I,J,L,2) + LOCAL_MET%AD(I,J,L)
+            AD68(I,J,L,4) = AD68(I,J,L,4) + LOCAL_MET%AIRDENS(L,I,J) *
+     &                      XNUMOLAIR
+
+            ! Make sure AVGW is now allocated (bmy, 9/25/01)
+            IF ( AVGW_ALLOCATED ) THEN
+               AD68(I,J,L,3) = AD68(I,J,L,3) + LOCAL_MET%AVGW(I,J,L)
+            ENDIF
+#else
             AD68(I,J,L,1) = AD68(I,J,L,1) + BXHEIGHT(I,J,L)
             AD68(I,J,L,2) = AD68(I,J,L,2) + AD(I,J,L)
             AD68(I,J,L,4) = AD68(I,J,L,4) + AIRDEN(L,I,J) * XNUMOLAIR
@@ -464,6 +496,7 @@
             IF ( AVGW_ALLOCATED ) THEN
               AD68(I,J,L,3) = AD68(I,J,L,3) + AVGW(I,J,L)
            ENDIF
+#endif
          ENDDO
          ENDDO
          ENDDO

@@ -509,7 +509,7 @@
       !=================================================================
       IF ( LBIOFUEL ) THEN
 #if defined( DEVEL )
-         CALL BIOFUEL_BURN( BIO_EMISS )
+         CALL BIOFUEL_BURN( LOCAL_MET, BIO_EMISS )
 #else
          CALL BIOFUEL_BURN
 #endif
@@ -520,6 +520,33 @@
          DO J = 1, JJPAR
          DO I = 1, IIPAR
 
+#if defined( DEVEL )
+            ! Convert from [molec CO/cm3/s] to [kg H2]
+            ! BIOFUEL(IDBFCO,I,J) contains biofuel CO emissions.
+            ! Scale by 0.322d0 H2/CO from Andreae and Merlet
+            ! and enhance by 18.9% * yield h2/co from photochemical
+            ! oxidation (lyj, 2/10/07)
+            E_H2 = BIOFUEL(IDBFCO,I,J)    / XNUMOL_H2 *
+     &             BOXVL(I,J,1,LOCAL_MET) * DTSRCE    *
+     &             ( ( 0.189d0 * H2CO_YIELD(I,J,1) ) + 0.322d0 )
+
+
+            ! Calculate the HD emissions using a -290 permil
+            ! isotopic signature (see BB emissions above).
+            ! jaegle (4/20/07)
+
+            E_HD = ( BIOFUEL(IDBFCO,I,J) * 1.1059d-4 )    * 
+     &             ( ( 0.189d0 * H2CO_YIELD(I,J,1) )      + 0.322d0 ) /
+     &             XNUMOL_HD   * ( BOXVL(I,J,1,LOCAL_MET) * DTSRCE  ) *
+     &             2.d0
+
+            ! ND10 -- store Biofuel Fuel H2 [molec/cm2/s]
+            IF ( ND10 > 0 ) THEN
+               AD10em(I,J,3) = AD10em(I,J,3) + ( BIOFUEL(IDBFCO,I,J) *
+     &                 ( ( 0.189d0 * H2CO_YIELD(I,J,1) ) + 0.322d0 ) *
+     &                       LOCAL_MET%BXHEIGHT(I,J,1)   * 100d0 )
+            ENDIF 
+#else
             ! Convert from [molec CO/cm3/s] to [kg H2]
             ! BIOFUEL(IDBFCO,I,J) contains biofuel CO emissions.
             ! Scale by 0.322d0 H2/CO from Andreae and Merlet
@@ -544,6 +571,7 @@
      &                 ( ( 0.189d0 * H2CO_YIELD(I,J,1) ) + 0.322d0 ) *
      &                       BXHEIGHT(I,J,1)*100d0 )
             ENDIF 
+#endif
 
             ! Add H2 HD biomass burning to corresponding tracers -
             ! - total H2/HD [kg H2/HD]
@@ -844,9 +872,17 @@
 
          ! STTH2 [molec H2/cm3/kg H2] converts [kg H2] --> [molec H2/cm3]
          ! kg H2/box * box/cm3 * mole/0.002 kg H2 * Avog.#/mole
+#if defined( DEVEL )
+         STTH2 = 1d0     / LOCAL_MET%AIRVOL(I,J,L) / 1d6 /
+     &           FMOL_H2 * 6.023d23
+	 
+	 STTHD = 1d0     / LOCAL_MET%AIRVOL(I,J,L) / 1d6 / 
+     &           FMOL_HD * 6.023d23 
+#else
          STTH2 = 1d0 / AIRVOL(I,J,L) / 1d6 / FMOL_H2 * 6.023d23
 	 
 	 STTHD = 1d0 / AIRVOL(I,J,L) / 1d6 / FMOL_HD * 6.023d23 
+#endif
                   
          ! GH2 is H2 concentration in [molec H2/cm3]
          GH2   = STT(I,J,L,IDTH2) * STTH2
@@ -855,7 +891,12 @@
 	 GHD   = STT(I,J,L,IDTHD) * STTHD
 
          ! DENS is the number density of air [molec air/cm3]
+#if defined( DEVEL )
+         DENS  = LOCAL_MET%AD(I,J,L)    * 1000.d0  /
+     &           BOXVL(I,J,L,LOCAL_MET) * 6.023d23 / WTAIR
+#else
          DENS  = AD(I,J,L) * 1000.d0 / BOXVL(I,J,L) * 6.023d23  / WTAIR
+#endif
 
          !==============================================================
          ! (1a) Production of H2 and HD by methane oxidation
@@ -996,6 +1037,22 @@
             ! scale ALPHA_ISOP by the relative H2/CO yield
             ALPHA_ISOP = ALPHA_ISOP * H2CO_YIELD(I,J,L)
 
+#if defined( DEVEL )
+            ! P(CO) from Isoprene Flux = ALPHA_ISOP * Flux(ISOP)
+            ! Convert from [molec ISOP/box] to [molec CO/cm3]
+            ! Also account for the fact that ISOP has 5 carbons
+            H2_ISOP = SUMISOPCO(I,J) / BOXVL(I,J,L,LOCAL_MET) / 5.d0 *
+     &                ALPHA_ISOP
+	    
+            ! P(CO) from CH3OH is scaled to Isoprene Flux (see above)
+	    ! Units are [molec CO/cm3]
+            ! For H2, scale by the relative CO/H2 molar weights and
+            ! the H2/CO yields.
+            H2_CH3OH = ( SUMISOPCO(I,J) / BOXVL(I,J,L,LOCAL_MET) ) *
+     &                 ( 100d0          / 397d0                  ) *
+     &                 ( H2CO_YIELD(I,J,L)                       ) *
+     &                 ( 12d0           / 28d0                   ) 
+#else
             ! P(CO) from Isoprene Flux = ALPHA_ISOP * Flux(ISOP)
             ! Convert from [molec ISOP/box] to [molec CO/cm3]
             ! Also account for the fact that ISOP has 5 carbons
@@ -1009,6 +1066,7 @@
      &                 ( 100d0          / 397d0        ) *
      &                 ( H2CO_YIELD(I,J,L)             ) *
      &                 ( 12d0           / 28d0         ) 
+#endif
  
             ! Zero SUMISOPCO and SUMCH3OHCO for the next emission step
             SUMISOPCO(I,J)  = 0d0
@@ -1072,8 +1130,13 @@
             ! P(CO) from Monoterpene Flux =  alpha * Flux(Mono)
             ! Units are [molec H2/cm3]. Scale by the
             ! H2/CO photochemical yield.
+#if defined( DEVEL )
+            H2_MONO = ( SUMMONOCO(I,J) / BOXVL(I,J,L,LOCAL_MET) ) * 
+     &                ( ALPHA_MONO     * H2CO_YIELD(I,J,L) )
+#else
             H2_MONO = ( SUMMONOCO(I,J) / BOXVL(I,J,L)      ) * 
      &                ( ALPHA_MONO     * H2CO_YIELD(I,J,L) )
+#endif
 
             ! Zero SUMMONOCO for the next emission step
             SUMMONOCO(I,J) = 0d0
@@ -1117,8 +1180,13 @@
             ALPHA_ACET = 2.D0 / 3.D0
             
             ! Units are [molec H2/cc]. Scale by the H2/CO yield.
+#if defined( DEVEL )
+            H2_ACET = SUMACETCO(I,J) / BOXVL(I,J,L,LOCAL_MET) * 
+     &                ALPHA_ACET     * H2CO_YIELD (I,J,L)
+#else
             H2_ACET = SUMACETCO(I,J) / BOXVL(I,J,L) * 
      &                ALPHA_ACET * H2CO_YIELD (I,J,L)
+#endif
 
             ! Zero SUMACETCO for the next emission step
             SUMACETCO(I,J) = 0d0

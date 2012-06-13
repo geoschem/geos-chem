@@ -166,7 +166,11 @@
 !\\
 ! !INTERFACE:
 !
+#if defined( DEVEL )
+      SUBROUTINE EMISSCO2( LOCAL_MET )
+#else
       SUBROUTINE EMISSCO2
+#endif
 !
 ! !USES:
 !
@@ -191,8 +195,17 @@
       USE LOGICAL_MOD,  ONLY : LSHIPTAG,    LPLANETAG
       USE LOGICAL_MOD,  ONLY : LSHIPSCALE,  LPLANESCALE
       USE LOGICAL_MOD,  ONLY : LCHEMCO2
+#if defined( DEVEL )
+      USE GC_TYPE_MOD,  ONLY : GC_MET_LOCAL
+#endif
 
       USE CMN_SIZE_MOD    ! Size parameters
+!
+! !INPUT PARAMETERS:
+!
+#if defined( DEVEL )
+      TYPE(GC_MET_LOCAL), INTENT(IN) :: LOCAL_MET  ! Obj w/ met fields
+#endif
 !
 ! !REMARKS:
 !  The initial condition for CO2 has to be at least 50 ppm or higher or else
@@ -344,7 +357,11 @@
          IF ( LSHIPICO ) CALL READ_SHIPCO2_ICOADS
  
          ! Aircraft CO2 emissions
+#if defined( DEVEL )
+         IF ( LPLANE   ) CALL READ_AVIATION_CO2( LOCAL_MET )
+#else
          IF ( LPLANE   ) CALL READ_AVIATION_CO2
+#endif
 		
          ! Get chemical source   ! dbj
          IF ( LCHEMCO2 ) THEN
@@ -623,7 +640,12 @@
                ENDIF
 
                ! Convert E_CO2 from [molec CO2/cm3/s] to [kg]
+#if defined( DEVEL )
+               E_CO2    = E_CO2  * BOXVL(I,J,L,LOCAL_MET) *
+     &                    DTSRCE / XNUMOL_CO2
+#else
                E_CO2    = E_CO2 * BOXVL(I,J,L) * DTSRCE / XNUMOL_CO2
+#endif
 
                ! Add to Tracer #1: Total CO2 [kg CO2]
                STT(I,J,L,1)   = STT(I,J,L,1) + E_CO2
@@ -663,7 +685,12 @@
                ENDIF
 
                !  Convert from [molec/cm3/s] to [kg]
+#if defined( DEVEL )
+               E_CO2  = E_CO2  * BOXVL(I,J,L,LOCAL_MET) *
+     &                  DTSRCE / XNUMOL_CO2
+#else
                E_CO2  = E_CO2 * BOXVL(I,J,L) * DTSRCE / XNUMOL_CO2
+#endif
 
                ! Add to Tracer #1: Total CO2 [kg CO2]
                STT(I,J,L,1)   = STT(I,J,L,1) + E_CO2
@@ -1974,7 +2001,11 @@
 !\\
 ! !INTERFACE:
 !
+#if defined( DEVEL )
+      SUBROUTINE READ_AVIATION_CO2( LOCAL_MET )
+#else
       SUBROUTINE READ_AVIATION_CO2
+#endif
 !
 ! !USES:
 !
@@ -1984,8 +2015,17 @@
       USE DIRECTORY_MOD, ONLY : DATA_DIR 
       USE FILE_MOD,      ONLY : IU_FILE, IOERROR
       USE TIME_MOD,      ONLY : GET_MONTH, GET_YEAR
+#if defined( DEVEL )
+      USE GC_TYPE_MOD,   ONLY : GC_MET_LOCAL
+#endif
 
       USE CMN_SIZE_MOD      ! Size parameters
+!
+! !INPUT PARAMETERS:
+!
+#if defined( DEVEL )
+      TYPE(GC_MET_LOCAL), INTENT(IN) :: LOCAL_MET  ! Obj w/ met fields
+#endif
 !
 ! !REMARKS:
 !  This is a modified version of READ_AIRCRAFT_SO2 from:
@@ -2109,7 +2149,11 @@
             DO L = 1, LLPAR
 
                ! Altitude of top edge of level L, from ground [km]
+#if defined( DEVEL )
+               ZH(L) = ZH(L-1) + ( LOCAL_MET%BXHEIGHT(I,J,L) * 1d-3 )
+#else
                ZH(L) = ZH(L-1) + ( BXHEIGHT(I,J,L) * 1d-3 )
+#endif
                
                IF ( ZH(L-1) > DBLE(K)   ) EXIT
                IF ( ZH(L  ) < DBLE(K-1) ) CYCLE
@@ -2169,8 +2213,13 @@
       DO J = 1, JJPAR
       DO I = 1, IIPAR
       DO L = 1, LLPAR
+#if defined( DEVEL )
+         EMPLANECO2(I,J,L) = EMPLANECO2(I,J,L) / BOXVL(I,J,L,LOCAL_MET)
+     &                     * 6.022d23 / 44.01d-3
+#else
          EMPLANECO2(I,J,L) = EMPLANECO2(I,J,L) / BOXVL(I,J,L)
      &                     * 6.022d23 / 44.01d-3
+#endif
 
 	 ! Apply scaling to obtain a specified global Total
          EMPLANECO2(I,J,L) = EMPLANECO2(I,J,L)*(GlobPTotNew(n)/GlobPTot)

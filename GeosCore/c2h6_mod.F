@@ -92,7 +92,7 @@
 ! !INTERFACE:
 !
 #if defined( DEVEL )      
-      SUBROUTINE EMISSC2H6(EMISS, BIO_EMISS)
+      SUBROUTINE EMISSC2H6( LOCAL_MET, EMISS, BIO_EMISS)
 #else
       SUBROUTINE EMISSC2H6
 #endif
@@ -112,11 +112,20 @@
       USE TRACER_MOD,    ONLY : ITS_A_C2H6_SIM
       USE TRACERID_MOD,  ONLY : IDBFC2H6, IDEC2H6, IDTC2H6
       USE TRANSFER_MOD,  ONLY : TRANSFER_2D
+#if defined( DEVEL )
+      USE GC_TYPE_MOD ,  ONLY : GC_MET_LOCAL
+#endif
 
       USE CMN_SIZE_MOD        ! Size parameters
       USE CMN_O3_MOD          ! EMISTC2H6
       USE CMN_DIAG_MOD        ! Diagnostic arrays & switches
       USE CMN_MOD             ! STT, etc.
+!
+! !INPUT PARAMETERS:
+!
+#if defined( DEVEL )
+      TYPE(GC_MET_LOCAL), INTENT(IN) :: LOCAL_MET  ! Obj w/ met fields
+#endif
 !
 ! !INPUT/OUTPUT PARAMETERS:
 !
@@ -235,7 +244,7 @@
 
             ! Read biofuel burning emissions (and update ND34 diagnostic)
 #if defined( DEVEL )
-            CALL BIOFUEL_BURN( BIO_EMISS )
+            CALL BIOFUEL_BURN( LOCAL_MET, BIO_EMISS )
 #else
             CALL BIOFUEL_BURN
 #endif
@@ -247,8 +256,13 @@
             DO I = 1, IIPAR
  
                ! Convert [molec C/cm3/s] to [kg C2H6] and store in E_C2H6
+#if defined( DEVEL )
+               E_C2H6_BF = BIOFUEL(IDBFC2H6,I,J) / 2.0d0 / 
+     &                     XNUMOL_C2H6 * BOXVL(I,J,1,LOCAL_MET) * DTSRCE
+#else
                E_C2H6_BF = BIOFUEL(IDBFC2H6,I,J) / 2.0d0 / 
      &                     XNUMOL_C2H6 * BOXVL(I,J,1) * DTSRCE  
+#endif
 
                ! Add BF C2H6 to tracer #1 -- total C2H6 [kg C2H6]
                STT(I,J,1,1) = STT(I,J,1,1) + E_C2H6_BF
@@ -357,7 +371,7 @@
 !
 ! !USES:
 !
-      USE DAO_MOD,       ONLY : AIRVOL,    T
+      USE DAO_MOD,       ONLY : T
       USE GLOBAL_OH_MOD, ONLY : OH,        GET_GLOBAL_OH
       USE LOGICAL_MOD,   ONLY : LSPLIT 
       USE TIME_MOD,      ONLY : GET_MONTH, GET_TS_CHEM
@@ -386,10 +400,6 @@
       INTEGER, SAVE          :: LASTMONTH = -99
       INTEGER                :: I, J, L, N
       REAL*8                 :: DTCHEM, KRATE
-!
-! !EXTERNAL FUNCTIONS:
-!
-      REAL*8, EXTERNAL       :: BOXVL
 
       !=================================================================
       ! CHEMC2H6 begins here! 

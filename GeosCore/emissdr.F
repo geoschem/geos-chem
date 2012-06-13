@@ -167,9 +167,6 @@
       ! Molecules C / kg C
       REAL*8,  PARAMETER     :: XNUMOL_C = 6.022d+23 / 12d-3 
 
-      ! External functions
-      REAL*8, EXTERNAL       :: BOXVL
-
       ! Add in new monoterpene species (mpb,2009)
       REAL*8                 :: APINE  , BPINE , LIMON , SABIN 
       REAL*8                 :: MYRCN  , CAREN , OCIMN
@@ -282,7 +279,7 @@
 ! LIGHTNING EMISSIONS NOX [molecules/cm3/s]
 !
             IF ( LLIGHTNOX .AND. I == 1 .AND. J == 1 ) 
-     &           CALL EMLIGHTNING( EMISS_TEND(:,:,:,IDTNOX) )
+     &           CALL EMLIGHTNING( LOCAL_MET, EMISS_TEND(:,:,:,IDTNOX) )
 !-----------------------------------------------------------------------------
 ! SOIL EMISSIONS NOX [molecules/cm3/s]
 !
@@ -294,12 +291,12 @@
 ! AIRCRAFT emissions NOx [molecules/cm3/s]
 !
             IF ( LAIRNOX .AND. I == 1 .AND. J == 1 ) 
-     &           CALL AIREMISS( EMISS_TEND(:,:,:,IDTNOX) )
+     &           CALL AIREMISS( LOCAL_MET, EMISS_TEND(:,:,:,IDTNOX) )
 !-----------------------------------------------------------------------------
 ! NOx AND CO from biofuel combustion [kg/box]  
 !
             IF ( LWOODCO .AND. I == 1 .AND. J == 1 ) 
-     &           CALL BIOFUEL_BURN( BIOEMISS_TEND(:,:,1,:) )
+     &           CALL BIOFUEL_BURN( LOCAL_MET, BIOEMISS_TEND(:,:,1,:) )
 
 #else
 

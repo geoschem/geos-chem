@@ -319,9 +319,6 @@
       REAL*8,  PARAMETER     :: ECH3CN_bb = 0.20d-2
       REAL*8,  PARAMETER     :: ECH3CN_df = 0.25d-2
 
-      ! External functions
-      REAL*8, EXTERNAL       :: BOXVL
-
       !=================================================================
       ! EMISS_TAGGED_HCN_CH3CN begins here!
       !=================================================================
@@ -585,7 +582,12 @@
 
          K0    = 7.4d-33 
          K1    = 9.0d-15 * ( T(I,J,L) / 300d0 ) ** 3.2d0
+#if defined( DEVEL )
+         TMP   = K0  /  K1  * LOCAL_MET%AD(I,J,L) *
+     &           XNUMOL_AIR / BOXVL(I,J,L,LOCAL_MET)
+#else
          TMP   = K0 / K1 * AD(I,J,L) * XNUMOL_AIR / BOXVL(I,J,L)
+#endif
 
          ! K: [cm3/molec/s]
          KTMP  = K1 * TMP / ( 1d0 + TMP )      
@@ -729,7 +731,11 @@
                N            = HCN_INDEX(NN)
 
                ! Bulk concentration of HCN in gas phase [kg/cm3]
+#if defined( DEVEL )
+               CG           = STT(I,J,1,N) / BOXVL(I,J,1,LOCAL_MET)
+#else
                CG           = STT(I,J,1,N) / BOXVL(I,J,1)
+#endif
 
                ! Air-to-sea flux of HCN [kg/cm2/s]
                FLUX         = ALPHA_HCN * KKG * CG     
@@ -781,7 +787,11 @@
                N              = CH3CN_INDEX(NN)
 
                ! Bulk concentration of CH3CN in gas phase [kg/cm3]
+#if defined( DEVEL )
+               CG             = STT(I,J,1,N) / BOXVL(I,J,1,LOCAL_MET)
+#else
                CG             = STT(I,J,1,N) / BOXVL(I,J,1)
+#endif
 
                ! Air-to-sea flux of HCN [kg/cm2/s]
                FLUX           = ALPHA_HCN * KKG * CG     

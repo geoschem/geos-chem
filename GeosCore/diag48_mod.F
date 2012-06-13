@@ -281,9 +281,15 @@
             UNIT     = ''              ! Let GAMAP pick the unit
             GMTRC    = N
 
+#if defined( DEVEL )
+            DO L = 1, K
+               Q(L) = STT(I,J,L,N) * TCVV(N) / LOCAL_MET%AD(I,J,L)
+            ENDDO
+#else
             DO L = 1, K
                Q(L) = STT(I,J,L,N) * TCVV(N) / AD(I,J,L)
             ENDDO
+#endif
 
          ELSE IF ( N == 91 .and. IS_Ox ) THEN
  
@@ -294,10 +300,17 @@
             UNIT     = ''              ! Let GAMAP pick the unit
             GMTRC    = N_TRACERS + 1
 
+#if defined( DEVEL )
+            DO L = 1, K
+               Q(L) = STT(I,J,L,IDTOX)    * TCVV(IDTOX)  / 
+     &                LOCAL_MET%AD(I,J,L) * FRACO3(I,J,L)
+            ENDDO
+#else
             DO L = 1, K
                Q(L) = STT(I,J,L,IDTOX) * TCVV(IDTOX)  / 
      &                AD(I,J,L)        * FRACO3(I,J,L)
             ENDDO
+#endif
                
          ELSE IF ( N == 92 .and. IS_NOx ) THEN
 
@@ -308,10 +321,17 @@
             UNIT     = ''           ! Let GAMAP pick the unit
             GMTRC    = 9
 
+#if defined( DEVEL )
+            DO L = 1, K
+               Q(L) = STT(I,J,L,IDTNOX) * TCVV(IDTNOX) * 
+     &                FRACNO(I,J,L)     / LOCAL_MET%AD(I,J,L)
+            ENDDO
+#else
             DO L = 1, K
                Q(L) = STT(I,J,L,IDTNOX) * TCVV(IDTNOX) * 
      &                FRACNO(I,J,L)     / AD(I,J,L)
             ENDDO
+#endif
 
          ELSE IF ( N == 93 .and. IS_NOy ) THEN
 
@@ -322,6 +342,53 @@
             UNIT     = ''              ! Let GAMAP pick unit
             GMTRC    = 3
 
+#if defined( DEVEL )
+            DO L = 1, K
+
+               ! Initialize
+               Q(L) = 0d0
+
+               ! NOx
+               Q(L) = Q(L) + ( TCVV(IDTNOX)        * 
+     &                         STT(I,J,L,IDTNOX)   / 
+     &                         LOCAL_MET%AD(I,J,L) )
+
+               ! PAN
+               Q(L) = Q(L) + ( TCVV(IDTPAN)        * 
+     &                         STT(I,J,L,IDTPAN)   / 
+     &                         LOCAL_MET%AD(I,J,L) )
+
+               ! HNO3
+               Q(L) = Q(L) + ( TCVV(IDTHNO3)       *
+     &                         STT(I,J,L,IDTHNO3)  / 
+     &                         LOCAL_MET%AD(I,J,L) )
+            
+               ! PMN
+               Q(L) = Q(L) + ( TCVV(IDTPMN)        *
+     &                         STT(I,J,L,IDTPMN)   / 
+     &                         LOCAL_MET%AD(I,J,L) )
+
+               ! PPN
+               Q(L) = Q(L) + ( TCVV(IDTPPN)        * 
+     &                         STT(I,J,L,IDTPPN)   / 
+     &                         LOCAL_MET%AD(I,J,L) )
+ 
+               ! R4N2
+               Q(L) = Q(L) + ( TCVV(IDTR4N2)       *
+     &                         STT(I,J,L,IDTR4N2)  / 
+     &                         LOCAL_MET%AD(I,J,L) )
+            
+               ! N2O5
+               Q(L) = Q(L) + ( 2d0 * TCVV(IDTN2O5) *
+     &                         STT(I,J,L,IDTN2O5)  / 
+     &                         LOCAL_MET%AD(I,J,L) )
+                        
+               ! HNO4
+               Q(L) = Q(L) + ( TCVV(IDTHNO4)       *
+     &                         STT(I,J,L,IDTHNO4)  / 
+     &                         LOCAL_MET%AD(I,J,L) )
+            ENDDO
+#else
             DO L = 1, K
 
                ! Initialize
@@ -359,6 +426,7 @@
                Q(L) = Q(L) + ( TCVV(IDTHNO4)       *
      &                         STT(I,J,L,IDTHNO4)  / AD(I,J,L) )
             ENDDO
+#endif
 
          ELSE IF ( N == 76 .and. IS_FULLCHEM ) THEN
 
@@ -622,10 +690,17 @@
             UNIT     = ''              ! Let GAMAP pick unit
             GMTRC    = 24
 
+#if defined( DEVEL )
+            DO L = 1, K
+               Q(L) = ( STT(I,J,L,IDTSALA) + STT(I,J,L,IDTSALC) ) *
+     &                  TCVV(IDTSALA)      / LOCAL_MET%AD(I,J,L) 
+            ENDDO
+#else
             DO L = 1, K
                Q(L) = ( STT(I,J,L,IDTSALA) + STT(I,J,L,IDTSALC) ) *
      &                  TCVV(IDTSALA)      / AD(I,J,L) 
             ENDDO
+#endif
 
          ELSE IF ( N == 94 ) THEN 
 
@@ -636,9 +711,15 @@
             UNIT     = 'm'
             GMTRC    = 1
 
+#if defined( DEVEL )
+            DO L = 1, K
+               Q(L) = LOCAL_MET%BXHEIGHT(I,J,L)
+            ENDDO
+#else
             DO L = 1, K
                Q(L) = BXHEIGHT(I,J,L)
             ENDDO
+#endif
 
          ELSE IF ( N == 95 ) THEN 
 
@@ -649,9 +730,15 @@
             UNIT     = '%'
             GMTRC    = 17
 
+#if defined( DEVEL )
+            DO L = 1, K
+               Q(L) = LOCAL_MET%RH(I,J,L)
+            ENDDO
+#else
             DO L = 1, K
                Q(L) = RH(I,J,L)
             ENDDO
+#endif
 
          ELSE IF ( N == 96 .and. IS_SLP ) THEN
 

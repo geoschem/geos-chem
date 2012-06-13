@@ -1480,7 +1480,12 @@
                      N = PVAR(V) - 100000
                      
                      ! Convert from [kg] --> [v/v]
+#if defined( DEVEL )
+                     VARI(V) = STT(I,J,L,N) * TCVV(N) /
+     &                         LOCAL_MET%AD(I,J,L)
+#else
                      VARI(V) = STT(I,J,L,N) * TCVV(N) / AD(I,J,L)
+#endif
 
                      IF ( VARI(V) < TINY ) VARI(V) = 0.d0
 

@@ -300,18 +300,30 @@
             GAS(N) = 0d0
          ENDDO
 
+#if defined( DEVEL )
+         ! Temperature [K]
+         TEMPI    = T(I,J,L)
+
+         ! Relative humidity [unitless]
+         RHI      = LOCAL_MET%RH(I,J,L) * 1.d-2
+#else
          ! Temperature [K]
          TEMPI    = T(I,J,L)
 
          ! Relative humidity [unitless]
          RHI      = RH(I,J,L) * 1.d-2
+#endif
 
          ! Force RH in the range 0.01 - 0.98
          RHI      = MAX( 0.01d0, RHI )
          RHI      = MIN( 0.98d0, RHI )
 
          ! Volume of grid box [m3] 
+#if defined( DEVEL )
+         VOL      = LOCAL_MET%AIRVOL(I,J,L)
+#else
          VOL      = AIRVOL(I,J,L)
+#endif
 
          !---------------------------------
          ! Compute quantities for ISOROPIA
@@ -418,7 +430,11 @@
             ! Convert total inorganic NO3 from [ug/m3] to [mole/m3].
             ! GET_HNO3, lets HNO3 conc's evolve, but relaxes to 
             ! monthly mean values every 3h.
+#if defined( DEVEL )
+            TNO3  = GET_HNO3( I, J, L, LOCAL_MET ) * 1.d-6 / 63.d0
+#else
             TNO3  = GET_HNO3( I,J,L ) * 1.d-6 / 63.d0
+#endif
 
          ENDIF
 
@@ -666,18 +682,28 @@
 !\\
 ! !INTERFACE:
 !
+#if defined( DEVEL )
+      FUNCTION GET_HNO3( I, J, L, LOCAL_MET ) RESULT ( HNO3_UGM3 )
+#else
       FUNCTION GET_HNO3( I, J, L ) RESULT ( HNO3_UGM3 )
+#endif
 !
 ! !USES:
 !
       USE GLOBAL_HNO3_MOD, ONLY : GET_HNO3_UGM3
       USE TIME_MOD,        ONLY : GET_ELAPSED_MIN
+#if defined( DEVEL )
+      USE GC_TYPE_MOD,     ONLY : GC_MET_LOCAL
+#endif
 !
 ! !INPUT PARAMETERS: 
 !
       INTEGER, INTENT(IN) :: I  ! GEOS-Chem longitude index
       INTEGER, INTENT(IN) :: J  ! GEOS-Chem latitude index
       INTEGER, INTENT(IN) :: L  ! GEOS-Chem level index
+#if defined( DEVEL )
+      TYPE(GC_MET_LOCAL), INTENT(IN) :: LOCAL_MET  ! Obj w/ met fields
+#endif
 ! 
 ! !REVISION HISTORY: 
 !  16 Dec 2002 - R. Yantosca  - Initial version, in ISORROPIA I
@@ -701,7 +727,11 @@
       ! Relax to monthly mean HNO3 concentrations every 3 hours
       ! Otherwise just return the concentration in HNO3_sav
       IF ( MOD( GET_ELAPSED_MIN(), 180 ) == 0 ) THEN
+#if defined( DEVEL )
+         HNO3_UGM3 = GET_HNO3_UGM3( I, J, L, LOCAL_MET )
+#else
          HNO3_UGM3 = GET_HNO3_UGM3( I, J, L )
+#endif
       ELSE
          HNO3_UGM3 = HNO3_sav(I,J,L)
       ENDIF
@@ -755,17 +785,27 @@
 !\\
 ! !INTERFACE:
 !
+#if defined( DEVEL )
+      SUBROUTINE GET_GNO3( I, J, L, LOCAL_MET, HNO3_kg )
+#else
       SUBROUTINE GET_GNO3( I, J, L, HNO3_kg )
+#endif
 !
 ! !USES:
 !
-      USE DAO_MOD, ONLY : AIRVOL, AD
+      USE DAO_MOD, ONLY : AIRVOL
+#if defined( DEVEL )
+      USE GC_TYPE_MOD, ONLY : GC_MET_LOCAL
+#endif
 !
 ! !INPUT PARAMETERS: 
 !
       INTEGER, INTENT(IN)  :: I       ! GEOS-Chem longitude index
       INTEGER, INTENT(IN)  :: J       ! GEOS-Chem latitude index
       INTEGER, INTENT(IN)  :: L       ! GEOS-Chem level index
+#if defined( DEVEL )
+      TYPE(GC_MET_LOCAL), INTENT(INOUT) :: LOCAL_MET  ! Obj w/ met fields
+#endif
 !
 ! !OUTPUT PARAMETERS:
 !
@@ -782,7 +822,11 @@
       HNO3_kg  = 0.D0
 
       ! convert from [mole/m3] to [kg]
+#if defined( DEVEL )
+      HNO3_kg = GAS_HNO3(I,J,L) * 63.d-3 * LOCAL_MET%AIRVOL(I,J,L) 
+#else
       HNO3_kg = GAS_HNO3(I,J,L) * 63.d-3 * AIRVOL(I,J,L) 
+#endif
 
       ! Return to calling program
       END SUBROUTINE GET_GNO3

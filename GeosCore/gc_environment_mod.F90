@@ -213,6 +213,7 @@
                ! Fields dimensioned as (I,J,L)
                LOCAL_MET%AD      (IIPAR, JJPAR, LLPAR), & ! Air mass [kg]
                LOCAL_MET%AIRVOL  (IIPAR, JJPAR, LLPAR), & ! Grid box volume [m3]
+               LOCAL_MET%AVGW    (IIPAR, JJPAR, LLPAR), & ! Mixing ratio of water vapor
                LOCAL_MET%BXHEIGHT(IIPAR, JJPAR, LLPAR), & ! Grid box height [m]
                LOCAL_MET%CMFMC   (IIPAR, JJPAR, LLPAR), & ! Cloud mass flux [kg/m2/s]
                LOCAL_MET%DETRAINE(IIPAR, JJPAR, LLPAR), & ! GCAP detrainment (entraining plume) [Pa/s]

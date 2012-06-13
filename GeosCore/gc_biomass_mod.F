@@ -312,9 +312,6 @@
      &                                              31, 30, 31, 31, 
      &                                              30, 31, 30, 31 /)
 
-      ! External functions
-      REAL*8, EXTERNAL       :: BOXVL
-      
       !=================================================================
       !    B i o m a s s   B u r n i n g   B e g i n s   H e r e !!
       ! 

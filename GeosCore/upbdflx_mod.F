@@ -146,20 +146,23 @@
 
          ! Ox from strat 
          ! dbj changed for linoz
-         IF ( LLINOZ ) THEN 
 #if defined( DEVEL )
+         IF ( LLINOZ ) THEN 
             CALL DO_LINOZ( LOCAL_MET )
+         ELSE
+            CALL UPBDFLX_O3( LOCAL_MET )
+         ENDIF
+
+         ! NOy from strat
+         CALL UPBDFLX_NOY( 1, LOCAL_MET )
 #else
+         IF ( LLINOZ ) THEN 
             CALL DO_LINOZ
-#endif
          ELSE
             CALL UPBDFLX_O3
          ENDIF
 
          ! NOy from strat
-#if defined( DEVEL )
-         CALL UPBDFLX_NOY( 1, LOCAL_MET )
-#else
          CALL UPBDFLX_NOY( 1 )
 #endif
 
@@ -171,15 +174,19 @@
 
          ! Ox from strat
          ! dbj changed for linoz
-         IF ( LLINOZ ) THEN 
 #if defined( DEVEL )
+         IF ( LLINOZ ) THEN 
             CALL DO_LINOZ( LOCAL_MET )
+         ELSE
+            CALL UPBDFLX_O3( LOCAL_MET )
+         ENDIF
 #else
+         IF ( LLINOZ ) THEN 
             CALL DO_LINOZ
-#endif
          ELSE
             CALL UPBDFLX_O3
          ENDIF
+#endif
 
       ELSE IF ( ITS_A_H2HD_SIM() ) THEN
 
@@ -188,7 +195,11 @@
          !---------------
 
          ! HD form strat
+#if defined( DEVEL )
+         CALL UPBDFLX_HD( LOCAL_MET )
+#else
          CALL UPBDFLX_HD
+#endif
 
       ENDIF
 
@@ -211,7 +222,11 @@
 !\\
 ! !INTERFACE:
 !
+#if defined( DEVEL )
+      SUBROUTINE UPBDFLX_O3( LOCAL_MET )
+#else
       SUBROUTINE UPBDFLX_O3      
+#endif
 !
 ! !USES:
 !
@@ -224,9 +239,18 @@
       USE TRACER_MOD,     ONLY : STT, ITS_A_TAGOX_SIM
       USE TRACERID_MOD,   ONLY : IDTOX
       USE TROPOPAUSE_MOD, ONLY : GET_TPAUSE_LEVEL
+#if defined( DEVEL )
+      USE GC_TYPE_MOD,    ONLY : GC_MET_LOCAL
+#endif
       
       USE CMN_SIZE_MOD       ! Size parameters
       USE CMN_GCTM_MOD       ! Rdg0
+!
+! !INPUT PARAMETERS: 
+!
+#if defined( DEVEL )
+      TYPE(GC_MET_LOCAL), INTENT(IN) :: LOCAL_MET  ! Obj w/ met fields
+#endif
 !
 ! !REMARKS:
 !  Reference:
@@ -472,7 +496,11 @@
          ! If DZ <  ZUP then DZ is in level L70mb-1.
          !==============================================================       
          IF ( DZ >= ZUP ) THEN
+#if defined( DEVEL )
+            H70mb = LOCAL_MET%BXHEIGHT(I,J,L70mb) - ( DZ - ZUP )
+#else
             H70mb = BXHEIGHT(I,J,L70mb) - ( DZ - ZUP )
+#endif
          ELSE
             L70mb = L70mb - 1
             H70mb = ZUP - DZ
@@ -499,7 +527,11 @@
             ! of this level that lies above 70 mb, and scale 
             ! the O3 flux accordingly.
             IF ( L == L70mb ) THEN
+#if defined( DEVEL )
+               PO3 = PO3 * H70mb / LOCAL_MET%BXHEIGHT(I,J,L) 
+#else
                PO3 = PO3 * H70mb / BXHEIGHT(I,J,L) 
+#endif
             ENDIF
             
             ! Store O3 flux in the proper tracer number
@@ -511,9 +543,15 @@
 
             ! Archive stratospheric O3 for printout in [Tg/yr]
             IF ( FIRST ) THEN
+#if defined( DEVEL )
+               STFLUX(I,J,L) = STFLUX(I,J,L) + 
+     &              PO3   * LOCAL_MET%AD(I,J,L) * 1000.d0 / 28.8d0 /
+     &              DTDYN * 48.d0  *  365.25d0  * 86400d0 / 1e12
+#else
                STFLUX(I,J,L) = STFLUX(I,J,L) + 
      &              PO3 * AD(I,J,L) * 1000.d0 / 28.8d0 /
      &              DTDYN * 48.d0 * 365.25d0 * 86400d0 / 1e12
+#endif
             ENDIF
          ENDDO   
       ENDDO
@@ -676,9 +714,6 @@
       ! File Names
       CHARACTER (LEN=255)  :: FILENAME
       CHARACTER (LEN=255)  :: FILENAME2
-
-      ! External functions
-      REAL*8,  EXTERNAL    :: BOXVL
 
       !=================================================================
       ! UPBDFLX_NOY begins here! 
@@ -933,7 +968,11 @@
 !\\
 ! !INTERFACE:
 !
+#if defined( DEVEL )
+      SUBROUTINE UPBDFLX_HD( LOCAL_MET )
+#else
       SUBROUTINE UPBDFLX_HD
+#endif
 !
 ! !USES:
 !
@@ -943,9 +982,18 @@
       USE TIME_MOD,     ONLY : GET_TS_DYN
       USE TRACER_MOD,   ONLY : STT
       USE TRACERID_MOD, ONLY : IDTHD, IDTH2
+#if defined( DEVEL )
+      USE GC_TYPE_MOD,  ONLY : GC_MET_LOCAL
+#endif
       
       USE CMN_SIZE_MOD     ! Size parameters
       USE CMN_GCTM_MOD     ! Rdg0
+!
+! !INPUT PARAMETERS:
+!
+#if defined( DEVEL )
+      TYPE(GC_MET_LOCAL), INTENT(IN) :: LOCAL_MET  ! Obj w/ met fields
+#endif
 !
 ! !REMARKS:
 !  Instead of calculating the fractionation of H2 in the stratosphere 
@@ -1120,7 +1168,11 @@
             ! If DZ <  ZUP then DZ is in level L70mb-1.
             !===========================================================       
             IF ( DZ >= ZUP ) THEN
+#if defined( DEVEL )
+               H70mb = LOCAL_MET%BXHEIGHT(I,J,L70mb) - ( DZ - ZUP )
+#else
                H70mb = BXHEIGHT(I,J,L70mb) - ( DZ - ZUP )
+#endif
             ELSE
                L70mb = L70mb - 1
                H70mb = ZUP - DZ
@@ -1147,7 +1199,11 @@
                ! of this level that lies above 70 mb, and scale 
                ! the HD flux accordingly.
                IF ( L == L70mb ) THEN
+#if defined( DEVEL )
+                  PHD = PHD * H70mb / LOCAL_MET%BXHEIGHT(I,J,L) 
+#else
                   PHD = PHD * H70mb / BXHEIGHT(I,J,L) 
+#endif
                ENDIF
             
                ! Store HD flux in the proper tracer number

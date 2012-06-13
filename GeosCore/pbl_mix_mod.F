@@ -170,7 +170,11 @@
 #endif
 
       ! Do complete mixing of tracers in the PBL (if necessary)
+#if defined( DEVEL )
+      IF ( DO_TURBDAY ) CALL TURBDAY( N_TOT_TRC, STT, TCVV, LOCAL_MET )
+#else
       IF ( DO_TURBDAY ) CALL TURBDAY( N_TOT_TRC, STT, TCVV )
+#endif
 
       END SUBROUTINE DO_PBL_MIX
 !EOC
@@ -327,7 +331,12 @@
                F_UNDER_TOP(I,J,L) = 1d0
 
                ! PBL height [m]
+#if defined( DEVEL )
+               PBL_TOP_m(I,J)     = PBL_TOP_m(I,J) +
+     &                              LOCAL_MET%BXHEIGHT(I,J,L)
+#else
                PBL_TOP_m(I,J)     = PBL_TOP_m(I,J) + BXHEIGHT(I,J,L)
+#endif
 
             ELSE IF ( L == IMIX(I,J) ) THEN
 
@@ -342,8 +351,14 @@
                F_UNDER_TOP(I,J,L) = FPBL(I,J) 
                
                ! PBL height [m] 
+#if defined( DEVEL )
+               PBL_TOP_m(I,J)     = PBL_TOP_m(I,J) + 
+     &                            ( LOCAL_MET%BXHEIGHT(I,J,L) *
+     &                              FPBL(I,J) )
+#else
                PBL_TOP_m(I,J)     = PBL_TOP_m(I,J) + 
      &                              ( BXHEIGHT(I,J,L) * FPBL(I,J) )
+#endif
 
             ELSE
 
@@ -412,13 +427,20 @@
 !\\
 ! !INTERFACE:
 !
+#if defined( DEVEL )
+      SUBROUTINE TURBDAY( NTRC, TC, TCVV, LOCAL_MET )              
+#else
       SUBROUTINE TURBDAY( NTRC, TC, TCVV )              
+#endif
 !
 ! !USES:
 !
       USE DAO_MOD,     ONLY : AD
       USE DIAG_MOD,    ONLY : TURBFLUP
       USE TIME_MOD,    ONLY : GET_TS_CONV
+#if defined( DEVEL )
+      USE GC_TYPE_MOD, ONLY : GC_MET_LOCAL
+#endif
 
       USE CMN_SIZE_MOD      ! Size parameters    
       USE CMN_DIAG_MOD      ! ND15
@@ -430,6 +452,11 @@
 
       ! MW air (g/mol) / MW tracer (g/mol)     [ unitless ]
       REAL*8,   INTENT(IN)    :: TCVV(NTRC)
+
+      ! Obj w/ met fields
+#if defined( DEVEL )
+      TYPE(GC_MET_LOCAL), INTENT(IN) :: LOCAL_MET
+#endif
 !
 ! !INPUT/OUTPUT PARAMETERS: 
 !
@@ -547,11 +574,19 @@
          ! Calculate air mass within PBL at grid box (I,J,L)
          AA = 0.d0 
          DO L = 1, IMIX(I,J)-1 
+#if defined( DEVEL )
+            AA = AA + LOCAL_MET%AD(I,J,L) 
+#else
             AA = AA + AD(I,J,L) 
+#endif
          ENDDO       
                
          L  = IMIX(I,J) 
+#if defined( DEVEL )
+         AA = AA + LOCAL_MET%AD(I,J,L) * FPBL(I,J)
+#else
          AA = AA + AD(I,J,L) * FPBL(I,J)
+#endif
 
          ! Loop over tracers 
          DO N = 1, NTRC
@@ -563,12 +598,20 @@
             ! Sum mass from (I,J,L) below the PBL top
             CC = 0.d0
             DO L = 1, IMIX(I,J)-1 
+#if defined( DEVEL )
+               CC = CC + LOCAL_MET%AD(I,J,L) * TC(I,J,L,N)
+#else
                CC = CC + AD(I,J,L) * TC(I,J,L,N)
+#endif
             ENDDO       
                
             ! Then also sum mass from (I,J,L) which straddle the PBL top
             L     = IMIX(I,J) 
+#if defined( DEVEL )
+            CC    = CC + LOCAL_MET%AD(I,J,L) * TC(I,J,L,N) * FPBL(I,J)
+#else
             CC    = CC + AD(I,J,L) * TC(I,J,L,N) * FPBL(I,J)
+#endif
             
             ! CC/AA is the mean mixing ratio of tracer at 
             ! (I,J) from L=1 to L=LTOP
@@ -589,6 +632,30 @@
             ! so DTC/AD is the change in (V/V) mixing ratio units.  
             !========================================================
 
+#if defined( DEVEL )
+            ! For grid boxes (I,J,L) which lie below the PBL top
+            DO L = 1, IMIX(I,J)-1 
+               DTC(I,J,L,N) = ( A(I,J) * CC_AA       *
+     &                          LOCAL_MET%AD(I,J,L)  -
+     &                          A(I,J) * TC(I,J,L,N) *
+     &                          LOCAL_MET%AD(I,J,L) ) 
+
+               TC(I,J,L,N) = TC(I,J,L,N) + DTC(I,J,L,N) /
+     &                       LOCAL_MET%AD(I,J,L)
+            ENDDO 
+
+            ! For grid boxes (I,J,L) which straddle the PBL top
+            L = IMIX(I,J) 
+
+            DTC(I,J,L,N)  = 
+     &           ( A(I,J) * FPBL(I,J)  * CC_AA       *
+     &             LOCAL_MET%AD(I,J,L) - 
+     &             A(I,J) * FPBL(I,J)  * TC(I,J,L,N) *
+     &             LOCAL_MET%AD(I,J,L) ) 
+               
+            TC(I,J,L,N) = TC(I,J,L,N) + DTC(I,J,L,N) / 
+     &                    LOCAL_MET%AD(I,J,L)
+#else
             ! For grid boxes (I,J,L) which lie below the PBL top
             DO L = 1, IMIX(I,J)-1 
                DTC(I,J,L,N) = ( A(I,J) * CC_AA       * AD(I,J,L) -
@@ -605,6 +672,7 @@
      &             A(I,J) * FPBL(I,J) * TC(I,J,L,N) * AD(I,J,L) ) 
                
             TC(I,J,L,N) = TC(I,J,L,N) + DTC(I,J,L,N)/AD(I,J,L)
+#endif
 
             !=======================================================
             ! ND15 Diagnostic: 

@@ -415,8 +415,14 @@
                !--------------------------------------
                ! GEOS-CHEM TRACERS [v/v]
                !--------------------------------------
+#if defined( DEVEL )
+               Q(X,Y,K,W) = Q(X,Y,K,W) + 
+     &                      ( STT(I,J,L,N) * TCVV(N) /
+     &                      LOCAL_MET%AD(I,J,L) )
+#else
                Q(X,Y,K,W) = Q(X,Y,K,W) + 
      &                      ( STT(I,J,L,N) * TCVV(N) / AD(I,J,L) )
+#endif
 
             ELSE IF ( N == 91 .and. IS_Ox ) THEN
 
@@ -424,9 +430,15 @@
                ! PURE O3 CONCENTRATION [v/v]
                ! NOTE: Only archive at chem timestep
                !--------------------------------------
+#if defined( DEVEL )
+               Q(X,Y,K,W) = Q(X,Y,K,W) + 
+     &                      ( STT(I,J,L,IDTOX) * FRACO3(I,J,L) *
+     &                        TCVV(IDTOX)      / LOCAL_MET%AD(I,J,L) )
+#else
                Q(X,Y,K,W) = Q(X,Y,K,W) + 
      &                      ( STT(I,J,L,IDTOX) * FRACO3(I,J,L) *
      &                        TCVV(IDTOX)      / AD(I,J,L)      )
+#endif
 
             ELSE IF ( N == 92 .and. IS_NOx ) THEN
 
@@ -434,9 +446,15 @@
                ! NO CONCENTRATION [v/v]
                ! NOTE: Only archive at chem timestep
                !--------------------------------------
+#if defined( DEVEL )
+               Q(X,Y,K,W) = Q(X,Y,K,W) + 
+     &                      ( STT(I,J,L,IDTNOX) * FRACNO(I,J,L) *
+     &                        TCVV(IDTNOX)      / LOCAL_MET%AD(I,J,L) )
+#else
                Q(X,Y,K,W) = Q(X,Y,K,W) + 
      &                      ( STT(I,J,L,IDTNOX) * FRACNO(I,J,L) *
      &                        TCVV(IDTNOX)      / AD(I,J,L)      )
+#endif
 
             ELSE IF ( N == 93 .and. IS_NOy ) THEN
 
@@ -447,6 +465,47 @@
                ! Temp variable for accumulation
                TMP = 0d0
             
+#if defined( DEVEL )
+               ! NOx
+               TMP = TMP + ( TCVV(IDTNOX)        * 
+     &                       STT(I,J,L,IDTNOX)   / 
+     &                       LOCAL_MET%AD(I,J,L) )
+
+               ! PAN
+               TMP = TMP + ( TCVV(IDTPAN)        * 
+     &                       STT(I,J,L,IDTPAN)   / 
+     &                       LOCAL_MET%AD(I,J,L) )
+
+               ! HNO3
+               TMP = TMP + ( TCVV(IDTHNO3)       * 
+     &                       STT(I,J,L,IDTHNO3)  / 
+     &                       LOCAL_MET%AD(I,J,L) )
+            
+               ! PMN
+               TMP = TMP + ( TCVV(IDTPMN)        * 
+     &                       STT(I,J,L,IDTPMN)   / 
+     &                       LOCAL_MET%AD(I,J,L) )
+
+               ! PPN
+               TMP = TMP + ( TCVV(IDTPPN)        * 
+     &                       STT(I,J,L,IDTPPN)   / 
+     &                       LOCAL_MET%AD(I,J,L) )
+ 
+               ! R4N2
+               TMP = TMP + ( TCVV(IDTR4N2)       * 
+     &                       STT(I,J,L,IDTR4N2)  / 
+     &                       LOCAL_MET%AD(I,J,L) )
+            
+               ! N2O5
+               TMP = TMP + ( 2d0 * TCVV(IDTN2O5) * 
+     &                       STT(I,J,L,IDTN2O5)  / 
+     &                       LOCAL_MET%AD(I,J,L) )
+                        
+               ! HNO4
+               TMP = TMP + ( TCVV(IDTHNO4)       * 
+     &                       STT(I,J,L,IDTHNO4)  / 
+     &                       LOCAL_MET%AD(I,J,L) )
+#else
                ! NOx
                TMP = TMP + ( TCVV(IDTNOX)       * 
      &                       STT(I,J,L,IDTNOX)  / AD(I,J,L) )
@@ -478,6 +537,7 @@
                ! HNO4
                TMP = TMP + ( TCVV(IDTHNO4)       * 
      &                       STT(I,J,L,IDTHNO4)  / AD(I,J,L) )
+#endif
 
                ! Accumulate into Q
                Q(X,Y,K,W) = Q(X,Y,K,W) + TMP
@@ -496,9 +556,15 @@
                ! NO2 CONCENTRATION [v/v]
                ! NOTE: Only archive at chem timestep
                !--------------------------------------     
+#if defined( DEVEL )
+               Q(X,Y,K,W) = Q(X,Y,K,W) + 
+     &                      ( STT(I,J,L,IDTNOX) * FRACNO2(I,J,L) *
+     &                        TCVV(IDTNOX)      / LOCAL_MET%AD(I,J,L) )
+#else
                Q(X,Y,K,W) = Q(X,Y,K,W) + 
      &                      ( STT(I,J,L,IDTNOX) * FRACNO2(I,J,L) *
      &                        TCVV(IDTNOX)      / AD(I,J,L)       )
+#endif
  
             ELSE IF ( N == 78 ) THEN
 
@@ -689,24 +755,39 @@
                !--------------------------------------
                ! TOTAL SEASALT TRACER [v/v]
                !--------------------------------------
+#if defined( DEVEL )
+               Q(X,Y,K,W) = Q(X,Y,K,W) +
+     &                      ( STT(I,J,L,IDTSALA) + 
+     &                        STT(I,J,L,IDTSALC) ) *
+     &                        TCVV(IDTSALA)  / LOCAL_MET%AD(I,J,L) 
+#else
                Q(X,Y,K,W) = Q(X,Y,K,W) +
      &                      ( STT(I,J,L,IDTSALA) + 
      &                        STT(I,J,L,IDTSALC) ) *
      &                        TCVV(IDTSALA)  / AD(I,J,L) 
+#endif
 
             ELSE IF ( N == 94 ) THEN
 
                !--------------------------------------
                ! GRID BOX HEIGHTS [m]
                !--------------------------------------               
+#if defined( DEVEL )
+               Q(X,Y,K,W) = Q(X,Y,K,W) + LOCAL_MET%BXHEIGHT(I,J,L)
+#else
                Q(X,Y,K,W) = Q(X,Y,K,W) + BXHEIGHT(I,J,L)
+#endif
 
             ELSE IF ( N == 95 ) THEN
 
                !--------------------------------------
                ! RELATIVE HUMIDITY [%]
-               !--------------------------------------               
+               !--------------------------------------
+#if defined( DEVEL )               
+               Q(X,Y,K,W) = Q(X,Y,K,W) + LOCAL_MET%RH(I,J,L)
+#else
                Q(X,Y,K,W) = Q(X,Y,K,W) + RH(I,J,L)
+#endif
 
             ELSE IF ( N == 96 .and. IS_SLP ) THEN
 

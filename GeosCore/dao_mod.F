@@ -483,7 +483,6 @@
          ! Pressure difference between top & bottom edges [hPa]
          DELP(L,I,J) = P1 - P2
 #if defined( DEVEL )
-!         DELP(L,I,J) = LOCAL_MET%DELP(L,I,J)
          LOCAL_MET%DELP(L,I,J) = DELP(L,I,J)
 #endif            
             !===========================================================
@@ -497,7 +496,6 @@
             !===========================================================
          BXHEIGHT(I,J,L) = Rdg0 * T(I,J,L) * LOG( P1 / P2 )
 #if defined( DEVEL )
-!         BXHEIGHT(I,J,L) = LOCAL_MET%BXHEIGHT(I,J,L)
          LOCAL_MET%BXHEIGHT(I,J,L) = BXHEIGHT(I,J,L)
 #endif            
 
@@ -520,7 +518,6 @@
             !===========================================================
          AIRVOL(I,J,L) = BXHEIGHT(I,J,L) * AREA_M2
 #if defined( DEVEL )
-!         AIRVOL(I,J,L) = LOCAL_MET%AIRVOL(I,J,L)
          LOCAL_MET%AIRVOL(I,J,L) = AIRVOL(I,J,L)
 #endif            
 
@@ -538,7 +535,6 @@
             !===========================================================
          AD(I,J,L) = DELP(L,I,J) * G0_100 * AREA_M2
 #if defined( DEVEL )
-!          AD(I,J,L) = LOCAL_MET%AD(I,J,L)
          LOCAL_MET%AD(I,J,L) = AD(I,J,L)
 #endif            
 
@@ -547,7 +543,6 @@
             !===========================================================
          AIRDEN(L,I,J) = AD(I,J,L) / AIRVOL(I,J,L)
 #if defined( DEVEL )
-!         AIRDEN(L,I,J) = LOCAL_MET%AIRDENS(L,I,J)
          LOCAL_MET%AIRDENS(L,I,J) = AIRDEN(L,I,J)
 #endif            
       ENDDO
@@ -916,7 +911,9 @@
          !----------------------------------------------------
          ! Interpolate 3D variables
          !----------------------------------------------------
-         RH(I,J,L) = RH1(I,J,L) + ( RH2(I,J,L) - RH1(I,J,L) ) * TM
+         LOCAL_MET%RH(I,J,L) = LOCAL_MET%RH1(I,J,L)   +
+     &                       ( LOCAL_MET%RH2(I,J,L)   -
+     &                         LOCAL_MET%RH1(I,J,L) ) * TM
 
       ENDDO
       ENDDO
@@ -966,11 +963,13 @@
          !----------------------------------------------------
          ! Interpolate 3D variables
          !----------------------------------------------------
-         T   (I,J,L) = TMPU1(I,J,L)
-     &               + ( TMPU2(I,J,L) - TMPU1(I,J,L) ) * TM
+         LOCAL_MET%T   (I,J,L) = LOCAL_MET%TMPU1(I,J,L)   +
+     &                         ( LOCAL_MET%TMPU2(I,J,L)   -
+     &                           LOCAL_MET%TMPU1(I,J,L) ) * TM
 
-         SPHU(I,J,L) = SPHU1(I,J,L)
-     &               + ( SPHU2(I,J,L) - SPHU1(I,J,L) ) * TM 
+         LOCAL_MET%SPHU(I,J,L) = LOCAL_MET%SPHU1(I,J,L)   +
+     &                         ( LOCAL_MET%SPHU2(I,J,L)   -
+     &                           LOCAL_MET%SPHU1(I,J,L)t ) * TM 
 
       ENDDO
       ENDDO
@@ -1717,7 +1716,23 @@
 !\\
 ! !INTERFACE:
 !
+#if defined( DEVEL )
+      SUBROUTINE MAKE_AVGW( LOCAL_MET )
+#else
       SUBROUTINE MAKE_AVGW
+#endif
+!
+! !USES:
+!
+#if defined( DEVEL )
+      USE GC_TYPE_MOD,  ONLY : GC_MET_LOCAL
+#endif
+!
+! !INPUT/OUTPUT PARAMETERS:
+!
+#if defined( DEVEL )
+      TYPE(GC_MET_LOCAL), INTENT(INOUT) :: LOCAL_MET  ! Obj w/ met fields
+#endif
 ! 
 ! !REVISION HISTORY: 
 !  30 Jan 1998 - R. Yantosca - Initial version
@@ -1770,7 +1785,12 @@
       DO L = 1, LLPAR
       DO J = 1, JJPAR
       DO I = 1, IIPAR
+#if defined( DEVEL )
+!         LOCAL_MET%AVGW(I,J,L) = HCONV * LOCAL_MET%SPHU(I,J,L)
+         LOCAL_MET%AVGW(I,J,L) = HCONV * SPHU(I,J,L)
+#else
          AVGW(I,J,L) = HCONV * SPHU(I,J,L) 
+#endif
       ENDDO
       ENDDO
       ENDDO
@@ -1791,11 +1811,24 @@
 !\\
 ! !INTERFACE:
 !
+#if defined( DEVEL )
+      SUBROUTINE MAKE_RH( LOCAL_MET )
+#else
       SUBROUTINE MAKE_RH
+#endif
 !
 ! !USES:
 !
       USE PRESSURE_MOD, ONLY : GET_PCENTER
+#if defined( DEVEL )
+      USE GC_TYPE_MOD,  ONLY : GC_MET_LOCAL
+#endif
+!
+! !INPUT PARAMETERS: 
+!
+#if defined( DEVEL )
+      TYPE(GC_MET_LOCAL), INTENT(INOUT) :: LOCAL_MET  ! Obj w/ met fields
+#endif
 !
 ! !REMARKS:
 !  Module variables used:
@@ -1845,17 +1878,30 @@
          PRES = GET_PCENTER(I,J,L)
 
          ! Temperature at grid box (I,J,L)
+#if defined( DEVEL )
+         TEMP = LOCAL_MET%T(I,J,L)
+#else
          TEMP = T(I,J,L)
+#endif
 
          ! Saturation water vapor pressure in mbar 
          ! (from NASA GTE PEM-Tropics handbook)
          ESAT = ( 10d0**( A - ( B / TEMP ) ) ) * ( TEMP**C )
             
+#if defined( DEVEL )
+         ! Specific humidity in mb
+!         SHMB = LOCAL_MET%SPHU(I,J,L) * 1.6072d-3 * PRES
+         SHMB = SPHU(I,J,L) * 1.6072d-3 * PRES
+            
+         ! Relative humidity as a percentage
+         LOCAL_MET%RH(I,J,L) = ( SHMB / ESAT ) * 100d0 
+#else
          ! Specific humidity in mb
          SHMB = SPHU(I,J,L) * 1.6072d-3 * PRES
             
          ! Relative humidity as a percentage
          RH(I,J,L) = ( SHMB / ESAT ) * 100d0 
+#endif
 
       ENDDO
       ENDDO

@@ -257,22 +257,30 @@
 !      PRINT*,"Temperature levels are: ",templev
 !      PRINT*,"This is grid cell: ",I,J
       
-      ! Temperature
 !#if defined( DEVEL )
+      ! Temperature
 !      PRINT*,"Temperature here is: ",LOCAL_MET%TS(I,J)
-!      PRINT*,"USA: ",LOCAL_MET%TS(32,64)
+!      PRINT*,"USA: ", LOCAL_MET%TS(32,64)
+
+      ! Tracer concentrations in v/v
+!      PRINT*,"[O3] is: ",STT(I,J,1,IDTOX)/ LOCAL_MET%AD(I,J,1) * TCVV(IDTOX)
+!      PRINT*,"[CO] is: ",STT(I,J,1,IDTCO)/ LOCAL_MET%AD(I,J,1) * TCVV(IDTCO)
+!      PRINT*,"IDTOX is: ", IDTOX
+!      PRINT*,"IDO3 is: ", IDO3
+!      PRINT*,"In USA: ",STT(32,64,1,IDTOX)/LOCAL_MET%AD(32,64,1) * TCVV(IDTOX)
 !#else
+      ! Temperature
 !      PRINT*,"Temperature here is: ",TS(I,J)
 !      PRINT*,"USA: ",TS(32,64)
-!#endif
 
       ! Tracer concentrations in v/v
 !      PRINT*,"[O3] is: ",STT(I,J,1,IDTOX)/ AD(I,J,1) * TCVV(IDTOX)
 !      PRINT*,"[CO] is: ",STT(I,J,1,IDTCO)/ AD(I,J,1) * TCVV(IDTCO)
 !      PRINT*,"IDTOX is: ", IDTOX
 !      PRINT*,"IDO3 is: ", IDO3
-!      PRINT*,"In USA: ",STT(32,64,1,IDTOX)/ AD(32,64,1) * TCVV(IDTOX)
-      
+!      PRINT*,"In USA: ",STT(32,64,1,IDTOX)/ AD(32,64,1) * TCVV(IDTOX)     
+!#endif
+
       ! SOLAR ZENITH ANGLES IN DEGREES
 !      IJLOOP = ( (J-1) * IIPAR ) + I
 !      PRINT*,"Local Time: ",GET_LOCALTIME(I,1,1)
@@ -287,9 +295,18 @@
       IJLOOP       = ( (J-1) * IIPAR ) + I 
 #if defined( DEVEL )
       var_array(1) = LOCAL_MET%TS(I,J)                ! Temperature
+      var_array(2) = jvalues(I,J,1)                   ! J(NO2)
+      var_array(3) = STT(I,J,1,IDTOX)    /            ! [O3] in ppbv 
+     $               LOCAL_MET%AD(I,J,1) *
+     $               TCVV(IDTOX)         * 1.E9   
+      var_array(4) = ASIND(SUNCOS_MID_5hr(IJLOOP))    ! alfa0
+      var_array(5) = ASIND(SUNCOS_MID(IJLOOP))        ! alfa5
+      var_array(6) = jvalues(I,J,2) / jvalues(I,J,1)  ! J(O1D)/J(NO2)
+      var_array(7) = STT(I,J,1,IDTCO)    /            ! [CO] in ppbv
+     $               LOCAL_MET%AD(I,J,1) *
+     $               TCVV(IDTCO)         * 1.E9   
 #else
       var_array(1) = TS(I,J)                          ! Temperature
-#endif
       var_array(2) = jvalues(I,J,1)                   ! J(NO2)
       var_array(3) = STT(I,J,1,IDTOX)/ AD(I,J,1) *    ! [O3] in ppbv 
      $               TCVV(IDTOX) * 1.E9   
@@ -298,6 +315,7 @@
       var_array(6) = jvalues(I,J,2) / jvalues(I,J,1)  ! J(O1D)/J(NO2)
       var_array(7) = STT(I,J,1,IDTCO)/ AD(I,J,1) *    ! [CO] in ppbv
      $               TCVV(IDTCO) * 1.E9   
+#endif
 
       ! prevent NaN when jvalues are 0.
       IF (jvalues(I,J,1) .eq. 0.) var_array(6) = 0.
@@ -677,14 +695,21 @@
 !      PRINT*,"Temperature levels are: ",templev
 !      PRINT*,"This is grid cell: ",I,J
       
-      ! Temperature
 !#if defined( DEVEL )
+      ! Temperature
 !      PRINT*,"Temperature here is: ",LOCAL_MET%TS(I,J)
 !      PRINT*,"USA: ",LOCAL_MET%TS(32,64)
+
+      ! Tracer concentrations in v/v
+!      PRINT*,"[O3] is: ",STT(I,J,1,IDTOX)/ LOCAL_MET%AD(I,J,1) * TCVV(IDTOX)
+!      PRINT*,"[CO] is: ",STT(I,J,1,IDTCO)/ LOCAL_MET%AD(I,J,1) * TCVV(IDTCO)
+!      PRINT*,"IDTOX is: ", IDTOX
+!      PRINT*,"IDO3 is: ", IDO3
+!      PRINT*,"In USA: ",STT(32,64,1,IDTOX)/LOCAL_MET%AD(32,64,1) * TCVV(IDTOX)
 !#else
+      ! Temperature
 !      PRINT*,"Temperature here is: ",TS(I,J)
 !      PRINT*,"USA: ",TS(32,64)
-!#endif
 
       ! Tracer concentrations in v/v
 !      PRINT*,"[O3] is: ",STT(I,J,1,IDTOX)/ AD(I,J,1) * TCVV(IDTOX)
@@ -692,6 +717,7 @@
 !      PRINT*,"IDTOX is: ", IDTOX
 !      PRINT*,"IDO3 is: ", IDO3
 !      PRINT*,"In USA: ",STT(32,64,1,IDTOX)/ AD(32,64,1) * TCVV(IDTOX)
+!#endif
       
       ! SOLAR ZENITH ANGLES IN DEGREES
 !      IJLOOP = ( (J-1) * IIPAR ) + I

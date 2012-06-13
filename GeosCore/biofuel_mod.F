@@ -120,7 +120,7 @@
 !------------------------------------------------------------------------------
 
 #if defined( DEVEL )
-      SUBROUTINE BIOFUEL_BURN( BIO_EMISS )
+      SUBROUTINE BIOFUEL_BURN( LOCAL_MET, BIO_EMISS )
 #else
       SUBROUTINE BIOFUEL_BURN
 #endif
@@ -227,6 +227,9 @@
       USE TIME_MOD,             ONLY : GET_HISTYR
       USE REGRID_A2A_MOD,       ONLY : DO_REGRID_A2A
 !eml]
+#if defined( DEVEL )
+      USE GC_TYPE_MOD,          ONLY : GC_MET_LOCAL
+#endif
 
       USE CMN_SIZE_MOD               ! Size parameters
       USE CMN_O3_MOD                 ! FSCLYR
@@ -234,8 +237,7 @@
 
       IMPLICIT NONE
 #     include "define.h"
-      
-      
+            
       ! Local variables
       LOGICAL                       :: WEEKDAY
       LOGICAL, SAVE                 :: FIRST = .TRUE.
@@ -263,7 +265,8 @@
       REAL*8                        :: BF_CO( IIPAR, JJPAR )  ! Biofuel emission of CO [molec/cm2/s]
 
 #if defined( DEVEL )
-      REAL*8, INTENT(INOUT)         :: BIO_EMISS(:,:,:)
+      REAL*8, INTENT(INOUT)          :: BIO_EMISS(:,:,:)
+      TYPE(GC_MET_LOCAL), INTENT(IN) :: LOCAL_MET  ! Obj w/ met fields
 #endif
 
       !=================================================================
@@ -846,7 +849,11 @@
       DO I = 1, IIPAR
 
          ! BXHEIGHT_CM = the surface grid box height in cm
+#if defined( DEVEL )
+         BXHEIGHT_CM = LOCAL_MET%BXHEIGHT(I,J,1) * 1d2
+#else
          BXHEIGHT_CM = BXHEIGHT(I,J,1) * 1d2
+#endif
 
          ! Loop over all biofuel tracers
          DO N = 1, NBFTRACE
@@ -855,9 +862,15 @@
             NN = BFTRACE(N)
 
             ! Biofuel emissions in [molec/cm3/s]
+#if defined( DEVEL )
+            BIOFUEL(N,I,J) = BIOFUEL_KG(N,I,J)                  * 
+     &                       ( 6.023d23 / MOLWT(N)            ) /
+     &                       ( 365d0 * 86400d0 * BOXVL(I,J,1,LOCAL_MET))
+#else
             BIOFUEL(N,I,J) = BIOFUEL_KG(N,I,J)                  * 
      &                       ( 6.023d23 / MOLWT(N)            ) /
      &                       ( 365d0 * 86400d0 * BOXVL(I,J,1) )
+#endif
 
             !-----------------------------------------------------------
             ! RETRO anthropogenic emissions include residential biofuel,
@@ -1070,7 +1083,11 @@
       DO I = 1, IIPAR
 
             ! BXHEIGHT_CM = the surface grid box height in cm
+#if defined( DEVEL )
+            BXHEIGHT_CM = LOCAL_MET%BXHEIGHT(I,J,1) * 1d2
+#else
             BXHEIGHT_CM = BXHEIGHT(I,J,1) * 1d2
+#endif
 
             ! loop over biofuel species
             DO N = 1, NBFTRACE

@@ -524,7 +524,11 @@
 
             ! Be_TMP = [stars/g air/s] * [0.045 atom/star] * 
             !          [kg air] * [1e3 g/kg] = 7Be emissions [atoms/s]
+#if defined( DEVEL )
+            Be_TMP  = Be_TMP * 0.045d0 * LOCAL_MET%AD(I,J,L) * 1.d3 
+#else
             Be_TMP  = Be_TMP * 0.045d0 * AD(I,J,L) * 1.d3 
+#endif
                   
             ! ADD_Be = [atoms/s] * [s] / [atom/kg] = 7Be emissions [kg]
             ADD_Be  = Be_TMP * DTSRCE / XNUMOL_Be 

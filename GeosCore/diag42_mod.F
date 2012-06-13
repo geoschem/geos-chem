@@ -72,7 +72,11 @@
 !\\
 ! !INTERFACE:
 !
+#if defined( DEVEL )
+      SUBROUTINE DIAG42( LOCAL_MET )
+#else
       SUBROUTINE DIAG42
+#endif
 !
 ! !USES:
 !
@@ -88,9 +92,18 @@
       ! consider additional species (hotp 10/26/07)
       USE TRACERID_MOD, ONLY : IDTSO4, IDTNIT, IDTNH4, IDTSALA, IDTSALC
       USE TRACERID_MOD, ONLY : IDTBCPI, IDTBCPO
+#if defined( DEVEL )
+      USE GC_TYPE_MOD,  ONLY : GC_MET_LOCAL
+#endif
 
       USE CMN_SIZE_MOD     ! Size parameters
       USE CMN_DIAG_MOD     ! NDxx flags
+!
+! !INPUT PARAMETERS:
+!
+#if defined( DEVEL )
+      TYPE(GC_MET_LOCAL), INTENT(IN) :: LOCAL_MET  ! Obj w/ met fields
+#endif
 ! 
 ! !REVISION HISTORY: 
 !  22 May 2006 - D. Henze, R. Yantosca - Initial version
@@ -131,12 +144,21 @@
       DO J = 1, JJPAR 
       DO I = 1, IIPAR
 
+#if defined( DEVEL )
+         ! Conversion factor from [kg] --> [ug/m3]
+         ! (LTOTH=1 if between OTH_HR1 and OTH_HR2, LTOTH=0 otherwise)
+         !FACTOR        = 1d9 / LOCAL_MET%AIRVOL(I,J,L) * LTOTH(I,J) 
+
+         ! Conversion factor from [kg] --> [ug/m3]
+         FACTOR        = 1d9 / LOCAL_MET%AIRVOL(I,J,L)
+#else
          ! Conversion factor from [kg] --> [ug/m3]
          ! (LTOTH=1 if between OTH_HR1 and OTH_HR2, LTOTH=0 otherwise)
          !FACTOR        = 1d9 / AIRVOL(I,J,L) * LTOTH(I,J) 
 
          ! Conversion factor from [kg] --> [ug/m3]
          FACTOR        = 1d9 / AIRVOL(I,J,L)
+#endif
 
          ! SOA1 [ug/m3]
          AD42(I,J,L,1) = AD42(I,J,L,1)        + 

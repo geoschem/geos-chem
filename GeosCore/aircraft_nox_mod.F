@@ -221,7 +221,7 @@
 
 !------------------------------------------------------------------------------
 #if defined( DEVEL )
-      SUBROUTINE AIREMISS( EMISS )
+      SUBROUTINE AIREMISS( LOCAL_MET, EMISS )
 #else
       SUBROUTINE AIREMISS
 #endif
@@ -255,6 +255,9 @@
       USE DIAG_MOD,     ONLY : AD32_ac
       USE GRID_MOD,     ONLY : GET_XOFFSET, GET_YOFFSET
       USE PRESSURE_MOD, ONLY : GET_PEDGE
+#if defined( DEVEL )
+      USE GC_TYPE_MOD,  ONLY : GC_MET_LOCAL
+#endif
 
       USE CMN_SIZE_MOD  ! Size parameters
       USE CMN_DIAG_MOD  ! Diagnostic switches
@@ -268,6 +271,7 @@
       REAL*8, EXTERNAL    ::  BOXVL
 
 #if defined( DEVEL )
+      TYPE(GC_MET_LOCAL), INTENT(IN) :: LOCAL_MET  ! Obj w/ met fields
       REAL*8, INTENT(INOUT) :: EMISS(:,:,:)
 #endif
       
@@ -356,7 +360,11 @@
             IF ( AIREMIS(I,J,L) > 0.0 ) THEN
 
                ! Convert from [molec/s] to [molec/cm3/s]
+#if defined( DEVEL )
+               TMP = AIREMIS(I,J,L)  / BOXVL(I,J,L,LOCAL_MET)
+#else
                TMP             = AIREMIS(I,J,L)  / BOXVL(I,J,L)
+#endif
 
                ! Store in GEMISNOX in [molec/cm3/s]
                EMIS_AC_NOx(I,J,L) = TMP
@@ -364,8 +372,13 @@
                ! ND32 -- save NOx in [molec/cm2], will convert to
                ! [molec/cm2/s] in subroutine "diag3.f" (bmy, 3/16/00)
                IF ( ND32 > 0 ) THEN
+#if defined( DEVEL )
+                  AD32_ac(I,J,L) = AD32_ac(I,J,L) +
+     &                     ( TMP * LOCAL_MET%BXHEIGHT(I,J,L) * 1d2 )
+#else
                   AD32_ac(I,J,L) = AD32_ac(I,J,L) +
      &                    ( TMP * BXHEIGHT(I,J,L) * 1d2 )
+#endif
                ENDIF
             ENDIF
 

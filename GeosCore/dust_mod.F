@@ -89,7 +89,11 @@
 !\\
 ! !INTERFACE:
 !
+#if defined( DEVEL )
+      SUBROUTINE CHEMDUST( LOCAL_MET )
+#else
       SUBROUTINE CHEMDUST
+#endif
 !
 ! !USES:
 !
@@ -98,8 +102,17 @@
       USE DRYDEP_MOD,   ONLY : DEPNAME, NUMDEP
       USE TRACER_MOD,   ONLY : STT
       USE TRACERID_MOD, ONLY : IDTDST1, IDTDST2, IDTDST3, IDTDST4
+#if defined( DEVEL )
+      USE GC_TYPE_MOD,  ONLY : GC_MET_LOCAL
+#endif
 
       USE CMN_SIZE_MOD       ! Size parameters
+!
+! !INPUT PARAMETERS:
+!
+#if defined( DEVEL )
+      TYPE(GC_MET_LOCAL), INTENT(IN) :: LOCAL_MET  ! Obj w/ met fields
+#endif
 ! 
 ! !REVISION HISTORY: 
 !  30 Mar 2004 - T. D. Fairlie - Initial version
@@ -167,7 +180,11 @@
       !=================================================================
 
       ! Dust settling
+#if defined( DEVEL )
+      CALL DRY_SETTLING( STT(:,:,:,IDTDST1:IDTDST4), LOCAL_MET )
+#else
       CALL DRY_SETTLING(   STT(:,:,:,IDTDST1:IDTDST4) )
+#endif
 
       ! Dust deposition
       IF ( LDRYD ) THEN
@@ -189,7 +206,12 @@
 !\\
 ! !INTERFACE:
 !
+
+#if defined( DEVEL )
+      SUBROUTINE DRY_SETTLING( TC, LOCAL_MET )
+#else
       SUBROUTINE DRY_SETTLING( TC )
+#endif
 !
 ! !USES:
 !
@@ -200,10 +222,19 @@
       USE GRID_MOD,     ONLY : GET_AREA_CM2
       USE TRACER_MOD,   ONLY : XNUMOL
       USE TRACERID_MOD, ONLY : IDTDST1
+#if defined( DEVEL )
+      USE GC_TYPE_MOD,  ONLY : GC_MET_LOCAL
+#endif
 
       USE CMN_SIZE_MOD       ! Size parameters
       USE CMN_DIAG_MOD       ! ND44
       USE CMN_GCTM_MOD       ! g0
+!
+! !INPUT PARAMETERS:
+!
+#if defined( DEVEL )
+      TYPE(GC_MET_LOCAL), INTENT(IN) :: LOCAL_MET  ! Obj w/ met fields
+#endif
 !
 ! !INPUT/OUTPUT PARAMETERS: 
 ! 
@@ -343,13 +374,22 @@
 
                ! We know the boundary condition at the model top
                L           = LLTROP
+#if defined( DEVEL )
+               DELZ        = LOCAL_MET%BXHEIGHT(I,J,L)
+#else
                DELZ        = BXHEIGHT(I,J,L)
+#endif
                TC(I,J,L,N) = TC(I,J,L,N) / 
      &                       ( 1.d0 + DT_SETTL * VTS(L) / DELZ )
 
                DO L = LLTROP-1, 1, -1
+#if defined( DEVEL )
+                  DELZ        = LOCAL_MET%BXHEIGHT(I,J,L)
+                  DELZ1       = LOCAL_MET%BXHEIGHT(I,J,L+1)
+#else
                   DELZ        = BXHEIGHT(I,J,L)
                   DELZ1       = BXHEIGHT(I,J,L+1)
+#endif
                   TC(I,J,L,N) = 1.d0 / 
      &                          ( 1.d0 + DT_SETTL * VTS(L)   / DELZ )
      &                 * (TC(I,J,L,N)  + DT_SETTL * VTS(L+1) / DELZ1
@@ -811,6 +851,36 @@
             ! Pressure at midpt of surface layer [Pa]
             PMID(I)        = GET_PCENTER(I,J,1) * 100d0 
 
+#if defined( DEVEL )
+            ! Temperature [K] at surface layer
+            TLON(I)        = T(I,J,1)
+
+            ! Potential temperature [K] at surface layer
+            THLON(I)       = TLON(I) * ( P1000 / PMID(I) )**AKAP
+
+            ! U and V winds at surface [m/s]
+            ULON(I)        = UWND(I,J,1)
+            VLON(I)        = VWND(I,J,1)
+            
+            ! Half box height at surface [m]
+            BHT2(I)        = LOCAL_MET%BXHEIGHT(I,J,1) / 2.d0
+
+            ! Specific humidity at surface [kg H2O/kg air]
+!            Q_H2O(I)       = LOCAL_MET%SPHU(I,J,1) / 1000.d0
+            Q_H2O(I)       = SPHU(I,J,1) / 1000.d0
+
+            ! Orography at surface
+            ! Ocean is 0; land is 1; ice is 2
+            ORO(I)         = OROGRAPHY(I,J) 
+
+            ! Snow height [m H2O]
+#if   defined( GEOS_5 ) || defined( MERRA ) || defined( GEOS_57 )
+            SNW_HGT_LQD(I) = LOCAL_MET%SNOMAS(I,J) / 1000d0
+#else
+            SNW_HGT_LQD(I) = LOCAL_MET%SNOW(I,J) / 1000d0
+#endif
+
+#else
             ! Temperature [K] at surface layer
             TLON(I)        = T(I,J,1)
 
@@ -832,16 +902,6 @@
             ORO(I)         = OROGRAPHY(I,J) 
 
             ! Snow height [m H2O]
-#if defined( DEVEL )
-
-#if   defined( GEOS_5 ) || defined( MERRA ) || defined( GEOS_57 )
-            SNW_HGT_LQD(I) = LOCAL_MET%SNOMAS(I,J) / 1000d0
-#else
-            SNW_HGT_LQD(I) = LOCAL_MET%SNOW(I,J) / 1000d0
-#endif
-
-#else
-
 #if   defined( GEOS_5 ) || defined( MERRA ) || defined( GEOS_57 )
             SNW_HGT_LQD(I) = SNOMAS(I,J) / 1000d0
 #else
@@ -1178,7 +1238,11 @@
 !\\
 ! !INTERFACE:
 !
+#if defined( DEVEL )
+      SUBROUTINE RDUST_ONLINE( DUST, WAVELENGTH, LOCAL_MET )
+#else
       SUBROUTINE RDUST_ONLINE( DUST, WAVELENGTH )
+#endif
 !
 ! !USES:
 !
@@ -1191,6 +1255,9 @@
       USE TRANSFER_MOD,  ONLY : TRANSFER_3D
       USE COMODE_MOD,    ONLY : WTAREA, WERADIUS
       USE DAO_MOD,       ONLY : RH
+#if defined( DEVEL )
+      USE GC_TYPE_MOD,   ONLY : GC_MET_LOCAL
+#endif
 
 !      USE CMN_FJ_MOD,    ONLY : IPAR, JPAR, LPAR, JPMAX, JPPJ      
       USE JV_CMN_MOD          ! ODMDUST, QAA, RAA, QAA_AOD (clh)
@@ -1202,6 +1269,9 @@
 ! 
       REAL*8, INTENT(IN)  :: DUST(IIPAR,JJPAR,LLPAR,NDUST)   ! Dust [kg/m3]
       INTEGER, INTENT(IN) :: WAVELENGTH
+#if defined( DEVEL )
+      TYPE(GC_MET_LOCAL), INTENT(IN) :: LOCAL_MET  ! Obj w/ met fields
+#endif
 ! 
 ! !REVISION HISTORY: 
 !  01 Apr 2004 - R. Martin, R. Park - Initial version
@@ -1272,6 +1342,21 @@
       DO J = 1, JJPAR
       DO I = 1, IIPAR
 
+#if defined( DEVEL )
+         IF ( WAVELENGTH > 0 ) THEN
+
+            ODMDUST(I,J,L,N) = 0.75d0 * LOCAL_MET%BXHEIGHT(I,J,L) * 
+     &                         DUST(I,J,L,N) * QAA_AOD(14+N)     / 
+     &                        ( MSDENS(N) * RAA_AOD(14+N) * 1.0D-6 )
+
+         ELSE
+
+            ODMDUST(I,J,L,N) = 0.75d0 * LOCAL_MET%BXHEIGHT(I,J,L) * 
+     &                         DUST(I,J,L,N) * QAA(4,14+N)     / 
+     &                        ( MSDENS(N) * RAA(4,14+N) * 1.0D-6 )
+
+         ENDIF
+#else
          IF ( WAVELENGTH > 0 ) THEN
 
             ODMDUST(I,J,L,N) = 0.75d0        * BXHEIGHT(I,J,L) * 
@@ -1285,6 +1370,7 @@
      &                        ( MSDENS(N) * RAA(4,14+N) * 1.0D-6 )
 
          ENDIF
+#endif
 
       ENDDO
       ENDDO
@@ -1333,7 +1419,11 @@
 
          ! Archive WTAREA and WERADIUS when RH > 35%  (tmf, 6/13/07) 
          ! Get RH  
+#if defined( DEVEL )
+         XRH     = LOCAL_MET%RH( I, J, L )   ![%]
+#else
          XRH     = RH( I, J, L )   ![%]
+#endif
          WTAREA(JLOOP, N)   = 0.d0
          WERADIUS(JLOOP, N) = 0.d0
 
@@ -1416,7 +1506,12 @@
 !\\
 ! !INTERFACE:
 !
+#if defined( DEVEL )
+      SUBROUTINE RDUST_OFFLINE( THISMONTH, THISYEAR, WAVELENGTH,
+     &                          LOCAL_MET  )
+#else
       SUBROUTINE RDUST_OFFLINE( THISMONTH, THISYEAR, WAVELENGTH )
+#endif
 !
 ! !USES:
 !
@@ -1431,6 +1526,9 @@
       USE TRANSFER_MOD,  ONLY : TRANSFER_3D
       USE COMODE_MOD,    ONLY : WTAREA, WERADIUS
       USE DAO_MOD,       ONLY : RH
+#if defined( DEVEL )
+      USE GC_TYPE_MOD,   ONLY : GC_MET_LOCAL
+#endif
 
 #     include "define.h"
 
@@ -1447,6 +1545,9 @@
       INTEGER, INTENT(IN) :: THISYEAR    ! Current year  (YYYY format)
       ! Determine which wavelength to use for optical properties
       INTEGER, INTENT(IN) :: WAVELENGTH  
+#if defined( DEVEL )
+      TYPE(GC_MET_LOCAL), INTENT(IN) :: LOCAL_MET  ! Obj w/ met fields
+#endif
 !
 ! !REVISION HISTORY: 
 !  (1 ) RDUST was patterned after rdaerosol.f (rvm, 9/30/00)
@@ -1593,6 +1694,23 @@
          DO J = 1, JJPAR
          DO I = 1, IIPAR
 
+#if defined( DEVEL )
+            IF ( WAVELENGTH > 0 ) THEN
+
+               ODMDUST(I,J,L,N) = 0.75d0        *
+     &                            LOCAL_MET%BXHEIGHT(I,J,L) * 
+     &                            DUST(I,J,L,N) * QAA_AOD(14+N)     / 
+     &                           ( MSDENS(N) * RAA_AOD(14+N) * 1.0D-6 )
+
+            ELSE
+
+               ODMDUST(I,J,L,N) = 0.75d0        *
+     &                            LOCAL_MET%BXHEIGHT(I,J,L) * 
+     &                            DUST(I,J,L,N) * QAA(4,14+N)     / 
+     &                           ( MSDENS(N) * RAA(4,14+N) * 1.0D-6 )
+
+            ENDIF
+#else
             IF ( WAVELENGTH > 0 ) THEN
 
                ODMDUST(I,J,L,N) = 0.75d0        * BXHEIGHT(I,J,L) * 
@@ -1606,6 +1724,7 @@
      &                           ( MSDENS(N) * RAA(4,14+N) * 1.0D-6 )
 
             ENDIF
+#endif
 
          ENDDO
          ENDDO
@@ -1658,7 +1777,11 @@
 
          ! Archive WTAREA and WERADIUS when RH > 35% (tmf, 6/13/07) 
          ! Get RH  
+#if defined( DEVEL )
+         XRH     = LOCAL_MET%RH( I, J, L )   ![%]
+#else
          XRH     = RH( I, J, L )   ![%]
+#endif
          WTAREA(JLOOP, N)   = 0.d0
          WERADIUS(JLOOP, N) = 0.d0
 

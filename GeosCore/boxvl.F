@@ -12,11 +12,18 @@
 !\\
 ! !INTERFACE:
 !
+#if defined( DEVEL )
+      REAL*8 FUNCTION BOXVL( I, J, L, LOCAL_MET )
+#else
       REAL*8 FUNCTION BOXVL( I, J, L )
+#endif
 !
 ! !USES:
 !
       USE DAO_MOD, ONLY : AIRVOL
+#if defined( DEVEL )
+      USE GC_TYPE_MOD,  ONLY : GC_MET_LOCAL
+#endif
 
       IMPLICIT NONE
 #     include "define.h"
@@ -26,6 +33,9 @@
       INTEGER, INTENT(IN) :: I   ! Longitude index
       INTEGER, INTENT(IN) :: J   ! Latitude index
       INTEGER, INTENT(IN) :: L   ! Level index
+#if defined( DEVEL )
+      TYPE(GC_MET_LOCAL), INTENT(IN) :: LOCAL_MET  ! Obj w/ met fields
+#endif
 !
 ! !REVISION HISTORY: 
 !  30 Jan 1998 - R. Yantosca - Initial version
@@ -47,7 +57,11 @@
       !=================================================================
       ! BOXVL begins here!
       !=================================================================
+#if defined( DEVEL )
+      BOXVL = LOCAL_MET%AIRVOL(I,J,L) * 1d6
+#else
       BOXVL = AIRVOL(I,J,L) * 1d6
+#endif
 
       END FUNCTION BOXVL
 !EOC

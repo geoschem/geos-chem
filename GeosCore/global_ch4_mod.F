@@ -1662,7 +1662,11 @@
 !\\
 ! !INTERFACE:
 !
+#if defined( DEVEL )
+      SUBROUTINE CHEMCH4( LOCAL_MET )
+#else
       SUBROUTINE CHEMCH4
+#endif
 !
 ! !USES:
 !
@@ -1679,10 +1683,19 @@
       USE TRACER_MOD,    ONLY : STT
       USE LOGICAL_MOD,   ONLY : LSPLIT, LCH4BUD
       USE TIME_MOD,      ONLY : ITS_A_NEW_MONTH
+#if defined( DEVEL )
+      USE GC_TYPE_MOD,   ONLY : GC_MET_LOCAL
+#endif
 
       USE CMN_SIZE_MOD        ! Size parameters
       USE CMN_DIAG_MOD        ! ND43, AD43
       USE CMN_MOD             ! LPAUSE
+!
+! !INPUT PARAMETERS:
+!
+#if defined( DEVEL )
+      TYPE(GC_MET_LOCAL), INTENT(IN) :: LOCAL_MET  ! Obj w/ met fields
+#endif
 ! 
 ! !REMARKS:
 !  CH4 SOURCES
@@ -1770,8 +1783,13 @@
       DO L = 1, LLPAR
       DO J = 1, JJPAR
       DO I = 1, IIPAR
+#if defined( DEVEL )
+         BAIRDENS(I,J,L) = LOCAL_MET%AD(I,J,L)    * 1000d0   /
+     &                     BOXVL(I,J,L,LOCAL_MET) * 6.023D23 / WTAIR
+#else
          BAIRDENS(I,J,L) = AD(I,J,L) * 1000d0   / BOXVL(I,J,L) * 
      &                                 6.023D23 / WTAIR
+#endif
       ENDDO
       ENDDO
       ENDDO
@@ -1877,9 +1895,11 @@
       ! (4) Save OH concentrations for printing of global mean [OH] and
       !     CH3CCLl3 at end of simulation.
       !=================================================================
-      print*, 'START CH4_OHSAVE'
+#if defined( DEVEL )
+      CALL CH4_OHSAVE( LOCAL_MET )
+#else
       CALL CH4_OHSAVE
-      print*, 'END   CH4_OHSAVE'
+#endif
 
       !=================================================================
       ! (5) If multi-CH4 tracers, we store the CH4 total conc. to
@@ -1902,12 +1922,20 @@
       !=================================================================
       ! (6) calculate rate of decay of CH4 by OH oxidation.
       !=================================================================
+#if defined( DEVEL )
+      CALL CH4_DECAY( LOCAL_MET )
+#else
       CALL CH4_DECAY
+#endif
 
       !=================================================================
       ! (7) calculate CH4 chemistry in layers above tropopause.
       !=================================================================
+#if defined( DEVEL )
+      CALL CH4_STRAT( LOCAL_MET )
+#else
       CALL CH4_STRAT
+#endif
 
       !=================================================================
       ! (8) distribute the chemistry sink from total CH4 to other CH4 
@@ -2187,7 +2215,11 @@
 !\\
 ! !INTERFACE:
 !
+#if defined( DEVEL )
+      SUBROUTINE CH4_DECAY( LOCAL_MET )
+#else
       SUBROUTINE CH4_DECAY
+#endif
 !
 ! !USES:
 !
@@ -2195,10 +2227,19 @@
       USE TIME_MOD,   ONLY : GET_TS_CHEM, ITS_A_NEW_YEAR, GET_MONTH
       USE TRACER_MOD, ONLY : STT
       USE DIAG_MOD,   ONLY : AD19   	      
+#if defined( DEVEL )
+      USE GC_TYPE_MOD, ONLY : GC_MET_LOCAL
+#endif
 
       USE CMN_SIZE_MOD     ! Size parameters
       USE CMN_DIAG_MOD     ! ND19
       USE CMN_MOD          ! STT, LPAUSE
+!
+! !INPUT PARAMETERS: 
+!
+#if defined( DEVEL )
+      TYPE(GC_MET_LOCAL), INTENT(IN) :: LOCAL_MET  ! Obj w/ met fields
+#endif
 ! 
 ! !REMARKS:
 !  The annual mean tropopause is stored in the LPAUSE array 
@@ -2275,14 +2316,24 @@
 
             ! Conversion from [kg/box] --> [molec/cm3]
             ! [kg CH4/box] * [box/cm3] * XNUMOL_CH4 [molec CH4/kg CH4]
+#if defined( DEVEL )
+            STT2GCH4 = 1d0 / LOCAL_MET%AIRVOL(I,J,L) / 1d6 * XNUMOL_CH4 
+#else
             STT2GCH4 = 1d0 / AIRVOL(I,J,L) / 1d6 * XNUMOL_CH4 
+#endif
 
             ! CH4 in [molec/cm3]
             GCH4 = STT(I,J,L,1) * STT2GCH4
 	
             ! Sum loss in TCH4(3) (molecules/box)
+#if defined( DEVEL )
+            TCH4(I,J,L,3) = TCH4(I,J,L,3) + 
+     &                      ( GCH4  * BOXVL(I,J,L,LOCAL_MET) *
+     &                        KRATE * BOH(I,J,L,LMN)         * DT )
+#else
             TCH4(I,J,L,3) = TCH4(I,J,L,3)+ 
      &           ( GCH4 * BOXVL(I,J,L) * KRATE * BOH(I,J,L,LMN) * DT)
+#endif
 
             TROPOCH4=TROPOCH4 + GCH4 * KRATE * BOH(I,J,L,LMN) * DT / 
      &               STT2GCH4
@@ -2328,7 +2379,11 @@
 !\\
 ! !INTERFACE:
 !
+#if defined( DEVEL )
+      SUBROUTINE CH4_OHSAVE( LOCAL_MET )
+#else
       SUBROUTINE CH4_OHSAVE
+#endif
 !
 ! !USES:
 !
@@ -2336,9 +2391,18 @@
       USE DIAG_OH_MOD, ONLY : DO_DIAG_OH_CH4
       USE TIME_MOD,    ONLY : GET_MONTH
       USE DAO_MOD,     ONLY : T
+#if defined( DEVEL )
+      USE GC_TYPE_MOD, ONLY : GC_MET_LOCAL
+#endif
 
       USE CMN_SIZE_MOD      ! Size parameters
       USE CMN_MOD           ! LPAUSE
+!
+! !INPUT PARAMETERS:
+!
+#if defined( DEVEL )
+      TYPE(GC_MET_LOCAL), INTENT(IN) :: LOCAL_MET  ! Obj w/ met fields
+#endif
 ! 
 ! !REMARKS:
 !  The annual mean tropopause is stored in the LPAUSE array 
@@ -2387,6 +2451,21 @@
          IF ( L < LPAUSE(I,J) ) THEN
 
             ! Calculate OH mass [molec / box]
+#if defined( DEVEL )
+            OHMASS = BOH(I,J,L,LMN)  * BAIRDENS(I,J,L) *
+     &               BOXVL(I,J,L,LOCAL_MET)
+
+            ! Calculate total air mass [molec / box]
+            MASST  = BAIRDENS(I,J,L) * BOXVL(I,J,L,LOCAL_MET)
+
+            ! Calculate CH3CCl3 + OH rate constant from JPL '06
+            ! [cm3 / molec / s]
+            KCLO   = 1.64d-12 * EXP( -1520.d0 / LOCAL_MET%T(I,J,L) )
+
+            ! Calculate Loss term [molec / box / s]
+            LOSS   = KCLO            * BOH(I,J,L,LMN)  *
+     &               BAIRDENS(I,J,L) * BOXVL(I,J,L,LOCAL_MET)
+#else
             OHMASS = BOH(I,J,L,LMN) * BAIRDENS(I,J,L) * BOXVL(I,J,L)
 
             ! Calculate total air mass [molec / box]
@@ -2399,7 +2478,7 @@
             ! Calculate Loss term [molec / box / s]
             LOSS   = KCLO            * BOH(I,J,L,LMN)  *
      &               BAIRDENS(I,J,L) * BOXVL(I,J,L)
-
+#endif
 
             ! Pass OH mass, total mass, and loss to "diag_oh_mod.f",
             ! which calculates mass-weighted mean [OH] and CH3CCl3
@@ -2427,16 +2506,29 @@
 !\\
 ! !INTERFACE:
 !
+#if defined( DEVEL )
+      SUBROUTINE CH4_STRAT( LOCAL_MET )
+#else
       SUBROUTINE CH4_STRAT
+#endif
 !
 ! !USES:
 !
       USE DAO_MOD,    ONLY : AIRVOL
       USE TIME_MOD,   ONLY : GET_MONTH, GET_TS_CHEM
       USE TRACER_MOD, ONLY : STT, CHECK_STT
+#if defined( DEVEL )
+      USE GC_TYPE_MOD, ONLY : GC_MET_LOCAL
+#endif
 
       USE CMN_SIZE_MOD     ! Size parameters
       USE CMN_MOD          ! STT, LPAUSE
+!
+! !INPUT PARAMETERS:
+!
+#if defined( DEVEL )
+      TYPE(GC_MET_LOCAL), INTENT(IN) :: LOCAL_MET  ! Obj w/ met fields
+#endif
 ! 
 ! !REMARKS:
 !  Production (mixing ratio/sec) rate provided by Dylan Jones.  
@@ -2471,7 +2563,7 @@
 !
 ! !EXTERNAL FUNCTIONS:   
 !
-      REAL*8, EXTERNAL    :: BOXVL
+!      REAL*8, EXTERNAL    :: BOXVL
 
       !=================================================================
       ! CH4_STRAT begins here!
@@ -2493,7 +2585,11 @@
 
             ! Conversion factor [kg/box] --> [molec/cm3]
             ! [kg/box] / [AIRVOL * 1e6 cm3] * [XNUMOL_CH4 molec/mole]
+#if defined( DEVEL )
+            STT2GCH4 = 1d0 / LOCAL_MET%AIRVOL(I,J,L) / 1d6 * XNUMOL_CH4
+#else
             STT2GCH4 = 1d0 / AIRVOL(I,J,L) / 1d6 * XNUMOL_CH4
+#endif
 
             ! CH4 in [molec/cm3]
             GCH4 = STT(I,J,L,1) * STT2GCH4
@@ -2625,10 +2721,6 @@
       CHARACTER (LEN=40)  :: RESERVED = ''
       CHARACTER (LEN=40)  :: CATEGORY 
       CHARACTER (LEN=80)  :: LABEL
-!
-! !EXTERNAL FUNCTIONS:   
-!
-      REAL*8, EXTERNAL    :: BOXVL 
 
       !=================================================================
       ! CH4_BUDGET begins here!

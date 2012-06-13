@@ -13,7 +13,7 @@
 ! !INTERFACE:
 !
 #if defined( DEVEL )
-      SUBROUTINE RURALBOX( AD, T, AVGW, ALBD, LOCAL_MET )
+      SUBROUTINE RURALBOX( LOCAL_MET )
 #else
       SUBROUTINE RURALBOX( AD, T, AVGW, ALBD )
 #endif
@@ -38,12 +38,13 @@
 !
 ! !INPUT PARAMETERS: 
 !
+#if defined( DEVEL )
+      TYPE(GC_MET_LOCAL), INTENT(IN) :: LOCAL_MET      ! Obj w/ met fields
+#else
       REAL*8,  INTENT(IN) :: AD(IIPAR,JJPAR,LLPAR)     ! Air mass [kg]
       REAL*8,  INTENT(IN) :: T(IIPAR,JJPAR,LLPAR)      ! Temperature [K]
       REAL*8,  INTENT(IN) :: AVGW(IIPAR,JJPAR,LLPAR)   ! Mix rat. of H2O [v/v]
       REAL*8,  INTENT(IN) :: ALBD(IIPAR,JJPAR)         ! Sfc albedo [unitless]
-#if defined( DEVEL )
-      TYPE(GC_MET_LOCAL), INTENT(IN) :: LOCAL_MET  ! Obj w/ met fields
 #endif
 !
 ! !REMARKS:
@@ -188,6 +189,24 @@
             IYSAVE(JLOOP)  = J
             IZSAVE(JLOOP)  = L                              
 
+#if defined( DEVEL )
+            ! get box volume [cm3]
+            VOLUME(JLOOP)  = BOXVL( I, J, L, LOCAL_MET )
+
+            ! get air density in (molecs cm^-3)
+            AIRDENS(JLOOP) = LOCAL_MET%AD(I,J,L) * 1000.d0 / 
+     &                       VOLUME(JLOOP) * AVG / WTAIR
+
+            ! get temperature
+            T3(JLOOP)      = LOCAL_MET%T(I,J,L)
+
+            ! PRESS3 = pressure in bar, multiply mb * 1000
+            PRESS3(JLOOP)  = GET_PCENTER(I,J,L) * 1000d0
+
+            ! Get relative humidity (here is absolute #H2O/cc air)
+            ! AVGW is the mixing ratio of water vapor [v/v]
+            ABSHUM(JLOOP)  = LOCAL_MET%AVGW(I,J,L) * AIRDENS(JLOOP)
+#else
             ! get box volume [cm3]
             VOLUME(JLOOP)  = BOXVL(I, J, L)
 
@@ -203,6 +222,7 @@
             ! Get relative humidity (here is absolute #H2O/cc air)
             ! AVGW is the mixing ratio of water vapor [v/v]
             ABSHUM(JLOOP) = AVGW(I,J,L) * AIRDENS(JLOOP)
+#endif
 
             ! Go to next I
  40         CONTINUE           

@@ -132,7 +132,18 @@
       USE GC_TYPE2_MOD,           ONLY : CHEMSTATE, NULL 
       USE TRACERID_MOD,           ONLY : IDTSO2, IDTC2H6
 #endif
-
+!
+! !INPUT PARAMETERS:
+!
+#if defined( DEVEL )
+      TYPE(GC_MET_LOCAL), INTENT(IN)    :: LOCAL_MET  ! Obj w/ met fields
+#endif
+!
+! !INPUT/OUTPUT PARAMETERS:
+!
+#if defined( DEVEL )
+      TYPE(CHEMSTATE),    INTENT(INOUT) :: CHEM_STATE
+#endif
 !
 ! !REVISION HISTORY: 
 !  (1 ) Now references DEBUG_MSG from "error_mod.f" (bmy, 8/7/03)
@@ -183,10 +194,6 @@
       INTEGER                     :: MONTH, YEAR
       ! BIOMASS not used (hotp 8/3/09)
       !REAL*8                      :: BIOMASS(IIPAR,JJPAR,NBIOMAX)
-#if defined( DEVEL )
-      TYPE(CHEMSTATE),    INTENT(INOUT) :: CHEM_STATE
-      TYPE(GC_MET_LOCAL), INTENT(IN)    :: LOCAL_MET  ! Obj w/ met fields
-#endif
 
       !=================================================================
       ! DO_EMISSIONS begins here!
@@ -376,7 +383,7 @@
          ! C2H6 emissions using RETRO are too low, use Yaping Xiao's
          ! offline C2H6 emissions instead (mpayer, 3/22/12)
 #if defined( DEVEL )
-         CALL EMISSC2H6( 
+         CALL EMISSC2H6( LOCAL_MET, 
      &        CHEM_STATE%TRAC_TEND (:,:,1,IDTC2H6),
      &        CHEM_STATE%TRAC_BTEND(:,:,1,:)       )
 #else
@@ -744,7 +751,7 @@
 
          ! Emit C2H6
 #if defined( DEVEL )
-         CALL EMISSC2H6( 
+         CALL EMISSC2H6( LOCAL_MET,
      &        CHEM_STATE%TRAC_TEND (:,:,1,IDTC2H6),
      &        CHEM_STATE%TRAC_BTEND(:,:,1,:)       )
 #else
@@ -821,16 +828,24 @@
 #endif
          ENDIF
 
+#if defined( DEVEL )
          ! Read CO2 ARCTAS SHIP emissions
          IF ( LARCSHIP .and. ITS_A_NEW_YEAR() )
-#if defined( DEVEL )
      &        CALL EMISS_ARCTAS_SHIP( YEAR,
      &                   CHEM_STATE%TRAC_TEND(:,:,1,NULL))
+
+         ! Emit CO2
+         CALL EMISSCO2( LOCAL_MET )
+
 #else
+         ! Read CO2 ARCTAS SHIP emissions
+         IF ( LARCSHIP .and. ITS_A_NEW_YEAR() )
      &        CALL EMISS_ARCTAS_SHIP( YEAR )
-#endif
+
          ! Emit CO2
          CALL EMISSCO2
+
+#endif
 
       ELSE IF ( ITS_A_H2HD_SIM() ) THEN
 

@@ -133,7 +133,11 @@
 !\\
 ! !INTERFACE:
 !
+#if defined( DEVEL )
+      SUBROUTINE CHEMSEASALT( LOCAL_MET )
+#else
       SUBROUTINE CHEMSEASALT
+#endif
 !
 ! !USES:
 !
@@ -142,8 +146,17 @@
       USE LOGICAL_MOD,  ONLY : LPRT,    LDRYD
       USE TRACER_MOD,   ONLY : STT
       USE TRACERID_MOD, ONLY : IDTSALA, IDTSALC
+#if defined( DEVEL )
+      USE GC_TYPE_MOD,  ONLY : GC_MET_LOCAL
+#endif
 
       USE CMN_SIZE_MOD       ! Size parameters
+!
+! !INPUT PARAMETERS:
+!
+#if defined( DEVEL )
+      TYPE(GC_MET_LOCAL), INTENT(IN) :: LOCAL_MET  ! Obj w/ met fields
+#endif
 ! 
 ! !REVISION HISTORY:
 !  (1 ) Now reference STT from "tracer_mod.f".  Now references LPRT from
@@ -197,7 +210,11 @@
       !-------------------
       ! Accumulation mode
       !-------------------
+#if defined( DEVEL )
+      CALL WET_SETTLING( STT(:,:,:,IDTSALA), 1, LOCAL_MET )
+#else
       CALL WET_SETTLING( STT(:,:,:,IDTSALA), 1 )
+#endif
       IF ( LPRT ) CALL DEBUG_MSG( '### CHEMSEASALT: WET_SET, Accum' )
 
       !IF ( LDRYD ) THEN
@@ -211,7 +228,11 @@
       !-------------------
       ! Coarse mode
       !-------------------
+#if defined( DEVEL )
+      CALL WET_SETTLING( STT(:,:,:,IDTSALC), 2, LOCAL_MET )
+#else
       CALL WET_SETTLING( STT(:,:,:,IDTSALC), 2 )
+#endif
       IF ( LPRT ) CALL DEBUG_MSG( '### CHEMSEASALT: WET_SET, Coarse' )
 
       !IF ( LDRYD ) THEN
@@ -237,7 +258,11 @@
 !\\
 ! !INTERFACE:
 !
+#if defined( DEVEL )
+      SUBROUTINE WET_SETTLING( TC, N, LOCAL_MET )
+#else
       SUBROUTINE WET_SETTLING( TC, N )
+#endif
 !
 ! !USES:
 !
@@ -251,6 +276,9 @@
       USE GRID_MOD,      ONLY : GET_AREA_CM2
       ! add (jaegle 5/11/11)
       USE ERROR_MOD,     ONLY : DEBUG_MSG, ERROR_STOP
+#if defined( DEVEL )
+      USE GC_TYPE_MOD,   ONLY : GC_MET_LOCAL
+#endif
 
       USE CMN_SIZE_MOD        ! Size parameters
       USE CMN_DIAG_MOD        ! ND44
@@ -259,6 +287,9 @@
 ! !INPUT PARAMETERS: 
 !
       INTEGER, INTENT(IN)    :: N  ! N=1 is accum mode; N=2 is coarse mode
+#if defined( DEVEL )
+      TYPE(GC_MET_LOCAL), INTENT(IN) :: LOCAL_MET  ! Obj w/ met fields
+#endif
 !
 ! !INPUT/OUTPUT PARAMETERS: 
 !
@@ -447,7 +478,11 @@
             TEMP    = T(I,J,L)
 
             ! Cap RH at 0.99 
+#if defined( DEVEL )
+            RHB     = MIN( 0.99d0, LOCAL_MET%RH(I,J,L) * 1d-2 )
+#else
             RHB     = MIN( 0.99d0, RH(I,J,L) * 1d-2 )
+#endif
 
             ! Safety check (phs, 5/1/08)
             RHB     = MAX( TINY(RHB), RHB           )
@@ -576,13 +611,22 @@
 
          ! We know the boundary condition at the model top
          L    = LLTROP
+#if defined( DEVEL )
+         DELZ = LOCAL_MET%BXHEIGHT(I,J,L)
+#else
          DELZ = BXHEIGHT(I,J,L)
+#endif
 
          TC(I,J,L) = TC(I,J,L) / ( 1.d0 + DTCHEM * VTS(L) / DELZ )
 
          DO L = LLTROP-1, 1, -1
+#if defined( DEVEL )
+            DELZ  = LOCAL_MET%BXHEIGHT(I,J,L)
+            DELZ1 = LOCAL_MET%BXHEIGHT(I,J,L+1)
+#else
             DELZ  = BXHEIGHT(I,J,L)
             DELZ1 = BXHEIGHT(I,J,L+1)
+#endif
             TC(I,J,L) = 1.d0 / ( 1.d0 + DTCHEM * VTS(L) / DELZ )
      &                * ( TC(I,J,L) + DTCHEM * VTS(L+1) / DELZ1
      &                *  TC(I,J,L+1) )
@@ -1241,7 +1285,11 @@
             ALK_EMIS(I,J,L,N) = SALT(I,J)
 
 	    ! Number density [#/m3] (bec, bmy, 4/13/05)
+#if defined( DEVEL )
+	    N_DENS(I,J,L,N)   = SALT_N(I,J) / LOCAL_MET%AIRVOL(I,J,L)
+#else
 	    N_DENS(I,J,L,N)   = SALT_N(I,J) / AIRVOL(I,J,L)              
+#endif
 
          ENDDO
 
@@ -1269,18 +1317,28 @@
 !\\
 ! !INTERFACE:
 !
-
+#if defined( DEVEL )
+      SUBROUTINE GET_ALK( I,    J,    L,   LOCAL_MET,
+     &                    ALK1, ALK2, Kt1, Kt2, Kt1N, Kt2N )
+#else
       SUBROUTINE GET_ALK( I, J, L, ALK1, ALK2, Kt1, Kt2, Kt1N, Kt2N )
+#endif
 !
 ! !USES:
 !
       USE DAO_MOD,      ONLY : AD, RH
       USE ERROR_MOD,    ONLY : IT_IS_NAN
       USE TRACER_MOD,   ONLY : SALA_REDGE_um, SALC_REDGE_um
+#if defined( DEVEL )
+      USE GC_TYPE_MOD,  ONLY : GC_MET_LOCAL
+#endif
 !
 ! !INPUT PARAMETERS: 
 !
       INTEGER, INTENT(IN)  :: I, J, L 
+#if defined( DEVEL )
+      TYPE(GC_MET_LOCAL), INTENT(IN) :: LOCAL_MET  ! Obj w/ met fields
+#endif
 !
 ! !OUTPUT PARAMETERS: 
 !
@@ -1343,8 +1401,8 @@
       !! alkalinity [v/v] to [kg] use this when transporting alk
       !! or using Liao et al [2004] assumption of a continuous supply of
       ! alkalinity based on Laskin et al. [2003]
-      !ALK1 = STT(I,J,L,IDTSALA) * AD(I,J,L)/TCVV(IDTSALA)
-      !ALK2 = STT(I,J,L,IDTSALC) * AD(I,J,L)/TCVV(IDTSALC)
+      !ALK1 = STT(I,J,L,IDTSALA) * LOCAL_MET%AD(I,J,L)/TCVV(IDTSALA)
+      !ALK2 = STT(I,J,L,IDTSALC) * LOCAL_MET%AD(I,J,L)/TCVV(IDTSALC)
       !-----------------------------------------------------------------------
 
       ! Conversion from [m-3] --> [cm-3]
@@ -1357,7 +1415,11 @@
       IF ( ALK > MINDAT ) THEN
 
          ! set humidity index IRH as a percent
+#if defined( DEVEL )
+         IRH = LOCAL_MET%RH(I,J,L)
+#else
          IRH = RH(I,J,L)
+#endif
          IRH = MAX(  1, IRH )
          IRH = MIN( 99, IRH )
 

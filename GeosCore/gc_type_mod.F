@@ -291,6 +291,7 @@
          REAL*8, ALLOCATABLE :: AD(:,:,:)       ! Air mass [kg]
          REAL*8, ALLOCATABLE :: AIRDENS(:,:,:)  ! Air density [kg/m3]
          REAL*8, ALLOCATABLE :: AIRVOL(:,:,:)   ! Grid box volume [m3]
+         REAL*8, ALLOCATABLE :: AVGW(:,:,:)     ! Mixing ratio of water vapor
          REAL*8, ALLOCATABLE :: BXHEIGHT(:,:,:) ! Grid box height [m]
          REAL*8, ALLOCATABLE :: CLDF(:,:,:)     ! 3-D cloud fraction [unitless]
          REAL*8, ALLOCATABLE :: CMFMC(:,:,:)    ! Cloud mass flux [kg/m2/s]

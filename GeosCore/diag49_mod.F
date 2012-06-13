@@ -363,7 +363,11 @@
                J = JOFF + Y
             DO X = 1, ND49_NI
                I = GET_I( X )
+#if defined( DEVEL )
+               Q(X,Y,K) = STT(I,J,L,N) * TCVV(N) / LOCAL_MET%AD(I,J,L)
+#else
                Q(X,Y,K) = STT(I,J,L,N) * TCVV(N) / AD(I,J,L)
+#endif
             ENDDO
             ENDDO
             ENDDO
@@ -388,8 +392,13 @@
                J = JOFF + Y
             DO X = 1, ND49_NI
                I = GET_I( X )
+#if defined( DEVEL )
+               Q(X,Y,K) = STT(I,J,L,IDTOX)    * TCVV(IDTOX)  / 
+     &                    LOCAL_MET%AD(I,J,L) * FRACO3(I,J,L) 
+#else
                Q(X,Y,K) = STT(I,J,L,IDTOX) * TCVV(IDTOX)  / 
      &                    AD(I,J,L)        * FRACO3(I,J,L) 
+#endif
             ENDDO
             ENDDO
             ENDDO
@@ -413,9 +422,14 @@
             DO Y = 1, ND49_NJ
                J = JOFF + Y
             DO X = 1, ND49_NI
-               I = GET_I( X )   
+               I = GET_I( X )
+#if defined( DEVEL )
+               Q(X,Y,K) = STT(I,J,L,IDTNOX) * TCVV(IDTNOX) * 
+     &                    FRACNO(I,J,L)     / LOCAL_MET%AD(I,J,L)
+#else
                Q(X,Y,K) = STT(I,J,L,IDTNOX) * TCVV(IDTNOX) * 
      &                    FRACNO(I,J,L)     / AD(I,J,L)
+#endif
             ENDDO
             ENDDO
             ENDDO
@@ -441,6 +455,52 @@
             DO X = 1, ND49_NI
                I = GET_I( X )  
 
+#if defined( DEVEL )
+               ! Temp variable for accumulation
+               TMP = 0d0
+            
+               ! NOx
+               TMP = TMP + ( TCVV(IDTNOX)        *
+     &                       STT(I,J,L,IDTNOX)   / 
+     &                       LOCAL_MET%AD(I,J,L) )
+               ! PAN
+               TMP = TMP + ( TCVV(IDTPAN)        * 
+     &                       STT(I,J,L,IDTPAN)   / 
+     &                       LOCAL_MET%AD(I,J,L) )
+
+               ! HNO3
+               TMP = TMP + ( TCVV(IDTHNO3)       *
+     &                       STT(I,J,L,IDTHNO3)  / 
+     &                       LOCAL_MET%AD(I,J,L) )
+            
+               ! PMN
+               TMP = TMP + ( TCVV(IDTPMN)        *
+     &                       STT(I,J,L,IDTPMN)   / 
+     &                       LOCAL_MET%AD(I,J,L) )
+
+               ! PPN
+               TMP = TMP + ( TCVV(IDTPPN)        * 
+     &                       STT(I,J,L,IDTPPN)   / 
+     &                       LOCAL_MET%AD(I,J,L) )
+ 
+               ! R4N2
+               TMP = TMP + ( TCVV(IDTR4N2)       *
+     &                       STT(I,J,L,IDTR4N2)  / 
+     &                       LOCAL_MET%AD(I,J,L) )
+            
+               ! N2O5
+               TMP = TMP + ( 2d0 * TCVV(IDTN2O5) *
+     &                       STT(I,J,L,IDTN2O5)  / 
+     &                       LOCAL_MET%AD(I,J,L) )
+                        
+               ! HNO4
+               TMP = TMP + ( TCVV(IDTHNO4)       *
+     &                       STT(I,J,L,IDTHNO4)  / 
+     &                       LOCAL_MET%AD(I,J,L) )
+
+               ! Save afternoon points
+               Q(X,Y,K) = Q(X,Y,K) + TMP
+#else
                ! Temp variable for accumulation
                TMP = 0d0
             
@@ -477,6 +537,7 @@
 
                ! Save afternoon points
                Q(X,Y,K) = Q(X,Y,K) + TMP
+#endif
             ENDDO
             ENDDO
             ENDDO
@@ -940,8 +1001,13 @@
                J = JOFF + Y
             DO X = 1, ND49_NI
                I = GET_I( X )
+#if defined( DEVEL )
+               Q(X,Y,K) = ( STT(I,J,L,IDTSALA) + STT(I,J,L,IDTSALC) ) *
+     &                      TCVV(IDTSALA)      / LOCAL_MET%AD(I,J,L) 
+#else
                Q(X,Y,K) = ( STT(I,J,L,IDTSALA) + STT(I,J,L,IDTSALC) ) *
      &                      TCVV(IDTSALA)      / AD(I,J,L) 
+#endif
             ENDDO
             ENDDO
             ENDDO
@@ -966,7 +1032,11 @@
                J = JOFF + Y
             DO X = 1, ND49_NI
                I = GET_I( X )
+#if defined( DEVEL )
+               Q(X,Y,K) = LOCAL_MET%BXHEIGHT(I,J,L)
+#else
                Q(X,Y,K) = BXHEIGHT(I,J,L)
+#endif
             ENDDO
             ENDDO
             ENDDO
@@ -991,7 +1061,11 @@
                J = JOFF + Y
             DO X = 1, ND49_NI
                I = GET_I( X )
+#if defined( DEVEL )
+               Q(X,Y,K) = LOCAL_MET%RH(I,J,L)
+#else
                Q(X,Y,K) = RH(I,J,L)
+#endif
             ENDDO
             ENDDO
             ENDDO

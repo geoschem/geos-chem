@@ -316,9 +316,6 @@
       ! Choose 100e-9 (Holmes et al. 2010 )
       REAL*8,  PARAMETER   :: BBRatio_Hg_CO = 1d-7
  
-      ! External functions
-      REAL*8,  EXTERNAL      :: BOXVL
-
       !=================================================================
       ! BIOMASSHG begins here!
       !=================================================================

@@ -97,18 +97,27 @@
          ! Skip tropospheric grid boxes
 #if defined( DEVEL )
          IF ( ITS_IN_THE_TROP( I, J, L, LOCAL_MET ) ) CYCLE
+
+         ! conversion factor from [kg/box] to [molec/cm3]
+         STTTOGCO = 6.022d23 / ( 28d-3 * BOXVL(I,J,L,LOCAL_MET) )
 #else
          IF ( ITS_IN_THE_TROP(I,J,L) ) CYCLE
-#endif
 
          ! conversion factor from [kg/box] to [molec/cm3]
          STTTOGCO = 6.022d23 / ( 28d-3 * BOXVL(I,J,L) )
+#endif
 
          ! Convert STT from [kg/box] to [molec/cm3]
          GCO = STT(I,J,L,IDTCO) * STTTOGCO
 
+#if defined( DEVEL )
+         ! Air density in molec/cm3
+         BAIRDENS = LOCAL_MET%AD(I,J,L) * XNUMOLAIR /
+     &              BOXVL(I,J,L,LOCAL_MET)
+#else
          ! Air density in molec/cm3
          BAIRDENS = AD(I,J,L) * XNUMOLAIR / BOXVL(I,J,L)
+#endif
 
          ! Apply P(CO) and L(CO) rates to GCO
          GCO = GCO * ( 1d0 - COLOSS(J,L) * DT ) +

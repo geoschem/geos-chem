@@ -657,9 +657,16 @@
 #if defined( DEVEL )
             W10  = SQRT( SFCWINDSQR( I, J,
      &                               LOCAL_MET%U10M, LOCAL_MET%V10M ) )
+
+            ! Piston velocity [cm/h], cf Nightingale et al [2000b] 
+            ! (swu, bmy, 8/16/05)
+            Kw   = ( 0.24d0*W10*W10 + 0.061d0*W10 ) * SQRT( ScCO2/Sc )  
+
+            ! convert gas-phase tracer mass to concentration in ng/L
+            CGAS = STT(I,J,L,N) * 1.0D9 / LOCAL_MET%AIRVOL(I,J,L)
+
 #else
             W10  = SQRT( SFCWINDSQR( I, J, U10M, V10M ) )
-#endif
 
             ! Piston velocity [cm/h], cf Nightingale et al [2000b] 
             ! (swu, bmy, 8/16/05)
@@ -667,6 +674,8 @@
 
             ! convert gas-phase tracer mass to concentration in ng/L
             CGAS = STT(I,J,L,N) * 1.0D9 / AIRVOL(I,J,L)
+
+#endif
 
             ! Emission of CH3I from the ocean 
             FLUX = KW * ( OCDATA(I,J) - CGAS*H )
@@ -748,7 +757,11 @@
       DO I = 1, IIPAR
 
          ! Grid box height [cm]
+#if defined( DEVEL )
+         BXHEIGHT_CM = LOCAL_MET%BXHEIGHT(I,J,L) * 100d0
+#else
          BXHEIGHT_CM = BXHEIGHT(I,J,L) * 100d0
+#endif
 
          !-----------------------------------------------------------------
          ! Get emission flux in kg/cm3/time step
@@ -765,7 +778,11 @@
          ENDIF
 
          ! Convert to kg/grid box/time step
+#if defined( DEVEL )
+         FLUX = FLUX * BOXVL(I,J,L,LOCAL_MET)
+#else
          FLUX = FLUX * BOXVL(I,J,L)
+#endif
 
          ! add to tracer mass and to global sum
          STT(I,J,L,N) = STT(I,J,L,N) + FLUX
@@ -789,7 +806,7 @@
 
       ! Now reference routine BIOFUEL_BURN from "biofuel_mod.f" (bmy, 9/12/00)
 #if defined( DEVEL )
-      CALL BIOFUEL_BURN( BIO_EMISS )
+      CALL BIOFUEL_BURN( LOCAL_MET, BIO_EMISS )
 #else
       CALL BIOFUEL_BURN
 #endif
@@ -804,6 +821,16 @@
          FLUX = ECH3I * BIOFUEL(IDBFCO,I,J)
          FLUX = FLUX * 1.0D-3 * FMOL_CH3I * XMOL * DTSRCE
 
+#if defined( DEVEL )
+         ! Add to diagnostic array as kg/m2/time step
+         IF ( ND36 > 0 ) THEN
+            BXHEIGHT_CM = LOCAL_MET%BXHEIGHT(I,J,L) * 100d0
+            AD36(I,J,N) = AD36(I,J,N)  + FLUX * BXHEIGHT_CM *
+     &                    1.0D4 * 1.0D + 12
+         ENDIF
+
+         FLUX = FLUX * BOXVL(I,J,L,LOCAL_MET)
+#else
          ! Add to diagnostic array as kg/m2/time step
          IF ( ND36 > 0 ) THEN
             BXHEIGHT_CM = BXHEIGHT(I,J,L) * 100d0
@@ -811,6 +838,7 @@
          ENDIF
 
          FLUX = FLUX * BOXVL(I,J,L)
+#endif
          
          ! add to tracer mass and to global sum
          STT(I,J,L,N) = STT(I,J,L,N) + FLUX

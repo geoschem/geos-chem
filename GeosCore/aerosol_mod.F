@@ -128,7 +128,7 @@
 ! !INPUT PARAMETERS: 
 !
 #if defined( DEVEL )
-      TYPE(GC_MET_LOCAL), INTENT(IN) :: LOCAL_MET  ! Obj w/ met fields
+      TYPE(GC_MET_LOCAL), INTENT(INOUT) :: LOCAL_MET  ! Obj w/ met fields
 #endif
 !
 ! !OUTPUT PARAMETERS:
@@ -167,7 +167,11 @@
       NPVERT = NVERT
 
       ! Create AVGW field -- mixing ratio of water [v/v]
+#if defined( DEVEL )
+      CALL MAKE_AVGW( LOCAL_MET )
+#else
       CALL MAKE_AVGW
+#endif
 
       !=================================================================
       ! Pre-save SMVGEAR loop indices on the first call
@@ -271,11 +275,20 @@
          !----------------------------------
          IF ( JLOOP > 0 ) THEN
 
+#if defined( DEVEL )
+            ! Air density in [molec/cm3]
+            AIRDENS(JLOOP) = LOCAL_MET%AD(I,J,L)    * 1000.d0 / 
+     &                       BOXVL(I,J,L,LOCAL_MET) * AVG  / WTAIR
+
+            ! ABSHUM = absolute humidity [molec H2O/cm3 air]
+            ABSHUM(JLOOP)  = LOCAL_MET%AVGW(I,J,L)  * AIRDENS(JLOOP)
+#else
             ! Air density in [molec/cm3]
             AIRDENS(JLOOP) = AD(I,J,L)*1000.d0/BOXVL(I,J,L)*AVG/WTAIR
 
             ! ABSHUM = absolute humidity [molec H2O/cm3 air]
             ABSHUM(JLOOP)  = AVGW(I,J,L) * AIRDENS(JLOOP)
+#endif
 
             ! Convert ABSHUM to relative humidity [fraction]
             ! using the same algorithm as in "gasconc.f"
@@ -308,7 +321,11 @@
 !\\
 ! !INTERFACE:
 !
+#if defined( DEVEL )
+      SUBROUTINE AEROSOL_CONC( LOCAL_MET )
+#else
       SUBROUTINE AEROSOL_CONC
+#endif
 !
 ! !USES:
 !
@@ -321,8 +338,17 @@
       USE TRACERID_MOD, ONLY : IDTSOA1, IDTSOA2, IDTSOA3, IDTSOA4
       USE TRACERID_MOD, ONLY : IDTSO4,  IDTSOA5  
       USE TRACERID_MOD, ONLY : IDTSOAG, IDTSOAM
+#if defined( DEVEL )
+      USE GC_TYPE_MOD,  ONLY : GC_MET_LOCAL
+#endif
 
       USE CMN_SIZE_MOD       ! Size parameters
+!
+! !INPUT PARAMETERS:
+!
+#if defined( DEVEL )
+      TYPE(GC_MET_LOCAL), INTENT(IN) :: LOCAL_MET  ! Obj w/ met fields
+#endif
 !
 ! !REMARKS:
 !  This code was originally included in "chemdr.f", but the same computation 
@@ -369,6 +395,174 @@
          FIRST = .FALSE.
       ENDIF
 
+#if defined( DEVEL )
+!$OMP PARALLEL DO
+!$OMP+DEFAULT( SHARED )
+!$OMP+PRIVATE( I, J, L, N )
+!$OMP+SCHEDULE( DYNAMIC )
+      DO L = 1, LLPAR
+      DO J = 1, JJPAR
+      DO I = 1, IIPAR
+      
+         !==============================================================
+         ! S U L F A T E   A E R O S O L S
+         !
+         ! Dump hydrophilic aerosols into one array that will be passed 
+         ! to RDAER and then used for heterogeneous chemistry as well 
+         ! as photolysis rate calculations interatively. 
+         !
+         ! For the full-chemistry run, If LSULF=F, then we read these 
+         ! aerosol data from Mian's simulation.  If LSULF=T then we use 
+         ! the online tracers.
+         !
+         ! Now assume that all sulfate, ammonium, and nitrate are 
+         ! hydrophilic but sooner or later we can pass only hydrophilic 
+         ! aerosols from the thermodynamic calculations for this 
+         ! purpose.  This dumping should be done before calling INITGAS, 
+         ! which converts the unit of STT from kg/box to molec/cm3.
+         !
+         ! Units of SO4_NH4_NIT are [kg/m3].  (rjp, bmy, 3/23/03)
+         !==============================================================
+         IF ( LSULF ) THEN
+
+            ! Compute SO4 aerosol concentration [kg/m3]
+            SO4_NH4_NIT(I,J,L) = ( STT(I,J,L,IDTSO4)     + 
+     &                             STT(I,J,L,IDTNH4)     +
+     &                             STT(I,J,L,IDTNIT) )   /
+     &                             LOCAL_MET%AIRVOL(I,J,L)
+
+         ENDIF
+
+         !==============================================================
+         ! C A R B O N  &  2 n d A R Y   O R G A N I C   A E R O S O L S
+         !
+         ! Compute hydrophilic and hydrophobic BC and OC in [kg/m3]
+         ! Also add online 2ndary organics if necessary
+         !==============================================================
+         IF ( LCARB ) THEN
+
+            ! Hydrophilic BC [kg/m3]
+            BCPI(I,J,L) = STT(I,J,L,IDTBCPI) / LOCAL_MET%AIRVOL(I,J,L)
+
+            ! Hydrophobic BC [kg/m3]
+            BCPO(I,J,L) = STT(I,J,L,IDTBCPO) / LOCAL_MET%AIRVOL(I,J,L)
+
+            ! Hydrophobic OC [kg/m3] 
+            OCPO(I,J,L) = STT(I,J,L,IDTOCPO) * OCF /
+     &                    LOCAL_MET%AIRVOL(I,J,L)
+
+            IF ( LSOA ) THEN
+
+               ! Hydrophilic primary OC plus SOA [kg/m3A.  We need
+               ! to multiply by OCF to account for the mass of other 
+               ! components which are attached to the OC aerosol.
+               ! (rjp, bmy, 7/15/04)
+               ! (clh, 05/19/10) bug corrected SOA5 missing from OCPI
+               OCPI(I,J,L) = ( STT(I,J,L,IDTOCPI) * OCF 
+     &                     +   STT(I,J,L,IDTSOA1)
+     &                     +   STT(I,J,L,IDTSOA2)
+     &                     +   STT(I,J,L,IDTSOA3)
+     &                     +   STT(I,J,L,IDTSOA4)
+     &                     +   STT(I,J,L,IDTSOA5) )
+     &                     /   LOCAL_MET%AIRVOL(I,J,L)
+ 
+               ! Check to see if we are simulating SOAG and SOAM (tmf, 1/7/09)
+               IF ( IDTSOAG > 0 ) THEN
+                 OCPI(I,J,L) = OCPI(I,J,L) + 
+     &                         STT(I,J,L,IDTSOAG) * OCFG /
+     &                         LOCAL_MET%AIRVOL(I,J,L)
+               ENDIF
+
+               IF ( IDTSOAM > 0 ) THEN
+                 OCPI(I,J,L) = OCPI(I,J,L) + 
+     &                         STT(I,J,L,IDTSOAM) * OCFM /
+     &                         LOCAL_MET%AIRVOL(I,J,L)
+               ENDIF
+            ELSE
+
+               ! Hydrophilic primary and SOA OC [kg/m3].   We need
+               ! to multiply by OCF to account for the mass of other 
+               ! components which are attached to the OC aerosol.
+               ! (rjp, bmy, 7/15/04)
+               OCPI(I,J,L) = STT(I,J,L,IDTOCPI) * OCF /
+     &                       LOCAL_MET%AIRVOL(I,J,L)
+                  
+            ENDIF
+
+            ! Now avoid division by zero (bmy, 4/20/04)
+            BCPI(I,J,L) = MAX( BCPI(I,J,L), 1d-35 )
+            OCPI(I,J,L) = MAX( OCPI(I,J,L), 1d-35 )
+            BCPO(I,J,L) = MAX( BCPO(I,J,L), 1d-35 )
+            OCPO(I,J,L) = MAX( OCPO(I,J,L), 1d-35 )
+         
+         ENDIF
+            
+         !===========================================================
+         ! M I N E R A L   D U S T   A E R O S O L S
+         !
+         ! NOTE: We can do better than this! Currently we carry 4 
+         ! dust tracers...but het. chem and fast-j use 7 dust bins 
+         ! hardwired from Ginoux.
+         !
+         ! Now, I apportion the first dust tracer into four smallest 
+         ! dust bins equally in mass for het. chem and fast-j. 
+         ! 
+         ! Maybe we need to think about chaning our fast-j and het. 
+         ! chem to use just four dust bins or more flexible 
+         ! calculations depending on the number of dust bins. 
+         ! (rjp, 03/27/04)
+         !
+         ! Now splitting mass into bins in fractions derived from
+         ! Highwood et al. (2003).  Data is from log-normal fit of
+         ! PCASP measurements of Saharan dust (Solid line in Fig.4b)
+         ! (dar, 04/25/10)
+         !===========================================================
+         IF ( LDUST ) THEN
+
+            ! Lump 1st dust tracer for het chem
+            SOILDUST(I,J,L,1) = 
+     &            0.06d0 * STT(I,J,L,IDTDST1) / LOCAL_MET%AIRVOL(I,J,L)
+            SOILDUST(I,J,L,2) =
+     &            0.12d0 * STT(I,J,L,IDTDST1) / LOCAL_MET%AIRVOL(I,J,L)
+            SOILDUST(I,J,L,3) =
+     &            0.24d0 * STT(I,J,L,IDTDST1) / LOCAL_MET%AIRVOL(I,J,L)
+            SOILDUST(I,J,L,4) =
+     &            0.58d0 * STT(I,J,L,IDTDST1) / LOCAL_MET%AIRVOL(I,J,L)
+
+            ! Other hetchem bins
+            SOILDUST(I,J,L,5) = STT(I,J,L,IDTDST2) /
+     &                          LOCAL_MET%AIRVOL(I,J,L)
+            SOILDUST(I,J,L,6) = STT(I,J,L,IDTDST3) /
+     &                          LOCAL_MET%AIRVOL(I,J,L)
+            SOILDUST(I,J,L,7) = STT(I,J,L,IDTDST4) /
+     &                          LOCAL_MET%AIRVOL(I,J,L)
+            
+         ENDIF
+
+         !===========================================================
+         ! S E A S A L T   A E R O S O L S
+         !
+         ! Compute accumulation & coarse mode concentration [kg/m3]
+         !===========================================================
+         IF ( LSSALT ) THEN
+
+            ! Accumulation mode seasalt aerosol [kg/m3]
+            SALA(I,J,L) = STT(I,J,L,IDTSALA) / LOCAL_MET%AIRVOL(I,J,L)
+            
+            ! Coarse mode seasalt aerosol [kg/m3]
+            SALC(I,J,L) = STT(I,J,L,IDTSALC) / LOCAL_MET%AIRVOL(I,J,L)
+
+            ! Avoid division by zero
+            SALA(I,J,L) = MAX( SALA(I,J,L), 1d-35 )
+            SALC(I,J,L) = MAX( SALC(I,J,L), 1d-35 )
+
+         ENDIF
+
+      ENDDO
+      ENDDO
+      ENDDO
+!$OMP END PARALLEL DO
+#else
 !$OMP PARALLEL DO
 !$OMP+DEFAULT( SHARED )
 !$OMP+PRIVATE( I, J, L, N )
@@ -526,6 +720,7 @@
       ENDDO
       ENDDO
 !$OMP END PARALLEL DO
+#endif ! DEVEL
 
       END SUBROUTINE AEROSOL_CONC
 !EOC
@@ -545,7 +740,7 @@
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE RDAER( MONTH, YEAR, WAVELENGTH )
+      SUBROUTINE RDAER( MONTH, YEAR, WAVELENGTH, LOCAL_MET )
 !
 ! !USES:
 !
@@ -562,6 +757,9 @@
       USE TIME_MOD,      ONLY : ITS_A_NEW_MONTH
       USE TRACER_MOD,    ONLY : ITS_A_FULLCHEM_SIM
       USE TRANSFER_MOD,  ONLY : TRANSFER_3D
+#if defined( DEVEL )
+      USE GC_TYPE_MOD,   ONLY : GC_MET_LOCAL
+#endif
 
       USE CMN_SIZE_MOD,  ONLY : NNPAR, NDSTBIN, IIPAR,   JJPAR,   LLTROP
       USE CMN_SIZE_MOD,  ONLY : LLPAR, MAXFAM,  NEMPARA, NEMPARB, LGLOB
@@ -584,13 +782,15 @@
 !
 ! !INPUT PARAMETERS:
 !
-      ! Arguments
       INTEGER, INTENT(IN), OPTIONAL :: MONTH      ! # of current month (1-12)
       INTEGER, INTENT(IN), OPTIONAL :: YEAR       ! 4-digit year (e.g. 2002)
       INTEGER, INTENT(IN), OPTIONAL :: WAVELENGTH ! Logical indicator
-!                                                 ! = 0 AOD computed at 999 nm
-!                                                 ! = 1 AOD computed at
+                                                  ! = 0 AOD computed at 999 nm
+                                                  ! = 1 AOD computed at
                                                   !   wavelength in jv_spec_aod
+#if defined( DEVEL )
+      TYPE(GC_MET_LOCAL), INTENT(IN) :: LOCAL_MET ! Obj w/ met fields
+#endif
 !
 ! !REVISION HISTORY: 
 !  (1 ) At the point in which "rdaer.f" is called, ABSHUM is actually
@@ -1155,6 +1355,25 @@
 
             IF ( WAVELENGTH > 0 ) THEN
 
+#if defined( DEVEL )
+            ! Save aerosol optical depth for each combination 
+            ! of aerosol type and relative humidity into ODAER, 
+            ! which will get passed to the FAST-J routines
+            ODAER(I,J,L,IRHN) = SCALEOD(I,J,L,R) * 0.75d0
+     &                        * LOCAL_MET%BXHEIGHT(I,J,L) 
+     &                        * WAERSL(I,J,L,N)  * QAA_AOD(IND(N)) / 
+     &                        ( MSDENS(N) * RAA_AOD(IND(N)) * 1.0D-6 )
+
+            ELSE
+
+            ! Save aerosol optical depth for each combination 
+            ! of aerosol type and relative humidity into ODAER, 
+            ! which will get passed to the FAST-J routines
+            ODAER(I,J,L,IRHN) = SCALEOD(I,J,L,R) * 0.75d0 
+     &                        * LOCAL_MET%BXHEIGHT(I,J,L) 
+     &                        * WAERSL(I,J,L,N)  * QAA(4,IND(N)) / 
+     &                        ( MSDENS(N) * RAA(4,IND(N)) * 1.0D-6 )
+#else
             ! Save aerosol optical depth for each combination 
             ! of aerosol type and relative humidity into ODAER, 
             ! which will get passed to the FAST-J routines
@@ -1172,6 +1391,7 @@
      &                        * 0.75d0 * BXHEIGHT(I,J,L) 
      &                        * WAERSL(I,J,L,N) * QAA(4,IND(N)) / 
      &                        ( MSDENS(N) * RAA(4,IND(N)) * 1.0D-6 )
+#endif
 
             ENDIF
 
@@ -1257,6 +1477,21 @@
 
             IF ( WAVELENGTH > 0 ) THEN
 
+#if defined( DEVEL )
+            ! Aerosol optical depth
+            ODAER(I,J,L,IRHN) = ODAER(I,J,L,IRHN) + 0.75d0 *
+     &                          LOCAL_MET%BXHEIGHT(I,J,L)  * 
+     &                          DAERSL(I,J,L,N-1) * QAA_AOD(IND(N))   / 
+     &                          ( MSDENS(N) * RAA_AOD(IND(N)) * 1.0D-6 )
+
+            ELSE
+
+            ! Aerosol optical depth
+            ODAER(I,J,L,IRHN) = ODAER(I,J,L,IRHN) + 0.75d0 *
+     &                          LOCAL_MET%BXHEIGHT(I,J,L)  * 
+     &                          DAERSL(I,J,L,N-1) * QAA(4,IND(N))   / 
+     &                          ( MSDENS(N) * RAA(4,IND(N)) * 1.0D-6 )
+#else
             ! Aerosol optical depth
             ODAER(I,J,L,IRHN) = ODAER(I,J,L,IRHN) + 
      &                          0.75d0            * BXHEIGHT(I,J,L) * 
@@ -1270,6 +1505,7 @@
      &                          0.75d0            * BXHEIGHT(I,J,L) * 
      &                          DAERSL(I,J,L,N-1) * QAA(4,IND(N))   / 
      &                          ( MSDENS(N) * RAA(4,IND(N)) * 1.0D-6 )
+#endif
 
             ENDIF
 

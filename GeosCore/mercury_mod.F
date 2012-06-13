@@ -644,9 +644,6 @@
       ! K for sea salt (eck, bmy, 4/6/06) [/s]
       REAL*8, PARAMETER     :: K_SALT_FIXED   = 3.8d-5
 
-      ! External functions
-      REAL*8,  EXTERNAL     :: BOXVL
-
       ! Set of Hg/Br rate constants to use
       ! Recommended: DonohoueYBBalabanov, GoodsiteY, or DonohoueYB
       ! DonohoueYBBalabanov used by Holmes et al. 2010
@@ -685,12 +682,14 @@
          F_PBL = GET_FRAC_UNDER_PBLTOP( I, J, L )
 
          ! Monthly mean O3, OH Br concentrations [molec/cm3]
-         C_O3        = GET_O3( I, J, L )
-         C_OH        = GET_OH( I, J, L )
 #if defined( DEVEL )
          C_BR        = GET_BR( I, J, L, LOCAL_MET, C_BRO )
+         C_O3        = GET_O3( I, J, L, LOCAL_MET )
+         C_OH        = GET_OH( I, J, L )
 #else
          C_BR        = GET_BR( I, J, L, C_BRO )
+         C_O3        = GET_O3( I, J, L )
+         C_OH        = GET_OH( I, J, L )
 #endif
 
 #if   defined( GEOS_5 ) || defined( MERRA ) || defined( GEOS_57 )
@@ -707,8 +706,11 @@
 
             ! Get liquid water content [m3 H2O/m3 air] within cloud from met
             ! Units: [kg H2O/kg air] * [kg air/m3 air] * [m3 H2O/1e3 kg H2O]
+#if defined( DEVEL )
+            LWC = LOCAL_MET%QL(I,J,L) * AIRDEN(L,I,J) * 1D-3
+#else
             LWC = QL(I,J,L) * AIRDEN(L,I,J) * 1D-3
-
+#endif
             !%%% NOTE: Someone should investigate effect of dividing LWC by the
             !%%% cloud fraction, as is done in sulfate_mod.f (bmy, 5/27/11)
 
@@ -730,7 +732,11 @@
 
          ! Get volume fraction of gridbox containing 
          ! cloud [unitless], following Sundqvist et al 1989.
+#if defined( DEVEL )
+         FC          = GET_VCLDF( I, J, L, LOCAL_MET )
+#else
          FC          = GET_VCLDF( I, J, L )
+#endif
 
          ! Get liquid water content for entire grid box,
          ! based on formula for LWC in cloud (m3/m3)
@@ -3445,7 +3451,11 @@
 
 !------------------------------------------------------------------------------
 
+#if defined( DEVEL )
+      FUNCTION GET_VCLDF( I, J, L, LOCAL_MET ) RESULT( VCLDF )
+#else
       FUNCTION GET_VCLDF( I, J, L ) RESULT( VCLDF )
+#endif
 ! 
 !******************************************************************************
 !  Subroutine GET_VCLDF computes the volume cloud fraction for Hg0 and Hg2
@@ -3467,9 +3477,15 @@
       ! References to F90 modules 
       USE DAO_MOD,      ONLY : RH
       USE PRESSURE_MOD, ONLY : GET_PCENTER, GET_PEDGE
+#if defined( DEVEL )
+      USE GC_TYPE_MOD,  ONLY : GC_MET_LOCAL
+#endif
       
       ! Arguments
       INTEGER, INTENT(IN)  :: I, J, L
+#if defined( DEVEL )
+      TYPE(GC_MET_LOCAL), INTENT(IN) :: LOCAL_MET  ! Obj w/ met fields
+#endif
 
       ! Local variables
       REAL*8               :: PRES, PSFC, RH2, R0, B0
@@ -3490,7 +3506,11 @@
         
       ! RH (from "dao_mod.f") is relative humidity [%]
       ! Convert to fraction and store in RH2
+#if defined( DEVEL )
+      RH2  = LOCAL_MET%RH(I,J,L) * 1.0d-2
+#else
       RH2  = RH(I,J,L) * 1.0d-2
+#endif
         
       ! Terms from Sundqvist ???
       R0   = ZRT + ( ZRS - ZRT ) * EXP( 1d0 - ( PSFC / PRES )**2.5 )
@@ -3508,7 +3528,11 @@
 
 !------------------------------------------------------------------------------
 
+#if defined( DEVEL )
+      FUNCTION GET_O3( I, J, L, LOCAL_MET ) RESULT( O3_MOLEC_CM3 )
+#else
       FUNCTION GET_O3( I, J, L ) RESULT( O3_MOLEC_CM3 )
+#endif
 !
 !******************************************************************************
 !  Function GET_O3 returns monthly mean O3 for offline sulfate aerosol
@@ -3526,11 +3550,17 @@
       ! References to F90 modules
       USE DAO_MOD      , ONLY : AD
       USE GLOBAL_O3_MOD, ONLY : O3
+#if defined( DEVEL )
+      USE GC_TYPE_MOD,   ONLY : GC_MET_LOCAL
+#endif
 
       USE CMN_SIZE_MOD  ! Size parameters
 
       ! Arguments
       INTEGER, INTENT(IN) :: I, J, L
+#if defined( DEVEL )
+      TYPE(GC_MET_LOCAL), INTENT(IN) :: LOCAL_MET  ! Obj w/ met fields
+#endif
 
       ! Local variables
       REAL*8              :: O3_MOLEC_CM3
@@ -3544,8 +3574,13 @@
 
       ! Get ozone [v/v] for this gridbox & month
       ! and convert to [molec/cm3] (eck, 12/2/04)
+#if defined( DEVEL )
+      O3_MOLEC_CM3 = O3(I,J,L)           * ( 6.022d23 / 28.97d-3 ) * 
+     &               LOCAL_MET%AD(I,J,L) / BOXVL(I,J,L,LOCAL_MET)
+#else
       O3_MOLEC_CM3 = O3(I,J,L) * ( 6.022d23 / 28.97d-3 ) * 
      &               AD(I,J,L)  /  BOXVL(I,J,L)
+#endif
 
       ! Return to calling program
       END FUNCTION GET_O3
@@ -3736,9 +3771,15 @@
          ! Convert BrO concentration to corresponding Br based on
          ! photochemical steady state, pptv
          ! Platt & Janssen, Faraday Discussions (1995)
+#if defined( DEVEL )
+         BR_MBL = BRO_MBL *( J_BRO(I,J,L) + K_BRO_NO * C_NO ) / 
+     &                     ( K_BR_O3      * GET_O3(I,J,L,LOCAL_MET) ) *
+     &                       FPBL
+#else
          BR_MBL = BRO_MBL *( J_BRO(I,J,L) + K_BRO_NO * C_NO ) / 
      &                     ( K_BR_O3 * GET_O3(I,J,L) ) *
      &                     FPBL
+#endif
 
          ! MBL concentration is the greater of the TOMCAT Br or 1pptv BrO
          BR_PPTV  = MAX( BR_PPTV,  BR_MBL )
@@ -3844,10 +3885,19 @@
 
 
       ! Convert pptv mixing ratio -> molec/cm3
+#if defined( DEVEL )
+      BR_MOLEC_CM3  = BR_PPTV             * 1D-12      *
+     &                ( 6.022D23          / 28.97D-3 ) * 
+     &                LOCAL_MET%AD(I,J,L) / BOXVL(I,J,L,LOCAL_MET)
+      BRO_MOLEC_CM3 = BRO_PPTV            * 1D-12      *
+     &                ( 6.022D23          / 28.97D-3 ) * 
+     &                LOCAL_MET%AD(I,J,L) / BOXVL(I,J,L,LOCAL_MET)
+#else
       BR_MOLEC_CM3  = BR_PPTV * 1D-12 * ( 6.022D23 / 28.97D-3 ) * 
      &                AD(I,J,L)  /  BOXVL(I,J,L)
       BRO_MOLEC_CM3 = BRO_PPTV * 1D-12 * ( 6.022D23 / 28.97D-3 ) * 
      &                AD(I,J,L)  /  BOXVL(I,J,L)
+#endif
 
       ! Return to calling program
       END FUNCTION GET_BR
@@ -4219,7 +4269,11 @@
             !
             ! Don't allow supersaturation, as [Cl-] is undefined for RH>=1 
             ! Cap RH at 99%, Don't allow RH < 75% as happens in coastal areas
+#if defined( DEVEL )
+            S = MAX( MIN( LOCAL_MET%RH(I,J,1), 99D0 ), 75D0 ) * 1D-2
+#else
             S = MAX( MIN( RH(I,J,1), 99D0 ), 75D0 ) * 1D-2
+#endif
             
             LOSS_FREQ = 1D-10 * ( 1D0 - EXP( -57.758D0 * (1D0-S) ) ) *
      &           EXP( -1.9351D0  * U10M + 

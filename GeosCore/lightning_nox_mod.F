@@ -155,7 +155,7 @@
 !
 ! !USES:
 !
-      USE DAO_MOD,      ONLY : BXHEIGHT,  CLDTOPS,    T, ZMMU
+      USE DAO_MOD,      ONLY : BXHEIGHT,  CLDTOPS,    T
       USE DIAG56_MOD,   ONLY : AD56,      ND56
       USE GRID_MOD,     ONLY : GET_YMID,  GET_XMID,   GET_AREA_M2
       USE LOGICAL_MOD,  ONLY : LOTDLOC
@@ -384,7 +384,11 @@
                HCHARGE = DZ - ZUP
             ELSE
                LCHARGE = LCHARGE - 1
+#if defined( DEVEL )
+               HCHARGE = ( LOCAL_MET%BXHEIGHT(I,J,LCHARGE) - ZUP ) + DZ
+#else
                HCHARGE = ( BXHEIGHT(I,J,LCHARGE) - ZUP ) + DZ
+#endif
             ENDIF
 
             !===========================================================
@@ -435,6 +439,17 @@
 
 #endif
 
+#if defined( DEVEL )
+            ! H0 is the convective cloud top height [m].  This is the
+            ! distance from the surface to the top edge of box (I,J,LTOP).
+            H0   = SUM( LOCAL_MET%BXHEIGHT(I,J,1:LTOP) )
+
+            ! Z_CG is the cloud-ground path (ground --> HCHARGE) [m]
+            Z_CG = SUM( LOCAL_MET%BXHEIGHT(I,J,1:LCHARGE-1)  ) + HCHARGE
+
+            ! Z_IC is the intra-cloud path (HCHARGE --> cloud top) [m]
+            Z_IC = SUM( LOCAL_MET%BXHEIGHT(I,J,LCHARGE:LTOP) ) - HCHARGE
+#else
             ! H0 is the convective cloud top height [m].  This is the
             ! distance from the surface to the top edge of box (I,J,LTOP).
             H0   = SUM( BXHEIGHT(I,J,1:LTOP) )
@@ -444,6 +459,7 @@
 
             ! Z_IC is the intra-cloud path (HCHARGE --> cloud top) [m]
             Z_IC = SUM( BXHEIGHT(I,J,LCHARGE:LTOP) ) - HCHARGE
+#endif
 
             !===========================================================
             ! (3) COMPUTE COLD CLOUD THICKNESS
@@ -525,12 +541,21 @@
                HBOTTOM = DZ - ZUP
             ELSE
                LBOTTOM = LBOTTOM - 1
+#if defined( DEVEL )
+               HBOTTOM = ( LOCAL_MET%BXHEIGHT(I,J,LBOTTOM) - ZUP ) + DZ
+#else
                HBOTTOM = ( BXHEIGHT(I,J,LBOTTOM) - ZUP ) + DZ
+#endif
             ENDIF
   
             ! Cold cloud thickness is difference of cloud top 
             ! height (H0) and the height to the bottom.
+#if defined( DEVEL )
+            CC = H0 - SUM( LOCAL_MET%BXHEIGHT(I,J,1:LBOTTOM-1) ) -
+     &           HBOTTOM 
+#else
             CC = H0 - SUM( BXHEIGHT(I,J,1:LBOTTOM-1) ) - HBOTTOM 
+#endif
 
             !===========================================================
             ! (4) COMPUTE IC/CG FLASH_RATIO FROM COLD-CLOUD DEPTH
@@ -816,8 +841,6 @@
 !
 ! !USES:
 !
-      !USE DAO_MOD,       ONLY : BXHEIGHT, IS_ICE,  IS_LAND
-      !USE DAO_MOD,       ONLY : IS_NEAR,  IS_WATER
       USE DAO_MOD,       ONLY : BXHEIGHT, IS_LAND,  IS_WATER
       USE DIRECTORY_MOD, ONLY : DATA_DIR
       USE ERROR_MOD,     ONLY : GEOS_CHEM_STOP
@@ -1001,7 +1024,11 @@
       ! Compute the height [km] at the top of each vertical level.
       ! Look up the cumulative fraction of NOx for each vertical level
       DO L = 1, LTOP
+#if defined( DEVEL )
+         ZHEIGHT = ZHEIGHT + LOCAL_MET%BXHEIGHT(I,J,L)
+#else
          ZHEIGHT = ZHEIGHT + BXHEIGHT(I,J,L)
+#endif
          FRAC(L) = PROFILE( NINT( ( ZHEIGHT/H0 )*3200. ), MTYPE ) *0.01
       ENDDO
 
@@ -1375,19 +1402,42 @@
 ! !INTERFACE:
 !
 #if defined( DEVEL )
-      SUBROUTINE EMLIGHTNING( EMISS )
+      SUBROUTINE EMLIGHTNING( LOCAL_MET, EMISS )
 
 !
 ! !USES:
 !
       USE DAO_MOD,  ONLY : BXHEIGHT
       USE DIAG_MOD, ONLY : AD32_li
+      USE GC_TYPE_MOD, ONLY : GC_MET_LOCAL
 
       USE CMN_SIZE_MOD         ! Size parameters
       USE CMN_DIAG_MOD         ! ND32
 
+!
+! !INPUT PARAMETERS:
+!
+      TYPE(GC_MET_LOCAL), INTENT(IN) :: LOCAL_MET  ! Obj w/ met fields
       REAL*8, INTENT(INOUT) :: EMISS(:,:,:)
-
+! 
+! !REVISION HISTORY: 
+!  09 Oct 1997 - R. Yantosca - Initial version
+!  (1 ) Remove IOFF, JOFF from the argument list.  Also remove references
+!        to header files "CMN_O3" and "comtrid.h" (bmy, 3/16/00)
+!  (2 ) Now use allocatable array for ND32 diagnostic (bmy, 3/16/00)  
+!  (3 ) Now reference BXHEIGHT from "dao_mod.f".  Updated comments, cosmetic
+!        changes.  Replace LCONVM with the parameter LLCONVM. (bmy, 9/18/02)
+!  (4 ) Removed obsolete reference to "CMN".  Now bundled into 
+!        "lightning_mod.f" (bmy, 4/14/04)
+!  (5 ) Renamed from EMLIGHTNING_NL to EMLIGHTNING.  Now replace GEMISNOX
+!        (from CMN_NOX) with module variable EMIS_LI_NOx. (ltm, bmy, 10/3/07)
+!  10 Nov 2010 - R. Yantosca - Added ProTeX headers
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+!
+! !LOCAL VARIABLES:
+!   
       INTEGER             :: I,J,L
       REAL*8              :: TMP
 
@@ -1403,7 +1453,8 @@
                
 ! SLBASE(I,J,L) has units [molec NOx/6h/box], convert units:
 ! [molec/6h/box] * [6h/21600s] * [box/BOXVL cm3] = [molec/cm3/s]
-               TMP         = SLBASE(I,J,L) / ( 21600.d0 * BOXVL(I,J,L) )
+               TMP         = SLBASE(I,J,L) / ( 21600.d0 *
+     &                       BOXVL(I,J,L,LOCAL_MET) )
 
                EMIS_LI_NOx(I,J,L) = TMP
                EMISS      (I,J,L) = TMP
@@ -1411,7 +1462,7 @@
 ! ND32 Diagnostic: Lightning NOx [molec NOx/cm2/s]
                IF ( ND32 > 0 ) THEN
                   AD32_li(I,J,L) = AD32_li(I,J,L) + 
-     &                 ( TMP * BXHEIGHT(I,J,L) * 1d2 )
+     &                 ( TMP * LOCAL_MET%BXHEIGHT(I,J,L) * 1d2 )
                ENDIF
             ENDDO
          ENDDO

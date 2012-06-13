@@ -125,6 +125,13 @@
       USE GC_TYPE2_MOD,    ONLY : CHEMSTATE, NULL
       USE GC_TYPE_MOD,     ONLY : GC_MET_LOCAL
 #endif
+!
+! !INPUT/OUTPUT PARAMETERS:
+!
+#if defined( DEVEL )
+      TYPE(GC_MET_LOCAL), INTENT(INOUT) :: LOCAL_MET  ! Obj w/ met fields
+      TYPE(CHEMSTATE),    INTENT(INOUT) :: CHEM_STATE
+#endif
 
 !
 ! !REVISION HISTORY: 
@@ -179,12 +186,6 @@
       LOGICAL, SAVE :: FIRST = .TRUE.
       INTEGER       :: N_TROP, MONTH, YEAR, WAVELENGTH
 
-#if defined( DEVEL )
-      TYPE(CHEMSTATE),    INTENT(INOUT) :: CHEM_STATE
-      TYPE(GC_MET_LOCAL), INTENT(IN)    :: LOCAL_MET  ! Obj w/ met fields
-!      REAL*8                         :: STT(IIPAR,JJPAR,LLPAR,N_TRACERS)
-#endif
-
       !=================================================================
       ! DO_CHEMISTRY begins here!
       !=================================================================
@@ -209,40 +210,68 @@
          !---------------------------------
          IF ( ITS_A_FULLCHEM_SIM() ) THEN 
 
-            ! Call SMVGEAR routines
 #if defined( DEVEL )
+            ! Call SMVGEAR routines
             CALL CHEMDR( LOCAL_MET )
-#else
-            CALL CHEMDR
+
+            ! Do seasalt aerosol chemistry
+            IF ( LSSALT ) CALL CHEMSEASALT( LOCAL_MET )
+
+            ! Also do sulfate chemistry
+            IF ( LSULF ) THEN
+
+               ! Do sulfate chemistry
+               CALL CHEMSULFATE( LOCAL_MET )
+ 
+               ! Do aerosol thermodynamic equilibrium
+               IF ( LSSALT ) THEN
+
+#if   !defined( NO_ISORROPIA )
+                  ! ISOROPIA takes Na+, Cl- into account
+                  CALL DO_ISOROPIAII( LOCAL_MET )
 #endif
+
+               ELSE
+
+                  ! RPMARES does not take Na+, Cl- into account
+                  CALL DO_RPMARES( LOCAL_MET )
+
+               ENDIF
+
+            ENDIF
+
+            ! Do carbonaceous aerosol chemistry
+            IF ( LCARB ) CALL CHEMCARBON( LOCAL_MET )
+
+            ! Do dust aerosol chemistry
+            IF ( LDUST ) CALL CHEMDUST( LOCAL_MET )
+
+            ! ND44 drydep fluxes
+            ! The drydep fluxes diag. is done in vdiff_mod.f when non-local 
+            ! PBL is used ( Lin, 03/31/09) 
+            IF (.NOT. LNLPBL) CALL DRYFLX     
+ 
+            ! ND43 chemical production
+            CALL DIAGOH
+ 
+            ! Remove acetone ocean sink
+            IF ( IDTACET /= 0 ) THEN
+               CALL OCEAN_SINK_ACET( LOCAL_MET%ALBD, LOCAL_MET%TS,
+     &                               LOCAL_MET%U10M, LOCAL_MET%V10M,
+     &                               STT(:,:,1,IDTACET),
+     &                               LOCAL_MET ) 
+            ENDIF
+ 
+#else
+
+            ! Call SMVGEAR routines
+            CALL CHEMDR
 
              ! Do seasalt aerosol chemistry
              IF ( LSSALT ) CALL CHEMSEASALT
 
              ! Also do sulfate chemistry
              IF ( LSULF ) THEN
-
-#if defined( DEVEL )
-
-                ! Do sulfate chemistry
-                CALL CHEMSULFATE( LOCAL_MET )
- 
-                ! Do aerosol thermodynamic equilibrium
-                IF ( LSSALT ) THEN
-                
-#if   !defined( NO_ISORROPIA )
-                   ! ISOROPIA takes Na+, Cl- into account
-                   CALL DO_ISOROPIAII( LOCAL_MET )
-#endif
-
-                ELSE
-
-                   ! RPMARES does not take Na+, Cl- into account
-                   CALL DO_RPMARES( LOCAL_MET )
-
-                ENDIF
-
-#else
 
                 ! Do sulfate chemistry
                 CALL CHEMSULFATE
@@ -261,20 +290,15 @@
                    CALL DO_RPMARES
  
                 ENDIF
-#endif
-                
+
              ENDIF
- 
+
              ! Do carbonaceous aerosol chemistry
-#if defined( DEVEL )
-             IF ( LCARB ) CALL CHEMCARBON( LOCAL_MET )
-#else
              IF ( LCARB ) CALL CHEMCARBON
-#endif
  
              ! Do dust aerosol chemistry
              IF ( LDUST ) CALL CHEMDUST
- 
+
              ! ND44 drydep fluxes
              ! The drydep fluxes diag. is done in vdiff_mod.f when non-local 
              ! PBL is used ( Lin, 03/31/09) 
@@ -285,16 +309,13 @@
  
              ! Remove acetone ocean sink
              IF ( IDTACET /= 0 ) THEN
-#if defined( DEVEL )
-                CALL OCEAN_SINK_ACET( LOCAL_MET%ALBD, LOCAL_MET%TS,
-     &                                LOCAL_MET%U10M, LOCAL_MET%V10M,
-     &                                STT(:,:,1,IDTACET) ) 
-#else
                 CALL OCEAN_SINK_ACET( ALBD, TS, U10M, V10M, 
      &                                STT(:,:,1,IDTACET) ) 
-#endif
              ENDIF
  
+#endif
+
+
           !---------------------------------
           ! Offline aerosol simulation
           !---------------------------------
@@ -326,19 +347,18 @@
                 FIRST = .FALSE.
              ENDIF
  
+#if defined( DEVEL )
              ! Compute aerosol & dust concentrations [kg/m3]
              ! (NOTE: SOILDUST in "aerosol_mod.f" is computed here)
-             CALL AEROSOL_CONC
+             CALL AEROSOL_CONC( LOCAL_MET )
  
              ! Compute AOD's and surface areas at 999 nm
              MONTH = 0
              YEAR  = 0
              WAVELENGTH = 0
 
-             CALL RDAER( MONTH, YEAR, WAVELENGTH )
+             CALL RDAER( MONTH, YEAR, WAVELENGTH, LOCAL_MET )
  
-#if defined( DEVEL )
-
              !*** AEROSOL THERMODYNAMIC EQUILIBRIUM ***
              IF ( LSSALT ) THEN
 
@@ -355,7 +375,42 @@
  
              ENDIF
 
+             !*** SEASALT AEROSOLS ***
+             IF ( LSSALT ) CALL CHEMSEASALT( LOCAL_MET )
+ 
+             !*** SULFATE AEROSOLS ***
+             IF ( LSULF .or. LCRYST ) THEN
+                ! Do sulfate chemistry
+                CALL CHEMSULFATE( LOCAL_MET )
+             ENDIF
+                
+             !*** CARBON AND 2NDARY ORGANIC AEROSOLS ***
+             IF ( LCARB ) CALL CHEMCARBON( LOCAL_MET )
+ 
+             !*** MINERAL DUST AEROSOLS ***
+             IF ( LDUST ) THEN 
+ 
+                ! Do dust aerosol chemsitry
+                CALL CHEMDUST( LOCAL_MET )
+ 
+                WAVELENGTH = 0
+
+                ! Compute dust OD's & surface areas
+                CALL RDUST_ONLINE( SOILDUST, WAVELENGTH, LOCAL_MET )
+
+             ENDIF
+
 #else
+             ! Compute aerosol & dust concentrations [kg/m3]
+             ! (NOTE: SOILDUST in "aerosol_mod.f" is computed here)
+             CALL AEROSOL_CONC
+ 
+             ! Compute AOD's and surface areas at 999 nm
+             MONTH = 0
+             YEAR  = 0
+             WAVELENGTH = 0
+
+             CALL RDAER( MONTH, YEAR, WAVELENGTH )
  
              !*** AEROSOL THERMODYNAMIC EQUILIBRIUM ***
              IF ( LSSALT ) THEN
@@ -372,28 +427,18 @@
                 IF ( .not. LCRYST ) CALL DO_RPMARES
  
              ENDIF
-#endif
- 
+
              !*** SEASALT AEROSOLS ***
              IF ( LSSALT ) CALL CHEMSEASALT
  
              !*** SULFATE AEROSOLS ***
              IF ( LSULF .or. LCRYST ) THEN
- 
                 ! Do sulfate chemistry
-#if defined( DEVEL )
-                CALL CHEMSULFATE( LOCAL_MET )
-#else
                 CALL CHEMSULFATE
-#endif 
              ENDIF
                 
              !*** CARBON AND 2NDARY ORGANIC AEROSOLS ***
-#if defined( DEVEL )
-             IF ( LCARB ) CALL CHEMCARBON( LOCAL_MET )
-#else
              IF ( LCARB ) CALL CHEMCARBON
-#endif
  
              !*** MINERAL DUST AEROSOLS ***
              IF ( LDUST ) THEN 
@@ -406,7 +451,8 @@
                 ! Compute dust OD's & surface areas
                 CALL RDUST_ONLINE( SOILDUST, WAVELENGTH )
              ENDIF
- 
+#endif
+
           !---------------------------------
           ! Rn-Pb-Be
           !---------------------------------                 
@@ -467,7 +513,11 @@
  
              ! Only call after the first 24 hours
              IF ( GET_ELAPSED_MIN() >= GET_TS_CHEM() ) THEN
+#if defined( DEVEL )
+                CALL CHEMCH4( LOCAL_MET )
+#else
                 CALL CHEMCH4
+#endif
              ENDIF
  
           !---------------------------------
@@ -812,7 +862,11 @@
 !\\
 ! !INTERFACE:
 !
+#if defined( DEVEL )
+      SUBROUTINE RECOMPUTE_OD( LOCAL_MET )
+#else
       SUBROUTINE RECOMPUTE_OD
+#endif
 !
 ! !USES:
 !
@@ -826,6 +880,15 @@
       USE TIME_MOD,        ONLY : GET_MONTH, GET_YEAR
       USE TRACER_MOD,      ONLY : ITS_A_FULLCHEM_SIM
       USE TRACER_MOD,      ONLY : ITS_AN_AEROSOL_SIM
+#if defined( DEVEL )
+      USE GC_TYPE_MOD,     ONLY : GC_MET_LOCAL
+#endif
+!
+! !INPUT PARAMETERS:
+!
+#if defined( DEVEL )
+      TYPE(GC_MET_LOCAL), INTENT(IN) :: LOCAL_MET  ! Obj w/ met fields
+#endif
 !
 ! !REVISION HISTORY: 
 !  03 Fev 2011 - Adapted from chemdr.f by skim
@@ -852,7 +915,11 @@
             IF ( LSULF .or. LCARB .or. LDUST .or. LSSALT ) THEN
 
                ! Skip this section if all of these are turned off
+#if defined( DEVEL )
+               CALL AEROSOL_CONC( LOCAL_MET )
+#else
                CALL AEROSOL_CONC
+#endif
 
                !===============================================================
                ! Call RDAER -- computes aerosol optical depths
@@ -861,7 +928,11 @@
                ! Calculate the AOD at the wavelength specified in jv_spec_aod
                WAVELENGTH = 1
 
+#if defined( DEVEL )
+               CALL RDAER( MONTH, YEAR, WAVELENGTH, LOCAL_MET )
+#else
                CALL RDAER( MONTH, YEAR, WAVELENGTH )
+#endif
 
                !### Debug
                IF ( LPRT ) THEN 
@@ -877,11 +948,20 @@
                ! in GEOS-CHEM...so read monthly-mean dust files from disk.
                ! (rjp, tdf, bmy, 4/1/04)
                !===============================================================
+#if defined( DEVEL )
+               IF ( LDUST ) THEN
+                  CALL RDUST_ONLINE( SOILDUST, WAVELENGTH, LOCAL_MET )
+               ELSE
+                  CALL RDUST_OFFLINE( MONTH, YEAR, WAVELENGTH,
+     &                                LOCAL_MET )
+               ENDIF
+#else
                IF ( LDUST ) THEN
                   CALL RDUST_ONLINE( SOILDUST, WAVELENGTH )
                ELSE
                   CALL RDUST_OFFLINE( MONTH, YEAR, WAVELENGTH )
                ENDIF
+#endif
 
                !### Debug
                IF ( LPRT ) THEN

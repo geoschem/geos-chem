@@ -64,7 +64,11 @@
 
 !------------------------------------------------------------------------------
       
+#if defined( DEVEL )
+      FUNCTION GET_HNO3_UGM3( I, J, L, LOCAL_MET ) RESULT( HNO3_UGM3 )
+#else
       FUNCTION GET_HNO3_UGM3( I, J, L ) RESULT( HNO3_UGM3 )
+#endif
 !
 !******************************************************************************
 !  Subroutine GET_HNO3_UGM3 converts monthly mean HNO3 mixing ratio from [v/v] 
@@ -83,11 +87,17 @@
       ! References to F90 modules
       USE DAO_MOD,    ONLY : AD, AIRVOL
       USE TRACER_MOD, ONLY : TCVV
+#if defined( DEVEL )
+      USE GC_TYPE_MOD, ONLY : GC_MET_LOCAL
+#endif
 
       USE CMN_SIZE_MOD  ! Size parameters
 
       ! Arguments
       INTEGER, INTENT(IN) :: I, J, L
+#if defined( DEVEL )
+      TYPE(GC_MET_LOCAL), INTENT(IN) :: LOCAL_MET  ! Obj w/ met fields
+#endif
 
       ! Local variables
       REAL*8              :: HNO3_UGM3
@@ -96,11 +106,19 @@
       ! GET_HNO3_UGM3 begins here!
       !=================================================================
 
+#if defined( DEVEL )
+      ! First convert HNO3 from [v/v] to [kg]
+      HNO3_UGM3 = HNO3(I,J,L) * LOCAL_MET%AD(I,J,L) / ( 28.97d0 / 63d0 )
+
+      ! Then convert HNO3 from [kg] to [ug/m3]
+      HNO3_UGM3 = HNO3_UGM3 * 1.d9 / LOCAL_MET%AIRVOL(I,J,L)
+#else
       ! First convert HNO3 from [v/v] to [kg]
       HNO3_UGM3 = HNO3(I,J,L) * AD(I,J,L) / ( 28.97d0 / 63d0 )
 
       ! Then convert HNO3 from [kg] to [ug/m3]
       HNO3_UGM3 = HNO3_UGM3 * 1.d9 / AIRVOL(I,J,L)
+#endif
 
       ! Return to calling program
       END FUNCTION GET_HNO3_UGM3

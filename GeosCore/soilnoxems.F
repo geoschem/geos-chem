@@ -102,7 +102,7 @@
       REAL*8                        :: SOILNOXDIAG(IIPAR,JJPAR)
       
       ! External functions
-      REAL*8, EXTERNAL              :: BOXVL,      FERTADD,  PULSING
+      REAL*8, EXTERNAL              :: FERTADD,    PULSING
       REAL*8, EXTERNAL              :: SFCWINDSQR, SOILBASE, SOILCRF
       REAL*8, EXTERNAL              :: SOILTEMP
 
@@ -222,7 +222,11 @@
          ZBL = 0.D0
          KBL = 1
          DO L = 1, KBL
+#if defined( DEVEL )
+            ZBL = ZBL + LOCAL_MET%BXHEIGHT(I,J,L) * 100.D0
+#else
             ZBL = ZBL + BXHEIGHT(I,J,L)*100.D0
+#endif
          ENDDO
 
          ! Store soil NOx in GEMISNOX2, the global NOx emissions array, which

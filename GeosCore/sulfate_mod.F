@@ -267,14 +267,27 @@
 !\\
 ! !INTERFACE:
 !
+#if defined( DEVEL )
+      SUBROUTINE GET_VCLDF( LOCAL_MET )
+#else
       SUBROUTINE GET_VCLDF
+#endif
 !
 ! !USES:
 !
       USE DAO_MOD,      ONLY : RH
       USE PRESSURE_MOD, ONLY : GET_PCENTER, GET_PEDGE
+#if defined( DEVEL )
+      USE GC_TYPE_MOD,  ONLY : GC_MET_LOCAL
+#endif
 
       USE CMN_SIZE_MOD       ! Size parameters
+!
+! !INPUT PARAMETERS:
+!
+#if defined( DEVEL )
+      TYPE(GC_MET_LOCAL), INTENT(IN) :: LOCAL_MET  ! Obj w/ met fields
+#endif
 !
 ! !REMARKS:
 !  References:
@@ -320,7 +333,11 @@
 
          ! RH (from "dao_mod.f") is relative humidity [%]
          ! Convert to fraction and store in RH2
+#if defined( DEVEL )
+         RH2  = LOCAL_MET%RH(I,J,L) * 1.0d-2
+#else
          RH2  = RH(I,J,L) * 1.0d-2
+#endif
 
          ! Terms from Sundqvist ???
          R0   = ZRT + ( ZRS - ZRT ) * EXP( 1d0 - ( PSFC / PRES )**2.5 )
@@ -479,10 +496,6 @@
       INTEGER, SAVE       :: LASTMONTH = -99
       INTEGER             :: I, J, L, N, MONTH
       REAL*8              :: DTCHEM
-!
-! !EXTERNAL FUNCTIONS:   
-!
-      REAL*8,  EXTERNAL   :: BOXVL
 
       !=================================================================
       ! CHEMSULFATE begins here!
@@ -532,19 +545,18 @@
       ! Call individual chemistry routines for sulfate/aerosol tracers
       !=================================================================
 
+#if defined( DEVEL )
       ! SO4s [kg] gravitational settling 
-      CALL GRAV_SETTLING( STT(:,:,:,IDTSO4s), 1 )
+      CALL GRAV_SETTLING( STT(:,:,:,IDTSO4s), 1, LOCAL_MET )
       IF ( LPRT ) CALL DEBUG_MSG( '### CHEMSULFATE: GRAV_SET, SO4S' )
 
       ! NITs [kg] gravitational settling 
-      CALL GRAV_SETTLING( STT(:,:,:,IDTNITs), 2 )
+      CALL GRAV_SETTLING( STT(:,:,:,IDTNITs), 2, LOCAL_MET )
       IF ( LPRT ) CALL DEBUG_MSG( '### CHEMSULFATE: GRAV_SET, NITS' )
 
       ! Convert all tracers in STT from [kg] -> [v/v] 
-      CALL CONVERT_UNITS( 1, N_TRACERS, TCVV, AD, STT )
+      CALL CONVERT_UNITS( 1, N_TRACERS, TCVV, LOCAL_MET%AD, STT )
       IF ( LPRT ) CALL DEBUG_MSG( '### CHEMSULFATE: a CONVERT UNITS' )
-
-#if defined( DEVEL )
 
       ! For offline runs only ...
       IF ( ITS_AN_AEROSOL_SIM() ) THEN
@@ -560,7 +572,7 @@
       ENDIF
 
       ! SO2 
-      CALL GET_VCLDF
+      CALL GET_VCLDF( LOCAL_MET )
       IF ( LPRT ) CALL DEBUG_MSG( '### CHEMSULFATE: a get VCLDF' )
       CALL CHEM_SO2( LOCAL_MET )
       IF ( LPRT ) CALL DEBUG_MSG( '### CHEMSULFATE: a CHEM_SO2' )
@@ -591,30 +603,41 @@
       IF ( LPRT ) CALL DEBUG_MSG( '### CHEMSULFATE: a CHEM_MSA' )
 
       ! NH3 
-      CALL CHEM_NH3
+      CALL CHEM_NH3( LOCAL_MET )
       IF ( LPRT ) CALL DEBUG_MSG( '### CHEMSULFATE: a CHEM_NH3' )
 
       ! NH4 (gas-phase)
-      CALL CHEM_NH4
+      CALL CHEM_NH4( LOCAL_MET )
       IF ( LPRT ) CALL DEBUG_MSG( '### CHEMSULFATE: a CHEM_NH4' )
 
 !-----------------------------------------------------------------------------
 !%%% Currently under development (rjp, bmy, 3/15/05)
 !%%%      ! NH4 (aqueous phase)
 !%%%      IF ( LCRYST ) THEN
-!%%%         CALL CHEM_NH4aq
+!%%%         CALL CHEM_NH4aq( LOCAL_MET )
 !%%%         IF ( LPRT ) CALL DEBUG_MSG( '### CHEMSULFATE: a CHEM_NH4aq' )
 !%%%      ENDIF
 !-----------------------------------------------------------------------------
 
       ! Sulfur Nitrate 
-      CALL CHEM_NIT
+      CALL CHEM_NIT( LOCAL_MET )
       IF ( LPRT ) CALL DEBUG_MSG( '### CHEMSULFATE: a CHEM_NIT' )
  
       ! Convert STT from [v/v] -> [kg]
-      CALL CONVERT_UNITS( 2, N_TRACERS, TCVV, AD, STT )
+      CALL CONVERT_UNITS( 2, N_TRACERS, TCVV, LOCAL_MET%AD, STT )
 
 #else
+      ! SO4s [kg] gravitational settling 
+      CALL GRAV_SETTLING( STT(:,:,:,IDTSO4s), 1 )
+      IF ( LPRT ) CALL DEBUG_MSG( '### CHEMSULFATE: GRAV_SET, SO4S' )
+
+      ! NITs [kg] gravitational settling 
+      CALL GRAV_SETTLING( STT(:,:,:,IDTNITs), 2 )
+      IF ( LPRT ) CALL DEBUG_MSG( '### CHEMSULFATE: GRAV_SET, NITS' )
+
+      ! Convert all tracers in STT from [kg] -> [v/v] 
+      CALL CONVERT_UNITS( 1, N_TRACERS, TCVV, AD, STT )
+      IF ( LPRT ) CALL DEBUG_MSG( '### CHEMSULFATE: a CONVERT UNITS' )
 
       ! For offline runs only ...
       IF ( ITS_AN_AEROSOL_SIM() ) THEN
@@ -705,7 +728,11 @@
 !\\
 ! !INTERFACE:
 !
+#if defined( DEVEL )
+      SUBROUTINE GRAV_SETTLING( TC, N, LOCAL_MET )
+#else
       SUBROUTINE GRAV_SETTLING( TC, N )
+#endif
 !
 ! !USES:
 !
@@ -717,6 +744,9 @@
       USE TRACERID_MOD,  ONLY : IDTSO4s,         IDTNITs
       USE TIME_MOD,      ONLY : GET_ELAPSED_SEC, GET_TS_CHEM
       USE GRID_MOD,      ONLY : GET_AREA_CM2
+#if defined( DEVEL )
+      USE GC_TYPE_MOD,   ONLY : GC_MET_LOCAL
+#endif
 
       USE CMN_SIZE_MOD        ! Size parameters
       USE CMN_DIAG_MOD        ! ND44
@@ -725,6 +755,9 @@
 ! !INPUT PARAMETERS: 
 !
       INTEGER, INTENT(IN)    :: N  ! N=1 is SO4S; N=2 is NITS
+#if defined( DEVEL )
+      TYPE(GC_MET_LOCAL), INTENT(IN) :: LOCAL_MET  ! Obj w/ met fields
+#endif
 !
 ! !INPUT/OUTPUT PARAMETERS: 
 !
@@ -842,7 +875,11 @@
             TEMP    = T(I,J,L)
 
             ! Cap RH at 0.99 
+#if defined( DEVEL )
+            RHB     = MIN( 0.99d0, LOCAL_MET%RH(I,J,L) * 1d-2 )
+#else
             RHB     = MIN( 0.99d0, RH(I,J,L) * 1d-2 )
+#endif
 
             ! Safety check (phs, 5/1/08)
             RHB     = MAX( TINY(RHB), RHB           )
@@ -940,13 +977,22 @@
 
          ! We know the boundary condition at the model top
          L    = LLTROP
+#if defined( DEVEL )
+         DELZ = LOCAL_MET%BXHEIGHT(I,J,L)
+#else
          DELZ = BXHEIGHT(I,J,L)
+#endif
 
          TC(I,J,L) = TC(I,J,L) / ( 1.d0 + DTCHEM * VTS(L) / DELZ )
 
          DO L = LLTROP-1, 1, -1
+#if defined( DEVEL )
+            DELZ  = LOCAL_MET%BXHEIGHT(I,J,L)
+            DELZ1 = LOCAL_MET%BXHEIGHT(I,J,L+1)
+#else
             DELZ  = BXHEIGHT(I,J,L)
             DELZ1 = BXHEIGHT(I,J,L+1)
+#endif
             TC(I,J,L) = 1.d0 / ( 1.d0 + DTCHEM * VTS(L) / DELZ )
      &                * ( TC(I,J,L) + DTCHEM * VTS(L+1) / DELZ1
      &                *  TC(I,J,L+1) )
@@ -1141,7 +1187,11 @@
          O2     = AIRDEN(L,I,J) * f * 0.21d0
          DMS0   = STT(I,J,L,IDTDMS)
          OH     = GET_OH( I, J, L )
+#if defined( DEVEL )
+         XNO3   = GET_NO3( I, J, L, LOCAL_MET )
+#else
          XNO3   = GET_NO3( I, J, L )
+#endif
 
          !==============================================================
          ! (1) DMS + OH:  RK1 - addition channel  
@@ -1229,6 +1279,40 @@
          !==============================================================
          IF ( ND05 > 0 .and. L <= LD05 ) THEN
 
+#if defined( DEVEL )
+            ! P(SO2) from DMS+OH, DMS+NO3, and DMS+X
+            XOH  = ( DMS0   - DMS_OH - PMSA_DMS(I,J,L) ) /
+     &                 Fx   * LOCAL_MET%AD(I,J,L) / TCVV_S
+            XN3  = ( DMS_OH - DMS ) / Fx * LOCAL_MET%AD(I,J,L) / TCVV_S
+            XX   = ( ( DMS0 - DMS ) * LOCAL_MET%AD(I,J,L) / TCVV_S )
+     &               - XOH  - XN3
+        
+            ! Convert L(OH) and L(NO3) from [molec/cm3] to [kg/timestep]
+            LOH  = ( OH0   - OH  ) * BOXVL(I,J,L,LOCAL_MET) / XNUMOL_OH
+            LNO3 = ( XNO30 - XNO3) * BOXVL(I,J,L,LOCAL_MET) / XNUMOL_NO3 
+
+            ! Store P(SO2) from DMS + OH [kg S/timestep]
+            AD05(I,J,L,1) = AD05(I,J,L,1) + XOH
+
+            ! Store P(SO2) from DMS + NO3 [kg S/timestep]
+            AD05(I,J,L,2) = AD05(I,J,L,2) + XN3
+
+            ! Store total P(SO2) from DMS [kg S/timestep]
+            AD05(I,J,L,3) = AD05(I,J,L,3)   + 
+     &                    ( PSO2_DMS(I,J,L) * LOCAL_MET%AD(I,J,L) /
+     &                      TCVV_S )
+
+            ! Store P(MSA) from DMS [kg S/timestep]
+            AD05(I,J,L,4) = AD05(I,J,L,4)   + 
+     &                    ( PMSA_DMS(I,J,L) * LOCAL_MET%AD(I,J,L) /
+     &                      TCVV_S )
+
+            ! Store L(OH) by DMS [kg OH/timestep]
+            AD05(I,J,L,9) = AD05(I,J,L,9) + LOH
+            
+            ! Store L(NO3) by DMS [kg NO3/timestep]
+            AD05(I,J,L,10) = AD05(I,J,L,10) + LNO3
+#else
             ! P(SO2) from DMS+OH, DMS+NO3, and DMS+X
             XOH  = ( DMS0   - DMS_OH - PMSA_DMS(I,J,L) ) /
      $           Fx * AD(I,J,L) / TCVV_S
@@ -1258,6 +1342,7 @@
             
             ! Store L(NO3) by DMS [kg NO3/timestep]
             AD05(I,J,L,10) = AD05(I,J,L,10) + LNO3
+#endif
 
          ENDIF
 
@@ -1507,7 +1592,11 @@
 
             ! Convert H2O2 from [v/v] to H2O2 [molec/cm2/s]
             FLUX = H2O20 * FREQ * DT / ( 1.D0 + FREQ * DT )
+#if defined( DEVEL )
+            FLUX = FLUX * LOCAL_MET%AD(I,J,L) / TCVV(IDTH2O2)
+#else
             FLUX = FLUX * AD(I,J,L) / TCVV(IDTH2O2)
+#endif
             FLUX = FLUX * XNUMOL(IDTH2O2) 
      &            / ( GET_AREA_CM2( I, J, L ) * DT )
 
@@ -1795,7 +1884,12 @@
          !==============================================================
 
          ! Get alkalinity of accum (ALK1) and coarse (ALK2) [kg]
+#if defined( DEVEL ) 
+         CALL GET_ALK( I,    J,    L,   LOCAL_MET, 
+     &                 ALK1, ALK2, Kt1, Kt2, Kt1N, Kt2N )
+#else
          CALL GET_ALK( I, J, L, ALK1, ALK2, Kt1, Kt2, Kt1N, Kt2N )
+#endif
 
          ! Total alkalinity [kg]
          ALK = ALK1 + ALK2
@@ -1808,9 +1902,15 @@
 
             ! Compute oxidation of SO2 -> SO4 and condensation of
             ! HNO3 -> nitrate within the seasalt aerosol 
+#if defined( DEVEL )
+            CALL SEASALT_CHEM( I,      J,     L,   ALK1, ALK2,
+     &                         SO2_cd, Kt1,   Kt2, Kt1N, Kt2N,
+     &                         SO2_ss, PSO4E, PSO4F, LOCAL_MET ) 
+#else
             CALL SEASALT_CHEM( I,      J,     L,   ALK1, ALK2,
      &                         SO2_cd, Kt1,   Kt2, Kt1N, Kt2N,
      &                         SO2_ss, PSO4E, PSO4F ) 
+#endif
 
          ELSE
 
@@ -1838,7 +1938,11 @@
 
          ! Get liquid water content [m3 H2O/m3 air] within cloud from met flds
          ! Units: [kg H2O/kg air] * [kg air/m3 air] * [m3 H2O/1e3 kg H2O]
+#if defined( DEVEL )
+         LWC     = LOCAL_MET%QL(I,J,L) * AIRDEN(L,I,J) * 1D-3
+#else
          LWC     = QL(I,J,L) * AIRDEN(L,I,J) * 1D-3
+#endif
 
          ! LWC is a grid-box averaged quantity. To improve the representation 
          ! of sulfate chemistry, we divide LWC by the cloud fraction and 
@@ -2061,6 +2165,24 @@
          !=================================================================
          IF ( ND05 > 0 .and. L <= LD05 ) THEN
            
+#if defined( DEVEL )
+            ! P(SO4) from gas-phase oxidation [kg S/timestep]
+            AD05(I,J,L,5) = AD05(I,J,L,5) +
+     &                      ( L1  * LOCAL_MET%AD(I,J,L) / TCVV_S )
+
+            ! P(SO4) from aqueous-phase oxidation with H2O2 [kg S/timestep]
+            AD05(I,J,L,6) = AD05(I,J,L,6) +
+     &                      ( L2S * LOCAL_MET%AD(I,J,L) / TCVV_S )
+
+            ! P(SO4) from aqueous-phase oxidation with O3 [kg S/timestep]
+            AD05(I,J,L,7) = AD05(I,J,L,7) +
+     &                      ( L3S * LOCAL_MET%AD(I,J,L) / TCVV_S )
+
+            ! P(SO4) from O3 oxidation in sea-salt aerosols [kg S/timestep]
+            AD05(I,J,L,8) = AD05(I,J,L,8) +
+     &                      ( (PSO4E + PSO4F) * LOCAL_MET%AD(I,J,L) /
+     &                      TCVV_S )
+#else
             ! P(SO4) from gas-phase oxidation [kg S/timestep]
             AD05(I,J,L,5) = AD05(I,J,L,5) +
      &                      ( L1  * AD(I,J,L) / TCVV_S )
@@ -2076,6 +2198,7 @@
             ! P(SO4) from O3 oxidation in sea-salt aerosols [kg S/timestep]
             AD05(I,J,L,8) = AD05(I,J,L,8) +
      &                      ( (PSO4E + PSO4F) * AD(I,J,L) / TCVV_S )
+#endif
 
          ENDIF
 
@@ -2088,7 +2211,11 @@
             AREA_CM2 = GET_AREA_CM2( I, J, L )
 
             ! Convert [v/v/timestep] to [molec/cm2/s]
+#if defined( DEVEL )
+            FLUX = Ld   * LOCAL_MET%AD(I,J,L)      / TCVV(IDTSO2)
+#else
             FLUX = Ld   * AD(I,J,L)      / TCVV(IDTSO2)
+#endif
             FLUX = FLUX * XNUMOL(IDTSO2) / AREA_CM2 / DTCHEM
             
             ! Store dryd flx in ND44_TMP as a placeholder
@@ -2133,9 +2260,15 @@
 !\\
 ! !INTERFACE:
 !
+#if defined( DEVEL )
+      SUBROUTINE SEASALT_CHEM ( I,      J,     L,   ALK1, ALK2,
+     &                          SO2_cd, Kt1,   Kt2, Kt1N, Kt2N,
+     &                          SO2_ss, PSO4E, PSO4F, LOCAL_MET )
+#else
       SUBROUTINE SEASALT_CHEM ( I,      J,     L,   ALK1, ALK2,
      &                          SO2_cd, Kt1,   Kt2, Kt1N, Kt2N,
      &                          SO2_ss, PSO4E, PSO4F )
+#endif
 !
 ! !USES:
 !
@@ -2154,10 +2287,9 @@
       USE GLOBAL_HNO3_MOD, ONLY : GET_HNO3_UGM3
       USE TIME_MOD,        ONLY : GET_ELAPSED_SEC,    GET_MONTH 
       USE TIME_MOD,        ONLY : ITS_A_NEW_MONTH
-
-      ! Add these for GET_GNO3 fix (lyj, bmy, 10/7/08)
-      USE GLOBAL_HNO3_MOD, ONLY : GET_HNO3_UGM3
-      USE DAO_MOD,         ONLY : AIRVOL
+#if defined( DEVEL )
+      USE GC_TYPE_MOD,     ONLY : GC_MET_LOCAL
+#endif
 
       USE CMN_SIZE_MOD          ! Size parameters
 !---------------------------------------------------------------
@@ -2176,6 +2308,9 @@
                                          ! GET_ALK (1=fine; 2=course)
       REAL*8,  INTENT(IN)  :: Kt1N, Kt2N
       REAL*8,  INTENT(IN)  :: ALK1, ALK2 ! Alkalinity [kg] from seasalt_mod
+#if defined( DEVEL )
+      TYPE(GC_MET_LOCAL), INTENT(IN) :: LOCAL_MET  ! Obj w/ met fields
+#endif
 !
 ! !OUTPUT PARAMETERS: 
 !
@@ -2242,6 +2377,35 @@
       ! DTCHEM is the chemistry timestep in seconds
       DTCHEM = GET_TS_CHEM() * 60d0
 
+#if defined( DEVEL )
+      ! Convert SO2 [v/v] to  [eq/gridbox]
+      SO2_eq = ( 2.d0         * SO2_cd  * LOCAL_MET%AD(I,J,L) ) /
+     &         ( TCVV(IDTSO2) * 0.064d0 )
+      SO2_eq = MAX( SO2_eq, MINDAT )
+
+      IF ( ITS_A_FULLCHEM_SIM() ) THEN
+
+ 	 ! Convert HNO3 [v/v] to [equivalents]
+         HNO3_vv = STT(I,J,L,IDTHNO3)
+         HNO3_eq = HNO3_vv * LOCAL_MET%AD(I,J,L) /
+     &             ( 28.97d0 / 63d0 ) / 63.d-3
+
+      ELSE
+         
+         ! Get HNO3 in ug/m3, then multiply by volume in m3
+         ! and 1e-6 kg/ug to get HNO3 in kg
+         HNO3_kg = GET_HNO3_UGM3( I, J, L, LOCAL_MET ) *
+     &             LOCAL_MET%AIRVOL(I,J,L) * 1e-6
+
+	 ! Convert HNO3 [kg] first to [v/v] 
+         HNO3_vv = HNO3_kg * ( 28.97d0 / 63d0 ) / LOCAL_MET%AD(I,J,L)
+ 
+         ! Then convert HNO3 [kg] to [equivalents]
+         HNO3_eq = HNO3_kg / 63d-3
+
+      ENDIF
+
+#else
       ! Convert SO2 [v/v] to  [eq/gridbox]
       SO2_eq = ( 2.d0 * SO2_cd * AD(I,J,L) ) / ( TCVV(IDTSO2) * 0.064d0)
       SO2_eq = MAX( SO2_eq, MINDAT )
@@ -2265,6 +2429,7 @@
          HNO3_eq = HNO3_kg / 63d-3
 
       ENDIF
+#endif
 
       !-----------
       ! SO2
@@ -2276,7 +2441,12 @@
       F_SO2_A  = MAX( F_SO2_A, 1.d-32 )
 
       ! Convert to [eq/timestep] 
+#if defined( DEVEL )
+      C_FLUX_A = 2.d0 * F_SO2_A * LOCAL_MET%AD(I,J,L) /
+     &           TCVV(IDTSO2) / 0.064d0
+#else
       C_FLUX_A = 2.d0 * F_SO2_A * AD(I,J,L) / TCVV(IDTSO2) / 0.064d0
+#endif
 
       ! Available flux of SO2 to coarse sea salt aerosols [v/v/timestep]
       L5C      = EXP( - Kt2 * DTCHEM )
@@ -2284,7 +2454,12 @@
       F_SO2_C  = MAX( F_SO2_C, 1.0d-32 )
 
       ! Convert to [eq/timestep] 
+#if defined( DEVEL )
+      C_FLUX_C = 2.d0 * F_SO2_C * LOCAL_MET%AD(I,J,L) /
+     &           TCVV(IDTSO2) / 0.064d0
+#else
       C_FLUX_C = 2.d0 * F_SO2_C * AD(I,J,L) / TCVV(IDTSO2) / 0.064d0
+#endif
 
       ! Total flux of SO2 [v/v/timestep]
       F_SO2    = F_SO2_A + F_SO2_C 
@@ -2302,7 +2477,12 @@
       F_HNO3_A = MAX( F_HNO3_A, 1.0D-32 )
 
       ! Convert to [eq/timestep] 
+#if defined( DEVEL )
+      N_FLUX_A = F_HNO3_A * LOCAL_MET%AD(I,J,L) /
+     &           ( 28.97d0 / 63d0 ) / 0.063d0
+#else
       N_FLUX_A = F_HNO3_A * AD(I,J,L)/( 28.97d0 / 63d0 )/0.063d0
+#endif
 
       ! Available flux of HNO3 to coarse sea salt aerosols [v/v/timestep]
       L6C = EXP( - Kt2N * DTCHEM )
@@ -2310,7 +2490,12 @@
       F_HNO3_C = MAX( F_HNO3_C, 1.0D-32 )
 
       ! convert to [eq/timestep] 
+#if defined( DEVEL )
+      N_FLUX_C = F_HNO3_C * LOCAL_MET%AD(I,J,L) /
+     &           ( 28.97d0 / 63d0 ) / 0.063d0
+#else
       N_FLUX_C = F_HNO3_C * AD(I,J,L)/( 28.97d0 / 63d0 )/0.063d0
+#endif
 
       ! Total flux of HNO3
       F_HNO3 = F_HNO3_A + F_HNO3_C ![v/v/timestep]
@@ -2429,6 +2614,20 @@
       !IF ( ND09 > 0 ) AD09(I,J,L,2) = AD09(I,J,L,2) + TITR_SO2
       !-------------------------------------------------------------------
 
+#if defined( DEVEL )
+      !Modified SO2 [eq] converted back to [v/v]
+      SO2_ss       = SO2_chem * 0.064    * TCVV(IDTSO2) /
+     &               LOCAL_MET%AD(I,J,L) / 2.0d0
+      SO2_ss       = MAX( SO2_ss, MINDAT )
+
+      !SO4E produced converted from [eq/timestep] to [v/v/timestep] 
+      PSO4E        = SO4E * 0.096        * TCVV(IDTSO4) /
+     &               LOCAL_MET%AD(I,J,L) / 2.0d0
+
+      !SO4F produced converted from [eq/timestep] to [v/v/timestep] 
+      PSO4F        = SO4F * 0.096        * TCVV(IDTSO4S) /
+     &               LOCAL_MET%AD(I,J,L) / 2.0d0
+#else
       !Modified SO2 [eq] converted back to [v/v]
       SO2_ss       = SO2_chem * 0.064 * TCVV(IDTSO2)/AD(I,J,L)/2.0d0
       SO2_ss       = MAX( SO2_ss, MINDAT )
@@ -2438,6 +2637,7 @@
 
       !SO4F produced converted from [eq/timestep] to [v/v/timestep] 
       PSO4F        = SO4F * 0.096 * TCVV(IDTSO4S)/AD(I,J,L)/2.0d0
+#endif
 
       ! Alkalinity titrated by HNO3
       HNO3_SSA     = MIN(N_FLUX_A, HNO3_EQ, EQ_1_N)
@@ -2454,6 +2654,26 @@
       !IF ( ND09 > 0 ) AD09(I,J,L,3) = AD09(I,J,L,3) + TITR_HNO3
       !----------------------------------------------------------------------
 
+#if defined( DEVEL )
+      ! HNO3 lost [eq/timestep] converted back to [v/v/timestep]
+      IF ( IDTHNO3 > 0 ) THEN
+
+         ! Coupled sim: IDTHNO3 is defined, so use it
+         HNO3_ss = HNO3_SSC * 0.063 * TCVV(IDTHNO3) /
+     &             LOCAL_MET%AD(I,J,L)
+         STT(I,J,L,IDTHNO3) = MAX( HNO3_vv - HNO3_ss, MINDAT )
+
+      ELSE
+
+         ! Offline aerosol sim: IDTHNO3 isn't defined, use TCVV_HNO3
+         HNO3_ss = TITR_HNO3 * 0.063 * TCVV_HNO3 / LOCAL_MET%AD(I,J,L)
+
+      ENDIF
+
+      ! NITS produced converted from [eq/timestep] to [v/v/timestep] 
+      PNITs(I,J,L) = HNO3_SSC * 0.063 * TCVV(IDTNITS) /
+     &               LOCAL_MET%AD(I,J,L)
+#else
       ! HNO3 lost [eq/timestep] converted back to [v/v/timestep]
       IF ( IDTHNO3 > 0 ) THEN
 
@@ -2470,6 +2690,7 @@
 
       ! NITS produced converted from [eq/timestep] to [v/v/timestep] 
       PNITs(I,J,L) = HNO3_SSC * 0.063 * TCVV(IDTNITS)/AD(I,J,L)
+#endif
 	 
       ! Modified accum alkalinity 
       ALKA         = EQ1 - (SO4E + HNO3_SSA)
@@ -2478,7 +2699,7 @@
       !------------------------------------------------------------------------
       ! Uncomment this if you want to transport alkalinity (bec, bmy, 4/13/05)
       ![eq] --> [kg] --> [v/v] use this only if transporting alkalinity
-      !ALKAvv = (ALKA * TCVV(IDTSAL1))/(7.0d-2 * AD(I,J,L))
+      !ALKAvv = (ALKA * TCVV(IDTSAL1))/(7.0d-2 * LOCAL_MET%AD(I,J,L))
       !ALKAvv = MAX( ALKAvv, MINDAT )
       !------------------------------------------------------------------------
 
@@ -2489,7 +2710,7 @@
       !------------------------------------------------------------------------
       ! Uncomment this if you want to transport alkalinity (bec, bmy, 4/13/05)
       !! [eq] --> [kg] --> [v/v] use this only if transporting alkalinity
-      !ALKCvv = (ALKC * TCVV(IDTSAL2))/(7.0d-2 * AD(I,J,L))
+      !ALKCvv = (ALKC * TCVV(IDTSAL2))/(7.0d-2 * LOCAL_MET%AD(I,J,L))
       !ALKCvv = MAX(ALKCvv, MINDAT)
       !------------------------------------------------------------------------
 
@@ -3080,6 +3301,19 @@
             ! Surface area [cm2]
             AREA_CM2 = GET_AREA_CM2( I, J, L )
 
+#if defined( DEVEL )
+            ! SO4 drydep flux [molec/cm2/s]
+            FLUX = SO40  - SO4 + PSO4_SO2(I,J,L) 
+            FLUX = FLUX  * LOCAL_MET%AD(I,J,L) / TCVV(IDTSO4)
+            FLUX = FLUX  * XNUMOL(IDTSO4)      / AREA_CM2 / DTCHEM
+            T44(I,J,L,1) = T44(I,J,L,1) + FLUX
+
+            ! SO4s drydep flux [molec/cm2/s]
+            FLUX = SO40s - SO4s + PSO4_ss(I,J,L) 
+            FLUX = FLUX  * LOCAL_MET%AD(I,J,L) / TCVV(IDTSO4s)
+            FLUX = FLUX  * XNUMOL(IDTSO4s)     / AREA_CM2 / DTCHEM
+            T44(I,J,L,2) = T44(I,J,L,2) + FLUX
+#else
             ! SO4 drydep flux [molec/cm2/s]
             FLUX = SO40  - SO4 + PSO4_SO2(I,J,L) 
             FLUX = FLUX  * AD(I,J,L)       / TCVV(IDTSO4)
@@ -3091,6 +3325,7 @@
             FLUX = FLUX  * AD(I,J,L)       / TCVV(IDTSO4s)
             FLUX = FLUX  * XNUMOL(IDTSO4s) / AREA_CM2 / DTCHEM
             T44(I,J,L,2) = T44(I,J,L,2) + FLUX
+#endif
 
 !------------------------------------------------------------------------------
 !%%% Currently under development (rjp, bmy, 3/15/05)
@@ -3099,26 +3334,26 @@
 !%%% 
 !%%%                ! SO4aq drydep flux [molec/cm2/s]
 !%%%                FLUX = SO4aq0 - SO4aq + PSO4_SO2(I,J,L)     
-!%%%                FLUX = FLUX  * AD(I,J,L)        / TCVV(IDTSO4aq)
-!%%%                FLUX = FLUX  * XNUMOL(IDTSO4aq) / AREA_CM2 / DTCHEM
+!%%%                FLUX = FLUX  * LOCAL_MET%AD(I,J,L) / TCVV(IDTSO4aq)
+!%%%                FLUX = FLUX  * XNUMOL(IDTSO4aq)    / AREA_CM2 / DTCHEM
 !%%%                T44(I,J,L,3) = T44(I,J,L,3) + FLUX
 !%%% 
 !%%%                ! AS drydep flux [molec/cm2/s]
 !%%%                FLUX = AS0   - AS
-!%%%                FLUX = FLUX  * AD(I,J,L)     / TCVV(IDTAS)
-!%%%                FLUX = FLUX  * XNUMOL(IDTAS) / AREA_CM2 / DTCHEM
+!%%%                FLUX = FLUX  * LOCAL_MET%AD(I,J,L) / TCVV(IDTAS)
+!%%%                FLUX = FLUX  * XNUMOL(IDTAS)       / AREA_CM2 / DTCHEM
 !%%%                T44(I,J,L,4) = T44(I,J,L,4) + FLUX
 !%%% 
 !%%%                ! AHS drydep flux [molec/cm2/s]
 !%%%                FLUX = AHS0  - AHS
-!%%%                FLUX = FLUX  * AD(I,J,L)      / TCVV(IDTAHS)
-!%%%                FLUX = FLUX  * XNUMOL(IDTAHS) / AREA_CM2 / DTCHEM
+!%%%                FLUX = FLUX  * LOCAL_MET%AD(I,J,L) / TCVV(IDTAHS)
+!%%%                FLUX = FLUX  * XNUMOL(IDTAHS)      / AREA_CM2 / DTCHEM
 !%%%                T44(I,J,L,5) = T44(I,J,L,5) + FLUX
 !%%% 
 !%%%                ! LET drydep flux [molec/cm2/s]
 !%%%                FLUX = LET0  - LET
-!%%%                FLUX = FLUX  * AD(I,J,L)      / TCVV(IDTLET)
-!%%%                FLUX = FLUX  * XNUMOL(IDTLET) / AREA_CM2 / DTCHEM
+!%%%                FLUX = FLUX  * LOCAL_MET%AD(I,J,L) / TCVV(IDTLET)
+!%%%                FLUX = FLUX  * XNUMOL(IDTLET)      / AREA_CM2 / DTCHEM
 !%%%                T44(I,J,L,6) = T44(I,J,L,6) + FLUX
 !%%% 
 !%%%             ENDIF
@@ -3355,7 +3590,11 @@
 
             ! Convert [v/v/timestep] to [molec/cm2/s]
             FLUX = MSA0 - MSA + PMSA_DMS(I,J,L)                    
+#if defined( DEVEL )
+            FLUX = FLUX * LOCAL_MET%AD(I,J,L) / TCVV(IDTMSA)            
+#else
             FLUX = FLUX * AD(I,J,L)      / TCVV(IDTMSA)            
+#endif
             FLUX = FLUX * XNUMOL(IDTMSA) / AREA_CM2 / DTCHEM    
 
             ! Store dryd flux in ND44_TMP as a placeholder
@@ -3401,7 +3640,11 @@
 !\\
 ! !INTERFACE:
 !
+#if defined( DEVEL )
+      SUBROUTINE CHEM_NH3( LOCAL_MET )
+#else
       SUBROUTINE CHEM_NH3
+#endif
 !
 ! !USES:
 !
@@ -3413,9 +3656,18 @@
       USE TIME_MOD,     ONLY : GET_TS_CHEM
       USE TRACER_MOD,   ONLY : STT, TCVV, XNUMOL
       USE TRACERID_MOD, ONLY : IDTNH3
+#if defined( DEVEL )
+      USE GC_TYPE_MOD,  ONLY : GC_MET_LOCAL
+#endif
 
       USE CMN_SIZE_MOD       ! Size parameters
       USE CMN_DIAG_MOD       ! ND44    
+!
+! !INPUT PARAMETERS: 
+!
+#if defined( DEVEL )
+      TYPE(GC_MET_LOCAL), INTENT(IN) :: LOCAL_MET  ! Obj w/ met fields
+#endif
 !                                                                          
 ! !REMARKS:
 !  Reaction List:
@@ -3525,7 +3777,11 @@
                   AREA_CM2 = GET_AREA_CM2( I, J, L )
                   
                   ! Convert drydep loss from [v/v/timestep] to [molec/cm2/s]
+#if defined( DEVEL )
+                  FLUX = NH3  * LOCAL_MET%AD(I,J,L) / TCVV(IDTNH3)
+#else
                   FLUX = NH3  * AD(I,J,L)      / TCVV(IDTNH3)
+#endif
                   FLUX = FLUX * XNUMOL(IDTNH3) / AREA_CM2 / DTCHEM
 
                   ! Store dryd flx in ND44_TMP as a placeholder
@@ -3571,7 +3827,11 @@
 !\\
 ! !INTERFACE:
 !
+#if defined( DEVEL )
+      SUBROUTINE CHEM_NH4( LOCAL_MET )
+#else
       SUBROUTINE CHEM_NH4
+#endif
 !
 ! !USES:
 !
@@ -3583,9 +3843,18 @@
       USE TIME_MOD,     ONLY : GET_TS_CHEM
       USE TRACER_MOD,   ONLY : STT, TCVV, XNUMOL
       USE TRACERID_MOD, ONLY : IDTNH4
+#if defined( DEVEL )
+      USE GC_TYPE_MOD,  ONLY : GC_MET_LOCAL
+#endif
 
       USE CMN_SIZE_MOD       ! Size parameters
       USE CMN_DIAG_MOD       ! ND44
+!
+! !INPUT PARAMETERS: 
+!
+#if defined( DEVEL )
+      TYPE(GC_MET_LOCAL), INTENT(IN) :: LOCAL_MET  ! Obj w/ met fields
+#endif
 !   
 ! !REMARKS:
 !  Reaction List:
@@ -3694,7 +3963,11 @@
                   AREA_CM2 = GET_AREA_CM2( I, J, L )
                   
                   ! Convert drydep loss from [v/v/timestep] to [molec/cm2/s]
+#if defined( DEVEL )
+                  FLUX = NH4  * LOCAL_MET%AD(I,J,L) / TCVV(IDTNH4)
+#else
                   FLUX = NH4  * AD(I,J,L)      / TCVV(IDTNH4)
+#endif
                   FLUX = FLUX * XNUMOL(IDTNH4) / AREA_CM2 / DTCHEM
 
                   ! Store dryd flx in ND44_TMP as a placeholder
@@ -3740,7 +4013,11 @@
 !\\
 ! !INTERFACE:
 !
+#if defined( DEVEL )
+      SUBROUTINE CHEM_NH4aq( LOCAL_MET )
+#else
       SUBROUTINE CHEM_NH4aq
+#endif
 !
 ! !USES:
 !
@@ -3752,9 +4029,18 @@
       USE TIME_MOD,     ONLY : GET_TS_CHEM
       USE TRACER_MOD,   ONLY : STT, TCVV, XNUMOL
       USE TRACERID_MOD, ONLY : IDTNH4aq
+#if defined( DEVEL )
+      USE GC_TYPE_MOD,  ONLY : GC_MET_LOCAL
+#endif
 
       USE CMN_SIZE_MOD       ! Size parameters
       USE CMN_DIAG_MOD       ! ND44
+!
+! !INPUT PARAMETERS: 
+!
+#if defined( DEVEL )
+      TYPE(GC_MET_LOCAL), INTENT(IN) :: LOCAL_MET  ! Obj w/ met fields
+#endif
 !   
 ! !REMARKS:
 !  Reaction List:
@@ -3851,7 +4137,11 @@
                   AREA_CM2 = GET_AREA_CM2( I, J, L )
                   
                   ! Convert drydep loss from [v/v/timestep] to [molec/cm2/s]
+#if defined( DEVEL )
+                  FLUX = NH4aq * LOCAL_MET%AD(I,J,L) / TCVV(IDTNH4aq)
+#else
                   FLUX = NH4aq * AD(I,J,L)        / TCVV(IDTNH4aq)
+#endif
                   FLUX = FLUX  * XNUMOL(IDTNH4aq) / AREA_CM2 / DTCHEM
 
                   ! Store dryd flx in ND44_TMP as a placeholder
@@ -3897,7 +4187,11 @@
 !\\
 ! !INTERFACE:
 !
+#if defined( DEVEL )
+      SUBROUTINE CHEM_NIT( LOCAL_MET )
+#else
       SUBROUTINE CHEM_NIT
+#endif
 !
 ! !USES:
 !
@@ -3910,9 +4204,18 @@
       USE TIME_MOD,     ONLY : GET_TS_CHEM
       USE TRACER_MOD,   ONLY : STT, TCVV, XNUMOL
       USE TRACERID_MOD, ONLY : IDTNIT, IDTNITs
+#if defined( DEVEL )
+      USE GC_TYPE_MOD,  ONLY : GC_MET_LOCAL
+#endif
 
       USE CMN_SIZE_MOD       ! Size parameters
       USE CMN_DIAG_MOD       ! ND44
+!
+! !INPUT PARAMETERS: 
+!
+#if defined( DEVEL )
+      TYPE(GC_MET_LOCAL), INTENT(IN) :: LOCAL_MET  ! Obj w/ met fields
+#endif
 !  
 ! !REMARKS:
 !  Reaction List:
@@ -4101,7 +4404,11 @@
                IF ( FREQ > 0d0 ) THEN
 
                   ! Convert from [v/v/timestep] to [molec/cm2/s]
+#if defined( DEVEL )
+                  FLUX = NIT * LOCAL_MET%AD(I,J,L) / TCVV(IDTNIT)
+#else
                   FLUX = NIT * AD(I,J,L)      / TCVV(IDTNIT)
+#endif
                   FLUX = FLUX * XNUMOL(IDTNIT) / AREA_CM2 / DTCHEM
  
                   ! Store dryd flx in ND44_TMP as a placeholder
@@ -4118,7 +4425,11 @@
 
                ! Convert from [v/v/timestep] to [molec/cm2/s]
                FLUX = NIT0s - NITs + PNITs(I,J,L) 
+#if defined( DEVEL )
+               FLUX = FLUX * LOCAL_MET%AD(I,J,L) / TCVV(IDTNITs)
+#else
                FLUX = FLUX * AD(I,J,L)       / TCVV(IDTNITs)
+#endif
                FLUX = FLUX * XNUMOL(IDTNITs) / AREA_CM2 / DTCHEM
 
                ! Store dryd flx in ND44_TMP as a placeholder
@@ -4317,7 +4628,11 @@
          ! Add LANTHRO switch to turn off anthropogenic emissions.
          ! (ccc, 4/15/09)
          IF ( LANTHRO ) THEN
+#if defined( DEVEL )
+            CALL READ_AIRCRAFT_SO2( MONTH, LOCAL_MET )
+#else
             CALL READ_AIRCRAFT_SO2( MONTH )
+#endif
             CALL READ_ANTHRO_SOx( MONTH, NSEASON )
             CALL READ_ANTHRO_NH3( MONTH )
          ENDIF
@@ -4711,7 +5026,6 @@
       USE DIAG_MOD,       ONLY     : AD13_SO2_bb,      AD13_SO2_nv
       USE DIAG_MOD,       ONLY     : AD13_SO2_ev,      AD13_SO2_bf
       USE DIAG_MOD,       ONLY     : AD13_SO2_sh
-      USE DAO_MOD,        ONLY     : BXHEIGHT
       USE EPA_NEI_MOD,    ONLY     : GET_EPA_ANTHRO,   GET_EPA_BIOFUEL
       USE EPA_NEI_MOD,    ONLY     : GET_USA_MASK
       USE ERROR_MOD,      ONLY     : ERROR_STOP,       GEOS_CHEM_STOP
@@ -6086,7 +6400,11 @@
 !\\
 ! !INTERFACE:
 !
+#if defined( DEVEL )
+      FUNCTION GET_NO3( I, J, L, LOCAL_MET ) RESULT( NO3_MOLEC_CM3 ) 
+#else
       FUNCTION GET_NO3( I, J, L ) RESULT( NO3_MOLEC_CM3 ) 
+#endif
 !
 ! !USES:
 !
@@ -6096,13 +6414,18 @@
       USE GLOBAL_NO3_MOD, ONLY : NO3
       USE TRACER_MOD,     ONLY : ITS_A_FULLCHEM_SIM, ITS_AN_AEROSOL_SIM
       USE TRACERID_MOD,   ONLY : IDNO3
+#if defined( DEVEL )
+      USE GC_TYPE_MOD,    ONLY : GC_MET_LOCAL
+#endif
 
       USE CMN_SIZE_MOD         ! Size parameters
 !
 ! !INPUT PARAMETERS: 
 !
       INTEGER, INTENT(IN) :: I, J, L ! Indices for lon, lat, vertical level
-
+#if defined( DEVEL )
+      TYPE(GC_MET_LOCAL), INTENT(IN) :: LOCAL_MET  ! Obj w/ met fields
+#endif
 !
 ! !REVISION HISTORY:
 !  (1 ) Now references ERROR_STOP from "error_mod.f".  We also assume that
@@ -6184,11 +6507,20 @@
          ELSE
 
             ! At night: Get NO3 [v/v] and convert it to [kg]
+#if defined( DEVEL )
+            NO3_MOLEC_CM3 = NO3(I,J,L)     * LOCAL_MET%AD(I,J,L) *
+     &                      ( 62d0/28.97d0 ) 
+
+            ! Convert NO3 from [kg] to [molec/cm3]
+            NO3_MOLEC_CM3 = NO3_MOLEC_CM3  * XNUMOL_NO3 /
+     &                      BOXVL(I,J,L,LOCAL_MET)
+#else
             NO3_MOLEC_CM3 = NO3(I,J,L) * AD(I,J,L) * ( 62d0/28.97d0 ) 
-               
+
             ! Convert NO3 from [kg] to [molec/cm3]
             NO3_MOLEC_CM3 = NO3_MOLEC_CM3 * XNUMOL_NO3 / BOXVL(I,J,L)
-                  
+#endif
+               
          ENDIF
             
          ! Make sure NO3 is not negative
@@ -7465,7 +7797,11 @@
 !\\
 ! !INTERFACE:
 !
+#if defined( DEVEL )
+      SUBROUTINE READ_AIRCRAFT_SO2( THISMONTH, LOCAL_MET )
+#else
       SUBROUTINE READ_AIRCRAFT_SO2( THISMONTH )
+#endif
 !
 ! !USES:
 !
@@ -7473,13 +7809,18 @@
       USE DAO_MOD,       ONLY : BXHEIGHT
       USE DIRECTORY_MOD, ONLY : DATA_DIR 
       USE FILE_MOD,      ONLY : IU_FILE, IOERROR
+#if defined( DEVEL )
+      USE GC_TYPE_MOD,   ONLY : GC_MET_LOCAL
+#endif
 
       USE CMN_SIZE_MOD        ! Size parameters
 !
 ! !INPUT PARAMETERS: 
 !
       INTEGER, INTENT(IN)    :: THISMONTH ! Current month number (1-12)
-
+#if defined( DEVEL )
+      TYPE(GC_MET_LOCAL), INTENT(IN) :: LOCAL_MET  ! Obj w/ met fields
+#endif
 !
 ! !REVISION HISTORY:
 !  (1 ) Extracted from old module routine SULFATE_READMON (bmy, 9/18/02)
@@ -7579,7 +7920,11 @@
             DO L = 1, LLPAR
 
                ! Altitude of top edge of level L, from ground [km]
+#if defined( DEVEL )
+               ZH(L) = ZH(L-1) + ( LOCAL_MET%BXHEIGHT(I,J,L) * 1d-3 )
+#else
                ZH(L) = ZH(L-1) + ( BXHEIGHT(I,J,L) * 1d-3 )
+#endif
                
                IF ( ZH(L-1) > DBLE(K)   ) EXIT
                IF ( ZH(L  ) < DBLE(K-1) ) CYCLE
