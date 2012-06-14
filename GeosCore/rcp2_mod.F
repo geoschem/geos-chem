@@ -26,19 +26,20 @@
       ! Aircraft emissions
       REAL*4, ALLOCATABLE :: RCP_NO_AIR(:,:,:)
       REAL*4, ALLOCATABLE :: RCP_BC_AIR(:,:,:)
+      REAL*4, ALLOCATABLE :: RCP_AIR(:,:,:,:)
 
       ! Ship emissions
       REAL*4, ALLOCATABLE :: RCP_SHIP(:,:,:)
 
       CHARACTER(LEN=20)   :: RCPNAME, RCPYEAR
-      INTEGER             :: IDTRCP_LAND(20), IDTRCP_SHIP(20)
+      INTEGER             :: IDTRCP_LAND(20), IDTRCP_SHIP(20),
+     &     IDTRCP_AIR(3)
 
       !========================================
       !  MODULE ROUTINES -- follow "CONTAINS"
       !========================================
       CONTAINS
 
-!-----------------------------------------------------------------------
 
 !-----------------------------------------------------------------------
 
@@ -100,7 +101,7 @@
       XTAU = GET_TAU0( 1, 1, 2000 ) 
 
       ! Read data
-      CALL READ_RCP( FILENAME, SHIP=.FALSE. )
+      CALL READ_RCP( FILENAME, TYPE=1 )
 
       ! Anthro file name
       FILENAME = TRIM( DATA_DIR )        // 'RCP_201110/'     //
@@ -111,19 +112,29 @@
       XTAU = GET_TAU0( THISMONTH, 1, 2000 )  
 
       ! Read data
-      CALL READ_RCP( FILENAME, SHIP=.TRUE., TAU0=XTAU )
+      CALL READ_RCP( FILENAME, TYPE=2, TAU0=XTAU )
 
         
       !=================================================================
       ! Aircraft emissions
       !=================================================================
 
-      IF (LRCPAIR) THEN
-         FILENAME = TRIM( DATA_DIR ) // 'RCP_201110/'     //
-     &              TRIM( RCPNAME )  // '_NO_aircraft_'   // 
-     &              TRIM( RCPYEAR )  // '.nc'
+!      IF (LRCPAIR) THEN
+!         FILENAME = TRIM( DATA_DIR ) // 'RCP_201110/'     //
+!     &              TRIM( RCPNAME )  // '_NO_aircraft_'   // 
+!     &              TRIM( RCPYEAR )  // '.nc'
+!
+!         CALL READ_RCP_AIRCRAFT( FILENAME, THISMONTH )
+!
+!      ENDIF
 
-         CALL READ_RCP_AIRCRAFT( FILENAME, THISMONTH )
+      IF (LRCPAIR) THEN
+      FILENAME = TRIM( DATA_DIR )        // 'RCP_201110/'     //
+     &                  trim( RCPNAME )  // '_aircraft_'         // 
+     &                  trim( RCPYEAR )  // '.'               //
+     &                  GET_RES_EXT()    // '.bpch' 
+
+         CALL READ_RCP( FILENAME, TYPE=3, TAU0=XTAU )
 
       ENDIF
 
@@ -144,7 +155,7 @@
 
 !----------------------------------------------------------------------
 
-      SUBROUTINE READ_RCP( FILENAME, SHIP, TAU0 )
+      SUBROUTINE READ_RCP( FILENAME, TYPE, TAU0 )
 
 !***********************************************************************
 !  Subroutine READ_RCP reads a BPCH file created from RCP data.
@@ -160,7 +171,7 @@
 
       ! Arguments
       CHARACTER(LEN=*), INTENT(IN) :: FILENAME
-      LOGICAL,          INTENT(IN) :: SHIP
+      INTEGER,          INTENT(IN) :: TYPE
       REAL*8,OPTIONAL,  INTENT(IN) :: TAU0
 
 
@@ -172,13 +183,14 @@
       INTEGER                         :: HALFPOLAR, CENTER180
       INTEGER                         :: SCALEYEAR, BASEYEAR
       REAL*4                          :: LONRES, LATRES
-      REAL*4                          :: ARRAY(IGLOB,JGLOB,1)
+      REAL*4                          :: ARRAY(IGLOB,JGLOB,LLPAR)
       REAL*4                          :: TMP(IIPAR,JJPAR)
       REAL*8                          :: ZTAU0, ZTAU1
       CHARACTER(LEN=20)               :: MODELNAME
       CHARACTER(LEN=40)               :: CATEGORY
       CHARACTER(LEN=40)               :: UNIT
       CHARACTER(LEN=40)               :: RESERVED
+      CHARACTER(LEN=20)               :: STR
 
       !=================================================================
       !  READ_RCP begins here
@@ -294,13 +306,48 @@
             K = K + 1 
 
             ! Save emissions and tracer number
-            IF (SHIP) THEN
-               CALL TRANSFER_2D( ARRAY(:,:,1), RCP_SHIP(:,:,K) )
-               IDTRCP_SHIP(K) = IDT 
-            ELSE
+            SELECT CASE ( TYPE )
+            CASE ( 1 )
+
+               ! Error check
+               IF (K > SIZE( IDTRCP_LAND )) THEN
+                  WRITE( STR, '(I4)' ) K
+                  CALL ERROR_STOP( 'TOO MANY SPECIES FOR RCP_LAND '//
+     &                 TRIM(STR), 'READ_RCP' )
+               ENDIF
+
                CALL TRANSFER_2D( ARRAY(:,:,1), RCP_LAND(:,:,K) )
                IDTRCP_LAND(K) = IDT
-            ENDIF
+
+            CASE ( 2 )
+
+               ! Error check
+               IF (K > SIZE( IDTRCP_SHIP )) THEN
+                  WRITE( STR, '(I4)' ) K
+                  CALL ERROR_STOP( 'TOO MANY SPECIES FOR RCP_SHIP '//
+     &                 TRIM(STR), 'READ_RCP' )
+               ENDIF
+
+               CALL TRANSFER_2D( ARRAY(:,:,1), RCP_SHIP(:,:,K) )
+               IDTRCP_SHIP(K) = IDT 
+
+            CASE ( 3 )
+
+               ! Error check
+               IF (K > SIZE( IDTRCP_AIR )) THEN
+                  WRITE( STR, '(I4)' ) K
+                  CALL ERROR_STOP( 'TOO MANY SPECIES FOR RCP_AIR '//
+     &                 TRIM(STR), 'READ_RCP' )
+               ENDIF
+
+               ! Transfer, 
+               DO L=1, LLPAR
+                  CALL TRANSFER_2D( ARRAY(:,:,L), RCP_AIR(:,:,L,K) )
+               ENDDO
+               IDTRCP_AIR(K) = IDT 
+
+            CASE DEFAULT
+            END SELECT
 
             !==============================================================
             ! Special case for MEK
@@ -312,26 +359,32 @@
             IF (IDT == IDTMEK) THEN
                
                ! Reduce MEK emissions
-               IF (SHIP) THEN  
-                  RCP_SHIP(:,:,K) = RCP_SHIP(:,:,K) * 0.25D0
-               ELSE
+               SELECT CASE ( TYPE )
+               CASE ( 1 )
                   RCP_LAND(:,:,K) = RCP_LAND(:,:,K) * 0.25D0
-               ENDIF
+               CASE ( 2 )
+                  RCP_SHIP(:,:,K) = RCP_SHIP(:,:,K) * 0.25D0
+               CASE DEFAULT
+                  ! No MEK emissions expected for aircraft
+               END SELECT
 
                IF (IDTACET > 0d0) THEN
 
                   ! Increment tracer counter
                   K = K + 1 
                   
-                  ! Save ACET emissions (75% of original MEK = 3*25%
-                  IF (SHIP) THEN  
-                     RCP_SHIP(:,:,K) = RCP_SHIP(:,:,K-1) * 3d0
-                     IDTRCP_SHIP(K)  = IDTACET 
-                  ELSE
+                  ! Save ACET emissions (75% of original MEK = 3*25%)
+                  SELECT CASE ( TYPE )
+                  CASE ( 1 )
                      RCP_LAND(:,:,K) = RCP_LAND(:,:,K-1) * 3d0
                      IDTRCP_LAND(K)  = IDTACET
-                  ENDIF
-
+                  CASE ( 2 )
+                     RCP_SHIP(:,:,K) = RCP_SHIP(:,:,K-1) * 3d0
+                     IDTRCP_SHIP(K)  = IDTACET 
+                  CASE DEFAULT
+                     ! No MEK emissions expected for aircraft
+                  END SELECT
+ 
                ENDIF
 
 
@@ -445,12 +498,15 @@
       USE DAO_MOD,                ONLY : BXHEIGHT
       USE AIRCRAFT_NOX_MOD,       ONLY : EMIS_AC_NOx, READAIR
       USE DIAG_MOD,               ONLY : AD32_AC
+      USE TRACERID_MOD,           ONLY : IDTNOX
+      USE ERROR_MOD,              ONLY : ERROR_STOP
       USE CMN_DIAG_MOD       ! Diagnostic switches
       USE CMN_SIZE_MOD       ! Size parameters      
 
       ! Local variables
-      INTEGER          :: I, J, L
+      INTEGER          :: I, J, L, K
       LOGICAL, SAVE    :: FIRST=.TRUE.
+      LOGICAL          :: TRACERFOUND
 
       !=================================================================
       !  RCP_AIREMISS begins here
@@ -462,8 +518,25 @@
          FIRST = .FALSE.
       ENDIF
 
-      ! Convert  -> molec/cm3/s
-      EMIS_AC_NOx = RCP_NO_AIR
+      ! Initialized
+      TRACERFOUND = .FALSE.
+      
+      ! Locate the NOx tracer in the emission array
+      DO K=1, SIZE(IDTRCP_AIR)
+         IF (IDTNOx == IDTRCP_AIR(K)) THEN
+            TRACERFOUND=.TRUE.
+            EXIT
+         ENDIF
+      ENDDO
+
+      ! Error if there are no NOx emissions
+      IF (.NOT. TRACERFOUND) 
+     &     CALL ERROR_STOP('RCP AVIATION NOX HAS NOT BEEN READ', 
+     &                     'RCP_AIREMISS' )
+
+      
+      ! Convert molec/cm2/s  -> molec/cm3/s
+      EMIS_AC_NOx = RCP_AIR(:,:,:,K) / ( BXHEIGHT * 1D2 )
 
       ! ND32 -- save NOx in [molec/cm2], will convert to
       ! [molec/cm2/s] in subroutine "diag3.f" (bmy, 3/16/00)
@@ -493,8 +566,8 @@
       ! References to F90 modules
       USE GRID_MOD,     ONLY : GET_AREA_CM2
       USE TRACER_MOD,   ONLY : TRACER_MW_KG
-      USE TRACER_MOD, ONLY      : TRACER_NAME
-      USE ERROR_MOD, ONLY :GEOS_CHEM_STOP
+      USE TRACER_MOD,   ONLY : TRACER_NAME
+      USE ERROR_MOD,    ONLY :GEOS_CHEM_STOP
 
       USE CMN_SIZE_MOD       ! Size parameters
 
@@ -549,16 +622,22 @@
          !==============================================================
 
          SELECT CASE ( TRACER_NAME(IDTRCP_LAND(K)) )
-         CASE ( 'NOx' ) 
-            UNIT='NO2'
-         CASE ( 'CO'  ) 
-            UNIT=' CO'
+         CASE ( 'NOx' )
+            ! Convert to Tg(N)
+            TOTAL = TOTAL * 0.014 / TRACER_MW_KG(IDTRCP_LAND(K))
+            UNIT='N'
          CASE ( 'SO2' ) 
-            UNIT='SO2'
+            ! Convert to Tg(S)
+            TOTAL = TOTAL * 0.032 / TRACER_MW_KG(IDTRCP_LAND(K))
+            UNIT='S'
          CASE ( 'NH3' ) 
-            UNIT='NH3'
+            ! Convert to Tg(N)
+            TOTAL = TOTAL * 0.014 / TRACER_MW_KG(IDTRCP_LAND(K))
+            UNIT='N'
+         CASE ( 'CO'  ) 
+            UNIT='CO'
          CASE DEFAULT
-            UNIT='  C'
+            UNIT='C'
          END SELECT
 
          !==============================================================
@@ -568,7 +647,7 @@
          WRITE( 6, 100 ) TRACER_NAME(IDTRCP_LAND(K)), THISMONTH, 
      &        TOTAL, UNIT
  100     FORMAT( 'Anthro Land ', a4, ' for month ',
-     &           i2.2, ': ',  f13.6, ' Tg ', a3 )
+     &           i2.2, ': ',  f13.6, ' Tg  ', a3 )
 
       ENDDO
 
@@ -606,16 +685,22 @@
          !==============================================================
 
          SELECT CASE ( TRACER_NAME(IDTRCP_SHIP(K)) )
-         CASE ( 'NOx' ) 
-            UNIT='NO2'
-         CASE ( 'CO'  ) 
-            UNIT=' CO'
+         CASE ( 'NOx' )
+            ! Convert to Tg(N)
+            TOTAL = TOTAL *  0.014 / TRACER_MW_KG(IDTRCP_SHIP(K))
+            UNIT='N'
          CASE ( 'SO2' ) 
-            UNIT='SO2'
+            ! Convert to Tg(S)
+            TOTAL = TOTAL * 0.032 / TRACER_MW_KG(IDTRCP_SHIP(K))
+            UNIT='S'
          CASE ( 'NH3' ) 
-            UNIT='NH3'
+            ! Convert to Tg(N)
+            TOTAL = TOTAL * 0.014 / TRACER_MW_KG(IDTRCP_SHIP(K))
+            UNIT='N'
+         CASE ( 'CO'  ) 
+            UNIT='CO'
          CASE DEFAULT
-            UNIT='  C'
+            UNIT='C'
          END SELECT
 
          !==============================================================
@@ -625,7 +710,70 @@
          WRITE( 6, 101 ) TRACER_NAME(IDTRCP_SHIP(K)), THISMONTH, 
      &           TOTAL, UNIT
  101     FORMAT( 'Anthro Ship ', a4, ' for month ',
-     &           i2.2, ': ',  f13.6, ' Tg ', a3 )
+     &           i2.2, ': ',  f13.6, ' Tg  ', a3 )
+
+      ENDDO
+
+      !==============================================================
+      ! RCP Aircraft emissions
+      !==============================================================
+
+      WRITE( 6, '(a)' )
+      DO K=1, SIZE(IDTRCP_AIR)
+         
+         IF (IDTRCP_AIR(K) < 1) CYCLE
+
+         !==============================================================
+         ! Global total emission
+         !==============================================================
+
+         TOTAL = 0d0
+         
+         ! Loop over latitudes
+         DO J = 1, JJPAR
+
+            ! Surface area [cm2] * seconds in the month / Avogadro's number
+            ! Also multiply by the factor 1d-9 to convert kg to Tg
+            A = GET_AREA_CM2( J ) * ( D(THISMONTH) * 86400d-9 ) 
+     &           / 6.0225d23
+            
+            ! Anthro emissions
+            TOTAL = TOTAL + SUM(RCP_AIR(:,J,:,K)) * A * 
+     &           TRACER_MW_KG(IDTRCP_AIR(K)) 
+            
+         ENDDO
+
+         !==============================================================
+         !  Units
+         !==============================================================
+
+         SELECT CASE ( TRACER_NAME(IDTRCP_AIR(K)) )
+         CASE ( 'NOx' )
+            ! Convert to Tg(N)
+            TOTAL = TOTAL * 0.014 / TRACER_MW_KG(IDTRCP_AIR(K))
+            UNIT='N'
+         CASE ( 'SO2' ) 
+            ! Convert to Tg(S)
+            TOTAL = TOTAL * 0.032 / TRACER_MW_KG(IDTRCP_AIR(K))
+            UNIT='S'
+         CASE ( 'NH3' ) 
+            ! Convert to Tg(N)
+            TOTAL = TOTAL * 0.014 / TRACER_MW_KG(IDTRCP_AIR(K))
+            UNIT='N'
+         CASE ( 'CO'  ) 
+            UNIT='CO'
+         CASE DEFAULT
+            UNIT='C'
+         END SELECT
+
+         !==============================================================
+         !  Print info
+         !==============================================================
+
+         WRITE( 6, 102 ) TRACER_NAME(IDTRCP_AIR(K)), THISMONTH, 
+     &           TOTAL, UNIT
+ 102     FORMAT( 'Anthro Air  ', a4, ' for month ',
+     &           i2.2, ': ',  f13.6, ' Tg  ', a3 )
 
       ENDDO
 
@@ -633,103 +781,6 @@
       END SUBROUTINE TOTAL_ANTHRO_RCP
 
 !-----------------------------------------------------------------------
-
-      SUBROUTINE READ_RCP_SURFACE( RCPNAME, YEAR, MONTH, SPECIES, 
-     &     LAND, SHIP, EMISSION )
-
-      USE GRID_MOD,               ONLY : GET_XEDGE, GET_YEDGE
-      USE RCP_MOD,                ONLY : READ_AND_REGRID_SURFACE
-      USE CMN_SIZE_MOD               ! Size parameters
-
-      ! Arguments
-      CHARACTER(LEN=*),INTENT(IN)   :: RCPNAME, YEAR, SPECIES
-      INTEGER,INTENT(IN)            :: MONTH
-      LOGICAL,INTENT(IN)            :: LAND, SHIP
-      REAL*4,DIMENSION(:,:),INTENT(OUT) :: EMISSION
-      
-
-      !Local variables
-      LOGICAL, SAVE                 :: FIRST = .TRUE.
-      REAL*8,ALLOCATABLE,DIMENSION(:,:,:,:) :: tmpEmission
-
-      REAL*8, SAVE :: XEDGE(IIPAR+1)
-      REAL*8, SAVE :: YEDGE(JJPAR+1)
-      INTEGER :: I
-      CHARACTER(LEN=255) :: FNAME
-
-      !=================================================================
-      !  READ_RCP_SURFACE begins here
-      !=================================================================
-
-      ! First-time initialization
-      IF ( FIRST ) THEN
-
-         ! Create array of longitude edges
-         DO I=1, IIPAR
-            XEDGE(I) = get_XEDGE( I )
-         ENDDO
-         XEDGE(IIPAR+1) = XEDGE(1) + 360d0
-         XEDGE = XEDGE + 360d0
-
-         ! Create array of latitude edges
-         DO I=1, JJPAR
-            yedge(I) = get_yedge( I )
-         ENDDO
-         yedge(JJPAR+1) = 90d0
-         
-
-         ! Reset first-time flag
-         FIRST = .FALSE.
-
-      ENDIF
-
-      IF ( LAND ) THEN
-
-         FNAME = '/gdata/prather/winds/RCP/' // trim( RCPNAME ) // 
-     &        '/' //
-     &        trim( YEAR ) // '/' // trim( RCPNAME ) // '_' //
-     &        trim( Species ) // '_surface_' // trim( YEAR ) // '.nc'
-
-      ELSE
-         
-         FNAME = '/gdata/prather/winds/RCP/' // trim( RCPNAME ) // '/' 
-     &        // trim( YEAR ) // '/' // trim( RCPNAME ) // '_' //
-     &        trim( Species ) // '_ships_' // trim( YEAR ) // '.nc'
-
-      ENDIF
-
-
-      IF ( LAND ) THEN
-         
-         CALL READ_AND_REGRID_SURFACE( 
-     &        FILENAME=FNAME, 
-     &        varname1='emiss_nrd',
-     &        varname2='emiss_tra',
-     &        outLonEdge=XEDGE,
-     &        outLatEdge=YEDGE,
-     &        nMoments=1,
-     &        outEmission=tmpEmission )
-
-      ELSE 
-
-         CALL READ_AND_REGRID_SURFACE( 
-     &        FILENAME=FNAME, 
-     &        varname1='emiss_shp',
-     &        outLonEdge=XEDGE,
-     &        outLatEdge=YEDGE,
-     &        nMoments=1,
-     &        outEmission=tmpEmission )
-         
-      ENDIF
-
-      EMISSION = tmpEmission(:,:,1,MONTH) ! molec/cm2/s
-
-
-
-      END SUBROUTINE READ_RCP_SURFACE
-
-
-!----------------------------------------------------------------------
 
       FUNCTION GET_RCP_EMISSION( I, J, N, LAND, SHIP ) 
      &         RESULT( EMISS )
@@ -824,6 +875,7 @@
 
       IDTRCP_LAND = 0d0
       IDTRCP_SHIP = 0d0
+      IDTRCP_AIR  = 0d0
 
       ! Aircraft emissions
       ALLOCATE( RCP_NO_AIR( IIPAR, JJPAR, LLPAR ), STAT=AS )
@@ -844,6 +896,12 @@
       IF ( AS /= 0 ) CALL ALLOC_ERR( 'RCP_SHIP' )
       RCP_SHIP = 0e0
 
+      ! Anthropogenic land surface emissions
+      ALLOCATE( RCP_AIR( IIPAR, JJPAR, LLPAR, SIZE(IDTRCP_AIR) ),
+     &     STAT=AS )
+      IF ( AS /= 0 ) CALL ALLOC_ERR( 'RCP_AIR' )
+      RCP_AIR = 0e0
+
       ! Return to calling program
       END SUBROUTINE INIT_RCP
 
@@ -863,6 +921,7 @@
       IF ( ALLOCATED( RCP_BC_AIR ) ) DEALLOCATE( RCP_BC_AIR )
       IF ( ALLOCATED( RCP_LAND ) ) DEALLOCATE( RCP_LAND )
       IF ( ALLOCATED( RCP_SHIP ) ) DEALLOCATE( RCP_SHIP )
+      IF ( ALLOCATED( RCP_AIR  ) ) DEALLOCATE( RCP_AIR )
 
       ! Return to calling program
       END SUBROUTINE CLEANUP_RCP
