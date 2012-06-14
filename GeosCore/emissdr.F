@@ -110,7 +110,7 @@
       !FP_ISOP (6/2009)
       USE EMISSIONS_MOD,     ONLY : ISOP_SCALING 
       USE LOGICAL_MOD,       ONLY : LRCPAIR
-      USE RCP2_MOD,          ONLY : RCP_AIREMISS
+      USE RCP_MOD,           ONLY : RCP_AIREMISS
 
  
       USE CMN_SIZE_MOD     ! Size parameters

@@ -418,7 +418,7 @@ cleanup.o                   : cleanup.F                                      \
                               vistas_anthro_mod.o     wetscav_mod.o          \
                               icoads_ship_mod.o       tpcore_fvdas_mod.o     \
                               tpcore_geos5_window_mod.o                      \
-                              retro_mod.o             rcp2_mod.o  
+                              retro_mod.o             rcp_mod.o  
 
 CLDSRF.o                    : CLDSRF.F
 
@@ -554,7 +554,7 @@ emfossil.o                  : emfossil.F                                     \
                               logical_mod.o           nei2005_anthro_mod.o   \
                               streets_anthro_mod.o    tracer_mod.o           \
                               tracerid_mod.o          vistas_anthro_mod.o    \
-			      retro_mod.o             rcp2_mod.o
+			      retro_mod.o             rcp_mod.o
 
 emisop.o                    : emisop.F                dao_mod.o              \
                               meganut_mod.o
@@ -585,7 +585,7 @@ emissions_mod.o             : emissions_mod.F                                \
                               seasalt_mod.o           streets_anthro_mod.o   \
                               sulfate_mod.o           tagged_co_mod.o        \
                               tracer_mod.o            vistas_anthro_mod.o    \
-			      retro_mod.o             rcp2_mod.o
+			      retro_mod.o             rcp_mod.o
 
 emmonot.o                   : emmonot.F
 
@@ -1018,7 +1018,7 @@ sulfate_mod.o               : sulfate_mod.F                                  \
                               streets_anthro_mod.o    tracerid_mod.o         \
                               tracer_mod.o            tropopause_mod.o       \
                               uvalbedo_mod.o          vdiff_pre_mod.o        \
-                              wetscav_mod.o           rcp2_mod.o
+                              wetscav_mod.o           rcp_mod.o
 
 sunparam.o                  : sunparam.F
 
@@ -1122,9 +1122,6 @@ XSECO3.o                    : XSECO3.F
 xtra_read_mod.o             : xtra_read_mod.F         dao_mod.o             \
                               diag_mod.o              logical_mod.o
 
-rcp_mod.o                   : rcp_mod.F
-
-rcp2_mod.o                  : rcp2_mod.F              rcp_mod.o             \
-                              aircraft_nox_mod.o      dao_mod.o             \
-                              diag_mod.o
+rcp_mod.o                   : rcp_mod.F               diag_mod.o            \
+                              aircraft_nox_mod.o      dao_mod.o
 #EOC

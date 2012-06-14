@@ -219,10 +219,6 @@ FFLAGS += -DESMF_TESTBED_
 INCLUDE += -I$(HDR)
 endif
 
-# CDH netCDF for RCPs
-INCLUDE += -I/sopt/netcdf/netcdf3-intel-serial/include
-LINK    += -L/sopt/netcdf/netcdf3-intel-serial/lib -lnetcdf
-
 CC       =
 F90      = ifort $(FFLAGS) $(INCLUDE)
 LD       = ifort $(FFLAGS)

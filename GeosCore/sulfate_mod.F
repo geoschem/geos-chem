@@ -6915,7 +6915,7 @@
 !******************************************************************************
 !
       ! References to F90 modules
-      USE RCP2_MOD,             ONLY : GET_RCP_EMISSION
+      USE RCP_MOD,              ONLY : GET_RCP_EMISSION
       USE ARCTAS_SHIP_EMISS_MOD,ONLY : GET_ARCTAS_SHIP
       USE ICOADS_SHIP_MOD,      ONLY : GET_ICOADS_SHIP   !(cklee, 7/09/09)
       USE BPCH2_MOD,            ONLY : GET_NAME_EXT_2D, GET_RES_EXT

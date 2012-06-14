@@ -123,7 +123,7 @@
       USE CMN_O3_MOD                   ! FSCLYR
       
       !cdh
-      USE RCP2_MOD,               ONLY : EMISS_RCP
+      USE RCP_MOD,                ONLY : EMISS_RCP
 !     
 ! !REVISION HISTORY: 
 !  (1 ) Now references DEBUG_MSG from "error_mod.f" (bmy, 8/7/03)
