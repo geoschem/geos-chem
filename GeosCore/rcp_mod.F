@@ -32,7 +32,7 @@
 ! !PUBLIC MEMBER FUNCTIONS:
 ! 
       PUBLIC :: CLEANUP_RCP
-      PUBLIC :: EMISS_RCP
+      PUBLIC :: LOAD_RCP_EMISSIONS
       PUBLIC :: GET_RCP_EMISSION
       PUBLIC :: RCPNAME, RCPYEAR
       PUBLIC :: RCP_AIREMISS
@@ -58,10 +58,10 @@
 
 !-----------------------------------------------------------------------
 
-      SUBROUTINE EMISS_RCP
+      SUBROUTINE LOAD_RCP_EMISSIONS
 
 !***********************************************************************
-!  Subroutine EMISS_RCP reads all RCP emissions at the beginning of
+!  Subroutine LOAD_RCP_EMISSIONS reads all RCP emissions at the beginning of
 !  each month. (cdh, 10/14/11)
 !***********************************************************************
 
@@ -83,7 +83,7 @@
 
 
       !=================================================================
-      !  EMISS_RCP begins here
+      !  LOAD_RCP_EMISSIONS begins here
       !=================================================================
 
       ! First-time initialization
@@ -111,7 +111,7 @@
 
          ! Land file name
          FILENAME = TRIM( DATA_DIR )        // 'RCP_201110/'     //
-     &                     trim( RCPNAME )  // '/'               //
+     &          print*,NTRACER, IDT, TRIM(FILENAME)                    trim( RCPNAME )  // '/'               //
      &                     trim( RCPNAME )  // '_anthropogenic_' // 
      &                     trim( YEARSTR )  // '.'               //
      &                     GET_RES_EXT()    // '.bpch' 
@@ -121,7 +121,7 @@
          XTAU = GET_TAU0( 1, 1, RCPYEAR ) 
 
          ! Read data (LAND -> TYPE=1)
-         CALL READ_RCP( FILENAME, TYPE=1, TAU0=XTAU )
+         CALL READ_RCP_BPCH( FILENAME, TYPE=1, TAU0=XTAU )
 
          ! Ship file name
          FILENAME = TRIM( DATA_DIR )        // 'RCP_201110/'     //
@@ -134,7 +134,7 @@
          XTAU = GET_TAU0( THISMONTH, 1, RCPYEAR )  
 
          ! Read data (SHIP -> TYPE=2)
-         CALL READ_RCP( FILENAME, TYPE=2, TAU0=XTAU )
+         CALL READ_RCP_BPCH( FILENAME, TYPE=2, TAU0=XTAU )
          
       ENDIF
         
@@ -153,7 +153,7 @@
          XTAU = GET_TAU0( THISMONTH, 1, RCPYEAR ) 
 
          ! Read data (AIRCRAFT -> TYPE=3)
-         CALL READ_RCP( FILENAME, TYPE=3, TAU0=XTAU )
+         CALL READ_RCP_BPCH( FILENAME, TYPE=3, TAU0=XTAU )
 
       ENDIF
 
@@ -167,14 +167,14 @@
       WRITE(6, '(a)' ) REPEAT( '=', 79)
 
       ! Return to calling program
-      END SUBROUTINE EMISS_RCP
+      END SUBROUTINE LOAD_RCP_EMISSIONS
 
 !----------------------------------------------------------------------
 
-      SUBROUTINE READ_RCP( FILENAME, TYPE, TAU0 )
+      SUBROUTINE READ_RCP_BPCH( FILENAME, TYPE, TAU0 )
 
 !***********************************************************************
-!  Subroutine READ_RCP reads a BPCH file created from RCP data. 
+!  Subroutine READ_RCP_BPCH reads a BPCH file containing RCP data. 
 !  (cdh, 10/14/11)
 !***********************************************************************
 
@@ -210,12 +210,12 @@
       CHARACTER(LEN=20)               :: STR
 
       !=================================================================
-      !  READ_RCP begins here
+      !  READ_RCP_BPCH begins here
       !=================================================================
 
       ! Echo info
       WRITE( 6, 100 ) TRIM( FILENAME )
- 100  FORMAT( 'READ_RCP: Reading ', a )
+ 100  FORMAT( 'READ_RCP_BPCH: Reading ', a )
 
       ! Open file
       CALL OPEN_BPCH2_FOR_READ( IU_FILE, FILENAME)
@@ -240,7 +240,7 @@
      &   NI, NJ, NL, IFIRST, JFIRST, LFIRST, NSKIP
 
          IF ( CATEGORY /= 'ANTHSRCE' ) 
-     &        CALL ERROR_STOP( 'ANTHSRCE not found', 'READ_RCP' ) 
+     &        CALL ERROR_STOP( 'ANTHSRCE not found', 'READ_RCP_BPCH' ) 
          
          ! Error check
          IF ( IOS /= 0 ) CALL IOERROR( IOS, IU_FILE, 'read_data:3' )
@@ -278,7 +278,7 @@
             ! We expect ACET to be lumped with MEK, as explained below
             ! and in RETRO implementation
             CALL ERROR_STOP( 'RCP file unexpectely contains ACET: ' // 
-     &           FILENAME, 'READ_RCP ' )
+     &           FILENAME, 'READ_RCP_BPCH ' )
 !            IDT = IDTACET
          CASE ( 10 )
             IDT = IDTMEK
@@ -331,7 +331,7 @@
                IF (K > SIZE( IDTRCP_LAND )) THEN
                   WRITE( STR, '(I4)' ) K
                   CALL ERROR_STOP( 'TOO MANY SPECIES FOR RCP_LAND '//
-     &                 TRIM(STR), 'READ_RCP' )
+     &                 TRIM(STR), 'READ_RCP_BPCH' )
                ENDIF
 
                CALL TRANSFER_2D( ARRAY(:,:,1), RCP_LAND(:,:,K) )
@@ -343,7 +343,7 @@
                IF (K > SIZE( IDTRCP_SHIP )) THEN
                   WRITE( STR, '(I4)' ) K
                   CALL ERROR_STOP( 'TOO MANY SPECIES FOR RCP_SHIP '//
-     &                 TRIM(STR), 'READ_RCP' )
+     &                 TRIM(STR), 'READ_RCP_BPCH' )
                ENDIF
 
                CALL TRANSFER_2D( ARRAY(:,:,1), RCP_SHIP(:,:,K) )
@@ -355,7 +355,7 @@
                IF (K > SIZE( IDTRCP_AIR )) THEN
                   WRITE( STR, '(I4)' ) K
                   CALL ERROR_STOP( 'TOO MANY SPECIES FOR RCP_AIR '//
-     &                 TRIM(STR), 'READ_RCP' )
+     &                 TRIM(STR), 'READ_RCP_BPCH' )
                ENDIF
 
                ! Transfer, 
@@ -416,7 +416,7 @@
       CLOSE( IU_FILE )
 
       ! Return to calling program
-      END SUBROUTINE READ_RCP
+      END SUBROUTINE READ_RCP_BPCH
 
 !-----------------------------------------------------------------------
 

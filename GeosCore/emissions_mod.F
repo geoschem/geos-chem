@@ -123,7 +123,7 @@
       USE CMN_O3_MOD                   ! FSCLYR
       
       !cdh
-      USE RCP_MOD,                ONLY : EMISS_RCP
+      USE RCP_MOD,                ONLY : LOAD_RCP_EMISSIONS
 !     
 ! !REVISION HISTORY: 
 !  (1 ) Now references DEBUG_MSG from "error_mod.f" (bmy, 8/7/03)
@@ -225,7 +225,7 @@
          ! We read all emissions (for land, ship, air) even if only
          ! one is needed
          IF ( (LRCP .OR. LRCPSHIP .OR. LRCPAIR) .and. 
-     &        ITS_A_NEW_MONTH() ) CALL EMISS_RCP
+     &        ITS_A_NEW_MONTH() ) CALL LOAD_RCP_EMISSIONS
 
          ! Read EPA/NEI99 (USA) emissions once per month
          IF ( LNEI99 .and. ITS_A_NEW_MONTH() ) CALL EMISS_EPA_NEI
