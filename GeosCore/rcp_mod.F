@@ -42,7 +42,8 @@
       REAL*4, ALLOCATABLE :: RCP_LAND(:,:,:)
       REAL*4, ALLOCATABLE :: RCP_AIR(:,:,:,:)
       REAL*4, ALLOCATABLE :: RCP_SHIP(:,:,:)
-      CHARACTER(LEN=20)   :: RCPNAME, RCPYEAR
+      CHARACTER(LEN=20)   :: RCPNAME
+      INTEGER             :: RCPYEAR
       INTEGER             :: IDTRCP_LAND(20), IDTRCP_SHIP(20),
      &     IDTRCP_AIR(3)
 !
@@ -75,9 +76,8 @@
 
       !Local variables
       LOGICAL, SAVE                 :: FIRST = .TRUE.
-      INTEGER                       :: THISMONTH
-      CHARACTER(LEN=20)             :: RCPSPECIES
-      INTEGER :: I
+      INTEGER                       :: THISMONTH, I
+      CHARACTER(LEN=20)             :: RCPSPECIES, YEARSTR
       CHARACTER(LEN=255)            :: FILENAME
       REAL*8                        :: XTAU
 
@@ -99,6 +99,9 @@
 
       ! Get month
       THISMONTH = GET_MONTH()      
+      
+      ! Convert to string
+      WRITE( YEARSTR, '(I4)' ) RCPYEAR
 
       !=================================================================
       ! Land and ship emissions
@@ -108,22 +111,27 @@
 
          ! Land file name
          FILENAME = TRIM( DATA_DIR )        // 'RCP_201110/'     //
+     &                     trim( RCPNAME )  // '/'               //
      &                     trim( RCPNAME )  // '_anthropogenic_' // 
-     &                     trim( RCPYEAR )  // '.'               //
+     &                     trim( YEARSTR )  // '.'               //
      &                     GET_RES_EXT()    // '.bpch' 
 
-         XTAU = GET_TAU0( 1, 1, 2000 ) 
+         ! Date for emissions
+         ! Land emissions dated Jan 1 because all months are the same
+         XTAU = GET_TAU0( 1, 1, RCPYEAR ) 
 
          ! Read data (LAND -> TYPE=1)
-         CALL READ_RCP( FILENAME, TYPE=1 )
+         CALL READ_RCP( FILENAME, TYPE=1, TAU0=XTAU )
 
-         ! Anthro file name
+         ! Ship file name
          FILENAME = TRIM( DATA_DIR )        // 'RCP_201110/'     //
+     &                     trim( RCPNAME )  // '/'               //
      &                     trim( RCPNAME )  // '_ships_'         // 
-     &                     trim( RCPYEAR )  // '.'               //
+     &                     trim( YEARSTR )  // '.'               //
      &                     GET_RES_EXT()    // '.bpch' 
 
-         XTAU = GET_TAU0( THISMONTH, 1, 2000 )  
+         ! Date for emissions
+         XTAU = GET_TAU0( THISMONTH, 1, RCPYEAR )  
 
          ! Read data (SHIP -> TYPE=2)
          CALL READ_RCP( FILENAME, TYPE=2, TAU0=XTAU )
@@ -136,10 +144,15 @@
 
       IF (LRCPAIR) THEN
          FILENAME = TRIM( DATA_DIR )     // 'RCP_201110/'     //
+     &                  trim( RCPNAME )  // '/'               //
      &                  trim( RCPNAME )  // '_aircraft_'      // 
-     &                  trim( RCPYEAR )  // '.'               //
+     &                  trim( YEARSTR )  // '.'               //
      &                  GET_RES_EXT()    // '.bpch' 
 
+         ! Date for emissions
+         XTAU = GET_TAU0( THISMONTH, 1, RCPYEAR ) 
+
+         ! Read data (AIRCRAFT -> TYPE=3)
          CALL READ_RCP( FILENAME, TYPE=3, TAU0=XTAU )
 
       ENDIF
@@ -511,7 +524,7 @@
       WRITE(6, '(a)' ) REPEAT( '=', 79)
       WRITE(6, 100   ) RCPNAME, RCPYEAR
  100  FORMAT( 'R C P    E M I S S I O N S',
-     &        '  --  Scenario: ', 2A10 , / )
+     &        '  --  Scenario: ', A10, I6, / )
 
       !==============================================================
       ! RCP Land emissions
