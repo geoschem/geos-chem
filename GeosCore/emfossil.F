@@ -31,7 +31,7 @@
       USE LOGICAL_MOD,        ONLY : LEMEPSHIP,        LVISTAS
       USE LOGICAL_MOD,        ONLY : LICARTT,          LNEI05
       USE LOGICAL_MOD,        ONLY : LRETRO
-      USE LOGICAL_MOD,        ONLY : LRCP,             LRCPSHIP
+      USE LOGICAL_MOD,        ONLY : LRCP,             LRCPSHIP!(cdh, 10/14/11)
       USE RETRO_MOD,          ONLY : GET_RETRO_ANTHRO
       USE RCP_MOD,            ONLY : GET_RCP_EMISSION
       USE NEI2005_ANTHRO_MOD, ONLY : GET_NEI2005_ANTHRO
@@ -224,7 +224,7 @@
                   
                ENDIF
 
-            ! If we are using RCP emissions
+            ! If we are using RCP emissions (cdh, 10/14/11)
             ELSEIF ( LRCP ) THEN
 
                ! Put all emissions into 1st level
@@ -655,6 +655,7 @@
 
          !--------------------------------------------------------------
          ! Get CO & hydrocarbons emissions from RCP inventory
+         ! (cdh, 10/14/11)
          !--------------------------------------------------------------
 
          IF ( LRCP ) THEN

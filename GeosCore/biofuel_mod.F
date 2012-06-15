@@ -806,16 +806,16 @@
 
                ENDIF
             ENDIF
+
             !-----------------------------------------------------------
             ! RCP anthropogenic emissions include residential biofuel,
-            ! so set this to zero if we are using RCP
+            ! so set this to zero if we are using the RCP inventory
             ! (cdh, 10/18/2011)
             !-----------------------------------------------------------
             IF ( LRCP ) THEN
                IF ( (NN == IDTNOx ) .or. (NN == IDTCO  ) .or.
      &              (NN == IDTBCPO) .or. (NN == IDTOCPO) .or.
      &              (NN == IDTSO2 ) .or. (NN == IDTNH3 ) .or.
-     &              (NN == IDTC2H2) .or. (NN == IDTC2H4) .or.
      &              (NN == IDTC2H2) .or. (NN == IDTC2H4) .or.
      &              (NN == IDTC2H6) .or. (NN == IDTPRPE) .or.
      &              (NN == IDTC3H8) .or. (NN == IDTALK4) .or.

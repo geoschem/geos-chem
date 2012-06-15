@@ -1724,6 +1724,41 @@
          !LEDGARSHIP = .TRUE.  ! This is read in now (phs, 12/17/08)
          LEDGARSOx  = .TRUE.
       ENDIF
+      
+      ! RCP: Test for conflicts with other switches (cdh, 6/14/12) 
+      IF ( LRCP ) THEN
+         
+         ! Force user to choose just 1 global inventory
+         IF ( LEDGAR ) 
+     &        CALL ERROR_STOP( 'INPUT.GEOS WARNING!! '//
+     &           'Choose either RCP or EDGAR for global emissions', 
+     &           'READ_EMISSIONS_MENU' )
+
+         ! Force user to choose just 1 global inventory
+         IF ( LRETRO ) 
+     &        CALL ERROR_STOP( 'INPUT.GEOS WARNING!! '//
+     &           'Choose either RCP or RETRO for global emissions', 
+     &           'READ_EMISSIONS_MENU' )
+
+         ! Force user to choose just 1 global ship inventory
+         IF ( LEDGARSHIP .OR. LICOADSSHIP ) 
+     &        CALL ERROR_STOP( 'INPUT.GEOS WARNING!! '//
+     &           'Choose only 1 global ship emissions: '//
+     &           'RCP, EDGAR, or ICOADS',
+     &           'READ_EMISSIONS_MENU' )
+
+         ! Avoid double fertilizer NOx emissions
+         IF ( LFERTILIZERNOX ) THEN
+            WRITE( 6, '(a)' ) REPEAT( '=', 79 )
+            WRITE( 6, '(a)' ) 'WARNING! RCP inventory already includes,'
+            WRITE( 6, '(a)' ) '~0.7 Tg(N) from agriculture for y2010.'
+            WRITE( 6, '(a)' ) 'Turning off "Fertilizer NOx"'
+            WRITE( 6, '(a)' ) 'to avoid duplicate emissions!'
+            WRITE( 6, '(a)' ) REPEAT( '=', 79 )
+            LFERTILIZERNOX = .FALSE.
+         ENDIF
+
+      ENDIF
 
       !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
       !%%% Bug fix!  If LEMEPSHIP is turned on but LEMEP is turned %%%
@@ -1960,7 +1995,7 @@
       WRITE( 6, 100     ) 'Use EPA/NEI99 (ANTH + BF)   : ', LNEI99
       WRITE( 6, 100     ) '      --> with NOx VISTAS?  : ', LVISTAS
       WRITE( 6, 100     ) '      --> with ICARTT modif?: ', LICARTT
-      WRITE( 6, 100     ) 'Turn on BIOFUEL emissions?  : ', LFOSSIL
+      WRITE( 6, 100     ) 'Turn on BIOFUEL emissions?  : ', LBIOFUEL
       WRITE( 6, 100     ) 'Turn on BIOGENIC emissions? : ', LBIOGENIC
       WRITE( 6, 100     ) 'Use MEGAN biogenic emissions: ', LMEGAN
       WRITE( 6, 100     ) 'Use PCEEA BVOC model        : ', LPECCA

@@ -6984,7 +6984,8 @@
 !$OMP END PARALLEL DO
 
       !-----------------------------------------------------------
-      ! Or RCP SHIP emissions (EDGAR 2006 update) 
+      ! Or RCP SHIP emissions 
+      ! (cdh, 10/14/11)
       !-----------------------------------------------------------
       ELSE IF ( LRCPSHIP ) THEN
             

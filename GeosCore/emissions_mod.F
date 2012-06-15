@@ -222,7 +222,10 @@
          IF ( LRETRO .and. ITS_A_NEW_MONTH() ) CALL EMISS_RETRO
 
          ! Read RCP emissions once per month (cdh, 10/14/11)
-         IF ( LRCP  .and. ITS_A_NEW_MONTH() ) CALL EMISS_RCP
+         ! We read all emissions (for land, ship, air) even if only
+         ! one is needed
+         IF ( (LRCP .OR. LRCPSHIP .OR. LRCPAIR) .and. 
+     &        ITS_A_NEW_MONTH() ) CALL EMISS_RCP
 
          ! Read EPA/NEI99 (USA) emissions once per month
          IF ( LNEI99 .and. ITS_A_NEW_MONTH() ) CALL EMISS_EPA_NEI

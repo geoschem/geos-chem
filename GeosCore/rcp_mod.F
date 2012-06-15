@@ -1,41 +1,57 @@
-
+!------------------------------------------------------------------------------
+!          University of California, Irvine, Atmospheric Chemistry            !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !MODULE: RCP_MOD
+!
+! !DESCRIPTION: Module RCP\_MOD provides access to the RCP emission inventories
+!  that were prepared for IPCC AR5. The inventory includes anthropogenic
+!  emissions from land, ships, and aircraft. Species include trace gases 
+!  (NOx, CO, NH3, SO2, various VOCs) and aerosols (BC, OC). Land emissions
+!  include fossil fuel and biofuel use, energy production and distribution, 
+!  residential and commercial combustion, industry, transportation, waste
+!  treatment and disposal, solvent production and use, agriculture, and
+!  agricultural waste burning. Data sources are documented in the data
+!  directories. 
+!\\
+!\\
+! !INTERFACE: 
+!
       MODULE RCP_MOD
-
-
+!
+! !USES:
+!
       IMPLICIT NONE
-
-      !Make everything PRIVATE...
       PRIVATE
-
-      !...except these routines
+!
+! !PUBLIC DATA MEMBERS:
+!
+      !NONE
+!
+! !PUBLIC MEMBER FUNCTIONS:
+! 
       PUBLIC :: CLEANUP_RCP
       PUBLIC :: EMISS_RCP
       PUBLIC :: GET_RCP_EMISSION
       PUBLIC :: RCPNAME, RCPYEAR
       PUBLIC :: RCP_AIREMISS
-
-      ! Anthropogenic land surface emissions.
-      ! includes fossil fuel and biofuel emissions
-      ! from energy production and distribution, 
-      ! residential and commercial combustion, 
-      ! industry, transportation, waste treatment and disposal
-      ! solvent production and use, 
-      ! agriculture, and agricultural waste burning
+!
+! !PRIVATE DATA MEMBERS:
+!
       REAL*4, ALLOCATABLE :: RCP_LAND(:,:,:)
-
-      ! Aircraft emissions
       REAL*4, ALLOCATABLE :: RCP_AIR(:,:,:,:)
-
-      ! Ship emissions
       REAL*4, ALLOCATABLE :: RCP_SHIP(:,:,:)
-
       CHARACTER(LEN=20)   :: RCPNAME, RCPYEAR
       INTEGER             :: IDTRCP_LAND(20), IDTRCP_SHIP(20),
      &     IDTRCP_AIR(3)
+!
+! !REVISION HISTORY:
+!  14 Jun 2012 - C. Holmes   - Initial version
+!EOP
+!------------------------------------------------------------------------------
+!BOC
 
-      !========================================
-      !  MODULE ROUTINES -- follow "CONTAINS"
-      !========================================
       CONTAINS
 
 
@@ -51,7 +67,7 @@
       USE TIME_MOD,               ONLY : GET_MONTH
       USE ERROR_MOD,              ONLY : GEOS_CHEM_STOP
       USE DIRECTORY_MOD,          ONLY : DATA_DIR
-      USE LOGICAL_MOD,            ONLY : LRCPAIR
+      USE LOGICAL_MOD,            ONLY : LRCP, LRCPSHIP, LRCPAIR
       USE BPCH2_MOD,              ONLY : GET_TAU0, GET_RES_EXT
       USE TRACERID_MOD
       USE TRACER_MOD, ONLY      : TRACER_NAME
@@ -84,42 +100,43 @@
       ! Get month
       THISMONTH = GET_MONTH()      
 
-      ! Echo info
-      WRITE(6, '(a)' ) REPEAT( '=', 79)
-      WRITE(6, 100   ) RCPNAME, RCPYEAR
- 100  FORMAT( 'R C P    E M I S S I O N S',
-     &        '  --  Scenario: ', 2A10 , / )
+      !=================================================================
+      ! Land and ship emissions
+      !=================================================================
 
-      ! Anthro file name
-      FILENAME = TRIM( DATA_DIR )        // 'RCP_201110/'     //
-     &                  trim( RCPNAME )  // '_anthropogenic_' // 
-     &                  trim( RCPYEAR )  // '.'               //
-     &                  GET_RES_EXT()    // '.bpch' 
+      IF( LRCP .OR. LRCPSHIP) THEN
 
-      XTAU = GET_TAU0( 1, 1, 2000 ) 
+         ! Land file name
+         FILENAME = TRIM( DATA_DIR )        // 'RCP_201110/'     //
+     &                     trim( RCPNAME )  // '_anthropogenic_' // 
+     &                     trim( RCPYEAR )  // '.'               //
+     &                     GET_RES_EXT()    // '.bpch' 
 
-      ! Read data
-      CALL READ_RCP( FILENAME, TYPE=1 )
+         XTAU = GET_TAU0( 1, 1, 2000 ) 
 
-      ! Anthro file name
-      FILENAME = TRIM( DATA_DIR )        // 'RCP_201110/'     //
-     &                  trim( RCPNAME )  // '_ships_'         // 
-     &                  trim( RCPYEAR )  // '.'               //
-     &                  GET_RES_EXT()    // '.bpch' 
+         ! Read data (LAND -> TYPE=1)
+         CALL READ_RCP( FILENAME, TYPE=1 )
 
-      XTAU = GET_TAU0( THISMONTH, 1, 2000 )  
+         ! Anthro file name
+         FILENAME = TRIM( DATA_DIR )        // 'RCP_201110/'     //
+     &                     trim( RCPNAME )  // '_ships_'         // 
+     &                     trim( RCPYEAR )  // '.'               //
+     &                     GET_RES_EXT()    // '.bpch' 
 
-      ! Read data
-      CALL READ_RCP( FILENAME, TYPE=2, TAU0=XTAU )
+         XTAU = GET_TAU0( THISMONTH, 1, 2000 )  
 
+         ! Read data (SHIP -> TYPE=2)
+         CALL READ_RCP( FILENAME, TYPE=2, TAU0=XTAU )
+         
+      ENDIF
         
       !=================================================================
       ! Aircraft emissions
       !=================================================================
 
       IF (LRCPAIR) THEN
-      FILENAME = TRIM( DATA_DIR )        // 'RCP_201110/'     //
-     &                  trim( RCPNAME )  // '_aircraft_'         // 
+         FILENAME = TRIM( DATA_DIR )     // 'RCP_201110/'     //
+     &                  trim( RCPNAME )  // '_aircraft_'      // 
      &                  trim( RCPYEAR )  // '.'               //
      &                  GET_RES_EXT()    // '.bpch' 
 
@@ -144,7 +161,8 @@
       SUBROUTINE READ_RCP( FILENAME, TYPE, TAU0 )
 
 !***********************************************************************
-!  Subroutine READ_RCP reads a BPCH file created from RCP data.
+!  Subroutine READ_RCP reads a BPCH file created from RCP data. 
+!  (cdh, 10/14/11)
 !***********************************************************************
 
       ! Reference to F90 modules
@@ -157,7 +175,7 @@
 
       ! Arguments
       CHARACTER(LEN=*), INTENT(IN) :: FILENAME
-      INTEGER,          INTENT(IN) :: TYPE
+      INTEGER,          INTENT(IN) :: TYPE ! 1=LAND, 2=SHIP, 3=AIRCRAFT
       REAL*8,OPTIONAL,  INTENT(IN) :: TAU0
 
 
@@ -233,8 +251,9 @@
          IDT = 0
 
          ! Find GEOS-Chem tracer ID for each species in file
-         ! In most cases these ID numbers will be the same, but we do this
-         ! in case the GEOS-Chem tracer numbers change in the future
+         ! These ID numbers will be the same as the ID numbers
+         ! stored in the files, but we do this in case the GEOS-Chem tracer
+         ! numbers change in the future
          SELECT CASE ( NTRACER )
          CASE ( 1  )
             IDT = IDTNOx
@@ -392,6 +411,7 @@
 
 !***********************************************************************
 !  Populate EMIS_AC_NOx with aircraft NOx emissions. Also do diagnostics
+!   (cdh, 10/14/11)
 !***********************************************************************
 
       ! References to F90 modules
@@ -458,8 +478,8 @@
       SUBROUTINE TOTAL_ANTHRO_RCP( THISMONTH )
 
 !***********************************************************************
-!  Subroutine to print total RCP anthropogenic emissions each month
-!  in TgC
+!  Subroutine to print total RCP anthropogenic emissions each month.
+!  (cdh, 10/14/11)
 !***********************************************************************
 
       ! References to F90 modules
@@ -486,6 +506,12 @@
       !=================================================================
       !  TOTAL_ANTHRO_RCP begins here
       !=================================================================
+
+      ! Echo info
+      WRITE(6, '(a)' ) REPEAT( '=', 79)
+      WRITE(6, 100   ) RCPNAME, RCPYEAR
+ 100  FORMAT( 'R C P    E M I S S I O N S',
+     &        '  --  Scenario: ', 2A10 , / )
 
       !==============================================================
       ! RCP Land emissions
@@ -543,9 +569,9 @@
          !  Print info
          !==============================================================
 
-         WRITE( 6, 100 ) TRACER_NAME(IDTRCP_LAND(K)), THISMONTH, 
+         WRITE( 6, 101 ) 'Land', TRACER_NAME(IDTRCP_LAND(K)), THISMONTH, 
      &        TOTAL, UNIT
- 100     FORMAT( 'Anthro Land ', a4, ' for month ',
+ 101     FORMAT( 'Anthro ',a5, ' ', a4, ' for month ',
      &           i2.2, ': ',  f13.6, ' Tg  ', a3 )
 
       ENDDO
@@ -606,10 +632,8 @@
          !  Print info
          !==============================================================
 
-         WRITE( 6, 101 ) TRACER_NAME(IDTRCP_SHIP(K)), THISMONTH, 
+         WRITE( 6, 101 ) 'Ship', TRACER_NAME(IDTRCP_SHIP(K)), THISMONTH, 
      &           TOTAL, UNIT
- 101     FORMAT( 'Anthro Ship ', a4, ' for month ',
-     &           i2.2, ': ',  f13.6, ' Tg  ', a3 )
 
       ENDDO
 
@@ -669,10 +693,8 @@
          !  Print info
          !==============================================================
 
-         WRITE( 6, 102 ) TRACER_NAME(IDTRCP_AIR(K)), THISMONTH, 
+         WRITE( 6, 101 ) 'Air', TRACER_NAME(IDTRCP_AIR(K)), THISMONTH, 
      &           TOTAL, UNIT
- 102     FORMAT( 'Anthro Air  ', a4, ' for month ',
-     &           i2.2, ': ',  f13.6, ' Tg  ', a3 )
 
       ENDDO
 
@@ -683,6 +705,15 @@
 
       FUNCTION GET_RCP_EMISSION( I, J, N, LAND, SHIP ) 
      &         RESULT( EMISS )
+
+!***********************************************************************
+!  Function GET_RCP_EMISSION retrieves the emissions of tracer N at grid
+!  location (I,J). Use LAND=.TRUE. or SHIP=.TRUE. or both to retrieve
+!  either land anthropogenic emissions, ship emissions, or their sum. 
+!  "N" is the advected tracer index, i.e. the tracer index for STT.
+!  The function will return -1 if no emissions are found for that species.
+!  (cdh, 10/14/11)
+!***********************************************************************
 
       USE TRACERID_MOD
       USE ERROR_MOD,            ONLY : ERROR_STOP
@@ -700,31 +731,38 @@
       !=================================================================
       ! GET_RCP_EMISSION begins here!
       !=================================================================
-
+      
+      ! Are we getting land emissions?
       IF ( PRESENT( LAND ) ) THEN
          DOLAND = LAND
       ELSE
          DOLAND = .FALSE.
       ENDIF
 
+      ! Are we getting ship emissions?
       IF ( PRESENT( SHIP ) ) THEN
          DOSHIP = SHIP
       ELSE
          DOSHIP = .FALSE.
       ENDIF
 
+      ! Throw error if neither emission type is requested
       IF ( .NOT. (DOLAND .OR. DOSHIP) ) THEN
          WRITE( STR, '(I4)' ) N
          CALL ERROR_STOP( 'No land/ship emissions, tracer '//trim(STR),
      &        'GET_RCP_EMISSION' )
       ENDIF
       
+      ! Initialize
       EMISS = 0d0
       TRACERFOUND = .FALSE.
 
+      ! Find tracer number for land emissions
       IF ( DOLAND ) THEN
+         ! Loop over all the species we have land emissions for
          DO K=1, SIZE(IDTRCP_LAND)
             IF (N == IDTRCP_LAND(K)) THEN
+               ! We found the desired tracer, so add it up and exit loop
                EMISS = EMISS + RCP_LAND(I,J,K)
                TRACERFOUND=.TRUE.
                EXIT
@@ -732,9 +770,12 @@
          ENDDO
       ENDIF
 
+      ! Find tracer number for ship emissions
       IF ( DOSHIP ) THEN
+         ! Loop over all the species we have ship emissions for
          DO K=1, SIZE(IDTRCP_SHIP)
             IF (N == IDTRCP_SHIP(K)) THEN
+               ! We found the desired tracer, so add it up and exit loop
                EMISS = EMISS + RCP_SHIP(I,J,K)
                TRACERFOUND=.TRUE.
                EXIT
@@ -754,11 +795,12 @@
 
 !***********************************************************************
 !  Subroutine allocates and zeroes all module arrays
+!   (cdh, 10/14/11)
 !***********************************************************************
 
       ! References to F90 modules
       USE ERROR_MOD,   ONLY : ALLOC_ERR
-      USE LOGICAL_MOD, ONLY : LRCP
+      USE LOGICAL_MOD, ONLY : LRCP, LRCPSHIP, LRCPAIR
 
       USE CMN_SIZE_MOD      ! Size parameters
 
@@ -770,7 +812,7 @@
       !=================================================================
 
       ! Return if we LRCP = .FALSE.
-      IF (.not. LRCP ) RETURN
+      IF ( .not. (LRCP .OR. LRCPSHIP .OR. LRCPAIR) ) RETURN
 
       IDTRCP_LAND = 0d0
       IDTRCP_SHIP = 0d0
@@ -800,13 +842,13 @@
       SUBROUTINE CLEANUP_RCP
 !**********************************************************************
 !  Subroutine deallocates all module arrays
+!  (cdh, 10/14/11)
 !**********************************************************************
 
       !=================================================================
       !  CLEANUP_RCP begins here
       !=================================================================
 
-      ! Fossil fuel
       IF ( ALLOCATED( RCP_LAND ) ) DEALLOCATE( RCP_LAND )
       IF ( ALLOCATED( RCP_SHIP ) ) DEALLOCATE( RCP_SHIP )
       IF ( ALLOCATED( RCP_AIR  ) ) DEALLOCATE( RCP_AIR )

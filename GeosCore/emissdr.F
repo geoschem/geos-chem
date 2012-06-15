@@ -109,8 +109,8 @@
       USE MEGANUT_MOD,       ONLY : XLTMMP
       !FP_ISOP (6/2009)
       USE EMISSIONS_MOD,     ONLY : ISOP_SCALING 
-      USE LOGICAL_MOD,       ONLY : LRCPAIR
-      USE RCP_MOD,           ONLY : RCP_AIREMISS
+      USE LOGICAL_MOD,       ONLY : LRCPAIR     ! (cdh, 10/14/11)
+      USE RCP_MOD,           ONLY : RCP_AIREMISS! (cdh, 10/14/11)
 
  
       USE CMN_SIZE_MOD     ! Size parameters
@@ -283,6 +283,9 @@
 ! AIRCRAFT emissions NOx [molecules/cm3/s]
 !
             IF ( LAIRNOX .AND. I == 1 .AND. J == 1 ) THEN
+
+               ! Choose between RCP inventory and default
+               ! (cdh, 6/14/12)
                IF (LRCPAIR) THEN
                   CALL RCP_AIREMISS
                ELSE

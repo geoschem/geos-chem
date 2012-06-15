@@ -1136,6 +1136,7 @@
          ! New test on logical flag (phs, 3/2/09)
          !==============================================================
          ! Add ICOADSSHIP (cklee, 6/30/09)
+         ! Add RCP
          IF ( LSHIPSO2 .OR. LEDGARSHIP .OR. LARCSHIP .OR.
      $        LEMEPSHIP .OR. LICOADSSHIP .OR. LRCPSHIP ) THEN
             
