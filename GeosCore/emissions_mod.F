@@ -245,7 +245,7 @@
          ENDIF
 
          ! Read CAC (Canada) emissions
-         IF ( LCAC .and. ITS_A_NEW_YEAR() ) THEN
+         IF ( LCAC .and. ITS_A_NEW_MONTH() ) THEN
 #if   defined( GRID05x0666 )
             CALL EMISS_CAC_ANTHRO_05x0666
 #else
@@ -297,7 +297,7 @@
          ENDIF
 
          ! Read CAC emissions
-         IF ( LCAC .and. ITS_A_NEW_YEAR() ) THEN
+         IF ( LCAC .and. ITS_A_NEW_MONTH() ) THEN
 #if   defined(GRID05x0666)
             CALL EMISS_CAC_ANTHRO_05x0666
 #else
@@ -391,7 +391,7 @@
          ENDIF
 
          ! Read CAC emissions
-         IF ( LCAC .and. ITS_A_NEW_YEAR() ) THEN
+         IF ( LCAC .and. ITS_A_NEW_MONTH() ) THEN
 #if   defined( GRID05x0666 )
             CALL EMISS_CAC_ANTHRO_05x0666
 #else
@@ -523,7 +523,7 @@
          ENDIF
 
          ! Read CAC (Canada) emissions
-         IF ( LCAC .and. ITS_A_NEW_YEAR() ) THEN
+         IF ( LCAC .and. ITS_A_NEW_MONTH() ) THEN
 #if   defined( GRID05x0666 )
             CALL EMISS_CAC_ANTHRO_05x0666
 #else
