@@ -507,15 +507,17 @@
       !### Debug
       IF ( LPRT ) CALL DEBUG_MSG( '### CHEMDR: after PHYSPROC' )
 
-      ! SCHEM applies a simplified strat chemistry in order
-      ! to prevent stuff from building up in the stratosphere
-      !
-      ! NOTE: SCHEM still needs to be called whether or not LINOZ is
-      ! used.  LINOZ is just a replacement for SYNOZ. (bmy, 4/28/10)
-      CALL SCHEM
-
-      !### Debug
-      IF ( LPRT ) CALL DEBUG_MSG( '### CHEMDR: after SCHEM' )
+!%%!  ltm: As of v9-01-03k, old SCHEM.F is now depreciated, and it and
+!%%!  the routines it called will likely be removed in a later version.
+!%%!  SCHEM applies a simplified strat chemistry in order
+!%%!  to prevent species from building up in the stratosphere
+!%%!  
+!%%!  ! NOTE: SCHEM still needs to be called whether or not LINOZ is
+!%%!  ! used.  LINOZ is just a replacement for SYNOZ. (bmy, 4/28/10)
+!%%!  CALL SCHEM
+!%%!
+!%%!  !### Debug
+!%%!  IF ( LPRT ) CALL DEBUG_MSG( '### CHEMDR: after SCHEM' )
 
       !=================================================================
       ! Call LUMP which lumps the species together after chemistry

@@ -552,7 +552,7 @@
       USE DIRECTORY_MOD, ONLY : TEMP_DIR   
       USE GRID_MOD,      ONLY : SET_XOFFSET, SET_YOFFSET
       USE LOGICAL_MOD,   ONLY : LSVGLB,      LUNZIP,       LWAIT
-      USE LOGICAL_MOD,   ONLY : LVARTROP,    LLINOZ
+      USE LOGICAL_MOD,   ONLY : LVARTROP
       USE RESTART_MOD,   ONLY : SET_RESTART
       USE TIME_MOD,      ONLY : SET_BEGIN_TIME,   SET_END_TIME 
       USE TIME_MOD,      ONLY : SET_CURRENT_TIME, SET_DIAGb
@@ -579,6 +579,7 @@
 !  28 Feb 2012 - R. Yantosca - Removed support for GEOS-3
 !  01 Mar 2012 - R. Yantosca - Now call routine INITIALIZE_GEOS_GRID to
 !                              initialize horizontal grid parameters
+!  10 Jun 2012 - L. Murray   - Move Linoz to chemistry menu
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -665,16 +666,12 @@
       CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_simulation_menu:17' )
       READ( SUBSTRS(1:N), *     ) LVARTROP
 
-      ! LINOZ chemistry in the stratosphere
-      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_simulation_menu:18' )
-      READ( SUBSTRS(1:N), *     ) LLINOZ  
-
       ! I0, J0
-      CALL SPLIT_ONE_LINE( SUBSTRS, N, 2, 'read_simulation_menu:19' )
+      CALL SPLIT_ONE_LINE( SUBSTRS, N, 2, 'read_simulation_menu:18' )
       READ( SUBSTRS(1:N), *     ) I0, J0
 
       ! Separator line
-      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_simulation_menu:20' )
+      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_simulation_menu:19' )
 
       !=================================================================
       ! Add safety checks for logical switches
@@ -717,7 +714,6 @@
       WRITE( 6, 120     ) 'Unzip met fields?           : ', LUNZIP
       WRITE( 6, 120     ) 'Wait for met fields?        : ', LWAIT
       WRITE( 6, 120     ) 'Use variable tropopause?    : ', LVARTROP
-      WRITE( 6, 120     ) 'Use LINOZ strat chemistry?  : ', LLINOZ
       WRITE( 6, 130     ) 'Global offsets I0, J0       : ', I0, J0
 
       ! Format statements
@@ -2617,7 +2613,7 @@
 ! !USES:
 !
       USE ERROR_MOD,   ONLY : ERROR_STOP 
-      USE LOGICAL_MOD, ONLY : LCHEM 
+      USE LOGICAL_MOD, ONLY : LCHEM, LSCHEM, LLINOZ
       USE LOGICAL_MOD, ONLY : LSVCSPEC, LKPP
       USE TIME_MOD,    ONLY : SET_CT_CHEM
       USE TRACER_MOD,  ONLY : N_TRACERS
@@ -2630,6 +2626,7 @@
 !  (2) Remove reference to obsolete embedded chemistry stuff in "CMN" 
 !      (bmy, 2/25/10)
 !  27 Aug 2010 - R. Yantosca - Added ProTeX headers
+!  10 Jun 2012 - L. Murray   - Move all strat chemistry switches here
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -2653,20 +2650,28 @@
       CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_chemistry_menu:1' )
       READ( SUBSTRS(1:N), * ) LCHEM
 
-      ! Chemistry timestep
+      ! Turn on stratospheric chemistry?
       CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_chemistry_menu:2' )
+      READ( SUBSTRS(1:N), * ) LSCHEM
+
+      ! Use Linoz for stratospheric ozone? (Otherwise, Synoz is used)
+      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_chemistry_menu:3' )
+      READ( SUBSTRS(1:N), * ) LLINOZ
+
+      ! Chemistry timestep
+      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_chemistry_menu:4' )
       READ( SUBSTRS(1:N), * ) TS_CHEM
 
       ! Read and save CSPEC ?
-      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_chemistry_menu:3' )
+      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_chemistry_menu:5' )
       READ( SUBSTRS(1:N), * ) LSVCSPEC
 
       ! Use KPP solver ?
-      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_chemistry_menu:4' )
+      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_chemistry_menu:6' )
       READ( SUBSTRS(1:N), * ) LKPP
 
       ! Separator line
-      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_chemistry_menu:5' )
+      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_chemistry_menu:7' )
 
       !=================================================================
       ! Print to screen
@@ -2674,6 +2679,8 @@
       WRITE( 6, '(/,a)' ) 'CHEMISTRY MENU'
       WRITE( 6, '(  a)' ) '--------------'
       WRITE( 6, 100     ) 'Turn on chemistry?          : ', LCHEM
+      WRITE( 6, 100     ) 'Use linear. strat. chem?    : ', LSCHEM
+      WRITE( 6, 100     ) ' => Use Linoz for O3?       : ', LLINOZ
       WRITE( 6, 110     ) 'Chemistry timestep [min]    : ', TS_CHEM
       WRITE( 6, 100     ) 'Use CSPEC restart?          : ', LSVCSPEC
       WRITE( 6, 100     ) 'Use solver coded by KPP?    : ', LKPP
@@ -2702,12 +2709,11 @@
 !
 ! !USES:
 !
-      USE ERROR_MOD,     ONLY : ERROR_STOP
-      USE LOGICAL_MOD,   ONLY : LTRAN,              LUPBD
-      USE LOGICAL_MOD,   ONLY : LMFCT,              LFILL
-      USE TRACER_MOD,    ONLY : ITS_A_FULLCHEM_SIM, ITS_A_TAGOX_SIM
-      USE TRANSPORT_MOD, ONLY : SET_TRANSPORT
-      USE UPBDFLX_MOD,   ONLY : INIT_UPBDFLX
+      USE ERROR_MOD,      ONLY : ERROR_STOP
+      USE LOGICAL_MOD,    ONLY : LTRAN
+      USE LOGICAL_MOD,    ONLY : LMFCT,              LFILL
+      USE TRACER_MOD,     ONLY : ITS_A_FULLCHEM_SIM, ITS_A_TAGOX_SIM
+      USE TRANSPORT_MOD,  ONLY : SET_TRANSPORT
 ! 
 ! !REVISION HISTORY: 
 !  20 Jul 2004 - R. Yantosca - Initial version
@@ -2718,6 +2724,7 @@
 !        (cdh, bmy, 7/7/08)
 !  (5 ) Set MAX_DYN for the 0.5 x 0.666 nested grid (yxw, dan, bmy, 11/6/08)
 !  27 Aug 2010 - R. Yantosca - Added ProTeX headers
+!  10 Jun 2012 - L. Murray - Move strat to chemistry menu
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -2760,20 +2767,12 @@
       CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_transport_menu:5' )
       READ( SUBSTRS(1:N), * ) TS_DYN
 
-      ! Include strat O3/NOy
-      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_transport_menu:6' )
-      READ( SUBSTRS(1:N), * ) LUPBD
-
       ! Separator line
-      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_transport_menu:7' )
+      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_transport_menu:6' )
 
       !=================================================================
       ! Error check settings
       !=================================================================      
-
-      ! Turn off LUPBD if for simulations other than fullchem & tagox
-      IF ( .not. ITS_A_FULLCHEM_SIM()  .and. 
-     &     .not. ITS_A_TAGOX_SIM()    ) LUPBD = .FALSE.
       
       ! Define maximum timestep for transport
 #if   defined( GRID4x5   ) 
@@ -2809,7 +2808,6 @@
       WRITE( 6, 110     ) 'IORD, JORD, KORD for TPCORE?: ', IORD, 
      &                                                      JORD, KORD
       WRITE( 6, 120     ) 'Transport timestep [min]    : ', TS_DYN
-      WRITE( 6, 100     ) 'Use strat BC for O3 & NOy?  : ', LUPBD
 
       ! FORMAT statements
  100  FORMAT( A, L5  )
@@ -2822,9 +2820,6 @@
 
       ! Pass parameters to "transport_mod.f"
       CALL SET_TRANSPORT( IORD, JORD, KORD )
-
-      ! Pass parameters to "upbdflx_mod.f"
-      CALL INIT_UPBDFLX( IORD, JORD, KORD )
 
       END SUBROUTINE READ_TRANSPORT_MENU
 !EOC
@@ -6324,11 +6319,11 @@
       LMFCT          = .FALSE.
       LTRAN          = .FALSE.
       LTPFV          = .FALSE.
-      LUPBD          = .FALSE.
       LWINDO         = .FALSE.
       LUNZIP         = .FALSE.
       LWAIT          = .FALSE.
       LTURB          = .FALSE.
+      LSCHEM         = .FALSE.
       LSVGLB         = .FALSE.
       LSVCSPEC       = .FALSE.
       LSPLIT         = .FALSE.
