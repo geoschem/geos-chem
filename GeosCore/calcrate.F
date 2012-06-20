@@ -65,6 +65,10 @@
 !  (18) Add change yield for HAC. Make CONSTC a parameter. (fp, 2/2/10)
 !  01 Mar 2012 - R. Yantosca - Now use new functions from grid_mod.F90:
 !                              GET_YMID(I,J,L) and GET_AREA_CM2(I,J,L)
+!  20 Jun 2012 - R. Yantosca - Under some circumstances it seems that INT_OPE
+!                              computed by PARANOX can be negative.  This
+!                              would make EMIS_BL and REMIS negative.  If any
+!                              negative emissions occur, reset to zero.
 !******************************************************************************
 !
       ! References to F90 modules 
@@ -1568,6 +1572,10 @@ c new OH+CO rate from JPL2006.
      &                           * XNUMOL(NN) / DTSRCE )    
      &                           / COEF1   ) * ( DELTPRES / TOTPRES )
                     
+                     !%%% DO NOT LET NEGATIVE SHIP EMISSIONS GET  
+                     !%%% ARCHIVED INTO REMIS (bmy, mpayer, 6/20/12)
+                     IF ( EMIS_BL < 0d0 ) EMIS_BL = 0d0
+
                      ! Convert ship O3 emissions from [molec NO/box/s]
                      ! to [molec NO/cm3/s] and store in the REMIS array
                      REMIS(JLOOP,IDEOX) = REMIS(JLOOP,IDEOX) + 
