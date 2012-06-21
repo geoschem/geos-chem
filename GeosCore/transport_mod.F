@@ -6,7 +6,7 @@
 ! !MODULE: transport_mod
 !
 ! !DESCRIPTION: Module TRANSPORT\_MOD is used to call the proper version of 
-!  the TPCORE advection scheme for GEOS-3, GEOS-4, GEOS-5, or GCAP 
+!  the TPCORE advection scheme for GCAP, GEOS-4, GEOS-5, or GEOS-5.7
 !  nested-grid or global simulations.
 !\\
 !\\
@@ -35,7 +35,7 @@
       PRIVATE :: GCAP_GLOBAL_ADV             
       PRIVATE :: DO_GEOS5_WINDOW_TRANSPORT
       PRIVATE :: DO_GEOS57_WINDOW_TRANSPORT      
-      PRIVATE :: DO_WINDOW_TRANSPORT   
+      !PRIVATE :: DO_WINDOW_TRANSPORT   
       PRIVATE :: GET_AIR_MASS                
 !
 ! !REVISION HISTORY:
@@ -68,6 +68,8 @@
 !                              mass fluxes diagnostics anymore.
 !  28 Feb 2012 - R. Yantosca - Removed support for GEOS-3
 !  01 Mar 2012 - R. Yantosca - Now reference new grid_mod.F90
+!  21 Jun 2012 - R. Yantosca - Now use pointers to flip arrays in vertical
+!  21 Jun 2012 - R. Yantosca - Comment out GEOS-3 window subroutine
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -483,6 +485,7 @@
 !  26 Feb 2010 - R. Yantosca - Removed references to obsolete LEMBED switch
 !  26 Feb 2010 - R. Yantosca - Added ProTeX headers
 !  16 Feb 2011 - R. Yantosca - Add modifications for APM microphysics (G. Luo)
+!  21 Jun 2012 - R. Yantosca - Now use pointers to flip arrays in the vertical
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -748,6 +751,7 @@
 !  26 Feb 2010 - R. Yantosca - Removed references to obsolete LEMBED switch
 !  26 Feb 2010 - R. Yantosca - Added ProTeX headers
 !  16 Feb 2011 - R. Yantosca - Add modifications for APM from G. Luo
+!  21 Jun 2012 - R. Yantosca - Now use pointers to flip arrays in the vertical
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -959,6 +963,7 @@
 !  26 Feb 2010 - R. Yantosca - Removed references to obsolete LEMBED switch
 !  26 Feb 2010 - R. Yantosca - Added ProTeX headers
 !  16 Feb 2011 - R. Yantosca - Add modifications for APM from G. Luo
+!  21 Jun 2012 - R. Yantosca - Now use pointers to flip arrays in the vertical
 !EOP
 !------------------------------------------------------------------------------
 !BOC
