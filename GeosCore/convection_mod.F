@@ -145,6 +145,7 @@
 !                              of each level to DO_MERRA_CONVECTION
 !  28 Feb 2012 - R. Yantosca - Removed support for GEOS-3
 !  01 Mar 2012 - R. Yantosca - Now use GET_AREA_M2(I,J,L) from grid_mod.F90
+!  21 Jun 2012 - R. Yantosca - Now use poiners to pass array slices to routines
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -212,14 +213,25 @@
       REAL*8             :: DIAG14 (               LLPAR,   N_TRACERS )
       REAL*8             :: DIAG38 (               LLPAR,   N_TRACERS )
       REAL*8             :: F      (               LLPAR,   N_TRACERS )
-      REAL*8             :: FSOL   ( IIPAR, JJPAR, LLPAR,   N_TRACERS )
+      REAL*8,  TARGET    :: FSOL   ( IIPAR, JJPAR, LLPAR,   N_TRACERS )
       INTEGER            :: ISOL   (                        N_TRACERS )
       REAL*8             :: PEDGE  (               LLPAR+1            )
 
       ! Pointers
-      REAL*8             :: T_PFICU(               LLPAR              )
-      REAL*8             :: T_PFLCU(               LLPAR              )
-
+      REAL*8,  POINTER   :: p_AD      (:    )   
+      REAL*8,  POINTER   :: p_BXHEIGHT(:    )
+      REAL*8,  POINTER   :: p_CMFMC   (:    )
+      REAL*8,  POINTER   :: p_DQRCU   (:    )
+      REAL*8,  POINTER   :: p_DTRAIN  (:    )
+      REAL*8,  POINTER   :: p_H2O2s   (:    )
+      REAL*8,  POINTER   :: p_FSOL    (:,:,:)
+      REAL*8,  POINTER   :: p_PFICU   (:    )   
+      REAL*8,  POINTER   :: p_PFLCU   (:    )
+      REAL*8,  POINTER   :: p_REEVAPCN(:    )
+      REAL*8,  POINTER   :: p_SO2s    (:    )
+      REAL*8,  POINTER   :: p_STT     (:,:  )
+      REAL*8,  POINTER   :: p_T       (:    )
+      
       ! Parameters
       LOGICAL, PARAMETER :: FIRST = .TRUE.
 
@@ -257,8 +269,14 @@
          ! Molecular weight [kg]
          COEF%MOLWT_KG(N) = TRACER_MW_KG(N)
 
+         ! Set a pointer to each 3D slice of FSOL
+         p_FSOL => FSOL(:,:,:,N)
+
          ! Fraction of soluble tracer
-         CALL COMPUTE_F( N, FSOL(:,:,:,N), ISOL(N) ) 
+         CALL COMPUTE_F( N, p_FSOL, ISOL(N) ) 
+
+         ! Nullify the pointer
+         NULLIFY( p_FSOL )
 
       ENDDO
       
@@ -267,29 +285,31 @@
       !-----------------------------------------------------------------
 !$OMP PARALLEL DO
 !$OMP+DEFAULT( SHARED )
-!$OMP+PRIVATE( J,       AREA_M2, I,      IDENT,  L,  PEDGE )
-!$OMP+PRIVATE( N,       F,       DIAG14, DIAG38, RC, NN    ) 
-!$OMP+PRIVATE( T_PFICU, T_PFLCU                            )
+!$OMP+PRIVATE( J,          AREA_M2,  I,       IDENT,      L       )
+!$OMP+PRIVATE( PEDGE,      N,        F,       DIAG14,     DIAG38  )
+!$OMP+PRIVATE( RC,         NN,       p_AD,    p_BXHEIGHT, p_CMFMC )
+!$OMP+PRIVATE( p_DQRCU,    p_DTRAIN, p_H2O2s, p_PFICU,    p_PFLCU )
+!$OMP+PRIVATE( P_REEVAPCN, p_SO2s,   p_STT,   p_T                 )
       DO J = 1, JJPAR
       DO I = 1, IIPAR
 
          ! Grid box surface area [m2]
-         AREA_M2           = GET_AREA_M2( I, J, 1 ) 
+         AREA_M2           =  GET_AREA_M2( I, J, 1 ) 
 
          ! Initialize the IDENT object for error I/O
-         IDENT%STDOUT_FILE = ''                     ! Write to
-         IDENT%STDOUT_LUN  = 6                      !  stdout
-         IDENT%PET         = 0                      ! CPU #
-         IDENT%I_AM(1)     = 'MAIN'                 ! Main routine
-         IDENT%I_AM(2)     = 'DO_CONVECTION'        ! This routine
-         IDENT%LEV         = 2                      ! This level
-         IDENT%ERRMSG      = ''                     ! Error msg
-        !IDENT%VERBOSE     = ( I==23 .and. J==34 )  ! Debug box
-         IDENT%VERBOSE     = ( I==67 .and. J==31 )  ! Debug box
+         IDENT%STDOUT_FILE =  ''                     ! Write to
+         IDENT%STDOUT_LUN  =  6                      !  stdout
+         IDENT%PET         =  0                      ! CPU #
+         IDENT%I_AM(1)     =  'MAIN'                 ! Main routine
+         IDENT%I_AM(2)     =  'DO_CONVECTION'        ! This routine
+         IDENT%LEV         =  2                      ! This level
+         IDENT%ERRMSG      =  ''                     ! Error msg
+        !IDENT%VERBOSE     =  ( I==23 .and. J==34 )  ! Debug box
+         IDENT%VERBOSE     =  ( I==67 .and. J==31 )  ! Debug box
 
          ! Pressure edges
          DO L = 1, LLPAR+1
-            PEDGE(L)       = GET_PEDGE( I, J, L )
+            PEDGE(L)       =  GET_PEDGE( I, J, L )
          ENDDO
 
          ! For some reason, the parallelization chokes if we pass an array 
@@ -297,24 +317,36 @@
          ! copy the data into a local array and then pass that to the routine.
          DO N = 1, N_TRACERS
          DO L = 1, LLPAR
-            F(L,N)         = FSOL(I,J,L,N)
+            F(L,N)         =  FSOL(I,J,L,N)
          ENDDO
          ENDDO
 
 #if   defined( GEOS_57 )
 
          ! For GEOS-5.7, PFICU and PFLCU are defined on level edges
-         T_PFICU = PFICU( I, J, 2:LLPAR+1 )
-         T_PFLCU = PFLCU( I, J, 2:LLPAR+1 )
+         p_PFICU           => PFICU   ( I, J, 2:LLPAR+1 )
+         p_PFLCU           => PFLCU   ( I, J, 2:LLPAR+1 )
 
 #elif defined( MERRA   )
 
          ! For MERRA, PFICU and PFLCU are defined on level centers
-         T_PFICU = PFICU( I, J, 1:LLPAR   )
-         T_PFLCU = PFLCU( I, J, 1:LLPAR   )
+         p_PFICU           => PFICU   ( I, J, 1:LLPAR   )
+         p_PFLCU           => PFLCU   ( I, J, 1:LLPAR   )
 
 #endif
 
+         ! Pointers to slices of larger arrays
+         p_AD              => AD      ( I, J,  :          )
+         p_BXHEIGHT        => BXHEIGHT( I, J,  :          )
+         p_CMFMC           => CMFMC   ( I, J, 2:LLPAR+1   )
+         p_DQRCU           => DQRCU   ( I, J,  :          )
+         p_DTRAIN          => DTRAIN  ( I, J,  :          )
+         p_H2O2s           => H2O2s   ( I, J,  :          )
+         p_REEVAPCN        => REEVAPCN( I, J,  :          )
+         p_SO2s            => SO2s    ( I, J,  :          )
+         p_STT             => STT     ( I, J,  :,       : )
+         p_T               => T       ( I, J,  :          )
+         
          !--------------------------
          ! Do the cloud convection
          !--------------------------
@@ -327,18 +359,18 @@
      &                             PEDGE    = PEDGE,
      &                             TS_DYN   = DT, 
      &                             F        = F,
-     &                             AD       = AD      (I,J, :        ),
-     &                             BXHEIGHT = BXHEIGHT(I,J, :        ),
-     &                             CMFMC    = CMFMC   (I,J,2:LLPAR+1 ),
-     &                             DQRCU    = DQRCU   (I,J, :        ),
-     &                             DTRAIN   = DTRAIN  (I,J, :        ), 
-     &                             H2O2s    = H2O2s   (I,J, :        ),
-     &                             PFICU    = T_PFICU,
-     &                             PFLCU    = T_PFLCU,
-     &                             REEVAPCN = REEVAPCN(I,J, :        ),
-     &                             SO2s     = SO2s    (I,J, :        ),
-     &                             T        = T       (I,J, :        ),
-     &                             Q        = STT     (I,J, :,      :), 
+     &                             AD       = p_AD,
+     &                             BXHEIGHT = p_BXHEIGHT,
+     &                             CMFMC    = p_CMFMC,
+     &                             DQRCU    = p_DQRCU,
+     &                             DTRAIN   = p_DTRAIN,
+     &                             H2O2s    = p_H2O2s,
+     &                             PFICU    = p_PFICU,
+     &                             PFLCU    = p_PFLCU,
+     &                             REEVAPCN = p_REEVAPCN,            
+     &                             SO2s     = p_SO2s,
+     &                             T        = p_T,
+     &                             Q        = p_STT,
      &                             DIAG14   = DIAG14,
      &                             DIAG38   = DIAG38,
      &                             I        = I,
@@ -349,6 +381,11 @@
          IF ( RC /= SMV_SUCCESS ) THEN
             CALL GEOS_CHEM_STOP
          ENDIF
+
+         ! Free pointer memory
+         NULLIFY( p_AD,       p_BXHEIGHT, p_CMFMC, p_DQRCU )
+         NULLIFY( p_DTRAIN,   p_H2O2s,    p_PFICU, p_PFLCU )
+         NULLIFY( p_REEVAPCN, p_SO2s,     p_STT,   p_T     )
 
          !--------------------------
          ! ND14 diagnostic [kg/s]
