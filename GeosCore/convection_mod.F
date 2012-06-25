@@ -485,10 +485,10 @@
       INTEGER        :: N_TOT_TRC
 #if   defined( APM )
       INTEGER        :: INDEXSOL(                  N_TRACERS+N_APMTRA)
-      REAL*8,        :: F       (IIPAR,JJPAR,LLPAR,N_TRACERS+N_APMTRA)
+      REAL*8         :: F       (IIPAR,JJPAR,LLPAR,N_TRACERS+N_APMTRA)
 #else
       INTEGER        :: INDEXSOL(                  N_TRACERS)
-      REAL*8,        :: F       (IIPAR,JJPAR,LLPAR,N_TRACERS)
+      REAL*8         :: F       (IIPAR,JJPAR,LLPAR,N_TRACERS)
 #endif
 
       !=================================================================
