@@ -474,21 +474,21 @@
 !
 ! !LOCAL VARIABLES:
 !
-      LOGICAL, SAVE :: FIRST = .TRUE.
-      INTEGER       :: I, ISOL, J, L, L2, N, NSTEP  
-      !INTEGER       :: INDEXSOL(N_TRACERS) 
-      INTEGER       :: CONVDT    
-      !REAL*8        :: F(IIPAR,JJPAR,LLPAR,N_TRACERS)
-      REAL*8        :: RPDEL(IIPAR,JJPAR,LLPAR)
-      REAL*8        :: DP(IIPAR,JJPAR,LLPAR)
-      REAL*8        :: P1, P2, TDT   
-      INTEGER       :: N_TOT_TRC      
+      LOGICAL, SAVE  :: FIRST = .TRUE.
+      INTEGER        :: I, ISOL, J, L, L2, N, NSTEP
+      !INTEGER        :: INDEXSOL(N_TRACERS)
+      INTEGER        :: CONVDT
+      !REAL*8         :: F(IIPAR,JJPAR,LLPAR,N_TRACERS)
+      REAL*8         :: RPDEL(IIPAR,JJPAR,LLPAR)
+      REAL*8         :: DP(IIPAR,JJPAR,LLPAR)
+      REAL*8         :: P1, P2, TDT
+      INTEGER        :: N_TOT_TRC
 #if   defined( APM )
-      INTEGER       :: INDEXSOL(                  N_TRACERS+N_APMTRA) 
-      REAL*8        :: F       (IIPAR,JJPAR,LLPAR,N_TRACERS+N_APMTRA)
+      INTEGER        :: INDEXSOL(                  N_TRACERS+N_APMTRA)
+      REAL*8,        :: F       (IIPAR,JJPAR,LLPAR,N_TRACERS+N_APMTRA)
 #else
-      INTEGER       :: INDEXSOL(                  N_TRACERS) 
-      REAL*8        :: F       (IIPAR,JJPAR,LLPAR,N_TRACERS)
+      INTEGER        :: INDEXSOL(                  N_TRACERS)
+      REAL*8,        :: F       (IIPAR,JJPAR,LLPAR,N_TRACERS)
 #endif
 
       !=================================================================
@@ -536,7 +536,7 @@
          ! Get fraction of tracer scavenged and the soluble tracer 
          ! index (ISOL). For non-soluble tracers, F=0 and ISOL=0.
          CALL COMPUTE_F( N, F(:,:,:,N), ISOL ) 
-         
+
          ! Store ISOL in an array for later use
          INDEXSOL(N) = ISOL
 
@@ -614,7 +614,6 @@
      &                    F     (:,:,LLPAR:1:-1,:),         
      &                    TCVV,   
      &                    INDEXSOL )
-
 
       ! Add a check to set negative values in STT to TINY
       ! (ccc, 4/15/09)
