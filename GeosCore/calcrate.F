@@ -1572,14 +1572,16 @@ c new OH+CO rate from JPL2006.
      &                           * XNUMOL(NN) / DTSRCE )    
      &                           / COEF1   ) * ( DELTPRES / TOTPRES )
                     
-                     !%%% DO NOT LET NEGATIVE SHIP EMISSIONS GET  
-                     !%%% ARCHIVED INTO REMIS (bmy, mpayer, 6/20/12)
-                     IF ( EMIS_BL < 0d0 ) EMIS_BL = 0d0
-
                      ! Convert ship O3 emissions from [molec NO/box/s]
                      ! to [molec NO/cm3/s] and store in the REMIS array
                      REMIS(JLOOP,IDEOX) = REMIS(JLOOP,IDEOX) + 
      &                                    EMIS_BL / VOLUME(JLOOP)
+
+                     !%%% DO NOT LET NEGATIVE SHIP EMISSIONS GET  
+                     !%%% ARCHIVED INTO REMIS (bmy, mpayer, 6/20/12)
+                     IF ( REMIS(JLOOP,IDEOX) < 0d0 ) THEN
+                        REMIS(JLOOP,IDEOX) = 0d0
+                     ENDIF
                   ENDIF
                ENDDO
            
