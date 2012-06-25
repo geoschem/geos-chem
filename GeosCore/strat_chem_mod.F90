@@ -114,6 +114,7 @@ CONTAINS
     USE LINOZ_MOD,      ONLY : DO_LINOZ
     USE TIME_MOD,       ONLY : GET_MONTH, TIMESTAMP_STRING
     USE TRACER_MOD,     ONLY : ITS_A_FULLCHEM_SIM, ITS_A_TAGOX_SIM
+    USE TRACER_MOD,     ONLY : ITS_A_H2HD_SIM
     USE TRACER_MOD,     ONLY : N_TRACERS, STT, TCVV, TRACER_MW_KG, XNUMOLAIR
     USE TRACERID_MOD,   ONLY : IDTOX, IDTCHBr3, IDTCH2Br2
     USE TROPOPAUSE_MOD, ONLY : GET_MIN_TPAUSE_LEVEL, GET_TPAUSE_LEVEL
@@ -337,6 +338,39 @@ CONTAINS
        ENDIF
        CALL CONVERT_UNITS( 2, N_TRACERS, TCVV, AD, STT ) ! v/v -> kg
 
+
+       ! Add to tropopause level aggregator for later determining STE flux
+       TpauseL_CNT = TpauseL_CNT + 1d0
+       !$OMP PARALLEL DO &
+       !$OMP DEFAULT( SHARED ) &
+       !$OMP PRIVATE( I, J )
+       DO I=1,IIPAR
+          DO J=1,JJPAR
+             TpauseL(I,J) = TpauseL(I,J) + GET_TPAUSE_LEVEL(I,J)
+          ENDDO
+       ENDDO
+       !$OMP END PARALLEL DO
+
+       ! Aggregate chemical tendency [kg box-1]
+       DO N=1,NSCHEM
+          NN = Strat_TrID_GC(N)
+          SCHEM_TEND(:,:,:,N) = SCHEM_TEND(:,:,:,N) + &
+               ( STT(:,:,:,NN) - STT0(:,:,:,NN) )
+       ENDDO
+
+    !======================================================================
+    ! H2-HD Simulation
+    !======================================================================
+    ELSE IF ( ITS_A_H2HD_SIM() ) THEN
+
+       ! H2/HD uses upbdflx_H2, which is a modified Synoz.
+
+       ! Intial conditions
+       STT0(:,:,:,:) = STT(:,:,:,:)
+
+       CALL CONVERT_UNITS( 1, N_TRACERS, TCVV, AD, STT ) ! kg -> v/v
+       CALL UPBDFLX_HD
+       CALL CONVERT_UNITS( 2, N_TRACERS, TCVV, AD, STT ) ! v/v -> kg
 
        ! Add to tropopause level aggregator for later determining STE flux
        TpauseL_CNT = TpauseL_CNT + 1d0
@@ -1429,5 +1463,247 @@ CONTAINS
 
   END SUBROUTINE Do_Synoz
   !EOC
+  !----------------------------------------------------------------------------
+  !         Harvard University Atmospheric Chemistry Modeling Group           !
+  !----------------------------------------------------------------------------
+  !BOP
+  !
+  ! !IROUTINE: upbdflx_HD
+  !
+  ! !DESCRIPTION: Subroutine UPBDFLX\_HD establishes the flux boundary 
+  ! condition for HD coming down from the stratosphere. This is adapted from 
+  ! the UPBDFLX\_O3 routine.
+  !\\
+  !\\
+  ! !INTERFACE:
+  !
+  SUBROUTINE UPBDFLX_HD
+  !
+  ! !USES:
+  !
+    USE DAO_MOD,      ONLY : AD, BXHEIGHT, T
+    USE ERROR_MOD,    ONLY : ERROR_STOP
+    USE PRESSURE_MOD, ONLY : GET_PEDGE, GET_PCENTER
+    USE TIME_MOD,     ONLY : GET_TS_CHEM
+    USE TRACER_MOD,   ONLY : STT
+    USE TRACERID_MOD, ONLY : IDTHD, IDTH2
+    
+    USE CMN_SIZE_MOD     ! Size parameters
+    USE CMN_GCTM_MOD     ! Rdg0
+  !
+  ! !REMARKS:
+  !  Instead of calculating the fractionation of H2 in the stratosphere 
+  !  (where we would have to take into account fractionation of CH4),
+  !  we simply set the HD tracer concentrations in the stratosphere to
+  !  reproduce observed profiles in the UT/LS.
+  !                                                                         
+  !  References:
+  !  =========================================================================
+  !  (1) "Global Budget of Molecular Hydrogen and its Deuterium Content: 
+  !       Constraints from Ground Station, Cruise, and Aircraft Observations" 
+  !       Price, H., L. Jaeglé, A. Rice, P. Quay, P.C. Novelli, R. Gammon, 
+  !       submitted to J. Geophys. Res., 2007.
+  ! 
+  ! !REVISION HISTORY: 
+  !  18 Sep 2007 - L. Jaegle, H. U. Price, P. Le Sager - Initial version
+  !  (1 ) First adapted from UPBDFLX_O3 (G-C v5-05-03) then merged w/ v7-04-12.
+  !        Added parallel DO loops. (phs, 9/18/07)
+  !  (26) Now set J30S and J30N for GEOS-5 nested grid (yxw, dan, bmy, 11/6/08)
+  !  (27) Remove support for COMPAQ compiler (bmy, 7/8/09)
+  !  13 Aug 2010 - R. Yantosca - Treat MERRA like GEOS-5
+  !  02 Dec 2010 - R. Yantosca - Added ProTeX headers
+  !  08 Feb 2012 - R. Yantosca - Treat GEOS-5.7.2 in the same way as MERRA
+  !  10 Feb 2012 - R. Yantosca - Modified for 0.25 x 0.3125 grids
+  !  28 Feb 2012 - R. Yantosca - Removed support for GEOS-3
+  !  20 Jun 2012 - L. Murray - Moved from upbdflx_mod.F to here.
+  !EOP
+  !-----------------------------------------------------------------------------
+  !BOC
+  !
+  ! !LOCAL VARIABLES:
+  !
+    INTEGER              :: I, J, L, L70mb
+    INTEGER              :: NTRACER
+    REAL*8               :: P1, P2, P3, T1, T2, DZ, ZUP
+    REAL*8               :: DTCHEM, H70mb, PO3_vmr!,PO3
+    REAL*8               :: PHD, PHD_vmr, SCALE_HD!, HD_AVG
+
+    ! Select the grid boxes at the edges of the HD release region, 
+    ! for the proper model resolution 
+#if   defined( GRID4x5 ) && defined( GCAP )
+    ! GCAP has 45 latitudes, shift by 1/2 grid box (swu, bmy, 5/25/05)
+    INTEGER, PARAMETER   :: J30S = 16, J30N = 30 
+
+#elif defined( GRID4x5 )
+    INTEGER, PARAMETER   :: J30S = 16, J30N = 31 
+
+#elif defined( GRID2x25 ) 
+    INTEGER, PARAMETER   :: J30S = 31, J30N = 61
+
+#elif defined( GRID1x125 ) 
+    INTEGER, PARAMETER   :: J30S = 61, J30N = 121
+
+#elif defined( GRID05x0666 )
+    INTEGER, PARAMETER   :: J30S = 1, J30N = JJPAR
+
+#elif defined( GRID025x03125 )
+    INTEGER, PARAMETER   :: J30S = 1, J30N = JJPAR
+
+#elif defined( GRID1x1 ) 
+
+#if   defined( NESTED_CH ) || defined( NESTED_NA )
+    INTEGER, PARAMETER   :: J30S = 1,  J30N = JJPAR  ! 1x1 nested grids
+#else  
+    INTEGER, PARAMETER   :: J30S = 61, J30N = 121    ! 1x1 global grid
+#endif
+
+#elif defined( EXTERNAL_GRID )
+    ! THIS HAS TO BE DEFINED SPECIFICALLY! HOW?
+    INTEGER, PARAMETER   :: J30S = 31, J30N = 61
+
+#endif
+
+    ! Lower pressure bound for HD release (unit: mb)
+    REAL*8,  PARAMETER   :: P70mb = 70d0
+
+    !=================================================================
+    ! UPBDFLX_HD begins here!
+    !=================================================================
+
+    ! Chemistry timestep [s]
+    DTCHEM = GET_TS_CHEM() * 60d0
+
+    !=================================================================
+    ! For now the only HD release rates are for GEOS-3. This will
+    ! likely need to be scaled with other met fields (GEOS-4,
+    ! GEOS-5...) jaegle, 2/20/2007
+    ! PO3_vmr is the release rate for Ozone. This is then scaled by
+    ! SCALE_HD in order to obtain the HD profile, to obtain
+    ! PHD_vmr [v/v/s]
+    ! For now uses the GEOS-3 scale factor for all cases (phs)
+    !=================================================================
+#if   defined( GEOS_4 )
+
+    PO3_vmr = 5.14d-14                                 ! 3,3,7
+
+#elif defined( GEOS_5 ) || defined( MERRA ) || defined( GEOS_57 )
+
+    ! For now assume GEOS-5 has same PO3_vmr value 
+    ! as GEOS-4; we can redefine later (bmy, 5/25/05)
+    PO3_vmr = 5.14d-14   
+
+#elif defined( GCAP )
+
+    ! For GCAP, assuming 3,3,7 (swu, bmy, 5/25/05)
+    PO3_vmr = 5.0d-14 
+
+#endif
+
+    ! Define scaling factor for HD and scale PO3_vmr
+    ! Standard:
+    SCALE_HD = 4.0d-5
+    PHD_vmr= PO3_vmr * SCALE_HD
+
+    !=================================================================
+    ! Select the proper tracer number to store HD into
+    !=================================================================
+    NTRACER = IDTHD
+
+    !=================================================================
+    ! Loop over latitude/longtitude locations (I,J)
+    !=================================================================
+    !$OMP PARALLEL DO &
+    !$OMP DEFAULT( SHARED ) &
+    !$OMP PRIVATE( I,  J,  L,  P2,  L70mb, P1, P3 ) &
+    !$OMP PRIVATE( T2, T1, DZ, ZUP, H70mb, PHD    ) &
+    !$OMP SCHEDULE( DYNAMIC )
+    DO J = J30S, J30N 
+       DO I = 1, IIPAR
+
+          !===========================================================
+          ! L70mb is the 1st layer where pressure is equal to
+          ! or smaller than 70 mb 
+          !
+          ! P1 = pressure [ mb ] at the sigma center     of level L70mb - 1
+          ! P3 = pressure [ mb ] at the lower sigma edge of level L70mb
+          ! P2 = pressure [ mb ] at the sigma center     of level L70mb
+          !===========================================================
+          DO L = 1, LLPAR
+             P2 = GET_PCENTER(I,J,L) 
+
+             IF ( P2 < P70mb ) THEN
+                L70mb = L
+                EXIT
+             ENDIF
+          ENDDO
+
+          P1 = GET_PCENTER(I,J,L70mb-1) 
+          P3 = GET_PEDGE(I,J,L70mb) 
+
+          !===========================================================
+          ! T2 = temperature (K)  at the sigma center of level L70mb
+          ! T1 = temperature (K)  at the sigma center of level L70mb-1
+          !
+          ! DZ is the height from the sigma center of level L70mb-1 
+          ! to 70mb.  Therefore, DZ may be found in either the 
+          ! (L70mb)th sigma layer or the (L70mb-1)th sigma layer.  
+          !
+          ! ZUP is the height from the sigma center of the 
+          ! (L70mb-1)th layer
+          !=========================================================== 
+          T2   = T(I,J,L70mb  )
+          T1   = T(I,J,L70mb-1)        
+
+          DZ   = Rdg0 * ( (T1 + T2) / 2d0 ) * LOG( P1 / P70mb ) 
+          ZUP  = Rdg0 * T1 * LOG( P1 /P3 )
+
+          !===========================================================       
+          ! H70mb is height between 70mb and the upper edge of the 
+          ! level where DZ is.
+          !  
+          ! If DZ >= ZUP then DZ is already in level L70mb.
+          ! If DZ <  ZUP then DZ is in level L70mb-1.
+          !===========================================================       
+          IF ( DZ >= ZUP ) THEN
+             H70mb = BXHEIGHT(I,J,L70mb) - ( DZ - ZUP )
+          ELSE
+             L70mb = L70mb - 1
+             H70mb = ZUP - DZ
+          ENDIF
+
+          !=========================================================== 
+          ! Distribute HD into the region (30S-30N, 70mb-10mb)
+          !=========================================================== 
+          DO L = L70mb, LLPAR 
+
+             ! Convert HD in grid box (I,J,L) from v/v/s to kg/box
+             PHD = PHD_vmr * DTCHEM 
+
+#if   !defined( GCAP ) 
+             ! For both 2 x 2.5 and 4 x 5 GEOS grids, 30S and 30 N are
+             ! grid box centers.  However, the O3 release region is 
+             ! edged by 30S and 30N.  Therefore, if we are at the 30S
+             ! or 30N grid boxes, divide the O3 flux by 2.
+             IF ( J == J30S .or. J == J30N ) THEN
+                PHD = PHD / 2d0
+             ENDIF
+#endif
+             ! If we are in the lower level, compute the fraction
+             ! of this level that lies above 70 mb, and scale 
+             ! the HD flux accordingly.
+             IF ( L == L70mb ) THEN
+                PHD = PHD * H70mb / BXHEIGHT(I,J,L) 
+             ENDIF
+
+             ! Store HD flux in the proper tracer number
+             STT(I,J,L,NTRACER) = STT(I,J,L,NTRACER) + PHD
+
+          ENDDO
+       ENDDO
+    ENDDO
+    !$OMP END PARALLEL DO
+
+  END SUBROUTINE UPBDFLX_HD
+!EOC
 END MODULE STRAT_CHEM_MOD
 !EOC

@@ -402,6 +402,7 @@
           ELSE IF ( ITS_A_H2HD_SIM() ) THEN
              CALL CHEM_H2_HD
              CALL DRYFLXH2HD
+             CALL DO_STRAT_CHEM
   
           ENDIF
 
