@@ -475,7 +475,7 @@ CONTAINS
     !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
     FILENAME = 'strat_chem_201206/gmi.clim.OH.' // & 
                        GET_NAME_EXT() // '.' // GET_RES_EXT() // '.nc'
-    !FILENAME = TRIM( DATA_DIR ) // TRIM( FILENAME )
+    FILENAME = TRIM( DATA_DIR ) // TRIM( FILENAME )
     WRITE(6,'(a)') '         => Reading from file: ' // trim(filename)
     call NcOp_Rd( fileID, TRIM( FILENAME ) )
     call NcRd( array, fileID, 'species',                     &
@@ -498,7 +498,7 @@ CONTAINS
        FILENAME = 'strat_chem_201206/gmi.clim.' // &
             TRIM( GMI_TrName(NN) ) // '.' // & 
             GET_NAME_EXT() // '.' // GET_RES_EXT() // '.nc'
-       !FILENAME = TRIM( DATA_DIR ) // TRIM( FILENAME )
+       FILENAME = TRIM( DATA_DIR ) // TRIM( FILENAME )
        WRITE(6,'(a)') '         => Reading from file: ' // trim(filename)
        call NcOp_Rd( fileID, TRIM( FILENAME ) )
 
@@ -606,7 +606,7 @@ CONTAINS
 
     ! Path to input data, use 2 x 2.5 file
     FILENAME = 'strat_chem_201206/gmi.clim.OH.' // GET_NAME_EXT() // '.2x25.nc'
-    !FILENAME = TRIM( DATA_DIR_1x1 ) // TRIM( FILENAME )
+    FILENAME = TRIM( DATA_DIR_1x1 ) // TRIM( FILENAME )
 
     WRITE(6, 11  ) &
          '       - Getting new strat prod/loss rates for month: ',THISMONTH
@@ -666,7 +666,7 @@ CONTAINS
        ! Path to input data, use 2 x 2.5 file
        FILENAME = 'strat_chem_201206/gmi.clim.' // &
             TRIM( GMI_TrName(NN) ) // '.' // GET_NAME_EXT() // '.2x25.nc'
-       !FILENAME = TRIM( DATA_DIR_1x1 ) // TRIM( FILENAME )
+       FILENAME = TRIM( DATA_DIR_1x1 ) // TRIM( FILENAME )
        WRITE(6,'(a)') &
             '         => Interpolate to resolution from file: ' // & 
             trim(filename)
