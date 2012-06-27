@@ -367,54 +367,69 @@
       !-------------------------
       IF ( LPRT ) CALL DEBUG_MSG( 'CHEMMERCURY: b CHEM_Hg0_Hg2' )
       
+#if defined( DEVEL )
       ! Add option for non-local PBL (cdh, 08/27/09)
       IF ( LNLPBL ) THEN
 
          ! Dry deposition occurs with PBL mixing,
          ! pass zero deposition frequency
-#if defined( DEVEL )
          CALL CHEM_Hg0_Hg2( ZERO_DVEL, ZERO_DVEL, LOCAL_MET )
+
+      ELSE
+
+         IF ( DRYHg2 > 0 .and. DRYHg0 > 0 ) THEN
+
+            ! Dry deposition active for both Hg0 and Hg2; 
+            ! pass drydep frequency to CHEM_Hg0_Hg2
+            ! (NOTE: DEPSAV has units 1/s)
+            CALL CHEM_Hg0_Hg2( K_DRYD2, DEPSAV(:,:,DRYHg0), LOCAL_MET )
+
+         ELSEIF (DRYHg2 > 0 .and. DRYHg0 .le. 0) THEN
+
+            ! Only Hg2 dry deposition is active
+            CALL CHEM_Hg0_Hg2( K_DRYD2, ZERO_DVEL, LOCAL_MET )
+
+         ELSEIF (DRYHg2 <= 0 .and. DRYHg0 > 0) THEN
+
+            ! Only Hg0 dry deposition is active
+            CALL CHEM_Hg0_Hg2( ZERO_DVEL , DEPSAV(:,:,DRYHg0),
+     &                         LOCAL_MET )
+
+         ELSE
+
+            ! No dry deposition, pass zero deposition frequency
+            CALL CHEM_Hg0_Hg2( ZERO_DVEL , ZERO_DVEL, LOCAL_MET )
+
 #else
+
+      ! Add option for non-local PBL (cdh, 08/27/09)
+      IF ( LNLPBL ) THEN
+
+         ! Dry deposition occurs with PBL mixing,
+         ! pass zero deposition frequency
          CALL CHEM_Hg0_Hg2( ZERO_DVEL, ZERO_DVEL)
-#endif
-         
+
       ELSE
 
          IF ( DRYHg2 > 0 .and. DRYHg0 > 0 ) THEN
          
             ! Dry deposition active for both Hg0 and Hg2; 
             ! pass drydep frequency to CHEM_Hg0_Hg2 (NOTE: DEPSAV has units 1/s)
-#if defined( DEVEL )
-            CALL CHEM_Hg0_Hg2( K_DRYD2, DEPSAV(:,:,DRYHg0), LOCAL_MET )
-#else
             CALL CHEM_Hg0_Hg2( K_DRYD2, DEPSAV(:,:,DRYHg0) )
-#endif
             
          ELSEIF (DRYHg2 > 0 .and. DRYHg0 .le. 0) THEN
 
             ! Only Hg2 dry deposition is active
-#if defined( DEVEL )
-            CALL CHEM_Hg0_Hg2( K_DRYD2, ZERO_DVEL, LOCAL_MET )
-#else
             CALL CHEM_Hg0_Hg2( K_DRYD2, ZERO_DVEL) 
-#endif
             
          ELSEIF (DRYHg2 <= 0 .and. DRYHg0 > 0) THEN
 
             ! Only Hg0 dry deposition is active
-#if defined( DEVEL )
-            CALL CHEM_Hg0_Hg2( ZERO_DVEL , DEPSAV(:,:,DRYHg0),
-     &                         LOCAL_MET )
-#else
             CALL CHEM_Hg0_Hg2( ZERO_DVEL , DEPSAV(:,:,DRYHg0))
-#endif
             
          ELSE
 
             ! No dry deposition, pass zero deposition frequency
-#if defined( DEVEL )
-            CALL CHEM_Hg0_Hg2( ZERO_DVEL , ZERO_DVEL, LOCAL_MET )
-#else
             CALL CHEM_Hg0_Hg2( ZERO_DVEL , ZERO_DVEL)
 #endif
 
@@ -699,6 +714,30 @@
          ! (skim, bmy, 1/14/10)
          !---------------------------------------------
 
+#if defined( DEVEL )
+         ! Get cloud fraction from met fields [unitless]
+         FC = LOCAL_MET%CLDF(L,I,J)
+
+         IF ( LGEOSLWC ) THEN
+
+            ! Get liquid water content [m3 H2O/m3 air] within cloud from met
+            ! Units: [kg H2O/kg air] * [kg air/m3 air] * [m3 H2O/1e3 kg H2O]
+            LWC = LOCAL_MET%QL(I,J,L) * LOCAL_MET%AIRDEN(L,I,J) * 1D-3
+
+            !%%% NOTE: Someone should investigate effect of dividing LWC by the
+            !%%% cloud fraction, as is done in sulfate_mod.f (bmy, 5/27/11)
+
+         ELSE
+
+            ! Get liquid water content for entire grid box,
+            ! based on formula for LWC in cloud [m3 H2O/m3 air]
+            LWC = GET_LWC( LOCAL_MET%T(I,J,L) ) * FC 
+
+            ! There should be no liquid water when T < 258K 
+            IF ( LOCAL_MET%T(I,J,L) < 258D0 )  LWC = 0D0
+
+         ENDIF
+#else
          ! Get cloud fraction from met fields [unitless]
          FC = CLDF(L,I,J)
 
@@ -706,11 +745,8 @@
 
             ! Get liquid water content [m3 H2O/m3 air] within cloud from met
             ! Units: [kg H2O/kg air] * [kg air/m3 air] * [m3 H2O/1e3 kg H2O]
-#if defined( DEVEL )
-            LWC = LOCAL_MET%QL(I,J,L) * AIRDEN(L,I,J) * 1D-3
-#else
             LWC = QL(I,J,L) * AIRDEN(L,I,J) * 1D-3
-#endif
+
             !%%% NOTE: Someone should investigate effect of dividing LWC by the
             !%%% cloud fraction, as is done in sulfate_mod.f (bmy, 5/27/11)
 
@@ -724,6 +760,7 @@
             IF ( T(I,J,L) < 258D0 )  LWC = 0D0
 
          ENDIF
+#endif
 
 #else
          !---------------------------------------------
@@ -734,9 +771,15 @@
          ! cloud [unitless], following Sundqvist et al 1989.
 #if defined( DEVEL )
          FC          = GET_VCLDF( I, J, L, LOCAL_MET )
+
+         ! Get liquid water content for entire grid box,
+         ! based on formula for LWC in cloud (m3/m3)
+         LWC         = GET_LWC( LOCAL_MET%T(I,J,L) ) * FC 
+
+         ! There should be no liquid water when T < 258K 
+         IF ( LOCAL_MET%T(I,J,L) < 258D0 )  LWC = 0D0
 #else
          FC          = GET_VCLDF( I, J, L )
-#endif
 
          ! Get liquid water content for entire grid box,
          ! based on formula for LWC in cloud (m3/m3)
@@ -744,21 +787,42 @@
 
          ! There should be no liquid water when T < 258K 
          IF ( T(I,J,L) < 258D0 )  LWC = 0D0
+#endif
 
 #endif
 
+#if defined( DEVEL )
+         ! Define fraction of Hg(II) which is in aqueous solution
+         ! [dimensionless]
+         FA          = ( HL * R * LOCAL_MET%T(I,J,L) * LWC )
+         FA          = FA / ( 1d0 + FA )
+
+         ! Cl- in sea-salt aerosol enhances solubility 2000X in MBL
+         IF ( LRED_JNO2 .AND. ( F_PBL >0.1  )  .AND. 
+     &        IS_WATER( I, J, LOCAL_MET )) THEN
+            FA          = ( HL * 2D3 * R * LOCAL_MET%T(I,J,L) * LWC )
+            FA          = FA / ( 1d0 + FA )
+            
+         ENDIF
+
+         ! Define K's for the oxidation reactions [/s]
+         K_O3        = K_HG_O3 * C_O3
+         K_OH        = K_HG_OH * C_OH
+
+         IF (LBRCHEM) THEN
+            K_BR = GET_HGBR_RATE( C_BR, LOCAL_MET%T(I,J,L), 
+     &             GET_PCENTER(I,J,L), C_OH, METHOD )
+         ELSE
+            K_BR = 0d0
+         ENDIF
+#else
          ! Define fraction of Hg(II) which is in aqueous solution
          ! [dimensionless]
          FA          = ( HL * R * T(I,J,L) * LWC )
          FA          = FA / ( 1d0 + FA )
 
          ! Cl- in sea-salt aerosol enhances solubility 2000X in MBL
-#if defined( DEVEL )
-         IF ( LRED_JNO2 .AND. ( F_PBL >0.1  )  .AND. 
-     &        IS_WATER( I, J, LOCAL_MET )) THEN
-#else
          IF (LRED_JNO2 .AND. (F_PBL >0.1) .AND. IS_WATER(I,J)) THEN
-#endif
             FA          = ( HL * 2D3 * R * T(I,J,L) * LWC )
             FA          = FA / ( 1d0 + FA )
             
@@ -774,6 +838,7 @@
          ELSE
             K_BR = 0d0
          ENDIF
+#endif
 
          IF (LBROCHEM) THEN
             K_BRO = K_HG_BRO * C_BRO
@@ -2115,6 +2180,7 @@
       ! Call emission routines for Hg(0), Hg(II), and Hg(P)
       !=================================================================
     
+#if defined( DEVEL )
       ! Ocean flux of Hg(0)
       IF ( LDYNOCEAN ) THEN
          
@@ -2122,55 +2188,74 @@
          ! (cdh, 4/30/09)
          EHg0_oc = 0d0
 
-#if defined( DEVEL )
          CALL OCEAN_MERCURY_FLUX( EHg0_oc, LOCAL_MET )
-#else
-         CALL OCEAN_MERCURY_FLUX( EHg0_oc )
-#endif
          IF ( LPRT ) CALL DEBUG_MSG( '### EMISSMERCURY: a OCEAN_FLUX' )
 
       ENDIF
 
       IF ( LGTMM ) THEN
          IF ( ITS_A_NEW_MONTH() ) THEN
-#if defined( DEVEL )
             CALL GTMM_DR( EHg0_gtm(:,:), LOCAL_MET )
-#else
-            CALL GTMM_DR(EHg0_gtm(:,:))
-#endif
             IF ( LPRT ) CALL DEBUG_MSG( '### EMISSMERCURY: a GTMM' )
          ENDIF
   
       ELSE
          
-#if defined( DEVEL )
          CALL LAND_MERCURY_FLUX ( EHg0_ln, LHGSNOW, LOCAL_MET )
-#else
-         CALL LAND_MERCURY_FLUX ( EHg0_ln, LHGSNOW )
-#endif
          IF ( LPRT ) CALL DEBUG_MSG( '### EMISSMERCURY: a LAND_FLUX' )
       
          ! Bug fix: VEGEMIS shouldn't be tied to GCAP emissions
          ! (jaf, eds, 4/1/11)
-#if defined( DEVEL )
          CALL VEGEMIS( LVEGEMIS, EHg0_dist, EHg0_vg, LOCAL_MET )
-#else
-         CALL VEGEMIS( LVEGEMIS, EHg0_dist, EHg0_vg )
-#endif
          IF ( LPRT ) CALL DEBUG_MSG( '### EMISSMERCURY: a VEGEMIS' )
       
-
-#if defined( DEVEL )
          CALL SOILEMIS( EHg0_dist, EHg0_so, LOCAL_MET )
+         IF ( LPRT ) CALL DEBUG_MSG( '### EMISSMERCURY: a SOILEMIS' )
+
+      ENDIF
+
+      CALL SNOWPACK_MERCURY_FLUX ( EHg0_snow, LHGSNOW, LOCAL_MET )
+      IF ( LPRT ) CALL DEBUG_MSG( '### EMISSMERCURY: a SNOW_FLUX' )
+
 #else
+
+      ! Ocean flux of Hg(0)
+      IF ( LDYNOCEAN ) THEN
+         
+         ! Set to zero to clear emissions from previous time step
+         ! (cdh, 4/30/09)
+         EHg0_oc = 0d0
+
+         CALL OCEAN_MERCURY_FLUX( EHg0_oc )
+         IF ( LPRT ) CALL DEBUG_MSG( '### EMISSMERCURY: a OCEAN_FLUX' )
+
+      ENDIF
+
+      IF ( LGTMM ) THEN
+         IF ( ITS_A_NEW_MONTH() ) THEN
+            CALL GTMM_DR(EHg0_gtm(:,:))
+            IF ( LPRT ) CALL DEBUG_MSG( '### EMISSMERCURY: a GTMM' )
+         ENDIF
+  
+      ELSE
+         
+         CALL LAND_MERCURY_FLUX ( EHg0_ln, LHGSNOW )
+         IF ( LPRT ) CALL DEBUG_MSG( '### EMISSMERCURY: a LAND_FLUX' )
+      
+         ! Bug fix: VEGEMIS shouldn't be tied to GCAP emissions
+         ! (jaf, eds, 4/1/11)
+         CALL VEGEMIS( LVEGEMIS, EHg0_dist, EHg0_vg )
+         IF ( LPRT ) CALL DEBUG_MSG( '### EMISSMERCURY: a VEGEMIS' )
+      
          CALL SOILEMIS( EHg0_dist, EHg0_so )
-#endif
          IF ( LPRT ) CALL DEBUG_MSG( '### EMISSMERCURY: a SOILEMIS' )
 
       ENDIF
 
       CALL SNOWPACK_MERCURY_FLUX ( EHg0_snow, LHGSNOW )
       IF ( LPRT ) CALL DEBUG_MSG( '### EMISSMERCURY: a SNOW_FLUX' )
+
+#endif  ! DEVEL
       
       CALL BIOMASSHG( EHg0_bb )
       IF ( LPRT ) CALL DEBUG_MSG( '### EMISSMERCURY: a BIOMASS' )

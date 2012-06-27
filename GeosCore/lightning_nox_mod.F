@@ -326,12 +326,21 @@
             !===========================================================
 
             ! Find negative charge layer
+#if defined( DEVEL )
+            DO L = 1, LMAX
+               IF ( LOCAL_MET%T(I,J,L) <= T_NEG_CTR ) THEN
+                  LCHARGE = L
+                  EXIT
+               ENDIF
+            ENDDO
+#else
             DO L = 1, LMAX
                IF ( T(I,J,L) <= T_NEG_CTR ) THEN
                   LCHARGE = L
                   EXIT
                ENDIF
             ENDDO
+#endif
 
             ! Error check LCHARGE
             IF ( LCHARGE >= LMAX ) LCHARGE = LMAX
@@ -348,8 +357,13 @@
 
             ! Temperatures [K] at the centers of grid
             ! boxes (I,J,LCHARGE-1) and (I,J,LCHARGE)
+#if defined( DEVEL )
+            T1   = LOCAL_MET%T(I,J,LCHARGE-1)
+            T2   = LOCAL_MET%T(I,J,LCHARGE  )
+#else
             T1   = T(I,J,LCHARGE-1)
             T2   = T(I,J,LCHARGE  )
+#endif
  
             ! DZ is the height [m] from the center of box (I,J,LCHARGE-1)
             ! to the negative charge layer.  It may be found in either
@@ -435,7 +449,11 @@
             ! GEOS-4 only
             !--------------------------
             ! Shallow-cloud inhibition trap (see Murray et al. [2011])
+#if defined( DEVEL )
+            IF ( LOCAL_MET%T(I,J,LTOP) >= T_NEG_TOP ) CYCLE
+#else
             IF ( T(I,J,LTOP) >= T_NEG_TOP ) CYCLE
+#endif
 
 #endif
 
@@ -483,12 +501,21 @@
             !===========================================================
 
             ! Find the level where T = 0 C
+#if defined( DEVEL )
+            DO L = 1, LMAX
+               IF ( LOCAL_MET%T(I,J,L) <= T_NEG_BOT ) THEN
+                  LBOTTOM = L
+                  EXIT
+               ENDIF
+            ENDDO
+#else
             DO L = 1, LMAX
                IF ( T(I,J,L) <= T_NEG_BOT ) THEN
                   LBOTTOM = L
                   EXIT
                ENDIF
             ENDDO
+#endif
 
             ! Error check LBOTTOM as described above
             IF ( LBOTTOM >= LMAX ) LBOTTOM = LMAX
@@ -505,8 +532,13 @@
 
             ! Temperature [K] at the centers of grid
             ! boxes (I,J,LBOTTOM-1) and (I,J,LBOTTOM)
+#if defined( DEVEL )
+            T1   = LOCAL_MET%T(I,J,LBOTTOM-1)
+            T2   = LOCAL_MET%T(I,J,LBOTTOM  )
+#else
             T1   = T(I,J,LBOTTOM-1)
             T2   = T(I,J,LBOTTOM  )
+#endif
        
             ! DZ is the height [m] from the center of box (I,J,LCHARGE-1)
             ! to the negative charge layer.  It may be found in either

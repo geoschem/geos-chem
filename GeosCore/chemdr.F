@@ -568,8 +568,11 @@
       !=================================================================
       ! Call photolysis routine to compute J-Values
       !=================================================================
+#if defined( DEVEL )
+      CALL FAST_J( SUNCOS_MID, LOCAL_MET%OPTD, UVALBEDO, LOCAL_MET )              
+#else
       CALL FAST_J( SUNCOS_MID, OPTD, UVALBEDO )              
-
+#endif
 
       !### Debug
       IF ( LPRT ) CALL DEBUG_MSG( '### CHEMDR: after FAST-J' )

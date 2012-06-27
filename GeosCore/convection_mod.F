@@ -369,7 +369,7 @@
      &                             PFLCU     = T_PFLCU,
      &                  REEVAPCN  = LOCAL_MET%REEVAPCN(I,J, :        ),
      &                             SO2s      = SO2s    (I,J, :        ),
-     &                             T         = T       (I,J, :        ),
+     &                  T         = LOCAL_MET%T       (I,J, :        ),
      &                             Q         = STT     (I,J, :,      :), 
      &                             DIAG14    = DIAG14,
      &                             DIAG38    = DIAG38,

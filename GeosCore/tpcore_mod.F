@@ -3396,7 +3396,8 @@ c        AL(i,k) = median(AL(i,k), qmin, qmax)
       DO I = 1, IIPAR
 #if defined( DEVEL )
          XYZB(I,J,L)    = DSIG(L) * DXYP(J) * 1.d2 / G0
-         AD_L(I,J,L)    = AIRDEN(L,I,J) * LOCAL_MET%AIRVOL(I,J,L)
+         AD_L(I,J,L)    = LOCAL_MET%AIRDEN(L,I,J) *
+     &                    LOCAL_MET%AIRVOL(I,J,L)
 !         SPHU_KG(I,J,L) = LOCAL_MET%SPHU(I,J,L) / 1000d0
          SPHU_KG(I,J,L) = SPHU(I,J,L) / 1000d0
 #else

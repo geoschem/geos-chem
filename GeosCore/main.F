@@ -617,7 +617,11 @@
 
          ! Hg2 gas-particle partitioning (H Amos, 25 Oct 2011)
          IF ( ITS_A_MERCURY_SIM() .and. ITS_A_NEW_MONTH() ) THEN
+#if defined( DEVEL )
+            CALL PARTITION_Hg2( MONTH, LOCAL_MET )
+#else
             CALL PARTITION_Hg2( MONTH )
+#endif
             IF ( LPRT ) CALL DEBUG_MSG( '### MAIN: a PARTITION_Hg2' )
          ENDIF
 
@@ -1021,7 +1025,11 @@
          !===========================================================    
 
          ! Also need to compute avg P, T for CH4 chemistry (bmy, 1/16/01)
+#if defined( DEVEL )
+         IF ( ITS_A_CH4_SIM() ) CALL CH4_AVGTP( LOCAL_MET )
+#else
          IF ( ITS_A_CH4_SIM() ) CALL CH4_AVGTP
+#endif
 
          ! Every chemistry timestep...
          IF ( ITS_TIME_FOR_CHEM() ) THEN

@@ -952,7 +952,11 @@
 
 !------------------------------------------------------------------------------
 
+#if defined( DEVEL )
+      SUBROUTINE CHEMCH3I( LOCAL_MET )
+#else
       SUBROUTINE CHEMCH3I
+#endif
 !
 !******************************************************************************
 !  Subroutine CHEMCH3I performs loss chemistry for methyl iodide (CH3I).  
@@ -1017,10 +1021,18 @@
       USE UVALBEDO_MOD, ONLY : UVALBEDO
       USE TIME_MOD,     ONLY : GET_TS_CHEM
       USE TRACER_MOD,   ONLY : STT, N_TRACERS
+#if defined( DEVEL )
+      USE GC_TYPE_MOD,  ONLY : GC_MET_LOCAL
+#endif
 
       USE CMN_SIZE_MOD     ! Size parameters
       USE COMODE_LOOP_MOD     ! SPECNAME
       USE CMN_DIAG_MOD     ! ND36
+
+      ! Arguments
+#if defined( DEVEL )
+      TYPE(GC_MET_LOCAL), INTENT(IN) :: LOCAL_MET  ! Obj w/ met fields
+#endif
 
       ! Local variables
       LOGICAL, SAVE          :: FIRSTCHEM = .TRUE.
@@ -1087,7 +1099,11 @@
          ! them in an internal array.  SUNCOS, OPTD, and UVALBEDO are 
          ! needed for FAST-J.
          !==============================================================
+#if defined( DEVEL )
+         CALL FAST_J( SUNCOS, LOCAL_MET%OPTD, UVALBEDO, LOCAL_MET )
+#else
          CALL FAST_J( SUNCOS, OPTD, UVALBEDO )
+#endif
         
          !==============================================================
          ! NR is the loop over the number of reactions (NR=1 for now!)

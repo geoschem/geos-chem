@@ -210,7 +210,11 @@
 
 !-------------------------------------------------------------------------
 
+#if defined( DEVEL )
+      SUBROUTINE PARTITION_Hg2( THISMONTH, LOCAL_MET )
+#else
       SUBROUTINE PARTITION_Hg2(THISMONTH)
+#endif
 
 !****************************************************************************  
 !  SUBROUTINE PARTITION_Hg2 calculates the fractions of Hg(II) is the particle 
@@ -314,12 +318,18 @@
       USE TIME_MOD     , ONLY : SET_Hg2_DIAG        
       USE DIRECTORY_MOD, ONLY : DATA_DIR      
       USE ERROR_MOD    , ONLY : GEOS_CHEM_STOP
+#if defined( DEVEL )
+      USE GC_TYPE_MOD,   ONLY : GC_MET_LOCAL
+#endif
 
       USE CMN_SIZE_MOD  ! Size parameters3
       USE CMN_DIAG_MOD  ! Diagnostic arrays & parameters
 
       ! Arguments
       INTEGER, INTENT(IN)  :: THISMONTH
+#if defined( DEVEL )
+      TYPE(GC_MET_LOCAL), INTENT(IN) :: LOCAL_MET  ! Obj w/ met fields
+#endif
 
       ! Arrays to hold aerosol concentrations  
       REAL*4               :: ARRAYso4(  IGLOB, JGLOB, LGLOB )  ! so4
@@ -466,6 +476,25 @@
      &                     CU(4)*NH4_CONC(I,J,L) +
      &                     CU(5)*(DST_CONC(I,J,L)*2d0)           
       
+#if defined( DEVEL )
+        ! convert bulk aerosol mass concentration  to ug/m3
+        ! Note: Even though both bpch files say the unit is 'ppb',
+        !       4x5 gets read in as mol/mol and 2x2.5 gets read in
+        !       as ppb, so only 4x5 needs to be scaled by 1d9.
+        !       (hma, 20120104)
+#if defined( GRID4x5 )
+        BULK_CONC(I,J,L) = 1d9 * ( BULK_CONC(I,J,L) *
+     &                     LOCAL_MET%AIRDEN(L,I,J)  )
+#elif defined( GRID2x25 )
+        BULK_CONC(I,J,L) = ( BULK_CONC(I,J,L) * LOCAL_MET%AIRDEN(L,I,J))
+#endif 
+
+        ! Calculate R = HgP_ads/RGM (i.e. the ratio of Hg2
+        ! adsorbed onto aerosol to Hg2 in the  gas phase) 
+        R(I,J,L) = BULK_CONC(I,J,L)*
+     &           ( 10d0**( ( 2.5d3 / LOCAL_MET%T(I,J,L)) - 10d0 ))
+
+#else
         ! convert bulk aerosol mass concentration  to ug/m3
         ! Note: Even though both bpch files say the unit is 'ppb',
         !       4x5 gets read in as mol/mol and 2x2.5 gets read in
@@ -481,6 +510,8 @@
         ! adsorbed onto aerosol to Hg2 in the  gas phase) 
         R(I,J,L) = BULK_CONC(I,J,L)*
      &           ( 10d0**( ( 2.5d3 / T(I,J,L)) - 10d0 ))
+
+#endif ! DEVEL
 
         ! Fraction of Hg(II) in the gas phase (unitless)
         Fg(I,J,L) = 1d0 / (R(I,J,L) + 1d0)   

@@ -424,8 +424,13 @@
 
             P0          = GET_PEDGE(I,J,1)
 
+#if defined( DEVEL )
+            AD57(I,J,L) = AD57(I,J,L) + LOCAL_MET%T(I,J,L) *
+     &                  ( P0 / GET_PCENTER( I, J, L ) )**0.286
+#else
             AD57(I,J,L) = AD57(I,J,L)
      &                  + T(I,J,L)*(P0/GET_PCENTER( I, J, L ))**0.286
+#endif
 
          ENDDO
          ENDDO
@@ -480,7 +485,7 @@
 #if defined( DEVEL )
             AD68(I,J,L,1) = AD68(I,J,L,1) + LOCAL_MET%BXHEIGHT(I,J,L)
             AD68(I,J,L,2) = AD68(I,J,L,2) + LOCAL_MET%AD(I,J,L)
-            AD68(I,J,L,4) = AD68(I,J,L,4) + LOCAL_MET%AIRDENS(L,I,J) *
+            AD68(I,J,L,4) = AD68(I,J,L,4) + LOCAL_MET%AIRDEN(L,I,J) *
      &                      XNUMOLAIR
 
             ! Make sure AVGW is now allocated (bmy, 9/25/01)

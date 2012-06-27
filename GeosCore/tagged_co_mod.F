@@ -852,7 +852,7 @@
 !******************************************************************************
 !
       ! References to F90 modules
-      USE DAO_MOD,        ONLY : AD, AIRVOL, T, DELP
+      USE DAO_MOD,        ONLY : AD, AIRVOL, T
       ! jaf, 3/10/09
       USE DIAG_MOD,       ONLY : AD29
       USE DIAG_PL_MOD,    ONLY : AD65
@@ -1058,8 +1058,12 @@
             ALPHA_CH4 = 1d0
 
             ! Calculate updated rate constant [s-1] (bnd, bmy, 1/2/01)
+#if defined( DEVEL )
+            KRATE = 2.45D-12 * EXP( -1775.d0 / LOCAL_MET%T(I,J,L) ) 
+#else
             KRATE = 2.45D-12 * EXP( -1775.d0 / T(I,J,L) ) 
- 
+#endif 
+
             ! Production of CO from CH4 = alpha * k * [CH4] * [OH] * dt 
             ! Units are [molec CO/cm3]
             CO_CH4 = ALPHA_CH4 * KRATE * CH4 * OH(I,J,L) * DTCHEM 
@@ -1374,6 +1378,31 @@
             ! Decay rate
             !KRATE = ( 1.d0 + ( 0.6d0 * PCO ) ) * 1.5d-13
 
+#if defined( DEVEL )
+            ! Decay rate - new JPL 2006 version (jaf, 3/4/09)
+            ! KLO1 = k_0(T) from JPL Data Eval (page 2-1)
+            KLO1   = 5.9D-33 * ( LOCAL_MET%T(I,J,L) / 300 )**(-1.4D0)
+            ! KHI1 = k_inf(T) from JPL Data Eval (page 2-1)
+            KHI1   = 1.1D-12 * ( LOCAL_MET%T(I,J,L) / 300 )**(1.3D0)
+            XYRAT1 = KLO1 * DENS / KHI1
+            BLOG1  = LOG10(XYRAT1)
+            FEXP1  = 1.D0 / ( 1.D0 + BLOG1 * BLOG1 )
+            ! KCO1 = k_f([M],T) from JPL Data Eval (page 2-1)
+            KCO1   = KLO1 * DENS * 0.6**FEXP1 / ( 1.d0 + XYRAT1 )
+
+            ! KLO2 = k_0(T) from JPL Data Eval (page 2-1)
+            KLO2   = 1.5D-13 * ( LOCAL_MET%T(I,J,L) / 300 )**(0.6D0)
+            ! KHI2 = k_inf(T) from JPL Data Eval (page 2-1)
+            KHI2   = 2.1D09  * ( LOCAL_MET%T(I,J,L) / 300 )**(6.1D0)
+            XYRAT2 = KLO2 * DENS / KHI2
+            BLOG2  = LOG10(XYRAT2)
+            FEXP2  = 1.D0 / ( 1.D0 + BLOG2 * BLOG2 )
+            ! KCO2 = k_f^ca([M],T) from JPL Data Eval (page 2-2)
+            KCO2   = KLO2 * 0.6**FEXP2 / ( 1.d0 + XYRAT2 )
+
+            ! KRATE is the sum of the two.
+            KRATE  = KCO1 + KCO2
+#else
             ! Decay rate - new JPL 2006 version (jaf, 3/4/09)
             ! KLO1 = k_0(T) from JPL Data Eval (page 2-1)
             KLO1=5.9D-33*(T(I,J,L)/300)**(-1.4D0)
@@ -1395,6 +1424,7 @@
             KCO2=KLO2*0.6**FEXP2/(1.d0+XYRAT2)
             ! KRATE is the sum of the two.
             KRATE=KCO1+KCO2
+#endif
 
             ! CO_OH = Tropospheric loss of CO by OH [molec/cm3]
             CO_OH = KRATE * GCO * OH(I,J,L) * DTCHEM

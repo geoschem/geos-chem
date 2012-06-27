@@ -367,7 +367,11 @@
 !\\
 ! !INTERFACE:
 !
+#if defined( DEVEL )
+      SUBROUTINE CHEMC2H6( LOCAL_MET )
+#else
       SUBROUTINE CHEMC2H6
+#endif
 !
 ! !USES:
 !
@@ -376,8 +380,17 @@
       USE LOGICAL_MOD,   ONLY : LSPLIT 
       USE TIME_MOD,      ONLY : GET_MONTH, GET_TS_CHEM
       USE TRACER_MOD,    ONLY : N_TRACERS, STT
+#if defined( DEVEL )
+      USE GC_TYPE_MOD,   ONLY : GC_MET_LOCAL
+#endif
 
       USE CMN_SIZE_MOD        ! Size parameters
+!
+! !INPUT PARAMETERS:
+!
+#if defined( DEVEL )
+      TYPE(GC_MET_LOCAL), INTENT(IN) :: LOCAL_MET  ! Obj w/ met fields
+#endif
 ! 
 ! !REVISION HISTORY:
 !  (1 ) Now do chemistry all the way to the model top. 
@@ -438,7 +451,11 @@
       DO I = 1, IIPAR
          
          ! Loss rate [molec2 C2H6/cm6/s]^-1
+#if defined( DEVEL )
+         KRATE = 8.7d-12 * EXP( -1070.0d0 / LOCAL_MET%T(I,J,L) )
+#else
          KRATE = 8.7d-12 * EXP( -1070.0d0 / T(I,J,L) )
+#endif
 
          ! Apply loss to total C2H6 (tracer #1)
          STT(I,J,L,1) = STT(I,J,L,1) *

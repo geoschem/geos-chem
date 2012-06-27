@@ -962,7 +962,11 @@
             ALPHA_CH4 = 1d0
 
             ! Calculate updated rate constant [s-1] (bnd, bmy, 1/2/01)
+#if defined( DEVEL )
+            KRATE     = 2.45D-12 * EXP( -1775.d0 / LOCAL_MET%T(I,J,L) ) 
+#else
             KRATE     = 2.45D-12 * EXP( -1775.d0 / T(I,J,L) ) 
+#endif
  
             ! Production of CO from CH4 = alpha * k * [CH4] * [OH] * dt
             ! Scale this by the H2 yield relative to CO
@@ -1224,8 +1228,13 @@
             CORATE = GET_PCO_LCO_STRAT( .FALSE., I, J, L )
 	    
 	    ! Rate constants for H2+OH and HD+OH from JPL, 2004 (hup, 06/28/04)
+#if defined( DEVEL )
+            H2_RATE = 5.5D-12 * EXP( -2000.d0 / LOCAL_MET%T(I,J,L) )
+            HD_RATE = 5.0D-12 * EXP( -2130.d0 / LOCAL_MET%T(I,J,L) )
+#else
             H2_RATE = 5.5D-12 * EXP( -2000.d0 / T(I,J,L) )
             HD_RATE = 5.0D-12 * EXP( -2130.d0 / T(I,J,L) )
+#endif
 	    
             ! H2_OH = Stratospheric loss of H2 by OH [molec/cm3]
 	    ! alpha=0.52 for HD-OH in strat 230K (Rockmann et al., 2003)
@@ -1277,8 +1286,13 @@
 
 	    ! Loss for H2 and HD by reaction with OH accd JPL, 2004 
 	    ! (hup, 06/28/04)
+#if defined( DEVEL )
+            H2_RATE = 5.5D-12 * EXP( -2000.d0 / LOCAL_MET%T(I,J,L) )
+	    HD_RATE = 5.0D-12 * EXP( -2130.d0 / LOCAL_MET%T(I,J,L) )
+#else
             H2_RATE = 5.5D-12 * EXP( -2000.d0 / T(I,J,L) )
 	    HD_RATE = 5.0D-12 * EXP( -2130.d0 / T(I,J,L) )
+#endif
 
             ! H2_OH = Tropospheric loss of H2 by OH [molec/cm3]
             H2_OH   = H2_RATE * GH2 * OH(I,J,L) * DTCHEM

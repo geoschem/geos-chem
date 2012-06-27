@@ -437,7 +437,6 @@
 !
 ! !USES:
 !
-      USE DAO_MOD,        ONLY : AD,     AIRDEN,  CLDF
       USE DAO_MOD,        ONLY : CONVERT_UNITS
       USE DRYDEP_MOD,     ONLY : DEPSAV
       USE ERROR_MOD,      ONLY : DEBUG_MSG
@@ -871,13 +870,17 @@
             ! Pressure at center of the level [kPa]
             P       = GET_PCENTER(I,J,L) * 0.1d0
 
+#if defined( DEVEL )
+            ! Temperature [K]
+            TEMP    = LOCAL_MET%T(I,J,L)
+
+            ! Cap RH at 0.99 
+            RHB     = MIN( 0.99d0, LOCAL_MET%RH(I,J,L) * 1d-2 )
+#else
             ! Temperature [K]
             TEMP    = T(I,J,L)
 
             ! Cap RH at 0.99 
-#if defined( DEVEL )
-            RHB     = MIN( 0.99d0, LOCAL_MET%RH(I,J,L) * 1d-2 )
-#else
             RHB     = MIN( 0.99d0, RH(I,J,L) * 1d-2 )
 #endif
 
@@ -1173,9 +1176,20 @@
          ! Skip stratospheric boxes
 #if defined( DEVEL )
          IF ( ITS_IN_THE_STRAT( I, J, L, LOCAL_MET ) ) CYCLE
+
+         ! IJLOOP is the 1-D grid box index for SUNCOS
+         IJLOOP = ( (J-1) * IIPAR ) + I
+
+         ! Temperature [K]
+         TK     = LOCAL_MET%T(I,J,L)
+
+         ! Get O2 [molec/cm3], DMS [v/v], OH [molec/cm3], NO3 [molec/cm3]
+         O2     = LOCAL_MET%AIRDEN(L,I,J) * f * 0.21d0
+         DMS0   = STT(I,J,L,IDTDMS)
+         OH     = GET_OH( I, J, L )
+         XNO3   = GET_NO3( I, J, L, LOCAL_MET )
 #else
          IF ( ITS_IN_THE_STRAT( I, J, L ) ) CYCLE
-#endif
 
          ! IJLOOP is the 1-D grid box index for SUNCOS
          IJLOOP = ( (J-1) * IIPAR ) + I
@@ -1187,9 +1201,6 @@
          O2     = AIRDEN(L,I,J) * f * 0.21d0
          DMS0   = STT(I,J,L,IDTDMS)
          OH     = GET_OH( I, J, L )
-#if defined( DEVEL )
-         XNO3   = GET_NO3( I, J, L, LOCAL_MET )
-#else
          XNO3   = GET_NO3( I, J, L )
 #endif
 
@@ -1239,6 +1250,17 @@
 
          IF ( IS_FULLCHEM ) THEN
          
+#if defined( DEVEL )
+            ! Update OH after rxn w/ DMS (coupled runs only)
+            OH    = OH0 - ( ( DMS0 - DMS_OH ) *
+     &              LOCAL_MET%AIRDEN(L,I,J) * f )
+            IF ( OH < SMALLNUM ) OH = 0d0
+
+            ! Update NO3 after rxn w/ DMS (coupled runs only)
+            XNO3  = XNO30 - ( ( DMS_OH - DMS ) *
+     &              LOCAL_MET%AIRDEN(L,I,J) * f )
+            IF ( XNO3 < SMALLNUM ) XNO3 = 0d0
+#else
             ! Update OH after rxn w/ DMS (coupled runs only)
             OH    = OH0 - ( ( DMS0 - DMS_OH ) * AIRDEN(L,I,J) * f )
             IF ( OH < SMALLNUM ) OH = 0d0
@@ -1246,6 +1268,7 @@
             ! Update NO3 after rxn w/ DMS (coupled runs only)
             XNO3  = XNO30 - ( ( DMS_OH - DMS ) * AIRDEN(L,I,J) * f )
             IF ( XNO3 < SMALLNUM ) XNO3 = 0d0
+#endif
 
          ENDIF 
 
@@ -1385,7 +1408,7 @@
 !
       USE BPCH2_MOD,      ONLY : GET_NAME_EXT, GET_RES_EXT
       USE BPCH2_MOD,      ONLY : GET_TAU0,     READ_BPCH2
-      USE DAO_MOD,        ONLY : AD, AIRDEN,   OPTD,     SUNCOS, T
+      USE DAO_MOD,        ONLY : AD, AIRDEN,   SUNCOS, T
       USE DIAG_MOD,       ONLY : AD44 
       USE DIRECTORY_MOD,  ONLY : DATA_DIR
       USE DRYDEP_MOD,     ONLY : DEPSAV
@@ -1539,9 +1562,17 @@
          ! Skip stratospheric boxes
 #if defined( DEVEL )
          IF ( ITS_IN_THE_STRAT( I, J, L, LOCAL_MET ) ) CYCLE
+
+         ! Density of air [molec/cm3]
+         M     = LOCAL_MET%AIRDEN(L,I,J) * f  
+
+         ! Initial H2O2 [v/v]
+         H2O20 = STT(I,J,L,IDTH2O2)
+
+         ! Loss frequenty due to OH oxidation [s-1]
+         KOH   = A * EXP( -160.d0 / LOCAL_MET%T(I,J,L) ) * GET_OH(I,J,L)
 #else
          IF ( ITS_IN_THE_STRAT( I, J, L ) ) CYCLE
-#endif
 
          ! Density of air [molec/cm3]
          M     = AIRDEN(L,I,J) * f  
@@ -1551,6 +1582,7 @@
 
          ! Loss frequenty due to OH oxidation [s-1]
          KOH   = A * EXP( -160.d0 / T(I,J,L) ) * GET_OH(I,J,L)  
+#endif
 
          ! H2O2 drydep frequency [1/s].  Account for the fraction
          ! of grid box (I,J,L) that is located beneath the PBL top.
@@ -1672,7 +1704,7 @@
 #endif
 
       ! For LWC from met fields in GEOS-5 (jaf, 6/30/10)
-      USE DAO_MOD,         ONLY : AIRDEN, QL, CLDF 
+      USE DAO_MOD,         ONLY : QL, CLDF 
 
       USE CMN_SIZE_MOD          ! Size parameters
       USE CMN_DIAG_MOD          ! LD05, ND05, ND44
@@ -1809,12 +1841,31 @@
          FLUX     = 0d0
          Ld       = 0d0
 
-         ! Skip stratospheric boxes
 #if defined( DEVEL )
+         ! Skip stratospheric boxes
          IF ( ITS_IN_THE_STRAT( I, J, L, LOCAL_MET ) ) CYCLE
+
+         ! Initial SO2, H2O2 and O3 [v/v]
+         SO20   = STT(I,J,L,IDTSO2)         
+         H2O20  = STT(I,J,L,IDTH2O2)
+         O3     = GET_O3( I, J, L, LOCAL_MET )
+
+         ! PATM  : Atmospheric pressure in atm
+         PATM   = GET_PCENTER( I, J, L ) / 1013.25d0
+
+         ! TK : Temperature [K]
+         TK     = LOCAL_MET%T(I,J,L)
+
+         IF ( IS_OFFLINE ) THEN
+
+            ! Gas phase SO4 production is done here in offline run only 
+            ! Updated to match JPL 2006 + full chem (jaf, 10/14/09)
+            K0  = 3.3d-31 * ( 300.d0 / TK )**4.3d0
+            Ki  = 1.6d-12
+            M   = LOCAL_MET%AIRDEN(L,I,J) * F
 #else
+         ! Skip stratospheric boxes
          IF ( ITS_IN_THE_STRAT( I, J, L ) ) CYCLE
-#endif
 
          ! Initial SO2, H2O2 and O3 [v/v]
          SO20   = STT(I,J,L,IDTSO2)         
@@ -1834,6 +1885,7 @@
             K0  = 3.3d-31 * ( 300.d0 / TK )**4.3d0
             Ki  = 1.6d-12
             M   = AIRDEN(L,I,J) * F
+#endif
             KK  = K0 * M / Ki
             F1  = ( 1.d0 + ( LOG10( KK ) )**2 )**( -1 )
             RK1 = ( K0 * M / ( 1.d0 + KK ) ) * 0.6d0**F1 * GET_OH(I,J,L)
@@ -1933,14 +1985,19 @@
          ! (jaf, bmy, 6/30/10)
          !---------------------------------------------
 
+#if defined( DEVEL )
+         ! Get cloud fraction from met fields
+         FC      = LOCAL_MET%CLDF(L,I,J)
+
+         ! Get liquid water content [m3 H2O/m3 air] within cloud from met flds
+         ! Units: [kg H2O/kg air] * [kg air/m3 air] * [m3 H2O/1e3 kg H2O]
+         LWC     = LOCAL_MET%QL(I,J,L) * LOCAL_MET%AIRDEN(L,I,J) * 1D-3
+#else
          ! Get cloud fraction from met fields
          FC      = CLDF(L,I,J)
 
          ! Get liquid water content [m3 H2O/m3 air] within cloud from met flds
          ! Units: [kg H2O/kg air] * [kg air/m3 air] * [m3 H2O/1e3 kg H2O]
-#if defined( DEVEL )
-         LWC     = LOCAL_MET%QL(I,J,L) * AIRDEN(L,I,J) * 1D-3
-#else
          LWC     = QL(I,J,L) * AIRDEN(L,I,J) * 1D-3
 #endif
 
@@ -2273,7 +2330,7 @@
 ! !USES:
 !
       USE COMODE_MOD,      ONLY : CSPEC, JLOP, VOLUME
-      USE DAO_MOD,         ONLY : AD, AIRDEN, AIRVOL
+      USE DAO_MOD,         ONLY : AD,    AIRVOL
       USE TRACERID_MOD
       !----------------------------------------------------------------
       ! DIAGNOSTIC -- leave commented out for now (bec, bmy, 4/13/05)
@@ -6605,7 +6662,11 @@
 !\\
 ! !INTERFACE:
 !
+#if defined( DEVEL )
+      FUNCTION GET_O3( I, J, L, LOCAL_MET ) RESULT( O3_VV )
+#else
       FUNCTION GET_O3( I, J, L ) RESULT( O3_VV )
+#endif
 !
 ! !USES:
 !
@@ -6615,13 +6676,18 @@
       USE TRACER_MOD,   ONLY : ITS_A_FULLCHEM_SIM, ITS_AN_AEROSOL_SIM  
       USE TRACER_MOD,   ONLY : XNUMOLAIR
       USE TRACERID_MOD, ONLY : IDO3
+#if defined( DEVEL )
+      USE GC_TYPE_MOD,  ONLY : GC_MET_LOCAL
+#endif
 
       USE CMN_SIZE_MOD       ! Size parameters
 !
 ! !INPUT PARAMETERS: 
 !
       INTEGER, INTENT(IN)   :: I, J, L ! Indices for lon, lat, vertical level
-
+#if defined( DEVEL )
+      TYPE(GC_MET_LOCAL), INTENT(IN) :: LOCAL_MET  ! Obj w/ met fields
+#endif
 !
 ! !REVISION HISTORY: 
 !  (1 ) We assume SETTRACE has been called to define IDO3. (bmy, 12/16/02)
@@ -6654,8 +6720,13 @@
          ! Get O3 from CSPEC [molec/cm3] and convert it to [v/v]
          ! O3 data will only be defined below the tropopause
          IF ( JLOOP  > 0 ) THEN
+#if defined( DEVEL )
+            O3_VV = ( CSPEC(JLOOP,IDO3)       * 1d6       ) / 
+     &              ( LOCAL_MET%AIRDEN(L,I,J) * XNUMOLAIR )
+#else
             O3_VV = ( CSPEC(JLOOP,IDO3) * 1d6       ) / 
      &              ( AIRDEN(L,I,J)     * XNUMOLAIR )
+#endif
          ELSE
             O3_VV = 0d0
          ENDIF

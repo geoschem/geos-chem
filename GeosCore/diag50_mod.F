@@ -319,11 +319,12 @@
 
       ! Set logical flags
       IF ( FIRST ) THEN
-         IS_OPTD     = ALLOCATED( OPTD    )
 #if defined( DEVEL )
+         IS_OPTD     = ALLOCATED( LOCAL_MET%OPTD    )
          IS_CLDTOPS  = ALLOCATED( LOCAL_MET%CLDTOPS )
          IS_SLP      = ALLOCATED( LOCAL_MET%SLP     )
 #else
+         IS_OPTD     = ALLOCATED( OPTD    )
          IS_CLDTOPS  = ALLOCATED( CLDTOPS )
          IS_SLP      = ALLOCATED( SLP     )
 #endif
@@ -589,22 +590,35 @@
                !--------------------------------------
                ! AIR DENSITY [molec/cm3] 
                !--------------------------------------
+#if defined( DEVEL )
+               Q(X,Y,K,W) = Q(X,Y,K,W) + ( LOCAL_MET%AIRDEN(L,I,J) *
+     &                      XNUMOLAIR  * 1d-6 )
+#else
                Q(X,Y,K,W) = Q(X,Y,K,W) + 
      &                      ( AIRDEN(L,I,J) * XNUMOLAIR * 1d-6 )
+#endif
 
             ELSE IF ( N == 81 ) THEN
 
                !--------------------------------------
                ! 3_D CLOUD FRACTION [unitless]
                !--------------------------------------
+#if defined( DEVEL )
+               Q(X,Y,K,W) = Q(X,Y,K,W) + LOCAL_MET%CLDF(L,I,J)
+#else
                Q(X,Y,K,W) = Q(X,Y,K,W) + CLDF(L,I,J)
+#endif
 
             ELSE IF ( N == 82 .and. IS_OPTD ) THEN
 
                !--------------------------------------
                ! COLUMN OPTICAL DEPTH [unitless]
                !--------------------------------------
+#if defined( DEVEL )
+               Q(X,Y,1,W) = Q(X,Y,1,W) + LOCAL_MET%OPTD(L,I,J)
+#else
                Q(X,Y,1,W) = Q(X,Y,1,W) + OPTD(L,I,J)
+#endif
 
             ELSE IF ( N == 83 .and. IS_CLDTOPS ) THEN
 
@@ -807,14 +821,22 @@
                !--------------------------------------
                ! ZONAL (U) WIND [m/s]
                !--------------------------------------               
+#if defined( DEVEL )
+               Q(X,Y,K,W) = Q(X,Y,K,W) + LOCAL_MET%U(I,J,L)
+#else
                Q(X,Y,K,W) = Q(X,Y,K,W) + UWND(I,J,L)
+#endif
 
             ELSE IF ( N == 98 ) THEN
 
                !--------------------------------------
                ! MERIDIONAL (V) WIND [m/s]
                !--------------------------------------            
+#if defined( DEVEL )
+               Q(X,Y,K,W) = Q(X,Y,K,W) + LOCAL_MET%V(I,J,L)
+#else
                Q(X,Y,K,W) = Q(X,Y,K,W) + VWND(I,J,L)
+#endif
 
             ELSE IF ( N == 99 ) THEN
 
@@ -828,7 +850,11 @@
                !--------------------------------------
                ! TEMPERATURE [K]
                !--------------------------------------
+#if defined( DEVEL )
+               Q(X,Y,K,W) = Q(X,Y,K,W) + LOCAL_MET%T(I,J,L)
+#else
                Q(X,Y,K,W) = Q(X,Y,K,W) + T(I,J,L)
+#endif
 
             ENDIF
          ENDDO

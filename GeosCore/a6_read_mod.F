@@ -530,7 +530,7 @@
       LOCAL_MET%HKBETA   = HKBETA
       LOCAL_MET%HKETA    = HKETA
       LOCAL_MET%MOISTQ   = MOISTQ
-      LOCAL_MET%OPTD     = OPTDEP
+      LOCAL_MET%OPTDEP   = OPTDEP
       LOCAL_MET%SPHU     = SPHU
       LOCAL_MET%T        = T
       LOCAL_MET%U        = UWND
@@ -574,7 +574,7 @@
       LOCAL_MET%DQRLSAN  = DQRLSC
       LOCAL_MET%DTRAIN   = DTRAIN
       LOCAL_MET%MOISTQ   = MOISTQ
-      LOCAL_MET%OPTD     = OPTDEP
+      LOCAL_MET%OPTDEP   = OPTDEP
       LOCAL_MET%PV       = PV
       LOCAL_MET%QI       = QI
       LOCAL_MET%QL       = QL
@@ -618,7 +618,7 @@
       LOCAL_MET%DNDN     = DNDN
       LOCAL_MET%ENTRAIN  = ENTRAIN
       LOCAL_MET%MOISTQ   = MOISTQ
-      LOCAL_MET%OPTD     = OPTDEP
+      LOCAL_MET%OPTDEP   = OPTDEP
       LOCAL_MET%SPHU     = SPHU
       LOCAL_MET%T        = T
       LOCAL_MET%U        = UWND

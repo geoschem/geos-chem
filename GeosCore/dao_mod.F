@@ -176,11 +176,7 @@
       REAL*8,  ALLOCATABLE, PUBLIC :: TMPU2          (:,:,:)
       REAL*8,  ALLOCATABLE, PUBLIC :: UPDE           (:,:,:)
       REAL*8,  ALLOCATABLE, PUBLIC :: UPDN           (:,:,:)
-      REAL*8,  ALLOCATABLE, PUBLIC :: UWND1          (:,:,:)
-      REAL*8,  ALLOCATABLE, PUBLIC :: UWND2          (:,:,:)
       REAL*8,  ALLOCATABLE, PUBLIC :: UWND           (:,:,:)
-      REAL*8,  ALLOCATABLE, PUBLIC :: VWND1          (:,:,:)
-      REAL*8,  ALLOCATABLE, PUBLIC :: VWND2          (:,:,:)
       REAL*8,  ALLOCATABLE, PUBLIC :: VWND           (:,:,:)
       REAL*8,  ALLOCATABLE, PUBLIC :: ZMEU           (:,:,:)
       REAL*8,  ALLOCATABLE, PUBLIC :: ZMMD           (:,:,:)
@@ -543,7 +539,7 @@
             !===========================================================
          AIRDEN(L,I,J) = AD(I,J,L) / AIRVOL(I,J,L)
 #if defined( DEVEL )
-         LOCAL_MET%AIRDENS(L,I,J) = AIRDEN(L,I,J)
+         LOCAL_MET%AIRDEN(L,I,J) = AIRDEN(L,I,J)
 #endif            
       ENDDO
       ENDDO
@@ -1997,11 +1993,12 @@
 
 #if defined( DEVEL )
       ! Numerator
-      NUM = -AIRDEN(1,I,J) *  CP            * LOCAL_MET%TS(I,J) *
-     &       USTAR(I,J)    *  USTAR(I,J)    * USTAR(I,J)
+      NUM = - LOCAL_MET%AIRDEN(1,I,J) * CP                   *
+     &        LOCAL_MET%TS(I,J)        * LOCAL_MET%USTAR(I,J) *
+     &        LOCAL_MET%USTAR(I,J)     * LOCAL_MET%USTAR(I,J)
 
       ! Denominator
-      DEN =  KAPPA         * g0             * LOCAL_MET%HFLUX(I,J) 
+      DEN =  KAPPA         * g0       * LOCAL_MET%HFLUX(I,J) 
 #else
       ! Numerator
       NUM = -AIRDEN(1,I,J) *  CP            * TS(I,J) *
@@ -4452,12 +4449,8 @@
       IF ( ALLOCATED( UPDN            ) ) DEALLOCATE( UPDN            ) 
       IF ( ALLOCATED( USTAR           ) ) DEALLOCATE( USTAR           )
       IF ( ALLOCATED( UWND            ) ) DEALLOCATE( UWND            )
-      IF ( ALLOCATED( UWND1           ) ) DEALLOCATE( UWND1           )
-      IF ( ALLOCATED( UWND2           ) ) DEALLOCATE( UWND2           )
       IF ( ALLOCATED( V10M            ) ) DEALLOCATE( V10M            ) 
       IF ( ALLOCATED( VWND            ) ) DEALLOCATE( VWND            )
-      IF ( ALLOCATED( VWND1           ) ) DEALLOCATE( VWND1           )
-      IF ( ALLOCATED( VWND2           ) ) DEALLOCATE( VWND2           )
       IF ( ALLOCATED( Z0              ) ) DEALLOCATE( Z0              )
       IF ( ALLOCATED( ZMEU            ) ) DEALLOCATE( ZMEU            )
       IF ( ALLOCATED( ZMMD            ) ) DEALLOCATE( ZMMD            )

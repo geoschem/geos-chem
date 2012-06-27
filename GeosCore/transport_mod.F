@@ -392,8 +392,15 @@
       !=================================================================
 
       ! NOTE: P_TP1 and P_TP2 are the true surface pressures!
+#if defined( DEVEL )
+      CALL DO_PJC_PFIX( D_DYN,        
+     &                  P_TP1,        P_TP2,
+     &                  LOCAL_MET%U,  LOCAL_MET%V,
+     &                  XMASS,        YMASS )
+#else
       CALL DO_PJC_PFIX( D_DYN, P_TP1, P_TP2, 
      &                  UWND,  VWND,  XMASS, YMASS )
+#endif
 
       !=================================================================
       ! Call TPCORE_FVDAS to perform the advection
@@ -401,8 +408,13 @@
 
       ! Store winds in UTMP, VTMP to preserve UWND, VWND 
       ! for diagnostics.  Flip in the vertial for TPCORE.
+#if defined( DEVEL )
+      UTMP(:,:,1:LLPAR) = LOCAL_MET%U(:,:,LLPAR:1:-1)
+      VTMP(:,:,1:LLPAR) = LOCAL_MET%V(:,:,LLPAR:1:-1)
+#else
       UTMP(:,:,1:LLPAR) = UWND(:,:,LLPAR:1:-1)
       VTMP(:,:,1:LLPAR) = VWND(:,:,LLPAR:1:-1)
+#endif
 
 
 !      ! Do the advection
@@ -676,8 +688,15 @@
       !=================================================================
 
       ! NOTE: P_TP1+PTOP & P_TP2+PTOP are the true surface pressures!
+#if defined( DEVEL )
+      CALL DO_PJC_PFIX( D_DYN,
+     &                  P_TP1+PTOP,   P_TP2+PTOP, 
+     &                  LOCAL_MET%U,  LOCAL_MET%V,
+     &                  XMASS,        YMASS )
+#else
       CALL DO_PJC_PFIX( D_DYN, P_TP1+PTOP, P_TP2+PTOP, 
      &                  UWND,  VWND,       XMASS,     YMASS )
+#endif
 
       !=================================================================
       ! Call TPCORE_FVDAS to perform the advection
@@ -685,8 +704,13 @@
 
       ! Store winds in UTMP, VTMP to preserve UWND, VWND 
       ! for diagnostics.  Flip in the vertical for TPCORE.
+#if defined( DEVEL )
+      UTMP(:,:,1:LLPAR) = LOCAL_MET%U(:,:,LLPAR:1:-1)
+      VTMP(:,:,1:LLPAR) = LOCAL_MET%V(:,:,LLPAR:1:-1)
+#else
       UTMP(:,:,1:LLPAR) = UWND(:,:,LLPAR:1:-1)
       VTMP(:,:,1:LLPAR) = VWND(:,:,LLPAR:1:-1)
+#endif
 
 !      ! Do the advection
 !      CALL TPCORE_FVDAS( D_DYN,    Re,        IIPAR,    JJPAR,
@@ -964,8 +988,15 @@
       YMASS = 0d0
 
       ! NOTE: P_TP1 and P_TP2 are the true surface pressures!
+#if defined( DEVEL )
+      CALL DO_PJC_PFIX_GEOS5_WINDOW( D_DYN,
+     &                               P_TP1,        P_TP2,
+     &                               LOCAL_MET%U,  LOCAL_MET%V,
+     &                               XMASS,        YMASS )
+#else
       CALL DO_PJC_PFIX_GEOS5_WINDOW( D_DYN, P_TP1, P_TP2,
      &                               UWND,  VWND,  XMASS, YMASS )
+#endif
 
       IF ( LPRT ) CALL DEBUG_MSG( '### GEOS5_NESTED: a GET_TRA_MASS' )
 
@@ -973,8 +1004,13 @@
       CALL DO_WINDOW_TPCORE_BC
 
       ! for diagnostics.  Flip in the vertial for TPCORE.
+#if defined( DEVEL )
+      UTMP(:,:,1:LLPAR) = LOCAL_MET%U(:,:,LLPAR:1:-1)
+      VTMP(:,:,1:LLPAR) = LOCAL_MET%V(:,:,LLPAR:1:-1)
+#else
       UTMP(:,:,1:LLPAR) = UWND(:,:,LLPAR:1:-1)
       VTMP(:,:,1:LLPAR) = VWND(:,:,LLPAR:1:-1)
+#endif
 
 !      ! Do the advection
 !      CALL TPCORE_GEOS5_WINDOW( D_DYN, Re, IIPAR, JJPAR,
@@ -1121,8 +1157,13 @@
 
       ! Flip UWND, VWND, STT in vertical dimension
       ! Now store into temp arrays to preserve UWND, VWND for diags
+#if defined( DEVEL )
+      UTMP(:,:,1:LLPAR)          = LOCAL_MET%U(:,:,LLPAR:1:-1)
+      VTMP(:,:,1:LLPAR)          = LOCAL_MET%V(:,:,LLPAR:1:-1)
+#else
       UTMP(:,:,1:LLPAR)          = UWND(:,:,LLPAR:1:-1)
       VTMP(:,:,1:LLPAR)          = VWND(:,:,LLPAR:1:-1)
+#endif
       STT (:,:,1:LLPAR,:)        = STT (:,:,LLPAR:1:-1,:)
 
       ! Set temp arrays for passing pressures to TPCORE

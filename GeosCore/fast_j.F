@@ -24,7 +24,11 @@
 !
 ! !INTERFACE:
 !
+#if defined( DEVEL )
+      SUBROUTINE FAST_J( SUNCOS, OD, ALBD, LOCAL_MET )  
+#else
       SUBROUTINE FAST_J( SUNCOS, OD, ALBD )  
+#endif
 !
 ! !USES:
 !
@@ -35,6 +39,9 @@
       USE TIME_MOD,     ONLY : GET_MONTH, GET_DAY, GET_DAY_OF_YEAR
       USE TIME_MOD,     ONLY : GET_TAU,   GET_YEAR
       USE TOMS_MOD,     ONLY : GET_OVERHEAD_O3
+#if defined( DEVEL )
+      USE GC_TYPE_MOD,  ONLY : GC_MET_LOCAL
+#endif
 
 #     include "define.h"
 
@@ -59,6 +66,11 @@
 
       ! UV albedo [unitless]
       REAL*8, INTENT(IN)    :: ALBD(IIPAR,JJPAR)    
+
+      ! Obj w/ met fields
+#if defined( DEVEL )
+      TYPE(GC_MET_LOCAL), INTENT(IN) :: LOCAL_MET
+#endif
 !
 ! !REMARKS:
 !
@@ -222,7 +234,11 @@
             PJ(NB+1)     = 0d0
 
             ! Temperature profile [K] at (NLON,NLAT)
+#if defined( DEVEL )
+            TEMP         = LOCAL_MET%T(NLON,NLAT,1:LLPAR)
+#else
             TEMP         = T(NLON,NLAT,1:LLPAR)
+#endif
 
             ! Surface albedo [unitless] at (NLON,NLAT)
             SFCA         = ALBD(NLON,NLAT)
@@ -259,7 +275,11 @@
 #if   defined( GEOS_5 ) || defined( MERRA ) || defined( GEOS_57 )
 
                ! Column cloud fraction (not less than zero)
+#if defined( DEVEL )
+               CLDF1D = LOCAL_MET%CLDF(1:LLPAR,NLON,NLAT)
+#else
                CLDF1D = CLDF(1:LLPAR,NLON,NLAT)
+#endif
                WHERE ( CLDF1D < 0d0 ) CLDF1D = 0d0
                
                ! NOTE: for the reprocessed GEOS-5 met fields (i.e. with

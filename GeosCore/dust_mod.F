@@ -328,7 +328,11 @@
 
                   ! Get P [kPa], T [K], and P*DP
                   P    = GET_PCENTER(I,J,L) * 0.1d0
+#if defined( DEVEL )
+                  TEMP = LOCAL_MET%T(I,J,L)
+#else
                   TEMP = T(I,J,L)
+#endif
                   PDP  = P * DP
 
                   !=====================================================
@@ -853,14 +857,14 @@
 
 #if defined( DEVEL )
             ! Temperature [K] at surface layer
-            TLON(I)        = T(I,J,1)
+            TLON(I)        = LOCAL_MET%T(I,J,1)
 
             ! Potential temperature [K] at surface layer
             THLON(I)       = TLON(I) * ( P1000 / PMID(I) )**AKAP
 
             ! U and V winds at surface [m/s]
-            ULON(I)        = UWND(I,J,1)
-            VLON(I)        = VWND(I,J,1)
+            ULON(I)        = LOCAL_MET%U(I,J,1)
+            VLON(I)        = LOCAL_MET%V(I,J,1)
             
             ! Half box height at surface [m]
             BHT2(I)        = LOCAL_MET%BXHEIGHT(I,J,1) / 2.d0

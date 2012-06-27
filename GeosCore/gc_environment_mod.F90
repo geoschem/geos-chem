@@ -259,11 +259,12 @@
                LOCAL_MET%ZMMD    (IIPAR, JJPAR, LLPAR), & ! Zhang/McFarlane downdraft mass flux [Pa/s]
                LOCAL_MET%ZMMU    (IIPAR, JJPAR, LLPAR), & ! Zhang/McFarlane updraft   mass flux [Pa/s]
                ! Fields dimensioned as (L,I,J)
-               LOCAL_MET%AIRDENS (LLPAR, IIPAR, JJPAR), & ! Air density [kg/m3]
+               LOCAL_MET%AIRDEN  (LLPAR, IIPAR, JJPAR), & ! Air density [kg/m3]
                LOCAL_MET%CLDF    (LLPAR, IIPAR, JJPAR), & ! 3-D cloud fraction [unitless]
                LOCAL_MET%DELP    (LLPAR, IIPAR, JJPAR), & ! Pressure thickness for layer [Pa]
                LOCAL_MET%MOISTQ  (LLPAR, IIPAR, JJPAR), & ! Tendency in sp. humidity [kg/kg/s]
                LOCAL_MET%OPTD    (LLPAR, IIPAR, JJPAR), & ! Visible optical depth [unitless]
+               LOCAL_MET%OPTDEP  (LLPAR, IIPAR, JJPAR), & ! Visible optical depth [unitless]
                STAT=AS)
           
           IF (AS /= 0) CALL ALLOC_ERR('LOCAL_MET 3D')

@@ -289,7 +289,7 @@
          REAL*8, ALLOCATABLE :: Z0(:,:)      ! Surface roughness height [m]
 ! 3-D Arrays
          REAL*8, ALLOCATABLE :: AD(:,:,:)       ! Air mass [kg]
-         REAL*8, ALLOCATABLE :: AIRDENS(:,:,:)  ! Air density [kg/m3]
+         REAL*8, ALLOCATABLE :: AIRDEN(:,:,:)   ! Air density [kg/m3]
          REAL*8, ALLOCATABLE :: AIRVOL(:,:,:)   ! Grid box volume [m3]
          REAL*8, ALLOCATABLE :: AVGW(:,:,:)     ! Mixing ratio of water vapor
          REAL*8, ALLOCATABLE :: BXHEIGHT(:,:,:) ! Grid box height [m]
@@ -311,6 +311,7 @@
          REAL*8, ALLOCATABLE :: HKETA(:,:,:)    ! Hack convective mass flux [kg/m2/s]
          REAL*8, ALLOCATABLE :: MOISTQ(:,:,:)   ! Tendency in sp. humidity [kg/kg/s]
          REAL*8, ALLOCATABLE :: OPTD(:,:,:)     ! Visible optical depth [unitless]
+         REAL*8, ALLOCATABLE :: OPTDEP(:,:,:)   ! Visible optical depth [unitless]
          REAL*8, ALLOCATABLE :: PEDGE(:,:,:)    ! Pressure @ level edges [Pa]
          REAL*8, ALLOCATABLE :: PMID(:,:,:)     ! Pressure @ level centers [Pa]
          REAL*8, ALLOCATABLE :: PFICU(:,:,:)    ! Dwn flux ice precip: conv [kg/m2/s]

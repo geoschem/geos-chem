@@ -80,8 +80,8 @@
       USE C2H6_MOD,        ONLY : CHEMC2H6
       USE CARBON_MOD,      ONLY : CHEMCARBON
       USE CH3I_MOD,        ONLY : CHEMCH3I
-      USE DAO_MOD,         ONLY : CLDF,    DELP
-      USE DAO_MOD,         ONLY : OPTDEP,  OPTD,   T
+      USE DAO_MOD,         ONLY : CLDF
+      USE DAO_MOD,         ONLY : OPTDEP,  OPTD
       USE DAO_MOD,         ONLY : ALBD,    TS,     U10M, V10M ! mpayer
       USE DRYDEP_MOD,      ONLY : DRYFLX, DRYFLXRnPbBe, DRYFLXH2HD
       USE DUST_MOD,        ONLY : CHEMDUST, RDUST_ONLINE
@@ -197,7 +197,12 @@
 
       ! Compute optical depths (except for CH4 simulation)
       IF ( .not. ITS_A_CH4_SIM() ) THEN
+#if defined( DEVEL )
+         CALL OPTDEPTH( LLPAR, LOCAL_MET%CLDF, LOCAL_MET%OPTDEP,
+     &                  LOCAL_MET%OPTD )
+#else
          CALL OPTDEPTH( LLPAR, CLDF, OPTDEP, OPTD )
+#endif
       ENDIF
 
       !=================================================================
@@ -468,7 +473,11 @@
           ! CH3I
           !---------------------------------
           ELSE IF ( ITS_A_CH3I_SIM() ) THEN
+#if defined( DEVEL )
+             CALL CHEMCH3I( LOCAL_MET )
+#else
              CALL CHEMCH3I
+#endif
  
           !---------------------------------            
           ! HCN
@@ -504,7 +513,11 @@
           ! C2H6
           !---------------------------------
           ELSE IF ( ITS_A_C2H6_SIM() ) THEN
+#if defined( DEVEL )
+             CALL CHEMC2H6( LOCAL_MET )
+#else
              CALL CHEMC2H6
+#endif
  
           !---------------------------------
           ! CH4

@@ -1262,7 +1262,11 @@
                   ! GMAO temperature [K]
                   !--------------------------
                   CASE ( 1001 )
+#if defined( DEVEL )
+                     VARI(V) = LOCAL_MET%T(I,J,L)
+#else
                      VARI(V) = T(I,J,L)
+#endif
 
                   !--------------------------
                   ! GMAO abs humidity [frac]
@@ -1302,6 +1306,19 @@
                   CASE ( 1004 )
                      VARI(V) = GET_PEDGE(I,J,1)
 
+#if defined( DEVEL )
+                  !-------------------------
+                  ! GMAO U-wind [m/s]
+                  !-------------------------
+                  CASE ( 1005 )
+                     VARI(V) = LOCAL_MET%U(I,J,L)
+
+                  !--------------------------
+                  ! GMAO V-wind [m/s]
+                  !--------------------------
+                  CASE ( 1006 )
+                     VARI(V) = LOCAL_MET%V(I,J,L)
+#else
                   !-------------------------
                   ! GMAO U-wind [m/s]
                   !-------------------------
@@ -1313,6 +1330,7 @@
                   !--------------------------
                   CASE ( 1006 )
                      VARI(V) = VWND(I,J,L)
+#endif
 
                   !--------------------------
                   ! GEOS-Chem Grid Box I

@@ -444,8 +444,8 @@
 !******************************************************************************
 !      
       ! References to F90 modules
-      USE DAO_MOD, ONLY : ALBD1, LWI,  PS1,   SLP,    T
-      USE DAO_MOD, ONLY : TO31,  TTO3, TROPP1, UWND1, VWND1
+      USE DAO_MOD, ONLY : ALBD1, LWI,  PS1,   SLP
+      USE DAO_MOD, ONLY : TO31,  TTO3, TROPP1
 #if defined( DEVEL )
       USE GC_TYPE_MOD, ONLY : GC_MET_LOCAL
 #endif
@@ -534,8 +534,8 @@
 !
       ! References to F90 modules
       USE DAO_MOD, ONLY : ALBD2,  LWI,   PS2,   SLP
-      USE DAO_MOD, ONLY : T,      TO32,  TTO3
-      USE DAO_MOD, ONLY : TROPP2, UWND2, VWND2
+      USE DAO_MOD, ONLY : TO32,  TTO3
+      USE DAO_MOD, ONLY : TROPP2
 #if defined( DEVEL )
       USE GC_TYPE_MOD, ONLY : GC_MET_LOCAL
 #endif

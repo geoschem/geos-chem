@@ -474,13 +474,17 @@
             ! Pressure at center of the level [kPa]
             P       = GET_PCENTER(I,J,L) * 0.1d0
 
+#if defined( DEVEL )
+            ! Temperature [K]
+            TEMP    = LOCAL_MET%T(I,J,L)
+
+            ! Cap RH at 0.99 
+            RHB     = MIN( 0.99d0, LOCAL_MET%RH(I,J,L) * 1d-2 )
+#else
             ! Temperature [K]
             TEMP    = T(I,J,L)
 
             ! Cap RH at 0.99 
-#if defined( DEVEL )
-            RHB     = MIN( 0.99d0, LOCAL_MET%RH(I,J,L) * 1d-2 )
-#else
             RHB     = MIN( 0.99d0, RH(I,J,L) * 1d-2 )
 #endif
 
@@ -966,7 +970,7 @@
       USE DAO_MOD,       ONLY : AD, IS_WATER, AIRVOL
       ! Add TSKIN (jaegle 5/11/11)
       USE DAO_MOD,       ONLY : TSKIN ! jaegle
-      USE DAO_MOD,       ONLY : U10M, V10 M
+      USE DAO_MOD,       ONLY : U10M, V10M
       USE DIAG_MOD,      ONLY : AD08
       USE ERROR_MOD,     ONLY : DEBUG_MSG, ERROR_STOP
       USE GRID_MOD,      ONLY : GET_AREA_M2

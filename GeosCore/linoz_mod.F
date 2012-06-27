@@ -347,8 +347,13 @@
                dco3=(colo3(i,j,l)-tlstt(j,l,3)) ! deviation from o3 climatology.
                ! ++++++ temperature feedback: ++++++ 
                dertmp=tlstt(j,l,6)              ! Derivative w.r.t. Temperature
+#if defined( DEVEL )
+               dtmp=(LOCAL_MET%T(I,J,L) -       ! Deviation in Temperature 
+     &                tlstt(j,l,2))              !  from climatology.
+#else
                dtmp=(T(I,J,L)-tlstt(j,l,2))     ! Deviation in Temperature 
                                                 !  from climatology.
+#endif
 
                ! ++++++ calculate steady-state ozone: ++++++ 
                sso3=climo3 - (climpml+dtmp*dertmp+dco3*derco3)/dero3 

@@ -581,11 +581,12 @@
          !------------------------------------------------------------------
 
          K0    = 7.4d-33 
-         K1    = 9.0d-15 * ( T(I,J,L) / 300d0 ) ** 3.2d0
 #if defined( DEVEL )
-         TMP   = K0  /  K1  * LOCAL_MET%AD(I,J,L) *
+         K1    = 9.0d-15    * ( LOCAL_MET%T(I,J,L)  / 300d0 ) ** 3.2d0
+         TMP   = K0  /  K1  *   LOCAL_MET%AD(I,J,L) *
      &           XNUMOL_AIR / BOXVL(I,J,L,LOCAL_MET)
 #else
+         K1    = 9.0d-15 * ( T(I,J,L) / 300d0 ) ** 3.2d0
          TMP   = K0 / K1 * AD(I,J,L) * XNUMOL_AIR / BOXVL(I,J,L)
 #endif
 
@@ -619,7 +620,11 @@
          !------------------------------------------------------------------
 
          ! K: [cm3/molec/s]
+#if defined( DEVEL )
+         KTMP  = 7.8d-13 * EXP( -1050d0 / LOCAL_MET%T(I,J,L) )
+#else
          KTMP  = 7.8d-13 * EXP( -1050d0 / T(I,J,L) )
+#endif
          KRATE = KTMP * OH(I,J,L) * DTCHEM
 
          ! Subtract lost CH3CN tracer from STT

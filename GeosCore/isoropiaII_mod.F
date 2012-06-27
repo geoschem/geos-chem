@@ -302,7 +302,7 @@
 
 #if defined( DEVEL )
          ! Temperature [K]
-         TEMPI    = T(I,J,L)
+         TEMPI    = LOCAL_MET%T(I,J,L)
 
          ! Relative humidity [unitless]
          RHI      = LOCAL_MET%RH(I,J,L) * 1.d-2

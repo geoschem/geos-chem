@@ -482,8 +482,13 @@
          ! ZUP is the height from the sigma center of the 
          ! (L70mb-1)th layer
          !============================================================== 
+#if defined( DEVEL )
+         T2   = LOCAL_MET%T(I,J,L70mb  )
+         T1   = LOCAL_MET%T(I,J,L70mb-1)
+#else
          T2   = T(I,J,L70mb  )
          T1   = T(I,J,L70mb-1)        
+#endif
 
          DZ   = Rdg0 * ( (T1 + T2) / 2d0 ) * LOG( P1 / P70mb ) 
          ZUP  = Rdg0 * T1 * LOG( P1 /P3 )
@@ -1154,8 +1159,13 @@
             ! ZUP is the height from the sigma center of the 
             ! (L70mb-1)th layer
             !=========================================================== 
+#if defined( DEVEL )
+            T2   = LOCAL_MET%T(I,J,L70mb  )
+            T1   = LOCAL_MET%T(I,J,L70mb-1)
+#else
             T2   = T(I,J,L70mb  )
             T1   = T(I,J,L70mb-1)        
+#endif
 
             DZ   = Rdg0 * ( (T1 + T2) / 2d0 ) * LOG( P1 / P70mb ) 
             ZUP  = Rdg0 * T1 * LOG( P1 /P3 )

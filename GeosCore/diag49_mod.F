@@ -274,11 +274,12 @@
 #if defined( DEVEL )
          IS_CLDTOPS  = ALLOCATED( LOCAL_MET%CLDTOPS )
          IS_SLP      = ALLOCATED( LOCAL_MET%SLP     )
+         IS_OPTD     = ALLOCATED( LOCAL_MET%OPTD    )
 #else
          IS_CLDTOPS  = ALLOCATED( CLDTOPS )
          IS_SLP      = ALLOCATED( SLP     )
-#endif
          IS_OPTD     = ALLOCATED( OPTD    )
+#endif
          IS_FULLCHEM = ITS_A_FULLCHEM_SIM()
          IS_SEASALT  = ( IDTSALA > 0 .and. IDTSALC > 0 )
          IS_Ox       = ( IS_FULLCHEM .and. IDTOX   > 0 )
@@ -656,7 +657,11 @@
                J = JOFF + Y
             DO X = 1, ND49_NI
                I = GET_I( X )
+#if defined( DEVEL )
+               Q(X,Y,K) = LOCAL_MET%AIRDEN(L,I,J) * XNUMOLAIR * 1d-6
+#else
                Q(X,Y,K) = AIRDEN(L,I,J) * XNUMOLAIR * 1d-6
+#endif
             ENDDO
             ENDDO
             ENDDO
@@ -681,7 +686,11 @@
                J = JOFF + Y
             DO X = 1, ND49_NI
                I = GET_I( X )
+#if defined( DEVEL )
+               Q(X,Y,K) = LOCAL_MET%CLDF(K,I,J)
+#else
                Q(X,Y,K) = CLDF(K,I,J)
+#endif
             ENDDO
             ENDDO
             ENDDO
@@ -704,7 +713,11 @@
                J = JOFF + Y
             DO X = 1, ND49_NI
                I = GET_I( X )
+#if defined( DEVEL )
+               Q(X,Y,1) = SUM( LOCAL_MET%OPTD(:,I,J) )
+#else
                Q(X,Y,1) = SUM( OPTD(:,I,J) )
+#endif
             ENDDO
             ENDDO
 !$OMP END PARALLEL DO
@@ -1116,7 +1129,11 @@
                J = JOFF + Y
             DO X = 1, ND49_NI
                I = GET_I( X )
+#if defined( DEVEL )
+               Q(X,Y,K) = LOCAL_MET%U(I,J,L)
+#else
                Q(X,Y,K) = UWND(I,J,L)
+#endif
             ENDDO
             ENDDO
             ENDDO
@@ -1141,7 +1158,11 @@
                J = JOFF + Y
             DO X = 1, ND49_NI
                I = GET_I( X )
+#if defined( DEVEL )
+               Q(X,Y,K) = LOCAL_MET%V(I,J,L)
+#else
                Q(X,Y,K) = VWND(I,J,L)
+#endif
             ENDDO
             ENDDO
             ENDDO
@@ -1191,7 +1212,11 @@
                J = JOFF + Y
             DO X = 1, ND49_NI
                I = GET_I( X )
+#if defined( DEVEL )
+               Q(X,Y,K) = LOCAL_MET%T(I,J,L)
+#else
                Q(X,Y,K) = T(I,J,L)
+#endif
             ENDDO
             ENDDO
             ENDDO

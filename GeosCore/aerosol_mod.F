@@ -282,17 +282,22 @@
 
             ! ABSHUM = absolute humidity [molec H2O/cm3 air]
             ABSHUM(JLOOP)  = LOCAL_MET%AVGW(I,J,L)  * AIRDENS(JLOOP)
+
+            ! Convert ABSHUM to relative humidity [fraction]
+            ! using the same algorithm as in "gasconc.f"
+            TK             = LOCAL_MET%T(I,J,L)
 #else
             ! Air density in [molec/cm3]
             AIRDENS(JLOOP) = AD(I,J,L)*1000.d0/BOXVL(I,J,L)*AVG/WTAIR
 
             ! ABSHUM = absolute humidity [molec H2O/cm3 air]
             ABSHUM(JLOOP)  = AVGW(I,J,L) * AIRDENS(JLOOP)
-#endif
+
 
             ! Convert ABSHUM to relative humidity [fraction]
             ! using the same algorithm as in "gasconc.f"
             TK             = T(I,J,L)
+#endif
             CONSEXP        = 17.2693882d0      * 
      &                       ( TK - 273.16d0 ) / ( TK - 35.86d0 )
             VPRESH2O       = CONSVAP * EXP( CONSEXP ) / TK

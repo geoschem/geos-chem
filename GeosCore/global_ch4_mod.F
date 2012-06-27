@@ -142,7 +142,11 @@
 !\\
 ! !INTERFACE:
 !
+#if defined( DEVEL )
+      SUBROUTINE CH4_AVGTP( LOCAL_MET )
+#else
       SUBROUTINE CH4_AVGTP
+#endif
 !
 ! !USES:
 !
@@ -150,8 +154,17 @@
       USE ERROR_MOD,    ONLY : GEOS_CHEM_STOP
       USE PRESSURE_MOD, ONLY : GET_PCENTER
       USE TIME_MOD,     ONLY : GET_TS_DYN, GET_TS_CHEM, GET_ELAPSED_MIN
+#if defined( DEVEL )
+      USE GC_TYPE_MOD,  ONLY : GC_MET_LOCAL
+#endif
 
       USE CMN_SIZE_MOD       ! Size parameters
+!
+! !INPUT PARAMETERS:
+!
+#if defined( DEVEL )
+      TYPE(GC_MET_LOCAL), INTENT(IN) :: LOCAL_MET  ! Obj w/ met fields
+#endif
 ! 
 ! !REVISION HISTORY:
 !  (1 ) Created by Bryan Duncan (1/99).  Adapted for CH4 chemistry and
@@ -265,7 +278,11 @@
          Pavg(I,J,L) = Pavg(I,J,L) + GET_PCENTER(I,J,L)
 
          ! Archive temperature
+#if defined( DEVEL )
+         Tavg(I,J,L) = Tavg(I,J,L) + LOCAL_MET%T(I,J,L)
+#else
          Tavg(I,J,L) = Tavg(I,J,L) + T(I,J,L)
+#endif
       ENDDO
       ENDDO
       ENDDO
@@ -2310,27 +2327,35 @@
          ! Only consider tropospheric boxes
          IF ( L < LPAUSE(I,J) ) THEN 
 
+#if defined( DEVEL )
+            ! Use 24-hr avg temperature to calc. rate coeff.
+            ! citation needed
+            KRATE = 2.45d-12 * EXP( -1775d0 / LOCAL_MET%T(I,J,L) )  
+
+            ! Conversion from [kg/box] --> [molec/cm3]
+            ! [kg CH4/box] * [box/cm3] * XNUMOL_CH4 [molec CH4/kg CH4]
+            STT2GCH4 = 1d0 / LOCAL_MET%AIRVOL(I,J,L) / 1d6 * XNUMOL_CH4 
+
+            ! CH4 in [molec/cm3]
+            GCH4 = STT(I,J,L,1) * STT2GCH4
+	
+            ! Sum loss in TCH4(3) (molecules/box)
+            TCH4(I,J,L,3) = TCH4(I,J,L,3) + 
+     &                      ( GCH4  * BOXVL(I,J,L,LOCAL_MET) *
+     &                        KRATE * BOH(I,J,L,LMN)         * DT )
+#else
             ! Use 24-hr avg temperature to calc. rate coeff.
             ! citation needed
             KRATE = 2.45d-12 * EXP( -1775d0 / T(I,J,L) )  
 
             ! Conversion from [kg/box] --> [molec/cm3]
             ! [kg CH4/box] * [box/cm3] * XNUMOL_CH4 [molec CH4/kg CH4]
-#if defined( DEVEL )
-            STT2GCH4 = 1d0 / LOCAL_MET%AIRVOL(I,J,L) / 1d6 * XNUMOL_CH4 
-#else
             STT2GCH4 = 1d0 / AIRVOL(I,J,L) / 1d6 * XNUMOL_CH4 
-#endif
 
             ! CH4 in [molec/cm3]
             GCH4 = STT(I,J,L,1) * STT2GCH4
 	
             ! Sum loss in TCH4(3) (molecules/box)
-#if defined( DEVEL )
-            TCH4(I,J,L,3) = TCH4(I,J,L,3) + 
-     &                      ( GCH4  * BOXVL(I,J,L,LOCAL_MET) *
-     &                        KRATE * BOH(I,J,L,LMN)         * DT )
-#else
             TCH4(I,J,L,3) = TCH4(I,J,L,3)+ 
      &           ( GCH4 * BOXVL(I,J,L) * KRATE * BOH(I,J,L,LMN) * DT)
 #endif

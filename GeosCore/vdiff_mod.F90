@@ -1827,17 +1827,17 @@ contains
                              TRACER_NAME
     USE TRACER_MOD,   ONLY : ITS_A_TAGOX_SIM, ITS_A_TAGCO_SIM
     USE TRACER_MOD,   ONLY : ITS_A_CH4_SIM
-    USE DAO_MOD,      ONLY : um1   => UWND,  &
-                             vm1   => VWND,  &
-                             tadv  => T,     &
-                             USTAR,          &
+    USE DAO_MOD,      ONLY : USTAR,          &
                              BXHEIGHT,       &
                             !PS    => PSC2,  &
                              shp   => SPHU,  &
                              AD,             &
                              PBL
 #if !defined( DEVEL )
-    USE DAO_MOD,      ONLY : hflx  => HFLUX, &
+    USE DAO_MOD,      ONLY : um1   => UWND,  &
+                             vm1   => VWND,  &
+                             tadv  => T,     &
+                             hflx  => HFLUX, &
                              eflux => EFLUX
 #endif
     USE PRESSURE_MOD, ONLY : GET_PEDGE, GET_PCENTER
@@ -1926,7 +1926,12 @@ contains
     real*8, dimension(IIPAR,JJPAR,LLPAR) :: t1
     real*8, dimension(IIPAR,JJPAR,LLPAR,N_TRACERS) :: as ! save tracer MR 
                                                          ! before vdiffdr
-!    real*8, dimension(IIPAR,JJPAR,LLPAR) :: shp ! specific humidity 
+#if defined( DEVEL )
+!    real*8, dimension(IIPAR,JJPAR,LLPAR) :: shp ! specific humidity
+    real*8, dimension(IIPAR,JJPAR,LLPAR) :: um1
+    real*8, dimension(IIPAR,JJPAR,LLPAR) :: vm1
+    real*8, dimension(IIPAR,JJPAR,LLPAR) :: tadv
+#endif
     real*8 :: vtemp
     real*8 :: p0 = 1.d5
     real*8 :: dtime
@@ -1994,7 +1999,11 @@ contains
        pmid(I,J,L) = GET_PCENTER(I,J,L)*100.d0 ! hPa -> Pa
        pint(I,J,L) = GET_PEDGE(I,J,L)*100.d0   ! hPa -> Pa
        ! calculate potential temperature
+#if defined( DEVEL )
+       thp(I,J,L) = LOCAL_MET%T(I,J,L)*(p0/pmid(I,J,L))**cappa
+#else
        thp(I,J,L) = tadv(I,J,L)*(p0/pmid(I,J,L))**cappa
+#endif
     enddo
     pint(I,J,LLPAR+1) = GET_PEDGE(I,J,LLPAR+1)
     
@@ -2012,7 +2021,8 @@ contains
     !zm(I,J,L) = sum(BXHEIGHT(I,J,1:L))
 #if defined( DEVEL )
        zm(I,J,L) = sum( LOCAL_MET%BXHEIGHT(I,J,1:L)) &
-                 - log( pmid(I,J,L)/pint(I,J,L+1) )  * r_g * tadv(I,J,L)
+                 - log( pmid(I,J,L)/pint(I,J,L+1) )  &
+                 * r_g * LOCAL_MET%T(I,J,L)
 #else
        zm(I,J,L) = sum(BXHEIGHT(I,J,1:L)) &
                    - log(pmid(I,J,L)/pint(I,J,L+1)) * r_g * tadv(I,J,L)
@@ -2501,9 +2511,15 @@ contains
 
        ! Use simpler way to flip vectors in vertical (bmy, 12/17/10)
        ! mozart is top-down and geos-chem is bottom-up
+#if defined( DEVEL )
+       um1    = LOCAL_MET%U( :, :, LLPAR  :1:-1 )
+       vm1    = LOCAL_MET%V( :, :, LLPAR  :1:-1 )
+       tadv   = LOCAL_MET%T( :, :, LLPAR  :1:-1 )
+#else
        um1    = um1   ( :, :, LLPAR  :1:-1 )   
        vm1    = vm1   ( :, :, LLPAR  :1:-1 )
        tadv   = tadv  ( :, :, LLPAR  :1:-1 )
+#endif
        pmid   = pmid  ( :, :, LLPAR  :1:-1 )
        pint   = pint  ( :, :, LLPAR+1:1:-1 )
        rpdel  = rpdel ( :, :, LLPAR  :1:-1 )

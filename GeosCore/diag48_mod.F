@@ -220,11 +220,12 @@
 #if defined( DEVEL )
          IS_CLDTOPS  = ALLOCATED( LOCAL_MET%CLDTOPS )
          IS_SLP      = ALLOCATED( LOCAL_MET%SLP     )
+         IS_OPTD     = ALLOCATED( LOCAL_MET%OPTD    )
 #else
          IS_CLDTOPS  = ALLOCATED( CLDTOPS )
          IS_SLP      = ALLOCATED( SLP     )
-#endif
          IS_OPTD     = ALLOCATED( OPTD    )
+#endif
          IS_FULLCHEM = ITS_A_FULLCHEM_SIM()
          IS_SEASALT  = ( IDTSALA > 0 .and. IDTSALC > 0 )
          IS_Ox       = ( IS_FULLCHEM .and. IDTOX   > 0 )
@@ -491,7 +492,11 @@
             GMTRC    = 22
 
             DO L = 1, K
+#if defined( DEVEL )
+               Q(L) = LOCAL_MET%AIRDEN(L,I,J) * XNUMOLAIR * 1d-6
+#else
                Q(L) = AIRDEN(L,I,J) * XNUMOLAIR * 1d-6
+#endif
             ENDDO
 
          ELSE IF ( N == 81 ) THEN
@@ -504,7 +509,11 @@
             GMTRC    = 19
 
             DO L = 1, K
+#if defined( DEVEL )
+               Q(L) = LOCAL_MET%CLDF(L,I,J)
+#else
                Q(L) = CLDF(L,I,J)
+#endif
             ENDDO
 
          ELSE IF ( N == 82 .and. IS_OPTD ) THEN
@@ -516,7 +525,11 @@
             UNIT     = 'unitless'
             GMTRC    = 20
 
+#if defined( DEVEL )
+            Q(1) = SUM( LOCAL_MET%OPTD(:,I,J) )
+#else
             Q(1) = SUM( OPTD(:,I,J) )
+#endif
 
          ELSE IF ( N == 83 .and. IS_CLDTOPS ) THEN
 
@@ -767,7 +780,11 @@
             GMTRC    = 1
 
             DO L = 1, K
+#if defined( DEVEL )
+               Q(L) = LOCAL_MET%U(I,J,L)
+#else
                Q(L) = UWND(I,J,L)
+#endif
             ENDDO
             
          ELSE IF ( N == 98 ) THEN 
@@ -780,7 +797,11 @@
             GMTRC    = 2
 
             DO L = 1, K
+#if defined( DEVEL )
+               Q(L) = LOCAL_MET%V(I,J,L)
+#else
                Q(L) = VWND(I,J,L)
+#endif
             ENDDO
 
          ELSE IF ( N == 99 ) THEN
@@ -806,7 +827,11 @@
             GMTRC    = 3            
 
             DO L = 1, K
+#if defined( DEVEL )
+               Q(L) = LOCAL_MET%T(I,J,L)
+#else
                Q(L) = T(I,J,L)
+#endif
             ENDDO
 
          ELSE

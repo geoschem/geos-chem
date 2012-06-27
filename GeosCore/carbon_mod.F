@@ -1363,7 +1363,7 @@
             XUPTK    = 0d0
 
             ! Get T
-            XTEMP   = T( I, J, L )
+            XTEMP   = LOCAL_MET%T( I, J, L )
             XSQTEMP = SQRT( XTEMP )
 
             ! Get air density  [molec/cm3]
@@ -1594,7 +1594,7 @@
             XUPTK    = 0d0
 
             ! Get T
-            XTEMP   = T( I, J, L )
+            XTEMP   = LOCAL_MET%T( I, J, L )
             XSQTEMP = SQRT( XTEMP )
 
             ! Get air density  [molec/cm3]
@@ -1875,15 +1875,19 @@
          ! conversion factor from kg to ug/m3
          FAC    = 1.D9 / VOL       
 
-         ! air conc. in kg/m3
 #if defined( DEVEL )
+         ! air conc. in kg/m3
          CAIR   = LOCAL_MET%AD(I,J,L) / VOL
+
+         ! Temperature [K]
+         RTEMP  = LOCAL_MET%T(I,J,L)
 #else
+         ! air conc. in kg/m3
          CAIR   = AD(I,J,L) / VOL  
-#endif
 
          ! Temperature [K]
          RTEMP  = T(I,J,L)         
+#endif
 
          ! Get SOA yield parameters
          ! ALPHA is a module variable now. (ccc, 2/2/10)
@@ -6868,14 +6872,19 @@ c
          ! (skim, bmy, 1/14/11)
          !---------------------------------------------
 
+#if defined( DEVEL )
+         ! Get cloud fraction from met fields
+         FC      = LOCAL_MET%CLDF(L,I,J)
+
+         ! Get liquid water content within cloud [g/m3] directly from met
+         ! Units: [kg H2O/kg air] * [kg air/m3] * [1000 g/kg] = [g H2O/m3]
+         LWC     = LOCAL_MET%QL(I,J,L) * LOCAL_MET%AIRDEN(L,I,J) * 1d3
+#else
          ! Get cloud fraction from met fields
          FC      = CLDF(L,I,J)
 
          ! Get liquid water content within cloud [g/m3] directly from met
          ! Units: [kg H2O/kg air] * [kg air/m3] * [1000 g/kg] = [g H2O/m3]
-#if defined( DEVEL )
-         LWC     = LOCAL_MET%QL(I,J,L) * AIRDEN(L,I,J) * 1d3
-#else
          LWC     = QL(I,J,L) * AIRDEN(L,I,J) * 1d3
 #endif
 
@@ -7110,14 +7119,19 @@ c
          ! (skim, bmy, 1/14/11)
          !---------------------------------------------
 
+#if defined( DEVEL )
+         ! Get cloud fraction from met fields [unitless]
+         FC      = LOCAL_MET%CLDF(L,I,J)
+
+         ! Get liquid water content within cloud [g/m3] directly from met
+         ! Units: [kg H2O/kg air] * [kg air/m3] * [1000 g/kg] = [g H2O/m3]
+         LWC     = LOCAL_MET%QL(I,J,L) * LOCAL_MET%AIRDEN(L,I,J) * 1d3
+#else
          ! Get cloud fraction from met fields [unitless]
          FC      = CLDF(L,I,J)
 
          ! Get liquid water content within cloud [g/m3] directly from met
          ! Units: [kg H2O/kg air] * [kg air/m3] * [1000 g/kg] = [g H2O/m3]
-#if defined( DEVEL )
-         LWC     = LOCAL_MET%QL(I,J,L) * AIRDEN(L,I,J) * 1d3
-#else
          LWC     = QL(I,J,L) * AIRDEN(L,I,J) * 1d3
 #endif
 

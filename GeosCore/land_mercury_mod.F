@@ -844,7 +844,11 @@ else  ! This sets a default value for GCM & ESMF COUPLING
 !\\
 ! !INTERFACE:
 !
+#if defined( DEVEL )
+      SUBROUTINE SNOWPACK_MERCURY_FLUX( FLUX, LHGSNOW, LOCAL_MET )
+#else
       SUBROUTINE SNOWPACK_MERCURY_FLUX( FLUX, LHGSNOW )
+#endif
 !
 ! !USES:
 !
@@ -852,12 +856,18 @@ else  ! This sets a default value for GCM & ESMF COUPLING
       USE TIME_MOD,         ONLY : GET_TS_EMIS
       USE DAO_MOD,          ONLY : T, SUNCOS
       USE DEPO_MERCURY_MOD, ONLY : SNOW_HG
+#if defined( DEVEL )
+      USE GC_TYPE_MOD,      ONLY : GC_MET_LOCAL
+#endif
 
       USE CMN_SIZE_MOD         ! Size parameters
 !
 ! !INPUT PARAMETERS: 
 !
       LOGICAL, INTENT(IN)   :: LHGSNOW                      ! Use Hg from snow?
+#if defined( DEVEL )
+      TYPE(GC_MET_LOCAL), INTENT(IN) :: LOCAL_MET           ! Obj w/ met fields
+#endif
 !
 ! !OUTPUT PARAMETERS:
 !
@@ -922,7 +932,11 @@ else  ! This sets a default value for GCM & ESMF COUPLING
             ! Emit Hg(0) at a steady rate, based on 180 d residence
             ! time in snowpack, based on cycle observed at Alert 
             ! (e.g. Steffen et al. 2008)
+#if defined( DEVEL )
+            IF ( LOCAL_MET%T(I,J,1) > 270D0) THEN
+#else
             IF (T(I,J,1) > 270D0) THEN
+#endif
                ! NOW USE 3 weeks for broader summer peak
                !K_EMIT = 1.6D-6
                K_EMIT = 5D-7

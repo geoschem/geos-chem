@@ -161,7 +161,12 @@
                DO IX = 1, IIPAR
 
                   ! Conversion factor
+#if defined( DEVEL )
+                  CONST = GET_PCENTER(IX,IY,IZ) * 1000D0 / 
+     &                  ( LOCAL_MET%T(IX,IY,IZ) * BK )
+#else
                   CONST = GET_PCENTER(IX,IY,IZ)*1000D0/(T(IX,IY,IZ)*BK)
+#endif
                 
                   !------------------------------
                   ! Test for altitude
@@ -232,7 +237,12 @@
                DO IX = 1, IIPAR
 
                   ! Conversion factor
+#if defined( DEVEL )
+                  CONST = GET_PCENTER(IX,IY,IZ) * 1000D0 /
+     &                  ( LOCAL_MET%T(IX,IY,IZ) * BK )
+#else
                   CONST = GET_PCENTER(IX,IY,IZ)*1000D0/(T(IX,IY,IZ)*BK)
+#endif
                 
                   ! Copy default background conc. from "globchem.dat" to CSPEC
                   CSPEC_FULL(IX,IY,IZ,JGAS) = QBKCHEM(JGAS,NCS)* CONST
