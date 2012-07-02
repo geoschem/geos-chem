@@ -2439,7 +2439,8 @@
 !
       USE BPCH2_MOD,      ONLY : GET_RES_EXT, READ_BPCH2
       USE DIRECTORY_MOD,  ONLY : DATA_DIR_1x1
-      USE REGRID_1x1_MOD, ONLY : DO_REGRID_05x0666
+      !USE REGRID_1x1_MOD, ONLY : DO_REGRID_05x0666
+      USE REGRID_A2A_MOD, ONLY : DO_REGRID_A2A
       USE TIME_MOD,       ONLY : GET_TS_EMIS
       USE GRID_MOD,       ONLY : GET_AREA_M2
       USE DIRECTORY_MOD,  ONLY : DATA_DIR
@@ -2461,9 +2462,12 @@
 !
       INTEGER                 :: I, J, IJLOOP
       REAL*4                  :: ARRAY(I05x0666,J05x0666,1)
-      REAL*8                  :: GEOS_05x0666(I05x0666,J05x0666,1)  !(dan)
+      REAL*8, TARGET          :: GEOS_05x0666(I05x0666,J05x0666)  !(dan)
       REAL*8                  :: DTSRCE, AREA_M2, FACTOR
       CHARACTER(LEN=255)      :: FILENAME
+      CHARACTER(LEN=255)      :: LLFILENAME
+      REAL*8, POINTER         :: INGRID(:,:) => NULL()
+      REAL*8                  :: OUTGRID(IIPAR,JJPAR)
 
       !=================================================================
       ! GET_AEF begins here!
@@ -2480,6 +2484,10 @@
       FILENAME = TRIM( DATA_DIR ) //
      &           'MEGAN_200510/MEGAN_AEF_ISOP.geos.05x0666'
 
+      ! File with lat/lon edges for regridding
+      LLFILENAME = TRIM( DATA_DIR_1x1) //
+     &             'MAP_A2A_Regrid_200312/latlon_nested.txt'
+
       ! Echo info
       WRITE( 6, 100 ) TRIM( FILENAME )
 100   FORMAT( '     - GET_AEF: Reading ', a )
@@ -2490,10 +2498,13 @@
      &                 1,         ARRAY,     QUIET=.TRUE. )
 
          ! Cast to REAL*8 before regridding
-         GEOS_05x0666(:,:,1) = ARRAY(:,:,1)
+         GEOS_05x0666(:,:) = ARRAY(:,:,1)
 
       ! Regrid from 1x1 to the current grid (also cast to REAL*8)
-      CALL DO_REGRID_05x0666( 1, 'ug C/m2/hr', GEOS_05x0666, AEF_ISOP )
+      INGRID => GEOS_05x0666
+      CALL DO_REGRID_A2A( LLFILENAME, I05x0666, J05x0666-1,
+     &                    INGRID,     OUTGRID, PERAREA=1 )
+      AEF_ISOP = OUTGRID
 
       ! Loop over surface boxes
       DO J = 1, JJPAR
@@ -2528,10 +2539,14 @@
      &                 1,         ARRAY,     QUIET=.TRUE. )
 
          ! Cast to REAL*8 before regridding
-         GEOS_05x0666(:,:,1) = ARRAY(:,:,1)
+         GEOS_05x0666(:,:) = ARRAY(:,:,1)
 
       ! Regrid from 1x1 to the current grid (also cast to REAL*8)
-      CALL DO_REGRID_05x0666( 1,'ug C/m2/hr', GEOS_05x0666, AEF_MONOT )
+
+      INGRID => GEOS_05x0666
+      CALL DO_REGRID_A2A( LLFILENAME, I05x0666, J05x0666-1,
+     &                    INGRID,     OUTGRID, PERAREA=1 )
+      AEF_MONOT = OUTGRID
 
       ! Loop over surface boxes
       DO J = 1, JJPAR
@@ -2566,11 +2581,15 @@
      &                 1,         ARRAY,     QUIET=.TRUE. )
 
       ! Cast to REAL*8 before regridding
-      GEOS_05x0666(:,:,1) = ARRAY(:,:,1)
+      GEOS_05x0666(:,:) = ARRAY(:,:,1)
 
 
       ! Regrid from 1x1 to the current grid (also cast to REAL*8)
-      CALL DO_REGRID_05x0666( 1,'ug C/m2/hr',GEOS_05x0666, AEF_MBO )
+      INGRID => GEOS_05x0666
+      CALL DO_REGRID_A2A( LLFILENAME, I05x0666, J05x0666-1,
+     &                    INGRID,     OUTGRID, PERAREA=1 )
+      AEF_MBO = OUTGRID
+
 
       ! Loop over surface boxes
       DO J = 1, JJPAR
@@ -2605,10 +2624,13 @@
      &                 1,         ARRAY,     QUIET=.TRUE. )
 
       ! Cast to REAL*8 before regridding
-      GEOS_05x0666(:,:,1) = ARRAY(:,:,1)
+      GEOS_05x0666(:,:) = ARRAY(:,:,1)
 
       ! Regrid from 1x1 to the current grid (also cast to REAL*8)
-      CALL DO_REGRID_05x0666( 1,'ug C/m2/hr', GEOS_05x0666, AEF_OVOC )
+      INGRID => GEOS_05x0666
+      CALL DO_REGRID_A2A( LLFILENAME, I05x0666, J05x0666-1,
+     &                    INGRID,     OUTGRID, PERAREA=1 )
+      AEF_OVOC = OUTGRID
 
       ! Loop over surface boxes
       DO J = 1, JJPAR
@@ -2625,6 +2647,9 @@
 
       ENDDO
       ENDDO
+
+      !Free pointer
+      NULLIFY( INGRID )
 
       END SUBROUTINE GET_AEF_05x0666
 !EOC

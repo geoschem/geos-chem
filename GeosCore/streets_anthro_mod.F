@@ -1214,7 +1214,8 @@
 !
       ! References to F90 modules
       USE BPCH2_MOD,      ONLY : GET_TAU0,         READ_BPCH2
-      USE REGRID_1x1_MOD, ONLY : DO_REGRID_05X0666
+      USE REGRID_A2A_MOD, ONLY : DO_REGRID_A2A
+      USE DIRECTORY_MOD,  ONLY : DATA_DIR_1x1
 
       USE CMN_SIZE_MOD        ! Size parameters
   
@@ -1223,10 +1224,13 @@
       INTEGER,          INTENT(IN)    :: TRACERN
       REAL*8,           INTENT(INOUT) :: ARR(IIPAR,JJPAR)
       REAL*8,           INTENT(IN)    :: TAU
+      REAL*8, POINTER         :: INGRID(:,:) => NULL()
+      REAL*8                  :: OUTGRID(IIPAR,JJPAR)
+      CHARACTER(LEN=255)      :: LLFILENAME
 
       ! Local variables
       REAL*4            :: ARRAY(I05x0666,J05x0666,1)
-      REAL*8            :: GEOS_05x0666(I05x0666,J05x0666,1)
+      REAL*8, TARGET    :: GEOS_05x0666(I05x0666,J05x0666)
 
 
       ! Echo info
@@ -1239,10 +1243,19 @@
      &                 1,         ARRAY,     QUIET=.TRUE. ) 
 
       ! Cast to REAL*8 before regridding
-      GEOS_05x0666(:,:,1) = ARRAY(:,:,1)
+      GEOS_05x0666(:,:) = ARRAY(:,:,1)
 
       ! Cut to China nested simulation window
-      CALL DO_REGRID_05x0666( 1,'kg/yr', GEOS_05x0666, ARR )
+      LLFILENAME = TRIM( DATA_DIR_1x1) //
+     &             'MAP_A2A_Regrid_200312/latlon_nested.txt'
+
+      INGRID => GEOS_05x0666
+      CALL DO_REGRID_A2A( LLFILENAME, I05x0666, J05x0666-1,
+     &                    INGRID,     OUTGRID, PERAREA=1 )
+
+      ARR = OUTGRID
+      ! Free pointer
+      NULLIFY( INGRID )
 
 
       END SUBROUTINE READ_STREETS_05x0666
