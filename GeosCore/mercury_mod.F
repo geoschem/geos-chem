@@ -2666,6 +2666,8 @@
 !  13 Mar 2012 - M. Cooper   - Changed regrid algorithm to map_a2a
 !  24 May 2012 - R. Yantosca - Fixed minor bugs in map_a2a algorithm
 !  24 May 2012 - H. Amos     - updated file paths for soil Hg files
+!  28 Jun 2012 - S. Kim      - Bug fix: you need to provide a location
+!                              in the call to ERROR_STOP
 !******************************************************************************
 !
       ! References to F90 modules
@@ -3156,7 +3158,8 @@
         FILENAME= TRIM( DATA_DIR )            //
      &            'mercury_201110/soilHg.merra.preind.bpch'
 #else
-      CALL ERROR_STOP('You need to make a Hg soil file. ')
+      CALL ERROR_STOP('You need to make a Hg soil file. ',
+     &                "PREINDUSTRIAL MERCURY")
 #endif
 
       ELSE
@@ -3173,7 +3176,8 @@
         FILENAME= TRIM( DATA_DIR )            //
      &            'mercury_201110/soilHg.merra.presentday.bpch'
 #else
-      CALL ERROR_STOP('You need to make a Hg soil file. ')
+      CALL ERROR_STOP('You need to make a Hg soil file. ',
+     &                "PRESENT DAY MERCURY")
 #endif
 
       ENDIF
