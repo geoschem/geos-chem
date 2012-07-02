@@ -787,6 +787,15 @@ CONTAINS
                AREA_M2, TCVV(IQ), ND24, ND25, DT )
  !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
+    ! Save mass flux diagnostics (clb, 7/2/12)
+    IF ( ND24 > 0 ) THEN
+       MASSFLEW(:,:,K,IQ) = MFLEW
+    ENDIF
+
+    IF ( ND25 > 0 ) THEN
+       MASSFLNS(:,:,K,IQ) = MFLNS
+    ENDIF
+
     do j=jfirst,jlast
        do i=1,im
           q(i,j,k,iq) = q2(i,j)
