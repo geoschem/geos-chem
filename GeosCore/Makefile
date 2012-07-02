@@ -153,6 +153,9 @@ OBJ := $(TMP:.F90=.o)
 
 all:                                               # Build libraries
 	@$(MAKE) lib                               #  and the executable
+ifeq ($(UNAME),Darwin)
+	ranlib -c ../lib/*
+endif
 	@$(MAKE) exe
 
 lib:                                               # Build all G-C libraries
