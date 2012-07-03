@@ -1,6 +1,6 @@
 ! $Id: gasconc.f,v 1.2 2010/03/15 19:33:23 ccarouge Exp $
 #if defined( DEVEL )
-      SUBROUTINE GASCONC( FIRSTCHEM,  NTRACER,  STT, XNUMOL, FRCLND,
+      SUBROUTINE GASCONC( FIRSTCHEM,  NTRACER,  STT, XNUMOL,
      &                    READ_CSPEC, LOCAL_MET )
 #else
       SUBROUTINE GASCONC( FIRSTCHEM, NTRACER, STT, XNUMOL, FRCLND,
@@ -67,7 +67,9 @@
       INTEGER, INTENT(IN)     :: NTRACER
       REAL*8,  INTENT(INOUT)  :: STT(IIPAR,JJPAR,LLPAR,NTRACER)
       REAL*8,  INTENT(IN)     :: XNUMOL(NTRACER)
+#if !defined( DEVEL )
       REAL*8,  INTENT(IN)     :: FRCLND(IIPAR,JJPAR)
+#endif
       ! cspecrestart hotp 2/25/09
       LOGICAL, INTENT(IN)     :: READ_CSPEC
 #if defined( DEVEL )
@@ -177,7 +179,11 @@
                      !---------------------------
                      ! Test for ocean/land boxes
                      !---------------------------
+#if defined( DEVEL )
+                     IF ( LOCAL_MET%FRCLND(IX,IY) >= 0.5 ) THEN
+#else
                      IF ( FRCLND(IX,IY) >= 0.5 ) THEN
+#endif
 
                          ! Continental boundary layer: 2 ppbv MOH
                         CSPEC_FULL(IX,IY,IZ,JGAS) = 2.000d-9 * CONST

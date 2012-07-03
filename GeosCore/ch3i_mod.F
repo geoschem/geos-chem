@@ -523,7 +523,11 @@
          DO I = 1, IIPAR
 
             ! set all values over land to zero
+#if defined( DEVEL )
+            IF ( LOCAL_MET%FRCLND(I,J) >= 0.8 ) OCDATA(I,J) = 0.0D0
+#else
             IF ( FRCLND(I,J) >= 0.8 ) OCDATA(I,J) = 0.0D0
+#endif
          
             ! make sure we have no negative concentrations
             IF ( OCDATA(I,J) < 0. ) OCDATA(I,J) = 0.0D0
@@ -630,7 +634,8 @@
 
 #if defined( DEVEL )
 
-         IF ( LOCAL_MET%TS(I,J) >= 271.15 .and. FRCLND(I,J) < 0.8 ) THEN
+         IF ( LOCAL_MET%TS(I,J)     >= 271.15 .and.
+     &        LOCAL_MET%FRCLND(I,J) <  0.8    ) THEN
 
             ! surface air temp [K]
             TK = LOCAL_MET%TS(I,J)        
@@ -1018,7 +1023,9 @@
       USE DAO_MOD,      ONLY : OPTD, SUNCOS
       USE DIAG_MOD,     ONLY : AD22, LTJV
       USE DIAG_PL_MOD,  ONLY : AD65
+#if !defined( DEVEL )
       USE UVALBEDO_MOD, ONLY : UVALBEDO
+#endif
       USE TIME_MOD,     ONLY : GET_TS_CHEM
       USE TRACER_MOD,   ONLY : STT, N_TRACERS
 #if defined( DEVEL )
@@ -1100,7 +1107,7 @@
          ! needed for FAST-J.
          !==============================================================
 #if defined( DEVEL )
-         CALL FAST_J( SUNCOS, LOCAL_MET%OPTD, UVALBEDO, LOCAL_MET )
+         CALL FAST_J( SUNCOS, LOCAL_MET )
 #else
          CALL FAST_J( SUNCOS, OPTD, UVALBEDO )
 #endif

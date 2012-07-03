@@ -51,7 +51,11 @@
 
 !------------------------------------------------------------------------------
 
+#if defined( DEVEL )
+      SUBROUTINE READ_UVALBEDO( MONTH, LOCAL_MET )
+#else
       SUBROUTINE READ_UVALBEDO( MONTH )
+#endif
 !
 !******************************************************************************
 !  Subroutine READ_UVALBEDO reads in UV albedo data from a binary punch
@@ -100,11 +104,17 @@
       USE DIRECTORY_MOD, ONLY : DATA_DIR
       USE ERROR_MOD,     ONLY : ALLOC_ERR
       USE TRANSFER_MOD,  ONLY : TRANSFER_2D
+#if defined( DEVEL )
+      USE GC_TYPE_MOD,   ONLY : GC_MET_LOCAL
+#endif
 
       USE CMN_SIZE_MOD   ! Size parameters
 
       ! Arguments
       INTEGER, INTENT(IN)  :: MONTH
+#if defined( DEVEL )
+      TYPE(GC_MET_LOCAL), INTENT(INOUT) :: LOCAL_MET  ! Obj w/ met fields
+#endif
       
       ! Local Variables
       LOGICAL              :: FIRST = .TRUE.
@@ -155,6 +165,11 @@
       ! Transfer data from REAL*4 to REAL*8 and to size (IIPAR,JJPAR)
       CALL TRANSFER_2D( ARRAY(:,:,1), UVALBEDO )
       
+#if defined( DEVEL )
+      ! Copy field to derived type object
+      LOCAL_MET%UVALBEDO = UVALBEDO
+#endif
+
       ! Return to calling program
       END SUBROUTINE READ_UVALBEDO
 

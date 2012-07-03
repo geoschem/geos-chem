@@ -318,8 +318,13 @@
 !\\
 ! !INTERFACE:
 !
+#if defined( DEVEL )
+      SUBROUTINE OCEAN_SOURCE_ACET( I,  J,  ALBD, TS, U10M, V10M,
+     &                              LOCAL_MET, ACETONE )
+#else
       SUBROUTINE OCEAN_SOURCE_ACET( I,  J,  ALBD, TS, U10M, V10M,
      &                              ACETONE )
+#endif
 !
 ! !USES:
 !
@@ -327,10 +332,15 @@
       USE DIAG_MOD,  ONLY : AD11
       USE GRID_MOD,  ONLY : GET_AREA_CM2
       USE TIME_MOD,  ONLY : GET_TS_EMIS
+#if defined( DEVEL )
+      USE GC_TYPE_MOD, ONLY : GC_MET_LOCAL
+#endif
 
       USE CMN_SIZE_MOD                  ! Size parameters
       USE CMN_DIAG_MOD                  ! ND11
+#if !defined( DEVEL )
       USE CMN_DEP_MOD                   ! FRCLND
+#endif
 !
 ! !INPUT PARAMETERS: 
 !
@@ -340,6 +350,9 @@
       REAL*8,  INTENT(IN)    :: TS(IIPAR,JJPAR)   ! Sfc temperature at 2m [K]
       REAL*8,  INTENT(IN)    :: U10M(IIPAR,JJPAR) ! E/W wind speed @ 10m [m/s]
       REAL*8,  INTENT(IN)    :: V10M(IIPAR,JJPAR) ! N/S wind speed @ 10m [m/s]
+#if defined( DEVEL )
+      TYPE(GC_MET_LOCAL), INTENT(IN) :: LOCAL_MET ! Obj w/ met fields
+#endif
 !
 ! !INPUT/OUTPUT PARAMETERS:
 !
@@ -429,7 +442,11 @@
       DTSRCE   = GET_TS_EMIS() * 60d0 
 
       ! Fraction of (I,J) that is ocean
+#if defined( DEVEL )
+      FOCEAN   = 1d0 - LOCAL_MET%FRCLND(I,J)    
+#else
       FOCEAN   = 1d0 - FRCLND(I,J)    
+#endif
 
       ! Area of grid box (I,J) in cm^2
       AREA_CM2 = GET_AREA_CM2( I, J, 1 )    
@@ -576,7 +593,9 @@
 
       USE CMN_SIZE_MOD                              ! Size parameters 
       USE CMN_DIAG_MOD                              ! ND11
+#if !defined( DEVEL )
       USE CMN_DEP_MOD                               ! FRCLND 
+#endif
 !
 ! !INPUT PARAMETERS:
 !
@@ -667,7 +686,11 @@
             AREA_CM2 = GET_AREA_CM2( I, J, 1 )
 
             ! Fraction of grid box that is ocean
+#if defined( DEVEL )
+            FOCEAN = 1d0 - LOCAL_MET%FRCLND(I,J)
+#else
             FOCEAN = 1d0 - FRCLND(I,J)
+#endif
 
             !===========================================================
             ! Only compute ocean sink if there is more than 50% ocean

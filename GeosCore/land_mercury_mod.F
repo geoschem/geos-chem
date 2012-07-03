@@ -388,7 +388,6 @@
 #endif
 
       USE CMN_SIZE_MOD     ! Size parameters
-      USE CMN_DEP_MOD      ! FRCLND
 !
 ! !INPUT PARAMETERS:
 !
@@ -549,7 +548,6 @@
 #endif
 
       USE CMN_SIZE_MOD     ! Size parameters
-      USE CMN_DEP_MOD      ! FRCLND
 !
 ! !INPUT PARAMETERS:
 !

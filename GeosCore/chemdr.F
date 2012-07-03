@@ -39,7 +39,9 @@
       USE TRACER_MOD,           ONLY : STT,          N_TRACERS, XNUMOL
       USE TRACERID_MOD,         ONLY : IDTNOX,       IDTOX,     SETTRACE
       USE TROPOPAUSE_MOD,       ONLY : SAVE_FULL_TROP
+#if !defined( DEVEL )
       USE UVALBEDO_MOD,         ONLY : UVALBEDO
+#endif
       USE RESTART_MOD,          ONLY : READ_CSPEC_FILE 
       USE TIME_MOD,             ONLY : GET_NYMD,     GET_NHMS
       USE LOGICAL_MOD,          ONLY : LSVCSPEC,     LLINOZ
@@ -52,7 +54,9 @@
       USE CMN_O3_MOD                 ! EMISRRN, EMISRR
       USE CMN_DIAG_MOD               ! ND40
       USE CMN_NOX_MOD                ! SLBASE
+#if !defined( DEVEL )
       USE CMN_DEP_MOD                ! FRCLND
+#endif
 
       IMPLICIT NONE
 #     include "define.h"
@@ -441,8 +445,7 @@
  
             CALL GASCONC( FIRSTCHEM,              N_TRACERS, 
      &                    STT(:,:,:,1:N_TRACERS), XNUMOL(1:N_TRACERS),    
-     &                    FRCLND,                 IT_EXISTS,
-     &                    LOCAL_MET )
+     &                    IT_EXISTS,              LOCAL_MET )
          ELSE 
 
             ! Use restart values 
@@ -452,8 +455,7 @@
             ! Call GASCONC but don't reset CSPEC values
             CALL GASCONC( .FALSE.,                 N_TRACERS, 
      &                     STT(:,:,:,1:N_TRACERS), XNUMOL(1:N_TRACERS),    
-     &                     FRCLND,                 IT_EXISTS,
-     &                     LOCAL_MET )
+     &                     IT_EXISTS,              LOCAL_MET )
 
          ENDIF 
 
@@ -461,8 +463,7 @@
 
          CALL GASCONC(  FIRSTCHEM,              N_TRACERS, 
      &                  STT(:,:,:,1:N_TRACERS), XNUMOL(1:N_TRACERS),  
-     &                  FRCLND,                 IT_EXISTS,
-     &                  LOCAL_MET )
+     &                  IT_EXISTS,              LOCAL_MET )
 
       ENDIF 
 #else
@@ -569,7 +570,7 @@
       ! Call photolysis routine to compute J-Values
       !=================================================================
 #if defined( DEVEL )
-      CALL FAST_J( SUNCOS_MID, LOCAL_MET%OPTD, UVALBEDO, LOCAL_MET )              
+      CALL FAST_J( SUNCOS_MID, LOCAL_MET )              
 #else
       CALL FAST_J( SUNCOS_MID, OPTD, UVALBEDO )              
 #endif

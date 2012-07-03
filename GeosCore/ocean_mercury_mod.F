@@ -904,8 +904,9 @@
          A_ocean = A_ocean + A_M2 * 
      &             ( LOCAL_MET%FROCEAN(I,J) - LOCAL_MET%FRSEAICE(I,J) )
 #else
-         NPP_tot = NPP_tot+ NPP(I,J) * A_M2 * ( 1d0 - FRCLND(I,J))
-         A_ocean = A_ocean + A_M2 * ( 1 - FRCLND(I,J) ) 
+         NPP_tot = NPP_tot+ NPP(I,J) * A_M2 *
+     &             ( 1d0 - LOCAL_MET%FRCLND(I,J))
+         A_ocean = A_ocean + A_M2 * ( 1 - LOCAL_MET%FRCLND(I,J) ) 
 #endif
 
 #else
@@ -2026,7 +2027,7 @@
       FRAC_O     = MAX( LOCAL_MET%FROCEAN(I,J) - 
      &                  LOCAL_MET%FRSEAICE(I,J), 0d0)
 #else
-      FRAC_O = 1d0 - FRCLND(I,J)
+      FRAC_O = 1d0 - LOCAL_MET%FRCLND(I,J)
 #endif
 
 #else

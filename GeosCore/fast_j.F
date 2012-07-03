@@ -25,7 +25,7 @@
 ! !INTERFACE:
 !
 #if defined( DEVEL )
-      SUBROUTINE FAST_J( SUNCOS, OD, ALBD, LOCAL_MET )  
+      SUBROUTINE FAST_J( SUNCOS, LOCAL_MET )  
 #else
       SUBROUTINE FAST_J( SUNCOS, OD, ALBD )  
 #endif
@@ -61,14 +61,15 @@
       ! Cosine of solar zenith angle [unitless]
       REAL*8, INTENT(IN)    :: SUNCOS(MAXIJ)   
 
+#if !defined( DEVEL )
       ! Cloud optical depth [unitless]
       REAL*8, INTENT(IN)    :: OD(LLPAR,IIPAR,JJPAR) 
 
       ! UV albedo [unitless]
       REAL*8, INTENT(IN)    :: ALBD(IIPAR,JJPAR)    
 
+#else
       ! Obj w/ met fields
-#if defined( DEVEL )
       TYPE(GC_MET_LOCAL), INTENT(IN) :: LOCAL_MET
 #endif
 !
@@ -233,15 +234,19 @@
             ! Top edge of PJ is top of atmosphere (bmy, 2/13/07)
             PJ(NB+1)     = 0d0
 
-            ! Temperature profile [K] at (NLON,NLAT)
 #if defined( DEVEL )
+            ! Temperature profile [K] at (NLON,NLAT)
             TEMP         = LOCAL_MET%T(NLON,NLAT,1:LLPAR)
+
+            ! Surface albedo [unitless] at (NLON,NLAT)
+            SFCA         = LOCAL_MET%UVALBEDO(NLON,NLAT)
 #else
+            ! Temperature profile [K] at (NLON,NLAT)
             TEMP         = T(NLON,NLAT,1:LLPAR)
-#endif
 
             ! Surface albedo [unitless] at (NLON,NLAT)
             SFCA         = ALBD(NLON,NLAT)
+#endif
 
             ! Overhead ozone column [DU] at (NLON, NLAT)
             O3COL        = GET_OVERHEAD_O3( NLON, NLAT )
@@ -252,8 +257,13 @@
             ! Mineral dust OD profile [unitless] at (NLON,NLAT)
             OPTDUST(:,:) = ODMDUST(NLON,NLAT,:,:)
 
+#if defined( DEVEL )
+            ! Cloud OD profile [unitless] at (NLON,NLAT)
+            OPTD         = LOCAL_MET%OPTD(1:LLPAR,NLON,NLAT)
+#else
             ! Cloud OD profile [unitless] at (NLON,NLAT)
             OPTD         = OD(1:LLPAR,NLON,NLAT)
+#endif
 
             !-----------------------------------------------------------
             !### If you want to exclude aerosol OD, mineral dust OD,

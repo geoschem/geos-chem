@@ -754,7 +754,6 @@
 
       USE CMN_SIZE_MOD     ! Size parameters
       USE CMN_DIAG_MOD     ! ND65
-      USE CMN_DEP_MOD      ! FRCLND
 !
 ! !INPUT PARAMETERS: 
 !

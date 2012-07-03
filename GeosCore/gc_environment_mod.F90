@@ -190,7 +190,6 @@
                LOCAL_MET%SNOMAS  (IIPAR, JJPAR), & ! Snow mass [kg/m2]
                LOCAL_MET%SNOW    (IIPAR, JJPAR), & ! Snow depth (H2O equivalent) [mm H2O]
                LOCAL_MET%SST     (IIPAR, JJPAR), & ! Sea surface temperature [K]
-               LOCAL_MET%SUNCOS  (IIPAR, JJPAR), & ! Cosine of solar zenith angle
                LOCAL_MET%TO3     (IIPAR, JJPAR), & ! Total overhead O3 column [DU]
                LOCAL_MET%TO31    (IIPAR, JJPAR), & ! Total overhead O3 at start of timestep [DU]
                LOCAL_MET%TO32    (IIPAR, JJPAR), & ! Total overhead O3 at end of timestep [DU]

@@ -133,15 +133,10 @@
       USE TRACERID_MOD,           ONLY : IDTSO2, IDTC2H6
 #endif
 !
-! !INPUT PARAMETERS:
-!
-#if defined( DEVEL )
-      TYPE(GC_MET_LOCAL), INTENT(IN)    :: LOCAL_MET  ! Obj w/ met fields
-#endif
-!
 ! !INPUT/OUTPUT PARAMETERS:
 !
 #if defined( DEVEL )
+      TYPE(GC_MET_LOCAL), INTENT(INOUT) :: LOCAL_MET  ! Obj w/ met fields
       TYPE(CHEMSTATE),    INTENT(INOUT) :: CHEM_STATE
 #endif
 !

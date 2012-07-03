@@ -122,15 +122,14 @@
       USE COMODE_LOOP_MOD       ! SMVGEAR II arrays
       USE CMN_DIAG_MOD          ! ND22, LD22, ND52, LD52
       USE CMN_MOD               ! STT, etc
+#if !defined( DEVEL )
       USE CMN_DEP_MOD           ! FRCLND
+#endif
       USE CMN_O3_MOD            ! for jvalues (gvinken, 6/09/10)
 
       IMPLICIT NONE
 #     include "define.h"
 
-      ! added LD52 and ND52 (jaegle 2/26/09)
-      ! added FRCLND (jaegle 02/26/09)
-      
       ! Arguments
 #if defined( DEVEL )
       TYPE(GC_MET_LOCAL), INTENT(IN) :: LOCAL_MET  ! Obj w/ met fields
@@ -868,7 +867,7 @@ c new OH+CO rate from JPL2006.
                      ! flag to 1 (also assume that there is no ice/snow)
 #if defined( DEVEL )
                      IF (  IZ <= GET_PBL_TOP_L( IX , IY ) .and.
-     &                     FRCLND(IX,IY) >= 0.5 .and.
+     &                     LOCAL_MET%FRCLND(IX,IY) >= 0.5 .and.
      &                     (.not. IS_ICE( IX,IY,LOCAL_MET) ) ) THEN 
 #else
                      IF (  IZ <= GET_PBL_TOP_L( IX , IY ) .and.

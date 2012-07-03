@@ -1418,7 +1418,6 @@
       USE TRACER_MOD,     ONLY : STT,       TCVV,        XNUMOL
       USE TRACERID_MOD,   ONLY : IDTH2O2
       USE TRANSFER_MOD,   ONLY : TRANSFER_3D_TROP
-      USE UVALBEDO_MOD,   ONLY : UVALBEDO
       USE TROPOPAUSE_MOD, ONLY : ITS_IN_THE_STRAT
 #if defined( DEVEL )
       USE GC_TYPE_MOD,    ONLY : GC_MET_LOCAL
@@ -4568,7 +4567,7 @@
 ! !INPUT PARAMETERS:
 !
 #if defined( DEVEL )
-      TYPE(GC_MET_LOCAL), INTENT(IN) :: LOCAL_MET  ! Obj w/ met fields
+      TYPE(GC_MET_LOCAL), INTENT(INOUT) :: LOCAL_MET  ! Obj w/ met fields
 #endif
 
 ! 
@@ -4668,7 +4667,11 @@
       IF ( ITS_A_NEW_MONTH() ) THEN 
 
          ! Read monthly mean data
+#if defined( DEVEL )
+         CALL READ_SST( MONTH, YEAR, LOCAL_MET )
+#else
          CALL READ_SST( MONTH, YEAR )
+#endif
          CALL READ_OCEAN_DMS( MONTH )
          CALL READ_NATURAL_NH3( MONTH )
 
@@ -4922,13 +4925,17 @@
       DO J = 1, JJPAR
       DO I = 1, IIPAR
 
+#if defined( DEVEL )
+         ! Sea surface temperature in Celsius
+         SST = LOCAL_MET%SST(I,J) - 273.15d0
+
+         ! Only do the following for water boxes
+         IF ( IS_WATER( I, J, LOCAL_MET ) ) THEN
+#else
          ! Sea surface temperature in Celsius
          SST = SSTEMP(I,J) - 273.15d0
 
          ! Only do the following for water boxes
-#if defined( DEVEL )
-         IF ( IS_WATER( I, J, LOCAL_MET ) ) THEN
-#else
          IF ( IS_WATER(I,J) ) THEN
 #endif
 
@@ -7457,7 +7464,11 @@
 !\\
 ! !INTERFACE:
 !
+#if defined( DEVEL )
+      SUBROUTINE READ_SST( THISMONTH, THISYEAR, LOCAL_MET )
+#else
       SUBROUTINE READ_SST( THISMONTH, THISYEAR )
+#endif
 !
 ! !USES:
 !
@@ -7466,6 +7477,9 @@
       USE DIRECTORY_MOD,  ONLY : DATA_DIR,        DATA_DIR_1x1
       USE REGRID_A2A_MOD, ONLY : DO_REGRID_A2A
       USE TRANSFER_MOD,   ONLY : TRANSFER_2D
+#if defined( DEVEL )
+      USE GC_TYPE_MOD,    ONLY : GC_MET_LOCAL
+#endif
 
       USE CMN_SIZE_MOD         ! Size parameters
 !
@@ -7473,7 +7487,12 @@
 !
       INTEGER, INTENT(IN)     :: THISMONTH ! Current month number (1-12)
       INTEGER, INTENT(IN)     :: THISYEAR  ! Current 4-digit year
-
+!
+! !INPUT/OUTPUT PARAMETERS:
+!
+#if defined( DEVEL )
+      TYPE(GC_MET_LOCAL), INTENT(INOUT) :: LOCAL_MET  ! Obj w/ met fields
+#endif
 !
 ! !REVISION HISTORY:
 !  (1 ) Extracted from old module routine SULFATE_READMON (bmy, 9/18/02)
@@ -7576,6 +7595,11 @@
          CALL TRANSFER_2D( ARRAY(:,:,1), SSTEMP )
 
       ENDIF
+
+#if defined( DEVEL )
+      ! Copy field to derived type object
+      LOCAL_MET%SST = SSTEMP
+#endif
 
       END SUBROUTINE READ_SST
 !EOC

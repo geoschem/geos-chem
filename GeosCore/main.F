@@ -327,6 +327,30 @@
          IF ( LPRT ) CALL DEBUG_MSG( '### MAIN: a LIGHTNING' )
       ENDIF
 
+      ! Initialize the derived type object containing
+      ! mapping information for the MODIS LAI routines
+      IF ( USE_OLSON_2001 ) THEN
+         CALL Init_Mapping( 1440, 720, IIPAR, JJPAR, mapping )
+      ELSE
+         CALL Init_Mapping(  720, 360, IIPAR, JJPAR, mapping )
+      ENDIF
+
+      ! Compute the Olson land types that occur in each grid box
+      ! (i.e. this is a replacement for rdland.F and vegtype.global)
+      CALL Init_Olson_Landmap()
+      CALL Compute_Olson_Landmap( mapping, LOCAL_MET )
+      CALL Cleanup_Olson_Landmap()
+
+      ! Initialize PBL quantities but do not do mixing
+      ! Add option for non-local PBL (Lin, 03/31/09) 
+      IF ( .NOT. LNLPBL ) THEN
+         CALL DO_PBL_MIX  ( .FALSE., LOCAL_MET )
+         IF ( LPRT ) CALL DEBUG_MSG( '### MAIN: a TURBDAY:1' )
+      ELSE
+         CALL DO_PBL_MIX_2( .FALSE., LOCAL_MET )
+         IF ( LPRT ) CALL DEBUG_MSG( '### MAIN: a NLPBL 1' )
+      ENDIF
+
 #else
 
       ! Compute avg surface pressure near polar caps
@@ -346,8 +370,6 @@
          IF ( LPRT ) CALL DEBUG_MSG( '### MAIN: a LIGHTNING' )
       ENDIF
 
-#endif  ! DEVEL
-
       ! Initialize the derived type object containing
       ! mapping information for the MODIS LAI routines
       IF ( USE_OLSON_2001 ) THEN
@@ -364,15 +386,6 @@
 
       ! Initialize PBL quantities but do not do mixing
       ! Add option for non-local PBL (Lin, 03/31/09) 
-#if defined( DEVEL )
-      IF ( .NOT. LNLPBL ) THEN
-         CALL DO_PBL_MIX  ( .FALSE., LOCAL_MET )
-         IF ( LPRT ) CALL DEBUG_MSG( '### MAIN: a TURBDAY:1' )
-      ELSE
-         CALL DO_PBL_MIX_2( .FALSE., LOCAL_MET )
-         IF ( LPRT ) CALL DEBUG_MSG( '### MAIN: a NLPBL 1' )
-      ENDIF
-#else
       IF ( .NOT. LNLPBL ) THEN
         CALL DO_PBL_MIX( .FALSE. )
         IF ( LPRT ) CALL DEBUG_MSG( '### MAIN: a TURBDAY:1' )
@@ -380,6 +393,7 @@
         CALL DO_PBL_MIX_2( .FALSE. )
         IF ( LPRT ) CALL DEBUG_MSG( '### MAIN: a NLPBL 1' )
       ENDIF
+
 #endif
 
       !=================================================================
@@ -596,7 +610,11 @@
      &           ITS_A_CH3I_SIM()     ) THEN
 
                ! Read UV albedoes for FAST-J
+#if defined( DEVEL )
+               CALL READ_UVALBEDO( MONTH, LOCAL_MET )
+#else
                CALL READ_UVALBEDO( MONTH )
+#endif
 
                ! Read TOMS overhead O3 columns for FAST-J
                CALL READ_TOMS( MONTH, YEAR )

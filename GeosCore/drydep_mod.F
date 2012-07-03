@@ -1204,6 +1204,19 @@
                J      = JREF - J0
                IJLOOP = JLOP(I,J,1)
 
+#if defined( DEVEL )
+               ! Fraction of grid box that is ocean
+               FSOIL = LOCAL_MET%FRCLND(I,J)
+ 
+
+               ! Only apply dry deposition over land surfaces which
+                    ! are not covered with ice or desert (albedo < 0.4)
+               ! and if we are in the window simulation.
+               IF ( (I.GE.1)       .AND. (I.LE.IIPAR)  .AND.
+     &              (J.GE.1)       .AND. (J.LE.JJPAR)  .AND.
+     &              (FSOIL > 0.d0) .AND. 
+     &              (LOCAL_MET%ALBD(I,J) < 0.4d0) ) THEN
+#else
                ! Fraction of grid box that is ocean
                FSOIL = FRCLND(I,J)
  
@@ -1211,12 +1224,6 @@
                ! Only apply dry deposition over land surfaces which
                     ! are not covered with ice or desert (albedo < 0.4)
                ! and if we are in the window simulation.
-#if defined( DEVEL )
-               IF ( (I.GE.1)       .AND. (I.LE.IIPAR)  .AND.
-     &              (J.GE.1)       .AND. (J.LE.JJPAR)  .AND.
-     &              (FSOIL > 0.d0) .AND. 
-     &              (LOCAL_MET%ALBD(I,J) < 0.4d0) ) THEN
-#else
                IF ( (I.GE.1)       .AND. (I.LE.IIPAR)  .AND.
      &              (J.GE.1)       .AND. (J.LE.JJPAR)  .AND.
      &              (FSOIL > 0.d0) .AND. (ALBD(I,J) < 0.4d0) ) THEN

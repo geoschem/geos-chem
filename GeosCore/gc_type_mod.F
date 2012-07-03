@@ -272,7 +272,6 @@
          REAL*8, ALLOCATABLE :: SNOMAS(:,:)  ! Snow mass [kg/m2]
          REAL*8, ALLOCATABLE :: SNOW(:,:)    ! Snow depth (H2O equiv) [mm H2O]
          REAL*8, ALLOCATABLE :: SST(:,:)     ! Sea surface temperature [K]
-         REAL*8, ALLOCATABLE :: SUNCOS(:,:)  ! Cosine of solar zenith angle
          REAL*8, ALLOCATABLE :: TO3(:,:)     ! Total overhead O3 column [DU]
          REAL*8, ALLOCATABLE :: TO31(:,:)    ! Total O3 at timestep start [DU]
          REAL*8, ALLOCATABLE :: TO32(:,:)    ! Total O3 at timestep end [DU]

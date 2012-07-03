@@ -279,7 +279,9 @@
 
       USE CMN_SIZE_MOD       ! Size parameters
       USE CMN_DIAG_MOD       ! ND02 
+#if !defined( DEVEL )
       USE CMN_DEP_MOD        ! FRCLND
+#endif
 !
 ! !INPUT PARAMETERS: 
 !
@@ -406,7 +408,11 @@
          Rn_WATER   = Rn_LAND * 0.005d0
 
          ! Fraction of grid box that is land
+#if defined( DEVEL )
+         F_LAND  = LOCAL_MET%FRCLND(I,J)
+#else
          F_LAND  = FRCLND(I,J)
+#endif
 
          ! Fraction of grid box that is water
          F_WATER = 1d0 - F_LAND

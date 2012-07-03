@@ -2384,7 +2384,6 @@
       USE TRACERID_MOD, ONLY : ID_Hg0
       
       USE CMN_SIZE_MOD     ! Size parameters
-      USE CMN_DEP_MOD      ! FRCLND
 
       ! Local variables
       INTEGER               :: I,      J,    L,        N,    PBL_MAX
@@ -3774,7 +3773,6 @@
 #endif
 
       USE CMN_SIZE_MOD  ! Size parameters
-      USE CMN_DEP_MOD   ! FRCLND
 
       ! Arguments
       INTEGER, INTENT(IN) :: I, J, L
@@ -4297,7 +4295,6 @@
 #endif
 
       USE CMN_SIZE_MOD     ! Size parameters
-      USE CMN_DEP_MOD      ! FRCLND
 
       !Arguments
 #if defined( DEVEL )

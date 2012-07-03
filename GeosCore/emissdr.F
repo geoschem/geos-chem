@@ -469,6 +469,7 @@
      &                                    LOCAL_MET%TS,
      &                                    LOCAL_MET%U10M,
      &                                    LOCAL_MET%V10M,
+     &                                    LOCAL_MET,
      &                                    BIO_ACET )
 #else
                   CALL OCEAN_SOURCE_ACET( I, J, ALBD, TS, U10M, V10M, 

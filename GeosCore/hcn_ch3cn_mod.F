@@ -502,7 +502,9 @@
 
       USE CMN_SIZE_MOD     ! Size parameters 
       USE CMN_DIAG_MOD     ! ND09
+#if !defined( DEVEL )
       USE CMN_DEP_MOD      ! FRCLND 
+#endif
 
       ! Arguments
       INTEGER, INTENT(IN)    :: N_TRACERS
@@ -663,14 +665,13 @@
       DO J = 1, JJPAR
       DO I = 1, IIPAR
 
+#if defined( DEVEL )
          ! Fraction of a grid box that is ocean
-         FOCEAN          = 1d0 - FRCLND(I,J) 
+         FOCEAN          = 1d0 - LOCAL_MET%FRCLND(I,J) 
 
          ! Initialize HCN and CH3CN [kg] lost into the ocean
          OCEAN_HCN       = 0d0
          OCEAN_CH3CN     = 0d0
-
-#if defined( DEVEL )
 
          ! Make sure there is > 50% ocean (not ice) in the grid box
          IF ( FOCEAN > 0.5d0 .AND. LOCAL_MET%ALBD(I,J) <= 0.4d0 ) THEN
@@ -693,6 +694,12 @@
             H            = 7.93d4 * EXP( -5000d0 / LOCAL_MET%TS(I,J) ) 
 
 #else
+         ! Fraction of a grid box that is ocean
+         FOCEAN          = 1d0 - FRCLND(I,J) 
+
+         ! Initialize HCN and CH3CN [kg] lost into the ocean
+         OCEAN_HCN       = 0d0
+         OCEAN_CH3CN     = 0d0
 
          ! Make sure there is > 50% ocean (not ice) in the grid box
          IF ( FOCEAN > 0.5d0 .AND. ALBD(I,J) <= 0.4d0 ) THEN
