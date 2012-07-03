@@ -319,13 +319,25 @@
             SNo = 30
             ScNo = 0
          ENDIF
-            
+
+!%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%% 
+!%%% Prior to 6/28/12:
+!%%% The CAC update goes only up to 2008.  Replace 2010 with 2008 in this
+!%%% IF statement for the time being. (bmy, 6/28/12)
+!%%%         IF ( ( THISYEAR .le. 2002 ) .OR. 
+!%%%     &        ( THISYEAR .ge. 2010 ) ) THEN
+!%%% 
+!%%%            ! TAU values for 2002/2005
+!%%%            TAU = GET_TAU0( 1, 1, MIN( MAX( THISYEAR, 2002 ), 2010 ) )
+!%%%            WRITE( SYEAR, '(i4)' ) MIN( MAX( THISYEAR, 2002 ), 2010 )
+!%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%% 
+
          IF ( ( THISYEAR .le. 2002 ) .OR. 
-     &        ( THISYEAR .ge. 2010 ) ) THEN
+     &        ( THISYEAR .ge. 2008 ) ) THEN
  
             ! TAU values for 2002/2005
-            TAU = GET_TAU0( 1, 1, MIN( MAX( THISYEAR, 2002 ), 2010 ) )
-            WRITE( SYEAR, '(i4)' ) MIN( MAX( THISYEAR, 2002 ), 2010 )
+            TAU = GET_TAU0( 1, 1, MIN( MAX( THISYEAR, 2002 ), 2008 ) )
+            WRITE( SYEAR, '(i4)' ) MIN( MAX( THISYEAR, 2002 ), 2008 )
 
             ! File name
             FILENAME  = TRIM( DATA_DIR_1x1 ) // 'CAC_200801/CAC' // 

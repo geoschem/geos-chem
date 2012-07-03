@@ -78,7 +78,7 @@
       INTEGER,           PUBLIC, ALLOCATABLE :: ID_TRACER(:)
       INTEGER,           PUBLIC, ALLOCATABLE :: ID_EMITTED(:)
       INTEGER,           PUBLIC, ALLOCATABLE :: TRACER_N_CONST(:)
-      REAL*8,            PUBLIC, ALLOCATABLE :: STT(:,:,:,:)
+      REAL*8,    TARGET, PUBLIC, ALLOCATABLE :: STT(:,:,:,:)
       REAL*8,            PUBLIC, ALLOCATABLE :: TCVV(:)
       REAL*8,            PUBLIC, ALLOCATABLE :: TRACER_COEFF(:,:)
       REAL*8,            PUBLIC, ALLOCATABLE :: TRACER_MW_G(:)
