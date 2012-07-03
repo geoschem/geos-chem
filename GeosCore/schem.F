@@ -49,6 +49,14 @@
 
 #endif
 
+!%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+!%%% KLUDGE FOR NESTED GRIDS (bmy, 7/3/12)
+!%%% Use the BR_SCALING variable to determine if we have to shut off
+!%%% the bromine species. 
+!%%%
+      USE BROMOCARB_MOD,  ONLY : BR_SCALING
+!%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
       IMPLICIT NONE
 #     include "define.h"
 
@@ -355,6 +363,16 @@
 !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 
+!%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+!%%% KLUDGE FOR NESTED GRIDS (bmy, 7/3/12)
+!%%% Right now there is no good way to shut off bromine.  We don't have
+!%%% nested grid data for BRY_TEMP and BRY_DAY yet.  Therefore, use the
+!%%% kludge that if BR_SCALING = 0 then don't read any of these files.
+!%%% Figure out a more consistent way to implement this later.
+!%%% (bmy, 7/3/12)
+!%%%
+      IF ( ABS( Br_SCALING ) > 0d0 ) THEN
+         
          !==============================================================
          ! Read in stored Bry species concentrations for stratosphere.
          ! Stored by Q. Liang using the GEOS CCM. (jpp, 6/27/2011)
@@ -440,7 +458,15 @@
 !jpt !$OMP END PARALLEL DO
 
          ENDDO
+      ELSE
+         ! Echo msg
+         WRITE( 6, 777 )
+ 777     FORMAT( '====> KLUDGE: Turn off Bromine in SCHEM <====' )
       ENDIF
+!%%%
+!%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+      ENDIF
+
 #endif
 
       !=================================================================
