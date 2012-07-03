@@ -411,6 +411,20 @@
             ! Cast from REAL*4 to REAL*8 and resize to (JJPAR,LLPAR) 
             CALL TRANSFER_3D( Bry_temp(:,:,:), Bry_night(:,:,:,NN) )
 
+       ELSE
+         ! Echo msg
+         WRITE( 6, 777 )
+ 777     FORMAT( '===> KLUDGE: Turn off Bromine in SCHEM       <====' )
+ 777     FORMAT( '===> Set BRY_DAY and BRY_NIGHT to low values <====' )
+         
+         ! Set BRY_DAY and BRY_NIGHT to low, positive values
+         ! so that SMVGEAR won't crash
+         Bry_day   = 1e-30
+         Bry_night = 1e-30
+      ENDIF
+!%%%
+!%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
             !==============================================================
             ! now convert units from [ppt] to [kg]
             !  STT(I,J,L,N) [v/v] * AD(I,J,L) / TCVV(N) = STT(I,J,L,N) [kg]
@@ -458,13 +472,6 @@
 !jpt !$OMP END PARALLEL DO
 
          ENDDO
-      ELSE
-         ! Echo msg
-         WRITE( 6, 777 )
- 777     FORMAT( '====> KLUDGE: Turn off Bromine in SCHEM <====' )
-      ENDIF
-!%%%
-!%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
       ENDIF
 
 #endif
