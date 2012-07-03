@@ -414,8 +414,9 @@
        ELSE
          ! Echo msg
          WRITE( 6, 777 )
+         WRITE( 6, 778 )
  777     FORMAT( '===> KLUDGE: Turn off Bromine in SCHEM       <====' )
- 777     FORMAT( '===> Set BRY_DAY and BRY_NIGHT to low values <====' )
+ 778     FORMAT( '===> Set BRY_DAY and BRY_NIGHT to low values <====' )
          
          ! Set BRY_DAY and BRY_NIGHT to low, positive values
          ! so that SMVGEAR won't crash
