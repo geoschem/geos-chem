@@ -2454,6 +2454,9 @@
 !      GEOS-5 nested grid simulations. (yxw, dan, bmy, 11/6/08)
 !  17 Dec 2009 - R. Yantosca - Added ProTeX headers
 !  01 Mar 2012 - R. Yantosca - Now use GET_AREA_M2(I,J,L) from grid_mod.F90
+!  02 Jul 2012 - R. Yantosca - Rename the input file latlon_nested.txt to 
+!                              latlon_geos05x0666.txt to avoid confusion
+
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -2486,7 +2489,7 @@
 
       ! File with lat/lon edges for regridding
       LLFILENAME = TRIM( DATA_DIR_1x1) //
-     &             'MAP_A2A_Regrid_200312/latlon_nested.txt'
+     &             'MAP_A2A_Regrid_200312/latlon_geos05x0666.txt'
 
       ! Echo info
       WRITE( 6, 100 ) TRIM( FILENAME )
@@ -2502,8 +2505,12 @@
 
       ! Regrid from 1x1 to the current grid (also cast to REAL*8)
       INGRID => GEOS_05x0666
-      CALL DO_REGRID_A2A( LLFILENAME, I05x0666, J05x0666-1,
-     &                    INGRID,     OUTGRID, PERAREA=1 )
+!%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+!%%% I think this should be J05x0666, since this is the GEOS grid
+!%%%      CALL DO_REGRID_A2A( LLFILENAME, I05x0666, J05x0666-1,
+!%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+      CALL DO_REGRID_A2A( LLFILENAME, I05x0666, J05x0666,
+     &                    INGRID,     OUTGRID,  PERAREA=1 )
       AEF_ISOP = OUTGRID
 
       ! Loop over surface boxes
