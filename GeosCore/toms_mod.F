@@ -35,7 +35,7 @@
       ! First & last years for which TOMS/SBUV data is is available
       ! (update these as new data is added to the archive)
       INTEGER, PUBLIC, PARAMETER :: FIRST_TOMS_YEAR = 1979
-      INTEGER, PUBLIC, PARAMETER :: LAST_TOMS_YEAR  = 2008
+      INTEGER, PUBLIC, PARAMETER :: LAST_TOMS_YEAR  = 2010
 !
 ! !REMARKS:
 !  References:
@@ -75,6 +75,7 @@
 !  06 Mar 2012 - R. Yantosca - Updated comments
 !  06 Mar 2012 - R. Yantosca - Now make TOMS, DTOMS1, DTOMS2 arrays PRIVATE
 !  06 Mar 2012 - R. Yantosca - Add TO3_DAILY as a PRIVATE module array
+!  25 Jun 2012 - S. Kim      - Now reads from TOMS_201203 directory, w/ updated data
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -206,7 +207,7 @@
          YEAR = FIRST_TOMS_YEAR
       ENDIF
 
-      ! Use 2008 data after 2008
+      ! Use 2010 data after 2010
       IF ( YEAR > LAST_TOMS_YEAR ) THEN
          WRITE( 6, 105 ) YEAR
          YEAR = LAST_TOMS_YEAR
@@ -215,7 +216,7 @@
 
       ! FORMAT statemetns
  100  FORMAT( '     - READ_TOMS: No data for ',i4,', using 1979!' )
- 105  FORMAT( '     - READ_TOMS: No data for ',i4,', using 2005!' )
+ 105  FORMAT( '     - READ_TOMS: No data for ',i4,', using 2010!' )
 
       !=================================================================
       ! Read TOMS data from disk
@@ -228,7 +229,8 @@
       YYYYMMDD = ( YEAR * 10000 ) + ( THISMONTH * 100 ) + 01
      
       ! Define filename (with replaceable tokens)
-      FILENAME = 'TOMS_200906/TOMS_O3col_YYYY.' // GET_NAME_EXT_2D() //
+      ! Update to the latest data directory (skim, 6/25/12)
+      FILENAME = 'TOMS_201203/TOMS_O3col_YYYY.' // GET_NAME_EXT_2D() //
      &           '.'                            // GET_RES_EXT()
 
       ! Replace YYYY token with current year
