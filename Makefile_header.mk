@@ -116,6 +116,11 @@ ifndef COMPILER
 COMPILER  := ifort
 endif
 
+# Get Operating System (Linux = Linux; Darwin = MacOSX)
+ifndef UNAME
+UNAME        := $(shell uname)
+endif
+
 # OpenMP is turned on by default
 ifndef OMP
 OMP       := yes
@@ -207,9 +212,19 @@ else
 FFLAGS    := -cpp -w -O2 -auto -noalign -convert big_endian -vec-report0 
 endif
 
+# OSX compilation options
+ifeq ($(UNAME),Darwin)
+FFLAGS += -Wl,-stack_size,0x2cb410000 # Allow 12GB of stack space
+ifdef DEBUG
+FFLAGS += -g0 -debug -save-temps -fpic -Wl,-no_pie
+endif
+endif
+
 # Add options for medium memory model.  This is to prevent G-C from 
 # running out of memory at hi-res, especially when using netCDF I/O.
+ifneq ($(UNAME),Darwin)
 FFLAGS    += -mcmodel=medium -i-dynamic
+endif
 
 # Prevent any optimizations that would change numerical results
 # This is needed to prevent numerical noise from ISORROPIA (bmy, 8/25/11)
