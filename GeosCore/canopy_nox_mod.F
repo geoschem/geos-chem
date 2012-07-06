@@ -110,8 +110,9 @@
       USE COMMSOIL_MOD
       USE CMN_SIZE_MOD
       USE CMN_DEP_MOD
-      USE DRYDEP_MOD, ONLY : IDEP, IRGSS, IRAC, IRI, DRYCOEFF
-      USE DRYDEP_MOD, ONLY : IRCLO, IRCLS, IRLU, IRGSO
+      USE DRYDEP_MOD, ONLY : DRYCOEFF	!todo
+
+      USE MODIS_LAI_MOD
 !
 ! !REMARKS:
 !     For backwards compatibility, the bulk surface resistance is stored
@@ -121,6 +122,7 @@
 !
 ! !REVISION HISTORY:
 !     22 Jun 2009 - R. Yantosca - Split off from "drydep_mod.f"
+!     14 Jun 2012 - J.D. Maasakkers - Rewrite as a function of the MODIS/Koppen biometype
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -128,7 +130,7 @@
 ! !LOCAL VARIABLES:
 !
       ! Scalars
-      INTEGER :: I,      II,    IOLSON, IJLOOP, J,    LDT
+      INTEGER :: I,      IJLOOP, J, K, KK
       REAL*8  :: F0,     HSTAR, XMW              
       REAL*8  :: DTMP1,  DTMP2, DTMP3,  DTMP4, GFACT, GFACI
       REAL*8  :: RT,     RAD0,  RIX,    RIXX,  RDC,   RLUXX
@@ -138,13 +140,16 @@
       REAL*8  :: BIOFIT
 
       ! Arrays
-      REAL*8  :: RI  (NTYPE)       
-      REAL*8  :: RLU (NTYPE)      
-      REAL*8  :: RAC (NTYPE)      
-      REAL*8  :: RGSS(NTYPE)     
-      REAL*8  :: RGSO(NTYPE)     
-      REAL*8  :: RCLS(NTYPE)     
-      REAL*8  :: RCLO(NTYPE)     
+      REAL*8  :: RI  (NSOILB)       
+      REAL*8  :: RLU (NSOILB)      
+      REAL*8  :: RAC (NSOILB)      
+      REAL*8  :: RGSS(NSOILB)     
+      REAL*8  :: RGSO(NSOILB)     
+      REAL*8  :: RCLS(NSOILB)     
+      REAL*8  :: RCLO(NSOILB)  
+
+!Maasacommon
+
 !
 ! !DEFINED PARAMETERS:
 !
@@ -162,6 +167,8 @@
       HSTAR = 0.01d0              ! Henry's law constant
       F0    = 0.1d0               ! Reactivity factor for biological oxidation 
       XMW   = 46d-3               ! Molecular wt of NO2 (kg)
+
+      CALL READ_RESISTANCES
        
       ! Loop over surface boxes
       DO J = 1, JJPAR
@@ -181,7 +188,7 @@
          RT = 1000.0D0 * EXP( -TEMPC - 4.0d0 )
 
          !--------------------------------------------------------------
-         ! Get surface resistances - loop over land types LDT
+         ! Get surface resistances - loop over biome types K
          !
          ! The land types within each grid square are defined using the 
          ! Olson land-type database.  Each of the Olson land types is 
@@ -195,52 +202,52 @@
          ! and for tundra [Jacob et al., 1992].  All surface resistance 
          ! components are normalized to a leaf area index of unity.
          !--------------------------------------------------------------
-         DO LDT = 1, IREG(I,J)
+	!Loop over all biometypes
+         DO K = 1, 24
 
-            ! Skip if not land
-            IF ( IUSE(I,J,LDT) == 0 ) CYCLE
+            ! Skip if not present
+            IF ( LAND2(I,J,K) == 0 ) CYCLE
 
-            ! Olson land type
-            IOLSON = ILAND(I,J,LDT) + 1
+            ! Set second loop variable to K to allow snow/ice correction
+	    KK = K
 
-            ! Dry deposition land type
-            II     = IDEP(IOLSON)
+            ! If the surface is snow or ice, then set K=3
+            IF ( ALBD(I,J) > 0.4 ) KK = 3
 
-            ! If the surface is snow or ice, then set II=1
-            IF ( ALBD(I,J) > 0.4 ) II = 1
+		!USE new MODIS/KOPPEN Biometypes to read data
 
             ! Read the internal resistance RI (minimum stomatal resistance 
             ! for water vapor, per unit area of leaf) from the IRI array; 
             ! a '9999' value means no deposition to stomata so we impose a 
             ! very large value for RI.
-            RI(LDT) = DBLE( IRI(II) )
-            IF ( RI(LDT) >= 9999.D0 ) RI(LDT)= 1.D12
+            RI(K) = DBLE( SNIRI(KK) )
+            IF ( RI(K) >= 9999.D0 ) RI(K)= 1.D12
 
             ! Cuticular resistances IRLU read in from 'drydep.table'
             ! are per unit area of leaf; divide them by the leaf area index 
             ! to get a cuticular resistance for the bulk canopy.  If IRLU is 
             !'9999' it means there are no cuticular surfaces on which to 
             ! deposit so we impose a very large value for RLU.
-            IF ( IRLU(II) >= 9999 .OR. XLAI(I,J,LDT) <= 0d0 ) THEN
-               RLU(LDT)  = 1.D6
+            IF ( SNIRLU(KK) >= 9999 .OR. GC_LAI(I,J) <= 0d0 ) THEN
+               RLU(K)  = 1.D6
             ELSE
-               RLU(LDT)= DBLE( IRLU(II) ) / XLAI(I,J,LDT) + RT
+               RLU(K)= DBLE( SNIRLU(KK) ) / GC_LAI(I,J) + RT
             ENDIF
 
             ! The following are the remaining resistances for the Wesely
             ! resistance-in-series model for a surface canopy
             ! (see Atmos. Environ. paper, Fig.1).  
-            RAC(LDT)  = MAX( DBLE( IRAC(II)  ),      1d0 )
-            RGSS(LDT) = MAX( DBLE( IRGSS(II) ) + RT, 1d0 )
-            RGSO(LDT) = MAX( DBLE( IRGSO(II) ) + RT, 1d0 ) 
-            RCLS(LDT) =      DBLE( IRCLS(II) ) + RT           
-            RCLO(LDT) =      DBLE( IRCLO(II) ) + RT 
+            RAC(K)  = MAX( DBLE( SNIRAC(KK)  ),      1d0 )
+            RGSS(K) = MAX( DBLE( SNIRGSS(KK) ) + RT, 1d0 )
+            RGSO(K) = MAX( DBLE( SNIRGSO(KK) ) + RT, 1d0 ) 
+            RCLS(K) =      DBLE( SNIRCLS(KK) ) + RT           
+            RCLO(K) =      DBLE( SNIRCLO(KK) ) + RT 
 
-            IF (  RAC(LDT) >= 9999.D0 ) RAC(LDT)  = 1d12
-            IF ( RGSS(LDT) >= 9999.D0 ) RGSS(LDT) = 1d12
-            IF ( RGSO(LDT) >= 9999.D0 ) RGSO(LDT) = 1d12
-            IF ( RCLS(LDT) >= 9999.D0 ) RCLS(LDT) = 1d12         
-            IF ( RCLO(LDT) >= 9999.D0 ) RCLO(LDT) = 1d12
+            IF (  RAC(K) >= 9999.D0 ) RAC(K)  = 1d12
+            IF ( RGSS(K) >= 9999.D0 ) RGSS(K) = 1d12
+            IF ( RGSO(K) >= 9999.D0 ) RGSO(K) = 1d12
+            IF ( RCLS(K) >= 9999.D0 ) RCLS(K) = 1d12         
+            IF ( RCLO(K) >= 9999.D0 ) RCLO(K) = 1d12
 
             !-------------------------------------------------------------
             ! Adjust stomatal resistances for insolation and temperature:  
@@ -277,7 +284,7 @@
             RAD0 = RADSWG(I,J)
             
             ! Internal resistance
-            RIX  = RI(LDT)
+            RIX  = RI(K)
 
             ! Skip the following block if the resistance RIX is high
             IF ( RIX < 9999d0 ) THEN
@@ -289,9 +296,9 @@
 
                GFACI = 100.D0
 
-               IF ( RAD0 > 0d0 .AND. XLAI(I,J,LDT) > 0d0 ) THEN
+               IF ( RAD0 > 0d0 .AND. GC_LAI(I,J) > 0d0 ) THEN
                   GFACI= 1d0 / 
-     &                   BIOFIT( DRYCOEFF,       XLAI(I,J,LDT),
+     &                   BIOFIT( DRYCOEFF,       GC_LAI(I,J),
      &                           SUNCOS(IJLOOP), CLDFRC(I,J)    )
                ENDIF
             
@@ -313,8 +320,8 @@
 
             RLUXX  = 1.D12
 
-            IF ( RLU(LDT) < 9999.D0 ) THEN
-               RLUXX = RLU(LDT) / ( HSTAR / 1.0D+05 + F0 )
+            IF ( RLU(K) < 9999.D0 ) THEN
+               RLUXX = RLU(K) / ( HSTAR / 1.0D+05 + F0 )
             ENDIF
 
             ! To prevent virtually zero resistance to species with huge HSTAR, 
@@ -324,20 +331,20 @@
             ! and Ustar in Munger et al.[1996]; Vd(HNO3) never exceeds 2 cm/s 
             ! in observations. The corresponding minimum resistance is 50 s/m.
             ! was introduced by J.Y. Liang on 7/9/95.
-            RGSX = 1d0 / ( HSTAR/1d5/RGSS(LDT) + F0/RGSO(LDT) )
-            RCLX = 1d0 / ( HSTAR/1d5/RCLS(LDT) + F0/RCLO(LDT) )
+            RGSX = 1d0 / ( HSTAR/1d5/RGSS(K) + F0/RGSO(K) )
+            RCLX = 1d0 / ( HSTAR/1d5/RCLS(K) + F0/RCLO(K) )
 
             ! Get the bulk surface resistance of the canopy
             ! from the network of resistances in parallel and in series 
             ! (Fig. 1 of Wesely [1989])
             DTMP1 = 1.D0 / RIXX
             DTMP2 = 1.D0 / RLUXX
-            DTMP3 = 1.D0 / ( RAC(LDT) + RGSX )
+            DTMP3 = 1.D0 / ( RAC(K) + RGSX )
             DTMP4 = 1.D0 / ( RDC      + RCLX )
 
             ! Save the within canopy depvel of NOx, used in calculating 
             ! the canopy reduction factor for soil emissions [1/s]
-            CANOPYNOX(IJLOOP,LDT) = DTMP1 + DTMP2 + DTMP3 + DTMP4
+            CANOPYNOX(IJLOOP,K) = DTMP1 + DTMP2 + DTMP3 + DTMP4
 
          ENDDO
       ENDDO

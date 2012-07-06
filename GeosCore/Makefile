@@ -329,7 +329,8 @@ calcrate.o                  : calcrate.F                                     \
                               planeflight_mod.o       tracerid_mod.o
 
 canopy_nox_mod.o            : canopy_nox_mod.F                               \
-                              dao_mod.o               drydep_mod.o
+                              dao_mod.o               drydep_mod.o           \
+			      nc_soilnox_read.o
 
 carbon_mod.o                : carbon_mod.F                                   \
                               biomass_mod.o           comode_mod.o           \
@@ -833,6 +834,8 @@ MIESCT.o                    : MIESCT.F
 
 modis_lai_mod.o             : modis_lai_mod.F90                              \
                               mapping_mod.o
+
+nc_soilnox_read.o           : nc_soilnox_read.F90
 
 ndxx_setup.o                : ndxx_setup.F                                   \
                               biofuel_mod.o           diag_mod.o             \

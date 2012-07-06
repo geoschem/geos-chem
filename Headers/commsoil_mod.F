@@ -31,6 +31,9 @@
       ! Number of soil pulsing types
       INTEGER, PARAMETER :: NPULSE = 3  
 
+      ! Number of biome types
+      INTEGER, PARAMETER :: NSOILB = 24
+
 #if   defined( GRID4x5  )
 
       ! There are 1118 land boxes for the 4 x 5 GLOBAL GRID
@@ -145,7 +148,7 @@
 #if defined( DEVEL )
       REAL*8, ALLOCATABLE  :: CANOPYNOX(:,:)
 #else
-      REAL*8  :: CANOPYNOX(MAXIJ,NTYPE) 
+      REAL*8  :: CANOPYNOX(MAXIJ,NSOILB) 
 #endif
 
       ! Canopy wind extinction coeff from Y&L
@@ -153,7 +156,7 @@
       REAL*8  :: SOILTB(NSOIL)
       REAL*8  :: SOILAW(NSOIL)
       REAL*8  :: SOILAD(NSOIL)
-      REAL*8  :: SOILEXC(NSOIL)     
+      REAL*8  :: SOILEXC(NSOILB)     
 
       !###Rynda
       INTEGER TEST_DYNTS
@@ -171,6 +174,17 @@
       REAL*8 WET_NH4(IGLOB,JGLOB)
       REAL*8 WET_NIT(IGLOB,JGLOB)
 
+      !MaasaCommon
+      INTEGER  :: SNIMODIS(NSOILB)
+      INTEGER  :: SNIRI  (NSOILB)       
+      INTEGER  :: SNIRLU (NSOILB)      
+      INTEGER  :: SNIRAC (NSOILB)      
+      INTEGER  :: SNIRGSS(NSOILB)     
+      INTEGER  :: SNIRGSO(NSOILB)     
+      INTEGER  :: SNIRCLS(NSOILB)     
+      INTEGER  :: SNIRCLO(NSOILB) 
+      INTEGER  :: SNIVSMAX(NSOILB) 
+
       COMMON /SOIL/ SOILNOX,  INDEXSOIL, NCONSOIL, SOILPULS,            &
      &              SOILFERT,  CANOPYNOX, DRYPERIOD,
      &              PFACTOR,  GWET_PREV, INDEX_INT,
@@ -178,8 +192,10 @@
      &              DRY_HNO3, DRY_NH3,   DRY_NH4,   DRY_NIT,
      &              DEP_RESERVOIR, WET_HNO3, WET_NH3, WET_NH4,
      &              WET_NIT,  TEST_DYNTS, TOTAL_WETOLD, TOTAL_DRYOLD,
-     &              INST_SOIL, INST_FERT, CLIM , LAND2 !###Rynda Diag49
-	
+     &              INST_SOIL, INST_FERT, CLIM , LAND2,
+     &              SNIMODIS, SNIRI, SNIRLU, SNIRAC, SNIRGSS,
+     &              SNIRGSO, SNIRCLS, SNIRCLO, SNIVSMAX
+	!Maasacommon
 	!Removed soilprep
 
 
@@ -210,11 +226,6 @@
       DATA SOILAD /0.D0,   8.6D0,  0.22D0, 0.40D0, 0.22D0,              
      &             1.44D0, 2.65D0, 2.65D0, 2.65D0, 0.003D0,             
      &             0.37D0/
-
-      ! SOILEXC = Canopy wind extinction coeff.  
-      DATA SOILEXC /0.1D0, 4.D0,   4.D0,   4.D0,   4.D0,                
-     &              2.D0,  1.D0,   2.D0,   2.D0,   0.5D0,               
-     &              0.1D0/
 !
 ! !REMARKS:
 !  Original code from:

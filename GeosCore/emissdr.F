@@ -132,6 +132,8 @@
       !FP_ISOP (6/2009)
       USE EMISSIONS_MOD,     ONLY : ISOP_SCALING 
 
+      USE MODIS_LAI_MOD !CRFnool
+
  
       USE CMN_SIZE_MOD     ! Size parameters
       USE COMODE_LOOP_MOD     ! IVERT?
@@ -301,9 +303,7 @@
      &                              SUNCOS_MID(IJLOOP),
      &				    U10M(I,J), V10M(I,J), 
      &                              CANOPYNOX(IJLOOP,:), 
-     &                              XLAI(I,J,:), 
-     &				    IREG(I,J),
-     &				    IUSE(I,J,:) ) !maasaCRF !CRFW
+     &                              GC_LAI(I,J) ) !maasaCRF !CRFW
 
             !Archive emissions
             IF ( ND32 > 0 ) THEN

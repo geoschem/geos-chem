@@ -6328,6 +6328,8 @@
       LCHEMCO2       = .FALSE.
                      
       LRETRO         = .FALSE.  !(wfr, 3/8/11)
+
+      USE_OLSON_2001 = .TRUE. !MaasaOlson
       
       ! Initialize counters
       CT1            = 0
