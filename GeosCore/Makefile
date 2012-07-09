@@ -1045,9 +1045,8 @@ tagged_ox_mod.o             : tagged_ox_mod.F                                \
                               dao_mod.o               diag_mod.o             \
                               diag_pl_mod.o           drydep_mod.o           \
                               logical_mod.o           meganut_mod.o          \
-                              pbl_mix_mod.o           strat_chem_mod.o       \
-                              tracerid_mod.o          tracer_mod.o           \
-                              tropopause_mod.o
+                              pbl_mix_mod.o           tracerid_mod.o         \
+                              tracer_mod.o            tropopause_mod.o
 
 tcorr.o                     : tcorr.F
 

@@ -3156,7 +3156,7 @@
         FILENAME= TRIM( DATA_DIR )            //
      &            'mercury_201110/soilHg.merra.preind.bpch'
 #else
-      CALL ERROR_STOP('You need to make a Hg soil file. ')
+      CALL ERROR_STOP('You need to make a Hg soil file. ','')
 #endif
 
       ELSE
@@ -3173,7 +3173,7 @@
         FILENAME= TRIM( DATA_DIR )            //
      &            'mercury_201110/soilHg.merra.presentday.bpch'
 #else
-      CALL ERROR_STOP('You need to make a Hg soil file. ')
+      CALL ERROR_STOP('You need to make a Hg soil file. ','')
 #endif
 
       ENDIF
