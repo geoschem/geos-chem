@@ -101,6 +101,8 @@
 !
 ! !REVISION HISTORY: 
 !  24 Jun 2003 - B. Field & D. Jones - Further updates for GEOS-Chem
+!  10 Jun 2012 - L. Murray - Move call to DO_LINOZ from transport code to 
+!                chemistry code, so the use of DT_TS_CHEM is now correct.
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -233,7 +235,7 @@
 
       ! Echo info
       WRITE( 6, 100 ) 
- 100  FORMAT('     - LINOZ_CHEM3: Doing LINOZ stratospheric chemistry')
+ 100  FORMAT('       - LINOZ_CHEM3: Doing LINOZ' )
 
       ! **** note dbj: check STT(I,J,20:LLPAR,NTRACER) = with trop level
       ! ****         : check DMASS
