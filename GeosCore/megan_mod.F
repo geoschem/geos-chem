@@ -2487,7 +2487,7 @@
 
       ! File with lat/lon edges for regridding
       LLFILENAME = TRIM( DATA_DIR_1x1 ) //
-     &             'MAP_A2A_Regrid_200312/latlon_geos05x0666.txt'
+     &             'MAP_A2A_Regrid_201203/latlon_geos05x0666.txt'
 
       ! Echo info
       WRITE( 6, 100 ) TRIM( FILENAME )

@@ -1247,7 +1247,7 @@
 
       ! Filename for MAP_A2A input (0.5 x 0.666 global GEOS grid)
       LLFILENAME = TRIM( DATA_DIR_1x1) //
-     &             'MAP_A2A_Regrid_200312/latlon_geos05x0666.txt'
+     &             'MAP_A2A_Regrid_201203/latlon_geos05x0666.txt'
 
       ! Regrid from global 0.5 x 0.666 to current nested grid
       INGRID => GEOS_05x0666
