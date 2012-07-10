@@ -820,7 +820,7 @@
      &     'MAP_A2A_Regrid_201203/latlon_geos2x25.txt'
       
       ! Input file name
-      FILENAME = TRIM( DATA_DIR ) //
+      FILENAME = TRIM( DATA_DIR_1x1 ) //
      &     'bromine_201205/VSL_emissions/SLBromine_Emission.2x25.nc'
       
       ! Read in CHBr3 emission file ([kg(CHBr3)/m2/s]), regrid

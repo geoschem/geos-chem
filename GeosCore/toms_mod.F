@@ -243,7 +243,7 @@
       YYYYMMDD = ( YEAR * 10000 ) + ( THISMONTH * 100 ) + 01
      
       ! Define filename (with replaceable tokens)
-#if   defined( GEOS_5.7 )
+#if   defined( GEOS_57 )
       !%%% KLUDGE FOR SEAC4RS
       !%%% Update to the latest TOMS data directory only for GEOS-5.7.2 met.
       !%%% This update has not gone into the std code since it needs to be 
