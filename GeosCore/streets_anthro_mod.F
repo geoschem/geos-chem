@@ -61,7 +61,6 @@
 !        Lei, Y., Wang, L. and Yao, Z.: Asian emissions in 2006 for the
 !        NASA INTEX-B mission, manuscript submitted to Atmospheric
 !        Chemistry & Physics Discussions, 2009
-
 !  
 !  NOTES: 
 !  (1 ) Modification: Now use 2001 CO over China, and 2000 CO over countries
@@ -1086,6 +1085,7 @@
 !  02 Mar 2011 - R. Yantosca - Added ProTeX headers
 !  13 Mar 2012 - M. Cooper   - Changed regrid algorithm to map_a2a
 !  24 May 2012 - R. Yantosca - Fixed minor bugs in calls to map_a2a
+!  03 Jul 2012 - R. Yantosca - Now call MAP_A2A w/ proper # of lat sines
 !******************************************************************************
 !
       ! References to F90 modules
@@ -1118,7 +1118,7 @@
       CHARACTER(LEN=250)              :: FILENAME_S
 
       !=================================================================
-      ! Read emission data from diskR
+      ! Read emission data from disk
       !=================================================================
 
       ! Echo info                     
@@ -1210,11 +1210,13 @@
 !  (1) UNIT argument in DO_REGRID_... is 'kg/yr' for VOCs
 !        because 'atom C/yr' and 'molec/yr' are not recognized. The result is
 !        still correct.
+!  03 Jul 2012 - R. Yantosca - Modified to use the proper # of lat sines
 !******************************************************************************
 !
       ! References to F90 modules
       USE BPCH2_MOD,      ONLY : GET_TAU0,         READ_BPCH2
-      USE REGRID_1x1_MOD, ONLY : DO_REGRID_05X0666
+      USE REGRID_A2A_MOD, ONLY : DO_REGRID_A2A
+      USE DIRECTORY_MOD,  ONLY : DATA_DIR_1x1
 
       USE CMN_SIZE_MOD        ! Size parameters
   
@@ -1223,27 +1225,36 @@
       INTEGER,          INTENT(IN)    :: TRACERN
       REAL*8,           INTENT(INOUT) :: ARR(IIPAR,JJPAR)
       REAL*8,           INTENT(IN)    :: TAU
+      REAL*8,           POINTER       :: INGRID(:,:) => NULL()
+      REAL*8                          :: OUTGRID(IIPAR,JJPAR)
+      CHARACTER(LEN=255)              :: LLFILENAME
 
       ! Local variables
-      REAL*4            :: ARRAY(I05x0666,J05x0666,1)
-      REAL*8            :: GEOS_05x0666(I05x0666,J05x0666,1)
-
+      REAL*4                          :: ARRAY(I05x0666,J05x0666,1)
+      REAL*8, TARGET                  :: GEOS_05x0666(I05x0666,J05x0666)
 
       ! Echo info
       WRITE( 6, 100 ) TRIM( FILENAME )
  100  FORMAT( '     - EMISS_STREETS_ANTHRO: Reading ', a )
 
-      ! Read data
+      ! Read data @ global 0.5 x 0.666 resolution
       CALL READ_BPCH2( FILENAME,  CATEGORY,  TRACERN, 
      &                 TAU,       I05x0666,  J05x0666,
      &                 1,         ARRAY,     QUIET=.TRUE. ) 
 
       ! Cast to REAL*8 before regridding
-      GEOS_05x0666(:,:,1) = ARRAY(:,:,1)
+      GEOS_05x0666(:,:) = ARRAY(:,:,1)
 
-      ! Cut to China nested simulation window
-      CALL DO_REGRID_05x0666( 1,'kg/yr', GEOS_05x0666, ARR )
+      ! Filename for MAP_A2A input (0.5 x 0.666 global GEOS grid)
+      LLFILENAME = TRIM( DATA_DIR_1x1) //
+     &             'MAP_A2A_Regrid_200312/latlon_geos05x0666.txt'
 
+      ! Regrid from global 0.5 x 0.666 to current nested grid
+      INGRID => GEOS_05x0666
+      CALL DO_REGRID_A2A( LLFILENAME, I05x0666, J05x0666,
+     &                    INGRID,     OUTGRID,  PERAREA=1 )
+      ARR = OUTGRID
+      NULLIFY( INGRID )
 
       END SUBROUTINE READ_STREETS_05x0666
 

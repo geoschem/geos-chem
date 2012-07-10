@@ -727,7 +727,7 @@
 ! !USES:
 !
       USE ERROR_MOD,      ONLY : ALLOC_ERR, DEBUG_MSG
-      USE LOGICAL_MOD,    ONLY : LPRT
+      USE LOGICAL_MOD,    ONLY : LPRT,      LWARWICK_VSLS
       USE GRID_MOD,       ONLY : GET_AREA_M2
       USE DIRECTORY_MOD,  ONLY : DATA_DIR
 
@@ -737,6 +737,8 @@
 ! !REVISION HISTORY:
 !  13 Aug 2007 - J. Parrella - Initial version
 !  22 May 2012 - M. Payer    - Added ProTeX headers 
+!   3 Jul 2012 - R. Yantosca -  
+
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -779,6 +781,17 @@
       ALLOCATE( ch2br2_emiss(IIPAR, JJPAR), STAT=AS)
       IF ( AS /= 0 ) CALL ALLOC_ERR( 'ch2br2_emiss' )
       ch2br2_emiss = 0d0
+
+!%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+!%%% KLUDGE FOR NESTED GRIDS (bmy, 7/3/12)
+!%%% Right now there is no good way to turn off reading of bromine files,
+!%%% especially for the nested grids (which don't exist yet).  In the
+!%%% meantime, turn off the file I/O if Br_SCALING = 0.
+!%%%
+      ! Skip reading the files below.  Use a robust test for Br_SCALING=0
+      IF ( .not. LWARWICK_VSLs               ) RETURN
+      IF ( .not. ( ABS( Br_SCALING ) > 0d0 ) ) RETURN
+!%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
       !------------------------------------------
       ! Call Sea Surface to start filling arrays

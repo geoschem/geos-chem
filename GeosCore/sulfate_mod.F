@@ -7293,6 +7293,8 @@
 !        GCAP and GEOS grids (bmy, 8/16/05)
 !  (4 ) Now make sure all USE statements are USE, ONLY (bmy, 10/3/05)
 !  22 Dec 2011 - M. Payer    - Added ProTeX headers
+!  02 Jul 2012 - R. Yantosca - Add simple kludge that prevents OOB error when
+!                              reading SO2 aircraft data for NA nested grid
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -7353,6 +7355,20 @@
          IF ( IOS > 0 ) THEN
             CALL IOERROR( IOS, IU_FILE, 'read_aircraft_so2:3' )
          ENDIF
+
+!%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+!%%% KLUDGE FOR NORTH AMERICAN NESTED GRID (bmy, 7/2/12)
+!%%% For some reason there seems to be bad data within the N. American
+!%%% nested grid data files.  Some of the longitude indices are out of bounds
+!%%% for the grid.  Put in a simple kludge to just skip over these boxes.
+!%%% We are going to be reinventing how emissions get done in GEOS-Chem,
+!%%% so it's probably not worth recreating the the file at this time.
+!%%%
+#if   defined( NESTED_NA )        
+         IF ( I > IIPAR ) CYCLE
+         IF ( J > JJPAR ) CYCLE
+#endif         
+!%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
          ! Unit conversion: [kg Fuel/box/day] -> [kg SO2/box/s]
          ! Assuming an emission index of 1.0, 
