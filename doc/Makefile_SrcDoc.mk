@@ -153,6 +153,7 @@ $(CORE)/RnPbBe_mod.F                 \
 $(CORE)/scale_anthro_mod.F           \
 $(CORE)/seasalt_mod.F                \
 $(CORE)/ssa_bromine_mod.F            \
+$(CORE)/strat_chem_mod.F90           \
 $(CORE)/sulfate_mod.F                \
 $(CORE)/tagged_ox_mod.F              \
 $(CORE)/toms_mod.F                   \

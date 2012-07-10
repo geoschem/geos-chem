@@ -19,48 +19,48 @@
 !  
 !  The updated code includes at least all of these, and many more. The code
 !  is flexible enough to automatically apply the rate to any new tracers
-!  for future simulations that share the name in tracer_mod with the
+!  for future simulations that share the name in tracer\_mod with the
 !  GMI name.  (See Documentation on wiki).
-!
 !\\
 !\\
 ! !INTERFACE:
 !
 MODULE STRAT_CHEM_MOD
-  !
-  ! !USES:
-  !
+!
+! !USES:
+!
   IMPLICIT NONE
   PRIVATE
-  !
-  ! !PUBLIC MEMBER FUNCTIONS:
-  !
+!
+! !PUBLIC MEMBER FUNCTIONS:
+!
   PUBLIC  :: Init_Strat_Chem
   PUBLIC  :: Do_Strat_Chem
   PUBLIC  :: Cleanup_Strat_Chem
   PUBLIC  :: Calc_STE
-  !
-  ! !PRIVATE MEMBER FUNCTIONS:
-  !
+!
+! !PRIVATE MEMBER FUNCTIONS:
+!
   PRIVATE :: Get_Rates
   PRIVATE :: Get_Rates_Interp
   PRIVATE :: Do_Synoz
-  !
-  ! !PUBLIC DATA MEMBERS:
-  !
-  ! !REMARKS:
-  !
-  !  References:
-  !============================================================================
-  !  (1 )
-  ! !REVISION HISTORY:
-  !  1 Feb 2011 - L. Murray - Initial version
-  !EOP
-  !----------------------------------------------------------------------------
-  !BOC
-  !
-  ! !PRIVATE TYPES:
-  !
+!
+! !PUBLIC DATA MEMBERS:
+!
+! !REMARKS:
+!
+!  References:
+!==============================================================================
+!  (1 )
+!
+! !REVISION HISTORY:
+!  1 Feb 2011 - L. Murray - Initial version
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+!
+! !PRIVATE TYPES:
+!
   ! Scalars
   REAL*8               :: dTchem          ! chemistry time step [s]
   INTEGER, PARAMETER   :: NTR_GMI  = 120  ! Number of species from GMI model
@@ -100,24 +100,24 @@ MODULE STRAT_CHEM_MOD
   ! MODULE ROUTINES -- follow below the "CONTAINS" statement 
   !=================================================================
 CONTAINS
-  !EOC
-  !----------------------------------------------------------------------------
-  !        Harvard University Atmospheric Chemistry Modeling Group            !
-  !----------------------------------------------------------------------------
-  !BOP
-  !
-  ! !IROUTINE: DO_STRAT_CHEM
-  !
-  ! !DESCRIPTION: Function DO\_STRAT\_CHEM is the driver routine for computing
-  ! the simple linearized stratospheric chemistry scheme.
-  !\\
-  !\\
-  ! !INTERFACE:
-  !
+!EOC
+!------------------------------------------------------------------------------
+!          Harvard University Atmospheric Chemistry Modeling Group            !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: do_strat_chem
+!
+! !DESCRIPTION: Function DO\_STRAT\_CHEM is the driver routine for computing
+! the simple linearized stratospheric chemistry scheme.
+!\\
+!\\
+! !INTERFACE:
+!
   SUBROUTINE DO_STRAT_CHEM
-    !
-    ! !USES:
-    !
+!
+! !USES:
+!
     USE DAO_MOD,        ONLY : AD, CONVERT_UNITS, T, SUNCOS
     USE ERROR_MOD,      ONLY : DEBUG_MSG, GEOS_CHEM_STOP
     USE LOGICAL_MOD,    ONLY : LLINOZ, LPRT
@@ -135,17 +135,17 @@ CONTAINS
     IMPLICIT NONE
 
 #include "define.h"
-  !
-  ! !REMARKS:
-  ! 
-  ! !REVISION HISTORY: 
-  !  1 Feb 2011 - L. Murray - Initial version  
-  !EOP
-  !--------------------------------------------------------------------------
-  !BOC
-  !
-  ! !LOCAL VARIABLES:
-  !
+!
+! !REMARKS:
+! 
+! !REVISION HISTORY: 
+!  1 Feb 2011 - L. Murray - Initial version  
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+!
+! !LOCAL VARIABLES:
+!
     LOGICAL, SAVE             :: FIRST      = .TRUE.
     INTEGER, SAVE             :: LASTMONTH  = -99
     INTEGER                   :: I, J, L, N, NN, LMIN
@@ -480,24 +480,24 @@ CONTAINS
     ENDIF
 
   END SUBROUTINE DO_STRAT_CHEM
-  !EOC
-  !----------------------------------------------------------------------------
-  !        Harvard University Atmospheric Chemistry Modeling Group            !
-  !----------------------------------------------------------------------------
-  !BOP
-  !
-  ! !IROUTINE: GET_RATES
-  !
-  ! !DESCRIPTION: Function GET\_RATES reads from disk the chemical production
-  !  and loss rates for the species of interest
-  !\\
-  !\\
-  ! !INTERFACE:
-  !
+!EOC
+!------------------------------------------------------------------------------
+!          Harvard University Atmospheric Chemistry Modeling Group            !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: get_rates
+!
+! !DESCRIPTION: Function GET\_RATES reads from disk the chemical production
+!  and loss rates for the species of interest
+!\\
+!\\
+! !INTERFACE:
+!
   SUBROUTINE GET_RATES( THISMONTH )
-  !
-  ! !USES:
-  !
+!
+! !USES:
+!
     USE BPCH2_MOD,       ONLY : GET_NAME_EXT, GET_RES_EXT, GET_TAU0, READ_BPCH2
     USE DIRECTORY_MOD,   ONLY : DATA_DIR
     USE LOGICAL_MOD,     ONLY : LLINOZ
@@ -512,20 +512,19 @@ CONTAINS
     USE CMN_SIZE_MOD
 
     IMPLICIT NONE
-  !
-  ! !INPUT PARAMETERS: 
-  !
-  ! Arguments
+!
+! !INPUT PARAMETERS: 
+!
     INTEGER,INTENT(IN) :: THISMONTH
-  !
-  ! !REVISION HISTORY: 
-  !  1 Feb 2011 - L. Murray - Initial version
-  !EOP
-  !--------------------------------------------------------------------------
-  !BOC
-  !
-  ! !LOCAL VARIABLES:
-  !
+!
+! !REVISION HISTORY: 
+!  1 Feb 2011 - L. Murray - Initial version
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+!
+! !LOCAL VARIABLES:
+!
     CHARACTER(LEN=255) :: FILENAME, DAYFILE, NIGHTFILE
     REAL*4             :: ARRAY( IIPAR, JJPAR, LGLOB )  ! Full vertical res
     REAL*8             :: ARRAY2( IIPAR, JJPAR, LLPAR ) ! Actual vertical res
@@ -659,25 +658,25 @@ CONTAINS
     ENDDO
 
   END SUBROUTINE GET_RATES
-  !EOC
-  !----------------------------------------------------------------------------
-  !        Harvard University Atmospheric Chemistry Modeling Group            !
-  !----------------------------------------------------------------------------
-  !BOP
-  !
-  ! !IROUTINE: GET_RATES_INTERP
-  !
-  ! !DESCRIPTION: Function GET\_RATES\_INTERP reads from disk the chemical
-  ! production and loss rates for the species of interest to resolutions finer
-  ! than 2 x 2.5 (e.g., nested simluations) via simple nearest-neighbor mapping.
-  !\\
-  !\\
-  ! !INTERFACE:
-  !
+!EOC
+!------------------------------------------------------------------------------
+!          Harvard University Atmospheric Chemistry Modeling Group            !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: get_rates_interp
+!
+! !DESCRIPTION: Function GET\_RATES\_INTERP reads from disk the chemical
+! production and loss rates for the species of interest to resolutions finer
+! than 2 x 2.5 (e.g., nested simluations) via simple nearest-neighbor mapping.
+!\\
+!\\
+! !INTERFACE:
+!
   SUBROUTINE GET_RATES_INTERP( THISMONTH )
-  !
-  ! !USES:
-  !
+!
+! !USES:
+!
     USE BPCH2_MOD,       ONLY : GET_NAME_EXT, GET_RES_EXT, GET_TAU0, READ_BPCH2
     USE DIRECTORY_MOD,   ONLY : DATA_DIR_1x1
     USE GRID_MOD,        ONLY : GET_YMID, GET_XMID
@@ -693,20 +692,19 @@ CONTAINS
     USE CMN_SIZE_MOD
 
     IMPLICIT NONE
-  !
-  ! !INPUT PARAMETERS: 
-  !
-  ! Arguments
+!
+! !INPUT PARAMETERS: 
+!
     INTEGER,INTENT(IN) :: THISMONTH
-  !
-  ! !REVISION HISTORY: 
-  !  1 Feb 2011 - L. Murray - Initial version
-  !EOP
-  !--------------------------------------------------------------------------
-  !BOC
-  !
-  ! !LOCAL VARIABLES:
-  !
+!
+! !REVISION HISTORY: 
+!  1 Feb 2011 - L. Murray - Initial version
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+!
+! !LOCAL VARIABLES:
+!
     CHARACTER(LEN=255) :: FILENAME, DAYFILE, NIGHTFILE
 
     REAL*8             :: BryDay2x25( 144, 91, LLPAR, 6 )
@@ -909,24 +907,25 @@ CONTAINS
     ENDDO
 
   END SUBROUTINE GET_RATES_INTERP
-  !EOC
-  !----------------------------------------------------------------------------
-  !        Harvard University Atmospheric Chemistry Modeling Group            !
-  !----------------------------------------------------------------------------
-  !BOP
-  !
-  ! !IROUTINE: calc_STE
-  !
-  ! !DESCRIPTION: Subroutine CALC\_STE estimates what the stratosphere-to-
-  !               troposphere exchange flux must have been since the last time
-  !               it was reset
-  !\\
-  !\\
-  ! !INTERFACE:
-  !
+!EOC
+!------------------------------------------------------------------------------
+!          Harvard University Atmospheric Chemistry Modeling Group            !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: calc_ste
+!
+! !DESCRIPTION: Subroutine CALC\_STE estimates what the stratosphere-to-
+!               troposphere exchange flux must have been since the last time
+!               it was reset
+!\\
+!\\
+! !INTERFACE:
+!
   SUBROUTINE Calc_STE
-  !
-  ! !USES:
+!
+! !USES:
+!
     USE TRACER_MOD, ONLY : STT, TRACER_MW_KG, N_TRACERS, TRACER_NAME
     USE TIME_MOD,   ONLY : GET_TAU, GET_NYMD, GET_NHMS, EXPAND_DATE
 
@@ -935,12 +934,12 @@ CONTAINS
     IMPLICIT NONE
 
 #include "define.h"
-
-  ! !REVISION HISTORY: 
-  !  28 Apr 2012 - L. Murray - Initial version
-  !EOP
-  !--------------------------------------------------------------------------
-  !BOC
+!
+! !REVISION HISTORY: 
+!  28 Apr 2012 - L. Murray - Initial version
+!EOP
+!------------------------------------------------------------------------------
+!BOC
 
     REAL*8             :: M1(IIPAR,JJPAR,LLPAR), M2(IIPAR,JJPAR,LLPAR)
     REAL*8             :: dStrat, STE, Tend, tauEnd, dt
@@ -1051,24 +1050,24 @@ CONTAINS
     MInit(:,:,:,:)       = STT(:,:,:,:)
 
   END SUBROUTINE Calc_STE
-  !EOC
-  !----------------------------------------------------------------------------
-  !        Harvard University Atmospheric Chemistry Modeling Group            !
-  !----------------------------------------------------------------------------
-  !BOP
-  !
-  ! !IROUTINE: init_strat_chem
-  !
-  ! !DESCRIPTION: Subroutine INIT\_STRAT\_CHEM allocates all module arrays.  
-  !  It also opens the necessary rate files.
-  !\\
-  !\\
-  ! !INTERFACE:
-  !      
+!EOC
+!------------------------------------------------------------------------------
+!          Harvard University Atmospheric Chemistry Modeling Group            !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: init_strat_chem
+!
+! !DESCRIPTION: Subroutine INIT\_STRAT\_CHEM allocates all module arrays.  
+!  It also opens the necessary rate files.
+!\\
+!\\
+! !INTERFACE:
+!      
   SUBROUTINE INIT_STRAT_CHEM
-  !
-  ! !USES:
-  !
+!
+! !USES:
+!
     USE ERROR_MOD,     ONLY : ALLOC_ERR
     USE LOGICAL_MOD,   ONLY : LLINOZ
     USE TRACER_MOD,    ONLY : ITS_A_FULLCHEM_SIM, ITS_A_TAGOX_SIM
@@ -1084,15 +1083,15 @@ CONTAINS
     USE CMN_SIZE_MOD
 
     IMPLICIT NONE
-  ! 
-  ! !REVISION HISTORY:
-  !  1 Feb 2011 - L. Murray - Initial version
-  !EOP
-  !--------------------------------------------------------------------------
-  !BOC
-  !
-  ! !LOCAL VARIABLES:
-  !
+! 
+! !REVISION HISTORY:
+!  1 Feb 2011 - L. Murray - Initial version
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+!
+! !LOCAL VARIABLES:
+!
     CHARACTER(LEN=16)     :: sname
     INTEGER               :: AS, N, NN
 
@@ -1272,30 +1271,31 @@ CONTAINS
     Bry_night = 0.
 
   END SUBROUTINE INIT_STRAT_CHEM
-  !EOC
-  !----------------------------------------------------------------------------
-  !        Harvard University Atmospheric Chemistry Modeling Group            !
-  !----------------------------------------------------------------------------
-  !BOP
-  !
-  ! !IROUTINE: cleanup_strat_chem
-  !
-  ! !DESCRIPTION: Subroutine CLEANUP\_STRAT\_CHEM deallocates all module 
-  !  arrays.
-  !\\
-  !\\
-  ! !INTERFACE:
-  !
+!EOC
+!------------------------------------------------------------------------------
+!          Harvard University Atmospheric Chemistry Modeling Group            !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: cleanup_strat_chem
+!
+! !DESCRIPTION: Subroutine CLEANUP\_STRAT\_CHEM deallocates all module 
+!  arrays.
+!\\
+!\\
+! !INTERFACE:
+!
   SUBROUTINE CLEANUP_STRAT_CHEM
-  !
-  ! !USES:
+!
+! !USES:
+!
     IMPLICIT NONE
-
-  ! !REVISION HISTORY: 
-  !  1 Feb 2011 - L. Murray - Initial version
-  !EOP
-  !--------------------------------------------------------------------------
-  !BOC
+!
+! !REVISION HISTORY: 
+!  1 Feb 2011 - L. Murray - Initial version
+!EOP
+!------------------------------------------------------------------------------
+!BOC
 
     IF ( ALLOCATED( PROD       ) ) DEALLOCATE( PROD       )
     IF ( ALLOCATED( LOSS       ) ) DEALLOCATE( LOSS       )
@@ -1306,25 +1306,25 @@ CONTAINS
     IF ( ALLOCATED( SCHEM_TEND ) ) DEALLOCATE( SCHEM_TEND )
 
   END SUBROUTINE CLEANUP_STRAT_CHEM
-  !EOC
-  !----------------------------------------------------------------------------
-  !         Harvard University Atmospheric Chemistry Modeling Group           !
-  !----------------------------------------------------------------------------
-  !BOP
-  !
-  ! !IROUTINE: Do_Synoz
-  !
-  ! !DESCRIPTION: Subroutine Do\_Synoz establishes the flux boundary condition 
-  !  for Ozone coming down from the stratosphere, using the Synoz algorithm of
-  !  McLinden et al, 2000. 
-  !\\
-  !\\
-  ! !INTERFACE:
-  !
+!EOC
+!------------------------------------------------------------------------------
+!          Harvard University Atmospheric Chemistry Modeling Group            !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: do_synoz
+!
+! !DESCRIPTION: Subroutine Do\_Synoz establishes the flux boundary condition 
+!  for Ozone coming down from the stratosphere, using the Synoz algorithm of
+!  McLinden et al, 2000. 
+!\\
+!\\
+! !INTERFACE:
+!
   SUBROUTINE Do_Synoz      
-  !
-  ! !USES:
-  !
+!
+! !USES:
+!
     USE DAO_MOD,        ONLY : AD, BXHEIGHT, T, TROPP
     USE ERROR_MOD,      ONLY : ERROR_STOP
     USE LOGICAL_MOD,    ONLY : LVARTROP 
@@ -1340,87 +1340,87 @@ CONTAINS
 
     IMPLICIT NONE
 #include "define.h"
-  !
-  ! !REMARKS:
-  !  Reference:
-  !  ===========================================================================
-  !  C. A. McLinden, S. Olsen, B. Hannegan, O. Wild, M. J. Prather, and
-  !  J. Sundet, "Stratospheric Ozone in 3-D models: A simple chemistry
-  !  and the cross-tropopause flux".
-  !                                                                            .
-  !  %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-  !  %%%% NOTE: This SYNOZ scheme is now obsolete, replaced by LINOZ   %%%%
-  !  %%%% We keep this for backwards compatibility w/ older met fields %%%%
-  !  %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-  ! 
-  ! !REVISION HISTORY:
-  !  13 Dec 1999 - Q. Li, R. Martin - Initial version
-  !  (1 ) The parameter Rdg0 from "CMN_GCTM" = R / g0 = 28.97. 
-  !  (2 ) Pass PW = PS - PTOP to UPBDFLX via "CMN".
-  !  (3 ) Now pass IORD, JORD, KORD as arguments (bmy, 12/6/00)
-  !  (4 ) Now compute the proper value of PO3_vmr that will yield 475 Tg O3/yr
-  !        for various settings of IORD, JORD, KORD (rvm, bey, bmy, 12/5/00)
-  !                                                                            .
-  !        **************************************************************
-  !        ***** You must use this version of UPBDFLX_O3 if you are *****
-  !        ***** using the Parallel Processor TPCORE v. 7.1         *****
-  !        **************************************************************
-  !                                                                            .
-  !  (5 ) Added to "upbdflx_mod.f".  Also updated comments and made some
-  !        cosmetic changes. (bmy, 6/28/01)
-  !  (6 ) Now reference CMN_SETUP for LSPLIT.  Also store strat O3 into
-  !        tracer #11 for multi-tracer Ox run. (amf, bmy, 7/3/01)
-  !  (7 ) Removed IREF, JREF -- these are obsolete.  Also T(IREF,JREF,L) is
-  !        now T(I,J,L). (bmy, 9/27/01)
-  !  (8 ) Also replace PW(I,J) with P(I,J) (bmy, 10/3/01)
-  !  (9 ) Removed obsolete commented out code from 9/01 (bmy, 10/24/01)
-  !  (10) Removed obsolete commented out code from 7/01 (bmy, 11/26/01)
-  !  (11) Now write file names to stdout (bmy, 4/3/02)
-  !  (12) Replaced all instances of IM with IIPAR and JM with JJPAR, in order
-  !        to prevent namespace confusion for the new TPCORE (bmy, 6/25/02)
-  !  (13) Now use GET_PEDGE and GET_PCENTER from "pressure_mod.f" to compute
-  !        the pressure at the bottom edge and center of grid box (I,J,L).
-  !        Also removed obsolete, commented-out code.  Removed G_SIG and
-  !        G_SIGE from the arg list. (dsa, bdf, bmy, 8/21/02)
-  !  (14) Now reference BXHEIGHT and T from "dao_mod.f".  Also reference routine
-  !        ERROR_STOP from "error_mod.f".  Now references IDTOX from F90 module
-  !        "tracerid_mod.f" instead of from "comtrid.h". (bmy, 11/6/02)
-  !  (15) Now define J30S and J30N for 1x1 nested grid (bmy, 3/11/03)
-  !  (16) Make sure to pass AD via "dao_mod.f" for GEOS-1 (bnd, bmy, 4/14/03)
-  !  (17) On the first timestep, print how much O3 flux is coming down from the 
-  !        stratosphere in Tg/yr. (mje, bmy, 8/15/03)
-  !  (18) Change O3 flux to 500 Tg/yr for GEOS-3 (mje, bmy, 9/15/03)
-  !  (19) Now calls routine ADD_STRAT_POX from "tagged_ox_mod.f" in order to
-  !        pass stratospheric flux of Ox to the proper tagged tracer w/o
-  !        resorting to hardwiring w/in this routine. (bmy, 8/18/03)
-  !  (20) Add GEOS_4 to the #if defined block. (bmy, 1/29/04)
-  !  (21) Activated parallel DO-loops.  Now made STFLUX a local array
-  !        in order to facilitate parallelization. (bmy, 4/15/04)
-  !  (22) Removed IORD, JORD, KORD from the arg list.  Now reference STT and
-  !        ITS_A_TAGOX_SIM from "tracer_mod.f".  (bmy, 7/20/04)
-  !  (23) Use an #ifdef block to comment out an EXIT statement from w/in a
-  !        parallel loop for COMPAQ compiler.  COMPAQ seems to have some 
-  !        problems with this.  Now supports 1x125 grid. (auvray, bmy, 12/1/04)
-  !  (24) Now modified for GEOS-5 and GCAP met fields (swu, bmy, 5/25/05)
-  !  (25) Remove support for GEOS-1 and GEOS-STRAT met fields (bmy, 8/4/06)
-  !  (26) Now set J30S and J30N for GEOS-5 nested grid (yxw, dan, bmy, 11/6/08)
-  !  (27) Remove support for COMPAQ compiler (bmy, 7/8/09)
-  !  (28) Now do not call ADD_STRAT_POx for tagged Ox (dbj, bmy, 10/16/09)
-  !  13 Aug 2010 - R. Yantosca - Treat MERRA like GEOS-5 (bmy, 8/13/10)
-  !  02 Dec 2010 - R. Yantosca - Added ProTeX headers
-  !  08 Feb 2012 - R. Yantosca - Treat GEOS-5.7.2 in the same way as MERRA
-  !  10 Feb 2012 - R. Yantosca - Modified for 0.25 x 0.3125 grids
-  !  28 Feb 2012 - R. Yantosca - Removed support for GEOS-3
-  !  28 Apr 2012 - L. Murray - Moved from upbdflx_mod.F to here, modified to 
-  !                 F90, renamed from UPBDFLX_O3 to DO_SYNOZ. Use chem timestep
-  !                 now. Also, removed INIT_UPBDFLX, which was last used for 
-  !                 GEOS-3.
-  !EOP
-  !-----------------------------------------------------------------------------
-  !BOC
-  !
-  ! !LOCAL VARIABLES:
-  !
+!
+! !REMARKS:
+!  Reference:
+!  ============================================================================
+!  C. A. McLinden, S. Olsen, B. Hannegan, O. Wild, M. J. Prather, and
+!  J. Sundet, "Stratospheric Ozone in 3-D models: A simple chemistry
+!  and the cross-tropopause flux".
+!                                                                             .
+!  %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+!  %%%% NOTE: This SYNOZ scheme is now obsolete, replaced by LINOZ   %%%%
+!  %%%% We keep this for backwards compatibility w/ older met fields %%%%
+!  %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+! 
+! !REVISION HISTORY:
+!  13 Dec 1999 - Q. Li, R. Martin - Initial version
+!  (1 ) The parameter Rdg0 from "CMN_GCTM" = R / g0 = 28.97. 
+!  (2 ) Pass PW = PS - PTOP to UPBDFLX via "CMN".
+!  (3 ) Now pass IORD, JORD, KORD as arguments (bmy, 12/6/00)
+!  (4 ) Now compute the proper value of PO3_vmr that will yield 475 Tg O3/yr
+!        for various settings of IORD, JORD, KORD (rvm, bey, bmy, 12/5/00)
+!                                                                             .
+!        **************************************************************
+!        ***** You must use this version of UPBDFLX_O3 if you are *****
+!        ***** using the Parallel Processor TPCORE v. 7.1         *****
+!        **************************************************************
+!                                                                             .
+!  (5 ) Added to "upbdflx_mod.f".  Also updated comments and made some
+!        cosmetic changes. (bmy, 6/28/01)
+!  (6 ) Now reference CMN_SETUP for LSPLIT.  Also store strat O3 into
+!        tracer #11 for multi-tracer Ox run. (amf, bmy, 7/3/01)
+!  (7 ) Removed IREF, JREF -- these are obsolete.  Also T(IREF,JREF,L) is
+!        now T(I,J,L). (bmy, 9/27/01)
+!  (8 ) Also replace PW(I,J) with P(I,J) (bmy, 10/3/01)
+!  (9 ) Removed obsolete commented out code from 9/01 (bmy, 10/24/01)
+!  (10) Removed obsolete commented out code from 7/01 (bmy, 11/26/01)
+!  (11) Now write file names to stdout (bmy, 4/3/02)
+!  (12) Replaced all instances of IM with IIPAR and JM with JJPAR, in order
+!        to prevent namespace confusion for the new TPCORE (bmy, 6/25/02)
+!  (13) Now use GET_PEDGE and GET_PCENTER from "pressure_mod.f" to compute
+!        the pressure at the bottom edge and center of grid box (I,J,L).
+!        Also removed obsolete, commented-out code.  Removed G_SIG and
+!        G_SIGE from the arg list. (dsa, bdf, bmy, 8/21/02)
+!  (14) Now reference BXHEIGHT and T from "dao_mod.f".  Also reference routine
+!        ERROR_STOP from "error_mod.f".  Now references IDTOX from F90 module
+!        "tracerid_mod.f" instead of from "comtrid.h". (bmy, 11/6/02)
+!  (15) Now define J30S and J30N for 1x1 nested grid (bmy, 3/11/03)
+!  (16) Make sure to pass AD via "dao_mod.f" for GEOS-1 (bnd, bmy, 4/14/03)
+!  (17) On the first timestep, print how much O3 flux is coming down from the 
+!        stratosphere in Tg/yr. (mje, bmy, 8/15/03)
+!  (18) Change O3 flux to 500 Tg/yr for GEOS-3 (mje, bmy, 9/15/03)
+!  (19) Now calls routine ADD_STRAT_POX from "tagged_ox_mod.f" in order to
+!        pass stratospheric flux of Ox to the proper tagged tracer w/o
+!        resorting to hardwiring w/in this routine. (bmy, 8/18/03)
+!  (20) Add GEOS_4 to the #if defined block. (bmy, 1/29/04)
+!  (21) Activated parallel DO-loops.  Now made STFLUX a local array
+!        in order to facilitate parallelization. (bmy, 4/15/04)
+!  (22) Removed IORD, JORD, KORD from the arg list.  Now reference STT and
+!        ITS_A_TAGOX_SIM from "tracer_mod.f".  (bmy, 7/20/04)
+!  (23) Use an #ifdef block to comment out an EXIT statement from w/in a
+!        parallel loop for COMPAQ compiler.  COMPAQ seems to have some 
+!        problems with this.  Now supports 1x125 grid. (auvray, bmy, 12/1/04)
+!  (24) Now modified for GEOS-5 and GCAP met fields (swu, bmy, 5/25/05)
+!  (25) Remove support for GEOS-1 and GEOS-STRAT met fields (bmy, 8/4/06)
+!  (26) Now set J30S and J30N for GEOS-5 nested grid (yxw, dan, bmy, 11/6/08)
+!  (27) Remove support for COMPAQ compiler (bmy, 7/8/09)
+!  (28) Now do not call ADD_STRAT_POx for tagged Ox (dbj, bmy, 10/16/09)
+!  13 Aug 2010 - R. Yantosca - Treat MERRA like GEOS-5 (bmy, 8/13/10)
+!  02 Dec 2010 - R. Yantosca - Added ProTeX headers
+!  08 Feb 2012 - R. Yantosca - Treat GEOS-5.7.2 in the same way as MERRA
+!  10 Feb 2012 - R. Yantosca - Modified for 0.25 x 0.3125 grids
+!  28 Feb 2012 - R. Yantosca - Removed support for GEOS-3
+!  28 Apr 2012 - L. Murray - Moved from upbdflx_mod.F to here, modified to 
+!                 F90, renamed from UPBDFLX_O3 to DO_SYNOZ. Use chem timestep
+!                 now. Also, removed INIT_UPBDFLX, which was last used for 
+!                 GEOS-3.
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+!
+! !LOCAL VARIABLES:
+!
     LOGICAL, SAVE        :: FIRST = .TRUE.
     INTEGER              :: I, J, L, L70mb
     INTEGER              :: NTRACER, NTRACE2
@@ -1669,25 +1669,25 @@ CONTAINS
     ENDIF
 
   END SUBROUTINE Do_Synoz
-  !EOC
-  !----------------------------------------------------------------------------
-  !         Harvard University Atmospheric Chemistry Modeling Group           !
-  !----------------------------------------------------------------------------
-  !BOP
-  !
-  ! !IROUTINE: upbdflx_HD
-  !
-  ! !DESCRIPTION: Subroutine UPBDFLX\_HD establishes the flux boundary 
-  ! condition for HD coming down from the stratosphere. This is adapted from 
-  ! the UPBDFLX\_O3 routine.
-  !\\
-  !\\
-  ! !INTERFACE:
-  !
+!EOC
+!------------------------------------------------------------------------------
+!          Harvard University Atmospheric Chemistry Modeling Group            !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: upbdflx_hd
+!
+! !DESCRIPTION: Subroutine UPBDFLX\_HD establishes the flux boundary 
+! condition for HD coming down from the stratosphere. This is adapted from 
+! the UPBDFLX\_O3 routine.
+!\\
+!\\
+! !INTERFACE:
+!
   SUBROUTINE UPBDFLX_HD
-  !
-  ! !USES:
-  !
+!
+! !USES:
+!
     USE DAO_MOD,      ONLY : AD, BXHEIGHT, T
     USE ERROR_MOD,    ONLY : ERROR_STOP
     USE PRESSURE_MOD, ONLY : GET_PEDGE, GET_PCENTER
@@ -1697,38 +1697,38 @@ CONTAINS
     
     USE CMN_SIZE_MOD     ! Size parameters
     USE CMN_GCTM_MOD     ! Rdg0
-  !
-  ! !REMARKS:
-  !  Instead of calculating the fractionation of H2 in the stratosphere 
-  !  (where we would have to take into account fractionation of CH4),
-  !  we simply set the HD tracer concentrations in the stratosphere to
-  !  reproduce observed profiles in the UT/LS.
-  !                                                                         
-  !  References:
-  !  =========================================================================
-  !  (1) "Global Budget of Molecular Hydrogen and its Deuterium Content: 
-  !       Constraints from Ground Station, Cruise, and Aircraft Observations" 
-  !       Price, H., L. Jaeglé, A. Rice, P. Quay, P.C. Novelli, R. Gammon, 
-  !       submitted to J. Geophys. Res., 2007.
-  ! 
-  ! !REVISION HISTORY: 
-  !  18 Sep 2007 - L. Jaegle, H. U. Price, P. Le Sager - Initial version
-  !  (1 ) First adapted from UPBDFLX_O3 (G-C v5-05-03) then merged w/ v7-04-12.
-  !        Added parallel DO loops. (phs, 9/18/07)
-  !  (26) Now set J30S and J30N for GEOS-5 nested grid (yxw, dan, bmy, 11/6/08)
-  !  (27) Remove support for COMPAQ compiler (bmy, 7/8/09)
-  !  13 Aug 2010 - R. Yantosca - Treat MERRA like GEOS-5
-  !  02 Dec 2010 - R. Yantosca - Added ProTeX headers
-  !  08 Feb 2012 - R. Yantosca - Treat GEOS-5.7.2 in the same way as MERRA
-  !  10 Feb 2012 - R. Yantosca - Modified for 0.25 x 0.3125 grids
-  !  28 Feb 2012 - R. Yantosca - Removed support for GEOS-3
-  !  20 Jun 2012 - L. Murray - Moved from upbdflx_mod.F to here.
-  !EOP
-  !-----------------------------------------------------------------------------
-  !BOC
-  !
-  ! !LOCAL VARIABLES:
-  !
+!
+! !REMARKS:
+!  Instead of calculating the fractionation of H2 in the stratosphere 
+!  (where we would have to take into account fractionation of CH4),
+!  we simply set the HD tracer concentrations in the stratosphere to
+!  reproduce observed profiles in the UT/LS.
+!                                                                         
+!  References:
+!  ============================================================================
+!  (1) "Global Budget of Molecular Hydrogen and its Deuterium Content: 
+!       Constraints from Ground Station, Cruise, and Aircraft Observations" 
+!       Price, H., L. Jaeglé, A. Rice, P. Quay, P.C. Novelli, R. Gammon, 
+!       submitted to J. Geophys. Res., 2007.
+! 
+! !REVISION HISTORY: 
+!  18 Sep 2007 - L. Jaegle, H. U. Price, P. Le Sager - Initial version
+!  (1 ) First adapted from UPBDFLX_O3 (G-C v5-05-03) then merged w/ v7-04-12.
+!        Added parallel DO loops. (phs, 9/18/07)
+!  (26) Now set J30S and J30N for GEOS-5 nested grid (yxw, dan, bmy, 11/6/08)
+!  (27) Remove support for COMPAQ compiler (bmy, 7/8/09)
+!  13 Aug 2010 - R. Yantosca - Treat MERRA like GEOS-5
+!  02 Dec 2010 - R. Yantosca - Added ProTeX headers
+!  08 Feb 2012 - R. Yantosca - Treat GEOS-5.7.2 in the same way as MERRA
+!  10 Feb 2012 - R. Yantosca - Modified for 0.25 x 0.3125 grids
+!  28 Feb 2012 - R. Yantosca - Removed support for GEOS-3
+!  20 Jun 2012 - L. Murray - Moved from upbdflx_mod.F to here.
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+!
+! !LOCAL VARIABLES:
+!
     INTEGER              :: I, J, L, L70mb
     INTEGER              :: NTRACER
     REAL*8               :: P1, P2, P3, T1, T2, DZ, ZUP
@@ -1913,4 +1913,3 @@ CONTAINS
   END SUBROUTINE UPBDFLX_HD
 !EOC
 END MODULE STRAT_CHEM_MOD
-!EOC
