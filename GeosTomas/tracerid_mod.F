@@ -259,6 +259,9 @@
       INTEGER            :: IDTPYPAN,IDTMAP
       INTEGER            :: IDTAP
 
+      ! For tagged Ox simulation
+      INTEGER            :: IDTOxStrt
+
       INTEGER		 :: IDTHCOOH, IDTACTA  ! (mjc, 4/13/11)
 
       ! TOMAS tracer ID's  !(win, 6/23/09)
@@ -1030,6 +1033,13 @@
 
             CASE (  'PYPAN'  )
                IDTPYPAN  = N
+
+            !--------------------------------
+            ! Tagged Ox Tracers
+            !--------------------------------
+             
+            CASE ( 'OXSTRT' )
+               IDTOxStrt = N
 
             !--------------------------------
             ! Rn-Pb-Be tracers
@@ -2758,7 +2768,8 @@
       IDTBCPO   = 0
       IDTOCPO   = 0
 
-
+      IDTOxStrt = 0
+      
       IDTALPH   = 0
       IDTLIMO   = 0
       IDTALCO   = 0

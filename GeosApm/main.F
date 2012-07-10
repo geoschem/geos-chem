@@ -46,6 +46,7 @@
       USE MERCURY_MOD           ! For offline Hg simulation (driver)
       USE OCEAN_MERCURY_MOD     ! For offline Hg simulation (ocean model)
       USE SOAPROD_MOD           ! For SOA simulation
+      USE STRAT_CHEM_MOD        ! For linearized stratospheric chemistry
       USE TOMS_MOD              ! For overhead O3 columns (for FAST-J)
       USE UVALBEDO_MOD          ! For reading UV albedoes (for FAST-J)
 
@@ -82,7 +83,6 @@
       USE TPCORE_BC_MOD         ! For nested-grid boundary conditions
       USE TRANSPORT_MOD         ! Driver routines for advection
       USE TROPOPAUSE_MOD        ! For the dynamic tropopause
-      USE UPBDFLX_MOD           ! For Ox, NOx strat boundary conditions
       USE VDIFF_MOD             ! For non-local PBL mixing (J. Lin)
 
       !-----------------------------------------------------------------
@@ -192,6 +192,7 @@
 !                              here so that we don't have to call it from 
 !                              megan_mod.F and mercury_mod.F separately.
 !  17 Apr 2012 - R. Yantosca - Need to set the mapping variable to NULL()
+!  10 Jun 2012 - L. Murray   - Remove references to UPBDFLX_MOD.F
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -365,6 +366,9 @@
       CALL READ_RESTART_FILE( NYMDb, NHMSb )
       IF ( LPRT ) CALL DEBUG_MSG( '### MAIN: a READ_RESTART_FILE' )
 
+      ! Capture initial state of atmosphere for STE flux calc (ltm, 06/10/12)
+      IF ( LSCHEM ) CALL INIT_STRAT_CHEM
+
       ! add support for making restart files of APROD and GPROD (dkh, 11/09/06)  
       IF ( LSOA ) THEN
 
@@ -469,6 +473,9 @@
             !    *****  W R I T E   R E S T A R T   F I L E S  *****
             !===========================================================
             IF ( LSVGLB ) THEN
+
+               ! Determine and print STE fluxes (ltm, 06/10/12)
+               IF ( LSCHEM ) CALL CALC_STE
 
                ! Make atmospheric restart file
                CALL MAKE_RESTART_FILE( NYMD, NHMS, TAU )
@@ -736,10 +743,12 @@
             IF ( LPRT ) CALL DEBUG_MSG( '### MAIN: a CONVERT_UNITS:1' )
          ENDIF
 
-         !==============================================================
-         !     ***** S T R A T O S P H E R I C   F L U X E S *****
-         !==============================================================
-         IF ( LUPBD ) CALL DO_UPBDFLX
+!%%%!    ltm: As of v9-01-03, UPBDFLX and SCHEM are depreciated. These
+!%%%!    subroutines and their children will be removed in the future.
+!%%%!    !==============================================================
+!%%%!    !     ***** S T R A T O S P H E R I C   F L U X E S *****
+!%%%!    !==============================================================
+!%%%!    IF ( LUPBD ) CALL DO_UPBDFLX
 
          !==============================================================
          !              ***** T R A N S P O R T *****
@@ -756,10 +765,12 @@
             ! Reset air mass quantities
             CALL AIRQNT
 
-            ! Repartition [NOy] species after transport
-            IF ( LUPBD .and. ITS_A_FULLCHEM_SIM() ) THEN
-               CALL UPBDFLX_NOY( 2 )
-            ENDIF   
+!%%%!    ltm: As of v9-01-03, UPBDFLX and SCHEM are depreciated. These
+!%%%!    subroutines and their children will be removed in the future.
+!%%%!    ! Repartition [NOy] species after transport
+!%%%!       IF ( LUPBD .and. ITS_A_FULLCHEM_SIM() ) THEN
+!%%%!            CALL UPBDFLX_NOY( 2 )
+!%%%!       ENDIF   
 
 #if   !defined( GEOS_5 ) && !defined( MERRA ) && !defined( GEOS_57 )
             ! Get relative humidity (after recomputing pressures)

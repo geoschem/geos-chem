@@ -21,8 +21,8 @@
 !
 ! !PUBLIC DATA MEMBERS:
 !
-      REAL*8, PUBLIC, ALLOCATABLE :: H2O2s(:,:,:)   ! Save H2O2 and SO2 [v/v]
-      REAL*8, PUBLIC, ALLOCATABLE :: SO2s(:,:,:)    !  for sulfate chemistry
+      REAL*8, PUBLIC, ALLOCATABLE, TARGET :: H2O2s(:,:,:)   ! Save H2O2 and SO2 [v/v]
+      REAL*8, PUBLIC, ALLOCATABLE, TARGET :: SO2s(:,:,:)    !  for sulfate chemistry
 #if   defined( APM )
       REAL*8, PUBLIC, ALLOCATABLE :: SO2GAINED(:,:,:)
       REAL*8, PUBLIC, ALLOCATABLE :: SO2WETLOSS(:,:,:)
@@ -142,6 +142,7 @@
 !  01 Aug 2011 - H. Amos - Bug fix for function WASHFRAC_LIQ_GAS
 !  01 Aug 2011 - H. Amos - Updated comments
 !  09 Feb 2012 - R. Yantosca - Add modifications for GEOS-5.7.x
+!  21 Jun 2012 - R. Yantosca - Declare H2O2s, SO2s as TARGETs for pointers
 !EOP
 !------------------------------------------------------------------------------
 !BOC

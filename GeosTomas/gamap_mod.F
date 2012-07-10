@@ -1453,7 +1453,7 @@
 !  03 Aug 2010 - R. Yantosca - Added ProTeX headers
 !  13 Aug 2010 - R. Yantosca - Treat MERRA in the same way as GEOS-5
 !  02 Sep 2010 - R. Yantosca - In ND28: Omit SOA tracers if LSOA = .FALSE.
-!  09-Dec-2010 - H. Amos     - Added RGM, RPM, Fg, and Fp tracers for the
+!  09-Dec-2010 - H. Amos     - Added RGM and PBM  tracers for the
 !                              mercury simulation
 !  09-Dec-2010 - H. Amos     - fix spacing and #s for PL-HG2-$ diagnostics
 !  12 Nov 2010 - R. Yantosca - Need to save out surface pressure line to 
@@ -1487,6 +1487,15 @@
       !----------------------------------
       ! General tracer information
       !----------------------------------
+
+!hma,20120323
+      !Do not print HgP in the IJ-AVG-$ field.
+      !HgP is now emitted and treated as Hg2, so all HgP IJ-AVG-$
+      !  fields are just zeroes
+      IF ( ITS_A_MERCURY_SIM() ) THEN
+         N_TRACERS = N_TRACERS - 1
+      ENDIF
+
       DO T = 1, N_TRACERS
 
          ! Store quantities for each tracer
@@ -1646,12 +1655,12 @@
                   FNAME(T,03) = 'Hg soil emissions'
                   UNIT (T,03) = 'kg'
                   INDEX(T,03) = T + ( SPACING * 34 )
-               CASE(16 )
+               CASE( 16 )
                   NAME (T,03) = 'Hg_up'
                   FNAME(T,03) = 'Hg ocean up flux'
                   UNIT (T,03) = 'kg'
                   INDEX(T,03) = T + ( SPACING * 34 )
-               CASE(17 )
+               CASE( 17 )
                   NAME (T,03) = 'Hg_down'
                   FNAME(T,03) = 'Hg ocean downflux'
                   UNIT (T,03) = 'kg'
@@ -1711,22 +1720,12 @@
                   NAME (T,03) = 'BrO'
                   FNAME(T,03) = 'BrO concentration'
                   INDEX(T,03) = ( N ) + ( SPACING * 35 )
-               CASE( 9 )    
-                  NAME (T,03) = 'Fg'
-                  FNAME(T,03) = 'Hg2 gas fraction'
-                  UNIT (T,03) = 'unitless'  
-                  INDEX(T,03) = ( N ) + ( SPACING * 35 )
-               CASE( 10 )
-                  NAME (T,03) = 'Fp'
-                  FNAME(T,03) = 'Hg2 particle fraction'
-                  UNIT (T,03) = 'unitless'
-                  INDEX(T,03) = ( N ) + ( SPACING * 35 ) 
-               CASE( 11 )
-                  NAME (T,03) = 'RPM'
-                  FNAME(T,03) = 'Reactive particulate mercury'
+               CASE( 9 )
+                  NAME (T,03) = 'PBM'
+                  FNAME(T,03) = 'Particle bound mercury'
                   UNIT (T,03) = 'pptv'
                   INDEX(T,03) = ( N ) + ( SPACING * 35 )      
-               CASE( 12 )
+               CASE( 10 )
                   NAME (T,03) = 'RGM'
                   FNAME(T,03) = 'Reactive gaseous mercury'
                   UNIT (T,03) = 'pptv'

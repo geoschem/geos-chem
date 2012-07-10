@@ -5334,7 +5334,8 @@ c
       CHARACTER(LEN=255)            :: FILENAME
 ![eml
       CHARACTER(LEN=  4)            :: CHISTYR
-      REAL*4                        :: GENERIC_1x1(I1x1,J1x1-1,1)
+!     REAL*4                        :: GENERIC_1x1(I1x1,J1x1-1,1)
+      REAL*4                        :: GENERIC_1x1(IIPAR,JJPAR,1)
 
 !eml]
 
@@ -7558,7 +7559,7 @@ c
          ! GET gas mixing ratio [v/v]
          XGASMIX = XGASM / XMW / ( XAIRM / 28.97d0 )
 
-#if   defined( GEOS_5 ) || defined( MERRA )
+#if   defined( GEOS_5 ) || defined( MERRA ) || defined( GEOS_57 )
 
          !---------------------------------------------
          ! GEOS-5/MERRA: Get LWC, FC from met fields
@@ -8005,7 +8006,7 @@ c
          IF ( AS /= 0 ) CALL ALLOC_ERR( 'ORVC_SESQ' )
          ORVC_SESQ = 0d0
 
-#if   !defined( GEOS_5 ) && !defined( MERRA )
+#if   !defined( GEOS_5 ) && !defined( MERRA ) && !defined( GEOS_57 )
          ! If we are using GEOS-5 or MERRA met, then get the cloud fraction 
          ! directly from the met fields.  (skim, bmy, 1/14/10)
          ALLOCATE( VCLDF( IIPAR, JJPAR, LLTROP ), STAT=AS )

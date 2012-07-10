@@ -85,7 +85,7 @@
       USE H2_HD_MOD,       ONLY : CHEM_H2_HD
       USE HCN_CH3CN_MOD,   ONLY : CHEM_HCN_CH3CN
       USE ISOROPIAII_MOD,  ONLY : DO_ISOROPIAII
-      USE LOGICAL_MOD,     ONLY : LCARB, LCHEM,  LCRYST, LDUST
+      USE LOGICAL_MOD,     ONLY : LCARB, LCHEM,  LCRYST, LDUST, LSCHEM
       USE LOGICAL_MOD,     ONLY : LPRT,  LSSALT, LSULF,  LSOA
       USE MERCURY_MOD,     ONLY : CHEMMERCURY
       USE OPTDEPTH_MOD,    ONLY : OPTDEPTH
@@ -93,6 +93,7 @@
       USE RPMARES_MOD,     ONLY : DO_RPMARES
       USE SEASALT_MOD,     ONLY : CHEMSEASALT
       USE SULFATE_MOD,     ONLY : CHEMSULFATE
+      USE STRAT_CHEM_MOD,  ONLY : DO_STRAT_CHEM
       USE TAGGED_CO_MOD,   ONLY : CHEM_TAGGED_CO
       USE TAGGED_OX_MOD,   ONLY : CHEM_TAGGED_OX
       USE TIME_MOD,        ONLY : GET_ELAPSED_MIN, GET_TS_CHEM
@@ -200,13 +201,16 @@
             CONCTMPSO4 = STT(:,:,:,IDTSO4)
 #endif
 
-            ! Call SMVGEAR routines
+            ! Call SMVGEAR routines for tropospheric chemistry
             CALL CHEMDR
 
 #if   defined( APM )
             ! Obtain SO4 production after chemistry
             PSO4GAS = STT(:,:,:,IDTSO4) - CONCTMPSO4
 #endif
+
+            ! Call linearized stratospheric scheme
+            IF ( LSCHEM ) CALL DO_STRAT_CHEM
 
             ! Do seasalt aerosol chemistry
             IF ( LSSALT ) CALL CHEMSEASALT
@@ -358,6 +362,9 @@
           ELSE IF ( ITS_A_TAGOX_SIM() ) THEN 
              CALL CHEM_TAGGED_OX
  
+            ! Call linearized stratospheric scheme
+            IF ( LSCHEM ) CALL DO_STRAT_CHEM
+
           !---------------------------------
           ! Tagged CO
           !---------------------------------
@@ -394,6 +401,7 @@
           ELSE IF ( ITS_A_H2HD_SIM() ) THEN
              CALL CHEM_H2_HD
              CALL DRYFLXH2HD
+             CALL DO_STRAT_CHEM
   
           ENDIF
 

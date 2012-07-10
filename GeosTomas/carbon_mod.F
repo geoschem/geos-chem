@@ -1358,6 +1358,9 @@
             ! Get 1-D index
             JLOOP   = JLOP( I, J, L )
 
+            ! JLOP equal 0 if we're not in the tropopause. (ccc,10/16/09)
+            IF ( JLOOP == 0 ) CYCLE
+
             ! Get RH  
             XRH     = RH( I, J, L )   ![%]
 
@@ -1560,6 +1563,9 @@
 
             ! Get 1-D index
             JLOOP   = JLOP( I, J, L )
+
+            ! JLOP equal 0 if we're not in the tropopause. (ccc,10/16/09)
+            IF ( JLOOP == 0 ) CYCLE
 
             ! Get RH  
             XRH     = RH( I, J, L )   ![%]
@@ -5276,7 +5282,8 @@ ccc
       CHARACTER(LEN=255)            :: FILENAME
 ![eml
       CHARACTER(LEN=  4)            :: CHISTYR
-      REAL*4                        :: GENERIC_1x1(I1x1,J1x1-1,1)
+!     REAL*4                        :: GENERIC_1x1(I1x1,J1x1-1,1)
+      REAL*4                        :: GENERIC_1x1(IIPAR,JJPAR,1)
 
 !eml]
 
@@ -7487,7 +7494,7 @@ ccc
          ! GET gas mixing ratio [v/v]
          XGASMIX = XGASM / XMW / ( XAIRM / 28.97d0 )
 
-#if   defined( GEOS_5 ) || defined( MERRA )
+#if   defined( GEOS_5 ) || defined( MERRA ) || defined( GEOS_57 )
 
          !---------------------------------------------
          ! GEOS-5/MERRA: Get LWC, FC from met fields
@@ -7923,7 +7930,7 @@ ccc
          IF ( AS /= 0 ) CALL ALLOC_ERR( 'ORVC_SESQ' )
          ORVC_SESQ = 0d0
 
-#if   !defined( GEOS_5 ) && !defined( MERRA )
+#if   !defined( GEOS_5 ) && !defined( MERRA ) && !defined( GEOS_57 )
          ! If we are using GEOS-5 or MERRA met, then get the cloud fraction 
          ! directly from the met fields.  (skim, bmy, 1/14/10)
          ALLOCATE( VCLDF( IIPAR, JJPAR, LLTROP ), STAT=AS )
@@ -7975,8 +7982,16 @@ ccc
       I2_NA = IIPAR
       J2_NA = JJPAR
 
-#elif defined( NESTED_CH ) || defined( SEAC4RS )
-      ! For 1x1 China nested grid: we don't cover N. America region
+#elif defined( NESTED_CH )
+      ! For China nested grids: we don't cover N. America region
+      ! Setting these to zero will turn off Cooke/RJP emissions
+      I1_NA = 0
+      J1_NA = 0
+      I2_NA = 0
+      J2_NA = 0
+
+#elif defined ( SEAC4RS )
+      ! For SEAC4RS nested grid: we don't cover N. America region
       ! Setting these to zero will turn off Cooke/RJP emissions
       I1_NA = 0
       J1_NA = 0
