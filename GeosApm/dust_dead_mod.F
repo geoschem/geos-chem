@@ -145,9 +145,11 @@
 !  (7 ) Modifications for 0.5 x 0.667 grid (yxw, dan, bmy, 11/6/08)
 !  (8 ) Updates for nested grids (amv, bmy, 12/18/09)
 !  28 Feb 2012 - R. Yantosca - Removed support for GEOS-3
+!  01 Mar 2012 - R. Yantosca - Now reference new grid_mod.F90
 !******************************************************************************
 !
       IMPLICIT NONE
+#     include "define.h"
 
       !=================================================================
       ! MODULE PRIVATE DECLARATIONS -- keep certain internal variables
@@ -342,7 +344,19 @@
       !--------------
 
       ! Global mass flux tuning factor (a posteriori) [frc]
-#if   defined( GEOS_5 ) && defined( GRID05x0666 )
+#if   defined( GEOS_57 ) && defined( GRID025x03125 )
+
+      ! Copy GEOS-5, 05x0667 resolution scaling factors for now
+      ! (skim, 5/20/12)
+
+#elif defined(NESTED_CH)  
+      REAL*8,  PARAMETER     :: FLX_MSS_FDG_FCT = 3.23d-4
+#elif defined(SEAC4RS)
+      REAL*8,  PARAMETER     :: FLX_MSS_FDG_FCT = 4.54d-4
+#endif
+
+      ! Global mass flux tuning factor (a posteriori) [frc]
+#elif   defined( GEOS_5 ) && defined( GRID05x0666 )
 
 #if defined(NESTED_CH)  
       ! retuned based upon updated GEOS-4 tuning (amv, Nov 9, 2009)
@@ -395,10 +409,9 @@
 
 #elif defined( GEOS_57 ) && defined( GRID4x5 )
 
-      !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-      !%%% NOTE: USE SAME VALUE AS MERRA 4x5 FOR NOW!                    %%%
-      !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-      REAL*8,  PARAMETER     :: FLX_MSS_FDG_FCT = 7.0d-4 / 0.731d0
+      ! Based on results from GEOS 5.7 for September 2011
+      ! (skim, 5/25/12)
+      REAL*8,  PARAMETER     :: FLX_MSS_FDG_FCT = 7.0d-4 * 1.272d0
 
 #else
 

@@ -168,6 +168,7 @@
       ! BC_NA    : Array containing NA tracers on coarse grid
       ! BC_EU    : Array containing EU tracers on coarse grid
       ! BC_CH    : Array containing CH tracers on coarse grid
+      ! BC_SE    : Array containing SEAC4RS tracers on coarse grid
       ! MAP1x1   : Mapping array from 1x1 -> 4x5 grid
       !=================================================================
 
@@ -181,6 +182,8 @@
       INTEGER              :: I2_BC_EU, J2_BC_EU, IM_BC_EU, JM_BC_EU
       INTEGER              :: I0_BC_CH, J0_BC_CH, I1_BC_CH, J1_BC_CH
       INTEGER              :: I2_BC_CH, J2_BC_CH, IM_BC_CH, JM_BC_CH
+      INTEGER              :: I0_BC_SE, J0_BC_SE, I1_BC_SE, J1_BC_SE
+      INTEGER              :: I2_BC_SE, J2_BC_SE, IM_BC_SE, JM_BC_SE
       INTEGER              :: TS_BC
 
       ! Arrays
@@ -189,6 +192,7 @@
       REAL*4,  ALLOCATABLE :: BC_NA (:,:,:,:)
       REAL*4,  ALLOCATABLE :: BC_EU (:,:,:,:)
       REAL*4,  ALLOCATABLE :: BC_CH (:,:,:,:)
+      REAL*4,  ALLOCATABLE :: BC_SE (:,:,:,:)
 
       !=================================================================
       ! MODULE ROUTINES -- follow below the "CONTAINS" statement
@@ -203,7 +207,7 @@
 ! !IROUTINE: 
 !
 ! !DESCRIPTION: Subroutine SET\_CLEAN\_BC initializes the CLEAN\_BC logical 
-!  flag.  CLEAN_BC decides whether or not we will zero the nested-grid 
+!  flag.  CLEAN\_BC decides whether or not we will zero the nested-grid 
 !  tpcore boundary conditions.
 !\\
 !\\
@@ -250,8 +254,10 @@
       USE BPCH2_MOD,     ONLY : OPEN_BPCH2_FOR_READ
       USE DIRECTORY_MOD, ONLY : TPBC_DIR,     TPBC_DIR_NA
       USE DIRECTORY_MOD, ONLY : TPBC_DIR_CH,  TPBC_DIR_EU
+      USE DIRECTORY_MOD, ONLY : TPBC_DIR_SE
       USE FILE_MOD,      ONLY : IU_BC,        IU_BC_NA
       USE FILE_MOD,      ONLY : IU_BC_EU,     IU_BC_CH
+      USE FILE_MOD,      ONLY : IU_BC_SE
       USE TIME_MOD,      ONLY : EXPAND_DATE,  GET_NYMD
       USE TIME_MOD,      ONLY : ITS_A_NEW_DAY
 
@@ -287,13 +293,15 @@
       IF ( ITS_A_NEW_DAY(.TRUE.) ) THEN
 
          ! File name for BC's
-         IF ( WINDOW .eq. 5 ) THEN
+         IF ( WINDOW .eq. 6 ) THEN
 #if   defined( NESTED_NA )
             FILENAME = TRIM( TPBC_DIR_NA ) // 'BC.YYYYMMDD'
 #elif defined( NESTED_EU )
             FILENAME = TRIM( TPBC_DIR_EU ) // 'BC.YYYYMMDD'
 #elif defined( NESTED_CH )
             FILENAME = TRIM( TPBC_DIR_CH ) // 'BC.YYYYMMDD'
+#elif defined( SEAC4RS )
+            FILENAME = TRIM( TPBC_DIR_SE ) // 'BC.YYYYMMDD'
 #endif
          ELSEIF ( WINDOW .eq. 1 ) THEN
             FILENAME = TRIM( TPBC_DIR ) // 'BC.YYYYMMDD'
@@ -303,6 +311,8 @@
             FILENAME = TRIM( TPBC_DIR_EU ) // 'BC.YYYYMMDD'
          ELSEIF ( WINDOW .eq. 4 ) THEN
             FILENAME = TRIM( TPBC_DIR_CH ) // 'BC.YYYYMMDD'
+         ELSEIF ( WINDOW .eq. 5 ) THEN
+            FILENAME = TRIM( TPBC_DIR_SE ) // 'BC.YYYYMMDD'
          ENDIF
          
          ! Replace YYYYMMDD with the actual date
@@ -312,7 +322,7 @@
          WRITE( 6, 100 ) TRIM( FILENAME )
  100     FORMAT( '     - OPEN_BC_FILE: Opening ', a )
 
-         IF ( WINDOW .eq. 5 ) THEN
+         IF ( WINDOW .eq. 6 ) THEN
             IF ( PRESENT( FOR_READ ) )
      &         CALL OPEN_BPCH2_FOR_READ( IU_BC,    FILENAME )
          ELSEIF ( WINDOW .eq. 1 ) THEN
@@ -327,6 +337,9 @@
          ELSEIF ( WINDOW .eq. 4 ) THEN
             IF ( PRESENT( FOR_WRITE ) )
      &        CALL OPEN_BPCH2_FOR_WRITE( IU_BC_CH, FILENAME )
+         ELSEIF ( WINDOW .eq. 5 ) THEN
+            IF ( PRESENT( FOR_WRITE ) )
+     &        CALL OPEN_BPCH2_FOR_WRITE( IU_BC_SE, FILENAME )
          ENDIF
 
       ENDIF
@@ -359,6 +372,7 @@
       USE TRACER_MOD,  ONLY : N_TRACERS, STT
       USE LOGICAL_MOD, ONLY : LWINDO_CU, LWINDO_NA
       USE LOGICAL_MOD, ONLY : LWINDO_CH, LWINDO_EU
+      USE LOGICAL_MOD, ONLY : LWINDO_SE
 #if   defined( APM )
       USE TRACER_MOD,  ONLY : N_APMTRA
 #endif
@@ -417,7 +431,7 @@
       MODELNAME = GET_MODELNAME()
       TAU       = GET_TAU()
 
-      DO IC = 1, 4
+      DO IC = 1, 5
          IF ((IC .eq. 1) .and. LWINDO_CU )THEN
 
             ! Open file for writing, if necessary
@@ -533,6 +547,35 @@
             WRITE( 6, 113 ) STAMP
  113  FORMAT( '     - SAVE_GLOBAL_TPCORE_BC: Wrote CH BC''s at ', a )
 
+         ELSEIF ((IC .eq. 5) .and. LWINDO_SE )THEN
+
+            ! Open file for writing, if necessary
+            CALL OPEN_BC_FILE( FOR_WRITE=.TRUE., WINDOW=IC)
+
+            ! Loop over each tracer
+            DO N = 1, N_TOT_TRC
+
+               ! Save concentrations in WINDOW REGION to disk
+               DO L = 1, LLPAR
+                  BC_SE(1:IM_BC_SE,1:JM_BC_SE,L,N) =
+     &               STT(I1_BC_SE:I2_BC_SE,J1_BC_SE:J2_BC_SE,L,N)
+               ENDDO
+ 
+               ! Write boundary conditions to binary punch file
+               CALL BPCH2( IU_BC_SE,  MODELNAME, LONRES,   LATRES,
+     &               HALFPOLAR, CENTER180, CATEGORY, N,
+     &               UNIT,   TAU,       TAU,      RESERVED,
+     &               IM_BC_SE,  JM_BC_SE,   LLPAR,  I1_BC_SE,
+     &               J1_BC_SE, 1, BC_SE(1:IM_BC_SE, 1:JM_BC_SE,
+     &               1:LLPAR, N) )
+
+            ENDDO
+
+            ! Echo info
+            STAMP = TIMESTAMP_STRING()
+            WRITE( 6, 114 ) STAMP
+ 114  FORMAT( '   - SAVE_GLOBAL_TPCORE_BC: Wrote SEAC4RS BC''s at ', a )
+            
          ENDIF
       ENDDO
 
@@ -706,6 +749,7 @@
       USE TRACER_MOD,    ONLY : N_TRACERS
       USE LOGICAL_MOD,   ONLY : LWINDO_NA, LWINDO_EU
       USE LOGICAL_MOD,   ONLY : LWINDO_CH, LWINDO_CU
+      USE LOGICAL_MOD,   ONLY : LWINDO_SE
 #if   defined( APM )
       USE TRACER_MOD,    ONLY : N_APMTRA
 #endif
@@ -737,7 +781,7 @@
       N_TOT_TRC = N_TRACERS              ! G-C advected tracers only
 #endif
 
-#if   defined( NESTED_CH ) || defined( NESTED_NA ) || defined( NESTED_EU )
+#if   defined( NESTED_CH ) || defined( NESTED_NA ) || defined( NESTED_EU ) || defined( SEAC4RS )
 !$OMP PARALLEL DO
 !$OMP+DEFAULT( SHARED )
 !$OMP+PRIVATE( I, J, L, N )
@@ -817,6 +861,22 @@
 !$OMP END PARALLEL DO
       ENDIF
 
+      IF ( LWINDO_SE ) THEN
+!$OMP PARALLEL DO 
+!$OMP+DEFAULT( SHARED )
+!$OMP+PRIVATE( I, J, L, N )
+         DO N = 1, N_TOT_TRC
+         DO L = 1, LLPAR
+         DO J = 1, JM_BC_SE
+         DO I = 1, IM_BC_SE
+            BC_SE(I,J,L,N) = 0e0
+         ENDDO
+         ENDDO
+         ENDDO
+         ENDDO
+!$OMP END PARALLEL DO
+      ENDIF
+
       END SUBROUTINE CLEAN_WINDOW_TPCORE_BC
 !EOC
 !------------------------------------------------------------------------------
@@ -879,7 +939,7 @@
       IF ( ITS_TIME_FOR_BC() ) THEN
 
          ! Open boundary conditions file (if necessary) 
-         CALL OPEN_BC_FILE( FOR_READ=.TRUE., WINDOW=5 )
+         CALL OPEN_BC_FILE( FOR_READ=.TRUE., WINDOW=6 )
 
          ! Initialize # of tracers found
          NFOUND = 0
@@ -954,7 +1014,6 @@
 !
 ! !DESCRIPTION: Function GET\_4x5\_BC returns a value from the 4x5 BC 
 !  boundary conditions array at the location of a nested grid box.
- 
 !\\
 !\\
 ! !INTERFACE:
@@ -1001,7 +1060,8 @@
 ! !LOCAL VARIABLES:
 !
       LOGICAL, SAVE :: FIRST = .TRUE.
-      INTEGER       :: I, II, J, JJ, JJ1
+      !clb
+      INTEGER       :: I, II, II1, J, JJ, JJ1
       REAL*8        :: X,         Y
       REAL*8,  SAVE :: XE4x5(73), YE4x5(47)
 
@@ -1049,8 +1109,23 @@
                ! then we have found the proper 4x5 box!
                IF ( X > XE4x5(II) .and. X < XE4x5(II+1) ) THEN
                   MAP1x1(I,J,1) = II
+                  MAP1x1(I,J,2) = 0
+                  EXIT
+               ! Bug fix for 4x5 BCs (clb, 5/29/12)
+               ELSE IF ( X == XE4x5(II) .and. I == 1) THEN
+                  MAP1x1(I,J,1) = II
+                  MAP1x1(I,J,2) = 0
+                  EXIT
+               ELSE IF ( X == XE4x5(II) .and. I .ne. 1) THEN
+                  MAP1x1(I,J,1) = II - 1
+                  MAP1x1(I,J,2) = II
+                  EXIT
+               ELSE IF ( X == XE4x5(II+1) ) THEN
+                  MAP1x1(I,J,1) = II
+                  MAP1x1(I,J,2) = II + 1
                   EXIT
                ENDIF
+
             ENDDO
 
             ! Loop over 4x5 latitudes
@@ -1059,24 +1134,31 @@
                ! If the 1x1 lat center lies between the 4x5 lat
                ! edges, we have found the proper 4x5 box!
                IF ( Y > YE4x5(JJ) .and. Y < YE4x5(JJ+1) ) THEN
-                  MAP1x1(I,J,2) = JJ
-                  MAP1x1(I,J,3) = 0
+                  MAP1x1(I,J,3) = JJ
+                  MAP1x1(I,J,4) = 0
                   EXIT
                   
                ! If the 1x1 lat center equals the 4x5 lower lat
                ! edge, then we need to average this 4x5 box and
                ! the box just south of it
-               ELSE IF ( Y == YE4x5(JJ) ) THEN
-                  MAP1x1(I,J,2) = JJ-1
+               ! Bug fix for 4x5 BCs (clb, 5/29/12)
+               ELSE IF ( Y == YE4x5(JJ) .and. J == 1) THEN
                   MAP1x1(I,J,3) = JJ
+                  MAP1x1(I,J,4) = 0
+                  EXIT
+
+               ELSE IF ( Y == YE4x5(JJ) .and. J .ne. 1) THEN
+                  MAP1x1(I,J,3) = JJ-1
+                  MAP1x1(I,J,4) = JJ
                   EXIT
 
                ! If the 1x1 lat center equals the 4x5 lower lat
                ! edge, then we need to average this 4x5 box and
-               ! the box just north of it                 
+               ! the box just north of it              
+   
                ELSE IF ( Y == YE4x5(JJ+1) ) THEN
-                  MAP1x1(I,J,2) = JJ
-                  MAP1x1(I,J,3) = JJ+1
+                  MAP1x1(I,J,3) = JJ
+                  MAP1x1(I,J,4) = JJ+1
                   EXIT
 
                ENDIF
@@ -1095,15 +1177,21 @@
 
       ! Get lon indices
       II  = MAP1x1( I_1x1, J_1x1, 1 ) - I0_BC
+      II1 = MAP1x1( I_1x1, J_1x1, 2 ) - I0_BC
 
       ! Get lat indices
-      JJ  = MAP1x1( I_1x1, J_1x1, 2 ) - J0_BC
-      JJ1 = MAP1x1( I_1x1, J_1x1, 3 ) - J0_BC
+      JJ  = MAP1x1( I_1x1, J_1x1, 3 ) - J0_BC
+      JJ1 = MAP1x1( I_1x1, J_1x1, 4 ) - J0_BC
 
       ! Locate the 4x5 box(es) corresponding to the 1x1 box
       ! If our 1x1 box straddles 2 4x5 boxes, average the 4x5 values
-      IF ( MAP1x1( I_1x1, J_1x1, 3 ) > 0 ) THEN
-         VALUE = 0.5 * ( BC(II,JJ,L_1x1,N_1x1) + BC(II,JJ1,L_1x1,N_1x1))
+      IF (MAP1x1(I_1x1,J_1x1,2)>0 .and. MAP1x1(I_1x1,J_1x1,4)>0) THEN
+         VALUE = 0.25 * (BC(II,JJ,L_1x1,N_1x1) + BC(II,JJ1,L_1x1,N_1x1)
+     &               + BC(II1,JJ,L_1x1,N_1x1)+ BC(II1,JJ1,L_1x1,N_1x1))
+      ELSE IF (MAP1x1(I_1x1,J_1x1,2)>0 ) THEN
+         VALUE = 0.5 *( BC(II,JJ,L_1x1,N_1x1) + BC(II1,JJ,L_1x1,N_1x1))
+      ELSE IF (MAP1x1(I_1x1,J_1x1,4)>0 ) THEN
+         VALUE = 0.5 *( BC(II,JJ,L_1x1,N_1x1) + BC(II,JJ1,L_1x1,N_1x1))
       ELSE
          VALUE = BC(II,JJ,L_1x1,N_1x1)
       ENDIF
@@ -1333,6 +1421,7 @@
       USE GRID_MOD,      ONLY : ITS_A_NESTED_GRID
       USE LOGICAL_MOD,   ONLY : LWINDO,    LWINDO_NA,  LWINDO_CU
       USE LOGICAL_MOD,   ONLY : LWINDO_EU, LWINDO_CH,  LWINDO2x25
+      USE LOGICAL_MOD,   ONLY : LWINDO_SE
       USE TRACER_MOD,    ONLY : N_TRACERS
 
 #     include "define.h"
@@ -1478,53 +1567,89 @@
       !-----------------------------------------------------------------
       IF (.not. LWINDO2x25 ) THEN 
 
-#if   defined( GRID4x5 ) || defined( NESTED_CH )
+#if   defined( GRID4x5 ) || defined( NESTED_CH ) || defined( SEAC4RS )
 
 #if   defined( GEOS_57 )
-         !%%%%% 4x5 BC REGION FOR SEAC4RS CHINA GRID (GEOS-5.7 only) %%%%%
-         I1_BC_CH = 49                       ! 4x5  lon index, LL corner
-         J1_BC_CH = 19                       ! 4x5  lat index, LL corner
-         I2_BC_CH = 65                       ! 4x5  lon index, UR corner
-         J2_BC_CH = 36                       ! 4x5  lat index, UR corner
+
+         !%%%%% 4x5 BC REGION FOR SEAC4RS GRID (GEOS-5.7 only) %%%%%
+         I1_BC_SE = 52          ! 4x5 lon index, LL corner
+         J1_BC_SE = 21          ! 4x5 lat index, LL corner
+         I2_BC_SE = 63          ! 4x5 lon index, UR corner
+         J2_BC_SE = 31          ! 4x5 lat index, UR corner
+         
+         !%%%%% 4x5 BC REGION FOR NESTED CHINA GRID (GEOS-5.7 only) %%%%%
+         I1_BC_CH = 51          ! 4x5 lon index, LL corner
+         J1_BC_CH = 27          ! 4x5 lat index, LL corner
+         I2_BC_CH = 65          ! 4x5 lon index, UR corner
+         J2_BC_CH = 37          ! 4x5 lat index, UR corner
+
 #else
+
          !%%%%% 4x5 BC REGION FOR TRADITIONAL GEOS-5 CHINA NESTED GRID %%%%%
-         I1_BC_CH = 51                       ! 2x25 lon index, LL corner
-         J1_BC_CH = 21                       ! 2x25 lat index, LL corner
-         I2_BC_CH = 67                       ! 2x25 lon index, UR corner
-         J2_BC_CH = 37                       ! 2x25 lat index, UR corner
+         I1_BC_CH = 51                       ! 4x5 lon index, LL corner
+         J1_BC_CH = 21                       ! 4x5 lat index, LL corner
+         I2_BC_CH = 67                       ! 4x5 lon index, UR corner
+         J2_BC_CH = 37                       ! 4x5 lat index, UR corner
+
 #endif
 
 #endif
 
       ELSE
 
-#if   defined( GRID2x25 ) || defined( NESTED_CH )
+#if   defined( GRID2x25 ) || defined( SEAC4RS ) || defined( NESTED_CH )
 
-#if   defined( GEOS_57 ) 
-         !%%%%% 2x25 BC REGION FOR SEAC4RS CHINA GRID (GEOS-5.7 only) %%%%%
-         I1_BC_CH = 97                       ! 4x5  lon index, LL corner
-         J1_BC_CH = 36                       ! 4x5  lat index, LL corner
-         I2_BC_CH = 129                      ! 4x5  lon index, UR corner
-         J2_BC_CH = 71                       ! 4x5  lat index, UR corner
+#if   defined( GEOS_57 )
+
+         !%%%%% 2x25 BC REGION FOR SEAC4RS GRID (GEOS-5.7 only) %%%%%
+         I1_BC_SE = 103                      ! 2x25 lon index, LL corner
+         J1_BC_SE = 41                       ! 2x25 lat index, LL corner
+         I2_BC_SE = 125                      ! 2x25 lon index, UR corner
+         J2_BC_SE = 61                       ! 2x25 lat index, UR corner
+
+         !%%%%% 2x25 BC REGION FOR NESTED CHINA GRID (GEOS-5.7 only) %%%%%
+         I1_BC_CH = 101                      ! 2x25 lon index, LL corner
+         J1_BC_CH = 53                       ! 2x25 lat index, LL corner
+         I2_BC_CH = 129                      ! 2x25 lon index, UR corner
+         J2_BC_CH = 74                       ! 2x25 lat index, UR corner
+
 #else
-         !%%%%% 4x5 BC REGION FOR TRADITIONAL GEOS-5 CHINA NESTED GRID %%%%%
+
+         !%%%%% 2x25 BC REGION FOR TRADITIONAL GEOS-5 CHINA NESTED GRID %%%%%
          I1_BC_CH = 101                      ! 2x25 lon index, LL corner
          J1_BC_CH = 40                       ! 2x25 lat index, LL corner
          I2_BC_CH = 133                      ! 2x25 lon index, UR corner
          J2_BC_CH = 74                       ! 2x25 lat index, UR corner
+
 #endif
 
 #endif
 
       ENDIF
-       
-      ! Extent of coarse-grid EU BC REGION
-      IM_BC_CH = I2_BC_CH - I1_BC_CH + 1
-      JM_BC_CH = J2_BC_CH - J1_BC_CH + 1
+      
+      IF ( LWINDO_CH ) THEN
  
-      ! TPCORE NA internal transport window offset
-      I0_BC_CH = I1_BC_CH - 1
-      J0_BC_CH = J1_BC_CH - 1
+         ! Extent of coarse-grid CH BC REGION
+         IM_BC_CH = I2_BC_CH - I1_BC_CH + 1
+         JM_BC_CH = J2_BC_CH - J1_BC_CH + 1
+ 
+         ! TPCORE CH internal transport window offset
+         I0_BC_CH = I1_BC_CH - 1
+         J0_BC_CH = J1_BC_CH - 1
+
+      ENDIF
+
+      IF ( LWINDO_SE ) THEN
+
+         ! Extent of coarse-grid SEAC4RS BC REGION
+         IM_BC_SE = I2_BC_SE - I1_BC_SE + 1
+         JM_BC_SE = J2_BC_SE - J1_BC_SE + 1
+ 
+         ! TPCORE SEAC4RS internal transport window offset
+         I0_BC_SE = I1_BC_SE - 1
+         J0_BC_SE = J1_BC_SE - 1
+
+      ENDIF
 
       ! Return if we are not saving 4x5 BC's
       ! or if it's not a nested grid simulation
@@ -1549,6 +1674,14 @@
      &                    LLPAR,    N_TRACERS ), STAT=AS )
          IF ( AS /= 0 ) CALL ALLOC_ERR( 'BC_CH' )
          BC_CH = 0e0
+      ENDIF
+
+      ! Boundary condition array for SEAC4RS REGION
+      IF ( LWINDO_SE ) THEN
+         ALLOCATE( BC_SE( IM_BC_SE, JM_BC_SE, 
+     &                    LLPAR,    N_TRACERS ), STAT=AS )
+         IF ( AS /= 0 ) CALL ALLOC_ERR( 'BC_SE' )
+         BC_SE = 0e0
       ENDIF
 
       ! Boundary condition array for NESTED N. AMERICA REGION
@@ -1581,6 +1714,18 @@
       I0_BC = I0_BC_CH
       J0_BC = J0_BC_CH
 
+#elif defined( SEAC4RS )
+
+      !%%%%% Define boundaries for SEAC4RS GRID %%%%%
+      I1_BC = I1_BC_SE
+      J1_BC = J1_BC_SE
+      I2_BC = I2_BC_SE
+      J2_BC = J2_BC_SE
+      IM_BC = IM_BC_SE
+      JM_BC = JM_BC_SE
+      I0_BC = I0_BC_SE
+      J0_BC = J0_BC_SE
+
 #elif defined( NESTED_NA )
 
       !%%%%% Define boundaries for NESTED NORTH AMERICA GRID %%%%%
@@ -1611,7 +1756,7 @@
       IF ( AS /= 0 ) CALL ALLOC_ERR( 'BC' )
       BC = 0e0
 
-      ALLOCATE( MAP1x1( IIPAR, JJPAR, 3 ) , STAT=AS )
+      ALLOCATE( MAP1x1( IIPAR, JJPAR, 4 ) , STAT=AS )
       IF ( AS /= 0 ) CALL ALLOC_ERR( 'MAP1x1' )
       MAP1x1 = 0
 
@@ -1644,6 +1789,7 @@
       IF ( ALLOCATED( BC_NA  ) ) DEALLOCATE( BC_NA  )
       IF ( ALLOCATED( BC_EU  ) ) DEALLOCATE( BC_EU  )
       IF ( ALLOCATED( BC_CH  ) ) DEALLOCATE( BC_CH  )
+      IF ( ALLOCATED( BC_SE  ) ) DEALLOCATE( BC_SE  )
       IF ( ALLOCATED( MAP1x1 ) ) DEALLOCATE( MAP1x1 )
 
       END SUBROUTINE CLEANUP_TPCORE_BC

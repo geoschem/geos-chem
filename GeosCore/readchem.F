@@ -164,6 +164,12 @@
       ! Initialize flag for HO2 hydrolysis rxn (jaegle, 02/26/09)
       NKHO2          = 0
 
+      ! Initialize flag for BrNO3 hydrolysis rxn (jpp, 5/4/10)
+      NKBrNO3        = 0
+      ! Initialize flags for HOBr + HBr het. pseudo-rxns (jpp, 3/22/11)
+      NKHOBr         = 0
+      NK1HBr         = 0
+
       DO 44 I            = 1, NMDEAD
        NAMD(I)           = ' '
  44   CONTINUE
@@ -440,7 +446,7 @@
       IOXYGEN  = 0
       IH2O     = 0
       ICH4     = 0
-      ILISOPOH =0
+      ILISOPOH = 0
       ! add these as well (dkh, 10/06/06)  
       ILBRO2H = 0
       ILBRO2N = 0
@@ -448,6 +454,9 @@
       ILTRO2N = 0
       ILXRO2H = 0
       ILXRO2N = 0
+      ! and for the new VSL index holders (jpp, 4/15/10)
+      ICH2Br2  = 0
+      ICHBr3   = 0
 
       ! Locate positions of O2, H2O, CH4, LISOPOH in CSPEC array
       DO I = 1, NTSPECGAS
@@ -473,6 +482,10 @@
                ILXRO2H = I
             CASE( 'LXRO2N' )
                ILXRO2N = I
+            CASE( 'CHBr3'   ) ! adding selection of CHBr3
+               ICHBr3   = I
+            CASE( 'CH2Br2'  ) ! adding selection of CH2Br2
+               ICH2Br2  = I
             CASE DEFAULT
                ! Nothing
          END SELECT
@@ -916,6 +929,39 @@
                   ! Same for HO2 hydrolysis rxn (jaegle, 02/26/09)
                   IF ( XINP(1) == 'HO2' ) THEN
                      NKHO2 = NK
+                  ENDIF
+
+                  ! Same for BrNO3 hydrolysis rxn (jpp, 5/4/10)
+                  IF ( XINP(1) == 'BrNO3' ) THEN
+                     NKBrNO3 = NK
+                  ENDIF
+
+                  ! Same for HOBr psuedo-rxn (jpp, 03/22/11)
+                  !   ( HOBr + HBr ---het---> Br2 + H2O )
+                  IF ( (XINP(1) == 'HOBr') .and. 
+     &                 (trim(adjustl(comment)) == 'h1') ) THEN
+                     NKHOBr = NK
+                  ENDIF
+
+                  ! Same for 1st HBr psuedo-rxn (jpp, 03/22/11)
+                  !   ( HOBr + HBr ---het---> Br2 + H2O )
+                  IF ( XINP(1) == 'HBr' .and. 
+     &                 (trim(adjustl(comment)) == 'h1') ) THEN
+                     NK1HBr = NK
+                  ENDIF
+
+                  ! Now the HOBr ice psuedo-rxn (jpp, 06/16/11)
+                  !   ( HOBr + HBr ---ice---> Br2 + H2O )
+                  IF ( (XINP(1) == 'HOBr') .and. 
+     &                 (trim(adjustl(comment)) == 'h2') ) THEN
+                     NK2HOBr = NK
+                  ENDIF
+
+                  ! Now the HOBr ice psuedo-rxn (jpp, 06/16/11)
+                  !   ( HOBr + HBr ---ice---> Br2 + H2O )
+                  IF ( (XINP(1) == 'HBr') .and. 
+     &                 (trim(adjustl(comment)) == 'h2') ) THEN
+                     NK2HBr = NK
                   ENDIF
 
                ENDIF

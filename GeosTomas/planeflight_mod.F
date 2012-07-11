@@ -1082,20 +1082,20 @@
 !
 ! !USES:
 !
-      USE COMODE_MOD,   ONLY : AIRDENS, CSPEC,  JLOP, T3
-      USE COMODE_MOD,   ONLY : VOLUME,  ABSHUM, TAREA
+      USE COMODE_MOD,   ONLY : AIRDENS,        CSPEC,       JLOP
+      USE COMODE_MOD,   ONLY : T3,             VOLUME,      ABSHUM
+      USE COMODE_MOD,   ONLY : TAREA
       USE DIAG_MOD,     ONLY : AD61_INST   ! (win, 7/28/09)
       USE DAO_MOD,      ONLY : AD,             SEAICE00,    SEAICE10
       USE DAO_MOD,      ONLY : SEAICE20,       SEAICE30,    SEAICE40
       USE DAO_MOD,      ONLY : SEAICE50,       SEAICE60,    SEAICE70
-      USE DAO_MOD,      ONLY : SEAICE80,       SEAICE90,    T   
+      USE DAO_MOD,      ONLY : SEAICE80,       SEAICE90,    T        
       USE DAO_MOD,      ONLY : UWND,           VWND
-      USE ERROR_MOD,    ONLY : GEOS_CHEM_STOP
+      USE ERROR_MOD,    ONLY : GEOS_CHEM_STOP  
       USE PRESSURE_MOD, ONLY : GET_PEDGE
       USE TIME_MOD,     ONLY : GET_TAU,        GET_TS_DIAG
       USE TRACER_MOD,   ONLY : STT,            TCVV
 
-      USE CMN_FJ_MOD,   ONLY : IPAR, JPAR, LPAR, JPMAX, JPPJ
       USE JV_CMN_MOD         ! ODAER, QAA, QAA_AOD
       USE COMODE_LOOP_MOD    ! CSPEC, etc.
 ! 

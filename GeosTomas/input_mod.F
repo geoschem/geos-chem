@@ -1148,7 +1148,7 @@
 
       ! Format statement
  100  FORMAT( I3, 1x, A10, 6x, F6.1 )
- 110  FORMAT( 5x, '===> ', f4.1, 1x, A4  )
+ 110  FORMAT( 5x, '===> ', f4.1, 1x, A6  )
  120  FORMAT( 5x, '---> ', f4.1, 1x, A4  )
 
       !=================================================================
@@ -1787,11 +1787,12 @@ c$$$      WRITE( 6, 100     ) '30-BIN DUST AEROSOLS?       : ', LDUST30
       USE MODIS_LAI_MOD, ONLY : INIT_MODIS_LAI
       USE EMISSIONS_MOD, ONLY : ISOP_SCALING 
       USE EMISSIONS_MOD, ONLY : NOx_SCALING
+      USE BROMOCARB_MOD, ONLY : Br_SCALING
       USE TIME_MOD,      ONLY : SET_HISTYR
       USE TRACER_MOD,    ONLY : ITS_A_FULLCHEM_SIM
 
-      USE CMN_SIZE_MOD      ! Size parameters
-      USE CMN_O3_MOD        ! FSCALYR
+      USE CMN_SIZE_MOD        ! Size parameters
+      USE CMN_O3_MOD          ! FSCALYR
 ! 
 ! !REVISION HISTORY: 
 !  20 Jul 2004 - R. Yantosca - Initial version
@@ -2074,10 +2075,29 @@ c$$$      WRITE( 6, 100     ) '30-BIN DUST AEROSOLS?       : ', LDUST30
       CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_emissions_menu:51' )
       READ( SUBSTRS(1:N), * ) HISTYR
       CALL SET_HISTYR( HISTYR )
+!eml]
+
+      ! Separator line (start of bromine emissions)
+      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_emissions_menu:52' )
+
+      ! Use the Warwick(2006), scenario 3? (400Gg/yr of CHBr3)
+      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_emissions_menu:53' )
+      READ( SUBSTRS(1:N), * ) LWARWICK_VSLS
+
+      ! Use sea-salt Br2 emissions? Currently Monahan w/ Yang et al. 2005
+      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_emissions_menu:54' )
+      READ( SUBSTRS(1:N), * ) LSSABr2
+
+      ! Set PBL BrO concentrations equal to 1ppt during the day?
+      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_emissions_menu:55' )
+      READ( SUBSTRS(1:N), * ) LFIX_PBL_BRO
+
+      ! Bromine Emissions scaling
+      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_emissions_menu:56' )
+      READ( SUBSTRS(1:N), * ) Br_SCALING
 
       ! Separator line
-      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_emissions_menu:52' )
-!eml]
+      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_emissions_menu:57' )
 
       !=================================================================
       ! Error check logical flags
@@ -2201,7 +2221,7 @@ c$$$      WRITE( 6, 100     ) '30-BIN DUST AEROSOLS?       : ', LDUST30
       !=================================================================
       ! Enforce emissions options for Nested China on native GEOS-5 grid
       !=================================================================
-#if   defined ( NESTED_CH )
+#if   defined ( NESTED_CH ) || defined ( SEAC4RS )
 
       ! Turn off emissions options that are
       ! not appropriate for the Nested CH grid
@@ -2359,23 +2379,37 @@ c$$$      WRITE( 6, 100     ) '30-BIN DUST AEROSOLS?       : ', LDUST30
             CALL ERROR_STOP( 
      &         ' AVHRR LAI &  MODIS LAI cannot both be turned on!', 
      &         ' READ_EMISSIONS_MENU ("input_mod.f")' )
-         ENDIF
+      ENDIF
 
 #if    defined( GCAP )
 
-         !--------------------------------
-         ! GCAP error message 
-         !--------------------------------
+      !--------------------------------
+      ! GCAP error message 
+      !--------------------------------
 
-         IF ( LOTDLOC ) THEN
+      IF ( LOTDLOC ) THEN
             MSG = 'Lightning rescaling not available nor very ' //
      &            'appropriate for GCAP sim because of window ' // 
      &            'of OTD/LIS satellite observations.  Select ' //
      &            'one of the raw params without redist.'
-            CALL ERROR_STOP( MSG, LOC )
-         ENDIF
+         CALL ERROR_STOP( MSG, LOC )
+       ENDIF
 
 #endif
+
+      !=================================================================
+      ! Error check Bromine switches
+      !=================================================================
+      ! jpp, 5/10/10: if we're using the 1ppt daytime PBL BrO option,
+      !              then shut off the LSSABr2 emissions if they were
+      !              accidentally left on.
+      IF ( LFIX_PBL_BRO .and. LSSABr2 ) THEN
+         LSSABr2 = .FALSE. ! turn off sea-salt emissions to avoid conflict.
+         write(6,'(/,a,/)') 'Warning in input_mod.f: LSSABr2 was'
+     &        // ' left ON when LFIX_PBL_BRO was also selected.'
+         write(6,'(a)') 'Turning off sea-salt emissions and'
+     &        // ' selecting the 1pptv PBL daytime BrO simulation.'
+      ENDIF
 
       !=================================================================
       ! Initialization
@@ -2445,6 +2479,11 @@ c$$$      WRITE( 6, 100     ) '30-BIN DUST AEROSOLS?       : ', LDUST30
 ![eml
       WRITE( 6, 100     ) 'Turn on historical emiss?   : ', LHIST
 !eml]
+      WRITE( 6, 100     ) 'Turn on the Warwick VSLs?   : ', 
+     &     LWARWICK_VSLS
+      WRITE( 6, 100     ) 'Use seasalt Br2 emissions?  : ', LSSABr2
+      WRITE( 6, 100     ) 'Set day PBL BrO conc to 1ppt: ', LFIX_PBL_BRO
+      WRITE( 6, 100     ) 'Bromine emiss scale factor  : ', Br_SCALING
 
       ! FORMAT statements
  100  FORMAT( A, L5 )
@@ -2923,8 +2962,6 @@ c$$$      WRITE( 6, 100     ) '30-BIN DUST AEROSOLS?       : ', LDUST30
       WRITE( 6, 110     ) 'Chemistry timestep [min]    : ', TS_CHEM
       WRITE( 6, 100     ) 'Use CSPEC restart?          : ', LSVCSPEC
       WRITE( 6, 100     ) 'Use solver coded by KPP?    : ', LKPP
-
-         
       
       ! FORMAT statements
  100  FORMAT( A, L5  )
@@ -3100,6 +3137,8 @@ c$$$      WRITE( 6, 100     ) '30-BIN DUST AEROSOLS?       : ', LDUST30
 !  27 Aug 2010 - R. Yantosca - Now allow non-local PBL for MERRA met data
 !  27 Aug 2010 - R. Yantosca - Added ProTeX headers
 !  02 Feb 2012 - R. Yantosca - Added modifications for MERRA met data
+!  13 Apr 2012 - R. Yantosca - Fixed typo ( defined( GEOS_57 ) should have 
+!                              been !defined( GEOS_57 ) )
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -3138,8 +3177,8 @@ c$$$      WRITE( 6, 100     ) '30-BIN DUST AEROSOLS?       : ', LDUST30
       ! Separator line
       CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_convection_menu:5' )
 
-      ! The non-local PBL scheme is valid only with GEOS-5 or MERRA!
-#if   !defined( GEOS_5 ) && !defined( MERRA ) && defined( GEOS_57 )
+      ! The non-local PBL scheme is valid only with GEOS-5/MERRA/GEOS-5.7.x
+#if   !defined( GEOS_5 ) && !defined( MERRA ) && !defined( GEOS_57 )
       IF ( LNLPBL ) THEN
          WRITE(*,*) '================================================='
          WRITE(*,*) 'The non-local PBL scheme is only valid for GEOS-5'
@@ -5384,10 +5423,10 @@ c$$$         IS_ALL = .FALSE.
 !
       USE DIRECTORY_MOD, ONLY : TPBC_DIR
       USE DIRECTORY_MOD, ONLY : TPBC_DIR_NA, TPBC_DIR_EU
-      USE DIRECTORY_MOD, ONLY : TPBC_DIR_CH
+      USE DIRECTORY_MOD, ONLY : TPBC_DIR_CH, TPBC_DIR_SE
       USE LOGICAL_MOD,   ONLY : LWINDO, LWINDO2x25
       USE LOGICAL_MOD,   ONLY : LWINDO_NA, LWINDO_EU, LWINDO_CH
-      USE LOGICAL_MOD,   ONLY : LWINDO_CU
+      USE LOGICAL_MOD,   ONLY : LWINDO_CU, LWINDO_SE
       USE TPCORE_BC_MOD, ONLY : INIT_TPCORE_BC
 ! 
 ! !REVISION HISTORY: 
@@ -5440,32 +5479,40 @@ c$$$         IS_ALL = .FALSE.
       CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_nested_grid_menu:8' )
       READ( SUBSTRS(1:N), '(a)' ) TPBC_DIR_CH
 
-      ! Save out TPCORE BC's over Custom Region
+      ! Save out TPCORE BC's over SEAC4RS region
       CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_nested_grid_menu:9' )
+      READ( SUBSTRS(1:N), * ) LWINDO_SE
+
+      ! Directory where SEAC4RS TPCORE BC's are stored
+      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_nested_grid_menu:10' )
+      READ( SUBSTRS(1:N), '(a)' ) TPBC_DIR_SE
+
+      ! Save out TPCORE BC's over Custom Region
+      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_nested_grid_menu:11' )
       READ( SUBSTRS(1:N), * ) LWINDO_CU
 
       ! Directory where TPCORE BC's are stored
-      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_nested_grid_menu:10' )
+      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_nested_grid_menu:12' )
       READ( SUBSTRS(1:N), '(a)' ) TPBC_DIR
 
       ! Timestep for 4x5 TPCORE BC's
-      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_nested_grid_menu:11' )
+      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_nested_grid_menu:13' )
       READ( SUBSTRS(1:N), * ) TS
 
       ! Lower left box
-      CALL SPLIT_ONE_LINE( SUBSTRS, N, 2, 'read_nested_grid_menu:12' )
+      CALL SPLIT_ONE_LINE( SUBSTRS, N, 2, 'read_nested_grid_menu:14' )
       READ( SUBSTRS(1:N), * ) I1, J1
 
       ! Timestep for 4x5 TPCORE BC's
-      CALL SPLIT_ONE_LINE( SUBSTRS, N, 2, 'read_nested_grid_menu:13' )
+      CALL SPLIT_ONE_LINE( SUBSTRS, N, 2, 'read_nested_grid_menu:15' )
       READ( SUBSTRS(1:N), * ) I2, J2
 
       ! 1x1 transport region offsets 
-      CALL SPLIT_ONE_LINE( SUBSTRS, N, 2, 'read_nested_grid_menu:14' )
+      CALL SPLIT_ONE_LINE( SUBSTRS, N, 2, 'read_nested_grid_menu:16' )
       READ( SUBSTRS(1:N), * ) I0W, J0W     
 
       ! Separator line
-      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_nested_grid_menu:15' )
+      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_nested_grid_menu:17' )
 
       !=================================================================
       ! Print to screen
@@ -6087,12 +6134,14 @@ c$$$         IS_ALL = .FALSE.
 
       ! Only validate the TPCORE BC directory if we need it
       IF ( ITS_A_NESTED_GRID() ) THEN
-#if   defined( NESTED_NA)
+#if   defined( NESTED_NA )
          CALL CHECK_DIRECTORY( TPBC_DIR_NA )
-#elif defined( NESTED_EU)
+#elif defined( NESTED_EU )
          CALL CHECK_DIRECTORY( TPBC_DIR_EU )
-#elif defined( NESTED_CH)
+#elif defined( NESTED_CH )
          CALL CHECK_DIRECTORY( TPBC_DIR_CH )
+#elif defined( SEAC4RS )
+         CALL CHECK_DIRECTORY( TPBC_DIR_SE )
 #endif
 
       ENDIF
@@ -6107,6 +6156,9 @@ c$$$         IS_ALL = .FALSE.
       ENDIF
       IF ( LWINDO_CH ) THEN
          CALL CHECK_DIRECTORY( TPBC_DIR_CH )
+      ENDIF
+      IF ( LWINDO_SE ) THEN
+         CALL CHECK_DIRECTORY( TPBC_DIR_SE )
       ENDIF
 
 #if   defined( GEOS_4 )
@@ -6639,6 +6691,10 @@ c$$$         IS_ALL = .FALSE.
       LCHEMCO2       = .FALSE.
                      
       LRETRO         = .FALSE.  !(wfr, 3/8/11)
+
+      LWARWICK_VSLS  = .FALSE.
+      LSSABr2        = .FALSE.
+      LFIX_PBL_BRO   = .FALSE.
       
       ! Initialize counters
       CT1            = 0
@@ -6655,9 +6711,6 @@ c$$$         IS_ALL = .FALSE.
       USE_OLSON_2001 = .TRUE.
       !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 #endif
-
-      !%%% KLUDGE, set to TRUE for testing GEOS-5 etc. (bmy, 3/27/12)
-      !USE_OLSON_2001 = .TRUE.
 
       END SUBROUTINE INIT_INPUT
 !EOC

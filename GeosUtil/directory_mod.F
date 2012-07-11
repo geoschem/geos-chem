@@ -38,6 +38,7 @@
       CHARACTER(LEN=255) :: TPBC_DIR_NA   ! Dir w/ TPCORE BC's for NA nest grid
       CHARACTER(LEN=255) :: TPBC_DIR_EU   ! Dir w/ TPCORE BC's for EU nest grid
       CHARACTER(LEN=255) :: TPBC_DIR_CH   ! Dir w/ TPCORE BC's for CH nest grid
+      CHARACTER(LEN=255) :: TPBC_DIR_SE   ! Dir w/ TPCORE BC's for SEAC4RS grid
 !
 ! !REVISION HISTORY:
 !  20 Jul 2004 - R. Yantosca - Initial version
@@ -48,6 +49,7 @@
 !  13 Aug 2010 - R. Yantosca - Added MERRA_DIR for MERRA met fields
 !  01 Feb 2012 - R. Yantosca - Added GEOS_57_DIR for GEOS-5.7.x met fields
 !  28 Feb 2012 - R. Yantosca - Removed support for GEOS-3
+!  29 May 2012 - S. Kim      - Added directory for SEAC4RS BCs
 !EOP
 !------------------------------------------------------------------------------
 !BOC

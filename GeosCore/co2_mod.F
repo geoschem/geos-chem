@@ -186,7 +186,7 @@
       USE TRACERID_MOD, ONLY : IDBCO2
       USE LOGICAL_MOD,  ONLY : LGENFF,      LANNFF,   LMONFF, LSTREETS
       USE LOGICAL_MOD,  ONLY : LSEASBB,     LGFED2BB, L8DAYBB, LBIOFUEL
-      USE LOGICAL_MOD,  ONLY : LGFED3BB, L8DAYBB3
+      USE LOGICAL_MOD,  ONLY : LGFED3BB
       USE LOGICAL_MOD,  ONLY : LBIODAILY,   LBIODIURNAL
       USE LOGICAL_MOD,  ONLY : LBIONETORIG, LBIONETCLIM
       USE LOGICAL_MOD,  ONLY : LOCN1997,    LOCN2009ANN, LOCN2009MON
@@ -494,7 +494,7 @@
          ! #5: CO2 from biomass burning emissions
          !-------------------------------------------
          IF ( LSEASBB .OR. LGFED2BB .OR. L8DAYBB .OR.
-     &        LGFED3BB. OR. L8DAYBB3) THEN 
+     &        LGFED3BB) THEN 
 
             ! Biomass burning emissions [molec/cm2/s]
             E_CO2          = BIOMASS(I,J,IDBCO2)
@@ -1325,6 +1325,7 @@
 !  05 Mar 2012 - M. Payer    - Add modifications for nested-grid CO2
 !                              (Yuxuan Wang, lmw)
 !  06 Apr 2012 - M. Payer    - Changed regrid algorithm to map_a2a (M. Cooper)
+!  24 May 2012 - R. Yantosca - Fixed minor bugs in map_a2a implementation
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -1340,12 +1341,12 @@
       REAL*8             :: DOM_COR(8), REG_SUM(8), AV_SCLFAC(8)
       REAL*8             :: ANN_FOSS(IIPAR,JJPAR)
       REAL*8             :: ANN_FOSS_NOAREA(IIPAR,JJPAR)
-      REAL*8             :: GEOS_1x1(I1x1,J1x1,1)    !(lmw,05/16/11)
-      REAL*8             :: GEOS_GRID(IIPAR,JJPAR,1)
+      REAL*8, TARGET     :: GEOS_1x1(I1x1,J1x1,1)    !(lmw,05/16/11)
+      REAL*8, TARGET     :: GEOS_GRID(IIPAR,JJPAR,1)
       REAL*4             :: REGION_1x1(360,181)
-      CHARACTER(LEN=255)  :: LLFILENAME
-      REAL*8, ALLOCATABLE :: OUTGRID(:,:)
-      REAL*8, ALLOCATABLE :: INGRID(:,:)
+      CHARACTER(LEN=255) :: LLFILENAME
+      REAL*8, POINTER    :: INGRID(:,:)  => NULL()
+      REAL*8, POINTER    :: OUTGRID(:,:) => NULL()
 
       !-----------------------------------------------------------------
       ! Read Generic or annual fossil fuel emissions file
@@ -1400,7 +1401,7 @@
      &           'CO2_201003/Aviation_Regions.geos.1x1'
 
       CALL READ_BPCH2( FILENAME, 'CO2-SRCE',  1, 
-     &                 TAU,       360,        181,     
+     &                 TAU,       I1x1,       J1x1,     
      &                 1,         REGION_1x1, QUIET=.TRUE. )
 
       ! Cast to REAL*8 before regridding
@@ -1408,23 +1409,19 @@
 
       ! File with lat/lon edges for regridding
       LLFILENAME = TRIM( DATA_DIR_1x1) //
-     &             'MAP_A2A_Regrid_200312/latlon_geos1x1.txt'
-
-      ! Allocate arrays for regridding
-      ALLOCATE(INGRID(I1x1,J1x1))
-      ALLOCATE(OUTGRID(IIPAR,JJPAR))
+     &             'MAP_A2A_Regrid_201203/latlon_geos1x1_new.txt'
 
       ! Regrid to current model resolution
-      INGRID = GEOS_1x1(:,:,1)
-      CALL DO_REGRID_A2A( LLFILENAME, 360, 182, INGRID, OUTGRID, 0 )   
-      GEOS_GRID(:,:,1) = OUTGRID
-
-      ! Deallocate arrays for regridding
-      DEALLOCATE(INGRID)
-      DEALLOCATE(OUTGRID)
+      INGRID  => GEOS_1x1 (:,:,1)
+      OUTGRID => GEOS_GRID(:,:,1)
+      CALL DO_REGRID_A2A( LLFILENAME, I1x1,    J1x1, 
+     &                    INGRID,     OUTGRID, PERAREA=0 )   
 
       ! Cast to REAL*4
       REGION(:,:) = GEOS_GRID(:,:,1)      !(lmw,05/16/11)
+
+      ! Free pointers
+      NULLIFY( INGRID, OUTGRID )
 
       !-----------------------------------------------------------------
       ! Sum fossil fuel CO2 (as C) in each region
@@ -1623,6 +1620,7 @@
 !                                      (Yuxuan Wang, lmw)
 !  06 Apr 2012 - M. Payer            - Changed regrid algorithm to map_a2a
 !                                      (M. Cooper)
+!  24 May 2012 - R. Yantosca         - Fixed minor bugs in map_a2a calls
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -1633,12 +1631,12 @@
       !REAL*4                 :: ARRAY(IIPAR,JJPAR,1)
       REAL*4                 :: ARRAY(360,181,1)
       REAL*8                 :: TAU
-      REAL*8                 :: GEOS_GRID(IIPAR,JJPAR,1)
-      REAL*8                 :: GEOS_1x1(I1x1,J1x1,1)     !(lmw,05/16/11)
+      REAL*8, TARGET         :: GEOS_GRID(IIPAR,JJPAR,1)
+      REAL*8, TARGET         :: GEOS_1x1(I1x1,J1x1,1)     !(lmw,05/16/11)
       CHARACTER(LEN=255)     :: FILENAME
       CHARACTER(LEN=255)     :: LLFILENAME
-      REAL*8, ALLOCATABLE    :: OUTGRID(:,:)
-      REAL*8, ALLOCATABLE    :: INGRID(:,:)
+      REAL*8, POINTER        :: OUTGRID(:,:) => NULL()
+      REAL*8, POINTER        :: INGRID(:,:)  => NULL()
 
       !=================================================================
       ! READ_ANNUAL_BIOFUELCO2 begins here!
@@ -1659,7 +1657,7 @@
       
       ! Read biofuel CO2 emissions [molec/cm2/s]
       CALL READ_BPCH2( FILENAME, 'CO2-SRCE', 5, 
-     &                 TAU,       360,       181,     
+     &                 TAU,       I1x1,      J1x1,
      &                 1,         ARRAY,     QUIET=.TRUE. )
      
       ! Cast to REAL*8 before regridding
@@ -1667,22 +1665,18 @@
       
       ! File with lat/lon edges for regridding
       LLFILENAME = TRIM( DATA_DIR_1x1) //
-     &             'MAP_A2A_Regrid_200312/latlon_geos1x1.txt'
-
-      ! Allocate arrays for regridding
-      ALLOCATE(INGRID(I1x1,J1x1))
-      ALLOCATE(OUTGRID(IIPAR,JJPAR))
+     &             'MAP_A2A_Regrid_201203/latlon_geos1x1_new.txt'
 
       ! Regrid to current model resolution
-      INGRID = GEOS_1x1(:,:,1)
-      CALL DO_REGRID_A2A( LLFILENAME, 360, 182, INGRID, OUTGRID, 0 )   
-      GEOS_GRID(:,:,1) = OUTGRID
-
-      ! Deallocate arrays for regridding
-      DEALLOCATE(INGRID)
-      DEALLOCATE(OUTGRID)
+      INGRID  => GEOS_1x1(:,:,1)
+      OUTGRID => GEOS_GRID(:,:,1)
+      CALL DO_REGRID_A2A( LLFILENAME, I1x1,    J1x1, 
+     &                    INGRID,     OUTGRID, PERAREA=0 )   
 
       EMBIOFUELCO2(:,:) = GEOS_GRID(:,:,1)   !(lmw,05/16/11)
+
+      ! Free pointers
+      NULLIFY( INGRID, OUTGRID  )
 
       END SUBROUTINE READ_ANNUAL_BIOFUELCO2
 !EOC
@@ -1719,17 +1713,15 @@
 !  18 May 2010 - R. Nassar, D. Jones - Initial version
 !  01 Mar 2012 - R. Yantosca - Now use GET_AREA_CM2(I,J,L) from grid_mod.F90
 !  13 Mar 2012 - M. Cooper   - Changed regrid algorithm to map_a2a
+!  24 May 2012 - R. Yantosca - Fixed minor bugs in map_a2a impelementation
 !EOP
 !------------------------------------------------------------------------------
 !BOC
 !
 ! !LOCAL VARIABLES:
 !
+      ! Scalars
       INTEGER             :: I, J, N, YEAR
-      REAL*4		  :: A_CM2(IIPAR,JJPAR)
-      REAL*4              :: ARRAY(360,180,1)
-      REAL*8              :: GEN_1x1(360,180,1)
-      REAL*8              :: GEOS_GRID(IIPAR,JJPAR,1)
       REAL*8              :: TAU
       REAL*8,  PARAMETER  :: SEC_IN_YEAR = 86400d0 * 365.25d0
       REAL*8,  PARAMETER  :: GlobSTot = 0.117 
@@ -1738,8 +1730,14 @@
                              ! For scaling to a specified global total PgC/yr
       CHARACTER(LEN=255)  :: FILENAME
       CHARACTER(LEN=255)  :: LLFILENAME
-      REAL*8, ALLOCATABLE :: OUTGRID(:,:)
-      REAL*8, ALLOCATABLE :: INGRID(:,:)
+
+      ! Arrays and pointers
+      REAL*4              :: ARRAY    (I1x1, J1x1-1,1)
+      REAL*4		  :: A_CM2    (IIPAR,JJPAR   )
+      REAL*8,  TARGET     :: GEN_1x1  (I1x1, J1x1-1,1)
+      REAL*8,  TARGET     :: GEOS_GRID(IIPAR,JJPAR, 1)
+      REAL*8,  POINTER    :: INGRID (:,:) => NULL()
+      REAL*8,  POINTER    :: OUTGRID(:,:) => NULL()
 
       !=================================================================
       ! READ_SHIPCO2_EDGAR begins here!
@@ -1767,7 +1765,7 @@
 
       ! Read CO2 shipping emissions [kg/yr]
       CALL READ_BPCH2( FILENAME, 'CO2-SRCE', 1, 
-     &                 TAU,       360,     180,     
+     &                 TAU,       I1x1,      J1x1-1,
      &                 1,         ARRAY,     QUIET=.TRUE. )
 
       ! Cast to REAL*8 before regridding
@@ -1775,20 +1773,16 @@
 
       ! File with lat/lon edges for regridding
       LLFILENAME = TRIM( DATA_DIR_1x1) //
-     &             'MAP_A2A_Regrid_200312/latlon_generic.txt'
-
-      ! Allocate arrays for regridding
-      ALLOCATE(INGRID(I1x1,J1x1-1))
-      ALLOCATE(OUTGRID(IIPAR,JJPAR))
+     &             'MAP_A2A_Regrid_201203/latlon_generic_new.txt'
 
       ! Regrid from GENERIC 1x1 --> current model resolution
-      INGRID = GEN_1x1(:,:,1)
-      CALL DO_REGRID_A2A( LLFILENAME, 360, 181, INGRID, OUTGRID, 1 )   
-      GEOS_GRID(:,:,1) = OUTGRID
+      INGRID  => GEN_1x1  (:,:,1)
+      OUTGRID => GEOS_GRID(:,:,1)
+      CALL DO_REGRID_A2A( LLFILENAME, I1x1,    J1x1-1, 
+     &                    INGRID,     OUTGRID, PERAREA=1 )   
 
-      ! Deallocate arrays for regridding
-      DEALLOCATE(INGRID)
-      DEALLOCATE(OUTGRID)
+      ! Free pointers
+      NULLIFY( INGRID, OUTGRID )
 
       ! Convert units kg CO2 / yr --> molecules/cm2/s 
       DO J = 1, JJPAR
@@ -1882,6 +1876,7 @@
 !  18 May 2010 - R. Nassar, D. Jones - Initial version
 !  01 Mar 2012 - R. Yantosca - Now use GET_AREA_M2(I,J,L) from grid_mod.F90
 !  13 Mar 2012 - M. Cooper   - Changed regrid algorithm to map_a2a
+!  24 May 2012 - R. Yantosca - Fixed minor bugs in map_a2a implementation
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -1889,10 +1884,6 @@
 ! !LOCAL VARIABLES:
 !
       INTEGER                :: I, J, MONTH, YEAR, IOS, N
-      REAL*4		     :: A_CM2(IIPAR,JJPAR)
-      REAL*4                 :: ARRAY(360,181,1)
-      REAL*8                 :: GEOS_1x1(I1x1,J1x1,1)
-      REAL*8                 :: GEOS_GRID(IIPAR,JJPAR,1)
       REAL*8                 :: TAU
       REAL*8,  PARAMETER     :: SEC_IN_YEAR = 86400d0 * 365.25d0
       REAL*8,  PARAMETER     :: GlobSTot = 0.1760 
@@ -1902,8 +1893,14 @@
       CHARACTER(LEN=255)     :: FILENAME
       CHARACTER(LEN=2)       :: MONTH_STR
       CHARACTER(LEN=255)     :: LLFILENAME
-      REAL*8, ALLOCATABLE    :: OUTGRID(:,:)
-      REAL*8, ALLOCATABLE    :: INGRID(:,:)
+
+      ! Arrays and pointers
+      REAL*4                 :: ARRAY    (I1x1, J1x1, 1)
+      REAL*8, TARGET         :: GEOS_1x1 (I1x1, J1x1, 1)
+      REAL*8, TARGET         :: GEOS_GRID(IIPAR,JJPAR,1)
+      REAL*4		     :: A_CM2    (IIPAR,JJPAR  )
+      REAL*8, POINTER        :: INGRID (:,:) => NULL()
+      REAL*8, POINTER        :: OUTGRID(:,:) => NULL()
 	
       !=================================================================
       ! READ_SHIPCO2_ICOADS begins here!
@@ -1935,20 +1932,16 @@
 
       ! File with lat/lon edges for regridding
       LLFILENAME = TRIM( DATA_DIR_1x1) //
-     &             'MAP_A2A_Regrid_200312/latlon_geos1x1.txt'
-
-      ! Allocate arrays for regridding
-      ALLOCATE(INGRID(I1x1,J1x1))
-      ALLOCATE(OUTGRID(IIPAR,JJPAR))
+     &             'MAP_A2A_Regrid_201203/latlon_geos1x1_new.txt'
 
       ! Regrid to current model resolution
-      INGRID = GEOS_1x1(:,:,1)
-      CALL DO_REGRID_A2A( LLFILENAME, 360, 182, INGRID, OUTGRID, 0 )   
-      GEOS_GRID(:,:,1) = OUTGRID
+      INGRID  => GEOS_1x1 (:,:,1)
+      OUTGRID => GEOS_GRID(:,:,1)
+      CALL DO_REGRID_A2A( LLFILENAME, I1x1,    J1x1, 
+     &                    INGRID,     OUTGRID, PERAREA=0 )   
 
-      ! Deallocate arrays for regridding
-      DEALLOCATE(INGRID)
-      DEALLOCATE(OUTGRID)
+      ! Free pointers
+      NULLIFY( INGRID, OUTGRID )
 
       DO J = 1, JJPAR
          EMSHIPCO2(:,J) = GEOS_GRID(:,J,1) 
@@ -2277,23 +2270,29 @@
 !                                      (Yuxuan Wang, lmw)
 !  06 Apr 2012 - M. Payer            - Changed regrid algorithm to map_a2a
 !                                      (M. Cooper)
+!  24 May 2012 - R. Yantosca         - Fix minor bugs in map_a2a calls
 !EOP
 !------------------------------------------------------------------------------
 !BOC
 !
 ! !LOCAL VARIABLES:
 !
+      ! Scalars
       INTEGER                :: I, J, IOS
-      REAL*4                 :: ARRAY(I1x1,J1x1,1)  !(lmw,05/16/11)
-      REAL*4                 :: ARRAY_1x1(360,180,1)
-      REAL*8                 :: GEN_1x1(360,180,1)
-      REAL*8                 :: GEOS_1x1(I1x1,J1x1,1)
-      REAL*8                 :: GEOS_GRID(IIPAR,JJPAR,1)
       REAL*8		     :: TAU
       CHARACTER(LEN=255)     :: FILENAME
       CHARACTER(LEN=255)     :: LLFILENAME
-      REAL*8, ALLOCATABLE    :: OUTGRID(:,:)
-      REAL*8, ALLOCATABLE    :: INGRID(:,:)
+
+      ! Arrays and pointers
+      !REAL*4                :: ARRAY    (I1x1,J1x1,  1)  !(lmw,05/16/11)
+      REAL*4                 :: ARRAY    (IIPAR,JJPAR,1)
+      !REAL*8,  TARGET       :: GEOS_1x1 (I1x1,J1x1,  1)
+      REAL*8,  TARGET        :: GEOS_1x1 (IIPAR,JJPAR,1)
+      REAL*4                 :: ARRAY_1x1(I1x1,J1x1-1,1)
+      REAL*8                 :: GEN_1x1  (I1x1,J1x1-1,1)
+      REAL*8,  TARGET        :: GEOS_GRID(IIPAR,JJPAR,1)
+      REAL*8,  POINTER       :: INGRID (:,:) => NULL()
+      REAL*8,  POINTER       :: OUTGRID(:,:) => NULL()
 
       !=================================================================
       ! READ_ANNUAL_BIONET_CO2 begins here!
@@ -2352,7 +2351,7 @@
 
          ! Read Net Terrestrial CO2 Exchange [molec/cm2/s]
          CALL READ_BPCH2( FILENAME, 'CO2-SRCE', 6, 
-     &                    TAU,       360,       181,     
+     &                    TAU,       I1x1,      J1x1,     
      &                    1,         ARRAY,     QUIET=.TRUE. )
 
          ! Cast to REAL*8 before regridding
@@ -2360,20 +2359,16 @@
 
          ! File with lat/lon edges for regridding
          LLFILENAME = TRIM( DATA_DIR_1x1) //
-     &                'MAP_A2A_Regrid_200312/latlon_geos1x1.txt'
-
-         ! Allocate arrays for regridding
-         ALLOCATE(INGRID(I1x1,J1x1))
-         ALLOCATE(OUTGRID(IIPAR,JJPAR))
+     &                'MAP_A2A_Regrid_201203/latlon_geos1x1_new.txt'
 
          ! Regrid from GEOS 1x1 --> current model resolution
-         INGRID = GEOS_1x1(:,:,1)
-         CALL DO_REGRID_A2A( LLFILENAME, 360, 182, INGRID, OUTGRID, 0 )
-         GEOS_GRID(:,:,1) = OUTGRID  
+         INGRID  => GEOS_1x1 (:,:,1)
+         OUTGRID => GEOS_GRID(:,:,1)
+         CALL DO_REGRID_A2A( LLFILENAME, I1x1,    J1x1, 
+     &                       INGRID,     OUTGRID, PERAREA=0 )
                   
-         ! Deallocate arrays for regridding
-         DEALLOCATE(INGRID)
-         DEALLOCATE(OUTGRID)
+         ! Free pointers
+         NULLIFY( INGRID, OUTGRID )
          
          EMBIONETCO2(:,:) = GEOS_GRID(:,:,1)  !(lmw,05/16/11)     
 
@@ -3302,7 +3297,7 @@
       USE ERROR_MOD,   ONLY : ALLOC_ERR
       USE LOGICAL_MOD, ONLY : LGENFF,  LANNFF,   LMONFF, LSTREETS
       USE LOGICAL_MOD, ONLY : LSEASBB, LGFED2BB, L8DAYBB, LBIOFUEL
-      USE LOGICAL_MOD, ONLY : LGFED3BB, L8DAYBB3
+      USE LOGICAL_MOD, ONLY : LGFED3BB
       USE LOGICAL_MOD, ONLY : LBIODAILY,   LBIODIURNAL
       USE LOGICAL_MOD, ONLY : LBIONETORIG, LBIONETCLIM
       USE LOGICAL_MOD, ONLY : LOCN1997,    LOCN2009ANN, LOCN2009MON

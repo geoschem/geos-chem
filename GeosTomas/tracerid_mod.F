@@ -57,7 +57,7 @@
 !  (47 ) IDDRYPAN  (INTEGER) : DRYPAN index w/in CSPEC array ("comode_mod.f")
 !  (48 ) IDDRYNO2  (INTEGER) : DRYNO2 index w/in CSPEC array ("comode_mod.f")
 !  (49 ) IDTNOX    (INTEGER) : NOx   index w/in STT array ("tracer_mod.f")
-!  (50 ) IDTOX     (INTEGER) : Ox    index w/in STT array ("CMN")     
+!  (50 ) IDTOX     (INTEGER) : Ox    index w/in STT array ("CMN_mod.F")     
 !  (51 ) IDTPAN    (INTEGER) : PAN   index w/in STT array ("tracer_mod.f")
 !  (52 ) IDTCO     (INTEGER) : CO    index w/in STT array ("tracer_mod.f")     
 !  (53 ) IDTALK4   (INTEGER) : ALK4  index w/in STT array ("tracer_mod.f")    
@@ -188,8 +188,6 @@
 
       ! for CTM tracers
       INTEGER, PARAMETER :: NNNTRID  = 320
-!-- add tracers for new isoprene chemistry. (fp, 01/27/10)
-!      INTEGER, PARAMETER :: MMMEMBER = 10
       INTEGER, PARAMETER :: MMMEMBER = 15
       INTEGER            :: NMEMBER(NNNTRID) 
       INTEGER            :: IDTRMB(NNNTRID,MMMEMBER)
@@ -216,6 +214,14 @@
       INTEGER            :: IDAPAN, IDENPAN, IDMPAN, IDNIPAN
       INTEGER            :: IDDRYAPAN, IDDRYENPAN, IDDRYGLPAN
       INTEGER            :: IDDRYGPAN, IDDRYMPAN, IDDRYNIPAN
+      ! jpp, 6/5/09, adding IDDRY__ id's for dry deposition
+      INTEGER            :: IDDRYHOBr, IDDRYHBr, IDDRYBrNO3
+
+      ! jpp, 6/5/09: bromine id's
+      INTEGER            :: IDBr2,   IDBr,     IDBrO,  IDHOBr, IDHBr
+      INTEGER            :: IDBrNO2, IDBrNO3,  IDCHBr3, IDCH2Br2
+      INTEGER            :: IDCH3Br
+
       ! added for aromatic (dkh, 10/06/06)  
       INTEGER            :: IDLBRO2H, IDLBRO2N  
       INTEGER            :: IDLTRO2H, IDLTRO2N  
@@ -328,6 +334,10 @@
       ! update for arom (dkh, 10/05/06)  
       INTEGER            :: IDTSOA5, IDTSOG5
 
+      !jpp, 6/5/09: bromine ids
+      INTEGER            :: IDTBr2,   IDTBr,   IDTBrO,  IDTHOBr, IDTHBr
+      INTEGER            :: IDTBrNO2, IDTBrNO3, IDTCHBr3, IDTCH2Br2
+      INTEGER            :: IDTCH3Br
 
       ! For tagged Hg simulation
       INTEGER              :: N_Hg_CATS
@@ -349,7 +359,9 @@
       INTEGER            :: IDEHAC
       !%%%%(bmy 4/13/11)
       INTEGER            :: IDERCHO, IDEHCOOH, IDEACTA       
-      
+      !jpp, 8/24/07: emission ID's for Br biogenic emissions in fullchem runs
+      INTEGER            :: IDECHBr3, IDECH2Br2, IDEBr2      
+
       ! GEOS-CHEM biofuel ID's
       INTEGER            :: IDBFNOX,  IDBFCO,   IDBFALK4, IDBFACET 
       INTEGER            :: IDBFMEK,  IDBFALD2, IDBFPRPE, IDBFC3H8
@@ -821,6 +833,40 @@
 
             CASE ( 'SALC' )
                IDTSALC  = N
+
+            !--------------------------------
+            ! Bromine (jpp, 6/13/07)
+            !--------------------------------
+
+            CASE ( 'BR2' )
+               IDTBr2     = N
+            
+            CASE ( 'BR' )
+               IDTBr      = N
+
+            CASE ( 'BRO' )
+               IDTBrO     = N
+            
+            CASE ( 'HOBR' )
+               IDTHOBr    = N
+
+            CASE ( 'HBR' )
+               IDTHBr     = N
+
+            CASE ( 'BRNO2' )
+               IDTBrNO2   = N
+                           
+            CASE ( 'BRNO3' )
+               IDTBrNO3   = N
+
+            CASE ( 'CHBR3' )
+               IDTCHBr3   = N
+
+            CASE ( 'CH2BR2' )
+               IDTCH2Br2   = N
+
+            CASE ( 'CH3BR' )
+               IDTCH3Br   = N
 
             !--------------------------------
             ! Dicarbonyls GLYX & MGLY
@@ -1697,7 +1743,7 @@
 
          END SELECT
       ENDDO
-
+     
       !=================================================================
       ! Initialize the IDExxx flags, which denote tracers that
       ! are emitted.  Remove the old previous hardwiring
@@ -1836,6 +1882,19 @@
             NEMBIOG   = NEMBIOG + 1
             IDEMBO    = NEMANTHRO + NEMBIOG
          ENDIF
+         ! Add bromine species biogenic emissions (jpp, mpayer, 12/28/11)
+         IF ( IDTCHBr3 > 0 ) THEN
+            NEMBIOG   = NEMBIOG + 1
+            IDECHBr3  = NEMANTHRO + NEMBIOG
+         ENDIF
+         IF ( IDTCH2Br2 > 0 ) THEN
+            NEMBIOG   = NEMBIOG + 1
+            IDECH2Br2 = NEMANTHRO + NEMBIOG
+         ENDIF
+         IF ( IDTBr2 > 0 ) THEN
+            NEMBIOG   = NEMBIOG + 1
+            IDEBr2    = NEMANTHRO + NEMBIOG
+         ENDIF
       ENDIF
       
       !=================================================================
@@ -1873,10 +1932,14 @@
       IF ( IDEMBO  /= 0 ) IDEMS(IDEMBO ) = IDTMBO
       IF ( IDEGLYC /= 0 ) IDEMS(IDEGLYC) = IDTGLYC
       IF ( IDEHAC /= 0 )  IDEMS(IDEHAC ) = IDTHAC
+      ! jpp:
+      IF ( IDECHBr3  /= 0 ) IDEMS(IDECHBr3 ) = IDTCHBr3
+      IF ( IDECH2Br2 /= 0 ) IDEMS(IDECH2Br2) = IDTCH2Br2
+      IF ( IDEBr2    /= 0 ) IDEMS(IDEBr2   ) = IDTBr2
 
       ! Echo anthro & biogenic emitted tracers
       WRITE( 6, 100 ) IDEMS ( 1:NEMANTHRO+NEMBIOG )
- 100  FORMAT( /, 'TRACERID: Emitted tracers (anthro & bio) :', 20i3 )
+ 100  FORMAT( /, 'TRACERID: Emitted tracers (anthro & bio) :', 27i3 )
 
       ! print additional information (hotp 8/4/09)
        WRITE( 6, 115 ) 'TRACERID: CHECK FULLCHEM IDEs'
@@ -1889,7 +1952,8 @@
        WRITE( 6, 115 ) '-----------------------------------------------'
        WRITE( 6, 115 ) 'NEMBIOG:    1 for isoprene'
        WRITE( 6, 115 ) '          + 6 for dicarbonyls'
-       WRITE( 6, 115 ) 'NEMBIOG:    7 max'
+       WRITE( 6, 115 ) '          + 3 for bromine'
+       WRITE( 6, 115 ) 'NEMBIOG:   10 max'
        WRITE( 6, 120 ) 'THIS NEMBIOG:   ', NEMBIOG
        WRITE( 6, 115 ) '-----------------------------------------'
        WRITE( 6, 120 ) 'IDENOX  ', IDENOX
@@ -1919,6 +1983,9 @@
        WRITE( 6, 120 ) 'IDEMBO  ', IDEMBO
        WRITE( 6, 120 ) 'IDEGLYC ', IDEGLYC
        WRITE( 6, 120 ) 'IDEHAC  ', IDEHAC
+       WRITE( 6, 120 ) 'IDECHBr3 ', IDECHBr3 
+       WRITE( 6, 120 ) 'IDECH2Br2', IDECH2Br2 
+       WRITE( 6, 120 ) 'IDEBr2   ', IDEBr2 
        WRITE( 6, 115 ) '-----------------------------------------'
  115   FORMAT( a )
  120   FORMAT( a, i3 )
@@ -2036,6 +2103,22 @@
          IF ( NAMEGAS(I) == 'ENPAN'  ) IDENPAN   = I
          IF ( NAMEGAS(I) == 'MPAN'   ) IDMPAN    = I
          IF ( NAMEGAS(I) == 'NIPAN'  ) IDNIPAN   = I
+         ! ++++++++++++++++++++++++++++++++++++++++++++++++++++++
+         !jpp: for bromine
+         IF ( NAMEGAS(I) == 'Br2'     ) IDBr2     = I
+         IF ( NAMEGAS(I) == 'Br'      ) IDBr      = I
+         IF ( NAMEGAS(I) == 'BrO'     ) IDBrO     = I
+         IF ( NAMEGAS(I) == 'HOBr'    ) IDHOBr    = I
+         IF ( NAMEGAS(I) == 'HBr'     ) IDHBr     = I
+         IF ( NAMEGAS(I) == 'BrNO3'   ) IDBrNO3   = I
+         IF ( NAMEGAS(I) == 'BrNO2'   ) IDBrNO2   = I
+         IF ( NAMEGAS(I) == 'CH3Br'   ) IDCH3Br   = I
+         IF ( NAMEGAS(I) == 'CH2Br2'  ) IDCH2Br2  = I
+         IF ( NAMEGAS(I) == 'CHBr3'   ) IDCHBr3   = I
+         IF ( NAMEGAS(I) == 'DRYHOBr' ) IDDRYHOBr = I
+         IF ( NAMEGAS(I) == 'DRYHBr'  ) IDDRYHBr  = I
+         IF ( NAMEGAS(I) == 'DRYBrNO3') IDDRYBrNO3= I
+         ! ++++++++++++++++++++++++++++++++++++++++++++++++++++++
 
          IF ( NAMEGAS(I) == 'DRYAPAN' )  IDDRYAPAN  = I
          IF ( NAMEGAS(I) == 'DRYENPAN')  IDDRYENPAN = I
@@ -2611,6 +2694,25 @@
       IDLXRO2N  = 0
       IDH2SO4    = 0 !(win, 6/23/09)
 
+      ! +++++++++++++++++
+      !jpp, 6/13/07,
+      IDBr2     = 0
+      IDBr      = 0
+      IDBrO     = 0
+      IDHBr     = 0
+      IDHOBr    = 0
+      IDBrNO2   = 0
+      IDBrNO3   = 0
+      IDCHBr3   = 0
+      IDCH2Br2  = 0
+      IDCH3Br   = 0
+      !jpp, 2/27/08
+      !ID's for drydep
+      IDDRYHOBr = 0
+      IDDRYHBr  = 0
+      IDDRYBrNO3= 0
+      ! +++++++++++++++++
+
       ! GEOS-CHEM Tracer ID #'s
       IDTNOX    = 0
       IDTOX     = 0  
@@ -2699,6 +2801,21 @@
       IDTGPAN   = 0
       IDTMPAN   = 0
       IDTNIPAN  = 0
+      ! +++++++++++++++++
+      ! jpp for bromine
+      ! 6/5/09
+      IDTBr2     = 0
+      IDTBr      = 0
+      IDTBrO     = 0
+      IDTHBr     = 0
+      IDTHOBr    = 0
+      IDTBrNO2   = 0
+      IDTBrNO3   = 0
+      IDTCHBr3   = 0
+      IDTCH2Br2  = 0
+      IDTCH3Br   = 0
+      ! +++++++++++++++++
+
 
       !(fp, 6/09)
       IDTISOPN   = 0
@@ -3010,7 +3127,10 @@
       IDEMBO    = 0
       IDEGLYC   = 0
       IDEHAC    = 0
-      
+      IDECHBr3  = 0 ! jpp, 8/30/07
+      IDECH2Br2 = 0 ! jpp, 9/16/07
+      IDEBr2    = 0 ! jpp, 3/2/10
+
       ! GEOS-CHEM Biofuel ID #'s
       IDBFNOX   = 0
       IDBFCO    = 0

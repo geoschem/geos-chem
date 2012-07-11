@@ -123,6 +123,7 @@
       USE VISTAS_ANTHRO_MOD,      ONLY : EMISS_VISTAS_ANTHRO
       USE ICOADS_SHIP_MOD,        ONLY : EMISS_ICOADS_SHIP !(cklee,7/09/09)
       USE PARANOX_MOD,            ONLY : READ_PARANOX_LUT
+      USE SSA_BROMINE_MOD,        ONLY : EMIT_Br2          !jpp, 8/4/10
 
       USE CMN_SIZE_MOD                 ! Size parameters
       USE CMN_O3_MOD                   ! FSCLYR
@@ -187,6 +188,9 @@
 ! !LOCAL VARIABLES:
 !
       INTEGER                     :: MONTH, YEAR
+      ! jpp, 3/2/10: Sea-salt emissions of Br2.
+      REAL*8                      :: SSA_Br2(IIPAR,JJPAR)
+
       ! BIOMASS not used (hotp 8/3/09)
       !REAL*8                      :: BIOMASS(IIPAR,JJPAR,NBIOMAX)
 
@@ -397,7 +401,8 @@
          ! Emissions for various aerosol types
 #if defined( DEVEL )
          IF ( LSSALT            ) 
-     &      CALL EMISSSEASALT( LOCAL_MET, CHEM_STATE%TRAC_TEND(:,:,:,:))
+     &      CALL EMISSSEASALT( LOCAL_MET, CHEM_STATE%TRAC_TEND(:,:,:,:),
+     &                         ssa_br2)
          IF ( LSULF .or. LCRYST ) 
      &      CALL EMISSSULFATE( LOCAL_MET, CHEM_STATE%TRAC_TEND(:,:,:,:))
          IF ( LCARB             ) 
@@ -405,11 +410,18 @@
          IF ( LDUST             ) 
      &      CALL EMISSDUST   ( LOCAL_MET, CHEM_STATE%TRAC_TEND(:,:,:,:))
 #else
-         IF ( LSSALT            ) CALL EMISSSEASALT
+         IF ( LSSALT            ) CALL EMISSSEASALT(ssa_br2) !jpp, 3/2/10
          IF ( LSULF .or. LCRYST ) CALL EMISSSULFATE
          IF ( LCARB             ) CALL EMISSCARBON
          IF ( LDUST             ) CALL EMISSDUST
 #endif
+
+         ! jpp, 3/2/10:
+         ! Now distribute the Br2 emitted from SSA, through
+         ! the full mixed layer.
+         IF ( LSSABr2 ) THEN
+            CALL EMIT_BR2(SSA_Br2)
+         ENDIF
 
       ELSE IF ( ITS_AN_AEROSOL_SIM() ) THEN
          
@@ -559,7 +571,7 @@
          IF ( LDUST             ) 
      &   CALL EMISSDUST   ( LOCAL_MET, CHEM_STATE%TRAC_TEND(:,:,:,:))
 #else
-         IF ( LSSALT            ) CALL EMISSSEASALT
+         IF ( LSSALT            ) CALL EMISSSEASALT()
          IF ( LSULF .or. LCRYST ) CALL EMISSSULFATE
          IF ( LCARB             ) CALL EMISSCARBON
          IF ( LDUST             ) CALL EMISSDUST
@@ -922,9 +934,7 @@
 #endif
 #else
 #if   defined( GRID05x0666 )
-            CALL EMISS_EPA_NEI(                  ! Use NEI99 biofuel, nested
-     &       CHEM_STATE%TRAC_TEND(:,:,1,:),
-     &       CHEM_STATE%TRAC_BTEND(:,:,1,:))
+            CALL EMISS_EPA_NEI                  ! Use NEI99 biofuel, nested
             CALL EMISS_NEI2005_ANTHRO_05x0666   ! Use NEI05 anthro,  nested
 #else
             CALL EMISS_EPA_NEI                  ! Use NEI99 biofuel, global

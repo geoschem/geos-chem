@@ -457,7 +457,7 @@
       ! ==================================================================
       ! 2)  Get Monthly Varying CH4 Emissions
       !     NOTES:                                          (kjw, 5/28/09)
-      !        Biomass burning emissions from GFED2
+      !        Biomass burning emissions from GFED2 or GFED3
       !        Biomass burning available from 1997-2007 (5/28/09)
       !        Rice emissions from EDGAR v4, modified by GEOS soil wetness
       ! ==================================================================
@@ -1015,7 +1015,7 @@
          YEAR    = 2004
          WRITE( CYEAR, '(i4)' ) YEAR
 
-         FILENAME = TRIM( DATA_DIR ) // TRIM( CH4_DIR )        //
+         FILENAME = TRIM( DATA_DIR ) // 'CH4_201203/wetlands/' //
      &              'TSKIN.'         // GET_NAME_EXT()         //
      &              '.'              // GET_RES_EXT()          //
      &              '_NA.'           // CYEAR                  //

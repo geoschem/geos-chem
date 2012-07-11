@@ -428,7 +428,8 @@
 #     include "define.h"
 
 ! ****6***0*********0*********0*********0*********0*********0**********72
-      PARAMETER (Jmax = 721, kmax = 200 ) 
+!clb  PARAMETER (Jmax = 721, kmax = 200 ) 
+      PARAMETER (Jmax = 1200, kmax = 200 )
 !  add ghost zone depth here (yxw, 08/23/01)       
 ! ****6***0*********0*********0*********0*********0*********0**********72
  
@@ -513,7 +514,8 @@
 !DIR$ NOBOUNDS
 !============================================================================ 
       deform = .false.
-      JM1 = 181 -1
+!clb  JM1 = 181 -1
+      JM1 = JM - 1
 !%%%
 !%%% MODIFICATIONS FOR NESTED GRID (yxw, bmy, 3/10/03)
 !%%% Comment out variables below

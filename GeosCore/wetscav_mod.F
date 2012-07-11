@@ -143,7 +143,12 @@
 !
 ! !DEFINED PARAMETERS:
 !
-      INTEGER, PARAMETER   :: NSOLMAX = 50      ! Max # of soluble tracers
+!------------------------------------------------------------------------------
+! Prior to 12/28/11:
+! Increase from 50 to 53 for bromine chem (jpp, mpayer, 12/28/11)
+!      INTEGER, PARAMETER   :: NSOLMAX = 50      ! Max # of soluble tracers
+!------------------------------------------------------------------------------
+      INTEGER, PARAMETER   :: NSOLMAX = 53      ! Max # of soluble tracers
       REAL*8,  PARAMETER   :: EPSILON = 1d-32   ! A very small positive #
 !
 ! !LOCAL VARIABLES:
@@ -1006,6 +1011,8 @@
       USE TRACERID_MOD, ONLY : IDTISOPN, IDTMMN
       USE TRACERID_MOD, ONLY : IDTIEPOX, IDTRIP
       USE TRACERID_MOD, ONLY : IDTMAP
+      ! jpp 4/27/09
+      USE TRACERID_MOD, ONLY : IDTHOBr,  IDTHBr,   IDTBr2
 #if defined( DEVEL )
       USE GC_TYPE_MOD,  ONLY : GC_MET_LOCAL
 #endif
@@ -1314,6 +1321,187 @@
 
          ! ND38 index
          ISOL = GET_ISOL( N ) 
+
+      !-------------------------------
+      ! HOBr (liquid phase only)
+      ! jpp 4/27/09
+      !-------------------------------
+      ELSE IF ( N == IDTHOBr ) THEN 
+
+         ! No scavenging at the surface
+         F(:,:,1) = 0d0
+
+         ! Apply scavenging in levels 2 and higher
+         DO L = 2, LLPAR
+         DO J = 1, JJPAR
+         DO I = 1, IIPAR
+
+            ! Compute liquid to gas ratio for HOBr:
+            ! 1. first argument is the adjusted Henry's law coefficient,
+            ! which I've calculated for pH = 4.5
+            !
+            ! H0 from Freznel et al. [1998]
+            ! McGrath and Rowland, 1994 says dH_sol for HOBr = - 50 kJ/mol
+            ! (- 12 kcal/mol)
+            ! acid dissociation constant in Heff is small (1.5e-9), reported
+            ! by Haag and Holne [1983]
+            CALL COMPUTE_L2G( 6.1d3, -6014.d0, 
+     &                        T(I,J,L), CLDLIQ(I,J,L), L2G )
+
+            ! Fraction of HOBr in liquid phase
+            ! (Eqs. 4, 5, 6, Jacob et al, 2000)
+            C_TOT = 1d0 + L2G
+            F_L   = L2G / C_TOT
+
+            ! Compute the rate constant K.
+            IF ( T(I,J,L) >= 268d0 ) THEN
+
+               K = KC * F_L
+
+            ELSE IF ( T(I,J,L) > 248d0  .and. T(I,J,L) < 268d0 ) THEN
+
+               K = KC * (0.d0 * F_L) 
+
+            ELSE
+
+               K = 0.d0
+                  
+            ENDIF
+
+            ! Distance between grid box centers [m]
+            TMP = 0.5d0 * ( BXHEIGHT(I,J,L-1) + BXHEIGHT(I,J,L) ) 
+               
+            ! F is the fraction of HOBr scavenged out of the updraft
+            ! (Eq. 2, Jacob et al, 2000)
+            F(I,J,L) = 1d0 - EXP( -K * TMP / Vud(I,J) )
+
+         ENDDO
+         ENDDO
+         ENDDO
+
+         ! ND38 index
+         ISOL = GET_ISOL( N ) 
+
+      !-------------------------------
+      ! HBr (liquid phase only)
+      ! jpp 4/27/09
+      !-------------------------------
+      ELSE IF ( N == IDTHBr ) THEN 
+
+         ! No scavenging at the surface
+         F(:,:,1) = 0d0
+
+         ! Apply scavenging in levels 2 and higher
+         DO L = 2, LLPAR
+         DO J = 1, JJPAR
+         DO I = 1, IIPAR
+
+            ! Compute liquid to gas ratio for HBr:
+            ! 1. first argument is the adjusted Henry's law coefficient,
+            ! which I've calculated for pH = 4.5
+            !
+            ! H0 and heat of solution are estimated by Yang et al. [2005]
+            CALL COMPUTE_L2G( 7.1d13, -10200.0d0, 
+     &                        T(I,J,L), CLDLIQ(I,J,L), L2G )
+
+
+            ! Fraction of HBr in liquid phase
+            ! (Eqs. 4, 5, 6, Jacob et al, 2000)
+            C_TOT = 1d0 + L2G
+            F_L   = L2G / C_TOT
+
+            ! Compute the rate constant K.
+            IF ( T(I,J,L) >= 268d0 ) THEN
+
+               K = KC * F_L
+
+            ELSE IF ( T(I,J,L) > 248d0  .and. T(I,J,L) < 268d0 ) THEN
+               
+               ! HBr has a large effective Henry's
+               ! Law Constant, similar to HCl and HNO3, which have
+               ! retention fractions (RFs) of 1.
+               ! RFs have not been measured for HBr; 
+               ! however, Stuart and Jacobson [2003]
+               ! suggest that species with large
+               ! Hstar's should have RF's of about 1.
+               ! (jpp, 6/13/2011)
+               K = KC * (1.d0 * F_L) !jpp, testing riming efficiency
+
+            ELSE
+
+               K = 0.d0
+                  
+            ENDIF
+
+            ! Distance between grid box centers [m]
+            TMP = 0.5d0 * ( BXHEIGHT(I,J,L-1) + BXHEIGHT(I,J,L) ) 
+
+            ! F is the fraction of HBr scavenged out of the updraft
+            ! (Eq. 2, Jacob et al, 2000)
+            F(I,J,L) = 1d0 - EXP( -K * TMP / Vud(I,J) )
+
+
+         ENDDO
+         ENDDO
+         ENDDO
+
+         ! ND38 index
+         ISOL = GET_ISOL( N )
+
+
+      !------------------------------
+      ! Br2 (liquid phase only), jpp
+      !------------------------------
+      ELSE IF ( N == IDTBr2 ) THEN
+
+         ! No scavenging at the surface
+         F(:,:,1) = 0d0
+
+         ! Apply scavenging in levels 2 and higher
+         DO L = 2, LLPAR
+         DO J = 1, JJPAR
+         DO I = 1, IIPAR
+
+            ! Compute liquid to gas ratio for Br2:
+            CALL COMPUTE_L2G( 0.76d0, -3.72d3, 
+     &           T(I,J,L), CLDLIQ(I,J,L), L2G )
+
+            ! Fraction of Br2 in liquid phase
+            C_TOT = 1d0 + L2G
+            F_L   = L2G / C_TOT
+   
+            ! Compute the rate constant K.
+            !
+            ! * no data found on fraction Br2 remaining
+            !   in particle phase during riming. Plus,
+            !   it has a small effective Henry's Law. So we'll
+            !   assume 0% retention at all temperatures
+            !   above 248K and below 268K. (jpp, 1/14/2011)
+            ! * CL2 analogue has low mass accomodation coeff. for ice
+            !   0 uptake in cold clouds. (<1e-4, Sander et al [2010] - JPL)
+            IF ( T(I,J,L) >= 268d0 ) THEN
+               K = KC * F_L
+            ELSE IF ( T(I,J,L) > 248d0  .and. T(I,J,L) < 268d0 ) THEN
+               K = KC * (0.d0 * F_L) !jpp, testing riming efficiency
+            ELSE
+               K = 0d0   
+            ENDIF
+
+
+            ! Distance between grid box centers [m]
+            TMP = 0.5d0 * ( BXHEIGHT(I,J,L-1) + BXHEIGHT(I,J,L) ) 
+                  
+            ! F is the fraction of Br2 scavenged out of the updraft
+            ! (Eq. 2, Jacob et al, 2000)
+            F(I,J,L) = 1d0 - EXP( -K * TMP / Vud(I,J) )
+
+         ENDDO
+         ENDDO
+         ENDDO
+
+         ! ND38 index
+         ISOL = GET_ISOL( N ) 
+
 
       ! Update GLYX and MGLY Henry's Law Const calculations (tmf, 9/13/06)  
       !-------------------------------
@@ -3219,6 +3407,8 @@
       USE TRACERID_MOD, ONLY : IDTMOBA,  IDTPROPNN
       USE TRACERID_MOD, ONLY : IDTISOPN, IDTMMN
       USE TRACERID_MOD, ONLY : IDTIEPOX, IDTRIP, IDTMAP
+      ! jpp 4/27/09
+      USE TRACERID_MOD, ONLY : IDTHOBr, IDTHBr,   IDTBr2
       USE TRACER_MOD,   ONLY : ITS_A_MERCURY_SIM 
 #if defined( DEVEL )
       USE GC_TYPE_MOD,  ONLY : GC_MET_LOCAL
@@ -3747,6 +3937,113 @@
          RAINFRAC = GET_RAINFRAC( K, F, DT ) 
 
       !!!!! end FP additional tracers for ISOP (6/2009)
+
+      !----------------------------------
+      ! HOBr (liquid phase only), jpp
+      !----------------------------------
+      ELSE IF ( N == IDTHOBr ) THEN
+
+
+         ! Compute liquid to gas ratio for HOBr:
+         ! 1. first argument is the adjusted Henry's law coefficient,
+         ! which I've calculated for pH = 4.5
+         ! (jpp, 4/27/09)
+         ! 
+         ! McGrath and Rowland, 1994 estimate - 50 kJ/mol heat of solution
+         ! H0 comes from Freznel et al. [1998]
+         CALL COMPUTE_L2G( 6.1d3, -6014.d0,
+     &                     TK,    CLDLIQ(I,J,L), L2G )      
+
+         ! Fraction of HOBr in liquid phase
+         ! (Eqs. 4, 5, 6, Jacob et al, 2000)
+         C_TOT = 1d0 + L2G
+         F_L   = L2G / C_TOT
+         F_I   = I2G / C_TOT
+
+         ! Compute the rate constant K.
+         IF ( TK >= 268d0 ) THEN
+            K = K_RAIN * F_L 
+         ELSE IF ( TK > 248d0  .and. TK < 268d0 ) THEN
+
+            K = K_RAIN * (0.d0 * F_L)
+
+         ELSE
+            K = 0.d0
+         ENDIF
+
+         ! Compute RAINFRAC, the fraction of rained-out HOBr
+         ! (Eq. 10, Jacob et al, 2000)
+         RAINFRAC = GET_RAINFRAC( K, F, DT ) 
+
+      !-----------------------------------
+      ! HBr (liquid phase only), jpp
+      !-----------------------------------
+      ELSE IF ( N == IDTHBr ) THEN
+
+         ! Compute liquid to gas ratio for HBr:
+         ! 1. first argument is the adjusted Henry's law coefficient,
+         ! which I've calculated for pH = 4.5
+         !
+         ! H0 and heat of solution are estimated by Yang et al. [2005]
+         CALL COMPUTE_L2G( 7.1d13,   -10200.0d0,
+     &                     T(I,J,L), CLDLIQ(I,J,L), L2G )
+
+         ! Fraction of HBr in liquid phase
+         ! (Eqs. 4, 5, 6, Jacob et al, 2000)
+         C_TOT = 1d0 + L2G
+         F_L   = L2G / C_TOT
+
+         ! Compute the rate constant K.
+         IF ( TK >= 268d0 ) THEN
+            K = K_RAIN * F_L 
+         ELSE IF ( TK > 248d0  .and. TK < 268d0 ) THEN
+
+            ! HBr has a large effective Henry's
+            ! Law Constant, similar to HCl and HNO3, which have
+            ! retention fractions (RFs) of 1.
+            ! RFs have not been measured for HBr; 
+            ! however, Stuart and Jacobson [2003]
+            ! suggest that species with large
+            ! Hstar's should have RF's of about 1.
+            ! (jpp, 6/13/2011)
+            K = K_RAIN * (1.d0 * F_L) ! jpp, testing riming efficiency
+
+         ELSE
+            K = 0.d0
+         ENDIF
+  
+         ! Compute RAINFRAC, the fraction of rained-out HBr
+         ! (Eq. 10, Jacob et al, 2000)
+         RAINFRAC = GET_RAINFRAC( K, F, DT ) 
+
+      !------------------------------
+      ! Br2 (liquid phase only), jpp
+      !------------------------------
+      ELSE IF ( N == IDTBr2 ) THEN
+
+         ! 1. H0 and the heat of solution are taken from Dean [1992].
+         ! 2. Dissociation constant for hydrolysis is small (4e-9) and taken
+         !    from Beckwith et al. [1996]
+         CALL COMPUTE_L2G( 0.76d0,   -3.72d3,
+     &                     T(I,J,L), CLDLIQ(I,J,L), L2G )
+
+         ! Fraction of HBr in liquid phase
+         C_TOT = 1d0 + L2G
+         F_L   = L2G / C_TOT
+
+         ! Compute the rate constant K.
+         IF ( TK >= 268d0 ) THEN
+            K = K_RAIN * F_L
+         ELSE IF ( TK > 248d0  .and. TK < 268d0 ) THEN
+            K = K_RAIN * (0.d0 * F_L)
+         ELSE
+            K = 0d0   
+         ENDIF
+  
+         ! Compute RAINFRAC, the fraction of rained-out HBr
+         ! (Eq. 10, Jacob et al, 2000)
+         RAINFRAC = GET_RAINFRAC( K, F, DT ) 
+
       !------------------------------
       ! NH3 (liquid & ice phases)
       !------------------------------
@@ -4209,6 +4506,8 @@
       USE TRACERID_MOD, ONLY : IDTMOBA,  IDTPROPNN
       USE TRACERID_MOD, ONLY : IDTISOPN, IDTMMN
       USE TRACERID_MOD, ONLY : IDTIEPOX, IDTRIP, IDTMAP
+      ! jpp 4/27/09
+      USE TRACERID_MOD, ONLY : IDTHOBr,  IDTHBr,   IDTBr2
 
       USE CMN_SIZE_MOD                     ! Size parameters
 !
@@ -4337,6 +4636,31 @@
          KIN      = .FALSE.
          CALL WASHFRAC_LIQ_GAS( 3.0d3, -7.2d3, PP,       DT,  F,
      &                          DZ,     TK,    WASHFRAC, KIN  )
+
+      !------------------------------
+      ! HOBr (liquid & gas phases) jpp
+      !------------------------------
+      ELSE IF ( N == IDTHOBr ) THEN 
+         KIN      = .FALSE.
+         ! McGrath and Rowland, 1994 says dH_sol for HOBr = 50 kJ/mol
+         CALL WASHFRAC_LIQ_GAS( 6.1d3, -6014.d0, PP,       DT,  F, 
+     &                          DZ,     TK,      WASHFRAC, KIN  )
+
+      !------------------------------
+      ! HBr (liquid & gas phases) jpp
+      !------------------------------
+      ELSE IF ( N == IDTHBr ) THEN 
+         KIN      = .FALSE.
+         CALL WASHFRAC_LIQ_GAS( 7.1d13, -10200.d0, PP,       DT,  F,
+     &                          DZ,     TK,        WASHFRAC, KIN  )
+
+      !------------------------------
+      ! Br2 (liquid & gas phases) jpp
+      !------------------------------
+      ELSE IF ( N == IDTBr2 ) THEN 
+         KIN      = .FALSE.
+         CALL WASHFRAC_LIQ_GAS( 0.76d0, -3.72d3, PP,       DT,  F,
+     &                          DZ,      TK,     WASHFRAC, KIN  ) 
 
       !------------------------------
       ! GLYX (liquid & gas phases)
@@ -7324,6 +7648,8 @@
       USE TRACERID_MOD, ONLY : IDTMOBA,   IDTPROPNN
       USE TRACERID_MOD, ONLY : IDTISOPN,  IDTMMN
       USE TRACERID_MOD, ONLY : IDTIEPOX,  IDTRIP,    IDTMAP
+      ! jpp 4/27/09
+      USE TRACERID_MOD, ONLY : IDTHOBr,   IDTHBr,    IDTBr2
 
       USE CMN_SIZE_MOD       ! Size parameters
 ! 
@@ -7404,6 +7730,21 @@
          ELSE IF ( N == IDTGLYC ) THEN
             NSOL         = NSOL + 1
             IDWETD(NSOL) = IDTGLYC
+
+         !---------------------------------------
+         ! jpp, 10/21/08: adding bromine species
+         ELSE IF ( N == IDTHOBr ) THEN
+            NSOL         = NSOL + 1
+            IDWETD(NSOL) = IDTHOBr
+
+         ELSE IF ( N == IDTHBr ) THEN
+            NSOL         = NSOL + 1
+            IDWETD(NSOL) = IDTHBr
+
+         ELSE IF ( N == IDTBr2 ) THEN
+            NSOL         = NSOL + 1
+            IDWETD(NSOL) = IDTBr2
+         !---------------------------------------
 
          !FP_ISOP (6/2009)
          
@@ -7717,6 +8058,10 @@
          IF ( LSULF )    NMAX = NMAX + 8        ! SO2, SO4, MSA, NH3, NH4, NIT
          IF ( LDUST  )   NMAX = NMAX + NDSTBIN  ! plus # of dust bins
          IF ( LSSALT )   NMAX = NMAX + 2        ! plus 2 seasalts
+
+         ! jpp, 4/27/09:( 1) add space for 3 bromine species to
+         !                   be wet-deposited: HBr, HOBr, and Br2.
+         NMAX = NMAX + 3
 
          IF ( LSOA ) THEN
             IF ( LCARB ) NMAX = NMAX + 17       ! carbon + SOA aerosols

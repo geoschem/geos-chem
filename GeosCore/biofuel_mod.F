@@ -195,6 +195,7 @@
 !  08 Mar 2012 - M. Payer    - Added modifications for historical emissions of
 !                              NOx (E. Leibensperger)
 !  06 Apr 2012 - M. Payer    - Changed regrid algorithm to map_a2a (M. Cooper)
+!  24 May 2012 - R. Yantosca - Fix minor bugs in map_a2a implementation
 !******************************************************************************
 !
       ! References to F90 modules
@@ -252,12 +253,12 @@
       CHARACTER(LEN=4  )            :: CHISTYR
       CHARACTER(LEN=255)            :: ED_FILENAME
       REAL*4                        :: GENERIC_1x1(I1x1,J1x1-1)
-      REAL*8                        :: GENERIC8_1x1(I1x1,J1x1-1)
+      REAL*8, TARGET                :: GENERIC_8_1x1(I1x1,J1x1-1)
       REAL*8                        :: TEMP_ED(IIPAR,JJPAR,1), HIST_TAU
 !eml]
       CHARACTER(LEN=255)            :: LLFILENAME
-      REAL*8, ALLOCATABLE           :: OUTGRID(:,:)
-      REAL*8, ALLOCATABLE           :: INGRID(:,:)
+      REAL*8, POINTER               :: INGRID(:,:) => NULL()
+      REAL*8                        :: OUTGRID(IIPAR,JJPAR)
       
       ! External functions
       REAL*8,  EXTERNAL             :: BOXVL
@@ -363,25 +364,20 @@
      &                            1,          GENERIC_1x1, QUIET=.TRUE.)
 
                   ! Cast from REAL*4 to REAL*8
-                  GENERIC8_1x1 = GENERIC_1x1
+                  GENERIC_8_1x1 = GENERIC_1x1
 
                   ! File with lat/lon edges for regridding
                   LLFILENAME = TRIM( DATA_DIR_1x1) //
-     &               'MAP_A2A_Regrid_200312/latlon_generic.txt'
-
-                  ! Allocate arrays for regridding
-                  ALLOCATE(INGRID(I1x1,J1x1-1))
-                  ALLOCATE(OUTGRID(IIPAR,JJPAR))
+     &               'MAP_A2A_Regrid_201203/latlon_generic_new.txt'
 
                   ! Regrid to current model resolution
-                  INGRID = GENERIC8_1x1
-                  CALL DO_REGRID_A2A( LLFILENAME, 360,     181,
-     &                                INGRID,     OUTGRID, 1 )
+                  INGRID => GENERIC_8_1x1
+                  CALL DO_REGRID_A2A( LLFILENAME, I1x1,    J1x1-1,
+     &                                INGRID,     OUTGRID, PERAREA=1 )
                   BIOFUEL_KG(N,:,:) = OUTGRID  
                   
-                  ! Deallocate arrays for regridding
-                  DEALLOCATE(INGRID)
-                  DEALLOCATE(OUTGRID)
+                  ! Free pointer
+                  NULLIFY( INGRID )
 
                ELSE
 

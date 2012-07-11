@@ -229,6 +229,7 @@
 ! !REVISION HISTORY: 
 !  21 Jul 2009 - Chulkyu Lee & P. Le Sager - Initial Version
 !  13 Mar 2012 - M. Cooper   - Changed regrid algorithm to map_a2a
+!  24 May 2012 - R. Yantosca - Fixed minor bugs in map_a2a algorithm
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -239,15 +240,14 @@
       INTEGER                    :: I, J, THISYEAR, SPECIES, SNo, ScNo
       INTEGER                    :: THISMONTH
       REAL*4                     :: ARRAY(I1x1,J1x1,1)
-      REAL*8                     :: GEOS_1x1(I1x1,J1x1,1)
+      REAL*8, TARGET             :: GEOS_1x1(I1x1,J1x1,1)
       REAL*8                     :: SC_1x1(I1x1,J1x1)
       REAL*8                     :: TAU
       CHARACTER(LEN=255)         :: FILENAME
       CHARACTER(LEN=4)           :: SYEAR, SNAME
       CHARACTER (LEN=2)          :: SMONTH
       CHARACTER(LEN=255)         :: LLFILENAME
-      REAL*8, ALLOCATABLE        :: OUTGRID(:,:)
-      REAL*8, ALLOCATABLE        :: INGRID(:,:)
+      REAL*8, POINTER            :: INGRID(:,:) => NULL()
 
 #if defined( DEVEL )
       REAL*8, INTENT(INOUT)      :: EMISS(IIPAR, JJPAR, N_TRACERS)
@@ -279,11 +279,7 @@
 
       ! File with lat/lon edges for regridding
       LLFILENAME = TRIM( DATA_DIR_1x1) //
-     &             'MAP_A2A_Regrid_200312/latlon_geos1x1.txt'
-
-      ! Allocate arrays for regridding
-      ALLOCATE(INGRID(I1x1,J1x1))
-      ALLOCATE(OUTGRID(IIPAR,JJPAR))
+     &             'MAP_A2A_Regrid_201203/latlon_geos1x1_new.txt'
 
       DO SPECIES = 1,3
 
@@ -333,19 +329,17 @@
 
 
          ! Regrid from GEOS 1x1 --> current model resolution
-         INGRID = GEOS_1x1(:,:,1)
+         INGRID => GEOS_1x1(:,:,1)
 
          IF ( SPECIES .eq. 1 ) THEN
 
-            CALL DO_REGRID_A2A( LLFILENAME, 360,     182,
-     &                          INGRID,     OUTGRID, 1 )
-            NOx = OUTGRID
+            CALL DO_REGRID_A2A( LLFILENAME, I1x1, J1x1, 
+     &                          INGRID,     NOx,  PERAREA=1 )
 
          ELSEIF ( SPECIES .eq. 2 ) THEN
 
-            CALL DO_REGRID_A2A( LLFILENAME, 360,     182,
-     &                          INGRID,     OUTGRID, 1 )
-            CO  = OUTGRID
+            CALL DO_REGRID_A2A( LLFILENAME, I1x1, J1x1,
+     &                          INGRID,     CO,   PERAREA=1 )
 
          ELSEIF ( SPECIES .eq. 3 ) THEN
 
@@ -353,17 +347,15 @@
             ! 98.6% SO2 over NA, based upon Chin et al, 2000, and as
             ! utilized in sulfate_mod.f
             INGRID = INGRID * 0.986
-            CALL DO_REGRID_A2A( LLFILENAME, 360,     182,
-     &                          INGRID,     OUTGRID, 1 )
-            SO2 = OUTGRID
+            CALL DO_REGRID_A2A( LLFILENAME, I1x1, J1x1,
+     &                          INGRID,     SO2,  PERAREA=1 )
 
          ENDIF
 
-      ENDDO
+         ! Free pointer
+         NULLIFY( INGRID )
 
-      ! Deallocate arrays for regridding
-      DEALLOCATE(INGRID)
-      DEALLOCATE(OUTGRID)
+      ENDDO
 
       !--------------------------
       ! Compute future emissions

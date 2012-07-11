@@ -337,7 +337,6 @@
 !
 ! !DEFINED PARAMETERS:
 !      
-      ! Parameters
       REAL*8,  PARAMETER     :: C1 =  0.7674d0 
       REAL*8,  PARAMETER     :: C2 =  3.079d0 
       REAL*8,  PARAMETER     :: C3 =  2.573d-11
@@ -360,7 +359,6 @@
       ! sigma of the size distribution
       REAL*8,  PARAMETER     ::   SIG_A = 1.5d0
       REAL*8,  PARAMETER     ::   SIG_C = 1.8d0
-
 
       !=================================================================
       ! WET_SETTLING begins here!
@@ -825,9 +823,9 @@
 ! !INTERFACE:
 !
 #if defined( DEVEL )
-      SUBROUTINE EMISSSEASALT( LOCAL_MET, SFLX )
+      SUBROUTINE EMISSSEASALT( LOCAL_MET, SFLX, SSA_Br2 )
 #else
-      SUBROUTINE EMISSSEASALT
+      SUBROUTINE EMISSSEASALT( SSA_Br2 )
 #endif
 !
 ! !USES:
@@ -837,11 +835,21 @@
       USE TRACER_MOD,   ONLY : STT
       USE TRACERID_MOD, ONLY : IDTSALA, IDTSALC
       USE VDIFF_PRE_MOD,ONLY : emis_save ! (Lin, 03/31/09)
-
-      USE CMN_SIZE_MOD       ! Size parameters
 #if defined( DEVEL )
       USE GC_TYPE_MOD,  ONLY : GC_MET_LOCAL
       USE TRACER_MOD,   ONLY : N_TRACERS
+#endif
+
+      USE CMN_SIZE_MOD       ! Size parameters
+!
+! !OUTPUT PARAMETERS:
+!
+      REAL*8, INTENT(OUT), OPTIONAL :: SSA_Br2(IIPAR, JJPAR)
+!
+! !INPUT/OUTPUT PARAMETERS
+!
+#if defined( DEVEL )
+      REAL*8, INTENT(INOUT) :: SFLX(IIPAR,JJPAR,LLPAR,N_TRACERS+1)
 #endif
 !
 ! !INPUT PARAMETERS:
@@ -868,12 +876,16 @@
       LOGICAL, SAVE         :: FIRST = .TRUE.
       INTEGER               :: I, J, L, N
 
-#if defined( DEVEL )
-      REAL*8, INTENT(INOUT) :: SFLX(IIPAR,JJPAR,LLPAR,N_TRACERS+1)
-#endif
+      ! jpp, 3/2/10
+      REAL*8                :: tmpbr2(IIPAR, JJPAR)
+
       !=================================================================
       ! EMISSSEASALT begins here! 
       !=================================================================
+
+      ! Initialize Br2 emission arrays
+      tmpbr2(:,:) = 0.d0
+      IF ( PRESENT ( SSA_Br2 ) ) SSA_Br2(:,:) = 0.d0
 
       !### Debug
       IF ( LPRT ) CALL DEBUG_MSG( '### in EMISSEASALT' )
@@ -903,19 +915,28 @@
       ! Accumulation mode emissions
       IF ( IDTSALA > 0 ) THEN
 #if defined( DEVEL )
-         CALL SRCSALT( STT(:,:,:,IDTSALA), 1, LOCAL_MET )
+         CALL SRCSALT( STT(:,:,:,IDTSALA), tmpbr2(:,:), 1, LOCAL_MET )
 #else
-         CALL SRCSALT( STT(:,:,:,IDTSALA), 1 )
+         CALL SRCSALT( STT(:,:,:,IDTSALA), tmpbr2(:,:), 1 )
 #endif
          IF ( LPRT ) CALL DEBUG_MSG( '### EMISSEASALT: Accum' )
+      ENDIF
+
+      IF ( PRESENT ( SSA_Br2 ) ) THEN
+         ! 1. store contributions of Br2 emissions
+         !    from accumulation mode: (jpp, 3/2/10)
+         SSA_Br2(:,:) = tmpbr2(:,:)
+
+         ! reset the temporary variable
+         tmpbr2(:,:)  = 0.d0
       ENDIF
 
       ! Coarse mode emissions
       IF ( IDTSALC > 0 ) THEN
 #if defined( DEVEL )
-         CALL SRCSALT( STT(:,:,:,IDTSALC), 2, LOCAL_MET )
+         CALL SRCSALT( STT(:,:,:,IDTSALC), tmpbr2(:,:), 2, LOCAL_MET )
 #else
-         CALL SRCSALT( STT(:,:,:,IDTSALC), 2 )
+         CALL SRCSALT( STT(:,:,:,IDTSALC), tmpbr2(:,:), 2 )
 #endif
          IF ( LPRT ) CALL DEBUG_MSG( '### EMISSEASALT: Coarse' )
       ENDIF
@@ -924,6 +945,12 @@
       SFLX(:,:,1,IDTSALA) = SFLX(:,:,1,IDTSALA) + ALK_EMIS(:,:,1,1)
       SFLX(:,:,1,IDTSALC) = SFLX(:,:,1,IDTSALC) + ALK_EMIS(:,:,1,2)
 #endif
+
+      IF ( PRESENT ( SSA_Br2 ) ) THEN
+         ! 2. add in contributions of Br2 emissions
+         !    from the coarse mode: (jpp, 3/2/10)
+         SSA_Br2(:,:) = SSA_Br2(:,:) + tmpbr2(:,:)
+      ENDIF
 
       ! save surface emis for non-local PBL mixing (vdiff_mod.f) (units: kg)
       ! (Lin, 06/09/08) 
@@ -952,17 +979,16 @@
 !  Gong (2003) with the empirical sea surface temperature (SST) dependence of
 !  Jaegle et al. (2011). This SST dependence was derived based on comparisons
 !  to cruise observations of coarse mode sea salt mass concentrations.
-!\\
-!\\
+! 
 !  Contact: Lyatt Jaegle (jaegle@uw.edu)
 !\\
 !\\
 ! !INTERFACE:
 !
 #if defined( DEVEL )
-      SUBROUTINE SRCSALT( TC, N, LOCAL_MET )
+      SUBROUTINE SRCSALT( TC, SSA_Br2, N, LOCAL_MET )
 #else
-      SUBROUTINE SRCSALT( TC, N )
+      SUBROUTINE SRCSALT( TC, SSA_Br2, N )
 #endif
 !
 ! !USES:
@@ -977,6 +1003,7 @@
       USE PBL_MIX_MOD,   ONLY : GET_FRAC_OF_PBL, GET_PBL_TOP_L
       USE TIME_MOD,      ONLY : GET_TS_EMIS
       USE TRACER_MOD,    ONLY : SALA_REDGE_um, SALC_REDGE_um, XNUMOL
+      USE SSA_BROMINE_MOD, ONLY : EMISS_SSA_BROMINE
 
 #if defined( DEVEL )
       USE GC_TYPE_MOD,   ONLY : GC_MET_LOCAL
@@ -996,6 +1023,11 @@
 ! !INPUT/OUTPUT PARAMETERS: 
 !
       REAL*8,  INTENT(INOUT) :: TC(IIPAR,JJPAR,LLPAR) ! Sea salt tracer [v/v]
+!
+! !OUTPUT PARAMETERS:
+!
+      !jpp, 3/2/10
+      REAL*8,  INTENT(OUT)   :: SSA_Br2(IIPAR,JJPAR)  ! Br2 sea salt emissions
 !
 ! !REMARKS:
 !  References:
@@ -1050,6 +1082,8 @@
       REAL*8                 :: SALT_N(IIPAR,JJPAR)
       ! New variables (jaegle 5/11/11)
       REAL*8                 :: A, B, SST, SCALE
+      ! jpp, 3/2/10
+      REAL*8                 :: br2_kg_emiss, salt_current
 
       ! Increment of radius for Emission integration (um)
       REAL*8, PARAMETER      :: DR    = 5.d-2
@@ -1061,6 +1095,9 @@
       !=================================================================
       ! SRCSALT begins here!
       !=================================================================
+
+      ! initialize the Br2 sea-salt emissions
+      SSA_Br2(:,:) = 0.d0
       
       ! Emission timestep [s]
       DTEMIS = GET_TS_EMIS() * 60d0
@@ -1188,6 +1225,7 @@
 !$OMP+DEFAULT( SHARED )
 !$OMP+PRIVATE( I, J, R, A_M2, W10M )
 !$OMP+PRIVATE( SST , SCALE         ) !(jaegle 5/11/11)
+!$OMP+PRIVATE( salt_current, br2_kg_emiss )
 !$OMP+SCHEDULE( DYNAMIC )
 
       ! Loop over latitudes
@@ -1233,9 +1271,9 @@
 	       !SCALE = 1.0d0
 
                ! The source function calculated with GEOS-4 2x2.5 wind speeds
-               ! is too high compared to GEOS-5 at the same resolution.
-               ! The 10m winds in GEOS-4 are too rapid. To correct this,
-               ! apply a global scaling factor of 0.72 (jaegle 5/11/11)
+               ! is too high compared to GEOS-5 at the same resolution. The 10m
+               ! winds in GEOS-4 are too rapid. To correct this, apply a global
+               ! scaling factor of 0.72 (jaegle 5/11/11)
 #if   defined( GEOS_4 )
                 SCALE = SCALE * 0.72d0
 #endif
@@ -1251,6 +1289,24 @@
                   ! (bec, bmy, 4/13/05)
                   SALT_N(I,J) = SALT_N(I,J) +
      &               ( SCALE * SRC_N(R,N) * A_M2 * W10M**3.41d0 )
+
+                  ! jpp, 3/3/10: since the SALT arrays are integrations
+                  !              I cannot use them for each independent
+                  !              radius... that's why I'm getting too
+                  !              much bromine. So I'm making a tmp
+                  !              array to store only the current
+                  !              Dry Radius bin. [kg]
+                  salt_current = ( SRC(R,N)   * A_M2 * W10M**3.41d0 )
+
+                  ! --------------------------------------------------
+                  ! jpp, 3/2/10: Accounting for the bromine emissions
+                  ! now. Store mass flux [kg] of Br2 based on how much
+                  ! aerosol there is emitted in this box.
+                  ! --------------------------------------------------
+                  CALL EMISS_SSA_BROMINE( J, RMID(R, N), 
+     &                  salt_current, br2_kg_emiss )
+
+                  SSA_Br2(I,J) = SSA_Br2(I,J) + br2_kg_emiss
 
                ENDDO
             ENDIF

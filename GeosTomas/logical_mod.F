@@ -160,6 +160,9 @@
 ![eml
       LOGICAL :: LHIST           ! Use historical emissions?
 !eml]
+      LOGICAL :: LWARWICK_VSLS   ! Use Warwick_s3 R(Br)n? (jpp 8/23/07)
+      LOGICAL :: LSSABr2         ! Use sea salt Br2 emiss? (jpp, 3/28/2010)
+      LOGICAL :: LFIX_PBL_BrO    ! Run 1ppt MBL BRO Sim.? (jpp 5/10/10)
 
       !%%%% Transport and strat BC's %%%%
       LOGICAL :: LFILL           ! Fill negative values in TPCORE?
@@ -174,6 +177,7 @@
       LOGICAL :: LWINDO_EU
       LOGICAL :: LWINDO_CH
       LOGICAL :: LWINDO_CU
+      LOGICAL :: LWINDO_SE
 
       !%%%% Met fields %%%%
       LOGICAL :: LUNZIP          ! Unzip met fields on-the-fly?
@@ -243,6 +247,9 @@
       LOGICAL :: LND50_HDF       ! Save ND50  diagnostic in HDF5?
       LOGICAL :: LND51_HDF       ! Save ND51  diagnostic in HDF5?
       LOGICAL :: LND51b_HDF      ! Save ND51b diagnostic in HDF5?
+ 
+      !%%%% For interface with GCM's in MPI environments
+      LOGICAL :: DO_DIAG_WRITE = .TRUE.  ! TURN ON/OFF DIAGNOSTIC WRITING
 
       END MODULE LOGICAL_MOD
 !EOC

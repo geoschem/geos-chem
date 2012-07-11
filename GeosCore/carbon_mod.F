@@ -1087,7 +1087,7 @@
 !        "pbl_mix_mod.f" (bmy, 2/17/05)
 !  (3 ) Bug fix: add BL_FRAC to the PRIVATE list (mak, bmy, 10/3/05)
 !  (4 ) Now refrerences XNUMOL from "tracer_mod.f" (bmy, 10/25/05)
-!  01 Mar 2012 - R. Yantosca - Now use GET_AREA_M2(I,J,L) from grid_mod.F90
+!  01 Mar 2012 - R. Yantosca - Now use GET_AREA_CM2(I,J,L) from grid_mod.F90
 !******************************************************************************
 !
       ! References to F90 modules
@@ -1352,6 +1352,9 @@
             ! Get 1-D index
             JLOOP   = JLOP( I, J, L )
 
+            ! JLOP equal 0 if we're not in the tropopause. (ccc,10/16/09)
+            IF ( JLOOP == 0 ) CYCLE
+
 #if defined( DEVEL )
             ! Get RH  
             XRH     = LOCAL_MET%RH( I, J, L )   ![%]
@@ -1582,6 +1585,9 @@
 
             ! Get 1-D index
             JLOOP   = JLOP( I, J, L )
+
+            ! JLOP equal 0 if we're not in the tropopause. (ccc,10/16/09)
+            IF ( JLOOP == 0 ) CYCLE
 
 #if defined( DEVEL )
             ! Get RH  
@@ -4871,7 +4877,8 @@ c
       CHARACTER(LEN=255)            :: FILENAME
 ![eml
       CHARACTER(LEN=  4)            :: CHISTYR
-      REAL*4                        :: GENERIC_1x1(I1x1,J1x1-1,1)
+!     REAL*4                        :: GENERIC_1x1(I1x1,J1x1-1,1)
+      REAL*4                        :: GENERIC_1x1(IIPAR,JJPAR,1)
 
 !eml]
 
@@ -7112,7 +7119,7 @@ c
          ! GET gas mixing ratio [v/v]
          XGASMIX = XGASM / XMW / ( XAIRM / 28.97d0 )
 
-#if   defined( GEOS_5 ) || defined( MERRA )
+#if   defined( GEOS_5 ) || defined( MERRA ) || defined( GEOS_57 )
 
          !---------------------------------------------
          ! GEOS-5/MERRA: Get LWC, FC from met fields
@@ -7561,7 +7568,7 @@ c
          IF ( AS /= 0 ) CALL ALLOC_ERR( 'ORVC_SESQ' )
          ORVC_SESQ = 0d0
 
-#if   !defined( GEOS_5 ) && !defined( MERRA )
+#if   !defined( GEOS_5 ) && !defined( MERRA ) && !defined( GEOS_57 )
          ! If we are using GEOS-5 or MERRA met, then get the cloud fraction 
          ! directly from the met fields.  (skim, bmy, 1/14/10)
          ALLOCATE( VCLDF( IIPAR, JJPAR, LLTROP ), STAT=AS )
@@ -7614,7 +7621,15 @@ c
       J2_NA = JJPAR
 
 #elif defined( NESTED_CH )
-      ! For 1x1 China nested grid: we don't cover N. America region
+      ! For China nested grids: we don't cover N. America region
+      ! Setting these to zero will turn off Cooke/RJP emissions
+      I1_NA = 0
+      J1_NA = 0
+      I2_NA = 0
+      J2_NA = 0
+
+#elif defined ( SEAC4RS )
+      ! For SEAC4RS nested grid: we don't cover N. America region
       ! Setting these to zero will turn off Cooke/RJP emissions
       I1_NA = 0
       J1_NA = 0

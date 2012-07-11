@@ -343,6 +343,8 @@
 !  28 Jan 2009 - P. Le Sager - Initial Version
 !  13 Mar 2012 - M. Cooper   - Changed regrid algorithm to map_a2a
 !  14 May 2012 - R. Yantosca - Bug fix: SC should be defined w/ IIPAR,JJPAR
+!  24 May 2012 - R. Yantosca - Fix minor bugs in map_a2a implementation
+
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -350,7 +352,7 @@
 ! !LOCAL VARIABLES:
 !
       REAL*4              :: ARRAY(I1x1,J1x1-1,1)
-      REAL*8              :: GEN_1x1(I1x1,J1x1-1)
+      REAL*8, TARGET      :: GEN_1x1(I1x1,J1x1-1)
 !-----------------------------------------------------------------------------
 ! Prior to 5/14/12:
 ! Bug fix: SC should be dimensioned with IIPAR,JJPAR (bmy,mpayer,5/14/12)
@@ -359,8 +361,8 @@
       REAL*4              :: SC(IIPAR,JJPAR)
       REAL*8              :: TAU2008
       CHARACTER(LEN=255)  :: LLFILENAME
-      REAL*8, ALLOCATABLE :: OUTGRID(:,:)
-      REAL*8, ALLOCATABLE :: INGRID(:,:)
+      REAL*8, POINTER     :: INGRID (:,:) => NULL()
+      REAL*8              :: OUTGRID(IIPAR,JJPAR)
 
       ! TAU0 values for 2008
       TAU2008 = GET_TAU0( 1, 1, 2008 )
@@ -378,24 +380,20 @@
       
       ! File with lat/lon edges for regridding
       LLFILENAME = TRIM( DATA_DIR_1x1) //
-     &             'MAP_A2A_Regrid_200312/latlon_generic.txt'
-
-      ! Allocate arrays for regridding
-      ALLOCATE(INGRID(I1x1,J1x1-1))
-      ALLOCATE(OUTGRID(IIPAR,JJPAR))
+     &             'MAP_A2A_Regrid_201203/latlon_generic_new.txt'
 
       ! Regrid from GENERIC 1x1 --> Current Model Resolution
-      INGRID = GEN_1X1(:,:)
-      CALL DO_REGRID_A2A( LLFILENAME, 360, 181, INGRID, OUTGRID, 1 )
+      INGRID => GEN_1x1(:,:)
+      CALL DO_REGRID_A2A( LLFILENAME, I1x1,    J1x1-1, 
+     &                    INGRID,     OUTGRID, PERAREA=1 )
 
       ! Get & apply scaling factor
       IF ( TRACERN == 26 )
      $     CALL GET_ANNUAL_SCALAR( 73, 2000, YEAR, SC )
       ARR = OUTGRID * SC
 
-      ! Deallocate arrays for regridding
-      DEALLOCATE(INGRID)
-      DEALLOCATE(OUTGRID)
+      ! Free pointer
+      NULLIFY( INGRID )
 
       END SUBROUTINE READ_ARCTAS_SHIP
 !EOC

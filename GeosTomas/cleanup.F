@@ -15,7 +15,7 @@
 !
 ! !USES:
 !
-      USE ACETONE_MOD,             ONLY : CLEANUP_ACETONE
+      !USE ACETONE_MOD,             ONLY : CLEANUP_ACETONE
       USE AEROSOL_MOD,             ONLY : CLEANUP_AEROSOL
       USE AIRCRAFT_NOX_MOD,        ONLY : CLEANUP_AIRCRAFT_NOX
       USE ARCTAS_SHIP_EMISS_MOD,   ONLY : CLEANUP_ARCTAS_SHIP
@@ -85,6 +85,7 @@
       USE WETSCAV_MOD,             ONLY : CLEANUP_WETSCAV
       USE ICOADS_SHIP_MOD,         ONLY : CLEANUP_ICOADS_SHIP  !(cklee,7/09/09)
       USE RETRO_MOD,               ONLY : CLEANUP_RETRO
+      USE BROMOCARB_MOD,           ONLY : CLEANUP_BROMOCARB    ! jpp, 6/17/09
 #if   defined( APM )
       USE APM_WETS_MOD,            ONLY : CLEANUP_WETSCAVBIN
 #endif
@@ -178,6 +179,8 @@
 !  13 Aug 2010 - R. Yantosca - Added ProTeX headers
 !  22 Aug 2011 - R. Yantosca - Add modifications for APM microphysics (G. Luo)
 !  07 Sep 2011 - P. Kasibhatla - Add modifications for GFED3
+!  19 Mar 2012 - M. Payer    - Remove call to CLEANUP_ACETONE. It is no longer
+!                              needed after removal of JO1D and RESP routines.
 !  05 Apr 2012 - R. Yantosca - Now call CLEANUP_MODIS_LAI
 !  11 Apr 2012 - R. Yantosca - Remove reference to obsolete lai_mod.F
 !EOP
@@ -192,13 +195,14 @@
  100  FORMAT( '     - CLEANUP: deallocating arrays now...' )
 
       ! Call cleanup routines from individual F90 modules
-      CALL CLEANUP_ACETONE
+      !CALL CLEANUP_ACETONE
       CALL CLEANUP_AEROSOL
       CALL CLEANUP_AIRCRAFT_NOX
       CALL CLEANUP_ARCTAS_SHIP
       CALL CLEANUP_BIOMASS
       CALL CLEANUP_BIOFUEL
       CALL CLEANUP_BRAVO
+      CALL CLEANUP_BROMOCARB  ! jpp, 6/17/09
       CALL CLEANUP_C2H6
       CALL CLEANUP_CAC_ANTHRO
       CALL CLEANUP_CARBON
@@ -266,6 +270,8 @@
 
 #if   defined( GEOS_5 ) && defined( GRID05x0666 )
       CALL EXIT_GEOS5_TPCORE_WINDOW 
+#elif defined( GEOS_57 ) && defined ( GRID025x03125 )
+      CALL EXIT_GEOS57_TPCORE_WINDOW
 #else
       CALL EXIT_TPCORE
 #endif

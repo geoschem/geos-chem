@@ -56,6 +56,7 @@
 !  25 Aug 2010 - R. Yantosca - Added ProTeX headers
 !  03 Sep 2010 - R. Yantosca - Bug fix in SRC_DUST_DEAD
 !  15 Feb 2011 - R. Yantosca - Add modifications for APM from G. Luo
+!  08 Feb 2012 - R. Yantosca - Add modifications for GEOS-5.7.x
 !  01 Mar 2012 - R. Yantosca - Now reference the new grid_mod.F90
 !EOP
 !------------------------------------------------------------------------------
@@ -1069,7 +1070,7 @@
             DO I = 1, IIPAR
 
                ! Get grid box surface area [m2]
-               AREA_M2 = GET_AREA_M2( I, J, 1)
+               AREA_M2 = GET_AREA_M2( I, J, 1 )
 
                ! Fraction of emerged surfaces 
                ! (subtract lakes, coastal ocean,...)
@@ -1146,7 +1147,7 @@
       USE COMODE_MOD,    ONLY : WTAREA, WERADIUS
       USE DAO_MOD,       ONLY : RH
 
-      USE CMN_FJ_MOD,    ONLY : IPAR, JPAR, LPAR, JPMAX, JPPJ      
+!      USE CMN_FJ_MOD,    ONLY : IPAR, JPAR, LPAR, JPMAX, JPPJ      
       USE JV_CMN_MOD          ! ODMDUST, QAA, RAA, QAA_AOD (clh)
       USE COMODE_LOOP_MOD     ! NTTLOOP
 
@@ -1374,7 +1375,6 @@
 !
 ! !USES:
 !
-      ! References to F90 modules
       USE BPCH2_MOD,     ONLY : GET_NAME_EXT, GET_RES_EXT
       USE BPCH2_MOD,     ONLY : GET_TAU0,     READ_BPCH2
       USE COMODE_MOD,    ONLY : ERADIUS, IXSAVE, IYSAVE
@@ -1389,13 +1389,12 @@
 
 #     include "define.h"
 
-      USE CMN_FJ_MOD,   ONLY : IPAR, JPAR, LPAR, JPMAX, JPPJ
-      USE JV_CMN_MOD,   ONLY : ODMDUST, QAA, RAA, RAA_AOD, QAA_AOD
-      USE COMODE_LOOP_MOD    ! NTTLOOP
-      USE CMN_DIAG_MOD       ! ND21, LD21
+      USE CMN_FJ_MOD,    ONLY : JPMAX, JPPJ
+      USE JV_CMN_MOD,    ONLY : ODMDUST, QAA, RAA, RAA_AOD, QAA_AOD
+      USE COMODE_LOOP_MOD     ! NTTLOOP
+      USE CMN_DIAG_MOD        ! ND21, LD21
 
       IMPLICIT NONE
-
 !
 ! !INPUT PARAMETERS: 
 !
@@ -1415,7 +1414,7 @@
 !        Also need to pass THISYEAR thru the arg list. (rvm, bmy, 11/21/00)
 !  (5 ) CONC is now declared as REAL*8 (rvm, bmy, 12/15/00)
 !  (6 ) Removed obsolete code from 12/15/00 (bmy, 12/21/00)
-!  (7 ) CONC(IGLOB,JGLOB,LGLOB,NDUST) is now CONC(IIPAR,JJPAR,LLPAR,NDUST).
+!  (7 ) CONC(IIPAR,JJPAR,LGLOB,NDUST) is now CONC(IIPAR,JJPAR,LLPAR,NDUST).
 !        Now use routine TRANSFER_3D from "transfer_mod.f" to cast from REAL*4
 !        to REAL*8 and also to convert from {IJL}GLOB to IIPAR,JJPAR,LLPAR 
 !        space.  Use 3 arguments in call to GET_TAU0.  Updated comments.

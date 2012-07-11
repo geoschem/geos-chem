@@ -13,8 +13,8 @@
 !        R. Sander, Max-Planck Institute for Chemistry, Mainz, Germany
 ! 
 ! File                 : gckpp_Initialize.f90
-! Time                 : Wed Sep 15 15:20:39 2010
-! Working directory    : /mnt/lstr04/srv/home/c/ccarouge/KPP/geoschem_kppfiles/v8-03-02/standard
+! Time                 : Fri Apr 27 11:48:11 2012
+! Working directory    : /mnt/as/home/m/mpayer/KPP
 ! Equation file        : gckpp.kpp
 ! Output root filename : gckpp
 ! 
@@ -39,12 +39,13 @@ CONTAINS
 
 SUBROUTINE Initialize ( )
 
+
   USE gckpp_Global
   USE gckpp_Util,     ONLY : Shuffle_user2kpp
   USE gckpp_Monitor
-     
+
   INTEGER :: i
-   
+
   CALL Shuffle_user2kpp(V_CSPEC,VAR)
    
   DO i = 1, NFIX

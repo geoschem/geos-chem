@@ -186,26 +186,26 @@
 ! !REVISION HISTORY: 
 !  28 Jan 2009 - A. v. Donkelaar, P. Le Sager - Initial Version
 !  13 Mar 2012 - M. Cooper   - Changed regrid algorithm to map_a2a
+!  24 May 2012 - R. Yantosca - Fix minor bugs in map_a2a algorithm
 !EOP
 !------------------------------------------------------------------------------
 !BOC
 !
 ! !LOCAL VARIABLES:
 !
-      LOGICAL, SAVE              :: FIRST = .TRUE.
-      INTEGER                    :: I, J, THISYEAR
-      INTEGER                    :: MN, SNo, ScNo
-      REAL*4                     :: ARRAY(I1x1,J1x1,1)
-      REAL*8                     :: GEOS_1x1(I1x1,J1x1,1)
-      REAL*8                     :: SC_1x1(I1x1,J1x1)
-      REAL*8                     :: TAU2002, TAU
-      CHARACTER(LEN=255)         :: FILENAME, VISTAS_DIR
-      CHARACTER(LEN=4)           :: SYEAR, SNAME
-      CHARACTER(LEN=2)           :: SMN
-      CHARACTER(LEN=1)           :: SSMN
-      CHARACTER(LEN=255)         :: LLFILENAME
-      REAL*8, ALLOCATABLE        :: OUTGRID(:,:)
-      REAL*8, ALLOCATABLE        :: INGRID(:,:)
+      LOGICAL, SAVE         :: FIRST = .TRUE.
+      INTEGER               :: I, J, THISYEAR
+      INTEGER               :: MN, SNo, ScNo
+      REAL*4                :: ARRAY(I1x1,J1x1,1)
+      REAL*8                :: GEOS_1x1(I1x1,J1x1,1)
+      REAL*8                :: SC_1x1(I1x1,J1x1)
+      REAL*8                :: TAU2002, TAU
+      CHARACTER(LEN=255)    :: FILENAME, VISTAS_DIR
+      CHARACTER(LEN=4)      :: SYEAR, SNAME
+      CHARACTER(LEN=2)      :: SMN
+      CHARACTER(LEN=1)      :: SSMN
+      CHARACTER(LEN=255)    :: LLFILENAME
+      REAL*8                :: INGRID(I1x1,J1x1)
 
 
 #if defined( DEVEL )
@@ -241,8 +241,8 @@
       ENDIF
 
       ! cap maximum scaling year
-      IF ( THISYEAR .gt. 2007 ) THEN
-         THISYEAR = 2007
+      IF ( THISYEAR .gt. 2010 ) THEN
+         THISYEAR = 2010
       ENDIF
 
       SNAME = 'NOx'
@@ -318,17 +318,12 @@
 
       ! File with lat/lon edges for regridding
       LLFILENAME = TRIM( DATA_DIR_1x1) //
-     &             'MAP_A2A_Regrid_200312/latlon_geos1x1.txt'
+     &             'MAP_A2A_Regrid_201203/latlon_geos1x1_new.txt'
 
-      ! Allocate arrays for regridding
-      ALLOCATE(INGRID(I1x1,J1x1))
-      ALLOCATE(OUTGRID(IIPAR,JJPAR))
-  
       ! Regrid to current model resolution
       INGRID = GEOS_1x1(:,:,1) * ARRAY(:,:,1)
-      CALL DO_REGRID_A2A( LLFILENAME, 360,     182,
-     &                    INGRID,     OUTGRID, 0 )
-      VISTAS_WE_NOx = OUTGRID
+      CALL DO_REGRID_A2A( LLFILENAME, I1x1,          J1x1,
+     &                    INGRID,     VISTAS_WE_NOx, PERAREA=0 )
 
       ! Load/Apply weekday factors
       FILENAME  = TRIM( VISTAS_DIR )
@@ -345,13 +340,8 @@
  
       ! Regrid from GEOS 1x1 --> current model resolution
       INGRID = GEOS_1x1(:,:,1) * ARRAY(:,:,1)
-      CALL DO_REGRID_A2A( LLFILENAME, 360,     182,
-     &                    INGRID,     OUTGRID, 0 )
-      VISTAS_WD_NOx = OUTGRID
-
-      ! Deallocate arrays for regridding
-      DEALLOCATE(INGRID)
-      DEALLOCATE(OUTGRID)
+      CALL DO_REGRID_A2A( LLFILENAME, I1x1,          J1x1,
+     &                    INGRID,     VISTAS_WD_NOx, PERAREA=0 )
 
       !--------------------------
       ! Compute future emissions

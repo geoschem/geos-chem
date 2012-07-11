@@ -125,6 +125,7 @@
 !       TOMAS_MOD for IBINS.  Modify TPCORE_WINDOW for aerosol number and mass 
 !       advection by adding arrays for saving fluxes and tracer mixing ratio 
 !       fields arrays. (win, 7/17/09)
+!  01 Mar 2012 - R. Yantosca - Now reference new grid_mod.F90
 !******************************************************************************
 !
       !=================================================================

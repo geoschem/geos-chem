@@ -24,7 +24,7 @@
       USE BPCH2_MOD,      ONLY : GET_NAME_EXT,     GET_RES_EXT
       USE BPCH2_MOD,      ONLY : GET_TAU0,         READ_BPCH2
       USE DAO_MOD,        ONLY : AD, T
-      USE DIRECTORY_MOD,  ONLY : DATA_DIR 
+      USE DIRECTORY_MOD,  ONLY : DATA_DIR
       USE ERROR_MOD,      ONLY : ALLOC_ERR
       USE TIME_MOD,       ONLY : GET_MONTH,        GET_TAU
       USE TIME_MOD,       ONLY : GET_TS_CHEM,      TIMESTAMP_STRING
@@ -37,8 +37,14 @@
       USE TRACERID_MOD,   ONLY : IDTRCHO
       USE TRANSFER_MOD,   ONLY : TRANSFER_ZONAL
       USE TROPOPAUSE_MOD, ONLY : GET_MIN_TPAUSE_LEVEL, ITS_IN_THE_STRAT
+      ! jpp, 7/14/09: putting in the bromocarbon tracer id's so
+      !               a simple decay term can be applied to avoid buildup.
+      USE TRACERID_MOD,   ONLY : IDTCH3BR, IDTCH2Br2, IDTCHBr3
+      USE DAO_MOD,        ONLY : SUNCOS
+      USE TRACER_MOD,     ONLY : TCVV
+      USE TRANSFER_MOD,   ONLY : TRANSFER_3D
 
-      USE CMN_SIZE_MOD        ! Size parameters
+      USE CMN_SIZE_MOD         ! Size parameters
 
 #if defined( DEVEL )
       USE GC_TYPE_MOD,    ONLY : GC_MET_LOCAL
@@ -132,11 +138,12 @@
       ! Tracers that undergo photolysis loss in the stratosphere
       INTEGER                   :: SPHOTOID(NSPHOTO) = (/ 
      &                               3,  8,  9, 10, 11, 12, 13, 
-     &                              14, 17, 20, 22, 23, 24 /)
+     &                              14, 17, 20, 22, 23, 24/)
+!jp_to_continue     &                              51, 52 /) ! jpp, added CHBr3 & CH2Br2
 
       ! Character variables
       CHARACTER(LEN=16 )        :: STAMP
-      CHARACTER(LEN=255)        :: FILENAME
+      CHARACTER(LEN=255)        :: FILENAME, dayfile, nightfile
 
       ! REAL*4 arrays -- for reading from binary data files
       REAL*4                    :: ARRAY(1,JJPAR,LGLOB) 
@@ -148,6 +155,15 @@
       ! REAL*8 variables
       REAL*8                    :: k0,     k1,     k2,  k3, XTAU
       REAL*8                    :: DTCHEM, RDLOSS, T1L, M,  TK, RC 
+
+      ! jpp, 6/27/2011: adding an array to store the
+      ! inorganic bromine species for stratosphere.
+      REAL*4  :: Bry_temp(IGLOB,JGLOB,LGLOB)
+      REAL*8  :: Bry_day(IIPAR, JJPAR, LLPAR, 6)
+      REAL*8  :: Bry_night(IIPAR, JJPAR, LLPAR, 6)
+      INTEGER :: br_nos(6)=(/44, 45, 46, 47, 48, 50/) ! Br2, Br, BrO, HOBr, HBr, BrNO3
+      INTEGER :: IJWINDOW, IB
+      REAL*8  :: GMU
 
       ! External functions
       REAL*8, EXTERNAL          :: BOXVL
@@ -346,6 +362,92 @@
 #endif
 !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
+
+         !==============================================================
+         ! Read in stored Bry species concentrations for stratosphere.
+         ! Stored by Q. Liang using the GEOS CCM. (jpp, 6/27/2011)
+         !==============================================================
+
+         ! the daytime concentrations
+         dayfile = TRIM( DATA_DIR ) // 'bromine_201205/' //
+     &             'CCM_stratosphere_Bry/Bry_Stratosphere_day.bpch.'//
+     &             GET_NAME_EXT()   // '.' // GET_RES_EXT()
+
+         ! the nighttime concentrations
+         nightfile = TRIM(DATA_DIR) // 'bromine_201205/' //
+     &             'CCM_stratosphere_Bry/Bry_Stratosphere_night.bpch.'//
+     &             GET_NAME_EXT()   // '.' // GET_RES_EXT()
+
+         DO NN = 1, 6
+
+            ! 1. Read daytime data
+            CALL READ_BPCH2( DAYFILE, 'IJ-AVG-$', br_nos(NN),    
+     &                       XTAU,    IGLOB,      JGLOB,     
+     &                       LGLOB,   Bry_temp,   QUIET=.TRUE. )
+
+            ! Cast from REAL*4 to REAL*8 and resize to (JJPAR,LLPAR) 
+            CALL TRANSFER_3D( Bry_temp(:,:,:), Bry_day(:,:,:,NN) )
+
+            !==============================================================
+            ! now convert units from [ppt] to [kg]
+            !  STT(I,J,L,N) [v/v] * AD(I,J,L) / TCVV(N) = STT(I,J,L,N) [kg]
+            !==============================================================
+
+            ! 2. Read nighttime data
+            CALL READ_BPCH2( NIGHTFILE, 'IJ-AVG-$', br_nos(NN),    
+     &                       XTAU,      IGLOB,      JGLOB,     
+     &                       LGLOB,     Bry_temp,   QUIET=.TRUE. )
+
+            ! Cast from REAL*4 to REAL*8 and resize to (JJPAR,LLPAR) 
+            CALL TRANSFER_3D( Bry_temp(:,:,:), Bry_night(:,:,:,NN) )
+
+            !==============================================================
+            ! now convert units from [ppt] to [kg]
+            !  STT(I,J,L,N) [v/v] * AD(I,J,L) / TCVV(N) = STT(I,J,L,N) [kg]
+            !==============================================================
+!jpt !$OMP PARALLEL DO
+!jpt !$OMP+DEFAULT( SHARED )
+!jpt !$OMP+PRIVATE( IJWINDOW, I, J, L )
+!jpt !$OMP+SCHEDULE( DYNAMIC )
+            DO L = 1, LLPAR
+            DO J = 1, JJPAR
+            DO I = 1, IIPAR
+               ! 1. the daytime values
+               bry_day(I,J,L,NN) = bry_day(I,J,L,NN)
+     &                           * 1.d-12    ! convert from [ppt]
+     &                           * AD(I,J,L) / TCVV(br_nos(NN))
+
+               ! 2. the nighttime values
+               bry_night(I,J,L,NN) = bry_night(I,J,L,NN)
+     &                             * 1.d-12    ! convert from [ppt]
+     &                             * AD(I,J,L) / TCVV(br_nos(NN))
+
+               ! Only proceed for stratospheric boxes
+               IF ( ITS_IN_THE_STRAT( I, J, L ) ) THEN
+
+                  ! Set the Bry boundary conditions. Simulated
+                  ! output from the GEOS5 CCM stratosphere.
+                  ! (jpp, 6/27/2011)
+                  IJWINDOW   = (J-1)*IIPAR + I
+!                  GMU        = SUNCOS(IJWINDOW)
+
+                  ! daytime
+!                  if ( GMU > 0.d0 ) then
+                  IF (SUNCOS(IJWINDOW) > 0.d0) THEN
+                     STT(I,J,L, br_nos(NN) ) = Bry_day(I,J,L,NN)
+                  ELSE
+                     ! nighttime
+                     STT(I,J,L, br_nos(NN) ) = Bry_night(I,J,L,NN)
+                  ENDIF
+
+               ENDIF
+
+            ENDDO     
+            ENDDO
+            ENDDO
+!jpt !$OMP END PARALLEL DO
+
+         ENDDO
       ENDIF
 #endif
 
@@ -493,6 +595,25 @@
                
             ELSE IF ( N == IDTMP ) THEN
                RC = 1.14D-12 * EXP(   200.D0 / TK )
+
+            ! +++++++++++++++++++++++++++++++++++++++++++
+            ! jpp, 7/14/09: adding decay by OH only
+            !   for stratospheric loss of bromocarbons.
+            !   FLAG: CHBr3 should have a simple decay
+            !       in addition to OH to approximate hv.
+            ! +++++++++++++++++++++++++++++++++++++++++++
+            ELSE IF ( N == IDTCH2Br2 ) THEN
+               
+               RC = 2.0d-12 * EXP ( - 840.d0 / TK )
+
+            ELSE IF ( N == IDTCH3Br ) THEN
+
+               RC = 2.35d-12 * EXP ( - 1300.d0 / TK )
+
+            ELSE IF ( N == IDTCHBr3 ) THEN
+
+               RC = 1.35d-12 * EXP ( - 600.d0 / TK )
+            ! +++++++++++++++++++++++++++++++++++++++++++
 
             ELSE
                RC = 0d0

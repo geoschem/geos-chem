@@ -6,7 +6,7 @@
 ! !MODULE: regrid_a2a_mod.F90
 !
 ! !DESCRIPTION: Module REGRID\_A2A\_MOD uses an algorithm adapted from MAP\_A2A
-!   code to regrid from one horizonatal grid to another
+!   code to regrid from one horizonatal grid to another.
 !\\
 !\\
 ! !INTERFACE: 
@@ -22,24 +22,22 @@ MODULE REGRID_A2A_MOD
 !
   PRIVATE :: XMAP
   PRIVATE :: YMAP
-  PRIVATE :: MAP_A2A
 !
 ! !PUBLIC MEMBER FUNCTIONS:
 !
-  PUBLIC :: DO_REGRID_A2A
-
+  PUBLIC  :: DO_REGRID_A2A
+  PUBLIC  :: MAP_A2A
 !
 ! !REVISION HISTORY:
 !  13 Mar 2012 - M. Cooper   - Initial version
 !  03 Apr 2012 - M. Payer    - Now use functions GET_AREA_CM2(I,J,L), 
 !                              GET_YEDGE(I,J,L) and GET_YSIN(I,J,L) from the
 !                              new grid_mod.F90
+!  22 May 2012 - L. Murray   - Implemented several bug fixes
 !EOP
 !------------------------------------------------------------------------------
 !BOC
-
   CONTAINS
-
 !EOC
 !------------------------------------------------------------------------------
 !          Harvard University Atmospheric Chemistry Modeling Group            !
@@ -48,12 +46,13 @@ MODULE REGRID_A2A_MOD
 !
 ! !IROUTINE: do_regrid_a2a
 !
-! !DESCRIPTION: Subroutine DO\_REGRID\_A2A regrids 2-D data
+! !DESCRIPTION: Subroutine DO\_REGRID\_A2A regrids 2-D data in the
+!  horizontal direction.
 !\\
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE DO_REGRID_A2A(FILENAME,IM,JM,INGRID,OUTGRID,PERAREA)
+  SUBROUTINE DO_REGRID_A2A( FILENAME, IM, JM, INGRID, OUTGRID, PERAREA )
 ! 
 ! !USES:
 !
@@ -66,106 +65,121 @@ MODULE REGRID_A2A_MOD
 !
 ! !INPUT PARAMETERS:
 !
-    !==========================================================================
-    ! FILENAME : Name of file with longitude and latitude edge info
-    ! IM       : Length of longitude edge vector
-    ! JM       : Length of latitude edge vector
-    ! INGRID   : Input grid
-    ! PERAREA  : =1 if need to convert ingrid to per area
-    !==========================================================================
-    INTEGER                        :: IM
-    INTEGER                        :: JM
-    INTEGER                        :: PERAREA
-    REAL*8,           ALLOCATABLE  :: INGRID(:,:)
-    CHARACTER(LEN=*)               :: FILENAME
+    ! Name of file with lon and lat edge information on the INPUT GRID
+    CHARACTER(LEN=*), INTENT(IN)    :: FILENAME
+
+    ! Number of lon centers and lat centers on the INPUT GRID
+    INTEGER,          INTENT(IN)    :: IM 
+    INTEGER,          INTENT(IN)    :: JM
+
+    ! Data array on the input grid
+    REAL*8,           INTENT(IN)    :: INGRID(IM,JM)
+
+    ! =1 if we need to convert INGRID to per unit area
+    INTEGER,          INTENT(IN)    :: PERAREA
 !
 ! !OUTPUT PARAMETERS:
 !
-    REAL*8,           ALLOCATABLE  :: OUTGRID(:,:) ! Output data array
+    ! Data array on the OUTPUT GRID
+    REAL*8,           INTENT(OUT)   :: OUTGRID(IIPAR,JJPAR) 
 !
 ! !REVISION HISTORY:
+
 !  13 Mar 2012 - M. Cooper   - Initial version
+!  22 May 2012 - L. Murray   - Bug fix: INSIN should be allocated w/ JM+1.
+!  22 May 2012 - R. Yantosca - Updated comments, cosmetic changes
+!  25 May 2012 - R. Yantosca - Bug fix: declare the INGRID argument as
+!                              INTENT(IN) to preserve the values of INGRID
+!                              in the calling routine
 !EOP
 !------------------------------------------------------------------------------
 !BOC
 !
 ! !LOCAL VARIABLES:
 !
-    !INTEGER                      :: IG, IV
-    INTEGER                       :: I, J
-    REAL*8, ALLOCATABLE           :: INSIN(:), INLON(:)
-    REAL*8                        :: LON2(IIPAR+1), SIN2(JJPAR+1)
-    CHARACTER(LEN=15)             :: HEADER1
-    INTEGER                       :: IOS, M
-    REAL*8                        :: INAREA,RLAT
-    CHARACTER(LEN=20)             :: FMT_LAT, FMT_LON, FMT_LEN
+    ! Scalars
+    INTEGER           :: I,       J
+    INTEGER           :: IOS,     M
+    REAL*8            :: INAREA,  RLAT
+    CHARACTER(LEN=15) :: HEADER1
+    CHARACTER(LEN=20) :: FMT_LAT, FMT_LON, FMT_LEN
+
+    ! Arrays
+    REAL*8            :: INLON  (IM   +1)  ! Lon edges        on INPUT GRID
+    REAL*8            :: INSIN  (JM   +1)  ! SIN( lat edges ) on INPUT GRID
+    REAL*8            :: OUTLON (IIPAR+1)  ! Lon edges        on OUTPUT GRID
+    REAL*8            :: OUTSIN (JJPAR+1)  ! SIN( lat edges ) on OUTPUT GRID
+    REAL*8            :: IN_GRID(IM,JM  )  ! Shadow variable for INGRID
 
     !======================================================================
-    ! DO_REGRID_A2A BEGINS HERE
+    ! Initialization
+    !
+    ! NOTE: In the near future ASCII input will be replaced by netCDF!
     !======================================================================
 
-    ALLOCATE(INSIN(JM))
-    ALLOCATE(INLON(IM+1))
-
-    ! NOTE: May have to make LON2 a 2-D array later for the GI model
+    ! Longitude edges on the OUTPUT GRID
+    ! NOTE: May have to make OUTLON a 2-D array later for the GI model
     DO I = 1, IIPAR+1
-       LON2 (I) = GET_XEDGE( I, 1, 1 )
+       OUTLON(I) = GET_XEDGE( I, 1, 1 )
     ENDDO
 
-    ! NOTE: May have to make SIN2 a 2-D array later for the GI model
+    ! SIN( lat edges ) on the OUTPUT GRID
+    ! NOTE: May have to make OUTSIN a 2-D array later for the GI model
     DO J = 1, JJPAR+1
-       SIN2 (J) = GET_YSIN( 1, J, 1 )
+       OUTSIN(J) = GET_YSIN( 1, J, 1 )
     ENDDO
 
-    ! Open emission factor file (ASCII format)
-    !print*,'Filename'
-    !print*,TRIM(FILENAME)
-    !call flush(6)
+    ! Open file containing lon & lat edges on the INPUT GRID
     OPEN( IU_REGRID, FILE=TRIM( FILENAME ), STATUS='OLD', IOSTAT=IOS )
-
     IF ( IOS /= 0 ) CALL IOERROR( IOS, IU_REGRID, 'latlonread' )
 
-    ! Read input grid lat/lon edges
+    ! Create the approprate FORMAT strings
     WRITE(FMT_LEN,*) IM+1
     FMT_LON='(' // TRIM ( FMT_LEN ) // 'F9.3)'
     WRITE(FMT_LEN,*) JM
     FMT_LAT='(' // TRIM ( FMT_LEN ) // 'F15.10)'
 
+    ! Read lon edges & SIN( lat edges ) on the INPUT GRID
     READ( IU_REGRID, '(A15)',IOSTAT=IOS ) HEADER1
-    READ( IU_REGRID,FMT_LON,IOSTAT=IOS )( INLON(M), M=1,IM+1 )
-    READ( IU_REGRID,FMT_LAT,IOSTAT=IOS )( INSIN(M), M=1,JM )
+    READ( IU_REGRID,FMT_LON,IOSTAT=IOS  ) ( INLON(M), M=1,IM+1 )
+    READ( IU_REGRID,FMT_LAT,IOSTAT=IOS  ) ( INSIN(M), M=1,JM+1 )
     
     ! Close file
     CLOSE( IU_REGRID )
     
-    !Convert input to per area units if necessary
-    IF(PERAREA == 1) THEN
-       DO J = 1, JM-1
+    !======================================================================
+    ! Regridding
+    !======================================================================
+
+    ! Copy the input argument INGRID to a local shadow variable,
+    ! so that we can preserve the value of INGRID in the calling routine
+    IN_GRID = INGRID
+
+    ! Convert input to per area units if necessary
+    IF ( PERAREA == 1 ) THEN
+       DO J = 1, JM
           RLAT = INSIN(J+1) - INSIN(J)
-          INAREA = 2d0*PI*Re*RLAT*1d4*Re/DBLE(IM)
+          INAREA = 2d0*PI*Re*RLAT*1d4*Re / DBLE( IM )
           DO I = 1, IM
-             INGRID(I,J)=INGRID(I,J)/INAREA
+             IN_GRID(I,J) = IN_GRID(I,J) / INAREA
           ENDDO
        ENDDO
     ENDIF
 
-    CALL MAP_A2A( IM,    JM-1,  INLON, INSIN, INGRID,   &
-                  IIPAR, JJPAR, LON2,  SIN2,  OUTGRID,  0, 0)
+    ! Call MAP_A2A to do the regridding
+    CALL MAP_A2A( IM,    JM,    INLON,  INSIN,  IN_GRID,        &
+                  IIPAR, JJPAR, OUTLON, OUTSIN, OUTGRID, 0, 0 )
 
-    !Convert back from "per area" if necessary
-    IF( PERAREA==1 ) THEN
-       DO J=1, JJPAR
-       DO I=1, IIPAR
-          OUTGRID(I,J)=OUTGRID(I,J)*GET_AREA_CM2(I, J, 1)
+    ! Convert back from "per area" if necessary
+    IF ( PERAREA == 1 ) THEN
+       DO J = 1, JJPAR
+       DO I = 1, IIPAR
+          OUTGRID(I,J) = OUTGRID(I,J)*GET_AREA_CM2(I, J, 1)
        ENDDO
        ENDDO
     ENDIF
 
-    DEALLOCATE(INSIN)
-    DEALLOCATE(INLON)
-
   END SUBROUTINE DO_REGRID_A2A
-
 !EOC
 !------------------------------------------------------------------------------
 !          Harvard University Atmospheric Chemistry Modeling Group            !
@@ -174,7 +188,7 @@ MODULE REGRID_A2A_MOD
 !
 ! !IROUTINE: map_a2a
 !
-! !DESCRIPTION: Subroutine MAP\_A2A is a orizontal arbitrary grid to arbitrary 
+! !DESCRIPTION: Subroutine MAP\_A2A is a horizontal arbitrary grid to arbitrary
 !  grid conservative high-order mapping regridding routine by S-J Lin.
 !\\
 !\\
@@ -189,13 +203,32 @@ MODULE REGRID_A2A_MOD
 !
 ! !INPUT PARAMETERS:
 !
-    INTEGER, INTENT(IN)  :: im, jm, in, jn, ig, iv
+    ! Longitude and Latitude dimensions of INPUT grid
+    INTEGER, INTENT(IN)  :: im, jm
+
+    ! Longitude and Latitude dimensions of OUTPUT grid
+    INTEGER, INTENT(IN)  :: in, jn
+
+    ! IG=0: pole to pole; 
+    ! IG=1 J=1 is half-dy north of south pole
+    INTEGER, INTENT(IN)  :: ig
+
+    ! IV=0: Regrid scalar quantity
+    ! IV=1: Regrid vector quantity
+    INTEGER, INTENT(IN)  :: iv
+
+    ! Longitude edges (degrees) of INPUT and OUTPUT grids
     REAL*8,  INTENT(IN)  :: lon1(im+1), lon2(in+1)
+
+    ! Sine of Latitude Edges (radians) of INPUT and OUTPUT grids
     REAL*8,  INTENT(IN)  :: sin1(jm+1), sin2(jn+1)
+
+    ! Quantity on INPUT grid
     REAL*8,  INTENT(IN)  :: q1(im,jm)
 !
 ! !OUTPUT PARAMETERS:
 !
+    ! Regridded quantity on OUTPUT grid
     REAL*8,  INTENT(OUT) :: q2(in,jn)
 !
 !  !REVISION HISTORY:

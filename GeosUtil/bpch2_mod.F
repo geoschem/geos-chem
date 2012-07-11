@@ -462,6 +462,7 @@
 !        are doing a 0.5 x 0.666 nested simulation. (yxw, dan, bmy, 11/6/08)
 !  20 Nov 2009 - R. Yantosca - Added ProTeX header
 !  18 Dec 2009 - Aaron van D - Add NESTED_EU flag
+!  25 May 2012 - R. Yantosca - Update TEMPARRAY for GRID025x03125
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -479,7 +480,11 @@
       ! run only the global simulations.  Therefore increase the size of 
       ! TEMPARRAY only if we are doing a 0.5 x 0.666 nested simulation.
       ! (yxw, bmy, dan, 11/6/08)
-#if   defined( GRID05x0666 ) 
+      !
+      ! Also use the same limits for GRID025x03125.  We do not need to set
+      ! the global limits since we will never run the model at the full
+      ! global resolution, due to memory restrictions. (bmy, 5/25/12)
+#if   defined( GRID05x0666 ) || defined( GRID025x03125 )
       REAL*4             :: TEMPARRAY(540,361,73)   
 #else
       REAL*4             :: TEMPARRAY(360,181,73)   
@@ -560,9 +565,9 @@
       !=================================================================
       IF ( FOUND ) THEN 
 
-#if   defined( GRID1x1 )   || defined( GRID05x0666 )
+#if   defined( GRID1x1 ) || defined( GRID05x0666 ) || defined( GRID025x03125 )
 
-#if   defined(NESTED_CH) || defined(NESTED_NA) || defined( NESTED_EU ) 
+#if   defined(NESTED_CH) || defined(NESTED_NA) || defined( NESTED_EU ) || defined( SEAC4RS ) 
          ! *** NOTE: now use NESTED_CH/NESTED_NA/NESTED_EU cpp switches ***
          ! *** to block off this section of code (bmy, 12/1/04)  ***
          ! This is a kludge to overwrite the IFIRST, JFIRST, LFIRST For
@@ -718,7 +723,7 @@
 
 #elif defined( MERRA )
       CHARACTER(LEN=5) :: NAME_EXT
-      NAME_EXT = 'geos5'
+      NAME_EXT = 'merra'
 
 #elif defined( EXTERNAL_FORCING )
       CHARACTER(LEN=5) :: NAME_EXT

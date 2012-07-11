@@ -94,7 +94,6 @@
 !
       ! References to F90 modules
       USE ACETONE_MOD,       ONLY : EMISS_BIOACET, OCEAN_SOURCE_ACET
-      USE ACETONE_MOD,       ONLY : READ_JO1D,     READ_RESP
       USE AIRCRAFT_NOX_MOD,  ONLY : AIREMISS
       USE BIOFUEL_MOD,       ONLY : BIOFUEL_BURN
       USE DAO_MOD,           ONLY : PARDF,         PARDR,     SUNCOS_MID       
@@ -123,7 +122,11 @@
       USE MEGAN_MOD,         ONLY : ACTIVITY_FACTORS  !(mpb,2009)
       USE MEGANUT_MOD,       ONLY : XLTMMP
       !FP_ISOP (6/2009)
-      USE EMISSIONS_MOD,     ONLY : ISOP_SCALING 
+      USE EMISSIONS_MOD,     ONLY : ISOP_SCALING
+      !jpp, 8/24/07
+      USE TRACERID_MOD,      ONLY : IDECHBr3, IDECH2Br2
+      USE BROMOCARB_MOD,     ONLY : EMIS_CHBr3, EMIS_CH2Br2
+      USE BROMOCARB_MOD,     ONLY : Br_SCALING
 #if defined( DEVEL )
       USE TRACERID_MOD,      ONLY : IDTNOX
       USE TRACER_MOD,        ONLY : N_TRACERS
@@ -166,6 +169,14 @@
 
       ! Molecules C / kg C
       REAL*8,  PARAMETER     :: XNUMOL_C = 6.022d+23 / 12d-3 
+
+      REAL*8                 :: AREA_M2 !jpp 9/10/07
+
+      ! Molecular weight of CHBr3 [kg/mol], (jpp, 9/10/07)
+      REAL*8,  PARAMETER     :: MWT_CHBr3  = 2.53d-1
+
+      ! Molecular weight of CH2Br2 [kg/mol], (jpp, 9/16/07)
+      REAL*8,  PARAMETER     :: MWT_CH2Br2 = 1.74d-1
 
       ! Add in new monoterpene species (mpb,2009)
       REAL*8                 :: APINE  , BPINE , LIMON , SABIN 
@@ -235,6 +246,9 @@
 
             ! Compute surface area of grid boxes in cm^2 
             AREA_CM2 = GET_AREA_CM2( I, J, 1 )
+
+            ! jpp, 9/10/07: wanted surface area in m^2
+            AREA_M2  = AREA_CM2 / (100.d0 ** 2)
 
             ! Zero biogenic acetone (bmy, 9/14/01)
             BIO_ACET  = 0d0
@@ -440,22 +454,7 @@
 !
                IF ( IDEACET /= 0 ) THEN
 
-                  ! Read monthly mean JO1D and leaf respiration values
-                  ! These will be stored internally in "acetone_mod.f"
-                  IF ( I==1 .and. J==1 ) THEN
-                     IF ( GET_MONTH() /= LASTMONTH ) THEN
-                        CALL READ_JO1D( GET_MONTH() )
-                        CALL READ_RESP( GET_MONTH() )
-                        LASTMONTH = GET_MONTH()
-                     ENDIF
-                  ENDIF
-
-                  ! MSL -- INCLUDE THIS IN THE CHEM_STATE%TEND array?
-                  ! Compute biogenic acetone emissions [atoms C/box/s]
-                 ! CALL EMISS_BIOACET( I,    J,    TMMP,  EMMO, 
-    ! &                                EMIS, EMMB, GRASS, BIO_ACET )
-
-                  ! evf, edits to use MEGAN biogenic acetone emissions (5/25/2011)
+                  ! evf, edits to use MEGAN biogenic acetone emiss (5/25/2011)
                   ! Compute biogenic acetone emissions [atoms C/box/s]
                   CALL EMISS_BIOACET( I,    J,    TMMP,  EMMO, 
      &                                SC, PDR, PDF, XNUMOL_C,
@@ -613,6 +612,31 @@
             ENDIF
 !=======================================================================
 
+
+!
+!-----------------------------------------------------------------------------
+! BIOGENIC CHBr3 and CH2Br2 EMISSIONS, (jpp, 8/24/07)
+!  Both in [molecules/box/s] as expected by setemiss.f
+!
+!
+
+            IF ( IDECHBr3 /= 0 ) THEN
+               EMISRR(I,J,IDECHBr3) = EMIS_CHBr3(I,J)
+
+               ! Scale emissions
+               EMISRR(I,J,IDECHBr3) = EMISRR(I,J,IDECHBr3) * Br_SCALING
+
+            ENDIF
+
+            IF ( IDECH2Br2 /= 0 ) THEN
+               EMISRR(I,J,IDECH2Br2) = EMIS_CH2Br2(I,J)
+
+               ! Scale emissions
+               EMISRR(I,J,IDECH2Br2) = EMISRR(I,J,IDECH2Br2) * 
+     &                                 Br_SCALING
+
+            ENDIF
+
 !
 !******************************************************************************
 !  ND46 diagnostic: Biogenic emissions 
@@ -630,6 +654,9 @@
 !     AD46(:,:,11) = Total biogenic mycrene  emissions [atoms C/cm2/s]
 !     AD46(:,:,12) = Total biogenic 3-carene emissions [atoms C/cm2/s]
 !     AD46(:,:,13) = Total biogenic ocimene  emissions [atoms C/cm2/s]
+!     AD46(:,:,14) = Total biogenic CHBr3    emissions [kg/m2/s]
+!     AD46(:,:,15) = Total biogenic CH2Br2   emissions [kg/m2/s]
+!     AD46(:,:,16) = Total biogenic SSBr2    emissions [kg/m2/s]
 !
 !  NOTES: 
 !  (1 ) Now make ACET tracer #2 and PRPE tracer #3 (bmy, 9/13/01)
@@ -685,6 +712,16 @@
               AD46(I,J,13) = AD46(I,J,13) + ( OCIMN / AREA_CM2 / DTSRCE) 
 
                ! ++++++++++++++++++++++++++++++++++++++++++++++++++++
+
+               ! CHBr3 emissions [kg/m2/s] -- tracer #14
+               AD46(I,J,14) = AD46(I,J,14) + ( EMISRR(I,J,IDECHBr3) / 
+     &                        AREA_M2) * ( MWT_CHBr3 / AVG )
+
+               ! CH2Br2 emissions [kg/m2/s] -- tracer #15
+               AD46(I,J,15) = AD46(I,J,15) + ( EMISRR(I,J,IDECH2Br2) / 
+     &                        AREA_M2) * ( MWT_CH2Br2 / AVG )
+
+               ! Note: IDEBr2 is added to AD46(I,J,16) in ssa_bromine_mod.F
                
                ENDIF  
             ENDIF

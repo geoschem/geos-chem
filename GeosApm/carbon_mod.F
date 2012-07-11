@@ -6482,7 +6482,7 @@ c
                ! Increment IJLOOP
                IJLOOP = ( (J-1) * IIPAR ) + I
                TIMLOC = real(LHR0) + real(NT)/3600.0 + 
-     &                  GET_XMID( I, J, 1 )/15.0
+     &                  GET_XMID( I, J, 1 ) / 15.0
          
                DO WHILE (TIMLOC .lt. 0)
                   TIMLOC = TIMLOC + 24.0
@@ -8058,7 +8058,15 @@ c
       J2_NA = JJPAR
 
 #elif defined( NESTED_CH )
-      ! For 1x1 China nested grid: we don't cover N. America region
+      ! For China nested grids: we don't cover N. America region
+      ! Setting these to zero will turn off Cooke/RJP emissions
+      I1_NA = 0
+      J1_NA = 0
+      I2_NA = 0
+      J2_NA = 0
+
+#elif defined( SEAC4RS )
+      ! For SEAC4RS nested grid: we don't cover N. America region
       ! Setting these to zero will turn off Cooke/RJP emissions
       I1_NA = 0
       J1_NA = 0
@@ -8081,7 +8089,7 @@ c
       COORDS = (/ -165d0,  10d0,  -40d0,   90d0  /)
       
       ! Get the indices corresponding to the lon/lat values in COORDS
-       CALL GET_BOUNDING_BOX( 1, IIPAR, 1, JJPAR, 1, COORDS, INDICES )
+      CALL GET_BOUNDING_BOX( 1, IIPAR, 1, JJPAR, 1, COORDS, INDICES )
 
       ! Copy values from INDEX array to scalars
       I1_NA = INDICES(1)

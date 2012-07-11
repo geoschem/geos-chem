@@ -92,6 +92,7 @@
       USE MODIS_LAI_MOD         ! For MODIS leaf area indices (replacement)
       USE LIGHTNING_NOX_MOD     ! For lightning NOx emissions  
       USE MEGAN_MOD             ! For biogenic emissions
+      USE BROMOCARB_MOD         ! For setting CH3Br concentrations in PBL, jpp
 
       !-----------------------------------------------------------------
       ! GEOS-Chem met field I/O modules
@@ -933,6 +934,24 @@
      &         CALL CONVERT_UNITS( 1, N_TRACERS, TCVV, AD, STT ) ! kg -> v/v
 #endif
 
+
+            !========================================================
+            !jpp, 2/12/08: putting a call to SET_CH3Br
+            !              which is in bromocarb_mod.f
+            !       ***** Fix CH3Br Concentration in PBL *****
+            ! Kludge: eventually I want to keep the concentration
+            !         entirely fixed! Ask around on how to...
+            !========================================================
+            IF ( LEMIS ) CALL SET_CH3Br( N_TRACERS, TCVV, AD, STT, 
+     &                                   ITS_TIME_FOR_UNIT() )
+
+            ! ----------------------------------------------------
+            ! If selected in input.geos, then set the MBL
+            ! concentration of BrO equal to 1 pptv during daytime.
+            ! ----------------------------------------------------
+            IF ( LEMIS ) CALL SET_BRO( N_TRACERS, TCVV, AD, SUNCOS,
+     &                                 STT, ITS_TIME_FOR_UNIT() )
+
          ENDIF
 
          !-------------------------------
@@ -1035,6 +1054,24 @@
 #else
             IF ( LEMIS ) CALL DO_EMISSIONS
 #endif
+
+            !========================================================
+            !jpp, 2/12/08: putting a call to SET_CH3Br
+            !              which is in bromocarb_mod.f
+            !       ***** Fix CH3Br Concentration in PBL *****
+            ! Kludge: eventually I want to keep the concentration
+            !         entirely fixed! Ask around on how to...
+            !========================================================
+            IF ( LEMIS ) CALL SET_CH3Br( N_TRACERS, TCVV, AD, STT,
+     &                                   ITS_TIME_FOR_UNIT() )
+
+            ! ----------------------------------------------------
+            ! If selected in input.geos, then set the MBL
+            ! concentration of BrO equal to 1 pptv during daytime.
+            ! ----------------------------------------------------
+            IF ( LEMIS ) CALL SET_BRO( N_TRACERS, TCVV, AD, SUNCOS,
+     &                                 STT, ITS_TIME_FOR_UNIT() )
+
          ENDIF    
 
 

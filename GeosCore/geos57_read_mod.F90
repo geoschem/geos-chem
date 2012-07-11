@@ -115,6 +115,9 @@ CONTAINS
     resString = '05x0666.nc'
 
 #elif defined( GRID025x03125 ) && defined( NESTED_CH )
+    resString = '025x03125.CH.nc'
+
+#elif defined( GRID025x03125 ) && defined( SEAC4RS )
     resString = '025x03125.SEA4CRS.nc'
 
 #elif defined( GRID025x03125 ) && defined( NESTED_EU )

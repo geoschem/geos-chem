@@ -184,11 +184,20 @@
       INTEGER IMASBAL,IALTS,MXCOF
 
       ! Updated for SMVGEAR II (bdf, bmy, 4/1/03)
-!FP_ISOP 06/15/09 !IGAS, NMRATE and MAXGL increased
-!      PARAMETER ( IGAS    = 200,               IAERTY  = 1           )
-!      PARAMETER ( NMRATE  = 510,               IPHOT   = 85          )
-      PARAMETER ( IGAS    = 300,               IAERTY  = 1           )
-      PARAMETER ( NMRATE  = 700,               IPHOT   = 85          )
+!------------------------------------------------------------------------------
+! Prior to 12/28/11:
+! Increase IGAS   from 300 to 310 for 10 added bromine species 
+! Increase NMRATE from 700 to 726 for bromine rxns
+! Increase IPHOT  from 85  to 92  for Br
+! (J. Parrella, mpayer, 12/28/11)
+!!FP_ISOP 06/15/09 !IGAS, NMRATE and MAXGL increased
+!!      PARAMETER ( IGAS    = 200,               IAERTY  = 1           )
+!!      PARAMETER ( NMRATE  = 510,               IPHOT   = 85          )
+!      PARAMETER ( IGAS    = 300,               IAERTY  = 1           )
+!      PARAMETER ( NMRATE  = 700,               IPHOT   = 85          )
+!------------------------------------------------------------------------------
+      PARAMETER ( IGAS    = 310,               IAERTY  = 1           )
+      PARAMETER ( NMRATE  = 726,               IPHOT   = 92          )
       PARAMETER ( NMTRATE = NMRATE + IPHOT,    NMQRATE = 1           ) 
       PARAMETER ( NMRPROD = 25,                NMDEAD  = 100         )
 !      PARAMETER ( MAXGL   = 750,               MAXGL2  = 90          )
@@ -360,16 +369,22 @@
       ! Add NKHO2 to /CHEM4/ to flag HO2 aerosol uptake (jaegle 02/26/09)
       ! Add NNADDF, NNADDH, NKHOROI and NKHOROJ to /CHEM4/ for HOC2H4O rxns
       ! (tmf, 3/6/09)
-      !Added NKGLYC and NKHAC NKMCO3
-      ! (hotp 7/31/09)
-      INTEGER            NNADD1,      NNADDA(ICS), NNADDB(  ICS), 
-     &                   NNADDC(ICS), NNADDD(ICS), NNADDK(  ICS), 
-     &                   NNADDV(ICS), NNADDZ,      NKO3PHOT(ICS),
-     &                   NNADDG(ICS), NEMIS( ICS), NDRYDEP( ICS),
-     &                   NNADDF(ICS), NNADDH(ICS), 
-     &                   NKHOROI(ICS),NKHOROJ(ICS),
-     &                   NKHNO4(ICS), NKN2O5,      NKHO2,
-     &                   NKGLYC(ICS,2), NKHAC(ICS,2), NKMCO3(ICS,3)
+      ! Added NKGLYC and NKHAC NKMCO3 (hotp 7/31/09)
+      ! Added NKBrNO3 to /CHEM4/ to flag BrNO3 hydrolysis rxn (jpp, 5/4/10)
+      ! Added NKHOBr and NK1HBR to /CHEM4/ to flag the two HOBr + HBr
+      !      pseudo reactions (in place of HBr + HOBr --het-->) (jpp, 3/22/11)
+      ! Added NK2HOBr and NK2HBR to /CHEM4/ to flag the two HOBr + HBr
+      !      pseudo reactions (in place of HBr + HOBr --ice-->) (jpp, 6/16/11)
+      INTEGER            NNADD1,        NNADDA(ICS),  NNADDB(  ICS), 
+     &                   NNADDC(ICS),   NNADDD(ICS),  NNADDK(  ICS), 
+     &                   NNADDV(ICS),   NNADDZ,       NKO3PHOT(ICS),
+     &                   NNADDG(ICS),   NEMIS( ICS),  NDRYDEP( ICS),
+     &                   NNADDF(ICS),   NNADDH(ICS), 
+     &                   NKHOROI(ICS),  NKHOROJ(ICS),
+     &                   NKHNO4(ICS),   NKN2O5,       NKHO2,
+     &                   NKGLYC(ICS,2), NKHAC(ICS,2), NKMCO3(ICS,3),
+     &                   NKBrNO3,       NKHOBr,       NK1HBr, 
+     &                   NK2HOBr,       NK2HBr
 
       INTEGER ::         IH2O,        IOXYGEN,   MB1,      MB2
 
@@ -386,6 +401,11 @@
       ! bug fix: change to INTEGER (dbm, dkh, 06/26/07)  
       INTEGER ::         ILBRO2H,    ILBRO2N,   ILTRO2H,  ILTRO2N
       INTEGER ::         ILXRO2H,    ILXRO2N
+
+      ! Added option for zeroing CHBr3 and CH2Br2 inside calcrate,
+      ! since zeroing their emissions doesn't prevent small
+      ! conc's on the order of 0.01pptv (jpp, 4/15/10)
+      INTEGER ::         ICHBr3, ICH2Br2
 
       INTEGER ::         IOUT,        KGLC,      KCPD,     IO93
 !

@@ -189,7 +189,18 @@
       I0 = 0
       J0 = 0
 
+#elif defined( GRID025x0325 ) && defined( NESTED_CH )
+
+      I0 = 0
+      J0 = 0
+
+#elif defined( GRID025x0325 ) && defined( SEAC4RS )
+
+      I0 = 0
+      J0 = 0
+
 #endif
+
       !=================================================================
       ! If FSCALYR < 0 then use this year (JYEAR) for the scaling 
       ! factors.  Otherwise, use the value of FSCALYR as specified in 

@@ -877,10 +877,8 @@
 !  (1)  ACETmo : Acetone source from MONOTERPENES   : at C/cm2/s : SCALESRCE
 !  (2)  ACETmb : Acetone source from METHYL BUTENOL : at C/cm2/s : SCALESRCE 
 !  (3)  ACETbg : Acetone source from DIRECT EMISSION: at C/cm2/s : SCALESRCE 
-!  (4)  ACETdl : Acetone source from DRY LEAF MATTER: at C/cm2/s : SCALESRCE 
-!  (5)  ACETgr : Acetone source from GRASSLANDS     : at C/cm2/s : SCALESRCE 
-!  (6)  ACETop : Acetone source from OCEANS         : at C/cm2/s : SCALESRCE 
-!  (7)  ACETol : Acetone sink   from OCEANS         : at C/cm2/s : SCALECHEM
+!  (4)  ACETop : Acetone source from OCEANS         : at C/cm2/s : SCALESRCE 
+!  (5)  ACETol : Acetone sink   from OCEANS         : at C/cm2/s : SCALECHEM
 !******************************************************************************
 !
       IF ( ND11 > 0 ) THEN
@@ -1631,6 +1629,18 @@
                      MM = 7
                   CASE ( 'MGLY' )
                      MM = 8
+                  CASE ( 'BrO' ) ! jpp, 4/24/2011 - added bromine
+                     MM = 9
+                  CASE ( 'HOBr' )
+                     MM = 10
+                  CASE ( 'BrNO2' )
+                     MM = 11
+                  CASE ( 'BrNO3' )
+                     MM = 12
+                  CASE ( 'CHBr3' )
+                     MM = 13
+                  CASE ( 'Br2' )
+                     MM = 14
                   CASE DEFAULT
                      MM = 0
                END SELECT
@@ -2987,15 +2997,25 @@
 !******************************************************************************
 !  ND46: Biogenic source diagnostic
 !
-!   # : Field : Description    : Units         : Scale Factor
+!   # : Field  : Description    : Units         : Scale Factor
 !  ---------------------------------------------------------------------------
-!  (1)  ISOP  : Isoprene       : atoms C/cm2/s : SCALE3
-!  (2)  ACET  : Acetone        : atoms C/cm2/s : SCALE3
-!  (3)  PRPE  : Propene        : atoms C/cm2/s : SCALE3
-!  (4)  MONOT : Monoterpenes   : atoms C/cm2/s : SCALE3
-!  (5)  MBO   : Methyl Butenol : atoms C/cm2/s : SCALE3
-!  (6)  C2H4  : Ethene         : atoms C/cm2/s : SCALE3
-!  
+!  (1)  ISOP   : Isoprene       : atoms C/cm2/s : SCALE3
+!  (2)  ACET   : Acetone        : atoms C/cm2/s : SCALE3
+!  (3)  PRPE   : Propene        : atoms C/cm2/s : SCALE3
+!  (4)  MONOT  : Monoterpenes   : atoms C/cm2/s : SCALE3
+!  (5)  MBO    : Methyl Butenol : atoms C/cm2/s : SCALE3
+!  (6)  C2H4   : Ethene         : atoms C/cm2/s : SCALE3
+!  (7 ) APINE  : Alpha pinene   : atoms C/cm2/s : SCALE3
+!  (8 ) BPINE  : Beta pinene    : atoms C/cm2/s : SCALE3
+!  (9 ) LIMON  : Limonene       : atoms C/cm2/s : SCALE3
+!  (10) SABIN  : Sabinene       : atoms C/cm2/s : SCALE3
+!  (11) MYRCN  : Mycrene        : atoms C/cm2/s : SCALE3
+!  (12) CAREN  : 3-Carene       : atoms C/cm2/s : SCALE3
+!  (13) OCIMN  : Ocimene        : atoms C/cm2/s : SCALE3
+!  (14) CHBr3  : Bromoform      :      kg/m2/s  : SCALESRCE
+!  (15) CH2Br2 : Dibromomethane :      kg/m2/s  : SCALESRCE
+!  (16) Br2    : Molec. Bromine :      kg/m2/s  : SCALESRCE
+!
 !  NOTES:
 !  (1) ND46 now uses allocatable array AD46 instead of AIJ (bmy, 3/16/00)
 !  (2) Also write out PRPE for CO-OH run (NSRCX == 5), regardless of
@@ -3021,7 +3041,11 @@
             IF ( N == 2 .and. IDTACET == 0 ) CYCLE
             IF ( N == 3 .and. IDTPRPE == 0 ) CYCLE
             IF ( N == 6 .and. IDTC2H4 == 0 ) CYCLE
-            
+            ! jpp, 6/7/09
+            IF ( N == 14 .and. IDTCHBr3  == 0 ) CYCLE
+            IF ( N == 15 .and. IDTCH2Br2 == 0 ) CYCLE
+            IF ( N == 16 .and. IDTBr2    == 0 ) CYCLE
+
             ARRAY(:,:,1) = AD46(:,:,N) / SCALESRCE
                
             CALL BPCH2( IU_BPCH,   MODELNAME, LONRES,   LATRES,
