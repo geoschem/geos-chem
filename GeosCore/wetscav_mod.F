@@ -6042,9 +6042,16 @@
 
             ! Only compute washout if F > 0.
             IF ( F > 0d0 ) THEN
+#if defined( DEVEL )
                CALL DO_WASHOUT_AT_SFC( LS,  I,      J,     L,         
      &                                 IDX, ERRMSG, QDOWN, F,   
      &                                 DT,  STT,    DSTT,  LOCAL_MET )
+#else
+               CALL DO_WASHOUT_AT_SFC( LS,  I,      J,     L,         
+     &                                 IDX, ERRMSG, QDOWN, F,   
+     &                                 DT,  STT,    DSTT   )
+#endif
+
             ENDIF    
          ENDIF
 

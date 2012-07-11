@@ -437,6 +437,7 @@
 !
 ! !USES:
 !
+      USE DAO_MOD,        ONLY : AD
       USE DAO_MOD,        ONLY : CONVERT_UNITS
       USE DRYDEP_MOD,     ONLY : DEPSAV
       USE ERROR_MOD,      ONLY : DEBUG_MSG

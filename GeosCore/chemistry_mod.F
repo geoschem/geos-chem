@@ -362,7 +362,7 @@
              YEAR  = 0
              WAVELENGTH = 0
 
-             CALL RDAER( MONTH, YEAR, WAVELENGTH, LOCAL_MET )
+             CALL RDAER( LOCAL_MET, MONTH, YEAR, WAVELENGTH )
  
              !*** AEROSOL THERMODYNAMIC EQUILIBRIUM ***
              IF ( LSSALT ) THEN
@@ -942,7 +942,7 @@
                WAVELENGTH = 1
 
 #if defined( DEVEL )
-               CALL RDAER( MONTH, YEAR, WAVELENGTH, LOCAL_MET )
+               CALL RDAER( LOCAL_MET, MONTH, YEAR, WAVELENGTH )
 #else
                CALL RDAER( MONTH, YEAR, WAVELENGTH )
 #endif
