@@ -423,7 +423,11 @@
      &                             * AD(I,J,L) / TCVV(br_nos(NN))
 
                ! Only proceed for stratospheric boxes
+#if defined( DEVEL )
+               IF ( ITS_IN_THE_STRAT( I, J, L, LOCAL_MET ) ) THEN
+#else
                IF ( ITS_IN_THE_STRAT( I, J, L ) ) THEN
+#endif
 
                   ! Set the Bry boundary conditions. Simulated
                   ! output from the GEOS5 CCM stratosphere.

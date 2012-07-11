@@ -926,14 +926,38 @@
 
             IF ( ITS_TIME_FOR_UNIT() )
      &         CALL CONVERT_UNITS( 1, N_TRACERS, TCVV, 
-     &                             LOCAL_MET% AD, STT ) ! kg -> v/v
+     &                             LOCAL_MET%AD, STT ) ! kg -> v/v
+
+
+            !========================================================
+            !jpp, 2/12/08: putting a call to SET_CH3Br
+            !              which is in bromocarb_mod.f
+            !       ***** Fix CH3Br Concentration in PBL *****
+            ! Kludge: eventually I want to keep the concentration
+            !         entirely fixed! Ask around on how to...
+            !========================================================
+            IF ( LEMIS ) CALL SET_CH3Br( N_TRACERS,    TCVV,
+     &                                   LOCAL_MET%AD, STT,
+     &                                   ITS_TIME_FOR_UNIT() )
+
+            ! ----------------------------------------------------
+            ! If selected in input.geos, then set the MBL
+            ! concentration of BrO equal to 1 pptv during daytime.
+            ! ----------------------------------------------------
+            IF ( LEMIS ) CALL SET_BRO( N_TRACERS,
+     &                                 TCVV,
+     &                                 LOCAL_MET%AD,
+     &                                 SUNCOS,
+     &                                 STT,
+     &                                 ITS_TIME_FOR_UNIT(),
+     &                                 LOCAL_MET )
+
 #else
+
             IF ( LEMIS ) CALL DO_EMISSIONS
 
             IF ( ITS_TIME_FOR_UNIT() )
      &         CALL CONVERT_UNITS( 1, N_TRACERS, TCVV, AD, STT ) ! kg -> v/v
-#endif
-
 
             !========================================================
             !jpp, 2/12/08: putting a call to SET_CH3Br
@@ -951,6 +975,7 @@
             ! ----------------------------------------------------
             IF ( LEMIS ) CALL SET_BRO( N_TRACERS, TCVV, AD, SUNCOS,
      &                                 STT, ITS_TIME_FOR_UNIT() )
+#endif
 
          ENDIF
 
@@ -1051,9 +1076,34 @@
             !========================================================
 #if defined( DEVEL )
             IF ( LEMIS ) CALL DO_EMISSIONS( LOCAL_MET, CHEM_STATE )
+
+            !========================================================
+            !jpp, 2/12/08: putting a call to SET_CH3Br
+            !              which is in bromocarb_mod.f
+            !       ***** Fix CH3Br Concentration in PBL *****
+            ! Kludge: eventually I want to keep the concentration
+            !         entirely fixed! Ask around on how to...
+            !========================================================
+            IF ( LEMIS ) CALL SET_CH3Br( N_TRACERS,    TCVV,
+     &                                   LOCAL_MET%AD, STT,
+     &                                   ITS_TIME_FOR_UNIT() )
+
+            ! ----------------------------------------------------
+            ! If selected in input.geos, then set the MBL
+            ! concentration of BrO equal to 1 pptv during daytime.
+            ! ----------------------------------------------------
+            IF ( LEMIS ) CALL SET_BRO( N_TRACERS,
+     &                                 TCVV,
+     &                                 LOCAL_MET%AD,
+     &                                 SUNCOS,
+     &                                 STT,
+     &                                 ITS_TIME_FOR_UNIT(),
+     &                                 LOCAL_MET )
+
+         ENDIF
+
 #else
             IF ( LEMIS ) CALL DO_EMISSIONS
-#endif
 
             !========================================================
             !jpp, 2/12/08: putting a call to SET_CH3Br
@@ -1073,7 +1123,7 @@
      &                                 STT, ITS_TIME_FOR_UNIT() )
 
          ENDIF    
-
+#endif
 
          !===========================================================
          !               ***** C H E M I S T R Y *****

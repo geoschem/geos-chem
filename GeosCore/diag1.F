@@ -197,9 +197,9 @@
      &                      Fg(I,J,L) * STT(I,J,L,2) * TCVV(2) /
      &                      LOCAL_MET%AD(I,J,L) *1D12
 
-          ! Reactive particulate mercury, RPM
-          AD03_RPM(I,J,L) = AD03_RPM(I,J,L) + 
-     &                      Fp(I,J,L)* STT(I,J,L,2) * TCVV(2) /
+          ! Reactive particulate mercury, PBM
+          AD03_PBM(I,J,L) = AD03_PBM(I,J,L) +
+     &                      Fp(I,J,L) * STT(I,J,L,2) * TCVV(2) /
      &                      LOCAL_MET%AD(I,J,L) *1D12
 #else
           ! Reactive gaseous mercury, RGM

@@ -577,7 +577,12 @@
 !\\
 ! !INTERFACE:
 !
+#if defined( DEVEL )
+      SUBROUTINE SET_BRO( N_TRACERS, TCVV, AD, SUNCOS, STT, unit_flag,
+     &                    LOCAL_MET  )
+#else
       SUBROUTINE SET_BRO( N_TRACERS, TCVV, AD, SUNCOS, STT, unit_flag )
+#endif
 ! 
 ! !USES:
 !
@@ -585,6 +590,9 @@
       USE TRACER_MOD,    ONLY : TRACER_NAME
       USE LOGICAL_MOD,   ONLY : LFIX_PBL_BRO
       USE DAO_MOD,       ONLY : IS_WATER
+#if defined( DEVEL )
+      USE GC_TYPE_MOD,   ONLY : GC_MET_LOCAL
+#endif
 
       USE CMN_SIZE_MOD        ! Size parameters
       USE CMN_DEP_MOD         ! FRCLND = returns land-fraction of given box
@@ -603,6 +611,12 @@
       REAL*8,  INTENT(IN)    :: TCVV(N_TRACERS)
       REAL*8,  INTENT(IN)    :: SUNCOS(MAXIJ) 
       REAL*8,  INTENT(IN)    :: AD(IIPAR,JJPAR,LLPAR)
+!
+! !INPUT PARAMETERS: 
+!
+#if defined( DEVEL )
+      TYPE(GC_MET_LOCAL), INTENT(IN) :: LOCAL_MET  ! Obj w/ met fields
+#endif
 !
 ! !INPUT/OUTPUT PARAMETERS:
 !
@@ -663,7 +677,11 @@
             !    contributed from other timesteps and
             !    sources.
             ! -----------------------------------------
+#if defined( DEVEL )
+            IF ( .not. IS_WATER( I, J, LOCAL_MET) ) THEN
+#else
             IF ( .not. IS_WATER(I,J) ) THEN
+#endif
                CYCLE lon_loop
             ENDIF
 
