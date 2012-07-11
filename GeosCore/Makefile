@@ -733,9 +733,8 @@ input_mod.o                 : input_mod.F                                    \
                               ocean_mercury_mod.o     planeflight_mod.o      \
                               restart_mod.o           tpcore_bc_mod.o        \
                               tracerid_mod.o          tracer_mod.o           \
-                              transport_mod.o         upbdflx_mod.o          \
-                              wetscav_mod.o           diag63_mod.o           \
-                              bromocarb_mod.o
+                              transport_mod.o         wetscav_mod.o          \
+                              diag63_mod.o            bromocarb_mod.o
 
 isoropiaII_mod.o            : isoropiaII_mod.F                               \
                               dao_mod.o               global_hno3_mod.o      \
@@ -791,13 +790,13 @@ main.o                      : main.F                                         \
                               planeflight_mod.o       soaprod_mod.o          \
                               tpcore_bc_mod.o         tracer_mod.o           \
                               transport_mod.o         tropopause_mod.o       \
-                              restart_mod.o           upbdflx_mod.o          \
-                              uvalbedo_mod.o          vdiff_mod.o            \
-                              wetscav_mod.o           merra_cn_mod.o         \
-                              merra_a1_mod.o          merra_a3_mod.o         \
-                              merra_i6_mod.o          gc_environment_mod.o   \
-                              geos57_read_mod.o       diag63_mod.o           \
-                              olson_landmap_mod.o     mapping_mod.o
+                              restart_mod.o           uvalbedo_mod.o         \
+                              vdiff_mod.o             wetscav_mod.o          \
+                              merra_cn_mod.o          merra_a1_mod.o         \
+                              merra_a3_mod.o          merra_i6_mod.o         \
+                              gc_environment_mod.o    geos57_read_mod.o      \
+                              diag63_mod.o            olson_landmap_mod.o    \
+                              mapping_mod.o
 
 mapping_mod.o               : mapping_mod.F90                                \
                               logical_mod.o
@@ -940,10 +939,6 @@ ruralbox.o                  : ruralbox.F                                     \
                               comode_mod.o            tropopause_mod.o
 
 scale_anthro_mod.o          : scale_anthro_mod.F      
-
-schem.o                     : schem.F                 dao_mod.o              \
-                              tracerid_mod.o          tracer_mod.o           \
-                              tropopause_mod.o 
 
 seasalt_mod.o               : seasalt_mod.F                                  \
                               dao_mod.o               diag_mod.o             \
@@ -1099,12 +1094,6 @@ tropopause.o                : tropopause.F                                   \
 tropopause_mod.o            : tropopause_mod.F                               \
                               comode_mod.o            dao_mod.o              \
                               diag_mod.o              logical_mod.o
-
-upbdflx_mod.o               : upbdflx_mod.F                                  \
-                              dao_mod.o               linoz_mod.o            \
-                              logical_mod.o           tagged_ox_mod.o        \
-                              tracerid_mod.o          tracer_mod.o           \
-                              tropopause_mod.o
 
 update.o                    : update.F
 
