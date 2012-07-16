@@ -822,15 +822,17 @@
                ! Kludge: eventually I want to keep the concentration
                !         entirely fixed! Ask around on how to...
                !========================================================
-               IF ( LEMIS ) CALL SET_CH3Br( N_TRACERS, TCVV, AD, STT, 
-     &                                      ITS_TIME_FOR_UNIT() )
+               IF ( LEMIS .and. ( IDTCH3Br > 0 ) )
+     &            CALL SET_CH3Br( N_TRACERS, TCVV, AD, STT, 
+     &                            ITS_TIME_FOR_UNIT() )
 
                ! ----------------------------------------------------
                ! If selected in input.geos, then set the MBL
                ! concentration of BrO equal to 1 pptv during daytime.
                ! ----------------------------------------------------
-               IF ( LEMIS ) CALL SET_BRO( N_TRACERS, TCVV, AD, SUNCOS,
-     &                                    STT, ITS_TIME_FOR_UNIT() )
+               IF ( LEMIS .and. ( IDTBrO > 0 ) )
+     &            CALL SET_BRO( N_TRACERS, TCVV, AD, SUNCOS,
+     &                          STT, ITS_TIME_FOR_UNIT() )
 
             ENDIF
          ENDIF
@@ -921,15 +923,17 @@
                ! Kludge: eventually I want to keep the concentration
                !         entirely fixed! Ask around on how to...
                !========================================================
-               IF ( LEMIS ) CALL SET_CH3Br( N_TRACERS, TCVV, AD, STT,
-     &                                      ITS_TIME_FOR_UNIT() )
+               IF ( LEMIS  .and. ( IDTCH3Br > 0 ) )
+     &            CALL SET_CH3Br( N_TRACERS, TCVV, AD, STT,
+     &                            ITS_TIME_FOR_UNIT() )
 
                ! ----------------------------------------------------
                ! If selected in input.geos, then set the MBL
                ! concentration of BrO equal to 1 pptv during daytime.
                ! ----------------------------------------------------
-               IF ( LEMIS ) CALL SET_BRO( N_TRACERS, TCVV, AD, SUNCOS,
-     &                                    STT, ITS_TIME_FOR_UNIT() )
+               IF ( LEMIS .and. ( IDTBrO > 0 ) )
+     &            CALL SET_BRO( N_TRACERS, TCVV, AD, SUNCOS,
+     &                          STT, ITS_TIME_FOR_UNIT() )
 
             ENDIF
          ENDIF    

@@ -307,36 +307,36 @@ CONTAINS
                 !============!
                 IF ( IDTCH3Br .gt. 0 ) THEN
                    RC = 2.35d-12 * EXP ( - 1300.d0 / TK ) 
-                ENDIF
-                RDLOSS = MIN( RC * mOH * DTCHEM, 1d0 )
-                T1L    = STT(I,J,L,IDTCH3Br) * RDLOSS
-                STT(I,J,L,IDTCH3Br) = STT(I,J,L,IDTCH3Br) - T1L
-                SCHEM_TEND(I,J,L,IDTCH3Br) = &
+                   RDLOSS = MIN( RC * mOH * DTCHEM, 1d0 )
+                   T1L    = STT(I,J,L,IDTCH3Br) * RDLOSS
+                   STT(I,J,L,IDTCH3Br) = STT(I,J,L,IDTCH3Br) - T1L
+                   SCHEM_TEND(I,J,L,IDTCH3Br) = &
                      SCHEM_TEND(I,J,L,IDTCH3Br) - T1L
+                ENDIF
 
                 !============!
                 ! CHBr3 + OH !
                 !============!
                 IF ( IDTCHBr3 .gt. 0 ) THEN
                    RC = 1.35d-12 * EXP ( - 600.d0 / TK ) 
-                ENDIF
-                RDLOSS = MIN( RC * mOH * DTCHEM, 1d0 )
-                T1L    = STT(I,J,L,IDTCHBr3) * RDLOSS
-                STT(I,J,L,IDTCHBr3) = STT(I,J,L,IDTCHBr3) - T1L
-                SCHEM_TEND(I,J,L,IDTCHBr3) = &
+                   RDLOSS = MIN( RC * mOH * DTCHEM, 1d0 )
+                   T1L    = STT(I,J,L,IDTCHBr3) * RDLOSS
+                   STT(I,J,L,IDTCHBr3) = STT(I,J,L,IDTCHBr3) - T1L
+                   SCHEM_TEND(I,J,L,IDTCHBr3) = &
                      SCHEM_TEND(I,J,L,IDTCHBr3) - T1L
+                ENDIF
 
                 !=============!
                 ! CH2Br2 + OH !
                 !=============!
                 IF ( IDTCH2Br2 .gt. 0 ) THEN
                    RC = 2.00d-12 * EXP ( -  840.d0 / TK )
-                ENDIF
-                RDLOSS = MIN( RC * mOH * DTCHEM, 1d0 )
-                T1L    = STT(I,J,L,IDTCH2Br2) * RDLOSS
-                STT(I,J,L,IDTCH2Br2) = STT(I,J,L,IDTCH2Br2) - T1L
-                SCHEM_TEND(I,J,L,IDTCHBr3) = &
+                   RDLOSS = MIN( RC * mOH * DTCHEM, 1d0 )
+                   T1L    = STT(I,J,L,IDTCH2Br2) * RDLOSS
+                   STT(I,J,L,IDTCH2Br2) = STT(I,J,L,IDTCH2Br2) - T1L
+                   SCHEM_TEND(I,J,L,IDTCHBr3) = &
                      SCHEM_TEND(I,J,L,IDTCHBr3) - T1L
+                ENDIF
 
              ENDDO ! J
           ENDDO ! I
@@ -353,43 +353,47 @@ CONTAINS
        !$OMP PRIVATE( NN, I, J, L, BryDay, BryNight, IJWINDOW )
        DO NN=1,6
 
-          ! Make note of inital state for determining tendency later
-          BEFORE = STT(:,:,:,GC_Bry_TrID(NN))
-          
-          DO J=1,JJPAR
-             DO I=1,IIPAR  
-                DO L=LMIN,LLPAR
-                   
-                   IF ( ITS_IN_THE_TROP(I,J,L) ) CYCLE
-                   
-                   ! Set the Bry boundary conditions. Simulated
-                   ! output from the GEOS5 CCM stratosphere.
-                   ! (jpp, 6/27/2011)
-                   IJWINDOW   = (J-1)*IIPAR + I
-                   
-                   ! daytime [ppt] -> [kg]
-                   IF (SUNCOS(IJWINDOW) > 0.d0) THEN
-                      BryDay = bry_day(I,J,L,NN) &
-                           * 1.d-12 & ! convert from [ppt]
-                           * AD(I,J,L) / TCVV(GC_Bry_TrID(NN))
-                      STT(I,J,L, GC_Bry_TrID(NN) ) = BryDay
-                   ELSE
-                   ! nighttime [ppt] -> [kg]
-                      BryNight = bry_night(I,J,L,NN) &
-                           * 1.d-12 & ! convert from [ppt]
-                           * AD(I,J,L) / TCVV(GC_Bry_TrID(NN))
-                      STT(I,J,L, GC_Bry_TrID(NN) ) = BryNight
-                   ENDIF
-                   
-                ENDDO
-             ENDDO
-          ENDDO
+          IF ( GC_Bry_TrID(NN) > 0 ) THEN
 
-          ! Put tendency into diagnostic array [kg box-1]
-          SCHEM_TEND(:,:,:,GC_Bry_TrID(NN)) = &
-               SCHEM_TEND(:,:,:,GC_Bry_TrID(NN)) + &
-               ( STT(:,:,:,GC_Bry_TrID(NN)) - BEFORE )
+             ! Make note of inital state for determining tendency later
+             BEFORE = STT(:,:,:,GC_Bry_TrID(NN))
           
+             DO J=1,JJPAR
+             DO I=1,IIPAR  
+             DO L=LMIN,LLPAR
+                   
+                IF ( ITS_IN_THE_TROP(I,J,L) ) CYCLE
+                   
+                ! Set the Bry boundary conditions. Simulated
+                ! output from the GEOS5 CCM stratosphere.
+                ! (jpp, 6/27/2011)
+                IJWINDOW   = (J-1)*IIPAR + I
+                   
+                IF (SUNCOS(IJWINDOW) > 0.d0) THEN
+                   ! daytime [ppt] -> [kg]
+                   BryDay = bry_day(I,J,L,NN) &
+                          * 1.d-12 & ! convert from [ppt]
+                          * AD(I,J,L) / TCVV(GC_Bry_TrID(NN))
+                   STT(I,J,L, GC_Bry_TrID(NN) ) = BryDay
+                ELSE
+                   ! nighttime [ppt] -> [kg]
+                   BryNight = bry_night(I,J,L,NN) &
+                            * 1.d-12 & ! convert from [ppt]
+                            * AD(I,J,L) / TCVV(GC_Bry_TrID(NN))
+                   STT(I,J,L, GC_Bry_TrID(NN) ) = BryNight
+                ENDIF
+                   
+             ENDDO
+             ENDDO
+             ENDDO
+
+             ! Put tendency into diagnostic array [kg box-1]
+             SCHEM_TEND(:,:,:,GC_Bry_TrID(NN)) = &
+                SCHEM_TEND(:,:,:,GC_Bry_TrID(NN)) + &
+                ( STT(:,:,:,GC_Bry_TrID(NN)) - BEFORE )
+          
+          ENDIF
+
        ENDDO
        !$OMP END PARALLEL DO
        
