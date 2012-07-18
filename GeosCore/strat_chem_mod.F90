@@ -139,7 +139,11 @@ CONTAINS
 ! !REMARKS:
 ! 
 ! !REVISION HISTORY: 
-!  1 Feb 2011 - L. Murray - Initial version  
+!  01 Feb 2011 - L. Murray   - Initial version  
+!  18 Jul 2012 - R. Yantosca - For compatibility w/ the GEOS-5/GCM, we cannot
+!                              assume a minimum tropopause level anymore
+!  18 Jul 2012 - R. Yantosca - Make sure I is the innermost DO loop
+!                              wherever expedient 
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -148,7 +152,7 @@ CONTAINS
 !
     LOGICAL, SAVE             :: FIRST      = .TRUE.
     INTEGER, SAVE             :: LASTMONTH  = -99
-    INTEGER                   :: I, J, L, N, NN, LMIN
+    INTEGER                   :: I, J, L, N, NN
     REAL*8                    :: dt, P, k, M0
     REAL*8                    :: STT0(IIPAR,JJPAR,LLPAR,N_TRACERS)
     REAL*8                    :: RC, M, TK, RDLOSS, T1L, mOH
@@ -167,9 +171,6 @@ CONTAINS
     STAMP = TIMESTAMP_STRING()
     WRITE( 6, 10 ) STAMP
 10  FORMAT( '     - DO_STRAT_CHEM: Linearized strat chemistry at ', a )
-
-    ! Get the minimum level extent of the tropopause
-    LMIN = GET_MIN_TPAUSE_LEVEL()  
 
     IF ( GET_MONTH() /= LASTMONTH ) THEN
 
@@ -217,7 +218,10 @@ CONTAINS
              ! Add to tropopause level aggregator for later determining STE flux
              TpauseL(I,J) = TpauseL(I,J) + GET_TPAUSE_LEVEL(I,J)
 
-             DO L=LMIN,LLPAR
+             ! NOTE: For compatibility w/ the GEOS-5 GCM, we can no longer
+             ! assume a minimum tropopause level.  Loop from 1,LLPAR instead.
+             ! (bmy, 7/18/12)
+             DO L = 1, LLPAR
 
                 IF ( ITS_IN_THE_TROP( I, J, L ) ) CYCLE
 
@@ -289,7 +293,11 @@ CONTAINS
        !$OMP PRIVATE( I, J, L, M, TK, RC, RDLOSS, T1L, mOH )
        DO J=1,JJPAR
           DO I=1,IIPAR  
-             DO L=LMIN,LLPAR
+
+             ! NOTE: For compatibility w/ the GEOS-5 GCM, we can no longer
+             ! assume a minimum tropopause level.  Loop from 1,LLPAR instead.
+             ! (bmy, 7/18/12)
+             DO L = 1, LLPAR
 
                 IF ( ITS_IN_THE_TROP(I,J,L) ) CYCLE
 
@@ -360,8 +368,12 @@ CONTAINS
           
              DO J=1,JJPAR
              DO I=1,IIPAR  
-             DO L=LMIN,LLPAR
-                   
+
+             ! NOTE: For compatibility w/ the GEOS-5 GCM, we can no longer
+             ! assume a minimum tropopause level.  Loop from 1,LLPAR instead.
+             ! (bmy, 7/18/12)
+             DO L = 1, LLPAR
+                  
                 IF ( ITS_IN_THE_TROP(I,J,L) ) CYCLE
                    
                 ! Set the Bry boundary conditions. Simulated
@@ -419,13 +431,14 @@ CONTAINS
 
        ! Add to tropopause level aggregator for later determining STE flux
        TpauseL_CNT = TpauseL_CNT + 1d0
-       !$OMP PARALLEL DO &
+
+       !$OMP PARALLEL DO       &
        !$OMP DEFAULT( SHARED ) &
        !$OMP PRIVATE( I, J )
-       DO I=1,IIPAR
-          DO J=1,JJPAR
-             TpauseL(I,J) = TpauseL(I,J) + GET_TPAUSE_LEVEL(I,J)
-          ENDDO
+       DO J = 1, JJPAR
+       DO I = 1, IIPAR
+          TpauseL(I,J) = TpauseL(I,J) + GET_TPAUSE_LEVEL(I,J)
+       ENDDO
        ENDDO
        !$OMP END PARALLEL DO
 
@@ -452,13 +465,13 @@ CONTAINS
 
        ! Add to tropopause level aggregator for later determining STE flux
        TpauseL_CNT = TpauseL_CNT + 1d0
-       !$OMP PARALLEL DO &
+       !$OMP PARALLEL DO       &
        !$OMP DEFAULT( SHARED ) &
        !$OMP PRIVATE( I, J )
-       DO I=1,IIPAR
-          DO J=1,JJPAR
-             TpauseL(I,J) = TpauseL(I,J) + GET_TPAUSE_LEVEL(I,J)
-          ENDDO
+       DO J = 1, JJPAR
+       DO I = 1, IIPAR
+          TpauseL(I,J) = TpauseL(I,J) + GET_TPAUSE_LEVEL(I,J)
+       ENDDO
        ENDDO
        !$OMP END PARALLEL DO
 
@@ -586,9 +599,9 @@ CONTAINS
        ! Read production rate [v/v/s]
        !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
-       call NcRd( array, fileID, 'prod',                         &
-                                 (/     1,     1,     1,  m  /), & ! Start 
-                                 (/ iipar, jjpar, lglob,  1  /)  ) ! Count
+       call NcRd( array, fileID, 'prod',                          &
+                                 (/     1,     1,     1,  m  /),  & ! Start 
+                                 (/ iipar, jjpar, lglob,  1  /)  )  ! Count
 
        ! Cast from REAL*4 to REAL*8 and resize to 1:LLPAR
        call transfer_3D( array, array2 )
@@ -602,9 +615,9 @@ CONTAINS
        !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
        ! Read loss frequencies [s^-1]
        !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-       call NcRd( array, fileID, 'loss',     &
-            (/     1,     1,     1,  m  /), & ! Start
-            (/ iipar, jjpar, lglob,  1  /)  ) ! Count
+       call NcRd( array, fileID, 'loss',                          &
+                                 (/     1,     1,     1,  m  /),  & ! Start
+                                 (/ iipar, jjpar, lglob,  1  /)  )  ! Count
 
        ! Cast from REAL*4 to REAL*8 and resize to 1:LLPAR
        call transfer_3D( array, array2 )
@@ -702,7 +715,9 @@ CONTAINS
     INTEGER,INTENT(IN) :: THISMONTH
 !
 ! !REVISION HISTORY: 
-!  1 Feb 2011 - L. Murray - Initial version
+!  01 Feb 2011 - L. Murray   - Initial version
+!  18 Jul 2012 - R. Yantosca - Make sure that I is the innermost DO loop
+!                              (wherever expedient)
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -773,15 +788,15 @@ CONTAINS
     ! Get Stratospheric OH concentrations [v/v] 
     ! %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
-    DO I=1,IGLOB
-       DO J=1,JGLOB
+    DO J = 1, JGLOB
+    DO I = 1, IGLOB
 
-          call NcRd( column, fileID, 'species',         &
-                    (/ I_f2c(I), J_f2c(J),     1, m /), & ! Start
-                    (/        1,        1, lglob, 1 /)  ) ! Count
-          array( I, J, : ) = column
+       call NcRd( column, fileID, 'species',           &
+                  (/ I_f2c(I), J_f2c(J),     1, m /),  & ! Start
+                  (/        1,        1, lglob, 1 /)  ) ! Count
+       array( I, J, : ) = column
 
-       ENDDO
+    ENDDO
     ENDDO
     call NcCl( fileID )
     call transfer_3D( array, array2 )
@@ -830,13 +845,11 @@ CONTAINS
     ENDDO
 
     ! Cast from global 2x2.5 to fine nested resolution
-    DO I=1,IGLOB
-       DO J=1,JGLOB
-
-          Bry_day( I, J, :, : ) = BryDay2x25( I_f2c(I), J_f2c(J), :, :)
-          Bry_night( I, J, :, : ) = BryNight2x25( I_f2c(I), J_f2c(J), :, :)
-
-       ENDDO
+    DO J = 1, JGLOB
+    DO I = 1, IGLOB
+       Bry_day  ( I, J, :, : ) = BryDay2x25  ( I_f2c(I), J_f2c(J), :, : )
+       Bry_night( I, J, :, : ) = BryNight2x25( I_f2c(I), J_f2c(J), :, : )
+    ENDDO
     ENDDO
 
     DO N=1,NSCHEM
@@ -860,16 +873,16 @@ CONTAINS
        ! Read production rate [v/v/s]
        !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
        array = 0.0
+       
+       DO J = 1, JGLOB
+       DO I = 1, IGLOB
 
-       DO I=1,IGLOB
-          DO J=1,JGLOB
+          call NcRd( column, fileID, 'prod',                       &
+                             (/ I_f2c(I), J_f2c(J),     1,  m /),  & ! Start
+                             (/        1,        1, lglob,  1 /)  )  ! Count
+          array( I, J, : ) = column
 
-             call NcRd( column, fileID, 'prod',                      &
-                                (/ I_f2c(I), J_f2c(J),     1,  m /), & ! Start
-                                (/        1,        1, lglob,  1 /)  ) ! Count
-             array( I, J, : ) = column
-
-          ENDDO
+       ENDDO
        ENDDO
 
        ! Cast from REAL*4 to REAL*8 and resize to 1:LLPAR if necessary
@@ -886,15 +899,15 @@ CONTAINS
        !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
        array = 0.0
 
-       DO I=1,IGLOB
-          DO J=1,JGLOB
+       DO J = 1, JGLOB
+       DO I = 1, IGLOB
 
-             call NcRd( column, fileID, 'loss',                      &
-                                (/ I_f2c(I), J_f2c(J),     1,  m /), & ! Start
-                                (/        1,        1, lglob,  1 /)  ) ! Count
-             array( I, J, : ) = column
+          call NcRd( column, fileID, 'loss',                       &
+                             (/ I_f2c(I), J_f2c(J),     1,  m /),  & ! Start
+                             (/        1,        1, lglob,  1 /)  )  ! Count
+          array( I, J, : ) = column
 
-          ENDDO
+       ENDDO
        ENDDO
 
        ! Cast from REAL*4 to REAL*8 and resize to 1:LLPAR if necessary
@@ -940,7 +953,9 @@ CONTAINS
 #include "define.h"
 !
 ! !REVISION HISTORY: 
-!  28 Apr 2012 - L. Murray - Initial version
+!  28 Apr 2012 - L. Murray   - Initial version
+!  18 Jul 2012 - R. Yantosca - Make sure I is the innermost DO loop
+!                              (wherever expedient)
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -973,10 +988,10 @@ CONTAINS
     !$OMP PARALLEL DO                               &
     !$OMP DEFAULT( SHARED )                         &
     !$OMP PRIVATE( I,  J  )
+    DO J = 1,JJPAR
     DO I = 1,IIPAR
-       DO J = 1,JJPAR
-          LTP(I,J) = NINT( TPauseL(I,J) / TPauseL_Cnt )
-       ENDDO
+       LTP(I,J) = NINT( TPauseL(I,J) / TPauseL_Cnt )
+    ENDDO
     ENDDO
     !$OMP END PARALLEL DO
 
@@ -1015,11 +1030,11 @@ CONTAINS
        !$OMP PARALLEL DO &
        !$OMP DEFAULT( SHARED ) &
        !$OMP PRIVATE( I,  J  )
-       DO I=1,IIPAR
-          DO J=1,JJPAR  
-             M2(I,J,1:LTP(I,J)) = 0d0
-             M1(I,J,1:LTP(I,J)) = 0d0
-          ENDDO
+       DO J = 1, JJPAR  
+       DO I = 1, IIPAR
+          M2(I,J,1:LTP(I,J)) = 0d0
+          M1(I,J,1:LTP(I,J)) = 0d0
+       ENDDO
        ENDDO
        !$OMP END PARALLEL DO
        dStrat   = SUM(M2)-SUM(M1)
