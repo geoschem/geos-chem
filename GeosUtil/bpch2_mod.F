@@ -82,6 +82,7 @@
 !  20 Nov 2009 - R. Yantosca - Added ProTeX headers
 !  13 Aug 2010 - R. Yantosca - Added modifications for MERRA
 !  28 Feb 2012 - R. Yantosca - Removed support for GEOS-3
+!  19 Jul 2012 - R. Yantosca - Bug fix in GET_NAME_EXT_2D
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -764,7 +765,11 @@
 !
 ! !RETURN VALUE:
 !
-      CHARACTER(LEN=4) :: NAME_EXT_2D
+#if   defined( MERRA )
+      CHARACTER(LEN=5) :: NAME_EXT_2D   ! Return all characters of "merra"
+#else
+      CHARACTER(LEN=4) :: NAME_EXT_2D   ! Return 1st 4 chars of "geos", "gcap"
+#endif
 !
 ! !REVISION HISTORY:
 !  (1 ) Added name string for GEOS-4/fvDAS model type (bmy, 11/20/01)
@@ -772,6 +777,7 @@
 !  (3 ) Modified for GCAP and GEOS-5 met fields (bmy, 5/24/05)
 !  (4 ) Remove support for GEOS-1 and GEOS-STRAT met fields (bmy, 8/4/06)
 !  20 Nov 2009 - R. Yantosca - Added ProTeX header
+!  19 Jul 2012 - R. Yantosca - Do not truncate name for "merra"
 !EOP
 !------------------------------------------------------------------------------
 !
@@ -787,8 +793,12 @@
       ! Get the name extension
       TEMP_NAME   = GET_NAME_EXT()
 
+#if   !defined( MERRA )
+
       ! Take the 1st 4 characters ("geos" or "gcap") and return
       NAME_EXT_2D = TEMP_NAME(1:4)
+
+#endif
 
       ! Return to calling program
       END FUNCTION GET_NAME_EXT_2D 
