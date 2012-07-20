@@ -54,16 +54,27 @@ MODULE STRAT_CHEM_MOD
 !  (1 )
 !
 ! !REVISION HISTORY:
-!  1 Feb 2011 - L. Murray - Initial version
+!  01 Feb 2011 - L. Murray   - Initial version
+!  20 Jul 2012 - R. Yantosca - Reorganized declarations for clarity
+!  20 Jul 2012 - R. Yantosca - Correct compilation error in GET_RATES_INTERP
+
 !EOP
 !------------------------------------------------------------------------------
 !BOC
+!
+! !DEFINED PARAMETERS:
+!
+  ! Tracer index of Bry species in input files
+  ! 1:6 = (Br2, Br, BrO, HOBr, HBr, BrNO3) for both
+  INTEGER, PARAMETER   :: br_nos(6) = (/44, 45, 46, 47, 48, 50/)
+
+  ! Number of species from GMI model
+  INTEGER, PARAMETER   :: NTR_GMI   = 120  
 !
 ! !PRIVATE TYPES:
 !
   ! Scalars
   REAL*8               :: dTchem          ! chemistry time step [s]
-  INTEGER, PARAMETER   :: NTR_GMI  = 120  ! Number of species from GMI model
   INTEGER              :: NSCHEM          ! Number of species upon which to 
                                           ! apply P's & k's in GEOS-Chem
   ! Arrays
@@ -80,11 +91,9 @@ MODULE STRAT_CHEM_MOD
   REAL*4, ALLOCATABLE  :: Bry_temp(:,:,:) 
   REAL*8, ALLOCATABLE  :: Bry_day(:,:,:,:) 
   REAL*8, ALLOCATABLE  :: Bry_night(:,:,:,:)
-  ! Tracer index of Bry species in input files
-  INTEGER, PARAMETER   :: br_nos(6) = (/44, 45, 46, 47, 48, 50/)
+
   ! Tracer index of Bry species in GEOS-Chem STT (may differ from br_nos)
   INTEGER              :: GC_Bry_TrID(6) 
-  ! 1:6 = (Br2, Br, BrO, HOBr, HBr, BrNO3) for both
 
   ! Variables used to calculate the strat-trop exchange flux
   REAL*8               :: TauInit             ! Initial time
@@ -144,22 +153,25 @@ CONTAINS
 !                              assume a minimum tropopause level anymore
 !  18 Jul 2012 - R. Yantosca - Make sure I is the innermost DO loop
 !                              wherever expedient 
+!  20 Jul 2012 - R. Yantosca - Reorganized declarations for clarity
 !EOP
 !------------------------------------------------------------------------------
 !BOC
 !
 ! !LOCAL VARIABLES:
 !
+    ! SAVEd quantities
     LOGICAL, SAVE             :: FIRST      = .TRUE.
     INTEGER, SAVE             :: LASTMONTH  = -99
-    INTEGER                   :: I, J, L, N, NN
-    REAL*8                    :: dt, P, k, M0
-    REAL*8                    :: STT0(IIPAR,JJPAR,LLPAR,N_TRACERS)
-    REAL*8                    :: RC, M, TK, RDLOSS, T1L, mOH
-    CHARACTER(LEN=16)         :: STAMP
 
-    REAL*8                    :: BryDay, BryNight
-    INTEGER                   :: IJWINDOW
+    ! Scalars
+    CHARACTER(LEN=16)         :: STAMP
+    INTEGER                   :: I,    IJWINDOW, J,   L,   N,      NN
+    REAL*8                    :: dt,   P,        k,   M0,  RC,     M
+    REAL*8                    :: TK,   RDLOSS,   T1L, mOH, BryDay, BryNight
+
+    ! Arrays
+    REAL*8                    :: STT0(IIPAR,JJPAR,LLPAR,N_TRACERS)
 
     ! External functions
     REAL*8, EXTERNAL          :: BOXVL
@@ -535,19 +547,23 @@ CONTAINS
     INTEGER,INTENT(IN) :: THISMONTH
 !
 ! !REVISION HISTORY: 
-!  1 Feb 2011 - L. Murray - Initial version
+!  01 Feb 2011 - L. Murray   - Initial version
+!  20 Jul 2012 - R. Yantosca - Reorganized declarations for clarity
 !EOP
 !------------------------------------------------------------------------------
 !BOC
 !
 ! !LOCAL VARIABLES:
 !
+    ! Scalars
     CHARACTER(LEN=255) :: FILENAME, DAYFILE, NIGHTFILE
-    REAL*4             :: ARRAY( IIPAR, JJPAR, LGLOB )  ! Full vertical res
-    REAL*8             :: ARRAY2( IIPAR, JJPAR, LLPAR ) ! Actual vertical res
-    INTEGER            :: N, M, S, F, NN, fileID
-
+    INTEGER            :: N,        M,       S
+    INTEGER            :: F,        NN,      fileID
     REAL*8             :: XTAU
+
+    ! Arrays
+    REAL*4             :: ARRAY ( IIPAR, JJPAR, LGLOB )  ! Full vertical res
+    REAL*8             :: ARRAY2( IIPAR, JJPAR, LLPAR )  ! Actual vertical res
 
     !=================================================================
     ! GET_RATES begins here
@@ -683,6 +699,7 @@ CONTAINS
 !
 ! !IROUTINE: get_rates_interp
 !
+!
 ! !DESCRIPTION: Function GET\_RATES\_INTERP reads from disk the chemical
 ! production and loss rates for the species of interest to resolutions finer
 ! than 2 x 2.5 (e.g., nested simluations) via simple nearest-neighbor mapping.
@@ -694,13 +711,18 @@ CONTAINS
 !
 ! !USES:
 !
-    USE BPCH2_MOD,       ONLY : GET_NAME_EXT, GET_RES_EXT, GET_TAU0, READ_BPCH2
+    USE BPCH2_MOD,       ONLY : GET_NAME_EXT
+    USE BPCH2_MOD,       ONLY : GET_RES_EXT
+    USE BPCH2_MOD,       ONLY : GET_TAU0
+    USE BPCH2_MOD,       ONLY : READ_BPCH2
     USE DIRECTORY_MOD,   ONLY : DATA_DIR_1x1
-    USE GRID_MOD,        ONLY : GET_YMID, GET_XMID
+    USE GRID_MOD,        ONLY : GET_XMID
+    USE GRID_MOD,        ONLY : GET_YMID
     USE LOGICAL_MOD,     ONLY : LLINOZ
     USE TIME_MOD,        ONLY : GET_MONTH
     USE TRACER_MOD,      ONLY : N_TRACERS, TRACER_NAME
     USE TRANSFER_MOD,    ONLY : TRANSFER_3D
+    USE TRANSFER_MOD,    ONLY : TRANSFER_3D_Bry
 
     USE m_netcdf_io_open
     USE m_netcdf_io_read
@@ -718,26 +740,40 @@ CONTAINS
 !  01 Feb 2011 - L. Murray   - Initial version
 !  18 Jul 2012 - R. Yantosca - Make sure that I is the innermost DO loop
 !                              (wherever expedient)
+!  20 Jul 2012 - R. Yantosca - Now call routine TRANSFER_3D_Bry, which takes
+!                              arrays of size (144,91,:) as input & output
+!  20 Jul 2012 - R. Yantosca - Reorganized declarations for clarity
 !EOP
 !------------------------------------------------------------------------------
 !BOC
 !
 ! !LOCAL VARIABLES:
 !
+    ! Scalars
     CHARACTER(LEN=255) :: FILENAME, DAYFILE, NIGHTFILE
-
-    REAL*8             :: BryDay2x25( 144, 91, LLPAR, 6 )
-    REAL*8             :: BryNight2x25( 144, 91, LLPAR, 6 )
-    REAL*4             :: BryTemp( IIPAR, JJPAR, LGLOB )
-
-    REAL*4             :: ARRAY( IIPAR, JJPAR, LGLOB ), COLUMN( LGLOB )
-    REAL*8             :: ARRAY2( IIPAR, JJPAR, LLPAR )
-    INTEGER            :: N, M, S, F, I, J, NN, II(1), JJ(1), fileID
-
-    REAL*4             :: XMID_COARSE(144), YMID_COARSE(91)
-    INTEGER            :: I_f2c(IIPAR), J_f2c(JJPAR) ! f2c = fine to coar map'ng
-
+    INTEGER            :: N,        M,       S 
+    INTEGER            :: F,        I,       J
+    INTEGER            :: NN,       fileID
     REAL*8             :: XTAU
+
+    ! Index arrays
+    INTEGER            :: II(1)
+    INTEGER            :: JJ(1)
+
+    ! Arrays defined on the 2 x 2.5 grid
+    REAL*4             :: XMID_COARSE ( 144                    )
+    REAL*4             :: YMID_COARSE (        91              )
+    REAL*4             :: BryTemp     ( 144,   91,    LGLOB    )
+    REAL*8             :: BryDay2x25  ( 144,   91,    LLPAR, 6 )
+    REAL*8             :: BryNight2x25( 144,   91,    LLPAR, 6 )
+
+    ! Arrays defined on the nested grid
+    ! "f2c" = fine to coarse mapping
+    INTEGER            :: I_f2c       ( IIPAR                  )
+    INTEGER            :: J_f2c       (        JJPAR           )
+    REAL*4             :: COLUMN      (               LGLOB    )
+    REAL*4             :: ARRAY       ( IIPAR, JJPAR, LGLOB    )
+    REAL*8             :: ARRAY2      ( IIPAR, JJPAR, LLPAR    )
 
     !=================================================================
     ! GET_RATES_INTERP begins here
@@ -769,8 +805,8 @@ CONTAINS
     ! Note: This doesn't do anything special for the date line, and may 
     ! therefore not pick the exact closest if it is on the other side.
     ! Note: CMN_SIZE_MOD claims in its comments that IIPAR < IGLOB, but 
-    ! in actuality, IIPAR = IGLOB and JJPAR = JGLOB, the dimensions of the nested
-    ! region.
+    ! in actuality, IIPAR = IGLOB and JJPAR = JGLOB, the dimensions of the 
+    ! nested region.
     DO I=1,IGLOB
        II = MINLOC( ABS( GET_XMID(I,1,1) - XMID_COARSE ) )
        I_f2c(I) = II(1)
@@ -826,21 +862,21 @@ CONTAINS
     
     DO NN = 1, 6
        
-       ! 1. Read daytime data
+       ! 1. Read daytime data on the 2 x 2.5 grid
        CALL READ_BPCH2( DAYFILE, 'IJ-AVG-$', br_nos(NN), &   
-            XTAU,    144,        91, &  
-            LGLOB,   BryTemp,   QUIET=.TRUE. )
+                        XTAU,    144,        91, &  
+                        LGLOB,   BryTemp,   QUIET=.TRUE. )
        
        ! Cast from REAL*4 to REAL*8 and resize to LLPAR
-       CALL TRANSFER_3D( BryTemp(:,:,:), BryDay2x25(:,:,:,NN) )
+       CALL TRANSFER_3D_Bry( BryTemp, BryDay2x25(:,:,:,NN) )
        
-       ! 2. Read nighttime data
+       ! 2. Read nighttime data on the 2 x 2.5 grid
        CALL READ_BPCH2( NIGHTFILE, 'IJ-AVG-$', br_nos(NN), &
-            XTAU,    144,        91, &   
-            LGLOB,   BryTemp,   QUIET=.TRUE. )
+                        XTAU,    144,        91, &   
+                        LGLOB,   BryTemp,   QUIET=.TRUE. )
        
        ! Cast from REAL*4 to REAL*8 and resize to LLPAR 
-       CALL TRANSFER_3D( BryTemp(:,:,:), BryNight2x25(:,:,:,NN) )
+       CALL TRANSFER_3D_Bry( BryTemp, BryNight2x25(:,:,:,NN) )
        
     ENDDO
 
@@ -956,14 +992,21 @@ CONTAINS
 !  28 Apr 2012 - L. Murray   - Initial version
 !  18 Jul 2012 - R. Yantosca - Make sure I is the innermost DO loop
 !                              (wherever expedient)
+!  20 Jul 2012 - R. Yantosca - Reorganized declarations for clarity
+
 !EOP
 !------------------------------------------------------------------------------
 !BOC
 
-    REAL*8             :: M1(IIPAR,JJPAR,LLPAR), M2(IIPAR,JJPAR,LLPAR)
-    REAL*8             :: dStrat, STE, Tend, tauEnd, dt
-    INTEGER            :: N, I, J, L, NN,  LTP(IIPAR,JJPAR)
-    CHARACTER(LEN=256) :: dateStart, dateEnd
+    ! Scalars
+    CHARACTER(LEN=255) :: dateStart, dateEnd
+    INTEGER            :: N,         I,      J,    L,      NN
+    REAL*8             :: dStrat,    STE,    Tend, tauEnd, dt
+
+    ! Arrays
+    INTEGER            :: LTP(IIPAR,JJPAR      )
+    REAL*8             :: M1 (IIPAR,JJPAR,LLPAR)
+    REAL*8             :: M2 (IIPAR,JJPAR,LLPAR)
 
     !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
     ! By simple mass balance, dStrat/dt = P - L - STE,
