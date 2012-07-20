@@ -765,11 +765,7 @@
 !
 ! !RETURN VALUE:
 !
-#if   defined( MERRA )
-      CHARACTER(LEN=5) :: NAME_EXT_2D   ! Return all characters of "merra"
-#else
       CHARACTER(LEN=4) :: NAME_EXT_2D   ! Return 1st 4 chars of "geos", "gcap"
-#endif
 !
 ! !REVISION HISTORY:
 !  (1 ) Added name string for GEOS-4/fvDAS model type (bmy, 11/20/01)
@@ -777,7 +773,8 @@
 !  (3 ) Modified for GCAP and GEOS-5 met fields (bmy, 5/24/05)
 !  (4 ) Remove support for GEOS-1 and GEOS-STRAT met fields (bmy, 8/4/06)
 !  20 Nov 2009 - R. Yantosca - Added ProTeX header
-!  19 Jul 2012 - R. Yantosca - Do not truncate name for "merra"
+!  19 Jul 2012 - R. Yantosca - For MERRA meterology, return "geos", which
+!                              indicates surface data only
 !EOP
 !------------------------------------------------------------------------------
 !
@@ -793,7 +790,13 @@
       ! Get the name extension
       TEMP_NAME   = GET_NAME_EXT()
 
-#if   !defined( MERRA )
+#if   defined( MERRA )
+
+      ! Return "geos" for MERRA meteorology, to denote data
+      ! that is only defined at the surface. (bmy, 7/19/12)
+      NAME_EXT_2D = 'geos'
+
+#else
 
       ! Take the 1st 4 characters ("geos" or "gcap") and return
       NAME_EXT_2D = TEMP_NAME(1:4)
