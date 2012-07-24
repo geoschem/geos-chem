@@ -444,7 +444,7 @@
 ! !DESCRIPTION: Subroutine TRANSFER\_3D\_Bry transfers 3-dimensional data 
 !  from a REAL*4 array to a REAL*8 array.  Vertical layers are collapsed 
 !  (from LGLOB to LLPAR) if necessary.  This routine was specially created 
-!  for 2 x 2.5 Bry data in strat_chem_mod.F90.
+!  for 2 x 2.5 Bry data in strat\_chem\_mod.F90.
 !\\
 !\\
 ! !INTERFACE:
