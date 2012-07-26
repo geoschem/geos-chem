@@ -57,6 +57,8 @@
 
       SUBROUTINE SET_VDIFF_PRE_MOD
 
+! This routine simply allocates VDIFF arrays as initializaion
+
       IMPLICIT NONE
 
       INTEGER AS

@@ -13,7 +13,11 @@
 !\\
 ! !INTERFACE:
 !
+#if defined( DEVEL )
+      SUBROUTINE SCHEM( PEDGE )
+#else
       SUBROUTINE SCHEM
+#endif
 !
 ! !USES:
 !
@@ -110,6 +114,8 @@
 !EOP
 !------------------------------------------------------------------------------
 !BOC
+      REAL*8, INTENT(IN) :: PEDGE(IIPAR, JJPAR, LLPAR)
+
 !
 ! !LOCAL VARIABLES:
 !
@@ -384,7 +390,7 @@
       ! CO is special -- 
       ! use archived P, L rates for CO chemistry in stratosphere
       !=================================================================
-      CALL CO_STRAT_PL( COPROD, COLOSS )
+      CALL CO_STRAT_PL( COPROD, COLOSS, PEDGE )
 
       !=================================================================
       ! Reaction with OH -- compute rate constants for each tracer

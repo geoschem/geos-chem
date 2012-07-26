@@ -241,8 +241,8 @@
       ! Arguments
       INTEGER, INTENT(IN)        :: YEAR, MONTH
 #if defined( DEVEL )
-      REAL*8,  INTENT(INOUT)     :: BIOEMISSIONS(:,:,:) ! MSL
-!      REAL*8,  INTENT(INOUT)     :: BIOEMISSIONS(IIPAR,JJPAR,NBIOMAX) ! MSL
+!      REAL*8,  INTENT(INOUT)     :: BIOEMISSIONS(:,:,:) ! MSL
+      REAL*8,  INTENT(INOUT)     :: BIOEMISSIONS(IIPAR,JJPAR,NBIOMAX) ! MSL
 #endif
       ! Local variables
       LOGICAL, SAVE              :: FIRST = .TRUE.

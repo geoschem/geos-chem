@@ -1576,7 +1576,11 @@
 !$OMP+PRIVATE( Kt1, Kt2, AREASS1, AREASS2, SO2_ss, Kt1N, Kt2N          )
 !$OMP+PRIVATE( PSO4E, PSO4F, XX                                        )
 !$OMP+SCHEDULE( DYNAMIC )
+#if defined( DEVEL )
+      DO L = 1, LLPAR 
+#else
       DO L = 1, LLTROP  
+#endif
       DO J = 1, JJPAR
       DO I = 1, IIPAR
 

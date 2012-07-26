@@ -226,7 +226,8 @@ c
 ! PART 1: We need to replace the .gt. with .ge in this IF test
 !
       if((jaddto(nc)+nc).GE.nl) then
-         write(6,1500)  jaddto(nc)+nc, 'NL',NL
+         write(6,*)  jaddto(nc)+nc, 'NL',NL
+!         write(6,1500)  jaddto(nc)+nc, 'NL',NL
 !
 ! PART 2: We just trim the largest JADDLV until the condition is satisfied 
 !         instead of simply stopping.  Remove the STOP statement.
@@ -383,7 +384,6 @@ c
 c
 !---Update total number of levels and check doesn't exceed N__
       ND = 2*(NC+jaddto(J1)-J1)  + 3
-
 !==============================================================================
 ! KLUDGE TO LIMIT THE NUMBER OF ADDED LEVELS (phs, 7/1/08)
 !

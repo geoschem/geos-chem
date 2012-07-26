@@ -841,7 +841,7 @@
 !^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^!
             CHEM_STATE%TRACERS(:,:,:,:N_TRACERS) = STT
 ! FIN DE KLUGE
-            CALL DO_CHEMISTRY(CHEM_STATE)
+            CALL DO_CHEMISTRY(CHEM_STATE, LOCAL_MET)
 #else
             CALL DO_CHEMISTRY
 #endif

@@ -40,7 +40,7 @@
 !
         PUBLIC :: ALLOCATE_ALL
         PUBLIC :: INIT_ALL
-        PUBLIC :: TRACER_INDEX
+!        PUBLIC :: TRACER_INDEX, TRACER_NAMES
 !
 ! !PRIVATE MEMBER FUNCTIONS:
 !
@@ -55,7 +55,8 @@
 ! !PRIVATE TYPES:
 !
 
-        INTEGER, ALLOCATABLE :: TRACER_INDEX(:)
+!        INTEGER, ALLOCATABLE :: TRACER_INDEX(:)
+!        TRACER_NAMES(:)
 
       !=================================================================
       ! MODULE ROUTINES -- follow below the "CONTAINS" statement
@@ -141,7 +142,6 @@
           ! Allocate 2-D Arrays
           ALLOCATE( &
                LOCAL_MET%ALBD(IIPAR, JJPAR), &   ! Visible surface albedo [unitless]
-               LOCAL_MET%AREA_M2(IIPAR, JJPAR), &! Grid box surface area [cm2]
                LOCAL_MET%CLDFRC(IIPAR, JJPAR), & ! Column cloud fraction [unitless]
                LOCAL_MET%FRCLND(IIPAR, JJPAR), & ! Olson land fraction [unitless]
                LOCAL_MET%GWETTOP(IIPAR, JJPAR), &! Top soil moisture [unitless]
@@ -154,7 +154,7 @@
                LOCAL_MET%PRECTOT(IIPAR, JJPAR), &! Total precip @ ground [kg/m2/s]
                LOCAL_MET%RADSWG(IIPAR,JJPAR), & ! Solar radiation @ ground [W/m2]
                LOCAL_MET%SST(IIPAR, JJPAR), &    ! Sea surface temperature [K]
-               LOCAL_MET%SUNCOS(IIPAR, JJPAR), & ! Cosine of solar zenith angle
+               LOCAL_MET%SUNCOS(IIPAR*JJPAR), & ! Cosine of solar zenith angle
                LOCAL_MET%TO3(IIPAR, JJPAR), &    ! Total overhead O3 column [DU]
                LOCAL_MET%TROPP(IIPAR, JJPAR), &  ! Tropopause pressure [hPa]
                LOCAL_MET%TS(IIPAR, JJPAR), &     ! Surface temperature [K]
@@ -171,16 +171,17 @@
                LOCAL_MET%AD(IIPAR,JJPAR,LLPAR), &        ! Air mass [kg]
                LOCAL_MET%AIRDENS(LLPAR,IIPAR,JJPAR), &   ! Air density [kg/m3]
                LOCAL_MET%AIRVOL(IIPAR,JJPAR,LLPAR), &    ! Grid box volume [m3]
+               LOCAL_MET%AREA_M2(IIPAR, JJPAR, LLPAR), & ! Grid box surface area [cm2]
                LOCAL_MET%BXHEIGHT(IIPAR,JJPAR,LLPAR), &  ! Grid box height [m]
                LOCAL_MET%CLDF(LLPAR,IIPAR,JJPAR), &      ! 3-D cloud fraction [unitless]
-               LOCAL_MET%CMFMC(IIPAR,JJPAR,LLPAR), &     ! Cloud mass flux [kg/m2/s]
+               LOCAL_MET%CMFMC(IIPAR,JJPAR,LLPAR+1), &     ! Cloud mass flux [kg/m2/s]
                LOCAL_MET%DQIDTMST(IIPAR,JJPAR,LLPAR), &  ! Ice tendency, mst proc [kg/kg/s]
                LOCAL_MET%DQLDTMST(IIPAR,JJPAR,LLPAR), &  ! H2O tendency, mst proc [kg/kg/s]
                LOCAL_MET%DQVDTMST(IIPAR,JJPAR,LLPAR), &  ! Vapor tendency, mst proc [kg/kg/s]
                LOCAL_MET%DTRAIN(IIPAR,JJPAR,LLPAR), &    ! Detrainment flux [kg/m2/s]
                LOCAL_MET%MOISTQ(LLPAR,IIPAR,JJPAR), &    ! Tendency in sp. humidity [kg/kg/s]
                LOCAL_MET%OPTD(LLPAR,IIPAR,JJPAR), &      ! Visible optical depth [unitless]
-               LOCAL_MET%PEDGE(IIPAR,JJPAR,LLPAR), &     ! Pressure @ level edges [Pa]
+               LOCAL_MET%PEDGE(IIPAR,JJPAR,LLPAR+1), &     ! Pressure @ level edges [Pa]
                LOCAL_MET%PMID(IIPAR,JJPAR,LLPAR), &      ! Pressure @ level centers [Pa]
                LOCAL_MET%DELP(LLPAR,IIPAR,JJPAR), &      ! Pressure thickness for layer [Pa]
                LOCAL_MET%RH(IIPAR,JJPAR,LLPAR), &        ! Relative humidity [unitless]
@@ -202,6 +203,7 @@
           ENDDO
 
 !          ALLOCATE( TRACER_INDEX(N_TRACERS), STAT = AS )
+!          write(*,*) 'TRACER_INDEX: ', shape(tracer_index)
 
         END SUBROUTINE INIT_LOCAL_MET
            

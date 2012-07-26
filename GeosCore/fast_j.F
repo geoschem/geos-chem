@@ -24,7 +24,11 @@
 !
 ! !INTERFACE:
 !
+#if defined( DEVEL )
+      SUBROUTINE FAST_J( SUNCOS, OD, ALBD, PEDGE )  
+#else
       SUBROUTINE FAST_J( SUNCOS, OD, ALBD )  
+#endif
 !
 ! !USES:
 !
@@ -59,6 +63,11 @@
 
       ! UV albedo [unitless]
       REAL*8, INTENT(IN)    :: ALBD(IIPAR,JJPAR)    
+
+#if defined( DEVEL )
+      ! Pressure at gridbox interfaces
+      REAL*8, INTENT(IN)    :: PEDGE(IIPAR, JJPAR, LLPAR+1)
+#endif
 !
 ! !REMARKS:
 !
@@ -224,8 +233,12 @@
             CSZA         = SUNCOS( (NLAT-1)*IIPAR + NLON ) 
 
             ! Define the PJ array here (bmy, 11/16/07)
-            DO L = 1, NB
+            DO L = 1, LLPAR+1!NB
+#if defined( DEVEL )
+               PJ(L)     = PEDGE( NLON, NLAT, L )
+#else
                PJ(L)     = GET_PEDGE( NLON, NLAT, L )
+#endif
             ENDDO
 
             ! Top edge of PJ is top of atmosphere (bmy, 2/13/07)

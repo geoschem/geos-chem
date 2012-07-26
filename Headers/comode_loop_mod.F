@@ -141,7 +141,11 @@
 #endif
 
       ! Regular
-      PARAMETER (KBLOOP  = 24                       )
+#if defined( DEVEL )
+      PARAMETER (KBLOOP  = 1                       )
+#else
+      PARAMETER (KBLOOP  = 24                      )
+#endif
 #if !defined( DEVEL )
       PARAMETER (IMLOOP  = ILAT * ILONG            )
 #endif
@@ -492,7 +496,7 @@
       INTEGER :: MBCOMP(IMASBAL,2), MBTRACE(IMASBAL)
 
       ! /DKBLOOP2/ needs to be declared THREADPRIVATE
-      REAL*8 ::                                                         &
+      REAL*8 ::
      &  CNEW(   KBLOOP,  MXGSAER),  
      &  CEST(   KBLOOP,  MXGSAER),  
      &  GLOSS(  KBLOOP,  MXGSAER),  

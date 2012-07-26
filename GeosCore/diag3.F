@@ -22,7 +22,7 @@
       USE CMN_DIAG_MOD                       ! Diagnostic switches & arrays
       USE COMODE_LOOP_MOD                    ! IDEMS
       USE FILE_MOD                           
-      USE GRID_MOD
+      USE GRID_MOD, ONLY : GET_AREA_M2, GET_YOFFSET, GET_XOFFSET
       USE TIME_MOD
 
       ! Modules from GeosCore directory
