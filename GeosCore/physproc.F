@@ -95,6 +95,7 @@
       ! For LINUX fix (bmy, 9/29/03)
       CHARACTER(LEN=16) :: STAMP
 
+      REAL :: START,FINISH
       !=================================================================
       ! PHYSPROC begins here!
       !=================================================================
@@ -309,11 +310,14 @@
 !    (ccc, 12/9/09)
 !    NSPEC(1) is the # of active species for urban chemistry.
 !    (ccc, 01/20/10)
+          call CPU_TIME(start)
           IF ( LKPP ) THEN
              CALL GCKPP_DRIVER(KTLOOP, JLOOPLO, RRATE_FOR_KPP, NSPEC(1))
 
           ELSE
              CALL SMVGEAR
+          call CPU_TIME(finish)
+
 !
 ! *********************************************************************
 ! * REPLACE BLOCK CONCENTRATIONS (# CM-3) INTO DOMAIN CONCENTRATIONS  *

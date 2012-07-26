@@ -386,8 +386,7 @@
       USE COMODE_LOOP_MOD   ! IDEMS
 
 #if defined(DEVEL)
-      USE GC_TYPE2_MOD
-      USE GC_ENVIRONMENT_MOD, ONLY : TRACER_INDEX
+!      USE GC_ENVIRONMENT_MOD, ONLY : TRACER_INDEX, TRACER_NAMES
 #endif
 
       ! Local variables
@@ -1384,7 +1383,11 @@
 
 !------------------------------------------------------------------------------
 
+#if defined( DEVEL )
+      SUBROUTINE SETTRACE(GC_STATE)
+#else
       SUBROUTINE SETTRACE
+#endif
 !
 !******************************************************************************
 !  Subroutine SETTRACE flags certain chemical species w/in the SMVGEAR full
@@ -1423,8 +1426,18 @@
       USE CMN_SIZE_MOD      ! Size parameters
       USE COMODE_LOOP_MOD   ! NAMEGAS
 
+#if defined(DEVEL)
+#if defined(ESMF_)
+      USE GC_TYPE2_MOD,  ONLY : CHEMSTATE, REGISTER_CSPEC
+#else
+      USE GC_TYPE2_MOD,  ONLY : CHEMSTATE
+#endif
+
+      TYPE(CHEMSTATE), INTENT(INOUT) :: GC_STATE
+#endif
+      
       ! Local variabales
-      INTEGER             :: I, J, T, C
+      INTEGER             :: I, J, T, C, STAT
  
       !=================================================================
       ! SETTRACE begins here!
@@ -1521,6 +1534,15 @@
          IF ( NAMEGAS(I) == 'LTRO2N'   ) IDLTRO2N   = I
          IF ( NAMEGAS(I) == 'LXRO2H'   ) IDLXRO2H   = I
          IF ( NAMEGAS(I) == 'LXRO2N'   ) IDLXRO2N   = I
+
+#if defined( DEVEL ) && defined(ESMF_)
+         CALL REGISTER_CSPEC(NAMEGAS(I),I,GC_STATE,STAT)
+         IF (STAT .lt. 0) THEN
+            CALL ERROR_STOP('FAIL','REGISTER_CSPEC')
+         ELSE
+            WRITE(6,*) 'Registered ', NAMEGAS(I), STAT
+         ENDIF
+#endif
       ENDDO
 
       !=================================================================

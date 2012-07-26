@@ -48,7 +48,7 @@ MODULE Grid_Mod
 
 #if defined( DEVEL )
 !      PUBLIC  :: AREA_M2 ! Permit setting this externally
-      PUBLIC  :: YMID, XMID, YEDGE, XEDGE
+      PUBLIC  :: YMID, XMID, YEDGE, XEDGE, AREA_M2
 #endif
 !
 ! !REVISION HISTORY:

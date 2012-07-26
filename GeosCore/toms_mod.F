@@ -97,7 +97,7 @@
       REAL*8, PRIVATE, ALLOCATABLE :: TOMS(:,:)               
       REAL*8, PRIVATE, ALLOCATABLE :: DTOMS1(:,:)             
       REAL*8, PRIVATE, ALLOCATABLE :: DTOMS2(:,:)     
-      REAL*8, PRIVATE, ALLOCATABLE :: TO3_DAILY(:,:)
+      REAL*8, PUBLIC, ALLOCATABLE :: TO3_DAILY(:,:)
 
       CONTAINS
 !EOC

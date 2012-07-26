@@ -164,10 +164,10 @@
       ! calculations (see JRATET); TJ is used in actinic flux 
       ! calculation only.
       !=================================================================    
-      !DO I=1,LPAR
+      DO I=1,LLPAR
       !   DO3(I) = MY_OZONE(i)       ! Volume Mixing Ratio
-      !   TJ(I)  = T(I)              ! Kelvin
-      !ENDDO
+         TJ(I)  = T(I)              ! Kelvin
+      ENDDO
       !DO3(LPAR+1) = MY_OZONE*EXP()  ! Above top of model (or use climatology)
       !TJ(LPAR+1)  = MY_TEMP(LPAR)   ! Above top of model (or use climatology)
 

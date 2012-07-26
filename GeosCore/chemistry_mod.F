@@ -67,7 +67,7 @@
 ! !INTERFACE:
 !
 #if defined( DEVEL )
-      SUBROUTINE DO_CHEMISTRY(CHEM_STATE)
+      SUBROUTINE DO_CHEMISTRY(CHEM_STATE, GC_MET)
 #else
       SUBROUTINE DO_CHEMISTRY
 #endif
@@ -122,7 +122,8 @@
       USE CMN_DIAG_MOD          ! NDxx flags
 
 #if defined( DEVEL )
-      USE GC_TYPE2_MOD,           ONLY : CHEMSTATE, NULL 
+      USE GC_TYPE_MOD,            ONLY : GC_MET_LOCAL
+      USE GC_TYPE2_MOD,           ONLY : CHEMSTATE
 #endif
 
 !
@@ -180,6 +181,7 @@
 
 #if defined( DEVEL )
       TYPE(CHEMSTATE), INTENT(INOUT) :: CHEM_STATE
+      TYPE(GC_MET_LOCAL), INTENT(IN) :: GC_MET
 !      REAL*8                         :: STT(IIPAR,JJPAR,LLPAR,N_TRACERS)
 #endif
 
@@ -208,7 +210,13 @@
          IF ( ITS_A_FULLCHEM_SIM() ) THEN 
 
             ! Call SMVGEAR routines for tropospheric chemistry
+
+#if defined( DEVEL )
+            CALL CHEMDR(GC_MET, CHEM_STATE)
+#else
+
             CALL CHEMDR
+#endif
 
             ! Call linearized stratospheric scheme
             IF ( LSCHEM ) CALL DO_STRAT_CHEM

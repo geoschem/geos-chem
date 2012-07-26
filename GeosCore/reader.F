@@ -169,15 +169,24 @@
 
       ! Use GEOS-CHEM file unit to prevent conflicts (bmy, 4/7/03)
       OPEN( IU_FILE, FILE = 'mglob.dat' )
+      write(*,*) 'READER:: opened mglob.dat'
       READ( IU_FILE, 100    ) HEADING 
+      write(*,*) 'READER:: read HEADING'
       READ( IU_FILE, 100    ) COMMENT
+      write(*,*) 'READER:: read COMMENT'
       READ( IU_FILE, CTLFLG )
+      write(*,*) 'READER:: read CTLFLG'
       READ( IU_FILE, CTLDIM )
+      write(*,*) 'READER:: read CTLDIM'
       READ( IU_FILE, CTLTIM )
+      write(*,*) 'READER:: read CTLTIM'
       READ( IU_FILE, CTLPRT )
+      write(*,*) 'READER:: read CTLPRT'
       READ( IU_FILE, CLGEAR )
+      write(*,*) 'READER:: CLGEAR'
       CLOSE( IU_FILE )
 
+      write(*,*) 'READER:: closed mglob.dat'
       ! NOTE: Redefine CHEMINTV [s] to the value in "input.geos" so 
       ! that we don't have a discrepancy with the value in "mglob.dat" 
       ! (bmy, 5/10/05)

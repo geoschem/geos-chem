@@ -796,7 +796,7 @@ main.o                      : main.F                                         \
                               merra_a3_mod.o          merra_i6_mod.o         \
                               gc_environment_mod.o    geos57_read_mod.o      \
                               diag63_mod.o            olson_landmap_mod.o    \
-                              mapping_mod.o
+                              mapping_mod.o           toms_mod.o
 
 mapping_mod.o               : mapping_mod.F90                                \
                               logical_mod.o
@@ -1028,7 +1028,7 @@ sunparam.o                  : sunparam.F
 
 gc_type2_mod.o              : gc_type2_mod.F90        tracer_mod.o
 gc_environment_mod.o        : gc_environment_mod.F90  gc_type2_mod.o         \
-			      gc_type_mod.o
+			      gc_type_mod.o           vdiff_pre_mod.o
 
 tagged_co_mod.o             : tagged_co_mod.F                                \
                               biofuel_mod.o           biomass_mod.o          \

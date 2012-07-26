@@ -298,7 +298,7 @@
 
                ! put any emissions above PBL into corresponding
                ! REMIS (phs, 27/10/09)
-               IF ( NOXEXTENT > TOPMIX ) THEN
+               IF ( NOXEXTENT > TOPMIX .and. JLOOP /= 0 ) THEN
                   DO L = TOPMIX+1, NOXEXTENT
                      JLOOP          = JLOP(I,J,L)
                      REMIS(JLOOP,N) = EMISRRN(I,J,L) /

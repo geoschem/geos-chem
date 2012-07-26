@@ -130,7 +130,7 @@
 
 #if defined( DEVEL )
       USE GC_TYPE_MOD ,           ONLY : GC_MET_LOCAL
-      USE GC_TYPE2_MOD,           ONLY : CHEMSTATE, NULL 
+      USE GC_TYPE2_MOD,           ONLY : CHEMSTATE!, NULL 
       USE TRACERID_MOD,           ONLY : IDTSO2, IDTC2H6
 #endif
 
@@ -213,7 +213,7 @@
 !#### base year as anthropogenic emissions
 !         CALL COMPUTE_BIOMASS_EMISSIONS( YEAR, MONTH )
 #if defined( DEVEL )
-         CALL COMPUTE_BIOMASS_EMISSIONS( GET_YEAR(), MONTH,             &
+         CALL COMPUTE_BIOMASS_EMISSIONS( GET_YEAR(), MONTH,
      &                 CHEM_STATE%TRAC_BTEND(:,:,1,:) )
 #else
          CALL COMPUTE_BIOMASS_EMISSIONS( GET_YEAR(), MONTH )
@@ -819,7 +819,7 @@
          IF ( LARCSHIP .and. ITS_A_NEW_YEAR() )
 #if defined( DEVEL )
      &        CALL EMISS_ARCTAS_SHIP( YEAR,
-     &                   CHEM_STATE%TRAC_TEND(:,:,1,NULL))
+     &                   CHEM_STATE%TRAC_TEND(:,:,1,N_TRACERS+1))
 #else
      &        CALL EMISS_ARCTAS_SHIP( YEAR )
 #endif

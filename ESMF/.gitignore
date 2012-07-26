@@ -1,10 +1,7 @@
-*.[oax]
+*.[oaxd]
 *.mod
 *.MOD
 *~*
 geos
 geostomas
-geosapm
-bak
-misc
-test
+___.h

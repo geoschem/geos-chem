@@ -11,7 +11,11 @@
 !\\
 ! !INTERFACE:
 !
+#if defined( DEVEL )
+      SUBROUTINE CHEMDR(GC_MET,GC_STATE)
+#else
       SUBROUTINE CHEMDR
+#endif
 !
 ! !USES:
 !
@@ -46,6 +50,11 @@
       USE CMN_DIAG_MOD               ! ND40
       USE CMN_NOX_MOD                ! SLBASE
       USE CMN_DEP_MOD                ! FRCLND
+
+#if defined( DEVEL )
+      USE GC_TYPE_MOD,          ONLY : GC_MET_LOCAL
+      USE GC_TYPE2_MOD,         ONLY : CHEMSTATE
+#endif
 
       IMPLICIT NONE
 #     include "define.h"
@@ -204,6 +213,8 @@
 !EOP
 !------------------------------------------------------------------------------
 !BOC
+      TYPE(GC_MET_LOCAL), INTENT(IN)    :: GC_MET
+      TYPE(CHEMSTATE),    INTENT(INOUT) :: GC_STATE
 !
 ! !LOCAL VARIABLES:
 !
@@ -216,6 +227,8 @@
 
       ! To use CSPEC_FULL restart (dkh, 02/12/09) 
       LOGICAL                  :: IT_EXISTS 
+
+      REAL :: START,FINISH
 
       !=================================================================
       ! CHEMDR begins here!
@@ -351,7 +364,11 @@
          !-------------------------------
          ! Flag certain chemical species
          !-------------------------------
+#if defined( DEVEL )
+         CALL SETTRACE(GC_STATE)
+#else
          CALL SETTRACE
+#endif
 
          !### Debug
          IF ( LPRT ) CALL DEBUG_MSG( '### CHEMDR: after SETTRACE' )
@@ -490,7 +507,11 @@
       !=================================================================
       ! Call photolysis routine to compute J-Values
       !=================================================================
+#if defined( DEVEL )
+      CALL FAST_J( SUNCOS_MID, OPTD, UVALBEDO, GC_MET%PEDGE )              
+#else
       CALL FAST_J( SUNCOS_MID, OPTD, UVALBEDO )              
+#endif
 
       !### Debug
       IF ( LPRT ) CALL DEBUG_MSG( '### CHEMDR: after FAST-J' )
@@ -502,7 +523,10 @@
       ! PHYSPROC calls both CALCRATE, which computes rxn rates 
       ! and SMVGEAR (if we do not use the solver coded by kpp), which
       ! is the chemistry solver
+      CALL CPU_TIME(start)
       CALL PHYSPROC( SUNCOS_MID )
+      CALL CPU_TIME(finish)
+      write(*,*) 'PHYSPROC TIME: ', finish-start
 
       !### Debug
       IF ( LPRT ) CALL DEBUG_MSG( '### CHEMDR: after PHYSPROC' )

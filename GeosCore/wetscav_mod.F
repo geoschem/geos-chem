@@ -641,6 +641,7 @@
       !=================================================================
       
       ! Saturation vap press of Ice [Pa] -- divide by 100 for [hPa]
+      write(*,*) 'E_ICE:', TK
       VALUE = ( 10d0**( A/TK + B ) ) / 100d0 
 
       END FUNCTION E_ICE
@@ -7195,6 +7196,7 @@
          FIRST = .FALSE. 
       ENDIF
 
+#if ! defined( DEVEL )
       !=================================================================
       ! Compute Vud, CLDLIQ, CLDICE, C_H2O, following Jacob et al, 2000.
       !=================================================================
@@ -7268,7 +7270,7 @@
       ENDDO
       ENDDO
 !$OMP END PARALLEL DO
-
+#endif
       END SUBROUTINE INIT_WETSCAV
 !EOC
 !------------------------------------------------------------------------------

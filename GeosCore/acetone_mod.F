@@ -523,7 +523,8 @@
             PRE_ACET = ACETONE(I,J) 
 
             ! Apply exponential loss to acetone mass
-            ACETONE(I,J) = ACETONE(I,J) * EXP(-OCEAN_ACET/ACETONE(I,J))
+            IF ( ACETONE(I,J) .ne. 0.e0 )
+     &      ACETONE(I,J) = ACETONE(I,J) * EXP(-OCEAN_ACET/ACETONE(I,J))
 
             !===========================================================
             ! Diagnostics: save ACETONE lost to ocean in [atoms C/cm2/s]

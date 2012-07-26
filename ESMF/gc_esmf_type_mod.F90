@@ -1,4 +1,4 @@
-#if defined( DEVEL ) && ! defined ( ESMF_ )
+#if defined( DEVEL ) && defined( ESMF_ )
 ! $Id: gc_type2_mod.F
 !------------------------------------------------------------------------------
 !          Harvard University Atmospheric Chemistry Modeling Group            !
@@ -26,21 +26,24 @@
 ! USES:
 !
       IMPLICIT NONE
-#     include "define.h"
+#include  "define.h"
       PUBLIC
       
       TYPE :: CHEMSTATE
 
         INTEGER, POINTER, DIMENSION(:)           :: &
              TRAC_ID, &  ! Tracer ID's set in TRACER_MOD
-             SMVG_ID     ! Smvgear ID's set in TRACER_MOD
+             SPEC_ID     ! Smvgear ID's set in TRACER_MOD
+
         CHARACTER(LEN=14), POINTER, DIMENSION(:) :: &
-             TRAC_NAME ! Tracer names set in TRACER_MOD
+             TRAC_NAME, & ! Tracer names set in TRACER_MOD
+             SPEC_NAME    ! CSPEC name
 
         REAL*8, POINTER, DIMENSION(:,:,:,:)      :: &
              TRAC_TEND,  & ! Tracer  Tendency (<<units>>)
              TRAC_BTEND, & ! Biomass Tendency (<<units>>)
-             TRACERS       ! Tracer concentration (Kg (per grid))
+             TRACERS,    & ! Tracer concentration (Kg (per grid))
+             CSPEC
 
       END TYPE CHEMSTATE
 
@@ -55,7 +58,7 @@
               END_J,   &
               NINDX,   &
               NJNDX
-         REAL*8, ALLOCATABLE, DIMENSION(:)         :: &
+         REAL*8, POINTER, DIMENSION(:)         :: &
               LAT,     &  ! LATITUDE (DEG)
               LON,     &  ! LONGITUDE (DEG)
               PS,      &  ! SURFACE PRESSURE
@@ -63,7 +66,7 @@
               PHIS,    &  ! SURFACE GEOPOTENTIAL
               ULAT,    &  ! UNIQUE LATITUDES  (DEG)
               ULON        ! UNIQUE LONGITUDES (DEG)
-         REAL*8, ALLOCATABLE, DIMENSION(:,:)       :: &
+         REAL*8, POINTER, DIMENSION(:,:)       :: &
               T,       &  ! TEMPERATURE (K)
               U,       &  ! ZONAL WIND (M/S)
               V,       &  ! MERIDIONAL WIND (M/S)
@@ -96,6 +99,8 @@
 
       TYPE(CHEMSTATE) :: CHEM_STATE
 !      INTEGER         :: NULL
+      INTEGER, SAVE   :: POSITION = 1 ! USED FOR REGISTERING CSPEC PARAMETERS
+                                      ! IN CHEM_STATE TYPE
 
       REAL*8, PUBLIC, ALLOCATABLE :: EXT_STRATOH(:,:)
       REAL*8, PUBLIC, ALLOCATABLE :: EXT_SJVALUE(:,:,:)
@@ -136,6 +141,25 @@
 
       END FUNCTION GET_TRACER_ID
 
+      SUBROUTINE REGISTER_CSPEC(NAME,ID,GC_STATE,STAT)
+
+        TYPE(CHEMSTATE),  INTENT(INOUT) :: GC_STATE
+        CHARACTER(LEN=*), INTENT(IN)    :: NAME
+        INTEGER,          INTENT(IN)    :: ID
+        INTEGER,          INTENT(OUT)   :: STAT
+
+        write(*,*) 'POSITION:', POSITION
+
+        STAT = -1
+
+        GC_STATE%SPEC_NAME(POSITION) = NAME
+        GC_STATE%SPEC_ID(POSITION)   = ID
+
+        STAT = POSITION
+        POSITION = POSITION+1
+
+      END SUBROUTINE REGISTER_CSPEC
+
       SUBROUTINE INIT_CHEMSTATE(CHEM_STATE)
       
         USE CMN_SIZE_MOD,    ONLY : IIPAR, JJPAR, LLPAR, NBIOMAX, NNPAR
@@ -148,17 +172,20 @@
 
         ! 1-D ALLOCATIONS
         ALLOCATE( CHEM_STATE%TRAC_ID(N_TRACERS+1) )
-        ALLOCATE( CHEM_STATE%SMVG_ID(IGAS) )
+        ALLOCATE( CHEM_STATE%TRAC_NAME(N_TRACERS+1) )
+        ALLOCATE( CHEM_STATE%SPEC_ID(IGAS) )
+        ALLOCATE( CHEM_STATE%SPEC_NAME(IGAS) )
 
         ! 3-D ALLOCATIONS
         ALLOCATE( CHEM_STATE%TRAC_TEND(IIPAR,JJPAR,LLPAR,N_TRACERS+1) )
         ALLOCATE( CHEM_STATE%TRAC_BTEND(IIPAR,JJPAR,LLPAR,NBIOMAX) )
         ALLOCATE( CHEM_STATE%TRACERS(IIPAR,JJPAR,LLPAR,N_TRACERS+1) )
+        ALLOCATE( CHEM_STATE%CSPEC(IIPAR,JJPAR,LLPAR,IGAS) )
 
 !        NULL = N_TRACERS+1 ! Dummy index just-in-case (e.g. CO2)
 
         CHEM_STATE%TRAC_ID = 0
-        CHEM_STATE%SMVG_ID = 0
+        CHEM_STATE%SPEC_ID = 0
 
         CHEM_STATE%TRAC_TEND  = 0.
         CHEM_STATE%TRAC_BTEND = 0.

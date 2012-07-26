@@ -174,6 +174,8 @@
 !EOP
 !------------------------------------------------------------------------------
 !BOC
+#if defined( DEVEL )
+#endif
 !
 ! !LOCAL VARIABLES:
 !
@@ -938,6 +940,10 @@
       USE TRACERID_MOD, ONLY : TRACERID
 
       USE CMN_SIZE_MOD       ! Size parameters
+
+#if defined ( ESMF_ ) && defined( DEVEL )
+!      USE GC_ENVIRONMENT_MOD, ONLY : TRACER_INDEX, TRACER_NAMES
+#endif
 ! 
 ! !REVISION HISTORY: 
 !  20 Jul 2004 - R. Yantosca - Initial version
@@ -953,6 +959,8 @@
 !EOP
 !------------------------------------------------------------------------------
 !BOC
+#if defined( DEVEL )
+#endif
 !
 ! !LOCAL VARIABLES:
 !
@@ -971,6 +979,11 @@
       ! NTRACE
       CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_tracer_menu:2' )
       READ( SUBSTRS(1:N), * ) N_TRACERS
+
+!#if defined( ESMF_ ) && defined( DEVEL )
+!          ALLOCATE( TRACER_INDEX(N_TRACERS) )
+!          ALLOCATE( TRACER_NAMES(N_TRACERS) )
+!#endif      
 
       ! Separator line
       CALL SPLIT_ONE_LINE( SUBSTRS, N, -1, 'read_tracer_menu:3' )
@@ -2713,7 +2726,10 @@
       USE LOGICAL_MOD,    ONLY : LTRAN
       USE LOGICAL_MOD,    ONLY : LMFCT,              LFILL
       USE TRACER_MOD,     ONLY : ITS_A_FULLCHEM_SIM, ITS_A_TAGOX_SIM
-      USE TRANSPORT_MOD,  ONLY : SET_TRANSPORT
+#if ! defined( ESMF_ )
+      USE TRANSPORT_MOD, ONLY : SET_TRANSPORT
+#endif
+
 ! 
 ! !REVISION HISTORY: 
 !  20 Jul 2004 - R. Yantosca - Initial version
@@ -2788,7 +2804,7 @@
 #elif defined( GRID025x03125 )
       MAX_DYN = 5
 #elif defined( EXTERNAL_FORCING )
-      MAX_DYN = 10
+      MAX_DYN = 60
 #endif
 
       ! If TS_DYN is greater than MAX_DYN, then stop w/ error
@@ -2817,9 +2833,10 @@
       !=================================================================
       ! Call setup routines from other F90 modules
       !=================================================================
-
+#if ! defined( ESMF_ )
       ! Pass parameters to "transport_mod.f"
       CALL SET_TRANSPORT( IORD, JORD, KORD )
+#endif
 
       END SUBROUTINE READ_TRANSPORT_MENU
 !EOC
