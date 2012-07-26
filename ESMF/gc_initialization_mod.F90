@@ -84,7 +84,7 @@
 
      END SUBROUTINE GC_EMIS_INTI
      
-     SUBROUTINE GC_INITRUN(LOCAL_MET, CHEM_STATE)
+     SUBROUTINE GC_INITRUN(LOCAL_MET, CHEM_STATE, tsChem, nymd, nhms, am_I_Root)
        
        USE CMN_SIZE_MOD,       ONLY : IIPAR, JJPAR, LLTROP
        USE GC_ENVIRONMENT_MOD, ONLY : ALLOCATE_ALL, INIT_ALL!, TRACER_INDEX, TRACER_NAMES
@@ -110,29 +110,29 @@
 
        IMPLICIT NONE
        
-       INTEGER             :: DTIME ! PHYSICS TIME STEP
-       INTEGER             :: DT_FACTOR = 2 ! 2 X MODEL TIME STEP?
+
+       INTEGER             :: DTIME ! CHEMISTY TIME STEP
        INTEGER             :: K, RC, AS
        INTEGER             :: PLON, PLAT
+
+       REAL, INTENT(IN)    :: tsChem
+       INTEGER, INTENT(IN) :: nymd, nhms
+       LOGICAL, INTENT(IN) :: am_I_Root
        TYPE(CHEMSTATE), INTENT(OUT)    :: CHEM_STATE
        TYPE(GC_MET_LOCAL), INTENT(OUT) :: LOCAL_MET
        
 !---------------------------------------------------------------------
 
-!      CALL GC_INIT_DIMENSIONS(PCOLS,PVER)
-
        RC = 0
-              
-!<><><><><><><> FIX ME ><><><><><><><><!!!
-       DTIME = DT_FACTOR !* !GET_STEP_SIZE()
+       DTIME = tsChem
        
-       CALL GC_INIT_TIMEINTERFACE( DTIME )
+       CALL GC_INIT_TIMEINTERFACE(DTIME, nymd, nhms, am_I_Root)
        
        CALL ALLOCATE_ALL
 
        CALL ALLOCATE_INTERFACE
               
-       CALL GC_GETOPTS
+       CALL GC_GETOPTS(am_I_Root)
 
        CALL INIT_ALL(LOCAL_MET, CHEM_STATE)
 
@@ -147,7 +147,7 @@
        CALL INIT_DAO
 
       ! INITIALIZE THE NEW HYBRID PRESSURE MODULE.  DEFINE AP AND BP.
-       CALL INIT_PRESSURE
+       CALL INIT_PRESSURE(am_I_Root)
 !       IF ( LPRT ) CALL ENDRUN( '### MAIN: A INIT_PRESSURE' )
 
        CALL INIT_PBL_MIX
@@ -156,8 +156,8 @@
 
       ! INITIALIZE ALLOCATABLE SMVGEAR/KPP ARRAYS
        IF ( LEMIS .OR. LCHEM ) THEN
-          IF ( ITS_A_FULLCHEM_SIM() ) CALL INIT_COMODE
-          IF ( ITS_AN_AEROSOL_SIM() ) CALL INIT_COMODE
+          IF ( ITS_A_FULLCHEM_SIM() ) CALL INIT_COMODE(am_I_Root)
+          IF ( ITS_AN_AEROSOL_SIM() ) CALL INIT_COMODE(am_I_Root)
           IF ( LKPP )  CALL INIT_GCKPP_COMODE( IIPAR, JJPAR, LLTROP, &
                ITLOOP, NMTRATE, IGAS, RC )
        ENDIF
@@ -171,40 +171,43 @@
 
      END SUBROUTINE GC_INITRUN
 
-     SUBROUTINE GC_GETOPTS
+     SUBROUTINE GC_GETOPTS(am_I_Root)
        
        USE INPUT_MOD,   ONLY : READ_INPUT_FILE
+       LOGICAL, INTENT(IN) :: am_I_Root
 
-       CALL READ_INPUT_FILE
+       CALL READ_INPUT_FILE(am_I_Root)
 
      END SUBROUTINE GC_GETOPTS
 
-     SUBROUTINE GC_INIT_TIMEINTERFACE(DT)
+     SUBROUTINE GC_INIT_TIMEINTERFACE(DT, nymd, nhms, am_I_Root)
 
        USE JULDAY_MOD,   ONLY : JULDAY, CALDATE
-!       USE TIME_MANAGER, ONLY : GET_CURR_DATE
        USE TIME_MOD
        
        IMPLICIT NONE
        
-       INTEGER             :: NYMDB, NHMSB, Y, M, D, TOD
-       INTEGER, INTENT(IN) :: DT
+       INTEGER             :: NYMDB, NHMSB, Y, M, D, TOD, H, MN, S
+       INTEGER, INTENT(IN) :: DT, nymd, nhms
        INTEGER             :: DTM
        REAL*8              :: FRAC_DAY
+       LOGICAL, INTENT(IN) :: am_I_Root
        
-        ! SET GEOS-CHEM TIMESTEPS FROM CAM TIMESTEPS
+        ! SET GEOS-CHEM TIMESTEPS
        DTM = DT/60 ! TIMESTEP FROM SEC -> MIN
-       CALL SET_TIMESTEPS( DTM, DTM, DTM, DTM, DTM, DTM)
+       CALL SET_TIMESTEPS(am_I_Root, DTM, DTM, DTM, DTM, DTM, DTM)
        
         ! SET NYMDB & NHMSB
 
-!       CALL GET_CURR_DATE( Y, M, D, TOD )
+       Y = nymd/10000
+       M = (nymd-Y*10000)/100
+       D = nymd-Y*10000-M*100
 
-!<><>HACK
-       Y = 2012
-       M = 4
-       D = 31
-       TOD = 12
+       H = nhms/10000
+       MN = (nhms-H*10000)/100
+       S = nhms-H*10000-MN*100
+
+       TOD = H*3600+MN*60+S
 
        IF ( TOD .GT. 0 ) THEN
           FRAC_DAY = DBLE(D) + DBLE(TOD)/DBLE(86400)

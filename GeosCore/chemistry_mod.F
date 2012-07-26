@@ -67,7 +67,7 @@
 ! !INTERFACE:
 !
 #if defined( DEVEL )
-      SUBROUTINE DO_CHEMISTRY(CHEM_STATE, GC_MET)
+      SUBROUTINE DO_CHEMISTRY(am_I_Root, NI, NJ, NL, CHEM_STATE, GC_MET)
 #else
       SUBROUTINE DO_CHEMISTRY
 #endif
@@ -125,6 +125,11 @@
       USE GC_TYPE2_MOD,           ONLY : CHEMSTATE
 #endif
 
+!
+! !INPUT VARIABLES:
+!
+      INTEGER, INTENT(IN) :: NI, NJ, NL
+      LOGICAL, INTENT(IN) :: am_I_Root
 !
 ! !REVISION HISTORY: 
 !  (1 ) Now reference DELP, T from "dao_mod.f" since we need to pass this
@@ -210,7 +215,8 @@
 
             ! Call SMVGEAR routines
 #if defined( DEVEL )
-            CALL CHEMDR(GC_MET, CHEM_STATE)
+            CALL CHEMDR(am_I_Root, NI, NJ, NL, GC_MET, CHEM_STATE)
+            PRINT *,"DO_CHEMISTRY: Done with CHEMDR"
 #else
             CALL CHEMDR
 #endif
@@ -271,8 +277,8 @@
  
              ! Initialize FAST-J quantities for computing AOD's
              IF ( FIRST ) THEN
-                CALL READER( FIRST )
-                CALL READCHEM
+                CALL READER( FIRST, am_I_Root )
+                CALL READCHEM(am_I_Root)
                 CALL INPHOT( LLTROP, NPHOT )
  
                 ! Reset NCS with NCSURBAN

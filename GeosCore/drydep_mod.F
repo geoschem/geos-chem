@@ -15,7 +15,8 @@
 ! 
 ! !USES:
 !
-      USE LOGICAL_MOD,     ONLY : LNLPBL ! (Lin, 03/31/09)
+      USE LOGICAL_MOD, ONLY : LNLPBL ! (Lin, 03/31/09)
+      USE inquireMod, ONLY  : findFreeLUN
 
       IMPLICIT NONE
 #     include "define.h"
@@ -2237,7 +2238,7 @@
 ! !USES:
 !
       USE DIRECTORY_MOD, ONLY : DATA_DIR
-      USE FILE_MOD,      ONLY : IU_FILE, IOERROR
+      USE FILE_MOD,      ONLY : IOERROR
       
       USE CMN_SIZE_MOD        ! Size parameters
 
@@ -2283,9 +2284,6 @@
       ! MODIN begins here!
       !=================================================================
 
-      ! Logical unit number
-      IUNIT    = IU_FILE
-
       ! Define the file name
       FILENAME = TRIM( DATA_DIR ) // 'drydep_200203/drydep.table'
 
@@ -2293,6 +2291,7 @@
  50   FORMAT( '     - MODIN: Reading ', a )
 
       ! Open file
+      IUNIT = findFreeLUN()
       OPEN( IUNIT, FILE=TRIM( FILENAME ), FORM='FORMATTED', 
      &             STATUS='OLD',          IOSTAT=IOS )
       IF ( IOS /= 0 ) CALL IOERROR( IOS, IUNIT, 'modin:1' ) 
@@ -2415,6 +2414,7 @@
  100  FORMAT( '     - RDDRYCF: Reading ', a ) 
 
       ! Open file
+      IU_FILE = findFreeLUN()
       OPEN( IU_FILE, FILE=TRIM( FILENAME ), STATUS='OLD', 
      &               FORM='FORMATTED',      IOSTAT=IOS )
       IF ( IOS /= 0 ) CALL IOERROR( IOS, IU_FILE, 'rddrycf:1' )
@@ -3745,7 +3745,7 @@
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE INIT_DRYDEP
+      SUBROUTINE INIT_DRYDEP(am_I_Root)
 !
 ! !USES:
 !
@@ -3791,6 +3791,7 @@
       
       USE CMN_SIZE_MOD       ! Size parameters
 
+      LOGICAL, INTENT(IN) :: am_I_Root
 ! 
 ! !REVISION HISTORY: 
 !  (1 ) Added N2O5 as a drydep tracer, w/ the same drydep velocity as
@@ -4833,6 +4834,7 @@
       !=================================================================
       ! Echo information to stdout
       !=================================================================
+      IF(am_I_Root) THEN
       WRITE( 6, '(/,a)' ) 'INIT_DRYDEP: List of dry deposition species:'
       WRITE( 6, '(/,a)'   )
      & '  #   Name  Tracer DEPVEL Henry''s    React.   Molec.  Aerosol?'
@@ -4844,6 +4846,8 @@
          WRITE( 6, 100 ) N, TRIM( DEPNAME(N) ), NTRAIND(N), NDVZIND(N), 
      &                   HSTAR(N),  F0(N),      XMW(N),     AIROSOL(N)
       ENDDO
+      END IF
+
  100  FORMAT( i3, 3x, a4, 2(3x,i3), 4x, es8.1, 2(3x,f6.3), 3x, L3 )
 
       END SUBROUTINE INIT_DRYDEP

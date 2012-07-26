@@ -110,6 +110,8 @@
 !  01 Mar 2012 - R. Yantosca - Now reference new grid_mod.F90
 !******************************************************************************
 !
+      USE inquireMod, ONLY : findFreeLUN
+
       IMPLICIT NONE
 #     include "define.h"
 
@@ -2151,7 +2153,7 @@
       USE DEPO_MERCURY_MOD, ONLY : SNOW_HG, CHECK_DIMENSIONS
       USE DIRECTORY_MOD,    ONLY : RUN_DIR
       USE ERROR_MOD,        ONLY : DEBUG_MSG
-      USE FILE_MOD,         ONLY : IU_FILE,     IOERROR
+      USE FILE_MOD,         ONLY : IOERROR
       USE LOGICAL_MOD,      ONLY : LSPLIT,      LPRT
       USE TIME_MOD,         ONLY : EXPAND_DATE
       USE TRACER_MOD,       ONLY : STT,         TRACER_NAME, TRACER_MW_G
@@ -2164,7 +2166,7 @@
       INTEGER, INTENT(IN)   :: YYYYMMDD, HHMMSS
 
       ! Local Variables
-      INTEGER               :: I, IOS, J, L, NN, N_oc
+      INTEGER               :: I, IOS, IU_FILE, J, L, NN, N_oc
       INTEGER               :: YEAR, MONTH, DAY
       INTEGER               :: NCOUNT(NNPAR) 
       REAL*4                :: Hg_OCEAN(IIPAR,JJPAR,1)
@@ -2204,6 +2206,7 @@
  110  FORMAT( /, 'READ_OCEAN_Hg_RESTART: Reading ', a )
 
       ! Open the binary punch file for input
+      IU_FILE = findFreeLUN()
       CALL OPEN_BPCH2_FOR_READ( IU_FILE, FILENAME )
       
       ! Echo more output
@@ -2467,7 +2470,6 @@
       USE BPCH2_MOD
       USE DEPO_MERCURY_MOD, ONLY : SNOW_HG
       USE DIRECTORY_MOD,    ONLY : RUN_DIR
-      USE FILE_MOD,         ONLY : IU_FILE
       USE GRID_MOD,         ONLY : GET_XOFFSET, GET_YOFFSET
       USE LOGICAL_MOD,      ONLY : LSPLIT
       USE TIME_MOD,         ONLY : EXPAND_DATE, GET_TAU
@@ -2482,7 +2484,7 @@
 
       ! Local variables
       INTEGER               :: HALFPOLAR, CENTER180
-      INTEGER               :: IFIRST,    JFIRST,   LFIRST
+      INTEGER               :: IFIRST,    IU_FILE,  JFIRST,   LFIRST
       INTEGER               :: N,         NN
       REAL*4                :: LONRES,    LATRES,   ARRAY(IIPAR,JJPAR,1)
       CHARACTER(LEN=20)     :: MODELNAME
@@ -2515,6 +2517,7 @@
  100  FORMAT( '     - MAKE_RESTART_FILE: Writing ', a )
 
       ! Open BPCH file for output
+      IU_FILE = findFreeLUN()
       CALL OPEN_BPCH2_FOR_WRITE( IU_FILE, FILENAME )
 
       !---------------------------

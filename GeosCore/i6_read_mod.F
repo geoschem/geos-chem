@@ -52,6 +52,8 @@
 !  28 Feb 2012 - R. Yantosca - Removed support for GEOS-3
 !******************************************************************************
 !
+      USE inquireMod, ONLY : findFreeLUN
+
       IMPLICIT NONE
 #     include "define.h"
 
@@ -274,7 +276,7 @@
 
       ! Local variables
       LOGICAL, SAVE          :: FIRST = .TRUE.
-      LOGICAL                :: IT_EXISTS
+      LOGICAL                :: IT_EXISTS, IS_OPEN
       INTEGER                :: IOS, IUNIT
       CHARACTER(LEN=8)       :: IDENT
       CHARACTER(LEN=255)     :: GEOS_DIR
@@ -323,7 +325,8 @@
          ENDIF
 
          ! Close previously opened A-3 file
-         CLOSE( IU_I6 )
+         INQUIRE(IU_I6, OPENED=IS_OPEN)
+         IF(IS_OPEN) CLOSE( IU_I6 )
 
          ! Make sure the file unit is valid before we open it 
          IF ( .not. FILE_EXISTS( IU_I6 ) ) THEN 
@@ -332,6 +335,7 @@
          ENDIF
 
          ! Open the file
+         IU_I6 = findFreeLUN()
          OPEN( UNIT   = IU_I6,         FILE   = TRIM( PATH ),
      &         STATUS = 'OLD',         ACCESS = 'SEQUENTIAL',  
      &         FORM   = 'UNFORMATTED', IOSTAT = IOS )
@@ -380,7 +384,8 @@
             ENDIF
 
             ! Close previously opened A-3 file
-            CLOSE( IU_TP )
+	    INQUIRE(IU_TP, OPENED=IS_OPEN)
+            IF(IS_OPEN) CLOSE( IU_TP )
 
             ! Make sure the file unit is valid before we open it 
             IF ( .not. FILE_EXISTS( IU_TP ) ) THEN 
@@ -389,6 +394,7 @@
             ENDIF
 
             ! Open the file
+            IU_TP = findFreeLUN()
             OPEN( UNIT   = IU_TP,         FILE   = TRIM( PATH ),
      &            STATUS = 'OLD',         ACCESS = 'SEQUENTIAL',  
      &            FORM   = 'UNFORMATTED', IOSTAT = IOS )

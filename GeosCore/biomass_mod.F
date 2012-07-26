@@ -458,7 +458,7 @@
       END SUBROUTINE COMPUTE_BIOMASS_EMISSIONS
 
 !------------------------------------------------------------------------------
-      SUBROUTINE SET_BIOTRCE
+      SUBROUTINE SET_BIOTRCE(am_I_Root)
 
 !******************************************************************************
 !  Routine created by FP to set IDBxxxs according to the tracers defined
@@ -498,6 +498,8 @@
       USE TRACERID_MOD, ONLY : IDTC2H2, IDTC2H4
 
       USE TRACER_MOD,   ONLY : ITS_A_CH4_SIM ! (mpayer, 2/14/12)
+
+      LOGICAL, INTENT(IN) :: am_I_Root
 
       !=================================================================
       ! SET_BIOTRCE begins here!
@@ -636,7 +638,7 @@
       ENDIF
 
       ! Echo biomass burning tracer information
-      WRITE( 6, 100 ) BIOTRCE( 1:NBIOTRCE )
+      IF(am_I_Root) WRITE( 6, 100 ) BIOTRCE( 1:NBIOTRCE )
  100  FORMAT( 'TRACERID: Biomass burning tracers        :', 20i3 )
       
       ! Return to calling program

@@ -312,7 +312,7 @@
 
 !------------------------------------------------------------------------------
 
-      SUBROUTINE TRACERID
+      SUBROUTINE TRACERID(am_I_Root)
 !
 !******************************************************************************
 !  Subroutine TRACERID reads the "tracer.dat" file and determines which
@@ -372,6 +372,10 @@
 
       USE CMN_SIZE_MOD      ! Size parameters
       USE COMODE_LOOP_MOD   ! IDEMS
+
+! !INPUT VARIABLES:
+
+      LOGICAL, INTENT(IN) :: am_I_Root
 
 #if defined(DEVEL)
 !      USE GC_ENVIRONMENT_MOD, ONLY : TRACER_INDEX, TRACER_NAMES
@@ -1256,6 +1260,7 @@
       IF ( IDEHAC /= 0 )  IDEMS(IDEHAC ) = IDTHAC
 
       ! Echo anthro & biogenic emitted tracers
+      IF(am_I_Root) THEN
       WRITE( 6, 100 ) IDEMS ( 1:NEMANTHRO+NEMBIOG )
  100  FORMAT( /, 'TRACERID: Emitted tracers (anthro & bio) :', 20i3 )
 
@@ -1301,6 +1306,7 @@
        WRITE( 6, 120 ) 'IDEGLYC ', IDEGLYC
        WRITE( 6, 120 ) 'IDEHAC  ', IDEHAC
        WRITE( 6, 115 ) '-----------------------------------------'
+       END IF
  115   FORMAT( a )
  120   FORMAT( a, i3 )
 
@@ -1353,11 +1359,7 @@
       USE COMODE_LOOP_MOD   ! NAMEGAS
 
 #if defined(DEVEL)
-#if defined(ESMF_)
       USE GC_TYPE2_MOD,  ONLY : CHEMSTATE, REGISTER_CSPEC
-#else
-      USE GC_TYPE2_MOD,  ONLY : CHEMSTATE
-#endif
 
       TYPE(CHEMSTATE), INTENT(INOUT) :: GC_STATE
 #endif
@@ -1445,7 +1447,7 @@
          IF ( NAMEGAS(I) == 'LXRO2H'   ) IDLXRO2H   = I
          IF ( NAMEGAS(I) == 'LXRO2N'   ) IDLXRO2N   = I
 
-#if defined( DEVEL ) && defined(ESMF_)
+#if defined( DEVEL )
          CALL REGISTER_CSPEC(NAMEGAS(I),I,GC_STATE,STAT)
          IF (STAT .lt. 0) THEN
             CALL ERROR_STOP('FAIL','REGISTER_CSPEC')

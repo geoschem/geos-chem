@@ -16,6 +16,8 @@
 !
 ! !USES:
 !
+      USE inquireMod, ONLY : findFreeLUN
+
       IMPLICIT NONE
       PRIVATE
 !
@@ -842,7 +844,6 @@
       USE DIRECTORY_MOD, ONLY : DATA_DIR_1x1
       USE ERROR_MOD,     ONLY : ALLOC_ERR
       USE FILE_MOD,      ONLY : IOERROR
-      USE FILE_MOD,      ONLY : IU_FILE
       USE LOGICAL_MOD,   ONLY : LDICARB
       USE TRACERID_MOD,  ONLY : IDBNOx,  IDBCO,   IDBALK4
       USE TRACERID_MOD,  ONLY : IDBACET, IDBMEK,  IDBALD2
@@ -865,7 +866,7 @@
 !
 ! !LOCAL VARIABLES:
 !
-      INTEGER            :: AS, IOS, M, N, NDUM
+      INTEGER            :: AS, IOS, IU_FILE, M, N, NDUM
       REAL*4             :: ARRAY(I1x1,J1x1-1,1)
       CHARACTER(LEN=255) :: FILENAME
       
@@ -924,6 +925,7 @@
      &           'GFED3_201110/GFED3_emission_factors.txt'
 
       ! Open emission factor file (ASCII format)
+      IU_FILE = findFreeLUN()
       OPEN( IU_FILE, FILE=TRIM( FILENAME ), STATUS='OLD', IOSTAT=IOS )
       IF ( IOS /= 0 ) CALL IOERROR( IOS, IU_FILE, 'init_gfed3:1' )
 

@@ -23,15 +23,16 @@
 
       USE CMN_FJ_MOD, ONLY : JPMAX, JPPJ
       USE JV_CMN_MOD
+      USE inquireMod, ONLY : findFreeLUN
 
       IMPLICIT NONE
 
 !
 ! !INPUT PARAMETERS:
 !
-      INTEGER,            INTENT(IN) :: NJ1      ! Unit # of file to open
+      INTEGER,          INTENT(INOUT) :: NJ1      ! Unit # of file to open
 !      CHARACTER(LEN=255), INTENT(IN) :: NAMFIL   ! Name of file to open
-      CHARACTER(LEN=*), INTENT(IN) :: NAMFIL   ! Name of file to open
+      CHARACTER(LEN=*),    INTENT(IN) :: NAMFIL   ! Name of file to open
 !
 ! !REMARKS:
 !  The jv_spec_aod.dat file contains the optical properties for aerosols 
@@ -76,6 +77,7 @@
       !================================================================
 
       ! open file
+      NJ1 = findFreeLUN()
       OPEN( NJ1, FILE=TRIM( NAMFIL ), STATUS='OLD', IOSTAT=IOS )
 
       ! Error check

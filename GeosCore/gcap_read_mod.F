@@ -31,6 +31,8 @@
 !  (1 ) Adapted from the obsolete "phis_read_mod.f" (bmy, 2/1/06)
 !******************************************************************************
 !
+      USE inquireMod, ONLY : findFreeLUN
+
       IMPLICIT NONE
 #     include "define.h"
 
@@ -210,7 +212,7 @@
 
       ! Local variables
       LOGICAL, SAVE         :: FIRST = .TRUE.
-      LOGICAL               :: IT_EXISTS
+      LOGICAL               :: IT_EXISTS, IS_OPEN
       INTEGER               :: NYMD, NHMS
       INTEGER               :: IOS,  IUNIT
       CHARACTER(LEN=8)      :: IDENT
@@ -247,7 +249,8 @@
          ENDIF
 
          ! Close previously opened A-3 file
-         CLOSE( IU_PH )
+	 INQUIRE(IU_PH, OPENED=IS_OPEN)
+         IF(IS_OPEN) CLOSE( IU_PH )
 
          ! Make sure the file unit is valid before we open the file
          IF ( .not. FILE_EXISTS( IU_PH ) ) THEN
@@ -256,6 +259,7 @@
          ENDIF
 
          ! Open the file
+	 IU_PH = findFreeLUN()
          OPEN( UNIT   = IU_PH,         FILE   = TRIM( PATH ),
      &         STATUS = 'OLD',         ACCESS = 'SEQUENTIAL',  
      &         FORM   = 'UNFORMATTED', IOSTAT = IOS )

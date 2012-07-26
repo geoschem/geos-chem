@@ -15,6 +15,8 @@
 !
 ! !USES:
 !
+      USE inquireMod, ONLY : findFreeLUN
+
       IMPLICIT NONE
 #     include "define.h"
       PRIVATE
@@ -112,7 +114,7 @@
 ! !USES:
 !
       USE DIRECTORY_MOD, ONLY : DATA_DIR
-      USE FILE_MOD,      ONLY : IU_FILE, IOERROR
+      USE FILE_MOD,      ONLY : IOERROR
 
       USE CMN_SIZE_MOD      ! Size parameters
 !
@@ -127,7 +129,7 @@
 !
 ! !LOCAL VARIABLES:
 !
-      INTEGER            :: IOS, J, L
+      INTEGER            :: IU_FILE, IOS, J, L
       CHARACTER(LEN=255) :: FILENAME
 
       !==============================================================
@@ -141,6 +143,7 @@
       FILENAME = TRIM( DATA_DIR ) // 'RnPbBe_200203/7Be.Lal'
 
       ! Open the 7Be file
+      IU_FILE = findFreeLUN()
       OPEN( IU_FILE,      FILE=TRIM( FILENAME ), 
      &      STATUS='OLD', IOSTAT=IOS )
       

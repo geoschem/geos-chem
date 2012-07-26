@@ -16,6 +16,8 @@
 !
 ! !USES:
 !
+      USE inquireMod, ONLY : findFreeLUN
+
       IMPLICIT NONE
 #     include "define.h"
       PRIVATE
@@ -133,7 +135,7 @@
       INTEGER            :: TS_EMIS
       INTEGER            :: TS_UNIT
       INTEGER            :: CT1, CT2, CT3
-      CHARACTER(LEN=255) :: FILENAME = 'input.geos'
+      CHARACTER(LEN=255) :: FILENAME = 'input.geos___.rc'
       CHARACTER(LEN=255) :: TOPTITLE
       CHARACTER(LEN=255) :: BPCH_FILE
       CHARACTER(LEN=255) :: DIAGINFO  
@@ -154,13 +156,17 @@
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE READ_INPUT_FILE
+      SUBROUTINE READ_INPUT_FILE(am_I_Root)
 !
 ! !USES:
 !
       USE CHARPAK_MOD, ONLY : STRREPL
       USE FILE_MOD,    ONLY : IU_GEOS, IOERROR
       USE GAMAP_MOD,   ONLY : DO_GAMAP
+
+! !INPUT VARIABLES
+
+      LOGICAL, INTENT(IN) :: am_I_Root
 ! 
 ! !REVISION HISTORY: 
 !  20 Jul 2004 - R. Yantosca - Initial version
@@ -188,15 +194,16 @@
       !=================================================================  
 
       ! Echo output
-      WRITE( 6, '(a  )' ) REPEAT( '=', 79 )
-      WRITE( 6, '(a,/)' ) 'G E O S - C H E M   U S E R   I N P U T'
-      WRITE( 6, 100   ) TRIM( FILENAME )
- 100  FORMAT( 'READ_INPUT_FILE: Reading ', a )
+!      WRITE( 6, '(a  )' ) REPEAT( '=', 79 )
+!      WRITE( 6, '(a,/)' ) 'G E O S - C H E M   U S E R   I N P U T'
+!      WRITE( 6, 100   ) TRIM( FILENAME )
+! 100  FORMAT( 'READ_INPUT_FILE: Reading ', a )
 
       ! Initialize directory & logical variables
       CALL INIT_INPUT
 
       ! Open file
+      IU_GEOS = findFreeLUN()
       OPEN( IU_GEOS, FILE=TRIM( FILENAME ), STATUS='OLD', IOSTAT=IOS )
       IF ( IOS /= 0 ) CALL IOERROR( IOS, IU_GEOS, 'read_input_file:1' )
 
@@ -233,93 +240,93 @@
          !      UNIX CMDS, ARCHIVED OH, and O3PL menus.
          !=============================================================
          IF      ( INDEX( LINE, 'SIMULATION MENU'  ) > 0 ) THEN
-            CALL READ_SIMULATION_MENU             
+            CALL READ_SIMULATION_MENU(am_I_Root)             
                                      
          ELSE IF ( INDEX( LINE, 'TRACER MENU'      ) > 0 ) THEN
-            CALL READ_TRACER_MENU                 
+            CALL READ_TRACER_MENU(am_I_Root)                 
 
          ELSE IF ( INDEX( LINE, 'AEROSOL MENU'     ) > 0 ) THEN
-            CALL READ_AEROSOL_MENU              
+            CALL READ_AEROSOL_MENU(am_I_Root)              
 
 #if   defined( APM )
          ELSE IF ( INDEX( LINE, 'APM MENU'         ) > 0 ) THEN
-            CALL READ_APM_MENU
+            CALL READ_APM_MENU(am_I_Root)
 #endif
 
          ELSE IF ( INDEX( LINE, 'EMISSIONS MENU'   ) > 0 ) THEN
-            CALL READ_EMISSIONS_MENU              
+            CALL READ_EMISSIONS_MENU(am_I_Root)             
 
          ELSE IF ( INDEX( LINE, 'FUTURE MENU'      ) > 0 ) THEN
-            CALL READ_FUTURE_MENU 
+            CALL READ_FUTURE_MENU(am_I_Root) 
                                                         
          ELSE IF ( INDEX( LINE, 'CHEMISTRY MENU'   ) > 0 ) THEN
-            CALL READ_CHEMISTRY_MENU              
+            CALL READ_CHEMISTRY_MENU(am_I_Root)              
                                                   
          ELSE IF ( INDEX( LINE, 'TRANSPORT MENU'   ) > 0 ) THEN
-            CALL READ_TRANSPORT_MENU              
+            CALL READ_TRANSPORT_MENU(am_I_Root)              
                                                   
          ELSE IF ( INDEX( LINE, 'CONVECTION MENU'  ) > 0 ) THEN
-            CALL READ_CONVECTION_MENU             
+            CALL READ_CONVECTION_MENU(am_I_Root)            
                                                   
          ELSE IF ( INDEX( LINE, 'DEPOSITION MENU'  ) > 0 ) THEN
-            CALL READ_DEPOSITION_MENU             
+            CALL READ_DEPOSITION_MENU(am_I_Root)             
 
          ELSE IF ( INDEX( LINE, 'CO2 SIM MENU'     ) > 0 ) THEN !Ray Nassar
-            CALL READ_CO2_SIM_MENU
+            CALL READ_CO2_SIM_MENU(am_I_Root)
                                     
          ELSE IF ( INDEX( LINE, 'GAMAP MENU'       ) > 0 ) THEN
-            CALL READ_GAMAP_MENU                 
+            CALL READ_GAMAP_MENU(am_I_Root)                 
                                                   
          ELSE IF ( INDEX( LINE, 'OUTPUT MENU'      ) > 0 ) THEN
-            CALL READ_OUTPUT_MENU                 
+            CALL READ_OUTPUT_MENU(am_I_Root)                 
                                                   
          ELSE IF ( INDEX( LINE, 'DIAGNOSTIC MENU'  ) > 0 ) THEN
-            CALL READ_DIAGNOSTIC_MENU             
+            CALL READ_DIAGNOSTIC_MENU(am_I_Root)             
 
          ELSE IF ( INDEX( LINE, 'PLANEFLIGHT MENU' ) > 0 ) THEN
-            CALL READ_PLANEFLIGHT_MENU             
+            CALL READ_PLANEFLIGHT_MENU(am_I_Root)             
                                                   
          ELSE IF ( INDEX( LINE, 'ND48 MENU'        ) > 0 ) THEN
-            CALL READ_ND48_MENU                  
+            CALL READ_ND48_MENU(am_I_Root)                  
 
          ELSE IF ( INDEX( LINE, 'ND49 MENU'        ) > 0 ) THEN
-            CALL READ_ND49_MENU                   
+            CALL READ_ND49_MENU(am_I_Root)                   
                                                   
          ELSE IF ( INDEX( LINE, 'ND50 MENU'        ) > 0 ) THEN
-            CALL READ_ND50_MENU                   
+            CALL READ_ND50_MENU(am_I_Root)                   
                                                   
          ELSE IF ( INDEX( LINE, 'ND51 MENU'        ) > 0 ) THEN
-            CALL READ_ND51_MENU                   
+            CALL READ_ND51_MENU(am_I_Root)                   
                                                   
          ELSE IF ( INDEX( LINE, 'ND51b MENU'       ) > 0 ) THEN
-            CALL READ_ND51b_MENU  
+            CALL READ_ND51b_MENU(am_I_Root)  
 
          ELSE IF ( INDEX( LINE, 'ND63 MENU'        ) > 0 ) THEN
-            CALL READ_ND63_MENU                   
+            CALL READ_ND63_MENU(am_I_Root)                   
 
          ELSE IF ( INDEX( LINE, 'PROD & LOSS MENU' ) > 0 ) THEN
-            CALL READ_PROD_LOSS_MENU               
+            CALL READ_PROD_LOSS_MENU(am_I_Root)               
                                                   
          ELSE IF ( INDEX( LINE, 'UNIX CMDS MENU'   ) > 0 ) THEN 
-            CALL READ_UNIX_CMDS_MENU              
+            CALL READ_UNIX_CMDS_MENU(am_I_Root)              
 
          ELSE IF ( INDEX( LINE, 'NESTED GRID MENU' ) > 0 ) THEN 
-            CALL READ_NESTED_GRID_MENU
+            CALL READ_NESTED_GRID_MENU(am_I_Root)
 
          ELSE IF ( INDEX( LINE, 'ARCHIVED OH MENU' ) > 0 ) THEN 
-            CALL READ_ARCHIVED_OH_MENU
+            CALL READ_ARCHIVED_OH_MENU(am_I_Root)
 
          ELSE IF ( INDEX( LINE, 'O3 P/L MENU'      ) > 0 ) THEN 
-            CALL READ_O3PL_MENU
+            CALL READ_O3PL_MENU(am_I_Root)
 
          ELSE IF ( INDEX( LINE, 'BENCHMARK MENU'   ) > 0 ) THEN 
-            CALL READ_BENCHMARK_MENU
+            CALL READ_BENCHMARK_MENU(am_I_Root)
               
          ELSE IF ( INDEX( LINE, 'MERCURY MENU'     ) > 0 ) THEN 
-            CALL READ_MERCURY_MENU
+            CALL READ_MERCURY_MENU(am_I_Root)
                                     
          ELSE IF ( INDEX( LINE, 'CH4 MENU'         ) > 0 ) THEN 
-            CALL READ_CH4_MENU
+            CALL READ_CH4_MENU(am_I_Root)
                                     
          ELSE IF ( INDEX( LINE, 'END OF FILE'      ) > 0 ) THEN 
             EXIT
@@ -345,13 +352,13 @@
 #endif
 
       ! Check GEOS-CHEM timesteps
-      CALL CHECK_TIME_STEPS
+      CALL CHECK_TIME_STEPS(am_I_Root)
 
       ! Create "diaginfo.dat" and "tracerinfo.dat" files for GAMAP
       CALL DO_GAMAP( DIAGINFO, TRACERINFO )
 
       ! Echo output
-      WRITE( 6, '(a)' ) REPEAT( '=', 79 )
+!     WRITE( 6, '(a)' ) REPEAT( '=', 79 )
 
       END SUBROUTINE READ_INPUT_FILE
 !EOC
@@ -541,7 +548,7 @@
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE READ_SIMULATION_MENU
+      SUBROUTINE READ_SIMULATION_MENU(am_I_Root)
 !
 ! !USES:
 !
@@ -558,6 +565,10 @@
       USE TIME_MOD,      ONLY : SET_CURRENT_TIME, SET_DIAGb
       USE TIME_MOD,      ONLY : SET_NDIAGTIME,    GET_TAU
       USE TRANSFER_MOD,  ONLY : INIT_TRANSFER
+
+! !INPUT VARIABLES:
+
+      LOGICAL, INTENT(IN) :: am_I_Root
 ! 
 ! !REVISION HISTORY: 
 !  20 Jul 2004 - R. Yantosca - Initial version
@@ -687,6 +698,7 @@
       !=================================================================
       ! Print to screen
       !=================================================================
+      IF(am_I_Root) THEN
       WRITE( 6, '(/,a)' ) 'SIMULATION MENU'
       WRITE( 6, '(  a)' ) '---------------'
       WRITE( 6, 100     ) 'Start time of run           : ', NYMDb, NHMSb
@@ -719,6 +731,7 @@
       WRITE( 6, 120     ) 'Use variable tropopause?    : ', LVARTROP
       WRITE( 6, 120     ) 'Use LINOZ strat chemistry?  : ', LLINOZ
       WRITE( 6, 130     ) 'Global offsets I0, J0       : ', I0, J0
+      END IF
 
       ! Format statements
  100  FORMAT( A, I8.8, 1X, I6.6 )
@@ -908,7 +921,7 @@
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE READ_TRACER_MENU
+      SUBROUTINE READ_TRACER_MENU(am_I_Root)
 !
 ! !USES:
 !
@@ -930,6 +943,10 @@
       USE TRACERID_MOD, ONLY : TRACERID
 
       USE CMN_SIZE_MOD       ! Size parameters
+
+! !INPUT VARIABLES:
+
+      LOGICAL, INTENT(IN) :: am_I_Root
 
 #if defined ( ESMF_ ) && defined( DEVEL )
 !      USE GC_ENVIRONMENT_MOD, ONLY : TRACER_INDEX, TRACER_NAMES
@@ -1135,6 +1152,7 @@
       !=================================================================
       ! Print to screen
       !=================================================================
+      IF(am_I_Root) THEN
       WRITE( 6, '(/,a)' ) 
      &       'TRACER MENU (==> denotes SMVGEAR emitted species)' 
       WRITE( 6, '(  a)' ) REPEAT( '-', 48 )
@@ -1162,6 +1180,7 @@
             ENDDO
          ENDIF
       ENDDO
+      END IF
 
       ! Format statement
  100  FORMAT( I3, 1x, A10, 6x, F6.1 )
@@ -1194,14 +1213,14 @@
       ENDIF
 
       ! Set up tracer flags
-      CALL TRACERID
+      CALL TRACERID(am_I_Root)
 
       ! Set NBFTRACE in "biofuel_mod.f"
-      CALL SET_BFTRACE
+      CALL SET_BFTRACE(am_I_Root)
 
       ! Set NBIOTRACE in "biomass_mod.f"
       !FP_ISOP (6/2009)
-      CALL SET_BIOTRCE
+      CALL SET_BIOTRCE(am_I_Root)
 
       ! Set counter
       CT1 = CT1 + 1
@@ -1221,7 +1240,7 @@
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE READ_AEROSOL_MENU
+      SUBROUTINE READ_AEROSOL_MENU(am_I_Root)
 !
 ! !USES:
 !
@@ -1242,6 +1261,11 @@
       USE TRACERID_MOD, ONLY : IDTDST1,  IDTDST2,  IDTDST3, IDTDST4
       USE TRACERID_MOD, ONLY : IDTSALA,  IDTSALC 
       USE TRACERID_MOD, ONLY : IDTSOAG,  IDTSOAM,  IDTSOA5
+
+! !INPUT VARIABLES:
+
+      LOGICAL, INTENT(IN) :: am_I_Root
+
 ! 
 ! !REVISION HISTORY: 
 !  20 Jul 2004 - R. Yantosca - Initial version
@@ -1495,6 +1519,7 @@
       !=================================================================
       ! Print to screen
       !=================================================================
+      IF(am_I_Root) THEN
       WRITE( 6, '(/,a)' ) 'AEROSOL MENU'
       WRITE( 6, '(  a)' ) '------------'
       WRITE( 6, 100     ) 'Online SULFATE AEROSOLS?    : ', LSULF
@@ -1508,6 +1533,8 @@
      &                     SALA_REDGE_um(1), SALA_REDGE_um(2)
       WRITE( 6, 110     ) 'Coarse SEA SALT radii [um]  : ',
      &                     SALC_REDGE_um(1), SALC_REDGE_um(2)
+      END IF
+
  100  FORMAT( A, L5     )
  110  FORMAT( A, f6.2, ' - ', f6.2 )
 
@@ -1526,7 +1553,7 @@
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE READ_EMISSIONS_MENU 
+      SUBROUTINE READ_EMISSIONS_MENU(am_I_Root)
 !
 ! !USES:
 !
@@ -1559,6 +1586,11 @@
 
       USE CMN_SIZE_MOD      ! Size parameters
       USE CMN_O3_MOD        ! FSCALYR
+
+! !INPUT VARIABLES:
+
+      LOGICAL, INTENT(IN) :: am_I_Root
+
 ! 
 ! !REVISION HISTORY: 
 !  20 Jul 2004 - R. Yantosca - Initial version
@@ -1938,11 +1970,13 @@
       !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
       IF ( LEMEPSHIP .and. ( .not. LEMEP ) ) THEN
          LEMEPSHIP = .FALSE.
+         IF(am_I_Root) THEN
          WRITE( 6, '(a)' ) REPEAT( '=', 79 )
          WRITE( 6, '(a)' ) 'WARNING! EMEP emissions are turned off,'
          WRITE( 6, '(a)' ) 'so also turn off EMEP ship emissions'
          WRITE( 6, '(a)' ) 'in order to avoid crashing GEOS-Chem!'
          WRITE( 6, '(a)' ) REPEAT( '=', 79 )
+	 END IF
       ENDIF
 
       !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -1955,11 +1989,13 @@
       !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
       IF ( LMEGANMONO .and. ( .not. LMEGAN ) ) THEN
          LMEGANMONO = .FALSE.
+         IF(am_I_Root) THEN
          WRITE( 6, '(a)' ) REPEAT( '=', 79 )
          WRITE( 6, '(a)' ) 'WARNING! MEGAN emissions are turned off, so'
          WRITE( 6, '(a)' ) 'we also turn off LMEGANMONO ship emissions'
          WRITE( 6, '(a)' ) 'in order to avoid crashing GEOS-Chem!'
          WRITE( 6, '(a)' ) REPEAT( '=', 79 )
+	 END IF
       ENDIF
 
       !=================================================================
@@ -2153,6 +2189,7 @@
       !=================================================================
       ! Print to screen
       !=================================================================
+      IF(am_I_Root) THEN
       WRITE( 6, '(/,a)' ) 'EMISSIONS MENU'
       WRITE( 6, '(  a)' ) '--------------'
       WRITE( 6, 100     ) 'Turn on emissions?          : ', LEMIS
@@ -2210,6 +2247,7 @@
 ![eml
       WRITE( 6, 100     ) 'Turn on historical emiss?   : ', LHIST
 !eml]
+      END IF
 
       ! FORMAT statements
  100  FORMAT( A, L5 )
@@ -2232,7 +2270,7 @@
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE READ_CO2_SIM_MENU
+      SUBROUTINE READ_CO2_SIM_MENU(am_I_Root)
 !
 ! !USES:
 !
@@ -2254,6 +2292,11 @@
 
       USE CMN_SIZE_MOD      ! Size parameters
       USE CMN_O3_MOD        ! FSCALYR
+
+! !INPUT VARIABLES:
+
+      LOGICAL, INTENT(IN) :: am_I_Root
+
 ! 
 ! !REVISION HISTORY: 
 !  02 Mar 2009 - R. Nassar   - Initial version
@@ -2476,7 +2519,8 @@
       !=================================================================
       ! Print to screen
       !=================================================================
-	IF (ITS_A_CO2_SIM() ) THEN
+      IF (ITS_A_CO2_SIM() ) THEN
+        IF(am_I_Root) THEN
         WRITE(6,'(/,a)') 'CO2 SIMULATION MENU ' //
      &      '(overwrites any other settings related to CO2)'
         WRITE(6,'(  a)') '-------------------------------------'
@@ -2512,6 +2556,7 @@
 	  WRITE(6,100    ) '  Tag Global Ship CO2         :', LSHIPTAG
 	  WRITE(6,100    ) '  Tag Global Aviation CO2     :', LPLANETAG
         WRITE(6,'(  a)') '-------------------------------------'
+	END IF
       ENDIF      
 
       ! FORMAT statements
@@ -2534,7 +2579,7 @@
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE READ_FUTURE_MENU
+      SUBROUTINE READ_FUTURE_MENU(am_I_Root)
 !
 ! !USES:
 !
@@ -2542,6 +2587,11 @@
       USE LOGICAL_MOD,          ONLY : LFUTURE
  
 #     include "define.h"             ! C-preprocessor switches
+
+! !INPUT VARIABLES:
+
+      LOGICAL, INTENT(IN) :: am_I_Root
+
 ! 
 ! !REVISION HISTORY: 
 !  01 Jun 2006 - S. Wu       - Initial version
@@ -2587,12 +2637,14 @@
       !=================================================================
       ! Print to screen
       !=================================================================
+      IF(am_I_Root) THEN
       WRITE( 6, '(/,a)' ) 'FUTURE MENU'
       WRITE( 6, '(  a)' ) '-----------'
       WRITE( 6, 100     ) 'Use IPCC future emissions   : ', LFUTURE
       WRITE( 6, 110     ) 'Future emissions for year   : ', FUTURE_YEAR 
       WRITE( 6, 120     ) 'Future emissions scenario   : ',  
      &                     TRIM( FUTURE_SCEN )
+      END IF
 
       ! FORMAT statements
  100  FORMAT( A, L5  )
@@ -2623,7 +2675,7 @@
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE READ_CHEMISTRY_MENU
+      SUBROUTINE READ_CHEMISTRY_MENU(am_I_Root)
 !
 ! !USES:
 !
@@ -2634,6 +2686,11 @@
       USE TRACER_MOD,  ONLY : N_TRACERS
 
       USE CMN_SIZE_MOD      ! Size parameters
+
+! !INPUT VARIABLES:
+
+      LOGICAL, INTENT(IN) :: am_I_Root
+
 ! 
 ! !REVISION HISTORY: 
 !  20 Jul 2004 - R. Yantosca - Initial version
@@ -2682,15 +2739,15 @@
       !=================================================================
       ! Print to screen
       !=================================================================
+      IF(am_I_Root) THEN
       WRITE( 6, '(/,a)' ) 'CHEMISTRY MENU'
       WRITE( 6, '(  a)' ) '--------------'
       WRITE( 6, 100     ) 'Turn on chemistry?          : ', LCHEM
       WRITE( 6, 110     ) 'Chemistry timestep [min]    : ', TS_CHEM
       WRITE( 6, 100     ) 'Use CSPEC restart?          : ', LSVCSPEC
       WRITE( 6, 100     ) 'Use solver coded by KPP?    : ', LKPP
+      END IF
 
-         
-      
       ! FORMAT statements
  100  FORMAT( A, L5  )
  110  FORMAT( A, I5  )
@@ -2711,7 +2768,7 @@
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE READ_TRANSPORT_MENU
+      SUBROUTINE READ_TRANSPORT_MENU(am_I_Root)
 !
 ! !USES:
 !
@@ -2723,6 +2780,10 @@
 #if ! defined( ESMF_ )
       USE TRANSPORT_MOD, ONLY : SET_TRANSPORT
 #endif
+! !INPUT VARIABLES:
+
+      LOGICAL, INTENT(IN) :: am_I_Root
+
 ! 
 ! !REVISION HISTORY: 
 !  20 Jul 2004 - R. Yantosca - Initial version
@@ -2814,6 +2875,7 @@
       !=================================================================
       ! Print to screen
       !=================================================================
+      IF(am_I_Root) THEN
       WRITE( 6, '(/,a)' ) 'TRANSPORT MENU'
       WRITE( 6, '(  a)' ) '--------------'
       WRITE( 6, 100     ) 'Turn on transport?          : ', LTRAN
@@ -2823,6 +2885,7 @@
      &                                                      JORD, KORD
       WRITE( 6, 120     ) 'Transport timestep [min]    : ', TS_DYN
       WRITE( 6, 100     ) 'Use strat BC for O3 & NOy?  : ', LUPBD
+      END IF
 
       ! FORMAT statements
  100  FORMAT( A, L5  )
@@ -2854,13 +2917,18 @@
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE READ_CONVECTION_MENU
+      SUBROUTINE READ_CONVECTION_MENU(am_I_Root)
 !
 ! !USES:
 !
       USE ERROR_MOD,   ONLY : ERROR_STOP
       USE LOGICAL_MOD, ONLY : LCONV, LTURB
       USE LOGICAL_MOD, ONLY : LNLPBL        ! (Lin, 03/31/09)
+
+! !INPUT VARIABLES:
+
+      LOGICAL, INTENT(IN) :: am_I_Root
+
 ! 
 ! !REVISION HISTORY: 
 !  20 Jul 2004 - R. Yantosca - Initial version
@@ -2910,10 +2978,12 @@
       ! The non-local PBL scheme is valid only with GEOS-5 or MERRA!
 #if   !defined( GEOS_5 ) && !defined( MERRA ) && defined( GEOS_57 )
       IF ( LNLPBL ) THEN
+        IF(am_I_Root) THEN
          WRITE(*,*) '================================================='
          WRITE(*,*) 'The non-local PBL scheme is only valid for GEOS-5'
          WRITE(*,*) 'LNLPBL is automatically turned to false !'
          WRITE(*,*) '================================================='
+        END IF
          LNLPBL = .FALSE.
       ENDIF
 #endif
@@ -2921,12 +2991,14 @@
       !=================================================================
       ! Print to screen
       !=================================================================
+      IF(am_I_Root) THEN
       WRITE( 6, '(/,a)' ) 'CONVECTION MENU'
       WRITE( 6, '(  a)' ) '----------------'
       WRITE( 6, 100     ) 'Turn on cloud convection?   : ', LCONV
       WRITE( 6, 100     ) 'Turn on PBL mixing?         : ', LTURB
       WRITE( 6, 100     ) 'Turn on non-local PBL?      : ', LNLPBL
       WRITE( 6, 110     ) 'Convection timestep [min]   : ', TS_CONV
+      END IF
 
       ! FORMAT statements
  100  FORMAT( A, L5 )
@@ -2947,7 +3019,7 @@
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE READ_DEPOSITION_MENU
+      SUBROUTINE READ_DEPOSITION_MENU(am_I_Root)
 !
 ! !USES:
 !
@@ -2963,6 +3035,11 @@
 #if   defined( APM )
       USE APM_WETS_MOD, ONLY : WETDEPBINID
 #endif
+
+! !INPUT VARIABLES:
+
+      LOGICAL, INTENT(IN) :: am_I_Root
+
 ! 
 ! !REVISION HISTORY: 
 !  20 Jul 2004 - R. Yantosca - Initial version
@@ -3022,10 +3099,12 @@
       !=================================================================
       ! Print to screen
       !=================================================================
+      IF(am_I_Root) THEN
       WRITE( 6, '(/,a)' ) 'DEPOSITION MENU'
       WRITE( 6, '(  a)' ) '---------------'
       WRITE( 6, 100     ) 'Turn on dry deposition?     : ', LDRYD
       WRITE( 6, 100     ) 'Turn on wet deposition?     : ', LWETD
+      END IF
 
       ! FORMAT statements
  100  FORMAT( A, L5 )
@@ -3039,7 +3118,7 @@
       IF ( LDRYD ) THEN
 
          ! Setup for dry deposition
-         CALL INIT_DRYDEP
+         CALL INIT_DRYDEP(am_I_Root)
       
          ! Print extra info message for Hg simulation
          IF ( ITS_A_MERCURY_SIM() .and. LSPLIT ) THEN
@@ -3049,7 +3128,7 @@
       ENDIF
 
       ! Initialize wet deposition tracers
-      IF ( LWETD .or. LCONV ) CALL WETDEPID
+      IF ( LWETD .or. LCONV ) CALL WETDEPID(am_I_Root)
 
 #if   defined( APM )
       ! Initialize wet deposition tracers for APM
@@ -3077,7 +3156,12 @@
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE READ_GAMAP_MENU
+      SUBROUTINE READ_GAMAP_MENU(am_I_Root)
+
+! !INPUT VARIABLES:
+
+      LOGICAL, INTENT(IN) :: am_I_Root
+
 ! 
 ! !REVISION HISTORY: 
 !  25 Apr 2005 - R. Yantosca - Initial version
@@ -3110,12 +3194,14 @@
       !=================================================================
       ! Print to screen
       !=================================================================
+      IF(am_I_Root) THEN
       WRITE( 6, '(/,a)' ) 'GAMAP MENU'
       WRITE( 6, '(  a)' ) '---------------'            
       WRITE( 6, '(a,a)' ) 'GAMAP "diaginfo.dat"   file : ', 
      &                    TRIM( DIAGINFO   )
       WRITE( 6, '(a,a)' ) 'GAMAP "tracerinfo.dat" file : ',
      &                    TRIM( TRACERINFO )
+      END IF
 
       END SUBROUTINE READ_GAMAP_MENU
 !EOC
@@ -3132,7 +3218,7 @@
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE READ_OUTPUT_MENU
+      SUBROUTINE READ_OUTPUT_MENU(am_I_Root)
 !
 ! !USES:
 !
@@ -3140,6 +3226,11 @@
       
       USE CMN_SIZE_MOD   ! Size parameters
       USE CMN_DIAG_MOD   ! NJDAY
+
+! !INPUT VARIABLES:
+
+      LOGICAL, INTENT(IN) :: am_I_Root
+
 ! 
 ! !REVISION HISTORY: 
 !  20 Jul 2004 - R. Yantosca - Initial version
@@ -3167,12 +3258,14 @@
       ! Print to screen
       !=================================================================
 
+      IF(am_I_Root) THEN
       WRITE( 6, '(/,a)' ) 'OUTPUT MENU'
       WRITE( 6, '(  a)' ) '-----------'
       WRITE( 6, 110     )
       WRITE( 6, 120     )
       WRITE( 6, 130     )
       WRITE( 6, 140     ) NJDAY
+      END IF
 
       ! FORMAT statements
  110  FORMAT( '              1111111111222222222233' )
@@ -3201,7 +3294,7 @@
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE READ_DIAGNOSTIC_MENU
+      SUBROUTINE READ_DIAGNOSTIC_MENU(am_I_Root)
 !
 ! !USES:
 !
@@ -3231,6 +3324,11 @@
 
       USE CMN_SIZE_MOD       ! Size parameters
       USE CMN_DIAG_MOD       ! NDxx flags
+
+! !INPUT VARIABLES:
+
+      LOGICAL, INTENT(IN) :: am_I_Root
+
 !
 ! !REVISION HISTORY: 
 !  20 Jul 2004 - R. Yantosca - Initial version
@@ -3299,7 +3397,7 @@
       CALL SPLIT_ONE_LINE( SUBSTRS, N, -1, 'read_diagnostic_menu:3' )
       READ( SUBSTRS(1), * ) ND01
       IF ( .not. ITS_A_RnPbBe_SIM() ) ND01 = 0 
-      CALL SET_TINDEX( 01, ND01, SUBSTRS(2:N), N-1, N_MAX )
+      CALL SET_TINDEX( am_I_Root, 01, ND01, SUBSTRS(2:N), N-1, N_MAX )
       
       !--------------------------
       ! ND02: Rn-Pb-Be decay
@@ -3307,7 +3405,7 @@
       CALL SPLIT_ONE_LINE( SUBSTRS, N, -1, 'read_diagnostic_menu:4' )
       READ( SUBSTRS(1), * ) ND02
       IF ( .not. ITS_A_RnPbBe_SIM() ) ND02 = 0 
-      CALL SET_TINDEX( 02, ND02, SUBSTRS(2:N), N-1, N_MAX )
+      CALL SET_TINDEX( am_I_Root, 02, ND02, SUBSTRS(2:N), N-1, N_MAX )
 
       !--------------------------
       ! ND03: Hg diagnostics
@@ -3315,7 +3413,7 @@
       CALL SPLIT_ONE_LINE( SUBSTRS, N, -1, 'read_diagnostic_menu:5' )
       READ( SUBSTRS(1), * ) ND03
       IF ( .not. ITS_A_MERCURY_SIM() ) ND03 = 0
-      CALL SET_TINDEX( 03, ND03, SUBSTRS(2:N), N-1, PD03 )
+      CALL SET_TINDEX( am_I_Root, 03, ND03, SUBSTRS(2:N), N-1, PD03 )
 
       !--------------------------
       ! ND04: CO2 emissions
@@ -3323,7 +3421,7 @@
       CALL SPLIT_ONE_LINE( SUBSTRS, N, -1, 'read_diagnostic_menu:6' )
       READ( SUBSTRS(1), * ) ND04
       IF ( .not. ITS_A_CO2_SIM() ) ND04 = 0
-      CALL SET_TINDEX( 04, ND04, SUBSTRS(2:N), N-1, PD04 )
+      CALL SET_TINDEX( am_I_Root, 04, ND04, SUBSTRS(2:N), N-1, PD04 )
 
       !--------------------------
       ! ND05: Sulfate prod/loss
@@ -3331,7 +3429,7 @@
       CALL SPLIT_ONE_LINE( SUBSTRS, N, -1, 'read_diagnostic_menu:7' )
       READ( SUBSTRS(1), * ) ND05
       IF ( .not. LSULF ) ND05 = 0
-      CALL SET_TINDEX( 05, ND05, SUBSTRS(2:N), N-1, PD05 )
+      CALL SET_TINDEX( am_I_Root, 05, ND05, SUBSTRS(2:N), N-1, PD05 )
 
       !--------------------------
       ! ND06: Dust emissions
@@ -3339,7 +3437,7 @@
       CALL SPLIT_ONE_LINE( SUBSTRS, N, -1, 'read_diagnostic_menu:8' )
       READ( SUBSTRS(1), * ) ND06
       IF ( .not. LDUST ) ND06 = 0
-      CALL SET_TINDEX( 06, ND06, SUBSTRS(2:N), N-1, NDSTBIN )
+      CALL SET_TINDEX( am_I_Root, 06, ND06, SUBSTRS(2:N), N-1, NDSTBIN )
 
       !--------------------------
       ! ND07: Carbon/SOA source
@@ -3347,7 +3445,7 @@
       CALL SPLIT_ONE_LINE( SUBSTRS, N, -1, 'read_diagnostic_menu:9' )
       READ( SUBSTRS(1), * ) ND07
       IF ( .not. LCARB ) ND07 = 0
-      CALL SET_TINDEX( 07, ND07, SUBSTRS(2:N), N-1, PD07 )
+      CALL SET_TINDEX( am_I_Root, 07, ND07, SUBSTRS(2:N), N-1, PD07 )
 
       !--------------------------
       ! ND08: Sea salt source
@@ -3355,35 +3453,35 @@
       CALL SPLIT_ONE_LINE( SUBSTRS, N, -1, 'read_diagnostic_menu:10' )
       READ( SUBSTRS(1), * ) ND08
       IF ( .not. LSSALT ) ND08 = 0
-      CALL SET_TINDEX( 08, ND08, SUBSTRS(2:N), N-1, PD08 )
+      CALL SET_TINDEX( am_I_Root, 08, ND08, SUBSTRS(2:N), N-1, PD08 )
 
       !--------------------------
       ! ND09: HCN/CH3CN
       !--------------------------
       CALL SPLIT_ONE_LINE( SUBSTRS, N, -1, 'read_diagnostic_menu:11' )
       READ( SUBSTRS(1), * ) ND09
-      CALL SET_TINDEX( 09, ND09, SUBSTRS(2:N), N-1, N_TRACERS+PD09 )
+      CALL SET_TINDEX( am_I_Root, 09, ND09, SUBSTRS(2:N), N-1, N_TRACERS+PD09 )
 
       !--------------------------
       ! ND10: Free
       !--------------------------
       CALL SPLIT_ONE_LINE( SUBSTRS, N, -1, 'read_diagnostic_menu:12' )
       READ( SUBSTRS(1), * ) ND10
-      CALL SET_TINDEX( 10, ND10, SUBSTRS(2:N), N-1, PD10 )
+      CALL SET_TINDEX( am_I_Root, 10, ND10, SUBSTRS(2:N), N-1, PD10 )
 
       !--------------------------
       ! ND11: Acetone source
       !--------------------------
       CALL SPLIT_ONE_LINE( SUBSTRS, N, -1, 'read_diagnostic_menu:13' )
       READ( SUBSTRS(1), * ) ND11
-      CALL SET_TINDEX( 11, ND11, SUBSTRS(2:N), N-1, PD11 )
+      CALL SET_TINDEX( am_I_Root, 11, ND11, SUBSTRS(2:N), N-1, PD11 )
 
       !--------------------------
       ! ND12: PBL distribution
       !--------------------------
       CALL SPLIT_ONE_LINE( SUBSTRS, N, -1, 'read_diagnostic_menu:14' )
       READ( SUBSTRS(1), * ) ND12
-      CALL SET_TINDEX( 12, ND12, SUBSTRS(2:N), N-1, PD12 )
+      CALL SET_TINDEX( am_I_Root, 12, ND12, SUBSTRS(2:N), N-1, PD12 )
 
       !--------------------------
       ! ND13: Sulfur sources
@@ -3391,7 +3489,7 @@
       CALL SPLIT_ONE_LINE( SUBSTRS, N, -1, 'read_diagnostic_menu:15' )
       READ( SUBSTRS(1), * ) ND13
       IF ( .not. LSULF ) ND13 = 0
-      CALL SET_TINDEX( 13, ND13, SUBSTRS(2:N), N-1, PD13 )
+      CALL SET_TINDEX( am_I_Root, 13, ND13, SUBSTRS(2:N), N-1, PD13 )
 
       !--------------------------
       ! ND14: Wet conv up flux
@@ -3399,7 +3497,7 @@
       CALL SPLIT_ONE_LINE( SUBSTRS, N, -1, 'read_diagnostic_menu:16' )
       READ( SUBSTRS(1), * ) ND14
       IF ( .not. LCONV ) ND14 = 0
-      CALL SET_TINDEX( 14, ND14, SUBSTRS(2:N), N-1, N_MAX )
+      CALL SET_TINDEX( am_I_Root, 14, ND14, SUBSTRS(2:N), N-1, N_MAX )
 
       !--------------------------
       ! ND15: Mass change in PBL
@@ -3407,14 +3505,14 @@
       CALL SPLIT_ONE_LINE( SUBSTRS, N, -1, 'read_diagnostic_menu:17' )
       READ( SUBSTRS(1), * ) ND15
       IF ( .not. LTURB ) ND15 = 0
-      CALL SET_TINDEX( 15, ND15, SUBSTRS(2:N), N-1, N_MAX )
+      CALL SET_TINDEX( am_I_Root, 15, ND15, SUBSTRS(2:N), N-1, N_MAX )
 
       !--------------------------
       ! ND16: Precip fractions
       !--------------------------
       CALL SPLIT_ONE_LINE( SUBSTRS, N, -1, 'read_diagnostic_menu:18' )
       READ( SUBSTRS(1), * ) ND16
-      CALL SET_TINDEX( 16, ND16, SUBSTRS(2:N), N-1, N_MAX )
+      CALL SET_TINDEX( am_I_Root, 16, ND16, SUBSTRS(2:N), N-1, N_MAX )
 
       !--------------------------
       ! ND17: Rainout losses
@@ -3423,7 +3521,7 @@
       CALL SPLIT_ONE_LINE( SUBSTRS, N, -1, 'read_diagnostic_menu:19' )
       READ( SUBSTRS(1), * ) ND17
       IF ( .not. LWETD ) ND17 = 0
-      CALL SET_TINDEX( 17, ND17, SUBSTRS(2:N), N-1, N_TMP )
+      CALL SET_TINDEX( am_I_Root, 17, ND17, SUBSTRS(2:N), N-1, N_TMP )
 
       !--------------------------
       ! ND18: Washout losses
@@ -3432,21 +3530,21 @@
       CALL SPLIT_ONE_LINE( SUBSTRS, N, -1, 'read_diagnostic_menu:20' )
       READ( SUBSTRS(1), * ) ND18
       IF ( .not. LWETD ) ND18 = 0
-      CALL SET_TINDEX( 18, ND18, SUBSTRS(2:N), N-1, N_TMP )
+      CALL SET_TINDEX( am_I_Root, 18, ND18, SUBSTRS(2:N), N-1, N_TMP )
 
       !--------------------------
       ! ND19: CH4 loss
       !--------------------------
       CALL SPLIT_ONE_LINE( SUBSTRS, N, -1, 'read_diagnostic_menu:21' )
       READ( SUBSTRS(1), * ) ND19
-      CALL SET_TINDEX( 19, ND19, SUBSTRS(2:N), N-1, PD19 )
+      CALL SET_TINDEX( am_I_Root, 19, ND19, SUBSTRS(2:N), N-1, PD19 )
 
       !--------------------------
       ! ND21: Opt depths etc.
       !--------------------------
       CALL SPLIT_ONE_LINE( SUBSTRS, N, -1, 'read_diagnostic_menu:22' )
       READ( SUBSTRS(1), * ) ND21
-      CALL SET_TINDEX( 21, ND21, SUBSTRS(2:N), N-1, PD21 )
+      CALL SET_TINDEX( am_I_Root, 21, ND21, SUBSTRS(2:N), N-1, PD21 )
 
       ! Error check 
       IF ( ND21 > 0 .and. SALA_REDGE_um(2) /= 0.5 ) THEN
@@ -3460,7 +3558,7 @@
       !--------------------------
       CALL SPLIT_ONE_LINE( SUBSTRS, N, -1, 'read_diagnostic_menu:23' )
       READ( SUBSTRS(1), * ) ND22
-      CALL SET_TINDEX( 22, ND22, SUBSTRS(2:N), N-1, PD22 )
+      CALL SET_TINDEX( am_I_Root, 22, ND22, SUBSTRS(2:N), N-1, PD22 )
 
       CALL SPLIT_ONE_LINE( SUBSTRS, N, 2,  'read_diagnostic_menu:24' ) 
       READ( SUBSTRS(1:N), * ) HR1_JV, HR2_JV
@@ -3470,28 +3568,28 @@
       !--------------------------
       CALL SPLIT_ONE_LINE( SUBSTRS, N, -1, 'read_diagnostic_menu:25' )
       READ( SUBSTRS(1), * ) ND24
-      CALL SET_TINDEX( 24, ND24, SUBSTRS(2:N), N-1, N_MAX )
+      CALL SET_TINDEX( am_I_Root, 24, ND24, SUBSTRS(2:N), N-1, N_MAX )
 
       !--------------------------
       ! ND25: N/S transport flux
       !--------------------------
       CALL SPLIT_ONE_LINE( SUBSTRS, N, -1, 'read_diagnostic_menu:26' )
       READ( SUBSTRS(1), * ) ND25
-      CALL SET_TINDEX( 25, ND25, SUBSTRS(2:N), N-1, N_MAX )
+      CALL SET_TINDEX( am_I_Root, 25, ND25, SUBSTRS(2:N), N-1, N_MAX )
 
       !--------------------------
       ! ND26: U/D transport flux
       !--------------------------
       CALL SPLIT_ONE_LINE( SUBSTRS, N, -1, 'read_diagnostic_menu:27' )
       READ( SUBSTRS(1), * ) ND26
-      CALL SET_TINDEX( 26, ND26, SUBSTRS(2:N), N-1, N_MAX )
+      CALL SET_TINDEX( am_I_Root, 26, ND26, SUBSTRS(2:N), N-1, N_MAX )
 
       !--------------------------
       ! ND27: Strat fluxes
       !--------------------------
       CALL SPLIT_ONE_LINE( SUBSTRS, N, -1, 'read_diagnostic_menu:28' )
       READ( SUBSTRS(1), * ) ND27
-      CALL SET_TINDEX( 27, ND27, SUBSTRS(2:N), N-1, PD27 )
+      CALL SET_TINDEX( am_I_Root, 27, ND27, SUBSTRS(2:N), N-1, PD27 )
 
       !--------------------------
       ! ND28: Biomass emissions
@@ -3499,42 +3597,42 @@
       CALL SPLIT_ONE_LINE( SUBSTRS, N, -1, 'read_diagnostic_menu:29' )
       READ( SUBSTRS(1), * ) ND28
       IF ( .not. LBIOMASS ) ND28 = 0
-      CALL SET_TINDEX( 28, ND28, SUBSTRS(2:N), N-1, NBIOMAX )
+      CALL SET_TINDEX( am_I_Root, 28, ND28, SUBSTRS(2:N), N-1, NBIOMAX )
 
       !--------------------------
       ! ND29: CO sources
       !--------------------------
       CALL SPLIT_ONE_LINE( SUBSTRS, N, -1, 'read_diagnostic_menu:30' )
       READ( SUBSTRS(1), * ) ND29
-      CALL SET_TINDEX( 29, ND29, SUBSTRS(2:N), N-1, PD29 )
+      CALL SET_TINDEX( am_I_Root, 29, ND29, SUBSTRS(2:N), N-1, PD29 )
 
       !--------------------------
       ! ND30: Land map
       !--------------------------
       CALL SPLIT_ONE_LINE( SUBSTRS, N, -1, 'read_diagnostic_menu:31' )
       READ( SUBSTRS(1), * ) ND30
-      CALL SET_TINDEX( 30, ND30, SUBSTRS(2:N), N-1, PD30 )
+      CALL SET_TINDEX( am_I_Root, 30, ND30, SUBSTRS(2:N), N-1, PD30 )
 
       !--------------------------
       ! ND31: Surface pressure
       !--------------------------
       CALL SPLIT_ONE_LINE( SUBSTRS, N, -1, 'read_diagnostic_menu:32' )
       READ( SUBSTRS(1), * ) ND31
-      CALL SET_TINDEX( 31, ND31, SUBSTRS(2:N), N-1, PD31 )
+      CALL SET_TINDEX( am_I_Root, 31, ND31, SUBSTRS(2:N), N-1, PD31 )
 
       !--------------------------
       ! ND32: NOx sources
       !--------------------------
       CALL SPLIT_ONE_LINE( SUBSTRS, N, -1, 'read_diagnostic_menu:33' )
       READ( SUBSTRS(1), * ) ND32
-      CALL SET_TINDEX( 32, ND32, SUBSTRS(2:N), N-1, PD32 )
+      CALL SET_TINDEX( am_I_Root, 32, ND32, SUBSTRS(2:N), N-1, PD32 )
 
       !--------------------------
       ! ND33: Column tracer
       !--------------------------
       CALL SPLIT_ONE_LINE( SUBSTRS, N, -1, 'read_diagnostic_menu:34' )
       READ( SUBSTRS(1), * ) ND33
-      CALL SET_TINDEX( 33, ND33, SUBSTRS(2:N), N-1, N_MAX )
+      CALL SET_TINDEX( am_I_Root, 33, ND33, SUBSTRS(2:N), N-1, N_MAX )
 
       !--------------------------
       ! ND34: Biofuel sources
@@ -3542,21 +3640,21 @@
       CALL SPLIT_ONE_LINE( SUBSTRS, N, -1, 'read_diagnostic_menu:35' )
       READ( SUBSTRS(1), * ) ND34
       IF ( .not. LBIOFUEL ) ND34 = 0
-      CALL SET_TINDEX( 34, ND34, SUBSTRS(2:N), N-1, NBFTRACE )
+      CALL SET_TINDEX( am_I_Root, 34, ND34, SUBSTRS(2:N), N-1, NBFTRACE )
 
       !--------------------------
       ! ND35: 500 hPa tracer
       !--------------------------
       CALL SPLIT_ONE_LINE( SUBSTRS, N, -1, 'read_diagnostic_menu:36' )
       READ( SUBSTRS(1), * ) ND35
-      CALL SET_TINDEX( 35, ND35, SUBSTRS(2:N), N-1, N_MAX )
+      CALL SET_TINDEX( am_I_Root, 35, ND35, SUBSTRS(2:N), N-1, N_MAX )
 
       !--------------------------
       ! ND36: Anthro emissions
       !--------------------------
       CALL SPLIT_ONE_LINE( SUBSTRS, N, -1, 'read_diagnostic_menu:37' )
       READ( SUBSTRS(1), * ) ND36
-      CALL SET_TINDEX( 36, ND36, SUBSTRS(2:N), N-1, NEMANTHRO )      
+      CALL SET_TINDEX( am_I_Root, 36, ND36, SUBSTRS(2:N), N-1, NEMANTHRO )      
 
       !--------------------------
       ! ND37: Updraft scav frac
@@ -3564,7 +3662,7 @@
       N_TMP = N_TRACERS
       CALL SPLIT_ONE_LINE( SUBSTRS, N, -1, 'read_diagnostic_menu:38' )
       READ( SUBSTRS(1), * ) ND37
-      CALL SET_TINDEX( 37, ND37, SUBSTRS(2:N), N-1, N_TMP )
+      CALL SET_TINDEX( am_I_Root, 37, ND37, SUBSTRS(2:N), N-1, N_TMP )
 
       !--------------------------
       ! ND38: Cld conv losses
@@ -3573,7 +3671,7 @@
       CALL SPLIT_ONE_LINE( SUBSTRS, N, -1, 'read_diagnostic_menu:39' )
       READ( SUBSTRS(1), * ) ND38
       IF ( .not. LWETD .and. .not. LCONV ) ND38 = 0
-      CALL SET_TINDEX( 38, ND38, SUBSTRS(2:N), N-1, N_TMP )
+      CALL SET_TINDEX( am_I_Root, 38, ND38, SUBSTRS(2:N), N-1, N_TMP )
 
       !--------------------------
       ! ND39: Wet scav losses
@@ -3582,21 +3680,21 @@
       CALL SPLIT_ONE_LINE( SUBSTRS, N, -1, 'read_diagnostic_menu:40' )
       READ( SUBSTRS(1), * ) ND39
       IF ( .not. LWETD ) ND39 = 0
-      CALL SET_TINDEX( 39, ND39, SUBSTRS(2:N), N-1, N_TMP )
+      CALL SET_TINDEX( am_I_Root, 39, ND39, SUBSTRS(2:N), N-1, N_TMP )
 
       !--------------------------
       ! ND41: Afternoon PBL ht
       !--------------------------
       CALL SPLIT_ONE_LINE( SUBSTRS, N, -1, 'read_diagnostic_menu:41' )
       READ( SUBSTRS(1), * ) ND41
-      CALL SET_TINDEX( 41, ND41, SUBSTRS(2:N), N-1, PD41 )
+      CALL SET_TINDEX( am_I_Root, 41, ND41, SUBSTRS(2:N), N-1, PD41 )
 
       !--------------------------
       ! ND42: SOA concentrations
       !--------------------------
       CALL SPLIT_ONE_LINE( SUBSTRS, N, -1, 'read_diagnostic_menu:42' )
       READ( SUBSTRS(1), * ) ND42
-      CALL SET_TINDEX( 42, ND42, SUBSTRS(2:N), N-1, PD42 )
+      CALL SET_TINDEX( am_I_Root, 42, ND42, SUBSTRS(2:N), N-1, PD42 )
 
       !--------------------------
       ! ND43: OH, NO, etc.
@@ -3604,7 +3702,7 @@
       CALL SPLIT_ONE_LINE( SUBSTRS, N, -1, 'read_diagnostic_menu:43' )
       READ( SUBSTRS(1), * ) ND43
       IF ( .not. ( ITS_A_FULLCHEM_SIM().or.ITS_A_CH4_SIM() )) ND43 = 0
-      CALL SET_TINDEX( 43, ND43, SUBSTRS(2:N), N-1, PD43 )
+      CALL SET_TINDEX( am_I_Root, 43, ND43, SUBSTRS(2:N), N-1, PD43 )
 
       CALL SPLIT_ONE_LINE( SUBSTRS, N, 2,  'read_diagnostic_menu:44' )
       READ( SUBSTRS(1:N), * ) HR1_OH, HR2_OH
@@ -3626,14 +3724,14 @@
       CALL SPLIT_ONE_LINE( SUBSTRS, N, -1, 'read_diagnostic_menu:46' )
       READ( SUBSTRS(1), * ) ND44
       IF ( .not. LDRYD ) ND44 = 0
-      CALL SET_TINDEX( 44, ND44, SUBSTRS(2:N), N-1, N_TMP )
+      CALL SET_TINDEX( am_I_Root, 44, ND44, SUBSTRS(2:N), N-1, N_TMP )
 
       !--------------------------
       ! ND45: Tracer conc.
       !--------------------------
       CALL SPLIT_ONE_LINE( SUBSTRS, N, -1, 'read_diagnostic_menu:47' )
       READ( SUBSTRS(1), * ) ND45
-      CALL SET_TINDEX( 45, ND45, SUBSTRS(2:N), N-1, PD45 )
+      CALL SET_TINDEX( am_I_Root, 45, ND45, SUBSTRS(2:N), N-1, PD45 )
 
       CALL SPLIT_ONE_LINE( SUBSTRS, N, 2,  'read_diagnostic_menu:48' ) 
       READ( SUBSTRS(1:N), * ) HR1_OTH, HR2_OTH
@@ -3643,70 +3741,70 @@
       !--------------------------
       CALL SPLIT_ONE_LINE( SUBSTRS, N, -1, 'read_diagnostic_menu:49' )
       READ( SUBSTRS(1), * ) ND46
-      CALL SET_TINDEX( 46, ND46, SUBSTRS(2:N), N-1, PD46 )
+      CALL SET_TINDEX( am_I_Root, 46, ND46, SUBSTRS(2:N), N-1, PD46 )
 
       !--------------------------
       ! ND47: 24h avg tracer
       !--------------------------
       CALL SPLIT_ONE_LINE( SUBSTRS, N, -1, 'read_diagnostic_menu:50' )
       READ( SUBSTRS(1), * ) ND47
-      CALL SET_TINDEX( 47, ND47, SUBSTRS(2:N), N-1, N_TRACERS )
+      CALL SET_TINDEX( am_I_Root, 47, ND47, SUBSTRS(2:N), N-1, N_TRACERS )
 
       !--------------------------
       ! ND52: GAMMA HO2
       !--------------------------
       CALL SPLIT_ONE_LINE( SUBSTRS, N, -1, 'read_diagnostic_menu:51' )
       READ( SUBSTRS(1), * ) ND52
-      CALL SET_TINDEX( 52, ND52, SUBSTRS(2:N), N-1, PD52 )
+      CALL SET_TINDEX( am_I_Root, 52, ND52, SUBSTRS(2:N), N-1, PD52 )
 
       !--------------------------
       ! ND53: Free
       !--------------------------
       CALL SPLIT_ONE_LINE( SUBSTRS, N, -1, 'read_diagnostic_menu:52' )
       READ( SUBSTRS(1), * ) ND53
-      CALL SET_TINDEX( 53, ND53, SUBSTRS(2:N), N-1, N_TRACERS )
+      CALL SET_TINDEX( am_I_Root, 53, ND53, SUBSTRS(2:N), N-1, N_TRACERS )
 
       !--------------------------
       ! ND54: Time in troposphere
       !--------------------------
       CALL SPLIT_ONE_LINE( SUBSTRS, N, -1, 'read_diagnostic_menu:53' )
       READ( SUBSTRS(1), * ) ND54
-      CALL SET_TINDEX( 54, ND54, SUBSTRS(2:N), N-1, 1 )
+      CALL SET_TINDEX( am_I_Root, 54, ND54, SUBSTRS(2:N), N-1, 1 )
 
       !--------------------------
       ! ND55: Tropopause diags
       !--------------------------
       CALL SPLIT_ONE_LINE( SUBSTRS, N, -1, 'read_diagnostic_menu:54' )
       READ( SUBSTRS(1), * ) ND55
-      CALL SET_TINDEX( 55, ND55, SUBSTRS(2:N), N-1, PD55 )
+      CALL SET_TINDEX( am_I_Root, 55, ND55, SUBSTRS(2:N), N-1, PD55 )
 
       !--------------------------
       ! ND56: Lightning flashes
       !--------------------------
       CALL SPLIT_ONE_LINE( SUBSTRS, N, -1, 'read_diagnostic_menu:55' )
       READ( SUBSTRS(1), * ) ND56
-      CALL SET_TINDEX( 56, ND56, SUBSTRS(2:N), N-1, PD56 )
+      CALL SET_TINDEX( am_I_Root, 56, ND56, SUBSTRS(2:N), N-1, PD56 )
 
       !--------------------------
       ! ND57: Potential temperature
       !--------------------------
       CALL SPLIT_ONE_LINE( SUBSTRS, N, -1, 'read_diagnostic_menu:56' )
       READ( SUBSTRS(1), * ) ND57
-      CALL SET_TINDEX( 57, ND57, SUBSTRS(2:N), N-1, PD57 )
+      CALL SET_TINDEX( am_I_Root, 57, ND57, SUBSTRS(2:N), N-1, PD57 )
 
       !--------------------------
       ! ND58: CH4 Emissions 
       !--------------------------
       CALL SPLIT_ONE_LINE( SUBSTRS, N, -1, 'read_diagnostic_menu:57' )
       READ( SUBSTRS(1), * ) ND58
-      CALL SET_TINDEX( 58, ND58, SUBSTRS(2:N), N-1, PD58 )
+      CALL SET_TINDEX( am_I_Root, 58, ND58, SUBSTRS(2:N), N-1, PD58 )
 
       !--------------------------
       ! ND59: TOMAS aerosol emiss
       !--------------------------
       CALL SPLIT_ONE_LINE( SUBSTRS, N, -1, 'read_diagnostic_menu:58' )
       READ( SUBSTRS(1), * ) ND59
-      CALL SET_TINDEX( 59, ND59, SUBSTRS(2:N), N-1, PD59 )
+      CALL SET_TINDEX( am_I_Root, 59, ND59, SUBSTRS(2:N), N-1, PD59 )
 
       !--------------------------
       ! ND60: Wetland Fraction
@@ -3714,56 +3812,56 @@
       !--------------------------
       CALL SPLIT_ONE_LINE( SUBSTRS, N, -1, 'read_diagnostic_menu:59' )
       READ( SUBSTRS(1), * ) ND60
-      CALL SET_TINDEX( 60, ND60, SUBSTRS(2:N), N-1, PD60 )
+      CALL SET_TINDEX( am_I_Root, 60, ND60, SUBSTRS(2:N), N-1, PD60 )
 
       !--------------------------
       ! ND61: 3-D TOMAS rate
       !--------------------------
       CALL SPLIT_ONE_LINE( SUBSTRS, N, -1, 'read_diagnostic_menu:60' )
       READ( SUBSTRS(1), * ) ND61
-      CALL SET_TINDEX( 61, ND61, SUBSTRS(2:N), N-1, PD61 )
+      CALL SET_TINDEX( am_I_Root, 61, ND61, SUBSTRS(2:N), N-1, PD61 )
 
       !--------------------------
       ! ND62: Free
       !--------------------------
       CALL SPLIT_ONE_LINE( SUBSTRS, N, -1, 'read_diagnostic_menu:61' )
       READ( SUBSTRS(1), * ) ND62
-      CALL SET_TINDEX( 62, ND62, SUBSTRS(2:N), N-1, PD62 )
+      CALL SET_TINDEX( am_I_Root, 62, ND62, SUBSTRS(2:N), N-1, PD62 )
 
       !--------------------------
       ! ND64: Free
       !--------------------------
       CALL SPLIT_ONE_LINE( SUBSTRS, N, -1, 'read_diagnostic_menu:63' )
       READ( SUBSTRS(1), * ) ND64
-      CALL SET_TINDEX( 64, ND64, SUBSTRS(2:N), N-1, PD64 )
+      CALL SET_TINDEX( am_I_Root, 64, ND64, SUBSTRS(2:N), N-1, PD64 )
 
       !--------------------------
       ! ND66: DAO 3-D fields
       !--------------------------
       CALL SPLIT_ONE_LINE( SUBSTRS, N, -1, 'read_diagnostic_menu:64' )
       READ( SUBSTRS(1), * ) ND66
-      CALL SET_TINDEX( 66, ND66, SUBSTRS(2:N), N-1, PD66 )
+      CALL SET_TINDEX( am_I_Root, 66, ND66, SUBSTRS(2:N), N-1, PD66 )
 
       !--------------------------
       ! ND67: DAO 2-D fields
       !--------------------------
       CALL SPLIT_ONE_LINE( SUBSTRS, N, -1, 'read_diagnostic_menu:65' )
       READ( SUBSTRS(1), * ) ND67
-      CALL SET_TINDEX( 67, ND67, SUBSTRS(2:N), N-1, PD67 )
+      CALL SET_TINDEX( am_I_Root, 67, ND67, SUBSTRS(2:N), N-1, PD67 )
 
       !--------------------------
       ! ND68: Air masses etc
       !--------------------------
       CALL SPLIT_ONE_LINE( SUBSTRS, N, -1, 'read_diagnostic_menu:66' )
       READ( SUBSTRS(1), * ) ND68
-      CALL SET_TINDEX( 68, ND68, SUBSTRS(2:N), N-1, PD68 )
+      CALL SET_TINDEX( am_I_Root, 68, ND68, SUBSTRS(2:N), N-1, PD68 )
 
       !--------------------------
       ! ND69: Surface areas
       !--------------------------
       CALL SPLIT_ONE_LINE( SUBSTRS, N, -1, 'read_diagnostic_menu:67' )
       READ( SUBSTRS(1), * ) ND69
-      CALL SET_TINDEX( 69, ND69, SUBSTRS(2:N), N-1, PD69 )
+      CALL SET_TINDEX( am_I_Root, 69, ND69, SUBSTRS(2:N), N-1, PD69 )
 
       !--------------------------
       ! ND70: Debug info
@@ -3771,7 +3869,7 @@
       CALL SPLIT_ONE_LINE( SUBSTRS, N, -1, 'read_diagnostic_menu:68' )
       READ( SUBSTRS(1), * ) ND70
       LPRT = ( ND70 > 0 )
-      CALL SET_TINDEX( 70, ND70, SUBSTRS(2:N), N-1, PD70 )
+      CALL SET_TINDEX( am_I_Root, 70, ND70, SUBSTRS(2:N), N-1, PD70 )
      
       ! Separator line
       CALL SPLIT_ONE_LINE( SUBSTRS, N, 1,  'read_diagnostic_menu:69' )
@@ -3788,12 +3886,12 @@
       CALL INIT_DIAG56
 
       ! Enable Mean OH (or CH3CCl3) diag for runs which need it
-      CALL INIT_DIAG_OH 
+      CALL INIT_DIAG_OH(am_I_Root)
 
       ! Expand YYYYMMDD tokens in the bpch file name
       CALL EXPAND_DATE( BPCH_FILE, GET_NYMDb(), GET_NHMSb() )
 
-      ! Open the binary punch file for output 
+      ! Open the binary punch file for output
       CALL OPEN_BPCH2_FOR_WRITE( IU_BPCH, BPCH_FILE )
 
       END SUBROUTINE READ_DIAGNOSTIC_MENU
@@ -3811,7 +3909,7 @@
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE SET_TINDEX( N_DIAG, L_DIAG, SUBSTRS, N, NMAX )
+      SUBROUTINE SET_TINDEX(am_I_Root, N_DIAG, L_DIAG, SUBSTRS, N, NMAX)
 !
 ! !USES:
 !
@@ -3826,6 +3924,8 @@
       INTEGER,            INTENT(IN) :: L_DIAG      ! # of levels to save
       CHARACTER(LEN=255), INTENT(IN) :: SUBSTRS(N)  ! Substrs passed from
                                                     !  READ_DIAGNOSTIC_MENU
+      LOGICAL,            INTENT(IN) :: am_I_Root
+
 ! 
 ! !REVISION HISTORY: 
 !  20 Jul 2004 - R. Yantosca - Initial version
@@ -3894,10 +3994,12 @@
       !=================================================================
 
       ! First-time printing only
-      IF ( FIRST ) THEN 
+      IF ( FIRST ) THEN
+       IF(am_I_Root) THEN 
          WRITE( 6, '(/,a)' ) 'DIAGNOSTIC MENU'
          WRITE( 6, '(  a)' ) '---------------'
          WRITE( 6, '(  a)' ) 'Diag    L   Tracers being saved to disk'
+       END IF
          FIRST = .FALSE.
       ENDIF
 
@@ -3906,7 +4008,7 @@
 
          ! Print abbreviated output string
          IF ( L_DIAG > 0 ) THEN
-            WRITE( 6, 100 ) N_DIAG, L_DIAG, 1, TMAX(N_DIAG)
+            IF(am_I_Root) WRITE( 6, 100 ) N_DIAG, L_DIAG, 1, TMAX(N_DIAG)
  100        FORMAT( 'ND', i2.2, 2x, i3, 1x, i3, ' -', i3 ) 
          ENDIF
 
@@ -3915,7 +4017,7 @@
          ! Or just list each tracer
          ! Print each diagnostic and # of tracers that will print out
          IF ( L_DIAG > 0 ) THEN 
-            WRITE( 6, 110 ) N_DIAG, L_DIAG, 
+            IF(am_I_Root) WRITE( 6, 110 ) N_DIAG, L_DIAG, 
      &                      ( TINDEX(N_DIAG,M), M=1,TMAX(N_DIAG) )
  110        FORMAT( 'ND', i2, 2x, i3, 1x, 100i3 ) 
          ENDIF
@@ -3938,7 +4040,7 @@
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE READ_PLANEFLIGHT_MENU
+      SUBROUTINE READ_PLANEFLIGHT_MENU(am_I_Root)
 !
 ! !USES:
 !
@@ -3947,6 +4049,11 @@
 
       USE CMN_SIZE_MOD          ! MAXFAM
       USE CMN_DIAG_MOD          ! ND40
+
+! !INPUT VARIABLES:
+
+      LOGICAL, INTENT(IN) :: am_I_Root
+
 ! 
 ! !REVISION HISTORY: 
 !  20 Jul 2004 - R. Yantosca - Initial version
@@ -3997,11 +4104,13 @@
       !=================================================================
       ! Print to screen
       !=================================================================
+      IF(am_I_Root) THEN
       WRITE( 6, '(/,a)' ) 'PLANEFLIGHT MENU'
       WRITE( 6, '(  a)' ) '----------------'
       WRITE( 6, 100     ) 'Turn on planeflight diag?   : ', DO_PF
       WRITE( 6, 110     ) 'Flight track input file     : ', TRIM(IFILE)
       WRITE( 6, 110     ) 'Output file name            : ', TRIM(OFILE)
+      END IF
 
       ! FORMAT statements
  100  FORMAT( A, L5    )
@@ -4029,12 +4138,17 @@
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE READ_ND48_MENU
+      SUBROUTINE READ_ND48_MENU(am_I_Root)
 !
 ! !USES:
 !
       USE DIAG48_MOD, ONLY : INIT_DIAG48, ND48_MAX_STATIONS
       USE ERROR_MOD,  ONLY : ERROR_STOP
+
+! !INPUT VARIABLES:
+
+      LOGICAL, INTENT(IN) :: am_I_Root
+
 ! 
 ! !REVISION HISTORY: 
 !  20 Jul 2004 - R. Yantosca - Initial version
@@ -4102,11 +4216,13 @@
       !=================================================================
       ! Print to screen
       !=================================================================
+      IF(am_I_Root) THEN
       WRITE( 6, '(/,a)' ) 'ND48 STATION TIMESERIES MENU'
       WRITE( 6, '(  a)' ) '----------------------------'
       WRITE( 6, 100     ) 'Turn on ND48 timeseries?    : ', DO_ND48
       WRITE( 6, 110     ) 'ND48 timeseries file name   : ', TRIM( FILE )
       WRITE( 6, 120     ) 'ND48 save frequency [min]   : ', FREQ
+      END IF
 
       DO S = 1, N_STA
          WRITE( 6, 130 ) S, IARR(S), JARR(S), LARR(S), NARR(S) 
@@ -4141,7 +4257,7 @@
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE READ_ND49_MENU
+      SUBROUTINE READ_ND49_MENU(am_I_Root)
 !
 ! !USES:
 !
@@ -4149,6 +4265,11 @@
       USE ERROR_MOD,  ONLY : ERROR_STOP
 
       USE CMN_SIZE_MOD     ! Size parameters
+
+! !INPUT VARIABLES:
+
+      LOGICAL, INTENT(IN) :: am_I_Root
+
 ! 
 ! !REVISION HISTORY: 
 !  20 Jul 2004 - R. Yantosca - Initial version
@@ -4219,6 +4340,7 @@
       !=================================================================
       ! Print to screen
       !=================================================================
+      IF(am_I_Root) THEN
       WRITE( 6, '(/,a)' ) 'ND49 3-D INSTANTANEOUS TIMESERIES MENU'
       WRITE( 6, '(  a)' ) '--------------------------------------'
       WRITE( 6, 100     ) 'Turn on ND49 timeseries?    : ', DO_ND49
@@ -4229,6 +4351,7 @@
       WRITE( 6, 130     ) 'ND49 longitude limits       : ', IMIN, IMAX
       WRITE( 6, 130     ) 'ND49 latitude  limits       : ', JMIN, JMAX
       WRITE( 6, 130     ) 'ND49 level     limits       : ', LMIN, LMAX
+      END IF
 
       ! FORMAT statements
  100  FORMAT( A, L5    )
@@ -4260,13 +4383,18 @@
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE READ_ND50_MENU
+      SUBROUTINE READ_ND50_MENU(am_I_Root)
 !
 ! !USES:
 !
       USE DIAG50_MOD,  ONLY : INIT_DIAG50
       USE ERROR_MOD,   ONLY : ERROR_STOP
       USE LOGICAL_MOD, ONLY : LND50_HDF
+
+! !INPUT VARIABLES:
+
+      LOGICAL, INTENT(IN) :: am_I_Root
+
 ! 
 ! !REVISION HISTORY: 
 !  20 Jul 2004 - R. Yantosca - Initial version
@@ -4343,6 +4471,7 @@
       !=================================================================
       ! Print to screen
       !=================================================================
+      IF(am_I_Root) THEN
       WRITE( 6, '(/,a)' ) 'ND50 3-D 24hr AVG TIMESERIES MENU'
       WRITE( 6, '(  a)' ) '---------------------------------'
       WRITE( 6, 100     ) 'Turn on ND50 timeseries?    : ', DO_ND50
@@ -4353,6 +4482,7 @@
       WRITE( 6, 130     ) 'ND50 longitude limits       : ', IMIN, IMAX
       WRITE( 6, 130     ) 'ND50 latitude  limits       : ', JMIN, JMAX
       WRITE( 6, 130     ) 'ND50 level     limits       : ', LMIN, LMAX
+      END IF
 
       ! FORMAT statements
  100  FORMAT( A, L5    )
@@ -4383,7 +4513,7 @@
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE READ_ND51_MENU
+      SUBROUTINE READ_ND51_MENU(am_I_Root)
 !
 ! !USES:
 !
@@ -4393,6 +4523,11 @@
 
       USE CMN_SIZE_MOD      ! Size parameters
       USE CMN_DIAG_MOD      ! NDxx flags
+
+! !INPUT VARIABLES:
+
+      LOGICAL, INTENT(IN) :: am_I_Root
+
 ! 
 ! !REVISION HISTORY: 
 !  20 Jul 2004 - R. Yantosca - Initial version
@@ -4479,6 +4614,7 @@
       !=================================================================
       ! Print to screen
       !=================================================================
+      IF(am_I_Root) THEN
       WRITE( 6, '(/,a)' ) 'ND51 MORNING OR AFTERNOON TIMESERIES MENU'
       WRITE( 6, '(  a)' ) '-----------------------------------------'
       WRITE( 6, 100     ) 'Turn on ND51 timeseries?    : ', DO_ND51
@@ -4491,6 +4627,7 @@
       WRITE( 6, 130     ) 'ND51 longitude limits       : ', IMIN, IMAX
       WRITE( 6, 130     ) 'ND51 latitude  limits       : ', JMIN, JMAX
       WRITE( 6, 130     ) 'ND51 altitude  limits       : ', LMIN, LMAX
+      END IF
 
       ! FORMAT statements
  100  FORMAT( A, L5    )
@@ -4523,7 +4660,7 @@
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE READ_ND51b_MENU
+      SUBROUTINE READ_ND51b_MENU(am_I_Root)
 !
 ! !USES:
 !
@@ -4533,6 +4670,11 @@
 
       USE CMN_SIZE_MOD      ! Size parameters
       USE CMN_DIAG_MOD      ! NDxx flags
+
+! !INPUT VARIABLES:
+
+      LOGICAL, INTENT(IN) :: am_I_Root
+
 ! 
 ! !REVISION HISTORY: 
 !  21 Dec 2009 - Aaron van D - Initial version
@@ -4616,6 +4758,7 @@
       !=================================================================
       ! Print to screen
       !=================================================================
+      IF(am_I_Root) THEN
       WRITE( 6, '(/,a)' ) 'ND51b MORNING OR AFTERNOON TIMESERIES MENU'
       WRITE( 6, '(  a)' ) '-----------------------------------------'
       WRITE( 6, 100     ) 'Turn on ND51b timeseries?   : ', DO_ND51
@@ -4628,6 +4771,7 @@
       WRITE( 6, 130     ) 'ND51b longitude limits       : ', IMIN, IMAX
       WRITE( 6, 130     ) 'ND51b latitude  limits       : ', JMIN, JMAX
       WRITE( 6, 130     ) 'ND51b altitude  limits       : ', LMIN, LMAX
+      END IF
 
       ! FORMAT statements
  100  FORMAT( A, L5    )
@@ -4660,7 +4804,7 @@
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE READ_ND63_MENU
+      SUBROUTINE READ_ND63_MENU(am_I_Root)
 !
 ! !USES:
 !
@@ -4668,6 +4812,11 @@
       USE ERROR_MOD,  ONLY : ERROR_STOP
 
       USE CMN_SIZE_MOD     ! Size parameters
+
+! !INPUT VARIABLES:
+
+      LOGICAL, INTENT(IN) :: am_I_Root
+
 ! 
 ! !REVISION HISTORY:
 !  25 Feb 2011 - G. Vinken   - Initial version
@@ -4734,6 +4883,7 @@
       !=================================================================
       ! Print to screen
       !=================================================================
+      IF(am_I_Root) THEN
       WRITE( 6, '(/,a)' ) 'ND63 SHIP TIMESERIES MENU'
       WRITE( 6, '(  a)' ) '--------------------------------------'
       WRITE( 6, 100     ) 'Turn on ND63 timeseries?    : ', DO_ND63
@@ -4743,6 +4893,7 @@
       WRITE( 6, 130     ) 'ND63 save frequency [min]   : ', FREQ
       WRITE( 6, 130     ) 'ND63 longitude limits       : ', IMIN, IMAX
       WRITE( 6, 130     ) 'ND63 latitude  limits       : ', JMIN, JMAX
+      END IF
 
       ! FORMAT statements
  100  FORMAT( A, L5    )
@@ -4773,7 +4924,7 @@
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE READ_PROD_LOSS_MENU
+      SUBROUTINE READ_PROD_LOSS_MENU(am_I_Root)
 !
 ! !USES:
 !
@@ -4786,6 +4937,11 @@
 
       USE CMN_SIZE_MOD      ! MAXFAM
       USE CMN_DIAG_MOD      ! ND65
+
+! !INPUT VARIABLES:
+
+      LOGICAL, INTENT(IN) :: am_I_Root
+
 ! 
 ! !REVISION HISTORY: 
 !  20 Jul 2004 - R. Yantosca - Initial version
@@ -4947,6 +5103,7 @@
       !=================================================================
       ! Print to screen
       !=================================================================
+      IF(am_I_Root) THEN
       WRITE( 6, '(/,a)' ) 'PROD & LOSS DIAGNOSTIC MENU'
       WRITE( 6, '(  a)' ) '---------------------------'      
       WRITE( 6, 100     ) 'Turn on prod & loss diag?   : ', DO_SAVE_PL
@@ -4964,6 +5121,7 @@
             WRITE( 6, 130 ) M, FAM_COEF(M,F), FAM_MEMB(M,F)
          ENDDO
       ENDDO
+      END IF
 
       ! FORMAT statements
  100  FORMAT( A, L5 )
@@ -4994,7 +5152,7 @@
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE READ_UNIX_CMDS_MENU
+      SUBROUTINE READ_UNIX_CMDS_MENU(am_I_Root)
 !
 ! !USES:
 !
@@ -5002,6 +5160,11 @@
       USE UNIX_CMDS_MOD, ONLY : BACKGROUND, REDIRECT,  REMOVE_CMD 
       USE UNIX_CMDS_MOD, ONLY : SEPARATOR,  SPACE,     UNZIP_CMD
       USE UNIX_CMDS_MOD, ONLY : WILD_CARD,  ZIP_SUFFIX 
+
+! !INPUT VARIABLES:
+
+      LOGICAL, INTENT(IN) :: am_I_Root
+
 ! 
 ! !REVISION HISTORY: 
 !  20 Jul 2004 - R. Yantosca - Initial version
@@ -5060,6 +5223,7 @@
       !=================================================================
       ! Print to screen
       !=================================================================
+      IF(am_I_Root) THEN
       WRITE( 6, '(/,a)' ) 'UNIX CMDS MENU'
       WRITE( 6, '(  a)' ) '---------------'            
       WRITE( 6, 100     ) 'Unix BACKGROUND  command    : ', 
@@ -5076,7 +5240,8 @@
      &                    TRIM( WILD_CARD  )
       WRITE( 6, 100     ) 'Unix UNZIP       command    : ',
      &                    TRIM( UNZIP_CMD  )
-      
+      END IF
+
       ! FORMAT statements
  100  FORMAT( A, A )
 
@@ -5095,7 +5260,7 @@
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE READ_NESTED_GRID_MENU
+      SUBROUTINE READ_NESTED_GRID_MENU(am_I_Root)
 !
 ! !USES:
 !
@@ -5106,6 +5271,11 @@
       USE LOGICAL_MOD,   ONLY : LWINDO_NA, LWINDO_EU, LWINDO_CH
       USE LOGICAL_MOD,   ONLY : LWINDO_CU
       USE TPCORE_BC_MOD, ONLY : INIT_TPCORE_BC
+
+! !INPUT VARIABLES:
+
+      LOGICAL, INTENT(IN) :: am_I_Root
+
 ! 
 ! !REVISION HISTORY: 
 !  20 Jul 2004 - R. Yantosca - Initial version
@@ -5187,6 +5357,7 @@
       !=================================================================
       ! Print to screen
       !=================================================================
+      IF(am_I_Root) THEN
       WRITE( 6, '(/,a)' ) 'NESTED GRID MENU'
       WRITE( 6, '(  a)' ) '----------------'
       WRITE( 6, 100     ) 'Save TPCORE BC''s at 4x5     : ',LWINDO
@@ -5196,6 +5367,7 @@
       WRITE( 6, 120     ) 'Bot left  box of 4x5 BC area: ', I1,  J1
       WRITE( 6, 120     ) 'Top right box of 4x5 BC area: ', I2,  J2
       WRITE( 6, 120     ) '1 x 1 window offsets        : ', I0W, J0W
+      END IF
 
       ! FORMAT statements
  100  FORMAT( A, L5  )
@@ -5224,12 +5396,17 @@
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE READ_BENCHMARK_MENU
+      SUBROUTINE READ_BENCHMARK_MENU(am_I_Root)
 !
 ! !USES:
 !
       USE BENCHMARK_MOD, ONLY : INITIAL_FILE, FINAL_FILE
       USE LOGICAL_MOD,   ONLY : LSTDRUN
+
+! !INPUT VARIABLES:
+
+      LOGICAL, INTENT(IN) :: am_I_Root
+
 ! 
 ! !REVISION HISTORY: 
 !  20 Jul 2004 - R. Yantosca - Initial version
@@ -5265,6 +5442,7 @@
       !=================================================================
       ! Print to screen
       !=================================================================
+      IF(am_I_Root) THEN
       WRITE( 6, '(/,a)' ) 'BENCHMARK MENU'
       WRITE( 6, '(  a)' ) '--------------'
       WRITE( 6, 100     ) 'Save benchmark diag output? : ', LSTDRUN
@@ -5272,6 +5450,7 @@
      &                     TRIM( INITIAL_FILE )
       WRITE( 6, 110     ) 'File for final tracer mass  : ',  
      &                     TRIM( FINAL_FILE )
+      END IF
 
       ! FORMAT statements
  100  FORMAT( A, L5  )
@@ -5284,7 +5463,7 @@
 !------------------------------------------------------------------------------
 !BOP
 !
-! !IROUTINE: read_archived_oh_menu
+! !IROUTINE: read_archived_oh_menu(am_I_Root)
 !
 ! !DESCRIPTION: Subroutine READ\_ARCHIVED\_OH\_MENU reads the ARCHIVED OH MENU 
 !  section of the GEOS-Chem input file.
@@ -5292,11 +5471,16 @@
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE READ_ARCHIVED_OH_MENU
+      SUBROUTINE READ_ARCHIVED_OH_MENU(am_I_Root)
 !
 ! !USES:
 !
       USE DIRECTORY_MOD, ONLY : OH_DIR
+
+! !INPUT VARIABLES:
+
+      LOGICAL, INTENT(IN) :: am_I_Root
+
 ! 
 ! !REVISION HISTORY: 
 !  20 Jul 2004 - R. Yantosca - Initial version
@@ -5324,9 +5508,11 @@
       !=================================================================
       ! Print to screen
       !=================================================================
+      IF(am_I_Root) THEN
       WRITE( 6, '(/,a)' ) 'ARCHIVED OH MENU'
       WRITE( 6, '(  a)' ) '-----------------'          
       WRITE( 6, 100     ) 'Dir w/ archived OH files    : ', TRIM(OH_DIR)
+      END IF
 
       ! FORMAT statements
  100  FORMAT( A, A )
@@ -5346,11 +5532,16 @@
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE READ_O3PL_MENU
+      SUBROUTINE READ_O3PL_MENU(am_I_Root)
 !
 ! !USES:
 !
       USE DIRECTORY_MOD, ONLY : O3PL_DIR
+
+! !INPUT VARIABLES:
+
+      LOGICAL, INTENT(IN) :: am_I_Root
+
 ! 
 ! !REVISION HISTORY: 
 !  20 Jul 2004 - R. Yantosca - Initial version
@@ -5378,10 +5569,12 @@
       !=================================================================
       ! Print to screen
       !=================================================================
+      IF(am_I_Root) THEN
       WRITE( 6, '(/,a)' ) 'ARCHIVED O3PL MENU'
       WRITE( 6, '(  a)' ) '-------------------'          
       WRITE( 6, 100     ) 'Dir w/ archived O3 P/L files: ', 
      &                    TRIM( O3PL_DIR )
+      END IF
 
       ! FORMAT statements
  100  FORMAT( A, A )
@@ -5401,7 +5594,7 @@
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE READ_MERCURY_MENU
+      SUBROUTINE READ_MERCURY_MENU(am_I_Root)
 !
 ! !USES:
 !
@@ -5412,6 +5605,11 @@
       USE DEPO_MERCURY_MOD,  ONLY : INIT_DEPO_MERCURY
       USE LAND_MERCURY_MOD,  ONLY : INIT_LAND_MERCURY
       USE TRACER_MOD,        ONLY : ITS_A_MERCURY_SIM
+
+! !INPUT VARIABLES:
+
+      LOGICAL, INTENT(IN) :: am_I_Root
+
 ! 
 ! !REVISION HISTORY: 
 !  24 Feb 2006 - R. Yantosca - Initial version
@@ -5473,6 +5671,7 @@
       !=================================================================
       ! Print to screen
       !=================================================================
+      IF(am_I_Root) THEN
       WRITE( 6, '(/,a)' ) 'MERCURY MENU'
       WRITE( 6, '(  a)' ) '------------'
       WRITE( 6, 100     ) 'Anthro Hg emissions year    : ', 
@@ -5485,6 +5684,7 @@
       WRITE( 6, 110     ) 'Use GTMM ?                  : ', LGTMM
       WRITE( 6, 120     ) '=> GTMM restart file        : ',
      &                     TRIM( GTMM_RST_FILE )
+      END IF
 
       ! FORMAT statements
  100  FORMAT( A, I4  )
@@ -5522,7 +5722,7 @@
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE READ_CH4_MENU
+      SUBROUTINE READ_CH4_MENU(am_I_Root)
 !
 ! !USES:
 !
@@ -5538,6 +5738,11 @@
       USE ERROR_MOD,   ONLY : ERROR_STOP
  
 #     include "define.h"             ! C-preprocessor switches
+
+! !INPUT VARIABLES:
+
+      LOGICAL, INTENT(IN) :: am_I_Root
+
 ! 
 ! !REVISION HISTORY: 
 !  03 Aug 2009 - K. Wecht, C. Pickett-Heaps - Initial version
@@ -5610,6 +5815,7 @@
       !=================================================================
       ! Print to screen
       !=================================================================
+      IF(am_I_Root) THEN
       WRITE( 6, '(/,a)' ) 'CH4 MENU'
       WRITE( 6, '(  a)' ) '-----------'
       WRITE( 6, 100     ) 'Compute CH4 budget?   : ', LCH4BUD
@@ -5624,6 +5830,7 @@
       WRITE( 6, 100     ) 'Use Wetlands emis?    : ', LWETL
       WRITE( 6, 100     ) 'Use Soil Absorption?  : ', LSOABS
       WRITE( 6, 100     ) 'Use Ot. Natural emis? : ', LOTNAT
+      END IF
 
       ! Error check (kjw)
       IF ( LBMCH4 .EQ. .TRUE. ) THEN
@@ -5632,11 +5839,13 @@
      &         L8DAYBB  .EQ. .FALSE.  .AND. L8DAYBB3 .EQ. .FALSE.)) THEN
             MSG = 'Specify which biomass burning emissions to use.'  //
      &            '  If necessary, read CH4_MENU after EMISSIONS_MENU.'
-            print*,'LBIOMASS = ',LBIOMASS
-            print*,'LGFED3BB = ',LGFED3BB
-            print*,'LGFED2BB = ',LGFED2BB
-            print*,'L8DAYBB  = ',L8DAYBB
-            print*,'L8DAYBB3 = ',L8DAYBB3
+            IF(am_I_Root) THEN
+             print*,'LBIOMASS = ',LBIOMASS
+             print*,'LGFED3BB = ',LGFED3BB
+             print*,'LGFED2BB = ',LGFED2BB
+             print*,'L8DAYBB  = ',L8DAYBB
+             print*,'L8DAYBB3 = ',L8DAYBB3
+	    END IF
             CALL ERROR_STOP( MSG, 'READ_CH4_MENU ("input_mod.F")' )
          ENDIF
       ENDIF
@@ -5660,7 +5869,7 @@
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE READ_APM_MENU
+      SUBROUTINE READ_APM_MENU(am_I_Root)
 !
 ! !USES:
 !
@@ -5679,6 +5888,11 @@
 !  This subroutine is only compiled when you build GEOS-Chem with the
 !  APM=yes makefile option.
 !
+
+! !INPUT VARIABLES:
+
+      LOGICAL, INTENT(IN) :: am_I_Root
+
 ! !REVISION HISTORY: 
 !  30 Sep 2008 - G. Luo, F. Yu - Initial version
 !  16 Feb 2011 - R. Yantosca - Added ProTeX headers
@@ -5721,12 +5935,14 @@
       !=================================================================
       ! Print to screen
       !=================================================================
+      IF(am_I_Root) THEN
       WRITE( 6, '(/,a)' ) 'APM MENU'
       WRITE( 6, '(  a)' ) '----------------'
       WRITE( 6, 100     ) 'Turn on APM and add tracers?: ', LAPM
       WRITE( 6, 110     ) '# of additional APM tracers : ', N_APMTRA
       WRITE( 6, 110     ) 'Nucleation Scheme           : ', IFNUCL
       WRITE( 6, 120     ) 'Primary Sulfate Fraction    : ', FE0
+      END IF
 
       ! FORMATs
  100  FORMAT( A, L5 )
@@ -5983,7 +6199,7 @@
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE CHECK_TIME_STEPS
+      SUBROUTINE CHECK_TIME_STEPS(am_I_Root)
 !
 ! !USES:
 !
@@ -5992,6 +6208,11 @@
       USE TIME_MOD,    ONLY : SET_TIMESTEPS
       USE ERROR_MOD,   ONLY : GEOS_CHEM_STOP
       USE TRACER_MOD,  ONLY : ITS_A_CH4_SIM
+
+! !INPUT VARIABLES:
+
+      LOGICAL, INTENT(IN) :: am_I_Root
+
 ! 
 ! !REVISION HISTORY: 
 !  20 Jul 2004 - R. Yantosca - Initial version
@@ -6124,9 +6345,10 @@
       ENDIF
 
       ! Initialize timesteps in "time_mod.f"
-      CALL SET_TIMESTEPS( CHEMISTRY  = TS_CHEM, EMISSION  = TS_EMIS, 
+      CALL SET_TIMESTEPS( am_I_Root,
+     &                    CHEMISTRY  = TS_CHEM, EMISSION  = TS_EMIS, 
      &                    DYNAMICS   = TS_DYN,  UNIT_CONV = TS_UNIT,
-     &                    CONVECTION = TS_CONV, DIAGNOS   = TS_DIAG )
+     &                    CONVECTION = TS_CONV, DIAGNOS   = TS_DIAG)
       
  100  FORMAT( A, ' time step must be a multiple of the smallest one:',
      &         i5, i5 )

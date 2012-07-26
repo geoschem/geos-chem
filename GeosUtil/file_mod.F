@@ -21,39 +21,47 @@
       PRIVATE
 !
 ! !DEFINED PARAMETERS:
+
+!-----------------------------------------------------------
+! In GEOS-5, the unit numbers cannot be PARAMETERS. Instead,
+!  use INQUIREs to find open LUNs at the point of request.
+!
+! References to IU_FILE have been made local.  Others may be
+! required.
+!-----------------------------------------------------------
 !
       ! Logical file unit numbers for ...
-      INTEGER, PUBLIC, PARAMETER :: IU_RST     = 1   ! Tracer restart file
-      INTEGER, PUBLIC, PARAMETER :: IU_CHEMDAT = 7   ! "chem.dat" 
-      INTEGER, PUBLIC, PARAMETER :: IU_FASTJ   = 8   ! FAST-J input files
-      INTEGER, PUBLIC, PARAMETER :: IU_GEOS    = 10  ! "input.geos" 
-      INTEGER, PUBLIC, PARAMETER :: IU_BPCH    = 11  ! "ctm.bpch" 
-      INTEGER, PUBLIC, PARAMETER :: IU_ND20    = 12  ! "rate.YYYYMMDD"   
-      INTEGER, PUBLIC, PARAMETER :: IU_ND48    = 13  ! ND48 output
-      INTEGER, PUBLIC, PARAMETER :: IU_ND49    = 14  ! "tsYYYYMMDD.bpch" 
-      INTEGER, PUBLIC, PARAMETER :: IU_ND50    = 15  ! "ts24h.bpch"
-      INTEGER, PUBLIC, PARAMETER :: IU_ND51    = 16  ! "ts10_12am.bpch" etc.
-      INTEGER, PUBLIC, PARAMETER :: IU_ND51b   = 23  ! for ND51b diagnostic
-      INTEGER, PUBLIC, PARAMETER :: IU_ND52    = 17  ! ND52 output (NRT only)
-      INTEGER, PUBLIC, PARAMETER :: IU_PLANE   = 18  ! "plane.log"
-      INTEGER, PUBLIC, PARAMETER :: IU_BC      = 19  ! TPCORE BC files
-      INTEGER, PUBLIC, PARAMETER :: IU_BC_NA   = 20  ! TPCORE BC files: NA grid
-      INTEGER, PUBLIC, PARAMETER :: IU_BC_EU   = 21  ! TPCORE BC files: EU grid
-      INTEGER, PUBLIC, PARAMETER :: IU_BC_CH   = 22  ! TPCORE BC files: CH grid
-      INTEGER, PUBLIC, PARAMETER :: IU_ND63    = 25  ! ND63 output
-      INTEGER, PUBLIC, PARAMETER :: IU_FILE    = 65  ! Generic file
-      INTEGER, PUBLIC, PARAMETER :: IU_TP      = 69  ! "YYYYMMDD.tropp.*"
-      INTEGER, PUBLIC, PARAMETER :: IU_PH      = 70  ! "YYYYMMDD.phis.*"
-      INTEGER, PUBLIC, PARAMETER :: IU_I6      = 71  ! "YYYYMMDD.i6.*"
-      INTEGER, PUBLIC, PARAMETER :: IU_A6      = 72  ! "YYYYMMDD.a6.*"
-      INTEGER, PUBLIC, PARAMETER :: IU_A3      = 73  ! "YYYYMMDD.a3.*"
-      INTEGER, PUBLIC, PARAMETER :: IU_A1      = 74  ! "YYYYMMDD.a1.*"
-      INTEGER, PUBLIC, PARAMETER :: IU_GWET    = 75  ! "YYYYMMDD.gwet.*"
-      INTEGER, PUBLIC, PARAMETER :: IU_XT      = 76  ! "YYYYMMDD.xtra.*"
-      INTEGER, PUBLIC, PARAMETER :: IU_CN      = 77  ! "YYYYMMDD.cn.*"
-      INTEGER, PUBLIC, PARAMETER :: IU_SMV2LOG = 93  ! "smv2.log"
-      INTEGER, PUBLIC, PARAMETER :: IU_DEBUG   = 98  ! Reserved for debugging
-      INTEGER, PUBLIC, PARAMETER :: IU_OAP     = 99  ! soaprod.YYYYMMDDhh
+      INTEGER, PUBLIC :: IU_RST       ! Tracer restart file
+      INTEGER, PUBLIC :: IU_CHEMDAT   ! "chem.dat" 
+      INTEGER, PUBLIC :: IU_FASTJ     ! FAST-J input files
+      INTEGER, PUBLIC :: IU_GEOS      ! "input.geos" 
+      INTEGER, PUBLIC :: IU_BPCH      ! "ctm.bpch" 
+      INTEGER, PUBLIC :: IU_ND20      ! "rate.YYYYMMDD"   
+      INTEGER, PUBLIC :: IU_ND48      ! ND48 output
+      INTEGER, PUBLIC :: IU_ND49      ! "tsYYYYMMDD.bpch" 
+      INTEGER, PUBLIC :: IU_ND50      ! "ts24h.bpch"
+      INTEGER, PUBLIC :: IU_ND51      ! "ts10_12am.bpch" etc.
+      INTEGER, PUBLIC :: IU_ND51b     ! for ND51b diagnostic
+      INTEGER, PUBLIC :: IU_ND52      ! ND52 output (NRT only)
+      INTEGER, PUBLIC :: IU_PLANE     ! "plane.log"
+      INTEGER, PUBLIC :: IU_BC        ! TPCORE BC files
+      INTEGER, PUBLIC :: IU_BC_NA     ! TPCORE BC files: NA grid
+      INTEGER, PUBLIC :: IU_BC_EU     ! TPCORE BC files: EU grid
+      INTEGER, PUBLIC :: IU_BC_CH     ! TPCORE BC files: CH grid
+      INTEGER, PUBLIC :: IU_ND63      ! ND63 output
+      INTEGER, PUBLIC :: IU_FILE      ! Generic file
+      INTEGER, PUBLIC :: IU_TP        ! "YYYYMMDD.tropp.*"
+      INTEGER, PUBLIC :: IU_PH        ! "YYYYMMDD.phis.*"
+      INTEGER, PUBLIC :: IU_I6        ! "YYYYMMDD.i6.*"
+      INTEGER, PUBLIC :: IU_A6        ! "YYYYMMDD.a6.*"
+      INTEGER, PUBLIC :: IU_A3        ! "YYYYMMDD.a3.*"
+      INTEGER, PUBLIC :: IU_A1        ! "YYYYMMDD.a1.*"
+      INTEGER, PUBLIC :: IU_GWET      ! "YYYYMMDD.gwet.*"
+      INTEGER, PUBLIC :: IU_XT        ! "YYYYMMDD.xtra.*"
+      INTEGER, PUBLIC :: IU_CN        ! "YYYYMMDD.cn.*"
+      INTEGER, PUBLIC :: IU_SMV2LOG   ! "smv2.log"
+      INTEGER, PUBLIC :: IU_DEBUG     ! Reserved for debugging
+      INTEGER, PUBLIC :: IU_OAP       ! soaprod.YYYYMMDDhh
 !
 ! !PUBLIC MEMBER FUNCTIONS:
 !
@@ -422,5 +430,6 @@
 
       END SUBROUTINE CLOSE_FILES
 !EOC      
+!------------------------------------------------------------------------------
       ! End of module
       END MODULE FILE_MOD

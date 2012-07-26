@@ -12,7 +12,7 @@
 ! !INTERFACE:
 !
 #if defined( DEVEL )
-      SUBROUTINE CHEMDR(GC_MET,GC_STATE)
+      SUBROUTINE CHEMDR(am_I_Root, NI, NJ, NL, GC_MET, GC_STATE)
 #else
       SUBROUTINE CHEMDR
 #endif
@@ -59,6 +59,11 @@
       IMPLICIT NONE
 #     include "define.h"
 
+!
+! !INPUT VARIABLES:
+!
+      INTEGER, INTENT(IN) :: NI, NJ, NL
+      LOGICAL, INTENT(IN) :: am_I_Root
 !
 ! !REMARKS:
 !  Important input variables from "dao_mod.f" and "uvalbedo_mod.f":
@@ -249,14 +254,12 @@
       ! Compute AVGW, the mixing ratio of water vapor
       !=================================================================
       CALL MAKE_AVGW
-
       !=================================================================
       ! Open "smv2.log" output file and read chem mechanism switches
       !=================================================================
       IF ( FIRSTCHEM ) THEN
-         
          ! Read from data file mglob.dat
-         CALL READER( FIRSTCHEM )
+         CALL READER( FIRSTCHEM, am_I_Root )
          IF ( LPRT ) CALL DEBUG_MSG( '### CHEMDR: after READER' )
 
          ! Set NCS for urban chemistry only (since that is where we
@@ -310,8 +313,10 @@
          ! Initialize chemistry mechanism
          !---------------------------------
 
+         PRINT *,"CHMEDR: Calling READCHEM"
          ! Read "globchem.dat" chemistry mechanism
-         CALL READCHEM
+         CALL READCHEM(am_I_Root)
+         PRINT *,"CHMEDR: Done with READCHEM"
 
          ! Set NCS=NCSURBAN here since we have defined our tropospheric
          ! chemistry mechanism in the urban slot of SMVGEAR II (bmy, 4/21/03)
@@ -331,6 +336,7 @@
          !---------------------------------
          ! Set global concentration of CH4
          !---------------------------------
+         PRINT *,"CHMEDR: ICH4=",ICH4," and CH4_YEAR=",CH4_YEAR
          IF ( ICH4 > 0 .and. ( CH4_YEAR /= GET_YEAR() ) ) THEN
 
             ! If CH4 is a SMVGEAR II species, then call GET_GLOBAL_CH4
@@ -352,11 +358,13 @@
             CALL GET_GLOBAL_CH4( CH4_YEAR, .TRUE., C3090S,
      &                           C0030S,   C0030N, C3090N )
          ENDIF
+         PRINT *,"CHMEDR: Done with ICH4 conditional and GET_GLOBAL_CH4"
 
          !-------------------------------
          ! Initialize FAST-J photolysis
          !-------------------------------
          CALL INPHOT( LLTROP, NPHOT ) 
+         PRINT *,"CHMEDR: Done with INPHOT"
          
          !### Debug
          IF ( LPRT ) CALL DEBUG_MSG( '### CHEMDR: after INPHOT' )        
@@ -369,6 +377,7 @@
 #else
          CALL SETTRACE
 #endif
+         PRINT *,"CHMEDR: Done with SETTRACE"
 
          !### Debug
          IF ( LPRT ) CALL DEBUG_MSG( '### CHEMDR: after SETTRACE' )
@@ -377,11 +386,13 @@
          ! Flag emission & drydep rxns
          !-------------------------------
          CALL SETEMDEP( N_TRACERS )
+         PRINT *,"CHMEDR: Done with SETEMDEP"
 
          !### Debug
          IF ( LPRT ) CALL DEBUG_MSG( '### CHEMDR: after SETEMDEP' )
 
       ENDIF
+      PRINT *,"CHMEDR: Done with FIRSTCHEM IF-Block"
 
       !=================================================================
       ! At the beginning of each new day, call SETUP_PLANEFLIGHT
@@ -456,6 +467,7 @@
 
       ENDIF 
       IT_EXISTS = .FALSE.
+      PRINT *,"CHMEDR: Done with GASCONC"
 
       !### Debug
       IF ( LPRT ) CALL DEBUG_MSG( '### CHEMDR: after GASCONC' )
@@ -464,6 +476,7 @@
       ! Call SETEMIS which sets emission rates REMIS 
       !=================================================================
       CALL SETEMIS( EMISRR, EMISRRN )
+      PRINT *,"CHMEDR: Done with SETEMIS"
       
       !### Debug
       IF ( LPRT ) CALL DEBUG_MSG( '### CHEMDR: after SETEMIS' )
@@ -476,6 +489,7 @@
       WAVELENGTH = 0
 
       CALL RDAER( MONTH, YEAR, WAVELENGTH )
+      PRINT *,"CHMEDR: Done with RDAER"
 
       !### Debug
       IF ( LPRT ) CALL DEBUG_MSG( '### CHEMDR: after RDAER' )
@@ -494,6 +508,7 @@
       ELSE
          CALL RDUST_OFFLINE( MONTH, YEAR, WAVELENGTH )
       ENDIF
+      PRINT *,"CHMEDR: Done with RDUST"
 
       !### Debug
       IF ( LPRT ) CALL DEBUG_MSG( '### CHEMDR: after RDUST' )
@@ -509,6 +524,7 @@
       !=================================================================
 #if defined( DEVEL )
       CALL FAST_J( SUNCOS_MID, OPTD, UVALBEDO, GC_MET%PEDGE )              
+      PRINT *,"CHMEDR: Done with FAST_J"
 #else
       CALL FAST_J( SUNCOS_MID, OPTD, UVALBEDO )              
 #endif
@@ -525,6 +541,7 @@
       ! is the chemistry solver
       CALL CPU_TIME(start)
       CALL PHYSPROC( SUNCOS_MID )
+      PRINT *,"CHMEDR: Done with PHYSPROC"
       CALL CPU_TIME(finish)
       write(*,*) 'PHYSPROC TIME: ', finish-start
 
@@ -537,6 +554,7 @@
       ! NOTE: SCHEM still needs to be called whether or not LINOZ is
       ! used.  LINOZ is just a replacement for SYNOZ. (bmy, 4/28/10)
       CALL SCHEM
+      PRINT *,"CHMEDR: Done with SCHEM"
 
       !### Debug
       IF ( LPRT ) CALL DEBUG_MSG( '### CHEMDR: after SCHEM' )
@@ -547,6 +565,7 @@
       CALL LUMP( N_TRACERS, 
      &           XNUMOL(1:N_TRACERS),
      &           STT(:,:,:,1:N_TRACERS) )
+      PRINT *,"CHMEDR: Done with LUMP"
 
       !### Debug
       IF ( LPRT ) CALL DEBUG_MSG( '### CHEMDR: after LUMP' )
@@ -608,6 +627,7 @@
       ! Set FIRSTCHEM = .FALSE. -- we have gone thru one chem step
       !=================================================================
       FIRSTCHEM = .FALSE.
+      PRINT *,"CHMEDR: Done with SAVE_FULL_TROP"
 
       !### Debug
       IF ( LPRT ) CALL DEBUG_MSG( '### Now exiting CHEMDR!' )

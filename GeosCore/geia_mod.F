@@ -52,6 +52,8 @@
 !  01 Mar 2012 - R. Yantosca - Use updated GET_LOCALTIME from time_mod.F
 !******************************************************************************
 !
+      USE inquireMod, ONLY : findFreeLUN
+
       IMPLICIT NONE
 #     include "define.h" 
 
@@ -86,7 +88,7 @@
       ! References to F90 modules
       USE BPCH2_MOD,     ONLY : GET_RES_EXT
       USE DIRECTORY_MOD, ONLY : DATA_DIR
-      USE FILE_MOD,      ONLY : IU_FILE, IOERROR
+      USE FILE_MOD,      ONLY : IOERROR
 
       USE CMN_SIZE_MOD   ! Size parameters
 
@@ -95,7 +97,7 @@
       REAL*4,  INTENT(OUT) :: TOTCO2(IIPAR,JJPAR)
 
       ! Local variables
-      INTEGER              :: I, J, IX, JX, IOS
+      INTEGER              :: I, J, IX, JX, IOS, IU_FILE
       CHARACTER(LEN=4  )   :: CYEAR
       CHARACTER(LEN=255)   :: FILENAME
 
@@ -128,6 +130,7 @@
  20      FORMAT( 'READ_TOTCO2: Reading ', a )
 
          ! Open the file containing liquid CO2 scale factors
+         IU_FILE = findFreeLUN()
          OPEN( IU_FILE, FILE=TRIM( FILENAME ), STATUS='OLD', 
      &                  FORM='UNFORMATTED',    IOSTAT=IOS )
          IF ( IOS /= 0 ) CALL IOERROR( IOS,IU_FILE,'read_totco2_file:1')
@@ -174,7 +177,7 @@
       ! References to F90 modules
       USE BPCH2_MOD,     ONLY : GET_RES_EXT
       USE DIRECTORY_MOD, ONLY : DATA_DIR
-      USE FILE_MOD,      ONLY : IU_FILE, IOERROR
+      USE FILE_MOD,      ONLY : IOERROR
       USE BPCH2_MOD,     ONLY : GET_RES_EXT
 
 
@@ -186,7 +189,7 @@
       REAL*4,  INTENT(OUT) :: LIQCO2(IIPAR,JJPAR)
 
       ! Local variables
-      INTEGER              :: I, J, IX, JX, IOS
+      INTEGER              :: I, J, IX, JX, IU_FILE, IOS
       CHARACTER(LEN=4  )   :: CYEAR
       CHARACTER(LEN=255)   :: FILENAME
 
@@ -218,6 +221,7 @@
  20      FORMAT( 'READ_TOTCO2: Reading ', a )
 
          ! Open the file containing liquid CO2 scale factors
+         IU_FILE = findFreeLUN()
          OPEN( IU_FILE, FILE=TRIM( FILENAME ), STATUS='OLD', 
      &                  FORM='UNFORMATTED',    IOSTAT=IOS )
          IF ( IOS /= 0 ) CALL IOERROR( IOS,IU_FILE,'read_liqco2_file:1')
@@ -273,7 +277,7 @@
 !
       ! References to F90 modules
       USE DIRECTORY_MOD, ONLY : DATA_DIR
-      USE FILE_MOD,      ONLY : IU_FILE, IOERROR
+      USE FILE_MOD,      ONLY : IOERROR
 
       USE CMN_SIZE_MOD  ! Size parameters
 
@@ -290,7 +294,7 @@
       !=================================================================
 
       ! File name unit
-      IUNIT = IU_FILE
+      IUNIT = findFreeLUN()
       
 #if   defined( GRID4x5  )
 
@@ -474,7 +478,7 @@
       ! References to F90 modules
       USE BPCH2_MOD,     ONLY : GET_RES_EXT
       USE DIRECTORY_MOD, ONLY : DATA_DIR
-      USE FILE_MOD,      ONLY : IU_FILE, IOERROR
+      USE FILE_MOD,      ONLY : IOERROR
 
       USE CMN_SIZE_MOD            ! Size parameters
 
@@ -521,7 +525,7 @@
 #endif
 
       ! Define the file unit
-      IUNIT = IU_FILE 
+      IUNIT = findFreeLUN()
       
       ! Echo the filename to stdout
       WRITE( 6, 100 ) TRIM( FILENAME )

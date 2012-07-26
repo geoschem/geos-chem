@@ -24,8 +24,7 @@
 ! !DEFINED PARAMETERS: 
 !
       ! Locally defined replacement for GEOS-Chem parameter "LLPAR"
-      !INTEGER, PARAMETER :: MAX_COLUMN  = 72    ! Full GEOS-5 vertical grid
-      INTEGER, PARAMETER :: MAX_COLUMN  = 22!47    ! Reduced GEOS-5 vertical grid
+      INTEGER, PARAMETER :: MAX_COLUMN  = 72    ! Full GEOS-5 vertical grid
 
       ! Locally defined replacement for GEOS-Chem parameters "IIPAR" & "JJPAR"
       INTEGER, PARAMETER :: MAX_LAT  = 47    !

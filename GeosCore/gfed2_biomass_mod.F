@@ -106,6 +106,8 @@
 !  01 Mar 2012 - R. Yantosca - Now reference new grid_mod.F90
 !******************************************************************************
 !
+      USE inquireMod, ONLY : findFreeLUN
+
       IMPLICIT NONE
 #     include "define.h"
 
@@ -849,7 +851,7 @@
       USE BPCH2_MOD,     ONLY : READ_BPCH2
       USE DIRECTORY_MOD, ONLY : DATA_DIR_1x1
       USE ERROR_MOD,     ONLY : ALLOC_ERR
-      USE FILE_MOD,      ONLY : IOERROR, IU_FILE
+      USE FILE_MOD,      ONLY : IOERROR
       USE LOGICAL_MOD,   ONLY : LDICARB
 
       !(fp)
@@ -866,7 +868,7 @@
       USE CMN_SIZE_MOD      ! Size parameters
 
       ! Local variables
-      INTEGER                :: AS, IOS, M, N, NDUM
+      INTEGER                :: AS, IOS, M, N, NDUM, IU_FILE
       REAL*4                 :: ARRAY(I1x1,J1x1-1,1)
       CHARACTER(LEN=255)     :: FILENAME
       
@@ -925,6 +927,7 @@
      &           'GFED2_200601/GFED2_emission_factors_73t.txt'
 
       ! Open emission factor file (ASCII format)
+      IU_FILE = findFreeLUN()
       OPEN( IU_FILE, FILE=TRIM( FILENAME ), STATUS='OLD', IOSTAT=IOS )
       IF ( IOS /= 0 ) CALL IOERROR( IOS, IU_FILE, 'init_gfed2:1' )
 

@@ -4048,7 +4048,6 @@
       ! References to F90 modules
       USE DAO_MOD    , ONLY : IS_WATER, RH
       USE PBL_MIX_MOD, ONLY : GET_PBL_TOP_M
-      USE FILE_MOD   , ONLY : IU_FILE
       USE RNPBBE_MOD , ONLY : SLQ
 
       USE CMN_SIZE_MOD     ! Size parameters

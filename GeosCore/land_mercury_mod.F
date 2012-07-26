@@ -872,7 +872,7 @@
 !
       USE BPCH2_MOD
       USE DAO_MOD,           ONLY : IS_LAND
-      USE FILE_MOD,          ONLY : IU_FILE, IOERROR
+      USE FILE_MOD,          ONLY : IOERROR
       USE TIME_MOD,          ONLY : EXPAND_DATE, YMD_EXTRACT
       USE TIME_MOD,          ONLY : GET_NYMD, GET_NHMS
       USE DIRECTORY_MOD,     ONLY : DATA_DIR
@@ -920,7 +920,7 @@
 
       ! For binary punch file, version 2.0
       INTEGER               :: NI,        NJ,      NL
-      INTEGER               :: IFIRST,    JFIRST,  LFIRST
+      INTEGER               :: IU_FILE, IFIRST,    JFIRST,  LFIRST
       INTEGER               :: HALFPOLAR, CENTER180
       INTEGER               :: NTRACER,   NSKIP
       REAL*4                :: LONRES,    LATRES

@@ -13,7 +13,7 @@
       MODULE DEPO_MERCURY_MOD
 !
 ! !USES:
-! 
+!
       IMPLICIT NONE
 #     include "define.h"
       PRIVATE
@@ -437,7 +437,6 @@
       USE BPCH2_MOD
       USE DIAG_MOD,      ONLY : AD39, AD44, AD38
       USE DIRECTORY_MOD, ONLY : RUN_DIR
-      USE FILE_MOD,      ONLY : IU_FILE
       USE GRID_MOD,      ONLY : GET_XOFFSET, GET_YOFFSET
       USE TIME_MOD,      ONLY : EXPAND_DATE
       USE TRACERID_MOD,  ONLY : ID_Hg0, ID_Hg2, ID_Hg_tot
@@ -460,7 +459,7 @@
 !
 ! !LOCAL VARIABLES:
 !
-      INTEGER               :: HALFPOLAR, CENTER180
+      INTEGER               :: HALFPOLAR, CENTER180, IU_FILE
       INTEGER               :: IFIRST,    JFIRST,   LFIRST
       INTEGER               :: N,         NN
       REAL*8                :: TS_DYN,    TS_CHEM
@@ -557,7 +556,7 @@
       USE BPCH2_MOD,     ONLY : OPEN_BPCH2_FOR_READ
       USE DIRECTORY_MOD, ONLY : RUN_DIR
       USE ERROR_MOD,     ONLY : DEBUG_MSG
-      USE FILE_MOD,      ONLY : IU_FILE,     IOERROR
+      USE FILE_MOD,      ONLY : IOERROR
       USE TIME_MOD,      ONLY : EXPAND_DATE
       USE TRACER_MOD,    ONLY : STT,         TRACER_NAME, TRACER_MW_G
       USE TRACERID_MOD,  ONLY : GET_Hg0_CAT, GET_Hg2_CAT, N_Hg_CATS
@@ -583,7 +582,7 @@
 !
 ! !LOCAL VARIABLES:
 !
-      INTEGER               :: IOS, I, J, L, NN, N_gtmm
+      INTEGER               :: IOS, I, IU_FILE, J, L, NN, N_gtmm
       INTEGER               :: NCOUNT(NNPAR) 
       REAL*4                :: FLUX(IIPAR,JJPAR)
       CHARACTER(LEN=255)    :: FILENAME

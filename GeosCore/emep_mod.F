@@ -317,7 +317,7 @@
 ! !USES:
 ! 
       USE BPCH2_MOD,        ONLY : GET_TAU0,     OPEN_BPCH2_FOR_READ
-      USE FILE_MOD,         ONLY : IU_FILE,      IOERROR
+      USE FILE_MOD,         ONLY : IOERROR
       USE DIRECTORY_MOD,    ONLY : DATA_DIR_1x1 
       USE LOGICAL_MOD,      ONLY : LFUTURE
       USE REGRID_1x1_MOD,   ONLY : DO_REGRID_1x1
@@ -354,7 +354,7 @@
       CHARACTER(LEN=255)      :: FILENAME
 
       ! For bpch file format
-      INTEGER                 :: I,  J,  L,  N,  IOS
+      INTEGER                 :: I,  IU_FILE, J,  L,  N,  IOS
       INTEGER                 :: NTRACER,   NSKIP
       INTEGER                 :: HALFPOLAR, CENTER180
       INTEGER                 :: NI,        NJ,        NL

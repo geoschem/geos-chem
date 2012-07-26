@@ -16,6 +16,8 @@
 !
 ! !USES:
 !
+      USE inquireMod, ONLY : findFreeLUN
+
       IMPLICIT NONE
       PRIVATE
 !
@@ -60,7 +62,7 @@
 ! !USES:
 !
       USE DIRECTORY_MOD, ONLY : DATA_DIR_1x1
-      USE FILE_MOD,      ONLY : IOERROR, IU_FILE
+      USE FILE_MOD,      ONLY : IOERROR
 
       USE CMN_O3_MOD          ! FRACNOX, INTOPE
 !
@@ -72,7 +74,7 @@
 !BOC
 !
 ! !LOCAL VARIABLES:
-      INTEGER                :: IOS
+      INTEGER                :: IOS, IU_FILE
       CHARACTER(LEN=255)     :: FILENAME
 
       !=================================================================
@@ -93,6 +95,7 @@
  100  FORMAT( 'READ_PARANOX_LUT: Reading ', a )
 
       ! Open file to read
+      IU_FILE = findFreeLUN()
       OPEN( IU_FILE, FILE=TRIM( FILENAME ), FORM="binary", 
      &      IOSTAT=IOS )
       IF ( IOS /= 0 ) CALL IOERROR( IOS, IU_FILE, 'read_paranox_lut:1' )
@@ -120,6 +123,7 @@
  101  FORMAT( 'READ_PARANOX_LUT: Reading ', a )
 
       ! Open file to read
+      IU_FILE = findFreeLUN()
       OPEN( IU_FILE, FILE=TRIM( FILENAME ), FORM="BINARY" )
       IF ( IOS /= 0 ) CALL IOERROR( IOS, IU_FILE, 'read_paranox_lut:3' )
 

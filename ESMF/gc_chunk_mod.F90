@@ -45,7 +45,7 @@
          LOGICAL                    :: DO_PRINT     ! Should we print out?
          INTEGER                    :: N_DIAG       ! # of diag quantities
          INTEGER                    :: COUNT        ! Counter for averaging
-         CHARACTER(LEN=10), POINTER :: NAME(:)      ! Tracer names
+	 CHARACTER(LEN=10), POINTER :: NAME(:)      ! Tracer names
          REAL*8,            POINTER :: TRACER(:,:)  ! Tracer concentrations
          CHARACTER(LEN=40)          :: FILENAME     ! File name for output
          INTEGER                    :: LUN          ! File unit # for output
@@ -76,14 +76,12 @@
 !
 ! !INTERFACE:
 !
-      SUBROUTINE GC_CHUNK_RUN( GC_MET, GC_STATE, NL, NI, NJ, RC )
-!      SUBROUTINE GC_CHUNK_RUN( NLx, NIx, NJx, RC )
+      SUBROUTINE GC_CHUNK_RUN( am_I_Root, GC_MET, GC_STATE, NL, NI, NJ, RC )
 !
 ! !USES:
 !
         USE GC_CHEMDR
         USE SMV_ERRCODE_MOD
-!        USE GC_INITIALIZATION_MOD
         USE GC_TYPE2_MOD
 !
 ! !REMARKS:
@@ -99,23 +97,17 @@
 !BOC
         INTEGER, INTENT(OUT) :: RC
         INTEGER, INTENT(IN)  :: NL, NI, NJ
+        LOGICAL, INTENT(IN)  :: am_I_Root
         TYPE(CHEMSTATE),    INTENT(INOUT) :: GC_STATE
         TYPE(GC_MET_LOCAL), INTENT(INOUT) :: GC_MET
 
-        INTEGER, PARAMETER :: NCNST=1
-        REAL*8 :: DLON(NI,NJ), DLAT(NI,NJ)
-        REAL*8 :: LON(NI,NJ), LAT(NI,NJ)
+        INTEGER :: NC
+        NC = SIZE(GC_STATE%TRACERS,4)
 
-!
-! !LOCAL VARIABLES:
-!
-
-      DLAT = 1.
-      DLON = DLAT
-
-        CALL DO_GC_CHEM(GC_STATE, GC_MET, NI, NJ, NL, NCNST=SIZE(GC_STATE%TRACERS,4))
+        CALL DO_GC_CHEM(GC_STATE, GC_MET, am_I_Root, NI, NJ, NL, NC)
 
         RC = SMV_SUCCESS
+
 
       END SUBROUTINE GC_CHUNK_RUN
 !EOC
@@ -134,7 +126,8 @@
 !\\
 ! !INETRFACE:
 !
-      SUBROUTINE GC_CHUNK_INIT( NL, NI, NJ, GC_MET, GC_STATE, RC )
+      SUBROUTINE GC_CHUNK_INIT( NI, NJ, NL, GC_MET, GC_STATE, tsChem, &
+                                nymd, nhms, am_I_Root, RC )
 !
 ! !USES:
 !
@@ -149,7 +142,9 @@
 !------------------------------------------------------------------------------
 !BOC
         INTEGER,            INTENT(OUT) :: RC          ! Error return code
-        INTEGER,            INTENT(IN)  :: NI,NJ,NL
+        INTEGER,            INTENT(IN)  :: NI,NJ,NL, nymd, nhms
+        REAL,               INTENT(IN)  :: tsChem
+        LOGICAL,            INTENT(IN)  :: am_I_Root
         TYPE(CHEMSTATE)                 :: GC_STATE
         TYPE(GC_MET_LOCAL)              :: GC_MET
 !
@@ -158,7 +153,7 @@
 
         CALL GC_INIT_DIMENSIONS(NI,NJ,NL)
 
-        CALL GC_INITRUN(GC_MET, GC_STATE) !cheminit is in here
+        CALL GC_INITRUN(GC_MET, GC_STATE, tsChem, nymd, nhms, am_I_Root) !cheminit is in here
 
         RC = SMV_SUCCESS
 

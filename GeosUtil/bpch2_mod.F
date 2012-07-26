@@ -15,6 +15,9 @@
 ! 
 ! !USES:
 !
+      USE inquireMod, ONLY : findFreeLUN
+      USE inquireMod, ONLY : I_Am_UnOPENed
+
       IMPLICIT NONE
 #     include "define.h"
       PRIVATE
@@ -109,7 +112,7 @@
 !
 ! !INPUT PARAMETERS: 
 !
-      INTEGER,           INTENT(IN)            :: IUNIT     ! LUN for file I/O
+      INTEGER,           INTENT(INOUT)         :: IUNIT     ! LUN for file I/O
       CHARACTER(LEN=*),  INTENT(IN)            :: FILENAME  ! Name of file
 !
 ! !OUTPUT PARAMETERS:
@@ -134,6 +137,7 @@
       !=================================================================
 
       ! Open file for input -- readonly
+      IUNIT = findFreeLUN()
       OPEN( IUNIT,      FILE=TRIM( FILENAME ), STATUS='OLD',
      &      IOSTAT=IOS, FORM='UNFORMATTED',    ACCESS='SEQUENTIAL' )
 
@@ -202,7 +206,7 @@
 !
 ! !INPUT PARAMETERS: 
 !
-      INTEGER,           INTENT(IN)            :: IUNIT     ! LUN for file I/O
+      INTEGER,           INTENT(INOUT)         :: IUNIT     ! LUN for file I/O
       CHARACTER(LEN=*),  INTENT(IN)            :: FILENAME  ! Name of file
 !
 ! !OUTPUT PARAMETERS:
@@ -233,6 +237,7 @@
       ENDIF
 
       ! Open file for output
+      IUNIT = findFreeLUN()
       OPEN( IUNIT,      FILE=TRIM( FILENAME ), STATUS='UNKNOWN',
      &      IOSTAT=IOS, FORM='UNFORMATTED',    ACCESS='SEQUENTIAL' )
 
@@ -421,7 +426,7 @@
 ! !USES:
 !
       USE ERROR_MOD, ONLY : ERROR_STOP
-      USE FILE_MOD,  ONLY : IU_FILE, IOERROR
+      USE FILE_MOD,  ONLY : IOERROR
 
 #     include "define.h" 
 !
@@ -469,7 +474,7 @@
 ! !LOCAL VARIABLES:
 ! 
       LOGICAL            :: FOUND, TMP_QUIET
-      INTEGER            :: I,  J,  L,  N,  IOS, M
+      INTEGER            :: I,  J,  L,  N,  IOS, IU_FILE, M
       INTEGER            :: I1, I2, J1, J2, L1,  L2
       CHARACTER(LEN=255) :: MSG
       
@@ -517,6 +522,7 @@
       ! Open binary punch file and read top-of-file header.
       ! Do some error checking to make sure the file is the right format.
       !=================================================================
+      IU_FILE = findFreeLUN()
       CALL OPEN_BPCH2_FOR_READ( IU_FILE, FILENAME )
 
       !=================================================================
