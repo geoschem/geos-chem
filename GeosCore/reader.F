@@ -1,5 +1,5 @@
 ! $Id: reader.f,v 1.2 2010/03/15 19:33:21 ccarouge Exp $
-      SUBROUTINE READER( FIRSTCHEM )
+      SUBROUTINE READER( FIRSTCHEM, am_I_Root )
 !
 !******************************************************************************
 !  Subroutine READER reads on/off switches and other settings for SMVGEAR II.
@@ -31,9 +31,10 @@
 !******************************************************************************
 !
       ! References to F90 modules
-      USE ERROR_MOD, ONLY : GEOS_CHEM_STOP
-      USE FILE_MOD,  ONLY : IU_FILE, IU_CHEMDAT, IU_SMV2LOG
-      USE TIME_MOD,  ONLY : GET_TS_CHEM
+      USE ERROR_MOD,  ONLY : GEOS_CHEM_STOP
+      USE FILE_MOD,   ONLY : IU_CHEMDAT, IU_SMV2LOG
+      USE TIME_MOD,   ONLY : GET_TS_CHEM
+      USE inquireMod, ONLY : findFreeLUN
 
 #     include "define.h"
       USE CMN_SIZE_MOD  ! Size parameters
@@ -48,11 +49,11 @@
 ! *  FOR DEFINITIONS OF THE PARAMETERS READ IN HERE, SEE define.dat ***
 ! *********************************************************************
 !
-!        RRRRRRR  EEEEEEE     A     DDDDDDD  EEEEEEE  RRRRRRR 
-!        R     R  E          A A    D     D  E        R     R 
-!        RRRRRRR  EEEEEEE   A   A   D     D  EEEEEEE  RRRRRRR 
-!        R  R     E        AAAAAAA  D     D  E        R  R  
-!        R   R    EEEEEEE A       A DDDDDDD  EEEEEEE  R   R
+!        RRRRRR   EEEEEEE     A     DDDDDD   EEEEEEE  RRRRRR 
+!        R     R  E          A A     D    D  E        R     R 
+!        RRRRRR   EEEEE     A   A    D    D  EEEEE    RRRRRR
+!        R  R     E        AAAAAAA   D    D  E        R  R  
+!        R   R    EEEEEEE A       A DDDDDD   EEEEEEE  R   R
 !
 !
 ! *********************************************************************
@@ -83,10 +84,11 @@
 !    2        2       2      SOLVE U/T/S CHEMISTRY EVERYWHERE   
 !
       LOGICAL, INTENT(IN) :: FIRSTCHEM
-      INTEGER             :: K,      M2,      M1,       MLOOP,   KLOOP 
-      INTEGER             :: JLOOP,  IAVBLOK, IAVGSIZE, IREMAIN, JADD
-      INTEGER             :: IFCHEM, I,       NALLREAC, NMPROD,  I1
-      INTEGER             :: J,      NK
+      LOGICAL, INTENT(IN) :: am_I_Root
+      INTEGER             :: K,       M2,      M1,       MLOOP,   KLOOP 
+      INTEGER             :: JLOOP,   IAVBLOK, IAVGSIZE, IREMAIN, JADD
+      INTEGER             :: IFCHEM,  I,       NALLREAC, NMPROD,  I1
+      INTEGER             :: IU_FILE, J,      NK
 
       REAL*8              :: ERRMAXU, YLOWU, YHIU, HMAXDAYU
       REAL*8              :: ERRMAXR, YLOWR, YHIR, HMAXDAYR
@@ -164,33 +166,28 @@
 ! *********************** OPEN CONTROL INPUT FILE ********************* 
 ! *********************************************************************
 !
-      ! Echo info to stdout
-      WRITE( 6, '(a)' ) '     - READER: Reading mglob.dat'
 
-      ! Use GEOS-CHEM file unit to prevent conflicts (bmy, 4/7/03)
-      OPEN( IU_FILE, FILE = 'mglob.dat' )
-      write(*,*) 'READER:: opened mglob.dat'
+      IU_FILE = findFreeLUN()
+      OPEN( UNIT=IU_FILE, FILE = "mglob.dat___.rc", ACTION="read",
+     &      FORM="formatted", STATUS="old", ACCESS="sequential" )
+  
       READ( IU_FILE, 100    ) HEADING 
-      write(*,*) 'READER:: read HEADING'
       READ( IU_FILE, 100    ) COMMENT
-      write(*,*) 'READER:: read COMMENT'
       READ( IU_FILE, CTLFLG )
-      write(*,*) 'READER:: read CTLFLG'
       READ( IU_FILE, CTLDIM )
-      write(*,*) 'READER:: read CTLDIM'
       READ( IU_FILE, CTLTIM )
-      write(*,*) 'READER:: read CTLTIM'
       READ( IU_FILE, CTLPRT )
-      write(*,*) 'READER:: read CTLPRT'
       READ( IU_FILE, CLGEAR )
-      write(*,*) 'READER:: CLGEAR'
-      CLOSE( IU_FILE )
+      CLOSE( UNIT=IU_FILE )
 
-      write(*,*) 'READER:: closed mglob.dat'
+      IF(am_I_Root) PRINT *,"GEOSCHEM::READER: Successfully read mglob.dat___.rc"
+
       ! NOTE: Redefine CHEMINTV [s] to the value in "input.geos" so 
       ! that we don't have a discrepancy with the value in "mglob.dat" 
       ! (bmy, 5/10/05)
       CHEMINTV = GET_TS_CHEM() * 60d0
+
+
 !
 ! *********************************************************************
 ! *                     DEFINE SOME GRID PARAMETERS                   *
@@ -235,24 +232,28 @@
 !                            OPEN MORE FILES 
 ! *********************************************************************
 !
-      IOUT = 6
+      IU_CHEMDAT = findFreeLUN()
       KGLC = IU_CHEMDAT
-!
+      IF(am_I_Root) PRINT *,"GEOSCHEM::READER: Opening globchem.dat___.rc on unit ",IU_CHEMDAT
+
       ! Open chemistry mechanism file
-      OPEN( KGLC, FILE ='globchem.dat' )
+      OPEN( KGLC, FILE ='globchem.dat___.rc' )
 
       ! Open "smv2.log" for echoback output as unit #93
-      IO93 = IU_SMV2LOG
-      OPEN( IO93, FILE='smv2.log', STATUS='UNKNOWN' )
+      IF(am_I_Root) THEN
+       IU_SMV2LOG = findFreeLUN()
+       PRINT *,"GEOSCHEM::READER: Opening smv2.log on unit ",IU_SMV2LOG
+       IO93 = IU_SMV2LOG
+       OPEN( IO93, FILE='smv2.log', STATUS='UNKNOWN' )
 !
 ! *********************************************************************
 ! *                    PRINT INFORMATION FROM m.dat                   *
 ! *********************************************************************
 !
-      IF (IPREADER.EQ. 1 .AND. FIRSTCHEM) THEN
+       IF (IPREADER.EQ. 1 .AND. FIRSTCHEM) THEN
          WRITE( IO93, '(a)'   ) REPEAT( '=', 79 )
          WRITE( IO93, '(a,/)' ) 'SMV2.LOG -- SMVGEAR II information' 
-         WRITE( IO93, '(a)'   ) 'Switches in mglob.dat!'
+         WRITE( IO93, '(a)'   ) 'Switches in mglob.dat___.rc'
          WRITE( IO93, '(a)'   ) REPEAT( '=', 79 )
          WRITE( IO93, *       ) 'IFSOLVE   = ', IFSOLVE
          WRITE( IO93, *       ) 'ITESTGEAR = ', ITESTGEAR
@@ -293,10 +294,11 @@
          WRITE( IO93, *       ) 'HMAXDAYS  = ', HMAXDAYS 
          WRITE( IO93, *       ) 'HMAXNIT   = ', HMAXNIT
          WRITE( IO93, '(/,a)' ) 'Using U.C.I. Fast-J photolysis'  
-         WRITE(    6, '(a)'   ) 'Using U.C.I. Fast-J photolysis'     
+!        WRITE(    6, '(a)'   ) 'Using U.C.I. Fast-J photolysis'     
 
          ! Write spacer line to "smv2.log
          WRITE( IO93, '(a)' )
+       END IF
       END IF
 !
 ! *********************************************************************

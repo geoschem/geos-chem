@@ -18,6 +18,7 @@
 !
       USE CMN_SIZE_MOD              ! Dimensions of arrays
       USE CMN_DIAG_MOD              ! Diagnostic parameters
+      USE inquireMod, ONLY : findFreeLUN
 
       IMPLICIT NONE
 #     include "define.h"
@@ -186,7 +187,7 @@
 !
 ! !USES:
 !
-      USE FILE_MOD, ONLY : IOERROR, IU_FILE
+      USE FILE_MOD, ONLY : IOERROR
 ! 
 ! !REVISION HISTORY: 
 !  03 May 2005 - R. Yantosca - Initial version
@@ -197,13 +198,14 @@
 !
 ! !LOCAL VARIABLES:
 !
-      INTEGER :: IOS, N
+      INTEGER :: IOS, N, IU_FILE
 
       !=================================================================
       ! CREATE_DINFO begins here!
       !=================================================================
 
       ! Open "diaginfo.dat" file for output
+      IU_FILE = findFreeLUN()
       OPEN( IU_FILE, FILE=TRIM( DFILE ), STATUS='UNKNOWN', IOSTAT=IOS )
       IF ( IOS /= 0 ) CALL IOERROR( IOS, IU_FILE, 'create_dinfo:1' )
 
@@ -278,7 +280,7 @@
 !
 ! !USES:
 !
-      USE FILE_MOD,    ONLY : IOERROR, IU_FILE
+      USE FILE_MOD,    ONLY : IOERROR
       USE LOGICAL_MOD, ONLY : LSOA
 ! 
 ! !REVISION HISTORY: 
@@ -292,7 +294,7 @@
 !
 ! !LOCAL VARIABLES:
 !
-      INTEGER           :: D, IOS, N, T
+      INTEGER           :: D, IOS, IU_FILE, N, T
       REAL*4            :: SCALE_NEW
       CHARACTER(LEN=2)  :: C
       CHARACTER(LEN=40) :: UNIT_NEW, NAME_NEW
@@ -302,6 +304,7 @@
       !=================================================================
 
       ! Open "tracerinfo.dat" file for output
+      IU_FILE = findFreeLUN()
       OPEN( IU_FILE, FILE=TRIM( TFILE ), STATUS='UNKNOWN', IOSTAT=IOS )
       IF ( IOS /= 0 ) CALL IOERROR( IOS, IU_FILE, 'create_tinfo:1' )
 
@@ -346,7 +349,7 @@
       !-----------------------------------
 
       ! Write separator line
-      CALL WRITE_SEPARATOR( 0 )
+      CALL WRITE_SEPARATOR( IU_FILE, 0 )
 
       ! Loop over tracers
       DO T = 1, NTRAC(45)
@@ -355,7 +358,7 @@
          N = ( SPACING * 0 ) + T
 
          ! Write tracers [ppbv] to "tracerinfo.dat" file
-         CALL WRITE_TINFO( NAME(T,45), FNAME(T,45), MWT(T,45), 
+         CALL WRITE_TINFO( IU_FILE, NAME(T,45), FNAME(T,45), MWT(T,45), 
      &                     MOLC(T,45), SCALE(T,45), UNIT(T,45), N )
       ENDDO
 
@@ -364,7 +367,7 @@
       !-----------------------------------
 
       ! Write separator line
-      CALL WRITE_SEPARATOR( 100 )
+      CALL WRITE_SEPARATOR( IU_FILE, 100 )
 
       ! Loop over tracers
       DO T = 1, NTRAC(45)
@@ -383,7 +386,7 @@
          ENDIF
 
          ! Write tracers [molec/cm2/s] to "tracerinfo.dat"
-         CALL WRITE_TINFO( NAME(T,45), FNAME(T,45), MWT(T,45), 
+         CALL WRITE_TINFO( IU_FILE, NAME(T,45), FNAME(T,45), MWT(T,45), 
      &                     MOLC(T,45), SCALE_NEW,   UNIT_NEW, N )
       ENDDO
 
@@ -392,7 +395,7 @@
       !-----------------------------------
 
       ! Write separator line
-      CALL WRITE_SEPARATOR( 200 )
+      CALL WRITE_SEPARATOR( IU_FILE, 200 )
 
       ! Loop over tracers
       DO T = 1, NTRAC(45)
@@ -411,7 +414,7 @@
          ENDIF
 
          ! Write tracers [molec/cm2] to "tracerinfo.dat"
-         CALL WRITE_TINFO( NAME(T,45), FNAME(T,45), MWT(T,45), 
+         CALL WRITE_TINFO( IU_FILE, NAME(T,45), FNAME(T,45), MWT(T,45), 
      &                     MOLC(T,45), SCALE_NEW,   UNIT_NEW, N )
       ENDDO
 
@@ -420,7 +423,7 @@
       !-----------------------------------
 
       ! Write separator line
-      CALL WRITE_SEPARATOR( 300 )
+      CALL WRITE_SEPARATOR( IU_FILE, 300 )
 
       ! Loop over tracers
       DO T = 1, NTRAC(45)
@@ -439,7 +442,7 @@
          ENDIF
 
          ! Write tracers [kg/s] to "tracerinfo.dat"
-         CALL WRITE_TINFO( NAME(T,45), FNAME(T,45), MWT(T,45), 
+         CALL WRITE_TINFO( IU_FILE, NAME(T,45), FNAME(T,45), MWT(T,45), 
      &                     MOLC(T,45), SCALE_NEW,   UNIT_NEW, N )
       ENDDO
 
@@ -448,7 +451,7 @@
       !-----------------------------------
 
       ! Write separator line
-      CALL WRITE_SEPARATOR( 400 )
+      CALL WRITE_SEPARATOR( IU_FILE, 400 )
 
       ! Loop over tracers
       DO T = 1, NTRAC(45)
@@ -467,7 +470,7 @@
          ENDIF
 
          ! Write tracers [kg] to "tracerinfo.dat"
-         CALL WRITE_TINFO( NAME(T,45), FNAME(T,45), MWT(T,45), 
+         CALL WRITE_TINFO( IU_FILE, NAME(T,45), FNAME(T,45), MWT(T,45), 
      &                     MOLC(T,45), SCALE_NEW,   UNIT_NEW, N )
       ENDDO
 
@@ -477,7 +480,7 @@
 !      !-----------------------------------
 !
 !      ! Write separator line
-!      CALL WRITE_SEPARATOR( 500 )
+!      CALL WRITE_SEPARATOR( IU_FILE, 500 )
 !
 !      ! Loop over tracers
 !      DO T = 1, NTRAC(45)
@@ -496,7 +499,7 @@
 !         ENDIF
 !
 !         ! Write tracers [kg] to "tracerinfo.dat"
-!         CALL WRITE_TINFO( NAME(T,45), FNAME(T,45), MWT(T,45), 
+!         CALL WRITE_TINFO( IU_FILE, NAME(T,45), FNAME(T,45), MWT(T,45), 
 !     &                     MOLC(T,45), SCALE_NEW,   UNIT_NEW, N )
 !      ENDDO
 
@@ -506,7 +509,7 @@
       IF ( LSOA ) THEN
 
          ! Write separator line
-         CALL WRITE_SEPARATOR( 600 )
+         CALL WRITE_SEPARATOR( IU_FILE, 600 )
 
          ! Loop over tracers
          ! New tracers for SOA simulation
@@ -525,10 +528,10 @@
             
             ! Write tracers [kg] to "tracerinfo.dat"
 #if defined( DEVEL )
-            CALL WRITE_TINFO( NAME_NEW, NAME_NEW,    REAL(1e0,4), 
+            CALL WRITE_TINFO( IU_FILE, NAME_NEW, NAME_NEW,    REAL(1e0,4), 
      &                        1,        REAL(1e0,4), 'kg/kg', N )
 #else
-            CALL WRITE_TINFO( NAME_NEW, NAME_NEW,  1e0,
+            CALL WRITE_TINFO( IU_FILE, NAME_NEW, NAME_NEW,  1e0,
      &                        1,        1e0,      'kg/kg', N )
 #endif
          ENDDO
@@ -547,11 +550,11 @@
             IF ( D == 45 ) CYCLE
 
             ! Write separator
-            CALL WRITE_SEPARATOR( D )
+            CALL WRITE_SEPARATOR( IU_FILE, D )
 
             ! Write tracers to file
             DO T = 1, NTRAC(D)
-               CALL WRITE_TINFO( NAME(T,D), FNAME(T,D), MWT(T,D), 
+               CALL WRITE_TINFO( IU_FILE, NAME(T,D), FNAME(T,D), MWT(T,D), 
      &                           MOLC(T,D), SCALE(T,D), UNIT(T,D),
      &                           INDEX(T,D) )
             ENDDO
@@ -573,14 +576,15 @@
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE WRITE_TINFO( NAME, FNAME, MWT, MOLC, SCALE, UNIT, N )
+      SUBROUTINE WRITE_TINFO( IU_FILE, NAME, FNAME, MWT, MOLC, SCALE, UNIT, N )
 !
 ! !USES:
 !
-      USE FILE_MOD, ONLY : IU_FILE, IOERROR
+      USE FILE_MOD, ONLY : IOERROR
 !
 ! !INPUT PARAMETERS: 
 !
+      INTEGER,          INTENT(IN) :: IU_FILE ! Logical unit number
       CHARACTER(LEN=*), INTENT(IN) :: NAME    ! GAMAP short tracer name
       CHARACTER(LEN=*), INTENT(IN) :: FNAME   ! GAMAP long tracer name
       REAL*4,           INTENT(IN) :: MWT     ! Molecular weight [kg/mole]
@@ -631,14 +635,15 @@
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE WRITE_SEPARATOR( DIAG )
+      SUBROUTINE WRITE_SEPARATOR( IU_FILE, DIAG )
 !
 ! !USES:
 !
-      USE FILE_MOD, ONLY : IU_FILE, IOERROR
+      USE FILE_MOD, ONLY : IOERROR
 !
 ! !INPUT PARAMETERS: 
 !
+      INTEGER, INTENT(IN) :: IU_FILE
       INTEGER, INTENT(IN) :: DIAG   ! GEOS-Chem diagnostic number
 ! 
 ! !REVISION HISTORY: 

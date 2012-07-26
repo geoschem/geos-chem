@@ -54,6 +54,8 @@
 !  (10) Replace GEMISNOX (from CMN_NOX) with a module variable (bmy, 10/3/07)
 !******************************************************************************
 !
+      USE inquireMod, ONLY : findFreeLUN
+
       IMPLICIT NONE
 #     include "define.h"
 
@@ -137,7 +139,7 @@
       ! References to F90 modules
       USE BPCH2_MOD,     ONLY : GET_RES_EXT
       USE DIRECTORY_MOD, ONLY : DATA_DIR
-      USE FILE_MOD,      ONLY : IU_FILE, IOERROR
+      USE FILE_MOD,      ONLY : IOERROR
       USE TIME_MOD,      ONLY : GET_MONTH
 
       USE CMN_SIZE_MOD    ! Size parameters
@@ -145,7 +147,7 @@
       ! Local variables
       LOGICAL, SAVE      :: FIRST     = .TRUE.
       INTEGER, SAVE      :: LASTMONTH = -99
-      INTEGER            :: I, J, K, IOS
+      INTEGER            :: I, J, K, IU_FILE, IOS
 
       ! Conversion factor from [kg NO2/4h] to [molec NO2/s]
       REAL*8             :: CONV=9.0927d+20
@@ -190,6 +192,7 @@
      &              MONTHSTR( GET_MONTH() ) // GET_RES_EXT()
 
          ! Open file
+         IU_FILE = findFreeLUN()
          OPEN( IU_FILE, FILE=TRIM( FILENAME ), STATUS='OLD', IOSTAT=IOS)
          IF ( IOS /= 0 ) CALL IOERROR( IOS, IU_FILE, 'readair:1' )
 

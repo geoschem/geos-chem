@@ -8,7 +8,9 @@ MODULE GC_CHEMDR
 
   CONTAINS
 
-    SUBROUTINE DO_GC_CHEM(GC_STATE, GC_MET, NI, NJ, NL, NCNST)!MMR, SPECHUM , T_IN      ,                      &
+    SUBROUTINE DO_GC_CHEM(GC_STATE, GC_MET, am_I_Root, NI, NJ, NL, NCNST)
+
+!                    MMR, SPECHUM , T_IN      ,                            &
 !                    PMID_IN     , PDEL_IN    , PINT_IN,                   &
 !                    ALBEDO_IN   , CLTOT_IN, LANDFRAC, PBLHT         ,     &
 !                    PRECL_IN , PRECC_IN, PTROP_IN  , TREFHT         ,     &
@@ -54,7 +56,6 @@ MODULE GC_CHEMDR
       USE COMODE_MOD,   ONLY : AIRDENS, CSPEC_FULL
       USE TRACER_MOD,   ONLY : TCVV
       USE TRACERID_MOD                !, ONLY : IDTNOX
-      USE TROPOPAUSE_MOD, ONLY: LMIN, LMAX ! THIS WILL BE AN ISSUE B/C OF INVERTED PRESSURE LEVELS
       
       USE PRESSURE_MOD, ONLY : EXTERNAL_PEDGE !PEDGE, PMID
 
@@ -66,6 +67,7 @@ MODULE GC_CHEMDR
       TYPE(GC_MET_LOCAL), INTENT(INOUT) :: GC_MET
       
       INTEGER, INTENT(IN) :: NI, NJ, NL, NCNST
+      LOGICAL, INTENT(IN) :: am_I_Root
 
       !----------------------------------------
       ! LINK DATA FIELDS FROM BCC TO GEOS-CHEM
@@ -192,7 +194,7 @@ MODULE GC_CHEMDR
 
 ! TESTING SECTION
 !<><><><><><><><><><><><><><><><><><><><><><>
-      CALL DUMP_GC_CONFIG
+      CALL DUMP_GC_CONFIG(am_I_Root)
 
 
 
@@ -228,10 +230,6 @@ MODULE GC_CHEMDR
       EXT_SJVALUE = 1.E-13
       EXT_COPROD  = 1.E-15
       EXT_COLOSS  = 0.9E-15
-
-      LMIN = 4
-
-      LMAX = 22
 
       ! SET 2-D VARS
       TO3 = GC_MET%TO3    ! TOTAL COLUMN O3 BURDEN. SIMPLY A GUESS. SHOULD BE IN DOBSON UNITS
@@ -295,17 +293,11 @@ MODULE GC_CHEMDR
       TAUCLI(:,:,:)  = GC_MET%TAUCLI !CICEWP  ! OPT DEPTH OF ICE CLOUDS [UNITLESS]
       TAUCLW(:,:,:)  = GC_MET%TAUCLW !CLIQWP  ! OPT DEPTH OF H2O CLOUDS [UNITLESS]
 
-      ! CALCULATE PBL LEVEL INDEX
-
-!      CALL GET_PBLLEV(PBLHT,ZMID,NCOL,PBL_TOP_L(:,:))
-
-!      !UPDATE AIRMASS QUANTITIES
-!!      CALL AIRQNT(GC_MET)
 
       !CALL CHEMISTRY
       CSPEC_FULL = GC_STATE%CSPEC
 
-      CALL DO_CHEMISTRY(GC_STATE, GC_MET)
+      CALL DO_CHEMISTRY(am_I_Root, NI, NJ, NL, GC_STATE, GC_MET)
 
       GC_STATE%CSPEC = CSPEC_FULL
       !REINTERFACE WITH GCM: FROM GEOS-CHEM TO BCC

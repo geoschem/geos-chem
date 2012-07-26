@@ -628,11 +628,17 @@
 !\\
 ! !INTERFACE:
 !
+#if defined( DEVEL )
+      SUBROUTINE SET_TIMESTEPS( am_I_Root, CHEMISTRY, CONVECTION, DYNAMICS,  
+     &                          EMISSION,  UNIT_CONV,  DIAGNOS )
+#else
       SUBROUTINE SET_TIMESTEPS( CHEMISTRY, CONVECTION, DYNAMICS,  
      &                          EMISSION,  UNIT_CONV,  DIAGNOS )
+#endif
 !
 ! !INPUT PARAMETERS:
 !
+      LOGICAL, INTENT(IN) :: am_I_Root
       INTEGER, INTENT(IN) :: CHEMISTRY    ! Chemistry  timestep [min]
       INTEGER, INTENT(IN) :: CONVECTION   ! Convection timestep [min]
       INTEGER, INTENT(IN) :: DYNAMICS     ! Dynamic    timestep [min]
@@ -674,6 +680,7 @@
       Hg2_DIAG = 0
 
       ! Echo to stdout
+      IF(am_I_Root) THEN
       WRITE( 6, '(/,a)' ) 'SET_TIMESTEPS: setting GEOS-Chem timesteps!'
       WRITE( 6, '(  a)' ) '-------------------------------------------'
       WRITE( 6, '(''Chemistry  Timestep [min] : '', i4 )' ) TS_CHEM
@@ -682,6 +689,7 @@
       WRITE( 6, '(''Emission   Timestep [min] : '', i4 )' ) TS_EMIS
       WRITE( 6, '(''Unit Conv  Timestep [min] : '', i4 )' ) TS_UNIT
       WRITE( 6, '(''Diagnostic Timestep [min] : '', i4 )' ) TS_DIAG
+      END IF
 
       ! Return to calling program
       END SUBROUTINE SET_TIMESTEPS

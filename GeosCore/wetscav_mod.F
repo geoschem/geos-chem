@@ -641,7 +641,7 @@
       !=================================================================
       
       ! Saturation vap press of Ice [Pa] -- divide by 100 for [hPa]
-      write(*,*) 'E_ICE:', TK
+!      write(*,*) 'E_ICE:', TK
       VALUE = ( 10d0**( A/TK + B ) ) / 100d0 
 
       END FUNCTION E_ICE
@@ -6506,7 +6506,7 @@
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE WETDEPID
+      SUBROUTINE WETDEPID(am_I_Root)
 !
 ! !USES:
 !
@@ -6533,6 +6533,10 @@
       USE TRACERID_MOD, ONLY : IDTHOBr,   IDTHBr,    IDTBr2
 
       USE CMN_SIZE_MOD       ! Size parameters
+
+! !INPUT VARIABLES:
+
+      LOGICAL, INTENT(IN) :: am_I_Root
 ! 
 ! !REVISION HISTORY: 
 !  08 Nov 2002 - R. Yantosca - Initial version
@@ -6855,6 +6859,7 @@
       !=================================================================
       ! Echo list of soluble tracers to the screen
       !=================================================================
+      IF(am_I_Root) THEN
       WRITE( 6, '(/,a,/)' ) 'WETDEPID: List of soluble tracers: '
       WRITE( 6, '(a)  '   ) '  #             Name  Tracer Mol Wt'
       WRITE( 6, '(a)'     ) '                      Number g/mole'
@@ -6866,6 +6871,8 @@
      &        NN, TRIM( TRACER_NAME(N) ), N, TRACER_MW_G(N)
       ENDDO
       
+      END IF
+
       END SUBROUTINE WETDEPID
 !EOC
 !------------------------------------------------------------------------------

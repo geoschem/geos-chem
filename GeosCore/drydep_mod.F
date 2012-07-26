@@ -33,6 +33,7 @@
       USE TIME_MOD,       ONLY : GET_TS_CHEM    ! Chemistry timestep
       USE TRACER_MOD                            ! Tracer array STT etc.
       USE TRACERID_MOD                          ! Tracer ID flags
+      USE inquireMod, ONLY  : findFreeLUN
 
       IMPLICIT NONE
 
@@ -2231,6 +2232,8 @@
       USE m_netcdf_io_read
       USE m_netcdf_io_readattr
       USE m_netcdf_io_close
+      USE DIRECTORY_MOD, ONLY : DATA_DIR
+      USE FILE_MOD,      ONLY : IOERROR
       
 #     include "netcdf.inc"
 !
@@ -2328,6 +2331,11 @@
       !----------------------------------------
       ! VARIABLE: DRYCOEFF
       !----------------------------------------
+      ! Open file
+      IUNIT = findFreeLUN()
+      OPEN( IUNIT, FILE=TRIM( FILENAME ), FORM='FORMATTED', 
+     &             STATUS='OLD',          IOSTAT=IOS )
+      IF ( IOS /= 0 ) CALL IOERROR( IOS, IUNIT, 'modin:1' ) 
 
       ! Variable name
       v_name = "DRYCOEFF"
@@ -2489,6 +2497,11 @@
       !----------------------------------------
       ! VARIABLE: IRAC
       !----------------------------------------
+      ! Open file
+      IU_FILE = findFreeLUN()
+      OPEN( IU_FILE, FILE=TRIM( FILENAME ), STATUS='OLD', 
+     &               FORM='FORMATTED',      IOSTAT=IOS )
+      IF ( IOS /= 0 ) CALL IOERROR( IOS, IU_FILE, 'rddrycf:1' )
 
       ! Variable name
       v_name = "IRAC"
@@ -3913,7 +3926,60 @@
 !\\
 ! !INTERFACE:
 !
+
+#if defined( DEVEL ) 
+      SUBROUTINE INIT_DRYDEP(am_I_Root)
+#else
       SUBROUTINE INIT_DRYDEP
+#endif
+!
+! !USES:
+!
+      USE ERROR_MOD,    ONLY : ALLOC_ERR
+      USE LOGICAL_MOD,  ONLY : LDRYD
+      USE TRACER_MOD,   ONLY : ITS_A_MERCURY_SIM
+      USE TRACER_MOD,   ONLY : N_TRACERS, SALA_REDGE_um, SALC_REDGE_um
+      USE TRACERID_MOD, ONLY : IDTPB,     IDTBE7,        IDTNOX
+      USE TRACERID_MOD, ONLY : IDTOX,     IDTPAN,        IDTHNO3 
+      USE TRACERID_MOD, ONLY : IDTH2O2,   IDTPMN,        IDTPPN  
+      USE TRACERID_MOD, ONLY : IDTISN2,   IDTR4N2,       IDTCH2O 
+      USE TRACERID_MOD, ONLY : IDTN2O5,   IDTSO2,        IDTSO4  
+      USE TRACERID_MOD, ONLY : IDTSO4S,   IDTMSA,        IDTNH3  
+      USE TRACERID_MOD, ONLY : IDTNH4,    IDTNIT,        IDTNITS 
+      USE TRACERID_MOD, ONLY : IDTAS,     IDTAHS,        IDTLET  
+      USE TRACERID_MOD, ONLY : IDTSO4aq,  IDTNH4aq,      IDTBCPI 
+      USE TRACERID_MOD, ONLY : IDTOCPI,   IDTBCPO,       IDTOCPO 
+      USE TRACERID_MOD, ONLY : IDTALPH,   IDTLIMO,       IDTALCO 
+      USE TRACERID_MOD, ONLY : IDTSOG1,   IDTSOG2,       IDTSOG3 
+      USE TRACERID_MOD, ONLY : IDTSOG4,   IDTSOA1,       IDTSOA2       
+      USE TRACERID_MOD, ONLY : IDTSOA3,   IDTSOA4,       IDTDST1
+      ! (hotp 5/25/09)
+      USE TRACERID_MOD, ONLY : IDTSOA5,   IDTSOG5
+      USE TRACERID_MOD, ONLY : IDTDST2,   IDTDST3,       IDTDST4
+      USE TRACERID_MOD, ONLY : IDTSALA,   IDTSALC,       Id_Hg2
+      USE TRACERID_MOD, ONLY : ID_HgP,    ID_Hg_tot
+      USE TRACERID_MOD, ONLY : ID_Hg0 !eck added 19jul06
+      USE TRACERID_MOD, ONLY : IDTH2,     IDTHD
+      USE TRACERID_MOD, ONLY : IDTGLYX,   IDTMGLY
+      USE TRACERID_MOD, ONLY : IDTSOAG,   IDTSOAM
+      USE TRACERID_MOD, ONLY : IDTGLYC
+      USE TRACERID_MOD, ONLY : IDTAPAN, IDTENPAN, IDTGLPAN
+      USE TRACERID_MOD, ONLY : IDTGPAN, IDTMPAN, IDTNIPAN
+      !add some species (fp, 6/2009)
+      USE TRACERID_MOD, ONLY : IDTPROPNN
+      USE TRACERID_MOD, ONLY : IDTISOPN    
+      USE TRACERID_MOD, ONLY : IDTMMN
+      USE TRACERID_MOD, ONLY : IDTRIP, IDTIEPOX, IDTPYPAN
+      USE TRACERID_MOD, ONLY : IDTMAP
+      USE TRACERID_MOD, ONLY : IDTACET
+      !add drydep for MVK and MACR (jmao,4/2011)
+      USE TRACERID_MOD, ONLY : IDTMVK, IDTMACR
+      
+      USE CMN_SIZE_MOD       ! Size parameters
+
+#if defined( DEVEL )
+      LOGICAL, INTENT(IN) :: am_I_Root
+#endif
 ! 
 ! !REVISION HISTORY: 
 !  (1 ) Added N2O5 as a drydep tracer, w/ the same drydep velocity as
@@ -5036,6 +5102,9 @@
       !=================================================================
       ! Echo information to stdout
       !=================================================================
+#if defined( DEVEL )
+      IF(am_I_Root) THEN
+#endif
       WRITE( 6, '(/,a)' ) 'INIT_DRYDEP: List of dry deposition species:'
       WRITE( 6, '(/,a)'   )
      & '  #   Name  Tracer DEPVEL Henry''s    React.   Molec.  Aerosol?'
@@ -5047,6 +5116,10 @@
          WRITE( 6, 100 ) N, TRIM( DEPNAME(N) ), NTRAIND(N), NDVZIND(N), 
      &                   HSTAR(N),  F0(N),      XMW(N),     AIROSOL(N)
       ENDDO
+#if defined( DEVEL )
+      END IF
+#endif
+
  100  FORMAT( i3, 3x, a4, 2(3x,i3), 4x, es8.1, 2(3x,f6.3), 3x, L3 )
 
       END SUBROUTINE INIT_DRYDEP

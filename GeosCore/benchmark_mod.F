@@ -74,7 +74,7 @@
       ! References to F90 modules
       USE BPCH2_MOD,    ONLY : OPEN_BPCH2_FOR_WRITE, BPCH2             
       USE BPCH2_MOD,    ONLY : GET_HALFPOLAR,        GET_MODELNAME
-      USE FILE_MOD,     ONLY : IU_FILE,              IOERROR
+      USE FILE_MOD,     ONLY : IOERROR
       USE TIME_MOD,     ONLY : EXPAND_DATE,          GET_NYMD
       USE TIME_MOD,     ONLY : GET_NHMS,             GET_TAU
       USE TRACER_MOD,   ONLY : ITS_A_FULLCHEM_SIM,   ITS_A_RnPbBe_SIM
@@ -87,7 +87,7 @@
       LOGICAL, INTENT(IN) :: LBEGIN 
 
       ! Local variables
-      INTEGER             :: N,        NYMD,     NHMS
+      INTEGER             :: IU_FILE,  N,        NYMD,     NHMS
       INTEGER, PARAMETER  :: IFIRST=1, JFIRST=1, LFIRST=1
       INTEGER, PARAMETER  :: CENTER180=1
       INTEGER             :: HALFPOLAR

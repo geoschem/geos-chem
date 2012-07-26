@@ -278,7 +278,7 @@
         ENDIF
 
          ! Echo output
-         WRITE( 6, '(a)' ) '     - INITIALIZE: Diag arrays zeroed!'
+!         WRITE( 6, '(a)' ) '     - INITIALIZE: Diag arrays zeroed!'
       ENDIF  
 
       !================================================================= 
@@ -324,7 +324,7 @@
          IF ( ND43 >               0 ) CTLXRO2N   = 0
 
          ! Echo output
-         WRITE( 6, '(a)' ) '     - INITIALIZE: Diag counters zeroed!'
+!         WRITE( 6, '(a)' ) '     - INITIALIZE: Diag counters zeroed!'
       ENDIF
  
       END SUBROUTINE INITIALIZE

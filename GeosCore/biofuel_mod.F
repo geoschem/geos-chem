@@ -1258,7 +1258,7 @@
 
 !------------------------------------------------------------------------------
 
-      SUBROUTINE SET_BFTRACE
+      SUBROUTINE SET_BFTRACE(am_I_Root)
 !
 !******************************************************************************
 !  Subroutine SET_NBFTRACE sets the NBFTRACE variable with the number of
@@ -1282,6 +1282,9 @@
       USE TRACERID_MOD, ONLY : IDTGLYX,  IDTMGLY,  IDTBENZ,  IDTTOLU
       USE TRACERID_MOD, ONLY : IDTXYLE,  IDTC2H4,  IDTC2H2,  IDTGLYC
       USE TRACERID_MOD, ONLY : IDTHAC
+
+      LOGICAL, INTENT(IN) :: am_I_Root
+
       !=================================================================
       ! SET_BFTRACE begins here!
       !=================================================================
@@ -1332,7 +1335,7 @@
       IF ( IDBFHAC  /= 0 ) BFTRACE(IDBFHAC ) = IDTHAC
 
       ! Echo biofuel tracer information
-      WRITE( 6, 100 ) BFTRACE( 1:NBFTRACE )
+      IF(am_I_Root) WRITE( 6, 100 ) BFTRACE( 1:NBFTRACE )
  100  FORMAT( 'TRACERID: Biofuel burning tracers        :', 20i3 )
       
       ! Return to calling program

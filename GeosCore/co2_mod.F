@@ -72,6 +72,8 @@
 !     
 ! !USES:
 !     
+      USE inquireMod, ONLY : findFreeLUN
+
       IMPLICIT NONE
 #     include "define.h" 
       PRIVATE 
@@ -1820,7 +1822,8 @@
       USE BPCH2_MOD,      ONLY : GET_TAU0,        READ_BPCH2
       USE DIRECTORY_MOD,  ONLY : DATA_DIR, DATA_DIR_1x1
       USE TRANSFER_MOD,   ONLY : TRANSFER_2D
-      USE FILE_MOD,       ONLY : IU_FILE, IOERROR
+      USE FILE_MOD,       ONLY : IOERROR
+      USE REGRID_1x1_MOD, ONLY : DO_REGRID_G2G_1x1, DO_REGRID_1x1 
       USE TIME_MOD,       ONLY : GET_YEAR, GET_MONTH
       USE REGRID_A2A_MOD, ONLY : DO_REGRID_A2A	
 
@@ -1975,7 +1978,7 @@
       USE BPCH2_MOD,     ONLY : GET_RES_EXT, GET_TAU0, READ_BPCH2
       USE DAO_MOD,       ONLY : BXHEIGHT
       USE DIRECTORY_MOD, ONLY : DATA_DIR 
-      USE FILE_MOD,      ONLY : IU_FILE, IOERROR
+      USE FILE_MOD,      ONLY : IOERROR
       USE TIME_MOD,      ONLY : GET_MONTH, GET_YEAR
 
       USE CMN_SIZE_MOD      ! Size parameters
@@ -2009,7 +2012,8 @@
 !
 ! !LOCAL VARIABLES:
 !
-      INTEGER             :: I, IOS, J, K, L, THISMONTH, N, YEAR
+      INTEGER             :: I, IOS, IU_FILE, J, K, L
+      INTEGER             :: THISMONTH, N, YEAR
       REAL*8              :: ACCO2(IIPAR,JJPAR,20)
       REAL*8              :: FAC, FUEL, DZ(LLPAR), ZH(0:LLPAR)
       REAL*8, PARAMETER   :: TINY = 1d-20
@@ -2052,6 +2056,7 @@
       !=================================================================
 
       ! Open file 
+      IU_FILE = findFreeLUN()
       OPEN( IU_FILE, FILE=FILENAME, STATUS='OLD', IOSTAT=IOS )
       IF ( IOS > 0 ) CALL IOERROR( IOS, IU_FILE, 'read_aviation_co2:1' )
 
@@ -2195,7 +2200,7 @@
       USE BPCH2_MOD,      ONLY : GET_NAME_EXT_2D,   GET_RES_EXT
       USE BPCH2_MOD,      ONLY : GET_TAU0,          READ_BPCH2
       USE DIRECTORY_MOD,  ONLY : DATA_DIR,          DATA_DIR_1x1
-      USE FILE_MOD,       ONLY : IU_FILE,           IOERROR
+      USE FILE_MOD,       ONLY : IOERROR
       USE TRANSFER_MOD,   ONLY : TRANSFER_2D
       USE LOGICAL_MOD,    ONLY : LBIONETORIG,       LBIONETCLIM
       USE REGRID_A2A_MOD, ONLY : DO_REGRID_A2A
@@ -2228,8 +2233,7 @@
 !
 ! !LOCAL VARIABLES:
 !
-      ! Scalars
-      INTEGER                :: I, J, IOS
+      INTEGER                :: I, J, IOS, IU_FILE
       REAL*8		     :: TAU
       CHARACTER(LEN=255)     :: FILENAME
       CHARACTER(LEN=255)     :: LLFILENAME
@@ -2268,6 +2272,7 @@
          WRITE( 6, 100 ) TRIM( FILENAME )
 
          ! Open file
+         IU_FILE = findFreeLUN()
          OPEN( IU_FILE,          FILE=TRIM( FILENAME ), 
      &      FORM='FORMATTED', IOSTAT=IOS )
          IF ( IOS > 0 ) CALL IOERROR(IOS,IU_FILE, 'read_ann_bionet:1')      
@@ -2651,7 +2656,7 @@
 !
       USE BPCH2_MOD,     ONLY : GET_NAME_EXT_2D, GET_RES_EXT
       USE DIRECTORY_MOD, ONLY : DATA_DIR 
-      USE FILE_MOD,      ONLY : IU_FILE, IOERROR
+      USE FILE_MOD,      ONLY : IOERROR
       USE TRANSFER_MOD,  ONLY : TRANSFER_2D
 
       USE CMN_SIZE_MOD      ! Size parameters
@@ -2674,7 +2679,7 @@
 !
 ! !LOCAL VARIABLES:
 !
-      INTEGER                :: I, J, IOS
+      INTEGER                :: I, J, IOS, IU_FILE
       INTEGER                :: TMP(IIPAR,JJPAR)
       INTEGER                :: LAND_REG(IIPAR,JJPAR)
       CHARACTER(LEN=255)     :: LANDFILE
@@ -2695,6 +2700,7 @@
       LAND_REG = 0
 
       ! Open file
+      IU_FILE = findFreeLUN()
       OPEN( IU_FILE, FILE = TRIM( LANDFILE ), 
      &      FORM='FORMATTED', IOSTAT=IOS )
       IF ( IOS > 0 ) CALL IOERROR( IOS, IU_FILE, 'read_regions:1' )      
@@ -2874,7 +2880,7 @@
 !
       USE BPCH2_MOD,     ONLY : GET_NAME_EXT_2D, GET_RES_EXT
       USE DIRECTORY_MOD, ONLY : DATA_DIR 
-      USE FILE_MOD,      ONLY : IU_FILE, IOERROR
+      USE FILE_MOD,      ONLY : IOERROR
       USE TRANSFER_MOD,  ONLY : TRANSFER_2D
 
       USE CMN_SIZE_MOD      ! Size parameters
@@ -2896,7 +2902,7 @@
 !BOC
 !
 ! !LOCAL VARIABLES:
-      INTEGER               :: I, J, IOS
+      INTEGER               :: I, J, IU_FILE, IOS
       INTEGER               :: TMP(IIPAR,JJPAR), OCEAN_REG(IIPAR,JJPAR)
       CHARACTER(LEN=255)    :: OCEANFILE
       CHARACTER(LEN=144)    :: ROW
@@ -2916,6 +2922,7 @@
       OCEAN_REG = 0
 
       ! Open file
+      IU_FILE = findFreeLUN()
       OPEN( IU_FILE, FILE = TRIM( OCEANFILE ), 
      &      FORM='FORMATTED', IOSTAT=IOS )
       IF ( IOS > 0 ) CALL IOERROR( IOS, IU_FILE, 'read_regions:1' )      
@@ -3027,7 +3034,7 @@
 !
       USE BPCH2_MOD,     ONLY : GET_NAME_EXT_2D, GET_RES_EXT
       USE DIRECTORY_MOD, ONLY : DATA_DIR 
-      USE FILE_MOD,      ONLY : IU_FILE, IOERROR
+      USE FILE_MOD,      ONLY : IOERROR
       USE TRANSFER_MOD,  ONLY : TRANSFER_2D
 
       USE CMN_SIZE_MOD      ! Size parameters
@@ -3050,7 +3057,7 @@
 !
 ! !LOCAL VARIABLES:
 !
-      INTEGER                :: I, J, IOS
+      INTEGER                :: I, J, IU_FILE, IOS
       INTEGER                :: TMP(IIPAR,JJPAR), REG_CODE(IIPAR,JJPAR)
       CHARACTER(LEN=255)     :: FILENAME
       CHARACTER(LEN=144)     :: ROW
@@ -3069,6 +3076,7 @@
       REG_CODE = 0
 
       ! Open file
+      IU_FILE = findFreeLUN()
       OPEN( IU_FILE, FILE = TRIM( FILENAME ), 
      &      FORM='FORMATTED', IOSTAT=IOS )
       IF ( IOS > 0 ) CALL IOERROR( IOS, IU_FILE, 'read_regions:1' )      

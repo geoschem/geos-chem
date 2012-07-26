@@ -15,6 +15,10 @@
 !
 ! !USES:
 !
+#if defined( DEVEL )
+      USE inquireMod, ONLY : findFreeLUN
+#endif
+
       IMPLICIT NONE
 #     include "define.h"
       PRIVATE
@@ -1086,6 +1090,7 @@
       USE GLOBAL_GRID_MOD, ONLY : GET_JJJPAR
 
       USE CMN_SIZE_MOD          ! Size parameters
+
 ! 
 ! !REVISION HISTORY: 
 !  07 Sep 2011 - P. Kasibhatla - Initial version, based on GFED2
@@ -1211,6 +1216,9 @@
       Print*, FILENAME
 
       ! Open emission factor file (ASCII format)
+#if define( DEVEL )
+      IU_FILE = findFreeLUN()
+#endif
       OPEN( IU_FILE, FILE=TRIM( FILENAME ), STATUS='OLD', IOSTAT=IOS )
       IF ( IOS /= 0 ) CALL IOERROR( IOS, IU_FILE, 'init_gfed3:1' )
 

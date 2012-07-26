@@ -56,6 +56,8 @@
 !  28 Feb 2012 - R. Yantosca - Removed support for GEOS-3
 !******************************************************************************
 !
+      USE inquireMod, ONLY : findFreeLUN
+
       IMPLICIT NONE
 #     include "define.h"
 
@@ -350,7 +352,7 @@
 
       ! Local variables
       LOGICAL, SAVE          :: FIRST = .TRUE.
-      LOGICAL                :: IT_EXISTS
+      LOGICAL                :: IT_EXISTS, IS_OPEN
       INTEGER                :: IOS, IUNIT
       CHARACTER(LEN=8)       :: IDENT
       CHARACTER(LEN=255)     :: A6_FILE
@@ -398,7 +400,8 @@
          ENDIF
 
          ! Close previously opened A-3 file
-         CLOSE( IU_A6 )
+	 INQUIRE(IU_A6, OPENED=IS_OPEN)
+         IF(IS_OPEN) CLOSE( IU_A6 )
 
          ! Make sure the file unit is valid before we open the file
          IF ( .not. FILE_EXISTS( IU_A6 ) ) THEN
@@ -407,6 +410,7 @@
          ENDIF
 
          ! Open the file
+         IU_A6 = findFreeLUN()
          OPEN( UNIT   = IU_A6,         FILE   = TRIM( PATH ),
      &         STATUS = 'OLD',         ACCESS = 'SEQUENTIAL',  
      &         FORM   = 'UNFORMATTED', IOSTAT = IOS )

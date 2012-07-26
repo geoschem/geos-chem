@@ -1274,7 +1274,7 @@
 ! !USES:
 !
       USE BPCH2_MOD,        ONLY : OPEN_BPCH2_FOR_READ
-      USE FILE_MOD,         ONLY : IU_FILE, IOERROR
+      USE FILE_MOD,         ONLY : IOERROR
       USE LOGICAL_MOD,      ONLY : LICARTT
       USE TRANSFER_MOD,     ONLY : TRANSFER_2D
       USE SCALE_ANTHRO_MOD, ONLY : GET_ANNUAL_SCALAR
@@ -1313,7 +1313,7 @@
 !
 ! !LOCAL VARIABLES:
 !
-      INTEGER           :: I,  J,  L,  N,  IOS
+      INTEGER           :: I,  IU_FILE, J,  L,  N,  IOS
       INTEGER           :: NTRACER,   NSKIP
       INTEGER           :: HALFPOLAR, CENTER180
       INTEGER           :: NI,        NJ,        NL

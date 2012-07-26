@@ -19,6 +19,7 @@
 !
       USE LOGICAL_MOD,   ONLY : LNLPBL ! (Lin, 03/31/09)
       USE VDIFF_PRE_MOD, ONLY : emis_save ! (Lin, 03/31/09)
+      USE inquireMod, ONLY : findFreeLUN
 
       IMPLICIT NONE
 #     include "define.h"
@@ -1577,6 +1578,7 @@
 !$OMP+PRIVATE( Kt1, Kt2, AREASS1, AREASS2, SO2_ss, Kt1N, Kt2N          )
 !$OMP+PRIVATE( PSO4E, PSO4F, XX                                        )
 !$OMP+SCHEDULE( DYNAMIC )
+      write(*,*) 'SULFATE_MOD::', LLPAR, LLTROP
 #if defined( DEVEL )
       DO L = 1, LLPAR 
 #else
@@ -7281,7 +7283,7 @@
       USE BPCH2_MOD,     ONLY : GET_RES_EXT, GET_TAU0, READ_BPCH2
       USE DAO_MOD,       ONLY : BXHEIGHT
       USE DIRECTORY_MOD, ONLY : DATA_DIR 
-      USE FILE_MOD,      ONLY : IU_FILE, IOERROR
+      USE FILE_MOD,      ONLY : IOERROR
 
       USE CMN_SIZE_MOD        ! Size parameters
 !
@@ -7305,7 +7307,7 @@
 !
 ! !LOCAL VARIABLES:
 !
-      INTEGER                :: I, IOS, J, K, L
+      INTEGER                :: I, IOS, IU_FILE, J, K, L
       REAL*8                 :: ACSO2(IIPAR,JJPAR,20)
       REAL*8                 :: FAC, FUEL, DZ(LLPAR), ZH(0:LLPAR)
       CHARACTER(LEN=255)     :: FILENAME
@@ -7341,6 +7343,7 @@
       !=================================================================
 
       ! Open file 
+      IU_FILE = findFreeLUN()
       OPEN( IU_FILE, FILE=FILENAME, STATUS='OLD', IOSTAT=IOS )
       IF ( IOS > 0 ) CALL IOERROR( IOS, IU_FILE, 'read_aircraft_so2:1' )
 

@@ -70,10 +70,10 @@
       CALL JV_INDEX 
 
       ! Read in JPL spectral data set (e.g. X-sections, quantum yields)
-      CALL RD_TJPL( IU_FASTJ, 'jv_spec.dat' )
+      CALL RD_TJPL( IU_FASTJ, 'jv_spec.dat___.rc' )
 
       ! Read in aerosol optics to be used to calculate AODs (clh)
-      CALL RD_AOD( IU_FASTJ, 'jv_spec_aod.dat' )
+      CALL RD_AOD( IU_FASTJ, 'jv_spec_aod.dat___.rc' )
 
       ! Read in T & O3 climatology (cf. Nagatani/92 and McPeters/91)
 !------------------------------------------------------------------------------

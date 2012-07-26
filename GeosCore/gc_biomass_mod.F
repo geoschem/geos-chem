@@ -161,6 +161,8 @@
 !  (35) Modification for 1 x 1.25 grid (lok, bmy, 1/13/10)
 !******************************************************************************
 !
+      USE inquireMod, ONLY : findFreeLUN
+
       IMPLICIT NONE
 #     include "define.h"
 
@@ -2046,7 +2048,7 @@
 
       ! Local variables
       INTEGER                :: THEYEAR, IPICK, CTM_lat, CTM_lon
-      INTEGER                :: II, JJ, KK, LL, AS, IMONTH, JYEAR
+      INTEGER                :: II, JJ, KK, LL, N, AS, IMONTH, JYEAR
       INTEGER, SAVE          :: IFIRSTCALL = 1 
       REAL*8                 :: CONVERT_lon, READINTOMS(NMONTHSAI), TAU
 
@@ -2072,9 +2074,10 @@
          IF ( AS / = 0 ) CALL ALLOC_ERR( 'TOMSAISCALE' )
 
          ! Read TOMS Aerosol index data
-         OPEN( 199, FILE = TRIM( DATA_DIR ) // 'TOMSAI', STATUS='OLD' )
+         N = findFreeLUN()
+         OPEN( N, FILE = TRIM( DATA_DIR ) // 'TOMSAI', STATUS='OLD' )
          DO JJ=1,NAIREGIONS
-            READ( 199, * ) readinTOMS
+            READ( N, * ) readinTOMS
             
             II=0
             DO KK=1,NAIYEARS
@@ -2085,7 +2088,7 @@
             ENDDO
 
          ENDDO
-         CLOSE(199)
+         CLOSE(N)
       ENDIF
 
       !=================================================================

@@ -1,5 +1,5 @@
 ! $Id: readchem.f,v 1.2 2010/03/15 19:33:21 ccarouge Exp $
-      SUBROUTINE READCHEM 
+      SUBROUTINE READCHEM(am_I_Root)
 !
 !******************************************************************************
 !  Subroutine READCHEM reads species 2names, chemical rxns, and photolysis 
@@ -45,6 +45,7 @@
       USE DRYDEP_MOD,  ONLY : MAXDEP
       USE ERROR_MOD,   ONLY : GEOS_CHEM_STOP
       USE DIAG_PL_MOD, ONLY : SETJFAM, SETPL
+      USE inquireMod,  ONLY : findFreeLUN
 
       !FP_ISOP (6/2009)
       USE ERROR_MOD,   ONLY : DEBUG_MSG
@@ -55,6 +56,7 @@
       USE COMODE_LOOP_MOD  ! SMVGEAR II arrays
 
       IMPLICIT NONE
+      LOGICAL, INTENT(IN) :: am_I_Root
 
 !
 ! *********************************************************************
@@ -194,6 +196,8 @@
        DEFPRAT(I,:)        = 0.d0
  49   CONTINUE
 !
+      PRINT *,"READCHEM: KGLC=",KGLC
+      IF(am_I_Root) PRINT *,"READCHEM: IO93=",IO93
       READ(KGLC,21)  HEADING 
       !WRITE(6,21) HEADING 
  13   READ(KGLC,21)  HEADING 
@@ -364,7 +368,7 @@
       IF ( LFAMILY ) THEN
 
          ! Find species and rxns for ND65 diagnostic families
-         CALL SETJFAM( NACTIVE, NINAC )
+         CALL SETJFAM( NACTIVE, NINAC, am_I_Root )
 
          ! Reset quantities after SETJFAM 
          NSPEC(NCS)  = NACTIVE - 1
@@ -403,6 +407,8 @@
 ! * PRINT SPECIES INFORMATION IF IOSPEC = 1 + PRINT MASS BALANCE INFO * 
 ! *********************************************************************
 !
+      IF(am_I_Root) THEN
+
       IF (IOSPEC.EQ.1) THEN 
 
        ! Write species header
@@ -412,22 +418,24 @@
        WRITE( IO93, 22      )
 
        ! Write species to "smv2.log"
-       DO 25 N = 1, NGAS
+       DO N = 1, NGAS
           WRITE(IO93,24) N, NAMEGAS(N), WTGAS(  N), QBKGAS(N)
- 25    CONTINUE
+       END DO
        IF (NINAC.GT.0)  WRITE(IO93,28)(NAMEGAS(NGAS+N),N=1,NINAC)
        IF (NSDEAD.GT.0) WRITE(IO93,31)(NAMD(N),N=1,NSDEAD)
       END IF
 !
-      WRITE(6,*)
+      PRINT *,' '
       DO 77 I = 1, NMASBAL
        IF (MBCOMP(I,MB1).GT.0) THEN 
         WRITE(6,98) NAMEMB(I) 
         WRITE(6,99)(WTMB( I,JMBCOMP(I,J,MB1),MB1),
      1              NAMEGAS(JMBCOMP(I,J,MB1)), J = 1, MBCOMP(I,MB1))
        ENDIF 
- 77   CONTINUE 
-!
+ 77   CONTINUE
+
+      END IF
+
  19   FORMAT('SPECIES ACTIVITY IS UNDEFINED ',A14,' TYPE = ',A2   )
  23   FORMAT('SPECIES FOR THIS RUN.  PHYSICAL CONSTS AND BOUNDARY', 
      1 ' CONDITIONS ALSO GIVEN.')
@@ -1111,15 +1119,17 @@
        DO 502 NCS    = 1, NCSGAS 
 
         ! Write reaction header
+	IF(am_I_Root) THEN
         WRITE( IO93, '(/,a)' ) REPEAT( '=', 79 )
         WRITE( IO93, 520     ) TRIM( CHEMTYP(NCS) )
         WRITE( IO93, '(a,/)' ) REPEAT( '=', 79 )
         WRITE( IO93, 521     )
+        END IF
 
         DO 500 NK    = 1, NTRATES(NCS) 
 
          ! Write photo rxn header
-         IF ( NK .EQ. NRATES(NCS)+1 ) THEN
+         IF ( NK .EQ. NRATES(NCS)+1 .AND. am_I_Root) THEN
             WRITE( IO93, '(/,a)' ) REPEAT( '=', 79 ) 
             WRITE( IO93, 525     ) TRIM( CHEMTYP(NCS) )
             WRITE( IO93, '(a,/)' ) REPEAT( '=', 79 ) 
@@ -1138,10 +1148,12 @@
  490     CONTINUE
 !
          RINP(5)    = '='
+	 IF(am_I_Root) THEN
          WRITE(IO93,510) NK,ARR(NK,NCS),BRR(NK,NCS),KCRR(NK,NCS),
      1                FCV(NK,NCS),XINP(1),'+',XINP(2),
      2                '+',XINP(3),(RINP(I),PINP(I),XINP(I),
      3                I = 5,NPRODUC(NK,NCS))
+         END IF
  500    CONTINUE 
  502   CONTINUE 
       ENDIF
@@ -1210,17 +1222,18 @@
 ! RH100   -- deliquescence point, relative humidity below which we
 !            have no wet aerosols
 !
-	OPEN(7,FILE='chemga.dat',FORM='FORMATTED',STATUS='OLD')
-	READ(7,*)
-	READ(7,610) ASTKCF
-	READ(7,*)
-        READ(7,610)
-	READ(7,*)
-	READ(7,620) MWARSL
-	READ(7,610) RUARSL
-	READ(7,630) RH100
-	READ(7,620) IARSFA
-	CLOSE(7)
+        I = findFreeLUN()
+	OPEN(I,FILE='chemga.dat___.rc',FORM='FORMATTED',STATUS='OLD')
+	READ(I,*)
+	READ(I,610) ASTKCF
+	READ(I,*)
+        READ(I,610)
+	READ(I,*)
+	READ(I,620) MWARSL
+	READ(I,610) RUARSL
+	READ(I,630) RH100
+	READ(I,620) IARSFA
+	CLOSE(I)
  610	FORMAT(E10.3)
  620  FORMAT(I10)
  630  FORMAT(F10.2)
@@ -1232,7 +1245,7 @@
 !
       ! Call SETPL to setup ND65 prod/loss diagnostic
       ! SETPL must be called before JSPARSE (ljm, bmy, 5/9/03)
-      IF ( LFAMILY ) CALL SETPL
+      IF ( LFAMILY ) CALL SETPL(am_I_Root)
 
       ! IFSOLVE = 1 means we are calling the chemistry solver
       IF ( IFSOLVE .EQ. 1 ) THEN
@@ -1241,7 +1254,7 @@
          DO NCS = 1, NCSGAS
 
             ! Set up sparse matrix stuff
-            CALL JSPARSE
+            CALL JSPARSE(am_I_Root)
 
             !===========================================================
             ! Determine which species are ND65 families and which are 

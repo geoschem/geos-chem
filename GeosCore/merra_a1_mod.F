@@ -15,6 +15,8 @@
 !
 ! !USES:
 !
+      USE inquireMod, ONLY : findFreeLUN
+
       IMPLICIT NONE
 #     include "define.h"
       PRIVATE
@@ -163,7 +165,7 @@
 ! !LOCAL VARIABLES:
 !
       LOGICAL            :: DO_RESET
-      LOGICAL            :: IT_EXISTS
+      LOGICAL            :: IT_EXISTS, IS_OPEN
       INTEGER            :: IOS
       CHARACTER(LEN=2)   :: DUM
       CHARACTER(LEN=8)   :: IDENT
@@ -202,7 +204,8 @@
      &          TRIM( GEOS_DIR ) // TRIM( A1_FILE )
 
          ! Close previously opened A-3 file
-         CLOSE( IU_A1 )
+	 INQUIRE(IU_A1, OPENED=IS_OPEN)
+         IF(IS_OPEN) CLOSE( IU_A1 )
 
          ! Make sure the file unit is valid before we open the file
          IF ( .not. FILE_EXISTS( IU_A1 ) ) THEN
@@ -215,6 +218,7 @@
          !---------------------------
 
          ! Open the file
+         IU_A1 = findFreeLUN()
          OPEN( UNIT   = IU_A1,         FILE   = TRIM( PATH ),
      &         STATUS = 'OLD',         ACCESS = 'SEQUENTIAL',  
      &         FORM   = 'UNFORMATTED', IOSTAT = IOS )

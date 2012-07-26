@@ -15,6 +15,8 @@
 !
 ! !USES:
 !
+      USE inquireMod, ONLY : findFreeLUN
+
       IMPLICIT NONE
 #     include "define.h"
       PRIVATE
@@ -992,16 +994,17 @@
      &              'dust_200203/NSP.dust.' // GET_RES_EXT()
 
          ! Open file
-         OPEN( 65, FILE=FILENAME,       STATUS='OLD', 
+         N = findFreeLUN()
+         OPEN( N, FILE=FILENAME,       STATUS='OLD', 
      &             FORM= 'UNFORMATTED', IOSTAT=IOS )
          IF ( IOS > 0 ) CALL IOERROR( IOS, 65, 'SRC_DUST_GINOUX:1' )
 
          ! Read data
-         READ( 65, IOSTAT=IOS ) ARRAY
+         READ( N, IOSTAT=IOS ) ARRAY
          IF ( IOS > 0 ) CALL IOERROR( IOS, 65, 'SRC_DUST_GINOUX:2' )
 
          ! Close file
-         CLOSE( 65 )
+         CLOSE( N )
 
          ! Cast to REAL*8
          SRCE_FUNC = ARRAY

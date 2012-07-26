@@ -1,5 +1,5 @@
 ! $Id: jsparse.f,v 1.1 2009/09/16 14:06:23 bmy Exp $
-      SUBROUTINE JSPARSE
+      SUBROUTINE JSPARSE(am_I_Root)
 !
 !******************************************************************************
 !  Subroutine JSPARSE sets up the sparse-matrix arrays for SMVGEAR II.
@@ -24,6 +24,7 @@
       IMPLICIT NONE
 #     include "define.h"
 
+      INTEGER, INTENT(IN) :: am_I_Root
 !
 ! *********************************************************************
 ! ************        WRITTEN BY MARK JACOBSON (1993)      ************
@@ -308,7 +309,7 @@
             IF (ISPC1.GT.0) ISPC1 = INEWOLD(ISPC1,NCS)
             IF (ISPC2.GT.0) ISPC2 = INEWOLD(ISPC2,NCS)
             IF (ISPC3.GT.0) ISPC3 = INEWOLD(ISPC3,NCS)
-            WRITE(IO93,155) NREPT, NK,NAMENCS(ISPC1,NCS), 
+            IF(am_I_Root) WRITE(IO93,155) NREPT, NK,NAMENCS(ISPC1,NCS), 
      1                   NAMENCS(ISPC2,NCS), NAMENCS(ISPC3,NCS)
  155        FORMAT('REPEAT REACTANTS: ',I5,I5,3(1X,A14))
            ENDIF 
@@ -574,16 +575,16 @@
  260   CONTINUE
 !
        IF (IOREAC.EQ.1) THEN
-        WRITE(IO93,*)
-        WRITE(IO93,240)
+        IF(am_I_Root) WRITE(IO93,*)
+        IF(am_I_Root) WRITE(IO93,240)
         DO 270 K = 1, NTSPEC(NCS) 
          J       = INEWOLD(K,NCS) 
-         WRITE(IO93,250)NAMENCS( J,NCS),NUMGAINT(K,NCS),NUMGAIN( K,NCS),
+         IF(am_I_Root) WRITE(IO93,250)NAMENCS( J,NCS),NUMGAINT(K,NCS),NUMGAIN( K,NCS),
      1                NUMLOST( K,NCS),NUMLOSS( K,NCS),NUMGAINT(K,NCS) 
      2               -NUMLOST( K,NCS)-NUMGAIN( K,NCS)+NUMLOSS( K,NCS),
      3                FRACGAIN(K,NCS),NUMGFRT( K,NCS)
  270    CONTINUE
-        WRITE(IO93,250) 'OVERALL       ',NGTSUM, NGSUM, NLTSUM, NLSUM,
+        IF(am_I_Root) WRITE(IO93,250) 'OVERALL       ',NGTSUM, NGSUM, NLTSUM, NLSUM,
      1               NGTSUM - NLTSUM - NGSUM + NLSUM, 0., NGFSUM
        ENDIF
 !
@@ -602,7 +603,7 @@
 ! NMASBAL = NUMBER OF MASS BALANCE GROUPS (E.G. S, N, C ARE GROUPS)
 ! WTMB(1) = NUMBER OF ATOMS OF A GIVEN MASS BALANCE SPECIES PER MOLECULE 
 !
-       WRITE(IO93,360) CHEMTYP(NCS)
+       IF(am_I_Root) WRITE(IO93,360) CHEMTYP(NCS)
 !
        IF (NCS.LE.NCSGAS) THEN
 ! 
@@ -612,7 +613,7 @@
          IF (MBCOMP(N,MB1).GT.0) THEN 
           TNUMGN     = 0
           TNUMLS     = 0
-          WRITE(IO93,325) NAMEMB(N)
+          IF(am_I_Root) WRITE(IO93,325) NAMEMB(N)
           DO 380 J   = 1, MBCOMP(N,MB1) 
            JGAS      = JMBCOMP(N,J,MB1)
            JNEW      = MAPPL(JGAS,NCS)
@@ -621,14 +622,14 @@
            TNUMLSA   = NUMLOSS(JNEW,NCS) * WTMB(N,JGAS,MB1) 
            TNUMGN    = TNUMGN + TNUMGNA
            TNUMLS    = TNUMLS + TNUMLSA
-           WRITE(IO93,320) NAMEGAS(JGAS), TNUMGNA, TNUMLSA, 0 
+           IF(am_I_Root) WRITE(IO93,320) NAMEGAS(JGAS), TNUMGNA, TNUMLSA, 0 
  380      CONTINUE
-          WRITE(IO93,370) TNUMGN, TNUMLS, TNUMGN - TNUMLS 
+          IF(am_I_Root) WRITE(IO93,370) TNUMGN, TNUMLS, TNUMGN - TNUMLS 
          ENDIF 
  385    CONTINUE
        ENDIF
 !
-       WRITE(IO93,375) NALLRAT(NCSP), NALLRAT(NCS) - NALLRAT(NCSP),
+       IF(am_I_Root) WRITE(IO93,375) NALLRAT(NCSP), NALLRAT(NCS) - NALLRAT(NCSP),
      1                 NALLRAT(NCS) 
 !
  360   FORMAT(/'CHANGE IN MOLES DUE TO ',A14,' CHEMISTRY')
@@ -702,7 +703,7 @@
 ! *   SET DECOMPOSITION AND BACK-SUBSTITUTION SPARSE-MATRIX ARRAYS    *
 ! *********************************************************************
 !
-       CALL KSPARSE
+       CALL KSPARSE(am_I_Root)
 
 !
 ! *********************************************************************

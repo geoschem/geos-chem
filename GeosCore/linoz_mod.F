@@ -15,6 +15,8 @@
 !
 ! !USES:
 !
+      USE inquireMod, ONLY : findFreeLUN
+
       IMPLICIT NONE
 #     include "define.h"
       PRIVATE
@@ -778,7 +780,6 @@ c-------- K=1 is at the top of atmosphere ------------------------------
 !
 ! !USES:
 !
-      USE FILE_MOD,      ONLY : IU_FILE        ! Logical unit #
       USE FILE_MOD,      ONLY : IOERROR        ! I/O error subroutine
       USE DIRECTORY_MOD, ONLY : DATA_DIR_1x1   ! Data directory path
 
@@ -799,7 +800,7 @@ c-------- K=1 is at the top of atmosphere ------------------------------
 ! !LOCAL VARIABLES:
 ! 
       LOGICAL, SAVE      :: FIRST = .TRUE.
-      INTEGER            :: K,       J,   M, NTBLS, IOS
+      INTEGER            :: IU_FILE, K, J, M, NTBLS, IOS
       REAL*8             :: TMAX,    TMIN
       CHARACTER(LEN=80)  :: HEADING, TITL1
       CHARACTER(LEN=255) :: FILENAME
@@ -819,6 +820,7 @@ c-------- K=1 is at the top of atmosphere ------------------------------
  100  FORMAT( '     - LINOZ_READ: Reading ', a )
 
       ! new std z*=2km levels from model:  z*=10,12,...(25*2)+8 km
+      IU_FILE = findFreeLUN()
       OPEN( IU_FILE, FILE=TRIM( FILENAME ), STATUS='OLD', 
      &               FORM='FORMATTED',      IOSTAT=IOS )
 

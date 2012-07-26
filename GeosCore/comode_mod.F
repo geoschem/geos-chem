@@ -109,7 +109,7 @@
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE INIT_COMODE
+      SUBROUTINE INIT_COMODE(am_I_Root)
 !
 ! !USES:
 !
@@ -119,6 +119,10 @@
       
       USE CMN_SIZE_MOD
       USE COMODE_LOOP_MOD 
+
+! !INPUT VARIABLES:
+
+      LOGICAL, INTENT(IN) :: am_I_Root
 ! 
 ! !REVISION HISTORY: 
 !  31 Aug 2000 - R. Yantosca - Initial version
@@ -138,7 +142,7 @@
       !=================================================================
       ! INIT_COMODE begins here!
       !=================================================================
-      WRITE( 6, 100 )
+      IF(am_I_Root) WRITE( 6, 100 )
  100  FORMAT( '     - INIT_COMODE: Allocating arrays for SMVGEAR...' )
 
       !----------------------------------

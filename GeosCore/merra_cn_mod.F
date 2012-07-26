@@ -18,6 +18,7 @@
       USE CMN_SIZE_MOD              ! Size parameters
       USE CMN_DIAG_MOD              ! NDxx flags
       USE CMN_GCTM_MOD              ! g0
+      USE inquireMod, ONLY : findFreeLUN
 
       IMPLICIT NONE
 #     include "define.h"
@@ -91,7 +92,7 @@
 ! !LOCAL VARIABLES:
 !
       LOGICAL, SAVE      :: FIRST = .TRUE.
-      LOGICAL            :: IT_EXISTS
+      LOGICAL            :: IT_EXISTS, IS_OPEN
       INTEGER            :: IOS, IUNIT
       CHARACTER(LEN=8)   :: IDENT
       CHARACTER(LEN=255) :: GEOS_DIR
@@ -122,7 +123,8 @@
      &          TRIM( GEOS_DIR ) // TRIM( CN_FILE )
 
          ! Close previously opened CN file
-         CLOSE( IU_CN )
+       	 INQUIRE(IU_CN, OPENED=IS_OPEN)
+         IF(IS_OPEN) CLOSE( IU_CN )
 
          ! Make sure the file unit is valid before we open it 
          IF ( .not. FILE_EXISTS( IU_CN ) ) THEN 
@@ -135,6 +137,7 @@
          !---------------------------
 
          ! Open the file
+         IU_CN = findFreeLUN()
          OPEN( UNIT   = IU_CN,         FILE   = TRIM( PATH ),
      &         STATUS = 'OLD',         ACCESS = 'SEQUENTIAL',  
      &         FORM   = 'UNFORMATTED', IOSTAT = IOS )

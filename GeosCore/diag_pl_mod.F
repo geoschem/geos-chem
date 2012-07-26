@@ -97,7 +97,7 @@
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE SETJFAM( NACTIVE, NINAC )
+      SUBROUTINE SETJFAM( NACTIVE, NINAC, am_I_Root )
 !
 ! !USES:
 !
@@ -109,6 +109,7 @@
 ! 
       INTEGER, INTENT(INOUT) :: NACTIVE   ! # of active chemical species
       INTEGER, INTENT(INOUT) :: NINAC     ! # of inactive chemical species
+      LOGICAL, INTENT(IN)    :: am_I_Root
 !
 ! !REMARKS:
 !  At present, the ND65 diagnostic works only with SMVGEAR and not with
@@ -168,10 +169,12 @@
       !=================================================================
       ! Write out family names to "smv2.log" file
       !=================================================================
+      IF(am_I_Root) THEN
       WRITE( IO93, '(/,a)'      ) REPEAT( '=', 79 )
       WRITE( IO93, '(a)'        ) 'Families for prod or loss output:'
       WRITE( IO93, '(a,/)'      ) REPEAT( '=', 79 )
       WRITE( IO93, '(10(a7,1x))' ) ( TRIM( NAMEGAS(J) ), J=JGAS0,JGAS )
+      END IF
 
       END SUBROUTINE SETJFAM
 !EOC
@@ -189,7 +192,7 @@
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE SETPL
+      SUBROUTINE SETPL(am_I_Root)
 !
 ! !USES:
 !
@@ -199,6 +202,10 @@
 
       USE CMN_SIZE_MOD
       USE COMODE_LOOP_MOD
+!
+! !INPUT VARIABLES:
+!
+      LOGICAL, INTENT(IN) :: am_I_Root
 ! 
 ! !REMARKS:
 !  At present, the ND65 diagnostic works only with SMVGEAR and not with
@@ -287,11 +294,11 @@
          IF ( PORL(F) == 'LOSS' ) PORL(F) = 'loss'
 
          ! Write to "smv2.log"
-         WRITE( IO93, 104 ) F, FAM_NAME(F), PORL(F), FAM_NMEM(F) 
+	 IF(am_I_Root) WRITE( IO93, 104 ) F, FAM_NAME(F), PORL(F), FAM_NMEM(F) 
  104     FORMAT(/, 'Family ', i2, ' is ' ,a5, ' ', a4,
      &             ' with ',  i2, ' members' )
 
-         WRITE( IO93, 105 ) 
+         IF(am_I_Root) WRITE( IO93, 105 )
  105     FORMAT( 'ind', 2x, 'species', 1x, 'jnum', 2x, 'coef' )
 
          !------------------
@@ -308,7 +315,7 @@
             ENDDO
 
             ! Write to "smv2.log"
-            WRITE( IO93, '(i2,3x,a5,2x,i3,2x,f5.1 )') 
+            IF(am_I_Root) WRITE( IO93, '(i2,3x,a5,2x,i3,2x,f5.1 )') 
      &           F, FAM_MEMB(M,F), IFAMMEM(M,F), COEFMEM(M,F)
          ENDDO
       ENDDO
@@ -467,15 +474,17 @@
       !=================================================================
       ! Write out prod or loss reactions to "smv2.log"
       !=================================================================
+      IF(am_I_Root) THEN
       WRITE( IO93, '(/,a)' ) REPEAT( '=', 79 )
       WRITE( IO93, '(a)'   ) 'Here are the prod and loss reactions'
       WRITE( IO93, '(a)'   ) REPEAT( '=', 79 )
+      END IF
 
       ! Loop over P/L diagnostic families
       DO N = 1, NFAMILIES
 
          ! Write family header
-         WRITE( IO93, 587 ) NAMEGAS(IFAM(N)), PORL(N), NNPL(N)
+         IF(am_I_Root) WRITE( IO93, 587 ) NAMEGAS(IFAM(N)), PORL(N), NNPL(N)
  587     FORMAT( /, 'Family ',a5,' ',a4,' -- no of rxns is  ',i3, 5x,
      &           'coefficient')
 
@@ -504,7 +513,7 @@
                !----------------------
                ! Write kinetic rxns
                !----------------------
-               WRITE(IO93,588) I, NK, NAMEGAS(IREAC1),
+               IF(am_I_Root) WRITE(IO93,588) I, NK, NAMEGAS(IREAC1),
      &              NAMEGAS(IREAC2),  NAMEGAS(IPROD1),
      &              NAMEGAS(IPROD2),  EXTRACHAR, COEFPL(I,N)
 
@@ -516,7 +525,7 @@
                !----------------------
                ! Write photo rxns
                !----------------------
-               WRITE(IO93,589) I, NK, NAMEGAS(IREAC1),
+               IF(am_I_Root) WRITE(IO93,589) I, NK, NAMEGAS(IREAC1),
      &              NAMEGAS(IPROD1),  NAMEGAS(IPROD2), 
      &              EXTRACHAR,        COEFPL(I,N)
 

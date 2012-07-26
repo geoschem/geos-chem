@@ -16,6 +16,8 @@
 !
 ! !USES:
 !
+      USE inquireMod, ONLY : findFreeLUN
+
       IMPLICIT NONE
 #     include "define.h"
       PRIVATE
@@ -190,7 +192,6 @@
 !
       USE FILE_MOD,   ONLY : FILE_EXISTS
       USE FILE_MOD,   ONLY : IOERROR
-      USE FILE_MOD,   ONLY : IU_FILE
       USE FILE_MOD,   ONLY : IU_PLANE
       USE TIME_MOD,   ONLY : EXPAND_DATE
       USE TIME_MOD,   ONLY : GET_NYMD
@@ -223,6 +224,7 @@
 ! !LOCAL VARIABLES:
 !
       LOGICAL, SAVE      :: FIRST = .TRUE.
+      INTEGER            :: IU_FILE
       INTEGER            :: I,  IP,      N,   TEMP, LENGTH
       INTEGER            :: RN, COUNTER, IOS, NYMD, NHMS
       CHARACTER(LEN=7)   :: NAMES
@@ -274,14 +276,15 @@
       !=================================================================
       ! Open file and read info
       !=================================================================
+      IU_FILE = findFreeLUN()
       OPEN( IU_FILE, FILE=TRIM( INF ), IOSTAT=IOS )
       IF ( IOS /= 0 ) CALL IOERROR( IOS, IU_FILE, 'setup_planeflight:1')
 
       ! Read variables to be output -- sort into PVAR array by type
-      CALL READ_VARIABLES
+      CALL READ_VARIABLES(IU_FILE)
 
       ! Read information about each point (date/time/lon/lat/alt)
-      CALL READ_POINTS
+      CALL READ_POINTS(IU_FILE)
 
       ! Close the file
       CLOSE( IU_FILE )
@@ -315,6 +318,7 @@
       CLOSE( IU_PLANE )
 
       ! Open new file
+      IU_PLANE = findFreeLUN()
       OPEN( IU_PLANE, FILE=TRIM( OUTF ), STATUS='UNKNOWN', IOSTAT=IOS )
 
       ! Error check
@@ -348,12 +352,11 @@
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE READ_VARIABLES
+      SUBROUTINE READ_VARIABLES(IU_FILE)
 !
 ! !USES:
 !
       USE ERROR_MOD,  ONLY : GEOS_CHEM_STOP
-      USE FILE_MOD,   ONLY : IU_FILE
       USE FILE_MOD,   ONLY : IOERROR
       USE TRACER_MOD, ONLY : N_TRACERS
       USE TRACER_MOD, ONLY : ITS_A_FULLCHEM_SIM
@@ -383,6 +386,7 @@
 !EOP
 !------------------------------------------------------------------------------
 !BOC
+      INTEGER, INTENT(IN) :: IU_FILE
 !
 ! !LOCAL VARIABLES:
 !
@@ -635,13 +639,13 @@
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE READ_POINTS
+      SUBROUTINE READ_POINTS(IU_FILE)
 !
 ! !USES:
 !
       USE BPCH2_MOD, ONLY : GET_TAU0
       USE ERROR_MOD, ONLY : GEOS_CHEM_STOP
-      USE FILE_MOD,  ONLY : IU_FILE, IOERROR
+      USE FILE_MOD,  ONLY : IOERROR
 ! 
 ! !REVISION HISTORY: 
 !  30 Jul 2002 - M. Evans    - Initial version
@@ -651,6 +655,7 @@
 !EOP
 !------------------------------------------------------------------------------
 !BOC
+      INTEGER, INTENT(IN) :: IU_FILE
 !
 ! !LOCAL VARIABLES:
 !
@@ -1842,7 +1847,6 @@
 !
       USE ERROR_MOD, ONLY : ALLOC_ERR
       USE ERROR_MOD, ONLY : GEOS_CHEM_STOP
-      USE FILE_MOD,  ONLY : IU_FILE
       USE FILE_MOD,  ONLY : IOERROR
 
       USE CMN_SIZE_MOD    ! Size Parameters
@@ -1865,7 +1869,7 @@
 ! !LOCAL VARIABLES:
 !
       LOGICAL           :: IS_INIT = .FALSE.
-      INTEGER           :: N, AS, IOS
+      INTEGER           :: N, AS, IOS, IU_FILE
       CHARACTER(LEN=20) :: LINE
 
       !=================================================================
@@ -1873,6 +1877,7 @@
       !=================================================================
 
       ! Open file 
+      IU_FILE = findFreeLUN()
       OPEN( IU_FILE, FILE=TRIM( INF ), IOSTAT=IOS )
       IF ( IOS /= 0 ) CALL IOERROR( IOS, IU_FILE, 'init_planeflight:1' )
 

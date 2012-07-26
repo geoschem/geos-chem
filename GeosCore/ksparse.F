@@ -1,5 +1,5 @@
 ! $Id: ksparse.f,v 1.1 2009/09/16 14:06:22 bmy Exp $
-      SUBROUTINE KSPARSE
+      SUBROUTINE KSPARSE(am_I_Root)
 !
 !******************************************************************************
 !  Subroutine KSPARSE sets up the sparse-matrix arrays, and also arrays for
@@ -20,6 +20,7 @@
       IMPLICIT NONE
 #     include "define.h"
 
+      LOGICAL, INTENT(IN) :: am_I_Root
 !
 ! *********************************************************************
 ! ************        WRITTEN BY MARK JACOBSON (1993)      ************
@@ -553,7 +554,7 @@
      5        'DIMENSION: MXCOUNT4 = ',I5,' VARIABLE: MBSUB    = ',I5,/, 
      6        'DIMENSION: MXARRAY  = ',I5,' VARIABLE: IARRAY2  = ',I5)
 !
-        WRITE(IO93,655)NCSP,KOUNT0A,KOUNT0,KNTARRAY,IARRAY2,ICNTA,ICNTB,
+        IF(am_I_Root) WRITE(IO93,655)NCSP,KOUNT0A,KOUNT0,KNTARRAY,IARRAY2,ICNTA,ICNTB,
      1               JCNTA,JCNTB,KCNTA,KCNTB,MCNTA,MCNTB 
 !
  655    FORMAT(/'PARAM    POSS MATRIX POINTS -- NONZEROS -- NCSP=',I4/

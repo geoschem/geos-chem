@@ -73,7 +73,6 @@
 !
       USE BPCH2_MOD,            ONLY : GET_NAME_EXT_2D
       USE BPCH2_MOD,            ONLY : GET_RES_EXT
-      USE FILE_MOD,             ONLY : IU_FILE
       USE FILE_MOD,             ONLY : IOERROR
       USE DIRECTORY_MOD,        ONLY : DATA_DIR
       USE FUTURE_EMISSIONS_MOD, ONLY : GET_FUTURE_SCALE_ALK4ff
@@ -263,7 +262,7 @@
 ! !USES:
 !
       USE BPCH2_MOD,        ONLY : OPEN_BPCH2_FOR_READ
-      USE FILE_MOD,         ONLY : IU_FILE, IOERROR
+      USE FILE_MOD,         ONLY : IOERROR
       USE TRANSFER_MOD,     ONLY : TRANSFER_2D
       USE SCALE_ANTHRO_MOD, ONLY : GET_ANNUAL_SCALAR
       USE TIME_MOD,         ONLY : GET_YEAR
@@ -302,7 +301,7 @@
 !
 ! !LOCAL VARIABLES:
 !
-      INTEGER           :: I, J, L, N, IOS
+      INTEGER           :: I, IU_FILE, J, L, N, IOS
       INTEGER           :: NI, NJ, NL
       INTEGER           :: IFIRST, JFIRST, LFIRST
       INTEGER           :: NTRACER, NSKIP
