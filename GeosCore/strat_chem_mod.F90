@@ -224,48 +224,52 @@ CONTAINS
        !$OMP PARALLEL DO &
        !$OMP DEFAULT( SHARED ) &
        !$OMP PRIVATE( I, J, L, N, NN, k, P, dt, M0 )
-       DO J=1,JJPAR
-          DO I=1,IIPAR
+       DO J = 1, JJPAR
+       DO I = 1, IIPAR
 
-             ! Add to tropopause level aggregator for later determining STE flux
-             TpauseL(I,J) = TpauseL(I,J) + GET_TPAUSE_LEVEL(I,J)
+          ! Add to tropopause level aggregator for later determining STE flux
+          TpauseL(I,J) = TpauseL(I,J) + GET_TPAUSE_LEVEL(I,J)
 
-             ! NOTE: For compatibility w/ the GEOS-5 GCM, we can no longer
-             ! assume a minimum tropopause level.  Loop from 1,LLPAR instead.
-             ! (bmy, 7/18/12)
-             DO L = 1, LLPAR
+          ! NOTE: For compatibility w/ the GEOS-5 GCM, we can no longer
+          ! assume a minimum tropopause level.  Loop from 1,LLPAR instead.
+          ! (bmy, 7/18/12)
+          DO L = 1, LLPAR
 
-                IF ( ITS_IN_THE_TROP( I, J, L ) ) CYCLE
+             ! Skip tropospheric boxes
+             IF ( ITS_IN_THE_TROP( I, J, L ) ) CYCLE
 
-                DO N=1,NSCHEM ! Tracer index of active strat chem species
-                   NN = Strat_TrID_GC(N) ! Tracer index in STT
+             ! Loop over active strat chem species
+             DO N = 1, NSCHEM 
 
-                   ! Skip Ox; we'll always use either Linoz or Synoz
-                   IF ( ITS_A_FULLCHEM_SIM() .and. NN .eq. IDTOx ) CYCLE
+                ! Tracer index in STT
+                NN = Strat_TrID_GC(N) 
 
-                   dt = DTCHEM                              ! timestep [s]
-                   k = LOSS(I,J,L,N)                        ! loss freq [s-1]
-                   P = PROD(I,J,L,N) * AD(I,J,L) / TCVV(NN) ! prod term [kg s-1]
-                   M0 = STT(I,J,L,NN)                       ! initial mass [kg]
+                ! Skip Ox; we'll always use either Linoz or Synoz
+                IF ( ITS_A_FULLCHEM_SIM() .and. NN .eq. IDTOx ) CYCLE
 
-                   ! No prod or loss at all
-                   IF ( k .eq. 0d0 .and. P .eq. 0d0 ) CYCLE
+                dt = DTCHEM                               ! timestep [s]
+                k  = LOSS(I,J,L,N)                        ! loss freq [s-1]
+                P  = PROD(I,J,L,N) * AD(I,J,L) / TCVV(NN) ! prod term [kg s-1]
+                M0 = STT(I,J,L,NN)                        ! initial mass [kg]
 
-                   ! Simple analytic solution to dM/dt = P - kM over [0,t]
-                   IF ( k .gt. 0d0 ) then
-                      STT(I,J,L,NN) = M0 * EXP(-k*dt) + (P/k)*(1d0-EXP(-k*dt))
-                   ELSE
-                      STT(I,J,L,NN) = M0 + P*dt
-                   ENDIF
+                ! No prod or loss at all
+                IF ( k .eq. 0d0 .and. P .eq. 0d0 ) CYCLE
 
-                   ! Aggregate chemical tendency [kg box-1]
-                   SCHEM_TEND(I,J,L,NN) = SCHEM_TEND(I,J,L,NN) + &
-                                                       ( STT(I,J,L,NN) - M0 )
+                ! Simple analytic solution to dM/dt = P - kM over [0,t]
+                IF ( k .gt. 0d0 ) then
+                   STT(I,J,L,NN) = M0 * EXP(-k*dt) + (P/k)*(1d0-EXP(-k*dt))
+                ELSE
+                   STT(I,J,L,NN) = M0 + P*dt
+                ENDIF
 
-                ENDDO ! N
-             ENDDO ! L
-          ENDDO ! I
-       ENDDO ! J
+                ! Aggregate chemical tendency [kg box-1]
+                SCHEM_TEND(I,J,L,NN) = SCHEM_TEND(I,J,L,NN) + &
+                                            ( STT(I,J,L,NN) - M0 )
+
+             ENDDO ! N
+          ENDDO    ! L
+       ENDDO       ! I
+       ENDDO       ! J
        !$OMP END PARALLEL DO
 
        !===================================
@@ -290,7 +294,7 @@ CONTAINS
 
        ! Put tendency into diagnostic array [kg box-1]
        SCHEM_TEND(:,:,:,IDTOX) = SCHEM_TEND(:,:,:,IDTOX) + &
-                                                  ( STT(:,:,:,IDTOX) - BEFORE )
+                                      ( STT(:,:,:,IDTOX) - BEFORE )
 
        !========================================
        ! Reactions with OH
@@ -303,65 +307,63 @@ CONTAINS
        !$OMP PARALLEL DO &
        !$OMP DEFAULT( SHARED ) &
        !$OMP PRIVATE( I, J, L, M, TK, RC, RDLOSS, T1L, mOH )
-       DO J=1,JJPAR
-          DO I=1,IIPAR  
+       DO L = 1, LLPAR
+       DO J = 1, JJPAR
+       DO I = 1, IIPAR  
 
-             ! NOTE: For compatibility w/ the GEOS-5 GCM, we can no longer
-             ! assume a minimum tropopause level.  Loop from 1,LLPAR instead.
-             ! (bmy, 7/18/12)
-             DO L = 1, LLPAR
+          ! NOTE: For compatibility w/ the GEOS-5 GCM, we can no longer
+          ! assume a minimum tropopause level.  Loop from 1,LLPAR instead.
+          ! (bmy, 7/18/12)
+          !DO L = 1, LLPAR
 
-                IF ( ITS_IN_THE_TROP(I,J,L) ) CYCLE
+          ! Skip tropospheric boxes
+          IF ( ITS_IN_THE_TROP(I,J,L) ) CYCLE
 
-                ! Density of air at grid box (I,J,L) in [molec cm-3]
-                M = AD(I,J,L) / BOXVL(I,J,L) * XNUMOLAIR
+          ! Density of air at grid box (I,J,L) in [molec cm-3]
+          M   = AD(I,J,L) / BOXVL(I,J,L) * XNUMOLAIR
 
-                ! OH number density [molec cm-3]
-                mOH = M * STRAT_OH(I,J,L)
+          ! OH number density [molec cm-3]
+          mOH = M * STRAT_OH(I,J,L)
 
-                ! Temperature at grid box (I,J,L) in K
-                TK = T(I,J,L)
+          ! Temperature at grid box (I,J,L) in K
+          TK  = T(I,J,L)
 
-                !============!
-                ! CH3Br + OH !
-                !============!
-                IF ( IDTCH3Br .gt. 0 ) THEN
-                   RC = 2.35d-12 * EXP ( - 1300.d0 / TK ) 
-                   RDLOSS = MIN( RC * mOH * DTCHEM, 1d0 )
-                   T1L    = STT(I,J,L,IDTCH3Br) * RDLOSS
-                   STT(I,J,L,IDTCH3Br) = STT(I,J,L,IDTCH3Br) - T1L
-                   SCHEM_TEND(I,J,L,IDTCH3Br) = &
-                     SCHEM_TEND(I,J,L,IDTCH3Br) - T1L
-                ENDIF
+          !============
+          ! CH3Br + OH 
+          !============
+          IF ( IDTCH3Br .gt. 0 ) THEN
+             RC                         = 2.35d-12 * EXP ( - 1300.d0 / TK ) 
+             RDLOSS                     = MIN( RC * mOH * DTCHEM, 1d0 )
+             T1L                        = STT(I,J,L,IDTCH3Br)        * RDLOSS
+             STT(I,J,L,IDTCH3Br)        = STT(I,J,L,IDTCH3Br)        - T1L
+             SCHEM_TEND(I,J,L,IDTCH3Br) = SCHEM_TEND(I,J,L,IDTCH3Br) - T1L
+          ENDIF
 
-                !============!
-                ! CHBr3 + OH !
-                !============!
-                IF ( IDTCHBr3 .gt. 0 ) THEN
-                   RC = 1.35d-12 * EXP ( - 600.d0 / TK ) 
-                   RDLOSS = MIN( RC * mOH * DTCHEM, 1d0 )
-                   T1L    = STT(I,J,L,IDTCHBr3) * RDLOSS
-                   STT(I,J,L,IDTCHBr3) = STT(I,J,L,IDTCHBr3) - T1L
-                   SCHEM_TEND(I,J,L,IDTCHBr3) = &
-                     SCHEM_TEND(I,J,L,IDTCHBr3) - T1L
-                ENDIF
+          !============
+          ! CHBr3 + OH 
+          !============
+          IF ( IDTCHBr3 .gt. 0 ) THEN
+             RC                         = 1.35d-12 * EXP ( - 600.d0 / TK ) 
+             RDLOSS                     = MIN( RC * mOH * DTCHEM, 1d0 )
+             T1L                        = STT(I,J,L,IDTCHBr3)        * RDLOSS
+             STT(I,J,L,IDTCHBr3)        = STT(I,J,L,IDTCHBr3)        - T1L
+             SCHEM_TEND(I,J,L,IDTCHBr3) = SCHEM_TEND(I,J,L,IDTCHBr3) - T1L
+          ENDIF
+             
+          !=============
+          ! CH2Br2 + OH 
+          !=============
+          IF ( IDTCH2Br2 .gt. 0 ) THEN
+             RC                         = 2.00d-12 * EXP ( -  840.d0 / TK )
+             RDLOSS                     = MIN( RC * mOH * DTCHEM, 1d0 )
+             T1L                        = STT(I,J,L,IDTCH2Br2)       * RDLOSS
+             STT(I,J,L,IDTCH2Br2)       = STT(I,J,L,IDTCH2Br2)       - T1L
+             SCHEM_TEND(I,J,L,IDTCHBr3) = SCHEM_TEND(I,J,L,IDTCHBr3) - T1L
+          ENDIF
 
-                !=============!
-                ! CH2Br2 + OH !
-                !=============!
-                IF ( IDTCH2Br2 .gt. 0 ) THEN
-                   RC = 2.00d-12 * EXP ( -  840.d0 / TK )
-                   RDLOSS = MIN( RC * mOH * DTCHEM, 1d0 )
-                   T1L    = STT(I,J,L,IDTCH2Br2) * RDLOSS
-                   STT(I,J,L,IDTCH2Br2) = STT(I,J,L,IDTCH2Br2) - T1L
-                   SCHEM_TEND(I,J,L,IDTCHBr3) = &
-                     SCHEM_TEND(I,J,L,IDTCHBr3) - T1L
-                ENDIF
-
-             ENDDO ! J
-          ENDDO ! I
+       ENDDO ! I
+       ENDDO ! J
        ENDDO ! L
-
        !$OMP END PARALLEL DO
 
        !===============================
@@ -370,22 +372,26 @@ CONTAINS
 
        !$OMP PARALLEL DO &
        !$OMP DEFAULT( SHARED ) &
-       !$OMP PRIVATE( NN, I, J, L, BryDay, BryNight, IJWINDOW )
-       DO NN=1,6
+       !$OMP PRIVATE( NN, BEFORE, I, J, L, IJWINDOW, BryDay, BryNight )
+       DO NN = 1, 6
 
           IF ( GC_Bry_TrID(NN) > 0 ) THEN
 
              ! Make note of inital state for determining tendency later
-             BEFORE = STT(:,:,:,GC_Bry_TrID(NN))
-          
-             DO J=1,JJPAR
-             DO I=1,IIPAR  
-
-             ! NOTE: For compatibility w/ the GEOS-5 GCM, we can no longer
-             ! assume a minimum tropopause level.  Loop from 1,LLPAR instead.
-             ! (bmy, 7/18/12)
              DO L = 1, LLPAR
-                  
+             DO J = 1, JJPAR
+             DO I = 1, IIPAR
+                BEFORE(I,J,L) = STT(I,J,L,GC_Bry_TrID(NN))
+             ENDDO
+             ENDDO
+             ENDDO
+
+             ! Loop over grid boxes
+             DO L = 1, LLPAR
+             DO J = 1, JJPAR
+             DO I = 1, IIPAR  
+                 
+                ! Skip tropospheric boxes
                 IF ( ITS_IN_THE_TROP(I,J,L) ) CYCLE
                    
                 ! Set the Bry boundary conditions. Simulated
@@ -393,31 +399,42 @@ CONTAINS
                 ! (jpp, 6/27/2011)
                 IJWINDOW   = (J-1)*IIPAR + I
                    
-                IF (SUNCOS(IJWINDOW) > 0.d0) THEN
+                IF ( SUNCOS(IJWINDOW) > 0.d0 ) THEN
+
                    ! daytime [ppt] -> [kg]
-                   BryDay = bry_day(I,J,L,NN) &
-                          * 1.d-12 & ! convert from [ppt]
-                          * AD(I,J,L) / TCVV(GC_Bry_TrID(NN))
+                   BryDay                       = bry_day(I,J,L,NN)    &
+                                                * 1.d-12               &
+                                                * AD(I,J,L)            &
+                                                / TCVV(GC_Bry_TrID(NN))
+
                    STT(I,J,L, GC_Bry_TrID(NN) ) = BryDay
+
                 ELSE
+
                    ! nighttime [ppt] -> [kg]
-                   BryNight = bry_night(I,J,L,NN) &
-                            * 1.d-12 & ! convert from [ppt]
-                            * AD(I,J,L) / TCVV(GC_Bry_TrID(NN))
+                   BryNight                     = bry_night(I,J,L,NN)  &
+                                                * 1.d-12               & 
+                                                * AD(I,J,L)            &
+                                                / TCVV(GC_Bry_TrID(NN))
+
                    STT(I,J,L, GC_Bry_TrID(NN) ) = BryNight
-                ENDIF
-                   
+
+                ENDIF                   
              ENDDO
              ENDDO
              ENDDO
 
              ! Put tendency into diagnostic array [kg box-1]
-             SCHEM_TEND(:,:,:,GC_Bry_TrID(NN)) = &
-                SCHEM_TEND(:,:,:,GC_Bry_TrID(NN)) + &
-                ( STT(:,:,:,GC_Bry_TrID(NN)) - BEFORE )
-          
+             DO L = 1, LLPAR
+             DO J = 1, JJPAR
+             DO I = 1, IIPAR
+                SCHEM_TEND(I,J,L,GC_Bry_TrID(NN)) =                    &
+                SCHEM_TEND(I,J,L,GC_Bry_TrID(NN)) +                    &
+                   (   STT(I,J,L,GC_Bry_TrID(NN)) - BEFORE(I,J,L) )
+             ENDDO
+             ENDDO
+             ENDDO 
           ENDIF
-
        ENDDO
        !$OMP END PARALLEL DO
        
@@ -455,10 +472,10 @@ CONTAINS
        !$OMP END PARALLEL DO
 
        ! Aggregate chemical tendency [kg box-1]
-       DO N=1,NSCHEM
+       DO N = 1, NSCHEM
           NN = Strat_TrID_GC(N)
-          SCHEM_TEND(:,:,:,N) = SCHEM_TEND(:,:,:,N) + &
-               ( STT(:,:,:,NN) - STT0(:,:,:,NN) )
+          SCHEM_TEND(:,:,:,N) = SCHEM_TEND(:,:,:,N )  + &
+                                     ( STT(:,:,:,NN) - STT0(:,:,:,NN) )
        ENDDO
 
     !======================================================================
@@ -827,9 +844,9 @@ CONTAINS
     DO J = 1, JGLOB
     DO I = 1, IGLOB
 
-       call NcRd( column, fileID, 'species',           &
-                  (/ I_f2c(I), J_f2c(J),     1, m /),  & ! Start
-                  (/        1,        1, lglob, 1 /)  ) ! Count
+       call NcRd( column, fileID, 'species',            &
+                  (/ I_f2c(I), J_f2c(J),  1,     m /),  & ! Start
+                  (/ 1,        1,         LGLOB, 1 /)  )  ! Count
        array( I, J, : ) = column
 
     ENDDO
@@ -888,7 +905,7 @@ CONTAINS
     ENDDO
     ENDDO
 
-    DO N=1,NSCHEM
+    DO N = 1,NSCHEM
        NN = Strat_TrID_GMI(N)
 
        !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -913,9 +930,9 @@ CONTAINS
        DO J = 1, JGLOB
        DO I = 1, IGLOB
 
-          call NcRd( column, fileID, 'prod',                       &
-                             (/ I_f2c(I), J_f2c(J),     1,  m /),  & ! Start
-                             (/        1,        1, lglob,  1 /)  )  ! Count
+          call NcRd( column, fileID, 'prod',                      &
+                             (/ I_f2c(I), J_f2c(J), 1,     m /),  & ! Start
+                             (/ 1,        1,        LGLOB, 1 /)  )  ! Count
           array( I, J, : ) = column
 
        ENDDO
@@ -927,8 +944,9 @@ CONTAINS
        PROD(:,:,:,N) = ARRAY2
 
        ! Special adjustment for Br2 tracer, which is BrCl in the strat
-       IF ( TRIM(TRACER_NAME(Strat_TrID_GC(N))) .eq. 'Br2' ) &
-                                           PROD(:,:,:,N) = PROD(:,:,:,N) / 2d0
+       IF ( TRIM( TRACER_NAME( Strat_TrID_GC(N) ) ) .eq. 'Br2' ) THEN
+          PROD(:,:,:,N) = PROD(:,:,:,N) / 2d0
+       ENDIF
 
        !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
        ! Read loss frequencies [s^-1]
@@ -938,9 +956,9 @@ CONTAINS
        DO J = 1, JGLOB
        DO I = 1, IGLOB
 
-          call NcRd( column, fileID, 'loss',                       &
-                             (/ I_f2c(I), J_f2c(J),     1,  m /),  & ! Start
-                             (/        1,        1, lglob,  1 /)  )  ! Count
+          call NcRd( column, fileID, 'loss',                      &
+                             (/ I_f2c(I), J_f2c(J), 1,     m /),  & ! Start
+                             (/ 1,        1,        LGLOB, 1 /)  )  ! Count
           array( I, J, : ) = column
 
        ENDDO
