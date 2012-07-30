@@ -129,8 +129,10 @@
 !
 ! !INPUT VARIABLES:
 !
+#if defined( DEVEL )
       INTEGER, INTENT(IN) :: NI, NJ, NL
       LOGICAL, INTENT(IN) :: am_I_Root
+#endif
 !
 ! !REVISION HISTORY: 
 !  (1 ) Now reference DELP, T from "dao_mod.f" since we need to pass this
@@ -283,8 +285,13 @@
  
              ! Initialize FAST-J quantities for computing AOD's
              IF ( FIRST ) THEN
+#if defined( DEVEL )
                 CALL READER( FIRST, am_I_Root )
                 CALL READCHEM(am_I_Root)
+#else
+                CALL READER( FIRST )
+                CALL READCHEM
+#endif
                 CALL INPHOT( LLTROP, NPHOT )
  
                 ! Reset NCS with NCSURBAN

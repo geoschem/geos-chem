@@ -23,7 +23,9 @@
 
       USE CMN_FJ_MOD, ONLY : JPMAX, JPPJ
       USE JV_CMN_MOD
+#if defined( DEVEL )
       USE inquireMod, ONLY : findFreeLUN
+#endif
 
       IMPLICIT NONE
 
@@ -77,7 +79,9 @@
       !================================================================
 
       ! open file
+#if defined( DEVEL )
       NJ1 = findFreeLUN()
+#endif
       OPEN( NJ1, FILE=TRIM( NAMFIL ), STATUS='OLD', IOSTAT=IOS )
 
       ! Error check

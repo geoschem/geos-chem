@@ -19,7 +19,9 @@
 !
       USE LOGICAL_MOD,   ONLY : LNLPBL ! (Lin, 03/31/09)
       USE VDIFF_PRE_MOD, ONLY : emis_save ! (Lin, 03/31/09)
+#if defined( DEVEL )
       USE inquireMod, ONLY : findFreeLUN
+#endif
 
       IMPLICIT NONE
 #     include "define.h"
@@ -1578,7 +1580,7 @@
 !$OMP+PRIVATE( Kt1, Kt2, AREASS1, AREASS2, SO2_ss, Kt1N, Kt2N          )
 !$OMP+PRIVATE( PSO4E, PSO4F, XX                                        )
 !$OMP+SCHEDULE( DYNAMIC )
-      write(*,*) 'SULFATE_MOD::', LLPAR, LLTROP
+
 #if defined( DEVEL )
       DO L = 1, LLPAR 
 #else
@@ -7343,7 +7345,9 @@
       !=================================================================
 
       ! Open file 
+#if defined( DEVEL )
       IU_FILE = findFreeLUN()
+#endif
       OPEN( IU_FILE, FILE=FILENAME, STATUS='OLD', IOSTAT=IOS )
       IF ( IOS > 0 ) CALL IOERROR( IOS, IU_FILE, 'read_aircraft_so2:1' )
 

@@ -18,7 +18,9 @@
 !
       USE CMN_SIZE_MOD              ! Dimensions of arrays
       USE CMN_DIAG_MOD              ! Diagnostic parameters
+#if defined( DEVEL )
       USE inquireMod, ONLY : findFreeLUN
+#endif
 
       IMPLICIT NONE
 #     include "define.h"
@@ -205,7 +207,9 @@
       !=================================================================
 
       ! Open "diaginfo.dat" file for output
+#if defined( DEVEL )
       IU_FILE = findFreeLUN()
+#endif
       OPEN( IU_FILE, FILE=TRIM( DFILE ), STATUS='UNKNOWN', IOSTAT=IOS )
       IF ( IOS /= 0 ) CALL IOERROR( IOS, IU_FILE, 'create_dinfo:1' )
 
@@ -304,7 +308,9 @@
       !=================================================================
 
       ! Open "tracerinfo.dat" file for output
+#if defined( DEVEL )
       IU_FILE = findFreeLUN()
+#endif
       OPEN( IU_FILE, FILE=TRIM( TFILE ), STATUS='UNKNOWN', IOSTAT=IOS )
       IF ( IOS /= 0 ) CALL IOERROR( IOS, IU_FILE, 'create_tinfo:1' )
 
@@ -554,7 +560,7 @@
 
             ! Write tracers to file
             DO T = 1, NTRAC(D)
-               CALL WRITE_TINFO( IU_FILE, NAME(T,D), FNAME(T,D), MWT(T,D), 
+            CALL WRITE_TINFO( IU_FILE, NAME(T,D), FNAME(T,D), MWT(T,D), 
      &                           MOLC(T,D), SCALE(T,D), UNIT(T,D),
      &                           INDEX(T,D) )
             ENDDO
@@ -576,7 +582,8 @@
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE WRITE_TINFO( IU_FILE, NAME, FNAME, MWT, MOLC, SCALE, UNIT, N )
+      SUBROUTINE WRITE_TINFO( IU_FILE, NAME, FNAME, 
+     &                        MWT, MOLC, SCALE, UNIT, N )
 !
 ! !USES:
 !

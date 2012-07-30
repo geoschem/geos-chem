@@ -45,7 +45,9 @@
       USE DRYDEP_MOD,  ONLY : MAXDEP
       USE ERROR_MOD,   ONLY : GEOS_CHEM_STOP
       USE DIAG_PL_MOD, ONLY : SETJFAM, SETPL
+#if defined( DEVEL )
       USE inquireMod,  ONLY : findFreeLUN
+#endif
 
       !FP_ISOP (6/2009)
       USE ERROR_MOD,   ONLY : DEBUG_MSG
@@ -368,7 +370,11 @@
       IF ( LFAMILY ) THEN
 
          ! Find species and rxns for ND65 diagnostic families
+#if defined( DEVEL )
          CALL SETJFAM( NACTIVE, NINAC, am_I_Root )
+#else
+         CALL SETJFAM( NACTIVE, NINAC )
+#endif
 
          ! Reset quantities after SETJFAM 
          NSPEC(NCS)  = NACTIVE - 1
@@ -1222,7 +1228,9 @@
 ! RH100   -- deliquescence point, relative humidity below which we
 !            have no wet aerosols
 !
+#if defined( DEVEL )
         I = findFreeLUN()
+#endif
 	OPEN(I,FILE='chemga.dat___.rc',FORM='FORMATTED',STATUS='OLD')
 	READ(I,*)
 	READ(I,610) ASTKCF
@@ -1245,7 +1253,11 @@
 !
       ! Call SETPL to setup ND65 prod/loss diagnostic
       ! SETPL must be called before JSPARSE (ljm, bmy, 5/9/03)
+#if defined( DEVEL )
       IF ( LFAMILY ) CALL SETPL(am_I_Root)
+#else
+      IF ( LFAMILY ) CALL SETPL
+#endif
 
       ! IFSOLVE = 1 means we are calling the chemistry solver
       IF ( IFSOLVE .EQ. 1 ) THEN

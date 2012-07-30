@@ -110,7 +110,9 @@
 !  01 Mar 2012 - R. Yantosca - Now reference new grid_mod.F90
 !******************************************************************************
 !
+#if defined( DEVEL )
       USE inquireMod, ONLY : findFreeLUN
+#endif
 
       IMPLICIT NONE
 #     include "define.h"
@@ -2194,7 +2196,9 @@
  110  FORMAT( /, 'READ_OCEAN_Hg_RESTART: Reading ', a )
 
       ! Open the binary punch file for input
+#if defined( DEVEL )
       IU_FILE = findFreeLUN()
+#endif
       CALL OPEN_BPCH2_FOR_READ( IU_FILE, FILENAME )
       
       ! Echo more output
@@ -2505,7 +2509,9 @@
  100  FORMAT( '     - MAKE_RESTART_FILE: Writing ', a )
 
       ! Open BPCH file for output
+#if defined( DEVEL )
       IU_FILE = findFreeLUN()
+#endif
       CALL OPEN_BPCH2_FOR_WRITE( IU_FILE, FILENAME )
 
       !---------------------------

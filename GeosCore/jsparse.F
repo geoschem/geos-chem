@@ -579,13 +579,15 @@
         IF(am_I_Root) WRITE(IO93,240)
         DO 270 K = 1, NTSPEC(NCS) 
          J       = INEWOLD(K,NCS) 
-         IF(am_I_Root) WRITE(IO93,250)NAMENCS( J,NCS),NUMGAINT(K,NCS),NUMGAIN( K,NCS),
-     1                NUMLOST( K,NCS),NUMLOSS( K,NCS),NUMGAINT(K,NCS) 
-     2               -NUMLOST( K,NCS)-NUMGAIN( K,NCS)+NUMLOSS( K,NCS),
-     3                FRACGAIN(K,NCS),NUMGFRT( K,NCS)
+         IF(am_I_Root) WRITE(IO93,250)
+     1                NAMENCS( J,NCS),NUMGAINT(K,NCS),NUMGAIN( K,NCS),
+     2                NUMLOST( K,NCS),NUMLOSS( K,NCS),NUMGAINT(K,NCS) 
+     3               -NUMLOST( K,NCS)-NUMGAIN( K,NCS)+NUMLOSS( K,NCS),
+     4                FRACGAIN(K,NCS),NUMGFRT( K,NCS)
  270    CONTINUE
-        IF(am_I_Root) WRITE(IO93,250) 'OVERALL       ',NGTSUM, NGSUM, NLTSUM, NLSUM,
-     1               NGTSUM - NLTSUM - NGSUM + NLSUM, 0., NGFSUM
+        IF(am_I_Root) WRITE(IO93,250) 'OVERALL       ',
+     1               NGTSUM, NGSUM, NLTSUM, NLSUM,
+     2               NGTSUM - NLTSUM - NGSUM + NLSUM, 0., NGFSUM
        ENDIF
 !
        IF (NMOTH(  NCS).GT.MAXGL2.OR.NOLOSP(NCS).GT.MAXGL3.OR.
@@ -629,8 +631,9 @@
  385    CONTINUE
        ENDIF
 !
-       IF(am_I_Root) WRITE(IO93,375) NALLRAT(NCSP), NALLRAT(NCS) - NALLRAT(NCSP),
-     1                 NALLRAT(NCS) 
+       IF(am_I_Root) WRITE(IO93,375) 
+     1                 NALLRAT(NCSP), NALLRAT(NCS) - NALLRAT(NCSP),
+     2                 NALLRAT(NCS) 
 !
  360   FORMAT(/'CHANGE IN MOLES DUE TO ',A14,' CHEMISTRY')
  325   FORMAT('MASS BALANCE GROUP              = ',A14)

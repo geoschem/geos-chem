@@ -109,7 +109,11 @@
 !\\
 ! !INTERFACE:
 !
+#if defined( DEVEL )
       SUBROUTINE INIT_COMODE(am_I_Root)
+#else
+      SUBROUTINE INIT_COMODE
+#endif
 !
 ! !USES:
 !
@@ -122,7 +126,9 @@
 
 ! !INPUT VARIABLES:
 
+#if defined( DEVEL )
       LOGICAL, INTENT(IN) :: am_I_Root
+#endif
 ! 
 ! !REVISION HISTORY: 
 !  31 Aug 2000 - R. Yantosca - Initial version
@@ -142,7 +148,11 @@
       !=================================================================
       ! INIT_COMODE begins here!
       !=================================================================
+#if defined( DEVEL )
       IF(am_I_Root) WRITE( 6, 100 )
+#else
+      WRITE( 6, 100 )
+#endif
  100  FORMAT( '     - INIT_COMODE: Allocating arrays for SMVGEAR...' )
 
       !----------------------------------

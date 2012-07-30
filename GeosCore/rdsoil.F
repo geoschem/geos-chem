@@ -24,7 +24,9 @@
       USE CMN_SIZE_MOD   ! Size parameters
       USE COMMSOIL_MOD ! Soil variables
 
+#if defined( DEVEL )
       USE inquireMod,ONLY : findFreeLUN
+#endif
 
       IMPLICIT NONE
 #     include "define.h"
@@ -111,7 +113,9 @@
  100     FORMAT( '     - RDSOIL: Reading ', a )
 
          ! Open file
+#if defined( DEVEL )
          IUNIT = findFreeLUN()
+#endif
          OPEN( IUNIT, FILE=TRIM( FILENAME ), STATUS='OLD', IOSTAT=IOS )
          IF ( IOS /= 0 ) CALL IOERROR( IOS, IUNIT, 'rdsoil:1' )
 
@@ -140,7 +144,9 @@
          WRITE( 6, 100 ) TRIM( FILENAME )
 
          ! Open file
+#if defined( DEVEL )
          IUNIT = findFreeLUN()
+#endif
          OPEN( IUNIT, FILE=TRIM( FILENAME ), STATUS='OLD', IOSTAT=IOS )
          IF ( IOS /= 0 ) CALL IOERROR( IOS, IUNIT, 'rdsoil:4' )
 
@@ -181,7 +187,9 @@
          WRITE( 6, 100 ) TRIM( FILENAME )
 
          ! Open soil precip file
+#if defined( DEVEL )
          IUNIT = findFreeLUN()
+#endif
          OPEN( IUNIT, FILE=TRIM( FILENAME ), STATUS='OLD', IOSTAT=IOS )
          IF ( IOS /= 0 ) CALL IOERROR( IOS, IUNIT, 'rdsoil:6' )
 

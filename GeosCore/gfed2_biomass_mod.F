@@ -107,7 +107,9 @@
 !  13 Mar 2012 - M. Cooper   - Change regrid algorithm to map_a2a
 !******************************************************************************
 !
+#if defined( DEVEL )
       USE inquireMod, ONLY : findFreeLUN
+#endif
 
       IMPLICIT NONE
 #     include "define.h"
@@ -937,7 +939,9 @@
      &           'GFED2_200601/GFED2_emission_factors_73t.txt'
 
       ! Open emission factor file (ASCII format)
+#if defined( DEVEL )
       IU_FILE = findFreeLUN()
+#endif
       OPEN( IU_FILE, FILE=TRIM( FILENAME ), STATUS='OLD', IOSTAT=IOS )
       IF ( IOS /= 0 ) CALL IOERROR( IOS, IU_FILE, 'init_gfed2:1' )
 

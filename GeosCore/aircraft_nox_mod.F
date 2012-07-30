@@ -54,7 +54,9 @@
 !  (10) Replace GEMISNOX (from CMN_NOX) with a module variable (bmy, 10/3/07)
 !******************************************************************************
 !
+#if defined( DEVEL )
       USE inquireMod, ONLY : findFreeLUN
+#endif
 
       IMPLICIT NONE
 #     include "define.h"
@@ -192,7 +194,9 @@
      &              MONTHSTR( GET_MONTH() ) // GET_RES_EXT()
 
          ! Open file
+#if defined( DEVEL )
          IU_FILE = findFreeLUN()
+#endif
          OPEN( IU_FILE, FILE=TRIM( FILENAME ), STATUS='OLD', IOSTAT=IOS)
          IF ( IOS /= 0 ) CALL IOERROR( IOS, IU_FILE, 'readair:1' )
 

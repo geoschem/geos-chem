@@ -1216,7 +1216,7 @@
       Print*, FILENAME
 
       ! Open emission factor file (ASCII format)
-#if define( DEVEL )
+#if defined( DEVEL )
       IU_FILE = findFreeLUN()
 #endif
       OPEN( IU_FILE, FILE=TRIM( FILENAME ), STATUS='OLD', IOSTAT=IOS )

@@ -34,7 +34,9 @@
       USE ERROR_MOD,  ONLY : GEOS_CHEM_STOP
       USE FILE_MOD,   ONLY : IU_CHEMDAT, IU_SMV2LOG
       USE TIME_MOD,   ONLY : GET_TS_CHEM
+#if defined( DEVEL )
       USE inquireMod, ONLY : findFreeLUN
+#endif
 
 #     include "define.h"
       USE CMN_SIZE_MOD  ! Size parameters
@@ -167,7 +169,9 @@
 ! *********************************************************************
 !
 
+#if defined( DEVEL )
       IU_FILE = findFreeLUN()
+#endif
       OPEN( UNIT=IU_FILE, FILE = "mglob.dat___.rc", ACTION="read",
      &      FORM="formatted", STATUS="old", ACCESS="sequential" )
   
@@ -180,7 +184,8 @@
       READ( IU_FILE, CLGEAR )
       CLOSE( UNIT=IU_FILE )
 
-      IF(am_I_Root) PRINT *,"GEOSCHEM::READER: Successfully read mglob.dat___.rc"
+      IF(am_I_Root) 
+     C     PRINT *,"GEOSCHEM::READER: Successfully read mglob.dat___.rc"
 
       ! NOTE: Redefine CHEMINTV [s] to the value in "input.geos" so 
       ! that we don't have a discrepancy with the value in "mglob.dat" 
@@ -232,16 +237,23 @@
 !                            OPEN MORE FILES 
 ! *********************************************************************
 !
+#if defined( DEVEL )
       IU_CHEMDAT = findFreeLUN()
+#endif
       KGLC = IU_CHEMDAT
-      IF(am_I_Root) PRINT *,"GEOSCHEM::READER: Opening globchem.dat___.rc on unit ",IU_CHEMDAT
+      IF(am_I_Root) 
+     1     PRINT *,
+     2     "GEOSCHEM::READER: Opening globchem.dat___.rc on unit ",
+     3     IU_CHEMDAT
 
       ! Open chemistry mechanism file
       OPEN( KGLC, FILE ='globchem.dat___.rc' )
 
       ! Open "smv2.log" for echoback output as unit #93
       IF(am_I_Root) THEN
+#if defined( DEVEL )
        IU_SMV2LOG = findFreeLUN()
+#endif
        PRINT *,"GEOSCHEM::READER: Opening smv2.log on unit ",IU_SMV2LOG
        IO93 = IU_SMV2LOG
        OPEN( IO93, FILE='smv2.log', STATUS='UNKNOWN' )

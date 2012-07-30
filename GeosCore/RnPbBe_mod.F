@@ -15,7 +15,9 @@
 !
 ! !USES:
 !
+#if defined( DEVEL )
       USE inquireMod, ONLY : findFreeLUN
+#endif
 
       IMPLICIT NONE
 #     include "define.h"
@@ -143,7 +145,9 @@
       FILENAME = TRIM( DATA_DIR ) // 'RnPbBe_200203/7Be.Lal'
 
       ! Open the 7Be file
+#if defined( DEVEL )
       IU_FILE = findFreeLUN()
+#endif
       OPEN( IU_FILE,      FILE=TRIM( FILENAME ), 
      &      STATUS='OLD', IOSTAT=IOS )
       

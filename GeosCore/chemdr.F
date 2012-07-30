@@ -62,8 +62,10 @@
 !
 ! !INPUT VARIABLES:
 !
+#if defined( DEVEL )
       INTEGER, INTENT(IN) :: NI, NJ, NL
       LOGICAL, INTENT(IN) :: am_I_Root
+#endif
 !
 ! !REMARKS:
 !  Important input variables from "dao_mod.f" and "uvalbedo_mod.f":
@@ -218,8 +220,10 @@
 !EOP
 !------------------------------------------------------------------------------
 !BOC
+#if defined( DEVEL )
       TYPE(GC_MET_LOCAL), INTENT(IN)    :: GC_MET
       TYPE(CHEMSTATE),    INTENT(INOUT) :: GC_STATE
+#endif
 !
 ! !LOCAL VARIABLES:
 !
@@ -259,7 +263,11 @@
       !=================================================================
       IF ( FIRSTCHEM ) THEN
          ! Read from data file mglob.dat
+#if defined( DEVEL )
          CALL READER( FIRSTCHEM, am_I_Root )
+#else
+         CALL READER( FIRSTCHEM )
+#endif
          IF ( LPRT ) CALL DEBUG_MSG( '### CHEMDR: after READER' )
 
          ! Set NCS for urban chemistry only (since that is where we
@@ -315,7 +323,11 @@
 
          PRINT *,"CHMEDR: Calling READCHEM"
          ! Read "globchem.dat" chemistry mechanism
+#if defined( DEVEL )
          CALL READCHEM(am_I_Root)
+#else
+         CALL READCHEM
+#endif
          PRINT *,"CHMEDR: Done with READCHEM"
 
          ! Set NCS=NCSURBAN here since we have defined our tropospheric

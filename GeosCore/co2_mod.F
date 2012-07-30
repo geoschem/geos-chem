@@ -72,7 +72,9 @@
 !     
 ! !USES:
 !     
+#if defined( DEVEL )
       USE inquireMod, ONLY : findFreeLUN
+#endif
 
       IMPLICIT NONE
 #     include "define.h" 
@@ -2056,7 +2058,9 @@
       !=================================================================
 
       ! Open file 
+#if defined( DEVEL )
       IU_FILE = findFreeLUN()
+#endif
       OPEN( IU_FILE, FILE=FILENAME, STATUS='OLD', IOSTAT=IOS )
       IF ( IOS > 0 ) CALL IOERROR( IOS, IU_FILE, 'read_aviation_co2:1' )
 
@@ -2272,7 +2276,9 @@
          WRITE( 6, 100 ) TRIM( FILENAME )
 
          ! Open file
+#if defined( DEVEL )
          IU_FILE = findFreeLUN()
+#endif
          OPEN( IU_FILE,          FILE=TRIM( FILENAME ), 
      &      FORM='FORMATTED', IOSTAT=IOS )
          IF ( IOS > 0 ) CALL IOERROR(IOS,IU_FILE, 'read_ann_bionet:1')      
@@ -2700,7 +2706,9 @@
       LAND_REG = 0
 
       ! Open file
+#if defined( DEVEL )
       IU_FILE = findFreeLUN()
+#endif
       OPEN( IU_FILE, FILE = TRIM( LANDFILE ), 
      &      FORM='FORMATTED', IOSTAT=IOS )
       IF ( IOS > 0 ) CALL IOERROR( IOS, IU_FILE, 'read_regions:1' )      
@@ -2922,7 +2930,9 @@
       OCEAN_REG = 0
 
       ! Open file
+#if defined( DEVEL )
       IU_FILE = findFreeLUN()
+#endif
       OPEN( IU_FILE, FILE = TRIM( OCEANFILE ), 
      &      FORM='FORMATTED', IOSTAT=IOS )
       IF ( IOS > 0 ) CALL IOERROR( IOS, IU_FILE, 'read_regions:1' )      
@@ -3076,7 +3086,9 @@
       REG_CODE = 0
 
       ! Open file
+#if defined( DEVEL )
       IU_FILE = findFreeLUN()
+#endif
       OPEN( IU_FILE, FILE = TRIM( FILENAME ), 
      &      FORM='FORMATTED', IOSTAT=IOS )
       IF ( IOS > 0 ) CALL IOERROR( IOS, IU_FILE, 'read_regions:1' )      

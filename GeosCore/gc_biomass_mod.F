@@ -161,7 +161,9 @@
 !  (35) Modification for 1 x 1.25 grid (lok, bmy, 1/13/10)
 !******************************************************************************
 !
+#if defined( DEVEL )
       USE inquireMod, ONLY : findFreeLUN
+#endif
 
       IMPLICIT NONE
 #     include "define.h"
@@ -2074,7 +2076,9 @@
          IF ( AS / = 0 ) CALL ALLOC_ERR( 'TOMSAISCALE' )
 
          ! Read TOMS Aerosol index data
+#if defined( DEVEL )
          N = findFreeLUN()
+#endif
          OPEN( N, FILE = TRIM( DATA_DIR ) // 'TOMSAI', STATUS='OLD' )
          DO JJ=1,NAIREGIONS
             READ( N, * ) readinTOMS

@@ -16,7 +16,9 @@
 !
 ! !USES:
 !
+#if defined( DEVEL )
       USE inquireMod, ONLY : findFreeLUN
+#endif
 
       IMPLICIT NONE
       PRIVATE
@@ -95,7 +97,9 @@
  100  FORMAT( 'READ_PARANOX_LUT: Reading ', a )
 
       ! Open file to read
+#if defined( DEVEL )
       IU_FILE = findFreeLUN()
+#endif
       OPEN( IU_FILE, FILE=TRIM( FILENAME ), FORM="binary", 
      &      IOSTAT=IOS )
       IF ( IOS /= 0 ) CALL IOERROR( IOS, IU_FILE, 'read_paranox_lut:1' )
@@ -123,7 +127,9 @@
  101  FORMAT( 'READ_PARANOX_LUT: Reading ', a )
 
       ! Open file to read
+#if defined( DEVEL )
       IU_FILE = findFreeLUN()
+#endif
       OPEN( IU_FILE, FILE=TRIM( FILENAME ), FORM="BINARY" )
       IF ( IOS /= 0 ) CALL IOERROR( IOS, IU_FILE, 'read_paranox_lut:3' )
 

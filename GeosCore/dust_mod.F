@@ -15,7 +15,9 @@
 !
 ! !USES:
 !
+#if defined( DEVEL )
       USE inquireMod, ONLY : findFreeLUN
+#endif
 
       IMPLICIT NONE
 #     include "define.h"
@@ -994,7 +996,9 @@
      &              'dust_200203/NSP.dust.' // GET_RES_EXT()
 
          ! Open file
+#if defined( DEVEL )
          N = findFreeLUN()
+#endif
          OPEN( N, FILE=FILENAME,       STATUS='OLD', 
      &             FORM= 'UNFORMATTED', IOSTAT=IOS )
          IF ( IOS > 0 ) CALL IOERROR( IOS, 65, 'SRC_DUST_GINOUX:1' )

@@ -52,7 +52,9 @@
 !  01 Mar 2012 - R. Yantosca - Use updated GET_LOCALTIME from time_mod.F
 !******************************************************************************
 !
+#if defined( DEVEL )
       USE inquireMod, ONLY : findFreeLUN
+#endif
 
       IMPLICIT NONE
 #     include "define.h" 
@@ -130,7 +132,9 @@
  20      FORMAT( 'READ_TOTCO2: Reading ', a )
 
          ! Open the file containing liquid CO2 scale factors
+#if defined( DEVEL )
          IU_FILE = findFreeLUN()
+#endif
          OPEN( IU_FILE, FILE=TRIM( FILENAME ), STATUS='OLD', 
      &                  FORM='UNFORMATTED',    IOSTAT=IOS )
          IF ( IOS /= 0 ) CALL IOERROR( IOS,IU_FILE,'read_totco2_file:1')
@@ -221,7 +225,9 @@
  20      FORMAT( 'READ_TOTCO2: Reading ', a )
 
          ! Open the file containing liquid CO2 scale factors
+#if defined( DEVEL )
          IU_FILE = findFreeLUN()
+#endif
          OPEN( IU_FILE, FILE=TRIM( FILENAME ), STATUS='OLD', 
      &                  FORM='UNFORMATTED',    IOSTAT=IOS )
          IF ( IOS /= 0 ) CALL IOERROR( IOS,IU_FILE,'read_liqco2_file:1')
@@ -294,7 +300,9 @@
       !=================================================================
 
       ! File name unit
+#if defined( DEVEL )
       IUNIT = findFreeLUN()
+#endif
       
 #if   defined( GRID4x5  )
 
@@ -525,7 +533,9 @@
 #endif
 
       ! Define the file unit
+#if defined( DEVEL )
       IUNIT = findFreeLUN()
+#endif
       
       ! Echo the filename to stdout
       WRITE( 6, 100 ) TRIM( FILENAME )

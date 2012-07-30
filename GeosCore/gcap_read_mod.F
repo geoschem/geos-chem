@@ -31,7 +31,9 @@
 !  (1 ) Adapted from the obsolete "phis_read_mod.f" (bmy, 2/1/06)
 !******************************************************************************
 !
+#if defined( DEVEL )
       USE inquireMod, ONLY : findFreeLUN
+#endif
 
       IMPLICIT NONE
 #     include "define.h"
@@ -259,7 +261,9 @@
          ENDIF
 
          ! Open the file
+#if defined( DEVEL )
 	 IU_PH = findFreeLUN()
+#endif
          OPEN( UNIT   = IU_PH,         FILE   = TRIM( PATH ),
      &         STATUS = 'OLD',         ACCESS = 'SEQUENTIAL',  
      &         FORM   = 'UNFORMATTED', IOSTAT = IOS )

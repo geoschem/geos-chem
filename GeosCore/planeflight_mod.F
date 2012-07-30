@@ -16,7 +16,9 @@
 !
 ! !USES:
 !
+#if defined( DEVEL )
       USE inquireMod, ONLY : findFreeLUN
+#endif
 
       IMPLICIT NONE
 #     include "define.h"
@@ -276,7 +278,9 @@
       !=================================================================
       ! Open file and read info
       !=================================================================
+#if defined( DEVEL )
       IU_FILE = findFreeLUN()
+#endif
       OPEN( IU_FILE, FILE=TRIM( INF ), IOSTAT=IOS )
       IF ( IOS /= 0 ) CALL IOERROR( IOS, IU_FILE, 'setup_planeflight:1')
 
@@ -318,7 +322,9 @@
       CLOSE( IU_PLANE )
 
       ! Open new file
+#if defined( DEVEL )
       IU_PLANE = findFreeLUN()
+#endif
       OPEN( IU_PLANE, FILE=TRIM( OUTF ), STATUS='UNKNOWN', IOSTAT=IOS )
 
       ! Error check
@@ -1877,7 +1883,9 @@
       !=================================================================
 
       ! Open file 
+#if defined( DEVEL )
       IU_FILE = findFreeLUN()
+#endif
       OPEN( IU_FILE, FILE=TRIM( INF ), IOSTAT=IOS )
       IF ( IOS /= 0 ) CALL IOERROR( IOS, IU_FILE, 'init_planeflight:1' )
 

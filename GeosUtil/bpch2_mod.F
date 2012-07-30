@@ -15,8 +15,10 @@
 ! 
 ! !USES:
 !
+#if defined( DEVEL )
       USE inquireMod, ONLY : findFreeLUN
       USE inquireMod, ONLY : I_Am_UnOPENed
+#endif
 
       IMPLICIT NONE
 #     include "define.h"
@@ -113,7 +115,11 @@
 !
 ! !INPUT PARAMETERS: 
 !
+#if defined( DEVEL )
       INTEGER,           INTENT(INOUT)         :: IUNIT     ! LUN for file I/O
+#else
+      INTEGER,           INTENT(IN)            :: IUNIT     ! LUN for file I/O
+#endif
       CHARACTER(LEN=*),  INTENT(IN)            :: FILENAME  ! Name of file
 !
 ! !OUTPUT PARAMETERS:
@@ -138,7 +144,9 @@
       !=================================================================
 
       ! Open file for input -- readonly
+#if defined( DEVEL )
       IUNIT = findFreeLUN()
+#endif
       OPEN( IUNIT,      FILE=TRIM( FILENAME ), STATUS='OLD',
      &      IOSTAT=IOS, FORM='UNFORMATTED',    ACCESS='SEQUENTIAL' )
 
@@ -207,7 +215,11 @@
 !
 ! !INPUT PARAMETERS: 
 !
+#if defined( DEVEL )
       INTEGER,           INTENT(INOUT)         :: IUNIT     ! LUN for file I/O
+#else
+      INTEGER,           INTENT(IN)            :: IUNIT     ! LUN for file I/O
+#endif
       CHARACTER(LEN=*),  INTENT(IN)            :: FILENAME  ! Name of file
 !
 ! !OUTPUT PARAMETERS:
@@ -238,7 +250,9 @@
       ENDIF
 
       ! Open file for output
+#if defined( DEVEL )
       IUNIT = findFreeLUN()
+#endif
       OPEN( IUNIT,      FILE=TRIM( FILENAME ), STATUS='UNKNOWN',
      &      IOSTAT=IOS, FORM='UNFORMATTED',    ACCESS='SEQUENTIAL' )
 
@@ -528,7 +542,9 @@
       ! Open binary punch file and read top-of-file header.
       ! Do some error checking to make sure the file is the right format.
       !=================================================================
+#if defined( DEVEL )
       IU_FILE = findFreeLUN()
+#endif
       CALL OPEN_BPCH2_FOR_READ( IU_FILE, FILENAME )
 
       !=================================================================

@@ -15,7 +15,9 @@
 !
 ! !USES:
 !
+#if defined( DEVEL )
       USE inquireMod, ONLY : findFreeLUN
+#endif
 
       IMPLICIT NONE
 #     include "define.h"
@@ -820,7 +822,9 @@ c-------- K=1 is at the top of atmosphere ------------------------------
  100  FORMAT( '     - LINOZ_READ: Reading ', a )
 
       ! new std z*=2km levels from model:  z*=10,12,...(25*2)+8 km
+#if defined( DEVEL )
       IU_FILE = findFreeLUN()
+#endif
       OPEN( IU_FILE, FILE=TRIM( FILENAME ), STATUS='OLD', 
      &               FORM='FORMATTED',      IOSTAT=IOS )
 

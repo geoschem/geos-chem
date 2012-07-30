@@ -16,7 +16,9 @@
 !
 ! !USES:
 !
+#if defined( DEVEL )
       USE inquireMod, ONLY : findFreeLUN
+#endif
 
       IMPLICIT NONE
 #     include "define.h"
@@ -174,6 +176,8 @@
 
 #if defined( DEVEL )
       LOGICAL, INTENT(IN) :: am_I_Root
+#else
+      LOGICAL             :: am_I_Root = .true.
 #endif
 ! 
 ! !REVISION HISTORY: 
@@ -186,8 +190,6 @@
 !EOP
 !------------------------------------------------------------------------------
 !BOC
-#if defined( DEVEL )
-#endif
 !
 ! !LOCAL VARIABLES:
 !
@@ -211,7 +213,9 @@
       CALL INIT_INPUT
 
       ! Open file
+#if defined( DEVEL )
       IU_GEOS = findFreeLUN()
+#endif
       OPEN( IU_GEOS, FILE=TRIM( FILENAME ), STATUS='OLD', IOSTAT=IOS )
       IF ( IOS /= 0 ) CALL IOERROR( IOS, IU_GEOS, 'read_input_file:1' )
 
@@ -1569,11 +1573,7 @@
 !\\
 ! !INTERFACE:
 !
-#if define( DEVEL )
       SUBROUTINE READ_EMISSIONS_MENU(am_I_Root)
-#else
-      SUBROUTINE READ_EMISSIONS_MENU
-#endif
 !
 ! !USES:
 !
@@ -1590,9 +1590,7 @@
 
 ! !INPUT VARIABLES:
 
-#if defined( DEVEL )
       LOGICAL, INTENT(IN) :: am_I_Root
-#endif
 ! 
 ! !REVISION HISTORY: 
 !  20 Jul 2004 - R. Yantosca - Initial version
@@ -2799,11 +2797,7 @@
 !\\
 ! !INTERFACE:
 !
-#if defined( DEVEL )
       SUBROUTINE READ_TRANSPORT_MENU(am_I_Root)
-#else
-      SUBROUTINE READ_TRANSPORT_MENU
-#endif
 !
 ! !USES:
 !
@@ -2816,9 +2810,7 @@
 #endif
 
 ! !INPUT VARIABLES:
-#if defined( DEVEL )
       LOGICAL, INTENT(IN) :: am_I_Root
-#endif
 
 ! 
 ! !REVISION HISTORY: 
@@ -2917,7 +2909,7 @@
       WRITE( 6, 110     ) 'IORD, JORD, KORD for TPCORE?: ', IORD, 
      &                                                      JORD, KORD
       WRITE( 6, 120     ) 'Transport timestep [min]    : ', TS_DYN
-      WRITE( 6, 100     ) 'Use strat BC for O3 & NOy?  : ', LUPBD
+!      WRITE( 6, 100     ) 'Use strat BC for O3 & NOy?  : ', LUPBD
 #if defined( DEVEL )
       END IF
 #endif
@@ -3160,7 +3152,11 @@
       IF ( LDRYD ) THEN
 
          ! Setup for dry deposition
+#if defined( DEVEL )
          CALL INIT_DRYDEP(am_I_Root)
+#else
+         CALL INIT_DRYDEP
+#endif
       
          ! Print extra info message for Hg simulation
          IF ( ITS_A_MERCURY_SIM() .and. LSPLIT ) THEN
@@ -3502,7 +3498,8 @@
       !--------------------------
       CALL SPLIT_ONE_LINE( SUBSTRS, N, -1, 'read_diagnostic_menu:11' )
       READ( SUBSTRS(1), * ) ND09
-      CALL SET_TINDEX( am_I_Root, 09, ND09, SUBSTRS(2:N), N-1, N_TRACERS+PD09 )
+      CALL SET_TINDEX( am_I_Root, 
+     &     09, ND09, SUBSTRS(2:N), N-1, N_TRACERS+PD09 )
 
       !--------------------------
       ! ND10: Free
@@ -3682,7 +3679,8 @@
       CALL SPLIT_ONE_LINE( SUBSTRS, N, -1, 'read_diagnostic_menu:35' )
       READ( SUBSTRS(1), * ) ND34
       IF ( .not. LBIOFUEL ) ND34 = 0
-      CALL SET_TINDEX( am_I_Root, 34, ND34, SUBSTRS(2:N), N-1, NBFTRACE )
+      CALL SET_TINDEX( am_I_Root, 
+     &                 34, ND34, SUBSTRS(2:N), N-1, NBFTRACE )
 
       !--------------------------
       ! ND35: 500 hPa tracer
@@ -3696,7 +3694,8 @@
       !--------------------------
       CALL SPLIT_ONE_LINE( SUBSTRS, N, -1, 'read_diagnostic_menu:37' )
       READ( SUBSTRS(1), * ) ND36
-      CALL SET_TINDEX( am_I_Root, 36, ND36, SUBSTRS(2:N), N-1, NEMANTHRO )      
+      CALL SET_TINDEX( am_I_Root, 
+     &                 36, ND36, SUBSTRS(2:N), N-1, NEMANTHRO )      
 
       !--------------------------
       ! ND37: Updraft scav frac
@@ -3790,7 +3789,8 @@
       !--------------------------
       CALL SPLIT_ONE_LINE( SUBSTRS, N, -1, 'read_diagnostic_menu:50' )
       READ( SUBSTRS(1), * ) ND47
-      CALL SET_TINDEX( am_I_Root, 47, ND47, SUBSTRS(2:N), N-1, N_TRACERS )
+      CALL SET_TINDEX( am_I_Root, 
+     &                 47, ND47, SUBSTRS(2:N), N-1, N_TRACERS )
 
       !--------------------------
       ! ND52: GAMMA HO2
@@ -3804,7 +3804,8 @@
       !--------------------------
       CALL SPLIT_ONE_LINE( SUBSTRS, N, -1, 'read_diagnostic_menu:52' )
       READ( SUBSTRS(1), * ) ND53
-      CALL SET_TINDEX( am_I_Root, 53, ND53, SUBSTRS(2:N), N-1, N_TRACERS )
+      CALL SET_TINDEX( am_I_Root, 
+     &                 53, ND53, SUBSTRS(2:N), N-1, N_TRACERS )
 
       !--------------------------
       ! ND54: Time in troposphere
@@ -4050,8 +4051,8 @@
 
          ! Print abbreviated output string
          IF ( L_DIAG > 0 ) THEN
-            IF(am_I_Root) WRITE( 6, 100 ) N_DIAG, L_DIAG, 1, TMAX(N_DIAG)
- 100        FORMAT( 'ND', i2.2, 2x, i3, 1x, i3, ' -', i3 ) 
+           IF(am_I_Root) WRITE( 6, 100 ) N_DIAG, L_DIAG, 1, TMAX(N_DIAG)
+ 100       FORMAT( 'ND', i2.2, 2x, i3, 1x, i3, ' -', i3 ) 
          ENDIF
 
       ELSE
@@ -5896,7 +5897,7 @@
              print*,'LGFED3BB = ',LGFED3BB
              print*,'LGFED2BB = ',LGFED2BB
              print*,'L8DAYBB  = ',L8DAYBB
-             print*,'L8DAYBB3 = ',L8DAYBB3
+!             print*,'L8DAYBB3 = ',L8DAYBB3
 #if defined( DEVEL )
 	    END IF
 #endif
@@ -6267,11 +6268,7 @@
 !\\
 ! !INTERFACE:
 !
-#if defined( DEVEL )
       SUBROUTINE CHECK_TIME_STEPS(am_I_Root)
-#else
-      SUBROUTINE CHECK_TIME_STEPS
-#endif
 !
 ! !USES:
 !
@@ -6283,9 +6280,7 @@
 
 ! !INPUT VARIABLES:
 
-#if defined( DEVEL )
       LOGICAL, INTENT(IN) :: am_I_Root
-#endif
 
 ! 
 ! !REVISION HISTORY: 

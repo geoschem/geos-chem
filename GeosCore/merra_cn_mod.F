@@ -18,7 +18,9 @@
       USE CMN_SIZE_MOD              ! Size parameters
       USE CMN_DIAG_MOD              ! NDxx flags
       USE CMN_GCTM_MOD              ! g0
+#if defined( DEVEL )
       USE inquireMod, ONLY : findFreeLUN
+#endif
 
       IMPLICIT NONE
 #     include "define.h"
@@ -137,7 +139,9 @@
          !---------------------------
 
          ! Open the file
+#if defined( DEVEL )
          IU_CN = findFreeLUN()
+#endif
          OPEN( UNIT   = IU_CN,         FILE   = TRIM( PATH ),
      &         STATUS = 'OLD',         ACCESS = 'SEQUENTIAL',  
      &         FORM   = 'UNFORMATTED', IOSTAT = IOS )

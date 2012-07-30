@@ -437,7 +437,11 @@
 !\\
 ! !INTERFACE:
 !
+#if defined( DEVEL )
       SUBROUTINE INIT_PRESSURE(am_I_Root)
+#else
+      SUBROUTINE INIT_PRESSURE
+#endif
 !
 ! !USES:
 !
@@ -448,7 +452,9 @@
 
 ! !INPUT VARIABLES:
 
+#if defined( DEVEL )
       LOGICAL, INTENT(IN) :: am_I_Root
+#endif
 !
 ! !REVISION HISTORY:
 !  27 Aug 2002 - D. Abbot, S. Wu, & R. Yantosca - Initial version 
@@ -556,7 +562,9 @@
      &        0.000000d+00 /)
 
       ! Echo info to std output
+#if defined( DEVEL )
       IF(am_I_Root) THEN
+#endif
       WRITE( 6, '(a)'   ) REPEAT( '=', 79 )
       WRITE( 6, '(a,/)' ) 'V E R T I C A L   G R I D   S E T U P'
       WRITE( 6, '(a,/)' ) 'INIT_PRESSURE: Vertical coordinates!'
@@ -564,7 +572,9 @@
       WRITE( 6, '(a)'   )
       WRITE( 6, '( ''Bp '', /, 6(f11.6,1x) )' ) BP(1:LLPAR+1)
       WRITE( 6, '(a)'   ) REPEAT( '=', 79 )
+#if defined( DEVEL )
       END IF
+#endif
 
       ! Return to calling program
       END SUBROUTINE INIT_PRESSURE

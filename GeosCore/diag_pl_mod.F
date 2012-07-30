@@ -97,7 +97,11 @@
 !\\
 ! !INTERFACE:
 !
+#if defined( DEVEL )
       SUBROUTINE SETJFAM( NACTIVE, NINAC, am_I_Root )
+#else
+      SUBROUTINE SETJFAM( NACTIVE, NINAC )
+#endif
 !
 ! !USES:
 !
@@ -109,7 +113,9 @@
 ! 
       INTEGER, INTENT(INOUT) :: NACTIVE   ! # of active chemical species
       INTEGER, INTENT(INOUT) :: NINAC     ! # of inactive chemical species
+#if defined( DEVEL )
       LOGICAL, INTENT(IN)    :: am_I_Root
+#endif
 !
 ! !REMARKS:
 !  At present, the ND65 diagnostic works only with SMVGEAR and not with
@@ -169,12 +175,16 @@
       !=================================================================
       ! Write out family names to "smv2.log" file
       !=================================================================
+#if defined( DEVEL )
       IF(am_I_Root) THEN
+#endif
       WRITE( IO93, '(/,a)'      ) REPEAT( '=', 79 )
       WRITE( IO93, '(a)'        ) 'Families for prod or loss output:'
       WRITE( IO93, '(a,/)'      ) REPEAT( '=', 79 )
       WRITE( IO93, '(10(a7,1x))' ) ( TRIM( NAMEGAS(J) ), J=JGAS0,JGAS )
+#if defined( DEVEL )
       END IF
+#endif
 
       END SUBROUTINE SETJFAM
 !EOC
@@ -192,7 +202,11 @@
 !\\
 ! !INTERFACE:
 !
+#if defined( DEVEL )
       SUBROUTINE SETPL(am_I_Root)
+#else
+      SUBROUTINE SETPL
+#endif
 !
 ! !USES:
 !
@@ -205,7 +219,9 @@
 !
 ! !INPUT VARIABLES:
 !
+#if defined( DEVEL )
       LOGICAL, INTENT(IN) :: am_I_Root
+#endif
 ! 
 ! !REMARKS:
 !  At present, the ND65 diagnostic works only with SMVGEAR and not with
@@ -294,11 +310,19 @@
          IF ( PORL(F) == 'LOSS' ) PORL(F) = 'loss'
 
          ! Write to "smv2.log"
+#if defined( DEVEL )
 	 IF(am_I_Root) WRITE( IO93, 104 ) F, FAM_NAME(F), PORL(F), FAM_NMEM(F) 
+#else
+	 WRITE( IO93, 104 ) F, FAM_NAME(F), PORL(F), FAM_NMEM(F) 
+#endif
  104     FORMAT(/, 'Family ', i2, ' is ' ,a5, ' ', a4,
      &             ' with ',  i2, ' members' )
 
+#if defined( DEVEL )
          IF(am_I_Root) WRITE( IO93, 105 )
+#else
+         WRITE( IO93, 105 )
+#endif
  105     FORMAT( 'ind', 2x, 'species', 1x, 'jnum', 2x, 'coef' )
 
          !------------------
@@ -315,8 +339,13 @@
             ENDDO
 
             ! Write to "smv2.log"
+#if defined( DEVEL )
             IF(am_I_Root) WRITE( IO93, '(i2,3x,a5,2x,i3,2x,f5.1 )') 
      &           F, FAM_MEMB(M,F), IFAMMEM(M,F), COEFMEM(M,F)
+#else
+            WRITE( IO93, '(i2,3x,a5,2x,i3,2x,f5.1 )') 
+     &           F, FAM_MEMB(M,F), IFAMMEM(M,F), COEFMEM(M,F)
+#endif
          ENDDO
       ENDDO
 
@@ -474,17 +503,25 @@
       !=================================================================
       ! Write out prod or loss reactions to "smv2.log"
       !=================================================================
+#if defined( DEVEL )
       IF(am_I_Root) THEN
+#endif
       WRITE( IO93, '(/,a)' ) REPEAT( '=', 79 )
       WRITE( IO93, '(a)'   ) 'Here are the prod and loss reactions'
       WRITE( IO93, '(a)'   ) REPEAT( '=', 79 )
+#if defined( DEVEL )
       END IF
-
+#endif
       ! Loop over P/L diagnostic families
       DO N = 1, NFAMILIES
 
          ! Write family header
-         IF(am_I_Root) WRITE( IO93, 587 ) NAMEGAS(IFAM(N)), PORL(N), NNPL(N)
+#if defined( DEVEL )
+         IF(am_I_Root) 
+     &        WRITE( IO93, 587 ) NAMEGAS(IFAM(N)), PORL(N), NNPL(N)
+#else
+         WRITE( IO93, 587 ) NAMEGAS(IFAM(N)), PORL(N), NNPL(N)
+#endif
  587     FORMAT( /, 'Family ',a5,' ',a4,' -- no of rxns is  ',i3, 5x,
      &           'coefficient')
 
@@ -513,7 +550,11 @@
                !----------------------
                ! Write kinetic rxns
                !----------------------
+#if defined( DEVEL )
                IF(am_I_Root) WRITE(IO93,588) I, NK, NAMEGAS(IREAC1),
+#else
+               WRITE(IO93,588) I, NK, NAMEGAS(IREAC1),
+#endif
      &              NAMEGAS(IREAC2),  NAMEGAS(IPROD1),
      &              NAMEGAS(IPROD2),  EXTRACHAR, COEFPL(I,N)
 
@@ -525,7 +566,11 @@
                !----------------------
                ! Write photo rxns
                !----------------------
+#if defined( DEVEL )
                IF(am_I_Root) WRITE(IO93,589) I, NK, NAMEGAS(IREAC1),
+#else
+               WRITE(IO93,589) I, NK, NAMEGAS(IREAC1),
+#endif
      &              NAMEGAS(IPROD1),  NAMEGAS(IPROD2), 
      &              EXTRACHAR,        COEFPL(I,N)
 

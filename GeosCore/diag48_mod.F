@@ -75,7 +75,9 @@
 !       (skim, 02/03/11)
 !******************************************************************************
 !
+#if defined( DEVEL )
       USE inquireMod, ONLY : findFreeLUN
+#endif
 
       IMPLICIT NONE
 #     include "define.h"
@@ -783,7 +785,9 @@
       TITLE = 'GEOS-CHEM ND48 station timeseries diagnostic'
 
       ! Open file for output
+#if defined( DEVEL )
       IU_ND48 = findFreeLUN()
+#endif
       OPEN( IU_ND48,    FILE=TRIM( FILENAME ), STATUS='UNKNOWN',
      &      IOSTAT=IOS, FORM='UNFORMATTED',    ACCESS='SEQUENTIAL' )
 

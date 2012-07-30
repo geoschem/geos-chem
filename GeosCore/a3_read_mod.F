@@ -15,7 +15,9 @@
 !
 ! !USES:
 !
+#if defined( DEVEL )
       USE inquireMod, ONLY : findFreeLUN
+#endif
 
       IMPLICIT NONE
 #     include "define.h"
@@ -418,7 +420,9 @@
          ENDIF
 
          ! Open the file
+#if defined( DEVEL )
          IU_A3 = findFreeLUN()
+#endif
          OPEN( UNIT   = IU_A3,         FILE   = TRIM( PATH ),
      &         STATUS = 'OLD',         ACCESS = 'SEQUENTIAL',  
      &         FORM   = 'UNFORMATTED', IOSTAT = IOS )

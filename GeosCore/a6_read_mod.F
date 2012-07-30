@@ -56,8 +56,9 @@
 !  28 Feb 2012 - R. Yantosca - Removed support for GEOS-3
 !******************************************************************************
 !
+#if defined( DEVEL )
       USE inquireMod, ONLY : findFreeLUN
-
+#endif
       IMPLICIT NONE
 #     include "define.h"
 
@@ -410,7 +411,9 @@
          ENDIF
 
          ! Open the file
+#if defined( DEVEL )
          IU_A6 = findFreeLUN()
+#endif
          OPEN( UNIT   = IU_A6,         FILE   = TRIM( PATH ),
      &         STATUS = 'OLD',         ACCESS = 'SEQUENTIAL',  
      &         FORM   = 'UNFORMATTED', IOSTAT = IOS )
