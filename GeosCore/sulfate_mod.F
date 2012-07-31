@@ -3042,8 +3042,6 @@
       !===============================================================
       ! ND44: Sum drydep fluxes by level into the AD44 array in
       ! order to ensure that we get the same results w/ sp or mp 
-      !
-      !%%% NOTE: NEED TO CHANGE LLTROP FOR GIGC COMPATIBILITY %%%
       !===============================================================
       IF ( ND44 > 0 ) THEN 
 !$OMP PARALLEL DO

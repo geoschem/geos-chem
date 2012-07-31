@@ -293,6 +293,8 @@
 !  (4 ) Now make sure all USE statements are USE, ONLY (bmy, 10/3/05)
 !  (5 ) Now updated for SOA production from ISOP. (dkh, bmy, 6/1/06)
 !  (6 ) Bug fix for aerosol sim w/ 20 tracers (phs, 9/14/06)
+!  30 Jul 2012 - R. Yantosca - Now accept am_I_Root as an argument when
+!                              running with the traditional driver main.F
 !******************************************************************************
 !
       ! References to F90 modules

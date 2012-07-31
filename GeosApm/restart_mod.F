@@ -1104,7 +1104,8 @@
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE READ_CSPEC_FILE( YYYYMMDD, HHMMSS, IT_EXISTS ) 
+      SUBROUTINE READ_CSPEC_FILE( am_I_Root, YYYYMMDD,  
+     &                            HHMMSS,    IT_EXISTS ) 
 !
 ! !USES:
 !
@@ -1125,6 +1126,7 @@
 !
 ! !INPUT PARAMETERS: 
 !
+      LOGICAL, INTENT(IN) :: am_I_Root  ! Is this the root CPU?
       INTEGER, INTENT(IN) :: YYYYMMDD   ! YYYY/MM/DD GMT date
       INTEGER, INTENT(IN) :: HHMMSS     ! hh:mm:ss   GMT time
 ! 
@@ -1136,6 +1138,8 @@
 !  12 Jul 2011 - R. Yantosca - Now read species name from RESERVED slot
 !                              of bpch file as an extra error check
 !  21 Jul 2011 - M. Long     - Now include F77_CMN_SIZE instead of CMN_SIZE
+!  30 Jul 2012 - R. Yantosca - Now accept am_I_Root as an argument when
+!                              running with the traditional driver main.F
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -1190,7 +1194,9 @@
       ! Add ADJ_DIR prefix to name
       !FILENAME = TRIM( ADJ_DIR ) // TRIM( FILENAME )
 
-      WRITE( 6, 100 ) TRIM( FILENAME )
+      IF ( am_I_Root ) THEN
+         WRITE( 6, 100 ) TRIM( FILENAME )
+      ENDIF
  100  FORMAT( '     - READ_CSPEC_FILE: Reading ', a )
  
       ! Check to see if cspec restart file exists
@@ -1253,7 +1259,9 @@
 
             ! Also make sure we have the proper species
             IF ( TRIM( NAMEGAS(N) ) /= TRIM( RESERVED ) ) THEN
-               WRITE( 6, 200 ) TRIM( NAMEGAS(N) )
+               IF ( am_I_Root ) THEN
+                  WRITE( 6, 200 ) TRIM( NAMEGAS(N) )
+               ENDIF
  200           FORMAT( 'Species mismatch for ', a )
                CALL ERROR_STOP( 'Species mismatch!', 
      &                          'READ_CSPEC_FILE (restart_mod.f)' )

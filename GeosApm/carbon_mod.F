@@ -176,6 +176,7 @@
 !  (28) Modified to include GFED3 (psk, 1/5/11)
 !   8 Feb 2012 - R. Yantosca - Modified for central chemistry timestep option
 !  01 Mar 2012 - R. Yantosca - Now reference new grid_mod.F90
+!  30 Jul 2012 - R. Yantosca - Modifications for grid-independence
 !******************************************************************************
 !
       USE LOGICAL_MOD,    ONLY : LNLPBL ! (Lin,03/31/09)
@@ -280,7 +281,7 @@
 
 !------------------------------------------------------------------------------
 
-      SUBROUTINE CHEMCARBON
+      SUBROUTINE CHEMCARBON( am_I_Root )
 !
 !******************************************************************************
 !  Subroutine CHEMCARBON is the interface between the GEOS-CHEM main program 
@@ -300,6 +301,8 @@
 !  (5 ) Now updated for SOA production from ISOP. (dkh, bmy, 6/1/06)
 !  (6 ) Bug fix for aerosol sim w/ 20 tracers (phs, 9/14/06)
 !  16 Feb 2011 - R. Yantosca - Add modifications for APM from G. Luo
+!  30 Jul 2012 - R. Yantosca - Now accept am_I_Root as an argument when
+!                              running with the traditional driver main.F
 !******************************************************************************
 !
       ! References to F90 modules
@@ -324,9 +327,16 @@
 
       USE CMN_SIZE_MOD       ! Size parameters
 
-      ! Local variables
-      LOGICAL, SAVE           :: FIRSTCHEM = .TRUE.
-      INTEGER                 :: N, THISMONTH
+      USE CMN_SIZE_MOD                   ! Size parameters
+!
+! !INPUT PARAMETERS:
+!
+      LOGICAL, INTENT(IN) :: am_I_Root   ! Is this the root CPU?
+!
+! !LOCAL VARIABLES:
+!
+      LOGICAL, SAVE       :: FIRSTCHEM = .TRUE.
+      INTEGER             :: N, THISMONTH
 
       !=================================================================
       ! CHEMCARBON begins here!
@@ -414,70 +424,94 @@
       ! Chemistry for hydrophobic BC
       IF ( IDTBCPO > 0 ) THEN
          CALL CHEM_BCPO( STT(:,:,:,IDTBCPO) )
-         IF ( LPRT ) CALL DEBUG_MSG( '### CHEMCARBON: a CHEM_BCPO' )
+         IF ( LPRT .and. am_I_Root ) THEN
+            CALL DEBUG_MSG( '### CHEMCARBON: a CHEM_BCPO' )
+         ENDIF
       ENDIF
 
       ! Chemistry for hydrophilic BC
       IF ( IDTBCPI > 0 ) THEN
          CALL CHEM_BCPI( STT(:,:,:,IDTBCPI) )
-         IF ( LPRT ) CALL DEBUG_MSG( '### CHEMCARBON: a CHEM_BCPI' )
+         IF ( LPRT .and. am_I_Root ) THEN
+            CALL DEBUG_MSG( '### CHEMCARBON: a CHEM_BCPI' )
+         ENDIF
       ENDIF
 
 !APM_GanLuo+
 #if   defined( APM )
       IF ( NBCPOF > 0 ) THEN
          CALL CHEM_BCPONEW( STT(:,:,:,IDTBCPOFF) )
-         IF ( LPRT ) CALL DEBUG_MSG( '### CHEMCARBON: a CHEM_BCPO' )
+         IF ( LPRT .and. am_I_Root ) THEN
+            CALL DEBUG_MSG( '### CHEMCARBON: a CHEM_BCPONEW' )
+         ENDIF
       ENDIF
 
       IF ( NBCPIF >0 )THEN
          CALL CHEM_BCPINEW( STT(:,:,:,IDTBCPIFF) )
-         IF ( LPRT ) CALL DEBUG_MSG( '### CHEMCARBON: a CHEM_BCPI' )
+         IF ( LPRT .and. am_I_Root ) THEN
+            CALL DEBUG_MSG( '### CHEMCARBON: a CHEM_BCPINEW' )
+         ENDIF
       ENDIF
 
       IF ( NBCPOO >0 )THEN
          CALL CHEM_BCPONEW( STT(:,:,:,IDTBCPOBB) )
-         IF ( LPRT ) CALL DEBUG_MSG( '### CHEMCARBON: a CHEM_BCPO' )
+         IF ( LPRT .and. am_I_Root ) THEN
+            CALL DEBUG_MSG( '### CHEMCARBON: a CHEM_BCPO' )
+         ENDIF
       ENDIF
 
       IF ( NBCPIO >0 )THEN
          CALL CHEM_BCPINEW( STT(:,:,:,IDTBCPIBB) )
-         IF ( LPRT ) CALL DEBUG_MSG( '### CHEMCARBON: a CHEM_BCPI' )
+         IF ( LPRT .and. am_I_Root ) THEN
+            CALL DEBUG_MSG( '### CHEMCARBON: a CHEM_BCPI' )
+         ENDIF
       ENDIF
 #endif
 
       ! Chemistry for hydrophobic OC
       IF ( IDTOCPO > 0 ) THEN
          CALL CHEM_OCPO( STT(:,:,:,IDTOCPO) )
-         IF ( LPRT ) CALL DEBUG_MSG( '### CHEMCARBON: a CHEM_OCPO' )
+         IF ( LPRT .and. am_I_Root ) THEN
+            CALL DEBUG_MSG( '### CHEMCARBON: a CHEM_OCPO' )
+         ENDIF
       ENDIF
 
       ! Chemistry for hydrophilic OC
       IF ( IDTOCPI > 0 ) THEN 
          CALL CHEM_OCPI( STT(:,:,:,IDTOCPI) )
-         IF ( LPRT ) CALL DEBUG_MSG( '### CHEMCARBON: a CHEM_OCPI' )
+         IF ( LPRT .and. am_I_Root ) THEN
+            CALL DEBUG_MSG( '### CHEMCARBON: a CHEM_OCPI' )
+         ENDIF
       ENDIF
 
 !APM_GanLuo+
 #if   defined( APM )
       IF ( NOCPOF > 0 ) THEN
          CALL CHEM_OCPONEW( STT(:,:,:,IDTOCPOFF) )
-         IF ( LPRT ) CALL DEBUG_MSG( '### CHEMCARBON: a CHEM_OCPO' )
+         IF ( LPRT .and. am_I_Root ) THEN
+            CALL DEBUG_MSG( '### CHEMCARBON: a CHEM_OCPONEW' )
+         ENDIF
       ENDIF
 
       IF ( NOCPIF >0 )THEN
          CALL CHEM_OCPINEW( STT(:,:,:,IDTOCPIFF) )
-         IF ( LPRT ) CALL DEBUG_MSG( '### CHEMCARBON: a CHEM_OCPI' )
+         IF ( LPRT .and. am_I_Root ) THEN
+            CALL DEBUG_MSG( '### CHEMCARBON: a CHEM_OCPINEW' )
+         ENDIF
       ENDIF
 
       IF ( NOCPOO >0 )THEN
          CALL CHEM_OCPONEW( STT(:,:,:,IDTOCPOBB) )
-         IF ( LPRT ) CALL DEBUG_MSG( '### CHEMCARBON: a CHEM_OCPO' )
+         IF ( LPRT .and. am_I_Root ) THEN 
+            CALL DEBUG_MSG( '### CHEMCARBON: a CHEM_OCPONEW' )
+         ENDIF
       ENDIF
 
       IF ( NOCPIO >0 )THEN
          CALL CHEM_OCPINEW( STT(:,:,:,IDTOCPIBB) )
-         IF ( LPRT ) CALL DEBUG_MSG( '### CHEMCARBON: a CHEM_OCPI' )
+         IF ( LPRT .and. am_I_Root ) THEN
+            CALL DEBUG_MSG( '### CHEMCARBON: a CHEM_OCPI' )
+         ENDIF
       ENDIF
 #endif
 
@@ -502,15 +536,19 @@
             ! but only if it hasn't been done in EMISSCARBON
             IF ( LSOA .and. ( .not. LEMIS ) ) THEN
                CALL OHNO3TIME
-               IF ( LPRT ) CALL DEBUG_MSG( '### CHEMCARB: a OHNO3TIME' )
+               IF ( LPRT .and. am_I_Root ) THEN
+                  CALL DEBUG_MSG( '### CHEMCARB: a OHNO3TIME' )
+               ENDIF
             ENDIF
          ENDIF
 
          ! Compute SOA chemistry
          ! NOTE: This is SOA production from the reversible mechanism only 
          ! (tmf, 12/07/07) 
-         CALL SOA_CHEMISTRY
-         IF ( LPRT ) CALL DEBUG_MSG( '### CHEMCARBON: a SOA_CHEM' )
+         CALL SOA_CHEMISTRY( am_I_Root )
+         IF ( LPRT .and. am_I_Root ) THEN
+            CALL DEBUG_MSG( '### CHEMCARBON: a SOA_CHEM' )
+         ENDIF
 
          ! If SOAG and SOAM are declared, switch on 
          !    SOA production from dicarbonyls (tmf, 12/07/07) 
@@ -522,13 +560,15 @@
 
             ! Cloud uptake
             CALL SOAG_CLOUD
-            IF ( LPRT )
-     &         CALL DEBUG_MSG('### CHEMCARBON: a SOAG_CLOUD')        
-
+            IF ( LPRT .and. am_I_Root ) THEN
+               CALL DEBUG_MSG('### CHEMCARBON: a SOAG_CLOUD')        
+            ENDIF
+               
             ! Aqueous aerosol uptake
             CALL SOAG_LIGGIO_DIFF
-            IF ( LPRT ) 
-     &         CALL DEBUG_MSG('### CHEMCARBON: a SOAG_LIGGIO_DIFF')        
+            IF ( LPRT .and. am_I_Root ) THEN 
+               CALL DEBUG_MSG('### CHEMCARBON: a SOAG_LIGGIO_DIFF')        
+            ENDIF
 
          ENDIF
 
@@ -540,14 +580,15 @@
 
             ! Cloud uptake
             CALL SOAM_CLOUD
-            IF ( LPRT ) 
-     &         CALL DEBUG_MSG('### CHEMCARBON: a SOAM_CLOUD')        
+            IF ( LPRT .and. am_I_Root ) THEN
+               CALL DEBUG_MSG('### CHEMCARBON: a SOAM_CLOUD')        
+            ENDIF
 
             ! Aqueous aerosol uptake
             CALL SOAM_LIGGIO_DIFF
-            IF ( LPRT ) 
-     &         CALL DEBUG_MSG( '### CHEMCARBON: a SOAM_LIGGIO_DIFF' )        
-           
+            IF ( LPRT .and. am_I_Root ) THEN
+               CALL DEBUG_MSG( '### CHEMCARBON: a SOAM_LIGGIO_DIFF' )        
+            ENDIF
          ENDIF
    
       ENDIF
@@ -2094,7 +2135,7 @@
 
 !------------------------------------------------------------------------------
 
-      SUBROUTINE SOA_CHEMISTRY
+      SUBROUTINE SOA_CHEMISTRY( am_I_Root )
 !
 !******************************************************************************
 !  Subroutine SOA_CHEMISTRY performs SOA formation.  This code is from the
@@ -2165,6 +2206,8 @@
 !  (6 ) Bug fix: call SOA_PARA_INIT (ensberg, bmy, 6/30/10)
 !  16 Feb 2011 - R. Yantosca - Add modifications for APM from G. Luo
 !  05 Oct 2011 - R. Yantosca - SUNCOS is not needed, so remove
+!  30 Jul 2012 - R. Yantosca - Now accept am_I_Root as an argument when
+!                              running with the traditional driver main.F
 !******************************************************************************
 !
       ! References to F90 modules
@@ -2193,8 +2236,13 @@
       USE CMN_SIZE_MOD       ! Size parameters
       USE CMN_O3_MOD         ! XNUMOL
       USE CMN_DIAG_MOD       ! ND44
-
-      ! Local variables
+!
+! !INPUT PARAMETERS:
+!
+      LOGICAL, INTENT(IN) :: am_I_Root   ! Is this the root CPU?
+!
+! !LOCAL VARIABLES:
+!
       LOGICAL, SAVE         :: FIRST = .TRUE.
       INTEGER               :: I,        J,        L,        N    
       INTEGER               :: JHC,      IPR,      NOX ! (dkh, 10/30/06)  

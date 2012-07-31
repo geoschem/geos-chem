@@ -5937,11 +5937,7 @@
 !\\
 ! !INTERFACE:
 !
-#if defined( DEVEL )
       SUBROUTINE READ_APM_MENU( am_I_Root )
-#else
-      SUBROUTINE READ_APM_MENU
-#endif
 !
 ! !USES:
 !

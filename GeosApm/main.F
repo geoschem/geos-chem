@@ -121,6 +121,13 @@
       USE TRACER_MOD,        ONLY : N_APMTRA
 #endif
 
+#if defined( DEVEL )
+      USE LOGICAL_MOD,        ONLY : DO_DIAG_WRITE
+      USE GC_ENVIRONMENT_MOD, ONLY : ALLOCATE_ALL, INIT_ALL
+      USE GC_TYPE2_MOD,       ONLY : CHEMSTATE
+      USE GC_TYPE_MOD,        ONLY : GC_MET_LOCAL
+#endif
+
       IMPLICIT NONE
 
 #     include "define.h"
@@ -193,6 +200,10 @@
 !                              megan_mod.F and mercury_mod.F separately.
 !  17 Apr 2012 - R. Yantosca - Need to set the mapping variable to NULL()
 !  10 Jun 2012 - L. Murray   - Remove references to UPBDFLX_MOD.F
+!  31 Jul 2012 - R. Yantosca - Now pass am_I_Root variable to lower-level
+!                              routines in order to allow PRINT and WRITE
+!                              statements to execute on the root CPU.  This
+!                              is needed for compatibility w/ the GEOS-5 GCM.
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -221,6 +232,24 @@
       ! Derived type objects
       TYPE(MapWeight), POINTER :: mapping(:,:) => NULL()
 
+#if defined( DEVEL )
+      TYPE(CHEMSTATE)          :: CHEM_STATE
+      TYPE(GC_MET_LOCAL)       :: LOCAL_MET
+#endif
+
+      ! When connecting G-C to an external GCM, we need to only write 
+      ! to stdout if we are on the root CPU.  Otherwise this will slow
+      ! down the code.  This is why we introduced the am_I_Root logical
+      ! variable.
+      !
+      ! However, if we are using the "traditional" G-C, then we don't
+      ! need to restrict I/O to the root CPU.  Therefore, we can just
+      ! set am_I_Root = .true. here and then have it propagate down to
+      ! all of the lower-level routines.  The main.F routine is not
+      ! called when connecting G-C to an external GCM. 
+      ! (mlong, bmy, 7/30/12)
+      LOGICAL, PARAMETER       :: am_I_Root = .TRUE. 
+
       ! For APM
       INTEGER                  :: N_TRC_TOT
 
@@ -229,7 +258,11 @@
       !=================================================================
 
       RC=0 ! Error flag. Default 0 is "no error"
-      
+
+#if defined( DEVEL )
+      CALL ALLOCATE_ALL
+#endif
+
       ! Display current grid resolution and data set type
       CALL DISPLAY_GRID_AND_MODEL
 
@@ -238,8 +271,13 @@
       !=================================================================
 
       ! Read input file and call init routines from other modules
-      CALL READ_INPUT_FILE 
+      CALL READ_INPUT_FILE( am_I_Root ) 
       IF ( LPRT ) CALL DEBUG_MSG( '### MAIN: a READ_INPUT_FILE' )
+
+#if defined( DEVEL )
+      ! Initialize all of CHEMSTATE
+      CALL INIT_ALL(LOCAL_MET, CHEM_STATE)
+#endif
 
       ! Initialize met field arrays from "dao_mod.f"
       CALL INIT_DAO
@@ -267,7 +305,7 @@
       IF ( LPRT ) CALL DEBUG_MSG( '### MAIN: a INITIALIZE' )
 
       ! Initialize the new hybrid pressure module.  Define Ap and Bp.
-      CALL INIT_PRESSURE
+      CALL INIT_PRESSURE( am_I_Root )
       IF ( LPRT ) CALL DEBUG_MSG( '### MAIN: a INIT_PRESSURE' )
 
       ! Read annual mean tropopause if not a variable tropopause
@@ -289,7 +327,7 @@
       ENDIF
          
       ! Added to read input file for linoz strat (dbj, jliu, bmy, 10/16/09)
-      IF ( LLINOZ ) CALL LINOZ_READ
+      IF ( LLINOZ ) CALL LINOZ_READ( am_I_Root )
 
       ! Allocate arrays from "global_ch4_mod.f" for CH4 run 
       IF ( ITS_A_CH4_SIM() ) CALL INIT_GLOBAL_CH4
@@ -325,7 +363,11 @@
       CALL SET_FLOATING_PRESSURE( PS1 )
       IF ( LPRT ) CALL DEBUG_MSG( '### MAIN: a SET_FLT_PRS' )
 
+#if defined( DEVEL )
+      CALL AIRQNT(LOCAL_MET)
+#else
       CALL AIRQNT
+#endif
       IF ( LPRT ) CALL DEBUG_MSG( '### MAIN: a AIRQNT' )
 
       ! Compute lightning NOx emissions [molec/box/6h]
@@ -367,7 +409,7 @@
       IF ( LPRT ) CALL DEBUG_MSG( '### MAIN: a READ_RESTART_FILE' )
 
       ! Capture initial state of atmosphere for STE flux calc (ltm, 06/10/12)
-      IF ( LSCHEM ) CALL INIT_STRAT_CHEM
+      IF ( LSCHEM ) CALL INIT_STRAT_CHEM( am_I_Root )
 
       ! add support for making restart files of APROD and GPROD (dkh, 11/09/06)  
       IF ( LSOA ) THEN
@@ -475,7 +517,7 @@
             IF ( LSVGLB ) THEN
 
                ! Determine and print STE fluxes (ltm, 06/10/12)
-               IF ( LSCHEM ) CALL CALC_STE
+               IF ( LSCHEM ) CALL CALC_STE( am_I_Root )
 
                ! Make atmospheric restart file
                CALL MAKE_RESTART_FILE( NYMD, NHMS, TAU )
@@ -707,7 +749,11 @@
          IF ( .not. LTRAN ) CALL SET_FLOATING_PRESSURE( PSC2 )
 
          ! Compute airmass quantities at each grid box 
+#if defined( DEVEL )
+         CALL AIRQNT(LOCAL_MET)
+#else
          CALL AIRQNT
+#endif
 
          ! Compute the cosine of the solar zenith angle array
          ! SUNCOS         = cos(SZA) at the current time
@@ -763,7 +809,11 @@
             IF ( LTRAN ) CALL DO_TRANSPORT               
 
             ! Reset air mass quantities
-            CALL AIRQNT
+#if defined( DEVEL )
+      CALL AIRQNT(LOCAL_MET)
+#else
+      CALL AIRQNT
+#endif
 
 !%%%!    ltm: As of v9-01-03, UPBDFLX and SCHEM are depreciated. These
 !%%%!    subroutines and their children will be removed in the future.
@@ -803,12 +853,18 @@
             !========================================================
             !         ***** D R Y   D E P O S I T I O N *****
             !========================================================
-            IF ( LDRYD .and. ( .not. ITS_A_H2HD_SIM() ) ) CALL DO_DRYDEP
+            IF ( LDRYD .and. ( .not. ITS_A_H2HD_SIM() ) ) THEN
+               CALL DO_DRYDEP( am_I_Root )
+            ENDIF
 
             !========================================================
             !             ***** E M I S S I O N S *****
             !========================================================
+#if defined( DEVEL )
+            IF ( LEMIS ) CALL DO_EMISSIONS(CHEM_STATE)
+#else
             IF ( LEMIS ) CALL DO_EMISSIONS
+#endif
 
             IF ( ITS_TIME_FOR_UNIT() )
      &         CALL CONVERT_UNITS( 1, N_TRC_TOT, TCVV, AD, STT ) ! kg -> v/v
@@ -823,13 +879,27 @@
             IF ( LEMIS ) CALL SET_CH3Br( N_TRACERS, TCVV, AD, STT, 
      &                                   ITS_TIME_FOR_UNIT() )
 
-            ! ----------------------------------------------------
-            ! If selected in input.geos, then set the MBL
-            ! concentration of BrO equal to 1 pptv during daytime.
-            ! ----------------------------------------------------
-            IF ( LEMIS ) CALL SET_BRO( N_TRACERS, TCVV, AD, SUNCOS,
-     &                                 STT, ITS_TIME_FOR_UNIT() )
+            IF ( ITS_A_FULLCHEM_SIM() ) THEN
+               !========================================================
+               !jpp, 2/12/08: putting a call to SET_CH3Br
+               !              which is in bromocarb_mod.f
+               !       ***** Fix CH3Br Concentration in PBL *****
+               ! Kludge: eventually I want to keep the concentration
+               !         entirely fixed! Ask around on how to...
+               !========================================================
+               IF ( LEMIS .and. ( IDTCH3Br > 0 ) )
+     &            CALL SET_CH3Br( N_TRACERS, TCVV, AD, STT, 
+     &                            ITS_TIME_FOR_UNIT() )
 
+               ! ----------------------------------------------------
+               ! If selected in input.geos, then set the MBL
+               ! concentration of BrO equal to 1 pptv during daytime.
+               ! ----------------------------------------------------
+               IF ( LEMIS .and. ( IDTBrO > 0 ) )
+     &            CALL SET_BRO( N_TRACERS, TCVV, AD, SUNCOS,
+     &                          STT, ITS_TIME_FOR_UNIT() )
+
+            ENDIF
          ENDIF
 
          !-------------------------------
@@ -899,30 +969,40 @@
             !========================================================
             !         ***** D R Y   D E P O S I T I O N *****
             !========================================================
-            IF ( LDRYD .and. ( .not. ITS_A_H2HD_SIM() ) ) CALL DO_DRYDEP
+            IF ( LDRYD .and. ( .not. ITS_A_H2HD_SIM() ) ) THEN
+               CALL DO_DRYDEP( am_I_Root )
+            ENDIF
 
             !========================================================
             !             ***** E M I S S I O N S *****
             !========================================================
+#if defined( DEVEL )
+            IF ( LEMIS ) CALL DO_EMISSIONS(CHEM_STATE)
+#else
             IF ( LEMIS ) CALL DO_EMISSIONS
+#endif
 
-            !========================================================
-            !jpp, 2/12/08: putting a call to SET_CH3Br
-            !              which is in bromocarb_mod.f
-            !       ***** Fix CH3Br Concentration in PBL *****
-            ! Kludge: eventually I want to keep the concentration
-            !         entirely fixed! Ask around on how to...
-            !========================================================
-            IF ( LEMIS ) CALL SET_CH3Br( N_TRACERS, TCVV, AD, STT,
-     &                                   ITS_TIME_FOR_UNIT() )
+            IF ( ITS_A_FULLCHEM_SIM() ) THEN
+               !========================================================
+               !jpp, 2/12/08: putting a call to SET_CH3Br
+               !              which is in bromocarb_mod.f
+               !       ***** Fix CH3Br Concentration in PBL *****
+               ! Kludge: eventually I want to keep the concentration
+               !         entirely fixed! Ask around on how to...
+               !========================================================
+               IF ( LEMIS  .and. ( IDTCH3Br > 0 ) )
+     &            CALL SET_CH3Br( N_TRACERS, TCVV, AD, STT,
+     &                            ITS_TIME_FOR_UNIT() )
 
-            ! ----------------------------------------------------
-            ! If selected in input.geos, then set the MBL
-            ! concentration of BrO equal to 1 pptv during daytime.
-            ! ----------------------------------------------------
-            IF ( LEMIS ) CALL SET_BRO( N_TRACERS, TCVV, AD, SUNCOS,
-     &                                 STT, ITS_TIME_FOR_UNIT() )
+               ! ----------------------------------------------------
+               ! If selected in input.geos, then set the MBL
+               ! concentration of BrO equal to 1 pptv during daytime.
+               ! ----------------------------------------------------
+               IF ( LEMIS .and. ( IDTBrO > 0 ) )
+     &            CALL SET_BRO( N_TRACERS, TCVV, AD, SUNCOS,
+     &                          STT, ITS_TIME_FOR_UNIT() )
 
+            ENDIF
          ENDIF    
 
 
@@ -945,7 +1025,21 @@
             CALL AERONUM     
 #endif
             ! Call the appropriate chemistry routine
-            CALL DO_CHEMISTRY
+#if defined( DEVEL )
+! vvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvv!
+! BELOW IS A TMP KLUGE TO TEST PASSING STT !
+! TO "DO_CHEMISTRY" VIA THE "CHEM_STATE"   !
+! DERIVED TYPE                             !
+!
+!    >-- STT SHOULD BE IN KG HERE --<
+!
+!^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^!
+            CHEM_STATE%TRACERS(:,:,:,:N_TRACERS) = STT
+! FIN DE KLUGE
+            CALL DO_CHEMISTRY(CHEM_STATE)
+#else
+            CALL DO_CHEMISTRY(am_I_Root)
+#endif
 
 #if   defined( APM )
             ! Call the main APM microphysics driver
@@ -992,7 +1086,7 @@
          ! diagnostic and only on a chemistry timestep.
          ! (skim, 02/05/11)
          IF ( ITS_TIME_FOR_CHEM() ) THEN
-            CALL RECOMPUTE_OD
+            CALL RECOMPUTE_OD( am_I_Root )
          ENDIF
 
          !==============================================================
@@ -1011,9 +1105,11 @@
                ! If it's a full-chemistry simulation but LCHEM=F,
                ! or if it's an offline simulation, call setup routine 
                IF ( ITS_A_FULLCHEM_SIM() ) THEN
-                  IF ( .not. LCHEM ) CALL SETUP_PLANEFLIGHT
+                  IF ( .not. LCHEM ) THEN
+                     CALL SETUP_PLANEFLIGHT( am_I_Root )
+                  ENDIF
                ELSE
-                  CALL SETUP_PLANEFLIGHT
+                  CALL SETUP_PLANEFLIGHT( am_I_Root )
                ENDIF
             ENDIF
          ENDIF
@@ -1549,7 +1645,11 @@
       ! Open & read A-6 fields
       DATE = GET_FIRST_A6_TIME()
       CALL OPEN_A6_FIELDS( DATE(1), DATE(2) ) 
+#if defined( DEVEL )
+      CALL GET_A6_FIELDS(  DATE(1), DATE(2), LOCAL_MET )      
+#else
       CALL GET_A6_FIELDS(  DATE(1), DATE(2) )      
+#endif
       IF ( LPRT ) CALL DEBUG_MSG( '### MAIN: a 1st A6 TIME' )
 
       ! Open & read I-6 fields
@@ -1780,7 +1880,11 @@
 
          ! Open and read A-6 fields
          CALL OPEN_A6_FIELDS( DATE(1), DATE(2) )
+#if defined( DEVEL )
+         CALL GET_A6_FIELDS(  DATE(1), DATE(2), LOCAL_MET )      
+#else
          CALL GET_A6_FIELDS(  DATE(1), DATE(2) )
+#endif
 
          ! Since CLDTOPS is an A-6 field, update the
          ! lightning NOx emissions [molec/box/6h]

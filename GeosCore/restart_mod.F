@@ -1078,7 +1078,9 @@
       ! Add ADJ_DIR prefix to name
       !FILENAME = TRIM( ADJ_DIR ) // TRIM( FILENAME )
 
-      IF ( am_I_Root ) WRITE( 6, 100 ) TRIM( FILENAME )
+      IF ( am_I_Root ) THEN
+         WRITE( 6, 100 ) TRIM( FILENAME )
+      ENDIF
  100  FORMAT( '     - READ_CSPEC_FILE: Reading ', a )
  
       ! Check to see if cspec restart file exists
@@ -1141,7 +1143,9 @@
 
             ! Also make sure we have the proper species
             IF ( TRIM( NAMEGAS(N) ) /= TRIM( RESERVED ) ) THEN
-               IF ( am_I_Root ) WRITE( 6, 200 ) TRIM( NAMEGAS(N) )
+               IF ( am_I_Root ) THEN
+                  WRITE( 6, 200 ) TRIM( NAMEGAS(N) )
+               ENDIF
  200           FORMAT( 'Species mismatch for ', a )
                CALL ERROR_STOP( 'Species mismatch!', 
      &                          'READ_CSPEC_FILE (restart_mod.f)' )

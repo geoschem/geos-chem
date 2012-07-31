@@ -742,6 +742,7 @@
 !  16 Aug 2010 - R. Yantosca - Added ProTeX headers
 !  18 Aug 2010 - R. Yantosca - Rewrite #if block logic for clarity
 !  06 Feb 2012 - R. Yantosca - Add modifications for GEOS-5.7.x met fields
+!  28 Feb 2012 - R. Yantosca - Removed support for GEOS-3
 !  01 Mar 2012 - R. Yantosca - Now use GET_YEDGE(I,J,L) from new grid_mod.F90
 !EOP
 !------------------------------------------------------------------------------
