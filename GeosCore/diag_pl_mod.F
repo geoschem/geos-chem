@@ -171,16 +171,12 @@
       !=================================================================
       ! Write out family names to "smv2.log" file
       !=================================================================
-#if defined( DEVEL )
-      IF(am_I_Root) THEN
-#endif
+      IF ( am_I_Root ) THEN
       WRITE( IO93, '(/,a)'      ) REPEAT( '=', 79 )
       WRITE( IO93, '(a)'        ) 'Families for prod or loss output:'
       WRITE( IO93, '(a,/)'      ) REPEAT( '=', 79 )
       WRITE( IO93, '(10(a7,1x))' ) ( TRIM( NAMEGAS(J) ), J=JGAS0,JGAS )
-#if defined( DEVEL )
-      END IF
-#endif
+      ENDIF
 
       END SUBROUTINE SETJFAM
 !EOC
@@ -1262,9 +1258,9 @@
       USE ERROR_MOD,  ONLY : ALLOC_ERR
       USE TRACER_MOD, ONLY : ITS_A_FULLCHEM_SIM
 
-      USE CMN_SIZE_MOD   ! Size parameters
+      USE CMN_SIZE_MOD      ! Size parameters
       USE COMODE_LOOP_MOD   ! LFAMILY, NFAMILIES
-      USE CMN_DIAG_MOD   ! ND65,    LD65
+      USE CMN_DIAG_MOD      ! ND65,    LD65
 !
 ! !INPUT PARAMETERS: 
 !

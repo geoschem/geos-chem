@@ -11,7 +11,11 @@
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE CHEMDR
+#if defined( DEVEL )
+      SUBROUTINE CHEMDR( am_I_Root, NI, NJ, NL, GC_MET, GC_STATE )
+#else
+      SUBROUTINE CHEMDR( am_I_Root )
+#endif
 !
 ! !USES:
 !
@@ -47,9 +51,22 @@
       USE CMN_NOX_MOD                ! SLBASE
       USE CMN_DEP_MOD                ! FRCLND
 
+#if defined( DEVEL )
+      USE GC_TYPE_MOD,          ONLY : GC_MET_LOCAL
+      USE GC_TYPE2_MOD,         ONLY : CHEMSTATE
+#endif
+
       IMPLICIT NONE
 #     include "define.h"
 
+!
+! !INPUT VARIABLES:
+!
+      LOGICAL, INTENT(IN) :: am_I_Root   ! Is this the root CPU?
+
+#if defined( DEVEL )
+      INTEGER, INTENT(IN) :: NI, NJ, NL  ! Local size indices
+#endif
 !
 ! !REMARKS:
 !  Important input variables from "dao_mod.f" and "uvalbedo_mod.f":
@@ -202,9 +219,15 @@
 !  07 Oct 2011 - R. Yantosca - Rename SUNCOS30 to SUNCOS_MID, which is the
 !                              cos(SZA) at the midpt of the chemistry timestep
 !   6 Mar 2012 - R. Yantosca - Now reference TO3 from dao_mod.F
+!  30 Jul 2012 - R. Yantosca - Now accept am_I_Root as an argument when
+!                              running with the traditional driver main.F
 !EOP
 !------------------------------------------------------------------------------
 !BOC
+#if defined( DEVEL )
+      TYPE(GC_MET_LOCAL), INTENT(IN)    :: GC_MET
+      TYPE(CHEMSTATE),    INTENT(INOUT) :: GC_STATE
+#endif
 !
 ! !LOCAL VARIABLES:
 !
@@ -217,6 +240,8 @@
 
       ! To use CSPEC_FULL restart (dkh, 02/12/09) 
       LOGICAL                  :: IT_EXISTS 
+
+      REAL :: START,FINISH
 
       !=================================================================
       ! CHEMDR begins here!
@@ -242,10 +267,14 @@
       ! Open "smv2.log" output file and read chem mechanism switches
       !=================================================================
       IF ( FIRSTCHEM ) THEN
-         
+
          ! Read from data file mglob.dat
-         CALL READER( FIRSTCHEM )
-         IF ( LPRT ) CALL DEBUG_MSG( '### CHEMDR: after READER' )
+         CALL READER( FIRSTCHEM, am_I_Root )
+
+         !### Debug
+         IF ( LPRT .and. am_I_Root ) THEN
+            CALL DEBUG_MSG( '### CHEMDR: after READER' )
+         ENDIF
 
          ! Set NCS for urban chemistry only (since that is where we
          ! have defined the GEOS-CHEM mechanism) (bdf, bmy, 4/21/03)
@@ -275,7 +304,9 @@
       ENDIF
 
       !### Debug
-      IF ( LPRT ) CALL DEBUG_MSG( '### CHEMDR: after RURALBOX' ) 
+      IF ( LPRT .and. am_I_Root ) THEN
+         CALL DEBUG_MSG( '### CHEMDR: after RURALBOX' ) 
+      ENDIF
 
       ! Reset NTTLOOP, the # of tropospheric grid boxes
       NTTLOOP = NTLOOP
@@ -284,10 +315,12 @@
       ! Call SETMODEL which defines number of grid-blocks in calculation,
       ! and copies meteorological parameters into local variables 
       !=================================================================
-      CALL SETMODEL
+      CALL SETMODEL( am_I_Root )
 
       !### Debug
-      IF ( LPRT ) CALL DEBUG_MSG( '### CHEMDR: after SETMODEL' )
+      IF ( LPRT .and. am_I_Root ) THEN
+         CALL DEBUG_MSG( '### CHEMDR: after SETMODEL' )
+      ENDIF
 
       !=================================================================
       ! Do the following only on the first call ...
@@ -299,14 +332,16 @@
          !---------------------------------
 
          ! Read "globchem.dat" chemistry mechanism
-         CALL READCHEM
+         CALL READCHEM( am_I_Root )
 
          ! Set NCS=NCSURBAN here since we have defined our tropospheric
          ! chemistry mechanism in the urban slot of SMVGEAR II (bmy, 4/21/03)
          NCS = NCSURBAN
 
          !### Debug
-         IF ( LPRT ) CALL DEBUG_MSG( '### CHEMDR: after READCHEM' )
+         IF ( LPRT .and. am_I_Root ) THEN
+            CALL DEBUG_MSG( '### CHEMDR: after READCHEM' )
+         ENDIF
 
          !---------------------------------
          ! Check for LISOPOH for SOA
@@ -338,33 +373,42 @@
 
             ! Get CH4 [ppbv] in 4 latitude bins for each year
             CALL GET_GLOBAL_CH4( CH4_YEAR, .TRUE., C3090S,
-     &                           C0030S,   C0030N, C3090N )
+     &                           C0030S,   C0030N, C3090N, am_I_Root )
          ENDIF
 
          !-------------------------------
          ! Initialize FAST-J photolysis
          !-------------------------------
-         CALL INPHOT( LLTROP, NPHOT ) 
+         CALL INPHOT( LLTROP, NPHOT, am_I_Root ) 
          
          !### Debug
-         IF ( LPRT ) CALL DEBUG_MSG( '### CHEMDR: after INPHOT' )        
+         IF ( LPRT .and. am_I_Root ) THEN
+            CALL DEBUG_MSG( '### CHEMDR: after INPHOT' )        
+         ENDIF
 
          !-------------------------------
          ! Flag certain chemical species
          !-------------------------------
-         CALL SETTRACE
+#if defined( DEVEL )
+         CALL SETTRACE( GC_STATE, am_I_Root )
+#else
+         CALL SETTRACE( am_I_Root )
+#endif
 
          !### Debug
-         IF ( LPRT ) CALL DEBUG_MSG( '### CHEMDR: after SETTRACE' )
+         IF ( LPRT .and. am_I_Root ) THEN
+            CALL DEBUG_MSG( '### CHEMDR: after SETTRACE' )
+         ENDIF
 
          !-------------------------------
          ! Flag emission & drydep rxns
          !-------------------------------
-         CALL SETEMDEP( N_TRACERS )
+         CALL SETEMDEP( N_TRACERS, am_I_Root )
 
          !### Debug
-         IF ( LPRT ) CALL DEBUG_MSG( '### CHEMDR: after SETEMDEP' )
-
+         IF ( LPRT .and. am_I_Root ) THEN
+            CALL DEBUG_MSG( '### CHEMDR: after SETEMDEP' )
+         ENDIF
       ENDIF
 
       !=================================================================
@@ -380,8 +424,7 @@
       ! to place this call here, so as to make sure that the chemical
       ! mechanism files (read by READER and READCHEM) have been loaded.
       IF ( ND40 .and. DATE /= DATE_PREV ) THEN
-         print*, '### Called SETUP_PLANEFLIGHT'
-         CALL SETUP_PLANEFLIGHT
+         CALL SETUP_PLANEFLIGHT( am_I_Root )
          DATE_PREV = DATE
       ENDIF
 
@@ -408,25 +451,33 @@
       IT_EXISTS = .FALSE.
       IF ( FIRSTCHEM .AND. LSVCSPEC ) THEN 
 
-         CALL READ_CSPEC_FILE( GET_NYMD(), GET_NHMS(), IT_EXISTS ) 
+         CALL READ_CSPEC_FILE( am_I_Root,  GET_NYMD(), 
+     &                         GET_NHMS(), IT_EXISTS ) 
    
          IF ( .not. IT_EXISTS ) THEN 
              
             ! Use default background values 
-            WRITE(6,*) 
-     &   '    - CHEMDR: CSPEC restart not found, use background values'
+            IF ( am_I_Root ) THEN
+               WRITE(6,*) 
+     &  '    - CHEMDR: CSPEC restart not found, use background values'
+            ENDIF
  
-            CALL GASCONC( FIRSTCHEM,              N_TRACERS, 
+            CALL GASCONC( am_I_Root,
+     &                    FIRSTCHEM,              N_TRACERS, 
      &                    STT(:,:,:,1:N_TRACERS), XNUMOL(1:N_TRACERS),    
      &                    FRCLND,                 IT_EXISTS )
          ELSE 
 
             ! Use restart values 
-            WRITE(6,*) 
-     &   '    - CHEMDR: using CSPEC values from restart file'                  
+            IF ( am_I_Root ) THEN
+               WRITE(6,*) 
+     &        '    - CHEMDR: using CSPEC values from restart file'
+
+            ENDIF
 
             ! Call GASCONC but don't reset CSPEC values
-            CALL GASCONC( .FALSE.,                 N_TRACERS, 
+            CALL GASCONC(  am_I_Root,
+     &                     .FALSE.,                 N_TRACERS, 
      &                     STT(:,:,:,1:N_TRACERS), XNUMOL(1:N_TRACERS),    
      &                     FRCLND,                 IT_EXISTS )
 
@@ -434,7 +485,8 @@
 
       ELSE 
 
-         CALL GASCONC(  FIRSTCHEM,              N_TRACERS, 
+         CALL GASCONC(  am_I_Root,
+     &                  FIRSTCHEM,              N_TRACERS, 
      &                  STT(:,:,:,1:N_TRACERS), XNUMOL(1:N_TRACERS),  
      &                  FRCLND,                 IT_EXISTS )
 
@@ -442,15 +494,19 @@
       IT_EXISTS = .FALSE.
 
       !### Debug
-      IF ( LPRT ) CALL DEBUG_MSG( '### CHEMDR: after GASCONC' )
+      IF ( LPRT .and. am_I_Root ) THEN
+         CALL DEBUG_MSG( '### CHEMDR: after GASCONC' )
+      ENDIF
 
       !=================================================================  
       ! Call SETEMIS which sets emission rates REMIS 
       !=================================================================
-      CALL SETEMIS( EMISRR, EMISRRN )
+      CALL SETEMIS( EMISRR, EMISRRN, am_I_Root )
       
       !### Debug
-      IF ( LPRT ) CALL DEBUG_MSG( '### CHEMDR: after SETEMIS' )
+      IF ( LPRT .and. am_I_Root ) THEN
+         CALL DEBUG_MSG( '### CHEMDR: after SETEMIS' )
+      ENDIf
 
       !=================================================================
       ! Call RDAER -- computes aerosol optical depths
@@ -459,10 +515,12 @@
       ! Call RDAER to compute AOD for FAST-J (skim, 02/03/11)
       WAVELENGTH = 0
 
-      CALL RDAER( MONTH, YEAR, WAVELENGTH )
+      CALL RDAER( am_I_Root, MONTH, YEAR, WAVELENGTH )
 
       !### Debug
-      IF ( LPRT ) CALL DEBUG_MSG( '### CHEMDR: after RDAER' )
+      IF ( LPRT .and. am_I_Root ) THEN 
+         CALL DEBUG_MSG( '### CHEMDR: after RDAER' )
+      ENDIF
 
       !=================================================================
       ! If LDUST is turned on, then we have online dust aerosol in
@@ -476,17 +534,13 @@
       IF ( LDUST ) THEN
          CALL RDUST_ONLINE( SOILDUST, WAVELENGTH )
       ELSE
-         IF ( LTOMAS ) THEN
-            ! Don't read dust emissions from disk when using TOMAS,
-            ! because TOMAS uses a different set of dust tracers than the 
-            ! std code (win, bmy, 1/25/10)
-         ELSE
-            CALL RDUST_OFFLINE( MONTH, YEAR, WAVELENGTH )
-         ENDIF
+         CALL RDUST_OFFLINE( MONTH, YEAR, WAVELENGTH, am_I_Root )
       ENDIF
 
       !### Debug
-      IF ( LPRT ) CALL DEBUG_MSG( '### CHEMDR: after RDUST' )
+      IF ( LPRT .and. am_I_Root ) THEN
+         CALL DEBUG_MSG( '### CHEMDR: after RDUST' )
+      ENDIF
 
       NPTS = NTTLOOP
 
@@ -497,7 +551,12 @@
       !=================================================================
       ! Call photolysis routine to compute J-Values
       !=================================================================
-      CALL FAST_J( SUNCOS_MID, OPTD, UVALBEDO )              
+#if defined( DEVEL )
+      CALL FAST_J( SUNCOS_MID, OPTD, UVALBEDO, GC_MET%PEDGE, am_I_Root )
+      PRINT *,"CHMEDR: Done with FAST_J"
+#else
+      CALL FAST_J( SUNCOS_MID, OPTD, UVALBEDO, am_I_Root )              
+#endif
 
       !### Debug
       IF ( LPRT ) CALL DEBUG_MSG( '### CHEMDR: after FAST-J' )
@@ -509,10 +568,16 @@
       ! PHYSPROC calls both CALCRATE, which computes rxn rates 
       ! and SMVGEAR (if we do not use the solver coded by kpp), which
       ! is the chemistry solver
-      CALL PHYSPROC( SUNCOS_MID )
+      !CALL CPU_TIME(start)
+      CALL PHYSPROC( SUNCOS_MID, am_I_Root )
+      !PRINT *,"CHMEDR: Done with PHYSPROC"
+      !CALL CPU_TIME(finish)
+      !write(*,*) 'PHYSPROC TIME: ', finish-start
 
       !### Debug
-      IF ( LPRT ) CALL DEBUG_MSG( '### CHEMDR: after PHYSPROC' )
+      IF ( LPRT .and. am_I_Root ) THEN
+         CALL DEBUG_MSG( '### CHEMDR: after PHYSPROC' )
+      ENDIF
 
 !%%!  ltm: As of v9-01-03k, old SCHEM.F is now depreciated, and it and
 !%%!  the routines it called will likely be removed in a later version.
@@ -534,7 +599,9 @@
      &           STT(:,:,:,1:N_TRACERS) )
 
       !### Debug
-      IF ( LPRT ) CALL DEBUG_MSG( '### CHEMDR: after LUMP' )
+      IF ( LPRT .and. am_I_Root ) THEN
+         CALL DEBUG_MSG( '### CHEMDR: after LUMP' )
+      ENDIF
 
       !=================================================================
       ! Call OHSAVE which saves info on OZONE, OH, AND NO concentrations 
@@ -548,7 +615,9 @@
      &                SAVENO3 )
 
          !### Debug
-         IF ( LPRT ) CALL DEBUG_MSG( '### CHEMDR: after OHSAVE' )
+         IF ( LPRT .and. am_I_Root ) THEN
+            CALL DEBUG_MSG( '### CHEMDR: after OHSAVE' )
+         ENDIF
       ENDIF
 
       !=================================================================
@@ -557,17 +626,21 @@
       CALL DO_DIAG_OH
       
       !### Debug
-      IF ( LPRT ) CALL DEBUG_MSG( '### CHEMDR: after DO_DIAG_OH' )
+      IF ( LPRT .and. am_I_Root ) THEN
+         CALL DEBUG_MSG( '### CHEMDR: after DO_DIAG_OH' )
+      ENDIF
 
       !=================================================================
       ! Save production and loss for chemical families.  Also save
       ! P(Ox) and L(Ox) for a future tagged Ox run (if necessary).
       !=================================================================
       IF ( LFAMILY ) THEN
-         CALL DO_DIAG_PL
+         CALL DO_DIAG_PL( am_I_Root )
 
          !### Debug
-         IF ( LPRT ) CALL DEBUG_MSG( '### CHEMDR: after DO_DIAG_PL' )
+         IF ( LPRT .and. am_I_Root ) THEN
+            CALL DEBUG_MSG( '### CHEMDR: after DO_DIAG_PL' )
+         ENDIF
       ENDIF
       
       !=================================================================
@@ -586,7 +659,9 @@
          CALL SAVE_FULL_TROP
 
          !### Debug
-         IF ( LPRT ) CALL DEBUG_MSG( '### CHEMDR: after SAVE_FULL_TROP')
+         IF ( LPRT .and. am_I_Root ) THEN
+            CALL DEBUG_MSG( '### CHEMDR: after SAVE_FULL_TROP' )
+         ENDIF
       ENDIF
 
       !=================================================================
@@ -595,7 +670,9 @@
       FIRSTCHEM = .FALSE.
 
       !### Debug
-      IF ( LPRT ) CALL DEBUG_MSG( '### Now exiting CHEMDR!' )
+      IF ( LPRT .and. am_I_Root ) THEN
+         CALL DEBUG_MSG( '### Now exiting CHEMDR !' )
+      ENDIF
 
       END SUBROUTINE CHEMDR
 !EOC

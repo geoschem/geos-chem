@@ -1410,8 +1410,6 @@
 !                              replace w/ IREG, ILAND, IUSE, XLAI
 !  09 Apr 2012 - R. Yantosca - Remove reference to CMN_VEL_mod.F
 !  09 Apr 2012 - R. Yantosca - Now use INTENT(IN), INTENT(OUT) for arguments
-!  30 Jul 2012 - R. Yantosca - Now accept am_I_Root as an argument when
-!                              running with the traditional driver main.F
 !
 !***********************************************************************
 !   Changes from Version 3.2 to Version 3.3:                         ***
