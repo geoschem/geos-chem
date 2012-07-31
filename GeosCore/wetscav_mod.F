@@ -6506,7 +6506,7 @@
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE WETDEPID(am_I_Root)
+      SUBROUTINE WETDEPID( am_I_Root )
 !
 ! !USES:
 !
@@ -6533,10 +6533,10 @@
       USE TRACERID_MOD, ONLY : IDTHOBr,   IDTHBr,    IDTBr2
 
       USE CMN_SIZE_MOD       ! Size parameters
-
-! !INPUT VARIABLES:
-
-      LOGICAL, INTENT(IN) :: am_I_Root
+!
+! !INPUT PARAMETERS:
+!
+      LOGICAL, INTENT(IN) :: am_I_Root   ! Is this the root CPU?
 ! 
 ! !REVISION HISTORY: 
 !  08 Nov 2002 - R. Yantosca - Initial version
@@ -6556,6 +6556,8 @@
 !        or HgP tracer (bmy, 1/6/06)
 !  (11) Now added SOG4 and SOA4 (dkh, bmy, 5/18/06)
 !  16 Sep 2010 - R. Yantosca - Added ProTeX headers
+!  30 Jul 2012 - R. Yantosca - Now accept am_I_Root as an argument when
+!                              running with the traditional driver main.F
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -6859,19 +6861,18 @@
       !=================================================================
       ! Echo list of soluble tracers to the screen
       !=================================================================
-      IF(am_I_Root) THEN
-      WRITE( 6, '(/,a,/)' ) 'WETDEPID: List of soluble tracers: '
-      WRITE( 6, '(a)  '   ) '  #             Name  Tracer Mol Wt'
-      WRITE( 6, '(a)'     ) '                      Number g/mole'
-      WRITE( 6, '(a)'     ) REPEAT( '-', 36 )
+      IF ( am_I_Root ) THEN
+         WRITE( 6, '(/,a,/)' ) 'WETDEPID: List of soluble tracers: '
+         WRITE( 6, '(a)  '   ) '  #             Name  Tracer Mol Wt'
+         WRITE( 6, '(a)'     ) '                      Number g/mole'
+         WRITE( 6, '(a)'     ) REPEAT( '-', 36 )
 
-      DO NN = 1, NSOL
-         N = IDWETD(NN)
-         WRITE( 6, '(i3,3x,a14,3x,i3,3x,f6.1)' )
-     &        NN, TRIM( TRACER_NAME(N) ), N, TRACER_MW_G(N)
-      ENDDO
-      
-      END IF
+         DO NN = 1, NSOL
+            N = IDWETD(NN)
+            WRITE( 6, '(i3,3x,a14,3x,i3,3x,f6.1)' )
+     &           NN, TRIM( TRACER_NAME(N) ), N, TRACER_MW_G(N)
+         ENDDO
+      ENDIF
 
       END SUBROUTINE WETDEPID
 !EOC

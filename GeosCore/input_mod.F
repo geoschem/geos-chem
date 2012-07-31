@@ -161,8 +161,8 @@
 !\\
 !\\
 ! !INTERFACE:
-!
-      SUBROUTINE READ_INPUT_FILE(am_I_Root)
+! 
+      SUBROUTINE READ_INPUT_FILE( am_I_Root )
 !
 ! !USES:
 !
@@ -170,7 +170,7 @@
       USE FILE_MOD,    ONLY : IU_GEOS, IOERROR
       USE GAMAP_MOD,   ONLY : DO_GAMAP
 !
-! !INPUT VARIABLES
+! !INPUT PARAMETERS:
 !
       LOGICAL, INTENT(IN) :: am_I_Root   ! Is this the root CPU?
 ! 
@@ -200,10 +200,12 @@
       !=================================================================  
 
       ! Echo output
-!      WRITE( 6, '(a  )' ) REPEAT( '=', 79 )
-!      WRITE( 6, '(a,/)' ) 'G E O S - C H E M   U S E R   I N P U T'
-!      WRITE( 6, 100   ) TRIM( FILENAME )
-! 100  FORMAT( 'READ_INPUT_FILE: Reading ', a )
+      IF ( am_I_Root ) THEN
+         WRITE( 6, '(a  )' ) REPEAT( '=', 79 )
+         WRITE( 6, '(a,/)' ) 'G E O S - C H E M   U S E R   I N P U T'
+         WRITE( 6, 100   ) TRIM( FILENAME )
+ 100     FORMAT( 'READ_INPUT_FILE: Reading ', a )
+      ENDIF
 
       ! Initialize directory & logical variables
       CALL INIT_INPUT
@@ -248,93 +250,93 @@
          !      UNIX CMDS, ARCHIVED OH, and O3PL menus.
          !=============================================================
          IF      ( INDEX( LINE, 'SIMULATION MENU'  ) > 0 ) THEN
-            CALL READ_SIMULATION_MENU(am_I_Root)             
+            CALL READ_SIMULATION_MENU( am_I_Root )             
                                      
          ELSE IF ( INDEX( LINE, 'TRACER MENU'      ) > 0 ) THEN
-            CALL READ_TRACER_MENU(am_I_Root)                 
+            CALL READ_TRACER_MENU( am_I_Root )                 
 
          ELSE IF ( INDEX( LINE, 'AEROSOL MENU'     ) > 0 ) THEN
-            CALL READ_AEROSOL_MENU(am_I_Root)              
+            CALL READ_AEROSOL_MENU( am_I_Root )              
 
 #if   defined( APM )
          ELSE IF ( INDEX( LINE, 'APM MENU'         ) > 0 ) THEN
-            CALL READ_APM_MENU(am_I_Root)
+            CALL READ_APM_MENU( am_I_Root )
 #endif
 
          ELSE IF ( INDEX( LINE, 'EMISSIONS MENU'   ) > 0 ) THEN
-            CALL READ_EMISSIONS_MENU(am_I_Root)             
+            CALL READ_EMISSIONS_MENU( am_I_Root )             
 
          ELSE IF ( INDEX( LINE, 'FUTURE MENU'      ) > 0 ) THEN
-            CALL READ_FUTURE_MENU(am_I_Root) 
+            CALL READ_FUTURE_MENU( am_I_Root ) 
                                                         
          ELSE IF ( INDEX( LINE, 'CHEMISTRY MENU'   ) > 0 ) THEN
-            CALL READ_CHEMISTRY_MENU(am_I_Root)              
+            CALL READ_CHEMISTRY_MENU( am_I_Root )              
                                                   
          ELSE IF ( INDEX( LINE, 'TRANSPORT MENU'   ) > 0 ) THEN
-            CALL READ_TRANSPORT_MENU(am_I_Root)              
+            CALL READ_TRANSPORT_MENU( am_I_Root )              
                                                   
          ELSE IF ( INDEX( LINE, 'CONVECTION MENU'  ) > 0 ) THEN
-            CALL READ_CONVECTION_MENU(am_I_Root)            
+            CALL READ_CONVECTION_MENU( am_I_Root )            
                                                   
          ELSE IF ( INDEX( LINE, 'DEPOSITION MENU'  ) > 0 ) THEN
-            CALL READ_DEPOSITION_MENU(am_I_Root)             
+            CALL READ_DEPOSITION_MENU( am_I_Root )             
 
          ELSE IF ( INDEX( LINE, 'CO2 SIM MENU'     ) > 0 ) THEN !Ray Nassar
-            CALL READ_CO2_SIM_MENU(am_I_Root)
+            CALL READ_CO2_SIM_MENU( am_I_Root )
                                     
          ELSE IF ( INDEX( LINE, 'GAMAP MENU'       ) > 0 ) THEN
-            CALL READ_GAMAP_MENU(am_I_Root)                 
+            CALL READ_GAMAP_MENU( am_I_Root )                 
                                                   
          ELSE IF ( INDEX( LINE, 'OUTPUT MENU'      ) > 0 ) THEN
-            CALL READ_OUTPUT_MENU(am_I_Root)                 
+            CALL READ_OUTPUT_MENU( am_I_Root )                 
                                                   
          ELSE IF ( INDEX( LINE, 'DIAGNOSTIC MENU'  ) > 0 ) THEN
-            CALL READ_DIAGNOSTIC_MENU(am_I_Root)             
+            CALL READ_DIAGNOSTIC_MENU( am_I_Root )             
 
          ELSE IF ( INDEX( LINE, 'PLANEFLIGHT MENU' ) > 0 ) THEN
-            CALL READ_PLANEFLIGHT_MENU(am_I_Root)             
+            CALL READ_PLANEFLIGHT_MENU( am_I_Root )             
                                                   
          ELSE IF ( INDEX( LINE, 'ND48 MENU'        ) > 0 ) THEN
-            CALL READ_ND48_MENU(am_I_Root)                  
+            CALL READ_ND48_MENU( am_I_Root )                  
 
          ELSE IF ( INDEX( LINE, 'ND49 MENU'        ) > 0 ) THEN
-            CALL READ_ND49_MENU(am_I_Root)                   
+            CALL READ_ND49_MENU( am_I_Root )                   
                                                   
          ELSE IF ( INDEX( LINE, 'ND50 MENU'        ) > 0 ) THEN
-            CALL READ_ND50_MENU(am_I_Root)                   
+            CALL READ_ND50_MENU( am_I_Root )                   
                                                   
          ELSE IF ( INDEX( LINE, 'ND51 MENU'        ) > 0 ) THEN
-            CALL READ_ND51_MENU(am_I_Root)                   
+            CALL READ_ND51_MENU( am_I_Root )                   
                                                   
          ELSE IF ( INDEX( LINE, 'ND51b MENU'       ) > 0 ) THEN
-            CALL READ_ND51b_MENU(am_I_Root)  
+            CALL READ_ND51b_MENU( am_I_Root )  
 
          ELSE IF ( INDEX( LINE, 'ND63 MENU'        ) > 0 ) THEN
-            CALL READ_ND63_MENU(am_I_Root)                   
+            CALL READ_ND63_MENU( am_I_Root )                   
 
          ELSE IF ( INDEX( LINE, 'PROD & LOSS MENU' ) > 0 ) THEN
-            CALL READ_PROD_LOSS_MENU(am_I_Root)               
+            CALL READ_PROD_LOSS_MENU( am_I_Root )               
                                                   
          ELSE IF ( INDEX( LINE, 'UNIX CMDS MENU'   ) > 0 ) THEN 
-            CALL READ_UNIX_CMDS_MENU(am_I_Root)              
+            CALL READ_UNIX_CMDS_MENU( am_I_Root )              
 
          ELSE IF ( INDEX( LINE, 'NESTED GRID MENU' ) > 0 ) THEN 
-            CALL READ_NESTED_GRID_MENU(am_I_Root)
+            CALL READ_NESTED_GRID_MENU( am_I_Root )
 
          ELSE IF ( INDEX( LINE, 'ARCHIVED OH MENU' ) > 0 ) THEN 
-            CALL READ_ARCHIVED_OH_MENU(am_I_Root)
+            CALL READ_ARCHIVED_OH_MENU( am_I_Root )
 
          ELSE IF ( INDEX( LINE, 'O3 P/L MENU'      ) > 0 ) THEN 
-            CALL READ_O3PL_MENU(am_I_Root)
+            CALL READ_O3PL_MENU( am_I_Root )
 
          ELSE IF ( INDEX( LINE, 'BENCHMARK MENU'   ) > 0 ) THEN 
-            CALL READ_BENCHMARK_MENU(am_I_Root)
+            CALL READ_BENCHMARK_MENU( am_I_Root )
               
          ELSE IF ( INDEX( LINE, 'MERCURY MENU'     ) > 0 ) THEN 
-            CALL READ_MERCURY_MENU(am_I_Root)
+            CALL READ_MERCURY_MENU( am_I_Root )
                                     
          ELSE IF ( INDEX( LINE, 'CH4 MENU'         ) > 0 ) THEN 
-            CALL READ_CH4_MENU(am_I_Root)
+            CALL READ_CH4_MENU( am_I_Root )
                                     
          ELSE IF ( INDEX( LINE, 'END OF FILE'      ) > 0 ) THEN 
             EXIT
@@ -360,7 +362,7 @@
 #endif
 
       ! Check GEOS-CHEM timesteps
-      CALL CHECK_TIME_STEPS(am_I_Root)
+      CALL CHECK_TIME_STEPS( am_I_Root )
 
       ! Create "diaginfo.dat" and "tracerinfo.dat" files for GAMAP
       CALL DO_GAMAP( DIAGINFO, TRACERINFO )
@@ -556,7 +558,7 @@
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE READ_SIMULATION_MENU(am_I_Root)
+      SUBROUTINE READ_SIMULATION_MENU( am_I_Root )
 !
 ! !USES:
 !
@@ -573,10 +575,10 @@
       USE TIME_MOD,      ONLY : SET_CURRENT_TIME, SET_DIAGb
       USE TIME_MOD,      ONLY : SET_NDIAGTIME,    GET_TAU
       USE TRANSFER_MOD,  ONLY : INIT_TRANSFER
-
-! !INPUT VARIABLES:
-
-      LOGICAL, INTENT(IN) :: am_I_Root
+!
+! !INPUT PARAMETERS:
+!
+      LOGICAL, INTENT(IN) :: am_I_Root   ! Is this the root CPU?
 ! 
 ! !REVISION HISTORY: 
 !  20 Jul 2004 - R. Yantosca - Initial version
@@ -599,6 +601,8 @@
 !  01 Mar 2012 - R. Yantosca - Now call routine INITIALIZE_GEOS_GRID to
 !                              initialize horizontal grid parameters
 !  10 Jun 2012 - L. Murray   - Move Linoz to chemistry menu
+!  30 Jul 2012 - R. Yantosca - Now accept am_I_Root as an argument when
+!                              running with the traditional driver main.F
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -703,39 +707,39 @@
       !=================================================================
       ! Print to screen
       !=================================================================
-      IF(am_I_Root) THEN
-      WRITE( 6, '(/,a)' ) 'SIMULATION MENU'
-      WRITE( 6, '(  a)' ) '---------------'
-      WRITE( 6, 100     ) 'Start time of run           : ', NYMDb, NHMSb
-      WRITE( 6, 100     ) 'End time of run             : ', NYMDe, NHMSe
-      WRITE( 6, 110     ) 'Run directory               : ',
-     &                     TRIM( RUN_DIR )
-      WRITE( 6, 110     ) 'Data Directory              : ',
-     &                     TRIM( DATA_DIR )
-      WRITE( 6, 110     ) 'GCAP       sub-directory    : ', 
-     &                     TRIM( GCAP_DIR )
-      WRITE( 6, 110     ) 'GEOS-4     sub-directory    : ', 
-     &                     TRIM( GEOS_4_DIR )
-      WRITE( 6, 110     ) 'GEOS-5     sub-directory    : ', 
-     &                     TRIM( GEOS_5_DIR )
-      WRITE( 6, 110     ) 'GEOS-5.7.x sub-directory    : ', 
-     &                     TRIM( GEOS_57_DIR )
-      WRITE( 6, 110     ) 'MERRA      sub-directory    : ', 
-     &                     TRIM( MERRA_DIR )
-      WRITE( 6, 110     ) '1x1 Emissions etc Data Dir  : ',
-     &                     TRIM( DATA_DIR_1x1 )
-      WRITE( 6, 110     ) 'Temporary Directory         : ', 
-     &                     TRIM( TEMP_DIR )
-      WRITE( 6, 110     ) 'Input restart file          : ', 
-     &                     TRIM( IN_RST_FILE )
-      WRITE( 6, 120     ) 'Create restart file?        : ', LSVGLB
-      WRITE( 6, 110     ) 'Output restart file(s)      : ', 
-     &                     TRIM( OUT_RST_FILE )
-      WRITE( 6, 120     ) 'Unzip met fields?           : ', LUNZIP
-      WRITE( 6, 120     ) 'Wait for met fields?        : ', LWAIT
-      WRITE( 6, 120     ) 'Use variable tropopause?    : ', LVARTROP
-      WRITE( 6, 130     ) 'Global offsets I0, J0       : ', I0, J0
-      END IF
+      IF ( am_I_Root ) THEN
+         WRITE( 6, '(/,a)' ) 'SIMULATION MENU'
+         WRITE( 6, '(  a)' ) '---------------'
+         WRITE( 6, 100 ) 'Start time of run           : ', NYMDb, NHMSb
+         WRITE( 6, 100 ) 'End time of run             : ', NYMDe, NHMSe
+         WRITE( 6, 110 ) 'Run directory               : ',
+     &                    TRIM( RUN_DIR )
+         WRITE( 6, 110 ) 'Data Directory              : ',
+     &                    TRIM( DATA_DIR )
+         WRITE( 6, 110 ) 'GCAP       sub-directory    : ', 
+     &                    TRIM( GCAP_DIR )
+         WRITE( 6, 110 ) 'GEOS-4     sub-directory    : ', 
+     &                    TRIM( GEOS_4_DIR )
+         WRITE( 6, 110 ) 'GEOS-5     sub-directory    : ', 
+     &                    TRIM( GEOS_5_DIR )
+         WRITE( 6, 110 ) 'GEOS-5.7.x sub-directory    : ', 
+     &                    TRIM( GEOS_57_DIR )
+         WRITE( 6, 110 ) 'MERRA      sub-directory    : ', 
+     &                    TRIM( MERRA_DIR )
+         WRITE( 6, 110 ) '1x1 Emissions etc Data Dir  : ',
+     &                    TRIM( DATA_DIR_1x1 )
+         WRITE( 6, 110 ) 'Temporary Directory         : ', 
+     &                    TRIM( TEMP_DIR )
+         WRITE( 6, 110 ) 'Input restart file          : ', 
+     &                    TRIM( IN_RST_FILE )
+         WRITE( 6, 120 ) 'Create restart file?        : ', LSVGLB
+         WRITE( 6, 110 ) 'Output restart file(s)      : ', 
+     &                    TRIM( OUT_RST_FILE )
+         WRITE( 6, 120 ) 'Unzip met fields?           : ', LUNZIP
+         WRITE( 6, 120 ) 'Wait for met fields?        : ', LWAIT
+         WRITE( 6, 120 ) 'Use variable tropopause?    : ', LVARTROP
+         WRITE( 6, 130 ) 'Global offsets I0, J0       : ', I0, J0
+      ENDIF
 
       ! Format statements
  100  FORMAT( A, I8.8, 1X, I6.6 )
@@ -771,7 +775,7 @@
       CALL SET_YOFFSET( J0 )
 
       ! Initialize GEOS-Chem horizontal grid structure
-      CALL INITIALIZE_GEOS_GRID()
+      CALL INITIALIZE_GEOS_GRID( am_I_Root )
 
       ! Initialze quantities for "transfer_mod.f"
       CALL INIT_TRANSFER( 0, 0 )
@@ -794,13 +798,17 @@
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE INITIALIZE_GEOS_GRID()
+      SUBROUTINE INITIALIZE_GEOS_GRID( am_I_Root )
 !
 ! !USES:
 !
       USE CMN_SIZE_MOD
       USE GLOBAL_GRID_MOD, ONLY : COMPUTE_GLOBAL_GRID
       USE GRID_MOD,        ONLY : INIT_GRID, COMPUTE_GRID
+!
+! !INPUT PARAMETERS:
+!
+      LOGICAL, INTENT(IN) :: am_I_Root   ! Is this the root CPU?
 ! 
 ! !REMARKS:
 !  The module grid_mod.F90 has been modified to save grid parameters in 3D
@@ -815,6 +823,8 @@
 ! !REVISION HISTORY: 
 !  01 Mar 2012 - R. Yantosca - Initial version
 !  01 May 2012 - M. Payer    - Add call to COMPUTE_GLOBAL_GRID for nested grids
+!  30 Jul 2012 - R. Yantosca - Now accept am_I_Root as an argument when
+!                              running with the traditional driver main.F
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -882,7 +892,7 @@
 
 #elif defined( GRID05x0666 )
 
-      CALL COMPUTE_GLOBAL_GRID
+      CALL COMPUTE_GLOBAL_GRID( am_I_Root )
 
       !-------------------=---------
       ! Nested 0.5 x 0.666 grids
@@ -894,7 +904,7 @@
 
 #elif defined( GRID025x03125 )
 
-      CALL COMPUTE_GLOBAL_GRID
+      CALL COMPUTE_GLOBAL_GRID( am_I_Root )
 
       !-----------------------------
       ! Nested 0.25 x 0.3125 grids
@@ -912,9 +922,10 @@
      &                   L1=1,      L2=LLPAR  )
 
       ! Compute grid parameters in grid_mod.F90
-#if ! defined ESMF_ 
-#if ! defined GCM
-      CALL COMPUTE_GRID( I1=1,      I2=IIPAR,  
+#if ! defined( ESMF_ )
+#if ! defined( GCM   )
+      CALL COMPUTE_GRID( am_I_Root=am_I_Root,
+     &                   I1=1,      I2=IIPAR,  
      &                   J1=1,      J2=JJPAR,  
      &                   JSP=JSP,   JNP=JNP,   
      &                   L1=1,      L2=LLPAR,  
@@ -937,7 +948,7 @@
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE READ_TRACER_MENU(am_I_Root)
+      SUBROUTINE READ_TRACER_MENU( am_I_Root )
 !
 ! !USES:
 !
@@ -959,10 +970,10 @@
       USE TRACERID_MOD, ONLY : TRACERID
 
       USE CMN_SIZE_MOD       ! Size parameters
-
-! !INPUT VARIABLES:
-
-      LOGICAL, INTENT(IN) :: am_I_Root
+!
+! !INPUT PARAMETERS:
+!
+      LOGICAL, INTENT(IN) :: am_I_Root   ! Is this the root CPU?
 
 #if defined ( ESMF_ ) && defined( DEVEL )
 !      USE GC_ENVIRONMENT_MOD, ONLY : TRACER_INDEX, TRACER_NAMES
@@ -982,8 +993,6 @@
 !EOP
 !------------------------------------------------------------------------------
 !BOC
-#if defined( DEVEL )
-#endif
 !
 ! !LOCAL VARIABLES:
 !
@@ -1168,35 +1177,35 @@
       !=================================================================
       ! Print to screen
       !=================================================================
-      IF(am_I_Root) THEN
-      WRITE( 6, '(/,a)' ) 
+      IF ( am_I_Root ) THEN
+         WRITE( 6, '(/,a)' ) 
      &       'TRACER MENU (==> denotes SMVGEAR emitted species)' 
-      WRITE( 6, '(  a)' ) REPEAT( '-', 48 )
-      WRITE( 6, '(  a)' ) '  # Tracer          g/mole'
+         WRITE( 6, '(  a)' ) REPEAT( '-', 48 )
+         WRITE( 6, '(  a)' ) '  # Tracer          g/mole'
 
-      ! Print info about each tracer
-      DO T = 1, N_TRACERS
+         ! Print info about each tracer
+         DO T = 1, N_TRACERS
 
-         ! Write tracer number, name, & mol wt
-         WRITE( 6, 100 ) ID_TRACER(T), TRACER_NAME(T), TRACER_MW_G(T)
+            ! Write tracer number, name, & mol wt
+            WRITE( 6, 100 ) ID_TRACER(T), TRACER_NAME(T), TRACER_MW_G(T)
               
-         ! If a family tracer (or just a tracer w/ emission)
-         ! then also print info about species
-         IF ( TRACER_N_CONST(T) > 1 .or. ID_EMITTED(T) > 0 ) THEN
+            ! If a family tracer (or just a tracer w/ emission)
+            ! then also print info about species
+            IF ( TRACER_N_CONST(T) > 1 .or. ID_EMITTED(T) > 0 ) THEN
             
-            ! Loop over member species
-            DO C = 1, TRACER_N_CONST(T)
+               ! Loop over member species
+               DO C = 1, TRACER_N_CONST(T)
 
-               ! Also flag which is the emitted tracer
-               IF ( ID_EMITTED(T) == C ) THEN
-                  WRITE( 6, 110 ) TRACER_COEFF(T,C), TRACER_CONST(T,C) 
-               ELSE
-                  WRITE( 6, 120 ) TRACER_COEFF(T,C), TRACER_CONST(T,C)
-               ENDIF
-            ENDDO
-         ENDIF
-      ENDDO
-      END IF
+                   ! Also flag which is the emitted tracer
+                  IF ( ID_EMITTED(T) == C ) THEN
+                     WRITE( 6,110 ) TRACER_COEFF(T,C), TRACER_CONST(T,C) 
+                  ELSE
+                     WRITE( 6,120 ) TRACER_COEFF(T,C), TRACER_CONST(T,C)
+                  ENDIF
+               ENDDO
+            ENDIF
+         ENDDO
+      ENDIF
 
       ! Format statement
  100  FORMAT( I3, 1x, A10, 6x, F6.1 )
@@ -1229,14 +1238,13 @@
       ENDIF
 
       ! Set up tracer flags
-      CALL TRACERID(am_I_Root)
+      CALL TRACERID( am_I_Root )
 
       ! Set NBFTRACE in "biofuel_mod.f"
-      CALL SET_BFTRACE(am_I_Root)
+      CALL SET_BFTRACE( am_I_Root )
 
       ! Set NBIOTRACE in "biomass_mod.f"
-      !FP_ISOP (6/2009)
-      CALL SET_BIOTRCE(am_I_Root)
+      CALL SET_BIOTRCE( am_I_Root )
 
       ! Set counter
       CT1 = CT1 + 1
@@ -1256,7 +1264,7 @@
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE READ_AEROSOL_MENU(am_I_Root)
+      SUBROUTINE READ_AEROSOL_MENU( am_I_Root )
 !
 ! !USES:
 !
@@ -1277,11 +1285,10 @@
       USE TRACERID_MOD, ONLY : IDTDST1,  IDTDST2,  IDTDST3, IDTDST4
       USE TRACERID_MOD, ONLY : IDTSALA,  IDTSALC 
       USE TRACERID_MOD, ONLY : IDTSOAG,  IDTSOAM,  IDTSOA5
-
-! !INPUT VARIABLES:
-
+!
+! !INPUT PARAMETERS:
+!
       LOGICAL, INTENT(IN) :: am_I_Root   ! Is this the root CPU?
-
 ! 
 ! !REVISION HISTORY: 
 !  20 Jul 2004 - R. Yantosca - Initial version
@@ -1535,21 +1542,21 @@
       !=================================================================
       ! Print to screen
       !=================================================================
-      IF(am_I_Root) THEN
-      WRITE( 6, '(/,a)' ) 'AEROSOL MENU'
-      WRITE( 6, '(  a)' ) '------------'
-      WRITE( 6, 100     ) 'Online SULFATE AEROSOLS?    : ', LSULF
-      WRITE( 6, 100     ) 'Online CRYST & AQ AEROSOLS? : ', LCRYST
-      WRITE( 6, 100     ) 'Online CARBON AEROSOLS?     : ', LCARB
-      WRITE( 6, 100     ) 'Online 2dy ORGANIC AEROSOLS?: ', LSOA
-      WRITE( 6, 100     ) 'Online DUST AEROSOLS?       : ', LDUST
-      WRITE( 6, 100     ) 'Use DEAD dust emissions?    : ', LDEAD
-      WRITE( 6, 100     ) 'Online SEA SALT AEROSOLS?   : ', LSSALT
-      WRITE( 6, 110     ) 'Accum  SEA SALT radii [um]  : ', 
-     &                     SALA_REDGE_um(1), SALA_REDGE_um(2)
-      WRITE( 6, 110     ) 'Coarse SEA SALT radii [um]  : ',
-     &                     SALC_REDGE_um(1), SALC_REDGE_um(2)
-      END IF
+      IF ( am_I_Root ) THEN
+         WRITE( 6, '(/,a)' ) 'AEROSOL MENU'
+         WRITE( 6, '(  a)' ) '------------'
+         WRITE( 6, 100     ) 'Online SULFATE AEROSOLS?    : ', LSULF
+         WRITE( 6, 100     ) 'Online CRYST & AQ AEROSOLS? : ', LCRYST
+         WRITE( 6, 100     ) 'Online CARBON AEROSOLS?     : ', LCARB
+         WRITE( 6, 100     ) 'Online 2dy ORGANIC AEROSOLS?: ', LSOA
+         WRITE( 6, 100     ) 'Online DUST AEROSOLS?       : ', LDUST
+         WRITE( 6, 100     ) 'Use DEAD dust emissions?    : ', LDEAD
+         WRITE( 6, 100     ) 'Online SEA SALT AEROSOLS?   : ', LSSALT
+         WRITE( 6, 110     ) 'Accum  SEA SALT radii [um]  : ', 
+     &                        SALA_REDGE_um(1), SALA_REDGE_um(2)
+         WRITE( 6, 110     ) 'Coarse SEA SALT radii [um]  : ',
+     &                        SALC_REDGE_um(1), SALC_REDGE_um(2)
+      ENDIF
 
  100  FORMAT( A, L5     )
  110  FORMAT( A, f6.2, ' - ', f6.2 )
@@ -1569,7 +1576,7 @@
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE READ_EMISSIONS_MENU(am_I_Root)
+      SUBROUTINE READ_EMISSIONS_MENU( am_I_Root )
 !
 ! !USES:
 !
@@ -1583,9 +1590,9 @@
       USE TRACER_MOD,    ONLY : ITS_A_FULLCHEM_SIM
       USE CMN_SIZE_MOD      ! Size parameters
       USE CMN_O3_MOD        ! FSCALYR
-
-! !INPUT VARIABLES:
-
+!
+! !INPUT PARAMETERS:
+!
       LOGICAL, INTENT(IN) :: am_I_Root   ! Is this the root CPU?
 ! 
 ! !REVISION HISTORY: 
@@ -1643,6 +1650,8 @@
 !  10 Apr 2012 - R. Yantosca - Bug fix: do not turn off LAVHRRLAI or LMODISLAI
 !                              when emissions are turned off.  LAI is used
 !                              in other areas of the code.
+!  30 Jul 2012 - R. Yantosca - Now accept am_I_Root as an argument when
+!                              running with the traditional driver main.F
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -1856,7 +1865,6 @@
       CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_emissions_menu:48' )
       READ( SUBSTRS(1:N), * ) LMODISLAI
 
-![eml
       ! Use historical emissions (EDGAR NOx/SO2 and Bond BC/OC) for 
       ! 1890-2000?
       CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_emissions_menu:49' )
@@ -1865,7 +1873,6 @@
       CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_emissions_menu:50' )
       READ( SUBSTRS(1:N), * ) HISTYR
       CALL SET_HISTYR( HISTYR )
-!eml]
 
       ! Separator line (start of bromine emissions)
       CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_emissions_menu:52' )
@@ -1967,13 +1974,11 @@
          LEDGARSOx      = .TRUE.
       ENDIF
 
-![eml
       ! If using historical emissions, make sure EDGAR NOx/SO2 are used
       IF ( LHIST ) THEN
          LEDGARNOx = .TRUE.
          LEDGARSOx = .TRUE.
       ENDIF
-!eml]
 
       !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
       !%%% Bug fix!  If LEMEPSHIP is turned on but LEMEP is turned %%%
@@ -1985,17 +1990,13 @@
       !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
       IF ( LEMEPSHIP .and. ( .not. LEMEP ) ) THEN
          LEMEPSHIP = .FALSE.
-#if defined( DEVEL )
-         IF(am_I_Root) THEN
-#endif
-         WRITE( 6, '(a)' ) REPEAT( '=', 79 )
-         WRITE( 6, '(a)' ) 'WARNING! EMEP emissions are turned off,'
-         WRITE( 6, '(a)' ) 'so also turn off EMEP ship emissions'
-         WRITE( 6, '(a)' ) 'in order to avoid crashing GEOS-Chem!'
-         WRITE( 6, '(a)' ) REPEAT( '=', 79 )
-#if defined( DEVEL )
-	 END IF
-#endif
+         IF( am_I_Root ) THEN
+            WRITE( 6, '(a)' ) REPEAT( '=', 79 )
+            WRITE( 6, '(a)' ) 'WARNING! EMEP emissions are turned off,'
+            WRITE( 6, '(a)' ) 'so also turn off EMEP ship emissions'
+            WRITE( 6, '(a)' ) 'in order to avoid crashing GEOS-Chem!'
+            WRITE( 6, '(a)' ) REPEAT( '=', 79 )
+	 ENDIF
       ENDIF
 
       !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -2008,13 +2009,13 @@
       !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
       IF ( LMEGANMONO .and. ( .not. LMEGAN ) ) THEN
          LMEGANMONO = .FALSE.
-         IF(am_I_Root) THEN
+         IF ( am_I_Root ) THEN
          WRITE( 6, '(a)' ) REPEAT( '=', 79 )
          WRITE( 6, '(a)' ) 'WARNING! MEGAN emissions are turned off, so'
          WRITE( 6, '(a)' ) 'we also turn off LMEGANMONO ship emissions'
          WRITE( 6, '(a)' ) 'in order to avoid crashing GEOS-Chem!'
          WRITE( 6, '(a)' ) REPEAT( '=', 79 )
-	 END IF
+	 ENDIF
       ENDIF
 
       !=================================================================
@@ -2080,9 +2081,12 @@
       ! VISTAS and ICARTT assumes that EPA/NEI 99 is ON
       IF ( ( ( LVISTAS ) .OR. ( LICARTT )) .AND. .NOT.( LNEI99 ) ) THEN
          LNEI99 = .TRUE.
-         WRITE( 6, '(/,a,/)' ) ' EPA/NEI99 has been automatically ' //
-     $        'switched ON to use V.I.S.T.A.S. or/and ICARTT-based' //
-     $        ' modifications'
+         IF ( am_I_Root ) THEN
+          WRITE( 6, '(/,a,/)' ) 
+     &       ' EPA/NEI99 has been automatically ' //
+     &       'switched ON to use V.I.S.T.A.S. or/and ICARTT-based' //
+     &       ' modifications'
+       ENDIF
       ENDIF
 
 !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -2093,8 +2097,11 @@
       
       IF ( LICARTT ) THEN
          LICARTT = .FALSE.
-         WRITE( 6, '(/,a,/)' ) ' ICARTT-based corrections to  ' //
-     $        'EPA-NEI99 are not available at high resolution.'
+         IF ( am_I_Root ) THEN
+            WRITE( 6, '(/,a,/)' ) 
+     &         ' ICARTT-based corrections to  ' //
+     &         'EPA-NEI99 are not available at high resolution.'
+         ENDIF
       ENDIF
          
 #endif
@@ -2104,9 +2111,12 @@
          LNEI99  = .FALSE.
          LVISTAS = .FALSE.
          LICARTT = .FALSE.
-         WRITE( 6, '(/,a,/)' ) ' EPA/NEI99 (incl. VISTAS and ICARTT' //
-     $        'options) has been automatically ' //
-     $        'switched OFF to use NEI 2005.'
+         IF ( am_I_Root ) THEN
+          WRITE( 6, '(/,a,/)' ) 
+     &       ' EPA/NEI99 (incl. VISTAS and ICARTT' //
+     &        'options) has been automatically ' //
+     &        'switched OFF to use NEI 2005.'
+         ENDIF
       ENDIF
          
       
@@ -2156,8 +2166,11 @@
       IF ( LMEGAN .OR. LMEGANMONO ) THEN
          LMODISLAI = .TRUE.
          LAVHRRLAI = .FALSE.
-         WRITE(6,'(/,a,/)') 'Force to use MODIS LAI for MEGAN.' //
-     &        ' AVHRR LAI will not be used'
+         IF ( am_I_Root ) THEN
+            WRITE(6,'(/,a,/)') 
+     &         'Force to use MODIS LAI for MEGAN.' //
+     &         ' AVHRR LAI will not be used'
+         ENDIF
       ENDIF
 
       !=================================================================
@@ -2193,10 +2206,13 @@
       !              accidentally left on.
       IF ( LFIX_PBL_BRO .and. LSSABr2 ) THEN
          LSSABr2 = .FALSE. ! turn off sea-salt emissions to avoid conflict.
-         write(6,'(/,a,/)') 'Warning in input_mod.f: LSSABr2 was'
-     &        // ' left ON when LFIX_PBL_BRO was also selected.'
-         write(6,'(a)') 'Turning off sea-salt emissions and'
-     &        // ' selecting the 1pptv PBL daytime BrO simulation.'
+         IF ( am_I_Root ) THEN
+            write(6,'(/,a,/)') 'Warning in input_mod.f: LSSABr2 was'
+     &           // ' left ON when LFIX_PBL_BRO was also selected.'
+            write(6,'(a)') 'Turning off sea-salt emissions and'
+     &           // ' selecting the 1pptv PBL daytime BrO simulation.'
+         ENDIF
+
       ENDIF
 
       !=================================================================
@@ -2210,73 +2226,64 @@
       !=================================================================
       ! Print to screen
       !=================================================================
-#if defined( DEVEL )
-      IF(am_I_Root) THEN
-#endif
-      WRITE( 6, '(/,a)' ) 'EMISSIONS MENU'
-      WRITE( 6, '(  a)' ) '--------------'
-      WRITE( 6, 100     ) 'Turn on emissions?          : ', LEMIS
-      WRITE( 6, 110     ) 'Emissions timestep [min]    : ', TS_EMIS
-      WRITE( 6, 100     ) 'Turn on ANTHRO emissions    : ', LANTHRO
-      WRITE( 6, 110     ) '  ANTHRO scale factor year  : ', FSCALYR
-      WRITE( 6, 100     ) '  Use EDGAR anthro emissions: ', LEDGAR
-      WRITE( 6, 100     ) '  Use EMEP anthro emissions : ', LEMEP
-      WRITE( 6, 100     ) '  Use BRAVO anthro emissions: ', LBRAVO
-      WRITE( 6, 100     ) '  Use CAC anthro emissions  : ', LCAC
-      WRITE( 6, 100     ) '  Use STREETS anthro emiss. : ', LSTREETS
-      WRITE( 6, 100     ) '  Use EPA/NEI 2005          : ', LNEI05
-      WRITE( 6, 100     ) '  Use RETRO emissions       : ', LRETRO
-      WRITE( 6, 100     ) 'Use EPA/NEI99 (ANTH + BF)   : ', LNEI99
-      WRITE( 6, 100     ) '      --> with NOx VISTAS?  : ', LVISTAS
-      WRITE( 6, 100     ) '      --> with ICARTT modif?: ', LICARTT
-      WRITE( 6, 100     ) 'Turn on BIOFUEL emissions?  : ', LFOSSIL
-      WRITE( 6, 100     ) 'Turn on BIOGENIC emissions? : ', LBIOGENIC
-      WRITE( 6, 100     ) 'Use MEGAN biogenic emissions: ', LMEGAN
-      WRITE( 6, 100     ) 'Use PCEEA BVOC model        : ', LPECCA
-      WRITE( 6, 100     ) 'Use MEGAN bio emissions MONO: ', LMEGANMONO
-! added ISOP scaling (hotp 8/4/09)
-      WRITE( 6, 120     ) ' Use isop scaling factor    : ', ISOP_SCALING
-      WRITE( 6, 100     ) 'Turn on BIOMASS EMISSIONS   : ', LBIOMASS
-      WRITE( 6, 100     ) 'Use seasonal BIOMASS emiss? : ', LBBSEA
-      WRITE( 6, 100     ) 'Scale BIOMASS to TOMS-AI?   : ', LTOMSAI
-      WRITE( 6, 100     ) 'Use GFED2 BIOMASS emissions?: ',
-     $     LGFED2BB .or. L8DAYBB .or. LSYNOPBB .or. L3HRBB 
-      WRITE( 6, 100     ) '    monthly GFED2 emissions?: ', LGFED2BB
-      WRITE( 6, 100     ) '    8-day GFED2 emission?   : ', L8DAYBB
-      WRITE( 6, 100     ) '    3hr GFED2 emission?     : ', L3HRBB 
-      WRITE( 6, 100     ) '    synoptic GFED2 ?        : ', LSYNOPBB
-      WRITE( 6, 100     ) 'Use GFED3 BIOMASS emissions?: ',
-     $     LGFED3BB .or. LDAYBB3 .or. L3HRBB3
-      WRITE( 6, 100     ) '    monthly GFED3 emissions?: ', LGFED3BB
-      WRITE( 6, 100     ) '    daily GFED3 emission?   : ', LDAYBB3
-      WRITE( 6, 100     ) '    3hr GFED3 emission?     : ', L3HRBB3
-      WRITE( 6, 100     ) 'Turn on LIGHTNING NOx?      : ', LLIGHTNOX
-      WRITE( 6, 100     ) 'Use OTD-LIS local redist?   : ', LOTDLOC
-      WRITE( 6, 100     ) 'Turn on AIRCRAFT NOx?       : ', LAIRNOX
-      WRITE( 6, 100     ) 'Turn on SOIL NOx?           : ', LSOILNOX
-!FP_ISOP (6/2009)
-      WRITE( 6, 100     ) 'Turn on Fertilizer NOx?     : ', 
-     &                     LFERTILIZERNOX
-      WRITE( 6, 120     ) 'NOx scaling                 : ', NOx_SCALING
-      WRITE( 6, 100     ) 'Turn on EDGAR   SHIP emiss.?: ', LEDGARSHIP
-      WRITE( 6, 100     ) 'Turn on ICOADS  SHIP emiss.?: ', LICOADSSHIP
-      WRITE( 6, 100     ) 'Turn on  EMEP   SHIP emiss.?: ', LEMEPSHIP
-      WRITE( 6, 100     ) 'Turn on Corbett SHIP SO2 ?  : ', LSHIPSO2
-      WRITE( 6, 100     ) '     or ARCTAS  SHIP SO2 ?  : ', LARCSHIP
-      WRITE( 6, 100     ) 'Use COOKE for OC/BC N.-Amer.: ', LCOOKE
-      WRITE( 6, 100     ) 'Turn on AVHRR-derived LAI?  : ', LAVHRRLAI
-      WRITE( 6, 100     ) 'Turn on MODIS-derived LAI?  : ', LMODISLAI
-![eml
-      WRITE( 6, 100     ) 'Turn on historical emiss?   : ', LHIST
-!eml]
-      WRITE( 6, 100     ) 'Turn on the Warwick VSLs?   : ', 
-     &     LWARWICK_VSLS
-      WRITE( 6, 100     ) 'Use seasalt Br2 emissions?  : ', LSSABr2
-      WRITE( 6, 100     ) 'Set day PBL BrO conc to 1ppt: ', LFIX_PBL_BRO
-      WRITE( 6, 100     ) 'Bromine emiss scale factor  : ', Br_SCALING
-#if defined( DEVEL )
-      END IF
-#endif
+      IF ( am_I_Root ) THEN
+        WRITE( 6, '(/,a)' ) 'EMISSIONS MENU'
+        WRITE( 6, '(  a)' ) '--------------'
+        WRITE( 6, 100 ) 'Turn on emissions?          : ', LEMIS
+        WRITE( 6, 110 ) 'Emissions timestep [min]    : ', TS_EMIS
+        WRITE( 6, 100 ) 'Turn on ANTHRO emissions    : ', LANTHRO
+        WRITE( 6, 110 ) '  ANTHRO scale factor year  : ', FSCALYR
+        WRITE( 6, 100 ) '  Use EDGAR anthro emissions: ', LEDGAR
+        WRITE( 6, 100 ) '  Use EMEP anthro emissions : ', LEMEP
+        WRITE( 6, 100 ) '  Use BRAVO anthro emissions: ', LBRAVO
+        WRITE( 6, 100 ) '  Use CAC anthro emissions  : ', LCAC
+        WRITE( 6, 100 ) '  Use STREETS anthro emiss. : ', LSTREETS
+        WRITE( 6, 100 ) '  Use EPA/NEI 2005          : ', LNEI05
+        WRITE( 6, 100 ) '  Use RETRO emissions       : ', LRETRO
+        WRITE( 6, 100 ) 'Use EPA/NEI99 (ANTH + BF)   : ', LNEI99
+        WRITE( 6, 100 ) '      --> with NOx VISTAS?  : ', LVISTAS
+        WRITE( 6, 100 ) '      --> with ICARTT modif?: ', LICARTT
+        WRITE( 6, 100 ) 'Turn on BIOFUEL emissions?  : ', LFOSSIL
+        WRITE( 6, 100 ) 'Turn on BIOGENIC emissions? : ', LBIOGENIC
+        WRITE( 6, 100 ) 'Use MEGAN biogenic emissions: ', LMEGAN
+        WRITE( 6, 100 ) 'Use PCEEA BVOC model        : ', LPECCA
+        WRITE( 6, 100 ) 'Use MEGAN bio emissions MONO: ', LMEGANMONO
+        WRITE( 6, 120 ) ' Use isop scaling factor    : ', ISOP_SCALING
+        WRITE( 6, 100 ) 'Turn on BIOMASS EMISSIONS   : ', LBIOMASS
+        WRITE( 6, 100 ) 'Use seasonal BIOMASS emiss? : ', LBBSEA
+        WRITE( 6, 100 ) 'Scale BIOMASS to TOMS-AI?   : ', LTOMSAI
+        WRITE( 6, 100 ) 'Use GFED2 BIOMASS emissions?: ',
+     &       LGFED2BB .or.  L8DAYBB .or. LSYNOPBB .or. L3HRBB 
+        WRITE( 6, 100 ) '    monthly GFED2 emissions?: ', LGFED2BB
+        WRITE( 6, 100 ) '    8-day GFED2 emission?   : ', L8DAYBB
+        WRITE( 6, 100 ) '    3hr GFED2 emission?     : ', L3HRBB 
+        WRITE( 6, 100 ) '    synoptic GFED2 ?        : ', LSYNOPBB
+        WRITE( 6, 100 ) 'Use GFED3 BIOMASS emissions?: ',
+     &       LGFED3BB .or.  LDAYBB3 .or. L3HRBB3
+        WRITE( 6, 100 ) '    monthly GFED3 emissions?: ', LGFED3BB
+        WRITE( 6, 100 ) '    daily GFED3 emission?   : ', LDAYBB3
+        WRITE( 6, 100 ) '    3hr GFED3 emission?     : ', L3HRBB3
+        WRITE( 6, 100 ) 'Turn on LIGHTNING NOx?      : ', LLIGHTNOX
+        WRITE( 6, 100 ) 'Use OTD-LIS local redist?   : ', LOTDLOC
+        WRITE( 6, 100 ) 'Turn on AIRCRAFT NOx?       : ', LAIRNOX
+        WRITE( 6, 100 ) 'Turn on SOIL NOx?           : ', LSOILNOX
+        WRITE( 6, 100 ) 'Turn on Fertilizer NOx?     : ', 
+     &                                                  LFERTILIZERNOX
+        WRITE( 6, 120 ) 'NOx scaling                 : ', NOx_SCALING
+        WRITE( 6, 100 ) 'Turn on EDGAR   SHIP emiss.?: ', LEDGARSHIP
+        WRITE( 6, 100 ) 'Turn on ICOADS  SHIP emiss.?: ', LICOADSSHIP
+        WRITE( 6, 100 ) 'Turn on  EMEP   SHIP emiss.?: ', LEMEPSHIP
+        WRITE( 6, 100 ) 'Turn on Corbett SHIP SO2 ?  : ', LSHIPSO2
+        WRITE( 6, 100 ) '     or ARCTAS  SHIP SO2 ?  : ', LARCSHIP
+        WRITE( 6, 100 ) 'Use COOKE for OC/BC N.-Amer.: ', LCOOKE
+        WRITE( 6, 100 ) 'Turn on AVHRR-derived LAI?  : ', LAVHRRLAI
+        WRITE( 6, 100 ) 'Turn on MODIS-derived LAI?  : ', LMODISLAI
+        WRITE( 6, 100 ) 'Turn on historical emiss?   : ', LHIST
+        WRITE( 6, 100 ) 'Turn on the Warwick VSLs?   : ', LWARWICK_VSLS
+        WRITE( 6, 100 ) 'Use seasalt Br2 emissions?  : ', LSSABr2
+        WRITE( 6, 100 ) 'Set day PBL BrO conc to 1ppt: ', LFIX_PBL_BRO
+        WRITE( 6, 100 ) 'Bromine emiss scale factor  : ', Br_SCALING
+      ENDIF
 
       ! FORMAT statements
  100  FORMAT( A, L5 )
@@ -2299,7 +2306,7 @@
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE READ_CO2_SIM_MENU(am_I_Root)
+      SUBROUTINE READ_CO2_SIM_MENU( am_I_Root )
 !
 ! !USES:
 !
@@ -2307,18 +2314,19 @@
       USE ERROR_MOD,   ONLY : ERROR_STOP
       USE TRACER_MOD,  ONLY : ITS_A_CO2_SIM
 
-      USE CMN_SIZE_MOD      ! Size parameters
-      USE CMN_O3_MOD        ! FSCALYR
-
-! !INPUT VARIABLES:
-
+      USE CMN_SIZE_MOD                   ! Size parameters
+      USE CMN_O3_MOD                     ! FSCALYR
+!
+! !INPUT PARAMETERS:
+!
       LOGICAL, INTENT(IN) :: am_I_Root   ! Is this the root CPU?
-
 ! 
 ! !REVISION HISTORY: 
 !  02 Mar 2009 - R. Nassar   - Initial version
 !  27 Aug 2010 - R. Yantosca - Added ProTeX headers
 !  07 Sep 2011 - P. Kasibhatla - Modified for GFED3
+!  30 Jul 2012 - R. Yantosca - Now accept am_I_Root as an argument when
+!                              running with the traditional driver main.F
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -2486,36 +2494,36 @@
 
 	!--- Fossil Fuel ----------------
 	IF (LMONFF) THEN
-		LGENFF = .FALSE.
-		LANNFF = .FALSE.
+           LGENFF = .FALSE.
+           LANNFF = .FALSE.
 	ENDIF
 	IF (LANNFF) THEN
-		LGENFF = .FALSE.
+           LGENFF = .FALSE.
 	ENDIF
 
 	!--- Biomass Burning ------------
 	IF (L8DAYBB) THEN
-		LGFED2BB = .FALSE.
-		LSEASBB  = .FALSE.
+           LGFED2BB = .FALSE.
+           LSEASBB  = .FALSE.
 	ENDIF
 	IF (LGFED2BB) THEN
-		LSEASBB = .FALSE.
+           LSEASBB = .FALSE.
 	ENDIF
 
 	!--- CASA Biosphere -------------
 	IF (LBIODIURNAL) THEN
-		LBIODAILY = .FALSE.
+           LBIODAILY = .FALSE.
 	ENDIF
 
 	!--- Net Terrestrial Exchange ---
 	IF (LBIONETCLIM) THEN
-		LBIONETORIG = .FALSE.
+           LBIONETORIG = .FALSE.
 	ENDIF
 	
 	!--- Ocean Exchange -------------
 	IF (LOCN2009MON) THEN
-		LOCN2009ANN = .FALSE.
-		LOCN1997 = .FALSE.
+           LOCN2009ANN = .FALSE.
+           LOCN1997 = .FALSE.
 	ENDIF
 	IF (LOCN2009ANN) THEN
 		LOCN1997 = .FALSE.
@@ -2523,17 +2531,17 @@
 
 	!--- Ship Emissions -------------
 	IF (LSHIPICO) THEN
-		LSHIPEDG = .FALSE.
+           LSHIPEDG = .FALSE.
 	ENDIF
 
       !=================================================================
       ! Print to screen
       !=================================================================
       IF (ITS_A_CO2_SIM() ) THEN
-        IF(am_I_Root) THEN
-        WRITE(6,'(/,a)') 'CO2 SIMULATION MENU ' //
-     &      '(overwrites any other settings related to CO2)'
-        WRITE(6,'(  a)') '-------------------------------------'
+        IF ( am_I_Root ) THEN
+          WRITE(6,'(/,a)') 'CO2 SIMULATION MENU ' //
+     &         '(overwrites any other settings related to CO2)'
+          WRITE(6,'(  a)') '-------------------------------------'
 	  WRITE(6, 90    ) 'Fossil Fuel emissions'
 	  WRITE(6,100    ) '  Generic FF emissions        :', LGENFF
 	  WRITE(6,100    ) '  Annual FF emissions         :', LANNFF
@@ -2565,8 +2573,8 @@
 	  WRITE(6,100    ) '  Tag Fossil Fuel CO2         :', LFOSSILTAG 
 	  WRITE(6,100    ) '  Tag Global Ship CO2         :', LSHIPTAG
 	  WRITE(6,100    ) '  Tag Global Aviation CO2     :', LPLANETAG
-        WRITE(6,'(  a)') '-------------------------------------'
-	END IF
+          WRITE(6,'(  a)') '-------------------------------------'
+	ENDIF
       ENDIF      
 
       ! FORMAT statements
@@ -2589,7 +2597,7 @@
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE READ_FUTURE_MENU(am_I_Root)
+      SUBROUTINE READ_FUTURE_MENU( am_I_Root )
 !
 ! !USES:
 !
@@ -2597,15 +2605,16 @@
       USE LOGICAL_MOD,          ONLY : LFUTURE
  
 #     include "define.h"             ! C-preprocessor switches
-
-! !INPUT VARIABLES:
-
+!
+! !INPUT PARAMETERS:
+!
       LOGICAL, INTENT(IN) :: am_I_Root   ! Is this the root CPU?
-
 ! 
 ! !REVISION HISTORY: 
 !  01 Jun 2006 - S. Wu       - Initial version
 !  27 Aug 2010 - R. Yantosca - Added ProTeX headers
+!  30 Jul 2012 - R. Yantosca - Now accept am_I_Root as an argument when
+!                              running with the traditional driver main.F
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -2647,14 +2656,14 @@
       !=================================================================
       ! Print to screen
       !=================================================================
-      IF(am_I_Root) THEN
-      WRITE( 6, '(/,a)' ) 'FUTURE MENU'
-      WRITE( 6, '(  a)' ) '-----------'
-      WRITE( 6, 100     ) 'Use IPCC future emissions   : ', LFUTURE
-      WRITE( 6, 110     ) 'Future emissions for year   : ', FUTURE_YEAR 
-      WRITE( 6, 120     ) 'Future emissions scenario   : ',  
-     &                     TRIM( FUTURE_SCEN )
-      END IF
+      IF ( am_I_Root ) THEN
+         WRITE( 6, '(/,a)' ) 'FUTURE MENU'
+         WRITE( 6, '(  a)' ) '-----------'
+         WRITE( 6, 100 ) 'Use IPCC future emissions   : ', LFUTURE
+         WRITE( 6, 110 ) 'Future emissions for year   : ', FUTURE_YEAR 
+         WRITE( 6, 120 ) 'Future emissions scenario   : ',  
+     &      TRIM( FUTURE_SCEN )
+      ENDIF
 
       ! FORMAT statements
  100  FORMAT( A, L5  )
@@ -2685,7 +2694,7 @@
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE READ_CHEMISTRY_MENU(am_I_Root)
+      SUBROUTINE READ_CHEMISTRY_MENU( am_I_Root )
 !
 ! !USES:
 !
@@ -2695,12 +2704,11 @@
       USE TIME_MOD,    ONLY : SET_CT_CHEM
       USE TRACER_MOD,  ONLY : N_TRACERS
 
-      USE CMN_SIZE_MOD      ! Size parameters
-
-! !INPUT VARIABLES:
-
+      USE CMN_SIZE_MOD                   ! Size parameters
+!
+! !INPUT PARAMETERS:
+!
       LOGICAL, INTENT(IN) :: am_I_Root   ! Is this the root CPU?
-
 ! 
 ! !REVISION HISTORY: 
 !  20 Jul 2004 - R. Yantosca - Initial version
@@ -2709,6 +2717,8 @@
 !      (bmy, 2/25/10)
 !  27 Aug 2010 - R. Yantosca - Added ProTeX headers
 !  10 Jun 2012 - L. Murray   - Move all strat chemistry switches here
+!  30 Jul 2012 - R. Yantosca - Now accept am_I_Root as an argument when
+!                              running with the traditional driver main.F
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -2758,20 +2768,16 @@
       !=================================================================
       ! Print to screen
       !=================================================================
-#if defined( DEVEL )
-      IF(am_I_Root) THEN
-#endif
-      WRITE( 6, '(/,a)' ) 'CHEMISTRY MENU'
-      WRITE( 6, '(  a)' ) '--------------'
-      WRITE( 6, 100     ) 'Turn on chemistry?          : ', LCHEM
-      WRITE( 6, 100     ) 'Use linear. strat. chem?    : ', LSCHEM
-      WRITE( 6, 100     ) ' => Use Linoz for O3?       : ', LLINOZ
-      WRITE( 6, 110     ) 'Chemistry timestep [min]    : ', TS_CHEM
-      WRITE( 6, 100     ) 'Use CSPEC restart?          : ', LSVCSPEC
-      WRITE( 6, 100     ) 'Use solver coded by KPP?    : ', LKPP
-#if defined( DEVEL )
-      END IF
-#endif
+      IF ( am_I_Root ) THEN
+         WRITE( 6, '(/,a)' ) 'CHEMISTRY MENU'
+         WRITE( 6, '(  a)' ) '--------------'
+         WRITE( 6, 100     ) 'Turn on chemistry?          : ', LCHEM
+         WRITE( 6, 100     ) 'Use linear. strat. chem?    : ', LSCHEM
+         WRITE( 6, 100     ) ' => Use Linoz for O3?       : ', LLINOZ
+         WRITE( 6, 110     ) 'Chemistry timestep [min]    : ', TS_CHEM
+         WRITE( 6, 100     ) 'Use CSPEC restart?          : ', LSVCSPEC
+         WRITE( 6, 100     ) 'Use solver coded by KPP?    : ', LKPP
+      ENDIF
 
       ! FORMAT statements
  100  FORMAT( A, L5  )
@@ -2793,7 +2799,7 @@
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE READ_TRANSPORT_MENU(am_I_Root)
+      SUBROUTINE READ_TRANSPORT_MENU( am_I_Root )
 !
 ! !USES:
 !
@@ -2804,10 +2810,10 @@
 #if ! defined( ESMF_ )
       USE TRANSPORT_MOD, ONLY : SET_TRANSPORT
 #endif
-
-! !INPUT VARIABLES:
+!
+! !INPUT PARAMETERS:
+!
       LOGICAL, INTENT(IN) :: am_I_Root   ! Is this the root CPU?
-
 ! 
 ! !REVISION HISTORY: 
 !  20 Jul 2004 - R. Yantosca - Initial version
@@ -2819,6 +2825,8 @@
 !  (5 ) Set MAX_DYN for the 0.5 x 0.666 nested grid (yxw, dan, bmy, 11/6/08)
 !  27 Aug 2010 - R. Yantosca - Added ProTeX headers
 !  10 Jun 2012 - L. Murray - Move strat to chemistry menu
+!  30 Jul 2012 - R. Yantosca - Now accept am_I_Root as an argument when
+!                              running with the traditional driver main.F
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -2894,21 +2902,16 @@
       !=================================================================
       ! Print to screen
       !=================================================================
-#if defined( DEVEL )
-      IF(am_I_Root) THEN
-#endif
-      WRITE( 6, '(/,a)' ) 'TRANSPORT MENU'
-      WRITE( 6, '(  a)' ) '--------------'
-      WRITE( 6, 100     ) 'Turn on transport?          : ', LTRAN
-      WRITE( 6, 100     ) 'Use TPCORE flux-correction? : ', LMFCT
-      WRITE( 6, 100     ) 'Let TPCORE Fill negatives?  : ', LFILL
-      WRITE( 6, 110     ) 'IORD, JORD, KORD for TPCORE?: ', IORD, 
-     &                                                      JORD, KORD
-      WRITE( 6, 120     ) 'Transport timestep [min]    : ', TS_DYN
-!      WRITE( 6, 100     ) 'Use strat BC for O3 & NOy?  : ', LUPBD
-#if defined( DEVEL )
-      END IF
-#endif
+      IF ( am_I_Root ) THEN
+         WRITE( 6, '(/,a)' ) 'TRANSPORT MENU'
+         WRITE( 6, '(  a)' ) '--------------'
+         WRITE( 6, 100     ) 'Turn on transport?          : ', LTRAN
+         WRITE( 6, 100     ) 'Use TPCORE flux-correction? : ', LMFCT
+         WRITE( 6, 100     ) 'Let TPCORE Fill negatives?  : ', LFILL
+         WRITE( 6, 110     ) 'IORD, JORD, KORD for TPCORE?: ', IORD, 
+     &                                                   JORD, KORD
+         WRITE( 6, 120     ) 'Transport timestep [min]    : ', TS_DYN
+      ENDIF
 
       ! FORMAT statements
  100  FORMAT( A, L5  )
@@ -2938,18 +2941,17 @@
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE READ_CONVECTION_MENU(am_I_Root)
+      SUBROUTINE READ_CONVECTION_MENU( am_I_Root )
 !
 ! !USES:
 !
       USE ERROR_MOD,   ONLY : ERROR_STOP
       USE LOGICAL_MOD, ONLY : LCONV, LTURB
       USE LOGICAL_MOD, ONLY : LNLPBL        ! (Lin, 03/31/09)
-
-! !INPUT VARIABLES:
-
+!
+! !INPUT PARAMETERS:
+!
       LOGICAL, INTENT(IN) :: am_I_Root   ! Is this the root CPU?
-
 ! 
 ! !REVISION HISTORY: 
 !  20 Jul 2004 - R. Yantosca - Initial version
@@ -2960,6 +2962,8 @@
 !  02 Feb 2012 - R. Yantosca - Added modifications for MERRA met data
 !  13 Apr 2012 - R. Yantosca - Fixed typo ( defined( GEOS_57 ) should have 
 !                              been !defined( GEOS_57 ) )
+!  30 Jul 2012 - R. Yantosca - Now accept am_I_Root as an argument when
+!                              running with the traditional driver main.F
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -3001,12 +3005,13 @@
       ! The non-local PBL scheme is valid only with GEOS-5/MERRA/GEOS-5.7.x
 #if   !defined( GEOS_5 ) && !defined( MERRA ) && !defined( GEOS_57 )
       IF ( LNLPBL ) THEN
-        IF(am_I_Root) THEN
-         WRITE(*,*) '================================================='
-         WRITE(*,*) 'The non-local PBL scheme is only valid for GEOS-5'
-         WRITE(*,*) 'LNLPBL is automatically turned to false !'
-         WRITE(*,*) '================================================='
-        END IF
+         IF( am_I_Root ) THEN
+            WRITE(6,*) REPEAT( '=', 79 )
+            WRITE(6,*) 'The non-local PBL scheme is only valid for'
+            WRITE(6,*) 'GEOS-5, GEOS-5.7, and MERRA met fields!'
+            WRITE(6,*) 'LNLPBL is automatically turned to false !'
+            WRITE(6,*) REPEAT( '=', 79 )
+         ENDIF
          LNLPBL = .FALSE.
       ENDIF
 #endif
@@ -3014,14 +3019,14 @@
       !=================================================================
       ! Print to screen
       !=================================================================
-      IF(am_I_Root) THEN
-      WRITE( 6, '(/,a)' ) 'CONVECTION MENU'
-      WRITE( 6, '(  a)' ) '----------------'
-      WRITE( 6, 100     ) 'Turn on cloud convection?   : ', LCONV
-      WRITE( 6, 100     ) 'Turn on PBL mixing?         : ', LTURB
-      WRITE( 6, 100     ) 'Turn on non-local PBL?      : ', LNLPBL
-      WRITE( 6, 110     ) 'Convection timestep [min]   : ', TS_CONV
-      END IF
+      IF ( am_I_Root ) THEN
+         WRITE( 6, '(/,a)' ) 'CONVECTION MENU'
+         WRITE( 6, '(  a)' ) '----------------'
+         WRITE( 6, 100     ) 'Turn on cloud convection?   : ', LCONV
+         WRITE( 6, 100     ) 'Turn on PBL mixing?         : ', LTURB
+         WRITE( 6, 100     ) 'Turn on non-local PBL?      : ', LNLPBL
+         WRITE( 6, 110     ) 'Convection timestep [min]   : ', TS_CONV
+      ENDIF
 
       ! FORMAT statements
  100  FORMAT( A, L5 )
@@ -3042,7 +3047,7 @@
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE READ_DEPOSITION_MENU(am_I_Root)
+      SUBROUTINE READ_DEPOSITION_MENU( am_I_Root )
 !
 ! !USES:
 !
@@ -3059,11 +3064,10 @@
 #if   defined( APM )
       USE APM_WETS_MOD, ONLY : WETDEPBINID
 #endif
-
-! !INPUT VARIABLES:
-
+!
+! !INPUT PARAMETERS:
+!
       LOGICAL, INTENT(IN) :: am_I_Root   ! Is this the root CPU?
-
 ! 
 ! !REVISION HISTORY: 
 !  20 Jul 2004 - R. Yantosca - Initial version
@@ -3074,6 +3078,9 @@
 !  (4 ) Now make sure all USE statements are USE, ONLY (bmy, 10/3/05)
 !  27 Aug 2010 - R. Yantosca - Added ProTeX headers
 !  16 Feb 2011 - R. Yantosca - Add modifications for APM from G. Luo
+!  31 Jul 2012 - R. Yantosca - Now pass am_I_Root to INIT_DRYDEP
+!  30 Jul 2012 - R. Yantosca - Now accept am_I_Root as an argument when
+!                              running with the traditional driver main.F
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -3123,18 +3130,14 @@
       !=================================================================
       ! Print to screen
       !=================================================================
-#if defined( DEVEL )
-      IF(am_I_Root) THEN
-#endif
-      WRITE( 6, '(/,a)' ) 'DEPOSITION MENU'
-      WRITE( 6, '(  a)' ) '---------------'
-      WRITE( 6, 100     ) 'Turn on dry deposition?     : ', LDRYD
-      WRITE( 6, 100     ) 'Turn on wet deposition?     : ', LWETD
-      WRITE( 6, 100     ) 'Use Olson 2001 land map?    : ', 
-     &                                                  USE_OLSON_2001
-#if defined( DEVEL )
-      END IF
-#endif
+      IF ( am_I_Root ) THEN
+         WRITE( 6, '(/,a)' ) 'DEPOSITION MENU'
+         WRITE( 6, '(  a)' ) '---------------'
+         WRITE( 6, 100     ) 'Turn on dry deposition?     : ', LDRYD
+         WRITE( 6, 100     ) 'Turn on wet deposition?     : ', LWETD
+         WRITE( 6, 100     ) 'Use Olson 2001 land map?    : ', 
+     &                        USE_OLSON_2001
+      ENDIF
 
       ! FORMAT statements
  100  FORMAT( A, L5 )
@@ -3148,11 +3151,7 @@
       IF ( LDRYD ) THEN
 
          ! Setup for dry deposition
-#if defined( DEVEL )
-         CALL INIT_DRYDEP(am_I_Root)
-#else
-         CALL INIT_DRYDEP
-#endif
+         CALL INIT_DRYDEP( am_I_Root )
       
          ! Print extra info message for Hg simulation
          IF ( ITS_A_MERCURY_SIM() .and. LSPLIT ) THEN
@@ -3162,7 +3161,7 @@
       ENDIF
 
       ! Initialize wet deposition tracers
-      IF ( LWETD .or. LCONV ) CALL WETDEPID(am_I_Root)
+      IF ( LWETD .or. LCONV ) CALL WETDEPID( am_I_Root )
 
 #if   defined( APM )
       ! Initialize wet deposition tracers for APM
@@ -3190,16 +3189,17 @@
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE READ_GAMAP_MENU(am_I_Root)
-
-! !INPUT VARIABLES:
-
+      SUBROUTINE READ_GAMAP_MENU( am_I_Root )
+!
+! !INPUT PARAMETERS:
+!
       LOGICAL, INTENT(IN) :: am_I_Root   ! Is this the root CPU?
-
 ! 
 ! !REVISION HISTORY: 
 !  25 Apr 2005 - R. Yantosca - Initial version
 !  27 Aug 2010 - R. Yantosca - Added ProTeX headers
+!  30 Jul 2012 - R. Yantosca - Now accept am_I_Root as an argument when
+!                              running with the traditional driver main.F
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -3228,14 +3228,14 @@
       !=================================================================
       ! Print to screen
       !=================================================================
-      IF(am_I_Root) THEN
-      WRITE( 6, '(/,a)' ) 'GAMAP MENU'
-      WRITE( 6, '(  a)' ) '---------------'            
-      WRITE( 6, '(a,a)' ) 'GAMAP "diaginfo.dat"   file : ', 
-     &                    TRIM( DIAGINFO   )
-      WRITE( 6, '(a,a)' ) 'GAMAP "tracerinfo.dat" file : ',
-     &                    TRIM( TRACERINFO )
-      END IF
+      IF ( am_I_Root ) THEN
+         WRITE( 6, '(/,a)' ) 'GAMAP MENU'
+         WRITE( 6, '(  a)' ) '---------------'            
+         WRITE( 6, '(a,a)' ) 'GAMAP "diaginfo.dat"   file : ', 
+     &                        TRIM( DIAGINFO   )
+         WRITE( 6, '(a,a)' ) 'GAMAP "tracerinfo.dat" file : ',
+     &                        TRIM( TRACERINFO )
+      ENDIF
 
       END SUBROUTINE READ_GAMAP_MENU
 !EOC
@@ -3252,7 +3252,7 @@
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE READ_OUTPUT_MENU(am_I_Root)
+      SUBROUTINE READ_OUTPUT_MENU( am_I_Root )
 !
 ! !USES:
 !
@@ -3260,15 +3260,16 @@
       
       USE CMN_SIZE_MOD   ! Size parameters
       USE CMN_DIAG_MOD   ! NJDAY
-
-! !INPUT VARIABLES:
-
+!
+! !INPUT PARAMETERS:
+!
       LOGICAL, INTENT(IN) :: am_I_Root   ! Is this the root CPU?
-
 ! 
 ! !REVISION HISTORY: 
 !  20 Jul 2004 - R. Yantosca - Initial version
 !  27 Aug 2010 - R. Yantosca - Added ProTeX headers
+!  30 Jul 2012 - R. Yantosca - Now accept am_I_Root as an argument when
+!                              running with the traditional driver main.F
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -3291,15 +3292,14 @@
       !=================================================================
       ! Print to screen
       !=================================================================
-
-      IF(am_I_Root) THEN
-      WRITE( 6, '(/,a)' ) 'OUTPUT MENU'
-      WRITE( 6, '(  a)' ) '-----------'
-      WRITE( 6, 110     )
-      WRITE( 6, 120     )
-      WRITE( 6, 130     )
-      WRITE( 6, 140     ) NJDAY
-      END IF
+      IF( am_I_Root ) THEN
+         WRITE( 6, '(/,a)' ) 'OUTPUT MENU'
+         WRITE( 6, '(  a)' ) '-----------'
+         WRITE( 6, 110     )
+         WRITE( 6, 120     )
+         WRITE( 6, 130     )
+         WRITE( 6, 140     ) NJDAY
+      ENDIF
 
       ! FORMAT statements
  110  FORMAT( '              1111111111222222222233' )
@@ -3328,7 +3328,7 @@
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE READ_DIAGNOSTIC_MENU(am_I_Root)
+      SUBROUTINE READ_DIAGNOSTIC_MENU( am_I_Root )
 !
 ! !USES:
 !
@@ -3358,11 +3358,10 @@
 
       USE CMN_SIZE_MOD       ! Size parameters
       USE CMN_DIAG_MOD       ! NDxx flags
-
-! !INPUT VARIABLES:
-
+!
+! !INPUT PARAMETERS:
+!
       LOGICAL, INTENT(IN) :: am_I_Root   ! Is this the root CPU?
-
 !
 ! !REVISION HISTORY: 
 !  20 Jul 2004 - R. Yantosca - Initial version
@@ -3393,6 +3392,8 @@
 !  26 May 2011 - R. Yantosca - For ND17, ND18, ND37, ND38, ND39, we need to
 !                              set N_TMP = N_TRACERS, or else wetdep tracers 
 !                              with indices higher than #32 won't print out.
+!  30 Jul 2012 - R. Yantosca - Now accept am_I_Root as an argument when
+!                              running with the traditional driver main.F
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -3925,7 +3926,7 @@
       CALL INIT_DIAG56
 
       ! Enable Mean OH (or CH3CCl3) diag for runs which need it
-      CALL INIT_DIAG_OH(am_I_Root)
+      CALL INIT_DIAG_OH( am_I_Root )
 
       ! Expand YYYYMMDD tokens in the bpch file name
       CALL EXPAND_DATE( BPCH_FILE, GET_NYMDb(), GET_NHMSb() )
@@ -3948,7 +3949,8 @@
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE SET_TINDEX(am_I_Root, N_DIAG, L_DIAG, SUBSTRS, N, NMAX)
+      SUBROUTINE SET_TINDEX( am_I_Root, 
+     &                       N_DIAG, L_DIAG, SUBSTRS, N, NMAX )
 !
 ! !USES:
 !
@@ -3963,7 +3965,7 @@
       INTEGER,            INTENT(IN) :: L_DIAG      ! # of levels to save
       CHARACTER(LEN=255), INTENT(IN) :: SUBSTRS(N)  ! Substrs passed from
                                                     !  READ_DIAGNOSTIC_MENU
-      LOGICAL,            INTENT(IN) :: am_I_Root
+      LOGICAL,            INTENT(IN) :: am_I_Root   ! Is this the root CPU?
 
 ! 
 ! !REVISION HISTORY: 
@@ -3987,9 +3989,11 @@
 
       ! Error check
       IF ( N < 1 ) THEN
-         WRITE( 6, '(a)' ) 'ERROR: N must be 1 or greater!'
-         WRITE( 6, '(a)' ) 'STOP in SET_TINDEX (input_mod.f)'
-         WRITE( 6, '(a)' ) REPEAT( '=', 79 )
+         IF ( am_I_Root ) THEN
+            WRITE( 6, '(a)' ) 'ERROR: N must be 1 or greater!'
+            WRITE( 6, '(a)' ) 'STOP in SET_TINDEX (input_mod.f)'
+            WRITE( 6, '(a)' ) REPEAT( '=', 79 )
+         ENDIF
          STOP
       ENDIF
 
@@ -4034,11 +4038,11 @@
 
       ! First-time printing only
       IF ( FIRST ) THEN
-       IF(am_I_Root) THEN 
-         WRITE( 6, '(/,a)' ) 'DIAGNOSTIC MENU'
-         WRITE( 6, '(  a)' ) '---------------'
-         WRITE( 6, '(  a)' ) 'Diag    L   Tracers being saved to disk'
-       END IF
+         IF( am_I_Root ) THEN 
+            WRITE( 6,'(/,a)' ) 'DIAGNOSTIC MENU'
+            WRITE( 6,'(  a)' ) '---------------'
+            WRITE( 6,'(  a)' ) 'Diag    L   Tracers being saved to disk'
+         ENDIF
          FIRST = .FALSE.
       ENDIF
 
@@ -4047,7 +4051,9 @@
 
          ! Print abbreviated output string
          IF ( L_DIAG > 0 ) THEN
-           IF(am_I_Root) WRITE( 6, 100 ) N_DIAG, L_DIAG, 1, TMAX(N_DIAG)
+           IF ( am_I_Root ) THEN
+              WRITE( 6, 100 ) N_DIAG, L_DIAG, 1, TMAX(N_DIAG)
+           ENDIF
  100       FORMAT( 'ND', i2.2, 2x, i3, 1x, i3, ' -', i3 ) 
          ENDIF
 
@@ -4056,8 +4062,10 @@
          ! Or just list each tracer
          ! Print each diagnostic and # of tracers that will print out
          IF ( L_DIAG > 0 ) THEN 
-            IF(am_I_Root) WRITE( 6, 110 ) N_DIAG, L_DIAG, 
-     &                      ( TINDEX(N_DIAG,M), M=1,TMAX(N_DIAG) )
+            IF ( am_I_Root ) THEN
+               WRITE( 6, 110 ) N_DIAG, L_DIAG, 
+     &                         ( TINDEX(N_DIAG,M), M=1,TMAX(N_DIAG) )
+            ENDIF
  110        FORMAT( 'ND', i2, 2x, i3, 1x, 100i3 ) 
          ENDIF
 
@@ -4079,24 +4087,25 @@
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE READ_PLANEFLIGHT_MENU(am_I_Root)
+      SUBROUTINE READ_PLANEFLIGHT_MENU( am_I_Root )
 !
 ! !USES:
 !
       USE ERROR_MOD,       ONLY : ERROR_STOP
       USE PLANEFLIGHT_MOD, ONLY : SET_PLANEFLIGHT
 
-      USE CMN_SIZE_MOD          ! MAXFAM
-      USE CMN_DIAG_MOD          ! ND40
-
-! !INPUT VARIABLES:
-
+      USE CMN_SIZE_MOD                   ! MAXFAM
+      USE CMN_DIAG_MOD                   ! ND40
+!
+! !INPUT PARAMETERS:
+!
       LOGICAL, INTENT(IN) :: am_I_Root   ! Is this the root CPU?
-
 ! 
 ! !REVISION HISTORY: 
 !  20 Jul 2004 - R. Yantosca - Initial version
 !  27 Aug 2010 - R. Yantosca - Added ProTeX headers
+!  30 Jul 2012 - R. Yantosca - Now accept am_I_Root as an argument when
+!                              running with the traditional driver main.F
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -4143,13 +4152,13 @@
       !=================================================================
       ! Print to screen
       !=================================================================
-      IF(am_I_Root) THEN
-      WRITE( 6, '(/,a)' ) 'PLANEFLIGHT MENU'
-      WRITE( 6, '(  a)' ) '----------------'
-      WRITE( 6, 100     ) 'Turn on planeflight diag?   : ', DO_PF
-      WRITE( 6, 110     ) 'Flight track input file     : ', TRIM(IFILE)
-      WRITE( 6, 110     ) 'Output file name            : ', TRIM(OFILE)
-      END IF
+      IF( am_I_Root ) THEN
+         WRITE( 6, '(/,a)' ) 'PLANEFLIGHT MENU'
+         WRITE( 6, '(  a)' ) '----------------'
+         WRITE( 6, 100 ) 'Turn on planeflight diag?   : ', DO_PF
+         WRITE( 6, 110 ) 'Flight track input file     : ', TRIM(IFILE)
+         WRITE( 6, 110 ) 'Output file name            : ', TRIM(OFILE)
+      ENDIF
 
       ! FORMAT statements
  100  FORMAT( A, L5    )
@@ -4177,22 +4186,23 @@
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE READ_ND48_MENU(am_I_Root)
+      SUBROUTINE READ_ND48_MENU( am_I_Root )
 !
 ! !USES:
 !
       USE DIAG48_MOD, ONLY : INIT_DIAG48, ND48_MAX_STATIONS
       USE ERROR_MOD,  ONLY : ERROR_STOP
-
-! !INPUT VARIABLES:
-
+!
+! !INPUT PARAMETERS:
+!
       LOGICAL, INTENT(IN) :: am_I_Root   ! Is this the root CPU?
-
 ! 
 ! !REVISION HISTORY: 
 !  20 Jul 2004 - R. Yantosca - Initial version
 !  (1 ) Bug fix: ND48 stations should now be read correctly. (bmy, 3/6/06)
 !  27 Aug 2010 - R. Yantosca - Added ProTeX headers
+!  30 Jul 2012 - R. Yantosca - Now accept am_I_Root as an argument when
+!                              running with the traditional driver main.F
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -4255,13 +4265,13 @@
       !=================================================================
       ! Print to screen
       !=================================================================
-      IF(am_I_Root) THEN
-      WRITE( 6, '(/,a)' ) 'ND48 STATION TIMESERIES MENU'
-      WRITE( 6, '(  a)' ) '----------------------------'
-      WRITE( 6, 100     ) 'Turn on ND48 timeseries?    : ', DO_ND48
-      WRITE( 6, 110     ) 'ND48 timeseries file name   : ', TRIM( FILE )
-      WRITE( 6, 120     ) 'ND48 save frequency [min]   : ', FREQ
-      END IF
+      IF( am_I_Root ) THEN
+         WRITE( 6, '(/,a)' ) 'ND48 STATION TIMESERIES MENU'
+         WRITE( 6, '(  a)' ) '----------------------------'
+         WRITE( 6, 100 ) 'Turn on ND48 timeseries?    : ', DO_ND48
+         WRITE( 6, 110 ) 'ND48 timeseries file name   : ', TRIM( FILE )
+         WRITE( 6, 120 ) 'ND48 save frequency [min]   : ', FREQ
+      ENDIF
 
       DO S = 1, N_STA
          WRITE( 6, 130 ) S, IARR(S), JARR(S), LARR(S), NARR(S) 
@@ -4296,7 +4306,7 @@
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE READ_ND49_MENU(am_I_Root)
+      SUBROUTINE READ_ND49_MENU( am_I_Root )
 !
 ! !USES:
 !
@@ -4304,15 +4314,16 @@
       USE ERROR_MOD,  ONLY : ERROR_STOP
 
       USE CMN_SIZE_MOD     ! Size parameters
-
-! !INPUT VARIABLES:
-
+!
+! !INPUT PARAMETERS:
+!
       LOGICAL, INTENT(IN) :: am_I_Root   ! Is this the root CPU?
-
 ! 
 ! !REVISION HISTORY: 
 !  20 Jul 2004 - R. Yantosca - Initial version
 !  27 Aug 2010 - R. Yantosca - Added ProTeX headers
+!  30 Jul 2012 - R. Yantosca - Now accept am_I_Root as an argument when
+!                              running with the traditional driver main.F
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -4379,18 +4390,18 @@
       !=================================================================
       ! Print to screen
       !=================================================================
-      IF(am_I_Root) THEN
-      WRITE( 6, '(/,a)' ) 'ND49 3-D INSTANTANEOUS TIMESERIES MENU'
-      WRITE( 6, '(  a)' ) '--------------------------------------'
-      WRITE( 6, 100     ) 'Turn on ND49 timeseries?    : ', DO_ND49
-      WRITE( 6, 110     ) 'ND49 timeseries file name   : ', TRIM( FILE )
-      WRITE( 6, 120     ) 'ND49 timeseries tracers     : ', 
-     &                     ( TRACERS(N), N=1, N_ND49 )
-      WRITE( 6, 130     ) 'ND49 save frequency [min]   : ', FREQ
-      WRITE( 6, 130     ) 'ND49 longitude limits       : ', IMIN, IMAX
-      WRITE( 6, 130     ) 'ND49 latitude  limits       : ', JMIN, JMAX
-      WRITE( 6, 130     ) 'ND49 level     limits       : ', LMIN, LMAX
-      END IF
+      IF( am_I_Root ) THEN
+         WRITE( 6, '(/,a)' ) 'ND49 3-D INSTANTANEOUS TIMESERIES MENU'
+         WRITE( 6, '(  a)' ) '--------------------------------------'
+         WRITE( 6, 100 ) 'Turn on ND49 timeseries?    : ', DO_ND49
+         WRITE( 6, 110 ) 'ND49 timeseries file name   : ', TRIM( FILE )
+         WRITE( 6, 120 ) 'ND49 timeseries tracers     : ', 
+     &                    ( TRACERS(N), N=1, N_ND49 )
+         WRITE( 6, 130 ) 'ND49 save frequency [min]   : ', FREQ
+         WRITE( 6, 130 ) 'ND49 longitude limits       : ', IMIN, IMAX
+         WRITE( 6, 130 ) 'ND49 latitude  limits       : ', JMIN, JMAX
+         WRITE( 6, 130 ) 'ND49 level     limits       : ', LMIN, LMAX
+      ENDIF
 
       ! FORMAT statements
  100  FORMAT( A, L5    )
@@ -4422,18 +4433,17 @@
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE READ_ND50_MENU(am_I_Root)
+      SUBROUTINE READ_ND50_MENU( am_I_Root )
 !
 ! !USES:
 !
       USE DIAG50_MOD,  ONLY : INIT_DIAG50
       USE ERROR_MOD,   ONLY : ERROR_STOP
       USE LOGICAL_MOD, ONLY : LND50_HDF
-
-! !INPUT VARIABLES:
-
+!
+! !INPUT PARAMETERS:
+!
       LOGICAL, INTENT(IN) :: am_I_Root   ! Is this the root CPU?
-
 ! 
 ! !REVISION HISTORY: 
 !  20 Jul 2004 - R. Yantosca - Initial version
@@ -4441,6 +4451,8 @@
 !        (amv, bmy, 12/21/09)
 !  (2 ) Increase tracer number to 121. (ccc, 4/20/10)
 !  27 Aug 2010 - R. Yantosca - Added ProTeX headers
+!  30 Jul 2012 - R. Yantosca - Now accept am_I_Root as an argument when
+!                              running with the traditional driver main.F
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -4510,18 +4522,18 @@
       !=================================================================
       ! Print to screen
       !=================================================================
-      IF(am_I_Root) THEN
-      WRITE( 6, '(/,a)' ) 'ND50 3-D 24hr AVG TIMESERIES MENU'
-      WRITE( 6, '(  a)' ) '---------------------------------'
-      WRITE( 6, 100     ) 'Turn on ND50 timeseries?    : ', DO_ND50
-      WRITE( 6, 110     ) 'ND50 timeseries file name   : ', TRIM( FILE )
-      WRITE( 6, 100     ) 'Output as HDF?              : ', LND50_HDF
-      WRITE( 6, 120     ) 'ND50 timeseries tracers     : ', 
-     &                     ( TRACERS(N), N=1, N_ND50 )
-      WRITE( 6, 130     ) 'ND50 longitude limits       : ', IMIN, IMAX
-      WRITE( 6, 130     ) 'ND50 latitude  limits       : ', JMIN, JMAX
-      WRITE( 6, 130     ) 'ND50 level     limits       : ', LMIN, LMAX
-      END IF
+      IF( am_I_Root ) THEN
+         WRITE( 6, '(/,a)' ) 'ND50 3-D 24hr AVG TIMESERIES MENU'
+         WRITE( 6, '(  a)' ) '---------------------------------'
+         WRITE( 6, 100 ) 'Turn on ND50 timeseries?    : ', DO_ND50
+         WRITE( 6, 110 ) 'ND50 timeseries file name   : ', TRIM( FILE )
+         WRITE( 6, 100 ) 'Output as HDF?              : ', LND50_HDF
+         WRITE( 6, 120 ) 'ND50 timeseries tracers     : ', 
+     &                    ( TRACERS(N), N=1, N_ND50 )
+         WRITE( 6, 130 ) 'ND50 longitude limits       : ', IMIN, IMAX
+         WRITE( 6, 130 ) 'ND50 latitude  limits       : ', JMIN, JMAX
+         WRITE( 6, 130 ) 'ND50 level     limits       : ', LMIN, LMAX
+      ENDIF
 
       ! FORMAT statements
  100  FORMAT( A, L5    )
@@ -4552,7 +4564,7 @@
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE READ_ND51_MENU(am_I_Root)
+      SUBROUTINE READ_ND51_MENU( am_I_Root )
 !
 ! !USES:
 !
@@ -4562,11 +4574,10 @@
 
       USE CMN_SIZE_MOD      ! Size parameters
       USE CMN_DIAG_MOD      ! NDxx flags
-
-! !INPUT VARIABLES:
-
+!
+! !INPUT PARAMETERS:
+!
       LOGICAL, INTENT(IN) :: am_I_Root   ! Is this the root CPU?
-
 ! 
 ! !REVISION HISTORY: 
 !  20 Jul 2004 - R. Yantosca - Initial version
@@ -4574,6 +4585,8 @@
 !        (amv, bmy, 12/21/09)
 !  (2 ) Increase # of tracers to 121 (ccc, 4/20/10)
 !  27 Aug 2010 - R. Yantosca - Added ProTeX headers
+!  30 Jul 2012 - R. Yantosca - Now accept am_I_Root as an argument when
+!                              running with the traditional driver main.F
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -4653,20 +4666,20 @@
       !=================================================================
       ! Print to screen
       !=================================================================
-      IF(am_I_Root) THEN
-      WRITE( 6, '(/,a)' ) 'ND51 MORNING OR AFTERNOON TIMESERIES MENU'
-      WRITE( 6, '(  a)' ) '-----------------------------------------'
-      WRITE( 6, 100     ) 'Turn on ND51 timeseries?    : ', DO_ND51
-      WRITE( 6, 110     ) 'ND51 timeseries file name   : ', TRIM( FILE )
-      WRITE( 6, 100     ) 'Output as HDF?              : ', LND51_HDF
-      WRITE( 6, 120     ) 'ND41 timeseries tracers     : ', 
-     &                     ( TRACERS(N), N=1, N_ND51 )
-      WRITE( 6, 140     ) 'ND51 hour to write to disk  : ', HR_WRITE
-      WRITE( 6, 140     ) 'ND51 averaging period [GMT] : ', HR1,  HR2
-      WRITE( 6, 130     ) 'ND51 longitude limits       : ', IMIN, IMAX
-      WRITE( 6, 130     ) 'ND51 latitude  limits       : ', JMIN, JMAX
-      WRITE( 6, 130     ) 'ND51 altitude  limits       : ', LMIN, LMAX
-      END IF
+      IF ( am_I_Root ) THEN
+         WRITE( 6, '(/,a)' ) 'ND51 MORNING OR AFTERNOON TIMESERIES MENU'
+         WRITE( 6, '(  a)' ) '-----------------------------------------'
+         WRITE( 6, 100 ) 'Turn on ND51 timeseries?    : ', DO_ND51
+         WRITE( 6, 110 ) 'ND51 timeseries file name   : ', TRIM( FILE )
+         WRITE( 6, 100 ) 'Output as HDF?              : ', LND51_HDF
+         WRITE( 6, 120 ) 'ND41 timeseries tracers     : ', 
+     &                    ( TRACERS(N), N=1, N_ND51 )
+         WRITE( 6, 140 ) 'ND51 hour to write to disk  : ', HR_WRITE
+         WRITE( 6, 140 ) 'ND51 averaging period [GMT] : ', HR1,  HR2
+         WRITE( 6, 130 ) 'ND51 longitude limits       : ', IMIN, IMAX
+         WRITE( 6, 130 ) 'ND51 latitude  limits       : ', JMIN, JMAX
+         WRITE( 6, 130 ) 'ND51 altitude  limits       : ', LMIN, LMAX
+      ENDIF
 
       ! FORMAT statements
  100  FORMAT( A, L5    )
@@ -4699,7 +4712,7 @@
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE READ_ND51b_MENU(am_I_Root)
+      SUBROUTINE READ_ND51b_MENU( am_I_Root )
 !
 ! !USES:
 !
@@ -4709,15 +4722,16 @@
 
       USE CMN_SIZE_MOD      ! Size parameters
       USE CMN_DIAG_MOD      ! NDxx flags
-
-! !INPUT VARIABLES:
-
+!
+! !INPUT PARAMETERS:
+!
       LOGICAL, INTENT(IN) :: am_I_Root   ! Is this the root CPU?
-
 ! 
 ! !REVISION HISTORY: 
 !  21 Dec 2009 - Aaron van D - Initial version
 !  27 Aug 2010 - R. Yantosca - Added ProTeX headers
+!  30 Jul 2012 - R. Yantosca - Now accept am_I_Root as an argument when
+!                              running with the traditional driver main.F
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -4797,20 +4811,20 @@
       !=================================================================
       ! Print to screen
       !=================================================================
-      IF(am_I_Root) THEN
-      WRITE( 6, '(/,a)' ) 'ND51b MORNING OR AFTERNOON TIMESERIES MENU'
-      WRITE( 6, '(  a)' ) '-----------------------------------------'
-      WRITE( 6, 100     ) 'Turn on ND51b timeseries?   : ', DO_ND51
-      WRITE( 6, 110     ) 'ND51b timeseries file name  : ', TRIM( FILE )
-      WRITE( 6, 100     ) 'Output as HDF?              : ', LND51b_HDF
-      WRITE( 6, 120     ) 'ND41 timeseries tracers     : ',
-     &                     ( TRACERS(N), N=1, N_ND51 )
-      WRITE( 6, 140     ) 'ND51b hour to write to disk  : ', HR_WRITE
-      WRITE( 6, 140     ) 'ND51b averaging period [GMT] : ', HR1,  HR2
-      WRITE( 6, 130     ) 'ND51b longitude limits       : ', IMIN, IMAX
-      WRITE( 6, 130     ) 'ND51b latitude  limits       : ', JMIN, JMAX
-      WRITE( 6, 130     ) 'ND51b altitude  limits       : ', LMIN, LMAX
-      END IF
+      IF ( am_I_Root ) THEN
+         WRITE( 6, '(/,a)' )'ND51b MORNING OR AFTERNOON TIMESERIES MENU'
+         WRITE( 6, '(  a)' )'-----------------------------------------'
+         WRITE( 6, 100 ) 'Turn on ND51b timeseries?    : ', DO_ND51
+         WRITE( 6, 110 ) 'ND51b timeseries file name   : ', TRIM( FILE )
+         WRITE( 6, 100 ) 'Output as HDF?               : ', LND51b_HDF
+         WRITE( 6, 120 ) 'ND41 timeseries tracers      : ',
+     &                    ( TRACERS(N), N=1, N_ND51 )
+         WRITE( 6, 140 ) 'ND51b hour to write to disk  : ', HR_WRITE
+         WRITE( 6, 140 ) 'ND51b averaging period [GMT] : ', HR1,  HR2
+         WRITE( 6, 130 ) 'ND51b longitude limits       : ', IMIN, IMAX
+         WRITE( 6, 130 ) 'ND51b latitude  limits       : ', JMIN, JMAX
+         WRITE( 6, 130 ) 'ND51b altitude  limits       : ', LMIN, LMAX
+      ENDIF
 
       ! FORMAT statements
  100  FORMAT( A, L5    )
@@ -4843,7 +4857,7 @@
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE READ_ND63_MENU(am_I_Root)
+      SUBROUTINE READ_ND63_MENU( am_I_Root )
 !
 ! !USES:
 !
@@ -4851,17 +4865,18 @@
       USE ERROR_MOD,  ONLY : ERROR_STOP
 
       USE CMN_SIZE_MOD     ! Size parameters
-
-! !INPUT VARIABLES:
-
+!
+! !INPUT PARAMETERS:
+!
       LOGICAL, INTENT(IN) :: am_I_Root   ! Is this the root CPU?
-
 ! 
 ! !REVISION HISTORY:
 !  25 Feb 2011 - G. Vinken   - Initial version
 !  07 Feb 2012 - M. Payer    - Added ProTeX headers
 !  24 Feb 2012 - M. Payer    - Renamed routine from READ_ND59_MENU to
 !                              READ_ND63 MENU. ND59 is used by TOMAS.
+!  30 Jul 2012 - R. Yantosca - Now accept am_I_Root as an argument when
+!                              running with the traditional driver main.F
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -4922,17 +4937,17 @@
       !=================================================================
       ! Print to screen
       !=================================================================
-      IF(am_I_Root) THEN
-      WRITE( 6, '(/,a)' ) 'ND63 SHIP TIMESERIES MENU'
-      WRITE( 6, '(  a)' ) '--------------------------------------'
-      WRITE( 6, 100     ) 'Turn on ND63 timeseries?    : ', DO_ND63
-      WRITE( 6, 110     ) 'ND63 timeseries file name   : ', TRIM( FILE )
-      WRITE( 6, 120     ) 'ND63 timeseries tracers     : ', 
-     &                     ( TRACERS(N), N=1, N_ND63 )
-      WRITE( 6, 130     ) 'ND63 save frequency [min]   : ', FREQ
-      WRITE( 6, 130     ) 'ND63 longitude limits       : ', IMIN, IMAX
-      WRITE( 6, 130     ) 'ND63 latitude  limits       : ', JMIN, JMAX
-      END IF
+      IF ( am_I_Root ) THEN
+         WRITE( 6, '(/,a)' ) 'ND63 SHIP TIMESERIES MENU'
+         WRITE( 6, '(  a)' ) '--------------------------------------'
+         WRITE( 6, 100 ) 'Turn on ND63 timeseries?    : ', DO_ND63
+         WRITE( 6, 110 ) 'ND63 timeseries file name   : ', TRIM( FILE )
+         WRITE( 6, 120 ) 'ND63 timeseries tracers     : ', 
+     &                    ( TRACERS(N), N=1, N_ND63 )
+         WRITE( 6, 130 ) 'ND63 save frequency [min]   : ', FREQ
+         WRITE( 6, 130 ) 'ND63 longitude limits       : ', IMIN, IMAX
+         WRITE( 6, 130 ) 'ND63 latitude  limits       : ', JMIN, JMAX
+      ENDIF
 
       ! FORMAT statements
  100  FORMAT( A, L5    )
@@ -4963,7 +4978,7 @@
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE READ_PROD_LOSS_MENU(am_I_Root)
+      SUBROUTINE READ_PROD_LOSS_MENU( am_I_Root )
 !
 ! !USES:
 !
@@ -4976,11 +4991,10 @@
 
       USE CMN_SIZE_MOD      ! MAXFAM
       USE CMN_DIAG_MOD      ! ND65
-
-! !INPUT VARIABLES:
-
+!
+! !INPUT PARAMETERS:
+!
       LOGICAL, INTENT(IN) :: am_I_Root   ! Is this the root CPU?
-
 ! 
 ! !REVISION HISTORY: 
 !  20 Jul 2004 - R. Yantosca - Initial version
@@ -4989,6 +5003,8 @@
 !        the offline aerosol run. (bmy, 10/29/04)
 !  (2 ) Add error trap is P/L families are asked when using KPP. (ccc, 3/10/10)
 !  27 Aug 2010 - R. Yantosca - Added ProTeX headers
+!  30 Jul 2012 - R. Yantosca - Now accept am_I_Root as an argument when
+!                              running with the traditional driver main.F
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -5142,25 +5158,25 @@
       !=================================================================
       ! Print to screen
       !=================================================================
-      IF(am_I_Root) THEN
-      WRITE( 6, '(/,a)' ) 'PROD & LOSS DIAGNOSTIC MENU'
-      WRITE( 6, '(  a)' ) '---------------------------'      
-      WRITE( 6, 100     ) 'Turn on prod & loss diag?   : ', DO_SAVE_PL
-      WRITE( 6, 110     ) '# of levels for P/L diag    : ', ND65
-      WRITE( 6, 100     ) 'Save P(Ox), L(Ox) for TagOx?: ', DO_SAVE_O3
+      IF ( am_I_Root ) THEN
+         WRITE( 6, '(/,a)' ) 'PROD & LOSS DIAGNOSTIC MENU'
+         WRITE( 6, '(  a)' ) '---------------------------'      
+         WRITE( 6, 100 ) 'Turn on prod & loss diag?   : ', DO_SAVE_PL
+         WRITE( 6, 110 ) '# of levels for P/L diag    : ', ND65
+         WRITE( 6, 100 ) 'Save P(Ox), L(Ox) for TagOx?: ', DO_SAVE_O3
       
-      ! Loop over families
-      DO F = 1, NFAM
+         ! Loop over families
+         DO F = 1, NFAM
 
-         ! Write family name, type and # of members
-         WRITE( 6, 120 ) FAM_NAME(F), FAM_TYPE(F)
+            ! Write family name, type and # of members
+            WRITE( 6, 120 ) FAM_NAME(F), FAM_TYPE(F)
          
-         ! Write info about each constituent member
-         DO M = 1, FAM_NMEM(F)
-            WRITE( 6, 130 ) M, FAM_COEF(M,F), FAM_MEMB(M,F)
+            ! Write info about each constituent member
+            DO M = 1, FAM_NMEM(F)
+               WRITE( 6, 130 ) M, FAM_COEF(M,F), FAM_MEMB(M,F)
+            ENDDO
          ENDDO
-      ENDDO
-      END IF
+      ENDIF
 
       ! FORMAT statements
  100  FORMAT( A, L5 )
@@ -5191,7 +5207,7 @@
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE READ_UNIX_CMDS_MENU(am_I_Root)
+      SUBROUTINE READ_UNIX_CMDS_MENU( am_I_Root )
 !
 ! !USES:
 !
@@ -5199,16 +5215,17 @@
       USE UNIX_CMDS_MOD, ONLY : BACKGROUND, REDIRECT,  REMOVE_CMD 
       USE UNIX_CMDS_MOD, ONLY : SEPARATOR,  SPACE,     UNZIP_CMD
       USE UNIX_CMDS_MOD, ONLY : WILD_CARD,  ZIP_SUFFIX 
-
-! !INPUT VARIABLES:
-
+!
+! !INPUT PARAMETERS:
+!
       LOGICAL, INTENT(IN) :: am_I_Root   ! Is this the root CPU?
-
 ! 
 ! !REVISION HISTORY: 
 !  20 Jul 2004 - R. Yantosca - Initial version
 !  (1 ) Now make sure all USE statements are USE, ONLY (bmy, 10/3/05)
 !  27 Aug 2010 - R. Yantosca - Added ProTeX headers
+!  30 Jul 2012 - R. Yantosca - Now accept am_I_Root as an argument when
+!                              running with the traditional driver main.F
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -5262,24 +5279,24 @@
       !=================================================================
       ! Print to screen
       !=================================================================
-      IF(am_I_Root) THEN
-      WRITE( 6, '(/,a)' ) 'UNIX CMDS MENU'
-      WRITE( 6, '(  a)' ) '---------------'            
-      WRITE( 6, 100     ) 'Unix BACKGROUND  command    : ', 
-     &                    TRIM( BACKGROUND )
-      WRITE( 6, 100     ) 'Unix REDIRECT    command    : ', 
-     &                    TRIM( REDIRECT   )
-      WRITE( 6, 100     ) 'Unix REMOVE      command    : ',
-     &                    TRIM( REMOVE_CMD )
-      WRITE( 6, 100     ) 'Unix SEPARATOR   command    : ',
-     &                    TRIM( SEPARATOR  )
-      WRITE( 6, 100     ) 'Unix WHITE SPACE command    : ',
-     &                    TRIM( SPACE      )
-      WRITE( 6, 100     ) 'Unix WILD CARD   command    : ',
-     &                    TRIM( WILD_CARD  )
-      WRITE( 6, 100     ) 'Unix UNZIP       command    : ',
-     &                    TRIM( UNZIP_CMD  )
-      END IF
+      IF( am_I_Root ) THEN
+         WRITE( 6, '(/,a)' ) 'UNIX CMDS MENU'
+         WRITE( 6, '(  a)' ) '---------------'            
+         WRITE( 6, 100     ) 'Unix BACKGROUND  command    : ', 
+     &                        TRIM( BACKGROUND )
+         WRITE( 6, 100     ) 'Unix REDIRECT    command    : ', 
+     &                        TRIM( REDIRECT   )
+         WRITE( 6, 100     ) 'Unix REMOVE      command    : ',
+     &                        TRIM( REMOVE_CMD )
+         WRITE( 6, 100     ) 'Unix SEPARATOR   command    : ',
+     &                        TRIM( SEPARATOR  )
+         WRITE( 6, 100     ) 'Unix WHITE SPACE command    : ',
+     &                        TRIM( SPACE      )
+         WRITE( 6, 100     ) 'Unix WILD CARD   command    : ',
+     &                        TRIM( WILD_CARD  )
+         WRITE( 6, 100     ) 'Unix UNZIP       command    : ',
+     &                        TRIM( UNZIP_CMD  )
+      ENDIF
 
       ! FORMAT statements
  100  FORMAT( A, A )
@@ -5299,7 +5316,7 @@
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE READ_NESTED_GRID_MENU(am_I_Root)
+      SUBROUTINE READ_NESTED_GRID_MENU( am_I_Root )
 !
 ! !USES:
 !
@@ -5310,17 +5327,18 @@
       USE LOGICAL_MOD,   ONLY : LWINDO_NA,   LWINDO_EU,   LWINDO_CH
       USE LOGICAL_MOD,   ONLY : LWINDO_SE
       USE TPCORE_BC_MOD, ONLY : INIT_TPCORE_BC
-
-! !INPUT VARIABLES:
-
+!
+! !INPUT PARAMETERS:
+!
       LOGICAL, INTENT(IN) :: am_I_Root   ! Is this the root CPU?
-
 ! 
 ! !REVISION HISTORY: 
 !  20 Jul 2004 - R. Yantosca - Initial version
 !  (1 ) Now give user the option of saving out nested grid boundary conditions 
 !        at 2 x 2.5 resolution for the EU, CH, or NA grids (amv, bmy, 12/18/09)
 !  27 Aug 2010 - R. Yantosca - Added ProTeX headers
+!  30 Jul 2012 - R. Yantosca - Now accept am_I_Root as an argument when
+!                              running with the traditional driver main.F
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -5404,16 +5422,16 @@
       !=================================================================
       ! Print to screen
       !=================================================================
-      IF(am_I_Root) THEN
-      WRITE( 6, '(/,a)' ) 'NESTED GRID MENU'
-      WRITE( 6, '(  a)' ) '----------------'
-      WRITE( 6, 100     ) 'Save TPCORE BC''s at 4x5     : ',LWINDO
-      WRITE( 6, 110     ) 'Dir w/ archived OH files    : ', 
-     &                     TRIM( TPBC_DIR )
-      WRITE( 6, 120     ) 'Timestep for 4x5 BC''s [min] : ', TS
-      WRITE( 6, 120     ) 'Bot left  box of 4x5 BC area: ', I1,  J1
-      WRITE( 6, 120     ) 'Top right box of 4x5 BC area: ', I2,  J2
-      WRITE( 6, 120     ) '1 x 1 window offsets        : ', I0W, J0W
+      IF( am_I_Root ) THEN
+         WRITE( 6, '(/,a)' ) 'NESTED GRID MENU'
+         WRITE( 6, '(  a)' ) '----------------'
+         WRITE( 6, 100 ) 'Save TPCORE BC''s at 4x5     : ', LWINDO
+         WRITE( 6, 110 ) 'Dir w/ archived OH files     : ', 
+     &                    TRIM( TPBC_DIR )
+         WRITE( 6, 120 ) 'Timestep for 4x5 BC''s [min] : ', TS
+         WRITE( 6, 120 ) 'Bot left  box of 4x5 BC area : ', I1,  J1
+         WRITE( 6, 120 ) 'Top right box of 4x5 BC area : ', I2,  J2
+         WRITE( 6, 120 ) '1 x 1 window offsets         : ', I0W, J0W
       END IF
 
       ! FORMAT statements
@@ -5443,21 +5461,22 @@
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE READ_BENCHMARK_MENU(am_I_Root)
+      SUBROUTINE READ_BENCHMARK_MENU( am_I_Root )
 !
 ! !USES:
 !
       USE BENCHMARK_MOD, ONLY : INITIAL_FILE, FINAL_FILE
       USE LOGICAL_MOD,   ONLY : LSTDRUN
-
-! !INPUT VARIABLES:
-
+!
+! !INPUT PARAMETERS:
+!
       LOGICAL, INTENT(IN) :: am_I_Root   ! Is this the root CPU?
-
 ! 
 ! !REVISION HISTORY: 
 !  20 Jul 2004 - R. Yantosca - Initial version
 !  27 Aug 2010 - R. Yantosca - Added ProTeX headers
+!  30 Jul 2012 - R. Yantosca - Now accept am_I_Root as an argument when
+!                              running with the traditional driver main.F
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -5489,15 +5508,15 @@
       !=================================================================
       ! Print to screen
       !=================================================================
-      IF(am_I_Root) THEN
-      WRITE( 6, '(/,a)' ) 'BENCHMARK MENU'
-      WRITE( 6, '(  a)' ) '--------------'
-      WRITE( 6, 100     ) 'Save benchmark diag output? : ', LSTDRUN
-      WRITE( 6, 110     ) 'File for initial tracer mass: ',  
-     &                     TRIM( INITIAL_FILE )
-      WRITE( 6, 110     ) 'File for final tracer mass  : ',  
-     &                     TRIM( FINAL_FILE )
-      END IF
+      IF ( am_I_Root ) THEN
+         WRITE( 6, '(/,a)' ) 'BENCHMARK MENU'
+         WRITE( 6, '(  a)' ) '--------------'
+         WRITE( 6, 100     ) 'Save benchmark diag output? : ', LSTDRUN
+         WRITE( 6, 110     ) 'File for initial tracer mass: ',  
+     &                        TRIM( INITIAL_FILE )
+         WRITE( 6, 110     ) 'File for final tracer mass  : ',  
+     &                        TRIM( FINAL_FILE )
+      ENDIF
 
       ! FORMAT statements
  100  FORMAT( A, L5  )
@@ -5510,7 +5529,7 @@
 !------------------------------------------------------------------------------
 !BOP
 !
-! !IROUTINE: read_archived_oh_menu(am_I_Root)
+! !IROUTINE: read_archived_oh_menu( am_I_Root )
 !
 ! !DESCRIPTION: Subroutine READ\_ARCHIVED\_OH\_MENU reads the ARCHIVED OH MENU 
 !  section of the GEOS-Chem input file.
@@ -5518,20 +5537,21 @@
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE READ_ARCHIVED_OH_MENU(am_I_Root)
+      SUBROUTINE READ_ARCHIVED_OH_MENU( am_I_Root )
 !
 ! !USES:
 !
       USE DIRECTORY_MOD, ONLY : OH_DIR
-
-! !INPUT VARIABLES:
-
+!
+! !INPUT PARAMETERS:
+!
       LOGICAL, INTENT(IN) :: am_I_Root   ! Is this the root CPU?
-
 ! 
 ! !REVISION HISTORY: 
 !  20 Jul 2004 - R. Yantosca - Initial version
 !  27 Aug 2010 - R. Yantosca - Added ProTeX headers
+!  30 Jul 2012 - R. Yantosca - Now accept am_I_Root as an argument when
+!                              running with the traditional driver main.F
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -5555,11 +5575,11 @@
       !=================================================================
       ! Print to screen
       !=================================================================
-      IF(am_I_Root) THEN
-      WRITE( 6, '(/,a)' ) 'ARCHIVED OH MENU'
-      WRITE( 6, '(  a)' ) '-----------------'          
-      WRITE( 6, 100     ) 'Dir w/ archived OH files    : ', TRIM(OH_DIR)
-      END IF
+      IF ( am_I_Root ) THEN
+         WRITE( 6, '(/,a)' ) 'ARCHIVED OH MENU'
+         WRITE( 6, '(  a)' ) '-----------------'          
+         WRITE( 6, 100 ) 'Dir w/ archived OH files    : ', TRIM(OH_DIR)
+      ENDIF
 
       ! FORMAT statements
  100  FORMAT( A, A )
@@ -5579,16 +5599,15 @@
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE READ_O3PL_MENU(am_I_Root)
+      SUBROUTINE READ_O3PL_MENU( am_I_Root )
 !
 ! !USES:
 !
       USE DIRECTORY_MOD, ONLY : O3PL_DIR
-
-! !INPUT VARIABLES:
-
+!
+! !INPUT PARAMETERS:
+!
       LOGICAL, INTENT(IN) :: am_I_Root   ! Is this the root CPU?
-
 ! 
 ! !REVISION HISTORY: 
 !  20 Jul 2004 - R. Yantosca - Initial version
@@ -5616,12 +5635,12 @@
       !=================================================================
       ! Print to screen
       !=================================================================
-      IF(am_I_Root) THEN
-      WRITE( 6, '(/,a)' ) 'ARCHIVED O3PL MENU'
-      WRITE( 6, '(  a)' ) '-------------------'          
-      WRITE( 6, 100     ) 'Dir w/ archived O3 P/L files: ', 
-     &                    TRIM( O3PL_DIR )
-      END IF
+      IF ( am_I_Root ) THEN
+         WRITE( 6, '(/,a)' ) 'ARCHIVED O3PL MENU'
+         WRITE( 6, '(  a)' ) '-------------------'          
+         WRITE( 6, 100     ) 'Dir w/ archived O3 P/L files: ', 
+     &                       TRIM( O3PL_DIR )
+      ENDIF
 
       ! FORMAT statements
  100  FORMAT( A, A )
@@ -5641,7 +5660,7 @@
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE READ_MERCURY_MENU(am_I_Root)
+      SUBROUTINE READ_MERCURY_MENU( am_I_Root )
 !
 ! !USES:
 !
@@ -5652,17 +5671,18 @@
       USE DEPO_MERCURY_MOD,  ONLY : INIT_DEPO_MERCURY
       USE LAND_MERCURY_MOD,  ONLY : INIT_LAND_MERCURY
       USE TRACER_MOD,        ONLY : ITS_A_MERCURY_SIM
-
-! !INPUT VARIABLES:
-
+!
+! !INPUT PARAMETERS:
+!
       LOGICAL, INTENT(IN) :: am_I_Root   ! Is this the root CPU?
-
 ! 
 ! !REVISION HISTORY: 
 !  24 Feb 2006 - R. Yantosca - Initial version
 !  ( 1) Update for Chris Holmes's mercury version. (ccc, 5/6/10)
 !  ( 2) Add options to use GTMM for mercury soil emissions (ccc, 9/16/09)
 !  27 Aug 2010 - R. Yantosca - Added ProTeX headers
+!  30 Jul 2012 - R. Yantosca - Now accept am_I_Root as an argument when
+!                              running with the traditional driver main.F
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -5718,19 +5738,19 @@
       !=================================================================
       ! Print to screen
       !=================================================================
-      IF(am_I_Root) THEN
-      WRITE( 6, '(/,a)' ) 'MERCURY MENU'
-      WRITE( 6, '(  a)' ) '------------'
-      WRITE( 6, 100     ) 'Anthro Hg emissions year    : ', 
-     &                     ANTHRO_Hg_YEAR
-      WRITE( 6, 110     ) 'Error check tag & total Hg? : ', USE_CHECKS
-      WRITE( 6, 110     ) 'Use dynamic ocean Hg model? : ', LDYNOCEAN
-      WRITE( 6, 110     ) 'Preindustrial simulation?   : ', LPREINDHG
-      WRITE( 6, 120     ) 'Ocean Hg restart file       : ',
-     &                     TRIM( Hg_RST_FILE )
-      WRITE( 6, 110     ) 'Use GTMM ?                  : ', LGTMM
-      WRITE( 6, 120     ) '=> GTMM restart file        : ',
-     &                     TRIM( GTMM_RST_FILE )
+      IF ( am_I_Root ) THEN
+         WRITE( 6, '(/,a)' ) 'MERCURY MENU'
+         WRITE( 6, '(  a)' ) '------------'
+         WRITE( 6, 100 ) 'Anthro Hg emissions year    : ', 
+     &                    ANTHRO_Hg_YEAR
+         WRITE( 6, 110 ) 'Error check tag & total Hg? : ', USE_CHECKS
+         WRITE( 6, 110 ) 'Use dynamic ocean Hg model? : ', LDYNOCEAN
+         WRITE( 6, 110 ) 'Preindustrial simulation?   : ', LPREINDHG
+         WRITE( 6, 120 ) 'Ocean Hg restart file       : ',
+     &                    TRIM( Hg_RST_FILE )
+         WRITE( 6, 110 ) 'Use GTMM ?                  : ', LGTMM
+         WRITE( 6, 120 ) '=> GTMM restart file        : ',
+     &                        TRIM( GTMM_RST_FILE )
       END IF
 
       ! FORMAT statements
@@ -5769,7 +5789,7 @@
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE READ_CH4_MENU(am_I_Root)
+      SUBROUTINE READ_CH4_MENU( am_I_Root )
 !
 ! !USES:
 !
@@ -5785,15 +5805,16 @@
       USE ERROR_MOD,   ONLY : ERROR_STOP
  
 #     include "define.h"             ! C-preprocessor switches
-
-! !INPUT VARIABLES:
-
+!
+! !INPUT PARAMETERS:
+!
       LOGICAL, INTENT(IN) :: am_I_Root   ! Is this the root CPU?
-
 ! 
 ! !REVISION HISTORY: 
 !  03 Aug 2009 - K. Wecht, C. Pickett-Heaps - Initial version
 !  27 Aug 2010 - R. Yantosca - Added ProTeX headers
+!  30 Jul 2012 - R. Yantosca - Now accept am_I_Root as an argument when
+!                              running with the traditional driver main.F
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -5862,21 +5883,21 @@
       !=================================================================
       ! Print to screen
       !=================================================================
-      IF(am_I_Root) THEN
-      WRITE( 6, '(/,a)' ) 'CH4 MENU'
-      WRITE( 6, '(  a)' ) '-----------'
-      WRITE( 6, 100     ) 'Compute CH4 budget?   : ', LCH4BUD
-      WRITE( 6, 100     ) 'Use Gas & Oil emis?   : ', LGAO
-      WRITE( 6, 100     ) 'Use Coal Mine emis?   : ', LCOL
-      WRITE( 6, 100     ) 'Use Livestock emis?   : ', LLIV
-      WRITE( 6, 100     ) 'Use Waste emis?       : ', LWAST
-      WRITE( 6, 100     ) 'Use Biofuel emis?     : ', LBFCH4
-      WRITE( 6, 100     ) 'Use Rice emis?        : ', LRICE
-      WRITE( 6, 100     ) 'Use Ot. Anthro emis?  : ', LOTANT
-      WRITE( 6, 100     ) 'Use Biomass emis?     : ', LBMCH4
-      WRITE( 6, 100     ) 'Use Wetlands emis?    : ', LWETL
-      WRITE( 6, 100     ) 'Use Soil Absorption?  : ', LSOABS
-      WRITE( 6, 100     ) 'Use Ot. Natural emis? : ', LOTNAT
+      IF( am_I_Root ) THEN
+         WRITE( 6, '(/,a)' ) 'CH4 MENU'
+         WRITE( 6, '(  a)' ) '-----------'
+         WRITE( 6, 100     ) 'Compute CH4 budget?   : ', LCH4BUD
+         WRITE( 6, 100     ) 'Use Gas & Oil emis?   : ', LGAO
+         WRITE( 6, 100     ) 'Use Coal Mine emis?   : ', LCOL
+         WRITE( 6, 100     ) 'Use Livestock emis?   : ', LLIV
+         WRITE( 6, 100     ) 'Use Waste emis?       : ', LWAST
+         WRITE( 6, 100     ) 'Use Biofuel emis?     : ', LBFCH4
+         WRITE( 6, 100     ) 'Use Rice emis?        : ', LRICE
+         WRITE( 6, 100     ) 'Use Ot. Anthro emis?  : ', LOTANT
+         WRITE( 6, 100     ) 'Use Biomass emis?     : ', LBMCH4
+         WRITE( 6, 100     ) 'Use Wetlands emis?    : ', LWETL
+         WRITE( 6, 100     ) 'Use Soil Absorption?  : ', LSOABS
+         WRITE( 6, 100     ) 'Use Ot. Natural emis? : ', LOTNAT
       END IF
 
       ! Error check (kjw)
@@ -5886,17 +5907,13 @@
      &          L8DAYBB  .EQ. .FALSE. .AND. LDAYBB3  .EQ. .FALSE.)) THEN
             MSG = 'Specify which biomass burning emissions to use.'  //
      &            '  If necessary, read CH4_MENU after EMISSIONS_MENU.'
-#if defined( DEVEL )
-            IF(am_I_Root) THEN
-#endif
-             print*,'LBIOMASS = ',LBIOMASS
-             print*,'LGFED3BB = ',LGFED3BB
-             print*,'LGFED2BB = ',LGFED2BB
-             print*,'L8DAYBB  = ',L8DAYBB
-!             print*,'L8DAYBB3 = ',L8DAYBB3
-#if defined( DEVEL )
-	    END IF
-#endif
+            IF( am_I_Root ) THEN
+               print*,'LBIOMASS = ',LBIOMASS
+               print*,'LGFED3BB = ',LGFED3BB
+               print*,'LGFED2BB = ',LGFED2BB
+               print*,'L8DAYBB  = ',L8DAYBB
+!              print*,'L8DAYBB3 = ',L8DAYBB3
+	    ENDIF
             CALL ERROR_STOP( MSG, 'READ_CH4_MENU ("input_mod.F")' )
          ENDIF
       ENDIF
@@ -5921,7 +5938,7 @@
 ! !INTERFACE:
 !
 #if defined( DEVEL )
-      SUBROUTINE READ_APM_MENU(am_I_Root)
+      SUBROUTINE READ_APM_MENU( am_I_Root )
 #else
       SUBROUTINE READ_APM_MENU
 #endif
@@ -5939,20 +5956,19 @@
       USE TRACER_MOD,    ONLY : TCVV
       USE TRACER_MOD,    ONLY : XNUMOL
 !
+! !INPUT PARAMETERS:
+!
+      LOGICAL, INTENT(IN) :: am_I_Root   ! Is this the root CPU?
+!
 ! !REMARKS:
 !  This subroutine is only compiled when you build GEOS-Chem with the
 !  APM=yes makefile option.
 !
-
-! !INPUT VARIABLES:
-
-#if defined( DEVEL )
-      LOGICAL, INTENT(IN) :: am_I_Root   ! Is this the root CPU?
-#endif
-
 ! !REVISION HISTORY: 
 !  30 Sep 2008 - G. Luo, F. Yu - Initial version
 !  16 Feb 2011 - R. Yantosca - Added ProTeX headers
+!  30 Jul 2012 - R. Yantosca - Now accept am_I_Root as an argument when
+!                              running with the traditional driver main.F
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -5992,16 +6008,14 @@
       !=================================================================
       ! Print to screen
       !=================================================================
-#if defined( DEVEL )
-      IF(am_I_Root) THEN
-#endif
-      WRITE( 6, '(/,a)' ) 'APM MENU'
-      WRITE( 6, '(  a)' ) '----------------'
-      WRITE( 6, 100     ) 'Turn on APM and add tracers?: ', LAPM
-      WRITE( 6, 110     ) '# of additional APM tracers : ', N_APMTRA
-      WRITE( 6, 110     ) 'Nucleation Scheme           : ', IFNUCL
-      WRITE( 6, 120     ) 'Primary Sulfate Fraction    : ', FE0
-      END IF
+      IF( am_I_Root ) THEN
+         WRITE( 6, '(/,a)' ) 'APM MENU'
+         WRITE( 6, '(  a)' ) '----------------'
+         WRITE( 6, 100     ) 'Turn on APM and add tracers?: ', LAPM
+         WRITE( 6, 110     ) '# of additional APM tracers : ', N_APMTRA
+         WRITE( 6, 110     ) 'Nucleation Scheme           : ', IFNUCL
+         WRITE( 6, 120     ) 'Primary Sulfate Fraction    : ', FE0
+      ENDIF
 
       ! FORMATs
  100  FORMAT( A, L5 )
@@ -6264,7 +6278,7 @@
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE CHECK_TIME_STEPS(am_I_Root)
+      SUBROUTINE CHECK_TIME_STEPS( am_I_Root )
 !
 ! !USES:
 !
@@ -6274,7 +6288,7 @@
       USE ERROR_MOD,   ONLY : GEOS_CHEM_STOP
       USE TRACER_MOD,  ONLY : ITS_A_CH4_SIM
 !
-! !INPUT VARIABLES:
+! !INPUT PARAMETERS:
 !
       LOGICAL, INTENT(IN) :: am_I_Root   ! Is this the root CPU?
 ! 
@@ -6293,6 +6307,8 @@
 !  07 Oct 2011 - R. Yantosca - Add extra error checks for centralizing
 !                              chemistry timestep algorithm
 !  07 Oct 2011 - R. Yantosca - Remove TS_SUN_2 from call to SET_TIMESTEPS
+!  30 Jul 2012 - R. Yantosca - Now accept am_I_Root as an argument when
+!                              running with the traditional driver main.F
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -6312,9 +6328,11 @@
       ! should be done at the same time as chemistry.  Stop the run if the
       ! emissions timestep differs from the chemistry timestep. (bmy, 10/7/11)
       IF ( TS_EMIS /= TS_CHEM ) THEN 
-         WRITE(6,*) 'The emission time step should equal the chemistry'
-         WRITE(6,*) 'timestep.  This is required for the new central'
-         WRITE(6,*) 'chemistry timestep algorithm.'
+         IF ( am_I_Root ) THEN
+          WRITE(6,*) 'The emission time step should equal the chemistry'
+          WRITE(6,*) 'timestep.  This is required for the new central'
+          WRITE(6,*) 'chemistry timestep algorithm.'
+         ENDIF
          CALL GEOS_CHEM_STOP
       ENDIF
 
@@ -6322,9 +6340,11 @@
       ! should be done at the same time as dynamics.  Stop the run if the
       ! convection timestep differs from the dynamic timestep. (bmy, 10/7/11)
       IF ( TS_CONV /= TS_DYN ) THEN 
-         WRITE(6,*) 'The convection time step should equal the dynamic'
-         WRITE(6,*) 'timestep.  This is required for the new central'
-         WRITE(6,*) 'chemistry timestep algorithm.'
+         IF ( am_I_Root ) THEN
+          WRITE(6,*) 'The convection time step should equal the dynamic'
+          WRITE(6,*) 'timestep.  This is required for the new central'
+          WRITE(6,*) 'chemistry timestep algorithm.'
+         ENDIF
          CALL GEOS_CHEM_STOP
       ENDIF
 
@@ -6354,7 +6374,9 @@
       ENDIF
        
       IF ( LTRAN .and. TS_DYN /= TS_SMALLEST ) THEN
+         IF ( am_I_Root ) THEN
          WRITE(6,*) 'The transport time step should be the smallest one'
+         ENDIF
          CALL GEOS_CHEM_STOP
       ENDIF
      
@@ -6389,39 +6411,41 @@
       ! Check if all time steps are multiples of the smallest.
       ! (ccc, 5/13/09)
       IF ( L /= -999999 .and. MOD( TS_CHEM, TS_SMALLEST ) /= 0 ) THEN
-         WRITE( 6, 100 ) 'Chemistry', TS_CHEM, TS_SMALLEST
+         IF ( am_I_Root ) THEN
+            WRITE( 6, 100 ) 'Chemistry', TS_CHEM, TS_SMALLEST
+         ENDIF
          CALL GEOS_CHEM_STOP
       ENDIF
       
       IF ( K /= -999999 .and. MOD( TS_EMIS, TS_SMALLEST ) /= 0 ) THEN
-         WRITE( 6, 100 ) 'Emission', TS_EMIS, TS_SMALLEST
+         IF ( am_I_Root ) THEN
+            WRITE( 6, 100 ) 'Emission', TS_EMIS, TS_SMALLEST
+         ENDIF
          CALL GEOS_CHEM_STOP
       ENDIF
 
       IF ( J /= -999999 .and. MOD( TS_CONV, TS_SMALLEST ) /= 0 ) THEN
-         WRITE( 6, 100 ) 'Convection', TS_CONV, TS_SMALLEST
+         IF ( am_I_Root ) THEN
+            WRITE( 6, 100 ) 'Convection', TS_CONV, TS_SMALLEST
+         ENDIF
          CALL GEOS_CHEM_STOP
       ENDIF
 
       IF ( I /= -999999 .and. MOD( TS_DYN, TS_SMALLEST ) /= 0 ) THEN
-         WRITE( 6, 100 ) 'Transport', TS_DYN, TS_SMALLEST
+         IF ( am_I_Root ) THEN
+            WRITE( 6, 100 ) 'Transport', TS_DYN, TS_SMALLEST
+         ENDIF
          CALL GEOS_CHEM_STOP
       ENDIF
 
       ! Initialize timesteps in "time_mod.f"
-#if defined( DEVEL )
       CALL SET_TIMESTEPS( am_I_Root,
      &                    CHEMISTRY  = TS_CHEM, EMISSION  = TS_EMIS, 
      &                    DYNAMICS   = TS_DYN,  UNIT_CONV = TS_UNIT,
      &                    CONVECTION = TS_CONV, DIAGNOS   = TS_DIAG)
-#else
-      CALL SET_TIMESTEPS( 
-     &                    CHEMISTRY  = TS_CHEM, EMISSION  = TS_EMIS, 
-     &                    DYNAMICS   = TS_DYN,  UNIT_CONV = TS_UNIT,
-     &                    CONVECTION = TS_CONV, DIAGNOS   = TS_DIAG)
-#endif      
+
  100  FORMAT( A, ' time step must be a multiple of the smallest one:',
-     &         i5, i5 )
+     &        i5, i5 )
 
       END SUBROUTINE CHECK_TIME_STEPS
 !EOC

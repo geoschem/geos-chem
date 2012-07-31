@@ -3971,7 +3971,11 @@
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE INIT_DRYDEP
+      SUBROUTINE INIT_DRYDEP( am_I_Root )
+!
+! !INPUT PARAMETERS:
+!
+      LOGICAL, INTENT(IN) :: am_I_Root   ! Is this the root CPU?
 ! 
 ! !REVISION HISTORY: 
 !  (1 ) Added N2O5 as a drydep tracer, w/ the same drydep velocity as
@@ -4004,6 +4008,8 @@
 !  21 Dec 2011 - M. Payer    - Add allocation for size distribution of sea salt
 !                              SALT_V and DMID (jaegle, 5/11/11)
 !  22 Dec 2011 - M. Payer    - Added ProTeX headers
+!  30 Jul 2012 - R. Yantosca - Now accept am_I_Root as an argument when
+!                              running with the traditional driver main.F
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -5094,12 +5100,14 @@
       !=================================================================
       ! Echo information to stdout
       !=================================================================
+      IF ( am_I_Root ) THEN
       WRITE( 6, '(/,a)' ) 'INIT_DRYDEP: List of dry deposition species:'
       WRITE( 6, '(/,a)'   )
      & '  #   Name  Tracer DEPVEL Henry''s    React.   Molec.  Aerosol?'
       WRITE( 6, '(a)'   )
      & '            Number Index  Law Const  Factor   Weight  (T or F)'
       WRITE( 6, '(a)'   ) REPEAT( '-', 65 )
+      ENDIF
 
       DO N = 1, NUMDEP
          WRITE( 6, 100 ) N, TRIM( DEPNAME(N) ), NTRAIND(N), NDVZIND(N), 

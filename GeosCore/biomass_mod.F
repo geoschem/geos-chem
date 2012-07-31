@@ -457,7 +457,8 @@
       END SUBROUTINE COMPUTE_BIOMASS_EMISSIONS
 
 !------------------------------------------------------------------------------
-      SUBROUTINE SET_BIOTRCE(am_I_Root)
+
+      SUBROUTINE SET_BIOTRCE( am_I_Root )
 
 !******************************************************************************
 !  Routine created by FP to set IDBxxxs according to the tracers defined
@@ -465,6 +466,8 @@
 !  tracers in input.geos (FP 6/2009, hotp 7/30/09)
 !
 !  NOTES:
+!  30 Jul 2012 - R. Yantosca - Now accept am_I_Root as an argument when
+!                              running with the traditional driver main.F
 !******************************************************************************
 
 !FP_ISOP
@@ -637,7 +640,9 @@
       ENDIF
 
       ! Echo biomass burning tracer information
-      IF(am_I_Root) WRITE( 6, 100 ) BIOTRCE( 1:NBIOTRCE )
+      IF ( am_I_Root ) THEN
+         WRITE( 6, 100 ) BIOTRCE( 1:NBIOTRCE )
+      ENDIF
  100  FORMAT( 'TRACERID: Biomass burning tracers        :', 20i3 )
       
       ! Return to calling program

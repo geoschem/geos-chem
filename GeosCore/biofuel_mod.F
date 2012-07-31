@@ -1258,7 +1258,7 @@
 
 !------------------------------------------------------------------------------
 
-      SUBROUTINE SET_BFTRACE(am_I_Root)
+      SUBROUTINE SET_BFTRACE( am_I_Root )
 !
 !******************************************************************************
 !  Subroutine SET_NBFTRACE sets the NBFTRACE variable with the number of
@@ -1266,7 +1266,9 @@
 !  in order to prevent circular module references. (bmy, 11/6/02, 10/3/05)
 !
 !  NOTES:
-!  (1 ) Now make sure all USE statements are USE, ONLY (bmy, 10/3/05)
+!  (1 ) Now make sure all USE statements are USE, ONLY (bmy, 10/3/05
+!  30 Jul 2012 - R. Yantosca - Now accept am_I_Root as an argument when
+!                              running with the traditional driver main.F
 !******************************************************************************
 !
       ! References to F90 modules
@@ -1335,10 +1337,11 @@
       IF ( IDBFHAC  /= 0 ) BFTRACE(IDBFHAC ) = IDTHAC
 
       ! Echo biofuel tracer information
-      IF(am_I_Root) WRITE( 6, 100 ) BFTRACE( 1:NBFTRACE )
+      IF ( am_I_Root ) THEN
+         WRITE( 6, 100 ) BFTRACE( 1:NBFTRACE )
+      ENDIF
  100  FORMAT( 'TRACERID: Biofuel burning tracers        :', 20i3 )
       
-      ! Return to calling program
       END SUBROUTINE SET_BFTRACE
 
 !------------------------------------------------------------------------------

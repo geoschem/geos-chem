@@ -83,14 +83,20 @@ CONTAINS
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE Compute_Global_Grid
+  SUBROUTINE Compute_Global_Grid( am_I_Root )
 !
 ! !USES:
 !
     USE GRID_MOD,     ONLY : GET_XOFFSET, GET_YOFFSET
 !
+! !INPUT PARAMETERS:
+!
+      LOGICAL, INTENT(IN) :: am_I_Root   ! Is this the root CPU?
+!
 ! !REVISION HISTORY:
 !  01 May 2012 - M. Payer    - Initial version, based on grid_mod.F
+!  30 Jul 2012 - R. Yantosca - Now accept am_I_Root as an argument when
+!                              running with the traditional driver main.F
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -242,20 +248,22 @@ CONTAINS
     ENDDO
 
 !    ! For debug
-!    WRITE( 6, '(a)' ) REPEAT( '=', 79 )
-!    WRITE( 6, '(a)' ) 'GLOBAL GRIDS FOR NESTED SIMULATIONS'
-!    WRITE( 6, '(''Global grid box longitude centers [degrees]: '')' )
-!    WRITE( 6, '(8(f8.3,1x))' ) ( XMID_G(I),  I=1,IIIPAR )
-!    WRITE( 6, '(a)' )
-!    WRITE( 6, '(''Global grid box longitude edges [degrees]: '')' )
-!    WRITE( 6, '(8(f8.3,1x))' ) ( XEDGE_G(I), I=1,IIIPAR+1 )
-!    WRITE( 6, '(a)' )
-!    WRITE( 6, '(''Global grid box latitude centers [degrees]: '')' )
-!    WRITE( 6, '(8(f8.3,1x))' ) ( YMID_G(J),  J=1,JJJPAR )
-!    WRITE( 6, '(a)' )
-!    WRITE( 6, '(''Global grid box latitude edges [degrees]: '')' )
-!    WRITE( 6, '(8(f8.3,1x))' ) ( YEDGE_G(J), J=1,JJJPAR+1 )
-!    WRITE( 6, '(a)' ) REPEAT( '=', 79 )
+!    IF ( am_I_Root ) THEN
+!       WRITE( 6, '(a)' ) REPEAT( '=', 79 )
+!       WRITE( 6, '(a)' ) 'GLOBAL GRIDS FOR NESTED SIMULATIONS'
+!       WRITE( 6, '(''Global grid box longitude centers [degrees]: '')' )
+!       WRITE( 6, '(8(f8.3,1x))' ) ( XMID_G(I),  I=1,IIIPAR )
+!       WRITE( 6, '(a)' )
+!       WRITE( 6, '(''Global grid box longitude edges [degrees]: '')' )
+!       WRITE( 6, '(8(f8.3,1x))' ) ( XEDGE_G(I), I=1,IIIPAR+1 )
+!       WRITE( 6, '(a)' )
+!       WRITE( 6, '(''Global grid box latitude centers [degrees]: '')' )
+!       WRITE( 6, '(8(f8.3,1x))' ) ( YMID_G(J),  J=1,JJJPAR )
+!       WRITE( 6, '(a)' )
+!       WRITE( 6, '(''Global grid box latitude edges [degrees]: '')' )
+!       WRITE( 6, '(8(f8.3,1x))' ) ( YEDGE_G(J), J=1,JJJPAR+1 )
+!       WRITE( 6, '(a)' ) REPEAT( '=', 79 )
+!    ENDIF
 
   END SUBROUTINE Compute_Global_Grid
 !EOC

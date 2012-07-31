@@ -273,7 +273,7 @@
       IF ( LPRT ) CALL DEBUG_MSG( '### MAIN: a INITIALIZE' )
 
       ! Initialize the new hybrid pressure module.  Define Ap and Bp.
-      CALL INIT_PRESSURE
+      CALL INIT_PRESSURE( am_I_Root )
       IF ( LPRT ) CALL DEBUG_MSG( '### MAIN: a INIT_PRESSURE' )
 
       ! Read annual mean tropopause if not a variable tropopause
