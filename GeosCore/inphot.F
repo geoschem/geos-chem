@@ -1,18 +1,40 @@
-! $Id: inphot.f,v 1.1 2009/09/16 14:06:24 bmy Exp $
-      SUBROUTINE INPHOT( NLAYER, NREACS )
+!------------------------------------------------------------------------------
+!          Harvard University Atmospheric Chemistry Modeling Group            !
+!------------------------------------------------------------------------------
+!BOP
 !
-!******************************************************************************
-!  Subroutine INPHOT initializes quantities for FAST-J photolysis, including
-!  JPL spectral data (e.g. cross sections, quantum yields), standard O3 and T 
-!  profiles, and the translation indices between GEOS-Chem and FAST-J species
-!  names. (Oliver Wild, 4/99, ppm, bmy, 9/7/99, 5/10/10)
+! !ROUTINE: inphot
 !
-!  Arguments as Input:
-!  ============================================================================
-!  (1 ) NLAYER (INTEGER) : Number of layers for FAST-J photolysis
-!  (2 ) NREACS (INTEGER) : Total # of photolysis reactions for FAST-J
+! !DESCRIPTION: Subroutine INPHOT initializes quantities for FAST-J photolysis,
+!  including JPL spectral data (e.g. cross sections, quantum yields), standard 
+!  O3 and T profiles, and the translation indices between GEOS-Chem and FAST-J
+!  species names.
+!\\
+!\\
+! !INTERFACE:
 !
-!  NOTES: 
+      SUBROUTINE INPHOT( NLAYER, NREACS, am_I_Root )
+!
+! !USES:
+!
+#     include "define.h"
+
+      USE ERROR_MOD,    ONLY : ERROR_STOP
+      USE FILE_MOD,     ONLY : IU_FASTJ
+      USE CMN_FJ_MOD,   ONLY : JPMAX, JPPJ, JPNL
+      USE CMN_SIZE_MOD, ONLY : LLPAR
+      USE JV_CMN_MOD
+
+      IMPLICIT NONE
+!
+! !INPUT PARAMETERS: 
+!
+      INTEGER, INTENT(IN) :: NLAYER      ! # of layers for FAST-J photolysis
+      INTEGER, INTENT(IN) :: NREACS      ! # of FAST-J photolysis reactions
+      LOGICAL, INTENT(IN) :: am_I_Root   ! Is this the root CPU?
+! 
+! !REVISION HISTORY: 
+!  01 Apr 1999 - O. Wild     - Initial version
 !  (1 ) Remove PTOP from the arg list, since it is now a 
 !        parameter in "CMN_SIZE" (bmy, 2/10/00).
 !  (2 ) Remove SIGE from the argument list, since we are now using
@@ -25,26 +47,27 @@
 !        GET_PEDGE routine.  Also remove reference to "pressure_mod.f".  
 !        Updated comments. (bmy, 10/30/07)
 !  (6 ) Read jv_spec_aod.dat file for AOD diagnostics. (clh, bmy, 5/10/10)
-!******************************************************************************
+!  30 Jul 2012 - R. Yantosca - Now accept am_I_Root as an argument when
+!                              running with the traditional driver main.F
+!  30 Jul 2012 - R. Yantosca - Added ProTeX headers
+!  30 Jul 2012 - R. Yantosca - Now add LUN as a local variable
+!EOP
+!------------------------------------------------------------------------------
+!BOC
 !
-      ! References to F90 modules (bmy, 6/27/02)
-      USE ERROR_MOD,    ONLY : ERROR_STOP
-      USE FILE_MOD,     ONLY : IU_FASTJ
+! !LOCAL VARIABLES
+!
+      INTEGER :: LUN
 
-#     include "define.h"
-
-      USE CMN_FJ_MOD,   ONLY : JPMAX, JPPJ, JPNL
-      USE CMN_SIZE_MOD, ONLY : LLPAR
-      USE JV_CMN_MOD
-
-      IMPLICIT NONE
-
-      ! Arguments
-      INTEGER, INTENT(IN) :: NLAYER, NREACS
-      
       !=================================================================
       ! INPHOT begins here!
       !=================================================================
+
+#if   !defined( DEVEL )
+      ! For the traditional driver "main.F", we use IU_FASTJ as the
+      ! LUN for ASCII file I/O.  (bmy, 7/30/12)
+      LUN   = IU_FASTJ
+#endif
 
       ! # of layers to do chemistry
       JPNL  = NLAYER             
@@ -63,28 +86,23 @@
       ENDIF
 
       ! Read in labels of photolysis rates required
-      CALL RD_JS( IU_FASTJ, 'ratj.d' )
+      CALL RD_JS( LUN, 'ratj.d', am_I_Root )
 
       ! Call JV_INDEX to translate between GEOS-Chem species 
       ! nomenclature and Fast-J species nomenclature (bmy, 9/13/99)
-      CALL JV_INDEX 
+      CALL JV_INDEX( am_I_Root )
 
       ! Read in JPL spectral data set (e.g. X-sections, quantum yields)
-      CALL RD_TJPL( IU_FASTJ, 'jv_spec.dat___.rc' )
+      CALL RD_TJPL( LUN, 'jv_spec.dat___.rc', am_I_Root )
 
       ! Read in aerosol optics to be used to calculate AODs (clh)
-      CALL RD_AOD( IU_FASTJ, 'jv_spec_aod.dat___.rc' )
+      CALL RD_AOD( LUN, 'jv_spec_aod.dat___.rc', am_I_Root )
 
       ! Read in T & O3 climatology (cf. Nagatani/92 and McPeters/91)
-!------------------------------------------------------------------------------
-! Prior to 4/19/12:
-! Now read "jv_atms.dat" T & O3 from netCDF format (bmy, 4/19/12)
-!      CALL RD_PROF( IU_FASTJ, 'jv_atms.dat' )
-!------------------------------------------------------------------------------
-      CALL READ_JV_ATMS_DAT( 'fastj.jv_atms_dat.nc' )
+      CALL READ_JV_ATMS_DAT( 'fastj.jv_atms_dat.nc', am_I_Root )
 
       ! Select Aerosol/Cloud types to be used
-      CALL SET_AER
+      CALL SET_AER( am_I_Root )
 
       ! Return to calling program
       END SUBROUTINE INPHOT

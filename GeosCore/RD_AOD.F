@@ -12,7 +12,7 @@
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE RD_AOD( NJ1, NAMFIL )
+      SUBROUTINE RD_AOD( NJ1, NAMFIL, am_I_Root )
 !
 ! !USES:
 !
@@ -31,10 +31,13 @@
 
 !
 ! !INPUT PARAMETERS:
+!     
+      CHARACTER(LEN=*), INTENT(IN)    :: NAMFIL      ! Name of file to open
+      LOGICAL,          INTENT(IN)    :: am_I_Root   ! Is this the root CPU?
 !
-      INTEGER,          INTENT(INOUT) :: NJ1      ! Unit # of file to open
-!      CHARACTER(LEN=255), INTENT(IN) :: NAMFIL   ! Name of file to open
-      CHARACTER(LEN=*),    INTENT(IN) :: NAMFIL   ! Name of file to open
+! !INPUT/OUTPUT PARAMETERS:
+!
+      INTEGER,          INTENT(INOUT) :: NJ1         ! Unit # of file to open
 !
 ! !REMARKS:
 !  The jv_spec_aod.dat file contains the optical properties for aerosols 
@@ -86,33 +89,37 @@
 
       ! Error check
       IF ( IOS /= 0 ) THEN
-         WRITE(6,100) trim(NAMFIL)
- 100     FORMAT('Error opening filename=', a )
-         CALL FLUSH(6)
+         IF ( am_I_Root ) THEN
+            WRITE(6,100) trim(NAMFIL)
+ 100        FORMAT('Error opening filename=', a )
+            CALL FLUSH(6)
+         ENDIF
          CALL IOERROR( IOS, NJ1, 'RD_AOD:1')
       ENDIF
 
       
       ! Read header lines
-      READ(  NJ1,'(A)'    ) TITLE0
-      WRITE( 6,  '(1X,A)' ) TITLE0
-      READ(  NJ1,'(A)'    ) TITLE0
+      READ( NJ1,'(A)' ) TITLE0
+      IF  ( am_I_Root ) WRITE( 6, '(1X,A)' ) TITLE0
+      READ( NJ1,'(A)' ) TITLE0
 
       ! Read aerosol phase functions (one wavelength only):
       READ( NJ1,'(A10,I5,/)' ) TITLE0,NAA2
       DO j = 15, NAA
          READ(NJ1,110) TITLEA(j)
  110     FORMAT( 3x, a20 )
-         WRITE(6,*) TITLEA(j)
+         IF ( am_I_Root ) WRITE(6,*) TITLEA(j)
          READ(NJ1,*) WAA_AOD(j),QAA_AOD(j),RAA_AOD(j),SSA_AOD(j),
      &               (PAA_AOD(i,j),i=1,8)
       ENDDO
 
       ! Echo info to stdout
-      WRITE( 6, '(a)' ) 'Aerosol Qext for AOD calculations'
-      DO J=15,NAA
-        WRITE( 6, * ) TITLEA(J),J,'  Qext =',(QAA_AOD(J))
-      ENDDO
+      IF ( am_I_Root ) THEN
+         WRITE( 6, '(a)' ) 'Aerosol Qext for AOD calculations'
+         DO J=15,NAA
+            WRITE( 6, * ) TITLEA(J),J,'  Qext =',(QAA_AOD(J))
+         ENDDO
+      ENDIF
 
       ! Close file
       CLOSE( NJ1 )

@@ -1,5 +1,5 @@
 ! $Id: setmodel.f,v 1.1 2009/09/16 14:06:09 bmy Exp $
-      SUBROUTINE SETMODEL
+      SUBROUTINE SETMODEL( am_I_Root )
 !
 !******************************************************************************
 !  Subroutine SETMODEL computes the number of grid blocks that are needed.
@@ -12,6 +12,8 @@
 !        removed.  The only code left is the code which determines the number
 !        of grid blocks used for the parallelization.  Now force double-
 !        precision with the "D" exponent. (bdf, bmy, 4/18/03)
+!  30 Jul 2012 - R. Yantosca - Now accept am_I_Root as an argument when
+!                              running with the traditional driver main.F
 !******************************************************************************
 !
 #     include "define.h"
@@ -20,6 +22,10 @@
       USE COMODE_LOOP_MOD  ! SMVGEAR II arrays
 
       IMPLICIT NONE
+!
+! !INPUT PARAMETERS:
+!
+      LOGICAL, INTENT(IN) :: am_I_Root   ! Is this the root CPU?
 !
 ! *********************************************************************
 ! ************        WRITTEN BY MARK JACOBSON (1993-4)    ************
@@ -64,7 +70,10 @@
 ! PHYSPROC.F
 !
       IF (NBLOCKS+15.GT.MXBLOCK) THEN
-         WRITE(6,*)'READER: NBLOCKS+15>MXBLOCKS ',NBLOCKS+15, MXBLOCK 
+         IF ( am_I_Root ) THEN
+            WRITE(6,*)'READER: NBLOCKS+15>MXBLOCKS ',
+     &           NBLOCKS+15, MXBLOCK 
+         ENDIF
          STOP
       ENDIF
 !

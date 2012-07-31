@@ -123,7 +123,7 @@ CONTAINS
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE DO_STRAT_CHEM
+  SUBROUTINE DO_STRAT_CHEM( am_I_Root )
 !
 ! !USES:
 !
@@ -145,6 +145,10 @@ CONTAINS
 
 #include "define.h"
 !
+! !INPUT PARAMETERS:
+!
+      LOGICAL, INTENT(IN) :: am_I_Root   ! Is this the root CPU?
+!
 ! !REMARKS:
 ! 
 ! !REVISION HISTORY: 
@@ -154,6 +158,8 @@ CONTAINS
 !  18 Jul 2012 - R. Yantosca - Make sure I is the innermost DO loop
 !                              wherever expedient 
 !  20 Jul 2012 - R. Yantosca - Reorganized declarations for clarity
+!  30 Jul 2012 - R. Yantosca - Now accept am_I_Root as an argument when
+!                              running with the traditional driver main.F
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -183,19 +189,21 @@ CONTAINS
     STAMP = TIMESTAMP_STRING()
     WRITE( 6, 10 ) STAMP
 10  FORMAT( '     - DO_STRAT_CHEM: Linearized strat chemistry at ', a )
-
+    
     IF ( GET_MONTH() /= LASTMONTH ) THEN
 
-       IF ( LPRT ) CALL DEBUG_MSG( '### STRAT_CHEM: at GET_RATES' )
+       IF ( LPRT .and. am_I_Root ) THEN 
+          CALL DEBUG_MSG( '### STRAT_CHEM: at GET_RATES' )
+       ENDIF
 
        ! Read rates for this month
        IF ( ITS_A_FULLCHEM_SIM() ) THEN
 #if defined( GRID4x5 ) || defined( GRID2x25 )
-          CALL GET_RATES( GET_MONTH() )
+          CALL GET_RATES( GET_MONTH(), am_I_Root )
 #else
           ! For resolutions finer than 2x2.5, nested, 
           ! or otherwise exotic domains and resolutions
-          CALL GET_RATES_INTERP( GET_MONTH() )
+          CALL GET_RATES_INTERP( GET_MONTH(), am_I_Root )
 #endif
        ENDIF
 
@@ -206,7 +214,9 @@ CONTAINS
     ! Set first-time flag to false
     FIRST = .FALSE.    
 
-    IF ( LPRT ) CALL DEBUG_MSG( '### STRAT_CHEM: at DO_STRAT_CHEM' )
+    IF ( LPRT .and. am_I_Root ) THEN
+       CALL DEBUG_MSG( '### STRAT_CHEM: at DO_STRAT_CHEM' )
+    ENDIF
 
     !================================================================
     ! Full chemistry simulations
@@ -280,9 +290,9 @@ CONTAINS
 
        ! Do Linoz or Synoz
        IF ( LLINOZ ) THEN
-          CALL Do_Linoz
+          CALL Do_Linoz( am_I_Root )
        ELSE
-          CALL Do_Synoz
+          CALL Do_Synoz( am_I_Root )
        ENDIF
 
        ! Put ozone back to kg
@@ -434,9 +444,9 @@ CONTAINS
 
        CALL CONVERT_UNITS( 1, N_TRACERS, TCVV, AD, STT ) ! kg -> v/v
        IF ( LLINOZ ) THEN
-          CALL Do_Linoz
+          CALL Do_Linoz( am_I_Root )
        ELSE 
-          CALL Do_Synoz
+          CALL Do_Synoz( am_I_Root )
        ENDIF
        CALL CONVERT_UNITS( 2, N_TRACERS, TCVV, AD, STT ) ! v/v -> kg
 
@@ -500,10 +510,12 @@ CONTAINS
        ! (e.g., CO). Simulations like CH4, CO2 with standard tracer names 
        ! should probably just work as is with the full chemistry code above, 
        ! but would need to be tested.
-       WRITE( 6, * ) 'Strat chemistry needs to be activated for ' // &
-            'your simulation type.'
-       WRITE( 6, * ) 'Please see GeosCore/strat_chem_mod.F90' // &
-            'or disable in input.geos'
+       IF ( am_I_Root ) THEN
+          WRITE( 6, '(a)' ) 'Strat chemistry needs to be activated for ' // &
+                            'your simulation type.'
+          WRITE( 6, '(a)' ) 'Please see GeosCore/strat_chem_mod.F90' // &
+                            'or disable in input.geos'
+       ENDIF
        CALL GEOS_CHEM_STOP
        
     ENDIF
@@ -523,7 +535,7 @@ CONTAINS
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE GET_RATES( THISMONTH )
+  SUBROUTINE GET_RATES( THISMONTH, am_I_Root )
 !
 ! !USES:
 !
@@ -544,11 +556,14 @@ CONTAINS
 !
 ! !INPUT PARAMETERS: 
 !
-    INTEGER,INTENT(IN) :: THISMONTH
+    INTEGER, INTENT(IN) :: THISMONTH   ! Current month
+    LOGICAL, INTENT(IN) :: am_I_Root   ! Is this the root CPU?
 !
 ! !REVISION HISTORY: 
 !  01 Feb 2011 - L. Murray   - Initial version
 !  20 Jul 2012 - R. Yantosca - Reorganized declarations for clarity
+!  30 Jul 2012 - R. Yantosca - Now accept am_I_Root as an argument when
+!                              running with the traditional driver main.F
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -573,8 +588,10 @@ CONTAINS
     LOSS = 0d0
     PROD = 0d0
 
-    WRITE(6, 11  ) '       - Getting new strat prod/loss rates for month: ', &
-         THISMONTH
+    IF ( am_I_Root ) THEN
+       WRITE( 6, 11 ) &
+          '       - Getting new strat prod/loss rates for month: ', THISMONTH
+    ENDIF
 11  FORMAT( a, I2.2 )
 
     M = THISMONTH
@@ -582,10 +599,15 @@ CONTAINS
     !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
     ! Get stratospheric OH mixing ratio [v/v] 
     !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-    FILENAME = 'strat_chem_201206/gmi.clim.OH.' // & 
-                       GET_NAME_EXT() // '.' // GET_RES_EXT() // '.nc'
+    FILENAME = 'strat_chem_201206/gmi.clim.OH.' // GET_NAME_EXT() //  &
+               '.'                              // GET_RES_EXT()  // '.nc'
     FILENAME = TRIM( DATA_DIR ) // TRIM( FILENAME )
-    WRITE(6,'(a)') '         => Reading from file: ' // trim(filename)
+
+    IF ( am_I_Root ) THEN
+       WRITE( 6, 100 ) TRIM( filename )
+100    FORMAT( '         => Reading from file: ', a )
+    ENDIF
+
     call NcOp_Rd( fileID, TRIM( FILENAME ) )
     call NcRd( array, fileID, 'species',                     &
                               (/     1,     1,     1,  m /), & ! Start
@@ -605,10 +627,14 @@ CONTAINS
        !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
        FILENAME = 'strat_chem_201206/gmi.clim.' // &
-            TRIM( GMI_TrName(NN) ) // '.' // & 
-            GET_NAME_EXT() // '.' // GET_RES_EXT() // '.nc'
+                  TRIM( GMI_TrName(NN) ) // '.' // & 
+                  GET_NAME_EXT() // '.' // GET_RES_EXT() // '.nc'
        FILENAME = TRIM( DATA_DIR ) // TRIM( FILENAME )
-       WRITE(6,'(a)') '         => Reading from file: ' // trim(filename)
+
+       IF ( am_I_Root ) THEN
+          WRITE( 6, 100 ) TRIM( filename )
+       ENDIF
+
        call NcOp_Rd( fileID, TRIM( FILENAME ) )
 
        !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -707,7 +733,7 @@ CONTAINS
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE GET_RATES_INTERP( THISMONTH )
+  SUBROUTINE GET_RATES_INTERP( THISMONTH, am_I_Root )
 !
 ! !USES:
 !
@@ -734,7 +760,8 @@ CONTAINS
 !
 ! !INPUT PARAMETERS: 
 !
-    INTEGER,INTENT(IN) :: THISMONTH
+    INTEGER, INTENT(IN) :: THISMONTH   ! Current month
+    LOGICAL, INTENT(IN) :: am_I_Root   ! Is this the root CPU?
 !
 ! !REVISION HISTORY: 
 !  01 Feb 2011 - L. Murray   - Initial version
@@ -743,6 +770,8 @@ CONTAINS
 !  20 Jul 2012 - R. Yantosca - Now call routine TRANSFER_3D_Bry, which takes
 !                              arrays of size (144,91,:) as input & output
 !  20 Jul 2012 - R. Yantosca - Reorganized declarations for clarity
+!  30 Jul 2012 - R. Yantosca - Now accept am_I_Root as an argument when
+!                              running with the traditional driver main.F
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -787,13 +816,17 @@ CONTAINS
     FILENAME = 'strat_chem_201206/gmi.clim.OH.' // GET_NAME_EXT() // '.2x25.nc'
     FILENAME = TRIM( DATA_DIR_1x1 ) // TRIM( FILENAME )
 
-    WRITE(6, 11  ) &
-         '       - Getting new strat prod/loss rates for month: ',THISMONTH
-11  FORMAT( a, I2.2 )
+    ! Echo info
+    IF ( am_I_Root ) THEN
+       WRITE( 6, 11 ) THISMONTH
+    ENDIF
+11  FORMAT( '       - Getting new strat prod/loss rates for month: ', I2.2 )
 
     ! Open the netCDF file containing the rates
-    WRITE(6,'(a)') &
-         '         => Interpolate to resolution from file: ' // trim(filename)
+    IF ( am_I_Root ) THEN
+       WRITE( 6, 12 ) TRIM( filename )
+    ENDIF
+12  FORMAT( '         => Interpolate to resolution from file: ', a )
     call Ncop_Rd( fileID, TRIM( filename ) )
 
     ! Get the lat and lon centers of the 2x2.5 GMI climatology
@@ -810,12 +843,12 @@ CONTAINS
     DO I=1,IGLOB
        II = MINLOC( ABS( GET_XMID(I,1,1) - XMID_COARSE ) )
        I_f2c(I) = II(1)
-       !print*,'I:',I,'->',II(1)
+       !IF ( am_I_Root ) print*,'I:',I,'->',II(1)
     ENDDO
     DO J=1,JGLOB
        JJ = MINLOC( ABS( GET_YMID(1,J,1) - YMID_COARSE ) )
        J_f2c(J) = JJ(1)
-       !print*,'J:',J,'->',JJ(1)
+       !IF ( am_I_Root ) print*,'J:',J,'->',JJ(1)
     ENDDO
 
     M = THISMONTH
@@ -899,9 +932,10 @@ CONTAINS
        FILENAME = 'strat_chem_201206/gmi.clim.' // &
             TRIM( GMI_TrName(NN) ) // '.' // GET_NAME_EXT() // '.2x25.nc'
        FILENAME = TRIM( DATA_DIR_1x1 ) // TRIM( FILENAME )
-       WRITE(6,'(a)') &
-            '         => Interpolate to resolution from file: ' // & 
-            trim(filename)
+
+       IF ( am_I_Root ) THEN
+          WRITE( 6, 12 ) TRIM( filename )
+       ENDIF
 
        call NcOp_Rd( fileID, TRIM( FILENAME ) )
 
@@ -975,7 +1009,7 @@ CONTAINS
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE Calc_STE
+  SUBROUTINE Calc_STE( am_I_Root )
 !
 ! !USES:
 !
@@ -988,12 +1022,17 @@ CONTAINS
 
 #include "define.h"
 !
+! !INPUT PARAMETERS:
+!
+    LOGICAL, INTENT(IN) :: am_I_Root   ! Is this the root CPU?
+!
 ! !REVISION HISTORY: 
 !  28 Apr 2012 - L. Murray   - Initial version
 !  18 Jul 2012 - R. Yantosca - Make sure I is the innermost DO loop
 !                              (wherever expedient)
 !  20 Jul 2012 - R. Yantosca - Reorganized declarations for clarity
-
+!  30 Jul 2012 - R. Yantosca - Now accept am_I_Root as an argument when
+!                              running with the traditional driver main.F
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -1048,16 +1087,17 @@ CONTAINS
     CALL EXPAND_DATE(dateEnd,GET_NYMD(),GET_NHMS())
 
     ! Print to output
-    WRITE( 6, * ) ''
-    WRITE( 6, '(a)' ) REPEAT( '=', 79 )
-    WRITE( 6, '(a)' ) '  Strat-Trop Exchange'
-    WRITE( 6, '(a)' ) REPEAT( '-', 79 )
-    WRITE( 6, '(a)' ) &
-         '  Global stratosphere-to-troposphere fluxes estimated over'
-    WRITE( 6, 100 ) TRIM(dateStart), TRIM(dateEnd)
-    WRITE( 6, * ) ''
-    WRITE( 6, 110 ) 'Species','[moles a-1]','* [g/mol]','= [Tg a-1]'
-
+    IF ( am_I_Root ) THEN
+       WRITE( 6, * ) ''
+       WRITE( 6, '(a)' ) REPEAT( '=', 79 )
+       WRITE( 6, '(a)' ) '  Strat-Trop Exchange'
+       WRITE( 6, '(a)' ) REPEAT( '-', 79 )
+       WRITE( 6, '(a)' ) &
+            '  Global stratosphere-to-troposphere fluxes estimated over'
+       WRITE( 6, 100 ) TRIM(dateStart), TRIM(dateEnd)
+       WRITE( 6, * ) ''
+       WRITE( 6, 110 ) 'Species','[moles a-1]','* [g/mol]','= [Tg a-1]'
+    ENDIF
 100 FORMAT( 2x,a16,' to ',a16 )
 110 FORMAT( 2x,a8,':',4x,a11  ,4x,a9  ,4x,  a11 )
 
@@ -1089,18 +1129,22 @@ CONTAINS
        STE = (Tend-dStrat)/dt ! [kg a-1]
 
        ! Print to standard output
-       WRITE(6,120) TRIM(TRACER_NAME(N)),  &
-            STE/TRACER_MW_KG(N),           & ! mol/a-1
-            TRACER_MW_KG(N)*1d3,           & ! g/mol
-            STE*1d-9                         ! Tg a-1
+       IF ( am_I_Root ) THEN
+          WRITE(6,120) TRIM(TRACER_NAME(N)),  &
+               STE/TRACER_MW_KG(N),           & ! mol/a-1
+               TRACER_MW_KG(N)*1d3,           & ! g/mol
+               STE*1d-9                         ! Tg a-1
+       ENDIF
 
     ENDDO
 
 120 FORMAT( 2x,a8,':',4x,e11.3,4x,f9.1,4x,f11.4 )
 
-    WRITE( 6, * ) ''
-    WRITE( 6, '(a)'   ) REPEAT( '=', 79 )
-    WRITE( 6, * ) ''
+    IF ( am_I_Root ) THEN
+       WRITE( 6, * ) ''
+       WRITE( 6, '(a)'   ) REPEAT( '=', 79 )
+       WRITE( 6, * ) ''
+    ENDIF
 
     ! Reset variables for next STE period
     NymdInit             = GET_NYMD()
@@ -1126,7 +1170,7 @@ CONTAINS
 !\\
 ! !INTERFACE:
 !      
-  SUBROUTINE INIT_STRAT_CHEM
+  SUBROUTINE INIT_STRAT_CHEM( am_I_Root )
 !
 ! !USES:
 !
@@ -1145,9 +1189,15 @@ CONTAINS
     USE CMN_SIZE_MOD
 
     IMPLICIT NONE
+!
+! !INPUT PARAMETERS:
+!
+    LOGICAL, INTENT(IN) :: am_I_Root   ! Is this the root CPU?
 ! 
 ! !REVISION HISTORY:
-!  1 Feb 2011 - L. Murray - Initial version
+!  01 Feb 2011 - L. Murray   - Initial version
+!  30 Jul 2012 - R. Yantosca - Now accept am_I_Root as an argument when
+!                              running with the traditional driver main.F
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -1233,11 +1283,17 @@ CONTAINS
              IF ( TRIM(TRACER_NAME(N)) .eq. TRIM(sname) ) THEN
                 
                 IF ( LLINOZ .and. TRIM(TRACER_NAME(N)) .eq. 'Ox' ) THEN
-                   WRITE(6,*) TRIM(TRACER_NAME(N)) // ' (via Linoz)'
+                   IF ( am_I_Root ) THEN
+                      WRITE( 6, '(a)' ) TRIM(TRACER_NAME(N)) // ' (via Linoz)'
+                   ENDIF
                 ELSE IF ( TRIM(TRACER_NAME(N)) .eq. 'Ox' ) THEN
-                   WRITE(6,*) TRIM(TRACER_NAME(N)) // ' (via Synoz)'
+                   IF ( am_I_Root ) THEN
+                      WRITE( 6, '(a)' ) TRIM(TRACER_NAME(N)) // ' (via Synoz)'
+                   ENDIF
                 ELSE
-                   WRITE(6,*) TRIM(TRACER_NAME(N)) // ' (via GMI rates)'
+                   IF ( am_I_Root ) THEN
+                      WRITE( 6, '(a)' ) TRIM(TRACER_NAME(N))//' (via GMI rates)'
+                   ENDIF
                 ENDIF
 
                 NSCHEM                 = NSCHEM + 1
@@ -1251,9 +1307,11 @@ CONTAINS
 
        ! These are the reactions with which we will use OH fields
        ! to determine stratospheric loss.
-       IF ( IDTCHBr3  .gt. 0 ) WRITE(6,*) 'CHBr3 (from GMI OH)'
-       IF ( IDTCH2Br2 .gt. 0 ) WRITE(6,*) 'CH2Br2 (from GMI OH)'
-       IF ( IDTCH3Br  .gt. 0 ) WRITE(6,*) 'CH3Br (from GMI OH)'
+       IF( am_I_Root ) THEN
+          IF ( IDTCHBr3  .gt. 0 ) WRITE(6,*) 'CHBr3 (from GMI OH)'
+          IF ( IDTCH2Br2 .gt. 0 ) WRITE(6,*) 'CH2Br2 (from GMI OH)'
+          IF ( IDTCH3Br  .gt. 0 ) WRITE(6,*) 'CH3Br (from GMI OH)'
+       ENDIF
 
        ! Allocate array to hold monthly mean OH mixing ratio
        ALLOCATE( STRAT_OH( IIPAR, JJPAR, LLPAR ), STAT=AS )
@@ -1265,16 +1323,22 @@ CONTAINS
        !===========!
     ELSE IF ( ITS_A_TAGOX_SIM() ) THEN
        IF ( LLINOZ ) THEN
-          WRITE(6,*) 'Linoz ozone performed on: '
+          IF ( am_I_Root ) THEN
+             WRITE(6,*) 'Linoz ozone performed on: '
+          ENDIF
        ELSE          
-          WRITE(6,*) 'Synoz ozone performed on: '
+          IF ( am_I_Root ) THEN
+             WRITE(6,*) 'Synoz ozone performed on: '
+          ENDIF
        ENDIF
        DO N = 1, N_TRACERS
           IF ( TRIM(TRACER_NAME(N)) .eq. 'Ox' .or. &
                TRIM(TRACER_NAME(N)) .eq. 'OxStrt' ) THEN
              NSCHEM = NSCHEM + 1
              Strat_TrID_GC(NSCHEM) = N
-             WRITE(6,*) TRIM(TRACER_NAME(N))
+             IF ( am_I_Root ) THEN
+                WRITE(6,*) TRIM(TRACER_NAME(N))
+             ENDIF
           ENDIF
        ENDDO
     ENDIF
@@ -1383,7 +1447,7 @@ CONTAINS
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE Do_Synoz      
+  SUBROUTINE Do_Synoz( am_I_Root )   
 !
 ! !USES:
 !
@@ -1402,6 +1466,10 @@ CONTAINS
 
     IMPLICIT NONE
 #include "define.h"
+!
+! !INPUT PARAMETERS:
+!
+    LOGICAL, INTENT(IN) :: am_I_Root   ! Is this the root CPU?
 !
 ! !REMARKS:
 !  Reference:
@@ -1724,9 +1792,10 @@ CONTAINS
     ! Print amount of stratospheric O3 coming down
     !=================================================================
     IF ( FIRST ) THEN
-       WRITE( 6, 20 ) SUM( STFLUX )
-20     FORMAT( '     - Do_Synoz: Strat O3 production is', f9.3, &
-            ' [Tg/yr]')
+       IF ( am_I_Root ) THEN
+          WRITE( 6, 20 ) SUM( STFLUX )
+       ENDIF
+20     FORMAT( '     - Do_Synoz: Strat O3 production is', f9.3, ' [Tg/yr]' )
        FIRST = .FALSE.
     ENDIF
 

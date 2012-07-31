@@ -95,18 +95,23 @@
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE DO_LINOZ   
+      SUBROUTINE DO_LINOZ( am_I_Root ) 
 !
 ! !USES:
 !
       USE TIME_MOD
-
       USE CMN_SIZE_MOD
+!
+! !INPUT PARAMETERS:
+!
+      LOGICAL, INTENT(IN) :: am_I_Root   ! Is this the root CPU?
 !
 ! !REVISION HISTORY: 
 !  24 Jun 2003 - B. Field & D. Jones - Further updates for GEOS-Chem
 !  10 Jun 2012 - L. Murray - Move call to DO_LINOZ from transport code to 
 !                chemistry code, so the use of DT_TS_CHEM is now correct.
+!  30 Jul 2012 - R. Yantosca - Now accept am_I_Root as an argument when
+!                              running with the traditional driver main.F
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -119,7 +124,7 @@
 
       ! if new month, get new parameters?
       IF ( GET_MONTH() /= LASTMONTH ) THEN
-         CALL LINOZ_STRATL
+         CALL LINOZ_STRATL( am_I_Root )
          LASTMONTH =  GET_MONTH()
       ENDIF
 
@@ -127,7 +132,7 @@
       NSCHEM = GET_TS_CHEM() * 60D0 
 
       ! Call the Linoz chemistry
-      CALL LINOZ_CHEM3( NSCHEM )
+      CALL LINOZ_CHEM3( NSCHEM, am_I_Root )
 
       END SUBROUTINE DO_LINOZ    
 !EOC
@@ -144,7 +149,7 @@
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE LINOZ_CHEM3( DTCHEM )
+      SUBROUTINE LINOZ_CHEM3( DTCHEM, am_I_Root )
 !
 ! !USES:
 !
@@ -162,7 +167,8 @@
 !
 ! !INPUT PARAMETERS:
 !
-      REAL*8, INTENT(IN) :: DTCHEM    ! Time step [seconds]
+      REAL*8,  INTENT(IN) :: DTCHEM      ! Time step [seconds]
+      LOGICAL, INTENT(IN) :: am_I_Root   ! Is this the root CPU?
 !
 ! !REVISION HISTORY: 
 !  24 Jun 2003 - B. Field & D. Jones - Further updates for GEOS-Chem
@@ -172,6 +178,8 @@
 !  08 Feb 2010 - R. Yantosca         - Deleted obsolete local variables
 !  22 Oct 2010 - R. Yantosca         - Added OMP parallel loop
 !  01 Mar 2012 - R. Yantosca - Now use GET_AREA_CM2(I,J,L) from grid_mod.F90
+!  30 Jul 2012 - R. Yantosca - Now accept am_I_Root as an argument when
+!                              running with the traditional driver main.F
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -231,14 +239,18 @@
            ENDIF
          ELSE
             ! All other simulations don't use O3...print error message
-            WRITE( 6, '(a)' ) 'This simulation does not use O3!!'
-            WRITE( 6, '(a)' ) 'STOP in linoz_chem3.f!'
+            IF ( am_I_Root ) THEN
+               WRITE( 6, '(a)' ) 'This simulation does not use O3!!'
+               WRITE( 6, '(a)' ) 'STOP in linoz_chem3.f!'
+            ENDIF
             STOP
          ENDIF
       ENDIF
-
+      
       ! Echo info
-      WRITE( 6, 100 ) 
+      IF ( am_I_Root ) THEN
+         WRITE( 6, 100 ) 
+      ENDIF
  100  FORMAT('       - LINOZ_CHEM3: Doing LINOZ' )
 
       ! **** note dbj: check STT(I,J,20:LLPAR,NTRACER) = with trop level
@@ -375,7 +387,7 @@
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE LINOZ_STRATL
+      SUBROUTINE LINOZ_STRATL( am_I_Root )
 !
 ! !USES:
 !
@@ -386,9 +398,15 @@
       USE CMN_SIZE_MOD
       USE CMN_MOD
 !
+! !INPUT PARAMETERS:
+!
+      LOGICAL, INTENT(IN) :: am_I_Root   ! Is this the root CPU?
+!
 ! !REVISION HISTORY: 
 !  24 Jun 2003 - B. Field & D. Jones - Further updates for GEOS-Chem
 !  01 Mar 2012 - R. Yantosca - Now use GET_YMID(I,J,L) from grid_mod.F90
+!  30 Jul 2012 - R. Yantosca - Now accept am_I_Root as an argument when
+!                              running with the traditional driver main.F
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -421,12 +439,13 @@ c-----------------------------------------------------------------------
       JM     = JJPAR
 
       ! added call to GET_MONTH (dbj 6/25/03) 
+      IF ( am_I_Root ) THEN
       WRITE(6,*)'#####################################################'
       WRITE(6,*)'#    Interpolating Linoz fields for ',
      &                CMONTH( GET_MONTH() ),
      &                                                 '             #'
       WRITE(6,*)'#####################################################'
-
+      ENDIF
 
 ! ***** Linear interpolation between months is not currently used {PJC} *****
 !c get weights for month interpolation
@@ -778,7 +797,7 @@ c-------- K=1 is at the top of atmosphere ------------------------------
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE LINOZ_READ
+      SUBROUTINE LINOZ_READ( am_I_Root )
 !
 ! !USES:
 !
@@ -786,6 +805,10 @@ c-------- K=1 is at the top of atmosphere ------------------------------
       USE DIRECTORY_MOD, ONLY : DATA_DIR_1x1   ! Data directory path
 
       USE CMN_SIZE_MOD
+!
+! !INPUT PARAMETERS:
+!
+      LOGICAL, INTENT(IN) :: am_I_Root         ! Is this the root CPU?
 !
 ! !REMARKS:
 !  LINOZ_READ is called from "main.f" at the start of the simulation.
@@ -818,7 +841,9 @@ c-------- K=1 is at the top of atmosphere ------------------------------
      &           'Linoz_200910/Linoz_March2007.dat'
 
       ! Echo info
-      WRITE( 6, 100 ) TRIM( FILENAME )
+      IF ( am_I_Root ) THEN
+         WRITE( 6, 100 ) TRIM( FILENAME )
+      ENDIF
  100  FORMAT( '     - LINOZ_READ: Reading ', a )
 
       ! new std z*=2km levels from model:  z*=10,12,...(25*2)+8 km
@@ -835,7 +860,9 @@ c-------- K=1 is at the top of atmosphere ------------------------------
 
       ! Reade header
       READ ( IU_FILE, 901 ) HEADING
-      WRITE(6,*)            TRIM( HEADING )
+      IF ( am_I_Root ) THEN
+         WRITE(6,*) TRIM( HEADING )
+      ENDIF
 
       ! Loop thru file
       DO NTBLS = 1,nfields_linoz
@@ -855,16 +882,20 @@ c-------- K=1 is at the top of atmosphere ------------------------------
          write (6,912) TITL1,TMIN,TMAX
       enddo
 
-      WRITE(6,*)'$$ Finished Reading Linoz Data $$'
-      WRITE(6,*)
+      IF ( am_I_Root ) THEN
+         WRITE( 6, '(a)' ) '$$ Finished Reading Linoz Data $$'
+         WRITE( 6, '(a)' )
+      ENDIF
 
       GOTO 999
 
       ! If error has occurred
  101  CONTINUE
+      IF ( am_I_Root ) THEN
       WRITE(6,*)'**** STOP: Error reading Linoz Coefficients {PJC} ****'
       write(6,*)'NTBLS =',ntbls,',  M =',m,',  J =',j,',  K =',k
       write(6,*)'TPARM(K,J,M,NTBLS) =',TPARM(K,J,M,NTBLS)
+      ENDIF
       STOP
 
       ! Format strings
@@ -961,7 +992,7 @@ c907  FORMAT(20X,6E10.3/(8E10.3))
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE STRAT_INIT
+      SUBROUTINE STRAT_INIT( am_I_Root )
 !
 ! !USES:
 !
@@ -971,8 +1002,15 @@ c907  FORMAT(20X,6E10.3/(8E10.3))
       USE CMN_SIZE_MOD
       USE CMN_MOD
 !
+! !INPUT PARAMETERS:
+!
+      LOGICAL, INTENT(IN) :: am_I_Root   ! Is this the root CPU?
+!
 ! !REVISION HISTORY: 
 !  24 Jun 2003 - B. Field & D. Jones - Further updates for GEOS-Chem
+!  30 Jul 2012 - R. Yantosca - Now accept am_I_Root as an argument when
+!                              running with the traditional driver main.F
+!  31 Jul 2012 - R. Yantosca - Now loop over 1..LLPAR for GIGC compatibility
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -981,11 +1019,15 @@ c907  FORMAT(20X,6E10.3/(8E10.3))
 !
       INTEGER I, J, L
 
-      CALL LINOZ_STRATL
+      CALL LINOZ_STRATL( am_I_Root )
 
       DO J = 1,JJPAR
       DO I = 1,IIPAR
-      DO L = MINVAL(LPAUSE),LLPAR
+!------------------------------------------
+! Prior to 7/31/12:
+!      DO L = MINVAL(LPAUSE),LLPAR
+!------------------------------------------
+      DO L = 1, LLPAR
          IF (L .LT. LPAUSE(I,J)) CYCLE
          STT(I,J,L,IDTOX) = TLSTT(J,L,1) / TCVV(IDTOX)
       ENDDO

@@ -1390,9 +1390,9 @@
 !------------------------------------------------------------------------------
 
 #if defined( DEVEL )
-      SUBROUTINE SETTRACE(GC_STATE)
+      SUBROUTINE SETTRACE( GC_STATE, am_I_Root )
 #else
-      SUBROUTINE SETTRACE
+      SUBROUTINE SETTRACE( am_I_Root )
 #endif
 !
 !******************************************************************************
@@ -1419,6 +1419,8 @@
 !        (ccc, 01/29/10)
 !  (8 ) Add IDs for Henze's aromatics (hotp, 01/10)
 !  (9 ) Add debug print. (hotp, 01/10)
+!  30 Jul 2012 - R. Yantosca - Now accept am_I_Root as an argument when
+!                              running with the traditional driver main.F
 !******************************************************************************
 !
       ! References to F90 modules
@@ -1437,7 +1439,10 @@
 
       TYPE(CHEMSTATE), INTENT(INOUT) :: GC_STATE
 #endif
-      
+
+      ! Arguments
+      LOGICAL, INTENT(IN) :: am_I_Root
+
       ! Local variabales
       INTEGER             :: I, J, T, C, STAT
  
@@ -1542,7 +1547,9 @@
          IF (STAT .lt. 0) THEN
             CALL ERROR_STOP('FAIL','REGISTER_CSPEC')
          ELSE
-            WRITE(6,*) 'Registered ', NAMEGAS(I), STAT
+            IF ( am_I_Root ) THEN
+               WRITE(6,*) 'Registered ', NAMEGAS(I), STAT ELSE
+            ENDIF
          ENDIF
 #endif
       ENDDO
@@ -1614,7 +1621,7 @@
             ENDDO
 
             ! Print when Debug output selected (hotp 8/5/09)
-            IF ( LPRT ) THEN
+            IF ( LPRT .and. am_I_Root ) THEN
                PRINT*, '###--------------------'
                PRINT*, '### T, C       : ', T, C
                PRINT*, '### NAME       : ', TRACER_NAME(T)

@@ -1,36 +1,21 @@
-! $Id: JRATET.f,v 1.1 2009/09/16 14:06:48 bmy Exp $
+!------------------------------------------------------------------------------
+!          Harvard University Atmospheric Chemistry Modeling Group            !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !ROUTINE: jratet
+!
+! !DESCRIPTION: Subroutine JRATET calculates and prints J-values. Note that 
+!  the loop in this routine only covers the jpnl levels actually needed by 
+!  the CTM.
+!\\
+!\\
+! !INTERFACE:
+!
       SUBROUTINE JRATET( T, IDAY )
-!-----------------------------------------------------------------------
-c  Calculate and print J-values. Note that the loop in this routine 
-c  only covers the jpnl levels actually needed by the CTM.
-!-----------------------------------------------------------------------
-!  Add the following input variables for CTM interface (bmy, 9/7/99)
 !
-!  Variable  Type    Dimensn Units   Description
-!  --------  ----    ------- -----   -----------
-!  T         dble     [LPAR]  [K]    Vertical temperature profile
-!  IDAY      int        -      -     Day of Year (0-365 or 0-366)
-!-----------------------------------------------------------------------
+! !USES:
 !
-!     FFF    Actinic flux at each level for each wavelength bin
-!     QQQ    Cross sections for species (read in in RD_TJPL)
-!     SOLF   Solar distance factor, for scaling; normally given by:
-!                      1.0-(0.034*cos(real(iday-172)*2.0*pi/365.))
-!     TQQ    Temperatures at which QQQ cross sections supplied
-!
-!  NOTES
-!  (1 ) Added a pressure-dependancy function selector 'pdepf' 
-!        in 'jv_spec.dat'. (tmf, 1/7/09)
-!  (2 ) Added pressure dependency for MGLY. (tmf, 1/7/09)
-!  (3 ) Updated pressure dependency algorithm for ACET. (tmf, 1/7/09)
-!  (4 ) Added pressure dependancy for MeCOVi, EtCOMe, MeCOCHO. Rewritten 
-!        pressure dependancy for Acetone according to FAST-JX v6.4.
-!        See more detailed documentation for Acetone in fjx_acet_mod.f.
-!        (ccc, 4/20/09)
-!  25 Aug 2011 - R. Yantosca - Rewrite IF statement to prevent PF from
-!                              never being initialized.
-!-----------------------------------------------------------------------
-
       USE FJX_ACET_MOD
 
 #if defined( DEVEL )
@@ -42,17 +27,42 @@ c  only covers the jpnl levels actually needed by the CTM.
       USE JV_CMN_MOD
 
       IMPLICIT NONE
-
-!=============== INPUT PARAMETERS ======================================
+!
+! !INPUT PARAMETERS: 
+!
 #if defined( DEVEL )
-      REAL*8,  INTENT(IN) :: T(LLPAR)
+      REAL*8,  INTENT(IN) :: T(LLPAR)   ! Temperature [K]
 #else
-      REAL*8,  INTENT(IN) :: T(LPAR)
+      REAL*8,  INTENT(IN) :: T(LPAR)    ! Temperature [K]
 #endif
-      INTEGER, INTENT(IN) :: IDAY
-
-!=============== LOCAL VARIABLES =======================================
-
+      INTEGER, INTENT(IN) :: IDAY       ! Day of year (0-365 or 0-366)
+!
+! !REMARKS:
+!  FFF    Actinic flux at each level for each wavelength bin
+!  QQQ    Cross sections for species (read in in RD_TJPL)
+!  SOLF   Solar distance factor, for scaling; normally given by:
+!                   1.0-(0.034*cos(real(iday-172)*2.0*pi/365.))
+!  TQQ    Temperatures at which QQQ cross sections supplied
+!
+! !REVISION HISTORY: 
+!         1997 - O. Wild     - Initial version
+!  (1 ) Added a pressure-dependancy function selector 'pdepf' 
+!        in 'jv_spec.dat'. (tmf, 1/7/09)
+!  (2 ) Added pressure dependency for MGLY. (tmf, 1/7/09)
+!  (3 ) Updated pressure dependency algorithm for ACET. (tmf, 1/7/09)
+!  (4 ) Added pressure dependancy for MeCOVi, EtCOMe, MeCOCHO. Rewritten 
+!        pressure dependancy for Acetone according to FAST-JX v6.4.
+!        See more detailed documentation for Acetone in fjx_acet_mod.f.
+!        (ccc, 4/20/09)
+!  25 Aug 2011 - R. Yantosca - Rewrite IF statement to prevent PF from
+!                              never being initialized.
+!  31 Jul 2012 - R. Yantosca - Added ProTeX headers
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+!
+! !LOCAL VARIABLES:
+!
 !     Add Pressure dependancy function selector PF. (tmf, 1/7/09) 
       integer i, j, k, l, PF
       real*8 qptemp
@@ -205,4 +215,5 @@ c  only covers the jpnl levels actually needed by the CTM.
 cc       write(6,'(I5,1P,7E10.3/(5X,7E10.3))') I, (VALJ(J), J=1,NJVAL)
       enddo
       return
-      end
+      END SUBROUTINE JRATET
+!EOC

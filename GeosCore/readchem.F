@@ -1,5 +1,5 @@
 ! $Id: readchem.f,v 1.2 2010/03/15 19:33:21 ccarouge Exp $
-      SUBROUTINE READCHEM(am_I_Root)
+      SUBROUTINE READCHEM( am_I_Root )
 !
 !******************************************************************************
 !  Subroutine READCHEM reads species 2names, chemical rxns, and photolysis 
@@ -39,6 +39,8 @@
 !  13 Jun 2011 - R. Yantosca - Bug fix: prevent out-of-bounds errors in MAPPL
 !                              array.  Test species flags to make sure they
 !                              are nonzero before using them.
+!  30 Jul 2012 - R. Yantosca - Now accept am_I_Root as an argument even when
+!                              called from the traditional driver "main.F"
 !******************************************************************************
 !
       ! References to F90 modules
@@ -54,11 +56,11 @@
       USE LOGICAL_MOD, ONLY : LPRT
 
 #     include "define.h"
-      USE CMN_SIZE_MOD  ! Size parameters
-      USE COMODE_LOOP_MOD  ! SMVGEAR II arrays
+      USE CMN_SIZE_MOD                         ! Size parameters
+      USE COMODE_LOOP_MOD                      ! SMVGEAR II arrays
 
       IMPLICIT NONE
-      LOGICAL, INTENT(IN) :: am_I_Root
+      LOGICAL, INTENT(IN) :: am_I_Root         ! Is this the root CPU?
 
 !
 ! *********************************************************************
@@ -198,8 +200,8 @@
        DEFPRAT(I,:)        = 0.d0
  49   CONTINUE
 !
-      PRINT *,"READCHEM: KGLC=",KGLC
-      IF(am_I_Root) PRINT *,"READCHEM: IO93=",IO93
+      IF ( am_I_Root ) PRINT *,"READCHEM: KGLC=",KGLC
+      IF ( am_I_Root ) PRINT *,"READCHEM: IO93=",IO93
       READ(KGLC,21)  HEADING 
       !WRITE(6,21) HEADING 
  13   READ(KGLC,21)  HEADING 
@@ -230,8 +232,8 @@
           MBTRACE(I) = NM 
           GOTO 36 
          ENDIF 
- 34     CONTINUE 
-        WRITE(6,33) RINP(I) 
+ 34     CONTINUE
+        IF ( am_I_Root ) WRITE(6,33) RINP(I) 
         CALL GEOS_CHEM_STOP
        ENDIF 
 !
@@ -336,7 +338,7 @@
         ENDIF
  41    CONTINUE
       ELSE
-       WRITE(6,19) XINP(2), XINP(1)
+       IF ( am_I_Root ) WRITE(6,19) XINP(2), XINP(1)
        CALL GEOS_CHEM_STOP
       ENDIF
 !
@@ -370,11 +372,7 @@
       IF ( LFAMILY ) THEN
 
          ! Find species and rxns for ND65 diagnostic families
-#if defined( DEVEL )
          CALL SETJFAM( NACTIVE, NINAC, am_I_Root )
-#else
-         CALL SETJFAM( NACTIVE, NINAC )
-#endif
 
          ! Reset quantities after SETJFAM 
          NSPEC(NCS)  = NACTIVE - 1
@@ -384,7 +382,7 @@
       ENDIF
 !
       IF (NTSPECGAS.GT.IGAS   .OR.  NSDEAD.GT. NMDEAD) THEN
-        WRITE(6,18) IGAS,   NTSPECGAS,  NMDEAD,   NSDEAD   
+        IF ( am_I_Root ) WRITE(6,18) IGAS, NTSPECGAS, NMDEAD, NSDEAD   
         CALL GEOS_CHEM_STOP
       ENDIF
 !
@@ -413,34 +411,32 @@
 ! * PRINT SPECIES INFORMATION IF IOSPEC = 1 + PRINT MASS BALANCE INFO * 
 ! *********************************************************************
 !
-      IF(am_I_Root) THEN
+      IF ( am_I_Root ) THEN
+         IF (IOSPEC.EQ.1) THEN 
 
-      IF (IOSPEC.EQ.1) THEN 
-
-       ! Write species header
-       WRITE( IO93, '(/,a)' ) REPEAT( '=', 79 )
-       WRITE( IO93, 23      )
-       WRITE( IO93, '(a,/)' ) REPEAT( '=', 79 )
-       WRITE( IO93, 22      )
-
-       ! Write species to "smv2.log"
-       DO N = 1, NGAS
-          WRITE(IO93,24) N, NAMEGAS(N), WTGAS(  N), QBKGAS(N)
-       END DO
-       IF (NINAC.GT.0)  WRITE(IO93,28)(NAMEGAS(NGAS+N),N=1,NINAC)
-       IF (NSDEAD.GT.0) WRITE(IO93,31)(NAMD(N),N=1,NSDEAD)
-      END IF
+            ! Write species header
+            WRITE( IO93, '(/,a)' ) REPEAT( '=', 79 )
+            WRITE( IO93, 23      )
+            WRITE( IO93, '(a,/)' ) REPEAT( '=', 79 )
+            WRITE( IO93, 22      )
+            
+            ! Write species to "smv2.log"
+            DO N = 1, NGAS
+               WRITE(IO93,24) N, NAMEGAS(N), WTGAS(  N), QBKGAS(N)
+            END DO
+            IF (NINAC.GT.0)  WRITE(IO93,28)(NAMEGAS(NGAS+N),N=1,NINAC)
+            IF (NSDEAD.GT.0) WRITE(IO93,31)(NAMD(N),N=1,NSDEAD)
+         ENDIF
 !
-      PRINT *,' '
-      DO 77 I = 1, NMASBAL
-       IF (MBCOMP(I,MB1).GT.0) THEN 
-        WRITE(6,98) NAMEMB(I) 
-        WRITE(6,99)(WTMB( I,JMBCOMP(I,J,MB1),MB1),
+         PRINT *,' '
+         DO 77 I = 1, NMASBAL
+            IF (MBCOMP(I,MB1).GT.0) THEN 
+               WRITE(6,98) NAMEMB(I) 
+               WRITE(6,99)(WTMB( I,JMBCOMP(I,J,MB1),MB1),
      1              NAMEGAS(JMBCOMP(I,J,MB1)), J = 1, MBCOMP(I,MB1))
-       ENDIF 
- 77   CONTINUE
-
-      END IF
+            ENDIF 
+ 77      CONTINUE
+      ENDIF
 
  19   FORMAT('SPECIES ACTIVITY IS UNDEFINED ',A14,' TYPE = ',A2   )
  23   FORMAT('SPECIES FOR THIS RUN.  PHYSICAL CONSTS AND BOUNDARY', 
@@ -587,15 +583,13 @@
 
 !FP_ISOP - for debug (6/2009)
 
-      IF (LPRT) THEN
-
-      WRITE(*,*) DINP,IORD,ARRT(1),BRRT(1),KCRRT(1),NCOF,SPECL(1),
-     &               FCVT(1),FCT1T(1),FCT2T(1),COMMENT
-
+      IF ( LPRT .and. am_I_Root ) THEN
+         WRITE(*,*) DINP,IORD,ARRT(1),BRRT(1),KCRRT(1),NCOF,SPECL(1),
+     &              FCVT(1),FCT1T(1),FCT2T(1),COMMENT
       ENDIF
 
       IF (NCOF+1.GT.MXCOF) THEN
-       WRITE(6,155) NCOF+1, MXCOF, IORD
+       IF ( am_I_Root ) WRITE(6,155) NCOF+1, MXCOF, IORD
        CALL GEOS_CHEM_STOP
       ENDIF
 !
@@ -721,7 +715,7 @@
        IF (XINP(I).NE.' ') THEN
 !
         IF (I.LE.NMREAC.AND.PINP(I).NE.0.) THEN
-         WRITE(6,450) IORD
+         IF ( am_I_Root ) WRITE(6,450) IORD
          CALL GEOS_CHEM_STOP
         ENDIF
 !
@@ -750,7 +744,7 @@
  390     CONTINUE
         ENDIF
 !
-        WRITE(6,400) IORD, XINP(I)
+        IF ( am_I_Root ) WRITE(6,400) IORD, XINP(I)
         CALL GEOS_CHEM_STOP
 !
  380    DO 410 NCS        = 1, NCSGAS
@@ -775,7 +769,7 @@
         NK                 = NRATCUR(NCS) 
         IF (IRM(1,NK,NCS).EQ.0.OR.(IRM(3,NK,NCS).GT.0.AND.
      1      IRM(2,NK,NCS).EQ.0)) THEN
-         WRITE(6,430) IORD
+         IF ( am_I_Root ) WRITE(6,430) IORD
          CALL GEOS_CHEM_STOP
         ENDIF
        ENDIF
@@ -809,9 +803,11 @@
             IF (XINP(1).EQ.'EMISSION') THEN
                NEMIS(NCS)           = NEMIS(NCS) + 1
                IF (NEMIS(NCS)   .GT. MAXGL3) THEN
-                  WRITE(*,*) 'ERROR NEMIS   Greater then MAXGL3',
-     x                 ' NEMIS(NCS)   = ',NEMIS(NCS), 'MAXGL3 = ',MAXGL3
-                  WRITE( 6, '(a)' ) 'STOP 124'
+                  IF ( am_I_Root ) THEN
+                     WRITE(*,*) 'ERROR NEMIS   Greater then MAXGL3',
+     x                ' NEMIS(NCS)   = ',NEMIS(NCS), 'MAXGL3 = ',MAXGL3
+                     WRITE( 6, '(a)' ) 'STOP 124'
+                  ENDIF
                   CALL GEOS_CHEM_STOP
                ENDIF
                NKEMIS(NEMIS(NCS),NCS)   = NK
@@ -827,7 +823,7 @@
                IF (NDRYDEP(NCS) .GT. MAXDEP) THEN
                   WRITE(*,*) 'ERROR NDRYDEP Greater then MAXDEP',
      x                 ' NDRYDEP(NCS)=',NDRYDEP(NCS),'MAXDEP=',MAXDEP
-                  WRITE( 6, '(a)' ) 'STOP 125'
+                  IF ( am_I_Root ) WRITE( 6, '(a)' ) 'STOP 125'
                   CALL GEOS_CHEM_STOP
                ENDIF
                NKDRY(NDRYDEP(NCS),NCS)   = NK
@@ -866,7 +862,7 @@
      5        (SPECL(1).EQ.'P'.AND.NCOF.NE.1).OR.  
      6        (SPECL(1).EQ.'E'.AND.NCOF.NE.0).OR.
      7        (SPECL(1).EQ.'S'.AND.NCOF.NE.0)) THEN
-            WRITE(6,440) IORD, SPECL(1), NCOF
+            IF ( am_I_Root ) WRITE(6,440) IORD, SPECL(1), NCOF
             CALL GEOS_CHEM_STOP
          ENDIF 
 !
@@ -1048,7 +1044,7 @@
                   NCOATG(NS2)      = JGAS2  
 !
                   IF (JGAS3.NE.0) THEN
-                     WRITE(6,470) NK 
+                     IF ( am_I_Root ) WRITE(6,470) NK 
                      CALL GEOS_CHEM_STOP
                   ENDIF  
                ENDIF 
@@ -1125,12 +1121,12 @@
        DO 502 NCS    = 1, NCSGAS 
 
         ! Write reaction header
-	IF(am_I_Root) THEN
-        WRITE( IO93, '(/,a)' ) REPEAT( '=', 79 )
-        WRITE( IO93, 520     ) TRIM( CHEMTYP(NCS) )
-        WRITE( IO93, '(a,/)' ) REPEAT( '=', 79 )
-        WRITE( IO93, 521     )
-        END IF
+	IF ( am_I_Root ) THEN
+           WRITE( IO93, '(/,a)' ) REPEAT( '=', 79 )
+           WRITE( IO93, 520     ) TRIM( CHEMTYP(NCS) )
+           WRITE( IO93, '(a,/)' ) REPEAT( '=', 79 )
+           WRITE( IO93, 521     )
+        ENDIF
 
         DO 500 NK    = 1, NTRATES(NCS) 
 
@@ -1154,12 +1150,12 @@
  490     CONTINUE
 !
          RINP(5)    = '='
-	 IF(am_I_Root) THEN
-         WRITE(IO93,510) NK,ARR(NK,NCS),BRR(NK,NCS),KCRR(NK,NCS),
-     1                FCV(NK,NCS),XINP(1),'+',XINP(2),
-     2                '+',XINP(3),(RINP(I),PINP(I),XINP(I),
-     3                I = 5,NPRODUC(NK,NCS))
-         END IF
+	 IF ( am_I_Root ) THEN
+            WRITE(IO93,510) NK,ARR(NK,NCS),BRR(NK,NCS),KCRR(NK,NCS),
+     1           FCV(NK,NCS),XINP(1),'+',XINP(2),
+     2           '+',XINP(3),(RINP(I),PINP(I),XINP(I),
+     3           I = 5,NPRODUC(NK,NCS))
+         ENDIF
  500    CONTINUE 
  502   CONTINUE 
       ENDIF
@@ -1177,11 +1173,14 @@
      4     NMN2(NCS)    .GT. MAXGL2   .OR. NPRESM(NCS).GT. MAXGL2  .OR.
      5     NSURFACE(NCS).GT. MAXGL4   .OR. NM3BOD(NCS).GT. MAXGL3) THEN
 !
-        WRITE(6,680)
-     1  NMTRATE,NTRATES(NCS), IPHOT  , NPHOTALL,     IGAS  ,NTSPECGAS,
-     2  NMDEAD ,NSDEAD,       NMRPROD, NPRODHI,
-     3  MAXGL3 ,NMAIR(NCS),   MAXGL3 , NMO2(NCS),    MAXGL2,NMN2(NCS),
-     4  MAXGL2 ,NPRESM(NCS),  MAXGL4 , NSURFACE(NCS),MAXGL3,NM3BOD(NCS)  
+        IF ( am_I_Root ) THEN
+           WRITE(6,680)
+     &          NMTRATE,NTRATES(NCS), IPHOT  , NPHOTALL,     IGAS,
+     &          NTSPECGAS,NMDEAD ,NSDEAD,       NMRPROD, NPRODHI,
+     &          MAXGL3 ,NMAIR(NCS),   MAXGL3 , NMO2(NCS),    
+     &          MAXGL2,NMN2(NCS), MAXGL2 ,NPRESM(NCS),  MAXGL4 , 
+     &          NSURFACE(NCS),MAXGL3,NM3BOD(NCS)  
+        ENDIF
         CALL GEOS_CHEM_STOP
        ENDIF
  670  CONTINUE 
@@ -1229,23 +1228,22 @@
 !            have no wet aerosols
 !
 #if defined( DEVEL )
-        I = findFreeLUN()
+      I = findFreeLUN()
 #endif
-	OPEN(I,FILE='chemga.dat___.rc',FORM='FORMATTED',STATUS='OLD')
-	READ(I,*)
-	READ(I,610) ASTKCF
-	READ(I,*)
-        READ(I,610)
-	READ(I,*)
-	READ(I,620) MWARSL
-	READ(I,610) RUARSL
-	READ(I,630) RH100
-	READ(I,620) IARSFA
-	CLOSE(I)
- 610	FORMAT(E10.3)
+      OPEN(I,FILE='chemga.dat___.rc',FORM='FORMATTED',STATUS='OLD')
+      READ(I,*)
+      READ(I,610) ASTKCF
+      READ(I,*)
+      READ(I,610)
+      READ(I,*)
+      READ(I,620) MWARSL
+      READ(I,610) RUARSL
+      READ(I,630) RH100
+      READ(I,620) IARSFA
+      CLOSE(I)
+ 610  FORMAT(E10.3)
  620  FORMAT(I10)
  630  FORMAT(F10.2)
-
 !
 ! *********************************************************************
 ! ***** CALL JSPARSE TO SET ARRAYS FOR SOLVING CHEMICAL EQUATIONS ***** 
@@ -1253,11 +1251,7 @@
 !
       ! Call SETPL to setup ND65 prod/loss diagnostic
       ! SETPL must be called before JSPARSE (ljm, bmy, 5/9/03)
-#if defined( DEVEL )
-      IF ( LFAMILY ) CALL SETPL(am_I_Root)
-#else
-      IF ( LFAMILY ) CALL SETPL
-#endif
+      IF ( LFAMILY ) CALL SETPL( am_I_Root )
 
       ! IFSOLVE = 1 means we are calling the chemistry solver
       IF ( IFSOLVE .EQ. 1 ) THEN
@@ -1266,7 +1260,7 @@
          DO NCS = 1, NCSGAS
 
             ! Set up sparse matrix stuff
-            CALL JSPARSE(am_I_Root)
+            CALL JSPARSE( am_I_Root )
 
             !===========================================================
             ! Determine which species are ND65 families and which are 

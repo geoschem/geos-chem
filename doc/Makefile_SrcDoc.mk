@@ -60,6 +60,7 @@
 #  15 May 2012 - R. Yantosca - Added tpcore_bc_mod.F
 #  22 May 2012 - M. Payer    - Add bromocarb_mod.F, cldice_HBrHOBr_rxn.F,
 #                              and ssa_bromine_mod.F
+#  31 Jul 2012 - R. Yantosca - Added FAST-J routines etc.
 #EOP
 #------------------------------------------------------------------------------
 #BOC
@@ -178,11 +179,17 @@ $(CORE)/diagoh.F                     \
 $(CORE)/emfossil.F                   \
 $(CORE)/emf_scale.F                  \
 $(CORE)/fast_j.F                     \
-$(CORE)/photoj.F                     \
-$(CORE)/set_prof.F                   \
+$(CORE)/JRATET.F                     \
+$(CORE)/JVALUE.F                     \
 $(CORE)/initialize.F                 \
 $(CORE)/ndxx_setup.F                 \
 $(CORE)/ohsave.F                     \
+$(CORE)/OPMIE.F                      \
+$(CORE)/photoj.F                     \
+$(CORE)/RD_AOD.F                     \
+$(CORE)/RD_TJPL.F                    \
+$(CORE)/set_prof.F                   \
+$(CORE)/SPHERE.F                     \
 $(CORE)/rdsoil.F                     \
 $(CORE)/read_jv_atms_dat.F90         \
 $(CORE)/ruralbox.F                   \

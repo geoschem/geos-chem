@@ -124,6 +124,8 @@
 !  08 Feb 2012 - R. Yantosca - Add modifications for GEOS-5.7.x met data
 !  28 Feb 2012 - R. Yantosca - Removed support for GEOS-3
 !  01 Mar 2012 - R. Yantosca - Now reference new grid_mod.F90
+!  30 Jul 2012 - R. Yantosca - READ_INPUT_FILE now accepts am_I_Root from
+!                              both the ESMF interface and main.F
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -160,25 +162,17 @@
 !\\
 ! !INTERFACE:
 !
-#if defined( DEVEL )
       SUBROUTINE READ_INPUT_FILE(am_I_Root)
-#else
-      SUBROUTINE READ_INPUT_FILE
-#endif
 !
 ! !USES:
 !
       USE CHARPAK_MOD, ONLY : STRREPL
       USE FILE_MOD,    ONLY : IU_GEOS, IOERROR
       USE GAMAP_MOD,   ONLY : DO_GAMAP
-
+!
 ! !INPUT VARIABLES
-
-#if defined( DEVEL )
-      LOGICAL, INTENT(IN) :: am_I_Root
-#else
-      LOGICAL             :: am_I_Root = .true.
-#endif
+!
+      LOGICAL, INTENT(IN) :: am_I_Root   ! Is this the root CPU?
 ! 
 ! !REVISION HISTORY: 
 !  20 Jul 2004 - R. Yantosca - Initial version
@@ -187,6 +181,8 @@
 !  (2 ) Now call NDXX_setup from this routine (phs, 11/18/08)
 !  (3 ) Now call READ_ND51b_MENU (amv, bmy, 12/18/09)
 !  27 Aug 2010 - R. Yantosca - Added ProTeX headers
+!  30 Jul 2012 - R. Yantosca - Now accept am_I_Root from main.F, so that we
+!                              can get rid of duplicate code in DEVEL blocks
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -1284,7 +1280,7 @@
 
 ! !INPUT VARIABLES:
 
-      LOGICAL, INTENT(IN) :: am_I_Root
+      LOGICAL, INTENT(IN) :: am_I_Root   ! Is this the root CPU?
 
 ! 
 ! !REVISION HISTORY: 
@@ -1590,7 +1586,7 @@
 
 ! !INPUT VARIABLES:
 
-      LOGICAL, INTENT(IN) :: am_I_Root
+      LOGICAL, INTENT(IN) :: am_I_Root   ! Is this the root CPU?
 ! 
 ! !REVISION HISTORY: 
 !  20 Jul 2004 - R. Yantosca - Initial version
@@ -2316,7 +2312,7 @@
 
 ! !INPUT VARIABLES:
 
-      LOGICAL, INTENT(IN) :: am_I_Root
+      LOGICAL, INTENT(IN) :: am_I_Root   ! Is this the root CPU?
 
 ! 
 ! !REVISION HISTORY: 
@@ -2604,7 +2600,7 @@
 
 ! !INPUT VARIABLES:
 
-      LOGICAL, INTENT(IN) :: am_I_Root
+      LOGICAL, INTENT(IN) :: am_I_Root   ! Is this the root CPU?
 
 ! 
 ! !REVISION HISTORY: 
@@ -2703,7 +2699,7 @@
 
 ! !INPUT VARIABLES:
 
-      LOGICAL, INTENT(IN) :: am_I_Root
+      LOGICAL, INTENT(IN) :: am_I_Root   ! Is this the root CPU?
 
 ! 
 ! !REVISION HISTORY: 
@@ -2810,7 +2806,7 @@
 #endif
 
 ! !INPUT VARIABLES:
-      LOGICAL, INTENT(IN) :: am_I_Root
+      LOGICAL, INTENT(IN) :: am_I_Root   ! Is this the root CPU?
 
 ! 
 ! !REVISION HISTORY: 
@@ -2952,7 +2948,7 @@
 
 ! !INPUT VARIABLES:
 
-      LOGICAL, INTENT(IN) :: am_I_Root
+      LOGICAL, INTENT(IN) :: am_I_Root   ! Is this the root CPU?
 
 ! 
 ! !REVISION HISTORY: 
@@ -3066,7 +3062,7 @@
 
 ! !INPUT VARIABLES:
 
-      LOGICAL, INTENT(IN) :: am_I_Root
+      LOGICAL, INTENT(IN) :: am_I_Root   ! Is this the root CPU?
 
 ! 
 ! !REVISION HISTORY: 
@@ -3198,7 +3194,7 @@
 
 ! !INPUT VARIABLES:
 
-      LOGICAL, INTENT(IN) :: am_I_Root
+      LOGICAL, INTENT(IN) :: am_I_Root   ! Is this the root CPU?
 
 ! 
 ! !REVISION HISTORY: 
@@ -3267,7 +3263,7 @@
 
 ! !INPUT VARIABLES:
 
-      LOGICAL, INTENT(IN) :: am_I_Root
+      LOGICAL, INTENT(IN) :: am_I_Root   ! Is this the root CPU?
 
 ! 
 ! !REVISION HISTORY: 
@@ -3365,7 +3361,7 @@
 
 ! !INPUT VARIABLES:
 
-      LOGICAL, INTENT(IN) :: am_I_Root
+      LOGICAL, INTENT(IN) :: am_I_Root   ! Is this the root CPU?
 
 !
 ! !REVISION HISTORY: 
@@ -4095,7 +4091,7 @@
 
 ! !INPUT VARIABLES:
 
-      LOGICAL, INTENT(IN) :: am_I_Root
+      LOGICAL, INTENT(IN) :: am_I_Root   ! Is this the root CPU?
 
 ! 
 ! !REVISION HISTORY: 
@@ -4190,7 +4186,7 @@
 
 ! !INPUT VARIABLES:
 
-      LOGICAL, INTENT(IN) :: am_I_Root
+      LOGICAL, INTENT(IN) :: am_I_Root   ! Is this the root CPU?
 
 ! 
 ! !REVISION HISTORY: 
@@ -4311,7 +4307,7 @@
 
 ! !INPUT VARIABLES:
 
-      LOGICAL, INTENT(IN) :: am_I_Root
+      LOGICAL, INTENT(IN) :: am_I_Root   ! Is this the root CPU?
 
 ! 
 ! !REVISION HISTORY: 
@@ -4436,7 +4432,7 @@
 
 ! !INPUT VARIABLES:
 
-      LOGICAL, INTENT(IN) :: am_I_Root
+      LOGICAL, INTENT(IN) :: am_I_Root   ! Is this the root CPU?
 
 ! 
 ! !REVISION HISTORY: 
@@ -4569,7 +4565,7 @@
 
 ! !INPUT VARIABLES:
 
-      LOGICAL, INTENT(IN) :: am_I_Root
+      LOGICAL, INTENT(IN) :: am_I_Root   ! Is this the root CPU?
 
 ! 
 ! !REVISION HISTORY: 
@@ -4716,7 +4712,7 @@
 
 ! !INPUT VARIABLES:
 
-      LOGICAL, INTENT(IN) :: am_I_Root
+      LOGICAL, INTENT(IN) :: am_I_Root   ! Is this the root CPU?
 
 ! 
 ! !REVISION HISTORY: 
@@ -4858,7 +4854,7 @@
 
 ! !INPUT VARIABLES:
 
-      LOGICAL, INTENT(IN) :: am_I_Root
+      LOGICAL, INTENT(IN) :: am_I_Root   ! Is this the root CPU?
 
 ! 
 ! !REVISION HISTORY:
@@ -4983,7 +4979,7 @@
 
 ! !INPUT VARIABLES:
 
-      LOGICAL, INTENT(IN) :: am_I_Root
+      LOGICAL, INTENT(IN) :: am_I_Root   ! Is this the root CPU?
 
 ! 
 ! !REVISION HISTORY: 
@@ -5206,7 +5202,7 @@
 
 ! !INPUT VARIABLES:
 
-      LOGICAL, INTENT(IN) :: am_I_Root
+      LOGICAL, INTENT(IN) :: am_I_Root   ! Is this the root CPU?
 
 ! 
 ! !REVISION HISTORY: 
@@ -5317,7 +5313,7 @@
 
 ! !INPUT VARIABLES:
 
-      LOGICAL, INTENT(IN) :: am_I_Root
+      LOGICAL, INTENT(IN) :: am_I_Root   ! Is this the root CPU?
 
 ! 
 ! !REVISION HISTORY: 
@@ -5456,7 +5452,7 @@
 
 ! !INPUT VARIABLES:
 
-      LOGICAL, INTENT(IN) :: am_I_Root
+      LOGICAL, INTENT(IN) :: am_I_Root   ! Is this the root CPU?
 
 ! 
 ! !REVISION HISTORY: 
@@ -5530,7 +5526,7 @@
 
 ! !INPUT VARIABLES:
 
-      LOGICAL, INTENT(IN) :: am_I_Root
+      LOGICAL, INTENT(IN) :: am_I_Root   ! Is this the root CPU?
 
 ! 
 ! !REVISION HISTORY: 
@@ -5591,7 +5587,7 @@
 
 ! !INPUT VARIABLES:
 
-      LOGICAL, INTENT(IN) :: am_I_Root
+      LOGICAL, INTENT(IN) :: am_I_Root   ! Is this the root CPU?
 
 ! 
 ! !REVISION HISTORY: 
@@ -5659,7 +5655,7 @@
 
 ! !INPUT VARIABLES:
 
-      LOGICAL, INTENT(IN) :: am_I_Root
+      LOGICAL, INTENT(IN) :: am_I_Root   ! Is this the root CPU?
 
 ! 
 ! !REVISION HISTORY: 
@@ -5792,7 +5788,7 @@
 
 ! !INPUT VARIABLES:
 
-      LOGICAL, INTENT(IN) :: am_I_Root
+      LOGICAL, INTENT(IN) :: am_I_Root   ! Is this the root CPU?
 
 ! 
 ! !REVISION HISTORY: 
@@ -5951,7 +5947,7 @@
 ! !INPUT VARIABLES:
 
 #if defined( DEVEL )
-      LOGICAL, INTENT(IN) :: am_I_Root
+      LOGICAL, INTENT(IN) :: am_I_Root   ! Is this the root CPU?
 #endif
 
 ! !REVISION HISTORY: 
@@ -6277,11 +6273,10 @@
       USE TIME_MOD,    ONLY : SET_TIMESTEPS
       USE ERROR_MOD,   ONLY : GEOS_CHEM_STOP
       USE TRACER_MOD,  ONLY : ITS_A_CH4_SIM
-
+!
 ! !INPUT VARIABLES:
-
-      LOGICAL, INTENT(IN) :: am_I_Root
-
+!
+      LOGICAL, INTENT(IN) :: am_I_Root   ! Is this the root CPU?
 ! 
 ! !REVISION HISTORY: 
 !  20 Jul 2004 - R. Yantosca - Initial version

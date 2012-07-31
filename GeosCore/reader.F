@@ -86,7 +86,7 @@
 !    2        2       2      SOLVE U/T/S CHEMISTRY EVERYWHERE   
 !
       LOGICAL, INTENT(IN) :: FIRSTCHEM
-      LOGICAL, INTENT(IN) :: am_I_Root
+      LOGICAL, INTENT(IN) :: am_I_Root   ! Is this the root CPU?
       INTEGER             :: K,       M2,      M1,       MLOOP,   KLOOP 
       INTEGER             :: JLOOP,   IAVBLOK, IAVGSIZE, IREMAIN, JADD
       INTEGER             :: IFCHEM,  I,       NALLREAC, NMPROD,  I1
@@ -184,8 +184,9 @@
       READ( IU_FILE, CLGEAR )
       CLOSE( UNIT=IU_FILE )
 
-      IF(am_I_Root) 
-     C     PRINT *,"GEOSCHEM::READER: Successfully read mglob.dat___.rc"
+      IF ( am_I_Root ) THEN 
+         PRINT *,"GEOSCHEM::READER: Successfully read mglob.dat___.rc"
+      ENDIF
 
       ! NOTE: Redefine CHEMINTV [s] to the value in "input.geos" so 
       ! that we don't have a discrepancy with the value in "mglob.dat" 
@@ -262,7 +263,7 @@
 ! *                    PRINT INFORMATION FROM m.dat                   *
 ! *********************************************************************
 !
-       IF (IPREADER.EQ. 1 .AND. FIRSTCHEM) THEN
+       IF (IPREADER.EQ. 1 .AND. FIRSTCHEM .and. am_I_Root ) THEN
          WRITE( IO93, '(a)'   ) REPEAT( '=', 79 )
          WRITE( IO93, '(a,/)' ) 'SMV2.LOG -- SMVGEAR II information' 
          WRITE( IO93, '(a)'   ) 'Switches in mglob.dat___.rc'
@@ -341,7 +342,9 @@
 ! *********************************************************************
 !
       IF (NLAT.GT.ILAT.OR.NLONG.GT.ILONG.OR.NVERT.GT.IVERT) THEN
-       WRITE(6,*)'READER: NLAT, NLONG, OR NVERT TOO BIG'
+       IF ( am_I_Root ) THEN
+          WRITE(6,*)'READER: NLAT, NLONG, OR NVERT TOO BIG'
+       ENDIF
        CALL GEOS_CHEM_STOP
       END IF
 !
@@ -446,7 +449,7 @@
         IFCHEM               = 0
         IFSOLVE              = 0
        ELSE 
-        WRITE(6,265)  
+        IF ( am_I_Root ) WRITE(6,265)  
         CALL GEOS_CHEM_STOP
        ENDIF 
       ENDIF 
@@ -558,9 +561,11 @@
        ABLO           = LOG10(ABTOL(6,NCS))
 !
        IF (ABHI.LT.ABLO) THEN
-        WRITE(6,*)'READER: ABHI < ABLO - INCREASE UPPER BOUND OF', 
-     1            'ABSOLUTE ERROR TOLERANCE FOR NCS = ',NCS, 
-     2             ABTOL(1,NCS),ABTOL(6,NCS) 
+        IF ( am_I_Root ) THEN
+           WRITE(6,*)'READER: ABHI < ABLO - INCREASE UPPER BOUND OF', 
+     &               'ABSOLUTE ERROR TOLERANCE FOR NCS = ',NCS, 
+     &                ABTOL(1,NCS),ABTOL(6,NCS) 
+        ENDIF
         CALL GEOS_CHEM_STOP
        ENDIF
 !

@@ -172,6 +172,7 @@
 !  26 Mar 2012 - R. Yantosca - Reorganize module USE statements for clarity
 !  09 Apr 2012 - R. Yantosca - Now replace IJREG, IJLAND, IJUSE, XYLAI arrays
 !                              with IREG, ILAND, IUSE, XLAI.
+!  31 Jul 2012 - R. Yantosca - Modifications for grid-independence
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -292,7 +293,11 @@
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE DO_DRYDEP
+      SUBROUTINE DO_DRYDEP( am_I_Root )
+!
+! !INPUT PARAMETERS:
+!
+      LOGICAL, INTENT(IN) :: am_I_Root   ! Is this the root CPU?
 !
 ! !REMARKS:
 !  NOTE: Modeled aerosol dry deposition velocities over snow and ice surfaces 
@@ -340,6 +345,8 @@
 !  26 Mar 2012 - R. Yantosca - Now read drydep inputs from a netCDF file
 !                              via routine READ_DRYDEP_INPUTS
 !  26 Mar 2012 - R. Yantosca - Remove calls to obsolete MODIN, RDDRYCF routines
+!  30 Jul 2012 - R. Yantosca - Now accept am_I_Root as an argument when
+!                              running with the traditional driver main.F
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -382,7 +389,8 @@
          ! Read drydep inputs from the netCDF file
          ! Save Olson indices in INDOLSON array, in order to avoid
          ! confusion w/ previously-assinged variable name IOLSON
-         CALL READ_DRYDEP_INPUTS( DRYCOEFF, INDOLSON, IDEP,    
+         CALL READ_DRYDEP_INPUTS( am_I_Root,
+     &                            DRYCOEFF, INDOLSON, IDEP,    
      &                            IWATER,   NWATER,   IZO,      
      &                            IDRYDEP,  IRI,      IRLU,     
      &                            IRAC,     IRGSS,    IRGSO, 
@@ -390,24 +398,24 @@
 
          ! Calls INIT_WEIGHTSS to calculate the volume distribution of 
          ! sea salt aerosols (jaegle 5/11/11)
-         CALL INIT_WEIGHTSS
+         CALL INIT_WEIGHTSS()
          FIRST = .FALSE.
       ENDIF
  
       ! Call METERO to obtain meterological fields (all 1-D arrays)
       ! Added sfc pressure as PRESSU and 10m windspeed as W10 
       !  (jaegle 5/11/11, mpayer 1/10/12)
-      CALL METERO( CZ1, TC0,   OBK, CFRAC, RADIAT, 
-     &             AZO, USTAR, ZH,  LSNOW, RHB, PRESSU, W10 )
+      CALL METERO( CZ1,   TC0, OBK,   CFRAC, RADIAT, AZO, 
+     &             USTAR, ZH,  LSNOW, RHB,   PRESSU, W10  )
 
       !=================================================================
       ! Call DEPVEL to compute dry deposition velocities [m/s]
       ! Added  PRESSU, W10 as arguments (jaegle 5/11/11)
       !=================================================================
-      CALL DEPVEL( MAXIJ, RADIAT,  TC0,   SUNCOS_MID, F0,  HSTAR, 
-     &             XMW,   AIROSOL, USTAR, CZ1,        OBK, CFRAC,  
-     &             ZH,    LSNOW,   DVEL,  AZO,        RHB,
-     &             PRESSU,         W10)  
+      CALL DEPVEL( MAXIJ,  RADIAT,  TC0,     SUNCOS_MID, F0,  
+     &             HSTAR,  XMW,     AIROSOL, USTAR,      CZ1,
+     &             OBK,    CFRAC,   ZH,      LSNOW,      DVEL,  
+     &             AZO,    RHB,     PRESSU,  W10               )
 
       !=================================================================
       ! Compute dry deposition frequencies; archive diagnostics
@@ -481,7 +489,9 @@
 !$OMP END PARALLEL DO
 
       !### Debug
-      IF ( LPRT ) CALL DEBUG_MSG( '### DO_DRYDEP: after dry dep' )
+      IF ( LPRT .and. am_I_Root ) THEN
+         CALL DEBUG_MSG( '### DO_DRYDEP: after dry dep' )
+      ENDIF
 
       END SUBROUTINE DO_DRYDEP
 !EOC
@@ -760,6 +770,7 @@
 !        "pbl_mix_mod.f".  Remove reference to CMN. (bmy, 2/22/05)
 !  22 Dec 2011 - M. Payer    - Added ProTeX headers
 !  01 Mar 2012 - R. Yantosca - Now use GET_AREA_M2(I,J,L) from grid_mod.F90
+!  31 Jul 2012 - R. Yantosca - Now loop from 1..LLPAR for GIGC compatibility
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -783,8 +794,11 @@
       ! Chemistry timestep [s]
       DTCHEM  = GET_TS_CHEM() * 60d0
 
-      ! Highest extent of the PBL [model layers]
-      PBL_MAX = GET_PBL_MAX_L()
+!----------------------------------------------------
+! Prior to 7/31/12:
+!      ! Highest extent of the PBL [model layers]
+!      PBL_MAX = GET_PBL_MAX_L()
+!----------------------------------------------------
 
       !=================================================================
       ! ND44 diagnostic: Dry deposition flux [molec/cm2/s]
@@ -816,7 +830,11 @@
          ENDIF
 
          ! Loop over grid boxes
-         DO L = 1, PBL_MAX
+!----------------------------------
+! Prior to 7/31/12:
+!         DO L = 1, PBL_MAX
+!----------------------------------
+         DO L = 1, LLPAR
          DO J = 1, JJPAR
          DO I = 1, IIPAR
          
@@ -1242,7 +1260,7 @@
       SUBROUTINE DEPVEL( NPTS,   RADIAT, TEMP,    SUNCOS, F0,  
      &                   HSTAR,  XMW,    AIROSOL, USTAR,  CZ1,    
      &                   OBK,    CFRAC,  ZH,      LSNOW,  DVEL,  
-     &                   ZO,     RHB,    PRESSU,  W10 )
+     &                   ZO,     RHB,    PRESSU,  W10           )
 !
 ! !INPUT PARAMETERS:
 !
@@ -1392,6 +1410,8 @@
 !                              replace w/ IREG, ILAND, IUSE, XLAI
 !  09 Apr 2012 - R. Yantosca - Remove reference to CMN_VEL_mod.F
 !  09 Apr 2012 - R. Yantosca - Now use INTENT(IN), INTENT(OUT) for arguments
+!  30 Jul 2012 - R. Yantosca - Now accept am_I_Root as an argument when
+!                              running with the traditional driver main.F
 !
 !***********************************************************************
 !   Changes from Version 3.2 to Version 3.3:                         ***
@@ -2218,10 +2238,12 @@
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE READ_DRYDEP_INPUTS( DRYCOEFF, IOLSON, IDEP,    IWATER, 
-     &                               NWATER,   IZO,    IDRYDEP, IRI,   
-     &                               IRLU,     IRAC,   IRGSS,   IRGSO, 
-     &                               IRCLS,    IRCLO,  IVSMAX          )
+      SUBROUTINE READ_DRYDEP_INPUTS( am_I_Root, DRYCOEFF, IOLSON, 
+     &                               IDEP,      IWATER,   NWATER, 
+     &                               IZO,       IDRYDEP,  IRI,    
+     &                               IRLU,      IRAC,     IRGSS,  
+     &                               IRGSO,     IRCLS,    IRCLO,  
+     &                               IVSMAX                       )
 !
 ! !USES:
 !
@@ -2233,6 +2255,10 @@
       USE m_netcdf_io_close
       
 #     include "netcdf.inc"
+!
+! !INPUT PARAMETERS:
+!
+      LOGICAL, INTENT(IN) :: am_I_Root   ! Is this the root CPU?
 !
 ! !OUTPUT PARAMETERS:
 !  
@@ -2321,9 +2347,11 @@
       CALL Ncop_Rd( fId, TRIM(nc_path) )
 
       ! Echo info to stdout
-      WRITE( 6, 100 ) REPEAT( '%', 79 )
-      WRITE( 6, 110 ) TRIM(nc_file)
-      WRITE( 6, 120 ) TRIM(nc_dir)
+      IF ( am_I_Root ) THEN
+         WRITE( 6, 100 ) REPEAT( '%', 79 )
+         WRITE( 6, 110 ) TRIM(nc_file)
+         WRITE( 6, 120 ) TRIM(nc_dir)
+      ENDIF
 
       !----------------------------------------
       ! VARIABLE: DRYCOEFF
@@ -2342,7 +2370,9 @@
       CALL NcGet_Var_Attributes( fId,TRIM(v_name),TRIM(a_name),a_val )
 
       ! Echo info to stdout
-      WRITE( 6, 130 ) TRIM(v_name), TRIM(a_val)
+      IF ( am_I_Root ) THEN
+         WRITE( 6, 130 ) TRIM(v_name), TRIM(a_val)
+      ENDIF
 
       !----------------------------------------
       ! VARIABLE: IOLSON
@@ -2361,7 +2391,9 @@
       CALL NcGet_Var_Attributes( fId,TRIM(v_name),TRIM(a_name),a_val )
 
       ! Echo info to stdout
-      WRITE( 6, 130 ) TRIM(v_name), TRIM(a_val)
+      IF ( am_I_Root ) THEN
+         WRITE( 6, 130 ) TRIM(v_name), TRIM(a_val)
+      ENDIF
 
       !----------------------------------------
       ! VARIABLE: IDEP
@@ -2380,7 +2412,9 @@
       CALL NcGet_Var_Attributes( fId,TRIM(v_name),TRIM(a_name),a_val )
 
       ! Echo info to stdout
-      WRITE( 6, 130 ) TRIM(v_name), TRIM(a_val)
+      IF ( am_I_Root ) THEN
+         WRITE( 6, 130 ) TRIM(v_name), TRIM(a_val)
+      ENDIF
 
       !----------------------------------------
       ! VARIABLE: IWATER
@@ -2408,7 +2442,9 @@
       CALL NcGet_Var_Attributes( fId,TRIM(v_name),TRIM(a_name),a_val )
 
       ! Echo info to stdout
-      WRITE( 6, 130 ) TRIM(v_name), TRIM(a_val)
+      IF ( am_I_Root ) THEN
+         WRITE( 6, 130 ) TRIM(v_name), TRIM(a_val)
+      ENDIF
 
       !----------------------------------------
       ! VARIABLE: IZO
@@ -2427,7 +2463,9 @@
       CALL NcGet_Var_Attributes( fId,TRIM(v_name),TRIM(a_name),a_val )
 
       ! Echo info to stdout
-      WRITE( 6, 130 ) TRIM(v_name), TRIM(a_val)
+      IF ( am_I_Root ) THEN
+         WRITE( 6, 130 ) TRIM(v_name), TRIM(a_val)
+      ENDIF
 
       !----------------------------------------
       ! VARIABLE: IDRYDEP
@@ -2446,7 +2484,9 @@
       CALL NcGet_Var_Attributes( fId,TRIM(v_name),TRIM(a_name),a_val )
 
       ! Echo info to stdout
-      WRITE( 6, 130 ) TRIM(v_name), TRIM(a_val)
+      IF ( am_I_Root ) THEN
+         WRITE( 6, 130 ) TRIM(v_name), TRIM(a_val)
+      ENDIF
 
       !----------------------------------------
       ! VARIABLE: IRI
@@ -2465,7 +2505,9 @@
       CALL NcGet_Var_Attributes( fId,TRIM(v_name),TRIM(a_name),a_val )
 
       ! Echo info to stdout
-      WRITE( 6, 130 ) TRIM(v_name), TRIM(a_val)
+      IF ( am_I_Root ) THEN
+         WRITE( 6, 130 ) TRIM(v_name), TRIM(a_val)
+      ENDIF
 
       !----------------------------------------
       ! VARIABLE: IRLU
@@ -2484,7 +2526,9 @@
       CALL NcGet_Var_Attributes( fId,TRIM(v_name),TRIM(a_name),a_val )
 
       ! Echo info to stdout
-      WRITE( 6, 130 ) TRIM(v_name), TRIM(a_val)
+      IF ( am_I_Root ) THEN
+         WRITE( 6, 130 ) TRIM(v_name), TRIM(a_val)
+      ENDIF
 
       !----------------------------------------
       ! VARIABLE: IRAC
@@ -2503,7 +2547,9 @@
       CALL NcGet_Var_Attributes( fId,TRIM(v_name),TRIM(a_name),a_val )
 
       ! Echo info to stdout
-      WRITE( 6, 130 ) TRIM(v_name), TRIM(a_val)
+      IF ( am_I_Root ) THEN
+         WRITE( 6, 130 ) TRIM(v_name), TRIM(a_val)
+      ENDIF
 
       !----------------------------------------
       ! VARIABLE: IRGSS
@@ -2522,7 +2568,9 @@
       CALL NcGet_Var_Attributes( fId,TRIM(v_name),TRIM(a_name),a_val )
 
       ! Echo info to stdout
-      WRITE( 6, 130 ) TRIM(v_name), TRIM(a_val)
+      IF ( am_I_Root ) THEN
+         WRITE( 6, 130 ) TRIM(v_name), TRIM(a_val)
+      ENDIF
 
       !----------------------------------------
       ! VARIABLE: IRGSO
@@ -2541,7 +2589,9 @@
       CALL NcGet_Var_Attributes( fId,TRIM(v_name),TRIM(a_name),a_val )
 
       ! Echo info to stdout
-      WRITE( 6, 130 ) TRIM(v_name), TRIM(a_val)
+      IF ( am_I_Root ) THEN
+         WRITE( 6, 130 ) TRIM(v_name), TRIM(a_val)
+      ENDIF
 
       !----------------------------------------
       ! VARIABLE: IRCLS
@@ -2560,7 +2610,9 @@
       CALL NcGet_Var_Attributes( fId,TRIM(v_name),TRIM(a_name),a_val )
 
       ! Echo info to stdout
-      WRITE( 6, 130 ) TRIM(v_name), TRIM(a_val)
+      IF ( am_I_Root ) THEN
+         WRITE( 6, 130 ) TRIM(v_name), TRIM(a_val)
+      ENDIF
 
       !----------------------------------------
       ! VARIABLE: IRCLO
@@ -2579,7 +2631,9 @@
       CALL NcGet_Var_Attributes( fId,TRIM(v_name),TRIM(a_name),a_val )
 
       ! Echo info to stdout
-      WRITE( 6, 130 ) TRIM(v_name), TRIM(a_val)
+      IF ( am_I_Root ) THEN
+         WRITE( 6, 130 ) TRIM(v_name), TRIM(a_val)
+      ENDIF
 
       !----------------------------------------
       ! VARIABLE: IVSMAX
@@ -2598,7 +2652,9 @@
       CALL NcGet_Var_Attributes( fId,TRIM(v_name),TRIM(a_name),a_val )
 
       ! Echo info to stdout
-      WRITE( 6, 130 ) TRIM(v_name), TRIM(a_val)
+      IF ( am_I_Root ) THEN
+         WRITE( 6, 130 ) TRIM(v_name), TRIM(a_val)
+      ENDIF
 
       !=================================================================
       ! Cleanup and quit
@@ -2608,8 +2664,10 @@
       CALL NcCl( fId )
 
       ! Echo info to stdout
-      WRITE( 6, 140 )
-      WRITE( 6, 100 ) REPEAT( '%', 79 )
+      IF ( am_I_Root ) THEN
+         WRITE( 6, 140 )
+         WRITE( 6, 100 ) REPEAT( '%', 79 )
+      ENDIF
 
       ! FORMAT statements
  100  FORMAT( a                                              )

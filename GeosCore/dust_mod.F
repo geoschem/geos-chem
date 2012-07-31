@@ -93,7 +93,7 @@
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE CHEMDUST
+      SUBROUTINE CHEMDUST( am_I_Root )
 !
 ! !USES:
 !
@@ -103,7 +103,11 @@
       USE TRACER_MOD,   ONLY : STT
       USE TRACERID_MOD, ONLY : IDTDST1, IDTDST2, IDTDST3, IDTDST4
 
-      USE CMN_SIZE_MOD       ! Size parameters
+      USE CMN_SIZE_MOD                   ! Size parameters
+!
+! !INPUT PARAMETERS:
+!
+      LOGICAL, INTENT(IN) :: am_I_Root   ! Is this the root CPU?
 ! 
 ! !REVISION HISTORY: 
 !  30 Mar 2004 - T. D. Fairlie - Initial version
@@ -112,6 +116,8 @@
 !  (5 ) Now make sure all USE statements are USE, ONLY (bmy, 10/3/05)
 !  (6 ) Now only do dry deposition if LDRYD = T (bmy, 5/23/06)
 !  25 Aug 2010 - R. Yantosca - Added ProTeX headers
+!  30 Jul 2012 - R. Yantosca - Now accept am_I_Root as an argument when
+!                              running with the traditional driver main.F
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -138,7 +144,7 @@
          ENDIF
 
          ! Allocate arrays (if necessary)
-         CALL INIT_DUST
+         CALL INIT_DUST()
 
          ! Find drydep species in DEPSAV
          DO N = 1, NUMDEP
@@ -1145,9 +1151,9 @@
 
       USE CMN_DIAG_MOD        ! ND21, LD21
 !
-! !INPUT/OUTPUT PARAMETERS: 
+! !INPUT PARAMETERS: 
 ! 
-      REAL*8, INTENT(IN)  :: DUST(IIPAR,JJPAR,LLPAR,NDUST)   ! Dust [kg/m3]
+      REAL*8,  INTENT(IN) :: DUST(IIPAR,JJPAR,LLPAR,NDUST)   ! Dust [kg/m3]
       INTEGER, INTENT(IN) :: WAVELENGTH
 ! 
 ! !REVISION HISTORY: 
@@ -1363,7 +1369,8 @@
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE RDUST_OFFLINE( THISMONTH, THISYEAR, WAVELENGTH )
+      SUBROUTINE RDUST_OFFLINE( THISMONTH,  THISYEAR, 
+     &                          WAVELENGTH, am_I_Root )
 !
 ! !USES:
 !
@@ -1392,8 +1399,9 @@
 !
       INTEGER, INTENT(IN) :: THISMONTH   ! Current month (1-12)
       INTEGER, INTENT(IN) :: THISYEAR    ! Current year  (YYYY format)
-      ! Determine which wavelength to use for optical properties
-      INTEGER, INTENT(IN) :: WAVELENGTH  
+      INTEGER, INTENT(IN) :: WAVELENGTH  ! Determine which wavelength to use 
+                                         !  for optical properties
+      LOGICAL, INTENT(IN) :: am_I_Root   ! Is this the root CPU?
 !
 ! !REVISION HISTORY: 
 !  (1 ) RDUST was patterned after rdaerosol.f (rvm, 9/30/00)
@@ -1451,6 +1459,8 @@
 !                              used for the calculation of the AOD.  The ND21 
 !                              diagnostic should only be updated when 
 !                              WAVELENGTH = 1.
+!  30 Jul 2012 - R. Yantosca - Now accept am_I_Root as an argument when
+!                              running with the traditional driver main.F
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -1491,7 +1501,9 @@
      &              GET_RES_EXT()
 
          ! Echo filename
-         WRITE( 6, 100 ) TRIM( FILENAME )
+         IF ( am_I_Root ) THEN
+            WRITE( 6, 100 ) TRIM( FILENAME )
+         ENDIF
  100     FORMAT( '     - RDUST: Reading ', a )
 
          ! Read aerosol concentrations [kg/m3] for each 
@@ -1561,7 +1573,9 @@
 !$OMP END PARALLEL DO
 
          ! Echo information
-         WRITE( 6, 110 ) 
+         IF ( am_I_Root ) THEN
+            WRITE( 6, 110 ) 
+         ENDIF
  110     FORMAT( '     - RDUST: Finished computing optical depths' )
 
          !==============================================================
@@ -1695,8 +1709,7 @@
 !
       USE LOGICAL_MOD, ONLY : LDEAD
       USE ERROR_MOD,   ONLY : ALLOC_ERR
-
-      USE CMN_SIZE_MOD      ! Size parameters
+      USE CMN_SIZE_MOD                   ! Size parameters
 ! 
 ! !REVISION HISTORY: 
 !  30 Mar 2004 - R. Yantosca - Initial version

@@ -11,10 +11,10 @@
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE PHOTOJ( NLON,   NLAT, YLAT,    DAY_OF_YR, 
-     &                   MONTH,  DAY,  CSZA,    T,    
-     &                   SA,     OD,   OPTDUST, OPTAER,
-     &                   O3COL                             )
+      SUBROUTINE PHOTOJ( NLON,   NLAT,    YLAT,    DAY_OF_YR, 
+     &                   MONTH,  DAY,     CSZA,    T,    
+     &                   SA,     OD,      OPTDUST, OPTAER,
+     &                   O3COL,  am_I_Root                    )
 !
 ! !USES:
 !
@@ -28,17 +28,18 @@
 !
 ! !INPUT PARAMETERS: 
 !
-      INTEGER, INTENT(IN)    :: NLON                  ! Grid box lon index
-      INTEGER, INTENT(IN)    :: NLAT                  ! Grid box lat index 
-      REAL*8,  INTENT(IN)    :: YLAT                  ! Latitude [degrees]
-      INTEGER, INTENT(IN)    :: DAY_OF_YR             ! Day of year
-      INTEGER, INTENT(IN)    :: MONTH                 ! Current month
-      INTEGER, INTENT(IN)    :: DAY                   ! Day of month
-      REAL*8,  INTENT(IN)    :: CSZA                  ! Cosine(SZA) [unitless]
-      REAL*8,  INTENT(IN)    :: T(LLPAR)              ! Temperature [K]
-      REAL*8,  INTENT(IN)    :: SA                    ! UV albedo [unitless]
-      REAL*8,  INTENT(IN)    :: OD(LLPAR)             ! Visible OD [unitless]
-      REAL*8,  INTENT(IN)    :: O3COL                 ! Overhead O3 column [DU]
+      INTEGER, INTENT(IN)    :: NLON                   ! Grid box lon index
+      INTEGER, INTENT(IN)    :: NLAT                   ! Grid box lat index 
+      REAL*8,  INTENT(IN)    :: YLAT                   ! Latitude [degrees]
+      INTEGER, INTENT(IN)    :: DAY_OF_YR              ! Day of year
+      INTEGER, INTENT(IN)    :: MONTH                  ! Current month
+      INTEGER, INTENT(IN)    :: DAY                    ! Day of month
+      REAL*8,  INTENT(IN)    :: CSZA                   ! Cosine(SZA) [unitless]
+      REAL*8,  INTENT(IN)    :: T(LLPAR)               ! Temperature [K]
+      REAL*8,  INTENT(IN)    :: SA                     ! UV albedo [unitless]
+      REAL*8,  INTENT(IN)    :: OD(LLPAR)              ! Visible OD [unitless]
+      REAL*8,  INTENT(IN)    :: O3COL                  ! Overhead O3 column [DU]
+      LOGICAL, INTENT(IN)    :: am_I_Root              ! Is this the root CPU?
 !
 ! !INPUT/OUTPUT PARAMETERS:
 !
@@ -74,6 +75,8 @@
 !  (2 ) We don't need to pass "P" via the arg list (bmy, 2/13/07)
 !  06 Mar 2012 - R. Yantosca - Now pass O3COL via the arg list
 !  06 Mar 2012 - R. Yantosca - Added ProTeX headers
+!  30 Jul 2012 - R. Yantosca - Now accept am_I_Root as an argument when
+!                              running with the traditional driver main.F
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -114,7 +117,7 @@
      &               T,    SA,   OD,   OPTDUST, OPTAER, O3COL )
 
       ! Compute actinic flux at each GEOS-CHEM vertical level
-      CALL JVALUE( SA )
+      CALL JVALUE( SA, am_I_Root )
       
       ! Calculate J-values for all species
       CALL JRATET( T, DAY_OF_YR )
