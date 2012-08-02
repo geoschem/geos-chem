@@ -228,7 +228,7 @@
             CSZA         = SUNCOS( (NLAT-1)*IIPAR + NLON ) 
 
             ! Define the PJ array here (bmy, 11/16/07)
-#if defined( DEVEL )
+#if defined( DEVEL ) || defined( EXTERNAL_GCM )
             DO L = 1, LLPAR+1
                PJ(L)     = PEDGE( NLON, NLAT, L )
 #else
