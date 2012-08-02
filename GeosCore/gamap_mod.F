@@ -82,7 +82,8 @@
 !  21 Sep 2010 - R. Yantosca - Removed duplicates in INIT_DIAGINFO
 !  21 Oct 2010 - R. Yantosca - Bug fix in INIT_DIAGINFO
 !  09 Dec 2010 - C. Carouge  - Modify MAXTRACER definition to account for 
-!   8 Feb 2012 - R. Yantosca - Add modifications for GEOS-5.7.x
+!  08 Feb 2012 - R. Yantosca - Add modifications for GEOS-5.7.x
+!  01 Aug 2012 - R. Yantosca - Add reference to findFreeLUN from inqure_mod.F90
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -190,24 +191,31 @@
 ! !USES:
 !
       USE FILE_MOD, ONLY : IOERROR
+#if   !defined( DEVEL )
+      USE FILE_MOD, ONLY : IU_FILE
+#endif
 ! 
 ! !REVISION HISTORY: 
 !  03 May 2005 - R. Yantosca - Initial version
 !  03 Aug 2010 - R. Yantosca - Added ProTeX headers
+!  01 Aug 2012 - R. Yantosca - Add reference to findFreeLUN from inqure_mod.F90
 !EOP
 !------------------------------------------------------------------------------
 !BOC
 !
 ! !LOCAL VARIABLES:
 !
-      INTEGER :: IOS, N, IU_FILE
+      INTEGER :: IOS, N
+#if   defined( DEVEL )
+      INTEGER :: IU_FILE
+#endif
 
       !=================================================================
       ! CREATE_DINFO begins here!
       !=================================================================
 
       ! Open "diaginfo.dat" file for output
-#if defined( DEVEL )
+#if   defined( DEVEL )
       IU_FILE = findFreeLUN()
 #endif
       OPEN( IU_FILE, FILE=TRIM( DFILE ), STATUS='UNKNOWN', IOSTAT=IOS )
@@ -286,19 +294,26 @@
 !
       USE FILE_MOD,    ONLY : IOERROR
       USE LOGICAL_MOD, ONLY : LSOA
+#if   !defined( DEVEL )
+      USE FILE_MOD,    ONLY : IU_FILE
+#endif
 ! 
 ! !REVISION HISTORY: 
 !  21 Apr 2005 - R. Yantosca - Initial version
 !  (1 ) Now write out tracers in ug/m3 (dkh, bmy, 5/22/06)
 !  (2 ) Now write out GPROD & APROD info (tmf, havala, bmy, 2/6/07)
 !  08 Dec 2009 - R. Yantosca - Added ProTeX headers
+!  01 Aug 2012 - R. Yantosca - Add reference to findFreeLUN from inqure_mod.F90
 !EOP
 !------------------------------------------------------------------------------
 !BOC
 !
 ! !LOCAL VARIABLES:
 !
-      INTEGER           :: D, IOS, IU_FILE, N, T
+      INTEGER           :: D, IOS, N, T
+#if   defined( DEVEL )
+      INTEGER           :: IU_FILE
+#endif
       REAL*4            :: SCALE_NEW
       CHARACTER(LEN=2)  :: C
       CHARACTER(LEN=40) :: UNIT_NEW, NAME_NEW

@@ -16,28 +16,24 @@
 !
 ! !USES:
 !
-      USE ERROR_MOD, ONLY : ERROR_STOP
-      USE FILE_MOD,  ONLY : IOERROR
-
 #     include "define.h"
 
+      USE ERROR_MOD,  ONLY : ERROR_STOP
+      USE FILE_MOD,   ONLY : IOERROR
       USE CMN_FJ_MOD, ONLY : JPMAX, JPPJ
       USE JV_CMN_MOD
-#if defined( DEVEL )
-      USE inquireMod, ONLY : findFreeLUN
-#endif
 
       IMPLICIT NONE
 
 !
 ! !INPUT PARAMETERS:
 !     
-      CHARACTER(LEN=*), INTENT(IN)    :: NAMFIL      ! Name of file to open
-      LOGICAL,          INTENT(IN)    :: am_I_Root   ! Is this the root CPU?
+      INTEGER,          INTENT(IN) :: NJ1         ! Unit # of file to open
+      CHARACTER(LEN=*), INTENT(IN) :: NAMFIL      ! Name of file to open
+      LOGICAL,          INTENT(IN) :: am_I_Root   ! Is this the root CPU?
 !
 ! !INPUT/OUTPUT PARAMETERS:
 !
-      INTEGER,          INTENT(INOUT) :: NJ1         ! Unit # of file to open
 !
 ! !REMARKS:
 !  The jv_spec_aod.dat file contains the optical properties for aerosols 
@@ -67,7 +63,8 @@
 !
 ! !REVISION HISTORY: 
 !  10 May 2010 - C. Heald    - Initial version
-!  06 Aug 2010 - C. Carouge  - Add an error check when opening the file.
+!  06 Aug 2010 - C. Carouge  - Add an error check when opening the file
+!  01 Aug 2012 - R. Yantosca - Now restore NJ1 to INTENT(IN) status
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -82,9 +79,6 @@
       !================================================================
 
       ! open file
-#if defined( DEVEL )
-      NJ1 = findFreeLUN()
-#endif
       OPEN( NJ1, FILE=TRIM( NAMFIL ), STATUS='OLD', IOSTAT=IOS )
 
       ! Error check

@@ -20,7 +20,7 @@
       USE LOGICAL_MOD,   ONLY : LNLPBL ! (Lin, 03/31/09)
       USE VDIFF_PRE_MOD, ONLY : emis_save ! (Lin, 03/31/09)
 #if defined( DEVEL )
-      USE inquireMod, ONLY : findFreeLUN
+      USE inquireMod,    ONLY : findFreeLUN
 #endif
 
       IMPLICIT NONE
@@ -3395,7 +3395,7 @@
 
          ! Fraction of box (I,J,L) underneath the PBL top [unitless]
          F_UNDER_TOP = GET_FRAC_UNDER_PBLTOP( I, J, L )
-
+         
          ! Only apply drydep to boxes w/in the PBL
          IF ( F_UNDER_TOP > 0d0 ) THEN
 
@@ -7375,12 +7375,14 @@
       USE DAO_MOD,       ONLY : BXHEIGHT
       USE DIRECTORY_MOD, ONLY : DATA_DIR 
       USE FILE_MOD,      ONLY : IOERROR
-
-      USE CMN_SIZE_MOD        ! Size parameters
+      USE CMN_SIZE_MOD                    ! Size parameters
+#if   !defined( DEVEL )
+      USE FILE_MOD,      ONLY : IU_FILE
+#endif
 !
 ! !INPUT PARAMETERS: 
 !
-      INTEGER, INTENT(IN)    :: THISMONTH ! Current month number (1-12)
+      INTEGER, INTENT(IN) :: THISMONTH    ! Current month number (1-12)
 
 !
 ! !REVISION HISTORY:
@@ -7392,21 +7394,25 @@
 !  22 Dec 2011 - M. Payer    - Added ProTeX headers
 !  02 Jul 2012 - R. Yantosca - Add simple kludge that prevents OOB error when
 !                              reading SO2 aircraft data for NA nested grid
+!  01 Aug 2012 - R. Yantosca - Add reference to findFreeLUN from inqure_mod.F90
 !EOP
 !------------------------------------------------------------------------------
 !BOC
 !
 ! !LOCAL VARIABLES:
 !
-      INTEGER                :: I, IOS, IU_FILE, J, K, L
-      REAL*8                 :: ACSO2(IIPAR,JJPAR,20)
-      REAL*8                 :: FAC, FUEL, DZ(LLPAR), ZH(0:LLPAR)
-      CHARACTER(LEN=255)     :: FILENAME
+      INTEGER            :: I, IOS, J, K, L
+#if   defined( DEVEL )
+      INTEGER            :: IU_FILE
+#endif                  
+      REAL*8             :: ACSO2(IIPAR,JJPAR,20)
+      REAL*8             :: FAC, FUEL, DZ(LLPAR), ZH(0:LLPAR)
+      CHARACTER(LEN=255) :: FILENAME
 
       ! Month names
-      CHARACTER(LEN=3)    :: CMONTH(12) = (/'jan', 'feb', 'mar', 'apr', 
-     &                                      'may', 'jun', 'jul', 'aug',
-     &                                      'sep', 'oct', 'nov', 'dec'/)
+      CHARACTER(LEN=3)   :: CMONTH(12) = (/'jan', 'feb', 'mar', 'apr', 
+     &                                     'may', 'jun', 'jul', 'aug',
+     &                                     'sep', 'oct', 'nov', 'dec'/)
 
       !=================================================================
       ! READ_AIRCRAFT_SO2 begins here!
@@ -7434,7 +7440,7 @@
       !=================================================================
 
       ! Open file 
-#if defined( DEVEL )
+#if   defined( DEVEL )
       IU_FILE = findFreeLUN()
 #endif
       OPEN( IU_FILE, FILE=FILENAME, STATUS='OLD', IOSTAT=IOS )

@@ -20,20 +20,17 @@
 
       USE CMN_FJ_MOD, ONLY : JPMAX, JPPJ
       USE JV_CMN_MOD
-#if defined( DEVEL )
-      USE inquireMod, ONLY : findFreeLUN
-#endif
 
       IMPLICIT NONE
 !
 ! !INPUT PARAMETERS: 
 !
-      CHARACTER(LEN=*), INTENT(IN)    :: NAMFIL      ! File name
-      LOGICAL,          INTENT(IN)    :: am_I_Root   ! Is this the root CPU?
+      INTEGER,          INTENT(IN) :: NJ1         ! Logical unit #
+      CHARACTER(LEN=*), INTENT(IN) :: NAMFIL      ! File name
+      LOGICAL,          INTENT(IN) :: am_I_Root   ! Is this the root CPU?
 !
 ! !INPUT PARAMETERS: 
 !
-      INTEGER,          INTENT(INOUT) :: NJ1         ! Logical unit #
 !
 ! !REMARKS:
 !     NAMFIL   Name of spectral data file (jv_spec.dat)
@@ -72,6 +69,7 @@
 !                              running with the traditional driver main.F
 !  30 Jul 2012 - R. Yantosca - Added ProTeX headers
 !  30 Jul 2012 - R. Yantosca - Add reference to findFreeLUN under DEVEL tag
+!  01 Aug 2012 - R. Yantosca - Now restore NJ1 to INTENT(IN) status
 !EOP
 !------------------------------------------------------------------------------
 !BOC

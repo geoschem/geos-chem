@@ -199,6 +199,10 @@
       USE TIME_MOD,   ONLY : GET_NYMD
       USE TIME_MOD,   ONLY : GET_NHMS
       USE TRACER_MOD, ONLY : ITS_A_FULLCHEM_SIM
+#if   !defined( DEVEL )
+      USE FILE_MOD,   ONLY : IU_FILE
+      USE FILE_MOD,   ONLY : IU_PLANE
+#endif
 !
 ! !INPUT PARAMETERS:
 !
@@ -225,6 +229,7 @@
 !  29 Jul 2011 - R. Yantosca - Added ProTeX headers
 !  30 Jul 2012 - R. Yantosca - Now accept am_I_Root as an argument when
 !                              running with the traditional driver main.F
+!  01 Aug 2012 - R. Yantosca - Add reference to findFreeLUN from inqure_mod.F90
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -232,13 +237,16 @@
 ! !LOCAL VARIABLES:
 !
       LOGICAL, SAVE      :: FIRST = .TRUE.
+#if   defined( DEVEL )
       INTEGER            :: IU_FILE
+      INTEGER            :: IU_PLANE
+#endif
       INTEGER            :: I,  IP,      N,   TEMP, LENGTH
       INTEGER            :: RN, COUNTER, IOS, NYMD, NHMS
       CHARACTER(LEN=7)   :: NAMES
       CHARACTER(LEN=20)  :: LINE
       CHARACTER(LEN=10)  :: TYPE
-      
+
       !=================================================================
       ! SETUP_PLANEFLIGHT begins here!
       !=================================================================
@@ -1895,9 +1903,11 @@
       USE ERROR_MOD, ONLY : ALLOC_ERR
       USE ERROR_MOD, ONLY : GEOS_CHEM_STOP
       USE FILE_MOD,  ONLY : IOERROR
-
       USE CMN_SIZE_MOD    ! Size Parameters
       USE COMODE_LOOP_MOD ! ITLOOP
+#if   !defined( DEVEL )
+      USE FILE_MOD,  ONLY : IU_FILE
+#endif
 !
 ! !INPUT PARAMETERS:
 !
@@ -1922,7 +1932,10 @@
 ! !LOCAL VARIABLES:
 !
       LOGICAL           :: IS_INIT = .FALSE.
-      INTEGER           :: N, AS, IOS, IU_FILE
+#if   defined( DEVEL )
+      INTEGER           :: IU_FILE
+#endif
+      INTEGER           :: N, AS, IOS
       CHARACTER(LEN=20) :: LINE
 
       !=================================================================

@@ -159,6 +159,7 @@
 !  (34) CO scaling for VOC production is transfered to biomass_mod.f.
 !        (jaf, 2/6/09)
 !  (35) Modification for 1 x 1.25 grid (lok, bmy, 1/13/10)
+!  01 Aug 2012 - R. Yantosca - Add reference to findFreeLUN from inqure_mod.F90
 !******************************************************************************
 !
 #if defined( DEVEL )
@@ -2033,15 +2034,18 @@
 !  (6 ) Now reference DATA_DIR from "directory_mod.f" (bmy, 7/20/04)
 !  (7 ) Added space in #ifdef block for 1 x 1.25 grid (bmy, 12/1/04)
 !  (8 ) Modification for 1 x 1.25 grid (lok, bmy, 1/13/10)
+!  01 Aug 2012 - R. Yantosca - Add reference to findFreeLUN from inqure_mod.F90
 !******************************************************************************
 !
       ! References to F90 modules
       USE DIRECTORY_MOD, ONLY : DATA_DIR
       USE ERROR_MOD,     ONLY : ALLOC_ERR
       USE TIME_MOD,      ONLY : GET_MONTH, GET_TAU, GET_YEAR
+      USE CMN_SIZE_MOD        ! Size parameters
+#if   !defined( DEVEL )
+      USE FILE_MOD,      ONLY : IU_FILE
+#endif
 
-      USE CMN_SIZE_MOD   ! Size parameters
-  
       ! Arguments
       INTEGER, INTENT(IN)    :: I, J
       REAL*8,  INTENT(INOUT) :: ADJUSTED_VALUE
@@ -2078,6 +2082,8 @@
          ! Read TOMS Aerosol index data
 #if defined( DEVEL )
          N = findFreeLUN()
+#else
+         N = IU_FILE
 #endif
          OPEN( N, FILE = TRIM( DATA_DIR ) // 'TOMSAI', STATUS='OLD' )
          DO JJ=1,NAIREGIONS

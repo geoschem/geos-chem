@@ -65,19 +65,25 @@
 !
       USE DIRECTORY_MOD, ONLY : DATA_DIR_1x1
       USE FILE_MOD,      ONLY : IOERROR
-
       USE CMN_O3_MOD          ! FRACNOX, INTOPE
+#if   !defined( DEVEL )
+      USE FILE_MOD,      ONLY : IU_FILE
+#endif
 !
 ! !REVISION HISTORY:
 !  06 Feb 2012 - M. Payer    - Initial version modified from code provided by
 !                              G.C.M. Vinken
+!  01 Aug 2012 - R. Yantosca - Add reference to findFreeLUN from inqure_mod.F90
 !EOP
 !------------------------------------------------------------------------------
 !BOC
 !
 ! !LOCAL VARIABLES:
-      INTEGER                :: IOS, IU_FILE
-      CHARACTER(LEN=255)     :: FILENAME
+      INTEGER             :: IOS
+      CHARACTER(LEN=255)  :: FILENAME
+#if   defined( DEVEL )
+      INTEGER             :: IU_FILE
+#endif
 
       !=================================================================
       ! READ_PARANOX_LUT begins here

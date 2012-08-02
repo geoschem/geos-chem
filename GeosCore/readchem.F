@@ -43,23 +43,30 @@
 !                              called from the traditional driver "main.F"
 !******************************************************************************
 !
+!
+! !USES:
+!
+#     include "define.h"
+
       ! References to F90 modules
       USE DRYDEP_MOD,  ONLY : MAXDEP
       USE ERROR_MOD,   ONLY : GEOS_CHEM_STOP
       USE DIAG_PL_MOD, ONLY : SETJFAM, SETPL
-#if defined( DEVEL )
-      USE inquireMod,  ONLY : findFreeLUN
-#endif
-
-      !FP_ISOP (6/2009)
       USE ERROR_MOD,   ONLY : DEBUG_MSG
       USE LOGICAL_MOD, ONLY : LPRT
-
-#     include "define.h"
       USE CMN_SIZE_MOD                         ! Size parameters
       USE COMODE_LOOP_MOD                      ! SMVGEAR II arrays
 
+#if defined( DEVEL )
+      USE inquireMod,  ONLY : findFreeLUN
+#else  
+      USE FILE_MOD,    ONLY : IU_FILE
+#endif
+
       IMPLICIT NONE
+!
+! !INPUT PARAMETERS:
+!
       LOGICAL, INTENT(IN) :: am_I_Root         ! Is this the root CPU?
 
 !
@@ -151,6 +158,8 @@
       ! ININT used to be defined w/in "comode.h", but it is only ever used
       ! w/in "readchem.f".  Declare here as a local variable. (bmy, 7/16/03)
       INTEGER :: ININT(10)  
+
+      CHARACTER(LEN=255) :: FILENAME
 
       !=================================================================
       ! READCHEM begins here!
@@ -1227,10 +1236,22 @@
 ! RH100   -- deliquescence point, relative humidity below which we
 !            have no wet aerosols
 !
-#if defined( DEVEL )
-      I = findFreeLUN()
+      ! Name of file to open
+      FILENAME= 'chemga.dat'
+
+#if   defined( DEVEL )
+      I        = findFreeLUN()
+      FILENAME = TRIM( FILENAME ) // '___.rc'
+#else
+      I        = IU_FILE
 #endif
-      OPEN(I,FILE='chemga.dat___.rc',FORM='FORMATTED',STATUS='OLD')
+
+      IF ( am_I_Root ) THEN
+         WRITE( 6, 300 ) TRIM( FILENAME ), I
+ 300     FORMAT( 'GEOSCHEM::READCHEM: Opening ', a, ' on unit ', i6 )
+      ENDIF
+
+      OPEN(I, FILE=TRIM( FILENAME ), FORM='FORMATTED', STATUS='OLD' )
       READ(I,*)
       READ(I,610) ASTKCF
       READ(I,*)

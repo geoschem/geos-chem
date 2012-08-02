@@ -187,7 +187,9 @@ CONTAINS
     !===============================
 
     STAMP = TIMESTAMP_STRING()
-    WRITE( 6, 10 ) STAMP
+    IF ( am_I_Root ) THEN
+       WRITE( 6, 10 ) STAMP
+    ENDIF
 10  FORMAT( '     - DO_STRAT_CHEM: Linearized strat chemistry at ', a )
     
     IF ( GET_MONTH() /= LASTMONTH ) THEN
@@ -378,9 +380,9 @@ CONTAINS
        ! Prescribe Br_y concentrations
        !===============================
 
-       !$OMP PARALLEL DO &
-       !$OMP DEFAULT( SHARED ) &
-       !$OMP PRIVATE( NN, I, J, L, BryDay, BryNight, IJWINDOW )
+!       !$OMP PARALLEL DO &
+!       !$OMP DEFAULT( SHARED ) &
+!       !$OMP PRIVATE( NN, BEFORE, I, J, L, BryDay, BryNight, IJWINDOW )
        DO NN=1,6
 
           IF ( GC_Bry_TrID(NN) > 0 ) THEN
@@ -429,7 +431,7 @@ CONTAINS
           ENDIF
 
        ENDDO
-       !$OMP END PARALLEL DO
+!       !$OMP END PARALLEL DO
        
     !======================================================================
     ! Tagged Ox simulation

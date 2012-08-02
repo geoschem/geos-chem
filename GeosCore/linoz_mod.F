@@ -76,6 +76,7 @@
 !  28 May 2009 - D. Jones            - Further modifications
 !  18 Nov 2009 - D. Jones            - Further modifications
 !  01 Mar 2012 - R. Yantosca - Now reference new grid_mod.F90
+!  01 Aug 2012 - R. Yantosca - Add reference to findFreeLUN from inqure_mod.F90
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -251,7 +252,7 @@
       IF ( am_I_Root ) THEN
          WRITE( 6, 100 ) 
       ENDIF
- 100  FORMAT('       - LINOZ_CHEM3: Doing LINOZ' )
+ 100  FORMAT( '     - LINOZ_CHEM3: Doing LINOZ' )
 
       ! **** note dbj: check STT(I,J,20:LLPAR,NTRACER) = with trop level
       ! ****         : check DMASS
@@ -803,8 +804,10 @@ c-------- K=1 is at the top of atmosphere ------------------------------
 !
       USE FILE_MOD,      ONLY : IOERROR        ! I/O error subroutine
       USE DIRECTORY_MOD, ONLY : DATA_DIR_1x1   ! Data directory path
-
       USE CMN_SIZE_MOD
+#if   !defined( DEVEL )
+      USE FILE_MOD,      ONLY : IU_FILE
+#endif
 !
 ! !INPUT PARAMETERS:
 !
@@ -818,6 +821,7 @@ c-------- K=1 is at the top of atmosphere ------------------------------
 !  24 Jun 2003 - B. Field & D. Jones - Further updates for GEOS-Chem
 !  16 Oct 2009 - R. Yantosca         - Now use IU_FILE instead of IU_LINOZ
 !  16 Oct 2009 - R. Yantosca         - Read file from DATA_DIR_1x1
+!  01 Aug 2012 - R. Yantosca - Add reference to findFreeLUN from inqure_mod.F90
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -825,7 +829,10 @@ c-------- K=1 is at the top of atmosphere ------------------------------
 ! !LOCAL VARIABLES:
 ! 
       LOGICAL, SAVE      :: FIRST = .TRUE.
-      INTEGER            :: IU_FILE, K, J, M, NTBLS, IOS
+#if   defined( DEVEL )
+      INTEGER            :: IU_FILE
+#endif
+      INTEGER            :: K, J, M, NTBLS, IOS
       REAL*8             :: TMAX,    TMIN
       CHARACTER(LEN=80)  :: HEADING, TITL1
       CHARACTER(LEN=255) :: FILENAME
@@ -847,7 +854,7 @@ c-------- K=1 is at the top of atmosphere ------------------------------
  100  FORMAT( '     - LINOZ_READ: Reading ', a )
 
       ! new std z*=2km levels from model:  z*=10,12,...(25*2)+8 km
-#if defined( DEVEL )
+#if   defined( DEVEL )
       IU_FILE = findFreeLUN()
 #endif
       OPEN( IU_FILE, FILE=TRIM( FILENAME ), STATUS='OLD', 

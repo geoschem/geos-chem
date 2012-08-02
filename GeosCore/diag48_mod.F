@@ -73,6 +73,7 @@
 !  (10) Now do not scale AOD output (now recalculated in RDAER and DUST_MOD)
 !       Minor bug fix with the accumulation of ODAER across RH bins
 !       (skim, 02/03/11)
+!  01 Aug 2012 - R. Yantosca - Add reference to findFreeLUN from inqure_mod.F90
 !******************************************************************************
 !
 #if defined( DEVEL )
@@ -763,10 +764,14 @@
 !  (1 ) FILENAME (CHARACTER) : Name of the file to be opened
 !
 !  NOTES:
+!  01 Aug 2012 - R. Yantosca - Add reference to findFreeLUN from inqure_mod.F90
 !******************************************************************************
 !
       ! References to F90 modules
-      USE FILE_MOD, ONLY : IU_ND48, IOERROR
+      USE FILE_MOD, ONLY : IOERROR
+#if   !defined( DEVEL )
+      USE FILE_MOD, ONLY : IU_ND48
+#endif
 
       ! Arguments
       CHARACTER(LEN=*), INTENT(IN) :: FILENAME

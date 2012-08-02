@@ -151,6 +151,9 @@
       USE FILE_MOD,      ONLY : IU_A1
       USE FILE_MOD,      ONLY : IOERROR
       USE TIME_MOD,      ONLY : EXPAND_DATE
+!#if   !defined( DEVEL )
+      USE FILE_MOD,      ONLY : IU_A1
+!#endif
 !
 ! !INPUT PARAMETERS: 
 !
@@ -169,6 +172,9 @@
       LOGICAL            :: DO_RESET
       LOGICAL            :: IT_EXISTS, IS_OPEN
       INTEGER            :: IOS
+!#if   defined( DEVEL )
+!      INTEGER            :: IU_A1
+!#endif
       CHARACTER(LEN=2)   :: DUM
       CHARACTER(LEN=8)   :: IDENT
       CHARACTER(LEN=255) :: A1_FILE
@@ -220,9 +226,9 @@
          !---------------------------
 
          ! Open the file
-#if defined( DEVEL )
-         IU_A1 = findFreeLUN()
-#endif
+!#if   defined( DEVEL )
+!         IU_A1 = findFreeLUN()
+!#endif
          OPEN( UNIT   = IU_A1,         FILE   = TRIM( PATH ),
      &         STATUS = 'OLD',         ACCESS = 'SEQUENTIAL',  
      &         FORM   = 'UNFORMATTED', IOSTAT = IOS )

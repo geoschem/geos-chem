@@ -207,14 +207,19 @@
       USE DIRECTORY_MOD
       USE ERROR_MOD,    ONLY : ERROR_STOP
       USE LOGICAL_MOD,  ONLY : LUNZIP
-      USE FILE_MOD,     ONLY : IU_PH, IOERROR, FILE_EXISTS
+      USE FILE_MOD,     ONLY : IOERROR, FILE_EXISTS
       USE TIME_MOD,     ONLY : EXPAND_DATE
-
-      USE CMN_SIZE_MOD     ! Size parameters
+      USE CMN_SIZE_MOD       ! Size parameters
+!#if   !defined( DEVEL )
+      USE FILE_MOD,     ONLY : IU_PH
+!#endif
 
       ! Local variables
       LOGICAL, SAVE         :: FIRST = .TRUE.
       LOGICAL               :: IT_EXISTS, IS_OPEN
+!#if   defined( DEVEL )
+!      INTEGER               :: IU_PH
+!#endif
       INTEGER               :: NYMD, NHMS
       INTEGER               :: IOS,  IUNIT
       CHARACTER(LEN=8)      :: IDENT
@@ -261,9 +266,9 @@
          ENDIF
 
          ! Open the file
-#if defined( DEVEL )
-	 IU_PH = findFreeLUN()
-#endif
+!#if defined( DEVEL )
+!	 IU_PH = findFreeLUN()
+!#endif
          OPEN( UNIT   = IU_PH,         FILE   = TRIM( PATH ),
      &         STATUS = 'OLD',         ACCESS = 'SEQUENTIAL',  
      &         FORM   = 'UNFORMATTED', IOSTAT = IOS )

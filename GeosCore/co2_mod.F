@@ -123,6 +123,7 @@
 !        (R.Nassar 2010)   
 !  25 Feb 2011 - R. Nassar  - Now read updated CDIAC CO2 emissions data
 !  07 Sep 2011 - P. Kasibhatla - Modified to include GFED3
+!  01 Aug 2012 - R. Yantosca - Add reference to findFreeLUN from inqure_mod.F90
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -1982,8 +1983,10 @@
       USE DIRECTORY_MOD, ONLY : DATA_DIR 
       USE FILE_MOD,      ONLY : IOERROR
       USE TIME_MOD,      ONLY : GET_MONTH, GET_YEAR
-
-      USE CMN_SIZE_MOD      ! Size parameters
+      USE CMN_SIZE_MOD        ! Size parameters
+#if  !defined( DEVEL )
+      USE FILE_MOD,      ONLY : IU_FILE
+#endif
 !
 ! !REMARKS:
 !  This is a modified version of READ_AIRCRAFT_SO2 from:
@@ -2008,13 +2011,17 @@
 !  (4 ) Now make sure all USE statements are USE, ONLY (bmy, 10/3/05)
 !  (6 ) Reading of GlobPTot values from input.geos has not yet been implemented
 !  18 May 2010 - R. Nassar, D. Jones - Initial version
+!  01 Aug 2012 - R. Yantosca - Add reference to findFreeLUN from inqure_mod.F90
 !EOP
 !------------------------------------------------------------------------------
 !BOC
 !
 ! !LOCAL VARIABLES:
 !
-      INTEGER             :: I, IOS, IU_FILE, J, K, L
+#if   defined( DEVEL )
+      INTEGER             :: IU_FILE
+#endif
+      INTEGER             :: I, IOS, J, K, L
       INTEGER             :: THISMONTH, N, YEAR
       REAL*8              :: ACCO2(IIPAR,JJPAR,20)
       REAL*8              :: FAC, FUEL, DZ(LLPAR), ZH(0:LLPAR)
@@ -2208,8 +2215,10 @@
       USE TRANSFER_MOD,   ONLY : TRANSFER_2D
       USE LOGICAL_MOD,    ONLY : LBIONETORIG,       LBIONETCLIM
       USE REGRID_A2A_MOD, ONLY : DO_REGRID_A2A
-
       USE CMN_SIZE_MOD         ! Size parameters
+#if   !defined( DEVEL )
+      USE FILE_MOD,       ONLY : IU_FILE
+#endif
 !
 ! !REMARKS:
 !  The two choices are:
@@ -2231,13 +2240,17 @@
 !  06 Apr 2012 - M. Payer            - Changed regrid algorithm to map_a2a
 !                                      (M. Cooper)
 !  24 May 2012 - R. Yantosca         - Fix minor bugs in map_a2a calls
+!  01 Aug 2012 - R. Yantosca - Add reference to findFreeLUN from inqure_mod.F90
 !EOP
 !------------------------------------------------------------------------------
 !BOC
 !
 ! !LOCAL VARIABLES:
 !
-      INTEGER                :: I, J, IOS, IU_FILE
+#if   defined( DEVEL )
+      INTEGER                :: IU_FILE
+#endif
+      INTEGER                :: I, J, IOS
       REAL*8		     :: TAU
       CHARACTER(LEN=255)     :: FILENAME
       CHARACTER(LEN=255)     :: LLFILENAME

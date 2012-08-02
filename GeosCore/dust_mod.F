@@ -61,6 +61,7 @@
 !  03 Sep 2010 - R. Yantosca - Bug fix in SRC_DUST_DEAD
 !  08 Feb 2012 - R. Yantosca - Add modifications for GEOS-5.7.x
 !  01 Mar 2012 - R. Yantosca - Now reference the new grid_mod.F90
+!  01 Aug 2012 - R. Yantosca - Add reference to findFreeLUN from inqure_mod.F90
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -893,10 +894,12 @@
       USE FILE_MOD,      ONLY : IOERROR
       USE TIME_MOD,      ONLY : GET_TS_EMIS
       USE GRID_MOD,      ONLY : GET_AREA_M2
-
       USE CMN_SIZE_MOD        ! Size parameters
       USE CMN_DIAG_MOD        ! ND19, LD13 (for now)
       USE CMN_GCTM_MOD        ! g0
+#if   !defined( DEVEL )
+      USE FILE_MOD,      ONLY : IU_FILE
+#endif
 !
 ! !INPUT/OUTPUT PARAMETERS: 
 ! 
@@ -945,6 +948,7 @@
 !  (2 ) Now references DATA_DIR from "directory_mod.f" (bmy, 7/20/04)
 !  25 Aug 2010 - R. Yantosca - Added ProTeX headers
 !  01 Mar 2012 - R. Yantosca - Now use GET_AREA_M2(I,J,L) from grid_mod.F90
+!  01 Aug 2012 - R. Yantosca - Add reference to findFreeLUN from inqure_mod.F90
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -959,7 +963,7 @@
       REAL*8                 :: SRCE_P, DSRC, REYNOL, ALPHA, BETA
       REAL*8                 :: GAMMA,  CW,   DTSRCE, AREA_M2
       CHARACTER(LEN=255)     :: FILENAME
-#if !defined( DEVEL )
+#if   !defined( DEVEL )
       REAL*8, SAVE           :: SRCE_FUNC(IIPAR,JJPAR,3)
 #endif
 
@@ -1004,9 +1008,11 @@
          ! Open file
 #if defined( DEVEL )
          N = findFreeLUN()
+#else
+         N = IU_FILE
 #endif
          OPEN( N, FILE=FILENAME,       STATUS='OLD', 
-     &             FORM= 'UNFORMATTED', IOSTAT=IOS )
+     &            FORM= 'UNFORMATTED', IOSTAT=IOS )
          IF ( IOS > 0 ) CALL IOERROR( IOS, 65, 'SRC_DUST_GINOUX:1' )
 
          ! Read data

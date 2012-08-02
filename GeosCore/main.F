@@ -268,8 +268,8 @@
       IF ( LPRT ) CALL DEBUG_MSG( '### MAIN: a INIT_DAO' )
 
       ! Initialize diagnostic arrays and counters
-      CALL INITIALIZE( 2 )
-      CALL INITIALIZE( 3 )
+      CALL INITIALIZE( 2, am_I_Root )
+      CALL INITIALIZE( 3, am_I_Root )
       IF ( LPRT ) CALL DEBUG_MSG( '### MAIN: a INITIALIZE' )
 
       ! Initialize the new hybrid pressure module.  Define Ap and Bp.
@@ -303,8 +303,8 @@
       ! Initialize MEGAN arrays, get 15-day avg temperatures
       IF ( LMEGAN ) THEN
          CALL INIT_MEGAN
-         CALL INITIALIZE( 2 )
-         CALL INITIALIZE( 3 )
+         CALL INITIALIZE( 2, am_I_Root )
+         CALL INITIALIZE( 3, am_I_Root )
          IF ( LPRT ) CALL DEBUG_MSG( '### MAIN: a INIT_MEGAN' )
       ENDIF
 
@@ -527,8 +527,8 @@
             !===========================================================
             !        ***** Z E R O   D I A G N O S T I C S *****
             !===========================================================
-            CALL INITIALIZE( 2 ) ! Zero arrays
-            CALL INITIALIZE( 3 ) ! Zero counters
+            CALL INITIALIZE( 2, am_I_Root ) ! Zero arrays
+            CALL INITIALIZE( 3, am_I_Root ) ! Zero counters
          ENDIF
 
          !=============================================================

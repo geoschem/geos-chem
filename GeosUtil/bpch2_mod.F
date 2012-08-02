@@ -442,6 +442,9 @@
 !
       USE ERROR_MOD, ONLY : ERROR_STOP
       USE FILE_MOD,  ONLY : IOERROR
+#if   !defined( DEVEL )
+      USE FILE_MOD,  ONLY : IU_FILE
+#endif
 
 #     include "define.h" 
 !
@@ -490,9 +493,12 @@
 ! !LOCAL VARIABLES:
 ! 
       LOGICAL            :: FOUND, TMP_QUIET
-      INTEGER            :: I,  J,  L,  N,  IOS, IU_FILE, M
+      INTEGER            :: I,  J,  L,  N,  IOS, M
       INTEGER            :: I1, I2, J1, J2, L1,  L2
       CHARACTER(LEN=255) :: MSG
+#if   defined( DEVEL )
+      INTEGER            :: IU_FILE
+#endif
       
       ! Make TEMPARRAY big enough for a global grid.  For 0.5 x 0.666 nested
       ! grid simulations we need to define this as 540x361x73.  However, this

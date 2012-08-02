@@ -105,6 +105,7 @@
 !  14 Feb 2012 - M. Payer    - Add modifications for CH4 (K. Wecht)
 !  01 Mar 2012 - R. Yantosca - Now reference new grid_mod.F90
 !  13 Mar 2012 - M. Cooper   - Change regrid algorithm to map_a2a
+!  01 Aug 2012 - R. Yantosca - Add reference to findFreeLUN from inqure_mod.F90
 !******************************************************************************
 !
 #if defined( DEVEL )
@@ -857,6 +858,7 @@
 !        set (phs, 3/18/08)
 !  (3 ) Add 9 gaseous biomass burning emissions (tmf, 1/7/09)
 !  (4 ) Add IDBs from TRACERID_MOD. Initialize BIO_SAVE (fp, 01/29/10)
+!  01 Aug 2012 - R. Yantosca - Add reference to findFreeLUN from inqure_mod.F90
 !******************************************************************************
 !
       ! References to F90 modules
@@ -865,24 +867,27 @@
       USE ERROR_MOD,     ONLY : ALLOC_ERR
       USE FILE_MOD,      ONLY : IOERROR
       USE LOGICAL_MOD,   ONLY : LDICARB
-
-      !(fp)
-      USE TRACERID_MOD, ONLY : IDBNOx,  IDBCO,   IDBALK4
-      USE TRACERID_MOD, ONLY : IDBACET, IDBMEK,  IDBALD2
-      USE TRACERID_MOD, ONLY : IDBPRPE, IDBC3H8, IDBCH2O
-      USE TRACERID_MOD, ONLY : IDBC2H6, IDBBC,   IDBOC
-      USE TRACERID_MOD, ONLY : IDBSO2,  IDBNH3,  IDBCO2
-      USE TRACERID_MOD, ONLY : IDBGLYX, IDBMGLY, IDBBENZ
-      USE TRACERID_MOD, ONLY : IDBTOLU, IDBXYLE, IDBC2H4
-      USE TRACERID_MOD, ONLY : IDBC2H2, IDBGLYC, IDBHAC
-      USE TRACERID_MOD, ONLY : IDBCH4   !kjw
-
-      USE CMN_SIZE_MOD      ! Size parameters
+      USE TRACERID_MOD,  ONLY : IDBNOx,  IDBCO,   IDBALK4
+      USE TRACERID_MOD,  ONLY : IDBACET, IDBMEK,  IDBALD2
+      USE TRACERID_MOD,  ONLY : IDBPRPE, IDBC3H8, IDBCH2O
+      USE TRACERID_MOD,  ONLY : IDBC2H6, IDBBC,   IDBOC
+      USE TRACERID_MOD,  ONLY : IDBSO2,  IDBNH3,  IDBCO2
+      USE TRACERID_MOD,  ONLY : IDBGLYX, IDBMGLY, IDBBENZ
+      USE TRACERID_MOD,  ONLY : IDBTOLU, IDBXYLE, IDBC2H4
+      USE TRACERID_MOD,  ONLY : IDBC2H2, IDBGLYC, IDBHAC
+      USE TRACERID_MOD,  ONLY : IDBCH4   !kjw
+      USE CMN_SIZE_MOD        ! Size parameters
+#if   !defined( DEVEL )
+      USE FILE_MOD,      ONLY : IU_FILE
+#endif
 
       ! Local variables
-      INTEGER                :: AS, IOS, M, N, NDUM, IU_FILE
-      REAL*4                 :: ARRAY(I1x1,J1x1-1,1)
-      CHARACTER(LEN=255)     :: FILENAME
+#if   defined( DEVEL )
+      INTEGER            :: IU_FILE
+#endif
+      INTEGER            :: AS, IOS, M, N, NDUM
+      REAL*4             :: ARRAY(I1x1,J1x1-1,1)
+      CHARACTER(LEN=255) :: FILENAME
       
       !=================================================================
       ! INIT_GFED2_BIOMASS begins here!

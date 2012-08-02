@@ -108,6 +108,7 @@
 !  25 Oct 2011 - H. Amos     - bring in code for Hg2 gas-particle partitioning
 !  08 Feb 2012 - R. Yantosca - Add modifications for GEOS-5.7.2 data
 !  01 Mar 2012 - R. Yantosca - Now reference new grid_mod.F90
+!  01 Aug 2012 - R. Yantosca - Add reference to findFreeLUN from inqure_mod.F90
 !******************************************************************************
 !
 #if defined( DEVEL )
@@ -2136,6 +2137,7 @@
 !  (2 ) HHMMSS   :  and Hour-Min-Sec for which to read restart file
 ! 
 !  NOTES:
+!  01 Aug 2012 - R. Yantosca - Add reference to findFreeLUN from inqure_mod.F90
 !******************************************************************************
 !
       ! References to F90 modules
@@ -2149,30 +2151,35 @@
       USE TRACER_MOD,       ONLY : STT,         TRACER_NAME, TRACER_MW_G
       USE TRACERID_MOD,     ONLY : GET_Hg0_CAT, GET_Hg2_CAT, N_Hg_CATS
       USE TRACERID_MOD,     ONLY : ID_Hg0,      ID_Hg2
-
-      USE CMN_SIZE_MOD     ! Size parameters
+      USE CMN_SIZE_MOD           ! Size parameters
+#if   !defined( DEVEL )
+      USE FILE_MOD,         ONLY : IU_FILE
+#endif
 
       ! Arguments
-      INTEGER, INTENT(IN)   :: YYYYMMDD, HHMMSS
+      INTEGER, INTENT(IN) :: YYYYMMDD, HHMMSS
 
       ! Local Variables
-      INTEGER               :: I, IOS, IU_FILE, J, L, NN, N_oc
-      INTEGER               :: YEAR, MONTH, DAY
-      INTEGER               :: NCOUNT(NNPAR) 
-      REAL*4                :: Hg_OCEAN(IIPAR,JJPAR,1)
-      CHARACTER(LEN=255)    :: FILENAME
+#if   defined( DEVEL )
+      INTEGER             :: IU_FILE
+#endif
+      INTEGER             :: I, IOS, J, L, NN, N_oc
+      INTEGER             :: YEAR, MONTH, DAY
+      INTEGER             :: NCOUNT(NNPAR) 
+      REAL*4              :: Hg_OCEAN(IIPAR,JJPAR,1)
+      CHARACTER(LEN=255)  :: FILENAME
 
       ! For binary punch file, version 2.0
-      INTEGER               :: NI,        NJ,      NL
-      INTEGER               :: IFIRST,    JFIRST,  LFIRST
-      INTEGER               :: NTRACER,   NSKIP
-      INTEGER               :: HALFPOLAR, CENTER180
-      REAL*4                :: LONRES,    LATRES
-      REAL*8                :: ZTAU0,     ZTAU1
-      CHARACTER(LEN=20)     :: MODELNAME
-      CHARACTER(LEN=40)     :: CATEGORY
-      CHARACTER(LEN=40)     :: UNIT     
-      CHARACTER(LEN=40)     :: RESERVED
+      INTEGER             :: NI,        NJ,      NL
+      INTEGER             :: IFIRST,    JFIRST,  LFIRST
+      INTEGER             :: NTRACER,   NSKIP
+      INTEGER             :: HALFPOLAR, CENTER180
+      REAL*4              :: LONRES,    LATRES
+      REAL*8              :: ZTAU0,     ZTAU1
+      CHARACTER(LEN=20)   :: MODELNAME
+      CHARACTER(LEN=40)   :: CATEGORY
+      CHARACTER(LEN=40)   :: UNIT     
+      CHARACTER(LEN=40)   :: RESERVED
 
       !=================================================================
       ! READ_OCEAN_Hg_RESTART begins here!
@@ -2196,7 +2203,7 @@
  110  FORMAT( /, 'READ_OCEAN_Hg_RESTART: Reading ', a )
 
       ! Open the binary punch file for input
-#if defined( DEVEL )
+#if   defined( DEVEL )
       IU_FILE = findFreeLUN()
 #endif
       CALL OPEN_BPCH2_FOR_READ( IU_FILE, FILENAME )
@@ -2456,6 +2463,7 @@
 !  (3 ) TAU      : GEOS-CHEM TAU value corresponding to YYYYMMDD, HHMMSS
 !  
 !  NOTES:
+!  01 Aug 2012 - R. Yantosca - Add reference to findFreeLUN from inqure_mod.F90
 !******************************************************************************
 !
       ! References to F90 modules
@@ -2467,21 +2475,26 @@
       USE TIME_MOD,         ONLY : EXPAND_DATE, GET_TAU
       USE TRACERID_MOD,     ONLY : ID_Hg_tot,   ID_Hg0
       USE TRACERID_MOD,     ONLY : ID_Hg2,      N_Hg_CATS
-
-      USE CMN_SIZE_MOD     ! Size parameters
+      USE CMN_SIZE_MOD           ! Size parameters
+#if   !defined( DEVEL )
+      USE FILE_MOD,         ONLY : IU_FILE
+#endif
 
       ! Arguments           
-      INTEGER, INTENT(IN)   :: NYMD, NHMS
-      REAL*8,  INTENT(IN)   :: TAU
+      INTEGER, INTENT(IN) :: NYMD, NHMS
+      REAL*8,  INTENT(IN) :: TAU
 
       ! Local variables
-      INTEGER               :: HALFPOLAR, CENTER180
-      INTEGER               :: IFIRST,    IU_FILE,  JFIRST,   LFIRST
-      INTEGER               :: N,         NN
-      REAL*4                :: LONRES,    LATRES,   ARRAY(IIPAR,JJPAR,1)
-      CHARACTER(LEN=20)     :: MODELNAME
-      CHARACTER(LEN=40)     :: CATEGORY,  UNIT,     RESERVED
-      CHARACTER(LEN=255)    :: FILENAME
+#if   defined( DEVEL )
+      INTEGER             :: IU_FILE
+#endif
+      INTEGER             :: HALFPOLAR, CENTER180
+      INTEGER             :: IFIRST,    JFIRST,   LFIRST
+      INTEGER             :: N,         NN
+      REAL*4              :: LONRES,    LATRES,   ARRAY(IIPAR,JJPAR,1)
+      CHARACTER(LEN=20)   :: MODELNAME
+      CHARACTER(LEN=40)   :: CATEGORY,  UNIT,     RESERVED
+      CHARACTER(LEN=255)  :: FILENAME
 
       !=================================================================
       ! MAKE_OCEAN_Hg_RESTART begins here!

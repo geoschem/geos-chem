@@ -85,6 +85,7 @@
 !  14 Feb 2012 - M. Payer      - Add modifications for CH4 (K. Wecht)
 !  01 Mar 2012 - R. Yantosca   - Now reference new grid_mod.F90
 !  06 Mar 2012 - P. Kasibhatla - Final version
+!  01 Aug 2012 - R. Yantosca - Add reference to findFreeLUN from inqure_mod.F90
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -1088,19 +1089,25 @@
       USE TRACERID_MOD,    ONLY : IDBCH4   !kjw
       USE GLOBAL_GRID_MOD, ONLY : GET_IIIPAR
       USE GLOBAL_GRID_MOD, ONLY : GET_JJJPAR
-
       USE CMN_SIZE_MOD          ! Size parameters
+#if   !defined( DEVEL )
+      USE FILE_MOD,        ONLY : IU_FILE
+#endif
 
 ! 
 ! !REVISION HISTORY: 
 !  07 Sep 2011 - P. Kasibhatla - Initial version, based on GFED2
 !  07 Sep 2011 - R. Yantosca   - Added ProTeX headers 
+!  01 Aug 2012 - R. Yantosca - Add reference to findFreeLUN from inqure_mod.F90
 !EOP
 !------------------------------------------------------------------------------
 !BOC
 !
 ! !LOCAL VARIABLES:
 !
+#if   defined( DEVEL )
+      INTEGER            :: IU_FILE
+#endif
       INTEGER            :: AS, IOS, M, N, NDUM
       REAL*4             :: ARRAY_LANDMAP(IGFED3,JGFED3,1)
       CHARACTER(LEN=255) :: FILENAME
@@ -1216,7 +1223,7 @@
       Print*, FILENAME
 
       ! Open emission factor file (ASCII format)
-#if defined( DEVEL )
+#if   defined( DEVEL )
       IU_FILE = findFreeLUN()
 #endif
       OPEN( IU_FILE, FILE=TRIM( FILENAME ), STATUS='OLD', IOSTAT=IOS )

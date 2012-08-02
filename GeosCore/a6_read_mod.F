@@ -411,9 +411,9 @@
          ENDIF
 
          ! Open the file
-#if defined( DEVEL )
-         IU_A6 = findFreeLUN()
-#endif
+!#if defined( DEVEL )
+!         IU_A6 = findFreeLUN()
+!#endif
          OPEN( UNIT   = IU_A6,         FILE   = TRIM( PATH ),
      &         STATUS = 'OLD',         ACCESS = 'SEQUENTIAL',  
      &         FORM   = 'UNFORMATTED', IOSTAT = IOS )

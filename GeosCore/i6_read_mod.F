@@ -268,8 +268,11 @@
       USE DIRECTORY_MOD, ONLY : GEOS_4_DIR, GEOS_5_DIR, TEMP_DIR 
       USE ERROR_MOD,     ONLY : ERROR_STOP
       USE LOGICAL_MOD,   ONLY : LUNZIP, LVARTROP
-      USE FILE_MOD,      ONLY : IU_I6, IOERROR, FILE_EXISTS, IU_TP
+      USE FILE_MOD,      ONLY : IOERROR, FILE_EXISTS, IU_TP
       USE TIME_MOD,      ONLY : EXPAND_DATE
+!#if   !defined( DEVEL )
+      USE FILE_MOD,      ONLY : IU_I6
+!#endif
 
       USE CMN_SIZE_MOD      ! Size parameters
 
@@ -278,6 +281,9 @@
 
       ! Local variables
       LOGICAL, SAVE          :: FIRST = .TRUE.
+!#if   defined( DEVEL )
+!      INTEGER                :: IU_I6
+!#endif
       LOGICAL                :: IT_EXISTS, IS_OPEN
       INTEGER                :: IOS, IUNIT
       CHARACTER(LEN=8)       :: IDENT
@@ -337,9 +343,9 @@
          ENDIF
 
          ! Open the file
-#if defined( DEVEL )
-         IU_I6 = findFreeLUN()
-#endif
+!#if   defined( DEVEL )
+!         IU_I6 = findFreeLUN()
+!#endif
          OPEN( UNIT   = IU_I6,         FILE   = TRIM( PATH ),
      &         STATUS = 'OLD',         ACCESS = 'SEQUENTIAL',  
      &         FORM   = 'UNFORMATTED', IOSTAT = IOS )

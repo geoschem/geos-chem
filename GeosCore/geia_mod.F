@@ -50,6 +50,7 @@
 !  (16) Modifications for reading data on GEOS-4 1 x 1.25 grids (bmy, 1/13/10)
 !  01 Mar 2012 - R. Yantosca - Now reference new grid_mod.F90
 !  01 Mar 2012 - R. Yantosca - Use updated GET_LOCALTIME from time_mod.F
+!  01 Aug 2012 - R. Yantosca - Add reference to findFreeLUN from inqure_mod.F90
 !******************************************************************************
 !
 #if defined( DEVEL )
@@ -85,21 +86,27 @@
 !        from "file_mod.f" (bmy, 6/27/02)
 !  (7 ) Now use ENCODE to define CYEAR string for PGI/Linux (bmy, 9/29/03)
 !  (8 ) Now references DATA_DIR from "directory_mod.f" (bmy, 7/20/04)
+!  01 Aug 2012 - R. Yantosca - Add reference to findFreeLUN from inqure_mod.F90
 !******************************************************************************
 !
       ! References to F90 modules
       USE BPCH2_MOD,     ONLY : GET_RES_EXT
       USE DIRECTORY_MOD, ONLY : DATA_DIR
       USE FILE_MOD,      ONLY : IOERROR
-
-      USE CMN_SIZE_MOD   ! Size parameters
+      USE CMN_SIZE_MOD        ! Size parameters
+#if   !defined( DEVEL )
+      USE FILE_MOD,      ONLY : IU_FILE
+#endif
 
       ! Arguments
       INTEGER, INTENT(IN)  :: SCALEYEAR
       REAL*4,  INTENT(OUT) :: TOTCO2(IIPAR,JJPAR)
 
       ! Local variables
-      INTEGER              :: I, J, IX, JX, IOS, IU_FILE
+#if   defined( DEVEL )
+      INTEGER              :: IU_FILE
+#endif
+      INTEGER              :: I, J, IX, JX, IOS
       CHARACTER(LEN=4  )   :: CYEAR
       CHARACTER(LEN=255)   :: FILENAME
 
@@ -176,6 +183,7 @@
 !        from "file_mod.f" (bmy, 6/27/02)
 !  (7 ) Now use ENCODE to define CYEAR string for PGI/Linux (bmy, 9/29/03)
 !  (8 ) Now references DATA_DIR from "directory_mod.f" (bmy, 7/20/04)
+!  01 Aug 2012 - R. Yantosca - Add reference to findFreeLUN from inqure_mod.F90
 !******************************************************************************
 !
       ! References to F90 modules
@@ -183,17 +191,20 @@
       USE DIRECTORY_MOD, ONLY : DATA_DIR
       USE FILE_MOD,      ONLY : IOERROR
       USE BPCH2_MOD,     ONLY : GET_RES_EXT
-
-
-
-      USE CMN_SIZE_MOD   ! Size parameters
+      USE CMN_SIZE_MOD        ! Size parameters
+#if   !defined( DEVEL )
+      USE FILE_MOD,      ONLY : IU_FILE
+#endif
 
       ! Arguments
       INTEGER, INTENT(IN)  :: SCALEYEAR
       REAL*4,  INTENT(OUT) :: LIQCO2(IIPAR,JJPAR)
 
       ! Local variables
-      INTEGER              :: I, J, IX, JX, IU_FILE, IOS
+#if   defined( DEVEL )
+      INTEGER              :: IU_FILE
+#endif
+      INTEGER              :: I, J, IX, JX, IOS
       CHARACTER(LEN=4  )   :: CYEAR
       CHARACTER(LEN=255)   :: FILENAME
 
@@ -279,13 +290,16 @@
 !       sum of TODB is not 6, which points to a problem. However this is not
 !       used in the code. (phs, 4/16/09)
 !  (10) Now read data for GEOS-4 1 x 1.25 grid (bmy, 1/13/09)
+!  01 Aug 2012 - R. Yantosca - Add reference to findFreeLUN from inqure_mod.F90
 !******************************************************************************
 !
       ! References to F90 modules
       USE DIRECTORY_MOD, ONLY : DATA_DIR
       USE FILE_MOD,      ONLY : IOERROR
-
-      USE CMN_SIZE_MOD  ! Size parameters
+      USE CMN_SIZE_MOD        ! Size parameters
+#if   !defined( DEVEL )
+      USE FILE_MOD,      ONLY : IU_FILE
+#endif
 
       ! Arguments
       REAL*8, INTENT(OUT) :: TODH(6), TODN(6), TODB(6), SCNR89(3,3)
@@ -300,8 +314,10 @@
       !=================================================================
 
       ! File name unit
-#if defined( DEVEL )
+#if   defined( DEVEL )
       IUNIT = findFreeLUN()
+#else
+      IUNIT = IU_FILE
 #endif
       
 #if   defined( GRID4x5  )
@@ -487,8 +503,10 @@
       USE BPCH2_MOD,     ONLY : GET_RES_EXT
       USE DIRECTORY_MOD, ONLY : DATA_DIR
       USE FILE_MOD,      ONLY : IOERROR
-
-      USE CMN_SIZE_MOD            ! Size parameters
+      USE CMN_SIZE_MOD        ! Size parameters
+#if   !defined( DEVEL )
+      USE FILE_MOD,      ONLY : IU_FILE
+#endif
 
       ! Arguments
       REAL*4, INTENT(OUT), OPTIONAL :: E_NOX (IIPAR,JJPAR,4,2)
@@ -535,6 +553,8 @@
       ! Define the file unit
 #if defined( DEVEL )
       IUNIT = findFreeLUN()
+#else
+      IUNIT = IU_FILE
 #endif
       
       ! Echo the filename to stdout

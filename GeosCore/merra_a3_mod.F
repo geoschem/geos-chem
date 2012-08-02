@@ -140,8 +140,10 @@
       USE FILE_MOD,      ONLY : IU_A3
       USE FILE_MOD,      ONLY : IOERROR
       USE TIME_MOD,      ONLY : EXPAND_DATE
-
-      USE CMN_SIZE_MOD      ! Size parameters
+      USE CMN_SIZE_MOD              ! Size parameters
+!#if   !defined( DEVEL )
+      USE FILE_MOD,      ONLY : IU_A3
+!#endif
 !
 ! !INPUT PARAMETERS: 
 !
@@ -159,6 +161,9 @@
       LOGICAL, SAVE      :: FIRST = .TRUE.
       LOGICAL            :: IT_EXISTS, IS_OPEN
       INTEGER            :: IOS, IUNIT
+!if   defined( DEVEL )
+!      INTEGER            :: IU_A3
+!#endif
       CHARACTER(LEN=8)   :: IDENT
       CHARACTER(LEN=255) :: A3_FILE
       CHARACTER(LEN=255) :: GEOS_DIR
@@ -202,9 +207,9 @@
          !---------------------------
 
          ! Open the file
-#if defined( DEVEL )
-         IU_A3 = findFreeLUN()
-#endif
+!#if defined( DEVEL )
+!         IU_A3 = findFreeLUN()
+!#endif
          OPEN( UNIT   = IU_A3,         FILE   = TRIM( PATH ),
      &         STATUS = 'OLD',         ACCESS = 'SEQUENTIAL',  
      &         FORM   = 'UNFORMATTED', IOSTAT = IOS )

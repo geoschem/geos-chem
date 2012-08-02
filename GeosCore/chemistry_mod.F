@@ -261,7 +261,7 @@
              IF ( LCARB ) CALL CHEMCARBON( am_I_Root )
  
              ! Do dust aerosol chemistry
-             IF ( LDUST ) CALL CHEMDUST( am_I_Root )
+            IF ( LDUST ) CALL CHEMDUST( am_I_Root )
  
              ! ND44 drydep fluxes
              ! The drydep fluxes diag. is done in vdiff_mod.f when non-local 

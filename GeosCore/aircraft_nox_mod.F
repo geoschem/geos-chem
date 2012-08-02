@@ -52,6 +52,7 @@
 !  (8 ) Now references "grid_mod.f" and "time_mod.f" (bmy, 2/11/03)
 !  (9 ) Now references "directory_mod.f" (bmy, 7/19/04)
 !  (10) Replace GEMISNOX (from CMN_NOX) with a module variable (bmy, 10/3/07)
+!  01 Aug 2012 - R. Yantosca - Add reference to findFreeLUN from inqure_mod.F90
 !******************************************************************************
 !
 #if defined( DEVEL )
@@ -136,6 +137,7 @@
 !        FIRST and MONTHSAVE to LASTMONTH. (bmy, 2/11/03)
 !  (12) Removed reference to "CMN", it's obsolete.  Now references DATA_DIR 
 !        from "directory_mod.f" (bmy, 7/19/04)
+!  01 Aug 2012 - R. Yantosca - Add reference to findFreeLUN from inqure_mod.F90
 !******************************************************************************
 !
       ! References to F90 modules
@@ -143,13 +145,18 @@
       USE DIRECTORY_MOD, ONLY : DATA_DIR
       USE FILE_MOD,      ONLY : IOERROR
       USE TIME_MOD,      ONLY : GET_MONTH
-
-      USE CMN_SIZE_MOD    ! Size parameters
+      USE CMN_SIZE_MOD        ! Size parameters
+#if   !defined( DEVEL )
+      USE FILE_MOD,      ONLY : IU_FILE  
+#endif
 
       ! Local variables
       LOGICAL, SAVE      :: FIRST     = .TRUE.
       INTEGER, SAVE      :: LASTMONTH = -99
-      INTEGER            :: I, J, K, IU_FILE, IOS
+      INTEGER            :: I, J, K, IOS
+#if   defined( DEVEL )
+      INTEGER            :: IU_FILE
+#endif
 
       ! Conversion factor from [kg NO2/4h] to [molec NO2/s]
       REAL*8             :: CONV=9.0927d+20

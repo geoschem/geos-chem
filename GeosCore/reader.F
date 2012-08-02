@@ -28,14 +28,19 @@
 !        This coincides w/ the new globchem.dat. (bmy, 8/9/06)
 !  (6 ) At the end of this subrouitne, now set NCS=NCSURBAN (=1) instead of 
 !        hardwiring it. (dbm, bmy, 10/16/06)
+!  01 Aug 2012 - R. Yantosca - Add reference to findFreeLUN from inqure_mod.F90
 !******************************************************************************
 !
       ! References to F90 modules
       USE ERROR_MOD,  ONLY : GEOS_CHEM_STOP
-      USE FILE_MOD,   ONLY : IU_CHEMDAT, IU_SMV2LOG
+      USE FILE_MOD,   ONLY : IU_SMV2LOG
       USE TIME_MOD,   ONLY : GET_TS_CHEM
-#if defined( DEVEL )
+#if   defined( DEVEL )
       USE inquireMod, ONLY : findFreeLUN
+#else
+      USE FILE_MOD,   ONLY : IU_CHEMDAT
+      USE FILE_MOD,   ONLY : IU_FILE
+      USE FILE_MOD,   ONLY : IU_SMV2LOG
 #endif
 
 #     include "define.h"
@@ -90,12 +95,19 @@
       INTEGER             :: K,       M2,      M1,       MLOOP,   KLOOP 
       INTEGER             :: JLOOP,   IAVBLOK, IAVGSIZE, IREMAIN, JADD
       INTEGER             :: IFCHEM,  I,       NALLREAC, NMPROD,  I1
-      INTEGER             :: IU_FILE, J,      NK
+      INTEGER             :: J,      NK
+#if   defined( DEVEL )
+      INTEGER             :: IU_CHEMDAT
+      INTEGER             :: IU_FILE
+      INTEGER             :: IU_SMV2LOG
+#endif
 
       REAL*8              :: ERRMAXU, YLOWU, YHIU, HMAXDAYU
       REAL*8              :: ERRMAXR, YLOWR, YHIR, HMAXDAYR
       REAL*8              :: ERRMAXS, YLOWS, YHIS, HMAXDAYS
       REAL*8              :: ABHI,    ABLO
+      CHARACTER(LEN=255)  :: FILENAME
+
 
       NAMELIST /CTLFLG/ IFSOLVE, ITESTGEAR,   
      1                  IFURBAN, IFTROP,  IFSTRAT
@@ -168,11 +180,15 @@
 ! *********************** OPEN CONTROL INPUT FILE ********************* 
 ! *********************************************************************
 !
+      ! Name of file to open
+      FILENAME = "mglob.dat"
 
-#if defined( DEVEL )
-      IU_FILE = findFreeLUN()
+#if   defined( DEVEL )
+      IU_FILE  = findFreeLUN()
+      FILENAME = TRIM( FILENAME ) // "___.rc"
 #endif
-      OPEN( UNIT=IU_FILE, FILE = "mglob.dat___.rc", ACTION="read",
+
+      OPEN( UNIT=IU_FILE, FILE=TRIM( FILENAME ), ACTION="read",
      &      FORM="formatted", STATUS="old", ACCESS="sequential" )
   
       READ( IU_FILE, 100    ) HEADING 
@@ -185,15 +201,14 @@
       CLOSE( UNIT=IU_FILE )
 
       IF ( am_I_Root ) THEN 
-         PRINT *,"GEOSCHEM::READER: Successfully read mglob.dat___.rc"
+         WRITE( 6, 300 ) TRIM( FILENAME )
+ 300     FORMAT( 'GEOSCHEM::READER: Successfully read ' , a )
       ENDIF
 
       ! NOTE: Redefine CHEMINTV [s] to the value in "input.geos" so 
       ! that we don't have a discrepancy with the value in "mglob.dat" 
       ! (bmy, 5/10/05)
       CHEMINTV = GET_TS_CHEM() * 60d0
-
-
 !
 ! *********************************************************************
 ! *                     DEFINE SOME GRID PARAMETERS                   *
@@ -238,81 +253,88 @@
 !                            OPEN MORE FILES 
 ! *********************************************************************
 !
-#if defined( DEVEL )
+      ! Name of file to open
+      FILENAME   ='globchem.dat' 
+
+#if   defined( DEVEL )
       IU_CHEMDAT = findFreeLUN()
+      FILENAME   = TRIM( FILENAME ) // '___.rc'
 #endif
-      KGLC = IU_CHEMDAT
-      IF(am_I_Root) 
-     1     PRINT *,
-     2     "GEOSCHEM::READER: Opening globchem.dat___.rc on unit ",
-     3     IU_CHEMDAT
+      KGLC       = IU_CHEMDAT
+
+      IF ( am_I_Root ) THEN 
+         WRITE( 6, 310 ) TRIM( FILENAME )
+ 310     FORMAT( 'GEOSCHEM::READER: Opening ', a, ' on unit ', i6  )
+      ENDIF
 
       ! Open chemistry mechanism file
-      OPEN( KGLC, FILE ='globchem.dat___.rc' )
+      OPEN( KGLC, FILE=TRIM( FILENAME ) )
 
       ! Open "smv2.log" for echoback output as unit #93
-      IF(am_I_Root) THEN
+      IF ( am_I_Root ) THEN
 #if defined( DEVEL )
-       IU_SMV2LOG = findFreeLUN()
+         IU_SMV2LOG = findFreeLUN()
 #endif
-       PRINT *,"GEOSCHEM::READER: Opening smv2.log on unit ",IU_SMV2LOG
-       IO93 = IU_SMV2LOG
-       OPEN( IO93, FILE='smv2.log', STATUS='UNKNOWN' )
+         WRITE( 6, 320 ) IU_SMV2LOG
+ 320     FORMAT( 'GEOSCHEM::READER: Opening smv2.log on unit', i6 )
+
+         IO93 = IU_SMV2LOG
+         OPEN( IO93, FILE='smv2.log', STATUS='UNKNOWN' )
 !
 ! *********************************************************************
 ! *                    PRINT INFORMATION FROM m.dat                   *
 ! *********************************************************************
 !
-       IF (IPREADER.EQ. 1 .AND. FIRSTCHEM .and. am_I_Root ) THEN
-         WRITE( IO93, '(a)'   ) REPEAT( '=', 79 )
-         WRITE( IO93, '(a,/)' ) 'SMV2.LOG -- SMVGEAR II information' 
-         WRITE( IO93, '(a)'   ) 'Switches in mglob.dat___.rc'
-         WRITE( IO93, '(a)'   ) REPEAT( '=', 79 )
-         WRITE( IO93, *       ) 'IFSOLVE   = ', IFSOLVE
-         WRITE( IO93, *       ) 'ITESTGEAR = ', ITESTGEAR
-         WRITE( IO93, *       ) 'IFURBAN   = ', IFURBAN
-         WRITE( IO93, *       ) 'IFTROP    = ', IFTROP
-         WRITE( IO93, *       ) 'IFSTRAT   = ', IFSTRAT
-         WRITE( IO93, *       ) 'KULOOP    = ', KULOOP
-         WRITE( IO93, *       ) 'LYOUT     = ', LYOUT
-         WRITE( IO93, *       ) 'LXOUT     = ', LXOUT
-         WRITE( IO93, *       ) 'LZOUT     = ', LZOUT
-         WRITE( IO93, *       ) 'CHEMINTV  = ', CHEMINTV
-         WRITE( IO93, *       ) 'IPRATES   = ', IPRATES
-         WRITE( IO93, *       ) 'IPREADER  = ', IPREADER
-         WRITE( IO93, *       ) 'IOSPEC    = ', IOSPEC
-         WRITE( IO93, *       ) 'IOREAC    = ', IOREAC
-         WRITE( IO93, *       ) 'APGASA    = ', APGASA
-         WRITE( IO93, *       ) 'APGASB    = ', APGASB
-         WRITE( IO93, *       ) 'APGASC    = ', APGASC
-         WRITE( IO93, *       ) 'APGASD    = ', APGASD
-         WRITE( IO93, *       ) 'APGASE    = ', APGASE
-         WRITE( IO93, *       ) 'APGASF    = ', APGASF
-         WRITE( IO93, *       ) 'APGASG    = ', APGASG
-         WRITE( IO93, *       ) 'IFREORD   = ', IFREORD 
-         WRITE( IO93, *       ) 'FRACDEC   = ', FRACDEC
-         WRITE( IO93, *       ) 'PLOURB    = ', PLOURB 
-         WRITE( IO93, *       ) 'PLOTROP   = ', PLOTROP
-         WRITE( IO93, *       ) 'ERRMAXU   = ', ERRMAXU
-         WRITE( IO93, *       ) 'YLOWU     = ', YLOWU
-         WRITE( IO93, *       ) 'YHIU      = ', YHIU 
-         WRITE( IO93, *       ) 'HMAXDAYU  = ', HMAXDAYU 
-         WRITE( IO93, *       ) 'ERRMAXR   = ', ERRMAXR
-         WRITE( IO93, *       ) 'YLOWR     = ', YLOWR          
-         WRITE( IO93, *       ) 'YHIR      = ', YHIR 
-         WRITE( IO93, *       ) 'HMAXDAYR  = ', HMAXDAYR 
-         WRITE( IO93, *       ) 'ERRMAXS   = ', ERRMAXS
-         WRITE( IO93, *       ) 'YLOWS     = ', YLOWS 
-         WRITE( IO93, *       ) 'YHIS      = ', YHIS
-         WRITE( IO93, *       ) 'HMAXDAYS  = ', HMAXDAYS 
-         WRITE( IO93, *       ) 'HMAXNIT   = ', HMAXNIT
-         WRITE( IO93, '(/,a)' ) 'Using U.C.I. Fast-J photolysis'  
-!        WRITE(    6, '(a)'   ) 'Using U.C.I. Fast-J photolysis'     
+         IF ( IPREADER.EQ. 1 .AND. FIRSTCHEM .and. am_I_Root ) THEN
+            WRITE( IO93, '(a)'   ) REPEAT( '=', 79 )
+            WRITE( IO93, '(a,/)' ) 'SMV2.LOG -- SMVGEAR II information' 
+            WRITE( IO93, '(a)'   ) 'Switches in mglob.dat___.rc'
+            WRITE( IO93, '(a)'   ) REPEAT( '=', 79 )
+            WRITE( IO93, *       ) 'IFSOLVE   = ', IFSOLVE
+            WRITE( IO93, *       ) 'ITESTGEAR = ', ITESTGEAR
+            WRITE( IO93, *       ) 'IFURBAN   = ', IFURBAN
+            WRITE( IO93, *       ) 'IFTROP    = ', IFTROP
+            WRITE( IO93, *       ) 'IFSTRAT   = ', IFSTRAT
+            WRITE( IO93, *       ) 'KULOOP    = ', KULOOP
+            WRITE( IO93, *       ) 'LYOUT     = ', LYOUT
+            WRITE( IO93, *       ) 'LXOUT     = ', LXOUT
+            WRITE( IO93, *       ) 'LZOUT     = ', LZOUT
+            WRITE( IO93, *       ) 'CHEMINTV  = ', CHEMINTV
+            WRITE( IO93, *       ) 'IPRATES   = ', IPRATES
+            WRITE( IO93, *       ) 'IPREADER  = ', IPREADER
+            WRITE( IO93, *       ) 'IOSPEC    = ', IOSPEC
+            WRITE( IO93, *       ) 'IOREAC    = ', IOREAC
+            WRITE( IO93, *       ) 'APGASA    = ', APGASA
+            WRITE( IO93, *       ) 'APGASB    = ', APGASB
+            WRITE( IO93, *       ) 'APGASC    = ', APGASC
+            WRITE( IO93, *       ) 'APGASD    = ', APGASD
+            WRITE( IO93, *       ) 'APGASE    = ', APGASE
+            WRITE( IO93, *       ) 'APGASF    = ', APGASF
+            WRITE( IO93, *       ) 'APGASG    = ', APGASG
+            WRITE( IO93, *       ) 'IFREORD   = ', IFREORD 
+            WRITE( IO93, *       ) 'FRACDEC   = ', FRACDEC
+            WRITE( IO93, *       ) 'PLOURB    = ', PLOURB 
+            WRITE( IO93, *       ) 'PLOTROP   = ', PLOTROP
+            WRITE( IO93, *       ) 'ERRMAXU   = ', ERRMAXU
+            WRITE( IO93, *       ) 'YLOWU     = ', YLOWU
+            WRITE( IO93, *       ) 'YHIU      = ', YHIU 
+            WRITE( IO93, *       ) 'HMAXDAYU  = ', HMAXDAYU 
+            WRITE( IO93, *       ) 'ERRMAXR   = ', ERRMAXR
+            WRITE( IO93, *       ) 'YLOWR     = ', YLOWR          
+            WRITE( IO93, *       ) 'YHIR      = ', YHIR 
+            WRITE( IO93, *       ) 'HMAXDAYR  = ', HMAXDAYR 
+            WRITE( IO93, *       ) 'ERRMAXS   = ', ERRMAXS
+            WRITE( IO93, *       ) 'YLOWS     = ', YLOWS 
+            WRITE( IO93, *       ) 'YHIS      = ', YHIS
+            WRITE( IO93, *       ) 'HMAXDAYS  = ', HMAXDAYS 
+            WRITE( IO93, *       ) 'HMAXNIT   = ', HMAXNIT
+            WRITE( IO93, '(/,a)' ) 'Using U.C.I. Fast-J photolysis'  
+!           WRITE(    6, '(a)'   ) 'Using U.C.I. Fast-J photolysis'     
 
-         ! Write spacer line to "smv2.log
-         WRITE( IO93, '(a)' )
-       END IF
-      END IF
+            ! Write spacer line to "smv2.log
+            WRITE( IO93, '(a)' )
+         ENDIF
+      ENDIF
 !
 ! *********************************************************************
 ! *******             THE VALUES OF BASIC PARAMETERS            *******
@@ -793,7 +815,7 @@
       ! Set NCS=NCSURBAN here since we have defined our tropospheric
       ! chemistry mechanism in the urban slot of SMVGEAR II
       NCS = NCSURBAN
-!
+!     
 ! *********************************************************************
 ! ********************** END OF SUBROUTINE READER *********************
 ! *********************************************************************

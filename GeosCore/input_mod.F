@@ -141,7 +141,7 @@
       INTEGER            :: TS_EMIS
       INTEGER            :: TS_UNIT
       INTEGER            :: CT1, CT2, CT3
-      CHARACTER(LEN=255) :: FILENAME = 'input.geos___.rc'
+      CHARACTER(LEN=255) :: FILENAME = 'input.geos'
       CHARACTER(LEN=255) :: TOPTITLE
       CHARACTER(LEN=255) :: BPCH_FILE
       CHARACTER(LEN=255) :: DIAGINFO  
@@ -212,7 +212,8 @@
 
       ! Open file
 #if defined( DEVEL )
-      IU_GEOS = findFreeLUN()
+      IU_GEOS  = findFreeLUN()
+      FILENAME = TRIM( FILENAME ) // '___.rc'
 #endif
       OPEN( IU_GEOS, FILE=TRIM( FILENAME ), STATUS='OLD', IOSTAT=IOS )
       IF ( IOS /= 0 ) CALL IOERROR( IOS, IU_GEOS, 'read_input_file:1' )

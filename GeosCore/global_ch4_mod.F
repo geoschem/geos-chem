@@ -72,6 +72,7 @@
 !  08 Feb 2012 - R. Yantosca - Added modifications for GEOS-5.7.x
 !  01 Mar 2012 - R. Yantosca - Now reference new grid_mod.F90
 !  07 Mar 2012 - M. Payer    - Added ProTeX headers
+!  01 Aug 2012 - R. Yantosca - Add reference to findFreeLUN from inqure_mod.F90
 !EOP
 !------------------------------------------------------------------------------
 !BOC
