@@ -285,10 +285,13 @@
 
       ! Initialize allocatable SMVGEAR/KPP arrays
       IF ( LEMIS .or. LCHEM ) THEN
-         IF ( ITS_A_FULLCHEM_SIM() ) CALL INIT_COMODE
-         IF ( ITS_AN_AEROSOL_SIM() ) CALL INIT_COMODE
-         IF ( LKPP )  CALL INIT_GCKPP_COMODE( IIPAR, JJPAR, LLTROP,
-     $        ITLOOP, NMTRATE, IGAS, RC )
+         IF ( ITS_A_FULLCHEM_SIM() ) CALL INIT_COMODE( am_I_Root )
+         IF ( ITS_AN_AEROSOL_SIM() ) CALL INIT_COMODE( am_I_Root )
+         IF ( LKPP ) THEN
+            CALL INIT_GCKPP_COMODE( am_I_Root, IIPAR,  JJPAR,   
+     &                              LLTROP,    ITLOOP, NMTRATE, 
+     &                              IGAS,      RC )
+         ENDIF
          IF ( RC == 1 )
      $        CALL ERROR_STOP( "Alloc error", "INIT_GCKPP_COMODE" )
          IF ( LPRT ) CALL DEBUG_MSG( '### MAIN: a INIT_COMODE' )

@@ -48,10 +48,12 @@ CONTAINS
 !\\
 ! !INTERFACE:
 !  
-  SUBROUTINE INIT_GCKPP_COMODE( IIPAR, JJPAR, LLTROP, ITLOOP, NMTRATE, IGAS, RC )
+  SUBROUTINE INIT_GCKPP_COMODE( am_I_Root, IIPAR,   JJPAR, LLTROP, & 
+                                ITLOOP,    NMTRATE, IGAS,  RC )
 !
 ! !INPUT PARAMETERS:
 !    
+    LOGICAL, INTENT(IN) :: am_I_Root   ! Is this the root CPU?
     INTEGER, INTENT(IN) :: IIPAR, JJPAR, LLTROP, ITLOOP, NMTRATE, IGAS
 !
 ! !OUTPUT PARAMETERS:
@@ -59,8 +61,9 @@ CONTAINS
     INTEGER, INTENT(OUT):: RC
 !    
 ! !REVISION HISTORY:
-!   16 Sep 2009 - P. Le Sager - init
-!   09 Dec 2009 - C. Carouge  - R_KPP and CSPEC_FOR_KPP are not used anymore
+!  16 Sep 2009 - P. Le Sager - init
+!  09 Dec 2009 - C. Carouge  - R_KPP and CSPEC_FOR_KPP are not used anymore
+!  02 Aug 2012 - R. Yantosca - Now use am_I_Root to print on root CPU
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -71,7 +74,7 @@ CONTAINS
 
     RC=0
 
-    WRITE( 6, 100 )
+    IF ( am_I_Root ) WRITE( 6, 100 )
 100 FORMAT( '     - INIT_GCKPP_COMODE: Allocating arrays for GCKPP...' )
 
 
