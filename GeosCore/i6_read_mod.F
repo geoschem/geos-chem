@@ -333,8 +333,12 @@
          ENDIF
 
          ! Close previously opened A-3 file
-         INQUIRE(IU_I6, OPENED=IS_OPEN)
-         IF(IS_OPEN) CLOSE( IU_I6 )
+#if   defined( DEVEL )
+         INQUIRE( IU_I6, OPENED=IS_OPEN )
+         IF ( IS_OPEN ) CLOSE( IU_I6 )
+#else
+         CLOSE( IU_I6 )
+#endif
 
          ! Make sure the file unit is valid before we open it 
          IF ( .not. FILE_EXISTS( IU_I6 ) ) THEN 
