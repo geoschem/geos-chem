@@ -369,7 +369,9 @@
       CALL DO_GAMAP( DIAGINFO, TRACERINFO )
 
       ! Echo output
-!     WRITE( 6, '(a)' ) REPEAT( '=', 79 )
+      IF ( am_I_Root ) THEN
+         WRITE( 6, '(a)' ) REPEAT( '=', 79 )
+      ENDIF
 
       END SUBROUTINE READ_INPUT_FILE
 !EOC

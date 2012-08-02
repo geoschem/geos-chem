@@ -28,6 +28,7 @@
 !  (1 ) Now expand date & time tokens in filenames (bmy, 1/31/05)
 !  (2 ) Now modified for GCAP grid (swu, bmy, 6/28/05)
 !  (3 ) Now make sure all USE statements are USE, ONLY (bmy, 10/3/05)
+!  01 Aug 2012 - R. Yantosca - Add reference to findFreeLUN from inqure_mod.F90
 !******************************************************************************
 !
       IMPLICIT NONE
@@ -69,6 +70,7 @@
 !        value for GEOS or GCAP grids .  Also removed references to CMN_DIAG
 !        and TRCOFFSET. (bmy, 6/28/05)
 !  (5 ) Now make sure all USE statements are USE, ONLY (bmy, 10/3/05)
+!  01 Aug 2012 - R. Yantosca - Add reference to findFreeLUN from inqure_mod.F90
 !******************************************************************************
 !
       ! References to F90 modules
@@ -80,14 +82,21 @@
       USE TRACER_MOD,   ONLY : ITS_A_FULLCHEM_SIM,   ITS_A_RnPbBe_SIM
       USE TRACER_MOD,   ONLY : STT,                  N_TRACERS
       USE TRACERID_MOD, ONLY : IDTOX
-
-      USE CMN_SIZE_MOD   ! Size parameters
+      USE CMN_SIZE_MOD       ! Size parameters
+#if   defined( DEVEL )
+      USE inquireMod,   ONLY : findFreeLUN
+#else
+      USE FILE_MOD,     ONLY : IU_FILE
+#endif
 
       ! Arguments
       LOGICAL, INTENT(IN) :: LBEGIN 
 
       ! Local variables
-      INTEGER             :: IU_FILE,  N,        NYMD,     NHMS
+#if   defined( DEVEL )
+      INTEGER             :: IU_FILE
+#endif
+      INTEGER             :: N,        NYMD,     NHMS
       INTEGER, PARAMETER  :: IFIRST=1, JFIRST=1, LFIRST=1
       INTEGER, PARAMETER  :: CENTER180=1
       INTEGER             :: HALFPOLAR
@@ -106,6 +115,11 @@
       ! Return if we are not doing either a radon or fullchem stdrun
       IF ( ( .not. ITS_A_FULLCHEM_SIM() ) .and. 
      &     ( .not. ITS_A_RnPbBe_SIM() ) ) RETURN
+
+#if   defined( DEVEL )
+      ! Get the next free file unit
+      IU_FILE   = findFreeLUN()
+#endif
 
       ! Define variables for binary punch file
       MODELNAME = GET_MODELNAME()

@@ -669,7 +669,8 @@ global_ch4_mod.o            : global_ch4_mod.F                               \
                               dao_mod.o               diag_mod.o             \
                               diag_oh_mod.o           diag_pl_mod.o          \
                               global_oh_mod.o         logical_mod.o          \
-                              tracer_mod.o            vdiff_pre_mod.o  
+                              tracer_mod.o            vdiff_pre_mod.o        \
+                              biomass_mod.o  
 
 global_hno3_mod.o           : global_hno3_mod.F                              \
                               dao_mod.o               tracer_mod.o  

@@ -209,8 +209,8 @@
        DEFPRAT(I,:)        = 0.d0
  49   CONTINUE
 !
-      IF ( am_I_Root ) PRINT *,"READCHEM: KGLC=",KGLC
-      IF ( am_I_Root ) PRINT *,"READCHEM: IO93=",IO93
+      !IF ( am_I_Root ) PRINT *,"READCHEM: KGLC=",KGLC
+      !IF ( am_I_Root ) PRINT *,"READCHEM: IO93=",IO93
       READ(KGLC,21)  HEADING 
       !WRITE(6,21) HEADING 
  13   READ(KGLC,21)  HEADING 
