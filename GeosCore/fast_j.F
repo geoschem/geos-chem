@@ -228,10 +228,11 @@
             CSZA         = SUNCOS( (NLAT-1)*IIPAR + NLON ) 
 
             ! Define the PJ array here (bmy, 11/16/07)
-            DO L = 1, LLPAR+1!NB
 #if defined( DEVEL )
+            DO L = 1, LLPAR+1
                PJ(L)     = PEDGE( NLON, NLAT, L )
 #else
+            DO L = 1, NB
                PJ(L)     = GET_PEDGE( NLON, NLAT, L )
 #endif
             ENDDO

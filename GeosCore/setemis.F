@@ -143,6 +143,7 @@
 !  01 Mar 2012 - R. Yantosca - Now reference IXSAVE, IZSAVE from comode_mod.F
 !  30 Jul 2012 - R. Yantosca - Now accept am_I_Root as an argument when
 !                              running with the traditional driver main.F
+!  02 Aug 2012 - R. Yantosca - Add error trap for JLOOP=0 under DEVEL tag
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -307,9 +308,15 @@
 
                ! put any emissions above PBL into corresponding
                ! REMIS (phs, 27/10/09)
-               IF ( NOXEXTENT > TOPMIX .and. JLOOP /= 0 ) THEN
+               IF ( NOXEXTENT > TOPMIX ) THEN
                   DO L = TOPMIX+1, NOXEXTENT
                      JLOOP          = JLOP(I,J,L)
+#if   defined( DEVEL ) || defined( EXTERNAL_GCM )
+                     ! Add this error trap to prevent out of bounds error
+                     ! but we should benchmark first before adding to
+                     ! the std G-C code (bmy, 8/2/12)
+                     IF ( JLOOP == 0 ) CYCLE
+#endif
                      REMIS(JLOOP,N) = EMISRRN(I,J,L) /
      $                    ( VOLUME(JLOOP) * COEF1 )
                   ENDDO

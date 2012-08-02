@@ -381,6 +381,7 @@
 !        (swu, bmy, 8/16/05)
 !  04 Nov 2010 - R. Yantosca - Added ProTeX headers
 !  01 Mar 2012 - R. Yantosca - Now use GET_AREA_M2(I,J,L) from grid_mod.F90
+!  02 Aug 2012 - R. Yantosca - Add error trap for acetone under DEVEL tag
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -523,8 +524,15 @@
             PRE_ACET = ACETONE(I,J) 
 
             ! Apply exponential loss to acetone mass
-            IF ( ACETONE(I,J) .ne. 0.e0 )
+#if   defined( DEVEL ) || defined( EXTERNAL_GCM ) 
+            ! Eric Nielsen added this error trap .  We can eventually
+            ! bring this into the std G-C but we need to benchmark first.
+            IF ( ABS( ACETONE(I,J) ) > 1d-99 ) THEN
      &      ACETONE(I,J) = ACETONE(I,J) * EXP(-OCEAN_ACET/ACETONE(I,J))
+            ENDIF
+#else
+            ACETONE(I,J) = ACETONE(I,J) * EXP(-OCEAN_ACET/ACETONE(I,J))
+#endif
 
             !===========================================================
             ! Diagnostics: save ACETONE lost to ocean in [atoms C/cm2/s]
