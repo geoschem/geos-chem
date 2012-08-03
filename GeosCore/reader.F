@@ -29,24 +29,17 @@
 !  (6 ) At the end of this subrouitne, now set NCS=NCSURBAN (=1) instead of 
 !        hardwiring it. (dbm, bmy, 10/16/06)
 !  01 Aug 2012 - R. Yantosca - Add reference to findFreeLUN from inqure_mod.F90
+!  03 Aug 2012 - R. Yantosca - Move calls to findFreeLUN out of DEVEL block
 !******************************************************************************
 !
-      ! References to F90 modules
-      USE ERROR_MOD,  ONLY : GEOS_CHEM_STOP
-      USE FILE_MOD,   ONLY : IU_SMV2LOG
-      USE TIME_MOD,   ONLY : GET_TS_CHEM
-#if   defined( DEVEL )
-      USE inquireMod, ONLY : findFreeLUN
-#else
-      USE FILE_MOD,   ONLY : IU_CHEMDAT
-      USE FILE_MOD,   ONLY : IU_FILE
-      USE FILE_MOD,   ONLY : IU_SMV2LOG
-#endif
-
 #     include "define.h"
-      USE CMN_SIZE_MOD  ! Size parameters
-      USE COMODE_LOOP_MOD  ! SMVGEAR II arrays
-      USE CMN_GCTM_MOD  ! Re, PI
+
+      USE ERROR_MOD,  ONLY : GEOS_CHEM_STOP
+      USE TIME_MOD,   ONLY : GET_TS_CHEM
+      USE inquireMod, ONLY : findFreeLUN
+      USE CMN_SIZE_MOD                       ! Size parameters
+      USE COMODE_LOOP_MOD                    ! SMVGEAR II arrays
+      USE CMN_GCTM_MOD                       ! Re, PI
 
       IMPLICIT NONE
 
@@ -96,11 +89,9 @@
       INTEGER             :: JLOOP,   IAVBLOK, IAVGSIZE, IREMAIN, JADD
       INTEGER             :: IFCHEM,  I,       NALLREAC, NMPROD,  I1
       INTEGER             :: J,      NK
-#if   defined( DEVEL )
       INTEGER             :: IU_CHEMDAT
       INTEGER             :: IU_FILE
       INTEGER             :: IU_SMV2LOG
-#endif
 
       REAL*8              :: ERRMAXU, YLOWU, YHIU, HMAXDAYU
       REAL*8              :: ERRMAXR, YLOWR, YHIR, HMAXDAYR
@@ -180,11 +171,15 @@
 ! *********************** OPEN CONTROL INPUT FILE ********************* 
 ! *********************************************************************
 !
+
+      ! Find a free file LUN
+      IU_FILE  = findFreeLUN()
+
       ! Name of file to open
       FILENAME = "mglob.dat"
 
-#if   defined( DEVEL )
-      IU_FILE  = findFreeLUN()
+#if defined( DEVEL ) || defined( EXTERNAL_GRID ) || defined( EXTERNAL_FORCING )
+      ! When connecting to GEOS-5 via ESMF, we need to append '___.rc'
       FILENAME = TRIM( FILENAME ) // "___.rc"
 #endif
 
@@ -253,11 +248,15 @@
 !                            OPEN MORE FILES 
 ! *********************************************************************
 !
+
+      ! Find a free file LUN
+      IU_CHEMDAT = findFreeLUN()
+
       ! Name of file to open
       FILENAME   ='globchem.dat' 
 
 #if   defined( DEVEL )
-      IU_CHEMDAT = findFreeLUN()
+      ! When connecting to GEOS-5 via ESMF, we need to append '___.rc'
       FILENAME   = TRIM( FILENAME ) // '___.rc'
 #endif
       KGLC       = IU_CHEMDAT
@@ -272,9 +271,10 @@
 
       ! Open "smv2.log" for echoback output as unit #93
       IF ( am_I_Root ) THEN
-#if defined( DEVEL )
+
+         ! Find a free file LUN
          IU_SMV2LOG = findFreeLUN()
-#endif
+
          WRITE( 6, 320 ) IU_SMV2LOG
  320     FORMAT( 'GEOSCHEM::READER: Opening smv2.log on unit', i6 )
 

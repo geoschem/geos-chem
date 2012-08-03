@@ -19,9 +19,7 @@
 !
       USE LOGICAL_MOD,   ONLY : LNLPBL ! (Lin, 03/31/09)
       USE VDIFF_PRE_MOD, ONLY : emis_save ! (Lin, 03/31/09)
-#if defined( DEVEL )
       USE inquireMod,    ONLY : findFreeLUN
-#endif
 
       IMPLICIT NONE
 #     include "define.h"
@@ -7376,9 +7374,6 @@
       USE DIRECTORY_MOD, ONLY : DATA_DIR 
       USE FILE_MOD,      ONLY : IOERROR
       USE CMN_SIZE_MOD                    ! Size parameters
-#if   !defined( DEVEL )
-      USE FILE_MOD,      ONLY : IU_FILE
-#endif
 !
 ! !INPUT PARAMETERS: 
 !
@@ -7395,6 +7390,7 @@
 !  02 Jul 2012 - R. Yantosca - Add simple kludge that prevents OOB error when
 !                              reading SO2 aircraft data for NA nested grid
 !  01 Aug 2012 - R. Yantosca - Add reference to findFreeLUN from inqure_mod.F90
+!  03 Aug 2012 - R. Yantosca - Move calls to findFreeLUN out of DEVEL block
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -7402,9 +7398,7 @@
 ! !LOCAL VARIABLES:
 !
       INTEGER            :: I, IOS, J, K, L
-#if   defined( DEVEL )
       INTEGER            :: IU_FILE
-#endif                  
       REAL*8             :: ACSO2(IIPAR,JJPAR,20)
       REAL*8             :: FAC, FUEL, DZ(LLPAR), ZH(0:LLPAR)
       CHARACTER(LEN=255) :: FILENAME
@@ -7439,10 +7433,10 @@
       ! variation of emission rate. Convert to [kg SO2/box/s]. 
       !=================================================================
 
-      ! Open file 
-#if   defined( DEVEL )
+      ! Find a free file LUN
       IU_FILE = findFreeLUN()
-#endif
+
+      ! Open file 
       OPEN( IU_FILE, FILE=FILENAME, STATUS='OLD', IOSTAT=IOS )
       IF ( IOS > 0 ) CALL IOERROR( IOS, IU_FILE, 'read_aircraft_so2:1' )
 

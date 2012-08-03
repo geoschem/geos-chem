@@ -15,12 +15,10 @@
 !
 ! !USES:
 !
-      USE CMN_SIZE_MOD              ! Size parameters
-      USE CMN_DIAG_MOD              ! NDxx flags
-      USE CMN_GCTM_MOD              ! g0
-#if defined( DEVEL )
-      USE inquireMod, ONLY : findFreeLUN
-#endif
+      USE CMN_SIZE_MOD                     ! Size parameters
+      USE CMN_DIAG_MOD                     ! NDxx flags
+      USE CMN_GCTM_MOD                     ! g0
+      USE inquireMod, ONLY : findFreeLUN   ! Routine to find free LUNs
 
       IMPLICIT NONE
 #     include "define.h"
@@ -44,6 +42,7 @@
 ! !REVISION HISTORY:
 !  19 Aug 2010 - R. Yantosca - Initial version, based on i6_read_mod.f
 !  20 Aug 2010 - R. Yantosca - Moved include files to top of module
+!  03 Aug 2012 - R. Yantosca - Now make IU_A3 a private module variable
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -51,6 +50,7 @@
 ! !PRIVATE TYPES:
 !
       INTEGER :: N_CN_FIELDS    ! # of fields in the file
+      INTEGER :: IU_CN          ! File LUN for CN fields
 
       CONTAINS
 !EOC
@@ -76,7 +76,6 @@
       USE DIRECTORY_MOD, ONLY : MERRA_DIR
       USE ERROR_MOD,     ONLY : ERROR_STOP
       USE FILE_MOD,      ONLY : FILE_EXISTS
-      USE FILE_MOD,      ONLY : IU_CN
       USE FILE_MOD,      ONLY : IOERROR
       USE TIME_MOD,      ONLY : EXPAND_DATE
 !
@@ -87,6 +86,7 @@
 !
 ! !REVISION HISTORY: 
 !  19 Aug 2010 - R. Yantosca - Initial version, based on i6_read_mod.f
+!  03 Aug 2012 - R. Yantosca - Now use findFreeLUN to define IU_CN locally
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -138,10 +138,10 @@
          ! Open the CN file
          !---------------------------
 
-         ! Open the file
-#if defined( DEVEL )
+         ! Find a free file LUN
          IU_CN = findFreeLUN()
-#endif
+
+         ! Open the file
          OPEN( UNIT   = IU_CN,         FILE   = TRIM( PATH ),
      &         STATUS = 'OLD',         ACCESS = 'SEQUENTIAL',  
      &         FORM   = 'UNFORMATTED', IOSTAT = IOS )
@@ -242,7 +242,6 @@
 !
       USE DIAG_MOD,     ONLY : AD67
       USE FILE_MOD,     ONLY : IOERROR
-      USE FILE_MOD,     ONLY : IU_CN
       USE TIME_MOD,     ONLY : TIMESTAMP_STRING
       USE TRANSFER_MOD, ONLY : TRANSFER_2D
 !
@@ -270,6 +269,7 @@
 !
 ! !REVISION HISTORY: 
 !  19 Aug 2010 - R. Yantosca - Initial version, based on i6_read_mod.f
+!  03 Aug 2012 - R. Yantosca - Now use locally-defined IU_CN file LUN
 !EOP
 !------------------------------------------------------------------------------
 !BOC

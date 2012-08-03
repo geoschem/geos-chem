@@ -16,9 +16,7 @@
 !
 ! !USES:
 !
-#if defined( DEVEL )
       USE inquireMod, ONLY : findFreeLUN
-#endif
 
       IMPLICIT NONE
 #     include "define.h"
@@ -82,6 +80,7 @@
 !  (24) Now scale AODs to wavelength specified in jv_spec_aod.dat(clh, 5/14/09)
 !  29 Jul 2011 - R. Yantosca - Now also archive MERRA SEAICExx fields
 !  29 Jul 2011 - R. Yantosca - Added ProTeX headers
+!  03 Aug 2012 - R. Yantosca - Move calls to findFreeLUN out of DEVEL block
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -194,15 +193,12 @@
 !
       USE FILE_MOD,   ONLY : FILE_EXISTS
       USE FILE_MOD,   ONLY : IOERROR
+      USE FILE_MOD,   ONLY : IU_FILE
       USE FILE_MOD,   ONLY : IU_PLANE
       USE TIME_MOD,   ONLY : EXPAND_DATE
       USE TIME_MOD,   ONLY : GET_NYMD
       USE TIME_MOD,   ONLY : GET_NHMS
       USE TRACER_MOD, ONLY : ITS_A_FULLCHEM_SIM
-#if   !defined( DEVEL )
-      USE FILE_MOD,   ONLY : IU_FILE
-      USE FILE_MOD,   ONLY : IU_PLANE
-#endif
 !
 ! !INPUT PARAMETERS:
 !
@@ -216,6 +212,11 @@
 !  For offline simulations, the call to SETUP_PLANEFLIGHT can be made
 !  at the start of the GEOS-Chem run (in "ndxx_setup.f" or similar routine).
 ! 
+! !REMARKS:
+!  NOTE: Keep IU_PLANE and IU_FILE from file_mod.F.  The GEOS-5 GCM should
+!  not call this subroutine so we don't have to find the free LUNs.
+!  (bmy, 8/3/12)
+!
 ! !REVISION HISTORY: 
 !  30 Jul 2002 - M. Evans    - Initial version
 !  (1 ) Rename from "plane.dat" to "plane.log", since "*.dat" implies an input
@@ -229,7 +230,6 @@
 !  29 Jul 2011 - R. Yantosca - Added ProTeX headers
 !  30 Jul 2012 - R. Yantosca - Now accept am_I_Root as an argument when
 !                              running with the traditional driver main.F
-!  01 Aug 2012 - R. Yantosca - Add reference to findFreeLUN from inqure_mod.F90
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -237,10 +237,6 @@
 ! !LOCAL VARIABLES:
 !
       LOGICAL, SAVE      :: FIRST = .TRUE.
-#if   defined( DEVEL )
-      INTEGER            :: IU_FILE
-      INTEGER            :: IU_PLANE
-#endif
       INTEGER            :: I,  IP,      N,   TEMP, LENGTH
       INTEGER            :: RN, COUNTER, IOS, NYMD, NHMS
       CHARACTER(LEN=7)   :: NAMES
@@ -297,9 +293,8 @@
       !=================================================================
       ! Open file and read info
       !=================================================================
-#if defined( DEVEL )
-      IU_FILE = findFreeLUN()
-#endif
+
+      ! Open input file
       OPEN( IU_FILE, FILE=TRIM( INF ), IOSTAT=IOS )
       IF ( IOS /= 0 ) CALL IOERROR( IOS, IU_FILE, 'setup_planeflight:1')
 
@@ -340,10 +335,7 @@
       ! Close previously-opened file
       CLOSE( IU_PLANE )
 
-      ! Open new file
-#if defined( DEVEL )
-      IU_PLANE = findFreeLUN()
-#endif
+      ! Open output file
       OPEN( IU_PLANE, FILE=TRIM( OUTF ), STATUS='UNKNOWN', IOSTAT=IOS )
 
       ! Error check

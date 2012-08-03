@@ -15,9 +15,7 @@
 !
 ! !USES:
 !
-#if defined( DEVEL )
       USE inquireMod, ONLY : findFreeLUN
-#endif
 
       IMPLICIT NONE
 #     include "define.h"
@@ -39,6 +37,7 @@
 !
 ! !REVISION HISTORY:
 !  19 Aug 2010 - R. Yantosca - Initial version, based on i6_read_mod.f
+!  03 Aug 2012 - R. Yantosca - Now make IU_A3 a private module variable
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -46,6 +45,7 @@
 ! !PRIVATE TYPES:
 !
       INTEGER :: N_A3_FIELDS    ! # of fields in the file
+      INTEGER :: IU_A3          ! File LUN for A-3 fields
 
       CONTAINS
 !EOC
@@ -137,13 +137,9 @@
       USE DIRECTORY_MOD, ONLY : MERRA_DIR
       USE ERROR_MOD,     ONLY : ERROR_STOP
       USE FILE_MOD,      ONLY : FILE_EXISTS
-      USE FILE_MOD,      ONLY : IU_A3
       USE FILE_MOD,      ONLY : IOERROR
       USE TIME_MOD,      ONLY : EXPAND_DATE
       USE CMN_SIZE_MOD              ! Size parameters
-!#if   !defined( DEVEL )
-      USE FILE_MOD,      ONLY : IU_A3
-!#endif
 !
 ! !INPUT PARAMETERS: 
 !
@@ -152,6 +148,7 @@
 ! 
 ! !REVISION HISTORY: 
 !  20 Aug 2010 - R. Yantosca - Initial version, based on a6_read_mod.f
+!  03 Aug 2012 - R. Yantosca - Now use findFreeLUN to define IU_A3 locally
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -161,9 +158,6 @@
       LOGICAL, SAVE      :: FIRST = .TRUE.
       LOGICAL            :: IT_EXISTS, IS_OPEN
       INTEGER            :: IOS, IUNIT
-!if   defined( DEVEL )
-!      INTEGER            :: IU_A3
-!#endif
       CHARACTER(LEN=8)   :: IDENT
       CHARACTER(LEN=255) :: A3_FILE
       CHARACTER(LEN=255) :: GEOS_DIR
@@ -193,8 +187,8 @@
      &          TRIM( GEOS_DIR ) // TRIM( A3_FILE )
 
          ! Close previously opened A-3 file
-	 INQUIRE(IU_A3, OPENED=IS_OPEN)
-         IF(IS_OPEN) CLOSE( IU_A3 )
+	 INQUIRE( IU_A3, OPENED=IS_OPEN )
+         IF ( IS_OPEN ) CLOSE( IU_A3 )
 
          ! Make sure the file unit is valid before we open the file
          IF ( .not. FILE_EXISTS( IU_A3 ) ) THEN
@@ -206,10 +200,10 @@
          ! Open the A3 file
          !---------------------------
 
+         ! Find a free file LUN
+         IU_A3 = findFreeLUN()
+
          ! Open the file
-!#if defined( DEVEL )
-!         IU_A3 = findFreeLUN()
-!#endif
          OPEN( UNIT   = IU_A3,         FILE   = TRIM( PATH ),
      &         STATUS = 'OLD',         ACCESS = 'SEQUENTIAL',  
      &         FORM   = 'UNFORMATTED', IOSTAT = IOS )
@@ -360,7 +354,6 @@
       USE DIAG_MOD,     ONLY : AD66
       USE DIAG_MOD,     ONLY : AD67
       USE FILE_MOD,     ONLY : IOERROR
-      USE FILE_MOD,     ONLY : IU_A3
       USE TIME_MOD,     ONLY : SET_CT_A3
       USE TIME_MOD,     ONLY : TIMESTAMP_STRING
       USE TRANSFER_MOD, ONLY : TRANSFER_A6
@@ -412,6 +405,8 @@
 ! !REVISION HISTORY: 
 !  20 Aug 2010 - R. Yantosca - Initial version, based on a3_read_mod.f
 !  20 Aug 2010 - R. Yantosca - Now save CLDTOPS to ND67 diagnostic
+!  03 Aug 2012 - R. Yantosca - Now use locally-defined IU_A3 file LUN
+
 !EOP
 !------------------------------------------------------------------------------
 !BOC

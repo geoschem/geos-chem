@@ -68,7 +68,6 @@
 !  30 Jul 2012 - R. Yantosca - Now accept am_I_Root as an argument when
 !                              running with the traditional driver main.F
 !  30 Jul 2012 - R. Yantosca - Added ProTeX headers
-!  30 Jul 2012 - R. Yantosca - Add reference to findFreeLUN under DEVEL tag
 !  01 Aug 2012 - R. Yantosca - Now restore NJ1 to INTENT(IN) status
 !EOP
 !------------------------------------------------------------------------------
@@ -81,9 +80,6 @@
         enddo
       enddo
 !-------------spectral data---------------------------------------------
-#if defined( DEVEL )
-      NJ1 = findFreeLUN()
-#endif
       open(NJ1, FILE=NAMFIL)
       read(NJ1,'(A)') TITLE0
       write(6,'(1X,A)') TITLE0

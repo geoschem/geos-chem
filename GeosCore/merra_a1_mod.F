@@ -15,9 +15,7 @@
 !
 ! !USES:
 !
-#if defined( DEVEL )
       USE inquireMod, ONLY : findFreeLUN
-#endif
 
       IMPLICIT NONE
 #     include "define.h"
@@ -39,6 +37,7 @@
 !
 ! !REVISION HISTORY:
 !  19 Aug 2010 - R. Yantosca - Initial version, based on a3_read_mod.f
+!  03 Aug 2012 - R. Yantosca - Now make IU_A1 a private module variable
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -46,6 +45,7 @@
 ! !PRIVATE TYPES:
 !
       INTEGER :: N_A1_FIELDS    ! # of fields in the file
+      INTEGER :: IU_A1          ! File LUN for A-1 fields
 
       CONTAINS
 !EOC
@@ -148,12 +148,8 @@
       USE DIRECTORY_MOD, ONLY : MERRA_DIR
       USE ERROR_MOD,     ONLY : ERROR_STOP
       USE FILE_MOD,      ONLY : FILE_EXISTS
-      USE FILE_MOD,      ONLY : IU_A1
       USE FILE_MOD,      ONLY : IOERROR
       USE TIME_MOD,      ONLY : EXPAND_DATE
-!#if   !defined( DEVEL )
-      USE FILE_MOD,      ONLY : IU_A1
-!#endif
 !
 ! !INPUT PARAMETERS: 
 !
@@ -163,6 +159,7 @@
 ! 
 ! !REVISION HISTORY:
 !  19 Aug 2010 - R. Yantosca - Initial version, based on a3_read_mod.f
+!  03 Aug 2012 - R. Yantosca - Now use findFreeLUN to define IU_A1 locally
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -172,9 +169,6 @@
       LOGICAL            :: DO_RESET
       LOGICAL            :: IT_EXISTS, IS_OPEN
       INTEGER            :: IOS
-!#if   defined( DEVEL )
-!      INTEGER            :: IU_A1
-!#endif
       CHARACTER(LEN=2)   :: DUM
       CHARACTER(LEN=8)   :: IDENT
       CHARACTER(LEN=255) :: A1_FILE
@@ -211,9 +205,9 @@
          PATH = TRIM( DATA_DIR ) // 
      &          TRIM( GEOS_DIR ) // TRIM( A1_FILE )
 
-         ! Close previously opened A-3 file
-	 INQUIRE(IU_A1, OPENED=IS_OPEN)
-         IF(IS_OPEN) CLOSE( IU_A1 )
+         ! Close previously opened A-1 file
+	 INQUIRE( IU_A1, OPENED=IS_OPEN )
+         IF ( IS_OPEN ) CLOSE( IU_A1 )
 
          ! Make sure the file unit is valid before we open the file
          IF ( .not. FILE_EXISTS( IU_A1 ) ) THEN
@@ -225,10 +219,10 @@
          ! Open the A1 file
          !---------------------------
 
+         ! Find a free file LUN
+         IU_A1 = findFreeLUN()
+
          ! Open the file
-!#if   defined( DEVEL )
-!         IU_A1 = findFreeLUN()
-!#endif
          OPEN( UNIT   = IU_A1,         FILE   = TRIM( PATH ),
      &         STATUS = 'OLD',         ACCESS = 'SEQUENTIAL',  
      &         FORM   = 'UNFORMATTED', IOSTAT = IOS )
@@ -404,7 +398,6 @@
 !
       USE DIAG_MOD,     ONLY : AD67
       USE FILE_MOD,     ONLY : IOERROR
-      USE FILE_MOD,     ONLY : IU_A1
       USE TIME_MOD,     ONLY : SET_CT_A1
       USE TIME_MOD,     ONLY : TIMESTAMP_STRING
       USE TRANSFER_MOD, ONLY : TRANSFER_2D
@@ -468,6 +461,7 @@
 !  25 Aug 2010 - R. Yantosca - Now read LWI (land/water/ice) from disk
 !  15 Aug 2011 - R. Yantosca - Now save SWGDN in 2nd slot of ND67 diagnostic
 !  25 Mar 2011 - R. Yantosca - Bug fix: make local SWGDN array for ND67 diag
+!  03 Aug 2012 - R. Yantosca - Now use locally-defined IU_A1 file LUN
 !EOP
 !------------------------------------------------------------------------------
 !BOC

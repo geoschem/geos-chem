@@ -55,9 +55,7 @@
 !  01 Aug 2012 - R. Yantosca - Add reference to findFreeLUN from inqure_mod.F90
 !******************************************************************************
 !
-#if defined( DEVEL )
       USE inquireMod, ONLY : findFreeLUN
-#endif
 
       IMPLICIT NONE
 #     include "define.h"
@@ -146,17 +144,12 @@
       USE FILE_MOD,      ONLY : IOERROR
       USE TIME_MOD,      ONLY : GET_MONTH
       USE CMN_SIZE_MOD        ! Size parameters
-#if   !defined( DEVEL )
-      USE FILE_MOD,      ONLY : IU_FILE  
-#endif
 
       ! Local variables
       LOGICAL, SAVE      :: FIRST     = .TRUE.
       INTEGER, SAVE      :: LASTMONTH = -99
       INTEGER            :: I, J, K, IOS
-#if   defined( DEVEL )
       INTEGER            :: IU_FILE
-#endif
 
       ! Conversion factor from [kg NO2/4h] to [molec NO2/s]
       REAL*8             :: CONV=9.0927d+20
@@ -200,10 +193,10 @@
          FILENAME = TRIM( DATA_DIR )        // 'aircraft_NOx_200202/' //
      &              MONTHSTR( GET_MONTH() ) // GET_RES_EXT()
 
-         ! Open file
-#if defined( DEVEL )
+         ! Find a free file LUN
          IU_FILE = findFreeLUN()
-#endif
+
+         ! Open file
          OPEN( IU_FILE, FILE=TRIM( FILENAME ), STATUS='OLD', IOSTAT=IOS)
          IF ( IOS /= 0 ) CALL IOERROR( IOS, IU_FILE, 'readair:1' )
 

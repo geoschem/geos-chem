@@ -11,7 +11,7 @@
 !\\
 ! !INTERFACE:
 !
-#if defined( DEVEL )
+#if defined( DEVEL ) || defined( EXTERNAL_GRID ) || defined( EXTERNAL_FORCING )
       SUBROUTINE CHEMDR( am_I_Root, NI, NJ, NL, GC_MET, GC_STATE )
 #else
       SUBROUTINE CHEMDR( am_I_Root )
@@ -51,7 +51,7 @@
       USE CMN_NOX_MOD                ! SLBASE
       USE CMN_DEP_MOD                ! FRCLND
 
-#if defined( DEVEL )
+#if defined( DEVEL ) || defined( EXTERNAL_GRID ) || defined( EXTERNAL_FORCING )
       USE GC_TYPE_MOD,          ONLY : GC_MET_LOCAL
       USE GC_TYPE2_MOD,         ONLY : CHEMSTATE
 #endif
@@ -64,7 +64,7 @@
 !
       LOGICAL, INTENT(IN) :: am_I_Root   ! Is this the root CPU?
 
-#if defined( DEVEL )
+#if defined( DEVEL ) || defined( EXTERNAL_GRID ) || defined( EXTERNAL_FORCING )
       INTEGER, INTENT(IN) :: NI, NJ, NL  ! Local size indices
 #endif
 !
@@ -223,7 +223,7 @@
 !EOP
 !------------------------------------------------------------------------------
 !BOC
-#if defined( DEVEL )
+#if defined( DEVEL ) || defined( EXTERNAL_GRID ) || defined( EXTERNAL_FORCING )
       TYPE(GC_MET_LOCAL), INTENT(IN)    :: GC_MET
       TYPE(CHEMSTATE),    INTENT(INOUT) :: GC_STATE
 #endif
@@ -389,7 +389,7 @@
          !-------------------------------
          ! Flag certain chemical species
          !-------------------------------
-#if defined( DEVEL )
+#if defined( DEVEL ) || defined( EXTERNAL_GRID ) || defined( EXTERNAL_FORCING )
          CALL SETTRACE( GC_STATE, am_I_Root )
 #else
          CALL SETTRACE( am_I_Root )
@@ -424,8 +424,13 @@
       ! to place this call here, so as to make sure that the chemical
       ! mechanism files (read by READER and READCHEM) have been loaded.
       IF ( ND40 .and. DATE /= DATE_PREV ) THEN
+#if defined( DEVEL ) || defined( EXTERNAL_GRID ) || defined( EXTERNAL_FORCING )
+         ! Don't call SETUP_PLANEFLIGHT when connecting to GEOS-5 GCM
+#else
+         ! Only call SETUP_PLANEFLIGHT for the traditional G-C
          CALL SETUP_PLANEFLIGHT( am_I_Root )
          DATE_PREV = DATE
+#endif
       ENDIF
 
       !================================================================

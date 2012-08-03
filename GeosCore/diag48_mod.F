@@ -74,11 +74,10 @@
 !       Minor bug fix with the accumulation of ODAER across RH bins
 !       (skim, 02/03/11)
 !  01 Aug 2012 - R. Yantosca - Add reference to findFreeLUN from inqure_mod.F90
+!  03 Aug 2012 - R. Yantosca - Move calls to findFreeLUN out of DEVEL block
 !******************************************************************************
 !
-#if defined( DEVEL )
       USE inquireMod, ONLY : findFreeLUN
-#endif
 
       IMPLICIT NONE
 #     include "define.h"
@@ -165,7 +164,6 @@
       USE DAO_MOD,      ONLY : CLDTOPS, OPTD,   RH,       SLP   
       USE DAO_MOD,      ONLY : T,       UWND,   VWND 
       USE ERROR_MOD,    ONLY : ERROR_STOP
-      USE FILE_MOD,     ONLY : IU_ND48
       USE GRID_MOD,     ONLY : GET_XOFFSET,        GET_YOFFSET
       USE PBL_MIX_MOD,  ONLY : GET_PBL_TOP_L,      GET_PBL_TOP_m
       USE PRESSURE_MOD, ONLY : GET_PEDGE
@@ -184,6 +182,8 @@
       USE CMN_O3_MOD      ! XNUMOLAIR
       USE CMN_GCTM_MOD    ! SCALE_HEIGHT
       USE LOGICAL_MOD,  ONLY : DO_DIAG_WRITE
+
+      USE FILE_MOD,     ONLY : IU_ND48
 
       ! Local variables
       LOGICAL, SAVE      :: IS_CLDTOPS,  IS_OPTD, IS_SEASALT, IS_SLP
@@ -764,14 +764,11 @@
 !  (1 ) FILENAME (CHARACTER) : Name of the file to be opened
 !
 !  NOTES:
-!  01 Aug 2012 - R. Yantosca - Add reference to findFreeLUN from inqure_mod.F90
 !******************************************************************************
 !
       ! References to F90 modules
       USE FILE_MOD, ONLY : IOERROR
-#if   !defined( DEVEL )
       USE FILE_MOD, ONLY : IU_ND48
-#endif
 
       ! Arguments
       CHARACTER(LEN=*), INTENT(IN) :: FILENAME
@@ -789,10 +786,12 @@
       FTI   = 'CTM bin 02 -- GEOS-CHEM station ts' 
       TITLE = 'GEOS-CHEM ND48 station timeseries diagnostic'
 
+!%%% NOTE: The GEOS-5 GCM won't call this routine, so it should be OK
+!%%% to use IU_ND48 from the file_mod.F. (bmy, 8/3/12)
+!%%%      ! Find a free file LUN
+!%%%      IU_ND48 = findFreeLUN()
+
       ! Open file for output
-#if defined( DEVEL )
-      IU_ND48 = findFreeLUN()
-#endif
       OPEN( IU_ND48,    FILE=TRIM( FILENAME ), STATUS='UNKNOWN',
      &      IOSTAT=IOS, FORM='UNFORMATTED',    ACCESS='SEQUENTIAL' )
 

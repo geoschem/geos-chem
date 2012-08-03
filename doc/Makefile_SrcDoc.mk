@@ -61,6 +61,7 @@
 #  22 May 2012 - M. Payer    - Add bromocarb_mod.F, cldice_HBrHOBr_rxn.F,
 #                              and ssa_bromine_mod.F
 #  31 Jul 2012 - R. Yantosca - Added FAST-J routines etc.
+#  03 Aug 2012 - R. Yantosca - Added benchmark_mod, etc.
 #EOP
 #------------------------------------------------------------------------------
 #BOC
@@ -89,6 +90,7 @@ $(CORE)/main.F                       \
 $(CORE)/acetone_mod.F                \
 $(CORE)/aerosol_mod.F                \
 $(CORE)/arctas_ship_emiss_mod.F	     \
+$(CORE)/benchmark_mod.F              \
 $(CORE)/bravo_mod.F                  \
 $(CORE)/bromocarb_mod.F              \
 $(CORE)/c2h6_mod.F                   \

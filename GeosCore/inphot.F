@@ -23,12 +23,7 @@
       USE CMN_FJ_MOD,   ONLY : JPMAX, JPPJ, JPNL
       USE CMN_SIZE_MOD, ONLY : LLPAR
       USE JV_CMN_MOD
-
-#if   defined( DEVEL )
       USE inquireMod,   ONLY : findFreeLUN
-#else
-      USE FILE_MOD,     ONLY : IU_FASTJ
-#endif      
 
       IMPLICIT NONE
 !
@@ -57,6 +52,7 @@
 !  30 Jul 2012 - R. Yantosca - Added ProTeX headers
 !  30 Jul 2012 - R. Yantosca - Now add LUN as a local variable
 !  01 Aug 2012 - R. Yantosca - Add reference to findFreeLUN from inqure_mod.F90
+!  03 Aug 2012 - R. Yantosca - Move calls to findFreeLUN out of DEVEL block
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -69,12 +65,6 @@
       !=================================================================
       ! INPHOT begins here!
       !=================================================================
-
-#if   defined( DEVEL )
-      LUN   = findFreeLUN()   ! When G-C connects to the GEOS-5 GCM via ESMF
-#else
-      LUN   = IU_FASTJ        ! When G-C is driven by traditional "main.F"
-#endif
 
       ! # of layers to do chemistry
       JPNL  = NLAYER             
@@ -95,10 +85,15 @@
       !-----------------------------------------------------------------
       ! Read in the names of FAST-J photolysis species from "ratj.d"
       !-----------------------------------------------------------------
-      
+
+      ! Find a free file unit
+      LUN      = findFreeLUN()
+
       ! Name of file to read
       FILENAME = 'ratj.d'
-#if   defined( DEVEL )
+
+#if   defined( DEVEL ) || defined( EXTERNAL_GCM )
+      ! For the ESMF interface to GEOS-5 GCM, we need to append *___.rc
       FILENAME = TRIM( FILENAME ) // '___.rc'
 #endif
 
@@ -121,9 +116,14 @@
       ! Read in JPL spectral data set (e.g. X-sections, quantum yields)
       !-----------------------------------------------------------------
 
+      ! Find a free file unit
+      LUN      = findFreeLUN()
+
       ! Name of file to read
       FILENAME = 'jv_spec.dat'
-#if   defined( DEVEL )
+
+#if   defined( DEVEL ) || defined( EXTERNAL_GCM )
+      ! For the ESMF interface to GEOS-5 GCM, we need to append *___.rc
       FILENAME = TRIM( FILENAME ) // '___.rc'
 #endif
 
@@ -139,9 +139,14 @@
       ! Read in aerosol optics to be used to calculate AODs (clh)
       !-----------------------------------------------------------------
 
+      ! Find a free file unit
+      LUN      = findFreeLUN()
+
       ! Name of file to read
       FILENAME = 'jv_spec_aod.dat'
-#if   defined( DEVEL )
+
+#if   defined( DEVEL ) || defined( EXTERNAL_GCM )
+      ! For the ESMF interface to GEOS-5 GCM, we need to append *___.rc
       FILENAME = TRIM( FILENAME ) // '___.rc'
 #endif
 

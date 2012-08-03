@@ -16,9 +16,7 @@
 !
 ! !USES:
 !
-#if defined( DEVEL )
       USE inquireMod, ONLY : findFreeLUN
-#endif
 
       IMPLICIT NONE
       PRIVATE
@@ -41,6 +39,7 @@
 ! !REVISION HISTORY:
 !  06 Feb 2012 - M. Payer    - Initial version
 !  01 Mar 2012 - R. Yantosca - Use updated GET_LOCALTIME from time_mod.F
+!  03 Aug 2012 - R. Yantosca - Move calls to findFreeLUN out of DEVEL block
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -66,14 +65,12 @@
       USE DIRECTORY_MOD, ONLY : DATA_DIR_1x1
       USE FILE_MOD,      ONLY : IOERROR
       USE CMN_O3_MOD          ! FRACNOX, INTOPE
-#if   !defined( DEVEL )
-      USE FILE_MOD,      ONLY : IU_FILE
-#endif
 !
 ! !REVISION HISTORY:
 !  06 Feb 2012 - M. Payer    - Initial version modified from code provided by
 !                              G.C.M. Vinken
 !  01 Aug 2012 - R. Yantosca - Add reference to findFreeLUN from inqure_mod.F90
+!  03 Aug 2012 - R. Yantosca - Move calls to findFreeLUN out of DEVEL block
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -81,9 +78,7 @@
 ! !LOCAL VARIABLES:
       INTEGER             :: IOS
       CHARACTER(LEN=255)  :: FILENAME
-#if   defined( DEVEL )
       INTEGER             :: IU_FILE
-#endif
 
       !=================================================================
       ! READ_PARANOX_LUT begins here
@@ -102,10 +97,10 @@
       WRITE( 6, 100 ) TRIM( FILENAME )
  100  FORMAT( 'READ_PARANOX_LUT: Reading ', a )
 
-      ! Open file to read
-#if defined( DEVEL )
+      ! Find a free file LUN
       IU_FILE = findFreeLUN()
-#endif
+
+      ! Open file to read  
       OPEN( IU_FILE, FILE=TRIM( FILENAME ), FORM="binary", 
      &      IOSTAT=IOS )
       IF ( IOS /= 0 ) CALL IOERROR( IOS, IU_FILE, 'read_paranox_lut:1' )
@@ -132,10 +127,10 @@
       WRITE( 6, 101 ) TRIM( FILENAME )
  101  FORMAT( 'READ_PARANOX_LUT: Reading ', a )
 
-      ! Open file to read
-#if defined( DEVEL )
+      ! Find a free file LUN
       IU_FILE = findFreeLUN()
-#endif
+
+      ! Open file to read
       OPEN( IU_FILE, FILE=TRIM( FILENAME ), FORM="BINARY" )
       IF ( IOS /= 0 ) CALL IOERROR( IOS, IU_FILE, 'read_paranox_lut:3' )
 

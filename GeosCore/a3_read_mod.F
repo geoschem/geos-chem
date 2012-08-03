@@ -15,9 +15,7 @@
 !
 ! !USES:
 !
-!#if defined( DEVEL )
-!      USE inquireMod, ONLY : findFreeLUN
-!#endif
+      USE inquireMod, ONLY : findFreeLUN
 
       IMPLICIT NONE
 #     include "define.h"
@@ -56,6 +54,8 @@
 !  (13) Remove references to IN_CLOUD_OD (bmy, 10/15/09)
 !  21 Sep 2010 - R. Yantosca - Added ProTeX headers
 !  28 Feb 2012 - R. Yantosca - Removed support for GEOS-3
+!  03 Aug 2012 - R. Yantosca - Move calls to findFreeLUN out of DEVEL block
+!  03 Aug 2012 - R. Yantosca - Now make IU_A3 a private module variable
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -64,6 +64,9 @@
 !
       ! Number of A3 fields in the file
       INTEGER :: N_A3_FIELDS
+
+      ! File unit for A-3 met fields
+      INTEGER :: IU_A3
 
       CONTAINS
 !EOC
@@ -320,7 +323,7 @@
       USE DIRECTORY_MOD, ONLY : GEOS_4_DIR, GEOS_5_DIR, TEMP_DIR 
       USE LOGICAL_MOD,   ONLY : LUNZIP
       USE ERROR_MOD,     ONLY : ERROR_STOP
-      USE FILE_MOD,      ONLY : IU_A3,      IOERROR,    FILE_EXISTS
+      USE FILE_MOD,      ONLY : IOERROR,    FILE_EXISTS
       USE TIME_MOD,      ONLY : EXPAND_DATE
 
       USE CMN_SIZE_MOD                         ! Size parameters
@@ -348,6 +351,8 @@
 !  21 Sep 2010 - R. Yantosca - Added ProTeX headers
 !  21 Sep 2010 - R. Yantosca - Now pass RESET flag to DO_OPEN_A3
 !  28 Feb 2012 - R. Yantosca - Removed support for GEOS-3
+!  03 Aug 2012 - R. Yantosca - Move calls to findFreeLUN out of DEVEL block
+!  03 Aug 2012 - R. Yantosca - Now use findFreeLUN to define IU_A3 locally
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -366,7 +371,7 @@
       !=================================================================
       ! OPEN_A3_FIELDS begins here!
       !=================================================================
-      
+
       IF ( PRESENT( RESET ) ) THEN
          DO_RESET = RESET
       ELSE
@@ -410,12 +415,8 @@
          ENDIF
 
          ! Close previously opened A-3 file
-#if   defined( DEVEL )
 	 INQUIRE( IU_A3, OPENED=IS_OPEN )
          IF( IS_OPEN ) CLOSE( IU_A3 )
-#else
-         CLOSE( IU_A3 )
-#endif
 
          ! Make sure the file unit is valid before we open the file
          IF ( .not. FILE_EXISTS( IU_A3 ) ) THEN
@@ -423,15 +424,14 @@
      &                       'OPEN_A3_FIELDS (a3_read_mod.f)' )
          ENDIF
 
-         ! Open the file
-!#if defined( DEVEL )
-!         IU_A3 = findFreeLUN()
-!#endif
+         ! Find a free file LUN
+         IU_A3 = findFreeLUN( IU_A3 )
+
+         ! Open the A3 file
          OPEN( UNIT   = IU_A3,         FILE   = TRIM( PATH ),
      &         STATUS = 'OLD',         ACCESS = 'SEQUENTIAL',  
      &         FORM   = 'UNFORMATTED', IOSTAT = IOS )
                
-         write(*,*) 'FILENAME: ', TRIM(PATH)
          IF ( IOS /= 0 ) THEN
             CALL IOERROR( IOS, IU_A3, 'open_a3_fields:1' )
          ENDIF
@@ -745,7 +745,7 @@
 !
       USE DIAG_MOD,     ONLY : AD67
       USE FILE_MOD,     ONLY : IOERROR
-      USE FILE_MOD,     ONLY : IU_A3
+!      USE FILE_MOD,     ONLY : IU_A3
       USE TIME_MOD,     ONLY : SET_CT_A3
       USE TIME_MOD,     ONLY : TIMESTAMP_STRING
       USE TRANSFER_MOD, ONLY : TRANSFER_2D
@@ -854,6 +854,7 @@
 !  (10) Now read FRLAND, FROCEAN, FRLANDIC, FRLAKE for methane (kjw, 8/18/09)
 !  (11) Remove reference to IN_CLOUD_OD (bmy, 10/15/09)
 !  21 Sep 2010 - R. Yantosca - Added ProTeX headers
+!  03 Aug 2012 - R. Yantosca - Now use locally-defined IU_A3 file LUN
 !EOP
 !------------------------------------------------------------------------------
 !BOC

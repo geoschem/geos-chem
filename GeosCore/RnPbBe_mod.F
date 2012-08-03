@@ -15,9 +15,7 @@
 !
 ! !USES:
 !
-#if defined( DEVEL )
       USE inquireMod, ONLY : findFreeLUN
-#endif
 
       IMPLICIT NONE
 #     include "define.h"
@@ -119,9 +117,6 @@
       USE DIRECTORY_MOD, ONLY : DATA_DIR
       USE FILE_MOD,      ONLY : IOERROR
       USE CMN_SIZE_MOD        ! Size parameters
-#if   !defined( DEVEL )
-      USE FILE_MOD,      ONLY : IU_FILE
-#endif
 !
 ! !REVISION HISTORY: 
 !  07 Aug 2002 - H. Liu - Initial version
@@ -135,9 +130,7 @@
 !
 ! !LOCAL VARIABLES:
 !
-#if   defined( DEVEL )
       INTEGER            :: IU_FILE
-#endif
       INTEGER            :: IOS, J, L
       CHARACTER(LEN=255) :: FILENAME
 
@@ -151,10 +144,10 @@
       ! Define the file name
       FILENAME = TRIM( DATA_DIR ) // 'RnPbBe_200203/7Be.Lal'
 
-      ! Open the 7Be file
-#if defined( DEVEL )
+      ! Find a free file LUN
       IU_FILE = findFreeLUN()
-#endif
+
+      ! Open the 7Be file
       OPEN( IU_FILE,      FILE=TRIM( FILENAME ), 
      &      STATUS='OLD', IOSTAT=IOS )
       

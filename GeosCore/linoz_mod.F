@@ -15,9 +15,7 @@
 !
 ! !USES:
 !
-#if defined( DEVEL )
       USE inquireMod, ONLY : findFreeLUN
-#endif
 
       IMPLICIT NONE
 #     include "define.h"
@@ -805,9 +803,6 @@ c-------- K=1 is at the top of atmosphere ------------------------------
       USE FILE_MOD,      ONLY : IOERROR        ! I/O error subroutine
       USE DIRECTORY_MOD, ONLY : DATA_DIR_1x1   ! Data directory path
       USE CMN_SIZE_MOD
-#if   !defined( DEVEL )
-      USE FILE_MOD,      ONLY : IU_FILE
-#endif
 !
 ! !INPUT PARAMETERS:
 !
@@ -822,6 +817,7 @@ c-------- K=1 is at the top of atmosphere ------------------------------
 !  16 Oct 2009 - R. Yantosca         - Now use IU_FILE instead of IU_LINOZ
 !  16 Oct 2009 - R. Yantosca         - Read file from DATA_DIR_1x1
 !  01 Aug 2012 - R. Yantosca - Add reference to findFreeLUN from inqure_mod.F90
+!  03 Aug 2012 - R. Yantosca - Move calls to findFreeLUN out of DEVEL block
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -829,9 +825,7 @@ c-------- K=1 is at the top of atmosphere ------------------------------
 ! !LOCAL VARIABLES:
 ! 
       LOGICAL, SAVE      :: FIRST = .TRUE.
-#if   defined( DEVEL )
       INTEGER            :: IU_FILE
-#endif
       INTEGER            :: K, J, M, NTBLS, IOS
       REAL*8             :: TMAX,    TMIN
       CHARACTER(LEN=80)  :: HEADING, TITL1
@@ -853,14 +847,14 @@ c-------- K=1 is at the top of atmosphere ------------------------------
       ENDIF
  100  FORMAT( '     - LINOZ_READ: Reading ', a )
 
-      ! new std z*=2km levels from model:  z*=10,12,...(25*2)+8 km
-#if   defined( DEVEL )
+      ! Find a free file LUN
       IU_FILE = findFreeLUN()
-#endif
+
+      ! new std z*=2km levels from model:  z*=10,12,...(25*2)+8 km
       OPEN( IU_FILE, FILE=TRIM( FILENAME ), STATUS='OLD', 
      &               FORM='FORMATTED',      IOSTAT=IOS )
 
-      ! 
+      ! Stop on error
       IF ( IOS /= 0 ) THEN
          CALL IOERROR( IOS, IU_FILE, 'read_linoz_coeff_file' )
       ENDIF

@@ -15,10 +15,8 @@
 ! 
 ! !USES:
 !
-#if defined( DEVEL )
       USE inquireMod, ONLY : findFreeLUN
       USE inquireMod, ONLY : I_Am_UnOPENed
-#endif
 
       IMPLICIT NONE
 #     include "define.h"
@@ -88,6 +86,7 @@
 !  13 Aug 2010 - R. Yantosca - Added modifications for MERRA
 !  28 Feb 2012 - R. Yantosca - Removed support for GEOS-3
 !  19 Jul 2012 - R. Yantosca - Bug fix in GET_NAME_EXT_2D
+!  03 Aug 2012 - R. Yantosca - Reference file LUN routines from inquireMod.F90
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -442,9 +441,6 @@
 !
       USE ERROR_MOD, ONLY : ERROR_STOP
       USE FILE_MOD,  ONLY : IOERROR
-#if   !defined( DEVEL )
-      USE FILE_MOD,  ONLY : IU_FILE
-#endif
 
 #     include "define.h" 
 !
@@ -486,6 +482,7 @@
 !  20 Nov 2009 - R. Yantosca - Added ProTeX header
 !  18 Dec 2009 - Aaron van D - Add NESTED_EU flag
 !  25 May 2012 - R. Yantosca - Update TEMPARRAY for GRID025x03125
+!  03 Aug 2012 - R. Yantosca - Move calls to findFreeLUN out of DEVEL block
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -493,12 +490,10 @@
 ! !LOCAL VARIABLES:
 ! 
       LOGICAL            :: FOUND, TMP_QUIET
+      INTEGER            :: IU_FILE
       INTEGER            :: I,  J,  L,  N,  IOS, M
       INTEGER            :: I1, I2, J1, J2, L1,  L2
       CHARACTER(LEN=255) :: MSG
-#if   defined( DEVEL )
-      INTEGER            :: IU_FILE
-#endif
       
       ! Make TEMPARRAY big enough for a global grid.  For 0.5 x 0.666 nested
       ! grid simulations we need to define this as 540x361x73.  However, this
@@ -548,9 +543,11 @@
       ! Open binary punch file and read top-of-file header.
       ! Do some error checking to make sure the file is the right format.
       !=================================================================
-#if defined( DEVEL )
+
+      ! Find a free file LUN
       IU_FILE = findFreeLUN()
-#endif
+
+      ! Open the BPCH file
       CALL OPEN_BPCH2_FOR_READ( IU_FILE, FILENAME )
 
       !=================================================================

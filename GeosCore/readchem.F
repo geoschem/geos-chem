@@ -41,6 +41,7 @@
 !                              are nonzero before using them.
 !  30 Jul 2012 - R. Yantosca - Now accept am_I_Root as an argument even when
 !                              called from the traditional driver "main.F"
+!  03 Aug 2012 - R. Yantosca - Move calls to findFreeLUN out of DEVEL block
 !******************************************************************************
 !
 !
@@ -56,19 +57,13 @@
       USE LOGICAL_MOD, ONLY : LPRT
       USE CMN_SIZE_MOD                         ! Size parameters
       USE COMODE_LOOP_MOD                      ! SMVGEAR II arrays
-
-#if defined( DEVEL )
       USE inquireMod,  ONLY : findFreeLUN
-#else  
-      USE FILE_MOD,    ONLY : IU_FILE
-#endif
 
       IMPLICIT NONE
 !
 ! !INPUT PARAMETERS:
 !
       LOGICAL, INTENT(IN) :: am_I_Root         ! Is this the root CPU?
-
 !
 ! *********************************************************************
 ! ************        WRITTEN BY MARK JACOBSON (1990-4)    ************
@@ -148,7 +143,6 @@
 ! * SET INITIAL VALUES AND READ INITIAL COMMENTS FROM INPUT DATA SET  *
 ! *********************************************************************
 !
-
       INTEGER NINAC,NACTIVE,NSDEAD,NOTHGS,IDOPHOT,I,NMBGAS,NM,JGAS
       INTEGER MB,MBP,INACT1,JGAS1,J,IORD,NCOF,JORD,NDUM,NK,NAR,NK1
       INTEGER JPR,JNUM,ITHIRDB,NM2,NR,NN,JGAS2,JGAS3,NA,N,NS2
@@ -1235,15 +1229,16 @@
 ! ruarsl  -- density of aerosol (g/cc)
 ! RH100   -- deliquescence point, relative humidity below which we
 !            have no wet aerosols
-!
-      ! Name of file to open
-      FILENAME= 'chemga.dat'
 
-#if   defined( DEVEL )
+      ! Find a free file LUN
       I        = findFreeLUN()
+
+      ! Name of file to open
+      FILENAME = 'chemga.dat'
+
+#if defined( DEVEL ) || defined( EXTERNAL_GRID ) || defined( EXTERNAL_FORCING )
+      ! When connecting to GEOS-5 GCM via ESMF, add '___.rc' extension
       FILENAME = TRIM( FILENAME ) // '___.rc'
-#else
-      I        = IU_FILE
 #endif
 
       IF ( am_I_Root ) THEN

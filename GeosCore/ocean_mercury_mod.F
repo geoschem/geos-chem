@@ -109,11 +109,10 @@
 !  08 Feb 2012 - R. Yantosca - Add modifications for GEOS-5.7.2 data
 !  01 Mar 2012 - R. Yantosca - Now reference new grid_mod.F90
 !  01 Aug 2012 - R. Yantosca - Add reference to findFreeLUN from inqure_mod.F90
+!  03 Aug 2012 - R. Yantosca - Move calls to findFreeLUN out of DEVEL block
 !******************************************************************************
 !
-#if defined( DEVEL )
       USE inquireMod, ONLY : findFreeLUN
-#endif
 
       IMPLICIT NONE
 #     include "define.h"
@@ -2152,17 +2151,12 @@
       USE TRACERID_MOD,     ONLY : GET_Hg0_CAT, GET_Hg2_CAT, N_Hg_CATS
       USE TRACERID_MOD,     ONLY : ID_Hg0,      ID_Hg2
       USE CMN_SIZE_MOD           ! Size parameters
-#if   !defined( DEVEL )
-      USE FILE_MOD,         ONLY : IU_FILE
-#endif
 
       ! Arguments
       INTEGER, INTENT(IN) :: YYYYMMDD, HHMMSS
 
       ! Local Variables
-#if   defined( DEVEL )
       INTEGER             :: IU_FILE
-#endif
       INTEGER             :: I, IOS, J, L, NN, N_oc
       INTEGER             :: YEAR, MONTH, DAY
       INTEGER             :: NCOUNT(NNPAR) 
@@ -2202,10 +2196,10 @@
  100  FORMAT( 'O C E A N   H g   R E S T A R T   F I L E   I N P U T' )
  110  FORMAT( /, 'READ_OCEAN_Hg_RESTART: Reading ', a )
 
-      ! Open the binary punch file for input
-#if   defined( DEVEL )
+      ! Find a free file LUN
       IU_FILE = findFreeLUN()
-#endif
+
+      ! Open the binary punch file for input
       CALL OPEN_BPCH2_FOR_READ( IU_FILE, FILENAME )
       
       ! Echo more output
@@ -2476,18 +2470,13 @@
       USE TRACERID_MOD,     ONLY : ID_Hg_tot,   ID_Hg0
       USE TRACERID_MOD,     ONLY : ID_Hg2,      N_Hg_CATS
       USE CMN_SIZE_MOD           ! Size parameters
-#if   !defined( DEVEL )
-      USE FILE_MOD,         ONLY : IU_FILE
-#endif
 
       ! Arguments           
       INTEGER, INTENT(IN) :: NYMD, NHMS
       REAL*8,  INTENT(IN) :: TAU
 
       ! Local variables
-#if   defined( DEVEL )
       INTEGER             :: IU_FILE
-#endif
       INTEGER             :: HALFPOLAR, CENTER180
       INTEGER             :: IFIRST,    JFIRST,   LFIRST
       INTEGER             :: N,         NN
@@ -2521,10 +2510,10 @@
       WRITE( 6, 100 ) TRIM( FILENAME )
  100  FORMAT( '     - MAKE_RESTART_FILE: Writing ', a )
 
-      ! Open BPCH file for output
-#if defined( DEVEL )
+      ! Find a free file LUN
       IU_FILE = findFreeLUN()
-#endif
+
+      ! Open BPCH file for output
       CALL OPEN_BPCH2_FOR_WRITE( IU_FILE, FILENAME )
 
       !---------------------------

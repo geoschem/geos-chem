@@ -72,9 +72,7 @@
 !     
 ! !USES:
 !     
-#if defined( DEVEL )
       USE inquireMod, ONLY : findFreeLUN
-#endif
 
       IMPLICIT NONE
 #     include "define.h" 
@@ -124,6 +122,7 @@
 !  25 Feb 2011 - R. Nassar  - Now read updated CDIAC CO2 emissions data
 !  07 Sep 2011 - P. Kasibhatla - Modified to include GFED3
 !  01 Aug 2012 - R. Yantosca - Add reference to findFreeLUN from inqure_mod.F90
+!  03 Aug 2012 - R. Yantosca - Move calls to findFreeLUN out of DEVEL block
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -230,7 +229,7 @@
       INTEGER                :: DAY,   DOY,    HOUR, MONTH, YEAR   
       REAL*8                 :: A_CM2, DTSRCE, E_CO2
       REAL*8                 :: biomass_sum, bionet_sum
-#if !defined( DEVEL )
+#if   !defined( DEVEL )
       REAL*8, SAVE           :: CHEMSRC(IIPAR,JJPAR,LLPAR)  ! dbj
 #endif
 
@@ -1984,9 +1983,6 @@
       USE FILE_MOD,      ONLY : IOERROR
       USE TIME_MOD,      ONLY : GET_MONTH, GET_YEAR
       USE CMN_SIZE_MOD        ! Size parameters
-#if  !defined( DEVEL )
-      USE FILE_MOD,      ONLY : IU_FILE
-#endif
 !
 ! !REMARKS:
 !  This is a modified version of READ_AIRCRAFT_SO2 from:
@@ -2012,15 +2008,14 @@
 !  (6 ) Reading of GlobPTot values from input.geos has not yet been implemented
 !  18 May 2010 - R. Nassar, D. Jones - Initial version
 !  01 Aug 2012 - R. Yantosca - Add reference to findFreeLUN from inqure_mod.F90
+!  03 Aug 2012 - R. Yantosca - Move calls to findFreeLUN out of DEVEL block
 !EOP
 !------------------------------------------------------------------------------
 !BOC
 !
 ! !LOCAL VARIABLES:
 !
-#if   defined( DEVEL )
       INTEGER             :: IU_FILE
-#endif
       INTEGER             :: I, IOS, J, K, L
       INTEGER             :: THISMONTH, N, YEAR
       REAL*8              :: ACCO2(IIPAR,JJPAR,20)
@@ -2064,10 +2059,10 @@
       ! variation of emission rate. Convert to [kg CO2/box/s]. 
       !=================================================================
 
-      ! Open file 
-#if defined( DEVEL )
+      ! Find a free file LUN
       IU_FILE = findFreeLUN()
-#endif
+
+      ! Open file 
       OPEN( IU_FILE, FILE=FILENAME, STATUS='OLD', IOSTAT=IOS )
       IF ( IOS > 0 ) CALL IOERROR( IOS, IU_FILE, 'read_aviation_co2:1' )
 
@@ -2216,9 +2211,6 @@
       USE LOGICAL_MOD,    ONLY : LBIONETORIG,       LBIONETCLIM
       USE REGRID_A2A_MOD, ONLY : DO_REGRID_A2A
       USE CMN_SIZE_MOD         ! Size parameters
-#if   !defined( DEVEL )
-      USE FILE_MOD,       ONLY : IU_FILE
-#endif
 !
 ! !REMARKS:
 !  The two choices are:
@@ -2241,15 +2233,14 @@
 !                                      (M. Cooper)
 !  24 May 2012 - R. Yantosca         - Fix minor bugs in map_a2a calls
 !  01 Aug 2012 - R. Yantosca - Add reference to findFreeLUN from inqure_mod.F90
+!  03 Aug 2012 - R. Yantosca - Move calls to findFreeLUN out of DEVEL block
 !EOP
 !------------------------------------------------------------------------------
 !BOC
 !
 ! !LOCAL VARIABLES:
 !
-#if   defined( DEVEL )
       INTEGER                :: IU_FILE
-#endif
       INTEGER                :: I, J, IOS
       REAL*8		     :: TAU
       CHARACTER(LEN=255)     :: FILENAME
@@ -2287,11 +2278,11 @@
 
          ! Echo info
          WRITE( 6, 100 ) TRIM( FILENAME )
+ 
+         ! Find a free file LUN
+         IU_FILE = findFreeLUN()
 
          ! Open file
-#if defined( DEVEL )
-         IU_FILE = findFreeLUN()
-#endif
          OPEN( IU_FILE,          FILE=TRIM( FILENAME ), 
      &      FORM='FORMATTED', IOSTAT=IOS )
          IF ( IOS > 0 ) CALL IOERROR(IOS,IU_FILE, 'read_ann_bionet:1')      
@@ -2692,6 +2683,7 @@
 ! 
 ! !REVISION HISTORY: 
 !  18 May 2010 - R. Nassar, D. Jones - Initial version
+!  03 Aug 2012 - R. Yantosca - Move calls to findFreeLUN out of DEVEL block
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -2718,10 +2710,10 @@
       ! Initialize ARRAY
       LAND_REG = 0
 
-      ! Open file
-#if defined( DEVEL )
+      ! Find a free file LUN
       IU_FILE = findFreeLUN()
-#endif
+
+      ! Open file
       OPEN( IU_FILE, FILE = TRIM( LANDFILE ), 
      &      FORM='FORMATTED', IOSTAT=IOS )
       IF ( IOS > 0 ) CALL IOERROR( IOS, IU_FILE, 'read_regions:1' )      
@@ -2918,6 +2910,7 @@
 ! 
 ! !REVISION HISTORY: 
 !  18 May 2010 - R. Nassar, D. Jones - Initial version
+!  03 Aug 2012 - R. Yantosca - Move calls to findFreeLUN out of DEVEL block
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -2942,10 +2935,10 @@
       ! Initialize ARRAYS
       OCEAN_REG = 0
 
-      ! Open file
-#if defined( DEVEL )
+      ! Find a free file LUN
       IU_FILE = findFreeLUN()
-#endif
+
+      ! Open file
       OPEN( IU_FILE, FILE = TRIM( OCEANFILE ), 
      &      FORM='FORMATTED', IOSTAT=IOS )
       IF ( IOS > 0 ) CALL IOERROR( IOS, IU_FILE, 'read_regions:1' )      
@@ -3074,6 +3067,7 @@
 ! 
 ! !REVISION HISTORY: 
 !  18 May 2010 - R. Nassar, D. Jones - Initial version
+!  03 Aug 2012 - R. Yantosca - Move calls to findFreeLUN out of DEVEL block
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -3098,10 +3092,10 @@
       ! Initialize ARRAYS
       REG_CODE = 0
 
-      ! Open file
-#if defined( DEVEL )
+      ! Find a free file LUN
       IU_FILE = findFreeLUN()
-#endif
+
+      ! Open file
       OPEN( IU_FILE, FILE = TRIM( FILENAME ), 
      &      FORM='FORMATTED', IOSTAT=IOS )
       IF ( IOS > 0 ) CALL IOERROR( IOS, IU_FILE, 'read_regions:1' )      

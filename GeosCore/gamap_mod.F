@@ -16,11 +16,9 @@
 !
 ! !USES:
 !
-      USE CMN_SIZE_MOD              ! Dimensions of arrays
-      USE CMN_DIAG_MOD              ! Diagnostic parameters
-#if defined( DEVEL )
+      USE CMN_SIZE_MOD                    ! Dimensions of arrays
+      USE CMN_DIAG_MOD                    ! Diagnostic parameters
       USE inquireMod, ONLY : findFreeLUN
-#endif
 
       IMPLICIT NONE
 #     include "define.h"
@@ -191,14 +189,12 @@
 ! !USES:
 !
       USE FILE_MOD, ONLY : IOERROR
-#if   !defined( DEVEL )
-      USE FILE_MOD, ONLY : IU_FILE
-#endif
 ! 
 ! !REVISION HISTORY: 
 !  03 May 2005 - R. Yantosca - Initial version
 !  03 Aug 2010 - R. Yantosca - Added ProTeX headers
 !  01 Aug 2012 - R. Yantosca - Add reference to findFreeLUN from inqure_mod.F90
+!  03 Aug 2012 - R. Yantosca - Move calls to findFreeLUN out of DEVEL block
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -206,18 +202,16 @@
 ! !LOCAL VARIABLES:
 !
       INTEGER :: IOS, N
-#if   defined( DEVEL )
       INTEGER :: IU_FILE
-#endif
 
       !=================================================================
       ! CREATE_DINFO begins here!
       !=================================================================
 
-      ! Open "diaginfo.dat" file for output
-#if   defined( DEVEL )
+      ! Find a free file LUN
       IU_FILE = findFreeLUN()
-#endif
+
+      ! Open "diaginfo.dat" file for output
       OPEN( IU_FILE, FILE=TRIM( DFILE ), STATUS='UNKNOWN', IOSTAT=IOS )
       IF ( IOS /= 0 ) CALL IOERROR( IOS, IU_FILE, 'create_dinfo:1' )
 
@@ -294,9 +288,6 @@
 !
       USE FILE_MOD,    ONLY : IOERROR
       USE LOGICAL_MOD, ONLY : LSOA
-#if   !defined( DEVEL )
-      USE FILE_MOD,    ONLY : IU_FILE
-#endif
 ! 
 ! !REVISION HISTORY: 
 !  21 Apr 2005 - R. Yantosca - Initial version
@@ -304,6 +295,7 @@
 !  (2 ) Now write out GPROD & APROD info (tmf, havala, bmy, 2/6/07)
 !  08 Dec 2009 - R. Yantosca - Added ProTeX headers
 !  01 Aug 2012 - R. Yantosca - Add reference to findFreeLUN from inqure_mod.F90
+!  03 Aug 2012 - R. Yantosca - Move calls to findFreeLUN out of DEVEL block
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -311,9 +303,7 @@
 ! !LOCAL VARIABLES:
 !
       INTEGER           :: D, IOS, N, T
-#if   defined( DEVEL )
       INTEGER           :: IU_FILE
-#endif
       REAL*4            :: SCALE_NEW
       CHARACTER(LEN=2)  :: C
       CHARACTER(LEN=40) :: UNIT_NEW, NAME_NEW
@@ -322,10 +312,10 @@
       ! CREATE_TINFO begins here!
       !=================================================================
 
-      ! Open "tracerinfo.dat" file for output
-#if defined( DEVEL )
+      ! Find a free file LUN
       IU_FILE = findFreeLUN()
-#endif
+
+      ! Open "tracerinfo.dat" file for output
       OPEN( IU_FILE, FILE=TRIM( TFILE ), STATUS='UNKNOWN', IOSTAT=IOS )
       IF ( IOS /= 0 ) CALL IOERROR( IOS, IU_FILE, 'create_tinfo:1' )
 

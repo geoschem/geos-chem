@@ -15,6 +15,8 @@
 !
 ! !USES:
 !
+      USE inquireMod, ONLY : findFreeLUN
+
       IMPLICIT NONE
 #     include "define.h"
       PRIVATE
@@ -35,6 +37,7 @@
 !
 ! !REVISION HISTORY:
 !  19 Aug 2010 - R. Yantosca - Initial version, based on i6_read_mod.f
+!  03 Aug 2012 - R. Yantosca - Now make IU_I6 a private module variable
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -42,6 +45,7 @@
 ! !PRIVATE TYPES:
 !
       INTEGER :: N_I6_FIELDS    ! # of fields in the file
+      INTEGER :: IU_I6          ! File LUN for I-6 fields
 
       CONTAINS
 !EOC
@@ -67,7 +71,6 @@
       USE DIRECTORY_MOD, ONLY : MERRA_DIR
       USE ERROR_MOD,     ONLY : ERROR_STOP
       USE FILE_MOD,      ONLY : FILE_EXISTS
-      USE FILE_MOD,      ONLY : IU_I6
       USE FILE_MOD,      ONLY : IOERROR
       USE TIME_MOD,      ONLY : EXPAND_DATE
 !
@@ -78,6 +81,7 @@
 !
 ! !REVISION HISTORY: 
 !  19 Aug 2010 - R. Yantosca - Initial version, based on i6_read_mod.f
+!  03 Aug 2012 - R. Yantosca - Now use findFreeLUN to define IU_I6 locally
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -86,6 +90,7 @@
 !
       LOGICAL, SAVE      :: FIRST = .TRUE.
       LOGICAL            :: IT_EXISTS
+      LOGICAL            :: IS_OPEN
       INTEGER            :: IOS, IUNIT
       CHARACTER(LEN=8)   :: IDENT
       CHARACTER(LEN=255) :: GEOS_DIR
@@ -116,7 +121,8 @@
      &          TRIM( GEOS_DIR ) // TRIM( I6_FILE )
 
          ! Close previously opened A-3 file
-         CLOSE( IU_I6 )
+	 INQUIRE( IU_I6, OPENED=IS_OPEN )
+         IF ( IS_OPEN ) CLOSE( IU_I6 )
 
          ! Make sure the file unit is valid before we open it 
          IF ( .not. FILE_EXISTS( IU_I6 ) ) THEN 
@@ -127,6 +133,9 @@
          !---------------------------
          ! Open the I6 file
          !---------------------------
+
+         ! Find a free file LUN
+         IU_I6 = findFreeLUN()
 
          ! Open the file
          OPEN( UNIT   = IU_I6,         FILE   = TRIM( PATH ),
@@ -261,7 +270,6 @@
 ! !USES:
 !
       USE FILE_MOD,     ONLY : IOERROR
-      USE FILE_MOD,     ONLY : IU_I6
       USE TIME_MOD,     ONLY : SET_CT_I6
       USE TIME_MOD,     ONLY : TIMESTAMP_STRING
       USE TRANSFER_MOD, ONLY : TRANSFER_2D
@@ -282,6 +290,7 @@
 !
 ! !REVISION HISTORY: 
 !  19 Aug 2010 - R. Yantosca - Initial version, based on i6_read_mod.f
+!  03 Aug 2012 - R. Yantosca - Now use locally-defined IU_I6 file LUN
 !EOP
 !------------------------------------------------------------------------------
 !BOC

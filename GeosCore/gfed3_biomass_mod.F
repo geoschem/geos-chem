@@ -15,9 +15,7 @@
 !
 ! !USES:
 !
-#if defined( DEVEL )
       USE inquireMod, ONLY : findFreeLUN
-#endif
 
       IMPLICIT NONE
 #     include "define.h"
@@ -86,6 +84,7 @@
 !  01 Mar 2012 - R. Yantosca   - Now reference new grid_mod.F90
 !  06 Mar 2012 - P. Kasibhatla - Final version
 !  01 Aug 2012 - R. Yantosca - Add reference to findFreeLUN from inqure_mod.F90
+!  03 Aug 2012 - R. Yantosca - Move calls to findFreeLUN out of DEVEL block
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -1074,7 +1073,6 @@
       USE DIRECTORY_MOD,   ONLY : DATA_DIR_NATIVE => DATA_DIR_1x1
       USE ERROR_MOD,       ONLY : ALLOC_ERR
       USE FILE_MOD,        ONLY : IOERROR
-      USE FILE_MOD,        ONLY : IU_FILE
       USE LOGICAL_MOD,     ONLY : LDICARB
       USE LOGICAL_MOD,     ONLY : LDAYBB3
       USE LOGICAL_MOD,     ONLY : L3HRBB3
@@ -1090,24 +1088,19 @@
       USE GLOBAL_GRID_MOD, ONLY : GET_IIIPAR
       USE GLOBAL_GRID_MOD, ONLY : GET_JJJPAR
       USE CMN_SIZE_MOD          ! Size parameters
-#if   !defined( DEVEL )
-      USE FILE_MOD,        ONLY : IU_FILE
-#endif
-
 ! 
 ! !REVISION HISTORY: 
 !  07 Sep 2011 - P. Kasibhatla - Initial version, based on GFED2
 !  07 Sep 2011 - R. Yantosca   - Added ProTeX headers 
 !  01 Aug 2012 - R. Yantosca - Add reference to findFreeLUN from inqure_mod.F90
+!  03 Aug 2012 - R. Yantosca - Move calls to findFreeLUN out of DEVEL block
 !EOP
 !------------------------------------------------------------------------------
 !BOC
 !
 ! !LOCAL VARIABLES:
 !
-#if   defined( DEVEL )
       INTEGER            :: IU_FILE
-#endif
       INTEGER            :: AS, IOS, M, N, NDUM
       REAL*4             :: ARRAY_LANDMAP(IGFED3,JGFED3,1)
       CHARACTER(LEN=255) :: FILENAME
@@ -1220,12 +1213,10 @@
       FILENAME = TRIM( DATA_DIR_NATIVE) // 
      &           'GFED3_201203/GFED3_emission_factors.txt'
 
-      Print*, FILENAME
+      ! Find a free file LUN
+      IU_FILE = findFreeLUN()
 
       ! Open emission factor file (ASCII format)
-#if   defined( DEVEL )
-      IU_FILE = findFreeLUN()
-#endif
       OPEN( IU_FILE, FILE=TRIM( FILENAME ), STATUS='OLD', IOSTAT=IOS )
       IF ( IOS /= 0 ) CALL IOERROR( IOS, IU_FILE, 'init_gfed3:1' )
 
@@ -1496,7 +1487,7 @@
 ! !USES:
 !
       USE ERROR_MOD, ONLY : ERROR_STOP
-      USE FILE_MOD,  ONLY : IU_FILE, IOERROR
+      USE FILE_MOD,  ONLY : IOERROR
       USE BPCH2_MOD, ONLY : OPEN_BPCH2_FOR_READ
 
 #     include "define.h"
@@ -1523,6 +1514,7 @@
 ! !LOCAL VARIABLES:
 !
       LOGICAL            :: FOUND, TMP_QUIET
+      INTEGER            :: IU_FILE
       INTEGER            :: I,  J,  L,  N,  IOS, M
       INTEGER            :: I1, I2, J1, J2, L1,  L2
       CHARACTER(LEN=255) :: MSG
@@ -1557,6 +1549,9 @@
       ELSE
          TMP_QUIET = .FALSE.
       ENDIF
+
+      ! Find a free file LUN
+      IU_FILE = findFreeLUN()
 
       !=================================================================
       ! Open binary punch file and read top-of-file header.

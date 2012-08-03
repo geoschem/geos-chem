@@ -24,9 +24,7 @@
       USE CMN_SIZE_MOD   ! Size parameters
       USE COMMSOIL_MOD ! Soil variables
 
-#if defined( DEVEL )
       USE inquireMod,ONLY : findFreeLUN
-#endif
 
       IMPLICIT NONE
 #     include "define.h"
@@ -71,6 +69,7 @@
 !        variable. (bmy, 2/11/03)
 !  (6 ) Now references DATA_DIR from "directory_mod.f" (bmy, 7/20/04)
 !  02 Dec 2010 - R. Yantosca - Added ProTeX headers
+!  03 Aug 2012 - R. Yantosca - Move calls to findFreeLUN out of DEVEL block
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -112,10 +111,10 @@
          WRITE( 6, 100 ) TRIM( FILENAME )
  100     FORMAT( '     - RDSOIL: Reading ', a )
 
-         ! Open file
-#if defined( DEVEL )
+         ! Find a free file LUN
          IUNIT = findFreeLUN()
-#endif
+
+         ! Open file
          OPEN( IUNIT, FILE=TRIM( FILENAME ), STATUS='OLD', IOSTAT=IOS )
          IF ( IOS /= 0 ) CALL IOERROR( IOS, IUNIT, 'rdsoil:1' )
 
@@ -143,10 +142,10 @@
          ! Echo filename
          WRITE( 6, 100 ) TRIM( FILENAME )
 
-         ! Open file
-#if defined( DEVEL )
+         ! Find a free file LUN
          IUNIT = findFreeLUN()
-#endif
+
+         ! Open file
          OPEN( IUNIT, FILE=TRIM( FILENAME ), STATUS='OLD', IOSTAT=IOS )
          IF ( IOS /= 0 ) CALL IOERROR( IOS, IUNIT, 'rdsoil:4' )
 
@@ -186,10 +185,10 @@
          ! Echo filename
          WRITE( 6, 100 ) TRIM( FILENAME )
 
-         ! Open soil precip file
-#if defined( DEVEL )
+         ! Find a free file LUN
          IUNIT = findFreeLUN()
-#endif
+
+         ! Open soil precip file
          OPEN( IUNIT, FILE=TRIM( FILENAME ), STATUS='OLD', IOSTAT=IOS )
          IF ( IOS /= 0 ) CALL IOERROR( IOS, IUNIT, 'rdsoil:6' )
 

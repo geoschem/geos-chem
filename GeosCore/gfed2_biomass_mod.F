@@ -106,11 +106,10 @@
 !  01 Mar 2012 - R. Yantosca - Now reference new grid_mod.F90
 !  13 Mar 2012 - M. Cooper   - Change regrid algorithm to map_a2a
 !  01 Aug 2012 - R. Yantosca - Add reference to findFreeLUN from inqure_mod.F90
+!  03 Aug 2012 - R. Yantosca - Move calls to findFreeLUN out of DEVEL block
 !******************************************************************************
 !
-#if defined( DEVEL )
       USE inquireMod, ONLY : findFreeLUN
-#endif
 
       IMPLICIT NONE
 #     include "define.h"
@@ -859,6 +858,7 @@
 !  (3 ) Add 9 gaseous biomass burning emissions (tmf, 1/7/09)
 !  (4 ) Add IDBs from TRACERID_MOD. Initialize BIO_SAVE (fp, 01/29/10)
 !  01 Aug 2012 - R. Yantosca - Add reference to findFreeLUN from inqure_mod.F90
+!  03 Aug 2012 - R. Yantosca - Move calls to findFreeLUN out of DEVEL block
 !******************************************************************************
 !
       ! References to F90 modules
@@ -877,14 +877,9 @@
       USE TRACERID_MOD,  ONLY : IDBC2H2, IDBGLYC, IDBHAC
       USE TRACERID_MOD,  ONLY : IDBCH4   !kjw
       USE CMN_SIZE_MOD        ! Size parameters
-#if   !defined( DEVEL )
-      USE FILE_MOD,      ONLY : IU_FILE
-#endif
 
       ! Local variables
-#if   defined( DEVEL )
       INTEGER            :: IU_FILE
-#endif
       INTEGER            :: AS, IOS, M, N, NDUM
       REAL*4             :: ARRAY(I1x1,J1x1-1,1)
       CHARACTER(LEN=255) :: FILENAME
@@ -943,10 +938,10 @@
       FILENAME = TRIM( DATA_DIR_1x1) // 
      &           'GFED2_200601/GFED2_emission_factors_73t.txt'
 
-      ! Open emission factor file (ASCII format)
-#if defined( DEVEL )
+      ! Find a free file LUN
       IU_FILE = findFreeLUN()
-#endif
+
+      ! Open emission factor file (ASCII format)
       OPEN( IU_FILE, FILE=TRIM( FILENAME ), STATUS='OLD', IOSTAT=IOS )
       IF ( IOS /= 0 ) CALL IOERROR( IOS, IU_FILE, 'init_gfed2:1' )
 

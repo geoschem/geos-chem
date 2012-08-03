@@ -31,9 +31,11 @@
 !  (1 ) Adapted from the obsolete "phis_read_mod.f" (bmy, 2/1/06)
 !******************************************************************************
 !
-#if defined( DEVEL )
-      USE inquireMod, ONLY : findFreeLUN
-#endif
+!%%% NOTE: The GEOS-5 GCM won't call this routine to read data, so we
+!%%% don't have to add the reference to findFreeLUN (bmy, 8/3/12)
+!#if defined( DEVEL )
+!      USE inquireMod, ONLY : findFreeLUN
+!#endif
 
       IMPLICIT NONE
 #     include "define.h"

@@ -20,20 +20,17 @@
       USE CMN_FJ_MOD, ONLY : JPMAX,  JPPJ
       USE CMN_FJ_MOD, ONLY : RNAMES, BRANCH
       USE JV_CMN_MOD
-#if defined( DEVEL )
-      USE inquireMod, ONLY : findFreeLUN
-#endif
 
       IMPLICIT NONE
 !
 ! !INPUT PARAMETERS: 
 !
+      INTEGER,          INTENT(INOUT) :: nj1         ! Logical unit #
       CHARACTER(LEN=*), INTENT(IN)    :: namfil      ! File name
       LOGICAL,          INTENT(IN)    :: am_I_Root   ! Is this the root CPU? 
 !
 ! !INPUT PARAMETERS: 
 !
-      INTEGER,          INTENT(INOUT) :: nj1         ! Logical unit #
 !
 ! !REMARKS:
 !     jfacta    Quantum yield (or multiplication factor) for photolysis
@@ -45,6 +42,7 @@
 !  30 Jul 2012 - R. Yantosca - Now accept am_I_Root as an argument when
 !                              running with the traditional driver main.F
 !  30 Jul 2012 - R. Yantosca - Add reference to findFreeLUN under DEVEL tag
+!   3 Aug 2012 - R. Yantosca - Restore NJ1 to INTENT(IN) status
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -58,9 +56,6 @@ c Reread the ratj.d file to map photolysis rate to reaction
 c                     Read in quantum yield jfacta and fastj label jlabel
       ipr=0
       ! open file
-#if defined( DEVEL )
-      NJ1 = findFreeLUN()
-#endif
       open(nj1,file=namfil,status='old',form='formatted')
  10   read(nj1,'(a)',err=20) cline
       if(cline(2:5).eq.'9999') then
