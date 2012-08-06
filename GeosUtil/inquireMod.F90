@@ -63,7 +63,7 @@ MODULE inquireMod
 !
 ! !INPUT PARAMETERS:
 !
-    INTEGER, INTENT(IN), OPTIONAL :: b   ! ???
+    INTEGER, INTENT(IN), OPTIONAL :: b   ! Not really used here
 !
 ! !RETURN VALUE:
 !
@@ -73,6 +73,7 @@ MODULE inquireMod
 !  14 Jun 2012 - E. Nielsen  - Initial version
 !  03 Aug 2012 - R. Yantosca - Block off ESMF-specific code with #ifdefs
 !  03 Aug 2012 - R. Yantosca - Cosmetic changes
+!  06 Aug 2012 - R. Yantosca - Now make LUN range 11..199
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -92,13 +93,7 @@ MODULE inquireMod
 !
 ! !DEFINED PARAMETERS
 !
-    !-----------------------------------------------------------------------
-    ! Prior to 8/3/11:
-    ! Make the starting LUN higher so as not to conflict with existing
-    ! GEOS-Chem file units.  During 
-    !INTEGER, PARAMETER         :: iTop = 99     ! Maximum LUN limit 
-    !-----------------------------------------------------------------------
-    INTEGER, PARAMETER         :: iTop = 300     ! Maximum LUN limit 
+    INTEGER, PARAMETER         :: iTop = 199     ! Maximum LUN limit 
 
     !======================================================================
     ! Initialization
@@ -111,13 +106,7 @@ MODULE inquireMod
     ! Find an available logical unit 
     !======================================================================
     found = .FALSE.
-
-    !----------------------------------------------------------------------
-    ! Prior to 8/3/12
-    ! Start outside the range of existing G-C LUNs (bmy, 8/3/12)
-    !     i     = 11
-    !----------------------------------------------------------_-----------
-    i = 105 
+    i     = 11
 
     DO WHILE ( .NOT. found .AND. i <= iTop )
        INQUIRE( UNIT=i, EXIST=exists, OPENED=open )
