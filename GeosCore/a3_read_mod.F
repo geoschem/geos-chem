@@ -243,9 +243,9 @@
 !
 ! !INPUT PARAMETERS: 
 !
-      INTEGER, INTENT(IN)           :: NYMD    ! YYYY/MM/DD date
-      INTEGER, INTENT(IN)           :: NHMS    ! hh:mm:ss time
-      LOGICAL, INTENT(IN), OPTIONAL :: RESET   ! Reset first-time flag?
+      INTEGER, INTENT(IN)            :: NYMD    ! YYYY/MM/DD date
+      INTEGER, INTENT(IN)            :: NHMS    ! hh:mm:ss time
+      LOGICAL, INTENT(IN),  OPTIONAL :: RESET   ! Reset first-time flag?
 ! 
 ! !REVISION HISTORY: 
 !  23 Jun 2003 - R. Yantosca - Initial version
@@ -314,7 +314,7 @@
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE OPEN_A3_FIELDS( NYMD, NHMS, RESET )
+      SUBROUTINE OPEN_A3_FIELDS( NYMD, NHMS, RESET, IUNIT )
 !
 ! !USES:
 !
@@ -326,13 +326,17 @@
       USE FILE_MOD,      ONLY : IOERROR,    FILE_EXISTS
       USE TIME_MOD,      ONLY : EXPAND_DATE
 
-      USE CMN_SIZE_MOD                         ! Size parameters
+      USE CMN_SIZE_MOD                          ! Size parameters
 !
 ! !INPUT PARAMETERS: 
 !
-      INTEGER, INTENT(IN)           :: NYMD    ! YYYY/MM/dd and 
-      INTEGER, INTENT(IN)           :: NHMS    !  hh:mm:ss of desired data
-      LOGICAL, INTENT(IN), OPTIONAL :: RESET   ! Reset first-time flag?
+      INTEGER, INTENT(IN)            :: NYMD    ! YYYY/MM/dd and 
+      INTEGER, INTENT(IN)            :: NHMS    !  hh:mm:ss of desired data
+      LOGICAL, INTENT(IN),  OPTIONAL :: RESET   ! Reset first-time flag?
+!
+! !OUTPUT PARAMETERS:
+!
+      INTEGER, INTENT(OUT), OPTIONAL :: IUNIT   ! Returns IU_A1 to caller
 ! 
 ! !REVISION HISTORY: 
 !  15 Jun 1998 - R. Yantosca - Initial version
@@ -353,6 +357,7 @@
 !  28 Feb 2012 - R. Yantosca - Removed support for GEOS-3
 !  03 Aug 2012 - R. Yantosca - Move calls to findFreeLUN out of DEVEL block
 !  03 Aug 2012 - R. Yantosca - Now use findFreeLUN to define IU_A3 locally
+!  06 Aug 2012 - R. Yantosca - Add IUNIT to pass IU_A3 to calling routine
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -426,6 +431,11 @@
 
          ! Find a free file LUN
          IU_A3 = findFreeLUN( IU_A3 )
+
+         ! Pass the value of IU_A3 to back to the calling routine
+         IF ( PRESENT( IUNIT ) ) THEN
+            IUNIT = IU_A3
+         ENDIF
 
          ! Open the A3 file
          OPEN( UNIT   = IU_A3,         FILE   = TRIM( PATH ),

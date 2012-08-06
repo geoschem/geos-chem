@@ -139,7 +139,7 @@
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE OPEN_MERRA_A1_FIELDS( NYMD, NHMS, RESET )
+      SUBROUTINE OPEN_MERRA_A1_FIELDS( NYMD, NHMS, RESET, IUNIT )
 !
 ! !USES:
 !
@@ -153,13 +153,18 @@
 !
 ! !INPUT PARAMETERS: 
 !
-      INTEGER, INTENT(IN)           :: NYMD    ! YYYYMMDD date
-      INTEGER, INTENT(IN)           :: NHMS    ! hhmmss time
-      LOGICAL, INTENT(IN), OPTIONAL :: RESET   ! Reset first-time A1 flag?
+      INTEGER, INTENT(IN)            :: NYMD    ! YYYYMMDD date
+      INTEGER, INTENT(IN)            :: NHMS    ! hhmmss time
+      LOGICAL, INTENT(IN),  OPTIONAL :: RESET   ! Reset first-time A1 flag?
+!
+! !INPUT/OUTPUT PARAMETERS:
+!
+      INTEGER, INTENT(OUT), OPTIONAL :: IUNIT   ! Returns IU_A1 to caller
 ! 
 ! !REVISION HISTORY:
 !  19 Aug 2010 - R. Yantosca - Initial version, based on a3_read_mod.f
 !  03 Aug 2012 - R. Yantosca - Now use findFreeLUN to define IU_A1 locally
+!  06 Aug 2012 - R. Yantosca - Add optional IUNIT to pass LUN to calling routine
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -221,6 +226,12 @@
 
          ! Find a free file LUN
          IU_A1 = findFreeLUN()
+
+         ! If IUNIT is specified, then pass the value of
+         ! IU_A1 back to the calling program
+         IF ( PRESENT( IUNIT ) ) THEN
+            IUNIT = IU_A1
+         ENDIF
 
          ! Open the file
          OPEN( UNIT   = IU_A1,         FILE   = TRIM( PATH ),
