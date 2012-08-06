@@ -262,7 +262,7 @@
       KGLC       = IU_CHEMDAT
 
       IF ( am_I_Root ) THEN 
-         WRITE( 6, 310 ) TRIM( FILENAME )
+         WRITE( 6, 310 ) TRIM( FILENAME ), KGLC
  310     FORMAT( 'GEOSCHEM::READER: Opening ', a, ' on unit ', i6  )
       ENDIF
 

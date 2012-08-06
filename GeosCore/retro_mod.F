@@ -326,7 +326,7 @@
       IU_FILE = findFreeLUN()
 
       ! Echo info
-      WRITE( 6, 100 ) TRIM( FILENAME )
+      WRITE( 6, 100 ) TRIM( FILENAME ), IU_FILE
  100  FORMAT( 'READ_RETRO: Reading ', a, ' on unit ', i6 )
 
       ! Open file
