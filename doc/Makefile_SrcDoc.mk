@@ -62,6 +62,7 @@
 #                              and ssa_bromine_mod.F
 #  31 Jul 2012 - R. Yantosca - Added FAST-J routines etc.
 #  03 Aug 2012 - R. Yantosca - Added benchmark_mod, etc.
+#   6 Aug 2012 - R. Yantosca - Added gcap_read_mod, etc.
 #EOP
 #------------------------------------------------------------------------------
 #BOC
@@ -119,6 +120,7 @@ $(CORE)/emep_mod.F                   \
 $(CORE)/emissions_mod.F              \
 $(CORE)/fjx_acet_mod.F               \
 $(CORE)/gamap_mod.F                  \
+$(CORE)/gcap_read_mod.F              \
 $(CORE)/geos57_read_mod.F90          \
 $(CORE)/gfed3_biomass_mod.F          \
 $(CORE)/global_br_mod.F              \
