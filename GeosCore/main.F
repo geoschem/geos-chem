@@ -1375,13 +1375,11 @@
 ! !REVISION HISTORY: 
 !  31 Aug 2000 - R. Yantosca - Initial version
 !  13 Aug 2010 - R. Yantosca - Added ProTeX headers
+!  06 Aug 2012 - R. Yantosca - IU_BPCH is only global file LUN still needed
 !EOP
 !------------------------------------------------------------------------------
 !BOC
-      CALL FLUSH( IU_ND48    )  
-      CALL FLUSH( IU_BPCH    )  
-      CALL FLUSH( IU_SMV2LOG )  
-      CALL FLUSH( IU_DEBUG   ) 
+      CALL FLUSH( IU_BPCH )  
 
       END SUBROUTINE CTM_FLUSH
 !EOC

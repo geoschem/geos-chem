@@ -61,6 +61,7 @@
 !  (8 ) Now make COUNT a 3-D array (phs, 11/18/08)
 !  (9 ) Minor fix in DIAG20 (dbj, bmy, 10/26/09)
 !  16 Sep 2010 - R. Yantosca - Added ProTeX headers
+!  06 Aug 2012 - R. Yantosca - Make IU_ND20 a local module variable
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -69,6 +70,7 @@
 !
       ! Scalars
       LOGICAL                        :: DO_SAVE_O3
+      INTEGER                        :: IU_ND20
       INTEGER                        :: NFAM
       INTEGER                        :: YYYYMMDD
       REAL*8                         :: TAUb, TAUe, TAU0, TAU1
@@ -881,11 +883,11 @@
 !
       USE BPCH2_MOD,  ONLY : BPCH2,         GET_HALFPOLAR
       USE BPCH2_MOD,  ONLY : GET_MODELNAME, OPEN_BPCH2_FOR_WRITE
-      USE FILE_MOD,   ONLY : IU_ND20
       USE GRID_MOD,   ONLY : GET_XOFFSET,   GET_YOFFSET
+      USE inquireMod, ONLY : findFreeLUN
 
-      USE CMN_SIZE_MOD   ! Size parameters
-      USE CMN_DIAG_MOD   ! LD65
+      USE CMN_SIZE_MOD     ! Size parameters
+      USE CMN_DIAG_MOD     ! LD65
 ! 
 ! !REVISION HISTORY:
 !  09 Jun 1999 - I. Bey      - Initial version
@@ -895,6 +897,7 @@
 !  (3 ) Now make sure all USE statements are USE, ONLY (bmy, 10/3/05)
 !  (4 ) Now only write up to LD65 levels (phs, bmy, 12/4/07)
 !  15 Sep 2010 - R. Yantosca - Added ProTeX headers 
+!  03 Aug 2012 - R. Yantosca - Move calls to findFreeLUN out of DEVEL block
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -916,6 +919,9 @@
       !=================================================================
       ! WRITE20 begins here!
       !=================================================================
+
+      ! Find a free file LUN
+      IU_ND20   = findFreeLUN()
 
       ! Define various parameters for the BPCH file
       TITLE     = 'GEOS-CHEM archived P(O3) and L(O3) rates for Tag Ox'

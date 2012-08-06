@@ -3946,6 +3946,9 @@
       ! Expand YYYYMMDD tokens in the bpch file name
       CALL EXPAND_DATE( BPCH_FILE, GET_NYMDb(), GET_NHMSb() )
 
+      ! Find a free file LUN
+      IU_BPCH = findFreeLUN()
+
       ! Open the binary punch file for output
       CALL OPEN_BPCH2_FOR_WRITE( IU_BPCH, BPCH_FILE )
 

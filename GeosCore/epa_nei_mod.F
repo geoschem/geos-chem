@@ -1275,13 +1275,13 @@
 !
       USE BPCH2_MOD,        ONLY : OPEN_BPCH2_FOR_READ
       USE FILE_MOD,         ONLY : IOERROR
+      USE inquireMod,       ONLY : findFreeLUN
       USE LOGICAL_MOD,      ONLY : LICARTT
       USE TRANSFER_MOD,     ONLY : TRANSFER_2D
       USE SCALE_ANTHRO_MOD, ONLY : GET_ANNUAL_SCALAR
-      USE TIME_MOD,         ONLY : GET_YEAR
-   
-      USE CMN_SIZE_MOD             ! Size parameters
-      USE CMN_O3_MOD               ! FSCLYR
+      USE TIME_MOD,         ONLY : GET_YEAR   
+      USE CMN_SIZE_MOD                                       ! Size parameters
+      USE CMN_O3_MOD                                         ! FSCLYR
 !
 ! !INPUT PARAMETERS: 
 !
@@ -1332,9 +1332,12 @@
       ! READ_EPA begins here!
       !=================================================================
 
+      ! Find a free file LUN
+      IU_FILE = findFreeLUN()
+
       ! Echo info
-      WRITE( 6, 100 ) TRIM( FILENAME )
- 100  FORMAT( 'READ_EPA: Reading ', a )
+      WRITE( 6, 100 ) TRIM( FILENAME ), IU_FILE
+ 100  FORMAT( 'READ_EPA: Reading ', a, ' on unit ', i6 )
 
       ! Open file
       CALL OPEN_BPCH2_FOR_READ( IU_FILE, FILENAME )

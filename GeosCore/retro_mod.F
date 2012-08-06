@@ -263,6 +263,7 @@
 !
       USE BPCH2_MOD,        ONLY : OPEN_BPCH2_FOR_READ
       USE FILE_MOD,         ONLY : IOERROR
+      USE inquireMod,       ONLY : findFreeLUN
       USE TRANSFER_MOD,     ONLY : TRANSFER_2D
       USE SCALE_ANTHRO_MOD, ONLY : GET_ANNUAL_SCALAR
       USE TIME_MOD,         ONLY : GET_YEAR
@@ -295,6 +296,7 @@
 !  08 Mar 2011 - W. Reinhart - Initial Version 
 !  18 Aug 2011 - D. Millet   - Remove call to GET_ANNUAL_SCALAR
 !  22 Aug 2011 - R. Yantosca - Added ProTeX headers
+!  03 Aug 2012 - R. Yantosca - Move calls to findFreeLUN out of DEVEL block
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -320,12 +322,15 @@
       !  READ_RETRO begins here
       !=================================================================
 
+      ! Find a free file LUN
+      IU_FILE = findFreeLUN()
+
       ! Echo info
       WRITE( 6, 100 ) TRIM( FILENAME )
- 100  FORMAT( 'READ_RETRO: Reading ', a )
+ 100  FORMAT( 'READ_RETRO: Reading ', a, ' on unit ', i6 )
 
       ! Open file
-      CALL OPEN_BPCH2_FOR_READ( IU_FILE, FILENAME)
+      CALL OPEN_BPCH2_FOR_READ( IU_FILE, FILENAME )
 
       ! Read the entire file in one pass
       DO

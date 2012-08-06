@@ -74,7 +74,8 @@
 !       Minor bug fix with the accumulation of ODAER across RH bins
 !       (skim, 02/03/11)
 !  01 Aug 2012 - R. Yantosca - Add reference to findFreeLUN from inqure_mod.F90
-!  03 Aug 2012 - R. Yantosca - Move calls to findFreeLUN out of DEVEL block
+!  06 Aug 2012 - R. Yantosca - Move calls to findFreeLUN out of DEVEL block
+!  06 Aug 2012 - R. Yantosca - Now make IU_ND48 a local module variable
 !******************************************************************************
 !
       USE inquireMod, ONLY : findFreeLUN
@@ -117,6 +118,9 @@
       CHARACTER(LEN=40)    :: RESERVED = 'ND48 station timeseries'
       CHARACTER(LEN=80)    :: TITLE
       CHARACTER(LEN=255)   :: ND48_OUTPUT_FILE
+
+      ! LUN for ND48 diagnostic file
+      INTEGER              :: IU_ND48
 
       ! Arrays
       INTEGER, ALLOCATABLE :: ND48_I(:)
@@ -182,8 +186,6 @@
       USE CMN_O3_MOD      ! XNUMOLAIR
       USE CMN_GCTM_MOD    ! SCALE_HEIGHT
       USE LOGICAL_MOD,  ONLY : DO_DIAG_WRITE
-
-      USE FILE_MOD,     ONLY : IU_ND48
 
       ! Local variables
       LOGICAL, SAVE      :: IS_CLDTOPS,  IS_OPTD, IS_SEASALT, IS_SLP
@@ -768,7 +770,6 @@
 !
       ! References to F90 modules
       USE FILE_MOD, ONLY : IOERROR
-      USE FILE_MOD, ONLY : IU_ND48
 
       ! Arguments
       CHARACTER(LEN=*), INTENT(IN) :: FILENAME
@@ -781,6 +782,9 @@
       !=================================================================
       ! OPEN_ND48_FOR_WRITE begins here!
       !=================================================================
+
+      ! Find a free file LUN
+      IU_ND48 = findFreeLUN()
 
       ! Initialize
       FTI   = 'CTM bin 02 -- GEOS-CHEM station ts' 

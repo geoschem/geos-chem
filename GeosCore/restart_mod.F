@@ -17,6 +17,8 @@
 !
 ! !USES:
 !
+      USE inquireMod, ONLY : findFreeLUN
+
       IMPLICIT NONE
 #     include "define.h"
       PRIVATE
@@ -59,6 +61,7 @@
 !  11 Jul 2011 - R. Yantosca - Corrected mis-indexing problem w/ the 
 !                              CSPEC restart file
 !  21 Jul 2011 - M. Long     - Now include F77_CMN_SIZE instead of CMN_SIZE
+!  03 Aug 2012 - R. Yantosca - Move calls to findFreeLUN out of DEVEL block
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -96,7 +99,7 @@
       USE BPCH2_MOD,   ONLY : GET_HALFPOLAR, OPEN_BPCH2_FOR_WRITE
       USE DAO_MOD,     ONLY : AD
       USE ERROR_MOD,   ONLY : DEBUG_MSG
-      USE FILE_MOD,    ONLY : IU_RST,        IOERROR
+      USE FILE_MOD,    ONLY : IOERROR
       USE GRID_MOD,    ONLY : GET_XOFFSET,   GET_YOFFSET
       USE LOGICAL_MOD, ONLY : LPRT
       USE TIME_MOD,    ONLY : EXPAND_DATE
@@ -138,6 +141,7 @@
 !  (12) Add TAU to the argument list (bmy, 12/16/05)
 !  11 Jul 2011 - R. Yantosca - Added ProTeX headers
 !  21 Jul 2011 - M. Long     - Now include F77_CMN_SIZE instead of CMN_SIZE
+!  03 Aug 2012 - R. Yantosca - Move calls to findFreeLUN out of DEVEL block
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -151,6 +155,7 @@
       CHARACTER(LEN=255)   :: FILENAME
 
       ! For binary punch file, version 2.0
+      INTEGER              :: IU_RST
       REAL*4               :: LONRES, LATRES
       INTEGER              :: HALFPOLAR
       INTEGER, PARAMETER   :: CENTER180 = 1
@@ -189,14 +194,17 @@
       ! Open the restart file for output -- binary punch format
       !=================================================================
 
+      ! Find a free file LUN
+      IU_RST   = findFreeLUN()
+
       ! Copy the output restart file name into a local variable
       FILENAME = TRIM( OUTPUT_RESTART_FILE )
 
       ! Replace YYYY, MM, DD, HH tokens in FILENAME w/ actual values
       CALL EXPAND_DATE( FILENAME, YYYYMMDD, HHMMSS )
 
-      WRITE( 6, 100 ) TRIM( FILENAME )
- 100  FORMAT( '     - MAKE_RESTART_FILE: Writing ', a )
+      WRITE( 6, 100 ) TRIM( FILENAME ), IU_RST
+ 100  FORMAT( '     - MAKE_RESTART_FILE: Writing ', a, ' on unit ', i6 )
 
       ! Open restart file for output
       CALL OPEN_BPCH2_FOR_WRITE( IU_RST, FILENAME, TITLE )
@@ -256,7 +264,6 @@
       USE BPCH2_MOD,   ONLY : OPEN_BPCH2_FOR_READ
       USE DAO_MOD,     ONLY : AD
       USE ERROR_MOD,   ONLY : DEBUG_MSG
-      USE FILE_MOD,    ONLY : IU_RST
       USE FILE_MOD,    ONLY : IOERROR
       USE LOGICAL_MOD, ONLY : LSPLIT
       USE LOGICAL_MOD, ONLY : LPRT
@@ -306,13 +313,14 @@
 !  (20) Updated comments (bmy, 12/16/05)
 !  11 Jul 2011 - R. Yantosca - Added ProTeX headers
 !  21 Jul 2011 - M. Long     - Now include F77_CMN_SIZE instead of CMN_SIZE
+!  03 Aug 2012 - R. Yantosca - Move calls to findFreeLUN out of DEVEL block
 !EOP
 !------------------------------------------------------------------------------
 !BOC
 !
 ! !LOCAL VARIABLES:
 !
-      INTEGER             :: I, IOS, J, L, N
+      INTEGER             :: I, IOS, IU_RST, J, L, N
       INTEGER             :: NCOUNT(NNPAR) 
       REAL*4              :: TRACER(IIPAR,JJPAR,LLPAR)
       REAL*8              :: SUMTC
@@ -341,6 +349,9 @@
       !=================================================================
       ! Open restart file and read top-of-file header
       !=================================================================
+
+      ! Find a free file LUN
+      IU_RST   = findFreeLUN()
       
       ! Copy input file name to a local variable
       FILENAME = TRIM( INPUT_RESTART_FILE )
@@ -351,8 +362,8 @@
       ! Echo some input to the screen
       WRITE( 6, '(a)'   ) REPEAT( '=', 79 )
       WRITE( 6, '(a,/)' ) 'R E S T A R T   F I L E   I N P U T'
-      WRITE( 6, 100 ) TRIM( FILENAME )
- 100  FORMAT( 'READ_RESTART_FILE: Reading ', a )
+      WRITE( 6, 100 ) TRIM( FILENAME ), IU_RST
+ 100  FORMAT( 'READ_RESTART_FILE: Reading ', a, ' on unit ', i6 )
 
       ! Open the binary punch file for input
       CALL OPEN_BPCH2_FOR_READ( IU_RST, FILENAME )
@@ -807,7 +818,6 @@
       USE COMODE_MOD,  ONLY : JLOP
       USE ERROR_MOD,   ONLY : DEBUG_MSG
       USE ERROR_MOD,   ONLY : ERROR_STOP
-      USE FILE_MOD,    ONLY : IU_RST
       USE FILE_MOD,    ONLY : IOERROR
       USE GRID_MOD,    ONLY : GET_XOFFSET
       USE GRID_MOD,    ONLY : GET_YOFFSET
@@ -832,12 +842,14 @@
 !  12 Jul 2011 - R. Yantosca - Save species name to restart file using the
 !                              RESERVED field of the bpch file
 !  21 Jul 2011 - M. Long     - Now include F77_CMN_SIZE instead of CMN_SIZE
+!  03 Aug 2012 - R. Yantosca - Move calls to findFreeLUN out of DEVEL block
 !EOP
 !------------------------------------------------------------------------------
 !BOC
 !
 ! !LOCAL VARIABLES:
 !
+      INTEGER              :: IU_RST
       INTEGER              :: I,    I0, IOS, J,  J0, L, N, JLOOP
       INTEGER              :: YYYY, MM, DD,  HH, SS, ZIP_HH
       CHARACTER(LEN=255)   :: FILENAME
@@ -898,6 +910,9 @@
       ! Open the checkpoint file for output -- binary punch format
       !=================================================================
 
+      ! Find a free file LUN
+      IU_RST   = findFreeLUN()
+
       ! Copy the output checkpoint file name into a local variable
       FILENAME = TRIM( OUTPUT_CHECKPT_FILE )
 
@@ -907,8 +922,11 @@
       ! Add ADJ_DIR prefix to filename
       !FILENAME = TRIM( ADJ_DIR ) // TRIM( FILENAME )
 
-      WRITE( 6, 100 ) TRIM( FILENAME )
- 100  FORMAT( '     - MAKE_CSPEC_FILE: Writing ', a )
+      WRITE( 6, 100 ) TRIM( FILENAME ), IU_RST
+ 100  FORMAT( '     - MAKE_CSPEC_FILE: Writing ', a, ' on unit ', i6 )
+
+      ! Find a free file LUN
+      IU_RST = findFreeLUN()
 
       ! Open checkpoint file for output
       CALL OPEN_BPCH2_FOR_WRITE( IU_RST, FILENAME, TITLE )
@@ -998,7 +1016,6 @@
       USE COMODE_MOD,  ONLY : JLOP
       USE ERROR_MOD,   ONLY : DEBUG_MSG
       USE ERROR_MOD,   ONLY : ERROR_STOP
-      USE FILE_MOD,    ONLY : IU_RST
       USE FILE_MOD,    ONLY : IOERROR
       USE FILE_MOD,    ONLY : FILE_EXISTS
       USE LOGICAL_MOD, ONLY : LPRT
@@ -1024,13 +1041,14 @@
 !  21 Jul 2011 - M. Long     - Now include F77_CMN_SIZE instead of CMN_SIZE
 !  30 Jul 2012 - R. Yantosca - Now accept am_I_Root as an argument when
 !                              running with the traditional driver main.F
+!  03 Aug 2012 - R. Yantosca - Move calls to findFreeLUN out of DEVEL block
 !EOP
 !------------------------------------------------------------------------------
 !BOC
 !
 ! !LOCAL VARIABLES:
 !
-      INTEGER             :: I, IOS, J, L, N, JLOOP, NN, NTL
+      INTEGER             :: I, IOS, IU_RST, J, L, N, JLOOP, NN, NTL
       INTEGER             :: NCOUNT(NNPAR) 
       REAL*4		  :: TMP(ILONG,ILAT,IPVERT)
       LOGICAL             :: IT_EXISTS 
@@ -1068,7 +1086,10 @@
       !=================================================================
       ! Open checkpoint file and read top-of-file header
       !=================================================================
-      
+
+      ! Find a free file LUN
+      IU_RST   = findFreeLUN()
+     
       ! Copy input file name to a local variable
       FILENAME = TRIM( INPUT_CHECKPT_FILE )
 
@@ -1079,9 +1100,9 @@
       !FILENAME = TRIM( ADJ_DIR ) // TRIM( FILENAME )
 
       IF ( am_I_Root ) THEN
-         WRITE( 6, 100 ) TRIM( FILENAME )
+         WRITE( 6, 100 ) TRIM( FILENAME ), IU_RST
       ENDIF
- 100  FORMAT( '     - READ_CSPEC_FILE: Reading ', a )
+ 100  FORMAT( '     - READ_CSPEC_FILE: Reading ', a, ' on unit ', i6 )
  
       ! Check to see if cspec restart file exists
       IT_EXISTS = FILE_EXISTS( FILENAME )

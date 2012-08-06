@@ -321,6 +321,7 @@
       USE TIME_MOD,         ONLY : EXPAND_DATE,  GET_YEAR
       USE TIME_MOD,         ONLY : GET_MONTH
       USE SCALE_ANTHRO_MOD, ONLY : GET_ANNUAL_SCALAR
+      USE inquireMod,       ONLY : findFreeLUN
 
       USE CMN_SIZE_MOD           ! Size parameters
       USE CMN_O3_MOD             ! SCALEYEAR
@@ -341,6 +342,7 @@
 !        "logical_mod.f". (bmy, 5/30/06)
 !  13 Mar 2012 - M. Cooper   - Changed gridding algorithm to map_a2a
 !  24 May 2012 - R. Yantosca - Fixed minor bugs in map_a2a implementation
+!  03 Aug 2012 - R. Yantosca - Move calls to findFreeLUN out of DEVEL block
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -370,7 +372,7 @@
       CHARACTER(LEN=255)      :: LLFILENAME
       REAL*8                  :: INGRID (I1x1, J1x1 )
 
-#if defined( DEVEL )
+#if defined( DEVEL ) || defined( EXTERNAL_GRID ) || defined( EXTERNAL_FORCING )
       REAL*8, INTENT(INOUT) :: EMISS(IIPAR, JJPAR, N_TRACERS)
       REAL*8, ALLOCATABLE   :: A(:,:)
       INTEGER AS
@@ -382,7 +384,7 @@
 
       ! First-time initialization
       IF ( FIRST ) THEN
-#if defined( DEVEL )
+#if defined( DEVEL ) || defined( EXTERNAL_GRID ) || defined( EXTERNAL_FORCING )
          ALLOCATE( A( IIPAR, JJPAR ), STAT=AS )
          IF ( AS /= 0 ) CALL ALLOC_ERR( 'EMEP:A' )
          A = 0d0
@@ -414,9 +416,12 @@
       ! Expand filename
       CALL EXPAND_DATE( FILENAME, EMEP_NYMD, 000000 )
          
+      ! Find a free file LUN
+      IU_FILE = findFreeLun()
+
       ! Echo info
-      WRITE( 6, 100 ) TRIM( FILENAME )
- 100  FORMAT( '     - EMISS_EMEP: Reading ', a )
+      WRITE( 6, 100 ) TRIM( FILENAME ), IU_FILE
+ 100  FORMAT( '     - EMISS_EMEP: Reading ', a, ' on unit ', i6 )
 
       !=================================================================
       ! Read data at 1x1 resolution and regrid to current grid size

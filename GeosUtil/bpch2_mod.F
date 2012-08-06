@@ -114,12 +114,8 @@
 !
 ! !INPUT PARAMETERS: 
 !
-#if defined( DEVEL )
-      INTEGER,           INTENT(INOUT)         :: IUNIT     ! LUN for file I/O
-#else
       INTEGER,           INTENT(IN)            :: IUNIT     ! LUN for file I/O
-#endif
-      CHARACTER(LEN=*),  INTENT(IN)            :: FILENAME  ! Name of file
+      CHARACTER(LEN=*),  INTENT(IN)            :: FILENAME  ! File to open
 !
 ! !OUTPUT PARAMETERS:
 !
@@ -128,6 +124,9 @@
 ! !REVISION HISTORY: 
 !  (1 ) Now references ERROR_STOP from "error_mod.f" (bmy, 10/15/02)
 !  20 Nov 2009 - R. Yantosca - Added ProTeX header
+!  06 Aug 2012 - R. Yantosca - Do not call findFreeLun() in this subroutine
+!                              but instead in the calling routine and pass
+!                              the file unit as an argument.
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -143,9 +142,6 @@
       !=================================================================
 
       ! Open file for input -- readonly
-#if defined( DEVEL )
-      IUNIT = findFreeLUN()
-#endif
       OPEN( IUNIT,      FILE=TRIM( FILENAME ), STATUS='OLD',
      &      IOSTAT=IOS, FORM='UNFORMATTED',    ACCESS='SEQUENTIAL' )
 
@@ -214,11 +210,7 @@
 !
 ! !INPUT PARAMETERS: 
 !
-#if defined( DEVEL )
-      INTEGER,           INTENT(INOUT)         :: IUNIT     ! LUN for file I/O
-#else
       INTEGER,           INTENT(IN)            :: IUNIT     ! LUN for file I/O
-#endif
       CHARACTER(LEN=*),  INTENT(IN)            :: FILENAME  ! Name of file
 !
 ! !OUTPUT PARAMETERS:
@@ -228,14 +220,17 @@
 ! !REVISION HISTORY:
 !  30 Jul 2002 - R. Yantosca - Initial version
 !  20 Nov 2009 - R. Yantosca - Added ProTeX header
+!  06 Aug 2012 - R. Yantosca - Do not call findFreeLun() in this subroutine
+!                              but instead in the calling routine and pass
+!                              the file unit as an argument.
 !EOP
 !------------------------------------------------------------------------------
 !BOC
 !
 ! !LOCAL VARIABLES:
 ! 
-      INTEGER                                 :: IOS
-      CHARACTER(LEN=80)                       :: TMP_TITLE
+      INTEGER           :: IOS
+      CHARACTER(LEN=80) :: TMP_TITLE
 
       !=================================================================
       ! OPEN_BPCH2_FOR_WRITE begins here!
@@ -249,9 +244,6 @@
       ENDIF
 
       ! Open file for output
-#if defined( DEVEL )
-      IUNIT = findFreeLUN()
-#endif
       OPEN( IUNIT,      FILE=TRIM( FILENAME ), STATUS='UNKNOWN',
      &      IOSTAT=IOS, FORM='UNFORMATTED',    ACCESS='SEQUENTIAL' )
 

@@ -2183,6 +2183,9 @@
       NCOUNT(:)       = 0
       Hg_OCEAN(:,:,:) = 0e0
 
+      ! Find a free file LUN
+      IU_FILE         = findFreeLUN()
+
       ! Copy input file name to a local variable
       FILENAME        = TRIM( RUN_DIR ) // TRIM( Hg_RST_FILE )
 
@@ -2192,12 +2195,9 @@
       ! Echo some input to the screen
       WRITE( 6, '(a)' ) REPEAT( '=', 79 )
       WRITE( 6, 100   ) 
-      WRITE( 6, 110   ) TRIM( FILENAME )
+      WRITE( 6, 110   ) TRIM( FILENAME ), IU_FILE
  100  FORMAT( 'O C E A N   H g   R E S T A R T   F I L E   I N P U T' )
- 110  FORMAT( /, 'READ_OCEAN_Hg_RESTART: Reading ', a )
-
-      ! Find a free file LUN
-      IU_FILE = findFreeLUN()
+ 110  FORMAT( /, 'READ_OCEAN_Hg_RESTART: Reading ', a, ' on unit ', i6 )
 
       ! Open the binary punch file for input
       CALL OPEN_BPCH2_FOR_READ( IU_FILE, FILENAME )
@@ -2502,16 +2502,16 @@
       RESERVED  = ''
       UNIT      = 'kg'
 
+      ! Find a free file LUN
+      IU_FILE   = findFreeLUN()
+
       ! Expand date in filename
       FILENAME  = TRIM( RUN_DIR ) // Hg_RST_FILE
       CALL EXPAND_DATE( FILENAME, NYMD, NHMS )
 
       ! Echo info
-      WRITE( 6, 100 ) TRIM( FILENAME )
- 100  FORMAT( '     - MAKE_RESTART_FILE: Writing ', a )
-
-      ! Find a free file LUN
-      IU_FILE = findFreeLUN()
+      WRITE( 6, 100 ) TRIM( FILENAME ), IU_FILE
+ 100  FORMAT( '     - MAKE_RESTART_FILE: Writing ', a, ' on unit ', i6 )
 
       ! Open BPCH file for output
       CALL OPEN_BPCH2_FOR_WRITE( IU_FILE, FILENAME )
