@@ -31,7 +31,7 @@
       PUBLIC :: GET_PEDGE_FULLGRID             
       PUBLIC :: INIT_PRESSURE         
       PUBLIC :: SET_FLOATING_PRESSURE 
-#if defined( DEVEL )
+#if defined( DEVEL ) || defined( EXTERNAL_GRID ) || defined( EXTERNAL_FORCING )
       PUBLIC :: EXTERNAL_PEDGE
 #endif
 !
@@ -105,7 +105,7 @@
       REAL*8, ALLOCATABLE :: PFLT(:,:)  ! "Floating" surface pressure field
       REAL*8, ALLOCATABLE :: AP_FULLGRID(:) ! "A" term for unreduced ETA
       REAL*8, ALLOCATABLE :: BP_FULLGRID(:) ! "B" term for unreduced ETA
-#if defined( DEVEL )
+#if defined( DEVEL ) || defined( EXTERNAL_GRID ) || defined( EXTERNAL_FORCING )
       REAL*8, ALLOCATABLE :: EXTERNAL_PEDGE(:,:,:)
 #endif
       CONTAINS
@@ -304,7 +304,7 @@
       !-----------------------------
 
       ! Pressure [hPa] at bottom edge of level L (see documentation header)
-#if defined( DEVEL )
+#if defined( DEVEL ) || defined( EXTERNAL_GRID ) || defined( EXTERNAL_FORCING )
       PEDGE = EXTERNAL_PEDGE(I,J,L)
 #else
       PEDGE = AP(L) + ( BP(L) * ( PFLT(I,J) - PTOP ) )
@@ -506,7 +506,7 @@
       IF ( AS /= 0 ) CALL ALLOC_ERR( 'BP_FULLGRID' )
       BP = 0d0
 
-#if defined( DEVEL )
+#if defined( DEVEL ) || defined( EXTERNAL_GRID ) || defined( EXTERNAL_FORCING )
       ALLOCATE( EXTERNAL_PEDGE( IIPAR, JJPAR, LLPAR+1 ), STAT=AS )
       IF ( AS /= 0 ) CALL ALLOC_ERR( 'EXTERNAL_PEDGE' )
       EXTERNAL_PEDGE = 0d0

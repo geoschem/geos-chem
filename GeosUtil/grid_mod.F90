@@ -46,7 +46,7 @@ MODULE Grid_Mod
   PUBLIC  :: Set_xOffSet
   PUBLIC  :: Set_yOffSet
 
-#if defined( DEVEL )
+#if defined( DEVEL ) || defined( EXTERNAL_GRID ) || defined( EXTERNAL_FORCING )
 !      PUBLIC  :: AREA_M2 ! Permit setting this externally
       PUBLIC  :: YMID, XMID, YEDGE, XEDGE, AREA_M2
 #endif
