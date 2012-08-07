@@ -57,7 +57,7 @@ MODULE STRAT_CHEM_MOD
 !  01 Feb 2011 - L. Murray   - Initial version
 !  20 Jul 2012 - R. Yantosca - Reorganized declarations for clarity
 !  20 Jul 2012 - R. Yantosca - Correct compilation error in GET_RATES_INTERP
-
+!  07 Aug 2012 - R. Yantosca - Fix parallelization problem in Bry do loop
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -101,7 +101,10 @@ MODULE STRAT_CHEM_MOD
   REAL*8               :: TpauseL_Cnt         ! Tropopause counter
   REAL*8, ALLOCATABLE  :: TpauseL(:,:)        ! Tropopause level aggregator
   REAL*8, ALLOCATABLE  :: MInit(:,:,:,:)      ! Init. atm. state for STE period
-  REAL*8, ALLOCATABLE  :: Before(:,:,:)       ! Init. atm. state each chem. dt
+!------------------------------------------------------------------------------
+! Prior to 8/7/12:
+!  REAL*8, ALLOCATABLE  :: Before(:,:,:)       ! Init. atm. state each chem. dt
+!------------------------------------------------------------------------------
   REAL*8, ALLOCATABLE  :: SChem_Tend(:,:,:,:) ! Stratospheric chemical tendency
                                               !   (total P - L) [kg period-1]
 
@@ -160,6 +163,7 @@ CONTAINS
 !  20 Jul 2012 - R. Yantosca - Reorganized declarations for clarity
 !  30 Jul 2012 - R. Yantosca - Now accept am_I_Root as an argument when
 !                              running with the traditional driver main.F
+!  07 Aug 2012 - R. Yantosca - Make BEFORE a local variable for parallel loop
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -178,6 +182,7 @@ CONTAINS
 
     ! Arrays
     REAL*8                    :: STT0(IIPAR,JJPAR,LLPAR,N_TRACERS)
+    REAL*8                    :: BEFORE(IIPAR,JJPAR,LLPAR)
 
     ! External functions
     REAL*8, EXTERNAL          :: BOXVL
@@ -380,23 +385,25 @@ CONTAINS
        ! Prescribe Br_y concentrations
        !===============================
 
-!       !$OMP PARALLEL DO &
-!       !$OMP DEFAULT( SHARED ) &
-!       !$OMP PRIVATE( NN, BEFORE, I, J, L, BryDay, BryNight, IJWINDOW )
+       !$OMP PARALLEL DO &
+       !$OMP DEFAULT( SHARED ) &
+       !$OMP PRIVATE( NN, BEFORE, I, J, L, BryDay, BryNight, IJWINDOW )
        DO NN=1,6
 
           IF ( GC_Bry_TrID(NN) > 0 ) THEN
 
              ! Make note of inital state for determining tendency later
+             ! NOTE: BEFORE has to be made PRIVATE to the DO loop since
+             ! it only has IJL scope, but the loop is over IJLN!
+             ! (bmy, 8/7/12)
              BEFORE = STT(:,:,:,GC_Bry_TrID(NN))
           
-             DO J=1,JJPAR
-             DO I=1,IIPAR  
-
              ! NOTE: For compatibility w/ the GEOS-5 GCM, we can no longer
              ! assume a minimum tropopause level.  Loop from 1,LLPAR instead.
              ! (bmy, 7/18/12)
              DO L = 1, LLPAR
+             DO J = 1, JJPAR
+             DO I = 1, IIPAR  
                   
                 IF ( ITS_IN_THE_TROP(I,J,L) ) CYCLE
                    
@@ -431,7 +438,7 @@ CONTAINS
           ENDIF
 
        ENDDO
-!       !$OMP END PARALLEL DO
+       !$OMP END PARALLEL DO
        
     !======================================================================
     ! Tagged Ox simulation
@@ -1376,10 +1383,13 @@ CONTAINS
     IF ( AS /= 0 ) CALL ALLOC_ERR( 'TPAUSEL' )
     TPAUSEL = 0d0
 
-    ! Array to save chemical state before each chemistry time step [kg]
-    ALLOCATE( BEFORE( IIPAR, JJPAR, LLPAR ), STAT=AS )
-    IF ( AS /= 0 ) CALL ALLOC_ERR( 'BEFORE' )
-    BEFORE = 0d0
+!------------------------------------------------------------------------------
+! Prior to 8/7/12:
+!    ! Array to save chemical state before each chemistry time step [kg]
+!    ALLOCATE( BEFORE( IIPAR, JJPAR, LLPAR ), STAT=AS )
+!    IF ( AS /= 0 ) CALL ALLOC_ERR( 'BEFORE' )
+!    BEFORE = 0d0
+!------------------------------------------------------------------------------
 
     ! Array to aggregate the stratospheric chemical tendency [kg period-1]
     ALLOCATE( SCHEM_TEND(IIPAR,JJPAR,LLPAR,N_TRACERS), STAT=AS )
@@ -1430,7 +1440,10 @@ CONTAINS
     IF ( ALLOCATED( STRAT_OH   ) ) DEALLOCATE( STRAT_OH   )
     IF ( ALLOCATED( MInit      ) ) DEALLOCATE( MInit      )
     IF ( ALLOCATED( TPAUSEL    ) ) DEALLOCATE( TPAUSEL    )
-    IF ( ALLOCATED( BEFORE     ) ) DEALLOCATE( BEFORE     )
+!-----------------------------------------------------------------
+! Prior to 8/7/12:
+!    IF ( ALLOCATED( BEFORE     ) ) DEALLOCATE( BEFORE     )
+!-----------------------------------------------------------------
     IF ( ALLOCATED( SCHEM_TEND ) ) DEALLOCATE( SCHEM_TEND )
 
   END SUBROUTINE CLEANUP_STRAT_CHEM
