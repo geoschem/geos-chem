@@ -1395,7 +1395,7 @@
             STAMP = TIMESTAMP_STRING( NYMD, NHMS )
             WRITE( 6, 210 ) NFOUND, STAMP, IU_A3
  210        FORMAT( '     - Found all ', i3, ' A-3 met fields for ', 
-      &                  a, ' on unit ', i4 )
+     &                   a, ' on unit ', i4 )
             EXIT
          ENDIF
       ENDDO
