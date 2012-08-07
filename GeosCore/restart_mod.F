@@ -142,6 +142,7 @@
 !  11 Jul 2011 - R. Yantosca - Added ProTeX headers
 !  21 Jul 2011 - M. Long     - Now include F77_CMN_SIZE instead of CMN_SIZE
 !  03 Aug 2012 - R. Yantosca - Move calls to findFreeLUN out of DEVEL block
+!  07 Aug 2012 - R. Yantosca - Now print LUN used to open file
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -204,7 +205,7 @@
       CALL EXPAND_DATE( FILENAME, YYYYMMDD, HHMMSS )
 
       WRITE( 6, 100 ) TRIM( FILENAME ), IU_RST
- 100  FORMAT( '     - MAKE_RESTART_FILE: Writing ', a, ' on unit ', i6 )
+ 100  FORMAT( '     - MAKE_RESTART_FILE: Writing ', a, ' on unit ', i4 )
 
       ! Open restart file for output
       CALL OPEN_BPCH2_FOR_WRITE( IU_RST, FILENAME, TITLE )
@@ -314,6 +315,7 @@
 !  11 Jul 2011 - R. Yantosca - Added ProTeX headers
 !  21 Jul 2011 - M. Long     - Now include F77_CMN_SIZE instead of CMN_SIZE
 !  03 Aug 2012 - R. Yantosca - Move calls to findFreeLUN out of DEVEL block
+!  07 Aug 2012 - R. Yantosca - Now print LUN used to open file
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -363,7 +365,7 @@
       WRITE( 6, '(a)'   ) REPEAT( '=', 79 )
       WRITE( 6, '(a,/)' ) 'R E S T A R T   F I L E   I N P U T'
       WRITE( 6, 100 ) TRIM( FILENAME ), IU_RST
- 100  FORMAT( 'READ_RESTART_FILE: Reading ', a, ' on unit ', i6 )
+ 100  FORMAT( 'READ_RESTART_FILE: Reading ', a, ' on unit ', i4 )
 
       ! Open the binary punch file for input
       CALL OPEN_BPCH2_FOR_READ( IU_RST, FILENAME )
@@ -843,6 +845,7 @@
 !                              RESERVED field of the bpch file
 !  21 Jul 2011 - M. Long     - Now include F77_CMN_SIZE instead of CMN_SIZE
 !  03 Aug 2012 - R. Yantosca - Move calls to findFreeLUN out of DEVEL block
+!  07 Aug 2012 - R. Yantosca - Now print LUN used to open file
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -923,7 +926,7 @@
       !FILENAME = TRIM( ADJ_DIR ) // TRIM( FILENAME )
 
       WRITE( 6, 100 ) TRIM( FILENAME ), IU_RST
- 100  FORMAT( '     - MAKE_CSPEC_FILE: Writing ', a, ' on unit ', i6 )
+ 100  FORMAT( '     - MAKE_CSPEC_FILE: Writing ', a, ' on unit ', i4 )
 
       ! Find a free file LUN
       IU_RST = findFreeLUN()
@@ -1042,6 +1045,7 @@
 !  30 Jul 2012 - R. Yantosca - Now accept am_I_Root as an argument when
 !                              running with the traditional driver main.F
 !  03 Aug 2012 - R. Yantosca - Move calls to findFreeLUN out of DEVEL block
+!  07 Aug 2012 - R. Yantosca - Now print LUN used to open file
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -1102,7 +1106,7 @@
       IF ( am_I_Root ) THEN
          WRITE( 6, 100 ) TRIM( FILENAME ), IU_RST
       ENDIF
- 100  FORMAT( '     - READ_CSPEC_FILE: Reading ', a, ' on unit ', i6 )
+ 100  FORMAT( '     - READ_CSPEC_FILE: Reading ', a, ' on unit ', i4 )
  
       ! Check to see if cspec restart file exists
       IT_EXISTS = FILE_EXISTS( FILENAME )

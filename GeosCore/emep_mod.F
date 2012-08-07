@@ -343,6 +343,7 @@
 !  13 Mar 2012 - M. Cooper   - Changed gridding algorithm to map_a2a
 !  24 May 2012 - R. Yantosca - Fixed minor bugs in map_a2a implementation
 !  03 Aug 2012 - R. Yantosca - Move calls to findFreeLUN out of DEVEL block
+!  07 Aug 2012 - R. Yantosca - Now print LUN used to open file
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -421,7 +422,7 @@
 
       ! Echo info
       WRITE( 6, 100 ) TRIM( FILENAME ), IU_FILE
- 100  FORMAT( '     - EMISS_EMEP: Reading ', a, ' on unit ', i6 )
+ 100  FORMAT( '     - EMISS_EMEP: Reading ', a, ' on unit ', i4 )
 
       !=================================================================
       ! Read data at 1x1 resolution and regrid to current grid size

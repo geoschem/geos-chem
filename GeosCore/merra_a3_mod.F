@@ -149,6 +149,7 @@
 ! !REVISION HISTORY: 
 !  20 Aug 2010 - R. Yantosca - Initial version, based on a6_read_mod.f
 !  03 Aug 2012 - R. Yantosca - Now use findFreeLUN to define IU_A3 locally
+!  07 Aug 2012 - R. Yantosca - Now print LUN used to open file
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -213,8 +214,8 @@
          ENDIF
 
          ! Echo info
-         WRITE( 6, 100 ) TRIM( PATH )
- 100     FORMAT( '     - Opening: ', a ) 
+         WRITE( 6, 100 ) TRIM( PATH ), IU_A3
+ 100     FORMAT( '     - Opening: ', a, ' on unit ', i4 ) 
 
          !---------------------------
          ! Get # of fields in file

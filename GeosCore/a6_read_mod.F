@@ -339,6 +339,7 @@
 !  (11) Remove references to IN_CLOUD_OD (bmy, 10/15/09)
 !  28 Feb 2012 - R. Yantosca - Removed support for GEOS-3
 !  03 Aug 2012 - R. Yantosca - Now use findFreeLUN to define IU_A6 locally
+!  07 Aug 2012 - R. Yantosca - Now print LUN used to open file
 !******************************************************************************
 !      
       ! References to F90 modules
@@ -427,8 +428,8 @@
          ENDIF
 
          ! Echo info
-         WRITE( 6, 100 ) TRIM( PATH )
- 100     FORMAT( '     - Opening: ', a ) 
+         WRITE( 6, 100 ) TRIM( PATH ), IU_A6
+ 100     FORMAT( '     - Opening: ', a, ' on unit ', i4 ) 
 
          ! Skip past the ident string
          READ( IU_A6, IOSTAT=IOS ) IDENT

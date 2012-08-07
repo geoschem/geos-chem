@@ -454,6 +454,7 @@
 ! !REVISION HISTORY:
 !  15 Sep 2009 - C. Carouge  - Initial version
 !  03 Aug 2012 - R. Yantosca - Move calls to findFreeLUN out of DEVEL block
+!  07 Aug 2012 - R. Yantosca - Now print LUN used to open file
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -495,7 +496,7 @@
 
       ! Echo info
       WRITE( 6, 100 ) TRIM( FILENAME ), IU_FILE
- 100  FORMAT( '     - MAKE_RESTART_FILE: Writing ', a, ' on unit ', i6 )
+ 100  FORMAT( '     - MAKE_RESTART_FILE: Writing ', a, ' on unit ', i4 )
 
       ! Open BPCH file for output
       CALL OPEN_BPCH2_FOR_WRITE( IU_FILE, FILENAME )

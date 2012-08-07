@@ -1288,6 +1288,7 @@
 !  12 Nov 2010 - R. Yantosca - Now save out PEDGE-$ (pressure at level edges)
 !                              rather than Psurface - PTOP
 !  03 Aug 2012 - R. Yantosca - Move calls to findFreeLUN out of DEVEL block
+!  07 Aug 2012 - R. Yantosca - Now print LUN used to open file
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -1320,7 +1321,7 @@
       
       ! Echo info
       WRITE( 6, 100 ) TRIM( FILENAME )
- 100  FORMAT( '     - DIAG51b: Opening file ', a, ' on unit ', i6 ) 
+ 100  FORMAT( '     - DIAG51b: Opening file ', a, ' on unit ', i4 ) 
 
       ! Open output file
       IF ( LND51b_HDF ) THEN

@@ -39,6 +39,7 @@
 !  19 Aug 2010 - R. Yantosca - Initial version, based on a3_read_mod.f
 !  03 Aug 2012 - R. Yantosca - Now make IU_A1 a private module variable
 !EOP
+
 !------------------------------------------------------------------------------
 !BOC
 !
@@ -165,6 +166,7 @@
 !  19 Aug 2010 - R. Yantosca - Initial version, based on a3_read_mod.f
 !  03 Aug 2012 - R. Yantosca - Now use findFreeLUN to define IU_A1 locally
 !  06 Aug 2012 - R. Yantosca - Add optional IUNIT to pass LUN to calling routine
+!  07 Aug 2012 - R. Yantosca - Now print LUN used to open file
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -243,8 +245,8 @@
          ENDIF
 
          ! Echo info
-         WRITE( 6, 100 ) TRIM( PATH )
- 100     FORMAT( '     - Opening: ', a )
+         WRITE( 6, 100 ) TRIM( PATH ), IU_A1
+ 100     FORMAT( '     - Opening: ', a, ' on unit ', i4 )
          
          !---------------------------
          ! Get # of fields in file

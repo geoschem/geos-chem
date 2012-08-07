@@ -475,6 +475,7 @@
 !  18 Dec 2009 - Aaron van D - Add NESTED_EU flag
 !  25 May 2012 - R. Yantosca - Update TEMPARRAY for GRID025x03125
 !  03 Aug 2012 - R. Yantosca - Move calls to findFreeLUN out of DEVEL block
+!  07 Aug 2012 - R. Yantosca - Now print LUN used to open file
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -613,7 +614,7 @@
          IF ( .not. TMP_QUIET ) THEN 
             WRITE( 6, 100 ) ZTAU0, NTRACER
  100        FORMAT( 'READ_BPCH2: Found data for TAU = ', f10.2, 
-     &              ' and tracer # ', i6 )
+     &              ' and tracer # ', i6, ' on unit ', i4 )
          ENDIF
 
       ELSE

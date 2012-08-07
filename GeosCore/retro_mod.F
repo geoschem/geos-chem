@@ -297,6 +297,7 @@
 !  18 Aug 2011 - D. Millet   - Remove call to GET_ANNUAL_SCALAR
 !  22 Aug 2011 - R. Yantosca - Added ProTeX headers
 !  03 Aug 2012 - R. Yantosca - Move calls to findFreeLUN out of DEVEL block
+!  07 Aug 2012 - R. Yantosca - Now print LUN used to open file
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -327,7 +328,7 @@
 
       ! Echo info
       WRITE( 6, 100 ) TRIM( FILENAME ), IU_FILE
- 100  FORMAT( 'READ_RETRO: Reading ', a, ' on unit ', i6 )
+ 100  FORMAT( 'READ_RETRO: Reading ', a, ' on unit ', i4 )
 
       ! Open file
       CALL OPEN_BPCH2_FOR_READ( IU_FILE, FILENAME )

@@ -1307,6 +1307,7 @@
 !  (1 ) now apply yearly scale factor (amv, phs, 3/10/08)
 !  (2 ) Now accounts for FSCLYR (phs, 3/17/08)
 !  07 Feb 2011 - R. Yantosca - Added ProTeX headers
+!  07 Aug 2012 - R. Yantosca - Now print LUN used to open file
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -1337,7 +1338,7 @@
 
       ! Echo info
       WRITE( 6, 100 ) TRIM( FILENAME ), IU_FILE
- 100  FORMAT( 'READ_EPA: Reading ', a, ' on unit ', i6 )
+ 100  FORMAT( 'READ_EPA: Reading ', a, ' on unit ', i4 )
 
       ! Open file
       CALL OPEN_BPCH2_FOR_READ( IU_FILE, FILENAME )

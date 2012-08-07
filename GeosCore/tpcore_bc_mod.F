@@ -296,6 +296,7 @@
 !  06 Aug 2012 - R. Yantosca - Move calls to findFreeLUN out of DEVEL block
 !  06 Aug 2012 - R. Yantosca - Cleaned up IF statement, added comments
 !  06 Aug 2012 - R. Yantosca - Close existing files before opening new files
+!  07 Aug 2012 - R. Yantosca - Now print LUN used to open file
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -339,7 +340,7 @@
          CALL EXPAND_DATE( FILENAME, GET_NYMD(), 000000 )
 
          ! FORMAT string for use below
- 100     FORMAT( '     - OPEN_BC_FILE: Opening ', a, ' on unit ', i6 )
+ 100     FORMAT( '     - OPEN_BC_FILE: Opening ', a, ' on unit ', i4 )
 
          IF ( WINDOW .eq. 6 ) THEN
 

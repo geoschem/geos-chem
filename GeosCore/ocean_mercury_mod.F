@@ -2137,6 +2137,7 @@
 ! 
 !  NOTES:
 !  01 Aug 2012 - R. Yantosca - Add reference to findFreeLUN from inqure_mod.F90
+!  07 Aug 2012 - R. Yantosca - Now print LUN used to open file
 !******************************************************************************
 !
       ! References to F90 modules
@@ -2197,7 +2198,7 @@
       WRITE( 6, 100   ) 
       WRITE( 6, 110   ) TRIM( FILENAME ), IU_FILE
  100  FORMAT( 'O C E A N   H g   R E S T A R T   F I L E   I N P U T' )
- 110  FORMAT( /, 'READ_OCEAN_Hg_RESTART: Reading ', a, ' on unit ', i6 )
+ 110  FORMAT( /, 'READ_OCEAN_Hg_RESTART: Reading ', a, ' on unit ', i4 )
 
       ! Open the binary punch file for input
       CALL OPEN_BPCH2_FOR_READ( IU_FILE, FILENAME )

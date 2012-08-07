@@ -30,6 +30,7 @@
 !        hardwiring it. (dbm, bmy, 10/16/06)
 !  01 Aug 2012 - R. Yantosca - Add reference to findFreeLUN from inqure_mod.F90
 !  03 Aug 2012 - R. Yantosca - Move calls to findFreeLUN out of DEVEL block
+!  07 Aug 2012 - R. Yantosca - Now print LUN used to open file
 !******************************************************************************
 !
 #     include "define.h"
@@ -263,7 +264,7 @@
 
       IF ( am_I_Root ) THEN 
          WRITE( 6, 310 ) TRIM( FILENAME ), KGLC
- 310     FORMAT( 'GEOSCHEM::READER: Opening ', a, ' on unit ', i6  )
+ 310     FORMAT( 'GEOSCHEM::READER: Opening ', a, ' on unit ', i4  )
       ENDIF
 
       ! Open chemistry mechanism file
@@ -276,7 +277,7 @@
          IU_SMV2LOG = findFreeLUN()
 
          WRITE( 6, 320 ) IU_SMV2LOG
- 320     FORMAT( 'GEOSCHEM::READER: Opening smv2.log on unit', i6 )
+ 320     FORMAT( 'GEOSCHEM::READER: Opening smv2.log on unit', i4 )
 
          IO93 = IU_SMV2LOG
          OPEN( IO93, FILE='smv2.log', STATUS='UNKNOWN' )

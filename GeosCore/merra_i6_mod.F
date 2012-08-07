@@ -82,6 +82,7 @@
 ! !REVISION HISTORY: 
 !  19 Aug 2010 - R. Yantosca - Initial version, based on i6_read_mod.f
 !  03 Aug 2012 - R. Yantosca - Now use findFreeLUN to define IU_I6 locally
+!  07 Aug 2012 - R. Yantosca - Now print LUN used to open file
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -147,8 +148,8 @@
          ENDIF
 
          ! Echo info
-         WRITE( 6, 100 ) TRIM( PATH )
- 100     FORMAT( '     - Opening: ', a )
+         WRITE( 6, 100 ) TRIM( PATH ), IU_I6
+ 100     FORMAT( '     - Opening: ', a, ' on unit ', i4 )
          
          ! Set the proper first-time-flag false
          FIRST = .FALSE.

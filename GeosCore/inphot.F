@@ -53,6 +53,7 @@
 !  30 Jul 2012 - R. Yantosca - Now add LUN as a local variable
 !  01 Aug 2012 - R. Yantosca - Add reference to findFreeLUN from inqure_mod.F90
 !  03 Aug 2012 - R. Yantosca - Move calls to findFreeLUN out of DEVEL block
+!  07 Aug 2012 - R. Yantosca - Now print LUN used to open file
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -100,7 +101,7 @@
       ! Echo info
       IF ( am_I_Root ) THEN
          WRITE( 6, 100 ) TRIM( FILENAME ), LUN
- 100     FORMAT( 'GEOSCHEM::INPHOT: Reading ', a ', on unit ', i6 )
+ 100     FORMAT( 'GEOSCHEM::INPHOT: Reading ', a ', on unit ', i4 )
       ENDIF
 
       ! Read J_value names 

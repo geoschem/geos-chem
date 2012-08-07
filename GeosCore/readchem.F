@@ -42,6 +42,7 @@
 !  30 Jul 2012 - R. Yantosca - Now accept am_I_Root as an argument even when
 !                              called from the traditional driver "main.F"
 !  03 Aug 2012 - R. Yantosca - Move calls to findFreeLUN out of DEVEL block
+!  07 Aug 2012 - R. Yantosca - Now print LUN used to open file
 !******************************************************************************
 !
 !
@@ -1243,7 +1244,7 @@
 
       IF ( am_I_Root ) THEN
          WRITE( 6, 300 ) TRIM( FILENAME ), I
- 300     FORMAT( 'GEOSCHEM::READCHEM: Opening ', a, ' on unit ', i6 )
+ 300     FORMAT( 'GEOSCHEM::READCHEM: Opening ', a, ' on unit ', i4 )
       ENDIF
 
       OPEN(I, FILE=TRIM( FILENAME ), FORM='FORMATTED', STATUS='OLD' )

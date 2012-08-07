@@ -73,6 +73,7 @@
 !  (1 ) Based on MAKE_RESTART_FILE 
 !  (2 ) Removed debug output (bmy, 4/21/10)
 !  03 Aug 2012 - R. Yantosca - Move calls to findFreeLUN out of DEVEL block
+!  07 Aug 2012 - R. Yantosca - Now print LUN used to open file
 !******************************************************************************
 !     
       ! References to F90 modules
@@ -146,7 +147,7 @@
       CALL EXPAND_DATE( FILENAME, YYYYMMDD, HHMMSS )
 
       WRITE( 6, 100 ) TRIM( FILENAME ), IU_OAP
- 100  FORMAT( '     - MAKE_SOAPROD_FILE: Writing ', a, ' on unit ', i6 )
+ 100  FORMAT( '     - MAKE_SOAPROD_FILE: Writing ', a, ' on unit ', i4 )
 
       ! Open restart file for output
       CALL OPEN_BPCH2_FOR_WRITE( IU_OAP, FILENAME, TITLE )
@@ -282,6 +283,8 @@
 !  (18) No longer use hardwired filename.  Also now reference "logical_mod.f"
 !        and "tracer_mod.f" (bmy, 7/20/04)
 !  (19) Removed debug output (bmy, 4/21/10)
+!  03 Aug 2012 - R. Yantosca - Move calls to findFreeLUN out of DEVEL block
+!  07 Aug 2012 - R. Yantosca - Now print LUN used to open file
 !******************************************************************************
 !
       ! References to F90 modules
@@ -346,7 +349,7 @@
       WRITE( 6, '(a)'   ) REPEAT( '=', 79 )
       WRITE( 6, '(a,/)' ) 'S O A P R O D   F I L E   I N P U T'
       WRITE( 6, 100 ) TRIM( FILENAME ), IU_OAP
- 100  FORMAT( 'READ_SOAPROD_FILE: Reading ', a, ' on unit ', i6 )
+ 100  FORMAT( 'READ_SOAPROD_FILE: Reading ', a, ' on unit ', i4 )
 
       ! Open the binary punch file for input
       CALL OPEN_BPCH2_FOR_READ( IU_OAP, FILENAME )

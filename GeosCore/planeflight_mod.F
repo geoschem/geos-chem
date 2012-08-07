@@ -233,6 +233,7 @@
 !  30 Jul 2012 - R. Yantosca - Now accept am_I_Root as an argument when
 !                              running with the traditional driver main.F
 !  06 Aug 2012 - R. Yantosca - Now use local IU_PLANE and not from file_mod.F
+!  07 Aug 2012 - R. Yantosca - Now print LUN used to open file
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -281,7 +282,7 @@
          WRITE( 6, 99    )
          WRITE( 6, 100   ) TRIM( INF ), IU_FILE
  99      FORMAT( 'P L A N E   F L I G H T   D I A G N O S T I C' )
- 100     FORMAT( /, 'SETUP_PLANEFLIGHT: Reading ',a, ' on unit ', i6 )
+ 100     FORMAT( /, 'SETUP_PLANEFLIGHT: Reading ',a, ' on unit ', i4 )
          WRITE( 6, '(a)' )  
       ENDIF
 

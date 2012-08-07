@@ -264,6 +264,7 @@
 !  (10) Now get the # of A-3 fields from the file ident string (bmy, 10/7/08)
 !  28 Feb 2012 - R. Yantosca - Removed support for GEOS-3
 !  03 Aug 2012 - R. Yantosca - Now use findFreeLUN to define IU_I6 locally
+!  07 Aug 2012 - R. Yantosca - Now print LUN used to open file
 !******************************************************************************
 !      
       ! References to F90 modules
@@ -352,8 +353,8 @@
          ENDIF
 
          ! Echo info
-         WRITE( 6, 100 ) TRIM( PATH )
- 100     FORMAT( '     - Opening: ', a )
+         WRITE( 6, 100 ) TRIM( PATH ), IU_I6
+ 100     FORMAT( '     - Opening: ', a, ' on unit ', i4 )
          
          ! Set the proper first-time-flag false
          FIRST = .FALSE.

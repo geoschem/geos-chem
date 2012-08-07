@@ -233,6 +233,7 @@
 !  02 Dec 2010 - R. Yantosca - Added ProTeX headers
 !  11 Apr 2012 - R. Yantosca - Replace lai_mod.F with modis_lai_mod.F90
 !  03 Aug 2012 - R. Yantosca - Move calls to findFreeLUN out of DEVEL block
+!  07 Aug 2012 - R. Yantosca - Now print LUN used to open file
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -300,7 +301,7 @@
 
          ! Echo info
          WRITE( 6, 100 ) TRIM( FILENAME ), IU_ND49
- 100     FORMAT( '     - DIAG49: Opening file ', a, ' on unit ', i6 )
+ 100     FORMAT( '     - DIAG49: Opening file ', a, ' on unit ', i4 )
         
          IF ( DO_DIAG_WRITE ) THEN
 
