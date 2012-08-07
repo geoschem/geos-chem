@@ -255,7 +255,7 @@
       ! Name of file to open
       FILENAME   ='globchem.dat' 
 
-#if   defined( DEVEL )
+#if defined( DEVEL ) || defined( EXTERNAL_GRID ) || defined( EXTERNAL_FORCING )
       ! When connecting to GEOS-5 via ESMF, we need to append '___.rc'
       FILENAME   = TRIM( FILENAME ) // '___.rc'
 #endif
