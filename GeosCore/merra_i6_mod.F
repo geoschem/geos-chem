@@ -276,8 +276,8 @@
       USE TRANSFER_MOD, ONLY : TRANSFER_2D
       USE TRANSFER_MOD, ONLY : TRANSFER_3D
 
-      USE CMN_SIZE_MOD                             ! Size parameters
-      USE CMN_DIAG_MOD                             ! NDxx flags
+      USE CMN_SIZE_MOD                               ! Size parameters
+      USE CMN_DIAG_MOD                               ! NDxx flags
 !
 ! !INPUT PARAMETERS: 
 !
@@ -292,6 +292,7 @@
 ! !REVISION HISTORY: 
 !  19 Aug 2010 - R. Yantosca - Initial version, based on i6_read_mod.f
 !  03 Aug 2012 - R. Yantosca - Now use locally-defined IU_I6 file LUN
+!  07 Aug 2012 - R. Yantosca - Now print LUN used to open file
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -387,7 +388,7 @@
          IF ( XYMD == NYMD .and. XHMS == NHMS ) THEN
             IF ( NFOUND == N_I6_FIELDS ) THEN
                STAMP = TIMESTAMP_STRING( NYMD, NHMS )
-               WRITE( 6, 210 ) NFOUND, STAMP
+               WRITE( 6, 210 ) NFOUND, STAMP, IU_I6
                EXIT
             ENDIF
          ENDIF
@@ -395,7 +396,8 @@
 
       ! FORMATs
  200  FORMAT( 'Searching for next MERRA I6 field!'                    )
- 210  FORMAT( '     - Found all ', i3, ' MERRA I6 met fields for ', a )
+ 210  FORMAT( '     - Found all ', i3, ' MERRA I6 met fields for ', 
+     &             a, ' on unit ', i4                                 )
 
       !=================================================================
       ! Cleanup and quit

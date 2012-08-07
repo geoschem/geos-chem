@@ -448,6 +448,7 @@
 !  (3 ) Now also read LWI_GISS for GCAP met fields.  Added optional variable
 !        LWI to the arg list. (swu, bmy, 5/25/05)
 !  06 Aug 2012 - R. Yantosca - Added ProTeX headers
+!  07 Aug 2012 - R. Yantosca - Now print LUN used to open file
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -528,8 +529,9 @@
          IF ( CHECK_TIME( XYMD, XHMS, NYMD, NHMS ) .AND. 
      &        NFOUND == N_PHIS ) THEN
             STAMP = TIMESTAMP_STRING( NYMD, NHMS )
-            WRITE( 6, 200 ) STAMP
- 200        FORMAT( '     - Found PHIS met fields for ', a )
+            WRITE( 6, 200 ) STAMP, IU_PH 
+ 200        FORMAT( '     - Found GCAP met fields for ', 
+     &                    a, ' on unit ', i4 )
             EXIT
          ENDIF                  
       ENDDO

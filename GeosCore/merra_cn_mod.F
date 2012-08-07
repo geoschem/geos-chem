@@ -271,6 +271,7 @@
 ! !REVISION HISTORY: 
 !  19 Aug 2010 - R. Yantosca - Initial version, based on i6_read_mod.f
 !  03 Aug 2012 - R. Yantosca - Now use locally-defined IU_CN file LUN
+!  07 Aug 2012 - R. Yantosca - Now print LUN used to open file
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -390,7 +391,7 @@
          IF ( XYMD == NYMD .and. XHMS == NHMS ) THEN
             IF ( NFOUND == N_CN_FIELDS ) THEN
                STAMP = TIMESTAMP_STRING( NYMD, NHMS )
-               WRITE( 6, 210 ) NFOUND, STAMP
+               WRITE( 6, 210 ) NFOUND, STAMP, IU_CN
                EXIT
             ENDIF
          ENDIF
@@ -398,7 +399,8 @@
 
       ! FORMATs
  200  FORMAT( 'Searching for next CN field!'                          )
- 210  FORMAT( '     - Found all ', i3, ' MERRA CN met fields for ', a )
+ 210  FORMAT( '     - Found all ', i3, ' MERRA CN met fields for ', 
+     &             a, ' on unit ', i4                                 )
 
       !=================================================================
       ! ND67 diagnostic: 

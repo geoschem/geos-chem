@@ -407,7 +407,7 @@
 !  20 Aug 2010 - R. Yantosca - Initial version, based on a3_read_mod.f
 !  20 Aug 2010 - R. Yantosca - Now save CLDTOPS to ND67 diagnostic
 !  03 Aug 2012 - R. Yantosca - Now use locally-defined IU_A3 file LUN
-
+!  07 Aug 2012 - R. Yantosca - Now print LUN used to open file
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -762,7 +762,7 @@
          IF ( XYMD == NYMD .and. XHMS == NHMS ) THEN
             IF ( NFOUND == N_A3_FIELDS ) THEN
                STAMP = TIMESTAMP_STRING( NYMD, NHMS )
-               WRITE( 6, 210 ) NFOUND, STAMP
+               WRITE( 6, 210 ) NFOUND, STAMP, IU_A3
                EXIT
             ENDIF
          ENDIF
@@ -770,7 +770,8 @@
 
       ! FORMATs
  200  FORMAT( 'Searching for next MERRA A3 field!'                    )
- 210  FORMAT( '     - Found all ', i3, ' MERRA A3 met fields for ', a )
+ 210  FORMAT( '     - Found all ', i3, ' MERRA A3 met fields for ', 
+     &             a, ' on unit ', i4                                 )
 
       !=================================================================
       !        %%%%% SPECIAL HANDLING FOR CERTAIN FIELDS %%%%% 

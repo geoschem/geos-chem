@@ -834,6 +834,7 @@
 !  (9 ) Remove references to IN_CLOUD_OD (bmy, 10/15/09)
 !  28 Feb 2012 - R. Yantosca - Removed support for GEOS-3
 !  03 Aug 2012 - R. Yantosca - Now use locally-defined IU_A3 file LUN
+!  07 Aug 2012 - R. Yantosca - Now print LUN used to open file
 !******************************************************************************
 !
       ! References to F90 modules
@@ -1457,8 +1458,9 @@
          IF ( CHECK_TIME( XYMD, XHMS, NYMD, NHMS ) .AND. 
      &        NFOUND == N_A6 ) THEN
             STAMP = TIMESTAMP_STRING( NYMD, NHMS )
-            WRITE( 6, 210 ) NFOUND, STAMP
- 210        FORMAT( '     - Found all ', i3, ' A-6 met fields for ', a )
+            WRITE( 6, 210 ) NFOUND, STAMP, IU_A6
+ 210        FORMAT( '     - Found all ', i3, ' A-6 met fields for ', 
+     &                   a, ' on unit ', i4 )
             EXIT
          ENDIF
       ENDDO

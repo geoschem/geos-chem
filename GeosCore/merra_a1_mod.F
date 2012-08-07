@@ -475,6 +475,7 @@
 !  15 Aug 2011 - R. Yantosca - Now save SWGDN in 2nd slot of ND67 diagnostic
 !  25 Mar 2011 - R. Yantosca - Bug fix: make local SWGDN array for ND67 diag
 !  03 Aug 2012 - R. Yantosca - Now use locally-defined IU_A1 file LUN
+!  07 Aug 2012 - R. Yantosca - Now print LUN used to open file
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -1063,7 +1064,7 @@
          IF ( XYMD == NYMD .and. XHMS == NHMS ) THEN
             IF ( NFOUND == N_A1_FIELDS ) THEN 
                STAMP = TIMESTAMP_STRING( NYMD, NHMS )
-               WRITE( 6, 210 ) NFOUND, STAMP
+               WRITE( 6, 210 ) NFOUND, STAMP, IU_A1
                EXIT
             ENDIF
          ENDIF
@@ -1071,7 +1072,8 @@
 
       ! FORMATs
  200  FORMAT( 'Searching for next MERRA A1 field!'                    )
- 210  FORMAT( '     - Found all ', i3, ' MERRA A1 met fields for ', a )
+ 210  FORMAT( '     - Found all ', i3, ' MERRA A1 met fields for ', 
+     &             a, ' on unit ', i4                                 )
 
       !=================================================================
       !        %%%%% SPECIAL HANDLING FOR CERTAIN FIELDS %%%%% 

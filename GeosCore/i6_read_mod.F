@@ -683,6 +683,7 @@
 !  (9 ) Now get the # of A-3 fields from the file ident string (bmy, 10/7/08)
 !  (10) Remove references to IN_CLOUD_OD (bmy, 10/15/09)
 !  03 Aug 2012 - R. Yantosca - Now use locally-defined IU_I6, IU_TP file LUNs
+!  07 Aug 2012 - R. Yantosca - Now print LUN used to open file
 !******************************************************************************
 !
       ! References to F90 modules
@@ -929,8 +930,9 @@
          IF ( CHECK_TIME( XYMD, XHMS, NYMD, NHMS ) .AND. 
      &        NFOUND == N_I6 ) THEN
             STAMP = TIMESTAMP_STRING( NYMD, NHMS )
-            WRITE( 6, 210 ) NFOUND, STAMP
- 210        FORMAT( '     - Found all ', i3, ' I-6 met fields for ', a )
+            WRITE( 6, 210 ) NFOUND, STAMP, IU_I6
+ 210        FORMAT( '     - Found all ', i3, ' I-6 met fields for ', 
+     &                   a, ' on unit ', i4 )
             EXIT
          ENDIF
       ENDDO
