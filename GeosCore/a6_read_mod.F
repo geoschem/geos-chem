@@ -54,7 +54,7 @@
 !  (15) Now get the # of A-6 fields from the file ident string (bmy, 10/7/08)
 !  (16) Remove references to IN_CLOUD_OD (bmy, 10/15/09)
 !  28 Feb 2012 - R. Yantosca - Removed support for GEOS-3
-!  03 Aug 2012 - R. Yantosca - Now make IU_A3 a private module variable
+!  03 Aug 2012 - R. Yantosca - Now make IU_A6 a private module variable
 !******************************************************************************
 !
       USE inquireMod, ONLY : findFreeLUN

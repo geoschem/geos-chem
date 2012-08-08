@@ -7686,7 +7686,6 @@ ccc
 !      ! References to F90 modules
 !      USE BPCH2_MOD,  ONLY : BPCH2,         GET_MODELNAME
 !      USE BPCH2_MOD,  ONLY : GET_HALFPOLAR, OPEN_BPCH2_FOR_WRITE
-!      USE FILE_MOD,   ONLY : IU_FILE
 !      USE GRID_MOD,   ONLY : GET_XOFFSET,   GET_YOFFSET
 !      USE TIME_MOD,   ONLY : EXPAND_DATE
 !
@@ -7699,7 +7698,7 @@ ccc
 !      ! Local variables
 !      INTEGER             :: HALFPOLAR
 !      INTEGER, PARAMETER  :: CENTER180 = 1
-!      INTEGER             :: I0, IPR, J0, JHC, N
+!      INTEGER             :: I0, IPR, IU_FILE, J0, JHC, N
 !      REAL*4              :: LONRES,   LATRES
 !      REAL*4              :: ARRAY(IIPAR,JJPAR,LLPAR)
 !      CHARACTER(LEN=20)   :: MODELNAME

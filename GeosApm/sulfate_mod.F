@@ -19,6 +19,7 @@
 !
       USE LOGICAL_MOD,   ONLY : LNLPBL ! (Lin, 03/31/09)
       USE VDIFF_PRE_MOD, ONLY : emis_save ! (Lin, 03/31/09)
+      USE inquireMod,    ONLY : findFreeLUN
 
       IMPLICIT NONE
 #     include "define.h"
@@ -34,7 +35,6 @@
       PUBLIC :: EMISSSULFATE      
       PUBLIC :: CLEANUP_SULFATE   
 !
-! 
 ! !REMARKS:
 !  References:
 !  ============================================================================
@@ -437,7 +437,7 @@
       USE TRACER_MOD,     ONLY : N_APMTRA
 #endif
 
-      USE CMN_SIZE_MOD     ! Size parameters 
+      USE CMN_SIZE_MOD                   ! Size parameters 
 !
 ! !INPUT PARAMETERS:
 !
@@ -1517,9 +1517,9 @@
       ! For LWC from met fields in GEOS-5 (jaf, 6/30/10)
       USE DAO_MOD,         ONLY : AIRDEN, QL, CLDF
 
-      USE CMN_SIZE_MOD          ! Size parameters
-      USE CMN_DIAG_MOD          ! LD05, ND05, ND44
-      USE CMN_GCTM_MOD          ! AIRMW
+      USE CMN_SIZE_MOD                   ! Size parameters
+      USE CMN_DIAG_MOD                   ! LD05, ND05, ND44
+      USE CMN_GCTM_MOD                   ! AIRMW
 
 #if   defined( APM )
       USE APM_DRIV_MOD,    ONLY : PSO4GAS 
@@ -2700,8 +2700,8 @@
       USE TRACERID_MOD,   ONLY : IDTLET, IDTSO4aq, IDTNH4aq
       USE TROPOPAUSE_MOD, ONLY : ITS_IN_THE_STRAT
 
-      USE CMN_SIZE_MOD         ! Size parameters
-      USE CMN_DIAG_MOD         ! ND44
+      USE CMN_SIZE_MOD                   ! Size parameters
+      USE CMN_DIAG_MOD                   ! ND44
 
 #if   defined( APM )
       USE TRACER_MOD,     ONLY : N_TRACERS
@@ -2719,7 +2719,8 @@
 !
 ! !INPUT PARAMETERS:
 !
-      LOGICAL, INTENT(IN) :: am_I_Root   ! Is this the root CPU?!                                                                           
+      LOGICAL, INTENT(IN) :: am_I_Root   ! Is this the root CPU?
+!                                                                           
 ! !REMARKS:
 !  Reaction List (by Mian Chin, chin@rondo.gsfc.nasa.gov)                  
 !  ============================================================================
@@ -7861,12 +7862,11 @@
       USE DAO_MOD,       ONLY : BXHEIGHT
       USE DIRECTORY_MOD, ONLY : DATA_DIR 
       USE FILE_MOD,      ONLY : IOERROR
-
-      USE CMN_SIZE_MOD        ! Size parameters
+      USE CMN_SIZE_MOD                    ! Size parameters
 !
 ! !INPUT PARAMETERS: 
 !
-      INTEGER, INTENT(IN)    :: THISMONTH ! Current month number (1-12)
+      INTEGER, INTENT(IN) :: THISMONTH    ! Current month number (1-12)
 
 !
 ! !REVISION HISTORY:
@@ -7878,21 +7878,24 @@
 !  22 Dec 2011 - M. Payer    - Added ProTeX headers
 !  02 Jul 2012 - R. Yantosca - Add simple kludge that prevents OOB error when
 !                              reading SO2 aircraft data for NA nested grid
+!  01 Aug 2012 - R. Yantosca - Add reference to findFreeLUN from inqure_mod.F90
+!  03 Aug 2012 - R. Yantosca - Move calls to findFreeLUN out of DEVEL block
 !EOP
 !------------------------------------------------------------------------------
 !BOC
 !
 ! !LOCAL VARIABLES:
 !
-      INTEGER                :: I, IOS, IU_FILE, J, K, L
-      REAL*8                 :: ACSO2(IIPAR,JJPAR,20)
-      REAL*8                 :: FAC, FUEL, DZ(LLPAR), ZH(0:LLPAR)
-      CHARACTER(LEN=255)     :: FILENAME
+      INTEGER            :: I, IOS, J, K, L
+      INTEGER            :: IU_FILE
+      REAL*8             :: ACSO2(IIPAR,JJPAR,20)
+      REAL*8             :: FAC, FUEL, DZ(LLPAR), ZH(0:LLPAR)
+      CHARACTER(LEN=255) :: FILENAME
 
       ! Month names
-      CHARACTER(LEN=3)    :: CMONTH(12) = (/'jan', 'feb', 'mar', 'apr', 
-     &                                      'may', 'jun', 'jul', 'aug',
-     &                                      'sep', 'oct', 'nov', 'dec'/)
+      CHARACTER(LEN=3)   :: CMONTH(12) = (/'jan', 'feb', 'mar', 'apr', 
+     &                                     'may', 'jun', 'jul', 'aug',
+     &                                     'sep', 'oct', 'nov', 'dec'/)
 
       !=================================================================
       ! READ_AIRCRAFT_SO2 begins here!
@@ -7919,10 +7922,10 @@
       ! variation of emission rate. Convert to [kg SO2/box/s]. 
       !=================================================================
 
-      ! Open file 
-#if defined( DEVEL )
+      ! Find a free file LUN
       IU_FILE = findFreeLUN()
-#endif
+
+      ! Open file 
       OPEN( IU_FILE, FILE=FILENAME, STATUS='OLD', IOSTAT=IOS )
       IF ( IOS > 0 ) CALL IOERROR( IOS, IU_FILE, 'read_aircraft_so2:1' )
 

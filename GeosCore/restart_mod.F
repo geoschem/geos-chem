@@ -329,8 +329,8 @@
       CHARACTER(LEN=255)  :: FILENAME
 
       ! For binary punch file, version 2.0
-      INTEGER             :: NI,     NJ,     NL
-      INTEGER             :: IFIRST, JFIRST, LFIRST
+      INTEGER             :: NI,        NJ,       NL
+      INTEGER             :: IFIRST,    JFIRST,   LFIRST
       INTEGER             :: NTRACER,   NSKIP
       INTEGER             :: HALFPOLAR, CENTER180
       REAL*4              :: LONRES,    LATRES
@@ -927,9 +927,6 @@
 
       WRITE( 6, 100 ) TRIM( FILENAME ), IU_RST
  100  FORMAT( '     - MAKE_CSPEC_FILE: Writing ', a, ' on unit ', i4 )
-
-      ! Find a free file LUN
-      IU_RST = findFreeLUN()
 
       ! Open checkpoint file for output
       CALL OPEN_BPCH2_FOR_WRITE( IU_RST, FILENAME, TITLE )

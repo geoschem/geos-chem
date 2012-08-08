@@ -1318,6 +1318,8 @@
 !  (7 ) Add LDICARB switch to cancel SOG condensation onto OC aerosols.
 !      (ccc, tmf, 3/10/09)
 !  27 Aug 2010 - R. Yantosca - Added ProTeX headers
+!  30 Jul 2012 - R. Yantosca - Now accept am_I_Root as an argument when
+!                              running with the traditional driver main.F
 !EOP
 !------------------------------------------------------------------------------
 !BOC

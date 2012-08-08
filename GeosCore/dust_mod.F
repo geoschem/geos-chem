@@ -896,9 +896,6 @@
       USE CMN_SIZE_MOD        ! Size parameters
       USE CMN_DIAG_MOD        ! ND19, LD13 (for now)
       USE CMN_GCTM_MOD        ! g0
-#if   !defined( DEVEL )
-      USE FILE_MOD,      ONLY : IU_FILE
-#endif
 !
 ! !INPUT/OUTPUT PARAMETERS: 
 ! 

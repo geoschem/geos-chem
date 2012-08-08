@@ -300,8 +300,8 @@
 #endif
 
       ! Initialize diagnostic arrays and counters
-      CALL INITIALIZE( 2 )
-      CALL INITIALIZE( 3 )
+      CALL INITIALIZE( 2, am_I_Root )
+      CALL INITIALIZE( 3, am_I_Root )
       IF ( LPRT ) CALL DEBUG_MSG( '### MAIN: a INITIALIZE' )
 
       ! Initialize the new hybrid pressure module.  Define Ap and Bp.
@@ -317,10 +317,13 @@
 
       ! Initialize allocatable SMVGEAR/KPP arrays
       IF ( LEMIS .or. LCHEM ) THEN
-         IF ( ITS_A_FULLCHEM_SIM() ) CALL INIT_COMODE
-         IF ( ITS_AN_AEROSOL_SIM() ) CALL INIT_COMODE
-         IF ( LKPP )  CALL INIT_GCKPP_COMODE( IIPAR, JJPAR, LLTROP,
-     $        ITLOOP, NMTRATE, IGAS, RC )
+         IF ( ITS_A_FULLCHEM_SIM() ) CALL INIT_COMODE( am_I_Root )
+         IF ( ITS_AN_AEROSOL_SIM() ) CALL INIT_COMODE( am_I_Root )
+         IF ( LKPP ) THEN
+            CALL INIT_GCKPP_COMODE( am_I_Root, IIPAR,  JJPAR,   
+     &                              LLTROP,    ITLOOP, NMTRATE, 
+     &                              IGAS,      RC )
+         ENDIF
          IF ( RC == 1 )
      $        CALL ERROR_STOP( "Alloc error", "INIT_GCKPP_COMODE" )
          IF ( LPRT ) CALL DEBUG_MSG( '### MAIN: a INIT_COMODE' )
@@ -335,8 +338,8 @@
       ! Initialize MEGAN arrays, get 15-day avg temperatures
       IF ( LMEGAN ) THEN
          CALL INIT_MEGAN
-         CALL INITIALIZE( 2 )
-         CALL INITIALIZE( 3 )
+         CALL INITIALIZE( 2, am_I_Root )
+         CALL INITIALIZE( 3, am_I_Root )
          IF ( LPRT ) CALL DEBUG_MSG( '### MAIN: a INIT_MEGAN' )
       ENDIF
 
@@ -559,8 +562,8 @@
             !===========================================================
             !        ***** Z E R O   D I A G N O S T I C S *****
             !===========================================================
-            CALL INITIALIZE( 2 ) ! Zero arrays
-            CALL INITIALIZE( 3 ) ! Zero counters
+            CALL INITIALIZE( 2, am_I_Root ) ! Zero arrays
+            CALL INITIALIZE( 3, am_I_Root ) ! Zero counters
          ENDIF
 
          !=============================================================
@@ -869,15 +872,6 @@
             IF ( ITS_TIME_FOR_UNIT() )
      &         CALL CONVERT_UNITS( 1, N_TRC_TOT, TCVV, AD, STT ) ! kg -> v/v
 
-            !========================================================
-            !jpp, 2/12/08: putting a call to SET_CH3Br
-            !              which is in bromocarb_mod.f
-            !       ***** Fix CH3Br Concentration in PBL *****
-            ! Kludge: eventually I want to keep the concentration
-            !         entirely fixed! Ask around on how to...
-            !========================================================
-            IF ( LEMIS ) CALL SET_CH3Br( N_TRACERS, TCVV, AD, STT, 
-     &                                   ITS_TIME_FOR_UNIT() )
 
             IF ( ITS_A_FULLCHEM_SIM() ) THEN
                !========================================================
@@ -1439,13 +1433,11 @@
 ! !REVISION HISTORY: 
 !  31 Aug 2000 - R. Yantosca - Initial version
 !  13 Aug 2010 - R. Yantosca - Added ProTeX headers
+!  06 Aug 2012 - R. Yantosca - IU_BPCH is only global file LUN still needed
 !EOP
 !------------------------------------------------------------------------------
 !BOC
-      CALL FLUSH( IU_ND48    )  
-      CALL FLUSH( IU_BPCH    )  
-      CALL FLUSH( IU_SMV2LOG )  
-      CALL FLUSH( IU_DEBUG   ) 
+      CALL FLUSH( IU_BPCH )  
 
       END SUBROUTINE CTM_FLUSH
 !EOC

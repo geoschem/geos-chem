@@ -15,9 +15,7 @@
 !
 ! !USES:
 !
-#if defined( DEVEL )
       USE inquireMod, ONLY : findFreeLUN
-#endif
 
       IMPLICIT NONE
 #     include "define.h"
@@ -62,6 +60,8 @@
 !  03 Sep 2010 - R. Yantosca - Bug fix in SRC_DUST_DEAD
 !  08 Feb 2012 - R. Yantosca - Add modifications for GEOS-5.7.x
 !  01 Mar 2012 - R. Yantosca - Now reference the new grid_mod.F90
+!  01 Aug 2012 - R. Yantosca - Add reference to findFreeLUN from inqure_mod.F90
+!  03 Aug 2012 - R. Yantosca - Move calls to findFreeLUN out of DEVEL block
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -1180,6 +1180,8 @@ c$$$      ENDIF
 !  (2 ) Now references DATA_DIR from "directory_mod.f" (bmy, 7/20/04)
 !  25 Aug 2010 - R. Yantosca - Added ProTeX headers
 !  01 Mar 2012 - R. Yantosca - Now use GET_AREA_M2(I,J,L) from grid_mod.F90
+!  01 Aug 2012 - R. Yantosca - Add reference to findFreeLUN from inqure_mod.F90
+!  03 Aug 2012 - R. Yantosca - Move calls to findFreeLUN out of DEVEL block
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -1264,17 +1266,20 @@ c$$$      ENDIF
          FILENAME = TRIM( DATA_DIR )        // 
      &              'dust_200203/NSP.dust.' // GET_RES_EXT()
 
+         ! Find a free file LUN
+         N = findFreeLUN()
+
          ! Open file
-         OPEN( 65, FILE=FILENAME,       STATUS='OLD', 
-     &             FORM= 'UNFORMATTED', IOSTAT=IOS )
+         OPEN( N, FILE=FILENAME,       STATUS='OLD', 
+     &            FORM= 'UNFORMATTED', IOSTAT=IOS )
          IF ( IOS > 0 ) CALL IOERROR( IOS, 65, 'SRC_DUST_GINOUX:1' )
 
          ! Read data
-         READ( 65, IOSTAT=IOS ) ARRAY
+         READ( N, IOSTAT=IOS ) ARRAY
          IF ( IOS > 0 ) CALL IOERROR( IOS, 65, 'SRC_DUST_GINOUX:2' )
 
          ! Close file
-         CLOSE( 65 )
+         CLOSE( N )
 
          ! Cast to REAL*8
          SRCE_FUNC = ARRAY
@@ -1411,9 +1416,9 @@ c$$$      ENDIF
 
       USE CMN_DIAG_MOD        ! ND21, LD21
 !
-! !INPUT/OUTPUT PARAMETERS: 
+! !INPUT PARAMETERS: 
 ! 
-      REAL*8, INTENT(IN)  :: DUST(IIPAR,JJPAR,LLPAR,NDUST)   ! Dust [kg/m3]
+      REAL*8,  INTENT(IN) :: DUST(IIPAR,JJPAR,LLPAR,NDUST)   ! Dust [kg/m3]
       INTEGER, INTENT(IN) :: WAVELENGTH
 ! 
 ! !REVISION HISTORY: 

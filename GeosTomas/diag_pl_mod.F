@@ -64,6 +64,7 @@
 !  (9 ) Minor fix in DIAG20 (dbj, bmy, 10/26/09)
 !  (10) Make public FAM_NAME and H2SO4RATE (win, 1/25/10)  
 !  16 Sep 2010 - R. Yantosca - Added ProTeX headers
+!  06 Aug 2012 - R. Yantosca - Make IU_ND20 a local module variable
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -72,6 +73,7 @@
 !
       ! Scalars
       LOGICAL                        :: DO_SAVE_O3
+      INTEGER                        :: IU_ND20
       INTEGER                        :: NFAM
       INTEGER                        :: YYYYMMDD
       REAL*8                         :: TAUb, TAUe, TAU0, TAU1
@@ -599,7 +601,7 @@
 !  (4 ) Add calcuation for H2SO4RATE (win, 8/4/09)
 !  15 Sep 2010 - R. Yantosca - Added ProTeX headers
 !  30 Jul 2012 - R. Yantosca - Now accept am_I_Root as an argument when
-!                              running with the traditional driver main.F 
+!                              running with the traditional driver main.F
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -906,11 +908,11 @@ c 88            format (3I3, 'H2SO4rate (kg/s)',e13.5)
 !
       USE BPCH2_MOD,  ONLY : BPCH2,         GET_HALFPOLAR
       USE BPCH2_MOD,  ONLY : GET_MODELNAME, OPEN_BPCH2_FOR_WRITE
-      USE FILE_MOD,   ONLY : IU_ND20
       USE GRID_MOD,   ONLY : GET_XOFFSET,   GET_YOFFSET
+      USE inquireMod, ONLY : findFreeLUN
 
-      USE CMN_SIZE_MOD   ! Size parameters
-      USE CMN_DIAG_MOD   ! LD65
+      USE CMN_SIZE_MOD     ! Size parameters
+      USE CMN_DIAG_MOD     ! LD65
 ! 
 ! !REVISION HISTORY:
 !  09 Jun 1999 - I. Bey      - Initial version
@@ -920,6 +922,7 @@ c 88            format (3I3, 'H2SO4rate (kg/s)',e13.5)
 !  (3 ) Now make sure all USE statements are USE, ONLY (bmy, 10/3/05)
 !  (4 ) Now only write up to LD65 levels (phs, bmy, 12/4/07)
 !  15 Sep 2010 - R. Yantosca - Added ProTeX headers 
+!  03 Aug 2012 - R. Yantosca - Move calls to findFreeLUN out of DEVEL block
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -941,6 +944,9 @@ c 88            format (3I3, 'H2SO4rate (kg/s)',e13.5)
       !=================================================================
       ! WRITE20 begins here!
       !=================================================================
+
+      ! Find a free file LUN
+      IU_ND20   = findFreeLUN()
 
       ! Define various parameters for the BPCH file
       TITLE     = 'GEOS-CHEM archived P(O3) and L(O3) rates for Tag Ox'
@@ -1282,12 +1288,11 @@ c 88            format (3I3, 'H2SO4rate (kg/s)',e13.5)
 !
       USE ERROR_MOD,   ONLY : ALLOC_ERR
       USE TRACER_MOD,  ONLY : ITS_A_FULLCHEM_SIM
+      USE LOGICAL_MOD, ONLY : LTOMAS
 
       USE CMN_SIZE_MOD      ! Size parameters
       USE COMODE_LOOP_MOD   ! LFAMILY, NFAMILIES
       USE CMN_DIAG_MOD      ! ND65,    LD65
-
-      USE LOGICAL_MOD, ONLY : LTOMAS
 !
 ! !INPUT PARAMETERS: 
 !

@@ -16,9 +16,7 @@
 !
 ! !USES:
 !
-#if defined( DEVEL )
       USE inquireMod, ONLY : findFreeLUN
-#endif
 
       IMPLICIT NONE
 #     include "define.h"
@@ -126,6 +124,9 @@
 !  01 Mar 2012 - R. Yantosca - Now reference new grid_mod.F90
 !  30 Jul 2012 - R. Yantosca - READ_INPUT_FILE now accepts am_I_Root from
 !                              both the ESMF interface and main.F
+!  03 Aug 2012 - R. Yantosca - Move calls to findFreeLUN out of DEVEL block
+!  03 Aug 2012 - R. Yantosca - Now make IU_GEOS a global module variable
+!                              so that we can define it with findFreeLun
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -133,6 +134,7 @@
 ! !PRIVATE TYPES:
 !
       LOGICAL            :: VERBOSE  = .FALSE.
+      INTEGER            :: IU_GEOS
       INTEGER, PARAMETER :: FIRSTCOL = 26
       INTEGER, PARAMETER :: MAXDIM   = 255
       INTEGER            :: TS_CHEM
@@ -141,7 +143,7 @@
       INTEGER            :: TS_EMIS
       INTEGER            :: TS_UNIT
       INTEGER            :: CT1, CT2, CT3
-      CHARACTER(LEN=255) :: FILENAME = 'input.geos___.rc'
+      CHARACTER(LEN=255) :: FILENAME = 'input.geos'
       CHARACTER(LEN=255) :: TOPTITLE
       CHARACTER(LEN=255) :: BPCH_FILE
       CHARACTER(LEN=255) :: DIAGINFO  
@@ -167,7 +169,7 @@
 ! !USES:
 !
       USE CHARPAK_MOD, ONLY : STRREPL
-      USE FILE_MOD,    ONLY : IU_GEOS, IOERROR
+      USE FILE_MOD,    ONLY : IOERROR
       USE GAMAP_MOD,   ONLY : DO_GAMAP
 !
 ! !INPUT PARAMETERS:
@@ -183,6 +185,9 @@
 !  27 Aug 2010 - R. Yantosca - Added ProTeX headers
 !  30 Jul 2012 - R. Yantosca - Now accept am_I_Root from main.F, so that we
 !                              can get rid of duplicate code in DEVEL blocks
+!  03 Aug 2012 - R. Yantosca - Move calls to findFreeLUN out of DEVEL block
+!  03 Aug 2012 - R. Yantosca - Now make IU_GEOS a global module variable
+!                              so that we can define it with findFreeLun
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -210,10 +215,15 @@
       ! Initialize directory & logical variables
       CALL INIT_INPUT
 
-      ! Open file
-#if defined( DEVEL )
-      IU_GEOS = findFreeLUN()
+      ! Find a free file LUN
+      IU_GEOS  = findFreeLUN()
+
+#if   defined( DEVEL )
+      ! For ESMF interface to GEOS-5 GCM, we need to add "*___.rc"
+      FILENAME = TRIM( FILENAME ) // '___.rc'
 #endif
+
+      ! Open file
       OPEN( IU_GEOS, FILE=TRIM( FILENAME ), STATUS='OLD', IOSTAT=IOS )
       IF ( IOS /= 0 ) CALL IOERROR( IOS, IU_GEOS, 'read_input_file:1' )
 
@@ -350,8 +360,8 @@
       ! Close input file
       CLOSE( IU_GEOS )
 
-#if ! defined ESMF_ 
-#if ! defined GCM
+#if   !defined( ESMF_         ) 
+#if   !defined( EXTERNAL_GRID ) && !defined( EXTERNAL_FORCING )
       ! Allocate diagnostic arrays (phs, 11/18/08)
       CALL NDXX_SETUP
 
@@ -371,7 +381,9 @@
       CALL DO_GAMAP( DIAGINFO, TRACERINFO )
 
       ! Echo output
-!     WRITE( 6, '(a)' ) REPEAT( '=', 79 )
+      IF ( am_I_Root ) THEN
+         WRITE( 6, '(a)' ) REPEAT( '=', 79 )
+      ENDIF
 
       END SUBROUTINE READ_INPUT_FILE
 !EOC
@@ -395,7 +407,7 @@
 !
 ! !USES:
 !
-      USE FILE_MOD, ONLY : IU_GEOS, IOERROR
+      USE FILE_MOD, ONLY : IOERROR
 !
 ! !INPUT PARAMETERS: 
 !
@@ -408,6 +420,8 @@
 ! !REVISION HISTORY: 
 !  20 Jul 2004 - R. Yantosca - Initial version
 !  27 Aug 2010 - R. Yantosca - Added ProTeX headers
+!  03 Aug 2012 - R. Yantosca - Now make IU_GEOS a global module variable
+!                              so that we can define it with findFreeLun
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -1562,6 +1576,7 @@
          WRITE( 6, 110     ) 'Coarse SEA SALT radii [um]  : ',
      &                        SALC_REDGE_um(1), SALC_REDGE_um(2)
       ENDIF
+
  100  FORMAT( A, L5     )
  110  FORMAT( A, f6.2, ' - ', f6.2 )
 
@@ -3538,7 +3553,7 @@ c$$$      WRITE( 6, 100     ) '30-BIN DUST AEROSOLS?       : ', LDUST30
 !
 ! !USES:
 !
-      USE FILE_MOD, ONLY : IU_GEOS, IOERROR
+      USE FILE_MOD, ONLY : IOERROR
       
       USE CMN_SIZE_MOD   ! Size parameters
       USE CMN_DIAG_MOD   ! NJDAY
@@ -3552,6 +3567,7 @@ c$$$      WRITE( 6, 100     ) '30-BIN DUST AEROSOLS?       : ', LDUST30
 !  27 Aug 2010 - R. Yantosca - Added ProTeX headers
 !  30 Jul 2012 - R. Yantosca - Now accept am_I_Root as an argument when
 !                              running with the traditional driver main.F
+!  03 Aug 2012 - R. Yantosca - IU_GEOS is now a global module variable
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -4212,6 +4228,9 @@ c$$$      WRITE( 6, 100     ) '30-BIN DUST AEROSOLS?       : ', LDUST30
 
       ! Expand YYYYMMDD tokens in the bpch file name
       CALL EXPAND_DATE( BPCH_FILE, GET_NYMDb(), GET_NHMSb() )
+
+      ! Find a free file LUN
+      IU_BPCH = findFreeLUN()
 
       ! Open the binary punch file for output
       CALL OPEN_BPCH2_FOR_WRITE( IU_BPCH, BPCH_FILE )

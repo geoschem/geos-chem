@@ -36,6 +36,11 @@
       PRIVATE :: GET_N_A3        
       PRIVATE :: READ_A3         
 !
+! !REMARKS:
+!  This module reads GEOS-4, GEOS-5, and GCAP met fields
+!  MERRA met fields are read in routines merra_*_mod.F
+!  GEOS-5.7.2 met fields are read in geos572_read_mod.F
+!
 ! !REVISION HISTORY:
 !  23 Jun 2003 - R. Yantosca - Initial version
 !  (1 ) Adapted from "dao_read_mod.f" (bmy, 6/23/03)
@@ -756,7 +761,6 @@
 !
       USE DIAG_MOD,     ONLY : AD67
       USE FILE_MOD,     ONLY : IOERROR
-!      USE FILE_MOD,     ONLY : IU_A3
       USE TIME_MOD,     ONLY : SET_CT_A3
       USE TIME_MOD,     ONLY : TIMESTAMP_STRING
       USE TRANSFER_MOD, ONLY : TRANSFER_2D

@@ -214,11 +214,6 @@
 !  For offline simulations, the call to SETUP_PLANEFLIGHT can be made
 !  at the start of the GEOS-Chem run (in "ndxx_setup.f" or similar routine).
 ! 
-! !REMARKS:
-!  NOTE: Keep IU_PLANE and IU_FILE from file_mod.F.  The GEOS-5 GCM should
-!  not call this subroutine so we don't have to find the free LUNs.
-!  (bmy, 8/3/12)
-!
 ! !REVISION HISTORY: 
 !  30 Jul 2002 - M. Evans    - Initial version
 !  (1 ) Rename from "plane.dat" to "plane.log", since "*.dat" implies an input
@@ -1911,9 +1906,6 @@
       USE FILE_MOD,  ONLY : IOERROR
       USE CMN_SIZE_MOD    ! Size Parameters
       USE COMODE_LOOP_MOD ! ITLOOP
-#if   !defined( DEVEL )
-      USE FILE_MOD,  ONLY : IU_FILE
-#endif
 !
 ! !INPUT PARAMETERS:
 !
@@ -1938,9 +1930,6 @@
 ! !LOCAL VARIABLES:
 !
       LOGICAL           :: IS_INIT = .FALSE.
-#if   defined( DEVEL )
-      INTEGER           :: IU_FILE
-#endif
       INTEGER           :: N, AS, IOS
       CHARACTER(LEN=20) :: LINE
 
@@ -1948,10 +1937,10 @@
       ! INIT_PLANEFLIGHT begins here!
       !=================================================================
 
-      ! Open file 
-#if defined( DEVEL )
+      ! Find a free file LUN
       IU_FILE = findFreeLUN()
-#endif
+
+      ! Open file
       OPEN( IU_FILE, FILE=TRIM( INF ), IOSTAT=IOS )
       IF ( IOS /= 0 ) CALL IOERROR( IOS, IU_FILE, 'init_planeflight:1' )
 

@@ -16,9 +16,7 @@
 !
 ! !USES:
 !
-#if defined( DEVEL )
       USE inquireMod, ONLY : findFreeLUN
-#endif
 
       IMPLICIT NONE
 #     include "define.h"
@@ -82,6 +80,7 @@
 !  (24) Now scale AODs to wavelength specified in jv_spec_aod.dat(clh, 5/14/09)
 !  29 Jul 2011 - R. Yantosca - Now also archive MERRA SEAICExx fields
 !  29 Jul 2011 - R. Yantosca - Added ProTeX headers
+!  03 Aug 2012 - R. Yantosca - Move calls to findFreeLUN out of DEVEL block
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -169,6 +168,10 @@
       CHARACTER(LEN=255)             :: INFILENAME,  INF
       CHARACTER(LEN=255)             :: OUTFILENAME, OUTF
 
+      ! Logical unit numbers (formerly in file_mod.F)
+      INTEGER                        :: IU_FILE
+      INTEGER                        :: IU_PLANE
+
       !=================================================================
       ! MODULE ROUTINES -- follow below the "CONTAINS" statement 
       !=================================================================
@@ -194,7 +197,6 @@
 !
       USE FILE_MOD,   ONLY : FILE_EXISTS
       USE FILE_MOD,   ONLY : IOERROR
-      USE FILE_MOD,   ONLY : IU_PLANE
       USE TIME_MOD,   ONLY : EXPAND_DATE
       USE TIME_MOD,   ONLY : GET_NYMD
       USE TIME_MOD,   ONLY : GET_NHMS
@@ -225,6 +227,8 @@
 !  29 Jul 2011 - R. Yantosca - Added ProTeX headers
 !  30 Jul 2012 - R. Yantosca - Now accept am_I_Root as an argument when
 !                              running with the traditional driver main.F
+!  06 Aug 2012 - R. Yantosca - Now use local IU_PLANE and not from file_mod.F
+!  07 Aug 2012 - R. Yantosca - Now print LUN used to open file
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -232,27 +236,30 @@
 ! !LOCAL VARIABLES:
 !
       LOGICAL, SAVE      :: FIRST = .TRUE.
-      INTEGER            :: IU_FILE
+      LOGICAL            :: IS_OPEN
       INTEGER            :: I,  IP,      N,   TEMP, LENGTH
       INTEGER            :: RN, COUNTER, IOS, NYMD, NHMS
       CHARACTER(LEN=7)   :: NAMES
       CHARACTER(LEN=20)  :: LINE
       CHARACTER(LEN=10)  :: TYPE
-      
+
       !=================================================================
       ! SETUP_PLANEFLIGHT begins here!
       !=================================================================
 
       ! Assume that there is flight data for today
-      DO_PF = .TRUE.
+      DO_PF   = .TRUE.
+
+      ! Find a free file LUN
+      IU_FILE = findFreeLun()
 
       ! Get date & time
-      NYMD  = GET_NYMD()
-      NHMS  = GET_NHMS()
+      NYMD    = GET_NYMD()
+      NHMS    = GET_NHMS()
 
       ! Copy file names to local variables
-      INF   = INFILENAME
-      OUTF  = OUTFILENAME
+      INF     = INFILENAME
+      OUTF    = OUTFILENAME
       
       ! Replace any date & time tokens in the file names
       CALL EXPAND_DATE( INF,  NYMD, NHMS )
@@ -268,9 +275,9 @@
       IF ( am_I_Root ) THEN
          WRITE( 6, '(a)' ) REPEAT( '=', 79 )
          WRITE( 6, 99    )
-         WRITE( 6, 100   ) TRIM( INF )
+         WRITE( 6, 100   ) TRIM( INF ), IU_FILE
  99      FORMAT( 'P L A N E   F L I G H T   D I A G N O S T I C' )
- 100     FORMAT( /, 'SETUP_PLANEFLIGHT: Reading ',a )
+ 100     FORMAT( /, 'SETUP_PLANEFLIGHT: Reading ',a, ' on unit ', i4 )
          WRITE( 6, '(a)' )  
       ENDIF
 
@@ -289,9 +296,8 @@
       !=================================================================
       ! Open file and read info
       !=================================================================
-#if defined( DEVEL )
-      IU_FILE = findFreeLUN()
-#endif
+
+      ! Open input file
       OPEN( IU_FILE, FILE=TRIM( INF ), IOSTAT=IOS )
       IF ( IOS /= 0 ) CALL IOERROR( IOS, IU_FILE, 'setup_planeflight:1')
 
@@ -329,13 +335,17 @@
       ! Open today's plane.log file and write file header
       !=================================================================
 
+      ! Close previously opened plane.log file
+      INQUIRE( IU_PLANE, OPENED=IS_OPEN )
+      IF( IS_OPEN ) CLOSE( IU_PLANE )
+
       ! Close previously-opened file
       CLOSE( IU_PLANE )
 
-      ! Open new file
-#if defined( DEVEL )
+      ! Find a free file LUN
       IU_PLANE = findFreeLUN()
-#endif
+
+      ! Open output file
       OPEN( IU_PLANE, FILE=TRIM( OUTF ), STATUS='UNKNOWN', IOSTAT=IOS )
 
       ! Error check
@@ -1692,7 +1702,6 @@
 !
 ! !USES:
 !
-      USE FILE_MOD, ONLY : IU_PLANE
       USE FILE_MOD, ONLY : IOERROR
 !
 ! !INPUT PARAMETERS: 
@@ -1933,7 +1942,6 @@
       USE ERROR_MOD, ONLY : ALLOC_ERR
       USE ERROR_MOD, ONLY : GEOS_CHEM_STOP
       USE FILE_MOD,  ONLY : IOERROR
-
       USE CMN_SIZE_MOD    ! Size Parameters
       USE COMODE_LOOP_MOD ! ITLOOP
 !
@@ -1960,17 +1968,17 @@
 ! !LOCAL VARIABLES:
 !
       LOGICAL           :: IS_INIT = .FALSE.
-      INTEGER           :: N, AS, IOS, IU_FILE
+      INTEGER           :: N, AS, IOS
       CHARACTER(LEN=20) :: LINE
 
       !=================================================================
       ! INIT_PLANEFLIGHT begins here!
       !=================================================================
 
-      ! Open file 
-#if defined( DEVEL )
+      ! Find a free file LUN
       IU_FILE = findFreeLUN()
-#endif
+
+      ! Open file 
       OPEN( IU_FILE, FILE=TRIM( INF ), IOSTAT=IOS )
       IF ( IOS /= 0 ) CALL IOERROR( IOS, IU_FILE, 'init_planeflight:1' )
 
