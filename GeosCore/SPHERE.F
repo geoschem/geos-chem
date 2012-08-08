@@ -1,23 +1,25 @@
-! $Id: SPHERE.f,v 1.1 2009/09/16 14:06:46 bmy Exp $
+!------------------------------------------------------------------------------
+!          Harvard University Atmospheric Chemistry Modeling Group            !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !ROUTINE: sphere
+!
+! !DESCRIPTION: Subroutine SPHERE calculates spherical geometry; derives 
+!  tangent heights, slant path lengths and air mass factor for each layer. 
+!  Not called when SZA > 98 degrees.  Beyond 90 degrees, include treatment 
+!  of emergent beam (where tangent height is below altitude J-value desired at).
+!\\
+!\\
+! !INTERFACE:
+!
       SUBROUTINE SPHERE
-!-----------------------------------------------------------------------
-c  Calculation of spherical geometry; derive tangent heights, slant path
-c  lengths and air mass factor for each layer. Not called when
-c  SZA > 98 degrees.  Beyond 90 degrees, include treatment of emergent
-c  beam (where tangent height is below altitude J-value desired at).
-!-----------------------------------------------------------------------
-c
-c     GMU     MU, cos(solar zenith angle)
-c     RZ      Distance from centre of Earth to each point (cm)
-c     RQ      Square of radius ratios
-c     TANHT   Tangent height for the current SZA
-c     XL      Slant path between points
-c     AMF     Air mass factor for slab between level and level above
-c
-!-----------------------------------------------------------------------
+!
+! !USES:
+!
 #     include "define.h"
 
-#if defined( DEVEL )
+#if   defined( DEVEL )
       USE CMN_FJ_MOD, ONLY : JPMAX, JPPJ
 #else
       USE CMN_FJ_MOD, ONLY : IPAR, JPAR, LPAR, JPMAX, JPPJ
@@ -26,7 +28,25 @@ c
       USE JV_CMN_MOD
 
       IMPLICIT NONE
-
+!
+! !REMARKS:
+!  GMU     MU, cos(solar zenith angle)
+!  RZ      Distance from centre of Earth to each point (cm)
+!  RQ      Square of radius ratios
+!  TANHT   Tangent height for the current SZA
+!  XL      Slant path between points
+!  AMF     Air mass factor for slab between level and level above
+! 
+! 
+! !REVISION HISTORY: 
+!         1997 - O. Wild     - Initial version
+!  31 Jul 2012 - R. Yantosca - Added ProTeX headers
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+!
+! !LOCAL VARIABLES:
+!
       integer i, j, k, ii
       real*8 airmas, gmu, xmu1, xmu2, xl, diff
       REAL*8 Ux,H,RZ(NB),RQ(NB),ZBYR
@@ -94,4 +114,5 @@ c            AMF(II,J)=(1.0D0-WTING)*2.D0**XL/(RZ(II+1)-RZ(II))
 c
    16 CONTINUE
       RETURN
-      END
+      END SUBROUTINE SPHERE
+!EOC

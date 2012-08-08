@@ -56,6 +56,7 @@
 #  01 Mar 2012 - R. Yantosca - Replace grid_mod.F with grid_mod.F90, to
 #                              facilitate work on the GI model
 #  03 Apr 2012 - M. Payer    - Add new module regrid_a2a_mod.F90 (M. Cooper)
+#  03 Aug 2012 - R. Yantosca - Add dependency for inquireMod.F90
 #EOP
 #------------------------------------------------------------------------------
 #BOC
@@ -79,8 +80,8 @@ include $(ROOTDIR)/Makefile_header.mk
 # List of source files
 SRC := $(wildcard *.F) $(wildcard *.F90)
 
-# Skip these files
-SRC := $(filter-out grid_mod.F,$(SRC))
+# Skip these files (activate if necessary)
+#SRC := $(filter-out grid_mod.F,$(SRC))
 
 # Replace .f and .f90 extensions with *.o
 TMP := $(SRC:.F=.o)
@@ -135,6 +136,7 @@ file_mod.o        : file_mod.F          error_mod.o
 global_grid_mod.o : global_grid_mod.F90 error_mod.o    grid_mod.o
 grid_mod.o        : grid_mod.F90        error_mod.o
 ifort_errmsg.o    : ifort_errmsg.F
+inquireMod.o      : inquireMod.F90
 julday_mod.o      : julday_mod.F
 linux_err.o       : linux_err.c
 pressure_mod.o    : pressure_mod.F      error_mod.o

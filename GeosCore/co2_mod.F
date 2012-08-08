@@ -72,6 +72,8 @@
 !     
 ! !USES:
 !     
+      USE inquireMod, ONLY : findFreeLUN
+
       IMPLICIT NONE
 #     include "define.h" 
       PRIVATE 
@@ -119,6 +121,8 @@
 !        (R.Nassar 2010)   
 !  25 Feb 2011 - R. Nassar  - Now read updated CDIAC CO2 emissions data
 !  07 Sep 2011 - P. Kasibhatla - Modified to include GFED3
+!  01 Aug 2012 - R. Yantosca - Add reference to findFreeLUN from inqure_mod.F90
+!  03 Aug 2012 - R. Yantosca - Move calls to findFreeLUN out of DEVEL block
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -225,7 +229,7 @@
       INTEGER                :: DAY,   DOY,    HOUR, MONTH, YEAR   
       REAL*8                 :: A_CM2, DTSRCE, E_CO2
       REAL*8                 :: biomass_sum, bionet_sum
-#if !defined( DEVEL )
+#if   !defined( DEVEL )
       REAL*8, SAVE           :: CHEMSRC(IIPAR,JJPAR,LLPAR)  ! dbj
 #endif
 
@@ -1820,7 +1824,8 @@
       USE BPCH2_MOD,      ONLY : GET_TAU0,        READ_BPCH2
       USE DIRECTORY_MOD,  ONLY : DATA_DIR, DATA_DIR_1x1
       USE TRANSFER_MOD,   ONLY : TRANSFER_2D
-      USE FILE_MOD,       ONLY : IU_FILE, IOERROR
+      USE FILE_MOD,       ONLY : IOERROR
+      USE REGRID_1x1_MOD, ONLY : DO_REGRID_G2G_1x1, DO_REGRID_1x1 
       USE TIME_MOD,       ONLY : GET_YEAR, GET_MONTH
       USE REGRID_A2A_MOD, ONLY : DO_REGRID_A2A	
 
@@ -1975,10 +1980,9 @@
       USE BPCH2_MOD,     ONLY : GET_RES_EXT, GET_TAU0, READ_BPCH2
       USE DAO_MOD,       ONLY : BXHEIGHT
       USE DIRECTORY_MOD, ONLY : DATA_DIR 
-      USE FILE_MOD,      ONLY : IU_FILE, IOERROR
+      USE FILE_MOD,      ONLY : IOERROR
       USE TIME_MOD,      ONLY : GET_MONTH, GET_YEAR
-
-      USE CMN_SIZE_MOD      ! Size parameters
+      USE CMN_SIZE_MOD        ! Size parameters
 !
 ! !REMARKS:
 !  This is a modified version of READ_AIRCRAFT_SO2 from:
@@ -2003,13 +2007,17 @@
 !  (4 ) Now make sure all USE statements are USE, ONLY (bmy, 10/3/05)
 !  (6 ) Reading of GlobPTot values from input.geos has not yet been implemented
 !  18 May 2010 - R. Nassar, D. Jones - Initial version
+!  01 Aug 2012 - R. Yantosca - Add reference to findFreeLUN from inqure_mod.F90
+!  03 Aug 2012 - R. Yantosca - Move calls to findFreeLUN out of DEVEL block
 !EOP
 !------------------------------------------------------------------------------
 !BOC
 !
 ! !LOCAL VARIABLES:
 !
-      INTEGER             :: I, IOS, J, K, L, THISMONTH, N, YEAR
+      INTEGER             :: IU_FILE
+      INTEGER             :: I, IOS, J, K, L
+      INTEGER             :: THISMONTH, N, YEAR
       REAL*8              :: ACCO2(IIPAR,JJPAR,20)
       REAL*8              :: FAC, FUEL, DZ(LLPAR), ZH(0:LLPAR)
       REAL*8, PARAMETER   :: TINY = 1d-20
@@ -2050,6 +2058,9 @@
       ! of fuel burned.  It is also assumed that there is no diurnal   
       ! variation of emission rate. Convert to [kg CO2/box/s]. 
       !=================================================================
+
+      ! Find a free file LUN
+      IU_FILE = findFreeLUN()
 
       ! Open file 
       OPEN( IU_FILE, FILE=FILENAME, STATUS='OLD', IOSTAT=IOS )
@@ -2195,11 +2206,10 @@
       USE BPCH2_MOD,      ONLY : GET_NAME_EXT_2D,   GET_RES_EXT
       USE BPCH2_MOD,      ONLY : GET_TAU0,          READ_BPCH2
       USE DIRECTORY_MOD,  ONLY : DATA_DIR,          DATA_DIR_1x1
-      USE FILE_MOD,       ONLY : IU_FILE,           IOERROR
+      USE FILE_MOD,       ONLY : IOERROR
       USE TRANSFER_MOD,   ONLY : TRANSFER_2D
       USE LOGICAL_MOD,    ONLY : LBIONETORIG,       LBIONETCLIM
       USE REGRID_A2A_MOD, ONLY : DO_REGRID_A2A
-
       USE CMN_SIZE_MOD         ! Size parameters
 !
 ! !REMARKS:
@@ -2222,13 +2232,15 @@
 !  06 Apr 2012 - M. Payer            - Changed regrid algorithm to map_a2a
 !                                      (M. Cooper)
 !  24 May 2012 - R. Yantosca         - Fix minor bugs in map_a2a calls
+!  01 Aug 2012 - R. Yantosca - Add reference to findFreeLUN from inqure_mod.F90
+!  03 Aug 2012 - R. Yantosca - Move calls to findFreeLUN out of DEVEL block
 !EOP
 !------------------------------------------------------------------------------
 !BOC
 !
 ! !LOCAL VARIABLES:
 !
-      ! Scalars
+      INTEGER                :: IU_FILE
       INTEGER                :: I, J, IOS
       REAL*8		     :: TAU
       CHARACTER(LEN=255)     :: FILENAME
@@ -2266,6 +2278,9 @@
 
          ! Echo info
          WRITE( 6, 100 ) TRIM( FILENAME )
+ 
+         ! Find a free file LUN
+         IU_FILE = findFreeLUN()
 
          ! Open file
          OPEN( IU_FILE,          FILE=TRIM( FILENAME ), 
@@ -2651,7 +2666,7 @@
 !
       USE BPCH2_MOD,     ONLY : GET_NAME_EXT_2D, GET_RES_EXT
       USE DIRECTORY_MOD, ONLY : DATA_DIR 
-      USE FILE_MOD,      ONLY : IU_FILE, IOERROR
+      USE FILE_MOD,      ONLY : IOERROR
       USE TRANSFER_MOD,  ONLY : TRANSFER_2D
 
       USE CMN_SIZE_MOD      ! Size parameters
@@ -2668,13 +2683,14 @@
 ! 
 ! !REVISION HISTORY: 
 !  18 May 2010 - R. Nassar, D. Jones - Initial version
+!  03 Aug 2012 - R. Yantosca - Move calls to findFreeLUN out of DEVEL block
 !EOP
 !------------------------------------------------------------------------------
 !BOC
 !
 ! !LOCAL VARIABLES:
 !
-      INTEGER                :: I, J, IOS
+      INTEGER                :: I, J, IOS, IU_FILE
       INTEGER                :: TMP(IIPAR,JJPAR)
       INTEGER                :: LAND_REG(IIPAR,JJPAR)
       CHARACTER(LEN=255)     :: LANDFILE
@@ -2693,6 +2709,9 @@
 
       ! Initialize ARRAY
       LAND_REG = 0
+
+      ! Find a free file LUN
+      IU_FILE = findFreeLUN()
 
       ! Open file
       OPEN( IU_FILE, FILE = TRIM( LANDFILE ), 
@@ -2874,7 +2893,7 @@
 !
       USE BPCH2_MOD,     ONLY : GET_NAME_EXT_2D, GET_RES_EXT
       USE DIRECTORY_MOD, ONLY : DATA_DIR 
-      USE FILE_MOD,      ONLY : IU_FILE, IOERROR
+      USE FILE_MOD,      ONLY : IOERROR
       USE TRANSFER_MOD,  ONLY : TRANSFER_2D
 
       USE CMN_SIZE_MOD      ! Size parameters
@@ -2891,12 +2910,13 @@
 ! 
 ! !REVISION HISTORY: 
 !  18 May 2010 - R. Nassar, D. Jones - Initial version
+!  03 Aug 2012 - R. Yantosca - Move calls to findFreeLUN out of DEVEL block
 !EOP
 !------------------------------------------------------------------------------
 !BOC
 !
 ! !LOCAL VARIABLES:
-      INTEGER               :: I, J, IOS
+      INTEGER               :: I, J, IU_FILE, IOS
       INTEGER               :: TMP(IIPAR,JJPAR), OCEAN_REG(IIPAR,JJPAR)
       CHARACTER(LEN=255)    :: OCEANFILE
       CHARACTER(LEN=144)    :: ROW
@@ -2914,6 +2934,9 @@
 
       ! Initialize ARRAYS
       OCEAN_REG = 0
+
+      ! Find a free file LUN
+      IU_FILE = findFreeLUN()
 
       ! Open file
       OPEN( IU_FILE, FILE = TRIM( OCEANFILE ), 
@@ -3027,7 +3050,7 @@
 !
       USE BPCH2_MOD,     ONLY : GET_NAME_EXT_2D, GET_RES_EXT
       USE DIRECTORY_MOD, ONLY : DATA_DIR 
-      USE FILE_MOD,      ONLY : IU_FILE, IOERROR
+      USE FILE_MOD,      ONLY : IOERROR
       USE TRANSFER_MOD,  ONLY : TRANSFER_2D
 
       USE CMN_SIZE_MOD      ! Size parameters
@@ -3044,13 +3067,14 @@
 ! 
 ! !REVISION HISTORY: 
 !  18 May 2010 - R. Nassar, D. Jones - Initial version
+!  03 Aug 2012 - R. Yantosca - Move calls to findFreeLUN out of DEVEL block
 !EOP
 !------------------------------------------------------------------------------
 !BOC
 !
 ! !LOCAL VARIABLES:
 !
-      INTEGER                :: I, J, IOS
+      INTEGER                :: I, J, IU_FILE, IOS
       INTEGER                :: TMP(IIPAR,JJPAR), REG_CODE(IIPAR,JJPAR)
       CHARACTER(LEN=255)     :: FILENAME
       CHARACTER(LEN=144)     :: ROW
@@ -3067,6 +3091,9 @@
 
       ! Initialize ARRAYS
       REG_CODE = 0
+
+      ! Find a free file LUN
+      IU_FILE = findFreeLUN()
 
       ! Open file
       OPEN( IU_FILE, FILE = TRIM( FILENAME ), 

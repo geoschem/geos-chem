@@ -324,7 +324,7 @@
 
 !------------------------------------------------------------------------------
 
-      SUBROUTINE TRACERID
+      SUBROUTINE TRACERID( am_I_Root )
 !
 !******************************************************************************
 !  Subroutine TRACERID reads the "tracer.dat" file and determines which
@@ -370,6 +370,8 @@
 !  22 Aug 2011 - R. Yantosca - Add modifications for APM microphysics (G. Luo)
 !  16 Feb 2012 - M. Payer    - Account for alternate spellings of the Rn and Pb
 !                              tracers in input.geos
+!  30 Jul 2012 - R. Yantosca - Now accept am_I_Root as an argument when
+!                              running with the traditional driver main.F
 !******************************************************************************
 !
       ! References to F90 modules
@@ -385,9 +387,12 @@
       USE CMN_SIZE_MOD      ! Size parameters
       USE COMODE_LOOP_MOD   ! IDEMS
 
+! !INPUT VARIABLES:
+
+      LOGICAL, INTENT(IN) :: am_I_Root
+
 #if defined(DEVEL)
-      USE GC_TYPE2_MOD
-      USE GC_ENVIRONMENT_MOD, ONLY : TRACER_INDEX
+!      USE GC_ENVIRONMENT_MOD, ONLY : TRACER_INDEX, TRACER_NAMES
 #endif
 
       ! Local variables
@@ -1327,64 +1332,69 @@
       IF ( IDEBr2    /= 0 ) IDEMS(IDEBr2   ) = IDTBr2
 
       ! Echo anthro & biogenic emitted tracers
-      WRITE( 6, 100 ) IDEMS ( 1:NEMANTHRO+NEMBIOG )
- 100  FORMAT( /, 'TRACERID: Emitted tracers (anthro & bio) :', 27i3 )
+      IF ( am_I_Root ) THEN
+         WRITE( 6, 100 ) IDEMS ( 1:NEMANTHRO+NEMBIOG )
+ 100     FORMAT( /, 'TRACERID: Emitted tracers (anthro & bio) :', 27i3 )
 
-      ! print additional information (hotp 8/4/09)
-       WRITE( 6, 115 ) 'TRACERID: CHECK FULLCHEM IDEs'
-       WRITE( 6, 115 ) '-----------------------------------------------'
-       WRITE( 6, 115 ) 'NEMANTHRO: 10 for standard sims b4 v811'
-       WRITE( 6, 115 ) '          + 2 for HNO3 and Ox'
-       WRITE( 6, 115 ) '          + 5 for aromatics (B,T,X, C2H2, C2H4)'
-       WRITE( 6, 115 ) 'NEMANTHRO: 17 max'
-       WRITE( 6, 120 ) 'THIS NEMANTHRO: ', NEMANTHRO
-       WRITE( 6, 115 ) '-----------------------------------------------'
-       WRITE( 6, 115 ) 'NEMBIOG:    1 for isoprene'
-       WRITE( 6, 115 ) '          + 6 for dicarbonyls'
-       WRITE( 6, 115 ) '          + 3 for bromine'
-       WRITE( 6, 115 ) 'NEMBIOG:   10 max'
-       WRITE( 6, 120 ) 'THIS NEMBIOG:   ', NEMBIOG
-       WRITE( 6, 115 ) '-----------------------------------------'
-       WRITE( 6, 120 ) 'IDENOX  ', IDENOX
-       WRITE( 6, 120 ) 'IDECO   ', IDECO
-       WRITE( 6, 120 ) 'IDEPRPE ', IDEPRPE
-       WRITE( 6, 120 ) 'IDEC3H8 ', IDEC3H8
-       WRITE( 6, 120 ) 'IDEALK4 ', IDEALK4
-       WRITE( 6, 120 ) 'IDEC2H6 ', IDEC2H6
-       WRITE( 6, 120 ) 'IDEACET ', IDEACET
-       WRITE( 6, 120 ) 'IDEMEK  ', IDEMEK
-       WRITE( 6, 120 ) 'IDEALD2 ', IDEALD2
-       WRITE( 6, 120 ) 'IDECH2O ', IDECH2O
-       WRITE( 6, 120 ) 'IDEOX   ', IDEOX
-       WRITE( 6, 120 ) 'IDEHNO3 ', IDEHNO3
-       WRITE( 6, 120 ) 'IDEISOP ', IDEISOP
-       WRITE( 6, 120 ) 'IDEGLYX ', IDEGLYX
-       WRITE( 6, 120 ) 'IDEMGLY ', IDEMGLY
-       WRITE( 6, 120 ) 'IDEBENZ ', IDEBENZ
-       WRITE( 6, 120 ) 'IDETOLU ', IDETOLU
-       WRITE( 6, 120 ) 'IDEXYLE ', IDEXYLE
-       WRITE( 6, 120 ) 'IDEMONX ', IDEMONX
-       WRITE( 6, 120 ) 'IDEC2H4 ', IDEC2H4
-       WRITE( 6, 120 ) 'IDEC2H2 ', IDEC2H2
-       WRITE( 6, 120 ) 'IDERCHO ', IDERCHO
-       WRITE( 6, 120 ) 'IDEHCOOH', IDEHCOOH
-       WRITE( 6, 120 ) 'IDEACTA ', IDEACTA
-       WRITE( 6, 120 ) 'IDEMBO  ', IDEMBO
-       WRITE( 6, 120 ) 'IDEGLYC ', IDEGLYC
-       WRITE( 6, 120 ) 'IDEHAC  ', IDEHAC
-       WRITE( 6, 120 ) 'IDECHBr3 ', IDECHBr3 
-       WRITE( 6, 120 ) 'IDECH2Br2', IDECH2Br2 
-       WRITE( 6, 120 ) 'IDEBr2   ', IDEBr2 
-       WRITE( 6, 115 ) '-----------------------------------------'
- 115   FORMAT( a )
- 120   FORMAT( a, i3 )
+         ! print additional information (hotp 8/4/09)
+         WRITE( 6, 115 ) 'TRACERID: CHECK FULLCHEM IDEs'
+         WRITE( 6, 115 ) '---------------------------------------------'
+         WRITE( 6, 115 ) 'NEMANTHRO: 10 for standard sims b4 v811'
+         WRITE( 6, 115 ) '          + 2 for HNO3 and Ox'
+         WRITE( 6, 115 ) '          + 5 for aromatics (B,T,X,C2H2,C2H4)'
+         WRITE( 6, 115 ) 'NEMANTHRO: 17 max'
+         WRITE( 6, 120 ) 'THIS NEMANTHRO: ', NEMANTHRO
+         WRITE( 6, 115 ) '---------------------------------------------'
+         WRITE( 6, 115 ) 'NEMBIOG:    1 for isoprene'
+         WRITE( 6, 115 ) '          + 6 for dicarbonyls'
+         WRITE( 6, 115 ) '          + 3 for bromine'
+         WRITE( 6, 115 ) 'NEMBIOG:   10 max'
+         WRITE( 6, 120 ) 'THIS NEMBIOG:   ', NEMBIOG
+         WRITE( 6, 115 ) '-----------------------------------------'
+         WRITE( 6, 120 ) 'IDENOX  ', IDENOX
+         WRITE( 6, 120 ) 'IDECO   ', IDECO
+         WRITE( 6, 120 ) 'IDEPRPE ', IDEPRPE
+         WRITE( 6, 120 ) 'IDEC3H8 ', IDEC3H8
+         WRITE( 6, 120 ) 'IDEALK4 ', IDEALK4
+         WRITE( 6, 120 ) 'IDEC2H6 ', IDEC2H6
+         WRITE( 6, 120 ) 'IDEACET ', IDEACET
+         WRITE( 6, 120 ) 'IDEMEK  ', IDEMEK
+         WRITE( 6, 120 ) 'IDEALD2 ', IDEALD2
+         WRITE( 6, 120 ) 'IDECH2O ', IDECH2O
+         WRITE( 6, 120 ) 'IDEOX   ', IDEOX
+         WRITE( 6, 120 ) 'IDEHNO3 ', IDEHNO3
+         WRITE( 6, 120 ) 'IDEISOP ', IDEISOP
+         WRITE( 6, 120 ) 'IDEGLYX ', IDEGLYX
+         WRITE( 6, 120 ) 'IDEMGLY ', IDEMGLY
+         WRITE( 6, 120 ) 'IDEBENZ ', IDEBENZ
+         WRITE( 6, 120 ) 'IDETOLU ', IDETOLU
+         WRITE( 6, 120 ) 'IDEXYLE ', IDEXYLE
+         WRITE( 6, 120 ) 'IDEMONX ', IDEMONX
+         WRITE( 6, 120 ) 'IDEC2H4 ', IDEC2H4
+         WRITE( 6, 120 ) 'IDEC2H2 ', IDEC2H2
+         WRITE( 6, 120 ) 'IDERCHO ', IDERCHO
+         WRITE( 6, 120 ) 'IDEHCOOH', IDEHCOOH
+         WRITE( 6, 120 ) 'IDEACTA ', IDEACTA
+         WRITE( 6, 120 ) 'IDEMBO  ', IDEMBO
+         WRITE( 6, 120 ) 'IDEGLYC ', IDEGLYC
+         WRITE( 6, 120 ) 'IDEHAC  ', IDEHAC
+         WRITE( 6, 120 ) 'IDECHBr3 ', IDECHBr3 
+         WRITE( 6, 120 ) 'IDECH2Br2', IDECH2Br2 
+         WRITE( 6, 120 ) 'IDEBr2   ', IDEBr2 
+         WRITE( 6, 115 ) '-----------------------------------------'
+      ENDIF
+ 115  FORMAT( a )
+ 120  FORMAT( a, i3 )
 
-      ! Return to calling program
       END SUBROUTINE TRACERID
 
 !------------------------------------------------------------------------------
 
-      SUBROUTINE SETTRACE
+#if defined( DEVEL )
+      SUBROUTINE SETTRACE( GC_STATE, am_I_Root )
+#else
+      SUBROUTINE SETTRACE( am_I_Root )
+#endif
 !
 !******************************************************************************
 !  Subroutine SETTRACE flags certain chemical species w/in the SMVGEAR full
@@ -1410,6 +1420,8 @@
 !        (ccc, 01/29/10)
 !  (8 ) Add IDs for Henze's aromatics (hotp, 01/10)
 !  (9 ) Add debug print. (hotp, 01/10)
+!  30 Jul 2012 - R. Yantosca - Now accept am_I_Root as an argument when
+!                              running with the traditional driver main.F
 !******************************************************************************
 !
       ! References to F90 modules
@@ -1423,8 +1435,17 @@
       USE CMN_SIZE_MOD      ! Size parameters
       USE COMODE_LOOP_MOD   ! NAMEGAS
 
+#if defined(DEVEL)
+      USE GC_TYPE2_MOD,  ONLY : CHEMSTATE, REGISTER_CSPEC
+
+      TYPE(CHEMSTATE), INTENT(INOUT) :: GC_STATE
+#endif
+
+      ! Arguments
+      LOGICAL, INTENT(IN) :: am_I_Root
+
       ! Local variabales
-      INTEGER             :: I, J, T, C
+      INTEGER             :: I, J, T, C, STAT
  
       !=================================================================
       ! SETTRACE begins here!
@@ -1521,6 +1542,17 @@
          IF ( NAMEGAS(I) == 'LTRO2N'   ) IDLTRO2N   = I
          IF ( NAMEGAS(I) == 'LXRO2H'   ) IDLXRO2H   = I
          IF ( NAMEGAS(I) == 'LXRO2N'   ) IDLXRO2N   = I
+
+#if defined( DEVEL )
+         CALL REGISTER_CSPEC(NAMEGAS(I),I,GC_STATE,STAT)
+         IF (STAT .lt. 0) THEN
+            CALL ERROR_STOP('FAIL','REGISTER_CSPEC')
+         ELSE
+            IF ( am_I_Root ) THEN
+               WRITE(6,*) 'Registered ', NAMEGAS(I), STAT ELSE
+            ENDIF
+         ENDIF
+#endif
       ENDDO
 
       !=================================================================
@@ -1590,7 +1622,7 @@
             ENDDO
 
             ! Print when Debug output selected (hotp 8/5/09)
-            IF ( LPRT ) THEN
+            IF ( LPRT .and. am_I_Root ) THEN
                PRINT*, '###--------------------'
                PRINT*, '### T, C       : ', T, C
                PRINT*, '### NAME       : ', TRACER_NAME(T)

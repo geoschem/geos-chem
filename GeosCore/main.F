@@ -187,6 +187,10 @@
 !                              megan_mod.F and mercury_mod.F separately.
 !  17 Apr 2012 - R. Yantosca - Need to set the mapping variable to NULL()
 !  10 Jun 2012 - L. Murray   - Remove references to UPBDFLX_MOD.F
+!  31 Jul 2012 - R. Yantosca - Now pass am_I_Root variable to lower-level
+!                              routines in order to allow PRINT and WRITE
+!                              statements to execute on the root CPU.  This
+!                              is needed for compatibility w/ the GEOS-5 GCM.
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -220,6 +224,19 @@
       TYPE(GC_MET_LOCAL)       :: LOCAL_MET
 #endif
 
+      ! When connecting G-C to an external GCM, we need to only write 
+      ! to stdout if we are on the root CPU.  Otherwise this will slow
+      ! down the code.  This is why we introduced the am_I_Root logical
+      ! variable.
+      !
+      ! However, if we are using the "traditional" G-C, then we don't
+      ! need to restrict I/O to the root CPU.  Therefore, we can just
+      ! set am_I_Root = .true. here and then have it propagate down to
+      ! all of the lower-level routines.  The main.F routine is not
+      ! called when connecting G-C to an external GCM. 
+      ! (mlong, bmy, 7/30/12)
+      LOGICAL, PARAMETER       :: am_I_Root = .TRUE. 
+
       !=================================================================
       ! GEOS-CHEM starts here!                                            
       !=================================================================
@@ -238,7 +255,7 @@
       !=================================================================
 
       ! Read input file and call init routines from other modules
-      CALL READ_INPUT_FILE 
+      CALL READ_INPUT_FILE( am_I_Root ) 
       IF ( LPRT ) CALL DEBUG_MSG( '### MAIN: a READ_INPUT_FILE' )
 
 #if defined( DEVEL )
@@ -251,12 +268,12 @@
       IF ( LPRT ) CALL DEBUG_MSG( '### MAIN: a INIT_DAO' )
 
       ! Initialize diagnostic arrays and counters
-      CALL INITIALIZE( 2 )
-      CALL INITIALIZE( 3 )
+      CALL INITIALIZE( 2, am_I_Root )
+      CALL INITIALIZE( 3, am_I_Root )
       IF ( LPRT ) CALL DEBUG_MSG( '### MAIN: a INITIALIZE' )
 
       ! Initialize the new hybrid pressure module.  Define Ap and Bp.
-      CALL INIT_PRESSURE
+      CALL INIT_PRESSURE( am_I_Root )
       IF ( LPRT ) CALL DEBUG_MSG( '### MAIN: a INIT_PRESSURE' )
 
       ! Read annual mean tropopause if not a variable tropopause
@@ -268,17 +285,20 @@
 
       ! Initialize allocatable SMVGEAR/KPP arrays
       IF ( LEMIS .or. LCHEM ) THEN
-         IF ( ITS_A_FULLCHEM_SIM() ) CALL INIT_COMODE
-         IF ( ITS_AN_AEROSOL_SIM() ) CALL INIT_COMODE
-         IF ( LKPP )  CALL INIT_GCKPP_COMODE( IIPAR, JJPAR, LLTROP,
-     $        ITLOOP, NMTRATE, IGAS, RC )
+         IF ( ITS_A_FULLCHEM_SIM() ) CALL INIT_COMODE( am_I_Root )
+         IF ( ITS_AN_AEROSOL_SIM() ) CALL INIT_COMODE( am_I_Root )
+         IF ( LKPP ) THEN
+            CALL INIT_GCKPP_COMODE( am_I_Root, IIPAR,  JJPAR,   
+     &                              LLTROP,    ITLOOP, NMTRATE, 
+     &                              IGAS,      RC )
+         ENDIF
          IF ( RC == 1 )
      $        CALL ERROR_STOP( "Alloc error", "INIT_GCKPP_COMODE" )
          IF ( LPRT ) CALL DEBUG_MSG( '### MAIN: a INIT_COMODE' )
       ENDIF
          
       ! Added to read input file for linoz strat (dbj, jliu, bmy, 10/16/09)
-      IF ( LLINOZ ) CALL LINOZ_READ
+      IF ( LLINOZ ) CALL LINOZ_READ( am_I_Root )
 
       ! Allocate arrays from "global_ch4_mod.f" for CH4 run 
       IF ( ITS_A_CH4_SIM() ) CALL INIT_GLOBAL_CH4
@@ -286,8 +306,8 @@
       ! Initialize MEGAN arrays, get 15-day avg temperatures
       IF ( LMEGAN ) THEN
          CALL INIT_MEGAN
-         CALL INITIALIZE( 2 )
-         CALL INITIALIZE( 3 )
+         CALL INITIALIZE( 2, am_I_Root )
+         CALL INITIALIZE( 3, am_I_Root )
          IF ( LPRT ) CALL DEBUG_MSG( '### MAIN: a INIT_MEGAN' )
       ENDIF
 
@@ -360,7 +380,7 @@
       IF ( LPRT ) CALL DEBUG_MSG( '### MAIN: a READ_RESTART_FILE' )
 
       ! Capture initial state of atmosphere for STE flux calc (ltm, 06/10/12)
-      IF ( LSCHEM ) CALL INIT_STRAT_CHEM
+      IF ( LSCHEM ) CALL INIT_STRAT_CHEM( am_I_Root )
 
       ! add support for making restart files of APROD and GPROD (dkh, 11/09/06)  
       IF ( LSOA ) THEN
@@ -468,7 +488,7 @@
             IF ( LSVGLB ) THEN
 
                ! Determine and print STE fluxes (ltm, 06/10/12)
-               IF ( LSCHEM ) CALL CALC_STE
+               IF ( LSCHEM ) CALL CALC_STE( am_I_Root )
 
                ! Make atmospheric restart file
                CALL MAKE_RESTART_FILE( NYMD, NHMS, TAU )
@@ -510,8 +530,8 @@
             !===========================================================
             !        ***** Z E R O   D I A G N O S T I C S *****
             !===========================================================
-            CALL INITIALIZE( 2 ) ! Zero arrays
-            CALL INITIALIZE( 3 ) ! Zero counters
+            CALL INITIALIZE( 2, am_I_Root ) ! Zero arrays
+            CALL INITIALIZE( 3, am_I_Root ) ! Zero counters
          ENDIF
 
          !=============================================================
@@ -799,7 +819,9 @@
             !========================================================
             !         ***** D R Y   D E P O S I T I O N *****
             !========================================================
-            IF ( LDRYD .and. ( .not. ITS_A_H2HD_SIM() ) ) CALL DO_DRYDEP
+            IF ( LDRYD .and. ( .not. ITS_A_H2HD_SIM() ) ) THEN
+               CALL DO_DRYDEP( am_I_Root )
+            ENDIF
 
             !========================================================
             !             ***** E M I S S I O N S *****
@@ -904,7 +926,9 @@
             !========================================================
             !         ***** D R Y   D E P O S I T I O N *****
             !========================================================
-            IF ( LDRYD .and. ( .not. ITS_A_H2HD_SIM() ) ) CALL DO_DRYDEP
+            IF ( LDRYD .and. ( .not. ITS_A_H2HD_SIM() ) ) THEN
+               CALL DO_DRYDEP( am_I_Root )
+            ENDIF
 
             !========================================================
             !             ***** E M I S S I O N S *****
@@ -966,7 +990,7 @@
 ! FIN DE KLUGE
             CALL DO_CHEMISTRY(CHEM_STATE)
 #else
-            CALL DO_CHEMISTRY
+            CALL DO_CHEMISTRY(am_I_Root)
 #endif
 
          ENDIF 
@@ -1004,7 +1028,7 @@
          ! diagnostic and only on a chemistry timestep.
          ! (skim, 02/05/11)
          IF ( ITS_TIME_FOR_CHEM() ) THEN
-            CALL RECOMPUTE_OD
+            CALL RECOMPUTE_OD( am_I_Root )
          ENDIF
 
          !==============================================================
@@ -1023,9 +1047,11 @@
                ! If it's a full-chemistry simulation but LCHEM=F,
                ! or if it's an offline simulation, call setup routine 
                IF ( ITS_A_FULLCHEM_SIM() ) THEN
-                  IF ( .not. LCHEM ) CALL SETUP_PLANEFLIGHT
+                  IF ( .not. LCHEM ) THEN
+                     CALL SETUP_PLANEFLIGHT( am_I_Root )
+                  ENDIF
                ELSE
-                  CALL SETUP_PLANEFLIGHT
+                  CALL SETUP_PLANEFLIGHT( am_I_Root )
                ENDIF
             ENDIF
          ENDIF
@@ -1349,13 +1375,11 @@
 ! !REVISION HISTORY: 
 !  31 Aug 2000 - R. Yantosca - Initial version
 !  13 Aug 2010 - R. Yantosca - Added ProTeX headers
+!  06 Aug 2012 - R. Yantosca - IU_BPCH is only global file LUN still needed
 !EOP
 !------------------------------------------------------------------------------
 !BOC
-      CALL FLUSH( IU_ND48    )  
-      CALL FLUSH( IU_BPCH    )  
-      CALL FLUSH( IU_SMV2LOG )  
-      CALL FLUSH( IU_DEBUG   ) 
+      CALL FLUSH( IU_BPCH )  
 
       END SUBROUTINE CTM_FLUSH
 !EOC

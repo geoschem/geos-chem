@@ -57,7 +57,7 @@ MODULE STRAT_CHEM_MOD
 !  01 Feb 2011 - L. Murray   - Initial version
 !  20 Jul 2012 - R. Yantosca - Reorganized declarations for clarity
 !  20 Jul 2012 - R. Yantosca - Correct compilation error in GET_RATES_INTERP
-
+!  07 Aug 2012 - R. Yantosca - Fix parallelization problem in Bry do loop
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -101,7 +101,10 @@ MODULE STRAT_CHEM_MOD
   REAL*8               :: TpauseL_Cnt         ! Tropopause counter
   REAL*8, ALLOCATABLE  :: TpauseL(:,:)        ! Tropopause level aggregator
   REAL*8, ALLOCATABLE  :: MInit(:,:,:,:)      ! Init. atm. state for STE period
-  REAL*8, ALLOCATABLE  :: Before(:,:,:)       ! Init. atm. state each chem. dt
+!------------------------------------------------------------------------------
+! Prior to 8/7/12:
+!  REAL*8, ALLOCATABLE  :: Before(:,:,:)       ! Init. atm. state each chem. dt
+!------------------------------------------------------------------------------
   REAL*8, ALLOCATABLE  :: SChem_Tend(:,:,:,:) ! Stratospheric chemical tendency
                                               !   (total P - L) [kg period-1]
 
@@ -123,7 +126,7 @@ CONTAINS
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE DO_STRAT_CHEM
+  SUBROUTINE DO_STRAT_CHEM( am_I_Root )
 !
 ! !USES:
 !
@@ -145,6 +148,10 @@ CONTAINS
 
 #include "define.h"
 !
+! !INPUT PARAMETERS:
+!
+      LOGICAL, INTENT(IN) :: am_I_Root   ! Is this the root CPU?
+!
 ! !REMARKS:
 ! 
 ! !REVISION HISTORY: 
@@ -154,6 +161,9 @@ CONTAINS
 !  18 Jul 2012 - R. Yantosca - Make sure I is the innermost DO loop
 !                              wherever expedient 
 !  20 Jul 2012 - R. Yantosca - Reorganized declarations for clarity
+!  30 Jul 2012 - R. Yantosca - Now accept am_I_Root as an argument when
+!                              running with the traditional driver main.F
+!  07 Aug 2012 - R. Yantosca - Make BEFORE a local variable for parallel loop
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -172,6 +182,7 @@ CONTAINS
 
     ! Arrays
     REAL*8                    :: STT0(IIPAR,JJPAR,LLPAR,N_TRACERS)
+    REAL*8                    :: BEFORE(IIPAR,JJPAR,LLPAR)
 
     ! External functions
     REAL*8, EXTERNAL          :: BOXVL
@@ -181,21 +192,25 @@ CONTAINS
     !===============================
 
     STAMP = TIMESTAMP_STRING()
-    WRITE( 6, 10 ) STAMP
+    IF ( am_I_Root ) THEN
+       WRITE( 6, 10 ) STAMP
+    ENDIF
 10  FORMAT( '     - DO_STRAT_CHEM: Linearized strat chemistry at ', a )
-
+    
     IF ( GET_MONTH() /= LASTMONTH ) THEN
 
-       IF ( LPRT ) CALL DEBUG_MSG( '### STRAT_CHEM: at GET_RATES' )
+       IF ( LPRT .and. am_I_Root ) THEN 
+          CALL DEBUG_MSG( '### STRAT_CHEM: at GET_RATES' )
+       ENDIF
 
        ! Read rates for this month
        IF ( ITS_A_FULLCHEM_SIM() ) THEN
 #if defined( GRID4x5 ) || defined( GRID2x25 )
-          CALL GET_RATES( GET_MONTH() )
+          CALL GET_RATES( GET_MONTH(), am_I_Root )
 #else
           ! For resolutions finer than 2x2.5, nested, 
           ! or otherwise exotic domains and resolutions
-          CALL GET_RATES_INTERP( GET_MONTH() )
+          CALL GET_RATES_INTERP( GET_MONTH(), am_I_Root )
 #endif
        ENDIF
 
@@ -206,7 +221,9 @@ CONTAINS
     ! Set first-time flag to false
     FIRST = .FALSE.    
 
-    IF ( LPRT ) CALL DEBUG_MSG( '### STRAT_CHEM: at DO_STRAT_CHEM' )
+    IF ( LPRT .and. am_I_Root ) THEN
+       CALL DEBUG_MSG( '### STRAT_CHEM: at DO_STRAT_CHEM' )
+    ENDIF
 
     !================================================================
     ! Full chemistry simulations
@@ -224,52 +241,48 @@ CONTAINS
        !$OMP PARALLEL DO &
        !$OMP DEFAULT( SHARED ) &
        !$OMP PRIVATE( I, J, L, N, NN, k, P, dt, M0 )
-       DO J = 1, JJPAR
-       DO I = 1, IIPAR
+       DO J=1,JJPAR
+          DO I=1,IIPAR
 
-          ! Add to tropopause level aggregator for later determining STE flux
-          TpauseL(I,J) = TpauseL(I,J) + GET_TPAUSE_LEVEL(I,J)
+             ! Add to tropopause level aggregator for later determining STE flux
+             TpauseL(I,J) = TpauseL(I,J) + GET_TPAUSE_LEVEL(I,J)
 
-          ! NOTE: For compatibility w/ the GEOS-5 GCM, we can no longer
-          ! assume a minimum tropopause level.  Loop from 1,LLPAR instead.
-          ! (bmy, 7/18/12)
-          DO L = 1, LLPAR
+             ! NOTE: For compatibility w/ the GEOS-5 GCM, we can no longer
+             ! assume a minimum tropopause level.  Loop from 1,LLPAR instead.
+             ! (bmy, 7/18/12)
+             DO L = 1, LLPAR
 
-             ! Skip tropospheric boxes
-             IF ( ITS_IN_THE_TROP( I, J, L ) ) CYCLE
+                IF ( ITS_IN_THE_TROP( I, J, L ) ) CYCLE
 
-             ! Loop over active strat chem species
-             DO N = 1, NSCHEM 
+                DO N=1,NSCHEM ! Tracer index of active strat chem species
+                   NN = Strat_TrID_GC(N) ! Tracer index in STT
 
-                ! Tracer index in STT
-                NN = Strat_TrID_GC(N) 
+                   ! Skip Ox; we'll always use either Linoz or Synoz
+                   IF ( ITS_A_FULLCHEM_SIM() .and. NN .eq. IDTOx ) CYCLE
 
-                ! Skip Ox; we'll always use either Linoz or Synoz
-                IF ( ITS_A_FULLCHEM_SIM() .and. NN .eq. IDTOx ) CYCLE
+                   dt = DTCHEM                              ! timestep [s]
+                   k = LOSS(I,J,L,N)                        ! loss freq [s-1]
+                   P = PROD(I,J,L,N) * AD(I,J,L) / TCVV(NN) ! prod term [kg s-1]
+                   M0 = STT(I,J,L,NN)                       ! initial mass [kg]
 
-                dt = DTCHEM                               ! timestep [s]
-                k  = LOSS(I,J,L,N)                        ! loss freq [s-1]
-                P  = PROD(I,J,L,N) * AD(I,J,L) / TCVV(NN) ! prod term [kg s-1]
-                M0 = STT(I,J,L,NN)                        ! initial mass [kg]
+                   ! No prod or loss at all
+                   IF ( k .eq. 0d0 .and. P .eq. 0d0 ) CYCLE
 
-                ! No prod or loss at all
-                IF ( k .eq. 0d0 .and. P .eq. 0d0 ) CYCLE
+                   ! Simple analytic solution to dM/dt = P - kM over [0,t]
+                   IF ( k .gt. 0d0 ) then
+                      STT(I,J,L,NN) = M0 * EXP(-k*dt) + (P/k)*(1d0-EXP(-k*dt))
+                   ELSE
+                      STT(I,J,L,NN) = M0 + P*dt
+                   ENDIF
 
-                ! Simple analytic solution to dM/dt = P - kM over [0,t]
-                IF ( k .gt. 0d0 ) then
-                   STT(I,J,L,NN) = M0 * EXP(-k*dt) + (P/k)*(1d0-EXP(-k*dt))
-                ELSE
-                   STT(I,J,L,NN) = M0 + P*dt
-                ENDIF
+                   ! Aggregate chemical tendency [kg box-1]
+                   SCHEM_TEND(I,J,L,NN) = SCHEM_TEND(I,J,L,NN) + &
+                                                       ( STT(I,J,L,NN) - M0 )
 
-                ! Aggregate chemical tendency [kg box-1]
-                SCHEM_TEND(I,J,L,NN) = SCHEM_TEND(I,J,L,NN) + &
-                                            ( STT(I,J,L,NN) - M0 )
-
-             ENDDO ! N
-          ENDDO    ! L
-       ENDDO       ! I
-       ENDDO       ! J
+                ENDDO ! N
+             ENDDO ! L
+          ENDDO ! I
+       ENDDO ! J
        !$OMP END PARALLEL DO
 
        !===================================
@@ -284,9 +297,9 @@ CONTAINS
 
        ! Do Linoz or Synoz
        IF ( LLINOZ ) THEN
-          CALL Do_Linoz
+          CALL Do_Linoz( am_I_Root )
        ELSE
-          CALL Do_Synoz
+          CALL Do_Synoz( am_I_Root )
        ENDIF
 
        ! Put ozone back to kg
@@ -294,7 +307,7 @@ CONTAINS
 
        ! Put tendency into diagnostic array [kg box-1]
        SCHEM_TEND(:,:,:,IDTOX) = SCHEM_TEND(:,:,:,IDTOX) + &
-                                      ( STT(:,:,:,IDTOX) - BEFORE )
+                                                  ( STT(:,:,:,IDTOX) - BEFORE )
 
        !========================================
        ! Reactions with OH
@@ -307,63 +320,65 @@ CONTAINS
        !$OMP PARALLEL DO &
        !$OMP DEFAULT( SHARED ) &
        !$OMP PRIVATE( I, J, L, M, TK, RC, RDLOSS, T1L, mOH )
-       DO L = 1, LLPAR
-       DO J = 1, JJPAR
-       DO I = 1, IIPAR  
+       DO J=1,JJPAR
+          DO I=1,IIPAR  
 
-          ! NOTE: For compatibility w/ the GEOS-5 GCM, we can no longer
-          ! assume a minimum tropopause level.  Loop from 1,LLPAR instead.
-          ! (bmy, 7/18/12)
-          !DO L = 1, LLPAR
+             ! NOTE: For compatibility w/ the GEOS-5 GCM, we can no longer
+             ! assume a minimum tropopause level.  Loop from 1,LLPAR instead.
+             ! (bmy, 7/18/12)
+             DO L = 1, LLPAR
 
-          ! Skip tropospheric boxes
-          IF ( ITS_IN_THE_TROP(I,J,L) ) CYCLE
+                IF ( ITS_IN_THE_TROP(I,J,L) ) CYCLE
 
-          ! Density of air at grid box (I,J,L) in [molec cm-3]
-          M   = AD(I,J,L) / BOXVL(I,J,L) * XNUMOLAIR
+                ! Density of air at grid box (I,J,L) in [molec cm-3]
+                M = AD(I,J,L) / BOXVL(I,J,L) * XNUMOLAIR
 
-          ! OH number density [molec cm-3]
-          mOH = M * STRAT_OH(I,J,L)
+                ! OH number density [molec cm-3]
+                mOH = M * STRAT_OH(I,J,L)
 
-          ! Temperature at grid box (I,J,L) in K
-          TK  = T(I,J,L)
+                ! Temperature at grid box (I,J,L) in K
+                TK = T(I,J,L)
 
-          !============
-          ! CH3Br + OH 
-          !============
-          IF ( IDTCH3Br .gt. 0 ) THEN
-             RC                         = 2.35d-12 * EXP ( - 1300.d0 / TK ) 
-             RDLOSS                     = MIN( RC * mOH * DTCHEM, 1d0 )
-             T1L                        = STT(I,J,L,IDTCH3Br)        * RDLOSS
-             STT(I,J,L,IDTCH3Br)        = STT(I,J,L,IDTCH3Br)        - T1L
-             SCHEM_TEND(I,J,L,IDTCH3Br) = SCHEM_TEND(I,J,L,IDTCH3Br) - T1L
-          ENDIF
+                !============!
+                ! CH3Br + OH !
+                !============!
+                IF ( IDTCH3Br .gt. 0 ) THEN
+                   RC = 2.35d-12 * EXP ( - 1300.d0 / TK ) 
+                   RDLOSS = MIN( RC * mOH * DTCHEM, 1d0 )
+                   T1L    = STT(I,J,L,IDTCH3Br) * RDLOSS
+                   STT(I,J,L,IDTCH3Br) = STT(I,J,L,IDTCH3Br) - T1L
+                   SCHEM_TEND(I,J,L,IDTCH3Br) = &
+                     SCHEM_TEND(I,J,L,IDTCH3Br) - T1L
+                ENDIF
 
-          !============
-          ! CHBr3 + OH 
-          !============
-          IF ( IDTCHBr3 .gt. 0 ) THEN
-             RC                         = 1.35d-12 * EXP ( - 600.d0 / TK ) 
-             RDLOSS                     = MIN( RC * mOH * DTCHEM, 1d0 )
-             T1L                        = STT(I,J,L,IDTCHBr3)        * RDLOSS
-             STT(I,J,L,IDTCHBr3)        = STT(I,J,L,IDTCHBr3)        - T1L
-             SCHEM_TEND(I,J,L,IDTCHBr3) = SCHEM_TEND(I,J,L,IDTCHBr3) - T1L
-          ENDIF
-             
-          !=============
-          ! CH2Br2 + OH 
-          !=============
-          IF ( IDTCH2Br2 .gt. 0 ) THEN
-             RC                         = 2.00d-12 * EXP ( -  840.d0 / TK )
-             RDLOSS                     = MIN( RC * mOH * DTCHEM, 1d0 )
-             T1L                        = STT(I,J,L,IDTCH2Br2)       * RDLOSS
-             STT(I,J,L,IDTCH2Br2)       = STT(I,J,L,IDTCH2Br2)       - T1L
-             SCHEM_TEND(I,J,L,IDTCHBr3) = SCHEM_TEND(I,J,L,IDTCHBr3) - T1L
-          ENDIF
+                !============!
+                ! CHBr3 + OH !
+                !============!
+                IF ( IDTCHBr3 .gt. 0 ) THEN
+                   RC = 1.35d-12 * EXP ( - 600.d0 / TK ) 
+                   RDLOSS = MIN( RC * mOH * DTCHEM, 1d0 )
+                   T1L    = STT(I,J,L,IDTCHBr3) * RDLOSS
+                   STT(I,J,L,IDTCHBr3) = STT(I,J,L,IDTCHBr3) - T1L
+                   SCHEM_TEND(I,J,L,IDTCHBr3) = &
+                     SCHEM_TEND(I,J,L,IDTCHBr3) - T1L
+                ENDIF
 
-       ENDDO ! I
-       ENDDO ! J
+                !=============!
+                ! CH2Br2 + OH !
+                !=============!
+                IF ( IDTCH2Br2 .gt. 0 ) THEN
+                   RC = 2.00d-12 * EXP ( -  840.d0 / TK )
+                   RDLOSS = MIN( RC * mOH * DTCHEM, 1d0 )
+                   T1L    = STT(I,J,L,IDTCH2Br2) * RDLOSS
+                   STT(I,J,L,IDTCH2Br2) = STT(I,J,L,IDTCH2Br2) - T1L
+                   SCHEM_TEND(I,J,L,IDTCHBr3) = &
+                     SCHEM_TEND(I,J,L,IDTCHBr3) - T1L
+                ENDIF
+
+             ENDDO ! J
+          ENDDO ! I
        ENDDO ! L
+
        !$OMP END PARALLEL DO
 
        !===============================
@@ -372,26 +387,24 @@ CONTAINS
 
        !$OMP PARALLEL DO &
        !$OMP DEFAULT( SHARED ) &
-       !$OMP PRIVATE( NN, BEFORE, I, J, L, IJWINDOW, BryDay, BryNight )
-       DO NN = 1, 6
+       !$OMP PRIVATE( NN, BEFORE, I, J, L, BryDay, BryNight, IJWINDOW )
+       DO NN=1,6
 
           IF ( GC_Bry_TrID(NN) > 0 ) THEN
 
              ! Make note of inital state for determining tendency later
-             DO L = 1, LLPAR
-             DO J = 1, JJPAR
-             DO I = 1, IIPAR
-                BEFORE(I,J,L) = STT(I,J,L,GC_Bry_TrID(NN))
-             ENDDO
-             ENDDO
-             ENDDO
-
-             ! Loop over grid boxes
+             ! NOTE: BEFORE has to be made PRIVATE to the DO loop since
+             ! it only has IJL scope, but the loop is over IJLN!
+             ! (bmy, 8/7/12)
+             BEFORE = STT(:,:,:,GC_Bry_TrID(NN))
+          
+             ! NOTE: For compatibility w/ the GEOS-5 GCM, we can no longer
+             ! assume a minimum tropopause level.  Loop from 1,LLPAR instead.
+             ! (bmy, 7/18/12)
              DO L = 1, LLPAR
              DO J = 1, JJPAR
              DO I = 1, IIPAR  
-                 
-                ! Skip tropospheric boxes
+                  
                 IF ( ITS_IN_THE_TROP(I,J,L) ) CYCLE
                    
                 ! Set the Bry boundary conditions. Simulated
@@ -399,42 +412,31 @@ CONTAINS
                 ! (jpp, 6/27/2011)
                 IJWINDOW   = (J-1)*IIPAR + I
                    
-                IF ( SUNCOS(IJWINDOW) > 0.d0 ) THEN
-
+                IF (SUNCOS(IJWINDOW) > 0.d0) THEN
                    ! daytime [ppt] -> [kg]
-                   BryDay                       = bry_day(I,J,L,NN)    &
-                                                * 1.d-12               &
-                                                * AD(I,J,L)            &
-                                                / TCVV(GC_Bry_TrID(NN))
-
+                   BryDay = bry_day(I,J,L,NN) &
+                          * 1.d-12 & ! convert from [ppt]
+                          * AD(I,J,L) / TCVV(GC_Bry_TrID(NN))
                    STT(I,J,L, GC_Bry_TrID(NN) ) = BryDay
-
                 ELSE
-
                    ! nighttime [ppt] -> [kg]
-                   BryNight                     = bry_night(I,J,L,NN)  &
-                                                * 1.d-12               & 
-                                                * AD(I,J,L)            &
-                                                / TCVV(GC_Bry_TrID(NN))
-
+                   BryNight = bry_night(I,J,L,NN) &
+                            * 1.d-12 & ! convert from [ppt]
+                            * AD(I,J,L) / TCVV(GC_Bry_TrID(NN))
                    STT(I,J,L, GC_Bry_TrID(NN) ) = BryNight
-
-                ENDIF                   
+                ENDIF
+                   
              ENDDO
              ENDDO
              ENDDO
 
              ! Put tendency into diagnostic array [kg box-1]
-             DO L = 1, LLPAR
-             DO J = 1, JJPAR
-             DO I = 1, IIPAR
-                SCHEM_TEND(I,J,L,GC_Bry_TrID(NN)) =                    &
-                SCHEM_TEND(I,J,L,GC_Bry_TrID(NN)) +                    &
-                   (   STT(I,J,L,GC_Bry_TrID(NN)) - BEFORE(I,J,L) )
-             ENDDO
-             ENDDO
-             ENDDO 
+             SCHEM_TEND(:,:,:,GC_Bry_TrID(NN)) = &
+                SCHEM_TEND(:,:,:,GC_Bry_TrID(NN)) + &
+                ( STT(:,:,:,GC_Bry_TrID(NN)) - BEFORE )
+          
           ENDIF
+
        ENDDO
        !$OMP END PARALLEL DO
        
@@ -451,9 +453,9 @@ CONTAINS
 
        CALL CONVERT_UNITS( 1, N_TRACERS, TCVV, AD, STT ) ! kg -> v/v
        IF ( LLINOZ ) THEN
-          CALL Do_Linoz
+          CALL Do_Linoz( am_I_Root )
        ELSE 
-          CALL Do_Synoz
+          CALL Do_Synoz( am_I_Root )
        ENDIF
        CALL CONVERT_UNITS( 2, N_TRACERS, TCVV, AD, STT ) ! v/v -> kg
 
@@ -472,10 +474,10 @@ CONTAINS
        !$OMP END PARALLEL DO
 
        ! Aggregate chemical tendency [kg box-1]
-       DO N = 1, NSCHEM
+       DO N=1,NSCHEM
           NN = Strat_TrID_GC(N)
-          SCHEM_TEND(:,:,:,N) = SCHEM_TEND(:,:,:,N )  + &
-                                     ( STT(:,:,:,NN) - STT0(:,:,:,NN) )
+          SCHEM_TEND(:,:,:,N) = SCHEM_TEND(:,:,:,N) + &
+               ( STT(:,:,:,NN) - STT0(:,:,:,NN) )
        ENDDO
 
     !======================================================================
@@ -517,10 +519,12 @@ CONTAINS
        ! (e.g., CO). Simulations like CH4, CO2 with standard tracer names 
        ! should probably just work as is with the full chemistry code above, 
        ! but would need to be tested.
-       WRITE( 6, * ) 'Strat chemistry needs to be activated for ' // &
-            'your simulation type.'
-       WRITE( 6, * ) 'Please see GeosCore/strat_chem_mod.F90' // &
-            'or disable in input.geos'
+       IF ( am_I_Root ) THEN
+          WRITE( 6, '(a)' ) 'Strat chemistry needs to be activated for ' // &
+                            'your simulation type.'
+          WRITE( 6, '(a)' ) 'Please see GeosCore/strat_chem_mod.F90' // &
+                            'or disable in input.geos'
+       ENDIF
        CALL GEOS_CHEM_STOP
        
     ENDIF
@@ -540,7 +544,7 @@ CONTAINS
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE GET_RATES( THISMONTH )
+  SUBROUTINE GET_RATES( THISMONTH, am_I_Root )
 !
 ! !USES:
 !
@@ -561,11 +565,14 @@ CONTAINS
 !
 ! !INPUT PARAMETERS: 
 !
-    INTEGER,INTENT(IN) :: THISMONTH
+    INTEGER, INTENT(IN) :: THISMONTH   ! Current month
+    LOGICAL, INTENT(IN) :: am_I_Root   ! Is this the root CPU?
 !
 ! !REVISION HISTORY: 
 !  01 Feb 2011 - L. Murray   - Initial version
 !  20 Jul 2012 - R. Yantosca - Reorganized declarations for clarity
+!  30 Jul 2012 - R. Yantosca - Now accept am_I_Root as an argument when
+!                              running with the traditional driver main.F
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -590,8 +597,10 @@ CONTAINS
     LOSS = 0d0
     PROD = 0d0
 
-    WRITE(6, 11  ) '       - Getting new strat prod/loss rates for month: ', &
-         THISMONTH
+    IF ( am_I_Root ) THEN
+       WRITE( 6, 11 ) &
+          '       - Getting new strat prod/loss rates for month: ', THISMONTH
+    ENDIF
 11  FORMAT( a, I2.2 )
 
     M = THISMONTH
@@ -599,10 +608,15 @@ CONTAINS
     !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
     ! Get stratospheric OH mixing ratio [v/v] 
     !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-    FILENAME = 'strat_chem_201206/gmi.clim.OH.' // & 
-                       GET_NAME_EXT() // '.' // GET_RES_EXT() // '.nc'
+    FILENAME = 'strat_chem_201206/gmi.clim.OH.' // GET_NAME_EXT() //  &
+               '.'                              // GET_RES_EXT()  // '.nc'
     FILENAME = TRIM( DATA_DIR ) // TRIM( FILENAME )
-    WRITE(6,'(a)') '         => Reading from file: ' // trim(filename)
+
+    IF ( am_I_Root ) THEN
+       WRITE( 6, 100 ) TRIM( filename )
+100    FORMAT( '         => Reading from file: ', a )
+    ENDIF
+
     call NcOp_Rd( fileID, TRIM( FILENAME ) )
     call NcRd( array, fileID, 'species',                     &
                               (/     1,     1,     1,  m /), & ! Start
@@ -622,10 +636,14 @@ CONTAINS
        !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
        FILENAME = 'strat_chem_201206/gmi.clim.' // &
-            TRIM( GMI_TrName(NN) ) // '.' // & 
-            GET_NAME_EXT() // '.' // GET_RES_EXT() // '.nc'
+                  TRIM( GMI_TrName(NN) ) // '.' // & 
+                  GET_NAME_EXT() // '.' // GET_RES_EXT() // '.nc'
        FILENAME = TRIM( DATA_DIR ) // TRIM( FILENAME )
-       WRITE(6,'(a)') '         => Reading from file: ' // trim(filename)
+
+       IF ( am_I_Root ) THEN
+          WRITE( 6, 100 ) TRIM( filename )
+       ENDIF
+
        call NcOp_Rd( fileID, TRIM( FILENAME ) )
 
        !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -724,7 +742,7 @@ CONTAINS
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE GET_RATES_INTERP( THISMONTH )
+  SUBROUTINE GET_RATES_INTERP( THISMONTH, am_I_Root )
 !
 ! !USES:
 !
@@ -751,7 +769,8 @@ CONTAINS
 !
 ! !INPUT PARAMETERS: 
 !
-    INTEGER,INTENT(IN) :: THISMONTH
+    INTEGER, INTENT(IN) :: THISMONTH   ! Current month
+    LOGICAL, INTENT(IN) :: am_I_Root   ! Is this the root CPU?
 !
 ! !REVISION HISTORY: 
 !  01 Feb 2011 - L. Murray   - Initial version
@@ -760,6 +779,8 @@ CONTAINS
 !  20 Jul 2012 - R. Yantosca - Now call routine TRANSFER_3D_Bry, which takes
 !                              arrays of size (144,91,:) as input & output
 !  20 Jul 2012 - R. Yantosca - Reorganized declarations for clarity
+!  30 Jul 2012 - R. Yantosca - Now accept am_I_Root as an argument when
+!                              running with the traditional driver main.F
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -804,13 +825,17 @@ CONTAINS
     FILENAME = 'strat_chem_201206/gmi.clim.OH.' // GET_NAME_EXT() // '.2x25.nc'
     FILENAME = TRIM( DATA_DIR_1x1 ) // TRIM( FILENAME )
 
-    WRITE(6, 11  ) &
-         '       - Getting new strat prod/loss rates for month: ',THISMONTH
-11  FORMAT( a, I2.2 )
+    ! Echo info
+    IF ( am_I_Root ) THEN
+       WRITE( 6, 11 ) THISMONTH
+    ENDIF
+11  FORMAT( '       - Getting new strat prod/loss rates for month: ', I2.2 )
 
     ! Open the netCDF file containing the rates
-    WRITE(6,'(a)') &
-         '         => Interpolate to resolution from file: ' // trim(filename)
+    IF ( am_I_Root ) THEN
+       WRITE( 6, 12 ) TRIM( filename )
+    ENDIF
+12  FORMAT( '         => Interpolate to resolution from file: ', a )
     call Ncop_Rd( fileID, TRIM( filename ) )
 
     ! Get the lat and lon centers of the 2x2.5 GMI climatology
@@ -827,12 +852,12 @@ CONTAINS
     DO I=1,IGLOB
        II = MINLOC( ABS( GET_XMID(I,1,1) - XMID_COARSE ) )
        I_f2c(I) = II(1)
-       !print*,'I:',I,'->',II(1)
+       !IF ( am_I_Root ) print*,'I:',I,'->',II(1)
     ENDDO
     DO J=1,JGLOB
        JJ = MINLOC( ABS( GET_YMID(1,J,1) - YMID_COARSE ) )
        J_f2c(J) = JJ(1)
-       !print*,'J:',J,'->',JJ(1)
+       !IF ( am_I_Root ) print*,'J:',J,'->',JJ(1)
     ENDDO
 
     M = THISMONTH
@@ -844,9 +869,9 @@ CONTAINS
     DO J = 1, JGLOB
     DO I = 1, IGLOB
 
-       call NcRd( column, fileID, 'species',            &
-                  (/ I_f2c(I), J_f2c(J),  1,     m /),  & ! Start
-                  (/ 1,        1,         LGLOB, 1 /)  )  ! Count
+       call NcRd( column, fileID, 'species',           &
+                  (/ I_f2c(I), J_f2c(J),     1, m /),  & ! Start
+                  (/        1,        1, lglob, 1 /)  ) ! Count
        array( I, J, : ) = column
 
     ENDDO
@@ -905,7 +930,7 @@ CONTAINS
     ENDDO
     ENDDO
 
-    DO N = 1,NSCHEM
+    DO N=1,NSCHEM
        NN = Strat_TrID_GMI(N)
 
        !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -916,9 +941,10 @@ CONTAINS
        FILENAME = 'strat_chem_201206/gmi.clim.' // &
             TRIM( GMI_TrName(NN) ) // '.' // GET_NAME_EXT() // '.2x25.nc'
        FILENAME = TRIM( DATA_DIR_1x1 ) // TRIM( FILENAME )
-       WRITE(6,'(a)') &
-            '         => Interpolate to resolution from file: ' // & 
-            trim(filename)
+
+       IF ( am_I_Root ) THEN
+          WRITE( 6, 12 ) TRIM( filename )
+       ENDIF
 
        call NcOp_Rd( fileID, TRIM( FILENAME ) )
 
@@ -930,9 +956,9 @@ CONTAINS
        DO J = 1, JGLOB
        DO I = 1, IGLOB
 
-          call NcRd( column, fileID, 'prod',                      &
-                             (/ I_f2c(I), J_f2c(J), 1,     m /),  & ! Start
-                             (/ 1,        1,        LGLOB, 1 /)  )  ! Count
+          call NcRd( column, fileID, 'prod',                       &
+                             (/ I_f2c(I), J_f2c(J),     1,  m /),  & ! Start
+                             (/        1,        1, lglob,  1 /)  )  ! Count
           array( I, J, : ) = column
 
        ENDDO
@@ -944,9 +970,8 @@ CONTAINS
        PROD(:,:,:,N) = ARRAY2
 
        ! Special adjustment for Br2 tracer, which is BrCl in the strat
-       IF ( TRIM( TRACER_NAME( Strat_TrID_GC(N) ) ) .eq. 'Br2' ) THEN
-          PROD(:,:,:,N) = PROD(:,:,:,N) / 2d0
-       ENDIF
+       IF ( TRIM(TRACER_NAME(Strat_TrID_GC(N))) .eq. 'Br2' ) &
+                                           PROD(:,:,:,N) = PROD(:,:,:,N) / 2d0
 
        !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
        ! Read loss frequencies [s^-1]
@@ -956,9 +981,9 @@ CONTAINS
        DO J = 1, JGLOB
        DO I = 1, IGLOB
 
-          call NcRd( column, fileID, 'loss',                      &
-                             (/ I_f2c(I), J_f2c(J), 1,     m /),  & ! Start
-                             (/ 1,        1,        LGLOB, 1 /)  )  ! Count
+          call NcRd( column, fileID, 'loss',                       &
+                             (/ I_f2c(I), J_f2c(J),     1,  m /),  & ! Start
+                             (/        1,        1, lglob,  1 /)  )  ! Count
           array( I, J, : ) = column
 
        ENDDO
@@ -993,7 +1018,7 @@ CONTAINS
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE Calc_STE
+  SUBROUTINE Calc_STE( am_I_Root )
 !
 ! !USES:
 !
@@ -1006,12 +1031,17 @@ CONTAINS
 
 #include "define.h"
 !
+! !INPUT PARAMETERS:
+!
+    LOGICAL, INTENT(IN) :: am_I_Root   ! Is this the root CPU?
+!
 ! !REVISION HISTORY: 
 !  28 Apr 2012 - L. Murray   - Initial version
 !  18 Jul 2012 - R. Yantosca - Make sure I is the innermost DO loop
 !                              (wherever expedient)
 !  20 Jul 2012 - R. Yantosca - Reorganized declarations for clarity
-
+!  30 Jul 2012 - R. Yantosca - Now accept am_I_Root as an argument when
+!                              running with the traditional driver main.F
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -1066,16 +1096,17 @@ CONTAINS
     CALL EXPAND_DATE(dateEnd,GET_NYMD(),GET_NHMS())
 
     ! Print to output
-    WRITE( 6, * ) ''
-    WRITE( 6, '(a)' ) REPEAT( '=', 79 )
-    WRITE( 6, '(a)' ) '  Strat-Trop Exchange'
-    WRITE( 6, '(a)' ) REPEAT( '-', 79 )
-    WRITE( 6, '(a)' ) &
-         '  Global stratosphere-to-troposphere fluxes estimated over'
-    WRITE( 6, 100 ) TRIM(dateStart), TRIM(dateEnd)
-    WRITE( 6, * ) ''
-    WRITE( 6, 110 ) 'Species','[moles a-1]','* [g/mol]','= [Tg a-1]'
-
+    IF ( am_I_Root ) THEN
+       WRITE( 6, * ) ''
+       WRITE( 6, '(a)' ) REPEAT( '=', 79 )
+       WRITE( 6, '(a)' ) '  Strat-Trop Exchange'
+       WRITE( 6, '(a)' ) REPEAT( '-', 79 )
+       WRITE( 6, '(a)' ) &
+            '  Global stratosphere-to-troposphere fluxes estimated over'
+       WRITE( 6, 100 ) TRIM(dateStart), TRIM(dateEnd)
+       WRITE( 6, * ) ''
+       WRITE( 6, 110 ) 'Species','[moles a-1]','* [g/mol]','= [Tg a-1]'
+    ENDIF
 100 FORMAT( 2x,a16,' to ',a16 )
 110 FORMAT( 2x,a8,':',4x,a11  ,4x,a9  ,4x,  a11 )
 
@@ -1107,18 +1138,22 @@ CONTAINS
        STE = (Tend-dStrat)/dt ! [kg a-1]
 
        ! Print to standard output
-       WRITE(6,120) TRIM(TRACER_NAME(N)),  &
-            STE/TRACER_MW_KG(N),           & ! mol/a-1
-            TRACER_MW_KG(N)*1d3,           & ! g/mol
-            STE*1d-9                         ! Tg a-1
+       IF ( am_I_Root ) THEN
+          WRITE(6,120) TRIM(TRACER_NAME(N)),  &
+               STE/TRACER_MW_KG(N),           & ! mol/a-1
+               TRACER_MW_KG(N)*1d3,           & ! g/mol
+               STE*1d-9                         ! Tg a-1
+       ENDIF
 
     ENDDO
 
 120 FORMAT( 2x,a8,':',4x,e11.3,4x,f9.1,4x,f11.4 )
 
-    WRITE( 6, * ) ''
-    WRITE( 6, '(a)'   ) REPEAT( '=', 79 )
-    WRITE( 6, * ) ''
+    IF ( am_I_Root ) THEN
+       WRITE( 6, * ) ''
+       WRITE( 6, '(a)'   ) REPEAT( '=', 79 )
+       WRITE( 6, * ) ''
+    ENDIF
 
     ! Reset variables for next STE period
     NymdInit             = GET_NYMD()
@@ -1144,7 +1179,7 @@ CONTAINS
 !\\
 ! !INTERFACE:
 !      
-  SUBROUTINE INIT_STRAT_CHEM
+  SUBROUTINE INIT_STRAT_CHEM( am_I_Root )
 !
 ! !USES:
 !
@@ -1163,9 +1198,15 @@ CONTAINS
     USE CMN_SIZE_MOD
 
     IMPLICIT NONE
+!
+! !INPUT PARAMETERS:
+!
+    LOGICAL, INTENT(IN) :: am_I_Root   ! Is this the root CPU?
 ! 
 ! !REVISION HISTORY:
-!  1 Feb 2011 - L. Murray - Initial version
+!  01 Feb 2011 - L. Murray   - Initial version
+!  30 Jul 2012 - R. Yantosca - Now accept am_I_Root as an argument when
+!                              running with the traditional driver main.F
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -1251,11 +1292,17 @@ CONTAINS
              IF ( TRIM(TRACER_NAME(N)) .eq. TRIM(sname) ) THEN
                 
                 IF ( LLINOZ .and. TRIM(TRACER_NAME(N)) .eq. 'Ox' ) THEN
-                   WRITE(6,*) TRIM(TRACER_NAME(N)) // ' (via Linoz)'
+                   IF ( am_I_Root ) THEN
+                      WRITE( 6, '(a)' ) TRIM(TRACER_NAME(N)) // ' (via Linoz)'
+                   ENDIF
                 ELSE IF ( TRIM(TRACER_NAME(N)) .eq. 'Ox' ) THEN
-                   WRITE(6,*) TRIM(TRACER_NAME(N)) // ' (via Synoz)'
+                   IF ( am_I_Root ) THEN
+                      WRITE( 6, '(a)' ) TRIM(TRACER_NAME(N)) // ' (via Synoz)'
+                   ENDIF
                 ELSE
-                   WRITE(6,*) TRIM(TRACER_NAME(N)) // ' (via GMI rates)'
+                   IF ( am_I_Root ) THEN
+                      WRITE( 6, '(a)' ) TRIM(TRACER_NAME(N))//' (via GMI rates)'
+                   ENDIF
                 ENDIF
 
                 NSCHEM                 = NSCHEM + 1
@@ -1269,9 +1316,11 @@ CONTAINS
 
        ! These are the reactions with which we will use OH fields
        ! to determine stratospheric loss.
-       IF ( IDTCHBr3  .gt. 0 ) WRITE(6,*) 'CHBr3 (from GMI OH)'
-       IF ( IDTCH2Br2 .gt. 0 ) WRITE(6,*) 'CH2Br2 (from GMI OH)'
-       IF ( IDTCH3Br  .gt. 0 ) WRITE(6,*) 'CH3Br (from GMI OH)'
+       IF( am_I_Root ) THEN
+          IF ( IDTCHBr3  .gt. 0 ) WRITE(6,*) 'CHBr3 (from GMI OH)'
+          IF ( IDTCH2Br2 .gt. 0 ) WRITE(6,*) 'CH2Br2 (from GMI OH)'
+          IF ( IDTCH3Br  .gt. 0 ) WRITE(6,*) 'CH3Br (from GMI OH)'
+       ENDIF
 
        ! Allocate array to hold monthly mean OH mixing ratio
        ALLOCATE( STRAT_OH( IIPAR, JJPAR, LLPAR ), STAT=AS )
@@ -1283,16 +1332,22 @@ CONTAINS
        !===========!
     ELSE IF ( ITS_A_TAGOX_SIM() ) THEN
        IF ( LLINOZ ) THEN
-          WRITE(6,*) 'Linoz ozone performed on: '
+          IF ( am_I_Root ) THEN
+             WRITE(6,*) 'Linoz ozone performed on: '
+          ENDIF
        ELSE          
-          WRITE(6,*) 'Synoz ozone performed on: '
+          IF ( am_I_Root ) THEN
+             WRITE(6,*) 'Synoz ozone performed on: '
+          ENDIF
        ENDIF
        DO N = 1, N_TRACERS
           IF ( TRIM(TRACER_NAME(N)) .eq. 'Ox' .or. &
                TRIM(TRACER_NAME(N)) .eq. 'OxStrt' ) THEN
              NSCHEM = NSCHEM + 1
              Strat_TrID_GC(NSCHEM) = N
-             WRITE(6,*) TRIM(TRACER_NAME(N))
+             IF ( am_I_Root ) THEN
+                WRITE(6,*) TRIM(TRACER_NAME(N))
+             ENDIF
           ENDIF
        ENDDO
     ENDIF
@@ -1328,10 +1383,13 @@ CONTAINS
     IF ( AS /= 0 ) CALL ALLOC_ERR( 'TPAUSEL' )
     TPAUSEL = 0d0
 
-    ! Array to save chemical state before each chemistry time step [kg]
-    ALLOCATE( BEFORE( IIPAR, JJPAR, LLPAR ), STAT=AS )
-    IF ( AS /= 0 ) CALL ALLOC_ERR( 'BEFORE' )
-    BEFORE = 0d0
+!------------------------------------------------------------------------------
+! Prior to 8/7/12:
+!    ! Array to save chemical state before each chemistry time step [kg]
+!    ALLOCATE( BEFORE( IIPAR, JJPAR, LLPAR ), STAT=AS )
+!    IF ( AS /= 0 ) CALL ALLOC_ERR( 'BEFORE' )
+!    BEFORE = 0d0
+!------------------------------------------------------------------------------
 
     ! Array to aggregate the stratospheric chemical tendency [kg period-1]
     ALLOCATE( SCHEM_TEND(IIPAR,JJPAR,LLPAR,N_TRACERS), STAT=AS )
@@ -1382,7 +1440,10 @@ CONTAINS
     IF ( ALLOCATED( STRAT_OH   ) ) DEALLOCATE( STRAT_OH   )
     IF ( ALLOCATED( MInit      ) ) DEALLOCATE( MInit      )
     IF ( ALLOCATED( TPAUSEL    ) ) DEALLOCATE( TPAUSEL    )
-    IF ( ALLOCATED( BEFORE     ) ) DEALLOCATE( BEFORE     )
+!-----------------------------------------------------------------
+! Prior to 8/7/12:
+!    IF ( ALLOCATED( BEFORE     ) ) DEALLOCATE( BEFORE     )
+!-----------------------------------------------------------------
     IF ( ALLOCATED( SCHEM_TEND ) ) DEALLOCATE( SCHEM_TEND )
 
   END SUBROUTINE CLEANUP_STRAT_CHEM
@@ -1401,7 +1462,7 @@ CONTAINS
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE Do_Synoz      
+  SUBROUTINE Do_Synoz( am_I_Root )   
 !
 ! !USES:
 !
@@ -1420,6 +1481,10 @@ CONTAINS
 
     IMPLICIT NONE
 #include "define.h"
+!
+! !INPUT PARAMETERS:
+!
+    LOGICAL, INTENT(IN) :: am_I_Root   ! Is this the root CPU?
 !
 ! !REMARKS:
 !  Reference:
@@ -1742,9 +1807,10 @@ CONTAINS
     ! Print amount of stratospheric O3 coming down
     !=================================================================
     IF ( FIRST ) THEN
-       WRITE( 6, 20 ) SUM( STFLUX )
-20     FORMAT( '     - Do_Synoz: Strat O3 production is', f9.3, &
-            ' [Tg/yr]')
+       IF ( am_I_Root ) THEN
+          WRITE( 6, 20 ) SUM( STFLUX )
+       ENDIF
+20     FORMAT( '     - Do_Synoz: Strat O3 production is', f9.3, ' [Tg/yr]' )
        FIRST = .FALSE.
     ENDIF
 

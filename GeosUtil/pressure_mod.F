@@ -31,6 +31,9 @@
       PUBLIC :: GET_PEDGE_FULLGRID             
       PUBLIC :: INIT_PRESSURE         
       PUBLIC :: SET_FLOATING_PRESSURE 
+#if defined( DEVEL ) || defined( EXTERNAL_GRID ) || defined( EXTERNAL_FORCING )
+      PUBLIC :: EXTERNAL_PEDGE
+#endif
 !
 ! !REMARKS:
 !
@@ -92,6 +95,7 @@
 !  30 Aug 2010 - R. Yantosca - Updated comments
 !  02 Feb 2012 - R. Yantosca - Added modifications for GEOS-5.7.x met fields
 !  28 Feb 2012 - R. Yantosca - Removed support for GEOS-3
+!  31 Jul 2012 - R. Yantosca - Modifications for grid-independence
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -101,7 +105,9 @@
       REAL*8, ALLOCATABLE :: PFLT(:,:)  ! "Floating" surface pressure field
       REAL*8, ALLOCATABLE :: AP_FULLGRID(:) ! "A" term for unreduced ETA
       REAL*8, ALLOCATABLE :: BP_FULLGRID(:) ! "B" term for unreduced ETA
-
+#if defined( DEVEL ) || defined( EXTERNAL_GRID ) || defined( EXTERNAL_FORCING )
+      REAL*8, ALLOCATABLE :: EXTERNAL_PEDGE(:,:,:)
+#endif
       CONTAINS
 !EOC
 !------------------------------------------------------------------------------
@@ -298,7 +304,11 @@
       !-----------------------------
 
       ! Pressure [hPa] at bottom edge of level L (see documentation header)
+#if defined( DEVEL ) || defined( EXTERNAL_GRID ) || defined( EXTERNAL_FORCING )
+      PEDGE = EXTERNAL_PEDGE(I,J,L)
+#else
       PEDGE = AP(L) + ( BP(L) * ( PFLT(I,J) - PTOP ) )
+#endif
 
 #endif     
  
@@ -428,7 +438,7 @@
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE INIT_PRESSURE
+      SUBROUTINE INIT_PRESSURE( am_I_Root )
 !
 ! !USES:
 !
@@ -436,6 +446,10 @@
       USE ERROR_MOD, ONLY : ALLOC_ERR
 
       USE CMN_SIZE_MOD  ! LLPAR, PTOP
+!
+! !INPUT PARAMETERS:
+!
+      LOGICAL, INTENT(IN) :: am_I_Root   ! Is this the root CPU?
 !
 ! !REVISION HISTORY:
 !  27 Aug 2002 - D. Abbot, S. Wu, & R. Yantosca - Initial version 
@@ -455,6 +469,8 @@
 !  02 Feb 2012 - R. Yantosca - Compute Ap and Bp for GEOS-5.7.x in the same way
 !                              as for GEOS-5 and MERRA (grids are identical)
 !  28 Feb 2012 - R. Yantosca - Removed support for GEOS-3
+!  30 Jul 2012 - R. Yantosca - Now accept am_I_Root as an argument when
+!                              running with the traditional driver main.F
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -489,6 +505,12 @@
       ALLOCATE( BP_FULLGRID( LGLOB+1 ), STAT=AS )
       IF ( AS /= 0 ) CALL ALLOC_ERR( 'BP_FULLGRID' )
       BP = 0d0
+
+#if defined( DEVEL ) || defined( EXTERNAL_GRID ) || defined( EXTERNAL_FORCING )
+      ALLOCATE( EXTERNAL_PEDGE( IIPAR, JJPAR, LLPAR+1 ), STAT=AS )
+      IF ( AS /= 0 ) CALL ALLOC_ERR( 'EXTERNAL_PEDGE' )
+      EXTERNAL_PEDGE = 0d0
+#endif
 
 #if   defined( GEOS_5 ) || defined( MERRA ) || defined( GEOS_57 )
 
@@ -820,15 +842,16 @@
 #endif
       
       ! Echo info to std output
-      WRITE( 6, '(a)'   ) REPEAT( '=', 79 )
-      WRITE( 6, '(a,/)' ) 'V E R T I C A L   G R I D   S E T U P'
-      WRITE( 6, '(a,/)' ) 'INIT_PRESSURE: Vertical coordinates!'
-      WRITE( 6, '( ''Ap '', /, 6(f11.6,1x) )' ) AP(1:LLPAR+1)
-      WRITE( 6, '(a)'   )
-      WRITE( 6, '( ''Bp '', /, 6(f11.6,1x) )' ) BP(1:LLPAR+1)
-      WRITE( 6, '(a)'   ) REPEAT( '=', 79 )
+      IF ( am_I_Root ) THEN
+         WRITE( 6, '(a)'   ) REPEAT( '=', 79 )
+         WRITE( 6, '(a,/)' ) 'V E R T I C A L   G R I D   S E T U P'
+         WRITE( 6, '(a,/)' ) 'INIT_PRESSURE: Vertical coordinates!'
+         WRITE( 6, '( ''Ap '', /, 6(f11.6,1x) )' ) AP(1:LLPAR+1)
+         WRITE( 6, '(a)'   )
+         WRITE( 6, '( ''Bp '', /, 6(f11.6,1x) )' ) BP(1:LLPAR+1)
+         WRITE( 6, '(a)'   ) REPEAT( '=', 79 )
+      ENDIF
 
-      ! Return to calling program
       END SUBROUTINE INIT_PRESSURE
 !EOC
 !------------------------------------------------------------------------------

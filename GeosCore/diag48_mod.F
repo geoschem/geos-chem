@@ -73,8 +73,13 @@
 !  (10) Now do not scale AOD output (now recalculated in RDAER and DUST_MOD)
 !       Minor bug fix with the accumulation of ODAER across RH bins
 !       (skim, 02/03/11)
+!  01 Aug 2012 - R. Yantosca - Add reference to findFreeLUN from inqure_mod.F90
+!  06 Aug 2012 - R. Yantosca - Move calls to findFreeLUN out of DEVEL block
+!  06 Aug 2012 - R. Yantosca - Now make IU_ND48 a local module variable
 !******************************************************************************
 !
+      USE inquireMod, ONLY : findFreeLUN
+
       IMPLICIT NONE
 #     include "define.h"
 
@@ -113,6 +118,9 @@
       CHARACTER(LEN=40)    :: RESERVED = 'ND48 station timeseries'
       CHARACTER(LEN=80)    :: TITLE
       CHARACTER(LEN=255)   :: ND48_OUTPUT_FILE
+
+      ! LUN for ND48 diagnostic file
+      INTEGER              :: IU_ND48
 
       ! Arrays
       INTEGER, ALLOCATABLE :: ND48_I(:)
@@ -160,7 +168,6 @@
       USE DAO_MOD,      ONLY : CLDTOPS, OPTD,   RH,       SLP   
       USE DAO_MOD,      ONLY : T,       UWND,   VWND 
       USE ERROR_MOD,    ONLY : ERROR_STOP
-      USE FILE_MOD,     ONLY : IU_ND48
       USE GRID_MOD,     ONLY : GET_XOFFSET,        GET_YOFFSET
       USE PBL_MIX_MOD,  ONLY : GET_PBL_TOP_L,      GET_PBL_TOP_m
       USE PRESSURE_MOD, ONLY : GET_PEDGE
@@ -762,7 +769,7 @@
 !******************************************************************************
 !
       ! References to F90 modules
-      USE FILE_MOD, ONLY : IU_ND48, IOERROR
+      USE FILE_MOD, ONLY : IOERROR
 
       ! Arguments
       CHARACTER(LEN=*), INTENT(IN) :: FILENAME
@@ -776,9 +783,17 @@
       ! OPEN_ND48_FOR_WRITE begins here!
       !=================================================================
 
+      ! Find a free file LUN
+      IU_ND48 = findFreeLUN()
+
       ! Initialize
       FTI   = 'CTM bin 02 -- GEOS-CHEM station ts' 
       TITLE = 'GEOS-CHEM ND48 station timeseries diagnostic'
+
+!%%% NOTE: The GEOS-5 GCM won't call this routine, so it should be OK
+!%%% to use IU_ND48 from the file_mod.F. (bmy, 8/3/12)
+!%%%      ! Find a free file LUN
+!%%%      IU_ND48 = findFreeLUN()
 
       ! Open file for output
       OPEN( IU_ND48,    FILE=TRIM( FILENAME ), STATUS='UNKNOWN',

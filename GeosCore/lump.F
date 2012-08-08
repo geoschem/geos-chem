@@ -1,44 +1,55 @@
-! $Id: lump.f,v 1.1 2009/09/16 14:06:21 bmy Exp $
+!------------------------------------------------------------------------------
+!          Harvard University Atmospheric Chemistry Modeling Group            !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !ROUTINE: lump
+!
+! !DESCRIPTION: Subroutine LUMP takes individual chemistry species and 
+!  "lumps" them back into tracers after each SMVGEAR chemistry timestep.
+
+!\\
+!\\
+! !INTERFACE:
+!
       SUBROUTINE LUMP( NTRACER, XNUMOL, STT )
 !
-!******************************************************************************
-!  Subroutine LUMP takes individual chemistry species and "lumps" them back 
-!  into tracers after each SMVGEAR chemistry timestep. (bmy, 4/1/03, 7/20/04)
-! 
-!  Arguments as Input:
-!  ============================================================================
-!  (1 ) NTRACER (INTEGER) : Number of tracers
-!  (2 ) XNUMOL  (REAL*8 ) : Array of molecules tracer / kg tracer 
-!  (3 ) STT     (REAL*8 ) : Tracer concentrations [molec/cm3/box]
+! !USES:
 !
-!  Arguments as Output:
-!  ============================================================================
-!  (3 ) STT     (REAL*8 ) : Tracer concentrations [kg/box]
-!
-!  NOTES:
-!  (1 ) Updated comments, cosmetic changes (bmy, 4/1/03)
-!  (2 ) Added OpenMP parallelization commands (bmy, 8/1/03)
-!  (3 ) Now dimension args XNUMOL, STT w/ NTRACER and not NNPAR (bmy, 7/20/04)
-!******************************************************************************
-!
-      ! References to F90 modules
       USE COMODE_MOD,   ONLY : CSPEC,  JLOP,    VOLUME
       USE TRACERID_MOD, ONLY : IDTRMB, NMEMBER, CTRMB
-
-      USE CMN_SIZE_MOD     ! Size parameters
-      USE COMODE_LOOP_MOD     ! SMVGEAR II arrays
+      USE CMN_SIZE_MOD                            ! Size parameters
+      USE COMODE_LOOP_MOD                         ! SMVGEAR II arrays
 
       IMPLICIT NONE
 #     include "define.h"
-
-      ! Arguments
-      INTEGER, INTENT(IN)    :: NTRACER
-      REAL*8,  INTENT(IN)    :: XNUMOL(NTRACER)
-      REAL*8,  INTENT(INOUT) :: STT(IIPAR,JJPAR,LLPAR,NTRACER)   
-
-      ! Local variables
-      INTEGER                :: I, J, L, N, JLOOP, KK, JJ
-      REAL*8                 :: CONCTMP  
+!
+! !INPUT PARAMETERS: 
+!
+      INTEGER, INTENT(IN)    :: NTRACER           ! # of tracers
+      REAL*8,  INTENT(IN)    :: XNUMOL(NTRACER)   ! Molec tracer / kg tracer
+!
+! !INPUT/OUTPUT PARAMETERS: 
+!
+      ! Tracer concentrations [kg/box]
+      REAL*8,  INTENT(INOUT) :: STT(IIPAR,JJPAR,LLPAR,NTRACER)
+! 
+! !REVISION HISTORY: 
+!  01 Apr 2003 - R. Yantosca - Initial version
+!  (1 ) Updated comments, cosmetic changes (bmy, 4/1/03)
+!  (2 ) Added OpenMP parallelization commands (bmy, 8/1/03)
+!  (3 ) Now dimension args XNUMOL, STT w/ NTRACER and not NNPAR (bmy, 7/20/04)
+!  30 Jul 2012 - R. Yantosca - Now accept am_I_Root as an argument when
+!                              running with the traditional driver main.F
+!  30 Jul 2012 - R. Yantosca - Added ProTeX headers
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+!
+! !LOCAL VARIABLES
+!
+      INTEGER :: I, J, L, N, JLOOP, KK, JJ
+      REAL*8  :: CONCTMP  
 
       !=================================================================
       ! LUMP begins here!
@@ -80,6 +91,6 @@
       ENDDO
 !$OMP END PARALLEL DO
 
-      ! Return to calling program
       END SUBROUTINE LUMP
+!EOC
 

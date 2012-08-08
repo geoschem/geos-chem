@@ -2828,14 +2828,16 @@
 ! !USES:
 !
       USE A3_READ_MOD
-      USE GEOS57_READ_MOD, ONLY : GEOS57_READ_A1
+      USE GEOS57_READ_MOD,  ONLY : GEOS57_READ_A1
+      USE inquireMod,       ONLY : findFreeLUN
       USE MERRA_A1_MOD
-      USE FILE_MOD,         ONLY : IU_A3
       USE JULDAY_MOD,       ONLY : CALDATE
       USE ERROR_MOD,        ONLY : ALLOC_ERR
       USE LOGICAL_MOD,      ONLY : LUNZIP
-      USE TIME_MOD,         ONLY : GET_FIRST_A3_TIME, GET_JD
-      USE TIME_MOD,         ONLY : ITS_A_LEAPYEAR,    YMD_EXTRACT
+      USE TIME_MOD,         ONLY : GET_FIRST_A3_TIME
+      USE TIME_MOD,         ONLY : GET_JD
+      USE TIME_MOD,         ONLY : ITS_A_LEAPYEAR
+      USE TIME_MOD,         ONLY : YMD_EXTRACT
 ! 
 ! !REVISION HISTORY: 
 !  (1 ) Change the logic in the #if block for G4AHEAD. (bmy, 12/6/05)
@@ -2852,6 +2854,7 @@
 !  28 Feb 2012 - R. Yantosca - Removed support for GEOS-3
 !  11 Apr 2012 - R. Yantosca - Now remove the call to INIT_LAI; we shall 
 !                              initialize the LAI arrays from main.F
+!  03 Aug 2012 - R. Yantosca - Move calls to findFreeLUN out of DEVEL block
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -2859,7 +2862,7 @@
 ! !LOCAL VARIABLES:
 !
       LOGICAL              :: GCAP_LEAP
-      INTEGER              :: AS
+      INTEGER              :: AS,        IUNIT
       INTEGER              :: DATE_T15b(2)
       INTEGER              :: NYMD_T15b, NHMS_T15b, NYMD_T15, NHMS_T15
       INTEGER              :: I,         J,         G4AHEAD
@@ -3102,7 +3105,9 @@
             !-----------------------------
 
             ! Open A1 fields
-            CALL OPEN_MERRA_A1_FIELDS( NYMD_T15, 010000*J + G4AHEAD )
+            CALL OPEN_MERRA_A1_FIELDS( NYMD_T15, 
+     &                                 010000*J + G4AHEAD, 
+     &                                 IUNIT=IUNIT                  )
 
             ! Read A1 fields from disk
             CALL GET_MERRA_A1_FIELDS(  NYMD_T15, 010000*J + G4AHEAD ) 
@@ -3114,7 +3119,9 @@
             !-----------------------------
 
             ! Open A3 fields
-            CALL OPEN_A3_FIELDS( NYMD_T15, 030000*J + G4AHEAD )
+            CALL OPEN_A3_FIELDS( NYMD_T15, 
+     &                           030000*J + G4AHEAD,  
+     &                           IUNIT=IUNIT                  )
 
             ! Read A3 fields from disk
             CALL GET_A3_FIELDS(  NYMD_T15, 030000*J + G4AHEAD ) 
@@ -3135,8 +3142,10 @@
 
       ENDDO
 
-      ! Close the A-3 file
-      CLOSE( IU_A3 )
+#if   !defined( GEOS_57 ) 
+      ! Close any open files
+      CLOSE( IUNIT )
+#endif
 
       ! Remove any leftover A-3 files in temp dir
       IF ( LUNZIP ) THEN

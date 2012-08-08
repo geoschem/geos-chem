@@ -50,8 +50,11 @@
 !  (14) Now get the # of A-3 fields from the file ident string (bmy, 10/7/08)
 !  (15) Remove references to IN_CLOUD_OD (bmy, 10/15/09)
 !  28 Feb 2012 - R. Yantosca - Removed support for GEOS-3
+!  03 Aug 2012 - R. Yantosca - Now make IU_I6 a private module variable
 !******************************************************************************
 !
+      USE inquireMod, ONLY : findFreeLUN
+
       IMPLICIT NONE
 #     include "define.h"
 
@@ -75,6 +78,10 @@
 
       ! Number of I6 fields in the file
       INTEGER :: N_I6_FIELDS
+
+      ! File units for I-6 met fields
+      INTEGER :: IU_I6
+      INTEGER :: IU_TP
 
       !=================================================================
       ! MODULE ROUTINES -- follow below the "CONTAINS" statement 
@@ -256,6 +263,8 @@
 !  (9 ) Updated for variable tropopause (phs, bmy, 9/14/06)
 !  (10) Now get the # of A-3 fields from the file ident string (bmy, 10/7/08)
 !  28 Feb 2012 - R. Yantosca - Removed support for GEOS-3
+!  03 Aug 2012 - R. Yantosca - Now use findFreeLUN to define IU_I6 locally
+!  07 Aug 2012 - R. Yantosca - Now print LUN used to open file
 !******************************************************************************
 !      
       ! References to F90 modules
@@ -264,17 +273,16 @@
       USE DIRECTORY_MOD, ONLY : GEOS_4_DIR, GEOS_5_DIR, TEMP_DIR 
       USE ERROR_MOD,     ONLY : ERROR_STOP
       USE LOGICAL_MOD,   ONLY : LUNZIP, LVARTROP
-      USE FILE_MOD,      ONLY : IU_I6, IOERROR, FILE_EXISTS, IU_TP
+      USE FILE_MOD,      ONLY : IOERROR, FILE_EXISTS
       USE TIME_MOD,      ONLY : EXPAND_DATE
-
-      USE CMN_SIZE_MOD      ! Size parameters
+      USE CMN_SIZE_MOD        ! Size parameters
 
       ! Arguments
       INTEGER, INTENT(IN)    :: NYMD, NHMS
 
       ! Local variables
       LOGICAL, SAVE          :: FIRST = .TRUE.
-      LOGICAL                :: IT_EXISTS
+      LOGICAL                :: IT_EXISTS, IS_OPEN
       INTEGER                :: IOS, IUNIT
       CHARACTER(LEN=8)       :: IDENT
       CHARACTER(LEN=255)     :: GEOS_DIR
@@ -323,13 +331,17 @@
          ENDIF
 
          ! Close previously opened A-3 file
-         CLOSE( IU_I6 )
+         INQUIRE( IU_I6, OPENED=IS_OPEN )
+         IF ( IS_OPEN ) CLOSE( IU_I6 )
 
          ! Make sure the file unit is valid before we open it 
          IF ( .not. FILE_EXISTS( IU_I6 ) ) THEN 
             CALL ERROR_STOP( 'Could not find file!', 
      &                       'OPEN_I6_FIELDS (i6_read_mod.f)' )
          ENDIF
+
+         ! Find a free file LUN
+         IU_I6 = findFreeLUN()
 
          ! Open the file
          OPEN( UNIT   = IU_I6,         FILE   = TRIM( PATH ),
@@ -341,8 +353,8 @@
          ENDIF
 
          ! Echo info
-         WRITE( 6, 100 ) TRIM( PATH )
- 100     FORMAT( '     - Opening: ', a )
+         WRITE( 6, 100 ) TRIM( PATH ), IU_I6
+ 100     FORMAT( '     - Opening: ', a, ' on unit ', i4 )
          
          ! Set the proper first-time-flag false
          FIRST = .FALSE.
@@ -380,13 +392,17 @@
             ENDIF
 
             ! Close previously opened A-3 file
-            CLOSE( IU_TP )
+	    INQUIRE( IU_TP, OPENED=IS_OPEN )
+            IF ( IS_OPEN ) CLOSE( IU_TP )
 
             ! Make sure the file unit is valid before we open it 
             IF ( .not. FILE_EXISTS( IU_TP ) ) THEN 
                CALL ERROR_STOP( 'Could not find TROPP file!', 
      &                          'OPEN_I6_FIELDS (i6_read_mod.f)' )
             ENDIF
+
+            ! Find a free file LUN
+            IU_TP = findFreeLUN()
 
             ! Open the file
             OPEN( UNIT   = IU_TP,         FILE   = TRIM( PATH ),
@@ -666,11 +682,13 @@
 !  (8 ) Now read TO3 and TTO3 for GEOS-5 (bmy, 1/16/07)
 !  (9 ) Now get the # of A-3 fields from the file ident string (bmy, 10/7/08)
 !  (10) Remove references to IN_CLOUD_OD (bmy, 10/15/09)
+!  03 Aug 2012 - R. Yantosca - Now use locally-defined IU_I6, IU_TP file LUNs
+!  07 Aug 2012 - R. Yantosca - Now print LUN used to open file
 !******************************************************************************
 !
       ! References to F90 modules
       USE DIAG_MOD,       ONLY : AD66,            AD67
-      USE FILE_MOD,       ONLY : IOERROR,         IU_I6, IU_TP
+      USE FILE_MOD,       ONLY : IOERROR
       USE LOGICAL_MOD,    ONLY : LVARTROP
       USE TIME_MOD,       ONLY : SET_CT_I6,       TIMESTAMP_STRING
       USE TRANSFER_MOD,   ONLY : TRANSFER_2D,     TRANSFER_3D
@@ -912,8 +930,9 @@
          IF ( CHECK_TIME( XYMD, XHMS, NYMD, NHMS ) .AND. 
      &        NFOUND == N_I6 ) THEN
             STAMP = TIMESTAMP_STRING( NYMD, NHMS )
-            WRITE( 6, 210 ) NFOUND, STAMP
- 210        FORMAT( '     - Found all ', i3, ' I-6 met fields for ', a )
+            WRITE( 6, 210 ) NFOUND, STAMP, IU_I6
+ 210        FORMAT( '     - Found all ', i3, ' I-6 met fields for ', 
+     &                   a, ' on unit ', i4 )
             EXIT
          ENDIF
       ENDDO

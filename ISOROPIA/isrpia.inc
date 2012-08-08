@@ -155,9 +155,12 @@
       ! Prior to 6/28/10:
       ! IONIC should be REAL*8 for consistency with -r8 flag during
       ! compiling of isoropiaIIcode routines (hotp 6/23/10)
-      !REAL*4     ::  IONIC
-      !----------------------------------------------------------------------
+#if   defined( DEVEL )
+      REAL*4     ::  IONIC
+#else
       REAL*8     ::  IONIC
+#endif
+      !----------------------------------------------------------------------
       COMMON /IONS3/ IONIC
 !$OMP THREADPRIVATE( /IONS3/ )
 

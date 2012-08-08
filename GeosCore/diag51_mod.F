@@ -116,6 +116,7 @@
 !  03 Feb 2011 - S. Kim      - Now do not scale the AOD output
 !                              (recalculated in RDAER AND DUST_MOD)
 !  01 Mar 2012 - R. Yantosca - Use updated GET_LOCALTIME from time_mod.F
+!  06 Aug 2012 - R. Yantosca - Now make IU_ND51 a local module variable
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -181,6 +182,9 @@
       CHARACTER(LEN=40)    :: RESERVED = ''
       CHARACTER(LEN=80)    :: TITLE
       CHARACTER(LEN=255)   :: ND51_OUTPUT_FILE
+
+      ! LUN for ND51 file
+      INTEGER              :: IU_ND51
 
       ! Arrays
       INTEGER, ALLOCATABLE :: GOOD(:)
@@ -1225,7 +1229,7 @@
       USE BPCH2_MOD,   ONLY : BPCH2
       USE BPCH2_MOD,   ONLY : OPEN_BPCH2_FOR_WRITE
       USE ERROR_MOD,   ONLY : ALLOC_ERR
-      USE FILE_MOD,    ONLY : IU_ND51
+      USE inquireMod,  ONLY : findFreeLUN
       USE LOGICAL_MOD, ONLY : LND51_HDF
       USE TIME_MOD,    ONLY : EXPAND_DATE
       USE TIME_MOD,    ONLY : GET_NYMD_DIAG    
@@ -1278,6 +1282,8 @@
 !        if the HDF5 libraries are not installed. (amv, bmy, 12/21/09)
 !  12 Nov 2010 - R. Yantosca - Now save out PEDGE-$ (pressure at level edges)
 !  02 Dec 2010 - R. Yantosca - Added ProTeX headers
+!  03 Aug 2012 - R. Yantosca - Move calls to findFreeLUN out of DEVEL block
+!  07 Aug 2012 - R. Yantosca - Now print LUN used to open file
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -1295,6 +1301,9 @@
       ! WRITE_DIAG51 begins here!
       !=================================================================
 
+      ! Find a free file LUN
+      IU_ND51 = findFreeLUN()
+
       ! Replace date tokens in FILENAME
       FILENAME = ND51_OUTPUT_FILE
 
@@ -1306,8 +1315,8 @@
       CALL EXPAND_DATE( FILENAME, GET_NYMD_DIAG(), NHMS )
       
       ! Echo info
-      WRITE( 6, 100 ) TRIM( FILENAME )
- 100  FORMAT( '     - DIAG51: Opening file ', a ) 
+      WRITE( 6, 100 ) TRIM( FILENAME ), IU_ND51
+ 100  FORMAT( '     - DIAG51: Opening file ', a, ' on unit ', i4 ) 
 
       ! Open output file
       IF ( LND51_HDF ) THEN

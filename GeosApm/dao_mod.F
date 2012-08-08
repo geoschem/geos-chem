@@ -494,12 +494,19 @@
 !\\
 ! !INTERFACE:
 !
+#if defined( DEVEL )
+      SUBROUTINE AIRQNT(LOCAL_MET)
+#else
       SUBROUTINE AIRQNT
+#endif
 !
 ! !USES:
 !
       USE GRID_MOD,     ONLY : GET_AREA_M2
       USE PRESSURE_MOD, ONLY : GET_BP, GET_PEDGE
+#if defined( DEVEL )
+      USE GC_TYPE_MOD,  ONLY : GC_MET_LOCAL
+#endif
 !
 ! !REMARKS:
 !  DAO met fields updated by AIRQNT:
@@ -555,6 +562,9 @@
 !EOP
 !------------------------------------------------------------------------------
 !BOC
+#if defined( DEVEL )
+      TYPE(GC_MET_LOCAL), INTENT(INOUT) :: LOCAL_MET
+#endif
 !
 ! !LOCAL VARIABLES:
 !
@@ -583,7 +593,10 @@
 
          ! Pressure difference between top & bottom edges [hPa]
          DELP(L,I,J) = P1 - P2
-         
+#if defined( DEVEL )
+!         DELP(L,I,J) = LOCAL_MET%DELP(L,I,J)
+         LOCAL_MET%DELP(L,I,J) = DELP(L,I,J)
+#endif            
          !===========================================================
          ! BXHEIGHT is the height (Delta-Z) of grid box (I,J,L) 
          ! in meters. 
@@ -594,6 +607,10 @@
          ! Rd = 8.31 J/(mol*K) / 0.02897 kg/mol. 
          !===========================================================
          BXHEIGHT(I,J,L) = Rdg0 * T(I,J,L) * LOG( P1 / P2 )
+#if defined( DEVEL )
+!         BXHEIGHT(I,J,L) = LOCAL_MET%BXHEIGHT(I,J,L)
+         LOCAL_MET%BXHEIGHT(I,J,L) = BXHEIGHT(I,J,L)
+#endif            
 
          !===========================================================
          ! AIRVOL is the volume of grid box (I,J,L) in meters^3
@@ -613,6 +630,10 @@
          ! in using AREA_M2 for grid boxes (I, J, L > 1)
          !===========================================================
          AIRVOL(I,J,L) = BXHEIGHT(I,J,L) * AREA_M2
+#if defined( DEVEL )
+!         AIRVOL(I,J,L) = LOCAL_MET%AIRVOL(I,J,L)
+         LOCAL_MET%AIRVOL(I,J,L) = AIRVOL(I,J,L)
+#endif            
 
          !===========================================================
          ! AD = (dry) mass of air in grid box (I,J,L) in kg, 
@@ -627,11 +648,19 @@
          !    1          1          mb       m             1
          !===========================================================
          AD(I,J,L) = DELP(L,I,J) * G0_100 * AREA_M2
+#if defined( DEVEL )
+!          AD(I,J,L) = LOCAL_MET%AD(I,J,L)
+         LOCAL_MET%AD(I,J,L) = AD(I,J,L)
+#endif            
 
          !===========================================================
          ! AIRDEN = density of air (AD / AIRVOL) in kg / m^3 
          !===========================================================
          AIRDEN(L,I,J) = AD(I,J,L) / AIRVOL(I,J,L)
+#if defined( DEVEL )
+!         AIRDEN(L,I,J) = LOCAL_MET%AIRDENS(L,I,J)
+         LOCAL_MET%AIRDENS(L,I,J) = AIRDEN(L,I,J)
+#endif            
       ENDDO
       ENDDO
       ENDDO

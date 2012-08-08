@@ -76,7 +76,7 @@
 
 !------------------------------------------------------------------------------
 
-      SUBROUTINE DO_RPMARES
+      SUBROUTINE DO_RPMARES( am_I_Root )
 !
 !******************************************************************************
 !  Subroutine DO_RPMARES is the interface between the GEOS-CHEM model
@@ -95,6 +95,9 @@
 !        "time_mod.f" (bmy, 7/20/04)
 !  (5 ) Now make sure all USE statements are USE, ONLY (bmy, 10/3/05)
 !  (6 ) Now limit RPMARES to the tropopause. (bmy, 4/10/08)
+!  30 Jul 2012 - R. Yantosca - Now accept am_I_Root as an argument when
+!                              running with the traditional driver main.F
+!  31 Jul 2012 - R. Yantosca - Now loop from 1..LLPAR for GIGC compatibility
 !******************************************************************************
 !
       ! References to F90 modules
@@ -129,6 +132,13 @@
       REAL*8                 :: TSO4, TSO4COAT
 #endif
 
+!
+! !INPUT PARAMETERS:
+!
+      LOGICAL, INTENT(IN) :: am_I_Root   ! Is this the root CPU?
+!
+! !DEFINED PARAMETERS:
+!
       ! concentration lower limit [ug/m3 ]
       REAL*8,  PARAMETER     :: CONMIN = 1.0D-30
 
@@ -182,7 +192,11 @@
 #if   defined( APM )
 !$OMP+PRIVATE( TSO4, TSO4COAT )
 #endif
-      DO L = 1, LLTROP
+!--------------------------
+! Prior to 7/31/12:
+!      DO L = 1, LLTROP
+!--------------------------
+      DO L = 1, LLPAR
       DO J = 1, JJPAR
       DO I = 1, IIPAR
          

@@ -1,4 +1,4 @@
-#if defined( DEVEL )
+#if defined( DEVEL ) && ! defined ( ESMF_ )
 ! $Id: gc_type2_mod.F
 !------------------------------------------------------------------------------
 !          Harvard University Atmospheric Chemistry Modeling Group            !
@@ -31,13 +31,13 @@
       
       TYPE :: CHEMSTATE
 
-        INTEGER, ALLOCATABLE, DIMENSION(:)           :: &
+        INTEGER, POINTER, DIMENSION(:)           :: &
              TRAC_ID, &  ! Tracer ID's set in TRACER_MOD
              SMVG_ID     ! Smvgear ID's set in TRACER_MOD
-        CHARACTER(LEN=14), ALLOCATABLE, DIMENSION(:) :: &
+        CHARACTER(LEN=14), POINTER, DIMENSION(:) :: &
              TRAC_NAME ! Tracer names set in TRACER_MOD
 
-        REAL*8, ALLOCATABLE, DIMENSION(:,:,:,:)      :: &
+        REAL*8, POINTER, DIMENSION(:,:,:,:)      :: &
              TRAC_TEND,  & ! Tracer  Tendency (<<units>>)
              TRAC_BTEND, & ! Biomass Tendency (<<units>>)
              TRACERS       ! Tracer concentration (Kg (per grid))
@@ -95,7 +95,7 @@
  !-----------------------------------------------------------------------
 
       TYPE(CHEMSTATE) :: CHEM_STATE
-      INTEGER         :: NULL
+!      INTEGER         :: NULL
 
       REAL*8, PUBLIC, ALLOCATABLE :: EXT_STRATOH(:,:)
       REAL*8, PUBLIC, ALLOCATABLE :: EXT_SJVALUE(:,:,:)
@@ -155,7 +155,7 @@
         ALLOCATE( CHEM_STATE%TRAC_BTEND(IIPAR,JJPAR,LLPAR,NBIOMAX) )
         ALLOCATE( CHEM_STATE%TRACERS(IIPAR,JJPAR,LLPAR,N_TRACERS+1) )
 
-        NULL = N_TRACERS+1 ! Dummy index just-in-case (e.g. CO2)
+!        NULL = N_TRACERS+1 ! Dummy index just-in-case (e.g. CO2)
 
         CHEM_STATE%TRAC_ID = 0
         CHEM_STATE%SMVG_ID = 0

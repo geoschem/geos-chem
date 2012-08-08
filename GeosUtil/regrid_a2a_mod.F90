@@ -56,10 +56,11 @@ MODULE REGRID_A2A_MOD
 ! 
 ! !USES:
 !
-    USE GRID_MOD, ONLY : GET_XEDGE
-    USE GRID_MOD, ONLY : GET_YSIN
-    USE GRID_MOD, ONLY : GET_AREA_CM2
-    USE FILE_MOD, ONLY : IOERROR, IU_REGRID
+    USE GRID_MOD,   ONLY : GET_XEDGE
+    USE GRID_MOD,   ONLY : GET_YSIN
+    USE GRID_MOD,   ONLY : GET_AREA_CM2
+    USE FILE_MOD,   ONLY : IOERROR
+    USE inquireMod, ONLY : findFreeLUN
     USE CMN_SIZE_MOD
     USE CMN_GCTM_MOD
 !
@@ -91,6 +92,8 @@ MODULE REGRID_A2A_MOD
 !  25 May 2012 - R. Yantosca - Bug fix: declare the INGRID argument as
 !                              INTENT(IN) to preserve the values of INGRID
 !                              in the calling routine
+!  06 Aug 2012 - R. Yantosca - Now make IU_REGRID a local variable
+!  06 Aug 2012 - R. Yantosca - Move calls to findFreeLUN out of DEVEL block
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -98,11 +101,12 @@ MODULE REGRID_A2A_MOD
 ! !LOCAL VARIABLES:
 !
     ! Scalars
-    INTEGER           :: I,       J
-    INTEGER           :: IOS,     M
-    REAL*8            :: INAREA,  RLAT
+    INTEGER           :: I,        J
+    INTEGER           :: IOS,      M
+    INTEGER           :: IU_REGRID
+    REAL*8            :: INAREA,   RLAT
     CHARACTER(LEN=15) :: HEADER1
-    CHARACTER(LEN=20) :: FMT_LAT, FMT_LON, FMT_LEN
+    CHARACTER(LEN=20) :: FMT_LAT,  FMT_LON, FMT_LEN
 
     ! Arrays
     REAL*8            :: INLON  (IM   +1)  ! Lon edges        on INPUT GRID
@@ -128,6 +132,9 @@ MODULE REGRID_A2A_MOD
     DO J = 1, JJPAR+1
        OUTSIN(J) = GET_YSIN( 1, J, 1 )
     ENDDO
+
+    ! Find a free file LUN
+    IU_REGRID = findFreeLUN()
 
     ! Open file containing lon & lat edges on the INPUT GRID
     OPEN( IU_REGRID, FILE=TRIM( FILENAME ), STATUS='OLD', IOSTAT=IOS )

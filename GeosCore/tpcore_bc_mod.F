@@ -144,6 +144,8 @@
 !  16 Feb 2011 - R. Yantosca - Add modifications for APM microphysics (G. Luo)
 !  01 Mar 2012 - R. Yantosca - Now reference new grid_mod.F90
 !  15 May 2012 - R. Yantosca - Added ProTeX headers
+!  06 Aug 2012 - R. Yantosca - Now make IU_BC, IU_BC_NA, IU_BC_EU, IU_BC_CH,
+!                              and IU_BC_SE local variables for findFreeLUN
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -186,6 +188,13 @@
       INTEGER              :: I2_BC_SE, J2_BC_SE, IM_BC_SE, JM_BC_SE
       INTEGER              :: TS_BC
 
+      ! Logical unit numbers
+      INTEGER              :: IU_BC      ! LUN for input  BC's
+      INTEGER              :: IU_BC_NA   ! LUN for output BC's, N. Amer. grid
+      INTEGER              :: IU_BC_EU   ! LUN for output BC's, Europe grid
+      INTEGER              :: IU_BC_CH   ! LUN for output BC's, China grid
+      INTEGER              :: IU_BC_SE   ! LUN for output BC's, SEAC4RS grid
+ 
       ! Arrays
       INTEGER, ALLOCATABLE :: MAP1x1(:,:,:  )
       REAL*4,  ALLOCATABLE :: BC    (:,:,:,:)
@@ -255,9 +264,7 @@
       USE DIRECTORY_MOD, ONLY : TPBC_DIR,     TPBC_DIR_NA
       USE DIRECTORY_MOD, ONLY : TPBC_DIR_CH,  TPBC_DIR_EU
       USE DIRECTORY_MOD, ONLY : TPBC_DIR_SE
-      USE FILE_MOD,      ONLY : IU_BC,        IU_BC_NA
-      USE FILE_MOD,      ONLY : IU_BC_EU,     IU_BC_CH
-      USE FILE_MOD,      ONLY : IU_BC_SE
+      USE inquireMod,    ONLY : findFreeLUN
       USE TIME_MOD,      ONLY : EXPAND_DATE,  GET_NYMD
       USE TIME_MOD,      ONLY : ITS_A_NEW_DAY
 
@@ -269,6 +276,15 @@
       LOGICAL, INTENT(IN), OPTIONAL :: FOR_WRITE  ! Open file for write?
       INTEGER, INTENT(IN)           :: WINDOW     ! Specifies nested region 
 ! 
+! !REMARKS:
+!   Pass these values via the WINDOW argument to do the following actions;
+!     WINDOW = 1 : Save BC's to file (Custom window,        aka "CU")
+!     WINDOW = 2 : Save BC's to file (North America window, aka "NA")
+!     WINDOW = 3 : Save BC's to file (Europe window,        aka "EU")
+!     WINDOW = 4 : Save BC's to file (China/SE Asia window, aka "CH")
+!     WINDOW = 5 : Save BC's to file (SEAC4RS window,       aka "SE")
+!     WINDOW = 6 : Read BC's from file
+!
 ! !REVISION HISTORY: 
 !  07 Mar 2003 - R. Yantosca - Initial version
 !  (1 ) Now use ITS_A_NEW_DAY from "time_mod.f".  Now references TPBC_DIR
@@ -277,13 +293,18 @@
 !  (3 ) DATE_STRING is now obsolete; use EXPAND_DATE instead (bmy, 3/15/06)
 !  (4 ) Can now read files from different directories (amv, bmy, 12/18/09)
 !  15 May 2012 - R. Yantosca - Added ProTeX headers
+!  06 Aug 2012 - R. Yantosca - Move calls to findFreeLUN out of DEVEL block
+!  06 Aug 2012 - R. Yantosca - Cleaned up IF statement, added comments
+!  06 Aug 2012 - R. Yantosca - Close existing files before opening new files
+!  07 Aug 2012 - R. Yantosca - Now print LUN used to open file
 !EOP
 !------------------------------------------------------------------------------
 !BOC
 !
 ! !LOCAL VARIABLES:
-!
-      CHARACTER(LEN=255) :: FILENAME
+! 
+      LOGICAL            :: IS_OPEN    ! Is the file already open?
+      CHARACTER(LEN=255) :: FILENAME   ! Name of file to read
 
       !=================================================================
       ! OPEN_BC_FILE begins here!
@@ -295,51 +316,146 @@
          ! File name for BC's
          IF ( WINDOW .eq. 6 ) THEN
 #if   defined( NESTED_NA )
-            FILENAME = TRIM( TPBC_DIR_NA ) // 'BC.YYYYMMDD'
+            FILENAME = TRIM( TPBC_DIR_NA ) // 'BC.YYYYMMDD' ! Input file, NA
 #elif defined( NESTED_EU )
-            FILENAME = TRIM( TPBC_DIR_EU ) // 'BC.YYYYMMDD'
+            FILENAME = TRIM( TPBC_DIR_EU ) // 'BC.YYYYMMDD' ! Input file, EU
 #elif defined( NESTED_CH )
-            FILENAME = TRIM( TPBC_DIR_CH ) // 'BC.YYYYMMDD'
+            FILENAME = TRIM( TPBC_DIR_CH ) // 'BC.YYYYMMDD' ! Input file, CH
 #elif defined( SEAC4RS )
-            FILENAME = TRIM( TPBC_DIR_SE ) // 'BC.YYYYMMDD'
+            FILENAME = TRIM( TPBC_DIR_SE ) // 'BC.YYYYMMDD' ! Input file, SE
 #endif
          ELSEIF ( WINDOW .eq. 1 ) THEN
-            FILENAME = TRIM( TPBC_DIR ) // 'BC.YYYYMMDD'
+            FILENAME = TRIM( TPBC_DIR )    // 'BC.YYYYMMDD' ! Output file, CU
          ELSEIF ( WINDOW .eq. 2 ) THEN
-            FILENAME = TRIM( TPBC_DIR_NA ) // 'BC.YYYYMMDD'
+            FILENAME = TRIM( TPBC_DIR_NA ) // 'BC.YYYYMMDD' ! Output file, NA
          ELSEIF ( WINDOW .eq. 3 ) THEN
-            FILENAME = TRIM( TPBC_DIR_EU ) // 'BC.YYYYMMDD'
+            FILENAME = TRIM( TPBC_DIR_EU ) // 'BC.YYYYMMDD' ! Output file, EU
          ELSEIF ( WINDOW .eq. 4 ) THEN
-            FILENAME = TRIM( TPBC_DIR_CH ) // 'BC.YYYYMMDD'
+            FILENAME = TRIM( TPBC_DIR_CH ) // 'BC.YYYYMMDD' ! Output file, CH
          ELSEIF ( WINDOW .eq. 5 ) THEN
-            FILENAME = TRIM( TPBC_DIR_SE ) // 'BC.YYYYMMDD'
+            FILENAME = TRIM( TPBC_DIR_SE ) // 'BC.YYYYMMDD' ! Output file, SE
          ENDIF
          
          ! Replace YYYYMMDD with the actual date
          CALL EXPAND_DATE( FILENAME, GET_NYMD(), 000000 )
 
-         ! Echo file name to stdout
-         WRITE( 6, 100 ) TRIM( FILENAME )
- 100     FORMAT( '     - OPEN_BC_FILE: Opening ', a )
+         ! FORMAT string for use below
+ 100     FORMAT( '     - OPEN_BC_FILE: Opening ', a, ' on unit ', i4 )
 
          IF ( WINDOW .eq. 6 ) THEN
-            IF ( PRESENT( FOR_READ ) )
-     &         CALL OPEN_BPCH2_FOR_READ( IU_BC,    FILENAME )
-         ELSEIF ( WINDOW .eq. 1 ) THEN
-            IF ( PRESENT( FOR_WRITE ) )
-     &        CALL OPEN_BPCH2_FOR_WRITE( IU_BC,    FILENAME )
-         ELSEIF ( WINDOW .eq. 2 ) THEN
-            IF ( PRESENT( FOR_WRITE ) )
-     &        CALL OPEN_BPCH2_FOR_WRITE( IU_BC_NA, FILENAME )
-         ELSEIF ( WINDOW .eq. 3 ) THEN
-            IF ( PRESENT( FOR_WRITE ) )
-     &        CALL OPEN_BPCH2_FOR_WRITE( IU_BC_EU, FILENAME )
-         ELSEIF ( WINDOW .eq. 4 ) THEN
-            IF ( PRESENT( FOR_WRITE ) )
-     &        CALL OPEN_BPCH2_FOR_WRITE( IU_BC_CH, FILENAME )
-         ELSEIF ( WINDOW .eq. 5 ) THEN
-            IF ( PRESENT( FOR_WRITE ) )
-     &        CALL OPEN_BPCH2_FOR_WRITE( IU_BC_SE, FILENAME )
+
+            !----------------------------------------------------------
+            ! WINDOW == 6 : Read BC's from file
+            !----------------------------------------------------------
+            IF ( PRESENT( FOR_READ ) ) THEN
+
+               ! Close previously opened file
+               INQUIRE( IU_BC, OPENED=IS_OPEN )
+               IF ( IS_OPEN ) CLOSE( IU_BC )
+
+               ! Find a free LUN
+               IU_BC = findFreeLun()
+
+               ! Open file for input
+               WRITE( 6, 100 ) TRIM( FILENAME ), IU_BC
+               CALL OPEN_BPCH2_FOR_READ( IU_BC, FILENAME )
+            ENDIF
+
+         ELSE IF ( WINDOW .eq. 1 ) THEN
+
+            !----------------------------------------------------------
+            ! WINDOW == 1 : Save BC's to file (custom window)
+            !----------------------------------------------------------
+
+            IF ( PRESENT( FOR_WRITE ) ) THEN
+
+               ! Close previously opened file
+               INQUIRE( IU_BC, OPENED=IS_OPEN )
+               IF ( IS_OPEN ) CLOSE( IU_BC )
+
+               ! Find a free LUN
+               IU_BC = findFreeLun()
+
+               ! Open file for output
+               WRITE( 6, 100 ) TRIM( FILENAME ), IU_BC
+               CALL OPEN_BPCH2_FOR_WRITE( IU_BC,    FILENAME )
+            ENDIF
+
+         ELSE IF ( WINDOW .eq. 2 ) THEN
+
+            !----------------------------------------------------------
+            ! WINDOW == 2 : Save BC's to file (North America window)
+            !----------------------------------------------------------
+            IF ( PRESENT( FOR_WRITE ) ) THEN
+
+               ! Close previously opened file
+               INQUIRE( IU_BC_NA, OPENED=IS_OPEN )
+               IF ( IS_OPEN ) CLOSE( IU_BC_NA )
+
+               ! Find a free LUN
+               IU_BC_NA = findFreeLun()
+
+               ! Open file for output
+               WRITE( 6, 100 ) TRIM( FILENAME ), IU_BC_NA
+               CALL OPEN_BPCH2_FOR_WRITE( IU_BC_NA, FILENAME )
+            ENDIF
+
+         ELSE IF ( WINDOW .eq. 3 ) THEN
+
+            !----------------------------------------------------------
+            ! WINDOW == 3 : Save BC's to file (Europe window)
+            !----------------------------------------------------------
+            IF ( PRESENT( FOR_WRITE ) ) THEN
+
+               ! Close previously opened file
+               INQUIRE( IU_BC_EU, OPENED=IS_OPEN )
+               IF ( IS_OPEN ) CLOSE( IU_BC_EU )
+
+               ! Find a free LUN
+               IU_BC_EU = findFreeLun()
+
+               ! Open file for output
+               WRITE( 6, 100 ) TRIM( FILENAME ), IU_BC_EU
+               CALL OPEN_BPCH2_FOR_WRITE( IU_BC_EU, FILENAME )
+            ENDIF
+
+         ELSE IF ( WINDOW .eq. 4 ) THEN
+
+            !----------------------------------------------------------
+            ! WINDOW == 4 : Save BC's to file (China/SE Asia window)
+            !----------------------------------------------------------
+            IF ( PRESENT( FOR_WRITE ) ) THEN
+
+               ! Close previously opened file
+               INQUIRE( IU_BC_CH, OPENED=IS_OPEN )
+               IF ( IS_OPEN ) CLOSE( IU_BC_CH )
+
+               ! Find a free LUN
+               IU_BC_CH = findFreeLun()
+
+               ! Open file for output
+               WRITE( 6, 100 ) TRIM( FILENAME ), IU_BC_CH
+               CALL OPEN_BPCH2_FOR_WRITE( IU_BC_CH, FILENAME )
+            ENDIF
+
+         ELSE IF ( WINDOW .eq. 5 ) THEN
+
+            !----------------------------------------------------------
+            ! WINDOW == 5 : Save BC's to file (SEAC4RS window)
+            !----------------------------------------------------------
+            IF ( PRESENT( FOR_WRITE ) ) THEN
+
+               ! Close previously opened file
+               INQUIRE( IU_BC_SE, OPENED=IS_OPEN )
+               IF ( IS_OPEN ) CLOSE( IU_BC_SE )
+
+               ! Find a free LUN
+               IU_BC_SE = findFreeLun()
+
+               ! Open file for output
+               WRITE( 6, 100 ) TRIM( FILENAME ), IU_BC_SE
+               CALL OPEN_BPCH2_FOR_WRITE( IU_BC_SE, FILENAME )
+            ENDIF
          ENDIF
 
       ENDIF
@@ -366,7 +482,7 @@
 !
       USE CMN_SIZE_MOD 
       USE BPCH2_MOD
-      USE FILE_MOD
+      !USE FILE_MOD
       USE TIME_MOD,    ONLY : GET_NYMD,  GET_NHMS
       USE TIME_MOD,    ONLY : GET_TAU,   TIMESTAMP_STRING
       USE TRACER_MOD,  ONLY : N_TRACERS, STT
@@ -387,6 +503,9 @@
 !  (4 ) Can now save files to different directories (amv, bmy, 12/18/09)
 !  16 Feb 2011 - R. Yantosca - Add modifications for APM microphysics (G. Luo)
 !  15 May 2012 - R. Yantosca - Added ProTeX headers
+!  06 Aug 2012 - R. Yantosca - Added comments & cosmetic changes
+!  06 Aug 2012 - R. Yantosca - Now use file unit variables from this module
+!                              instead of from GeosUtil/file_mod.F
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -431,8 +550,13 @@
       MODELNAME = GET_MODELNAME()
       TAU       = GET_TAU()
 
+      ! Loop over the possible combinations of nested grids
       DO IC = 1, 5
          IF ((IC .eq. 1) .and. LWINDO_CU )THEN
+
+            !----------------------------------------------------------
+            ! IC == 1 : Save BC's to file (custom window)
+            !----------------------------------------------------------
 
             ! Open file for writing, if necessary
             CALL OPEN_BC_FILE( FOR_WRITE=.TRUE., WINDOW=IC)
@@ -458,9 +582,12 @@
                ! Echo info
                STAMP = TIMESTAMP_STRING()
                WRITE( 6, 110 ) STAMP
- 110  FORMAT( '     - SAVE_GLOBAL_TPCORE_BC: Wrote BC''s at ', a )
 
          ELSEIF ((IC .eq. 2) .and. LWINDO_NA )THEN
+
+            !----------------------------------------------------------
+            ! IC == 2 : Save BC's to file (North America window)
+            !----------------------------------------------------------
 
             ! Open file for writing, if necessary
             CALL OPEN_BC_FILE( FOR_WRITE=.TRUE., WINDOW=IC)
@@ -487,9 +614,12 @@
             ! Echo info
             STAMP = TIMESTAMP_STRING()
             WRITE( 6, 111 ) STAMP
- 111  FORMAT( '     - SAVE_GLOBAL_TPCORE_BC: Wrote NA BC''s at ', a )
 
          ELSEIF ((IC .eq. 3) .and. LWINDO_EU )THEN
+
+            !----------------------------------------------------------
+            ! IC == 3 : Save BC's to file (Europe window)
+            !----------------------------------------------------------
 
             ! Open file for writing, if necessary
             CALL OPEN_BC_FILE( FOR_WRITE=.TRUE., WINDOW=IC)
@@ -516,9 +646,12 @@
             ! Echo info
             STAMP = TIMESTAMP_STRING()
             WRITE( 6, 112 ) STAMP
- 112  FORMAT( '     - SAVE_GLOBAL_TPCORE_BC: Wrote EU BC''s at ', a )
 
          ELSEIF ((IC .eq. 4) .and. LWINDO_CH )THEN
+
+            !----------------------------------------------------------
+            ! IC == 4 : Save BC's to file (China/SE Asia window)
+            !----------------------------------------------------------
 
             ! Open file for writing, if necessary
             CALL OPEN_BC_FILE( FOR_WRITE=.TRUE., WINDOW=IC)
@@ -545,9 +678,12 @@
             ! Echo info
             STAMP = TIMESTAMP_STRING()
             WRITE( 6, 113 ) STAMP
- 113  FORMAT( '     - SAVE_GLOBAL_TPCORE_BC: Wrote CH BC''s at ', a )
 
          ELSEIF ((IC .eq. 5) .and. LWINDO_SE )THEN
+
+            !----------------------------------------------------------
+            ! IC == 5 : Save BC's to file (SEAC4RS window)
+            !----------------------------------------------------------
 
             ! Open file for writing, if necessary
             CALL OPEN_BC_FILE( FOR_WRITE=.TRUE., WINDOW=IC)
@@ -574,10 +710,17 @@
             ! Echo info
             STAMP = TIMESTAMP_STRING()
             WRITE( 6, 114 ) STAMP
- 114  FORMAT( '   - SAVE_GLOBAL_TPCORE_BC: Wrote SEAC4RS BC''s at ', a )
             
          ENDIF
       ENDDO
+
+      ! FORMAT statements
+ 110  FORMAT( '     - SAVE_GLOBAL_TPCORE_BC: Wrote BC''s at ', a )
+ 111  FORMAT( '     - SAVE_GLOBAL_TPCORE_BC: Wrote NA BC''s at ', a )
+ 112  FORMAT( '     - SAVE_GLOBAL_TPCORE_BC: Wrote EU BC''s at ', a )
+ 113  FORMAT( '     - SAVE_GLOBAL_TPCORE_BC: Wrote CH BC''s at ', a )
+ 114  FORMAT( '     - SAVE_GLOBAL_TPCORE_BC: Wrote SEAC4RS BC''s at ', 
+     &        a )
 
       END SUBROUTINE SAVE_GLOBAL_TPCORE_BC
 !EOC
@@ -899,7 +1042,7 @@
 ! !USES:
 !
       USE CMN_SIZE_MOD 
-      USE FILE_MOD,   ONLY : IOERROR, IU_BC
+      USE FILE_MOD,   ONLY : IOERROR
       USE TIME_MOD,   ONLY : GET_TAU, TIMESTAMP_STRING
       USE TRACER_MOD, ONLY : N_TRACERS
 ! 

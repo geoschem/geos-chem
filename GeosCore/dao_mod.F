@@ -3735,7 +3735,7 @@
       ! GEOS-4 met arrays
       CALL INIT_DAO_GEOS4()
 
-#elif defined( GEOS_5 )
+#elif defined( GEOS_5 ) || defined ( EXTERNAL_FORCING )
 
       ! GEOS-5.2.0 met arrays
       CALL INIT_DAO_GEOS5()
