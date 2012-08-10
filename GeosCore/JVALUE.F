@@ -17,11 +17,7 @@
 !
 #     include "define.h"
 
-#if   defined( DEVEL )
-      USE CMN_FJ_MOD, ONLY : JPMAX, JPPJ, JPNL
-#else
-      USE CMN_FJ_MOD, ONLY : IPAR, JPAR, LPAR, JPMAX, JPPJ, JPNL
-#endif
+      USE CMN_FJ_MOD,   ONLY : JPMAX, JPPJ, JPNL
       USE CMN_SIZE_MOD, ONLY : LLPAR
       USE JV_CMN_MOD
 
@@ -48,6 +44,8 @@
 !  30 Jul 2012 - R. Yantosca - Now accept am_I_Root as an argument when
 !                              running with the traditional driver main.F
 !  31 Jul 2012 - R. Yantosca - Added ProTeX headers
+!  10 Aug 2012 - R. Yantosca - Replace LPAR with LLPAR
+
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -56,11 +54,7 @@
 !
       integer j, k
       real*8  wave, xseco3, xseco2
-#if defined( DEVEL )
       real*8  AVGF(LLPAR),XQO3(NB),XQO2(NB)
-#else
-      real*8  AVGF(LPAR),XQO3(NB),XQO2(NB)
-#endif
 !
       do J=1,jpnl
         do K=NW1,NW2

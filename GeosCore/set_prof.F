@@ -165,7 +165,7 @@
       ! calculations (see JRATET); TJ is used in actinic flux 
       ! calculation only.
       !=================================================================    
-#if   defined( DEVEL ) || defined( EXTERNAL_GCM )
+#if defined( DEVEL ) || defined( EXTERNAL_GRID ) || defined( EXTERNAL_FORCING )
       DO I=1,LLPAR
       !   DO3(I) = MY_OZONE(i)       ! Volume Mixing Ratio
          TJ(I)  = T(I)              ! Kelvin

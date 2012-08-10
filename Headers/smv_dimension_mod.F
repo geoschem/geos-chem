@@ -20,15 +20,20 @@
 !
       IMPLICIT NONE
       PUBLIC
+#     include "define.h"
 !
 ! !DEFINED PARAMETERS: 
 !
       ! Locally defined replacement for GEOS-Chem parameter "LLPAR"
-      INTEGER, PARAMETER :: MAX_COLUMN  = 72    ! Full GEOS-5 vertical grid
+#if   defined( GRIDREDUCED )
+      INTEGER, PARAMETER :: MAX_COLUMN   = 47   ! Reduced GEOS-5 vertical grid
+#else
+      INTEGER, PARAMETER :: MAX_COLUMN   = 72   ! Full GEOS-5 vertical grid
+#endif
 
       ! Locally defined replacement for GEOS-Chem parameters "IIPAR" & "JJPAR"
-      INTEGER, PARAMETER :: MAX_LAT  = 47    !
-      INTEGER, PARAMETER :: MAX_LON  = 47    !
+      INTEGER, PARAMETER :: MAX_LAT      = 47   !
+      INTEGER, PARAMETER :: MAX_LON      = 47   !
 
       ! Locally defined replacement for GEOS-Chem parameter "NNPAR"
       INTEGER, PARAMETER :: MAX_TRACERS = 100
@@ -47,6 +52,8 @@
 !  24 Mar 2009 - R. Yantosca - Initial version
 !  16 Apr 2010 - R. Yantosca - Added MAX_SPECIES = 125
 !  03 Aug 2011 - M. Long     - Converted from Header file to Module
+!  10 Aug 2012 - R. Yantosca - Now define MAX_COLUMN=47 for GRIDREDUCED or
+!                              =72 otherwise.  Kludge for testing DEVEL code.
 !EOP
-	END MODULE SMV_DIMENSION_MOD
+      END MODULE SMV_DIMENSION_MOD
 !------------------------------------------------------------------------------

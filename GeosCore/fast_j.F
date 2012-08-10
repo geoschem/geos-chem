@@ -24,7 +24,7 @@
 !
 ! !INTERFACE:
 !
-#if defined( DEVEL )
+#if defined( DEVEL ) || defined( EXTERNAL_GRID ) || defined( EXTERNAL_FORCING )
       SUBROUTINE FAST_J( SUNCOS, OD, ALBD, PEDGE, am_I_Root )  
 #else
       SUBROUTINE FAST_J( SUNCOS, OD, ALBD, am_I_Root )  
@@ -32,6 +32,8 @@
 !
 ! !USES:
 !
+#     include "define.h"
+
       USE DAO_MOD,      ONLY : T, CLDF
       USE ERROR_MOD,    ONLY : ERROR_STOP, ALLOC_ERR
       USE GRID_MOD,     ONLY : GET_YMID
@@ -40,18 +42,12 @@
       USE TIME_MOD,     ONLY : GET_TAU,   GET_YEAR
       USE TOMS_MOD,     ONLY : GET_OVERHEAD_O3
 
-#     include "define.h"
-
-      USE CMN_SIZE_MOD, ONLY : IIPAR, JJPAR, LLPAR
-      USE CMN_SIZE_MOD, ONLY : NDUST, MAXIJ, NAER, NRH
-#if !defined( DEVEL )
-      USE CMN_FJ_MOD, ONLY : IPAR, JPAR, LPAR
-#endif
-      USE CMN_FJ_MOD, ONLY : JPMAX, JPPJ
-      USE JV_CMN_MOD, ONLY : ODMDUST, PJ, NB, ODAER
+      USE CMN_SIZE_MOD, ONLY : IIPAR,   JJPAR, LLPAR
+      USE CMN_SIZE_MOD, ONLY : NDUST,   MAXIJ, NAER,  NRH
+      USE CMN_FJ_MOD,   ONLY : JPMAX,   JPPJ
+      USE JV_CMN_MOD,   ONLY : ODMDUST, PJ,    NB,    ODAER
 
       IMPLICIT NONE
-
 !
 ! !INPUT PARAMETERS: 
 !
@@ -67,7 +63,7 @@
       ! UV albedo [unitless]
       REAL*8,  INTENT(IN) :: ALBD(IIPAR,JJPAR)    
 
-#if defined( DEVEL )
+#if defined( DEVEL ) || defined( EXTERNAL_GRID ) || defined( EXTERNAL_FORCING )
       ! Pressure at gridbox interfaces
       REAL*8,  INTENT(IN) :: PEDGE(IIPAR, JJPAR, LLPAR+1)
 #endif
@@ -133,6 +129,7 @@
 !                              overhead O3 column for FAST-J
 !  30 Jul 2012 - R. Yantosca - Now accept am_I_Root as an argument when
 !                              running with the traditional driver main.F
+!  10 Aug 2012 - R. Yantosca - Replace IPAR, JPAR, LPAR w/ IIPAR, JJPAR, LLPAR
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -177,7 +174,7 @@
       ! FAST_J begins here!
       !=================================================================
 
-#if defined( DEVEL )
+#if defined( DEVEL ) || defined( EXTERNAL_GRID ) || defined( EXTERNAL_FORCING )
       IF ( FIRST ) THEN
 
 !         ALLOCATE ( INDGEN(LLPAR+1), STAT=AS)
@@ -228,7 +225,7 @@
             CSZA         = SUNCOS( (NLAT-1)*IIPAR + NLON ) 
 
             ! Define the PJ array here (bmy, 11/16/07)
-#if defined( DEVEL ) || defined( EXTERNAL_GCM )
+#if defined( DEVEL ) || defined( EXTERNAL_GRID ) || defined( EXTERNAL_FORCING )
             DO L = 1, LLPAR+1
                PJ(L)     = PEDGE( NLON, NLAT, L )
 #else

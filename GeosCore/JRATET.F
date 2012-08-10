@@ -18,23 +18,15 @@
 !
       USE FJX_ACET_MOD
 
-#if defined( DEVEL )
-      USE CMN_FJ_MOD, ONLY : JPMAX, JPPJ, JPNL
-#else
-      USE CMN_FJ_MOD, ONLY : IPAR, JPAR, LPAR, JPMAX, JPPJ, JPNL
-#endif
-      USE CMN_SIZE_MOD, ONLY: LLPAR
+      USE CMN_FJ_MOD,   ONLY : JPMAX, JPPJ, JPNL
+      USE CMN_SIZE_MOD, ONLY : LLPAR
       USE JV_CMN_MOD
 
       IMPLICIT NONE
 !
 ! !INPUT PARAMETERS: 
 !
-#if defined( DEVEL )
       REAL*8,  INTENT(IN) :: T(LLPAR)   ! Temperature [K]
-#else
-      REAL*8,  INTENT(IN) :: T(LPAR)    ! Temperature [K]
-#endif
       INTEGER, INTENT(IN) :: IDAY       ! Day of year (0-365 or 0-366)
 !
 ! !REMARKS:
@@ -57,6 +49,7 @@
 !  25 Aug 2011 - R. Yantosca - Rewrite IF statement to prevent PF from
 !                              never being initialized.
 !  31 Jul 2012 - R. Yantosca - Added ProTeX headers
+!  10 Aug 2012 - R. Yantosca - Replace LPAR with LLPAR
 !EOP
 !------------------------------------------------------------------------------
 !BOC
