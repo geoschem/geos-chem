@@ -191,7 +191,7 @@
       LOGICAL, SAVE :: FIRST = .TRUE.
       INTEGER       :: N_TROP, MONTH, YEAR, WAVELENGTH
 
-#if defined( DEVEL )
+#if defined( DEVEL ) || defined( EXTERNAL_GRID ) || defined( EXTERNAL_FORCING )
       TYPE(CHEMSTATE), INTENT(INOUT) :: CHEM_STATE
       TYPE(GC_MET_LOCAL), INTENT(IN) :: GC_MET
 !      REAL*8                         :: STT(IIPAR,JJPAR,LLPAR,N_TRACERS)
@@ -201,7 +201,7 @@
       ! DO_CHEMISTRY begins here!
       !=================================================================
 
-#if defined( DEVEL )
+#if defined( DEVEL ) || defined( EXTERNAL_GRID ) || defined( EXTERNAL_FORCING )
       ! Transfer tracer array to local
       STT = CHEM_STATE%TRACERS(:,:,:,:N_TRACERS)
 #endif
@@ -221,8 +221,10 @@
          !---------------------------------
          IF ( ITS_A_FULLCHEM_SIM() ) THEN 
 
-#if defined( DEVEL )
+#if defined( DEVEL ) || defined( EXTERNAL_GRID ) || defined( EXTERNAL_FORCING )
             ! Call chemistry solver from ESMF interface
+            print*, '### NI, NJ, NL: ', NI, NJ, NL
+            call flush(6)
             CALL CHEMDR( am_I_Root, NI, NJ, NL, GC_MET, CHEM_STATE )
             PRINT *,"DO_CHEMISTRY: Done with CHEMDR"
 #else

@@ -1429,19 +1429,18 @@
       USE TRACER_MOD, ONLY : ID_EMITTED,     N_TRACERS
       USE TRACER_MOD, ONLY : TRACER_COEFF,   TRACER_CONST
       USE TRACER_MOD, ONLY : TRACER_N_CONST, TRACER_NAME
-      ! for Debug (hotp 8/5/09)
       USE LOGICAL_MOD, ONLY : LPRT
 
-      USE CMN_SIZE_MOD      ! Size parameters
-      USE COMODE_LOOP_MOD   ! NAMEGAS
+      USE CMN_SIZE_MOD                           ! Size parameters
+      USE COMODE_LOOP_MOD                        ! NAMEGAS
 
-#if defined( DEVEL )
+#if defined( DEVEL ) || defined( EXTERNAL_GRID ) || defined( EXTERNAL_FORCING )
+      USE GC_TYPE2_MOD,  ONLY : CHEMSTATE        ! Derived type for chem state 
+
 #if defined( ESMF_ )
-      USE GC_TYPE2_MOD,  ONLY : CHEMSTATE, REGISTER_CSPEC
-#else
-      USE GC_TYPE2_MOD,  ONLY : CHEMSTATE
+      USE GC_TYPE2_MOD,  ONLY : REGISTER_CSPEC   ! Used w/ ESMF
 #endif
-      TYPE(CHEMSTATE), INTENT(INOUT) :: GC_STATE
+
 #endif
 
       ! Arguments
@@ -1449,6 +1448,12 @@
 
       ! Local variabales
       INTEGER             :: I, J, T, C, STAT
+
+#if defined( DEVEL ) || defined( EXTERNAL_GRID ) || defined( EXTERNAL_FORCING )
+      ! Derived type object with chemical state
+      TYPE(CHEMSTATE), INTENT(INOUT) :: GC_STATE
+#endif
+
  
       !=================================================================
       ! SETTRACE begins here!

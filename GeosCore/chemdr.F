@@ -556,9 +556,8 @@
       !=================================================================
       ! Call photolysis routine to compute J-Values
       !=================================================================
-#if defined( DEVEL )
+#if defined( DEVEL ) || defined( EXTERNAL_GRID ) || defined( EXTERNAL_FORCING )
       CALL FAST_J( SUNCOS_MID, OPTD, UVALBEDO, GC_MET%PEDGE, am_I_Root )
-      PRINT *,"CHMEDR: Done with FAST_J"
 #else
       CALL FAST_J( SUNCOS_MID, OPTD, UVALBEDO, am_I_Root )              
 #endif

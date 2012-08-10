@@ -224,15 +224,17 @@
             ! Cosine of solar zenith angle [unitless] at (NLON,NLAT)
             CSZA         = SUNCOS( (NLAT-1)*IIPAR + NLON ) 
 
-            ! Define the PJ array here (bmy, 11/16/07)
-#if defined( DEVEL ) || defined( EXTERNAL_GRID ) || defined( EXTERNAL_FORCING )
+#if defined( EXTERNAL_GRID ) || defined( EXTERNAL_FORCING )
+            ! Define the PJ array here, using GCM pressures
             DO L = 1, LLPAR+1
                PJ(L)     = PEDGE( NLON, NLAT, L )
+            ENDDO
 #else
+            ! Define the PJ array here, using Ap and Bp from GEOS-Chem
             DO L = 1, NB
                PJ(L)     = GET_PEDGE( NLON, NLAT, L )
-#endif
             ENDDO
+#endif
 
             ! Top edge of PJ is top of atmosphere (bmy, 2/13/07)
             PJ(NB+1)     = 0d0

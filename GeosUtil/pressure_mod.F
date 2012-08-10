@@ -31,7 +31,7 @@
       PUBLIC :: GET_PEDGE_FULLGRID             
       PUBLIC :: INIT_PRESSURE         
       PUBLIC :: SET_FLOATING_PRESSURE 
-#if defined( DEVEL ) || defined( EXTERNAL_GRID ) || defined( EXTERNAL_FORCING )
+#if defined( EXTERNAL_GRID ) || defined( EXTERNAL_FORCING )
       PUBLIC :: EXTERNAL_PEDGE
 #endif
 !
@@ -96,6 +96,7 @@
 !  02 Feb 2012 - R. Yantosca - Added modifications for GEOS-5.7.x met fields
 !  28 Feb 2012 - R. Yantosca - Removed support for GEOS-3
 !  31 Jul 2012 - R. Yantosca - Modifications for grid-independence
+!  10 Aug 2012 - R. Yantosca - Remove DEVEL from #ifdef for EXTERNAL_PEDGE
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -284,6 +285,12 @@
 !  20 Nov 2009 - R. Yantosca - Added ProTeX header
 !  13 Aug 2010 - R. Yantosca - Compute PEDGE for MERRA the same as for GEOS-5
 !  02 Feb 2012 - R. Yantosca - Compute PEDGE for GEOS-5.7.2 the same as MERRA
+!  10 Aug 2012 - R. Yantosca - Need to put #ifdef for EXTERNAL_PEDGE in the
+!                              section for GEOS-4, GEOS-5, MERRA, GEOS-5.7.x
+!  10 Aug 2012 - R. Yantosca - Now only use Cpp switches EXTERNAL_GRID or 
+!                              EXTERNAL_FORCING to use the GCM pressures.
+!                              This prevents problems when compiling G-C with
+!                              the DEVEL tag when using traditional main.F.
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -294,8 +301,15 @@
       ! GEOS-4 & GEOS-5 met fields
       !-----------------------------
 
+#if defined( EXTERNAL_GRID ) || defined( EXTERNAL_FORCING )
       ! Pressure [hPa] at bottom edge of level L (see documentation header)
+      ! Taken from the GCM fields
+      PEDGE = EXTERNAL_PEDGE(I,J,L)
+#else
+      ! Pressure [hPa] at bottom edge of level L (see documentation header)
+      ! Computed for use w/in GEOS-Chem
       PEDGE = AP(L) + ( BP(L) * PFLT(I,J) )
+#endif
 
 #else 
 
@@ -303,10 +317,13 @@
       ! GEOS-3 & GCAP met fields
       !-----------------------------
 
+#if defined( EXTERNAL_GRID ) || defined( EXTERNAL_FORCING )
       ! Pressure [hPa] at bottom edge of level L (see documentation header)
-#if defined( DEVEL ) || defined( EXTERNAL_GRID ) || defined( EXTERNAL_FORCING )
+      ! Taken from the GCM fields
       PEDGE = EXTERNAL_PEDGE(I,J,L)
 #else
+      ! Pressure [hPa] at bottom edge of level L (see documentation header)
+      ! Computed for use within GEOS-Chem
       PEDGE = AP(L) + ( BP(L) * ( PFLT(I,J) - PTOP ) )
 #endif
 
@@ -880,6 +897,9 @@
       IF ( ALLOCATED( AP_FULLGRID ) ) DEALLOCATE( AP_FULLGRID )
       IF ( ALLOCATED( BP_FULLGRID ) ) DEALLOCATE( BP_FULLGRID )
       IF ( ALLOCATED( PFLT        ) ) DEALLOCATE( PFLT        )
+#if defined( DEVEL ) || defined( EXTERNAL_GRID ) || defined( EXTERNAL_FORCING )
+      IF ( ALLOCATED( EXTERNAL_PEDGE ) ) DEALLOCATE( EXTERNAL_PEDGE )
+#endif
 
       END SUBROUTINE CLEANUP_PRESSURE
 !EOC
