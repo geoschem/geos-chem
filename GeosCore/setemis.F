@@ -311,7 +311,7 @@
                IF ( NOXEXTENT > TOPMIX ) THEN
                   DO L = TOPMIX+1, NOXEXTENT
                      JLOOP          = JLOP(I,J,L)
-#if   defined( DEVEL ) || defined( EXTERNAL_GCM )
+#if defined( DEVEL ) || defined( EXTERNAL_GRID ) || defined( EXTERNAL_FORCING )
                      ! Add this error trap to prevent out of bounds error
                      ! but we should benchmark first before adding to
                      ! the std G-C code (bmy, 8/2/12)

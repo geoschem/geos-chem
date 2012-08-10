@@ -524,7 +524,7 @@
             PRE_ACET = ACETONE(I,J) 
 
             ! Apply exponential loss to acetone mass
-#if   defined( DEVEL ) || defined( EXTERNAL_GCM ) 
+#if defined( DEVEL ) || defined( EXTERNAL_GRID ) || defined( EXTERNAL_FORCING )
             ! Eric Nielsen added this error trap .  We can eventually
             ! bring this into the std G-C but we need to benchmark first.
             IF ( ABS( ACETONE(I,J) ) .gt. 1d-99 )
