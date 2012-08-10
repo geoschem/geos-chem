@@ -62,10 +62,16 @@
 !
 ! !INPUT VARIABLES:
 !
-      LOGICAL, INTENT(IN) :: am_I_Root   ! Is this the root CPU?
-
+      LOGICAL,            INTENT(IN)    :: am_I_Root  ! Is this the root CPU?
 #if defined( DEVEL ) || defined( EXTERNAL_GRID ) || defined( EXTERNAL_FORCING )
-      INTEGER, INTENT(IN) :: NI, NJ, NL  ! Local size indices
+      INTEGER,            INTENT(IN)    :: NI         ! # of lons on this CPU
+      INTEGER,            INTENT(IN)    :: NJ         ! # of lats on this CPU
+      INTEGER,            INTENT(IN)    :: NL         ! # of levs on this CPU
+      TYPE(GC_MET_LOCAL), INTENT(IN)    :: GC_MET     ! Meteorology state
+!
+! !INPUT/OUTPUT VARIABLES:
+!
+      TYPE(CHEMSTATE),    INTENT(INOUT) :: GC_STATE   ! Chemical state
 #endif
 !
 ! !REMARKS:
@@ -220,13 +226,10 @@
 !   6 Mar 2012 - R. Yantosca - Now reference TO3 from dao_mod.F
 !  30 Jul 2012 - R. Yantosca - Now accept am_I_Root as an argument when
 !                              running with the traditional driver main.F
+!  10 Aug 2012 - R. Yantosca - Cosmetic changes
 !EOP
 !------------------------------------------------------------------------------
 !BOC
-#if defined( DEVEL ) || defined( EXTERNAL_GRID ) || defined( EXTERNAL_FORCING )
-      TYPE(GC_MET_LOCAL), INTENT(IN)    :: GC_MET
-      TYPE(CHEMSTATE),    INTENT(INOUT) :: GC_STATE
-#endif
 !
 ! !LOCAL VARIABLES:
 !

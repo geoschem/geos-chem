@@ -49,6 +49,7 @@
 !  17 Dec 2009 - R. Yantosca - Added ProTeX headers
 !  28 Jan 2010 - C. Carouge, R. Yantosca - Modified for ISORROPIA II
 !  08 Aug 2012 - R. Yantosca - Now align IF statements better
+!  10 Aug 2012 - R. Yantosca - Cosmetic changes
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -123,18 +124,16 @@
       USE CMN_DIAG_MOD          ! NDxx flags
 
 #if defined( DEVEL ) || defined( EXTERNAL_GRID ) || defined( EXTERNAL_FORCING )
-      USE GC_TYPE_MOD,            ONLY : GC_MET_LOCAL
-      USE GC_TYPE2_MOD,           ONLY : CHEMSTATE
+      USE GC_TYPE_MOD,     ONLY : GC_MET_LOCAL
+      USE GC_TYPE2_MOD,    ONLY : CHEMSTATE
 #endif
-
 !
 ! !INPUT VARIABLES:
 !
-#if defined( DEVEL ) || defined( EXTERNAL_GRID ) || defined( EXTERNAL_FORCING )
-      INTEGER, INTENT(IN) :: NI, NJ, NL
-#endif
-
       LOGICAL, INTENT(IN) :: am_I_Root   ! Is this the root CPU?
+#if defined( DEVEL ) || defined( EXTERNAL_GRID ) || defined( EXTERNAL_FORCING )
+      INTEGER, INTENT(IN) :: NI, NJ, NL  ! # of lons, lats, levels on this CPU
+#endif
 !
 ! !REVISION HISTORY: 
 !  (1 ) Now reference DELP, T from "dao_mod.f" since we need to pass this
@@ -182,6 +181,7 @@
 !  30 Jul 2012 - R. Yantosca - Now accept am_I_Root as an argument, and pass
 !                              this down to lower-level chem routines for GIGC
 !  08 Aug 2012 - R. Yantosca - Now align IF statements better
+!  10 Aug 2012 - R. Yantosca - Cosmetic changes
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -222,11 +222,8 @@
          IF ( ITS_A_FULLCHEM_SIM() ) THEN 
 
 #if defined( DEVEL ) || defined( EXTERNAL_GRID ) || defined( EXTERNAL_FORCING )
-            ! Call chemistry solver from ESMF interface
-            print*, '### NI, NJ, NL: ', NI, NJ, NL
-            call flush(6)
+            ! Call chemistry solver for ESMF interface
             CALL CHEMDR( am_I_Root, NI, NJ, NL, GC_MET, CHEM_STATE )
-            PRINT *,"DO_CHEMISTRY: Done with CHEMDR"
 #else
             ! Call chemistry solver from traditional driver "main.F"
             CALL CHEMDR( am_I_Root )
