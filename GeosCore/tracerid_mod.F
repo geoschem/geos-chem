@@ -1435,9 +1435,12 @@
       USE CMN_SIZE_MOD      ! Size parameters
       USE COMODE_LOOP_MOD   ! NAMEGAS
 
-#if defined(DEVEL)
+#if defined( DEVEL )
+#if defined( ESMF_ )
       USE GC_TYPE2_MOD,  ONLY : CHEMSTATE, REGISTER_CSPEC
-
+#else
+      USE GC_TYPE2_MOD,  ONLY : CHEMSTATE
+#endif
       TYPE(CHEMSTATE), INTENT(INOUT) :: GC_STATE
 #endif
 
@@ -1543,7 +1546,7 @@
          IF ( NAMEGAS(I) == 'LXRO2H'   ) IDLXRO2H   = I
          IF ( NAMEGAS(I) == 'LXRO2N'   ) IDLXRO2N   = I
 
-#if defined( DEVEL )
+#if defined( DEVEL ) && defined( ESMF_ )
          CALL REGISTER_CSPEC(NAMEGAS(I),I,GC_STATE,STAT)
          IF (STAT .lt. 0) THEN
             CALL ERROR_STOP('FAIL','REGISTER_CSPEC')

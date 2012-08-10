@@ -527,9 +527,9 @@
 #if   defined( DEVEL ) || defined( EXTERNAL_GCM ) 
             ! Eric Nielsen added this error trap .  We can eventually
             ! bring this into the std G-C but we need to benchmark first.
-            IF ( ABS( ACETONE(I,J) ) > 1d-99 ) THEN
+            IF ( ABS( ACETONE(I,J) ) .gt. 1d-99 )
      &      ACETONE(I,J) = ACETONE(I,J) * EXP(-OCEAN_ACET/ACETONE(I,J))
-            ENDIF
+
 #else
             ACETONE(I,J) = ACETONE(I,J) * EXP(-OCEAN_ACET/ACETONE(I,J))
 #endif
