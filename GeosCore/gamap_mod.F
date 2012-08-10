@@ -539,8 +539,8 @@
             
             ! Write tracers [kg] to "tracerinfo.dat"
 #if defined( DEVEL )
-            CALL WRITE_TINFO( IU_FILE, NAME_NEW, NAME_NEW,    REAL(1e0,4), 
-     &                        1,        REAL(1e0,4), 'kg/kg', N )
+            CALL WRITE_TINFO( IU_FILE, NAME_NEW, NAME_NEW,
+     &           REAL(1e0,4), 1, REAL(1e0,4), 'kg/kg', N )
 #else
             CALL WRITE_TINFO( IU_FILE, NAME_NEW, NAME_NEW,  1e0,
      &                        1,        1e0,      'kg/kg', N )
