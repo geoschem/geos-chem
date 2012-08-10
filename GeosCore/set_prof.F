@@ -165,20 +165,22 @@
       ! calculations (see JRATET); TJ is used in actinic flux 
       ! calculation only.
       !=================================================================    
-#if defined( DEVEL ) || defined( EXTERNAL_GRID ) || defined( EXTERNAL_FORCING )
+#if defined( EXTERNAL_GRID ) || defined( EXTERNAL_FORCING )
+      !%%% For external GCM, take temperature (and maybe eventually ozone)
       DO I=1,LLPAR
-      !   DO3(I) = MY_OZONE(i)       ! Volume Mixing Ratio
-         TJ(I)  = T(I)              ! Kelvin
+      !   DO3(I) = MY_OZONE(i)        ! Volume Mixing Ratio
+         TJ(I)  = T(I)                ! Kelvin
       ENDDO
-      !DO3(LPAR+1) = MY_OZONE*EXP()  ! Above top of model (or use climatology)
-      !TJ(LPAR+1)  = MY_TEMP(LPAR)   ! Above top of model (or use climatology)
+      !DO3(LPAR+1) = MY_OZONE*EXP()   ! Above top of model (or use climatology)
+      !TJ(LPAR+1)  = MY_TEMP(LPAR)    ! Above top of model (or use climatology)
 #else
-      !DO I=1,LPAR
-      !   DO3(I) = MY_OZONE(i)       ! Volume Mixing Ratio
-      !   TJ(I)  = T(I)              ! Kelvin
+      !%%% For traditional G-C we comment all these out
+      !DO I=1,LLPAR
+      !   DO3(I) = MY_OZONE(i)        ! Volume Mixing Ratio
+      !   TJ(I)  = T(I)               ! Kelvin
       !ENDDO
-      !DO3(LPAR+1) = MY_OZONE*EXP()  ! Above top of model (or use climatology)
-      !TJ(LPAR+1)  = MY_TEMP(LPAR)   ! Above top of model (or use climatology)
+      !DO3(LLPAR+1) = MY_OZONE*EXP()  ! Above top of model (or use climatology)
+      !TJ(LLPAR+1)  = MY_TEMP(LLPAR)  ! Above top of model (or use climatology)
 #endif
 
       !=================================================================
