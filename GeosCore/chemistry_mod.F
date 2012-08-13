@@ -203,7 +203,7 @@
 
 #if defined( DEVEL ) || defined( EXTERNAL_GRID ) || defined( EXTERNAL_FORCING )
       ! Transfer tracer array to local
-      STT = CHEM_STATE%TRACERS(:,:,:,:N_TRACERS)
+      STT(:,:,:,1:N_TRACERS) = CHEM_STATE%TRACERS(:,:,:,1:N_TRACERS)
 #endif
 
       ! Compute optical depths (except for CH4 simulation)
@@ -432,7 +432,7 @@
       
 #if defined( DEVEL ) || defined( EXTERNAL_GRID ) || defined( EXTERNAL_FORCING )
       ! Transfer tracer array back to non-local
-      CHEM_STATE%TRACERS(:,:,:,:N_TRACERS) = STT
+      CHEM_STATE%TRACERS(:,:,:,1:N_TRACERS) = STT(:,:,:,1:N_TRACERS)
 #endif
 
       END SUBROUTINE DO_CHEMISTRY
