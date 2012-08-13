@@ -983,15 +983,11 @@
       USE TRACER_MOD,   ONLY : ITS_A_MERCURY_SIM
       USE TRACERID_MOD, ONLY : TRACERID
 
-      USE CMN_SIZE_MOD       ! Size parameters
+      USE CMN_SIZE_MOD                    ! Size parameters
 !
 ! !INPUT PARAMETERS:
 !
-      LOGICAL, INTENT(IN) :: am_I_Root   ! Is this the root CPU?
-
-#if defined ( ESMF_ ) && defined( DEVEL )
-!      USE GC_ENVIRONMENT_MOD, ONLY : TRACER_INDEX, TRACER_NAMES
-#endif
+      LOGICAL, INTENT(IN) :: am_I_Root    ! Is this the root CPU?
 ! 
 ! !REVISION HISTORY: 
 !  20 Jul 2004 - R. Yantosca - Initial version
@@ -1004,6 +1000,7 @@
 !  (7 ) Now do not call SET_BIOTRCE anymore; it's obsolete (bmy, 4/5/06)
 !  (8 ) Add SET_BIOTRCE to initialize IDBxxxs. (fp, 2/26/10)
 !  27 Aug 2010 - R. Yantosca - Added ProTeX headers
+!  13 Aug 2012 - R. Yantosca - Now pass CHEM_STATE as an argument (DEVEL only)
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -1025,11 +1022,6 @@
       ! NTRACE
       CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_tracer_menu:2' )
       READ( SUBSTRS(1:N), * ) N_TRACERS
-
-!#if defined( ESMF_ ) && defined( DEVEL )
-!          ALLOCATE( TRACER_INDEX(N_TRACERS) )
-!          ALLOCATE( TRACER_NAMES(N_TRACERS) )
-!#endif      
 
       ! Separator line
       CALL SPLIT_ONE_LINE( SUBSTRS, N, -1, 'read_tracer_menu:3' )

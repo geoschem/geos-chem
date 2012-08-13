@@ -110,7 +110,8 @@
 
 #if defined( DEVEL )
       USE LOGICAL_MOD,        ONLY : DO_DIAG_WRITE
-      USE GC_ENVIRONMENT_MOD, ONLY : ALLOCATE_ALL, INIT_ALL
+      USE GC_ENVIRONMENT_MOD, ONLY : ALLOCATE_ALL
+      USE GC_ENVIRONMENT_MOD, ONLY : INIT_ALL
       USE GC_TYPE2_MOD,       ONLY : CHEMSTATE
       USE GC_TYPE_MOD,        ONLY : GC_MET_LOCAL
 #endif
@@ -191,6 +192,8 @@
 !                              routines in order to allow PRINT and WRITE
 !                              statements to execute on the root CPU.  This
 !                              is needed for compatibility w/ the GEOS-5 GCM.
+!  13 Aug 2012 - R. Yantosca - Now call FILL_CHEM_STATE_IDs to populate
+!                              the CHEM_STATE object ID and name fields
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -244,6 +247,7 @@
       RC=0 ! Error flag. Default 0 is "no error"
 
 #if defined( DEVEL )
+      ! Allocate all lon/lat arrays for global use by GEOS-Chem
       CALL ALLOCATE_ALL
 #endif
 
@@ -259,8 +263,14 @@
       IF ( LPRT ) CALL DEBUG_MSG( '### MAIN: a READ_INPUT_FILE' )
 
 #if defined( DEVEL )
-      ! Initialize all of CHEMSTATE
-      CALL INIT_ALL(LOCAL_MET, CHEM_STATE)
+      ! Initialize LOCAL_MET and CHEMSTATE objects
+      CALL INIT_ALL( LOCAL_MET, CHEM_STATE )
+
+      ! Assign values to the TRAC_NAME, TRAC_ID, SMVG_ID fields
+      ! of the CHEM_STATE object.  NOTE: This has to be done after
+      ! the call to READ_INPUT_FILE, since we need the value of
+      ! N_TRACERS, which is obtained by reading the input.geos file.
+      CALL FILL_CHEM_STATE_NAME_IDs( am_I_Root, CHEM_STATE )
 #endif
 
       ! Initialize met field arrays from "dao_mod.f"
@@ -986,7 +996,7 @@
 !    >-- STT SHOULD BE IN KG HERE --<
 !
 !^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^!
-            CHEM_STATE%TRACERS(:,:,:,:N_TRACERS) = STT
+            CHEM_STATE%TRACERS( :, :, :, 1:N_TRACERS ) = STT
 ! FIN DE KLUGE
             CALL DO_CHEMISTRY( am_I_Root, IIPAR,      JJPAR, 
      &                         LLPAR,     CHEM_STATE, LOCAL_MET )

@@ -175,6 +175,7 @@
 !  (19) Added tracers and emissions for dicarbonyl simulation (tmf, 1/7/09)
 !  (20) Updates for mercury simulation (ccc, 5/17/10)
 !  17 Feb 2011 - R. Yantosca - Add modifications for APM microphysics (G. Luo)
+!  13 Aug 2012 - R. Yantosca - Add routine FILL_CHEM_STATE_NAME_IDs
 !******************************************************************************
 !
 
@@ -381,19 +382,14 @@
       USE TRACER_MOD,  ONLY : ITS_A_TAGCO_SIM, ITS_A_MERCURY_SIM
       USE TRACER_MOD,  ONLY : ITS_A_H2HD_SIM
       USE TRACER_MOD,  ONLY : N_TRACERS,       TRACER_NAME
-      ! Error check for array dimensions (hotp 8/1/09)
       USE ERROR_MOD,   ONLY : ERROR_STOP
 
-      USE CMN_SIZE_MOD      ! Size parameters
-      USE COMODE_LOOP_MOD   ! IDEMS
-
-! !INPUT VARIABLES:
-
-      LOGICAL, INTENT(IN) :: am_I_Root
-
-#if defined(DEVEL)
-!      USE GC_ENVIRONMENT_MOD, ONLY : TRACER_INDEX, TRACER_NAMES
-#endif
+      USE CMN_SIZE_MOD                    ! Size parameters
+      USE COMODE_LOOP_MOD                 ! IDEMS
+!
+! !INPUT PARAMETERS:
+!
+      LOGICAL, INTENT(IN)  :: am_I_Root   ! Is this the root CPU?
 
       ! Local variables
       INTEGER              :: N, COUNT, COUNT_Hg0, COUNT_Hg2, COUNT_HgP
@@ -444,14 +440,10 @@
       !=================================================================
       DO N = 1, N_TRACERS
 
-#if defined (DEVEL)
-!         CHEM_STATE%TRAC_ID(N) = N
-!         CHEM_STATE%TRAC_NAME(N)  = TRIM( TRACER_NAME(N) )
-!         TRACER_INDEX(N) = N
-#endif
-         ! Convert tracer name to upper case.  TCNAME is in the "CMN" header
-         ! file -- we might use something better later on (bmy, 11/12/02)
+         ! Save TRACER_NAME into a CHARACTER*14 variable
          NAME = TRACER_NAME(N)
+
+         ! Convert name to uppercase
          CALL TRANUC( NAME )
 
          ! Find each tracer
@@ -1390,10 +1382,10 @@
 
 !------------------------------------------------------------------------------
 
-#if defined( DEVEL )
+#if defined( DEVEL ) 
       SUBROUTINE SETTRACE( GC_STATE, am_I_Root )
 #else
-      SUBROUTINE SETTRACE( am_I_Root )
+     SUBROUTINE SETTRACE( am_I_Root )
 #endif
 !
 !******************************************************************************
@@ -1646,7 +1638,57 @@
 
       ! Return to calling program
       END SUBROUTINE SETTRACE
-    
+!EOC
+!------------------------------------------------------------------------------
+!          Harvard University Atmospheric Chemistry Modeling Group            !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: fill_chem_state_name_ids
+!
+! !DESCRIPTION: Subroutine FILL_CHEM_STATE_NAME_IDs populates the trac_name,
+!  trac_id, and smvg_id fields of an object based on the CHEMSTATE derived
+!  type.
+!\\
+!\\
+! !INTERFACE:
+!
+      SUBROUTINE FILL_CHEM_STATE_NAME_IDs( am_I_Root, CHEM_STATE )
+!
+! !USES:
+!
+      ! References to F90 modules
+      USE GC_TYPE2_MOD, ONLY : CHEMSTATE
+      USE TRACER_MOD,   ONLY : N_TRACERS
+      USE TRACER_MOD,   ONLY : TRACER_NAME
+!
+! !INPUT PARAMETERS: 
+!
+      LOGICAL,         INTENT(IN)    :: am_I_Root    ! Is this the root CPU?
+!
+! !INPUT/OUTPUT PARAMETERS:
+!
+      TYPE(CHEMSTATE), INTENT(INOUT) :: CHEM_STATE   ! Obj for chemical state
+! 
+! !REVISION HISTORY: 
+!  13 Aug 2012 - R. Yantosca - Initial version
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+!
+! !LOCAL VARIABLES:
+!
+      INTEGER :: N
+
+      ! Loop over defined tracers
+      DO N = 1, N_TRACERS
+         CHEM_STATE%TRAC_ID(N)   = N
+         CHEM_STATE%TRAC_NAME(N) = TRIM( TRACER_NAME(N) )
+      ENDDO
+
+      END SUBROUTINE FILL_CHEM_STATE_NAME_IDs
+
+!EOC 
 !------------------------------------------------------------------------------
 
       FUNCTION IS_Hg0( N ) RESULT( IT_IS_Hg0 )
