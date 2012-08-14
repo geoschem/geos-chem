@@ -394,6 +394,12 @@
       USE GC_TYPE_MOD,  ONLY : GC_MET_LOCAL
 #endif
 !
+! !INPUT/OUTPUT PARAMETERS:
+!
+#if defined( DEVEL )
+      TYPE(GC_MET_LOCAL), INTENT(INOUT) :: LOCAL_MET   ! Obj for met fields
+#endif
+!
 ! !REMARKS:
 !  DAO met fields updated by AIRQNT:
 !  ========================================================================
@@ -448,9 +454,6 @@
 !EOP
 !------------------------------------------------------------------------------
 !BOC
-#if defined( DEVEL )
-      TYPE(GC_MET_LOCAL), INTENT(INOUT) :: LOCAL_MET
-#endif
 !
 ! !LOCAL VARIABLES:
 !

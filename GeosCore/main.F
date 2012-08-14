@@ -996,7 +996,8 @@
 !    >-- STT SHOULD BE IN KG HERE --<
 !
 !^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^!
-            CHEM_STATE%TRACERS( :, :, :, 1:N_TRACERS ) = STT
+            CHEM_STATE%TRACERS( :, :, :, 1:N_TRACERS ) = 
+     &                     STT( :, :, :, 1:N_TRACERS )
 ! FIN DE KLUGE
             CALL DO_CHEMISTRY( am_I_Root, IIPAR,      JJPAR, 
      &                         LLPAR,     CHEM_STATE, LOCAL_MET )

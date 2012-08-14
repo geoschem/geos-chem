@@ -1382,10 +1382,10 @@
 
 !------------------------------------------------------------------------------
 
-#if defined( DEVEL ) 
+#if defined( DEVEL ) || defined( EXTERNAL_GRID ) || defined( EXTERNAL_FORCING )
       SUBROUTINE SETTRACE( GC_STATE, am_I_Root )
 #else
-     SUBROUTINE SETTRACE( am_I_Root )
+      SUBROUTINE SETTRACE( am_I_Root )
 #endif
 !
 !******************************************************************************
@@ -1639,6 +1639,7 @@
       ! Return to calling program
       END SUBROUTINE SETTRACE
 !EOC
+#if defined( DEVEL ) || defined( EXTERNAL_GRID ) || defined( EXTERNAL_FORCING )
 !------------------------------------------------------------------------------
 !          Harvard University Atmospheric Chemistry Modeling Group            !
 !------------------------------------------------------------------------------
@@ -1689,6 +1690,7 @@
       END SUBROUTINE FILL_CHEM_STATE_NAME_IDs
 
 !EOC 
+#endif
 !------------------------------------------------------------------------------
 
       FUNCTION IS_Hg0( N ) RESULT( IT_IS_Hg0 )

@@ -30,13 +30,9 @@
 !
 ! !PUBLIC TYPES:
 ! 
-!%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-!%%% Leave these types commented out for now ... activate them later
-!%%% (bmy, 9/29/10)
-!
-!      !-----------------------------------------------------------------
-!      ! ID flags for SMVGEAR species
-!      !-----------------------------------------------------------------
+      !-----------------------------------------------------------------
+      ! ID flags for SMVGEAR species
+      !-----------------------------------------------------------------
       TYPE :: ID_SPEC
          INTEGER          :: A3O2,    ACET,    ACTA,    ALD2,    ALK4
          INTEGER          :: ATO2,    B3O2,    C2H6,    C3H8,    CH2O
@@ -63,7 +59,6 @@
          INTEGER          :: ROH,     RP,      SO2,     SO4,     VRO2
          INTEGER          :: VRP
       END TYPE ID_SPEC
-!%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
       !-----------------------------------------------------------------
       ! ID flags for advected tracers
@@ -96,9 +91,6 @@
          REAL*8,  POINTER :: XNUMOL(:)
       END TYPE SPEC_2_TRAC
 
-!%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-!%%% Leave these types commented out for now ... activate them later
-!%%% (bmy, 9/29/10)
       !-----------------------------------------------------------------
       ! ID flags for advected tracers that dry deposit
       !-----------------------------------------------------------------
@@ -125,7 +117,6 @@
          INTEGER          :: SOA2,    SOA3,    SOA4,    DST1,    DST2
          INTEGER          :: DST3,    DST4,    SALA,    SALC
       END TYPE ID_WETD
-!%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
       !-----------------------------------------------------------------
       ! Logical flags that turn various options on/off
@@ -164,12 +155,9 @@
          LOGICAL          :: USE_DIAG38
       END TYPE GC_OPTIONS
 
-!%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-!%%% Leave these types commented out for now ... activate them later
-!%%% (bmy, 9/29/10)
-!      !-----------------------------------------------------------------
-!      ! Time & date values
-!      !-----------------------------------------------------------------
+      !-----------------------------------------------------------------
+      ! Time & date values
+      !-----------------------------------------------------------------
       TYPE :: GC_TIME
          INTEGER          :: YEAR         ! Current year (YYYY)
          INTEGER          :: MONTH        ! Current month (1-12)
@@ -191,7 +179,6 @@
          REAL*8           :: LAT          ! Latitude  [degrees]
          REAL*8           :: LOCALTIME    ! Local solar time [hrs]
       END TYPE GC_GEOLOC
-!%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
       !-----------------------------------------------------------------
       ! Dimension information
@@ -214,12 +201,9 @@
          INTEGER          :: N_WETDEP     ! # of wet deposited tracers
       END TYPE GC_DIMS
 
-!%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-!%%% Leave these types commented out for now ... activate them later
-!%%% (bmy, 9/29/10)
-!      !-----------------------------------------------------------------
-!      ! Column met fields
-!      !-----------------------------------------------------------------
+      !-----------------------------------------------------------------
+      ! Column met fields
+      !-----------------------------------------------------------------
       TYPE :: GC_MET_LOCAL
 ! 2-D Arrays
          REAL*8, POINTER :: ALBD(:,:)   ! Visible surface albedo [unitless]
@@ -267,7 +251,6 @@
          REAL*8, POINTER :: TAUCLI(:,:,:)    ! Opt depth of ice clouds [unitless]
          REAL*8, POINTER :: TAUCLW(:,:,:)    ! Opt depth of H2O clouds [unitless]
       END TYPE GC_MET_LOCAL
-!%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
       !-----------------------------------------------------------------
       ! Derived type to pass ID information to GEOS-Chem routines
@@ -282,11 +265,9 @@
          LOGICAL            :: VERBOSE      ! Should we print out debug info?
       END TYPE GC_IDENT
 
-!%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-!%%% Leave these types commented out for now ... activate them later
-!%%% (bmy, 9/29/10)
       !-----------------------------------------------------------------
       ! Type for column oxidant fields used by SCHEM
+      !%%% NOTE: THIS IS NOW OBSOLETE
       !-----------------------------------------------------------------
       TYPE :: SCOX_1d
          REAL*8, POINTER    :: OH(:)        ! Monthly archived OH [molec/cm3]
@@ -294,7 +275,6 @@
          REAL*8, POINTER    :: PCO(:)       ! CO production rate [mol/mol/s]
          REAL*8, POINTER    :: LCO(:)       ! CO loss rate [1/s]
       END TYPE SCOx_1d
-!%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 !
 ! !REVISION HISTORY: 
 !  24 Mar 2009 - R. Yantosca - Initial version
