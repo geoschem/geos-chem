@@ -2269,6 +2269,8 @@
 !   26 Oct 2009 - P. Le Sager - new masks
 !   13 Mar 2012 - M. Cooper   - Changed regrid algorithm to map_a2a
 !   24 May 2012 - R. Yantosca - Fixed minor bugs in map_a2a implementation
+!   15 Aug 2012 - M. Payer    - Fixed minor bugs in regridding of mask; Also
+!                               set mask to 1 if greater than 0 (L. Murray)
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -2318,12 +2320,12 @@
       ! Regrid from GEOS 1x1 --> current model resolution [unitless]
       INGRID => GEOS_1x1(:,:,1)
       CALL DO_REGRID_A2A( LLFILENAME, I1x1,     J1x1,
-     &                    INGRID,     USA_MASK, PERAREA=1 )
+     &                    INGRID,     USA_MASK, PERAREA=0 )
 
       ! Free pointer
       NULLIFY( INGRID )
 
-      WHERE ( USA_MASK /= 0D0 ) USA_MASK = 1D0
+      WHERE ( USA_MASK > 0D0 ) USA_MASK = 1D0
 
       ! Return to calling program
       END SUBROUTINE READ_NEI2005_MASK

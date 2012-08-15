@@ -561,6 +561,7 @@
 !  (1 ) Now pass UNIT to DO_REGRID_G2G_1x1 (bmy, 8/9/06)
 !  06 Apr 2012 - M. Payer    - Changed regrid algorithm to map_a2a (M. Cooper)
 !  24 May 2012 - R. Yantosca - Fixed minor bugs in map_a2a implementation
+!  15 Aug 2012 - M. Payer    - Set mask to 1 if greater than 0 (L. Murray)
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -603,6 +604,8 @@
       ! Regrid to current model resolution [unitless]
       CALL DO_REGRID_A2A( LLFILENAME, I1x1,       J1x1-1, 
      &                    GEN_1x1,    BRAVO_MASK, PERAREA=0 )
+
+      WHERE ( BRAVO_MASK > 0D0 ) BRAVO_MASK = 1D0
 
       END SUBROUTINE READ_BRAVO_MASK
 !EOC

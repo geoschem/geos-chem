@@ -437,7 +437,7 @@
 !
       ! References to F90 modules
       USE BPCH2_MOD,        ONLY : GET_TAU0,          READ_BPCH2
-      USE DAO_MOD,          ONLY : FROCEAN !jaf
+      USE DAO_MOD,          ONLY : FROCEAN, IS_WATER !jaf
       USE DIRECTORY_MOD,    ONLY : DATA_DIR_1x1 
       USE LOGICAL_MOD,      ONLY : LFUTURE
       USE TRACER_MOD,       ONLY : ITS_A_CO2_SIM,     ITS_A_CH4_SIM
@@ -561,8 +561,12 @@
       IF (.NOT. IS_2006) THEN
          DO J = 1, JJPAR
          DO I = 1, IIPAR
+#if defined( GEOS_5 ) || defined( MERRA ) || defined( GEOS_527 )
             IF ( FROCEAN(I,J) == 1d0 ) SCALOC(I,J) = 0d0
-         ENDDO
+#else
+            IF ( IS_WATER(I,J) ) SCALOC(I,J) = 0d0
+#endif            
+        ENDDO
          ENDDO
       ENDIF 
 
@@ -2155,6 +2159,8 @@
 !  (1 ) Now also save 1x1 CHINA MASK for use in other routines. (bmy, 9/5/06)
 !  13 Mar 2012 - M. Cooper   - Changed regrid algorithm to map_a2a
 !  24 May 2012 - R. Yantosca - Fixed minor bugs in calls to map_a2a
+!  15 Aug 2012 - M. Payer    - Fixed minor bugs in regridding of mask; Also
+!                              set mask to 1 if greater than 0 (L. Murray)
 !******************************************************************************
 !
       ! References to F90 modules
@@ -2205,6 +2211,8 @@
       CALL DO_REGRID_A2A( LLFILENAME, I1x1,       J1x1-1, 
      &                    GEN_1x1,    MASK_CHINA, PERAREA=0  )
 
+      WHERE( MASK_CHINA > 0d0 ) MASK_CHINA = 1d0
+
       !------------------------------------
       ! SE Asia Mask (for 2000 emissions)
       !------------------------------------
@@ -2226,7 +2234,9 @@
 
       ! Regrid from GENERIC 1x1 GRID to current model resolution
       CALL DO_REGRID_A2A( LLFILENAME, I1x1,         J1x1-1, 
-     &                    GEN_1x1,    MASK_SE_ASIA, PERAREA=1 )
+     &                    GEN_1x1,    MASK_SE_ASIA, PERAREA=0 )
+
+      WHERE( MASK_SE_ASIA > 0d0 ) MASK_SE_ASIA = 1d0
 
       ! Return to calling program
       END SUBROUTINE READ_STREETS_MASKS
@@ -2292,6 +2302,8 @@
       ! Regrid from GENERIC 1x1 GRID to GEOS 1x1 GRID
       CALL DO_REGRID_05x0666( 1, 'unitless', GEOS_05x0666,  MASK_CHINA )
 
+      WHERE( MASK_CHINA > 0d0 ) MASK_CHINA = 1d0
+
       !------------------------------------
       ! SE Asia Mask (for 2000 emissions)
       !------------------------------------
@@ -2313,6 +2325,8 @@
  
       ! Regrid from GENERIC 1x1 GRID to GEOS 1x1 GRID
       CALL DO_REGRID_05x0666( 1, 'unitless', GEOS_05x0666, MASK_SE_ASIA)
+
+      WHERE( MASK_SE_ASIA > 0d0 ) MASK_SE_ASIA = 1d0
 
       ! Return to calling program
       END SUBROUTINE READ_STREETS_MASKS_05x0666

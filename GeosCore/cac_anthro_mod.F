@@ -865,6 +865,8 @@
 !  28 Jan 2009 - P. Le Sager - Initial Version
 !  13 Mar 2012 - M. Cooper   - Changed regrid algorithm to map_a2a
 !  07 Jun 2012 - M. Payer    - Fixed minor bugs in map_a2a implementation
+!  15 Aug 2012 - M. Payer    - Fixed minor bugs in regridding of mask; Also set
+!                              mask to 1 if greater than 0 (L. Murray)
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -910,10 +912,12 @@
       ! Regrid from GENERIC 1x1 to current model resolution [unitless]
       INGRID => GEOS_1x1(:,:,1)
       CALL DO_REGRID_A2A( LLFILENAME, I1x1,        J1x1, 
-     &                    INGRID,     MASK_CANADA, PERAREA=1 )
+     &                    INGRID,     MASK_CANADA, PERAREA=0 )
 
       ! Free pointer
       NULLIFY( INGRID )
+
+      WHERE ( MASK_CANADA > 0D0 ) MASK_CANADA = 1D0
 
       END SUBROUTINE READ_CANADA_MASK
 !EOC
