@@ -108,10 +108,13 @@
       ! EMISS_SSA_BROMINE begins here!
       !=================================================================
 
+      ! Dry diameter of aerosol [um]
+      dmid = rmid * 2
+
       ! only do calculation if we're inside the
       ! range of aerosol sizes observed to be
       ! depeleted in bromide.
-      IF ( (rmid < 1.0) .or. (rmid > 10.0) ) THEN
+      IF ( (dmid < 0.2) .or. (dmid > 10.0) ) THEN
          br2_emiss_kg = 0.d0
          RETURN
       ENDIF
@@ -132,9 +135,6 @@
      &               1.5d0,   2.0d0,  4.0d0,  5.0d0,  10.0d0  /) 
       df_size  = (/ -3.82d0, -2.54d0, 0.0d0,  0.23d0, 0.38d0, 
      &               0.37d0,  0.31d0, 0.21d0, 0.16d0, 0.11d0  /)
-
-      ! Dry diameter of aerosol [um]
-      dmid = rmid * 2
 
       ! Sort into diameter bins
       IF (      dmid <= 0.4  ) THEN
@@ -162,9 +162,6 @@
      &                    ( dmid_ref(IDF+1) - dmid_ref(IDF) ) *
      &                    ( df_size(IDF+1)  - df_size(IDF)  )
 
-      ! Limit DF based on upper and lower bounds of Table 1 (Yang et al. 2008)
-      IF ( dmid <= 0.2  ) DF = -3.82d0
-      IF ( dmid >= 10.0 ) DF =  0.11d0
 
       ! Apply seasonality to latitudes south of 30S
       IF ( GET_YMID(1, ilat, 1) < -30.0 ) THEN
