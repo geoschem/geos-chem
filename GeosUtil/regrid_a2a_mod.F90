@@ -34,6 +34,8 @@ MODULE REGRID_A2A_MOD
 !                              GET_YEDGE(I,J,L) and GET_YSIN(I,J,L) from the
 !                              new grid_mod.F90
 !  22 May 2012 - L. Murray   - Implemented several bug fixes
+!  23 Aug 2012 - R. Yantosca - Add capability for starting from hi-res grids
+!                              (generic 0.5x0.5, generic 0.25x0.25, etc.)
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -94,6 +96,7 @@ MODULE REGRID_A2A_MOD
 !                              in the calling routine
 !  06 Aug 2012 - R. Yantosca - Now make IU_REGRID a local variable
 !  06 Aug 2012 - R. Yantosca - Move calls to findFreeLUN out of DEVEL block
+!  23 Aug 2012 - R. Yantosca - Now use f10.4 format for hi-res grids
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -142,7 +145,16 @@ MODULE REGRID_A2A_MOD
 
     ! Create the approprate FORMAT strings
     WRITE(FMT_LEN,*) IM+1
-    FMT_LON='(' // TRIM ( FMT_LEN ) // 'F9.3)'
+
+    ! NOTE: If the resolution of the grid is high enough, we have 
+    ! to allow for an extra digit in the input file.  This will
+    ! become obsolete once we migrate to netCDF format (bmy, 8/23/12)
+    IF ( IM > 1000 ) THEN
+       FMT_LON='(' // TRIM ( FMT_LEN ) // 'F10.4)'   ! For hi-res grids
+    ELSE
+       FMT_LON='(' // TRIM ( FMT_LEN ) // 'F9.3)'    ! For all other grids
+    ENDIF
+
     WRITE(FMT_LEN,*) JM
     FMT_LAT='(' // TRIM ( FMT_LEN ) // 'F15.10)'
 
