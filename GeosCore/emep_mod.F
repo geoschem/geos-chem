@@ -344,6 +344,7 @@
 !  24 May 2012 - R. Yantosca - Fixed minor bugs in map_a2a implementation
 !  03 Aug 2012 - R. Yantosca - Move calls to findFreeLUN out of DEVEL block
 !  07 Aug 2012 - R. Yantosca - Now print LUN used to open file
+!  24 Aug 2012 - R. Yantosca - DO_REGRID_A2A now reads netCDF input file
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -431,9 +432,15 @@
       ! Open file
       CALL OPEN_BPCH2_FOR_READ( IU_FILE, FILENAME )
 
+!------------------------------------------------------------------------------
+! Prior to 8/24/12:
+!      ! File with lat/lon edges for regridding
+!      LLFILENAME = TRIM( DATA_DIR_1x1) //
+!     &             'MAP_A2A_Regrid_201203/latlon_geos1x1_new.txt'
+!------------------------------------------------------------------------------
       ! File with lat/lon edges for regridding
       LLFILENAME = TRIM( DATA_DIR_1x1) //
-     &             'MAP_A2A_Regrid_201203/latlon_geos1x1_new.txt'
+     &             'MAP_A2A_Regrid_201203/MAP_A2A_latlon_geos1x1.nc'
 
       ! Read the entire file in one pass (for I/O optimization)
       DO 
@@ -467,44 +474,85 @@
             ! NOx [molec/cm2/s]
             CASE( 1  )
                INGRID = ARRAY(:,:,1)
+!------------------------------------------------------------------------------
+! Prior to 8/24/12:
+!               CALL DO_REGRID_A2A( LLFILENAME, I1x1,      J1x1,
+!     &                             INGRID,     EMEP_NOx,  PERAREA=0 )
+!------------------------------------------------------------------------------
                CALL DO_REGRID_A2A( LLFILENAME, I1x1,      J1x1,
-     &                             INGRID,     EMEP_NOx,  PERAREA=0 )
-
+     &                             INGRID,     EMEP_NOx,  PERAREA=0,
+     &                             netCDF=.TRUE.                     )
             ! CO [molec/cm2/s]
             CASE( 4  )
                INGRID = ARRAY(:,:,1)
+!------------------------------------------------------------------------------
+! Prior to 8/24/12:               
+!               CALL DO_REGRID_A2A( LLFILENAME, I1x1,      J1x1,
+!     &                             INGRID,     EMEP_CO,   PERAREA=0 )
+!------------------------------------------------------------------------------
                CALL DO_REGRID_A2A( LLFILENAME, I1x1,      J1x1,
-     &                             INGRID,     EMEP_CO,   PERAREA=0 )
+     &                             INGRID,     EMEP_CO,   PERAREA=0,
+     &                             netCDF=.TRUE.                     )
                
             ! ALK4 [atoms C/cm2/s]
             CASE( 5  )
                INGRID = ARRAY(:,:,1)
+!------------------------------------------------------------------------------
+! Prior to 8/24/12:
+!               CALL DO_REGRID_A2A( LLFILENAME, I1x1,      J1x1,
+!     &                             INGRID,     EMEP_ALK4, PERAREA=0 )
+!------------------------------------------------------------------------------
                CALL DO_REGRID_A2A( LLFILENAME, I1x1,      J1x1,
-     &                             INGRID,     EMEP_ALK4, PERAREA=0 )
+     &                             INGRID,     EMEP_ALK4, PERAREA=0,
+     &                             netCDF=.TRUE.                     )
 
             ! MEK [atoms C/cm2/s]
             CASE( 10 )
                INGRID = ARRAY(:,:,1)
+!------------------------------------------------------------------------------
+! Prior to 8/24/12:
+!               CALL DO_REGRID_A2A( LLFILENAME, I1x1,      J1x1,
+!     &                             INGRID,     EMEP_MEK,  PERAREA=0 )
+!------------------------------------------------------------------------------
                CALL DO_REGRID_A2A( LLFILENAME, I1x1,      J1x1,
-     &                             INGRID,     EMEP_MEK,  PERAREA=0 )
+     &                             INGRID,     EMEP_MEK,  PERAREA=0,
+     &                             netCDF=.TRUE.                     )
 
             ! ALD2 [atoms C/cm2/s]
             CASE( 11 )
                INGRID = ARRAY(:,:,1)
+!------------------------------------------------------------------------------
+! Prior to 8/24/12:
+!               CALL DO_REGRID_A2A( LLFILENAME, I1x1,      J1x1,
+!     &                             INGRID,     EMEP_ALD2, PERAREA=0 )
+!------------------------------------------------------------------------------
                CALL DO_REGRID_A2A( LLFILENAME, I1x1,      J1x1,
-     &                             INGRID,     EMEP_ALD2, PERAREA=0 )
+     &                             INGRID,     EMEP_ALD2, PERAREA=0,
+     &                             netCDF=.TRUE.                     )
 
             ! PRPE [atoms C/cm2/s]
             CASE( 18 )
                INGRID = ARRAY(:,:,1)
+!------------------------------------------------------------------------------
+! Prior to 8/24/12:
+!               CALL DO_REGRID_A2A( LLFILENAME, I1x1,      J1x1,
+!     &                             INGRID,     EMEP_PRPE, PERAREA=0 )
+!------------------------------------------------------------------------------
                CALL DO_REGRID_A2A( LLFILENAME, I1x1,      J1x1,
-     &                             INGRID,     EMEP_PRPE, PERAREA=0 )
+     &                             INGRID,     EMEP_PRPE, PERAREA=0,
+     &                             netCDF=.TRUE.                     )
 
             ! C2H6 [atoms C/cm2/s]
             CASE( 21 )
                INGRID = ARRAY(:,:,1)
+!------------------------------------------------------------------------------
+! Prior to 8/24/12:
+!               CALL DO_REGRID_A2A( LLFILENAME, I1x1,      J1x1,
+!     &                             INGRID,     EMEP_C2H6, PERAREA=0 )
+!------------------------------------------------------------------------------
                CALL DO_REGRID_A2A( LLFILENAME, I1x1,      J1x1,
-     &                             INGRID,     EMEP_C2H6, PERAREA=0 )
+     &                             INGRID,     EMEP_C2H6, PERAREA=0,
+     &                             netCDF=.TRUE.                     )
 
             CASE DEFAULT
                ! Nothing
@@ -1166,6 +1214,7 @@
 !  24 May 2012 - R. Yantosca - Fixed minor bugs in map_a2a implementation
 !  15 Aug 2012 - M. Payer    - Fixed minor bugs in regridding of mask; Also set
 !                              mask to 1 if greater than 0 (L. Murray)
+!  24 Aug 2012 - R. Yantosca - DO_REGRID_A2A now reads netCDF input file
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -1186,10 +1235,15 @@
       FILENAME  = TRIM( DATA_DIR_1x1 ) // 
      &            'EMEP_200911/EMEP_mask.geos.1x1'
 
+!------------------------------------------------------------------------------
+! Prior to 8/24/12:
+!      ! File with lat/lon edges for regridding
+!      LLFILENAME = TRIM( DATA_DIR_1x1) //
+!     &             'MAP_A2A_Regrid_201203/latlon_geos1x1_new.txt'
+!------------------------------------------------------------------------------
       ! File with lat/lon edges for regridding
       LLFILENAME = TRIM( DATA_DIR_1x1) //
-     &             'MAP_A2A_Regrid_201203/latlon_geos1x1_new.txt'
-
+     &             'MAP_A2A_Regrid_201203/MAP_A2A_latlon_geos1x1.nc'
       ! Echo info
       WRITE( 6, 100 ) TRIM( FILENAME )
  100  FORMAT( '     - READ_EUROPE_MASK: Reading ', a )
@@ -1202,8 +1256,15 @@
 
       ! Regrid from GEOS 1x1 GRID to current model resolution
       INGRID = ARRAY(:,:,1)
+!------------------------------------------------------------------------------
+! Prior to 8/24/12:
+!      CALL DO_REGRID_A2A( LLFILENAME, I1x1,    J1x1,
+!     &                    INGRID,     OUTGRID, PERAREA=0 )  
+!------------------------------------------------------------------------------
       CALL DO_REGRID_A2A( LLFILENAME, I1x1,    J1x1,
-     &                    INGRID,     OUTGRID, PERAREA=0 )  
+     &                    INGRID,     OUTGRID, PERAREA=0,
+     &                    netCDF=.TRUE.                   )  
+
       EUROPE_MASK = OUTGRID 
 
       WHERE ( EUROPE_MASK > 0D0 ) EUROPE_MASK = 1D0
@@ -1313,6 +1374,7 @@
 !  01 Mar 2012 - R. Yantosca - Now use GET_AREA_CM2(I,J,L) from grid_mod.F90
 !  13 Mar 2012 - M. Cooper   - Changed regrid algorithm to map_a2a
 !  24 May 2012 - R. Yantosca - Fixed minor bugs in map_a2a implementation
+!  24 Aug 2012 - R. Yantosca - DO_REGRID_A2A now reads netCDF input file
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -1437,14 +1499,26 @@
      &                                       ARRAY_1x1_SHIP(:,:,1)
       IF ( wSHIP .eq. 2 ) ARRAY_1x1(:,:,1) = ARRAY_1x1_SHIP(:,:,1)
 
+!------------------------------------------------------------------------------
+! Prior to 8/24/12:
+!      ! File with lat/lon edges for regridding
+!      LLFILENAME = TRIM( DATA_DIR_1x1) //
+!     &             'MAP_A2A_Regrid_201203/latlon_geos1x1_new.txt'
+!------------------------------------------------------------------------------
       ! File with lat/lon edges for regridding
       LLFILENAME = TRIM( DATA_DIR_1x1) //
-     &             'MAP_A2A_Regrid_201203/latlon_geos1x1_new.txt'
+     &             'MAP_A2A_Regrid_201203/MAP_A2A_latlon_geos1x1.nc'
 
       ! Regrid to current model resolution [kg/yr]
       INGRID = ARRAY_1x1(:,:,1)
+!------------------------------------------------------------------------------
+! Prior to 8/24/12:
+!      CALL DO_REGRID_A2A( LLFILENAME, I1x1,    J1x1,
+!     &                    INGRID,     OUTGRID, PERAREA=1 )
+!------------------------------------------------------------------------------
       CALL DO_REGRID_A2A( LLFILENAME, I1x1,    J1x1,
-     &                    INGRID,     OUTGRID, PERAREA=1 )
+     &                    INGRID,     OUTGRID, PERAREA=1,
+     &                    netCDF=.TRUE.                   )
       ARRAY  = OUTGRID
 
       ! Convert SOx to SO2 assuming a SOx is 95% SO2 over Europe, as used

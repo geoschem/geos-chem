@@ -1303,6 +1303,7 @@
 !                              (Yuxuan Wang, lmw)
 !  06 Apr 2012 - M. Payer    - Changed regrid algorithm to map_a2a (M. Cooper)
 !  24 May 2012 - R. Yantosca - Fixed minor bugs in map_a2a implementation
+!  24 Aug 2012 - R. Yantosca - DO_REGRID_A2A now reads netCDF input file
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -1384,15 +1385,27 @@
       ! Cast to REAL*8 before regridding
       GEOS_1x1(:,:,1) = REGION_1x1(:,:)
 
+!------------------------------------------------------------------------------
+! Prior to 8/24/12:
+!      ! File with lat/lon edges for regridding
+!      LLFILENAME = TRIM( DATA_DIR_1x1) //
+!     &             'MAP_A2A_Regrid_201203/latlon_geos1x1_new.txt'
+!------------------------------------------------------------------------------
       ! File with lat/lon edges for regridding
       LLFILENAME = TRIM( DATA_DIR_1x1) //
-     &             'MAP_A2A_Regrid_201203/latlon_geos1x1_new.txt'
+     &             'MAP_A2A_Regrid_201203/MAP_A2A_latlon_geos1x1.nc'
 
       ! Regrid to current model resolution
       INGRID  => GEOS_1x1 (:,:,1)
       OUTGRID => GEOS_GRID(:,:,1)
+!------------------------------------------------------------------------------
+! Prior to 8/24/12:
+!      CALL DO_REGRID_A2A( LLFILENAME, I1x1,    J1x1, 
+!     &                    INGRID,     OUTGRID, PERAREA=0 )   
+!------------------------------------------------------------------------------
       CALL DO_REGRID_A2A( LLFILENAME, I1x1,    J1x1, 
-     &                    INGRID,     OUTGRID, PERAREA=0 )   
+     &                    INGRID,     OUTGRID, PERAREA=0,
+     &                    netCDF=.TRUE.                   )   
 
       ! Cast to REAL*4
       REGION(:,:) = GEOS_GRID(:,:,1)      !(lmw,05/16/11)
@@ -1598,6 +1611,7 @@
 !  06 Apr 2012 - M. Payer            - Changed regrid algorithm to map_a2a
 !                                      (M. Cooper)
 !  24 May 2012 - R. Yantosca         - Fixed minor bugs in map_a2a calls
+!  24 Aug 2012 - R. Yantosca         - DO_REGRID_A2A now reads netCDF input
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -1640,15 +1654,27 @@
       ! Cast to REAL*8 before regridding
       GEOS_1x1(:,:,1) = ARRAY(:,:,1)
       
+!------------------------------------------------------------------------------
+! Prior to 8/24/12:
+!      ! File with lat/lon edges for regridding
+!      LLFILENAME = TRIM( DATA_DIR_1x1) //
+!     &             'MAP_A2A_Regrid_201203/latlon_geos1x1_new.txt'
+!------------------------------------------------------------------------------
       ! File with lat/lon edges for regridding
       LLFILENAME = TRIM( DATA_DIR_1x1) //
-     &             'MAP_A2A_Regrid_201203/latlon_geos1x1_new.txt'
+     &             'MAP_A2A_Regrid_201203/MAP_A2A_latlon_geos1x1.nc'
 
       ! Regrid to current model resolution
       INGRID  => GEOS_1x1(:,:,1)
       OUTGRID => GEOS_GRID(:,:,1)
+!------------------------------------------------------------------------------
+! Prior to 8/24/12:
+!      CALL DO_REGRID_A2A( LLFILENAME, I1x1,    J1x1, 
+!     &                    INGRID,     OUTGRID, PERAREA=0 )   
+!------------------------------------------------------------------------------
       CALL DO_REGRID_A2A( LLFILENAME, I1x1,    J1x1, 
-     &                    INGRID,     OUTGRID, PERAREA=0 )   
+     &                    INGRID,     OUTGRID, PERAREA=0,
+     &                    netCDF=.TRUE.                   )   
 
       EMBIOFUELCO2(:,:) = GEOS_GRID(:,:,1)   !(lmw,05/16/11)
 
@@ -1691,6 +1717,7 @@
 !  01 Mar 2012 - R. Yantosca - Now use GET_AREA_CM2(I,J,L) from grid_mod.F90
 !  13 Mar 2012 - M. Cooper   - Changed regrid algorithm to map_a2a
 !  24 May 2012 - R. Yantosca - Fixed minor bugs in map_a2a impelementation
+!  24 Aug 2012 - R. Yantosca - DO_REGRID_A2A now reads netCDF input file
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -1748,15 +1775,26 @@
       ! Cast to REAL*8 before regridding
       GEN_1x1(:,:,1) = ARRAY(:,:,1)
 
-      ! File with lat/lon edges for regridding
+!------------------------------------------------------------------------------
+! Prior to 8/24/12
+!      ! File with lat/lon edges for regridding
+!      LLFILENAME = TRIM( DATA_DIR_1x1) //
+!     &             'MAP_A2A_Regrid_201203/latlon_generic_new.txt'
+!------------------------------------------------------------------------------
       LLFILENAME = TRIM( DATA_DIR_1x1) //
-     &             'MAP_A2A_Regrid_201203/latlon_generic_new.txt'
+     &             'MAP_A2A_Regrid_201203/MAP_A2A_latlon_generic1x1.nc'
 
       ! Regrid from GENERIC 1x1 --> current model resolution
       INGRID  => GEN_1x1  (:,:,1)
       OUTGRID => GEOS_GRID(:,:,1)
+!------------------------------------------------------------------------------
+! Prior to 8/24/12:
+!      CALL DO_REGRID_A2A( LLFILENAME, I1x1,    J1x1-1, 
+!     &                    INGRID,     OUTGRID, PERAREA=1 )   
+!------------------------------------------------------------------------------
       CALL DO_REGRID_A2A( LLFILENAME, I1x1,    J1x1-1, 
-     &                    INGRID,     OUTGRID, PERAREA=1 )   
+     &                    INGRID,     OUTGRID, PERAREA=1,
+     &                    netCDF=.TRUE.                   )   
 
       ! Free pointers
       NULLIFY( INGRID, OUTGRID )
@@ -1855,6 +1893,7 @@
 !  01 Mar 2012 - R. Yantosca - Now use GET_AREA_M2(I,J,L) from grid_mod.F90
 !  13 Mar 2012 - M. Cooper   - Changed regrid algorithm to map_a2a
 !  24 May 2012 - R. Yantosca - Fixed minor bugs in map_a2a implementation
+!  24 Aug 2012 - R. Yantosca - DO_REGRID_A2A now reads netCDF input file
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -1908,15 +1947,27 @@
       ! Cast to REAL*8 before regridding
       GEOS_1x1(:,:,1) = ARRAY(:,:,1)
 
+!------------------------------------------------------------------------------
+! Prior to 8/24/12:      
+!      ! File with lat/lon edges for regridding
+!      LLFILENAME = TRIM( DATA_DIR_1x1) //
+!     &             'MAP_A2A_Regrid_201203/latlon_geos1x1_new.txt'
+!------------------------------------------------------------------------------
       ! File with lat/lon edges for regridding
       LLFILENAME = TRIM( DATA_DIR_1x1) //
-     &             'MAP_A2A_Regrid_201203/latlon_geos1x1_new.txt'
+     &             'MAP_A2A_Regrid_201203/MAP_A2A_latlon_geos1x1.nc'
 
       ! Regrid to current model resolution
       INGRID  => GEOS_1x1 (:,:,1)
       OUTGRID => GEOS_GRID(:,:,1)
+!------------------------------------------------------------------------------
+! Prior to 8/24/12:
+!     CALL DO_REGRID_A2A( LLFILENAME, I1x1,    J1x1, 
+!    &                    INGRID,     OUTGRID, PERAREA=0 )   
+!------------------------------------------------------------------------------
       CALL DO_REGRID_A2A( LLFILENAME, I1x1,    J1x1, 
-     &                    INGRID,     OUTGRID, PERAREA=0 )   
+     &                    INGRID,     OUTGRID, PERAREA=0,
+     &                    netCDF=.TRUE.                   )
 
       ! Free pointers
       NULLIFY( INGRID, OUTGRID )
@@ -2234,6 +2285,7 @@
 !  24 May 2012 - R. Yantosca         - Fix minor bugs in map_a2a calls
 !  01 Aug 2012 - R. Yantosca - Add reference to findFreeLUN from inqure_mod.F90
 !  03 Aug 2012 - R. Yantosca - Move calls to findFreeLUN out of DEVEL block
+!  24 Aug 2012 - R. Yantosca - DO_REGRID_A2A now reads netCDF input file
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -2323,15 +2375,27 @@
          ! Cast to REAL*8 before regridding
          GEOS_1x1(:,:,1) = ARRAY(:,:,1)
 
+!------------------------------------------------------------------------------
+! Prior to 8/24/12:         
+!         ! File with lat/lon edges for regridding
+!         LLFILENAME = TRIM( DATA_DIR_1x1) //
+!     &                'MAP_A2A_Regrid_201203/latlon_geos1x1_new.txt'
+!------------------------------------------------------------------------------
          ! File with lat/lon edges for regridding
          LLFILENAME = TRIM( DATA_DIR_1x1) //
-     &                'MAP_A2A_Regrid_201203/latlon_geos1x1_new.txt'
+     &                'MAP_A2A_Regrid_201203/MAP_A2A_latlon_geos1x1.nc'
 
          ! Regrid from GEOS 1x1 --> current model resolution
          INGRID  => GEOS_1x1 (:,:,1)
          OUTGRID => GEOS_GRID(:,:,1)
+!------------------------------------------------------------------------------
+! Prior to 8/24/12:
+!         CALL DO_REGRID_A2A( LLFILENAME, I1x1,    J1x1, 
+!     &                       INGRID,     OUTGRID, PERAREA=0 )
+!------------------------------------------------------------------------------
          CALL DO_REGRID_A2A( LLFILENAME, I1x1,    J1x1, 
-     &                       INGRID,     OUTGRID, PERAREA=0 )
+     &                       INGRID,     OUTGRID, PERAREA=0,
+     &                       netCDF=.TRUE.                   )
                   
          ! Free pointers
          NULLIFY( INGRID, OUTGRID )

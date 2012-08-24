@@ -377,6 +377,7 @@
 !                              NOx (E. Leibensperger)
 !  13 Mar 2012 - M. Cooper   - Changed regrid algorithm to map_a2a
 !  24 May 2012 - R. Yantosca - Fixed minor bugs in map_a2a impelementation
+!  24 Aug 2012 - R. Yantosca - DO_REGRID_A2A now reads netCDF input file
 !******************************************************************************
 !
       ! References to F90 modules
@@ -430,14 +431,26 @@
       ! (these average out to 1.0)
       !----------------------------------
 
+!------------------------------------------------------------------------------
+! Prior to 8/24/12:
+!      ! File with lat/lon edges for regridding
+!      LLFILENAME = TRIM( DATA_DIR_1x1) //
+!     &             'MAP_A2A_Regrid_201203/latlon_generic_new.txt'
+!------------------------------------------------------------------------------
       ! File with lat/lon edges for regridding
       LLFILENAME = TRIM( DATA_DIR_1x1) //
-     &             'MAP_A2A_Regrid_201203/latlon_generic_new.txt'
+     &             'MAP_A2A_Regrid_201203/MAP_A2A_latlon_generic1x1.nc'
       
       ! Regrid anthro emissions to current resolution
       INGRID => E_NOx_1x1(:,:)
+!------------------------------------------------------------------------------
+! Prior to 8/24/12:
+!      CALL DO_REGRID_A2A( LLFILENAME, I1x1,     J1x1-1, 
+!     &                    INGRID,     TEMP_TOT, PERAREA=1 )
+!------------------------------------------------------------------------------
       CALL DO_REGRID_A2A( LLFILENAME, I1x1,     J1x1-1, 
-     &                    INGRID,     TEMP_TOT, PERAREA=1 )
+     &                    INGRID,     TEMP_TOT, PERAREA=1,
+     &                    netCDF=.TRUE.                    )
       NULLIFY( INGRID )
 
       ! Loop over hours
@@ -445,8 +458,14 @@
 
          ! Regrid hourly emissions to current resolution
          INGRID => E_NOx_HRLY_1x1(:,:,H)
+!------------------------------------------------------------------------------
+! Prior to 8/24/12:
+!         CALL DO_REGRID_A2A( LLFILENAME, I1x1,      J1x1-1, 
+!     &                       INGRID,     TEMP_HRLY, PERAREA=1 )
+!------------------------------------------------------------------------------
          CALL DO_REGRID_A2A( LLFILENAME, I1x1,      J1x1-1, 
-     &                       INGRID,     TEMP_HRLY, PERAREA=1 )
+     &                       INGRID,     TEMP_HRLY, PERAREA=1,
+     &                       netCDF=.TRUE.                     )
          NULLIFY( INGRID )
 
          ! Scale factors are just the normalized hourly emissions
@@ -472,8 +491,14 @@
 
       ! Regrid NOx emissions to current model resolution [kg/yr]
       INGRID => E_NOx_1x1(:,:)
+!------------------------------------------------------------------------------
+! Prior to 8/24/12:
+!      CALL DO_REGRID_A2A( LLFILENAME, I1x1,    J1x1-1, 
+!     &                    INGRID,     OUTGRID, PERAREA=1 )
+!------------------------------------------------------------------------------
       CALL DO_REGRID_A2A( LLFILENAME, I1x1,    J1x1-1, 
-     &                    INGRID,     OUTGRID, PERAREA=1 )
+     &                    INGRID,     OUTGRID, PERAREA=1,
+     &                    netCDF=.TRUE.                   )
       NULLIFY( INGRID )
 
       ! Apply scaling factor
@@ -493,8 +518,15 @@
 
          ! Regrid NOX emissions to current model resolution [kg/yr]
          INGRID => E_NOX_SHIP_1x1(:,:)
+!------------------------------------------------------------------------------
+! Prior to 8/24/12:
+!         CALL DO_REGRID_A2A( LLFILENAME,  I1x1,    J1x1-1, 
+!     &                       INGRID,      OUTGRID, PERAREA=1 )
+!------------------------------------------------------------------------------
          CALL DO_REGRID_A2A( LLFILENAME,  I1x1,    J1x1-1, 
-     &                       INGRID,      OUTGRID, PERAREA=1 )
+     &                       INGRID,      OUTGRID, PERAREA=1,
+     &                       netCDF=.TRUE. )
+
          E_NOX_SHIP = OUTGRID * SC_NOX(:,:) 
          NULLIFY( INGRID )
 
@@ -942,6 +974,7 @@
 !  NOTES:
 !  13 Mar 2012 - M. Cooper   - Changed regrid algorithm to map_a2a
 !  24 May 2012 - R. Yantosca - Fixed minor bugs in map_a2a implementation
+!  24 Aug 2012 - R. Yantosca - DO_REGRID_A2A now reads netCDF input file
 !******************************************************************************
 !
       ! References to F90 modules
@@ -985,14 +1018,26 @@
       ! Do the regridding
       !----------------------------------
 
+!------------------------------------------------------------------------------
+! Prior to 8/24/12:
+!      ! File with lat/lon edges for regridding
+!      LLFILENAME = TRIM( DATA_DIR_1x1) //
+!     &             'MAP_A2A_Regrid_201203/latlon_generic_new.txt'
+!------------------------------------------------------------------------------
       ! File with lat/lon edges for regridding
       LLFILENAME = TRIM( DATA_DIR_1x1) //
-     &             'MAP_A2A_Regrid_201203/latlon_generic_new.txt'
+     &             'MAP_A2A_Regrid_201203/MAP_A2A_latlon_generic1x1.nc'
 
       ! Regrid CO emissions to current model resolution [kg/yr]
       INGRID => E_CO_1x1
+!------------------------------------------------------------------------------
+! Prior to 8/24/12:
+!      CALL DO_REGRID_A2A( LLFILENAME, I1x1,    J1x1-1, 
+!     &                    INGRID,     OUTGRID, PERAREA=1 )
+!------------------------------------------------------------------------------
       CALL DO_REGRID_A2A( LLFILENAME, I1x1,    J1x1-1, 
-     &                    INGRID,     OUTGRID, PERAREA=1 )
+     &                    INGRID,     OUTGRID, PERAREA=1,
+     &                    netCDF=.TRUE.                   )
       E_CO = OUTGRID
 
       ! Free pointer
@@ -1014,8 +1059,14 @@
 
          ! Regrid CO emissions to current model resolution [kg/yr]
          INGRID => E_CO_SHIP_1x1
+!------------------------------------------------------------------------------
+! Prior to 8/24/12:
+!         CALL DO_REGRID_A2A( LLFILENAME, I1x1,    J1x1-1, 
+!     &                       INGRID,     OUTGRID, PERAREA=1 )
+!------------------------------------------------------------------------------
          CALL DO_REGRID_A2A( LLFILENAME, I1x1,    J1x1-1, 
-     &                       INGRID,     OUTGRID, PERAREA=1 )
+     &                       INGRID,     OUTGRID, PERAREA=1,
+     &                       netCDF=.TRUE.                   )
 
          ! Apply scale factors
          E_CO_SHIP = OUTGRID * SC_CO
@@ -1156,6 +1207,7 @@
 !                              SO2 (E. Leibensperger)
 !  13 Mar 2012 - M. Cooper   - Changed regrid algorithm to map_a2a
 !  24 May 2012 - R. Yantosca - Fixed minor bugs in map_a2a implementation
+!  24 Aug 2012 - R. Yantosca - DO_REGRID_A2A now reads netCDF input file
 !******************************************************************************
 !
       ! References to F90 modules
@@ -1200,14 +1252,26 @@
       ! Read EDGAR anthro SO2 and ship SO2
       CALL READ_EDGAR_SO2( E_SO2_1x1, E_SO2_SHIP_1x1 )
 
+!------------------------------------------------------------------------------
+! Prior to 8/24/12:
+!      ! File with lat/lon edges for regridding
+!      LLFILENAME = TRIM( DATA_DIR_1x1) //
+!     &             'MAP_A2A_Regrid_201203/latlon_generic_new.txt'
+!------------------------------------------------------------------------------
       ! File with lat/lon edges for regridding
       LLFILENAME = TRIM( DATA_DIR_1x1) //
-     &             'MAP_A2A_Regrid_201203/latlon_generic_new.txt'
+     &             'MAP_A2A_Regrid_201203/MAP_A2A_latlon_generic1x1.nc'
 
       ! Regrid SO2 emissions to current model resolution [kg/yr]
       INGRID => E_SO2_1x1
+!------------------------------------------------------------------------------
+! Prior to 8/24/12:
+!      CALL DO_REGRID_A2A( LLFILENAME, I1x1,    J1x1-1, 
+!     &                    INGRID,     OUTGRID, PERAREA=1 )
+!------------------------------------------------------------------------------
       CALL DO_REGRID_A2A( LLFILENAME, I1x1,    J1x1-1, 
-     &                    INGRID,     OUTGRID, PERAREA=1 )
+     &                    INGRID,     OUTGRID, PERAREA=1,
+     &                    netCDF=.TRUE.                   )
 
       ! Free pointer
       NULLIFY( INGRID )
@@ -1238,8 +1302,14 @@
 
          ! Regrid SO2 emissions to current model resolution [kg/yr]
          INGRID => E_SO2_SHIP_1x1
+!------------------------------------------------------------------------------
+! Prior to 8/24/12:
+!         CALL DO_REGRID_A2A( LLFILENAME, I1x1,    J1x1-1, 
+!     &                       INGRID,     OUTGRID, PERAREA=1 )
+!------------------------------------------------------------------------------
          CALL DO_REGRID_A2A( LLFILENAME, I1x1,    J1x1-1, 
-     &                       INGRID,     OUTGRID, PERAREA=1 )
+     &                       INGRID,     OUTGRID, PERAREA=1,
+     &                       netCDF=.TRUE.                   )
                 
          ! Apply scale factors
          E_SO2_SHIP = OUTGRID * SC_SO2
@@ -1541,6 +1611,7 @@
 !  NOTES:
 !  13 Mar 2012 - M. Cooper   - Changed regrid algorithm to map_a2a
 !  24 May 2012 - R. Yantosca - Fixed minor bugs in map_a2a implementation
+!  24 Aug 2012 - R. Yantosca - DO_REGRID_A2A now reads netCDF input file
 !******************************************************************************
 !
       ! References to F90 modules
@@ -1581,14 +1652,26 @@
      &                 MONTH_TAU0, I1x1,      J1x1,     
      &                 1,          ARRAY,     QUIET=.TRUE. ) 
       
+!------------------------------------------------------------------------------
+! Prior to 8/24/12:
+!      ! File with lat/lon edges for regridding
+!      LLFILENAME = TRIM( DATA_DIR_1x1) //
+!     &             'MAP_A2A_Regrid_201203/latlon_geos1x1_new.txt'
+!------------------------------------------------------------------------------
       ! File with lat/lon edges for regridding
       LLFILENAME = TRIM( DATA_DIR_1x1) //
-     &             'MAP_A2A_Regrid_201203/latlon_geos1x1_new.txt'
+     &             'MAP_A2A_Regrid_201203/MAP_A2A_latlon_geos1x1.nc'
 
       ! Regrid to current model resolution
       INGRID = ARRAY(:,:,1)
+!------------------------------------------------------------------------------
+! Prior to 8/24/12:
+!      CALL DO_REGRID_A2A( LLFILENAME, I1x1,    J1x1, 
+!     &                    INGRID,     OUTGRID, PERAREA=1 )
+!------------------------------------------------------------------------------
       CALL DO_REGRID_A2A( LLFILENAME, I1x1,    J1x1, 
-     &                    INGRID,     OUTGRID, PERAREA=1 )
+     &                    INGRID,     OUTGRID, PERAREA=1,
+     &                    netCDF=.TRUE.                   )
 
       ! Apply monthly scale factors to ship SO2
       E_SO2_SHIP = E_SO2_SHIP * OUTGRID
@@ -2269,6 +2352,7 @@
 !  NOTES:
 !  13 Mar 2012 - M. Cooper   - Changed regrid algorithm to map_a2a
 !  24 May 2012 - R. Yantosca - Fixed minor bugs in map_a2a implementation
+!  24 Aug 2012 - R. Yantosca - DO_REGRID_A2A now reads netCDF input file
 !******************************************************************************
 !
       ! References to F90 modules
@@ -2317,15 +2401,27 @@
      &                 0.d0,     I1x1,        J1x1,     
      &                 1,        ARRAY,       QUIET=.TRUE. )
          
+!------------------------------------------------------------------------------
+! Prior to 8/24/12:
+!      ! File with lat/lon edges for regridding
+!      LLFILENAME = TRIM( DATA_DIR_1x1) //
+!     &             'MAP_A2A_Regrid_201203/latlon_geos1x1_new.txt'
+!------------------------------------------------------------------------------
       ! File with lat/lon edges for regridding
       LLFILENAME = TRIM( DATA_DIR_1x1) //
-     &             'MAP_A2A_Regrid_201203/latlon_geos1x1_new.txt'
+     &             'MAP_A2A_Regrid_201203/MAP_A2A_latlon_geos1x1.nc'
 
       ! Regrid BENZ from GEOS 1x1 to current model resolution
       ! [atoms C/cm2/s] (ccc, 3/9/09)
       INGRID = ARRAY
+!------------------------------------------------------------------------------
+! Prior to 8/24/12:
+!      CALL DO_REGRID_A2A( LLFILENAME, I1x1,    J1x1,
+!     &                    INGRID,     OUTGRID, PERAREA=0 )
+!------------------------------------------------------------------------------
       CALL DO_REGRID_A2A( LLFILENAME, I1x1,    J1x1,
-     &                    INGRID,     OUTGRID, PERAREA=0 )
+     &                    INGRID,     OUTGRID, PERAREA=0, 
+     &                    netCDF=.TRUE.                   )
       E_BENZ = OUTGRID
 
       !=================================================================
@@ -2344,8 +2440,14 @@
       ! Regrid TOLU from GEOS 1x1 to current model resolution
       ! [atoms C/cm2/s] (ccc, 3/9/09)
       INGRID = ARRAY
+!------------------------------------------------------------------------------
+! Prior to 8/24/12:
+!      CALL DO_REGRID_A2A( LLFILENAME, I1x1,    J1x1, 
+!     &                    INGRID,     OUTGRID, PERAREA=0 )
+!------------------------------------------------------------------------------
       CALL DO_REGRID_A2A( LLFILENAME, I1x1,    J1x1, 
-     &                    INGRID,     OUTGRID, PERAREA=0 )
+     &                    INGRID,     OUTGRID, PERAREA=0,
+     &                    netCDF=.TRUE.                   )
       E_TOLU = OUTGRID
 
       !=================================================================
@@ -2392,6 +2494,7 @@
 !  (1) Bug fix: EDGAR200607 should be EDGAR_200607 (tmf, bmy, 12/20/10)
 !  13 Mar 2012 - M. Cooper   - Changed regrid algorithm to map_a2a
 !  24 May 2012 - R. Yantosca - Fixed minor bugs in map_a2a implementation
+!  24 Aug 2012 - R. Yantosca - DO_REGRID_A2A now reads netCDF input file
 !******************************************************************************
 !
       ! References to F90 modules
@@ -2436,15 +2539,28 @@
      &                 0.d0,     I1x1,        J1x1,     
      &                 1,        ARRAY,       QUIET=.TRUE. )
 
+!------------------------------------------------------------------------------
+! Prior to 8/24/12:
+!      ! File with lat/lon edges for regridding
+!      LLFILENAME = TRIM( DATA_DIR_1x1) //
+!     &             'MAP_A2A_Regrid_201203/latlon_geos1x1_new.txt'
+!------------------------------------------------------------------------------
       ! File with lat/lon edges for regridding
       LLFILENAME = TRIM( DATA_DIR_1x1) //
-     &             'MAP_A2A_Regrid_201203/latlon_geos1x1_new.txt'
+     &             'MAP_A2A_Regrid_201203/MAP_A2A_latlon_geos1x1.nc'
 
       ! Regrid C2H4 from GEOS 1x1 to current model resolution
       ! [atoms C/cm2/s] (ccc, 3/9/09)
       INGRID = ARRAY
+!------------------------------------------------------------------------------
+! Prior to 8/24/12:
+!      CALL DO_REGRID_A2A( LLFILENAME, I1x1,    J1x1,
+!     &                    INGRID,     OUTGRID, PERAREA=0 )
+!------------------------------------------------------------------------------
       CALL DO_REGRID_A2A( LLFILENAME, I1x1,    J1x1,
-     &                    INGRID,     OUTGRID, PERAREA=0 )
+     &                    INGRID,     OUTGRID, PERAREA=0,
+     &                    netCDF=.TRUE.                   )
+
       E_C2H4 = OUTGRID
 
       ! Return to calling program
@@ -2468,7 +2584,7 @@
 !  (1) Bug fix: EDGAR200607 should be EDGAR_200607 (tmf, bmy, 12/20/10)
 !  13 Mar 2012 - M. Cooper   - Changed regrid algorithm to map_a2a
 !  24 May 2012 - R. Yantosca - Fixed minor bugs in map_a2a algorithm
-
+!  24 Aug 2012 - R. Yantosca - DO_REGRID_A2A now reads netCDF input file
 !******************************************************************************
 !
       ! References to F90 modules
@@ -2513,15 +2629,28 @@
      &                 0.d0,     I1x1,        J1x1,     
      &                 1,        ARRAY,       QUIET=.TRUE. )
          
+!------------------------------------------------------------------------------
+! Prior to 8/24/12:
       ! File with lat/lon edges for regridding
       LLFILENAME = TRIM( DATA_DIR_1x1) //
      &             'MAP_A2A_Regrid_201203/latlon_geos1x1_new.txt'
+!------------------------------------------------------------------------------
+      ! File with lat/lon edges for regridding
+      LLFILENAME = TRIM( DATA_DIR_1x1) //
+     &             'MAP_A2A_Regrid_201203/MAP_A2A_latlon_geos1x1.nc'
 
       ! Regrid C2H2 from GEOS 1x1 to current model resolution
       ! [atoms C/cm2/s] (ccc, 3/9/09)
       INGRID = ARRAY
+!------------------------------------------------------------------------------
+! Prior to 8/24/12:
+!      CALL DO_REGRID_A2A( LLFILENAME, I1x1,    J1x1, 
+!     &                    INGRID,     OUTGRID, PERAREA=0 )
+!------------------------------------------------------------------------------
       CALL DO_REGRID_A2A( LLFILENAME, I1x1,    J1x1, 
-     &                    INGRID,     OUTGRID, PERAREA=0 )
+     &                    INGRID,     OUTGRID, PERAREA=0,
+     &                    netCDF=.TRUE.                   )
+
       E_C2H2 = OUTGRID
 
       ! Return to calling program

@@ -331,6 +331,7 @@
 !  (7 ) Reordering of species done by REARRANGE_BIOM (fp, 6/09)
 !  13 Mar 2012 - M. Cooper   - Change regrid algorithm to map_a2a
 !  24 May 2012 - R. Yantosca - Fixed minor bugs in map_a2a algorithm
+!  24 Aug 2012 - R. Yantosca - DO_REGRID_A2A now reads netCDF input file
 !******************************************************************************
 !
       ! References to F90 modules
@@ -611,16 +612,31 @@
          ENDDO
 !$OMP END PARALLEL DO
 
+!------------------------------------------------------------------------------
+! Prior to 8/24/12:
+!      ! File with lat/lon edges for regridding
+!      LLFILENAME = TRIM( DATA_DIR_1x1) //
+!     &             'MAP_A2A_Regrid_201203/latlon_generic_new.txt'
+!
+!      ! Regrid each species from GENERIC 1x1 to current model resolution
+!      ! (The unit 'molec/cm2' is just used to denote that the quantity
+!      ! is per unit area.)
+!      INGRID => BIOM_GEN_1X1(:,:,N)
+!      CALL DO_REGRID_A2A( LLFILENAME, I1x1,           J1x1-1,
+!     &                    INGRID,     GFED_REGRIDDED, PERAREA=0 )
+!      GFED2_BIOMASS(:,:,N) = GFED_REGRIDDED
+!------------------------------------------------------------------------------
       ! File with lat/lon edges for regridding
       LLFILENAME = TRIM( DATA_DIR_1x1) //
-     &             'MAP_A2A_Regrid_201203/latlon_generic_new.txt'
+     &             'MAP_A2A_Regrid_201203/MAP_A2A_latlon_generic1x1.nc'
 
       ! Regrid each species from GENERIC 1x1 to current model resolution
       ! (The unit 'molec/cm2' is just used to denote that the quantity
       ! is per unit area.)
       INGRID => BIOM_GEN_1X1(:,:,N)
       CALL DO_REGRID_A2A( LLFILENAME, I1x1,           J1x1-1,
-     &                    INGRID,     GFED_REGRIDDED, PERAREA=0 )
+     &                    INGRID,     GFED_REGRIDDED, PERAREA=0,
+     &                    netCDF=.TRUE.                          )
       GFED2_BIOMASS(:,:,N) = GFED_REGRIDDED
 
       ! Free pointer
