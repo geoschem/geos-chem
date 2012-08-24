@@ -6310,6 +6310,7 @@
 !  22 Dec 2011 - M. Payer    - Added ProTeX headers
 !  13 Mar 2012 - M. Cooper   - Changed regrid algorithm to map_a2a
 !  24 May 2012 - R. Yantosca - Fixed minor bugs in map_a2a implementation
+!  24 Aug 2012 - R. Yantosca - DO_REGRID_A2A now reads netCDF input file
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -6365,9 +6366,15 @@
      &                 XTAU,      I1x1,             J1x1-1,
      &                 LVOLC,     ARRAY_GEN(:,:,:), QUIET=.TRUE. )
 
+!------------------------------------------------------------------------------
+! Prior to 8/24/12:
+!      ! File with lat/lon edges for regridding
+!      LLFILENAME = TRIM( DATA_DIR_1x1) //
+!     &             'MAP_A2A_Regrid_201203/latlon_generic_new.txt'
+!------------------------------------------------------------------------------
       ! File with lat/lon edges for regridding
-      LLFILENAME = TRIM( DATA_DIR_1x1) //
-     &             'MAP_A2A_Regrid_201203/latlon_generic_new.txt'
+      LLFILENAME = TRIM( DATA_DIR_1x1 ) //
+     &             'MAP_A2A_Regrid_201203/MAP_A2A_latlon_generic1x1.nc'
 
       ! Array regridding has to be done level by level since the array
       ! has a different vertical dimension than expected
@@ -6380,9 +6387,16 @@
          INGRID  => ARRAY_GEN8                     !Units kg 
          OUTGRID => ARRAY(:,:,L)
 
+!------------------------------------------------------------------------------
+! Prior to 8/24/12:
+!         ! Regrid
+!         CALL DO_REGRID_A2A( LLFILENAME, I1x1,    J1x1-1,
+!     &                       INGRID,     OUTGRID, PERAREA=1 )
+!------------------------------------------------------------------------------
          ! Regrid
          CALL DO_REGRID_A2A( LLFILENAME, I1x1,    J1x1-1,
-     &                       INGRID,     OUTGRID, PERAREA=1 )
+     &                       INGRID,     OUTGRID, PERAREA=1,
+     &                       netCDF=.TRUE.                   )
 
          ! Free pointers
          NULLIFY( INGRID, OUTGRID )
@@ -6438,6 +6452,7 @@
 !  22 Dec 2011 - M. Payer    - Added ProTeX headers
 !  13 Mar 2012 - M. Cooper   - Changed regrid algorithm to map_a2a
 !  24 May 2012 - R. Yantosca - Fixed minor bugs in map_a2a implementation
+!  24 Aug 2012 - R. Yantosca - DO_REGRID_A2A now reads netCDF input file
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -6486,10 +6501,16 @@
      &                    XTAU,      I1x1,             J1x1-1,
      &                    LVOLC,     ARRAY_GEN(:,:,:), QUIET=.TRUE. )
 
-
+!------------------------------------------------------------------------------
+! Prior to 8/24/12:
+!         ! File with lat/lon edges for regridding
+!         LLFILENAME = TRIM( DATA_DIR_1x1) //
+!     &                'MAP_A2A_Regrid_201203/latlon_generic_new.txt'
+!------------------------------------------------------------------------------
          ! File with lat/lon edges for regridding
-         LLFILENAME = TRIM( DATA_DIR_1x1) //
-     &                'MAP_A2A_Regrid_201203/latlon_generic_new.txt'
+         LLFILENAME = TRIM( DATA_DIR_1x1 )           //
+     &                'MAP_A2A_Regrid_201203/'       // 
+     &                'MAP_A2A_latlon_generic1x1.nc'
 
          ! Array regridding has to be done level by level since the array
          ! has a different vertical dimension than expected
@@ -6502,9 +6523,16 @@
             INGRID  => ARRAY_GEN8                      !Units kg 
             OUTGRID => ARRAY(:,:,L)
             
+!------------------------------------------------------------------------------
+! Prior to 8/24/12:
+!            ! Regrid
+!            CALL DO_REGRID_A2A( LLFILENAME, I1x1,    J1x1-1,
+!    &                          INGRID,     OUTGRID, PERAREA=1 )
+!------------------------------------------------------------------------------
             ! Regrid
             CALL DO_REGRID_A2A( LLFILENAME, I1x1,    J1x1-1,
-     &                          INGRID,     OUTGRID, PERAREA=1 )
+     &                          INGRID,     OUTGRID, PERAREA=1,
+     &                          netCDF=.TRUE.                   )
 
             ! Free pointer
             NULLIFY( INGRID, OUTGRID )
@@ -6994,6 +7022,7 @@
 !  22 Dec 2011 - M. Payer    - Added ProTeX headers
 !  13 Mar 2012 - M. Cooper   - Changed regrid algorithm to map_a2a
 !  24 May 2012 - R. Yantosca - Fixed minor bugs in map_a2a implementation
+!  24 Aug 2012 - R. Yantosca - DO_REGRID_A2A now reads netCDF input file
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -7039,14 +7068,26 @@
      &                    XTAU,      I1x1,          J1x1,     
      &                    1,         ARRAY1(:,:,1), QUIET=.TRUE. ) 
 
+!------------------------------------------------------------------------------
+! Prior to 8/24/12:
+!         ! File with lat/lon edges for regridding
+!         LLFILENAME = TRIM( DATA_DIR_1x1) //
+!     &                'MAP_A2A_Regrid_201203/latlon_geos1x1_new.txt'
+!------------------------------------------------------------------------------
          ! File with lat/lon edges for regridding
          LLFILENAME = TRIM( DATA_DIR_1x1) //
-     &                'MAP_A2A_Regrid_201203/latlon_geos1x1_new.txt'
+     &                'MAP_A2A_Regrid_201203/MAP_A2A_latlon_geos1x1.nc'
 
          ! Regrid from 1x1 and cast to REAL*8
          INGRID = ARRAY1(:,:,1)
+!------------------------------------------------------------------------------
+! Prior to 8/24/12:
+!         CALL DO_REGRID_A2A( LLFILENAME, I1x1,   J1x1,
+!     &                       INGRID,     SSTEMP, PERAREA=0 ) 
+!------------------------------------------------------------------------------
          CALL DO_REGRID_A2A( LLFILENAME, I1x1,   J1x1,
-     &                       INGRID,     SSTEMP, PERAREA=0 ) 
+     &                       INGRID,     SSTEMP, PERAREA=0,
+     &                       netCDF=.TRUE.                   )
 
       ELSE
 
@@ -7148,6 +7189,7 @@
 !                              SO2 (E. Leibensperger)
 !  06 Apr 2012 - M. Payer    - Changed regrid algorithm to map_a2a (M. Cooper)
 !  24 May 2012 - R. Yantosca - Fixed minor bugs in map_a2a implementation
+!  24 Aug 2012 - R. Yantosca - DO_REGRID_A2A now reads netCDF input file
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -7258,17 +7300,31 @@
          ! Cast from REAL*4 to REAL*8
          ESO2_GEN8 = ESO2_GEN
 
+!------------------------------------------------------------------------------
+! Prior to 8/24/12:
+!         ! File with lat/lon edges for regridding
+!         LLFILENAME = TRIM( DATA_DIR_1x1) //
+!     &                'MAP_A2A_Regrid_201203/latlon_generic_new.txt'
+!------------------------------------------------------------------------------
          ! File with lat/lon edges for regridding
-         LLFILENAME = TRIM( DATA_DIR_1x1) //
-     &                'MAP_A2A_Regrid_201203/latlon_generic_new.txt'
+         LLFILENAME = TRIM( DATA_DIR_1x1 )           //
+     &                'MAP_A2A_Regrid_201203/'       //
+     &                'MAP_A2A_latlon_generic1x1.nc'
 
          ! Point to input & output arrays
          INGRID  => ESO2_GEN8
          OUTGRID => TEMP_ED(:,:,1)
 
+!------------------------------------------------------------------------------
+! Prior to 8/24/12:
+!         ! Regrid to current model resolution [kg/yr]
+!         CALL DO_REGRID_A2A( LLFILENAME, I1x1,    J1x1-1, 
+!     &                       INGRID,     OUTGRID, PERAREA=0 )
+!------------------------------------------------------------------------------
          ! Regrid to current model resolution [kg/yr]
          CALL DO_REGRID_A2A( LLFILENAME, I1x1,    J1x1-1, 
-     &                       INGRID,     OUTGRID, PERAREA=0 )
+     &                       INGRID,     OUTGRID, PERAREA=0,
+     &                       netCDF=.TRUE.                   )
 
          ! Free pointers
          NULLIFY( INGRID, OUTGRID )

@@ -187,6 +187,7 @@
 !  28 Jan 2009 - A. v. Donkelaar, P. Le Sager - Initial Version
 !  13 Mar 2012 - M. Cooper   - Changed regrid algorithm to map_a2a
 !  24 May 2012 - R. Yantosca - Fix minor bugs in map_a2a algorithm
+!  24 Aug 2012 - R. Yantosca - DO_REGRID_A2A now reads netCDF input file
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -316,14 +317,27 @@
      &                 TAU,      I1x1,      J1x1,
      &                 1,        ARRAY,     QUIET=.TRUE. )
 
+!------------------------------------------------------------------------------
+! Prior to 8/24/12:
+!      ! File with lat/lon edges for regridding
+!      LLFILENAME = TRIM( DATA_DIR_1x1) //
+!     &             'MAP_A2A_Regrid_201203/latlon_geos1x1_new.txt'
+!------------------------------------------------------------------------------
       ! File with lat/lon edges for regridding
       LLFILENAME = TRIM( DATA_DIR_1x1) //
-     &             'MAP_A2A_Regrid_201203/latlon_geos1x1_new.txt'
+     &             'MAP_A2A_Regrid_201203/MAP_A2A_latlon_geos1x1.nc'
 
       ! Regrid to current model resolution
       INGRID = GEOS_1x1(:,:,1) * ARRAY(:,:,1)
+!------------------------------------------------------------------------------
+! Prior to 8/24/12:
+!      CALL DO_REGRID_A2A( LLFILENAME, I1x1,          J1x1,
+!     &                    INGRID,     VISTAS_WE_NOx, PERAREA=0 )
+!------------------------------------------------------------------------------
       CALL DO_REGRID_A2A( LLFILENAME, I1x1,          J1x1,
-     &                    INGRID,     VISTAS_WE_NOx, PERAREA=0 )
+     &                    INGRID,     VISTAS_WE_NOx, PERAREA=0,
+     &                    netCDF=.TRUE.                         )
+
 
       ! Load/Apply weekday factors
       FILENAME  = TRIM( VISTAS_DIR )
@@ -340,8 +354,14 @@
  
       ! Regrid from GEOS 1x1 --> current model resolution
       INGRID = GEOS_1x1(:,:,1) * ARRAY(:,:,1)
+!------------------------------------------------------------------------------
+! Prior to 8/24/12:
+!      CALL DO_REGRID_A2A( LLFILENAME, I1x1,          J1x1,
+!     &                    INGRID,     VISTAS_WD_NOx, PERAREA=0 )
+!------------------------------------------------------------------------------
       CALL DO_REGRID_A2A( LLFILENAME, I1x1,          J1x1,
-     &                    INGRID,     VISTAS_WD_NOx, PERAREA=0 )
+     &                    INGRID,     VISTAS_WD_NOx, PERAREA=0,
+     &                    netCDF=.TRUE.                         )
 
       !--------------------------
       ! Compute future emissions
