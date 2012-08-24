@@ -1903,6 +1903,7 @@
 !  01 Mar 2012 - R. Yantosca - Now use GET_AREA_M2(I,J,L) from grid_mod.F90
 !  13 Mar 2012 - M. Cooper   - Changed regrid algorithm to map_a2a
 !  24 May 2012 - R. Yantosca - Fixed minor bugs in map_a2a implementation
+!  24 Aug 2012 - R. Yantosca - DO_REGRID_A2A now reads netCDF input file
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -1979,14 +1980,26 @@
      &                 0d0,       I1x1,      J1x1,     
      &                 1,         ARRAY,     QUIET=.TRUE. )
 
+!------------------------------------------------------------------------------
+! Prior to 8/24/12:
+!     ! File with lat/lon edges for regridding
+!     LLFILENAME = TRIM( DATA_DIR_1x1) //
+!    &             'MAP_A2A_Regrid_201203/latlon_geos1x1_new.txt'
+!------------------------------------------------------------------------------
       ! File with lat/lon edges for regridding
       LLFILENAME = TRIM( DATA_DIR_1x1) //
-     &             'MAP_A2A_Regrid_201203/latlon_geos1x1_new.txt'
+     &             'MAP_A2A_Regrid_201203/MAP_A2A_latlon_geos1x1.nc'
 
       ! Regrid from 1x1 to the current grid (also cast to REAL*8)
       INGRID   = ARRAY(:,:,1)
+!------------------------------------------------------------------------------
+! Prior to 8/24/12:
+!     CALL DO_REGRID_A2A( LLFILENAME, I1x1,    J1x1, 
+!    &                    INGRID,     OUTGRID, PERAREA=0 )
+!------------------------------------------------------------------------------
       CALL DO_REGRID_A2A( LLFILENAME, I1x1,    J1x1, 
-     &                    INGRID,     OUTGRID, PERAREA=0 )
+     &                    INGRID,     OUTGRID, PERAREA=0,
+     &                    netCDF=.TRUE.                   )
       AEF_ISOP = OUTGRID
 
       ! Loop over surface boxes
@@ -2023,8 +2036,14 @@
 
       ! Regrid from 1x1 to the current grid (also cast to REAL*8)
       INGRID    = ARRAY(:,:,1)
+!------------------------------------------------------------------------------
+! Prior to 8/24/12:
+!     CALL DO_REGRID_A2A( LLFILENAME, I1x1,    J1x1, 
+!    &                    INGRID,     OUTGRID, PERAREA=0 )
+!------------------------------------------------------------------------------
       CALL DO_REGRID_A2A( LLFILENAME, I1x1,    J1x1, 
-     &                    INGRID,     OUTGRID, PERAREA=0 )
+     &                    INGRID,     OUTGRID, PERAREA=0,
+     &                    netCDF=.TRUE.                   )
       AEF_MONOT = OUTGRID
 
       ! Loop over surface boxes
@@ -2061,8 +2080,14 @@
 
       ! Regrid from 1x1 to the current grid (also cast to REAL*8)
       INGRID  = ARRAY(:,:,1)
+!------------------------------------------------------------------------------
+! Prior to 8/24/12:
+!     CALL DO_REGRID_A2A( LLFILENAME, I1x1,    J1x1, 
+!    &                    INGRID,     OUTGRID, PERAREA=0 )
+!------------------------------------------------------------------------------
       CALL DO_REGRID_A2A( LLFILENAME, I1x1,    J1x1, 
-     &                    INGRID,     OUTGRID, PERAREA=0 )
+     &                    INGRID,     OUTGRID, PERAREA=0,
+     &                    netCDF=.TRUE.                   )      
       AEF_MBO = OUTGRID
 
       ! Loop over surface boxes
@@ -2102,8 +2127,14 @@
 
       ! Regrid from 1x1 to the current grid (also cast to REAL*8)
       INGRID   = ARRAY(:,:,1)
+!------------------------------------------------------------------------------
+! Prior to 8/24/12:
+!     CALL DO_REGRID_A2A( LLFILENAME, I1x1,    J1x1, 
+!    &                    INGRID,     OUTGRID, PERAREA=0 )
+!------------------------------------------------------------------------------
       CALL DO_REGRID_A2A( LLFILENAME, I1x1,    J1x1, 
-     &                    INGRID,     OUTGRID, PERAREA=0 )
+     &                    INGRID,     OUTGRID, PERAREA=0,
+     &                    netCDF=.TRUE.                   )
       AEF_ACET = OUTGRID 
 
       ! Loop over surface boxes
@@ -2140,8 +2171,14 @@
 
       ! Regrid from 1x1 to the current grid (also cast to REAL*8)
       INGRID   = ARRAY(:,:,1)
+!------------------------------------------------------------------------------
+! Prior to 8/24/12:
+!      CALL DO_REGRID_A2A( LLFILENAME, I1x1,    J1x1, 
+!     &                    INGRID,     OUTGRID, PERAREA=0 )
+!------------------------------------------------------------------------------
       CALL DO_REGRID_A2A( LLFILENAME, I1x1,    J1x1, 
-     &                    INGRID,     OUTGRID, PERAREA=0 )
+     &                    INGRID,     OUTGRID, PERAREA=0,
+     &                    netCDF=.TRUE.                   )
       AEF_OVOC = OUTGRID
 
       ! Loop over surface boxes
@@ -2180,8 +2217,14 @@
 
       ! Regrid from 1x1 to the current grid (also cast to REAL*8)
       INGRID    = ARRAY(:,:,1)
+!------------------------------------------------------------------------------
+! Prior to 8/24/12:
+!      CALL DO_REGRID_A2A( LLFILENAME, I1x1,    J1x1, 
+!     &                    INGRID,     OUTGRID, PERAREA=0 )
+!------------------------------------------------------------------------------
       CALL DO_REGRID_A2A( LLFILENAME, I1x1,    J1x1, 
-     &                    INGRID,     OUTGRID, PERAREA=0 )
+     &                    INGRID,     OUTGRID, PERAREA=0,
+     &                    netCDF=.TRUE.                   )
       AEF_APINE = OUTGRID
 
       ! Loop over surface boxes
@@ -2216,8 +2259,14 @@
 
       ! Regrid from 1x1 to the current grid (also cast to REAL*8)
       INGRID    = ARRAY(:,:,1)
+!------------------------------------------------------------------------------
+! Prior to 8/24/12:
+!      CALL DO_REGRID_A2A( LLFILENAME, I1x1,    J1x1, 
+!     &                    INGRID,     OUTGRID, PERAREA=0 )
+!------------------------------------------------------------------------------
       CALL DO_REGRID_A2A( LLFILENAME, I1x1,    J1x1, 
-     &                    INGRID,     OUTGRID, PERAREA=0 )
+     &                    INGRID,     OUTGRID, PERAREA=0,
+     &                    netCDF=.TRUE.                   )
       AEF_BPINE = OUTGRID
 
       ! Loop over surface boxes
@@ -2252,8 +2301,14 @@
 
       ! Regrid from 1x1 to the current grid (also cast to REAL*8)
       INGRID    = ARRAY(:,:,1)
+!------------------------------------------------------------------------------
+! Prior to 8/24/12:
+!      CALL DO_REGRID_A2A( LLFILENAME, I1x1,    J1x1,
+!     &                    INGRID,     OUTGRID, PERAREA=0 )
+!------------------------------------------------------------------------------
       CALL DO_REGRID_A2A( LLFILENAME, I1x1,    J1x1,
-     &                    INGRID,     OUTGRID, PERAREA=0 )
+     &                    INGRID,     OUTGRID, PERAREA=0,
+     &                    netCDF=.TRUE.                   )
       AEF_LIMON = OUTGRID
 
       ! Loop over surface boxes
@@ -2288,8 +2343,14 @@
 
       ! Regrid from 1x1 to the current grid (also cast to REAL*8)
       INGRID    = ARRAY(:,:,1)
+!------------------------------------------------------------------------------
+! Prior to 8/24/12:
+!      CALL DO_REGRID_A2A( LLFILENAME, I1x1,    J1x1, 
+!     &                    INGRID,     OUTGRID, PERAREA=0 )
+!------------------------------------------------------------------------------
       CALL DO_REGRID_A2A( LLFILENAME, I1x1,    J1x1, 
-     &                    INGRID,     OUTGRID, PERAREA=0 )
+     &                    INGRID,     OUTGRID, PERAREA=0,
+     &                    netCDF=.TRUE.                   )
       AEF_SABIN = OUTGRID
 
       ! Loop over surface boxes
@@ -2324,8 +2385,15 @@
 
       ! Regrid from 1x1 to the current grid (also cast to REAL*8)
       INGRID    = ARRAY(:,:,1)
+!------------------------------------------------------------------------------
+! Prior to 8/24/12:
+!      CALL DO_REGRID_A2A( LLFILENAME, I1x1,    J1x1,
+!     &                    INGRID,     OUTGRID, PERAREA=0 )
+!------------------------------------------------------------------------------
       CALL DO_REGRID_A2A( LLFILENAME, I1x1,    J1x1,
-     &                    INGRID,     OUTGRID, PERAREA=0 )
+     &                    INGRID,     OUTGRID, PERAREA=0,
+     &                    netCDF=.TRUE.                   )
+
       AEF_MYRCN = OUTGRID
 
       ! Loop over surface boxes
@@ -2360,8 +2428,14 @@
 
       ! Regrid from 1x1 to the current grid (also cast to REAL*8)
       INGRID    = ARRAY(:,:,1)
+!------------------------------------------------------------------------------
+! Prior to 8/24/12:
+!      CALL DO_REGRID_A2A( LLFILENAME, I1x1,    J1x1, 
+!     &                    INGRID,     OUTGRID, PERAREA=0 )
+!------------------------------------------------------------------------------
       CALL DO_REGRID_A2A( LLFILENAME, I1x1,    J1x1, 
-     &                    INGRID,     OUTGRID, PERAREA=0 )
+     &                    INGRID,     OUTGRID, PERAREA=0,
+     &                    netCDF=.TRUE.                   )
       AEF_CAREN = OUTGRID
 
       ! Loop over surface boxes
@@ -2396,8 +2470,14 @@
 
       ! Regrid from 1x1 to the current grid (also cast to REAL*8)
       INGRID    = ARRAY(:,:,1)
+!------------------------------------------------------------------------------
+! Prior to 8/24/12:
+!      CALL DO_REGRID_A2A( LLFILENAME, I1x1,    J1x1, 
+!     &                    INGRID,     OUTGRID, PERAREA=0 )
+!------------------------------------------------------------------------------
       CALL DO_REGRID_A2A( LLFILENAME, I1x1,    J1x1, 
-     &                    INGRID,     OUTGRID, PERAREA=0 )
+     &                    INGRID,     OUTGRID, PERAREA=0,
+     &                    netCDF=.TRUE.                   )
       AEF_OCIMN = OUTGRID
 
       ! Loop over surface boxes
@@ -2455,6 +2535,7 @@
 !  01 Mar 2012 - R. Yantosca - Now use GET_AREA_M2(I,J,L) from grid_mod.F90
 !  02 Jul 2012 - R. Yantosca - Rename the input file latlon_nested.txt to 
 !                              latlon_geos05x0666.txt to avoid confusion
+!  24 Aug 2012 - R. Yantosca - DO_REGRID_A2A now reads netCDF input file
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -2485,9 +2566,15 @@
       FILENAME   = TRIM( DATA_DIR ) //
      &             'MEGAN_200510/MEGAN_AEF_ISOP.geos.05x0666'
 
+!------------------------------------------------------------------------------
+! Prior to 8/24/12:
+!     ! File with lat/lon edges for regridding
+!     LLFILENAME = TRIM( DATA_DIR_1x1 ) //
+!    &             'MAP_A2A_Regrid_201203/latlon_geos05x0666.txt'
+!------------------------------------------------------------------------------
       ! File with lat/lon edges for regridding
       LLFILENAME = TRIM( DATA_DIR_1x1 ) //
-     &             'MAP_A2A_Regrid_201203/latlon_geos05x0666.txt'
+     &             'MAP_A2A_Regrid_201203/MAP_A2A_latlon_geos05x0666.nc'
 
       ! Echo info
       WRITE( 6, 100 ) TRIM( FILENAME )
@@ -2503,8 +2590,14 @@
 
       ! Regrid from 0.5 x 0.666 global to the current nested grid
       INGRID => GEOS_05x0666
+!------------------------------------------------------------------------------
+! Prior to 8/24/12:
+!      CALL DO_REGRID_A2A( LLFILENAME, I05x0666, J05x0666,
+!     &                    INGRID,     OUTGRID,  PERAREA=1 )
+!------------------------------------------------------------------------------
       CALL DO_REGRID_A2A( LLFILENAME, I05x0666, J05x0666,
-     &                    INGRID,     OUTGRID,  PERAREA=1 )
+     &                    INGRID,     OUTGRID,  PERAREA=1,
+     &                    netCDF=.TRUE.                    )
       AEF_ISOP = OUTGRID
       NULLIFY( INGRID )
 
@@ -2545,8 +2638,14 @@
 
       ! Regrid from 0.5 x 0.666 to the current nested grid
       INGRID => GEOS_05x0666
+!------------------------------------------------------------------------------
+! Prior to 8/24/12:
+!      CALL DO_REGRID_A2A( LLFILENAME, I05x0666, J05x0666,
+!     &                    INGRID,     OUTGRID,  PERAREA=1 )
+!------------------------------------------------------------------------------
       CALL DO_REGRID_A2A( LLFILENAME, I05x0666, J05x0666,
-     &                    INGRID,     OUTGRID,  PERAREA=1 )
+     &                    INGRID,     OUTGRID,  PERAREA=1,
+     &                    netCDF=.TRUE.                    )
       AEF_MONOT = OUTGRID
       NULLIFY( INGRID )
 
@@ -2588,8 +2687,14 @@
 
       ! Regrid from 0.5 x 0.666 global to the current nested grid
       INGRID => GEOS_05x0666
+!------------------------------------------------------------------------------
+! Prior to 8/24/12:
+!      CALL DO_REGRID_A2A( LLFILENAME, I05x0666, J05x0666,
+!     &                    INGRID,     OUTGRID,  PERAREA=1 )
+!------------------------------------------------------------------------------
       CALL DO_REGRID_A2A( LLFILENAME, I05x0666, J05x0666,
-     &                    INGRID,     OUTGRID,  PERAREA=1 )
+     &                    INGRID,     OUTGRID,  PERAREA=1,
+     &                    netCDF=.TRUE.                    )
       AEF_MBO = OUTGRID
       NULLIFY( INGRID )
 
@@ -2630,8 +2735,14 @@
 
       ! Regrid from 0.5 x 0.666 global to the current nested grid
       INGRID => GEOS_05x0666
+!------------------------------------------------------------------------------
+! Prior to 8/24/12:
+!      CALL DO_REGRID_A2A( LLFILENAME, I05x0666, J05x0666,
+!     &                    INGRID,     OUTGRID,  PERAREA=1 )
+!------------------------------------------------------------------------------
       CALL DO_REGRID_A2A( LLFILENAME, I05x0666, J05x0666,
-     &                    INGRID,     OUTGRID,  PERAREA=1 )
+     &                    INGRID,     OUTGRID,  PERAREA=1,
+     &                    netCDF=.TRUE.                    )
       AEF_OVOC = OUTGRID
       NULLIFY( INGRID )
 

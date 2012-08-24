@@ -2668,6 +2668,7 @@
 !  24 May 2012 - H. Amos     - updated file paths for soil Hg files
 !  28 Jun 2012 - S. Kim      - Bug fix: you need to provide a location
 !                              in the call to ERROR_STOP
+!  24 Aug 2012 - R. Yantosca - DO_REGRID_A2A now reads netCDF input file
 !******************************************************************************
 !
       ! References to F90 modules
@@ -2717,9 +2718,15 @@
          ! Hg(0) emissions, except mining [kg/s]
          !---------------------------
 
+!------------------------------------------------------------------------------
+! Prior to 8/24/12:
+!         ! File with lat/lon edges for regridding
+!         LLFILENAME = TRIM( DATA_DIR_1x1) //
+!     &                'MAP_A2A_Regrid_201203/latlon_generic_new.txt'
+!------------------------------------------------------------------------------
          ! File with lat/lon edges for regridding
          LLFILENAME = TRIM( DATA_DIR_1x1) //
-     &                'MAP_A2A_Regrid_201203/latlon_generic_new.txt'
+     &              'MAP_A2A_Regrid_201203/MAP_A2A_latlon_generic1x1.nc'
 
          IF (LGCAPEMIS) THEN
             ! Use Bess' GCAP emissions
@@ -2749,8 +2756,14 @@
 
             ! Regrid from GENERIC 1x1 to the current grid
             INGRID  => GEN_1x1(:,:)
+!------------------------------------------------------------------------------
+! Prior to 8/24/12:
+!            CALL DO_REGRID_A2A( LLFILENAME, I1x1,    J1x1-1,
+!     &                          INGRID,     EHg0_an, PERAREA=1 )
+!------------------------------------------------------------------------------
             CALL DO_REGRID_A2A( LLFILENAME, I1x1,    J1x1-1,
-     &                          INGRID,     EHg0_an, PERAREA=1 )
+     &                          INGRID,     EHg0_an, PERAREA=1,
+     &                          netCDF=.TRUE.                   )
 
             ! Convert from [kg/yr] to [kg/s]
             EHg0_an = EHg0_an / SEC_PER_YR            
@@ -2785,8 +2798,15 @@
 
             ! Regrid from GENERIC 1x1 to the current grid
             INGRID  => GEN_1x1(:,:)
+!------------------------------------------------------------------------------
+! Prior to 8/24/12:
+!            CALL DO_REGRID_A2A( LLFILENAME, I1x1,    J1x1-1,
+!     &                          INGRID,     EHg0_an, PERAREA=1 )
+!------------------------------------------------------------------------------
             CALL DO_REGRID_A2A( LLFILENAME, I1x1,    J1x1-1,
-     &                          INGRID,     EHg0_an, PERAREA=1 )
+     &                          INGRID,     EHg0_an, PERAREA=1,
+     &                          netCDF=.TRUE.                   )
+
 
             ! Convert from [kg/yr] to [kg/s]
             EHg0_an = EHg0_an / SEC_PER_YR    
@@ -2828,8 +2848,14 @@
 
             ! Regrid from GENERIC 1x1 to the current grid
             INGRID  => GEN_1x1(:,:)
+!------------------------------------------------------------------------------
+! Prior to 8/24/12:
+!            CALL DO_REGRID_A2A( LLFILENAME, I1x1,    J1x1-1,
+!     &                          INGRID,     EHg0_an, PERAREA=1 )
+!------------------------------------------------------------------------------
             CALL DO_REGRID_A2A( LLFILENAME, I1x1,    J1x1-1,
-     &                          INGRID,     EHg0_an, PERAREA=1 )
+     &                          INGRID,     EHg0_an, PERAREA=1,
+     &                          netCDF=.TRUE.                   )
 
             ! Convert from [kg/yr] to [kg/s]
             EHg0_an = EHg0_an / SEC_PER_YR
@@ -2931,8 +2957,14 @@
 
             ! Regrid from GENERIC 1x1 to the current grid
             INGRID  => GEN_1x1(:,:)
+!------------------------------------------------------------------------------
+! Prior to 8/24/12:
+!            CALL DO_REGRID_A2A( LLFILENAME, I1x1,    J1x1-1,
+!     &                          INGRID,     EHg2_an, PERAREA=1 )
+!------------------------------------------------------------------------------
             CALL DO_REGRID_A2A( LLFILENAME, I1x1,    J1x1-1,
-     &                          INGRID,     EHg2_an, PERAREA=1 )
+     &                          INGRID,     EHg2_an, PERAREA=1,
+     &                          netCDF=.TRUE.                   )
 
             ! Convert from [kg/yr] to [kg/s]
             EHg2_an = EHg2_an / SEC_PER_YR
@@ -2964,8 +2996,14 @@
 
             ! Regrid from GENERIC 1x1 to the current grid
             INGRID  => GEN_1x1(:,:)
+!------------------------------------------------------------------------------
+! Prior to 8/24/12:
+!            CALL DO_REGRID_A2A( LLFILENAME, I1x1,    J1x1-1,
+!     &                          INGRID,     EHg2_an, PERAREA=1 )
+!------------------------------------------------------------------------------
             CALL DO_REGRID_A2A( LLFILENAME, I1x1,    J1x1-1,
-     &                          INGRID,     EHg2_an, PERAREA=1 )
+     &                          INGRID,     EHg2_an, PERAREA=1,
+     &                          netCDF=.TRUE.                   )
 
             ! Convert from [kg/yr] to [kg/s]
             EHg2_an = EHg2_an / SEC_PER_YR
@@ -3004,8 +3042,14 @@
 
             ! Regrid from GENERIC 1x1 to the current grid
             INGRID  => GEN_1x1(:,:)
+!------------------------------------------------------------------------------
+! Prior to 8/24/12:
+!            CALL DO_REGRID_A2A( LLFILENAME, I1x1,    J1x1-1,
+!     &                          INGRID,     EHg2_an, PERAREA=1 )
+!------------------------------------------------------------------------------
             CALL DO_REGRID_A2A( LLFILENAME, I1x1,    J1x1-1,
-     &                          INGRID,     EHg2_an, PERAREA=1 )
+     &                          INGRID,     EHg2_an, PERAREA=1,
+     &                          netCDF=.TRUE.                   )
 
             ! Convert from [kg/yr] to [kg/s]; increase Pacyna by 30%
             EHg2_an = EHg2_an * 1.3d0 / SEC_PER_YR
@@ -3042,8 +3086,14 @@
 
             ! Regrid from GENERIC 1x1 to the current grid
             INGRID  => GEN_1x1(:,:)
+!------------------------------------------------------------------------------
+! Prior to 8/24/12:
+!            CALL DO_REGRID_A2A( LLFILENAME, I1x1,    J1x1-1,
+!     &                          INGRID,     EHgP_an, PERAREA=1 )
+!------------------------------------------------------------------------------
             CALL DO_REGRID_A2A( LLFILENAME, I1x1,    J1x1-1,
-     &                          INGRID,     EHgP_an, PERAREA=1 )
+     &                          INGRID,     EHgP_an, PERAREA=1,
+     &                          netCDF=.TRUE.                   )
 
             ! Convert from [kg/yr] to [kg/s]
             EHgP_an = EHgP_an / SEC_PER_YR
@@ -3074,8 +3124,14 @@
 
             ! Regrid from GENERIC 1x1 to the current grid
             INGRID  => GEN_1x1(:,:)
+!------------------------------------------------------------------------------
+! Prior to 8/24/12:
+!            CALL DO_REGRID_A2A( LLFILENAME, I1x1,    J1x1-1,
+!     &                          INGRID,     EHgP_an, PERAREA=1 )
+!------------------------------------------------------------------------------
             CALL DO_REGRID_A2A( LLFILENAME, I1x1,    J1x1-1,
-     &                          INGRID,     EHgP_an, PERAREA=1 )
+     &                          INGRID,     EHgP_an, PERAREA=1,
+     &                          netCDF=.TRUE.                   )
 
             ! Convert from [kg/yr] to [kg/s]
             EHgP_an = EHgP_an / SEC_PER_YR
@@ -3113,8 +3169,14 @@
 
             ! Regrid from GENERIC 1x1 to the current grid
             INGRID  => GEN_1x1(:,:)
+!------------------------------------------------------------------------------
+! Prior to 8/24/12:
+!            CALL DO_REGRID_A2A( LLFILENAME, I1x1,    J1x1-1,
+!     &                          INGRID,     EHgP_an, PERAREA=1 )
+!------------------------------------------------------------------------------
             CALL DO_REGRID_A2A( LLFILENAME, I1x1,    J1x1-1,
-     &                          INGRID,     EHgP_an, PERAREA=1 )
+     &                          INGRID,     EHgP_an, PERAREA=1,
+     &                          netCDF=.TRUE.                   )
 
             ! Convert from [kg/yr] to [kg/s];increase Pacyna by 30%
             EHgP_an = EHgP_an * 1.3D0 / SEC_PER_YR
