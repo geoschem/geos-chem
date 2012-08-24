@@ -102,23 +102,12 @@
       ! Cast to REAL*8
       AS_1x1x1(:,:,1) = AS_1x1(:,:)
 
-!------------------------------------------------------------------------------
-! Prior to 8/24/12:
-!      ! File with lat/lon edges for regridding
-!      LLFILENAME = TRIM( DATA_DIR_1x1) //
-!     &             'MAP_A2A_Regrid_201203/latlon_geos1x1_new.txt'
-!------------------------------------------------------------------------------
       ! File with lat/lon edges for regridding
       LLFILENAME = TRIM( DATA_DIR_1x1) //
      &             'MAP_A2A_Regrid_201203/MAP_A2A_latlon_geos1x1.nc'
   
       ! Regrid emissions factors to current model resolution
       INGRID => AS_1x1x1(:,:,1)
-!------------------------------------------------------------------------------
-! Prior to 8/24/12:
-!      CALL DO_REGRID_A2A( LLFILENAME, I1x1,    J1x1, 
-!     &                    INGRID,     OUTGRID, PERAREA=0 )
-!------------------------------------------------------------------------------
       CALL DO_REGRID_A2A( LLFILENAME, I1x1,    J1x1, 
      &                    INGRID,     OUTGRID, PERAREA=0,
      &                    netCDF=.TRUE.                   )
@@ -376,23 +365,12 @@
 
       CALL GET_ANNUAL_SCALAR_1x1( TRACER, B_YEAR, T_YEAR, AS_1x1 )
 
-!------------------------------------------------------------------------------
-! Prior to 8/24/12:
-!      ! File with lat/lon edges for regridding
-!      LLFILENAME = TRIM( DATA_DIR_1x1) //
-!     &             'MAP_A2A_Regrid_201203/latlon_geos1x1_new.txt'
-!------------------------------------------------------------------------------
       ! File with lat/lon edges for regridding
       LLFILENAME = TRIM( DATA_DIR_1x1) //
      &             'MAP_A2A_Regrid_201203/MAP_A2A_latlon_geos1x1.nc'
   
       ! Regrid emissions factors to current model resolution [unitless]
       INGRID => AS_1x1(:,:,1)
-!------------------------------------------------------------------------------
-! Prior to 8/24/12:
-!      CALL DO_REGRID_A2A( LLFILENAME, I1x1,    J1x1, 
-!     &                    INGRID,     OUTGRID, PERAREA=0 )
-!------------------------------------------------------------------------------
       CALL DO_REGRID_A2A( LLFILENAME, I1x1,    J1x1, 
      &                    INGRID,     OUTGRID, PERAREA=0,
      &                    netCDF=.TRUE.                   )

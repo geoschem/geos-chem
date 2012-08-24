@@ -612,20 +612,6 @@
          ENDDO
 !$OMP END PARALLEL DO
 
-!------------------------------------------------------------------------------
-! Prior to 8/24/12:
-!      ! File with lat/lon edges for regridding
-!      LLFILENAME = TRIM( DATA_DIR_1x1) //
-!     &             'MAP_A2A_Regrid_201203/latlon_generic_new.txt'
-!
-!      ! Regrid each species from GENERIC 1x1 to current model resolution
-!      ! (The unit 'molec/cm2' is just used to denote that the quantity
-!      ! is per unit area.)
-!      INGRID => BIOM_GEN_1X1(:,:,N)
-!      CALL DO_REGRID_A2A( LLFILENAME, I1x1,           J1x1-1,
-!     &                    INGRID,     GFED_REGRIDDED, PERAREA=0 )
-!      GFED2_BIOMASS(:,:,N) = GFED_REGRIDDED
-!------------------------------------------------------------------------------
       ! File with lat/lon edges for regridding
       LLFILENAME = TRIM( DATA_DIR_1x1) //
      &             'MAP_A2A_Regrid_201203/MAP_A2A_latlon_generic1x1.nc'

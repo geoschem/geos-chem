@@ -422,25 +422,6 @@ CONTAINS
 #elif defined( GRID05x0666 )
     IIIPAR = 540
     JJJPAR = 361
-!==============================================================================
-! Prior to 5/1/12:
-! Only need nested grid sizes for now (mpayer, 5/1/12)
-!#elif defined( GRID1x125 )
-!    IIIPAR = 288
-!    JJJPAR = 181
-!#elif defined( GRID1x1 )
-!    IIIPAR = 360
-!    JJJPAR = 181
-!#elif defined( GRID2x25 )
-!    IIIPAR = 144
-!    JJJPAR = 91
-!#elif defined( GRID4x5 ) && defined( GCAP )
-!    IIIPAR = 72
-!    JJJPAR = 45
-!#elif defined( GRID4x5 )
-!    IIIPAR = 72
-!    JJJPAR = 46
-!==============================================================================
 #endif
     
     !=================================================================

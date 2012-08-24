@@ -278,12 +278,6 @@
 
       WRITE( SMONTH, '(i2.2)' ) THISMONTH
 
-!------------------------------------------------------------------------------
-! Prior to 8/24/12:
-!      ! File with lat/lon edges for regridding
-!      LLFILENAME = TRIM( DATA_DIR_1x1) //
-!     &             'MAP_A2A_Regrid_201203/latlon_geos1x1_new.txt'
-!------------------------------------------------------------------------------
       ! File with lat/lon edges for regridding
       LLFILENAME = TRIM( DATA_DIR_1x1) //
      &             'MAP_A2A_Regrid_201203/MAP_A2A_latlon_geos1x1.nc'
@@ -340,22 +334,12 @@
 
          IF ( SPECIES .eq. 1 ) THEN
 
-!------------------------------------------------------------------------------
-! Prior to 8/24/12:
-!            CALL DO_REGRID_A2A( LLFILENAME, I1x1, J1x1, 
-!     &                          INGRID,     NOx,  PERAREA=1 )
-!------------------------------------------------------------------------------
             CALL DO_REGRID_A2A( LLFILENAME, I1x1, J1x1, 
      &                          INGRID,     NOx,  PERAREA=1,
      &                          netCDF=.TRUE.                )
 
          ELSEIF ( SPECIES .eq. 2 ) THEN
 
-!------------------------------------------------------------------------------
-! Prior to 8/24/12:
-!            CALL DO_REGRID_A2A( LLFILENAME, I1x1, J1x1,
-!     &                          INGRID,     CO,   PERAREA=1 )
-!------------------------------------------------------------------------------
             CALL DO_REGRID_A2A( LLFILENAME, I1x1, J1x1,
      &                          INGRID,     CO,   PERAREA=1,
      &                          netCDF=.TRUE.                )
@@ -366,11 +350,6 @@
             ! 98.6% SO2 over NA, based upon Chin et al, 2000, and as
             ! utilized in sulfate_mod.f
             INGRID = INGRID * 0.986
-!------------------------------------------------------------------------------
-! Prior to 8/24/12:
-!            CALL DO_REGRID_A2A( LLFILENAME, I1x1, J1x1,
-!     &                          INGRID,     SO2,  PERAREA=1 )
-!------------------------------------------------------------------------------
             CALL DO_REGRID_A2A( LLFILENAME, I1x1, J1x1,
      &                          INGRID,     SO2,  PERAREA=1,
      &                          netCDF=.TRUE.                )

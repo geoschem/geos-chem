@@ -2718,12 +2718,6 @@
          ! Hg(0) emissions, except mining [kg/s]
          !---------------------------
 
-!------------------------------------------------------------------------------
-! Prior to 8/24/12:
-!         ! File with lat/lon edges for regridding
-!         LLFILENAME = TRIM( DATA_DIR_1x1) //
-!     &                'MAP_A2A_Regrid_201203/latlon_generic_new.txt'
-!------------------------------------------------------------------------------
          ! File with lat/lon edges for regridding
          LLFILENAME = TRIM( DATA_DIR_1x1) //
      &              'MAP_A2A_Regrid_201203/MAP_A2A_latlon_generic1x1.nc'
@@ -2756,11 +2750,6 @@
 
             ! Regrid from GENERIC 1x1 to the current grid
             INGRID  => GEN_1x1(:,:)
-!------------------------------------------------------------------------------
-! Prior to 8/24/12:
-!            CALL DO_REGRID_A2A( LLFILENAME, I1x1,    J1x1-1,
-!     &                          INGRID,     EHg0_an, PERAREA=1 )
-!------------------------------------------------------------------------------
             CALL DO_REGRID_A2A( LLFILENAME, I1x1,    J1x1-1,
      &                          INGRID,     EHg0_an, PERAREA=1,
      &                          netCDF=.TRUE.                   )
@@ -2798,11 +2787,6 @@
 
             ! Regrid from GENERIC 1x1 to the current grid
             INGRID  => GEN_1x1(:,:)
-!------------------------------------------------------------------------------
-! Prior to 8/24/12:
-!            CALL DO_REGRID_A2A( LLFILENAME, I1x1,    J1x1-1,
-!     &                          INGRID,     EHg0_an, PERAREA=1 )
-!------------------------------------------------------------------------------
             CALL DO_REGRID_A2A( LLFILENAME, I1x1,    J1x1-1,
      &                          INGRID,     EHg0_an, PERAREA=1,
      &                          netCDF=.TRUE.                   )
@@ -2848,11 +2832,6 @@
 
             ! Regrid from GENERIC 1x1 to the current grid
             INGRID  => GEN_1x1(:,:)
-!------------------------------------------------------------------------------
-! Prior to 8/24/12:
-!            CALL DO_REGRID_A2A( LLFILENAME, I1x1,    J1x1-1,
-!     &                          INGRID,     EHg0_an, PERAREA=1 )
-!------------------------------------------------------------------------------
             CALL DO_REGRID_A2A( LLFILENAME, I1x1,    J1x1-1,
      &                          INGRID,     EHg0_an, PERAREA=1,
      &                          netCDF=.TRUE.                   )
@@ -2957,11 +2936,6 @@
 
             ! Regrid from GENERIC 1x1 to the current grid
             INGRID  => GEN_1x1(:,:)
-!------------------------------------------------------------------------------
-! Prior to 8/24/12:
-!            CALL DO_REGRID_A2A( LLFILENAME, I1x1,    J1x1-1,
-!     &                          INGRID,     EHg2_an, PERAREA=1 )
-!------------------------------------------------------------------------------
             CALL DO_REGRID_A2A( LLFILENAME, I1x1,    J1x1-1,
      &                          INGRID,     EHg2_an, PERAREA=1,
      &                          netCDF=.TRUE.                   )
@@ -2996,11 +2970,6 @@
 
             ! Regrid from GENERIC 1x1 to the current grid
             INGRID  => GEN_1x1(:,:)
-!------------------------------------------------------------------------------
-! Prior to 8/24/12:
-!            CALL DO_REGRID_A2A( LLFILENAME, I1x1,    J1x1-1,
-!     &                          INGRID,     EHg2_an, PERAREA=1 )
-!------------------------------------------------------------------------------
             CALL DO_REGRID_A2A( LLFILENAME, I1x1,    J1x1-1,
      &                          INGRID,     EHg2_an, PERAREA=1,
      &                          netCDF=.TRUE.                   )
@@ -3042,11 +3011,6 @@
 
             ! Regrid from GENERIC 1x1 to the current grid
             INGRID  => GEN_1x1(:,:)
-!------------------------------------------------------------------------------
-! Prior to 8/24/12:
-!            CALL DO_REGRID_A2A( LLFILENAME, I1x1,    J1x1-1,
-!     &                          INGRID,     EHg2_an, PERAREA=1 )
-!------------------------------------------------------------------------------
             CALL DO_REGRID_A2A( LLFILENAME, I1x1,    J1x1-1,
      &                          INGRID,     EHg2_an, PERAREA=1,
      &                          netCDF=.TRUE.                   )
@@ -3086,11 +3050,6 @@
 
             ! Regrid from GENERIC 1x1 to the current grid
             INGRID  => GEN_1x1(:,:)
-!------------------------------------------------------------------------------
-! Prior to 8/24/12:
-!            CALL DO_REGRID_A2A( LLFILENAME, I1x1,    J1x1-1,
-!     &                          INGRID,     EHgP_an, PERAREA=1 )
-!------------------------------------------------------------------------------
             CALL DO_REGRID_A2A( LLFILENAME, I1x1,    J1x1-1,
      &                          INGRID,     EHgP_an, PERAREA=1,
      &                          netCDF=.TRUE.                   )
@@ -3124,11 +3083,6 @@
 
             ! Regrid from GENERIC 1x1 to the current grid
             INGRID  => GEN_1x1(:,:)
-!------------------------------------------------------------------------------
-! Prior to 8/24/12:
-!            CALL DO_REGRID_A2A( LLFILENAME, I1x1,    J1x1-1,
-!     &                          INGRID,     EHgP_an, PERAREA=1 )
-!------------------------------------------------------------------------------
             CALL DO_REGRID_A2A( LLFILENAME, I1x1,    J1x1-1,
      &                          INGRID,     EHgP_an, PERAREA=1,
      &                          netCDF=.TRUE.                   )
@@ -3169,11 +3123,6 @@
 
             ! Regrid from GENERIC 1x1 to the current grid
             INGRID  => GEN_1x1(:,:)
-!------------------------------------------------------------------------------
-! Prior to 8/24/12:
-!            CALL DO_REGRID_A2A( LLFILENAME, I1x1,    J1x1-1,
-!     &                          INGRID,     EHgP_an, PERAREA=1 )
-!------------------------------------------------------------------------------
             CALL DO_REGRID_A2A( LLFILENAME, I1x1,    J1x1-1,
      &                          INGRID,     EHgP_an, PERAREA=1,
      &                          netCDF=.TRUE.                   )
@@ -4466,12 +4415,6 @@
       USE LOGICAL_MOD , ONLY : LGTMM
       USE TRACER_MOD  , ONLY : N_TRACERS
       USE TRACERID_MOD, ONLY : N_Hg_CATS
-!------------------------------------------------------------------------------
-! Prior to 4/11/12:
-! Replace lai_mod.F with modis_lai_mod.F.  Also now initialize the LAI
-! arrays from main.F instead of from within this module. (bmy, 4/11/12)
-!      USE LAI_MOD     , ONLY : INIT_LAI
-!------------------------------------------------------------------------------
 
       USE CMN_SIZE_MOD     ! Size parameters
       USE CMN_DIAG_MOD     ! ND44
@@ -4589,13 +4532,6 @@
       ALLOCATE( HGPFRAC( IIPAR, JJPAR, LLPAR ), STAT=AS )
       IF ( AS /= 0 ) CALL ALLOC_ERR( 'HGPFRAC' )
       HGPFRAC = 0d0
-
-!------------------------------------------------------------------------------
-! Prior to 4/11/12:
-! Replace lai_mod.F with modis_lai_mod.F.  Also now initialize the LAI
-! arrays from main.F instead of from within this module. (bmy, 4/11/12)
-!      CALL INIT_LAI
-!------------------------------------------------------------------------------
 
       !=================================================================
       ! Allocate & initialize arrays for tagged tracer indices

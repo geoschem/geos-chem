@@ -2393,30 +2393,6 @@ contains
        enddo
        endif
 
-!%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-!%%% Prior to 6/22/15:
-!%%% Now use pointers instead of flipping (bmy 6/22/12)
-!%%%       ! Use simpler way to flip vectors in vertical (bmy, 12/17/10)
-!%%%       ! mozart is top-down and geos-chem is bottom-up
-!%%%       um1    = um1   ( :, :, LLPAR  :1:-1 )   
-!%%%       vm1    = vm1   ( :, :, LLPAR  :1:-1 )
-!%%%       tadv   = tadv  ( :, :, LLPAR  :1:-1 )
-!%%%       pmid   = pmid  ( :, :, LLPAR  :1:-1 )
-!%%%       pint   = pint  ( :, :, LLPAR+1:1:-1 )
-!%%%       rpdel  = rpdel ( :, :, LLPAR  :1:-1 )
-!%%%       rpdeli = rpdeli( :, :, LLPAR  :1:-1 )
-!%%%       zm     = zm    ( :, :, LLPAR  :1:-1 )
-!%%%       thp    = thp   ( :, :, LLPAR  :1:-1 )
-!%%%
-!%%%       ! Flip AS2 array in vertical (tracer concentrations)
-!%%%       ! Also convert from v/v -> m/m (i.e., kg/kg)
-!%%%       DO N = 1, N_TRACERS
-!%%%          as2(:,:,:,N) = as2(:,:,LLPAR:1:-1,N) / TCVV(N) 
-!%%%       ENDDO
-!%%%
-!%%%       shp    = shp   ( :, :, LLPAR  :1:-1 ) * 1.d-3 ! g/kg -> kg/kg
-!%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-
        !-------------------------------------------------------------------
        ! Now use pointers to flip arrays in the vertical (bmy, 6/22/15)
        !-------------------------------------------------------------------
@@ -2455,18 +2431,6 @@ contains
 !$OMP PARALLEL DO DEFAULT( SHARED )      &
 !$OMP PRIVATE( J )     
        do J = 1, JJPAR
-!%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-!%%% Prior to 6/21/12:
-!%%%          call vdiff( J, 1, um1, vm1, tadv,        &
-!%%%                      pmid, pint, rpdel,           &
-!%%%                      rpdeli, dtime,               &
-!%%%                      zm, hflx, sflx,              &
-!%%%                      thp, as2, pblh,              &
-!%%%                      kvh,                         &
-!%%%                      kvm, tpert, qpert,           &
-!%%%                      cgs, shp,                    &
-!%%%                      shflx, IIPAR, ustar_arg=ustar)
-!%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
           call vdiff( J,      1,      p_um1,   p_vm1,    p_tadv,          &
                       p_pmid, p_pint, p_rpdel, p_rpdeli, dtime,           &
                       p_zm,   hflx,   sflx,    p_thp,    p_as2,           &
@@ -2478,32 +2442,6 @@ contains
 
        !### Debug
        IF ( LPRT ) CALL DEBUG_MSG( '### VDIFFDR: after vdiff' )
-
-!%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-!%%% Prior to 6/21/12:
-!%%%       ! Use simpler way to flip vectors in vertical (bmy, 12/17/10)
-!%%%       ! mozart is top-down and geos-chem is bottom-up
-!%%%       um1    = um1   ( :, :, LLPAR  :1:-1 )   
-!%%%       vm1    = vm1   ( :, :, LLPAR  :1:-1 )
-!%%%       tadv   = tadv  ( :, :, LLPAR  :1:-1 )
-!%%%       pmid   = pmid  ( :, :, LLPAR  :1:-1 )
-!%%%       pint   = pint  ( :, :, LLPAR+1:1:-1 )
-!%%%       rpdel  = rpdel ( :, :, LLPAR  :1:-1 )
-!%%%       rpdeli = rpdeli( :, :, LLPAR  :1:-1 )
-!%%%       zm     = zm    ( :, :, LLPAR  :1:-1 )
-!%%%       thp    = thp   ( :, :, LLPAR  :1:-1 )
-!%%%
-!%%%       ! Flip AS2 array in vertical (tracer concentrations)
-!%%%       ! Also convert from m/m (i.e. kg/kg) -> v/v
-!%%%       DO N = 1, N_TRACERS
-!%%%          as2(:,:,:,N) = as2(:,:,LLPAR:1:-1,N) * TCVV(N)
-!%%%       ENDDO
-!%%%
-!%%%       kvh    = kvh   ( :, :, LLPAR+1:1:-1 )
-!%%%       kvm    = kvm   ( :, :, LLPAR+1:1:-1 )
-!%%%       cgs    = cgs   ( :, :, LLPAR+1:1:-1 )
-!%%%       shp    = shp   ( :, :, LLPAR  :1:-1 ) * 1.d3 ! kg/kg -> g/kg
-!%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
        ! Convert kg/kg -> v/v
        DO N = 1, N_TRACERS
@@ -2525,29 +2463,6 @@ contains
 !       %%% NOTE: THIS SECTION IS NORMALLY NOT EXECUTED %%%
 !       %%% BECAUSE ARVDIFF IS SET TO .FALSE. ABOVE     %%% 
 !-----------------------------------------------------------------------
-
-!%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-!%%% Prior to 6/21/12:
-!%%%       ! Use simpler way to flip vectors in vertical (bmy, 12/17/10)
-!%%%       ! mozart is top-down and geos-chem is bottom-up
-!%%%       t1     = tadv  ( :, :, LLPAR  :1:-1 )
-!%%%       pmid   = pmid  ( :, :, LLPAR  :1:-1 )
-!%%%       pint   = pint  ( :, :, LLPAR+1:1:-1 )
-!%%%       rpdel  = rpdel ( :, :, LLPAR  :1:-1 )
-!%%%       rpdeli = rpdeli( :, :, LLPAR  :1:-1 )
-!%%%       kvh    = kvh   ( :, :, LLPAR+1:1:-1 )
-!%%%       cgs    = cgs   ( :, :, LLPAR+1:1:-1 )
-!%%%
-!%%%       ! Flip AS2 array in vertical (tracer concentrations)
-!%%%       DO N = 1, N_TRACERS
-!%%%          as2(:,:,:,N) = as2(:,:,LLPAR:1:-1,N)
-!%%%       ENDDO
-!%%%
-!%%%       ! Convert from v/v -> m/m (i.e., kg/kg)
-!%%%       do N = 1, N_TRACERS
-!%%%          as2(:,:,:,N) = as2(:,:,:,N) / TCVV(N) 
-!%%%       enddo
-!%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
        !-------------------------------------------------------------------
        ! Now use pointers to flip arrays in the vertical (bmy, 6/22/15)
@@ -2578,14 +2493,6 @@ contains
 !!$OMP PARALLEL DO DEFAULT( SHARED )   &
 !!$OMP PRIVATE( J )
        do J = 1, JJPAR
-!%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-!%%% Prior to 6/21/12:
-!%%%          call vdiffar( J, tadv, &
-!%%%                        pmid, pint,        &
-!%%%                        rpdel, rpdeli, dtime, &
-!%%%                        sflx, as2,                   &
-!%%%                        kvh, cgs, IIPAR)
-!%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
           call vdiffar( J,      p_tadv, p_pmid, p_pint, p_rpdel, p_rpdeli,  &
                         dtime,  sflx,   p_as2,  p_kvh,  p_cgs,   IIPAR     )
       enddo
@@ -2593,25 +2500,6 @@ contains
 
        !### Debug
        IF ( LPRT ) CALL DEBUG_MSG( '### VDIFFDR: after vdiffar' )
-
-!%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-!%%% Prior to 6/21/12:
-!%%%       ! Convert from m/m (i.e. kg/kg) -> v/v
-!%%%       do N = 1, N_TRACERS
-!%%%          as2(:,:,:,N) = as2(:,:,:,N) * TCVV(N) 
-!%%%       enddo
-!%%%
-!%%%       ! Use simpler way to flip vectors in vertical (bmy, 12/17/10)
-!%%%       ! mozart is top-down and geos-chem is bottom-up
-!%%%       t1     = t1    ( :, :, LLPAR  :1:-1 )
-!%%%       kvh    = kvh   ( :, :, LLPAR+1:1:-1 )
-!%%%       cgs    = cgs   ( :, :, LLPAR+1:1:-1 )
-!%%%
-!%%%       ! Flip AS2 array in vertical (tracer concentrations)
-!%%%       DO N = 1, N_TRACERS
-!%%%          as2(:,:,:,N) = as2(:,:,LLPAR:1:-1,N)
-!%%%       ENDDO
-!%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
        ! Convert from m/m (i.e. kg/kg) -> v/v
        do N = 1, N_TRACERS

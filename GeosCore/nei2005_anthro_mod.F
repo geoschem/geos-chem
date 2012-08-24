@@ -475,12 +475,6 @@
      &                9,       5,       21,      19,      35,           
      &                34,      11,      20,      18,      10       /)
 
-!------------------------------------------------------------------------------
-! Prior to 8/24/12:
-!      ! File with lat/lon edges for regridding
-!      LLFILENAME = TRIM( DATA_DIR_1x1) //
-!     &             'MAP_A2A_Regrid_201203/latlon_geos1x1_new.txt'
-!------------------------------------------------------------------------------
       ! File with lat/lon edges for regridding
       LLFILENAME = TRIM( DATA_DIR_1x1) //
      &             'MAP_A2A_Regrid_201203/MAP_A2A_latlon_geos1x1.nc'
@@ -561,11 +555,6 @@
                OUTGRID => NOx(:,:,L)
 
 !               ! Regrid
-!------------------------------------------------------------------------------
-! Prior to 8/24/12:
-!               CALL DO_REGRID_A2A( LLFILENAME, I1x1,    J1x1,
-!     &                             INGRID,     OUTGRID, PERAREA=1 )
-!------------------------------------------------------------------------------
                CALL DO_REGRID_A2A( LLFILENAME, I1x1,    J1x1,
      &                             INGRID,     OUTGRID, PERAREA=1,
      &                             netCDF=.TRUE.                   )
@@ -584,11 +573,6 @@
                OUTGRID => NOx_WKEND(:,:,L)
 
                ! Regrid
-!------------------------------------------------------------------------------
-! Prior to 8/24/12:
-!               CALL DO_REGRID_A2A( LLFILENAME, I1x1,    J1x1,
-!     &                             INGRID,     OUTGRID, PERAREA=1 )
-!------------------------------------------------------------------------------
                CALL DO_REGRID_A2A( LLFILENAME, I1x1,    J1x1,
      &                             INGRID,     OUTGRID, PERAREA=1,
      &                             netCDF=.TRUE.                   )
@@ -617,11 +601,6 @@
                OUTGRID => CO(:,:,L)
 
                ! Regrid
-!------------------------------------------------------------------------------
-! Prior to 8/24/12:
-!               CALL DO_REGRID_A2A( LLFILENAME, I1x1,    J1x1,
-!     &                             INGRID,     OUTGRID, PERAREA=1 )
-!------------------------------------------------------------------------------
                CALL DO_REGRID_A2A( LLFILENAME, I1x1,    J1x1,
      &                             INGRID,     OUTGRID, PERAREA=1,
      &                             netCDF=.TRUE.                   )
@@ -639,11 +618,6 @@
                OUTGRID => CO_WKEND(:,:,L)
 
                ! Regrid
-!------------------------------------------------------------------------------
-! Prior to 8/24/12:
-!               CALL DO_REGRID_A2A( LLFILENAME, I1x1,    J1x1,
-!     &                             INGRID,     OUTGRID, PERAREA=1 )
-!------------------------------------------------------------------------------
                CALL DO_REGRID_A2A( LLFILENAME, I1x1,    J1x1,
      &                             INGRID,     OUTGRID, PERAREA=1,
      &                             netCDF=.TRUE.                   )
@@ -672,11 +646,6 @@
                OUTGRID => SO2(:,:,L)
 
                ! Regrid
-!------------------------------------------------------------------------------
-! Prior to 8/24/12:
-!               CALL DO_REGRID_A2A( LLFILENAME, I1x1,    J1x1,
-!     &                             INGRID,     OUTGRID, PERAREA=1 )
-!------------------------------------------------------------------------------
                CALL DO_REGRID_A2A( LLFILENAME, I1x1,    J1x1,
      &                             INGRID,     OUTGRID, PERAREA=1,
      &                             netCDF=.TRUE.                   )
@@ -693,11 +662,6 @@
                OUTGRID => SO2_WKEND(:,:,L)
 
                ! Regrid
-!------------------------------------------------------------------------------
-! Prior to 8/24/12:
-!               CALL DO_REGRID_A2A( LLFILENAME, I1x1,    J1x1,
-!     &                             INGRID,     OUTGRID, PERAREA=1 )
-!------------------------------------------------------------------------------
                CALL DO_REGRID_A2A( LLFILENAME, I1x1,    J1x1,
      &                             INGRID,     OUTGRID, PERAREA=1,
      &                             netCDF=.TRUE.                   )
@@ -725,11 +689,7 @@
                INGRID  => GEOS_1x1(:,:,L)
                OUTGRID => SO4(:,:,L)
 
-!------------------------------------------------------------------------------
-! Prior to 8/24/12:
-!               CALL DO_REGRID_A2A( LLFILENAME, I1x1,    J1x1,
-!     &                             INGRID,     OUTGRID, PERAREA=1 )
-!------------------------------------------------------------------------------
+               ! Regrid
                CALL DO_REGRID_A2A( LLFILENAME, I1x1,    J1x1,
      &                             INGRID,     OUTGRID, PERAREA=1,
      &                             netCDF=.TRUE.                   )
@@ -747,11 +707,6 @@
                OUTGRID => SO4_WKEND(:,:,L)
 
                ! Regrid
-!------------------------------------------------------------------------------
-! Prior to 8/24/12:
-!               CALL DO_REGRID_A2A( LLFILENAME, I1x1,    J1x1,
-!     &                             INGRID,     OUTGRID, PERAREA=1 )
-!------------------------------------------------------------------------------
                CALL DO_REGRID_A2A( LLFILENAME, I1x1,    J1x1,
      &                             INGRID,     OUTGRID, PERAREA=1,
      &                             netCDF=.TRUE.                   )
@@ -779,11 +734,6 @@
                OUTGRID => NH3(:,:,L)
 
                ! Regrid
-!------------------------------------------------------------------------------
-! Prior to 8/24/12:
-!               CALL DO_REGRID_A2A( LLFILENAME, I1x1,    J1x1,
-!     &                             INGRID,     OUTGRID, PERAREA=1 )
-!------------------------------------------------------------------------------
                CALL DO_REGRID_A2A( LLFILENAME, I1x1,    J1x1,
      &                             INGRID,     OUTGRID, PERAREA=1,
      &                             netCDF=.TRUE.                   )
@@ -801,11 +751,6 @@
                OUTGRID => NH3_WKEND(:,:,L)
 
                ! Regrid
-!------------------------------------------------------------------------------
-! Prior to 8/24/12:
-!               CALL DO_REGRID_A2A( LLFILENAME, I1x1,    J1x1,
-!     &                             INGRID,     OUTGRID, PERAREA=1 )
-!------------------------------------------------------------------------------
                CALL DO_REGRID_A2A( LLFILENAME, I1x1,    J1x1,
      &                             INGRID,     OUTGRID, PERAREA=1,
      &                             netCDF=.TRUE.                   )
@@ -834,11 +779,6 @@
                OUTGRID => OC(:,:,L)
 
                ! Regrid
-!------------------------------------------------------------------------------
-! Prior to 8/24/12:
-!               CALL DO_REGRID_A2A( LLFILENAME, I1x1,    J1x1,
-!     &                             INGRID,     OUTGRID, PERAREA=1 )
-!------------------------------------------------------------------------------
                CALL DO_REGRID_A2A( LLFILENAME, I1x1,    J1x1,
      &                             INGRID,     OUTGRID, PERAREA=1,
      &                             netCDF=.TRUE.                   )
@@ -856,11 +796,6 @@
                OUTGRID => OC_WKEND(:,:,L)
 
                ! Regrid
-!------------------------------------------------------------------------------
-! Prior to 8/24/12:
-!               CALL DO_REGRID_A2A( LLFILENAME, I1x1,    J1x1,
-!     &                             INGRID,     OUTGRID, PERAREA=1 )
-!------------------------------------------------------------------------------
                CALL DO_REGRID_A2A( LLFILENAME, I1x1,    J1x1,
      &                             INGRID,     OUTGRID, PERAREA=1,
      &                             netCDF=.TRUE.                   )
@@ -889,11 +824,6 @@
                OUTGRID => BC(:,:,L)
                
                ! Regrid
-!------------------------------------------------------------------------------
-! Prior to 8/24/12:
-!               CALL DO_REGRID_A2A( LLFILENAME, I1x1,    J1x1,
-!     &                             INGRID,     OUTGRID, PERAREA=1 )
-!------------------------------------------------------------------------------
                CALL DO_REGRID_A2A( LLFILENAME, I1x1,    J1x1,
      &                             INGRID,     OUTGRID, PERAREA=1,
      &                             netCDF=.TRUE.                   )
@@ -909,11 +839,7 @@
                INGRID  =  INGRID * ARRAY(:,:,L)
                OUTGRID => BC_WKEND(:,:,L)
 
-!------------------------------------------------------------------------------
-! Prior to 8/24/12:
-!               CALL DO_REGRID_A2A( LLFILENAME, I1x1,    J1x1,
-!     &                             INGRID,     OUTGRID, PERAREA=1 )
-!------------------------------------------------------------------------------
+               ! Regrid
                CALL DO_REGRID_A2A( LLFILENAME, I1x1,    J1x1,
      &                             INGRID,     OUTGRID, PERAREA=1,
      &                             netCDF=.TRUE.                   )
@@ -941,11 +867,6 @@
                OUTGRID => ALK4(:,:,L)
 
                ! Regrid
-!------------------------------------------------------------------------------
-! Prior to 8/24/12:
-!               CALL DO_REGRID_A2A( LLFILENAME, I1x1,    J1x1,
-!     &                             INGRID,     OUTGRID, PERAREA=1 )
-!------------------------------------------------------------------------------
                CALL DO_REGRID_A2A( LLFILENAME, I1x1,    J1x1,
      &                             INGRID,     OUTGRID, PERAREA=1,
      &                             netCDF=.TRUE.                   )
@@ -963,11 +884,6 @@
                OUTGRID => ALK4_WKEND(:,:,L)
 
                ! Regrid
-!------------------------------------------------------------------------------
-! Prior to 8/24/12:
-!               CALL DO_REGRID_A2A( LLFILENAME, I1x1,    J1x1,
-!     &                             INGRID,     OUTGRID, PERAREA=1 )
-!------------------------------------------------------------------------------
                CALL DO_REGRID_A2A( LLFILENAME, I1x1,    J1x1,
      &                             INGRID,     OUTGRID, PERAREA=1,
      &                             netCDF=.TRUE.                   )
@@ -996,11 +912,6 @@
                OUTGRID => ACET(:,:,L)
 
                ! Regrid
-!------------------------------------------------------------------------------
-! Prior to 8/24/12:
-!               CALL DO_REGRID_A2A( LLFILENAME, I1x1,    J1x1,
-!     &                             INGRID,     OUTGRID, PERAREA=1 )
-!------------------------------------------------------------------------------
                CALL DO_REGRID_A2A( LLFILENAME, I1x1,    J1x1,
      &                             INGRID,     OUTGRID, PERAREA=1,
      &                             netCDF=.TRUE.                   )
@@ -1018,11 +929,6 @@
                OUTGRID => ACET_WKEND(:,:,L)
 
                ! Regrid
-!------------------------------------------------------------------------------
-! Prior to 8/24/12:
-!               CALL DO_REGRID_A2A( LLFILENAME, I1x1,    J1x1,
-!     &                             INGRID,     OUTGRID, PERAREA=1 )
-!------------------------------------------------------------------------------
                CALL DO_REGRID_A2A( LLFILENAME, I1x1,    J1x1,
      &                             INGRID,     OUTGRID, PERAREA=1,
      &                             netCDF=.TRUE.                   )
@@ -1051,11 +957,6 @@
                OUTGRID => MEK(:,:,L)
 
                ! Regrid
-!------------------------------------------------------------------------------
-! Prior to 8/24/12:
-!               CALL DO_REGRID_A2A( LLFILENAME, I1x1,    J1x1,
-!     &                             INGRID,     OUTGRID, PERAREA=1 )
-!------------------------------------------------------------------------------
                CALL DO_REGRID_A2A( LLFILENAME, I1x1,    J1x1,
      &                             INGRID,     OUTGRID, PERAREA=1,
      &                             netCDF=.TRUE.                   )
@@ -1073,11 +974,6 @@
                OUTGRID => MEK_WKEND(:,:,L)
 
                ! Regrid
-!------------------------------------------------------------------------------
-! Prior to 8/24/12:
-!               CALL DO_REGRID_A2A( LLFILENAME, I1x1,    J1x1,
-!     &                             INGRID,     OUTGRID, PERAREA=1 )
-!------------------------------------------------------------------------------
                CALL DO_REGRID_A2A( LLFILENAME, I1x1,    J1x1,
      &                             INGRID,     OUTGRID, PERAREA=1,
      &                             netCDF=.TRUE.                   )
@@ -1104,11 +1000,7 @@
                INGRID  => GEOS_1x1(:,:,L)
                OUTGRID => PRPE(:,:,L)
 
-!------------------------------------------------------------------------------
-! Prior to 8/24/12:
-!               CALL DO_REGRID_A2A( LLFILENAME, I1x1,    J1x1,
-!     &                             INGRID,     OUTGRID, PERAREA=1 )
-!------------------------------------------------------------------------------
+               ! Regrid
                CALL DO_REGRID_A2A( LLFILENAME, I1x1,    J1x1,
      &                             INGRID,     OUTGRID, PERAREA=1,
      &                             netCDF=.TRUE.                   )
@@ -1125,11 +1017,7 @@
                INGRID  =  INGRID * ARRAY(:,:,L)
                OUTGRID => PRPE_WKEND(:,:,L)
 
-!------------------------------------------------------------------------------
-! Prior to 8/24/12:
-!               CALL DO_REGRID_A2A( LLFILENAME, I1x1,    J1x1,
-!     &                             INGRID,     OUTGRID, PERAREA=1 )
-!------------------------------------------------------------------------------
+               ! Regrid
                CALL DO_REGRID_A2A( LLFILENAME, I1x1,    J1x1,
      &                             INGRID,     OUTGRID, PERAREA=1,
      &                             netCDF=.TRUE.                   )
@@ -1156,11 +1044,6 @@
                OUTGRID => C3H8(:,:,L)
 
                ! Regrid
-!------------------------------------------------------------------------------
-! Prior to 8/24/12:
-!               CALL DO_REGRID_A2A( LLFILENAME, I1x1,    J1x1,
-!     &                             INGRID,     OUTGRID, PERAREA=1 )
-!------------------------------------------------------------------------------
                CALL DO_REGRID_A2A( LLFILENAME, I1x1,    J1x1,
      &                             INGRID,     OUTGRID, PERAREA=1,
      &                             netCDF=.TRUE.                   )
@@ -1178,11 +1061,6 @@
                OUTGRID => C3H8_WKEND(:,:,L)
 
                ! Regrid
-!------------------------------------------------------------------------------
-! Prior to 8/24/12:
-!               CALL DO_REGRID_A2A( LLFILENAME, I1x1,    J1x1,
-!     &                             INGRID,     OUTGRID, PERAREA=1 )
-!------------------------------------------------------------------------------
                CALL DO_REGRID_A2A( LLFILENAME, I1x1,    J1x1,
      &                             INGRID,     OUTGRID, PERAREA=1,
      &                             netCDF=.TRUE.                   )
@@ -1211,11 +1089,6 @@
                OUTGRID => CH2O(:,:,L)
 
                ! Regrid
-!------------------------------------------------------------------------------
-! Prior to 8/24/12:
-!               CALL DO_REGRID_A2A( LLFILENAME, I1x1,    J1x1,
-!     &                             INGRID,     OUTGRID, PERAREA=1 )
-!------------------------------------------------------------------------------
                CALL DO_REGRID_A2A( LLFILENAME, I1x1,    J1x1,
      &                             INGRID,     OUTGRID, PERAREA=1,
      &                             netCDF=.TRUE.                   )
@@ -1233,11 +1106,6 @@
                OUTGRID => CH2O_WKEND(:,:,L)
 
                ! Regrid
-!------------------------------------------------------------------------------
-! Prior to 8/24/12:
-!               CALL DO_REGRID_A2A( LLFILENAME, I1x1,    J1x1,
-!     &                             INGRID,     OUTGRID, PERAREA=1 )
-!------------------------------------------------------------------------------
                CALL DO_REGRID_A2A( LLFILENAME, I1x1,    J1x1,
      &                             INGRID,     OUTGRID, PERAREA=1,
      &                             netCDF=.TRUE.                   )
@@ -1266,11 +1134,6 @@
                OUTGRID => C2H6(:,:,L)
 
                ! Regrid
-!------------------------------------------------------------------------------
-! Prior to 8/24/12:
-!               CALL DO_REGRID_A2A( LLFILENAME, I1x1,    J1x1,
-!     &                             INGRID,     OUTGRID, PERAREA=1 )
-!------------------------------------------------------------------------------
                CALL DO_REGRID_A2A( LLFILENAME, I1x1,    J1x1,
      &                             INGRID,     OUTGRID, PERAREA=1,
      &                             netCDF=.TRUE.                   )
@@ -1288,11 +1151,6 @@
                OUTGRID => C2H6_WKEND(:,:,L)
 
                ! Regrid
-!------------------------------------------------------------------------------
-! Prior to 8/24/12:
-!               CALL DO_REGRID_A2A( LLFILENAME, I1x1,    J1x1,
-!     &                             INGRID,     OUTGRID, PERAREA=1 )
-!------------------------------------------------------------------------------
                CALL DO_REGRID_A2A( LLFILENAME, I1x1,    J1x1,
      &                             INGRID,     OUTGRID, PERAREA=1,
      &                             netCDF=.TRUE.                   )
@@ -1319,11 +1177,7 @@
                INGRID  => GEOS_1x1(:,:,L)
                OUTGRID => ALD2(:,:,L)
 
-!------------------------------------------------------------------------------
-! Prior to 8/24/12:
-!               CALL DO_REGRID_A2A( LLFILENAME, I1x1,    J1x1,
-!     &                             INGRID,     OUTGRID, PERAREA=1 )
-!------------------------------------------------------------------------------
+               ! Regrid
                CALL DO_REGRID_A2A( LLFILENAME, I1x1,    J1x1,
      &                             INGRID,     OUTGRID, PERAREA=1,
      &                             netCDF=.TRUE.                   )
@@ -1340,11 +1194,7 @@
                INGRID  =  INGRID * ARRAY(:,:,L)
                OUTGRID => ALD2_WKEND(:,:,L)
 
-!------------------------------------------------------------------------------
-! Prior to 8/24/12:
-!               CALL DO_REGRID_A2A( LLFILENAME, I1x1,    J1x1,
-!     &                             INGRID,     OUTGRID, PERAREA=1 )
-!------------------------------------------------------------------------------
+               ! Regrid
                CALL DO_REGRID_A2A( LLFILENAME, I1x1,    J1x1,
      &                             INGRID,     OUTGRID, PERAREA=1,
      &                             netCDF=.TRUE.                   )
@@ -1989,12 +1839,6 @@
 
       CALL GET_NEI99_SEASON( TRACER, ARRAY )
 
-!------------------------------------------------------------------------------
-! Prior to 8/24/12:
-!      ! File with lat/lon edges for regridding
-!      LLFILENAME = TRIM( DATA_DIR_1x1) //
-!     &             'MAP_A2A_Regrid_201203/latlon_geos1x1_new.txt'
-!------------------------------------------------------------------------------
       ! File with lat/lon edges for regridding
       LLFILENAME = TRIM( DATA_DIR_1x1) //
      &             'MAP_A2A_Regrid_201203/MAP_A2A_latlon_geos1x1.nc'
@@ -2002,11 +1846,6 @@
       ! Regrid to current model resolution [unitless]
       DO L = 1, 5
          INGRID = ARRAY(:,:,L)
-!------------------------------------------------------------------------------
-! Prior to 8/24/12:
-!         CALL DO_REGRID_A2A( LLFILENAME, I1x1,    J1x1,
-!     &                       INGRID,     OUTGRID, PERAREA=1 )
-!------------------------------------------------------------------------------
          CALL DO_REGRID_A2A( LLFILENAME, I1x1,    J1x1,
      &                       INGRID,     OUTGRID, PERAREA=1,
      &                       netCDF=.TRUE.                   )
@@ -2242,12 +2081,6 @@
 
       CALL GET_VISTAS_SEASON( ARRAY )
 
-!------------------------------------------------------------------------------
-! Prior to 8/24/12:
-!      ! File with lat/lon edges for regridding
-!      LLFILENAME = TRIM( DATA_DIR_1x1) //
-!     &             'MAP_A2A_Regrid_201203/latlon_geos1x1_new.txt'
-!------------------------------------------------------------------------------
       ! File with lat/lon edges for regridding
       LLFILENAME = TRIM( DATA_DIR_1x1) //
      &             'MAP_A2A_Regrid_201203/MAP_A2A_latlon_geos1x1.nc'
@@ -2255,11 +2088,6 @@
       ! Regrid to current model resolution [unitless]
       DO L = 1, 5
          INGRID = ARRAY(:,:,L)
-!------------------------------------------------------------------------------
-! Prior to 8/24/12:
-!         CALL DO_REGRID_A2A( LLFILENAME, I1x1,    J1x1,
-!     &                       INGRID,     OUTGRID, PERAREA=1 )
-!------------------------------------------------------------------------------
          CALL DO_REGRID_A2A( LLFILENAME, I1x1,    J1x1,
      &                       INGRID,     OUTGRID, PERAREA=1,
      &                       netCDF=.TRUE.                   )
@@ -2441,12 +2269,6 @@
 
       CALL GET_NEI99_WKSCALE( TRACER, ARRAY )
 
-!------------------------------------------------------------------------------
-! Prior to 8/24/12:
-!      ! File with lat/lon edges for regridding
-!      LLFILENAME = TRIM( DATA_DIR_1x1) //
-!    &             'MAP_A2A_Regrid_201203/latlon_geos1x1_new.txt'
-!------------------------------------------------------------------------------
       ! File with lat/lon edges for regridding
       LLFILENAME = TRIM( DATA_DIR_1x1) //
      &             'MAP_A2A_Regrid_201203/MAP_A2A_latlon_geos1x1.nc'
@@ -2454,11 +2276,6 @@
       ! Regrid to current model resolution [unitless]
       DO L = 1, 5
          INGRID = ARRAY(:,:,L)
-!------------------------------------------------------------------------------
-! Prior to 8/24/12:
-!         CALL DO_REGRID_A2A( LLFILENAME, I1x1,    J1x1,
-!     &                       INGRID,     OUTGRID, PERAREA=1 )
-!------------------------------------------------------------------------------
          CALL DO_REGRID_A2A( LLFILENAME, I1x1,    J1x1,
      &                       INGRID,     OUTGRID, PERAREA=1,
      &                       netCDF=.TRUE.                   )
@@ -2552,11 +2369,6 @@
 
       ! Regrid from GEOS 1x1 --> current model resolution [unitless]
       INGRID => GEOS_1x1(:,:,1)
-!------------------------------------------------------------------------------
-! Prior to 8/24/12:
-!      CALL DO_REGRID_A2A( LLFILENAME, I1x1,     J1x1,
-!     &                    INGRID,     USA_MASK, PERAREA=0 )
-!------------------------------------------------------------------------------
       CALL DO_REGRID_A2A( LLFILENAME, I1x1,     J1x1,
      &                    INGRID,     USA_MASK, PERAREA=0,
      &                    netCDF=.TRUE.                   )

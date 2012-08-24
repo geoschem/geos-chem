@@ -1024,10 +1024,6 @@ c907  FORMAT(20X,6E10.3/(8E10.3))
 
       DO J = 1,JJPAR
       DO I = 1,IIPAR
-!------------------------------------------
-! Prior to 7/31/12:
-!      DO L = MINVAL(LPAUSE),LLPAR
-!------------------------------------------
       DO L = 1, LLPAR
          IF (L .LT. LPAUSE(I,J)) CYCLE
          STT(I,J,L,IDTOX) = TLSTT(J,L,1) / TCVV(IDTOX)

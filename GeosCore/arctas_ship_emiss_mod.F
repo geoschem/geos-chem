@@ -373,18 +373,6 @@
       ! Cast to REAL*8 before regridding
       GEN_1x1(:,:) = ARRAY(:,:,1)
   
-!------------------------------------------------------------------------------ 
-! Prior to 8/24/12:
-!      ! File with lat/lon edges for regridding
-!      LLFILENAME = TRIM( DATA_DIR_1x1) //
-!     &             'MAP_A2A_Regrid_201203/latlon_generic_new.txt'
-!
-!      ! Regrid from GENERIC 1x1 --> Current Model Resolution
-!      INGRID => GEN_1x1(:,:)
-!      CALL DO_REGRID_A2A( LLFILENAME, I1x1,    J1x1-1, 
-!     &                    INGRID,     OUTGRID, PERAREA=1 )
-!------------------------------------------------------------------------------ 
-
       ! File with lat/lon edges for regridding
       LLFILENAME = TRIM( DATA_DIR_1x1) //
      &             'MAP_A2A_Regrid_201203/MAP_A2A_latlon_generic1x1.nc'

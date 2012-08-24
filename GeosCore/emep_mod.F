@@ -432,12 +432,6 @@
       ! Open file
       CALL OPEN_BPCH2_FOR_READ( IU_FILE, FILENAME )
 
-!------------------------------------------------------------------------------
-! Prior to 8/24/12:
-!      ! File with lat/lon edges for regridding
-!      LLFILENAME = TRIM( DATA_DIR_1x1) //
-!     &             'MAP_A2A_Regrid_201203/latlon_geos1x1_new.txt'
-!------------------------------------------------------------------------------
       ! File with lat/lon edges for regridding
       LLFILENAME = TRIM( DATA_DIR_1x1) //
      &             'MAP_A2A_Regrid_201203/MAP_A2A_latlon_geos1x1.nc'
@@ -474,22 +468,12 @@
             ! NOx [molec/cm2/s]
             CASE( 1  )
                INGRID = ARRAY(:,:,1)
-!------------------------------------------------------------------------------
-! Prior to 8/24/12:
-!               CALL DO_REGRID_A2A( LLFILENAME, I1x1,      J1x1,
-!     &                             INGRID,     EMEP_NOx,  PERAREA=0 )
-!------------------------------------------------------------------------------
                CALL DO_REGRID_A2A( LLFILENAME, I1x1,      J1x1,
      &                             INGRID,     EMEP_NOx,  PERAREA=0,
      &                             netCDF=.TRUE.                     )
             ! CO [molec/cm2/s]
             CASE( 4  )
                INGRID = ARRAY(:,:,1)
-!------------------------------------------------------------------------------
-! Prior to 8/24/12:               
-!               CALL DO_REGRID_A2A( LLFILENAME, I1x1,      J1x1,
-!     &                             INGRID,     EMEP_CO,   PERAREA=0 )
-!------------------------------------------------------------------------------
                CALL DO_REGRID_A2A( LLFILENAME, I1x1,      J1x1,
      &                             INGRID,     EMEP_CO,   PERAREA=0,
      &                             netCDF=.TRUE.                     )
@@ -497,11 +481,6 @@
             ! ALK4 [atoms C/cm2/s]
             CASE( 5  )
                INGRID = ARRAY(:,:,1)
-!------------------------------------------------------------------------------
-! Prior to 8/24/12:
-!               CALL DO_REGRID_A2A( LLFILENAME, I1x1,      J1x1,
-!     &                             INGRID,     EMEP_ALK4, PERAREA=0 )
-!------------------------------------------------------------------------------
                CALL DO_REGRID_A2A( LLFILENAME, I1x1,      J1x1,
      &                             INGRID,     EMEP_ALK4, PERAREA=0,
      &                             netCDF=.TRUE.                     )
@@ -509,11 +488,6 @@
             ! MEK [atoms C/cm2/s]
             CASE( 10 )
                INGRID = ARRAY(:,:,1)
-!------------------------------------------------------------------------------
-! Prior to 8/24/12:
-!               CALL DO_REGRID_A2A( LLFILENAME, I1x1,      J1x1,
-!     &                             INGRID,     EMEP_MEK,  PERAREA=0 )
-!------------------------------------------------------------------------------
                CALL DO_REGRID_A2A( LLFILENAME, I1x1,      J1x1,
      &                             INGRID,     EMEP_MEK,  PERAREA=0,
      &                             netCDF=.TRUE.                     )
@@ -521,11 +495,6 @@
             ! ALD2 [atoms C/cm2/s]
             CASE( 11 )
                INGRID = ARRAY(:,:,1)
-!------------------------------------------------------------------------------
-! Prior to 8/24/12:
-!               CALL DO_REGRID_A2A( LLFILENAME, I1x1,      J1x1,
-!     &                             INGRID,     EMEP_ALD2, PERAREA=0 )
-!------------------------------------------------------------------------------
                CALL DO_REGRID_A2A( LLFILENAME, I1x1,      J1x1,
      &                             INGRID,     EMEP_ALD2, PERAREA=0,
      &                             netCDF=.TRUE.                     )
@@ -533,11 +502,6 @@
             ! PRPE [atoms C/cm2/s]
             CASE( 18 )
                INGRID = ARRAY(:,:,1)
-!------------------------------------------------------------------------------
-! Prior to 8/24/12:
-!               CALL DO_REGRID_A2A( LLFILENAME, I1x1,      J1x1,
-!     &                             INGRID,     EMEP_PRPE, PERAREA=0 )
-!------------------------------------------------------------------------------
                CALL DO_REGRID_A2A( LLFILENAME, I1x1,      J1x1,
      &                             INGRID,     EMEP_PRPE, PERAREA=0,
      &                             netCDF=.TRUE.                     )
@@ -545,11 +509,6 @@
             ! C2H6 [atoms C/cm2/s]
             CASE( 21 )
                INGRID = ARRAY(:,:,1)
-!------------------------------------------------------------------------------
-! Prior to 8/24/12:
-!               CALL DO_REGRID_A2A( LLFILENAME, I1x1,      J1x1,
-!     &                             INGRID,     EMEP_C2H6, PERAREA=0 )
-!------------------------------------------------------------------------------
                CALL DO_REGRID_A2A( LLFILENAME, I1x1,      J1x1,
      &                             INGRID,     EMEP_C2H6, PERAREA=0,
      &                             netCDF=.TRUE.                     )
@@ -1235,12 +1194,6 @@
       FILENAME  = TRIM( DATA_DIR_1x1 ) // 
      &            'EMEP_200911/EMEP_mask.geos.1x1'
 
-!------------------------------------------------------------------------------
-! Prior to 8/24/12:
-!      ! File with lat/lon edges for regridding
-!      LLFILENAME = TRIM( DATA_DIR_1x1) //
-!     &             'MAP_A2A_Regrid_201203/latlon_geos1x1_new.txt'
-!------------------------------------------------------------------------------
       ! File with lat/lon edges for regridding
       LLFILENAME = TRIM( DATA_DIR_1x1) //
      &             'MAP_A2A_Regrid_201203/MAP_A2A_latlon_geos1x1.nc'
@@ -1256,11 +1209,6 @@
 
       ! Regrid from GEOS 1x1 GRID to current model resolution
       INGRID = ARRAY(:,:,1)
-!------------------------------------------------------------------------------
-! Prior to 8/24/12:
-!      CALL DO_REGRID_A2A( LLFILENAME, I1x1,    J1x1,
-!     &                    INGRID,     OUTGRID, PERAREA=0 )  
-!------------------------------------------------------------------------------
       CALL DO_REGRID_A2A( LLFILENAME, I1x1,    J1x1,
      &                    INGRID,     OUTGRID, PERAREA=0,
      &                    netCDF=.TRUE.                   )  
@@ -1499,23 +1447,12 @@
      &                                       ARRAY_1x1_SHIP(:,:,1)
       IF ( wSHIP .eq. 2 ) ARRAY_1x1(:,:,1) = ARRAY_1x1_SHIP(:,:,1)
 
-!------------------------------------------------------------------------------
-! Prior to 8/24/12:
-!      ! File with lat/lon edges for regridding
-!      LLFILENAME = TRIM( DATA_DIR_1x1) //
-!     &             'MAP_A2A_Regrid_201203/latlon_geos1x1_new.txt'
-!------------------------------------------------------------------------------
       ! File with lat/lon edges for regridding
       LLFILENAME = TRIM( DATA_DIR_1x1) //
      &             'MAP_A2A_Regrid_201203/MAP_A2A_latlon_geos1x1.nc'
 
       ! Regrid to current model resolution [kg/yr]
       INGRID = ARRAY_1x1(:,:,1)
-!------------------------------------------------------------------------------
-! Prior to 8/24/12:
-!      CALL DO_REGRID_A2A( LLFILENAME, I1x1,    J1x1,
-!     &                    INGRID,     OUTGRID, PERAREA=1 )
-!------------------------------------------------------------------------------
       CALL DO_REGRID_A2A( LLFILENAME, I1x1,    J1x1,
      &                    INGRID,     OUTGRID, PERAREA=1,
      &                    netCDF=.TRUE.                   )

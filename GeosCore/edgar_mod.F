@@ -431,23 +431,12 @@
       ! (these average out to 1.0)
       !----------------------------------
 
-!------------------------------------------------------------------------------
-! Prior to 8/24/12:
-!      ! File with lat/lon edges for regridding
-!      LLFILENAME = TRIM( DATA_DIR_1x1) //
-!     &             'MAP_A2A_Regrid_201203/latlon_generic_new.txt'
-!------------------------------------------------------------------------------
       ! File with lat/lon edges for regridding
       LLFILENAME = TRIM( DATA_DIR_1x1) //
      &             'MAP_A2A_Regrid_201203/MAP_A2A_latlon_generic1x1.nc'
       
       ! Regrid anthro emissions to current resolution
       INGRID => E_NOx_1x1(:,:)
-!------------------------------------------------------------------------------
-! Prior to 8/24/12:
-!      CALL DO_REGRID_A2A( LLFILENAME, I1x1,     J1x1-1, 
-!     &                    INGRID,     TEMP_TOT, PERAREA=1 )
-!------------------------------------------------------------------------------
       CALL DO_REGRID_A2A( LLFILENAME, I1x1,     J1x1-1, 
      &                    INGRID,     TEMP_TOT, PERAREA=1,
      &                    netCDF=.TRUE.                    )
@@ -458,11 +447,6 @@
 
          ! Regrid hourly emissions to current resolution
          INGRID => E_NOx_HRLY_1x1(:,:,H)
-!------------------------------------------------------------------------------
-! Prior to 8/24/12:
-!         CALL DO_REGRID_A2A( LLFILENAME, I1x1,      J1x1-1, 
-!     &                       INGRID,     TEMP_HRLY, PERAREA=1 )
-!------------------------------------------------------------------------------
          CALL DO_REGRID_A2A( LLFILENAME, I1x1,      J1x1-1, 
      &                       INGRID,     TEMP_HRLY, PERAREA=1,
      &                       netCDF=.TRUE.                     )
@@ -491,11 +475,6 @@
 
       ! Regrid NOx emissions to current model resolution [kg/yr]
       INGRID => E_NOx_1x1(:,:)
-!------------------------------------------------------------------------------
-! Prior to 8/24/12:
-!      CALL DO_REGRID_A2A( LLFILENAME, I1x1,    J1x1-1, 
-!     &                    INGRID,     OUTGRID, PERAREA=1 )
-!------------------------------------------------------------------------------
       CALL DO_REGRID_A2A( LLFILENAME, I1x1,    J1x1-1, 
      &                    INGRID,     OUTGRID, PERAREA=1,
      &                    netCDF=.TRUE.                   )
@@ -518,11 +497,6 @@
 
          ! Regrid NOX emissions to current model resolution [kg/yr]
          INGRID => E_NOX_SHIP_1x1(:,:)
-!------------------------------------------------------------------------------
-! Prior to 8/24/12:
-!         CALL DO_REGRID_A2A( LLFILENAME,  I1x1,    J1x1-1, 
-!     &                       INGRID,      OUTGRID, PERAREA=1 )
-!------------------------------------------------------------------------------
          CALL DO_REGRID_A2A( LLFILENAME,  I1x1,    J1x1-1, 
      &                       INGRID,      OUTGRID, PERAREA=1,
      &                       netCDF=.TRUE. )
@@ -1018,23 +992,12 @@
       ! Do the regridding
       !----------------------------------
 
-!------------------------------------------------------------------------------
-! Prior to 8/24/12:
-!      ! File with lat/lon edges for regridding
-!      LLFILENAME = TRIM( DATA_DIR_1x1) //
-!     &             'MAP_A2A_Regrid_201203/latlon_generic_new.txt'
-!------------------------------------------------------------------------------
       ! File with lat/lon edges for regridding
       LLFILENAME = TRIM( DATA_DIR_1x1) //
      &             'MAP_A2A_Regrid_201203/MAP_A2A_latlon_generic1x1.nc'
 
       ! Regrid CO emissions to current model resolution [kg/yr]
       INGRID => E_CO_1x1
-!------------------------------------------------------------------------------
-! Prior to 8/24/12:
-!      CALL DO_REGRID_A2A( LLFILENAME, I1x1,    J1x1-1, 
-!     &                    INGRID,     OUTGRID, PERAREA=1 )
-!------------------------------------------------------------------------------
       CALL DO_REGRID_A2A( LLFILENAME, I1x1,    J1x1-1, 
      &                    INGRID,     OUTGRID, PERAREA=1,
      &                    netCDF=.TRUE.                   )
@@ -1059,11 +1022,6 @@
 
          ! Regrid CO emissions to current model resolution [kg/yr]
          INGRID => E_CO_SHIP_1x1
-!------------------------------------------------------------------------------
-! Prior to 8/24/12:
-!         CALL DO_REGRID_A2A( LLFILENAME, I1x1,    J1x1-1, 
-!     &                       INGRID,     OUTGRID, PERAREA=1 )
-!------------------------------------------------------------------------------
          CALL DO_REGRID_A2A( LLFILENAME, I1x1,    J1x1-1, 
      &                       INGRID,     OUTGRID, PERAREA=1,
      &                       netCDF=.TRUE.                   )
@@ -1252,23 +1210,12 @@
       ! Read EDGAR anthro SO2 and ship SO2
       CALL READ_EDGAR_SO2( E_SO2_1x1, E_SO2_SHIP_1x1 )
 
-!------------------------------------------------------------------------------
-! Prior to 8/24/12:
-!      ! File with lat/lon edges for regridding
-!      LLFILENAME = TRIM( DATA_DIR_1x1) //
-!     &             'MAP_A2A_Regrid_201203/latlon_generic_new.txt'
-!------------------------------------------------------------------------------
       ! File with lat/lon edges for regridding
       LLFILENAME = TRIM( DATA_DIR_1x1) //
      &             'MAP_A2A_Regrid_201203/MAP_A2A_latlon_generic1x1.nc'
 
       ! Regrid SO2 emissions to current model resolution [kg/yr]
       INGRID => E_SO2_1x1
-!------------------------------------------------------------------------------
-! Prior to 8/24/12:
-!      CALL DO_REGRID_A2A( LLFILENAME, I1x1,    J1x1-1, 
-!     &                    INGRID,     OUTGRID, PERAREA=1 )
-!------------------------------------------------------------------------------
       CALL DO_REGRID_A2A( LLFILENAME, I1x1,    J1x1-1, 
      &                    INGRID,     OUTGRID, PERAREA=1,
      &                    netCDF=.TRUE.                   )
@@ -1302,11 +1249,6 @@
 
          ! Regrid SO2 emissions to current model resolution [kg/yr]
          INGRID => E_SO2_SHIP_1x1
-!------------------------------------------------------------------------------
-! Prior to 8/24/12:
-!         CALL DO_REGRID_A2A( LLFILENAME, I1x1,    J1x1-1, 
-!     &                       INGRID,     OUTGRID, PERAREA=1 )
-!------------------------------------------------------------------------------
          CALL DO_REGRID_A2A( LLFILENAME, I1x1,    J1x1-1, 
      &                       INGRID,     OUTGRID, PERAREA=1,
      &                       netCDF=.TRUE.                   )
@@ -1652,23 +1594,12 @@
      &                 MONTH_TAU0, I1x1,      J1x1,     
      &                 1,          ARRAY,     QUIET=.TRUE. ) 
       
-!------------------------------------------------------------------------------
-! Prior to 8/24/12:
-!      ! File with lat/lon edges for regridding
-!      LLFILENAME = TRIM( DATA_DIR_1x1) //
-!     &             'MAP_A2A_Regrid_201203/latlon_geos1x1_new.txt'
-!------------------------------------------------------------------------------
       ! File with lat/lon edges for regridding
       LLFILENAME = TRIM( DATA_DIR_1x1) //
      &             'MAP_A2A_Regrid_201203/MAP_A2A_latlon_geos1x1.nc'
 
       ! Regrid to current model resolution
       INGRID = ARRAY(:,:,1)
-!------------------------------------------------------------------------------
-! Prior to 8/24/12:
-!      CALL DO_REGRID_A2A( LLFILENAME, I1x1,    J1x1, 
-!     &                    INGRID,     OUTGRID, PERAREA=1 )
-!------------------------------------------------------------------------------
       CALL DO_REGRID_A2A( LLFILENAME, I1x1,    J1x1, 
      &                    INGRID,     OUTGRID, PERAREA=1,
      &                    netCDF=.TRUE.                   )
@@ -2401,12 +2332,6 @@
      &                 0.d0,     I1x1,        J1x1,     
      &                 1,        ARRAY,       QUIET=.TRUE. )
          
-!------------------------------------------------------------------------------
-! Prior to 8/24/12:
-!      ! File with lat/lon edges for regridding
-!      LLFILENAME = TRIM( DATA_DIR_1x1) //
-!     &             'MAP_A2A_Regrid_201203/latlon_geos1x1_new.txt'
-!------------------------------------------------------------------------------
       ! File with lat/lon edges for regridding
       LLFILENAME = TRIM( DATA_DIR_1x1) //
      &             'MAP_A2A_Regrid_201203/MAP_A2A_latlon_geos1x1.nc'
@@ -2414,11 +2339,6 @@
       ! Regrid BENZ from GEOS 1x1 to current model resolution
       ! [atoms C/cm2/s] (ccc, 3/9/09)
       INGRID = ARRAY
-!------------------------------------------------------------------------------
-! Prior to 8/24/12:
-!      CALL DO_REGRID_A2A( LLFILENAME, I1x1,    J1x1,
-!     &                    INGRID,     OUTGRID, PERAREA=0 )
-!------------------------------------------------------------------------------
       CALL DO_REGRID_A2A( LLFILENAME, I1x1,    J1x1,
      &                    INGRID,     OUTGRID, PERAREA=0, 
      &                    netCDF=.TRUE.                   )
@@ -2440,11 +2360,6 @@
       ! Regrid TOLU from GEOS 1x1 to current model resolution
       ! [atoms C/cm2/s] (ccc, 3/9/09)
       INGRID = ARRAY
-!------------------------------------------------------------------------------
-! Prior to 8/24/12:
-!      CALL DO_REGRID_A2A( LLFILENAME, I1x1,    J1x1, 
-!     &                    INGRID,     OUTGRID, PERAREA=0 )
-!------------------------------------------------------------------------------
       CALL DO_REGRID_A2A( LLFILENAME, I1x1,    J1x1, 
      &                    INGRID,     OUTGRID, PERAREA=0,
      &                    netCDF=.TRUE.                   )
@@ -2539,12 +2454,6 @@
      &                 0.d0,     I1x1,        J1x1,     
      &                 1,        ARRAY,       QUIET=.TRUE. )
 
-!------------------------------------------------------------------------------
-! Prior to 8/24/12:
-!      ! File with lat/lon edges for regridding
-!      LLFILENAME = TRIM( DATA_DIR_1x1) //
-!     &             'MAP_A2A_Regrid_201203/latlon_geos1x1_new.txt'
-!------------------------------------------------------------------------------
       ! File with lat/lon edges for regridding
       LLFILENAME = TRIM( DATA_DIR_1x1) //
      &             'MAP_A2A_Regrid_201203/MAP_A2A_latlon_geos1x1.nc'
@@ -2552,11 +2461,6 @@
       ! Regrid C2H4 from GEOS 1x1 to current model resolution
       ! [atoms C/cm2/s] (ccc, 3/9/09)
       INGRID = ARRAY
-!------------------------------------------------------------------------------
-! Prior to 8/24/12:
-!      CALL DO_REGRID_A2A( LLFILENAME, I1x1,    J1x1,
-!     &                    INGRID,     OUTGRID, PERAREA=0 )
-!------------------------------------------------------------------------------
       CALL DO_REGRID_A2A( LLFILENAME, I1x1,    J1x1,
      &                    INGRID,     OUTGRID, PERAREA=0,
      &                    netCDF=.TRUE.                   )
@@ -2629,12 +2533,6 @@
      &                 0.d0,     I1x1,        J1x1,     
      &                 1,        ARRAY,       QUIET=.TRUE. )
          
-!------------------------------------------------------------------------------
-! Prior to 8/24/12:
-      ! File with lat/lon edges for regridding
-      LLFILENAME = TRIM( DATA_DIR_1x1) //
-     &             'MAP_A2A_Regrid_201203/latlon_geos1x1_new.txt'
-!------------------------------------------------------------------------------
       ! File with lat/lon edges for regridding
       LLFILENAME = TRIM( DATA_DIR_1x1) //
      &             'MAP_A2A_Regrid_201203/MAP_A2A_latlon_geos1x1.nc'
@@ -2642,11 +2540,6 @@
       ! Regrid C2H2 from GEOS 1x1 to current model resolution
       ! [atoms C/cm2/s] (ccc, 3/9/09)
       INGRID = ARRAY
-!------------------------------------------------------------------------------
-! Prior to 8/24/12:
-!      CALL DO_REGRID_A2A( LLFILENAME, I1x1,    J1x1, 
-!     &                    INGRID,     OUTGRID, PERAREA=0 )
-!------------------------------------------------------------------------------
       CALL DO_REGRID_A2A( LLFILENAME, I1x1,    J1x1, 
      &                    INGRID,     OUTGRID, PERAREA=0,
      &                    netCDF=.TRUE.                   )

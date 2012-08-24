@@ -101,10 +101,6 @@ MODULE STRAT_CHEM_MOD
   REAL*8               :: TpauseL_Cnt         ! Tropopause counter
   REAL*8, ALLOCATABLE  :: TpauseL(:,:)        ! Tropopause level aggregator
   REAL*8, ALLOCATABLE  :: MInit(:,:,:,:)      ! Init. atm. state for STE period
-!------------------------------------------------------------------------------
-! Prior to 8/7/12:
-!  REAL*8, ALLOCATABLE  :: Before(:,:,:)       ! Init. atm. state each chem. dt
-!------------------------------------------------------------------------------
   REAL*8, ALLOCATABLE  :: SChem_Tend(:,:,:,:) ! Stratospheric chemical tendency
                                               !   (total P - L) [kg period-1]
 
@@ -1383,14 +1379,6 @@ CONTAINS
     IF ( AS /= 0 ) CALL ALLOC_ERR( 'TPAUSEL' )
     TPAUSEL = 0d0
 
-!------------------------------------------------------------------------------
-! Prior to 8/7/12:
-!    ! Array to save chemical state before each chemistry time step [kg]
-!    ALLOCATE( BEFORE( IIPAR, JJPAR, LLPAR ), STAT=AS )
-!    IF ( AS /= 0 ) CALL ALLOC_ERR( 'BEFORE' )
-!    BEFORE = 0d0
-!------------------------------------------------------------------------------
-
     ! Array to aggregate the stratospheric chemical tendency [kg period-1]
     ALLOCATE( SCHEM_TEND(IIPAR,JJPAR,LLPAR,N_TRACERS), STAT=AS )
     IF ( AS /= 0 ) CALL ALLOC_ERR( 'SCHEM_TEND' )
@@ -1440,10 +1428,6 @@ CONTAINS
     IF ( ALLOCATED( STRAT_OH   ) ) DEALLOCATE( STRAT_OH   )
     IF ( ALLOCATED( MInit      ) ) DEALLOCATE( MInit      )
     IF ( ALLOCATED( TPAUSEL    ) ) DEALLOCATE( TPAUSEL    )
-!-----------------------------------------------------------------
-! Prior to 8/7/12:
-!    IF ( ALLOCATED( BEFORE     ) ) DEALLOCATE( BEFORE     )
-!-----------------------------------------------------------------
     IF ( ALLOCATED( SCHEM_TEND ) ) DEALLOCATE( SCHEM_TEND )
 
   END SUBROUTINE CLEANUP_STRAT_CHEM

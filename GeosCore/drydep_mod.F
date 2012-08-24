@@ -179,12 +179,6 @@
 !
 ! !DEFINED PARAMETERS:
 !
-!------------------------------------------------------------------------------
-! Prior to 12/28/11:
-! Increase MAXDEP by 4 to include drydep for HBr, HOBr, BrNO3, and Br2
-! (jpp, mpayer, 12/28/11)
-!      INTEGER, PARAMETER :: MAXDEP    = 51      ! Max # of depositing species
-!------------------------------------------------------------------------------
       INTEGER, PARAMETER :: MAXDEP    = 55      ! Max # of depositing species
       REAL*8,  PARAMETER :: XCKMAN    = 0.4d0   ! Von Karman's constant
       INTEGER, PARAMETER :: NR_MAX    = 200     ! # of seasalt bins 
@@ -794,12 +788,6 @@
       ! Chemistry timestep [s]
       DTCHEM  = GET_TS_CHEM() * 60d0
 
-!----------------------------------------------------
-! Prior to 7/31/12:
-!      ! Highest extent of the PBL [model layers]
-!      PBL_MAX = GET_PBL_MAX_L()
-!----------------------------------------------------
-
       !=================================================================
       ! ND44 diagnostic: Dry deposition flux [molec/cm2/s]
       !
@@ -830,10 +818,6 @@
          ENDIF
 
          ! Loop over grid boxes
-!----------------------------------
-! Prior to 7/31/12:
-!         DO L = 1, PBL_MAX
-!----------------------------------
          DO L = 1, LLPAR
          DO J = 1, JJPAR
          DO I = 1, IIPAR

@@ -1385,12 +1385,6 @@
       ! Cast to REAL*8 before regridding
       GEOS_1x1(:,:,1) = REGION_1x1(:,:)
 
-!------------------------------------------------------------------------------
-! Prior to 8/24/12:
-!      ! File with lat/lon edges for regridding
-!      LLFILENAME = TRIM( DATA_DIR_1x1) //
-!     &             'MAP_A2A_Regrid_201203/latlon_geos1x1_new.txt'
-!------------------------------------------------------------------------------
       ! File with lat/lon edges for regridding
       LLFILENAME = TRIM( DATA_DIR_1x1) //
      &             'MAP_A2A_Regrid_201203/MAP_A2A_latlon_geos1x1.nc'
@@ -1398,11 +1392,6 @@
       ! Regrid to current model resolution
       INGRID  => GEOS_1x1 (:,:,1)
       OUTGRID => GEOS_GRID(:,:,1)
-!------------------------------------------------------------------------------
-! Prior to 8/24/12:
-!      CALL DO_REGRID_A2A( LLFILENAME, I1x1,    J1x1, 
-!     &                    INGRID,     OUTGRID, PERAREA=0 )   
-!------------------------------------------------------------------------------
       CALL DO_REGRID_A2A( LLFILENAME, I1x1,    J1x1, 
      &                    INGRID,     OUTGRID, PERAREA=0,
      &                    netCDF=.TRUE.                   )   
@@ -1654,12 +1643,6 @@
       ! Cast to REAL*8 before regridding
       GEOS_1x1(:,:,1) = ARRAY(:,:,1)
       
-!------------------------------------------------------------------------------
-! Prior to 8/24/12:
-!      ! File with lat/lon edges for regridding
-!      LLFILENAME = TRIM( DATA_DIR_1x1) //
-!     &             'MAP_A2A_Regrid_201203/latlon_geos1x1_new.txt'
-!------------------------------------------------------------------------------
       ! File with lat/lon edges for regridding
       LLFILENAME = TRIM( DATA_DIR_1x1) //
      &             'MAP_A2A_Regrid_201203/MAP_A2A_latlon_geos1x1.nc'
@@ -1667,11 +1650,6 @@
       ! Regrid to current model resolution
       INGRID  => GEOS_1x1(:,:,1)
       OUTGRID => GEOS_GRID(:,:,1)
-!------------------------------------------------------------------------------
-! Prior to 8/24/12:
-!      CALL DO_REGRID_A2A( LLFILENAME, I1x1,    J1x1, 
-!     &                    INGRID,     OUTGRID, PERAREA=0 )   
-!------------------------------------------------------------------------------
       CALL DO_REGRID_A2A( LLFILENAME, I1x1,    J1x1, 
      &                    INGRID,     OUTGRID, PERAREA=0,
      &                    netCDF=.TRUE.                   )   
@@ -1775,23 +1753,13 @@
       ! Cast to REAL*8 before regridding
       GEN_1x1(:,:,1) = ARRAY(:,:,1)
 
-!------------------------------------------------------------------------------
-! Prior to 8/24/12
-!      ! File with lat/lon edges for regridding
-!      LLFILENAME = TRIM( DATA_DIR_1x1) //
-!     &             'MAP_A2A_Regrid_201203/latlon_generic_new.txt'
-!------------------------------------------------------------------------------
+      ! File with lat/lon edges for regridding
       LLFILENAME = TRIM( DATA_DIR_1x1) //
      &             'MAP_A2A_Regrid_201203/MAP_A2A_latlon_generic1x1.nc'
 
       ! Regrid from GENERIC 1x1 --> current model resolution
       INGRID  => GEN_1x1  (:,:,1)
       OUTGRID => GEOS_GRID(:,:,1)
-!------------------------------------------------------------------------------
-! Prior to 8/24/12:
-!      CALL DO_REGRID_A2A( LLFILENAME, I1x1,    J1x1-1, 
-!     &                    INGRID,     OUTGRID, PERAREA=1 )   
-!------------------------------------------------------------------------------
       CALL DO_REGRID_A2A( LLFILENAME, I1x1,    J1x1-1, 
      &                    INGRID,     OUTGRID, PERAREA=1,
      &                    netCDF=.TRUE.                   )   
@@ -1947,12 +1915,6 @@
       ! Cast to REAL*8 before regridding
       GEOS_1x1(:,:,1) = ARRAY(:,:,1)
 
-!------------------------------------------------------------------------------
-! Prior to 8/24/12:      
-!      ! File with lat/lon edges for regridding
-!      LLFILENAME = TRIM( DATA_DIR_1x1) //
-!     &             'MAP_A2A_Regrid_201203/latlon_geos1x1_new.txt'
-!------------------------------------------------------------------------------
       ! File with lat/lon edges for regridding
       LLFILENAME = TRIM( DATA_DIR_1x1) //
      &             'MAP_A2A_Regrid_201203/MAP_A2A_latlon_geos1x1.nc'
@@ -1960,11 +1922,6 @@
       ! Regrid to current model resolution
       INGRID  => GEOS_1x1 (:,:,1)
       OUTGRID => GEOS_GRID(:,:,1)
-!------------------------------------------------------------------------------
-! Prior to 8/24/12:
-!     CALL DO_REGRID_A2A( LLFILENAME, I1x1,    J1x1, 
-!    &                    INGRID,     OUTGRID, PERAREA=0 )   
-!------------------------------------------------------------------------------
       CALL DO_REGRID_A2A( LLFILENAME, I1x1,    J1x1, 
      &                    INGRID,     OUTGRID, PERAREA=0,
      &                    netCDF=.TRUE.                   )
@@ -2375,12 +2332,6 @@
          ! Cast to REAL*8 before regridding
          GEOS_1x1(:,:,1) = ARRAY(:,:,1)
 
-!------------------------------------------------------------------------------
-! Prior to 8/24/12:         
-!         ! File with lat/lon edges for regridding
-!         LLFILENAME = TRIM( DATA_DIR_1x1) //
-!     &                'MAP_A2A_Regrid_201203/latlon_geos1x1_new.txt'
-!------------------------------------------------------------------------------
          ! File with lat/lon edges for regridding
          LLFILENAME = TRIM( DATA_DIR_1x1) //
      &                'MAP_A2A_Regrid_201203/MAP_A2A_latlon_geos1x1.nc'
@@ -2388,11 +2339,6 @@
          ! Regrid from GEOS 1x1 --> current model resolution
          INGRID  => GEOS_1x1 (:,:,1)
          OUTGRID => GEOS_GRID(:,:,1)
-!------------------------------------------------------------------------------
-! Prior to 8/24/12:
-!         CALL DO_REGRID_A2A( LLFILENAME, I1x1,    J1x1, 
-!     &                       INGRID,     OUTGRID, PERAREA=0 )
-!------------------------------------------------------------------------------
          CALL DO_REGRID_A2A( LLFILENAME, I1x1,    J1x1, 
      &                       INGRID,     OUTGRID, PERAREA=0,
      &                       netCDF=.TRUE.                   )

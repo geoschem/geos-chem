@@ -272,10 +272,6 @@
 !$OMP+PRIVATE( TSO4COAT             )
 #endif
 !$OMP+SCHEDULE( DYNAMIC )
-!-------------------------------
-! Prior to 7/31/12:
-!      DO L = 1, LLTROP
-!-------------------------------
       DO L = 1, LLPAR
       DO J = 1, JJPAR
       DO I = 1, IIPAR
@@ -512,11 +508,6 @@
             ! We force HPLUSTEMP to 1d20 and PH_SAV to -999d0.
             ! (hotp, ccc, 12/18/09)
             HPLUSTEMP       = 1d20
-            !-------------------------------------------------------------
-            ! Prior to 7/23/10:
-            ! Bug fix: this should be PH_SAV(I,J,L) (sofen, bmy, 7/12/10)
-            !PH_SAV          = -999d0
-            !-------------------------------------------------------------
             PH_SAV(I,J,L)   = -999d0
          ELSE
             HPLUSTEMP       = AERLIQ(1) / AERLIQ(8) * 1d3/18d0
@@ -816,18 +807,10 @@
       ! INIT_ISOROPIAII begins here!
       !=================================================================
 
-!--------------------------------------------------------------
-! Prior to 7/31/12:
-!      ALLOCATE( HNO3_sav( IIPAR, JJPAR, LLTROP ) , STAT=AS )
-!--------------------------------------------------------------
       ALLOCATE( HNO3_sav( IIPAR, JJPAR, LLPAR ) , STAT=AS )
       IF ( AS /= 0 ) CALL ALLOC_ERR( 'HNO3_sav' )
       HNO3_sav = 0d0
 
-!--------------------------------------------------------------
-! Prior to 7/31/12:
-!      ALLOCATE( GAS_HNO3( IIPAR, JJPAR, LLTROP ) , STAT=AS )
-!--------------------------------------------------------------
       ALLOCATE( GAS_HNO3( IIPAR, JJPAR, LLPAR ) , STAT=AS )
       IF ( AS /= 0 ) CALL ALLOC_ERR( 'GAS_HNO3' )
       GAS_HNO3 = 0d0

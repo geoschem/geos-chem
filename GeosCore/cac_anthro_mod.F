@@ -297,12 +297,6 @@
          THISYEAR = FSCALYR
       ENDIF
 
-!------------------------------------------------------------------------------
-! Prior to 8/24/12:
-!      ! File with lat/lon edges for regridding
-!      LLFILENAME = TRIM( DATA_DIR_1x1) //
-!     &             'MAP_A2A_Regrid_201203/latlon_geos1x1_new.txt'
-!------------------------------------------------------------------------------
       ! File with lat/lon edges for regridding
       LLFILENAME = TRIM( DATA_DIR_1x1) //
      &             'MAP_A2A_Regrid_201203/MAP_A2A_latlon_geos1x1.nc'
@@ -427,22 +421,12 @@
 
          IF ( SPECIES .eq. 1 ) THEN
 
-!------------------------------------------------------------------------------
-! Prior to 8/24/12:
-!            CALL DO_REGRID_A2A( LLFILENAME, I1x1,    J1x1, 
-!     &                          INGRID,     NOx,     PERAREA=1 )
-!------------------------------------------------------------------------------
             CALL DO_REGRID_A2A( LLFILENAME, I1x1,    J1x1, 
      &                          INGRID,     NOx,     PERAREA=1,
      &                          netCDF=.TRUE.                   )
 
          ELSEIF ( SPECIES .eq. 2 ) THEN
 
-!------------------------------------------------------------------------------
-! Prior to 8/24/12:
-!            CALL DO_REGRID_A2A( LLFILENAME, I1x1,    J1x1,
-!     &                          INGRID,     CO,      PERAREA=1 )
-!------------------------------------------------------------------------------
             CALL DO_REGRID_A2A( LLFILENAME, I1x1,    J1x1,
      &                          INGRID,     CO,      PERAREA=1,
      &                          netCDF=.TRUE.                   )
@@ -455,22 +439,12 @@
             !GEOS_1x1(:,:,1) = GEOS_1x1(:,:,1) * 0.986
             INGRID = INGRID * 0.986
 
-!------------------------------------------------------------------------------
-! Prior to 8/24/12:
-!            CALL DO_REGRID_A2A( LLFILENAME, I1x1,    J1x1,
-!     &                          INGRID,     SO2,     PERAREA=1 )
-!------------------------------------------------------------------------------
             CALL DO_REGRID_A2A( LLFILENAME, I1x1,    J1x1,
      &                          INGRID,     SO2,     PERAREA=1,
      &                          netCDF=.TRUE.                   )
 
          ELSEIF ( SPECIES .eq. 4 ) THEN
 
-!------------------------------------------------------------------------------
-! Prior to 8/24/12:
-!            CALL DO_REGRID_A2A( LLFILENAME, I1x1,    J1x1,
-!     &                          INGRID,     NH3,     PERAREA=1 )
-!------------------------------------------------------------------------------
             CALL DO_REGRID_A2A( LLFILENAME, I1x1,    J1x1,
      &                          INGRID,     NH3,     PERAREA=1,
      &                          netCDF=.TRUE.                   )
@@ -921,12 +895,6 @@
       FILENAME  = TRIM( DATA_DIR_1x1 ) // 
      &            'CAC_200801/CanadaMask.geos.1x1'
 
-!------------------------------------------------------------------------------
-! Prior to 8/24/12:
-!      ! File with lat/lon edges for regridding
-!      LLFILENAME = TRIM( DATA_DIR_1x1) //
-!     &             'MAP_A2A_Regrid_201203/latlon_geos1x1_new.txt'
-!------------------------------------------------------------------------------
       ! File with lat/lon edges for regridding
       LLFILENAME = TRIM( DATA_DIR_1x1) //
      &             'MAP_A2A_Regrid_201203/MAP_A2A_latlon_geos1x1.nc'
@@ -948,11 +916,6 @@
 
       ! Regrid from GENERIC 1x1 to current model resolution [unitless]
       INGRID => GEOS_1x1(:,:,1)
-!------------------------------------------------------------------------------
-! Prior to 8/24/12:
-!      CALL DO_REGRID_A2A( LLFILENAME, I1x1,        J1x1, 
-!     &                    INGRID,     MASK_CANADA, PERAREA=0 )
-!------------------------------------------------------------------------------
       CALL DO_REGRID_A2A( LLFILENAME, I1x1,        J1x1, 
      &                    INGRID,     MASK_CANADA, PERAREA=0,
      &                    netCDF=.TRUE.                       )

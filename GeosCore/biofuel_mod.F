@@ -364,17 +364,6 @@
                   ! Cast from REAL*4 to REAL*8
                   GENERIC_8_1x1 = GENERIC_1x1
 
-!-----------------------------------------------------------------------------
-! Prior to 8/24/12:
-!                  ! File with lat/lon edges for regridding
-!                  LLFILENAME = TRIM( DATA_DIR_1x1) //
-!     &               'MAP_A2A_Regrid_201203/latlon_generic_new.txt'
-!
-!                  ! Regrid to current model resolution
-!                  INGRID => GENERIC_8_1x1
-!                  CALL DO_REGRID_A2A( LLFILENAME, I1x1,    J1x1-1,
-!     &                                INGRID,     OUTGRID, PERAREA=1 )
-!-----------------------------------------------------------------------------
                   ! File with lat/lon edges for regridding
                   LLFILENAME = TRIM( DATA_DIR_1x1) //
      &              'MAP_A2A_Regrid_201203/MAP_A2A_latlon_generic1x1.nc'
@@ -929,18 +918,6 @@
                ! emission year is GE 2006), set BIOFUEL to zero since they
                ! are already accounted for (phs, 3/17/08)
                !-----------------------------------------------------------
-!------------------------------------------------------------------------------
-! Prior to 2/18/11:
-! NOTE from Claire Carouge (2/18/11):
-! I found a bug in biofuel_mod.f about Streets emissions. Initially we used 
-! Streets 2000 for years <= 2005, then Streets 2006 for year >= 2006. But this 
-! was changed because of discrepancies in the total emissions between 2005 and 
-! 2006. So now we use Streets 2000 for years <=2000 and Streets 2006 for years 
-! >= 2001. The problem is that Streets 2006 contains biofuels and not Streets 
-! 2000. So in biofuel_mod.f, there is to change the following IF condition to
-! ( SIM_YEAR >= 2001 ) to avoid double counting biofuel emissions over Asia.
-!            IF ( LSTREETS .and. ( SIM_YEAR >= 2006 ) ) THEN
-!------------------------------------------------------------------------------
                IF ( LSTREETS .and. ( SIM_YEAR >= 2001 ) ) THEN
 
                   ! If we are over the SE Asia region

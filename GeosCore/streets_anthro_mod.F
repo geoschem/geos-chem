@@ -1177,23 +1177,12 @@
       ! Cast to REAL*8 before regridding
       GEN_1x1(:,:) = ARRAY(:,:,1)
 
-!------------------------------------------------------------------------------
-! Prior to 8/24/12:
-!      ! File with lat/lon edges for regridding
-!      LLFILENAME = TRIM( DATA_DIR_1x1) //
-!     &             'MAP_A2A_Regrid_201203/latlon_generic_new.txt' 
-!------------------------------------------------------------------------------
       ! File with lat/lon edges for regridding
       LLFILENAME = TRIM( DATA_DIR_1x1) //
      &             'MAP_A2A_Regrid_201203/MAP_A2A_latlon_generic1x1.nc' 
 
       ! Regrid from GENERIC 1x1 --> current model resolution
       INGRID => GEN_1x1
-!------------------------------------------------------------------------------
-! Prior to 8/24/12:
-!      CALL DO_REGRID_A2A( LLFILENAME, I1x1, J1x1-1, 
-!     &                    INGRID,     ARR,  PERAREA )
-!------------------------------------------------------------------------------
       CALL DO_REGRID_A2A( LLFILENAME, I1x1, J1x1-1, 
      &                    INGRID,     ARR,  PERAREA,
      &                    netCDF=.TRUE.              )
@@ -1263,12 +1252,6 @@
       ! Cast to REAL*8 before regridding
       GEOS_05x0666(:,:) = ARRAY(:,:,1)
 
-!------------------------------------------------------------------------------
-! Prior to 8/24/12:
-!      ! Filename for MAP_A2A input (0.5 x 0.666 global GEOS grid)
-!      LLFILENAME = TRIM( DATA_DIR_1x1) //
-!     &             'MAP_A2A_Regrid_201203/latlon_geos05x0666.txt'
-!------------------------------------------------------------------------------
       ! Filename for MAP_A2A input (0.5 x 0.666 global GEOS grid)
       LLFILENAME = TRIM( DATA_DIR_1x1 )            //
      &             'MAP_A2A_Regrid_201203/'        //
@@ -1276,11 +1259,6 @@
 
       ! Regrid from global 0.5 x 0.666 to current nested grid
       INGRID => GEOS_05x0666
-!------------------------------------------------------------------------------
-! Prior to 8/24/12:
-!      CALL DO_REGRID_A2A( LLFILENAME, I05x0666, J05x0666,
-!     &                    INGRID,     OUTGRID,  PERAREA=1 )
-!------------------------------------------------------------------------------
       CALL DO_REGRID_A2A( LLFILENAME, I05x0666, J05x0666,
      &                    INGRID,     OUTGRID,  PERAREA=1,
      &                    netCDF=.TRUE.                    )
@@ -2232,22 +2210,11 @@
       ! Save the 1x1 China mask for future use
       MASK_CHINA_1x1(:,:) = GEN_1x1(:,:)
 
-!------------------------------------------------------------------------------
-! Prior to 8/24/12:
-!      ! File with lat/lon edges for regridding
-!      LLFILENAME = TRIM( DATA_DIR_1x1) //
-!     &             'MAP_A2A_Regrid_201203/latlon_generic_new.txt'
-!------------------------------------------------------------------------------
       ! File with lat/lon edges for regridding
       LLFILENAME = TRIM( DATA_DIR_1x1) //
      &             'MAP_A2A_Regrid_201203/MAP_A2A_latlon_generic1x1.nc'
  
       ! Regrid from GENERIC 1x1 to current model resolution
-!------------------------------------------------------------------------------
-! Prior to 8/24/12:
-!      CALL DO_REGRID_A2A( LLFILENAME, I1x1,       J1x1-1, 
-!     &                    GEN_1x1,    MASK_CHINA, PERAREA=0  )
-!------------------------------------------------------------------------------
       CALL DO_REGRID_A2A( LLFILENAME, I1x1,       J1x1-1, 
      &                    GEN_1x1,    MASK_CHINA, PERAREA=0,
      &                    netCDF=.TRUE.                      )
@@ -2275,11 +2242,6 @@
       GEN_1x1(:,:) = ARRAY(:,:,1)
 
       ! Regrid from GENERIC 1x1 GRID to current model resolution
-!------------------------------------------------------------------------------
-! Prior to 8/24/12:
-!      CALL DO_REGRID_A2A( LLFILENAME, I1x1,         J1x1-1, 
-!     &                    GEN_1x1,    MASK_SE_ASIA, PERAREA=0 )
-!------------------------------------------------------------------------------
       CALL DO_REGRID_A2A( LLFILENAME, I1x1,         J1x1-1, 
      &                    GEN_1x1,    MASK_SE_ASIA, PERAREA=0,
      &                    netCDF=.TRUE.                        )

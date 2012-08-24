@@ -1980,23 +1980,12 @@
      &                 0d0,       I1x1,      J1x1,     
      &                 1,         ARRAY,     QUIET=.TRUE. )
 
-!------------------------------------------------------------------------------
-! Prior to 8/24/12:
-!     ! File with lat/lon edges for regridding
-!     LLFILENAME = TRIM( DATA_DIR_1x1) //
-!    &             'MAP_A2A_Regrid_201203/latlon_geos1x1_new.txt'
-!------------------------------------------------------------------------------
       ! File with lat/lon edges for regridding
       LLFILENAME = TRIM( DATA_DIR_1x1) //
      &             'MAP_A2A_Regrid_201203/MAP_A2A_latlon_geos1x1.nc'
 
       ! Regrid from 1x1 to the current grid (also cast to REAL*8)
       INGRID   = ARRAY(:,:,1)
-!------------------------------------------------------------------------------
-! Prior to 8/24/12:
-!     CALL DO_REGRID_A2A( LLFILENAME, I1x1,    J1x1, 
-!    &                    INGRID,     OUTGRID, PERAREA=0 )
-!------------------------------------------------------------------------------
       CALL DO_REGRID_A2A( LLFILENAME, I1x1,    J1x1, 
      &                    INGRID,     OUTGRID, PERAREA=0,
      &                    netCDF=.TRUE.                   )
@@ -2036,11 +2025,6 @@
 
       ! Regrid from 1x1 to the current grid (also cast to REAL*8)
       INGRID    = ARRAY(:,:,1)
-!------------------------------------------------------------------------------
-! Prior to 8/24/12:
-!     CALL DO_REGRID_A2A( LLFILENAME, I1x1,    J1x1, 
-!    &                    INGRID,     OUTGRID, PERAREA=0 )
-!------------------------------------------------------------------------------
       CALL DO_REGRID_A2A( LLFILENAME, I1x1,    J1x1, 
      &                    INGRID,     OUTGRID, PERAREA=0,
      &                    netCDF=.TRUE.                   )
@@ -2080,11 +2064,6 @@
 
       ! Regrid from 1x1 to the current grid (also cast to REAL*8)
       INGRID  = ARRAY(:,:,1)
-!------------------------------------------------------------------------------
-! Prior to 8/24/12:
-!     CALL DO_REGRID_A2A( LLFILENAME, I1x1,    J1x1, 
-!    &                    INGRID,     OUTGRID, PERAREA=0 )
-!------------------------------------------------------------------------------
       CALL DO_REGRID_A2A( LLFILENAME, I1x1,    J1x1, 
      &                    INGRID,     OUTGRID, PERAREA=0,
      &                    netCDF=.TRUE.                   )      
@@ -2127,11 +2106,6 @@
 
       ! Regrid from 1x1 to the current grid (also cast to REAL*8)
       INGRID   = ARRAY(:,:,1)
-!------------------------------------------------------------------------------
-! Prior to 8/24/12:
-!     CALL DO_REGRID_A2A( LLFILENAME, I1x1,    J1x1, 
-!    &                    INGRID,     OUTGRID, PERAREA=0 )
-!------------------------------------------------------------------------------
       CALL DO_REGRID_A2A( LLFILENAME, I1x1,    J1x1, 
      &                    INGRID,     OUTGRID, PERAREA=0,
      &                    netCDF=.TRUE.                   )
@@ -2171,11 +2145,6 @@
 
       ! Regrid from 1x1 to the current grid (also cast to REAL*8)
       INGRID   = ARRAY(:,:,1)
-!------------------------------------------------------------------------------
-! Prior to 8/24/12:
-!      CALL DO_REGRID_A2A( LLFILENAME, I1x1,    J1x1, 
-!     &                    INGRID,     OUTGRID, PERAREA=0 )
-!------------------------------------------------------------------------------
       CALL DO_REGRID_A2A( LLFILENAME, I1x1,    J1x1, 
      &                    INGRID,     OUTGRID, PERAREA=0,
      &                    netCDF=.TRUE.                   )
@@ -2217,11 +2186,6 @@
 
       ! Regrid from 1x1 to the current grid (also cast to REAL*8)
       INGRID    = ARRAY(:,:,1)
-!------------------------------------------------------------------------------
-! Prior to 8/24/12:
-!      CALL DO_REGRID_A2A( LLFILENAME, I1x1,    J1x1, 
-!     &                    INGRID,     OUTGRID, PERAREA=0 )
-!------------------------------------------------------------------------------
       CALL DO_REGRID_A2A( LLFILENAME, I1x1,    J1x1, 
      &                    INGRID,     OUTGRID, PERAREA=0,
      &                    netCDF=.TRUE.                   )
@@ -2259,11 +2223,6 @@
 
       ! Regrid from 1x1 to the current grid (also cast to REAL*8)
       INGRID    = ARRAY(:,:,1)
-!------------------------------------------------------------------------------
-! Prior to 8/24/12:
-!      CALL DO_REGRID_A2A( LLFILENAME, I1x1,    J1x1, 
-!     &                    INGRID,     OUTGRID, PERAREA=0 )
-!------------------------------------------------------------------------------
       CALL DO_REGRID_A2A( LLFILENAME, I1x1,    J1x1, 
      &                    INGRID,     OUTGRID, PERAREA=0,
      &                    netCDF=.TRUE.                   )
@@ -2301,11 +2260,6 @@
 
       ! Regrid from 1x1 to the current grid (also cast to REAL*8)
       INGRID    = ARRAY(:,:,1)
-!------------------------------------------------------------------------------
-! Prior to 8/24/12:
-!      CALL DO_REGRID_A2A( LLFILENAME, I1x1,    J1x1,
-!     &                    INGRID,     OUTGRID, PERAREA=0 )
-!------------------------------------------------------------------------------
       CALL DO_REGRID_A2A( LLFILENAME, I1x1,    J1x1,
      &                    INGRID,     OUTGRID, PERAREA=0,
      &                    netCDF=.TRUE.                   )
@@ -2343,11 +2297,6 @@
 
       ! Regrid from 1x1 to the current grid (also cast to REAL*8)
       INGRID    = ARRAY(:,:,1)
-!------------------------------------------------------------------------------
-! Prior to 8/24/12:
-!      CALL DO_REGRID_A2A( LLFILENAME, I1x1,    J1x1, 
-!     &                    INGRID,     OUTGRID, PERAREA=0 )
-!------------------------------------------------------------------------------
       CALL DO_REGRID_A2A( LLFILENAME, I1x1,    J1x1, 
      &                    INGRID,     OUTGRID, PERAREA=0,
      &                    netCDF=.TRUE.                   )
@@ -2385,11 +2334,6 @@
 
       ! Regrid from 1x1 to the current grid (also cast to REAL*8)
       INGRID    = ARRAY(:,:,1)
-!------------------------------------------------------------------------------
-! Prior to 8/24/12:
-!      CALL DO_REGRID_A2A( LLFILENAME, I1x1,    J1x1,
-!     &                    INGRID,     OUTGRID, PERAREA=0 )
-!------------------------------------------------------------------------------
       CALL DO_REGRID_A2A( LLFILENAME, I1x1,    J1x1,
      &                    INGRID,     OUTGRID, PERAREA=0,
      &                    netCDF=.TRUE.                   )
@@ -2428,11 +2372,6 @@
 
       ! Regrid from 1x1 to the current grid (also cast to REAL*8)
       INGRID    = ARRAY(:,:,1)
-!------------------------------------------------------------------------------
-! Prior to 8/24/12:
-!      CALL DO_REGRID_A2A( LLFILENAME, I1x1,    J1x1, 
-!     &                    INGRID,     OUTGRID, PERAREA=0 )
-!------------------------------------------------------------------------------
       CALL DO_REGRID_A2A( LLFILENAME, I1x1,    J1x1, 
      &                    INGRID,     OUTGRID, PERAREA=0,
      &                    netCDF=.TRUE.                   )
@@ -2470,11 +2409,6 @@
 
       ! Regrid from 1x1 to the current grid (also cast to REAL*8)
       INGRID    = ARRAY(:,:,1)
-!------------------------------------------------------------------------------
-! Prior to 8/24/12:
-!      CALL DO_REGRID_A2A( LLFILENAME, I1x1,    J1x1, 
-!     &                    INGRID,     OUTGRID, PERAREA=0 )
-!------------------------------------------------------------------------------
       CALL DO_REGRID_A2A( LLFILENAME, I1x1,    J1x1, 
      &                    INGRID,     OUTGRID, PERAREA=0,
      &                    netCDF=.TRUE.                   )
@@ -2566,12 +2500,6 @@
       FILENAME   = TRIM( DATA_DIR ) //
      &             'MEGAN_200510/MEGAN_AEF_ISOP.geos.05x0666'
 
-!------------------------------------------------------------------------------
-! Prior to 8/24/12:
-!     ! File with lat/lon edges for regridding
-!     LLFILENAME = TRIM( DATA_DIR_1x1 ) //
-!    &             'MAP_A2A_Regrid_201203/latlon_geos05x0666.txt'
-!------------------------------------------------------------------------------
       ! File with lat/lon edges for regridding
       LLFILENAME = TRIM( DATA_DIR_1x1 ) //
      &             'MAP_A2A_Regrid_201203/MAP_A2A_latlon_geos05x0666.nc'
@@ -2590,11 +2518,6 @@
 
       ! Regrid from 0.5 x 0.666 global to the current nested grid
       INGRID => GEOS_05x0666
-!------------------------------------------------------------------------------
-! Prior to 8/24/12:
-!      CALL DO_REGRID_A2A( LLFILENAME, I05x0666, J05x0666,
-!     &                    INGRID,     OUTGRID,  PERAREA=1 )
-!------------------------------------------------------------------------------
       CALL DO_REGRID_A2A( LLFILENAME, I05x0666, J05x0666,
      &                    INGRID,     OUTGRID,  PERAREA=1,
      &                    netCDF=.TRUE.                    )
@@ -2638,11 +2561,6 @@
 
       ! Regrid from 0.5 x 0.666 to the current nested grid
       INGRID => GEOS_05x0666
-!------------------------------------------------------------------------------
-! Prior to 8/24/12:
-!      CALL DO_REGRID_A2A( LLFILENAME, I05x0666, J05x0666,
-!     &                    INGRID,     OUTGRID,  PERAREA=1 )
-!------------------------------------------------------------------------------
       CALL DO_REGRID_A2A( LLFILENAME, I05x0666, J05x0666,
      &                    INGRID,     OUTGRID,  PERAREA=1,
      &                    netCDF=.TRUE.                    )
@@ -2687,11 +2605,6 @@
 
       ! Regrid from 0.5 x 0.666 global to the current nested grid
       INGRID => GEOS_05x0666
-!------------------------------------------------------------------------------
-! Prior to 8/24/12:
-!      CALL DO_REGRID_A2A( LLFILENAME, I05x0666, J05x0666,
-!     &                    INGRID,     OUTGRID,  PERAREA=1 )
-!------------------------------------------------------------------------------
       CALL DO_REGRID_A2A( LLFILENAME, I05x0666, J05x0666,
      &                    INGRID,     OUTGRID,  PERAREA=1,
      &                    netCDF=.TRUE.                    )
@@ -2735,11 +2648,6 @@
 
       ! Regrid from 0.5 x 0.666 global to the current nested grid
       INGRID => GEOS_05x0666
-!------------------------------------------------------------------------------
-! Prior to 8/24/12:
-!      CALL DO_REGRID_A2A( LLFILENAME, I05x0666, J05x0666,
-!     &                    INGRID,     OUTGRID,  PERAREA=1 )
-!------------------------------------------------------------------------------
       CALL DO_REGRID_A2A( LLFILENAME, I05x0666, J05x0666,
      &                    INGRID,     OUTGRID,  PERAREA=1,
      &                    netCDF=.TRUE.                    )
