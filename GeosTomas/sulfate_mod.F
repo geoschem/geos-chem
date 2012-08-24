@@ -1058,10 +1058,6 @@
 !$OMP+PRIVATE( I, IJLOOP, J, L, TK, O2, DMS0, OH, XNO3, RK1, RK2 )
 !$OMP+PRIVATE( RK3, DMS_OH, DMS, OH0, XNO30, XOH, XN3, XX, LOH, LNO3  )
 !$OMP+SCHEDULE( DYNAMIC )
-!----------------------------
-! Prior to 7/31/12:
-!      DO L = 1, LLTROP  
-!----------------------------
       DO L = 1, LLPAR
       DO J = 1, JJPAR
       DO I = 1, IIPAR
@@ -1368,10 +1364,6 @@
 !$OMP+PRIVATE( I, J, L, M, H2O20, KOH, FREQ, ALPHA, DH2O2, H2O2, FLUX )
 !$OMP+PRIVATE( JLOOP, PHOTJ )
 !$OMP+SCHEDULE( DYNAMIC )
-!--------------------------
-! Prior to 7/31/12:
-!      DO L  = 1, LLTROP
-!--------------------------
       DO L  = 1, LLPAR
       DO J  = 1, JJPAR
       DO I  = 1, IIPAR
@@ -1454,10 +1446,6 @@
 !$OMP+PRIVATE( I, J, L )
          DO J = 1, JJPAR
          DO I = 1, IIPAR
-!---------------------------
-! Prior to 7/31/12:
-!         DO L = 1, LLTROP
-!---------------------------
          DO L = 1, LLPAR
             AD44(I,J,DRYH2O2,1) = AD44(I,J,DRYH2O2,1) + ND44_TMP(I,J,L)
          ENDDO
@@ -1597,10 +1585,6 @@
       REAL*8                :: Kt1,    Kt2,     AREASS1, AREASS2
       REAL*8                :: PSO4E,  PSO4F,   Kt1N,    Kt2N
       REAL*8                :: XX,     AREA_CM2
-!-------------------------------------------------------------
-! Prior to 7/31/12:
-!      REAL*8                :: ND44_TMP(IIPAR,JJPAR,LLTROP)
-!-------------------------------------------------------------
       REAL*8                :: ND44_TMP(IIPAR,JJPAR,LLPAR)
 
       !=================================================================
@@ -2033,10 +2017,6 @@
 !$OMP+PRIVATE( I, J, L )
          DO J = 1, JJPAR
          DO I = 1, IIPAR
-!----------------------------
-! Prior to 7/31/12;
-!         DO L = 1, LLTROP
-!----------------------------
          DO L = 1, LLPAR
             AD44(I,J,DRYSO2,1) = AD44(I,J,DRYSO2,1) + ND44_TMP(I,J,L)
          ENDDO
@@ -2729,10 +2709,6 @@
       REAL*8                :: LET0,   SO4,    SO40,     SO4aq, SO4aq0
       REAL*8                :: SO4s,   SO40s,  RKT,      RKTs,  E_RKT
       REAL*8                :: E_RKTs, DTCHEM, AREA_CM2, FLUX
-!--------------------------------------------------------------------------
-! Prior to 7/31/12:
-!      REAL*8                :: T44(IIPAR,JJPAR,LLTROP,6) 
-!--------------------------------------------------------------------------
       REAL*8                :: T44(IIPAR,JJPAR,LLPAR,6) 
 
       !=================================================================
@@ -2780,10 +2756,6 @@
 !$OMP+PRIVATE( I,      J,    L,   AREA_CM2, RKT,   RKTs, E_RKT )
 !$OMP+PRIVATE( E_RKTs, FLUX, SO4, SO4s,     SO40,  SO40s       )
 !$OMP+SCHEDULE( DYNAMIC ) 
-!--------------------------------
-! Prior to 7/31/12:
-!      DO L = 1, LLTROP 
-!---------------------------------
       DO L = 1, LLPAR
       DO J = 1, JJPAR
       DO I = 1, IIPAR
@@ -3054,10 +3026,6 @@
 !$OMP+PRIVATE( I, J, L )
          DO J = 1, JJPAR
          DO I = 1, IIPAR
-!-------------------------------
-! Prior to 7/31/12:
-!         DO L = 1, LLTROP
-!-------------------------------
          DO L = 1, LLPAR
 
             ! Sum SO4, SO4s drydep fluxes in the vertical [molec/cm2/s]
@@ -3253,10 +3221,6 @@
       INTEGER               :: I,      J,    L,        PBL_MAX
       REAL*8                :: DTCHEM, MSA0, MSA,      RK       
       REAL*8                :: RKT,    FLUX, AREA_CM2, F_UNDER_TOP
-!----------------------------------------------------------------------------
-! Prior to 7/31/12:
-!      REAL*8                :: ND44_TMP(IIPAR,JJPAR,LLTROP)
-!----------------------------------------------------------------------------
       REAL*8                :: ND44_TMP(IIPAR,JJPAR,LLPAR)
 
       !=================================================================
@@ -3266,12 +3230,6 @@
 
       ! DTCHEM is the chemistry interval in seconds
       DTCHEM  = GET_TS_CHEM() * 60d0 
-
-!------------------------------------------------------
-! Prior to 7/31/12:
-!      ! Model level where maximum PBL height occurs 
-!      PBL_MAX = GET_PBL_MAX_L()
-!------------------------------------------------------
 
       ! Zero ND44_TMP array
       IF ( ND44 > 0 ) THEN
@@ -3283,10 +3241,6 @@
 !$OMP+DEFAULT( SHARED )
 !$OMP+PRIVATE( I, J, L, F_UNDER_TOP, MSA0, RKT, MSA, AREA_CM2, FLUX )
 !$OMP+SCHEDULE( DYNAMIC )
-!-----------------------------
-! Prior to 7/31/12:
-!      DO L = 1, LLTROP
-!-----------------------------
       DO L = 1, LLPAR
       DO J = 1, JJPAR
       DO I = 1, IIPAR
@@ -3361,10 +3315,6 @@
 !$OMP+PRIVATE( I, J, L )
          DO J = 1, JJPAR
          DO I = 1, IIPAR
-!----------------------------
-! Prior to 7/31/12:
-!         DO L = 1, PBL_MAX
-!----------------------------
          DO L = 1, LLPAR
             AD44(I,J,DRYMSA,1) = AD44(I,J,DRYMSA,1) + ND44_TMP(I,J,L)
          ENDDO
@@ -3440,10 +3390,6 @@
       INTEGER :: I,      J,        L,    PBL_MAX
       REAL*8  :: DTCHEM, NH30,     NH3
       REAL*8  :: FREQ,   AREA_CM2, FLUX, F_UNDER_TOP
-!------------------------------------------------------
-! Prior to 7/31/12:
-!      REAL*8  :: ND44_TMP(IIPAR,JJPAR,LLTROP)
-!------------------------------------------------------
       REAL*8  :: ND44_TMP(IIPAR,JJPAR,LLPAR)
 
       !=================================================================
@@ -3454,12 +3400,6 @@
       ! DTCHEM is the chemistry interval in seconds
       DTCHEM  = GET_TS_CHEM() * 60d0
 
-!------------------------------------------------------
-! Prior to 7/31/12:
-!      ! Model level where maximum PBL height occurs 
-!      PBL_MAX = GET_PBL_MAX_L()
-!------------------------------------------------------
-
       ! Zero ND44_TMP array
       IF ( ND44 > 0 ) THEN
          ND44_TMP = 0d0
@@ -3469,10 +3409,6 @@
 !$OMP+DEFAULT( SHARED )
 !$OMP+PRIVATE( I, J, L, F_UNDER_TOP, FREQ, NH30, NH3, AREA_CM2, FLUX )
 !$OMP+SCHEDULE( DYNAMIC )
-!---------------------------
-! Prior to 7/31/12:
-!      DO L = 1, PBL_MAX
-!---------------------------
       DO L = 1, LLPAR
       DO J = 1, JJPAR
       DO I = 1, IIPAR
@@ -3537,10 +3473,6 @@
 !$OMP+PRIVATE( I, J, L )
          DO J = 1, JJPAR
          DO I = 1, IIPAR
-!--------------------------------
-! Prior to 7/31/12:
-!         DO L = 1, PBL_MAX
-!--------------------------------
          DO L = 1, LLPAR
             AD44(I,J,DRYNH3,1) = AD44(I,J,DRYNH3,1) + ND44_TMP(I,J,L)
          ENDDO
@@ -3616,10 +3548,6 @@
       INTEGER :: I,      J,    L,        PBL_MAX
       REAL*8  :: DTCHEM, NH4,  NH40
       REAL*8  :: FREQ,   FLUX, AREA_CM2, F_UNDER_TOP
-!------------------------------------------------------
-! Prior to 7/31/12:
-!      REAL*8  :: ND44_TMP(IIPAR,JJPAR,LLTROP)
-!------------------------------------------------------
       REAL*8  :: ND44_TMP(IIPAR,JJPAR,LLPAR)
 
       !=================================================================
@@ -3630,12 +3558,6 @@
       ! DTCHEM is the chemistry interval in seconds
       DTCHEM = GET_TS_CHEM() * 60d0 
 
-!------------------------------------------------------
-! Prior to 7/31/12:
-!      ! Model level where maximum PBL height occurs 
-!      PBL_MAX = GET_PBL_MAX_L()
-!------------------------------------------------------
-
       ! Zero ND44_TMP array
       IF ( ND44 > 0 ) THEN
          ND44_TMP = 0d0
@@ -3645,10 +3567,6 @@
 !$OMP+DEFAULT( SHARED )
 !$OMP+PRIVATE( I, J, L, F_UNDER_TOP, FREQ, NH40, NH4, AREA_CM2, FLUX )
 !$OMP+SCHEDULE( DYNAMIC )
-!-----------------------------
-! Prior to 7/31/12:
-!      DO L = 1, PBL_MAX
-!-----------------------------
       DO L = 1, LLPAR
       DO J = 1, JJPAR
       DO I = 1, IIPAR
@@ -3713,10 +3631,6 @@
 !$OMP+PRIVATE( I, J, L )
          DO J = 1, JJPAR
          DO I = 1, IIPAR
-!-----------------------------
-! Prior to 7/31/12:
-!         DO L = 1, PBL_MAX
-!-----------------------------
          DO L = 1, LLPAR
             AD44(I,J,DRYNH4,1) = AD44(I,J,DRYNH4,1) + ND44_TMP(I,J,L)
          ENDDO
@@ -3779,10 +3693,6 @@
       INTEGER :: I,      J,     L,        PBL_MAX
       REAL*8  :: DTCHEM, NH4aq, NH4aq0
       REAL*8  :: FREQ,   FLUX,  AREA_CM2, F_UNDER_TOP
-!------------------------------------------
-! Prior to 7/31/12:
-!      REAL*8  :: T44(IIPAR,JJPAR,LLTROP)
-!------------------------------------------
       REAL*8  :: T44(IIPAR,JJPAR,LLPAR)
 
       !=================================================================
@@ -3806,10 +3716,6 @@
 !$OMP+PRIVATE( I,      J,     L,        F_UNDER_TOP, FREQ  )
 !$OMP+PRIVATE( NH4aq0, NH4aq, AREA_CM2, FLUX               )
 !$OMP+SCHEDULE( DYNAMIC )
-!-----------------------------
-! Prior to 7/31/12:
-!      DO L = 1, PBL_MAX
-!-----------------------------
       DO L = 1, LLPAR
       DO J = 1, JJPAR
       DO I = 1, IIPAR
@@ -3874,10 +3780,6 @@
 !$OMP+PRIVATE( I, J, L )
          DO J = 1, JJPAR
          DO I = 1, IIPAR
-!-----------------------------
-! Prior to 7/31/12:
-!         DO L = 1, PBL_MAX
-!-----------------------------
          DO L = 1, LLPAR
             AD44(I,J,DRYNH4aq,1) = AD44(I,J,DRYNH4aq,1) + T44(I,J,L)
          ENDDO
@@ -3956,10 +3858,6 @@
       REAL*8  :: DTCHEM,   NIT,   NITs, NIT0,  NIT0s,  E_RKT
       REAL*8  :: E_RKTs,   FLUX,  FREQ, FREQs, RKT,    RKTs   
       REAL*8  :: AREA_CM2, F_UNDER_TOP
-!----------------------------------------------
-! Prior to 7/31/12:
-!      REAL*8  :: T44(IIPAR,JJPAR,LLTROP,2)
-!----------------------------------------------
       REAL*8  :: T44(IIPAR,JJPAR,LLPAR,2)
 
       !=================================================================
@@ -3973,12 +3871,6 @@
       ! DTCHEM is the chemistry interval in seconds
       DTCHEM = GET_TS_CHEM() * 60d0 
 
-!------------------------------------------------------
-! Prior to 7/31/12:
-!      ! Model level where maximum PBL height occurs 
-!      PBL_MAX = GET_PBL_MAX_L()      
-!------------------------------------------------------
-      
       ! Number of tracers for ND44
       N_ND44 = 2 
 
@@ -3993,10 +3885,6 @@
 !$OMP+PRIVATE( NITs, FREQ,   FREQs,    F_UNDER_TOP, RKT,   E_RKT ) 
 !$OMP+PRIVATE( RKTs, E_RKTs, AREA_CM2, FLUX                      )
 !$OMP+SCHEDULE( DYNAMIC )
-!---------------------------
-! Prior to 7/31/12:
-!      DO L = 1, PBL_MAX
-!---------------------------
       DO L = 1, LLPAR
       DO J = 1, JJPAR
       DO I = 1, IIPAR
@@ -4146,10 +4034,6 @@
 !$OMP+PRIVATE( I, J, L )
          DO J = 1, JJPAR
          DO I = 1, IIPAR
-!-----------------------------
-! Prior to 7/31/12:
-!         DO L = 1, PBL_MAX
-!-----------------------------
          DO L = 1, LLPAR
             AD44(I,J,DRYNIT, 1) = AD44(I,J,DRYNIT, 1) + T44(I,J,L,1)
             AD44(I,J,DRYNITs,1) = AD44(I,J,DRYNITs,1) + T44(I,J,L,2)
@@ -6945,6 +6829,7 @@ c      print *,BINMASS(24,11,2,:)
 !  22 Dec 2011 - M. Payer    - Added ProTeX headers
 !  13 Mar 2012 - M. Cooper   - Changed regrid algorithm to map_a2a
 !  24 May 2012 - R. Yantosca - Fixed minor bugs in map_a2a implementation
+!  24 Aug 2012 - R. Yantosca - DO_REGRID_A2A now reads netCDF input file
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -7001,8 +6886,8 @@ c      print *,BINMASS(24,11,2,:)
      &                 LVOLC,     ARRAY_GEN(:,:,:), QUIET=.TRUE. )
 
       ! File with lat/lon edges for regridding
-      LLFILENAME = TRIM( DATA_DIR_1x1) //
-     &             'MAP_A2A_Regrid_201203/latlon_generic_new.txt'
+      LLFILENAME = TRIM( DATA_DIR_1x1 ) //
+     &             'MAP_A2A_Regrid_201203/MAP_A2A_latlon_generic1x1.nc'
 
       ! Array regridding has to be done level by level since the array
       ! has a different vertical dimension than expected
@@ -7017,7 +6902,8 @@ c      print *,BINMASS(24,11,2,:)
 
          ! Regrid
          CALL DO_REGRID_A2A( LLFILENAME, I1x1,    J1x1-1,
-     &                       INGRID,     OUTGRID, PERAREA=1 )
+     &                       INGRID,     OUTGRID, PERAREA=1,
+     &                       netCDF=.TRUE.                   )
 
          ! Free pointers
          NULLIFY( INGRID, OUTGRID )
@@ -7073,6 +6959,7 @@ c      print *,BINMASS(24,11,2,:)
 !  22 Dec 2011 - M. Payer    - Added ProTeX headers
 !  13 Mar 2012 - M. Cooper   - Changed regrid algorithm to map_a2a
 !  24 May 2012 - R. Yantosca - Fixed minor bugs in map_a2a implementation
+!  24 Aug 2012 - R. Yantosca - DO_REGRID_A2A now reads netCDF input file
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -7121,10 +7008,10 @@ c      print *,BINMASS(24,11,2,:)
      &                    XTAU,      I1x1,             J1x1-1,
      &                    LVOLC,     ARRAY_GEN(:,:,:), QUIET=.TRUE. )
 
-
          ! File with lat/lon edges for regridding
-         LLFILENAME = TRIM( DATA_DIR_1x1) //
-     &                'MAP_A2A_Regrid_201203/latlon_generic_new.txt'
+         LLFILENAME = TRIM( DATA_DIR_1x1 )           //
+     &                'MAP_A2A_Regrid_201203/'       // 
+     &                'MAP_A2A_latlon_generic1x1.nc'
 
          ! Array regridding has to be done level by level since the array
          ! has a different vertical dimension than expected
@@ -7139,7 +7026,8 @@ c      print *,BINMASS(24,11,2,:)
             
             ! Regrid
             CALL DO_REGRID_A2A( LLFILENAME, I1x1,    J1x1-1,
-     &                          INGRID,     OUTGRID, PERAREA=1 )
+     &                          INGRID,     OUTGRID, PERAREA=1,
+     &                          netCDF=.TRUE.                   )
 
             ! Free pointer
             NULLIFY( INGRID, OUTGRID )
@@ -7670,6 +7558,7 @@ c      print *,BINMASS(24,11,2,:)
 !  22 Dec 2011 - M. Payer    - Added ProTeX headers
 !  13 Mar 2012 - M. Cooper   - Changed regrid algorithm to map_a2a
 !  24 May 2012 - R. Yantosca - Fixed minor bugs in map_a2a implementation
+!  24 Aug 2012 - R. Yantosca - DO_REGRID_A2A now reads netCDF input file
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -7717,12 +7606,13 @@ c      print *,BINMASS(24,11,2,:)
 
          ! File with lat/lon edges for regridding
          LLFILENAME = TRIM( DATA_DIR_1x1) //
-     &                'MAP_A2A_Regrid_201203/latlon_geos1x1_new.txt'
+     &                'MAP_A2A_Regrid_201203/MAP_A2A_latlon_geos1x1.nc'
 
          ! Regrid from 1x1 and cast to REAL*8
          INGRID = ARRAY1(:,:,1)
          CALL DO_REGRID_A2A( LLFILENAME, I1x1,   J1x1,
-     &                       INGRID,     SSTEMP, PERAREA=0 ) 
+     &                       INGRID,     SSTEMP, PERAREA=0,
+     &                       netCDF=.TRUE.                   )
 
       ELSE
 
@@ -7824,6 +7714,7 @@ c      print *,BINMASS(24,11,2,:)
 !                              SO2 (E. Leibensperger)
 !  06 Apr 2012 - M. Payer    - Changed regrid algorithm to map_a2a (M. Cooper)
 !  24 May 2012 - R. Yantosca - Fixed minor bugs in map_a2a implementation
+!  24 Aug 2012 - R. Yantosca - DO_REGRID_A2A now reads netCDF input file
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -7935,8 +7826,9 @@ c      print *,BINMASS(24,11,2,:)
          ESO2_GEN8 = ESO2_GEN
 
          ! File with lat/lon edges for regridding
-         LLFILENAME = TRIM( DATA_DIR_1x1) //
-     &                'MAP_A2A_Regrid_201203/latlon_generic_new.txt'
+         LLFILENAME = TRIM( DATA_DIR_1x1 )           //
+     &                'MAP_A2A_Regrid_201203/'       //
+     &                'MAP_A2A_latlon_generic1x1.nc'
 
          ! Point to input & output arrays
          INGRID  => ESO2_GEN8
@@ -7944,7 +7836,8 @@ c      print *,BINMASS(24,11,2,:)
 
          ! Regrid to current model resolution [kg/yr]
          CALL DO_REGRID_A2A( LLFILENAME, I1x1,    J1x1-1, 
-     &                       INGRID,     OUTGRID, PERAREA=0 )
+     &                       INGRID,     OUTGRID, PERAREA=0,
+     &                       netCDF=.TRUE.                   )
 
          ! Free pointers
          NULLIFY( INGRID, OUTGRID )
