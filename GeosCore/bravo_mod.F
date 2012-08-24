@@ -201,6 +201,7 @@
 !  (1 ) Now pass the unit string to DO_REGRID_G2G_1x1 (bmy, 8/9/06)
 !  13 Mar 2012 - M. Cooper   - Changed regrid algorithm to map_a2a
 !  24 May 2012 - R. Yantosca - Fixed minor bugs in map_a2a implementation
+!  24 Aug 2012 - R. Yantosca - DO_REGRID_A2A now reads netCDF input file
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -266,14 +267,26 @@
       ! Cast from REAL*4 to REAL*8
       GEN_1x1(:,:) = ARRAY(:,:,1)
 
+!------------------------------------------------------------------------------
+! Prior to 8/24/12:
+!      ! File with lat/lon edges for regridding
+!      LLFILENAME = TRIM( DATA_DIR_1x1) //
+!     &             'MAP_A2A_Regrid_201203/latlon_generic_new.txt'
+!
+!      ! Regrid to NOx [molec/cm2/s] current model resolution
+!      INGRID => GEN_1x1
+!      CALL DO_REGRID_A2A( LLFILENAME, I1x1,    J1x1-1, 
+!     &                    INGRID,     OUTGRID, PERAREA=0 )
+!------------------------------------------------------------------------------
       ! File with lat/lon edges for regridding
       LLFILENAME = TRIM( DATA_DIR_1x1) //
-     &             'MAP_A2A_Regrid_201203/latlon_generic_new.txt'
+     &             'MAP_A2A_Regrid_201203/MAP_A2A_latlon_generic1x1.nc'
 
       ! Regrid to NOx [molec/cm2/s] current model resolution
       INGRID => GEN_1x1
       CALL DO_REGRID_A2A( LLFILENAME, I1x1,    J1x1-1, 
-     &                    INGRID,     OUTGRID, PERAREA=0 )
+     &                    INGRID,     OUTGRID, PERAREA=0,
+     &                    netCDF=.TRUE.                   )
 
       ! Get & apply scaling factor
       CALL GET_ANNUAL_SCALAR( 71, 1999, SCALEYEAR, SC )
@@ -301,10 +314,19 @@
       ! Cast from REAL*4 to REAL*8
       GEN_1x1(:,:) = ARRAY(:,:,1)
 
+!------------------------------------------------------------------------------
+! Prior to 8/24/12:
+!      ! Regrid CO [molec/cm2/s] to current model resolution
+!      INGRID => GEN_1x1
+!      CALL DO_REGRID_A2A( LLFILENAME, I1x1,    J1x1-1, 
+!     &                    INGRID,     OUTGRID, PERAREA=0 )
+!------------------------------------------------------------------------------
       ! Regrid CO [molec/cm2/s] to current model resolution
       INGRID => GEN_1x1
       CALL DO_REGRID_A2A( LLFILENAME, I1x1,    J1x1-1, 
-     &                    INGRID,     OUTGRID, PERAREA=0 )
+     &                    INGRID,     OUTGRID, PERAREA=0, 
+     &                    netCDF=.TRUE.                   )
+
 
       ! Get & apply scaling factor
       CALL GET_ANNUAL_SCALAR( 72, 1999, SCALEYEAR, SC )
@@ -332,10 +354,18 @@
       ! Cast from REAL*4 to REAL*8
       GEN_1x1(:,:) = ARRAY(:,:,1)
 
+!------------------------------------------------------------------------------
+! Prior to 8/24/12:
+!      ! Regrid SO2 [molec/cm2/s] to current model resolution
+!      INGRID => GEN_1x1
+!      CALL DO_REGRID_A2A( LLFILENAME, I1x1,    J1x1-1, 
+!     &                    INGRID,     OUTGRID, PERAREA=0 )
+!------------------------------------------------------------------------------
       ! Regrid SO2 [molec/cm2/s] to current model resolution
       INGRID => GEN_1x1
       CALL DO_REGRID_A2A( LLFILENAME, I1x1,    J1x1-1, 
-     &                    INGRID,     OUTGRID, PERAREA=0 )
+     &                    INGRID,     OUTGRID, PERAREA=0,
+     &                    netCDF=.TRUE.                   )
 
       ! Get & apply scaling factor
       CALL GET_ANNUAL_SCALAR( 73, 1999, SCALEYEAR, SC )
@@ -562,6 +592,7 @@
 !  06 Apr 2012 - M. Payer    - Changed regrid algorithm to map_a2a (M. Cooper)
 !  24 May 2012 - R. Yantosca - Fixed minor bugs in map_a2a implementation
 !  15 Aug 2012 - M. Payer    - Set mask to 1 if greater than 0 (L. Murray)
+!  24 Aug 2012 - R. Yantosca - DO_REGRID_A2A now reads netCDF input file
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -597,13 +628,24 @@
       ! Cast from REAL*4 to REAL*8
       GEN_1x1(:,:) = ARRAY(:,:,1) 
 
+!------------------------------------------------------------------------------
+! Prior to 8/24/12:
+!      ! File with lat/lon edges for regridding
+!      LLFILENAME = TRIM( DATA_DIR_1x1) //
+!     &             'MAP_A2A_Regrid_201203/latlon_generic_new.txt'
+!
+!      ! Regrid to current model resolution [unitless]
+!      CALL DO_REGRID_A2A( LLFILENAME, I1x1,       J1x1-1, 
+!     &                    GEN_1x1,    BRAVO_MASK, PERAREA=0 )
+!------------------------------------------------------------------------------
       ! File with lat/lon edges for regridding
       LLFILENAME = TRIM( DATA_DIR_1x1) //
-     &             'MAP_A2A_Regrid_201203/latlon_generic_new.txt'
+     &             'MAP_A2A_Regrid_201203/MAP_A2A_latlon_generic1x1.nc'
 
       ! Regrid to current model resolution [unitless]
       CALL DO_REGRID_A2A( LLFILENAME, I1x1,       J1x1-1, 
-     &                    GEN_1x1,    BRAVO_MASK, PERAREA=0 )
+     &                    GEN_1x1,    BRAVO_MASK, PERAREA=0,
+     &                    netCDF=.TRUE.                      )
 
       WHERE ( BRAVO_MASK > 0D0 ) BRAVO_MASK = 1D0
 
