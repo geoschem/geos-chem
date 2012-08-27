@@ -39,6 +39,7 @@ MODULE REGRID_A2A_MOD
 !                              (generic 0.5x0.5, generic 0.25x0.25, etc.)
 !  23 Aug 2012 - R. Yantosca - Add subroutine READ_INPUT_GRID, which reads the
 !                              grid parameters (lon & lat edges) w/ netCDF
+!  27 Aug 2012 - R. Yantosca - Now parallelize key DO loops
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -105,6 +106,7 @@ MODULE REGRID_A2A_MOD
 !  06 Aug 2012 - R. Yantosca - Move calls to findFreeLUN out of DEVEL block
 !  23 Aug 2012 - R. Yantosca - Now use f10.4 format for hi-res grids
 !  23 Aug 2012 - R. Yantosca - Now can read grid info from netCDF files
+!  27 Aug 2012 - R. Yantosca - Add parallel DO loops
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -155,18 +157,20 @@ MODULE REGRID_A2A_MOD
     ! Read the input grid specifications
     IF ( USE_netCDF ) THEN
 
-       !--------------------------------
+       !------------------------------------------
        ! %%% FROM NETCDF FILE %%%
-       !--------------------------------
+       !------------------------------------------
 
        ! Read the grid specifications from a netCDF file
        CALL READ_INPUT_GRID( IM, JM, FILENAME, INLON, INSIN )
 
     ELSE
 
-       !--------------------------------
+       !------------------------------------------
        ! %%% FROM ASCII FILE %%%
-       !--------------------------------
+       !
+       ! NOTE: Deprecated, will be removed later.
+       !------------------------------------------
 
        ! Find a free file LUN
        IU_REGRID = findFreeLUN()
@@ -210,13 +214,19 @@ MODULE REGRID_A2A_MOD
 
     ! Convert input to per area units if necessary
     IF ( PERAREA == 1 ) THEN
+
+       !$OMP PARALLEL DO                   &
+       !$OMP DEFAULT( SHARED             ) &
+       !$OMP PRIVATE( I, J, RLAT, INAREA )
        DO J = 1, JM
-          RLAT = INSIN(J+1) - INSIN(J)
-          INAREA = 2d0*PI*Re*RLAT*1d4*Re / DBLE( IM )
+          RLAT   = INSIN(J+1) - INSIN(J)
+          INAREA = ( 2d0 * PI * Re * RLAT * 1d4 * Re ) / DBLE( IM )
           DO I = 1, IM
              IN_GRID(I,J) = IN_GRID(I,J) / INAREA
           ENDDO
        ENDDO
+       !$OMP END PARALLEL DO
+
     ENDIF
 
     ! Call MAP_A2A to do the regridding
@@ -225,11 +235,17 @@ MODULE REGRID_A2A_MOD
 
     ! Convert back from "per area" if necessary
     IF ( PERAREA == 1 ) THEN
+
+       !$OMP PARALLEL DO       &
+       !$OMP DEFAULT( SHARED ) &
+       !$OMP PRIVATE( I, J   )
        DO J = 1, JJPAR
        DO I = 1, IIPAR
-          OUTGRID(I,J) = OUTGRID(I,J)*GET_AREA_CM2(I, J, 1)
+          OUTGRID(I,J) = OUTGRID(I,J) * GET_AREA_CM2( I, J, 1 )
        ENDDO
        ENDDO
+       !$OMP END PARALLEL DO
+
     ENDIF
 
   END SUBROUTINE DO_REGRID_A2A
@@ -290,43 +306,62 @@ MODULE REGRID_A2A_MOD
 !  (2) Added F90 type declarations to be consistent w/ TypeModule.f90.
 !      Also updated comments. (bmy, 9/21/00)
 !  21 Sep 2000 - R. Yantosca - Initial version
+!  27 Aug 2012 - R. Yantosca - Add parallel DO loops
 !EOP
 !------------------------------------------------------------------------------
 !BOC
 !
 ! !LOCAL VARIABLES:
 !
-    INTEGER              :: i,j,k
-    REAL*8               :: qtmp(in,jm)
+    INTEGER :: i,j,k
+    REAL*8  :: qtmp(in,jm)
 
     !===================================================================
-    ! MAP_A2A begins here!
-    !
-    ! Mapping in the E-W direction
-    ! If both grids have the same longitude dimension, don't call XMAP
+    ! E-W regridding
     !===================================================================    
     IF ( im .eq. in ) THEN
+
+       ! Don't call XMAP if both grids have the same # of longitudes
+       ! but save the input data in the QTMP array
+       !$OMP PARALLEL DO       &
+       !$OMP DEFAULT( SHARED ) &
+       !$OMP PRIVATE( I, J )
        DO j=1,jm-ig
        DO i=1,im
           qtmp(i,j+ig) = q1(i,j+ig)
        ENDDO
        ENDDO
+       !$OMP END PARALLEL DO
+
     ELSE
+
+       ! Otherwise, call XMAP to regrid in the E-W direction
        CALL xmap(im, jm-ig, lon1, q1(1,1+ig),in, lon2, qtmp(1,1+ig) )
+
     ENDIF
     
     !===================================================================
-    ! Mapping in the N-S direction
-    ! If both grids have the same latitude dimension, don't call YMAP 
+    ! N-S regridding
     !===================================================================    
     IF ( jm .eq. jn ) THEN
+
+       ! Don't call XMAP if both grids have the same # of longitudes,
+       ! but assign the value of QTMP to the output Q2 array
+       !$OMP PARALLEL DO       &
+       !$OMP DEFAULT( SHARED ) &
+       !$OMP PRIVATE( I, J )      
        DO j=1,jm-ig
        DO i=1,in
           q2(i,j+ig) = qtmp(i,j+ig)
        ENDDO
        ENDDO
+       !$OMP END PARALLEL DO
+
     ELSE
+
+       ! Otherwise, call YMAP to regrid in the N-S direction
        CALL ymap(in, jm, sin1, qtmp(1,1+ig), jn, sin2, q2(1,1+ig), ig, iv)
+
     ENDIF
 
   END SUBROUTINE map_a2a
@@ -390,6 +425,10 @@ MODULE REGRID_A2A_MOD
 ! !AUTHOR:
 !   Developer: Prasad Kasibhatla
 !   March 6, 2012
+!
+! !REVISION HISTORY
+!  06 Mar 2012 - P. Kasibhatla - Initial version
+!  27 Aug 2012 - R. Yantosca   - Added parallel DO loops
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -410,6 +449,9 @@ MODULE REGRID_A2A_MOD
     ! Area preserving mapping
     !===============================================================
     
+    !$OMP PARALLEL DO                          &
+    !$OMP DEFAULT( SHARED                    ) &
+    !$OMP PRIVATE( I, J0, J, M, QSUM, MM, DY )
     do 1000 i=1,im
        j0 = 1
        do 555 j=1,jn-ig
@@ -454,6 +496,7 @@ MODULE REGRID_A2A_MOD
 123    q2(i,j) = qsum / ( sin2(j+1) - sin2(j) )
 555    continue
 1000 continue
+     !$OMP END PARALLEL DO
 
      !===================================================================
      ! Final processing for poles
@@ -535,6 +578,10 @@ MODULE REGRID_A2A_MOD
 ! !AUTHOR:
 !   Developer: Prasad Kasibhatla
 !   March 6, 2012
+!
+! !REVISION HISTORY
+!  06 Mar 2012 - P. Kasibhatla - Initial version
+!  27 Aug 2012 - R. Yantosca   - Added parallel DO loops
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -598,7 +645,10 @@ MODULE REGRID_A2A_MOD
           endif
        endif
     enddo
-      
+
+    !$OMP PARALLEL DO                                &
+    !$OMP DEFAULT( SHARED                          ) &
+    !$OMP PRIVATE( J, QTMP, I, I0, M, QSUM, MM, DX )
     do 1000 j=1,jm
        
        !=================================================================
@@ -627,7 +677,7 @@ MODULE REGRID_A2A_MOD
        endif
         
        i0 = i1
-        
+
        do 555 i=1,in
        do 100 m=i0,i2-1
 
@@ -669,6 +719,7 @@ MODULE REGRID_A2A_MOD
 123    q2(i,j) = qsum / ( lon2(i+1) - lon2(i) )
 555    continue
 1000 continue
+     !$OMP END PARALLEL DO
 
   END SUBROUTINE xmap
 !EOC
@@ -725,10 +776,10 @@ MODULE REGRID_A2A_MOD
 ! !LOCAL VARIABLES:
 !
     ! Scalars
-    INTEGER            :: fId                ! netCDF file ID
+    INTEGER            :: fId                          ! netCDF file ID
 
     ! Arrays
-    INTEGER            :: st1d(1), ct1d(1)   ! start & count for 1D arrays    
+    INTEGER            :: st1d(1), ct1d(1)             ! netCDF start & count
 
     !======================================================================
     ! Read data from file
