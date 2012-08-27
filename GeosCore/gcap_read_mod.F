@@ -1,72 +1,87 @@
-! $Id: gcap_read_mod.f,v 1.1 2009/09/16 14:06:26 bmy Exp $
+!------------------------------------------------------------------------------
+!          Harvard University Atmospheric Chemistry Modeling Group            !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !MODULE: gcap_read_mod.f
+!
+! !DESCRIPTION: Module GCAP\_READ\_MOD contains file unit numbers, as well 
+!  as file I/O routines for GEOS-Chem.  FILE\_MOD keeps all of the I/O unit 
+!  numbers in a single location for convenient access.
+!\\
+!\\
+! !INTERFACE: 
+!
       MODULE GCAP_READ_MOD
 !
-!******************************************************************************
-!  Module PHIS_READ_MOD contains subroutines that unzip, open, and read the 
-!  GCAP PHIS and LWI_GISS fields from disk. (bmy, swu, 2/1/06)
+! !USES:
 ! 
-!  Module Routines:
-!  ============================================================================
-!  (1 ) UNZIP_GCAP_FIELDS : Unzips & copies met field files to a temp dir
-!  (2 ) OPEN_GCAP_FIELDS  : Opens met field files residing in the temp dir
-!  (3 ) GET_GCAP_FIELDS   : Wrapper for routine READ_I6
-!  (4 ) CHECK_TIME        : Tests if met field timestamps equal current time
-!  (5 ) READ_GCAP         : Reads PHIS fields from disk
-!  (6 ) GCAP_CHECK        : Checks if we have found all the PHIS field
-! 
-!  GEOS-CHEM modules referenced by phis_read_mod.f
-!  ============================================================================
-!  (1 ) bpch2_mod.f       : Module w/ routines for binary punch file I/O
-!  (2 ) dao_mod.f         : Module w/ arrays for DAO met fields
-!  (3 ) diag_mod.f        : Module w/ GEOS-CHEM diagnostic arrays
-!  (4 ) directory_mod.f   : Module w/ GEOS-CHEM data & met field dirs
-!  (5 ) error_mod.f       : Module w/ NaN and other error check routines
-!  (6 ) logical_mod.f     : Module w/ GEOS-CHEM logical switches 
-!  (7 ) file_mod.f        : Module w/ file unit #'s and error checks
-!  (8 ) time_mod.f        : Module w/ routines for computing time & date
-!  (9 ) transfer_mod.f    : Module w/ routines to cast & resize arrays
-!  (10) unix_cmds_mod.f   : Module w/ Unix commands for unzipping
-!
-!  NOTES:
-!  (1 ) Adapted from the obsolete "phis_read_mod.f" (bmy, 2/1/06)
-!******************************************************************************
-!
+      USE inquireMod, ONLY : findFreeLUN
+
       IMPLICIT NONE
 #     include "define.h"
-
-      !=================================================================
-      ! MODULE PRIVATE DECLARATIONS -- keep certain internal variables 
-      ! and routines from being seen outside "gcap_read_mod.f"
-      !=================================================================
-
-      ! Make everything PRIVATE ...
       PRIVATE 
-
-      ! ... except these routines
+!
+! !PRIVATE MEMBER FUNCTIONS:
+!
+      PRIVATE :: CHECK_TIME
+      PRIVATE :: READ_GCAP
+      PRIVATE :: GCAP_CHECK
+!
+! !PUBLIC MEMBER FUNCTIONS:
+!
       PUBLIC :: GET_GCAP_FIELDS
       PUBLIC :: OPEN_GCAP_FIELDS
       PUBLIC :: UNZIP_GCAP_FIELDS
-
-      !=================================================================
-      ! MODULE ROUTINES -- follow below the "CONTAINS" statement 
-      !=================================================================
-      CONTAINS
-
+!
+! !REVISION HISTORY:
+!  (1 ) Adapted from the obsolete "phis_read_mod.f" (bmy, 2/1/06)
+!  03 Aug 2012 - R. Yantosca - Move calls to findFreeLUN out of DEVEL block
+!  06 Aug 2012 - R. Yantosca - Now make IU_PH a local variable
+!EOP
 !------------------------------------------------------------------------------
+!BOC
+!
+! !PRIVATE TYPES:
+!
+      ! LUN for the GCAP "phis" file
+      INTEGER :: IU_PH   
 
+      CONTAINS
+!EOC
+!------------------------------------------------------------------------------
+!          Harvard University Atmospheric Chemistry Modeling Group            !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: 
+!
+! !DESCRIPTION: Subroutine UNZIP\_GCAP\_FIELDS invokes a FORTRAN system call
+!  to uncompress GCAP PHIS met field files and store the uncompressed data in a 
+!  temporary directory, where GEOS-CHEM can read them.  The original data 
+!  files are not disturbed.
+ 
+!\\
+!\\
+! !INTERFACE:
+!
       SUBROUTINE UNZIP_GCAP_FIELDS( OPTION )
 !
-!******************************************************************************
-!  Subroutine UNZIP_GCAP_FIELDS invokes a FORTRAN system call to uncompress
-!  GCAP PHIS met field files and store the uncompressed data in a 
-!  temporary directory, where GEOS-CHEM can read them.  The original data 
-!  files are not disturbed.  (bmy, bdf, 6/15/98, 5/25/05)
+! !USES:
 !
-!  Arguments as input:
-!  ===========================================================================
-!  (1 ) OPTION (CHAR*(*)) : Option
+      USE CMN_SIZE_MOD                          ! Size parameters
+      USE BPCH2_MOD,    ONLY : GET_RES_EXT
+      USE DIRECTORY_MOD
+      USE ERROR_MOD,    ONLY : ERROR_STOP
+      USE TIME_MOD,     ONLY : EXPAND_DATE
+      USE UNIX_CMDS_MOD
 !
-!  NOTES:
+! !INPUT PARAMETERS: 
+!
+      CHARACTER(LEN=*),  INTENT(IN) :: OPTION   ! Unzipping option
+! 
+! !REVISION HISTORY: 
+!  15 Jun 1998 - R. Yantosca - Initial version
 !  (1 ) Adapted from UNZIP_MET_FIELDS of "dao_read_mod.f" (bmy, 6/16/03)
 !  (2 ) Directory information YYYY/MM or YYYYMM is now contained w/in 
 !        GEOS_1_DIR, GEOS_S_DIR, GEOS_3_DIR, GEOS_4_DIR (bmy, 12/11/03)
@@ -74,26 +89,18 @@
 !        EXPAND_DATE from overwriting directory paths with Y/M/D tokens in 
 !        them (bmy, 7/20/04)
 !  (4 ) Now modified for GEOS-5 and GCAP met fields (swu, bmy, 5/25/05)
-!******************************************************************************
+!  06 Aug 2012 - R. Yantosca - Added ProTeX headers
+!EOP
+!------------------------------------------------------------------------------
+!BOC
 !
-      ! References to F90 modules
-      USE BPCH2_MOD,    ONLY : GET_RES_EXT
-      USE DIRECTORY_MOD
-      USE ERROR_MOD,    ONLY : ERROR_STOP
-      USE TIME_MOD,     ONLY : EXPAND_DATE
-      USE UNIX_CMDS_MOD
-
-      USE CMN_SIZE_MOD     ! Size parameters
-
-      ! Arguments
-      CHARACTER(LEN=*),  INTENT(IN) :: OPTION
-
-      ! Local variables
-      INTEGER                       :: NYMD
-      CHARACTER(LEN=255)            :: GEOS_DIR,     PHIS_STR
-      CHARACTER(LEN=255)            :: PHIS_FILE_GZ, PHIS_FILE
-      CHARACTER(LEN=255)            :: UNZIP_BG,     UNZIP_FG
-      CHARACTER(LEN=255)            :: REMOVE_ALL,   REMOVE_DATE
+! !LOCAL VARIABLES:
+!
+      INTEGER            :: NYMD
+      CHARACTER(LEN=255) :: GEOS_DIR,     PHIS_STR
+      CHARACTER(LEN=255) :: PHIS_FILE_GZ, PHIS_FILE
+      CHARACTER(LEN=255) :: UNZIP_BG,     UNZIP_FG
+      CHARACTER(LEN=255) :: REMOVE_ALL,   REMOVE_DATE
 
       !=================================================================
       ! UNZIP_GCAP_FIELD begins here!
@@ -175,18 +182,36 @@
  110  FORMAT( '     - Removing: ', a )
  120  FORMAT( '     - About to execute command: ', a )
 
-      ! Return to calling program
       END SUBROUTINE UNZIP_GCAP_FIELDS
-
+!EOC
 !------------------------------------------------------------------------------
+!          Harvard University Atmospheric Chemistry Modeling Group            !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: 
+!
+! !DESCRIPTION: Subroutine OPEN_GCAP_FIELDS opens the PHIS and LWI met fields 
+!  file.
 
+!\\
+!\\
+! !INTERFACE:
+!
       SUBROUTINE OPEN_GCAP_FIELDS 
 !
-!******************************************************************************
-!  Subroutine OPEN_GCAP_FIELDS opens the PHIS and LWI met fields file for 
-!  date 2000/01/01. (swu, bmy, 2/1/06)
-!  
-!  NOTES:
+! !USES:
+!
+      USE BPCH2_MOD,    ONLY : GET_RES_EXT
+      USE DIRECTORY_MOD
+      USE ERROR_MOD,    ONLY : ERROR_STOP
+      USE LOGICAL_MOD,  ONLY : LUNZIP
+      USE FILE_MOD,     ONLY : IOERROR, FILE_EXISTS
+      USE TIME_MOD,     ONLY : EXPAND_DATE
+      USE CMN_SIZE_MOD       ! Size parameters
+! 
+! !REVISION HISTORY: 
+!  01 Feb 2006 - S. Wu        - Initial version
 !  (1 ) Adapted from OPEN_MET_FIELDS of "dao_read_mod.f" (bmy, 6/13/03)
 !  (2 ) Now opens either zipped or unzipped files (bmy, 12/11/03)
 !  (3 ) Now skips past the GEOS-4 ident string (bmy, 12/12/04)
@@ -196,27 +221,22 @@
 !  (5 ) Now use FILE_EXISTS from "file_mod.f" to determine if file unit IU_PH 
 !        refers to a valid file on disk (bmy, 3/23/05)
 !  (6 ) Now modified for GEOS-5 and GCAP met fields (swu, bmy, 5/25/05)
-!******************************************************************************
-!      
-      ! References to F90 modules
-      USE BPCH2_MOD,    ONLY : GET_RES_EXT
-      USE DIRECTORY_MOD
-      USE ERROR_MOD,    ONLY : ERROR_STOP
-      USE LOGICAL_MOD,  ONLY : LUNZIP
-      USE FILE_MOD,     ONLY : IU_PH, IOERROR, FILE_EXISTS
-      USE TIME_MOD,     ONLY : EXPAND_DATE
-
-      USE CMN_SIZE_MOD     ! Size parameters
-
-      ! Local variables
-      LOGICAL, SAVE         :: FIRST = .TRUE.
-      LOGICAL               :: IT_EXISTS
-      INTEGER               :: NYMD, NHMS
-      INTEGER               :: IOS,  IUNIT
-      CHARACTER(LEN=8)      :: IDENT
-      CHARACTER(LEN=255)    :: GEOS_DIR
-      CHARACTER(LEN=255)    :: PHIS_FILE
-      CHARACTER(LEN=255)    :: PATH
+!  06 Aug 2012 - R. Yantosca - Move calls to findFreeLUN out of DEVEL block
+!  06 Aug 2012 - R. Yantosca - Added ProTeX headers
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+!
+! !LOCAL VARIABLES:
+!
+      LOGICAL, SAVE      :: FIRST = .TRUE.
+      LOGICAL            :: IT_EXISTS, IS_OPEN
+      INTEGER            :: NYMD, NHMS
+      INTEGER            :: IOS,  IUNIT
+      CHARACTER(LEN=8)   :: IDENT
+      CHARACTER(LEN=255) :: GEOS_DIR
+      CHARACTER(LEN=255) :: PHIS_FILE
+      CHARACTER(LEN=255) :: PATH
 
       !=================================================================
       ! OPEN_PHIS_FIELDS begins here!
@@ -247,7 +267,8 @@
          ENDIF
 
          ! Close previously opened A-3 file
-         CLOSE( IU_PH )
+	 INQUIRE( IU_PH, OPENED=IS_OPEN )
+         IF ( IS_OPEN ) CLOSE( IU_PH )
 
          ! Make sure the file unit is valid before we open the file
          IF ( .not. FILE_EXISTS( IU_PH ) ) THEN
@@ -256,6 +277,8 @@
          ENDIF
 
          ! Open the file
+	 IU_PH = findFreeLUN()
+
          OPEN( UNIT   = IU_PH,         FILE   = TRIM( PATH ),
      &         STATUS = 'OLD',         ACCESS = 'SEQUENTIAL',  
      &         FORM   = 'UNFORMATTED', IOSTAT = IOS )
@@ -279,28 +302,38 @@
          ENDIF
       ENDIF
 
-      ! Return to calling program
       END SUBROUTINE OPEN_GCAP_FIELDS
-
+!EOC
 !------------------------------------------------------------------------------
-
+!          Harvard University Atmospheric Chemistry Modeling Group            !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: 
+!
+! !DESCRIPTION: Subroutine GET\_GCAP\_FIELDS calls READ\_GCAP to read GCAP
+!  fields from disk at the start of a GEOS-Chem run. 
+!\\
+!\\
+! !INTERFACE:
+!
       SUBROUTINE GET_GCAP_FIELDS
 !
-!******************************************************************************
-!  Subroutine GET_GCAP_FIELDS is a wrapper for routine READ_PHIS.  This routine
-!  calls READ_PHIS properly for reading PHIS fields from GEOS-1, GEOS-STRAT, 
-!  GEOS-3, or GEOS-4 met data sets at the START of a GEOS-CHEM run. 
-!  (bmy, swu, 2/1/06)
+! !USES:
 !
-!  NOTES:
-!  (1 ) Now also read LWI_GISS for GCAP met fields (swu, bmy, 5/25/05)
-!******************************************************************************
-! 
-      ! References to F90 modules
       USE DAO_MOD, ONLY : PHIS, LWI_GISS
-
-      ! Local variables
-      INTEGER          :: NYMD, NHMS 
+! 
+! !REVISION HISTORY: 
+!  01 Feb 2006 - S. Wu       - Initial version
+!  (1 ) Now also read LWI_GISS for GCAP met fields (swu, bmy, 5/25/05)
+!  06 Aug 2012 - R. Yantosca - Added ProTeX headers
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+!
+! !LOCAL VARIABLES:
+!
+      INTEGER :: NYMD, NHMS 
 
       !=================================================================
       ! GET_PHIS_FIELD begins here!
@@ -313,35 +346,50 @@
       ! For GCAP met fields: read PHIS and LWI_GISS
       CALL READ_GCAP( NYMD=NYMD, NHMS=NHMS, PHIS=PHIS, LWI=LWI_GISS )
 
-      ! Return to calling program
       END SUBROUTINE GET_GCAP_FIELDS
+!EOC
+!------------------------------------------------------------------------------
+!          Harvard University Atmospheric Chemistry Modeling Group            !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: 
+!
+! !DESCRIPTION: Function CHECK\_TIME checks to see if the timestamp of the 
+!  GCAP field just read from disk matches the current time.  If so, then it's 
+!  time to return the GCAP field to the calling program. (bmy, 6/16/03)
 
-!---------------------------------------------------------------------------
-
+!\\
+!\\
+! !INTERFACE:
+!
       FUNCTION CHECK_TIME( XYMD, XHMS, NYMD, NHMS ) RESULT( ITS_TIME )
 !
-!******************************************************************************
-!  Function CHECK_TIME checks to see if the timestamp of the A-3 field just
-!  read from disk matches the current time.  If so, then it's time to return
-!  the A-3 field to the calling program. (bmy, 6/16/03)
-!  
-!  Arguments as Input:
-!  ============================================================================
-!  (1 ) XYMD (REAL*4 or INTEGER) : (YY)YYMMDD timestamp for A-3 field in file
-!  (2 ) XHMS (REAL*4 or INTEGER) : HHMMSS     timestamp for A-3 field in file
-!  (3 ) NYMD (INTEGER          ) : YYYYMMDD   at which A-3 field is to be read
-!  (4 ) NHMS (INTEGER          ) : HHMMSS     at which A-3 field is to be read
-!
-!  NOTES:
-!******************************************************************************
+! !USES:
 !
       USE CMN_SIZE_MOD
-
-      ! Arguments 
-      INTEGER, INTENT(IN) :: XYMD, XHMS, NYMD, NHMS
-      
+!
+! !INPUT PARAMETERS: 
+!
+      INTEGER, INTENT(IN) :: XYMD       ! Date stamp in file (YYYYMMDD)
+      INTEGER, INTENT(IN) :: XHMS       ! Time stamp in file (hhmmss)
+      INTEGER, INTENT(IN) :: NYMD       ! Current model date (YYYYMMDD)
+      INTEGER, INTENT(IN) :: NHMS       ! Current model time (hhmmss) 
+!
+! !RETURN VALUE:
+!
       ! Function value
-      LOGICAL             :: ITS_TIME
+      LOGICAL             :: ITS_TIME   ! = T is time to return fields
+! 
+! !REVISION HISTORY: 
+!  16 Jun 2003 - R. Yantosca - Initial version
+!  06 Aug 2012 - R. Yantosca - Added ProTeX headers
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+!
+! !LOCAL VARIABLES:
+!
 
       !=================================================================
       ! GEOS-3, GEOS-4: XYMD and XHMS are integers
@@ -352,61 +400,69 @@
          ITS_TIME = .FALSE.
       ENDIF
 
-      ! Return to calling program
       END FUNCTION CHECK_TIME
-
+!EOC
 !------------------------------------------------------------------------------
-
+!          Harvard University Atmospheric Chemistry Modeling Group            !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: 
+!
+! !DESCRIPTION: Subroutine READ\_PHIS reads DAO PHIS (surface geopotential 
+!  heights) field from disk.  PHIS is an I-6 field, but is time-independent.  
+!  Thus READ_PHIS only needs to be called once at the beginning of the model 
+!  run.
+!\\
+!\\
+! !INTERFACE:
+!
       SUBROUTINE READ_GCAP( NYMD, NHMS, PHIS, LWI )
 !
-!******************************************************************************
-!  Subroutine READ_PHIS reads DAO PHIS (surface geopotential heights) field 
-!  from disk.  PHIS is an I-6 field, but is time-independent.  Thus READ_PHIS
-!  only needs to be called once at the beginning of the model run.
-!  (bmy, swu, 2/1/06)
+! !USES:
 !
-!  Arguments as input:
-!  ============================================================================
-!  (1 ) NYMD   : YYMMDD
-!  (2 ) NHMS   :  and HHMMSS of PHIS field to be read from disk
+      USE DIAG_MOD,     ONLY : AD67
+      USE FILE_MOD,     ONLY : IOERROR
+      USE TIME_MOD,     ONLY : TIMESTAMP_STRING
+      USE TRANSFER_MOD, ONLY : TRANSFER_2D
+
+      USE CMN_SIZE_MOD                                     ! Size parameters
+      USE CMN_DIAG_MOD                                     ! ND67
+      USE CMN_GCTM_MOD                                     ! g0
 !
-!  Arguments as output:
-!  ============================================================================
-!  (3 ) PHIS   : DAO field for surface geopotential height (= g0 * m)
-!                in units of m^2 / s^2, where g0 = 9.8 m / s^2.
+! !INPUT PARAMETERS: 
 !
-!  NOTES:
+      INTEGER, INTENT(IN)            :: NYMD               ! YYYYMMDD date
+      INTEGER, INTENT(IN)            :: NHMS               ! hhmmss time
+!
+! !OUTPUT PARAMETERS:
+!
+      REAL*8,  INTENT(OUT)           :: PHIS(IIPAR,JJPAR)  ! PHIS [m2/s2]
+      REAL*8,  INTENT(OUT), OPTIONAL :: LWI(IIPAR,JJPAR)   ! LWI flags
+! 
+! !REVISION HISTORY: 
+!  01 Feb 2006 - S. Wu       - Initial version
 !  (1 ) Adapted from READ_PHIS from "dao_read_mod.f" (bmy, 6/16/03)
 !  (2 ) Now use function TIMESTAMP_STRING from "time_mod.f" for formatted 
 !        date/time output. (bmy, 10/28/03)
 !  (3 ) Now also read LWI_GISS for GCAP met fields.  Added optional variable
 !        LWI to the arg list. (swu, bmy, 5/25/05)
-!******************************************************************************
+!  06 Aug 2012 - R. Yantosca - Added ProTeX headers
+!  07 Aug 2012 - R. Yantosca - Now print LUN used to open file
+!EOP
+!------------------------------------------------------------------------------
+!BOC
 !
-      ! References to F90 modules
-      USE DIAG_MOD,     ONLY : AD67
-      USE FILE_MOD,     ONLY : IOERROR, IU_PH
-      USE TIME_MOD,     ONLY : TIMESTAMP_STRING
-      USE TRANSFER_MOD, ONLY : TRANSFER_2D
-
-      USE CMN_SIZE_MOD   ! Size parameters
-      USE CMN_DIAG_MOD   ! ND67
-      USE CMN_GCTM_MOD   ! g0
-
-      ! Arguments
-      INTEGER, INTENT(IN)            :: NYMD, NHMS
-      REAL*8,  INTENT(OUT)           :: PHIS(IIPAR,JJPAR) 
-      REAL*8,  INTENT(OUT), OPTIONAL :: LWI(IIPAR,JJPAR) 
-
-      ! Local Variables
-      INTEGER                        :: NFOUND, IOS
-      INTEGER                        :: XYMD,   XHMS 
-      REAL*4                         :: Q2(IIPAR,JJPAR)
-      CHARACTER(LEN=8)               :: NAME
-      CHARACTER(LEN=16)              :: STAMP
+! !LOCAL VARIABLES:
+!
+      INTEGER            :: NFOUND, IOS
+      INTEGER            :: XYMD,   XHMS 
+      REAL*4             :: Q2(IIPAR,JJPAR)
+      CHARACTER(LEN=8)   :: NAME
+      CHARACTER(LEN=16)  :: STAMP
 
       ! Number of fields in the file
-      INTEGER, PARAMETER             :: N_PHIS = 2
+      INTEGER, PARAMETER :: N_PHIS = 2
 
       !=================================================================
       ! READ_PHIS begins here!
@@ -473,8 +529,9 @@
          IF ( CHECK_TIME( XYMD, XHMS, NYMD, NHMS ) .AND. 
      &        NFOUND == N_PHIS ) THEN
             STAMP = TIMESTAMP_STRING( NYMD, NHMS )
-            WRITE( 6, 200 ) STAMP
- 200        FORMAT( '     - Found PHIS met fields for ', a )
+            WRITE( 6, 200 ) STAMP, IU_PH 
+ 200        FORMAT( '     - Found GCAP met fields for ', 
+     &                    a, ' on unit ', i4 )
             EXIT
          ENDIF                  
       ENDDO
@@ -495,32 +552,44 @@
       ! close the file unit (bmy, 6/16/03)
       CLOSE( IU_PH )
 
-      ! Return to calling program      
       END SUBROUTINE READ_GCAP
-
+!EOC
 !------------------------------------------------------------------------------
-
+!          Harvard University Atmospheric Chemistry Modeling Group            !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: gcap_check
+!
+! !DESCRIPTION: Subroutine GCAP\_CHECK prints an error message if not all of 
+!  the GCAP met fields are found.  The run is also terminated. 
+!\\
+!\\
+! !INTERFACE:
+!
       SUBROUTINE GCAP_CHECK( NFOUND, N_PHIS )
 !
-!******************************************************************************
-!  Subroutine PHIS_CHECK prints an error message if not all of the A-3 met 
-!  fields are found.  The run is also terminated. (bmy, 10/27/00, 6/16/03)
+! !USES:
 !
-!  Arguments as Input:
-!  ============================================================================
-!  (1 ) NFOUND (INTEGER) : # of met fields read from disk
-!  (2 ) N_PHIS (INTEGER) : # of met fields expected to be read from disk
-!
-!  NOTES
-!  (1 ) Adapted from DAO_CHECK from "dao_read_mod.f" (bmy, 6/16/03)
-!******************************************************************************
-!
-      ! References to F90 modules
       USE ERROR_MOD, ONLY : GEOS_CHEM_STOP
 
-      ! Arguments
-      INTEGER, INTENT(IN) :: NFOUND, N_PHIS
+!
+! !INPUT PARAMETERS: 
+!
+      INTEGER, INTENT(IN) :: NFOUND   ! # of fields read from disk
+      INTEGER, INTENT(IN) :: N_PHIS   ! # of of fields expected to be found
+!
+! !REMARKS:
+! 
+! 
+! !REVISION HISTORY: 
+!  15 Jun 1998 - R. Yantosca - Initial version
+!  (1 ) Adapted from DAO_CHECK from "dao_read_mod.f" (bmy, 6/16/03)
 
+!  06 Aug 2012 - R. Yantosca - Added ProTeX headers
+!EOP
+!------------------------------------------------------------------------------
+!BOC
       !=================================================================
       ! PHIS_CHECK begins here!
       !=================================================================
@@ -539,10 +608,6 @@
          CALL GEOS_CHEM_STOP
       ENDIF
 
-      ! Return to calling program
       END SUBROUTINE GCAP_CHECK
-
-!------------------------------------------------------------------------------
-
-      ! End of module
+!EOC
       END MODULE GCAP_READ_MOD

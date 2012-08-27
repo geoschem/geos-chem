@@ -346,19 +346,18 @@
       ! Global mass flux tuning factor (a posteriori) [frc]
 #if   defined( GEOS_57 ) && defined( GRID025x03125 )
 
-      ! Copy GEOS-5, 05x0667 resolution scaling factors for now
+      ! Copy the 05x0666 scale factors for now
       ! (skim, 5/20/12)
 
-#elif defined(NESTED_CH)  
+#if defined(NESTED_CH)  
+      ! retuned based upon updated GEOS-4 tuning (amv, Nov 9, 2009)
       REAL*8,  PARAMETER     :: FLX_MSS_FDG_FCT = 3.23d-4
-#elif defined(NESTED_EU)
+#elif defined(SEAC4RS)
       REAL*8,  PARAMETER     :: FLX_MSS_FDG_FCT = 4.54d-4
-#elif defined(NESTED_NA)
-      REAL*8,  PARAMETER     :: FLX_MSS_FDG_FCT = 2.16d-4
 #endif
 
       ! Global mass flux tuning factor (a posteriori) [frc]
-#elif   defined( GEOS_5 ) && defined( GRID05x0666 )
+#elif defined( GEOS_5 ) && defined( GRID05x0666 )
 
 #if defined(NESTED_CH)  
       ! retuned based upon updated GEOS-4 tuning (amv, Nov 9, 2009)
@@ -378,6 +377,7 @@
 
       ! retuned based upon updated GEOS-4 tuning (amv, Nov 9, 2009)
       REAL*8,  PARAMETER     :: FLX_MSS_FDG_FCT = 4.9d-4
+
 
 #elif defined( MERRA ) && defined( GRID2x25 )
       
@@ -412,7 +412,6 @@
 #elif defined( GEOS_57 ) && defined( GRID4x5 )
 
       ! Based on results from GEOS 5.7 for September 2011
-      ! (skim, 5/25/12)
       REAL*8,  PARAMETER     :: FLX_MSS_FDG_FCT = 7.0d-4 * 1.272d0
 
 #else

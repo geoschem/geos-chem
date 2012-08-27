@@ -1903,6 +1903,7 @@
 !  01 Mar 2012 - R. Yantosca - Now use GET_AREA_M2(I,J,L) from grid_mod.F90
 !  13 Mar 2012 - M. Cooper   - Changed regrid algorithm to map_a2a
 !  24 May 2012 - R. Yantosca - Fixed minor bugs in map_a2a implementation
+!  24 Aug 2012 - R. Yantosca - DO_REGRID_A2A now reads netCDF input file
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -1981,12 +1982,13 @@
 
       ! File with lat/lon edges for regridding
       LLFILENAME = TRIM( DATA_DIR_1x1) //
-     &             'MAP_A2A_Regrid_200312/latlon_geos1x1_new.txt'
+     &             'MAP_A2A_Regrid_201203/MAP_A2A_latlon_geos1x1.nc'
 
       ! Regrid from 1x1 to the current grid (also cast to REAL*8)
       INGRID   = ARRAY(:,:,1)
       CALL DO_REGRID_A2A( LLFILENAME, I1x1,    J1x1, 
-     &                    INGRID,     OUTGRID, PERAREA=0 )
+     &                    INGRID,     OUTGRID, PERAREA=0,
+     &                    netCDF=.TRUE.                   )
       AEF_ISOP = OUTGRID
 
       ! Loop over surface boxes
@@ -2024,7 +2026,8 @@
       ! Regrid from 1x1 to the current grid (also cast to REAL*8)
       INGRID    = ARRAY(:,:,1)
       CALL DO_REGRID_A2A( LLFILENAME, I1x1,    J1x1, 
-     &                    INGRID,     OUTGRID, PERAREA=0 )
+     &                    INGRID,     OUTGRID, PERAREA=0,
+     &                    netCDF=.TRUE.                   )
       AEF_MONOT = OUTGRID
 
       ! Loop over surface boxes
@@ -2062,7 +2065,8 @@
       ! Regrid from 1x1 to the current grid (also cast to REAL*8)
       INGRID  = ARRAY(:,:,1)
       CALL DO_REGRID_A2A( LLFILENAME, I1x1,    J1x1, 
-     &                    INGRID,     OUTGRID, PERAREA=0 )
+     &                    INGRID,     OUTGRID, PERAREA=0,
+     &                    netCDF=.TRUE.                   )      
       AEF_MBO = OUTGRID
 
       ! Loop over surface boxes
@@ -2103,7 +2107,8 @@
       ! Regrid from 1x1 to the current grid (also cast to REAL*8)
       INGRID   = ARRAY(:,:,1)
       CALL DO_REGRID_A2A( LLFILENAME, I1x1,    J1x1, 
-     &                    INGRID,     OUTGRID, PERAREA=0 )
+     &                    INGRID,     OUTGRID, PERAREA=0,
+     &                    netCDF=.TRUE.                   )
       AEF_ACET = OUTGRID 
 
       ! Loop over surface boxes
@@ -2141,7 +2146,8 @@
       ! Regrid from 1x1 to the current grid (also cast to REAL*8)
       INGRID   = ARRAY(:,:,1)
       CALL DO_REGRID_A2A( LLFILENAME, I1x1,    J1x1, 
-     &                    INGRID,     OUTGRID, PERAREA=0 )
+     &                    INGRID,     OUTGRID, PERAREA=0,
+     &                    netCDF=.TRUE.                   )
       AEF_OVOC = OUTGRID
 
       ! Loop over surface boxes
@@ -2181,7 +2187,8 @@
       ! Regrid from 1x1 to the current grid (also cast to REAL*8)
       INGRID    = ARRAY(:,:,1)
       CALL DO_REGRID_A2A( LLFILENAME, I1x1,    J1x1, 
-     &                    INGRID,     OUTGRID, PERAREA=0 )
+     &                    INGRID,     OUTGRID, PERAREA=0,
+     &                    netCDF=.TRUE.                   )
       AEF_APINE = OUTGRID
 
       ! Loop over surface boxes
@@ -2217,7 +2224,8 @@
       ! Regrid from 1x1 to the current grid (also cast to REAL*8)
       INGRID    = ARRAY(:,:,1)
       CALL DO_REGRID_A2A( LLFILENAME, I1x1,    J1x1, 
-     &                    INGRID,     OUTGRID, PERAREA=0 )
+     &                    INGRID,     OUTGRID, PERAREA=0,
+     &                    netCDF=.TRUE.                   )
       AEF_BPINE = OUTGRID
 
       ! Loop over surface boxes
@@ -2253,7 +2261,8 @@
       ! Regrid from 1x1 to the current grid (also cast to REAL*8)
       INGRID    = ARRAY(:,:,1)
       CALL DO_REGRID_A2A( LLFILENAME, I1x1,    J1x1,
-     &                    INGRID,     OUTGRID, PERAREA=0 )
+     &                    INGRID,     OUTGRID, PERAREA=0,
+     &                    netCDF=.TRUE.                   )
       AEF_LIMON = OUTGRID
 
       ! Loop over surface boxes
@@ -2289,7 +2298,8 @@
       ! Regrid from 1x1 to the current grid (also cast to REAL*8)
       INGRID    = ARRAY(:,:,1)
       CALL DO_REGRID_A2A( LLFILENAME, I1x1,    J1x1, 
-     &                    INGRID,     OUTGRID, PERAREA=0 )
+     &                    INGRID,     OUTGRID, PERAREA=0,
+     &                    netCDF=.TRUE.                   )
       AEF_SABIN = OUTGRID
 
       ! Loop over surface boxes
@@ -2325,7 +2335,9 @@
       ! Regrid from 1x1 to the current grid (also cast to REAL*8)
       INGRID    = ARRAY(:,:,1)
       CALL DO_REGRID_A2A( LLFILENAME, I1x1,    J1x1,
-     &                    INGRID,     OUTGRID, PERAREA=0 )
+     &                    INGRID,     OUTGRID, PERAREA=0,
+     &                    netCDF=.TRUE.                   )
+
       AEF_MYRCN = OUTGRID
 
       ! Loop over surface boxes
@@ -2361,7 +2373,8 @@
       ! Regrid from 1x1 to the current grid (also cast to REAL*8)
       INGRID    = ARRAY(:,:,1)
       CALL DO_REGRID_A2A( LLFILENAME, I1x1,    J1x1, 
-     &                    INGRID,     OUTGRID, PERAREA=0 )
+     &                    INGRID,     OUTGRID, PERAREA=0,
+     &                    netCDF=.TRUE.                   )
       AEF_CAREN = OUTGRID
 
       ! Loop over surface boxes
@@ -2397,7 +2410,8 @@
       ! Regrid from 1x1 to the current grid (also cast to REAL*8)
       INGRID    = ARRAY(:,:,1)
       CALL DO_REGRID_A2A( LLFILENAME, I1x1,    J1x1, 
-     &                    INGRID,     OUTGRID, PERAREA=0 )
+     &                    INGRID,     OUTGRID, PERAREA=0,
+     &                    netCDF=.TRUE.                   )
       AEF_OCIMN = OUTGRID
 
       ! Loop over surface boxes
@@ -2439,7 +2453,7 @@
 !
       USE BPCH2_MOD,      ONLY : GET_RES_EXT, READ_BPCH2
       USE DIRECTORY_MOD,  ONLY : DATA_DIR_1x1
-      USE REGRID_1x1_MOD, ONLY : DO_REGRID_05x0666
+      USE REGRID_A2A_MOD, ONLY : DO_REGRID_A2A
       USE TIME_MOD,       ONLY : GET_TS_EMIS
       USE GRID_MOD,       ONLY : GET_AREA_M2
       USE DIRECTORY_MOD,  ONLY : DATA_DIR
@@ -2453,6 +2467,9 @@
 !      GEOS-5 nested grid simulations. (yxw, dan, bmy, 11/6/08)
 !  17 Dec 2009 - R. Yantosca - Added ProTeX headers
 !  01 Mar 2012 - R. Yantosca - Now use GET_AREA_M2(I,J,L) from grid_mod.F90
+!  02 Jul 2012 - R. Yantosca - Rename the input file latlon_nested.txt to 
+!                              latlon_geos05x0666.txt to avoid confusion
+!  24 Aug 2012 - R. Yantosca - DO_REGRID_A2A now reads netCDF input file
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -2461,12 +2478,15 @@
 !
       INTEGER                 :: I, J, IJLOOP
       REAL*4                  :: ARRAY(I05x0666,J05x0666,1)
-      REAL*8                  :: GEOS_05x0666(I05x0666,J05x0666,1)  !(dan)
+      REAL*8, TARGET          :: GEOS_05x0666(I05x0666,J05x0666)  !(dan)
       REAL*8                  :: DTSRCE, AREA_M2, FACTOR
       CHARACTER(LEN=255)      :: FILENAME
+      CHARACTER(LEN=255)      :: LLFILENAME
+      REAL*8, POINTER         :: INGRID(:,:) => NULL()
+      REAL*8                  :: OUTGRID(IIPAR,JJPAR)
 
       !=================================================================
-      ! GET_AEF begins here!
+      ! GET_AEF_05x0666 begins here!
       !=================================================================
 
       ! Emission timestep [min]
@@ -2476,24 +2496,33 @@
       ! Read in ISOPRENE Annual Emission Factors
       !---------------------------------------------
 
-      ! 1x1 file name
-      FILENAME = TRIM( DATA_DIR ) //
-     &           'MEGAN_200510/MEGAN_AEF_ISOP.geos.05x0666'
+      ! Global 0.5 x 0.666 file name
+      FILENAME   = TRIM( DATA_DIR ) //
+     &             'MEGAN_200510/MEGAN_AEF_ISOP.geos.05x0666'
+
+      ! File with lat/lon edges for regridding
+      LLFILENAME = TRIM( DATA_DIR_1x1 ) //
+     &             'MAP_A2A_Regrid_201203/MAP_A2A_latlon_geos05x0666.nc'
 
       ! Echo info
       WRITE( 6, 100 ) TRIM( FILENAME )
 100   FORMAT( '     - GET_AEF: Reading ', a )
 
-      ! Read data at 1x1 resolution [ug C/m2/hr] 
+      ! Read global data at 0.5 x 0.666 resolution [ug C/m2/hr] 
       CALL READ_BPCH2( FILENAME, 'BIOGSRCE', 99,
-     &                 0d0,       I05x0666,      J05x0666,
+     &                 0d0,       I05x0666,  J05x0666,
      &                 1,         ARRAY,     QUIET=.TRUE. )
 
-         ! Cast to REAL*8 before regridding
-         GEOS_05x0666(:,:,1) = ARRAY(:,:,1)
+      ! Cast to REAL*8 before regridding
+      GEOS_05x0666(:,:) = ARRAY(:,:,1)
 
-      ! Regrid from 1x1 to the current grid (also cast to REAL*8)
-      CALL DO_REGRID_05x0666( 1, 'ug C/m2/hr', GEOS_05x0666, AEF_ISOP )
+      ! Regrid from 0.5 x 0.666 global to the current nested grid
+      INGRID => GEOS_05x0666
+      CALL DO_REGRID_A2A( LLFILENAME, I05x0666, J05x0666,
+     &                    INGRID,     OUTGRID,  PERAREA=1,
+     &                    netCDF=.TRUE.                    )
+      AEF_ISOP = OUTGRID
+      NULLIFY( INGRID )
 
       ! Loop over surface boxes
       DO J = 1, JJPAR
@@ -2515,23 +2544,28 @@
       ! Read in MONOTERPENE Annual Emission Factors
       !---------------------------------------------
 
-      ! 1x1 file name
+      ! Global 0.5 x 0.666 file name
       FILENAME = TRIM( DATA_DIR ) //
      &           'MEGAN_200510/MEGAN_AEF_MTP.geos.05x0666'
 
       ! Echo info
       WRITE( 6, 100 ) TRIM( FILENAME )
 
-      ! Read data at 1x1 resolution [ug C/m2/hr]
+      ! Read data at 0.5 x 0.666 resolution [ug C/m2/hr]
       CALL READ_BPCH2( FILENAME, 'BIOGSRCE', 99,
-     &                 0d0,       I05x0666,      J05x0666,
+     &                 0d0,       I05x0666,  J05x0666,
      &                 1,         ARRAY,     QUIET=.TRUE. )
 
-         ! Cast to REAL*8 before regridding
-         GEOS_05x0666(:,:,1) = ARRAY(:,:,1)
+      ! Cast to REAL*8 before regridding
+      GEOS_05x0666(:,:) = ARRAY(:,:,1)
 
-      ! Regrid from 1x1 to the current grid (also cast to REAL*8)
-      CALL DO_REGRID_05x0666( 1,'ug C/m2/hr', GEOS_05x0666, AEF_MONOT )
+      ! Regrid from 0.5 x 0.666 to the current nested grid
+      INGRID => GEOS_05x0666
+      CALL DO_REGRID_A2A( LLFILENAME, I05x0666, J05x0666,
+     &                    INGRID,     OUTGRID,  PERAREA=1,
+     &                    netCDF=.TRUE.                    )
+      AEF_MONOT = OUTGRID
+      NULLIFY( INGRID )
 
       ! Loop over surface boxes
       DO J = 1, JJPAR
@@ -2553,24 +2587,29 @@
       ! Read in MBO Annual Emission Factors
       !---------------------------------------------
 
-      ! 1x1 file name
+      ! Global 0.5 x 0.666 file name
       FILENAME = TRIM( DATA_DIR ) //
      &           'MEGAN_200510/MEGAN_AEF_MBO.geos.05x0666'
 
       ! Echo info
       WRITE( 6, 100 ) TRIM( FILENAME )
 
-      ! Read data at 1x1 resolution [ug C/m2/hr]
+      ! Read data at 0.5 x 0.666 resolution [ug C/m2/hr]
       CALL READ_BPCH2( FILENAME, 'BIOGSRCE', 99,
      &                 0d0,       I05x0666,      J05x0666,
      &                 1,         ARRAY,     QUIET=.TRUE. )
 
       ! Cast to REAL*8 before regridding
-      GEOS_05x0666(:,:,1) = ARRAY(:,:,1)
+      GEOS_05x0666(:,:) = ARRAY(:,:,1)
 
 
-      ! Regrid from 1x1 to the current grid (also cast to REAL*8)
-      CALL DO_REGRID_05x0666( 1,'ug C/m2/hr',GEOS_05x0666, AEF_MBO )
+      ! Regrid from 0.5 x 0.666 global to the current nested grid
+      INGRID => GEOS_05x0666
+      CALL DO_REGRID_A2A( LLFILENAME, I05x0666, J05x0666,
+     &                    INGRID,     OUTGRID,  PERAREA=1,
+     &                    netCDF=.TRUE.                    )
+      AEF_MBO = OUTGRID
+      NULLIFY( INGRID )
 
       ! Loop over surface boxes
       DO J = 1, JJPAR
@@ -2592,23 +2631,28 @@
       ! Read in other VOC Annual Emission Factors
       !---------------------------------------------
 
-      ! 1x1 file name
+      ! Global 0.5 x 0.666 file name
       FILENAME = TRIM( DATA_DIR ) //
      &           'MEGAN_200510/MEGAN_AEF_MTP.geos.05x0666'
 
       ! Echo info
       WRITE( 6, 100 ) TRIM( FILENAME )
 
-      ! Read data at 1x1 resolution [ug C/m2/hr]
+      ! Read data at 0.5 x 0.666 resolution [ug C/m2/hr]
       CALL READ_BPCH2( FILENAME, 'BIOGSRCE', 99,
-     &                 0d0,       I05x0666,      J05x0666,
+     &                 0d0,       I05x0666,  J05x0666,
      &                 1,         ARRAY,     QUIET=.TRUE. )
 
       ! Cast to REAL*8 before regridding
-      GEOS_05x0666(:,:,1) = ARRAY(:,:,1)
+      GEOS_05x0666(:,:) = ARRAY(:,:,1)
 
-      ! Regrid from 1x1 to the current grid (also cast to REAL*8)
-      CALL DO_REGRID_05x0666( 1,'ug C/m2/hr', GEOS_05x0666, AEF_OVOC )
+      ! Regrid from 0.5 x 0.666 global to the current nested grid
+      INGRID => GEOS_05x0666
+      CALL DO_REGRID_A2A( LLFILENAME, I05x0666, J05x0666,
+     &                    INGRID,     OUTGRID,  PERAREA=1,
+     &                    netCDF=.TRUE.                    )
+      AEF_OVOC = OUTGRID
+      NULLIFY( INGRID )
 
       ! Loop over surface boxes
       DO J = 1, JJPAR
@@ -2803,14 +2847,16 @@
 ! !USES:
 !
       USE A3_READ_MOD
-      USE GEOS57_READ_MOD, ONLY : GEOS57_READ_A1
+      USE GEOS57_READ_MOD,  ONLY : GEOS57_READ_A1
+      USE inquireMod,       ONLY : findFreeLUN
       USE MERRA_A1_MOD
-      USE FILE_MOD,         ONLY : IU_A3
       USE JULDAY_MOD,       ONLY : CALDATE
       USE ERROR_MOD,        ONLY : ALLOC_ERR
       USE LOGICAL_MOD,      ONLY : LUNZIP
-      USE TIME_MOD,         ONLY : GET_FIRST_A3_TIME, GET_JD
-      USE TIME_MOD,         ONLY : ITS_A_LEAPYEAR,    YMD_EXTRACT
+      USE TIME_MOD,         ONLY : GET_FIRST_A3_TIME
+      USE TIME_MOD,         ONLY : GET_JD
+      USE TIME_MOD,         ONLY : ITS_A_LEAPYEAR
+      USE TIME_MOD,         ONLY : YMD_EXTRACT
 ! 
 ! !REVISION HISTORY: 
 !  (1 ) Change the logic in the #if block for G4AHEAD. (bmy, 12/6/05)
@@ -2827,6 +2873,7 @@
 !  28 Feb 2012 - R. Yantosca - Removed support for GEOS-3
 !  11 Apr 2012 - R. Yantosca - Now remove the call to INIT_LAI; we shall 
 !                              initialize the LAI arrays from main.F
+!  03 Aug 2012 - R. Yantosca - Move calls to findFreeLUN out of DEVEL block
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -2834,7 +2881,7 @@
 ! !LOCAL VARIABLES:
 !
       LOGICAL              :: GCAP_LEAP
-      INTEGER              :: AS
+      INTEGER              :: AS,        IUNIT
       INTEGER              :: DATE_T15b(2)
       INTEGER              :: NYMD_T15b, NHMS_T15b, NYMD_T15, NHMS_T15
       INTEGER              :: I,         J,         G4AHEAD
@@ -3077,7 +3124,9 @@
             !-----------------------------
 
             ! Open A1 fields
-            CALL OPEN_MERRA_A1_FIELDS( NYMD_T15, 010000*J + G4AHEAD )
+            CALL OPEN_MERRA_A1_FIELDS( NYMD_T15, 
+     &                                 010000*J + G4AHEAD, 
+     &                                 IUNIT=IUNIT                  )
 
             ! Read A1 fields from disk
             CALL GET_MERRA_A1_FIELDS(  NYMD_T15, 010000*J + G4AHEAD ) 
@@ -3089,7 +3138,9 @@
             !-----------------------------
 
             ! Open A3 fields
-            CALL OPEN_A3_FIELDS( NYMD_T15, 030000*J + G4AHEAD )
+            CALL OPEN_A3_FIELDS( NYMD_T15, 
+     &                           030000*J + G4AHEAD,  
+     &                           IUNIT=IUNIT                  )
 
             ! Read A3 fields from disk
             CALL GET_A3_FIELDS(  NYMD_T15, 030000*J + G4AHEAD ) 
@@ -3110,8 +3161,10 @@
 
       ENDDO
 
-      ! Close the A-3 file
-      CLOSE( IU_A3 )
+#if   !defined( GEOS_57 ) 
+      ! Close any open files
+      CLOSE( IUNIT )
+#endif
 
       ! Remove any leftover A-3 files in temp dir
       IF ( LUNZIP ) THEN

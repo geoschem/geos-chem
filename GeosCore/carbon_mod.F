@@ -174,6 +174,7 @@
 !  (26) Bug fix: call SOA_PARA_INIT (ensberg, bmy, 6/30/10)
 !  (27) Modified to include GFED3 (psk, 1/5/11)
 !  01 Mar 2012 - R. Yantosca - Now reference new grid_mod.F90
+!  30 Jul 2012 - R. Yantosca - Modifications for grid-independence
 !******************************************************************************
 !
       USE LOGICAL_MOD,    ONLY : LNLPBL ! (Lin,03/31/09)
@@ -273,7 +274,7 @@
 
 !------------------------------------------------------------------------------
 
-      SUBROUTINE CHEMCARBON
+      SUBROUTINE CHEMCARBON( am_I_Root )
 !
 !******************************************************************************
 !  Subroutine CHEMCARBON is the interface between the GEOS-CHEM main program 
@@ -292,6 +293,8 @@
 !  (4 ) Now make sure all USE statements are USE, ONLY (bmy, 10/3/05)
 !  (5 ) Now updated for SOA production from ISOP. (dkh, bmy, 6/1/06)
 !  (6 ) Bug fix for aerosol sim w/ 20 tracers (phs, 9/14/06)
+!  30 Jul 2012 - R. Yantosca - Now accept am_I_Root as an argument when
+!                              running with the traditional driver main.F
 !******************************************************************************
 !
       ! References to F90 modules
@@ -308,11 +311,16 @@
       USE TRACERID_MOD,   ONLY : IDTSOG5, IDTSOA5  ! (dkh, 03/24/07)  
       USE TRACERID_MOD,   ONLY : IDTSOAG, IDTSOAM
 
-      USE CMN_SIZE_MOD       ! Size parameters
-
-      ! Local variables
-      LOGICAL, SAVE           :: FIRSTCHEM = .TRUE.
-      INTEGER                 :: N, THISMONTH
+      USE CMN_SIZE_MOD                   ! Size parameters
+!
+! !INPUT PARAMETERS:
+!
+      LOGICAL, INTENT(IN) :: am_I_Root   ! Is this the root CPU?
+!
+! !LOCAL VARIABLES:
+!
+      LOGICAL, SAVE       :: FIRSTCHEM = .TRUE.
+      INTEGER             :: N, THISMONTH
 
       !=================================================================
       ! CHEMCARBON begins here!
@@ -400,25 +408,33 @@
       ! Chemistry for hydrophobic BC
       IF ( IDTBCPO > 0 ) THEN
          CALL CHEM_BCPO( STT(:,:,:,IDTBCPO) )
-         IF ( LPRT ) CALL DEBUG_MSG( '### CHEMCARBON: a CHEM_BCPO' )
+         IF ( LPRT .and. am_I_Root ) THEN
+            CALL DEBUG_MSG( '### CHEMCARBON: a CHEM_BCPO' )
+         ENDIF
       ENDIF
 
       ! Chemistry for hydrophilic BC
       IF ( IDTBCPI > 0 ) THEN
          CALL CHEM_BCPI( STT(:,:,:,IDTBCPI) )
-         IF ( LPRT ) CALL DEBUG_MSG( '### CHEMCARBON: a CHEM_BCPI' )
+         IF ( LPRT .and. am_I_Root ) THEN
+            CALL DEBUG_MSG( '### CHEMCARBON: a CHEM_BCPI' )
+         ENDIF
       ENDIF
 
       ! Chemistry for hydrophobic OC
       IF ( IDTOCPO > 0 ) THEN
          CALL CHEM_OCPO( STT(:,:,:,IDTOCPO) )
-         IF ( LPRT ) CALL DEBUG_MSG( '### CHEMCARBON: a CHEM_OCPO' )
+         IF ( LPRT .and. am_I_Root ) THEN
+            CALL DEBUG_MSG( '### CHEMCARBON: a CHEM_OCPO' )
+         ENDIF
       ENDIF
 
       ! Chemistry for hydrophilic OC
       IF ( IDTOCPI > 0 ) THEN 
          CALL CHEM_OCPI( STT(:,:,:,IDTOCPI) )
-         IF ( LPRT ) CALL DEBUG_MSG( '### CHEMCARBON: a CHEM_OCPI' )
+         IF ( LPRT .and. am_I_Root ) THEN
+            CALL DEBUG_MSG( '### CHEMCARBON: a CHEM_OCPI' )
+         ENDIF
       ENDIF
 
       !=================================================================
@@ -442,15 +458,19 @@
             ! but only if it hasn't been done in EMISSCARBON
             IF ( LSOA .and. ( .not. LEMIS ) ) THEN
                CALL OHNO3TIME
-               IF ( LPRT ) CALL DEBUG_MSG( '### CHEMCARB: a OHNO3TIME' )
+               IF ( LPRT .and. am_I_Root ) THEN
+                  CALL DEBUG_MSG( '### CHEMCARB: a OHNO3TIME' )
+               ENDIF
             ENDIF
          ENDIF
 
          ! Compute SOA chemistry
          ! NOTE: This is SOA production from the reversible mechanism only 
          ! (tmf, 12/07/07) 
-         CALL SOA_CHEMISTRY
-         IF ( LPRT ) CALL DEBUG_MSG( '### CHEMCARBON: a SOA_CHEM' )
+         CALL SOA_CHEMISTRY( am_I_Root )
+         IF ( LPRT .and. am_I_Root ) THEN
+            CALL DEBUG_MSG( '### CHEMCARBON: a SOA_CHEM' )
+         ENDIF
 
          ! If SOAG and SOAM are declared, switch on 
          !    SOA production from dicarbonyls (tmf, 12/07/07) 
@@ -462,13 +482,15 @@
 
             ! Cloud uptake
             CALL SOAG_CLOUD
-            IF ( LPRT )
-     &         CALL DEBUG_MSG('### CHEMCARBON: a SOAG_CLOUD')        
-
+            IF ( LPRT .and. am_I_Root ) THEN
+               CALL DEBUG_MSG('### CHEMCARBON: a SOAG_CLOUD')        
+            ENDIF
+               
             ! Aqueous aerosol uptake
             CALL SOAG_LIGGIO_DIFF
-            IF ( LPRT ) 
-     &         CALL DEBUG_MSG('### CHEMCARBON: a SOAG_LIGGIO_DIFF')        
+            IF ( LPRT .and. am_I_Root ) THEN 
+               CALL DEBUG_MSG('### CHEMCARBON: a SOAG_LIGGIO_DIFF')        
+            ENDIF
 
          ENDIF
 
@@ -480,14 +502,15 @@
 
             ! Cloud uptake
             CALL SOAM_CLOUD
-            IF ( LPRT ) 
-     &         CALL DEBUG_MSG('### CHEMCARBON: a SOAM_CLOUD')        
+            IF ( LPRT .and. am_I_Root ) THEN
+               CALL DEBUG_MSG('### CHEMCARBON: a SOAM_CLOUD')        
+            ENDIF
 
             ! Aqueous aerosol uptake
             CALL SOAM_LIGGIO_DIFF
-            IF ( LPRT ) 
-     &         CALL DEBUG_MSG( '### CHEMCARBON: a SOAM_LIGGIO_DIFF' )        
-           
+            IF ( LPRT .and. am_I_Root ) THEN
+               CALL DEBUG_MSG( '### CHEMCARBON: a SOAM_LIGGIO_DIFF' )        
+            ENDIF
          ENDIF
    
       ENDIF
@@ -1285,6 +1308,9 @@
 
       !=================================================================
       ! Loop over grid boxes
+      !
+      !%%% NOTE: NEED TO REPLACE LLTROP WITH LLPAR FOR GIGC
+      !%%% DO THIS LATER SINCE WE ARE NOT USING THE SOA MECHANISM YET
       !=================================================================
       DO L = 1, LLTROP
       DO J = 1, JJPAR
@@ -1292,6 +1318,9 @@
 
             ! Get 1-D index
             JLOOP   = JLOP( I, J, L )
+
+            ! JLOP equal 0 if we're not in the tropopause. (ccc,10/16/09)
+            IF ( JLOOP == 0 ) CYCLE
 
             ! Get RH  
             XRH     = RH( I, J, L )   ![%]
@@ -1488,6 +1517,9 @@
 
       !=================================================================
       ! Loop over grid boxes
+      !
+      !%%% NOTE: NEED TO REPLACE LLTROP WITH LLPAR FOR GIGC
+      !%%% DO THIS LATER SINCE WE ARE NOT USING THE SOA MECHANISM YET
       !=================================================================
       DO L = 1, LLTROP
       DO J = 1, JJPAR
@@ -1495,6 +1527,9 @@
 
             ! Get 1-D index
             JLOOP   = JLOP( I, J, L )
+
+            ! JLOP equal 0 if we're not in the tropopause. (ccc,10/16/09)
+            IF ( JLOOP == 0 ) CYCLE
 
             ! Get RH  
             XRH     = RH( I, J, L )   ![%]
@@ -1605,7 +1640,7 @@
 
 !------------------------------------------------------------------------------
 
-      SUBROUTINE SOA_CHEMISTRY
+      SUBROUTINE SOA_CHEMISTRY( am_I_Root )
 !
 !******************************************************************************
 !  Subroutine SOA_CHEMISTRY performs SOA formation.  This code is from the
@@ -1675,6 +1710,8 @@
 !  (5 ) Now only print out debug info when LPRT=T (bmy, 4/21/10)
 !  (6 ) Bug fix: call SOA_PARA_INIT (ensberg, bmy, 6/30/10)
 !  05 Oct 2011 - R. Yantosca - SUNCOS is not needed, so remove
+!  30 Jul 2012 - R. Yantosca - Now accept am_I_Root as an argument when
+!                              running with the traditional driver main.F
 !******************************************************************************
 !
       ! References to F90 modules
@@ -1694,8 +1731,13 @@
       USE CMN_SIZE_MOD       ! Size parameters
       USE CMN_O3_MOD         ! XNUMOL
       USE CMN_DIAG_MOD       ! ND44
-
-      ! Local variables
+!
+! !INPUT PARAMETERS:
+!
+      LOGICAL, INTENT(IN) :: am_I_Root   ! Is this the root CPU?
+!
+! !LOCAL VARIABLES:
+!
       LOGICAL, SAVE         :: FIRST = .TRUE.
       INTEGER               :: I,        J,        L,        N    
       INTEGER               :: JHC,      IPR,      NOX ! (dkh, 10/30/06)  
@@ -1732,6 +1774,9 @@
 
          FIRST = .FALSE.
       ENDIF
+
+      !%%% NOTE: NEED TO REPLACE LLTROP WITH LLPAR FOR GIGC
+      !%%% DO THIS LATER SINCE WE ARE NOT USING THE SOA MECHANISM YET
 
 !$OMP PARALLEL DO
 !$OMP+DEFAULT( SHARED )
@@ -1999,37 +2044,39 @@
          DARO2_TOT(5) = DARO2_TOT(5) + SUM(GLOB_DARO2(:,:,:,1,3)) / 1d9
          DARO2_TOT(6) = DARO2_TOT(6) + SUM(GLOB_DARO2(:,:,:,2,3)) / 1d9
 
-         PRINT*, ' MAX DARO2 = ',   MAXLOC(GLOB_DARO2(:,:,:,1,1)),
-     &                              MAXVAL(GLOB_DARO2(:,:,:,1,1))
-         PRINT*, 'GLOB_DARO2 11 =', DARO2_TOT(1),
-     &                              DARO2_TOT(1) - DARO2_TOT_0(1)
-         PRINT*, 'GLOB_DARO2 21 =', DARO2_TOT(2),
-     &                              DARO2_TOT(2) - DARO2_TOT_0(2)
-         PRINT*, 'GLOB_DARO2 12 =', DARO2_TOT(3),
-     &                              DARO2_TOT(3) - DARO2_TOT_0(3)
-         PRINT*, 'GLOB_DARO2 22 =', DARO2_TOT(4),
-     &                              DARO2_TOT(4) - DARO2_TOT_0(4)
-         PRINT*, 'GLOB_DARO2 13 =', DARO2_TOT(5),
-     &                              DARO2_TOT(5) - DARO2_TOT_0(5)
-         PRINT*, 'GLOB_DARO2 23 =', DARO2_TOT(6),
-     &                              DARO2_TOT(6) - DARO2_TOT_0(6)
+         IF ( am_I_Root ) THEN
+            PRINT*, ' MAX DARO2 = ',   MAXLOC(GLOB_DARO2(:,:,:,1,1)),
+     &                                 MAXVAL(GLOB_DARO2(:,:,:,1,1))
+            PRINT*, 'GLOB_DARO2 11 =', DARO2_TOT(1),
+     &                                 DARO2_TOT(1) - DARO2_TOT_0(1)
+            PRINT*, 'GLOB_DARO2 21 =', DARO2_TOT(2),
+     &                                 DARO2_TOT(2) - DARO2_TOT_0(2)
+            PRINT*, 'GLOB_DARO2 12 =', DARO2_TOT(3),
+     &                                 DARO2_TOT(3) - DARO2_TOT_0(3)
+            PRINT*, 'GLOB_DARO2 22 =', DARO2_TOT(4),
+     &                                 DARO2_TOT(4) - DARO2_TOT_0(4)
+            PRINT*, 'GLOB_DARO2 13 =', DARO2_TOT(5),
+     &                                 DARO2_TOT(5) - DARO2_TOT_0(5)
+            PRINT*, 'GLOB_DARO2 23 =', DARO2_TOT(6),
+     &                                 DARO2_TOT(6) - DARO2_TOT_0(6)
 
-         ! hotp 7/22/09 diagnostic
-         ! convert daven's numbers to be kg of parent HC reacted, not kg of
-         ! RO2 reacted, use Marom/Mro2
+            ! hotp 7/22/09 diagnostic
+            ! convert daven's numbers to be kg of parent HC reacted, not kg of
+            ! RO2 reacted, use Marom/Mro2
          PRINT*,'Accumulated parent HC reacted to RO2H,N products in Tg'
-         PRINT*, 'GLOB_DBRO2 11 =', DARO2_TOT(1)*78/159,
-     &        (DARO2_TOT(1) - DARO2_TOT_0(1))*78/159
-         PRINT*, 'GLOB_DBRO2 21 =', DARO2_TOT(2)*78/159,
-     &        (DARO2_TOT(2) - DARO2_TOT_0(2))*78/159
-         PRINT*, 'GLOB_DTRO2 12 =', DARO2_TOT(3)*92/173,
-     &        (DARO2_TOT(3) - DARO2_TOT_0(3))*92/173
-         PRINT*, 'GLOB_DTRO2 22 =', DARO2_TOT(4)*92/173,
-     &        (DARO2_TOT(4) - DARO2_TOT_0(4))*92/173
-         PRINT*, 'GLOB_DXRO2 13 =', DARO2_TOT(5)*106/187,
-     &        (DARO2_TOT(5) - DARO2_TOT_0(5))*106/187
-         PRINT*, 'GLOB_DXRO2 23 =', DARO2_TOT(6)*106/187,
-     &        (DARO2_TOT(6) - DARO2_TOT_0(6))*106/187
+            PRINT*, 'GLOB_DBRO2 11 =', DARO2_TOT(1)*78/159,
+     &           (DARO2_TOT(1) - DARO2_TOT_0(1))*78/159
+            PRINT*, 'GLOB_DBRO2 21 =', DARO2_TOT(2)*78/159,
+     &           (DARO2_TOT(2) - DARO2_TOT_0(2))*78/159
+            PRINT*, 'GLOB_DTRO2 12 =', DARO2_TOT(3)*92/173,
+     &           (DARO2_TOT(3) - DARO2_TOT_0(3))*92/173
+            PRINT*, 'GLOB_DTRO2 22 =', DARO2_TOT(4)*92/173,
+     &           (DARO2_TOT(4) - DARO2_TOT_0(4))*92/173
+            PRINT*, 'GLOB_DXRO2 13 =', DARO2_TOT(5)*106/187,
+     &           (DARO2_TOT(5) - DARO2_TOT_0(5))*106/187
+            PRINT*, 'GLOB_DXRO2 23 =', DARO2_TOT(6)*106/187,
+     &           (DARO2_TOT(6) - DARO2_TOT_0(6))*106/187
+         ENDIF
       ENDIF
       !------------------------------------------------------------------------
 
@@ -6880,7 +6927,6 @@ c
 !      ! References to F90 modules
 !      USE BPCH2_MOD,  ONLY : BPCH2,         GET_MODELNAME
 !      USE BPCH2_MOD,  ONLY : GET_HALFPOLAR, OPEN_BPCH2_FOR_WRITE
-!      USE FILE_MOD,   ONLY : IU_FILE
 !      USE GRID_MOD,   ONLY : GET_XOFFSET,   GET_YOFFSET
 !      USE TIME_MOD,   ONLY : EXPAND_DATE
 !
@@ -6893,7 +6939,7 @@ c
 !      ! Local variables
 !      INTEGER             :: HALFPOLAR
 !      INTEGER, PARAMETER  :: CENTER180 = 1
-!      INTEGER             :: I0, IPR, J0, JHC, N
+!      INTEGER             :: I0, IPR, IU_FILE, J0, JHC, N
 !      REAL*4              :: LONRES,   LATRES
 !      REAL*4              :: ARRAY(IIPAR,JJPAR,LLPAR)
 !      CHARACTER(LEN=20)   :: MODELNAME
@@ -7082,8 +7128,9 @@ c
       USE TRACERID_MOD, ONLY : IDTSOA5
 
       USE CMN_SIZE_MOD  ! Size parameters
-
-      ! Local variables
+!
+! !LOCAL VARIABLES:
+!
       LOGICAL, SAVE :: IS_INIT = .FALSE.
       INTEGER       :: AS, INDICES(4), YYYYMMDD, HHMMSS
       REAL*8        :: COORDS(4), TAU
@@ -7245,7 +7292,15 @@ c
       J2_NA = JJPAR
 
 #elif defined( NESTED_CH )
-      ! For 1x1 China nested grid: we don't cover N. America region
+      ! For China nested grids: we don't cover N. America region
+      ! Setting these to zero will turn off Cooke/RJP emissions
+      I1_NA = 0
+      J1_NA = 0
+      I2_NA = 0
+      J2_NA = 0
+
+#elif defined ( SEAC4RS )
+      ! For SEAC4RS nested grid: we don't cover N. America region
       ! Setting these to zero will turn off Cooke/RJP emissions
       I1_NA = 0
       J1_NA = 0

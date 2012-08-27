@@ -628,11 +628,13 @@
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE SET_TIMESTEPS( CHEMISTRY, CONVECTION, DYNAMICS,  
+      SUBROUTINE SET_TIMESTEPS( am_I_Root, 
+     &                          CHEMISTRY, CONVECTION, DYNAMICS,  
      &                          EMISSION,  UNIT_CONV,  DIAGNOS )
 !
 ! !INPUT PARAMETERS:
 !
+      LOGICAL, INTENT(IN) :: am_I_Root    ! Is this the root CPU?
       INTEGER, INTENT(IN) :: CHEMISTRY    ! Chemistry  timestep [min]
       INTEGER, INTENT(IN) :: CONVECTION   ! Convection timestep [min]
       INTEGER, INTENT(IN) :: DYNAMICS     ! Dynamic    timestep [min]
@@ -650,6 +652,8 @@
 !                              interval for computing the cosine of the
 !                              solar zenith angle.
 !  07 Oct 2011 - R. Yantosca - Remove obsolete SUNCOS argument
+!  30 Jul 2012 - R. Yantosca - Now accept am_I_Root as an argument when
+!                              running with the traditional driver main.F
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -674,16 +678,17 @@
       Hg2_DIAG = 0
 
       ! Echo to stdout
-      WRITE( 6, '(/,a)' ) 'SET_TIMESTEPS: setting GEOS-Chem timesteps!'
-      WRITE( 6, '(  a)' ) '-------------------------------------------'
-      WRITE( 6, '(''Chemistry  Timestep [min] : '', i4 )' ) TS_CHEM
-      WRITE( 6, '(''Convection Timestep [min] : '', i4 )' ) TS_CONV
-      WRITE( 6, '(''Dynamics   Timestep [min] : '', i4 )' ) TS_DYN
-      WRITE( 6, '(''Emission   Timestep [min] : '', i4 )' ) TS_EMIS
-      WRITE( 6, '(''Unit Conv  Timestep [min] : '', i4 )' ) TS_UNIT
-      WRITE( 6, '(''Diagnostic Timestep [min] : '', i4 )' ) TS_DIAG
+      IF ( am_I_Root ) THEN
+       WRITE( 6, '(/,a)' ) 'SET_TIMESTEPS: setting GEOS-Chem timesteps!'
+       WRITE( 6, '(  a)' ) '-------------------------------------------'
+       WRITE( 6, '(''Chemistry  Timestep [min] : '', i4 )' ) TS_CHEM
+       WRITE( 6, '(''Convection Timestep [min] : '', i4 )' ) TS_CONV
+       WRITE( 6, '(''Dynamics   Timestep [min] : '', i4 )' ) TS_DYN
+       WRITE( 6, '(''Emission   Timestep [min] : '', i4 )' ) TS_EMIS
+       WRITE( 6, '(''Unit Conv  Timestep [min] : '', i4 )' ) TS_UNIT
+       WRITE( 6, '(''Diagnostic Timestep [min] : '', i4 )' ) TS_DIAG
+      ENDIF
 
-      ! Return to calling program
       END SUBROUTINE SET_TIMESTEPS
 !EOC
 !------------------------------------------------------------------------------

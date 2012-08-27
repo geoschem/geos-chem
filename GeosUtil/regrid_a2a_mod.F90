@@ -22,6 +22,7 @@ MODULE REGRID_A2A_MOD
 !
   PRIVATE :: XMAP
   PRIVATE :: YMAP
+  PRIVATE :: READ_INPUT_GRID
 !
 ! !PUBLIC MEMBER FUNCTIONS:
 !
@@ -34,6 +35,10 @@ MODULE REGRID_A2A_MOD
 !                              GET_YEDGE(I,J,L) and GET_YSIN(I,J,L) from the
 !                              new grid_mod.F90
 !  22 May 2012 - L. Murray   - Implemented several bug fixes
+!  23 Aug 2012 - R. Yantosca - Add capability for starting from hi-res grids
+!                              (generic 0.5x0.5, generic 0.25x0.25, etc.)
+!  23 Aug 2012 - R. Yantosca - Add subroutine READ_INPUT_GRID, which reads the
+!                              grid parameters (lon & lat edges) w/ netCDF
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -52,14 +57,16 @@ MODULE REGRID_A2A_MOD
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE DO_REGRID_A2A( FILENAME, IM, JM, INGRID, OUTGRID, PERAREA )
+  SUBROUTINE DO_REGRID_A2A( FILENAME, IM, JM, INGRID, OUTGRID, PERAREA, &
+                            netCDF )
 ! 
 ! !USES:
 !
-    USE GRID_MOD, ONLY : GET_XEDGE
-    USE GRID_MOD, ONLY : GET_YSIN
-    USE GRID_MOD, ONLY : GET_AREA_CM2
-    USE FILE_MOD, ONLY : IOERROR, IU_REGRID
+    USE GRID_MOD,   ONLY : GET_XEDGE
+    USE GRID_MOD,   ONLY : GET_YSIN
+    USE GRID_MOD,   ONLY : GET_AREA_CM2
+    USE FILE_MOD,   ONLY : IOERROR
+    USE inquireMod, ONLY : findFreeLUN
     USE CMN_SIZE_MOD
     USE CMN_GCTM_MOD
 !
@@ -77,6 +84,9 @@ MODULE REGRID_A2A_MOD
 
     ! =1 if we need to convert INGRID to per unit area
     INTEGER,          INTENT(IN)    :: PERAREA
+
+    ! Read from netCDF file?  (needed for debugging, will disappear later)
+    LOGICAL, OPTIONAL,INTENT(IN)    :: netCDF  
 !
 ! !OUTPUT PARAMETERS:
 !
@@ -91,6 +101,10 @@ MODULE REGRID_A2A_MOD
 !  25 May 2012 - R. Yantosca - Bug fix: declare the INGRID argument as
 !                              INTENT(IN) to preserve the values of INGRID
 !                              in the calling routine
+!  06 Aug 2012 - R. Yantosca - Now make IU_REGRID a local variable
+!  06 Aug 2012 - R. Yantosca - Move calls to findFreeLUN out of DEVEL block
+!  23 Aug 2012 - R. Yantosca - Now use f10.4 format for hi-res grids
+!  23 Aug 2012 - R. Yantosca - Now can read grid info from netCDF files
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -98,17 +112,19 @@ MODULE REGRID_A2A_MOD
 ! !LOCAL VARIABLES:
 !
     ! Scalars
-    INTEGER           :: I,       J
-    INTEGER           :: IOS,     M
-    REAL*8            :: INAREA,  RLAT
+    INTEGER           :: I,        J
+    INTEGER           :: IOS,      M
+    INTEGER           :: IU_REGRID
+    REAL*8            :: INAREA,   RLAT
     CHARACTER(LEN=15) :: HEADER1
-    CHARACTER(LEN=20) :: FMT_LAT, FMT_LON, FMT_LEN
+    CHARACTER(LEN=20) :: FMT_LAT,  FMT_LON, FMT_LEN
+    LOGICAL           :: USE_NETCDF
 
     ! Arrays
     REAL*8            :: INLON  (IM   +1)  ! Lon edges        on INPUT GRID
     REAL*8            :: INSIN  (JM   +1)  ! SIN( lat edges ) on INPUT GRID
-    REAL*8            :: LON2   (IIPAR+1)  ! Lon edges        on OUTPUT GRID
-    REAL*8            :: SIN2   (JJPAR+1)  ! SIN( lat edges ) on OUTPUT GRID
+    REAL*8            :: OUTLON (IIPAR+1)  ! Lon edges        on OUTPUT GRID
+    REAL*8            :: OUTSIN (JJPAR+1)  ! SIN( lat edges ) on OUTPUT GRID
     REAL*8            :: IN_GRID(IM,JM  )  ! Shadow variable for INGRID
 
     !======================================================================
@@ -117,36 +133,73 @@ MODULE REGRID_A2A_MOD
     ! NOTE: In the near future ASCII input will be replaced by netCDF!
     !======================================================================
 
+    ! Save value of netCDF to shadow variable
+    IF ( PRESENT( netCDF ) ) THEN
+       USE_netCDF = netCDF
+    ELSE
+       USE_netCDF = .FALSE.
+    ENDIF
+
     ! Longitude edges on the OUTPUT GRID
-    ! NOTE: May have to make LON2 a 2-D array later for the GI model
+    ! NOTE: May have to make OUTLON a 2-D array later for the GI model
     DO I = 1, IIPAR+1
-       LON2(I) = GET_XEDGE( I, 1, 1 )
+       OUTLON(I) = GET_XEDGE( I, 1, 1 )
     ENDDO
 
     ! SIN( lat edges ) on the OUTPUT GRID
-    ! NOTE: May have to make SIN2 a 2-D array later for the GI model
+    ! NOTE: May have to make OUTSIN a 2-D array later for the GI model
     DO J = 1, JJPAR+1
-       SIN2(J) = GET_YSIN( 1, J, 1 )
+       OUTSIN(J) = GET_YSIN( 1, J, 1 )
     ENDDO
 
-    ! Open file containing lon & lat edges on the INPUT GRID
-    OPEN( IU_REGRID, FILE=TRIM( FILENAME ), STATUS='OLD', IOSTAT=IOS )
-    IF ( IOS /= 0 ) CALL IOERROR( IOS, IU_REGRID, 'latlonread' )
+    ! Read the input grid specifications
+    IF ( USE_netCDF ) THEN
 
-    ! Create the approprate FORMAT strings
-    WRITE(FMT_LEN,*) IM+1
-    FMT_LON='(' // TRIM ( FMT_LEN ) // 'F9.3)'
-    WRITE(FMT_LEN,*) JM
-    FMT_LAT='(' // TRIM ( FMT_LEN ) // 'F15.10)'
+       !--------------------------------
+       ! %%% FROM NETCDF FILE %%%
+       !--------------------------------
 
-    ! Read lon edges & SIN( lat edges ) on the INPUT GRID
-    READ( IU_REGRID, '(A15)',IOSTAT=IOS ) HEADER1
-    READ( IU_REGRID,FMT_LON,IOSTAT=IOS  ) ( INLON(M), M=1,IM+1 )
-    READ( IU_REGRID,FMT_LAT,IOSTAT=IOS  ) ( INSIN(M), M=1,JM+1 )
+       ! Read the grid specifications from a netCDF file
+       CALL READ_INPUT_GRID( IM, JM, FILENAME, INLON, INSIN )
+
+    ELSE
+
+       !--------------------------------
+       ! %%% FROM ASCII FILE %%%
+       !--------------------------------
+
+       ! Find a free file LUN
+       IU_REGRID = findFreeLUN()
+
+       ! Open file containing lon & lat edges on the INPUT GRID
+       OPEN( IU_REGRID, FILE=TRIM( FILENAME ), STATUS='OLD', IOSTAT=IOS )
+       IF ( IOS /= 0 ) CALL IOERROR( IOS, IU_REGRID, 'latlonread' )
+
+       ! Create the approprate FORMAT strings
+       WRITE(FMT_LEN,*) IM+1
+
+       ! NOTE: If the resolution of the grid is high enough, we have 
+       ! to allow for an extra digit in the input file.  This will
+       ! become obsolete once we migrate to netCDF format (bmy, 8/23/12)
+       IF ( IM > 1000 ) THEN
+          FMT_LON='(' // TRIM ( FMT_LEN ) // 'F10.4)'   ! For hi-res grids
+       ELSE
+          FMT_LON='(' // TRIM ( FMT_LEN ) // 'F9.3)'    ! For all other grids
+       ENDIF
+
+       WRITE(FMT_LEN,*) JM
+       FMT_LAT='(' // TRIM ( FMT_LEN ) // 'F15.10)'
+
+       ! Read lon edges & SIN( lat edges ) on the INPUT GRID
+       READ( IU_REGRID, '(A15)',IOSTAT=IOS ) HEADER1
+       READ( IU_REGRID,FMT_LON,IOSTAT=IOS  ) ( INLON(M), M=1,IM+1 )
+       READ( IU_REGRID,FMT_LAT,IOSTAT=IOS  ) ( INSIN(M), M=1,JM+1 )
+       
+       ! Close file
+       CLOSE( IU_REGRID )
     
-    ! Close file
-    CLOSE( IU_REGRID )
-    
+    ENDIF
+
     !======================================================================
     ! Regridding
     !======================================================================
@@ -167,8 +220,8 @@ MODULE REGRID_A2A_MOD
     ENDIF
 
     ! Call MAP_A2A to do the regridding
-    CALL MAP_A2A( IM,    JM-1,  INLON, INSIN, IN_GRID,        &
-                  IIPAR, JJPAR, LON2,  SIN2,  OUTGRID,  0, 0 )
+    CALL MAP_A2A( IM,    JM,    INLON,  INSIN,  IN_GRID,        &
+                  IIPAR, JJPAR, OUTLON, OUTSIN, OUTGRID, 0, 0 )
 
     ! Convert back from "per area" if necessary
     IF ( PERAREA == 1 ) THEN
@@ -618,5 +671,85 @@ MODULE REGRID_A2A_MOD
 1000 continue
 
   END SUBROUTINE xmap
+!EOC
+!------------------------------------------------------------------------------
+!          Harvard University Atmospheric Chemistry Modeling Group            !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: read_input_grid
+!
+! !DESCRIPTION: Routine to read variables and attributes from a netCDF
+!  file.  This routine was automatically generated by the Perl script
+!  NcdfUtilities/perl/ncCodeRead.
+!\\
+!\\
+! !INTERFACE:
+!
+  SUBROUTINE READ_INPUT_GRID( IM, JM, fileName, lon_edges, lat_sines )
+!
+! !USES:
+!
+    ! Modules for netCDF read
+    USE m_netcdf_io_open
+    USE m_netcdf_io_get_dimlen
+    USE m_netcdf_io_read
+    USE m_netcdf_io_readattr
+    USE m_netcdf_io_close
+
+    IMPLICIT NONE
+
+#   include "netcdf.inc"
+!
+! !INPUT PARAMETERS:
+!
+    INTEGER,          INTENT(IN)  :: IM                ! # of longitudes
+    INTEGER,          INTENT(IN)  :: JM                ! # of latitudes
+    CHARACTER(LEN=*), INTENT(IN)  :: fileName          ! File w/ grid info
+!
+! !OUTPUT PARAMETERS:
+!   
+    REAL*8,           INTENT(OUT) :: lon_edges(IM+1)   ! Lon edges [degrees]
+    REAL*8,           INTENT(OUT) :: lat_sines(JM+1)   ! SIN( latitude edges )
+!
+! !REMARKS:
+!  Created with the ncCodeRead script of the NcdfUtilities package,
+!  with subsequent hand-editing.
+!
+! !REVISION HISTORY:
+!  23 Aug 2012 - R. Yantosca - Initial version
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+!
+! !LOCAL VARIABLES:
+!
+    ! Scalars
+    INTEGER            :: fId                ! netCDF file ID
+
+    ! Arrays
+    INTEGER            :: st1d(1), ct1d(1)   ! start & count for 1D arrays    
+
+    !======================================================================
+    ! Read data from file
+    !======================================================================
+
+    ! Open file for reading
+    CALL Ncop_Rd( fId, TRIM( fileName ) )
+
+    ! Read lon_edges from file
+    st1d = (/ 1    /)
+    ct1d = (/ IM+1 /)
+    CALL NcRd( lon_edges, fId,  "lon_edges", st1d, ct1d )
+        
+    ! Read lat_sines from file
+    st1d = (/ 1    /)
+    ct1d = (/ JM+1 /)
+    CALL NcRd( lat_sines, fId,  "lat_sines", st1d, ct1d )
+
+    ! Close netCDF file
+    CALL NcCl( fId )
+
+  END SUBROUTINE READ_INPUT_GRID
 !EOC
 END MODULE REGRID_A2A_MOD

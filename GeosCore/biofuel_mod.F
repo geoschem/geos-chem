@@ -196,6 +196,7 @@
 !                              NOx (E. Leibensperger)
 !  06 Apr 2012 - M. Payer    - Changed regrid algorithm to map_a2a (M. Cooper)
 !  24 May 2012 - R. Yantosca - Fix minor bugs in map_a2a implementation
+!  24 Aug 2012 - R. Yantosca - DO_REGRID_A2A now reads netCDF input file
 !******************************************************************************
 !
       ! References to F90 modules
@@ -365,15 +366,16 @@
 
                   ! File with lat/lon edges for regridding
                   LLFILENAME = TRIM( DATA_DIR_1x1) //
-     &               'MAP_A2A_Regrid_200312/latlon_generic_new.txt'
+     &              'MAP_A2A_Regrid_201203/MAP_A2A_latlon_generic1x1.nc'
 
                   ! Regrid to current model resolution
                   INGRID => GENERIC_8_1x1
-                  CALL DO_REGRID_A2A( LLFILENAME, 360,     181,
-     &                                INGRID,     OUTGRID, 1 )
+                  CALL DO_REGRID_A2A( LLFILENAME, I1x1,    J1x1-1,
+     &                                INGRID,     OUTGRID, PERAREA=1,
+     &                                netCDF=.TRUE. )
                   BIOFUEL_KG(N,:,:) = OUTGRID  
                   
-                  ! Deallocate arrays for regridding
+                  ! Free pointer
                   NULLIFY( INGRID )
 
                ELSE
@@ -916,18 +918,6 @@
                ! emission year is GE 2006), set BIOFUEL to zero since they
                ! are already accounted for (phs, 3/17/08)
                !-----------------------------------------------------------
-!------------------------------------------------------------------------------
-! Prior to 2/18/11:
-! NOTE from Claire Carouge (2/18/11):
-! I found a bug in biofuel_mod.f about Streets emissions. Initially we used 
-! Streets 2000 for years <= 2005, then Streets 2006 for year >= 2006. But this 
-! was changed because of discrepancies in the total emissions between 2005 and 
-! 2006. So now we use Streets 2000 for years <=2000 and Streets 2006 for years 
-! >= 2001. The problem is that Streets 2006 contains biofuels and not Streets 
-! 2000. So in biofuel_mod.f, there is to change the following IF condition to
-! ( SIM_YEAR >= 2001 ) to avoid double counting biofuel emissions over Asia.
-!            IF ( LSTREETS .and. ( SIM_YEAR >= 2006 ) ) THEN
-!------------------------------------------------------------------------------
                IF ( LSTREETS .and. ( SIM_YEAR >= 2001 ) ) THEN
 
                   ! If we are over the SE Asia region
@@ -1258,7 +1248,7 @@
 
 !------------------------------------------------------------------------------
 
-      SUBROUTINE SET_BFTRACE
+      SUBROUTINE SET_BFTRACE( am_I_Root )
 !
 !******************************************************************************
 !  Subroutine SET_NBFTRACE sets the NBFTRACE variable with the number of
@@ -1266,7 +1256,9 @@
 !  in order to prevent circular module references. (bmy, 11/6/02, 10/3/05)
 !
 !  NOTES:
-!  (1 ) Now make sure all USE statements are USE, ONLY (bmy, 10/3/05)
+!  (1 ) Now make sure all USE statements are USE, ONLY (bmy, 10/3/05
+!  30 Jul 2012 - R. Yantosca - Now accept am_I_Root as an argument when
+!                              running with the traditional driver main.F
 !******************************************************************************
 !
       ! References to F90 modules
@@ -1282,6 +1274,9 @@
       USE TRACERID_MOD, ONLY : IDTGLYX,  IDTMGLY,  IDTBENZ,  IDTTOLU
       USE TRACERID_MOD, ONLY : IDTXYLE,  IDTC2H4,  IDTC2H2,  IDTGLYC
       USE TRACERID_MOD, ONLY : IDTHAC
+
+      LOGICAL, INTENT(IN) :: am_I_Root
+
       !=================================================================
       ! SET_BFTRACE begins here!
       !=================================================================
@@ -1332,10 +1327,11 @@
       IF ( IDBFHAC  /= 0 ) BFTRACE(IDBFHAC ) = IDTHAC
 
       ! Echo biofuel tracer information
-      WRITE( 6, 100 ) BFTRACE( 1:NBFTRACE )
+      IF ( am_I_Root ) THEN
+         WRITE( 6, 100 ) BFTRACE( 1:NBFTRACE )
+      ENDIF
  100  FORMAT( 'TRACERID: Biofuel burning tracers        :', 20i3 )
       
-      ! Return to calling program
       END SUBROUTINE SET_BFTRACE
 
 !------------------------------------------------------------------------------

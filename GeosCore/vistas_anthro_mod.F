@@ -187,6 +187,7 @@
 !  28 Jan 2009 - A. v. Donkelaar, P. Le Sager - Initial Version
 !  13 Mar 2012 - M. Cooper   - Changed regrid algorithm to map_a2a
 !  24 May 2012 - R. Yantosca - Fix minor bugs in map_a2a algorithm
+!  24 Aug 2012 - R. Yantosca - DO_REGRID_A2A now reads netCDF input file
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -241,8 +242,8 @@
       ENDIF
 
       ! cap maximum scaling year
-      IF ( THISYEAR .gt. 2007 ) THEN
-         THISYEAR = 2007
+      IF ( THISYEAR .gt. 2010 ) THEN
+         THISYEAR = 2010
       ENDIF
 
       SNAME = 'NOx'
@@ -318,12 +319,14 @@
 
       ! File with lat/lon edges for regridding
       LLFILENAME = TRIM( DATA_DIR_1x1) //
-     &             'MAP_A2A_Regrid_200312/latlon_geos1x1_new.txt'
+     &             'MAP_A2A_Regrid_201203/MAP_A2A_latlon_geos1x1.nc'
 
       ! Regrid to current model resolution
       INGRID = GEOS_1x1(:,:,1) * ARRAY(:,:,1)
       CALL DO_REGRID_A2A( LLFILENAME, I1x1,          J1x1,
-     &                    INGRID,     VISTAS_WE_NOx, PERAREA=0 )
+     &                    INGRID,     VISTAS_WE_NOx, PERAREA=0,
+     &                    netCDF=.TRUE.                         )
+
 
       ! Load/Apply weekday factors
       FILENAME  = TRIM( VISTAS_DIR )
@@ -341,7 +344,8 @@
       ! Regrid from GEOS 1x1 --> current model resolution
       INGRID = GEOS_1x1(:,:,1) * ARRAY(:,:,1)
       CALL DO_REGRID_A2A( LLFILENAME, I1x1,          J1x1,
-     &                    INGRID,     VISTAS_WD_NOx, PERAREA=0 )
+     &                    INGRID,     VISTAS_WD_NOx, PERAREA=0,
+     &                    netCDF=.TRUE.                         )
 
       !--------------------------
       ! Compute future emissions

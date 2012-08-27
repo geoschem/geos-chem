@@ -411,6 +411,7 @@
 !  28 Feb 2012 - R. Yantosca - Removed support for GEOS-3
 !  13 Mar 2012 - M. Cooper   - Changed regrid algorithm to map_a2a
 !  24 May 2012 - R. Yantosca - Fixed minor bugs in map_a2a implementation
+!  24 Aug 2012 - R. Yantosca - DO_REGRID_A2A now reads netCDF input file
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -476,11 +477,7 @@
 
       ! File with lat/lon edges for regridding
       LLFILENAME = TRIM( DATA_DIR_1x1) //
-     &             'MAP_A2A_Regrid_200312/latlon_geos1x1_new.txt'
-
-      ! Allocate arrays for regridding
-      ALLOCATE(INGRID(I1x1,J1x1))
-      ALLOCATE(OUTGRID(IIPAR,JJPAR))
+     &             'MAP_A2A_Regrid_201203/MAP_A2A_latlon_geos1x1.nc'
 
       ! Loop over species
       DO KLM = 1, SIZE( SPECIES_ID )
@@ -557,9 +554,11 @@
                INGRID  => GEOS_1x1(:,:,L)
                OUTGRID => NOx(:,:,L)
 
-               ! Regrid
+!               ! Regrid
                CALL DO_REGRID_A2A( LLFILENAME, I1x1,    J1x1,
-     &                             INGRID,     OUTGRID, PERAREA=1 )
+     &                             INGRID,     OUTGRID, PERAREA=1,
+     &                             netCDF=.TRUE.                   )
+
 
                ! Free pointers
                NULLIFY( INGRID, OUTGRID )
@@ -575,7 +574,8 @@
 
                ! Regrid
                CALL DO_REGRID_A2A( LLFILENAME, I1x1,    J1x1,
-     &                             INGRID,     OUTGRID, PERAREA=1 )
+     &                             INGRID,     OUTGRID, PERAREA=1,
+     &                             netCDF=.TRUE.                   )
 
                ! Free pointers
                NULLIFY( INGRID, OUTGRID )
@@ -602,7 +602,8 @@
 
                ! Regrid
                CALL DO_REGRID_A2A( LLFILENAME, I1x1,    J1x1,
-     &                             INGRID,     OUTGRID, PERAREA=1 )
+     &                             INGRID,     OUTGRID, PERAREA=1,
+     &                             netCDF=.TRUE.                   )
 
                ! Free pointers
                NULLIFY( INGRID, OUTGRID )
@@ -618,7 +619,8 @@
 
                ! Regrid
                CALL DO_REGRID_A2A( LLFILENAME, I1x1,    J1x1,
-     &                             INGRID,     OUTGRID, PERAREA=1 )
+     &                             INGRID,     OUTGRID, PERAREA=1,
+     &                             netCDF=.TRUE.                   )
 
                ! Free pointers
                NULLIFY( INGRID, OUTGRID )
@@ -645,7 +647,8 @@
 
                ! Regrid
                CALL DO_REGRID_A2A( LLFILENAME, I1x1,    J1x1,
-     &                             INGRID,     OUTGRID, PERAREA=1 )
+     &                             INGRID,     OUTGRID, PERAREA=1,
+     &                             netCDF=.TRUE.                   )
 
                ! Free pointers
                NULLIFY( INGRID, OUTGRID )
@@ -660,7 +663,8 @@
 
                ! Regrid
                CALL DO_REGRID_A2A( LLFILENAME, I1x1,    J1x1,
-     &                             INGRID,     OUTGRID, PERAREA=1 )
+     &                             INGRID,     OUTGRID, PERAREA=1,
+     &                             netCDF=.TRUE.                   )
 
                ! Free pointers
                NULLIFY( INGRID, OUTGRID )
@@ -685,8 +689,10 @@
                INGRID  => GEOS_1x1(:,:,L)
                OUTGRID => SO4(:,:,L)
 
+               ! Regrid
                CALL DO_REGRID_A2A( LLFILENAME, I1x1,    J1x1,
-     &                             INGRID,     OUTGRID, PERAREA=1 )
+     &                             INGRID,     OUTGRID, PERAREA=1,
+     &                             netCDF=.TRUE.                   )
 
                ! Free pointers
                NULLIFY( INGRID, OUTGRID )
@@ -702,7 +708,8 @@
 
                ! Regrid
                CALL DO_REGRID_A2A( LLFILENAME, I1x1,    J1x1,
-     &                             INGRID,     OUTGRID, PERAREA=1 )
+     &                             INGRID,     OUTGRID, PERAREA=1,
+     &                             netCDF=.TRUE.                   )
 
                ! Free pointers
                NULLIFY( INGRID, OUTGRID )
@@ -728,7 +735,8 @@
 
                ! Regrid
                CALL DO_REGRID_A2A( LLFILENAME, I1x1,    J1x1,
-     &                             INGRID,     OUTGRID, PERAREA=1 )
+     &                             INGRID,     OUTGRID, PERAREA=1,
+     &                             netCDF=.TRUE.                   )
 
                ! Free pointers
                NULLIFY( INGRID, OUTGRID )
@@ -744,7 +752,8 @@
 
                ! Regrid
                CALL DO_REGRID_A2A( LLFILENAME, I1x1,    J1x1,
-     &                             INGRID,     OUTGRID, PERAREA=1 )
+     &                             INGRID,     OUTGRID, PERAREA=1,
+     &                             netCDF=.TRUE.                   )
 
                ! Free pointers
                NULLIFY( INGRID, OUTGRID )
@@ -771,7 +780,9 @@
 
                ! Regrid
                CALL DO_REGRID_A2A( LLFILENAME, I1x1,    J1x1,
-     &                             INGRID,     OUTGRID, PERAREA=1 )
+     &                             INGRID,     OUTGRID, PERAREA=1,
+     &                             netCDF=.TRUE.                   )
+
                ! Free pointers
                NULLIFY( INGRID, OUTGRID )
 
@@ -786,7 +797,8 @@
 
                ! Regrid
                CALL DO_REGRID_A2A( LLFILENAME, I1x1,    J1x1,
-     &                             INGRID,     OUTGRID, PERAREA=1 )
+     &                             INGRID,     OUTGRID, PERAREA=1,
+     &                             netCDF=.TRUE.                   )
 
                ! Free pointers
                NULLIFY( INGRID, OUTGRID )
@@ -813,7 +825,8 @@
                
                ! Regrid
                CALL DO_REGRID_A2A( LLFILENAME, I1x1,    J1x1,
-     &                             INGRID,     OUTGRID, PERAREA=1 )
+     &                             INGRID,     OUTGRID, PERAREA=1,
+     &                             netCDF=.TRUE.                   )
 
                ! Free pointers
                NULLIFY( INGRID, OUTGRID )
@@ -826,8 +839,12 @@
                INGRID  =  INGRID * ARRAY(:,:,L)
                OUTGRID => BC_WKEND(:,:,L)
 
+               ! Regrid
                CALL DO_REGRID_A2A( LLFILENAME, I1x1,    J1x1,
-     &                             INGRID,     OUTGRID, PERAREA=1 )
+     &                             INGRID,     OUTGRID, PERAREA=1,
+     &                             netCDF=.TRUE.                   )
+
+
                !-----------------
                ! Apply masks
                !-----------------
@@ -851,7 +868,8 @@
 
                ! Regrid
                CALL DO_REGRID_A2A( LLFILENAME, I1x1,    J1x1,
-     &                             INGRID,     OUTGRID, PERAREA=1 )
+     &                             INGRID,     OUTGRID, PERAREA=1,
+     &                             netCDF=.TRUE.                   )
 
                ! Free pointers
                NULLIFY( INGRID, OUTGRID )
@@ -867,7 +885,8 @@
 
                ! Regrid
                CALL DO_REGRID_A2A( LLFILENAME, I1x1,    J1x1,
-     &                             INGRID,     OUTGRID, PERAREA=1 )
+     &                             INGRID,     OUTGRID, PERAREA=1,
+     &                             netCDF=.TRUE.                   )
 
                ! Free pointers
                NULLIFY( INGRID, OUTGRID )
@@ -894,7 +913,8 @@
 
                ! Regrid
                CALL DO_REGRID_A2A( LLFILENAME, I1x1,    J1x1,
-     &                             INGRID,     OUTGRID, PERAREA=1 )
+     &                             INGRID,     OUTGRID, PERAREA=1,
+     &                             netCDF=.TRUE.                   )
 
                ! Free pointers
                NULLIFY( INGRID, OUTGRID )
@@ -910,7 +930,8 @@
 
                ! Regrid
                CALL DO_REGRID_A2A( LLFILENAME, I1x1,    J1x1,
-     &                             INGRID,     OUTGRID, PERAREA=1 )
+     &                             INGRID,     OUTGRID, PERAREA=1,
+     &                             netCDF=.TRUE.                   )
 
                ! Free pointers
                NULLIFY( INGRID, OUTGRID )
@@ -937,7 +958,8 @@
 
                ! Regrid
                CALL DO_REGRID_A2A( LLFILENAME, I1x1,    J1x1,
-     &                             INGRID,     OUTGRID, PERAREA=1 )
+     &                             INGRID,     OUTGRID, PERAREA=1,
+     &                             netCDF=.TRUE.                   )
 
                ! Free pointers
                NULLIFY( INGRID, OUTGRID )
@@ -953,7 +975,9 @@
 
                ! Regrid
                CALL DO_REGRID_A2A( LLFILENAME, I1x1,    J1x1,
-     &                             INGRID,     OUTGRID, PERAREA=1 )
+     &                             INGRID,     OUTGRID, PERAREA=1,
+     &                             netCDF=.TRUE.                   )
+
 
                ! Free pointers
                NULLIFY( INGRID, OUTGRID )
@@ -976,8 +1000,10 @@
                INGRID  => GEOS_1x1(:,:,L)
                OUTGRID => PRPE(:,:,L)
 
+               ! Regrid
                CALL DO_REGRID_A2A( LLFILENAME, I1x1,    J1x1,
-     &                             INGRID,     OUTGRID, PERAREA=1 )
+     &                             INGRID,     OUTGRID, PERAREA=1,
+     &                             netCDF=.TRUE.                   )
 
                ! Free pointers
                NULLIFY( INGRID, OUTGRID )
@@ -991,8 +1017,10 @@
                INGRID  =  INGRID * ARRAY(:,:,L)
                OUTGRID => PRPE_WKEND(:,:,L)
 
+               ! Regrid
                CALL DO_REGRID_A2A( LLFILENAME, I1x1,    J1x1,
-     &                             INGRID,     OUTGRID, PERAREA=1 )
+     &                             INGRID,     OUTGRID, PERAREA=1,
+     &                             netCDF=.TRUE.                   )
 
                ! Free pointers
                NULLIFY( INGRID, OUTGRID )
@@ -1017,7 +1045,9 @@
 
                ! Regrid
                CALL DO_REGRID_A2A( LLFILENAME, I1x1,    J1x1,
-     &                             INGRID,     OUTGRID, PERAREA=1 )
+     &                             INGRID,     OUTGRID, PERAREA=1,
+     &                             netCDF=.TRUE.                   )
+
                ! Free pointers
                NULLIFY( INGRID, OUTGRID )
 
@@ -1032,7 +1062,8 @@
 
                ! Regrid
                CALL DO_REGRID_A2A( LLFILENAME, I1x1,    J1x1,
-     &                             INGRID,     OUTGRID, PERAREA=1 )
+     &                             INGRID,     OUTGRID, PERAREA=1,
+     &                             netCDF=.TRUE.                   )
 
                ! Free pointers
                NULLIFY( INGRID, OUTGRID )
@@ -1059,13 +1090,14 @@
 
                ! Regrid
                CALL DO_REGRID_A2A( LLFILENAME, I1x1,    J1x1,
-     &                             INGRID,     OUTGRID, PERAREA=1 )
+     &                             INGRID,     OUTGRID, PERAREA=1,
+     &                             netCDF=.TRUE.                   )
 
                ! Free pointers
                NULLIFY( INGRID, OUTGRID )
 
                !-----------------
-               ! C3H8_WKEND
+               ! CH2O_WKEND
                !-----------------
 
                ! Point to array slices
@@ -1075,7 +1107,8 @@
 
                ! Regrid
                CALL DO_REGRID_A2A( LLFILENAME, I1x1,    J1x1,
-     &                             INGRID,     OUTGRID, PERAREA=1 )
+     &                             INGRID,     OUTGRID, PERAREA=1,
+     &                             netCDF=.TRUE.                   )
 
                ! Free pointers
                NULLIFY( INGRID, OUTGRID )
@@ -1102,13 +1135,14 @@
 
                ! Regrid
                CALL DO_REGRID_A2A( LLFILENAME, I1x1,    J1x1,
-     &                             INGRID,     OUTGRID, PERAREA=1 )
+     &                             INGRID,     OUTGRID, PERAREA=1,
+     &                             netCDF=.TRUE.                   )
 
                ! Free pointers
                NULLIFY( INGRID, OUTGRID )
 
                !-----------------
-               ! C3H8_WKEND
+               ! C2H6_WKEND
                !-----------------
 
                ! Point to array slices
@@ -1118,7 +1152,8 @@
 
                ! Regrid
                CALL DO_REGRID_A2A( LLFILENAME, I1x1,    J1x1,
-     &                             INGRID,     OUTGRID, PERAREA=1 )
+     &                             INGRID,     OUTGRID, PERAREA=1,
+     &                             netCDF=.TRUE.                   )
 
                ! Free pointers
                NULLIFY( INGRID, OUTGRID )
@@ -1136,20 +1171,22 @@
             DO L = 1, 5
 
                !-----------------
-               ! C2H6
+               ! ALD2
                !-----------------
 
                INGRID  => GEOS_1x1(:,:,L)
                OUTGRID => ALD2(:,:,L)
 
+               ! Regrid
                CALL DO_REGRID_A2A( LLFILENAME, I1x1,    J1x1,
-     &                             INGRID,     OUTGRID, PERAREA=1 )
+     &                             INGRID,     OUTGRID, PERAREA=1,
+     &                             netCDF=.TRUE.                   )
 
                ! Free pointers
                NULLIFY( INGRID, OUTGRID )
 
                !-----------------
-               ! C3H8_WKEND
+               ! ALD2_WKEND
                !-----------------
 
                ! Point to array slices
@@ -1157,8 +1194,10 @@
                INGRID  =  INGRID * ARRAY(:,:,L)
                OUTGRID => ALD2_WKEND(:,:,L)
 
+               ! Regrid
                CALL DO_REGRID_A2A( LLFILENAME, I1x1,    J1x1,
-     &                             INGRID,     OUTGRID, PERAREA=1 )
+     &                             INGRID,     OUTGRID, PERAREA=1,
+     &                             netCDF=.TRUE.                   )
 
                ! Free pointers
                NULLIFY( INGRID, OUTGRID )
@@ -1774,15 +1813,12 @@
 ! !INPUT/OUTPUT PARAMETERS:
 !
       REAL*4,  INTENT(INOUT)  :: AS(IIPAR,JJPAR,5)  ! Scale factor array
-      CHARACTER(LEN=255)      :: LLFILENAME
-      REAL*8, ALLOCATABLE     :: OUTGRID(:,:)
-      REAL*8, ALLOCATABLE     :: INGRID(:,:)
-      INTEGER                 :: L
-
 !
 ! !REVISION HISTORY:
 !  30 Oct 2009 - A. van Donkelaar - Initial Version
 !  13 Mar 2012 - M. Cooper        - Changed regrid algorithm to map_a2a
+!  07 Jun 2012 - M. Payer         - Fix minor bugs in map_a2a implementation
+!  24 Aug 2012 - R. Yantosca      - DO_REGRID_A2A now reads netCDF input file
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -1790,6 +1826,10 @@
 ! !LOCAL VARIABLES:
 !
       REAL*4                  :: ARRAY(I1x1,J1x1,5)
+      CHARACTER(LEN=255)      :: LLFILENAME
+      REAL*8                  :: OUTGRID(IIPAR,JJPAR)
+      REAL*8                  :: INGRID(I1x1,J1x1)
+      INTEGER                 :: L
 
       !=================================================================
       ! GET_NEI99_SEASON_05x0666 begins here!
@@ -1801,22 +1841,16 @@
 
       ! File with lat/lon edges for regridding
       LLFILENAME = TRIM( DATA_DIR_1x1) //
-     &             'MAP_A2A_Regrid_200312/latlon_geos1x1.txt'
-
-      ! Allocate arrays for regridding
-      ALLOCATE(INGRID(I1x1,J1x1))
-      ALLOCATE(OUTGRID(IIPAR,JJPAR))
+     &             'MAP_A2A_Regrid_201203/MAP_A2A_latlon_geos1x1.nc'
 
       ! Regrid to current model resolution [unitless]
       DO L = 1, 5
          INGRID = ARRAY(:,:,L)
-         CALL DO_REGRID_A2A( LLFILENAME, 360, 181, INGRID, OUTGRID, 1 )
+         CALL DO_REGRID_A2A( LLFILENAME, I1x1,    J1x1,
+     &                       INGRID,     OUTGRID, PERAREA=1,
+     &                       netCDF=.TRUE.                   )
          AS(:,:,L) = OUTGRID
       ENDDO
-
-      ! Deallocate arrays for regridding
-      DEALLOCATE(OUTGRID)
-      DEALLOCATE(INGRID)
 
       END SUBROUTINE GET_NEI99_SEASON_05x0666
 !EOC
@@ -2025,6 +2059,8 @@
 ! !REVISION HISTORY:
 !  03 Nov 2009 - A. van Donkelaar - Initial Version
 !  13 Mar 2012 - M. Cooper        - Changed regrid algorithm to map_a2a
+!  07 Jun 2012 - M. Payer         - Fix minor bugs in map_a2a implementation
+!  24 Aug 2012 - R. Yantosca      - DO_REGRID_A2A now reads netCDF input file
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -2033,8 +2069,8 @@
 !
       REAL*4                  :: ARRAY(I1x1,J1x1,5)
       CHARACTER(LEN=255)      :: LLFILENAME
-      REAL*8, ALLOCATABLE     :: OUTGRID(:,:)
-      REAL*8, ALLOCATABLE     :: INGRID(:,:)
+      REAL*8                  :: OUTGRID(IIPAR,JJPAR)
+      REAL*8                  :: INGRID(I1x1,J1x1)
       INTEGER                 :: L
 
       !=================================================================
@@ -2047,22 +2083,16 @@
 
       ! File with lat/lon edges for regridding
       LLFILENAME = TRIM( DATA_DIR_1x1) //
-     &             'MAP_A2A_Regrid_200312/latlon_geos1x1.txt'
-
-      ! Allocate arrays for regridding
-      ALLOCATE(INGRID(I1x1,J1x1))
-      ALLOCATE(OUTGRID(IIPAR,JJPAR))
+     &             'MAP_A2A_Regrid_201203/MAP_A2A_latlon_geos1x1.nc'
 
       ! Regrid to current model resolution [unitless]
       DO L = 1, 5
          INGRID = ARRAY(:,:,L)
-         CALL DO_REGRID_A2A( LLFILENAME, 360, 181, INGRID, OUTGRID, 1 )
+         CALL DO_REGRID_A2A( LLFILENAME, I1x1,    J1x1,
+     &                       INGRID,     OUTGRID, PERAREA=1,
+     &                       netCDF=.TRUE.                   )
          AS(:,:,L) = OUTGRID
       ENDDO
-
-      ! Deallocate arrays for regridding
-      DEALLOCATE(INGRID)
-      DEALLOCATE(OUTGRID)
 
       END SUBROUTINE GET_VISTAS_SEASON_05x0666
 !EOC
@@ -2216,7 +2246,9 @@
 !
 ! !REVISION HISTORY:
 !  30 Oct 2009 - A. van Donkelaar - Initial Version
-!  13 Mar 2012 - M. Cooper   - Changed regrid algorithm to map_a2a
+!  13 Mar 2012 - M. Cooper        - Changed regrid algorithm to map_a2a
+!  07 Jun 2012 - M. Payer         - Fix minor bugs in map_a2a implementation
+!  24 Aug 2012 - R. Yantosca      - DO_REGRID_A2A now reads netCDF input file
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -2225,8 +2257,8 @@
 !
       REAL*4                  :: ARRAY(I1x1,J1x1,5)
       CHARACTER(LEN=255)      :: LLFILENAME
-      REAL*8, ALLOCATABLE     :: OUTGRID(:,:)
-      REAL*8, ALLOCATABLE     :: INGRID(:,:)
+      REAL*8                  :: OUTGRID(IIPAR,JJPAR)
+      REAL*8                  :: INGRID(I1x1,J1x1)
       INTEGER                 :: L
 
       !=================================================================
@@ -2239,16 +2271,14 @@
 
       ! File with lat/lon edges for regridding
       LLFILENAME = TRIM( DATA_DIR_1x1) //
-     &             'MAP_A2A_Regrid_200312/latlon_geos1x1.txt'
-
-      ! Allocate arrays for regridding
-      ALLOCATE(INGRID(I1x1,J1x1))
-      ALLOCATE(OUTGRID(IIPAR,JJPAR))
+     &             'MAP_A2A_Regrid_201203/MAP_A2A_latlon_geos1x1.nc'
 
       ! Regrid to current model resolution [unitless]
       DO L = 1, 5
          INGRID = ARRAY(:,:,L)
-         CALL DO_REGRID_A2A( LLFILENAME, 360, 182, INGRID, OUTGRID, 1 )
+         CALL DO_REGRID_A2A( LLFILENAME, I1x1,    J1x1,
+     &                       INGRID,     OUTGRID, PERAREA=1,
+     &                       netCDF=.TRUE.                   )
          AS(:,:,L) = OUTGRID
       ENDDO
 
@@ -2284,9 +2314,13 @@
 !     temporary mask: same as EPA 99
 !     
 ! !REVISION HISTORY: 
-!   20 Oct 2009 - P. Le Sager - init
-!   26 Oct 2009 - P. Le Sager - new masks
-!   13 Mar 2012 - M. Cooper   - Changed regrid algorithm to map_a2a
+!  20 Oct 2009 - P. Le Sager - init
+!  26 Oct 2009 - P. Le Sager - new masks
+!  13 Mar 2012 - M. Cooper   - Changed regrid algorithm to map_a2a
+!  24 May 2012 - R. Yantosca - Fixed minor bugs in map_a2a implementation
+!  15 Aug 2012 - M. Payer    - Fixed minor bugs in regridding of mask; Also
+!                              set mask to 1 if greater than 0 (L. Murray)
+!  24 Aug 2012 - R. Yantosca - DO_REGRID_A2A now reads netCDF input file
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -2298,7 +2332,7 @@
       REAL*8, TARGET     :: GEOS_1x1(I1x1,J1x1,1)
       CHARACTER(LEN=255) :: FILENAME, SNAME
       CHARACTER(LEN=255) :: LLFILENAME
-      REAL*8, POINTER    :: INGRID(:,:)
+      REAL*8, POINTER    :: INGRID(:,:) => NULL()
 
       !=================================================================
       ! Mask specific to NEI2005 data
@@ -2331,14 +2365,18 @@
 
       ! File with lat/lon edges for regridding
       LLFILENAME = TRIM( DATA_DIR_1x1) //
-     &             'MAP_A2A_Regrid_200312/latlon_geos1x1_new.txt'
+     &             'MAP_A2A_Regrid_201203/MAP_A2A_latlon_geos1x1.nc'
 
       ! Regrid from GEOS 1x1 --> current model resolution [unitless]
       INGRID => GEOS_1x1(:,:,1)
       CALL DO_REGRID_A2A( LLFILENAME, I1x1,     J1x1,
-     &                    INGRID,     USA_MASK, PERAREA=1 )
+     &                    INGRID,     USA_MASK, PERAREA=0,
+     &                    netCDF=.TRUE.                   )
 
-      WHERE ( USA_MASK /= 0D0 ) USA_MASK = 1D0
+      ! Free pointer
+      NULLIFY( INGRID )
+
+      WHERE ( USA_MASK > 0D0 ) USA_MASK = 1D0
 
       ! Return to calling program
       END SUBROUTINE READ_NEI2005_MASK

@@ -109,7 +109,7 @@
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE INIT_COMODE
+      SUBROUTINE INIT_COMODE( am_I_Root )
 !
 ! !USES:
 !
@@ -119,6 +119,10 @@
       
       USE CMN_SIZE_MOD
       USE COMODE_LOOP_MOD 
+!
+! !INPUT PARAMETERS:
+!
+      LOGICAL, INTENT(IN) :: am_I_Root   ! Is this the root CPU?
 ! 
 ! !REVISION HISTORY: 
 !  31 Aug 2000 - R. Yantosca - Initial version
@@ -127,6 +131,8 @@
 !  (3 ) Now allocate CSUMA, CSUMC, ERRMX2; cosmetic changes (bmy, 7/18/03)
 !  (4 ) Now allocate certain arrays for offline aerosol sim (bmy, 9/28/04)
 !  21 Dec 2010 - R. Yantosca - Added ProTeX headers
+!  30 Jul 2012 - R. Yantosca - Now accept am_I_Root as an argument when
+!                              running with the traditional driver main.F
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -138,7 +144,9 @@
       !=================================================================
       ! INIT_COMODE begins here!
       !=================================================================
-      WRITE( 6, 100 )
+      IF ( am_I_Root ) THEN
+         WRITE( 6, 100 )
+      ENDIF
  100  FORMAT( '     - INIT_COMODE: Allocating arrays for SMVGEAR...' )
 
       !----------------------------------

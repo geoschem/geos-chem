@@ -87,6 +87,8 @@
       !%%%% Chemistry %%%%
       LOGICAL :: LCHEM           ! Use chemistry?
       LOGICAL :: LKPP            ! Use KPP solver instead of SMVGEAR?
+      LOGICAL :: LSCHEM          ! Use linear strat chem? (vs. no strat schem)
+      LOGICAL :: LLINOZ          ! T = Linoz O3; F = Synoz O3
 
       !%%%% Cloud convection %%%%
       LOGICAL :: LCONV           ! Use cloud convection?
@@ -164,14 +166,13 @@
       LOGICAL :: LMFCT           ! Turns TPCORE MFCT option on/off
       LOGICAL :: LTRAN           ! Turns advection on/off
       LOGICAL :: LTPFV           ! Are we using the GEOS-4 
-      LOGICAL :: LUPBD           ! Use stratospheric O3, NOY bdry conditions
-      LOGICAL :: LLINOZ          ! Use LINOZ chemistry in the stratosphere?
       LOGICAL :: LWINDO          ! Use nested-grid simulation?
       LOGICAL :: LWINDO2x25      ! Use nested-grid BC's @ 2 x 2.5 resolution?
       LOGICAL :: LWINDO_NA       
       LOGICAL :: LWINDO_EU
       LOGICAL :: LWINDO_CH
       LOGICAL :: LWINDO_CU
+      LOGICAL :: LWINDO_SE
 
       !%%%% Met fields %%%%
       LOGICAL :: LUNZIP          ! Unzip met fields on-the-fly?
@@ -245,5 +246,6 @@
       !%%%% For interface with GCM's in MPI environments
       LOGICAL :: DO_DIAG_WRITE = .TRUE.  ! TURN ON/OFF DIAGNOSTIC WRITING
 
+      LOGICAL :: LUPBD           ! Use stratospheric O3, NOY bdry conditions
       END MODULE LOGICAL_MOD
 !EOC

@@ -24,10 +24,16 @@
 !
 ! !INTERFACE:
 !
-      SUBROUTINE FAST_J( SUNCOS, OD, ALBD )  
+#if defined( DEVEL ) || defined( EXTERNAL_GRID ) || defined( EXTERNAL_FORCING )
+      SUBROUTINE FAST_J( SUNCOS, OD, ALBD, PEDGE, am_I_Root )  
+#else
+      SUBROUTINE FAST_J( SUNCOS, OD, ALBD, am_I_Root )  
+#endif
 !
 ! !USES:
 !
+#     include "define.h"
+
       USE DAO_MOD,      ONLY : T, CLDF
       USE ERROR_MOD,    ONLY : ERROR_STOP, ALLOC_ERR
       USE GRID_MOD,     ONLY : GET_YMID
@@ -36,29 +42,31 @@
       USE TIME_MOD,     ONLY : GET_TAU,   GET_YEAR
       USE TOMS_MOD,     ONLY : GET_OVERHEAD_O3
 
-#     include "define.h"
-
-      USE CMN_SIZE_MOD, ONLY : IIPAR, JJPAR, LLPAR
-      USE CMN_SIZE_MOD, ONLY : NDUST, MAXIJ, NAER, NRH
-#if !defined( DEVEL )
-      USE CMN_FJ_MOD, ONLY : IPAR, JPAR, LPAR
-#endif
-      USE CMN_FJ_MOD, ONLY : JPMAX, JPPJ
-      USE JV_CMN_MOD, ONLY : ODMDUST, PJ, NB, ODAER
+      USE CMN_SIZE_MOD, ONLY : IIPAR,   JJPAR, LLPAR
+      USE CMN_SIZE_MOD, ONLY : NDUST,   MAXIJ, NAER,  NRH
+      USE CMN_FJ_MOD,   ONLY : JPMAX,   JPPJ
+      USE JV_CMN_MOD,   ONLY : ODMDUST, PJ,    NB,    ODAER
 
       IMPLICIT NONE
-
 !
 ! !INPUT PARAMETERS: 
 !
+      ! Is this the root CPU?
+      LOGICAL, INTENT(IN) :: am_I_Root
+
       ! Cosine of solar zenith angle [unitless]
-      REAL*8, INTENT(IN)    :: SUNCOS(MAXIJ)   
+      REAL*8,  INTENT(IN) :: SUNCOS(MAXIJ)   
 
       ! Cloud optical depth [unitless]
-      REAL*8, INTENT(IN)    :: OD(LLPAR,IIPAR,JJPAR) 
+      REAL*8,  INTENT(IN) :: OD(LLPAR,IIPAR,JJPAR) 
 
       ! UV albedo [unitless]
-      REAL*8, INTENT(IN)    :: ALBD(IIPAR,JJPAR)    
+      REAL*8,  INTENT(IN) :: ALBD(IIPAR,JJPAR)    
+
+#if defined( DEVEL ) || defined( EXTERNAL_GRID ) || defined( EXTERNAL_FORCING )
+      ! Pressure at gridbox interfaces
+      REAL*8,  INTENT(IN) :: PEDGE(IIPAR, JJPAR, LLPAR+1)
+#endif
 !
 ! !REMARKS:
 !
@@ -119,6 +127,9 @@
 !  01 Mar 2012 - R. Yantosca - Now use GET_YMID(I,J,L) from grid_mod.F90
 !  06 Mar 2012 - R. Yantosca - Now call GET_OVERHEAD_O3 to get the total
 !                              overhead O3 column for FAST-J
+!  30 Jul 2012 - R. Yantosca - Now accept am_I_Root as an argument when
+!                              running with the traditional driver main.F
+!  10 Aug 2012 - R. Yantosca - Replace IPAR, JPAR, LPAR w/ IIPAR, JJPAR, LLPAR
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -163,7 +174,7 @@
       ! FAST_J begins here!
       !=================================================================
 
-#if defined( DEVEL )
+#if defined( DEVEL ) || defined( EXTERNAL_GRID ) || defined( EXTERNAL_FORCING )
       IF ( FIRST ) THEN
 
 !         ALLOCATE ( INDGEN(LLPAR+1), STAT=AS)
@@ -213,10 +224,17 @@
             ! Cosine of solar zenith angle [unitless] at (NLON,NLAT)
             CSZA         = SUNCOS( (NLAT-1)*IIPAR + NLON ) 
 
-            ! Define the PJ array here (bmy, 11/16/07)
+#if defined( EXTERNAL_GRID ) || defined( EXTERNAL_FORCING )
+            ! Define the PJ array here, using GCM pressures
+            DO L = 1, LLPAR+1
+               PJ(L)     = PEDGE( NLON, NLAT, L )
+            ENDDO
+#else
+            ! Define the PJ array here, using Ap and Bp from GEOS-Chem
             DO L = 1, NB
                PJ(L)     = GET_PEDGE( NLON, NLAT, L )
             ENDDO
+#endif
 
             ! Top edge of PJ is top of atmosphere (bmy, 2/13/07)
             PJ(NB+1)     = 0d0
@@ -272,10 +290,10 @@
 #endif
 
                ! Call FAST-J routines to compute J-values
-               CALL PHOTOJ( NLON,  NLAT, YLAT,    DAY_OF_YR,  
-     &                      MONTH, DAY,  CSZA,    TEMP,    
-     &                      SFCA,  OPTD, OPTDUST, OPTAER, 
-     &                      O3COL )
+               CALL PHOTOJ( NLON,  NLAT,     YLAT,    DAY_OF_YR,  
+     &                      MONTH, DAY,      CSZA,    TEMP,    
+     &                      SFCA,  OPTD,     OPTDUST, OPTAER, 
+     &                      O3COL, am_I_Root                     )
 
             !===========================================================
             ! CLOUD OVERLAP : APPROXIMATE RANDOM OVERLAP
@@ -309,10 +327,10 @@
 #endif
 
                ! Call FAST-J routines to compute J-values
-               CALL PHOTOJ( NLON,  NLAT, YLAT,    DAY_OF_YR,  
-     &                      MONTH, DAY,  CSZA,    TEMP,  
-     &                      SFCA,  OPTD, OPTDUST, OPTAER,
-     &                      O3COL )
+               CALL PHOTOJ( NLON,  NLAT,     YLAT,    DAY_OF_YR,  
+     &                      MONTH, DAY,      CSZA,    TEMP,  
+     &                      SFCA,  OPTD,     OPTDUST, OPTAER,
+     &                      O3COL, am_I_Root                    )
 
             !===========================================================
             ! CLOUD OVERLAP : MAXIMUM RANDOM OVERLAP
@@ -421,10 +439,10 @@
                SELECT CASE( NUMB ) 
            
                   CASE( 0,7: )
-                     CALL PHOTOJ( NLON,  NLAT, YLAT,    DAY_OF_YR, 
-     &                            MONTH, DAY,  CSZA,    TEMP,  
-     &                            SFCA,  OPTD, OPTDUST, OPTAER,
-     &                            O3COL )
+                     CALL PHOTOJ( NLON,  NLAT,     YLAT,    DAY_OF_YR, 
+     &                            MONTH, DAY,      CSZA,    TEMP,  
+     &                            SFCA,  OPTD,     OPTDUST, OPTAER,
+     &                            O3COL, am_I_Root                    )
 
                   CASE( 1:6 ) 
                      CALL MMRAN_16( NUMB,  NLON,  NLAT,      YLAT,   

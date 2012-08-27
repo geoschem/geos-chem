@@ -22,7 +22,7 @@
       USE CMN_DIAG_MOD                       ! Diagnostic switches & arrays
       USE COMODE_LOOP_MOD                    ! IDEMS
       USE FILE_MOD                           
-      USE GRID_MOD
+      USE GRID_MOD, ONLY : GET_AREA_M2, GET_YOFFSET, GET_XOFFSET
       USE TIME_MOD
 
       ! Modules from GeosCore directory
@@ -877,10 +877,8 @@
 !  (1)  ACETmo : Acetone source from MONOTERPENES   : at C/cm2/s : SCALESRCE
 !  (2)  ACETmb : Acetone source from METHYL BUTENOL : at C/cm2/s : SCALESRCE 
 !  (3)  ACETbg : Acetone source from DIRECT EMISSION: at C/cm2/s : SCALESRCE 
-!  (4)  ACETdl : Acetone source from DRY LEAF MATTER: at C/cm2/s : SCALESRCE 
-!  (5)  ACETgr : Acetone source from GRASSLANDS     : at C/cm2/s : SCALESRCE 
-!  (6)  ACETop : Acetone source from OCEANS         : at C/cm2/s : SCALESRCE 
-!  (7)  ACETol : Acetone sink   from OCEANS         : at C/cm2/s : SCALECHEM
+!  (4)  ACETop : Acetone source from OCEANS         : at C/cm2/s : SCALESRCE 
+!  (5)  ACETol : Acetone sink   from OCEANS         : at C/cm2/s : SCALECHEM
 !******************************************************************************
 !
       IF ( ND11 > 0 ) THEN

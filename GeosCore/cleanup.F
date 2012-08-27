@@ -15,7 +15,7 @@
 !
 ! !USES:
 !
-      USE ACETONE_MOD,             ONLY : CLEANUP_ACETONE
+      !USE ACETONE_MOD,             ONLY : CLEANUP_ACETONE
       USE AEROSOL_MOD,             ONLY : CLEANUP_AEROSOL
       USE AIRCRAFT_NOX_MOD,        ONLY : CLEANUP_AIRCRAFT_NOX
       USE ARCTAS_SHIP_EMISS_MOD,   ONLY : CLEANUP_ARCTAS_SHIP
@@ -74,13 +74,13 @@
       USE REGRID_1x1_MOD,          ONLY : CLEANUP_REGRID_1x1
       USE SEASALT_MOD,             ONLY : CLEANUP_SEASALT
       USE SULFATE_MOD,             ONLY : CLEANUP_SULFATE
+      USE STRAT_CHEM_MOD,          ONLY : CLEANUP_STRAT_CHEM
       USE TAGGED_CO_MOD,           ONLY : CLEANUP_TAGGED_CO
       USE TOMS_MOD,                ONLY : CLEANUP_TOMS
       USE TPCORE_FVDAS_MOD,        ONLY : EXIT_TPCORE
       USE TPCORE_GEOS5_WINDOW_MOD, ONLY : EXIT_GEOS5_TPCORE_WINDOW
       USE TPCORE_GEOS57_WINDOW_MOD,ONLY : EXIT_GEOS57_TPCORE_WINDOW !clb
       USE TRACER_MOD,              ONLY : CLEANUP_TRACER
-      USE TRANSPORT_MOD,           ONLY : CLEANUP_TRANSPORT
       USE TROPOPAUSE_MOD,          ONLY : CLEANUP_TROPOPAUSE
       USE UVALBEDO_MOD,            ONLY : CLEANUP_UVALBEDO
       USE VISTAS_ANTHRO_MOD,       ONLY : CLEANUP_VISTAS_ANTHRO
@@ -90,6 +90,9 @@
       USE BROMOCARB_MOD,           ONLY : CLEANUP_BROMOCARB    ! jpp, 6/17/09
 #if   defined( APM )
       USE APM_WETS_MOD,            ONLY : CLEANUP_WETSCAVBIN
+#endif
+#if ! defined( ESMF_ )
+      USE TRANSPORT_MOD,           ONLY : CLEANUP_TRANSPORT
 #endif
 
       IMPLICIT NONE
@@ -181,6 +184,8 @@
 !  13 Aug 2010 - R. Yantosca - Added ProTeX headers
 !  22 Aug 2011 - R. Yantosca - Add modifications for APM microphysics (G. Luo)
 !  07 Sep 2011 - P. Kasibhatla - Add modifications for GFED3
+!  19 Mar 2012 - M. Payer    - Remove call to CLEANUP_ACETONE. It is no longer
+!                              needed after removal of JO1D and RESP routines.
 !  05 Apr 2012 - R. Yantosca - Now call CLEANUP_MODIS_LAI
 !  11 Apr 2012 - R. Yantosca - Remove reference to obsolete lai_mod.F
 !  01 May 2012 - M. Payer    - Added calls for CLEANUP_GLOBAL_GRID and
@@ -197,7 +202,7 @@
  100  FORMAT( '     - CLEANUP: deallocating arrays now...' )
 
       ! Call cleanup routines from individual F90 modules
-      CALL CLEANUP_ACETONE
+      !CALL CLEANUP_ACETONE
       CALL CLEANUP_AEROSOL
       CALL CLEANUP_AIRCRAFT_NOX
       CALL CLEANUP_ARCTAS_SHIP
@@ -257,8 +262,11 @@
       CALL CLEANUP_REGRID_1x1
       CALL CLEANUP_SEASALT
       CALL CLEANUP_SULFATE
+      CALL CLEANUP_STRAT_CHEM
       CALL CLEANUP_TAGGED_CO
+#if ! defined( ESMF_ )
       CALL CLEANUP_TRANSPORT
+#endif
       CALL CLEANUP_TOMS
       CALL CLEANUP_TRACER
       CALL CLEANUP_TROPOPAUSE

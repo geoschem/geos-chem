@@ -15,6 +15,9 @@
 ! 
 ! !USES:
 !
+      USE inquireMod, ONLY : findFreeLUN
+      USE inquireMod, ONLY : I_Am_UnOPENed
+
       IMPLICIT NONE
 #     include "define.h"
       PRIVATE
@@ -82,6 +85,8 @@
 !  20 Nov 2009 - R. Yantosca - Added ProTeX headers
 !  13 Aug 2010 - R. Yantosca - Added modifications for MERRA
 !  28 Feb 2012 - R. Yantosca - Removed support for GEOS-3
+!  19 Jul 2012 - R. Yantosca - Bug fix in GET_NAME_EXT_2D
+!  03 Aug 2012 - R. Yantosca - Reference file LUN routines from inquireMod.F90
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -110,7 +115,7 @@
 ! !INPUT PARAMETERS: 
 !
       INTEGER,           INTENT(IN)            :: IUNIT     ! LUN for file I/O
-      CHARACTER(LEN=*),  INTENT(IN)            :: FILENAME  ! Name of file
+      CHARACTER(LEN=*),  INTENT(IN)            :: FILENAME  ! File to open
 !
 ! !OUTPUT PARAMETERS:
 !
@@ -119,6 +124,9 @@
 ! !REVISION HISTORY: 
 !  (1 ) Now references ERROR_STOP from "error_mod.f" (bmy, 10/15/02)
 !  20 Nov 2009 - R. Yantosca - Added ProTeX header
+!  06 Aug 2012 - R. Yantosca - Do not call findFreeLun() in this subroutine
+!                              but instead in the calling routine and pass
+!                              the file unit as an argument.
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -212,14 +220,17 @@
 ! !REVISION HISTORY:
 !  30 Jul 2002 - R. Yantosca - Initial version
 !  20 Nov 2009 - R. Yantosca - Added ProTeX header
+!  06 Aug 2012 - R. Yantosca - Do not call findFreeLun() in this subroutine
+!                              but instead in the calling routine and pass
+!                              the file unit as an argument.
 !EOP
 !------------------------------------------------------------------------------
 !BOC
 !
 ! !LOCAL VARIABLES:
 ! 
-      INTEGER                                 :: IOS
-      CHARACTER(LEN=80)                       :: TMP_TITLE
+      INTEGER           :: IOS
+      CHARACTER(LEN=80) :: TMP_TITLE
 
       !=================================================================
       ! OPEN_BPCH2_FOR_WRITE begins here!
@@ -421,7 +432,7 @@
 ! !USES:
 !
       USE ERROR_MOD, ONLY : ERROR_STOP
-      USE FILE_MOD,  ONLY : IU_FILE, IOERROR
+      USE FILE_MOD,  ONLY : IOERROR
 
 #     include "define.h" 
 !
@@ -463,6 +474,8 @@
 !  20 Nov 2009 - R. Yantosca - Added ProTeX header
 !  18 Dec 2009 - Aaron van D - Add NESTED_EU flag
 !  25 May 2012 - R. Yantosca - Update TEMPARRAY for GRID025x03125
+!  03 Aug 2012 - R. Yantosca - Move calls to findFreeLUN out of DEVEL block
+!  07 Aug 2012 - R. Yantosca - Now print LUN used to open file
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -470,6 +483,7 @@
 ! !LOCAL VARIABLES:
 ! 
       LOGICAL            :: FOUND, TMP_QUIET
+      INTEGER            :: IU_FILE
       INTEGER            :: I,  J,  L,  N,  IOS, M
       INTEGER            :: I1, I2, J1, J2, L1,  L2
       CHARACTER(LEN=255) :: MSG
@@ -522,6 +536,11 @@
       ! Open binary punch file and read top-of-file header.
       ! Do some error checking to make sure the file is the right format.
       !=================================================================
+
+      ! Find a free file LUN
+      IU_FILE = findFreeLUN()
+
+      ! Open the BPCH file
       CALL OPEN_BPCH2_FOR_READ( IU_FILE, FILENAME )
 
       !=================================================================
@@ -567,7 +586,7 @@
 
 #if   defined( GRID1x1 ) || defined( GRID05x0666 ) || defined( GRID025x03125 )
 
-#if   defined(NESTED_CH) || defined(NESTED_NA) || defined( NESTED_EU ) 
+#if   defined(NESTED_CH) || defined(NESTED_NA) || defined( NESTED_EU ) || defined( SEAC4RS ) 
          ! *** NOTE: now use NESTED_CH/NESTED_NA/NESTED_EU cpp switches ***
          ! *** to block off this section of code (bmy, 12/1/04)  ***
          ! This is a kludge to overwrite the IFIRST, JFIRST, LFIRST For
@@ -595,7 +614,7 @@
          IF ( .not. TMP_QUIET ) THEN 
             WRITE( 6, 100 ) ZTAU0, NTRACER
  100        FORMAT( 'READ_BPCH2: Found data for TAU = ', f10.2, 
-     &              ' and tracer # ', i6 )
+     &              ' and tracer # ', i6, ' on unit ', i4 )
          ENDIF
 
       ELSE
@@ -764,7 +783,7 @@
 !
 ! !RETURN VALUE:
 !
-      CHARACTER(LEN=4) :: NAME_EXT_2D
+      CHARACTER(LEN=4) :: NAME_EXT_2D   ! Return 1st 4 chars of "geos", "gcap"
 !
 ! !REVISION HISTORY:
 !  (1 ) Added name string for GEOS-4/fvDAS model type (bmy, 11/20/01)
@@ -772,6 +791,8 @@
 !  (3 ) Modified for GCAP and GEOS-5 met fields (bmy, 5/24/05)
 !  (4 ) Remove support for GEOS-1 and GEOS-STRAT met fields (bmy, 8/4/06)
 !  20 Nov 2009 - R. Yantosca - Added ProTeX header
+!  19 Jul 2012 - R. Yantosca - For MERRA meterology, return "geos", which
+!                              indicates surface data only
 !EOP
 !------------------------------------------------------------------------------
 !
@@ -787,8 +808,18 @@
       ! Get the name extension
       TEMP_NAME   = GET_NAME_EXT()
 
+#if   defined( MERRA )
+
+      ! Return "geos" for MERRA meteorology, to denote data
+      ! that is only defined at the surface. (bmy, 7/19/12)
+      NAME_EXT_2D = 'geos'
+
+#else
+
       ! Take the 1st 4 characters ("geos" or "gcap") and return
       NAME_EXT_2D = TEMP_NAME(1:4)
+
+#endif
 
       ! Return to calling program
       END FUNCTION GET_NAME_EXT_2D 

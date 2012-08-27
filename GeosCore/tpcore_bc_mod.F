@@ -144,6 +144,8 @@
 !  16 Feb 2011 - R. Yantosca - Add modifications for APM microphysics (G. Luo)
 !  01 Mar 2012 - R. Yantosca - Now reference new grid_mod.F90
 !  15 May 2012 - R. Yantosca - Added ProTeX headers
+!  06 Aug 2012 - R. Yantosca - Now make IU_BC, IU_BC_NA, IU_BC_EU, IU_BC_CH,
+!                              and IU_BC_SE local variables for findFreeLUN
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -168,6 +170,7 @@
       ! BC_NA    : Array containing NA tracers on coarse grid
       ! BC_EU    : Array containing EU tracers on coarse grid
       ! BC_CH    : Array containing CH tracers on coarse grid
+      ! BC_SE    : Array containing SEAC4RS tracers on coarse grid
       ! MAP1x1   : Mapping array from 1x1 -> 4x5 grid
       !=================================================================
 
@@ -181,14 +184,24 @@
       INTEGER              :: I2_BC_EU, J2_BC_EU, IM_BC_EU, JM_BC_EU
       INTEGER              :: I0_BC_CH, J0_BC_CH, I1_BC_CH, J1_BC_CH
       INTEGER              :: I2_BC_CH, J2_BC_CH, IM_BC_CH, JM_BC_CH
+      INTEGER              :: I0_BC_SE, J0_BC_SE, I1_BC_SE, J1_BC_SE
+      INTEGER              :: I2_BC_SE, J2_BC_SE, IM_BC_SE, JM_BC_SE
       INTEGER              :: TS_BC
 
+      ! Logical unit numbers
+      INTEGER              :: IU_BC      ! LUN for input  BC's
+      INTEGER              :: IU_BC_NA   ! LUN for output BC's, N. Amer. grid
+      INTEGER              :: IU_BC_EU   ! LUN for output BC's, Europe grid
+      INTEGER              :: IU_BC_CH   ! LUN for output BC's, China grid
+      INTEGER              :: IU_BC_SE   ! LUN for output BC's, SEAC4RS grid
+ 
       ! Arrays
       INTEGER, ALLOCATABLE :: MAP1x1(:,:,:  )
       REAL*4,  ALLOCATABLE :: BC    (:,:,:,:)
       REAL*4,  ALLOCATABLE :: BC_NA (:,:,:,:)
       REAL*4,  ALLOCATABLE :: BC_EU (:,:,:,:)
       REAL*4,  ALLOCATABLE :: BC_CH (:,:,:,:)
+      REAL*4,  ALLOCATABLE :: BC_SE (:,:,:,:)
 
       !=================================================================
       ! MODULE ROUTINES -- follow below the "CONTAINS" statement
@@ -250,8 +263,8 @@
       USE BPCH2_MOD,     ONLY : OPEN_BPCH2_FOR_READ
       USE DIRECTORY_MOD, ONLY : TPBC_DIR,     TPBC_DIR_NA
       USE DIRECTORY_MOD, ONLY : TPBC_DIR_CH,  TPBC_DIR_EU
-      USE FILE_MOD,      ONLY : IU_BC,        IU_BC_NA
-      USE FILE_MOD,      ONLY : IU_BC_EU,     IU_BC_CH
+      USE DIRECTORY_MOD, ONLY : TPBC_DIR_SE
+      USE inquireMod,    ONLY : findFreeLUN
       USE TIME_MOD,      ONLY : EXPAND_DATE,  GET_NYMD
       USE TIME_MOD,      ONLY : ITS_A_NEW_DAY
 
@@ -263,6 +276,15 @@
       LOGICAL, INTENT(IN), OPTIONAL :: FOR_WRITE  ! Open file for write?
       INTEGER, INTENT(IN)           :: WINDOW     ! Specifies nested region 
 ! 
+! !REMARKS:
+!   Pass these values via the WINDOW argument to do the following actions;
+!     WINDOW = 1 : Save BC's to file (Custom window,        aka "CU")
+!     WINDOW = 2 : Save BC's to file (North America window, aka "NA")
+!     WINDOW = 3 : Save BC's to file (Europe window,        aka "EU")
+!     WINDOW = 4 : Save BC's to file (China/SE Asia window, aka "CH")
+!     WINDOW = 5 : Save BC's to file (SEAC4RS window,       aka "SE")
+!     WINDOW = 6 : Read BC's from file
+!
 ! !REVISION HISTORY: 
 !  07 Mar 2003 - R. Yantosca - Initial version
 !  (1 ) Now use ITS_A_NEW_DAY from "time_mod.f".  Now references TPBC_DIR
@@ -271,13 +293,18 @@
 !  (3 ) DATE_STRING is now obsolete; use EXPAND_DATE instead (bmy, 3/15/06)
 !  (4 ) Can now read files from different directories (amv, bmy, 12/18/09)
 !  15 May 2012 - R. Yantosca - Added ProTeX headers
+!  06 Aug 2012 - R. Yantosca - Move calls to findFreeLUN out of DEVEL block
+!  06 Aug 2012 - R. Yantosca - Cleaned up IF statement, added comments
+!  06 Aug 2012 - R. Yantosca - Close existing files before opening new files
+!  07 Aug 2012 - R. Yantosca - Now print LUN used to open file
 !EOP
 !------------------------------------------------------------------------------
 !BOC
 !
 ! !LOCAL VARIABLES:
-!
-      CHARACTER(LEN=255) :: FILENAME
+! 
+      LOGICAL            :: IS_OPEN    ! Is the file already open?
+      CHARACTER(LEN=255) :: FILENAME   ! Name of file to read
 
       !=================================================================
       ! OPEN_BC_FILE begins here!
@@ -287,46 +314,148 @@
       IF ( ITS_A_NEW_DAY(.TRUE.) ) THEN
 
          ! File name for BC's
-         IF ( WINDOW .eq. 5 ) THEN
+         IF ( WINDOW .eq. 6 ) THEN
 #if   defined( NESTED_NA )
-            FILENAME = TRIM( TPBC_DIR_NA ) // 'BC.YYYYMMDD'
+            FILENAME = TRIM( TPBC_DIR_NA ) // 'BC.YYYYMMDD' ! Input file, NA
 #elif defined( NESTED_EU )
-            FILENAME = TRIM( TPBC_DIR_EU ) // 'BC.YYYYMMDD'
+            FILENAME = TRIM( TPBC_DIR_EU ) // 'BC.YYYYMMDD' ! Input file, EU
 #elif defined( NESTED_CH )
-            FILENAME = TRIM( TPBC_DIR_CH ) // 'BC.YYYYMMDD'
+            FILENAME = TRIM( TPBC_DIR_CH ) // 'BC.YYYYMMDD' ! Input file, CH
+#elif defined( SEAC4RS )
+            FILENAME = TRIM( TPBC_DIR_SE ) // 'BC.YYYYMMDD' ! Input file, SE
 #endif
          ELSEIF ( WINDOW .eq. 1 ) THEN
-            FILENAME = TRIM( TPBC_DIR ) // 'BC.YYYYMMDD'
+            FILENAME = TRIM( TPBC_DIR )    // 'BC.YYYYMMDD' ! Output file, CU
          ELSEIF ( WINDOW .eq. 2 ) THEN
-            FILENAME = TRIM( TPBC_DIR_NA ) // 'BC.YYYYMMDD'
+            FILENAME = TRIM( TPBC_DIR_NA ) // 'BC.YYYYMMDD' ! Output file, NA
          ELSEIF ( WINDOW .eq. 3 ) THEN
-            FILENAME = TRIM( TPBC_DIR_EU ) // 'BC.YYYYMMDD'
+            FILENAME = TRIM( TPBC_DIR_EU ) // 'BC.YYYYMMDD' ! Output file, EU
          ELSEIF ( WINDOW .eq. 4 ) THEN
-            FILENAME = TRIM( TPBC_DIR_CH ) // 'BC.YYYYMMDD'
+            FILENAME = TRIM( TPBC_DIR_CH ) // 'BC.YYYYMMDD' ! Output file, CH
+         ELSEIF ( WINDOW .eq. 5 ) THEN
+            FILENAME = TRIM( TPBC_DIR_SE ) // 'BC.YYYYMMDD' ! Output file, SE
          ENDIF
          
          ! Replace YYYYMMDD with the actual date
          CALL EXPAND_DATE( FILENAME, GET_NYMD(), 000000 )
 
-         ! Echo file name to stdout
-         WRITE( 6, 100 ) TRIM( FILENAME )
- 100     FORMAT( '     - OPEN_BC_FILE: Opening ', a )
+         ! FORMAT string for use below
+ 100     FORMAT( '     - OPEN_BC_FILE: Opening ', a, ' on unit ', i4 )
 
-         IF ( WINDOW .eq. 5 ) THEN
-            IF ( PRESENT( FOR_READ ) )
-     &         CALL OPEN_BPCH2_FOR_READ( IU_BC,    FILENAME )
-         ELSEIF ( WINDOW .eq. 1 ) THEN
-            IF ( PRESENT( FOR_WRITE ) )
-     &        CALL OPEN_BPCH2_FOR_WRITE( IU_BC,    FILENAME )
-         ELSEIF ( WINDOW .eq. 2 ) THEN
-            IF ( PRESENT( FOR_WRITE ) )
-     &        CALL OPEN_BPCH2_FOR_WRITE( IU_BC_NA, FILENAME )
-         ELSEIF ( WINDOW .eq. 3 ) THEN
-            IF ( PRESENT( FOR_WRITE ) )
-     &        CALL OPEN_BPCH2_FOR_WRITE( IU_BC_EU, FILENAME )
-         ELSEIF ( WINDOW .eq. 4 ) THEN
-            IF ( PRESENT( FOR_WRITE ) )
-     &        CALL OPEN_BPCH2_FOR_WRITE( IU_BC_CH, FILENAME )
+         IF ( WINDOW .eq. 6 ) THEN
+
+            !----------------------------------------------------------
+            ! WINDOW == 6 : Read BC's from file
+            !----------------------------------------------------------
+            IF ( PRESENT( FOR_READ ) ) THEN
+
+               ! Close previously opened file
+               INQUIRE( IU_BC, OPENED=IS_OPEN )
+               IF ( IS_OPEN ) CLOSE( IU_BC )
+
+               ! Find a free LUN
+               IU_BC = findFreeLun()
+
+               ! Open file for input
+               WRITE( 6, 100 ) TRIM( FILENAME ), IU_BC
+               CALL OPEN_BPCH2_FOR_READ( IU_BC, FILENAME )
+            ENDIF
+
+         ELSE IF ( WINDOW .eq. 1 ) THEN
+
+            !----------------------------------------------------------
+            ! WINDOW == 1 : Save BC's to file (custom window)
+            !----------------------------------------------------------
+
+            IF ( PRESENT( FOR_WRITE ) ) THEN
+
+               ! Close previously opened file
+               INQUIRE( IU_BC, OPENED=IS_OPEN )
+               IF ( IS_OPEN ) CLOSE( IU_BC )
+
+               ! Find a free LUN
+               IU_BC = findFreeLun()
+
+               ! Open file for output
+               WRITE( 6, 100 ) TRIM( FILENAME ), IU_BC
+               CALL OPEN_BPCH2_FOR_WRITE( IU_BC,    FILENAME )
+            ENDIF
+
+         ELSE IF ( WINDOW .eq. 2 ) THEN
+
+            !----------------------------------------------------------
+            ! WINDOW == 2 : Save BC's to file (North America window)
+            !----------------------------------------------------------
+            IF ( PRESENT( FOR_WRITE ) ) THEN
+
+               ! Close previously opened file
+               INQUIRE( IU_BC_NA, OPENED=IS_OPEN )
+               IF ( IS_OPEN ) CLOSE( IU_BC_NA )
+
+               ! Find a free LUN
+               IU_BC_NA = findFreeLun()
+
+               ! Open file for output
+               WRITE( 6, 100 ) TRIM( FILENAME ), IU_BC_NA
+               CALL OPEN_BPCH2_FOR_WRITE( IU_BC_NA, FILENAME )
+            ENDIF
+
+         ELSE IF ( WINDOW .eq. 3 ) THEN
+
+            !----------------------------------------------------------
+            ! WINDOW == 3 : Save BC's to file (Europe window)
+            !----------------------------------------------------------
+            IF ( PRESENT( FOR_WRITE ) ) THEN
+
+               ! Close previously opened file
+               INQUIRE( IU_BC_EU, OPENED=IS_OPEN )
+               IF ( IS_OPEN ) CLOSE( IU_BC_EU )
+
+               ! Find a free LUN
+               IU_BC_EU = findFreeLun()
+
+               ! Open file for output
+               WRITE( 6, 100 ) TRIM( FILENAME ), IU_BC_EU
+               CALL OPEN_BPCH2_FOR_WRITE( IU_BC_EU, FILENAME )
+            ENDIF
+
+         ELSE IF ( WINDOW .eq. 4 ) THEN
+
+            !----------------------------------------------------------
+            ! WINDOW == 4 : Save BC's to file (China/SE Asia window)
+            !----------------------------------------------------------
+            IF ( PRESENT( FOR_WRITE ) ) THEN
+
+               ! Close previously opened file
+               INQUIRE( IU_BC_CH, OPENED=IS_OPEN )
+               IF ( IS_OPEN ) CLOSE( IU_BC_CH )
+
+               ! Find a free LUN
+               IU_BC_CH = findFreeLun()
+
+               ! Open file for output
+               WRITE( 6, 100 ) TRIM( FILENAME ), IU_BC_CH
+               CALL OPEN_BPCH2_FOR_WRITE( IU_BC_CH, FILENAME )
+            ENDIF
+
+         ELSE IF ( WINDOW .eq. 5 ) THEN
+
+            !----------------------------------------------------------
+            ! WINDOW == 5 : Save BC's to file (SEAC4RS window)
+            !----------------------------------------------------------
+            IF ( PRESENT( FOR_WRITE ) ) THEN
+
+               ! Close previously opened file
+               INQUIRE( IU_BC_SE, OPENED=IS_OPEN )
+               IF ( IS_OPEN ) CLOSE( IU_BC_SE )
+
+               ! Find a free LUN
+               IU_BC_SE = findFreeLun()
+
+               ! Open file for output
+               WRITE( 6, 100 ) TRIM( FILENAME ), IU_BC_SE
+               CALL OPEN_BPCH2_FOR_WRITE( IU_BC_SE, FILENAME )
+            ENDIF
          ENDIF
 
       ENDIF
@@ -353,12 +482,13 @@
 !
       USE CMN_SIZE_MOD 
       USE BPCH2_MOD
-      USE FILE_MOD
+      !USE FILE_MOD
       USE TIME_MOD,    ONLY : GET_NYMD,  GET_NHMS
       USE TIME_MOD,    ONLY : GET_TAU,   TIMESTAMP_STRING
       USE TRACER_MOD,  ONLY : N_TRACERS, STT
       USE LOGICAL_MOD, ONLY : LWINDO_CU, LWINDO_NA
       USE LOGICAL_MOD, ONLY : LWINDO_CH, LWINDO_EU
+      USE LOGICAL_MOD, ONLY : LWINDO_SE
 #if   defined( APM )
       USE TRACER_MOD,  ONLY : N_APMTRA
 #endif
@@ -373,6 +503,9 @@
 !  (4 ) Can now save files to different directories (amv, bmy, 12/18/09)
 !  16 Feb 2011 - R. Yantosca - Add modifications for APM microphysics (G. Luo)
 !  15 May 2012 - R. Yantosca - Added ProTeX headers
+!  06 Aug 2012 - R. Yantosca - Added comments & cosmetic changes
+!  06 Aug 2012 - R. Yantosca - Now use file unit variables from this module
+!                              instead of from GeosUtil/file_mod.F
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -417,8 +550,13 @@
       MODELNAME = GET_MODELNAME()
       TAU       = GET_TAU()
 
-      DO IC = 1, 4
+      ! Loop over the possible combinations of nested grids
+      DO IC = 1, 5
          IF ((IC .eq. 1) .and. LWINDO_CU )THEN
+
+            !----------------------------------------------------------
+            ! IC == 1 : Save BC's to file (custom window)
+            !----------------------------------------------------------
 
             ! Open file for writing, if necessary
             CALL OPEN_BC_FILE( FOR_WRITE=.TRUE., WINDOW=IC)
@@ -444,9 +582,12 @@
                ! Echo info
                STAMP = TIMESTAMP_STRING()
                WRITE( 6, 110 ) STAMP
- 110  FORMAT( '     - SAVE_GLOBAL_TPCORE_BC: Wrote BC''s at ', a )
 
          ELSEIF ((IC .eq. 2) .and. LWINDO_NA )THEN
+
+            !----------------------------------------------------------
+            ! IC == 2 : Save BC's to file (North America window)
+            !----------------------------------------------------------
 
             ! Open file for writing, if necessary
             CALL OPEN_BC_FILE( FOR_WRITE=.TRUE., WINDOW=IC)
@@ -473,9 +614,12 @@
             ! Echo info
             STAMP = TIMESTAMP_STRING()
             WRITE( 6, 111 ) STAMP
- 111  FORMAT( '     - SAVE_GLOBAL_TPCORE_BC: Wrote NA BC''s at ', a )
 
          ELSEIF ((IC .eq. 3) .and. LWINDO_EU )THEN
+
+            !----------------------------------------------------------
+            ! IC == 3 : Save BC's to file (Europe window)
+            !----------------------------------------------------------
 
             ! Open file for writing, if necessary
             CALL OPEN_BC_FILE( FOR_WRITE=.TRUE., WINDOW=IC)
@@ -502,9 +646,12 @@
             ! Echo info
             STAMP = TIMESTAMP_STRING()
             WRITE( 6, 112 ) STAMP
- 112  FORMAT( '     - SAVE_GLOBAL_TPCORE_BC: Wrote EU BC''s at ', a )
 
          ELSEIF ((IC .eq. 4) .and. LWINDO_CH )THEN
+
+            !----------------------------------------------------------
+            ! IC == 4 : Save BC's to file (China/SE Asia window)
+            !----------------------------------------------------------
 
             ! Open file for writing, if necessary
             CALL OPEN_BC_FILE( FOR_WRITE=.TRUE., WINDOW=IC)
@@ -531,10 +678,49 @@
             ! Echo info
             STAMP = TIMESTAMP_STRING()
             WRITE( 6, 113 ) STAMP
- 113  FORMAT( '     - SAVE_GLOBAL_TPCORE_BC: Wrote CH BC''s at ', a )
 
+         ELSEIF ((IC .eq. 5) .and. LWINDO_SE )THEN
+
+            !----------------------------------------------------------
+            ! IC == 5 : Save BC's to file (SEAC4RS window)
+            !----------------------------------------------------------
+
+            ! Open file for writing, if necessary
+            CALL OPEN_BC_FILE( FOR_WRITE=.TRUE., WINDOW=IC)
+
+            ! Loop over each tracer
+            DO N = 1, N_TOT_TRC
+
+               ! Save concentrations in WINDOW REGION to disk
+               DO L = 1, LLPAR
+                  BC_SE(1:IM_BC_SE,1:JM_BC_SE,L,N) =
+     &               STT(I1_BC_SE:I2_BC_SE,J1_BC_SE:J2_BC_SE,L,N)
+               ENDDO
+ 
+               ! Write boundary conditions to binary punch file
+               CALL BPCH2( IU_BC_SE,  MODELNAME, LONRES,   LATRES,
+     &               HALFPOLAR, CENTER180, CATEGORY, N,
+     &               UNIT,   TAU,       TAU,      RESERVED,
+     &               IM_BC_SE,  JM_BC_SE,   LLPAR,  I1_BC_SE,
+     &               J1_BC_SE, 1, BC_SE(1:IM_BC_SE, 1:JM_BC_SE,
+     &               1:LLPAR, N) )
+
+            ENDDO
+
+            ! Echo info
+            STAMP = TIMESTAMP_STRING()
+            WRITE( 6, 114 ) STAMP
+            
          ENDIF
       ENDDO
+
+      ! FORMAT statements
+ 110  FORMAT( '     - SAVE_GLOBAL_TPCORE_BC: Wrote BC''s at ', a )
+ 111  FORMAT( '     - SAVE_GLOBAL_TPCORE_BC: Wrote NA BC''s at ', a )
+ 112  FORMAT( '     - SAVE_GLOBAL_TPCORE_BC: Wrote EU BC''s at ', a )
+ 113  FORMAT( '     - SAVE_GLOBAL_TPCORE_BC: Wrote CH BC''s at ', a )
+ 114  FORMAT( '     - SAVE_GLOBAL_TPCORE_BC: Wrote SEAC4RS BC''s at ', 
+     &        a )
 
       END SUBROUTINE SAVE_GLOBAL_TPCORE_BC
 !EOC
@@ -706,6 +892,7 @@
       USE TRACER_MOD,    ONLY : N_TRACERS
       USE LOGICAL_MOD,   ONLY : LWINDO_NA, LWINDO_EU
       USE LOGICAL_MOD,   ONLY : LWINDO_CH, LWINDO_CU
+      USE LOGICAL_MOD,   ONLY : LWINDO_SE
 #if   defined( APM )
       USE TRACER_MOD,    ONLY : N_APMTRA
 #endif
@@ -737,7 +924,7 @@
       N_TOT_TRC = N_TRACERS              ! G-C advected tracers only
 #endif
 
-#if   defined( NESTED_CH ) || defined( NESTED_NA ) || defined( NESTED_EU )
+#if   defined( NESTED_CH ) || defined( NESTED_NA ) || defined( NESTED_EU ) || defined( SEAC4RS )
 !$OMP PARALLEL DO
 !$OMP+DEFAULT( SHARED )
 !$OMP+PRIVATE( I, J, L, N )
@@ -817,6 +1004,22 @@
 !$OMP END PARALLEL DO
       ENDIF
 
+      IF ( LWINDO_SE ) THEN
+!$OMP PARALLEL DO 
+!$OMP+DEFAULT( SHARED )
+!$OMP+PRIVATE( I, J, L, N )
+         DO N = 1, N_TOT_TRC
+         DO L = 1, LLPAR
+         DO J = 1, JM_BC_SE
+         DO I = 1, IM_BC_SE
+            BC_SE(I,J,L,N) = 0e0
+         ENDDO
+         ENDDO
+         ENDDO
+         ENDDO
+!$OMP END PARALLEL DO
+      ENDIF
+
       END SUBROUTINE CLEAN_WINDOW_TPCORE_BC
 !EOC
 !------------------------------------------------------------------------------
@@ -839,7 +1042,7 @@
 ! !USES:
 !
       USE CMN_SIZE_MOD 
-      USE FILE_MOD,   ONLY : IOERROR, IU_BC
+      USE FILE_MOD,   ONLY : IOERROR
       USE TIME_MOD,   ONLY : GET_TAU, TIMESTAMP_STRING
       USE TRACER_MOD, ONLY : N_TRACERS
 ! 
@@ -879,7 +1082,7 @@
       IF ( ITS_TIME_FOR_BC() ) THEN
 
          ! Open boundary conditions file (if necessary) 
-         CALL OPEN_BC_FILE( FOR_READ=.TRUE., WINDOW=5 )
+         CALL OPEN_BC_FILE( FOR_READ=.TRUE., WINDOW=6 )
 
          ! Initialize # of tracers found
          NFOUND = 0
@@ -1051,11 +1254,12 @@
                   MAP1x1(I,J,1) = II
                   MAP1x1(I,J,2) = 0
                   EXIT
-               ELSE IF ( X == XE4x5(II) .and. II == 1) THEN
+               ! Bug fix for 4x5 BCs (clb, 5/29/12)
+               ELSE IF ( X == XE4x5(II) .and. I == 1) THEN
                   MAP1x1(I,J,1) = II
                   MAP1x1(I,J,2) = 0
                   EXIT
-               ELSE IF ( X == XE4x5(II) .and. II .ne. 1) THEN
+               ELSE IF ( X == XE4x5(II) .and. I .ne. 1) THEN
                   MAP1x1(I,J,1) = II - 1
                   MAP1x1(I,J,2) = II
                   EXIT
@@ -1080,12 +1284,13 @@
                ! If the 1x1 lat center equals the 4x5 lower lat
                ! edge, then we need to average this 4x5 box and
                ! the box just south of it
-               ELSE IF ( Y == YE4x5(JJ) .and. JJ == 1) THEN
+               ! Bug fix for 4x5 BCs (clb, 5/29/12)
+               ELSE IF ( Y == YE4x5(JJ) .and. J == 1) THEN
                   MAP1x1(I,J,3) = JJ
                   MAP1x1(I,J,4) = 0
                   EXIT
 
-               ELSE IF ( Y == YE4x5(JJ) .and. JJ .ne. 1) THEN
+               ELSE IF ( Y == YE4x5(JJ) .and. J .ne. 1) THEN
                   MAP1x1(I,J,3) = JJ-1
                   MAP1x1(I,J,4) = JJ
                   EXIT
@@ -1359,6 +1564,7 @@
       USE GRID_MOD,      ONLY : ITS_A_NESTED_GRID
       USE LOGICAL_MOD,   ONLY : LWINDO,    LWINDO_NA,  LWINDO_CU
       USE LOGICAL_MOD,   ONLY : LWINDO_EU, LWINDO_CH,  LWINDO2x25
+      USE LOGICAL_MOD,   ONLY : LWINDO_SE
       USE TRACER_MOD,    ONLY : N_TRACERS
 
 #     include "define.h"
@@ -1504,53 +1710,89 @@
       !-----------------------------------------------------------------
       IF (.not. LWINDO2x25 ) THEN 
 
-#if   defined( GRID4x5 ) || defined( NESTED_CH )
+#if   defined( GRID4x5 ) || defined( NESTED_CH ) || defined( SEAC4RS )
 
 #if   defined( GEOS_57 )
-         !%%%%% 4x5 BC REGION FOR SEAC4RS CHINA GRID (GEOS-5.7 only) %%%%%
-         I1_BC_CH = 49                       ! 4x5  lon index, LL corner
-         J1_BC_CH = 19                       ! 4x5  lat index, LL corner
-         I2_BC_CH = 65                       ! 4x5  lon index, UR corner
-         J2_BC_CH = 36                       ! 4x5  lat index, UR corner
+
+         !%%%%% 4x5 BC REGION FOR SEAC4RS GRID (GEOS-5.7 only) %%%%%
+         I1_BC_SE = 52          ! 4x5 lon index, LL corner
+         J1_BC_SE = 21          ! 4x5 lat index, LL corner
+         I2_BC_SE = 63          ! 4x5 lon index, UR corner
+         J2_BC_SE = 31          ! 4x5 lat index, UR corner
+         
+         !%%%%% 4x5 BC REGION FOR NESTED CHINA GRID (GEOS-5.7 only) %%%%%
+         I1_BC_CH = 51          ! 4x5 lon index, LL corner
+         J1_BC_CH = 27          ! 4x5 lat index, LL corner
+         I2_BC_CH = 65          ! 4x5 lon index, UR corner
+         J2_BC_CH = 37          ! 4x5 lat index, UR corner
+
 #else
+
          !%%%%% 4x5 BC REGION FOR TRADITIONAL GEOS-5 CHINA NESTED GRID %%%%%
-         I1_BC_CH = 51                       ! 2x25 lon index, LL corner
-         J1_BC_CH = 21                       ! 2x25 lat index, LL corner
-         I2_BC_CH = 67                       ! 2x25 lon index, UR corner
-         J2_BC_CH = 37                       ! 2x25 lat index, UR corner
+         I1_BC_CH = 51                       ! 4x5 lon index, LL corner
+         J1_BC_CH = 21                       ! 4x5 lat index, LL corner
+         I2_BC_CH = 67                       ! 4x5 lon index, UR corner
+         J2_BC_CH = 37                       ! 4x5 lat index, UR corner
+
 #endif
 
 #endif
 
       ELSE
 
-#if   defined( GRID2x25 ) || defined( NESTED_CH )
+#if   defined( GRID2x25 ) || defined( SEAC4RS ) || defined( NESTED_CH )
 
-#if   defined( GEOS_57 ) 
-         !%%%%% 2x25 BC REGION FOR SEAC4RS CHINA GRID (GEOS-5.7 only) %%%%%
-         I1_BC_CH = 97                       ! 4x5  lon index, LL corner
-         J1_BC_CH = 36                       ! 4x5  lat index, LL corner
-         I2_BC_CH = 129                      ! 4x5  lon index, UR corner
-         J2_BC_CH = 71                       ! 4x5  lat index, UR corner
+#if   defined( GEOS_57 )
+
+         !%%%%% 2x25 BC REGION FOR SEAC4RS GRID (GEOS-5.7 only) %%%%%
+         I1_BC_SE = 103                      ! 2x25 lon index, LL corner
+         J1_BC_SE = 41                       ! 2x25 lat index, LL corner
+         I2_BC_SE = 125                      ! 2x25 lon index, UR corner
+         J2_BC_SE = 61                       ! 2x25 lat index, UR corner
+
+         !%%%%% 2x25 BC REGION FOR NESTED CHINA GRID (GEOS-5.7 only) %%%%%
+         I1_BC_CH = 101                      ! 2x25 lon index, LL corner
+         J1_BC_CH = 53                       ! 2x25 lat index, LL corner
+         I2_BC_CH = 129                      ! 2x25 lon index, UR corner
+         J2_BC_CH = 74                       ! 2x25 lat index, UR corner
+
 #else
-         !%%%%% 4x5 BC REGION FOR TRADITIONAL GEOS-5 CHINA NESTED GRID %%%%%
+
+         !%%%%% 2x25 BC REGION FOR TRADITIONAL GEOS-5 CHINA NESTED GRID %%%%%
          I1_BC_CH = 101                      ! 2x25 lon index, LL corner
          J1_BC_CH = 40                       ! 2x25 lat index, LL corner
          I2_BC_CH = 133                      ! 2x25 lon index, UR corner
          J2_BC_CH = 74                       ! 2x25 lat index, UR corner
+
 #endif
 
 #endif
 
       ENDIF
-       
-      ! Extent of coarse-grid EU BC REGION
-      IM_BC_CH = I2_BC_CH - I1_BC_CH + 1
-      JM_BC_CH = J2_BC_CH - J1_BC_CH + 1
+      
+      IF ( LWINDO_CH ) THEN
  
-      ! TPCORE NA internal transport window offset
-      I0_BC_CH = I1_BC_CH - 1
-      J0_BC_CH = J1_BC_CH - 1
+         ! Extent of coarse-grid CH BC REGION
+         IM_BC_CH = I2_BC_CH - I1_BC_CH + 1
+         JM_BC_CH = J2_BC_CH - J1_BC_CH + 1
+ 
+         ! TPCORE CH internal transport window offset
+         I0_BC_CH = I1_BC_CH - 1
+         J0_BC_CH = J1_BC_CH - 1
+
+      ENDIF
+
+      IF ( LWINDO_SE ) THEN
+
+         ! Extent of coarse-grid SEAC4RS BC REGION
+         IM_BC_SE = I2_BC_SE - I1_BC_SE + 1
+         JM_BC_SE = J2_BC_SE - J1_BC_SE + 1
+ 
+         ! TPCORE SEAC4RS internal transport window offset
+         I0_BC_SE = I1_BC_SE - 1
+         J0_BC_SE = J1_BC_SE - 1
+
+      ENDIF
 
       ! Return if we are not saving 4x5 BC's
       ! or if it's not a nested grid simulation
@@ -1575,6 +1817,14 @@
      &                    LLPAR,    N_TRACERS ), STAT=AS )
          IF ( AS /= 0 ) CALL ALLOC_ERR( 'BC_CH' )
          BC_CH = 0e0
+      ENDIF
+
+      ! Boundary condition array for SEAC4RS REGION
+      IF ( LWINDO_SE ) THEN
+         ALLOCATE( BC_SE( IM_BC_SE, JM_BC_SE, 
+     &                    LLPAR,    N_TRACERS ), STAT=AS )
+         IF ( AS /= 0 ) CALL ALLOC_ERR( 'BC_SE' )
+         BC_SE = 0e0
       ENDIF
 
       ! Boundary condition array for NESTED N. AMERICA REGION
@@ -1607,6 +1857,18 @@
       I0_BC = I0_BC_CH
       J0_BC = J0_BC_CH
 
+#elif defined( SEAC4RS )
+
+      !%%%%% Define boundaries for SEAC4RS GRID %%%%%
+      I1_BC = I1_BC_SE
+      J1_BC = J1_BC_SE
+      I2_BC = I2_BC_SE
+      J2_BC = J2_BC_SE
+      IM_BC = IM_BC_SE
+      JM_BC = JM_BC_SE
+      I0_BC = I0_BC_SE
+      J0_BC = J0_BC_SE
+
 #elif defined( NESTED_NA )
 
       !%%%%% Define boundaries for NESTED NORTH AMERICA GRID %%%%%
@@ -1637,7 +1899,7 @@
       IF ( AS /= 0 ) CALL ALLOC_ERR( 'BC' )
       BC = 0e0
 
-      ALLOCATE( MAP1x1( IIPAR, JJPAR, 3 ) , STAT=AS )
+      ALLOCATE( MAP1x1( IIPAR, JJPAR, 4 ) , STAT=AS )
       IF ( AS /= 0 ) CALL ALLOC_ERR( 'MAP1x1' )
       MAP1x1 = 0
 
@@ -1670,6 +1932,7 @@
       IF ( ALLOCATED( BC_NA  ) ) DEALLOCATE( BC_NA  )
       IF ( ALLOCATED( BC_EU  ) ) DEALLOCATE( BC_EU  )
       IF ( ALLOCATED( BC_CH  ) ) DEALLOCATE( BC_CH  )
+      IF ( ALLOCATED( BC_SE  ) ) DEALLOCATE( BC_SE  )
       IF ( ALLOCATED( MAP1x1 ) ) DEALLOCATE( MAP1x1 )
 
       END SUBROUTINE CLEANUP_TPCORE_BC

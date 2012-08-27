@@ -727,26 +727,35 @@
 ! !USES:
 !
       USE ERROR_MOD,      ONLY : ALLOC_ERR, DEBUG_MSG
-      USE LOGICAL_MOD,    ONLY : LPRT
+      USE LOGICAL_MOD,    ONLY : LPRT,      LWARWICK_VSLS
       USE GRID_MOD,       ONLY : GET_AREA_M2
-      USE DIRECTORY_MOD,  ONLY : DATA_DIR
+      USE DIRECTORY_MOD,  ONLY : DATA_DIR, DATA_DIR_1x1
+      USE REGRID_A2A_MOD
 
       USE CMN_SIZE_MOD         ! Size parameters
       USE COMODE_LOOP_MOD      ! Avogadro's #, called 'AVG' = 6.02252d+23
+
+      USE m_netcdf_io_open
+      USE m_netcdf_io_read
+      USE m_netcdf_io_close
+
 !
 ! !REVISION HISTORY:
 !  13 Aug 2007 - J. Parrella - Initial version
-!  22 May 2012 - M. Payer    - Added ProTeX headers 
+!  22 May 2012 - M. Payer    - Added ProTeX headers
+!  24 Aug 2012 - R. Yantosca - DO_REGRID_A2A now reads netCDF input file
 !EOP
 !------------------------------------------------------------------------------
 !BOC
 !
 ! !LOCAL VARIABLES:
 !
-      INTEGER           :: I, J
+      INTEGER           :: I, J, fileID
       INTEGER           :: AS
       CHARACTER(len=60) :: vsl_file, fmt, vsldir
       CHARACTER(len=10) :: cnlon
+      CHARACTER(len=255):: LLFILENAME, FILENAME
+      REAL*8            :: ARRAY2x25(144,91)
 
       !=================================================================
       ! INIT_BROMOCARB begins here!
@@ -780,6 +789,17 @@
       IF ( AS /= 0 ) CALL ALLOC_ERR( 'ch2br2_emiss' )
       ch2br2_emiss = 0d0
 
+!%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+!%%% KLUDGE FOR NESTED GRIDS (bmy, 7/3/12)
+!%%% Right now there is no good way to turn off reading of bromine files,
+!%%% especially for the nested grids (which don't exist yet).  In the
+!%%% meantime, turn off the file I/O if Br_SCALING = 0.
+!%%%
+      ! Skip reading the files below.  Use a robust test for Br_SCALING=0
+      IF ( .not. LWARWICK_VSLs               ) RETURN
+      IF ( .not. ( ABS( Br_SCALING ) > 0d0 ) ) RETURN
+!%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
       !------------------------------------------
       ! Call Sea Surface to start filling arrays
       !------------------------------------------
@@ -794,75 +814,33 @@
       !  or a regridded version 4 x 5 (jpp, 7/31/09)
       ! ----------------------------------------------------
 
-      ! VSL DIRECTORY
-      VSLDIR = TRIM( DATA_DIR )// 'bromine_201205/VSL_emissions/'
+      ! File with lat/lon edges for regridding
+      LLFILENAME = TRIM( DATA_DIR_1x1) //
+     &     'MAP_A2A_Regrid_201203/MAP_A2A_latlon_geos2x25.nc'
+      
+      ! Input file name
+      FILENAME = TRIM( DATA_DIR_1x1 ) //
+     &     'bromine_201205/VSL_emissions/SLBromine_Emission.2x25.nc'
+      
+      ! Read in CHBr3 emission file ([kg(CHBr3)/m2/s]), regrid
+      call NcOp_Rd( fileID, TRIM( FILENAME ) )
+      call NcRd( ARRAY2x25, fileID, 'CHBr3_emission', 
+     &           (/ 1, 1 /),  (/ 144, 91 /) )
+      CALL DO_REGRID_A2A( LLFILENAME, 144,         91, 
+     &                    ARRAY2x25,  CHBr3_EMISS, PERAREA=0,
+     &                    netCDF=.TRUE.                       )
 
-#if   defined( GRID2x25 )
-      vsl_file = 'SLBromine_Emission_2x2.5.dat'
 
-      IF ( LPRT ) CALL DEBUG_MSG( ' ### Pre-Reading VSL files' )
+      ! Read in CH2Br2 emission file ([kg(CH2Br2)/m2/s]), regrid
+      call NcOp_Rd( fileID, TRIM( FILENAME ) )
+      call NcRd( ARRAY2x25, fileID, 'CH2Br2_emission',
+     &           (/ 1, 1 /),  (/ 144, 91 /) )
+      CALL DO_REGRID_A2A( LLFILENAME, 144,          91,
+     &                    ARRAY2x25,  CH2Br2_EMISS, PERAREA=0,
+     &                    netCDF=.TRUE.                        )
 
-      OPEN( UNIT   = 234,
-     &      FILE   = TRIM(ADJUSTL(vsldir)) // TRIM(ADJUSTL(vsl_file)), 
-     &      STATUS ='OLD' )
-
-      ! Set the format to read
-      WRITE(cnlon,'(i6)') IIPAR
-      fmt = '(' // TRIM(ADJUSTL(cnlon)) // 'es11.4)'
-
-      ! Read the CHBr3 emissions [kg(CHBr3)/m2/s]
-      DO J = 1, JJPAR
-         READ(234,fmt) (chbr3_emiss(I,J), I=1,IIPAR)
-      ENDDO
-
-      ! Read the CH2Br2 emissions [kg(CH2Br2)/m2/s]
-      DO J = 1, JJPAR
-         READ(234,fmt) (ch2br2_emiss(I,J), I=1,IIPAR)
-      ENDDO
-
-      ! Close the unit
-      CLOSE(234)
-
-#elif defined( GRID4x5 )
-
-      ! First read the CHBr3 emissions file
-      vsl_file = 'chbr3_emission_4x5.dat'
-
-      IF ( LPRT ) CALL DEBUG_MSG( ' ### Reading CHBr3 4x5 emissions' )
-
-      OPEN( UNIT   =234,
-     &      FILE   = TRIM(ADJUSTL(vsldir)) // TRIM(ADJUSTL(vsl_file)), 
-     &      STATUS ='OLD' )
-
-      ! Set the format to read
-      WRITE(cnlon,'(i6)') IIPAR
-      fmt = '(' // TRIM(adjustl(cnlon)) // 'es11.4)'
-
-      ! Read the CHBr3 emissions [kg(CHBr3)/m2/s]
-      DO J = 1, JJPAR
-         READ(234,fmt) (chbr3_emiss(I,J), I=1,IIPAR)
-      ENDDO
-
-      ! Close the unit
-      CLOSE(234)
-
-      ! Now open and read the CH2Br2 emissions file
-      vsl_file = 'ch2br2_emission_4x5.dat'
-
-      IF ( LPRT ) CALL DEBUG_MSG( ' ### Reading CH2Br2 4x5 emissions' )
-
-      OPEN( UNIT   =234,
-     &      FILE   = TRIM(ADJUSTL(vsldir)) // TRIM(ADJUSTL(vsl_file)),
-     &      STATUS ='OLD' )
-
-      ! Read the CH2Br2 emissions [kg(CH2Br2)/m2/s]
-      DO J = 1, JJPAR
-         READ(234,fmt) (ch2br2_emiss(I,J), I=1,IIPAR)
-      ENDDO
-
-      CLOSE(234)
-
-#endif
+      ! Close emission file
+      call NcCl( fileID )
 
       ! Calculating the CHBr3 emission rate [molecules/box/s]
       ! from Qing Liang's emissions distribution...

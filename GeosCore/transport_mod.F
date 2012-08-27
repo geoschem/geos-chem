@@ -6,7 +6,7 @@
 ! !MODULE: transport_mod
 !
 ! !DESCRIPTION: Module TRANSPORT\_MOD is used to call the proper version of 
-!  the TPCORE advection scheme for GEOS-3, GEOS-4, GEOS-5, or GCAP 
+!  the TPCORE advection scheme for GCAP, GEOS-4, GEOS-5, or GEOS-5.7
 !  nested-grid or global simulations.
 !\\
 !\\
@@ -35,7 +35,7 @@
       PRIVATE :: GCAP_GLOBAL_ADV             
       PRIVATE :: DO_GEOS5_WINDOW_TRANSPORT
       PRIVATE :: DO_GEOS57_WINDOW_TRANSPORT      
-      PRIVATE :: DO_WINDOW_TRANSPORT   
+      !PRIVATE :: DO_WINDOW_TRANSPORT   
       PRIVATE :: GET_AIR_MASS                
 !
 ! !REVISION HISTORY:
@@ -68,6 +68,8 @@
 !                              mass fluxes diagnostics anymore.
 !  28 Feb 2012 - R. Yantosca - Removed support for GEOS-3
 !  01 Mar 2012 - R. Yantosca - Now reference new grid_mod.F90
+!  21 Jun 2012 - R. Yantosca - Now use pointers to flip arrays in vertical
+!  21 Jun 2012 - R. Yantosca - Comment out GEOS-3 window subroutine
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -228,32 +230,38 @@
 !  26 Feb 2010 - R. Yantosca - Removed references to obsolete LEMBED switch
 !  26 Feb 2010 - R. Yantosca - Added ProTeX headers
 !  16 Feb 2011 - R. Yantosca - Add modifications for APM microphysics (G. Luo)
+!  21 Jun 2012 - R. Yantosca - Now use pointers to flip indices in vertical
 !EOP
 !------------------------------------------------------------------------------
 !BOC
 !
 ! !LOCAL VARIABLES:
 !
-      INTEGER :: I, J, L, L2, N, N_DYN, N_TOT_TRC
-      REAL*8  :: A_DIFF, D_DYN, TR_DIFF
-      REAL*8  :: AD_A(IIPAR,JJPAR,LLPAR)
-      REAL*8  :: AD_B(IIPAR,JJPAR,LLPAR)
-      REAL*8  :: P_TP1(IIPAR,JJPAR)
-      REAL*8  :: P_TP2(IIPAR,JJPAR)
-      REAL*8  :: P_TEMP(IIPAR,JJPAR)
-      REAL*8  :: TR_A(IIPAR,JJPAR,LLPAR)
+      INTEGER          :: I, J, L, L2, N, N_DYN, N_TOT_TRC
+      REAL*8           :: A_DIFF, D_DYN, TR_DIFF
+      REAL*8           :: AD_A(IIPAR,JJPAR,LLPAR)
+      REAL*8           :: AD_B(IIPAR,JJPAR,LLPAR)
+      REAL*8           :: P_TP1(IIPAR,JJPAR)
+      REAL*8           :: P_TP2(IIPAR,JJPAR)
+      REAL*8           :: P_TEMP(IIPAR,JJPAR)
+      REAL*8           :: TR_A(IIPAR,JJPAR,LLPAR)
 #if   defined( APM )
-      REAL*8  :: TR_B(IIPAR,JJPAR,LLPAR,N_TRACERS+N_APMTRA)  ! With APM
+      REAL*8           :: TR_B(IIPAR,JJPAR,LLPAR,N_TRACERS+N_APMTRA)  ! With APM
 #else
-      REAL*8  :: TR_B(IIPAR,JJPAR,LLPAR,N_TRACERS)           ! W/o APM
+      REAL*8           :: TR_B(IIPAR,JJPAR,LLPAR,N_TRACERS)           ! W/o APM
 #endif
-      REAL*8  :: UTMP(IIPAR,JJPAR,LLPAR)
-      REAL*8  :: VTMP(IIPAR,JJPAR,LLPAR)
-      REAL*8  :: XMASS(IIPAR,JJPAR,LLPAR) 
-      REAL*8  :: YMASS(IIPAR,JJPAR,LLPAR) 
+      REAL*8,  TARGET  :: XMASS(IIPAR,JJPAR,LLPAR) 
+      REAL*8,  TARGET  :: YMASS(IIPAR,JJPAR,LLPAR) 
+
+      ! Pointers
+      REAL*8,  POINTER :: p_UWND (:,:,:  )
+      REAL*8,  POINTER :: p_VWND (:,:,:  )
+      REAL*8,  POINTER :: p_XMASS(:,:,:  )
+      REAL*8,  POINTER :: p_YMASS(:,:,:  )
+      REAL*8,  POINTER :: p_STT  (:,:,:,:)
 
       ! Variable to ensure mass conservation (ccc, 2/17/09)
-      REAL*8  :: SUMADA
+      REAL*8           :: SUMADA
 
       !=================================================================
       ! GEOS4_GEOS5_GLOBAL_ADV begins here!
@@ -344,43 +352,30 @@
       ! Call TPCORE_FVDAS to perform the advection
       !=================================================================
 
-      ! Store winds in UTMP, VTMP to preserve UWND, VWND 
-      ! for diagnostics.  Flip in the vertial for TPCORE.
-      UTMP(:,:,1:LLPAR) = UWND(:,:,LLPAR:1:-1)
-      VTMP(:,:,1:LLPAR) = VWND(:,:,LLPAR:1:-1)
-
-
-!      ! Do the advection
-!      CALL TPCORE_FVDAS( D_DYN,    Re,        IIPAR,    JJPAR,
-!     &                   LLPAR,    JFIRST,    JLAST,    NG,
-!     &                   MG,       N_TRACERS, Ap,       Bp,
-!     &                   UTMP,     VTMP,      P_TP1,    P_TP2,
-!     &                   P_TEMP,   STT(:,:,LLPAR:1:-1,:),       
-!     &                   IORD,     JORD,      KORD,     N_ADJ,     
-!     &                   XMASS(:,:,LLPAR:1:-1),    
-!     &                   YMASS(:,:,LLPAR:1:-1),         LFILL,
-!     &                   MASSFLEW(:,:,LLPAR:1:-1,:), 
-!     &                   MASSFLNS(:,:,LLPAR:1:-1,:),  
-!     &                   MASSFLUP(:,:,LLPAR:1:-1,:),    A_M2,
-!     &                   TCVV,     ND24,      ND25,     ND26 )
+      ! Flip array indices in the vertical using pointer storage
+      p_UWND  => UWND (:,:,LLPAR:1:-1  )
+      p_VWND  => VWND (:,:,LLPAR:1:-1  )
+      p_STT   => STT  (:,:,LLPAR:1:-1,:)
+      p_XMASS => XMASS(:,:,LLPAR:1:-1  )
+      p_YMASS => YMASS(:,:,LLPAR:1:-1  )
 
       ! Do the advection
       ! Note: the mass flux diagnostic arrays (MASSFLEW, MASSFLNS and MASSFLUP)
       ! are incremented upside-down (level 1 = top of the atmosphere).
       ! The levels order is reversed only when written out in diag3.f
       ! (ccc, 3/8/10)
-      CALL TPCORE_FVDAS( D_DYN,    Re,        IIPAR,    JJPAR,
-     &                   LLPAR,    JFIRST,    JLAST,    NG,
-     &                   MG,       N_TOT_TRC, Ap,       Bp,
-     &                   UTMP,     VTMP,      P_TP1,    P_TP2,
-     &                   P_TEMP,   STT(:,:,LLPAR:1:-1,:),       
-     &                   IORD,     JORD,      KORD,     N_ADJ,     
-     &                   XMASS(:,:,LLPAR:1:-1),    
-     &                   YMASS(:,:,LLPAR:1:-1),         LFILL,
-     &                   MASSFLEW, 
-     &                   MASSFLNS,  
-     &                   MASSFLUP,    A_M2,
-     &                   TCVV,     ND24,      ND25,     ND26 )
+      CALL TPCORE_FVDAS( D_DYN,  Re,        IIPAR,    JJPAR,
+     &                   LLPAR,  JFIRST,    JLAST,    NG,
+     &                   MG,     N_TOT_TRC, Ap,       Bp,
+     &                   p_UWND, p_VWND,    P_TP1,    P_TP2,
+     &                   P_TEMP, p_STT,     IORD,     JORD,      
+     &                   KORD,   N_ADJ,     p_XMASS,  p_YMASS,         
+     &                   LFILL,  MASSFLEW,  MASSFLNS, MASSFLUP,    
+     &                   A_M2,   TCVV,      ND24,     ND25,     
+     &                   ND26 )
+
+      ! Free pointer memory
+      NULLIFY( p_UWND, p_VWND, p_STT, p_XMASS, p_YMASS )
 
       !=================================================================
       ! Reset surface pressure and ensure mass conservation
@@ -490,32 +485,39 @@
 !  26 Feb 2010 - R. Yantosca - Removed references to obsolete LEMBED switch
 !  26 Feb 2010 - R. Yantosca - Added ProTeX headers
 !  16 Feb 2011 - R. Yantosca - Add modifications for APM microphysics (G. Luo)
+!  21 Jun 2012 - R. Yantosca - Now use pointers to flip arrays in the vertical
 !EOP
 !------------------------------------------------------------------------------
 !BOC
 !
 ! !LOCAL VARIABLES:
 !
-      INTEGER :: I, J, L, L2, N, N_DYN, N_TOT_TRC
-      REAL*8  :: A_DIFF, D_DYN, TR_DIFF
-      REAL*8  :: AD_A(IIPAR,JJPAR,LLPAR)
-      REAL*8  :: AD_B(IIPAR,JJPAR,LLPAR)
-      REAL*8  :: P_TP1(IIPAR,JJPAR)
-      REAL*8  :: P_TP2(IIPAR,JJPAR)
-      REAL*8  :: P_TEMP(IIPAR,JJPAR)
-      REAL*8  :: TR_A(IIPAR,JJPAR,LLPAR)
+      INTEGER          :: I, J, L, L2, N, N_DYN, N_TOT_TRC
+      REAL*8           :: A_DIFF, D_DYN, TR_DIFF
+      REAL*8           :: AD_A(IIPAR,JJPAR,LLPAR)
+      REAL*8           :: AD_B(IIPAR,JJPAR,LLPAR)
+      REAL*8           :: P_TP1(IIPAR,JJPAR)
+      REAL*8           :: P_TP2(IIPAR,JJPAR)
+      REAL*8           :: P_TEMP(IIPAR,JJPAR)
+      REAL*8           :: TR_A(IIPAR,JJPAR,LLPAR)
 #if   defined( APM )
-      REAL*8  :: TR_B(IIPAR,JJPAR,LLPAR,N_TRACERS+N_APMTRA)
-#else
-      REAL*8  :: TR_B(IIPAR,JJPAR,LLPAR,N_TRACERS)
+      REAL*8           :: TR_B(IIPAR,JJPAR,LLPAR,N_TRACERS+N_APMTRA)
+#else                  
+      REAL*8           :: TR_B(IIPAR,JJPAR,LLPAR,N_TRACERS)
 #endif
-      REAL*8  :: UTMP(IIPAR,JJPAR,LLPAR)
-      REAL*8  :: VTMP(IIPAR,JJPAR,LLPAR)
-      REAL*8  :: XMASS(IIPAR,JJPAR,LLPAR) 
-      REAL*8  :: YMASS(IIPAR,JJPAR,LLPAR) 
+      REAL*8           :: VTMP(IIPAR,JJPAR,LLPAR)
+      REAL*8,  TARGET  :: XMASS(IIPAR,JJPAR,LLPAR) 
+      REAL*8,  TARGET  :: YMASS(IIPAR,JJPAR,LLPAR) 
+
+      ! Pointers
+      REAL*8,  POINTER :: p_UWND (:,:,:  )
+      REAL*8,  POINTER :: p_VWND (:,:,:  )
+      REAL*8,  POINTER :: p_XMASS(:,:,:  )
+      REAL*8,  POINTER :: p_YMASS(:,:,:  )
+      REAL*8,  POINTER :: p_STT  (:,:,:,:)
 
       ! Variable to ensure mass conservation (ccc, 20/11/08)
-      REAL*8  :: SUMADA
+      REAL*8           :: SUMADA
 
       !=================================================================
       ! GCAP_GLOBAL_ADV begins here!
@@ -611,43 +613,30 @@
       ! Call TPCORE_FVDAS to perform the advection
       !=================================================================
 
-      ! Store winds in UTMP, VTMP to preserve UWND, VWND 
-      ! for diagnostics.  Flip in the vertical for TPCORE.
-      UTMP(:,:,1:LLPAR) = UWND(:,:,LLPAR:1:-1)
-      VTMP(:,:,1:LLPAR) = VWND(:,:,LLPAR:1:-1)
-
-!      ! Do the advection
-!      CALL TPCORE_FVDAS( D_DYN,    Re,        IIPAR,    JJPAR,
-!     &                   LLPAR,    JFIRST,    JLAST,    NG,
-!     &                   MG,       N_TRACERS, Ap,       Bp,
-!     &                   UTMP,     VTMP,      P_TP1,    P_TP2,
-!     &                   P_TEMP,   STT(:,:,LLPAR:1:-1,:),       
-!     &                   IORD,     JORD,      KORD,     N_ADJ,     
-!     &                   XMASS(:,:,LLPAR:1:-1),    
-!     &                   YMASS(:,:,LLPAR:1:-1),         LFILL,
-!     &                   MASSFLEW(:,:,LLPAR:1:-1,:), 
-!     &                   MASSFLNS(:,:,LLPAR:1:-1,:),  
-!     &                   MASSFLUP(:,:,LLPAR:1:-1,:),    A_M2,
-!     &                   TCVV,     ND24,      ND25,     ND26 )
+      ! Flip array indices in the vertical using pointer storage
+      p_UWND  => UWND (:,:,LLPAR:1:-1  )
+      p_VWND  => VWND (:,:,LLPAR:1:-1  )
+      p_STT   => STT  (:,:,LLPAR:1:-1,:)
+      p_XMASS => XMASS(:,:,LLPAR:1:-1  )
+      p_YMASS => YMASS(:,:,LLPAR:1:-1  )
 
       ! Note: the mass flux diagnostic arrays (MASSFLEW, MASSFLNS and MASSFLUP)
       ! are incremented upside-down (level 1 = top of the atmosphere).
       ! The levels order is reversed only when written out in diag3.f
       ! (ccc, 3/8/10)
       ! Do the advection
-      CALL TPCORE_FVDAS( D_DYN,    Re,        IIPAR,    JJPAR,
-     &                   LLPAR,    JFIRST,    JLAST,    NG,
-     &                   MG,       N_TOT_TRC, Ap,       Bp,
-     &                   UTMP,     VTMP,      P_TP1,    P_TP2,
-     &                   P_TEMP,   STT(:,:,LLPAR:1:-1,:),       
-     &                   IORD,     JORD,      KORD,     N_ADJ,     
-     &                   XMASS(:,:,LLPAR:1:-1),    
-     &                   YMASS(:,:,LLPAR:1:-1),         LFILL,
-     &                   MASSFLEW, 
-     &                   MASSFLNS,  
-     &                   MASSFLUP,    A_M2,
-     &                   TCVV,     ND24,      ND25,     ND26 )
+      CALL TPCORE_FVDAS( D_DYN,   Re,        IIPAR,    JJPAR,
+     &                   LLPAR,   JFIRST,    JLAST,    NG,
+     &                   MG,      N_TOT_TRC, Ap,       Bp,
+     &                   p_UWND,  p_VWND,    P_TP1,    P_TP2,
+     &                   P_TEMP,  p_STT,     IORD,     JORD,      
+     &                   KORD,    N_ADJ,     p_XMASS,  p_YMASS,
+     &                   LFILL,   MASSFLEW,  MASSFLNS, MASSFLUP, 
+     &                   A_M2,    TCVV,      ND24,     ND25,     
+     &                   ND26 )
 
+      ! Free pointer memory
+      NULLIFY( p_UWND, p_VWND, p_STT, p_XMASS, p_YMASS )
 
       !=================================================================
       ! Reset surface pressure and ensure mass conservation
@@ -762,30 +751,36 @@
 !  26 Feb 2010 - R. Yantosca - Removed references to obsolete LEMBED switch
 !  26 Feb 2010 - R. Yantosca - Added ProTeX headers
 !  16 Feb 2011 - R. Yantosca - Add modifications for APM from G. Luo
+!  21 Jun 2012 - R. Yantosca - Now use pointers to flip arrays in the vertical
 !EOP
 !------------------------------------------------------------------------------
 !BOC
 !
 ! !LOCAL VARIABLES:
 !
-      INTEGER :: I0,J0
-      INTEGER :: I, J, L, L2, N, N_DYN, N_TOT_TRC
-      REAL*8  :: A_DIFF, D_DYN, TR_DIFF
-      REAL*8  :: AD_A(IIPAR,JJPAR,LLPAR)
-      REAL*8  :: AD_B(IIPAR,JJPAR,LLPAR)
-      REAL*8  :: P_TP1(IIPAR,JJPAR)
-      REAL*8  :: P_TP2(IIPAR,JJPAR)
-      REAL*8  :: P_TEMP(IIPAR,JJPAR)
-      REAL*8  :: TR_A(IIPAR,JJPAR,LLPAR)
+      INTEGER          :: I0,J0
+      INTEGER          :: I, J, L, L2, N, N_DYN, N_TOT_TRC
+      REAL*8           :: A_DIFF, D_DYN, TR_DIFF
+      REAL*8           :: AD_A(IIPAR,JJPAR,LLPAR)
+      REAL*8           :: AD_B(IIPAR,JJPAR,LLPAR)
+      REAL*8           :: P_TP1(IIPAR,JJPAR)
+      REAL*8           :: P_TP2(IIPAR,JJPAR)
+      REAL*8           :: P_TEMP(IIPAR,JJPAR)
+      REAL*8           :: TR_A(IIPAR,JJPAR,LLPAR)
 #if   defined( APM )
-      REAL*8  :: TR_B(IIPAR,JJPAR,LLPAR,N_TRACERS+N_APMTRA) 
+      REAL*8           :: TR_B(IIPAR,JJPAR,LLPAR,N_TRACERS+N_APMTRA) 
 #else
-      REAL*8  :: TR_B(IIPAR,JJPAR,LLPAR,N_TRACERS)
+      REAL*8           :: TR_B(IIPAR,JJPAR,LLPAR,N_TRACERS)
 #endif
-      REAL*8  :: UTMP(IIPAR,JJPAR,LLPAR)
-      REAL*8  :: VTMP(IIPAR,JJPAR,LLPAR)
-      REAL*8  :: XMASS(IIPAR,JJPAR,LLPAR)
-      REAL*8  :: YMASS(IIPAR,JJPAR,LLPAR)
+      REAL*8,  TARGET  :: XMASS(IIPAR,JJPAR,LLPAR)
+      REAL*8,  TARGET  :: YMASS(IIPAR,JJPAR,LLPAR)
+
+      ! Pointers
+      REAL*8,  POINTER :: p_UWND (:,:,:  )
+      REAL*8,  POINTER :: p_VWND (:,:,:  )
+      REAL*8,  POINTER :: p_XMASS(:,:,:  )
+      REAL*8,  POINTER :: p_YMASS(:,:,:  )
+      REAL*8,  POINTER :: p_STT  (:,:,:,:)
 
       !=================================================================
       ! DO_GEOS5_FVDAS_WINDOW_TRANSPORT begins here!
@@ -883,42 +878,29 @@
       ! Impose TPCORE boundary conditions @ edges of 1x1 grid
       CALL DO_WINDOW_TPCORE_BC
 
-      ! for diagnostics.  Flip in the vertial for TPCORE.
-      UTMP(:,:,1:LLPAR) = UWND(:,:,LLPAR:1:-1)
-      VTMP(:,:,1:LLPAR) = VWND(:,:,LLPAR:1:-1)
-
-!      ! Do the advection
-!      CALL TPCORE_GEOS5_WINDOW( D_DYN, Re, IIPAR, JJPAR,
-!     &                          LLPAR,    JFIRST,    JLAST,    NG,
-!     &                          MG,       N_TRACERS, Ap,       Bp,
-!     &                          UTMP,     VTMP,      P_TP1,    P_TP2,
-!     &                          P_TEMP,   STT(:,:,LLPAR:1:-1,:),
-!     &                          IORD,     JORD,      KORD,     N_ADJ,
-!     &                          XMASS(:,:,LLPAR:1:-1),
-!     &                          YMASS(:,:,LLPAR:1:-1),
-!     &                          MASSFLEW(:,:,LLPAR:1:-1,:),
-!     &                          MASSFLNS(:,:,LLPAR:1:-1,:),
-!     &                          MASSFLUP(:,:,LLPAR:1:-1,:),    A_M2,
-!     &                          TCVV,     ND24,      ND25,     ND26 )
-
+      ! Flip array indices in the vertical using pointer storage
+      p_UWND  => UWND (:,:,LLPAR:1:-1  )
+      p_VWND  => VWND (:,:,LLPAR:1:-1  )
+      p_STT   => STT  (:,:,LLPAR:1:-1,:)
+      p_XMASS => XMASS(:,:,LLPAR:1:-1  )
+      p_YMASS => YMASS(:,:,LLPAR:1:-1  )
 
       ! Note: the mass flux diagnostic arrays (MASSFLEW, MASSFLNS and MASSFLUP)
       ! are incremented upside-down (level 1 = top of the atmosphere).
       ! The levels order is reversed only when written out in diag3.f
       ! (ccc, 3/8/10)
       ! Do the advection
-      CALL TPCORE_GEOS5_WINDOW( D_DYN, Re, IIPAR, JJPAR,
+      CALL TPCORE_GEOS5_WINDOW( D_DYN,    Re,        IIPAR,    JJPAR,
      &                          LLPAR,    JFIRST,    JLAST,    NG,
      &                          MG,       N_TOT_TRC, Ap,       Bp,
-     &                          UTMP,     VTMP,      P_TP1,    P_TP2,
-     &                          P_TEMP,   STT(:,:,LLPAR:1:-1,:),
-     &                          IORD,     JORD,      KORD,     N_ADJ,
-     &                          XMASS(:,:,LLPAR:1:-1),
-     &                          YMASS(:,:,LLPAR:1:-1),
-     &                          MASSFLEW,
-     &                          MASSFLNS,
-     &                          MASSFLUP,    A_M2,
+     &                          p_UWND,   p_VWND,    P_TP1,    P_TP2,
+     &                          P_TEMP,   p_STT,     IORD,     JORD,
+     &                          KORD,     N_ADJ,     p_XMASS,  p_YMASS,
+     &                          MASSFLEW, MASSFLNS,  MASSFLUP, A_M2,
      &                          TCVV,     ND24,      ND25,     ND26 )
+
+      ! Free pointer memory
+      NULLIFY( p_UWND, p_VWND, p_STT, p_XMASS, p_YMASS )
 
       !=================================================================
       ! Reset surface pressure and ensure mass conservation
@@ -981,33 +963,39 @@
 !  26 Feb 2010 - R. Yantosca - Removed references to obsolete LEMBED switch
 !  26 Feb 2010 - R. Yantosca - Added ProTeX headers
 !  16 Feb 2011 - R. Yantosca - Add modifications for APM from G. Luo
+!  21 Jun 2012 - R. Yantosca - Now use pointers to flip arrays in the vertical
 !EOP
 !------------------------------------------------------------------------------
 !BOC
 !
 ! !LOCAL VARIABLES:
 !
-      INTEGER :: I0,J0
-      INTEGER :: I, J, L, L2, N, N_DYN, N_TOT_TRC
-      REAL*8  :: A_DIFF, D_DYN, TR_DIFF
-      REAL*8  :: AD_A(IIPAR,JJPAR,LLPAR)
-      REAL*8  :: AD_B(IIPAR,JJPAR,LLPAR)
-      REAL*8  :: P_TP1(IIPAR,JJPAR)
-      REAL*8  :: P_TP2(IIPAR,JJPAR)
-      REAL*8  :: P_TEMP(IIPAR,JJPAR)
-      REAL*8  :: TR_A(IIPAR,JJPAR,LLPAR)
+      INTEGER          :: I0,J0
+      INTEGER          :: I, J, L, L2, N, N_DYN, N_TOT_TRC
+      REAL*8           :: A_DIFF, D_DYN, TR_DIFF
+      REAL*8           :: AD_A(IIPAR,JJPAR,LLPAR)
+      REAL*8           :: AD_B(IIPAR,JJPAR,LLPAR)
+      REAL*8           :: P_TP1(IIPAR,JJPAR)
+      REAL*8           :: P_TP2(IIPAR,JJPAR)
+      REAL*8           :: P_TEMP(IIPAR,JJPAR)
+      REAL*8           :: TR_A(IIPAR,JJPAR,LLPAR)
 #if   defined( APM )
-      REAL*8  :: TR_B(IIPAR,JJPAR,LLPAR,N_TRACERS+N_APMTRA)
+      REAL*8           :: TR_B(IIPAR,JJPAR,LLPAR,N_TRACERS+N_APMTRA)
 #else
-      REAL*8  :: TR_B(IIPAR,JJPAR,LLPAR,N_TRACERS)
+      REAL*8           :: TR_B(IIPAR,JJPAR,LLPAR,N_TRACERS)
 #endif
-      REAL*8  :: UTMP(IIPAR,JJPAR,LLPAR)
-      REAL*8  :: VTMP(IIPAR,JJPAR,LLPAR)
-      REAL*8  :: XMASS(IIPAR,JJPAR,LLPAR)
-      REAL*8  :: YMASS(IIPAR,JJPAR,LLPAR)
+      REAL*8,  TARGET  :: XMASS(IIPAR,JJPAR,LLPAR)
+      REAL*8,  TARGET  :: YMASS(IIPAR,JJPAR,LLPAR)
+
+      ! Pointers
+      REAL*8,  POINTER :: p_UWND (:,:,:  )
+      REAL*8,  POINTER :: p_VWND (:,:,:  )
+      REAL*8,  POINTER :: p_XMASS(:,:,:  )
+      REAL*8,  POINTER :: p_YMASS(:,:,:  )
+      REAL*8,  POINTER :: p_STT  (:,:,:,:)
 
       !=================================================================
-      ! DO_GEOS5_FVDAS_WINDOW_TRANSPORT begins here!
+      ! DO_GEOS57_FVDAS_WINDOW_TRANSPORT begins here!
       !=================================================================
 
       ! Pick the proper # of tracers
@@ -1098,42 +1086,30 @@
       IF ( LPRT ) CALL DEBUG_MSG( '### GEOS5_NESTED: a GET_TRA_MASS' )
       ! Impose TPCORE boundary conditions @ edges of 1x1 grid
       CALL DO_WINDOW_TPCORE_BC
-      ! for diagnostics.  Flip in the vertial for TPCORE.
-      UTMP(:,:,1:LLPAR) = UWND(:,:,LLPAR:1:-1)
-      VTMP(:,:,1:LLPAR) = VWND(:,:,LLPAR:1:-1)
 
-!      ! Do the advection
-!      CALL TPCORE_GEOS5_WINDOW( D_DYN, Re, IIPAR, JJPAR,
-!     &                          LLPAR,    JFIRST,    JLAST,    NG,
-!     &                          MG,       N_TRACERS, Ap,       Bp,
-!     &                          UTMP,     VTMP,      P_TP1,    P_TP2,
-!     &                          P_TEMP,   STT(:,:,LLPAR:1:-1,:),
-!     &                          IORD,     JORD,      KORD,     N_ADJ,
-!     &                          XMASS(:,:,LLPAR:1:-1),
-!     &                          YMASS(:,:,LLPAR:1:-1),
-!     &                          MASSFLEW(:,:,LLPAR:1:-1,:),
-!     &                          MASSFLNS(:,:,LLPAR:1:-1,:),
-!     &                          MASSFLUP(:,:,LLPAR:1:-1,:),    A_M2,
-!     &                          TCVV,     ND24,      ND25,     ND26 )
-
+      ! Flip array indices in the vertical using pointer storage
+      p_UWND  => UWND (:,:,LLPAR:1:-1  )
+      p_VWND  => VWND (:,:,LLPAR:1:-1  )
+      p_STT   => STT  (:,:,LLPAR:1:-1,:)
+      p_XMASS => XMASS(:,:,LLPAR:1:-1  )
+      p_YMASS => YMASS(:,:,LLPAR:1:-1  )
 
       ! Note: the mass flux diagnostic arrays (MASSFLEW, MASSFLNS and MASSFLUP)
       ! are incremented upside-down (level 1 = top of the atmosphere).
       ! The levels order is reversed only when written out in diag3.f
       ! (ccc, 3/8/10)
       ! Do the advection
-      CALL TPCORE_GEOS57_WINDOW( D_DYN, Re, IIPAR, JJPAR,
-     &                          LLPAR,    JFIRST,    JLAST,    NG,
-     &                          MG,       N_TOT_TRC, Ap,       Bp,
-     &                          UTMP,     VTMP,      P_TP1,    P_TP2,
-     &                          P_TEMP,   STT(:,:,LLPAR:1:-1,:),
-     &                          IORD,     JORD,      KORD,     N_ADJ,
-     &                          XMASS(:,:,LLPAR:1:-1),
-     &                          YMASS(:,:,LLPAR:1:-1),
-     &                          MASSFLEW,
-     &                          MASSFLNS,
-     &                          MASSFLUP,    A_M2,
-     &                          TCVV,     ND24,      ND25,     ND26 )
+      CALL TPCORE_GEOS57_WINDOW( D_DYN,    Re,        IIPAR,    JJPAR,
+     &                           LLPAR,    JFIRST,    JLAST,    NG,
+     &                           MG,       N_TOT_TRC, Ap,       Bp,
+     &                           p_UWND,   p_VWND,    P_TP1,    P_TP2,
+     &                           P_TEMP,   p_STT,     IORD,     JORD,      
+     &                           KORD,     N_ADJ,     p_XMASS,  p_YMASS,
+     &                           MASSFLEW, MASSFLNS,  MASSFLUP, A_M2,
+     &                           TCVV,     ND24,      ND25,     ND26 )
+
+      ! Free pointer memory
+      NULLIFY( p_UWND, p_VWND, p_STT, p_XMASS, p_YMASS )
 
       !=================================================================
       ! Reset surface pressure and ensure mass conservation
@@ -1146,126 +1122,6 @@
       IF ( LPRT ) CALL DEBUG_MSG( '### G5_NESTED_ADV: a TPCORE' )
 
       END SUBROUTINE DO_GEOS57_WINDOW_TRANSPORT
-!EOC
-!------------------------------------------------------------------------------
-!          Harvard University Atmospheric Chemistry Modeling Group            !
-!------------------------------------------------------------------------------
-!BOP
-!
-! !IROUTINE: do_window_transport 
-!
-! !DESCRIPTION: Subroutine DO\_WINDOW\_TRANSPORT is the driver program for 
-!  the proper TPCORE program for nested-grid window simulations. 
-!\\
-!\\
-! !INTERFACE:
-!
-      SUBROUTINE DO_WINDOW_TRANSPORT
-!
-! !USES:
-!
-      USE DAO_MOD,           ONLY : PSC2, UWND, VWND
-      USE ERROR_MOD,         ONLY : DEBUG_MSG
-      USE GRID_MOD,          ONLY : GET_XOFFSET, GET_YOFFSET
-      USE LOGICAL_MOD,       ONLY : LFILL, LMFCT, LPRT
-      USE PRESSURE_MOD,      ONLY : GET_PEDGE, SET_FLOATING_PRESSURE
-      USE TIME_MOD,          ONLY : GET_TS_DYN
-      USE TPCORE_BC_MOD,     ONLY : I0_W, J0_W, I1_W, J1_W
-      USE TPCORE_BC_MOD,     ONLY : I2_W, J2_W, IM_W, JM_W, IGZD 
-      USE TPCORE_BC_MOD,     ONLY : DO_WINDOW_TPCORE_BC
-      USE TPCORE_WINDOW_MOD, ONLY : TPCORE_WINDOW
-      USE TRACER_MOD,        ONLY : STT, N_TRACERS
-#if   defined( APM )
-      USE TRACER_MOD,        ONLY : N_APMTRA
-#endif
-
-      USE CMN_SIZE_MOD          ! Size parameters
-      USE CMN_GCTM_MOD          ! Re
-! 
-! !REVISION HISTORY: 
-!  07 Aug 2003 - Y. Wang & R. Yantosca - Initial version
-!  (1 ) Now references DEBUG_MSG from "error_mod.f" (bmy, 8/7/03)
-!  (2 ) Removed IORD, JORD, KORD from the arg list, since these are now
-!        module variables.  Now reference LFILL, LMFCT, LPRT from 
-!        "logical_mod.f".  Now reference STT, N_TRACERS from "tracer_mod.f".
-!  (3 ) Now make sure all USE statements are USE, ONLY (bmy, 10/3/05)
-!  26 Feb 2010 - R. Yantosca - Removed references to obsolete LEMBED switch
-!  26 Feb 2010 - R. Yantosca - Added ProTeX headers
-!  16 Feb 2011 - R. Yantosca - Add modifications for APM from G. Luo
-!EOP
-!------------------------------------------------------------------------------
-!BOC
-!
-! !LOCAL VARIABLES:
-!
-      INTEGER             :: I, I0, J, J0, N_DYN, N_TOT_TRC
-      REAL*8              :: P_TP1(IIPAR,JJPAR)
-      REAL*8              :: P_TP2(IIPAR,JJPAR)
-      REAL*8              :: UTMP(IIPAR,JJPAR,LLPAR)
-      REAL*8              :: VTMP(IIPAR,JJPAR,LLPAR)
-      REAL*8              :: WW(IIPAR,JJPAR,LLPAR) 
-!
-! !DEFINED PARAMETERS:
-!
-      INTEGER, PARAMETER  :: IGD=0, J1=3
-      REAL*8,  PARAMETER  :: Umax=150d0
-
-      !=================================================================
-      ! DO_WINDOW_TRANSPORT begins here!
-      !=================================================================
-
-      ! Pick the proper # of tracers
-#if   defined( APM )
-      N_TOT_TRC = N_TRACERS + N_APMTRA   ! G-C advected tracers + APM tracers
-#else
-      N_TOT_TRC = N_TRACERS              ! G-C advected tracers only
-#endif
-
-      ! Get nested-grid lon/lat offsets [# boxes]
-      I0    = GET_XOFFSET( GLOBAL=.TRUE. )
-      J0    = GET_YOFFSET( GLOBAL=.TRUE. )
-
-      ! Dynamic timestep [s]
-      N_DYN = GET_TS_DYN() * 60
-       
-      ! Impose TPCORE boundary conditions @ edges of 1x1 grid
-      CALL DO_WINDOW_TPCORE_BC 
-
-      ! Flip UWND, VWND, STT in vertical dimension
-      ! Now store into temp arrays to preserve UWND, VWND for diags
-      UTMP(:,:,1:LLPAR)          = UWND(:,:,LLPAR:1:-1)
-      VTMP(:,:,1:LLPAR)          = VWND(:,:,LLPAR:1:-1)
-      STT (:,:,1:LLPAR,:)        = STT (:,:,LLPAR:1:-1,:)
-
-      ! Set temp arrays for passing pressures to TPCORE
-      DO J = 1, JJPAR
-      DO I = 1, IIPAR
-         P_TP1(I,J) = GET_PEDGE(I,J,1) - PTOP
-         P_TP2(I,J) = PSC2(I,J) - PTOP
-      ENDDO
-      ENDDO
-
-      ! Call the nested-grid window version of TPCORE (v.7.1)
-      ! Use the pressures at the middle and the end of the 
-      ! dynamic timestep (P = PS-PTOP; P_TEMP = PSC2-PTOP).
-      CALL TPCORE_WINDOW( IGD,   STT,       P_TP1, P_TP2,  UTMP,  
-     &                    VTMP,  WW,        N_DYN, IORD,   JORD,   
-     &                    KORD,  N_TOT_TRC, IIPAR, JJPAR,  J1,    
-     &                    I0,    J0,        I0_W,  J0_W,   I1_W,  
-     &                    J1_W,  I2_W,      J2_W,  IM_W,   JM_W,  
-     &                    IGZD,  LLPAR,     AP,    BP,     PTOP,  
-     &                    Re,    LFILL,     LMFCT, Umax )
-
-      ! Reset floating pressure w/ output of TPCORE
-      CALL SET_FLOATING_PRESSURE( P_TP2 + PTOP )
-
-      ! Re-Flip STT in the vertical dimension
-      STT(:,:,1:LLPAR,:) = STT(:,:,LLPAR:1:-1,:)
-              
-      !### Debug
-      IF ( LPRT ) CALL DEBUG_MSG( '### MAIN: a TPCORE_WINDOW' )
-
-      END SUBROUTINE DO_WINDOW_TRANSPORT
 !EOC
 !------------------------------------------------------------------------------
 !          Harvard University Atmospheric Chemistry Modeling Group            !

@@ -1453,7 +1453,7 @@
 !  03 Aug 2010 - R. Yantosca - Added ProTeX headers
 !  13 Aug 2010 - R. Yantosca - Treat MERRA in the same way as GEOS-5
 !  02 Sep 2010 - R. Yantosca - In ND28: Omit SOA tracers if LSOA = .FALSE.
-!  09-Dec-2010 - H. Amos     - Added RGM, RPM, Fg, and Fp tracers for the
+!  09-Dec-2010 - H. Amos     - Added RGM and PBM  tracers for the
 !                              mercury simulation
 !  09-Dec-2010 - H. Amos     - fix spacing and #s for PL-HG2-$ diagnostics
 !  12 Nov 2010 - R. Yantosca - Need to save out surface pressure line to 
@@ -1461,6 +1461,10 @@
 !  24 Jan 2012 - M. Payer    - Change scale factors for Rn-Pb-Be simulation so
 !                              units are in mBq/SCM
 !  08 Feb 2012 - R. Yantosca - Treat GEOS-5.7.x in the same way as MERRA
+!  19 Mar 2012 - M. Payer    - Remove ACETdl and ACETgr from ND11 diagnostic.
+!                              Acetone from dry leaf matter and grasses is now
+!                              included in the direct emissions (ACETbg).
+!                              (E. Fischer)
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -1483,6 +1487,15 @@
       !----------------------------------
       ! General tracer information
       !----------------------------------
+
+!hma,20120323
+      !Do not print HgP in the IJ-AVG-$ field.
+      !HgP is now emitted and treated as Hg2, so all HgP IJ-AVG-$
+      !  fields are just zeroes
+      IF ( ITS_A_MERCURY_SIM() ) THEN
+         N_TRACERS = N_TRACERS - 1
+      ENDIF
+
       DO T = 1, N_TRACERS
 
          ! Store quantities for each tracer
@@ -1642,12 +1655,12 @@
                   FNAME(T,03) = 'Hg soil emissions'
                   UNIT (T,03) = 'kg'
                   INDEX(T,03) = T + ( SPACING * 34 )
-               CASE(16 )
+               CASE( 16 )
                   NAME (T,03) = 'Hg_up'
                   FNAME(T,03) = 'Hg ocean up flux'
                   UNIT (T,03) = 'kg'
                   INDEX(T,03) = T + ( SPACING * 34 )
-               CASE(17 )
+               CASE( 17 )
                   NAME (T,03) = 'Hg_down'
                   FNAME(T,03) = 'Hg ocean downflux'
                   UNIT (T,03) = 'kg'
@@ -1707,22 +1720,12 @@
                   NAME (T,03) = 'BrO'
                   FNAME(T,03) = 'BrO concentration'
                   INDEX(T,03) = ( N ) + ( SPACING * 35 )
-               CASE( 9 )    
-                  NAME (T,03) = 'Fg'
-                  FNAME(T,03) = 'Hg2 gas fraction'
-                  UNIT (T,03) = 'unitless'  
-                  INDEX(T,03) = ( N ) + ( SPACING * 35 )
-               CASE( 10 )
-                  NAME (T,03) = 'Fp'
-                  FNAME(T,03) = 'Hg2 particle fraction'
-                  UNIT (T,03) = 'unitless'
-                  INDEX(T,03) = ( N ) + ( SPACING * 35 ) 
-               CASE( 11 )
-                  NAME (T,03) = 'RPM'
-                  FNAME(T,03) = 'Reactive particulate mercury'
+               CASE( 9 )
+                  NAME (T,03) = 'PBM'
+                  FNAME(T,03) = 'Particle bound mercury'
                   UNIT (T,03) = 'pptv'
                   INDEX(T,03) = ( N ) + ( SPACING * 35 )      
-               CASE( 12 )
+               CASE( 10 )
                   NAME (T,03) = 'RGM'
                   FNAME(T,03) = 'Reactive gaseous mercury'
                   UNIT (T,03) = 'pptv'
@@ -2223,7 +2226,7 @@
       IF ( ND11 > 0 ) THEN
 
          ! Number of tracers
-         NTRAC(11) = 7
+         NTRAC(11) = 5
 
          ! Loop over tracers
          DO T = 1, NTRAC(11)
@@ -2240,15 +2243,9 @@
                   NAME (T,11) = 'ACETbg'
                   FNAME(T,11) = 'ACET from direct emissions'
                CASE( 4 )
-                  NAME (T,11) = 'ACETdl'
-                  FNAME(T,11) = 'ACET from dry leaf matter'
-               CASE( 5 )
-                  NAME (T,11) = 'ACETgr'
-                  FNAME(T,11) = 'ACET from grasslands'
-               CASE( 6 )
                   NAME (T,11) = 'ACETop'
                   FNAME(T,11) = 'ACET from ocean source'
-               CASE( 7 )
+               CASE( 5 )
                   NAME (T,11) = 'ACETol'
                   FNAME(T,11) = 'ACET from ocean sink'
                CASE DEFAULT
