@@ -223,6 +223,7 @@
 ! !REVISION HISTORY:
 !  02 Mar 2010 - J. Parrella - Initial version
 !  22 May 2012 - M. Payer    - Added ProTeX headers
+!  27 Aug 2012 - M. Payer    - Now parallelize DO loop
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -290,6 +291,9 @@
       ENDIF
 
       ! Loop over Lat and Long boxes
+!$OMP PARALLEL DO
+!$OMP+DEFAULT( SHARED )
+!$OMP+PRIVATE( I, J, AREA_M2 )
       DO J = 1, NLAT
       DO I = 1, NLONG
 
@@ -312,6 +316,7 @@
 
       ENDDO
       ENDDO
+!$OMP END PARALLEL DO
 
       RETURN
       

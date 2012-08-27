@@ -37,6 +37,7 @@
 ! !REVISION HISTORY:
 !  13 Aug 2007 - J. Parrella - Initial version
 !  22 May 2012 - M. Payer    - Added ProTeX headers 
+!  27 Aug 2012 - M. Payer    - Now parallelize DO loops
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -310,6 +311,7 @@
 ! !REVISION HISTORY:
 !  16 Aug 2007 - J. Parrella - Initial version
 !  22 May 2012 - M. Payer    - Added ProTeX headers
+!  27 Aug 2012 - M. Payer    - Added parallel DO loop
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -337,6 +339,10 @@
       !=================================================================
 
       ! Loop over grid boxes
+!$OMP PARALLEL DO
+!$OMP+DEFAULT( SHARED )
+!$OMP+PRIVATE( I, J, LAT_S, LAT_N, LAT_H, LAT_L )
+!$OMP+PRIVATE( F_ABOVE_50,  F_BELOW_20, F_LAND, F_WATER )
       DO J = 1, JJPAR
       DO I = 1, IIPAR
 
@@ -399,8 +405,9 @@
          TOT_OC_AREA(1) = TOT_OC_AREA(1) + FRAC_IN_ab(1,I,J) * A_M2(J)
          TOT_OC_AREA(2) = TOT_OC_AREA(2) + FRAC_IN_ab(2,I,J) * A_M2(J)
 
-      END DO                 !END i-loop over longitudes
-      END DO                 !END j-loop over latitudes
+      ENDDO                 !END i-loop over longitudes
+      ENDDO                 !END j-loop over latitudes
+!$OMP END PARALLEL DO
 
       END SUBROUTINE SEA_SURFACE
 !EOC
@@ -457,6 +464,7 @@
 ! !REVISION HISTORY: 
 !  12 Feb 2008 - J. Parrella - Initial version
 !  22 May 2012 - M. Payer    - Added ProTeX headers
+!  27 Aug 2012 - M. Payer    - Added parallel DO loop
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -477,7 +485,6 @@
       REAL*8            :: LAT_MID
 
       ! for testing
-      INTEGER           :: count
       LOGICAL           :: FIRST_COUNT = .TRUE.
 
       !===================================
@@ -487,7 +494,6 @@
       LAT_MID    = 0d0
       CH3Br_conc = 0d0
 
-      count = 0
       ! get ID # for CH3Br
       DO N = 1, N_TRACERS
          IF(TRACER_NAME(N) == 'CH3Br') THEN
@@ -509,13 +515,13 @@
       !=================================================================
 
       ! Loop over grid boxes
+!$OMP PARALLEL DO
+!$OMP+DEFAULT( SHARED )
+!$OMP+PRIVATE( I, J, L, LAT_MID, CH3Br_conc )
       DO L = 1, LLPAR
       DO J = 1, JJPAR
       DO I = 1, IIPAR
          IF ( GET_FRAC_UNDER_PBLTOP( I, J, L ) > 0d0 ) THEN
-                  
-            ! testing
-            count = count + 1
 
             ! base lat band selection on midpoint
             ! latitude of the box
@@ -555,10 +561,10 @@
 
          ENDIF  ! end selection of PBL boxes
 
-      END DO
-      END DO
-      END DO
-      
+      ENDDO
+      ENDDO
+      ENDDO
+!$OMP END PARALLEL DO
 
       END SUBROUTINE SET_CH3Br
 !EOC
@@ -616,6 +622,7 @@
 ! !REVISION HISTORY:
 !  12 Feb 2008 - J. Parrella - Initial version
 !  22 May 2012 - M. Payer    - Added ProTeX headers
+!  27 Aug 2012 - M. Payer    - Added parallel DO loop
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -652,6 +659,9 @@
       !=================================================================
 
       ! Loop over grid boxes
+!$OMP PARALLEL DO
+!$OMP+DEFAULT( SHARED )
+!$OMP+PRIVATE( I, J, L, IJLOOP, BrO_conc )
       DO J = 1, JJPAR
          lon_loop: DO I = 1, IIPAR
 
@@ -700,11 +710,10 @@
                ENDIF            ! end selection of PBL boxes
 
             END DO              !END l-loop over altitudes
-
          END DO lon_loop        !END i-loop over longitudes
-         
       END DO                    !END j-loop over latitudes
-      
+!$OMP END PARALLEL DO
+
       RETURN
 
       END SUBROUTINE SET_BRO
@@ -744,6 +753,7 @@
 !  13 Aug 2007 - J. Parrella - Initial version
 !  22 May 2012 - M. Payer    - Added ProTeX headers
 !  24 Aug 2012 - R. Yantosca - DO_REGRID_A2A now reads netCDF input file
+!  27 Aug 2012 - M. Payer    - Added parallel DO loop
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -844,6 +854,9 @@
 
       ! Calculating the CHBr3 emission rate [molecules/box/s]
       ! from Qing Liang's emissions distribution...
+!$OMP PARALLEL DO
+!$OMP+DEFAULT( SHARED )
+!$OMP+PRIVATE( I, J )
       DO J = 1, JJPAR
       DO I = 1, IIPAR
 
@@ -860,6 +873,7 @@
 
       ENDDO
       ENDDO
+!$OMP END PARALLEL DO
 
       IF ( LPRT ) CALL DEBUG_MSG( ' ### Post-Reading VSL files' )
 
