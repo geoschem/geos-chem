@@ -71,8 +71,9 @@
       USE LOGICAL_MOD,            ONLY : LRCP, LRCPSHIP, LRCPAIR
       USE BPCH2_MOD,              ONLY : GET_TAU0, GET_RES_EXT
       USE TRACERID_MOD
-      USE TRACER_MOD, ONLY      : TRACER_NAME
-      USE COMODE_LOOP_MOD, ONLY : IDEMS
+      USE TRACER_MOD,             ONLY : TRACER_NAME
+
+#     include "define.h"
 
       !Local variables
       LOGICAL, SAVE                 :: FIRST = .TRUE.
@@ -111,11 +112,10 @@
 
          ! Land file name
          FILENAME = TRIM( DATA_DIR )        // 'RCP_201110/'     //
-     &          print*,NTRACER, IDT, TRIM(FILENAME)                    trim( RCPNAME )  // '/'               //
+     &                     trim( RCPNAME )  // '/'               //
      &                     trim( RCPNAME )  // '_anthropogenic_' // 
      &                     trim( YEARSTR )  // '.'               //
      &                     GET_RES_EXT()    // '.bpch' 
-
          ! Date for emissions
          ! Land emissions dated Jan 1 because all months are the same
          XTAU = GET_TAU0( 1, 1, RCPYEAR ) 
@@ -200,7 +200,7 @@
       INTEGER                         :: HALFPOLAR, CENTER180
       INTEGER                         :: SCALEYEAR, BASEYEAR
       REAL*4                          :: LONRES, LATRES
-      REAL*4                          :: ARRAY(IGLOB,JGLOB,LLPAR)
+      REAL*4                          :: ARRAY(IIPAR,JJPAR,LLPAR)
       REAL*4                          :: TMP(IIPAR,JJPAR)
       REAL*8                          :: ZTAU0, ZTAU1
       CHARACTER(LEN=20)               :: MODELNAME
@@ -473,7 +473,7 @@
       ! ND32 -- save NOx in [molec/cm2], will convert to
       ! [molec/cm2/s] in subroutine "diag3.f" (bmy, 3/16/00)
       IF ( ND32 > 0 ) THEN
-         DO L=1, LLPAR
+         DO L=1, LLTROP
          DO J=1, JJPAR
          DO I=1, IIPAR
             AD32_ac(I,J,L) = AD32_ac(I,J,L) + 
@@ -499,7 +499,7 @@
       USE GRID_MOD,     ONLY : GET_AREA_CM2
       USE TRACER_MOD,   ONLY : TRACER_MW_KG
       USE TRACER_MOD,   ONLY : TRACER_NAME
-      USE ERROR_MOD,    ONLY :GEOS_CHEM_STOP
+      USE ERROR_MOD,    ONLY : GEOS_CHEM_STOP
 
       USE CMN_SIZE_MOD       ! Size parameters
 

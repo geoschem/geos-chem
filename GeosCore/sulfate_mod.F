@@ -7171,11 +7171,14 @@
       USe EMEP_MOD,             ONLY : GET_EUROPE_MASK
       USE FUTURE_EMISSIONS_MOD, ONLY : GET_FUTURE_SCALE_NH3an
       USE LOGICAL_MOD,          ONLY : LFUTURE,         LSTREETS
-      USE LOGICAL_MOD,          ONLY : LEMEP
+      USE LOGICAL_MOD,          ONLY : LEMEP,           LRCP
       USE STREETS_ANTHRO_MOD,   ONLY : GET_SE_ASIA_MASK
       USE STREETS_ANTHRO_MOD,   ONLY : GET_STREETS_ANTHRO
       USE TRACERID_MOD,         ONLY : IDTNH3
       USE TRANSFER_MOD,         ONLY : TRANSFER_2D
+      USE GRID_MOD,             ONLY : GET_AREA_CM2
+      USE RCP_MOD,              ONLY : GET_RCP_EMISSION
+      USE TRACER_MOD,           ONLY : XNUMOL
 
       USE CMN_SIZE_MOD               ! Size parameters
 
@@ -7197,68 +7200,101 @@
       ! READ_ANTHRO_NH3 begins here!
       !=================================================================
 
-      ! File name
-      FILENAME = TRIM( DATA_DIR )                         //
-     &           'sulfate_sim_200508/NH3_anthsrce.'       //
-     &           GET_NAME_EXT_2D() // '.' // GET_RES_EXT()
+      !-----------------------------------------------------------
+      ! Use RCP NH3 emissions 
+      ! (mpayer, cdh, 6/28/12)
+      !-----------------------------------------------------------   
+      IF ( LRCP ) THEN
 
-      ! Echo output
-      WRITE( 6, 100 ) TRIM( FILENAME )
- 100  FORMAT( '     - READ_ANTHRO_NH3: Reading ', a )
+!$OMP PARALLEL DO
+!$OMP+DEFAULT( SHARED )
+!$OMP+PRIVATE( I, J, AREA_CM2 )
+         DO J = 1, JJPAR
+
+            ! Grid box surface area [cm2]
+            AREA_CM2 = GET_AREA_CM2( J )
+            
+            DO I = 1, IIPAR
+
+               ! Read RCP NH3 emissions in [molec/cm2/s]
+               ENH3_an(I,J) = GET_RCP_EMISSION( I, J, IDTNH3,  
+     &                                          LAND=.TRUE. )
+               
+               ! Convert molec/cm2/s -> kg SO2/BOX/s
+               ENH3_an(I,J) = ENH3_an(I,J) * AREA_CM2 / XNUMOL(IDTNH3)
+               
+            ENDDO 
+         ENDDO
+!$OMP END PARALLEL DO
+
+      ELSE
+
+         ! File name
+         FILENAME = TRIM( DATA_DIR )                         //
+     &              'sulfate_sim_200508/NH3_anthsrce.'       //
+     &              GET_NAME_EXT_2D() // '.' // GET_RES_EXT()
+
+         ! Echo output
+         WRITE( 6, 100 ) TRIM( FILENAME )
+ 100     FORMAT( '     - READ_ANTHRO_NH3: Reading ', a )
       
-      ! Get TAU value (use year 1990, the year of the data!)
-      XTAU = GET_TAU0( THISMONTH, 1, 1990 )
+         ! Get TAU value (use year 1990, the year of the data!)
+         XTAU = GET_TAU0( THISMONTH, 1, 1990 )
 	
-      ! Read 1990 NH3 emissions [kg N/box/mon]
-      CALL READ_BPCH2( FILENAME, 'NH3-ANTH',    29,  
-     &                 XTAU,      IIPAR,        JJPAR,       
-     &                 1,         ARRAY(:,:,1), QUIET=.TRUE. )
+         ! Read 1990 NH3 emissions [kg N/box/mon]
+         CALL READ_BPCH2( FILENAME, 'NH3-ANTH',    29,  
+     &                    XTAU,      IIPAR,        JJPAR,       
+     &                    1,         ARRAY(:,:,1), QUIET=.TRUE. )
 
-      ! Cast from REAL*4 to REAL*8
-      CALL TRANSFER_2D( ARRAY(:,:,1), ENH3_an )
+         ! Cast from REAL*4 to REAL*8
+         CALL TRANSFER_2D( ARRAY(:,:,1), ENH3_an )
 
 !$OMP PARALLEL DO
 !$OMP+DEFAULT( SHARED )
 !$OMP+PRIVATE( I, J, STREETS )
-      DO J = 1, JJPAR
-      DO I = 1, IIPAR
+         DO J = 1, JJPAR
+         DO I = 1, IIPAR
 
-         ! Convert from [kg N/box/mon] to [kg NH3/box/s]
-         ENH3_an(I,J) = ENH3_an(I,J) * ( 17.d0 / 14.d0 ) 
-     &                / ( NMDAY(THISMONTH) * 86400.d0 )
+            ! Convert from [kg N/box/mon] to [kg NH3/box/s]
+            ENH3_an(I,J) = ENH3_an(I,J) * ( 17.d0 / 14.d0 ) 
+     &                   / ( NMDAY(THISMONTH) * 86400.d0 )
 
-         ! Compute future NH3an emissions, if necessary
-         ! Moved here since Streets and EMEP should have already
-         ! applied FUTURE scale factors if needed 
-         IF ( LFUTURE ) THEN
-            ENH3_an(I,J) = ENH3_an(I,J) * GET_FUTURE_SCALE_NH3an( I, J )
-         ENDIF
+            ! Compute future NH3an emissions, if necessary
+            ! Moved here since Streets and EMEP should have already
+            ! applied FUTURE scale factors if needed 
+            IF ( LFUTURE ) THEN
+               ENH3_an(I,J) = ENH3_an(I,J) *
+     &                        GET_FUTURE_SCALE_NH3an( I, J )
+            ENDIF
 
-         ! If we are using David Streets' emissions ...
-         IF ( LSTREETS ) THEN
+            ! If we are using David Streets' emissions ...
+            IF ( LSTREETS ) THEN
 
-            ! If we are over the SE Asia region ...
-            IF ( GET_SE_ASIA_MASK( I, J ) > 0d0  ) THEN
+               ! If we are over the SE Asia region ...
+               IF ( GET_SE_ASIA_MASK( I, J ) > 0d0  ) THEN
 
-               ! Overwrite with David Streets emissions if available [kg NH3/s]
-               STREETS = GET_STREETS_ANTHRO( I,      J, 
-     &                                       IDTNH3, KG_S=.TRUE.)
+                  ! Overwrite with David Streets emissions if available
+                  ! [kg NH3/s]
+                  STREETS = GET_STREETS_ANTHRO( I,      J, 
+     &                                          IDTNH3, KG_S=.TRUE.)
 
-               IF ( .not. ( STREETS < 0d0 ) )
-     $              ENH3_an(I,J) = STREETS
+                  IF ( .not. ( STREETS < 0d0 ) )
+     $                 ENH3_an(I,J) = STREETS
                
+               ENDIF
             ENDIF
-         ENDIF
 
-         IF ( LEMEP ) THEN
-            IF ( GET_EUROPE_MASK(I,J) > 0d0) THEN
-               ENH3_an(I,J) = GET_EMEP_ANTHRO(I,J,IDTNH3,KG_S=.TRUE.)
+            IF ( LEMEP ) THEN
+               IF ( GET_EUROPE_MASK(I,J) > 0d0) THEN
+                  ENH3_an(I,J) = GET_EMEP_ANTHRO(I,J,IDTNH3,KG_S=.TRUE.)
+               ENDIF
             ENDIF
-         ENDIF
 
-      ENDDO
-      ENDDO
+         ENDDO
+         ENDDO
 !$OMP END PARALLEL DO
+
+      ENDIF
 
       ! Return to calling program
       END SUBROUTINE READ_ANTHRO_NH3
