@@ -139,6 +139,8 @@
       ! External Functions
       REAL*8  :: BIOFIT
 
+      LOGICAL, SAVE          :: FIRSTCANOPY = .TRUE. 
+
       ! Arrays
       REAL*8  :: RI  (NSOILB)       
       REAL*8  :: RLU (NSOILB)      
@@ -168,7 +170,10 @@
       F0    = 0.1d0               ! Reactivity factor for biological oxidation 
       XMW   = 46d-3               ! Molecular wt of NO2 (kg)
 
-      CALL READ_RESISTANCES
+	 IF ( FIRSTCANOPY ) THEN
+      		CALL READ_RESISTANCES
+		FIRSTCANOPY = .FALSE. ! Now only read resistances once
+	 ENDIF
        
       ! Loop over surface boxes
       DO J = 1, JJPAR

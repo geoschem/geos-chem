@@ -380,7 +380,7 @@ C     &                                             0.05d0           /)
      & 			      WINDSQR, SUNCOS )
 
 	!Maasa Diagnostics
-	IF ( I == 69 .and. J == 51 .and. LANDFRAC(K) .NE. 0. ) THEN 
+	IF ( I == 47 .and. J == 51 .and. LANDFRAC(K) .NE. 0. ) THEN 
 
            WRITE(6,*) '===========TESTCRF==================='
            WRITE(6,*) 'IX = ', I, 'JX =', J
@@ -407,7 +407,7 @@ C     &                                             0.05d0           /)
      &             * LANDFRAC(K)
      &             * ( 1.d0 - CRF_TERM  ) ) !maasaCRF
 
-	 IF ( I == 69 .and. J == 51 .and. LANDFRAC(K) .NE. 0. ) THEN 
+	 IF ( I == 47 .and. J == 51 .and. LANDFRAC(K) .NE. 0. ) THEN 
 
            WRITE(6,*) '===========TEST==================='
            WRITE(6,*) 'IX = ', I, 'JX =', J

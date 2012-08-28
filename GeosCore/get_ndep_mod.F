@@ -60,9 +60,7 @@
       USE TRACERID_MOD,      ONLY : IDTNH4,    IDTNIT, IDTNH4aq 
       USE TRACERID_MOD,      ONLY : IDTHNO3,   IDTNH3, IDTNITs
       USE TRACERID_MOD,      ONLY : IDTNOx,    IDTPAN
-      USE TRACERID_MOD,      ONLY : IDTNIT
       USE COMMSOIL_MOD
-      USE CMN_SIZE_MOD
 
       INTEGER, INTENT(IN)  :: I           ! I
       INTEGER, INTENT(IN)  :: J           ! J
@@ -102,10 +100,7 @@
       ! Reference to F90 modules
       USE TRACERID_MOD,      ONLY : IDTNH4,    IDTNIT, IDTNH4aq 
       USE TRACERID_MOD,      ONLY : IDTHNO3,   IDTNH3, IDTNITs
-      USE TRACERID_MOD,      ONLY : IDTNIT
       USE COMMSOIL_MOD
-      USE CMN_SIZE_MOD
-
 
       INTEGER, INTENT(IN)  :: I           ! I
       INTEGER, INTENT(IN)  :: J           ! J
@@ -142,12 +137,7 @@
 
       !Just for testing
 	!Rynda Testing !maasatemp
-      USE GRID_MOD,          ONLY : GET_YMID !Maasatemp
-      USE GRID_MOD,          ONLY : GET_XMID !Maasatemp
-      USE TRACERID_MOD,      ONLY : IDTNH3, IDTNH4, IDTHNO3, IDTNIT
       USE COMMSOIL_MOD
-      USE CMN_SIZE_MOD
-
 
       INTEGER,  INTENT(IN)  :: I
       INTEGER,  INTENT(IN)  :: J
@@ -206,6 +196,8 @@
       IF ( I == 41 .and. J == 65) THEN
          WRITE(6,*) 'DEPFERT',  DEP_FERT
          WRITE(6,*) 'RES' ,     DEP_RESERVOIR(I,J)
+	 WRITE(6,*) 'DRYN (ng N /m2/s)', DRYN
+         WRITE(6,*) 'WETN (ng N /m2/s)', WETN
          WRITE(6,*) 'DRYN + WETN (ng N /m2/s)', DRYN + WETN
          CALL FLUSH(6)
 
@@ -228,7 +220,6 @@
 !
       FUNCTION SOURCE_DRYN( I, J  ) RESULT( DRYN )
 
-      USE TRACERID_MOD,      ONLY : IDTNH3, IDTNH4, IDTHNO3, IDTNIT
       USE COMMSOIL_MOD   
       USE CMN_DIAG_MOD    
       !Just for testing
@@ -318,7 +309,6 @@
       USE COMMSOIL_MOD
       USE GRID_MOD,          ONLY : GET_AREA_M2
       USE CMN_DIAG_MOD
-      USE TRACERID_MOD,      ONLY : IDTNH3, IDTNH4, IDTHNO3, IDTNIT
 
 ! !INPUT PARAMETERS: 
 !

@@ -858,6 +858,8 @@
                IF (LSOILNOX ) THEN
                  CALL SOIL_DRYDEP ( I, J, L, NN, TDRYFX)
                ENDIF
+
+
 !$OMP END CRITICAL
 
             ENDIF

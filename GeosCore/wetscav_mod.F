@@ -4295,11 +4295,6 @@
      &                               DT,  STT,    DSTT         )
             ENDIF
 
- 		!###Rynda arcive wet loss in kg/s
-                  IF ( LSOILNOX ) THEN
-                  CALL SOIL_WETDEP ( I, J, L, N, WETLOSS / DT )
-                  ENDIF
-
             ! Save FTOP for the next lower level 
             FTOP = F
          ENDIF
@@ -4421,11 +4416,6 @@
      &                               DT,  STT,    DSTT               )
             
 
- 		!###Rynda arcive wet loss in kg/s
-                  IF ( LSOILNOX ) THEN
-                  CALL SOIL_WETDEP ( I, J, L, N, WETLOSS / DT )
-                  ENDIF
-
 		ENDIF
 
             !==============================================================
@@ -4468,11 +4458,6 @@
      &                               STT,       DSTT             )
             
 
- 		!###Rynda arcive wet loss in kg/s
-                  IF ( LSOILNOX ) THEN
-                  CALL SOIL_WETDEP ( I, J, L, N, WETLOSS / DT )
-                  ENDIF
-
 		ENDIF
 
             !===========================================================
@@ -4502,12 +4487,7 @@
 
             ! Save FTOP for next level
             FTOP = F_RAINOUT + F_WASHOUT
-
-		!###Rynda arcive wet loss in kg/s
-                  IF ( LSOILNOX ) THEN
-                  CALL SOIL_WETDEP ( I, J, L, N, WETLOSS / DT )
-                  ENDIF
-             
+           
          ENDDO               
 
          !==============================================================
@@ -4546,11 +4526,6 @@
      &                                 DT,  STT,    DSTT      )
             ENDIF   
 
-		!###Rynda arcive wet loss in kg/s
-                  IF ( LSOILNOX ) THEN
-                  CALL SOIL_WETDEP ( I, J, L, N, WETLOSS / DT )
-                  ENDIF
- 
          ENDIF
 
          !==============================================================

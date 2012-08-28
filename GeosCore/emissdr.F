@@ -228,9 +228,9 @@
          ! Just for now initialize Pfactor and DrySpell this way 
          IF ( FIRSTEMISS ) THEN
 
-         PFACTOR(:,:)   = 0.0 
-         DRYPERIOD(:,:) = 0.0
-         GWET_PREV(:,:) = 0.0
+!         PFACTOR(:,:)   = 0.0 
+!         DRYPERIOD(:,:) = 0.0
+!         GWET_PREV(:,:) = 0.0
          INST_SOIL(:,:) = 0.0
          INST_FERT(:,:) = 0.0
 
@@ -310,7 +310,7 @@
               AD32_so(I,J) = AD32_so(I,J) + GEMISNOX2(I,J)
               AD32_fe(I,J) = AD32_fe(I,J) + FERTDIAG
             ENDIF
-            IF ( I == 69 .and. J == 51 ) THEN 
+            IF ( I == 47 .and. J == 51 ) THEN 
             WRITE(6,*) LON, LAT,  ' SOIL TOT = ', GEMISNOX2(I,J)
             WRITE(6,*) LON, LAT,  ' DIAG TOT = ', AD32_so(I,J)
             WRITE(6,*) LON, LAT,  ' FERT TOT = ', AD32_fe(I,J)
@@ -376,7 +376,7 @@
       ! These need to be initialized on every call
       EMISRRN     = 0d0
       EMISRR      = 0d0
-      GEMISNOX2   = 0d0
+      !GEMISNOX2   = 0d0
       EMISS_BVOC  = 0d0  ! Add BVOC emissions (mpb,2009)
       
       ! Loop over latitudes

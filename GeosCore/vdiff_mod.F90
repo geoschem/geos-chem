@@ -1833,6 +1833,9 @@ contains
     USE TRACER_MOD,   ONLY: ITS_A_FULLCHEM_SIM  !bmy
     USE OCEAN_MERCURY_MOD, ONLY : Fp, Fg !hma
 
+    USE LOGICAL_MOD,  ONLY : LSOILNOX
+    USE GET_NDEP_MOD, ONLY : SOIL_DRYDEP
+
 #   include "define.h"
 
     implicit none
@@ -1887,6 +1890,7 @@ contains
     real*8 :: p0 = 1.d5
     real*8 :: dtime
     real*8 :: wk1, wk2
+    real*8 :: soilflux
     integer :: pbl_top
       
     REAL*8  :: DEP_KG !(cdh, 8/28/09)
@@ -1914,6 +1918,7 @@ contains
     sflx    = 0d0
     eflx    = 0d0
     dflx    = 0d0
+    soilflux = 0d0
     cgs     = 0d0
     kvh     = 0d0
     kvm     = 0d0
@@ -2320,7 +2325,7 @@ contains
     ! drydep fluxes diag. for SMVGEAR mechanism 
     ! for gases -- moved from DRYFLX in drydep_mod.f to here
     ! for aerosols -- 
-    if (ND44 > 0 .or. LGTMM ) then 
+    if (ND44 > 0 .or. LGTMM .or. LSOILNOX) then
 
        do N = 1, NUMDEP
           SELECT CASE ( DEPNAME(N) )
@@ -2337,9 +2342,26 @@ contains
                 ! only for the lowest model layer
                 ! Convert : kg/m2/s -> molec/cm2/s
                 ! consider timestep difference between convection and emissions
-                AD44(:,:,N,1) = AD44(:,:,N,1) + dflx(:,:,NN) &
+		IF(ND44 > 0 .or. LGTMM) THEN                
+		AD44(:,:,N,1) = AD44(:,:,N,1) + dflx(:,:,NN) &
                                 / TRACER_MW_KG(NN) * 6.022d23 * 1.d-4 &
                                 * GET_TS_CONV() / GET_TS_EMIS() 
+		ENDIF
+
+		IF(LSOILNOX) THEN
+			soilflux = 0d0
+			DO J = 1, JJPAR
+		 	DO I = 1, IIPAR			
+				soilflux = dflx(I,J,NN) &
+		                        / TRACER_MW_KG(NN) * 6.022d23 * 1.d-4 &
+		                        * GET_TS_CONV() / GET_TS_EMIS() 
+
+		      	        CALL SOIL_DRYDEP ( I, J, 1, NN, soilflux)
+			ENDDO
+			ENDDO
+			!WRITE(6,*)  'Groetjes uit vdiff_mod LSOILNOX'
+		ENDIF
+
           END SELECT
        enddo
 
@@ -2358,6 +2380,8 @@ contains
 
 
     endif
+
+	!Maasa, Add SoilNOx deposition to allow SN code to work with NLPBL on.
 
     !### Debug
     IF ( LPRT ) CALL DEBUG_MSG( '### VDIFFDR: after emis. and depdrp' )
