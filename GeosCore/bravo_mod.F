@@ -200,6 +200,8 @@
 !  22 Jun 2006 - R. Park, F. Boersma, R. Yantosca - Initial version
 !  (1 ) Now pass the unit string to DO_REGRID_G2G_1x1 (bmy, 8/9/06)
 !  13 Mar 2012 - M. Cooper   - Changed regrid algorithm to map_a2a
+!  24 May 2012 - R. Yantosca - Fixed minor bugs in map_a2a implementation
+!  24 Aug 2012 - R. Yantosca - DO_REGRID_A2A now reads netCDF input file
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -209,13 +211,13 @@
       LOGICAL, SAVE           :: FIRST = .TRUE.
       INTEGER                 :: SCALEYEAR
       REAL*4                  :: ARRAY(I1x1,J1x1-1,1)
-      REAL*8                  :: GEN_1x1(I1x1,J1x1-1)
+      REAL*8, TARGET          :: GEN_1x1(I1x1,J1x1-1)
       REAL*4                  :: SC(IIPAR,JJPAR)
       REAL*8                  :: TAU0
       CHARACTER(LEN=255)      :: FILENAME
       CHARACTER(LEN=255)      :: LLFILENAME
-      REAL*8, ALLOCATABLE     :: OUTGRID(:,:)
-      REAL*8, ALLOCATABLE     :: INGRID(:,:)
+      REAL*8, POINTER         :: INGRID(:,:) => NULL()
+      REAL*8                  :: OUTGRID(IIPAR,JJPAR)
 
 #if defined( DEVEL )
       REAL*8, INTENT(INOUT)   :: EMISSIONS(IIPAR,JJPAR,N_TRACERS)
@@ -267,19 +269,20 @@
 
       ! File with lat/lon edges for regridding
       LLFILENAME = TRIM( DATA_DIR_1x1) //
-     &             'MAP_A2A_Regrid_200312/latlon_generic.txt'
-
-      ! Allocate arrays for regridding
-      ALLOCATE(INGRID(I1x1,J1x1-1))
-      ALLOCATE(OUTGRID(IIPAR,JJPAR))
+     &             'MAP_A2A_Regrid_201203/MAP_A2A_latlon_generic1x1.nc'
 
       ! Regrid to NOx [molec/cm2/s] current model resolution
-      INGRID = GEN_1x1(:,:)
-      CALL DO_REGRID_A2A( LLFILENAME, 360, 181, INGRID, OUTGRID, 0 )
+      INGRID => GEN_1x1
+      CALL DO_REGRID_A2A( LLFILENAME, I1x1,    J1x1-1, 
+     &                    INGRID,     OUTGRID, PERAREA=0,
+     &                    netCDF=.TRUE.                   )
 
       ! Get & apply scaling factor
       CALL GET_ANNUAL_SCALAR( 71, 1999, SCALEYEAR, SC )
       BRAVO_NOx = OUTGRID * SC
+
+      ! Free pointer
+      NULLIFY( INGRID )
 
       !---------------------
       ! Read and regrid CO
@@ -301,12 +304,18 @@
       GEN_1x1(:,:) = ARRAY(:,:,1)
 
       ! Regrid CO [molec/cm2/s] to current model resolution
-      INGRID = GEN_1x1(:,:)
-      CALL DO_REGRID_A2A( LLFILENAME, 360, 181, INGRID, OUTGRID, 0 )
+      INGRID => GEN_1x1
+      CALL DO_REGRID_A2A( LLFILENAME, I1x1,    J1x1-1, 
+     &                    INGRID,     OUTGRID, PERAREA=0, 
+     &                    netCDF=.TRUE.                   )
+
 
       ! Get & apply scaling factor
       CALL GET_ANNUAL_SCALAR( 72, 1999, SCALEYEAR, SC )
-      BRAVO_CO=OUTGRID * SC
+      BRAVO_CO = OUTGRID * SC
+
+      ! Free pointer
+      NULLIFY( INGRID )
 
       !---------------------
       ! Read and regrid SO2
@@ -328,16 +337,17 @@
       GEN_1x1(:,:) = ARRAY(:,:,1)
 
       ! Regrid SO2 [molec/cm2/s] to current model resolution
-      INGRID = GEN_1x1(:,:)
-      CALL DO_REGRID_A2A( LLFILENAME, 360, 181, INGRID, OUTGRID, 0 )
+      INGRID => GEN_1x1
+      CALL DO_REGRID_A2A( LLFILENAME, I1x1,    J1x1-1, 
+     &                    INGRID,     OUTGRID, PERAREA=0,
+     &                    netCDF=.TRUE.                   )
 
       ! Get & apply scaling factor
       CALL GET_ANNUAL_SCALAR( 73, 1999, SCALEYEAR, SC )
       BRAVO_SO2 = OUTGRID * SC
 
-      ! Deallocate arrays for regridding
-      DEALLOCATE(INGRID)
-      DEALLOCATE(OUTGRID)
+      ! Nullify pointer
+      NULLIFY( INGRID )
 
       !=================================================================
       ! Compute IPCC future emissions (if necessary)
@@ -555,19 +565,20 @@
 !  22 Jun 2006 - R. Park, F. Boersma, R. Yantosca - Initial version
 !  (1 ) Now pass UNIT to DO_REGRID_G2G_1x1 (bmy, 8/9/06)
 !  06 Apr 2012 - M. Payer    - Changed regrid algorithm to map_a2a (M. Cooper)
+!  24 May 2012 - R. Yantosca - Fixed minor bugs in map_a2a implementation
+!  15 Aug 2012 - M. Payer    - Set mask to 1 if greater than 0 (L. Murray)
+!  24 Aug 2012 - R. Yantosca - DO_REGRID_A2A now reads netCDF input file
 !EOP
 !------------------------------------------------------------------------------
 !BOC
 !
 ! !LOCAL VARIABLES:
 !
-      REAL*4                  :: ARRAY(I1x1,J1x1-1,1)
-      REAL*8                  :: GEN_1x1(I1x1,J1x1-1)
+      REAL*4                  :: ARRAY  (I1x1,J1x1-1,1)
+      REAL*8                  :: GEN_1x1(I1x1,J1x1-1  )
       REAL*8                  :: XTAU
       CHARACTER(LEN=255)      :: FILENAME 
       CHARACTER(LEN=255)      :: LLFILENAME
-      REAL*8, ALLOCATABLE     :: OUTGRID(:,:)
-      REAL*8, ALLOCATABLE     :: INGRID(:,:)
 
       !=================================================================
       ! READ_BRAVO_MASK begins here!
@@ -594,20 +605,14 @@
 
       ! File with lat/lon edges for regridding
       LLFILENAME = TRIM( DATA_DIR_1x1) //
-     &             'MAP_A2A_Regrid_200312/latlon_generic.txt'
-
-      ! Allocate arrays for regridding
-      ALLOCATE(INGRID(I1x1,J1x1-1))
-      ALLOCATE(OUTGRID(IIPAR,JJPAR))
+     &             'MAP_A2A_Regrid_201203/MAP_A2A_latlon_generic1x1.nc'
 
       ! Regrid to current model resolution [unitless]
-      INGRID = GEN_1x1(:,:)
-      CALL DO_REGRID_A2A( LLFILENAME, 360, 181, INGRID, OUTGRID, 0 )
-      BRAVO_MASK = OUTGRID
+      CALL DO_REGRID_A2A( LLFILENAME, I1x1,       J1x1-1, 
+     &                    GEN_1x1,    BRAVO_MASK, PERAREA=0,
+     &                    netCDF=.TRUE.                      )
 
-      ! Deallocate arrays for regridding
-      DEALLOCATE(INGRID)
-      DEALLOCATE(OUTGRID)
+      WHERE ( BRAVO_MASK > 0D0 ) BRAVO_MASK = 1D0
 
       END SUBROUTINE READ_BRAVO_MASK
 !EOC

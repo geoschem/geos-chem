@@ -94,6 +94,8 @@
 !  10 Feb 2012 - R. Yantosca - Added GRID025x03125 C-preprocessor switch
 !  28 Feb 2012 - R. Yantosca - Removed support for GEOS-3
 !  23 Apr 2012 - R. Yantosca - Cosmetic changes
+!  29 May 2012 - S. Kim      - Added SEAC4RS C-preprocessor switch
+!  10 Jun 2012 - L. Murray   - GRIDREDUCED no longer required for GEOS5.
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -115,6 +117,7 @@
 #undef GRID05x0666
 #undef NESTED_NA
 #undef NESTED_CH
+#undef SEAC4RS
 #undef NESTED_EU
 #undef IBM_AIX
 #undef IBM_XLF
@@ -141,6 +144,8 @@
 !#define NESTED_CH        'NESTED_CH'
 !#define NESTED_NA        'NESTED_NA'
 !#define NESTED_EU        'NESTED_EU'
+!#define SEAC4RS          'SEAC4RS'
+!#define GRID025x03125    'GRID025x03125'
 !#define GRID05x0666      'GRID05x0666'
 !#define GRID1x1          'GRID1x1'
 !#define GRID1x125        'GRID1x125'
@@ -183,32 +188,5 @@
 #error "ERROR: One of IBM_AIX, IBL_XLF, LINUX_PGI, LINUX_IFORT,"
  #error "SPARC must be defined in header file define.h"
 #endif
-
-!%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-!%%% NOTE: SCHEM is scheduled to be removed from GEOS-Chem v9-01-03
-!%%%
-!%%% SCHEM PATCH: Stop the run if we are running w/ the GEOS-5 72Ll grid
-!%%% This prevents dimension mismatch when reading SCHEM data fields!
-!%%% (ltm, bmy, 6/2/10)
-#if defined( GEOS_5 ) && !defined( GRIDREDUCED )
-#error "Cannot run GEOS-5 with the full vertical 72 level grid!"
-#error "We are working on a patch to fix this soon!"
-#endif 
-!%%% SCHEM PATCH: Stop the run if we are running w/ the GEOS-5.7x 72L grid
-!%%% This prevents dimension mismatch when reading SCHEM data fields!
-!%%% (ltm, bmy, 6/2/10)
-#if defined( GEOS_57 ) && !defined( GRIDREDUCED )
-#error "Cannot run GEOS-5.7.x with the full vertical 72 level grid!"
-#error "We are working on a patch to fix this soon!"
-#endif 
-!%%% SCHEM PATCH: Stop the run if we are running w/ MERRA 72-level grid
-!%%% This prevents dimension mismatch when reading SCHEM data fields!
-!%%% (ltm, bmy, 6/2/10)
-#if defined( MERRA ) && !defined( GRIDREDUCED )
-#error "Cannot run MERRA with the full vertical 72 level grid!"
-#error "We are working on a patch to fix this soon!"
-#endif 
-!%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-
 
 !EOC

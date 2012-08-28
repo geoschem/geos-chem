@@ -17,13 +17,9 @@
 !
 ! !USES:
 !
-#if defined( DEVEL )
-      USE CMN_SIZE_MOD, ONLY : IIPAR, JJPAR, LLPAR
-#else
-      USE CMN_FJ_MOD,   ONLY : LPAR, IPAR, JPAR
-#endif
-      USE CMN_SIZE_MOD, ONLY : NDUST, NAER, NRH
-      USE CMN_FJ_MOD,   ONLY : JPMAX
+      USE CMN_SIZE_MOD,      ONLY : IIPAR, JJPAR, LLPAR
+      USE CMN_SIZE_MOD,      ONLY : NDUST, NAER, NRH
+      USE CMN_FJ_MOD,        ONLY : JPMAX
       USE SMV_DIMENSION_MOD, ONLY : MAX_COLUMN
 
       IMPLICIT NONE
@@ -37,10 +33,12 @@
       ! NW  Maximum number of wavelength bins that can be used
       ! NP  Maximum number of aerosol/cloud types that can be used
       ! MX  Number of aerosol/cloud types supplied from CTM
-#if defined( DEVEL )
+#if defined( DEVEL ) || defined( EXTERNAL_GRID ) || defined( EXTERNAL_FORCING )
+      ! NOTE: MAX_COLUMN is set to 47L for GRIDREDUCED or 72L otherwise
+      ! This is kludge to let us test the DEVEL code (bmy, mlong, 8/10/12)
       INTEGER, PARAMETER :: NB      = MAX_COLUMN+1
 #else
-      INTEGER, PARAMETER :: NB      = LPAR+1
+      INTEGER, PARAMETER :: NB      = LLPAR+1
 #endif
       INTEGER, PARAMETER :: NC      = 2*NB
       INTEGER, PARAMETER :: NS      = 51
@@ -80,8 +78,8 @@
       REAL*8, ALLOCATABLE  :: ODMDUST(:,:,:,:)
       REAL*8, ALLOCATABLE  :: ODAER(:,:,:,:)
 #else
-      REAL*8  :: ODMDUST(IPAR,JPAR,LPAR,NDUST)
-      REAL*8  :: ODAER(IPAR,JPAR,LPAR,NAER*NRH)
+      REAL*8  :: ODMDUST(IIPAR,JJPAR,LLPAR,NDUST   )
+      REAL*8  :: ODAER  (IIPAR,JJPAR,LLPAR,NAER*NRH)
 #endif
 
       REAL*8  :: jfacta(JPMAX),zpdep(NW,7)
@@ -207,8 +205,8 @@
 !
 ! !USES:
 !
-      USE CMN_SIZE_MOD, ONLY : NDUST, NAER, NRH
-      USE CMN_FJ_MOD,   ONLY : JPMAX, LPAR, IPAR, JPAR
+      USE CMN_SIZE_MOD, ONLY : NDUST, NAER,  NRH
+      USE CMN_FJ_MOD,   ONLY : JPMAX, LLPAR, IIPAR, JJPAR
 
       IMPLICIT NONE
       PUBLIC
@@ -221,7 +219,12 @@
       ! NW  Maximum number of wavelength bins that can be used
       ! NP  Maximum number of aerosol/cloud types that can be used
       ! MX  Number of aerosol/cloud types supplied from CTM
-      INTEGER, PARAMETER :: NB      = LPAR+1
+!----------------------------------------------------------------------------
+! Prior to 8/10/12:
+! Replace LPAR with LLPAR (bmy, 8/10/12)
+!      INTEGER, PARAMETER :: NB      = LPAR+1
+!----------------------------------------------------------------------------
+      INTEGER, PARAMETER :: NB      = LLPAR+1
       INTEGER, PARAMETER :: NC      = 2*NB
       INTEGER, PARAMETER :: NS      = 51
       INTEGER, PARAMETER :: NW      = 15
@@ -256,8 +259,14 @@
       REAL*8  :: RAA_AOD(NP),SSA_AOD(NP)
 
       REAL*8  :: TREF(51,18,12),OREF(51,18,12),BREF(51)           
-      REAL*8  :: ODMDUST(IPAR,JPAR,LPAR,NDUST)
-      REAL*8  :: ODAER(IPAR,JPAR,LPAR,NAER*NRH)
+!-----------------------------------------------------------
+! Prior to 8/10/12:
+! Replace IPAR, JPAR, LPAR with IIPAr, JJPAR, LLPAR
+!      REAL*8  :: ODMDUST(IPAR,JPAR,LPAR,NDUST)
+!      REAL*8  :: ODAER(IPAR,JPAR,LPAR,NAER*NRH)
+!-----------------------------------------------------------
+      REAL*8  :: ODMDUST(IIPAR,JJPAR,LLPAR,NDUST)
+      REAL*8  :: ODAER  (IIPAR,JJPAR,LLPAR,NAER*NRH)
 
       REAL*8  :: jfacta(JPMAX),zpdep(NW,7)
       INTEGER :: npdep,jpdep(NS),jind(JPMAX)
@@ -276,8 +285,14 @@
       ! (bmy, 5/2/00)
       REAL*8   :: TJ(NB),PJ(NB+1),DM(NB),DO3(NB),DBC(NB),Z(NB)    
       REAL*8   :: AER(MX,NB),AMF(NB,NB),RFLECT,SZA,U0,TANHT
-      REAL*8   :: zj(LPAR,JPMAX)
-      REAL*8   :: FFF(NW,lpar),VALJ(NS)
+!----------------------------------------------
+! Prior to 8/10/12:
+! Replace LPAR with LLPAR (bmy, 8/10/12)
+!      REAL*8   :: zj(LPAR,JPMAX)
+!      REAL*8   :: FFF(NW,lpar),VALJ(NS)
+!----------------------------------------------
+      REAL*8   :: zj(LLPAR,JPMAX)
+      REAL*8   :: FFF(NW,LLPAR),VALJ(NS)
       INTEGER  :: jadsub(NC)
 
 !$OMP THREADPRIVATE( TJ, PJ, DM, DO3, DBC, Z)           
@@ -341,6 +356,7 @@
 !
 ! !REVISION HISTORY:
 !  23 Aug 2011 - M. Long   - Converted to Module from Header file
+!  10 Aug 2012 - R. Yantosca - Replace IPAR, JPAR, LPAR w/ IIPAR, JJPAR, LLPAR
 !EOP
 !------------------------------------------------------------------------------
 !BOC

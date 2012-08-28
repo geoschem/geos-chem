@@ -173,7 +173,7 @@
 !
       SUBROUTINE ISOROPIA (WI, RHI, TEMPI,  CNTRL,
      &                     WT, GAS, AERLIQ, AERSLD, SCASI, OTHER)
-      INCLUDE 'isrpia.inc'
+#     include "isrpia.inc"
       PARAMETER (NCTRL=2,NOTHER=9)
       CHARACTER SCASI*15
       DIMENSION WI(NCOMP), WT(NCOMP),   GAS(NGASAQ),  AERSLD(NSLDS),
@@ -394,7 +394,7 @@
       ! hotp removed 8/30/07
       !SUBROUTINE SETPARM (WFTYPI,  IACALCI, EPSI, MAXITI, NSWEEPI, 
       !&                    EPSACTI, NDIVI, NADJI)
-      !INCLUDE 'isrpia.inc'
+      !#      include "isrpia.inc"
       !INTEGER  WFTYPI
 !
 ! *** SETUP SOLUTION PARAMETERS *****************************************
@@ -434,7 +434,7 @@
 !
       SUBROUTINE GETPARM (WFTYPI,  IACALCI, EPSI, MAXITI, NSWEEPI, 
      &                    EPSACTI, NDIVI, NADJI)
-      INCLUDE 'isrpia.inc'
+#     include "isrpia.inc"
       INTEGER  WFTYPI
 !
 ! *** GET SOLUTION PARAMETERS *******************************************
@@ -472,7 +472,7 @@
 !=======================================================================
 !
       BLOCK DATA BLKISO
-      INCLUDE 'isrpia.inc'
+#     include "isrpia.inc"
 !
 ! *** DEFAULT VALUES *************************************************
 !
@@ -1010,7 +1010,7 @@
 !=======================================================================
 !
       SUBROUTINE INIT1 (WI, RHI, TEMPI)
-      INCLUDE 'isrpia.inc'
+#     include "isrpia.inc"
       DIMENSION WI(NCOMP)
       REAL      IC,GII,GI0,XX,LN10
       PARAMETER (LN10=2.3025851)
@@ -1291,7 +1291,7 @@
 !=======================================================================
 !
       SUBROUTINE INIT2 (WI, RHI, TEMPI)
-      INCLUDE 'isrpia.inc'
+#     include "isrpia.inc"
       DIMENSION WI(NCOMP)
       REAL      IC,GII,GI0,XX,LN10
       PARAMETER (LN10=2.3025851)
@@ -1587,7 +1587,7 @@
 !=======================================================================
 !
       SUBROUTINE ISOINIT3 (WI, RHI, TEMPI)
-      INCLUDE 'isrpia.inc'
+#     include "isrpia.inc"
       DIMENSION WI(NCOMP)
       REAL      IC,GII,GI0,XX,LN10
       PARAMETER (LN10=2.3025851)
@@ -1957,7 +1957,7 @@
 !=======================================================================
 !
       SUBROUTINE INIT4 (WI, RHI, TEMPI)
-      INCLUDE 'isrpia.inc'
+#     include "isrpia.inc"
       DIMENSION WI(NCOMP)
       REAL      IC,GII,GI0,XX,LN10
       PARAMETER (LN10=2.3025851)
@@ -2498,7 +2498,7 @@
 !=======================================================================
 !
       SUBROUTINE ADJUST (WI)
-      INCLUDE 'isrpia.inc'
+#     include "isrpia.inc"
       DOUBLE PRECISION WI(*)
 !
 ! *** FOR AMMONIUM *****************************************************
@@ -2851,7 +2851,7 @@
 !=======================================================================
 !
       SUBROUTINE CALCHA
-      INCLUDE 'isrpia.inc'
+#     include "isrpia.inc"
       DOUBLE PRECISION KAPA
 !C      CHARACTER ERRINF*40
 !
@@ -2907,7 +2907,7 @@
 !=======================================================================
 !
       SUBROUTINE CALCHAP
-      INCLUDE 'isrpia.inc'
+#     include "isrpia.inc"
 !
 ! *** IS THERE A LIQUID PHASE? ******************************************
 !
@@ -2948,7 +2948,7 @@
 !=======================================================================
 !
       SUBROUTINE CALCNA
-      INCLUDE 'isrpia.inc'
+#     include "isrpia.inc"
       DOUBLE PRECISION KAPA
 !C      CHARACTER ERRINF*40
 !
@@ -3005,7 +3005,7 @@
 !=======================================================================
 !
       SUBROUTINE CALCNAP
-      INCLUDE 'isrpia.inc'
+#     include "isrpia.inc"
 !
 ! *** IS THERE A LIQUID PHASE? ******************************************
 !
@@ -3049,7 +3049,7 @@
 !=======================================================================
 !
       SUBROUTINE CALCNH3
-      INCLUDE 'isrpia.inc'
+#     include "isrpia.inc"
 !
 ! *** IS THERE A LIQUID PHASE? ******************************************
 !
@@ -3103,7 +3103,7 @@
 !=======================================================================
 !
       SUBROUTINE CALCNH3P
-      INCLUDE 'isrpia.inc'
+#     include "isrpia.inc"
 !
 ! *** IS THERE A LIQUID PHASE? ******************************************
 !
@@ -3138,7 +3138,7 @@
 !=======================================================================
 !
       SUBROUTINE CALCNHA
-      INCLUDE 'isrpia.inc'
+#     include "isrpia.inc"
       DOUBLE PRECISION M1, M2, M3
       CHARACTER ERRINF*40     
 !
@@ -3253,7 +3253,7 @@
 !=======================================================================
 !
       SUBROUTINE CALCNHP
-      INCLUDE 'isrpia.inc'
+#     include "isrpia.inc"
 !
 ! *** IS THERE A LIQUID PHASE? ******************************************
 !
@@ -3306,7 +3306,7 @@
 !=======================================================================
 !
 !      SUBROUTINE CALCHCO3
-!      INCLUDE 'isrpia.inc'
+!#       include "isrpia.inc"
 !      DOUBLE PRECISION KAPA
 !CC      CHARACTER ERRINF*40
 !C
@@ -3371,7 +3371,7 @@
 !=======================================================================
 !
       SUBROUTINE CALCAMAQ (NH4I, OHI, DELT)
-      INCLUDE 'isrpia.inc'
+#     include "isrpia.inc"
       DOUBLE PRECISION NH4I
 !C      CHARACTER ERRINF*40
 !
@@ -3433,7 +3433,7 @@
 !=======================================================================
 !
       SUBROUTINE CALCAMAQ2 (GGNH3, NH4I, OHI, NH3AQ)
-      INCLUDE 'isrpia.inc'
+#     include "isrpia.inc"
       DOUBLE PRECISION NH4I, NH3AQ
 !
 ! *** EQUILIBRIUM CONSTANTS
@@ -3479,7 +3479,7 @@
 !=======================================================================
 !
       SUBROUTINE CALCCLAQ (CLI, HI, DELT)
-      INCLUDE 'isrpia.inc'
+#     include "isrpia.inc"
       DOUBLE PRECISION CLI
 !
 ! *** EQUILIBRIUM CONSTANTS
@@ -3532,7 +3532,7 @@
 !=======================================================================
 !
       SUBROUTINE CALCCLAQ2 (GGCL, CLI, HI, CLAQ)
-      INCLUDE 'isrpia.inc'
+#     include "isrpia.inc"
       DOUBLE PRECISION CLI
 !
 ! *** EQUILIBRIUM CONSTANTS
@@ -3577,7 +3577,7 @@
 !=======================================================================
 !
       SUBROUTINE CALCNIAQ (NO3I, HI, DELT)
-      INCLUDE 'isrpia.inc'
+#     include "isrpia.inc"
       DOUBLE PRECISION NO3I, HI, DELT
 !
 ! *** EQUILIBRIUM CONSTANTS
@@ -3634,7 +3634,7 @@
 !=======================================================================
 !
       SUBROUTINE CALCNIAQ2 (GGNO3, NO3I, HI, NO3AQ)
-      INCLUDE 'isrpia.inc'
+#     include "isrpia.inc"
       DOUBLE PRECISION NO3I, NO3AQ
 !
 ! *** EQUILIBRIUM CONSTANTS
@@ -3680,7 +3680,7 @@
 !=======================================================================
 !
       SUBROUTINE CALCMR
-      INCLUDE 'isrpia.inc'
+#     include "isrpia.inc"
  
       ! changes made by hotp 8/2/07
       ! explicitly declared all variables in SOLUT
@@ -3976,7 +3976,7 @@
 !=======================================================================
 !
       SUBROUTINE CALCMDRH (RHI, RHDRY, RHLIQ, DRYCASE, LIQCASE)
-      INCLUDE 'isrpia.inc'
+#     include "isrpia.inc"
       EXTERNAL DRYCASE, LIQCASE
 !
 ! *** FIND WEIGHT FACTOR **********************************************
@@ -4124,7 +4124,7 @@
 !=======================================================================
 !
       SUBROUTINE CALCMDRH2 (RHI, RHDRY, RHLIQ, DRYCASE, LIQCASE)
-      INCLUDE 'isrpia.inc'
+#     include "isrpia.inc"
       EXTERNAL DRYCASE, LIQCASE
 !
 ! *** FIND WEIGHT FACTOR **********************************************
@@ -4335,7 +4335,7 @@
 !=======================================================================
 !
       SUBROUTINE CALCMDRP (RHI, RHDRY, RHLIQ, DRYCASE, LIQCASE)
-      INCLUDE 'isrpia.inc'
+#     include "isrpia.inc"
       EXTERNAL DRYCASE, LIQCASE
 !
 ! *** FIND WEIGHT FACTOR **********************************************
@@ -4468,7 +4468,7 @@
 !=======================================================================
 !
       SUBROUTINE CALCMDRPII (RHI, RHDRY, RHLIQ, DRYCASE, LIQCASE)
-      INCLUDE 'isrpia.inc'
+#     include "isrpia.inc"
       EXTERNAL DRYCASE, LIQCASE
 !
 ! *** FIND WEIGHT FACTOR **********************************************
@@ -4637,7 +4637,7 @@
 !=======================================================================
 !
       SUBROUTINE CALCHS4 (HI, SO4I, HSO4I, DELTA)
-      INCLUDE 'isrpia.inc'
+#     include "isrpia.inc"
 !C      CHARACTER ERRINF*40
 !
 ! *** IF TOO LITTLE WATER, DONT SOLVE
@@ -4709,7 +4709,7 @@
 !=======================================================================
 !
       SUBROUTINE CALCPH (GG, HI, OHI)
-      INCLUDE 'isrpia.inc'
+#     include "isrpia.inc"
 !
       AKW  = XKW *RH*WATER*WATER
       CN   = SQRT(AKW)
@@ -4752,7 +4752,7 @@
 !=======================================================================
 !
       SUBROUTINE CALCACT
-      INCLUDE 'isrpia.inc'
+#     include "isrpia.inc"
 !
       COMMON /DRVINP/ WI(8), RHI, TEMPI, IPROBI, METSTBLI, IACALCI,
      &                NADJI
@@ -4790,7 +4790,7 @@
 !=======================================================================
 !
       SUBROUTINE CALCACT4
-      INCLUDE 'isrpia.inc'
+#     include "isrpia.inc"
 !
       REAL EX10
       REAL G0(6,4),ZPL,ZMI,AGAMA,SION,H,CH,F1(6),F2A(4),F2B(4)
@@ -4973,7 +4973,7 @@
 !=======================================================================
 !
       SUBROUTINE CALCACT3
-      INCLUDE 'isrpia.inc'
+#     include "isrpia.inc"
 !
       REAL EX10, URF
       REAL G0(6,4),ZPL,ZMI,AGAMA,SION,H,CH,F1(3),F2(4)
@@ -5116,7 +5116,7 @@
 !=======================================================================
 !
       SUBROUTINE CALCACT2
-      INCLUDE 'isrpia.inc'
+#     include "isrpia.inc"
 !
       REAL EX10, URF
       REAL G0(6,4),ZPL,ZMI,AGAMA,SION,H,CH,F1(3),F2(4)
@@ -5291,7 +5291,7 @@
 !=======================================================================
 !
       SUBROUTINE CALCACT1
-      INCLUDE 'isrpia.inc'
+#     include "isrpia.inc"
 !
       REAL EX10, URF
       REAL G0(6,4),ZPL,ZMI,AGAMA,SION,H,CH,F1(3),F2(4)
@@ -5464,7 +5464,7 @@
 !=======================================================================
 !
       SUBROUTINE RSTGAM
-      INCLUDE 'isrpia.inc'
+#     include "isrpia.inc"
 !
       DO 10 I=1, NPAIR
          GAMA(I) = 0.1
@@ -16419,7 +16419,7 @@
 !=======================================================================
 !
       SUBROUTINE PUSHERR (IERR,ERRINF)
-      INCLUDE 'isrpia.inc'
+#     include "isrpia.inc"
       CHARACTER ERRINF*(*)
 !
 ! *** SAVE ERROR CODE IF THERE IS ANY SPACE ***************************
@@ -16451,7 +16451,7 @@
 !=======================================================================
 !
       SUBROUTINE ISERRINF (ERRSTKI, ERRMSGI, NOFERI, STKOFLI)
-      INCLUDE 'isrpia.inc'
+#     include "isrpia.inc"
       CHARACTER ERRMSGI*40
       INTEGER   ERRSTKI
       LOGICAL   STKOFLI
@@ -16486,7 +16486,7 @@
 !=======================================================================
 !
       SUBROUTINE ERRSTAT (IO,IERR,ERRINF)
-      INCLUDE 'isrpia.inc'
+#     include "isrpia.inc"
       CHARACTER CER*4, NCIS*29, NCIF*27, NSIS*26, NSIF*24, ERRINF*(*)
       DATA NCIS /'NO CONVERGENCE IN SUBROUTINE '/,
      &     NCIF /'NO CONVERGENCE IN FUNCTION '  /,
@@ -16666,7 +16666,7 @@
 !
       SUBROUTINE ISORINF (VERSI, NCMP, NION, NAQGAS, NSOL, NERR, TIN,
      &                    GRT)
-      INCLUDE 'isrpia.inc'
+#     include "isrpia.inc"
       CHARACTER VERSI*(*)
 !
 ! *** ASSIGN INFO *******************************************************
@@ -16702,7 +16702,7 @@
 !=======================================================================
 !
       SUBROUTINE ISRP1F (WI, RHI, TEMPI)
-      INCLUDE 'isrpia.inc'
+#     include "isrpia.inc"
       DIMENSION WI(NCOMP)
 !
 ! *** INITIALIZE ALL VARIABLES IN COMMON BLOCK **************************
@@ -16810,7 +16810,7 @@
 !=======================================================================
 !
       SUBROUTINE ISRP2F (WI, RHI, TEMPI)
-      INCLUDE 'isrpia.inc'
+#     include "isrpia.inc"
       DIMENSION WI(NCOMP)
 !
 ! *** INITIALIZE ALL VARIABLES IN COMMON BLOCK **************************
@@ -16937,7 +16937,7 @@
 !=======================================================================
 !
       SUBROUTINE ISRP3F (WI, RHI, TEMPI)
-      INCLUDE 'isrpia.inc'
+#     include "isrpia.inc"
       DIMENSION WI(NCOMP)
 !
 ! *** ADJUST FOR TOO LITTLE AMMONIUM AND CHLORIDE ***********************
@@ -17137,7 +17137,7 @@
 !=======================================================================
 !
       SUBROUTINE ISRP4F (WI, RHI, TEMPI)
-      INCLUDE 'isrpia.inc'
+#     include "isrpia.inc"
       DIMENSION WI(NCOMP)
       DOUBLE PRECISION NAFRI, NO3FRI
 !
@@ -17489,7 +17489,7 @@
 !=======================================================================
 !
       SUBROUTINE CALCA2
-      INCLUDE 'isrpia.inc'
+#     include "isrpia.inc"
 !
 ! *** SETUP PARAMETERS ************************************************
 !
@@ -17565,7 +17565,7 @@
 !=======================================================================
 !
       DOUBLE PRECISION FUNCTION FUNCA2 (OMEGI)
-      INCLUDE 'isrpia.inc'
+#     include "isrpia.inc"
       DOUBLE PRECISION LAMDA
 !
 ! *** SETUP PARAMETERS ************************************************
@@ -17634,7 +17634,7 @@
 !=======================================================================
 !
       SUBROUTINE CALCA1
-      INCLUDE 'isrpia.inc'
+#     include "isrpia.inc"
 !
       CNH42S4 = W(2)
       GNH3    = MAX (W(3)-2.0*CNH42S4, ZERO)
@@ -17668,7 +17668,7 @@
 !=======================================================================
 !
       SUBROUTINE CALCB4
-      INCLUDE 'isrpia.inc'
+#     include "isrpia.inc"
 !
 ! *** SOLVE EQUATIONS **************************************************
 !
@@ -17735,7 +17735,7 @@
 !=======================================================================
 !
       SUBROUTINE CALCB3
-      INCLUDE 'isrpia.inc'
+#     include "isrpia.inc"
 !    
 ! *** CALCULATE EQUIVALENT AMOUNT OF HSO4 AND SO4 ***********************
 !
@@ -17789,7 +17789,7 @@
 !=======================================================================
 !
       SUBROUTINE CALCB3A (TLC, TNH42S4)
-      INCLUDE 'isrpia.inc'
+#     include "isrpia.inc"
 !
       CALAOU = .TRUE.         ! Outer loop activity calculation flag
       ZLO    = ZERO           ! MIN DISSOLVED (NH4)2SO4
@@ -17877,7 +17877,7 @@
 !=======================================================================
 !
       DOUBLE PRECISION FUNCTION FUNCB3A (ZK, Y, X)
-      INCLUDE 'isrpia.inc'
+#     include "isrpia.inc"
       DOUBLE PRECISION KK
 !
 ! *** SOLVE EQUATIONS ; WITH ITERATIONS FOR ACTIVITY COEF. ************
@@ -17940,7 +17940,7 @@
 !=======================================================================
 !
       SUBROUTINE CALCB3B (Y, X)
-      INCLUDE 'isrpia.inc'
+#     include "isrpia.inc"
       DOUBLE PRECISION KK
 !
       CALAOU = .FALSE.        ! Outer loop activity calculation flag
@@ -17996,7 +17996,7 @@
 !=======================================================================
 !
       SUBROUTINE CALCB2
-      INCLUDE 'isrpia.inc'
+#     include "isrpia.inc"
 !    
 ! *** CALCULATE EQUIVALENT AMOUNT OF HSO4 AND SO4 ***********************
 !
@@ -18048,7 +18048,7 @@
 !=======================================================================
 !
       SUBROUTINE CALCB2A (TLC, TNH42S4)
-      INCLUDE 'isrpia.inc'
+#     include "isrpia.inc"
 !
 ! *** REGIME DEPENDS UPON THE AMBIENT RELATIVE HUMIDITY *****************
 !
@@ -18095,7 +18095,7 @@
 !=======================================================================
 !
       SUBROUTINE CALCB2A2 (TLC, TNH42S4)
-      INCLUDE 'isrpia.inc'
+#     include "isrpia.inc"
 !
 ! *** FIND WEIGHT FACTOR **********************************************
 !
@@ -18165,7 +18165,7 @@
 !=======================================================================
 !
       SUBROUTINE CALCB2B (TLC,TNH4HS4)
-      INCLUDE 'isrpia.inc'
+#     include "isrpia.inc"
 !
       CALAOU = .TRUE.       ! Outer loop activity calculation flag
       ZLO    = ZERO
@@ -18253,7 +18253,7 @@
 !=======================================================================
 !
       DOUBLE PRECISION FUNCTION FUNCB2B (X,TNH4HS4,TLC)
-      INCLUDE 'isrpia.inc'
+#     include "isrpia.inc"
 !
 ! *** SOLVE EQUATIONS **************************************************
 !
@@ -18318,7 +18318,7 @@
 !=======================================================================
 !
       SUBROUTINE CALCB1
-      INCLUDE 'isrpia.inc'
+#     include "isrpia.inc"
 !
 ! *** REGIME DEPENDS UPON THE AMBIENT RELATIVE HUMIDITY *****************
 !
@@ -18365,7 +18365,7 @@
 !=======================================================================
 !
       SUBROUTINE CALCB1A
-      INCLUDE 'isrpia.inc'
+#     include "isrpia.inc"
 !
 ! *** SETUP PARAMETERS ************************************************
 !
@@ -18417,7 +18417,7 @@
 !=======================================================================
 !
       SUBROUTINE CALCB1B
-      INCLUDE 'isrpia.inc'
+#     include "isrpia.inc"
 !
 ! *** FIND WEIGHT FACTOR **********************************************
 !
@@ -18483,7 +18483,7 @@
 !=======================================================================
 !
       SUBROUTINE CALCC2
-      INCLUDE 'isrpia.inc'
+#     include "isrpia.inc"
       DOUBLE PRECISION LAMDA, KAPA
 !
       CALAOU =.TRUE.         ! Outer loop activity calculation flag
@@ -18542,7 +18542,7 @@
 !=======================================================================
 !
       SUBROUTINE CALCC1
-      INCLUDE 'isrpia.inc'
+#     include "isrpia.inc"
       DOUBLE PRECISION KLO, KHI
 !
       CALAOU = .TRUE.    ! Outer loop activity calculation flag
@@ -18634,7 +18634,7 @@
 !=======================================================================
 !
       DOUBLE PRECISION FUNCTION FUNCC1 (KAPA)
-      INCLUDE 'isrpia.inc'
+#     include "isrpia.inc"
       DOUBLE PRECISION KAPA, LAMDA
 !
 ! *** SOLVE EQUATIONS **************************************************
@@ -18697,7 +18697,7 @@
 !=======================================================================
 !
       SUBROUTINE CALCD3
-      INCLUDE 'isrpia.inc'
+#     include "isrpia.inc"
 !
       ! changes made by hotp 8/2/07
       ! explicitly declared all variables in SOLUT
@@ -18847,7 +18847,7 @@
 !=======================================================================
 !
       DOUBLE PRECISION FUNCTION FUNCD3 (P4)
-      INCLUDE 'isrpia.inc'
+#     include "isrpia.inc"
 !
       ! changes made by hotp 8/2/07
       ! explicitly declared all variables in SOLUT
@@ -18945,7 +18945,7 @@
 !=======================================================================
 !
       SUBROUTINE CALCD2
-      INCLUDE 'isrpia.inc'
+#     include "isrpia.inc"
 !
       ! changes made by hotp 8/2/07
       ! explicitly declared all variables in SOLUT
@@ -19099,7 +19099,7 @@
 !=======================================================================
 !
       DOUBLE PRECISION FUNCTION FUNCD2 (P4)
-      INCLUDE 'isrpia.inc'
+#     include "isrpia.inc"
 !
       ! changes made by hotp 8/2/07
       ! explicitly declared all variables in SOLUT
@@ -19214,7 +19214,7 @@
 !=======================================================================
 !
       SUBROUTINE CALCD1
-      INCLUDE 'isrpia.inc'
+#     include "isrpia.inc"
       EXTERNAL CALCD1A, CALCD2
 !
 ! *** REGIME DEPENDS UPON THE AMBIENT RELATIVE HUMIDITY *****************
@@ -19260,7 +19260,7 @@
 !=======================================================================
 !
       SUBROUTINE CALCD1A
-      INCLUDE 'isrpia.inc'
+#     include "isrpia.inc"
 !
 ! *** SETUP PARAMETERS ************************************************
 !
@@ -19307,7 +19307,7 @@
 !=======================================================================
 !
       SUBROUTINE CALCG5
-      INCLUDE 'isrpia.inc'
+#     include "isrpia.inc"
 !
       !DOUBLE PRECISION LAMDA
       ! changes implemented by hotp 8/2/07
@@ -19422,7 +19422,7 @@
 !=======================================================================
 !
       DOUBLE PRECISION FUNCTION FUNCG5A (X)
-      INCLUDE 'isrpia.inc'
+#     include "isrpia.inc"
 !
       !DOUBLE PRECISION LAMDA
       ! changes implemented by hotp 8/2/07
@@ -19534,7 +19534,7 @@
 !=======================================================================
 !
       SUBROUTINE CALCG4
-      INCLUDE 'isrpia.inc'
+#     include "isrpia.inc"
 !
       !DOUBLE PRECISION LAMDA
       ! changes implemented by hotp 8/2/07
@@ -19648,7 +19648,7 @@
 !=======================================================================
 !
       DOUBLE PRECISION FUNCTION FUNCG4A (X)
-      INCLUDE 'isrpia.inc'
+#     include "isrpia.inc"
 !
       DOUBLE PRECISION NAI, NH4I, NO3I
       !DOUBLE PRECISION LAMDA
@@ -19786,7 +19786,7 @@
 !=======================================================================
 !
       SUBROUTINE CALCG3
-      INCLUDE 'isrpia.inc'
+#     include "isrpia.inc"
       EXTERNAL CALCG1A, CALCG4
 !
 ! *** REGIME DEPENDS ON THE EXISTANCE OF WATER AND OF THE RH ************
@@ -19843,7 +19843,7 @@
 !=======================================================================
 !
       SUBROUTINE CALCG3A
-      INCLUDE 'isrpia.inc'
+#     include "isrpia.inc"
 !
       !DOUBLE PRECISION LAMDA
       ! changes implemented by hotp 8/2/07
@@ -19976,7 +19976,7 @@
 !=======================================================================
 !
       DOUBLE PRECISION FUNCTION FUNCG3A (X)
-      INCLUDE 'isrpia.inc'
+#     include "isrpia.inc"
 !
       !DOUBLE PRECISION LAMDA
       ! changes implemented by hotp 8/2/07
@@ -20093,7 +20093,7 @@
 !=======================================================================
 !
       SUBROUTINE CALCG2
-      INCLUDE 'isrpia.inc'
+#     include "isrpia.inc"
       EXTERNAL CALCG1A, CALCG3A, CALCG4
 !
 ! *** REGIME DEPENDS ON THE EXISTANCE OF NITRATES ***********************
@@ -20165,7 +20165,7 @@
 !=======================================================================
 !
       SUBROUTINE CALCG2A
-      INCLUDE 'isrpia.inc'
+#     include "isrpia.inc"
 !
       !DOUBLE PRECISION LAMDA
       ! changes implemented by hotp 8/2/07
@@ -20301,7 +20301,7 @@
 !=======================================================================
 !
       DOUBLE PRECISION FUNCTION FUNCG2A (X)
-      INCLUDE 'isrpia.inc'
+#     include "isrpia.inc"
 !
       !DOUBLE PRECISION LAMDA
       ! changes implemented by hotp 8/2/07
@@ -20444,7 +20444,7 @@
 !=======================================================================
 !
       SUBROUTINE CALCG1
-      INCLUDE 'isrpia.inc'
+#     include "isrpia.inc"
       EXTERNAL CALCG1A, CALCG2A
 !
 ! *** REGIME DEPENDS UPON THE AMBIENT RELATIVE HUMIDITY *****************
@@ -20490,7 +20490,7 @@
 !=======================================================================
 !
       SUBROUTINE CALCG1A
-      INCLUDE 'isrpia.inc'
+#     include "isrpia.inc"
       DOUBLE PRECISION LAMDA, LAMDA1, LAMDA2, KAPA, KAPA1, KAPA2
 !
 ! *** CALCULATE NON VOLATILE SOLIDS ***********************************
@@ -20630,7 +20630,7 @@
 !=======================================================================
 !
       SUBROUTINE CALCH6
-      INCLUDE 'isrpia.inc'
+#     include "isrpia.inc"
 !
       ! changes made by hotp 8/2/07
       ! explicitly declared all variables in SOLUT
@@ -20746,7 +20746,7 @@
 !=======================================================================
 !
       DOUBLE PRECISION FUNCTION FUNCH6A (X)
-      INCLUDE 'isrpia.inc'
+#     include "isrpia.inc"
 !
       ! changes made by hotp 8/2/07
       ! explicitly declared all variables in SOLUT
@@ -20867,7 +20867,7 @@
 !=======================================================================
 !
       SUBROUTINE CALCH5
-      INCLUDE 'isrpia.inc'
+#     include "isrpia.inc"
 !
       ! changes made by hotp 8/2/07
       ! explicitly declared all variables in SOLUT
@@ -20992,7 +20992,7 @@
 !=======================================================================
 !
       DOUBLE PRECISION FUNCTION FUNCH5A (X)
-      INCLUDE 'isrpia.inc'
+#     include "isrpia.inc"
 !
       ! changes made by hotp 8/2/07
       ! explicitly declared all variables in SOLUT
@@ -21125,7 +21125,7 @@
 !=======================================================================
 !
       SUBROUTINE CALCH4
-      INCLUDE 'isrpia.inc'
+#     include "isrpia.inc"
 !
       ! changes made by hotp 8/2/07
       ! explicitly declared all variables in SOLUT
@@ -21250,7 +21250,7 @@
 !=======================================================================
 !
       DOUBLE PRECISION FUNCTION FUNCH4A (X)
-      INCLUDE 'isrpia.inc'
+#     include "isrpia.inc"
 !
       ! changes made by hotp 8/2/07
       ! explicitly declared all variables in SOLUT
@@ -21408,7 +21408,7 @@
 !=======================================================================
 !
       SUBROUTINE CALCH3
-      INCLUDE 'isrpia.inc'
+#     include "isrpia.inc"
 !
       ! changes made by hotp 8/2/07
       ! explicitly declared all variables in SOLUT
@@ -21533,7 +21533,7 @@
 !=======================================================================
 !
       DOUBLE PRECISION FUNCTION FUNCH3A (X)
-      INCLUDE 'isrpia.inc'
+#     include "isrpia.inc"
 !
       ! changes made by hotp 8/2/07
       ! explicitly declared all variables in SOLUT
@@ -21705,7 +21705,7 @@
 !=======================================================================
 !
       SUBROUTINE CALCH2
-      INCLUDE 'isrpia.inc'
+#     include "isrpia.inc"
       EXTERNAL CALCH1A, CALCH3
 !
 ! *** REGIME DEPENDS ON THE EXISTANCE OF NITRATES ***********************
@@ -21757,7 +21757,7 @@
 !=======================================================================
 !
       SUBROUTINE CALCH2A
-      INCLUDE 'isrpia.inc'
+#     include "isrpia.inc"
 !
       ! changes made by hotp 8/2/07
       ! explicitly declared all variables in SOLUT
@@ -21873,7 +21873,7 @@
 !=======================================================================
 !
       DOUBLE PRECISION FUNCTION FUNCH2A (X)
-      INCLUDE 'isrpia.inc'
+#     include "isrpia.inc"
 !
       ! changes made by hotp 8/2/07
       ! explicitly declared all variables in SOLUT
@@ -22048,7 +22048,7 @@
 !=======================================================================
 !
       SUBROUTINE CALCH1
-      INCLUDE 'isrpia.inc'
+#     include "isrpia.inc"
       EXTERNAL CALCH1A, CALCH2A
 !
 ! *** REGIME DEPENDS UPON THE AMBIENT RELATIVE HUMIDITY *****************
@@ -22089,7 +22089,7 @@
 !=======================================================================
 !
       SUBROUTINE CALCH1A
-      INCLUDE 'isrpia.inc'
+#     include "isrpia.inc"
       DOUBLE PRECISION LAMDA, LAMDA1, LAMDA2, KAPA, KAPA1, KAPA2, NAFR,
      &                 NO3FR
 !
@@ -22232,7 +22232,7 @@
 !=======================================================================
 !
       SUBROUTINE CALCI6
-      INCLUDE 'isrpia.inc'
+#     include "isrpia.inc"
 !
       ! changes made by hotp 8/2/07
       ! explicitly declared all variables in SOLUT
@@ -22334,7 +22334,7 @@
 !=======================================================================
 !
       SUBROUTINE CALCI5
-      INCLUDE 'isrpia.inc'
+#     include "isrpia.inc"
 !
       ! changes made by hotp 8/2/07
       ! explicitly declared all variables in SOLUT
@@ -22465,7 +22465,7 @@
 !=======================================================================
 !
       DOUBLE PRECISION FUNCTION FUNCI5A (P4)
-      INCLUDE 'isrpia.inc'
+#     include "isrpia.inc"
 !
       ! changes made by hotp 8/2/07
       ! explicitly declared all variables in SOLUT
@@ -22556,7 +22556,7 @@
 !=======================================================================
 !
       SUBROUTINE CALCI4
-      INCLUDE 'isrpia.inc'
+#     include "isrpia.inc"
 !
       ! changes made by hotp 8/2/07
       ! explicitly declared all variables in SOLUT
@@ -22687,7 +22687,7 @@
 !=======================================================================
 !
       DOUBLE PRECISION FUNCTION FUNCI4A (P4)
-      INCLUDE 'isrpia.inc'
+#     include "isrpia.inc"
 !
       ! changes made by hotp 8/2/07
       ! explicitly declared all variables in SOLUT
@@ -22790,7 +22790,7 @@
 !=======================================================================
 !
       SUBROUTINE CALCI3
-      INCLUDE 'isrpia.inc'
+#     include "isrpia.inc"
       EXTERNAL CALCI1A, CALCI4
 !
 ! *** FIND DRY COMPOSITION **********************************************
@@ -22848,7 +22848,7 @@
 !=======================================================================
 !
       SUBROUTINE CALCI3A
-      INCLUDE 'isrpia.inc'
+#     include "isrpia.inc"
 !
       ! changes made by hotp 8/2/07
       ! explicitly declared all variables in SOLUT
@@ -22961,7 +22961,7 @@
 !=======================================================================
 !
       DOUBLE PRECISION FUNCTION FUNCI3A (P2)
-      INCLUDE 'isrpia.inc'
+#     include "isrpia.inc"
 !
       ! changes made by hotp 8/2/07
       ! explicitly declared all variables in SOLUT
@@ -23069,7 +23069,7 @@
 !=======================================================================
 !
       DOUBLE PRECISION FUNCTION FUNCI3B (P4)
-      INCLUDE 'isrpia.inc'
+#     include "isrpia.inc"
 !
       ! changes made by hotp 8/2/07
       ! explicitly declared all variables in SOLUT
@@ -23175,7 +23175,7 @@
 !=======================================================================
 !
       SUBROUTINE CALCI2
-      INCLUDE 'isrpia.inc'
+#     include "isrpia.inc"
       EXTERNAL CALCI1A, CALCI3A
 !
 ! *** FIND DRY COMPOSITION **********************************************
@@ -23232,7 +23232,7 @@
 !=======================================================================
 !
       SUBROUTINE CALCI2A
-      INCLUDE 'isrpia.inc'
+#     include "isrpia.inc"
 !
       ! changes made by hotp 8/2/07
       ! explicitly declared all variables in SOLUT
@@ -23348,7 +23348,7 @@
 !=======================================================================
 !
       DOUBLE PRECISION FUNCTION FUNCI2A (P2)
-      INCLUDE 'isrpia.inc'
+#     include "isrpia.inc"
 !
       ! changes made by hotp 8/2/07
       ! explicitly declared all variables in SOLUT
@@ -23479,7 +23479,7 @@
 !=======================================================================
 !
       SUBROUTINE CALCI1
-      INCLUDE 'isrpia.inc'
+#     include "isrpia.inc"
       EXTERNAL CALCI1A, CALCI2A
 !
 ! *** REGIME DEPENDS UPON THE AMBIENT RELATIVE HUMIDITY *****************
@@ -23524,7 +23524,7 @@
 !=======================================================================
 !
       SUBROUTINE CALCI1A
-      INCLUDE 'isrpia.inc'
+#     include "isrpia.inc"
 !
 ! *** CALCULATE NON VOLATILE SOLIDS ***********************************
 !
@@ -23581,7 +23581,7 @@
 !=======================================================================
 !
       SUBROUTINE CALCJ3
-      INCLUDE 'isrpia.inc'
+#     include "isrpia.inc"
 !
       DOUBLE PRECISION LAMDA, KAPA
 !
@@ -23658,7 +23658,7 @@
 !=======================================================================
 !
       SUBROUTINE CALCJ2
-      INCLUDE 'isrpia.inc'
+#     include "isrpia.inc"
 !
       !DOUBLE PRECISION LAMDA, KAPA
       ! hotp modified 8/2/07
@@ -23762,7 +23762,7 @@
 !=======================================================================
 !
       DOUBLE PRECISION FUNCTION FUNCJ2 (P1)
-      INCLUDE 'isrpia.inc'
+#     include "isrpia.inc"
 !
       !DOUBLE PRECISION LAMDA, KAPA
       ! hotp modified 8/2/07
@@ -23849,7 +23849,7 @@
 !=======================================================================
 !
       SUBROUTINE CALCJ1
-      INCLUDE 'isrpia.inc'
+#     include "isrpia.inc"
 !
       !DOUBLE PRECISION LAMDA, KAPA
       ! hotp modified 8/2/07
@@ -23954,7 +23954,7 @@
 !=======================================================================
 !
       DOUBLE PRECISION FUNCTION FUNCJ1 (P1)
-      INCLUDE 'isrpia.inc'
+#     include "isrpia.inc"
       !DOUBLE PRECISION LAMDA, KAPA
       ! hotp modified 8/2/07
       ! explicitly declared all variables in CASEJ
@@ -24040,7 +24040,7 @@
 !=======================================================================
 !
       SUBROUTINE CALCO7
-      INCLUDE 'isrpia.inc'
+#     include "isrpia.inc"
 !
       !DOUBLE PRECISION LAMDA
       ! hotp modified 8/2/07
@@ -24171,7 +24171,7 @@
 !=======================================================================
 !
       DOUBLE PRECISION FUNCTION FUNCO7 (X)
-      INCLUDE 'isrpia.inc'
+#     include "isrpia.inc"
 !
       !DOUBLE PRECISION LAMDA
       ! hotp modified 8/2/07
@@ -24297,7 +24297,7 @@
 !=======================================================================
 !
       SUBROUTINE CALCO6
-      INCLUDE 'isrpia.inc'
+#     include "isrpia.inc"
 !
       !DOUBLE PRECISION LAMDA
       ! hotp modified 8/2/07
@@ -24426,7 +24426,7 @@
 !=======================================================================
 !
       DOUBLE PRECISION FUNCTION FUNCO6 (X)
-      INCLUDE 'isrpia.inc'
+#     include "isrpia.inc"
 !
       !DOUBLE PRECISION LAMDA
       ! hotp modified 8/2/07
@@ -24568,7 +24568,7 @@
 !=======================================================================
 !
       SUBROUTINE CALCO5
-      INCLUDE 'isrpia.inc'
+#     include "isrpia.inc"
 !
       !DOUBLE PRECISION LAMDA
       ! hotp modified 8/2/07
@@ -24696,7 +24696,7 @@
 !=======================================================================
 !
       DOUBLE PRECISION FUNCTION FUNCO5 (X)
-      INCLUDE 'isrpia.inc'
+#     include "isrpia.inc"
 !
       !DOUBLE PRECISION LAMDA
       ! hotp modified 8/2/07
@@ -24847,7 +24847,7 @@
 !=======================================================================
 !
       SUBROUTINE CALCO4
-      INCLUDE 'isrpia.inc'
+#     include "isrpia.inc"
 !
       !DOUBLE PRECISION LAMDA
       ! hotp modified 8/2/07
@@ -24995,7 +24995,7 @@
 !=======================================================================
 !
       DOUBLE PRECISION FUNCTION FUNCO4 (X)
-      INCLUDE 'isrpia.inc'
+#     include "isrpia.inc"
 !
       !DOUBLE PRECISION LAMDA
       ! hotp modified 8/2/07
@@ -25136,7 +25136,7 @@
 !=======================================================================
 !
       SUBROUTINE CALCO3
-      INCLUDE 'isrpia.inc'
+#     include "isrpia.inc"
       EXTERNAL CALCO1A, CALCO4
 !
 ! *** REGIME DEPENDS ON THE EXISTANCE OF WATER AND OF THE RH ************
@@ -25192,7 +25192,7 @@
 !=======================================================================
 !
       SUBROUTINE CALCO3A
-      INCLUDE 'isrpia.inc'
+#     include "isrpia.inc"
 !
       !DOUBLE PRECISION LAMDA
       ! hotp modified 8/2/07
@@ -25335,7 +25335,7 @@
 !=======================================================================
 !
       DOUBLE PRECISION FUNCTION FUNCO3A (X)
-      INCLUDE 'isrpia.inc'
+#     include "isrpia.inc"
 !
       !DOUBLE PRECISION LAMDA
       ! hotp modified 8/2/07
@@ -25488,7 +25488,7 @@
 !=======================================================================
 !
       SUBROUTINE CALCO2
-      INCLUDE 'isrpia.inc'
+#     include "isrpia.inc"
       EXTERNAL CALCO1A, CALCO3A, CALCO4
 !
 ! *** REGIME DEPENDS ON THE EXISTANCE OF NITRATES ***********************
@@ -25559,7 +25559,7 @@
 !=======================================================================
 !
       SUBROUTINE CALCO2A
-      INCLUDE 'isrpia.inc'
+#     include "isrpia.inc"
 !
       !DOUBLE PRECISION LAMDA
       ! hotp modified 8/2/07
@@ -25705,7 +25705,7 @@
 !=======================================================================
 !
       DOUBLE PRECISION FUNCTION FUNCO2A (X)
-      INCLUDE 'isrpia.inc'
+#     include "isrpia.inc"
 !
       !DOUBLE PRECISION LAMDA
       ! hotp modified 8/2/07
@@ -25883,7 +25883,7 @@
 !=======================================================================
 !
       SUBROUTINE CALCO1
-      INCLUDE 'isrpia.inc'
+#     include "isrpia.inc"
       EXTERNAL CALCO1A, CALCO2A
 !
 ! *** REGIME DEPENDS UPON THE AMBIENT RELATIVE HUMIDITY *****************
@@ -25926,7 +25926,7 @@
 !=======================================================================
 !
       SUBROUTINE CALCO1A
-      INCLUDE 'isrpia.inc'
+#     include "isrpia.inc"
       DOUBLE PRECISION LAMDA, LAMDA1, LAMDA2, KAPA, KAPA1, KAPA2
 !
 ! *** CALCULATE NON VOLATILE SOLIDS ***********************************
@@ -26077,7 +26077,7 @@
 !=======================================================================
 !
       SUBROUTINE CALCM8
-      INCLUDE 'isrpia.inc'
+#     include "isrpia.inc"
 !
       ! changes made by hotp 8/2/07
       ! explicitly declared all variables in SOLUT
@@ -26201,7 +26201,7 @@
 !=======================================================================
 !
       DOUBLE PRECISION FUNCTION FUNCM8 (X)
-      INCLUDE 'isrpia.inc'
+#     include "isrpia.inc"
 !
       ! changes made by hotp 8/2/07
       ! explicitly declared all variables in SOLUT
@@ -26333,7 +26333,7 @@
 !=======================================================================
 !
       SUBROUTINE CALCM7
-      INCLUDE 'isrpia.inc'
+#     include "isrpia.inc"
 !
       ! changes made by hotp 8/2/07
       ! explicitly declared all variables in SOLUT
@@ -26455,7 +26455,7 @@
 !=======================================================================
 !
       DOUBLE PRECISION FUNCTION FUNCM7 (X)
-      INCLUDE 'isrpia.inc'
+#     include "isrpia.inc"
 !
       ! changes made by hotp 8/2/07
       ! explicitly declared all variables in SOLUT
@@ -26595,7 +26595,7 @@
 !=======================================================================
 !
       SUBROUTINE CALCM6
-      INCLUDE 'isrpia.inc'
+#     include "isrpia.inc"
 !
       ! changes made by hotp 8/2/07
       ! explicitly declared all variables in SOLUT
@@ -26716,7 +26716,7 @@
 !=======================================================================
 !
       DOUBLE PRECISION FUNCTION FUNCM6 (X)
-      INCLUDE 'isrpia.inc'
+#     include "isrpia.inc"
 !
       ! changes made by hotp 8/2/07
       ! explicitly declared all variables in SOLUT
@@ -26884,7 +26884,7 @@
 !=======================================================================
 !
       SUBROUTINE CALCM5
-      INCLUDE 'isrpia.inc'
+#     include "isrpia.inc"
 !
       ! changes made by hotp 8/2/07
       ! explicitly declared all variables in SOLUT
@@ -27005,7 +27005,7 @@
 !=======================================================================
 !
       DOUBLE PRECISION FUNCTION FUNCM5 (X)
-      INCLUDE 'isrpia.inc'
+#     include "isrpia.inc"
 !
       ! changes made by hotp 8/2/07
       ! explicitly declared all variables in SOLUT
@@ -27173,7 +27173,7 @@
 !=======================================================================
 !
       SUBROUTINE CALCM4
-      INCLUDE 'isrpia.inc'
+#     include "isrpia.inc"
 !
       ! changes made by hotp 8/2/07
       ! explicitly declared all variables in SOLUT
@@ -27303,7 +27303,7 @@
 !=======================================================================
 !
       DOUBLE PRECISION FUNCTION FUNCM4 (X)
-      INCLUDE 'isrpia.inc'
+#     include "isrpia.inc"
 !
       ! changes made by hotp 8/2/07
       ! explicitly declared all variables in SOLUT
@@ -27500,7 +27500,7 @@
 !=======================================================================
 !
       SUBROUTINE CALCM3
-      INCLUDE 'isrpia.inc'
+#     include "isrpia.inc"
 !
       ! changes made by hotp 8/2/07
       ! explicitly declared all variables in SOLUT
@@ -27630,7 +27630,7 @@
 !=======================================================================
 !
       DOUBLE PRECISION FUNCTION FUNCM3 (X)
-      INCLUDE 'isrpia.inc'
+#     include "isrpia.inc"
 !
       ! changes made by hotp 8/2/07
       ! explicitly declared all variables in SOLUT
@@ -27852,7 +27852,7 @@
 !=======================================================================
 !
       SUBROUTINE CALCM2
-      INCLUDE 'isrpia.inc'
+#     include "isrpia.inc"
       EXTERNAL CALCM1A, CALCM3
 !
 ! *** REGIME DEPENDS ON THE EXISTANCE OF NITRATES ***********************
@@ -27902,7 +27902,7 @@
 !=======================================================================
 !
       SUBROUTINE CALCM2A
-      INCLUDE 'isrpia.inc'
+#     include "isrpia.inc"
 !
       ! changes made by hotp 8/2/07
       ! explicitly declared all variables in SOLUT
@@ -28023,7 +28023,7 @@
 !=======================================================================
 !
       DOUBLE PRECISION FUNCTION FUNCM2A (X)
-      INCLUDE 'isrpia.inc'
+#     include "isrpia.inc"
 !
       ! changes made by hotp 8/2/07
       ! explicitly declared all variables in SOLUT
@@ -28256,7 +28256,7 @@
 !=======================================================================
 !
       SUBROUTINE CALCM1
-      INCLUDE 'isrpia.inc'
+#     include "isrpia.inc"
       EXTERNAL CALCM1A, CALCM2A
 !
 ! *** REGIME DEPENDS UPON THE AMBIENT RELATIVE HUMIDITY *****************
@@ -28294,7 +28294,7 @@
 !=======================================================================
 
       SUBROUTINE CALCM1A
-      INCLUDE 'isrpia.inc'
+#     include "isrpia.inc"
       DOUBLE PRECISION LAMDA, LAMDA1, LAMDA2, KAPA, KAPA1, KAPA2, NAFR,
      &                 NO3FR
 !
@@ -28447,7 +28447,7 @@
 !=======================================================================
 !
       SUBROUTINE CALCP13
-      INCLUDE 'isrpia.inc'
+#     include "isrpia.inc"
 !
       ! changes made by hotp 8/2/07
       ! explicitly declared all variables in SOLUT
@@ -28593,7 +28593,7 @@
 !=======================================================================
 !
       DOUBLE PRECISION FUNCTION FUNCP13 (X)
-      INCLUDE 'isrpia.inc'
+#     include "isrpia.inc"
 !
       ! changes made by hotp 8/2/07
       ! explicitly declared all variables in SOLUT
@@ -28761,7 +28761,7 @@
 !=======================================================================
 !
       SUBROUTINE CALCP12
-      INCLUDE 'isrpia.inc'
+#     include "isrpia.inc"
 !
       ! changes made by hotp 8/2/07
       ! explicitly declared all variables in SOLUT
@@ -28907,7 +28907,7 @@
 !=======================================================================
 !
       DOUBLE PRECISION FUNCTION FUNCP12 (X)
-      INCLUDE 'isrpia.inc'
+#     include "isrpia.inc"
 !
       ! changes made by hotp 8/2/07
       ! explicitly declared all variables in SOLUT
@@ -29090,7 +29090,7 @@
 !=======================================================================
 !
       SUBROUTINE CALCP11
-      INCLUDE 'isrpia.inc'
+#     include "isrpia.inc"
 !
       ! changes made by hotp 8/2/07
       ! explicitly declared all variables in SOLUT
@@ -29236,7 +29236,7 @@
 !=======================================================================
 !
       DOUBLE PRECISION FUNCTION FUNCP11 (X)
-      INCLUDE 'isrpia.inc'
+#     include "isrpia.inc"
 !
       ! changes made by hotp 8/2/07
       ! explicitly declared all variables in SOLUT
@@ -29427,7 +29427,7 @@
 !=======================================================================
 !
       SUBROUTINE CALCP10
-      INCLUDE 'isrpia.inc'
+#     include "isrpia.inc"
 !
       ! changes made by hotp 8/2/07
       ! explicitly declared all variables in SOLUT
@@ -29573,7 +29573,7 @@
 !=======================================================================
 !
       DOUBLE PRECISION FUNCTION FUNCP10 (X)
-      INCLUDE 'isrpia.inc'
+#     include "isrpia.inc"
 !
       ! changes made by hotp 8/2/07
       ! explicitly declared all variables in SOLUT
@@ -29764,7 +29764,7 @@
 !=======================================================================
 !
       SUBROUTINE CALCP9
-      INCLUDE 'isrpia.inc'
+#     include "isrpia.inc"
 !
       ! changes made by hotp 8/2/07
       ! explicitly declared all variables in SOLUT
@@ -29910,7 +29910,7 @@
 !=======================================================================
 !
       DOUBLE PRECISION FUNCTION FUNCP9 (X)
-      INCLUDE 'isrpia.inc'
+#     include "isrpia.inc"
 !
       ! changes made by hotp 8/2/07
       ! explicitly declared all variables in SOLUT
@@ -30107,7 +30107,7 @@
 !=======================================================================
 !
       SUBROUTINE CALCP8
-      INCLUDE 'isrpia.inc'
+#     include "isrpia.inc"
 !
       ! changes made by hotp 8/2/07
       ! explicitly declared all variables in SOLUT
@@ -30253,7 +30253,7 @@
 !=======================================================================
 !
       DOUBLE PRECISION FUNCTION FUNCP8 (X)
-      INCLUDE 'isrpia.inc'
+#     include "isrpia.inc"
 !
       ! changes made by hotp 8/2/07
       ! explicitly declared all variables in SOLUT
@@ -30478,7 +30478,7 @@
 !=======================================================================
 !
       SUBROUTINE CALCP7
-      INCLUDE 'isrpia.inc'
+#     include "isrpia.inc"
 !
       ! changes made by hotp 8/2/07
       ! explicitly declared all variables in SOLUT
@@ -30624,7 +30624,7 @@
 !=======================================================================
 !
       DOUBLE PRECISION FUNCTION FUNCP7 (X)
-      INCLUDE 'isrpia.inc'
+#     include "isrpia.inc"
 !
       ! changes made by hotp 8/2/07
       ! explicitly declared all variables in SOLUT
@@ -30858,7 +30858,7 @@
 !=======================================================================
 !
       SUBROUTINE CALCP6
-      INCLUDE 'isrpia.inc'
+#     include "isrpia.inc"
 !
       ! changes made by hotp 8/2/07
       ! explicitly declared all variables in SOLUT
@@ -31004,7 +31004,7 @@
 !=======================================================================
 !
       DOUBLE PRECISION FUNCTION FUNCP6 (X)
-      INCLUDE 'isrpia.inc'
+#     include "isrpia.inc"
 !
       ! changes made by hotp 8/2/07
       ! explicitly declared all variables in SOLUT
@@ -31249,7 +31249,7 @@
 !=======================================================================
 !
       SUBROUTINE CALCP5
-      INCLUDE 'isrpia.inc'
+#     include "isrpia.inc"
       EXTERNAL CALCP1A, CALCP6
 !
 ! *** REGIME DEPENDS ON THE EXISTANCE OF WATER AND OF THE RH ************
@@ -31307,7 +31307,7 @@
 !=======================================================================
 !
       SUBROUTINE CALCP5A
-      INCLUDE 'isrpia.inc'
+#     include "isrpia.inc"
 !
       ! changes made by hotp 8/2/07
       ! explicitly declared all variables in SOLUT
@@ -31453,7 +31453,7 @@
 !=======================================================================
 !
       DOUBLE PRECISION FUNCTION FUNCP5 (X)
-      INCLUDE 'isrpia.inc'
+#     include "isrpia.inc"
 !
       ! changes made by hotp 8/2/07
       ! explicitly declared all variables in SOLUT
@@ -31726,7 +31726,7 @@
 !=======================================================================
 !
       SUBROUTINE CALCP4
-      INCLUDE 'isrpia.inc'
+#     include "isrpia.inc"
       EXTERNAL CALCP1A, CALCP5A
 !
 ! *** REGIME DEPENDS ON THE EXISTANCE OF WATER AND OF THE RH ************
@@ -31783,7 +31783,7 @@
 !=======================================================================
 !
       SUBROUTINE CALCP4A
-      INCLUDE 'isrpia.inc'
+#     include "isrpia.inc"
 !
       ! changes made by hotp 8/2/07
       ! explicitly declared all variables in SOLUT
@@ -31928,7 +31928,7 @@
 !=======================================================================
 !
       DOUBLE PRECISION FUNCTION FUNCP4 (X)
-      INCLUDE 'isrpia.inc'
+#     include "isrpia.inc"
 !
       ! changes made by hotp 8/2/07
       ! explicitly declared all variables in SOLUT
@@ -32201,7 +32201,7 @@
 !=======================================================================
 !
       SUBROUTINE CALCP3
-      INCLUDE 'isrpia.inc'
+#     include "isrpia.inc"
       EXTERNAL CALCP1A, CALCP4A
 !
 ! *** REGIME DEPENDS ON THE EXISTANCE OF WATER AND OF THE RH ************
@@ -32259,7 +32259,7 @@
 !=======================================================================
 !
       SUBROUTINE CALCP3A
-      INCLUDE 'isrpia.inc'
+#     include "isrpia.inc"
 !
       ! changes made by hotp 8/2/07
       ! explicitly declared all variables in SOLUT
@@ -32405,7 +32405,7 @@
 !=======================================================================
 !
       DOUBLE PRECISION FUNCTION FUNCP3 (X)
-      INCLUDE 'isrpia.inc'
+#     include "isrpia.inc"
 !
       ! changes made by hotp 8/2/07
       ! explicitly declared all variables in SOLUT
@@ -32686,7 +32686,7 @@
 !
 !
       SUBROUTINE CALCP2
-      INCLUDE 'isrpia.inc'
+#     include "isrpia.inc"
       EXTERNAL CALCP1A, CALCP3A, CALCP4A, CALCP5A, CALCP6
 !
 ! *** FIND DRY COMPOSITION **********************************************
@@ -32770,7 +32770,7 @@
 !=======================================================================
 !
       SUBROUTINE CALCP2A
-      INCLUDE 'isrpia.inc'
+#     include "isrpia.inc"
 !
       ! changes made by hotp 8/2/07
       ! explicitly declared all variables in SOLUT
@@ -32916,7 +32916,7 @@
 !=======================================================================
 !
       DOUBLE PRECISION FUNCTION FUNCP2A (X)
-      INCLUDE 'isrpia.inc'
+#     include "isrpia.inc"
 !
       ! changes made by hotp 8/2/07
       ! explicitly declared all variables in SOLUT
@@ -33194,7 +33194,7 @@
 !=======================================================================
 !
       SUBROUTINE CALCP1
-      INCLUDE 'isrpia.inc'
+#     include "isrpia.inc"
       EXTERNAL CALCP1A, CALCP2A
 !
 ! *** REGIME DEPENDS UPON THE AMBIENT RELATIVE HUMIDITY *****************
@@ -33235,7 +33235,7 @@
 !=======================================================================
 
       SUBROUTINE CALCP1A
-      INCLUDE 'isrpia.inc'
+#     include "isrpia.inc"
       DOUBLE PRECISION LAMDA, LAMDA1, LAMDA2, KAPA, KAPA1, KAPA2, NAFR,
      &                 NO3FR
 !
@@ -33404,7 +33404,7 @@
 !=======================================================================
 !
       SUBROUTINE CALCL9
-      INCLUDE 'isrpia.inc'
+#     include "isrpia.inc"
       DOUBLE PRECISION LAMDA
       ! changes made by hotp 8/2/07
       ! explicitly declared all variables in SOLUT
@@ -33520,7 +33520,7 @@
 !=======================================================================
 !
       SUBROUTINE CALCL8
-      INCLUDE 'isrpia.inc'
+#     include "isrpia.inc"
       DOUBLE PRECISION LAMDA
       ! changes made by hotp 8/2/07
       ! explicitly declared all variables in SOLUT
@@ -33652,7 +33652,7 @@
 !=======================================================================
 !
       DOUBLE PRECISION FUNCTION FUNCL8 (P6)
-      INCLUDE 'isrpia.inc'
+#     include "isrpia.inc"
       DOUBLE PRECISION LAMDA
       ! changes made by hotp 8/2/07
       ! explicitly declared all variables in SOLUT
@@ -33752,7 +33752,7 @@
 !=======================================================================
 !
       SUBROUTINE CALCL7
-      INCLUDE 'isrpia.inc'
+#     include "isrpia.inc"
       DOUBLE PRECISION LAMDA
       ! changes made by hotp 8/2/07
       ! explicitly declared all variables in SOLUT
@@ -33884,7 +33884,7 @@
 !=======================================================================
 !
       DOUBLE PRECISION FUNCTION FUNCL7 (P4)
-      INCLUDE 'isrpia.inc'
+#     include "isrpia.inc"
       DOUBLE PRECISION LAMDA
       ! changes made by hotp 8/2/07
       ! explicitly declared all variables in SOLUT
@@ -34003,7 +34003,7 @@
 !=======================================================================
 !
       SUBROUTINE CALCL6
-      INCLUDE 'isrpia.inc'
+#     include "isrpia.inc"
       DOUBLE PRECISION LAMDA
       ! changes made by hotp 8/2/07
       ! explicitly declared all variables in SOLUT
@@ -34135,7 +34135,7 @@
 !=======================================================================
 !
       DOUBLE PRECISION FUNCTION FUNCL6 (P4)
-      INCLUDE 'isrpia.inc'
+#     include "isrpia.inc"
       DOUBLE PRECISION LAMDA
       ! changes made by hotp 8/2/07
       ! explicitly declared all variables in SOLUT
@@ -34254,7 +34254,7 @@
 !=======================================================================
 !
       SUBROUTINE CALCL5
-      INCLUDE 'isrpia.inc'
+#     include "isrpia.inc"
       DOUBLE PRECISION LAMDA
       ! changes made by hotp 8/2/07
       ! explicitly declared all variables in SOLUT
@@ -34389,7 +34389,7 @@
 !=======================================================================
 !
       DOUBLE PRECISION FUNCTION FUNCL5 (P4)
-      INCLUDE 'isrpia.inc'
+#     include "isrpia.inc"
       DOUBLE PRECISION LAMDA
       ! changes made by hotp 8/2/07
       ! explicitly declared all variables in SOLUT
@@ -34518,7 +34518,7 @@
 !=======================================================================
 !
       SUBROUTINE CALCL4
-      INCLUDE 'isrpia.inc'
+#     include "isrpia.inc"
       DOUBLE PRECISION LAMDA
       ! changes made by hotp 8/2/07
       ! explicitly declared all variables in SOLUT
@@ -34651,7 +34651,7 @@
 !=======================================================================
 !
       DOUBLE PRECISION FUNCTION FUNCL4 (P4)
-      INCLUDE 'isrpia.inc'
+#     include "isrpia.inc"
       DOUBLE PRECISION LAMDA
       ! changes made by hotp 8/2/07
       ! explicitly declared all variables in SOLUT
@@ -34788,7 +34788,7 @@
 !=======================================================================
 !
       SUBROUTINE CALCL3
-      INCLUDE 'isrpia.inc'
+#     include "isrpia.inc"
       EXTERNAL CALCL1A, CALCL4
 !
 ! *** FIND DRY COMPOSITION *********************************************
@@ -34844,7 +34844,7 @@
 !=======================================================================
 !
       SUBROUTINE CALCL3A
-      INCLUDE 'isrpia.inc'
+#     include "isrpia.inc"
       DOUBLE PRECISION LAMDA
       ! changes made by hotp 8/2/07
       ! explicitly declared all variables in SOLUT
@@ -34963,7 +34963,7 @@
 !=======================================================================
 !
       DOUBLE PRECISION FUNCTION FUNCL3A (P2)
-      INCLUDE 'isrpia.inc'
+#     include "isrpia.inc"
       DOUBLE PRECISION LAMDA
       ! changes made by hotp 8/2/07
       ! explicitly declared all variables in SOLUT
@@ -35074,7 +35074,7 @@
 !=======================================================================
 !
       DOUBLE PRECISION FUNCTION FUNCL3B (P4)
-      INCLUDE 'isrpia.inc'
+#     include "isrpia.inc"
       DOUBLE PRECISION LAMDA
       ! changes made by hotp 8/2/07
       ! explicitly declared all variables in SOLUT
@@ -35210,7 +35210,7 @@
 !=======================================================================
 !
       SUBROUTINE CALCL2
-      INCLUDE 'isrpia.inc'
+#     include "isrpia.inc"
       EXTERNAL CALCL1A, CALCL3A
 !
 ! *** FIND DRY COMPOSITION **********************************************
@@ -35266,7 +35266,7 @@
 !=======================================================================
 !
       SUBROUTINE CALCL2A
-      INCLUDE 'isrpia.inc'
+#     include "isrpia.inc"
       DOUBLE PRECISION LAMDA
       ! changes made by hotp 8/2/07
       ! explicitly declared all variables in SOLUT
@@ -35382,7 +35382,7 @@
 !=======================================================================
 !
       DOUBLE PRECISION FUNCTION FUNCL2A (P2)
-      INCLUDE 'isrpia.inc'
+#     include "isrpia.inc"
       DOUBLE PRECISION LAMDA
       ! changes made by hotp 8/2/07
       ! explicitly declared all variables in SOLUT
@@ -35495,7 +35495,7 @@
 !=======================================================================
 !
       DOUBLE PRECISION FUNCTION FUNCL2B (P4)
-      INCLUDE 'isrpia.inc'
+#     include "isrpia.inc"
       DOUBLE PRECISION LAMDA
       ! changes made by hotp 8/2/07
       ! explicitly declared all variables in SOLUT
@@ -35647,7 +35647,7 @@
 !=======================================================================
 !
       SUBROUTINE CALCL1
-      INCLUDE 'isrpia.inc'
+#     include "isrpia.inc"
       EXTERNAL CALCL1A, CALCL2A
 !
 ! *** REGIME DEPENDS UPON THE AMBIENT RELATIVE HUMIDITY *****************
@@ -35690,7 +35690,7 @@
 !=======================================================================
 !
       SUBROUTINE CALCL1A
-      INCLUDE 'isrpia.inc'
+#     include "isrpia.inc"
 !
 ! *** CALCULATE NON VOLATILE SOLIDS ***********************************
 !
@@ -35777,7 +35777,7 @@
 !=======================================================================
 !
       SUBROUTINE CALCK4
-      INCLUDE 'isrpia.inc'
+#     include "isrpia.inc"
 !
       !DOUBLE PRECISION LAMDA, KAPA
       ! modified by hotp 8/2/07
@@ -35865,7 +35865,7 @@
 !=======================================================================
 !
       SUBROUTINE CALCK3
-      INCLUDE 'isrpia.inc'
+#     include "isrpia.inc"
 !
       !DOUBLE PRECISION LAMDA, KAPA
       ! modified by hotp 8/2/07
@@ -35967,7 +35967,7 @@
 !=======================================================================
 !
       DOUBLE PRECISION FUNCTION FUNCK3 (P1)
-      INCLUDE 'isrpia.inc'
+#     include "isrpia.inc"
       !DOUBLE PRECISION LAMDA, KAPA
       ! modified by hotp 8/2/07
       ! explicitly declared all variables in CASEK
@@ -36057,7 +36057,7 @@
 !=======================================================================
 !
       SUBROUTINE CALCK2
-      INCLUDE 'isrpia.inc'
+#     include "isrpia.inc"
 !
       !DOUBLE PRECISION LAMDA, KAPA
       ! modified by hotp 8/2/07
@@ -36159,7 +36159,7 @@
 !=======================================================================
 !
       DOUBLE PRECISION FUNCTION FUNCK2 (P1)
-      INCLUDE 'isrpia.inc'
+#     include "isrpia.inc"
       !DOUBLE PRECISION LAMDA, KAPA
       ! modified by hotp 8/2/07
       ! explicitly declared all variables in CASEK
@@ -36250,7 +36250,7 @@
 !=======================================================================
 !
       SUBROUTINE CALCK1
-      INCLUDE 'isrpia.inc'
+#     include "isrpia.inc"
 !
       !DOUBLE PRECISION LAMDA, KAPA
       ! modified by hotp 8/2/07
@@ -36353,7 +36353,7 @@
 !=======================================================================
 !
       DOUBLE PRECISION FUNCTION FUNCK1 (P1)
-      INCLUDE 'isrpia.inc'
+#     include "isrpia.inc"y
       !DOUBLE PRECISION LAMDA, KAPA
       ! modified by hotp 8/2/07
       ! explicitly declared all variables in CASEK

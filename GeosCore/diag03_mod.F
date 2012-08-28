@@ -22,7 +22,7 @@
 ! !DEFINED PARAMETERS:
 !
       INTEGER, PUBLIC, PARAMETER   :: PD03    = 18         ! Dim of AD03 array
-      INTEGER, PUBLIC, PARAMETER   :: PD03_PL = 12         ! # of PL-HG2 diags
+      INTEGER, PUBLIC, PARAMETER   :: PD03_PL = 10         ! # of PL-HG2 diags
 
 !
 ! !PUBLIC DATA MEMBERS:
@@ -41,10 +41,8 @@
       REAL*4,  PUBLIC, ALLOCATABLE :: AD03_nat(:,:,:)      !
       REAL*4,  PUBLIC, ALLOCATABLE :: AD03_Hg2_SSR(:,:)    !
       REAL*4,  PUBLIC, ALLOCATABLE :: AD03_Br(:,:,:,:)     !
-      REAL*4,  PUBLIC, ALLOCATABLE :: AD03_Fg(:,:,:)       !
-      REAL*4,  PUBLIC, ALLOCATABLE :: AD03_Fp(:,:,:)       !
       REAL*4,  PUBLIC, ALLOCATABLE :: AD03_RGM(:,:,:)      !
-      REAL*4,  PUBLIC, ALLOCATABLE :: AD03_RPM(:,:,:)      !
+      REAL*4,  PUBLIC, ALLOCATABLE :: AD03_PBM(:,:,:)      !
 
 !
 ! !PUBLIC MEMBER FUNCTIONS:
@@ -59,9 +57,8 @@
 !  ============================================================================
 !  (1 ) Hg(0)  a.k.a. Hg0     : Elemental   mercury
 !  (2 ) Hg(II) a.k.a. Hg2     : Divalent    mercury
-!  (3 ) HgP                   : Particulate mercury
-!  (4 ) RGM a.k.a. Hg(II)gas  : Reactive (oxidized) gaseous mercury
-!  (5 ) RPM a.k.a. Hg(II)P    : Reactive (oxidized) particulate mercury
+!  (3 ) RGM a.k.a. Hg(II)gas  : Reactive (oxidized) gaseous mercury
+!  (4 ) PBM a.k.a. Hg(II)P    : Reactive (oxidized) particulate mercury
 !
 ! !REVISION HISTORY:
 !  21 Jan 2005 - R. Yantosca - Initial version
@@ -105,7 +102,7 @@
 !        array. (bmy, 4/6/06)
 !  (2 ) Now use broadcast assignment and double precision 0D0 to zero arrays,
 !        rather than nested DO loops and single precision 0E0. (cdh, 8/14/08)
-!  (3 ) Now zeros Fg, FP, RGM and RPM diagnostics. (hma 20100219)
+!  (3 ) Now zeros RGM and PBM diagnostics. (hma 20100219)
 !  02 Dec 2010 - R. Yantosca - Added ProTeX headers
 !EOP
 !------------------------------------------------------------------------------
@@ -131,11 +128,9 @@
       AD03_Hg2_SS  = 0D0
       AD03_Hg2_SSR = 0D0 
       AD03_nat     = 0D0
-      AD03_Br      = 0D0 
-      AD03_Fg      = 0D0  
-      AD03_Fp      = 0D0 
+      AD03_Br      = 0D0  
       AD03_RGM     = 0D0     
-      AD03_RPM     = 0D0
+      AD03_PBM     = 0D0
 
       END SUBROUTINE ZERO_DIAG03
 !EOC
@@ -200,8 +195,6 @@
 !  (22) PL-HG2-$ : Prod of Hg2 form rxn w/ Br      : kg       : 1
 !  (23) PL-HG2-$ : Br concentration                : molec/cm3: 1
 !  (24) PL-HG2-$ : Br concentration                : molec/cm3: 1
-!  (25) PL-HG2-$ : Hg2 gas fraction                : unitless : 1
-!  (26) PL-HG2-$ : Hg2 particle fraction           : unitless : 1
 !  (27) PL-HG2-$ : Reactive gaseous mercury        : pptv     : 1
 !  (28) PL-HG2-$ : Reactice particule mercury      : pptv     : 1
 !
@@ -235,7 +228,7 @@
       CHARACTER(LEN=20) :: MODELNAME 
       CHARACTER(LEN=40) :: CATEGORY,  RESERVED,    UNIT
       REAL*8            :: NCHEMSTEP 
-      REAL*8            :: NDIAGSTEP       ! hma, for RGM and RPM
+      REAL*8            :: NDIAGSTEP       ! hma, for RGM and PBM
       REAL*8            :: NDIAGSTEP_Hg2   ! hma, for Fg and Fp
       !=================================================================
       ! WRITE_DIAG03 begins here!
@@ -258,7 +251,7 @@
       RESERVED  = ''
       SCALE     = DBLE( GET_CT_EMIS() ) + 1d-32
       NCHEMSTEP = DBLE( GET_CT_CHEM() ) + TINY( 1d0 ) !CDH for sea salt loss rat   
-      NDIAGSTEP = DBLE( GET_CT_DIAG() ) + TINY( 1d0 ) ! for RGM and RPM
+      NDIAGSTEP = DBLE( GET_CT_DIAG() ) + TINY( 1d0 ) ! for RGM and PBM
       NDIAGSTEP_Hg2 = DBLE ( GET_Hg2_DIAG() )+ TINY( 1d0 ) ! for Fg and Fp  
 
       !=================================================================
@@ -424,37 +417,17 @@
 
          ELSE IF ( N == 9 ) THEN
             !--------------------------------
-            ! #9: Hg2 gas fraction
-            !--------------------------------
-            CATEGORY          = 'PL-HG2-$'
-            UNIT              = 'unitless'
-            LMAX              = LD03
-            NN                = N
-            ARRAY(:,:,1:LMAX) = AD03_Fg(:,:,1:LMAX) / NDIAGSTEP_Hg2
-
-         ELSE IF ( N == 10 ) THEN
-            !--------------------------------
-            ! #10: Hg2 particle fraction
-            !--------------------------------
-            CATEGORY          = 'PL-HG2-$'
-            UNIT              = 'unitless'
-            LMAX              = LD03
-            NN                = N
-            ARRAY(:,:,1:LMAX) = AD03_Fp(:,:,1:LMAX) / NDIAGSTEP_Hg2
-
-         ELSE IF ( N == 11 ) THEN
-            !--------------------------------
-            ! #11: Reactive particulate mercury
+            ! #9: Reactive particulate mercury
             !--------------------------------
             CATEGORY          = 'PL-HG2-$'
             UNIT              = 'pptv'
             LMAX              = LD03
             NN                = N
-            ARRAY(:,:,1:LMAX) = AD03_RPM(:,:,1:LMAX) / NDIAGSTEP
+            ARRAY(:,:,1:LMAX) = AD03_PBM(:,:,1:LMAX) / NDIAGSTEP
 
-         ELSE IF ( N == 12 ) THEN
+         ELSE IF ( N == 10 ) THEN
             !--------------------------------
-            ! #12: Reactive gaseous mercury
+            ! #10: Reactive gaseous mercury
             !--------------------------------
             CATEGORY          = 'PL-HG2-$'
             UNIT              = 'pptv'
@@ -558,17 +531,10 @@
       !End CDH
 
 ! add hma 20100216-------------------------------------------------------
-      ! Hg2 gas fraction
-      ALLOCATE( AD03_Fg( IIPAR, JJPAR, LLPAR ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'AD03_Fg' )
-      
-      ! Hg2 particle fraction
-      ALLOCATE( AD03_Fp( IIPAR, JJPAR, LLPAR ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'AD03_Fp' )
 
       ! Reactive particulate mercury
-      ALLOCATE( AD03_RPM( IIPAR, JJPAR, LLPAR ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'AD03_RPM' )
+      ALLOCATE( AD03_PBM( IIPAR, JJPAR, LLPAR ), STAT=AS )
+      IF ( AS /= 0 ) CALL ALLOC_ERR( 'AD03_PBM' )
 
       ! Reactive gaseous mercury
       ALLOCATE( AD03_RGM( IIPAR, JJPAR, LLPAR ), STAT=AS )
@@ -597,7 +563,7 @@
 ! !REVISION HISTORY: 
 !  21 Jan 2005 - R. Yantosca - Initial version
 !  (1 ) Now deallocates AD03_Hg2_SS (eck, bmy, 4/6/06)
-!  (2 ) Now deallocates AD03_Fg, AD03_Fp, AD03_RPM, AD03_RGM (hma 20100216)
+!  (2 ) Now deallocates AD03_PBM, AD03_RGM (hma 20100216)
 !  02 Dec 2010 - R. Yantosca - Added ProTeX headers
 !EOP
 !------------------------------------------------------------------------------
@@ -615,9 +581,7 @@
       IF ( ALLOCATED( AD03_Hg2_SSR ) ) DEALLOCATE( AD03_Hg2_SSR ) 
       IF ( ALLOCATED( AD03_Br      ) ) DEALLOCATE( AD03_Br      ) 
 ! added hma 20100216-----------------------------------------------------------
-      IF ( ALLOCATED( AD03_Fg      ) ) DEALLOCATE( AD03_Fg      )
-      IF ( ALLOCATED( AD03_Fp      ) ) DEALLOCATE( AD03_Fp      )
-      IF ( ALLOCATED( AD03_RPM     ) ) DEALLOCATE( AD03_RPM     )
+      IF ( ALLOCATED( AD03_PBM     ) ) DEALLOCATE( AD03_PBM     )
       IF ( ALLOCATED( AD03_RGM     ) ) DEALLOCATE( AD03_RGM     )
 !------------------------------------------------------------------------------
 

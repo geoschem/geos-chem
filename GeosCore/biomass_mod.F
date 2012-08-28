@@ -221,7 +221,7 @@
       USE GFED3_BIOMASS_MOD, ONLY : GFED3_COMPUTE_BIOMASS
       USE LOGICAL_MOD,       ONLY : LBIOMASS, LGFED2BB, LGFED3BB
       USE LOGICAL_MOD,       ONLY : L8DAYBB,  LSYNOPBB, L3HRBB
-      USE LOGICAL_MOD,       ONLY : L8DAYBB3,  LSYNOPBB3, L3HRBB3
+      USE LOGICAL_MOD,       ONLY : LDAYBB3,  L3HRBB3
       USE TIME_MOD,          ONLY : ITS_A_NEW_MONTH
       USE TRACER_MOD,        ONLY : ITS_A_CO2_SIM
       USE TRACER_MOD,        ONLY : ITS_A_H2HD_SIM
@@ -241,8 +241,8 @@
       ! Arguments
       INTEGER, INTENT(IN)        :: YEAR, MONTH
 #if defined( DEVEL )
-      REAL*8,  INTENT(INOUT)     :: BIOEMISSIONS(:,:,:) ! MSL
-!      REAL*8,  INTENT(INOUT)     :: BIOEMISSIONS(IIPAR,JJPAR,NBIOMAX) ! MSL
+!      REAL*8,  INTENT(INOUT)     :: BIOEMISSIONS(:,:,:) ! MSL
+      REAL*8,  INTENT(INOUT)     :: BIOEMISSIONS(IIPAR,JJPAR,NBIOMAX) ! MSL
 #endif
       ! Local variables
       LOGICAL, SAVE              :: FIRST = .TRUE.
@@ -263,11 +263,10 @@
          ! First-time initialization
          IF ( FIRST ) THEN
             CALL INIT_BIOMASS
-            FIRST    = .FALSE.
-            USE_GFED2 = LGFED2BB .or. L8DAYBB .or. LSYNOPBB .or. L3HRBB
-            USE_GFED3 = LGFED3BB .or.
-     &                  L8DAYBB3 .or. LSYNOPBB3 .or. L3HRBB3
-            USE_GFED = USE_GFED2. or. USE_GFED3
+            FIRST     = .FALSE.
+            USE_GFED2 = LGFED2BB  .or. L8DAYBB .or. LSYNOPBB .or. L3HRBB
+            USE_GFED3 = LGFED3BB  .or. LDAYBB3 .or. L3HRBB3
+            USE_GFED  = USE_GFED2 .or. USE_GFED3
          ENDIF
          
          ! Define diagnostic flags
@@ -458,7 +457,8 @@
       END SUBROUTINE COMPUTE_BIOMASS_EMISSIONS
 
 !------------------------------------------------------------------------------
-      SUBROUTINE SET_BIOTRCE
+
+      SUBROUTINE SET_BIOTRCE( am_I_Root )
 
 !******************************************************************************
 !  Routine created by FP to set IDBxxxs according to the tracers defined
@@ -466,6 +466,8 @@
 !  tracers in input.geos (FP 6/2009, hotp 7/30/09)
 !
 !  NOTES:
+!  30 Jul 2012 - R. Yantosca - Now accept am_I_Root as an argument when
+!                              running with the traditional driver main.F
 !******************************************************************************
 
 !FP_ISOP
@@ -498,6 +500,8 @@
       USE TRACERID_MOD, ONLY : IDTC2H2, IDTC2H4
 
       USE TRACER_MOD,   ONLY : ITS_A_CH4_SIM ! (mpayer, 2/14/12)
+
+      LOGICAL, INTENT(IN) :: am_I_Root
 
       !=================================================================
       ! SET_BIOTRCE begins here!
@@ -636,7 +640,9 @@
       ENDIF
 
       ! Echo biomass burning tracer information
-      WRITE( 6, 100 ) BIOTRCE( 1:NBIOTRCE )
+      IF ( am_I_Root ) THEN
+         WRITE( 6, 100 ) BIOTRCE( 1:NBIOTRCE )
+      ENDIF
  100  FORMAT( 'TRACERID: Biomass burning tracers        :', 20i3 )
       
       ! Return to calling program

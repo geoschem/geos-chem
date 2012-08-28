@@ -6,7 +6,7 @@
 ! !MODULE: regrid_a2a_mod.F90
 !
 ! !DESCRIPTION: Module REGRID\_A2A\_MOD uses an algorithm adapted from MAP\_A2A
-!   code to regrid from one horizonatal grid to another
+!   code to regrid from one horizonatal grid to another.
 !\\
 !\\
 ! !INTERFACE: 
@@ -22,24 +22,28 @@ MODULE REGRID_A2A_MOD
 !
   PRIVATE :: XMAP
   PRIVATE :: YMAP
-  PRIVATE :: MAP_A2A
+  PRIVATE :: READ_INPUT_GRID
 !
 ! !PUBLIC MEMBER FUNCTIONS:
 !
-  PUBLIC :: DO_REGRID_A2A
-
+  PUBLIC  :: DO_REGRID_A2A
+  PUBLIC  :: MAP_A2A
 !
 ! !REVISION HISTORY:
 !  13 Mar 2012 - M. Cooper   - Initial version
 !  03 Apr 2012 - M. Payer    - Now use functions GET_AREA_CM2(I,J,L), 
 !                              GET_YEDGE(I,J,L) and GET_YSIN(I,J,L) from the
 !                              new grid_mod.F90
+!  22 May 2012 - L. Murray   - Implemented several bug fixes
+!  23 Aug 2012 - R. Yantosca - Add capability for starting from hi-res grids
+!                              (generic 0.5x0.5, generic 0.25x0.25, etc.)
+!  23 Aug 2012 - R. Yantosca - Add subroutine READ_INPUT_GRID, which reads the
+!                              grid parameters (lon & lat edges) w/ netCDF
+!  27 Aug 2012 - R. Yantosca - Now parallelize key DO loops
 !EOP
 !------------------------------------------------------------------------------
 !BOC
-
   CONTAINS
-
 !EOC
 !------------------------------------------------------------------------------
 !          Harvard University Atmospheric Chemistry Modeling Group            !
@@ -48,126 +52,203 @@ MODULE REGRID_A2A_MOD
 !
 ! !IROUTINE: do_regrid_a2a
 !
-! !DESCRIPTION: Subroutine DO\_REGRID\_A2A regrids 2-D data
+! !DESCRIPTION: Subroutine DO\_REGRID\_A2A regrids 2-D data in the
+!  horizontal direction.
 !\\
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE DO_REGRID_A2A(FILENAME,IM,JM,INGRID,OUTGRID,PERAREA)
+  SUBROUTINE DO_REGRID_A2A( FILENAME, IM, JM, INGRID, OUTGRID, PERAREA, &
+                            netCDF )
 ! 
 ! !USES:
 !
-    USE GRID_MOD, ONLY : GET_XEDGE
-    USE GRID_MOD, ONLY : GET_YSIN
-    USE GRID_MOD, ONLY : GET_AREA_CM2
-    USE FILE_MOD, ONLY : IOERROR, IU_REGRID
+    USE GRID_MOD,   ONLY : GET_XEDGE
+    USE GRID_MOD,   ONLY : GET_YSIN
+    USE GRID_MOD,   ONLY : GET_AREA_CM2
+    USE FILE_MOD,   ONLY : IOERROR
+    USE inquireMod, ONLY : findFreeLUN
     USE CMN_SIZE_MOD
     USE CMN_GCTM_MOD
 !
 ! !INPUT PARAMETERS:
 !
-    !==========================================================================
-    ! FILENAME : Name of file with longitude and latitude edge info
-    ! IM       : Length of longitude edge vector
-    ! JM       : Length of latitude edge vector
-    ! INGRID   : Input grid
-    ! PERAREA  : =1 if need to convert ingrid to per area
-    !==========================================================================
-    INTEGER                        :: IM
-    INTEGER                        :: JM
-    INTEGER                        :: PERAREA
-    REAL*8,           ALLOCATABLE  :: INGRID(:,:)
-    CHARACTER(LEN=*)               :: FILENAME
+    ! Name of file with lon and lat edge information on the INPUT GRID
+    CHARACTER(LEN=*), INTENT(IN)    :: FILENAME
+
+    ! Number of lon centers and lat centers on the INPUT GRID
+    INTEGER,          INTENT(IN)    :: IM 
+    INTEGER,          INTENT(IN)    :: JM
+
+    ! Data array on the input grid
+    REAL*8,           INTENT(IN)    :: INGRID(IM,JM)
+
+    ! =1 if we need to convert INGRID to per unit area
+    INTEGER,          INTENT(IN)    :: PERAREA
+
+    ! Read from netCDF file?  (needed for debugging, will disappear later)
+    LOGICAL, OPTIONAL,INTENT(IN)    :: netCDF  
 !
 ! !OUTPUT PARAMETERS:
 !
-    REAL*8,           ALLOCATABLE  :: OUTGRID(:,:) ! Output data array
+    ! Data array on the OUTPUT GRID
+    REAL*8,           INTENT(OUT)   :: OUTGRID(IIPAR,JJPAR) 
 !
 ! !REVISION HISTORY:
+
 !  13 Mar 2012 - M. Cooper   - Initial version
+!  22 May 2012 - L. Murray   - Bug fix: INSIN should be allocated w/ JM+1.
+!  22 May 2012 - R. Yantosca - Updated comments, cosmetic changes
+!  25 May 2012 - R. Yantosca - Bug fix: declare the INGRID argument as
+!                              INTENT(IN) to preserve the values of INGRID
+!                              in the calling routine
+!  06 Aug 2012 - R. Yantosca - Now make IU_REGRID a local variable
+!  06 Aug 2012 - R. Yantosca - Move calls to findFreeLUN out of DEVEL block
+!  23 Aug 2012 - R. Yantosca - Now use f10.4 format for hi-res grids
+!  23 Aug 2012 - R. Yantosca - Now can read grid info from netCDF files
+!  27 Aug 2012 - R. Yantosca - Add parallel DO loops
 !EOP
 !------------------------------------------------------------------------------
 !BOC
 !
 ! !LOCAL VARIABLES:
 !
-    !INTEGER                      :: IG, IV
-    INTEGER                       :: I, J
-    INTEGER, PARAMETER            :: IN = IIPAR 
-    INTEGER, PARAMETER            :: JN = JJPAR
-    REAL*8, ALLOCATABLE           :: INSIN(:), INLON(:)
-    REAL*8                        :: LON2(IN+1), SIN2(JN+1)
-    CHARACTER(LEN=15)             :: HEADER1
-    INTEGER                       :: IOS, M
-    REAL*8                        :: INAREA,RLAT
-    CHARACTER(LEN=20)             :: FMT_LAT, FMT_LON, FMT_LEN
+    ! Scalars
+    INTEGER           :: I,        J
+    INTEGER           :: IOS,      M
+    INTEGER           :: IU_REGRID
+    REAL*8            :: INAREA,   RLAT
+    CHARACTER(LEN=15) :: HEADER1
+    CHARACTER(LEN=20) :: FMT_LAT,  FMT_LON, FMT_LEN
+    LOGICAL           :: USE_NETCDF
+
+    ! Arrays
+    REAL*8            :: INLON  (IM   +1)  ! Lon edges        on INPUT GRID
+    REAL*8            :: INSIN  (JM   +1)  ! SIN( lat edges ) on INPUT GRID
+    REAL*8            :: OUTLON (IIPAR+1)  ! Lon edges        on OUTPUT GRID
+    REAL*8            :: OUTSIN (JJPAR+1)  ! SIN( lat edges ) on OUTPUT GRID
+    REAL*8            :: IN_GRID(IM,JM  )  ! Shadow variable for INGRID
 
     !======================================================================
-    ! DO_REGRID_A2A BEGINS HERE
+    ! Initialization
+    !
+    ! NOTE: In the near future ASCII input will be replaced by netCDF!
     !======================================================================
 
-    ALLOCATE(INSIN(JM))
-    ALLOCATE(INLON(IM+1))
+    ! Save value of netCDF to shadow variable
+    IF ( PRESENT( netCDF ) ) THEN
+       USE_netCDF = netCDF
+    ELSE
+       USE_netCDF = .FALSE.
+    ENDIF
 
-    ! NOTE: May have to make LON2 a 2-D array later for the GI model
+    ! Longitude edges on the OUTPUT GRID
+    ! NOTE: May have to make OUTLON a 2-D array later for the GI model
     DO I = 1, IIPAR+1
-       LON2 (I) = GET_XEDGE( I, 1, 1 )
+       OUTLON(I) = GET_XEDGE( I, 1, 1 )
     ENDDO
 
-    ! NOTE: May have to make SIN2 a 2-D array later for the GI model
+    ! SIN( lat edges ) on the OUTPUT GRID
+    ! NOTE: May have to make OUTSIN a 2-D array later for the GI model
     DO J = 1, JJPAR+1
-       SIN2 (J) = GET_YSIN( 1, J, 1 )
+       OUTSIN(J) = GET_YSIN( 1, J, 1 )
     ENDDO
 
-    ! Open emission factor file (ASCII format)
-    !print*,'Filename'
-    !print*,TRIM(FILENAME)
-    !call flush(6)
-    OPEN( IU_REGRID, FILE=TRIM( FILENAME ), STATUS='OLD', IOSTAT=IOS )
+    ! Read the input grid specifications
+    IF ( USE_netCDF ) THEN
 
-    IF ( IOS /= 0 ) CALL IOERROR( IOS, IU_REGRID, 'latlonread' )
+       !------------------------------------------
+       ! %%% FROM NETCDF FILE %%%
+       !------------------------------------------
 
-    ! Read input grid lat/lon edges
-    WRITE(FMT_LEN,*) IM+1
-    FMT_LON='(' // TRIM ( FMT_LEN ) // 'F9.3)'
-    WRITE(FMT_LEN,*) JM
-    FMT_LAT='(' // TRIM ( FMT_LEN ) // 'F15.10)'
+       ! Read the grid specifications from a netCDF file
+       CALL READ_INPUT_GRID( IM, JM, FILENAME, INLON, INSIN )
 
-    READ( IU_REGRID, '(A15)',IOSTAT=IOS ) HEADER1
-    READ( IU_REGRID,FMT_LON,IOSTAT=IOS )( INLON(M), M=1,IM+1 )
-    READ( IU_REGRID,FMT_LAT,IOSTAT=IOS )( INSIN(M), M=1,JM )
+    ELSE
+
+       !------------------------------------------
+       ! %%% FROM ASCII FILE %%%
+       !
+       ! NOTE: Deprecated, will be removed later.
+       !------------------------------------------
+
+       ! Find a free file LUN
+       IU_REGRID = findFreeLUN()
+
+       ! Open file containing lon & lat edges on the INPUT GRID
+       OPEN( IU_REGRID, FILE=TRIM( FILENAME ), STATUS='OLD', IOSTAT=IOS )
+       IF ( IOS /= 0 ) CALL IOERROR( IOS, IU_REGRID, 'latlonread' )
+
+       ! Create the approprate FORMAT strings
+       WRITE(FMT_LEN,*) IM+1
+
+       ! NOTE: If the resolution of the grid is high enough, we have 
+       ! to allow for an extra digit in the input file.  This will
+       ! become obsolete once we migrate to netCDF format (bmy, 8/23/12)
+       IF ( IM > 1000 ) THEN
+          FMT_LON='(' // TRIM ( FMT_LEN ) // 'F10.4)'   ! For hi-res grids
+       ELSE
+          FMT_LON='(' // TRIM ( FMT_LEN ) // 'F9.3)'    ! For all other grids
+       ENDIF
+
+       WRITE(FMT_LEN,*) JM
+       FMT_LAT='(' // TRIM ( FMT_LEN ) // 'F15.10)'
+
+       ! Read lon edges & SIN( lat edges ) on the INPUT GRID
+       READ( IU_REGRID, '(A15)',IOSTAT=IOS ) HEADER1
+       READ( IU_REGRID,FMT_LON,IOSTAT=IOS  ) ( INLON(M), M=1,IM+1 )
+       READ( IU_REGRID,FMT_LAT,IOSTAT=IOS  ) ( INSIN(M), M=1,JM+1 )
+       
+       ! Close file
+       CLOSE( IU_REGRID )
     
-    ! Close file
-    CLOSE( IU_REGRID )
-    
-    !Convert input to per area units if necessary
-    IF(PERAREA == 1) THEN
-       DO J = 1, JM-1
-          RLAT = INSIN(J+1) - INSIN(J)
-          INAREA = 2d0*PI*Re*RLAT*1d4*Re/DBLE(IM)
+    ENDIF
+
+    !======================================================================
+    ! Regridding
+    !======================================================================
+
+    ! Copy the input argument INGRID to a local shadow variable,
+    ! so that we can preserve the value of INGRID in the calling routine
+    IN_GRID = INGRID
+
+    ! Convert input to per area units if necessary
+    IF ( PERAREA == 1 ) THEN
+
+       !$OMP PARALLEL DO                   &
+       !$OMP DEFAULT( SHARED             ) &
+       !$OMP PRIVATE( I, J, RLAT, INAREA )
+       DO J = 1, JM
+          RLAT   = INSIN(J+1) - INSIN(J)
+          INAREA = ( 2d0 * PI * Re * RLAT * 1d4 * Re ) / DBLE( IM )
           DO I = 1, IM
-             INGRID(I,J)=INGRID(I,J)/INAREA
+             IN_GRID(I,J) = IN_GRID(I,J) / INAREA
           ENDDO
        ENDDO
+       !$OMP END PARALLEL DO
+
     ENDIF
 
-    CALL MAP_A2A( IM, JM-1, INLON, INSIN, INGRID,   &
-                  IN, JN, LON2, SIN2, OUTGRID, 0, 0)
+    ! Call MAP_A2A to do the regridding
+    CALL MAP_A2A( IM,    JM,    INLON,  INSIN,  IN_GRID,        &
+                  IIPAR, JJPAR, OUTLON, OUTSIN, OUTGRID, 0, 0 )
 
-    !Convert back from "per area" if necessary
-    IF( PERAREA==1 ) THEN
-       DO J=1, JN
-       DO I=1, IN
-          OUTGRID(I,J)=OUTGRID(I,J)*GET_AREA_CM2(I, J, 1)
+    ! Convert back from "per area" if necessary
+    IF ( PERAREA == 1 ) THEN
+
+       !$OMP PARALLEL DO       &
+       !$OMP DEFAULT( SHARED ) &
+       !$OMP PRIVATE( I, J   )
+       DO J = 1, JJPAR
+       DO I = 1, IIPAR
+          OUTGRID(I,J) = OUTGRID(I,J) * GET_AREA_CM2( I, J, 1 )
        ENDDO
        ENDDO
+       !$OMP END PARALLEL DO
+
     ENDIF
-
-    DEALLOCATE(INSIN)
-    DEALLOCATE(INLON)
 
   END SUBROUTINE DO_REGRID_A2A
-
 !EOC
 !------------------------------------------------------------------------------
 !          Harvard University Atmospheric Chemistry Modeling Group            !
@@ -176,7 +257,7 @@ MODULE REGRID_A2A_MOD
 !
 ! !IROUTINE: map_a2a
 !
-! !DESCRIPTION: Subroutine MAP\_A2A is a orizontal arbitrary grid to arbitrary 
+! !DESCRIPTION: Subroutine MAP\_A2A is a horizontal arbitrary grid to arbitrary
 !  grid conservative high-order mapping regridding routine by S-J Lin.
 !\\
 !\\
@@ -191,13 +272,32 @@ MODULE REGRID_A2A_MOD
 !
 ! !INPUT PARAMETERS:
 !
-    INTEGER, INTENT(IN)  :: im, jm, in, jn, ig, iv
+    ! Longitude and Latitude dimensions of INPUT grid
+    INTEGER, INTENT(IN)  :: im, jm
+
+    ! Longitude and Latitude dimensions of OUTPUT grid
+    INTEGER, INTENT(IN)  :: in, jn
+
+    ! IG=0: pole to pole; 
+    ! IG=1 J=1 is half-dy north of south pole
+    INTEGER, INTENT(IN)  :: ig
+
+    ! IV=0: Regrid scalar quantity
+    ! IV=1: Regrid vector quantity
+    INTEGER, INTENT(IN)  :: iv
+
+    ! Longitude edges (degrees) of INPUT and OUTPUT grids
     REAL*8,  INTENT(IN)  :: lon1(im+1), lon2(in+1)
+
+    ! Sine of Latitude Edges (radians) of INPUT and OUTPUT grids
     REAL*8,  INTENT(IN)  :: sin1(jm+1), sin2(jn+1)
+
+    ! Quantity on INPUT grid
     REAL*8,  INTENT(IN)  :: q1(im,jm)
 !
 ! !OUTPUT PARAMETERS:
 !
+    ! Regridded quantity on OUTPUT grid
     REAL*8,  INTENT(OUT) :: q2(in,jn)
 !
 !  !REVISION HISTORY:
@@ -206,43 +306,62 @@ MODULE REGRID_A2A_MOD
 !  (2) Added F90 type declarations to be consistent w/ TypeModule.f90.
 !      Also updated comments. (bmy, 9/21/00)
 !  21 Sep 2000 - R. Yantosca - Initial version
+!  27 Aug 2012 - R. Yantosca - Add parallel DO loops
 !EOP
 !------------------------------------------------------------------------------
 !BOC
 !
 ! !LOCAL VARIABLES:
 !
-    INTEGER              :: i,j,k
-    REAL*8               :: qtmp(in,jm)
+    INTEGER :: i,j,k
+    REAL*8  :: qtmp(in,jm)
 
     !===================================================================
-    ! MAP_A2A begins here!
-    !
-    ! Mapping in the E-W direction
-    ! If both grids have the same longitude dimension, don't call XMAP
+    ! E-W regridding
     !===================================================================    
     IF ( im .eq. in ) THEN
+
+       ! Don't call XMAP if both grids have the same # of longitudes
+       ! but save the input data in the QTMP array
+       !$OMP PARALLEL DO       &
+       !$OMP DEFAULT( SHARED ) &
+       !$OMP PRIVATE( I, J )
        DO j=1,jm-ig
        DO i=1,im
           qtmp(i,j+ig) = q1(i,j+ig)
        ENDDO
        ENDDO
+       !$OMP END PARALLEL DO
+
     ELSE
+
+       ! Otherwise, call XMAP to regrid in the E-W direction
        CALL xmap(im, jm-ig, lon1, q1(1,1+ig),in, lon2, qtmp(1,1+ig) )
+
     ENDIF
     
     !===================================================================
-    ! Mapping in the N-S direction
-    ! If both grids have the same latitude dimension, don't call YMAP 
+    ! N-S regridding
     !===================================================================    
     IF ( jm .eq. jn ) THEN
+
+       ! Don't call XMAP if both grids have the same # of longitudes,
+       ! but assign the value of QTMP to the output Q2 array
+       !$OMP PARALLEL DO       &
+       !$OMP DEFAULT( SHARED ) &
+       !$OMP PRIVATE( I, J )      
        DO j=1,jm-ig
        DO i=1,in
           q2(i,j+ig) = qtmp(i,j+ig)
        ENDDO
        ENDDO
+       !$OMP END PARALLEL DO
+
     ELSE
+
+       ! Otherwise, call YMAP to regrid in the N-S direction
        CALL ymap(in, jm, sin1, qtmp(1,1+ig), jn, sin2, q2(1,1+ig), ig, iv)
+
     ENDIF
 
   END SUBROUTINE map_a2a
@@ -306,6 +425,12 @@ MODULE REGRID_A2A_MOD
 ! !AUTHOR:
 !   Developer: Prasad Kasibhatla
 !   March 6, 2012
+!
+! !REVISION HISTORY
+!  06 Mar 2012 - P. Kasibhatla - Initial version
+!  27 Aug 2012 - R. Yantosca   - Added parallel DO loops
+!  27 Aug 2012 - R. Yantosca   - Change REAL*4 variables to REAL*8 to better
+!                                ensure numerical stability
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -315,7 +440,12 @@ MODULE REGRID_A2A_MOD
     INTEGER              :: i, j0, m, mm, j
     REAL*8               :: dy1(jm)
     REAL*8               :: dy
-    REAL*4               :: qsum, sum
+!------------------------------------------------------------------------------
+! Prior to 8/27/12:
+! Change REAL*4 to REAL*8, to eliminate numerical noise (bmy, 8/27/12)
+!    REAL*4               :: qsum, sum
+!------------------------------------------------------------------------------
+    REAL*8               :: qsum, sum
     
     ! YMAP begins here!
     do j=1,jm-ig
@@ -326,6 +456,9 @@ MODULE REGRID_A2A_MOD
     ! Area preserving mapping
     !===============================================================
     
+    !$OMP PARALLEL DO                          &
+    !$OMP DEFAULT( SHARED                    ) &
+    !$OMP PRIVATE( I, J0, J, M, QSUM, MM, DY )
     do 1000 i=1,im
        j0 = 1
        do 555 j=1,jn-ig
@@ -370,34 +503,60 @@ MODULE REGRID_A2A_MOD
 123    q2(i,j) = qsum / ( sin2(j+1) - sin2(j) )
 555    continue
 1000 continue
+     !$OMP END PARALLEL DO
 
      !===================================================================
      ! Final processing for poles
      !===================================================================
      if ( ig .eq. 0 .and. iv .eq. 0 ) then
          
+!------------------------------------------------------------------------------
+! Prior to 8/27/12:
+! Change REAL*4 to REAL*8, to eliminate numerical noise (bmy, 8/27/12)
+!        ! South pole
+!        sum = 0.
+!        do i=1,im
+!           sum = sum + q2(i,1)
+!        enddo
+!
+!        sum = sum / float(im)
+!        do i=1,im
+!           q2(i,1) = sum
+!        enddo
+!
+!        ! North pole:
+!        sum = 0.
+!        do i=1,im
+!           sum = sum + q2(i,jn)
+!        enddo
+!
+!        sum = sum / float(im)
+!        do i=1,im
+!           q2(i,jn) = sum
+!        enddo
+!------------------------------------------------------------------------------
         ! South pole
-        sum = 0.
+        sum = 0.d0
         do i=1,im
            sum = sum + q2(i,1)
         enddo
-        
-        sum = sum / float(im)
+
+        sum = sum / DBLE( im )
         do i=1,im
            q2(i,1) = sum
         enddo
-        
+
         ! North pole:
-        sum = 0.
+        sum = 0.d0
         do i=1,im
            sum = sum + q2(i,jn)
         enddo
-        
-        sum = sum / float(im)
+
+        sum = sum / DBLE( im )
         do i=1,im
            q2(i,jn) = sum
         enddo
-        
+
      endif
 
    END SUBROUTINE YMAP
@@ -451,6 +610,12 @@ MODULE REGRID_A2A_MOD
 ! !AUTHOR:
 !   Developer: Prasad Kasibhatla
 !   March 6, 2012
+!
+! !REVISION HISTORY
+!  06 Mar 2012 - P. Kasibhatla - Initial version
+!  27 Aug 2012 - R. Yantosca   - Added parallel DO loops
+!  27 Aug 2012 - R. Yantosca   - Change REAL*4 variables to REAL*8 to better
+!                                ensure numerical stability
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -462,7 +627,12 @@ MODULE REGRID_A2A_MOD
     REAL*8               :: x1(-im:im+im+1)
     REAL*8               :: dx1(-im:im+im)
     REAL*8               :: dx
-    REAL*4               :: qsum
+!------------------------------------------------------------------------------
+! Prior to 8/27/12:
+! Change REAL*4 to REAL*8, to eliminate numerical noise (bmy, 8/27/12)
+!    REAL*4               :: qsum
+!------------------------------------------------------------------------------
+    REAL*8               :: qsum
     LOGICAL              :: found
 
     ! XMAP begins here!
@@ -514,7 +684,10 @@ MODULE REGRID_A2A_MOD
           endif
        endif
     enddo
-      
+
+    !$OMP PARALLEL DO                                &
+    !$OMP DEFAULT( SHARED                          ) &
+    !$OMP PRIVATE( J, QTMP, I, I0, M, QSUM, MM, DX )
     do 1000 j=1,jm
        
        !=================================================================
@@ -543,7 +716,7 @@ MODULE REGRID_A2A_MOD
        endif
         
        i0 = i1
-        
+
        do 555 i=1,in
        do 100 m=i0,i2-1
 
@@ -585,7 +758,88 @@ MODULE REGRID_A2A_MOD
 123    q2(i,j) = qsum / ( lon2(i+1) - lon2(i) )
 555    continue
 1000 continue
+     !$OMP END PARALLEL DO
 
   END SUBROUTINE xmap
+!EOC
+!------------------------------------------------------------------------------
+!          Harvard University Atmospheric Chemistry Modeling Group            !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: read_input_grid
+!
+! !DESCRIPTION: Routine to read variables and attributes from a netCDF
+!  file.  This routine was automatically generated by the Perl script
+!  NcdfUtilities/perl/ncCodeRead.
+!\\
+!\\
+! !INTERFACE:
+!
+  SUBROUTINE READ_INPUT_GRID( IM, JM, fileName, lon_edges, lat_sines )
+!
+! !USES:
+!
+    ! Modules for netCDF read
+    USE m_netcdf_io_open
+    USE m_netcdf_io_get_dimlen
+    USE m_netcdf_io_read
+    USE m_netcdf_io_readattr
+    USE m_netcdf_io_close
+
+    IMPLICIT NONE
+
+#   include "netcdf.inc"
+!
+! !INPUT PARAMETERS:
+!
+    INTEGER,          INTENT(IN)  :: IM                ! # of longitudes
+    INTEGER,          INTENT(IN)  :: JM                ! # of latitudes
+    CHARACTER(LEN=*), INTENT(IN)  :: fileName          ! File w/ grid info
+!
+! !OUTPUT PARAMETERS:
+!   
+    REAL*8,           INTENT(OUT) :: lon_edges(IM+1)   ! Lon edges [degrees]
+    REAL*8,           INTENT(OUT) :: lat_sines(JM+1)   ! SIN( latitude edges )
+!
+! !REMARKS:
+!  Created with the ncCodeRead script of the NcdfUtilities package,
+!  with subsequent hand-editing.
+!
+! !REVISION HISTORY:
+!  23 Aug 2012 - R. Yantosca - Initial version
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+!
+! !LOCAL VARIABLES:
+!
+    ! Scalars
+    INTEGER            :: fId                          ! netCDF file ID
+
+    ! Arrays
+    INTEGER            :: st1d(1), ct1d(1)             ! netCDF start & count
+
+    !======================================================================
+    ! Read data from file
+    !======================================================================
+
+    ! Open file for reading
+    CALL Ncop_Rd( fId, TRIM( fileName ) )
+
+    ! Read lon_edges from file
+    st1d = (/ 1    /)
+    ct1d = (/ IM+1 /)
+    CALL NcRd( lon_edges, fId,  "lon_edges", st1d, ct1d )
+        
+    ! Read lat_sines from file
+    st1d = (/ 1    /)
+    ct1d = (/ JM+1 /)
+    CALL NcRd( lat_sines, fId,  "lat_sines", st1d, ct1d )
+
+    ! Close netCDF file
+    CALL NcCl( fId )
+
+  END SUBROUTINE READ_INPUT_GRID
 !EOC
 END MODULE REGRID_A2A_MOD

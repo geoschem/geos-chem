@@ -52,7 +52,7 @@
 !        aerosols in the atmosphere. 1. Model development", J. Geophys. Res.,
 !        v. 102, 3805-3818, 1997.
 !
-!  !REVISION HISTORY:
+! !REVISION HISTORY:
 !  (1 ) Now references "logical_mod.f" and "tracer_mod.f".  Comment out 
 !        SS_SIZE, this has been replaced by SALA_REDGE_um and SALC_REDGE_um
 !        from "tracer_mod.f".  Increased NR_MAX to 200. (bmy, 7/20/04)
@@ -118,10 +118,10 @@
       REAL*8,  ALLOCATABLE :: SRC(:,:)   
       REAL*8,  ALLOCATABLE :: SRC_N(:,:)   
       REAL*8,  ALLOCATABLE :: ALK_EMIS(:,:,:,:)
-      REAL*8,  ALLOCATABLE :: N_DENS(:,:,:,:) 
+      REAL*8,  ALLOCATABLE :: N_DENS(:,:,:,:)    
       ! Add SALT_V and DMID (jaegle 5/11/11)
       REAL*8,  ALLOCATABLE :: SALT_V(:)
-      REAL*8,  ALLOCATABLE :: DMID(:)   
+      REAL*8,  ALLOCATABLE :: DMID(:)
       REAL*8               :: SS_DEN(NSALT)    = (/ 2200.d0, 2200.d0 /)
 
       !=================================================================
@@ -143,7 +143,7 @@
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE CHEMSEASALT
+      SUBROUTINE CHEMSEASALT( am_I_Root )
 !
 ! !USES:
 !
@@ -153,13 +153,19 @@
       USE TRACER_MOD,   ONLY : STT
       USE TRACERID_MOD, ONLY : IDTSALA, IDTSALC
 
-      USE CMN_SIZE_MOD     ! Size parameters 
+      USE CMN_SIZE_MOD                   ! Size parameters
 !
+! !INPUT PARAMETERS:
+!
+      LOGICAL, INTENT(IN) :: am_I_Root   ! Is this the root CPU?
+! 
 ! !REVISION HISTORY:
 !  (1 ) Now reference STT from "tracer_mod.f".  Now references LPRT from
 !        "logical_mod.f" (bmy, 7/20/04)
 !  (2 ) Now only call DRY_DEPOSITION if LDRYD=T (bec, bmy, 5/23/06)
 !  22 Dec 2011 - M. Payer    - Added ProTeX headers
+!  30 Jul 2012 - R. Yantosca - Now accept am_I_Root as an argument when
+!                              running with the traditional driver main.F
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -208,21 +214,27 @@
       ! Accumulation mode
       !-------------------
       CALL WET_SETTLING( STT(:,:,:,IDTSALA), 1 )
-      IF ( LPRT ) CALL DEBUG_MSG( '### CHEMSEASALT: WET_SET, Accum' )
+      IF ( LPRT .and. am_I_Root ) THEN
+         CALL DEBUG_MSG( '### CHEMSEASALT: WET_SET, Accum' )
+      ENDIF
 
       !IF ( LDRYD ) THEN
       ! If LNLPBL (non local PBL mixing) is turned on, do sea salt
       ! dry deposition in vdiff as for all the other aerosols (jaegle 5/11/11)
       IF ( LDRYD .AND. .NOT. LNLPBL ) THEN
          CALL DRY_DEPOSITION( STT(:,:,:,IDTSALA), 1 )
-         IF ( LPRT ) CALL DEBUG_MSG( '### CHEMSEASALT: DRY_DEP, Accum' )
+         IF ( LPRT .and. am_I_Root ) THEN
+            CALL DEBUG_MSG( '### CHEMSEASALT: DRY_DEP, Accum' )
+         ENDIF
       ENDIF
 
       !-------------------
       ! Coarse mode
       !-------------------
       CALL WET_SETTLING( STT(:,:,:,IDTSALC), 2 )
-      IF ( LPRT ) CALL DEBUG_MSG( '### CHEMSEASALT: WET_SET, Coarse' )
+      IF ( LPRT .and. am_I_Root ) THEN 
+         CALL DEBUG_MSG( '### CHEMSEASALT: WET_SET, Coarse' )
+      ENDIF
 
       !IF ( LDRYD ) THEN
       ! If LNLPBL (non local PBL mixing) is turned on, do sea salt
@@ -237,11 +249,15 @@
       ! APM microphysics
       !-------------------
       CALL WET_SETTLINGBIN( STT(:,:,:,IDTSEA1:IDTSEA2) )
-      IF ( LPRT ) CALL DEBUG_MSG( '### CHEMSEASALT: WET_SET, Bins' )
+      IF ( LPRT .and. am_I_Root ) THEN
+         CALL DEBUG_MSG( '### CHEMSEASALT: WET_SET, Bins' )
+      ENDIF
 
       IF ( LDRYD ) THEN
          CALL DRY_DEPOSITIONBIN( STT(:,:,:,IDTSEA1:IDTSEA2) )
-         IF ( LPRT ) CALL DEBUG_MSG('### CHEMSEASALT: DRY_DEP, Bins')
+         IF ( LPRT .and. am_I_Root ) THEN
+            CALL DEBUG_MSG('### CHEMSEASALT: DRY_DEP, Bins')
+         ENDIF
       ENDIF
 #endif
 
@@ -267,7 +283,6 @@
       USE DAO_MOD,       ONLY : T, BXHEIGHT, RH
       USE DIAG_MOD,      ONLY : AD44
       USE DRYDEP_MOD,    ONLY : DEPSAV
-      USE ERROR_MOD,     ONLY : ERROR_STOP
       USE PRESSURE_MOD,  ONLY : GET_PCENTER
       USE TRACER_MOD,    ONLY : SALA_REDGE_um, SALC_REDGE_um, XNUMOL
       USE TRACERID_MOD,  ONLY : IDTSALA,       IDTSALC
@@ -334,7 +349,6 @@
       REAL*8,  PARAMETER     :: C2 =  3.079d0 
       REAL*8,  PARAMETER     :: C3 =  2.573d-11
       REAL*8,  PARAMETER     :: C4 = -1.424d0
-
       ! Parameters for polynomial coefficients to derive seawater
       ! density. From Tang et al. (1997) (jaegle 5/11/11)
       REAL*8,  PARAMETER     :: A1 =  7.93d-3
@@ -741,11 +755,13 @@
          ! Only apply drydep to boxes w/in the PBL
          IF ( F_UNDER_TOP > 0d0 ) THEN
 
-           ! Sea salt dry deposition frequency [1/s] accounting
-           ! for fraction of each grid box located beneath the PBL top
-           FREQ = DEPSAV(I,J,IDDEP(N)) * F_UNDER_TOP
-           ! Only apply drydep loss if FREQ is nonzero
-           IF ( FREQ > 0d0 ) THEN
+            ! Sea salt dry deposition frequency [1/s] accounting
+            ! for fraction of each grid box located beneath the PBL top
+            FREQ = DEPSAV(I,J,IDDEP(N)) * F_UNDER_TOP
+
+            ! Only apply drydep loss if FREQ is nonzero
+            IF ( FREQ > 0d0 ) THEN
+
                ! Old tracer concentration [kg]
                OLD  = TC(I,J,L)
 
@@ -753,36 +769,35 @@
                NEW  = OLD * EXP( -FREQ * DTCHEM )
 
 
-         ! Old tracer concentration [kg]
-         !OLD  = TC(I,J,1)
+               ! Old tracer concentration [kg]
+               !OLD  = TC(I,J,1)
 
-         ! New tracer concentration [kg]
-         !NEW  = OLD * EXP( -DEPSAV(I,J,IDDEP(N)) * DTCHEM  )
+               ! New tracer concentration [kg]
+               !NEW  = OLD * EXP( -DEPSAV(I,J,IDDEP(N)) * DTCHEM  )
 
-         !===========================================================
-         ! ND44 diagnostic: sea salt drydep loss [molec/cm2/s]
-         !===========================================================
-         IF ( ND44 > 0 ) THEN
+               !===========================================================
+               ! ND44 diagnostic: sea salt drydep loss [molec/cm2/s]
+               !===========================================================
+               IF ( ND44 > 0 ) THEN
             
-            ! Convert drydep loss from [kg/s] to [molec/cm2/s]
-            FLUX = ( OLD - NEW ) / DTCHEM 
-            FLUX = FLUX * XNUMOL(IDTSALA) / AREA_CM2 
+                  ! Convert drydep loss from [kg/s] to [molec/cm2/s]
+                  FLUX = ( OLD - NEW ) / DTCHEM 
+                  FLUX = FLUX * XNUMOL(IDTSALA) / AREA_CM2 
          
-            ! Store in AD44
-            AD44(I,J,IDDEP(N),1) = AD44(I,J,IDDEP(N),1) + FLUX
-         ENDIF
-
-         ! Update tracer array
-         TC(I,J,L) = NEW 
+                  ! Store in AD44
+                  AD44(I,J,IDDEP(N),1) = AD44(I,J,IDDEP(N),1) + FLUX
                ENDIF
+
+               ! Update tracer array
+               TC(I,J,L) = NEW 
+            ENDIF
          ENDIF
-         ENDDO
-         ENDDO
+      ENDDO
+      ENDDO
       ENDDO
 !$OMP END PARALLEL DO
 
       END SUBROUTINE DRY_DEPOSITION
-
 !EOC
 !------------------------------------------------------------------------------
 !          Harvard University Atmospheric Chemistry Modeling Group            !
@@ -798,7 +813,11 @@
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE EMISSSEASALT
+#if defined( DEVEL )
+      SUBROUTINE EMISSSEASALT( SFLX, SSA_Br2 )
+#else
+      SUBROUTINE EMISSSEASALT( SSA_Br2 )
+#endif
 !
 ! !USES:
 !
@@ -807,13 +826,27 @@
       USE TRACER_MOD,   ONLY : STT
       USE TRACERID_MOD, ONLY : IDTSALA, IDTSALC
       USE VDIFF_PRE_MOD,ONLY : emis_save ! (Lin, 03/31/09)
-#if   defined( APM )
-      USE APM_INIT_MOD, ONLY : IDTSEABIN1
+#if defined( DEVEL )
+      USE TRACER_MOD,   ONLY : N_TRACERS
 #endif
 
       USE CMN_SIZE_MOD       ! Size parameters
+
+#if   defined( APM )
+      USE APM_INIT_MOD, ONLY : IDTSEABIN1
+#endif
 !
-!  NOTES:
+! !OUTPUT PARAMETERS:
+!
+      REAL*8, INTENT(OUT), OPTIONAL :: SSA_Br2(IIPAR, JJPAR)
+!
+! !INPUT/OUTPUT PARAMETERS
+!
+#if defined( DEVEL )
+      REAL*8, INTENT(INOUT) :: SFLX(IIPAR,JJPAR,LLPAR,N_TRACERS+1)
+#endif
+!
+! !REVISION HISTORY: 
 !  (1 ) Now references LPRT from "logical_mod.f" and STT from "tracer_mod.f".
 !        (bmy, 7/20/04)
 !  (2 ) Now make sure IDTSALA, IDTSALC are nonzero before calling SRCSALT.
@@ -832,9 +865,16 @@
       LOGICAL, SAVE         :: FIRST = .TRUE.
       INTEGER               :: I, J, L, N
 
+      ! jpp, 3/2/10
+      REAL*8                :: tmpbr2(IIPAR, JJPAR)
+
       !=================================================================
       ! EMISSSEASALT begins here! 
       !=================================================================
+
+      ! Initialize Br2 emission arrays
+      tmpbr2(:,:) = 0.d0
+      IF ( PRESENT ( SSA_Br2 ) ) SSA_Br2(:,:) = 0.d0
 
       !### Debug
       IF ( LPRT ) CALL DEBUG_MSG( '### in EMISSEASALT' )
@@ -870,21 +910,41 @@
 
       ! Accumulation mode emissions
       IF ( IDTSALA > 0 ) THEN
-         CALL SRCSALT( STT(:,:,:,IDTSALA), 1 )
+         CALL SRCSALT( STT(:,:,:,IDTSALA), tmpbr2(:,:), 1 )
          IF ( LPRT ) CALL DEBUG_MSG( '### EMISSEASALT: Accum' )
+      ENDIF
+
+      IF ( PRESENT ( SSA_Br2 ) ) THEN
+         ! 1. store contributions of Br2 emissions
+         !    from accumulation mode: (jpp, 3/2/10)
+         SSA_Br2(:,:) = tmpbr2(:,:)
+
+         ! reset the temporary variable
+         tmpbr2(:,:)  = 0.d0
       ENDIF
 
       ! Coarse mode emissions
       IF ( IDTSALC > 0 ) THEN
-         CALL SRCSALT( STT(:,:,:,IDTSALC), 2 )
+         CALL SRCSALT( STT(:,:,:,IDTSALC), tmpbr2(:,:), 2 )
          IF ( LPRT ) CALL DEBUG_MSG( '### EMISSEASALT: Coarse' )
       ENDIF
+
+#if defined( DEVEL )
+      SFLX(:,:,1,IDTSALA) = SFLX(:,:,1,IDTSALA) + ALK_EMIS(:,:,1,1)
+      SFLX(:,:,1,IDTSALC) = SFLX(:,:,1,IDTSALC) + ALK_EMIS(:,:,1,2)
+#endif
 
 #if   defined( APM )
       ! Sea salt emissions for extra APM bins
       CALL SRCSALTBIN( STT(:,:,:,IDTSEA1:IDTSEA2) )
       IF ( LPRT ) CALL DEBUG_MSG( '### EMISSEASALT: Bin' )
 #endif
+
+      IF ( PRESENT ( SSA_Br2 ) ) THEN
+         ! 2. add in contributions of Br2 emissions
+         !    from the coarse mode: (jpp, 3/2/10)
+         SSA_Br2(:,:) = SSA_Br2(:,:) + tmpbr2(:,:)
+      ENDIF
 
       ! save surface emis for non-local PBL mixing (vdiff_mod.f) (units: kg)
       ! (Lin, 06/09/08) 
@@ -913,14 +973,13 @@
 !  Gong (2003) with the empirical sea surface temperature (SST) dependence of
 !  Jaegle et al. (2011). This SST dependence was derived based on comparisons
 !  to cruise observations of coarse mode sea salt mass concentrations.
-!\\
-!\\ 
+! 
 !  Contact: Lyatt Jaegle (jaegle@uw.edu)
 !\\
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE SRCSALT( TC, N )
+      SUBROUTINE SRCSALT( TC, SSA_Br2, N )
 !
 ! !USES:
 !
@@ -933,6 +992,7 @@
       USE PBL_MIX_MOD,   ONLY : GET_FRAC_OF_PBL, GET_PBL_TOP_L
       USE TIME_MOD,      ONLY : GET_TS_EMIS
       USE TRACER_MOD,    ONLY : SALA_REDGE_um, SALC_REDGE_um, XNUMOL
+      USE SSA_BROMINE_MOD, ONLY : EMISS_SSA_BROMINE
 
       USE CMN_SIZE_MOD        ! Size parameters
       USE CMN_DIAG_MOD        ! ND44, ND08
@@ -945,6 +1005,11 @@
 ! !INPUT/OUTPUT PARAMETERS: 
 !
       REAL*8,  INTENT(INOUT) :: TC(IIPAR,JJPAR,LLPAR) ! Sea salt tracer [v/v]
+!
+! !OUTPUT PARAMETERS:
+!
+      !jpp, 3/2/10
+      REAL*8,  INTENT(OUT)   :: SSA_Br2(IIPAR,JJPAR)  ! Br2 sea salt emissions
 !
 ! !REMARKS:
 !  References:
@@ -999,6 +1064,8 @@
       REAL*8                 :: SALT_N(IIPAR,JJPAR)
       ! New variables (jaegle 5/11/11)
       REAL*8                 :: A, B, SST, SCALE
+      ! jpp, 3/2/10
+      REAL*8                 :: br2_kg_emiss, salt_current
 
       ! Increment of radius for Emission integration (um)
       REAL*8, PARAMETER      :: DR    = 5.d-2
@@ -1010,6 +1077,9 @@
       !=================================================================
       ! SRCSALT begins here!
       !=================================================================
+
+      ! initialize the Br2 sea-salt emissions
+      SSA_Br2(:,:) = 0.d0
       
       ! Emission timestep [s]
       DTEMIS = GET_TS_EMIS() * 60d0
@@ -1137,6 +1207,7 @@
 !$OMP+DEFAULT( SHARED )
 !$OMP+PRIVATE( I, J, R, A_M2, W10M )
 !$OMP+PRIVATE( SST , SCALE         ) !(jaegle 5/11/11)
+!$OMP+PRIVATE( salt_current, br2_kg_emiss )
 !$OMP+SCHEDULE( DYNAMIC )
 
       ! Loop over latitudes
@@ -1166,9 +1237,10 @@
                ! Reset to using original Gong (2003) emissions (jaegle 6/30/11)
 	       !SCALE = 1.0d0
 
-! The source function calculated with GEOS-4 2x2.5 wind speeds is too high compared to GEOS-5
-! at the same resolution. The 10m winds in GEOS-4 are too rapid. To correct this, apply a global
-! scaling factor of 0.72 (jaegle 5/11/11)
+               ! The source function calculated with GEOS-4 2x2.5 wind speeds
+               ! is too high compared to GEOS-5 at the same resolution. The 10m
+               ! winds in GEOS-4 are too rapid. To correct this, apply a global
+               ! scaling factor of 0.72 (jaegle 5/11/11)
 #if   defined( GEOS_4 )
                 SCALE = SCALE * 0.72d0
 #endif
@@ -1184,6 +1256,24 @@
                   ! (bec, bmy, 4/13/05)
                   SALT_N(I,J) = SALT_N(I,J) +
      &               ( SCALE * SRC_N(R,N) * A_M2 * W10M**3.41d0 )
+
+                  ! jpp, 3/3/10: since the SALT arrays are integrations
+                  !              I cannot use them for each independent
+                  !              radius... that's why I'm getting too
+                  !              much bromine. So I'm making a tmp
+                  !              array to store only the current
+                  !              Dry Radius bin. [kg]
+                  salt_current = ( SRC(R,N)   * A_M2 * W10M**3.41d0 )
+
+                  ! --------------------------------------------------
+                  ! jpp, 3/2/10: Accounting for the bromine emissions
+                  ! now. Store mass flux [kg] of Br2 based on how much
+                  ! aerosol there is emitted in this box.
+                  ! --------------------------------------------------
+                  CALL EMISS_SSA_BROMINE( J, RMID(R, N), 
+     &                  salt_current, br2_kg_emiss )
+
+                  SSA_Br2(I,J) = SSA_Br2(I,J) + br2_kg_emiss
 
                ENDDO
             ENDIF
@@ -1250,6 +1340,7 @@
 !\\
 ! !INTERFACE:
 !
+
       SUBROUTINE GET_ALK( I, J, L, ALK1, ALK2, Kt1, Kt2, Kt1N, Kt2N )
 !
 ! !USES:
@@ -1291,12 +1382,12 @@
       REAL*8             :: a1, a2, b1, b2, a1N, a2N, b1N, b2N
       REAL*8,  PARAMETER :: MINDAT = 1.d-20
       INTEGER            :: IRH
-      REAL*8,  PARAMETER   :: gamma_SO2 = 0.11d0 !from Worsnop et al. (1989)
-      REAL*8,  PARAMETER   :: gamma_HNO3 = 0.2d0 !from JPL [2001] 
-      REAL*8,  PARAMETER   :: Dg = 0.2d0 !gas phase diffusion coeff. [cm2/s]
-      REAL*8,  PARAMETER   :: v = 3.0d4 !cm/s
+      REAL*8,  PARAMETER :: gamma_SO2 = 0.11d0 !from Worsnop et al. (1989)
+      REAL*8,  PARAMETER :: gamma_HNO3 = 0.2d0 !from JPL [2001] 
+      REAL*8,  PARAMETER :: Dg = 0.2d0 !gas phase diffusion coeff. [cm2/s]
+      REAL*8,  PARAMETER :: v = 3.0d4  !cm/s
 
-      LOGICAL, SAVE :: FIRST = .TRUE.
+      LOGICAL, SAVE      :: FIRST = .TRUE.
  
       !=================================================================
       ! GET_ALK begins here!
@@ -1425,7 +1516,6 @@
 
       ENDIF
 
-      ! Return to calling program
       END SUBROUTINE GET_ALK
 !EOC
 !------------------------------------------------------------------------------
@@ -1506,7 +1596,6 @@
       ! Reset IS_INIT
       IS_INIT = .TRUE.
 
-      ! Return to calling program
       END SUBROUTINE INIT_SEASALT
 !EOC
 !------------------------------------------------------------------------------
@@ -1532,6 +1621,7 @@
 !------------------------------------------------------------------------------
 !BOC
 !
+
       !=================================================================
       ! CLEANUP_SEASALT begins here!
       !=================================================================
@@ -1544,7 +1634,6 @@
       IF ( ALLOCATED( SALT_V   ) ) DEALLOCATE( SALT_V   )
       IF ( ALLOCATED( DMID     ) ) DEALLOCATE( DMID     )
 
-      ! Return to calling program
       END SUBROUTINE CLEANUP_SEASALT
 !EOC
 #if   defined( APM )

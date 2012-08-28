@@ -19,6 +19,8 @@
 
       IMPLICIT NONE
       PUBLIC
+
+#     include "define.h"
 !
 ! !REMARKS:
 !         CCCCCCC  OOOOOOO  M     M  OOOOOOO  DDDDDD   EEEEEEE 
@@ -116,7 +118,11 @@
 !  (18) PINP(20) increased to PINP(IMISC) (FP 2/10)
 !
 !  !REVISION HISTORY:
-!  23 Aug 2011 - M. Long   - Converted to Module from Header file
+!  23 Aug 2011 - M. Long     - Converted to Module from Header file
+!  14 Aug 2012 - R. Yantosca - Add #include "define.h" to USES section
+!  14 Aug 2012 - R. Yantosca - Now set KBLOOP=1 only if we are connecting to
+!                              an external GCM (i.e. triggered by switches
+!                              EXTERNAL_GRID or EXTERNAL_FORCING).
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -125,7 +131,7 @@
 !
       INTEGER ILAT,ILONG,IVERT,IPLUME,IPVERT,ITLOOP,KBLOOP,MXBLOCK
       INTEGER IMLOOP,ILAYER,ILTLOOP,MAXDAYS
-#if !defined( DEVEL ) 
+#if !defined( DEVEL )
       PARAMETER (ILAT    = JJPAR                   )  
       PARAMETER (ILONG   = IIPAR                   )  
 #endif
@@ -140,8 +146,39 @@
       PARAMETER (ITLOOP  = ILAT * ILONG * IPVERT   )
 #endif
 
-      ! Regular
-      PARAMETER (KBLOOP  = 24                       )
+      ! KBLOOP is the # of boxes that SMVGEAR will process on a single CPU.
+      ! 
+      ! %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+      ! %%% NOTE: If you are using GEOS-Chem without ESMF, but with the  %%%
+      ! %%% DEVEL=yes option (i.e. to test grid-independent updates      %%%
+      ! %%% w/r/t a standard G-C simulation), then you must make sure    %%%
+      ! %%% that KBLOOP is set to the same value in both simulations.    %%%
+      ! %%%                                                              %%%
+      ! %%% The absolute and relative errors (which determine if the     %%%
+      ! %%% chemistry has converged to a solution) are computed over all %%%
+      ! %%% KBLOOP boxes at once.  Using different KBLOOP values in      %%%
+      ! %%% different simulations will cause slightly different results  %%%
+      ! %%% in chemical concentrations (even after only one timestep).   %%%
+      ! %%%                                                              %%%
+      ! %%% To this end, we now only set KBLOOP=1 if we are connecting   %%%
+      ! %%% GEOS-Chem to an external GCM (i.e. if the Cpp switches       %%%
+      ! %%% EXTERNAL_GRID or EXTERNAL_FORCING are set in define.h).      %%%
+      ! %%%                                                              %%%
+      ! %%%    -- Bob Yantosca (14 Aug 2012)                             %%%
+      ! %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+      !
+!-----------------------------------------------------------------------------
+! Prior to 8/14/12:
+!#if defined( DEVEL )
+!-----------------------------------------------------------------------------
+#if defined( EXTERNAL_GRID ) || defined( EXTERNAL_FORCING )
+      ! Set KBLOOP=1 for connecting to an external GCM
+      PARAMETER (KBLOOP  = 1                       )
+#else
+      ! For "traditional" G-C simulations, leave KBLOOP = 24
+      PARAMETER (KBLOOP  = 24                      )
+#endif
+
 #if !defined( DEVEL )
       PARAMETER (IMLOOP  = ILAT * ILONG            )
 #endif
@@ -184,11 +221,20 @@
       INTEGER IMASBAL,IALTS,MXCOF
 
       ! Updated for SMVGEAR II (bdf, bmy, 4/1/03)
-!FP_ISOP 06/15/09 !IGAS, NMRATE and MAXGL increased
-!      PARAMETER ( IGAS    = 200,               IAERTY  = 1           )
-!      PARAMETER ( NMRATE  = 510,               IPHOT   = 85          )
-      PARAMETER ( IGAS    = 300,               IAERTY  = 1           )
-      PARAMETER ( NMRATE  = 700,               IPHOT   = 85          )
+!------------------------------------------------------------------------------
+! Prior to 12/28/11:
+! Increase IGAS   from 300 to 310 for 10 added bromine species 
+! Increase NMRATE from 700 to 726 for bromine rxns
+! Increase IPHOT  from 85  to 92  for Br
+! (J. Parrella, mpayer, 12/28/11)
+!!FP_ISOP 06/15/09 !IGAS, NMRATE and MAXGL increased
+!!      PARAMETER ( IGAS    = 200,               IAERTY  = 1           )
+!!      PARAMETER ( NMRATE  = 510,               IPHOT   = 85          )
+!      PARAMETER ( IGAS    = 300,               IAERTY  = 1           )
+!      PARAMETER ( NMRATE  = 700,               IPHOT   = 85          )
+!------------------------------------------------------------------------------
+      PARAMETER ( IGAS    = 310,               IAERTY  = 1           )
+      PARAMETER ( NMRATE  = 726,               IPHOT   = 92          )
       PARAMETER ( NMTRATE = NMRATE + IPHOT,    NMQRATE = 1           ) 
       PARAMETER ( NMRPROD = 25,                NMDEAD  = 100         )
 !      PARAMETER ( MAXGL   = 750,               MAXGL2  = 90          )
@@ -360,16 +406,22 @@
       ! Add NKHO2 to /CHEM4/ to flag HO2 aerosol uptake (jaegle 02/26/09)
       ! Add NNADDF, NNADDH, NKHOROI and NKHOROJ to /CHEM4/ for HOC2H4O rxns
       ! (tmf, 3/6/09)
-      !Added NKGLYC and NKHAC NKMCO3
-      ! (hotp 7/31/09)
-      INTEGER            NNADD1,      NNADDA(ICS), NNADDB(  ICS), 
-     &                   NNADDC(ICS), NNADDD(ICS), NNADDK(  ICS), 
-     &                   NNADDV(ICS), NNADDZ,      NKO3PHOT(ICS),
-     &                   NNADDG(ICS), NEMIS( ICS), NDRYDEP( ICS),
-     &                   NNADDF(ICS), NNADDH(ICS), 
-     &                   NKHOROI(ICS),NKHOROJ(ICS),
-     &                   NKHNO4(ICS), NKN2O5,      NKHO2,
-     &                   NKGLYC(ICS,2), NKHAC(ICS,2), NKMCO3(ICS,3)
+      ! Added NKGLYC and NKHAC NKMCO3 (hotp 7/31/09)
+      ! Added NKBrNO3 to /CHEM4/ to flag BrNO3 hydrolysis rxn (jpp, 5/4/10)
+      ! Added NKHOBr and NK1HBR to /CHEM4/ to flag the two HOBr + HBr
+      !      pseudo reactions (in place of HBr + HOBr --het-->) (jpp, 3/22/11)
+      ! Added NK2HOBr and NK2HBR to /CHEM4/ to flag the two HOBr + HBr
+      !      pseudo reactions (in place of HBr + HOBr --ice-->) (jpp, 6/16/11)
+      INTEGER            NNADD1,        NNADDA(ICS),  NNADDB(  ICS), 
+     &                   NNADDC(ICS),   NNADDD(ICS),  NNADDK(  ICS), 
+     &                   NNADDV(ICS),   NNADDZ,       NKO3PHOT(ICS),
+     &                   NNADDG(ICS),   NEMIS( ICS),  NDRYDEP( ICS),
+     &                   NNADDF(ICS),   NNADDH(ICS), 
+     &                   NKHOROI(ICS),  NKHOROJ(ICS),
+     &                   NKHNO4(ICS),   NKN2O5,       NKHO2,
+     &                   NKGLYC(ICS,2), NKHAC(ICS,2), NKMCO3(ICS,3),
+     &                   NKBrNO3,       NKHOBr,       NK1HBr, 
+     &                   NK2HOBr,       NK2HBr
 
       INTEGER ::         IH2O,        IOXYGEN,   MB1,      MB2
 
@@ -386,6 +438,11 @@
       ! bug fix: change to INTEGER (dbm, dkh, 06/26/07)  
       INTEGER ::         ILBRO2H,    ILBRO2N,   ILTRO2H,  ILTRO2N
       INTEGER ::         ILXRO2H,    ILXRO2N
+
+      ! Added option for zeroing CHBr3 and CH2Br2 inside calcrate,
+      ! since zeroing their emissions doesn't prevent small
+      ! conc's on the order of 0.01pptv (jpp, 4/15/10)
+      INTEGER ::         ICHBr3, ICH2Br2
 
       INTEGER ::         IOUT,        KGLC,      KCPD,     IO93
 !
@@ -492,7 +549,7 @@
       INTEGER :: MBCOMP(IMASBAL,2), MBTRACE(IMASBAL)
 
       ! /DKBLOOP2/ needs to be declared THREADPRIVATE
-      REAL*8 ::                                                         &
+      REAL*8 ::
      &  CNEW(   KBLOOP,  MXGSAER),  
      &  CEST(   KBLOOP,  MXGSAER),  
      &  GLOSS(  KBLOOP,  MXGSAER),  

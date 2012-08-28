@@ -65,6 +65,10 @@
 !  (18) Add change yield for HAC. Make CONSTC a parameter. (fp, 2/2/10)
 !  01 Mar 2012 - R. Yantosca - Now use new functions from grid_mod.F90:
 !                              GET_YMID(I,J,L) and GET_AREA_CM2(I,J,L)
+!  20 Jun 2012 - R. Yantosca - Under some circumstances it seems that INT_OPE
+!                              computed by PARANOX can be negative.  This
+!                              would make EMIS_BL and REMIS negative.  If any
+!                              negative emissions occur, reset to zero.
 !******************************************************************************
 !
       ! References to F90 modules 
@@ -87,6 +91,18 @@
       ! KPP interface (phs,ks,dhk, 09/15/09)
       USE GCKPP_GLOBAL,    ONLY : IND
       USE LOGICAL_MOD,     ONLY : LNLPBL, LKPP ! (Lin, 03/31/09)
+      ! jpp, testing
+      USE LOGICAL_MOD,     ONLY : LWARWICK_VSLS
+      ! jpp, added the following for BrNO3 recycling off of clouds (3/17/2011)
+      USE DAO_MOD,         ONLY : T, AIRVOL, FRLAND, FROCEAN
+      USE DAO_MOD,         ONLY : QL   ! cloud liq water mixing ratio [kg/kg]
+      USE DAO_MOD,         ONLY : QI   ! cloud ice mixing ratio [kg/kg]
+      USE DAO_MOD,         ONLY : CLDF ! 3D cloud fraction of the box
+      USE DAO_MOD,         ONLY : AD   ! dry air mass [kg]
+      ! jpp, add for use in HOBr + HBr reaction
+      USE TRACERID_MOD,    ONLY : IDTHBr, IDTHOBr
+      USE ERROR_MOD,       ONLY : is_safe_div
+      USE TRACER_MOD,      ONLY : STT
 
       !UPDATE BY GVINKEN, USE FOR SHIPS EMISSIONS
       USE ICOADS_SHIP_MOD, ONLY : GET_ICOADS_SHIP  !(cklee, 7/09/09)
@@ -123,6 +139,9 @@
       ! added LD52 and ND52 (jaegle 2/26/09)
       ! added FRCLND (jaegle 02/26/09)
       
+      ! jpp, rate constant for BrNO3 cloud recycling
+      REAL*8 :: CLD_BrNO3_RC
+
       ! Local variables
       INTEGER :: KLOOP,JLOOP,I,NK,JOLD2,JOLD,NK1,NKN,NH,MLOOP,J
       INTEGER :: NP,K,IFNC,IBRCH,IX,IY,IZ,IJWINDOW,INDEX,NN,ii,jj
@@ -154,7 +173,7 @@
       ! External functions
       REAL*8, EXTERNAL :: RTFUNC, FYRNO3,  ARSL1K,  FJFUNC, FYHORO
 
-      CHARACTER*4      :: SPECNAME
+      CHARACTER*8      :: SPECNAME
 
       ! Added for heterogeneous chemistry (bmy, 11/15/01, 8/7/03)
       LOGICAL          :: HETCHEM
@@ -183,6 +202,45 @@
       REAL*8 :: YA,YB,YC
       REAL*8 :: PTEMP
   
+
+      ! True/False variables for treating rates for the
+      ! psuedo-reactions that account for bromine heterogeneous
+      ! chemistry involving 2 gas phase species. (jpp, 4/12/10)
+      LOGICAL :: yn_nkhobr, yn_nk1hbr
+      REAL*8  :: br_aer1_rc ! temp storage for HBr+HOBr+aerosol rate constant
+
+      REAL*8  :: hobr_rtemp, hbr_rtemp
+      REAL*8  :: ki_hobr, ki_hbr
+      REAL*8  :: darea ! dummy variable for ice surface area (jpp, 7/5/2011)
+      LOGICAL :: yn_div_safe
+
+      REAL*8  :: QLIQ(IIPAR,JJPAR,LLPAR), QICE(IIPAR,JJPAR,LLPAR)
+      darea  = 0d0
+#if defined( GEOS_5 ) || defined( MERRA ) || defined( GEOS_57 )
+      QICE      = QI
+      QLIQ      = QL
+#else
+      ! GEOS-4 and GCAP do not have QI or QL variables. Make same assumption
+      ! as we do in wetscav_mod.F.
+      DO I=1,IIPAR
+      DO J=1,JJPAR
+      DO L=1,LLPAR
+         IF ( T(I,J,L) .LE. 248d0 ) THEN
+            QLIQ(I,J,L) = 0d0
+         ELSE IF ( T(I,J,L) .GE. 268d0 ) THEN
+            QLIQ(I,J,L) = 1d-6
+         ELSE
+            QLIQ(I,J,L) = 1d-6 * ( ( T(I,J,L) - 248d0 ) / 20d0 )
+         ENDIF
+      ENDDO
+      ENDDO
+      ENDDO
+      QICE = 1d-6 - QLIQ
+#endif
+
+      ! initialize the true/false selectors (jpp, 4/12/10)
+      yn_nkhobr = .false.; yn_nk1hbr = .false.
+      br_aer1_rc = 0.d0
 
       ! FAST-J: Zero out the dummy array (bmy, 9/30/99)
       DUMMY = 0d0
@@ -329,6 +387,21 @@
             CBLK(KLOOP,ICH4) = CBLK(KLOOP,ICH4) *1d-9 * AIRDENS(JLOOP)
          ENDDO
       ENDIF
+
+      ! ---------------------------------------------------------
+      ! Test whether we are setting the VSL bromine source gases
+      ! equal to zero or not: (jpp, 4/15/10)
+      ! ---------------------------------------------------------
+      IF ( ( ICHBr3 > 0 ) .and. ( ICH2Br2 > 0 ) ) THEN
+         IF ( .not. LWARWICK_VSLS ) THEN
+            ! Loop over boxes per grid block
+            DO KLOOP = 1, KTLOOP 
+               CBLK(KLOOP, ICHBr3)  = 0.d0
+               CBLK(KLOOP, ICH2Br2) = 0.d0
+            ENDDO
+         ENDIF
+      ENDIF
+
 !
 ! *********************************************************************
 ! *   CALCULATE KINETIC REACTION RATES USING ARRHENIUS PARAMETERS     * 
@@ -874,7 +947,39 @@ c new OH+CO rate from JPL2006.
      &                               ( XAREA / TOTAREA * XSTKCF )
 
 
-                  ELSE 
+                  ELSE IF ( NK == NKBrNO3 ) THEN
+
+                     ! Get the aerosol type
+                     ! If it's sulfate then use 0.8 for alpha, following
+                     !  JPL 2006 kinetics evaluation... holds for many
+                     !  temperatures and percent weights of sulfate.
+                     ! If not, then use the IUPAC recommendation of
+                     !  0.3, which is an input in globchem.dat
+                     ! (jpp, 5/4/10)
+                     IF ( N == 8 ) THEN
+                        ! sulfate aerosol
+                        XSTKCF = 0.8d0
+                     ELSE IF ( (N == 11) .OR. ( N == 12) ) THEN
+                        ! 2 modes of sea-salt
+                        XSTKCF = BRR(NK,NCS)
+                     ELSE
+                        XSTKCF = TINY(1d0) ! avoid divide by zero
+                     ENDIF
+
+                  ELSE IF ( NK == NKHOBr .OR. NK == NK1HBr) THEN
+                     ! jpp, 3/22/11: set the sticking coefficient to 
+                     !  ~0 for aerosol types we don't want reactions on
+                     !  for the HBr and HOBr surface reaction
+
+                     ! Select proper aerosol type
+                     IF ( (N == 8) .OR. (N==11) .OR. (N==12) ) THEN
+                        ! sulfate or 2 modes of sea-salt
+                        XSTKCF = BRR(NK,NCS)
+                     ELSE
+                        XSTKCF = TINY(1d0) ! avoid divide by zero
+                     ENDIF
+
+                  ELSE
 
                      ! Get GAMMA for species other than N2O5
                      XSTKCF = BRR(NK,NCS)
@@ -884,7 +989,9 @@ c new OH+CO rate from JPL2006.
                   ! Reaction rate for dust size bin N
                   RRATE(KLOOP,NK) = RRATE(KLOOP,NK) + 
      $                 ARSL1K(XAREA,XRADIUS,XDENA,XSTKCF,XSTK,XSQM)
+
                ENDDO
+
                IF ( ND52 > 0 ) THEN
                   ! Archive gamma HO2 in AD52
                   IF ( IZ <= LD52 ) THEN
@@ -893,6 +1000,111 @@ c new OH+CO rate from JPL2006.
                   ENDIF
                ENDIF
             ENDDO
+
+            ! ---------------------------------------------------
+            ! Setting the HOBr and HBr pseudo-rxns equal to
+            ! whichever rate is smaller/limiting. (jpp, 4/12/10)
+            !
+            ! Make sure that both rates have been calculated,
+            ! then, take the lowest rate and apply it to
+            ! both pseudo-rxns (rate limiting). (jpp, 4/12/10)
+            ! -------------------------------------------------
+
+            IF ( ( IDTHBr > 0) .and. ( IDTHOBr > 0 ) ) THEN
+
+               ! select the min of the two rates
+               hbr_rtemp  = RRATE(KLOOP, NK1HBr) *
+     &                      STT(IX,IY,IZ, IDTHBr)
+               hobr_rtemp = RRATE(KLOOP, NKHOBr) * 
+     &                      STT(IX,IY,IZ, IDTHOBr)
+
+               ! ---------------------------------------------
+               ! Kludging the rates to be equal to one another
+               ! to avoid having to keep setting equality in
+               ! SMVGEAR solver. (jpp, 5/10/2011)
+               ! ---------------------------------------------
+               IF ( hbr_rtemp > hobr_rtemp ) THEN
+
+                  ! 1. is it safe to divide?
+                  yn_div_safe = is_safe_div( 
+     &                          RRATE(KLOOP, NKHOBr) *
+     &                          STT(IX,IY,IZ, IDTHOBr), 
+     &                          STT(IX,IY,IZ, IDTHBr) )
+
+                  IF (yn_div_safe) THEN
+                     ! 2. if it is safe, then go ahead
+                     RRATE(KLOOP,NK1HBr) = RRATE(KLOOP, NKHOBr)   *
+     &                                     STT(IX,IY,IZ, IDTHOBr) /
+     &                                     STT(IX,IY,IZ, IDTHBr)
+                  ELSE
+                     ! if not, then set rates really small...
+                     ! b/c the largest contributor is very small.
+                     RRATE(KLOOP, NK1HBr) = TINY(1.d0)
+                     RRATE(KLOOP, NKHOBr) = TINY(1.d0)
+                  ENDIF
+
+               ! if HOBr rate is larger than HBr rate
+               ELSE
+
+                  ! 1. is it safe to divide?
+                  yn_div_safe = is_safe_div( 
+     &                          RRATE(KLOOP, NK1HBr) *
+     &                          STT(IX,IY,IZ, IDTHBr), 
+     &                          STT(IX,IY,IZ, IDTHOBr) )
+
+                  IF (yn_div_safe) THEN
+                     ! 2. if it is safe, then go ahead
+                     RRATE(KLOOP,NKHOBr) = RRATE(KLOOP, NK1HBr)  *
+     &                                     STT(IX,IY,IZ, IDTHBr) /
+     &                                     STT(IX,IY,IZ, IDTHOBr)
+                  ELSE
+                     ! if not, then set rates really small...
+                     ! b/c the largest contributor is very small.
+                     RRATE(KLOOP, NK1HBr) = TINY(1.d0)
+                     RRATE(KLOOP, NKHOBr) = TINY(1.d0)
+                  ENDIF
+               ENDIF
+            ENDIF
+
+            ! ----------------------------------------------
+            !  Add rate for cloud heterogeneous chemistry
+            !  to RRATE(KLOOP, NKBrNO3). (jpp, 2/28/2011)
+            ! ----------------------------------------------
+            IF ( NKBrNO3 > 0 ) THEN
+               cld_brno3_rc = CLD1K_BrNO3(IX,            IY,
+     &                                 IZ,               XDENA,
+     &                                 AIRVOL(IX,IY,IZ), T(IX,IY,IZ),
+#if defined( GEOS_5 ) || defined( MERRA ) || defined( GEOS_57 )
+     &                                 FRLAND(IX,IY),    FROCEAN(IX,IY),
+#endif
+     &                                 QLIQ(IX,IY,IZ),   CLDF(IZ,IX,IY),
+     &                                 AD(IX,IY,IZ) )
+
+               RRATE(KLOOP, NKBrNO3) = RRATE(KLOOP, NKBrNO3) + 
+     &                                 cld_brno3_rc
+            ENDIF
+
+            ! ----------------------------------------------
+            !  Calculate rates for HOBr + HBr + ice --> Br2
+            !  for cold and mixed clouds. (jpp, 6/16/2011)
+            ! ----------------------------------------------
+            IF ( ( IDTHBr > 0 ) .and. ( IDTHOBr > 0 ) ) THEN
+               CALL cldice_hbrhobr_rxn( XDENA,
+     &                                  AIRVOL(IX,IY,IZ),
+     &                                  T(IX,IY,IZ),
+     &                                  QICE(IX,IY,IZ),
+     &                                  CLDF(IZ,IX,IY),
+     &                                  AD(IX,IY,IZ),
+     &                                  STT(IX,IY,IZ,IDTHBr),
+     &                                  STT(IX,IY,IZ,IDTHOBr),
+     &                                  ki_hbr,
+     &                                  ki_hobr,
+     &                                  DAREA )
+
+               RRATE(KLOOP, NK2HBr)  = ki_hbr
+               RRATE(KLOOP, NK2HOBr) = ki_hobr
+            ENDIF
+
          ELSE
 
             !===========================================================
@@ -1083,6 +1295,18 @@ c new OH+CO rate from JPL2006.
                INDEX = 7
             CASE ( 'MGLY' )
                INDEX = 8
+            CASE ( 'BrO' )
+               INDEX = 9
+            CASE ( 'HOBr' )
+               INDEX = 10
+            CASE ( 'BrNO2' )
+               INDEX = 11
+            CASE ( 'BrNO3' )
+               INDEX = 12
+            CASE ( 'CHBr3' )
+               INDEX = 13
+            CASE ( 'Br2' )
+               INDEX = 14
             CASE DEFAULT
                INDEX = 0
          END SELECT
@@ -1387,8 +1611,14 @@ c new OH+CO rate from JPL2006.
                     
                      ! Convert ship O3 emissions from [molec NO/box/s]
                      ! to [molec NO/cm3/s] and store in the REMIS array
-                     REMIS(JLOOP,IDEOX) = REMIS(JLOOP,IDEOX) + 		!maasatemp
-     &                                    EMIS_BL / VOLUME(JLOOP)		!maasatemp
+                     REMIS(JLOOP,IDEOX) = REMIS(JLOOP,IDEOX) + 
+     &                                    EMIS_BL / VOLUME(JLOOP)
+
+                     !%%% DO NOT LET NEGATIVE SHIP EMISSIONS GET  
+                     !%%% ARCHIVED INTO REMIS (bmy, mpayer, 6/20/12)
+                     IF ( REMIS(JLOOP,IDEOX) < 0d0 ) THEN
+                        REMIS(JLOOP,IDEOX) = 0d0
+                     ENDIF
                   ENDIF
                ENDDO
            
@@ -1944,6 +2174,253 @@ c new OH+CO rate from JPL2006.
 
       ! Return to CALCRATE
       END FUNCTION HO2
+
+!------------------------------------------------------------------------------
+!          Harvard University Atmospheric Chemistry Modeling Group            !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: cld1k_brno3
+!
+! !DESCRIPTION: Function CLD1K_BrNO3 calculates the rate constant for
+!  heterogeneous cycling of BrNO3 off of cloud particles.
+!\\
+!\\
+! !INTERFACE:
+!
+      FUNCTION CLD1K_BrNO3( I,      J,    L,      DENAIR, 
+     &                      AIRVOL, TEMP, 
+#if defined( GEOS_5 ) || defined( MERRA ) || defined( GEOS_57 )
+     &                      FRLAND, FROCEAN,
+#endif
+     &                      QL,     CLDF, AD )    RESULT( cld1k )
+
+!
+! !USES:
+!
+      USE DAO_MOD, ONLY    : IS_LAND, IS_ICE
+      IMPLICIT NONE
+!
+! !INPUT PARAMETERS:
+!
+      INTEGER, INTENT(IN) :: I        ! Longitude index
+      INTEGER, INTENT(IN) :: J        ! Latitude  index
+      INTEGER, INTENT(IN) :: L        ! Altitude  index
+      REAL*8,  INTENT(IN) :: DENAIR   ! Density of air             [#/cm3]
+      REAL*8,  INTENT(IN) :: AIRVOL   ! Volume of air in a box     [m3]
+      REAL*8,  INTENT(IN) :: temp     ! Temperature in a given box [K]
+#if defined( GEOS_5 ) || defined( MERRA ) || defined( GEOS_57 )
+      REAL*8,  INTENT(IN) :: FRLAND   ! Fraction of land           [unitless]
+      REAL*8,  INTENT(IN) :: FROCEAN  ! Fraction of ocean          [unitless]
+#endif
+      REAL*8,  INTENT(IN) :: QL       ! Cloud water mixing ratio   [kg/kg]
+      REAL*8,  INTENT(IN) :: CLDF     ! 3D cloud fraction          [unitless]
+      REAL*8,  INTENT(IN) :: AD       ! Dry air mass               [kg]
+!
+! !RETURN VALUE:
+!
+      REAL*8              :: cld1k    ! Rate constant for heterogeneous cycling
+                                      ! of BrNO3 off of cloud particles
+!
+! !REMARKS:
+!  The rate constant for heterogeneous cycling of BrNO3 off of cloud particles
+!  is calculated assuming:
+!                                                                             .
+!    1. A sticking coefficient of 0.3 [Yang et al. 2005]
+!    2. uniform cloud droplet size for 2 types of clouds
+!       - continental warm clouds: r =  6d-4 [cm]
+!       - marine warm clouds:      r = 10d-4 [cm]
+!       * no distributions are assumed
+!
+!  ** Calculation of a 1st order rate constent barrowed from the
+!     subroutine arsl1k.f. Below are comments from that code:
+!                                                                             .
+!       The 1st-order loss rate on wet aerosol (Dentener's Thesis, p. 14)
+!       is computed as:
+!                                                                             .
+!         ARSL1K [1/s] = area / [ radius/dfkg + 4./(stkcf * nu) ]        
+!                                                                             .
+!       where nu   = Mean molecular speed [cm/s] = sqrt(8R*TK/pi/M) for Maxwell
+!             DFKG = Gas phase diffusion coeff [cm2/s] (order of 0.1)
+!
+! !REVISION HISTORY:
+!  27 Feb 2011 - J. Parrella - Initial version
+!  22 May 2012 - M. Payer    - Added ProTeX headers
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+!
+! !DEFINED PARAMETERS:
+!
+      ! Cloud droplet radius in continental warm clouds [cm]
+      REAL*8, PARAMETER :: XCLDR_CONT =  6.d-4
+
+      ! Cloud droplet radius in marine warm clouds [cm]
+      REAL*8, PARAMETER :: XCLDR_MARI = 10.d-4
+
+      REAL*8, PARAMETER :: R = 8.314472                  ! [J/mol/K]
+      REAL*8, PARAMETER :: mw_brno3 = 0.142              ! [kg/mol]
+      rEAL*8, PARAMETER :: pi = 3.14159265358979323846d0 ! [unitless]
+      REAL*8, PARAMETER :: alpha = 0.3                   ! sticking coefficient
+      REAL*8, PARAMETER :: dens_h2o = 0.001d0            ! [kg/cm3]
+!
+! !LOCAL VARIABLES:
+!
+      REAL*8            :: nu         ! Mean molecular speed
+      REAL*8            :: RADIUS     ! Radius of cloud droplet      [cm]
+      REAL*8            :: SQM        ! Square root of molec. weight [g/mol]
+      REAL*8            :: STK        ! Square root of temperature   [K]
+      REAL*8            :: AREA       ! Surface area                 [m2]
+      REAL*8            :: DFKG       ! Gas diffusion coefficient    [cm2/s]
+      REAL*8            :: Vc         ! Volume of the cloud          [cm3]
+      REAL*8            :: XAIRM3     ! Volume of air                [m3]
+      !REAL*8            :: calc_vcldf
+      LOGICAL           :: yn_continue
+   
+      !=================================================================
+      ! CLD1K_BrNO3 begins here!
+      !=================================================================
+
+      ! ----------------------------------------------
+      ! 1.
+      !   calculate the mean molecular speed of the
+      !   molecules given the temperature.
+      ! ----------------------------------------------
+      nu   = sqrt( 8.d0 * R * temp / (mw_brno3 * pi) )
+
+
+      ! ----------------------------------------------
+      ! Test conditions to see if we want to continue
+      ! or set the cloud rate equal to zero.
+      ! ----------------------------------------------
+
+      ! continental or marine clouds only...
+#if defined( GEOS_5 ) || defined( MERRA ) || defined( GEOS_57 )
+      IF ( (FRLAND > 0) .or. (FROCEAN > 0) ) THEN
+#else
+      ! Above line is to skip over land ice (Greenland and Antartica). This should
+      ! do the same (and also work for GEOS-5, but leave above for now).
+      IF ( IS_LAND(I,J) .and. .not.(IS_ICE(I,J)) ) THEN
+#endif
+         ! do we have clouds? and do we have warm temperatures?
+         IF ( (CLDF > 0) .and. (temp > 258.0) ) THEN
+            yn_continue = .TRUE.
+         ELSE
+            yn_continue = .FALSE.
+         ENDIF
+      ELSE
+         yn_continue = .FALSE.
+      ENDIF
+
+      ! test
+      IF ( .not. yn_continue ) THEN
+         ! nothing to calculate...
+         cld1k = 0.d0
+         RETURN
+      ENDIF
+
+
+      ! ----------------------------------------------
+      ! 2.
+      !   calculate the surface area of cloud droplets
+      !   in the given grid box, assuming 1 of 2
+      !   conditions:
+      !     a. marine warm cloud
+      !       or
+      !     b. continental warm cloud
+      !
+      !
+      !   * Calculation for area is derived follows,
+      !     assuming that RADIUS is constant:
+      !
+      !                         4/3 (pi) (RADIUS)**3
+      !  1) FC = Vc / Vb = N  -------------------------
+      !                                  Vb
+      !
+      !
+      !       where N      = number of cloud droplets
+      !             RADIUS = radius of cloud droplet
+      !             Vc     = volumn of the cloud
+      !             Vb     = volumn of the box = AIRVOL (in GEOS-Chem)
+      !
+      !
+      !                     Vb
+      !  2) N = FC --------------------
+      !            4/3 (pi) (RADIUS)**3
+      !
+      !
+      !  So the surface area [m2] is calculated as
+      !
+      !  3) total surface A = N * 4 * (pi) * (RADIUS)**2
+      !
+      !                  3*Vb
+      !          = FC ----------
+      !                 RADIUS
+      !
+      !  4) for this routine though we want
+      !     AREA in [cm2/cm3], surface area to volume air:
+      !
+      !                   3
+      !     AREA = FC ---------
+      !                RADIUS (in cm)
+      !
+      !
+      !    or    
+      !                   3 x Vc
+      !     AREA =  -----------------
+      !              AIRVOL x RADIUS      (in cm)
+      ! ----------------------------------------------
+#if defined( GEOS_5 ) || defined( MERRA ) || defined( GEOS_57 )
+      IF ( FRLAND > FROCEAN ) THEN
+#else
+      IF ( IS_LAND(I,J) ) THEN
+#endif
+         ! Continental cloud droplet radius [cm]
+         RADIUS = XCLDR_CONT
+      ELSE
+         ! Marine cloud droplet radius [cm]
+         RADIUS = XCLDR_MARI
+      ENDIF
+
+      ! store the volume of air [m3]
+      XAIRM3 = AIRVOL
+      ! convert to [cm3]
+      XAIRM3 = XAIRM3 * (100.d0)**3
+
+      ! get the volume of cloud [cm3]
+#if defined( GEOS_5 ) || defined( MERRA ) || defined( GEOS_57 )
+      ! QL is [g/g]
+      Vc = CLDF * QL * AD / dens_h2o
+#else
+      ! QL is [cm3/cm3]
+      Vc = CLDF * QL * XAIRM3
+#endif
+
+      ! now calculate the cloud droplet surface area
+      AREA    = 3.d0 * (Vc/XAIRM3) / (RADIUS) ! keep Radius in [cm]
+
+      ! ----------------------------------------------------
+      ! 3.
+      !   Now finish calculating the 1st order rate
+      !   constant for BrNO3 hydrolysis.
+      !
+      !   (a) calculate the gas phase diffusion coefficient;
+      !
+      !   (b) calculate the hydrolysis rxn rate.
+      ! ----------------------------------------------------
+      SQM = sqrt(mw_brno3 * 1.d3) ! square root of molar mass [g/mole]
+      STK = sqrt(temp)            ! square root of temperature [K]
+
+      ! DFKG = Gas phase diffusion coeff [cm2/s] (order of 0.1)
+      DFKG  = 9.45D17/DENAIR * STK * SQRT(3.472D-2 + 1.D0/(SQM*SQM))
+
+      ! Compute ARSL1K according to the formula listed above
+      cld1k = AREA / ( RADIUS/DFKG + 2.749064E-4 
+     &     * SQM/(alpha*STK) )
+
+
+      END FUNCTION CLD1K_BrNO3
+!EOC
 !
 ! *********************************************************************
 ! ******************** END OF SUBROUTINE CALCRATE *********************

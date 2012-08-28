@@ -55,138 +55,138 @@
 ! !PUBLIC DATA MEMBERS:
 !
       ! 2-D data fields
-      REAL*8,  ALLOCATABLE, PUBLIC :: ALBD1          (:,:  )
-      REAL*8,  ALLOCATABLE, PUBLIC :: ALBD2          (:,:  )
-      REAL*8,  ALLOCATABLE, PUBLIC :: ALBD           (:,:  )
-      INTEGER, ALLOCATABLE, PUBLIC :: CLDTOPS        (:,:  )
-      REAL*8,  ALLOCATABLE, PUBLIC :: CLDFRC         (:,:  )
-      REAL*8,  ALLOCATABLE, PUBLIC :: EFLUX          (:,:  )
-      REAL*8,  ALLOCATABLE, PUBLIC :: EVAP           (:,:  )
-      REAL*8,  ALLOCATABLE, PUBLIC :: FRLAKE         (:,:  )
-      REAL*8,  ALLOCATABLE, PUBLIC :: FRLAND         (:,:  )
-      REAL*8,  ALLOCATABLE, PUBLIC :: FROCEAN        (:,:  )
-      REAL*8,  ALLOCATABLE, PUBLIC :: FRLANDIC       (:,:  )
-      REAL*8,  ALLOCATABLE, PUBLIC :: FRSEAICE       (:,:  )
-      REAL*8,  ALLOCATABLE, PUBLIC :: FRSNO          (:,:  )
-      REAL*8,  ALLOCATABLE, PUBLIC :: GRN            (:,:  )
-      REAL*8,  ALLOCATABLE, PUBLIC :: GWETROOT       (:,:  )
-      REAL*8,  ALLOCATABLE, PUBLIC :: GWETTOP        (:,:  )
-      REAL*8,  ALLOCATABLE, PUBLIC :: HFLUX          (:,:  )
-      REAL*8,  ALLOCATABLE, PUBLIC :: LAI            (:,:  )
-      REAL*8,  ALLOCATABLE, PUBLIC :: LWI_GISS       (:,:  )
-      REAL*8,  ALLOCATABLE, PUBLIC :: LWI            (:,:  )
-      REAL*8,  ALLOCATABLE, PUBLIC :: MOLENGTH       (:,:  )
-      REAL*8,  ALLOCATABLE, PUBLIC :: OICE           (:,:  )      
-      REAL*8,  ALLOCATABLE, PUBLIC :: PARDF          (:,:  )
-      REAL*8,  ALLOCATABLE, PUBLIC :: PARDR          (:,:  )
-      REAL*8,  ALLOCATABLE, PUBLIC :: PBL            (:,:  )
-      REAL*8,  ALLOCATABLE, PUBLIC :: PHIS           (:,:  )
-      REAL*8,  ALLOCATABLE, PUBLIC :: PREACC         (:,:  )
-      REAL*8,  ALLOCATABLE, PUBLIC :: PREANV         (:,:  )
-      REAL*8,  ALLOCATABLE, PUBLIC :: PRECON         (:,:  )
-      REAL*8,  ALLOCATABLE, PUBLIC :: PRELSC         (:,:  )
-      REAL*8,  ALLOCATABLE, PUBLIC :: PRECSNO        (:,:  )
-      REAL*8,  ALLOCATABLE, PUBLIC :: PS1            (:,:  )
-      REAL*8,  ALLOCATABLE, PUBLIC :: PS2            (:,:  )
-      REAL*8,  ALLOCATABLE, PUBLIC :: PSC2           (:,:  )
-      REAL*8,  ALLOCATABLE, PUBLIC :: RADLWG         (:,:  )
-      REAL*8,  ALLOCATABLE, PUBLIC :: RADSWG         (:,:  )
-      REAL*8,  ALLOCATABLE, PUBLIC :: SEAICE00       (:,:  )
-      REAL*8,  ALLOCATABLE, PUBLIC :: SEAICE10       (:,:  )
-      REAL*8,  ALLOCATABLE, PUBLIC :: SEAICE20       (:,:  )
-      REAL*8,  ALLOCATABLE, PUBLIC :: SEAICE30       (:,:  )
-      REAL*8,  ALLOCATABLE, PUBLIC :: SEAICE40       (:,:  )
-      REAL*8,  ALLOCATABLE, PUBLIC :: SEAICE50       (:,:  )
-      REAL*8,  ALLOCATABLE, PUBLIC :: SEAICE60       (:,:  )
-      REAL*8,  ALLOCATABLE, PUBLIC :: SEAICE70       (:,:  )
-      REAL*8,  ALLOCATABLE, PUBLIC :: SEAICE80       (:,:  )
-      REAL*8,  ALLOCATABLE, PUBLIC :: SEAICE90       (:,:  )
-      REAL*8,  ALLOCATABLE, PUBLIC :: SLP            (:,:  )
-      REAL*8,  ALLOCATABLE, PUBLIC :: SNICE          (:,:  )
-      REAL*8,  ALLOCATABLE, PUBLIC :: SNODP          (:,:  )
-      REAL*8,  ALLOCATABLE, PUBLIC :: SNOMAS         (:,:  )
-      REAL*8,  ALLOCATABLE, PUBLIC :: SNOW           (:,:  )
-      REAL*8,  ALLOCATABLE, PUBLIC :: SUNCOS         (:    )
-      REAL*8,  ALLOCATABLE, PUBLIC :: SUNCOS_MID     (:    )
-      REAL*8,  ALLOCATABLE, PUBLIC :: SUNCOS_MID_5hr (:    )
-      REAL*8,  ALLOCATABLE, PUBLIC :: TO31           (:,:  )
-      REAL*8,  ALLOCATABLE, PUBLIC :: TO32           (:,:  )
-      REAL*8,  ALLOCATABLE, PUBLIC :: TO3            (:,:  )
-      REAL*8,  ALLOCATABLE, PUBLIC :: TTO3           (:,:  )
-      REAL*8,  ALLOCATABLE, PUBLIC :: TROPP1         (:,:  )
-      REAL*8,  ALLOCATABLE, PUBLIC :: TROPP2         (:,:  )
-      REAL*8,  ALLOCATABLE, PUBLIC :: TROPP          (:,:  )
-      REAL*8,  ALLOCATABLE, PUBLIC :: TS             (:,:  )
-      REAL*8,  ALLOCATABLE, PUBLIC :: TSKIN          (:,:  )
-      REAL*8,  ALLOCATABLE, PUBLIC :: U10M           (:,:  )
-      REAL*8,  ALLOCATABLE, PUBLIC :: USTAR          (:,:  )  
-      REAL*8,  ALLOCATABLE, PUBLIC :: V10M           (:,:  )
-      REAL*8,  ALLOCATABLE, PUBLIC :: Z0             (:,:  )
+      REAL*8,  ALLOCATABLE, PUBLIC, TARGET :: ALBD1          (:,:  )
+      REAL*8,  ALLOCATABLE, PUBLIC, TARGET :: ALBD2          (:,:  )
+      REAL*8,  ALLOCATABLE, PUBLIC, TARGET :: ALBD           (:,:  )
+      INTEGER, ALLOCATABLE, PUBLIC, TARGET :: CLDTOPS        (:,:  )
+      REAL*8,  ALLOCATABLE, PUBLIC, TARGET :: CLDFRC         (:,:  )
+      REAL*8,  ALLOCATABLE, PUBLIC, TARGET :: EFLUX          (:,:  )
+      REAL*8,  ALLOCATABLE, PUBLIC, TARGET :: EVAP           (:,:  )
+      REAL*8,  ALLOCATABLE, PUBLIC, TARGET :: FRLAKE         (:,:  )
+      REAL*8,  ALLOCATABLE, PUBLIC, TARGET :: FRLAND         (:,:  )
+      REAL*8,  ALLOCATABLE, PUBLIC, TARGET :: FROCEAN        (:,:  )
+      REAL*8,  ALLOCATABLE, PUBLIC, TARGET :: FRLANDIC       (:,:  )
+      REAL*8,  ALLOCATABLE, PUBLIC, TARGET :: FRSEAICE       (:,:  )
+      REAL*8,  ALLOCATABLE, PUBLIC, TARGET :: FRSNO          (:,:  )
+      REAL*8,  ALLOCATABLE, PUBLIC, TARGET :: GRN            (:,:  )
+      REAL*8,  ALLOCATABLE, PUBLIC, TARGET :: GWETROOT       (:,:  )
+      REAL*8,  ALLOCATABLE, PUBLIC, TARGET :: GWETTOP        (:,:  )
+      REAL*8,  ALLOCATABLE, PUBLIC, TARGET :: HFLUX          (:,:  )
+      REAL*8,  ALLOCATABLE, PUBLIC, TARGET :: LAI            (:,:  )
+      REAL*8,  ALLOCATABLE, PUBLIC, TARGET :: LWI_GISS       (:,:  )
+      REAL*8,  ALLOCATABLE, PUBLIC, TARGET :: LWI            (:,:  )
+      REAL*8,  ALLOCATABLE, PUBLIC, TARGET :: MOLENGTH       (:,:  )
+      REAL*8,  ALLOCATABLE, PUBLIC, TARGET :: OICE           (:,:  )      
+      REAL*8,  ALLOCATABLE, PUBLIC, TARGET :: PARDF          (:,:  )
+      REAL*8,  ALLOCATABLE, PUBLIC, TARGET :: PARDR          (:,:  )
+      REAL*8,  ALLOCATABLE, PUBLIC, TARGET :: PBL            (:,:  )
+      REAL*8,  ALLOCATABLE, PUBLIC, TARGET :: PHIS           (:,:  )
+      REAL*8,  ALLOCATABLE, PUBLIC, TARGET :: PREACC         (:,:  )
+      REAL*8,  ALLOCATABLE, PUBLIC, TARGET :: PREANV         (:,:  )
+      REAL*8,  ALLOCATABLE, PUBLIC, TARGET :: PRECON         (:,:  )
+      REAL*8,  ALLOCATABLE, PUBLIC, TARGET :: PRELSC         (:,:  )
+      REAL*8,  ALLOCATABLE, PUBLIC, TARGET :: PRECSNO        (:,:  )
+      REAL*8,  ALLOCATABLE, PUBLIC, TARGET :: PS1            (:,:  )
+      REAL*8,  ALLOCATABLE, PUBLIC, TARGET :: PS2            (:,:  )
+      REAL*8,  ALLOCATABLE, PUBLIC, TARGET :: PSC2           (:,:  )
+      REAL*8,  ALLOCATABLE, PUBLIC, TARGET :: RADLWG         (:,:  )
+      REAL*8,  ALLOCATABLE, PUBLIC, TARGET :: RADSWG         (:,:  )
+      REAL*8,  ALLOCATABLE, PUBLIC, TARGET :: SEAICE00       (:,:  )
+      REAL*8,  ALLOCATABLE, PUBLIC, TARGET :: SEAICE10       (:,:  )
+      REAL*8,  ALLOCATABLE, PUBLIC, TARGET :: SEAICE20       (:,:  )
+      REAL*8,  ALLOCATABLE, PUBLIC, TARGET :: SEAICE30       (:,:  )
+      REAL*8,  ALLOCATABLE, PUBLIC, TARGET :: SEAICE40       (:,:  )
+      REAL*8,  ALLOCATABLE, PUBLIC, TARGET :: SEAICE50       (:,:  )
+      REAL*8,  ALLOCATABLE, PUBLIC, TARGET :: SEAICE60       (:,:  )
+      REAL*8,  ALLOCATABLE, PUBLIC, TARGET :: SEAICE70       (:,:  )
+      REAL*8,  ALLOCATABLE, PUBLIC, TARGET :: SEAICE80       (:,:  )
+      REAL*8,  ALLOCATABLE, PUBLIC, TARGET :: SEAICE90       (:,:  )
+      REAL*8,  ALLOCATABLE, PUBLIC, TARGET :: SLP            (:,:  )
+      REAL*8,  ALLOCATABLE, PUBLIC, TARGET :: SNICE          (:,:  )
+      REAL*8,  ALLOCATABLE, PUBLIC, TARGET :: SNODP          (:,:  )
+      REAL*8,  ALLOCATABLE, PUBLIC, TARGET :: SNOMAS         (:,:  )
+      REAL*8,  ALLOCATABLE, PUBLIC, TARGET :: SNOW           (:,:  )
+      REAL*8,  ALLOCATABLE, PUBLIC, TARGET :: SUNCOS         (:    )
+      REAL*8,  ALLOCATABLE, PUBLIC, TARGET :: SUNCOS_MID     (:    )
+      REAL*8,  ALLOCATABLE, PUBLIC, TARGET :: SUNCOS_MID_5hr (:    )
+      REAL*8,  ALLOCATABLE, PUBLIC, TARGET :: TO31           (:,:  )
+      REAL*8,  ALLOCATABLE, PUBLIC, TARGET :: TO32           (:,:  )
+      REAL*8,  ALLOCATABLE, PUBLIC, TARGET :: TO3            (:,:  )
+      REAL*8,  ALLOCATABLE, PUBLIC, TARGET :: TTO3           (:,:  )
+      REAL*8,  ALLOCATABLE, PUBLIC, TARGET :: TROPP1         (:,:  )
+      REAL*8,  ALLOCATABLE, PUBLIC, TARGET :: TROPP2         (:,:  )
+      REAL*8,  ALLOCATABLE, PUBLIC, TARGET :: TROPP          (:,:  )
+      REAL*8,  ALLOCATABLE, PUBLIC, TARGET :: TS             (:,:  )
+      REAL*8,  ALLOCATABLE, PUBLIC, TARGET :: TSKIN          (:,:  )
+      REAL*8,  ALLOCATABLE, PUBLIC, TARGET :: U10M           (:,:  )
+      REAL*8,  ALLOCATABLE, PUBLIC, TARGET :: USTAR          (:,:  )  
+      REAL*8,  ALLOCATABLE, PUBLIC, TARGET :: V10M           (:,:  )
+      REAL*8,  ALLOCATABLE, PUBLIC, TARGET :: Z0             (:,:  )
 
       ! 3-D data fields
-      REAL*8,  ALLOCATABLE, PUBLIC :: AD             (:,:,:)
-      REAL*8,  ALLOCATABLE, PUBLIC :: AIRDEN         (:,:,:)
-      REAL*8,  ALLOCATABLE, PUBLIC :: AIRVOL         (:,:,:)
-      REAL*8,  ALLOCATABLE, PUBLIC :: AVGW           (:,:,:)
-      REAL*8,  ALLOCATABLE, PUBLIC :: BXHEIGHT       (:,:,:)
-      REAL*8,  ALLOCATABLE, PUBLIC :: DQRCU          (:,:,:)
-      REAL*8,  ALLOCATABLE, PUBLIC :: DQRLSAN        (:,:,:)
-      REAL*8,  ALLOCATABLE, PUBLIC :: CLDF           (:,:,:)
-      REAL*8,  ALLOCATABLE, PUBLIC :: CLDMAS         (:,:,:)
-      REAL*8,  ALLOCATABLE, PUBLIC :: CMFMC          (:,:,:)
-      REAL*8,  ALLOCATABLE, PUBLIC :: DELP           (:,:,:)
-      REAL*8,  ALLOCATABLE, PUBLIC :: DETRAINE       (:,:,:)
-      REAL*8,  ALLOCATABLE, PUBLIC :: DETRAINN       (:,:,:)
-      REAL*8,  ALLOCATABLE, PUBLIC :: DNDE           (:,:,:)
-      REAL*8,  ALLOCATABLE, PUBLIC :: DNDN           (:,:,:)
-      REAL*8,  ALLOCATABLE, PUBLIC :: DQIDTMST       (:,:,:)
-      REAL*8,  ALLOCATABLE, PUBLIC :: DQLDTMST       (:,:,:)
-      REAL*8,  ALLOCATABLE, PUBLIC :: DQRCON         (:,:,:)
-      REAL*8,  ALLOCATABLE, PUBLIC :: DQRLSC         (:,:,:)    
-      REAL*8,  ALLOCATABLE, PUBLIC :: DQVDTMST       (:,:,:)
-      REAL*8,  ALLOCATABLE, PUBLIC :: DTRAIN         (:,:,:)
-      REAL*8,  ALLOCATABLE, PUBLIC :: ENTRAIN        (:,:,:)
-      REAL*8,  ALLOCATABLE, PUBLIC :: HKBETA         (:,:,:)
-      REAL*8,  ALLOCATABLE, PUBLIC :: HKETA          (:,:,:)
-      REAL*8,  ALLOCATABLE, PUBLIC :: MFXC           (:,:,:)
-      REAL*8,  ALLOCATABLE, PUBLIC :: MFYC           (:,:,:)
-      REAL*8,  ALLOCATABLE, PUBLIC :: MFZ            (:,:,:)
-      REAL*8,  ALLOCATABLE, PUBLIC :: MOISTQ         (:,:,:)
-      REAL*8,  ALLOCATABLE, PUBLIC :: OPTDEP         (:,:,:)
-      REAL*8,  ALLOCATABLE, PUBLIC :: OPTD           (:,:,:)
-      REAL*8,  ALLOCATABLE, PUBLIC :: PFICU          (:,:,:)
-      REAL*8,  ALLOCATABLE, PUBLIC :: PFILSAN        (:,:,:)
-      REAL*8,  ALLOCATABLE, PUBLIC :: PFLCU          (:,:,:)
-      REAL*8,  ALLOCATABLE, PUBLIC :: PFLLSAN        (:,:,:)
-      REAL*8,  ALLOCATABLE, PUBLIC :: PV             (:,:,:)
-      REAL*8,  ALLOCATABLE, PUBLIC :: QI             (:,:,:)
-      REAL*8,  ALLOCATABLE, PUBLIC :: QL             (:,:,:)
-      REAL*8,  ALLOCATABLE, PUBLIC :: REEVAPCN       (:,:,:)
-      REAL*8,  ALLOCATABLE, PUBLIC :: REEVAPLS       (:,:,:)
-      REAL*8,  ALLOCATABLE, PUBLIC :: RH1            (:,:,:)
-      REAL*8,  ALLOCATABLE, PUBLIC :: RH2            (:,:,:)
-      REAL*8,  ALLOCATABLE, PUBLIC :: RH             (:,:,:)
-      REAL*8,  ALLOCATABLE, PUBLIC :: SPHU1          (:,:,:)
-      REAL*8,  ALLOCATABLE, PUBLIC :: SPHU2          (:,:,:)
-      REAL*8,  ALLOCATABLE, PUBLIC :: SPHU           (:,:,:)
-      REAL*8,  ALLOCATABLE, PUBLIC :: T              (:,:,:)
-      REAL*8,  ALLOCATABLE, PUBLIC :: TAUCLI         (:,:,:)
-      REAL*8,  ALLOCATABLE, PUBLIC :: TAUCLW         (:,:,:)
-      REAL*8,  ALLOCATABLE, PUBLIC :: TMPU1          (:,:,:)
-      REAL*8,  ALLOCATABLE, PUBLIC :: TMPU2          (:,:,:)
-      REAL*8,  ALLOCATABLE, PUBLIC :: UPDE           (:,:,:)
-      REAL*8,  ALLOCATABLE, PUBLIC :: UPDN           (:,:,:)
-      REAL*8,  ALLOCATABLE, PUBLIC :: UWND1          (:,:,:)
-      REAL*8,  ALLOCATABLE, PUBLIC :: UWND2          (:,:,:)
-      REAL*8,  ALLOCATABLE, PUBLIC :: UWND           (:,:,:)
-      REAL*8,  ALLOCATABLE, PUBLIC :: VWND1          (:,:,:)
-      REAL*8,  ALLOCATABLE, PUBLIC :: VWND2          (:,:,:)
-      REAL*8,  ALLOCATABLE, PUBLIC :: VWND           (:,:,:)
-      REAL*8,  ALLOCATABLE, PUBLIC :: ZMEU           (:,:,:)
-      REAL*8,  ALLOCATABLE, PUBLIC :: ZMMD           (:,:,:)
-      REAL*8,  ALLOCATABLE, PUBLIC :: ZMMU           (:,:,:)
-      REAL*8,  ALLOCATABLE, PUBLIC :: AIRDEN_FULLGRID(:,:,:)
-      REAL*8,  ALLOCATABLE, PUBLIC :: T_FULLGRID     (:,:,:)
+      REAL*8,  ALLOCATABLE, PUBLIC, TARGET :: AD             (:,:,:)
+      REAL*8,  ALLOCATABLE, PUBLIC, TARGET :: AIRDEN         (:,:,:)
+      REAL*8,  ALLOCATABLE, PUBLIC, TARGET :: AIRVOL         (:,:,:)
+      REAL*8,  ALLOCATABLE, PUBLIC, TARGET :: AVGW           (:,:,:)
+      REAL*8,  ALLOCATABLE, PUBLIC, TARGET :: BXHEIGHT       (:,:,:)
+      REAL*8,  ALLOCATABLE, PUBLIC, TARGET :: DQRCU          (:,:,:)
+      REAL*8,  ALLOCATABLE, PUBLIC, TARGET :: DQRLSAN        (:,:,:)
+      REAL*8,  ALLOCATABLE, PUBLIC, TARGET :: CLDF           (:,:,:)
+      REAL*8,  ALLOCATABLE, PUBLIC, TARGET :: CLDMAS         (:,:,:)
+      REAL*8,  ALLOCATABLE, PUBLIC, TARGET :: CMFMC          (:,:,:)
+      REAL*8,  ALLOCATABLE, PUBLIC, TARGET :: DELP           (:,:,:)
+      REAL*8,  ALLOCATABLE, PUBLIC, TARGET :: DETRAINE       (:,:,:)
+      REAL*8,  ALLOCATABLE, PUBLIC, TARGET :: DETRAINN       (:,:,:)
+      REAL*8,  ALLOCATABLE, PUBLIC, TARGET :: DNDE           (:,:,:)
+      REAL*8,  ALLOCATABLE, PUBLIC, TARGET :: DNDN           (:,:,:)
+      REAL*8,  ALLOCATABLE, PUBLIC, TARGET :: DQIDTMST       (:,:,:)
+      REAL*8,  ALLOCATABLE, PUBLIC, TARGET :: DQLDTMST       (:,:,:)
+      REAL*8,  ALLOCATABLE, PUBLIC, TARGET :: DQRCON         (:,:,:)
+      REAL*8,  ALLOCATABLE, PUBLIC, TARGET :: DQRLSC         (:,:,:)    
+      REAL*8,  ALLOCATABLE, PUBLIC, TARGET :: DQVDTMST       (:,:,:)
+      REAL*8,  ALLOCATABLE, PUBLIC, TARGET :: DTRAIN         (:,:,:)
+      REAL*8,  ALLOCATABLE, PUBLIC, TARGET :: ENTRAIN        (:,:,:)
+      REAL*8,  ALLOCATABLE, PUBLIC, TARGET :: HKBETA         (:,:,:)
+      REAL*8,  ALLOCATABLE, PUBLIC, TARGET :: HKETA          (:,:,:)
+      REAL*8,  ALLOCATABLE, PUBLIC, TARGET :: MFXC           (:,:,:)
+      REAL*8,  ALLOCATABLE, PUBLIC, TARGET :: MFYC           (:,:,:)
+      REAL*8,  ALLOCATABLE, PUBLIC, TARGET :: MFZ            (:,:,:)
+      REAL*8,  ALLOCATABLE, PUBLIC, TARGET :: MOISTQ         (:,:,:)
+      REAL*8,  ALLOCATABLE, PUBLIC, TARGET :: OPTDEP         (:,:,:)
+      REAL*8,  ALLOCATABLE, PUBLIC, TARGET :: OPTD           (:,:,:)
+      REAL*8,  ALLOCATABLE, PUBLIC, TARGET :: PFICU          (:,:,:)
+      REAL*8,  ALLOCATABLE, PUBLIC, TARGET :: PFILSAN        (:,:,:)
+      REAL*8,  ALLOCATABLE, PUBLIC, TARGET :: PFLCU          (:,:,:)
+      REAL*8,  ALLOCATABLE, PUBLIC, TARGET :: PFLLSAN        (:,:,:)
+      REAL*8,  ALLOCATABLE, PUBLIC, TARGET :: PV             (:,:,:)
+      REAL*8,  ALLOCATABLE, PUBLIC, TARGET :: QI             (:,:,:)
+      REAL*8,  ALLOCATABLE, PUBLIC, TARGET :: QL             (:,:,:)
+      REAL*8,  ALLOCATABLE, PUBLIC, TARGET :: REEVAPCN       (:,:,:)
+      REAL*8,  ALLOCATABLE, PUBLIC, TARGET :: REEVAPLS       (:,:,:)
+      REAL*8,  ALLOCATABLE, PUBLIC, TARGET :: RH1            (:,:,:)
+      REAL*8,  ALLOCATABLE, PUBLIC, TARGET :: RH2            (:,:,:)
+      REAL*8,  ALLOCATABLE, PUBLIC, TARGET :: RH             (:,:,:)
+      REAL*8,  ALLOCATABLE, PUBLIC, TARGET :: SPHU1          (:,:,:)
+      REAL*8,  ALLOCATABLE, PUBLIC, TARGET :: SPHU2          (:,:,:)
+      REAL*8,  ALLOCATABLE, PUBLIC, TARGET :: SPHU           (:,:,:)
+      REAL*8,  ALLOCATABLE, PUBLIC, TARGET :: T              (:,:,:)
+      REAL*8,  ALLOCATABLE, PUBLIC, TARGET :: TAUCLI         (:,:,:)
+      REAL*8,  ALLOCATABLE, PUBLIC, TARGET :: TAUCLW         (:,:,:)
+      REAL*8,  ALLOCATABLE, PUBLIC, TARGET :: TMPU1          (:,:,:)
+      REAL*8,  ALLOCATABLE, PUBLIC, TARGET :: TMPU2          (:,:,:)
+      REAL*8,  ALLOCATABLE, PUBLIC, TARGET :: UPDE           (:,:,:)
+      REAL*8,  ALLOCATABLE, PUBLIC, TARGET :: UPDN           (:,:,:)
+      REAL*8,  ALLOCATABLE, PUBLIC, TARGET :: UWND1          (:,:,:)
+      REAL*8,  ALLOCATABLE, PUBLIC, TARGET :: UWND2          (:,:,:)
+      REAL*8,  ALLOCATABLE, PUBLIC, TARGET :: UWND           (:,:,:)
+      REAL*8,  ALLOCATABLE, PUBLIC, TARGET :: VWND1          (:,:,:)
+      REAL*8,  ALLOCATABLE, PUBLIC, TARGET :: VWND2          (:,:,:)
+      REAL*8,  ALLOCATABLE, PUBLIC, TARGET :: VWND           (:,:,:)
+      REAL*8,  ALLOCATABLE, PUBLIC, TARGET :: ZMEU           (:,:,:)
+      REAL*8,  ALLOCATABLE, PUBLIC, TARGET :: ZMMD           (:,:,:)
+      REAL*8,  ALLOCATABLE, PUBLIC, TARGET :: ZMMU           (:,:,:)
+      REAL*8,  ALLOCATABLE, PUBLIC, TARGET :: AIRDEN_FULLGRID(:,:,:)
+      REAL*8,  ALLOCATABLE, PUBLIC, TARGET :: T_FULLGRID     (:,:,:)
 !
 ! !REVISION HISTORY:
 !  26 Jun 2010 - R. Yantosca - Initial version
@@ -321,7 +321,7 @@
       !=================================================================
 
 #if   defined( GRID1x1   ) || defined( GRID05x0666 ) || defined( GRID025x03125 )
-#if   defined( NESTED_CH ) || defined( NESTED_NA   ) || defined( NESTED_EU     )
+#if   defined( NESTED_CH ) || defined( NESTED_NA   ) || defined( NESTED_EU     ) || defined ( SEAC4RS )
       ! NOTE: Only do this for 1x1 nested grids (bmy, 12/1/04)
       ! 1x1 window grid does not extend to poles
       RETURN
@@ -394,6 +394,12 @@
       USE GC_TYPE_MOD,  ONLY : GC_MET_LOCAL
 #endif
 !
+! !INPUT/OUTPUT PARAMETERS:
+!
+#if defined( DEVEL )
+      TYPE(GC_MET_LOCAL), INTENT(INOUT) :: LOCAL_MET   ! Obj for met fields
+#endif
+!
 ! !REMARKS:
 !  DAO met fields updated by AIRQNT:
 !  ========================================================================
@@ -448,9 +454,6 @@
 !EOP
 !------------------------------------------------------------------------------
 !BOC
-#if defined( DEVEL )
-      TYPE(GC_MET_LOCAL), INTENT(INOUT) :: LOCAL_MET
-#endif
 !
 ! !LOCAL VARIABLES:
 !
@@ -483,65 +486,65 @@
 !         DELP(L,I,J) = LOCAL_MET%DELP(L,I,J)
          LOCAL_MET%DELP(L,I,J) = DELP(L,I,J)
 #endif            
-            !===========================================================
-            ! BXHEIGHT is the height (Delta-Z) of grid box (I,J,L) 
-            ! in meters. 
-            !
-            ! The formula for BXHEIGHT is just the hydrostatic eqn.  
-            ! Rd = 287 J/K/kg is the value for the ideal gas constant
-            ! R for air (M.W = 0.02897 kg/mol),  or 
-            ! Rd = 8.31 J/(mol*K) / 0.02897 kg/mol. 
-            !===========================================================
+         !===========================================================
+         ! BXHEIGHT is the height (Delta-Z) of grid box (I,J,L) 
+         ! in meters. 
+         !
+         ! The formula for BXHEIGHT is just the hydrostatic eqn.  
+         ! Rd = 287 J/K/kg is the value for the ideal gas constant
+         ! R for air (M.W = 0.02897 kg/mol),  or 
+         ! Rd = 8.31 J/(mol*K) / 0.02897 kg/mol. 
+         !===========================================================
          BXHEIGHT(I,J,L) = Rdg0 * T(I,J,L) * LOG( P1 / P2 )
 #if defined( DEVEL )
 !         BXHEIGHT(I,J,L) = LOCAL_MET%BXHEIGHT(I,J,L)
          LOCAL_MET%BXHEIGHT(I,J,L) = BXHEIGHT(I,J,L)
 #endif            
 
-            !===========================================================
-            ! AIRVOL is the volume of grid box (I,J,L) in meters^3
-            !
-            ! AREA_M2 is the Delta-X * Delta-Y surface area of grid
-            ! boxes (I,J,L=1), that is, at the earth's surface.
-            !
-            ! Since the thickness of the atmosphere is much smaller 
-            ! than the radius of the earth, we can make the "thin 
-            ! atmosphere" approximation, namely:
-            !
-            !               (Rearth + h) ~ Rearth
-            !
-            ! Therefore, the Delta-X * Delta-Y surface area of grid
-            ! boxes that are above the earth's surface will be 
-            ! approx. the same as AREA_M2.  Thus we are justified 
-            ! in using AREA_M2 for grid boxes (I, J, L > 1)
-            !===========================================================
+         !===========================================================
+         ! AIRVOL is the volume of grid box (I,J,L) in meters^3
+         !
+         ! AREA_M2 is the Delta-X * Delta-Y surface area of grid
+         ! boxes (I,J,L=1), that is, at the earth's surface.
+         !
+         ! Since the thickness of the atmosphere is much smaller 
+         ! than the radius of the earth, we can make the "thin 
+         ! atmosphere" approximation, namely:
+         !
+         !               (Rearth + h) ~ Rearth
+         !
+         ! Therefore, the Delta-X * Delta-Y surface area of grid
+         ! boxes that are above the earth's surface will be 
+         ! approx. the same as AREA_M2.  Thus we are justified 
+         ! in using AREA_M2 for grid boxes (I, J, L > 1)
+         !===========================================================
          AIRVOL(I,J,L) = BXHEIGHT(I,J,L) * AREA_M2
 #if defined( DEVEL )
 !         AIRVOL(I,J,L) = LOCAL_MET%AIRVOL(I,J,L)
          LOCAL_MET%AIRVOL(I,J,L) = AIRVOL(I,J,L)
 #endif            
 
-            !===========================================================
-            ! AD = (dry) mass of air in grid box (I,J,L) in kg, 
-            ! given by:        
-            !
-            !  Mass    Pressure        100      1        Surface area 
-            !        = difference   *  ---  *  ---   *   of grid box 
-            !          in grid box      1       g          AREA_M2
-            !
-            !   kg         mb          Pa      s^2           m^2
-            !  ----  =    ----      * ----  * -----  *      -----
-            !    1          1          mb       m             1
-            !===========================================================
+         !===========================================================
+         ! AD = (dry) mass of air in grid box (I,J,L) in kg, 
+         ! given by:        
+         !
+         !  Mass    Pressure        100      1        Surface area 
+         !        = difference   *  ---  *  ---   *   of grid box 
+         !          in grid box      1       g          AREA_M2
+         !
+         !   kg         mb          Pa      s^2           m^2
+         !  ----  =    ----      * ----  * -----  *      -----
+         !    1          1          mb       m             1
+         !===========================================================
          AD(I,J,L) = DELP(L,I,J) * G0_100 * AREA_M2
 #if defined( DEVEL )
 !          AD(I,J,L) = LOCAL_MET%AD(I,J,L)
          LOCAL_MET%AD(I,J,L) = AD(I,J,L)
 #endif            
 
-            !===========================================================
-            ! AIRDEN = density of air (AD / AIRVOL) in kg / m^3 
-            !===========================================================
+         !===========================================================
+         ! AIRDEN = density of air (AD / AIRVOL) in kg / m^3 
+         !===========================================================
          AIRDEN(L,I,J) = AD(I,J,L) / AIRVOL(I,J,L)
 #if defined( DEVEL )
 !         AIRDEN(L,I,J) = LOCAL_MET%AIRDENS(L,I,J)
@@ -854,7 +857,7 @@
 #elif defined( MERRA )
 
       !=================================================================
-      ! Do the interpolation for MERRA or GEOS-5.7.x met fields 
+      ! Do the interpolation for MERRA met fields 
       !=================================================================
 !$OMP PARALLEL DO
 !$OMP+DEFAULT( SHARED )
@@ -2352,6 +2355,10 @@
       ! A-3 fields
       !=================================================================
 
+      ALLOCATE( ALBD( IIPAR, JJPAR ), STAT=AS )
+      IF ( AS /= 0 ) CALL ALLOC_ERR( 'ALBD' )
+      ALBD = 0d0
+
       ALLOCATE( CLDFRC( IIPAR, JJPAR ), STAT=AS )
       IF ( AS /= 0 ) CALL ALLOC_ERR( 'CLDFRC' )
       CLDFRC = 0d0
@@ -2525,7 +2532,6 @@
       ALLOCATE( TO3( IIPAR, JJPAR ), STAT=AS )
       IF ( AS /= 0 ) CALL ALLOC_ERR( 'TO3' )
       TO3 = 0d0
-
 
       END SUBROUTINE INIT_DAO_GEOS4
 !EOC
@@ -3732,7 +3738,7 @@
       ! GEOS-4 met arrays
       CALL INIT_DAO_GEOS4()
 
-#elif defined( GEOS_5 )
+#elif defined( GEOS_5 ) || defined ( EXTERNAL_FORCING )
 
       ! GEOS-5.2.0 met arrays
       CALL INIT_DAO_GEOS5()

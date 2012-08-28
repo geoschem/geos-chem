@@ -266,7 +266,7 @@ C     &                                             0.05d0           /)
       REAL*8  :: GWET        ! Top soil wetness [unitless]
       REAL*8  :: DEPN        ! Dry Dep Fert term [ng N/m2/s]
       REAL*8  :: SOILFRT     ! Fertilizer emissions [ng N/m2/s]
-      INTEGER :: CLIM        ! Arid/SemiArid = 1
+      REAL*4  :: CLIM(L)        ! Arid/SemiArid = 1
       REAL*4  :: LANDFRAC(:)    ! Fraction of landtypes
       INTEGER :: I ! Temporary
       INTEGER :: J ! Temporary
@@ -368,7 +368,7 @@ C     &                                             0.05d0           /)
          !CHANGE RYN
 
          ! soil moisture scaling of soil NOx emissions 
-         WET_TERM = SOILWET( GWET , CLIM)
+         WET_TERM = SOILWET( GWET , CLIM(:))
 
          ! Fertilizer emission  
          !A_FERT = FERTADD( NN, MONTH, LAT, SOILFRT , DEPN)
@@ -587,7 +587,7 @@ C     &                                             0.05d0           /)
 
       ! Soil land type index
       !INTEGER, INTENT(IN) :: NN            
-      INTEGER, INTENT(IN) :: CLIM       
+      INTEGER, INTENT(IN) :: CLIM(:)       
 
       ! Top soil wetness [unitless]
       REAL*8,  INTENT(IN) :: GWET 
@@ -691,7 +691,7 @@ C     &                                             0.05d0           /)
             !All other landtypes scale by soil moisture
 
            
-            IF (CLIM == 1) THEN !Arid max Poisson = 0.2
+            IF ( CLIM(2) .GE. CLIM(1) .AND. CLIM(2) .NE. 0) THEN !Arid max Poisson = 0.2
             WETSCALE = 8.24 * GWET * EXP(-12.5*GWET*GWET)
             ELSE  !max Poisson = 0.3
             WETSCALE = 5.5 * GWET * EXP( -5.55 * GWET * GWET) 

@@ -84,23 +84,23 @@
 ! !PRIVATE DATA MEMBERS:
 !
       ! Array for geographic mask
-      REAL*8,  ALLOCATABLE :: EUROPE_MASK(:,:)
+      REAL*8,  ALLOCATABLE, TARGET  :: EUROPE_MASK(:,:)
 
       ! Arrays for ground-based emissions
-      REAL*8,  ALLOCATABLE :: EMEP_NOx(:,:)
-      REAL*8,  ALLOCATABLE :: EMEP_CO(:,:)
-      REAL*8,  ALLOCATABLE :: EMEP_SO2(:,:)
-      REAL*8,  ALLOCATABLE :: EMEP_NH3(:,:)
-      REAL*8,  ALLOCATABLE :: EMEP_ALK4(:,:)
-      REAL*8,  ALLOCATABLE :: EMEP_MEK(:,:)
-      REAL*8,  ALLOCATABLE :: EMEP_ALD2(:,:)
-      REAL*8,  ALLOCATABLE :: EMEP_PRPE(:,:)
-      REAL*8,  ALLOCATABLE :: EMEP_C2H6(:,:)
+      REAL*8,  ALLOCATABLE, TARGET  :: EMEP_NOx(:,:)
+      REAL*8,  ALLOCATABLE, TARGET  :: EMEP_CO(:,:)
+      REAL*8,  ALLOCATABLE, TARGET  :: EMEP_SO2(:,:)
+      REAL*8,  ALLOCATABLE, TARGET  :: EMEP_NH3(:,:)
+      REAL*8,  ALLOCATABLE, TARGET  :: EMEP_ALK4(:,:)
+      REAL*8,  ALLOCATABLE, TARGET  :: EMEP_MEK(:,:)
+      REAL*8,  ALLOCATABLE, TARGET  :: EMEP_ALD2(:,:)
+      REAL*8,  ALLOCATABLE, TARGET  :: EMEP_PRPE(:,:)
+      REAL*8,  ALLOCATABLE, TARGET  :: EMEP_C2H6(:,:)
 
       ! Arrays for ship emissions
-      REAL*8,  ALLOCATABLE :: EMEP_CO_SHIP(:,:)
-      REAL*8,  ALLOCATABLE :: EMEP_SO2_SHIP(:,:)
-      REAL*8,  ALLOCATABLE :: EMEP_NOx_SHIP(:,:)
+      REAL*8,  ALLOCATABLE, TARGET  :: EMEP_CO_SHIP(:,:)
+      REAL*8,  ALLOCATABLE, TARGET  :: EMEP_SO2_SHIP(:,:)
+      REAL*8,  ALLOCATABLE, TARGET  :: EMEP_NOx_SHIP(:,:)
 
       CONTAINS
 !EOC
@@ -314,13 +314,14 @@
 ! !USES:
 ! 
       USE BPCH2_MOD,        ONLY : GET_TAU0,     OPEN_BPCH2_FOR_READ
-      USE FILE_MOD,         ONLY : IU_FILE,      IOERROR
+      USE FILE_MOD,         ONLY : IOERROR
       USE DIRECTORY_MOD,    ONLY : DATA_DIR_1x1 
       USE LOGICAL_MOD,      ONLY : LFUTURE
       USE REGRID_A2A_MOD,   ONLY : DO_REGRID_A2A
       USE TIME_MOD,         ONLY : EXPAND_DATE,  GET_YEAR
       USE TIME_MOD,         ONLY : GET_MONTH
       USE SCALE_ANTHRO_MOD, ONLY : GET_ANNUAL_SCALAR
+      USE inquireMod,       ONLY : findFreeLUN
 
       USE CMN_SIZE_MOD           ! Size parameters
       USE CMN_O3_MOD             ! SCALEYEAR
@@ -340,7 +341,10 @@
 !  (1 ) Modified for IPCC future emissions.  Now references LFUTURE from
 !        "logical_mod.f". (bmy, 5/30/06)
 !  13 Mar 2012 - M. Cooper   - Changed gridding algorithm to map_a2a
-
+!  24 May 2012 - R. Yantosca - Fixed minor bugs in map_a2a implementation
+!  03 Aug 2012 - R. Yantosca - Move calls to findFreeLUN out of DEVEL block
+!  07 Aug 2012 - R. Yantosca - Now print LUN used to open file
+!  24 Aug 2012 - R. Yantosca - DO_REGRID_A2A now reads netCDF input file
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -353,7 +357,7 @@
       CHARACTER(LEN=255)      :: FILENAME
 
       ! For bpch file format
-      INTEGER                 :: I,  J,  L,  N,  IOS
+      INTEGER                 :: I,  IU_FILE, J,  L,  N,  IOS
       INTEGER                 :: NTRACER,   NSKIP
       INTEGER                 :: HALFPOLAR, CENTER180
       INTEGER                 :: NI,        NJ,        NL
@@ -368,10 +372,9 @@
       CHARACTER(LEN=40)       :: UNIT     
       CHARACTER(LEN=40)       :: RESERVED
       CHARACTER(LEN=255)      :: LLFILENAME
-      REAL*8, ALLOCATABLE     :: OUTGRID(:,:)
-      REAL*8, ALLOCATABLE     :: INGRID(:,:)
+      REAL*8                  :: INGRID (I1x1, J1x1 )
 
-#if defined( DEVEL )
+#if defined( DEVEL ) || defined( EXTERNAL_GRID ) || defined( EXTERNAL_FORCING )
       REAL*8, INTENT(INOUT) :: EMISS(IIPAR, JJPAR, N_TRACERS)
       REAL*8, ALLOCATABLE   :: A(:,:)
       INTEGER AS
@@ -383,7 +386,7 @@
 
       ! First-time initialization
       IF ( FIRST ) THEN
-#if defined( DEVEL )
+#if defined( DEVEL ) || defined( EXTERNAL_GRID ) || defined( EXTERNAL_FORCING )
          ALLOCATE( A( IIPAR, JJPAR ), STAT=AS )
          IF ( AS /= 0 ) CALL ALLOC_ERR( 'EMEP:A' )
          A = 0d0
@@ -415,9 +418,12 @@
       ! Expand filename
       CALL EXPAND_DATE( FILENAME, EMEP_NYMD, 000000 )
          
+      ! Find a free file LUN
+      IU_FILE = findFreeLun()
+
       ! Echo info
-      WRITE( 6, 100 ) TRIM( FILENAME )
- 100  FORMAT( '     - EMISS_EMEP: Reading ', a )
+      WRITE( 6, 100 ) TRIM( FILENAME ), IU_FILE
+ 100  FORMAT( '     - EMISS_EMEP: Reading ', a, ' on unit ', i4 )
 
       !=================================================================
       ! Read data at 1x1 resolution and regrid to current grid size
@@ -428,11 +434,7 @@
 
       ! File with lat/lon edges for regridding
       LLFILENAME = TRIM( DATA_DIR_1x1) //
-     &             'MAP_A2A_Regrid_200312/latlon_geos1x1.txt'
-
-      ! Allocate arrays for regridding
-      ALLOCATE(INGRID(I1x1,J1x1))
-      ALLOCATE(OUTGRID(IIPAR,JJPAR))
+     &             'MAP_A2A_Regrid_201203/MAP_A2A_latlon_geos1x1.nc'
 
       ! Read the entire file in one pass (for I/O optimization)
       DO 
@@ -465,52 +467,51 @@
 
             ! NOx [molec/cm2/s]
             CASE( 1  )
-               INGRID     = ARRAY(:,:,1)
-               CALL DO_REGRID_A2A( LLFILENAME, 360,     182,
-     &                             INGRID,     OUTGRID, 0 )
-               EMEP_NOx   = OUTGRID
-
+               INGRID = ARRAY(:,:,1)
+               CALL DO_REGRID_A2A( LLFILENAME, I1x1,      J1x1,
+     &                             INGRID,     EMEP_NOx,  PERAREA=0,
+     &                             netCDF=.TRUE.                     )
             ! CO [molec/cm2/s]
             CASE( 4  )
-               INGRID     = ARRAY(:,:,1)
-               CALL DO_REGRID_A2A( LLFILENAME, 360,     182,
-     &                             INGRID,     OUTGRID, 0 )
-               EMEP_CO    = OUTGRID
+               INGRID = ARRAY(:,:,1)
+               CALL DO_REGRID_A2A( LLFILENAME, I1x1,      J1x1,
+     &                             INGRID,     EMEP_CO,   PERAREA=0,
+     &                             netCDF=.TRUE.                     )
                
             ! ALK4 [atoms C/cm2/s]
             CASE( 5  )
-               INGRID     = ARRAY(:,:,1)
-               CALL DO_REGRID_A2A( LLFILENAME, 360,     182,
-     &                             INGRID,     OUTGRID, 0 )
-               EMEP_ALK4  = OUTGRID
+               INGRID = ARRAY(:,:,1)
+               CALL DO_REGRID_A2A( LLFILENAME, I1x1,      J1x1,
+     &                             INGRID,     EMEP_ALK4, PERAREA=0,
+     &                             netCDF=.TRUE.                     )
 
             ! MEK [atoms C/cm2/s]
             CASE( 10 )
-               INGRID    = ARRAY(:,:,1)
-               CALL DO_REGRID_A2A( LLFILENAME, 360,     182,
-     &                             INGRID,     OUTGRID, 0 )
-               EMEP_MEK  = OUTGRID
+               INGRID = ARRAY(:,:,1)
+               CALL DO_REGRID_A2A( LLFILENAME, I1x1,      J1x1,
+     &                             INGRID,     EMEP_MEK,  PERAREA=0,
+     &                             netCDF=.TRUE.                     )
 
             ! ALD2 [atoms C/cm2/s]
             CASE( 11 )
-               INGRID    = ARRAY(:,:,1)
-               CALL DO_REGRID_A2A( LLFILENAME, 360,     182,
-     &                             INGRID,     OUTGRID, 0 )
-               EMEP_ALD2 = OUTGRID
+               INGRID = ARRAY(:,:,1)
+               CALL DO_REGRID_A2A( LLFILENAME, I1x1,      J1x1,
+     &                             INGRID,     EMEP_ALD2, PERAREA=0,
+     &                             netCDF=.TRUE.                     )
 
             ! PRPE [atoms C/cm2/s]
             CASE( 18 )
-               INGRID    = ARRAY(:,:,1)
-               CALL DO_REGRID_A2A( LLFILENAME, 360,     182,
-     &                             INGRID,     OUTGRID, 0 )
-               EMEP_PRPE = OUTGRID
+               INGRID = ARRAY(:,:,1)
+               CALL DO_REGRID_A2A( LLFILENAME, I1x1,      J1x1,
+     &                             INGRID,     EMEP_PRPE, PERAREA=0,
+     &                             netCDF=.TRUE.                     )
 
             ! C2H6 [atoms C/cm2/s]
             CASE( 21 )
-               INGRID    = ARRAY(:,:,1)
-               CALL DO_REGRID_A2A( LLFILENAME, 360,     182,
-     &                             INGRID,     OUTGRID, 0 )
-               EMEP_C2H6 = OUTGRID
+               INGRID = ARRAY(:,:,1)
+               CALL DO_REGRID_A2A( LLFILENAME, I1x1,      J1x1,
+     &                             INGRID,     EMEP_C2H6, PERAREA=0,
+     &                             netCDF=.TRUE.                     )
 
             CASE DEFAULT
                ! Nothing
@@ -518,10 +519,6 @@
          END SELECT
 
       ENDDO
-
-      ! Deallocate arrays for regridding
-      DEALLOCATE(INGRID)
-      DEALLOCATE(OUTGRID)
 
       ! Close file
       CLOSE( IU_FILE )
@@ -535,12 +532,17 @@
       ! NOx, CO, NH3 and include SOx (amv, 06/04/08)
       !=================================================================
 
-      IF ( SCALEYEAR > 1989 ) THEN
+      IF ( SCALEYEAR > 1989) THEN
 
          ! new EMEP data is only defined from 1990-2007
          EMEP_YEAR = MIN( SCALEYEAR, 2007 )
 
          CALL READ_EMEP_UPDATED(  1, EMEP_YEAR, EMEP_NOx, 0 )
+         IF ( SCALEYEAR >2007 .AND. SCALEYEAR <=2010 ) THEN
+         CALL GET_ANNUAL_SCALAR( 71, 2007, SCALEYEAR, Sc )
+         EMEP_NOx(:,:) = EMEP_NOx(:,:) * Sc(:,:)
+         END IF
+
          CALL READ_EMEP_UPDATED(  4, EMEP_YEAR, EMEP_CO, 0 )
          CALL READ_EMEP_UPDATED( 26, EMEP_YEAR, EMEP_SO2, 0 )
          CALL READ_EMEP_UPDATED( 30, EMEP_YEAR, EMEP_NH3, 1 )
@@ -550,6 +552,7 @@
          CALL READ_EMEP_UPDATED( 26, EMEP_YEAR, EMEP_SO2_SHIP, 2 )
 
       ! Need to use for SOx/NH3 anyways, but SOx scale back further
+
       ELSE
 
          CALL READ_EMEP_UPDATED( 26, 1990, EMEP_SO2, 0 )
@@ -1167,6 +1170,10 @@
 !  (2 ) Updated the mask file to correspond with the 200911 EMEP emissions
 !        (gvinken, 11/24/10)
 !  13 Mar 2012 - M. Cooper   - Changed regrid algorithm to map_a2a
+!  24 May 2012 - R. Yantosca - Fixed minor bugs in map_a2a implementation
+!  15 Aug 2012 - M. Payer    - Fixed minor bugs in regridding of mask; Also set
+!                              mask to 1 if greater than 0 (L. Murray)
+!  24 Aug 2012 - R. Yantosca - DO_REGRID_A2A now reads netCDF input file
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -1176,8 +1183,8 @@
       REAL*4                  :: ARRAY(I1x1,J1x1,1)
       CHARACTER(LEN=255)      :: FILENAME
       CHARACTER(LEN=255)      :: LLFILENAME
-      REAL*8, ALLOCATABLE     :: OUTGRID(:,:)
-      REAL*8, ALLOCATABLE     :: INGRID(:,:)
+      REAL*8                  :: INGRID (I1x1,J1x1)
+      REAL*8                  :: OUTGRID(IIPAR,JJPAR)
 
       !=================================================================
       ! READ_EUROPE_MASK begins here!
@@ -1189,8 +1196,7 @@
 
       ! File with lat/lon edges for regridding
       LLFILENAME = TRIM( DATA_DIR_1x1) //
-     &             'MAP_A2A_Regrid_200312/latlon_geos1x1.txt'
-
+     &             'MAP_A2A_Regrid_201203/MAP_A2A_latlon_geos1x1.nc'
       ! Echo info
       WRITE( 6, 100 ) TRIM( FILENAME )
  100  FORMAT( '     - READ_EUROPE_MASK: Reading ', a )
@@ -1200,18 +1206,16 @@
      &                 0d0,       I1x1,     J1x1,     
      &                 1,         ARRAY,    QUIET=.TRUE. ) 
 
-      ! Allocate arrays for regridding
-      ALLOCATE(INGRID(I1x1,J1x1))
-      ALLOCATE(OUTGRID(IIPAR,JJPAR))
 
       ! Regrid from GEOS 1x1 GRID to current model resolution
       INGRID = ARRAY(:,:,1)
-      CALL DO_REGRID_A2A( LLFILENAME, 360, 182, INGRID, OUTGRID, 1 )  
+      CALL DO_REGRID_A2A( LLFILENAME, I1x1,    J1x1,
+     &                    INGRID,     OUTGRID, PERAREA=0,
+     &                    netCDF=.TRUE.                   )  
+
       EUROPE_MASK = OUTGRID 
 
-      ! Deallocate arrays for regridding
-      DEALLOCATE(INGRID)
-      DEALLOCATE(OUTGRID)
+      WHERE ( EUROPE_MASK > 0D0 ) EUROPE_MASK = 1D0
 
       END SUBROUTINE READ_EUROPE_MASK
 !EOC
@@ -1317,6 +1321,8 @@
 !  04 Jan 2010 - Extended to 2007, changed input format (amv)
 !  01 Mar 2012 - R. Yantosca - Now use GET_AREA_CM2(I,J,L) from grid_mod.F90
 !  13 Mar 2012 - M. Cooper   - Changed regrid algorithm to map_a2a
+!  24 May 2012 - R. Yantosca - Fixed minor bugs in map_a2a implementation
+!  24 Aug 2012 - R. Yantosca - DO_REGRID_A2A now reads netCDF input file
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -1330,8 +1336,8 @@
       REAL*8                        :: EMEP_TAU, TAU, A, B
       INTEGER                       :: EMEP_NYMD, MN, RATIOID, I, J
       CHARACTER(LEN=255)            :: LLFILENAME
-      REAL*8, ALLOCATABLE           :: OUTGRID(:,:)
-      REAL*8, ALLOCATABLE           :: INGRID(:,:)
+      REAL*8                        :: INGRID (I1x1, J1x1 )
+      REAL*8                        :: OUTGRID(IIPAR,JJPAR)
 
       ARRAY_1x1_SHIP(:,:,:) = 0.d0
       ARRAY_1x1_LAND(:,:,:) = 0.d0
@@ -1443,20 +1449,14 @@
 
       ! File with lat/lon edges for regridding
       LLFILENAME = TRIM( DATA_DIR_1x1) //
-     &             'MAP_A2A_Regrid_200312/latlon_geos1x1.txt'
-
-      ! Allocate arrays for regridding
-      ALLOCATE(INGRID(I1x1,J1x1))
-      ALLOCATE(OUTGRID(IIPAR,JJPAR))
+     &             'MAP_A2A_Regrid_201203/MAP_A2A_latlon_geos1x1.nc'
 
       ! Regrid to current model resolution [kg/yr]
       INGRID = ARRAY_1x1(:,:,1)
-      CALL DO_REGRID_A2A( LLFILENAME, 360, 181, INGRID, OUTGRID, 1 )
+      CALL DO_REGRID_A2A( LLFILENAME, I1x1,    J1x1,
+     &                    INGRID,     OUTGRID, PERAREA=1,
+     &                    netCDF=.TRUE.                   )
       ARRAY  = OUTGRID
-
-      ! Deallocate arrays for regridding
-      DEALLOCATE(INGRID)
-      DEALLOCATE(OUTGRID)
 
       ! Convert SOx to SO2 assuming a SOx is 95% SO2 over Europe, as used
       ! throughout GEOS-Chem, and as per Chin et al, 2000

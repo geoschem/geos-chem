@@ -85,12 +85,16 @@
 
       !%%% NOTE: still to be determined, use fudge factor for now
       INTEGER, PARAMETER :: NLAND = 5536
-#if defined( DEVEL )
-#elif defined( EXTERNAL_GRID )
 
+#elif defined( GRID025x03125 ) && defined( SEAC4RS )
+
+      !%%% NOTE: still to be determined, use fudge factor for now
+      INTEGER, PARAMETER :: NLAND = 5536
+
+#elif defined( EXTERNAL_GRID ) && defined( DEVEL )
       !%%% NOTE: still to be determined!!!
       INTEGER, PARAMETER :: NLAND = 5536
-#endif
+
 #endif
 !
 ! !PUBLIC DATA MEMBERS:
@@ -111,7 +115,7 @@
       !REAL*8  :: SOILPREP(2,NLAND)  
 
       ! Fertilizers
-      REAL*8  :: SOILFERT(NFERT)    !maasatemp
+      REAL*8  :: SOILFERT(IGLOB,JGLOB,366)   !Replaces SOILFERT(NFERT)
 
       ! Pulsing factors
       REAL*8  :: PULSFACT(NPULSE)
@@ -120,7 +124,7 @@
       ! in restart which would be hard to look at as NLAND
       ! Could also convert this later in writing out the restart
       ! Will let Bob decide :)
-      INTEGER CLIM(NLAND)
+      REAL*4 :: CLIM(IGLOB,JGLOB,2)    !Replaces: CLIM(NLAND)
       REAL*4 :: LAND2(IGLOB,JGLOB,24)  !MODIS LANDTYPE
       REAL*4 :: DRYPERIOD(IGLOB,JGLOB)  ! Dry period length
       REAL*4 :: PFACTOR(IGLOB,JGLOB)     ! Pulse Factor

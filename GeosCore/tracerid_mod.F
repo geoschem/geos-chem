@@ -175,6 +175,7 @@
 !  (19) Added tracers and emissions for dicarbonyl simulation (tmf, 1/7/09)
 !  (20) Updates for mercury simulation (ccc, 5/17/10)
 !  17 Feb 2011 - R. Yantosca - Add modifications for APM microphysics (G. Luo)
+!  13 Aug 2012 - R. Yantosca - Add routine FILL_CHEM_STATE_NAME_IDs
 !******************************************************************************
 !
 
@@ -184,10 +185,6 @@
 #     include "define.h"
 
       ! for CTM tracers
-!-- add tracers for new isoprene chemistry. (fp, 01/27/10)
-!MSL      INTEGER, PARAMETER :: NNNTRID  = 75
-!      INTEGER, PARAMETER :: MMMEMBER = 10
-!      INTEGER, PARAMETER :: NNNTRID  = 100
       INTEGER, PARAMETER :: MMMEMBER = 15
       INTEGER            :: NMEMBER(NNNTRID) 
       INTEGER            :: IDTRMB(NNNTRID,MMMEMBER)
@@ -214,6 +211,14 @@
       INTEGER            :: IDAPAN, IDENPAN, IDMPAN, IDNIPAN
       INTEGER            :: IDDRYAPAN, IDDRYENPAN, IDDRYGLPAN
       INTEGER            :: IDDRYGPAN, IDDRYMPAN, IDDRYNIPAN
+      ! jpp, 6/5/09, adding IDDRY__ id's for dry deposition
+      INTEGER            :: IDDRYHOBr, IDDRYHBr, IDDRYBrNO3
+
+      ! jpp, 6/5/09: bromine id's
+      INTEGER            :: IDBr2,   IDBr,     IDBrO,  IDHOBr, IDHBr
+      INTEGER            :: IDBrNO2, IDBrNO3,  IDCHBr3, IDCH2Br2
+      INTEGER            :: IDCH3Br
+
       ! added for aromatic (dkh, 10/06/06)  
       INTEGER            :: IDLBRO2H, IDLBRO2N  
       INTEGER            :: IDLTRO2H, IDLTRO2N  
@@ -228,7 +233,6 @@
       INTEGER            :: IDTDMS,  IDTSO2,   IDTSO4,  IDTMSA,  IDTNH3
       INTEGER            :: IDTNH4,  IDTNIT,   IDTRN,   IDTPB,   IDTBE7
       INTEGER            :: IDTBCPI, IDTBCPO,  IDTOCPI, IDTOCPO, IDTDST1
-
       INTEGER            :: IDTDST2, IDTDST3,  IDTDST4, IDTSALA, IDTSALC
       INTEGER            :: IDTALPH, IDTLIMO,  IDTALCO, IDTSOG1, IDTSOG2 
       INTEGER            :: IDTSOG3, IDTSOG4,  IDTSOA1, IDTSOA2, IDTSOA3
@@ -251,6 +255,9 @@
       INTEGER            :: IDTPYPAN,IDTMAP
       INTEGER            :: IDTAP
 
+      ! For tagged Ox simulation
+      INTEGER            :: IDTOxStrt
+
       INTEGER		 :: IDTHCOOH, IDTACTA  ! (mjc, 4/13/11)
 
       ! For H2/HD simulation
@@ -259,6 +266,10 @@
       ! update for arom (dkh, 10/05/06)  
       INTEGER            :: IDTSOA5, IDTSOG5
 
+      !jpp, 6/5/09: bromine ids
+      INTEGER            :: IDTBr2,   IDTBr,   IDTBrO,  IDTHOBr, IDTHBr
+      INTEGER            :: IDTBrNO2, IDTBrNO3, IDTCHBr3, IDTCH2Br2
+      INTEGER            :: IDTCH3Br
 
       ! For tagged Hg simulation
       INTEGER              :: N_Hg_CATS
@@ -280,7 +291,9 @@
       INTEGER            :: IDEHAC
       !%%%%(bmy 4/13/11)
       INTEGER            :: IDERCHO, IDEHCOOH, IDEACTA       
-      
+      !jpp, 8/24/07: emission ID's for Br biogenic emissions in fullchem runs
+      INTEGER            :: IDECHBr3, IDECH2Br2, IDEBr2      
+
       ! GEOS-CHEM biofuel ID's
       INTEGER            :: IDBFNOX,  IDBFCO,   IDBFALK4, IDBFACET 
       INTEGER            :: IDBFMEK,  IDBFALD2, IDBFPRPE, IDBFC3H8
@@ -312,7 +325,7 @@
 
 !------------------------------------------------------------------------------
 
-      SUBROUTINE TRACERID
+      SUBROUTINE TRACERID( am_I_Root )
 !
 !******************************************************************************
 !  Subroutine TRACERID reads the "tracer.dat" file and determines which
@@ -358,6 +371,8 @@
 !  22 Aug 2011 - R. Yantosca - Add modifications for APM microphysics (G. Luo)
 !  16 Feb 2012 - M. Payer    - Account for alternate spellings of the Rn and Pb
 !                              tracers in input.geos
+!  30 Jul 2012 - R. Yantosca - Now accept am_I_Root as an argument when
+!                              running with the traditional driver main.F
 !******************************************************************************
 !
       ! References to F90 modules
@@ -367,16 +382,14 @@
       USE TRACER_MOD,  ONLY : ITS_A_TAGCO_SIM, ITS_A_MERCURY_SIM
       USE TRACER_MOD,  ONLY : ITS_A_H2HD_SIM
       USE TRACER_MOD,  ONLY : N_TRACERS,       TRACER_NAME
-      ! Error check for array dimensions (hotp 8/1/09)
       USE ERROR_MOD,   ONLY : ERROR_STOP
 
-      USE CMN_SIZE_MOD      ! Size parameters
-      USE COMODE_LOOP_MOD   ! IDEMS
-
-#if defined(DEVEL)
-      USE GC_TYPE2_MOD
-      USE GC_ENVIRONMENT_MOD, ONLY : TRACER_INDEX
-#endif
+      USE CMN_SIZE_MOD                    ! Size parameters
+      USE COMODE_LOOP_MOD                 ! IDEMS
+!
+! !INPUT PARAMETERS:
+!
+      LOGICAL, INTENT(IN)  :: am_I_Root   ! Is this the root CPU?
 
       ! Local variables
       INTEGER              :: N, COUNT, COUNT_Hg0, COUNT_Hg2, COUNT_HgP
@@ -427,14 +440,10 @@
       !=================================================================
       DO N = 1, N_TRACERS
 
-#if defined (DEVEL)
-!         CHEM_STATE%TRAC_ID(N) = N
-!         CHEM_STATE%TRAC_NAME(N)  = TRIM( TRACER_NAME(N) )
-!         TRACER_INDEX(N) = N
-#endif
-         ! Convert tracer name to upper case.  TCNAME is in the "CMN" header
-         ! file -- we might use something better later on (bmy, 11/12/02)
+         ! Save TRACER_NAME into a CHARACTER*14 variable
          NAME = TRACER_NAME(N)
+
+         ! Convert name to uppercase
          CALL TRANUC( NAME )
 
          ! Find each tracer
@@ -763,6 +772,40 @@
                IDTSALC  = N
 
             !--------------------------------
+            ! Bromine (jpp, 6/13/07)
+            !--------------------------------
+
+            CASE ( 'BR2' )
+               IDTBr2     = N
+            
+            CASE ( 'BR' )
+               IDTBr      = N
+
+            CASE ( 'BRO' )
+               IDTBrO     = N
+            
+            CASE ( 'HOBR' )
+               IDTHOBr    = N
+
+            CASE ( 'HBR' )
+               IDTHBr     = N
+
+            CASE ( 'BRNO2' )
+               IDTBrNO2   = N
+                           
+            CASE ( 'BRNO3' )
+               IDTBrNO3   = N
+
+            CASE ( 'CHBR3' )
+               IDTCHBr3   = N
+
+            CASE ( 'CH2BR2' )
+               IDTCH2Br2   = N
+
+            CASE ( 'CH3BR' )
+               IDTCH3Br   = N
+
+            !--------------------------------
             ! Dicarbonyls GLYX & MGLY
             !--------------------------------
             CASE ( 'GLYX' )
@@ -926,6 +969,13 @@
                IDTPYPAN  = N
 
             !--------------------------------
+            ! Tagged Ox Tracers
+            !--------------------------------
+             
+            CASE ( 'OXSTRT' )
+               IDTOxStrt = N
+
+            !--------------------------------
             ! Rn-Pb-Be tracers
             !--------------------------------
             CASE ( 'RN', 'RN222' )
@@ -1079,7 +1129,7 @@
 
          END SELECT
       ENDDO
-
+     
       !=================================================================
       ! Initialize the IDExxx flags, which denote tracers that
       ! are emitted.  Remove the old previous hardwiring
@@ -1218,6 +1268,19 @@
             NEMBIOG   = NEMBIOG + 1
             IDEMBO    = NEMANTHRO + NEMBIOG
          ENDIF
+         ! Add bromine species biogenic emissions (jpp, mpayer, 12/28/11)
+         IF ( IDTCHBr3 > 0 ) THEN
+            NEMBIOG   = NEMBIOG + 1
+            IDECHBr3  = NEMANTHRO + NEMBIOG
+         ENDIF
+         IF ( IDTCH2Br2 > 0 ) THEN
+            NEMBIOG   = NEMBIOG + 1
+            IDECH2Br2 = NEMANTHRO + NEMBIOG
+         ENDIF
+         IF ( IDTBr2 > 0 ) THEN
+            NEMBIOG   = NEMBIOG + 1
+            IDEBr2    = NEMANTHRO + NEMBIOG
+         ENDIF
       ENDIF
       
       !=================================================================
@@ -1255,62 +1318,75 @@
       IF ( IDEMBO  /= 0 ) IDEMS(IDEMBO ) = IDTMBO
       IF ( IDEGLYC /= 0 ) IDEMS(IDEGLYC) = IDTGLYC
       IF ( IDEHAC /= 0 )  IDEMS(IDEHAC ) = IDTHAC
+      ! jpp:
+      IF ( IDECHBr3  /= 0 ) IDEMS(IDECHBr3 ) = IDTCHBr3
+      IF ( IDECH2Br2 /= 0 ) IDEMS(IDECH2Br2) = IDTCH2Br2
+      IF ( IDEBr2    /= 0 ) IDEMS(IDEBr2   ) = IDTBr2
 
       ! Echo anthro & biogenic emitted tracers
-      WRITE( 6, 100 ) IDEMS ( 1:NEMANTHRO+NEMBIOG )
- 100  FORMAT( /, 'TRACERID: Emitted tracers (anthro & bio) :', 20i3 )
+      IF ( am_I_Root ) THEN
+         WRITE( 6, 100 ) IDEMS ( 1:NEMANTHRO+NEMBIOG )
+ 100     FORMAT( /, 'TRACERID: Emitted tracers (anthro & bio) :', 27i3 )
 
-      ! print additional information (hotp 8/4/09)
-       WRITE( 6, 115 ) 'TRACERID: CHECK FULLCHEM IDEs'
-       WRITE( 6, 115 ) '-----------------------------------------------'
-       WRITE( 6, 115 ) 'NEMANTHRO: 10 for standard sims b4 v811'
-       WRITE( 6, 115 ) '          + 2 for HNO3 and Ox'
-       WRITE( 6, 115 ) '          + 5 for aromatics (B,T,X, C2H2, C2H4)'
-       WRITE( 6, 115 ) 'NEMANTHRO: 17 max'
-       WRITE( 6, 120 ) 'THIS NEMANTHRO: ', NEMANTHRO
-       WRITE( 6, 115 ) '-----------------------------------------------'
-       WRITE( 6, 115 ) 'NEMBIOG:    1 for isoprene'
-       WRITE( 6, 115 ) '          + 6 for dicarbonyls'
-       WRITE( 6, 115 ) 'NEMBIOG:    7 max'
-       WRITE( 6, 120 ) 'THIS NEMBIOG:   ', NEMBIOG
-       WRITE( 6, 115 ) '-----------------------------------------'
-       WRITE( 6, 120 ) 'IDENOX  ', IDENOX
-       WRITE( 6, 120 ) 'IDECO   ', IDECO
-       WRITE( 6, 120 ) 'IDEPRPE ', IDEPRPE
-       WRITE( 6, 120 ) 'IDEC3H8 ', IDEC3H8
-       WRITE( 6, 120 ) 'IDEALK4 ', IDEALK4
-       WRITE( 6, 120 ) 'IDEC2H6 ', IDEC2H6
-       WRITE( 6, 120 ) 'IDEACET ', IDEACET
-       WRITE( 6, 120 ) 'IDEMEK  ', IDEMEK
-       WRITE( 6, 120 ) 'IDEALD2 ', IDEALD2
-       WRITE( 6, 120 ) 'IDECH2O ', IDECH2O
-       WRITE( 6, 120 ) 'IDEOX   ', IDEOX
-       WRITE( 6, 120 ) 'IDEHNO3 ', IDEHNO3
-       WRITE( 6, 120 ) 'IDEISOP ', IDEISOP
-       WRITE( 6, 120 ) 'IDEGLYX ', IDEGLYX
-       WRITE( 6, 120 ) 'IDEMGLY ', IDEMGLY
-       WRITE( 6, 120 ) 'IDEBENZ ', IDEBENZ
-       WRITE( 6, 120 ) 'IDETOLU ', IDETOLU
-       WRITE( 6, 120 ) 'IDEXYLE ', IDEXYLE
-       WRITE( 6, 120 ) 'IDEMONX ', IDEMONX
-       WRITE( 6, 120 ) 'IDEC2H4 ', IDEC2H4
-       WRITE( 6, 120 ) 'IDEC2H2 ', IDEC2H2
-       WRITE( 6, 120 ) 'IDERCHO ', IDERCHO
-       WRITE( 6, 120 ) 'IDEHCOOH', IDEHCOOH
-       WRITE( 6, 120 ) 'IDEACTA ', IDEACTA
-       WRITE( 6, 120 ) 'IDEMBO  ', IDEMBO
-       WRITE( 6, 120 ) 'IDEGLYC ', IDEGLYC
-       WRITE( 6, 120 ) 'IDEHAC  ', IDEHAC
-       WRITE( 6, 115 ) '-----------------------------------------'
- 115   FORMAT( a )
- 120   FORMAT( a, i3 )
+         ! print additional information (hotp 8/4/09)
+         WRITE( 6, 115 ) 'TRACERID: CHECK FULLCHEM IDEs'
+         WRITE( 6, 115 ) '---------------------------------------------'
+         WRITE( 6, 115 ) 'NEMANTHRO: 10 for standard sims b4 v811'
+         WRITE( 6, 115 ) '          + 2 for HNO3 and Ox'
+         WRITE( 6, 115 ) '          + 5 for aromatics (B,T,X,C2H2,C2H4)'
+         WRITE( 6, 115 ) 'NEMANTHRO: 17 max'
+         WRITE( 6, 120 ) 'THIS NEMANTHRO: ', NEMANTHRO
+         WRITE( 6, 115 ) '---------------------------------------------'
+         WRITE( 6, 115 ) 'NEMBIOG:    1 for isoprene'
+         WRITE( 6, 115 ) '          + 6 for dicarbonyls'
+         WRITE( 6, 115 ) '          + 3 for bromine'
+         WRITE( 6, 115 ) 'NEMBIOG:   10 max'
+         WRITE( 6, 120 ) 'THIS NEMBIOG:   ', NEMBIOG
+         WRITE( 6, 115 ) '-----------------------------------------'
+         WRITE( 6, 120 ) 'IDENOX  ', IDENOX
+         WRITE( 6, 120 ) 'IDECO   ', IDECO
+         WRITE( 6, 120 ) 'IDEPRPE ', IDEPRPE
+         WRITE( 6, 120 ) 'IDEC3H8 ', IDEC3H8
+         WRITE( 6, 120 ) 'IDEALK4 ', IDEALK4
+         WRITE( 6, 120 ) 'IDEC2H6 ', IDEC2H6
+         WRITE( 6, 120 ) 'IDEACET ', IDEACET
+         WRITE( 6, 120 ) 'IDEMEK  ', IDEMEK
+         WRITE( 6, 120 ) 'IDEALD2 ', IDEALD2
+         WRITE( 6, 120 ) 'IDECH2O ', IDECH2O
+         WRITE( 6, 120 ) 'IDEOX   ', IDEOX
+         WRITE( 6, 120 ) 'IDEHNO3 ', IDEHNO3
+         WRITE( 6, 120 ) 'IDEISOP ', IDEISOP
+         WRITE( 6, 120 ) 'IDEGLYX ', IDEGLYX
+         WRITE( 6, 120 ) 'IDEMGLY ', IDEMGLY
+         WRITE( 6, 120 ) 'IDEBENZ ', IDEBENZ
+         WRITE( 6, 120 ) 'IDETOLU ', IDETOLU
+         WRITE( 6, 120 ) 'IDEXYLE ', IDEXYLE
+         WRITE( 6, 120 ) 'IDEMONX ', IDEMONX
+         WRITE( 6, 120 ) 'IDEC2H4 ', IDEC2H4
+         WRITE( 6, 120 ) 'IDEC2H2 ', IDEC2H2
+         WRITE( 6, 120 ) 'IDERCHO ', IDERCHO
+         WRITE( 6, 120 ) 'IDEHCOOH', IDEHCOOH
+         WRITE( 6, 120 ) 'IDEACTA ', IDEACTA
+         WRITE( 6, 120 ) 'IDEMBO  ', IDEMBO
+         WRITE( 6, 120 ) 'IDEGLYC ', IDEGLYC
+         WRITE( 6, 120 ) 'IDEHAC  ', IDEHAC
+         WRITE( 6, 120 ) 'IDECHBr3 ', IDECHBr3 
+         WRITE( 6, 120 ) 'IDECH2Br2', IDECH2Br2 
+         WRITE( 6, 120 ) 'IDEBr2   ', IDEBr2 
+         WRITE( 6, 115 ) '-----------------------------------------'
+      ENDIF
+ 115  FORMAT( a )
+ 120  FORMAT( a, i3 )
 
-      ! Return to calling program
       END SUBROUTINE TRACERID
 
 !------------------------------------------------------------------------------
 
-      SUBROUTINE SETTRACE
+#if defined( DEVEL ) || defined( EXTERNAL_GRID ) || defined( EXTERNAL_FORCING )
+      SUBROUTINE SETTRACE( GC_STATE, am_I_Root )
+#else
+      SUBROUTINE SETTRACE( am_I_Root )
+#endif
 !
 !******************************************************************************
 !  Subroutine SETTRACE flags certain chemical species w/in the SMVGEAR full
@@ -1336,6 +1412,8 @@
 !        (ccc, 01/29/10)
 !  (8 ) Add IDs for Henze's aromatics (hotp, 01/10)
 !  (9 ) Add debug print. (hotp, 01/10)
+!  30 Jul 2012 - R. Yantosca - Now accept am_I_Root as an argument when
+!                              running with the traditional driver main.F
 !******************************************************************************
 !
       ! References to F90 modules
@@ -1343,14 +1421,31 @@
       USE TRACER_MOD, ONLY : ID_EMITTED,     N_TRACERS
       USE TRACER_MOD, ONLY : TRACER_COEFF,   TRACER_CONST
       USE TRACER_MOD, ONLY : TRACER_N_CONST, TRACER_NAME
-      ! for Debug (hotp 8/5/09)
       USE LOGICAL_MOD, ONLY : LPRT
 
-      USE CMN_SIZE_MOD      ! Size parameters
-      USE COMODE_LOOP_MOD   ! NAMEGAS
+      USE CMN_SIZE_MOD                           ! Size parameters
+      USE COMODE_LOOP_MOD                        ! NAMEGAS
+
+#if defined( DEVEL ) || defined( EXTERNAL_GRID ) || defined( EXTERNAL_FORCING )
+      USE GC_TYPE2_MOD,  ONLY : CHEMSTATE        ! Derived type for chem state 
+
+#if defined( ESMF_ )
+      USE GC_TYPE2_MOD,  ONLY : REGISTER_CSPEC   ! Used w/ ESMF
+#endif
+
+#endif
+
+      ! Arguments
+      LOGICAL, INTENT(IN) :: am_I_Root
 
       ! Local variabales
-      INTEGER             :: I, J, T, C
+      INTEGER             :: I, J, T, C, STAT
+
+#if defined( DEVEL ) || defined( EXTERNAL_GRID ) || defined( EXTERNAL_FORCING )
+      ! Derived type object with chemical state
+      TYPE(CHEMSTATE), INTENT(INOUT) :: GC_STATE
+#endif
+
  
       !=================================================================
       ! SETTRACE begins here!
@@ -1417,6 +1512,22 @@
          IF ( NAMEGAS(I) == 'ENPAN'  ) IDENPAN   = I
          IF ( NAMEGAS(I) == 'MPAN'   ) IDMPAN    = I
          IF ( NAMEGAS(I) == 'NIPAN'  ) IDNIPAN   = I
+         ! ++++++++++++++++++++++++++++++++++++++++++++++++++++++
+         !jpp: for bromine
+         IF ( NAMEGAS(I) == 'Br2'     ) IDBr2     = I
+         IF ( NAMEGAS(I) == 'Br'      ) IDBr      = I
+         IF ( NAMEGAS(I) == 'BrO'     ) IDBrO     = I
+         IF ( NAMEGAS(I) == 'HOBr'    ) IDHOBr    = I
+         IF ( NAMEGAS(I) == 'HBr'     ) IDHBr     = I
+         IF ( NAMEGAS(I) == 'BrNO3'   ) IDBrNO3   = I
+         IF ( NAMEGAS(I) == 'BrNO2'   ) IDBrNO2   = I
+         IF ( NAMEGAS(I) == 'CH3Br'   ) IDCH3Br   = I
+         IF ( NAMEGAS(I) == 'CH2Br2'  ) IDCH2Br2  = I
+         IF ( NAMEGAS(I) == 'CHBr3'   ) IDCHBr3   = I
+         IF ( NAMEGAS(I) == 'DRYHOBr' ) IDDRYHOBr = I
+         IF ( NAMEGAS(I) == 'DRYHBr'  ) IDDRYHBr  = I
+         IF ( NAMEGAS(I) == 'DRYBrNO3') IDDRYBrNO3= I
+         ! ++++++++++++++++++++++++++++++++++++++++++++++++++++++
 
          IF ( NAMEGAS(I) == 'DRYAPAN' )  IDDRYAPAN  = I
          IF ( NAMEGAS(I) == 'DRYENPAN')  IDDRYENPAN = I
@@ -1431,6 +1542,17 @@
          IF ( NAMEGAS(I) == 'LTRO2N'   ) IDLTRO2N   = I
          IF ( NAMEGAS(I) == 'LXRO2H'   ) IDLXRO2H   = I
          IF ( NAMEGAS(I) == 'LXRO2N'   ) IDLXRO2N   = I
+
+#if defined( DEVEL ) && defined( ESMF_ )
+         CALL REGISTER_CSPEC(NAMEGAS(I),I,GC_STATE,STAT)
+         IF (STAT .lt. 0) THEN
+            CALL ERROR_STOP('FAIL','REGISTER_CSPEC')
+         ELSE
+            IF ( am_I_Root ) THEN
+               WRITE(6,*) 'Registered ', NAMEGAS(I), STAT ELSE
+            ENDIF
+         ENDIF
+#endif
       ENDDO
 
       !=================================================================
@@ -1500,7 +1622,7 @@
             ENDDO
 
             ! Print when Debug output selected (hotp 8/5/09)
-            IF ( LPRT ) THEN
+            IF ( LPRT .and. am_I_Root ) THEN
                PRINT*, '###--------------------'
                PRINT*, '### T, C       : ', T, C
                PRINT*, '### NAME       : ', TRACER_NAME(T)
@@ -1516,7 +1638,59 @@
 
       ! Return to calling program
       END SUBROUTINE SETTRACE
-    
+!EOC
+#if defined( DEVEL ) || defined( EXTERNAL_GRID ) || defined( EXTERNAL_FORCING )
+!------------------------------------------------------------------------------
+!          Harvard University Atmospheric Chemistry Modeling Group            !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: fill_chem_state_name_ids
+!
+! !DESCRIPTION: Subroutine FILL_CHEM_STATE_NAME_IDs populates the trac_name,
+!  trac_id, and smvg_id fields of an object based on the CHEMSTATE derived
+!  type.
+!\\
+!\\
+! !INTERFACE:
+!
+      SUBROUTINE FILL_CHEM_STATE_NAME_IDs( am_I_Root, CHEM_STATE )
+!
+! !USES:
+!
+      ! References to F90 modules
+      USE GC_TYPE2_MOD, ONLY : CHEMSTATE
+      USE TRACER_MOD,   ONLY : N_TRACERS
+      USE TRACER_MOD,   ONLY : TRACER_NAME
+!
+! !INPUT PARAMETERS: 
+!
+      LOGICAL,         INTENT(IN)    :: am_I_Root    ! Is this the root CPU?
+!
+! !INPUT/OUTPUT PARAMETERS:
+!
+      TYPE(CHEMSTATE), INTENT(INOUT) :: CHEM_STATE   ! Obj for chemical state
+! 
+! !REVISION HISTORY: 
+!  13 Aug 2012 - R. Yantosca - Initial version
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+!
+! !LOCAL VARIABLES:
+!
+      INTEGER :: N
+
+      ! Loop over defined tracers
+      DO N = 1, N_TRACERS
+         CHEM_STATE%TRAC_ID(N)   = N
+         CHEM_STATE%TRAC_NAME(N) = TRIM( TRACER_NAME(N) )
+      ENDDO
+
+      END SUBROUTINE FILL_CHEM_STATE_NAME_IDs
+
+!EOC 
+#endif
 !------------------------------------------------------------------------------
 
       FUNCTION IS_Hg0( N ) RESULT( IT_IS_Hg0 )
@@ -1986,6 +2160,25 @@
       IDLXRO2H  = 0
       IDLXRO2N  = 0
 
+      ! +++++++++++++++++
+      !jpp, 6/13/07,
+      IDBr2     = 0
+      IDBr      = 0
+      IDBrO     = 0
+      IDHBr     = 0
+      IDHOBr    = 0
+      IDBrNO2   = 0
+      IDBrNO3   = 0
+      IDCHBr3   = 0
+      IDCH2Br2  = 0
+      IDCH3Br   = 0
+      !jpp, 2/27/08
+      !ID's for drydep
+      IDDRYHOBr = 0
+      IDDRYHBr  = 0
+      IDDRYBrNO3= 0
+      ! +++++++++++++++++
+
       ! GEOS-CHEM Tracer ID #'s
       IDTNOX    = 0
       IDTOX     = 0  
@@ -2031,7 +2224,8 @@
       IDTBCPO   = 0
       IDTOCPO   = 0
 
-
+      IDTOxStrt = 0
+      
       IDTALPH   = 0
       IDTLIMO   = 0
       IDTALCO   = 0
@@ -2074,6 +2268,20 @@
       IDTGPAN   = 0
       IDTMPAN   = 0
       IDTNIPAN  = 0
+      ! +++++++++++++++++
+      ! jpp for bromine
+      ! 6/5/09
+      IDTBr2     = 0
+      IDTBr      = 0
+      IDTBrO     = 0
+      IDTHBr     = 0
+      IDTHOBr    = 0
+      IDTBrNO2   = 0
+      IDTBrNO3   = 0
+      IDTCHBr3   = 0
+      IDTCH2Br2  = 0
+      IDTCH3Br   = 0
+      ! +++++++++++++++++
 
 
       !(fp, 6/09)
@@ -2114,7 +2322,10 @@
       IDEMBO    = 0
       IDEGLYC   = 0
       IDEHAC    = 0
-      
+      IDECHBr3  = 0 ! jpp, 8/30/07
+      IDECH2Br2 = 0 ! jpp, 9/16/07
+      IDEBr2    = 0 ! jpp, 3/2/10
+
       ! GEOS-CHEM Biofuel ID #'s
       IDBFNOX   = 0
       IDBFCO    = 0

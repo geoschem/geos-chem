@@ -16,8 +16,9 @@
 !
 ! !USES:
 !
-      USE CMN_SIZE_MOD              ! Dimensions of arrays
-      USE CMN_DIAG_MOD              ! Diagnostic parameters
+      USE CMN_SIZE_MOD                    ! Dimensions of arrays
+      USE CMN_DIAG_MOD                    ! Diagnostic parameters
+      USE inquireMod, ONLY : findFreeLUN
 
       IMPLICIT NONE
 #     include "define.h"
@@ -79,7 +80,8 @@
 !  21 Sep 2010 - R. Yantosca - Removed duplicates in INIT_DIAGINFO
 !  21 Oct 2010 - R. Yantosca - Bug fix in INIT_DIAGINFO
 !  09 Dec 2010 - C. Carouge  - Modify MAXTRACER definition to account for 
-!   8 Feb 2012 - R. Yantosca - Add modifications for GEOS-5.7.x
+!  08 Feb 2012 - R. Yantosca - Add modifications for GEOS-5.7.x
+!  01 Aug 2012 - R. Yantosca - Add reference to findFreeLUN from inqure_mod.F90
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -186,11 +188,13 @@
 !
 ! !USES:
 !
-      USE FILE_MOD, ONLY : IOERROR, IU_FILE
+      USE FILE_MOD, ONLY : IOERROR
 ! 
 ! !REVISION HISTORY: 
 !  03 May 2005 - R. Yantosca - Initial version
 !  03 Aug 2010 - R. Yantosca - Added ProTeX headers
+!  01 Aug 2012 - R. Yantosca - Add reference to findFreeLUN from inqure_mod.F90
+!  03 Aug 2012 - R. Yantosca - Move calls to findFreeLUN out of DEVEL block
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -198,10 +202,14 @@
 ! !LOCAL VARIABLES:
 !
       INTEGER :: IOS, N
+      INTEGER :: IU_FILE
 
       !=================================================================
       ! CREATE_DINFO begins here!
       !=================================================================
+
+      ! Find a free file LUN
+      IU_FILE = findFreeLUN()
 
       ! Open "diaginfo.dat" file for output
       OPEN( IU_FILE, FILE=TRIM( DFILE ), STATUS='UNKNOWN', IOSTAT=IOS )
@@ -278,7 +286,7 @@
 !
 ! !USES:
 !
-      USE FILE_MOD,    ONLY : IOERROR, IU_FILE
+      USE FILE_MOD,    ONLY : IOERROR
       USE LOGICAL_MOD, ONLY : LSOA
 ! 
 ! !REVISION HISTORY: 
@@ -286,6 +294,8 @@
 !  (1 ) Now write out tracers in ug/m3 (dkh, bmy, 5/22/06)
 !  (2 ) Now write out GPROD & APROD info (tmf, havala, bmy, 2/6/07)
 !  08 Dec 2009 - R. Yantosca - Added ProTeX headers
+!  01 Aug 2012 - R. Yantosca - Add reference to findFreeLUN from inqure_mod.F90
+!  03 Aug 2012 - R. Yantosca - Move calls to findFreeLUN out of DEVEL block
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -293,6 +303,7 @@
 ! !LOCAL VARIABLES:
 !
       INTEGER           :: D, IOS, N, T
+      INTEGER           :: IU_FILE
       REAL*4            :: SCALE_NEW
       CHARACTER(LEN=2)  :: C
       CHARACTER(LEN=40) :: UNIT_NEW, NAME_NEW
@@ -300,6 +311,9 @@
       !=================================================================
       ! CREATE_TINFO begins here!
       !=================================================================
+
+      ! Find a free file LUN
+      IU_FILE = findFreeLUN()
 
       ! Open "tracerinfo.dat" file for output
       OPEN( IU_FILE, FILE=TRIM( TFILE ), STATUS='UNKNOWN', IOSTAT=IOS )
@@ -346,7 +360,7 @@
       !-----------------------------------
 
       ! Write separator line
-      CALL WRITE_SEPARATOR( 0 )
+      CALL WRITE_SEPARATOR( IU_FILE, 0 )
 
       ! Loop over tracers
       DO T = 1, NTRAC(45)
@@ -355,7 +369,7 @@
          N = ( SPACING * 0 ) + T
 
          ! Write tracers [ppbv] to "tracerinfo.dat" file
-         CALL WRITE_TINFO( NAME(T,45), FNAME(T,45), MWT(T,45), 
+         CALL WRITE_TINFO( IU_FILE, NAME(T,45), FNAME(T,45), MWT(T,45), 
      &                     MOLC(T,45), SCALE(T,45), UNIT(T,45), N )
       ENDDO
 
@@ -364,7 +378,7 @@
       !-----------------------------------
 
       ! Write separator line
-      CALL WRITE_SEPARATOR( 100 )
+      CALL WRITE_SEPARATOR( IU_FILE, 100 )
 
       ! Loop over tracers
       DO T = 1, NTRAC(45)
@@ -383,7 +397,7 @@
          ENDIF
 
          ! Write tracers [molec/cm2/s] to "tracerinfo.dat"
-         CALL WRITE_TINFO( NAME(T,45), FNAME(T,45), MWT(T,45), 
+         CALL WRITE_TINFO( IU_FILE, NAME(T,45), FNAME(T,45), MWT(T,45), 
      &                     MOLC(T,45), SCALE_NEW,   UNIT_NEW, N )
       ENDDO
 
@@ -392,7 +406,7 @@
       !-----------------------------------
 
       ! Write separator line
-      CALL WRITE_SEPARATOR( 200 )
+      CALL WRITE_SEPARATOR( IU_FILE, 200 )
 
       ! Loop over tracers
       DO T = 1, NTRAC(45)
@@ -411,7 +425,7 @@
          ENDIF
 
          ! Write tracers [molec/cm2] to "tracerinfo.dat"
-         CALL WRITE_TINFO( NAME(T,45), FNAME(T,45), MWT(T,45), 
+         CALL WRITE_TINFO( IU_FILE, NAME(T,45), FNAME(T,45), MWT(T,45), 
      &                     MOLC(T,45), SCALE_NEW,   UNIT_NEW, N )
       ENDDO
 
@@ -420,7 +434,7 @@
       !-----------------------------------
 
       ! Write separator line
-      CALL WRITE_SEPARATOR( 300 )
+      CALL WRITE_SEPARATOR( IU_FILE, 300 )
 
       ! Loop over tracers
       DO T = 1, NTRAC(45)
@@ -439,7 +453,7 @@
          ENDIF
 
          ! Write tracers [kg/s] to "tracerinfo.dat"
-         CALL WRITE_TINFO( NAME(T,45), FNAME(T,45), MWT(T,45), 
+         CALL WRITE_TINFO( IU_FILE, NAME(T,45), FNAME(T,45), MWT(T,45), 
      &                     MOLC(T,45), SCALE_NEW,   UNIT_NEW, N )
       ENDDO
 
@@ -448,7 +462,7 @@
       !-----------------------------------
 
       ! Write separator line
-      CALL WRITE_SEPARATOR( 400 )
+      CALL WRITE_SEPARATOR( IU_FILE, 400 )
 
       ! Loop over tracers
       DO T = 1, NTRAC(45)
@@ -467,7 +481,7 @@
          ENDIF
 
          ! Write tracers [kg] to "tracerinfo.dat"
-         CALL WRITE_TINFO( NAME(T,45), FNAME(T,45), MWT(T,45), 
+         CALL WRITE_TINFO( IU_FILE, NAME(T,45), FNAME(T,45), MWT(T,45), 
      &                     MOLC(T,45), SCALE_NEW,   UNIT_NEW, N )
       ENDDO
 
@@ -477,7 +491,7 @@
 !      !-----------------------------------
 !
 !      ! Write separator line
-!      CALL WRITE_SEPARATOR( 500 )
+!      CALL WRITE_SEPARATOR( IU_FILE, 500 )
 !
 !      ! Loop over tracers
 !      DO T = 1, NTRAC(45)
@@ -496,7 +510,7 @@
 !         ENDIF
 !
 !         ! Write tracers [kg] to "tracerinfo.dat"
-!         CALL WRITE_TINFO( NAME(T,45), FNAME(T,45), MWT(T,45), 
+!         CALL WRITE_TINFO( IU_FILE, NAME(T,45), FNAME(T,45), MWT(T,45), 
 !     &                     MOLC(T,45), SCALE_NEW,   UNIT_NEW, N )
 !      ENDDO
 
@@ -506,7 +520,7 @@
       IF ( LSOA ) THEN
 
          ! Write separator line
-         CALL WRITE_SEPARATOR( 600 )
+         CALL WRITE_SEPARATOR( IU_FILE, 600 )
 
          ! Loop over tracers
          ! New tracers for SOA simulation
@@ -525,10 +539,10 @@
             
             ! Write tracers [kg] to "tracerinfo.dat"
 #if defined( DEVEL )
-            CALL WRITE_TINFO( NAME_NEW, NAME_NEW,    REAL(1e0,4), 
-     &                        1,        REAL(1e0,4), 'kg/kg', N )
+            CALL WRITE_TINFO( IU_FILE, NAME_NEW, NAME_NEW,
+     &           REAL(1e0,4), 1, REAL(1e0,4), 'kg/kg', N )
 #else
-            CALL WRITE_TINFO( NAME_NEW, NAME_NEW,  1e0,
+            CALL WRITE_TINFO( IU_FILE, NAME_NEW, NAME_NEW,  1e0,
      &                        1,        1e0,      'kg/kg', N )
 #endif
          ENDDO
@@ -547,11 +561,11 @@
             IF ( D == 45 ) CYCLE
 
             ! Write separator
-            CALL WRITE_SEPARATOR( D )
+            CALL WRITE_SEPARATOR( IU_FILE, D )
 
             ! Write tracers to file
             DO T = 1, NTRAC(D)
-               CALL WRITE_TINFO( NAME(T,D), FNAME(T,D), MWT(T,D), 
+            CALL WRITE_TINFO( IU_FILE, NAME(T,D), FNAME(T,D), MWT(T,D), 
      &                           MOLC(T,D), SCALE(T,D), UNIT(T,D),
      &                           INDEX(T,D) )
             ENDDO
@@ -573,14 +587,16 @@
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE WRITE_TINFO( NAME, FNAME, MWT, MOLC, SCALE, UNIT, N )
+      SUBROUTINE WRITE_TINFO( IU_FILE, NAME, FNAME, 
+     &                        MWT, MOLC, SCALE, UNIT, N )
 !
 ! !USES:
 !
-      USE FILE_MOD, ONLY : IU_FILE, IOERROR
+      USE FILE_MOD, ONLY : IOERROR
 !
 ! !INPUT PARAMETERS: 
 !
+      INTEGER,          INTENT(IN) :: IU_FILE ! Logical unit number
       CHARACTER(LEN=*), INTENT(IN) :: NAME    ! GAMAP short tracer name
       CHARACTER(LEN=*), INTENT(IN) :: FNAME   ! GAMAP long tracer name
       REAL*4,           INTENT(IN) :: MWT     ! Molecular weight [kg/mole]
@@ -631,14 +647,15 @@
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE WRITE_SEPARATOR( DIAG )
+      SUBROUTINE WRITE_SEPARATOR( IU_FILE, DIAG )
 !
 ! !USES:
 !
-      USE FILE_MOD, ONLY : IU_FILE, IOERROR
+      USE FILE_MOD, ONLY : IOERROR
 !
 ! !INPUT PARAMETERS: 
 !
+      INTEGER, INTENT(IN) :: IU_FILE
       INTEGER, INTENT(IN) :: DIAG   ! GEOS-Chem diagnostic number
 ! 
 ! !REVISION HISTORY: 
@@ -1401,7 +1418,7 @@
 !  03 Aug 2010 - R. Yantosca - Added ProTeX headers
 !  13 Aug 2010 - R. Yantosca - Treat MERRA in the same way as GEOS-5
 !  02 Sep 2010 - R. Yantosca - In ND28: Omit SOA tracers if LSOA = .FALSE.
-!  09-Dec-2010 - H. Amos     - Added RGM, RPM, Fg, and Fp tracers for the
+!  09-Dec-2010 - H. Amos     - Added RGM and PBM  tracers for the
 !                              mercury simulation
 !  09-Dec-2010 - H. Amos     - fix spacing and #s for PL-HG2-$ diagnostics
 !  12 Nov 2010 - R. Yantosca - Need to save out surface pressure line to 
@@ -1409,6 +1426,10 @@
 !  24 Jan 2012 - M. Payer    - Change scale factors for Rn-Pb-Be simulation so
 !                              units are in mBq/SCM
 !  08 Feb 2012 - R. Yantosca - Treat GEOS-5.7.x in the same way as MERRA
+!  19 Mar 2012 - M. Payer    - Remove ACETdl and ACETgr from ND11 diagnostic.
+!                              Acetone from dry leaf matter and grasses is now
+!                              included in the direct emissions (ACETbg).
+!                              (E. Fischer)
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -1431,6 +1452,15 @@
       !----------------------------------
       ! General tracer information
       !----------------------------------
+
+!hma,20120323
+      !Do not print HgP in the IJ-AVG-$ field.
+      !HgP is now emitted and treated as Hg2, so all HgP IJ-AVG-$
+      !  fields are just zeroes
+      IF ( ITS_A_MERCURY_SIM() ) THEN
+         N_TRACERS = N_TRACERS - 1
+      ENDIF
+
       DO T = 1, N_TRACERS
 
          ! Store quantities for each tracer
@@ -1590,12 +1620,12 @@
                   FNAME(T,03) = 'Hg soil emissions'
                   UNIT (T,03) = 'kg'
                   INDEX(T,03) = T + ( SPACING * 34 )
-               CASE(16 )
+               CASE( 16 )
                   NAME (T,03) = 'Hg_up'
                   FNAME(T,03) = 'Hg ocean up flux'
                   UNIT (T,03) = 'kg'
                   INDEX(T,03) = T + ( SPACING * 34 )
-               CASE(17 )
+               CASE( 17 )
                   NAME (T,03) = 'Hg_down'
                   FNAME(T,03) = 'Hg ocean downflux'
                   UNIT (T,03) = 'kg'
@@ -1655,22 +1685,12 @@
                   NAME (T,03) = 'BrO'
                   FNAME(T,03) = 'BrO concentration'
                   INDEX(T,03) = ( N ) + ( SPACING * 35 )
-               CASE( 9 )    
-                  NAME (T,03) = 'Fg'
-                  FNAME(T,03) = 'Hg2 gas fraction'
-                  UNIT (T,03) = 'unitless'  
-                  INDEX(T,03) = ( N ) + ( SPACING * 35 )
-               CASE( 10 )
-                  NAME (T,03) = 'Fp'
-                  FNAME(T,03) = 'Hg2 particle fraction'
-                  UNIT (T,03) = 'unitless'
-                  INDEX(T,03) = ( N ) + ( SPACING * 35 ) 
-               CASE( 11 )
-                  NAME (T,03) = 'RPM'
-                  FNAME(T,03) = 'Reactive particulate mercury'
+               CASE( 9 )
+                  NAME (T,03) = 'PBM'
+                  FNAME(T,03) = 'Particle bound mercury'
                   UNIT (T,03) = 'pptv'
                   INDEX(T,03) = ( N ) + ( SPACING * 35 )      
-               CASE( 12 )
+               CASE( 10 )
                   NAME (T,03) = 'RGM'
                   FNAME(T,03) = 'Reactive gaseous mercury'
                   UNIT (T,03) = 'pptv'
@@ -2171,7 +2191,7 @@
       IF ( ND11 > 0 ) THEN
 
          ! Number of tracers
-         NTRAC(11) = 7
+         NTRAC(11) = 5
 
          ! Loop over tracers
          DO T = 1, NTRAC(11)
@@ -2188,15 +2208,9 @@
                   NAME (T,11) = 'ACETbg'
                   FNAME(T,11) = 'ACET from direct emissions'
                CASE( 4 )
-                  NAME (T,11) = 'ACETdl'
-                  FNAME(T,11) = 'ACET from dry leaf matter'
-               CASE( 5 )
-                  NAME (T,11) = 'ACETgr'
-                  FNAME(T,11) = 'ACET from grasslands'
-               CASE( 6 )
                   NAME (T,11) = 'ACETop'
                   FNAME(T,11) = 'ACET from ocean source'
-               CASE( 7 )
+               CASE( 5 )
                   NAME (T,11) = 'ACETol'
                   FNAME(T,11) = 'ACET from ocean sink'
                CASE DEFAULT
@@ -2429,7 +2443,7 @@
             !------------------
 
             ! Number of tracers
-            NTRAC(22) = 8
+            NTRAC(22) = 14 ! Increase for bromine (jpp, mpayer, 12/28/11)
 
             ! Loop over tracers
             DO T = 1, NTRAC(22)
@@ -2448,11 +2462,22 @@
                      NAME(T,22) = 'JO3'
                   CASE( 6  )
                      NAME(T,22) = 'POH'
-
                   CASE( 7  )
                      NAME(T,22) = 'JGLYX'
                   CASE( 8  )
                      NAME(T,22) = 'JMGLY'
+                  CASE( 9  )
+                     NAME(T,22) = 'JBrO'
+                  CASE( 10 )
+                     NAME(T,22) = 'JHOBr'
+                  CASE( 11 )
+                     NAME(T,22) = 'JBrNO2'
+                  CASE( 12 )
+                     NAME(T,22) = 'JBrNO3'
+                  CASE( 13 )
+                     NAME(T,22) = 'JCHBr3'
+                  CASE( 14 )
+                     NAME(T,22) = 'JBr2'
                  CASE DEFAULT
                   ! Nothing
                END SELECT
@@ -3171,7 +3196,7 @@
       IF ( ND46 > 0 ) THEN 
 
          ! Number of tracers
-         NTRAC(46) = 13 ! was 6 (mpb,2009)
+         NTRAC(46) = 16 ! Increase for bromine (jpp, mpayer, 12/28/11)
 
          ! Loop over tracers
          DO T = 1, NTRAC(46)
@@ -3217,16 +3242,42 @@
                CASE( 13)
                   NAME(T,46) = 'OCIMN'
                   MOLC(T,46) = 10
+               !jpp, 9/6/07
+               CASE( 14 )
+                  INDEX(T,46)  = T + ( SPACING * 21 )
+                  NAME  (T,46) = 'CHBr3'
+                  FNAME (T,46) = 'Ocean bromoform emissions'
+                  UNIT  (T,46) = 'kg/m2/s'
+                  MWT   (T,46) = 2.53e-1   !in [kg/mol]
+                  SCALE(T,46) = 1e0
+               CASE( 15 )
+                  INDEX (T,46)  = T + ( SPACING * 21 )
+                  NAME  (T,46) = 'CH2Br2'
+                  FNAME (T,46) = 'Ocean dibromomethane emissions'
+                  UNIT  (T,46) = 'kg/m2/s'
+                  MWT   (T,46) = 1.74e-1   !in [kg/mol]
+                  SCALE (T,46) = 1e0
+               CASE( 16 )
+                  INDEX (T,46)  = T + ( SPACING * 21 )
+                  NAME  (T,46) = 'SSBr2'
+                  FNAME (T,46) = 'sea-salt Br2 emissions'
+                  UNIT  (T,46) = 'kg/m2/s'
+                  MWT   (T,46) = 1.60e-1   !in [kg/mol]
+                  SCALE (T,46) = 1e0
                CASE DEFAULT
                   ! Nothing
             END SELECT
 
-            ! Define the rest of the quantities
-            INDEX(T,46) = T + ( SPACING * 21 )
-            FNAME(T,46) = TRIM( NAME(T,46) ) // ' emissions'
-            UNIT (T,46) = 'atoms C/cm2/s'
-            MWT  (T,46) = 12e-3
-            SCALE(T,46) = 1e0
+            !jpp, 9/6/07: preventing these default quantities
+            !             from overwriting CHBr3's info.
+            IF ( T < 14 ) THEN
+               ! Define the rest of the quantities
+               INDEX(T,46) = T + ( SPACING * 21 )
+               FNAME(T,46) = TRIM( NAME(T,46) ) // ' emissions'
+               UNIT (T,46) = 'atoms C/cm2/s'
+               MWT  (T,46) = 12e-3
+               SCALE(T,46) = 1e0
+            ENDIF
          ENDDO
       ENDIF
 

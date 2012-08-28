@@ -105,8 +105,12 @@
 !  14 Feb 2012 - M. Payer    - Add modifications for CH4 (K. Wecht)
 !  01 Mar 2012 - R. Yantosca - Now reference new grid_mod.F90
 !  13 Mar 2012 - M. Cooper   - Change regrid algorithm to map_a2a
+!  01 Aug 2012 - R. Yantosca - Add reference to findFreeLUN from inqure_mod.F90
+!  03 Aug 2012 - R. Yantosca - Move calls to findFreeLUN out of DEVEL block
 !******************************************************************************
 !
+      USE inquireMod, ONLY : findFreeLUN
+
       IMPLICIT NONE
 #     include "define.h"
 
@@ -326,6 +330,8 @@
 !        2008 is now available on disk (bmy, 7/8/09)
 !  (7 ) Reordering of species done by REARRANGE_BIOM (fp, 6/09)
 !  13 Mar 2012 - M. Cooper   - Change regrid algorithm to map_a2a
+!  24 May 2012 - R. Yantosca - Fixed minor bugs in map_a2a algorithm
+!  24 Aug 2012 - R. Yantosca - DO_REGRID_A2A now reads netCDF input file
 !******************************************************************************
 !
       ! References to F90 modules
@@ -352,15 +358,15 @@
       INTEGER                 :: YYYY, MM, MM1, YYYY1
       INTEGER                 :: YYYYMMDD, HHMMSS
       REAL*4                  :: DM_GEN_1x1(I1x1,J1x1-1)
-      REAL*8                  :: BIOM_GEN_1x1(I1x1,J1x1-1,N_SPEC)
+      REAL*8,  TARGET         :: BIOM_GEN_1x1(I1x1,J1x1-1,N_SPEC)
       REAL*8                  :: TAU0, TAU1, JD8DAY
       REAL*4                  :: TMP
       CHARACTER(LEN=255)      :: FILENAME
       CHARACTER(LEN=16 )      :: TIME_STR
       INTEGER                 :: DD, HH, DOY
       CHARACTER(LEN=255)      :: LLFILENAME
-      REAL*8, ALLOCATABLE     :: GFED_REGRIDDED(:,:)
-      REAL*8, ALLOCATABLE     :: INGRID(:,:)
+      REAL*8                  :: GFED_REGRIDDED(IIPAR,JJPAR)
+      REAL*8, POINTER         :: INGRID(:,:) => NULL()
 
       !=================================================================
       ! GFED2_COMPUTE_BIOMASS begins here!
@@ -608,23 +614,19 @@
 
       ! File with lat/lon edges for regridding
       LLFILENAME = TRIM( DATA_DIR_1x1) //
-     &             'MAP_A2A_Regrid_200312/latlon_generic.txt'
-
-      ! Allocate arrays for regridding
-      ALLOCATE(INGRID(I1x1,J1x1-1))
-      ALLOCATE(GFED_REGRIDDED(IIPAR,JJPAR))
+     &             'MAP_A2A_Regrid_201203/MAP_A2A_latlon_generic1x1.nc'
 
       ! Regrid each species from GENERIC 1x1 to current model resolution
       ! (The unit 'molec/cm2' is just used to denote that the quantity
       ! is per unit area.)
-      INGRID = BIOM_GEN_1X1(:,:,N)
-      CALL DO_REGRID_A2A( LLFILENAME, 360,            181,
-     &                    INGRID,     GFED_REGRIDDED, 0 )
+      INGRID => BIOM_GEN_1X1(:,:,N)
+      CALL DO_REGRID_A2A( LLFILENAME, I1x1,           J1x1-1,
+     &                    INGRID,     GFED_REGRIDDED, PERAREA=0,
+     &                    netCDF=.TRUE.                          )
       GFED2_BIOMASS(:,:,N) = GFED_REGRIDDED
 
-      ! Deallocate arrays for regridding
-      DEALLOCATE(INGRID)
-      DEALLOCATE(GFED_REGRIDDED)
+      ! Free pointer
+      NULLIFY( INGRID )
 
       ENDDO
 
@@ -857,32 +859,32 @@
 !        set (phs, 3/18/08)
 !  (3 ) Add 9 gaseous biomass burning emissions (tmf, 1/7/09)
 !  (4 ) Add IDBs from TRACERID_MOD. Initialize BIO_SAVE (fp, 01/29/10)
+!  01 Aug 2012 - R. Yantosca - Add reference to findFreeLUN from inqure_mod.F90
+!  03 Aug 2012 - R. Yantosca - Move calls to findFreeLUN out of DEVEL block
 !******************************************************************************
 !
       ! References to F90 modules
       USE BPCH2_MOD,     ONLY : READ_BPCH2
       USE DIRECTORY_MOD, ONLY : DATA_DIR_1x1
       USE ERROR_MOD,     ONLY : ALLOC_ERR
-      USE FILE_MOD,      ONLY : IOERROR, IU_FILE
+      USE FILE_MOD,      ONLY : IOERROR
       USE LOGICAL_MOD,   ONLY : LDICARB
-
-      !(fp)
-      USE TRACERID_MOD, ONLY : IDBNOx,  IDBCO,   IDBALK4
-      USE TRACERID_MOD, ONLY : IDBACET, IDBMEK,  IDBALD2
-      USE TRACERID_MOD, ONLY : IDBPRPE, IDBC3H8, IDBCH2O
-      USE TRACERID_MOD, ONLY : IDBC2H6, IDBBC,   IDBOC
-      USE TRACERID_MOD, ONLY : IDBSO2,  IDBNH3,  IDBCO2
-      USE TRACERID_MOD, ONLY : IDBGLYX, IDBMGLY, IDBBENZ
-      USE TRACERID_MOD, ONLY : IDBTOLU, IDBXYLE, IDBC2H4
-      USE TRACERID_MOD, ONLY : IDBC2H2, IDBGLYC, IDBHAC
-      USE TRACERID_MOD, ONLY : IDBCH4   !kjw
-
-      USE CMN_SIZE_MOD      ! Size parameters
+      USE TRACERID_MOD,  ONLY : IDBNOx,  IDBCO,   IDBALK4
+      USE TRACERID_MOD,  ONLY : IDBACET, IDBMEK,  IDBALD2
+      USE TRACERID_MOD,  ONLY : IDBPRPE, IDBC3H8, IDBCH2O
+      USE TRACERID_MOD,  ONLY : IDBC2H6, IDBBC,   IDBOC
+      USE TRACERID_MOD,  ONLY : IDBSO2,  IDBNH3,  IDBCO2
+      USE TRACERID_MOD,  ONLY : IDBGLYX, IDBMGLY, IDBBENZ
+      USE TRACERID_MOD,  ONLY : IDBTOLU, IDBXYLE, IDBC2H4
+      USE TRACERID_MOD,  ONLY : IDBC2H2, IDBGLYC, IDBHAC
+      USE TRACERID_MOD,  ONLY : IDBCH4   !kjw
+      USE CMN_SIZE_MOD        ! Size parameters
 
       ! Local variables
-      INTEGER                :: AS, IOS, M, N, NDUM
-      REAL*4                 :: ARRAY(I1x1,J1x1-1,1)
-      CHARACTER(LEN=255)     :: FILENAME
+      INTEGER            :: IU_FILE
+      INTEGER            :: AS, IOS, M, N, NDUM
+      REAL*4             :: ARRAY(I1x1,J1x1-1,1)
+      CHARACTER(LEN=255) :: FILENAME
       
       !=================================================================
       ! INIT_GFED2_BIOMASS begins here!
@@ -937,6 +939,9 @@
       ! File name
       FILENAME = TRIM( DATA_DIR_1x1) // 
      &           'GFED2_200601/GFED2_emission_factors_73t.txt'
+
+      ! Find a free file LUN
+      IU_FILE = findFreeLUN()
 
       ! Open emission factor file (ASCII format)
       OPEN( IU_FILE, FILE=TRIM( FILENAME ), STATUS='OLD', IOSTAT=IOS )

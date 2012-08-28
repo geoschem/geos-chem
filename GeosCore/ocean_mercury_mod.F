@@ -108,8 +108,12 @@
 !  25 Oct 2011 - H. Amos     - bring in code for Hg2 gas-particle partitioning
 !  08 Feb 2012 - R. Yantosca - Add modifications for GEOS-5.7.2 data
 !  01 Mar 2012 - R. Yantosca - Now reference new grid_mod.F90
+!  01 Aug 2012 - R. Yantosca - Add reference to findFreeLUN from inqure_mod.F90
+!  03 Aug 2012 - R. Yantosca - Move calls to findFreeLUN out of DEVEL block
 !******************************************************************************
 !
+      USE inquireMod, ONLY : findFreeLUN
+
       IMPLICIT NONE
 #     include "define.h"
 
@@ -309,7 +313,6 @@
       USE BPCH2_MOD    , ONLY : GET_TAU0     , READ_BPCH2
       USE DIRECTORY_MOD, ONLY : DATA_DIR
       USE TRANSFER_MOD , ONLY : TRANSFER_3D  , TRANSFER_3D_TROP
-      USE DIAG03_MOD   , ONLY : AD03_Fg      , AD03_Fp 
       USE DIAG03_MOD   , ONLY : ND03                
       USE TIME_MOD     , ONLY : SET_Hg2_DIAG        
       USE DIRECTORY_MOD, ONLY : DATA_DIR      
@@ -509,17 +512,6 @@
             IF (Fg(I,J,L)+Fp(I,J,L) > 1) THEN
                PRINT*, ' Fg + Fp > 1 @ ocean_mercury_mod.f'
                CALL GEOS_CHEM_STOP 
-            ENDIF
-
-            ! write AD03 diagnostics
-            IF ( ND03 > 0 ) THEN
-
-               ! Hg(II) gas fraction
-               AD03_Fg(I,J,L) = AD03_Fg(I,J,L) + Fg(I,J,L)
-
-               ! Hg(II) particle-bound fraction
-               AD03_Fp(I,J,L) = AD03_Fp(I,J,L) + Fp(I,J,L) 
-
             ENDIF
 
       ENDDO
@@ -2144,6 +2136,8 @@
 !  (2 ) HHMMSS   :  and Hour-Min-Sec for which to read restart file
 ! 
 !  NOTES:
+!  01 Aug 2012 - R. Yantosca - Add reference to findFreeLUN from inqure_mod.F90
+!  07 Aug 2012 - R. Yantosca - Now print LUN used to open file
 !******************************************************************************
 !
       ! References to F90 modules
@@ -2151,36 +2145,36 @@
       USE DEPO_MERCURY_MOD, ONLY : SNOW_HG, CHECK_DIMENSIONS
       USE DIRECTORY_MOD,    ONLY : RUN_DIR
       USE ERROR_MOD,        ONLY : DEBUG_MSG
-      USE FILE_MOD,         ONLY : IU_FILE,     IOERROR
+      USE FILE_MOD,         ONLY : IOERROR
       USE LOGICAL_MOD,      ONLY : LSPLIT,      LPRT
       USE TIME_MOD,         ONLY : EXPAND_DATE
       USE TRACER_MOD,       ONLY : STT,         TRACER_NAME, TRACER_MW_G
       USE TRACERID_MOD,     ONLY : GET_Hg0_CAT, GET_Hg2_CAT, N_Hg_CATS
       USE TRACERID_MOD,     ONLY : ID_Hg0,      ID_Hg2
-
-      USE CMN_SIZE_MOD     ! Size parameters
+      USE CMN_SIZE_MOD           ! Size parameters
 
       ! Arguments
-      INTEGER, INTENT(IN)   :: YYYYMMDD, HHMMSS
+      INTEGER, INTENT(IN) :: YYYYMMDD, HHMMSS
 
       ! Local Variables
-      INTEGER               :: I, IOS, J, L, NN, N_oc
-      INTEGER               :: YEAR, MONTH, DAY
-      INTEGER               :: NCOUNT(NNPAR) 
-      REAL*4                :: Hg_OCEAN(IIPAR,JJPAR,1)
-      CHARACTER(LEN=255)    :: FILENAME
+      INTEGER             :: IU_FILE
+      INTEGER             :: I, IOS, J, L, NN, N_oc
+      INTEGER             :: YEAR, MONTH, DAY
+      INTEGER             :: NCOUNT(NNPAR) 
+      REAL*4              :: Hg_OCEAN(IIPAR,JJPAR,1)
+      CHARACTER(LEN=255)  :: FILENAME
 
       ! For binary punch file, version 2.0
-      INTEGER               :: NI,        NJ,      NL
-      INTEGER               :: IFIRST,    JFIRST,  LFIRST
-      INTEGER               :: NTRACER,   NSKIP
-      INTEGER               :: HALFPOLAR, CENTER180
-      REAL*4                :: LONRES,    LATRES
-      REAL*8                :: ZTAU0,     ZTAU1
-      CHARACTER(LEN=20)     :: MODELNAME
-      CHARACTER(LEN=40)     :: CATEGORY
-      CHARACTER(LEN=40)     :: UNIT     
-      CHARACTER(LEN=40)     :: RESERVED
+      INTEGER             :: NI,        NJ,      NL
+      INTEGER             :: IFIRST,    JFIRST,  LFIRST
+      INTEGER             :: NTRACER,   NSKIP
+      INTEGER             :: HALFPOLAR, CENTER180
+      REAL*4              :: LONRES,    LATRES
+      REAL*8              :: ZTAU0,     ZTAU1
+      CHARACTER(LEN=20)   :: MODELNAME
+      CHARACTER(LEN=40)   :: CATEGORY
+      CHARACTER(LEN=40)   :: UNIT     
+      CHARACTER(LEN=40)   :: RESERVED
 
       !=================================================================
       ! READ_OCEAN_Hg_RESTART begins here!
@@ -2189,6 +2183,9 @@
       ! Initialize some variables
       NCOUNT(:)       = 0
       Hg_OCEAN(:,:,:) = 0e0
+
+      ! Find a free file LUN
+      IU_FILE         = findFreeLUN()
 
       ! Copy input file name to a local variable
       FILENAME        = TRIM( RUN_DIR ) // TRIM( Hg_RST_FILE )
@@ -2199,9 +2196,9 @@
       ! Echo some input to the screen
       WRITE( 6, '(a)' ) REPEAT( '=', 79 )
       WRITE( 6, 100   ) 
-      WRITE( 6, 110   ) TRIM( FILENAME )
+      WRITE( 6, 110   ) TRIM( FILENAME ), IU_FILE
  100  FORMAT( 'O C E A N   H g   R E S T A R T   F I L E   I N P U T' )
- 110  FORMAT( /, 'READ_OCEAN_Hg_RESTART: Reading ', a )
+ 110  FORMAT( /, 'READ_OCEAN_Hg_RESTART: Reading ', a, ' on unit ', i4 )
 
       ! Open the binary punch file for input
       CALL OPEN_BPCH2_FOR_READ( IU_FILE, FILENAME )
@@ -2461,33 +2458,33 @@
 !  (3 ) TAU      : GEOS-CHEM TAU value corresponding to YYYYMMDD, HHMMSS
 !  
 !  NOTES:
+!  01 Aug 2012 - R. Yantosca - Add reference to findFreeLUN from inqure_mod.F90
 !******************************************************************************
 !
       ! References to F90 modules
       USE BPCH2_MOD
       USE DEPO_MERCURY_MOD, ONLY : SNOW_HG
       USE DIRECTORY_MOD,    ONLY : RUN_DIR
-      USE FILE_MOD,         ONLY : IU_FILE
       USE GRID_MOD,         ONLY : GET_XOFFSET, GET_YOFFSET
       USE LOGICAL_MOD,      ONLY : LSPLIT
       USE TIME_MOD,         ONLY : EXPAND_DATE, GET_TAU
       USE TRACERID_MOD,     ONLY : ID_Hg_tot,   ID_Hg0
       USE TRACERID_MOD,     ONLY : ID_Hg2,      N_Hg_CATS
-
-      USE CMN_SIZE_MOD     ! Size parameters
+      USE CMN_SIZE_MOD           ! Size parameters
 
       ! Arguments           
-      INTEGER, INTENT(IN)   :: NYMD, NHMS
-      REAL*8,  INTENT(IN)   :: TAU
+      INTEGER, INTENT(IN) :: NYMD, NHMS
+      REAL*8,  INTENT(IN) :: TAU
 
       ! Local variables
-      INTEGER               :: HALFPOLAR, CENTER180
-      INTEGER               :: IFIRST,    JFIRST,   LFIRST
-      INTEGER               :: N,         NN
-      REAL*4                :: LONRES,    LATRES,   ARRAY(IIPAR,JJPAR,1)
-      CHARACTER(LEN=20)     :: MODELNAME
-      CHARACTER(LEN=40)     :: CATEGORY,  UNIT,     RESERVED
-      CHARACTER(LEN=255)    :: FILENAME
+      INTEGER             :: IU_FILE
+      INTEGER             :: HALFPOLAR, CENTER180
+      INTEGER             :: IFIRST,    JFIRST,   LFIRST
+      INTEGER             :: N,         NN
+      REAL*4              :: LONRES,    LATRES,   ARRAY(IIPAR,JJPAR,1)
+      CHARACTER(LEN=20)   :: MODELNAME
+      CHARACTER(LEN=40)   :: CATEGORY,  UNIT,     RESERVED
+      CHARACTER(LEN=255)  :: FILENAME
 
       !=================================================================
       ! MAKE_OCEAN_Hg_RESTART begins here!
@@ -2506,13 +2503,16 @@
       RESERVED  = ''
       UNIT      = 'kg'
 
+      ! Find a free file LUN
+      IU_FILE   = findFreeLUN()
+
       ! Expand date in filename
       FILENAME  = TRIM( RUN_DIR ) // Hg_RST_FILE
       CALL EXPAND_DATE( FILENAME, NYMD, NHMS )
 
       ! Echo info
-      WRITE( 6, 100 ) TRIM( FILENAME )
- 100  FORMAT( '     - MAKE_RESTART_FILE: Writing ', a )
+      WRITE( 6, 100 ) TRIM( FILENAME ), IU_FILE
+ 100  FORMAT( '     - MAKE_RESTART_FILE: Writing ', a, ' on unit ', i6 )
 
       ! Open BPCH file for output
       CALL OPEN_BPCH2_FOR_WRITE( IU_FILE, FILENAME )

@@ -159,8 +159,11 @@
 !  (34) CO scaling for VOC production is transfered to biomass_mod.f.
 !        (jaf, 2/6/09)
 !  (35) Modification for 1 x 1.25 grid (lok, bmy, 1/13/10)
+!  01 Aug 2012 - R. Yantosca - Add reference to findFreeLUN from inqure_mod.F90
 !******************************************************************************
 !
+      USE inquireMod, ONLY : findFreeLUN
+
       IMPLICIT NONE
 #     include "define.h"
 
@@ -616,7 +619,6 @@
       REAL*8,           INTENT(OUT) :: BIOMASS(IIPAR,JJPAR,NBIOMAX)
 
       ! Local variables
-      INTEGER                       :: N
       REAL*4                        :: ARRAY(IIPAR,JJPAR,1)
 
       ! Add storage of CO emissions to calculate emissions 
@@ -635,13 +637,10 @@
       ! Initialize the BIOMASS array
       BIOMASS = 0d0
 
-! We don't need the loop any more. We calculate emissions if IDBxxx > 0
-! (ccc, 01/29/10)
-!      ! Loop over only the emitted biomass tracers
-!      DO N = 1, NBIOMAX
+      ! We don't need the loop any more. We calculate emissions if IDBxxx > 0
+      ! (ccc, 01/29/10)
           
          ! Do scaling if necessary and print totals in Tg
-         !IF ( N == 1 ) THEN
          IF  ( IDBNOX > 0 ) THEN
 
             !----------
@@ -667,7 +666,6 @@
 
          !FP_ISOP (6/2009) removed hardwired IDBs
          IF  ( IDBCO > 0 ) THEN
-         !ELSE IF ( N == 2 ) THEN
  
             !----------
             ! CO
@@ -696,7 +694,6 @@
 
          !FP_ISOP
          IF  ( IDBALK4 > 0 ) THEN
-         !ELSE IF ( N == 3 ) THEN
 
             !----------
             ! ALK4
@@ -721,7 +718,6 @@
 
          !FP_ISOP
          IF  ( IDBACET > 0 ) THEN
-         !ELSE IF ( N == 4 ) THEN
 
             !----------
             ! ACET
@@ -736,7 +732,7 @@
             CALL TRANSFER_2D( ARRAY(:,:,1), BIOMASS(:,:,IDBACET) )
 
             ! ACET -- Convert from [molec/cm2/month] to [molec C/cm2/month] 
-            BIOMASS(:,:,N) = BIOMASS(:,:,IDBACET) * 3d0  
+            BIOMASS(:,:,IDBACET) = BIOMASS(:,:,IDBACET) * 3d0  
 
             ! Scale to yearly value for biogenic acetone (bdf, bmy, 7/23/01)
             CALL SCALE_BIOMASS_ACET( BIOMASS(:,:,IDBACET) )
@@ -752,7 +748,6 @@
 
          !FP_ISOP
          IF  ( IDBMEK > 0 ) THEN
-         !ELSE IF ( N == 5 ) THEN
 
             !----------
             ! MEK
@@ -777,7 +772,6 @@
 
          !FP_ISOP
          IF  ( IDBALD2 > 0 ) THEN
-         !ELSE IF ( N == 6 ) THEN
 
             !----------
             ! ALD2
@@ -802,7 +796,6 @@
 
          !FP_ISOP
          IF  ( IDBPRPE > 0 ) THEN
-         !ELSE IF ( N == 7 ) THEN
 
             !----------
             ! PRPE
@@ -827,8 +820,7 @@
          ENDIF
 
          !FP_ISOP
-         IF  ( N == IDBC3H8 ) THEN
-         !ELSE IF ( N == 8 ) THEN
+         IF  ( IDBC3H8 > 0 ) THEN
                
             !----------
             ! C3H8
@@ -843,7 +835,7 @@
             CALL TRANSFER_2D( ARRAY(:,:,1), BIOMASS(:,:,IDBC3H8) )
 
             ! C3H8 -- convert from [molec/cm2/month] to [molec C/cm2/month] 
-            BIOMASS(:,:,N) = BIOMASS(:,:,IDBC3H8) * 3d0 
+            BIOMASS(:,:,IDBC3H8) = BIOMASS(:,:,IDBC3H8) * 3d0 
 
             ! Compute future C3H8 emissions (if necessary)
             IF ( LFUTURE ) THEN
@@ -856,7 +848,6 @@
 
          !FP_ISOP
          IF  ( IDBCH2O > 0 ) THEN
-         !ELSE IF ( N == 9 ) THEN
 
             !----------
             ! CH2O
@@ -881,7 +872,6 @@
 
          !FP_ISOP
          IF  ( IDBC2H6 > 0 ) THEN
-         !ELSE IF ( N == 10 ) THEN
 
             !----------
             ! C2H6
@@ -896,7 +886,7 @@
             CALL TRANSFER_2D( ARRAY(:,:,1), BIOMASS(:,:,IDBC2H6) )
 
             ! C2H6 --convert from [molec/cm2/month] to [molec C/cm2/month]
-            BIOMASS(:,:,N) = BIOMASS(:,:,IDBC2H6) * 2d0 
+            BIOMASS(:,:,IDBC2H6) = BIOMASS(:,:,IDBC2H6) * 2d0 
 
             ! Compute future C2H6 emissions (if necessary)
             IF ( LFUTURE ) THEN
@@ -2042,15 +2032,16 @@
 !  (6 ) Now reference DATA_DIR from "directory_mod.f" (bmy, 7/20/04)
 !  (7 ) Added space in #ifdef block for 1 x 1.25 grid (bmy, 12/1/04)
 !  (8 ) Modification for 1 x 1.25 grid (lok, bmy, 1/13/10)
+!  01 Aug 2012 - R. Yantosca - Add reference to findFreeLUN from inqure_mod.F90
+!  03 Aug 2012 - R. Yantosca - Move calls to findFreeLUN out of DEVEL block
 !******************************************************************************
 !
       ! References to F90 modules
       USE DIRECTORY_MOD, ONLY : DATA_DIR
       USE ERROR_MOD,     ONLY : ALLOC_ERR
       USE TIME_MOD,      ONLY : GET_MONTH, GET_TAU, GET_YEAR
+      USE CMN_SIZE_MOD        ! Size parameters
 
-      USE CMN_SIZE_MOD   ! Size parameters
-  
       ! Arguments
       INTEGER, INTENT(IN)    :: I, J
       REAL*8,  INTENT(INOUT) :: ADJUSTED_VALUE
@@ -2059,7 +2050,7 @@
 
       ! Local variables
       INTEGER                :: THEYEAR, IPICK, CTM_lat, CTM_lon
-      INTEGER                :: II, JJ, KK, LL, AS, IMONTH, JYEAR
+      INTEGER                :: II, JJ, KK, LL, N, AS, IMONTH, JYEAR
       INTEGER, SAVE          :: IFIRSTCALL = 1 
       REAL*8                 :: CONVERT_lon, READINTOMS(NMONTHSAI), TAU
 
@@ -2084,10 +2075,13 @@
          ALLOCATE( TOMSAISCALE( NAIREGIONS, NAIYEARS, 12 ), STAT=AS )
          IF ( AS / = 0 ) CALL ALLOC_ERR( 'TOMSAISCALE' )
 
+         ! Find a free file LUN
+         N = findFreeLUN()
+
          ! Read TOMS Aerosol index data
-         OPEN( 199, FILE = TRIM( DATA_DIR ) // 'TOMSAI', STATUS='OLD' )
+         OPEN( N, FILE = TRIM( DATA_DIR ) // 'TOMSAI', STATUS='OLD' )
          DO JJ=1,NAIREGIONS
-            READ( 199, * ) readinTOMS
+            READ( N, * ) readinTOMS
             
             II=0
             DO KK=1,NAIYEARS
@@ -2098,7 +2092,7 @@
             ENDDO
 
          ENDDO
-         CLOSE(199)
+         CLOSE(N)
       ENDIF
 
       !=================================================================

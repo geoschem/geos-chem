@@ -76,10 +76,11 @@
       USE BPCH2_MOD,   ONLY : BPCH2,         GET_MODELNAME
       USE BPCH2_MOD,   ONLY : GET_HALFPOLAR, OPEN_BPCH2_FOR_WRITE
       USE ERROR_MOD,   ONLY : DEBUG_MSG
-      USE FILE_MOD,    ONLY : IU_SOIL,       IOERROR
+      USE FILE_MOD,    ONLY : IOERROR
       USE GRID_MOD,    ONLY : GET_XOFFSET,   GET_YOFFSET
       USE LOGICAL_MOD, ONLY : LPRT
       USE TIME_MOD,    ONLY : EXPAND_DATE
+      USE inquireMod,  ONLY : findfreeLUN
       USE CMN_SIZE_MOD
       USE COMMSOIL_MOD
 
@@ -88,7 +89,7 @@
       REAL*8,  INTENT(IN)  :: TAU
 
       ! Local Variables      
-      INTEGER              :: I0, IOS,  J0, N
+      INTEGER              :: I0, IOS,  J0, N, IU_SOIL
       INTEGER              :: YYYY, MM, DD,  HH, SS
       CHARACTER(LEN=255)   :: FILENAME
 
@@ -140,6 +141,8 @@
  100  FORMAT( '     - MAKE_SOILNOX_RESTART_FILE: Writing: ', a )
 
       CALL FLUSH(6)
+
+      IU_SOIL = findFreeLUN()
 
       ! Open restart file for output
       CALL OPEN_BPCH2_FOR_WRITE( IU_SOIL, FILENAME, TITLE )
@@ -237,9 +240,10 @@
       ! References to F90 modules
       USE BPCH2_MOD,   ONLY : OPEN_BPCH2_FOR_READ
       USE ERROR_MOD,   ONLY : DEBUG_MSG
-      USE FILE_MOD,    ONLY : IU_SOIL,      IOERROR
+      USE FILE_MOD,    ONLY : IOERROR
       USE LOGICAL_MOD, ONLY : LSPLIT,      LPRT
       USE TIME_MOD,    ONLY : EXPAND_DATE
+      USE inquireMod,  ONLY : findfreeLUN
       USE CMN_SIZE_MOD
       USE COMMSOIL_MOD
 
@@ -255,6 +259,7 @@
       INTEGER             :: IFIRST, JFIRST, LFIRST
       INTEGER             :: NTRACER,   NSKIP
       INTEGER             :: HALFPOLAR, CENTER180
+      INTEGER             :: IU_SOIL
       REAL*4              :: LONRES,    LATRES
       REAL*8              :: ZTAU0,     ZTAU1
       REAL*4               :: DRES(IGLOB, JGLOB) 
@@ -283,6 +288,8 @@
       WRITE( 6, '(a,/)' ) 'SOIL NOx Restart'
       WRITE( 6, 100 ) TRIM( FILENAME )
  100  FORMAT( 'READ_RESTART_FILE: Reading ', a )
+
+      IU_SOIL = findFreeLUN()
 
       ! Open the binary punch file for input
       CALL OPEN_BPCH2_FOR_READ( IU_SOIL, FILENAME )

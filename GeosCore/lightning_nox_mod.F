@@ -16,6 +16,8 @@
 !
 ! !USES:
 !
+      USE inquireMod, ONLY : findFreeLUN
+
       IMPLICIT NONE
 #     include "define.h"
       PRIVATE
@@ -101,6 +103,7 @@
 !  10 Nov 2010 - R. Yantosca - Added ProTeX headers
 !  02 Feb 2012 - R. Yantosca - Added modifications for GEOS-5.7.x met fields
 !  01 Mar 2012 - R. Yantosca - Now reference new grid_mod.F90
+!  03 Aug 2012 - R. Yantosca - Move calls to findFreeLUN out of DEVEL block
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -736,7 +739,6 @@
                !AD56(I,J,2) = AD56(I,J,2) + ( RATE_SAVE * ( 1d0 - X ) )
                AD56(I,J,3) = AD56(I,J,3) + ( RATE_SAVE *         X   )
 
-
                AD56(I,J,2) = AD56(I,J,2) + H0 * 1d-3
 
             ENDIF
@@ -761,6 +763,7 @@
                   SLBASE(I,J,L) = SLBASE(I,J,L) + VERTPROF(L) 
                ENDDO
             ENDIF
+
          ENDDO
       ENDDO
 !$OMP END PARALLEL DO
@@ -788,7 +791,7 @@
       USE DAO_MOD,       ONLY : IS_NEAR,  IS_WATER
       USE DIRECTORY_MOD, ONLY : DATA_DIR
       USE ERROR_MOD,     ONLY : GEOS_CHEM_STOP
-      USE FILE_MOD,      ONLY : IU_FILE,  IOERROR
+      USE FILE_MOD,      ONLY : IOERROR
       USE GRID_MOD,      ONLY : GET_YMID
       USE TIME_MOD,      ONLY : GET_MONTH
 
@@ -842,6 +845,7 @@
 !        GMI model [Allen et al., 2010] (ltm, bmy, 1/25/11).
 !  10 Nov 2010 - R. Yantosca - Added ProTeX headers
 !  01 Mar 2012 - R. Yantosca - Now use GET_AREA_CM2(I,J,L) from grid_mod.F90
+!  15 Jun 2012 - Nielsen - INQUIRE finds free logical unit number for IU_FILE
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -1255,8 +1259,19 @@
      &        TRIM( MODELNAME ) // '.' // GET_RES_EXT()
 
       ! Prefix directory to file name
+#if !defined( GEOS_57 )
+
       FILENAME = TRIM( DATA_DIR ) // TRIM( FILENAME ) 
-      
+#endif      
+
+      ! For GEOS-57 nested grids, append a suffix to denote either
+      ! SEAC4RS or the China domain (skim, 5/29/12)
+#if   defined( GEOS_57 ) && defined( NESTED_CH )
+      FILENAME = TRIM( FILENAME ) // '.CH'
+#elif defined( GEOS_57 ) && defined( SEAC4RS )
+      FILENAME = TRIM( FILENAME ) // '.SE'
+#endif
+
       ! For GEOS-5 nested grids, append the a suffix to denote either 
       ! CHINA or NORTH AMERICA nested regions (ltm, bmy, 11/14/08)
 #if   defined( GEOS_5 ) && defined( NESTED_CH ) 
@@ -1424,7 +1439,7 @@
 
       USE BPCH2_MOD,   ONLY : GET_TAU0
       USE ERROR_MOD,   ONLY : GEOS_CHEM_STOP
-      USE TIME_MOD,    ONLY : GET_TAU
+      USE TIME_MOD,    ONLY : GET_TAU, GET_MONTH, GET_YEAR
 !
 ! !RETURN VALUE:
 !
@@ -1522,18 +1537,44 @@
       !---------------------------------------
       ! GEOS-5.7.x: 4 x 5 global simulation
       !---------------------------------------
-      !%%% BMY KLUDGE (2/2/12)
-      !%%% Use same value as 4x5 MERRA during testing phase
-      BETA = ANN_AVG_FLASHRATE / 76.019042d0
+
+      ! ltm: Will need to be updated when other months/years become available
+      IF ( GET_YEAR() .eq. 2011 .and. GET_MONTH() .eq. 9 ) THEN
+         BETA = 0.63453405d0
+      ENDIF
 
 #elif defined( GEOS_57 ) && defined( GRID2x25 )
 
       !---------------------------------------
-      ! GEOS 5: 2 x 2.5 global simulation
+      ! GEOS-5.7.x: 2 x 2.5 global simulation
       !---------------------------------------
-      !%%% BMY KLUDGE (2/2/12)
-      !%%% Use same value as 2x25 MERRA during testing phase
-      BETA = ANN_AVG_FLASHRATE / 253.55888d0
+      
+      ! ltm: Will need to be updated when other months/years become available
+      IF ( GET_YEAR() .eq. 2011 .and. GET_MONTH() .eq. 9 ) THEN
+         BETA = 0.20604515d0
+      ENDIF
+
+#elif defined( GEOS_57 ) && defined( GRID025x0325 ) && defined( NESTED_CH )
+
+      !---------------------------------------
+      ! GEOS-5.7.x: Nested China simulation
+      !---------------------------------------
+      
+      ! ltm: Will need to be updated when other months/years become available
+      IF ( GET_YEAR() .eq. 2011 .and. GET_MONTH() .eq. 9 ) THEN
+         BETA = 0.20604515d0
+      ENDIF
+
+#elif defined( GEOS_57 ) && defined( GRID025x0325 ) && defined( SEAC4RS )
+
+      !---------------------------------------
+      ! GEOS-5.7.x: Nested SEAC4RS simulation
+      !---------------------------------------
+      
+      ! ltm: Will need to be updated when other months/years become available
+      IF ( GET_YEAR() .eq. 2011 .and. GET_MONTH() .eq. 9 ) THEN
+         BETA = 0.20604515d0
+      ENDIF
 
 #elif defined( MERRA ) && defined( GRID2x25 )
 
@@ -1662,7 +1703,6 @@
       USE DIRECTORY_MOD, ONLY : DATA_DIR
       USE ERROR_MOD,     ONLY : ALLOC_ERR
       USE FILE_MOD,      ONLY : IOERROR
-      USE FILE_MOD,      ONLY : IU_FILE
       USE GRID_MOD,      ONLY : GET_AREA_M2
       USE LOGICAL_MOD,   ONLY : LOTDLOC
 
@@ -1693,7 +1733,7 @@
 !
 ! !LOCAL VARIABLES:
 !
-      INTEGER             :: AS, III, IOS, JJJ
+      INTEGER             :: AS, III, IOS, JJJ, IU_FILE
       REAL*8              :: Y0, Y1
       CHARACTER(LEN=255)  :: FILENAME
 
@@ -1751,6 +1791,9 @@
       ! Echo info
       WRITE( 6, 100 ) TRIM( FILENAME )
  100  FORMAT( '     - INIT_LIGHTNING: Reading ', a )
+
+      ! Find a free file LUN
+      IU_FILE = findFreeLUN()
       
       ! Open file containing lightning PDF data
       OPEN( IU_FILE, FILE=TRIM( FILENAME ), STATUS='OLD', IOSTAT=IOS )

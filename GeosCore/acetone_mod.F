@@ -25,8 +25,6 @@
       PUBLIC :: EMISS_BIOACET
       PUBLIC :: OCEAN_SOURCE_ACET
       PUBLIC :: OCEAN_SINK_ACET
-      PUBLIC :: READ_JO1D
-      PUBLIC :: READ_RESP
 !
 ! !REMARKS:
 !  References:
@@ -73,17 +71,11 @@
 !  04 Nov 2010 - R. Yantosca - Added ProTeX headers
 !  06 Dec 2011 - E. Fischer  - Updated Ocean exchange, MEGAN biogenic emiss.
 !                              Removed obsolete code.
+!  19 Mar 2012 - M. Payer    - Removed obsolete subroutines READ_JO1D and
+!                              READ_RESP (E. Fischer)
 !EOP
 !------------------------------------------------------------------------------
 !BOC
-!
-! !PRIVATE TYPES:
-! 
-      ! Array for J-O1D values
-      REAL*8,  ALLOCATABLE :: JO1D(:,:)
-
-      ! Array for heterotrophic respiration values
-      REAL*8,  ALLOCATABLE :: XRESP(:,:) 
 !
 ! !DEFINED PARAMETERS:
 !
@@ -94,216 +86,6 @@
       REAL*8,  PARAMETER   :: XNUMOL_C = AVO / 12d-3 
 
       CONTAINS
-!EOC
-!------------------------------------------------------------------------------
-!          Harvard University Atmospheric Chemistry Modeling Group            !
-!------------------------------------------------------------------------------
-!BOP
-!
-! !IROUTINE: read_jo1d
-!
-! !DESCRIPTION: Subroutine READ\_JO1D reads in the J-Values for O1D from disk 
-!  that are needed for the biogenic acetone fluxes,
-!\\
-!\\
-! !INTERFACE:
-!
-      SUBROUTINE READ_JO1D( THISMONTH )
-!
-! !USES:
-!
-      USE BPCH2_MOD,     ONLY : GET_NAME_EXT_2D
-      USE BPCH2_MOD,     ONLY : GET_RES_EXT
-      USE BPCH2_MOD,     ONLY : GET_TAU0
-      USE BPCH2_MOD,     ONLY : READ_BPCH2
-      USE DIRECTORY_MOD, ONLY : DATA_DIR
-      USE ERROR_MOD,     ONLY : ALLOC_ERR
-      USE ERROR_MOD,     ONLY : ERROR_STOP
-      USE TRANSFER_MOD,  ONLY : TRANSFER_2D
-
-      USE CMN_SIZE_MOD                 ! Size parameters
-!
-! !INPUT PARAMETERS: 
-!
-      INTEGER, INTENT(IN) :: THISMONTH   ! Current month
-!
-! !REMARKS:
-!  J-values for O1D are are stored in the JO1D module array in [s^-1].
-! 
-! !REVISION HISTORY: 
-!  14 Sep 2001 - B. Field    - Initial version
-!  (1 ) Now use TRANSFER_2D from "transfer_mod" to cast from REAL*4 to REAL*8
-!        and to resize data block to (IIPAR,JJPAR).  Also use 3-argument
-!        form of GET_TAU0 (bmy, 11/15/01)
-!  (2 ) Removed obsolete code from 11/01 (bmy, 11/26/01, bmy, 2/27/02)
-!  (3 ) Now reference routines ALLOC_ERR and ERROR_STOP from "error_mod.f" 
-!        (bmy, 10/15/02)
-!  (4 ) Now call READ_BPCH2 with QUIET=.TRUE. to suppress printing of extra
-!        info to stdout.  Also made cosmetic changes. (bmy, 3/14/03)
-!  (5 ) Now references DATA_DIR from "directory_mod.f" (bmy, 7/19/04)
-!  (6 ) Now can read data from GEOS and GCAP grids (bmy, 8/16/05)
-!  (7 ) Now make sure all USE statements are USE, ONLY (bmy, 10/3/05)
-!  04 Nov 2010 - R. Yantosca - Added ProTeX headers
-!EOP
-!------------------------------------------------------------------------------
-!BOC
-!
-! !LOCAL VARIABLES:
-!
-      LOGICAL, SAVE      :: FIRST = .TRUE.
-      INTEGER            :: AS
-      REAL*4             :: ARRAY(IIPAR,JJPAR,1)
-      REAL*8             :: TAU0
-      CHARACTER(LEN=255) :: FILENAME
-
-      !=================================================================
-      ! READ_JO1D begins here!
-      !=================================================================
-
-      ! Allocate JO1D only on the first call
-      IF ( FIRST ) THEN
-         ALLOCATE( JO1D( IIPAR, JJPAR ), STAT=AS )
-         IF ( AS /= 0 ) CALL ALLOC_ERR( 'JO1D' )
-         JO1D  = 0d0
-         FIRST = .FALSE.
-      ENDIF
-
-      ! Construct filename
-      FILENAME = TRIM( DATA_DIR )       // 
-     &           'acetone_200108/JO1D.' // GET_NAME_EXT_2D() //
-     &           '.'                    // GET_RES_EXT()
-
-      ! Echo filename 
-      WRITE( 6, 100 ) TRIM( FILENAME )
- 100  FORMAT( '     - READ_JO1D: Reading ', a )  
-
-      ! Get TAU0 value -- use "generic" year 1985
-      TAU0 = GET_TAU0( THISMONTH, 1, 1985 )
-
-      ! Read JO1D data 
-      CALL READ_BPCH2( FILENAME, 'JV-MAP-$',    51, 
-     &                 TAU0,      IIPAR,        JJPAR,      
-     &                 1,         ARRAY(:,:,1), QUIET=.TRUE. )
-   
-      ! Cast from REAL*4 to REAL*8
-      CALL TRANSFER_2D( ARRAY(:,:,1), JO1D )
-
-      ! Make sure JO1D is not zero everywhere 
-      IF ( .not. ( SUM( JO1D ) > 0d0 ) ) THEN
-         CALL ERROR_STOP( 'JO1D is zero everywhere!', 'READ_JO1D' )
-      ENDIF
-         
-      ! Echo information
-      WRITE( 6, 110 ) MAXVAL( JO1D )
- 110  FORMAT( '     - READ_JO1D: Max value of JO1D: ', es13.6 )
-
-      END SUBROUTINE READ_JO1D
-!EOC
-!------------------------------------------------------------------------------
-!          Harvard University Atmospheric Chemistry Modeling Group            !
-!------------------------------------------------------------------------------
-!BOP
-!
-! !IROUTINE: read_resp
-!
-! !DESCRIPTION: Subroutine READ\_RESP reads in the monthly heterotrophic 
-!  respiration measured in g of plant matter/m\^2 flowing out of the biosphere.
-!  This is needed for the biogenic acetone fluxes.
-!\\
-!\\
-! !INTERFACE:
-!
-      SUBROUTINE READ_RESP( THISMONTH )
-!
-! !USES:
-!
-      USE BPCH2_MOD,     ONLY : GET_NAME_EXT_2D
-      USE BPCH2_MOD,     ONLY : GET_RES_EXT
-      USE BPCH2_MOD,     ONLY : GET_TAU0
-      USE BPCH2_MOD,     ONLY : READ_BPCH2
-      USE DIRECTORY_MOD, ONLY : DATA_DIR
-      USE ERROR_MOD,     ONLY : ALLOC_ERR
-      USE TRANSFER_MOD,  ONLY : TRANSFER_2D
-
-      USE CMN_SIZE_MOD                  ! Size parameters
-!
-! !INPUT PARAMETERS: 
-!
-      INTEGER, INTENT(IN)  :: THISMONTH   ! Current month
-!
-! !REMARKS:
-!  Respiration values are stored in the RESP module array in [g C/m2/s].
-! 
-! !REVISION HISTORY: 
-!  14 Sep 2001 - B. Field    - Initial version
-!  (1 ) Now use TRANSFER_2D from "transfer_mod" to cast from REAL*4 to REAL*8
-!        and to resize data block to (IIPAR,JJPAR).  Bug fix: THISMONTH > 12
-!        is never valid.  Also use 3-argument form of GET_TAU0 (bmy, 11/15/01)
-!  (2 ) Removed obsolete code from 11/01 (bmy, 11/26/01, bmy, 2/27/02)
-!  (3 ) Now reference ALLOC_ERR from "error_mod.f".  Also use version of
-!        GET_TAU0 w/ 3 arguments. (bmy, 10/15/02)
-!  (4 ) Now call READ_BPCH2 with QUIET=.TRUE. to suppress printing of extra
-!        info to stdout.  Also made cosmetic changes. (bmy, 3/14/03)
-!  (5 ) Now references DATA_DIR from "directory_mod.f" (bmy, 7/20/04)
-!  (6 ) Now can read files for both GEOS and GCAP grids (bmy, 8/16/05)
-!  (7 ) Now make sure all USE statements are USE, ONLY (bmy, 10/3/05)
-!  04 Nov 2010 - R. Yantosca - Added ProTeX headers
-!EOP
-!------------------------------------------------------------------------------
-!BOC
-!
-! !LOCAL VARIABLES:
-!
-      LOGICAL, SAVE      :: FIRST = .TRUE.
-      INTEGER            :: AS
-      REAL*4             :: ARRAY(IIPAR,JJPAR,1)
-      REAL*8             :: TAU0, TAU1
-      CHARACTER(LEN=255) :: FILENAME
-
-      !=================================================================
-      ! READ_RESP begins here!
-      !=================================================================
-      
-      ! Allocate XRESP only on the first call
-      IF ( FIRST ) THEN
-         ALLOCATE( XRESP( IIPAR, JJPAR ), STAT=AS )
-         IF ( AS /= 0 ) CALL ALLOC_ERR( 'XRESP' )
-         XRESP = 0d0
-         FIRST = .FALSE.
-      ENDIF
-
-      ! Construct filename
-      FILENAME = TRIM( DATA_DIR )       // 
-     &           'acetone_200108/resp.' // GET_NAME_EXT_2D() //
-     &           '.'                    // GET_RES_EXT()
-      
-      ! Echo filename 
-      WRITE( 6, 100 ) TRIM( FILENAME )
- 100  FORMAT( '     - READ_RESP: Reading ', a )  
-
-      ! Get TAU0 value -- use "generic" year 1985
-      TAU0 = GET_TAU0( THISMONTH, 1, 1985 )
-
-      ! Get TAU1 value -- use generic year 1985 
-      ! Be careful -- if Dec then nextmonth is Jan 1986
-      IF ( THISMONTH == 12 ) THEN
-         TAU1 = GET_TAU0( 1, 1, 1986 )
-      ELSE
-         TAU1 = GET_TAU0( THISMONTH+1, 1, 1985 )
-      ENDIF
-
-      ! Read heterotrophic respiration data in [g C/m2/month]
-      CALL READ_BPCH2( FILENAME, 'HET-RESP',    1, 
-     &                 TAU0,      IIPAR,        JJPAR,      
-     &                 1,         ARRAY(:,:,1), QUIET=.TRUE. )
-   
-      ! Cast from REAL*4 to REAL*8
-      CALL TRANSFER_2D( ARRAY(:,:,1), XRESP )
-
-      ! Convert RESP field to [g C/m2/s]
-      XRESP = XRESP / ( ( TAU1 - TAU0 ) * 3600d0 )
-
-      END SUBROUTINE READ_RESP
 !EOC
 !------------------------------------------------------------------------------
 !          Harvard University Atmospheric Chemistry Modeling Group            !
@@ -508,7 +290,6 @@
          ! convert Cl to kg acetone/cm3 (evf, 5/11/11)
          Cl = 15.0d-9*58.08d0/(1000.0d0*1000.0d0)
 
-         !OCEAN_ACET = OCEAN_SCALE * JO1D(I,J) * KKL * FOCEAN
          !correct for the fraction of the grid cell that is ocean
          !and compute the flux ( kg/cm2/s)(evf, 5/11/11)
          OCEAN_ACET = Cl * KKL * FOCEAN 
@@ -535,7 +316,7 @@
       ! ND11 diag -- save ACETONE from the ocean in [atoms C/cm2/s]
       !=================================================================
       IF ( ND11 > 0 ) THEN
-         AD11(I,J,6) = AD11(I,J,6) + ( OCEAN_ACET * XNUMOL_C ) / 
+         AD11(I,J,4) = AD11(I,J,4) + ( OCEAN_ACET * XNUMOL_C ) / 
      &                               ( AREA_CM2   * DTSRCE   )
       ENDIF
 
@@ -600,6 +381,7 @@
 !        (swu, bmy, 8/16/05)
 !  04 Nov 2010 - R. Yantosca - Added ProTeX headers
 !  01 Mar 2012 - R. Yantosca - Now use GET_AREA_M2(I,J,L) from grid_mod.F90
+!  02 Aug 2012 - R. Yantosca - Add error trap for acetone under DEVEL tag
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -742,13 +524,21 @@
             PRE_ACET = ACETONE(I,J) 
 
             ! Apply exponential loss to acetone mass
+#if defined( DEVEL ) || defined( EXTERNAL_GRID ) || defined( EXTERNAL_FORCING )
+            ! Eric Nielsen added this error trap .  We can eventually
+            ! bring this into the std G-C but we need to benchmark first.
+            IF ( ABS( ACETONE(I,J) ) .gt. 1d-99 )
+     &      ACETONE(I,J) = ACETONE(I,J) * EXP(-OCEAN_ACET/ACETONE(I,J))
+
+#else
             ACETONE(I,J) = ACETONE(I,J) * EXP(-OCEAN_ACET/ACETONE(I,J))
+#endif
 
             !===========================================================
             ! Diagnostics: save ACETONE lost to ocean in [atoms C/cm2/s]
             !===========================================================
             IF ( ND11 > 0 ) THEN
-               AD11(I,J,7) = AD11(I,J,7) + 
+               AD11(I,J,5) = AD11(I,J,5) + 
      &              ( ( PRE_ACET - ACETONE(I,J) ) * XNUMOL_C ) / 
      &              ( AREA_CM2 * DTCHEM   )
             ENDIF
@@ -844,9 +634,9 @@
 ! !LOCAL VARIABLES:
 !
       REAL*8                 :: EMMO_MOL,    YIELD_MO   
-      REAL*8                 :: YIELD_RESP,  ACET_MOL,    ACET_MB    
+      REAL*8                 :: ACET_MOL,    ACET_MB    
       REAL*8                 :: ACET_MO,     DTSRCE,      AREA_CM2 
-      REAL*8                 :: YIELD_ISOP,  MB_MOL,      ACET_RESP 
+      REAL*8                 :: YIELD_ISOP,  MB_MOL 
       REAL*8                 :: ACET_C,      ACET_ISOP,   YIELD_GRASS 
       REAL*8                 :: ACET_GRASS,  ACETSCAL,    AREA_M2
       REAL*8                 :: X,           Y
@@ -980,23 +770,6 @@
      &                 ( EMISS_MEGAN / ( AREA_CM2 ) )
       ENDIF
 
-
-      !=================================================================
-      ! (4) BIOGENIC ACETONE FROM DRY LEAF MATTER / DEAD PLANTS
-      ! !evf, removed obsolete code for emissions from dry leave matter, 
-      ! MEGAN calculations for direct emissions include acetone
-      !emissions from dry leaf matter and dead plants
-      ! Diagnostic Acetdl = 0 (5/25/2011)
-
-      !=================================================================
-      ! (5) BIOGENIC ACETONE FROM GRASSLANDS
-      ! !evf, removed obsolete code for emissions from grasses, 
-      ! MEGAN calculations for direct emissions include acetone
-      !emissions from grasses
-      ! Diagnostic Acetgr = 0 (5/25/2011) 
-      !
-      !=================================================================
-
       END SUBROUTINE EMISS_BIOACET
 !EOC
 !------------------------------------------------------------------------------
@@ -1016,11 +789,12 @@
 ! !REVISION HISTORY: 
 !  14 Sep 2001 - R. Yantosca - Initial version
 !  04 Nov 2010 - R. Yantosca - Added ProTeX headers
+!  19 Mar 2012 - M. Payer    - Removed deallocation of JO1D and XRESP. They
+!                              are obsolete after removal of READ_JO1D and
+!                              READ_RESP routines.
 !EOP
 !------------------------------------------------------------------------------
 !BOC
-      IF ( ALLOCATED( JO1D  ) ) DEALLOCATE( JO1D  )
-      IF ( ALLOCATED( XRESP ) ) DEALLOCATE( XRESP )
 
       END SUBROUTINE CLEANUP_ACETONE   
 !EOC

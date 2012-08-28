@@ -1453,7 +1453,7 @@
 !  03 Aug 2010 - R. Yantosca - Added ProTeX headers
 !  13 Aug 2010 - R. Yantosca - Treat MERRA in the same way as GEOS-5
 !  02 Sep 2010 - R. Yantosca - In ND28: Omit SOA tracers if LSOA = .FALSE.
-!  09-Dec-2010 - H. Amos     - Added RGM, RPM, Fg, and Fp tracers for the
+!  09-Dec-2010 - H. Amos     - Added RGM and PBM  tracers for the
 !                              mercury simulation
 !  09-Dec-2010 - H. Amos     - fix spacing and #s for PL-HG2-$ diagnostics
 !  12 Nov 2010 - R. Yantosca - Need to save out surface pressure line to 
@@ -1461,6 +1461,10 @@
 !  24 Jan 2012 - M. Payer    - Change scale factors for Rn-Pb-Be simulation so
 !                              units are in mBq/SCM
 !  08 Feb 2012 - R. Yantosca - Treat GEOS-5.7.x in the same way as MERRA
+!  19 Mar 2012 - M. Payer    - Remove ACETdl and ACETgr from ND11 diagnostic.
+!                              Acetone from dry leaf matter and grasses is now
+!                              included in the direct emissions (ACETbg).
+!                              (E. Fischer)
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -1483,6 +1487,15 @@
       !----------------------------------
       ! General tracer information
       !----------------------------------
+
+!hma,20120323
+      !Do not print HgP in the IJ-AVG-$ field.
+      !HgP is now emitted and treated as Hg2, so all HgP IJ-AVG-$
+      !  fields are just zeroes
+      IF ( ITS_A_MERCURY_SIM() ) THEN
+         N_TRACERS = N_TRACERS - 1
+      ENDIF
+
       DO T = 1, N_TRACERS
 
          ! Store quantities for each tracer
@@ -1510,19 +1523,6 @@
          ! Special handling for Rn-Pb-Be simulation (bmy, 5/11/05)
          IF ( ITS_A_RnPbBe_SIM() ) THEN
             SELECT CASE( T ) 
-!------------------------------------------------------------------------------
-! Prior to 1/24/12:
-! Now report Rn-Pb-Be in mBq/SCM (mpayer, 1/24/12)
-!               CASE( 1 )
-!                  UNIT (T,45) = 'pCi/SCM'
-!                  SCALE(T,45) = 1.5243e21
-!               CASE( 2 ) 
-!                  UNIT (T,45) = 'fCi/SCM'
-!                  SCALE(T,45) = 7.0651e20
-!               CASE( 3 )
-!                  UNIT (T,45) = 'fCi/SCM'
-!                  SCALE(T,45) = 1.0938e23
-!------------------------------------------------------------------------------
                CASE( 1 )
                   UNIT (T,45) = 'mBq/SCM'
                   SCALE(T,45) = 5.6397E+22
@@ -1655,12 +1655,12 @@
                   FNAME(T,03) = 'Hg soil emissions'
                   UNIT (T,03) = 'kg'
                   INDEX(T,03) = T + ( SPACING * 34 )
-               CASE(16 )
+               CASE( 16 )
                   NAME (T,03) = 'Hg_up'
                   FNAME(T,03) = 'Hg ocean up flux'
                   UNIT (T,03) = 'kg'
                   INDEX(T,03) = T + ( SPACING * 34 )
-               CASE(17 )
+               CASE( 17 )
                   NAME (T,03) = 'Hg_down'
                   FNAME(T,03) = 'Hg ocean downflux'
                   UNIT (T,03) = 'kg'
@@ -1720,22 +1720,12 @@
                   NAME (T,03) = 'BrO'
                   FNAME(T,03) = 'BrO concentration'
                   INDEX(T,03) = ( N ) + ( SPACING * 35 )
-               CASE( 9 )    
-                  NAME (T,03) = 'Fg'
-                  FNAME(T,03) = 'Hg2 gas fraction'
-                  UNIT (T,03) = 'unitless'  
-                  INDEX(T,03) = ( N ) + ( SPACING * 35 )
-               CASE( 10 )
-                  NAME (T,03) = 'Fp'
-                  FNAME(T,03) = 'Hg2 particle fraction'
-                  UNIT (T,03) = 'unitless'
-                  INDEX(T,03) = ( N ) + ( SPACING * 35 ) 
-               CASE( 11 )
-                  NAME (T,03) = 'RPM'
-                  FNAME(T,03) = 'Reactive particulate mercury'
+               CASE( 9 )
+                  NAME (T,03) = 'PBM'
+                  FNAME(T,03) = 'Particle bound mercury'
                   UNIT (T,03) = 'pptv'
                   INDEX(T,03) = ( N ) + ( SPACING * 35 )      
-               CASE( 12 )
+               CASE( 10 )
                   NAME (T,03) = 'RGM'
                   FNAME(T,03) = 'Reactive gaseous mercury'
                   UNIT (T,03) = 'pptv'
@@ -2236,7 +2226,7 @@
       IF ( ND11 > 0 ) THEN
 
          ! Number of tracers
-         NTRAC(11) = 7
+         NTRAC(11) = 5
 
          ! Loop over tracers
          DO T = 1, NTRAC(11)
@@ -2253,15 +2243,9 @@
                   NAME (T,11) = 'ACETbg'
                   FNAME(T,11) = 'ACET from direct emissions'
                CASE( 4 )
-                  NAME (T,11) = 'ACETdl'
-                  FNAME(T,11) = 'ACET from dry leaf matter'
-               CASE( 5 )
-                  NAME (T,11) = 'ACETgr'
-                  FNAME(T,11) = 'ACET from grasslands'
-               CASE( 6 )
                   NAME (T,11) = 'ACETop'
                   FNAME(T,11) = 'ACET from ocean source'
-               CASE( 7 )
+               CASE( 5 )
                   NAME (T,11) = 'ACETol'
                   FNAME(T,11) = 'ACET from ocean sink'
                CASE DEFAULT
@@ -2494,7 +2478,7 @@
             !------------------
 
             ! Number of tracers
-            NTRAC(22) = 8
+            NTRAC(22) = 14 ! Increase for bromine (jpp, mpayer, 12/28/11)
 
             ! Loop over tracers
             DO T = 1, NTRAC(22)
@@ -2513,11 +2497,22 @@
                      NAME(T,22) = 'JO3'
                   CASE( 6  )
                      NAME(T,22) = 'POH'
-
                   CASE( 7  )
                      NAME(T,22) = 'JGLYX'
                   CASE( 8  )
                      NAME(T,22) = 'JMGLY'
+                  CASE( 9  )
+                     NAME(T,22) = 'JBrO'
+                  CASE( 10 )
+                     NAME(T,22) = 'JHOBr'
+                  CASE( 11 )
+                     NAME(T,22) = 'JBrNO2'
+                  CASE( 12 )
+                     NAME(T,22) = 'JBrNO3'
+                  CASE( 13 )
+                     NAME(T,22) = 'JCHBr3'
+                  CASE( 14 )
+                     NAME(T,22) = 'JBr2'
                  CASE DEFAULT
                   ! Nothing
                END SELECT
@@ -3284,7 +3279,7 @@ c$$$            ENDDO
       IF ( ND46 > 0 ) THEN 
 
          ! Number of tracers
-         NTRAC(46) = 13 ! was 6 (mpb,2009)
+         NTRAC(46) = 16 ! Increase for bromine (jpp, mpayer, 12/28/11)
 
          ! Loop over tracers
          DO T = 1, NTRAC(46)
@@ -3330,16 +3325,42 @@ c$$$            ENDDO
                CASE( 13)
                   NAME(T,46) = 'OCIMN'
                   MOLC(T,46) = 10
+               !jpp, 9/6/07
+               CASE( 14 )
+                  INDEX(T,46)  = T + ( SPACING * 21 )
+                  NAME  (T,46) = 'CHBr3'
+                  FNAME (T,46) = 'Ocean bromoform emissions'
+                  UNIT  (T,46) = 'kg/m2/s'
+                  MWT   (T,46) = 2.53e-1   !in [kg/mol]
+                  SCALE(T,46) = 1e0
+               CASE( 15 )
+                  INDEX (T,46)  = T + ( SPACING * 21 )
+                  NAME  (T,46) = 'CH2Br2'
+                  FNAME (T,46) = 'Ocean dibromomethane emissions'
+                  UNIT  (T,46) = 'kg/m2/s'
+                  MWT   (T,46) = 1.74e-1   !in [kg/mol]
+                  SCALE (T,46) = 1e0
+               CASE( 16 )
+                  INDEX (T,46)  = T + ( SPACING * 21 )
+                  NAME  (T,46) = 'SSBr2'
+                  FNAME (T,46) = 'sea-salt Br2 emissions'
+                  UNIT  (T,46) = 'kg/m2/s'
+                  MWT   (T,46) = 1.60e-1   !in [kg/mol]
+                  SCALE (T,46) = 1e0
                CASE DEFAULT
                   ! Nothing
             END SELECT
 
-            ! Define the rest of the quantities
-            INDEX(T,46) = T + ( SPACING * 21 )
-            FNAME(T,46) = TRIM( NAME(T,46) ) // ' emissions'
-            UNIT (T,46) = 'atoms C/cm2/s'
-            MWT  (T,46) = 12e-3
-            SCALE(T,46) = 1e0
+            !jpp, 9/6/07: preventing these default quantities
+            !             from overwriting CHBr3's info.
+            IF ( T < 14 ) THEN
+               ! Define the rest of the quantities
+               INDEX(T,46) = T + ( SPACING * 21 )
+               FNAME(T,46) = TRIM( NAME(T,46) ) // ' emissions'
+               UNIT (T,46) = 'atoms C/cm2/s'
+               MWT  (T,46) = 12e-3
+               SCALE(T,46) = 1e0
+            ENDIF
          ENDDO
       ENDIF
 

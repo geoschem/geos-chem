@@ -376,6 +376,8 @@
 !  08 Mar 2012 - M. Payer    - Added modifications for historical emissions of
 !                              NOx (E. Leibensperger)
 !  13 Mar 2012 - M. Cooper   - Changed regrid algorithm to map_a2a
+!  24 May 2012 - R. Yantosca - Fixed minor bugs in map_a2a impelementation
+!  24 Aug 2012 - R. Yantosca - DO_REGRID_A2A now reads netCDF input file
 !******************************************************************************
 !
       ! References to F90 modules
@@ -397,16 +399,16 @@
 
       ! Local variables
       INTEGER                    :: I, J, H, YYYYMMDD
-      REAL*8                     :: E_NOX_1x1(I1x1,J1x1-1)
-      REAL*8                     :: E_NOX_SHIP_1x1(I1x1,J1x1-1)
-      REAL*8                     :: E_NOX_HRLY_1x1(I1x1,J1x1-1,N_HOURS)
+      REAL*8, TARGET             :: E_NOX_1x1(I1x1,J1x1-1)
+      REAL*8, TARGET             :: E_NOX_SHIP_1x1(I1x1,J1x1-1)
+      REAL*8, TARGET             :: E_NOX_HRLY_1x1(I1x1,J1x1-1,N_HOURS)
       REAL*4                     :: SC_NOx(IIPAR,JJPAR)
       REAL*8                     :: TEMP_HRLY(IIPAR,JJPAR)
       REAL*8                     :: TEMP_TOT(IIPAR,JJPAR)
       CHARACTER(LEN=255)         :: NAME
       CHARACTER(LEN=255)         :: LLFILENAME
-      REAL*8, ALLOCATABLE        :: OUTGRID(:,:)
-      REAL*8, ALLOCATABLE        :: INGRID(:,:)
+      REAL*8, POINTER            :: INGRID(:,:) => NULL()
+      REAL*8                     :: OUTGRID(IIPAR,JJPAR)
 
       !=================================================================
       ! COMPUTE_EDGAR_NOx begins here!
@@ -431,24 +433,24 @@
 
       ! File with lat/lon edges for regridding
       LLFILENAME = TRIM( DATA_DIR_1x1) //
-     &             'MAP_A2A_Regrid_200312/latlon_generic.txt'
+     &             'MAP_A2A_Regrid_201203/MAP_A2A_latlon_generic1x1.nc'
       
-      ! Allocate arrays for regridding
-      ALLOCATE(INGRID(I1x1,J1x1-1))
-      ALLOCATE(OUTGRID(IIPAR,JJPAR))
-
       ! Regrid anthro emissions to current resolution
-      INGRID = E_NOx_1x1(:,:)
-      CALL DO_REGRID_A2A( LLFILENAME, 360, 181, INGRID, OUTGRID, 1 )
-      TEMP_TOT = OUTGRID  
+      INGRID => E_NOx_1x1(:,:)
+      CALL DO_REGRID_A2A( LLFILENAME, I1x1,     J1x1-1, 
+     &                    INGRID,     TEMP_TOT, PERAREA=1,
+     &                    netCDF=.TRUE.                    )
+      NULLIFY( INGRID )
 
       ! Loop over hours
       DO H = 1, N_HOURS
 
          ! Regrid hourly emissions to current resolution
-         INGRID = E_NOx_HRLY_1x1(:,:,H)
-         CALL DO_REGRID_A2A( LLFILENAME, 360, 181, INGRID, OUTGRID, 1 )
-         TEMP_HRLY = OUTGRID 
+         INGRID => E_NOx_HRLY_1x1(:,:,H)
+         CALL DO_REGRID_A2A( LLFILENAME, I1x1,      J1x1-1, 
+     &                       INGRID,     TEMP_HRLY, PERAREA=1,
+     &                       netCDF=.TRUE.                     )
+         NULLIFY( INGRID )
 
          ! Scale factors are just the normalized hourly emissions
          DO J = 1, JJPAR
@@ -472,8 +474,11 @@
       !----------------------------------
 
       ! Regrid NOx emissions to current model resolution [kg/yr]
-      INGRID = E_NOx_1x1(:,:)
-      CALL DO_REGRID_A2A( LLFILENAME, 360, 181, INGRID, OUTGRID, 1 )
+      INGRID => E_NOx_1x1(:,:)
+      CALL DO_REGRID_A2A( LLFILENAME, I1x1,    J1x1-1, 
+     &                    INGRID,     OUTGRID, PERAREA=1,
+     &                    netCDF=.TRUE.                   )
+      NULLIFY( INGRID )
 
       ! Apply scaling factor
 ![eml Skip scaling if using historical emissions
@@ -491,16 +496,16 @@
       IF ( LEDGARSHIP ) THEN
 
          ! Regrid NOX emissions to current model resolution [kg/yr]
-         INGRID = E_NOX_SHIP_1x1(:,:)
-         CALL DO_REGRID_A2A( LLFILENAME, 360, 181, INGRID, OUTGRID, 1 )
+         INGRID => E_NOX_SHIP_1x1(:,:)
+         CALL DO_REGRID_A2A( LLFILENAME,  I1x1,    J1x1-1, 
+     &                       INGRID,      OUTGRID, PERAREA=1,
+     &                       netCDF=.TRUE. )
+
          E_NOX_SHIP = OUTGRID * SC_NOX(:,:) 
+         NULLIFY( INGRID )
 
       ENDIF
     
-      ! Deallocate arrays for regridding
-      DEALLOCATE(INGRID)
-      DEALLOCATE(OUTGRID)
-
       ! Return to calling program
       END SUBROUTINE COMPUTE_EDGAR_NOx
 
@@ -942,6 +947,8 @@
 !
 !  NOTES:
 !  13 Mar 2012 - M. Cooper   - Changed regrid algorithm to map_a2a
+!  24 May 2012 - R. Yantosca - Fixed minor bugs in map_a2a implementation
+!  24 Aug 2012 - R. Yantosca - DO_REGRID_A2A now reads netCDF input file
 !******************************************************************************
 !
       ! References to F90 modules
@@ -953,19 +960,19 @@
       USE CMN_SIZE_MOD           ! Size parameters
 
       ! Arguments
-      INTEGER, INTENT(IN)           :: YEAR
-      REAL*8, INTENT(OUT)           :: E_CO(IIPAR,JJPAR)
-      REAL*8, INTENT(OUT), OPTIONAL :: E_CO_SHIP(IIPAR,JJPAR)
+      INTEGER, INTENT(IN)            :: YEAR
+      REAL*8,  INTENT(OUT)           :: E_CO(IIPAR,JJPAR)
+      REAL*8,  INTENT(OUT), OPTIONAL :: E_CO_SHIP(IIPAR,JJPAR)
 
       ! Local variables
-      INTEGER                       :: I, J, H, YYYYMMDD
-      REAL*8                        :: E_CO_1x1(I1x1,J1x1-1)
-      REAL*8                        :: E_CO_SHIP_1x1(I1x1,J1x1-1)
-      REAL*4                        :: SC_CO(IIPAR,JJPAR)
-      CHARACTER(LEN=255)            :: NAME
-      CHARACTER(LEN=255)            :: LLFILENAME
-      REAL*8, ALLOCATABLE           :: OUTGRID(:,:)
-      REAL*8, ALLOCATABLE           :: INGRID(:,:)
+      INTEGER                        :: I, J, H, YYYYMMDD
+      REAL*8, TARGET                 :: E_CO_1x1(I1x1,J1x1-1)
+      REAL*8, TARGET                 :: E_CO_SHIP_1x1(I1x1,J1x1-1)
+      REAL*4                         :: SC_CO(IIPAR,JJPAR)
+      CHARACTER(LEN=255 )            :: NAME
+      CHARACTER(LEN=255)             :: LLFILENAME
+      REAL*8                         :: OUTGRID(IIPAR,JJPAR)
+      REAL*8,  POINTER               :: INGRID(:,:) => NULL()
 
       !=================================================================
       ! COMPUTE_EDGAR_CO begins here!
@@ -987,16 +994,17 @@
 
       ! File with lat/lon edges for regridding
       LLFILENAME = TRIM( DATA_DIR_1x1) //
-     &             'MAP_A2A_Regrid_200312/latlon_generic.txt'
-
-      ! Allocate arrays for regridding
-      ALLOCATE(INGRID(I1x1,J1x1-1))
-      ALLOCATE(OUTGRID(IIPAR,JJPAR))
+     &             'MAP_A2A_Regrid_201203/MAP_A2A_latlon_generic1x1.nc'
 
       ! Regrid CO emissions to current model resolution [kg/yr]
-      INGRID = E_CO_1x1
-      CALL DO_REGRID_A2A( LLFILENAME, 360, 181, INGRID, OUTGRID, 1 )
+      INGRID => E_CO_1x1
+      CALL DO_REGRID_A2A( LLFILENAME, I1x1,    J1x1-1, 
+     &                    INGRID,     OUTGRID, PERAREA=1,
+     &                    netCDF=.TRUE.                   )
       E_CO = OUTGRID
+
+      ! Free pointer
+      NULLIFY( INGRID )
 
       !----------------------------------
       ! Scale CO from 2000 -> this year
@@ -1013,17 +1021,18 @@
       IF ( LEDGARSHIP ) THEN
 
          ! Regrid CO emissions to current model resolution [kg/yr]
-         INGRID = E_CO_SHIP_1x1
-         CALL DO_REGRID_A2A( LLFILENAME, 360, 181, INGRID, OUTGRID, 1 )
+         INGRID => E_CO_SHIP_1x1
+         CALL DO_REGRID_A2A( LLFILENAME, I1x1,    J1x1-1, 
+     &                       INGRID,     OUTGRID, PERAREA=1,
+     &                       netCDF=.TRUE.                   )
 
          ! Apply scale factors
          E_CO_SHIP = OUTGRID * SC_CO
+        
+         ! Free pointer
+         NULLIFY( INGRID )
 
       ENDIF
-
-      ! Deallocate arrays for regridding
-      DEALLOCATE(INGRID)
-      DEALLOCATE(OUTGRID)
 
       ! Return to calling program
       END SUBROUTINE COMPUTE_EDGAR_CO
@@ -1155,6 +1164,8 @@
 !  08 Mar 2012 - M. Payer    - Added modifications for historical emissions of
 !                              SO2 (E. Leibensperger)
 !  13 Mar 2012 - M. Cooper   - Changed regrid algorithm to map_a2a
+!  24 May 2012 - R. Yantosca - Fixed minor bugs in map_a2a implementation
+!  24 Aug 2012 - R. Yantosca - DO_REGRID_A2A now reads netCDF input file
 !******************************************************************************
 !
       ! References to F90 modules
@@ -1177,13 +1188,13 @@
 
       ! Local variables
       INTEGER                          :: I, J, H, YYYYMMDD
-      REAL*8                           :: E_SO2_1x1(I1x1,J1x1-1)
-      REAL*8                           :: E_SO2_SHIP_1x1(I1x1,J1x1-1)
+      REAL*8,  TARGET                  :: E_SO2_1x1(I1x1,J1x1-1)
+      REAL*8,  TARGET                  :: E_SO2_SHIP_1x1(I1x1,J1x1-1)
       REAL*4                           :: SC_SO2(IIPAR,JJPAR)
       CHARACTER(LEN=255)               :: NAME
       CHARACTER(LEN=255)               :: LLFILENAME
-      REAL*8, ALLOCATABLE              :: OUTGRID(:,:)
-      REAL*8, ALLOCATABLE              :: INGRID(:,:)
+      REAL*8                           :: OUTGRID(IIPAR,JJPAR)
+      REAL*8,  POINTER                 :: INGRID(:,:) => NULL()
 
       !=================================================================
       ! COMPUTE_EDGAR_SO2 begins here!
@@ -1201,15 +1212,16 @@
 
       ! File with lat/lon edges for regridding
       LLFILENAME = TRIM( DATA_DIR_1x1) //
-     &             'MAP_A2A_Regrid_200312/latlon_generic.txt'
-
-      ! Allocate arrays for regridding
-      ALLOCATE(INGRID(I1x1,J1x1-1))
-      ALLOCATE(OUTGRID(IIPAR,JJPAR))
+     &             'MAP_A2A_Regrid_201203/MAP_A2A_latlon_generic1x1.nc'
 
       ! Regrid SO2 emissions to current model resolution [kg/yr]
-      INGRID = E_SO2_1x1
-      CALL DO_REGRID_A2A( LLFILENAME, 360, 181, INGRID, OUTGRID, 1 )
+      INGRID => E_SO2_1x1
+      CALL DO_REGRID_A2A( LLFILENAME, I1x1,    J1x1-1, 
+     &                    INGRID,     OUTGRID, PERAREA=1,
+     &                    netCDF=.TRUE.                   )
+
+      ! Free pointer
+      NULLIFY( INGRID )
 
       !----------------------------------
       ! Scale SO2 from 2000 -> this year
@@ -1236,20 +1248,21 @@
       IF ( LEDGARSHIP ) THEN
 
          ! Regrid SO2 emissions to current model resolution [kg/yr]
-         INGRID = E_SO2_SHIP_1x1
-         CALL DO_REGRID_A2A( LLFILENAME, 360, 181, INGRID, OUTGRID, 1 )
+         INGRID => E_SO2_SHIP_1x1
+         CALL DO_REGRID_A2A( LLFILENAME, I1x1,    J1x1-1, 
+     &                       INGRID,     OUTGRID, PERAREA=1,
+     &                       netCDF=.TRUE.                   )
                 
          ! Apply scale factors
          E_SO2_SHIP = OUTGRID * SC_SO2
+
+         ! Free pointer
+         NULLIFY( INGRID )
 
          ! Apply seasonal scaling
          CALL SEASCL_EDGAR_SHIP_SO2( E_SO2_SHIP )
 
       ENDIF
-
-      ! Deallocate arrays for regridding
-      DEALLOCATE(INGRID)
-      DEALLOCATE(OUTGRID)
 
       ! Return to calling program
       END SUBROUTINE COMPUTE_EDGAR_SO2
@@ -1539,6 +1552,8 @@
 !
 !  NOTES:
 !  13 Mar 2012 - M. Cooper   - Changed regrid algorithm to map_a2a
+!  24 May 2012 - R. Yantosca - Fixed minor bugs in map_a2a implementation
+!  24 Aug 2012 - R. Yantosca - DO_REGRID_A2A now reads netCDF input file
 !******************************************************************************
 !
       ! References to F90 modules
@@ -1558,8 +1573,8 @@
       CHARACTER(LEN=3)        :: THIS_MON
       CHARACTER(LEN=255)      :: FILENAME
       CHARACTER(LEN=255)      :: LLFILENAME
-      REAL*8, ALLOCATABLE     :: OUTGRID(:,:)
-      REAL*8, ALLOCATABLE     :: INGRID(:,:)
+      REAL*8                  :: INGRID (I1x1,J1x1)
+      REAL*8                  :: OUTGRID(IIPAR,JJPAR)
 
       !=================================================================
       ! SEASCL_EDGAR_SHIP_SO2 begins here!
@@ -1581,22 +1596,16 @@
       
       ! File with lat/lon edges for regridding
       LLFILENAME = TRIM( DATA_DIR_1x1) //
-     &             'MAP_A2A_Regrid_200312/latlon_geos1x1.txt'
-
-      ! Allocate arrays for regridding
-      ALLOCATE(INGRID(I1x1,J1x1))
-      ALLOCATE(OUTGRID(IIPAR,JJPAR))
+     &             'MAP_A2A_Regrid_201203/MAP_A2A_latlon_geos1x1.nc'
 
       ! Regrid to current model resolution
       INGRID = ARRAY(:,:,1)
-      CALL DO_REGRID_A2A( LLFILENAME, 360, 182, INGRID, OUTGRID, 1 )
+      CALL DO_REGRID_A2A( LLFILENAME, I1x1,    J1x1, 
+     &                    INGRID,     OUTGRID, PERAREA=1,
+     &                    netCDF=.TRUE.                   )
 
       ! Apply monthly scale factors to ship SO2
       E_SO2_SHIP = E_SO2_SHIP * OUTGRID
-
-      ! Deallocate arrays for regridding
-      DEALLOCATE(INGRID)
-      DEALLOCATE(OUTGRID)
 
       ! Return to calling program
       END SUBROUTINE SEASCL_EDGAR_SHIP_SO2
@@ -2273,6 +2282,8 @@
 !
 !  NOTES:
 !  13 Mar 2012 - M. Cooper   - Changed regrid algorithm to map_a2a
+!  24 May 2012 - R. Yantosca - Fixed minor bugs in map_a2a implementation
+!  24 Aug 2012 - R. Yantosca - DO_REGRID_A2A now reads netCDF input file
 !******************************************************************************
 !
       ! References to F90 modules
@@ -2295,8 +2306,8 @@
       REAL*4                  :: ARRAY(I1x1,J1x1 )
       CHARACTER(LEN=255)      :: FILENAME
       CHARACTER(LEN=255)      :: LLFILENAME
-      REAL*8, ALLOCATABLE     :: OUTGRID(:,:)
-      REAL*8, ALLOCATABLE     :: INGRID(:,:)
+      REAL*8                  :: OUTGRID(IIPAR,JJPAR)
+      REAL*8                  :: INGRID(I1x1,J1x1)
 
       !=================================================================
       ! READ_AROMATICS begins here!
@@ -2323,16 +2334,14 @@
          
       ! File with lat/lon edges for regridding
       LLFILENAME = TRIM( DATA_DIR_1x1) //
-     &             'MAP_A2A_Regrid_200312/latlon_geos1x1.txt'
-
-      ! Allocate arrays for regridding
-      ALLOCATE(INGRID(I1x1,J1x1))
-      ALLOCATE(OUTGRID(IIPAR,JJPAR))
+     &             'MAP_A2A_Regrid_201203/MAP_A2A_latlon_geos1x1.nc'
 
       ! Regrid BENZ from GEOS 1x1 to current model resolution
       ! [atoms C/cm2/s] (ccc, 3/9/09)
       INGRID = ARRAY
-      CALL DO_REGRID_A2A( LLFILENAME, 360, 181, INGRID, OUTGRID, 0 )
+      CALL DO_REGRID_A2A( LLFILENAME, I1x1,    J1x1,
+     &                    INGRID,     OUTGRID, PERAREA=0, 
+     &                    netCDF=.TRUE.                   )
       E_BENZ = OUTGRID
 
       !=================================================================
@@ -2351,7 +2360,9 @@
       ! Regrid TOLU from GEOS 1x1 to current model resolution
       ! [atoms C/cm2/s] (ccc, 3/9/09)
       INGRID = ARRAY
-      CALL DO_REGRID_A2A( LLFILENAME, 360, 181, INGRID, OUTGRID, 0 )
+      CALL DO_REGRID_A2A( LLFILENAME, I1x1,    J1x1, 
+     &                    INGRID,     OUTGRID, PERAREA=0,
+     &                    netCDF=.TRUE.                   )
       E_TOLU = OUTGRID
 
       !=================================================================
@@ -2370,15 +2381,12 @@
       ! Regrid XYLE from GEOS 1x1 to current model resolution
       ! [atoms C/cm2/s] (ccc, 3/9/09)
       INGRID = ARRAY
-      CALL DO_REGRID_A2A( LLFILENAME, 360, 181, INGRID, OUTGRID, 0 )
+      CALL DO_REGRID_A2A( LLFILENAME, I1x1,    J1x1,
+     &                    INGRID,     OUTGRID, PERAREA=0 )
       E_XYLE = OUTGRID
 
 
  100  FORMAT( 'READ_AROMATICS: Reading ', a )
-
-      ! Deallocate arrays for regridding
-      DEALLOCATE(INGRID)
-      DEALLOCATE(OUTGRID)
 
       ! Return to calling program
       END SUBROUTINE READ_AROMATICS
@@ -2400,6 +2408,8 @@
 !  NOTES:
 !  (1) Bug fix: EDGAR200607 should be EDGAR_200607 (tmf, bmy, 12/20/10)
 !  13 Mar 2012 - M. Cooper   - Changed regrid algorithm to map_a2a
+!  24 May 2012 - R. Yantosca - Fixed minor bugs in map_a2a implementation
+!  24 Aug 2012 - R. Yantosca - DO_REGRID_A2A now reads netCDF input file
 !******************************************************************************
 !
       ! References to F90 modules
@@ -2420,8 +2430,8 @@
       REAL*4                  :: ARRAY(I1x1,J1x1 )
       CHARACTER(LEN=255)      :: FILENAME
       CHARACTER(LEN=255)      :: LLFILENAME
-      REAL*8, ALLOCATABLE     :: OUTGRID(:,:)
-      REAL*8, ALLOCATABLE     :: INGRID(:,:)
+      REAL*8                  :: OUTGRID(IIPAR,JJPAR)
+      REAL*8                  :: INGRID(I1x1,J1x1)
 
       !=================================================================
       ! READ_C2H4 begins here!
@@ -2446,21 +2456,16 @@
 
       ! File with lat/lon edges for regridding
       LLFILENAME = TRIM( DATA_DIR_1x1) //
-     &             'MAP_A2A_Regrid_200312/latlon_geos1x1.txt'
-
-      ! Allocate arrays for regridding
-      ALLOCATE(INGRID(I1x1,J1x1))
-      ALLOCATE(OUTGRID(IIPAR,JJPAR))
+     &             'MAP_A2A_Regrid_201203/MAP_A2A_latlon_geos1x1.nc'
 
       ! Regrid C2H4 from GEOS 1x1 to current model resolution
       ! [atoms C/cm2/s] (ccc, 3/9/09)
       INGRID = ARRAY
-      CALL DO_REGRID_A2A( LLFILENAME, 360, 181, INGRID, OUTGRID, 0 )
-      E_C2H4 = OUTGRID
+      CALL DO_REGRID_A2A( LLFILENAME, I1x1,    J1x1,
+     &                    INGRID,     OUTGRID, PERAREA=0,
+     &                    netCDF=.TRUE.                   )
 
-      ! Deallocate arrays for regridding
-      DEALLOCATE(INGRID)
-      DEALLOCATE(OUTGRID)
+      E_C2H4 = OUTGRID
 
       ! Return to calling program
       END SUBROUTINE READ_C2H4
@@ -2482,6 +2487,8 @@
 !  NOTES:
 !  (1) Bug fix: EDGAR200607 should be EDGAR_200607 (tmf, bmy, 12/20/10)
 !  13 Mar 2012 - M. Cooper   - Changed regrid algorithm to map_a2a
+!  24 May 2012 - R. Yantosca - Fixed minor bugs in map_a2a algorithm
+!  24 Aug 2012 - R. Yantosca - DO_REGRID_A2A now reads netCDF input file
 !******************************************************************************
 !
       ! References to F90 modules
@@ -2502,8 +2509,8 @@
       REAL*4                  :: ARRAY(I1x1,J1x1 )
       CHARACTER(LEN=255)      :: FILENAME
       CHARACTER(LEN=255)      :: LLFILENAME
-      REAL*8, ALLOCATABLE     :: OUTGRID(:,:)
-      REAL*8, ALLOCATABLE     :: INGRID(:,:)
+      REAL*8                  :: OUTGRID(IIPAR,JJPAR)
+      REAL*8                  :: INGRID(I1x1,J1x1)
 
       !=================================================================
       ! READ_C2H2 begins here!
@@ -2528,21 +2535,16 @@
          
       ! File with lat/lon edges for regridding
       LLFILENAME = TRIM( DATA_DIR_1x1) //
-     &             'MAP_A2A_Regrid_200312/latlon_geos1x1.txt'
-
-      ! Allocate arrays for regridding
-      ALLOCATE(INGRID(I1x1,J1x1))
-      ALLOCATE(OUTGRID(IIPAR,JJPAR))
+     &             'MAP_A2A_Regrid_201203/MAP_A2A_latlon_geos1x1.nc'
 
       ! Regrid C2H2 from GEOS 1x1 to current model resolution
       ! [atoms C/cm2/s] (ccc, 3/9/09)
       INGRID = ARRAY
-      CALL DO_REGRID_A2A( LLFILENAME, 360, 181, INGRID, OUTGRID, 0 )
-      E_C2H2 = OUTGRID
+      CALL DO_REGRID_A2A( LLFILENAME, I1x1,    J1x1, 
+     &                    INGRID,     OUTGRID, PERAREA=0,
+     &                    netCDF=.TRUE.                   )
 
-      ! Deallocate arrays for regridding
-      DEALLOCATE(INGRID)
-      DEALLOCATE(OUTGRID)
+      E_C2H2 = OUTGRID
 
       ! Return to calling program
       END SUBROUTINE READ_C2H2

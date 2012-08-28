@@ -23,7 +23,12 @@
       ! NL    Maximum number of levels after insertion of extra Mie levels
       ! N__   Number of levels in Mie grid: 2*(2*lpar+2+jaddto(1))+3
       ! M__   Number of Gauss points used
-      INTEGER, PARAMETER :: NL  = 1500
+!-----------------------------------------------------------------------
+!     NL=1500 was too small for dicarbonyls, so we upped it to 2000.
+!     Uncomment this line to restore the previous definition (phs, 10/9/09)
+!      INTEGER, PARAMETER :: NL  = 1500
+!-----------------------------------------------------------------------
+      INTEGER, PARAMETER :: NL  = 2000
       INTEGER, PARAMETER :: N__ = 2*NL
       INTEGER, PARAMETER :: M__ = 4 
 !

@@ -15,6 +15,8 @@
 !
 ! !USES:
 !
+      USE inquireMod, ONLY : findFreeLUN
+
       IMPLICIT NONE
 #     include "define.h"
       PRIVATE
@@ -57,6 +59,9 @@
 !  25 Aug 2010 - R. Yantosca - Added ProTeX headers
 !  03 Sep 2010 - R. Yantosca - Bug fix in SRC_DUST_DEAD
 !  08 Feb 2012 - R. Yantosca - Add modifications for GEOS-5.7.x
+!  01 Mar 2012 - R. Yantosca - Now reference the new grid_mod.F90
+!  01 Aug 2012 - R. Yantosca - Add reference to findFreeLUN from inqure_mod.F90
+!  03 Aug 2012 - R. Yantosca - Move calls to findFreeLUN out of DEVEL block
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -69,6 +74,10 @@
       REAL*8,  ALLOCATABLE   :: DUSTREFF(:)
       REAL*8,  ALLOCATABLE   :: DUSTDEN(:)
       
+#if defined( DEVEL )
+      REAL*8, ALLOCATABLE, SAVE :: SRCE_FUNC(:,:,:)
+#endif
+
       CONTAINS
 !EOC
 !------------------------------------------------------------------------------
@@ -85,7 +94,7 @@
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE CHEMDUST
+      SUBROUTINE CHEMDUST( am_I_Root )
 !
 ! !USES:
 !
@@ -95,7 +104,11 @@
       USE TRACER_MOD,   ONLY : STT
       USE TRACERID_MOD, ONLY : IDTDST1, IDTDST2, IDTDST3, IDTDST4
 
-      USE CMN_SIZE_MOD       ! Size parameters
+      USE CMN_SIZE_MOD                   ! Size parameters
+!
+! !INPUT PARAMETERS:
+!
+      LOGICAL, INTENT(IN) :: am_I_Root   ! Is this the root CPU?
 ! 
 ! !REVISION HISTORY: 
 !  30 Mar 2004 - T. D. Fairlie - Initial version
@@ -104,6 +117,8 @@
 !  (5 ) Now make sure all USE statements are USE, ONLY (bmy, 10/3/05)
 !  (6 ) Now only do dry deposition if LDRYD = T (bmy, 5/23/06)
 !  25 Aug 2010 - R. Yantosca - Added ProTeX headers
+!  30 Jul 2012 - R. Yantosca - Now accept am_I_Root as an argument when
+!                              running with the traditional driver main.F
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -130,7 +145,7 @@
          ENDIF
 
          ! Allocate arrays (if necessary)
-         CALL INIT_DUST
+         CALL INIT_DUST()
 
          ! Find drydep species in DEPSAV
          DO N = 1, NUMDEP
@@ -643,7 +658,11 @@
 !\\
 ! !INTERFACE:
 !
+#if defined( DEVEL )
+      SUBROUTINE EMISSDUST( SFLX )
+#else
       SUBROUTINE EMISSDUST
+#endif
 !
 ! !USES:
 !
@@ -658,6 +677,10 @@
 
       USE CMN_SIZE_MOD       ! Size parameters
       USE CMN_DIAG_MOD       ! ND59
+#if defined( DEVEL )
+      USE TRACER_MOD,   ONLY : N_TRACERS
+      USE TIME_MOD,     ONLY : GET_TS_EMIS
+#endif
 ! 
 ! !REVISION HISTORY: 
 !  30 Mar 2004 - T. D. Fairlie - Initial version
@@ -672,8 +695,14 @@
 !BOC
 !
 ! !LOCAL VARIABLES:
-!      
+!
       LOGICAL, SAVE :: FIRST = .TRUE.
+
+#if defined( DEVEL )
+      REAL*8, INTENT(INOUT) :: SFLX(IIPAR,JJPAR,LLPAR,N_TRACERS+1)
+      REAL*8                :: STT_TMP(IIPAR,JJPAR,LLPAR,4)
+!      REAL*8                :: DTSRCE
+#endif
       INTEGER       :: I, J, K   !(win, 7/17/09)
       REAL*8        :: MEMIS, MINIT(IIPAR,JJPAR,1,IBINS)  !(win, 7/17/09)
        
@@ -859,7 +888,7 @@ c$$$      ENDIF
 !                                                                             .
 !  Parameters used in GEOS-CHEM
 !                                                                             .
-!  Longitude: IIPAR 
+!  Longitude: IIPAR
 !  Latitude : JJPAR 
 !  Levels   : LLPAR  =  20 (GEOS-1), 26 (GEOS-strat), 30 (GEOS-terra)
 !  Size bins: NDSTBIN  =   4
@@ -1104,7 +1133,7 @@ c$$$      ENDIF
       USE CMN_DIAG_MOD        ! ND19, LD13 (for now)
       USE CMN_GCTM_MOD        ! g0
 !
-! !INPUT/OUTPUT PARAMETERS:
+! !INPUT/OUTPUT PARAMETERS: 
 ! 
       REAL*8, INTENT(INOUT) :: TC(IIPAR,JJPAR,LLPAR,NDSTBIN)  ! Dust mass [kg]
 !
@@ -1150,7 +1179,9 @@ c$$$      ENDIF
 !  (1 ) Added OpenMP parallelization (bmy, 4/8/04)
 !  (2 ) Now references DATA_DIR from "directory_mod.f" (bmy, 7/20/04)
 !  25 Aug 2010 - R. Yantosca - Added ProTeX headers
-!  01 Mar 2012 - R. Yantosca - Now use GET_AREA_CM2(I,J,L) from grid_mod.F90
+!  01 Mar 2012 - R. Yantosca - Now use GET_AREA_M2(I,J,L) from grid_mod.F90
+!  01 Aug 2012 - R. Yantosca - Add reference to findFreeLUN from inqure_mod.F90
+!  03 Aug 2012 - R. Yantosca - Move calls to findFreeLUN out of DEVEL block
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -1235,17 +1266,20 @@ c$$$      ENDIF
          FILENAME = TRIM( DATA_DIR )        // 
      &              'dust_200203/NSP.dust.' // GET_RES_EXT()
 
+         ! Find a free file LUN
+         N = findFreeLUN()
+
          ! Open file
-         OPEN( 65, FILE=FILENAME,       STATUS='OLD', 
-     &             FORM= 'UNFORMATTED', IOSTAT=IOS )
+         OPEN( N, FILE=FILENAME,       STATUS='OLD', 
+     &            FORM= 'UNFORMATTED', IOSTAT=IOS )
          IF ( IOS > 0 ) CALL IOERROR( IOS, 65, 'SRC_DUST_GINOUX:1' )
 
          ! Read data
-         READ( 65, IOSTAT=IOS ) ARRAY
+         READ( N, IOSTAT=IOS ) ARRAY
          IF ( IOS > 0 ) CALL IOERROR( IOS, 65, 'SRC_DUST_GINOUX:2' )
 
          ! Close file
-         CLOSE( 65 )
+         CLOSE( N )
 
          ! Cast to REAL*8
          SRCE_FUNC = ARRAY
@@ -1376,15 +1410,15 @@ c$$$      ENDIF
       USE COMODE_MOD,    ONLY : WTAREA, WERADIUS
       USE DAO_MOD,       ONLY : RH
 
-      USE CMN_FJ_MOD,    ONLY : IPAR, JPAR, LPAR, JPMAX, JPPJ      
+!      USE CMN_FJ_MOD,    ONLY : IPAR, JPAR, LPAR, JPMAX, JPPJ      
       USE JV_CMN_MOD          ! ODMDUST, QAA, RAA, QAA_AOD (clh)
       USE COMODE_LOOP_MOD     ! NTTLOOP
 
       USE CMN_DIAG_MOD        ! ND21, LD21
 !
-! !INPUT/OUTPUT PARAMETERS: 
+! !INPUT PARAMETERS: 
 ! 
-      REAL*8, INTENT(IN)  :: DUST(IIPAR,JJPAR,LLPAR,NDUST)   ! Dust [kg/m3]
+      REAL*8,  INTENT(IN) :: DUST(IIPAR,JJPAR,LLPAR,NDUST)   ! Dust [kg/m3]
       INTEGER, INTENT(IN) :: WAVELENGTH
 ! 
 ! !REVISION HISTORY: 
@@ -1394,13 +1428,13 @@ c$$$      ENDIF
 !        the L-dimension for ND21 diagnostics. (bmy, 7/20/04)
 !  (3 ) Archive only hydrophilic aerosol/aqueous dust surface area 
 !       (excluding BCPO and OCPO), WTAREA and WERADIUS. (tmf, 3/6/09)
+!  25 Aug 2010 - R. Yantosca - Added ProTeX headers
 !  03 Feb 2011 - S. Kim.     - Include wavelength argument to determine the 
 !                              wavelength at which the AOD should be computed. 
 !                              This will set the optical properties that are
 !                              used for the calculation of the AOD. The ND21 
 !                              diagnostic should only be updated when 
 !                              WAVELENGTH = 1. (skim, 02/03/11)
-!  25 Aug 2010 - R. Yantosca - Added ProTeX headers
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -1600,7 +1634,8 @@ c$$$      ENDIF
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE RDUST_OFFLINE( THISMONTH, THISYEAR, WAVELENGTH )
+      SUBROUTINE RDUST_OFFLINE( THISMONTH,  THISYEAR, 
+     &                          WAVELENGTH, am_I_Root )
 !
 ! !USES:
 !
@@ -1618,7 +1653,7 @@ c$$$      ENDIF
 
 #     include "define.h"
 
-      USE CMN_FJ_MOD,    ONLY : IPAR, JPAR, LPAR, JPMAX, JPPJ
+      USE CMN_FJ_MOD,    ONLY : JPMAX, JPPJ
       USE JV_CMN_MOD,    ONLY : ODMDUST, QAA, RAA, RAA_AOD, QAA_AOD
       USE COMODE_LOOP_MOD     ! NTTLOOP
       USE CMN_DIAG_MOD        ! ND21, LD21
@@ -1629,10 +1664,11 @@ c$$$      ENDIF
 !
       INTEGER, INTENT(IN) :: THISMONTH   ! Current month (1-12)
       INTEGER, INTENT(IN) :: THISYEAR    ! Current year  (YYYY format)
-      ! Determine which wavelength to use for optical properties
-      INTEGER, INTENT(IN) :: WAVELENGTH  
+      INTEGER, INTENT(IN) :: WAVELENGTH  ! Determine which wavelength to use 
+                                         !  for optical properties
+      LOGICAL, INTENT(IN) :: am_I_Root   ! Is this the root CPU?
 !
-! !REVISION HISTORY:
+! !REVISION HISTORY: 
 !  (1 ) RDUST was patterned after rdaerosol.f (rvm, 9/30/00)
 !  (2 ) Don't worry about rewinding the binary file...reading from
 !        binary files is pretty fast.  And it's only done once a month.
@@ -1688,6 +1724,8 @@ c$$$      ENDIF
 !                              used for the calculation of the AOD.  The ND21 
 !                              diagnostic should only be updated when 
 !                              WAVELENGTH = 1.
+!  30 Jul 2012 - R. Yantosca - Now accept am_I_Root as an argument when
+!                              running with the traditional driver main.F
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -1723,12 +1761,14 @@ c$$$      ENDIF
          XTAU = GET_TAU0( THISMONTH, 1, 1985 )
          
          ! Select proper dust file name for GEOS-1, GEOS-3, or GEOS-4
-         FILENAME = TRIM( DATA_DIR ) // 'dust_200203/dust.' // !added GEOS-5 data file dmw
+         FILENAME = TRIM( DATA_DIR ) // 'dust_200203/dust.' //
      &              GET_NAME_EXT()   // '.'                 // 
      &              GET_RES_EXT()
 
          ! Echo filename
-         WRITE( 6, 100 ) TRIM( FILENAME )
+         IF ( am_I_Root ) THEN
+            WRITE( 6, 100 ) TRIM( FILENAME )
+         ENDIF
  100     FORMAT( '     - RDUST: Reading ', a )
 
          ! Read aerosol concentrations [kg/m3] for each 
@@ -1798,7 +1838,9 @@ c$$$      ENDIF
 !$OMP END PARALLEL DO
 
          ! Echo information
-         WRITE( 6, 110 ) 
+         IF ( am_I_Root ) THEN
+            WRITE( 6, 110 ) 
+         ENDIF
  110     FORMAT( '     - RDUST: Finished computing optical depths' )
 
          !==============================================================
@@ -1948,7 +1990,7 @@ c$$$      ENDIF
 !BOC
 !
 ! !LOCAL VARIABLES:
-!      
+!
       LOGICAL, SAVE :: IS_INIT = .FALSE.
       INTEGER       :: AS   
       INTEGER       :: I    !(win, 7/17/09) 

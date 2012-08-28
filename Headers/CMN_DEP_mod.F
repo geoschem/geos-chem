@@ -32,13 +32,13 @@
       INTEGER, ALLOCATABLE :: IUSE(:,:,:)
 
       ! Fraction of land in grid box
-      REAL*8, ALLOCATABLE :: FRCLND(:,:)
+      REAL*8,  ALLOCATABLE :: FRCLND(:,:)
 
       ! XLAI    - Leaf Area Index of land type for current MONTH
-      REAL*8, ALLOCATABLE :: XLAI(:,:,:)
+      REAL*8,  ALLOCATABLE :: XLAI(:,:,:)
 
       ! XLAI2   - Leaf Area Index of land type for following MONTH
-      REAL*8, ALLOCATABLE :: XLAI2(:,:,:)
+      REAL*8,  ALLOCATABLE :: XLAI2(:,:,:)
 !
 ! !REMARKS:
 !  %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%

@@ -58,6 +58,12 @@
 #  13 Apr 2012 - R. Yantosca - Removed findmon.F, rdlai.F, lai_mod.F
 #  19 Apr 2012 - R. Yantosca - Added read_jv_atms_dat.F90
 #  15 May 2012 - R. Yantosca - Added tpcore_bc_mod.F
+#  22 May 2012 - M. Payer    - Add bromocarb_mod.F, cldice_HBrHOBr_rxn.F,
+#                              and ssa_bromine_mod.F
+#  31 Jul 2012 - R. Yantosca - Added FAST-J routines etc.
+#  03 Aug 2012 - R. Yantosca - Added benchmark_mod, etc.
+#  06 Aug 2012 - R. Yantosca - Added gcap_read_mod, etc.
+#  14 Aug 2012 - R. Yantosca - Added gc_environment_mod, etc.
 #EOP
 #------------------------------------------------------------------------------
 #BOC
@@ -86,7 +92,9 @@ $(CORE)/main.F                       \
 $(CORE)/acetone_mod.F                \
 $(CORE)/aerosol_mod.F                \
 $(CORE)/arctas_ship_emiss_mod.F	     \
+$(CORE)/benchmark_mod.F              \
 $(CORE)/bravo_mod.F                  \
+$(CORE)/bromocarb_mod.F              \
 $(CORE)/c2h6_mod.F                   \
 $(CORE)/cac_anthro_mod.F             \
 $(CORE)/chemistry_mod.F              \
@@ -113,6 +121,9 @@ $(CORE)/emep_mod.F                   \
 $(CORE)/emissions_mod.F              \
 $(CORE)/fjx_acet_mod.F               \
 $(CORE)/gamap_mod.F                  \
+$(CORE)/gcap_read_mod.F              \
+$(CORE)/gc_environment_mod.F90       \
+$(CORE)/gc_type_mod.F                \
 $(CORE)/geos57_read_mod.F90          \
 $(CORE)/gfed3_biomass_mod.F          \
 $(CORE)/global_br_mod.F              \
@@ -149,6 +160,8 @@ $(CORE)/retro_mod.F                  \
 $(CORE)/RnPbBe_mod.F                 \
 $(CORE)/scale_anthro_mod.F           \
 $(CORE)/seasalt_mod.F                \
+$(CORE)/ssa_bromine_mod.F            \
+$(CORE)/strat_chem_mod.F90           \
 $(CORE)/sulfate_mod.F                \
 $(CORE)/tagged_ox_mod.F              \
 $(CORE)/toms_mod.F                   \
@@ -165,6 +178,7 @@ $(CORE)/vistas_anthro_mod.F          \
 ./subs.geos-chem                     \
 $(CORE)/anthroems.F                  \
 $(CORE)/boxvl.F                      \
+$(CORE)/cldice_HBrHOBr_rxn.F         \
 $(CORE)/diag1.F                      \
 $(CORE)/diag3.F                      \
 $(CORE)/diag_2pm.F                   \
@@ -172,11 +186,27 @@ $(CORE)/diagoh.F                     \
 $(CORE)/emfossil.F                   \
 $(CORE)/emf_scale.F                  \
 $(CORE)/fast_j.F                     \
-$(CORE)/photoj.F                     \
-$(CORE)/set_prof.F                   \
+$(CORE)/gasconc.F                    \
+$(CORE)/JRATET.F                     \
+$(CORE)/JVALUE.F                     \
+$(CORE)/jv_index.F                   \
 $(CORE)/initialize.F                 \
+$(CORE)/inphot.F                     \
+$(CORE)/lump.F                       \
 $(CORE)/ndxx_setup.F                 \
 $(CORE)/ohsave.F                     \
+$(CORE)/OPMIE.F                      \
+$(CORE)/partition.F                  \
+$(CORE)/photoj.F                     \
+$(CORE)/physproc.F                   \
+$(CORE)/RD_AOD.F                     \
+$(CORE)/rd_js.F                      \
+$(CORE)/RD_TJPL.F                    \
+$(CORE)/read_jv_atms_dat.F90         \
+$(CORE)/set_aer.F                    \
+$(CORE)/setemdep.F                   \
+$(CORE)/set_prof.F                   \
+$(CORE)/SPHERE.F                     \
 $(CORE)/rdsoil.F                     \
 $(CORE)/read_jv_atms_dat.F90         \
 $(CORE)/ruralbox.F                   \

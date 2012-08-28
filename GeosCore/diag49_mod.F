@@ -158,6 +158,9 @@
       CHARACTER(LEN=80)  :: TITLE
       CHARACTER(LEN=255) :: ND49_OUTPUT_FILE
 
+      ! Logical file unit for ND49 diagnostic
+      INTEGER            :: IU_ND49
+
       CONTAINS
 !EOC
 !------------------------------------------------------------------------------
@@ -186,9 +189,9 @@
       USE DAO_MOD,       ONLY : PARDF, PARDR
       USE DAO_MOD,       ONLY : PREACC,   PRECON
       USE MODIS_LAI_MOD, ONLY : ISOLAI => GC_LAI
-      USE FILE_MOD,      ONLY : IU_ND49
       USE LOGICAL_MOD,   ONLY : LSOILNOX 
       USE GRID_MOD,      ONLY : GET_XOFFSET,        GET_YOFFSET
+      USE inquireMod,    ONLY : findFreeLun
       USE TIME_MOD,      ONLY : EXPAND_DATE
       USE TIME_MOD,      ONLY : GET_NYMD,           GET_NHMS
       USE TIME_MOD,      ONLY : GET_NYMD_DIAG,      GET_TS_DIAG
@@ -238,6 +241,8 @@
 !        (mpb, 11/19/09)
 !  02 Dec 2010 - R. Yantosca - Added ProTeX headers
 !  11 Apr 2012 - R. Yantosca - Replace lai_mod.F with modis_lai_mod.F90
+!  03 Aug 2012 - R. Yantosca - Move calls to findFreeLUN out of DEVEL block
+!  07 Aug 2012 - R. Yantosca - Now print LUN used to open file
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -296,13 +301,16 @@
 
       IF ( NHMS == TS_DIAG ) THEN     ! It's a new day for diagnostics.
 
+         ! Find a free file LUN
+         IU_ND49 = findFreeLUN()
+
          ! Expand date tokens in the file name
          FILENAME = TRIM( ND49_OUTPUT_FILE )
          CALL EXPAND_DATE( FILENAME, GET_NYMD(), GET_NHMS() )
 
          ! Echo info
-         WRITE( 6, 100 ) TRIM( FILENAME )
- 100     FORMAT( '     - DIAG49: Opening file ', a )
+         WRITE( 6, 100 ) TRIM( FILENAME ), IU_ND49
+ 100     FORMAT( '     - DIAG49: Opening file ', a, ' on unit ', i4 )
         
          IF ( DO_DIAG_WRITE ) THEN
 

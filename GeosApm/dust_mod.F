@@ -15,6 +15,8 @@
 !
 ! !USES:
 !
+      USE inquireMod, ONLY : findFreeLUN
+
       IMPLICIT NONE
 #     include "define.h"
       PRIVATE
@@ -56,7 +58,10 @@
 !  25 Aug 2010 - R. Yantosca - Added ProTeX headers
 !  03 Sep 2010 - R. Yantosca - Bug fix in SRC_DUST_DEAD
 !  15 Feb 2011 - R. Yantosca - Add modifications for APM from G. Luo
+!  08 Feb 2012 - R. Yantosca - Add modifications for GEOS-5.7.x
 !  01 Mar 2012 - R. Yantosca - Now reference the new grid_mod.F90
+!  01 Aug 2012 - R. Yantosca - Add reference to findFreeLUN from inqure_mod.F90
+!  03 Aug 2012 - R. Yantosca - Move calls to findFreeLUN out of DEVEL block
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -69,6 +74,10 @@
       REAL*8,  ALLOCATABLE   :: DUSTREFF(:)
       REAL*8,  ALLOCATABLE   :: DUSTDEN(:)
       
+#if defined( DEVEL )
+      REAL*8, ALLOCATABLE, SAVE :: SRCE_FUNC(:,:,:)
+#endif
+
       CONTAINS
 !EOC
 !------------------------------------------------------------------------------
@@ -85,7 +94,7 @@
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE CHEMDUST
+      SUBROUTINE CHEMDUST( am_I_Root )
 !
 ! !USES:
 !
@@ -95,7 +104,11 @@
       USE TRACER_MOD,   ONLY : STT
       USE TRACERID_MOD, ONLY : IDTDST1, IDTDST2, IDTDST3, IDTDST4
 
-      USE CMN_SIZE_MOD       ! Size parameters
+      USE CMN_SIZE_MOD                   ! Size parameters
+!
+! !INPUT PARAMETERS:
+!
+      LOGICAL, INTENT(IN) :: am_I_Root   ! Is this the root CPU?
 ! 
 ! !REVISION HISTORY: 
 !  30 Mar 2004 - T. D. Fairlie - Initial version
@@ -104,6 +117,8 @@
 !  (5 ) Now make sure all USE statements are USE, ONLY (bmy, 10/3/05)
 !  (6 ) Now only do dry deposition if LDRYD = T (bmy, 5/23/06)
 !  25 Aug 2010 - R. Yantosca - Added ProTeX headers
+!  30 Jul 2012 - R. Yantosca - Now accept am_I_Root as an argument when
+!                              running with the traditional driver main.F
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -130,7 +145,7 @@
          ENDIF
 
          ! Allocate arrays (if necessary)
-         CALL INIT_DUST
+         CALL INIT_DUST()
 
          ! Find drydep species in DEPSAV
          DO N = 1, NUMDEP
@@ -507,7 +522,11 @@
 !\\
 ! !INTERFACE:
 !
+#if defined( DEVEL )
+      SUBROUTINE EMISSDUST( SFLX )
+#else
       SUBROUTINE EMISSDUST
+#endif
 !
 ! !USES:
 !
@@ -517,6 +536,10 @@
       USE TRACERID_MOD, ONLY : IDTDST1, IDTDST2, IDTDST3, IDTDST4
 
       USE CMN_SIZE_MOD       ! Size parameters
+#if defined( DEVEL )
+      USE TRACER_MOD,   ONLY : N_TRACERS
+      USE TIME_MOD,     ONLY : GET_TS_EMIS
+#endif
 ! 
 ! !REVISION HISTORY: 
 !  30 Mar 2004 - T. D. Fairlie - Initial version
@@ -532,6 +555,11 @@
 !
       LOGICAL, SAVE :: FIRST = .TRUE.
       
+#if defined( DEVEL )
+      REAL*8, INTENT(INOUT) :: SFLX(IIPAR,JJPAR,LLPAR,N_TRACERS+1)
+      REAL*8                :: STT_TMP(IIPAR,JJPAR,LLPAR,4)
+!      REAL*8                :: DTSRCE
+#endif
       !=================================================================
       ! EMISSDUST begins here!
       !=================================================================
@@ -559,6 +587,9 @@
       !=================================================================
       ! Call appropriate emissions routine
       !=================================================================
+#if defined( DEVEL )
+      STT_TMP(:,:,:,:) = STT(:,:,:,IDTDST1:IDTDST4)
+#endif
       IF ( LDEAD ) THEN
 
          ! Use Zender's DEAD dust source function
@@ -576,6 +607,10 @@
          IF ( LPRT ) CALL DEBUG_MSG( '### EMISSDUST: a SRC_DUST_GINOUX')
 
       ENDIF     
+
+#if defined( DEVEL )
+      SFLX(:,:,:,IDTDST1:IDTDST4) = (STT(:,:,:,IDTDST1:IDTDST4)-STT_TMP)/(GET_TS_EMIS()*60.d0)
+#endif
 
       END SUBROUTINE EMISSDUST
 !EOC
@@ -951,6 +986,8 @@
 !  (2 ) Now references DATA_DIR from "directory_mod.f" (bmy, 7/20/04)
 !  25 Aug 2010 - R. Yantosca - Added ProTeX headers
 !  01 Mar 2012 - R. Yantosca - Now use GET_AREA_M2(I,J,L) from grid_mod.F90
+!  01 Aug 2012 - R. Yantosca - Add reference to findFreeLUN from inqure_mod.F90
+!  03 Aug 2012 - R. Yantosca - Move calls to findFreeLUN out of DEVEL block
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -961,11 +998,13 @@
       INTEGER                :: I, J, N, M, IOS
       INTEGER                :: IPOINT(NDSTBIN) = (/3, 2, 2, 2/)
       REAL*4                 :: ARRAY(IIPAR,JJPAR,3)
-      REAL*8, SAVE           :: SRCE_FUNC(IIPAR,JJPAR,3)
       REAL*8                 :: W10M,   DEN,  DIAM,   U_TS0, U_TS
       REAL*8                 :: SRCE_P, DSRC, REYNOL, ALPHA, BETA
       REAL*8                 :: GAMMA,  CW,   DTSRCE, AREA_M2
       CHARACTER(LEN=255)     :: FILENAME
+#if   !defined( DEVEL )
+      REAL*8, SAVE           :: SRCE_FUNC(IIPAR,JJPAR,3)
+#endif
 
       ! Transfer coeff for type natural source  (kg*s2/m5)
       REAL*8, PARAMETER      :: CH_DUST  = 9.375d-10
@@ -1005,17 +1044,20 @@
          FILENAME = TRIM( DATA_DIR )        // 
      &              'dust_200203/NSP.dust.' // GET_RES_EXT()
 
+         ! Find a free file LUN
+         N = findFreeLUN()
+
          ! Open file
-         OPEN( 65, FILE=FILENAME,       STATUS='OLD', 
-     &             FORM= 'UNFORMATTED', IOSTAT=IOS )
+         OPEN( N, FILE=FILENAME,       STATUS='OLD', 
+     &            FORM= 'UNFORMATTED', IOSTAT=IOS )
          IF ( IOS > 0 ) CALL IOERROR( IOS, 65, 'SRC_DUST_GINOUX:1' )
 
          ! Read data
-         READ( 65, IOSTAT=IOS ) ARRAY
+         READ( N, IOSTAT=IOS ) ARRAY
          IF ( IOS > 0 ) CALL IOERROR( IOS, 65, 'SRC_DUST_GINOUX:2' )
 
          ! Close file
-         CLOSE( 65 )
+         CLOSE( N )
 
          ! Cast to REAL*8
          SRCE_FUNC = ARRAY
@@ -1069,7 +1111,7 @@
             DO I = 1, IIPAR
 
                ! Get grid box surface area [m2]
-               AREA_M2 = GET_AREA_M2( I, J, 1)
+               AREA_M2 = GET_AREA_M2( I, J, 1 )
 
                ! Fraction of emerged surfaces 
                ! (subtract lakes, coastal ocean,...)
@@ -1146,15 +1188,15 @@
       USE COMODE_MOD,    ONLY : WTAREA, WERADIUS
       USE DAO_MOD,       ONLY : RH
 
-      USE CMN_FJ_MOD,    ONLY : IPAR, JPAR, LPAR, JPMAX, JPPJ      
+!      USE CMN_FJ_MOD,    ONLY : IPAR, JPAR, LPAR, JPMAX, JPPJ      
       USE JV_CMN_MOD          ! ODMDUST, QAA, RAA, QAA_AOD (clh)
       USE COMODE_LOOP_MOD     ! NTTLOOP
 
       USE CMN_DIAG_MOD        ! ND21, LD21
 !
-! !INPUT/OUTPUT PARAMETERS: 
+! !INPUT PARAMETERS: 
 ! 
-      REAL*8, INTENT(IN)  :: DUST(IIPAR,JJPAR,LLPAR,NDUST)   ! Dust [kg/m3]
+      REAL*8,  INTENT(IN) :: DUST(IIPAR,JJPAR,LLPAR,NDUST)   ! Dust [kg/m3]
       INTEGER, INTENT(IN) :: WAVELENGTH
 ! 
 ! !REVISION HISTORY: 
@@ -1370,11 +1412,11 @@
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE RDUST_OFFLINE( THISMONTH, THISYEAR, WAVELENGTH )
+      SUBROUTINE RDUST_OFFLINE( THISMONTH,  THISYEAR, 
+     &                          WAVELENGTH, am_I_Root )
 !
 ! !USES:
 !
-      ! References to F90 modules
       USE BPCH2_MOD,     ONLY : GET_NAME_EXT, GET_RES_EXT
       USE BPCH2_MOD,     ONLY : GET_TAU0,     READ_BPCH2
       USE COMODE_MOD,    ONLY : ERADIUS, IXSAVE, IYSAVE
@@ -1389,20 +1431,20 @@
 
 #     include "define.h"
 
-      USE CMN_FJ_MOD,   ONLY : IPAR, JPAR, LPAR, JPMAX, JPPJ
-      USE JV_CMN_MOD,   ONLY : ODMDUST, QAA, RAA, RAA_AOD, QAA_AOD
-      USE COMODE_LOOP_MOD    ! NTTLOOP
-      USE CMN_DIAG_MOD       ! ND21, LD21
+      USE CMN_FJ_MOD,    ONLY : JPMAX, JPPJ
+      USE JV_CMN_MOD,    ONLY : ODMDUST, QAA, RAA, RAA_AOD, QAA_AOD
+      USE COMODE_LOOP_MOD     ! NTTLOOP
+      USE CMN_DIAG_MOD        ! ND21, LD21
 
       IMPLICIT NONE
-
 !
 ! !INPUT PARAMETERS: 
 !
       INTEGER, INTENT(IN) :: THISMONTH   ! Current month (1-12)
       INTEGER, INTENT(IN) :: THISYEAR    ! Current year  (YYYY format)
-      ! Determine which wavelength to use for optical properties
-      INTEGER, INTENT(IN) :: WAVELENGTH  
+      INTEGER, INTENT(IN) :: WAVELENGTH  ! Determine which wavelength to use 
+                                         !  for optical properties
+      LOGICAL, INTENT(IN) :: am_I_Root   ! Is this the root CPU?
 !
 ! !REVISION HISTORY: 
 !  (1 ) RDUST was patterned after rdaerosol.f (rvm, 9/30/00)
@@ -1415,7 +1457,7 @@
 !        Also need to pass THISYEAR thru the arg list. (rvm, bmy, 11/21/00)
 !  (5 ) CONC is now declared as REAL*8 (rvm, bmy, 12/15/00)
 !  (6 ) Removed obsolete code from 12/15/00 (bmy, 12/21/00)
-!  (7 ) CONC(IGLOB,JGLOB,LGLOB,NDUST) is now CONC(IIPAR,JJPAR,LLPAR,NDUST).
+!  (7 ) CONC(IIPAR,JJPAR,LGLOB,NDUST) is now CONC(IIPAR,JJPAR,LLPAR,NDUST).
 !        Now use routine TRANSFER_3D from "transfer_mod.f" to cast from REAL*4
 !        to REAL*8 and also to convert from {IJL}GLOB to IIPAR,JJPAR,LLPAR 
 !        space.  Use 3 arguments in call to GET_TAU0.  Updated comments.
@@ -1460,6 +1502,8 @@
 !                              used for the calculation of the AOD.  The ND21 
 !                              diagnostic should only be updated when 
 !                              WAVELENGTH = 1.
+!  30 Jul 2012 - R. Yantosca - Now accept am_I_Root as an argument when
+!                              running with the traditional driver main.F
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -1500,7 +1544,9 @@
      &              GET_RES_EXT()
 
          ! Echo filename
-         WRITE( 6, 100 ) TRIM( FILENAME )
+         IF ( am_I_Root ) THEN
+            WRITE( 6, 100 ) TRIM( FILENAME )
+         ENDIF
  100     FORMAT( '     - RDUST: Reading ', a )
 
          ! Read aerosol concentrations [kg/m3] for each 
@@ -1570,7 +1616,9 @@
 !$OMP END PARALLEL DO
 
          ! Echo information
-         WRITE( 6, 110 ) 
+         IF ( am_I_Root ) THEN
+            WRITE( 6, 110 ) 
+         ENDIF
  110     FORMAT( '     - RDUST: Finished computing optical depths' )
 
          !==============================================================
@@ -2130,6 +2178,12 @@
          IF ( AS /= 0 ) CALL ALLOC_ERR( 'FRAC_S' )
          FRAC_S(1:NDSTBIN)   = (/ 0.095d0, 0.3d0, 0.3d0, 0.3d0 /)
       ENDIF
+
+#if defined( DEVEL )
+      ALLOCATE( SRCE_FUNC(IIPAR,JJPAR,3), STAT=AS )
+      IF ( AS /= 0 ) CALL ALLOC_ERR( 'SRCE_FUNC' )
+      SRCE_FUNC = 0.d0
+#endif
 
       ! Reset flag
       IS_INIT = .TRUE.

@@ -24,11 +24,13 @@
 !maasa
       USE BPCH2_MOD,   ONLY : OPEN_BPCH2_FOR_READ
       USE ERROR_MOD,   ONLY : DEBUG_MSG
-      USE FILE_MOD,    ONLY : IU_SOIL
+      !USE FILE_MOD,    ONLY : IU_SOIL
 !maasa end
       
       USE CMN_SIZE_MOD   ! Size parameters
       USE COMMSOIL_MOD ! Soil variables
+
+      USE inquireMod,ONLY : findFreeLUN
 
       IMPLICIT NONE
 #     include "define.h"
@@ -73,6 +75,7 @@
 !        variable. (bmy, 2/11/03)
 !  (6 ) Now references DATA_DIR from "directory_mod.f" (bmy, 7/20/04)
 !  02 Dec 2010 - R. Yantosca - Added ProTeX headers
+!  03 Aug 2012 - R. Yantosca - Move calls to findFreeLUN out of DEVEL block
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -82,6 +85,7 @@
       LOGICAL, SAVE      :: FIRST   = .TRUE.
       INTEGER, SAVE      :: MONSAVE = 0 
       INTEGER            :: I, IUNIT, IOS, J, K, KK, M, M1, MONTH
+      INTEGER            :: IU_SOIL
       REAL*8             :: TMP(12)
 
       ! Name of file to read in
@@ -137,66 +141,6 @@ $
           TOTAL_WETOLD = 0.0 ! Testing
           TOTAL_DRYOLD = 0.0 ! Testing
 
-!||||||||||||||||||||||||||||||||||||||
-!Read landtype module, maasa
-!||||||||||||||||||||||||||||||||||||||
-
- !FILENAME = TRIM( DATA_DIR ) // 'soil_NOx_201004/Landtype.bpch' !Maasa
-	FILENAME = '/home/maasakkers/data/soil_NOx_201004/Landtype.bpch'
-
-      WRITE(6,*) FILENAME
-
-      ! Open the binary punch file for input
-      CALL OPEN_BPCH2_FOR_READ( IU_SOIL, FILENAME )
-      
-      
-      !Loop over 24 Landtypes
-
-      N=1
-
-      DO
-      
-
-         READ( IU_SOIL, IOSTAT=IOS )       
-     &         MODELNAME, LONRES, LATRES, HALFPOLAR, CENTER180
-      
-         ! IOS < 0 is end-of-file, so exit
-         IF ( IOS < 0 ) EXIT
-
-         ! IOS > 0 is a real I/O error -- print error message
-         IF ( IOS > 0 ) CALL IOERROR(IOS,IU_SOIL,'read_soil_Aws:1')
-
-         READ( IU_SOIL, IOSTAT=IOS ) 
-     &         CATEGORY, NTRACER,  UNIT, ZTAU0,  ZTAU1,  RESERVED,
-     &         NI,       NJ,    NL, IFIRST, JFIRST, LFIRST,
-     &         NSKIP
-
-         IF ( IOS /= 0 ) CALL IOERROR(IOS,IU_SOIL,'read_soil_Aws:2')
-
-
-         ! Put land fraction into temporary array
-         READ( IU_SOIL, IOSTAT=IOS ) 
-     &       ( (   TMPLND(I,J), I=1,NI ), J=1,NJ  )
-
-         IF ( IOS /= 0 ) CALL IOERROR(IOS,IU_SOIL,'read_soil_Aws:3')
-
-         !WRITE(6,*) 'I = 100 J =61 ', N, ':', TMPLND(100,61) 
-
-
-         ! Put into global array
-         LAND2(:,:,N) = TMPLND
-
-         N=N+1
-  
-      ENDDO
-         CLOSE( IU_SOIL )
-
-         !WRITE(6,*) 'I = 100 J =61 ', land2(100,61,:)
-
-!||||||||||||||||||||||||||||||||||||||
-!End of landtype module, maasa
-!||||||||||||||||||||||||||||||||||||||
-
         !==============================================================
          ! Read in soil type data (first pass only)
          !==============================================================
@@ -207,6 +151,9 @@ $
          ! Echo filename
          WRITE( 6, 100 ) TRIM( FILENAME )
  100     FORMAT( '     - RDSOIL: Reading ', a )
+
+         ! Find a free file LUN
+         IUNIT = findFreeLUN()
 
          ! Open file
          OPEN( IUNIT, FILE=TRIM( FILENAME ), STATUS='OLD', IOSTAT=IOS )
@@ -225,116 +172,8 @@ $
          ! Close file
          CLOSE( IUNIT )
 
-         !==============================================================
-         ! Read in fertilizer data (first pass only)
-         ! Units are [ng N/m2/s] 
-         !==============================================================
-
-         ! Define fertilizer file name
-         !FILENAME = TRIM( DATA_DIR ) // 'soil_NOx_201004/fert_res.dat' !Maasatemp
-	 FILENAME = '/home/maasakkers/data/soil_NOx_201004/fert_res.dat'
-
-         ! Echo filename
-         WRITE( 6, 100 ) TRIM( FILENAME )
-
-         ! Open file
-         OPEN( IUNIT, FILE=TRIM( FILENAME ), STATUS='OLD', IOSTAT=IOS )
-         IF ( IOS /= 0 ) CALL IOERROR( IOS, IUNIT, 'rdsoil:4' )
-
-         ! Read data -- save (I,J) pairs into INDEXSOIL array
-         DO M = 1, NFERT
-	    READ( IUNIT,*, IOSTAT=IOS ) 
-     &           ( INDEX_INT(I,M), I=1,2 ), SOILFERT(M) !maasatemp
-            IF ( IOS /= 0 ) CALL IOERROR( IOS, IUNIT, 'rdsoil:5' )
-         ENDDO
-
-         DO M = 1, NLAND
-                INDEXSOIL(1,M) = INDEX_INT(1,(1 + (M-1)*365))
-                INDEXSOIL(2,M) = INDEX_INT(2,(1 + (M-1)*365))
-         ENDDO
-
-         ! Close file
-         CLOSE( IUNIT )
-
-         
-!      !=================================================================
-!      ! Read in climate type ###Rynda
-!      !=================================================================
-         ! Define arid/semi-arid 1-0 dataset location
-  	 !FILENAME = TRIM( DATA_DIR ) // 'soil_NOx_201004/clim.dat' !Maasatemp
-		FILENAME = '/home/maasakkers/data/soil_NOx_201004/clim.dat'
-
-         ! Echo filename
-         WRITE( 6, 100 ) TRIM( FILENAME )
-
-         ! Open file
-         OPEN( IUNIT, FILE=TRIM( FILENAME ), STATUS='OLD', IOSTAT=IOS )
-         IF ( IOS /= 0 ) CALL IOERROR( IOS, IUNIT, 'rdsoil:4' )
-
-         ! Read data -- save (I,J) pairs into INDEXSOIL array
-         DO M = 1, NLAND
-	    READ( IUNIT,*, IOSTAT=IOS ) 
-     &           ( INDEXSOIL(I,M), I=1,2 ), CLIM(M)
-            IF ( IOS /= 0 ) CALL IOERROR( IOS, IUNIT, 'rdsoil:5' )
-         ENDDO
-
-         ! Close file
-         CLOSE( IUNIT )
-
       ENDIF  
-!      !=================================================================
-!      ! Read in monthly soil precipitation data
-!      !=================================================================
 
-!      ! Only read data when we have entered a new month...
-!      IF ( MONSAVE /= MONTH ) THEN
-      
-!         ! Save the current month 
-!         MONSAVE = MONTH
-      
-!         ! M1 is the previous month
-!         IF ( MONTH == 1 ) THEN
-!            M1 = 12
-!         ELSE
-!            M1 = MONTH - 1
-!         END IF
-
-!        ! Define soil precip file name
-!         FILENAME = TRIM( DATA_DIR ) // 'soil_NOx_200203/climatprep' //
-!     &              GET_RES_EXT()    // '.dat'
-
-!         ! Echo filename
-!         WRITE( 6, 100 ) TRIM( FILENAME )
-
-!         ! Open soil precip file
-!         OPEN( IUNIT, FILE=TRIM( FILENAME ), STATUS='OLD', IOSTAT=IOS )
-!         IF ( IOS /= 0 ) CALL IOERROR( IOS, IUNIT, 'rdsoil:6' )
-
-!         ! Loop over Olson land types
-!         DO M = 1, NLAND
-!
-!            ! Read monthly soil precip data for each (I,J) box
-!            READ( IUNIT, *, IOSTAT=IOS ) I, J, ( TMP(K), K=1,12 )
-!            IF ( IOS /= 0 ) CALL IOERROR( IOS, IUNIT, 'rdsoil:7' )
-!
-!            ! Error check -- make sure that each (I,J) pair has both
-!            ! soil precip data and fertilizer data defined
-!            IF ( INDEXSOIL(1,M) /= I .OR. INDEXSOIL(2,M) /= J ) THEN
-!               WRITE(6,*) 'CORRUPTED TEMPCORR OR CLMATPRECIP DATA'
-!               WRITE(6,*) 'CHECK (I,J)',I,J
-!               CALL GEOS_CHEM_STOP
-!            ELSE
-!               SOILPREP(1,M) = TMP(M1)
-!               SOILPREP(2,M) = TMP(MONTH)
-!            ENDIF
-!         ENDDO
-!
-!         ! Close file
-!         CLOSE( IUNIT )
-!
-!      ENDIF
-
-      ! Return to calling program
       END SUBROUTINE RDSOIL
 
 

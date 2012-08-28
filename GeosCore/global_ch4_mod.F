@@ -15,6 +15,8 @@
 !
 ! !USES:
 !
+      USE inquireMod, ONLY : findFreeLUN
+
       IMPLICIT NONE
 #     include "define.h"
       PRIVATE
@@ -68,6 +70,8 @@
 !  08 Feb 2012 - R. Yantosca - Added modifications for GEOS-5.7.x
 !  01 Mar 2012 - R. Yantosca - Now reference new grid_mod.F90
 !  07 Mar 2012 - M. Payer    - Added ProTeX headers
+!  01 Aug 2012 - R. Yantosca - Add reference to findFreeLUN from inqure_mod.F90
+!  03 Aug 2012 - R. Yantosca - Move calls to findFreeLUN out of DEVEL block
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -423,7 +427,7 @@
       ! ==================================================================
       ! 2)  Get Monthly Varying CH4 Emissions
       !     NOTES:                                          (kjw, 5/28/09)
-      !        Biomass burning emissions from GFED2
+      !        Biomass burning emissions from GFED2 or GFED3
       !        Biomass burning available from 1997-2007 (5/28/09)
       !        Rice emissions from EDGAR v4, modified by GEOS soil wetness
       ! ==================================================================
@@ -621,7 +625,7 @@
       USE BPCH2_MOD,     ONLY : GET_TAU0,     READ_BPCH2
       USE BPCH2_MOD,     ONLY : GET_NAME_EXT, GET_NAME_EXT_2D
       USE DIRECTORY_MOD, ONLY : DATA_DIR
-      USE FILE_MOD,      ONLY : IU_FILE,      IOERROR
+      USE FILE_MOD,      ONLY : IOERROR
       USE GRID_MOD,      ONLY : GET_AREA_M2
       USE TIME_MOD,      ONLY : GET_MONTH,    GET_YEAR,    GET_TS_EMIS
       USE TIME_MOD,      ONLY : ITS_A_NEW_MONTH, ITS_A_NEW_YEAR
@@ -891,7 +895,7 @@
          YEAR    = 2004
          WRITE( CYEAR, '(i4)' ) YEAR
 
-         FILENAME = TRIM( DATA_DIR ) // TRIM( CH4_DIR )        //
+         FILENAME = TRIM( DATA_DIR ) // 'CH4_201203/wetlands/' //
      &              'TSKIN.'         // GET_NAME_EXT()         //
      &              '.'              // GET_RES_EXT()          //
      &              '_NA.'           // CYEAR                  //

@@ -55,138 +55,138 @@
 ! !PUBLIC DATA MEMBERS:
 !
       ! 2-D data fields
-      REAL*8,  ALLOCATABLE, PUBLIC :: ALBD1          (:,:  )
-      REAL*8,  ALLOCATABLE, PUBLIC :: ALBD2          (:,:  )
-      REAL*8,  ALLOCATABLE, PUBLIC :: ALBD           (:,:  )
-      INTEGER, ALLOCATABLE, PUBLIC :: CLDTOPS        (:,:  )
-      REAL*8,  ALLOCATABLE, PUBLIC :: CLDFRC         (:,:  )
-      REAL*8,  ALLOCATABLE, PUBLIC :: EFLUX          (:,:  )
-      REAL*8,  ALLOCATABLE, PUBLIC :: EVAP           (:,:  )
-      REAL*8,  ALLOCATABLE, PUBLIC :: FRLAKE         (:,:  )
-      REAL*8,  ALLOCATABLE, PUBLIC :: FRLAND         (:,:  )
-      REAL*8,  ALLOCATABLE, PUBLIC :: FROCEAN        (:,:  )
-      REAL*8,  ALLOCATABLE, PUBLIC :: FRLANDIC       (:,:  )
-      REAL*8,  ALLOCATABLE, PUBLIC :: FRSEAICE       (:,:  )
-      REAL*8,  ALLOCATABLE, PUBLIC :: FRSNO          (:,:  )
-      REAL*8,  ALLOCATABLE, PUBLIC :: GRN            (:,:  )
-      REAL*8,  ALLOCATABLE, PUBLIC :: GWETROOT       (:,:  )
-      REAL*8,  ALLOCATABLE, PUBLIC :: GWETTOP        (:,:  )
-      REAL*8,  ALLOCATABLE, PUBLIC :: HFLUX          (:,:  )
-      REAL*8,  ALLOCATABLE, PUBLIC :: LAI            (:,:  )
-      REAL*8,  ALLOCATABLE, PUBLIC :: LWI_GISS       (:,:  )
-      REAL*8,  ALLOCATABLE, PUBLIC :: LWI            (:,:  )
-      REAL*8,  ALLOCATABLE, PUBLIC :: MOLENGTH       (:,:  )
-      REAL*8,  ALLOCATABLE, PUBLIC :: OICE           (:,:  )      
-      REAL*8,  ALLOCATABLE, PUBLIC :: PARDF          (:,:  )
-      REAL*8,  ALLOCATABLE, PUBLIC :: PARDR          (:,:  )
-      REAL*8,  ALLOCATABLE, PUBLIC :: PBL            (:,:  )
-      REAL*8,  ALLOCATABLE, PUBLIC :: PHIS           (:,:  )
-      REAL*8,  ALLOCATABLE, PUBLIC :: PREACC         (:,:  )
-      REAL*8,  ALLOCATABLE, PUBLIC :: PREANV         (:,:  )
-      REAL*8,  ALLOCATABLE, PUBLIC :: PRECON         (:,:  )
-      REAL*8,  ALLOCATABLE, PUBLIC :: PRELSC         (:,:  )
-      REAL*8,  ALLOCATABLE, PUBLIC :: PRECSNO        (:,:  )
-      REAL*8,  ALLOCATABLE, PUBLIC :: PS1            (:,:  )
-      REAL*8,  ALLOCATABLE, PUBLIC :: PS2            (:,:  )
-      REAL*8,  ALLOCATABLE, PUBLIC :: PSC2           (:,:  )
-      REAL*8,  ALLOCATABLE, PUBLIC :: RADLWG         (:,:  )
-      REAL*8,  ALLOCATABLE, PUBLIC :: RADSWG         (:,:  )
-      REAL*8,  ALLOCATABLE, PUBLIC :: SEAICE00       (:,:  )
-      REAL*8,  ALLOCATABLE, PUBLIC :: SEAICE10       (:,:  )
-      REAL*8,  ALLOCATABLE, PUBLIC :: SEAICE20       (:,:  )
-      REAL*8,  ALLOCATABLE, PUBLIC :: SEAICE30       (:,:  )
-      REAL*8,  ALLOCATABLE, PUBLIC :: SEAICE40       (:,:  )
-      REAL*8,  ALLOCATABLE, PUBLIC :: SEAICE50       (:,:  )
-      REAL*8,  ALLOCATABLE, PUBLIC :: SEAICE60       (:,:  )
-      REAL*8,  ALLOCATABLE, PUBLIC :: SEAICE70       (:,:  )
-      REAL*8,  ALLOCATABLE, PUBLIC :: SEAICE80       (:,:  )
-      REAL*8,  ALLOCATABLE, PUBLIC :: SEAICE90       (:,:  )
-      REAL*8,  ALLOCATABLE, PUBLIC :: SLP            (:,:  )
-      REAL*8,  ALLOCATABLE, PUBLIC :: SNICE          (:,:  )
-      REAL*8,  ALLOCATABLE, PUBLIC :: SNODP          (:,:  )
-      REAL*8,  ALLOCATABLE, PUBLIC :: SNOMAS         (:,:  )
-      REAL*8,  ALLOCATABLE, PUBLIC :: SNOW           (:,:  )
-      REAL*8,  ALLOCATABLE, PUBLIC :: SUNCOS         (:    )
-      REAL*8,  ALLOCATABLE, PUBLIC :: SUNCOS_MID     (:    )
-      REAL*8,  ALLOCATABLE, PUBLIC :: SUNCOS_MID_5hr (:    )
-      REAL*8,  ALLOCATABLE, PUBLIC :: TO31           (:,:  )
-      REAL*8,  ALLOCATABLE, PUBLIC :: TO32           (:,:  )
-      REAL*8,  ALLOCATABLE, PUBLIC :: TO3            (:,:  )
-      REAL*8,  ALLOCATABLE, PUBLIC :: TTO3           (:,:  )
-      REAL*8,  ALLOCATABLE, PUBLIC :: TROPP1         (:,:  )
-      REAL*8,  ALLOCATABLE, PUBLIC :: TROPP2         (:,:  )
-      REAL*8,  ALLOCATABLE, PUBLIC :: TROPP          (:,:  )
-      REAL*8,  ALLOCATABLE, PUBLIC :: TS             (:,:  )
-      REAL*8,  ALLOCATABLE, PUBLIC :: TSKIN          (:,:  )
-      REAL*8,  ALLOCATABLE, PUBLIC :: U10M           (:,:  )
-      REAL*8,  ALLOCATABLE, PUBLIC :: USTAR          (:,:  )  
-      REAL*8,  ALLOCATABLE, PUBLIC :: V10M           (:,:  )
-      REAL*8,  ALLOCATABLE, PUBLIC :: Z0             (:,:  )
+      REAL*8,  ALLOCATABLE, PUBLIC, TARGET :: ALBD1          (:,:  )
+      REAL*8,  ALLOCATABLE, PUBLIC, TARGET :: ALBD2          (:,:  )
+      REAL*8,  ALLOCATABLE, PUBLIC, TARGET :: ALBD           (:,:  )
+      INTEGER, ALLOCATABLE, PUBLIC, TARGET :: CLDTOPS        (:,:  )
+      REAL*8,  ALLOCATABLE, PUBLIC, TARGET :: CLDFRC         (:,:  )
+      REAL*8,  ALLOCATABLE, PUBLIC, TARGET :: EFLUX          (:,:  )
+      REAL*8,  ALLOCATABLE, PUBLIC, TARGET :: EVAP           (:,:  )
+      REAL*8,  ALLOCATABLE, PUBLIC, TARGET :: FRLAKE         (:,:  )
+      REAL*8,  ALLOCATABLE, PUBLIC, TARGET :: FRLAND         (:,:  )
+      REAL*8,  ALLOCATABLE, PUBLIC, TARGET :: FROCEAN        (:,:  )
+      REAL*8,  ALLOCATABLE, PUBLIC, TARGET :: FRLANDIC       (:,:  )
+      REAL*8,  ALLOCATABLE, PUBLIC, TARGET :: FRSEAICE       (:,:  )
+      REAL*8,  ALLOCATABLE, PUBLIC, TARGET :: FRSNO          (:,:  )
+      REAL*8,  ALLOCATABLE, PUBLIC, TARGET :: GRN            (:,:  )
+      REAL*8,  ALLOCATABLE, PUBLIC, TARGET :: GWETROOT       (:,:  )
+      REAL*8,  ALLOCATABLE, PUBLIC, TARGET :: GWETTOP        (:,:  )
+      REAL*8,  ALLOCATABLE, PUBLIC, TARGET :: HFLUX          (:,:  )
+      REAL*8,  ALLOCATABLE, PUBLIC, TARGET :: LAI            (:,:  )
+      REAL*8,  ALLOCATABLE, PUBLIC, TARGET :: LWI_GISS       (:,:  )
+      REAL*8,  ALLOCATABLE, PUBLIC, TARGET :: LWI            (:,:  )
+      REAL*8,  ALLOCATABLE, PUBLIC, TARGET :: MOLENGTH       (:,:  )
+      REAL*8,  ALLOCATABLE, PUBLIC, TARGET :: OICE           (:,:  )      
+      REAL*8,  ALLOCATABLE, PUBLIC, TARGET :: PARDF          (:,:  )
+      REAL*8,  ALLOCATABLE, PUBLIC, TARGET :: PARDR          (:,:  )
+      REAL*8,  ALLOCATABLE, PUBLIC, TARGET :: PBL            (:,:  )
+      REAL*8,  ALLOCATABLE, PUBLIC, TARGET :: PHIS           (:,:  )
+      REAL*8,  ALLOCATABLE, PUBLIC, TARGET :: PREACC         (:,:  )
+      REAL*8,  ALLOCATABLE, PUBLIC, TARGET :: PREANV         (:,:  )
+      REAL*8,  ALLOCATABLE, PUBLIC, TARGET :: PRECON         (:,:  )
+      REAL*8,  ALLOCATABLE, PUBLIC, TARGET :: PRELSC         (:,:  )
+      REAL*8,  ALLOCATABLE, PUBLIC, TARGET :: PRECSNO        (:,:  )
+      REAL*8,  ALLOCATABLE, PUBLIC, TARGET :: PS1            (:,:  )
+      REAL*8,  ALLOCATABLE, PUBLIC, TARGET :: PS2            (:,:  )
+      REAL*8,  ALLOCATABLE, PUBLIC, TARGET :: PSC2           (:,:  )
+      REAL*8,  ALLOCATABLE, PUBLIC, TARGET :: RADLWG         (:,:  )
+      REAL*8,  ALLOCATABLE, PUBLIC, TARGET :: RADSWG         (:,:  )
+      REAL*8,  ALLOCATABLE, PUBLIC, TARGET :: SEAICE00       (:,:  )
+      REAL*8,  ALLOCATABLE, PUBLIC, TARGET :: SEAICE10       (:,:  )
+      REAL*8,  ALLOCATABLE, PUBLIC, TARGET :: SEAICE20       (:,:  )
+      REAL*8,  ALLOCATABLE, PUBLIC, TARGET :: SEAICE30       (:,:  )
+      REAL*8,  ALLOCATABLE, PUBLIC, TARGET :: SEAICE40       (:,:  )
+      REAL*8,  ALLOCATABLE, PUBLIC, TARGET :: SEAICE50       (:,:  )
+      REAL*8,  ALLOCATABLE, PUBLIC, TARGET :: SEAICE60       (:,:  )
+      REAL*8,  ALLOCATABLE, PUBLIC, TARGET :: SEAICE70       (:,:  )
+      REAL*8,  ALLOCATABLE, PUBLIC, TARGET :: SEAICE80       (:,:  )
+      REAL*8,  ALLOCATABLE, PUBLIC, TARGET :: SEAICE90       (:,:  )
+      REAL*8,  ALLOCATABLE, PUBLIC, TARGET :: SLP            (:,:  )
+      REAL*8,  ALLOCATABLE, PUBLIC, TARGET :: SNICE          (:,:  )
+      REAL*8,  ALLOCATABLE, PUBLIC, TARGET :: SNODP          (:,:  )
+      REAL*8,  ALLOCATABLE, PUBLIC, TARGET :: SNOMAS         (:,:  )
+      REAL*8,  ALLOCATABLE, PUBLIC, TARGET :: SNOW           (:,:  )
+      REAL*8,  ALLOCATABLE, PUBLIC, TARGET :: SUNCOS         (:    )
+      REAL*8,  ALLOCATABLE, PUBLIC, TARGET :: SUNCOS_MID     (:    )
+      REAL*8,  ALLOCATABLE, PUBLIC, TARGET :: SUNCOS_MID_5hr (:    )
+      REAL*8,  ALLOCATABLE, PUBLIC, TARGET :: TO31           (:,:  )
+      REAL*8,  ALLOCATABLE, PUBLIC, TARGET :: TO32           (:,:  )
+      REAL*8,  ALLOCATABLE, PUBLIC, TARGET :: TO3            (:,:  )
+      REAL*8,  ALLOCATABLE, PUBLIC, TARGET :: TTO3           (:,:  )
+      REAL*8,  ALLOCATABLE, PUBLIC, TARGET :: TROPP1         (:,:  )
+      REAL*8,  ALLOCATABLE, PUBLIC, TARGET :: TROPP2         (:,:  )
+      REAL*8,  ALLOCATABLE, PUBLIC, TARGET :: TROPP          (:,:  )
+      REAL*8,  ALLOCATABLE, PUBLIC, TARGET :: TS             (:,:  )
+      REAL*8,  ALLOCATABLE, PUBLIC, TARGET :: TSKIN          (:,:  )
+      REAL*8,  ALLOCATABLE, PUBLIC, TARGET :: U10M           (:,:  )
+      REAL*8,  ALLOCATABLE, PUBLIC, TARGET :: USTAR          (:,:  )  
+      REAL*8,  ALLOCATABLE, PUBLIC, TARGET :: V10M           (:,:  )
+      REAL*8,  ALLOCATABLE, PUBLIC, TARGET :: Z0             (:,:  )
 
       ! 3-D data fields
-      REAL*8,  ALLOCATABLE, PUBLIC :: AD             (:,:,:)
-      REAL*8,  ALLOCATABLE, PUBLIC :: AIRDEN         (:,:,:)
-      REAL*8,  ALLOCATABLE, PUBLIC :: AIRVOL         (:,:,:)
-      REAL*8,  ALLOCATABLE, PUBLIC :: AVGW           (:,:,:)
-      REAL*8,  ALLOCATABLE, PUBLIC :: BXHEIGHT       (:,:,:)
-      REAL*8,  ALLOCATABLE, PUBLIC :: DQRCU          (:,:,:)
-      REAL*8,  ALLOCATABLE, PUBLIC :: DQRLSAN        (:,:,:)
-      REAL*8,  ALLOCATABLE, PUBLIC :: CLDF           (:,:,:)
-      REAL*8,  ALLOCATABLE, PUBLIC :: CLDMAS         (:,:,:)
-      REAL*8,  ALLOCATABLE, PUBLIC :: CMFMC          (:,:,:)
-      REAL*8,  ALLOCATABLE, PUBLIC :: DELP           (:,:,:)
-      REAL*8,  ALLOCATABLE, PUBLIC :: DETRAINE       (:,:,:)
-      REAL*8,  ALLOCATABLE, PUBLIC :: DETRAINN       (:,:,:)
-      REAL*8,  ALLOCATABLE, PUBLIC :: DNDE           (:,:,:)
-      REAL*8,  ALLOCATABLE, PUBLIC :: DNDN           (:,:,:)
-      REAL*8,  ALLOCATABLE, PUBLIC :: DQIDTMST       (:,:,:)
-      REAL*8,  ALLOCATABLE, PUBLIC :: DQLDTMST       (:,:,:)
-      REAL*8,  ALLOCATABLE, PUBLIC :: DQRCON         (:,:,:)
-      REAL*8,  ALLOCATABLE, PUBLIC :: DQRLSC         (:,:,:)    
-      REAL*8,  ALLOCATABLE, PUBLIC :: DQVDTMST       (:,:,:)
-      REAL*8,  ALLOCATABLE, PUBLIC :: DTRAIN         (:,:,:)
-      REAL*8,  ALLOCATABLE, PUBLIC :: ENTRAIN        (:,:,:)
-      REAL*8,  ALLOCATABLE, PUBLIC :: HKBETA         (:,:,:)
-      REAL*8,  ALLOCATABLE, PUBLIC :: HKETA          (:,:,:)
-      REAL*8,  ALLOCATABLE, PUBLIC :: MFXC           (:,:,:)
-      REAL*8,  ALLOCATABLE, PUBLIC :: MFYC           (:,:,:)
-      REAL*8,  ALLOCATABLE, PUBLIC :: MFZ            (:,:,:)
-      REAL*8,  ALLOCATABLE, PUBLIC :: MOISTQ         (:,:,:)
-      REAL*8,  ALLOCATABLE, PUBLIC :: OPTDEP         (:,:,:)
-      REAL*8,  ALLOCATABLE, PUBLIC :: OPTD           (:,:,:)
-      REAL*8,  ALLOCATABLE, PUBLIC :: PFICU          (:,:,:)
-      REAL*8,  ALLOCATABLE, PUBLIC :: PFILSAN        (:,:,:)
-      REAL*8,  ALLOCATABLE, PUBLIC :: PFLCU          (:,:,:)
-      REAL*8,  ALLOCATABLE, PUBLIC :: PFLLSAN        (:,:,:)
-      REAL*8,  ALLOCATABLE, PUBLIC :: PV             (:,:,:)
-      REAL*8,  ALLOCATABLE, PUBLIC :: QI             (:,:,:)
-      REAL*8,  ALLOCATABLE, PUBLIC :: QL             (:,:,:)
-      REAL*8,  ALLOCATABLE, PUBLIC :: REEVAPCN       (:,:,:)
-      REAL*8,  ALLOCATABLE, PUBLIC :: REEVAPLS       (:,:,:)
-      REAL*8,  ALLOCATABLE, PUBLIC :: RH1            (:,:,:)
-      REAL*8,  ALLOCATABLE, PUBLIC :: RH2            (:,:,:)
-      REAL*8,  ALLOCATABLE, PUBLIC :: RH             (:,:,:)
-      REAL*8,  ALLOCATABLE, PUBLIC :: SPHU1          (:,:,:)
-      REAL*8,  ALLOCATABLE, PUBLIC :: SPHU2          (:,:,:)
-      REAL*8,  ALLOCATABLE, PUBLIC :: SPHU           (:,:,:)
-      REAL*8,  ALLOCATABLE, PUBLIC :: T              (:,:,:)
-      REAL*8,  ALLOCATABLE, PUBLIC :: TAUCLI         (:,:,:)
-      REAL*8,  ALLOCATABLE, PUBLIC :: TAUCLW         (:,:,:)
-      REAL*8,  ALLOCATABLE, PUBLIC :: TMPU1          (:,:,:)
-      REAL*8,  ALLOCATABLE, PUBLIC :: TMPU2          (:,:,:)
-      REAL*8,  ALLOCATABLE, PUBLIC :: UPDE           (:,:,:)
-      REAL*8,  ALLOCATABLE, PUBLIC :: UPDN           (:,:,:)
-      REAL*8,  ALLOCATABLE, PUBLIC :: UWND1          (:,:,:)
-      REAL*8,  ALLOCATABLE, PUBLIC :: UWND2          (:,:,:)
-      REAL*8,  ALLOCATABLE, PUBLIC :: UWND           (:,:,:)
-      REAL*8,  ALLOCATABLE, PUBLIC :: VWND1          (:,:,:)
-      REAL*8,  ALLOCATABLE, PUBLIC :: VWND2          (:,:,:)
-      REAL*8,  ALLOCATABLE, PUBLIC :: VWND           (:,:,:)
-      REAL*8,  ALLOCATABLE, PUBLIC :: ZMEU           (:,:,:)
-      REAL*8,  ALLOCATABLE, PUBLIC :: ZMMD           (:,:,:)
-      REAL*8,  ALLOCATABLE, PUBLIC :: ZMMU           (:,:,:)
-      REAL*8,  ALLOCATABLE, PUBLIC :: AIRDEN_FULLGRID(:,:,:)
-      REAL*8,  ALLOCATABLE, PUBLIC :: T_FULLGRID     (:,:,:)
+      REAL*8,  ALLOCATABLE, PUBLIC, TARGET :: AD             (:,:,:)
+      REAL*8,  ALLOCATABLE, PUBLIC, TARGET :: AIRDEN         (:,:,:)
+      REAL*8,  ALLOCATABLE, PUBLIC, TARGET :: AIRVOL         (:,:,:)
+      REAL*8,  ALLOCATABLE, PUBLIC, TARGET :: AVGW           (:,:,:)
+      REAL*8,  ALLOCATABLE, PUBLIC, TARGET :: BXHEIGHT       (:,:,:)
+      REAL*8,  ALLOCATABLE, PUBLIC, TARGET :: DQRCU          (:,:,:)
+      REAL*8,  ALLOCATABLE, PUBLIC, TARGET :: DQRLSAN        (:,:,:)
+      REAL*8,  ALLOCATABLE, PUBLIC, TARGET :: CLDF           (:,:,:)
+      REAL*8,  ALLOCATABLE, PUBLIC, TARGET :: CLDMAS         (:,:,:)
+      REAL*8,  ALLOCATABLE, PUBLIC, TARGET :: CMFMC          (:,:,:)
+      REAL*8,  ALLOCATABLE, PUBLIC, TARGET :: DELP           (:,:,:)
+      REAL*8,  ALLOCATABLE, PUBLIC, TARGET :: DETRAINE       (:,:,:)
+      REAL*8,  ALLOCATABLE, PUBLIC, TARGET :: DETRAINN       (:,:,:)
+      REAL*8,  ALLOCATABLE, PUBLIC, TARGET :: DNDE           (:,:,:)
+      REAL*8,  ALLOCATABLE, PUBLIC, TARGET :: DNDN           (:,:,:)
+      REAL*8,  ALLOCATABLE, PUBLIC, TARGET :: DQIDTMST       (:,:,:)
+      REAL*8,  ALLOCATABLE, PUBLIC, TARGET :: DQLDTMST       (:,:,:)
+      REAL*8,  ALLOCATABLE, PUBLIC, TARGET :: DQRCON         (:,:,:)
+      REAL*8,  ALLOCATABLE, PUBLIC, TARGET :: DQRLSC         (:,:,:)    
+      REAL*8,  ALLOCATABLE, PUBLIC, TARGET :: DQVDTMST       (:,:,:)
+      REAL*8,  ALLOCATABLE, PUBLIC, TARGET :: DTRAIN         (:,:,:)
+      REAL*8,  ALLOCATABLE, PUBLIC, TARGET :: ENTRAIN        (:,:,:)
+      REAL*8,  ALLOCATABLE, PUBLIC, TARGET :: HKBETA         (:,:,:)
+      REAL*8,  ALLOCATABLE, PUBLIC, TARGET :: HKETA          (:,:,:)
+      REAL*8,  ALLOCATABLE, PUBLIC, TARGET :: MFXC           (:,:,:)
+      REAL*8,  ALLOCATABLE, PUBLIC, TARGET :: MFYC           (:,:,:)
+      REAL*8,  ALLOCATABLE, PUBLIC, TARGET :: MFZ            (:,:,:)
+      REAL*8,  ALLOCATABLE, PUBLIC, TARGET :: MOISTQ         (:,:,:)
+      REAL*8,  ALLOCATABLE, PUBLIC, TARGET :: OPTDEP         (:,:,:)
+      REAL*8,  ALLOCATABLE, PUBLIC, TARGET :: OPTD           (:,:,:)
+      REAL*8,  ALLOCATABLE, PUBLIC, TARGET :: PFICU          (:,:,:)
+      REAL*8,  ALLOCATABLE, PUBLIC, TARGET :: PFILSAN        (:,:,:)
+      REAL*8,  ALLOCATABLE, PUBLIC, TARGET :: PFLCU          (:,:,:)
+      REAL*8,  ALLOCATABLE, PUBLIC, TARGET :: PFLLSAN        (:,:,:)
+      REAL*8,  ALLOCATABLE, PUBLIC, TARGET :: PV             (:,:,:)
+      REAL*8,  ALLOCATABLE, PUBLIC, TARGET :: QI             (:,:,:)
+      REAL*8,  ALLOCATABLE, PUBLIC, TARGET :: QL             (:,:,:)
+      REAL*8,  ALLOCATABLE, PUBLIC, TARGET :: REEVAPCN       (:,:,:)
+      REAL*8,  ALLOCATABLE, PUBLIC, TARGET :: REEVAPLS       (:,:,:)
+      REAL*8,  ALLOCATABLE, PUBLIC, TARGET :: RH1            (:,:,:)
+      REAL*8,  ALLOCATABLE, PUBLIC, TARGET :: RH2            (:,:,:)
+      REAL*8,  ALLOCATABLE, PUBLIC, TARGET :: RH             (:,:,:)
+      REAL*8,  ALLOCATABLE, PUBLIC, TARGET :: SPHU1          (:,:,:)
+      REAL*8,  ALLOCATABLE, PUBLIC, TARGET :: SPHU2          (:,:,:)
+      REAL*8,  ALLOCATABLE, PUBLIC, TARGET :: SPHU           (:,:,:)
+      REAL*8,  ALLOCATABLE, PUBLIC, TARGET :: T              (:,:,:)
+      REAL*8,  ALLOCATABLE, PUBLIC, TARGET :: TAUCLI         (:,:,:)
+      REAL*8,  ALLOCATABLE, PUBLIC, TARGET :: TAUCLW         (:,:,:)
+      REAL*8,  ALLOCATABLE, PUBLIC, TARGET :: TMPU1          (:,:,:)
+      REAL*8,  ALLOCATABLE, PUBLIC, TARGET :: TMPU2          (:,:,:)
+      REAL*8,  ALLOCATABLE, PUBLIC, TARGET :: UPDE           (:,:,:)
+      REAL*8,  ALLOCATABLE, PUBLIC, TARGET :: UPDN           (:,:,:)
+      REAL*8,  ALLOCATABLE, PUBLIC, TARGET :: UWND1          (:,:,:)
+      REAL*8,  ALLOCATABLE, PUBLIC, TARGET :: UWND2          (:,:,:)
+      REAL*8,  ALLOCATABLE, PUBLIC, TARGET :: UWND           (:,:,:)
+      REAL*8,  ALLOCATABLE, PUBLIC, TARGET :: VWND1          (:,:,:)
+      REAL*8,  ALLOCATABLE, PUBLIC, TARGET :: VWND2          (:,:,:)
+      REAL*8,  ALLOCATABLE, PUBLIC, TARGET :: VWND           (:,:,:)
+      REAL*8,  ALLOCATABLE, PUBLIC, TARGET :: ZMEU           (:,:,:)
+      REAL*8,  ALLOCATABLE, PUBLIC, TARGET :: ZMMD           (:,:,:)
+      REAL*8,  ALLOCATABLE, PUBLIC, TARGET :: ZMMU           (:,:,:)
+      REAL*8,  ALLOCATABLE, PUBLIC, TARGET :: AIRDEN_FULLGRID(:,:,:)
+      REAL*8,  ALLOCATABLE, PUBLIC, TARGET :: T_FULLGRID     (:,:,:)
 
 #if   defined( APM ) 
       !=================================================================
@@ -372,6 +372,8 @@
 !                              plume model) (R. Yantosca)
 !  28 Feb 2012 - R. Yantosca - Removed support for GEOS-3
 !  01 Mar 2012 - R. Yantosca - Use updated GET_LOCALTIME from time_mod.F
+!  01 Mar 2012 - R. Yantosca - Now references the new grid_mod.F90
+!  06 Mar 2012 - R. Yantosca - Now allocate TO3 for all met fields
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -432,8 +434,8 @@
       ! AVGPOLE begins here!                                                  
       !=================================================================
 
-#if   defined( GRID1x1   ) || defined( GRID05x0666 ) 
-#if   defined( NESTED_CH ) || defined( NESTED_NA   ) 
+#if   defined( GRID1x1   ) || defined( GRID05x0666 ) || defined( GRID025x03125 )
+#if   defined( NESTED_CH ) || defined( NESTED_NA   ) || defined( NESTED_EU     ) || defined ( SEAC4RS )
       ! NOTE: Only do this for 1x1 nested grids (bmy, 12/1/04)
       ! 1x1 window grid does not extend to poles
       RETURN
@@ -451,21 +453,21 @@
 
       DO I = 1, IIPAR
          TOTAL_Z1 = TOTAL_Z1 
-     &            + GET_AREA_M2( I,       1, 1 ) * Z(I,      1)
+     &            + GET_AREA_M2( I, 1,       1 ) * Z(I,1      )
 
          TOTAL_Z2 = TOTAL_Z2 
-     &            + GET_AREA_M2( I,       2, 1 ) * Z(I,      2)
+     &            + GET_AREA_M2( I, 2,       1 ) * Z(I,2      )
 
          TOTAL_Z3 = TOTAL_Z3 
      &            + GET_AREA_M2( I, JJPAR-1, 1 ) * Z(I,JJPAR-1)
 
          TOTAL_Z4 = TOTAL_Z4 
-     &            + GET_AREA_M2( I,   JJPAR, 1 ) * Z(I,JJPAR  )
+     &            + GET_AREA_M2( I, JJPAR,   1 ) * Z(I,JJPAR  )
 
-         TOTAL_A1 = TOTAL_A1 + GET_AREA_M2( I,       1, 1 ) 
-         TOTAL_A2 = TOTAL_A2 + GET_AREA_M2( I,       2, 1 )
+         TOTAL_A1 = TOTAL_A1 + GET_AREA_M2( I, 1,       1 ) 
+         TOTAL_A2 = TOTAL_A2 + GET_AREA_M2( I, 2,       1 )
          TOTAL_A3 = TOTAL_A3 + GET_AREA_M2( I, JJPAR-1, 1 )
-         TOTAL_A4 = TOTAL_A4 + GET_AREA_M2( I,   JJPAR, 1 )
+         TOTAL_A4 = TOTAL_A4 + GET_AREA_M2( I, JJPAR,   1 )
       ENDDO
 
       DO I = 1, IIPAR
@@ -492,12 +494,19 @@
 !\\
 ! !INTERFACE:
 !
+#if defined( DEVEL )
+      SUBROUTINE AIRQNT(LOCAL_MET)
+#else
       SUBROUTINE AIRQNT
+#endif
 !
 ! !USES:
 !
       USE GRID_MOD,     ONLY : GET_AREA_M2
       USE PRESSURE_MOD, ONLY : GET_BP, GET_PEDGE
+#if defined( DEVEL )
+      USE GC_TYPE_MOD,  ONLY : GC_MET_LOCAL
+#endif
 !
 ! !REMARKS:
 !  DAO met fields updated by AIRQNT:
@@ -549,13 +558,17 @@
 !  (19) Now move computation of DELP into main loop.  Also remove P, LOGP,
 !        JREF, DSIG variables -- these are obsolete for fvDAS.  (bmy, 6/19/03)
 !  16 Aug 2010 - R. Yantosca - Added ProTeX headers
-!  01 Mar 2012 - R. Yantosca - Now use GET_AREA_CM2(I,J,L) from grid_mod.F90
+!  01 Mar 2012 - R. Yantosca - Now use GET_AREA_M2(I,J,L) from grid_mod.F90
 !EOP
 !------------------------------------------------------------------------------
 !BOC
+#if defined( DEVEL )
+      TYPE(GC_MET_LOCAL), INTENT(INOUT) :: LOCAL_MET
+#endif
 !
 ! !LOCAL VARIABLES:
 !
+
       INTEGER :: I,  J,  L
       REAL*8  :: P1, P2, AREA_M2
 
@@ -571,16 +584,19 @@
 
          ! Grid box surface area [m2]
          AREA_M2     = GET_AREA_M2( I, J, L )
-   
+  
          ! Pressure at bottom edge of grid box [hPa]
-         P1          = GET_PEDGE( I, J, L)
+         P1          = GET_PEDGE( I, J, L )
 
          ! Pressure at top edge of grid box [hPa]
          P2          = GET_PEDGE( I, J, L+1 )
 
          ! Pressure difference between top & bottom edges [hPa]
          DELP(L,I,J) = P1 - P2
-         
+#if defined( DEVEL )
+!         DELP(L,I,J) = LOCAL_MET%DELP(L,I,J)
+         LOCAL_MET%DELP(L,I,J) = DELP(L,I,J)
+#endif            
          !===========================================================
          ! BXHEIGHT is the height (Delta-Z) of grid box (I,J,L) 
          ! in meters. 
@@ -591,6 +607,10 @@
          ! Rd = 8.31 J/(mol*K) / 0.02897 kg/mol. 
          !===========================================================
          BXHEIGHT(I,J,L) = Rdg0 * T(I,J,L) * LOG( P1 / P2 )
+#if defined( DEVEL )
+!         BXHEIGHT(I,J,L) = LOCAL_MET%BXHEIGHT(I,J,L)
+         LOCAL_MET%BXHEIGHT(I,J,L) = BXHEIGHT(I,J,L)
+#endif            
 
          !===========================================================
          ! AIRVOL is the volume of grid box (I,J,L) in meters^3
@@ -610,6 +630,10 @@
          ! in using AREA_M2 for grid boxes (I, J, L > 1)
          !===========================================================
          AIRVOL(I,J,L) = BXHEIGHT(I,J,L) * AREA_M2
+#if defined( DEVEL )
+!         AIRVOL(I,J,L) = LOCAL_MET%AIRVOL(I,J,L)
+         LOCAL_MET%AIRVOL(I,J,L) = AIRVOL(I,J,L)
+#endif            
 
          !===========================================================
          ! AD = (dry) mass of air in grid box (I,J,L) in kg, 
@@ -624,11 +648,19 @@
          !    1          1          mb       m             1
          !===========================================================
          AD(I,J,L) = DELP(L,I,J) * G0_100 * AREA_M2
+#if defined( DEVEL )
+!          AD(I,J,L) = LOCAL_MET%AD(I,J,L)
+         LOCAL_MET%AD(I,J,L) = AD(I,J,L)
+#endif            
 
          !===========================================================
          ! AIRDEN = density of air (AD / AIRVOL) in kg / m^3 
          !===========================================================
          AIRDEN(L,I,J) = AD(I,J,L) / AIRVOL(I,J,L)
+#if defined( DEVEL )
+!         AIRDEN(L,I,J) = LOCAL_MET%AIRDENS(L,I,J)
+         LOCAL_MET%AIRDENS(L,I,J) = AIRDEN(L,I,J)
+#endif            
       ENDDO
       ENDDO
       ENDDO
@@ -661,9 +693,9 @@
 !  ========================================================================
 !  (1 ) AIRDEN_FULLGRID (REAL*8 ) : Density of air  in a grid box   [kg/m^3  ]
 !
-!  NOTES:
+! !REVISION HISTORY:
 !  (1 ) Modified from AIRQNT in DAO_MOD (cdh, 1/22/09)
-!  01 Mar 2012 - R. Yantosca - Now use GET_AREA_CM2(I,J,L) from grid_mod.F90
+!  01 Mar 2012 - R. Yantosca - Now use GET_AREA_M2(I,J,L) from grid_mod.F90
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -687,7 +719,7 @@
 
          ! Grid box surface area [m2]
          AREA_M2      = GET_AREA_M2( I, J, L )
-            
+
          ! Pressure at bottom edge of grid box [hPa]
          P1           = GET_PEDGE_FULLGRID( I, J, L )
 
@@ -826,7 +858,7 @@
 !  18 Aug 2010 - R. Yantosca - Rewrite #if block logic for clarity
 !  06 Feb 2012 - R. Yantosca - Add modifications for GEOS-5.7.x met fields
 !  28 Feb 2012 - R. Yantosca - Removed support for GEOS-3
-!  01 Mar 2012 - R. Yantosca - Now use GET_YEDGE(I,J,L) from grid_mod.F90
+!  01 Mar 2012 - R. Yantosca - Now use GET_YEDGE(I,J,L) from new grid_mod.F90
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -868,7 +900,7 @@
       IF ( TMA3 > 1d0 ) TMA3 = TMA3 - 1.d0
 #endif
 
-#if defined( GEOS_4 ) || defined( GCAP )
+#if   defined( GCAP )
 
       !=================================================================
       ! Do the interpolation for GEOS-4 or GCAP met fields 
@@ -905,144 +937,6 @@
       ENDDO
       ENDDO
 !$OMP END PARALLEL DO
-
-#elif defined( GEOS_5 )
-
-      !=================================================================
-      ! Do the interpolation for GEOS-5 met fields 
-      !=================================================================
-!$OMP PARALLEL DO
-!$OMP+DEFAULT( SHARED )
-!$OMP+PRIVATE( I, J, YSOUTH, YNORTH )
-      DO J = 1, JJPAR
-      DO I = 1, IIPAR
-
-         ! North & south edges of box
-         YSOUTH = GET_YEDGE( I, J,   1 )
-         YNORTH = GET_YEDGE( I, J+1, 1 )
-
-         ! Interpolate pressure [hPa] to the end of the dynamic timestep
-         PSC2(I,J) = PS1(I,J)  + ( PS2(I,J)  - PS1(I,J)  ) * TC2 
-
-         ! Interpolate the GEOS-5 total O3 column [DU] to current time
-         TO3(I,J)  = TO31(I,J) + ( TO32(I,J) - TO31(I,J) ) * TM
-
-         ! Even though TROPP is a 3-hour average field, we 
-         ! we still need to make sure to cap TROPP in the
-         ! polar regions (if the entire box is outside 60S-60N)
-         ! so that we don't do chemistry at an abnormally high
-         ! altitude.  Set TROPP in the polar regions to 200 hPa.
-         ! (jal, phs, bmy, 9/18/07)
-         IF ( LVARTROP ) THEN
-            IF ( YSOUTH >= 60d0 .or. YNORTH <= -60d0 ) THEN
-               TROPP(I,J) = MAX( TROPP(I,J), 200d0 )
-            ENDIF
-         ENDIF
-      ENDDO
-      ENDDO
-!$OMP END PARALLEL DO
-
-#elif defined( MERRA )
-
-      !=================================================================
-      ! Do the interpolation for MERRA or GEOS-5.7.x met fields 
-      !=================================================================
-!$OMP PARALLEL DO
-!$OMP+DEFAULT( SHARED )
-!$OMP+PRIVATE( I, J, L, YSOUTH, YNORTH )
-      DO L = 1, LLPAR
-      DO J = 1, JJPAR
-
-
-      DO I = 1, IIPAR
-
-         !----------------------------------------------------
-         ! Interpolate 2D variables
-         !----------------------------------------------------
-         IF ( L == 1 ) THEN
-
-            ! North & south edges of box
-            YSOUTH     = GET_YEDGE( I, J,   L )
-            YNORTH     = GET_YEDGE( I, J+1, L )
-         
-            ! Interpolate pressure [hPa] to the end of the dynamic timestep
-            PSC2(I,J)  = PS1(I,J) + ( PS2(I,J) - PS1(I,J) ) * TC2 
-
-            ! Even though TROPP is a 3-hour average field, we 
-            ! we still need to make sure to cap TROPP in the
-            ! polar regions (if the entire box is outside 60S-60N)
-            ! so that we don't do chemistry at an abnormally high
-            ! altitude.  Set TROPP in the polar regions to 200 hPa.
-            ! (jal, phs, bmy, 9/18/07)
-            IF ( LVARTROP ) THEN
-               IF ( YSOUTH >= 60d0 .or. YNORTH <= -60d0 ) THEN
-                  TROPP(I,J) = MAX( TROPP(I,J), 200d0 )
-               ENDIF
-            ENDIF
-         ENDIF
-
-         !----------------------------------------------------
-         ! Interpolate 3D variables
-         !----------------------------------------------------
-         RH(I,J,L) = RH1(I,J,L) + ( RH2(I,J,L) - RH1(I,J,L) ) * TM
-
-      ENDDO
-      ENDDO
-      ENDDO
-!$OMP END PARALLEL DO
-
-#elif defined( GEOS_57 )
-
-      !=================================================================
-      ! Do the interpolation for GEOS-5.7.x met fields 
-      !=================================================================
-!$OMP PARALLEL DO
-!$OMP+DEFAULT( SHARED )
-!$OMP+PRIVATE( I, J, L, YSOUTH, YNORTH )
-      DO L = 1, LLPAR
-      DO J = 1, JJPAR
-      DO I = 1, IIPAR
-
-         !----------------------------------------------------
-         ! Interpolate 2D variables
-         !----------------------------------------------------
-         IF ( L == 1 ) THEN
-            
-            ! North & south edges of box
-            YSOUTH     = GET_YEDGE( I, J,   L )
-            YNORTH     = GET_YEDGE( I, J+1, L )
-
-            ! Interpolate pressure [hPa] to the end of the dynamic timestep
-            PSC2(I,J)  = PS1(I,J) + ( PS2(I,J) - PS1(I,J) ) * TC2 
-
-            ! Even though TROPP is a 3-hour average field, we 
-            ! we still need to make sure to cap TROPP in the
-            ! polar regions (if the entire box is outside 60S-60N)
-            ! so that we don't do chemistry at an abnormally high
-            ! altitude.  Set TROPP in the polar regions to 200 hPa.
-            ! (jal, phs, bmy, 9/18/07)
-            IF ( LVARTROP ) THEN
-               IF ( YSOUTH >= 60d0 .or. YNORTH <= -60d0 ) THEN
-                  TROPP(I,J) = MAX( TROPP(I,J), 200d0 )
-               ENDIF
-            ENDIF
-         ENDIF
-
-         !----------------------------------------------------
-         ! Interpolate 3D variables
-         !----------------------------------------------------
-         T   (I,J,L) = TMPU1(I,J,L)
-     &               + ( TMPU2(I,J,L) - TMPU1(I,J,L) ) * TM
-
-         SPHU(I,J,L) = SPHU1(I,J,L)
-     &               + ( SPHU2(I,J,L) - SPHU1(I,J,L) ) * TM 
-
-      ENDDO
-      ENDDO
-      ENDDO
-!$OMP END PARALLEL DO
-
-#endif
 
 #if   defined( APM )
 
@@ -1140,82 +1034,10 @@
 
 #endif
 
-      END SUBROUTINE INTERP
-!EOC
-!------------------------------------------------------------------------------
-!          Harvard University Atmospheric Chemistry Modeling Group            !
-!------------------------------------------------------------------------------
-!BOP
-!
-! !IROUTINE: interp_geos4
-!
-! !DESCRIPTION: Subroutine INTERP\_GEOS4 linearly interpolates
-!  GEOS-4 met fields to the current dynamic timestep.
-!\\
-!\\
-! !INTERFACE:
-!
-      SUBROUTINE INTERP_GEOS4( NTIME0, NTIME1, NTDT )
-!
-! !USES:
-!
-      USE GRID_MOD,    ONLY : GET_YEDGE
-      USE LOGICAL_MOD, ONLY : LVARTROP
-!
-! !INPUT PARAMETERS:
-!
-      INTEGER, INTENT(IN)  :: NTIME0   ! Elapsed time [s] at start of 6hr step
-      INTEGER, INTENT(IN)  :: NTIME1   ! Elapsed time [s] at current time
-      INTEGER, INTENT(IN)  :: NTDT     ! Length of dynamic timestep [s]
-!
-! !REMARKS:
-!  Different met fields are archived at I6 (instantaneous 6-hr) time
-!  resolution depending on the specific product.  For example, relative
-!  humidity is an instantaneous 6hr field in MERRA and a 6-hr time averaged
-!  field in GEOS-5.
-!
-! !REVISION HISTORY:
-!  15 Feb 2011 - R. Yantosca - Initial version, split off from INTERP
-!  15 Feb 2011 - R. Yantosca - Added modifications for APM, from G. Luo
-!EOP
-!------------------------------------------------------------------------------
-!BOC
-!
-! !LOCAL VARIABLES:
-!
-      INTEGER :: I,        J,        L
-      REAL*8  :: D_NTIME0, D_NTIME1, D_NDT
-      REAL*8  :: D_NTDT,   TM,       TC2
-      REAL*8  :: YSOUTH,   YNORTH
-#if   defined( APM ) 
-      REAL*8  :: TMA3
-#endif
+#elif defined( GEOS_4 )
 
       !=================================================================
-      ! Initialization
-      !=================================================================
-
-      ! Convert time variables from FLOAT to DBLE
-      D_NTIME0 = DBLE( NTIME0 )
-      D_NTIME1 = DBLE( NTIME1 )
-      D_NTDT   = DBLE( NTDT   )
-      D_NDT    = 21600d0
-
-      ! Fraction of 6h timestep elapsed at mid point of this dyn timestep
-      TM  = ( D_NTIME1 + D_NTDT/2d0 - D_NTIME0 ) / D_NDT
-      
-      ! Fraction of 6h timestep elapsed at the end of this dyn timestep
-      TC2 = ( D_NTIME1 + D_NTDT     - D_NTIME0 ) / D_NDT 
-
-
-      ! Fraction of 3h timestep elapsed at mid point of this dyn timestep
-#if   defined( APM )
-      TMA3 = 2.d0 * TM
-      IF ( TMA3 > 1d0 ) TMA3 = TMA3 - 1.d0
-#endif
-
-      !=================================================================
-      ! Do the interpolation for GEOS-4 or GCAP met fields
+      ! Do the interpolation for GEOS-4 or GCAP met fields 
       !=================================================================
 !$OMP PARALLEL DO
 !$OMP+DEFAULT( SHARED )
@@ -1232,7 +1054,7 @@
 
          ! Test if we are using the variable tropopause
          IF ( LVARTROP ) THEN
- 
+               
             ! Interpolate TROPP [hPa] to the midpt of the dynamic timestep
             TROPP(I,J) = TROPP1(I,J) 
      &                 + ( TROPP2(I,J) - TROPP1(I,J) ) * TM
@@ -1246,7 +1068,7 @@
                TROPP(I,J) = MAX( TROPP(I,J), 200d0 )
             ENDIF
          ENDIF
-         ENDDO
+      ENDDO
       ENDDO
 !$OMP END PARALLEL DO
 
@@ -1341,81 +1163,10 @@
 
 #endif
 
-      END SUBROUTINE INTERP_GEOS4
-!EOC
-!------------------------------------------------------------------------------
-!          Harvard University Atmospheric Chemistry Modeling Group            !
-!------------------------------------------------------------------------------
-!BOP
-!
-! !IROUTINE: interp_geos5
-!
-! !DESCRIPTION: Subroutine INTERP\_GEOS5 linearly interpolates
-!  GEOS-5 met fields to the current dynamic timestep.
-!\\
-!\\
-! !INTERFACE:
-!
-      SUBROUTINE INTERP_GEOS5( NTIME0, NTIME1, NTDT )
-!
-! !USES:
-!
-      USE GRID_MOD,    ONLY : GET_YEDGE
-      USE LOGICAL_MOD, ONLY : LVARTROP
-!
-! !INPUT PARAMETERS:
-!
-      INTEGER, INTENT(IN)  :: NTIME0   ! Elapsed time [s] at start of 6hr step
-      INTEGER, INTENT(IN)  :: NTIME1   ! Elapsed time [s] at current time
-      INTEGER, INTENT(IN)  :: NTDT     ! Length of dynamic timestep [s]
-!
-! !REMARKS:
-!  Different met fields are archived at I6 (instantaneous 6-hr) time
-!  resolution depending on the specific product.  For example, relative
-!  humidity is an instantaneous 6hr field in MERRA and a 6-hr time averaged
-!  field in GEOS-5.
-!
-! !REVISION HISTORY:
-!  15 Feb 2011 - R. Yantosca - Initial version, split off from INTERP
-!  15 Feb 2011 - R. Yantosca - Added modifications for APM, from G. Luo
-!EOP
-!------------------------------------------------------------------------------
-!BOC
-!
-! !LOCAL VARIABLES:
-!
-      INTEGER :: I,        J,        L
-      REAL*8  :: D_NTIME0, D_NTIME1, D_NDT
-      REAL*8  :: D_NTDT,   TM,       TC2
-      REAL*8  :: YSOUTH,   YNORTH
-#if   defined( APM )
-      REAL*8  :: TMA3
-#endif
+#elif defined( GEOS_5 )
 
       !=================================================================
-      ! Initialization
-      !=================================================================
-
-      ! Convert time variables from FLOAT to DBLE
-      D_NTIME0 = DBLE( NTIME0 )
-      D_NTIME1 = DBLE( NTIME1 )
-      D_NTDT   = DBLE( NTDT   )
-      D_NDT    = 21600d0
-
-      ! Fraction of 6h timestep elapsed at mid point of this dyn timestep
-      TM  = ( D_NTIME1 + D_NTDT/2d0 - D_NTIME0 ) / D_NDT
-      
-      ! Fraction of 6h timestep elapsed at the end of this dyn timestep
-      TC2 = ( D_NTIME1 + D_NTDT     - D_NTIME0 ) / D_NDT 
-
-#if   defined( APM )
-      ! Fraction of 3h timestep elapsed at mid point of this dyn timestep
-      TMA3 = 2.d0 * TM
-      IF ( TMA3 > 1d0 ) TMA3 = TMA3 - 1.d0
-#endif
-
-      !=================================================================
-      ! Do the interpolation for GEOS-5 met fields
+      ! Do the interpolation for GEOS-5 met fields 
       !=================================================================
 !$OMP PARALLEL DO
 !$OMP+DEFAULT( SHARED )
@@ -1433,7 +1184,7 @@
          ! Interpolate the GEOS-5 total O3 column [DU] to current time
          TO3(I,J)  = TO31(I,J) + ( TO32(I,J) - TO31(I,J) ) * TM
 
-         ! Even though TROPP is a 3-hour average field, we
+         ! Even though TROPP is a 3-hour average field, we 
          ! we still need to make sure to cap TROPP in the
          ! polar regions (if the entire box is outside 60S-60N)
          ! so that we don't do chemistry at an abnormally high
@@ -1557,80 +1308,10 @@
 
 #endif
 
-      END SUBROUTINE INTERP_GEOS5
-!EOC
-!------------------------------------------------------------------------------
-!          Harvard University Atmospheric Chemistry Modeling Group            !
-!------------------------------------------------------------------------------
-!BOP
-!
-! !IROUTINE: interp_merra
-!
-! !DESCRIPTION: Subroutine INTERP\_MERRA linearly interpolates MERRA met fields
-!  to the current dynamic timestep.
-!\\
-!\\
-! !INTERFACE:
-!
-      SUBROUTINE INTERP_MERRA( NTIME0, NTIME1, NTDT )
-!
-! !USES:
-!
-      USE GRID_MOD,    ONLY : GET_YEDGE
-      USE LOGICAL_MOD, ONLY : LVARTROP
-!
-! !INPUT PARAMETERS:
-!
-      INTEGER, INTENT(IN)  :: NTIME0   ! Elapsed time [s] at start of 6hr step
-      INTEGER, INTENT(IN)  :: NTIME1   ! Elapsed time [s] at current time
-      INTEGER, INTENT(IN)  :: NTDT     ! Length of dynamic timestep [s]
-!
-! !REMARKS:
-!  Different met fields are archived at I6 (instantaneous 6-hr) time
-!  resolution depending on the specific product.  For example, relative
-!  humidity is an instantaneous 6hr field in 'MERRA' and a 6-hr time averaged
-!  field in GEOS-5.
-!
-! !REVISION HISTORY:
-!  15 Feb 2011 - R. Yantosca - Initial version, split off from INTERP
-!  15 Feb 2011 - R. Yantosca - Added modifications for APM, from G. Luo
-!EOP
-!------------------------------------------------------------------------------
-!BOC
-!
-! !LOCAL VARIABLES:
-!
-      INTEGER :: I,        J,        L
-      REAL*8  :: D_NTIME0, D_NTIME1, D_NDT
-      REAL*8  :: D_NTDT,   TM,       TC2
-      REAL*8  :: YSOUTH,   YNORTH
-#if   defined( APM )
-      REAL*8  :: TMA3
-#endif
-      !=================================================================
-      ! Initialization
-      !=================================================================
-
-      ! Convert time variables from FLOAT to DBLE
-      D_NTIME0 = DBLE( NTIME0 )
-      D_NTIME1 = DBLE( NTIME1 )
-      D_NTDT   = DBLE( NTDT   )
-      D_NDT    = 21600d0
-
-      ! Fraction of 6h timestep elapsed at mid point of this dyn timestep
-      TM  = ( D_NTIME1 + D_NTDT/2d0 - D_NTIME0 ) / D_NDT
-      
-      ! Fraction of 6h timestep elapsed at the end of this dyn timestep
-      TC2 = ( D_NTIME1 + D_NTDT     - D_NTIME0 ) / D_NDT 
-
-#if   defined( APM )
-      ! Fraction of 3h timestep elapsed at mid point of this dyn timestep
-      TMA3 = 2.d0 * TM
-      IF ( TMA3 > 1d0 ) TMA3 = TMA3 - 1.d0
-#endif
+#elif defined( MERRA )
 
       !=================================================================
-      ! Do the interpolation for 'MERRA' met fields
+      ! Do the interpolation for MERRA met fields 
       !=================================================================
 !$OMP PARALLEL DO
 !$OMP+DEFAULT( SHARED )
@@ -1645,13 +1326,13 @@
          IF ( L == 1 ) THEN
 
             ! North & south edges of box
-            YSOUTH = GET_YEDGE( I, J,   1 )
-            YNORTH = GET_YEDGE( I, J+1, 1 )
-         
+            YSOUTH     = GET_YEDGE( I, J,   L )
+            YNORTH     = GET_YEDGE( I, J+1, L )
+            
             ! Interpolate pressure [hPa] to the end of the dynamic timestep
             PSC2(I,J)  = PS1(I,J) + ( PS2(I,J) - PS1(I,J) ) * TC2 
 
-            ! Even though TROPP is a 3-hour average field, we
+            ! Even though TROPP is a 3-hour average field, we 
             ! we still need to make sure to cap TROPP in the
             ! polar regions (if the entire box is outside 60S-60N)
             ! so that we don't do chemistry at an abnormally high
@@ -1712,7 +1393,7 @@
          VWND(I,J,L)     = VWND0a(I,J,L)
      &                   + ( VWND0b(I,J,L)     - VWND0a(I,J,L)     )*TM
 
-         ! %%% GEOS-5-specific fields %%%
+         ! %%% MERRA-specific fields %%%
 
          CMFMC(I,J,L)    = CMFMC0a(I,J,L)
      &                   + ( CMFMC0b(I,J,L)    - CMFMC0a(I,J,L)    )*TM
@@ -1782,7 +1463,158 @@
 !$OMP END PARALLEL DO
 
 #endif
-      END SUBROUTINE INTERP_MERRA
+
+#elif defined( GEOS_57 )
+
+      !=================================================================
+      ! Do the interpolation for GEOS-5.7.x met fields 
+      !=================================================================
+!$OMP PARALLEL DO
+!$OMP+DEFAULT( SHARED )
+!$OMP+PRIVATE( I, J, L, YSOUTH, YNORTH )
+      DO L = 1, LLPAR
+      DO J = 1, JJPAR
+      DO I = 1, IIPAR
+
+         !----------------------------------------------------
+         ! Interpolate 2D variables
+         !----------------------------------------------------
+         IF ( L == 1 ) THEN
+
+            ! North & south edges of box
+            YSOUTH     = GET_YEDGE( I, J,   L )
+            YNORTH     = GET_YEDGE( I, J+1, L )
+
+            ! Interpolate pressure [hPa] to the end of the dynamic timestep
+            PSC2(I,J)  = PS1(I,J) + ( PS2(I,J) - PS1(I,J) ) * TC2 
+
+            ! Even though TROPP is a 3-hour average field, we 
+            ! we still need to make sure to cap TROPP in the
+            ! polar regions (if the entire box is outside 60S-60N)
+            ! so that we don't do chemistry at an abnormally high
+            ! altitude.  Set TROPP in the polar regions to 200 hPa.
+            ! (jal, phs, bmy, 9/18/07)
+            IF ( LVARTROP ) THEN
+               IF ( YSOUTH >= 60d0 .or. YNORTH <= -60d0 ) THEN
+                  TROPP(I,J) = MAX( TROPP(I,J), 200d0 )
+               ENDIF
+            ENDIF
+         ENDIF
+
+         !----------------------------------------------------
+         ! Interpolate 3D variables
+         !----------------------------------------------------
+         T   (I,J,L) = TMPU1(I,J,L)
+     &               + ( TMPU2(I,J,L) - TMPU1(I,J,L) ) * TM
+
+         SPHU(I,J,L) = SPHU1(I,J,L)
+     &               + ( SPHU2(I,J,L) - SPHU1(I,J,L) ) * TM 
+
+      ENDDO
+      ENDDO
+      ENDDO
+!$OMP END PARALLEL DO
+
+#if   defined( APM )
+
+      !=================================================================
+      ! Interpolate 3D fields for APM microphysics
+      !=================================================================
+!$OMP PARALLEL DO
+!$OMP+DEFAULT( SHARED )
+!$OMP+PRIVATE( I, J, L )
+      DO L = 1, LLPAR
+      DO J = 1, JJPAR
+      DO I = 1, IIPAR
+
+         ! %%% Common fields %%%
+
+         CLDF(L,I,J)     = CLDF0a(L,I,J)+
+     &                     ( CLDF0b(L,I,J)     - CLDF0a(L,I,J)     )*TM
+
+         OPTDEP(L,I,J)   = OPTDEP0a(L,I,J)
+     &                   + ( OPTDEP0b(L,I,J)   - OPTDEP0a(L,I,J)   )*TM
+
+         RH(I,J,L)       = RH0a(I,J,L)
+     &                   + ( RH0b(I,J,L)       - RH0a(I,J,L)       )*TM
+ 
+         SPHU(I,J,L)     = SPHU0a(I,J,L)
+     &                   + ( SPHU0b(I,J,L)     - SPHU0a(I,J,L)     )*TM
+
+         T(I,J,L)        = T0a(I,J,L) 
+     &                   + ( T0b(I,J,L)        - T0a(I,J,L)        )*TM
+
+         UWND(I,J,L)     = UWND0a(I,J,L)
+     &                   + ( UWND0b(I,J,L)     - UWND0a(I,J,L)     )*TM
+
+         VWND(I,J,L)     = VWND0a(I,J,L)
+     &                   + ( VWND0b(I,J,L)     - VWND0a(I,J,L)     )*TM
+
+         ! %%% GEOS-5.7-specific fields %%%
+
+         CMFMC(I,J,L)    = CMFMC0a(I,J,L)
+     &                   + ( CMFMC0b(I,J,L)    - CMFMC0a(I,J,L)    )*TM
+
+         DQRCON(I,J,L)   = DQRCON0a(I,J,L)
+     &                   + ( DQRCON0b(I,J,L)   - DQRCON0a(I,J,L)   )*TM
+         
+         DQRLSC(I,J,L)   = DQRLSC0a(I,J,L)
+     &                   + ( DQRLSC0b(I,J,L)   - DQRLSC0a(I,J,L)   )*TM
+
+         PV(I,J,L)       = PV0a(I,J,L)
+     &                   + (PV0b(I,J,L)        - PV0a(I,J,L)       )*TM
+
+         QI(I,J,L)       = QI0a(I,J,L)
+     &                   + ( QI0b(I,J,L)       - QI0a(I,J,L)       )*TM
+
+         QL(I,J,L)       = QL0a(I,J,L)       
+     &                   + (QL0b(I,J,L)        - QL0a(I,J,L)       )*TM
+
+         TAUCLI(I,J,L)   = TAUCLI0a(I,J,L)
+     &                   + ( TAUCLI0b(I,J,L)   - TAUCLI0a(I,J,L)   )*TM
+
+         TAUCLW(I,J,L)   = TAUCLW0a(I,J,L)
+     &                     + ( TAUCLW0b(I,J,L) - TAUCLW0a(I,J,L)   )*TM
+
+      ENDDO
+      ENDDO
+      ENDDO
+!$OMP END PARALLEL DO
+
+      !=================================================================
+      ! Interpolate 2D fields for APM microphysics
+      !=================================================================
+      
+      ! We need to interpolate the LLPAR+1st level of CMFMC
+      L = LLPAR+1
+
+!$OMP PARALLEL DO
+!$OMP+DEFAULT( SHARED )
+!$OMP+PRIVATE( I, J )
+      DO J = 1, JJPAR
+      DO I = 1, IIPAR
+
+         CMFMC(I,J,L) = CMFMC0a(I,J,L)
+     &                + ( CMFMC0b(I,J,L) - CMFMC0a(I,J,L) ) * TM
+
+         CLDTOPS(I,J) = CLDTOPS0a(I,J)
+     &                + ( CLDTOPS0b(I,J) - CLDTOPS0a(I,J) ) * TM
+
+         CLDFRC(I,J)  = CLDFRC0a(I,J)
+     &                + ( CLDFRC0b(I,J)  - CLDFRC0a(I,J)  ) * TM
+                       
+         PBL(I,J)     = PBL0a(I,J) 
+     &                + ( PBL0b(I,J)     - PBL0a(I,J)     ) * TMA3
+      
+      ENDDO
+      ENDDO
+!$OMP END PARALLEL DO
+
+#endif
+
+#endif
+
+      END SUBROUTINE INTERP
 !EOC
 !------------------------------------------------------------------------------
 !          Harvard University Atmospheric Chemistry Modeling Group            !
@@ -2621,7 +2453,6 @@
       !=================================================================
       ! Compute cosine of solar zenith angle
       !=================================================================
-
 !$OMP PARALLEL DO
 !$OMP+DEFAULT( SHARED )
 !$OMP+PRIVATE( I, J, YMID_R, S_YMID_R, C_YMID_R, IJLOOP, TIMLOC, AHR )
@@ -2903,9 +2734,9 @@
 
 #elif defined( MERRA )
 
-      !-----------------
+      !------------------
       ! MERRA met
-      !-----------------
+      !------------------
       PS1    = PS2          ! I6 surface pressure    [hPa]
       RH1    = RH2          ! I6 relative humidity   [%]
 
@@ -3131,6 +2962,12 @@
       IF ( AS /= 0 ) CALL ALLOC_ERR( 'TROPP2' )
       TROPP2 = 0d0
 
+      ! NOTE: Allocate this here, it will always be 0 for GCAP
+      ! (bmy, 3/6/12)
+      ALLOCATE( TO3( IIPAR, JJPAR ), STAT=AS )
+      IF ( AS /= 0 ) CALL ALLOC_ERR( 'TO3' )
+      TO3 = 0d0
+
       !=================================================================
       ! Constant fields
       !=================================================================
@@ -3275,6 +3112,10 @@
       !=================================================================
       ! A-3 fields
       !=================================================================
+
+      ALLOCATE( ALBD( IIPAR, JJPAR ), STAT=AS )
+      IF ( AS /= 0 ) CALL ALLOC_ERR( 'ALBD' )
+      ALBD = 0d0
 
       ALLOCATE( CLDFRC( IIPAR, JJPAR ), STAT=AS )
       IF ( AS /= 0 ) CALL ALLOC_ERR( 'CLDFRC' )
@@ -3444,6 +3285,12 @@
       IF ( AS /= 0 ) CALL ALLOC_ERR( 'TROPP2' )
       TROPP2 = 0d0
 
+      ! NOTE: Allocate this here, it will always be 0 for GEOS-4
+      ! (bmy, 3/6/12)
+      ALLOCATE( TO3( IIPAR, JJPAR ), STAT=AS )
+      IF ( AS /= 0 ) CALL ALLOC_ERR( 'TO3' )
+      TO3 = 0d0
+
 #if   defined( APM )
 
       !-----------------------------------------------------------------
@@ -3539,6 +3386,7 @@
 !
 ! !REVISION HISTORY:
 !  06 Feb 2012 - R. Yantosca - Split off GEOS-5 init from routine INIT_DAO
+!  06 Mar 2012 - R. Yantosca - Move TO3 to INIT_GEOS3_DERIVED
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -4337,6 +4185,12 @@
       IF ( AS /= 0 ) CALL ALLOC_ERR( 'TMPU2' )
       TMPU2 = 0d0
 
+      ! NOTE: Allocate this here, it will always be 0 for GEOS_5.7.x
+      ! (bmy, 3/6/12)
+      ALLOCATE( TO3( IIPAR, JJPAR ), STAT=AS )
+      IF ( AS /= 0 ) CALL ALLOC_ERR( 'TO3' )
+      TO3 = 0d0
+
 #if   defined( APM )
 
       !-----------------------------------------------------------------
@@ -4522,6 +4376,7 @@
 !
 ! !REVISION HISTORY:
 !  06 Feb 2012 - R. Yantosca - Split off MERRA init from routine INIT_DAO
+!  17 Apr 2012 - R. Yantosca - Bug fix: allocate ALBD array (it was omitted)
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -4533,6 +4388,10 @@
       !=================================================================
       ! A1 fields
       !=================================================================
+
+      ALLOCATE( ALBD( IIPAR, JJPAR ), STAT=AS )
+      IF ( AS /= 0 ) CALL ALLOC_ERR( 'ALBD' )
+      ALBD = 0d0
 
       ALLOCATE( CLDFRC( IIPAR, JJPAR ), STAT=AS )
       IF ( AS /= 0 ) CALL ALLOC_ERR( 'CLDFRC' )
@@ -4857,6 +4716,12 @@
       ALLOCATE( RH2( IIPAR, JJPAR, LLPAR ), STAT=AS )
       IF ( AS /= 0 ) CALL ALLOC_ERR( 'RH2' )
       RH2 = 0d0
+
+      ! NOTE: Allocate this here, it will always be 0 for MERRA
+      ! (bmy, 3/6/12)
+      ALLOCATE( TO3( IIPAR, JJPAR ), STAT=AS )
+      IF ( AS /= 0 ) CALL ALLOC_ERR( 'TO3' )
+      TO3 = 0d0
 
 #if   defined( APM )
 
