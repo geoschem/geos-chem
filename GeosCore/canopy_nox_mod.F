@@ -174,7 +174,7 @@
       		CALL READ_RESISTANCES
 		FIRSTCANOPY = .FALSE. ! Now only read resistances once
 	 ENDIF
-       
+
       ! Loop over surface boxes
       DO J = 1, JJPAR
       DO I = 1, IIPAR

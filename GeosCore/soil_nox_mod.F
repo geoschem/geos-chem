@@ -215,11 +215,8 @@ C     &                                             0.05d0           /)
 
       ! Scale factor so that fertilizer emission = 1.8 Tg N/yr 
       ! before canopy reduction
-#if   defined( GRID4x5  ) 
-      REAL*8, PARAMETER :: FERT_SCALE = 1.  ! not correct
-#elif defined( GRID2x25 )
       REAL*8, PARAMETER :: FERT_SCALE = 0.0068 
-#endif
+	!For now use 2x2.5 value for all scales
 
       CONTAINS
 !EOC
@@ -266,7 +263,7 @@ C     &                                             0.05d0           /)
       REAL*8  :: GWET        ! Top soil wetness [unitless]
       REAL*8  :: DEPN        ! Dry Dep Fert term [ng N/m2/s]
       REAL*8  :: SOILFRT     ! Fertilizer emissions [ng N/m2/s]
-      REAL*4  :: CLIM(L)        ! Arid/SemiArid = 1
+      REAL*4  :: CLIM(:)     ! CLIM(1), arid fraction, CLIM(2), non-arid fraction
       REAL*4  :: LANDFRAC(:)    ! Fraction of landtypes
       INTEGER :: I ! Temporary
       INTEGER :: J ! Temporary
@@ -587,7 +584,7 @@ C     &                                             0.05d0           /)
 
       ! Soil land type index
       !INTEGER, INTENT(IN) :: NN            
-      INTEGER, INTENT(IN) :: CLIM(:)       
+      REAL*4, INTENT(IN) :: CLIM(:)       
 
       ! Top soil wetness [unitless]
       REAL*8,  INTENT(IN) :: GWET 

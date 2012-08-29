@@ -258,6 +258,7 @@
          ! Now need to call GET_CANOPY_NOX to break ugly dependency between
          ! drydep and soil NOx emissions. (bmy, 6/22/09) 
          ! Compute the CANOPYNOX array in commsoil.h
+
          CALL GET_CANOPY_NOX
                
          !Get day of year/month and timestep information
@@ -271,6 +272,7 @@
            ! Get Lat/Lon maasa
             LAT     = GET_YMID( I,J,1 ) !Maasa
             LON     = GET_XMID( I,J,1 ) !Just for testing maasa
+            IJLOOP = ( (J-1) * IIPAR ) + I 
 
 
             ! Get Deposited Fertilizer
@@ -290,8 +292,6 @@
             !avoid unrealistic pulse
             IF ( DRYPERIOD(I,J) .GT. 8760.) DRYPERIOD(I,J) = 8760.
  
- 
- 
             ! Return NOx emission from soils [molec/cm2/s]
             CALL SOIL_NOX_EMISSION( TS_EMIS, TS(I,J), GWETTOP(I,J),
      &                              SOILFRT,  
@@ -301,7 +301,7 @@
      &                              GEMISNOX2(I,J),
      &                              DEP_FERT, 
      &                              FERTDIAG, 
-     &                              CLIM(I,J),
+     &                              CLIM(I,J,:),
      &                              LAND2(I,J,:),
      &                              RC, I, J, 
      &                              SUNCOS_MID(IJLOOP),
