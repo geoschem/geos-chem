@@ -851,8 +851,6 @@
                !jpp, 2/12/08: putting a call to SET_CH3Br
                !              which is in bromocarb_mod.f
                !       ***** Fix CH3Br Concentration in PBL *****
-               ! Kludge: eventually I want to keep the concentration
-               !         entirely fixed! Ask around on how to...
                !========================================================
                IF ( LEMIS .and. ( IDTCH3Br > 0 ) )
      &            CALL SET_CH3Br( N_TRACERS, TCVV, AD, STT, 
