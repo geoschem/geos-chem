@@ -5206,7 +5206,7 @@
       USE EPA_NEI_MOD,        ONLY : GET_EPA_ANTHRO, GET_EPA_BIOFUEL
       USE EPA_NEI_MOD,        ONLY : GET_USA_MASK
       USE ERROR_MOD,          ONLY : ERROR_STOP
-      USE LOGICAL_MOD,        ONLY : LNEI99, LCAC, LNEI05
+      USE LOGICAL_MOD,        ONLY : LNEI99, LCAC, LNEI05, LRCP
       USE PBL_MIX_MOD,        ONLY : GET_FRAC_OF_PBL, GET_PBL_TOP_L
       USE TIME_MOD,           ONLY : GET_DAY_OF_WEEK, GET_TS_EMIS
       USE TRACER_MOD,         ONLY : XNUMOL
@@ -5314,6 +5314,11 @@
             ! regular ENH3_an and ENH3_bf to local arrays. (bmy, 11/16/04)
             NH3an(I,J,1) = ENH3_an(I,J)
             NH3bf(I,J)   = ENH3_bf(I,J)
+            
+            ! The RCP anthropogenic emission inventory already includes
+            ! biofuel emissions, so we turn off the additional biofuel 
+            ! inventory (cdh, 8/31/12)
+            IF ( LRCP ) NH3bf(I,J) = 0d0 
             
             !-----------------------------------------------------------------
             ! NOTE: There seems to be some problems with the EPA/NEI NH3 
@@ -7220,7 +7225,7 @@
                ENH3_an(I,J) = GET_RCP_EMISSION( I, J, IDTNH3,  
      &                                          LAND=.TRUE. )
                
-               ! Convert molec/cm2/s -> kg SO2/BOX/s
+               ! Convert molec/cm2/s -> kg NH3/BOX/s
                ENH3_an(I,J) = ENH3_an(I,J) * AREA_CM2 / XNUMOL(IDTNH3)
                
             ENDDO 
@@ -7249,52 +7254,53 @@
          ! Cast from REAL*4 to REAL*8
          CALL TRANSFER_2D( ARRAY(:,:,1), ENH3_an )
 
+         ! Convert from [kg N/box/mon] to [kg NH3/box/s]
+         ENH3_an = ENH3_an * ( 17.d0 / 14.d0 ) 
+     &             / ( NMDAY(THISMONTH) * 86400.d0 )
+
+
+      ENDIF
+
 !$OMP PARALLEL DO
 !$OMP+DEFAULT( SHARED )
 !$OMP+PRIVATE( I, J, STREETS )
-         DO J = 1, JJPAR
-         DO I = 1, IIPAR
+      DO J = 1, JJPAR
+      DO I = 1, IIPAR
 
-            ! Convert from [kg N/box/mon] to [kg NH3/box/s]
-            ENH3_an(I,J) = ENH3_an(I,J) * ( 17.d0 / 14.d0 ) 
-     &                   / ( NMDAY(THISMONTH) * 86400.d0 )
+         ! Compute future NH3an emissions, if necessary
+         ! Moved here since Streets and EMEP should have already
+         ! applied FUTURE scale factors if needed 
+         IF ( LFUTURE ) THEN
+            ENH3_an(I,J) = ENH3_an(I,J) *
+     &                     GET_FUTURE_SCALE_NH3an( I, J )
+         ENDIF
 
-            ! Compute future NH3an emissions, if necessary
-            ! Moved here since Streets and EMEP should have already
-            ! applied FUTURE scale factors if needed 
-            IF ( LFUTURE ) THEN
-               ENH3_an(I,J) = ENH3_an(I,J) *
-     &                        GET_FUTURE_SCALE_NH3an( I, J )
-            ENDIF
+         ! If we are using David Streets' emissions ...
+         IF ( LSTREETS ) THEN
 
-            ! If we are using David Streets' emissions ...
-            IF ( LSTREETS ) THEN
+            ! If we are over the SE Asia region ...
+            IF ( GET_SE_ASIA_MASK( I, J ) > 0d0  ) THEN
 
-               ! If we are over the SE Asia region ...
-               IF ( GET_SE_ASIA_MASK( I, J ) > 0d0  ) THEN
+               ! Overwrite with David Streets emissions if available
+               ! [kg NH3/s]
+               STREETS = GET_STREETS_ANTHRO( I,      J, 
+     &                                       IDTNH3, KG_S=.TRUE.)
 
-                  ! Overwrite with David Streets emissions if available
-                  ! [kg NH3/s]
-                  STREETS = GET_STREETS_ANTHRO( I,      J, 
-     &                                          IDTNH3, KG_S=.TRUE.)
-
-                  IF ( .not. ( STREETS < 0d0 ) )
-     $                 ENH3_an(I,J) = STREETS
+               IF ( .not. ( STREETS < 0d0 ) )
+     $              ENH3_an(I,J) = STREETS
                
-               ENDIF
             ENDIF
+         ENDIF
 
-            IF ( LEMEP ) THEN
-               IF ( GET_EUROPE_MASK(I,J) > 0d0) THEN
-                  ENH3_an(I,J) = GET_EMEP_ANTHRO(I,J,IDTNH3,KG_S=.TRUE.)
-               ENDIF
+         IF ( LEMEP ) THEN
+            IF ( GET_EUROPE_MASK(I,J) > 0d0) THEN
+               ENH3_an(I,J) = GET_EMEP_ANTHRO(I,J,IDTNH3,KG_S=.TRUE.)
             ENDIF
+         ENDIF
 
-         ENDDO
-         ENDDO
+      ENDDO
+      ENDDO
 !$OMP END PARALLEL DO
-
-      ENDIF
 
       ! Return to calling program
       END SUBROUTINE READ_ANTHRO_NH3
