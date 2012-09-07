@@ -96,6 +96,8 @@
 !  23 Apr 2012 - R. Yantosca - Cosmetic changes
 !  29 May 2012 - S. Kim      - Added SEAC4RS C-preprocessor switch
 !  10 Jun 2012 - L. Murray   - GRIDREDUCED no longer required for GEOS5.
+!  07 Sep 2012 - R. Yantosca - Removed EXTERNAL_GRID, EXTERNAL_FORCING, these
+!                              will now be set in the Makefile_header.mk
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -138,7 +140,6 @@
 #define GEOS_5           'GEOS_5'
 !#define MERRA            'MERRA'
 !#define GEOS_57          'GEOS_57'
-!#define EXTERNAL_FORCING 'EXTERNAL_FORCING'
 
 !----- Grid sizes -----
 !#define NESTED_CH        'NESTED_CH'
@@ -152,7 +153,6 @@
 !#define GRID2x25         'GRID2x25'
 #define GRID4x5          'GRID4x5'
 #define GRIDREDUCED      'GRIDREDUCED'
-!#define EXTERNAL_GRID    'EXTERNAL_GRID'
 
 !----- Compilers -----
 !#define IBM_AIX          'IBM_AIX'
