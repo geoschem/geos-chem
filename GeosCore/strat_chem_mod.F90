@@ -78,9 +78,9 @@ MODULE STRAT_CHEM_MOD
   INTEGER              :: NSCHEM          ! Number of species upon which to 
                                           ! apply P's & k's in GEOS-Chem
   ! Arrays
-  REAL*8,  ALLOCATABLE :: PROD(:,:,:,:)   ! Production rate [v/v/s]
-  REAL*8,  ALLOCATABLE :: LOSS(:,:,:,:)   ! Loss frequency [s-1]
-  REAL*8,  ALLOCATABLE :: STRAT_OH(:,:,:) ! Monthly mean OH [v/v]
+  REAL*8,  ALLOCATABLE, TARGET :: PROD(:,:,:,:)   ! Production rate [v/v/s]
+  REAL*8,  ALLOCATABLE, TARGET :: LOSS(:,:,:,:)   ! Loss frequency [s-1]
+  REAL*8,  ALLOCATABLE, TARGET :: STRAT_OH(:,:,:) ! Monthly mean OH [v/v]
 
   CHARACTER(LEN=16)    :: GMI_TrName(NTR_GMI)     ! Tracer names in GMI
   INTEGER              :: Strat_TrID_GC(NTR_GMI)  ! Maps 1:NSCHEM to STT index
@@ -809,6 +809,9 @@ CONTAINS
     REAL*4             :: ARRAY       ( IIPAR, JJPAR, LGLOB    )
     REAL*8             :: ARRAY2      ( IIPAR, JJPAR, LLPAR    )
 
+    ! Pointers
+    REAL*8, POINTER    :: ptr_3D(:,:,:)
+
     !=================================================================
     ! GET_RATES_INTERP begins here
     !=================================================================
@@ -873,8 +876,14 @@ CONTAINS
     ENDDO
     ENDDO
     call NcCl( fileID )
-    call transfer_3D( array, array2 )
-    STRAT_OH(:,:,:) = ARRAY2
+!############################################
+!### Prior to 9/6/12:
+!###    call transfer_3D( array, array2 )
+!###    STRAT_OH(:,:,:) = ARRAY2
+!############################################
+    ptr_3D => STRAT_OH
+    call transfer_3D( array, ptr_3D )
+    NULLIFY( ptr_3D )
 
     !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
     ! Get Bry concentrations [ppt]
@@ -961,9 +970,14 @@ CONTAINS
        ENDDO
 
        ! Cast from REAL*4 to REAL*8 and resize to 1:LLPAR if necessary
-       call transfer_3D( array, array2 )
-
-       PROD(:,:,:,N) = ARRAY2
+!##############################################################################
+!###       call transfer_3D( array, array2 )
+!###
+!###       PROD(:,:,:,N) = ARRAY2
+!##############################################################################
+       ptr_3D => PROD(:,:,:,N)
+       call transfer_3D( array, ptr_3D )
+       NULLIFY( ptr_3D )
 
        ! Special adjustment for Br2 tracer, which is BrCl in the strat
        IF ( TRIM(TRACER_NAME(Strat_TrID_GC(N))) .eq. 'Br2' ) &
@@ -986,9 +1000,14 @@ CONTAINS
        ENDDO
 
        ! Cast from REAL*4 to REAL*8 and resize to 1:LLPAR if necessary
+!##############################################################################
+!###       call transfer_3D( array, array2 )
+!###
+!###       LOSS(:,:,:,N) = ARRAY2
+!##############################################################################
+       ptr_3d => LOSS(:,:,:,N)
        call transfer_3D( array, array2 )
-
-       LOSS(:,:,:,N) = ARRAY2
+       NULLIFY( ptr_3D )
 
        !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
        ! Close species file
