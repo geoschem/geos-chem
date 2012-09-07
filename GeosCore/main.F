@@ -1007,7 +1007,8 @@
 
          ! Check STT (yxw)   
 #if   defined( GEOS_5 ) && defined( GRID05x0666 )
-         CALL CHECK_STT_05x0666( 'after chemistry' )
+         !CALL CHECK_STT_05x0666( 'after chemistry' )
+         CALL CHECK_STT_05x0666( 'end of chem section, before wetdep' )
 #endif 
 
          !==============================================================
