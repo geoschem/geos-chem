@@ -176,8 +176,12 @@
 !     &           '4x5/OCPO_ctm.bpch'
 
       ! Qiaoqiao's one-year (2008) OC and BC run:
-      FILENAME = '/net/fs05/d1/geosdata/data/GEOS_4x5/PAHs_2004/' //
-     &           '4x5/Qiaoqiao_OCBC/OCPO_2008_ctm.bpch'
+!      FILENAME = '/net/fs03/d0/geosdata/data/GCAP_4x5/PAHs_2004/' //
+!     &           'Qiaoqiao_OCBC/OCPO_2008_GCAP_ctm.bpch'
+
+      ! My full-chem OC/BC aerosol simulations:
+      FILENAME = '/net/fs03/d0/geosdata/data/GEOS_4x5/PAHs_2004/' //
+     &           '4x5/CLF_fullchem/OCPO_FC_4x5.bpch'
 
 !      If we want to read in from the input file:
 !      FILENAME = TRIM( OC_DIR ) // 'OC_3Dglobal.' // GET_NAME_EXT() // 
@@ -189,46 +193,46 @@
 
       ! Get the TAU0 value for the start of the given month
       ! Assume "generic" year 1985 (TAU0 = [0, 744, ... 8016])
-!      XTAU = GET_TAU0( THISMONTH, 1, THISYEAR )
+      XTAU = GET_TAU0( THISMONTH, 1, THISYEAR )
 !      XTAU = XTAU + 175320d0
 
-      IF (THISMONTH .eq. 1) THEN
-         XTAU = 201600.00
+!      IF (THISMONTH .eq. 1) THEN
+!         XTAU = 201600.00
 
-      ELSE IF (THISMONTH .eq. 2) THEN
-         XTAU = 202344.00
+!      ELSE IF (THISMONTH .eq. 2) THEN
+!         XTAU = 202344.00
 
-      ELSE IF (THISMONTH .eq. 3) THEN
-         XTAU = 203040.00
+!      ELSE IF (THISMONTH .eq. 3) THEN
+!         XTAU = 203040.00
 
-      ELSE IF (THISMONTH .eq. 4) THEN
-         XTAU = 203784.00
+!      ELSE IF (THISMONTH .eq. 4) THEN
+!         XTAU = 203784.00
 
-      ELSE IF (THISMONTH .eq. 5) THEN
-         XTAU = 204504.00
+!      ELSE IF (THISMONTH .eq. 5) THEN
+!         XTAU = 204504.00
 
-      ELSE IF (THISMONTH .eq. 6) THEN
-         XTAU = 205248.00
+!      ELSE IF (THISMONTH .eq. 6) THEN
+!         XTAU = 205248.00
 
-      ELSE IF (THISMONTH .eq. 7) THEN
-         XTAU = 205968.00
+!      ELSE IF (THISMONTH .eq. 7) THEN
+!         XTAU = 205968.00
 
-      ELSE IF (THISMONTH .eq. 8) THEN
-         XTAU = 206712.00
+!      ELSE IF (THISMONTH .eq. 8) THEN
+!         XTAU = 206712.00
 
-      ELSE IF (THISMONTH .eq. 9) THEN
-         XTAU = 207456.00
+!      ELSE IF (THISMONTH .eq. 9) THEN
+!         XTAU = 207456.00
 
-      ELSE IF (THISMONTH .eq. 10) THEN
-         XTAU = 208176.00
+!      ELSE IF (THISMONTH .eq. 10) THEN
+!         XTAU = 208176.00
 
-      ELSE IF (THISMONTH .eq. 11) THEN
-         XTAU = 208920.00
+!      ELSE IF (THISMONTH .eq. 11) THEN
+!         XTAU = 208920.00
 
-      ELSE IF (THISMONTH .eq. 12) THEN
-         XTAU = 209640.00
+!      ELSE IF (THISMONTH .eq. 12) THEN
+!         XTAU = 209640.00
 
-      ENDIF
+!      ENDIF
 
       WRITE (6, *) 'XTAU = ', XTAU
 
@@ -246,7 +250,7 @@
 !     &                 XTAU,      IGLOB,     JGLOB,      
 !     &                 LGLOB,     ARRAY,     QUIET=.FALSE. )
 
-      ! From Qiaoqia's run:
+      ! From Qiaoqiao's or CLF's run:
       CALL READ_BPCH2( FILENAME, 'IJ-24H-$', 14,     
      &                 XTAU,      IGLOB,     JGLOB,      
      &                 LGLOB,     ARRAY,     QUIET=.FALSE. )
