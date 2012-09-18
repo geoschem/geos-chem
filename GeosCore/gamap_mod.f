@@ -3432,7 +3432,7 @@
       ! POPS (ND53) clf (03/22/11)
       !-----------------------------------
       IF ( ND53 > 0 ) THEN
-         NTRAC(53)  = T
+         NTRAC(53)  = PD53
 
          ! Loop over tracers
          DO T = 1, PD53
@@ -3480,6 +3480,14 @@
                CASE( 9  )
                   NAME (T,53) = 'POPG'
                   FNAME(T,53) = 'POPG oxidized by OH'
+                  INDEX(T,53) = T + ( SPACING * 53 )
+               CASE( 10  )
+                  NAME (T,53) = 'POPPOC'
+                  FNAME(T,53) = 'POPPOC oxidized by O3'
+                  INDEX(T,53) = T + ( SPACING * 53 )
+               CASE( 11  )
+                  NAME (T,53) = 'POPPBC'
+                  FNAME(T,53) = 'POPPBC oxidized by O3'
                   INDEX(T,53) = T + ( SPACING * 53 )
             END SELECT
          ENDDO
