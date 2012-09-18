@@ -149,6 +149,7 @@
       USE DRYDEP_MOD,    ONLY : DEPSAV
       USE ERROR_MOD,     ONLY : DEBUG_MSG
       USE GLOBAL_OH_MOD, ONLY : GET_GLOBAL_OH
+      USE GLOBAL_O3_MOD, ONLY : GET_GLOBAL_O3 !clf, 6/27/2011
       USE GLOBAL_OC_MOD, ONLY : GET_GLOBAL_OC !clf, 1/20/2011
       USE GLOBAL_BC_MOD, ONLY : GET_GLOBAL_BC !clf, 1/20/2011
       USE PBL_MIX_MOD,   ONLY : GET_PBL_MAX_L
@@ -207,10 +208,13 @@
          ! Get the current year
          YEAR = GET_YEAR()
 
-         ! Read monthly mean OH from disk
-         
+         ! Read monthly mean OH from disk [molecule/cm3]         
          CALL GET_GLOBAL_OH( MONTH)
          IF ( LPRT ) CALL DEBUG_MSG( '### CHEMPOPS: a GET_GLOBAL_OH' )
+
+         ! Read monthly mean O3 from disk [molecule/cm3]
+         CALL GET_GLOBAL_O3( MONTH )
+         IF ( LPRT ) CALL DEBUG_MSG( '### CHEMPOPS: a GET_GLOBAL_O3' )
 
          ! Read monthly OC from disk
          ! Do this in EMISSPOPS now
@@ -334,6 +338,7 @@
       USE DIAG53_MOD,   ONLY : AD53_PG_OC_NEG, AD53_PG_BC_NEG
       USE DIAG53_MOD,   ONLY : AD53_PG_OC_POS, AD53_PG_BC_POS
       USE DIAG53_MOD,   ONLY : ND53,       LD53,       AD53_POPG_OH
+      USE DIAG53_MOD,   ONLY : AD53_POPP_OC_O3,        AD53_POPP_BC_O3
       USE TIME_MOD,     ONLY : GET_TS_CHEM
       USE DIAG_MOD,     ONLY : AD44
       USE LOGICAL_MOD,  ONLY : LNLPBL,     LGTMM
@@ -403,19 +408,21 @@
       REAL*8                :: KOC_BC_T,     KBC_OC_T
       REAL*8                :: TK
       REAL*8                :: AREA_CM2
-      REAL*8                :: F_PBL
+      REAL*8                :: F_PBL,        C_O3
       REAL*8                :: C_OH,         C_OC_CHEM,   C_BC_CHEM
       REAL*8                :: C_OC_CHEM1,   C_BC_CHEM1
-      REAL*8                :: K_OH,         AIR_VOL
+      REAL*8                :: K_OH,         AIR_VOL,     K_O3
       REAL*8                :: K_OX
-      REAL*8                :: E_KOX_T
+      REAL*8                :: E_KOX_T,       E_KOX_T_P
       REAL*8                :: K_DEPG,        K_DEPP_OC,   K_DEPP_BC
       REAL*8                :: OLD_POPG,      OLD_POPP_OC, OLD_POPP_BC
       REAL*8                :: NEW_POPG,      NEW_POPP_OC, NEW_POPP_BC
       REAL*8                :: POPG_BL,       POPP_OC_BL,  POPP_BC_BL
       REAL*8                :: POPG_FT,       POPP_OC_FT,  POPP_BC_FT
       REAL*8                :: TMP_POPG,      TMP_OX
+      REAL*8                :: TMP_POPP_OC,   TMP_POPP_BC
       REAL*8                :: GROSS_OX,      GROSS_OX_OH, NET_OX
+      REAL*8                :: GROSS_OX_OC,   GROSS_OX_BC
       REAL*8                :: DEP_POPG,      DEP_POPP_OC, DEP_POPP_BC
       REAL*8                :: DEP_POPG_DRY,  DEP_POPP_OC_DRY
       REAL*8                :: DEP_POPP_BC_DRY
@@ -430,6 +437,8 @@
       REAL*8                :: DIFF_G,        DIFF_OC,     DIFF_BC
       REAL*8                :: OC_AIR_RATIO,  OC_BC_RATIO, BC_AIR_RATIO
       REAL*8                :: BC_OC_RATIO,   SUM_DIFF
+      REAL*8                :: TMP_OX_P_OC,   TMP_OX_P_BC
+      REAL*8                :: NET_OX_OC,     NET_OX_BC
 
       ! Delta H for POP [kJ/mol]. Delta H is enthalpy of phase transfer
       ! from gas phase to OC. For now we use Delta H for phase transfer 
@@ -486,15 +495,29 @@
       ! For PHENANTHRENE: 2.70d-11
       ! (Source: Brubaker & Hites, J. Phys Chem A 1998)
       ! For PYRENE: 5.00d-11
-      ! Calculated by finding the ratio between kOH of phenanthrene and kOH of pyrene
-      ! using structure-activity relationships (Schwarzenback, Gschwend, Imboden, 
-      ! pg 680) and scaling the experimental kOH for phenanthrene from Brubaker and Hites
-      ! For BENZO[a]PYRENE: 5.68d-11
-      ! Calculated by finding the ratio between kOH of phenanthrene and kOH of pyrene
-      ! using structure-activity relationships (Schwarzenback, Gschwend, Imboden, 
-      ! pg 680) and scaling the experimental kOH for phenanthrene from Brubaker and Hites
-      ! Could potentially set this to change with temmperature 
+      ! Calculated with AOPWIN
+      ! For BENZO[a]PYRENE: 5.00d-11
+      ! Calculated with AOPWIN
       REAL*8, PARAMETER     :: K_POPG_OH  = 2.70d-11 !(Gas phase)
+
+      ! k for reaction POPP + O3 [/s] depends on fitting parameters A and B. 
+      ! A represents the maximum number of surface sites available to O3, and B 
+      ! represents the ratio of desorption/adsorption rate coefficients for both bulk
+      ! phases (Ref: Kahan et al Atm Env 2006, 40:3448)
+      ! k(obs) = A x [O3(g)] / (B + [O3(g)])
+      ! For PHENANTHRENE: A = 0.5 x 10^-3 s^-1, B = 2.15 x 10^15 molec/cm3
+      ! For PYRENE: A = 0.7 x 10^-3 s^-1, B = 3 x 10^15 molec/cm3
+      ! for BaP: A = 5.5 x 10^-3 s^-1, B = 2.8 x 10^15 molec/cm3
+!      REAL*8, PARAMETER     :: AK = 5d-4 ! s^-1
+!      REAL*8, PARAMETER     :: BK = 2.15d15 ! molec/cm3
+
+      ! On-particle reaction scheme 3: According to Kwamena et al. (J. Phys. Chem. A 2004
+      ! 108:11626), reaction will proceed with rate k = kmax(KO3)[O3]/(1+KO3[O3])
+      ! For wet axelaic acid aerosols, kmax = 0.060 s^-1 and KO3 = 0.028 x 10^-13 cm3
+      REAL*8, PARAMETER      :: KMAX = 0.060 ! s^-1
+      REAL*8, PARAMETER      :: KO3 = 0.028d-13 ! cm^3
+
+
 
       ! K for reaction POPP + NO3 could be added here someday
 
@@ -545,6 +568,9 @@
          DEP_DRY_FLXP_BC = 0d0
          E_KOX_T = 0d0
          K_OX = 0d0
+         K_O3 = 0d0
+         GROSS_OX_OC = 0d0
+         GROSS_OX_BC = 0d0
 
          ! Save local temperature in TK for convenience [K]
          TK = T(I,J,L)
@@ -552,19 +578,22 @@
          ! Get monthly mean OH concentrations
          C_OH        = GET_OH( I, J, L )
 
+         ! Get monthly mean O3 concentrations
+         C_O3        = GET_O3( I, J, L )
+
          ! Fraction of box (I,J,L) underneath the PBL top [dimensionless]
          F_PBL = GET_FRAC_UNDER_PBLTOP( I, J, L )
 
          ! Define K for the oxidation reaction with POPG [/s]
          K_OH        = K_POPG_OH * C_OH
-         
+
+         ! Define K for the oxidation reaction with POPPOC and POPPBC [/s]
+         K_O3        = ( KMAX * KO3 * C_O3) / (1 + KO3 * C_O3) 
+
          ! Could add K for oxidation by NO3 here one day [/s]
 
-         ! Total K for oxidation [/s]
+         ! Total K for oxidation of gas phase [/s]
          K_OX        = K_OH !+ ...
-
-         ! Add a K for a POPP oxidation rxn here someday [/s]
-         ! (Data from J. Kroll?)
 
          ! Define Ks for dry deposition of gas phase POP [/s]
          K_DEPG = V_DEP_G(I,J)
@@ -576,7 +605,10 @@
          K_DEPP_BC = V_DEP_P_BC(I,J)
 
          ! Precompute exponential factors [dimensionless]
+         ! For gas phase (OH):
          E_KOX_T  = EXP( -K_OX  * DTCHEM )
+         ! For OC and BC phase (O3):
+         E_KOX_T_P = EXP(-K_O3  * DTCHEM )
 
          !==============================================================
          ! GAS-PARTICLE PARTITIONING
@@ -601,7 +633,7 @@
          ! Define KOC_BC_T, the theoretical OC-BC part coeff at temp T [unitless]
          KOC_BC_T = KOA_T / KBC_T
 
-         ! Define KBC_OC_T, the theoretical BC_OC part coeff at temp T [unitless]
+         ! Define KBC_OC_T, the theoretical BC-OC part coeff at temp T [unitless]
          KBC_OC_T = 1d0 / KOC_BC_T
 
          ! Get monthly mean OC and BC concentrations [kg/box] 
@@ -734,14 +766,21 @@
                ! Entire box is in the free troposphere
                ! or deposition is turned off, so use RXN without deposition
                ! for gas phase POPs
-               ! For particle POPs, no rxn and no deposition
+               ! For particle POPs, RXN without deposition
                !==============================================================
 
                CALL RXN_OX_NODEP( MPOP_G, K_OX,
      &              E_KOX_T, NEW_POPG, GROSS_OX )
 
-               NEW_POPP_OC = MPOP_OC
-               NEW_POPP_BC = MPOP_BC
+               CALL RXN_OX_NODEP( MPOP_OC, K_O3, 
+     &              E_KOX_T_P, NEW_POPP_OC, GROSS_OX_OC)
+
+               CALL RXN_OX_NODEP( MPOP_BC, K_O3, 
+     &              E_KOX_T_P, NEW_POPP_BC, GROSS_OX_BC)
+
+
+!               NEW_POPP_OC = MPOP_OC
+!               NEW_POPP_BC = MPOP_BC
 
                ! No deposition occurs [kg]
                DEP_POPG = 0D0
@@ -753,19 +792,26 @@
 
                !==============================================================
                ! Entire box is in the boundary layer
-               ! so use RXN with deposition for gas phase POPs
-               ! Deposition only (no rxn) for particle phase POPs
+               ! so use RXN with deposition for gas and particle phase POPs
                !==============================================================
 
                CALL RXN_OX_WITHDEP( MPOP_G,   K_OX,
      &              K_DEPG,   DTCHEM,  E_KOX_T, NEW_POPG,
      &              GROSS_OX,  DEP_POPG )
 
-               CALL NO_RXN_WITHDEP( MPOP_OC, K_DEPP_OC, DTCHEM,
-     &              NEW_POPP_OC, DEP_POPP_OC )
+               CALL RXN_OX_WITHDEP( MPOP_OC,   K_O3,
+     &              K_DEPP_OC,   DTCHEM,  E_KOX_T_P, NEW_POPP_OC,
+     &              GROSS_OX_OC,  DEP_POPP_OC )
 
-               CALL NO_RXN_WITHDEP( MPOP_BC, K_DEPP_BC, DTCHEM,
-     &              NEW_POPP_BC, DEP_POPP_BC )
+               CALL RXN_OX_WITHDEP( MPOP_BC,   K_O3,
+     &              K_DEPP_BC,   DTCHEM,  E_KOX_T_P, NEW_POPP_BC,
+     &              GROSS_OX_BC,  DEP_POPP_BC )
+
+!               CALL NO_RXN_WITHDEP( MPOP_OC, K_DEPP_OC, DTCHEM,
+!     &              NEW_POPP_OC, DEP_POPP_OC )
+
+!               CALL NO_RXN_WITHDEP( MPOP_BC, K_DEPP_BC, DTCHEM,
+!     &              NEW_POPP_BC, DEP_POPP_BC )
 
             ELSE
 
@@ -810,24 +856,50 @@
 
                ! Do chemistry without deposition on the FT fraction for gas phase
                CALL RXN_OX_NODEP( POPG_FT, K_OX,
-     &              E_KOX_T, TMP_POPG, TMP_OX )            
+     &              E_KOX_T, TMP_POPG, TMP_OX )    
+
+               ! Now do the same with the OC and BC phase:
+
+               ! Do chemistry with deposition on BL fraction for OC phase
+               CALL RXN_OX_WITHDEP( POPP_OC_BL,  K_O3,
+     &              K_DEPP_OC,   DTCHEM, E_KOX_T_P,
+     &              NEW_POPP_OC, GROSS_OX_OC,  DEP_POPP_OC )           
+
+               ! Do chemistry without deposition on the FT fraction for OC phase
+               CALL RXN_OX_NODEP( POPP_OC_FT, K_O3,
+     &              E_KOX_T_P, TMP_POPP_OC, TMP_OX_P_OC )
+
+               ! Do chemistry with deposition on BL fraction for BC phase
+               CALL RXN_OX_WITHDEP( POPP_BC_BL,  K_O3,
+     &              K_DEPP_BC,   DTCHEM, E_KOX_T_P,
+     &              NEW_POPP_BC, GROSS_OX_BC,  DEP_POPP_BC )           
+
+               ! Do chemistry without deposition on the FT fraction for BC phase
+               CALL RXN_OX_NODEP( POPP_BC_FT, K_O3,
+     &              E_KOX_T_P, TMP_POPP_BC, TMP_OX_P_BC )
+
 
                ! Do deposition (no chemistry) on BL fraction for particulate phase
                ! No deposition (and no chem) on the FT fraction
                ! for the particulate phase
-               CALL NO_RXN_WITHDEP(POPP_OC_BL, K_DEPP_OC, DTCHEM,  
-     &              NEW_POPP_OC, DEP_POPP_OC)
+!               CALL NO_RXN_WITHDEP(POPP_OC_BL, K_DEPP_OC, DTCHEM,  
+!     &              NEW_POPP_OC, DEP_POPP_OC)
 
-               CALL NO_RXN_WITHDEP(POPP_BC_BL, K_DEPP_BC, DTCHEM,  
-     &              NEW_POPP_BC, DEP_POPP_BC)
+!               CALL NO_RXN_WITHDEP(POPP_BC_BL, K_DEPP_BC, DTCHEM,  
+!     &              NEW_POPP_BC, DEP_POPP_BC)
                
                ! Recombine the boundary layer and free troposphere parts [kg]
                NEW_POPG    = NEW_POPG + TMP_POPG
-               NEW_POPP_OC = NEW_POPP_OC + POPP_OC_FT
-               NEW_POPP_BC = NEW_POPP_BC + POPP_BC_FT          
+               NEW_POPP_OC = NEW_POPP_OC + TMP_POPP_OC
+               NEW_POPP_BC = NEW_POPP_BC + TMP_POPP_BC
+!               NEW_POPP_OC = NEW_POPP_OC + POPP_OC_FT
+!               NEW_POPP_BC = NEW_POPP_BC + POPP_BC_FT          
                
                ! Total gross oxidation of gas phase in the BL and FT [kg]
                GROSS_OX = GROSS_OX + TMP_OX
+               ! Total gross oxidation of particle phases in the BL and FT [kg]
+               GROSS_OX_OC = GROSS_OX_OC + TMP_OX_P_OC
+               GROSS_OX_BC = GROSS_OX_BC + TMP_OX_P_BC
 
             ENDIF
 
@@ -842,10 +914,13 @@
             STT(I,J,L,IDTPOPPBC) = NEW_POPP_BC
 
             ! Net oxidation [kg] (equal to gross ox for now)
-            NET_OX = MPOP_G - NEW_POPG - DEP_POPG                   
+            NET_OX = MPOP_G - NEW_POPG - DEP_POPG
+            NET_OX_OC = MPOP_OC - NEW_POPP_OC - DEP_POPP_OC
+            NET_OX_BC = MPOP_BC - NEW_POPP_BC - DEP_POPP_BC
 
             ! Error check on gross oxidation [kg]
-            IF ( GROSS_OX < 0D0 ) 
+             IF ( GROSS_OX < 0D0 .or. GROSS_OX_OC < 0d0 
+     &           .or. GROSS_OX_BC < 0d0 )  
      &          CALL DEBUG_MSG('CHEM_POPGP: negative gross oxidation')
 
             ! Apportion gross oxidation between OH and possibly
@@ -930,7 +1005,11 @@
 
             IF ( ND53 > 0 .AND. L <= LD53 ) THEN ! LD53 is max level
 
-               AD53_POPG_OH(I,J,L)= AD53_POPG_OH(I,J,L) + NET_OX
+               AD53_POPG_OH(I,J,L)= AD53_POPG_OH(I,J,L) + GROSS_OX
+               AD53_POPP_OC_O3(I,J,L)=AD53_POPP_OC_O3(I,J,L) + 
+     &                   GROSS_OX_OC
+               AD53_POPP_BC_O3(I,J,L)=AD53_POPP_BC_O3(I,J,L) + 
+     &                   GROSS_OX_BC
 
             ENDIF
 
@@ -1495,8 +1574,8 @@
 
             ! Define KBC_T, the BC-air partition coeff at temp T [unitless]
             ! TURN OFF TEMPERATURE DEPENDENCY FOR SENSITIVITY ANALYSIS
-            KBC_T = KBC_298! * EXP((-DEL_H/R) * ((1d0/TK) - 
-!     &              (1d0/298d0)))
+            KBC_T = KBC_298 * EXP((-DEL_H/R) * ((1d0/TK) - 
+     &              (1d0/298d0)))
 
             ! Define KOC_BC_T, the theoretical OC-BC part coeff at temp T [unitless]
             KOC_BC_T = KOA_T / KBC_T
@@ -1581,120 +1660,6 @@
 
             ! Gas-phase
             EPOP_G(I,J,L)  = F_POP_G * F_OF_PBL * T_POP
-
-            ! Toggle for turning off emissions in specific regions
-
-            ! USA: 
-!            IF ( GET_XMID(I) > -125 .AND. GET_XMID(I) < -65 .AND.
-!     &           GET_YMID(J) >  25  .AND. GET_YMID(J) < 50 ) THEN
-!
-!               EPOP_OC(I,J,L) = 0d0
-!               EPOP_BC(I,J,L) = 0d0
-!               EPOP_G(I,J,L)  = 0d0
-!
-!            ENDIF
-
-            ! Canada (includes Alaska): 
-!            IF ( GET_XMID(I) > -170 .AND. GET_XMID(I) < -57 .AND.
-!
-!     &           GET_YMID(J) >=  50  .AND. GET_YMID(J) < 75 ) THEN
-!
-!               EPOP_OC(I,J,L) = 0d0
-!               EPOP_BC(I,J,L) = 0d0
-!               EPOP_G(I,J,L)  = 0d0
-!
-!            ENDIF
-
-            ! Europe: 
-!            IF ( GET_XMID(I) > -12.5 .AND. GET_XMID(I) < 40 .AND.
-!     &           GET_YMID(J) >  36  .AND. GET_YMID(J) < 78 ) THEN
-!
-!               EPOP_OC(I,J,L) = 0d0
-!               EPOP_BC(I,J,L) = 0d0
-!               EPOP_G(I,J,L)  = 0d0
-!
-!            ENDIF
-
-            ! Asia:
-!            IF ( GET_XMID(I) >= 70.0 .and. GET_XMID(I) < 152.5 .and.
-!     &           GET_YMID(J) >=  8.0 .and. GET_YMID(J) < 51.0 ) THEN
-!
-!               EPOP_OC(I,J,L) = 0d0
-!               EPOP_BC(I,J,L) = 0d0
-!               EPOP_G(I,J,L)  = 0d0
-!
-!            ENDIF    
-
-            ! Africa:
-!            IF ( GET_XMID(I) >= -18 .and. GET_XMID(I) < 49 .and.
-!     &           GET_YMID(J) >= -41 .and. GET_YMID(J) < 33 ) THEN
-!
-!               EPOP_OC(I,J,L) = 0d0
-!               EPOP_BC(I,J,L) = 0d0
-!               EPOP_G(I,J,L)  = 0d0
-!
-!            ENDIF     
-
-            ! Russia:
-!            IF ( GET_XMID(I) >= 40 .and. GET_XMID(I) < 180 .and.
-!     &           GET_YMID(J) >= 51 .and. GET_YMID(J) < 75 ) THEN
-!
-!              EPOP_OC(I,J,L) = 0d0
-!               EPOP_BC(I,J,L) = 0d0
-!               EPOP_G(I,J,L)  = 0d0
-!
-!            ENDIF  
-
-!     TURNING OFF EMISSIONS IN LRTAP SOURCE REGIONS:
-            ! Europe including North Africa:
-!            IF ( GET_XMID(I) >= -10 .and. GET_XMID(I) <= 50 .and.
-!     &           GET_YMID(J) >= 25 .and. GET_YMID(J) <= 65 ) THEN
-
-!               EPOP_OC(I,J,L) = 0d0
-!               EPOP_BC(I,J,L) = 0d0
-!               EPOP_G(I,J,L)  = 0d0
-!
-!            ENDIF 
-
-            ! North America:
-!            IF ( GET_XMID(I) >= -125 .and. GET_XMID(I) <= -60 .and.
-!     &           GET_YMID(J) >= 15 .and. GET_YMID(J) <= 55 ) THEN
-
-!               EPOP_OC(I,J,L) = 0d0
-!               EPOP_BC(I,J,L) = 0d0
-!               EPOP_G(I,J,L)  = 0d0
-
-!            ENDIF 
-
-            ! East Asia:
-!            IF ( GET_XMID(I) >= 95 .and. GET_XMID(I) <= 160 .and.
-!     &           GET_YMID(J) >= 15 .and. GET_YMID(J) <= 50 ) THEN
-!
-!               EPOP_OC(I,J,L) = 0d0
-!               EPOP_BC(I,J,L) = 0d0
-!               EPOP_G(I,J,L)  = 0d0
-!
-!            ENDIF  
-
-            ! South Asia:
-!            IF ( GET_XMID(I) >= 50 .and. GET_XMID(I) <= 95 .and.
-!     &           GET_YMID(J) >= 5 .and. GET_YMID(J) <= 35 ) THEN
-!
-!               EPOP_OC(I,J,L) = 0d0
-!               EPOP_BC(I,J,L) = 0d0
-!               EPOP_G(I,J,L)  = 0d0
-!
-!            ENDIF 
-
-            ! Russia:
-!            IF ( GET_XMID(I) >= 50 .and. GET_XMID(I) <= 180 .and.
-!     &           GET_YMID(J) >= 51 .and. GET_YMID(J) <= 75 ) THEN
-!
-!              EPOP_OC(I,J,L) = 0d0
-!               EPOP_BC(I,J,L) = 0d0
-!               EPOP_G(I,J,L)  = 0d0
-!
-!            ENDIF  
         
 
             !-----------------
@@ -1920,7 +1885,7 @@
       !FILENAME = TRIM( DATA_DIR_1x1 )       // 
 !     &           'PAHs_2004/PHE_EM_4x5.bpch' 
       FILENAME = '/net/fs03/d0/geosdata/data/GEOS_4x5/PAHs_2004/' //
-     &           '/1x1/updated060911/PHE_EM_1x1.bpch'
+     &           '1x1/updated060911/PHE_EM_1x1.bpch'
 
       
       ! Timestamp for emissions
@@ -1947,6 +1912,53 @@
 
 !EOC
 !------------------------------------------------------------------------------
+
+!------------------------------------------------------------------------------
+
+      FUNCTION GET_O3( I, J, L ) RESULT( O3_MOLEC_CM3 )
+!
+!******************************************************************************
+!  Function GET_O3 returns monthly mean O3 for offline sulfate aerosol
+!  simulations. (bmy, 12/16/02)
+!
+!  Arguments as Input:
+!  ============================================================================
+!  (1-3) I, J, L   (INTEGER) : Grid box indices for lon, lat, vertical level
+!
+!  NOTES:
+!  (1 ) We assume SETTRACE has been called to define IDO3. (bmy, 12/16/02)
+!  (2 ) Now reference inquiry functions from "tracer_mod.f" (bmy, 7/20/04)
+!******************************************************************************
+!
+      ! References to F90 modules
+      USE DAO_MOD,       ONLY : AD
+      USE GLOBAL_O3_MOD, ONLY : O3
+
+#     include "CMN_SIZE"  ! Size parameters
+
+      ! Arguments
+      INTEGER, INTENT(IN) :: I, J, L
+
+      ! Local variables
+      REAL*8              :: O3_MOLEC_CM3
+
+      ! External functions
+      REAL*8, EXTERNAL    :: BOXVL
+      
+      !=================================================================
+      ! GET_O3 begins here!
+      !=================================================================
+
+      ! Get ozone [v/v] for this gridbox & month
+      ! and convert to [molec/cm3] (eck, 12/2/04)
+      O3_MOLEC_CM3 = O3(I,J,L) * ( 6.022d23 / 28.97d-3 ) * 
+     &               AD(I,J,L)  /  BOXVL(I,J,L)
+
+      ! Return to calling program
+      END FUNCTION GET_O3
+
+!------------------------------------------------------------------------------
+
 !------------------------------------------------------------------------------
 !          Harvard University Atmospheric Chemistry Modeling Group            !
 !------------------------------------------------------------------------------
