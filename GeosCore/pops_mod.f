@@ -1919,7 +1919,7 @@
       ! Filename for congener you wish to model:
       !FILENAME = TRIM( DATA_DIR_1x1 )       // 
 !     &           'PAHs_2004/PHE_EM_4x5.bpch' 
-      FILENAME = '/net/fs05/d1/geosdata/data/GEOS_4x5/PAHs_2004/' //
+      FILENAME = '/net/fs03/d0/geosdata/data/GEOS_4x5/PAHs_2004/' //
      &           '/1x1/updated060911/PHE_EM_1x1.bpch'
 
       
