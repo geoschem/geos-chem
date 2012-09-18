@@ -660,7 +660,8 @@ initialize.o                : initialize.f                                   \
                               diag_mod.o              diag03_mod.o           \
                               diag04_mod.o            diag41_mod.o           \
                               diag42_mod.o            diag56_mod.o           \
-                              diag_pl_mod.o           logical_mod.o 
+                              diag_pl_mod.o           logical_mod.o          \
+                              diag53_mod.o
 
 inphot.o                    : inphot.f
 
@@ -818,7 +819,9 @@ pops_mod.o           	    : pops_mod.f    	                             \
 	        	      global_oh_mod.o         pbl_mix_mod.o	     \
 			      logical_mod.o	      diag53_mod.o	     \
                               global_oc_mod.o	      global_bc_mod.o	     \
-			      tracer_mod.o            tracerid_mod.o	 
+			      tracer_mod.o            tracerid_mod.o         \
+                              global_o3_mod.o         dao_mod.o              \
+                              diag_mod.o
 
 precipfrac.o                : precipfrac.f            dao_mod.o
 
