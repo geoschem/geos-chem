@@ -508,14 +508,14 @@
       ! For PHENANTHRENE: A = 0.5 x 10^-3 s^-1, B = 2.15 x 10^15 molec/cm3
       ! For PYRENE: A = 0.7 x 10^-3 s^-1, B = 3 x 10^15 molec/cm3
       ! for BaP: A = 5.5 x 10^-3 s^-1, B = 2.8 x 10^15 molec/cm3
-!      REAL*8, PARAMETER     :: AK = 7d-4 ! s^-1
-!      REAL*8, PARAMETER     :: BK = 3d15 ! molec/cm3
+      REAL*8, PARAMETER     :: AK = 7d-4 ! s^-1
+      REAL*8, PARAMETER     :: BK = 3d15 ! molec/cm3
 
       ! On-particle reaction scheme 3: According to Kwamena et al. (J. Phys. Chem. A 2004
       ! 108:11626), reaction will proceed with rate k = kmax(KO3)[O3]/(1+KO3[O3])
       ! For wet axelaic acid aerosols, kmax = 0.060 s^-1 and KO3 = 0.028 x 10^-13 cm3
-      REAL*8, PARAMETER      :: KMAX = 0.060 ! s^-1
-      REAL*8, PARAMETER      :: KO3 = 0.028d-13 ! cm^3
+!      REAL*8, PARAMETER      :: KMAX = 0.060 ! s^-1
+!      REAL*8, PARAMETER      :: KO3 = 0.028d-13 ! cm^3
 
       ! K for reaction POPP + NO3 could be added here someday
 
@@ -585,8 +585,10 @@
          ! Define K for the oxidation reaction with POPG [/s]
          K_OH        = K_POPG_OH * C_OH
 
-         ! Define K for the oxidation reaction with POPPOC and POPPBC [/s]
-         K_O3        = ( KMAX * KO3 * C_O3) / (1 + KO3 * C_O3)
+         ! Define K for the oxidation reaction with POPPOC and POPPBC [/s] (Kahan)
+         K_O3        = ( AK * C_O3) / (BK * C_O3) 
+         ! Define K for the oxidation reaction with POPPOC and POPPBC [/s] (Kwamena)
+!         K_O3        = ( KMAX * KO3 * C_O3) / (1 + KO3 * C_O3) 
          
          ! Could add K for oxidation by NO3 here one day [/s]
 
@@ -625,8 +627,8 @@
 
          ! Define KBC_T, the BC-air partition coeff at temp T [unitless]
          ! TURN OFF TEMPERATURE DEPENDENCY FOR SENSITIVITY ANALYSIS
-         KBC_T = KBC_298! * EXP((-DEL_H/R) * ((1d0/TK) - 
-!     &                  (1d0/298d0)))
+         KBC_T = KBC_298 * EXP((-DEL_H/R) * ((1d0/TK) - 
+     &                  (1d0/298d0)))
 
          ! Define KOC_BC_T, the theoretical OC-BC part coeff at temp T [unitless]
          KOC_BC_T = KOA_T / KBC_T
@@ -764,7 +766,7 @@
                ! Entire box is in the free troposphere
                ! or deposition is turned off, so use RXN without deposition
                ! for gas phase POPs
-               ! For particle POPs, rxn without deposition
+               ! For particle POPs, no rxn and no deposition
                !==============================================================
 
                CALL RXN_OX_NODEP( MPOP_G, K_OX,
@@ -789,7 +791,8 @@
 
                !==============================================================
                ! Entire box is in the boundary layer
-               ! so use RXN with deposition for gas and particle phase POPs
+               ! so use RXN with deposition for gas phase POPs
+               ! Deposition only (no rxn) for particle phase POPs
                !==============================================================
 
                CALL RXN_OX_WITHDEP( MPOP_G,   K_OX,
@@ -888,8 +891,7 @@
                NEW_POPG    = NEW_POPG + TMP_POPG
                NEW_POPP_OC = NEW_POPP_OC + TMP_POPP_OC
                NEW_POPP_BC = NEW_POPP_BC + TMP_POPP_BC
-!               NEW_POPP_OC = NEW_POPP_OC + POPP_OC_FT
-!               NEW_POPP_BC = NEW_POPP_BC + POPP_BC_FT          
+         
                
                ! Total gross oxidation of gas phase in the BL and FT [kg]
                GROSS_OX = GROSS_OX + TMP_OX
