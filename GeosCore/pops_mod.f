@@ -586,7 +586,7 @@
          K_OH        = K_POPG_OH * C_OH
 
          ! Define K for the oxidation reaction with POPPOC and POPPBC [/s] (Kahan)
-         K_O3        = ( AK * C_O3) / (BK * C_O3) 
+         K_O3        = ( AK * C_O3) / (BK + C_O3) 
          ! Define K for the oxidation reaction with POPPOC and POPPBC [/s] (Kwamena)
 !         K_O3        = ( KMAX * KO3 * C_O3) / (1 + KO3 * C_O3) 
          
