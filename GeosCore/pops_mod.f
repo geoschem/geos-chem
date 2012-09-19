@@ -149,7 +149,7 @@
       USE DRYDEP_MOD,    ONLY : DEPSAV
       USE ERROR_MOD,     ONLY : DEBUG_MSG
       USE GLOBAL_OH_MOD, ONLY : GET_GLOBAL_OH
-      USE GLOBAL_O3_MOD, ONLY : GET_GLOBAL_O3 !clf, 6/27/2011
+      USE GLOBAL_O3_MOD, ONLY : GET_GLOBAL_O3 !clf, 6/27/2010
       USE GLOBAL_OC_MOD, ONLY : GET_GLOBAL_OC !clf, 1/20/2011
       USE GLOBAL_BC_MOD, ONLY : GET_GLOBAL_BC !clf, 1/20/2011
       USE PBL_MIX_MOD,   ONLY : GET_PBL_MAX_L
@@ -208,7 +208,7 @@
          ! Get the current year
          YEAR = GET_YEAR()
 
-         ! Read monthly mean OH from disk [molecule/cm3]         
+         ! Read monthly mean OH from disk [molecule/cm3]
          CALL GET_GLOBAL_OH( MONTH)
          IF ( LPRT ) CALL DEBUG_MSG( '### CHEMPOPS: a GET_GLOBAL_OH' )
 
@@ -446,16 +446,16 @@
       ! For PHENANTHRENE: 
       ! this is taken as the negative of the Delta H for phase transfer
       ! from the pure liquid state to the gas phase (Schwarzenbach,
-      !  Gschwend, Imboden, 2003, pg 200, Table 6.3), or -74000 [J/mol].
+      ! Gschwend, Imboden, 2003, pg 200, Table 6.3), or -74000 [J/mol].
       ! For PYRENE:
       ! this is taken as the negative of the Delta H for phase transfer
       ! from the pure liquid state to the gas phase (Schwarzenbach,
-      ! Gschwend, Imboden, 2003, pg 200, Table 6.3), or -87000 [J/mol]. 
+      ! Gschwend, Imboden, 2003, pg 200, Table 6.3), or -87000 [J/mol].    
       ! For BENZO[a]PYRENE:
       ! this is also taken as the negative of the Delta H for phase transfer
       ! from the pure liquid state to the gas phase (Schwarzenbach,
       ! Gschwend, Imboden, 2003, pg 452, Prob 11.1), or -110,000 [J/mol]
-      REAL*8, PARAMETER     :: DEL_H      = -74d3
+      REAL*8, PARAMETER     :: DEL_H      = -87d3
 
       ! R = universal gas constant for adjusting KOA for temp: 8.3145 [J/mol/K]
       REAL*8, PARAMETER     :: R          = 8.31d0  
@@ -469,7 +469,7 @@
       ! For BENZO[a]PYRENE:
       ! log KOA_298 = 11.48, or 3.02*10^11 [unitless]
       ! (Ma et al., J. Chem. Eng. Data, 2010, 55:819-825).
-      REAL*8, PARAMETER     :: KOA_298    = 4.37d7
+      REAL*8, PARAMETER     :: KOA_298    = 7.24d8
 
       ! KBC_298 for partitioning of gas phase POP to atmospheric BC
       ! KBC_298 = Cpop in black carbon/Cpop in atmosphere at 298 K
@@ -480,7 +480,7 @@
       ! For BENZO[a]PYRENE:
       ! log KBC_298 = 13.9, or 7.94*10^13 [unitless]
       ! (Lohmann and Lammel, EST, 2004, 38:3793-3802)
-      REAL*8, PARAMETER     :: KBC_298    = 1d10
+      REAL*8, PARAMETER     :: KBC_298    = 1d11
 
       ! DENS_OCT = density of octanol, needed for partitioning into OC
       ! 820 [kg/m^3]
@@ -497,8 +497,8 @@
       ! For PYRENE: 5.00d-11
       ! Calculated with AOPWIN
       ! For BENZO[a]PYRENE: 5.00d-11
-      ! Calculated with AOPWIN
-      REAL*8, PARAMETER     :: K_POPG_OH  = 2.70d-11 !(Gas phase)
+      ! Calculated with AOPWIN 
+      REAL*8, PARAMETER     :: K_POPG_OH  = 5.00d-11 !(Gas phase)
 
       ! k for reaction POPP + O3 [/s] depends on fitting parameters A and B. 
       ! A represents the maximum number of surface sites available to O3, and B 
@@ -508,16 +508,14 @@
       ! For PHENANTHRENE: A = 0.5 x 10^-3 s^-1, B = 2.15 x 10^15 molec/cm3
       ! For PYRENE: A = 0.7 x 10^-3 s^-1, B = 3 x 10^15 molec/cm3
       ! for BaP: A = 5.5 x 10^-3 s^-1, B = 2.8 x 10^15 molec/cm3
-!      REAL*8, PARAMETER     :: AK = 5d-4 ! s^-1
-!      REAL*8, PARAMETER     :: BK = 2.15d15 ! molec/cm3
+!      REAL*8, PARAMETER     :: AK = 7d-4 ! s^-1
+!      REAL*8, PARAMETER     :: BK = 3d15 ! molec/cm3
 
       ! On-particle reaction scheme 3: According to Kwamena et al. (J. Phys. Chem. A 2004
       ! 108:11626), reaction will proceed with rate k = kmax(KO3)[O3]/(1+KO3[O3])
       ! For wet axelaic acid aerosols, kmax = 0.060 s^-1 and KO3 = 0.028 x 10^-13 cm3
       REAL*8, PARAMETER      :: KMAX = 0.060 ! s^-1
       REAL*8, PARAMETER      :: KO3 = 0.028d-13 ! cm^3
-
-
 
       ! K for reaction POPP + NO3 could be added here someday
 
@@ -588,11 +586,11 @@
          K_OH        = K_POPG_OH * C_OH
 
          ! Define K for the oxidation reaction with POPPOC and POPPBC [/s]
-         K_O3        = ( KMAX * KO3 * C_O3) / (1 + KO3 * C_O3) 
-
+         K_O3        = ( KMAX * KO3 * C_O3) / (1 + KO3 * C_O3)
+         
          ! Could add K for oxidation by NO3 here one day [/s]
 
-         ! Total K for oxidation of gas phase [/s]
+         ! Total K for oxidation [/s]
          K_OX        = K_OH !+ ...
 
          ! Define Ks for dry deposition of gas phase POP [/s]
@@ -633,7 +631,7 @@
          ! Define KOC_BC_T, the theoretical OC-BC part coeff at temp T [unitless]
          KOC_BC_T = KOA_T / KBC_T
 
-         ! Define KBC_OC_T, the theoretical BC-OC part coeff at temp T [unitless]
+         ! Define KBC_OC_T, the theoretical BC_OC part coeff at temp T [unitless]
          KBC_OC_T = 1d0 / KOC_BC_T
 
          ! Get monthly mean OC and BC concentrations [kg/box] 
@@ -766,7 +764,7 @@
                ! Entire box is in the free troposphere
                ! or deposition is turned off, so use RXN without deposition
                ! for gas phase POPs
-               ! For particle POPs, RXN without deposition
+               ! For particle POPs, rxn without deposition
                !==============================================================
 
                CALL RXN_OX_NODEP( MPOP_G, K_OX,
@@ -777,7 +775,6 @@
 
                CALL RXN_OX_NODEP( MPOP_BC, K_O3, 
      &              E_KOX_T_P, NEW_POPP_BC, GROSS_OX_BC)
-
 
 !               NEW_POPP_OC = MPOP_OC
 !               NEW_POPP_BC = MPOP_BC
@@ -856,7 +853,7 @@
 
                ! Do chemistry without deposition on the FT fraction for gas phase
                CALL RXN_OX_NODEP( POPG_FT, K_OX,
-     &              E_KOX_T, TMP_POPG, TMP_OX )    
+     &              E_KOX_T, TMP_POPG, TMP_OX ) 
 
                ! Now do the same with the OC and BC phase:
 
@@ -876,8 +873,7 @@
 
                ! Do chemistry without deposition on the FT fraction for BC phase
                CALL RXN_OX_NODEP( POPP_BC_FT, K_O3,
-     &              E_KOX_T_P, TMP_POPP_BC, TMP_OX_P_BC )
-
+     &              E_KOX_T_P, TMP_POPP_BC, TMP_OX_P_BC )           
 
                ! Do deposition (no chemistry) on BL fraction for particulate phase
                ! No deposition (and no chem) on the FT fraction
@@ -914,13 +910,13 @@
             STT(I,J,L,IDTPOPPBC) = NEW_POPP_BC
 
             ! Net oxidation [kg] (equal to gross ox for now)
-            NET_OX = MPOP_G - NEW_POPG - DEP_POPG
+            NET_OX = MPOP_G - NEW_POPG - DEP_POPG   
             NET_OX_OC = MPOP_OC - NEW_POPP_OC - DEP_POPP_OC
-            NET_OX_BC = MPOP_BC - NEW_POPP_BC - DEP_POPP_BC
+            NET_OX_BC = MPOP_BC - NEW_POPP_BC - DEP_POPP_BC                
 
             ! Error check on gross oxidation [kg]
-             IF ( GROSS_OX < 0D0 .or. GROSS_OX_OC < 0d0 
-     &           .or. GROSS_OX_BC < 0d0 )  
+            IF ( GROSS_OX < 0D0 .or. GROSS_OX_OC < 0d0 
+     &           .or. GROSS_OX_BC < 0d0 ) 
      &          CALL DEBUG_MSG('CHEM_POPGP: negative gross oxidation')
 
             ! Apportion gross oxidation between OH and possibly
@@ -1007,9 +1003,9 @@
 
                AD53_POPG_OH(I,J,L)= AD53_POPG_OH(I,J,L) + GROSS_OX
                AD53_POPP_OC_O3(I,J,L)=AD53_POPP_OC_O3(I,J,L) + 
-     &                   GROSS_OX_OC
+     &                                GROSS_OX_OC
                AD53_POPP_BC_O3(I,J,L)=AD53_POPP_BC_O3(I,J,L) + 
-     &                   GROSS_OX_BC
+     &                                GROSS_OX_BC
 
             ENDIF
 
@@ -1444,7 +1440,7 @@
       ! Delta H for POP [kJ/mol]. Delta H is enthalpy of phase transfer
       ! from gas phase to OC. For now we use Delta H for phase transfer 
       ! from the gas phase to the pure liquid state. 
-      ! For PHENANTHRENE, 
+      ! For PHENANTHRENE: 
       ! this is taken as the negative of the Delta H for phase transfer
       ! from the pure liquid state to the gas phase (Schwarzenbach,
       ! Gschwend, Imboden, 2003, pg 200, Table 6.3), or -74000 [J/mol].
@@ -1456,7 +1452,7 @@
       ! this is also taken as the negative of the Delta H for phase transfer
       ! from the pure liquid state to the gas phase (Schwarzenbach,
       ! Gschwend, Imboden, 2003, pg 452, Prob 11.1), or -110,000 [J/mol]
-      REAL*8, PARAMETER     :: DEL_H      = -74d3
+      REAL*8, PARAMETER     :: DEL_H      = -87d3
 
       ! R = universal gas constant for adjusting KOA for temp: 8.3145 [J/mol/K]
       REAL*8, PARAMETER     :: R          = 8.31d0  
@@ -1470,7 +1466,7 @@
       ! For BENZO[a]PYRENE:
       ! log KOA_298 = 11.48, or 3.02*10^11 [unitless]
       ! (Ma et al., J. Chem. Eng. Data, 2010, 55:819-825).
-      REAL*8, PARAMETER     :: KOA_298    = 4.37d7
+      REAL*8, PARAMETER     :: KOA_298    = 7.24d8
 
       ! KBC_298 for partitioning of gas phase POP to atmospheric BC
       ! KBC_298 = Cpop in black carbon/Cpop in atmosphere at 298 K
@@ -1481,7 +1477,7 @@
       ! For BENZO[a]PYRENE:
       ! log KBC_298 = 13.9, or 7.94*10^13 [unitless]
       ! (Lohmann and Lammel, EST, 2004, 38:3793-3802)
-      REAL*8, PARAMETER     :: KBC_298    = 1d10
+      REAL*8, PARAMETER     :: KBC_298    = 1d11
 
       ! DENS_OCT = density of octanol, needed for partitioning into OC
       ! 820 [kg/m^3]
@@ -1885,7 +1881,7 @@
       !FILENAME = TRIM( DATA_DIR_1x1 )       // 
 !     &           'PAHs_2004/PHE_EM_4x5.bpch' 
       FILENAME = '/net/fs03/d0/geosdata/data/GEOS_4x5/PAHs_2004/' //
-     &           '1x1/updated060911/PHE_EM_1x1.bpch'
+     &           '1x1/updated060911/PYR_EM_1x1.bpch'
 
       
       ! Timestamp for emissions
@@ -1958,7 +1954,6 @@
       END FUNCTION GET_O3
 
 !------------------------------------------------------------------------------
-
 !------------------------------------------------------------------------------
 !          Harvard University Atmospheric Chemistry Modeling Group            !
 !------------------------------------------------------------------------------
