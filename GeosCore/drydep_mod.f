@@ -4321,8 +4321,8 @@ C** Load array DVEL
                ! For BENZO[a]PYRENE, log Kaw = -4.51
                ! Using the same conversion, HSTAR = 1.32d3 M/atm
                ! All log Kaws from Ma et al., J Chem Eng Data 2010, 55:819 
-               HSTAR(NUMDEP)   = 2.35d1
-              ! Adding Koa (octanol-ar partition coefficient) for POPs to
+               HSTAR(NUMDEP)   = 7.61d1
+               ! Adding Koa (octanol-ar partition coefficient) for POPs to
                ! account for accumulation in leaf cuticles
                ! Needs to be in units of mol/liter/atm as with HSTAR
                ! Divide unitless Koa at 298 K by product of R (0.0821 atm/M/K)
@@ -4334,13 +4334,13 @@ C** Load array DVEL
                ! For BENZO[a]PYRENE, log Koa = 11.48
                ! use same conversion to get 1.23d10 M/atm 
                ! All log Koas from Ma et al., J Chem Eng Data 2010, 55:819 
-               KOA(NUMDEP)     = 1.78d6
+               KOA(NUMDEP)     = 2.96d7
                F0(NUMDEP)      = 0.0d0
                ! Need to change molecular weight for different POPs
                ! For PHENANTHRENE, MW = 178d-3 (kg/mol)
                ! For PYRENE, MW = 202d-3 (kg/mol)
                ! for BENZO[a]PYRENE, MW = 252d-3 (kg/mol)
-               XMW(NUMDEP)     = 178d-3
+               XMW(NUMDEP)     = 202d-3
                AIROSOL(NUMDEP) = .FALSE. 
             ENDIF
 
@@ -4359,7 +4359,7 @@ C** Load array DVEL
                ! For PHENANTHRENE, MW = 178d-3 (kg/mol)
                ! For PYRENE, MW = 202d-3 (kg/mol)
                ! for BENZO[a]PYRENE, MW = 252d-3 (kg/mol)
-               XMW(NUMDEP)     = 178d-3
+               XMW(NUMDEP)     = 202d-3
                AIROSOL(NUMDEP) = .TRUE. 
             ENDIF
 
@@ -4374,10 +4374,11 @@ C** Load array DVEL
                ! so cuticular accumulation is not considered
                KOA(NUMDEP)     = 0.0d0
                F0(NUMDEP)      = 0.0d0
+               ! Need to change molecular weight for different POPs
                ! For PHENANTHRENE, MW = 178d-3 (kg/mol)
                ! For PYRENE, MW = 202d-3 (kg/mol)
                ! for BENZO[a]PYRENE, MW = 252d-3 (kg/mol)
-               XMW(NUMDEP)     = 178d-3
+               XMW(NUMDEP)     = 202d-3
                AIROSOL(NUMDEP) = .TRUE. 
             ENDIF
           ENDIF
