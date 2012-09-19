@@ -1571,9 +1571,9 @@
             ! 2010 J. Chem. Eng. Data, and del_H from Scharzenbach 2003, p200)
             ! For PYRENE, HSTAR = 7.61d1 and del_H = -5.17d3 (HSTAR from Ma et al
             ! and del_H from Scharzenbach 2003, p200)
-            ! For BENZO[a]PYRENE, HSTAR = 1.32d3 and del_H = -5.17d3 (HSTAR from
+            ! For BENZO[a]PYRENE, HSTAR = 1.32d3 and del_H = -5.65d3 (HSTAR from
             ! Ma et al and Del_H the same as pyrene for now)
-            CALL COMPUTE_L2G( 2.352d1, -5.65d3, 
+            CALL COMPUTE_L2G( 7.61d1, -5.17d3, 
      &                           T(I,J,L), CLDLIQ(I,J,L), L2G )
 
             ! Fraction of POP in liquid phase 
@@ -3092,7 +3092,7 @@
             ! and del_H from Scharzenbach 2003, p200)
             ! For BENZO[a]PYRENE, HSTAR = 1.32d3 and del_H = -5.17d3 (HSTAR from
             ! Ma et al and Del_H the same as pyrene for now)
-               CALL COMPUTE_L2G( 2.352d1, -5.65d3, 
+               CALL COMPUTE_L2G( 7.61d1, -5.17d3, 
      &                           T(I,J,L), CLDLIQ(I,J,L), L2G )
 
                ! Fraction of POP in liquid phase 
@@ -3124,15 +3124,15 @@
       ! POPPOC (treat like hydrophobic OC aerosol)
       !------------------------------
       ELSE IF ( N == IDTPOPPOC ) THEN
-           ! No rainout 
-         RAINFRAC = 0.0D0  
+         ! No rainout 
+         RAINFRAC = 0.0D0
 
       !------------------------------
       ! POPPBC (treat like hydrophobic BC aerosol)
       !------------------------------
       ELSE IF ( N == IDTPOPPBC ) THEN
          ! No rainout 
-         RAINFRAC = 0.0D0   
+         RAINFRAC = 0.0D0  
 
       !------------------------------
       ! ERROR: insoluble tracer!
@@ -3328,7 +3328,7 @@
       !------------------------------
       ELSE IF ( N == IDTCH2O ) THEN 
          AER      = .FALSE.
-! Bug fix, WASHFRAC_LIQ_GAS is now a subroutine (H Amos, 05 June 2011)
+ ! Bug fix, WASHFRAC_LIQ_GAS is now a subroutine (H Amos, 05 June 2011)
 !         WASHFRAC = WASHFRAC_LIQ_GAS( 3.0d3, -7.2d3, PP, DT, 
 !     &                                F,      DZ,    TK, K_WASH )
          CALL WASHFRAC_LIQ_GAS( 3.0d3, -7.2d3, PP, DT, 
@@ -3715,11 +3715,11 @@
       ELSE IF ( N == IDTPOPG ) THEN
          AER      = .FALSE.
 ! Bug fix in WASHFRAC_LIQ_GAS (H. Amos, 05 June 2011)
-!         WASHFRAC = WASHFRAC_LIQ_GAS( 2.352d1, -5.65d3, PP, DT, 
-!     &                                F,      DZ,   TK, K_WASH )  
-         CALL WASHFRAC_LIQ_GAS( 2.352d1, -5.65d3, PP, DT,
-     &                                F  , DZ, TK, K_WASH, 
-     &                          WASHFRAC, AER )
+!         WASHFRAC = WASHFRAC_LIQ_GAS( 7.61d1, -5.17d3, PP, DT, 
+!     &                                F,      DZ,   TK, K_WASH ) 
+            CALL WASHFRAC_LIQ_GAS( 7.61d1  , -5.17d3, PP, DT    , 
+     &                                   F    ,     DZ, TK, K_WASH,
+     &                                WASHFRAC, AER                 )     
 
       !------------------------------
       ! POPPOC (treat like hydrophobic OC aerosol) 
@@ -3798,8 +3798,8 @@
       END FUNCTION WASHFRAC_AEROSOL
 
 !------------------------------------------------------------------------------
-! BUG FIX: NO LONGER USING WASHFRAC_LIQ_GAS AS A FUNCTION, NOW A SUBROUTINE (SEE BELOW)
-
+! WASHFRAC_LIQ_GAS NO LONGER CALLED AS FUNCTION, NOW USED AS SUBROUTINE (SEE BELOW)
+!
 !      FUNCTION WASHFRAC_LIQ_GAS( Kstar298, H298_R, PP, DT, 
 !     &                           F,        DZ,     TK, K_WASH ) 
 !     &         RESULT( WASHFRAC )
@@ -3865,7 +3865,6 @@
 !
 !      ! Return to calling program
 !      END FUNCTION WASHFRAC_LIQ_GAS
-
 
 !!!************************ THIS IS A TEST ******************************
 !! BEGIN. H Amos, 03 June 2011
@@ -3955,7 +3954,6 @@
 !!!**********************************************************************
 
 !EOC
-
 !------------------------------------------------------------------------------
 
       SUBROUTINE WETDEP( LS )
