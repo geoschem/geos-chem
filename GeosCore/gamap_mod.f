@@ -3440,7 +3440,7 @@
             ! Define quantities
             UNIT (T,53) = 'kg'
             MOLC (T,53) = 1
-            MWT  (T,53) = 178e-3
+            MWT  (T,53) = 202e-3
             SCALE(T,53) = 1e0
 
             ! Get name, long-name, index, and new units
