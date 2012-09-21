@@ -2382,7 +2382,8 @@
       ! [atoms C/cm2/s] (ccc, 3/9/09)
       INGRID = ARRAY
       CALL DO_REGRID_A2A( LLFILENAME, I1x1,    J1x1,
-     &                    INGRID,     OUTGRID, PERAREA=0 )
+     &                    INGRID,     OUTGRID, PERAREA=0,
+     &                    netCDF=.TRUE.                   )
       E_XYLE = OUTGRID
 
 
