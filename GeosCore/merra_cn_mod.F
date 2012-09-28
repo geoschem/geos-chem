@@ -15,9 +15,10 @@
 !
 ! !USES:
 !
-      USE CMN_SIZE_MOD              ! Size parameters
-      USE CMN_DIAG_MOD              ! NDxx flags
-      USE CMN_GCTM_MOD              ! g0
+      USE CMN_SIZE_MOD                     ! Size parameters
+      USE CMN_DIAG_MOD                     ! NDxx flags
+      USE CMN_GCTM_MOD                     ! g0
+      USE inquireMod, ONLY : findFreeLUN   ! Routine to find free LUNs
 
       IMPLICIT NONE
 #     include "define.h"
@@ -41,6 +42,7 @@
 ! !REVISION HISTORY:
 !  19 Aug 2010 - R. Yantosca - Initial version, based on i6_read_mod.f
 !  20 Aug 2010 - R. Yantosca - Moved include files to top of module
+!  03 Aug 2012 - R. Yantosca - Now make IU_A3 a private module variable
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -48,6 +50,7 @@
 ! !PRIVATE TYPES:
 !
       INTEGER :: N_CN_FIELDS    ! # of fields in the file
+      INTEGER :: IU_CN          ! File LUN for CN fields
 
       CONTAINS
 !EOC
@@ -73,7 +76,6 @@
       USE DIRECTORY_MOD, ONLY : MERRA_DIR
       USE ERROR_MOD,     ONLY : ERROR_STOP
       USE FILE_MOD,      ONLY : FILE_EXISTS
-      USE FILE_MOD,      ONLY : IU_CN
       USE FILE_MOD,      ONLY : IOERROR
       USE TIME_MOD,      ONLY : EXPAND_DATE
 !
@@ -84,6 +86,8 @@
 !
 ! !REVISION HISTORY: 
 !  19 Aug 2010 - R. Yantosca - Initial version, based on i6_read_mod.f
+!  03 Aug 2012 - R. Yantosca - Now use findFreeLUN to define IU_CN locally
+!  07 Aug 2012 - R. Yantosca - Now print LUN used to open file
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -91,7 +95,7 @@
 ! !LOCAL VARIABLES:
 !
       LOGICAL, SAVE      :: FIRST = .TRUE.
-      LOGICAL            :: IT_EXISTS
+      LOGICAL            :: IT_EXISTS, IS_OPEN
       INTEGER            :: IOS, IUNIT
       CHARACTER(LEN=8)   :: IDENT
       CHARACTER(LEN=255) :: GEOS_DIR
@@ -122,7 +126,8 @@
      &          TRIM( GEOS_DIR ) // TRIM( CN_FILE )
 
          ! Close previously opened CN file
-         CLOSE( IU_CN )
+       	 INQUIRE(IU_CN, OPENED=IS_OPEN)
+         IF(IS_OPEN) CLOSE( IU_CN )
 
          ! Make sure the file unit is valid before we open it 
          IF ( .not. FILE_EXISTS( IU_CN ) ) THEN 
@@ -134,6 +139,9 @@
          ! Open the CN file
          !---------------------------
 
+         ! Find a free file LUN
+         IU_CN = findFreeLUN()
+
          ! Open the file
          OPEN( UNIT   = IU_CN,         FILE   = TRIM( PATH ),
      &         STATUS = 'OLD',         ACCESS = 'SEQUENTIAL',  
@@ -144,8 +152,8 @@
          ENDIF
 
          ! Echo info
-         WRITE( 6, 100 ) TRIM( PATH )
- 100     FORMAT( '     - Opening: ', a )
+         WRITE( 6, 100 ) TRIM( PATH ), IU_CN
+ 100     FORMAT( '     - Opening: ', a, ' on unit ', i4 )
          
          ! Set the proper first-time-flag false
          FIRST = .FALSE.
@@ -256,7 +264,6 @@
 !
       USE DIAG_MOD,     ONLY : AD67
       USE FILE_MOD,     ONLY : IOERROR
-      USE FILE_MOD,     ONLY : IU_CN
       USE TIME_MOD,     ONLY : TIMESTAMP_STRING
       USE TRANSFER_MOD, ONLY : TRANSFER_2D
 !
@@ -284,6 +291,8 @@
 !
 ! !REVISION HISTORY: 
 !  19 Aug 2010 - R. Yantosca - Initial version, based on i6_read_mod.f
+!  03 Aug 2012 - R. Yantosca - Now use locally-defined IU_CN file LUN
+!  07 Aug 2012 - R. Yantosca - Now print LUN used to open file
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -403,7 +412,7 @@
          IF ( XYMD == NYMD .and. XHMS == NHMS ) THEN
             IF ( NFOUND == N_CN_FIELDS ) THEN
                STAMP = TIMESTAMP_STRING( NYMD, NHMS )
-               WRITE( 6, 210 ) NFOUND, STAMP
+               WRITE( 6, 210 ) NFOUND, STAMP, IU_CN
                EXIT
             ENDIF
          ENDIF
@@ -411,7 +420,8 @@
 
       ! FORMATs
  200  FORMAT( 'Searching for next CN field!'                          )
- 210  FORMAT( '     - Found all ', i3, ' MERRA CN met fields for ', a )
+ 210  FORMAT( '     - Found all ', i3, ' MERRA CN met fields for ', 
+     &             a, ' on unit ', i4                                 )
 
       !=================================================================
       ! ND67 diagnostic: 

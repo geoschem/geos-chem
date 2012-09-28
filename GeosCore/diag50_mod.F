@@ -95,6 +95,8 @@
 !  02 Dec 2010 - R. Yantosca - Added ProTeX headers
 !  03 Feb 2011 - S. Kim      - Now do not scale the AOD output
 !                              (recalculated in RDAER AND DUST_MOD)
+!  03 Aug 2012 - R. Yantosca - Move calls to findFreeLUN out of DEVEL block
+!  06 Aug 2012 - R. Yantosca - Now make IU_ND50 a local module variable
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -134,6 +136,7 @@
       !=================================================================
 
       ! Scalars
+      INTEGER              :: IU_ND50
       INTEGER              :: COUNT
       INTEGER              :: IOFF,           JOFF   
       INTEGER              :: LOFF,           I0
@@ -941,9 +944,9 @@
       USE BPCH2_MOD,  ONLY : GET_HALFPOLAR
       USE BPCH2_MOD,  ONLY : OPEN_BPCH2_FOR_WRITE
       USE ERROR_MOD,  ONLY : ALLOC_ERR
-      USE FILE_MOD,   ONLY : IU_ND50
       USE GRID_MOD,   ONLY : GET_XOFFSET
       USE GRID_MOD,   ONLY : GET_YOFFSET
+      USE inquireMod, ONLY : findFreeLUN
       USE LOGICAL_MOD,ONLY : LND50_HDF
       USE TIME_MOD,   ONLY : EXPAND_DATE
       USE TIME_MOD,   ONLY : GET_NYMD_DIAG
@@ -990,6 +993,8 @@
 !  12 Nov 2010 - R. Yantosca - Now save out PEDGE-$ (pressure at level edges)
 !                              rather than Psurface - PTOP
 !  02 Dec 2010 - R. Yantosca - Added ProTeX headers
+!  03 Aug 2012 - R. Yantosca - Move calls to findFreeLUN out of DEVEL block
+!  07 Aug 2012 - R. Yantosca - Now print LUN used to open file
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -1018,9 +1023,12 @@
 
       CALL EXPAND_DATE( FILENAME, GET_NYMD_DIAG(), NHMS )
       
+      ! Find a free file LUN
+      IU_ND50 = findFreeLun()
+
       ! Echo info
-      WRITE( 6, 100 ) TRIM( FILENAME )
- 100  FORMAT( '     - DIAG50: Opening file ', a ) 
+      WRITE( 6, 100 ) TRIM( FILENAME ), IU_ND50
+ 100  FORMAT( '     - DIAG50: Opening file ', a, ' on unit ', i4 ) 
 
       ! Open output file
       IF ( LND50_HDF ) THEN

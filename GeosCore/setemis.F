@@ -18,9 +18,9 @@
 ! !INTERFACE:
 !
 #if defined( DEVEL )
-      SUBROUTINE SETEMIS( EMISRR, EMISRRN, LOCAL_MET )
+      SUBROUTINE SETEMIS( EMISRR, EMISRRN, am_I_Root, LOCAL_MET )
 #else
-      SUBROUTINE SETEMIS( EMISRR, EMISRRN )
+      SUBROUTINE SETEMIS( EMISRR, EMISRRN, am_I_Root )
 #endif
 !
 ! !USES:
@@ -64,8 +64,12 @@
       ! Multi-level NOx emissions  [molec NOx/box/s]
       REAL*8,  INTENT(IN) :: EMISRRN(IIPAR,JJPAR,NOXEXTENT)  
 
+      ! Is this the root CPU?
+      LOGICAL, INTENT(IN) :: am_I_Root
+
+      ! Obj w/ met fields
 #if defined( DEVEL )
-      TYPE(GC_MET_LOCAL), INTENT(IN) :: LOCAL_MET  ! Obj w/ met fields
+      TYPE(GC_MET_LOCAL), INTENT(IN) :: LOCAL_MET
 #endif
 !
 ! !REMARKS:
@@ -148,6 +152,9 @@
 !  21 Dec 2010 - R. Yantosca - Now set REMIS=0d0.  Also updated comments.
 !  01 Mar 2012 - R. Yantosca - Now use GET_AREA_CM2(I,J,L) from grid_mod.F90
 !  01 Mar 2012 - R. Yantosca - Now reference IXSAVE, IZSAVE from comode_mod.F
+!  30 Jul 2012 - R. Yantosca - Now accept am_I_Root as an argument when
+!                              running with the traditional driver main.F
+!  02 Aug 2012 - R. Yantosca - Add error trap for JLOOP=0 under DEVEL tag
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -179,7 +186,9 @@
       IS_LI_NOx = ALLOCATED( EMIS_LI_NOx )
       IS_AC_NOX = ALLOCATED( EMIS_AC_NOX )
 
-      IF (LPRT) WRITE(*,*) 'SCALE NOx emissions by', NOx_SCALING
+      IF ( LPRT .and. am_I_Root ) THEN
+         WRITE(*,*) 'SCALE NOx emissions by', NOx_SCALING
+      ENDIF
 
 !$OMP PARALLEL DO 
 !$OMP+DEFAULT( SHARED )
@@ -234,7 +243,9 @@
          ! Skip to next tracer if IDEMIS(NN) is not defined in 
          ! order to avoid array-out-of-bounds errors (bmy, 8/6/04)
          IF ( IDEMIS(NN) <= 0 ) THEN
-            PRINT*, 'Tracer ', NN, ' is not an emitted species!'
+            IF ( am_I_Root ) THEN
+               PRINT*, 'Tracer ', NN, ' is not an emitted species!'
+            ENDIF
             CYCLE
          ENDIF
 
@@ -311,6 +322,12 @@
                IF ( NOXEXTENT > TOPMIX ) THEN
                   DO L = TOPMIX+1, NOXEXTENT
                      JLOOP          = JLOP(I,J,L)
+#if defined( DEVEL ) || defined( EXTERNAL_GRID ) || defined( EXTERNAL_FORCING )
+                     ! Add this error trap to prevent out of bounds error
+                     ! but we should benchmark first before adding to
+                     ! the std G-C code (bmy, 8/2/12)
+                     IF ( JLOOP == 0 ) CYCLE
+#endif
                      REMIS(JLOOP,N) = EMISRRN(I,J,L) /
      $                    ( VOLUME(JLOOP) * COEF1 )
                   ENDDO

@@ -30,40 +30,35 @@
 !
 ! !PUBLIC TYPES:
 ! 
-!%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-!%%% Leave these types commented out for now ... activate them later
-!%%% (bmy, 9/29/10)
-!
-!      !-----------------------------------------------------------------
-!      ! ID flags for SMVGEAR species
-!      !-----------------------------------------------------------------
-!      TYPE :: ID_SPEC
-!         INTEGER          :: A3O2,    ACET,    ACTA,    ALD2,    ALK4
-!         INTEGER          :: ATO2,    B3O2,    C2H6,    C3H8,    CH2O
-!         INTEGER          :: CH4,     CO,      CO2,     DMS,     DRYCH2O
-!         INTEGER          :: DRYDEP,  DRYH2O2, DRYHNO3, DRYN2O5, DRYNO2
-!         INTEGER          :: DRYO3,   DRYPAN,  DRYPMN,  DRYPPN,  DRYR4N2
-!         INTEGER          :: EMISSION,EOH,     ETO2,    ETP,     GCO3
-!         INTEGER          :: GLCO3,   GLP,     GLPAN,   GLYC,    GLYX
-!         INTEGER          :: GP,      GPAN,    H,       H2,      H2O
-!         INTEGER          :: H2O2,    HAC,     HCOOH,   HNO2,    HNO3
-!         INTEGER          :: HNO4,    HO2,     IALD,    IAO2,    IAP
-!         INTEGER          :: INO2,    INPN,    ISN1,    ISNO3,   ISNP
-!         INTEGER          :: ISOP,    KO2,     LISOPOH, M,       MACR
-!         INTEGER          :: MAN2,    MAO3,    MAOP,    MAP,     MCO3
-!         INTEGER          :: MEK,     MGLY,    MNO3,    MO2,     MOH
-!         INTEGER          :: MP,      MRO2,    MRP,     MSA,     MVK
-!         INTEGER          :: MVN2,    N2,      N2O,     N2O5,    NH2
-!         INTEGER          :: NH3,     NO,      NO2,     NO3,     O       
-!         INTEGER          :: O1D,     O2,      O2CH2OH, O3,      OH
-!         INTEGER          :: PAN,     PMN,     PO2,     PP,      PPN
-!         INTEGER          :: PRN1,    PRPE,    PRPN,    R4N1,    R4N2    
-!         INTEGER          :: R4O2,    R4P,     RA3P,    RB3P,    RCHO
-!         INTEGER          :: RCO3,    RCOOH,   RIO1,    RIO2,    RIP
-!         INTEGER          :: ROH,     RP,      SO2,     SO4,     VRO2
-!         INTEGER          :: VRP
-!      END TYPE ID_SPEC
-!%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+      !-----------------------------------------------------------------
+      ! ID flags for SMVGEAR species
+      !-----------------------------------------------------------------
+      TYPE :: ID_SPEC
+         INTEGER          :: A3O2,    ACET,    ACTA,    ALD2,    ALK4
+         INTEGER          :: ATO2,    B3O2,    C2H6,    C3H8,    CH2O
+         INTEGER          :: CH4,     CO,      CO2,     DMS,     DRYCH2O
+         INTEGER          :: DRYDEP,  DRYH2O2, DRYHNO3, DRYN2O5, DRYNO2
+         INTEGER          :: DRYO3,   DRYPAN,  DRYPMN,  DRYPPN,  DRYR4N2
+         INTEGER          :: EMISSION,EOH,     ETO2,    ETP,     GCO3
+         INTEGER          :: GLCO3,   GLP,     GLPAN,   GLYC,    GLYX
+         INTEGER          :: GP,      GPAN,    H,       H2,      H2O
+         INTEGER          :: H2O2,    HAC,     HCOOH,   HNO2,    HNO3
+         INTEGER          :: HNO4,    HO2,     IALD,    IAO2,    IAP
+         INTEGER          :: INO2,    INPN,    ISN1,    ISNO3,   ISNP
+         INTEGER          :: ISOP,    KO2,     LISOPOH, M,       MACR
+         INTEGER          :: MAN2,    MAO3,    MAOP,    MAP,     MCO3
+         INTEGER          :: MEK,     MGLY,    MNO3,    MO2,     MOH
+         INTEGER          :: MP,      MRO2,    MRP,     MSA,     MVK
+         INTEGER          :: MVN2,    N2,      N2O,     N2O5,    NH2
+         INTEGER          :: NH3,     NO,      NO2,     NO3,     O       
+         INTEGER          :: O1D,     O2,      O2CH2OH, O3,      OH
+         INTEGER          :: PAN,     PMN,     PO2,     PP,      PPN
+         INTEGER          :: PRN1,    PRPE,    PRPN,    R4N1,    R4N2    
+         INTEGER          :: R4O2,    R4P,     RA3P,    RB3P,    RCHO
+         INTEGER          :: RCO3,    RCOOH,   RIO1,    RIO2,    RIP
+         INTEGER          :: ROH,     RP,      SO2,     SO4,     VRO2
+         INTEGER          :: VRP
+      END TYPE ID_SPEC
 
       !-----------------------------------------------------------------
       ! ID flags for advected tracers
@@ -96,36 +91,32 @@
          REAL*8,  POINTER :: XNUMOL(:)
       END TYPE SPEC_2_TRAC
 
-!%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-!%%% Leave these types commented out for now ... activate them later
-!%%% (bmy, 9/29/10)
-!      !-----------------------------------------------------------------
-!      ! ID flags for advected tracers that dry deposit
-!      !-----------------------------------------------------------------
-!      TYPE :: ID_DRYD
-!         INTEGER          :: NOx,     Ox,      PAN,     HNO3,    H2O2
-!         INTEGER          :: PMN,     PPN,     R4N2,    CH2O,    N2O5
-!         INTEGER          :: SO2,     SO4,     SO4s,    MSA,     NH3
-!         INTEGER          :: NH4,     NIT,     NITs,    BCPI,    BCPO
-!         INTEGER          :: OCPI,    OCPO,    ALPH,    LIMO,    ALCO
-!         INTEGER          :: SOG1,    SOG2,    SOG3,    SOG4,    SOA1
-!         INTEGER          :: SOA2,    SOA3,    SOA4,    DST1,    DST2
-!         INTEGER          :: DST3,    DST4,    SALA,    SALC
-!      END TYPE ID_DRYD
-!
-!      !-----------------------------------------------------------------
-!      ! ID flags for advected tracers that wet deposit
-!      !-----------------------------------------------------------------
-!      TYPE :: ID_WETD
-!         INTEGER          :: HNO3,    H2O2,    CH2O,    MP  
-!         INTEGER          :: SO2,     SO4,     SO4s,    MSA,     NH3
-!         INTEGER          :: NH4,     NIT,     NITs,    BCPI,    OCPI
-!         INTEGER          :: BCPO,    OCPO,    ALPH,    LIMO,    ALCO
-!         INTEGER          :: SOG1,    SOG2,    SOG3,    SOG4,    SOA1
-!         INTEGER          :: SOA2,    SOA3,    SOA4,    DST1,    DST2
-!         INTEGER          :: DST3,    DST4,    SALA,    SALC
-!      END TYPE ID_WETD
-!%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+      !-----------------------------------------------------------------
+      ! ID flags for advected tracers that dry deposit
+      !-----------------------------------------------------------------
+      TYPE :: ID_DRYD
+         INTEGER          :: NOx,     Ox,      PAN,     HNO3,    H2O2
+         INTEGER          :: PMN,     PPN,     R4N2,    CH2O,    N2O5
+         INTEGER          :: SO2,     SO4,     SO4s,    MSA,     NH3
+         INTEGER          :: NH4,     NIT,     NITs,    BCPI,    BCPO
+         INTEGER          :: OCPI,    OCPO,    ALPH,    LIMO,    ALCO
+         INTEGER          :: SOG1,    SOG2,    SOG3,    SOG4,    SOA1
+         INTEGER          :: SOA2,    SOA3,    SOA4,    DST1,    DST2
+         INTEGER          :: DST3,    DST4,    SALA,    SALC
+      END TYPE ID_DRYD
+
+      !-----------------------------------------------------------------
+      ! ID flags for advected tracers that wet deposit
+      !-----------------------------------------------------------------
+      TYPE :: ID_WETD
+         INTEGER          :: HNO3,    H2O2,    CH2O,    MP  
+         INTEGER          :: SO2,     SO4,     SO4s,    MSA,     NH3
+         INTEGER          :: NH4,     NIT,     NITs,    BCPI,    OCPI
+         INTEGER          :: BCPO,    OCPO,    ALPH,    LIMO,    ALCO
+         INTEGER          :: SOG1,    SOG2,    SOG3,    SOG4,    SOA1
+         INTEGER          :: SOA2,    SOA3,    SOA4,    DST1,    DST2
+         INTEGER          :: DST3,    DST4,    SALA,    SALC
+      END TYPE ID_WETD
 
       !-----------------------------------------------------------------
       ! Logical flags that turn various options on/off
@@ -164,40 +155,38 @@
          LOGICAL          :: USE_DIAG38
       END TYPE GC_OPTIONS
 
-!%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-!%%% Leave these types commented out for now ... activate them later
-!%%% (bmy, 9/29/10)
-!      !-----------------------------------------------------------------
-!      ! Time & date values
-!      !-----------------------------------------------------------------
-!      TYPE :: GC_TIME
-!         INTEGER          :: YEAR         ! Current year (YYYY)
-!         INTEGER          :: MONTH        ! Current month (1-12)
-!         INTEGER          :: DAY          ! Current day (1-31)
-!         INTEGER          :: DOY          ! Day of year (0-365/366)
-!         INTEGER          :: HOUR         ! Current hour (0-23)
-!         INTEGER          :: MINUTE       ! Current minute (0-59)
-!         LOGICAL          :: FIRST_TIME   ! Is it the first timestep?
-!         REAL*8           :: T_ELAPSED    ! Elapsed simulation time [min]
-!         REAL*8           :: TS_DYN       ! Dynamic timestep [min]
-!         REAL*8           :: TS_CHEM      ! Chemistry timestep [min]
-!      END TYPE GC_TIME
-!
-!      !-----------------------------------------------------------------
-!      ! Geographic location
-!      !-----------------------------------------------------------------
-!      TYPE :: GC_GEOLOC
-!         REAL*8           :: LON          ! Longitude [degrees]
-!         REAL*8           :: LAT          ! Latitude  [degrees]
-!         REAL*8           :: LOCALTIME    ! Local solar time [hrs]
-!      END TYPE GC_GEOLOC
-!%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+      !-----------------------------------------------------------------
+      ! Time & date values
+      !-----------------------------------------------------------------
+      TYPE :: GC_TIME
+         INTEGER          :: YEAR         ! Current year (YYYY)
+         INTEGER          :: MONTH        ! Current month (1-12)
+         INTEGER          :: DAY          ! Current day (1-31)
+         INTEGER          :: DOY          ! Day of year (0-365/366)
+         INTEGER          :: HOUR         ! Current hour (0-23)
+         INTEGER          :: MINUTE       ! Current minute (0-59)
+         LOGICAL          :: FIRST_TIME   ! Is it the first timestep?
+         REAL*8           :: T_ELAPSED    ! Elapsed simulation time [min]
+         REAL*8           :: TS_DYN       ! Dynamic timestep [min]
+         REAL*8           :: TS_CHEM      ! Chemistry timestep [min]
+      END TYPE GC_TIME
+
+      !-----------------------------------------------------------------
+      ! Geographic location
+      !-----------------------------------------------------------------
+      TYPE :: GC_GEOLOC
+         REAL*8           :: LON          ! Longitude [degrees]
+         REAL*8           :: LAT          ! Latitude  [degrees]
+         REAL*8           :: LOCALTIME    ! Local solar time [hrs]
+      END TYPE GC_GEOLOC
 
       !-----------------------------------------------------------------
       ! Dimension information
       !-----------------------------------------------------------------
       TYPE :: GC_DIMS  
          INTEGER          :: L_COLUMN     ! # of boxes in the vertical column
+         INTEGER          :: J_LAT        ! # of lat boxes
+         INTEGER          :: I_LON        ! # of lon boxes
          INTEGER          :: N_AER        ! # of aerosol tracers
          INTEGER          :: N_DRYDEP     ! # of dry deposited tracers
          INTEGER          :: N_DUST       ! # of dust tracers
@@ -212,136 +201,132 @@
          INTEGER          :: N_WETDEP     ! # of wet deposited tracers
       END TYPE GC_DIMS
 
-!%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-!%%% Leave these types commented out for now ... activate them later
-!%%% (bmy, 9/29/10)
-!      !-----------------------------------------------------------------
-!      ! Column met fields
-!      !-----------------------------------------------------------------
+      !-----------------------------------------------------------------
+      ! Column met fields
+      !-----------------------------------------------------------------
       TYPE :: GC_MET_LOCAL
 ! 2-D Arrays
-         REAL*8, ALLOCATABLE :: ALBD(:,:)    ! Visible sfc albedo [unitless]
-         REAL*8, ALLOCATABLE :: AREA_M2(:,:) ! Grid box surface area [cm2]
-         REAL*8, ALLOCATABLE :: CLDFRC(:,:)  ! Column cloud fraction [unitless]
-         INTEGER, ALLOCATABLE :: CLDTOPS(:,:) ! Max cloud top height [levels]
-         REAL*8, ALLOCATABLE :: EFLUX(:,:)   ! Latent heat flux [W/m2]
-         REAL*8, ALLOCATABLE :: EVAP(:,:)    ! Surface evap [kg/m2/s]
-         REAL*8, ALLOCATABLE :: FRCLND(:,:)  ! Olson land fraction [unitless]
-         REAL*8, ALLOCATABLE :: FRLAKE(:,:)  ! Fraction of lake [unitless]
-         REAL*8, ALLOCATABLE :: FRLAND(:,:)  ! Fraction of land [unitless]
-         REAL*8, ALLOCATABLE :: FRLANDIC(:,:)! Fraction of land ice [unitless]
-         REAL*8, ALLOCATABLE :: FROCEAN(:,:) ! Fraction of ocean [unitless]
-         REAL*8, ALLOCATABLE :: FRSEAICE(:,:)! Sfc sea ice fraction
-         REAL*8, ALLOCATABLE :: FRSNO(:,:)   ! Sfc snow fraction
-         REAL*8, ALLOCATABLE :: GRN(:,:)     ! Greenness fraction
-         REAL*8, ALLOCATABLE :: GWETROOT(:,:)! Root soil wetness [unitless]
-         REAL*8, ALLOCATABLE :: GWETTOP(:,:) ! Top soil moisture [unitless]
-         REAL*8, ALLOCATABLE :: HFLUX(:,:)   ! Sensible heat flux [W/m2]
-         REAL*8, ALLOCATABLE :: LAI(:,:)     ! Leaf area index [m2/m2]
-         REAL*8, ALLOCATABLE :: LWI(:,:)     ! Land/water indices [unitless]
-         REAL*8, ALLOCATABLE :: LWI_GISS(:,:)! Land fraction [unitless]
-         REAL*8, ALLOCATABLE :: MOLENGTH(:,:)! Monin-Obhukov length [m]
-         REAL*8, ALLOCATABLE :: OICE(:,:)    ! Fraction of ocean ice [unitless]
-         REAL*8, ALLOCATABLE :: PARDR(:,:)   ! Direct  photo active rad [W/m2]
-         REAL*8, ALLOCATABLE :: PARDF(:,:)   ! Diffuse photo active rad [W/m2]
-         REAL*8, ALLOCATABLE :: PBLH(:,:)    ! PBL height [m]
-         REAL*8, ALLOCATABLE :: PHIS(:,:)    ! Sfc geopotential height [m2/s2]
-         REAL*8, ALLOCATABLE :: PRECANV(:,:) ! Anvil previp @ ground [kg/m2/s]
-         REAL*8, ALLOCATABLE :: PRECCON(:,:) ! Conv  precip @ ground [kg/m2/s]
-         REAL*8, ALLOCATABLE :: PRECTOT(:,:) ! Total precip @ ground [kg/m2/s]
-         REAL*8, ALLOCATABLE :: PRECLSC(:,:) ! LS precip @ ground [kg/m2/s]
-         REAL*8, ALLOCATABLE :: PRECSNO(:,:) ! Snow precip [kg/m2/s]
-         REAL*8, ALLOCATABLE :: PS1(:,:)     ! Sfc press at timestep start[hPa]
-         REAL*8, ALLOCATABLE :: PS2(:,:)     ! Sfc press at timestep end [hPa]
-         REAL*8, ALLOCATABLE :: PSC2(:,:)    ! Interpolated sfc pressure [hPa]
-         REAL*8, ALLOCATABLE :: RADLWG(:,:)  ! Net LW radiation @ ground [W/m2]
-         REAL*8, ALLOCATABLE :: RADSWG(:,:)  ! Solar radiation @ ground [W/m2]
-         REAL*8, ALLOCATABLE :: SEAICE00(:,:)! Sea ice coverage 00-10%
-         REAL*8, ALLOCATABLE :: SEAICE10(:,:)! Sea ice coverage 10-20%
-         REAL*8, ALLOCATABLE :: SEAICE20(:,:)! Sea ice coverage 20-30%
-         REAL*8, ALLOCATABLE :: SEAICE30(:,:)! Sea ice coverage 30-40%
-         REAL*8, ALLOCATABLE :: SEAICE40(:,:)! Sea ice coverage 40-50%
-         REAL*8, ALLOCATABLE :: SEAICE50(:,:)! Sea ice coverage 50-60%
-         REAL*8, ALLOCATABLE :: SEAICE60(:,:)! Sea ice coverage 60-70%
-         REAL*8, ALLOCATABLE :: SEAICE70(:,:)! Sea ice coverage 70-80%
-         REAL*8, ALLOCATABLE :: SEAICE80(:,:)! Sea ice coverage 80-90%
-         REAL*8, ALLOCATABLE :: SEAICE90(:,:)! Sea ice coverage 90-100%
-         REAL*8, ALLOCATABLE :: SLP(:,:)     ! Sea level pressure [hPa]
-         REAL*8, ALLOCATABLE :: SNICE(:,:)   ! Fraction of snow/ice [unitless]
-         REAL*8, ALLOCATABLE :: SNODP(:,:)   ! Snow depth [m]
-         REAL*8, ALLOCATABLE :: SNOMAS(:,:)  ! Snow mass [kg/m2]
-         REAL*8, ALLOCATABLE :: SNOW(:,:)    ! Snow depth (H2O equiv) [mm H2O]
-         REAL*8, ALLOCATABLE :: SST(:,:)     ! Sea surface temperature [K]
-         REAL*8, ALLOCATABLE :: TO3(:,:)     ! Total overhead O3 column [DU]
-         REAL*8, ALLOCATABLE :: TO31(:,:)    ! Total O3 at timestep start [DU]
-         REAL*8, ALLOCATABLE :: TO32(:,:)    ! Total O3 at timestep end [DU]
-         REAL*8, ALLOCATABLE :: TROPP(:,:)   ! Tropopause pressure [hPa]
-         REAL*8, ALLOCATABLE :: TROPP1(:,:)  ! Trop P at timestep start [hPa]
-         REAL*8, ALLOCATABLE :: TROPP2(:,:)  ! Trop P at timestep end [hPa]
-         REAL*8, ALLOCATABLE :: TS(:,:)      ! Surface temperature [K]
-         REAL*8, ALLOCATABLE :: TSKIN(:,:)   ! Surface skin temperature [K]
-         REAL*8, ALLOCATABLE :: TTO3(:,:)    ! Tropospheric ozone column [DU]
-         REAL*8, ALLOCATABLE :: U10M(:,:)    ! E/W wind speed @ 10m [m/s]
-         REAL*8, ALLOCATABLE :: USTAR(:,:)   ! Friction velocity [m/s]
-         REAL*8, ALLOCATABLE :: UVALBEDO(:,:)! UV surface albedo [unitless]
-         REAL*8, ALLOCATABLE :: V10M(:,:)    ! N/S wind speed @ 10m [m/s]
-         REAL*8, ALLOCATABLE :: Z0(:,:)      ! Surface roughness height [m]
+         REAL*8,  POINTER :: ALBD(:,:)    ! Visible sfc albedo [unitless]
+         REAL*8,  POINTER :: CLDFRC(:,:)  ! Column cloud fraction [unitless]
+         INTEGER, POINTER :: CLDTOPS(:,:) ! Max cloud top height [levels]
+         REAL*8,  POINTER :: EFLUX(:,:)   ! Latent heat flux [W/m2]
+         REAL*8,  POINTER :: EVAP(:,:)    ! Surface evap [kg/m2/s]
+         REAL*8,  POINTER :: FRCLND(:,:)  ! Olson land fraction [unitless]
+         REAL*8,  POINTER :: FRLAKE(:,:)  ! Fraction of lake [unitless]
+         REAL*8,  POINTER :: FRLAND(:,:)  ! Fraction of land [unitless]
+         REAL*8,  POINTER :: FRLANDIC(:,:)! Fraction of land ice [unitless]
+         REAL*8,  POINTER :: FROCEAN(:,:) ! Fraction of ocean [unitless]
+         REAL*8,  POINTER :: FRSEAICE(:,:)! Sfc sea ice fraction
+         REAL*8,  POINTER :: FRSNO(:,:)   ! Sfc snow fraction
+         REAL*8,  POINTER :: GRN(:,:)     ! Greenness fraction
+         REAL*8,  POINTER :: GWETROOT(:,:)! Root soil wetness [unitless]
+         REAL*8,  POINTER :: GWETTOP(:,:) ! Top soil moisture [unitless]
+         REAL*8,  POINTER :: HFLUX(:,:)   ! Sensible heat flux [W/m2]
+         REAL*8,  POINTER :: LAI(:,:)     ! Leaf area index [m2/m2]
+         REAL*8,  POINTER :: LWI(:,:)     ! Land/water indices [unitless]
+         REAL*8,  POINTER :: LWI_GISS(:,:)! Land fraction [unitless]
+         REAL*8,  POINTER :: MOLENGTH(:,:)! Monin-Obhukov length [m]
+         REAL*8,  POINTER :: OICE(:,:)    ! Fraction of ocean ice [unitless]
+         REAL*8,  POINTER :: PARDR(:,:)   ! Direct  photo active rad [W/m2]
+         REAL*8,  POINTER :: PARDF(:,:)   ! Diffuse photo active rad [W/m2]
+         REAL*8,  POINTER :: PBLH(:,:)    ! PBL height [m]
+         REAL*8,  POINTER :: PHIS(:,:)    ! Sfc geopotential height [m2/s2]
+         REAL*8,  POINTER :: PRECANV(:,:) ! Anvil previp @ ground [kg/m2/s]
+         REAL*8,  POINTER :: PRECCON(:,:) ! Conv  precip @ ground [kg/m2/s]
+         REAL*8,  POINTER :: PRECTOT(:,:) ! Total precip @ ground [kg/m2/s]
+         REAL*8,  POINTER :: PRECLSC(:,:) ! LS precip @ ground [kg/m2/s]
+         REAL*8,  POINTER :: PRECSNO(:,:) ! Snow precip [kg/m2/s]
+         REAL*8,  POINTER :: PS1(:,:)     ! Sfc press at timestep start[hPa]
+         REAL*8,  POINTER :: PS2(:,:)     ! Sfc press at timestep end [hPa]
+         REAL*8,  POINTER :: PSC2(:,:)    ! Interpolated sfc pressure [hPa]
+         REAL*8,  POINTER :: RADLWG(:,:)  ! Net LW radiation @ ground [W/m2]
+         REAL*8,  POINTER :: RADSWG(:,:)  ! Solar radiation @ ground [W/m2]
+         REAL*8,  POINTER :: SEAICE00(:,:)! Sea ice coverage 00-10%
+         REAL*8,  POINTER :: SEAICE10(:,:)! Sea ice coverage 10-20%
+         REAL*8,  POINTER :: SEAICE20(:,:)! Sea ice coverage 20-30%
+         REAL*8,  POINTER :: SEAICE30(:,:)! Sea ice coverage 30-40%
+         REAL*8,  POINTER :: SEAICE40(:,:)! Sea ice coverage 40-50%
+         REAL*8,  POINTER :: SEAICE50(:,:)! Sea ice coverage 50-60%
+         REAL*8,  POINTER :: SEAICE60(:,:)! Sea ice coverage 60-70%
+         REAL*8,  POINTER :: SEAICE70(:,:)! Sea ice coverage 70-80%
+         REAL*8,  POINTER :: SEAICE80(:,:)! Sea ice coverage 80-90%
+         REAL*8,  POINTER :: SEAICE90(:,:)! Sea ice coverage 90-100%
+         REAL*8,  POINTER :: SLP(:,:)     ! Sea level pressure [hPa]
+         REAL*8,  POINTER :: SNICE(:,:)   ! Fraction of snow/ice [unitless]
+         REAL*8,  POINTER :: SNODP(:,:)   ! Snow depth [m]
+         REAL*8,  POINTER :: SNOMAS(:,:)  ! Snow mass [kg/m2]
+         REAL*8,  POINTER :: SNOW(:,:)    ! Snow depth (H2O equiv) [mm H2O]
+         REAL*8,  POINTER :: SST(:,:)     ! Sea surface temperature [K]
+         REAL*8,  POINTER :: TO3(:,:)     ! Total overhead O3 column [DU]
+         REAL*8,  POINTER :: TO31(:,:)    ! Total O3 at timestep start [DU]
+         REAL*8,  POINTER :: TO32(:,:)    ! Total O3 at timestep end [DU]
+         REAL*8,  POINTER :: TROPP(:,:)   ! Tropopause pressure [hPa]
+         REAL*8,  POINTER :: TROPP1(:,:)  ! Trop P at timestep start [hPa]
+         REAL*8,  POINTER :: TROPP2(:,:)  ! Trop P at timestep end [hPa]
+         REAL*8,  POINTER :: TS(:,:)      ! Surface temperature [K]
+         REAL*8,  POINTER :: TSKIN(:,:)   ! Surface skin temperature [K]
+         REAL*8,  POINTER :: TTO3(:,:)    ! Tropospheric ozone column [DU]
+         REAL*8,  POINTER :: U10M(:,:)    ! E/W wind speed @ 10m [m/s]
+         REAL*8,  POINTER :: USTAR(:,:)   ! Friction velocity [m/s]
+         REAL*8,  POINTER :: UVALBEDO(:,:)! UV surface albedo [unitless]
+         REAL*8,  POINTER :: V10M(:,:)    ! N/S wind speed @ 10m [m/s]
+         REAL*8,  POINTER :: Z0(:,:)      ! Surface roughness height [m]
 ! 3-D Arrays
-         REAL*8, ALLOCATABLE :: AD(:,:,:)       ! Air mass [kg]
-         REAL*8, ALLOCATABLE :: AIRDEN(:,:,:)   ! Air density [kg/m3]
-         REAL*8, ALLOCATABLE :: AIRVOL(:,:,:)   ! Grid box volume [m3]
-         REAL*8, ALLOCATABLE :: AVGW(:,:,:)     ! Mixing ratio of water vapor
-         REAL*8, ALLOCATABLE :: BXHEIGHT(:,:,:) ! Grid box height [m]
-         REAL*8, ALLOCATABLE :: CLDF(:,:,:)     ! 3-D cloud fraction [unitless]
-         REAL*8, ALLOCATABLE :: CMFMC(:,:,:)    ! Cloud mass flux [kg/m2/s]
-         REAL*8, ALLOCATABLE :: DELP(:,:,:)     ! Pressure thickness [mb]
-         REAL*8, ALLOCATABLE :: DETRAINE(:,:,:) ! Detrainment (entraining plume) [Pa/s]
-         REAL*8, ALLOCATABLE :: DETRAINN(:,:,:) ! Detrainment (non-entr'n plume) [Pa/s]
-         REAL*8, ALLOCATABLE :: DNDE(:,:,:)     ! Downdraft (entraining plume) [Pa/s]
-         REAL*8, ALLOCATABLE :: DNDN(:,:,:)     ! Downdraft (non-entr'n plume) [Pa/s]
-         REAL*8, ALLOCATABLE :: DQRCU(:,:,:)    ! Conv precip prod rate [kg/kg/s]
-         REAL*8, ALLOCATABLE :: DQRLSAN(:,:,:)  ! LS precip prod rate [kg/kg/s]
-         REAL*8, ALLOCATABLE :: DQIDTMST(:,:,:) ! Ice tendency, mst proc [kg/kg/s]
-         REAL*8, ALLOCATABLE :: DQLDTMST(:,:,:) ! H2O tendency, mst proc [kg/kg/s]
-         REAL*8, ALLOCATABLE :: DQVDTMST(:,:,:) ! Vapor tendency, mst proc [kg/kg/s]
-         REAL*8, ALLOCATABLE :: DTRAIN(:,:,:)   ! Detrainment flux [kg/m2/s]
-         REAL*8, ALLOCATABLE :: ENTRAIN(:,:,:)  ! GCAP entrainment [Pa/s]
-         REAL*8, ALLOCATABLE :: HKBETA(:,:,:)   ! Hack overshoot parameter [unitless]
-         REAL*8, ALLOCATABLE :: HKETA(:,:,:)    ! Hack convective mass flux [kg/m2/s]
-         REAL*8, ALLOCATABLE :: MOISTQ(:,:,:)   ! Tendency in sp. humidity [kg/kg/s]
-         REAL*8, ALLOCATABLE :: OPTD(:,:,:)     ! Visible optical depth [unitless]
-         REAL*8, ALLOCATABLE :: OPTDEP(:,:,:)   ! Visible optical depth [unitless]
-         REAL*8, ALLOCATABLE :: PEDGE(:,:,:)    ! Pressure @ level edges [Pa]
-         REAL*8, ALLOCATABLE :: PMID(:,:,:)     ! Pressure @ level centers [Pa]
-         REAL*8, ALLOCATABLE :: PFICU(:,:,:)    ! Dwn flux ice precip: conv [kg/m2/s]
-         REAL*8, ALLOCATABLE :: PFILSAN(:,:,:)  ! Dwn flux ice precip: LS+anv [kg/m2/s]
-         REAL*8, ALLOCATABLE :: PFLCU(:,:,:)    ! Dwn flux liq precip: conv [kg/m2/s]
-         REAL*8, ALLOCATABLE :: PFLLSAN(:,:,:)  ! Dwn flux ice precip: LS+anv [kg/m2/s]
-         REAL*8, ALLOCATABLE :: PV(:,:,:)       ! Potential vort [kg*m2/kg/s]
-         REAL*8, ALLOCATABLE :: QI(:,:,:)       ! Cld ice mixing ratio [kg/kg]
-         REAL*8, ALLOCATABLE :: QL(:,:,:)       ! Cld H2O mixing ratio [kg/kg]
-         REAL*8, ALLOCATABLE :: REEVAPCN(:,:,:) ! Evap of precip conv cond [kg/kg/s]
-         REAL*8, ALLOCATABLE :: REEVAPLS(:,:,:) ! Evap of precip LS+anvil cond [kg/kg/s]
-         REAL*8, ALLOCATABLE :: RH(:,:,:)       ! Relative humidity [unitless]
-         REAL*8, ALLOCATABLE :: RH1(:,:,:)      ! RH at timestep start [unitless]
-         REAL*8, ALLOCATABLE :: RH2(:,:,:)      ! RH at timestep end [unitless]
-         REAL*8, ALLOCATABLE :: SPHU(:,:,:)     ! Specific humidity [kg/kg]
-         REAL*8, ALLOCATABLE :: SPHU1(:,:,:)    ! Spec humidity at timestep start  [kg/kg]
-         REAL*8, ALLOCATABLE :: SPHU2(:,:,:)    ! Spec humidity at timestep end [kg/kg]
-         REAL*8, ALLOCATABLE :: T(:,:,:)        ! Temperature [K]
-         REAL*8, ALLOCATABLE :: TAUCLI(:,:,:)   ! Opt depth of ice clouds [unitless]
-         REAL*8, ALLOCATABLE :: TAUCLW(:,:,:)   ! Opt depth of H2O clouds [unitless]
-         REAL*8, ALLOCATABLE :: TMPU1(:,:,:)    ! Temperature at timestep start [K]
-         REAL*8, ALLOCATABLE :: TMPU2(:,:,:)    ! Temperature at timestep end [K]
-         REAL*8, ALLOCATABLE :: U(:,:,:)        ! E/W component of wind [m s-1]
-         REAL*8, ALLOCATABLE :: UPDE(:,:,:)     ! Updraft (entraining plume) [Pa/s]
-         REAL*8, ALLOCATABLE :: UPDN(:,:,:)     ! Updraft (non-entr'n plume) [Pa/s]
-         REAL*8, ALLOCATABLE :: V(:,:,:)        ! N/S component of wind [m s-1]
-         REAL*8, ALLOCATABLE :: ZMEU(:,:,:)     ! Zhang/McFarlane updraft entrainment [Pa/s]
-         REAL*8, ALLOCATABLE :: ZMMD(:,:,:)     ! Zhang/McFarlane downdraft mass flux [Pa/s]
-         REAL*8, ALLOCATABLE :: ZMMU(:,:,:)     ! Zhang/McFarlane updraft mass flux [Pa/s]
+         REAL*8,  POINTER :: AD(:,:,:)       ! Air mass [kg]
+         REAL*8,  POINTER :: AIRDEN(:,:,:)   ! Air density [kg/m3]
+         REAL*8,  POINTER :: AIRVOL(:,:,:)   ! Grid box volume [m3]
+         REAL*8,  POINTER :: AREA_M2(:,:,:)   ! Grid box surface area [cm2]
+         REAL*8,  POINTER :: AVGW(:,:,:)     ! Mixing ratio of water vapor
+         REAL*8,  POINTER :: BXHEIGHT(:,:,:) ! Grid box height [m]
+         REAL*8,  POINTER :: CLDF(:,:,:)     ! 3-D cloud fraction [unitless]
+         REAL*8,  POINTER :: CMFMC(:,:,:)    ! Cloud mass flux [kg/m2/s]
+         REAL*8,  POINTER :: DELP(:,:,:)     ! Pressure thickness [mb]
+         REAL*8,  POINTER :: DETRAINE(:,:,:) ! Detrainment (entraining plume) [Pa/s]
+         REAL*8,  POINTER :: DETRAINN(:,:,:) ! Detrainment (non-entr'n plume) [Pa/s]
+         REAL*8,  POINTER :: DNDE(:,:,:)     ! Downdraft (entraining plume) [Pa/s]
+         REAL*8,  POINTER :: DNDN(:,:,:)     ! Downdraft (non-entr'n plume) [Pa/s]
+         REAL*8,  POINTER :: DQRCU(:,:,:)    ! Conv precip prod rate [kg/kg/s]
+         REAL*8,  POINTER :: DQRLSAN(:,:,:)  ! LS precip prod rate [kg/kg/s]
+         REAL*8,  POINTER :: DQIDTMST(:,:,:) ! Ice tendency, mst proc [kg/kg/s]
+         REAL*8,  POINTER :: DQLDTMST(:,:,:) ! H2O tendency, mst proc [kg/kg/s]
+         REAL*8,  POINTER :: DQVDTMST(:,:,:) ! Vapor tendency, mst proc [kg/kg/s]
+         REAL*8,  POINTER :: DTRAIN(:,:,:)   ! Detrainment flux [kg/m2/s]
+         REAL*8,  POINTER :: ENTRAIN(:,:,:)  ! GCAP entrainment [Pa/s]
+         REAL*8,  POINTER :: HKBETA(:,:,:)   ! Hack overshoot parameter [unitless]
+         REAL*8,  POINTER :: HKETA(:,:,:)    ! Hack convective mass flux [kg/m2/s]
+         REAL*8,  POINTER :: MOISTQ(:,:,:)   ! Tendency in sp. humidity [kg/kg/s]
+         REAL*8,  POINTER :: OPTD(:,:,:)     ! Visible optical depth [unitless]
+         REAL*8,  POINTER :: OPTDEP(:,:,:)   ! Visible optical depth [unitless]
+         REAL*8,  POINTER :: PEDGE(:,:,:)    ! Pressure @ level edges [Pa]
+         REAL*8,  POINTER :: PMID(:,:,:)     ! Pressure @ level centers [Pa]
+         REAL*8,  POINTER :: PFICU(:,:,:)    ! Dwn flux ice precip: conv [kg/m2/s]
+         REAL*8,  POINTER :: PFILSAN(:,:,:)  ! Dwn flux ice precip: LS+anv [kg/m2/s]
+         REAL*8,  POINTER :: PFLCU(:,:,:)    ! Dwn flux liq precip: conv [kg/m2/s]
+         REAL*8,  POINTER :: PFLLSAN(:,:,:)  ! Dwn flux ice precip: LS+anv [kg/m2/s]
+         REAL*8,  POINTER :: PV(:,:,:)       ! Potential vort [kg*m2/kg/s]
+         REAL*8,  POINTER :: QI(:,:,:)       ! Cld ice mixing ratio [kg/kg]
+         REAL*8,  POINTER :: QL(:,:,:)       ! Cld H2O mixing ratio [kg/kg]
+         REAL*8,  POINTER :: REEVAPCN(:,:,:) ! Evap of precip conv cond [kg/kg/s]
+         REAL*8,  POINTER :: REEVAPLS(:,:,:) ! Evap of precip LS+anvil cond [kg/kg/s]
+         REAL*8,  POINTER :: RH(:,:,:)       ! Relative humidity [unitless]
+         REAL*8,  POINTER :: RH1(:,:,:)      ! RH at timestep start [unitless]
+         REAL*8,  POINTER :: RH2(:,:,:)      ! RH at timestep end [unitless]
+         REAL*8,  POINTER :: SPHU(:,:,:)     ! Specific humidity [kg/kg]
+         REAL*8,  POINTER :: SPHU1(:,:,:)    ! Spec humidity at timestep start  [kg/kg]
+         REAL*8,  POINTER :: SPHU2(:,:,:)    ! Spec humidity at timestep end [kg/kg]
+         REAL*8,  POINTER :: T(:,:,:)        ! Temperature [K]
+         REAL*8,  POINTER :: TAUCLI(:,:,:)   ! Opt depth of ice clouds [unitless]
+         REAL*8,  POINTER :: TAUCLW(:,:,:)   ! Opt depth of H2O clouds [unitless]
+         REAL*8,  POINTER :: TMPU1(:,:,:)    ! Temperature at timestep start [K]
+         REAL*8,  POINTER :: TMPU2(:,:,:)    ! Temperature at timestep end [K]
+         REAL*8,  POINTER :: U(:,:,:)        ! E/W component of wind [m s-1]
+         REAL*8,  POINTER :: UPDE(:,:,:)     ! Updraft (entraining plume) [Pa/s]
+         REAL*8,  POINTER :: UPDN(:,:,:)     ! Updraft (non-entr'n plume) [Pa/s]
+         REAL*8,  POINTER :: V(:,:,:)        ! N/S component of wind [m s-1]
+         REAL*8,  POINTER :: ZMEU(:,:,:)     ! Zhang/McFarlane updraft entrainment [Pa/s]
+         REAL*8,  POINTER :: ZMMD(:,:,:)     ! Zhang/McFarlane downdraft mass flux [Pa/s]
+         REAL*8,  POINTER :: ZMMU(:,:,:)     ! Zhang/McFarlane updraft mass flux [Pa/s]
       END TYPE GC_MET_LOCAL
-!%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
       !-----------------------------------------------------------------
       ! Derived type to pass ID information to GEOS-Chem routines
@@ -356,18 +341,16 @@
          LOGICAL            :: VERBOSE      ! Should we print out debug info?
       END TYPE GC_IDENT
 
-!%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-!%%% Leave these types commented out for now ... activate them later
-!%%% (bmy, 9/29/10)
-!      !-----------------------------------------------------------------
-!      ! Type for column oxidant fields used by SCHEM
-!      !-----------------------------------------------------------------
-!      TYPE :: SCOX_1d
-!         REAL*8, POINTER    :: OH(:)        ! Monthly archived OH [molec/cm3]
-!         REAL*8, POINTER    :: JVALUE(:,:)  ! Monthly archived J-values [1/s]
-!         REAL*8, POINTER    :: PCO(:)       ! CO production rate [mol/mol/s]
-!         REAL*8, POINTER    :: LCO(:)       ! CO loss rate [1/s]
-!%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+      !-----------------------------------------------------------------
+      ! Type for column oxidant fields used by SCHEM
+      !%%% NOTE: THIS IS NOW OBSOLETE
+      !-----------------------------------------------------------------
+      TYPE :: SCOX_1d
+         REAL*8, POINTER    :: OH(:)        ! Monthly archived OH [molec/cm3]
+         REAL*8, POINTER    :: JVALUE(:,:)  ! Monthly archived J-values [1/s]
+         REAL*8, POINTER    :: PCO(:)       ! CO production rate [mol/mol/s]
+         REAL*8, POINTER    :: LCO(:)       ! CO loss rate [1/s]
+      END TYPE SCOx_1d
 !
 ! !REVISION HISTORY: 
 !  24 Mar 2009 - R. Yantosca - Initial version

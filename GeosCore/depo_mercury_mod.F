@@ -13,7 +13,7 @@
       MODULE DEPO_MERCURY_MOD
 !
 ! !USES:
-! 
+!
       IMPLICIT NONE
 #     include "define.h"
       PRIVATE
@@ -473,13 +473,12 @@
       USE BPCH2_MOD
       USE DIAG_MOD,      ONLY : AD39, AD44, AD38
       USE DIRECTORY_MOD, ONLY : RUN_DIR
-      USE FILE_MOD,      ONLY : IU_FILE
       USE GRID_MOD,      ONLY : GET_XOFFSET, GET_YOFFSET
       USE TIME_MOD,      ONLY : EXPAND_DATE
       USE TRACERID_MOD,  ONLY : ID_Hg0, ID_Hg2, ID_Hg_tot
       USE TIME_MOD,      ONLY : GET_CT_DYN, GET_CT_CHEM
-    
-      USE CMN_SIZE_MOD          ! Size parameters
+      USE inquireMod,    ONLY : findFreeLUN
+      USE CMN_SIZE_MOD                 ! Size parameters
 !
 ! !INPUT PARAMETERS: 
 !
@@ -489,15 +488,17 @@
       REAL*8,  INTENT(IN)   :: TAU     ! GEOS-CHEM TAU value corresponding to 
                                        ! NYMD, NHMS
 ! !REVISION HISTORY:
-!  15 Sep 2009 - C. Carouge - Initial version
+!  15 Sep 2009 - C. Carouge  - Initial version
+!  03 Aug 2012 - R. Yantosca - Move calls to findFreeLUN out of DEVEL block
+!  07 Aug 2012 - R. Yantosca - Now print LUN used to open file
 !EOP
 !------------------------------------------------------------------------------
 !BOC
 !
 ! !LOCAL VARIABLES:
 !
-      INTEGER               :: HALFPOLAR, CENTER180
-      INTEGER               :: IFIRST,    JFIRST,   LFIRST
+      INTEGER               :: HALFPOLAR, CENTER180, IU_FILE
+      INTEGER               :: IFIRST,    JFIRST,    LFIRST
       INTEGER               :: N,         NN
       REAL*8                :: TS_DYN,    TS_CHEM
       REAL*4                :: LONRES,    LATRES,   ARRAY(IIPAR,JJPAR,1)
@@ -522,13 +523,16 @@
       RESERVED  = ''
       UNIT      = 'molec/cm2/s'
 
+      ! Find a free file LUN
+      IU_FILE   = findFreeLUN()
+
       ! Expand date in filename
       FILENAME  = TRIM( RUN_DIR ) // TRIM( GTMM_RST_FILE )
       CALL EXPAND_DATE( FILENAME, NYMD, NHMS )
 
       ! Echo info
-      WRITE( 6, 100 ) TRIM( FILENAME )
- 100  FORMAT( '     - MAKE_RESTART_FILE: Writing ', a )
+      WRITE( 6, 100 ) TRIM( FILENAME ), IU_FILE
+ 100  FORMAT( '     - MAKE_RESTART_FILE: Writing ', a, ' on unit ', i4 )
 
       ! Open BPCH file for output
       CALL OPEN_BPCH2_FOR_WRITE( IU_FILE, FILENAME )
@@ -593,7 +597,8 @@
       USE BPCH2_MOD,     ONLY : OPEN_BPCH2_FOR_READ
       USE DIRECTORY_MOD, ONLY : RUN_DIR
       USE ERROR_MOD,     ONLY : DEBUG_MSG
-      USE FILE_MOD,      ONLY : IU_FILE,     IOERROR
+      USE FILE_MOD,      ONLY : IOERROR
+      USE inquireMod,    ONLY : findFreeLun
       USE TIME_MOD,      ONLY : EXPAND_DATE
       USE TRACER_MOD,    ONLY : STT,         TRACER_NAME, TRACER_MW_G
       USE TRACERID_MOD,  ONLY : GET_Hg0_CAT, GET_Hg2_CAT, N_Hg_CATS
@@ -619,7 +624,7 @@
 !
 ! !LOCAL VARIABLES:
 !
-      INTEGER               :: IOS, I, J, L, NN, N_gtmm
+      INTEGER               :: IOS, I, IU_FILE, J, L, NN, N_gtmm
       INTEGER               :: NCOUNT(NNPAR) 
       REAL*4                :: FLUX(IIPAR,JJPAR)
       CHARACTER(LEN=255)    :: FILENAME
@@ -640,6 +645,9 @@
       ! READ_GTMM_RESTART begins here!
       !=================================================================
 
+      ! Find a free file LUN
+      IU_FILE  = findFreeLUN()
+
       ! Copy input file name to a local variable
       FILENAME = TRIM( RUN_DIR ) // TRIM( GTMM_RST_FILE )
     
@@ -649,9 +657,9 @@
       ! Echo some input to the screen
       WRITE( 6, '(a)' ) REPEAT( '=', 79 )
       WRITE( 6, 100   ) 
-      WRITE( 6, 110   ) TRIM( FILENAME )
+      WRITE( 6, 110   ) TRIM( FILENAME ), IU_FILE
  100  FORMAT( 'G T M M  H g   R E S T A R T   F I L E   I N P U T' )
- 110  FORMAT( /, 'READ_GTMM_RESTART: Reading ', a )
+ 110  FORMAT( /, 'READ_GTMM_RESTART: Reading ', a, ' on unit ', i6 )
 
       ! Open the binary punch file for input
       CALL OPEN_BPCH2_FOR_READ( IU_FILE, FILENAME )

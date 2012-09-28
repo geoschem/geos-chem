@@ -143,7 +143,7 @@
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE CHEMSEASALT
+      SUBROUTINE CHEMSEASALT( am_I_Root )
 !
 ! !USES:
 !
@@ -153,13 +153,19 @@
       USE TRACER_MOD,   ONLY : STT
       USE TRACERID_MOD, ONLY : IDTSALA, IDTSALC
 
-      USE CMN_SIZE_MOD       ! Size parameters
+      USE CMN_SIZE_MOD                   ! Size parameters
+!
+! !INPUT PARAMETERS:
+!
+      LOGICAL, INTENT(IN) :: am_I_Root   ! Is this the root CPU?
 ! 
 ! !REVISION HISTORY:
 !  (1 ) Now reference STT from "tracer_mod.f".  Now references LPRT from
 !        "logical_mod.f" (bmy, 7/20/04)
 !  (2 ) Now only call DRY_DEPOSITION if LDRYD=T (bec, bmy, 5/23/06)
 !  22 Dec 2011 - M. Payer    - Added ProTeX headers
+!  30 Jul 2012 - R. Yantosca - Now accept am_I_Root as an argument when
+!                              running with the traditional driver main.F
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -208,21 +214,27 @@
       ! Accumulation mode
       !-------------------
       CALL WET_SETTLING( STT(:,:,:,IDTSALA), 1 )
-      IF ( LPRT ) CALL DEBUG_MSG( '### CHEMSEASALT: WET_SET, Accum' )
+      IF ( LPRT .and. am_I_Root ) THEN
+         CALL DEBUG_MSG( '### CHEMSEASALT: WET_SET, Accum' )
+      ENDIF
 
       !IF ( LDRYD ) THEN
       ! If LNLPBL (non local PBL mixing) is turned on, do sea salt
       ! dry deposition in vdiff as for all the other aerosols (jaegle 5/11/11)
       IF ( LDRYD .AND. .NOT. LNLPBL ) THEN
          CALL DRY_DEPOSITION( STT(:,:,:,IDTSALA), 1 )
-         IF ( LPRT ) CALL DEBUG_MSG( '### CHEMSEASALT: DRY_DEP, Accum' )
+         IF ( LPRT .and. am_I_Root ) THEN
+            CALL DEBUG_MSG( '### CHEMSEASALT: DRY_DEP, Accum' )
+         ENDIF
       ENDIF
 
       !-------------------
       ! Coarse mode
       !-------------------
       CALL WET_SETTLING( STT(:,:,:,IDTSALC), 2 )
-      IF ( LPRT ) CALL DEBUG_MSG( '### CHEMSEASALT: WET_SET, Coarse' )
+      IF ( LPRT .and. am_I_Root ) THEN 
+         CALL DEBUG_MSG( '### CHEMSEASALT: WET_SET, Coarse' )
+      ENDIF
 
       !IF ( LDRYD ) THEN
       ! If LNLPBL (non local PBL mixing) is turned on, do sea salt
@@ -237,11 +249,15 @@
       ! APM microphysics
       !-------------------
       CALL WET_SETTLINGBIN( STT(:,:,:,IDTSEA1:IDTSEA2) )
-      IF ( LPRT ) CALL DEBUG_MSG( '### CHEMSEASALT: WET_SET, Bins' )
+      IF ( LPRT .and. am_I_Root ) THEN
+         CALL DEBUG_MSG( '### CHEMSEASALT: WET_SET, Bins' )
+      ENDIF
 
       IF ( LDRYD ) THEN
          CALL DRY_DEPOSITIONBIN( STT(:,:,:,IDTSEA1:IDTSEA2) )
-         IF ( LPRT ) CALL DEBUG_MSG('### CHEMSEASALT: DRY_DEP, Bins')
+         IF ( LPRT .and. am_I_Root ) THEN
+            CALL DEBUG_MSG('### CHEMSEASALT: DRY_DEP, Bins')
+         ENDIF
       ENDIF
 #endif
 
@@ -797,7 +813,11 @@
 !\\
 ! !INTERFACE:
 !
+#if defined( DEVEL )
+      SUBROUTINE EMISSSEASALT( SFLX, SSA_Br2 )
+#else
       SUBROUTINE EMISSSEASALT( SSA_Br2 )
+#endif
 !
 ! !USES:
 !
@@ -806,15 +826,25 @@
       USE TRACER_MOD,   ONLY : STT
       USE TRACERID_MOD, ONLY : IDTSALA, IDTSALC
       USE VDIFF_PRE_MOD,ONLY : emis_save ! (Lin, 03/31/09)
-#if   defined( APM )
-      USE APM_INIT_MOD, ONLY : IDTSEABIN1
+#if defined( DEVEL )
+      USE TRACER_MOD,   ONLY : N_TRACERS
 #endif
 
       USE CMN_SIZE_MOD       ! Size parameters
+
+#if   defined( APM )
+      USE APM_INIT_MOD, ONLY : IDTSEABIN1
+#endif
 !
 ! !OUTPUT PARAMETERS:
 !
       REAL*8, INTENT(OUT), OPTIONAL :: SSA_Br2(IIPAR, JJPAR)
+!
+! !INPUT/OUTPUT PARAMETERS
+!
+#if defined( DEVEL )
+      REAL*8, INTENT(INOUT) :: SFLX(IIPAR,JJPAR,LLPAR,N_TRACERS+1)
+#endif
 !
 ! !REVISION HISTORY: 
 !  (1 ) Now references LPRT from "logical_mod.f" and STT from "tracer_mod.f".
@@ -898,6 +928,11 @@
          CALL SRCSALT( STT(:,:,:,IDTSALC), tmpbr2(:,:), 2 )
          IF ( LPRT ) CALL DEBUG_MSG( '### EMISSEASALT: Coarse' )
       ENDIF
+
+#if defined( DEVEL )
+      SFLX(:,:,1,IDTSALA) = SFLX(:,:,1,IDTSALA) + ALK_EMIS(:,:,1,1)
+      SFLX(:,:,1,IDTSALC) = SFLX(:,:,1,IDTSALC) + ALK_EMIS(:,:,1,2)
+#endif
 
 #if   defined( APM )
       ! Sea salt emissions for extra APM bins
@@ -1172,6 +1207,7 @@
 !$OMP+DEFAULT( SHARED )
 !$OMP+PRIVATE( I, J, R, A_M2, W10M )
 !$OMP+PRIVATE( SST , SCALE         ) !(jaegle 5/11/11)
+!$OMP+PRIVATE( salt_current, br2_kg_emiss )
 !$OMP+SCHEDULE( DYNAMIC )
 
       ! Loop over latitudes

@@ -15,25 +15,18 @@ c     odmax    Maximum allowed optical depth, above which they are scaled
 c     odcol    Optical depth at each model level
 c     odsum    Column optical depth
 c     nlbatm   Level of lower photolysis boundary - usually surface
+!  10 Aug 2012 - R. Yantosca - Replace LPAR with LLPAR
+
 !-----------------------------------------------------------------------
 #     include "define.h"
 
-#if defined( DEVEL )
-      USE CMN_FJ_MOD, ONLY : JPMAX, JPPJ
-#else
-      USE CMN_FJ_MOD, ONLY : IPAR, JPAR, LPAR, JPMAX, JPPJ
-#endif
-      USE CMN_SIZE_MOD, ONLY : IIPAR, JJPAR, LLPAR
+      USE CMN_FJ_MOD, ONLY : LLPAR, JPMAX, JPPJ
       USE JV_CMN_MOD
 
       IMPLICIT NONE
 
 !=============== INPUT PARAMETERS ======================================
-#if defined( DEVEL )
       REAL*8, INTENT(INOUT) :: ODCOL(LLPAR)
-#else
-      REAL*8, INTENT(INOUT) :: ODCOL(LPAR)
-#endif
       REAL*8, INTENT(IN)    :: SA
 
 !=============== LOCAL VARIABLES =======================================

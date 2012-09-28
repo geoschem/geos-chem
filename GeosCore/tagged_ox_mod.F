@@ -86,7 +86,7 @@
 !
 ! !DESCRIPTION: Subroutine ADD\_STRAT\_POX adds the stratospheric influx of 
 !  Ox to the stratospheric Ox tracer.  This is called from routine 
-!  UPBDFLX\_O3, which is applied when the tracer array has units of [v/v].  
+!  Do\_Synoz, which is applied when the tracer array has units of [v/v].  
 !\\
 !\\
 ! !INTERFACE:
@@ -95,7 +95,8 @@
 !
 ! !USES:
 !
-      USE TRACER_MOD, ONLY : STT
+      USE TRACER_MOD,   ONLY : STT
+      USE TRACERID_MOD, ONLY : IDTOxStrt
 
       USE CMN_SIZE_MOD           ! Size parameters
 !
@@ -110,13 +111,14 @@
 !  19 Aug 2003 - R. Yantosca - Initial version
 !  (1 ) Now references STT from "tracer_mod.f" (bmy, 7/20/04)
 !  08 Dec 2009 - R. Yantosca - Added ProTeX headers
+!  10 Jun 2012 - L. Murray - Enable tagged Ox for Synoz.
 !EOP
 !------------------------------------------------------------------------------
 !BOC
       !=================================================================
       ! GET_STRAT_POX begins here!
       !=================================================================
-      !STT(I,J,L,N_STRAT) = STT(I,J,L,N_STRAT) + POx
+      STT(I,J,L,IDTOxStrt) = STT(I,J,L,IDTOxStrt) + POx
 
       END SUBROUTINE ADD_STRAT_POX
 !EOC

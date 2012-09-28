@@ -50,8 +50,12 @@
 !  (16) Modifications for reading data on GEOS-4 1 x 1.25 grids (bmy, 1/13/10)
 !  01 Mar 2012 - R. Yantosca - Now reference new grid_mod.F90
 !  01 Mar 2012 - R. Yantosca - Use updated GET_LOCALTIME from time_mod.F
+!  01 Aug 2012 - R. Yantosca - Add reference to findFreeLUN from inqure_mod.F90
+!  03 Aug 2012 - R. Yantosca - Move calls to findFreeLUN out of DEVEL block
 !******************************************************************************
 !
+      USE inquireMod, ONLY : findFreeLUN
+
       IMPLICIT NONE
 #     include "define.h" 
 
@@ -81,20 +85,22 @@
 !        from "file_mod.f" (bmy, 6/27/02)
 !  (7 ) Now use ENCODE to define CYEAR string for PGI/Linux (bmy, 9/29/03)
 !  (8 ) Now references DATA_DIR from "directory_mod.f" (bmy, 7/20/04)
+!  01 Aug 2012 - R. Yantosca - Add reference to findFreeLUN from inqure_mod.F90
+!  03 Aug 2012 - R. Yantosca - Move calls to findFreeLUN out of DEVEL block
 !******************************************************************************
 !
       ! References to F90 modules
       USE BPCH2_MOD,     ONLY : GET_RES_EXT
       USE DIRECTORY_MOD, ONLY : DATA_DIR
-      USE FILE_MOD,      ONLY : IU_FILE, IOERROR
-
-      USE CMN_SIZE_MOD   ! Size parameters
+      USE FILE_MOD,      ONLY : IOERROR
+      USE CMN_SIZE_MOD        ! Size parameters
 
       ! Arguments
       INTEGER, INTENT(IN)  :: SCALEYEAR
       REAL*4,  INTENT(OUT) :: TOTCO2(IIPAR,JJPAR)
 
       ! Local variables
+      INTEGER              :: IU_FILE
       INTEGER              :: I, J, IX, JX, IOS
       CHARACTER(LEN=4  )   :: CYEAR
       CHARACTER(LEN=255)   :: FILENAME
@@ -126,6 +132,9 @@
          ! Echo filename to stdout
          WRITE( 6, 20 ) TRIM( FILENAME )
  20      FORMAT( 'READ_TOTCO2: Reading ', a )
+
+         ! Find a free file LUN         
+         IU_FILE = findFreeLUN()
 
          ! Open the file containing liquid CO2 scale factors
          OPEN( IU_FILE, FILE=TRIM( FILENAME ), STATUS='OLD', 
@@ -169,23 +178,23 @@
 !        from "file_mod.f" (bmy, 6/27/02)
 !  (7 ) Now use ENCODE to define CYEAR string for PGI/Linux (bmy, 9/29/03)
 !  (8 ) Now references DATA_DIR from "directory_mod.f" (bmy, 7/20/04)
+!  01 Aug 2012 - R. Yantosca - Add reference to findFreeLUN from inqure_mod.F90
+!  03 Aug 2012 - R. Yantosca - Move calls to findFreeLUN out of DEVEL block
 !******************************************************************************
 !
       ! References to F90 modules
       USE BPCH2_MOD,     ONLY : GET_RES_EXT
       USE DIRECTORY_MOD, ONLY : DATA_DIR
-      USE FILE_MOD,      ONLY : IU_FILE, IOERROR
+      USE FILE_MOD,      ONLY : IOERROR
       USE BPCH2_MOD,     ONLY : GET_RES_EXT
-
-
-
-      USE CMN_SIZE_MOD   ! Size parameters
+      USE CMN_SIZE_MOD        ! Size parameters
 
       ! Arguments
       INTEGER, INTENT(IN)  :: SCALEYEAR
       REAL*4,  INTENT(OUT) :: LIQCO2(IIPAR,JJPAR)
 
       ! Local variables
+      INTEGER              :: IU_FILE
       INTEGER              :: I, J, IX, JX, IOS
       CHARACTER(LEN=4  )   :: CYEAR
       CHARACTER(LEN=255)   :: FILENAME
@@ -216,6 +225,9 @@
          ! Echo filename to stdout
          WRITE( 6, 20 ) TRIM( FILENAME )
  20      FORMAT( 'READ_TOTCO2: Reading ', a )
+
+         ! Find a free file LUN
+         IU_FILE = findFreeLUN()
 
          ! Open the file containing liquid CO2 scale factors
          OPEN( IU_FILE, FILE=TRIM( FILENAME ), STATUS='OLD', 
@@ -269,13 +281,14 @@
 !       sum of TODB is not 6, which points to a problem. However this is not
 !       used in the code. (phs, 4/16/09)
 !  (10) Now read data for GEOS-4 1 x 1.25 grid (bmy, 1/13/09)
+!  01 Aug 2012 - R. Yantosca - Add reference to findFreeLUN from inqure_mod.F90
+!  03 Aug 2012 - R. Yantosca - Move calls to findFreeLUN out of DEVEL block
 !******************************************************************************
 !
       ! References to F90 modules
       USE DIRECTORY_MOD, ONLY : DATA_DIR
-      USE FILE_MOD,      ONLY : IU_FILE, IOERROR
-
-      USE CMN_SIZE_MOD  ! Size parameters
+      USE FILE_MOD,      ONLY : IOERROR
+      USE CMN_SIZE_MOD        ! Size parameters
 
       ! Arguments
       REAL*8, INTENT(OUT) :: TODH(6), TODN(6), TODB(6), SCNR89(3,3)
@@ -289,8 +302,8 @@
       ! READ_TODX begins here!
       !=================================================================
 
-      ! File name unit
-      IUNIT = IU_FILE
+      ! Find a free file LUN
+      IUNIT = findFreeLUN()
       
 #if   defined( GRID4x5  )
 
@@ -469,14 +482,14 @@
 !  (6 ) Now reference IU_FILE and IOERROR from "file_mod.f".  Also deleted
 !        obsolete code from April 2002 (bmy, 6/27/02)
 !  (7 ) Now references DATA_DIR from "directory_mod.f" (bmy, 7/20/04)
+!  03 Aug 2012 - R. Yantosca - Move calls to findFreeLUN out of DEVEL block
 !******************************************************************************
 !
       ! References to F90 modules
       USE BPCH2_MOD,     ONLY : GET_RES_EXT
       USE DIRECTORY_MOD, ONLY : DATA_DIR
-      USE FILE_MOD,      ONLY : IU_FILE, IOERROR
-
-      USE CMN_SIZE_MOD            ! Size parameters
+      USE FILE_MOD,      ONLY : IOERROR
+      USE CMN_SIZE_MOD        ! Size parameters
 
       ! Arguments
       REAL*4, INTENT(OUT), OPTIONAL :: E_NOX (IIPAR,JJPAR,4,2)
@@ -520,8 +533,8 @@
       FILENAME = TRIM( FILENAME ) // '_SASS' 
 #endif
 
-      ! Define the file unit
-      IUNIT = IU_FILE 
+      ! Find a free file LUN
+      IUNIT = findFreeLUN()
       
       ! Echo the filename to stdout
       WRITE( 6, 100 ) TRIM( FILENAME )

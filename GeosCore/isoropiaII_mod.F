@@ -107,9 +107,9 @@
 ! !INTERFACE:
 !
 #if defined( DEVEL )
-      SUBROUTINE DO_ISOROPIAII( LOCAL_MET )
+      SUBROUTINE DO_ISOROPIAII( am_I_Root, LOCAL_MET )
 #else
-      SUBROUTINE DO_ISOROPIAII
+      SUBROUTINE DO_ISOROPIAII( am_I_Root )
 #endif
 !
 ! !USES:
@@ -135,8 +135,9 @@
 
       USE CMN_SIZE_MOD        ! Size parameters
 !
-! !INPUT PARAMETERS: 
+! !INPUT PARAMETERS:
 !
+      LOGICAL,            INTENT(IN) :: am_I_Root  ! Is this the root CPU?
 #if defined( DEVEL )
       TYPE(GC_MET_LOCAL), INTENT(IN) :: LOCAL_MET  ! Obj w/ met fields
 #endif
@@ -151,6 +152,9 @@
 !  21 Apr 2010 - E. Sofen     - Prevent out-of-bounds errors for offline
 !                               aerosol simulations where HNO3 is undefined
 !  23 Jul 2010 - R. Yantosca  - Bug fix: corrected typo in ND42 diag section
+!  30 Jul 2012 - R. Yantosca  - Now accept am_I_Root as an argument when
+!                               running with the traditional driver main.F
+!  31 Jul 2012 - R. Yantosca  - Now loop from 1..LLPAR for GIGC compatibility
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -278,7 +282,7 @@
 !$OMP+PRIVATE( TSO4COAT             )
 #endif
 !$OMP+SCHEDULE( DYNAMIC )
-      DO L = 1, LLTROP
+      DO L = 1, LLPAR
       DO J = 1, JJPAR
       DO I = 1, IIPAR
 
@@ -534,11 +538,6 @@
             ! We force HPLUSTEMP to 1d20 and PH_SAV to -999d0.
             ! (hotp, ccc, 12/18/09)
             HPLUSTEMP       = 1d20
-            !-------------------------------------------------------------
-            ! Prior to 7/23/10:
-            ! Bug fix: this should be PH_SAV(I,J,L) (sofen, bmy, 7/12/10)
-            !PH_SAV          = -999d0
-            !-------------------------------------------------------------
             PH_SAV(I,J,L)   = -999d0
          ELSE
             HPLUSTEMP       = AERLIQ(1) / AERLIQ(8) * 1d3/18d0
@@ -847,13 +846,13 @@
 !
 ! !USES:
 !
-      USE ERROR_MOD, ONLY : ALLOC_ERR
- 
-      USE CMN_SIZE_MOD  ! Size parameters
+      USE ERROR_MOD,   ONLY : ALLOC_ERR
+      USE CMN_SIZE_MOD                   ! Size parameters
 ! 
 ! !REVISION HISTORY: 
 !  06 Jul 2007 - H. O. T. Pye - Initial version
 !  29 Jan 2010 - R. Yantosca  - Added ProTeX headers
+!  31 Jul 2012 - R. Yantosca  - Declare diag arrays w/ LLPAR (not LLTROP)
 !EOP
 !------------------------------------------------------------------------------
 !BOC   
@@ -866,11 +865,11 @@
       ! INIT_ISOROPIAII begins here!
       !=================================================================
 
-      ALLOCATE( HNO3_sav( IIPAR, JJPAR, LLTROP ) , STAT=AS )
+      ALLOCATE( HNO3_sav( IIPAR, JJPAR, LLPAR ) , STAT=AS )
       IF ( AS /= 0 ) CALL ALLOC_ERR( 'HNO3_sav' )
       HNO3_sav = 0d0
 
-      ALLOCATE( GAS_HNO3( IIPAR, JJPAR, LLTROP ) , STAT=AS )
+      ALLOCATE( GAS_HNO3( IIPAR, JJPAR, LLPAR ) , STAT=AS )
       IF ( AS /= 0 ) CALL ALLOC_ERR( 'GAS_HNO3' )
       GAS_HNO3 = 0d0
 
@@ -881,7 +880,7 @@
       PH_SAV = 0d0
 
       ALLOCATE( HPLUS_SAV( IIPAR, JJPAR, LLPAR ) , STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'HPLUS_SAV' )
+      IF ( AS /= 0  ) CALL ALLOC_ERR( 'HPLUS_SAV' )
       HPLUS_SAV = 0d0
       
       ALLOCATE( WATER_SAV( IIPAR, JJPAR, LLPAR ) , STAT=AS )

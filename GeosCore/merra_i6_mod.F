@@ -15,6 +15,8 @@
 !
 ! !USES:
 !
+      USE inquireMod, ONLY : findFreeLUN
+
       IMPLICIT NONE
 #     include "define.h"
       PRIVATE
@@ -35,6 +37,7 @@
 !
 ! !REVISION HISTORY:
 !  19 Aug 2010 - R. Yantosca - Initial version, based on i6_read_mod.f
+!  03 Aug 2012 - R. Yantosca - Now make IU_I6 a private module variable
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -42,6 +45,7 @@
 ! !PRIVATE TYPES:
 !
       INTEGER :: N_I6_FIELDS    ! # of fields in the file
+      INTEGER :: IU_I6          ! File LUN for I-6 fields
 
       CONTAINS
 !EOC
@@ -67,7 +71,6 @@
       USE DIRECTORY_MOD, ONLY : MERRA_DIR
       USE ERROR_MOD,     ONLY : ERROR_STOP
       USE FILE_MOD,      ONLY : FILE_EXISTS
-      USE FILE_MOD,      ONLY : IU_I6
       USE FILE_MOD,      ONLY : IOERROR
       USE TIME_MOD,      ONLY : EXPAND_DATE
 !
@@ -78,6 +81,8 @@
 !
 ! !REVISION HISTORY: 
 !  19 Aug 2010 - R. Yantosca - Initial version, based on i6_read_mod.f
+!  03 Aug 2012 - R. Yantosca - Now use findFreeLUN to define IU_I6 locally
+!  07 Aug 2012 - R. Yantosca - Now print LUN used to open file
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -86,6 +91,7 @@
 !
       LOGICAL, SAVE      :: FIRST = .TRUE.
       LOGICAL            :: IT_EXISTS
+      LOGICAL            :: IS_OPEN
       INTEGER            :: IOS, IUNIT
       CHARACTER(LEN=8)   :: IDENT
       CHARACTER(LEN=255) :: GEOS_DIR
@@ -116,7 +122,8 @@
      &          TRIM( GEOS_DIR ) // TRIM( I6_FILE )
 
          ! Close previously opened A-3 file
-         CLOSE( IU_I6 )
+	 INQUIRE( IU_I6, OPENED=IS_OPEN )
+         IF ( IS_OPEN ) CLOSE( IU_I6 )
 
          ! Make sure the file unit is valid before we open it 
          IF ( .not. FILE_EXISTS( IU_I6 ) ) THEN 
@@ -128,6 +135,9 @@
          ! Open the I6 file
          !---------------------------
 
+         ! Find a free file LUN
+         IU_I6 = findFreeLUN()
+
          ! Open the file
          OPEN( UNIT   = IU_I6,         FILE   = TRIM( PATH ),
      &         STATUS = 'OLD',         ACCESS = 'SEQUENTIAL',  
@@ -138,8 +148,8 @@
          ENDIF
 
          ! Echo info
-         WRITE( 6, 100 ) TRIM( PATH )
- 100     FORMAT( '     - Opening: ', a )
+         WRITE( 6, 100 ) TRIM( PATH ), IU_I6
+ 100     FORMAT( '     - Opening: ', a, ' on unit ', i4 )
          
          ! Set the proper first-time-flag false
          FIRST = .FALSE.
@@ -297,14 +307,13 @@
 ! !USES:
 !
       USE FILE_MOD,     ONLY : IOERROR
-      USE FILE_MOD,     ONLY : IU_I6
       USE TIME_MOD,     ONLY : SET_CT_I6
       USE TIME_MOD,     ONLY : TIMESTAMP_STRING
       USE TRANSFER_MOD, ONLY : TRANSFER_2D
       USE TRANSFER_MOD, ONLY : TRANSFER_3D
 
-      USE CMN_SIZE_MOD                             ! Size parameters
-      USE CMN_DIAG_MOD                             ! NDxx flags
+      USE CMN_SIZE_MOD                               ! Size parameters
+      USE CMN_DIAG_MOD                               ! NDxx flags
 !
 ! !INPUT PARAMETERS: 
 !
@@ -318,6 +327,8 @@
 !
 ! !REVISION HISTORY: 
 !  19 Aug 2010 - R. Yantosca - Initial version, based on i6_read_mod.f
+!  03 Aug 2012 - R. Yantosca - Now use locally-defined IU_I6 file LUN
+!  07 Aug 2012 - R. Yantosca - Now print LUN used to open file
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -413,7 +424,7 @@
          IF ( XYMD == NYMD .and. XHMS == NHMS ) THEN
             IF ( NFOUND == N_I6_FIELDS ) THEN
                STAMP = TIMESTAMP_STRING( NYMD, NHMS )
-               WRITE( 6, 210 ) NFOUND, STAMP
+               WRITE( 6, 210 ) NFOUND, STAMP, IU_I6
                EXIT
             ENDIF
          ENDIF
@@ -421,7 +432,8 @@
 
       ! FORMATs
  200  FORMAT( 'Searching for next MERRA I6 field!'                    )
- 210  FORMAT( '     - Found all ', i3, ' MERRA I6 met fields for ', a )
+ 210  FORMAT( '     - Found all ', i3, ' MERRA I6 met fields for ', 
+     &             a, ' on unit ', i4                                 )
 
       !=================================================================
       ! Cleanup and quit

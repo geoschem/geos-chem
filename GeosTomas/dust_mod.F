@@ -15,6 +15,8 @@
 !
 ! !USES:
 !
+      USE inquireMod, ONLY : findFreeLUN
+
       IMPLICIT NONE
 #     include "define.h"
       PRIVATE
@@ -58,6 +60,8 @@
 !  03 Sep 2010 - R. Yantosca - Bug fix in SRC_DUST_DEAD
 !  08 Feb 2012 - R. Yantosca - Add modifications for GEOS-5.7.x
 !  01 Mar 2012 - R. Yantosca - Now reference the new grid_mod.F90
+!  01 Aug 2012 - R. Yantosca - Add reference to findFreeLUN from inqure_mod.F90
+!  03 Aug 2012 - R. Yantosca - Move calls to findFreeLUN out of DEVEL block
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -70,6 +74,10 @@
       REAL*8,  ALLOCATABLE   :: DUSTREFF(:)
       REAL*8,  ALLOCATABLE   :: DUSTDEN(:)
       
+#if defined( DEVEL )
+      REAL*8, ALLOCATABLE, SAVE :: SRCE_FUNC(:,:,:)
+#endif
+
       CONTAINS
 !EOC
 !------------------------------------------------------------------------------
@@ -86,7 +94,7 @@
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE CHEMDUST
+      SUBROUTINE CHEMDUST( am_I_Root )
 !
 ! !USES:
 !
@@ -96,7 +104,11 @@
       USE TRACER_MOD,   ONLY : STT
       USE TRACERID_MOD, ONLY : IDTDST1, IDTDST2, IDTDST3, IDTDST4
 
-      USE CMN_SIZE_MOD       ! Size parameters
+      USE CMN_SIZE_MOD                   ! Size parameters
+!
+! !INPUT PARAMETERS:
+!
+      LOGICAL, INTENT(IN) :: am_I_Root   ! Is this the root CPU?
 ! 
 ! !REVISION HISTORY: 
 !  30 Mar 2004 - T. D. Fairlie - Initial version
@@ -105,6 +117,8 @@
 !  (5 ) Now make sure all USE statements are USE, ONLY (bmy, 10/3/05)
 !  (6 ) Now only do dry deposition if LDRYD = T (bmy, 5/23/06)
 !  25 Aug 2010 - R. Yantosca - Added ProTeX headers
+!  30 Jul 2012 - R. Yantosca - Now accept am_I_Root as an argument when
+!                              running with the traditional driver main.F
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -131,7 +145,7 @@
          ENDIF
 
          ! Allocate arrays (if necessary)
-         CALL INIT_DUST
+         CALL INIT_DUST()
 
          ! Find drydep species in DEPSAV
          DO N = 1, NUMDEP
@@ -644,7 +658,11 @@
 !\\
 ! !INTERFACE:
 !
+#if defined( DEVEL )
+      SUBROUTINE EMISSDUST( SFLX )
+#else
       SUBROUTINE EMISSDUST
+#endif
 !
 ! !USES:
 !
@@ -659,6 +677,10 @@
 
       USE CMN_SIZE_MOD       ! Size parameters
       USE CMN_DIAG_MOD       ! ND59
+#if defined( DEVEL )
+      USE TRACER_MOD,   ONLY : N_TRACERS
+      USE TIME_MOD,     ONLY : GET_TS_EMIS
+#endif
 ! 
 ! !REVISION HISTORY: 
 !  30 Mar 2004 - T. D. Fairlie - Initial version
@@ -675,6 +697,12 @@
 ! !LOCAL VARIABLES:
 !
       LOGICAL, SAVE :: FIRST = .TRUE.
+
+#if defined( DEVEL )
+      REAL*8, INTENT(INOUT) :: SFLX(IIPAR,JJPAR,LLPAR,N_TRACERS+1)
+      REAL*8                :: STT_TMP(IIPAR,JJPAR,LLPAR,4)
+!      REAL*8                :: DTSRCE
+#endif
       INTEGER       :: I, J, K   !(win, 7/17/09)
       REAL*8        :: MEMIS, MINIT(IIPAR,JJPAR,1,IBINS)  !(win, 7/17/09)
        
@@ -1152,6 +1180,8 @@ c$$$      ENDIF
 !  (2 ) Now references DATA_DIR from "directory_mod.f" (bmy, 7/20/04)
 !  25 Aug 2010 - R. Yantosca - Added ProTeX headers
 !  01 Mar 2012 - R. Yantosca - Now use GET_AREA_M2(I,J,L) from grid_mod.F90
+!  01 Aug 2012 - R. Yantosca - Add reference to findFreeLUN from inqure_mod.F90
+!  03 Aug 2012 - R. Yantosca - Move calls to findFreeLUN out of DEVEL block
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -1236,17 +1266,20 @@ c$$$      ENDIF
          FILENAME = TRIM( DATA_DIR )        // 
      &              'dust_200203/NSP.dust.' // GET_RES_EXT()
 
+         ! Find a free file LUN
+         N = findFreeLUN()
+
          ! Open file
-         OPEN( 65, FILE=FILENAME,       STATUS='OLD', 
-     &             FORM= 'UNFORMATTED', IOSTAT=IOS )
+         OPEN( N, FILE=FILENAME,       STATUS='OLD', 
+     &            FORM= 'UNFORMATTED', IOSTAT=IOS )
          IF ( IOS > 0 ) CALL IOERROR( IOS, 65, 'SRC_DUST_GINOUX:1' )
 
          ! Read data
-         READ( 65, IOSTAT=IOS ) ARRAY
+         READ( N, IOSTAT=IOS ) ARRAY
          IF ( IOS > 0 ) CALL IOERROR( IOS, 65, 'SRC_DUST_GINOUX:2' )
 
          ! Close file
-         CLOSE( 65 )
+         CLOSE( N )
 
          ! Cast to REAL*8
          SRCE_FUNC = ARRAY
@@ -1383,9 +1416,9 @@ c$$$      ENDIF
 
       USE CMN_DIAG_MOD        ! ND21, LD21
 !
-! !INPUT/OUTPUT PARAMETERS: 
+! !INPUT PARAMETERS: 
 ! 
-      REAL*8, INTENT(IN)  :: DUST(IIPAR,JJPAR,LLPAR,NDUST)   ! Dust [kg/m3]
+      REAL*8,  INTENT(IN) :: DUST(IIPAR,JJPAR,LLPAR,NDUST)   ! Dust [kg/m3]
       INTEGER, INTENT(IN) :: WAVELENGTH
 ! 
 ! !REVISION HISTORY: 
@@ -1601,7 +1634,8 @@ c$$$      ENDIF
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE RDUST_OFFLINE( THISMONTH, THISYEAR, WAVELENGTH )
+      SUBROUTINE RDUST_OFFLINE( THISMONTH,  THISYEAR, 
+     &                          WAVELENGTH, am_I_Root )
 !
 ! !USES:
 !
@@ -1630,8 +1664,9 @@ c$$$      ENDIF
 !
       INTEGER, INTENT(IN) :: THISMONTH   ! Current month (1-12)
       INTEGER, INTENT(IN) :: THISYEAR    ! Current year  (YYYY format)
-      ! Determine which wavelength to use for optical properties
-      INTEGER, INTENT(IN) :: WAVELENGTH  
+      INTEGER, INTENT(IN) :: WAVELENGTH  ! Determine which wavelength to use 
+                                         !  for optical properties
+      LOGICAL, INTENT(IN) :: am_I_Root   ! Is this the root CPU?
 !
 ! !REVISION HISTORY: 
 !  (1 ) RDUST was patterned after rdaerosol.f (rvm, 9/30/00)
@@ -1689,6 +1724,8 @@ c$$$      ENDIF
 !                              used for the calculation of the AOD.  The ND21 
 !                              diagnostic should only be updated when 
 !                              WAVELENGTH = 1.
+!  30 Jul 2012 - R. Yantosca - Now accept am_I_Root as an argument when
+!                              running with the traditional driver main.F
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -1729,7 +1766,9 @@ c$$$      ENDIF
      &              GET_RES_EXT()
 
          ! Echo filename
-         WRITE( 6, 100 ) TRIM( FILENAME )
+         IF ( am_I_Root ) THEN
+            WRITE( 6, 100 ) TRIM( FILENAME )
+         ENDIF
  100     FORMAT( '     - RDUST: Reading ', a )
 
          ! Read aerosol concentrations [kg/m3] for each 
@@ -1799,7 +1838,9 @@ c$$$      ENDIF
 !$OMP END PARALLEL DO
 
          ! Echo information
-         WRITE( 6, 110 ) 
+         IF ( am_I_Root ) THEN
+            WRITE( 6, 110 ) 
+         ENDIF
  110     FORMAT( '     - RDUST: Finished computing optical depths' )
 
          !==============================================================

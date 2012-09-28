@@ -88,6 +88,7 @@
 !  (6 ) Modified to use GEOS-5 O3 columns when TOMS/SBUV data don't exist,
 !        i.e. after 2008. (ccc, 7/13/09)
 !  08 Dec 2009 - R. Yantosca - Added ProTeX headers
+!  02 Aug 2012 - R. Yantosca - Use online temperature when connecting to GCM
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -164,12 +165,23 @@
       ! calculations (see JRATET); TJ is used in actinic flux 
       ! calculation only.
       !=================================================================    
-      !DO I=1,LPAR
-      !   DO3(I) = MY_OZONE(i)       ! Volume Mixing Ratio
-      !   TJ(I)  = T(I)              ! Kelvin
+#if defined( EXTERNAL_GRID ) || defined( EXTERNAL_FORCING )
+      !%%% For external GCM, take temperature (and maybe eventually ozone)
+      DO I=1,LLPAR
+      !   DO3(I) = MY_OZONE(i)        ! Volume Mixing Ratio
+         TJ(I)  = T(I)                ! Kelvin
+      ENDDO
+      !DO3(LPAR+1) = MY_OZONE*EXP()   ! Above top of model (or use climatology)
+      !TJ(LPAR+1)  = MY_TEMP(LPAR)    ! Above top of model (or use climatology)
+#else
+      !%%% For traditional G-C we comment all these out
+      !DO I=1,LLPAR
+      !   DO3(I) = MY_OZONE(i)        ! Volume Mixing Ratio
+      !   TJ(I)  = T(I)               ! Kelvin
       !ENDDO
-      !DO3(LPAR+1) = MY_OZONE*EXP()  ! Above top of model (or use climatology)
-      !TJ(LPAR+1)  = MY_TEMP(LPAR)   ! Above top of model (or use climatology)
+      !DO3(LLPAR+1) = MY_OZONE*EXP()  ! Above top of model (or use climatology)
+      !TJ(LLPAR+1)  = MY_TEMP(LLPAR)  ! Above top of model (or use climatology)
+#endif
 
       !=================================================================
       ! Calculate effective altitudes using scale height at each level

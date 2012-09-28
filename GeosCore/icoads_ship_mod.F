@@ -230,6 +230,7 @@
 !  21 Jul 2009 - Chulkyu Lee & P. Le Sager - Initial Version
 !  13 Mar 2012 - M. Cooper   - Changed regrid algorithm to map_a2a
 !  24 May 2012 - R. Yantosca - Fixed minor bugs in map_a2a algorithm
+!  24 Aug 2012 - R. Yantosca - DO_REGRID_A2A now reads netCDF input file
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -279,7 +280,7 @@
 
       ! File with lat/lon edges for regridding
       LLFILENAME = TRIM( DATA_DIR_1x1) //
-     &             'MAP_A2A_Regrid_201203/latlon_geos1x1_new.txt'
+     &             'MAP_A2A_Regrid_201203/MAP_A2A_latlon_geos1x1.nc'
 
       DO SPECIES = 1,3
 
@@ -334,12 +335,14 @@
          IF ( SPECIES .eq. 1 ) THEN
 
             CALL DO_REGRID_A2A( LLFILENAME, I1x1, J1x1, 
-     &                          INGRID,     NOx,  PERAREA=1 )
+     &                          INGRID,     NOx,  PERAREA=1,
+     &                          netCDF=.TRUE.                )
 
          ELSEIF ( SPECIES .eq. 2 ) THEN
 
             CALL DO_REGRID_A2A( LLFILENAME, I1x1, J1x1,
-     &                          INGRID,     CO,   PERAREA=1 )
+     &                          INGRID,     CO,   PERAREA=1,
+     &                          netCDF=.TRUE.                )
 
          ELSEIF ( SPECIES .eq. 3 ) THEN
 
@@ -348,7 +351,8 @@
             ! utilized in sulfate_mod.f
             INGRID = INGRID * 0.986
             CALL DO_REGRID_A2A( LLFILENAME, I1x1, J1x1,
-     &                          INGRID,     SO2,  PERAREA=1 )
+     &                          INGRID,     SO2,  PERAREA=1,
+     &                          netCDF=.TRUE.                )
 
          ENDIF
 

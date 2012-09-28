@@ -16,7 +16,7 @@
 ! !USES:
 !
 #if defined( DEVEL )
-      USE OMP_LIB
+!      USE OMP_LIB
 #endif
       IMPLICIT NONE
 #     include "define.h"

@@ -344,7 +344,7 @@
 !  13 Mar 2012 - M. Cooper   - Changed regrid algorithm to map_a2a
 !  14 May 2012 - R. Yantosca - Bug fix: SC should be defined w/ IIPAR,JJPAR
 !  24 May 2012 - R. Yantosca - Fix minor bugs in map_a2a implementation
-
+!  24 Aug 2012 - R. Yantosca - DO_REGRID_A2A now reads netCDF input file
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -353,11 +353,6 @@
 !
       REAL*4              :: ARRAY(I1x1,J1x1-1,1)
       REAL*8, TARGET      :: GEN_1x1(I1x1,J1x1-1)
-!-----------------------------------------------------------------------------
-! Prior to 5/14/12:
-! Bug fix: SC should be dimensioned with IIPAR,JJPAR (bmy,mpayer,5/14/12)
-!     REAL*4              :: SC(I1x1,J1x1)
-!-----------------------------------------------------------------------------
       REAL*4              :: SC(IIPAR,JJPAR)
       REAL*8              :: TAU2008
       CHARACTER(LEN=255)  :: LLFILENAME
@@ -377,15 +372,16 @@
 
       ! Cast to REAL*8 before regridding
       GEN_1x1(:,:) = ARRAY(:,:,1)
-      
+  
       ! File with lat/lon edges for regridding
       LLFILENAME = TRIM( DATA_DIR_1x1) //
-     &             'MAP_A2A_Regrid_201203/latlon_generic_new.txt'
+     &             'MAP_A2A_Regrid_201203/MAP_A2A_latlon_generic1x1.nc'
 
       ! Regrid from GENERIC 1x1 --> Current Model Resolution
       INGRID => GEN_1x1(:,:)
       CALL DO_REGRID_A2A( LLFILENAME, I1x1,    J1x1-1, 
-     &                    INGRID,     OUTGRID, PERAREA=1 )
+     &                    INGRID,     OUTGRID, PERAREA=1, 
+     &                    netCDF=.TRUE. )
 
       ! Get & apply scaling factor
       IF ( TRACERN == 26 )

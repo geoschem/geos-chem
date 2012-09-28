@@ -95,6 +95,9 @@
 !  28 Feb 2012 - R. Yantosca - Removed support for GEOS-3
 !  23 Apr 2012 - R. Yantosca - Cosmetic changes
 !  29 May 2012 - S. Kim      - Added SEAC4RS C-preprocessor switch
+!  10 Jun 2012 - L. Murray   - GRIDREDUCED no longer required for GEOS5.
+!  07 Sep 2012 - R. Yantosca - Removed EXTERNAL_GRID, EXTERNAL_FORCING, these
+!                              will now be set in the Makefile_header.mk
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -137,21 +140,19 @@
 #define GEOS_5           'GEOS_5'
 !#define MERRA            'MERRA'
 !#define GEOS_57          'GEOS_57'
-!#define EXTERNAL_FORCING 'EXTERNAL_FORCING'
 
 !----- Grid sizes -----
 !#define NESTED_CH        'NESTED_CH'
 !#define NESTED_NA        'NESTED_NA'
 !#define NESTED_EU        'NESTED_EU'
 !#define SEAC4RS          'SEAC4RS'
-!#define GRID025x03125     'GRID025x03125'
+!#define GRID025x03125    'GRID025x03125'
 !#define GRID05x0666      'GRID05x0666'
 !#define GRID1x1          'GRID1x1'
 !#define GRID1x125        'GRID1x125'
 !#define GRID2x25         'GRID2x25'
 #define GRID4x5          'GRID4x5'
 #define GRIDREDUCED      'GRIDREDUCED'
-!#define EXTERNAL_GRID    'EXTERNAL_GRID'
 
 !----- Compilers -----
 !#define IBM_AIX          'IBM_AIX'
@@ -187,32 +188,5 @@
 #error "ERROR: One of IBM_AIX, IBL_XLF, LINUX_PGI, LINUX_IFORT,"
  #error "SPARC must be defined in header file define.h"
 #endif
-
-!%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-!%%% NOTE: SCHEM is scheduled to be removed from GEOS-Chem v9-01-03
-!%%%
-!%%% SCHEM PATCH: Stop the run if we are running w/ the GEOS-5 72Ll grid
-!%%% This prevents dimension mismatch when reading SCHEM data fields!
-!%%% (ltm, bmy, 6/2/10)
-#if defined( GEOS_5 ) && !defined( GRIDREDUCED )
-#error "Cannot run GEOS-5 with the full vertical 72 level grid!"
-#error "We are working on a patch to fix this soon!"
-#endif 
-!%%% SCHEM PATCH: Stop the run if we are running w/ the GEOS-5.7x 72L grid
-!%%% This prevents dimension mismatch when reading SCHEM data fields!
-!%%% (ltm, bmy, 6/2/10)
-#if defined( GEOS_57 ) && !defined( GRIDREDUCED )
-#error "Cannot run GEOS-5.7.x with the full vertical 72 level grid!"
-#error "We are working on a patch to fix this soon!"
-#endif 
-!%%% SCHEM PATCH: Stop the run if we are running w/ MERRA 72-level grid
-!%%% This prevents dimension mismatch when reading SCHEM data fields!
-!%%% (ltm, bmy, 6/2/10)
-#if defined( MERRA ) && !defined( GRIDREDUCED )
-#error "Cannot run MERRA with the full vertical 72 level grid!"
-#error "We are working on a patch to fix this soon!"
-#endif 
-!%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-
 
 !EOC

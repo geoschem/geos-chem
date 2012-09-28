@@ -21,8 +21,8 @@
 !
 ! !PUBLIC DATA MEMBERS:
 !
-      REAL*8, PUBLIC, ALLOCATABLE :: H2O2s(:,:,:)   ! Save H2O2 and SO2 [v/v]
-      REAL*8, PUBLIC, ALLOCATABLE :: SO2s(:,:,:)    !  for sulfate chemistry
+      REAL*8, PUBLIC, ALLOCATABLE, TARGET :: H2O2s(:,:,:)   ! Save H2O2 and SO2 [v/v]
+      REAL*8, PUBLIC, ALLOCATABLE, TARGET :: SO2s(:,:,:)    !  for sulfate chemistry
 #if   defined( APM )
       REAL*8, PUBLIC, ALLOCATABLE :: SO2GAINED(:,:,:)
       REAL*8, PUBLIC, ALLOCATABLE :: SO2WETLOSS(:,:,:)
@@ -142,6 +142,7 @@
 !  01 Aug 2011 - H. Amos - Bug fix for function WASHFRAC_LIQ_GAS
 !  01 Aug 2011 - H. Amos - Updated comments
 !  09 Feb 2012 - R. Yantosca - Add modifications for GEOS-5.7.x
+!  21 Jun 2012 - R. Yantosca - Declare H2O2s, SO2s as TARGETs for pointers
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -6592,7 +6593,7 @@
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE WETDEPID
+      SUBROUTINE WETDEPID( am_I_Root )
 !
 ! !USES:
 !
@@ -6622,6 +6623,10 @@
 #endif
 
       USE CMN_SIZE_MOD       ! Size parameters
+!
+! !INPUT PARAMETERS:
+!
+      LOGICAL, INTENT(IN) :: am_I_Root   ! Is this the root CPU?
 ! 
 ! !REVISION HISTORY: 
 !  08 Nov 2002 - R. Yantosca - Initial version
@@ -6641,7 +6646,8 @@
 !        or HgP tracer (bmy, 1/6/06)
 !  (11) Now added SOG4 and SOA4 (dkh, bmy, 5/18/06)
 !  16 Sep 2010 - R. Yantosca - Added ProTeX headers
-!  16 Feb 2011 - R. Yantosca - Add modifications for APM microphysics (G. Luo)
+!  30 Jul 2012 - R. Yantosca - Now accept am_I_Root as an argument when
+!                              running with the traditional driver main.F
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -6960,17 +6966,19 @@
       !=================================================================
       ! Echo list of soluble tracers to the screen
       !=================================================================
-      WRITE( 6, '(/,a,/)' ) 'WETDEPID: List of soluble tracers: '
-      WRITE( 6, '(a)  '   ) '  #             Name  Tracer Mol Wt'
-      WRITE( 6, '(a)'     ) '                      Number g/mole'
-      WRITE( 6, '(a)'     ) REPEAT( '-', 36 )
+      IF ( am_I_Root ) THEN
+         WRITE( 6, '(/,a,/)' ) 'WETDEPID: List of soluble tracers: '
+         WRITE( 6, '(a)  '   ) '  #             Name  Tracer Mol Wt'
+         WRITE( 6, '(a)'     ) '                      Number g/mole'
+         WRITE( 6, '(a)'     ) REPEAT( '-', 36 )
 
-      DO NN = 1, N_TOT_SOL
-         N = IDWETD(NN)
-         WRITE( 6, '(i3,3x,a14,3x,i3,3x,f6.1)' )
-     &        NN, TRIM( TRACER_NAME(N) ), N, TRACER_MW_G(N)
-      ENDDO
-      
+         DO NN = 1, N_TOT_SOL
+            N = IDWETD(NN)
+            WRITE( 6, '(i3,3x,a14,3x,i3,3x,f6.1)' )
+     &           NN, TRIM( TRACER_NAME(N) ), N, TRACER_MW_G(N)
+         ENDDO
+      ENDIF
+
       END SUBROUTINE WETDEPID
 !EOC
 !------------------------------------------------------------------------------
@@ -7321,6 +7329,7 @@
          FIRST = .FALSE. 
       ENDIF
 
+#if ! defined( DEVEL )
       !=================================================================
       ! Compute Vud, CLDLIQ, CLDICE, C_H2O, following Jacob et al, 2000.
       !=================================================================
@@ -7394,7 +7403,7 @@
       ENDDO
       ENDDO
 !$OMP END PARALLEL DO
-
+#endif
       END SUBROUTINE INIT_WETSCAV
 !EOC
 !------------------------------------------------------------------------------

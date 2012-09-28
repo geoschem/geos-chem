@@ -89,7 +89,9 @@
 !
       LOGICAL                 :: LDEBUG
       INTEGER                 :: I, J, L, JLOOP, IJLOOP
-
+#if defined( DEVEL )
+      INTEGER                 :: TMP_LEV
+#endif
       ! External functions
       REAL*8,  EXTERNAL       :: BOXVL
 
@@ -108,7 +110,16 @@
       NTLOOPNCS = 0
 
       ! Loop over vertical levels (max = LLTROP) 
+#if defined( DEVEL )
+      IF (NVERT .gt. LLPAR) THEN
+         TMP_LEV = LLPAR
+      ELSE
+         TMP_LEV = NVERT
+      ENDIF
+      DO L = 1, TMP_LEV
+#else
       DO L = 1, NVERT
+#endif
 
          ! Loop over surface grid boxes
          DO J = 1, NLAT

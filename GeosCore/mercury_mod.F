@@ -2888,6 +2888,9 @@
 !  13 Mar 2012 - M. Cooper   - Changed regrid algorithm to map_a2a
 !  24 May 2012 - R. Yantosca - Fixed minor bugs in map_a2a algorithm
 !  24 May 2012 - H. Amos     - updated file paths for soil Hg files
+!  28 Jun 2012 - S. Kim      - Bug fix: you need to provide a location
+!                              in the call to ERROR_STOP
+!  24 Aug 2012 - R. Yantosca - DO_REGRID_A2A now reads netCDF input file
 !******************************************************************************
 !
       ! References to F90 modules
@@ -2939,7 +2942,7 @@
 
          ! File with lat/lon edges for regridding
          LLFILENAME = TRIM( DATA_DIR_1x1) //
-     &                'MAP_A2A_Regrid_201203/latlon_generic_new.txt'
+     &              'MAP_A2A_Regrid_201203/MAP_A2A_latlon_generic1x1.nc'
 
          IF (LGCAPEMIS) THEN
             ! Use Bess' GCAP emissions
@@ -2970,7 +2973,8 @@
             ! Regrid from GENERIC 1x1 to the current grid
             INGRID  => GEN_1x1(:,:)
             CALL DO_REGRID_A2A( LLFILENAME, I1x1,    J1x1-1,
-     &                          INGRID,     EHg0_an, PERAREA=1 )
+     &                          INGRID,     EHg0_an, PERAREA=1,
+     &                          netCDF=.TRUE.                   )
 
             ! Convert from [kg/yr] to [kg/s]
             EHg0_an = EHg0_an / SEC_PER_YR            
@@ -3006,7 +3010,9 @@
             ! Regrid from GENERIC 1x1 to the current grid
             INGRID  => GEN_1x1(:,:)
             CALL DO_REGRID_A2A( LLFILENAME, I1x1,    J1x1-1,
-     &                          INGRID,     EHg0_an, PERAREA=1 )
+     &                          INGRID,     EHg0_an, PERAREA=1,
+     &                          netCDF=.TRUE.                   )
+
 
             ! Convert from [kg/yr] to [kg/s]
             EHg0_an = EHg0_an / SEC_PER_YR    
@@ -3049,7 +3055,8 @@
             ! Regrid from GENERIC 1x1 to the current grid
             INGRID  => GEN_1x1(:,:)
             CALL DO_REGRID_A2A( LLFILENAME, I1x1,    J1x1-1,
-     &                          INGRID,     EHg0_an, PERAREA=1 )
+     &                          INGRID,     EHg0_an, PERAREA=1,
+     &                          netCDF=.TRUE.                   )
 
             ! Convert from [kg/yr] to [kg/s]
             EHg0_an = EHg0_an / SEC_PER_YR
@@ -3152,7 +3159,8 @@
             ! Regrid from GENERIC 1x1 to the current grid
             INGRID  => GEN_1x1(:,:)
             CALL DO_REGRID_A2A( LLFILENAME, I1x1,    J1x1-1,
-     &                          INGRID,     EHg2_an, PERAREA=1 )
+     &                          INGRID,     EHg2_an, PERAREA=1,
+     &                          netCDF=.TRUE.                   )
 
             ! Convert from [kg/yr] to [kg/s]
             EHg2_an = EHg2_an / SEC_PER_YR
@@ -3185,7 +3193,8 @@
             ! Regrid from GENERIC 1x1 to the current grid
             INGRID  => GEN_1x1(:,:)
             CALL DO_REGRID_A2A( LLFILENAME, I1x1,    J1x1-1,
-     &                          INGRID,     EHg2_an, PERAREA=1 )
+     &                          INGRID,     EHg2_an, PERAREA=1,
+     &                          netCDF=.TRUE.                   )
 
             ! Convert from [kg/yr] to [kg/s]
             EHg2_an = EHg2_an / SEC_PER_YR
@@ -3225,7 +3234,8 @@
             ! Regrid from GENERIC 1x1 to the current grid
             INGRID  => GEN_1x1(:,:)
             CALL DO_REGRID_A2A( LLFILENAME, I1x1,    J1x1-1,
-     &                          INGRID,     EHg2_an, PERAREA=1 )
+     &                          INGRID,     EHg2_an, PERAREA=1,
+     &                          netCDF=.TRUE.                   )
 
             ! Convert from [kg/yr] to [kg/s]; increase Pacyna by 30%
             EHg2_an = EHg2_an * 1.3d0 / SEC_PER_YR
@@ -3263,7 +3273,8 @@
             ! Regrid from GENERIC 1x1 to the current grid
             INGRID  => GEN_1x1(:,:)
             CALL DO_REGRID_A2A( LLFILENAME, I1x1,    J1x1-1,
-     &                          INGRID,     EHgP_an, PERAREA=1 )
+     &                          INGRID,     EHgP_an, PERAREA=1,
+     &                          netCDF=.TRUE.                   )
 
             ! Convert from [kg/yr] to [kg/s]
             EHgP_an = EHgP_an / SEC_PER_YR
@@ -3295,7 +3306,8 @@
             ! Regrid from GENERIC 1x1 to the current grid
             INGRID  => GEN_1x1(:,:)
             CALL DO_REGRID_A2A( LLFILENAME, I1x1,    J1x1-1,
-     &                          INGRID,     EHgP_an, PERAREA=1 )
+     &                          INGRID,     EHgP_an, PERAREA=1,
+     &                          netCDF=.TRUE.                   )
 
             ! Convert from [kg/yr] to [kg/s]
             EHgP_an = EHgP_an / SEC_PER_YR
@@ -3334,7 +3346,8 @@
             ! Regrid from GENERIC 1x1 to the current grid
             INGRID  => GEN_1x1(:,:)
             CALL DO_REGRID_A2A( LLFILENAME, I1x1,    J1x1-1,
-     &                          INGRID,     EHgP_an, PERAREA=1 )
+     &                          INGRID,     EHgP_an, PERAREA=1,
+     &                          netCDF=.TRUE.                   )
 
             ! Convert from [kg/yr] to [kg/s];increase Pacyna by 30%
             EHgP_an = EHgP_an * 1.3D0 / SEC_PER_YR
@@ -3378,7 +3391,9 @@
         FILENAME= TRIM( DATA_DIR )            //
      &            'mercury_201110/soilHg.merra.preind.bpch'
 #else
-      CALL ERROR_STOP('You need to make a Hg soil file. ')
+        ! Include a location for the error message (skim, 6/28/12)
+        CALL ERROR_STOP( "You need to make a Hg soil file. ", 
+     &                   "PREINDUSTRIAL MERCURY")
 #endif
 
       ELSE
@@ -3395,7 +3410,9 @@
         FILENAME= TRIM( DATA_DIR )            //
      &            'mercury_201110/soilHg.merra.presentday.bpch'
 #else
-      CALL ERROR_STOP('You need to make a Hg soil file. ')
+        ! Include a location for the error message (skim, 6/28/12)
+        CALL ERROR_STOP( "You need to make a Hg soil file. ", 
+     &                   "PRESENT DAY MERCURY")
 #endif
 
       ENDIF
@@ -4311,7 +4328,6 @@
       USE DAO_MOD    , ONLY : IS_WATER, RH
       USE DAO_MOD    , ONLY : U => U10M, V => V10M
       USE PBL_MIX_MOD, ONLY : GET_PBL_TOP_M
-      USE FILE_MOD   , ONLY : IU_FILE
       USE RNPBBE_MOD , ONLY : SLQ
 
 #if defined( DEVEL )
@@ -4720,12 +4736,6 @@
       USE LOGICAL_MOD , ONLY : LGTMM
       USE TRACER_MOD  , ONLY : N_TRACERS
       USE TRACERID_MOD, ONLY : N_Hg_CATS
-!------------------------------------------------------------------------------
-! Prior to 4/11/12:
-! Replace lai_mod.F with modis_lai_mod.F.  Also now initialize the LAI
-! arrays from main.F instead of from within this module. (bmy, 4/11/12)
-!      USE LAI_MOD     , ONLY : INIT_LAI
-!------------------------------------------------------------------------------
 
       USE CMN_SIZE_MOD     ! Size parameters
       USE CMN_DIAG_MOD     ! ND44
@@ -4843,13 +4853,6 @@
       ALLOCATE( HGPFRAC( IIPAR, JJPAR, LLPAR ), STAT=AS )
       IF ( AS /= 0 ) CALL ALLOC_ERR( 'HGPFRAC' )
       HGPFRAC = 0d0
-
-!------------------------------------------------------------------------------
-! Prior to 4/11/12:
-! Replace lai_mod.F with modis_lai_mod.F.  Also now initialize the LAI
-! arrays from main.F instead of from within this module. (bmy, 4/11/12)
-!      CALL INIT_LAI
-!------------------------------------------------------------------------------
 
       !=================================================================
       ! Allocate & initialize arrays for tagged tracer indices

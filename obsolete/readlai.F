@@ -24,6 +24,8 @@
       USE CMN_VEL_MOD    ! XLAI, XLAI2
       USE CMN_DEP_MOD    ! IREG, ILAND, IUSE
 
+      USE inquireMod, ONLY : findFreeLUN
+
       IMPLICIT NONE
 #     include "define.h"
 
@@ -120,6 +122,7 @@
  100  FORMAT( '     - READLAI: Reading ', a )
       
       ! Open file
+      IU_FILE = findFreeLUN()
       OPEN( IU_FILE, FILE=TRIM( FILENAME ), STATUS='OLD' )
 
       ! Read until EOF
@@ -171,6 +174,7 @@
       WRITE( 6, 100 ) TRIM( FILENAME )
 
       ! Open file
+      IU_FILE = findFreeLUN()
       OPEN( IU_FILE, FILE=TRIM( FILENAME ), STATUS='OLD' )
 
       ! Read until EOF

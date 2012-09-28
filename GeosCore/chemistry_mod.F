@@ -48,6 +48,8 @@
 !  (18) Added public member function recompute_OD (skim, 02/03/11)
 !  17 Dec 2009 - R. Yantosca - Added ProTeX headers
 !  28 Jan 2010 - C. Carouge, R. Yantosca - Modified for ISORROPIA II
+!  08 Aug 2012 - R. Yantosca - Now align IF statements better
+!  10 Aug 2012 - R. Yantosca - Cosmetic changes
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -66,10 +68,10 @@
 !\\
 ! !INTERFACE:
 !
-#if defined( DEVEL )
-      SUBROUTINE DO_CHEMISTRY( LOCAL_MET, CHEM_STATE )
+#if defined( DEVEL ) || defined( EXTERNAL_GRID ) || defined( EXTERNAL_FORCING )
+      SUBROUTINE DO_CHEMISTRY(am_I_Root, NI, NJ, NL, CHEM_STATE, GC_MET)
 #else
-      SUBROUTINE DO_CHEMISTRY
+      SUBROUTINE DO_CHEMISTRY(am_I_Root)
 #endif
 !
 ! !USES:
@@ -90,7 +92,7 @@
       USE H2_HD_MOD,       ONLY : CHEM_H2_HD
       USE HCN_CH3CN_MOD,   ONLY : CHEM_HCN_CH3CN
       USE ISOROPIAII_MOD,  ONLY : DO_ISOROPIAII
-      USE LOGICAL_MOD,     ONLY : LCARB, LCHEM,  LCRYST, LDUST
+      USE LOGICAL_MOD,     ONLY : LCARB, LCHEM,  LCRYST, LDUST, LSCHEM
       USE LOGICAL_MOD,     ONLY : LPRT,  LSSALT, LSULF,  LSOA
       USE MERCURY_MOD,     ONLY : CHEMMERCURY
       USE OPTDEPTH_MOD,    ONLY : OPTDEPTH
@@ -98,6 +100,7 @@
       USE RPMARES_MOD,     ONLY : DO_RPMARES
       USE SEASALT_MOD,     ONLY : CHEMSEASALT
       USE SULFATE_MOD,     ONLY : CHEMSULFATE
+      USE STRAT_CHEM_MOD,  ONLY : DO_STRAT_CHEM
       USE TAGGED_CO_MOD,   ONLY : CHEM_TAGGED_CO
       USE TAGGED_OX_MOD,   ONLY : CHEM_TAGGED_OX
       USE TIME_MOD,        ONLY : GET_ELAPSED_MIN, GET_TS_CHEM
@@ -121,16 +124,18 @@
       USE COMODE_LOOP_MOD       ! NPHOT
       USE CMN_DIAG_MOD          ! NDxx flags
 
-#if defined( DEVEL )
-      USE GC_TYPE2_MOD,    ONLY : CHEMSTATE, NULL
+#if defined( DEVEL ) || defined( EXTERNAL_GRID ) || defined( EXTERNAL_FORCING )
       USE GC_TYPE_MOD,     ONLY : GC_MET_LOCAL
+      USE GC_TYPE2_MOD,    ONLY : CHEMSTATE
 #endif
 !
-! !INPUT/OUTPUT PARAMETERS:
+! !INPUT VARIABLES:
 !
-#if defined( DEVEL )
-      TYPE(GC_MET_LOCAL), INTENT(INOUT) :: LOCAL_MET  ! Obj w/ met fields
+      LOGICAL, INTENT(IN) :: am_I_Root   ! Is this the root CPU?
+#if defined( DEVEL ) || defined( EXTERNAL_GRID ) || defined( EXTERNAL_FORCING )
+      INTEGER, INTENT(IN) :: NI, NJ, NL  ! # of lons, lats, levels on this CPU
       TYPE(CHEMSTATE),    INTENT(INOUT) :: CHEM_STATE
+      TYPE(GC_MET_LOCAL), INTENT(INOUT) :: GC_MET
 #endif
 
 !
@@ -177,6 +182,10 @@
 !  28 Jan 2010 - C. Carouge, R. Yantosca - Modified for ISORROPIA II
 !  19 Mar 2012 - R. Yantosca - Add C-preprocessor switch to shut off 
 !                              ISORROPIA to facilitate debugging
+!  30 Jul 2012 - R. Yantosca - Now accept am_I_Root as an argument, and pass
+!                              this down to lower-level chem routines for GIGC
+!  08 Aug 2012 - R. Yantosca - Now align IF statements better
+!  10 Aug 2012 - R. Yantosca - Cosmetic changes
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -190,16 +199,15 @@
       ! DO_CHEMISTRY begins here!
       !=================================================================
 
-#if defined( DEVEL )
+#if defined( DEVEL ) || defined( EXTERNAL_GRID ) || defined( EXTERNAL_FORCING )
       ! Transfer tracer array to local
-      STT = CHEM_STATE%TRACERS(:,:,:,:N_TRACERS)
+      STT(:,:,:,1:N_TRACERS) = CHEM_STATE%TRACERS(:,:,:,1:N_TRACERS)
 #endif
 
       ! Compute optical depths (except for CH4 simulation)
       IF ( .not. ITS_A_CH4_SIM() ) THEN
 #if defined( DEVEL )
-         CALL OPTDEPTH( LLPAR, LOCAL_MET%CLDF, LOCAL_MET%OPTDEP,
-     &                  LOCAL_MET%OPTD )
+         CALL OPTDEPTH( LLPAR, GC_MET%CLDF, GC_MET%OPTDEP, GC_MET%OPTD )
 #else
          CALL OPTDEPTH( LLPAR, CLDF, OPTDEP, OPTD )
 #endif
@@ -215,359 +223,356 @@
          !---------------------------------
          IF ( ITS_A_FULLCHEM_SIM() ) THEN 
 
-#if defined( DEVEL )
-            ! Call SMVGEAR routines
-            CALL CHEMDR( LOCAL_MET )
+#if defined( DEVEL ) || defined( EXTERNAL_GRID ) || defined( EXTERNAL_FORCING )
+            ! Call chemistry solver for ESMF interface
+            CALL CHEMDR( am_I_Root, NI, NJ, NL, GC_MET, CHEM_STATE )
 
+            ! Call linearized stratospheric scheme
+            IF ( LSCHEM ) CALL DO_STRAT_CHEM( am_I_Root )
+            
             ! Do seasalt aerosol chemistry
-            IF ( LSSALT ) CALL CHEMSEASALT( LOCAL_MET )
+            IF ( LSSALT ) CALL CHEMSEASALT( am_I_Root, GC_MET )
 
             ! Also do sulfate chemistry
             IF ( LSULF ) THEN
 
                ! Do sulfate chemistry
-               CALL CHEMSULFATE( LOCAL_MET )
+               CALL CHEMSULFATE( am_I_Root, GC_MET )
  
                ! Do aerosol thermodynamic equilibrium
                IF ( LSSALT ) THEN
-
+                
 #if   !defined( NO_ISORROPIA )
                   ! ISOROPIA takes Na+, Cl- into account
-                  CALL DO_ISOROPIAII( LOCAL_MET )
+                  CALL DO_ISOROPIAII( am_I_Root, GC_MET )
 #endif
-
+                
                ELSE
-
+ 
                   ! RPMARES does not take Na+, Cl- into account
-                  CALL DO_RPMARES( LOCAL_MET )
+                  CALL DO_RPMARES( am_I_Root, GC_MET )
 
                ENDIF
-
+                
             ENDIF
-
+ 
             ! Do carbonaceous aerosol chemistry
-            IF ( LCARB ) CALL CHEMCARBON( LOCAL_MET )
-
+            IF ( LCARB ) CALL CHEMCARBON( am_I_Root, GC_MET )
+ 
             ! Do dust aerosol chemistry
-            IF ( LDUST ) CALL CHEMDUST( LOCAL_MET )
+            IF ( LDUST ) CALL CHEMDUST( am_I_Root, GC_MET )
+#else
+            ! Call chemistry solver from traditional driver "main.F"
+            CALL CHEMDR( am_I_Root )
 
+            ! Call linearized stratospheric scheme
+            IF ( LSCHEM ) CALL DO_STRAT_CHEM( am_I_Root )
+            
+            ! Do seasalt aerosol chemistry
+            IF ( LSSALT ) CALL CHEMSEASALT( am_I_Root )
+
+            ! Also do sulfate chemistry
+            IF ( LSULF ) THEN
+
+               ! Do sulfate chemistry
+               CALL CHEMSULFATE( am_I_Root )
+ 
+               ! Do aerosol thermodynamic equilibrium
+               IF ( LSSALT ) THEN
+                
+#if   !defined( NO_ISORROPIA )
+                  ! ISOROPIA takes Na+, Cl- into account
+                  CALL DO_ISOROPIAII( am_I_Root )
+#endif
+                
+               ELSE
+ 
+                  ! RPMARES does not take Na+, Cl- into account
+                  CALL DO_RPMARES( am_I_Root )
+
+               ENDIF
+                
+            ENDIF
+ 
+            ! Do carbonaceous aerosol chemistry
+            IF ( LCARB ) CALL CHEMCARBON( am_I_Root )
+ 
+            ! Do dust aerosol chemistry
+            IF ( LDUST ) CALL CHEMDUST( am_I_Root )
+#endif
+
+ 
             ! ND44 drydep fluxes
             ! The drydep fluxes diag. is done in vdiff_mod.f when non-local 
             ! PBL is used ( Lin, 03/31/09) 
-            IF (.NOT. LNLPBL) CALL DRYFLX     
+            IF ( .NOT. LNLPBL ) CALL DRYFLX 
  
             ! ND43 chemical production
             CALL DIAGOH
  
             ! Remove acetone ocean sink
             IF ( IDTACET /= 0 ) THEN
-               CALL OCEAN_SINK_ACET( LOCAL_MET%ALBD, LOCAL_MET%TS,
-     &                               LOCAL_MET%U10M, LOCAL_MET%V10M,
-     &                               STT(:,:,1,IDTACET),
-     &                               LOCAL_MET ) 
+#if defined( DEVEL )
+               CALL OCEAN_SINK_ACET( STT(:,:,1,IDTACET), GC_MET ) 
+#else
+               CALL OCEAN_SINK_ACET( STT(:,:,1,IDTACET) ) 
+#endif
+            ENDIF
+             
+         !---------------------------------
+         ! Offline aerosol simulation
+         !---------------------------------
+         ELSE IF ( ITS_AN_AEROSOL_SIM() ) THEN
+ 
+            ! Define loop index and other SMVGEAR arrays
+            ! N_TROP, the # of trop boxes, is returned
+#if defined( DEVEL )
+            CALL AEROSOL_RURALBOX( N_TROP, am_I_Root, GC_MET )
+#else
+            CALL AEROSOL_RURALBOX( N_TROP, am_I_Root )
+#endif
+ 
+            ! Initialize FAST-J quantities for computing AOD's
+            IF ( FIRST ) THEN
+
+               ! Init chem mechanism and photolysis
+               CALL READER  ( FIRST,         am_I_Root )
+               CALL READCHEM(                am_I_Root )
+               CALL INPHOT  ( LLTROP, NPHOT, am_I_Root )
+ 
+               ! Reset NCS with NCSURBAN
+               NCS     = NCSURBAN
+ 
+               ! Reset NTLOOP and NTTLOOP after call to READER
+               ! with the actual # of boxes w/in the ann mean trop
+               NTLOOP  = N_TROP
+               NTTLOOP = N_TROP
+ 
+               ! Reset first-time flag
+               FIRST = .FALSE.
             ENDIF
  
-#else
-
-            ! Call SMVGEAR routines
-            CALL CHEMDR
-
-             ! Do seasalt aerosol chemistry
-             IF ( LSSALT ) CALL CHEMSEASALT
-
-             ! Also do sulfate chemistry
-             IF ( LSULF ) THEN
-
-                ! Do sulfate chemistry
-                CALL CHEMSULFATE
- 
-                ! Do aerosol thermodynamic equilibrium
-                IF ( LSSALT ) THEN
-                
-#if   !defined( NO_ISORROPIA )
-                   ! ISOROPIA takes Na+, Cl- into account
-                   CALL DO_ISOROPIAII
-#endif
-                
-                ELSE
- 
-                   ! RPMARES does not take Na+, Cl- into account
-                   CALL DO_RPMARES
- 
-                ENDIF
-
-             ENDIF
-
-             ! Do carbonaceous aerosol chemistry
-             IF ( LCARB ) CALL CHEMCARBON
- 
-             ! Do dust aerosol chemistry
-             IF ( LDUST ) CALL CHEMDUST
-
-             ! ND44 drydep fluxes
-             ! The drydep fluxes diag. is done in vdiff_mod.f when non-local 
-             ! PBL is used ( Lin, 03/31/09) 
-             IF (.NOT. LNLPBL) CALL DRYFLX     
- 
-             ! ND43 chemical production
-             CALL DIAGOH
- 
-             ! Remove acetone ocean sink
-             IF ( IDTACET /= 0 ) THEN
-                CALL OCEAN_SINK_ACET( ALBD, TS, U10M, V10M, 
-     &                                STT(:,:,1,IDTACET) ) 
-             ENDIF
- 
-#endif
-
-
-          !---------------------------------
-          ! Offline aerosol simulation
-          !---------------------------------
-          ELSE IF ( ITS_AN_AEROSOL_SIM() ) THEN
- 
-             ! Define loop index and other SMVGEAR arrays
-             ! N_TROP, the # of trop boxes, is returned
-#if defined( DEVEL )
-             CALL AEROSOL_RURALBOX( N_TROP, LOCAL_MET )
-#else
-             CALL AEROSOL_RURALBOX( N_TROP )
-#endif
- 
-             ! Initialize FAST-J quantities for computing AOD's
-             IF ( FIRST ) THEN
-                CALL READER( FIRST )
-                CALL READCHEM
-                CALL INPHOT( LLTROP, NPHOT )
- 
-                ! Reset NCS with NCSURBAN
-                NCS     = NCSURBAN
- 
-                ! Reset NTLOOP and NTTLOOP after call to READER
-                ! with the actual # of boxes w/in the ann mean trop
-                NTLOOP  = N_TROP
-                NTTLOOP = N_TROP
- 
-                ! Reset first-time flag
-                FIRST = .FALSE.
-             ENDIF
- 
 #if defined( DEVEL )
              ! Compute aerosol & dust concentrations [kg/m3]
              ! (NOTE: SOILDUST in "aerosol_mod.f" is computed here)
-             CALL AEROSOL_CONC( LOCAL_MET )
+             CALL AEROSOL_CONC( GC_MET )
  
              ! Compute AOD's and surface areas at 999 nm
              MONTH = 0
              YEAR  = 0
              WAVELENGTH = 0
 
-             CALL RDAER( LOCAL_MET, MONTH, YEAR, WAVELENGTH )
+             CALL RDAER( am_I_Root,bGC_MET, MONTH, YEAR, WAVELENGTH )
  
              !*** AEROSOL THERMODYNAMIC EQUILIBRIUM ***
              IF ( LSSALT ) THEN
 
 #if   !defined( NO_ISORROPIA )
                 ! ISOROPIA takes Na+, Cl- into account
-                CALL DO_ISOROPIAII( LOCAL_MET )
+                CALL DO_ISOROPIAII( am_I_Root, GC_MET )
 #endif
              
              ELSE
  
                 ! RPMARES does not take Na+, Cl- into account
                 ! (skip for crystalline & aqueous offline run)
-                IF ( .not. LCRYST ) CALL DO_RPMARES( LOCAL_MET )
+                IF ( .not. LCRYST ) CALL DO_RPMARES( am_I_Root, GC_MET )
  
              ENDIF
 
              !*** SEASALT AEROSOLS ***
-             IF ( LSSALT ) CALL CHEMSEASALT( LOCAL_MET )
+             IF ( LSSALT ) CALL CHEMSEASALT( am_I_Root, GC_MET )
  
              !*** SULFATE AEROSOLS ***
              IF ( LSULF .or. LCRYST ) THEN
                 ! Do sulfate chemistry
-                CALL CHEMSULFATE( LOCAL_MET )
+                CALL CHEMSULFATE( am_I_Root, GC_MET )
              ENDIF
                 
              !*** CARBON AND 2NDARY ORGANIC AEROSOLS ***
-             IF ( LCARB ) CALL CHEMCARBON( LOCAL_MET )
+             IF ( LCARB ) CALL CHEMCARBON( am_I_Root, GC_MET )
  
              !*** MINERAL DUST AEROSOLS ***
              IF ( LDUST ) THEN 
  
                 ! Do dust aerosol chemsitry
-                CALL CHEMDUST( LOCAL_MET )
+                CALL CHEMDUST( am_I_Root, GC_MET )
  
                 WAVELENGTH = 0
 
                 ! Compute dust OD's & surface areas
-                CALL RDUST_ONLINE( SOILDUST, WAVELENGTH, LOCAL_MET )
+                CALL RDUST_ONLINE( SOILDUST, WAVELENGTH, GC_MET )
 
              ENDIF
 
 #else
-             ! Compute aerosol & dust concentrations [kg/m3]
-             ! (NOTE: SOILDUST in "aerosol_mod.f" is computed here)
-             CALL AEROSOL_CONC
+            ! Compute aerosol & dust concentrations [kg/m3]
+            ! (NOTE: SOILDUST in "aerosol_mod.f" is computed here)
+            CALL AEROSOL_CONC
  
-             ! Compute AOD's and surface areas at 999 nm
-             MONTH = 0
-             YEAR  = 0
-             WAVELENGTH = 0
-
-             CALL RDAER( MONTH, YEAR, WAVELENGTH )
+            ! Compute AOD's and surface areas at 999 nm
+            MONTH      = 0
+            YEAR       = 0
+            WAVELENGTH = 0
+            CALL RDAER( am_I_Root, MONTH, YEAR, WAVELENGTH )
  
-             !*** AEROSOL THERMODYNAMIC EQUILIBRIUM ***
-             IF ( LSSALT ) THEN
+            !*** AEROSOL THERMODYNAMIC EQUILIBRIUM ***
+            IF ( LSSALT ) THEN
              
 #if   !defined( NO_ISORROPIA )
-                ! ISOROPIA takes Na+, Cl- into account
-                CALL DO_ISOROPIAII
+               ! ISOROPIA takes Na+, Cl- into account
+               CALL DO_ISOROPIAII( am_I_Root )
 #endif
              
-             ELSE
+            ELSE
  
-                ! RPMARES does not take Na+, Cl- into account
-                ! (skip for crystalline & aqueous offline run)
-                IF ( .not. LCRYST ) CALL DO_RPMARES
+               ! RPMARES does not take Na+, Cl- into account
+               ! (skip for crystalline & aqueous offline run)
+               IF ( .not. LCRYST ) CALL DO_RPMARES( am_I_Root )
  
-             ENDIF
-
-             !*** SEASALT AEROSOLS ***
-             IF ( LSSALT ) CALL CHEMSEASALT
+            ENDIF
  
-             !*** SULFATE AEROSOLS ***
-             IF ( LSULF .or. LCRYST ) THEN
-                ! Do sulfate chemistry
-                CALL CHEMSULFATE
-             ENDIF
+            !*** SEASALT AEROSOLS ***
+            IF ( LSSALT ) CALL CHEMSEASALT( am_I_Root )
+ 
+            !*** SULFATE AEROSOLS ***
+            IF ( LSULF .or. LCRYST ) THEN
+ 
+               ! Do sulfate chemistry
+               CALL CHEMSULFATE( am_I_Root )
+ 
+            ENDIF
                 
-             !*** CARBON AND 2NDARY ORGANIC AEROSOLS ***
-             IF ( LCARB ) CALL CHEMCARBON
+            !*** CARBON AND 2NDARY ORGANIC AEROSOLS ***
+            IF ( LCARB ) CALL CHEMCARBON( am_I_Root )
  
-             !*** MINERAL DUST AEROSOLS ***
-             IF ( LDUST ) THEN 
+            !*** MINERAL DUST AEROSOLS ***
+            IF ( LDUST ) THEN 
  
-                ! Do dust aerosol chemsitry
-                CALL CHEMDUST
+               ! Do dust aerosol chemsitry
+               CALL CHEMDUST( am_I_Root )
  
-                WAVELENGTH = 0
+               WAVELENGTH = 0
 
-                ! Compute dust OD's & surface areas
-                CALL RDUST_ONLINE( SOILDUST, WAVELENGTH )
-             ENDIF
+               ! Compute dust OD's & surface areas
+               CALL RDUST_ONLINE( SOILDUST, WAVELENGTH )
+            ENDIF
 #endif
 
-          !---------------------------------
-          ! Rn-Pb-Be
-          !---------------------------------                 
-          ELSE IF ( ITS_A_RnPbBe_SIM() ) THEN
+         !---------------------------------
+         ! Rn-Pb-Be
+         !---------------------------------                 
+         ELSE IF ( ITS_A_RnPbBe_SIM() ) THEN
 #if defined( DEVEL )
-             CALL CHEMRnPbBe( LOCAL_MET )
+            CALL CHEMRnPbBe( GC_MET )
 #else
-             CALL CHEMRnPbBe 
+            CALL CHEMRnPbBe 
 #endif
-             CALL DRYFLXRnPbBe
-                   
-          !---------------------------------
-          ! CH3I
-          !---------------------------------
-          ELSE IF ( ITS_A_CH3I_SIM() ) THEN
+            CALL DRYFLXRnPbBe
+
+         !---------------------------------
+         ! CH3I
+         !---------------------------------
+         ELSE IF ( ITS_A_CH3I_SIM() ) THEN
 #if defined( DEVEL )
-             CALL CHEMCH3I( LOCAL_MET )
+            CALL CHEMCH3I( GC_MET )
 #else
-             CALL CHEMCH3I
+            CALL CHEMCH3I
 #endif
+
+         !---------------------------------            
+         ! HCN
+         !---------------------------------
+         ELSE IF ( ITS_A_HCN_SIM() ) THEN
+#if defined( DEVEL )
+            CALL CHEM_HCN_CH3CN( N_TRACERS, GC_MET, STT )
+#else
+            CALL CHEM_HCN_CH3CN( N_TRACERS, STT )
+#endif
+
+         !---------------------------------
+         ! Tagged O3
+         !---------------------------------
+         ELSE IF ( ITS_A_TAGOX_SIM() ) THEN 
+#if defined( DEVEL )
+            CALL CHEM_TAGGED_OX( GC_MET )
+#else
+            CALL CHEM_TAGGED_OX
+#endif
+
+            ! Call linearized stratospheric scheme
+            IF ( LSCHEM ) CALL DO_STRAT_CHEM( am_I_Root )
+
+         !---------------------------------
+         ! Tagged CO
+         !---------------------------------
+         ELSE IF ( ITS_A_TAGCO_SIM() ) THEN
+#if defined( DEVEL )
+            CALL CHEM_TAGGED_CO( GC_MET )
+#else
+            CALL CHEM_TAGGED_CO
+#endif
+
+         !---------------------------------
+         ! C2H6
+         !---------------------------------
+         ELSE IF ( ITS_A_C2H6_SIM() ) THEN
+#if defined( DEVEL )
+            CALL CHEMC2H6( GC_MET )
+#else
+            CALL CHEMC2H6
+#endif
+
+         !---------------------------------
+         ! CH4
+         !---------------------------------
+         ELSE IF ( ITS_A_CH4_SIM() ) THEN
  
-          !---------------------------------            
-          ! HCN
-          !---------------------------------
-          ELSE IF ( ITS_A_HCN_SIM() ) THEN
+            ! Only call after the first 24 hours
+            IF ( GET_ELAPSED_MIN() >= GET_TS_CHEM() ) THEN
 #if defined( DEVEL )
-             CALL CHEM_HCN_CH3CN( N_TRACERS, LOCAL_MET, STT )
+               CALL CHEMCH4( GC_MET )
 #else
-             CALL CHEM_HCN_CH3CN( N_TRACERS, STT )
+               CALL CHEMCH4
 #endif
- 
-          !---------------------------------
-          ! Tagged O3
-          !---------------------------------
-          ELSE IF ( ITS_A_TAGOX_SIM() ) THEN 
+            ENDIF
+
+         !---------------------------------
+         ! Mercury
+         !---------------------------------
+         ELSE IF ( ITS_A_MERCURY_SIM() ) THEN
+
+            ! Do Hg chemistry
 #if defined( DEVEL )
-             CALL CHEM_TAGGED_OX( LOCAL_MET )
+            CALL CHEMMERCURY( GC_MET )
 #else
-             CALL CHEM_TAGGED_OX
+            CALL CHEMMERCURY
 #endif
- 
-          !---------------------------------
-          ! Tagged CO
-          !---------------------------------
-          ELSE IF ( ITS_A_TAGCO_SIM() ) THEN
+
+         !---------------------------------
+         ! Offline H2/HD
+         !---------------------------------
+         ELSE IF ( ITS_A_H2HD_SIM() ) THEN
 #if defined( DEVEL )
-             CALL CHEM_TAGGED_CO( LOCAL_MET )
+            CALL CHEM_H2_HD( GC_MET )
+            CALL DRYFLXH2HD( GC_MET )
 #else
-             CALL CHEM_TAGGED_CO
+            CALL CHEM_H2_HD
+            CALL DRYFLXH2HD
 #endif
- 
-          !---------------------------------
-          ! C2H6
-          !---------------------------------
-          ELSE IF ( ITS_A_C2H6_SIM() ) THEN
-#if defined( DEVEL )
-             CALL CHEMC2H6( LOCAL_MET )
-#else
-             CALL CHEMC2H6
-#endif
- 
-          !---------------------------------
-          ! CH4
-          !---------------------------------
-          ELSE IF ( ITS_A_CH4_SIM() ) THEN
- 
-             ! Only call after the first 24 hours
-             IF ( GET_ELAPSED_MIN() >= GET_TS_CHEM() ) THEN
-#if defined( DEVEL )
-                CALL CHEMCH4( LOCAL_MET )
-#else
-                CALL CHEMCH4
-#endif
-             ENDIF
- 
-          !---------------------------------
-          ! Mercury
-          !---------------------------------
-          ELSE IF ( ITS_A_MERCURY_SIM() ) THEN
- 
-             ! Do Hg chemistry
-#if defined( DEVEL )
-             CALL CHEMMERCURY( LOCAL_MET )
-#else
-             CALL CHEMMERCURY
-#endif
-               
-          !---------------------------------
-          ! Offline H2/HD
-          !---------------------------------
-          ELSE IF ( ITS_A_H2HD_SIM() ) THEN
-#if defined( DEVEL )
-             CALL CHEM_H2_HD( LOCAL_MET )
-             CALL DRYFLXH2HD( LOCAL_MET )
-#else
-             CALL CHEM_H2_HD
-             CALL DRYFLXH2HD
-#endif
+            CALL DO_STRAT_CHEM( am_I_Root )
   
-          ENDIF
+         ENDIF
 
          !### Debug
          IF ( LPRT ) CALL DEBUG_MSG( '### MAIN: a CHEMISTRY' )
       ENDIF
-         
-#if defined( DEVEL )
+      
+#if defined( DEVEL ) || defined( EXTERNAL_GRID ) || defined( EXTERNAL_FORCING )
       ! Transfer tracer array back to non-local
-      CHEM_STATE%TRACERS(:,:,:,:N_TRACERS) = STT
+      CHEM_STATE%TRACERS(:,:,:,1:N_TRACERS) = STT(:,:,:,1:N_TRACERS)
 #endif
-      ! Return to calling program
+
       END SUBROUTINE DO_CHEMISTRY
 !EOC
 !------------------------------------------------------------------------------
@@ -876,9 +881,9 @@
 ! !INTERFACE:
 !
 #if defined( DEVEL )
-      SUBROUTINE RECOMPUTE_OD( LOCAL_MET )
+      SUBROUTINE RECOMPUTE_OD( am_I_Root, LOCAL_MET )
 #else
-      SUBROUTINE RECOMPUTE_OD
+      SUBROUTINE RECOMPUTE_OD( am_I_Root )
 #endif
 !
 ! !USES:
@@ -899,12 +904,15 @@
 !
 ! !INPUT PARAMETERS:
 !
+      LOGICAL,            INTENT(IN) :: am_I_Root  ! Is this the root CPU?
 #if defined( DEVEL )
       TYPE(GC_MET_LOCAL), INTENT(IN) :: LOCAL_MET  ! Obj w/ met fields
 #endif
 !
 ! !REVISION HISTORY: 
 !  03 Fev 2011 - Adapted from chemdr.f by skim
+!  30 Jul 2012 - R. Yantosca - Now accept am_I_Root as an argument when
+!                              running with the traditional driver main.F
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -912,7 +920,7 @@
 ! !LOCAL VARIABLES:
 !
 
-      INTEGER                  :: MONTH, YEAR, WAVELENGTH
+      INTEGER :: MONTH, YEAR, WAVELENGTH
  
       !=================================================================
       ! RECOMPUTE_OD begins here!
@@ -942,13 +950,14 @@
                WAVELENGTH = 1
 
 #if defined( DEVEL )
-               CALL RDAER( LOCAL_MET, MONTH, YEAR, WAVELENGTH )
+               CALL RDAER( am_I_Root, LOCAL_MET, MONTH, YEAR,
+     &                     WAVELENGTH )
 #else
-               CALL RDAER( MONTH, YEAR, WAVELENGTH )
+               CALL RDAER( am_I_Root, MONTH, YEAR, WAVELENGTH )
 #endif
 
                !### Debug
-               IF ( LPRT ) THEN 
+               IF ( LPRT .and. am_I_Root ) THEN 
                   CALL DEBUG_MSG( '### RECOMPUTE_OD: after RDAER' )
                ENDIF
 
@@ -972,12 +981,13 @@
                IF ( LDUST ) THEN
                   CALL RDUST_ONLINE( SOILDUST, WAVELENGTH )
                ELSE
-                  CALL RDUST_OFFLINE( MONTH, YEAR, WAVELENGTH )
+                  CALL RDUST_OFFLINE( MONTH,      YEAR, 
+     &                                WAVELENGTH, am_I_Root )
                ENDIF
 #endif
 
                !### Debug
-               IF ( LPRT ) THEN
+               IF ( LPRT .and. am_I_Root ) THEN
                   CALL DEBUG_MSG( '### RECOMPUTE_OD: after RDUST' )
                ENDIF
 
@@ -986,7 +996,6 @@
 
       ENDIF
 
-      ! Return to calling program
       END SUBROUTINE RECOMPUTE_OD
 !EOC
       END MODULE CHEMISTRY_MOD

@@ -40,6 +40,7 @@
 !  07 Feb 2012 - M. Payer    - Added ProTeX headers
 !  24 Feb 2012 - M. Payer    - Rename module from diag59_mod to diag63_mod.
 !                              Diag59 is used by TOMAS. Fix this throughout.
+!  06 Aug 2012 - R. Yantosca - Now make IU_ND63 a local module variable
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -86,6 +87,9 @@
       CHARACTER(LEN=80)  :: TITLE
       CHARACTER(LEN=255) :: ND63_OUTPUT_FILE
 
+      ! LUN for ND63 diagnostic file
+      INTEGER            :: IU_ND63
+
       CONTAINS
 !EOC
 !------------------------------------------------------------------------------
@@ -107,8 +111,8 @@
 ! !USES:
 !
       USE BPCH2_MOD,    ONLY : BPCH2,   OPEN_BPCH2_FOR_WRITE
-      USE FILE_MOD,     ONLY : IU_ND63
       USE GRID_MOD,     ONLY : GET_XOFFSET,        GET_YOFFSET
+      USE inquireMod,   ONLY : findFreeLUN
       USE TIME_MOD,     ONLY : EXPAND_DATE
       USE TIME_MOD,     ONLY : GET_NYMD,           GET_NHMS
       USE TIME_MOD,     ONLY : GET_NYMD_DIAG,      GET_TS_DIAG
@@ -133,6 +137,7 @@
 !  25 Feb 2011 - G. Vinken   - Initial version based on DIAG49 
 !  07 Feb 2012 - M. Payer    - Added ProTeX headers
 !  11 Apr 2012 - R. Yantosca - Remove reference to lai_mod.F, it's not needed
+!  03 Aug 2012 - R. Yantosca - Move calls to findFreeLUN out of DEVEL block
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -167,13 +172,16 @@
 
       IF ( NHMS == TS_DIAG ) THEN     ! It's a new day for diagnostics.
 
+         ! Find a free file LUN
+         IU_ND63  = findFreeLUN()
+
          ! Expand date tokens in the file name
          FILENAME = TRIM( ND63_OUTPUT_FILE )
          CALL EXPAND_DATE( FILENAME, GET_NYMD(), GET_NHMS() )
 
          ! Echo info
          WRITE( 6, 100 ) TRIM( FILENAME )
- 100     FORMAT( '     - DIAG63: Opening file ', a )
+ 100     FORMAT( '     - DIAG63: Opening file ', a, ' on unit ', i6 )
         
          ! Open bpch file and write top-of-file header
          CALL OPEN_BPCH2_FOR_WRITE( IU_ND63, FILENAME, TITLE )

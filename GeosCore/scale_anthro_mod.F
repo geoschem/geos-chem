@@ -83,6 +83,7 @@
 !  28 Jan 2009 - A. v. Donkelaar and P. Le Sager - Initial Version
 !  13 Mar 2012 - M. Cooper   - Changed regrid algorithm to map_a2a
 !  07 Jun 2012 - M. Payer    - Fixed minor bugs in map_a2a calls (M. Cooper)
+!  24 Aug 2012 - R. Yantosca - DO_REGRID_A2A now reads netCDF input file
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -103,12 +104,13 @@
 
       ! File with lat/lon edges for regridding
       LLFILENAME = TRIM( DATA_DIR_1x1) //
-     &             'MAP_A2A_Regrid_201203/latlon_geos1x1_new.txt'
+     &             'MAP_A2A_Regrid_201203/MAP_A2A_latlon_geos1x1.nc'
   
       ! Regrid emissions factors to current model resolution
       INGRID => AS_1x1x1(:,:,1)
       CALL DO_REGRID_A2A( LLFILENAME, I1x1,    J1x1, 
-     &                    INGRID,     OUTGRID, PERAREA=0 )
+     &                    INGRID,     OUTGRID, PERAREA=0,
+     &                    netCDF=.TRUE.                   )
 
       ! Cast to REAL*4
       AS(:,:) = OUTGRID(:,:)
@@ -344,6 +346,7 @@
 ! !REMARKS:
 !  (1) Scaling factors are for years between 1985 and 2005, on the GEOS-Chem
 !       0.5x0.666 grid for China domain (tmf, 3/5/09)
+!  24 Aug 2012 - R. Yantosca - DO_REGRID_A2A now reads netCDF input file
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -364,12 +367,13 @@
 
       ! File with lat/lon edges for regridding
       LLFILENAME = TRIM( DATA_DIR_1x1) //
-     &             'MAP_A2A_Regrid_201203/latlon_geos1x1_new.txt'
+     &             'MAP_A2A_Regrid_201203/MAP_A2A_latlon_geos1x1.nc'
   
       ! Regrid emissions factors to current model resolution [unitless]
       INGRID => AS_1x1(:,:,1)
       CALL DO_REGRID_A2A( LLFILENAME, I1x1,    J1x1, 
-     &                    INGRID,     OUTGRID, PERAREA=0 )
+     &                    INGRID,     OUTGRID, PERAREA=0,
+     &                    netCDF=.TRUE.                   )
 
       ! Cast to REAL*4
       AS(:,:) = OUTGRID(:,:)

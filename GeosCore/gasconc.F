@@ -1,46 +1,28 @@
-! $Id: gasconc.f,v 1.2 2010/03/15 19:33:23 ccarouge Exp $
+!------------------------------------------------------------------------------
+!          Harvard University Atmospheric Chemistry Modeling Group            !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !ROUTINE: gasconc
+!
+! !DESCRIPTION: Subroutine GASCONC initializes gas concentrations for 
+!  SMVGEAR II.
+!\\
+!\\
+! !INTERFACE:
+!
 #if defined( DEVEL )
-      SUBROUTINE GASCONC( FIRSTCHEM,  NTRACER,  STT, XNUMOL,
-     &                    READ_CSPEC, LOCAL_MET )
+      SUBROUTINE GASCONC( am_I_Root, 
+     &                    FIRSTCHEM, NTRACER,    STT, 
+     &                    XNUMOL,    READ_CSPEC, LOCAL_MET  )
 #else
-      SUBROUTINE GASCONC( FIRSTCHEM, NTRACER, STT, XNUMOL, FRCLND,
-     &                    READ_CSPEC )
+      SUBROUTINE GASCONC( am_I_Root, 
+     &                    FIRSTCHEM, NTRACER,   STT, 
+     &                    XNUMOL,    FRCLND,    READ_CSPEC )
 #endif
 !
-!******************************************************************************
-!  Subroutine GASCONC initializes gas concentrations for SMVGEAR II.
-!  (M. Jacobson 1997; bdf, bmy, 4/18/03, 11/19/08)
+! !USES:
 !
-!  NOTES:
-!  (1 ) Now reference ABSHUM, AIRDENS, CSPEC, IXSAVE, IYSAVE, IZSAVE,  
-!        PRESS3, T3 from "comode_mod.f".  Also now references tracer ID flags
-!        from "tracerid_mod.f".  Also removed code that is not needed for
-!        GEOS-CHEM.  Now also force double precision with "D" exponents.
-!        (bdf, bmy, 4/18/03)
-!  (2 ) Remove IRUN -- it's obsolete.  Remove obsolete variables from
-!        documentation. (bmy, 7/16/03)
-!  (3 ) Now dimension args XNUMOL, STT w/ NTRACER and not NNPAR (bmy, 7/20/04)
-!  (4 ) Now remove LPAUSE from the arg list.  Now references ITS_IN_THE_TROP
-!        from "tropopause_mod.f". (bmy, 8/22/05)
-!  (5 ) Now make sure all USE statements are USE, ONLY.  Also remove 
-!        reference to TRACERID_MOD, it's not needed. (bmy, 10/3/05)
-!  (6 ) Now zero out the isoprene oxidation counter species (dkh, bmy, 6/1/06)
-!  (7 ) Now take care of variable tropopause case.  Also set NCS=NCSURBAN
-!        (=1) instead of hardwiring it. (bdf, phs, 10/16/06)
-!  (8 ) Now use NUMDEP instead of NDRYDEP(NCS) for the loop limit over drydep 
-!        species.  NDRYDEP is the # of rxns in "globchem.dat", and NUMDEP is 
-!        the # of drydep species in GEOS-Chem.  The two values may not be the 
-!        same. (dbm, phs, 11/19/08)
-!  (9 ) Add READ_SPEC in argument list (hotp, 2/26/09)
-!  (10) Now CSPEC_FULL is copied to CSPEC depending on 
-!       the READ_CSPEC value. (hotp, 2/26/09)
-!  (11) For SOA add check for LxRO2y species in globchem.dat and initialise. 
-!       (dkh, 03/12/10)
-!  18 Oct 2011 - M. Payer    - Do not overwrite CSPEC with CSPEC_FULL prior
-!                              to partitioning (D. Henze)
-!******************************************************************************
-!
-      ! References to F90 modules 
       USE COMODE_MOD,     ONLY : ABSHUM, AIRDENS, CSPEC,  IXSAVE
       USE COMODE_MOD,     ONLY : IYSAVE, IZSAVE,  PRESS3, T3
       USE COMODE_MOD,     ONLY : CSPEC_FULL, JLOP
@@ -61,20 +43,27 @@
 
       IMPLICIT NONE
 #     include "define.h"
-
-      ! Arguments
-      LOGICAL, INTENT(IN)     :: FIRSTCHEM
-      INTEGER, INTENT(IN)     :: NTRACER
-      REAL*8,  INTENT(INOUT)  :: STT(IIPAR,JJPAR,LLPAR,NTRACER)
-      REAL*8,  INTENT(IN)     :: XNUMOL(NTRACER)
+!
+! !INPUT PARAMETERS: 
+!
+      LOGICAL, INTENT(IN)     :: am_I_Root            ! Is this the root CPU?
+      LOGICAL, INTENT(IN)     :: FIRSTCHEM            ! First-time flag
+      INTEGER, INTENT(IN)     :: NTRACER              ! # of tracers
+      REAL*8,  INTENT(IN)     :: XNUMOL(NTRACER)      ! Molec tracer/kg tracer
 #if !defined( DEVEL )
-      REAL*8,  INTENT(IN)     :: FRCLND(IIPAR,JJPAR)
+      REAL*8,  INTENT(IN)     :: FRCLND(IIPAR,JJPAR)  ! Land fraction
 #endif
-      ! cspecrestart hotp 2/25/09
-      LOGICAL, INTENT(IN)     :: READ_CSPEC
+      LOGICAL, INTENT(IN)     :: READ_CSPEC           ! Is 
 #if defined( DEVEL )
-      TYPE(GC_MET_LOCAL), INTENT(IN) :: LOCAL_MET  ! Obj w/ met fields
+      TYPE(GC_MET_LOCAL), INTENT(IN) :: LOCAL_MET     ! Obj w/ met fields
 #endif
+!
+! !OUTPUT PARAMETERS:
+!
+      ! Tracer concentrations 
+      REAL*8,  INTENT(INOUT)  :: STT(IIPAR,JJPAR,LLPAR,NTRACER)
+!
+! !REMARKS:
 !
 ! *********************************************************************
 ! ************       WRITTEN BY MARK JACOBSON (1991-4)     ************
@@ -92,20 +81,55 @@
 ! ******       INITIALIZE GAS CONCENTRATIONS IN THE MODEL        ******
 ! ***********       AND SET MISCELLANEOUS PARAMETERS         ********** 
 ! *********************************************************************
-!
+!                                                                             .
 ! *********************************************************************
 ! * SET THE CONCENTRATION  (# CM-3) OF ACTIVE AND INACTIVE GASES      *
 ! *********************************************************************
-!
+!                                                                             .
 ! NTLOOP    = NUMBER OF GRID-CELLS IN THE ENTIRE GRID-DOMAIN
 ! NTSPECGAS = NUMBER OF ACTIVE PLUS INACTIVE GASES
 ! NVERT     = NUMBER OF VERTICAL LAYERS.  
-!
 ! QBKGAS    = INITIAL BACKGROUND CONCENTRATION (VOL MIXING RATIO) 
 ! RHO3      = G-AIR CM-3-AIR
 ! C(GAS)    = GAS CONCENTRATION IN A GIVEN GRID-CELL (# CM-3)
+!  
+! !REVISION HISTORY: 
+!  03 Jan 1997 - M. Jacobson - Initial version
+!  (1 ) Now reference ABSHUM, AIRDENS, CSPEC, IXSAVE, IYSAVE, IZSAVE,  
+!        PRESS3, T3 from "comode_mod.f".  Also now references tracer ID flags
+!        from "tracerid_mod.f".  Also removed code that is not needed for
+!        GEOS-CHEM.  Now also force double precision with "D" exponents.
+!        (bdf, bmy, 4/18/03)
+!  (2 ) Remove IRUN -- it's obsolete.  Remove obsolete variables from
+!        documentation. (bmy, 7/16/03)
+!  (3 ) Now dimension args XNUMOL, STT w/ NTRACER and not NNPAR (bmy, 7/20/04)
+!  (4 ) Now remove LPAUSE from the arg list.  Now references ITS_IN_THE_TROP
+!        from "tropopause_mod.f". (bmy, 8/22/05)
+!  (5 ) Now make sure all USE statements are USE, ONLY.  Also remove 
+!        reference to TRACERID_MOD, it's not needed. (bmy, 10/3/05)
+!  (6 ) Now zero out the isoprene oxidation counter species (dkh, bmy, 6/1/06)
+!  (7 ) Now take care of variable tropopause case.  Also set NCS=NCSURBAN
+!        (=1) instead of hardwiring it. (bdf, phs, 10/16/06)
+!  (8 ) Now use NUMDEP instead of NDRYDEP(NCS) for the loop limit over drydep 
+!        species.  NDRYDEP is the # of rxns in "globchem.dat", and NUMDEP is 
+!        the # of drydep species in GEOS-Chem.  The two values may not be the 
+!        same. (dbm, phs, 11/19/08)
+!  (9 ) Add READ_SPEC in argument list (hotp, 2/26/09)
+!  (10) Now CSPEC_FULL IS copied to CSPEC depending on 
+!       the READ_CSPEC value. (hotp, 2/26/09)
+!  (11) For SOA add check for LxRO2y species in globchem.dat and initialise. 
+!       (dkh, 03/12/10)
+!  18 Oct 2011 - M. Payer    - Do not overwrite CSPEC with CSPEC_FULL prior
+!                              to partitioning (D. Henze)
+!  30 Jul 2012 - R. Yantosca - Now accept am_I_Root as an argument when
+!                              running with the traditional driver main.F
+!  30 Jul 2012 - R. Yantosca - Added ProTeX headers
+!EOP
+!------------------------------------------------------------------------------
+!BOC
 !
-      ! Local variables
+! !LOCAL VARIABLES
+!
       INTEGER :: IX, IY, IZ, N, NK, JJ
       INTEGER :: JGAS,JLOOP,NGASMIX,JALTS,K,J,NM,L,JN,MLOOP,I
       INTEGER :: IPCOMPAR,JRUN,JNEW,JOLD,NGCOUNT,IAVG,KN,SUM,SUM1
@@ -286,7 +310,7 @@
 !   should be added as needed to other chemistries.
 !      if (NCS .eq. 1) then
 !  maybe??
-      CALL PARTITION( NTRACER, STT, XNUMOL ) 
+      CALL PARTITION( NTRACER, STT, XNUMOL, am_I_Root ) 
 !      endif
 
 ! 
@@ -302,7 +326,6 @@
          NK = NTDEP(N)
          IF (NK.EQ.0) GOTO 130
          JJ = IRM(NPRODLO+1,NK,NCS)
-         !write(6,*) 'value of drydep reactions in cspec= ',jj
          IF (JJ.LE.0) GOTO 130
          DO 135 JLOOP = 1,NTTLOOP
             CSPEC(JLOOP,JJ) = 0.0D0
@@ -327,7 +350,6 @@
             CSPEC(JLOOP,IH2O) = ABSHUM(JLOOP)
 !     then calculate R.H.
             ABSHUM(JLOOP) = CSPEC(JLOOP,IH2O) / VPRESH2O 
-!            write(297,*) 'in initgas',jloop,abshum(jloop)
  33      CONTINUE
       ENDIF
 
@@ -453,9 +475,11 @@
       NCS         =  1
 !
       IF (ITESTGEAR.EQ.2) THEN
-       WRITE(KCPD,810) 0.,0.,(NAMENCS(INEWOLD(I,NCS),NCS),
-     1        CSPEC(LLOOP,INEWOLD(I,NCS)), I = 1, ISCHANG(NCS))
-       WRITE(KCPD,820)
+         IF ( am_I_Root ) THEN
+            WRITE(KCPD,810) 0.,0.,(NAMENCS(INEWOLD(I,NCS),NCS),
+     1           CSPEC(LLOOP,INEWOLD(I,NCS)), I = 1, ISCHANG(NCS))
+            WRITE(KCPD,820)
+         ENDIF
       ENDIF
 !
  810  FORMAT('CONC (# CM-3) AT TIME=',1PE10.2,' SECONDS. ',  
@@ -470,8 +494,10 @@
       IF (ITESTGEAR.EQ.1) THEN
        IPCOMPAR    = 0  
        JRUN        = 0 
-       WRITE(6,*)
-       WRITE(6,*)'GEAR-CODE CONCENTRATIONS TO TEST'
+       IF ( am_I_Root ) THEN
+          WRITE(6,*)
+          WRITE(6,*)'GEAR-CODE CONCENTRATIONS TO TEST'
+       ENDIF
        READ(KCPD,450) HEADING
  470   READ(KCPD,460) RINP(1), GRCONC1, RINP(2), GRCONC2, 
      1              RINP(3), GRCONC3  
@@ -486,9 +512,11 @@
         GOTO 470 
        ELSE
         IF (IPCOMPAR.EQ.1) THEN
-         WRITE(6,450) HEADING
-         WRITE(6,460)(NAMENCS(INEWOLD(JNEW,NCS),NCS),
-     1                GEARCONC(JNEW,JRUN,NCS), JNEW = 1, ISCHANG(NCS)) 
+           IF ( am_I_Root ) THEN
+              WRITE(6,450) HEADING
+              WRITE(6,460)(NAMENCS(INEWOLD(JNEW,NCS),NCS),
+     &             GEARCONC(JNEW,JRUN,NCS), JNEW = 1, ISCHANG(NCS)) 
+           ENDIF
         ENDIF
 !
 ! COMPARE INITIAL CONDITIONS OF GEAR DATA TO chem.dat DATA
@@ -506,7 +534,9 @@
           QACC       = GEARCONC(JNEW,0,NCS) 
 !
           IF (QACC.EQ.0.AND.QNEW.NE.0.) THEN
-           WRITE(6,465) NAMEGAS(JOLD) 
+             IF ( am_I_Root ) THEN
+                WRITE(6,465) NAMEGAS(JOLD) 
+             ENDIF
            STOP 
           ENDIF 
 !
@@ -521,14 +551,19 @@
            FRACDIF   = 0.d0
            IAVG      = 0
           ENDIF
-          IF (IPCOMPAR.EQ.1) 
-     1    WRITE(6,495) NAMENCS(JOLD,NCS),QACC,QNEW,
-     2                 FRACDIF*100, IAVG
+          IF (IPCOMPAR.EQ.1) THEN
+             IF ( am_I_Root ) THEN
+                WRITE(6,495) NAMENCS(JOLD,NCS),QACC,QNEW,
+     &               FRACDIF*100, IAVG
+             ENDIF
+          ENDIF
  485     CONTINUE
 !
          AVGERR      = 100.d0 * SUMFRACS     / NGCOUNT  
          RMSCUR      = 100.d0 * SQRT(SUMRMS  / NGCOUNT)
-         WRITE(6,505) JRUN, AVGERR, NGCOUNT  
+         IF ( am_I_Root ) THEN
+            WRITE(6,505) JRUN, AVGERR, NGCOUNT  
+         ENDIF
 !
         ENDIF
 !       ENDIF JRUN.EQ.0
@@ -539,7 +574,9 @@
          GOTO 470 
         ENDIF
         IF (JRUN.GT.MXHOLD) THEN
-         WRITE(6,*)'JSPARSE: JRUN > MXHOLD'
+           IF ( am_I_Root ) THEN
+              WRITE(6,*)'JSPARSE: JRUN > MXHOLD'
+           ENDIF
          STOP
         ENDIF
        ENDIF
@@ -562,4 +599,5 @@
 !
       RETURN
       END SUBROUTINE GASCONC
+!EOC
 

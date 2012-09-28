@@ -54,8 +54,11 @@
 !  (15) Now get the # of A-6 fields from the file ident string (bmy, 10/7/08)
 !  (16) Remove references to IN_CLOUD_OD (bmy, 10/15/09)
 !  28 Feb 2012 - R. Yantosca - Removed support for GEOS-3
+!  03 Aug 2012 - R. Yantosca - Now make IU_A6 a private module variable
 !******************************************************************************
 !
+      USE inquireMod, ONLY : findFreeLUN
+
       IMPLICIT NONE
 #     include "define.h"
 
@@ -78,6 +81,9 @@
 
       ! Number of A6 fields in the file
       INTEGER :: N_A6_FIELDS
+
+      ! File unit for A-6 met fields
+      INTEGER :: IU_A6
 
       !=================================================================
       ! MODULE ROUTINES -- follow below the "CONTAINS" statement 
@@ -332,6 +338,8 @@
 !  (10) Set N_A6_FIELDS=21 for GEOS-5 and IN_CLOUD_OD (jmao, bmy, 2/12/09)
 !  (11) Remove references to IN_CLOUD_OD (bmy, 10/15/09)
 !  28 Feb 2012 - R. Yantosca - Removed support for GEOS-3
+!  03 Aug 2012 - R. Yantosca - Now use findFreeLUN to define IU_A6 locally
+!  07 Aug 2012 - R. Yantosca - Now print LUN used to open file
 !******************************************************************************
 !      
       ! References to F90 modules
@@ -340,7 +348,7 @@
       USE DIRECTORY_MOD, ONLY : GEOS_4_DIR, GEOS_5_DIR, TEMP_DIR 
       USE ERROR_MOD,     ONLY : ERROR_STOP
       USE LOGICAL_MOD,   ONLY : LUNZIP
-      USE FILE_MOD,      ONLY : IU_A6, IOERROR, FILE_EXISTS
+      USE FILE_MOD,      ONLY : IOERROR, FILE_EXISTS
       USE TIME_MOD,      ONLY : EXPAND_DATE
 
       USE CMN_SIZE_MOD        ! Size parameters
@@ -350,7 +358,7 @@
 
       ! Local variables
       LOGICAL, SAVE          :: FIRST = .TRUE.
-      LOGICAL                :: IT_EXISTS
+      LOGICAL                :: IT_EXISTS, IS_OPEN
       INTEGER                :: IOS, IUNIT
       CHARACTER(LEN=8)       :: IDENT
       CHARACTER(LEN=255)     :: A6_FILE
@@ -398,7 +406,8 @@
          ENDIF
 
          ! Close previously opened A-3 file
-         CLOSE( IU_A6 )
+	 INQUIRE( IU_A6, OPENED=IS_OPEN )
+         IF ( IS_OPEN ) CLOSE( IU_A6 )
 
          ! Make sure the file unit is valid before we open the file
          IF ( .not. FILE_EXISTS( IU_A6 ) ) THEN
@@ -406,6 +415,9 @@
      &                       'OPEN_A6_FIELDS (a6_read_mod.f)' )
          ENDIF
 
+         ! Find a free file LUN
+         IU_A6 = findFreeLUN()
+         
          ! Open the file
          OPEN( UNIT   = IU_A6,         FILE   = TRIM( PATH ),
      &         STATUS = 'OLD',         ACCESS = 'SEQUENTIAL',  
@@ -416,8 +428,8 @@
          ENDIF
 
          ! Echo info
-         WRITE( 6, 100 ) TRIM( PATH )
- 100     FORMAT( '     - Opening: ', a ) 
+         WRITE( 6, 100 ) TRIM( PATH ), IU_A6
+ 100     FORMAT( '     - Opening: ', a, ' on unit ', i4 ) 
 
          ! Skip past the ident string
          READ( IU_A6, IOSTAT=IOS ) IDENT
@@ -866,11 +878,13 @@
 !  (8 ) Now get the # of A-6 fields from the file ident string (bmy, 10/7/08)
 !  (9 ) Remove references to IN_CLOUD_OD (bmy, 10/15/09)
 !  28 Feb 2012 - R. Yantosca - Removed support for GEOS-3
+!  03 Aug 2012 - R. Yantosca - Now use locally-defined IU_A3 file LUN
+!  07 Aug 2012 - R. Yantosca - Now print LUN used to open file
 !******************************************************************************
 !
       ! References to F90 modules
       USE DIAG_MOD,     ONLY : AD66,        AD67
-      USE FILE_MOD,     ONLY : IOERROR,     IU_A6
+      USE FILE_MOD,     ONLY : IOERROR
       USE TIME_MOD,     ONLY : SET_CT_A6,   TIMESTAMP_STRING
       USE TRANSFER_MOD, ONLY : TRANSFER_A6, TRANSFER_3D_Lp1
       USE TRANSFER_MOD, ONLY : TRANSFER_3D, TRANSFER_G5_PLE
@@ -1489,8 +1503,9 @@
          IF ( CHECK_TIME( XYMD, XHMS, NYMD, NHMS ) .AND. 
      &        NFOUND == N_A6 ) THEN
             STAMP = TIMESTAMP_STRING( NYMD, NHMS )
-            WRITE( 6, 210 ) NFOUND, STAMP
- 210        FORMAT( '     - Found all ', i3, ' A-6 met fields for ', a )
+            WRITE( 6, 210 ) NFOUND, STAMP, IU_A6
+ 210        FORMAT( '     - Found all ', i3, ' A-6 met fields for ', 
+     &                   a, ' on unit ', i4 )
             EXIT
          ENDIF
       ENDDO

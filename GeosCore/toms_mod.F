@@ -35,7 +35,16 @@
       ! First & last years for which TOMS/SBUV data is is available
       ! (update these as new data is added to the archive)
       INTEGER, PUBLIC, PARAMETER :: FIRST_TOMS_YEAR = 1979
+#if   defined( GEOS_57 )
+      !%%% KLUDGE for SEAC4RS: Use TOMS data up to 2010.  This has not
+      !%%% yet gone into the std code since it needs to be benchmarked.
+      !%%% (bmy, 7/3/12)
+      INTEGER, PUBLIC, PARAMETER :: LAST_TOMS_YEAR  = 2010
+#else
+      !%%% Std GEOS-Chem: use TOMS data up to 2008 for the time being.
+      !%%% (bmy, 7/3/12)
       INTEGER, PUBLIC, PARAMETER :: LAST_TOMS_YEAR  = 2008
+#endif
 !
 ! !REMARKS:
 !  References:
@@ -75,6 +84,10 @@
 !  06 Mar 2012 - R. Yantosca - Updated comments
 !  06 Mar 2012 - R. Yantosca - Now make TOMS, DTOMS1, DTOMS2 arrays PRIVATE
 !  06 Mar 2012 - R. Yantosca - Add TO3_DAILY as a PRIVATE module array
+!  25 Jun 2012 - S. Kim      - Now reads from TOMS_201203 directory, w/ 
+!                              updated data
+!  03 Jul 2012 - R. Yantosca - Restrict reading from TOMS_201203 directory
+!                              to GEOS-5.7.2 met data for the time being.
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -84,7 +97,11 @@
       REAL*8, PRIVATE, ALLOCATABLE :: TOMS(:,:)               
       REAL*8, PRIVATE, ALLOCATABLE :: DTOMS1(:,:)             
       REAL*8, PRIVATE, ALLOCATABLE :: DTOMS2(:,:)     
+#if   defined( DEVEL )
+      REAL*8, PUBLIC,  ALLOCATABLE :: TO3_DAILY(:,:)
+#else
       REAL*8, PRIVATE, ALLOCATABLE :: TO3_DAILY(:,:)
+#endif
 
       CONTAINS
 !EOC
@@ -171,6 +188,8 @@
 !  (8 ) Latest year of TOMS data is now 2007 (bmy, 1/14/09)
 !  (9 ) Updated TOMS data in TOMS_200906. Latest year is 2008. (ccc, 6/15/09)
 !  08 Dec 2009 - R. Yantosca - Added ProTeX headers
+!  03 Jul 2012 - R. Yantosca - Restrict reading from TOMS_201203 directory
+!                              to GEOS-5.7.2 met data for the time being.
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -206,7 +225,7 @@
          YEAR = FIRST_TOMS_YEAR
       ENDIF
 
-      ! Use 2008 data after 2008
+      ! Use 2010 data after 2010
       IF ( YEAR > LAST_TOMS_YEAR ) THEN
          WRITE( 6, 105 ) YEAR
          YEAR = LAST_TOMS_YEAR
@@ -215,7 +234,7 @@
 
       ! FORMAT statemetns
  100  FORMAT( '     - READ_TOMS: No data for ',i4,', using 1979!' )
- 105  FORMAT( '     - READ_TOMS: No data for ',i4,', using 2005!' )
+ 105  FORMAT( '     - READ_TOMS: No data for ',i4,', using 2010!' )
 
       !=================================================================
       ! Read TOMS data from disk
@@ -228,8 +247,19 @@
       YYYYMMDD = ( YEAR * 10000 ) + ( THISMONTH * 100 ) + 01
      
       ! Define filename (with replaceable tokens)
+#if   defined( GEOS_57 )
+      !%%% KLUDGE FOR SEAC4RS
+      !%%% Update to the latest TOMS data directory only for GEOS-5.7.2 met.
+      !%%% This update has not gone into the std code since it needs to be 
+      !%%% benchmarked. (skim, 6/25/12)
+      FILENAME = 'TOMS_201203/TOMS_O3col_YYYY.' // GET_NAME_EXT_2D() //
+     &           '.'                            // GET_RES_EXT()
+#else
+      !%%% Std GEOS-Chem: Read from the existing TOMS data directory
+      !%%% for the time being (bmy, 7/2/12)
       FILENAME = 'TOMS_200906/TOMS_O3col_YYYY.' // GET_NAME_EXT_2D() //
      &           '.'                            // GET_RES_EXT()
+#endif
 
       ! Replace YYYY token with current year
       CALL EXPAND_DATE( FILENAME, YYYYMMDD, 000000 )

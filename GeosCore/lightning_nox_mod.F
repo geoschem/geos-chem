@@ -16,6 +16,8 @@
 !
 ! !USES:
 !
+      USE inquireMod, ONLY : findFreeLUN
+
       IMPLICIT NONE
 #     include "define.h"
       PRIVATE
@@ -101,6 +103,7 @@
 !  10 Nov 2010 - R. Yantosca - Added ProTeX headers
 !  02 Feb 2012 - R. Yantosca - Added modifications for GEOS-5.7.x met fields
 !  01 Mar 2012 - R. Yantosca - Now reference new grid_mod.F90
+!  03 Aug 2012 - R. Yantosca - Move calls to findFreeLUN out of DEVEL block
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -876,7 +879,7 @@
       USE DAO_MOD,       ONLY : BXHEIGHT, IS_LAND,  IS_WATER
       USE DIRECTORY_MOD, ONLY : DATA_DIR
       USE ERROR_MOD,     ONLY : GEOS_CHEM_STOP
-      USE FILE_MOD,      ONLY : IU_FILE,  IOERROR
+      USE FILE_MOD,      ONLY : IOERROR
       USE GRID_MOD,      ONLY : GET_YMID
       USE TIME_MOD,      ONLY : GET_MONTH
 
@@ -937,6 +940,7 @@
 !        GMI model [Allen et al., 2010] (ltm, bmy, 1/25/11).
 !  10 Nov 2010 - R. Yantosca - Added ProTeX headers
 !  01 Mar 2012 - R. Yantosca - Now use GET_AREA_CM2(I,J,L) from grid_mod.F90
+!  15 Jun 2012 - Nielsen - INQUIRE finds free logical unit number for IU_FILE
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -1858,7 +1862,6 @@
       USE DIRECTORY_MOD, ONLY : DATA_DIR
       USE ERROR_MOD,     ONLY : ALLOC_ERR
       USE FILE_MOD,      ONLY : IOERROR
-      USE FILE_MOD,      ONLY : IU_FILE
       USE GRID_MOD,      ONLY : GET_AREA_M2
       USE LOGICAL_MOD,   ONLY : LOTDLOC
 
@@ -1889,7 +1892,7 @@
 !
 ! !LOCAL VARIABLES:
 !
-      INTEGER             :: AS, III, IOS, JJJ
+      INTEGER             :: AS, III, IOS, JJJ, IU_FILE
       REAL*8              :: Y0, Y1
       CHARACTER(LEN=255)  :: FILENAME
 
@@ -1947,6 +1950,9 @@
       ! Echo info
       WRITE( 6, 100 ) TRIM( FILENAME )
  100  FORMAT( '     - INIT_LIGHTNING: Reading ', a )
+
+      ! Find a free file LUN
+      IU_FILE = findFreeLUN()
       
       ! Open file containing lightning PDF data
       OPEN( IU_FILE, FILE=TRIM( FILENAME ), STATUS='OLD', IOSTAT=IOS )

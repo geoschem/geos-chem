@@ -641,7 +641,7 @@
       ! actual mercury simulation
       REAL*8, PARAMETER :: SOIL_EMIS_FAC = -9.0D99
       !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-#elif ! This sets a default value for GCM & ESMF COUPLING
+#else  ! This sets a default value for GCM & ESMF COUPLING
       REAL*8, PARAMETER ::SOIL_EMIS_FAC = 2.4D-2*.5742d0 ! for sunlight function
 #endif
 
@@ -989,7 +989,8 @@
 !
       USE BPCH2_MOD
       USE DAO_MOD,           ONLY : IS_LAND
-      USE FILE_MOD,          ONLY : IU_FILE, IOERROR
+      USE FILE_MOD,          ONLY : IOERROR
+      USE inquireMod,        ONLY : findFreeLun
       USE TIME_MOD,          ONLY : EXPAND_DATE, YMD_EXTRACT
       USE TIME_MOD,          ONLY : GET_NYMD, GET_NHMS
       USE DIRECTORY_MOD,     ONLY : DATA_DIR
@@ -1001,7 +1002,7 @@
       USE GC_TYPE_MOD,       ONLY : GC_MET_LOCAL
 #endif
     
-      USE CMN_SIZE_MOD          ! Size parameters
+      USE CMN_SIZE_MOD            ! Size parameters
 !
 ! !INPUT PARAMETERS: 
 !
@@ -1016,6 +1017,7 @@
 ! 
 ! !REVISION HISTORY:
 !  15 Sep 2009 - C. Carouge  - Initial version
+!  03 Aug 2012 - R. Yantosca - Move calls to findFreeLUN out of DEVEL block
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -1026,7 +1028,6 @@
       INTEGER   :: MONTH   ! Current month
       INTEGER   :: DAY
       INTEGER   :: NYMD, NHMS
-      
 
       REAL*8, DIMENSION(IIPAR, JJPAR)   :: TSURF    ! Ground temperature
       REAL*8, DIMENSION(IIPAR, JJPAR)   :: PRECIP   ! Total precipitation
@@ -1041,7 +1042,7 @@
       REAL*8, DIMENSION(IIPAR, JJPAR)   :: Hg2mth_dry
       REAL*8, DIMENSION(IIPAR, JJPAR)   :: Hg2mth_wet
 
-      INTEGER               :: IOS, I, J, L
+      INTEGER               :: IOS, I, J, L, IU_FILE
 
       CHARACTER(LEN=255)    :: FILENAME
 
@@ -1081,6 +1082,10 @@
       ! Read monthly meteorology fields
       !=================================================================
 
+      ! Find a free file LUN
+      IU_FILE  = findFreeLun()
+
+      ! File name
       FILENAME = TRIM( DATA_DIR ) // 'mercury_201007/' //
      &           'mean_metfields/' // GET_NAME_EXT() // 
      &           '/mean_YYYYMM.bpch'
@@ -1091,9 +1096,9 @@
       ! Echo some input to the screen
       WRITE( 6, '(a)' ) REPEAT( '=', 79 )
       WRITE( 6, 100   ) 
-      WRITE( 6, 110   ) TRIM( FILENAME )
+      WRITE( 6, 110   ) TRIM( FILENAME ), IU_FILE
  100  FORMAT( 'G T M M  H g   M E T   F I L E   I N P U T' )
- 110  FORMAT( /, 'GTMM_DR: Reading ', a )
+ 110  FORMAT( /, 'GTMM_DR: Reading ', a, ' on unit ', i6  )
 
       ! Open the binary punch file for input
       CALL OPEN_BPCH2_FOR_READ( IU_FILE, FILENAME )
