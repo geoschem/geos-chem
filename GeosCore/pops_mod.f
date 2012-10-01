@@ -27,7 +27,12 @@
 !
       PUBLIC :: CHEMPOPS
       PUBLIC :: INIT_POPS
-
+!      PUBLIC :: GET_POP_TYPE
+!      PUBLIC :: GET_EMISSFILE
+!      PUBLIC :: GET_POP_XMW
+!      PUBLIC :: GET_POP_HSTAR
+!      PUBLIC :: GET_POP_DEL_Hw
+!      PUBLIC :: GET_POP_KOA
 !
 ! !PUBLIC DATA MEMBERS:
 !
@@ -346,6 +351,10 @@
       USE GRID_MOD,     ONLY : GET_AREA_CM2
       USE DAO_MOD,      ONLY : T,          AIRVOL
       USE ERROR_MOD,    ONLY : DEBUG_MSG
+      USE GET_POPSINFO_MOD, ONLY: GET_POP_DEL_H, GET_POP_KOA
+      USE GET_POPSINFO_MOD, ONLY: GET_POP_KBC, GET_POP_K_POPG_OH
+      USE GET_POPSINFO_MOD, ONLY: GET_POP_K_POPP_O3A
+      USE GET_POPSINFO_MOD, ONLY: GET_POP_K_POPP_O3B
 
 #     include "CMN_SIZE" ! Size parameters
 #     include "CMN_DIAG" ! ND44
@@ -440,6 +449,10 @@
       REAL*8                :: TMP_OX_P_OC,   TMP_OX_P_BC
       REAL*8                :: NET_OX_OC,     NET_OX_BC
 
+      REAL*8,      SAVE     :: POP_XMW, POP_KOA, POP_KBC, POP_K_POPG_OH
+      REAL*8,      SAVE     :: POP_K_POPP_O3A, POP_K_POPP_O3B
+      REAL*8,      SAVE     :: POP_HSTAR, POP_DEL_H, POP_DEL_Hw
+
       ! Delta H for POP [kJ/mol]. Delta H is enthalpy of phase transfer
       ! from gas phase to OC. For now we use Delta H for phase transfer 
       ! from the gas phase to the pure liquid state. 
@@ -455,7 +468,7 @@
       ! this is also taken as the negative of the Delta H for phase transfer
       ! from the pure liquid state to the gas phase (Schwarzenbach,
       ! Gschwend, Imboden, 2003, pg 452, Prob 11.1), or -110,000 [J/mol]
-      REAL*8, PARAMETER     :: DEL_H      = -87d3
+      REAL*8     :: DEL_H
 
       ! R = universal gas constant for adjusting KOA for temp: 8.3145 [J/mol/K]
       REAL*8, PARAMETER     :: R          = 8.31d0  
@@ -469,7 +482,7 @@
       ! For BENZO[a]PYRENE:
       ! log KOA_298 = 11.48, or 3.02*10^11 [unitless]
       ! (Ma et al., J. Chem. Eng. Data, 2010, 55:819-825).
-      REAL*8, PARAMETER     :: KOA_298    = 7.24d8
+      REAL*8     :: KOA_298
 
       ! KBC_298 for partitioning of gas phase POP to atmospheric BC
       ! KBC_298 = Cpop in black carbon/Cpop in atmosphere at 298 K
@@ -480,7 +493,7 @@
       ! For BENZO[a]PYRENE:
       ! log KBC_298 = 13.9, or 7.94*10^13 [unitless]
       ! (Lohmann and Lammel, EST, 2004, 38:3793-3802)
-      REAL*8, PARAMETER     :: KBC_298    = 1d11
+      REAL*8     :: KBC_298
 
       ! DENS_OCT = density of octanol, needed for partitioning into OC
       ! 820 [kg/m^3]
@@ -498,7 +511,7 @@
       ! Calculated with AOPWIN
       ! For BENZO[a]PYRENE: 5.00d-11
       ! Calculated with AOPWIN 
-      REAL*8, PARAMETER     :: K_POPG_OH  = 5.00d-11 !(Gas phase)
+      REAL*8     :: K_POPG_OH !(Gas phase)
 
       ! k for reaction POPP + O3 [/s] depends on fitting parameters A and B. 
       ! A represents the maximum number of surface sites available to O3, and B 
@@ -508,8 +521,8 @@
       ! For PHENANTHRENE: A = 0.5 x 10^-3 s^-1, B = 2.15 x 10^15 molec/cm3
       ! For PYRENE: A = 0.7 x 10^-3 s^-1, B = 3 x 10^15 molec/cm3
       ! for BaP: A = 5.5 x 10^-3 s^-1, B = 2.8 x 10^15 molec/cm3
-      REAL*8, PARAMETER     :: AK = 7d-4 ! s^-1
-      REAL*8, PARAMETER     :: BK = 3d15 ! molec/cm3
+      REAL*8     :: AK  ! s^-1
+      REAL*8     :: BK  ! molec/cm3
 
       ! On-particle reaction scheme 3: According to Kwamena et al. (J. Phys. Chem. A 2004
       ! 108:11626), reaction will proceed with rate k = kmax(KO3)[O3]/(1+KO3[O3])
@@ -519,9 +532,19 @@
 
       ! K for reaction POPP + NO3 could be added here someday
 
+      REAL*8                :: DUM
+
       !=================================================================
       ! CHEM_POPGP begins here!
       !=================================================================
+      DUM = 1.0
+      DEL_H = GET_POP_DEL_H(DUM)
+      KOA_298 = GET_POP_KOA(DUM)
+      KBC_298 = GET_POP_KBC(DUM)
+      K_POPG_OH = GET_POP_K_POPG_OH(DUM)
+      AK = GET_POP_K_POPP_O3A(DUM)
+      BK = GET_POP_K_POPP_O3B(DUM)
+
 
       ! Chemistry timestep [s]
       DTCHEM = GET_TS_CHEM() * 60d0
@@ -1417,6 +1440,10 @@
       USE PBL_MIX_MOD,  ONLY : GET_FRAC_OF_PBL, GET_PBL_MAX_L
       USE TIME_MOD,     ONLY : GET_TS_EMIS
       USE TRACERID_MOD, ONLY : IDTPOPG, IDTPOPPOC,  IDTPOPPBC
+      USE GET_POPSINFO_MOD, ONLY: GET_POP_DEL_H, GET_POP_KOA
+      USE GET_POPSINFO_MOD, ONLY: GET_POP_KBC, GET_POP_K_POPG_OH
+      USE GET_POPSINFO_MOD, ONLY: GET_POP_K_POPP_O3A
+      USE GET_POPSINFO_MOD, ONLY: GET_POP_K_POPP_O3B
       
 #     include "CMN_SIZE"     ! Size parameters
 #     include "CMN_DEP"      ! FRCLND
@@ -1439,6 +1466,10 @@
       REAL*8                :: MINVAL_EMISSPOPS
       LOGICAL, SAVE         :: FIRST = .TRUE.
 
+      REAL*8,    SAVE       :: POP_XMW, POP_KOA, POP_KBC, POP_K_POPG_OH
+      REAL*8,    SAVE       :: POP_K_POPP_O3A, POP_K_POPP_O3B
+      REAL*8,    SAVE       :: POP_HSTAR, POP_DEL_H, POP_DEL_Hw
+
       ! Delta H for POP [kJ/mol]. Delta H is enthalpy of phase transfer
       ! from gas phase to OC. For now we use Delta H for phase transfer 
       ! from the gas phase to the pure liquid state. 
@@ -1454,7 +1485,7 @@
       ! this is also taken as the negative of the Delta H for phase transfer
       ! from the pure liquid state to the gas phase (Schwarzenbach,
       ! Gschwend, Imboden, 2003, pg 452, Prob 11.1), or -110,000 [J/mol]
-      REAL*8, PARAMETER     :: DEL_H      = -87d3
+      REAL*8     :: DEL_H
 
       ! R = universal gas constant for adjusting KOA for temp: 8.3145 [J/mol/K]
       REAL*8, PARAMETER     :: R          = 8.31d0  
@@ -1468,7 +1499,7 @@
       ! For BENZO[a]PYRENE:
       ! log KOA_298 = 11.48, or 3.02*10^11 [unitless]
       ! (Ma et al., J. Chem. Eng. Data, 2010, 55:819-825).
-      REAL*8, PARAMETER     :: KOA_298    = 7.24d8
+      REAL*8     :: KOA_298
 
       ! KBC_298 for partitioning of gas phase POP to atmospheric BC
       ! KBC_298 = Cpop in black carbon/Cpop in atmosphere at 298 K
@@ -1479,7 +1510,7 @@
       ! For BENZO[a]PYRENE:
       ! log KBC_298 = 13.9, or 7.94*10^13 [unitless]
       ! (Lohmann and Lammel, EST, 2004, 38:3793-3802)
-      REAL*8, PARAMETER     :: KBC_298    = 1d11
+      REAL*8     :: KBC_298
 
       ! DENS_OCT = density of octanol, needed for partitioning into OC
       ! 820 [kg/m^3]
@@ -1490,12 +1521,19 @@
       ! From Lohmann and Lammel, Environ. Sci. Technol., 2004, 38:3793-3803.
       REAL*8, PARAMETER     :: DENS_BC    = 1d3
 
+      REAL*8                :: DUM
 
       !=================================================================
       ! EMISSPOPS begins here!
       !=================================================================
 
-      CALL INIT_POPS 
+      DUM = 1.0
+      DEL_H = GET_POP_DEL_H(DUM)
+      KOA_298 = GET_POP_KOA(DUM)
+      KBC_298 = GET_POP_KBC(DUM)
+
+
+      CALL INIT_POPS(DUM,DUM,DUM,DUM,DUM,DUM,DUM,DUM,DUM)
 
       ! First-time initialization
       IF ( FIRST ) THEN
@@ -1817,9 +1855,10 @@
 ! !USES:
       ! References to F90 modules
       USE BPCH2_MOD,         ONLY : READ_BPCH2, GET_TAU0
-      USE DIRECTORY_MOD,     ONLY : DATA_DIR_1x1
+      USE DIRECTORY_MOD,     ONLY : DATA_DIR_1x1, POP_EMISDIR
       USE REGRID_1x1_MOD,    ONLY : DO_REGRID_1x1
       USE TIME_MOD,          ONLY : EXPAND_DATE
+      USE GET_POPSINFO_MOD,  ONLY : GET_EMISSFILE
     
 ! !INPUT PARAMETERS: 
 !
@@ -1882,9 +1921,9 @@
       ! Filename for congener you wish to model:
       !FILENAME = TRIM( DATA_DIR_1x1 )       // 
 !     &           'PAHs_2004/PHE_EM_4x5.bpch' 
-      FILENAME = '/net/fs03/d0/geosdata/data/GEOS_4x5/PAHs_2004/' //
-     &           '1x1/updated060911/PYR_EM_1x1.bpch'
-
+!      FILENAME = '/net/fs03/d0/geosdata/data/GEOS_4x5/PAHs_2004/' //
+!     &           '1x1/updated060911/PYR_EM_1x1.bpch'
+      FILENAME = POP_EMISDIR
       
       ! Timestamp for emissions
       ! All PAH emissions are for the year 2004
@@ -2315,7 +2354,9 @@
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE INIT_POPS
+      SUBROUTINE INIT_POPS(POP_XMW, POP_KOA, POP_KBC, POP_K_POPG_OH,
+     &                         POP_K_POPP_O3A, POP_K_POPP_O3B, 
+     &                         POP_HSTAR, POP_DEL_H, POP_DEL_Hw )
 !
       ! References to F90 modules
       USE DRYDEP_MOD,   ONLY : DEPNAME,   NUMDEP
@@ -2323,6 +2364,7 @@
       USE LOGICAL_MOD,  ONLY : LSPLIT,    LDRYD,     LNLPBL
       USE TRACER_MOD,   ONLY : N_TRACERS
       USE PBL_MIX_MOD,  ONLY : GET_PBL_MAX_L
+      USE GET_POPSINFO_MOD, ONLY : INIT_POP_PARAMS
 c$$$
 #     include "CMN_SIZE"     ! Size parameters
 #     include "CMN_DIAG"     ! ND44
@@ -2350,6 +2392,14 @@ c$$$
       LOGICAL, SAVE         :: IS_INIT = .FALSE. 
       INTEGER               :: AS, N!, PBL_MAX
       REAL*8                :: MAX_A, MIN_A
+
+
+      REAL*8                :: POP_XMW, POP_KOA, POP_KBC, POP_K_POPG_OH
+      REAL*8                :: POP_K_POPP_O3A, POP_K_POPP_O3B
+      REAL*8                :: POP_HSTAR, POP_DEL_H, POP_DEL_Hw
+      CHARACTER             :: POP_TYPE
+
+
       !=================================================================
       ! INIT_POPS begins here!
       !=================================================================
@@ -2359,6 +2409,10 @@ c$$$
 
       ! Return if we have already allocated arrays
       IF ( IS_INIT ) RETURN
+
+      CALL INIT_POP_PARAMS( POP_XMW, POP_KOA, POP_KBC, POP_K_POPG_OH,
+     &                         POP_K_POPP_O3A, POP_K_POPP_O3B, 
+     &                         POP_HSTAR, POP_DEL_H, POP_DEL_Hw )
 
       !=================================================================
       ! Allocate and initialize arrays

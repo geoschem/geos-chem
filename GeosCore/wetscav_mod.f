@@ -651,6 +651,7 @@
       USE TRACERID_MOD, ONLY : IDTMAP
       !(eck, 9/21/10)
       USE TRACERID_MOD, ONLY : IDTPOPPOC,  IDTPOPPBC,  IDTPOPG 
+      USE GET_POPSINFO_MOD, ONLY : GET_POP_HSTAR, GET_POP_DEL_Hw
 
       USE OCEAN_MERCURY_MOD,  ONLY : LHg_WETDasHNO3 !CDH
 
@@ -678,6 +679,9 @@
       ! 0.9 is ( molecular weight NH3 / molecular weight water )
       REAL*8, PARAMETER    :: CONV_NH3  = 5.69209978831d-1
 
+      REAL*8,   SAVE       :: POP_HSTAR, POP_DEL_H, POP_DEL_Hw
+      REAL*8               :: DUM
+
       !=================================================================
       ! COMPUTE_F begins here!
       !
@@ -685,6 +689,7 @@
       ! ISOL = tracer index for the ND38 diagnostic.
       !=================================================================
 
+      DUM = 1.0
       !-------------------------------
       ! 210Pb and 7Be (aerosols)
       !-------------------------------
@@ -1573,7 +1578,7 @@
             ! and del_H from Scharzenbach 2003, p200)
             ! For BENZO[a]PYRENE, HSTAR = 1.32d3 and del_H = -5.65d3 (HSTAR from
             ! Ma et al and Del_H the same as pyrene for now)
-            CALL COMPUTE_L2G( 7.61d1, -5.17d3, 
+            CALL COMPUTE_L2G( GET_POP_HSTAR(DUM), GET_POP_DEL_Hw(DUM), 
      &                           T(I,J,L), CLDLIQ(I,J,L), L2G )
 
             ! Fraction of POP in liquid phase 
@@ -2221,6 +2226,7 @@
       USE TRACERID_MOD, ONLY : IDTPOPPOC, IDTPOPPBC, IDTPOPG
       USE TRACER_MOD,   ONLY : ITS_A_MERCURY_SIM ! (cdh 4/16/09)
       USE OCEAN_MERCURY_MOD,  ONLY : LHg_WETDasHNO3 ! (cdh 5/20/09)
+      USE GET_POPSINFO_MOD,   ONLY : GET_POP_HSTAR, GET_POP_DEL_Hw
 
       IMPLICIT NONE
 
@@ -2244,6 +2250,9 @@
       ! 0.9 is ( molecular weight NH3 / molecular weight water )
       REAL*8, PARAMETER :: CONV_NH3  = 5.69209978831d-1
 
+      REAL*8,    SAVE     :: POP_HSTAR, POP_DEL_H, POP_DEL_Hw
+      REAL*8              :: DUM
+
       !==================================================================
       ! RAINOUT begins here!
       !
@@ -2251,6 +2260,7 @@
       ! to Eq. 10 of Jacob et al 2000.  Call function GET_RAINFRAC.
       !==================================================================
 
+      DUM = 1.0
       ! Save the local temperature in TK for convenience
       TK = T(I,J,L)
 
@@ -3092,7 +3102,7 @@
             ! and del_H from Scharzenbach 2003, p200)
             ! For BENZO[a]PYRENE, HSTAR = 1.32d3 and del_H = -5.17d3 (HSTAR from
             ! Ma et al and Del_H the same as pyrene for now)
-               CALL COMPUTE_L2G( 7.61d1, -5.17d3, 
+               CALL COMPUTE_L2G( GET_POP_HSTAR(DUM),GET_POP_DEL_Hw(DUM), 
      &                           T(I,J,L), CLDLIQ(I,J,L), L2G )
 
                ! Fraction of POP in liquid phase 
@@ -3267,6 +3277,7 @@
       USE TRACERID_MOD, ONLY : IDTIEPOX, IDTRIP, IDTMAP
       !POPs (eck, 9/21/10)
       USE TRACERID_MOD, ONLY : IDTPOPPOC, IDTPOPPBC, IDTPOPG
+      USE GET_POPSINFO_MOD, ONLY : GET_POP_HSTAR, GET_POP_DEL_Hw
 
       USE OCEAN_MERCURY_MOD,  ONLY : LHg_WETDasHNO3 ! (cdh 5/20/09)
 
@@ -3283,6 +3294,11 @@
 
       ! First order washout rate constant for HNO3, aerosols = 1 cm^-1
       REAL*8, PARAMETER    :: K_WASH = 1d0
+
+      REAL*8,    SAVE      :: POP_HSTAR, POP_DEL_H, POP_DEL_Hw
+      REAL*8               :: DUM
+
+      DUM = 1.0
 
       !=================================================================
       ! WASHOUT begins here!
@@ -3717,7 +3733,8 @@
 ! Bug fix in WASHFRAC_LIQ_GAS (H. Amos, 05 June 2011)
 !         WASHFRAC = WASHFRAC_LIQ_GAS( 7.61d1, -5.17d3, PP, DT, 
 !     &                                F,      DZ,   TK, K_WASH ) 
-            CALL WASHFRAC_LIQ_GAS( 7.61d1  , -5.17d3, PP, DT    , 
+            CALL WASHFRAC_LIQ_GAS( GET_POP_HSTAR(DUM) , 
+     &                               GET_POP_DEL_Hw(DUM), PP, DT    , 
      &                                   F    ,     DZ, TK, K_WASH,
      &                                WASHFRAC, AER                 )     
 

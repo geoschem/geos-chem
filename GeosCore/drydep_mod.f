@@ -3384,6 +3384,8 @@ C** Load array DVEL
       USE TRACERID_MOD, ONLY : IDTMMN
       USE TRACERID_MOD, ONLY : IDTRIP, IDTIEPOX, IDTPYPAN
       USE TRACERID_MOD, ONLY : IDTMAP
+      USE GET_POPSINFO_MOD, ONLY : GET_POP_XMW, GET_POP_HSTAR 
+      USE GET_POPSINFO_MOD, ONLY : GET_POP_KOA
 
 #     include "CMN_SIZE"  ! Size parameters
 
@@ -3392,10 +3394,16 @@ C** Load array DVEL
       LOGICAL :: IS_POPS
       INTEGER :: AS, N
 
+      REAL*8,     SAVE      :: POP_XMW, POP_KOA, POP_KBC, POP_K_POPG_OH
+      REAL*8,     SAVE      :: POP_K_POPP_O3A, POP_K_POPP_O3B
+      REAL*8,     SAVE      :: POP_HSTAR, POP_DEL_H, POP_DEL_Hw
+      REAL*8                :: DUM
+
       !=================================================================
       ! INIT_DRYDEP begins here!
       !=================================================================
 
+      DUM = 1.0
       ! Is this a mercury simulation?
       IS_Hg      = ITS_A_MERCURY_SIM()
       ! Is this a pops simulation?
@@ -4321,7 +4329,7 @@ C** Load array DVEL
                ! For BENZO[a]PYRENE, log Kaw = -4.51
                ! Using the same conversion, HSTAR = 1.32d3 M/atm
                ! All log Kaws from Ma et al., J Chem Eng Data 2010, 55:819 
-               HSTAR(NUMDEP)   = 7.61d1
+               HSTAR(NUMDEP)   = GET_POP_HSTAR(DUM)
                ! Adding Koa (octanol-ar partition coefficient) for POPs to
                ! account for accumulation in leaf cuticles
                ! Needs to be in units of mol/liter/atm as with HSTAR
@@ -4334,13 +4342,13 @@ C** Load array DVEL
                ! For BENZO[a]PYRENE, log Koa = 11.48
                ! use same conversion to get 1.23d10 M/atm 
                ! All log Koas from Ma et al., J Chem Eng Data 2010, 55:819 
-               KOA(NUMDEP)     = 2.96d7
+               KOA(NUMDEP)     = GET_POP_KOA(DUM) *0.0409
                F0(NUMDEP)      = 0.0d0
                ! Need to change molecular weight for different POPs
                ! For PHENANTHRENE, MW = 178d-3 (kg/mol)
                ! For PYRENE, MW = 202d-3 (kg/mol)
                ! for BENZO[a]PYRENE, MW = 252d-3 (kg/mol)
-               XMW(NUMDEP)     = 202d-3
+               XMW(NUMDEP)     = GET_POP_XMW(DUM)
                AIROSOL(NUMDEP) = .FALSE. 
             ENDIF
 
@@ -4359,7 +4367,7 @@ C** Load array DVEL
                ! For PHENANTHRENE, MW = 178d-3 (kg/mol)
                ! For PYRENE, MW = 202d-3 (kg/mol)
                ! for BENZO[a]PYRENE, MW = 252d-3 (kg/mol)
-               XMW(NUMDEP)     = 202d-3
+               XMW(NUMDEP)     = GET_POP_XMW(DUM)
                AIROSOL(NUMDEP) = .TRUE. 
             ENDIF
 
@@ -4378,7 +4386,7 @@ C** Load array DVEL
                ! For PHENANTHRENE, MW = 178d-3 (kg/mol)
                ! For PYRENE, MW = 202d-3 (kg/mol)
                ! for BENZO[a]PYRENE, MW = 252d-3 (kg/mol)
-               XMW(NUMDEP)     = 202d-3
+               XMW(NUMDEP)     = GET_POP_XMW(DUM)
                AIROSOL(NUMDEP) = .TRUE. 
             ENDIF
           ENDIF

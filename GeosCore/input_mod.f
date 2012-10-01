@@ -278,7 +278,10 @@
                                                   
          ELSE IF ( INDEX( LINE, 'CONVECTION MENU'  ) > 0 ) THEN
             CALL READ_CONVECTION_MENU             
-                                                  
+                                       
+         ELSE IF ( INDEX( LINE, 'POPS MENU'        ) > 0 ) THEN
+            CALL READ_POPS_MENU
+           
          ELSE IF ( INDEX( LINE, 'DEPOSITION MENU'  ) > 0 ) THEN
             CALL READ_DEPOSITION_MENU             
 
@@ -4976,6 +4979,122 @@
 
       ! Return to calling program
       END SUBROUTINE READ_CH4_MENU
+
+!------------------------------------------------------------------------------
+
+      SUBROUTINE READ_POPS_MENU
+!
+!******************************************************************************
+! 
+!******************************************************************************
+!
+      ! References to F90 modules
+      USE GET_POPSINFO_MOD,  ONLY : GET_POP_TYPE
+      USE POPS_MOD,          ONLY : INIT_POPS
+      USE DIRECTORY_MOD,     ONLY : POP_EMISDIR
+      USE TRACER_MOD,        ONLY : ITS_A_POPS_SIM
+      !second one might be tracerid_mod
+ 
+      ! Local variables
+      INTEGER                    :: N
+      LOGICAL                    :: CHEM_PROCESS
+      CHARACTER(LEN=255)         :: SUBSTRS(MAXDIM)
+      CHARACTER(LEN=3)           :: POP_TYPE
+      REAL*8                     :: POP_XMW, POP_KOA, POP_KBC
+      REAL*8                     :: POP_K_POPG_OH
+      REAL*8                     :: POP_K_POPP_O3A, POP_K_POPP_O3B
+      REAL*8                     :: POP_HSTAR, POP_DEL_H, POP_DEL_Hw
+
+
+      !=================================================================
+      ! READ_POPS_MENU begins here!
+      !=================================================================
+
+      ! POP species
+      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_pops_menu:1' )
+      READ( SUBSTRS(1:N), * ) POP_TYPE
+
+      ! Dummy for future process logical switches
+      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_pops_menu:2' )
+      READ( SUBSTRS(1:N), * ) CHEM_PROCESS
+
+      ! Name of pops emissions file
+      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_pops_menu:3' )
+      READ( SUBSTRS(1:N), '(a)' ) POP_EMISDIR
+
+      ! Molecular weight
+      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_pops_menu:4' )
+      READ( SUBSTRS(1:N), * ) POP_XMW
+
+      ! KOA
+      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_pops_menu:5' )
+      READ( SUBSTRS(1:N), * ) POP_KOA
+
+      ! KBC
+      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_pops_menu:6' )
+      READ( SUBSTRS(1:N), * ) POP_KBC
+
+      ! OH oxidation
+      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_pops_menu:7' )
+      READ( SUBSTRS(1:N), * ) POP_K_POPG_OH
+
+      ! O3 oxidation 1
+      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_pops_menu:8' )
+      READ( SUBSTRS(1:N), * ) POP_K_POPP_O3A
+
+      ! O3 oxidation 2
+      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_pops_menu:9' )
+      READ( SUBSTRS(1:N), * ) POP_K_POPP_O3B
+
+      ! H*
+      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_pops_menu:10' )
+      READ( SUBSTRS(1:N), * ) POP_HSTAR
+
+      ! DEL_H
+      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_pops_menu:11' )
+      READ( SUBSTRS(1:N), * ) POP_DEL_H
+
+      ! DEL_Hw
+      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_pops_menu:12' )
+      READ( SUBSTRS(1:N), * ) POP_DEL_Hw
+
+      ! Separator line
+      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_pops_menu:13' )
+
+      !=================================================================
+      ! Print to screen
+      !=================================================================
+      WRITE( 6, '(/,a)' ) 'POPS MENU'
+      WRITE( 6, '(  a)' ) '------------'
+      WRITE( 6, 120     ) 'Species of POP    : ', 
+     &                     POP_TYPE
+      WRITE( 6, 110     ) 'Chemistry on? : ', CHEM_PROCESS
+      WRITE( 6, 120     ) '=> POP Emissions file       : ',
+     &                     TRIM( POP_EMISDIR )
+      WRITE( 6, 130     ) 'Param 1:', POP_XMW
+
+      ! FORMAT statements
+ 110      FORMAT( A, L5  )
+ 120        FORMAT( A, A   )
+ 130         FORMAT( A, f6.5 )
+      ! If we are performing a POPS simulation ...
+      IF ( ITS_A_POPS_SIM() ) THEN 
+
+         ! Initially set pop type
+         POP_TYPE = GET_POP_TYPE( POP_TYPE )
+
+         ! Set emissions file to use
+!         POP_EMISSFILE = GET_EMISSFILE( TRIM( POP_EMISSFILE ) )
+
+         ! Initialize "pops_mod.f"
+         CALL INIT_POPS(POP_XMW, POP_KOA, POP_KBC, POP_K_POPG_OH,
+     &                         POP_K_POPP_O3A, POP_K_POPP_O3B, 
+     &                         POP_HSTAR, POP_DEL_H, POP_DEL_Hw )
+
+      ENDIF
+
+      ! Return to calling program
+      END SUBROUTINE READ_POPS_MENU
 
 !------------------------------------------------------------------------------
 

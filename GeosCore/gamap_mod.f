@@ -1416,6 +1416,7 @@
       USE TRACERID_MOD, ONLY : IDTBCPI,   IDTOCPI
       USE TRACERID_MOD, ONLY : IDTXYLE, IDTBENZ, IDTTOLU
       USE TRACERID_MOD, ONLY : N_Hg_CATS  !CDH for snowpack
+      USE GET_POPSINFO_MOD, ONLY : GET_POP_XMW
 ! 
 ! !REVISION HISTORY: 
 !  17 Oct 1996 - R. Yantosca & P. Le Sager - Initial version
@@ -1449,9 +1450,13 @@
       ! For Hg diagnostic: some max number of tracers per diagnostic.
       INTEGER               :: PD03_PL
 
+      REAL*8,     SAVE      :: POP_XMW
+      REAL*8                :: DUM
+
       !=================================================================
       ! INIT_TRACERINFO begins here!
       !=================================================================
+      DUM = 1.0
 
       ! Set a flag if any timeseries diagnostics are turned on
       DO_TIMESERIES = ( DO_SAVE_DIAG48 .or. DO_SAVE_DIAG49 .or.
@@ -3440,7 +3445,7 @@
             ! Define quantities
             UNIT (T,53) = 'kg'
             MOLC (T,53) = 1
-            MWT  (T,53) = 202e-3
+            MWT  (T,53) = GET_POP_XMW(DUM)
             SCALE(T,53) = 1e0
 
             ! Get name, long-name, index, and new units

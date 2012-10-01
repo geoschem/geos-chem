@@ -465,7 +465,7 @@ drydep_mod.o                : drydep_mod.f            comode_mod.o          \
                               dao_mod.o               diag_mod.o            \
                               logical_mod.o           pbl_mix_mod.o         \
                               tracerid_mod.o          tracer_mod.o          \
-                              meganut_mod.o 
+                              meganut_mod.o           get_popsinfo_mod.o
 
 diagoh.o                    : diagoh.f                diag_mod.o
 
@@ -567,7 +567,8 @@ gamap_mod.o                 : gamap_mod.f                                    \
                               diag51b_mod.o           diag56_mod.o           \
                               diag_pl_mod.o  	      drydep_mod.o           \
                               logical_mod.o    	      tracerid_mod.o         \
-                              tracer_mod.o            wetscav_mod.o  
+                              tracer_mod.o            wetscav_mod.o          \
+                              get_popsinfo_mod.o
 ifeq ($(COMPILER),sun)
 	$(F90) -O0 -c $<
 endif
@@ -590,6 +591,8 @@ gcap_read_mod.o             : gcap_read_mod.f         dao_mod.o              \
                               diag_mod.o              logical_mod.o        
 
 geia_mod.o                  : geia_mod.f
+
+get_popsinfo_mod.o          : get_popsinfo_mod.f
 
 GEN.o                       : GEN.f
 
@@ -681,7 +684,8 @@ input_mod.o                 : input_mod.f                                    \
                               restart_mod.o           tpcore_bc_mod.o        \
                               tracerid_mod.o          tracer_mod.o           \
                               transport_mod.o         upbdflx_mod.o          \
-                              wetscav_mod.o
+                              wetscav_mod.o           get_popsinfo_mod.o     \
+                              pops_mod.o
 
 isoropiaII_mod.o            : isoropiaII_mod.f                               \
                               dao_mod.o               global_hno3_mod.o      \
@@ -815,13 +819,13 @@ planeflight_mod.o           : planeflight_mod.f                              \
                               tracer_mod.o            tropopause_mod.o  
 
 pops_mod.o           	    : pops_mod.f    	                             \
-			      drydep_mod.o 	      vdiff_pre_mod.o	     \
+			      diag_mod.o	      vdiff_pre_mod.o	     \
 	        	      global_oh_mod.o         pbl_mix_mod.o	     \
 			      logical_mod.o	      diag53_mod.o	     \
                               global_oc_mod.o	      global_bc_mod.o	     \
 			      tracer_mod.o            tracerid_mod.o         \
                               global_o3_mod.o         dao_mod.o              \
-                              diag_mod.o
+                              drydep_mod.o            get_popsinfo_mod.o
 
 precipfrac.o                : precipfrac.f            dao_mod.o
 
@@ -1042,7 +1046,8 @@ wetscav_mod.o               : wetscav_mod.f                                  \
                               dao_mod.o               diag_mod.o             \
                               depo_mercury_mod.o      logical_mod.o          \
                               mercury_mod.o           ocean_mercury_mod.o    \
-                              tracerid_mod.o          tracer_mod.o
+                              tracerid_mod.o          tracer_mod.o           \
+                              get_popsinfo_mod.o
 
 XSEC1D.o                    : XSEC1D.f
 
