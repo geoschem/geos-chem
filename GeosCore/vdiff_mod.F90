@@ -2598,7 +2598,14 @@ contains
 
        ! If it's time to do emissions, call SETEMIS
        IF ( ITS_TIME_FOR_EMIS() ) THEN 
-          CALL SETEMIS( EMISRR, EMISRRN )
+!-------------------------------------------------------------------------------
+! Prior to 10/2/12:
+! Need to also pass a value to the am_I_Root argument of setemis.F
+! (mpayer, bmy, 10/2/12)
+!          CALL SETEMIS( EMISRR, EMISRRN )
+!-------------------------------------------------------------------------------
+          CALL SETEMIS( EMISRR, EMISRRN, am_I_Root=.TRUE. )
+
           IF ( LPRT ) CALL DEBUG_MSG( '### DO_PBL_MIX_2: aft SETEMIS' )
        ENDIF
 
