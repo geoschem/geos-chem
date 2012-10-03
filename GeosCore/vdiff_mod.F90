@@ -2604,7 +2604,7 @@ contains
 ! (mpayer, bmy, 10/2/12)
 !          CALL SETEMIS( EMISRR, EMISRRN )
 !-------------------------------------------------------------------------------
-          CALL SETEMIS( EMISRR, EMISRRN, am_I_Root=.TRUE. )
+          CALL SETEMIS( EMISRR, EMISRRN, .TRUE. )
 
           IF ( LPRT ) CALL DEBUG_MSG( '### DO_PBL_MIX_2: aft SETEMIS' )
        ENDIF
