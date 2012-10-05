@@ -1549,7 +1549,7 @@
             CALL ERROR_STOP('FAIL','REGISTER_CSPEC')
          ELSE
             IF ( am_I_Root ) THEN
-               WRITE(6,*) 'Registered ', NAMEGAS(I), STAT ELSE
+               WRITE(6,*) 'Registered ', NAMEGAS(I), STAT
             ENDIF
          ENDIF
 #endif
