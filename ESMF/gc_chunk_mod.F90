@@ -23,9 +23,9 @@ MODULE GC_CHUNK_MOD
 !
 ! !PUBLIC MEMBER FUNCTIONS:
 !
-  PUBLIC  :: GC_CHUNK_INIT
-  PUBLIC  :: GC_CHUNK_RUN
-  PUBLIC  :: GC_CHUNK_FINAL
+  PUBLIC :: GC_CHUNK_INIT
+  PUBLIC :: GC_CHUNK_RUN
+  PUBLIC :: GC_CHUNK_FINAL
 !
 ! !REMARKS:
 !  The routines in this module execute only when GEOS-Chem is connected
@@ -209,9 +209,13 @@ CONTAINS
 !
     USE SMV_ERRCODE_MOD
 !
-! !INPUT PARAMETERS
+! !INPUT PARAMETERS:
 !
     LOGICAL, INTENT(IN) :: am_I_Root
+!
+! !OUTPUT PARAMETERS:
+!
+    INTEGER, INTENT(OUT)   :: RC         !  Error return code
 !
 ! !REMARKS:
 ! %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -235,10 +239,6 @@ CONTAINS
 !EOP
 !------------------------------------------------------------------------------
 !BOC
-!
-! !OUTPUT PARAMETERS:
-!
-    INTEGER, INTENT(OUT)   :: RC         !  Error return code
 !
 ! !LOCAL VARIABLES:
 !
