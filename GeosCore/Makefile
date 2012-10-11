@@ -650,7 +650,7 @@ gc_type_mod.o               : gc_type_mod.F
 gc_type2_mod.o              : gc_type2_mod.F90        tracer_mod.o
 
 gc_environment_mod.o        : gc_environment_mod.F90  gc_type2_mod.o         \
-			      gc_type_mod.o
+			      gc_type_mod.o           vdiff_pre_mod.o
 
 gcap_convect_mod.o          : gcap_convect_mod.F                             \
                               dao_mod.o               diag_mod.o

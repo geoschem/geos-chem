@@ -195,7 +195,6 @@ CONTAINS
     ! Allocate 2-D Arrays
     ALLOCATE( &
          LOCAL_MET%ALBD    (IIPAR, JJPAR), & ! Visible surface albedo [unitless]
-         LOCAL_MET%AREA_M2 (IIPAR, JJPAR), & ! Grid box surface area [cm2]
          LOCAL_MET%CLDFRC  (IIPAR, JJPAR), & ! Column cloud fraction [unitless]
          LOCAL_MET%CLDTOPS (IIPAR, JJPAR), & ! Max cloud top height [levels]
          LOCAL_MET%EFLUX   (IIPAR, JJPAR), & ! Latent heat flux [W/m2]
@@ -285,7 +284,7 @@ CONTAINS
          LOCAL_MET%ENTRAIN (IIPAR, JJPAR, LLPAR), & ! GCAP entrainment [Pa/s]
          LOCAL_MET%HKBETA  (IIPAR, JJPAR, LLPAR), & ! Hack overshoot parameter [unitless]
          LOCAL_MET%HKETA   (IIPAR, JJPAR, LLPAR), & ! Hack convective mass flux [kg/m2/s]
-         LOCAL_MET%PEDGE   (IIPAR, JJPAR, LLPARR+1), & ! Pressure @ level edges [Pa]
+         LOCAL_MET%PEDGE   (IIPAR, JJPAR, LLPAR+1), & ! Pressure @ level edges [Pa]
          LOCAL_MET%PMID    (IIPAR, JJPAR, LLPAR), & ! Pressure @ level centers [Pa]
          LOCAL_MET%PFICU   (IIPAR, JJPAR, LLPAR), & ! Downward flux of ice precip: conv   [kg/m2/s]
          LOCAL_MET%PFILSAN (IIPAR, JJPAR, LLPAR), & ! Downward flux of ice precip: LS+anv [kg/m2/s]

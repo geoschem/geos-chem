@@ -228,7 +228,7 @@
             CALL CHEMDR( am_I_Root, NI, NJ, NL, GC_MET, CHEM_STATE )
 
             ! Call linearized stratospheric scheme
-            IF ( LSCHEM ) CALL DO_STRAT_CHEM( am_I_Root )
+            IF ( LSCHEM ) CALL DO_STRAT_CHEM( am_I_Root, GC_MET )
             
             ! Do seasalt aerosol chemistry
             IF ( LSSALT ) CALL CHEMSEASALT( am_I_Root, GC_MET )
@@ -362,7 +362,7 @@
              YEAR  = 0
              WAVELENGTH = 0
 
-             CALL RDAER( am_I_Root,bGC_MET, MONTH, YEAR, WAVELENGTH )
+             CALL RDAER( am_I_Root, GC_MET, MONTH, YEAR, WAVELENGTH )
  
              !*** AEROSOL THERMODYNAMIC EQUILIBRIUM ***
              IF ( LSSALT ) THEN
@@ -496,12 +496,15 @@
          ELSE IF ( ITS_A_TAGOX_SIM() ) THEN 
 #if defined( DEVEL )
             CALL CHEM_TAGGED_OX( GC_MET )
+
+            ! Call linearized stratospheric scheme
+            IF ( LSCHEM ) CALL DO_STRAT_CHEM( am_I_Root, GC_MET )
 #else
             CALL CHEM_TAGGED_OX
-#endif
 
             ! Call linearized stratospheric scheme
             IF ( LSCHEM ) CALL DO_STRAT_CHEM( am_I_Root )
+#endif
 
          !---------------------------------
          ! Tagged CO
@@ -556,11 +559,12 @@
 #if defined( DEVEL )
             CALL CHEM_H2_HD( GC_MET )
             CALL DRYFLXH2HD( GC_MET )
+            CALL DO_STRAT_CHEM( am_I_Root, GC_MET )
 #else
             CALL CHEM_H2_HD
             CALL DRYFLXH2HD
-#endif
             CALL DO_STRAT_CHEM( am_I_Root )
+#endif
   
          ENDIF
 
@@ -974,8 +978,9 @@
                IF ( LDUST ) THEN
                   CALL RDUST_ONLINE( SOILDUST, WAVELENGTH, LOCAL_MET )
                ELSE
-                  CALL RDUST_OFFLINE( MONTH, YEAR, WAVELENGTH,
-     &                                LOCAL_MET )
+                  CALL RDUST_OFFLINE( MONTH,      YEAR,
+     &                                WAVELENGTH, am_I_Root,
+     &                                LOCAL_MET   )
                ENDIF
 #else
                IF ( LDUST ) THEN

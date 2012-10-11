@@ -484,7 +484,8 @@
             WRITE(6,*) 
      &   '    - CHEMDR: CSPEC restart not found, use background values'
  
-            CALL GASCONC( FIRSTCHEM,              N_TRACERS, 
+            CALL GASCONC( am_I_Root,
+     &                    FIRSTCHEM,              N_TRACERS, 
      &                    STT(:,:,:,1:N_TRACERS), XNUMOL(1:N_TRACERS),    
      &                    IT_EXISTS,              GC_MET )
          ELSE 
@@ -494,15 +495,17 @@
      &   '    - CHEMDR: using CSPEC values from restart file'                  
 
             ! Call GASCONC but don't reset CSPEC values
-            CALL GASCONC( .FALSE.,                 N_TRACERS, 
-     &                     STT(:,:,:,1:N_TRACERS), XNUMOL(1:N_TRACERS),    
-     &                     IT_EXISTS,              GC_MET )
+            CALL GASCONC( am_I_Root,
+     &                    .FALSE.,                N_TRACERS, 
+     &                    STT(:,:,:,1:N_TRACERS), XNUMOL(1:N_TRACERS),    
+     &                    IT_EXISTS,              GC_MET )
 
          ENDIF 
 
       ELSE 
 
-         CALL GASCONC(  FIRSTCHEM,              N_TRACERS, 
+         CALL GASCONC(  am_I_Root,
+     &                  FIRSTCHEM,              N_TRACERS, 
      &                  STT(:,:,:,1:N_TRACERS), XNUMOL(1:N_TRACERS),  
      &                  IT_EXISTS,              GC_MET )
 

@@ -117,8 +117,9 @@ commsoil_mod.o      : commsoil_mod.F         CMN_SIZE_mod.o
 
 comode_loop_mod.o   : comode_loop_mod.F      CMN_SIZE_mod.o
 
-jv_cmn_mod.o        : jv_cmn_mod.F           CMN_SIZE_mod.o  \
-                                             cmn_fj_mod.o
+jv_cmn_mod.o        : jv_cmn_mod.F           CMN_SIZE_mod.o      \
+                                             cmn_fj_mod.o        \
+                                             smv_dimension_mod.o
 
 jv_mie_mod.o        : jv_mie_mod.F
 
