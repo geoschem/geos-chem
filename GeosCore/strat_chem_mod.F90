@@ -122,7 +122,11 @@ CONTAINS
 !\\
 ! !INTERFACE:
 !
+#if defined( DEVEL )
+  SUBROUTINE DO_STRAT_CHEM( am_I_Root, LOCAL_MET )
+#else
   SUBROUTINE DO_STRAT_CHEM( am_I_Root )
+#endif
 !
 ! !USES:
 !
@@ -137,6 +141,9 @@ CONTAINS
     USE TRACERID_MOD,   ONLY : IDTOX, IDTCHBr3, IDTCH2Br2, IDTCH3Br
     USE TROPOPAUSE_MOD, ONLY : GET_MIN_TPAUSE_LEVEL, GET_TPAUSE_LEVEL
     USE TROPOPAUSE_MOD, ONLY : ITS_IN_THE_TROP
+#if defined( DEVEL )
+    USE GC_TYPE_MOD,    ONLY : GC_MET_LOCAL
+#endif
 
     USE CMN_SIZE_MOD
 
@@ -146,7 +153,10 @@ CONTAINS
 !
 ! !INPUT PARAMETERS:
 !
-      LOGICAL, INTENT(IN) :: am_I_Root   ! Is this the root CPU?
+    LOGICAL,            INTENT(IN) :: am_I_Root  ! Is this the root CPU?
+#if defined( DEVEL )
+    TYPE(GC_MET_LOCAL), INTENT(IN) :: LOCAL_MET  ! Obj w/ met fields
+#endif
 !
 ! !REMARKS:
 ! 
@@ -241,14 +251,22 @@ CONTAINS
           DO I=1,IIPAR
 
              ! Add to tropopause level aggregator for later determining STE flux
+#if defined( DEVEL )
+             TpauseL(I,J) = TpauseL(I,J) + GET_TPAUSE_LEVEL( I, J, LOCAL_MET )
+#else
              TpauseL(I,J) = TpauseL(I,J) + GET_TPAUSE_LEVEL(I,J)
+#endif
 
              ! NOTE: For compatibility w/ the GEOS-5 GCM, we can no longer
              ! assume a minimum tropopause level.  Loop from 1,LLPAR instead.
              ! (bmy, 7/18/12)
              DO L = 1, LLPAR
 
+#if defined( DEVEL )
+                IF ( ITS_IN_THE_TROP( I, J, L, LOCAL_MET ) ) CYCLE
+#else
                 IF ( ITS_IN_THE_TROP( I, J, L ) ) CYCLE
+#endif
 
                 DO N=1,NSCHEM ! Tracer index of active strat chem species
                    NN = Strat_TrID_GC(N) ! Tracer index in STT
@@ -258,7 +276,12 @@ CONTAINS
 
                    dt = DTCHEM                              ! timestep [s]
                    k = LOSS(I,J,L,N)                        ! loss freq [s-1]
+#if defined( DEVEL )
+                   P = PROD(I,J,L,N) * LOCAL_MET%AD(I,J,L) &! prod term [kg s-1]
+                     / TCVV(NN)
+#else
                    P = PROD(I,J,L,N) * AD(I,J,L) / TCVV(NN) ! prod term [kg s-1]
+#endif
                    M0 = STT(I,J,L,NN)                       ! initial mass [kg]
 
                    ! No prod or loss at all
@@ -288,6 +311,21 @@ CONTAINS
        ! Make note of inital state for determining tendency later
        BEFORE = STT(:,:,:,IDTOX )
 
+#if defined( DEVEL )
+       ! Put ozone in v/v
+       STT(:,:,:,IDTOX ) = STT(:,:,:,IDTOX) * TCVV( IDTOX ) / &
+                           LOCAL_MET%AD
+
+       ! Do Linoz or Synoz
+       IF ( LLINOZ ) THEN
+          CALL Do_Linoz( am_I_Root, LOCAL_MET )
+       ELSE
+          CALL Do_Synoz( am_I_Root, LOCAL_MET )
+       ENDIF
+
+       ! Put ozone back to kg
+       STT(:,:,:,IDTOX) = STT(:,:,:,IDTOX) * LOCAL_MET%AD / TCVV( IDTOX )
+#else
        ! Put ozone in v/v
        STT(:,:,:,IDTOX ) = STT(:,:,:,IDTOX) * TCVV( IDTOX ) / AD
 
@@ -300,6 +338,7 @@ CONTAINS
 
        ! Put ozone back to kg
        STT(:,:,:,IDTOX) = STT(:,:,:,IDTOX) * AD / TCVV( IDTOX )
+#endif
 
        ! Put tendency into diagnostic array [kg box-1]
        SCHEM_TEND(:,:,:,IDTOX) = SCHEM_TEND(:,:,:,IDTOX) + &
@@ -324,6 +363,18 @@ CONTAINS
              ! (bmy, 7/18/12)
              DO L = 1, LLPAR
 
+#if defined( DEVEL )
+                IF ( ITS_IN_THE_TROP( I, J, L, LOCAL_MET ) ) CYCLE
+
+                ! Density of air at grid box (I,J,L) in [molec cm-3]
+                M = LOCAL_MET%AD(I,J,L) / BOXVL(I,J,L,LOCAL_MET) * XNUMOLAIR
+
+                ! OH number density [molec cm-3]
+                mOH = M * STRAT_OH(I,J,L)
+
+                ! Temperature at grid box (I,J,L) in K
+                TK = LOCAL_MET%T(I,J,L)
+#else
                 IF ( ITS_IN_THE_TROP(I,J,L) ) CYCLE
 
                 ! Density of air at grid box (I,J,L) in [molec cm-3]
@@ -334,6 +385,7 @@ CONTAINS
 
                 ! Temperature at grid box (I,J,L) in K
                 TK = T(I,J,L)
+#endif
 
                 !============!
                 ! CH3Br + OH !
@@ -401,6 +453,30 @@ CONTAINS
              DO J = 1, JJPAR
              DO I = 1, IIPAR  
                   
+#if defined( DEVEL )
+                IF ( ITS_IN_THE_TROP( I, J, L, LOCAL_MET ) ) CYCLE
+                   
+                ! Set the Bry boundary conditions. Simulated
+                ! output from the GEOS5 CCM stratosphere.
+                ! (jpp, 6/27/2011)
+                IJWINDOW   = (J-1)*IIPAR + I
+                   
+                IF (SUNCOS(IJWINDOW) > 0.d0) THEN
+                   ! daytime [ppt] -> [kg]
+                   BryDay = bry_day(I,J,L,NN)     &
+                          * 1.d-12                & ! convert from [ppt]
+                          * LOCAL_MET%AD(I,J,L)   &
+                          / TCVV(GC_Bry_TrID(NN))
+                   STT(I,J,L, GC_Bry_TrID(NN) ) = BryDay
+                ELSE
+                   ! nighttime [ppt] -> [kg]
+                   BryNight = bry_night(I,J,L,NN)   &
+                            * 1.d-12                & ! convert from [ppt]
+                            * LOCAL_MET%AD(I,J,L)   &
+                            / TCVV(GC_Bry_TrID(NN))
+                   STT(I,J,L, GC_Bry_TrID(NN) ) = BryNight
+                ENDIF
+#else
                 IF ( ITS_IN_THE_TROP(I,J,L) ) CYCLE
                    
                 ! Set the Bry boundary conditions. Simulated
@@ -421,6 +497,7 @@ CONTAINS
                             * AD(I,J,L) / TCVV(GC_Bry_TrID(NN))
                    STT(I,J,L, GC_Bry_TrID(NN) ) = BryNight
                 ENDIF
+#endif
                    
              ENDDO
              ENDDO
@@ -447,6 +524,15 @@ CONTAINS
        ! Intial conditions
        STT0(:,:,:,:) = STT(:,:,:,:)
 
+#if defined( DEVEL )
+       CALL CONVERT_UNITS( 1, N_TRACERS, TCVV, LOCAL_MET%AD, STT ) ! kg -> v/v
+       IF ( LLINOZ ) THEN
+          CALL Do_Linoz( am_I_Root, LOCAL_MET )
+       ELSE 
+          CALL Do_Synoz( am_I_Root, LOCAL_MET )
+       ENDIF
+       CALL CONVERT_UNITS( 2, N_TRACERS, TCVV, LOCAL_MET%AD, STT ) ! v/v -> kg
+#else
        CALL CONVERT_UNITS( 1, N_TRACERS, TCVV, AD, STT ) ! kg -> v/v
        IF ( LLINOZ ) THEN
           CALL Do_Linoz( am_I_Root )
@@ -454,6 +540,7 @@ CONTAINS
           CALL Do_Synoz( am_I_Root )
        ENDIF
        CALL CONVERT_UNITS( 2, N_TRACERS, TCVV, AD, STT ) ! v/v -> kg
+#endif
 
 
        ! Add to tropopause level aggregator for later determining STE flux
@@ -464,7 +551,11 @@ CONTAINS
        !$OMP PRIVATE( I, J )
        DO J = 1, JJPAR
        DO I = 1, IIPAR
+#if defined( DEVEL )
+          TpauseL(I,J) = TpauseL(I,J) + GET_TPAUSE_LEVEL( I, J, LOCAL_MET )
+#else
           TpauseL(I,J) = TpauseL(I,J) + GET_TPAUSE_LEVEL(I,J)
+#endif
        ENDDO
        ENDDO
        !$OMP END PARALLEL DO
@@ -486,9 +577,15 @@ CONTAINS
        ! Intial conditions
        STT0(:,:,:,:) = STT(:,:,:,:)
 
+#if defined( DEVEL )
+       CALL CONVERT_UNITS( 1, N_TRACERS, TCVV, LOCAL_MET%AD, STT ) ! kg -> v/v
+       CALL UPBDFLX_HD( LOCAL_MET )
+       CALL CONVERT_UNITS( 2, N_TRACERS, TCVV, LOCAL_MET%AD, STT ) ! v/v -> kg
+#else
        CALL CONVERT_UNITS( 1, N_TRACERS, TCVV, AD, STT ) ! kg -> v/v
        CALL UPBDFLX_HD
        CALL CONVERT_UNITS( 2, N_TRACERS, TCVV, AD, STT ) ! v/v -> kg
+#endif
 
        ! Add to tropopause level aggregator for later determining STE flux
        TpauseL_CNT = TpauseL_CNT + 1d0
@@ -497,7 +594,11 @@ CONTAINS
        !$OMP PRIVATE( I, J )
        DO J = 1, JJPAR
        DO I = 1, IIPAR
+#if defined( DEVEL )
+          TpauseL(I,J) = TpauseL(I,J) + GET_TPAUSE_LEVEL( I, J, LOCAL_MET )
+#else
           TpauseL(I,J) = TpauseL(I,J) + GET_TPAUSE_LEVEL(I,J)
+#endif
        ENDDO
        ENDDO
        !$OMP END PARALLEL DO
@@ -1465,7 +1566,11 @@ CONTAINS
 !\\
 ! !INTERFACE:
 !
+#if defined( DEVEL )
+  SUBROUTINE Do_Synoz( am_I_Root, LOCAL_MET )   
+#else
   SUBROUTINE Do_Synoz( am_I_Root )   
+#endif
 !
 ! !USES:
 !
@@ -1478,6 +1583,9 @@ CONTAINS
     USE TRACER_MOD,     ONLY : STT, ITS_A_TAGOX_SIM
     USE TRACERID_MOD,   ONLY : IDTOX, IDTOxStrt
     USE TROPOPAUSE_MOD, ONLY : GET_TPAUSE_LEVEL
+#if defined( DEVEL )
+    USE GC_TYPE_MOD,    ONLY : GC_MET_LOCAL
+#endif
 
     USE CMN_SIZE_MOD       ! Size parameters
     USE CMN_GCTM_MOD       ! Rdg0
@@ -1487,7 +1595,10 @@ CONTAINS
 !
 ! !INPUT PARAMETERS:
 !
-    LOGICAL, INTENT(IN) :: am_I_Root   ! Is this the root CPU?
+    LOGICAL,            INTENT(IN) :: am_I_Root  ! Is this the root CPU?
+#if defined( DEVEL )
+    TYPE(GC_MET_LOCAL), INTENT(IN) :: LOCAL_MET  ! Obj w/ met fields
+#endif
 !
 ! !REMARKS:
 !  Reference:
@@ -1704,7 +1815,7 @@ CONTAINS
           ! replace L70mb with Tropopause pressure if the later is 
           ! lower -PHS #### still Beta testing ####
           !IF ( LVARTROP ) THEN
-          !   PTP = TROPP(I,J)
+          !   PTP = LOCAL_MET%TROPP(I,J)
           !   IF ( PTP < P70mb ) THEN
           !      P70mb = PTP
           !      !#### TESTING ####
@@ -1743,8 +1854,13 @@ CONTAINS
           ! ZUP is the height from the sigma center of the 
           ! (L70mb-1)th layer
           !============================================================== 
+#if defined( DEVEL )
+          T2   = T(I,J,L70mb  )
+          T1   = T(I,J,L70mb-1)
+#else
           T2   = T(I,J,L70mb  )
           T1   = T(I,J,L70mb-1)        
+#endif
 
           DZ   = Rdg0 * ( (T1 + T2) / 2d0 ) * LOG( P1 / P70mb ) 
           ZUP  = Rdg0 * T1 * LOG( P1 /P3 )
@@ -1757,7 +1873,11 @@ CONTAINS
           ! If DZ <  ZUP then DZ is in level L70mb-1.
           !==============================================================       
           IF ( DZ >= ZUP ) THEN
+#if defined( DEVEL )
+             H70mb = LOCAL_MET%BXHEIGHT(I,J,L70mb) - ( DZ - ZUP )
+#else
              H70mb = BXHEIGHT(I,J,L70mb) - ( DZ - ZUP )
+#endif
           ELSE
              L70mb = L70mb - 1
              H70mb = ZUP - DZ
@@ -1784,7 +1904,11 @@ CONTAINS
              ! of this level that lies above 70 mb, and scale 
              ! the O3 flux accordingly.
              IF ( L == L70mb ) THEN
+#if defined( DEVEL )
+                PO3 = PO3 * H70mb / LOCAL_MET%BXHEIGHT(I,J,L) 
+#else
                 PO3 = PO3 * H70mb / BXHEIGHT(I,J,L) 
+#endif
              ENDIF
 
              ! Store O3 flux in the proper tracer number
@@ -1797,9 +1921,15 @@ CONTAINS
 
              ! Archive stratospheric O3 for printout in [Tg/yr]
              IF ( FIRST ) THEN
+#if defined( DEVEL )
+                STFLUX(I,J,L) = STFLUX(I,J,L) + &
+                     PO3 * LOCAL_MET%AD(I,J,L) * 1000.d0 / 28.8d0 / &
+                     DTCHEM * 48.d0 * 365.25d0 * 86400d0 / 1e12
+#else
                 STFLUX(I,J,L) = STFLUX(I,J,L) + &
                      PO3 * AD(I,J,L) * 1000.d0 / 28.8d0 / &
                      DTCHEM * 48.d0 * 365.25d0 * 86400d0 / 1e12
+#endif
              ENDIF
           ENDDO
        ENDDO
@@ -1833,19 +1963,32 @@ CONTAINS
 !\\
 ! !INTERFACE:
 !
+#if defined( DEVEL )
+  SUBROUTINE UPBDFLX_HD( LOCAL_MET )
+#else
   SUBROUTINE UPBDFLX_HD
+#endif
 !
 ! !USES:
 !
-    USE DAO_MOD,      ONLY : AD, BXHEIGHT, T
+    USE DAO_MOD,      ONLY : BXHEIGHT, T
     USE ERROR_MOD,    ONLY : ERROR_STOP
     USE PRESSURE_MOD, ONLY : GET_PEDGE, GET_PCENTER
     USE TIME_MOD,     ONLY : GET_TS_CHEM
     USE TRACER_MOD,   ONLY : STT
     USE TRACERID_MOD, ONLY : IDTHD, IDTH2
+#if defined( DEVEL )
+    USE GC_TYPE_MOD,  ONLY : GC_MET_LOCAL
+#endif
     
     USE CMN_SIZE_MOD     ! Size parameters
     USE CMN_GCTM_MOD     ! Rdg0
+!
+! !INPUT PARAMETERS:
+!
+#if defined( DEVEL )
+      TYPE(GC_MET_LOCAL), INTENT(IN) :: LOCAL_MET  ! Obj w/ met fields
+#endif
 !
 ! !REMARKS:
 !  Instead of calculating the fractionation of H2 in the stratosphere 
@@ -2007,8 +2150,13 @@ CONTAINS
           ! ZUP is the height from the sigma center of the 
           ! (L70mb-1)th layer
           !=========================================================== 
+#if defined( DEVEL )
+          T2   = LOCAL_MET%T(I,J,L70mb  )
+          T1   = LOCAL_MET%T(I,J,L70mb-1)
+#else
           T2   = T(I,J,L70mb  )
           T1   = T(I,J,L70mb-1)        
+#endif
 
           DZ   = Rdg0 * ( (T1 + T2) / 2d0 ) * LOG( P1 / P70mb ) 
           ZUP  = Rdg0 * T1 * LOG( P1 /P3 )
@@ -2021,7 +2169,11 @@ CONTAINS
           ! If DZ <  ZUP then DZ is in level L70mb-1.
           !===========================================================       
           IF ( DZ >= ZUP ) THEN
+#if defined( DEVEL )
+             H70mb = LOCAL_MET%BXHEIGHT(I,J,L70mb) - ( DZ - ZUP )
+#else
              H70mb = BXHEIGHT(I,J,L70mb) - ( DZ - ZUP )
+#endif
           ELSE
              L70mb = L70mb - 1
              H70mb = ZUP - DZ
@@ -2048,7 +2200,11 @@ CONTAINS
              ! of this level that lies above 70 mb, and scale 
              ! the HD flux accordingly.
              IF ( L == L70mb ) THEN
+#if defined( DEVEL )
+                PHD = PHD * H70mb / LOCAL_MET%BXHEIGHT(I,J,L) 
+#else
                 PHD = PHD * H70mb / BXHEIGHT(I,J,L) 
+#endif
              ENDIF
 
              ! Store HD flux in the proper tracer number
