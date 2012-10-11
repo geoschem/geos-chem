@@ -277,9 +277,9 @@
       ! Set logical flags on first timestep
       IF ( FIRST ) THEN
 #if defined( DEVEL )
-         IS_CLDTOPS  = ALLOCATED( LOCAL_MET%CLDTOPS )
-         IS_SLP      = ALLOCATED( LOCAL_MET%SLP     )
-         IS_OPTD     = ALLOCATED( LOCAL_MET%OPTD    )
+         IS_CLDTOPS  = ASSOCIATED( LOCAL_MET%CLDTOPS )
+         IS_SLP      = ASSOCIATED( LOCAL_MET%SLP     )
+         IS_OPTD     = ASSOCIATED( LOCAL_MET%OPTD    )
 #else
          IS_CLDTOPS  = ALLOCATED( CLDTOPS )
          IS_SLP      = ALLOCATED( SLP     )

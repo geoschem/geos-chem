@@ -471,7 +471,7 @@
 
          ! Set a flag for whether AVGW is allocated or not
 #if defined( DEVEL )
-         AVGW_ALLOCATED = ALLOCATED( LOCAL_MET%AVGW )
+         AVGW_ALLOCATED = ASSOCIATED( LOCAL_MET%AVGW )
 #else
          AVGW_ALLOCATED = ALLOCATED( AVGW )
 #endif

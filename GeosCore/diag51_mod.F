@@ -484,9 +484,9 @@
       ! Set logical flags on first call
       IF ( FIRST ) THEN
 #if defined( DEVEL )
-         IS_OPTD     = ALLOCATED( LOCAL_MET%OPTD    )
-         IS_CLDTOPS  = ALLOCATED( LOCAL_MET%CLDTOPS )
-         IS_SLP      = ALLOCATED( LOCAL_MET%SLP     )
+         IS_OPTD     = ASSOCIATED( LOCAL_MET%OPTD    )
+         IS_CLDTOPS  = ASSOCIATED( LOCAL_MET%CLDTOPS )
+         IS_SLP      = ASSOCIATED( LOCAL_MET%SLP     )
 #else
          IS_OPTD     = ALLOCATED( OPTD    )
          IS_CLDTOPS  = ALLOCATED( CLDTOPS )
