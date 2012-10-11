@@ -357,10 +357,9 @@
 ! !INTERFACE:
 !
 #if defined( DEVEL )
-      SUBROUTINE OCEAN_SINK_ACET( ALBD, TS, U10M, V10M, ACETONE,
-     &                            LOCAL_MET )
+      SUBROUTINE OCEAN_SINK_ACET( ACETONE, LOCAL_MET )
 #else
-      SUBROUTINE OCEAN_SINK_ACET( ALBD, TS, U10M, V10M, ACETONE )
+      SUBROUTINE OCEAN_SINK_ACET( ACETONE )
 #endif
 !
 ! !USES:
@@ -370,6 +369,8 @@
       USE TIME_MOD, ONLY : GET_TS_CHEM
 #if defined( DEVEL )
       USE GC_TYPE_MOD, ONLY : GC_MET_LOCAL
+#else
+      USE DAO_MOD,     ONLY : ALBD, TS, U10M, V10M
 #endif
 
       USE CMN_SIZE_MOD                              ! Size parameters 
@@ -380,10 +381,6 @@
 !
 ! !INPUT PARAMETERS:
 !
-      REAL*8, INTENT(IN)    :: ALBD(IIPAR,JJPAR)    ! Sfc albedo [unitless]
-      REAL*8, INTENT(IN)    :: TS(IIPAR,JJPAR)      ! Sfc temperature at 2m [K]
-      REAL*8, INTENT(IN)    :: U10M(IIPAR,JJPAR)    ! E/W wind speed @10m [m/s]
-      REAL*8, INTENT(IN)    :: V10M(IIPAR,JJPAR)    ! N/S wind speed @10m [m/s]
 #if defined( DEVEL )
       TYPE(GC_MET_LOCAL), INTENT(IN) :: LOCAL_MET   ! Obj w/ met fields
 #endif
@@ -420,6 +417,7 @@
 !        (swu, bmy, 8/16/05)
 !  04 Nov 2010 - R. Yantosca - Added ProTeX headers
 !  01 Mar 2012 - R. Yantosca - Now use GET_AREA_M2(I,J,L) from grid_mod.F90
+!  02 Aug 2012 - R. Yantosca - Add error trap for acetone under DEVEL tag
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -478,12 +476,23 @@
             ! in the grid box, and if it is not ice (albedo > 0.4)
             ! (mje, rvm, bmy, 11/26/01)
             !===========================================================
+#if defined( DEVEL )
+            IF ( FOCEAN > 0.5d0 .and.
+     &           LOCAL_MET%ALBD(I,J) <= 0.4d0 ) THEN
+
+               ! Updated Henry's Law to 27 M/atm following Benkelberg et al.
+               ! [1995], Johnson [2010], and Zhou and Mopper [1990]
+               ! (evf, 5/11/11)
+               HSTAR = (660d0)*EXP(-5090d0*(1./298d0 -
+     &                 1./LOCAL_MET%TS(I,J)))
+#else
             IF ( FOCEAN > 0.5d0 .and. ALBD(I,J) <= 0.4d0 ) THEN
 
                ! Updated Henry's Law to 27 M/atm following Benkelberg et al.
                ! [1995], Johnson [2010], and Zhou and Mopper [1990]
                ! (evf, 5/11/11)
                HSTAR = (660d0)*EXP(-5090d0*(1./298d0 - 1./TS(I,J)))
+#endif
   
                ! Want Henry constant exressed as
                ! concentration in air/concentration in water.
@@ -496,12 +505,24 @@
                ! Magnitude of surface wind [m/s]
                ! SFCWINDSQR(I,J) is needed since this will compute the 
                ! square of the surface wind correctly for all GEOS models 
-               U     = SQRT( SFCWINDSQR( I, J, U10M, V10M ) )
+#if defined( DEVEL )
+               U     = SQRT( SFCWINDSQR( I, J,
+     &                                   LOCAL_MET%U10M,
+     &                                   LOCAL_MET%V10M ) )
+
             
+               ! TC is temperature in Celsius
+               ! Bug fix: make sure -5 <= TC <= 30 (mje, rvm, bmy, 11/26/01) 
+               TC    = LOCAL_MET%TS(I,J) - 273.15d0  
+               TC    = MIN( MAX( TC, -5d0 ), 30d0 )
+#else
+               U     = SQRT( SFCWINDSQR( I, J, U10M, V10M ) )
+          
                ! TC is temperature in Celsius
                ! Bug fix: make sure -5 <= TC <= 30 (mje, rvm, bmy, 11/26/01) 
                TC    = TS(I,J) - 273.15d0  
                TC    = MIN( MAX( TC, -5d0 ), 30d0 )
+#endif
 
                ! SC is Schmidt # for acetone [unitless]
                SC    = A0 + A1*TC + A2*TC**2 + A3*TC**3 
@@ -570,7 +591,15 @@
             PRE_ACET = ACETONE(I,J) 
 
             ! Apply exponential loss to acetone mass
+#if defined( DEVEL ) || defined( EXTERNAL_GRID ) || defined( EXTERNAL_FORCING )
+            ! Eric Nielsen added this error trap .  We can eventually
+            ! bring this into the std G-C but we need to benchmark first.
+            IF ( ABS( ACETONE(I,J) ) .gt. 1d-99 )
+     &      ACETONE(I,J) = ACETONE(I,J) * EXP(-OCEAN_ACET/ACETONE(I,J))
+
+#else
             ACETONE(I,J) = ACETONE(I,J) * EXP(-OCEAN_ACET/ACETONE(I,J))
+#endif
 
             !===========================================================
             ! Diagnostics: save ACETONE lost to ocean in [atoms C/cm2/s]

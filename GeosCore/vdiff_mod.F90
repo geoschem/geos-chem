@@ -1931,12 +1931,6 @@ contains
     real*8, TARGET, dimension(IIPAR,JJPAR,LLPAR) :: t1
     real*8, TARGET, dimension(IIPAR,JJPAR,LLPAR,N_TRACERS) :: as ! save tracer MR 
                                                          ! before vdiffdr
-#if defined( DEVEL )
-!    real*8, dimension(IIPAR,JJPAR,LLPAR) :: shp ! specific humidity
-    real*8, dimension(IIPAR,JJPAR,LLPAR) :: um1
-    real*8, dimension(IIPAR,JJPAR,LLPAR) :: vm1
-    real*8, dimension(IIPAR,JJPAR,LLPAR) :: tadv
-#endif
     real*8 :: vtemp
     real*8 :: p0 = 1.d5
     real*8 :: dtime
@@ -2581,14 +2575,13 @@ contains
 !$OMP PRIVATE( J )     
 #if defined( DEVEL )
        do J = 1, JJPAR
-          call vdiff( J,      1,     um1,    vm1,             &
-                      tadv,   pmid,  pint,   rpdel,           &
-                      rpdeli, dtime, zm,     LOCAL_MET%HFLUX, &
-                      sflx,   thp,   as2,    pblh,            &
-                      kvh,    kvm,   tpert,  qpert,           &
-                      cgs,    shp,   shflx,  IIPAR,           &
-                      LOCAL_MET,                              &
-                      ustar_arg=ustar )
+          call vdiff( J,        1,      p_um1,  p_vm1,           &
+                      p_tadv,   p_pmid, p_pint, p_rpdel,         &
+                      p_rpdeli, dtime,  p_zm,   LOCAL_MET%HFLUX, &
+                      sflx,     p_thp,  p_as2,  pblh,            &
+                      p_kvh,    p_kvm,  tpert,  qpert,           &
+                      p_cgs,    p_shp,  shflx,  IIPAR,           &
+                      LOCAL_MET,        ustar_arg=ustar )
        enddo
 #else
        do J = 1, JJPAR
@@ -2597,7 +2590,6 @@ contains
                       p_zm,   hflx,   sflx,    p_thp,    p_as2,           &
                       pblh,   p_kvh,  p_kvm,   tpert,    qpert,           &
                       p_cgs,  p_shp,  shflx,   IIPAR,    ustar_arg=ustar )
-
        enddo
 #endif
 !$OMP END PARALLEL DO
@@ -2631,7 +2623,11 @@ contains
        !-------------------------------------------------------------------
 
        ! INPUTS: 3-D fields on level centers
+#if defined( DEVEL )
+       p_tadv   => LOCAL_MET%T( :, :, LLPAR  :1:-1   )
+#else
        p_tadv   => tadv  ( :, :, LLPAR  :1:-1   )
+#endif
        p_pmid   => pmid  ( :, :, LLPAR  :1:-1   )
        p_rpdel  => rpdel ( :, :, LLPAR  :1:-1   )
        p_rpdeli => rpdeli( :, :, LLPAR  :1:-1   )
@@ -2780,9 +2776,9 @@ contains
        ! If it's time to do emissions, call SETEMIS
        IF ( ITS_TIME_FOR_EMIS() ) THEN 
 #if defined( DEVEL )
-          CALL SETEMIS( EMISRR, EMISRRN, LOCAL_MET )
+          CALL SETEMIS( EMISRR, EMISRRN, .TRUE., LOCAL_MET )
 #else
-          CALL SETEMIS( EMISRR, EMISRRN )
+          CALL SETEMIS( EMISRR, EMISRRN, .TRUE. )
 #endif
           IF ( LPRT ) CALL DEBUG_MSG( '### DO_PBL_MIX_2: aft SETEMIS' )
        ENDIF
