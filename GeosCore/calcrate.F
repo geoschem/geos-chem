@@ -73,6 +73,9 @@
 !                              computed by PARANOX can be negative.  This
 !                              would make EMIS_BL and REMIS negative.  If any
 !                              negative emissions occur, reset to zero.
+!  24 Sep 2012 - R. Yantosca - Bug fix: Dimension QICE and QLIQ with KBLOOP
+!                              instead of (IIPAR,JJPAR,LLPAR).  This should
+!                              lead to better scalability.
 !******************************************************************************
 !
       ! References to F90 modules 
@@ -206,6 +209,7 @@
       REAL*8           :: CONCO2(KBLOOP),  CONCN2(KBLOOP)
       REAL*8           :: T3I(KBLOOP),     TEMP1(KBLOOP)
       REAL*8           :: T3K(KBLOOP),     PRESSK(KBLOOP) 
+
 ! FP_ISOP
       ! Variables from Fabien (hotp 7/31/09)
       REAL*8, PARAMETER :: ONE_SIXTY = 1d0 / 60d0
@@ -214,6 +218,7 @@
       REAL*8 :: YA,YB,YC
       REAL*8 :: PTEMP
   
+      !%%% FOR BROMINE CHEMISTRY %%%
 
       ! True/False variables for treating rates for the
       ! psuedo-reactions that account for bromine heterogeneous
@@ -226,29 +231,42 @@
       REAL*8  :: darea ! dummy variable for ice surface area (jpp, 7/5/2011)
       LOGICAL :: yn_div_safe
 
-      REAL*8  :: QLIQ(IIPAR,JJPAR,LLPAR), QICE(IIPAR,JJPAR,LLPAR)
+      ! Local variables for ice and water mixing ratios
+      REAL*8  :: QLIQ(KBLOOP)
+      REAL*8  :: QICE(KBLOOP)
+
+!-------------------------------------------------------------------------------
+! Prior to 9/24/12:
+! CALCRATE is already called within a parallel loop from routine PHYSPROC,
+! and therefore only processes KTLOOP grid boxes at a time.  There is no need
+! to loop over all IIPAR*JJPAR*LLPAR boxes here.  Rewrite code to remove this
+! bottleneck and improve scalability. (bmy, 9/24/12)
+!      REAL*8  :: QLIQ(IIPAR,JJPAR,LLPAR), QICE(IIPAR,JJPAR,LLPAR)
+!      darea  = 0d0
+!#if defined( GEOS_5 ) || defined( MERRA ) || defined( GEOS_57 )
+!      QICE      = QI
+!      QLIQ      = QL
+!#else
+!      ! GEOS-4 and GCAP do not have QI or QL variables. Make same assumption
+!      ! as we do in wetscav_mod.F.
+!      DO I=1,IIPAR
+!      DO J=1,JJPAR
+!      DO L=1,LLPAR
+!         IF ( T(I,J,L) .LE. 248d0 ) THEN
+!            QLIQ(I,J,L) = 0d0
+!         ELSE IF ( T(I,J,L) .GE. 268d0 ) THEN
+!            QLIQ(I,J,L) = 1d-6
+!         ELSE
+!            QLIQ(I,J,L) = 1d-6 * ( ( T(I,J,L) - 248d0 ) / 20d0 )
+!         ENDIF
+!      ENDDO
+!      ENDDO
+!      ENDDO
+!      QICE = 1d-6 - QLIQ
+!#endif
+!-------------------------------------------------------------------------------
+
       darea  = 0d0
-#if defined( GEOS_5 ) || defined( MERRA ) || defined( GEOS_57 )
-      QICE      = QI
-      QLIQ      = QL
-#else
-      ! GEOS-4 and GCAP do not have QI or QL variables. Make same assumption
-      ! as we do in wetscav_mod.F.
-      DO I=1,IIPAR
-      DO J=1,JJPAR
-      DO L=1,LLPAR
-         IF ( T(I,J,L) .LE. 248d0 ) THEN
-            QLIQ(I,J,L) = 0d0
-         ELSE IF ( T(I,J,L) .GE. 268d0 ) THEN
-            QLIQ(I,J,L) = 1d-6
-         ELSE
-            QLIQ(I,J,L) = 1d-6 * ( ( T(I,J,L) - 248d0 ) / 20d0 )
-         ENDIF
-      ENDDO
-      ENDDO
-      ENDDO
-      QICE = 1d-6 - QLIQ
-#endif
 
       ! initialize the true/false selectors (jpp, 4/12/10)
       yn_nkhobr = .false.; yn_nk1hbr = .false.
@@ -264,6 +282,10 @@
       TRATE = 0d0
       URATE = 0d0
       GLOSS = 0d0
+
+      ! Zero QICE, QLIQ arrays for safety's sake (bmy, 9/24/12)
+      QICE  = 0d0
+      QLIQ  = 0d0
 !
 ! *********************************************************************
 ! ************        WRITTEN BY MARK JACOBSON (1993)      ************
@@ -331,17 +353,52 @@
             TEMP1(KLOOP)      = 300.d0    / T3K(KLOOP)
             CONCO2(KLOOP)     = 0.2095d0  * DENAIR(KLOOP)
             CONCN2(KLOOP)     = 0.7808d0  * DENAIR(KLOOP)
-!
-!   Check if sun is up anywhere in this block of grid-boxes.
-!   IFSUN gets used in CALCRATE
-!   Get the right index for SUNCOS, which is calculated
-!   outside of chemistry module.
-!
+
+            ! Check if sun is up anywhere in this block of grid-boxes.
+            ! IFSUN gets used in CALCRATE
+            ! Get the right index for SUNCOS, which is calculated
+            ! outside of chemistry module
             IX                = IXSAVE(JLOOP)
             IY                = IYSAVE(JLOOP)
             IJWINDOW          = (IY-1)*IIPAR + IX
             GMU               = SUNCOS(IJWINDOW)
             IF(GMU .GT. 0.D0) KSUN = 1
+
+            !==========================================================
+            ! Updates for bromine chemistry.  Moved this section here 
+            ! from the  DO loop that had been added at the top of 
+            ! CALCRATE.  This should improve scalability, and prevent
+            ! doing IIPAR*JJPAR*LLPAR operations for each grid block
+            ! of KBLOOP grid boxes. (bmy, 9/24/12)
+            !==========================================================
+
+            ! Vertical index
+            IZ                = IZSAVE(JLOOP)
+
+#if   defined( GEOS_5 ) || defined( MERRA ) || defined( GEOS_57 )
+            
+            ! GEOS-5 / MERRA / GEOS-5.7 have QI and QL defined as met fields
+            ! so use these to define the QICE, QLIQ arrays.  Also, QICE and
+            ! QLIQ only need to be dimensioned with KBLOOP instead of
+            ! IIPAR,JJPAR,LLPAR. (bmy, 9/24/12)
+            QICE(KLOOP)       = QI(IX,IY,IZ)
+            QLIQ(KLOOP)       = QL(IX,IY,IZ)
+
+#else
+
+            ! Otherwise, compute QLIQ as a function of temperature ...
+            IF ( T(IX,IY,IZ) .LE. 248d0 ) THEN
+               QLIQ(KLOOP)    = 0d0
+            ELSE IF ( T(IX,IY,IZ) .GE. 268d0 ) THEN
+               QLIQ(KLOOP)    = 1d-6
+            ELSE
+               QLIQ(KLOOP)    = 1d-6 * ( ( T(IX,IY,IZ) - 248d0 ) / 20d0)
+            ENDIF
+
+            ! ... and compute QICE from QLIQ (bmy, 9/24/12)
+            QICE(KLOOP)       = 1d-6 - QLIQ(KLOOP)
+
+#endif
  20      CONTINUE
          IFSUN = 2-KSUN
 !
@@ -1095,7 +1152,12 @@ c new OH+CO rate from JPL2006.
 #if defined( GEOS_5 ) || defined( MERRA ) || defined( GEOS_57 )
      &                                 FRLAND(IX,IY),    FROCEAN(IX,IY),
 #endif
-     &                                 QLIQ(IX,IY,IZ),   CLDF(IZ,IX,IY),
+!------------------------------------------------------------------------------
+! Prior to 9/24/12:
+! Use redefined QLIQ to avoid parallelization bottleneck (bmy, 9/24/12)
+!     &                                 QLIQ(IX,IY,IZ),   CLDF(IZ,IX,IY),
+!------------------------------------------------------------------------------
+     &                                 QLIQ(KLOOP),      CLDF(IZ,IX,IY),
      &                                 AD(IX,IY,IZ) )
 
                RRATE(KLOOP, NKBrNO3) = RRATE(KLOOP, NKBrNO3) + 
@@ -1110,7 +1172,12 @@ c new OH+CO rate from JPL2006.
                CALL cldice_hbrhobr_rxn( XDENA,
      &                                  AIRVOL(IX,IY,IZ),
      &                                  T(IX,IY,IZ),
-     &                                  QICE(IX,IY,IZ),
+!------------------------------------------------------------------------------
+! Prior to 9/24/12:
+! Use redefined QICE to avoid parallelization bottleneck (bmy, 9/24/12)
+!     &                                  QICE(IX,IY,IZ),
+!------------------------------------------------------------------------------
+     &                                  QICE(KLOOP),
      &                                  CLDF(IZ,IX,IY),
      &                                  AD(IX,IY,IZ),
      &                                  STT(IX,IY,IZ,IDTHBr),

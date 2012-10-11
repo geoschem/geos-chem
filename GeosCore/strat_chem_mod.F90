@@ -58,6 +58,7 @@ MODULE STRAT_CHEM_MOD
 !  20 Jul 2012 - R. Yantosca - Reorganized declarations for clarity
 !  20 Jul 2012 - R. Yantosca - Correct compilation error in GET_RATES_INTERP
 !  07 Aug 2012 - R. Yantosca - Fix parallelization problem in Bry do loop
+!  05 Oct 2012 - R. Yantosca - Add bug fix for IFORT 12 compiler in CALC_STE
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -1158,6 +1159,8 @@ CONTAINS
 !  20 Jul 2012 - R. Yantosca - Reorganized declarations for clarity
 !  30 Jul 2012 - R. Yantosca - Now accept am_I_Root as an argument when
 !                              running with the traditional driver main.F
+!  05 Oct 2012 - R. Yantosca - Bug fix for IFORT 12: extend the #if statement
+!                              to avoid including code for nested-grid sims
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -1189,7 +1192,14 @@ CONTAINS
     ! It could be modified for nested domains if the total mass flux across the
     ! boundaries during the period is taken into account.
     RETURN
-#endif
+!------------------------------------------------------------------------------
+! Prior to 10/5/12:
+! Since the rest of this code isn't needed for the nested grid, wrap it
+! in an #else statement.  This gets code to compile for IFORT 12, and avoids
+! an "catastrophic error: internal compiler error". (bmy, 10/5/12)
+!#endif
+!------------------------------------------------------------------------------
+#else
 
     ! Determine mean tropopause level for the period
     !$OMP PARALLEL DO                               &
@@ -1280,6 +1290,7 @@ CONTAINS
     SChem_tend(:,:,:,:)  = 0d0
     MInit(:,:,:,:)       = STT(:,:,:,:)
 
+#endif
   END SUBROUTINE Calc_STE
 !EOC
 !------------------------------------------------------------------------------

@@ -2775,6 +2775,12 @@ contains
 
        ! If it's time to do emissions, call SETEMIS
        IF ( ITS_TIME_FOR_EMIS() ) THEN 
+!-------------------------------------------------------------------------------
+! Prior to 10/2/12:
+! Need to also pass a value to the am_I_Root argument of setemis.F
+! (mpayer, bmy, 10/2/12)
+!          CALL SETEMIS( EMISRR, EMISRRN )
+!-------------------------------------------------------------------------------
 #if defined( DEVEL )
           CALL SETEMIS( EMISRR, EMISRRN, .TRUE., LOCAL_MET )
 #else

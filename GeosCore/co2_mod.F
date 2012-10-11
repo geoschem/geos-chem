@@ -2293,6 +2293,8 @@
 !  01 Aug 2012 - R. Yantosca - Add reference to findFreeLUN from inqure_mod.F90
 !  03 Aug 2012 - R. Yantosca - Move calls to findFreeLUN out of DEVEL block
 !  24 Aug 2012 - R. Yantosca - DO_REGRID_A2A now reads netCDF input file
+!   2 Oct 2012 - R. Yantosca - Bug fix, the terrestrial exchange file is
+!                              placed on the generic grid, not geos grid
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -2306,12 +2308,9 @@
       CHARACTER(LEN=255)     :: LLFILENAME
 
       ! Arrays and pointers
-      !REAL*4                :: ARRAY    (I1x1,J1x1,  1)  !(lmw,05/16/11)
       REAL*4                 :: ARRAY    (IIPAR,JJPAR,1)
-      !REAL*8,  TARGET       :: GEOS_1x1 (I1x1,J1x1,  1)
-      REAL*8,  TARGET        :: GEOS_1x1 (IIPAR,JJPAR,1)
       REAL*4                 :: ARRAY_1x1(I1x1,J1x1-1,1)
-      REAL*8                 :: GEN_1x1  (I1x1,J1x1-1,1)
+      REAL*8,  TARGET        :: GEN_1x1  (I1x1,J1x1-1,1)
       REAL*8,  TARGET        :: GEOS_GRID(IIPAR,JJPAR,1)
       REAL*8,  POINTER       :: INGRID (:,:) => NULL()
       REAL*8,  POINTER       :: OUTGRID(:,:) => NULL()
@@ -2367,32 +2366,67 @@
          ! TAU value for start of "generic" year 2000
          TAU = GET_TAU0( 1, 1, 2000 )
 
+!-----------------------------------------------------------------------------
+!%%% v9-01-03 POST-RELEASE PATCH (bmy, 10/2/12)
+!%%% NOTE: Someone mislabeled the Net_terrestrial_exch file, it is labeled
+!%%% "geos.1x1" but is on the GENERIC 1x1 grid.  Therefore, we shall rename
+!%%% this file accordingly and use the generic grid indices (I1x1,J1x1-1)
+!%%% etc. below. (bmy, 10/2/12)
+!%%%         ! Filename
+!%%%         FILENAME = TRIM( DATA_DIR_1x1 )  //  
+!%%%     &              'CO2_201003/Net_terrestrial_exch_5.29Pg.geos.1x1'
+!%%%	
+!%%%         ! Echo info
+!%%%         WRITE( 6, 100 ) TRIM( FILENAME )
+!%%%
+!%%%         ! Read Net Terrestrial CO2 Exchange [molec/cm2/s]
+!%%%         CALL READ_BPCH2( FILENAME, 'CO2-SRCE', 6, 
+!%%%     &                    TAU,       I1x1,      J1x1      
+!%%%     &                    1,         ARRAY,     QUIET=.TRUE. )
+!%%%
+!%%%         ! Cast to REAL*8 before regridding
+!%%%         GEOS_1x1(:,:,1) = ARRAY(:,:,1)
+!%%%
+!%%%         ! File with lat/lon edges for regridding
+!%%%         LLFILENAME = TRIM( DATA_DIR_1x1) //
+!%%%     &                'MAP_A2A_Regrid_201203/MAP_A2A_latlon_geos1x1.nc'
+!%%%
+!%%%         ! Regrid from GEOS 1x1 --> current model resolution
+!%%%         INGRID  => GEOS_1x1 (:,:,1)
+!%%%         OUTGRID => GEOS_GRID(:,:,1)
+!%%%         CALL DO_REGRID_A2A( LLFILENAME, I1x1,    J1x1, 
+!%%%     &                       INGRID,     OUTGRID, PERAREA=0,
+!%%%     &                       netCDF=.TRUE.                   )
+!-----------------------------------------------------------------------------
+                  
          ! Filename
-         FILENAME = TRIM( DATA_DIR_1x1 )  //  
-     &              'CO2_201003/Net_terrestrial_exch_5.29Pg.geos.1x1'
+         FILENAME = TRIM( DATA_DIR_1x1 )                      //  
+     &              'CO2_201003/'                             //
+     &              'Net_terrestrial_exch_5.29Pg.generic.1x1'
 	
          ! Echo info
          WRITE( 6, 100 ) TRIM( FILENAME )
 
          ! Read Net Terrestrial CO2 Exchange [molec/cm2/s]
          CALL READ_BPCH2( FILENAME, 'CO2-SRCE', 6, 
-     &                    TAU,       I1x1,      J1x1,     
-     &                    1,         ARRAY,     QUIET=.TRUE. )
+     &                    TAU,       I1x1,      J1x1-1,
+     &                    1,         ARRAY_1x1, QUIET=.TRUE. )
 
          ! Cast to REAL*8 before regridding
-         GEOS_1x1(:,:,1) = ARRAY(:,:,1)
+         GEN_1x1(:,:,1) = ARRAY_1x1(:,:,1)
 
          ! File with lat/lon edges for regridding
-         LLFILENAME = TRIM( DATA_DIR_1x1) //
-     &                'MAP_A2A_Regrid_201203/MAP_A2A_latlon_geos1x1.nc'
+         LLFILENAME = TRIM( DATA_DIR_1x1)            //
+     &                'MAP_A2A_Regrid_201203/'       //
+     &                'MAP_A2A_latlon_generic1x1.nc'
 
          ! Regrid from GEOS 1x1 --> current model resolution
-         INGRID  => GEOS_1x1 (:,:,1)
+         INGRID  => GEN_1x1  (:,:,1)
          OUTGRID => GEOS_GRID(:,:,1)
-         CALL DO_REGRID_A2A( LLFILENAME, I1x1,    J1x1, 
+         CALL DO_REGRID_A2A( LLFILENAME, I1x1,    J1x1-1, 
      &                       INGRID,     OUTGRID, PERAREA=0,
      &                       netCDF=.TRUE.                   )
-                  
+
          ! Free pointers
          NULLIFY( INGRID, OUTGRID )
          

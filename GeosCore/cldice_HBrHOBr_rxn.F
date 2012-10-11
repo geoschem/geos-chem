@@ -64,6 +64,7 @@
 ! !REVISION HISTORY:
 !  16 Jun 2011 - J. Parrella - Initial version
 !  22 May 2012 - M. Payer    - Added ProTeX headers
+!  26 Sep 2012 - R. Yantosca - For now, comment out debug print statements
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -249,11 +250,12 @@
       AREA    = 1.d-4 * (iwc * (100.d0)**3)**(0.9d0)
       AREA    = 2.d0 * AREA ! in [cm2/cm3]
 
-      IF ( AREA > 1.0d-4 ) THEN
-         print *, 'jpp: debugging cloud ice area'
-         print *, 'AREA = ', AREA, ' cm2/cm3'
-         print *, 'IWC  = ', iwc
-      ENDIF
+      !### Debug
+      !IF ( AREA > 1.0d-4 ) THEN
+      !   print *, 'jpp: debugging cloud ice area'
+      !   print *, 'AREA = ', AREA, ' cm2/cm3'
+      !   print *, 'IWC  = ', iwc
+      !ENDIF
 
       ! ----------------------------------------------------
       ! 3.
