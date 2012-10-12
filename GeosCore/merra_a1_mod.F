@@ -454,6 +454,7 @@
 !  25 Aug 2010 - R. Yantosca - Now read LWI (land/water/ice) from disk
 !  15 Aug 2011 - R. Yantosca - Now save SWGDN in 2nd slot of ND67 diagnostic
 !  25 Mar 2011 - R. Yantosca - Bug fix: make local SWGDN array for ND67 diag
+!  08 Jun 2012 - S. Philip   - Correction for MERRA boundary layer height
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -1077,6 +1078,16 @@
       PRECCON = PRECCON * 86400d0
       PRECLSC = PRECLSC * 86400d0
       PRECTOT = PRECTOT * 86400d0
+
+      ! Correction for MERRA PBLH:
+      ! PBLH must be greater than a minimum mechanical mixing depth,
+      ! defined as 700*friction velocity
+      ! (Koracin and Berkowicz, 1988; Lin and McElroy, 2010)
+      DO J = 1, JJPAR
+      DO I = 1, IIPAR
+         PBLH(I,J) = max( PBLH(I,J), 700d0*USTAR(I,J) )
+      ENDDO
+      ENDDO
 
       !=================================================================
       ! ND67 diagnostic: A1 surface fields

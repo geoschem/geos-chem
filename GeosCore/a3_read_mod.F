@@ -841,8 +841,8 @@
 !  (9 ) Now read EFLUX for non-local PBL scheme for GEOS5 (ccc, 5/14/09)
 !  (10) Now read FRLAND, FROCEAN, FRLANDIC, FRLAKE for methane (kjw, 8/18/09)
 !  (11) Remove reference to IN_CLOUD_OD (bmy, 10/15/09)
-!  (12) Correction for GEOS_5 boundary layer height (sp 6/8/12) 
 !  21 Sep 2010 - R. Yantosca - Added ProTeX headers
+!  08 Jun 2012 - S. Philip   - Correction for GEOS_5 boundary layer height
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -1406,14 +1406,12 @@
       ! Correction for GEOS_5 PBLH:
       ! PBLH must be greater than a minimum mechanical mixing depth,
       ! defined as 700*friction velocity
-      ! (koracin and berkowicz, 1988; Lin and McElroy, 2010)
-#if   defined( GEOS_5 )
+      ! (Koracin and Berkowicz, 1988; Lin and McElroy, 2010)
       DO J = 1, JJPAR
       DO I = 1, IIPAR
          PBL(I,J) = max( PBL(I,J), 700d0*USTAR(I,J) )
       ENDDO
       ENDDO
-#endif
 
 #endif
 
