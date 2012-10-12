@@ -133,7 +133,7 @@
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE CHEMSEASALT
+      SUBROUTINE CHEMSEASALT( am_I_Root )
 !
 ! !USES:
 !
@@ -143,13 +143,19 @@
       USE TRACER_MOD,   ONLY : STT
       USE TRACERID_MOD, ONLY : IDTSALA, IDTSALC
 
-      USE CMN_SIZE_MOD       ! Size parameters
+      USE CMN_SIZE_MOD                   ! Size parameters
+!
+! !INPUT PARAMETERS:
+!
+      LOGICAL, INTENT(IN) :: am_I_Root   ! Is this the root CPU?
 ! 
 ! !REVISION HISTORY:
 !  (1 ) Now reference STT from "tracer_mod.f".  Now references LPRT from
 !        "logical_mod.f" (bmy, 7/20/04)
 !  (2 ) Now only call DRY_DEPOSITION if LDRYD=T (bec, bmy, 5/23/06)
 !  22 Dec 2011 - M. Payer    - Added ProTeX headers
+!  30 Jul 2012 - R. Yantosca - Now accept am_I_Root as an argument when
+!                              running with the traditional driver main.F
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -198,28 +204,36 @@
       ! Accumulation mode
       !-------------------
       CALL WET_SETTLING( STT(:,:,:,IDTSALA), 1 )
-      IF ( LPRT ) CALL DEBUG_MSG( '### CHEMSEASALT: WET_SET, Accum' )
+      IF ( LPRT .and. am_I_Root ) THEN
+         CALL DEBUG_MSG( '### CHEMSEASALT: WET_SET, Accum' )
+      ENDIF
 
       !IF ( LDRYD ) THEN
       ! If LNLPBL (non local PBL mixing) is turned on, do sea salt
       ! dry deposition in vdiff as for all the other aerosols (jaegle 5/11/11)
       IF ( LDRYD .AND. .NOT. LNLPBL ) THEN
          CALL DRY_DEPOSITION( STT(:,:,:,IDTSALA), 1 )
-         IF ( LPRT ) CALL DEBUG_MSG( '### CHEMSEASALT: DRY_DEP, Accum' )
+         IF ( LPRT .and. am_I_Root ) THEN
+            CALL DEBUG_MSG( '### CHEMSEASALT: DRY_DEP, Accum' )
+         ENDIF
       ENDIF
 
       !-------------------
       ! Coarse mode
       !-------------------
       CALL WET_SETTLING( STT(:,:,:,IDTSALC), 2 )
-      IF ( LPRT ) CALL DEBUG_MSG( '### CHEMSEASALT: WET_SET, Coarse' )
+      IF ( LPRT .and. am_I_Root ) THEN 
+         CALL DEBUG_MSG( '### CHEMSEASALT: WET_SET, Coarse' )
+      ENDIF
 
       !IF ( LDRYD ) THEN
       ! If LNLPBL (non local PBL mixing) is turned on, do sea salt
       ! dry deposition in vdiff as for all the other aerosols (jaegle 5/11/11)
       IF ( LDRYD .AND. .NOT. LNLPBL ) THEN
          CALL DRY_DEPOSITION( STT(:,:,:,IDTSALC), 2 )
-         IF ( LPRT ) CALL DEBUG_MSG( '### CHEMSEASALT: DRY_DEP, Coarse')
+         IF ( LPRT .and. am_I_Root ) THEN
+            CALL DEBUG_MSG( '### CHEMSEASALT: DRY_DEP, Coarse')
+         ENDIF
       ENDIF
 
       END SUBROUTINE CHEMSEASALT

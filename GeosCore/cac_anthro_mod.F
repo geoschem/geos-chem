@@ -257,6 +257,7 @@
 !  18 Dec 2009 - Aaron van D - Use 2005 scale factors for years beyond 2005
 !  13 Mar 2012 - M. Cooper   - Changed regrid algorithm to map_a2a
 !  24 May 2012 - R. Yantosca - Fixed minor bug in map_a2a implementation
+!  24 Aug 2012 - R. Yantosca - DO_REGRID_A2A now reads netCDF input file
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -298,7 +299,7 @@
 
       ! File with lat/lon edges for regridding
       LLFILENAME = TRIM( DATA_DIR_1x1) //
-     &             'MAP_A2A_Regrid_201203/latlon_geos1x1_new.txt'
+     &             'MAP_A2A_Regrid_201203/MAP_A2A_latlon_geos1x1.nc'
 
       DO SPECIES = 1,4
 
@@ -319,13 +320,25 @@
             SNo = 30
             ScNo = 0
          ENDIF
-            
+
+!%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%% 
+!%%% Prior to 6/28/12:
+!%%% The CAC update goes only up to 2008.  Replace 2010 with 2008 in this
+!%%% IF statement for the time being. (bmy, 6/28/12)
+!%%%         IF ( ( THISYEAR .le. 2002 ) .OR. 
+!%%%     &        ( THISYEAR .ge. 2010 ) ) THEN
+!%%% 
+!%%%            ! TAU values for 2002/2005
+!%%%            TAU = GET_TAU0( 1, 1, MIN( MAX( THISYEAR, 2002 ), 2010 ) )
+!%%%            WRITE( SYEAR, '(i4)' ) MIN( MAX( THISYEAR, 2002 ), 2010 )
+!%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%% 
+
          IF ( ( THISYEAR .le. 2002 ) .OR. 
-     &        ( THISYEAR .ge. 2010 ) ) THEN
+     &        ( THISYEAR .ge. 2008 ) ) THEN
  
             ! TAU values for 2002/2005
-            TAU = GET_TAU0( 1, 1, MIN( MAX( THISYEAR, 2002 ), 2010 ) )
-            WRITE( SYEAR, '(i4)' ) MIN( MAX( THISYEAR, 2002 ), 2010 )
+            TAU = GET_TAU0( 1, 1, MIN( MAX( THISYEAR, 2002 ), 2008 ) )
+            WRITE( SYEAR, '(i4)' ) MIN( MAX( THISYEAR, 2002 ), 2008 )
 
             ! File name
             FILENAME  = TRIM( DATA_DIR_1x1 ) // 'CAC_200801/CAC' // 
@@ -409,12 +422,14 @@
          IF ( SPECIES .eq. 1 ) THEN
 
             CALL DO_REGRID_A2A( LLFILENAME, I1x1,    J1x1, 
-     &                          INGRID,     NOx,     PERAREA=1 )
+     &                          INGRID,     NOx,     PERAREA=1,
+     &                          netCDF=.TRUE.                   )
 
          ELSEIF ( SPECIES .eq. 2 ) THEN
 
             CALL DO_REGRID_A2A( LLFILENAME, I1x1,    J1x1,
-     &                          INGRID,     CO,      PERAREA=1 )
+     &                          INGRID,     CO,      PERAREA=1,
+     &                          netCDF=.TRUE.                   )
 
          ELSEIF ( SPECIES .eq. 3 ) THEN
 
@@ -425,13 +440,14 @@
             INGRID = INGRID * 0.986
 
             CALL DO_REGRID_A2A( LLFILENAME, I1x1,    J1x1,
-     &                          INGRID,     SO2,     PERAREA=1 )
+     &                          INGRID,     SO2,     PERAREA=1,
+     &                          netCDF=.TRUE.                   )
 
          ELSEIF ( SPECIES .eq. 4 ) THEN
 
             CALL DO_REGRID_A2A( LLFILENAME, I1x1,    J1x1,
-     &                          INGRID,     NH3,     PERAREA=1 )
-
+     &                          INGRID,     NH3,     PERAREA=1,
+     &                          netCDF=.TRUE.                   )
          ENDIF
 
          ! Free pointer
@@ -853,6 +869,9 @@
 !  28 Jan 2009 - P. Le Sager - Initial Version
 !  13 Mar 2012 - M. Cooper   - Changed regrid algorithm to map_a2a
 !  07 Jun 2012 - M. Payer    - Fixed minor bugs in map_a2a implementation
+!  15 Aug 2012 - M. Payer    - Fixed minor bugs in regridding of mask; Also set
+!                              mask to 1 if greater than 0 (L. Murray)
+!  24 Aug 2012 - R. Yantosca - DO_REGRID_A2A now reads netCDF input file
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -878,7 +897,7 @@
 
       ! File with lat/lon edges for regridding
       LLFILENAME = TRIM( DATA_DIR_1x1) //
-     &             'MAP_A2A_Regrid_201203/latlon_geos1x1_new.txt'
+     &             'MAP_A2A_Regrid_201203/MAP_A2A_latlon_geos1x1.nc'
 
       ! Echo info
       WRITE( 6, 100 ) TRIM( FILENAME )
@@ -898,10 +917,13 @@
       ! Regrid from GENERIC 1x1 to current model resolution [unitless]
       INGRID => GEOS_1x1(:,:,1)
       CALL DO_REGRID_A2A( LLFILENAME, I1x1,        J1x1, 
-     &                    INGRID,     MASK_CANADA, PERAREA=1 )
+     &                    INGRID,     MASK_CANADA, PERAREA=0,
+     &                    netCDF=.TRUE.                       )
 
       ! Free pointer
       NULLIFY( INGRID )
+
+      WHERE ( MASK_CANADA > 0D0 ) MASK_CANADA = 1D0
 
       END SUBROUTINE READ_CANADA_MASK
 !EOC

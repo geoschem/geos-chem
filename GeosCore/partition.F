@@ -12,7 +12,7 @@
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE PARTITION( NTRACER, STT, XNUMOL ) 
+      SUBROUTINE PARTITION( NTRACER, STT, XNUMOL, am_I_Root ) 
 !
 ! !USES:
 !
@@ -37,6 +37,9 @@
 
       ! Conversion factor: molecules tracer / kg tracer 
       REAL*8,  INTENT(IN)    :: XNUMOL(NTRACER)
+
+      ! Is this the root CPU?
+      LOGICAL, INTENT(IN)    :: am_I_Root
 !
 ! !INPUT/OUTPUT PARAMETERS: 
 !
@@ -67,6 +70,8 @@
 !                                   that was in the troposphere on the previous
 !                                   timestep.
 !  27 Jun 2011 - R. Yantosca - Added ProTeX headers
+!  30 Jul 2012 - R. Yantosca - Now accept am_I_Root as an argument when
+!                              running with the traditional driver main.F
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -197,7 +202,7 @@
          IF ( IDTRMB(N,1) == 0 ) CYCLE
 
          !### Debug
-         !WRITE(6,*) 'IN PARTITION N= ', N
+         !IF( am_I_Root ) WRITE(6,*) 'IN PARTITION N= ', N
 
          ! Loop over grid boxes
 !$OMP PARALLEL DO
@@ -235,7 +240,9 @@
                   ! Error check
                   IF ( JJ == 0 ) THEN
 !$OMP CRITICAL
-                     PRINT *,JJ,JLOOP,N,KK,IDTRMB(N, KK)
+                     IF ( am_I_Root ) THEN
+                        PRINT *,JJ,JLOOP,N,KK,IDTRMB(N, KK)
+                     ENDIF
 !$OMP END CRITICAL
                   ENDIF
 
@@ -364,11 +371,13 @@
                ! Error test
                IF ( CONCNOX - SUM1 < 0.d0 ) THEN
 !$OMP CRITICAL 
+                  IF ( am_I_Root ) THEN
                   PRINT*, '### In partition.f: CONCNOX - SUM1 < 0'
                   PRINT*, '### If CONCNOX = 0 and SUM1 ~ 1e-99 it is OK'
                   PRINT*, '### I, J, L : ', I, J, L
                   PRINT*, '### CONCNOX : ', CONCNOX
                   PRINT*, '### SUM1    : ', SUM1
+                  ENDIF
 !$OMP END CRITICAL
                ENDIF
 

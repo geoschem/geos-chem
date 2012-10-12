@@ -65,6 +65,13 @@
 !  (18) Add change yield for HAC. Make CONSTC a parameter. (fp, 2/2/10)
 !  01 Mar 2012 - R. Yantosca - Now use new functions from grid_mod.F90:
 !                              GET_YMID(I,J,L) and GET_AREA_CM2(I,J,L)
+!  20 Jun 2012 - R. Yantosca - Under some circumstances it seems that INT_OPE
+!                              computed by PARANOX can be negative.  This
+!                              would make EMIS_BL and REMIS negative.  If any
+!                              negative emissions occur, reset to zero.
+!  24 Sep 2012 - R. Yantosca - Bug fix: Dimension QICE and QLIQ with KBLOOP
+!                              instead of (IIPAR,JJPAR,LLPAR).  This should
+!                              lead to better scalability.
 !******************************************************************************
 !
       ! References to F90 modules 
@@ -190,6 +197,7 @@
       REAL*8           :: CONCO2(KBLOOP),  CONCN2(KBLOOP)
       REAL*8           :: T3I(KBLOOP),     TEMP1(KBLOOP)
       REAL*8           :: T3K(KBLOOP),     PRESSK(KBLOOP) 
+
 ! FP_ISOP
       ! Variables from Fabien (hotp 7/31/09)
       REAL*8, PARAMETER :: ONE_SIXTY = 1d0 / 60d0
@@ -198,6 +206,7 @@
       REAL*8 :: YA,YB,YC
       REAL*8 :: PTEMP
   
+      !%%% FOR BROMINE CHEMISTRY %%%
 
       ! True/False variables for treating rates for the
       ! psuedo-reactions that account for bromine heterogeneous
@@ -209,6 +218,43 @@
       REAL*8  :: ki_hobr, ki_hbr
       REAL*8  :: darea ! dummy variable for ice surface area (jpp, 7/5/2011)
       LOGICAL :: yn_div_safe
+
+      ! Local variables for ice and water mixing ratios
+      REAL*8  :: QLIQ(KBLOOP)
+      REAL*8  :: QICE(KBLOOP)
+
+!-------------------------------------------------------------------------------
+! Prior to 9/24/12:
+! CALCRATE is already called within a parallel loop from routine PHYSPROC,
+! and therefore only processes KTLOOP grid boxes at a time.  There is no need
+! to loop over all IIPAR*JJPAR*LLPAR boxes here.  Rewrite code to remove this
+! bottleneck and improve scalability. (bmy, 9/24/12)
+!      REAL*8  :: QLIQ(IIPAR,JJPAR,LLPAR), QICE(IIPAR,JJPAR,LLPAR)
+!      darea  = 0d0
+!#if defined( GEOS_5 ) || defined( MERRA ) || defined( GEOS_57 )
+!      QICE      = QI
+!      QLIQ      = QL
+!#else
+!      ! GEOS-4 and GCAP do not have QI or QL variables. Make same assumption
+!      ! as we do in wetscav_mod.F.
+!      DO I=1,IIPAR
+!      DO J=1,JJPAR
+!      DO L=1,LLPAR
+!         IF ( T(I,J,L) .LE. 248d0 ) THEN
+!            QLIQ(I,J,L) = 0d0
+!         ELSE IF ( T(I,J,L) .GE. 268d0 ) THEN
+!            QLIQ(I,J,L) = 1d-6
+!         ELSE
+!            QLIQ(I,J,L) = 1d-6 * ( ( T(I,J,L) - 248d0 ) / 20d0 )
+!         ENDIF
+!      ENDDO
+!      ENDDO
+!      ENDDO
+!      QICE = 1d-6 - QLIQ
+!#endif
+!-------------------------------------------------------------------------------
+
+      darea  = 0d0
 
       ! initialize the true/false selectors (jpp, 4/12/10)
       yn_nkhobr = .false.; yn_nk1hbr = .false.
@@ -224,6 +270,10 @@
       TRATE = 0d0
       URATE = 0d0
       GLOSS = 0d0
+
+      ! Zero QICE, QLIQ arrays for safety's sake (bmy, 9/24/12)
+      QICE  = 0d0
+      QLIQ  = 0d0
 !
 ! *********************************************************************
 ! ************        WRITTEN BY MARK JACOBSON (1993)      ************
@@ -291,17 +341,52 @@
             TEMP1(KLOOP)      = 300.d0    / T3K(KLOOP)
             CONCO2(KLOOP)     = 0.2095d0  * DENAIR(KLOOP)
             CONCN2(KLOOP)     = 0.7808d0  * DENAIR(KLOOP)
-!
-!   Check if sun is up anywhere in this block of grid-boxes.
-!   IFSUN gets used in CALCRATE
-!   Get the right index for SUNCOS, which is calculated
-!   outside of chemistry module.
-!
+
+            ! Check if sun is up anywhere in this block of grid-boxes.
+            ! IFSUN gets used in CALCRATE
+            ! Get the right index for SUNCOS, which is calculated
+            ! outside of chemistry module
             IX                = IXSAVE(JLOOP)
             IY                = IYSAVE(JLOOP)
             IJWINDOW          = (IY-1)*IIPAR + IX
             GMU               = SUNCOS(IJWINDOW)
             IF(GMU .GT. 0.D0) KSUN = 1
+
+            !==========================================================
+            ! Updates for bromine chemistry.  Moved this section here 
+            ! from the  DO loop that had been added at the top of 
+            ! CALCRATE.  This should improve scalability, and prevent
+            ! doing IIPAR*JJPAR*LLPAR operations for each grid block
+            ! of KBLOOP grid boxes. (bmy, 9/24/12)
+            !==========================================================
+
+            ! Vertical index
+            IZ                = IZSAVE(JLOOP)
+
+#if   defined( GEOS_5 ) || defined( MERRA ) || defined( GEOS_57 )
+            
+            ! GEOS-5 / MERRA / GEOS-5.7 have QI and QL defined as met fields
+            ! so use these to define the QICE, QLIQ arrays.  Also, QICE and
+            ! QLIQ only need to be dimensioned with KBLOOP instead of
+            ! IIPAR,JJPAR,LLPAR. (bmy, 9/24/12)
+            QICE(KLOOP)       = QI(IX,IY,IZ)
+            QLIQ(KLOOP)       = QL(IX,IY,IZ)
+
+#else
+
+            ! Otherwise, compute QLIQ as a function of temperature ...
+            IF ( T(IX,IY,IZ) .LE. 248d0 ) THEN
+               QLIQ(KLOOP)    = 0d0
+            ELSE IF ( T(IX,IY,IZ) .GE. 268d0 ) THEN
+               QLIQ(KLOOP)    = 1d-6
+            ELSE
+               QLIQ(KLOOP)    = 1d-6 * ( ( T(IX,IY,IZ) - 248d0 ) / 20d0)
+            ENDIF
+
+            ! ... and compute QICE from QLIQ (bmy, 9/24/12)
+            QICE(KLOOP)       = 1d-6 - QLIQ(KLOOP)
+
+#endif
  20      CONTINUE
          IFSUN = 2-KSUN
 !
@@ -982,56 +1067,59 @@ c new OH+CO rate from JPL2006.
             ! both pseudo-rxns (rate limiting). (jpp, 4/12/10)
             ! -------------------------------------------------
 
-            ! select the min of the two rates
-            hbr_rtemp  = RRATE(KLOOP, NK1HBr) *
-     &                   STT(IX,IY,IZ, IDTHBr)
-            hobr_rtemp = RRATE(KLOOP, NKHOBr) * 
-     &                   STT(IX,IY,IZ, IDTHOBr)
+            IF ( ( IDTHBr > 0) .and. ( IDTHOBr > 0 ) ) THEN
 
-            ! ---------------------------------------------
-            ! Kludging the rates to be equal to one another
-            ! to avoid having to keep setting equality in
-            ! SMVGEAR solver. (jpp, 5/10/2011)
-            ! ---------------------------------------------
-            IF ( hbr_rtemp > hobr_rtemp ) THEN
+               ! select the min of the two rates
+               hbr_rtemp  = RRATE(KLOOP, NK1HBr) *
+     &                      STT(IX,IY,IZ, IDTHBr)
+               hobr_rtemp = RRATE(KLOOP, NKHOBr) * 
+     &                      STT(IX,IY,IZ, IDTHOBr)
 
-               ! 1. is it safe to divide?
-               yn_div_safe = is_safe_div( 
-     &                       RRATE(KLOOP, NKHOBr) *
-     &                       STT(IX,IY,IZ, IDTHOBr), 
-     &                       STT(IX,IY,IZ, IDTHBr) )
+               ! ---------------------------------------------
+               ! Kludging the rates to be equal to one another
+               ! to avoid having to keep setting equality in
+               ! SMVGEAR solver. (jpp, 5/10/2011)
+               ! ---------------------------------------------
+               IF ( hbr_rtemp > hobr_rtemp ) THEN
 
-               IF (yn_div_safe) THEN
-                  ! 2. if it is safe, then go ahead
-                  RRATE(KLOOP,NK1HBr) = RRATE(KLOOP, NKHOBr)   *
-     &                                  STT(IX,IY,IZ, IDTHOBr) /
-     &                                  STT(IX,IY,IZ, IDTHBr)
+                  ! 1. is it safe to divide?
+                  yn_div_safe = is_safe_div( 
+     &                          RRATE(KLOOP, NKHOBr) *
+     &                          STT(IX,IY,IZ, IDTHOBr), 
+     &                          STT(IX,IY,IZ, IDTHBr) )
+
+                  IF (yn_div_safe) THEN
+                     ! 2. if it is safe, then go ahead
+                     RRATE(KLOOP,NK1HBr) = RRATE(KLOOP, NKHOBr)   *
+     &                                     STT(IX,IY,IZ, IDTHOBr) /
+     &                                     STT(IX,IY,IZ, IDTHBr)
+                  ELSE
+                     ! if not, then set rates really small...
+                     ! b/c the largest contributor is very small.
+                     RRATE(KLOOP, NK1HBr) = TINY(1.d0)
+                     RRATE(KLOOP, NKHOBr) = TINY(1.d0)
+                  ENDIF
+
+               ! if HOBr rate is larger than HBr rate
                ELSE
-                  ! if not, then set rates really small...
-                  ! b/c the largest contributor is very small.
-                  RRATE(KLOOP, NK1HBr) = TINY(1.d0)
-                  RRATE(KLOOP, NKHOBr) = TINY(1.d0)
-               ENDIF
 
-            ! if HOBr rate is larger than HBr rate
-            ELSE
+                  ! 1. is it safe to divide?
+                  yn_div_safe = is_safe_div( 
+     &                          RRATE(KLOOP, NK1HBr) *
+     &                          STT(IX,IY,IZ, IDTHBr), 
+     &                          STT(IX,IY,IZ, IDTHOBr) )
 
-               ! 1. is it safe to divide?
-               yn_div_safe = is_safe_div( 
-     &                       RRATE(KLOOP, NK1HBr) *
-     &                       STT(IX,IY,IZ, IDTHBr), 
-     &                       STT(IX,IY,IZ, IDTHOBr) )
-
-               IF (yn_div_safe) THEN
-                  ! 2. if it is safe, then go ahead
-                  RRATE(KLOOP,NKHOBr) = RRATE(KLOOP, NK1HBr)  *
-     &                                  STT(IX,IY,IZ, IDTHBr) /
-     &                                  STT(IX,IY,IZ, IDTHOBr)
-               ELSE
-                  ! if not, then set rates really small...
-                  ! b/c the largest contributor is very small.
-                  RRATE(KLOOP, NK1HBr) = TINY(1.d0)
-                  RRATE(KLOOP, NKHOBr) = TINY(1.d0)
+                  IF (yn_div_safe) THEN
+                     ! 2. if it is safe, then go ahead
+                     RRATE(KLOOP,NKHOBr) = RRATE(KLOOP, NK1HBr)  *
+     &                                     STT(IX,IY,IZ, IDTHBr) /
+     &                                     STT(IX,IY,IZ, IDTHOBr)
+                  ELSE
+                     ! if not, then set rates really small...
+                     ! b/c the largest contributor is very small.
+                     RRATE(KLOOP, NK1HBr) = TINY(1.d0)
+                     RRATE(KLOOP, NKHOBr) = TINY(1.d0)
+                  ENDIF
                ENDIF
             ENDIF
 
@@ -1039,30 +1127,50 @@ c new OH+CO rate from JPL2006.
             !  Add rate for cloud heterogeneous chemistry
             !  to RRATE(KLOOP, NKBrNO3). (jpp, 2/28/2011)
             ! ----------------------------------------------
-            cld_brno3_rc = CLD1K_BrNO3(IX,               IY,
+            IF ( NKBrNO3 > 0 ) THEN
+               cld_brno3_rc = CLD1K_BrNO3(IX,            IY,
      &                                 IZ,               XDENA,
      &                                 AIRVOL(IX,IY,IZ), T(IX,IY,IZ),
+#if defined( GEOS_5 ) || defined( MERRA ) || defined( GEOS_57 )
      &                                 FRLAND(IX,IY),    FROCEAN(IX,IY),
-     &                                 QL(IX,IY,IZ),     CLDF(IZ,IX,IY),
+#endif
+!------------------------------------------------------------------------------
+! Prior to 9/24/12:
+! Use redefined QLIQ to avoid parallelization bottleneck (bmy, 9/24/12)
+!     &                                 QLIQ(IX,IY,IZ),   CLDF(IZ,IX,IY),
+!------------------------------------------------------------------------------
+     &                                 QLIQ(KLOOP),      CLDF(IZ,IX,IY),
      &                                 AD(IX,IY,IZ) )
 
-            RRATE(KLOOP, NKBrNO3) = RRATE(KLOOP, NKBrNO3) + 
-     &                              cld_brno3_rc
+               RRATE(KLOOP, NKBrNO3) = RRATE(KLOOP, NKBrNO3) + 
+     &                                 cld_brno3_rc
+            ENDIF
 
             ! ----------------------------------------------
             !  Calculate rates for HOBr + HBr + ice --> Br2
             !  for cold and mixed clouds. (jpp, 6/16/2011)
             ! ----------------------------------------------
-            CALL cldice_hbrhobr_rxn( XDENA,          AIRVOL(IX,IY,IZ),
-     &                               T(IX,IY,IZ),    QI(IX,IY,IZ),
-     &                               CLDF(IZ,IX,IY), AD(IX,IY,IZ),
-     &                               STT(IX,IY,IZ,IDTHBr),
-     &                               STT(IX,IY,IZ,IDTHOBr),
-     &                               ki_hbr,         ki_hobr,
-     &                               DAREA )
+            IF ( ( IDTHBr > 0 ) .and. ( IDTHOBr > 0 ) ) THEN
+               CALL cldice_hbrhobr_rxn( XDENA,
+     &                                  AIRVOL(IX,IY,IZ),
+     &                                  T(IX,IY,IZ),
+!------------------------------------------------------------------------------
+! Prior to 9/24/12:
+! Use redefined QICE to avoid parallelization bottleneck (bmy, 9/24/12)
+!     &                                  QICE(IX,IY,IZ),
+!------------------------------------------------------------------------------
+     &                                  QICE(KLOOP),
+     &                                  CLDF(IZ,IX,IY),
+     &                                  AD(IX,IY,IZ),
+     &                                  STT(IX,IY,IZ,IDTHBr),
+     &                                  STT(IX,IY,IZ,IDTHOBr),
+     &                                  ki_hbr,
+     &                                  ki_hobr,
+     &                                  DAREA )
 
-            RRATE(KLOOP, NK2HBr)  = ki_hbr
-            RRATE(KLOOP, NK2HOBr) = ki_hobr
+               RRATE(KLOOP, NK2HBr)  = ki_hbr
+               RRATE(KLOOP, NK2HOBr) = ki_hobr
+            ENDIF
 
          ELSE
 
@@ -1572,6 +1680,12 @@ c new OH+CO rate from JPL2006.
                      ! to [molec NO/cm3/s] and store in the REMIS array
                      REMIS(JLOOP,IDEOX) = REMIS(JLOOP,IDEOX) + 
      &                                    EMIS_BL / VOLUME(JLOOP)
+
+                     !%%% DO NOT LET NEGATIVE SHIP EMISSIONS GET  
+                     !%%% ARCHIVED INTO REMIS (bmy, mpayer, 6/20/12)
+                     IF ( REMIS(JLOOP,IDEOX) < 0d0 ) THEN
+                        REMIS(JLOOP,IDEOX) = 0d0
+                     ENDIF
                   ENDIF
                ENDDO
            
@@ -2142,8 +2256,17 @@ c new OH+CO rate from JPL2006.
 ! !INTERFACE:
 !
       FUNCTION CLD1K_BrNO3( I,      J,    L,      DENAIR, 
-     &                      AIRVOL, TEMP, FRLAND, FROCEAN,
+     &                      AIRVOL, TEMP, 
+#if defined( GEOS_5 ) || defined( MERRA ) || defined( GEOS_57 )
+     &                      FRLAND, FROCEAN,
+#endif
      &                      QL,     CLDF, AD )    RESULT( cld1k )
+
+!
+! !USES:
+!
+      USE DAO_MOD, ONLY    : IS_LAND, IS_ICE
+      IMPLICIT NONE
 !
 ! !INPUT PARAMETERS:
 !
@@ -2153,8 +2276,10 @@ c new OH+CO rate from JPL2006.
       REAL*8,  INTENT(IN) :: DENAIR   ! Density of air             [#/cm3]
       REAL*8,  INTENT(IN) :: AIRVOL   ! Volume of air in a box     [m3]
       REAL*8,  INTENT(IN) :: temp     ! Temperature in a given box [K]
+#if defined( GEOS_5 ) || defined( MERRA ) || defined( GEOS_57 )
       REAL*8,  INTENT(IN) :: FRLAND   ! Fraction of land           [unitless]
       REAL*8,  INTENT(IN) :: FROCEAN  ! Fraction of ocean          [unitless]
+#endif
       REAL*8,  INTENT(IN) :: QL       ! Cloud water mixing ratio   [kg/kg]
       REAL*8,  INTENT(IN) :: CLDF     ! 3D cloud fraction          [unitless]
       REAL*8,  INTENT(IN) :: AD       ! Dry air mass               [kg]
@@ -2237,7 +2362,13 @@ c new OH+CO rate from JPL2006.
       ! ----------------------------------------------
 
       ! continental or marine clouds only...
+#if defined( GEOS_5 ) || defined( MERRA ) || defined( GEOS_57 )
       IF ( (FRLAND > 0) .or. (FROCEAN > 0) ) THEN
+#else
+      ! Above line is to skip over land ice (Greenland and Antartica). This should
+      ! do the same (and also work for GEOS-5, but leave above for now).
+      IF ( IS_LAND(I,J) .and. .not.(IS_ICE(I,J)) ) THEN
+#endif
          ! do we have clouds? and do we have warm temperatures?
          IF ( (CLDF > 0) .and. (temp > 258.0) ) THEN
             yn_continue = .TRUE.
@@ -2306,7 +2437,11 @@ c new OH+CO rate from JPL2006.
       !     AREA =  -----------------
       !              AIRVOL x RADIUS      (in cm)
       ! ----------------------------------------------
+#if defined( GEOS_5 ) || defined( MERRA ) || defined( GEOS_57 )
       IF ( FRLAND > FROCEAN ) THEN
+#else
+      IF ( IS_LAND(I,J) ) THEN
+#endif
          ! Continental cloud droplet radius [cm]
          RADIUS = XCLDR_CONT
       ELSE
@@ -2320,8 +2455,13 @@ c new OH+CO rate from JPL2006.
       XAIRM3 = XAIRM3 * (100.d0)**3
 
       ! get the volume of cloud [cm3]
-      Vc = cldf * 
-     &     QL * AD / dens_h2o
+#if defined( GEOS_5 ) || defined( MERRA ) || defined( GEOS_57 )
+      ! QL is [g/g]
+      Vc = CLDF * QL * AD / dens_h2o
+#else
+      ! QL is [cm3/cm3]
+      Vc = CLDF * QL * XAIRM3
+#endif
 
       ! now calculate the cloud droplet surface area
       AREA    = 3.d0 * (Vc/XAIRM3) / (RADIUS) ! keep Radius in [cm]

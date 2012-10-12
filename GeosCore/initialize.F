@@ -16,7 +16,7 @@
 !
 ! !INTERFACE:
 !
-      SUBROUTINE INITIALIZE( IFLAG )
+      SUBROUTINE INITIALIZE( IFLAG, am_I_Root )
 !
 ! !USES:
 !
@@ -46,6 +46,9 @@
       ! If IFLAG=2, zero accumulating diagnostic arrays
       ! If IFLAG=3, zero accumulating diagnostic counters
       INTEGER, INTENT(IN)  :: IFLAG
+
+      ! Is this the root CPU?
+      LOGICAL, INTENT(IN) :: am_I_Root   
 !
 ! !REMARKS:
 !  Eventually we will fold this into "diag_mod.f" in a cleaner,
@@ -275,10 +278,12 @@
          IF ( ND65 > 0 ) THEN
             AD65  = 0d0
             IF ( ALLOCATED( FAM_PL ) ) FAM_PL = 0d0      
-        ENDIF
+         ENDIF
 
          ! Echo output
-         WRITE( 6, '(a)' ) '     - INITIALIZE: Diag arrays zeroed!'
+         IF ( am_I_Root ) THEN
+            WRITE( 6, '(a)' ) '     - INITIALIZE: Diag arrays zeroed!'
+         ENDIF
       ENDIF  
 
       !================================================================= 
@@ -324,7 +329,9 @@
          IF ( ND43 >               0 ) CTLXRO2N   = 0
 
          ! Echo output
-         WRITE( 6, '(a)' ) '     - INITIALIZE: Diag counters zeroed!'
+         IF ( am_I_Root ) THEN
+            WRITE( 6, '(a)' ) '     - INITIALIZE: Diag counters zeroed!'
+         ENDIF
       ENDIF
  
       END SUBROUTINE INITIALIZE

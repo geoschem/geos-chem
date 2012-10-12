@@ -19,6 +19,7 @@
 !
       USE LOGICAL_MOD,   ONLY : LNLPBL ! (Lin, 03/31/09)
       USE VDIFF_PRE_MOD, ONLY : emis_save ! (Lin, 03/31/09)
+      USE inquireMod,    ONLY : findFreeLUN
 
       IMPLICIT NONE
 #     include "define.h"
@@ -412,7 +413,7 @@
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE CHEMSULFATE
+      SUBROUTINE CHEMSULFATE( am_I_Root )
 !
 ! !USES:
 !
@@ -429,7 +430,11 @@
       USE TRACER_MOD,     ONLY : N_TRACERS,       ITS_AN_AEROSOL_SIM
       USE TRACERID_MOD,   ONLY : IDTNITs,         IDTSO4s
  
-      USE CMN_SIZE_MOD         ! Size parameters
+      USE CMN_SIZE_MOD                   ! Size parameters
+!
+! !INPUT PARAMETERS:
+!
+      LOGICAL, INTENT(IN) :: am_I_Root   ! Is this the root CPU?
 !
 ! !REVISION HISTORY: 
 !  (1 ) Now reference all arguments except FIRSTCHEM and RH from either F90 
@@ -456,6 +461,8 @@
 !  (8 ) Remove reference to MAKE_RH, it's not needed here (bmy, 3/16/06)
 !  05 Oct 2011 - R. Yantosca - SUNCOS is no longer needed here
 !  22 Dec 2011 - M. Payer    - Added ProTeX headers
+!  30 Jul 2012 - R. Yantosca - Now accept am_I_Root as an argument when
+!                              running with the traditional driver main.F
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -521,38 +528,55 @@
 
       ! SO4s [kg] gravitational settling 
       CALL GRAV_SETTLING( STT(:,:,:,IDTSO4s), 1 )
-      IF ( LPRT ) CALL DEBUG_MSG( '### CHEMSULFATE: GRAV_SET, SO4S' )
+      IF ( LPRT .and. am_I_Root ) THEN
+         CALL DEBUG_MSG( '### CHEMSULFATE: GRAV_SET, SO4S' )
+      ENDIF
 
       ! NITs [kg] gravitational settling 
       CALL GRAV_SETTLING( STT(:,:,:,IDTNITs), 2 )
-      IF ( LPRT ) CALL DEBUG_MSG( '### CHEMSULFATE: GRAV_SET, NITS' )
+      IF ( LPRT .and. am_I_Root ) THEN
+         CALL DEBUG_MSG( '### CHEMSULFATE: GRAV_SET, NITS' )
+      ENDIF
 
       ! Convert all tracers in STT from [kg] -> [v/v] 
       CALL CONVERT_UNITS( 1, N_TRACERS, TCVV, AD, STT )
-      IF ( LPRT ) CALL DEBUG_MSG( '### CHEMSULFATE: a CONVERT UNITS' )
+      IF ( LPRT .and. am_I_Root ) THEN 
+         CALL DEBUG_MSG( '### CHEMSULFATE: a CONVERT UNITS' )
+      ENDIF
 
       ! For offline runs only ...
       IF ( ITS_AN_AEROSOL_SIM() ) THEN
          
          ! DMS (offline only)
          CALL CHEM_DMS
-         IF ( LPRT ) CALL DEBUG_MSG( '### CHEMSULFATE: a CHEM_DMS' ) 
+         IF ( LPRT .and. am_I_Root ) THEN 
+            CALL DEBUG_MSG( '### CHEMSULFATE: a CHEM_DMS' ) 
+         ENDIF
       
          ! H2O2 (offline only)
-         CALL CHEM_H2O2
-         IF ( LPRT ) CALL DEBUG_MSG( '### CHEMSULFATE: a CHEM_H2O2' )
+         CALL CHEM_H2O2( am_I_Root )
+         IF ( LPRT .and. am_I_Root ) THEN 
+            CALL DEBUG_MSG( '### CHEMSULFATE: a CHEM_H2O2' )
+         ENDIF
 
       ENDIF
 
       ! SO2 
       CALL GET_VCLDF
-      IF ( LPRT ) CALL DEBUG_MSG( '### CHEMSULFATE: a get VCLDF' )
-      CALL CHEM_SO2
-      IF ( LPRT ) CALL DEBUG_MSG( '### CHEMSULFATE: a CHEM_SO2' )
+      IF ( LPRT .and. am_I_Root ) THEN 
+         CALL DEBUG_MSG( '### CHEMSULFATE: a get VCLDF' )
+      ENDIF
+
+      CALL CHEM_SO2( am_I_Root )
+      IF ( LPRT .and. am_I_Root ) THEN 
+         CALL DEBUG_MSG( '### CHEMSULFATE: a CHEM_SO2' )
+      ENDIF
 
       ! SO4 
-      CALL CHEM_SO4
-      IF ( LPRT ) CALL DEBUG_MSG( '### CHEMSULFATE: a CHEM_SO4' )
+      CALL CHEM_SO4( am_I_Root )
+      IF ( LPRT .and. am_I_Root ) THEN 
+         CALL DEBUG_MSG( '### CHEMSULFATE: a CHEM_SO4' )
+      ENDIF
 
 !-----------------------------------------------------------------------------
 !%%% Currently under development (rjp, bmy, 3/15/05)
@@ -573,15 +597,21 @@
 
       ! MSA 
       CALL CHEM_MSA
-      IF ( LPRT ) CALL DEBUG_MSG( '### CHEMSULFATE: a CHEM_MSA' )
+      IF ( LPRT .and. am_I_Root ) THEN 
+         CALL DEBUG_MSG( '### CHEMSULFATE: a CHEM_MSA' )
+      ENDIF
 
       ! NH3 
       CALL CHEM_NH3
-      IF ( LPRT ) CALL DEBUG_MSG( '### CHEMSULFATE: a CHEM_NH3' )
+      IF ( LPRT .and. am_I_Root ) THEN
+         CALL DEBUG_MSG( '### CHEMSULFATE: a CHEM_NH3' )
+      ENDIF
 
       ! NH4 (gas-phase)
       CALL CHEM_NH4
-      IF ( LPRT ) CALL DEBUG_MSG( '### CHEMSULFATE: a CHEM_NH4' )
+      IF ( LPRT .and. am_I_Root ) THEN 
+         CALL DEBUG_MSG( '### CHEMSULFATE: a CHEM_NH4' )
+      ENDIF
 
 !-----------------------------------------------------------------------------
 !%%% Currently under development (rjp, bmy, 3/15/05)
@@ -594,7 +624,9 @@
 
       ! Sulfur Nitrate 
       CALL CHEM_NIT
-      IF ( LPRT ) CALL DEBUG_MSG( '### CHEMSULFATE: a CHEM_NIT' )
+      IF ( LPRT .and. am_I_Root ) THEN 
+         CALL DEBUG_MSG( '### CHEMSULFATE: a CHEM_NIT' )
+      ENDIF
  
       ! Convert STT from [v/v] -> [kg]
       CALL CONVERT_UNITS( 2, N_TRACERS, TCVV, AD, STT )
@@ -970,6 +1002,7 @@
 !  (8 ) Now correctly records P(SO2) from OH in AD05 (pjh)
 !  (9 ) Update reaction rate to match JPL06 and full chem (jaf, bmy, 10/15/09)
 !  22 Dec 2011 - M. Payer    - Added ProTeX headers
+!  31 Jul 2012 - R. Yantosca - Now loop from 1..LLPAR for GIGC compatibility
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -1020,7 +1053,7 @@
 !$OMP+PRIVATE( I, IJLOOP, J, L, TK, O2, DMS0, OH, XNO3, RK1, RK2 )
 !$OMP+PRIVATE( RK3, DMS_OH, DMS, OH0, XNO30, XOH, XN3, XX, LOH, LNO3  )
 !$OMP+SCHEDULE( DYNAMIC )
-      DO L = 1, LLTROP  
+      DO L = 1, LLPAR
       DO J = 1, JJPAR
       DO I = 1, IIPAR
 
@@ -1186,7 +1219,7 @@
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE CHEM_H2O2
+      SUBROUTINE CHEM_H2O2( am_I_Root )
 !
 ! !USES:
 !
@@ -1209,6 +1242,10 @@
       USE CMN_FJ_MOD, ONLY     : JPMAX, JPPJ
       USE CMN_DIAG_MOD         ! ND44
       USE CMN_GCTM_MOD         ! AIRMW
+!
+! !INPUT PARAMETERS:
+!
+      LOGICAL, INTENT(IN) :: am_I_Root   ! Is this the root CPU?
 ! 
 ! !REVISION HISTORY:
 !  (1 ) Bug fix: need to multiply DXYP by 1d4 for cm2 (bmy, 3/23/03)
@@ -1237,6 +1274,10 @@
 !  (12) Now references XNUMOL from "tracer_mod.f" (bmy, 10/25/05)
 !  22 Dec 2011 - M. Payer    - Added ProTeX headers
 !  01 Mar 2012 - R. Yantosca - Now use GET_AREA_CM2(I,J,L) from grid_mod.F90
+!  30 Jul 2012 - R. Yantosca - Now accept am_I_Root as an argument when
+!                              running with the traditional driver main.F
+!  31 Jul 2012 - R. Yantosca - Now loop from 1..LLPAR for GIGC compatibility
+!  31 Jul 2012 - R. Yantosca - Declare temp drydep arrays w/ LLPAR (not LLTROP)
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -1269,17 +1310,7 @@
       
       ! Zero ND44_TMP array
       IF ( ND44 > 0 ) THEN
-!$OMP PARALLEL DO
-!$OMP+DEFAULT( SHARED )
-!$OMP+PRIVATE( I, J, L )
-         DO L = 1, LLTROP
-         DO J = 1, JJPAR
-         DO I = 1, IIPAR
-            ND44_TMP(I,J,L) = 0d0
-         ENDDO
-         ENDDO
-         ENDDO
-!$OMP END PARALLEL DO
+         ND44_TMP = 0d0
       ENDIF
 
       !=================================================================
@@ -1293,7 +1324,9 @@
      &              GET_NAME_EXT() // '.' // GET_RES_EXT()
            
          ! Print filename
-         WRITE( 6, 100 ) TRIM( FILENAME )
+         IF ( am_I_Root ) THEN
+            WRITE( 6, 100 ) TRIM( FILENAME )
+         ENDIF
  100     FORMAT( '     - CHEM_H2O2: Reading ', a )
 
          ! Get TAU0 value for this month in "generic" year 1985
@@ -1326,7 +1359,7 @@
 !$OMP+PRIVATE( I, J, L, M, H2O20, KOH, FREQ, ALPHA, DH2O2, H2O2, FLUX )
 !$OMP+PRIVATE( JLOOP, PHOTJ )
 !$OMP+SCHEDULE( DYNAMIC )
-      DO L  = 1, LLTROP
+      DO L  = 1, LLPAR
       DO J  = 1, JJPAR
       DO I  = 1, IIPAR
 
@@ -1408,7 +1441,7 @@
 !$OMP+PRIVATE( I, J, L )
          DO J = 1, JJPAR
          DO I = 1, IIPAR
-         DO L = 1, LLTROP
+         DO L = 1, LLPAR
             AD44(I,J,DRYH2O2,1) = AD44(I,J,DRYH2O2,1) + ND44_TMP(I,J,L)
          ENDDO
          ENDDO
@@ -1431,7 +1464,7 @@
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE CHEM_SO2
+      SUBROUTINE CHEM_SO2( am_I_Root )
 !
 ! !USES:
 !
@@ -1457,9 +1490,13 @@
       ! For LWC from met fields in GEOS-5 (jaf, 6/30/10)
       USE DAO_MOD,         ONLY : AIRDEN, QL, CLDF 
 
-      USE CMN_SIZE_MOD          ! Size parameters
-      USE CMN_DIAG_MOD          ! LD05, ND05, ND44
-      USE CMN_GCTM_MOD          ! AIRMW
+      USE CMN_SIZE_MOD                   ! Size parameters
+      USE CMN_DIAG_MOD                   ! LD05, ND05, ND44
+      USE CMN_GCTM_MOD                   ! AIRMW
+!
+! !INPUT PARAMETERS:
+!
+      LOGICAL, INTENT(IN) :: am_I_Root   ! Is this the root CPU?
 !
 ! !REMARKS:
 !  Reaction List (by Rokjin Park, rjp@io.harvard.edu)                      
@@ -1517,6 +1554,8 @@
 !  22 Dec 2011 - M. Payer    - Added ProTeX headers
 !  08 Feb 2012 - R. Yantosca - Treat GEOS-5.7.2 in the same way as MERRA
 !  01 Mar 2012 - R. Yantosca - Now use GET_AREA_CM2(I,J,L) from grid_mod.F90
+!  31 Jul 2012 - R. Yantosca - Now loop over 1..LLPAR for GIGC compatibility
+!  31 Jul 2012 - R. Yantosca - Declare temp drydep arrays w/ LLPAR (not LLTROP)
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -1541,7 +1580,7 @@
       REAL*8                :: Kt1,    Kt2,     AREASS1, AREASS2
       REAL*8                :: PSO4E,  PSO4F,   Kt1N,    Kt2N
       REAL*8                :: XX,     AREA_CM2
-      REAL*8                :: ND44_TMP(IIPAR,JJPAR,LLTROP)
+      REAL*8                :: ND44_TMP(IIPAR,JJPAR,LLPAR)
 
       !=================================================================
       ! CHEM_SO2 begins here!
@@ -1577,7 +1616,7 @@
 !$OMP+PRIVATE( Kt1, Kt2, AREASS1, AREASS2, SO2_ss, Kt1N, Kt2N          )
 !$OMP+PRIVATE( PSO4E, PSO4F, XX                                        )
 !$OMP+SCHEDULE( DYNAMIC )
-      DO L = 1, LLTROP  
+      DO L = 1, LLPAR 
       DO J = 1, JJPAR
       DO I = 1, IIPAR
 
@@ -1971,7 +2010,7 @@
 !$OMP+PRIVATE( I, J, L )
          DO J = 1, JJPAR
          DO I = 1, IIPAR
-         DO L = 1, LLTROP
+         DO L = 1, LLPAR
             AD44(I,J,DRYSO2,1) = AD44(I,J,DRYSO2,1) + ND44_TMP(I,J,L)
          ENDDO
          ENDDO
@@ -2593,7 +2632,7 @@
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE CHEM_SO4
+      SUBROUTINE CHEM_SO4( am_I_Root )
 !
 ! !USES:
 !
@@ -2609,8 +2648,12 @@
       USE TRACERID_MOD,   ONLY : IDTLET, IDTSO4aq, IDTNH4aq
       USE TROPOPAUSE_MOD, ONLY : ITS_IN_THE_STRAT
 
-      USE CMN_SIZE_MOD         ! Size parameters
-      USE CMN_DIAG_MOD         ! ND44
+      USE CMN_SIZE_MOD                   ! Size parameters
+      USE CMN_DIAG_MOD                   ! ND44
+!
+! !INPUT PARAMETERS:
+!
+      LOGICAL, INTENT(IN) :: am_I_Root   ! Is this the root CPU?
 !                                                                           
 ! !REMARKS:
 !  Reaction List (by Mian Chin, chin@rondo.gsfc.nasa.gov)                  
@@ -2644,6 +2687,10 @@
 !  (11) Rearrange error check to avoid SEG FAULTS (bmy, 5/23/06)
 !  22 Dec 2011 - M. Payer    - Added ProTeX headers
 !  01 Mar 2012 - R. Yantosca - Now use GET_AREA_CM2(I,J,L) from grid_mod.F90
+!  30 Jul 2012 - R. Yantosca - Now accept am_I_Root as an argument when
+!                              running with the traditional driver main.F
+!  31 Jul 2012 - R. Yantosca - Now loop from 1..LLPAR for GIGC compatibility
+!  31 Jul 2012 - R. Yantosca - Declare temp drydep arrays w/ LLPAR (not LLTROP)
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -2655,7 +2702,7 @@
       REAL*8                :: LET0,   SO4,    SO40,     SO4aq, SO4aq0
       REAL*8                :: SO4s,   SO40s,  RKT,      RKTs,  E_RKT
       REAL*8                :: E_RKTs, DTCHEM, AREA_CM2, FLUX
-      REAL*8                :: T44(IIPAR,JJPAR,LLTROP,6) 
+      REAL*8                :: T44(IIPAR,JJPAR,LLPAR,6) 
 
       !=================================================================
       ! CHEM_SO4 begins here!
@@ -2683,19 +2730,7 @@
 
       ! Zero T44 array
       IF ( ND44 > 0 ) THEN
-!$OMP PARALLEL DO
-!$OMP+DEFAULT( SHARED )
-!$OMP+PRIVATE( I, J, L, N )
-         DO N = 1, N_ND44
-         DO L = 1, LLTROP 
-         DO J = 1, JJPAR
-         DO I = 1, IIPAR
-            T44(I,J,L,N) = 0d0
-         ENDDO
-         ENDDO
-         ENDDO
-         ENDDO
-!$OMP END PARALLEL DO
+         T44 = 0d0
       ENDIF
 
       ! Loop over tropospheric grid boxes
@@ -2714,7 +2749,7 @@
 !$OMP+PRIVATE( I,      J,    L,   AREA_CM2, RKT,   RKTs, E_RKT )
 !$OMP+PRIVATE( E_RKTs, FLUX, SO4, SO4s,     SO40,  SO40s       )
 !$OMP+SCHEDULE( DYNAMIC ) 
-      DO L = 1, LLTROP 
+      DO L = 1, LLPAR
       DO J = 1, JJPAR
       DO I = 1, IIPAR
 
@@ -2984,7 +3019,7 @@
 !$OMP+PRIVATE( I, J, L )
          DO J = 1, JJPAR
          DO I = 1, IIPAR
-         DO L = 1, LLTROP
+         DO L = 1, LLPAR
 
             ! Sum SO4, SO4s drydep fluxes in the vertical [molec/cm2/s]
             AD44(I,J,DRYSO4, 1) = AD44(I,J,DRYSO4, 1) + T44(I,J,L,1)
@@ -3089,6 +3124,8 @@
 !        as a precaution.  (pjh, 8/19/2009)
 !  22 Dec 2011 - M. Payer    - Added ProTeX headers
 !  01 Mar 2012 - R. Yantosca - Now use GET_AREA_CM2(I,J,L) from grid_mod.F90
+!  31 Jul 2012 - R. Yantosca - Now loop from 1..LLPAR for GIGC compatibility
+!  31 Jul 2012 - R. Yantosca - Declare temp drydep arrays w/ LLPAR (not LLTROP)
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -3098,7 +3135,7 @@
       INTEGER               :: I,      J,    L,        PBL_MAX
       REAL*8                :: DTCHEM, MSA0, MSA,      RK       
       REAL*8                :: RKT,    FLUX, AREA_CM2, F_UNDER_TOP
-      REAL*8                :: ND44_TMP(IIPAR,JJPAR,LLTROP)
+      REAL*8                :: ND44_TMP(IIPAR,JJPAR,LLPAR)
 
       !=================================================================
       ! CHEM_MSA begins here!
@@ -3108,23 +3145,9 @@
       ! DTCHEM is the chemistry interval in seconds
       DTCHEM  = GET_TS_CHEM() * 60d0 
 
-      ! Model level where maximum PBL height occurs 
-      PBL_MAX = GET_PBL_MAX_L()
-
       ! Zero ND44_TMP array
       IF ( ND44 > 0 ) THEN
-!$OMP PARALLEL DO
-!$OMP+DEFAULT( SHARED )
-!$OMP+PRIVATE( I, J, L )
-!$OMP+SCHEDULE( DYNAMIC )
-         DO L = 1, LLTROP 
-         DO J = 1, JJPAR
-         DO I = 1, IIPAR
-            ND44_TMP(I,J,L) = 0d0
-         ENDDO
-         ENDDO
-         ENDDO
-!$OMP END PARALLEL DO
+         ND44_TMP = 0d0
       ENDIF
 
       ! Loop over tropospheric grid boxes
@@ -3132,7 +3155,7 @@
 !$OMP+DEFAULT( SHARED )
 !$OMP+PRIVATE( I, J, L, F_UNDER_TOP, MSA0, RKT, MSA, AREA_CM2, FLUX )
 !$OMP+SCHEDULE( DYNAMIC )
-      DO L = 1, LLTROP
+      DO L = 1, LLPAR
       DO J = 1, JJPAR
       DO I = 1, IIPAR
 
@@ -3150,7 +3173,7 @@
          RKT = DEPSAV(I,J,DRYMSA) * F_UNDER_TOP
 
          ! Add option for non-local PBL (Lin, 03/31/09)
-         IF (LNLPBL) RKT = 0.D0
+         IF ( LNLPBL ) RKT = 0.D0
          
          ! RKT > 0 denotes that we have drydep occurring
          IF ( RKT > 0.d0 ) THEN
@@ -3206,7 +3229,7 @@
 !$OMP+PRIVATE( I, J, L )
          DO J = 1, JJPAR
          DO I = 1, IIPAR
-         DO L = 1, PBL_MAX
+         DO L = 1, LLPAR
             AD44(I,J,DRYMSA,1) = AD44(I,J,DRYMSA,1) + ND44_TMP(I,J,L)
          ENDDO
          ENDDO
@@ -3270,6 +3293,8 @@
 !  (8 ) Now references XNUMOL from "tracer_mod.f" (bmy, 10/25/05)
 !  22 Dec 2011 - M. Payer    - Added ProTeX headers
 !  01 Mar 2012 - R. Yantosca - Now use GET_AREA_CM2(I,J,L) from grid_mod.F90
+!  31 Jul 2012 - R. Yantosca - Now loop from 1..LLPAR for GIGC compatibility
+!  31 Jul 2012 - R. Yantosca - Declare temp drydep arrays w/ LLPAR (not LLTROP)
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -3279,7 +3304,7 @@
       INTEGER :: I,      J,        L,    PBL_MAX
       REAL*8  :: DTCHEM, NH30,     NH3
       REAL*8  :: FREQ,   AREA_CM2, FLUX, F_UNDER_TOP
-      REAL*8  :: ND44_TMP(IIPAR,JJPAR,LLTROP)
+      REAL*8  :: ND44_TMP(IIPAR,JJPAR,LLPAR)
 
       !=================================================================
       ! CHEM_NH3 begins here!
@@ -3289,36 +3314,22 @@
       ! DTCHEM is the chemistry interval in seconds
       DTCHEM  = GET_TS_CHEM() * 60d0
 
-      ! Model level where maximum PBL height occurs 
-      PBL_MAX = GET_PBL_MAX_L()
-
       ! Zero ND44_TMP array
       IF ( ND44 > 0 ) THEN
-!$OMP PARALLEL DO
-!$OMP+DEFAULT( SHARED )
-!$OMP+PRIVATE( I, J, L )
-!$OMP+SCHEDULE( DYNAMIC )
-         DO L = 1, LLTROP 
-         DO J = 1, JJPAR
-         DO I = 1, IIPAR
-            ND44_TMP(I,J,L) = 0d0
-         ENDDO
-         ENDDO
-         ENDDO
-!$OMP END PARALLEL DO
+         ND44_TMP = 0d0
       ENDIF
 
 !$OMP PARALLEL DO
 !$OMP+DEFAULT( SHARED )
 !$OMP+PRIVATE( I, J, L, F_UNDER_TOP, FREQ, NH30, NH3, AREA_CM2, FLUX )
 !$OMP+SCHEDULE( DYNAMIC )
-      DO L = 1, PBL_MAX
+      DO L = 1, LLPAR
       DO J = 1, JJPAR
       DO I = 1, IIPAR
 
          ! Fraction of box (I,J,L) underneath the PBL top [unitless]
          F_UNDER_TOP = GET_FRAC_UNDER_PBLTOP( I, J, L )
-
+         
          ! Only apply drydep to boxes w/in the PBL
          IF ( F_UNDER_TOP > 0d0 ) THEN
 
@@ -3326,8 +3337,8 @@
             ! of each grid box (I,J,L) that is located beneath the PBL top
             FREQ = DEPSAV(I,J,DRYNH3) * F_UNDER_TOP
 
-         ! Add option for non-local PBL (Lin, 03/31/09)
-         IF (LNLPBL) FREQ = 0.D0
+            ! Add option for non-local PBL (Lin, 03/31/09)
+            IF ( LNLPBL ) FREQ = 0.D0
 
             ! Only compute drydep loss if FREQ is nonzero
             IF ( FREQ > 0d0 ) THEN
@@ -3376,7 +3387,7 @@
 !$OMP+PRIVATE( I, J, L )
          DO J = 1, JJPAR
          DO I = 1, IIPAR
-         DO L = 1, PBL_MAX
+         DO L = 1, LLPAR
             AD44(I,J,DRYNH3,1) = AD44(I,J,DRYNH3,1) + ND44_TMP(I,J,L)
          ENDDO
          ENDDO
@@ -3440,6 +3451,8 @@
 !  (8 ) Now references XNUMOL from "tracer_mod.f" (bmy, 10/25/05)
 !  22 Dec 2011 - M. Payer    - Added ProTeX headers
 !  01 Mar 2012 - R. Yantosca - Now use GET_AREA_CM2(I,J,L) from grid_mod.F90
+!  31 Jul 2012 - R. Yantosca - Now loop from 1..LLPAR for GIGC compatibility
+!  31 Jul 2012 - R. Yantosca - Declare temp drydep arrays w/ LLPAR (not LLTROP)
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -3449,7 +3462,7 @@
       INTEGER :: I,      J,    L,        PBL_MAX
       REAL*8  :: DTCHEM, NH4,  NH40
       REAL*8  :: FREQ,   FLUX, AREA_CM2, F_UNDER_TOP
-      REAL*8  :: ND44_TMP(IIPAR,JJPAR,LLTROP)
+      REAL*8  :: ND44_TMP(IIPAR,JJPAR,LLPAR)
 
       !=================================================================
       ! CHEM_NH4 begins here!
@@ -3459,29 +3472,16 @@
       ! DTCHEM is the chemistry interval in seconds
       DTCHEM = GET_TS_CHEM() * 60d0 
 
-      ! Model level where maximum PBL height occurs 
-      PBL_MAX = GET_PBL_MAX_L()
-
       ! Zero ND44_TMP array
       IF ( ND44 > 0 ) THEN
-!$OMP PARALLEL DO
-!$OMP+DEFAULT( SHARED )
-!$OMP+PRIVATE( I, J, L )
-         DO L = 1, LLTROP 
-         DO J = 1, JJPAR
-         DO I = 1, IIPAR
-            ND44_TMP(I,J,L) = 0d0
-         ENDDO
-         ENDDO
-         ENDDO
-!$OMP END PARALLEL DO
+         ND44_TMP = 0d0
       ENDIF
 
 !$OMP PARALLEL DO
 !$OMP+DEFAULT( SHARED )
 !$OMP+PRIVATE( I, J, L, F_UNDER_TOP, FREQ, NH40, NH4, AREA_CM2, FLUX )
 !$OMP+SCHEDULE( DYNAMIC )
-      DO L = 1, PBL_MAX
+      DO L = 1, LLPAR
       DO J = 1, JJPAR
       DO I = 1, IIPAR
 
@@ -3495,8 +3495,8 @@
             ! of each grid box (I,J,L) that is located beneath the PBL top
             FREQ = DEPSAV(I,J,DRYNH4) * F_UNDER_TOP
 
-         ! Add option for non-local PBL (Lin, 03/31/09)
-         IF (LNLPBL) FREQ = 0.D0
+            ! Add option for non-local PBL (Lin, 03/31/09)
+            IF ( LNLPBL ) FREQ = 0.D0
 
             ! Only apply drydep loss if FREQ is nonzero
             IF ( FREQ > 0d0 ) THEN
@@ -3545,7 +3545,7 @@
 !$OMP+PRIVATE( I, J, L )
          DO J = 1, JJPAR
          DO I = 1, IIPAR
-         DO L = 1, PBL_MAX
+         DO L = 1, LLPAR
             AD44(I,J,DRYNH4,1) = AD44(I,J,DRYNH4,1) + ND44_TMP(I,J,L)
          ENDDO
          ENDDO
@@ -3596,6 +3596,8 @@
 !  (2 ) Now references XNUMOL from "tracer_mod.f" (bmy, 10/25/05)
 !  22 Dec 2011 - M. Payer    - Added ProTeX headers
 !  01 Mar 2012 - R. Yantosca - Now use GET_AREA_CM2(I,J,L) from grid_mod.F90
+!  31 Jul 2012 - R. Yantosca - Now loop from 1..LLPAR for GIGC compatibility
+!  31 Jul 2012 - R. Yantosca - Declare temp drydep arrays w/ LLPAR (not LLTROP)
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -3605,7 +3607,7 @@
       INTEGER :: I,      J,     L,        PBL_MAX
       REAL*8  :: DTCHEM, NH4aq, NH4aq0
       REAL*8  :: FREQ,   FLUX,  AREA_CM2, F_UNDER_TOP
-      REAL*8  :: T44(IIPAR,JJPAR,LLTROP)
+      REAL*8  :: T44(IIPAR,JJPAR,LLPAR)
 
       !=================================================================
       ! CHEM_NH4 begins here!
@@ -3620,17 +3622,7 @@
 
       ! Zero T44 array
       IF ( ND44 > 0 ) THEN
-!$OMP PARALLEL DO
-!$OMP+DEFAULT( SHARED )
-!$OMP+PRIVATE( I, J, L )
-         DO L = 1, LLTROP 
-         DO J = 1, JJPAR
-         DO I = 1, IIPAR
-            T44(I,J,L) = 0d0
-         ENDDO
-         ENDDO
-         ENDDO
-!$OMP END PARALLEL DO
+         T44 = 0d0
       ENDIF
 
 !$OMP PARALLEL DO
@@ -3638,7 +3630,7 @@
 !$OMP+PRIVATE( I,      J,     L,        F_UNDER_TOP, FREQ  )
 !$OMP+PRIVATE( NH4aq0, NH4aq, AREA_CM2, FLUX               )
 !$OMP+SCHEDULE( DYNAMIC )
-      DO L = 1, PBL_MAX
+      DO L = 1, LLPAR
       DO J = 1, JJPAR
       DO I = 1, IIPAR
 
@@ -3652,8 +3644,8 @@
             ! of each grid box (I,J,L) that is located beneath the PBL top
             FREQ = DEPSAV(I,J,DRYNH4aq) * F_UNDER_TOP
 
-         ! Add option for non-local PBL (Lin, 03/31/09)
-         IF (LNLPBL) FREQ = 0.D0
+            ! Add option for non-local PBL (Lin, 03/31/09)
+            IF ( LNLPBL ) FREQ = 0.D0
 
             ! Only apply drydep loss if FREQ is nonzero
             IF ( FREQ > 0d0 ) THEN
@@ -3702,7 +3694,7 @@
 !$OMP+PRIVATE( I, J, L )
          DO J = 1, JJPAR
          DO I = 1, IIPAR
-         DO L = 1, PBL_MAX
+         DO L = 1, LLPAR
             AD44(I,J,DRYNH4aq,1) = AD44(I,J,DRYNH4aq,1) + T44(I,J,L)
          ENDDO
          ENDDO
@@ -3768,6 +3760,8 @@
 !  (9 ) Rearrange error check to avoid SEG FAULTS (bmy, 5/23/06)
 !  22 Dec 2011 - M. Payer    - Added ProTeX headers
 !  01 Mar 2012 - R. Yantosca - Now use GET_AREA_CM2(I,J,L) from grid_mod.F90
+!  31 Jul 2012 - R. Yantosca - Now loop from 1..LLPAR for GIGC compatibility
+!  31 Jul 2012 - R. Yantosca - Declare temp drydep arrays w/ LLPAR (not LLTROP)
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -3778,7 +3772,7 @@
       REAL*8  :: DTCHEM,   NIT,   NITs, NIT0,  NIT0s,  E_RKT
       REAL*8  :: E_RKTs,   FLUX,  FREQ, FREQs, RKT,    RKTs   
       REAL*8  :: AREA_CM2, F_UNDER_TOP
-      REAL*8  :: T44(IIPAR,JJPAR,LLTROP,2)
+      REAL*8  :: T44(IIPAR,JJPAR,LLPAR,2)
 
       !=================================================================
       ! CHEM_NIT begins here!
@@ -3791,27 +3785,12 @@
       ! DTCHEM is the chemistry interval in seconds
       DTCHEM = GET_TS_CHEM() * 60d0 
 
-      ! Model level where maximum PBL height occurs 
-      PBL_MAX = GET_PBL_MAX_L()      
-      
       ! Number of tracers for ND44
       N_ND44 = 2 
 
       ! Zero ND44 array
       IF ( ND44 > 0 ) THEN
-!$OMP PARALLEL DO
-!$OMP+DEFAULT( SHARED )
-!$OMP+PRIVATE( I, J, L, N )
-         DO N = 1, N_ND44
-         DO L = 1, LLTROP 
-         DO J = 1, JJPAR
-         DO I = 1, IIPAR
-            T44(I,J,L,N) = 0d0
-         ENDDO
-         ENDDO
-         ENDDO
-         ENDDO
-!$OMP END PARALLEL DO
+         T44 = 0d0
       ENDIF
 
 !$OMP PARALLEL DO
@@ -3820,7 +3799,7 @@
 !$OMP+PRIVATE( NITs, FREQ,   FREQs,    F_UNDER_TOP, RKT,   E_RKT ) 
 !$OMP+PRIVATE( RKTs, E_RKTs, AREA_CM2, FLUX                      )
 !$OMP+SCHEDULE( DYNAMIC )
-      DO L = 1, PBL_MAX
+      DO L = 1, LLPAR
       DO J = 1, JJPAR
       DO I = 1, IIPAR
 
@@ -3850,8 +3829,8 @@
             ! of each vertical level that is located below the PBL top
             FREQ  = DEPSAV(I,J,DRYNIT)  * F_UNDER_TOP
 
-         ! Add option for non-local PBL (Lin, 03/31/09)
-         IF (LNLPBL) FREQ = 0.D0
+            ! Add option for non-local PBL (Lin, 03/31/09)
+            IF ( LNLPBL ) FREQ = 0.D0
 
             ! If there is drydep ...
             IF ( FREQ > 0d0 ) THEN
@@ -3886,8 +3865,8 @@
             ! of each vertical level that is located below the PBL top
             FREQs = DEPSAV(I,J,DRYNITs) * F_UNDER_TOP
 
-         ! Add option for non-local PBL (Lin, 03/31/09)
-         IF (LNLPBL) FREQs = 0.D0
+            ! Add option for non-local PBL (Lin, 03/31/09)
+            IF ( LNLPBL ) FREQs = 0.D0
 
             ! If there is drydep ...
             IF ( FREQs > 0d0 ) THEN
@@ -3969,7 +3948,7 @@
 !$OMP+PRIVATE( I, J, L )
          DO J = 1, JJPAR
          DO I = 1, IIPAR
-         DO L = 1, PBL_MAX
+         DO L = 1, LLPAR
             AD44(I,J,DRYNIT, 1) = AD44(I,J,DRYNIT, 1) + T44(I,J,L,1)
             AD44(I,J,DRYNITs,1) = AD44(I,J,DRYNITs,1) + T44(I,J,L,2)
          ENDDO
@@ -6215,6 +6194,7 @@
 !  22 Dec 2011 - M. Payer    - Added ProTeX headers
 !  13 Mar 2012 - M. Cooper   - Changed regrid algorithm to map_a2a
 !  24 May 2012 - R. Yantosca - Fixed minor bugs in map_a2a implementation
+!  24 Aug 2012 - R. Yantosca - DO_REGRID_A2A now reads netCDF input file
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -6271,8 +6251,8 @@
      &                 LVOLC,     ARRAY_GEN(:,:,:), QUIET=.TRUE. )
 
       ! File with lat/lon edges for regridding
-      LLFILENAME = TRIM( DATA_DIR_1x1) //
-     &             'MAP_A2A_Regrid_201203/latlon_generic_new.txt'
+      LLFILENAME = TRIM( DATA_DIR_1x1 ) //
+     &             'MAP_A2A_Regrid_201203/MAP_A2A_latlon_generic1x1.nc'
 
       ! Array regridding has to be done level by level since the array
       ! has a different vertical dimension than expected
@@ -6287,7 +6267,8 @@
 
          ! Regrid
          CALL DO_REGRID_A2A( LLFILENAME, I1x1,    J1x1-1,
-     &                       INGRID,     OUTGRID, PERAREA=1 )
+     &                       INGRID,     OUTGRID, PERAREA=1,
+     &                       netCDF=.TRUE.                   )
 
          ! Free pointers
          NULLIFY( INGRID, OUTGRID )
@@ -6343,6 +6324,7 @@
 !  22 Dec 2011 - M. Payer    - Added ProTeX headers
 !  13 Mar 2012 - M. Cooper   - Changed regrid algorithm to map_a2a
 !  24 May 2012 - R. Yantosca - Fixed minor bugs in map_a2a implementation
+!  24 Aug 2012 - R. Yantosca - DO_REGRID_A2A now reads netCDF input file
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -6391,10 +6373,10 @@
      &                    XTAU,      I1x1,             J1x1-1,
      &                    LVOLC,     ARRAY_GEN(:,:,:), QUIET=.TRUE. )
 
-
          ! File with lat/lon edges for regridding
-         LLFILENAME = TRIM( DATA_DIR_1x1) //
-     &                'MAP_A2A_Regrid_201203/latlon_generic_new.txt'
+         LLFILENAME = TRIM( DATA_DIR_1x1 )           //
+     &                'MAP_A2A_Regrid_201203/'       // 
+     &                'MAP_A2A_latlon_generic1x1.nc'
 
          ! Array regridding has to be done level by level since the array
          ! has a different vertical dimension than expected
@@ -6409,7 +6391,8 @@
             
             ! Regrid
             CALL DO_REGRID_A2A( LLFILENAME, I1x1,    J1x1-1,
-     &                          INGRID,     OUTGRID, PERAREA=1 )
+     &                          INGRID,     OUTGRID, PERAREA=1,
+     &                          netCDF=.TRUE.                   )
 
             ! Free pointer
             NULLIFY( INGRID, OUTGRID )
@@ -6899,6 +6882,7 @@
 !  22 Dec 2011 - M. Payer    - Added ProTeX headers
 !  13 Mar 2012 - M. Cooper   - Changed regrid algorithm to map_a2a
 !  24 May 2012 - R. Yantosca - Fixed minor bugs in map_a2a implementation
+!  24 Aug 2012 - R. Yantosca - DO_REGRID_A2A now reads netCDF input file
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -6946,12 +6930,13 @@
 
          ! File with lat/lon edges for regridding
          LLFILENAME = TRIM( DATA_DIR_1x1) //
-     &                'MAP_A2A_Regrid_201203/latlon_geos1x1_new.txt'
+     &                'MAP_A2A_Regrid_201203/MAP_A2A_latlon_geos1x1.nc'
 
          ! Regrid from 1x1 and cast to REAL*8
          INGRID = ARRAY1(:,:,1)
          CALL DO_REGRID_A2A( LLFILENAME, I1x1,   J1x1,
-     &                       INGRID,     SSTEMP, PERAREA=0 ) 
+     &                       INGRID,     SSTEMP, PERAREA=0,
+     &                       netCDF=.TRUE.                   )
 
       ELSE
 
@@ -7053,6 +7038,7 @@
 !                              SO2 (E. Leibensperger)
 !  06 Apr 2012 - M. Payer    - Changed regrid algorithm to map_a2a (M. Cooper)
 !  24 May 2012 - R. Yantosca - Fixed minor bugs in map_a2a implementation
+!  24 Aug 2012 - R. Yantosca - DO_REGRID_A2A now reads netCDF input file
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -7164,8 +7150,9 @@
          ESO2_GEN8 = ESO2_GEN
 
          ! File with lat/lon edges for regridding
-         LLFILENAME = TRIM( DATA_DIR_1x1) //
-     &                'MAP_A2A_Regrid_201203/latlon_generic_new.txt'
+         LLFILENAME = TRIM( DATA_DIR_1x1 )           //
+     &                'MAP_A2A_Regrid_201203/'       //
+     &                'MAP_A2A_latlon_generic1x1.nc'
 
          ! Point to input & output arrays
          INGRID  => ESO2_GEN8
@@ -7173,7 +7160,8 @@
 
          ! Regrid to current model resolution [kg/yr]
          CALL DO_REGRID_A2A( LLFILENAME, I1x1,    J1x1-1, 
-     &                       INGRID,     OUTGRID, PERAREA=0 )
+     &                       INGRID,     OUTGRID, PERAREA=0,
+     &                       netCDF=.TRUE.                   )
 
          ! Free pointers
          NULLIFY( INGRID, OUTGRID )
@@ -7277,13 +7265,12 @@
       USE BPCH2_MOD,     ONLY : GET_RES_EXT, GET_TAU0, READ_BPCH2
       USE DAO_MOD,       ONLY : BXHEIGHT
       USE DIRECTORY_MOD, ONLY : DATA_DIR 
-      USE FILE_MOD,      ONLY : IU_FILE, IOERROR
-
-      USE CMN_SIZE_MOD        ! Size parameters
+      USE FILE_MOD,      ONLY : IOERROR
+      USE CMN_SIZE_MOD                    ! Size parameters
 !
 ! !INPUT PARAMETERS: 
 !
-      INTEGER, INTENT(IN)    :: THISMONTH ! Current month number (1-12)
+      INTEGER, INTENT(IN) :: THISMONTH    ! Current month number (1-12)
 
 !
 ! !REVISION HISTORY:
@@ -7293,21 +7280,26 @@
 !        GCAP and GEOS grids (bmy, 8/16/05)
 !  (4 ) Now make sure all USE statements are USE, ONLY (bmy, 10/3/05)
 !  22 Dec 2011 - M. Payer    - Added ProTeX headers
+!  02 Jul 2012 - R. Yantosca - Add simple kludge that prevents OOB error when
+!                              reading SO2 aircraft data for NA nested grid
+!  01 Aug 2012 - R. Yantosca - Add reference to findFreeLUN from inqure_mod.F90
+!  03 Aug 2012 - R. Yantosca - Move calls to findFreeLUN out of DEVEL block
 !EOP
 !------------------------------------------------------------------------------
 !BOC
 !
 ! !LOCAL VARIABLES:
 !
-      INTEGER                :: I, IOS, J, K, L
-      REAL*8                 :: ACSO2(IIPAR,JJPAR,20)
-      REAL*8                 :: FAC, FUEL, DZ(LLPAR), ZH(0:LLPAR)
-      CHARACTER(LEN=255)     :: FILENAME
+      INTEGER            :: I, IOS, J, K, L
+      INTEGER            :: IU_FILE
+      REAL*8             :: ACSO2(IIPAR,JJPAR,20)
+      REAL*8             :: FAC, FUEL, DZ(LLPAR), ZH(0:LLPAR)
+      CHARACTER(LEN=255) :: FILENAME
 
       ! Month names
-      CHARACTER(LEN=3)    :: CMONTH(12) = (/'jan', 'feb', 'mar', 'apr', 
-     &                                      'may', 'jun', 'jul', 'aug',
-     &                                      'sep', 'oct', 'nov', 'dec'/)
+      CHARACTER(LEN=3)   :: CMONTH(12) = (/'jan', 'feb', 'mar', 'apr', 
+     &                                     'may', 'jun', 'jul', 'aug',
+     &                                     'sep', 'oct', 'nov', 'dec'/)
 
       !=================================================================
       ! READ_AIRCRAFT_SO2 begins here!
@@ -7334,6 +7326,9 @@
       ! variation of emission rate. Convert to [kg SO2/box/s]. 
       !=================================================================
 
+      ! Find a free file LUN
+      IU_FILE = findFreeLUN()
+
       ! Open file 
       OPEN( IU_FILE, FILE=FILENAME, STATUS='OLD', IOSTAT=IOS )
       IF ( IOS > 0 ) CALL IOERROR( IOS, IU_FILE, 'read_aircraft_so2:1' )
@@ -7353,6 +7348,20 @@
          IF ( IOS > 0 ) THEN
             CALL IOERROR( IOS, IU_FILE, 'read_aircraft_so2:3' )
          ENDIF
+
+!%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+!%%% KLUDGE FOR NORTH AMERICAN NESTED GRID (bmy, 7/2/12)
+!%%% For some reason there seems to be bad data within the N. American
+!%%% nested grid data files.  Some of the longitude indices are out of bounds
+!%%% for the grid.  Put in a simple kludge to just skip over these boxes.
+!%%% We are going to be reinventing how emissions get done in GEOS-Chem,
+!%%% so it's probably not worth recreating the the file at this time.
+!%%%
+#if   defined( NESTED_NA )        
+         IF ( I > IIPAR ) CYCLE
+         IF ( J > JJPAR ) CYCLE
+#endif         
+!%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
          ! Unit conversion: [kg Fuel/box/day] -> [kg SO2/box/s]
          ! Assuming an emission index of 1.0, 

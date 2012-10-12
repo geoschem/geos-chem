@@ -13,7 +13,11 @@
 !\\
 ! !INTERFACE:
 !
+#if defined( DEVEL )
+      SUBROUTINE SCHEM( PEDGE )
+#else
       SUBROUTINE SCHEM
+#endif
 !
 ! !USES:
 !
@@ -48,6 +52,14 @@
       USE GC_TYPE2_MOD,   ONLY : EXT_COLOSS, EXT_COPROD
 
 #endif
+
+!%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+!%%% KLUDGE FOR NESTED GRIDS (bmy, 7/3/12)
+!%%% Use the BR_SCALING variable to determine if we have to shut off
+!%%% the bromine species. 
+!%%%
+      USE BROMOCARB_MOD,  ONLY : BR_SCALING
+!%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
       IMPLICIT NONE
 #     include "define.h"
@@ -116,6 +128,8 @@
 !EOP
 !------------------------------------------------------------------------------
 !BOC
+      REAL*8, INTENT(IN) :: PEDGE(IIPAR, JJPAR, LLPAR)
+
 !
 ! !LOCAL VARIABLES:
 !
@@ -354,7 +368,6 @@
 #endif
 !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
-
          !==============================================================
          ! Read in stored Bry species concentrations for stratosphere.
          ! Stored by Q. Liang using the GEOS CCM. (jpp, 6/27/2011)
@@ -372,26 +385,52 @@
 
          DO NN = 1, 6
 
-            ! 1. Read daytime data
-            CALL READ_BPCH2( DAYFILE, 'IJ-AVG-$', br_nos(NN),    
-     &                       XTAU,    IGLOB,      JGLOB,     
-     &                       LGLOB,   Bry_temp,   QUIET=.TRUE. )
+!%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+!%%% KLUDGE FOR NESTED GRIDS (bmy, 7/3/12)
+!%%% Right now there is no good way to shut off bromine.  We don't have
+!%%% nested grid data for BRY_TEMP and BRY_DAY yet.  Therefore, use the
+!%%% kludge that if BR_SCALING = 0 then don't read any of these files.
+!%%% Figure out a more consistent way to implement this later.
+!%%% (bmy, 7/3/12)
+!%%%
+            IF ( ABS( Br_SCALING ) > 0d0 ) THEN
 
-            ! Cast from REAL*4 to REAL*8 and resize to (JJPAR,LLPAR) 
-            CALL TRANSFER_3D( Bry_temp(:,:,:), Bry_day(:,:,:,NN) )
+               ! 1. Read daytime data
+               CALL READ_BPCH2( DAYFILE, 'IJ-AVG-$', br_nos(NN),    
+     &                          XTAU,    IGLOB,      JGLOB,     
+     &                          LGLOB,   Bry_temp,   QUIET=.TRUE. )
 
-            !==============================================================
-            ! now convert units from [ppt] to [kg]
-            !  STT(I,J,L,N) [v/v] * AD(I,J,L) / TCVV(N) = STT(I,J,L,N) [kg]
-            !==============================================================
+               ! Cast from REAL*4 to REAL*8 and resize to (JJPAR,LLPAR) 
+               CALL TRANSFER_3D( Bry_temp(:,:,:), Bry_day(:,:,:,NN) )
 
-            ! 2. Read nighttime data
-            CALL READ_BPCH2( NIGHTFILE, 'IJ-AVG-$', br_nos(NN),    
-     &                       XTAU,      IGLOB,      JGLOB,     
-     &                       LGLOB,     Bry_temp,   QUIET=.TRUE. )
+               !==============================================================
+               ! now convert units from [ppt] to [kg]
+               !  STT(I,J,L,N) [v/v] * AD(I,J,L) / TCVV(N) = STT(I,J,L,N) [kg]
+               !==============================================================
 
-            ! Cast from REAL*4 to REAL*8 and resize to (JJPAR,LLPAR) 
-            CALL TRANSFER_3D( Bry_temp(:,:,:), Bry_night(:,:,:,NN) )
+               ! 2. Read nighttime data
+               CALL READ_BPCH2( NIGHTFILE, 'IJ-AVG-$', br_nos(NN),    
+     &                          XTAU,      IGLOB,      JGLOB,     
+     &                          LGLOB,     Bry_temp,   QUIET=.TRUE. )
+
+               ! Cast from REAL*4 to REAL*8 and resize to (JJPAR,LLPAR) 
+               CALL TRANSFER_3D( Bry_temp(:,:,:), Bry_night(:,:,:,NN) )
+
+            ELSE
+               ! Echo msg
+               WRITE( 6, 777 )
+               WRITE( 6, 778 )
+         
+               ! Set BRY_DAY and BRY_NIGHT to low, positive values
+               ! so that SMVGEAR won't crash
+               Bry_day   = 1e-30
+               Bry_night = 1e-30
+            ENDIF
+
+ 777      FORMAT( '===> KLUDGE: Turn off Bromine in SCHEM       <====' )
+ 778      FORMAT( '===> Set BRY_DAY and BRY_NIGHT to low values <====' )
+!%%%
+!%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
             !==============================================================
             ! now convert units from [ppt] to [kg]
@@ -441,6 +480,7 @@
 
          ENDDO
       ENDIF
+
 #endif
 
       !=================================================================
@@ -482,7 +522,7 @@
       ! CO is special -- 
       ! use archived P, L rates for CO chemistry in stratosphere
       !=================================================================
-      CALL CO_STRAT_PL( COPROD, COLOSS )
+      CALL CO_STRAT_PL( COPROD, COLOSS, PEDGE )
 
       !=================================================================
       ! Reaction with OH -- compute rate constants for each tracer

@@ -1495,7 +1495,11 @@
       USE BPCH2_MOD,     ONLY : GET_NAME_EXT, GET_RES_EXT
       USE BPCH2_MOD,     ONLY : GET_TAU0,     READ_BPCH2
       USE DIRECTORY_MOD, ONLY : DATA_DIR 
-      USE TRANSFER_MOD,  ONLY : TRANSFER_ZONAL
+      USE TRANSFER_MOD,  ONLY : TRANSFER_3D
+
+      USE m_netcdf_io_open
+      USE m_netcdf_io_read
+      USE m_netcdf_io_close
 
       USE CMN_SIZE_MOD   ! Size parameters
 
@@ -1503,9 +1507,9 @@
       INTEGER, INTENT(IN) :: THISMONTH
 
       ! Local variables
+      INTEGER             :: fileID
       CHARACTER(LEN=255)  :: FILENAME
-      REAL*4              :: ARRAY(1,JJPAR,LGLOB) 
-      REAL*8              :: XTAU
+      REAL*4              :: ARRAY(IIPAR,JJPAR,LGLOB) 
 
       !=================================================================
       ! READ_PCO_LCO_STRAT begins here!
@@ -1516,71 +1520,39 @@
       CO_PRODS = 0d0
       CO_LOSSS = 0d0
 
-      ! TAU value at the beginning of this month
-      ! Use "generic" year 1985
-      XTAU = GET_TAU0( THISMONTH, 1, 1985 )
+      ! Construct filename and open file
+      FILENAME = 'strat_chem_201206/gmi.clim.CO.' // 
+     &                GET_NAME_EXT() // '.' // GET_RES_EXT() // '.nc'
+      FILENAME = TRIM( DATA_DIR ) // TRIM( FILENAME )
+
+      call NcOp_Rd( fileID, TRIM( FILENAME ) )
 
       !=================================================================
       ! Read in CO production rates [v/v/s]
       !=================================================================
 
-      ! Construct filename
-      FILENAME = TRIM( DATA_DIR ) // 'pco_lco_200203/COprod.' //
-     &           GET_NAME_EXT()   // '.' // GET_RES_EXT()
-      
       ! Read P(CO)
-      CALL READ_BPCH2( FILENAME, 'PORL-L=$', 9,     
-     &                 XTAU,      1,         JJPAR,     
-     &                 LGLOB,     ARRAY,     QUIET=.TRUE. )
+      call NcRd( array, fileID, 'prod',
+     &           (/     1,     1,     1,  thismonth /),   ! Start
+     &           (/ iipar, jjpar, lglob,          1 /)  ) ! Count
 
-!%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-!%%% SCHEM PATCH: Do not call TRANSFER_ZONAL when using the GEOS-5 grid
-!%%% since the SCHEM data are saved at the reduced resolution.  This will
-!%%% be fixed in a subsequent version. (ltm, bmy, 6/2/10)
-!%%%---------------------------------------------------------------------
-!%%% Original code here:
-!%%%      ! Cast from REAL*4 to REAL*8 and resize to (JJPAR,LLPAR)
-!%%%      CALL TRANSFER_ZONAL( ARRAY(1,:,:), CO_PRODS )
-!%%%---------------------------------------------------------------------
-#if   defined( GEOS_5 ) || defined( MERRA ) || defined( GEOS_57 )
-      ! Cast from REAL*4 to REAL*8
-      CO_PRODS = ARRAY(1,:,:)
-#else
-      ! Cast from REAL*4 to REAL*8 and resize to (JJPAR,LLPAR)
-      CALL TRANSFER_ZONAL( ARRAY(1,:,:), CO_PRODS )
-#endif
-!%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+      ! Cast from REAL*4 to REAL*8 and resize to 1:LLPAR
+      CALL TRANSFER_3D( ARRAY, CO_PRODS )
 
       !=================================================================
-      ! Read in CO loss rates [s^-1]
+      ! Read in CO loss frequency [s^-1]
       !=================================================================
 
-      ! Construct filename
-      FILENAME = TRIM( DATA_DIR ) // 'pco_lco_200203/COloss.' //
-     &           GET_NAME_EXT()   // '.' // GET_RES_EXT()
+      ! Read P(CO)
+      call NcRd( array, fileID, 'loss',
+     &           (/     1,     1,     1,  thismonth /),   ! Start
+     &           (/ iipar, jjpar, lglob,          1 /)  ) ! Count
 
-      ! Read L(CO)
-      CALL READ_BPCH2( FILENAME, 'PORL-L=$', 10,    
-     &                 XTAU,      1,         JJPAR,     
-     &                 LGLOB,     ARRAY,     QUIET=.TRUE. )
+      ! Cast from REAL*4 to REAL*8 and resize to 1:LLPAR
+      CALL TRANSFER_3D( ARRAY, CO_LOSSS )
 
-!%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-!%%% SCHEM PATCH: Do not call TRANSFER_ZONAL when using the GEOS-5 grid
-!%%% since the SCHEM data are saved at the reduced resolution.  This will
-!%%% be fixed in a subsequent version. (ltm, bmy, 6/2/10)
-!%%%---------------------------------------------------------------------
-!%%% Original code here:
-!%%%      ! Cast from REAL*4 to REAL*8 and resize to (JJPAR,LLPAR)
-!%%%      CALL TRANSFER_ZONAL( ARRAY(1,:,:), CO_LOSSS )
-!%%%---------------------------------------------------------------------
-#if   defined( GEOS_5 ) || defined( MERRA ) || defined( GEOS_57 )
-      ! Cast from REAL*4 to REAL*8
-      CO_LOSSS = ARRAY(1,:,:)
-#else
-      ! Cast from REAL*4 to REAL*8 and resize to (JJPAR,LLPAR)
-      CALL TRANSFER_ZONAL( ARRAY(1,:,:), CO_LOSSS )
-#endif
-!%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+      ! Close file
+      call NcCl( fileID )
 
       ! Return to calling program
       END SUBROUTINE READ_PCO_LCO_STRAT

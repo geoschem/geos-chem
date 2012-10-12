@@ -46,9 +46,9 @@ MODULE Grid_Mod
   PUBLIC  :: Set_xOffSet
   PUBLIC  :: Set_yOffSet
 
-#if defined( DEVEL )
+#if defined( DEVEL ) || defined( EXTERNAL_GRID ) || defined( EXTERNAL_FORCING )
 !      PUBLIC  :: AREA_M2 ! Permit setting this externally
-      PUBLIC  :: YMID, XMID, YEDGE, XEDGE
+      PUBLIC  :: YMID, XMID, YEDGE, XEDGE, AREA_M2
 #endif
 !
 ! !REVISION HISTORY:
@@ -107,10 +107,12 @@ CONTAINS
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE Compute_Grid( I1, I2, J1, J2, JSP, JNP, L1, L2, DLON, DLAT )
+  SUBROUTINE Compute_Grid( am_I_Root, &
+                           I1, I2, J1, J2, JSP, JNP, L1, L2, DLON, DLAT )
 !
 ! !INPUT PARAMETERS:
 !
+    LOGICAL, INTENT(IN) :: am_I_Root                ! Is this the root CPU?
     INTEGER, INTENT(IN) :: I1,  I2                  ! Local CPU lon idx bounds
     INTEGER, INTENT(IN) :: J1,  J2                  ! Local CPU lat idx bounds
     INTEGER, INTENT(IN) :: JSP, JNP                 ! Polar lat indices
@@ -120,6 +122,8 @@ CONTAINS
 !
 ! !REVISION HISTORY:
 !  23 Feb 2012 - R. Yantosca - Initial version, based on grid_mod.F
+!  30 Jul 2012 - R. Yantosca - Now accept am_I_Root as an argument when
+!                              running with the traditional driver main.F
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -333,20 +337,22 @@ CONTAINS
     !=================================================================
     ! Echo info to stdout
     !=================================================================
-    WRITE( 6, '(''Nested-Grid X-offset [boxes]:'', i4 )' ) I0
-    WRITE( 6, '(''Nested-Grid Y-offset [boxes]:'', i4 )' ) J0
-    WRITE( 6, '(a)' )
-    WRITE( 6, '(''Grid box longitude centers [degrees]: '')' )
-    WRITE( 6, '(8(f8.3,1x))' ) ( XMID(I,1,1),  I=I1,I2 )
-    WRITE( 6, '(a)' )
-    WRITE( 6, '(''Grid box longitude edges [degrees]: '')' )
-    WRITE( 6, '(8(f8.3,1x))' ) ( XEDGE(I,1,1), I=I1,I2+1 )
-    WRITE( 6, '(a)' )
-    WRITE( 6, '(''Grid box latitude centers [degrees]: '')' )
-    WRITE( 6, '(8(f8.3,1x))' ) ( YMID(1,J,1),  J=J1,J2 )
-    WRITE( 6, '(a)' )
-    WRITE( 6, '(''Grid box latitude edges [degrees]: '')' )
-    WRITE( 6, '(8(f8.3,1x))' ) ( YEDGE(1,J,1), J=J1,J2+1 )
+    IF ( am_I_Root ) THEN
+       WRITE( 6, '(''Nested-Grid X-offset [boxes]:'', i4 )' ) I0
+       WRITE( 6, '(''Nested-Grid Y-offset [boxes]:'', i4 )' ) J0
+       WRITE( 6, '(a)' )
+       WRITE( 6, '(''Grid box longitude centers [degrees]: '')' )
+       WRITE( 6, '(8(f8.3,1x))' ) ( XMID(I,1,1),  I=I1,I2 )
+       WRITE( 6, '(a)' )
+       WRITE( 6, '(''Grid box longitude edges [degrees]: '')' )
+       WRITE( 6, '(8(f8.3,1x))' ) ( XEDGE(I,1,1), I=I1,I2+1 )
+       WRITE( 6, '(a)' )
+       WRITE( 6, '(''Grid box latitude centers [degrees]: '')' )
+       WRITE( 6, '(8(f8.3,1x))' ) ( YMID(1,J,1),  J=J1,J2 )
+       WRITE( 6, '(a)' )
+       WRITE( 6, '(''Grid box latitude edges [degrees]: '')' )
+       WRITE( 6, '(8(f8.3,1x))' ) ( YEDGE(1,J,1), J=J1,J2+1 )
+    ENDIF
 
   END SUBROUTINE Compute_Grid
 !EOC

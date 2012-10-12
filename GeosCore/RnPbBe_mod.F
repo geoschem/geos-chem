@@ -15,6 +15,8 @@
 !
 ! !USES:
 !
+      USE inquireMod, ONLY : findFreeLUN
+
       IMPLICIT NONE
 #     include "define.h"
       PRIVATE
@@ -75,6 +77,7 @@
 !  08 Nov 2011 - R. Yantosca - Prevent out-of-bounds errors in diagnostics
 !  28 Feb 2012 - R. Yantosca - Removed support for GEOS-3
 !  01 Mar 2012 - R. Yantosca - Now use routines from the new grid_mod.F90
+!  01 Aug 2012 - R. Yantosca - Add reference to findFreeLUN from inqure_mod.F90
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -112,21 +115,22 @@
 ! !USES:
 !
       USE DIRECTORY_MOD, ONLY : DATA_DIR
-      USE FILE_MOD,      ONLY : IU_FILE, IOERROR
-
-      USE CMN_SIZE_MOD      ! Size parameters
+      USE FILE_MOD,      ONLY : IOERROR
+      USE CMN_SIZE_MOD        ! Size parameters
 !
 ! !REVISION HISTORY: 
 !  07 Aug 2002 - H. Liu - Initial version
 !  (1 ) This code was split off from routine EMISSRnPbBe below. (bmy, 8/7/02)
 !  (2 ) Now reference DATA_DIR from "directory_mod.f" (bmy, 7/19/04)
 !  08 Dec 2009 - R. Yantosca - Added ProTeX headers
+!  01 Aug 2012 - R. Yantosca - Add reference to findFreeLUN from inqure_mod.F90
 !EOP
 !------------------------------------------------------------------------------
 !BOC
 !
 ! !LOCAL VARIABLES:
 !
+      INTEGER            :: IU_FILE
       INTEGER            :: IOS, J, L
       CHARACTER(LEN=255) :: FILENAME
 
@@ -139,6 +143,9 @@
 
       ! Define the file name
       FILENAME = TRIM( DATA_DIR ) // 'RnPbBe_200203/7Be.Lal'
+
+      ! Find a free file LUN
+      IU_FILE = findFreeLUN()
 
       ! Open the 7Be file
       OPEN( IU_FILE,      FILE=TRIM( FILENAME ), 

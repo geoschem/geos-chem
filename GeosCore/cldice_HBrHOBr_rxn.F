@@ -21,6 +21,7 @@
       USE ERROR_MOD,   ONLY : GEOS_CHEM_STOP
 
       IMPLICIT NONE
+#include "define.h"
 !
 ! !INPUT PARAMETERS:
 !
@@ -63,6 +64,7 @@
 ! !REVISION HISTORY:
 !  16 Jun 2011 - J. Parrella - Initial version
 !  22 May 2012 - M. Payer    - Added ProTeX headers
+!  26 Sep 2012 - R. Yantosca - For now, comment out debug print statements
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -109,9 +111,15 @@
       !   Using QI which is in [kg_ice/kg_air]
       ! ----------------------------------------------
 
-      ! IWC in [kg_ice/m3]
+      ! IWC in [g/cm3]
+#if defined( GEOS_5 ) || defined( MERRA ) || defined( GEOS_57 )
       iwc = CLDF * QI * AD / AIRVOL
       iwc = iwc / 1.d3
+#else
+      ! Convert cm3/cm3 to g/cm3
+      ! (cm3 ice * 0.92 g ice/cm3 H2O ) / cm3 air
+      iwc = CLDF * ( QI * 1d3 * dens_ice )
+#endif
 
       ! ----------------------------------------------
       ! calculate the temperature dependent reactive
@@ -226,8 +234,12 @@
       ! store the volume of air [cm3]
       XAIRCM3 = AIRVOL * (100.d0)**3
 
+#if defined( GEOS_5 ) || defined( MERRA ) || defined( GEOS_57 )
       ! get the volume of cloud ice [cm3]
       Vc = CLDF * QI * AD / dens_ice
+#else
+      ! Doesn't matter, Vc is not used.
+#endif
 
       ! now calculate the cloud ice surface area [cm2_ice/ cm3_air]
 !jpt      AREA    = 3.d0 * (Vc/XAIRCM3) / (RADIUS) ! keep Radius in [cm]
@@ -238,11 +250,12 @@
       AREA    = 1.d-4 * (iwc * (100.d0)**3)**(0.9d0)
       AREA    = 2.d0 * AREA ! in [cm2/cm3]
 
-      IF ( AREA > 1.0d-4 ) THEN
-         print *, 'jpp: debugging cloud ice area'
-         print *, 'AREA = ', AREA, ' cm2/cm3'
-         print *, 'IWC  = ', iwc
-      ENDIF
+      !### Debug
+      !IF ( AREA > 1.0d-4 ) THEN
+      !   print *, 'jpp: debugging cloud ice area'
+      !   print *, 'AREA = ', AREA, ' cm2/cm3'
+      !   print *, 'IWC  = ', iwc
+      !ENDIF
 
       ! ----------------------------------------------------
       ! 3.

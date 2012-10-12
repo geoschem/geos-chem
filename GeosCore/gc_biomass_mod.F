@@ -159,8 +159,11 @@
 !  (34) CO scaling for VOC production is transfered to biomass_mod.f.
 !        (jaf, 2/6/09)
 !  (35) Modification for 1 x 1.25 grid (lok, bmy, 1/13/10)
+!  01 Aug 2012 - R. Yantosca - Add reference to findFreeLUN from inqure_mod.F90
 !******************************************************************************
 !
+      USE inquireMod, ONLY : findFreeLUN
+
       IMPLICIT NONE
 #     include "define.h"
 
@@ -2029,15 +2032,16 @@
 !  (6 ) Now reference DATA_DIR from "directory_mod.f" (bmy, 7/20/04)
 !  (7 ) Added space in #ifdef block for 1 x 1.25 grid (bmy, 12/1/04)
 !  (8 ) Modification for 1 x 1.25 grid (lok, bmy, 1/13/10)
+!  01 Aug 2012 - R. Yantosca - Add reference to findFreeLUN from inqure_mod.F90
+!  03 Aug 2012 - R. Yantosca - Move calls to findFreeLUN out of DEVEL block
 !******************************************************************************
 !
       ! References to F90 modules
       USE DIRECTORY_MOD, ONLY : DATA_DIR
       USE ERROR_MOD,     ONLY : ALLOC_ERR
       USE TIME_MOD,      ONLY : GET_MONTH, GET_TAU, GET_YEAR
+      USE CMN_SIZE_MOD        ! Size parameters
 
-      USE CMN_SIZE_MOD   ! Size parameters
-  
       ! Arguments
       INTEGER, INTENT(IN)    :: I, J
       REAL*8,  INTENT(INOUT) :: ADJUSTED_VALUE
@@ -2046,7 +2050,7 @@
 
       ! Local variables
       INTEGER                :: THEYEAR, IPICK, CTM_lat, CTM_lon
-      INTEGER                :: II, JJ, KK, LL, AS, IMONTH, JYEAR
+      INTEGER                :: II, JJ, KK, LL, N, AS, IMONTH, JYEAR
       INTEGER, SAVE          :: IFIRSTCALL = 1 
       REAL*8                 :: CONVERT_lon, READINTOMS(NMONTHSAI), TAU
 
@@ -2071,10 +2075,13 @@
          ALLOCATE( TOMSAISCALE( NAIREGIONS, NAIYEARS, 12 ), STAT=AS )
          IF ( AS / = 0 ) CALL ALLOC_ERR( 'TOMSAISCALE' )
 
+         ! Find a free file LUN
+         N = findFreeLUN()
+
          ! Read TOMS Aerosol index data
-         OPEN( 199, FILE = TRIM( DATA_DIR ) // 'TOMSAI', STATUS='OLD' )
+         OPEN( N, FILE = TRIM( DATA_DIR ) // 'TOMSAI', STATUS='OLD' )
          DO JJ=1,NAIREGIONS
-            READ( 199, * ) readinTOMS
+            READ( N, * ) readinTOMS
             
             II=0
             DO KK=1,NAIYEARS
@@ -2085,7 +2092,7 @@
             ENDDO
 
          ENDDO
-         CLOSE(199)
+         CLOSE(N)
       ENDIF
 
       !=================================================================

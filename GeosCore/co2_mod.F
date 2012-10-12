@@ -72,6 +72,8 @@
 !     
 ! !USES:
 !     
+      USE inquireMod, ONLY : findFreeLUN
+
       IMPLICIT NONE
 #     include "define.h" 
       PRIVATE 
@@ -119,6 +121,8 @@
 !        (R.Nassar 2010)   
 !  25 Feb 2011 - R. Nassar  - Now read updated CDIAC CO2 emissions data
 !  07 Sep 2011 - P. Kasibhatla - Modified to include GFED3
+!  01 Aug 2012 - R. Yantosca - Add reference to findFreeLUN from inqure_mod.F90
+!  03 Aug 2012 - R. Yantosca - Move calls to findFreeLUN out of DEVEL block
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -225,7 +229,7 @@
       INTEGER                :: DAY,   DOY,    HOUR, MONTH, YEAR   
       REAL*8                 :: A_CM2, DTSRCE, E_CO2
       REAL*8                 :: biomass_sum, bionet_sum
-#if !defined( DEVEL )
+#if   !defined( DEVEL )
       REAL*8, SAVE           :: CHEMSRC(IIPAR,JJPAR,LLPAR)  ! dbj
 #endif
 
@@ -1299,6 +1303,7 @@
 !                              (Yuxuan Wang, lmw)
 !  06 Apr 2012 - M. Payer    - Changed regrid algorithm to map_a2a (M. Cooper)
 !  24 May 2012 - R. Yantosca - Fixed minor bugs in map_a2a implementation
+!  24 Aug 2012 - R. Yantosca - DO_REGRID_A2A now reads netCDF input file
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -1382,13 +1387,14 @@
 
       ! File with lat/lon edges for regridding
       LLFILENAME = TRIM( DATA_DIR_1x1) //
-     &             'MAP_A2A_Regrid_201203/latlon_geos1x1_new.txt'
+     &             'MAP_A2A_Regrid_201203/MAP_A2A_latlon_geos1x1.nc'
 
       ! Regrid to current model resolution
       INGRID  => GEOS_1x1 (:,:,1)
       OUTGRID => GEOS_GRID(:,:,1)
       CALL DO_REGRID_A2A( LLFILENAME, I1x1,    J1x1, 
-     &                    INGRID,     OUTGRID, PERAREA=0 )   
+     &                    INGRID,     OUTGRID, PERAREA=0,
+     &                    netCDF=.TRUE.                   )   
 
       ! Cast to REAL*4
       REGION(:,:) = GEOS_GRID(:,:,1)      !(lmw,05/16/11)
@@ -1594,6 +1600,7 @@
 !  06 Apr 2012 - M. Payer            - Changed regrid algorithm to map_a2a
 !                                      (M. Cooper)
 !  24 May 2012 - R. Yantosca         - Fixed minor bugs in map_a2a calls
+!  24 Aug 2012 - R. Yantosca         - DO_REGRID_A2A now reads netCDF input
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -1638,13 +1645,14 @@
       
       ! File with lat/lon edges for regridding
       LLFILENAME = TRIM( DATA_DIR_1x1) //
-     &             'MAP_A2A_Regrid_201203/latlon_geos1x1_new.txt'
+     &             'MAP_A2A_Regrid_201203/MAP_A2A_latlon_geos1x1.nc'
 
       ! Regrid to current model resolution
       INGRID  => GEOS_1x1(:,:,1)
       OUTGRID => GEOS_GRID(:,:,1)
       CALL DO_REGRID_A2A( LLFILENAME, I1x1,    J1x1, 
-     &                    INGRID,     OUTGRID, PERAREA=0 )   
+     &                    INGRID,     OUTGRID, PERAREA=0,
+     &                    netCDF=.TRUE.                   )   
 
       EMBIOFUELCO2(:,:) = GEOS_GRID(:,:,1)   !(lmw,05/16/11)
 
@@ -1687,6 +1695,7 @@
 !  01 Mar 2012 - R. Yantosca - Now use GET_AREA_CM2(I,J,L) from grid_mod.F90
 !  13 Mar 2012 - M. Cooper   - Changed regrid algorithm to map_a2a
 !  24 May 2012 - R. Yantosca - Fixed minor bugs in map_a2a impelementation
+!  24 Aug 2012 - R. Yantosca - DO_REGRID_A2A now reads netCDF input file
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -1746,13 +1755,14 @@
 
       ! File with lat/lon edges for regridding
       LLFILENAME = TRIM( DATA_DIR_1x1) //
-     &             'MAP_A2A_Regrid_201203/latlon_generic_new.txt'
+     &             'MAP_A2A_Regrid_201203/MAP_A2A_latlon_generic1x1.nc'
 
       ! Regrid from GENERIC 1x1 --> current model resolution
       INGRID  => GEN_1x1  (:,:,1)
       OUTGRID => GEOS_GRID(:,:,1)
       CALL DO_REGRID_A2A( LLFILENAME, I1x1,    J1x1-1, 
-     &                    INGRID,     OUTGRID, PERAREA=1 )   
+     &                    INGRID,     OUTGRID, PERAREA=1,
+     &                    netCDF=.TRUE.                   )   
 
       ! Free pointers
       NULLIFY( INGRID, OUTGRID )
@@ -1820,7 +1830,8 @@
       USE BPCH2_MOD,      ONLY : GET_TAU0,        READ_BPCH2
       USE DIRECTORY_MOD,  ONLY : DATA_DIR, DATA_DIR_1x1
       USE TRANSFER_MOD,   ONLY : TRANSFER_2D
-      USE FILE_MOD,       ONLY : IU_FILE, IOERROR
+      USE FILE_MOD,       ONLY : IOERROR
+      USE REGRID_1x1_MOD, ONLY : DO_REGRID_G2G_1x1, DO_REGRID_1x1 
       USE TIME_MOD,       ONLY : GET_YEAR, GET_MONTH
       USE REGRID_A2A_MOD, ONLY : DO_REGRID_A2A	
 
@@ -1850,6 +1861,7 @@
 !  01 Mar 2012 - R. Yantosca - Now use GET_AREA_M2(I,J,L) from grid_mod.F90
 !  13 Mar 2012 - M. Cooper   - Changed regrid algorithm to map_a2a
 !  24 May 2012 - R. Yantosca - Fixed minor bugs in map_a2a implementation
+!  24 Aug 2012 - R. Yantosca - DO_REGRID_A2A now reads netCDF input file
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -1905,13 +1917,14 @@
 
       ! File with lat/lon edges for regridding
       LLFILENAME = TRIM( DATA_DIR_1x1) //
-     &             'MAP_A2A_Regrid_201203/latlon_geos1x1_new.txt'
+     &             'MAP_A2A_Regrid_201203/MAP_A2A_latlon_geos1x1.nc'
 
       ! Regrid to current model resolution
       INGRID  => GEOS_1x1 (:,:,1)
       OUTGRID => GEOS_GRID(:,:,1)
       CALL DO_REGRID_A2A( LLFILENAME, I1x1,    J1x1, 
-     &                    INGRID,     OUTGRID, PERAREA=0 )   
+     &                    INGRID,     OUTGRID, PERAREA=0,
+     &                    netCDF=.TRUE.                   )
 
       ! Free pointers
       NULLIFY( INGRID, OUTGRID )
@@ -1975,10 +1988,9 @@
       USE BPCH2_MOD,     ONLY : GET_RES_EXT, GET_TAU0, READ_BPCH2
       USE DAO_MOD,       ONLY : BXHEIGHT
       USE DIRECTORY_MOD, ONLY : DATA_DIR 
-      USE FILE_MOD,      ONLY : IU_FILE, IOERROR
+      USE FILE_MOD,      ONLY : IOERROR
       USE TIME_MOD,      ONLY : GET_MONTH, GET_YEAR
-
-      USE CMN_SIZE_MOD      ! Size parameters
+      USE CMN_SIZE_MOD        ! Size parameters
 !
 ! !REMARKS:
 !  This is a modified version of READ_AIRCRAFT_SO2 from:
@@ -2003,13 +2015,17 @@
 !  (4 ) Now make sure all USE statements are USE, ONLY (bmy, 10/3/05)
 !  (6 ) Reading of GlobPTot values from input.geos has not yet been implemented
 !  18 May 2010 - R. Nassar, D. Jones - Initial version
+!  01 Aug 2012 - R. Yantosca - Add reference to findFreeLUN from inqure_mod.F90
+!  03 Aug 2012 - R. Yantosca - Move calls to findFreeLUN out of DEVEL block
 !EOP
 !------------------------------------------------------------------------------
 !BOC
 !
 ! !LOCAL VARIABLES:
 !
-      INTEGER             :: I, IOS, J, K, L, THISMONTH, N, YEAR
+      INTEGER             :: IU_FILE
+      INTEGER             :: I, IOS, J, K, L
+      INTEGER             :: THISMONTH, N, YEAR
       REAL*8              :: ACCO2(IIPAR,JJPAR,20)
       REAL*8              :: FAC, FUEL, DZ(LLPAR), ZH(0:LLPAR)
       REAL*8, PARAMETER   :: TINY = 1d-20
@@ -2050,6 +2066,9 @@
       ! of fuel burned.  It is also assumed that there is no diurnal   
       ! variation of emission rate. Convert to [kg CO2/box/s]. 
       !=================================================================
+
+      ! Find a free file LUN
+      IU_FILE = findFreeLUN()
 
       ! Open file 
       OPEN( IU_FILE, FILE=FILENAME, STATUS='OLD', IOSTAT=IOS )
@@ -2195,11 +2214,10 @@
       USE BPCH2_MOD,      ONLY : GET_NAME_EXT_2D,   GET_RES_EXT
       USE BPCH2_MOD,      ONLY : GET_TAU0,          READ_BPCH2
       USE DIRECTORY_MOD,  ONLY : DATA_DIR,          DATA_DIR_1x1
-      USE FILE_MOD,       ONLY : IU_FILE,           IOERROR
+      USE FILE_MOD,       ONLY : IOERROR
       USE TRANSFER_MOD,   ONLY : TRANSFER_2D
       USE LOGICAL_MOD,    ONLY : LBIONETORIG,       LBIONETCLIM
       USE REGRID_A2A_MOD, ONLY : DO_REGRID_A2A
-
       USE CMN_SIZE_MOD         ! Size parameters
 !
 ! !REMARKS:
@@ -2222,25 +2240,27 @@
 !  06 Apr 2012 - M. Payer            - Changed regrid algorithm to map_a2a
 !                                      (M. Cooper)
 !  24 May 2012 - R. Yantosca         - Fix minor bugs in map_a2a calls
+!  01 Aug 2012 - R. Yantosca - Add reference to findFreeLUN from inqure_mod.F90
+!  03 Aug 2012 - R. Yantosca - Move calls to findFreeLUN out of DEVEL block
+!  24 Aug 2012 - R. Yantosca - DO_REGRID_A2A now reads netCDF input file
+!   2 Oct 2012 - R. Yantosca - Bug fix, the terrestrial exchange file is
+!                              placed on the generic grid, not geos grid
 !EOP
 !------------------------------------------------------------------------------
 !BOC
 !
 ! !LOCAL VARIABLES:
 !
-      ! Scalars
+      INTEGER                :: IU_FILE
       INTEGER                :: I, J, IOS
       REAL*8		     :: TAU
       CHARACTER(LEN=255)     :: FILENAME
       CHARACTER(LEN=255)     :: LLFILENAME
 
       ! Arrays and pointers
-      !REAL*4                :: ARRAY    (I1x1,J1x1,  1)  !(lmw,05/16/11)
       REAL*4                 :: ARRAY    (IIPAR,JJPAR,1)
-      !REAL*8,  TARGET       :: GEOS_1x1 (I1x1,J1x1,  1)
-      REAL*8,  TARGET        :: GEOS_1x1 (IIPAR,JJPAR,1)
       REAL*4                 :: ARRAY_1x1(I1x1,J1x1-1,1)
-      REAL*8                 :: GEN_1x1  (I1x1,J1x1-1,1)
+      REAL*8,  TARGET        :: GEN_1x1  (I1x1,J1x1-1,1)
       REAL*8,  TARGET        :: GEOS_GRID(IIPAR,JJPAR,1)
       REAL*8,  POINTER       :: INGRID (:,:) => NULL()
       REAL*8,  POINTER       :: OUTGRID(:,:) => NULL()
@@ -2266,6 +2286,9 @@
 
          ! Echo info
          WRITE( 6, 100 ) TRIM( FILENAME )
+ 
+         ! Find a free file LUN
+         IU_FILE = findFreeLUN()
 
          ! Open file
          OPEN( IU_FILE,          FILE=TRIM( FILENAME ), 
@@ -2293,31 +2316,67 @@
          ! TAU value for start of "generic" year 2000
          TAU = GET_TAU0( 1, 1, 2000 )
 
+!-----------------------------------------------------------------------------
+!%%% v9-01-03 POST-RELEASE PATCH (bmy, 10/2/12)
+!%%% NOTE: Someone mislabeled the Net_terrestrial_exch file, it is labeled
+!%%% "geos.1x1" but is on the GENERIC 1x1 grid.  Therefore, we shall rename
+!%%% this file accordingly and use the generic grid indices (I1x1,J1x1-1)
+!%%% etc. below. (bmy, 10/2/12)
+!%%%         ! Filename
+!%%%         FILENAME = TRIM( DATA_DIR_1x1 )  //  
+!%%%     &              'CO2_201003/Net_terrestrial_exch_5.29Pg.geos.1x1'
+!%%%	
+!%%%         ! Echo info
+!%%%         WRITE( 6, 100 ) TRIM( FILENAME )
+!%%%
+!%%%         ! Read Net Terrestrial CO2 Exchange [molec/cm2/s]
+!%%%         CALL READ_BPCH2( FILENAME, 'CO2-SRCE', 6, 
+!%%%     &                    TAU,       I1x1,      J1x1      
+!%%%     &                    1,         ARRAY,     QUIET=.TRUE. )
+!%%%
+!%%%         ! Cast to REAL*8 before regridding
+!%%%         GEOS_1x1(:,:,1) = ARRAY(:,:,1)
+!%%%
+!%%%         ! File with lat/lon edges for regridding
+!%%%         LLFILENAME = TRIM( DATA_DIR_1x1) //
+!%%%     &                'MAP_A2A_Regrid_201203/MAP_A2A_latlon_geos1x1.nc'
+!%%%
+!%%%         ! Regrid from GEOS 1x1 --> current model resolution
+!%%%         INGRID  => GEOS_1x1 (:,:,1)
+!%%%         OUTGRID => GEOS_GRID(:,:,1)
+!%%%         CALL DO_REGRID_A2A( LLFILENAME, I1x1,    J1x1, 
+!%%%     &                       INGRID,     OUTGRID, PERAREA=0,
+!%%%     &                       netCDF=.TRUE.                   )
+!-----------------------------------------------------------------------------
+                  
          ! Filename
-         FILENAME = TRIM( DATA_DIR_1x1 )  //  
-     &              'CO2_201003/Net_terrestrial_exch_5.29Pg.geos.1x1'
+         FILENAME = TRIM( DATA_DIR_1x1 )                      //  
+     &              'CO2_201003/'                             //
+     &              'Net_terrestrial_exch_5.29Pg.generic.1x1'
 	
          ! Echo info
          WRITE( 6, 100 ) TRIM( FILENAME )
 
          ! Read Net Terrestrial CO2 Exchange [molec/cm2/s]
          CALL READ_BPCH2( FILENAME, 'CO2-SRCE', 6, 
-     &                    TAU,       I1x1,      J1x1,     
-     &                    1,         ARRAY,     QUIET=.TRUE. )
+     &                    TAU,       I1x1,      J1x1-1,
+     &                    1,         ARRAY_1x1, QUIET=.TRUE. )
 
          ! Cast to REAL*8 before regridding
-         GEOS_1x1(:,:,1) = ARRAY(:,:,1)
+         GEN_1x1(:,:,1) = ARRAY_1x1(:,:,1)
 
          ! File with lat/lon edges for regridding
-         LLFILENAME = TRIM( DATA_DIR_1x1) //
-     &                'MAP_A2A_Regrid_201203/latlon_geos1x1_new.txt'
+         LLFILENAME = TRIM( DATA_DIR_1x1)            //
+     &                'MAP_A2A_Regrid_201203/'       //
+     &                'MAP_A2A_latlon_generic1x1.nc'
 
          ! Regrid from GEOS 1x1 --> current model resolution
-         INGRID  => GEOS_1x1 (:,:,1)
+         INGRID  => GEN_1x1  (:,:,1)
          OUTGRID => GEOS_GRID(:,:,1)
-         CALL DO_REGRID_A2A( LLFILENAME, I1x1,    J1x1, 
-     &                       INGRID,     OUTGRID, PERAREA=0 )
-                  
+         CALL DO_REGRID_A2A( LLFILENAME, I1x1,    J1x1-1, 
+     &                       INGRID,     OUTGRID, PERAREA=0,
+     &                       netCDF=.TRUE.                   )
+
          ! Free pointers
          NULLIFY( INGRID, OUTGRID )
          
@@ -2651,7 +2710,7 @@
 !
       USE BPCH2_MOD,     ONLY : GET_NAME_EXT_2D, GET_RES_EXT
       USE DIRECTORY_MOD, ONLY : DATA_DIR 
-      USE FILE_MOD,      ONLY : IU_FILE, IOERROR
+      USE FILE_MOD,      ONLY : IOERROR
       USE TRANSFER_MOD,  ONLY : TRANSFER_2D
 
       USE CMN_SIZE_MOD      ! Size parameters
@@ -2668,13 +2727,14 @@
 ! 
 ! !REVISION HISTORY: 
 !  18 May 2010 - R. Nassar, D. Jones - Initial version
+!  03 Aug 2012 - R. Yantosca - Move calls to findFreeLUN out of DEVEL block
 !EOP
 !------------------------------------------------------------------------------
 !BOC
 !
 ! !LOCAL VARIABLES:
 !
-      INTEGER                :: I, J, IOS
+      INTEGER                :: I, J, IOS, IU_FILE
       INTEGER                :: TMP(IIPAR,JJPAR)
       INTEGER                :: LAND_REG(IIPAR,JJPAR)
       CHARACTER(LEN=255)     :: LANDFILE
@@ -2693,6 +2753,9 @@
 
       ! Initialize ARRAY
       LAND_REG = 0
+
+      ! Find a free file LUN
+      IU_FILE = findFreeLUN()
 
       ! Open file
       OPEN( IU_FILE, FILE = TRIM( LANDFILE ), 
@@ -2874,7 +2937,7 @@
 !
       USE BPCH2_MOD,     ONLY : GET_NAME_EXT_2D, GET_RES_EXT
       USE DIRECTORY_MOD, ONLY : DATA_DIR 
-      USE FILE_MOD,      ONLY : IU_FILE, IOERROR
+      USE FILE_MOD,      ONLY : IOERROR
       USE TRANSFER_MOD,  ONLY : TRANSFER_2D
 
       USE CMN_SIZE_MOD      ! Size parameters
@@ -2891,12 +2954,13 @@
 ! 
 ! !REVISION HISTORY: 
 !  18 May 2010 - R. Nassar, D. Jones - Initial version
+!  03 Aug 2012 - R. Yantosca - Move calls to findFreeLUN out of DEVEL block
 !EOP
 !------------------------------------------------------------------------------
 !BOC
 !
 ! !LOCAL VARIABLES:
-      INTEGER               :: I, J, IOS
+      INTEGER               :: I, J, IU_FILE, IOS
       INTEGER               :: TMP(IIPAR,JJPAR), OCEAN_REG(IIPAR,JJPAR)
       CHARACTER(LEN=255)    :: OCEANFILE
       CHARACTER(LEN=144)    :: ROW
@@ -2914,6 +2978,9 @@
 
       ! Initialize ARRAYS
       OCEAN_REG = 0
+
+      ! Find a free file LUN
+      IU_FILE = findFreeLUN()
 
       ! Open file
       OPEN( IU_FILE, FILE = TRIM( OCEANFILE ), 
@@ -3027,7 +3094,7 @@
 !
       USE BPCH2_MOD,     ONLY : GET_NAME_EXT_2D, GET_RES_EXT
       USE DIRECTORY_MOD, ONLY : DATA_DIR 
-      USE FILE_MOD,      ONLY : IU_FILE, IOERROR
+      USE FILE_MOD,      ONLY : IOERROR
       USE TRANSFER_MOD,  ONLY : TRANSFER_2D
 
       USE CMN_SIZE_MOD      ! Size parameters
@@ -3044,13 +3111,14 @@
 ! 
 ! !REVISION HISTORY: 
 !  18 May 2010 - R. Nassar, D. Jones - Initial version
+!  03 Aug 2012 - R. Yantosca - Move calls to findFreeLUN out of DEVEL block
 !EOP
 !------------------------------------------------------------------------------
 !BOC
 !
 ! !LOCAL VARIABLES:
 !
-      INTEGER                :: I, J, IOS
+      INTEGER                :: I, J, IU_FILE, IOS
       INTEGER                :: TMP(IIPAR,JJPAR), REG_CODE(IIPAR,JJPAR)
       CHARACTER(LEN=255)     :: FILENAME
       CHARACTER(LEN=144)     :: ROW
@@ -3067,6 +3135,9 @@
 
       ! Initialize ARRAYS
       REG_CODE = 0
+
+      ! Find a free file LUN
+      IU_FILE = findFreeLUN()
 
       ! Open file
       OPEN( IU_FILE, FILE = TRIM( FILENAME ), 

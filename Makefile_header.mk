@@ -103,6 +103,8 @@
 #  09 May 2012 - R. Yantosca - Now try to get the proper linking sequence 
 #                              for netCDF etc w/ nf-config and nc-config.
 #  11 May 2012 - R. Yantosca - Now export NCL (netCDF linking sequence)
+#  07 Sep 2012 - R. Yantosca - Now add OPT variable to set global opt levels
+#  07 Sep 2012 - R. Yantosca - Also set TRACEBACK for PGI compiler
 #EOP
 #------------------------------------------------------------------------------
 #BOC
@@ -114,6 +116,11 @@
 # IFORT is default compiler
 ifndef COMPILER
 COMPILER  := ifort
+endif
+
+# Get Operating System (Linux = Linux; Darwin = MacOSX)
+ifndef UNAME
+UNAME     := $(shell uname)
 endif
 
 # OpenMP is turned on by default
@@ -195,6 +202,11 @@ endif
 #==============================================================================
 ifeq ($(COMPILER),ifort) 
 
+# Default optimization level for all routines (-O2)
+ifndef OPT
+OPT       := -O2
+endif
+
 # Turn on -traceback option by default for debugging runs
 ifdef DEBUG
 TRACEBACK := yes
@@ -204,12 +216,22 @@ endif
 ifdef DEBUG
 FFLAGS    := -cpp -w -O0 -auto -noalign -convert big_endian -g
 else
-FFLAGS    := -cpp -w -O2 -auto -noalign -convert big_endian -vec-report0 
+FFLAGS    := -cpp -w $(OPT) -auto -noalign -convert big_endian -vec-report0 
+endif
+
+# OSX compilation options
+ifeq ($(UNAME),Darwin)
+FFLAGS    += -Wl,-stack_size,0x2cb410000 # Allow 12GB of stack space
+ifdef DEBUG
+FFLAGS    += -g0 -debug -save-temps -fpic -Wl,-no_pie
+endif
 endif
 
 # Add options for medium memory model.  This is to prevent G-C from 
 # running out of memory at hi-res, especially when using netCDF I/O.
+ifneq ($(UNAME),Darwin)
 FFLAGS    += -mcmodel=medium -i-dynamic
+endif
 
 # Prevent any optimizations that would change numerical results
 # This is needed to prevent numerical noise from ISORROPIA (bmy, 8/25/11)
@@ -270,16 +292,27 @@ FFLAGS    += -DESMF_TESTBED_
 INCLUDE   += -I$(HDR)
 endif
 
-# DEVELOPMENT FLAG - MSL
+#-----------------------------------------------------------------------------
+# Flags for interfacing GEOS-Chem with an external GCM (mlong, bmy, 9/6/12)
+#
 ifeq ($(DEVEL),yes)
-FFLAGS  += -DDEVEL
+FFLAGS    += -DDEVEL
 endif
 
-CC       =
-F90      = ifort $(FFLAGS) $(INCLUDE)
-LD       = ifort $(FFLAGS)
-FREEFORM = -free
-R8       = -r8
+ifeq ($(EXTERNAL_GRID),yes)
+FFLAGS    += -DEXTERNAL_GRID
+endif
+
+ifeq ($(EXTERNAL_FORCING),yes)
+FFLAGS    += -DEXTERNAL_FORCING
+endif
+#----------------------------------------------------------------------------
+
+CC        :=
+F90       := ifort $(FFLAGS) $(INCLUDE)
+LD        := ifort $(FFLAGS)
+FREEFORM  := -free
+R8        := -r8
 
 endif
 
@@ -288,11 +321,16 @@ endif
 #==============================================================================
 ifeq ($(COMPILER),pgi) 
 
+# Default optimization level for all routines (-fast)
+ifndef OPT
+OPT       := -fast
+endif
+
 # Pick compiler options for debug run or regular run 
 ifdef DEBUG 
 FFLAGS    := -byteswapio -Mpreprocess -Bstatic -g -O0 
 else
-FFLAGS    := -byteswapio -Mpreprocess -Bstatic -fast 
+FFLAGS    := -byteswapio -Mpreprocess -Bstatic $(OPT)
 endif
 
 # Add options for medium memory model.  This is to prevent G-C from 
@@ -324,6 +362,11 @@ ifdef BOUNDS
 FFLAGS    += -C
 endif
 
+# Also add traceback option
+ifdef TRACEBACK
+FFLAGS    += -traceback
+endif
+
 # Option to turn off ISORROPIA for testing
 ifdef NO_ISO
 FFLAGS    += -DNO_ISORROPIA
@@ -337,6 +380,22 @@ ifeq ($(HDF5),yes)
 INCLUDE   += -DUSE_HDF5 -I$(H5I)
 endif
 
+#-----------------------------------------------------------------------------
+# Flags for interfacing GEOS-Chem with an external GCM (mlong, bmy, 9/6/12)
+#
+ifeq ($(DEVEL),yes)
+FFLAGS    += -DDEVEL
+endif
+
+ifeq ($(EXTERNAL_GRID),yes)
+FFLAGS    += -DEXTERNAL_GRID
+endif
+
+ifeq ($(EXTERNAL_FORCING),yes)
+FFLAGS    += -DEXTERNAL_FORCING
+endif
+#----------------------------------------------------------------------------
+
 CC        := gcc
 F90       := pgf90 $(FFLAGS) $(INCLUDE)
 LD        := pgf90 $(FFLAGS)
@@ -344,142 +403,6 @@ FREEFORM  := -Mfree
 R8        := -Mextend -r8
 
 endif
-
-#%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-# Prior to 4/30/12:
-# For now, remove SunStudio compiler option.  Pretty much everyone now is using
-# a Linux-like O/S and can use either IFORT or PGI compilers. (bmy, 4/30/12)
-##==============================================================================
-## SunStudio compilation options
-##==============================================================================
-#ifeq ($(COMPILER),sun) 
-#
-## Pick compiler options for debug run or regular run 
-## NOTE: -native builds in proper options for whichever chipset you have!
-#ifdef DEBUG 
-#FFLAGS    := -fpp -g -O0 -stackvar -xfilebyteorder=big16:%all -native
-#else
-#FFLAGS    := -fpp -fast -stackvar -xfilebyteorder=big16:%all -native
-#endif
-#
-## Build Sun for 32-bit platform
-#ifdef SUN32
-#FFLAGS    += -m32
-#else
-#FFLAGS    += -m64
-#endif
-#
-## Turn on OpenMP parallelization
-#ifeq ($(OMP),yes) 
-#FFLAGS    += -openmp=parallel -Dmultitask
-#endif
-#
-## Also add TOMAS aerosol microphysics option
-#ifeq ($(TOMAS),yes) 
-#FFLAGS    += -DTOMAS
-#endif
-#
-## Also add APM aerosol microphysics option
-#ifeq ($(APM),yes) 
-#FFLAGS    += -DAPM
-#endif
-#
-## Add option for "array out of bounds" checking
-#ifdef BOUNDS
-#FFLAGS    += -C
-#endif
-#
-## Option to turn off ISORROPIA for testing
-#ifdef NO_ISO
-#FFLAGS    += -DNO_ISORROPIA
-#endif
-#
-## Include options (i.e. for finding *.h, *.mod files)
-#INCLUDE   := -I$(HDR) -moddir=$(MOD) -M$(MOD) $(NCI)
-#
-## Also append HDF5 include commands (optional)
-#ifeq ($(HDF5),yes)
-#INCLUDE   += -DUSE_HDF5 -I$(H5I)
-#endif
-#
-#CC        :=
-##---------------------------------------------------------------
-## If your compiler is under the name "f90", use these lines!
-#F90       := f90 $(FFLAGS) $(INCLUDE)
-#LD        := f90 $(FFLAGS)
-##---------------------------------------------------------------
-## If your compiler is under the name "sunf90", use these lines!
-##F90       := sunf90 $(FFLAGS) $(INCLUDE)
-##LD        := sunf90 $(FFLAGS)
-##---------------------------------------------------------------
-#FREEFORM  := -free
-#R8        := -xtypemap=real:64
-#
-#endif
-#
-#%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-# Prior to 4/30/12:
-# For now, remove IBM/XLF compiler option.  Pretty much everyone now is using
-# a Linux-like O/S and can use either IFORT or PGI compilers. (bmy, 4/30/12)
-##==============================================================================
-## IBM/XLF compilation options
-## NOTE: someone who runs on IBM compiler should check this !!!
-##==============================================================================
-#ifeq ($(COMPILER),xlf) 
-#
-## Default compilation options
-#FFLAGS = -bmaxdata:0x80000000 -bmaxstack:0x80000000 -qfixed -qsuffix=cpp=f -q64
-#
-## Add optimization options
-#FFLAGS += -O3 -qarch=auto -qtune=auto -qcache=auto -qmaxmem=-1 -qstrict 
-#
-## Turn on OpenMP parallelization
-#ifeq ($(OMP),yes) 
-#FFLAGS += -qsmp=omp:opt -WF,-Dmultitask -qthreaded
-#endif
-#
-## Prior to 11/19/09:
-### Add more options for parallel run
-##ifndef DEBUG
-##FFLAGS += -qsmp=omp:opt -WF,-Dmultitask -qthreaded
-##endif
-#
-## Also add TOMAS aerosol microphysics option
-#ifeq ($(TOMAS),yes) 
-#FFLAGS  += -DTOMAS
-#endif
-#
-## Also add APM aerosol microphysics option
-#ifeq ($(APM),yes) 
-#FFLAGS  += -DAPM
-#endif
-#
-## Add option for "array out of bounds" checking
-#ifdef BOUNDS
-#FFLAGS += -C
-#endif
-#
-## Option to turn off ISORROPIA for testing
-#ifdef NO_ISO
-#FFLAGS    += -DNO_ISORROPIA
-#endif
-#
-## Include options (i.e. for finding *.h, *.mod files)
-#INCLUDE  = -I$(HDR) -I $(MOD) $(NCI)
-#
-## Also append HDF5 include commands if necessary
-#ifeq ($(HDF5),yes)
-#INCLUDE += -DUSE_HDF5 -I$(H5I)
-#endif
-#
-#CC       =
-#F90      = xlf90_r $(FFLAGS) $(INCLUDE)
-#LD       = xlf90_r $(FFLAGS)
-#FREEFORM = -qrealsize=8
-#R8       = -r8
-#
-#endif
-#%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 #==============================================================================
 # Specify pattern rules for compiliation 
