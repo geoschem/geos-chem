@@ -118,7 +118,7 @@ GAUSSP.o                 emf_scale.o             pjc_pfix_geos5_window_mod.o \
 GEN.o                    emfossil.o              pjc_pfix_mod.o              \
 JRATET.o                 planeflight_mod.o       geos57_read_mod.o           \
 JVALUE.o                 precipfrac.o            olson_landmap_mod.o         \
-LEGND0.o                 pulsing.o               mapping_mod.o               \
+LEGND0.o                 mapping_mod.o                                       \
 MATIN4.o                 emissdr.o               rd_js.o                     \
 MIESCT.o                 emissions_mod.o                                     \
 NOABS.o                  modis_lai_mod.o                                     \
@@ -912,8 +912,6 @@ planeflight_mod.o           : planeflight_mod.F                              \
                               tracer_mod.o            tropopause_mod.o       
 
 precipfrac.o                : precipfrac.F            dao_mod.o
-
-pulsing.o                   : pulsing.F
 
 RD_AOD.o                    : RD_AOD.F
 

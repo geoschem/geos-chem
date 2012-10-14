@@ -165,11 +165,10 @@
       REAL*8                 :: CONVERT(NVEGTYPE), GMONOT(NVEGTYPE)
       REAL*8                 :: SC, PDF, PDR
       INTEGER                :: DOY, MONTH, RC, M
-      REAL*8                 :: LAT, FERTDIAG
+      REAL*8                 :: FERTDIAG
       REAL*8                 :: TS_EMIS
-      REAL*8                 :: LON ! Just for testing
       REAL*8                 :: TOTALPULSE
-      REAL*8                 :: SOILFRT !removed soilprc
+      REAL*8                 :: SOILFRT
       REAL*8                 :: DEP_FERT, TEMP_FERT
 
 
@@ -227,37 +226,28 @@
 
 !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 ! SOIL EMISSIONS NOX [molecules/cm3/s]
-! Pulled call to soil NOx mod out of I,J, Loop to just loop over land boxes
 
-       WRITE(6,*) '# DYNTS' , TEST_DYNTS
+      IF ( LSOILNOX ) THEN           
 
-      IF ( LSOILNOX ) THEN
-               
-
-         ! Just for now initialize Pfactor and DrySpell this way 
+	 !Zero the Diag49 arrays
          IF ( FIRSTEMISS ) THEN
-
-!         PFACTOR(:,:)   = 0.0 
-!         DRYPERIOD(:,:) = 0.0
-!         GWET_PREV(:,:) = 0.0
          INST_SOIL(:,:) = 0.0
          INST_FERT(:,:) = 0.0
 
-	 ! Set first-time flag to false !Maasa
-         FIRSTEMISS = .FALSE.		!Maasa
+         FIRSTEMISS = .FALSE.
 
          ENDIF
 
          !***************************************************************
-         !first zero the arrays in which emissions will be stored
+         !First zero the arrays in which emissions will be stored
          !GEMISNOX2(I,J)   = Array which stores NOx emissions from soils.
-         !                    Units are [molec NOx/cm3/s].
+         !                   Units are [molec NOx/cm3/s].
          GEMISNOX2   = 0d0
          !***************************************************************
 
          ! Now need to call GET_CANOPY_NOX to break ugly dependency between
          ! drydep and soil NOx emissions. (bmy, 6/22/09) 
-         ! Compute the CANOPYNOX array in commsoil.h
+         ! Now a function of the new MODIS/Koppen biome map (J.D. Maasakkers)
 
          CALL GET_CANOPY_NOX
                
@@ -266,27 +256,25 @@
          TS_EMIS = GET_TS_EMIS()           
          MONTH   = GET_MONTH()
 
-         ! Loop over each land grid-box
-	DO I = 1, IIPAR !Replaces loop over NLAND
+        ! Loop over each land grid-box, removed loop over landpoints
+!$OMP PARALLEL DO
+!$OMP+DEFAULT( SHARED )
+!$OMP+PRIVATE( I, J, DEP_FERT, SOILFRT, FERTDIAG, RC, IJLOOP)
 	DO J = 1, JJPAR 
-           ! Get Lat/Lon maasa
-            LAT     = GET_YMID( I,J,1 ) !Maasa
-            LON     = GET_XMID( I,J,1 ) !Just for testing maasa
+	DO I = 1, IIPAR
+
+	! Do not calculate soil NOx emissions if there is no soil in the gridbox
+	IF (LAND2(I,J,1) .EQ. 1) CYCLE
+
             IJLOOP = ( (J-1) * IIPAR ) + I 
 
 
             ! Get Deposited Fertilizer
-             CALL GET_DEP_N( I, J, TS_EMIS, DEP_FERT )
-            !Ryn Change for testing without deposition
-            !DEP_FERT = 0.d0
+            CALL GET_DEP_N( I, J, TS_EMIS, DEP_FERT )
             CALL FLUSH(6)
 
-            ! Get New Fertilizer 
+            ! Get N fertilizer reservoir associated with chemical and manure fertilizer
             SOILFRT =  SOILFERT(I,J,GET_DAY_OF_YEAR())  
-
-            ! Just this month and previous month
-!            SOILPRC(1) =  SOILPREP(1,M) 
-!            SOILPRC(2) =  SOILPREP(2,M) 
 
             !Put in constraint if dry period gt 1 yr, keep at 1yr to
             !avoid unrealistic pulse
@@ -303,29 +291,20 @@
      &                              FERTDIAG, 
      &                              CLIM(I,J,:),
      &                              LAND2(I,J,:),
-     &                              RC, I, J, 
+     &                              RC, 
      &                              SUNCOS_MID(IJLOOP),
      &				    U10M(I,J), V10M(I,J), 
      &                              CANOPYNOX(IJLOOP,:), 
-     &                              GC_LAI(I,J) ) !maasaCRF !CRFW
+     &                              GC_LAI(I,J) )
 
             !Archive emissions
             IF ( ND32 > 0 ) THEN
               AD32_so(I,J) = AD32_so(I,J) + GEMISNOX2(I,J)
               AD32_fe(I,J) = AD32_fe(I,J) + FERTDIAG
             ENDIF
-            IF ( I == 47 .and. J == 51 ) THEN 
-            WRITE(6,*) LON, LAT,  ' SOIL TOT = ', GEMISNOX2(I,J)
-            WRITE(6,*) LON, LAT,  ' DIAG TOT = ', AD32_so(I,J)
-            WRITE(6,*) LON, LAT,  ' FERT TOT = ', AD32_fe(I,J)
-            WRITE(6,*) LON, LAT,  ' DEP FERT = ', DEP_FERT
-
-
-           ENDIF
-
             
-            INST_SOIL(I,J) = GEMISNOX2(I,J) !###Rynda Diag49
-            INST_FERT(I,J) = FERTDIAG !###Rynda Diag49
+            INST_SOIL(I,J) = GEMISNOX2(I,J)
+            INST_FERT(I,J) = FERTDIAG
 
             GEMISNOX2(I,J) = GEMISNOX2(I,J) / 
      &                        ( BXHEIGHT(I,J,1) * 100d0 )
@@ -333,8 +312,7 @@
 
           ENDDO            
          ENDDO
-
-
+!$OMP END PARALLEL DO
 
          !Zero arrays. This code assumes that ts_chem = ts_emiss
          DRY_HNO3 = 0.d0
@@ -348,10 +326,6 @@
          WET_NH4  = 0.d0
          WET_NH3  = 0.d0
          WET_NIT  = 0.d0
-
-
-         TEST_DYNTS = 0
-
 
       ENDIF
 
@@ -438,14 +412,6 @@
                ENDDO
             ENDIF
 
-!-----------------------------------------------------------------------------
-!###Start Rynda
-! SOIL EMISSIONS NOX [molecules/cm3/s]
-! Now have to pass SUNCOS to SOILNOXEMS and SOILCRF (bmy, 10/20/99)
-!
-!            IF ( LSOILNOX .AND. I == 1 .AND. J == 1 ) 
-!     &         CALL SOILNOXEMS( SUNCOS )170
-!###End Rynda
 !-----------------------------------------------------------------------------
 ! LIGHTNING EMISSIONS NOX [molecules/cm3/s]
 !

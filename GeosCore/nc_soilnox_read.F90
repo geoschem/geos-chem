@@ -13,8 +13,7 @@
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE READ_RESISTANCES !( SNIMODIS, SNIRI,    SNIRLU,  SNIRAC,  SNIRGSS,  &
-                               !SNIRGSO,  SNIRCLS,  SNIRCLO, SNIVSMAX        ) Maasacommon
+  SUBROUTINE READ_RESISTANCES 
 !
 ! !USES:
 !
@@ -27,27 +26,18 @@
 
     ! GEOS-Chem modules
     USE DIRECTORY_MOD
-    USE COMMSOIL_MOD !maasacommon
+    USE COMMSOIL_MOD
 
     IMPLICIT NONE
 
 #   include "netcdf.inc"
 !
-! !OUTPUT PARAMETERS:
-!   Maasacommon   
-!    INTEGER, INTENT(OUT) :: SNIMODIS(24)
-!    INTEGER, INTENT(OUT) :: SNIRI   (24)
-!    INTEGER, INTENT(OUT) :: SNIRLU  (24)
-!    INTEGER, INTENT(OUT) :: SNIRAC  (24)
-!    INTEGER, INTENT(OUT) :: SNIRGSS (24)
-!    INTEGER, INTENT(OUT) :: SNIRGSO (24)
-!    INTEGER, INTENT(OUT) :: SNIRCLS (24)
-!    INTEGER, INTENT(OUT) :: SNIRCLO (24)
-!    INTEGER, INTENT(OUT) :: SNIVSMAX(24)
+!
 !
 ! !REMARKS:
 !  Generated with the ncCodeRead perl script from the NcdfUtilities package.
 !  Subsequently hand-edited by Bob Yantosca.
+!  Read resistances as function of MODIS/Koppen biome types to use in GET_CANOPY_NOX
 !
 ! !REVISION HISTORY:
 !  13 Jun 2012 - R. Yantosca - Initial version
@@ -78,8 +68,8 @@
       !=================================================================
 
     ! Open file
-    nc_file = 'Olson_1992_Soil_NOx_Inputs_MODIS_Biomes.nc'  
-    nc_dir  = '/home/maasakkers/data/'
+    nc_file = 'soilNOx.Inputs_MODIS_Biomes.nc'  
+    nc_dir  = '/as/data/geos/GEOS_NATIVE/soil_NOx_201208/'
     nc_path = TRIM( nc_dir ) // TRIM( nc_file )
     CALL Ncop_Rd( fId, TRIM(nc_path) )
     

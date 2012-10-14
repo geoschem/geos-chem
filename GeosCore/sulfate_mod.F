@@ -3359,8 +3359,7 @@
 
                !========================================================
                ! ND44 diagnostic: Drydep flux of NH3 [molec/cm2/s]
-               !========================================================
-               !###Rynda - remove check since will do this most of the time, !maasa, added check.               
+               !========================================================             
                IF ( ND44 > 0 .and. NH3 > 0d0 ) THEN
                !IF ( NH3 > 0d0 ) THEN
 

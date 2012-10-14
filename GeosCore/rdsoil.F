@@ -20,13 +20,7 @@
       USE FILE_MOD,      ONLY : IU_FILE, IOERROR
       USE ERROR_MOD,     ONLY : GEOS_CHEM_STOP
       USE TIME_MOD,      ONLY : GET_MONTH
-
-!maasa
-      USE BPCH2_MOD,   ONLY : OPEN_BPCH2_FOR_READ
-      USE ERROR_MOD,   ONLY : DEBUG_MSG
-      !USE FILE_MOD,    ONLY : IU_SOIL
-!maasa end
-      
+     
       USE CMN_SIZE_MOD   ! Size parameters
       USE COMMSOIL_MOD ! Soil variables
 
@@ -41,22 +35,16 @@
 !  from the GISS-II model that was used at Harvard in the early 90's.  This
 !  was cleaned up and improved error checking was added. (bmy, 4/2/02)
 !                                                                             .
-!  Variables from "commsoil.h" header file:
+!  Variables from "commsoil_mod" header file:
 !  ============================================================================
 !  (1 ) NCONSOIL  (INTEGER) : Olson -> soil type mapping index                
-!  (2 ) INDEXSOIL (INTEGER) : Array containing grid box indices (I,J)
-!  (3 ) SOILFERT  (REAL*8 ) : Array containing fertilizer NOx [ng N/m2/s]  
-!  (4 ) SOILPREP  (REAL*8 ) : Array containing 2 months of observed
-!                              soil precipitation [mm/day]    
+!  (2 ) INDEXSOIL (INTEGER) : Array containing grid box indices (I,J)  
 !                                                                             .
 !  Files read in by "rdsoil.f":
 !  ============================================================================
 !  (1 ) DATA_DIR/soil_NOx_200203/soiltype.dat       : Olson and soil land types
-!  (2 ) DATA_DIR/soil_NOx_200203/fert_scale.dat     : NOx from fertilizers
-!  (3 ) DATA_DIR/soil_NOx_200203/climatprep4x5.dat  : 1x1   monthly soil precip
-!                                climatprep2x25.dat : 2x2.5 monthly soil precip
-!                                climatprep1x1.dat  : 4x5   monthly soil precip
-! 
+!
+! ! 
 ! !REVISION HISTORY: 
 !  05 Jan 1994 - Y. H. Wang, G. M. Gardner, - Initial version
 !  (1 ) Be sure to force double precision with the DBLE function and the "D" 
@@ -76,6 +64,12 @@
 !  (6 ) Now references DATA_DIR from "directory_mod.f" (bmy, 7/20/04)
 !  02 Dec 2010 - R. Yantosca - Added ProTeX headers
 !  03 Aug 2012 - R. Yantosca - Move calls to findFreeLUN out of DEVEL block
+!  30 Aug 2012 - J.D. Maasakkers - Removed reading of fert_scale.dat, climatprep,
+!                clim.dat and fert_res.dat. Soiltype is now only used by the dry
+!                deposition code. Data for the soil NOx code is read in:
+!                Readfert.F, Readsoil.F and Readclim.F
+!                Furthermore, the deposition arrays for the soil NOx code are 
+!                initialized here.
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -90,20 +84,6 @@
 
       ! Name of file to read in
       CHARACTER(LEN=255) :: FILENAME
-
-!Maasa
-      INTEGER             :: NI,     NJ, NL, N
-      INTEGER             :: IFIRST, JFIRST, LFIRST
-      INTEGER             :: NTRACER,   NSKIP
-      INTEGER             :: HALFPOLAR, CENTER180
-      REAL*4              :: LONRES,    LATRES
-      REAL*8              :: ZTAU0,     ZTAU1
-      CHARACTER(LEN=20)   :: MODELNAME
-      CHARACTER(LEN=40)   :: CATEGORY
-      CHARACTER(LEN=40)   :: UNIT     
-      CHARACTER(LEN=40)   :: RESERVED
-      REAL*4              :: TMPLND(IIPAR,JJPAR)
-!Maasa end
 
       !=================================================================
       ! RDSOIL begins here!
@@ -120,9 +100,7 @@
          
          ! Reset First-time flag
          FIRST = .FALSE.
-
- 
-         
+        
          !==============================================================
          !Initialize deposition arrays
          !==============================================================          
@@ -137,9 +115,6 @@ $
           WET_NH3  = 0.d0
           WET_NH4  = 0.d0
           WET_NIT  = 0.d0
-
-          TOTAL_WETOLD = 0.0 ! Testing
-          TOTAL_DRYOLD = 0.0 ! Testing
 
         !==============================================================
          ! Read in soil type data (first pass only)

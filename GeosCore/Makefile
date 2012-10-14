@@ -908,8 +908,6 @@ planeflight_mod.o           : planeflight_mod.F                              \
 
 precipfrac.o                : precipfrac.F            dao_mod.o
 
-pulsing.o                   : pulsing.F
-
 RD_AOD.o                    : RD_AOD.F
 
 rd_js.o                     : rd_js.F

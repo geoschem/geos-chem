@@ -25,26 +25,21 @@
 !
 ! !DEFINED PARAMETERS: 
 !      
-      ! The defined soil types
+      ! The defined soil types (Olson soil types)
       INTEGER, PARAMETER :: NSOIL = 11
 
-      ! Number of soil pulsing types
-      INTEGER, PARAMETER :: NPULSE = 3  
-
-      ! Number of biome types
+      ! Number of MODIS/Koppen biome types
       INTEGER, PARAMETER :: NSOILB = 24
 
 #if   defined( GRID4x5  )
 
       ! There are 1118 land boxes for the 4 x 5 GLOBAL GRID
       INTEGER, PARAMETER :: NLAND = 1118
-      INTEGER, PARAMETER :: NFERT = 408070
 
 #elif defined( GRID2x25 )
 
       ! There are 3920 land boxes for the 2 x 2.5 GLOBAL GRID
       INTEGER, PARAMETER :: NLAND = 3920 
-      INTEGER, PARAMETER :: NFERT = 1430800
 
 #elif defined( GRID1x125 )
 
@@ -99,40 +94,22 @@
 !
 ! !PUBLIC DATA MEMBERS:
 !
-      ! Land types:
+      ! Land types, Yienger & Levy (Used by the drydep code):
       ! water/desert/ice//Trop. Rain. Forst.//conifers//dry deciduous//
       ! other deciduous//woodland//grassland//agriculture (other than rice)
       ! rice paddies//wetland/tundra
 
       ! i,j of the grid
       INTEGER :: INDEXSOIL(2,NLAND) 
-      INTEGER :: INDEX_INT(2,NFERT)
 
-      ! Tracking of wet/dry & three types of pulsing (Y&L, 94)
-      REAL*8  :: SOILPULS(NPULSE+1,NLAND) 
-
-      ! Two month observed precip
-      !REAL*8  :: SOILPREP(2,NLAND)  
-
-      ! Fertilizers
-      REAL*8  :: SOILFERT(IGLOB,JGLOB,366)   !Replaces SOILFERT(NFERT)
-
-      ! Pulsing factors
-      REAL*8  :: PULSFACT(NPULSE)
-      !###Rynda Start
-      ! Decided to carry these as I,J values because they will be
-      ! in restart which would be hard to look at as NLAND
-      ! Could also convert this later in writing out the restart
-      ! Will let Bob decide :)
-      REAL*4 :: CLIM(IGLOB,JGLOB,2)    !Replaces: CLIM(NLAND)
-      REAL*4 :: LAND2(IGLOB,JGLOB,24)  !MODIS LANDTYPE
-      REAL*4 :: DRYPERIOD(IGLOB,JGLOB)  ! Dry period length
+      ! New Soil NOx model arrays
+      REAL*8 :: SOILFERT(IGLOB,JGLOB,366)
+      REAL*4 :: CLIM(IGLOB,JGLOB,2)      !Fraction of arid (layer 1) and non-arid (layer 2) land
+      REAL*4 :: LAND2(IGLOB,JGLOB,24)    ! MODIS LANDTYPE
+      REAL*4 :: DRYPERIOD(IGLOB,JGLOB)   ! Dry period length
       REAL*4 :: PFACTOR(IGLOB,JGLOB)     ! Pulse Factor
-      REAL*4 :: GWET_PREV(IGLOB,JGLOB)     ! Pulse Factor
-      !###Rynda End
-
-      ! Pulsing decay per timestep
-      REAL*8  :: PULSDECAY(NPULSE)
+      REAL*4 :: GWET_PREV(IGLOB,JGLOB)   ! Pulse Factor
+      REAL*8 :: SOILEXC(NSOILB)
 
       ! Stores output
 #if defined( DEVEL )
@@ -141,7 +118,7 @@
       REAL*8  :: SOILNOX(IIPAR,JJPAR) 
 #endif
 
-      !###Rynda Diag49
+      !Soil NOx Diag49
       REAL*8 INST_SOIL(IGLOB,JGLOB) !instantaneous soil nox
       REAL*8 INST_FERT(IGLOB,JGLOB) !instantaneous fert nox
 
@@ -155,17 +132,7 @@
       REAL*8  :: CANOPYNOX(MAXIJ,NSOILB) 
 #endif
 
-      ! Canopy wind extinction coeff from Y&L
-      REAL*8  :: SOILTA(NSOIL)
-      REAL*8  :: SOILTB(NSOIL)
-      REAL*8  :: SOILAW(NSOIL)
-      REAL*8  :: SOILAD(NSOIL)
-      REAL*8  :: SOILEXC(NSOILB)     
-
-      !###Rynda
-      INTEGER TEST_DYNTS
-      REAL*8 TOTAL_WETOLD
-      REAL*8 TOTAL_DRYOLD
+      !Soil NOx deposited N arrays
       REAL*8 DRY_NO2(IGLOB,JGLOB)
       REAL*8 DRY_PAN(IGLOB,JGLOB)
       REAL*8 DRY_HNO3(IGLOB,JGLOB)
@@ -178,7 +145,7 @@
       REAL*8 WET_NH4(IGLOB,JGLOB)
       REAL*8 WET_NIT(IGLOB,JGLOB)
 
-      !MaasaCommon
+      !MODIS/Koppen resistance values
       INTEGER  :: SNIMODIS(NSOILB)
       INTEGER  :: SNIRI  (NSOILB)       
       INTEGER  :: SNIRLU (NSOILB)      
@@ -189,47 +156,6 @@
       INTEGER  :: SNIRCLO(NSOILB) 
       INTEGER  :: SNIVSMAX(NSOILB) 
 
-      COMMON /SOIL/ SOILNOX,  INDEXSOIL, NCONSOIL, SOILPULS,            &
-     &              SOILFERT,  CANOPYNOX, DRYPERIOD,
-     &              PFACTOR,  GWET_PREV, INDEX_INT,
-     &              DRY_NO2, DRY_PAN,
-     &              DRY_HNO3, DRY_NH3,   DRY_NH4,   DRY_NIT,
-     &              DEP_RESERVOIR, WET_HNO3, WET_NH3, WET_NH4,
-     &              WET_NIT,  TEST_DYNTS, TOTAL_WETOLD, TOTAL_DRYOLD,
-     &              INST_SOIL, INST_FERT, CLIM , LAND2,
-     &              SNIMODIS, SNIRI, SNIRLU, SNIRAC, SNIRGSS,
-     &              SNIRGSO, SNIRCLS, SNIRCLO, SNIVSMAX
-	!Maasacommon
-	!Removed soilprep
-
-
-      ! The correct sequence of PULSFACT is 5, 10, 15 
-      DATA PULSFACT  / 5.D0,    10.D0,   15.D0   /
-
-      ! PULSDECAY now contains the correct decay factors from Yienger & Levy
-      DATA PULSDECAY / 0.805D0, 0.384D0, 0.208D0 / 
-
-      ! SOILTA = Coefficient used to convert from surface temperture to  
-      !          soil temperature     
-      DATA SOILTA /0.D0,   0.84D0, 0.84D0, 0.84D0, 0.84D0,              
-     &             0.66D0, 0.66D0, 1.03D0, 1.03D0, 0.92D0,              
-     &             0.66D0/
-
-      ! SOILTB = Coefficient used to convert from surface temperture to  
-      !          soil temperature   
-      DATA SOILTB /0.D0,   3.6D0,  3.6D0,  3.6D0,  3.6D0,               
-     &             8.8D0,  8.8D0,  2.9D0,  2.9D0,  4.4D0,               
-     &             8.8D0/
-   
-      ! SOILAW = Wet biome coefficient   
-      DATA SOILAW /0.D0,   2.6D0,  0.03D0, 0.06D0, 0.03D0,              
-     &             0.17D0, 0.36D0, 0.36D0, 0.36D0, 0.003D0,             
-     &             0.05D0/
-
-      ! SOILAD = Dry biome coefficient  
-      DATA SOILAD /0.D0,   8.6D0,  0.22D0, 0.40D0, 0.22D0,              
-     &             1.44D0, 2.65D0, 2.65D0, 2.65D0, 0.003D0,             
-     &             0.37D0/
 !
 ! !REMARKS:
 !  Original code from:
@@ -256,6 +182,7 @@
 !  (5 ) Set # of land boxes for GEOS-5 nested grids (yxw, dan, bmy, 11/6/08)
 !  (6 ) Set # of land boxes for GEOS-5 EUROPE nested grid (amv, 10/19/09)
 !  23 Aug 2011 - M. Long   - Converted to Module from Header file
+!  30 Aug 2012 - J.D. Maasakkers - Removed all obsolete old soil NOx code data
 !EOP
 !------------------------------------------------------------------------------
 !BOC

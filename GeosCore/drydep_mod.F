@@ -19,7 +19,7 @@
       USE CMN_DIAG_MOD                          ! Diag counters & flags
       USE CMN_GCTM_MOD                          ! Physical constants
       USE CMN_DEP_MOD                           ! IREG, ILAND, IUSE, FRCLND
-      USE COMMSOIL_MOD                          ! CANOPYNOX
+      USE COMMSOIL_MOD                          ! 
       USE COMODE_MOD                            ! Large arrays for SMVGEAR
       USE COMODE_LOOP_MOD                       ! Formerly "comode.h"
       USE DAO_MOD                               ! Met field arrays
@@ -781,7 +781,7 @@
       USE CMN_SIZE_MOD       ! Size parameters
       USE CMN_DIAG_MOD       ! Diagnostic switches & arrays
       USE CMN_DEP_MOD        ! Dry deposition variables
-      USE COMMSOIL_MOD       ! Soil pulsing & wetness variables
+      USE COMMSOIL_MOD       ! Soil wetness variables
       USE COMODE_MOD
 
 
@@ -1049,7 +1049,7 @@
       USE CMN_SIZE_MOD       ! Size parameters
       USE CMN_DIAG_MOD       ! Diagnostic switches & arrays
       USE CMN_DEP_MOD        ! Dry deposition variables
-      USE COMMSOIL_MOD       ! Soil pulsing & wetness variables
+      USE COMMSOIL_MOD       ! Soil wetness variables
 ! 
 ! !REVISION HISTORY: 
 !  (1) Now deposit through the PBL. Commented but kept code related to soil
@@ -1715,12 +1715,6 @@
                DTMP3=1.D0/(RAC(LDT)+RGSX)
                DTMP4=1.D0/(RDC+RCLX)
                RSURFC(K,LDT) = 1.D0/(DTMP1 + DTMP2 + DTMP3 + DTMP4)
-!  Save the within canopy depvel of NOx, used in calculating the 
-!  canopy reduction factor for soil emissions.
-               ! Remove hardwire for CANOPYNOX (bmy, 1/24/03)
-               IF ( K == DRYDNO2 ) THEN
-                  CANOPYNOX(IJLOOP,LDT)=DTMP1+DTMP2+DTMP3+DTMP4
-               ENDIF
 !** get surface deposition velocity for aerosols if needed;
 !** equations (15)-(17) of Walcek et al. [1986]
  155           IF (.NOT. AIROSOL(K)) GOTO 160

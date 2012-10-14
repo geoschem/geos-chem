@@ -122,7 +122,7 @@
 !
 ! !REVISION HISTORY:
 !     22 Jun 2009 - R. Yantosca - Split off from "drydep_mod.f"
-!     14 Jun 2012 - J.D. Maasakkers - Rewrite as a function of the MODIS/Koppen biometype
+!     14 Jun 2012 - J.D. Maasakkers - Rewritten as a function of the MODIS/Koppen biometype
 !EOP
 !------------------------------------------------------------------------------
 !BOC

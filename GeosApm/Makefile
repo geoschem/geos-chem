@@ -142,7 +142,7 @@ ndxx_setup.o             nei2005_anthro_mod.o    ocean_mercury_mod.o	     \
 ohsave.o                 optdepth_mod.o          partition.o		     \
 pbl_mix_mod.o            pderiv.o                photoj.o		     \
 physproc.o               pjc_pfix_mod.o          pjc_pfix_geos5_window_mod.o \
-planeflight_mod.o        precipfrac.o            pulsing.o		     \
+planeflight_mod.o        precipfrac.o                   		     \
 rd_js.o                                                                      \
 rdsoil.o                 readchem.o	                                     \
 reader.o                 restart_mod.o		                             \
@@ -922,8 +922,6 @@ planeflight_mod.o           : planeflight_mod.F                              \
                               tracer_mod.o            tropopause_mod.o       
 
 precipfrac.o                : precipfrac.F            dao_mod.o
-
-pulsing.o                   : pulsing.F
 
 RD_AOD.o                    : RD_AOD.F
 

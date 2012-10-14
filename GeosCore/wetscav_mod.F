@@ -4548,11 +4548,6 @@
       !=================================================================
       ! (2)  L o o p   O v e r   (I, J)   S u r f a c e   B o x e s
       !=================================================================
-!###RYNDATEST
-      IF (IDX == 1) TEST_DYNTS = TEST_DYNTS + 1
-      IF (IDX == 1) WRITE(6,*) 'IAM HERE DYNTS', TEST_DYNTS
-!Maasatemp
-
 !$OMP PARALLEL DO
 !$OMP+DEFAULT( SHARED )
 !$OMP+PRIVATE( I,       J,      FTOP,      ERRMSG,    F          )
@@ -6393,7 +6388,7 @@
             AD39(I,J,L,NN) = AD39(I,J,L,NN) + WETLOSS / DT
          ENDIF
 
-         !Arcive wet loss in kg/s !maasa
+         !Archive wet loss in kg/s
          IF ( LSOILNOX ) THEN
             CALL SOIL_WETDEP ( I, J, L, N, WETLOSS / DT )
          ENDIF

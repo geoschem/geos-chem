@@ -26,7 +26,9 @@
 !        in press, 2010.
 !  \item Moore, N.E., Improving global bottom-up biogenic soil NOx 
 !        inventories, Master's Thesis, Dalhousie University, 2007.
-!  \item Hudman, R.C., N.E. Moore,... in preparation
+!  \item Hudman, R.C., N.E. Moore, Steps toward a mechanistic model
+!        of global soil nitric oxide emissions: implementation and space
+!        based-constraints, ACPD, Manuscript under review for ACP
 !  \end{itemize}
 !
 ! !INTERFACE: 
@@ -35,14 +37,12 @@
 ! 
 ! !USES:
 !
-!      USE LAI_LAND_INFO_MOD	!maasa, not required
-      USE SMV_ERRCODE_MOD 	!maasa
+      USE SMV_ERRCODE_MOD 	
       USE CMN_SIZE_MOD
 
       IMPLICIT NONE
 
-#     include "define.h" !maasa
-!#     include "lai_land_info.h" !maasa
+#     include "define.h"
 
       PRIVATE
 !
@@ -54,10 +54,10 @@
 !
       PRIVATE :: SOILTEMP
       PRIVATE :: SOILWET
-      PRIVATE :: SOILCRF !maasaCRF
+      PRIVATE :: SOILCRF
       PRIVATE :: FERTADD
       PRIVATE :: PULSING  
-!fertilizer file name
+
 ! !AUTHOR:
 !  Original codes from:
 !    HARVARD ATMOSPHERIC CHEMISTRY MODELING GROUP 
@@ -92,7 +92,11 @@
 !  17 Aug 2009 - R. Yantosca - Columnized and cleaned up
 !  17 Aug 2009 - R. Yantosca - Added ProTeX headers
 !  31 Jan 2011 - R. Hudman   - Added new code12259.perceus-ucb0
-!  31 Jan 2011 - R. Hudman   - Updated headers   
+!  31 Jan 2011 - R. Hudman   - Updated headers 
+!  29 Aug 2012 - J.D. Maasakkers - Implemented Jacob and Bakwin CRF
+!  29 Aug 2012 - J.D. Maasakkers - Adapted code to work with new (online regridded)
+!                landfraction, climate and fertilizer data
+!  29 Aug 2012 - J.D. Maasakkers - Removed all unused Wang et al. code (comments)  
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -102,60 +106,11 @@
       ! Conversion factor from [ng N/m2/s] to [molec/cm2/s]
       REAL*8,  PARAMETER :: UNITCONV = 4.3d9
 
-      !New soil biomes based on Steinkamp et al., 2011
+      ! New soil biomes based on Steinkamp et al., 2011
       INTEGER, PARAMETER :: NSOIL    = 24
 
-!      ! Number of soil pulsing types (excluding "no pulsing")
-!      INTEGER, PARAMETER :: NPULSE   = 3  
-                                                                             .
-      ! Soil biome types corresponding to each of the 74 Olson land types.  
-      ! These were contained in the input file "soiltype.dat", but we can 
-      ! hard-code these here as these are not likely to change anytime soon.
-!      INTEGER, PARAMETER :: NCONSOIL(N_OLSON_TYPES) =               (/ 
-!     &   1, 1, 7, 1, 1, 1, 2, 1, 1, 1, 1, 1, 1, 1, 1, 1, 6, 1, 1, 1,
-!     &   3, 3, 3, 3, 5, 5, 5, 3, 6, 5, 8, 8, 4, 2, 1, 1, 9, 8, 8, 8,
-!     &   7, 7, 7, 7,11,11, 6, 6, 6, 6, 1, 1, 6,10, 2, 6, 5, 5, 6, 6,
-!     &   3, 3, 3, 7, 7, 1, 1, 1, 1, 1, 1, 1,11, 1                   /)
-
-      !  There are 11 soil land biomes:======================
-      !     (1 ) No soils (e.g. water, desert, ice)
-      !     (2 ) Tropical rainforest
-      !     (3 ) Coniferous trees
-      !     (4 ) Dry deciduous trees
-      !     (5 ) Other deciduous trees
-      !     (6 ) Woodland
-      !     (7 ) Grassland
-      !     (8 ) Agriculture (other than rice)
-      !     (9 ) Rice paddies
-      !     (10) Wetland
-      !     (11) Tundra
-   
-      !=================================================================
-      ! Variables which define quantities for each soil biome type
-      ! (cf Yienger & Levy [1995], Sec 4.2ff)
-      !=================================================================
-
-      ! "A" coefficients for converting surface temp to soil temp
-      ! for each of the 11 soil biomes
-!      REAL*8,  PARAMETER :: SOILTA(NSOIL)     = (/ 0.d0,    0.84d0,  
-!     &                                             0.84d0,  0.84d0,  
-!      &                                             0.84d0,  0.66d0, 
-!      &                                             0.66d0,  1.03d0,  
-!      &                                             1.03d0,  0.92d0,  
-!      &                                             0.66d0           /)
-
-      ! "B" coefficients for converting surface temp to soil temp
-      ! for each of the 11 soil biomes
-!       REAL*8,  PARAMETER :: SOILTB(NSOIL)     = (/ 0.d0,    3.6d0,   
-!      &                                             3.6d0,   3.6d0,   
-!      &                                             3.6d0,   8.8d0,     
-!      &                                             8.8d0,   2.9d0,   
-! !      &                                             2.9d0,   4.4d0,   
-!     &                                             8.8d0            /)
-  
-
       ! Canopy wind extinction coefficients
-      ! (cf. Yienger & Levy [1995], Sec 5), now a function of the MODIS/KOPPEN biometype (Maasa)
+      ! (cf. Yienger & Levy [1995], Sec 5), now a function of the MODIS/KOPPEN biometype (J.D. Maasakkers)
        REAL*8,  PARAMETER :: SOILEXC(NSOIL)    = (/ 
      &  0.10, 0.50, 0.10, 0.10, 0.10,
      &  0.10, 0.10, 0.10, 0.10, 1.00,
@@ -163,13 +118,12 @@
      &  4.00, 4.00, 4.00, 4.00, 4.00,
      &  4.00, 2.00, 0.10, 2.00                  /)
 
-
-      ! Steinkamp and Lawrence, 2011 A values
+      ! Steinkamp and Lawrence, 2011 A values, wet biome coefficients
+      ! for each of the 24 soil biomes
       REAL*8,  PARAMETER :: A_BIOME(NSOIL)          =                (/ 
      &   0.00, 0.00, 0.00, 0.00, 0.00, 0.06, 0.09, 0.09, 0.01, 
      &   0.84, 0.84, 0.24, 0.42, 0.62, 0.03, 0.36, 0.36, 0.35, 
      &   1.66, 0.08, 0.44, 0.57, 0.57, 0.57     /)
-
 
       ! "A" coefficients for converting surface temp to soil temp
       ! for each of the 24 soil biomes
@@ -185,38 +139,12 @@
      &   8.80,8.80,8.80,3.60,3.60,3.60,3.60,3.60,3.60,3.60,2.90,
      &   2.90,2.90                          /)
 
- 
-!      REAL*8,  PARAMETER :: SOILTA(24)     =  (/ 0.d0,    0.84d0,  
-!     &                                             0.84d0,  0.84d0,  
-!     &                                             0.84d0,  0.66d0, 
-!     &                                             0.66d0,  1.03d0,  
-!     &                                             1.03d0,  0.92d0,  
-!     &                                             0.66d0           /)
-
-!      ! "B" coefficients for converting surface temp to soil temp
-!      ! for each of the 11 soil biomes
-!      REAL*8,  PARAMETER :: SOILTB(24)     = (/ 0.d0,    3.6d0,   
-!     &                                             3.6d0,   3.6d0,   
-!     &                                             3.6d0,   8.8d0,     
-!     &                                             8.8d0,   2.9d0,   
-!     &                                             2.9d0,   4.4d0,   
-!     & 
-
- 
-      ! Only wet biome coefficients used  and scaled based on WFPS
-      ! Wet biome coefficient
-C      REAL*8,  PARAMETER :: SOILAW(NSOIL)     = (/ 0.d0,    0.2d0,   
-C     &                                             0.03d0,  0.06d0,  
-C     &                                             0.03d0,  0.17d0,     
-C     &                                             0.36d0,  0.36d0,  
-C     &                                             0.36d0,  0.003d0, 
-C     &                                             0.05d0           /)
-
-
-      ! Scale factor so that fertilizer emission = 1.8 Tg N/yr 
+      ! Scale factor so that fertilizer emission = 1.8 Tg N/yr (Stehfest and Bouwman, 2006)
       ! before canopy reduction
       REAL*8, PARAMETER :: FERT_SCALE = 0.0068 
-	!For now use 2x2.5 value for all scales
+      ! Value calculated by running the 2x2.5 model
+      ! For now, use this value for all resolutions since regular soil NOx emissions
+      ! change with resolution as well (J.D. Maasakkers)
 
       CONTAINS
 !EOC
@@ -238,26 +166,15 @@ C     &                                             0.05d0           /)
      &                              SOILFRT,  GWET_PREV,
      &                              DRYPERIOD, PFACTOR,  SOILNOx, 
      &                              DEPN,      FERTDIAG, 
-     &                              CLIM, LANDFRAC, RC, I, J,
+     &                              CLIM, LANDFRAC, RC,
      &                              SUNCOS, U10M, V10M, R_CANOPY, 
-     &				    LAI) !maasa
+     &				    LAI)
 
       USE SMV_ERRCODE_MOD, ONLY : SMV_SUCCESS
-      !USE TIME_MOD,        ONLY : GET_TS_EMIS
+
 !
-! !INPUT PARAMETERS: 
-
-!      REAL*8,  INTENT(IN)  :: TS_EMIS     ! Emission timestep [min]
-!      REAL*8,  INTENT(IN)  :: TK          ! surface temperature [K]
-!      REAL*8,  INTENT(IN)  :: GWET        ! Top soil wetness [unitless]
-!      REAL*8,  INTENT(IN)  :: DEPN        ! Dry Dep Fert term [ng N/m2/s]
-!      REAL*8,  INTENT(IN)  :: SOILFRT     ! Fertilizer emissions [ng N/m2/s]
-!      INTEGER, INTENT(IN)  :: CLIM        ! Arid/SemiArid = 1
-!      REAL*4,  INTENT(IN)  :: LANDFRAC(:)    ! Fraction of landtypes
-      !INTEGER  :: I ! Temporary
-      !INTEGER, INTENT(IN)  :: J ! Temporary       
-
-      !REAL*8,  INTENT(IN)  :: TS_EMIS     ! Emission timestep [min]
+! !INPUT PARAMETERS:
+! 
       REAL*8  :: TS_EMIS     ! Emission timestep [min]
       REAL*8  :: TK          ! surface temperature [K]
       REAL*8  :: GWET        ! Top soil wetness [unitless]
@@ -265,32 +182,22 @@ C     &                                             0.05d0           /)
       REAL*8  :: SOILFRT     ! Fertilizer emissions [ng N/m2/s]
       REAL*4  :: CLIM(:)     ! CLIM(1), arid fraction, CLIM(2), non-arid fraction
       REAL*4  :: LANDFRAC(:)    ! Fraction of landtypes
-      INTEGER :: I ! Temporary
-      INTEGER :: J ! Temporary
 
-	!maasaCRF
+      !Input parameters for the canopy reduction factor
       REAL*8  :: SUNCOS      ! Cosine of solar zenith angle
       REAL*8  :: U10M        ! E/W wind speed @ 10m altitude [m]
       REAL*8  :: V10M        ! N/S wind speed @ 10m altitude [m]
       REAL*8  :: R_CANOPY(:) ! Resist. of canopy to NOx [1/s]
-      REAL*8  :: LAI      ! Leaf area indices [cm2/cm2]
-
+      REAL*8  :: LAI         ! Leaf area indices [cm2/cm2]
+!
 ! !OUTPUT PARAMETERS:
 !
-      !REAL*8,  INTENT(OUT)   :: SOILNOx   ! Soil NOx emissions [molec/cm2/s]
-      !REAL*4,  INTENT(INOUT) :: GWET_PREV ! Soil Moisture Prev timestep
-      !REAL*4,  INTENT(INOUT) :: DRYPERIOD ! Dry period length in hours
-      !REAL*4,  INTENT(INOUT) :: PFACTOR   ! Pulsing Factor
-      !REAL*8,  INTENT(OUT)   :: FERTDIAG  ! Fert emissions [molec/cm2/s
-      !INTEGER, INTENT(OUT)   :: RC        ! Return code
-
-      REAL*8   :: SOILNOx   ! Soil NOx emissions [molec/cm2/s]
-      REAL*4   :: GWET_PREV ! Soil Moisture Prev timestep
-      REAL*4  :: DRYPERIOD ! Dry period length in hours
-      REAL*4  :: PFACTOR   ! Pulsing Factor
-      REAL*8  :: FERTDIAG  ! Fert emissions [molec/cm2/s
-      INTEGER :: RC        ! Return code
-
+      REAL*8  :: SOILNOx     ! Soil NOx emissions [molec/cm2/s]
+      REAL*4  :: GWET_PREV   ! Soil Moisture Prev timestep
+      REAL*4  :: DRYPERIOD   ! Dry period length in hours
+      REAL*4  :: PFACTOR     ! Pulsing Factor
+      REAL*8  :: FERTDIAG    ! Fert emissions [molec/cm2/s
+      INTEGER :: RC          ! Return code
 
 !
 ! !REMARKS:
@@ -298,6 +205,9 @@ C     &                                             0.05d0           /)
 !  This was originally in the GEOS-Chem dry deposition code, but was split 
 !  off in order to avoid an ugly code dependency between the dry deposition
 !  and soil NOx codes.
+!  As of v9-01-04, this module uses the MODIS/Koppen biome types instead
+!  of the Olson land type / biome type, making it different from the original 
+!  dry deposition code (J.D. Maasakkers)
 !
 ! !REVISION HISTORY: 
 !  17 Aug 2009 - R. Yantosca - Columnized and cleaned up
@@ -308,18 +218,11 @@ C     &                                             0.05d0           /)
 !BOC
 !
 ! !LOCAL VARIABLES:
-!
-      ! Scalars
-!      INTEGER :: K,         NN
-!BOP
-!
+
       INTEGER :: K
-      REAL*8  :: BASE_TERM, CRF_TERM,  PULSE !maasaCRF
-      !REAL*8  :: BASE_TERM, PULSE
-      REAL*8  :: TC,        TEMP_TERM, WINDSQR  !maasaCRF
-      !REAL*8  :: TC,        TEMP_TERM
-      REAL*8  :: WET_TERM,  A_FERT
-      
+      REAL*8  :: BASE_TERM, CRF_TERM,  PULSE
+      REAL*8  :: TC,        TEMP_TERM, WINDSQR
+      REAL*8  :: WET_TERM,  A_FERT    
 
       !=================================================================
       ! Initialize
@@ -336,9 +239,7 @@ C     &                                             0.05d0           /)
       TC             = TK - 273.15d0
 
       ! Surface wind speed, squared
-      WINDSQR        = U10M**2 + V10M**2 !maasaCRF
-
-      !TS_EMIS = GET_TS_EMIS()
+      WINDSQR        = U10M**2 + V10M**2
 
       !=================================================================
       ! Compute soil NOx emissions
@@ -347,86 +248,38 @@ C     &                                             0.05d0           /)
       ! Cumulative multiplication factor (over baseline emissions) 
       ! that accounts for soil pulsing
       PULSE = PULSING( GWET, TS_EMIS, GWET_PREV, PFACTOR, DRYPERIOD )
- 
-
-      ! Loop over all Olson land types in the box
-      !DO K = 1, IREG
 
       ! ------Loop Over MODIS/Koppen  Landtypes
       DO K = 1, 24
 
-         ! Soil biome index [1-11] for this Olson land type
-         !NN        = NCONSOIL( ILAND(K)+1 )
-
          ! Temperature-dependent term of soil NOx emissions [unitless]
-         !TEMP_TERM = SOILTEMP( NN, TC, SOIL_PULSING(1) )
-         !Use GWET instead of climo wet/dry
+         ! Use GWET instead of climo wet/dry
          TEMP_TERM = SOILTEMP( K , TC, GWET)
-         !CHANGE RYN
 
-         ! soil moisture scaling of soil NOx emissions 
+         ! Soil moisture scaling of soil NOx emissions 
          WET_TERM = SOILWET( GWET , CLIM(:))
 
          ! Fertilizer emission  
-         !A_FERT = FERTADD( NN, MONTH, LAT, SOILFRT , DEPN)
          A_FERT = FERTADD( SOILFRT , DEPN)
 
-	 ! Canopy reduction factor (Now based on the MODIS/KOPPEN biome type, Maasa)	
+	 ! Canopy reduction factor
          CRF_TERM  = SOILCRF( K, LAI, 
      &                        R_CANOPY(K),
      & 			      WINDSQR, SUNCOS )
-
-	!Maasa Diagnostics
-	IF ( I == 47 .and. J == 51 .and. LANDFRAC(K) .NE. 0. ) THEN 
-
-           WRITE(6,*) '===========TESTCRF==================='
-           WRITE(6,*) 'IX = ', I, 'JX =', J
-           WRITE(6,*) 'CRF_TERM = ',  CRF_TERM 
-           WRITE(6,*) 'Biometype = ', K 
-           WRITE(6,*) 'LAI = ',  LAI 
-           WRITE(6,*) 'R_CANOPY = ', R_CANOPY(K) 
-           WRITE(6,*) 'WINDSQR = ', WINDSQR
-	   WRITE(6,*) 'SUNCOS = ', SUNCOS
-           WRITE(6,*) '==================================='
-	
-	ENDIF
-        !Maasa Diagnostics
-        
+       
+         ! SOILNOX includes fertilizer
          SOILNOX   = (SOILNOX 
      &              + ( A_BIOME(K) + A_FERT )
      &             * ( TEMP_TERM * WET_TERM * PULSE ) 
      &             * LANDFRAC(K)
-     &             * ( 1.d0 - CRF_TERM  ) ) !maasaCRF
+     &             * ( 1.d0 - CRF_TERM  ) )
 
+         ! FERTDIAG, only used for the fertilizer diagnostic
          FERTDIAG  = (FERTDIAG
      &             + ( A_FERT )
      &             * ( TEMP_TERM * WET_TERM * PULSE ) 
      &             * LANDFRAC(K)
-     &             * ( 1.d0 - CRF_TERM  ) ) !maasaCRF
-
-	 IF ( I == 47 .and. J == 51 .and. LANDFRAC(K) .NE. 0. ) THEN 
-
-           WRITE(6,*) '===========TEST==================='
-           WRITE(6,*) 'IX = ', I, 'JX =', J
-           WRITE(6,*) 'SOILNOX = ',  SOILNOX 
-           WRITE(6,*) 'SOILTEMP = ', TEMP_TERM 
-           WRITE(6,*) 'SOILBASE = ', WET_TERM 
-           WRITE(6,*) 'LANDTYPE',   K
-           WRITE(6,*) 'LANDFRAC',   LANDFRAC(K)
-           WRITE(6,*) 'DEP = ',   DEPN 
-           WRITE(6,*) 'FRT = ',   SOILFRT 
-           WRITE(6,*) 'A_FERT = ',   A_FERT
-           WRITE(6,*) 'A_BIOME = ',   A_BIOME(K)
-           !WRITE(6,*) 'CRF =', 1d0 - CRF_TERM 
-           !WRITE(6,*) 'IUSE % = ',  DBLE( IUSE(K) )/ 1000d0            
-           !WRITE(6,*) 'IUSE # = ', IUSE(K)
-           WRITE(6,*) 'PULSE = ', PULSE
-           !WRITE(6,*) 'PRECTOT ', PRECTOT
-           !WRITE(6,*) 'PRECCON ', PRECCON
-           WRITE(6,*) 'TS_EMIS ', TS_EMIS
-           WRITE(6,*) '==================================='
-	
-	ENDIF !Maasa, test
+     &             * ( 1.d0 - CRF_TERM  ) )
 
       ENDDO
 
@@ -454,7 +307,7 @@ C     &                                             0.05d0           /)
       INTEGER, INTENT(IN) :: NN            ! Soil biome type 
       REAL*8,  INTENT(IN) :: TC            ! Surface air temperature [C]
       REAL*8,  INTENT(IN) :: GWET          ! Top soil moisture
-
+!
 ! !RETURN VALUE:
 !
       REAL*8              :: SOIL_TEMP     ! Temperature-dependent term of
@@ -549,16 +402,12 @@ C     &                                             0.05d0           /)
          SOIL_TEMP =  EXP( 0.103 * TMMP )
 
       ENDIF
-     
-
-      !ENDIF
-
-
+ 
       ! Convert soil NOx  emissions to [molec/cm2/s]
       SOIL_TEMP = SOIL_TEMP * UNITCONV 
 
-!
       END FUNCTION SOILTEMP
+
 !EOC
 !----------------------------------------------------------------------------
 !          Harvard University Atmospheric Chemistry Modeling Group            !
@@ -574,18 +423,14 @@ C     &                                             0.05d0           /)
 !\\
 ! !INTERFACE:
 !
-      !FUNCTION SOILWET( NN,  GWET , CLIM) RESULT( WETSCALE )
       FUNCTION SOILWET( GWET , CLIM) RESULT( WETSCALE )
 !
 ! !INPUT PARAMETERS: 
 !
 !BOP
 !
-
-      ! Soil land type index
-      !INTEGER, INTENT(IN) :: NN            
+      ! Fraction of arid & non-arid soil in the gridbox          
       REAL*4, INTENT(IN) :: CLIM(:)       
-
       ! Top soil wetness [unitless]
       REAL*8,  INTENT(IN) :: GWET 
      
@@ -618,18 +463,10 @@ C     &                                             0.05d0           /)
 !  found to be the optimal value for emissions in most soils. The typical 
 !  range of values are 0.2 (arid) up to 0.45 (floodplain) 
 !  [Yang and Meixner, 1997; Ormeci et al., 1999].  
+!
+!  Rice paddies no longer have to be scaled as in the Yienger & Levy model.
 
-! We also scale rice paddies based on from Yienger & Levy [1995], 
-! Section 4.2.1:
-!                                                                             
-!     On the basis of research by Galbally et al [1987], we reduced the
-!     fertilizer loss rate and the background emission rate for rice by
-!     a factor of 30 and define agriculture in the region 0-35 N and 
-!     80-140 E to be all rice, and in the region 0-35 N and 60-80 E to
-!     be one-half rice.  The former box covers the main rice-producing
-!     areas of southeast Asia and Japan, and the latter box covers the
-!     mixed growing region of central and eastern India.
-!                                                                             .! !REFERENCES:
+!  !REFERENCES:
 !  \begin{itemize}
 !  \item Galbally, I. E., and R. Roy, Loss of fixed nitrogen from soils 
 !        by nitric oxide exhalation, Nature, 275 , 734735, 1978.
@@ -667,39 +504,16 @@ C     &                                             0.05d0           /)
 !------------------------------------------------------------------------------
 !BOC
 
-      ! Test for soil land type
-      !SELECT CASE ( NN )
-      !   
-      !   CASE( 1 )
-      !
-      !      WETSCALE = 0d0
-      !  
-      !   CASE( 9 ) !Reduce rice emission by 30
-      !
-      !      WETSCALE = 1d0/30d0
-      !
-      !   CASE( 10 ) !Wetlands, mositure response taken into account in  Aw
-      !    
-      !      WETSCALE  = 1d0
-
-      !    CASE DEFAULT
-
-
-            !All other landtypes scale by soil moisture
-
-           
-            IF ( CLIM(2) .GE. CLIM(1) .AND. CLIM(2) .NE. 0) THEN !Arid max Poisson = 0.2
+	!Scale by soil moisture           
+            IF ( CLIM(2) .GE. CLIM(1) .AND. CLIM(2) .NE. 0) THEN !Arid, max Poisson = 0.2
             WETSCALE = 8.24 * GWET * EXP(-12.5*GWET*GWET)
-            ELSE  !max Poisson = 0.3
+            ELSE  !Non-arid, max Poisson = 0.3
             WETSCALE = 5.5 * GWET * EXP( -5.55 * GWET * GWET) 
             ENDIF        
 
-      !END SELECT
-  
-
       END FUNCTION SOILWET
-!EOC
 
+!EOC
 !------------------------------------------------------------------------------
 !          Harvard University Atmospheric Chemistry Modeling Group            !
 !------------------------------------------------------------------------------
@@ -708,19 +522,19 @@ C     &                                             0.05d0           /)
 ! !IROUTINE: soilcrf
 !
 ! !DESCRIPTION: Computes the canopy reduction factor for the soil NOx
-!  emissions according to Yienger \& Levy [1995] (and as used in Wang 
+!  emissions according to Jacob \% Bakwin [1991] (and as used in Wang 
 !  et al [1998]).
 !\\
 !\\
 ! !INTERFACE:
-!	!maasaCRF
+!	
       FUNCTION SOILCRF( K,        LAI, 
      &                  CANOPYNOX, WINDSQR, 
      &                  SUNCOS              ) RESULT( SOIL_CRF )
 !
 ! !INPUT PARAMETERS: 
 !
-      INTEGER, INTENT(IN) :: K         ! Soil biome type
+      INTEGER, INTENT(IN) :: K          ! Soil biome type
       REAL*8,  INTENT(IN) :: LAI        ! Leaf area index [cm2/cm2]
       REAL*8,  INTENT(IN) :: CANOPYNOX  ! Bulk sfc resistance to NOx [1/s]
       REAL*8,  INTENT(IN) :: WINDSQR    ! Square of sfc wind speed [m2/s2]
@@ -731,26 +545,6 @@ C     &                                             0.05d0           /)
       REAL*8              :: SOIL_CRF   ! Canopy reduction factor (see below)
 
 ! !REMARKS:
-!  From Yienger & Levy [1995], Section 5:
-!                                                                             .
-!     [W]e can model the canopy as a simple "gray absorber" of NO2
-!     dependent only on LAI and the product of LAI and ratio of stomatal
-!     area to leaf area (product defined as the stomatal area index SAI).
-!     LAI and SAI are alternative diagnostics of CR (canopy reduction)
-!     because it is reasonable to assume the amount of NOx lost in a 
-!     canopy is roughly dependent on the total leaf (cuticle) and
-!     stomatal area.
-!                                                                             .
-!     ... [W]e define the daily averaged flux-escape efficiency (of 
-!     NOx from the canopy), or CRF(LAI,SAI) as:
-!                                                                             .
-!        F(from-canopy) = F(from-soil) * 
-!                         [ exp( -ks*SAI ) + exp( -kc*LAI ) ] / 2
-!                                                                             .
-!                       = F(from-soil) * CRF(LAI,SAI)
-!
-!     Where ks and kc are some "stomata" and "cutitcle" absorptivity
-!     constants.
 !                                                                             .
 !  Also note, CANOPYNOX (the bulk surface resistance to NOx) is computed
 !  in routine GET_CANOPY_NOx (in "canopy_nox_mod.f") and is passed here
@@ -772,7 +566,7 @@ C     &                                             0.05d0           /)
 !
       REAL*8 :: VFNEW
 
-!      ! Pick proper ventilation velocity for day or night
+      ! Pick proper ventilation velocity for day or night
       IF ( SUNCOS > 0d0 ) THEN
          VFNEW = VFDAY              
       ELSE 
@@ -800,6 +594,7 @@ C     &                                             0.05d0           /)
       ENDIF
 
       END FUNCTION SOILCRF
+
 !EOC
 !-----------------------------------------------------------------------------
 
@@ -820,9 +615,6 @@ C     &                                             0.05d0           /)
 !
 ! !INPUT PARAMETERS: 
 !
-      !INTEGER, INTENT(IN) :: NN         ! Soil biome index [1-11]
-      !INTEGER, INTENT(IN) :: MONTH      ! Current month
-      !REAL*8,  INTENT(IN) :: LAT        ! Latitude [degrees] 
       REAL*8,  INTENT(IN) :: DEPN       ! N emissions from deposition
       REAL*8,  INTENT(IN) :: SOILFERT   ! N emissions from fertilizers
                                         !  read in from disk and passed
@@ -833,12 +625,6 @@ C     &                                             0.05d0           /)
       REAL*8              :: FERT_ADD   ! Total Fert emissions
 
       REAL*8,  PARAMETER :: SECPERYEAR    = 86400.d0 * 365.
-!
-!#if   defined( GRID4x5  ) 
-!      REAL*8, PARAMETER :: FERT_SCALE = 1.  ! not correct
-!#elif defined( GRID2x25 )
-!      REAL*8, PARAMETER :: FERT_SCALE = 0.0068 
-!#endif
 !
 ! !REMARKS:
 !
@@ -899,26 +685,10 @@ C     &                                             0.05d0           /)
 
        ! Convert [ng N/m2] --> [ng N /m2/s] (scale needed to force
        ! fert emiss of 1.8 Tg N/yr w/o canopy uptake.
-      FERT_ADD = FERT_ADD / SECPERYEAR * FERT_SCALE
-
-
-	   !Maasa, error search
-	   !WRITE(6,*) '~~~~~~~~~~~~~~~FERT_TEST~~~~~~~~~~~~~~~~'
-           !WRITE(6,*) 'SOILFERT = ',  SOILFERT 
-           !WRITE(6,*) 'DEPN = ', DEPN
-           !WRITE(6,*) 'FERT_SCALE = ', FERT_SCALE 
-	   !WRITE(6,*) 'FERT_ADD = ', FERT_ADD
-	   !WRITE(6,*) '________________________________________'
-
-    
-      ! Section 4.2.1 of Yienger & Levy [1995] states that over rice 
-      ! paddies the NOx emissions from fertilizers should be cut by a 
-      ! factor of 30.  This is because the very wet soil in rice paddies 
-      ! impedes NOx emission.
-      !IF ( NN == 9 ) FERT_ADD = FERT_ADD / 30d0      
-
+      FERT_ADD = FERT_ADD / SECPERYEAR * FERT_SCALE   
 
       END FUNCTION FERTADD
+
 !EOC
 !------------------------------------------------------------------------------
 !          Harvard University Atmospheric Chemistry Modeling Group            !
@@ -1032,7 +802,7 @@ C     &                                             0.05d0           /)
       ! If box is already pulsing , then decay pulse one timestep
       ELSEIF ( PFACTOR /= 1.d0) THEN
 
-         ! decay pulse
+         ! Decay pulse
          PFACTOR   = PFACTOR * EXP( -0.068d0 * DTSRCE )
 
          ! Update dry period

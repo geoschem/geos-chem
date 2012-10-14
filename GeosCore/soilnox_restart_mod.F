@@ -1,6 +1,6 @@
 ! $Id: soilnox_restart_mod.f,v 1 2009/10/15 14:14:45 rch Exp $
       MODULE SOILNOX_RESTART_MOD
-!###Rynda Start
+!
 !******************************************************************************
 !  Module RESTART_MOD contains variables and routines which are used to read
 !  and write GEOS-CHEM Soil NOx restart files, which contain the following:

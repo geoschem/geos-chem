@@ -335,8 +335,5 @@
          ENDIF
       ENDIF
 
-      TEST_DYNTS = 0
-      WRITE(6,*) 'TEST_DYNTS = 0 INITIALIZE'
-
       END SUBROUTINE INITIALIZE
 !EOC
