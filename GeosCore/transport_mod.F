@@ -878,12 +878,16 @@
       ! Impose TPCORE boundary conditions @ edges of 1x1 grid
       CALL DO_WINDOW_TPCORE_BC
 
+      IF ( LPRT ) CALL DEBUG_MSG( '### GEOS5_NESTED: a DO_WIN_TP_BC' )
+
       ! Flip array indices in the vertical using pointer storage
       p_UWND  => UWND (:,:,LLPAR:1:-1  )
       p_VWND  => VWND (:,:,LLPAR:1:-1  )
       p_STT   => STT  (:,:,LLPAR:1:-1,:)
       p_XMASS => XMASS(:,:,LLPAR:1:-1  )
       p_YMASS => YMASS(:,:,LLPAR:1:-1  )
+
+      IF ( LPRT ) CALL DEBUG_MSG( '### GEOS5_NESTED: a array flip' )
 
       ! Note: the mass flux diagnostic arrays (MASSFLEW, MASSFLNS and MASSFLUP)
       ! are incremented upside-down (level 1 = top of the atmosphere).

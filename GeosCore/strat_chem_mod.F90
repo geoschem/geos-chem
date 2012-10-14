@@ -58,6 +58,7 @@ MODULE STRAT_CHEM_MOD
 !  20 Jul 2012 - R. Yantosca - Reorganized declarations for clarity
 !  20 Jul 2012 - R. Yantosca - Correct compilation error in GET_RATES_INTERP
 !  07 Aug 2012 - R. Yantosca - Fix parallelization problem in Bry do loop
+!  05 Oct 2012 - R. Yantosca - Add bug fix for IFORT 12 compiler in CALC_STE
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -78,9 +79,9 @@ MODULE STRAT_CHEM_MOD
   INTEGER              :: NSCHEM          ! Number of species upon which to 
                                           ! apply P's & k's in GEOS-Chem
   ! Arrays
-  REAL*8,  ALLOCATABLE :: PROD(:,:,:,:)   ! Production rate [v/v/s]
-  REAL*8,  ALLOCATABLE :: LOSS(:,:,:,:)   ! Loss frequency [s-1]
-  REAL*8,  ALLOCATABLE :: STRAT_OH(:,:,:) ! Monthly mean OH [v/v]
+  REAL*8,  ALLOCATABLE, TARGET :: PROD(:,:,:,:)   ! Production rate [v/v/s]
+  REAL*8,  ALLOCATABLE, TARGET :: LOSS(:,:,:,:)   ! Loss frequency [s-1]
+  REAL*8,  ALLOCATABLE, TARGET :: STRAT_OH(:,:,:) ! Monthly mean OH [v/v]
 
   CHARACTER(LEN=16)    :: GMI_TrName(NTR_GMI)     ! Tracer names in GMI
   INTEGER              :: Strat_TrID_GC(NTR_GMI)  ! Maps 1:NSCHEM to STT index
@@ -809,6 +810,9 @@ CONTAINS
     REAL*4             :: ARRAY       ( IIPAR, JJPAR, LGLOB    )
     REAL*8             :: ARRAY2      ( IIPAR, JJPAR, LLPAR    )
 
+    ! Pointers
+    REAL*8, POINTER    :: ptr_3D(:,:,:)
+
     !=================================================================
     ! GET_RATES_INTERP begins here
     !=================================================================
@@ -873,8 +877,14 @@ CONTAINS
     ENDDO
     ENDDO
     call NcCl( fileID )
-    call transfer_3D( array, array2 )
-    STRAT_OH(:,:,:) = ARRAY2
+!############################################
+!### Prior to 9/6/12:
+!###    call transfer_3D( array, array2 )
+!###    STRAT_OH(:,:,:) = ARRAY2
+!############################################
+    ptr_3D => STRAT_OH
+    call transfer_3D( array, ptr_3D )
+    NULLIFY( ptr_3D )
 
     !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
     ! Get Bry concentrations [ppt]
@@ -961,9 +971,14 @@ CONTAINS
        ENDDO
 
        ! Cast from REAL*4 to REAL*8 and resize to 1:LLPAR if necessary
-       call transfer_3D( array, array2 )
-
-       PROD(:,:,:,N) = ARRAY2
+!##############################################################################
+!###       call transfer_3D( array, array2 )
+!###
+!###       PROD(:,:,:,N) = ARRAY2
+!##############################################################################
+       ptr_3D => PROD(:,:,:,N)
+       call transfer_3D( array, ptr_3D )
+       NULLIFY( ptr_3D )
 
        ! Special adjustment for Br2 tracer, which is BrCl in the strat
        IF ( TRIM(TRACER_NAME(Strat_TrID_GC(N))) .eq. 'Br2' ) &
@@ -986,9 +1001,14 @@ CONTAINS
        ENDDO
 
        ! Cast from REAL*4 to REAL*8 and resize to 1:LLPAR if necessary
+!##############################################################################
+!###       call transfer_3D( array, array2 )
+!###
+!###       LOSS(:,:,:,N) = ARRAY2
+!##############################################################################
+       ptr_3d => LOSS(:,:,:,N)
        call transfer_3D( array, array2 )
-
-       LOSS(:,:,:,N) = ARRAY2
+       NULLIFY( ptr_3D )
 
        !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
        ! Close species file
@@ -1038,6 +1058,8 @@ CONTAINS
 !  20 Jul 2012 - R. Yantosca - Reorganized declarations for clarity
 !  30 Jul 2012 - R. Yantosca - Now accept am_I_Root as an argument when
 !                              running with the traditional driver main.F
+!  05 Oct 2012 - R. Yantosca - Bug fix for IFORT 12: extend the #if statement
+!                              to avoid including code for nested-grid sims
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -1069,7 +1091,14 @@ CONTAINS
     ! It could be modified for nested domains if the total mass flux across the
     ! boundaries during the period is taken into account.
     RETURN
-#endif
+!------------------------------------------------------------------------------
+! Prior to 10/5/12:
+! Since the rest of this code isn't needed for the nested grid, wrap it
+! in an #else statement.  This gets code to compile for IFORT 12, and avoids
+! an "catastrophic error: internal compiler error". (bmy, 10/5/12)
+!#endif
+!------------------------------------------------------------------------------
+#else
 
     ! Determine mean tropopause level for the period
     !$OMP PARALLEL DO                               &
@@ -1160,6 +1189,7 @@ CONTAINS
     SChem_tend(:,:,:,:)  = 0d0
     MInit(:,:,:,:)       = STT(:,:,:,:)
 
+#endif
   END SUBROUTINE Calc_STE
 !EOC
 !------------------------------------------------------------------------------

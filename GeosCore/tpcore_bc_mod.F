@@ -146,6 +146,7 @@
 !  15 May 2012 - R. Yantosca - Added ProTeX headers
 !  06 Aug 2012 - R. Yantosca - Now make IU_BC, IU_BC_NA, IU_BC_EU, IU_BC_CH,
 !                              and IU_BC_SE local variables for findFreeLUN
+!  07 Sep 2012 - R. Yantosca - Minor fixes for numerical stability
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -893,9 +894,6 @@
       USE LOGICAL_MOD,   ONLY : LWINDO_NA, LWINDO_EU
       USE LOGICAL_MOD,   ONLY : LWINDO_CH, LWINDO_CU
       USE LOGICAL_MOD,   ONLY : LWINDO_SE
-#if   defined( APM )
-      USE TRACER_MOD,    ONLY : N_APMTRA
-#endif
 
 #     include "define.h"
 ! 
@@ -905,6 +903,8 @@
 !  (2 ) Now zeroes the arrays for the different regions (amv, bmy, 12/18/09)
 !  16 Feb 2011 - R. Yantosca - Add modifications for APM microphysics (G. Luo)
 !  15 May 2012 - R. Yantosca - Added ProTeX headers
+!  07 Sep 2012 - R. Yantosca - Simplify coding, remove parallel loops
+!  07 Sep 2012 - R. Yantosca - Now use 0d0 instead of 0e0 to zero BC arrays
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -917,108 +917,29 @@
       ! CLEAN_WINDOW_TPCORE_BC begins here!
       !=================================================================
 
-      ! Pick the proper # of tracers
-#if   defined( APM )
-      N_TOT_TRC = N_TRACERS + N_APMTRA   ! G-C advected tracers + APM tracers
-#else
-      N_TOT_TRC = N_TRACERS              ! G-C advected tracers only
-#endif
-
 #if   defined( NESTED_CH ) || defined( NESTED_NA ) || defined( NESTED_EU ) || defined( SEAC4RS )
-!$OMP PARALLEL DO
-!$OMP+DEFAULT( SHARED )
-!$OMP+PRIVATE( I, J, L, N )
-         DO N = 1, N_TOT_TRC
-         DO L = 1, LLPAR
-         DO J = 1, JM_BC
-         DO I = 1, IM_BC
-            BC(I,J,L,N) = 0e0
-         ENDDO
-         ENDDO
-         ENDDO
-         ENDDO
-!$OMP END PARALLEL DO
+      BC = 0d0
 #endif
 
       IF ( LWINDO_CU ) THEN
-!$OMP PARALLEL DO
-!$OMP+DEFAULT( SHARED )
-!$OMP+PRIVATE( I, J, L, N )
-         DO N = 1, N_TOT_TRC
-         DO L = 1, LLPAR
-         DO J = 1, JM_BC
-         DO I = 1, IM_BC
-            BC(I,J,L,N) = 0e0
-         ENDDO
-         ENDDO
-         ENDDO
-         ENDDO
-!$OMP END PARALLEL DO
+         BC = 0d0
       ENDIF
 
       IF ( LWINDO_NA ) THEN
-!$OMP PARALLEL DO
-!$OMP+DEFAULT( SHARED )
-!$OMP+PRIVATE( I, J, L, N )
-         DO N = 1, N_TOT_TRC
-         DO L = 1, LLPAR
-         DO J = 1, JM_BC_NA
-         DO I = 1, IM_BC_NA
-            BC_NA(I,J,L,N) = 0e0
-         ENDDO
-         ENDDO
-         ENDDO
-         ENDDO
-!$OMP END PARALLEL DO
+         BC_NA = 0d0
       ENDIF
 
       IF ( LWINDO_EU ) THEN
-!$OMP PARALLEL DO
-!$OMP+DEFAULT( SHARED )
-!$OMP+PRIVATE( I, J, L, N )
-         DO N = 1, N_TOT_TRC
-         DO L = 1, LLPAR
-         DO J = 1, JM_BC_EU
-         DO I = 1, IM_BC_EU
-            BC_EU(I,J,L,N) = 0e0
-         ENDDO
-         ENDDO
-         ENDDO
-         ENDDO
-!$OMP END PARALLEL DO
+         BC_EU = 0d0
       ENDIF 
  
       IF ( LWINDO_CH ) THEN
-!$OMP PARALLEL DO 
-!$OMP+DEFAULT( SHARED )
-!$OMP+PRIVATE( I, J, L, N )
-         DO N = 1, N_TOT_TRC
-         DO L = 1, LLPAR
-         DO J = 1, JM_BC_CH
-         DO I = 1, IM_BC_CH
-            BC_CH(I,J,L,N) = 0e0
-         ENDDO
-         ENDDO
-         ENDDO
-         ENDDO
-!$OMP END PARALLEL DO
+         BC_CH = 0d0
       ENDIF
 
       IF ( LWINDO_SE ) THEN
-!$OMP PARALLEL DO 
-!$OMP+DEFAULT( SHARED )
-!$OMP+PRIVATE( I, J, L, N )
-         DO N = 1, N_TOT_TRC
-         DO L = 1, LLPAR
-         DO J = 1, JM_BC_SE
-         DO I = 1, IM_BC_SE
-            BC_SE(I,J,L,N) = 0e0
-         ENDDO
-         ENDDO
-         ENDDO
-         ENDDO
-!$OMP END PARALLEL DO
-      ENDIF
+         BC_SE = 0d0
+      ENDIF      
 
       END SUBROUTINE CLEAN_WINDOW_TPCORE_BC
 !EOC
@@ -1094,6 +1015,9 @@
             ! Read each data block one at a time
             !===========================================================
 
+            ! Zero array, for safety's sake
+            ARRAY = 0e0
+
             ! Read first header line
             READ( IU_BC, IOSTAT=IOS ) 
      &           MODELNAME, LONRES, LATRES, HALFPOLAR, CENTER180
@@ -1108,7 +1032,7 @@
             READ( IU_BC, IOSTAT=IOS ) 
      &           CATEGORY, NT, UNIT, ZTAU0,  ZTAU1,  RESERVED,
      &           NI,       NJ, NL,   IFIRST, JFIRST, LFIRST, NSKIP
-            
+
             IF ( IOS /= 0 ) CALL IOERROR( IOS, IU_BC, S//':2' )
 
             ! Read data array
@@ -1583,6 +1507,7 @@
 !        Now references ITS_A_NESTED_GRID from "grid_mod.f".  Also added 
 !        arguments to take values from "input_mod.f". (bmy, 7/20/04)
 !  15 May 2012 - R. Yantosca - Added ProTeX headers
+!  07 Sep 2012 - R. Yantosca - Now use 0d0 instead of 0e0 to zero BC arrays
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -1808,7 +1733,7 @@
       IF ( LWINDO_CU ) THEN
          ALLOCATE( BC( IM_BC, JM_BC, LLPAR, N_TRACERS ), STAT=AS )
          IF ( AS /= 0 ) CALL ALLOC_ERR( 'BC' )
-         BC = 0e0
+         BC = 0d0
       ENDIF
 
       ! Boundary condition array for NESTED CHINA/SE ASIA REGION
@@ -1816,7 +1741,7 @@
          ALLOCATE( BC_CH( IM_BC_CH, JM_BC_CH, 
      &                    LLPAR,    N_TRACERS ), STAT=AS )
          IF ( AS /= 0 ) CALL ALLOC_ERR( 'BC_CH' )
-         BC_CH = 0e0
+         BC_CH = 0d0
       ENDIF
 
       ! Boundary condition array for SEAC4RS REGION
@@ -1824,7 +1749,7 @@
          ALLOCATE( BC_SE( IM_BC_SE, JM_BC_SE, 
      &                    LLPAR,    N_TRACERS ), STAT=AS )
          IF ( AS /= 0 ) CALL ALLOC_ERR( 'BC_SE' )
-         BC_SE = 0e0
+         BC_SE = 0d0
       ENDIF
 
       ! Boundary condition array for NESTED N. AMERICA REGION
@@ -1832,7 +1757,7 @@
          ALLOCATE( BC_NA( IM_BC_NA, JM_BC_NA, 
      &                    LLPAR, N_TRACERS ), STAT=AS )
          IF ( AS /= 0 ) CALL ALLOC_ERR( 'BC_NA' )
-         BC_NA = 0e0
+         BC_NA = 0d0
       ENDIF
 
       ! Boundary condition array for NESTED EUROPE REGION
@@ -1840,7 +1765,7 @@
          ALLOCATE( BC_EU( IM_BC_EU, JM_BC_EU, 
      &                    LLPAR,    N_TRACERS ), STAT=AS )
          IF ( AS /= 0 ) CALL ALLOC_ERR( 'BC_EU' )
-         BC_EU = 0e0
+         BC_EU = 0d0
       ENDIF
 
       ! If running a nested simulation, just allocate the custom BC
@@ -1897,7 +1822,7 @@
 
       ALLOCATE( BC( IM_BC, JM_BC, LLPAR, N_TRACERS ), STAT=AS )
       IF ( AS /= 0 ) CALL ALLOC_ERR( 'BC' )
-      BC = 0e0
+      BC = 0d0
 
       ALLOCATE( MAP1x1( IIPAR, JJPAR, 4 ) , STAT=AS )
       IF ( AS /= 0 ) CALL ALLOC_ERR( 'MAP1x1' )
