@@ -183,7 +183,7 @@ CONTAINS
     CALL GC_INIT_DIMENSIONS( NI, NJ, NL )
 
     ! Initialize the G-C simulation and chemistry mechanism
-    CALL GC_INITRUN( GC_MET, GC_STATE, tsChem, nymd, nhms, am_I_Root)
+    CALL GC_INITRUN( GC_MET, GC_STATE, tsChem, nymd, nhms, am_I_Root )
 
     ! Return code
     RC = SMV_SUCCESS
