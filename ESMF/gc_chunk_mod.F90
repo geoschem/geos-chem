@@ -12,7 +12,7 @@
 !\\
 ! !INTERFACE: 
 !      
-MODULE GC_CHUNK_MOD
+MODULE GC_Chunk_Mod
 !
 ! !USES:
 !      
@@ -35,6 +35,7 @@ MODULE GC_CHUNK_MOD
 !  22 Jun 2009 - R. Yantosca & P. Le Sager - Chunkized & cleaned up.
 !  09 Oct 2012 - R. Yantosca - Now pass am_I_Root to all routines
 !  09 Oct 2012 - R. Yantosca - Added comments, cosmetic changes
+!  16 Oct 2012 - R. Yantosca - Renamed GC_STATE argument to State_Chm
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -77,7 +78,7 @@ CONTAINS
 !
 ! !INTERFACE:
 !
-  SUBROUTINE GC_Chunk_Run( am_I_Root, GC_MET, GC_STATE, NL, NI, NJ, RC )
+  SUBROUTINE GC_Chunk_Run( am_I_Root, State_Met, State_Chm, NL, NI, NJ, RC )
 !
 ! !USES:
 !
@@ -94,8 +95,8 @@ CONTAINS
 !
 ! !INPUT/OUTPUT PARAMETERS:
 !
-    TYPE(CHEMSTATE),    INTENT(INOUT) :: GC_STATE    ! Chemical state
-    TYPE(GC_MET_LOCAL), INTENT(INOUT) :: GC_MET      ! Meteorology state
+    TYPE(CHEMSTATE),    INTENT(INOUT) :: State_Chm   ! Chemical state
+    TYPE(GC_MET_LOCAL), INTENT(INOUT) :: State_Met   ! Meteorology state
 !
 ! !OUTPUT PARAMETERS:
 !
@@ -109,6 +110,8 @@ CONTAINS
 ! !REVISION HISTORY:
 !  22 Jun 2009 - R. Yantosca & P. Le Sager - Columnized & cleaned up.
 !  09 Oct 2012 - R. Yantosca - Added extra comments & cosmetic changes
+!  16 Oct 2012 - R. Yantosca - Renamed GC_STATE argument to State_Chm
+!  16 Oct 2012 - R. Yantosca - Renamed GC_MET argument to State_Met
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -118,15 +121,15 @@ CONTAINS
     INTEGER :: NC
 
     ! Number of advected tracers
-    NC = SIZE(GC_STATE%TRACERS,4)
+    NC = SIZE( State_Chm%Tracers, 4 )
 
     ! Call the chemistry run method
-    CALL DO_GC_CHEM( GC_STATE, GC_MET, am_I_Root, NI, NJ, NL, NC )
+    CALL Do_GC_Chem( State_Chm, State_Met, am_I_Root, NI, NJ, NL, NC )
 
     ! Return code
     RC = SMV_SUCCESS
 
-  END SUBROUTINE GC_CHUNK_RUN
+  END SUBROUTINE GC_Chunk_Run
 !EOC
 !------------------------------------------------------------------------------
 !          Harvard University Atmospheric Chemistry Modeling Group            !
@@ -143,7 +146,7 @@ CONTAINS
 !\\
 ! !INETRFACE:
 !
-  SUBROUTINE GC_Chunk_Init( NI,     NJ,   NL,   GC_MET,    GC_STATE,  &
+  SUBROUTINE GC_Chunk_Init( NI,     NJ,   NL,   State_Met, State_Chm,  &
                             tsChem, nymd, nhms, am_I_Root, RC        )
 !
 ! !USES:
@@ -164,8 +167,8 @@ CONTAINS
 !
 ! !INPUT/OUTPUT PARAMETERS:
 !
-    TYPE(CHEMSTATE)      :: GC_STATE    ! Object for chemistry state
-    TYPE(GC_MET_LOCAL)   :: GC_MET      ! Object for meteorology state
+    TYPE(CHEMSTATE)      :: State_Chm   ! Object for chemistry state
+    TYPE(GC_MET_LOCAL)   :: State_Met   ! Object for meteorology state
 !
 ! !OUTPUT PARAMETERS:
 !
@@ -175,20 +178,22 @@ CONTAINS
 !  18 Jul 2011 - M. Long     - Initial Version
 !  28 Mar 2012 - M. Long     - Rewrite per structure of BCC init interface
 !  09 Oct 2012 - R. Yantosca - Added comments, cosmetic changes
+!  16 Oct 2012 - R. Yantosca - Renamed GC_STATE argument to State_Chm
+!  16 Oct 2012 - R. Yantosca - Renamed GC_MET argument to State_Met
 !EOP
 !------------------------------------------------------------------------------
 !BOC
 
     ! Initialize dimensions
-    CALL GC_INIT_DIMENSIONS( NI, NJ, NL )
+    CALL GC_Init_Dimensions( NI, NJ, NL )
 
     ! Initialize the G-C simulation and chemistry mechanism
-    CALL GC_INITRUN( GC_MET, GC_STATE, tsChem, nymd, nhms, am_I_Root )
+    CALL GC_InitRun( State_Met, State_Chm, tsChem, nymd, nhms, am_I_Root )
 
     ! Return code
     RC = SMV_SUCCESS
 
-  END SUBROUTINE GC_CHUNK_INIT
+  END SUBROUTINE GC_Chunk_Init
 !EOC
 !------------------------------------------------------------------------------
 !          Harvard University Atmospheric Chemistry Modeling Group            !
@@ -203,25 +208,30 @@ CONTAINS
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE GC_CHUNK_FINAL( am_I_Root, RC )
+  SUBROUTINE GC_Chunk_Final( State_Met, State_Chm, am_I_Root, RC )
 !
 ! !USES:
 !
-    USE SMV_ERRCODE_MOD
+    USE GC_Type_Mod,         ONLY : GC_Met_Local
+    USE GC_Type2_Mod,        ONLY : ChemState    ! Derived type for chem state
+    USE GC_Finalization_Mod
+    USE Smv_ErrCode_Mod
 !
 ! !INPUT PARAMETERS:
 !
-    LOGICAL, INTENT(IN) :: am_I_Root
+    LOGICAL,            INTENT(IN)    :: am_I_Root  ! Are we on the root CPU?
+!
+! !INPUT/OUTPUT PARAMETERS:
+!
+    TYPE(GC_Met_Local), INTENT(INOUT) :: State_Met  ! Chemistry state
+    TYPE(CHEMSTATE),    INTENT(INOUT) :: State_Chm  ! Chemistry state
 !
 ! !OUTPUT PARAMETERS:
 !
-    INTEGER, INTENT(OUT)   :: RC         !  Error return code
+    INTEGER,            INTENT(OUT)   :: RC         ! Success or failure
 !
 ! !REMARKS:
-! %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-! %%%% NOTE: As of 10/9/12, the finalize is not done; this is a stub. %%%%
-! %%%% Need to add the finalize & deallocation code ASAP.             %%%%
-! %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+!  Add 
 !
 ! !REVISION HISTORY: 
 !  30 Apr 2009 - R. Yantosca - Initial version
@@ -236,6 +246,7 @@ CONTAINS
 !                              used in GEOS-Chem.
 !  08 Jul 2010 - R. Yantosca - Archive tracers, OH in DIAG_COL for printout
 !  09 Oct 2012 - R. Yantosca - Added comments & cosmetic changes
+!  16 Oct 2012 - R. Yantosca - Renamed GC_STATE argument to State_Chm
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -247,7 +258,10 @@ CONTAINS
     ! Set error code to success
     RC                      = SMV_SUCCESS
 
-  END SUBROUTINE GC_CHUNK_FINAL
+    ! Finalize GEOS-Chem
+    CALL GC_Finalize( State_Met, State_Chm, am_I_Root, RC )
+
+  END SUBROUTINE GC_Chunk_Final
 !EOC
-END MODULE GC_CHUNK_MOD
+END MODULE GC_Chunk_Mod
 #endif

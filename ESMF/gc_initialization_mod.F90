@@ -12,29 +12,31 @@
 !\\
 ! !INTERFACE: 
 !      
-MODULE GC_INITIALIZATION_MOD
+MODULE GC_Initialization_Mod
 !
 ! !USES:
 !      
-  USE GC_TYPE_MOD,        ONLY : GC_MET_LOCAL
-  USE GC_TYPE2_MOD,       ONLY : CHEMSTATE
+  USE GC_TYPE_MOD,  ONLY : GC_MET_LOCAL
+  USE GC_TYPE2_MOD, ONLY : CHEMSTATE
 
   IMPLICIT NONE
   PRIVATE
 !
 ! !PUBLIC MEMBER FUNCTIONS:
 !      
-
   PUBLIC :: GC_CHEMINIT
   PUBLIC :: GC_SETENV
   PUBLIC :: GC_INITRUN
   PUBLIC :: GC_GETOPTS
   PUBLIC :: GC_INIT_DIMENSIONS
-
-  ! Not sure if we need the SAVE statement here (bmy, 10/15/12)
-!        SAVE 
-!        TYPE(GC_MET_LOCAL) GC_MET
-!        TYPE(CHEMSTATE)    GC_STATE
+!
+! !REVISION HISTORY: 
+!  16 Oct 2012 - M. Long     - Initial version
+!  16 Oct 2012 - R. Yantosca - Added ProTeX headers
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+!
 
 !BOC
 CONTAINS
@@ -144,13 +146,13 @@ CONTAINS
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE GC_INITRUN( LOCAL_MET, CHEM_STATE, tsChem,    &
-                         nymd,      nhms,       am_I_Root )
+  SUBROUTINE GC_INITRUN( State_Met, State_Chm, tsChem,    &
+                         nymd,      nhms,      am_I_Root )
       
 !
 ! !USES:
 !
-    USE GC_TYPE2_MOD,       ONLY : INIT_CHEMSTATE      
+    USE GC_TYPE2_MOD,       ONLY : Init_Chemistry_State 
     USE CMN_SIZE_MOD,       ONLY : IIPAR
     USE CMN_SIZE_MOD,       ONLY : JJPAR
     USE CMN_SIZE_MOD,       ONLY : LLTROP
@@ -190,8 +192,8 @@ CONTAINS
 !
 ! !OUTPUT PARAMETERS:
 !
-    TYPE(CHEMSTATE),    INTENT(OUT) :: CHEM_STATE   ! Obj for chemistry
-    TYPE(GC_MET_LOCAL), INTENT(OUT) :: LOCAL_MET    ! Obj for meteorology
+    TYPE(CHEMSTATE),    INTENT(OUT) :: State_Chm   ! Obj for chemistry
+    TYPE(GC_MET_LOCAL), INTENT(OUT) :: State_Met    ! Obj for meteorology
 !
 ! !REMARKS
 !  Add other calls to GEOS-Chem init routines as necessary
@@ -206,8 +208,12 @@ CONTAINS
 ! !LOCAL VARIABLES:
 ! 
     INTEGER :: DTIME          ! CHEMISTY TIME STEP
-    INTEGER :: K, RC, AS
+    INTEGER :: K, AS
     INTEGER :: PLON, PLAT
+
+    ! Return code (success or failure) 
+    ! NOTE: This may eventually get moved to the argument list (bmy, 10/16/12)
+    INTEGER :: RC
 
     !=======================================================================
     ! GC_INITRUN begins here!
@@ -235,11 +241,11 @@ CONTAINS
     CALL GC_GETOPTS( am_I_Root )
 
     ! Initialize derived-type objects for meteorology & chemistry states
-    CALL INIT_ALL( LOCAL_MET, CHEM_STATE )
+    CALL INIT_ALL( State_Met, State_Chm, am_I_Root, RC )
 
-    ! Save tracer names and ID's into CHEM_STATE
-    CHEM_STATE%TRAC_NAME(1:N_TRACERS) = TRACER_NAME
-    CHEM_STATE%TRAC_ID(1:N_TRACERS)   = ID_TRACER
+    ! Save tracer names and ID's into State_Chm
+    State_Chm%TRAC_NAME(1:N_TRACERS) = TRACER_NAME
+    State_Chm%TRAC_ID  (1:N_TRACERS) = ID_TRACER
 
     ! Allocate and zero GEOS-Chem diagnostic arrays
     CALL NDXX_SETUP
