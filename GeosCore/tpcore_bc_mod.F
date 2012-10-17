@@ -1508,6 +1508,9 @@
 !        arguments to take values from "input_mod.f". (bmy, 7/20/04)
 !  15 May 2012 - R. Yantosca - Added ProTeX headers
 !  07 Sep 2012 - R. Yantosca - Now use 0d0 instead of 0e0 to zero BC arrays
+!  17 Oct 2012 - M. Payer    - Bug fix: Define extent of coarse grid BC region
+!                              even if LWINDO_CH or LWINDO_SE = False to
+!                              avoid out-of-bounds errors in array BC
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -1695,29 +1698,21 @@
 
       ENDIF
       
-      IF ( LWINDO_CH ) THEN
+      ! Extent of coarse-grid CH BC REGION
+      IM_BC_CH = I2_BC_CH - I1_BC_CH + 1
+      JM_BC_CH = J2_BC_CH - J1_BC_CH + 1
  
-         ! Extent of coarse-grid CH BC REGION
-         IM_BC_CH = I2_BC_CH - I1_BC_CH + 1
-         JM_BC_CH = J2_BC_CH - J1_BC_CH + 1
+      ! TPCORE CH internal transport window offset
+      I0_BC_CH = I1_BC_CH - 1
+      J0_BC_CH = J1_BC_CH - 1
+
+      ! Extent of coarse-grid SEAC4RS BC REGION
+      IM_BC_SE = I2_BC_SE - I1_BC_SE + 1
+      JM_BC_SE = J2_BC_SE - J1_BC_SE + 1
  
-         ! TPCORE CH internal transport window offset
-         I0_BC_CH = I1_BC_CH - 1
-         J0_BC_CH = J1_BC_CH - 1
-
-      ENDIF
-
-      IF ( LWINDO_SE ) THEN
-
-         ! Extent of coarse-grid SEAC4RS BC REGION
-         IM_BC_SE = I2_BC_SE - I1_BC_SE + 1
-         JM_BC_SE = J2_BC_SE - J1_BC_SE + 1
- 
-         ! TPCORE SEAC4RS internal transport window offset
-         I0_BC_SE = I1_BC_SE - 1
-         J0_BC_SE = J1_BC_SE - 1
-
-      ENDIF
+      ! TPCORE SEAC4RS internal transport window offset
+      I0_BC_SE = I1_BC_SE - 1
+      J0_BC_SE = J1_BC_SE - 1
 
       ! Return if we are not saving 4x5 BC's
       ! or if it's not a nested grid simulation
