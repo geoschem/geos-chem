@@ -193,7 +193,7 @@
       LOGICAL, SAVE :: FIRST = .TRUE.
       INTEGER       :: N_TROP, MONTH, YEAR, WAVELENGTH
 
-if defined( DEVEL ) || defined( EXTERNAL_GRID ) || defined( EXTERNAL_FORCING )
+#if defined( DEVEL ) || defined( EXTERNAL_GRID ) || defined( EXTERNAL_FORCING )
       TYPE(CHEMSTATE), INTENT(INOUT) :: State_Chm
       TYPE(GC_MET_LOCAL), INTENT(IN) :: State_Met
 !      REAL*8                         :: STT(IIPAR,JJPAR,LLPAR,N_TRACERS)
