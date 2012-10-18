@@ -1545,7 +1545,6 @@
          IF ( NAMEGAS(I) == 'LXRO2N'   ) IDLXRO2N   = I
 
 #if defined( ESMF_ )
-
          ! Add the species name & Id to the chemistry state object
          ! (this only needs to be done if we are using the ESMF interface)
          CALL Register_Species( NAMEGAS(I), I, State_Chm, STAT )
@@ -1627,6 +1626,7 @@
                ENDIF
             ENDDO
 
+#if !defined( ESMF_ )
             ! Print when Debug output selected (hotp 8/5/09)
             IF ( LPRT .and. am_I_Root ) THEN
                PRINT*, '###--------------------'
@@ -1638,7 +1638,7 @@
                PRINT*, '### IDEMIS(T)  : ', IDEMIS(T)
                PRINT*, '### IDTRMB(T,C): ', IDTRMB(T,C)
             ENDIF
-
+#endif
          ENDDO
       ENDDO
 

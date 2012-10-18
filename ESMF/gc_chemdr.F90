@@ -51,46 +51,29 @@ CONTAINS
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE DO_GC_CHEM( State_Chm, State_Met, am_I_Root, NI, NJ, NL, NCNST )
+  SUBROUTINE Do_GC_Chem( State_Chm, State_Met, am_I_Root, NI, NJ, NL, NCNST )
 !
 ! !USES:
 !
-    !USE PPGRID,          ONLY: PCOLS, PVER
-    !USE PHYSICS_TYPES,   ONLY: PHYSICS_STATE, PHYSICS_TEND, PHYSICS_PTEND
-    USE GC_TYPE_MOD,     ONLY: GC_MET_LOCAL
-    USE GC_TYPE2_MOD,    ONLY: CHEMSTATE
-    USE CHEMISTRY_MOD,   ONLY: DO_CHEMISTRY
-!    USE CHEMISTRY,       ONLY: NCNST
-    USE DAO_MOD,         ONLY: AIRQNT
-!      USE GC_INITIALIZATION_MOD,ONLY: State_Met, State_Chm
-    USE PBL_MIX_MOD,     ONLY: PBL_TOP_L, PBL_TOP_M, INIT_PBL_MIX
-      
-    ! TEMPORARY USE
-    USE GRID_MOD,     ONLY : AREA_M2, YEDGE, XEDGE, YMID, XMID
-    USE CMN_SIZE_MOD, ONLY : DJSIZE, DISIZE, LLPAR, IIPAR, JJPAR
-
-    ! 3-D
-    USE DAO_MOD,      ONLY : TO3, OPTD, CLDFRC, AIRVOL, BXHEIGHT, &
-                             CLDF, CMFMC, DQIDTMST, DQLDTMST,     &
-                             DQVDTMST, DTRAIN, MOISTQ, OPTDEP,    &
-                             DELP, RH, SPHU, T, TAUCLI, TAUCLW
-      ! 2-D
-    USE DAO_MOD,      ONLY : ALBD, CLDFRC, GWETTOP, HFLUX, LWI,   &
-                             PARDR, PARDF, PRECON, PREACC,        &
-                              RADSWG, TSKIN, SUNCOS, TROPP, TS,    &
-                              U10M, V10M, Z0, USTAR, AD, INIT_DAO, &
-                              SUNCOS_MID, AIRDEN
-
-    USE CMN_DEP_MOD,  ONLY : FRCLND
-    USE UVALBEDO_MOD, ONLY : UVALBEDO
+    USE GC_TYPE_MOD,     ONLY : GC_MET_LOCAL
+    USE GC_TYPE2_MOD,    ONLY : CHEMSTATE
+    USE CHEMISTRY_MOD,   ONLY : DO_CHEMISTRY
+    USE DAO_MOD
+    USE PBL_MIX_MOD,     ONLY : PBL_TOP_L, PBL_TOP_M, INIT_PBL_MIX
+    USE GRID_MOD,        ONLY : AREA_M2, YEDGE, XEDGE, YMID, XMID
+    USE CMN_SIZE_MOD,    ONLY : DJSIZE, DISIZE, LLPAR, IIPAR, JJPAR
+    USE DAO_MOD
+    USE CMN_DEP_MOD,     ONLY : FRCLND
+    USE UVALBEDO_MOD,    ONLY : UVALBEDO
     USE COMODE_LOOP_MOD
-    USE COMODE_MOD,   ONLY : AIRDENS, CSPEC_FULL
-    USE TRACER_MOD,   ONLY : TCVV
-    USE TRACERID_MOD                !, ONLY : IDTNOX
-
-    USE PRESSURE_MOD, ONLY : EXTERNAL_PEDGE !PEDGE, PMID
-
+    USE COMODE_MOD,      ONLY : AIRDENS, CSPEC_FULL
+    USE TRACER_MOD
+    USE TRACERID_MOD     
+    USE PRESSURE_MOD,    ONLY : EXTERNAL_PEDGE !PEDGE, PMID
+    USE LOGICAL_MOD
+    
     USE GC_TEST_UTILS
+    USE GC_CHEM_UTILS
 !
 ! !INPUT PARAMETERS:
 !
@@ -128,7 +111,7 @@ CONTAINS
 
 ! TESTING SECTION
 !<><><><><><><><><><><><><><><><><><><><><><>
-      CALL DUMP_GC_CONFIG( am_I_Root )
+     !CALL DUMP_GC_CONFIG( am_I_Root )
 
 
 
@@ -143,8 +126,13 @@ CONTAINS
 
       !======================================================================
       ! Set 2-D variables
+      !
+      ! NOTE: This is a stopgap measure for testing.  Eventually we will
+      ! carry the meteorology state down to all G-C routines.  in order to
+      ! test, we need to populate the G-C module arrays from the met state.
       !======================================================================
 
+      ! Met fields
       TO3                = State_Met%TO3       ! Total column O3 [DU]
       ALBD               = State_Met%ALBD      ! visible surface albedo [1]
       AREA_M2            = State_Met%AREA_M2   ! grid box surface area [cm2]
@@ -172,8 +160,13 @@ CONTAINS
 
       !======================================================================
       ! Set 3-D variables
+      !
+      ! NOTE: This is a stopgap measure for testing.  Eventually we will
+      ! carry the meteorology state down to all G-C routines.  in order to
+      ! test, we need to populate the G-C module arrays from the met state.
       !======================================================================
 
+      ! Met fields
       AD                 = State_Met%AD        ! Air mass [kg]
       AIRDEN             = State_Met%AIRDENS   ! Air density [kg/m3]
       AIRVOL             = State_Met%AIRVOL    ! Grid box volume [m3]
@@ -188,39 +181,48 @@ CONTAINS
       OPTD               = State_Met%OPTD      ! Visible optical depth [1]
       DELP               = State_Met%DELP      ! Pressure thickness [hPa]
       RH                 = State_Met%RH        ! Relative humidity [1]
-      SPHU(:,:,:)        = State_Met%SPHU      ! Specific humidity [kg/kg]
-      T(:,:,:)           = State_Met%T         ! Temperature [K]
-      TAUCLI(:,:,:)      = State_Met%TAUCLI    ! Opt depth of ice clouds [1]
-      TAUCLW(:,:,:)      = State_Met%TAUCLW    ! Opt depth of h2o clouds [1]
-      CSPEC_FULL         = State_Chm%Species
-
-      ! 
-      State_Met%PEDGE       = (State_Met%PEDGE(:,:,NL+1:1:-1))   ! PRESSURE @ LEVEL EDGES [PA]
+      SPHU               = State_Met%SPHU      ! Specific humidity [kg/kg]
+      T                  = State_Met%T         ! Temperature [K]
+      TAUCLI             = State_Met%TAUCLI    ! Opt depth of ice clouds [1]
+      TAUCLW             = State_Met%TAUCLW    ! Opt depth of h2o clouds [1]
       EXTERNAL_PEDGE     = State_Met%PEDGE     ! Pressure @ level edges [hPa]
-!      State_Met%PMID(:,:,:)    =              ! Pressure @ level centers [hPa]
 
-      !### 
-      IF ( am_I_Root ) THEN
-         PRINT*, '### in GC_CHEMDR'
-         WRITE( 6, '(5f13.6)' ) EXTERNAL_PEDGE
-      ENDIF
+      ! Constituents
+      STT                = State_Chm%Tracers   ! Advected tracers
+      CSPEC_FULL         = State_Chm%Species   ! Chemical species
 
       !======================================================================
       ! Call the GEOS-Chem Chemistry routines
       !======================================================================
+      IF ( am_I_Root ) THEN
+         WRITE(6,*) '##### GC_CHEMDR, TRC_OX before chem'
+         WRITE(6,*) State_Chm%Tracers(1,1,:,2)
+      ENDIF
 
-      ! Call the solver
-      CALL DO_CHEMISTRY( am_I_Root, NI, NJ, NL, State_Chm, State_Met )
+      IF ( LCHEM ) THEN
+
+         ! The tracer concentrations from the import state have units of v/v;
+         ! we must convert these to kg before calling the chemistry
+         CALL Convert_Units( 2, N_TRACERS, TCVV, AD, STT )
+
+         ! Call the solver
+         CALL Do_Chemistry( am_I_Root, NI, NJ, NL, State_Chm, State_Met )
+
+         ! Convert tracers back to v/v after chemistry
+         CALL Convert_Units( 1,  N_TRACERS, TCVV, AD, STT )
+
+      ENDIF
 
       ! Save chemistry output for next timestep
+      State_Chm%Tracers = STT
       State_Chm%Species = CSPEC_FULL
 
-      !REINTERFACE WITH GCM: FROM GEOS-CHEM TO BCC
-!      CALL GC_PASS_TO_BCC(State_Chm)
+      IF ( am_I_Root ) THEN
+         WRITE(6,*) '##### GC_CHEMDR, TRC_OX after chem'
+         WRITE(6,*) State_Chm%Tracers(1,1,:,2)
+      ENDIF
 
-!      MMR(:,:,:,1:NCNST) = State_Chm%TRACERS(:,:,:,1:NCNST)!1.D-12
-
-    END SUBROUTINE DO_GC_CHEM
+    END SUBROUTINE Do_GC_Chem
 !EOC
 !-----------------------------------------------------------------------------
 ! NOTE: Preserve version with BCC-specific stuff.  We should probably split

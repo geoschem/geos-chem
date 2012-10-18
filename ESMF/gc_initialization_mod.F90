@@ -36,9 +36,6 @@ MODULE GC_Initialization_Mod
 !EOP
 !------------------------------------------------------------------------------
 !BOC
-!
-
-!BOC
 CONTAINS
 !EOC
 !------------------------------------------------------------------------------
@@ -77,7 +74,7 @@ CONTAINS
     DO_DIAG_WRITE = .FALSE. 
 
     !### Debug
-    ! SET MODEL DIMENSIONS
+    ! SET MODEL DIMENSIONS 
     !IIPAR = 1
     !JJPAR = PCOLS
 
@@ -146,8 +143,8 @@ CONTAINS
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE GC_INITRUN( State_Met, State_Chm, tsChem,    &
-                         nymd,      nhms,      am_I_Root )
+  SUBROUTINE GC_INITRUN( State_Met, State_Chm, tsChem,        &
+                         nymd,      nhms,      am_I_Root, RC )
       
 !
 ! !USES:
@@ -160,8 +157,6 @@ CONTAINS
     USE COMODE_LOOP_MOD
     USE GC_ENVIRONMENT_MOD, ONLY : ALLOCATE_ALL
     USE GC_ENVIRONMENT_MOD, ONLY : INIT_ALL
-    !USE GC_ENVIRONMENT_MOD, ONLY : TRACER_INDEX
-    !USE GC_ENVIRONMENT_MOD, ONLY : TRACER_NAMES
     USE GCKPP_COMODE_MOD,   ONLY : INIT_GCKPP_COMODE
     USE GRID_MOD,           ONLY : INIT_GRID
     USE DAO_MOD,            ONLY : INIT_DAO
@@ -176,8 +171,11 @@ CONTAINS
     USE TRACER_MOD,         ONLY : ID_TRACER
     USE TRACER_MOD,         ONLY : TRACER_NAME
     USE TRACER_MOD,         ONLY : N_TRACERS
+    USE TRACERID_MOD,       ONLY : SETTRACE
     USE TOMS_MOD,           ONLY : TO3_DAILY
     USE WETSCAV_MOD,        ONLY : INIT_WETSCAV
+    USE ERROR_MOD,          ONLY : DEBUG_MSG
+    USE SMV_ERRCODE_MOD  
 
     ! Comment these out for now (bmy, 10/15/12)
     !USE TIME_MANAGER,       ONLY : GET_STEP_SIZE
@@ -185,58 +183,53 @@ CONTAINS
 !
 ! !INPUT PARAMETERS: 
 !
-    REAL,               INTENT(IN)  :: tsChem       ! Chemistry timestep [s]
-    INTEGER,            INTENT(IN)  :: nymd         ! GMT date (YYYY/MM/DD)
-    INTEGER,            INTENT(IN)  :: nhms         ! GMT time (hh:mm:ss)
-    LOGICAL,            INTENT(IN)  :: am_I_Root    ! Is this the root CPU?
+    REAL,               INTENT(IN)    :: tsChem      ! Chemistry timestep [s]
+    INTEGER,            INTENT(IN)    :: nymd        ! GMT date (YYYY/MM/DD)
+    INTEGER,            INTENT(IN)    :: nhms        ! GMT time (hh:mm:ss)
+    LOGICAL,            INTENT(IN)    :: am_I_Root   ! Is this the root CPU?
+!
+! !INPUT/OUTPUT PARAMETERS:
+!
+    TYPE(CHEMSTATE),    INTENT(INOUT) :: State_Chm   ! Obj for chemistry
+    TYPE(GC_MET_LOCAL), INTENT(INOUT) :: State_Met   ! Obj for meteorology
 !
 ! !OUTPUT PARAMETERS:
 !
-    TYPE(CHEMSTATE),    INTENT(OUT) :: State_Chm   ! Obj for chemistry
-    TYPE(GC_MET_LOCAL), INTENT(OUT) :: State_Met    ! Obj for meteorology
+    INTEGER,            INTENT(OUT)   :: RC          ! Success or failure?  
 !
 ! !REMARKS
-!  Add other calls to GEOS-Chem init routines as necessary
+!  Add other calls to GEOS-Chem init routines as necessary.
+!  NOTE: Later on maybe split these init calls among other routines.
 !
 ! !REVISION HISTORY: 
 !  15 Oct 2012 - M. Long     - Initial version
 !  15 Oct 2012 - R. Yantosca - Added ProTeX Headers, use F90 format/indents
+!  17 Oct 2012 - R. Yantosca - Now initialize the chemistry mechanism
 !EOP
 !------------------------------------------------------------------------------
 !BOC
 !
 ! !LOCAL VARIABLES:
 ! 
-    INTEGER :: DTIME          ! CHEMISTY TIME STEP
-    INTEGER :: K, AS
-    INTEGER :: PLON, PLAT
-
-    ! Return code (success or failure) 
-    ! NOTE: This may eventually get moved to the argument list (bmy, 10/16/12)
-    INTEGER :: RC
+    INTEGER :: DTIME, K, AS, N, PLON, PLAT
 
     !=======================================================================
-    ! GC_INITRUN begins here!
+    ! Initialize key GEOS-Chem sections
     !=======================================================================
 
     ! Initialize
-    RC     = 0
+    RC    = SMV_SUCCESS
     DTIME = tsChem
        
-    print*, '### am_I_Root: ', am_I_root
-
     ! Initialize the timing routines
     CALL GC_INIT_TIMEINTERFACE( DTIME, nymd, nhms, am_I_Root )
-    IF ( LPRT .and. am_I_Root ) THEN
-       print*, '### after gc_init_timeinterface'
-    endif
 
     ! Allocate alll 
-    CALL ALLOCATE_ALL
+    CALL ALLOCATE_ALL( am_I_Root, RC )
 
     ! Allocate
     CALL ALLOCATE_INTERFACE
-              
+
     ! Read options from the GEOS-Chem input file "input.geos"
     CALL GC_GETOPTS( am_I_Root )
 
@@ -244,39 +237,110 @@ CONTAINS
     CALL INIT_ALL( State_Met, State_Chm, am_I_Root, RC )
 
     ! Save tracer names and ID's into State_Chm
-    State_Chm%TRAC_NAME(1:N_TRACERS) = TRACER_NAME
-    State_Chm%TRAC_ID  (1:N_TRACERS) = ID_TRACER
-
+    DO N = 1, N_TRACERS
+       State_Chm%TRAC_NAME(N) = 'TRC_' // TRIM( TRACER_NAME(N) )
+       State_Chm%TRAC_ID  (N) = ID_TRACER(N)
+    ENDDO
+       
     ! Allocate and zero GEOS-Chem diagnostic arrays
     CALL NDXX_SETUP
-       
+
     ! Initialize 
     CALL GC_CHEMINIT( PLON, PLAT )
 
     ! Allocate and initialize met field arrays
     CALL INIT_DAO
-    
+
     ! Initialize the GEOS-Chem pressure module (set Ap & Bp)
     CALL INIT_PRESSURE( am_I_Root )
-    ! IF ( LPRT ) CALL ENDRUN( '### MAIN: A INIT_PRESSURE' )
 
-! We should block these off with IF statements
-!    ! Initialize the PBL mixing module
-!    CALL INIT_PBL_MIX
+    ! Initialize the PBL mixing module
+    CALL INIT_PBL_MIX
 !       
 !    ! Initialize the  
 !    CALL INIT_WETSCAV
 
-      ! INITIALIZE ALLOCATABLE SMVGEAR/KPP ARRAYS
+    !=======================================================================
+    ! Initialize chemistry mechanism
+    !=======================================================================
+
+    ! INITIALIZE ALLOCATABLE SMVGEAR/KPP ARRAYS
     IF ( LEMIS .OR. LCHEM ) THEN
-       IF ( ITS_A_FULLCHEM_SIM() ) CALL INIT_COMODE( am_I_Root )
-       IF ( ITS_AN_AEROSOL_SIM() ) CALL INIT_COMODE( am_I_Root )
+
+       ! Initialize arrays in comode_mod.F
+       CALL INIT_COMODE( am_I_Root )
+
+       ! Initialize KPP (if necessary)
        IF ( LKPP ) THEN
           CALL INIT_GCKPP_COMODE( am_I_Root, IIPAR,   JJPAR, LLTROP,  &
                                   ITLOOP,    NMTRATE, IGAS,  RC      )
        ENDIF
     ENDIF
-    
+
+    !%%% NOTE: FOR NOW THIS IS IN THE CHEMDR %%%
+
+    ! Read from data file mglob.dat
+    CALL READER( .TRUE., am_I_Root )
+
+    !### Debug
+    IF ( LPRT .and. am_I_Root ) THEN
+       CALL DEBUG_MSG( '### CHEMDR: after READER' )        
+    ENDIF
+
+    ! Read "globchem.dat" chemistry mechanism
+    CALL READCHEM( am_I_Root )
+
+    !### Debug
+    IF ( LPRT .and. am_I_Root ) THEN
+       CALL DEBUG_MSG( '### CHEMDR: after READCHEM' )        
+    ENDIF
+
+    ! Save Chemical species names ID's into State_Chm
+    DO N = 1, IGAS
+       IF ( LEN_TRIM( NAMEGAS(N) ) > 0 ) THEN 
+          State_Chm%SPEC_NAME(N) = TRIM( NAMEGAS(N) )
+          State_Chm%SPEC_ID  (N) = N
+       ENDIF
+    ENDDO
+
+    ! Set NCS=NCSURBAN here since we have defined our tropospheric
+    ! chemistry mechanism in the urban slot of SMVGEAR II (bmy, 4/21/03)
+    NCS = NCSURBAN
+
+    !%%%%% FOR NOW HARDWIRE CH4 to 2007 values %%%%%
+    ! Get CH4 [ppbv] in 4 latitude bins for each year
+    CALL GET_GLOBAL_CH4( 2007,   .TRUE., C3090S, &
+                         C0030S, C0030N, C3090N, am_I_Root )
+
+    !### Debug
+    IF ( LPRT .and. am_I_Root ) THEN
+       CALL DEBUG_MSG( '### CHEMDR: after GET_GLOBAL_CH4' )        
+    ENDIF
+
+    ! Initialize FAST-J photolysis
+    CALL INPHOT( LLPAR, NPHOT, am_I_Root ) 
+         
+    !### Debug
+    IF ( LPRT .and. am_I_Root ) THEN
+       CALL DEBUG_MSG( '### CHEMDR: after INPHOT' )        
+    ENDIF
+
+    ! Flag certain chemical species
+    CALL SETTRACE( State_Chm, am_I_Root )
+
+    !### Debug
+    IF ( LPRT .and. am_I_Root ) THEN
+       CALL DEBUG_MSG( '### CHEMDR: after SETTRACE' )
+    ENDIF
+
+    ! Flag emission & drydep rxns
+    CALL SETEMDEP( N_TRACERS, am_I_Root )
+
+    !### Debug
+    IF ( LPRT .and. am_I_Root ) THEN
+       CALL DEBUG_MSG( '### CHEMDR: after SETEMDEP' )
+    ENDIF
+
     ! Allocate array of overhead O3 columns for TOMS
     ALLOCATE( TO3_DAILY( IIPAR, JJPAR ), STAT=AS )
     TO3_DAILY = 0d0
@@ -308,6 +372,10 @@ CONTAINS
 !
     LOGICAL, INTENT(IN) :: am_I_Root   ! Are we on the root CPU?
 ! 
+! !REMARKS:
+!  NOTE: We will probably convert the input file into an ESMF resource file
+!  in the near future.
+!
 ! !REVISION HISTORY: 
 !  15 Oct 2012 - M. Long     - Initial version
 !  15 Oct 2012 - R. Yantosca - Added ProTeX Headers, use F90 format/indents
@@ -360,7 +428,7 @@ CONTAINS
     INTEGER :: NYMDB, NHMSB, Y, M, D, TOD, H, MN, S
     INTEGER :: DTM
     REAL*8  :: FRAC_DAY
-       
+    
     ! Convert timestep from seconds to minutes
     DTM =  DT / 60
 

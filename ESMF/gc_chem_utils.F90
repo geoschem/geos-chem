@@ -44,13 +44,7 @@ MODULE GC_Chem_Utils
 !\\
 ! !INTERFACE:
 !
-  FUNCTION GET_SPC_INDX( SPC_NAME, GC_SPC_IDS, GC_SPC_NAMES ) RESULT( SPC_INDX )
-!
-! !USES:
-!
-    !%%%% NOTE: THIS DOESN'T SEEM TO BE USED HERE %%%%
-    !%%%%       SO MAYBE WE CAN DELETE THIS LATER %%%%
-    !USE COMODE_LOOP_MOD, ONLY : IGAS
+  FUNCTION Get_Spc_Indx( SPC_NAME, GC_SPC_IDS, GC_SPC_NAMES ) RESULT( SPC_INDX )
 !
 ! !INPUT PARAMETERS:
 !
@@ -88,7 +82,7 @@ MODULE GC_Chem_Utils
 
     ENDDO
 
-  END FUNCTION GET_SPC_INDX
+  END FUNCTION Get_Spc_Indx
 !EOC
 !------------------------------------------------------------------------------
 !          Harvard University Atmospheric Chemistry Modeling Group            !

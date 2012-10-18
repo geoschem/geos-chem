@@ -106,7 +106,7 @@
       REAL*8, ALLOCATABLE :: PFLT(:,:)  ! "Floating" surface pressure field
       REAL*8, ALLOCATABLE :: AP_FULLGRID(:) ! "A" term for unreduced ETA
       REAL*8, ALLOCATABLE :: BP_FULLGRID(:) ! "B" term for unreduced ETA
-#if defined( DEVEL ) || defined( EXTERNAL_GRID ) || defined( EXTERNAL_FORCING )
+#if defined( EXTERNAL_GRID ) || defined( EXTERNAL_FORCING )
       REAL*8, ALLOCATABLE :: EXTERNAL_PEDGE(:,:,:)
 #endif
       CONTAINS
@@ -858,7 +858,8 @@
 
 #endif
       
-      ! Echo info to std output
+#if !defined( ESMF_ ) 
+      ! Echo info to std output (skip if using ESMF interface to GEOS-5 GCM)
       IF ( am_I_Root ) THEN
          WRITE( 6, '(a)'   ) REPEAT( '=', 79 )
          WRITE( 6, '(a,/)' ) 'V E R T I C A L   G R I D   S E T U P'
@@ -868,6 +869,7 @@
          WRITE( 6, '( ''Bp '', /, 6(f11.6,1x) )' ) BP(1:LLPAR+1)
          WRITE( 6, '(a)'   ) REPEAT( '=', 79 )
       ENDIF
+#endif
 
       END SUBROUTINE INIT_PRESSURE
 !EOC

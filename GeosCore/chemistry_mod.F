@@ -69,7 +69,7 @@
 ! !INTERFACE:
 !
 #if defined( DEVEL ) || defined( EXTERNAL_GRID ) || defined( EXTERNAL_FORCING )
-      SUBROUTINE DO_CHEMISTRY(am_I_Root, NI, NJ, NL, CHEM_STATE, GC_MET)
+      SUBROUTINE DO_CHEMISTRY(am_I_Root,NI,NJ,NL,State_Chm, State_Met)
 #else
       SUBROUTINE DO_CHEMISTRY(am_I_Root)
 #endif
@@ -182,6 +182,8 @@
 !                              this down to lower-level chem routines for GIGC
 !  08 Aug 2012 - R. Yantosca - Now align IF statements better
 !  10 Aug 2012 - R. Yantosca - Cosmetic changes
+!  18 Oct 2012 - R. Yantosca - Rename GC_MET argument to State_Met
+!  18 Oct 2012 - R. Yantosca - Rename CHEM_STATE argument to State_Chem
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -191,9 +193,9 @@
       LOGICAL, SAVE :: FIRST = .TRUE.
       INTEGER       :: N_TROP, MONTH, YEAR, WAVELENGTH
 
-#if defined( DEVEL ) || defined( EXTERNAL_GRID ) || defined( EXTERNAL_FORCING )
-      TYPE(CHEMSTATE), INTENT(INOUT) :: CHEM_STATE
-      TYPE(GC_MET_LOCAL), INTENT(IN) :: GC_MET
+if defined( DEVEL ) || defined( EXTERNAL_GRID ) || defined( EXTERNAL_FORCING )
+      TYPE(CHEMSTATE), INTENT(INOUT) :: State_Chm
+      TYPE(GC_MET_LOCAL), INTENT(IN) :: State_Met
 !      REAL*8                         :: STT(IIPAR,JJPAR,LLPAR,N_TRACERS)
 #endif
 
@@ -203,7 +205,7 @@
 
 #if defined( DEVEL ) || defined( EXTERNAL_GRID ) || defined( EXTERNAL_FORCING )
       ! Transfer tracer array to local
-      STT(:,:,:,1:N_TRACERS) = CHEM_STATE%TRACERS(:,:,:,1:N_TRACERS)
+      STT(:,:,:,1:N_TRACERS) = State_Chm%TRACERS(:,:,:,1:N_TRACERS)
 #endif
 
       ! Compute optical depths (except for CH4 simulation)
@@ -223,7 +225,7 @@
 
 #if defined( DEVEL ) || defined( EXTERNAL_GRID ) || defined( EXTERNAL_FORCING )
             ! Call chemistry solver for ESMF interface
-            CALL CHEMDR( am_I_Root, NI, NJ, NL, GC_MET, CHEM_STATE )
+            CALL CHEMDR( am_I_Root, NI, NJ, NL, State_Met, State_Chm )
 #else
             ! Call chemistry solver from traditional driver "main.F"
             CALL CHEMDR( am_I_Root )
@@ -432,7 +434,7 @@
       
 #if defined( DEVEL ) || defined( EXTERNAL_GRID ) || defined( EXTERNAL_FORCING )
       ! Transfer tracer array back to non-local
-      CHEM_STATE%TRACERS(:,:,:,1:N_TRACERS) = STT(:,:,:,1:N_TRACERS)
+      State_Chm%TRACERS(:,:,:,1:N_TRACERS) = STT(:,:,:,1:N_TRACERS)
 #endif
 
       END SUBROUTINE DO_CHEMISTRY

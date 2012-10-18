@@ -71,7 +71,7 @@ CONTAINS
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE ALLOCATE_ALL
+  SUBROUTINE ALLOCATE_ALL( am_I_Root, RC )
 !
 ! !USES:
 !
@@ -86,12 +86,25 @@ CONTAINS
     USE CMN_SIZE_MOD,      ONLY : SET_CMN_SIZE_MOD
     USE CMN_DIAG_MOD,      ONLY : SET_CMN_DIAG_MOD
     USE COMODE_LOOP_MOD,   ONLY : SET_COMODE_LOOP_MOD
-          
+    USE SMV_ERRCODE_MOD
+
     IMPLICIT NONE
-! 
+!
+! !INPUT PARAMETERS:
+!
+    LOGICAL, INTENT(IN) :: am_I_Root   ! Are we on the root CPU?
+!
+! !OUTPUT PARAMETERS:
+!
+      INTEGER, INTENT(OUT) :: RC          ! Success or failure?
+!
+! !REMARKS:
+!  Need to add better error checking and exit upon failure.
+!
 ! !REVISION HISTORY: 
 !  26 Jan 2012 - M. Long     - Initial version
 !  13 Aug 2012 - R. Yantosca - Added ProTeX headers
+!  17 Oct 2012 - R. Yantosca - Add am_I_Root, RC as arguments
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -103,7 +116,7 @@ CONTAINS
     CALL SET_CMN_MOD
     CALL SET_CMN_FJ_MOD
     CALL SET_COMMSOIL_MOD
-    CALL SET_COMODE_LOOP_MOD
+    CALL SET_COMODE_LOOP_MOD( am_I_Root, RC )
     CALL SET_JV_CMN_MOD
     
     CALL SET_VDIFF_PRE_MOD
