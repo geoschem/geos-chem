@@ -496,8 +496,7 @@
          ! Rd = 8.31 J/(mol*K) / 0.02897 kg/mol. 
          !===========================================================
          BXHEIGHT(I,J,L) = Rdg0 * T(I,J,L) * LOG( P1 / P2 )
-#if defined( DEVEL )
-!         BXHEIGHT(I,J,L) = LOCAL_MET%BXHEIGHT(I,J,L)
+#if defined( DEVEL ) || defined( EXTERNAL_GRID ) || defined( EXTERNAL_FORCING )
          LOCAL_MET%BXHEIGHT(I,J,L) = BXHEIGHT(I,J,L)
 #endif            
 

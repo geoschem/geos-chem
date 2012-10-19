@@ -12,7 +12,7 @@
 ! !INTERFACE:
 !
 #if defined( DEVEL ) || defined( EXTERNAL_GRID ) || defined( EXTERNAL_FORCING )
-      SUBROUTINE CHEMDR( am_I_Root, NI, NJ, NL, GC_MET, GC_STATE )
+      SUBROUTINE CHEMDR( am_I_Root, NI, NJ, NL, GC_MET, State_Chm )
 #else
       SUBROUTINE CHEMDR( am_I_Root )
 #endif
@@ -221,12 +221,13 @@
 !   6 Mar 2012 - R. Yantosca - Now reference TO3 from dao_mod.F
 !  30 Jul 2012 - R. Yantosca - Now accept am_I_Root as an argument when
 !                              running with the traditional driver main.F
+!  16 Oct 2012 - R. Yantosca - Renamed chemical state object to State_Chm
 !EOP
 !------------------------------------------------------------------------------
 !BOC
 #if defined( DEVEL ) || defined( EXTERNAL_GRID ) || defined( EXTERNAL_FORCING )
       TYPE(GC_MET_LOCAL), INTENT(IN)    :: GC_MET
-      TYPE(CHEMSTATE),    INTENT(INOUT) :: GC_STATE
+      TYPE(CHEMSTATE),    INTENT(INOUT) :: State_Chm
 #endif
 !
 ! !LOCAL VARIABLES:
@@ -390,7 +391,7 @@
          ! Flag certain chemical species
          !-------------------------------
 #if defined( DEVEL ) || defined( EXTERNAL_GRID ) || defined( EXTERNAL_FORCING )
-         CALL SETTRACE( GC_STATE, am_I_Root )
+         CALL SETTRACE( State_Chm, am_I_Root )
 #else
          CALL SETTRACE( am_I_Root )
 #endif

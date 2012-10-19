@@ -144,11 +144,6 @@
 !
 ! !DEFINED PARAMETERS:
 !
-!------------------------------------------------------------------------------
-! Prior to 12/28/11:
-! Increase from 50 to 53 for bromine chem (jpp, mpayer, 12/28/11)
-!      INTEGER, PARAMETER   :: NSOLMAX = 50      ! Max # of soluble tracers
-!------------------------------------------------------------------------------
       INTEGER, PARAMETER   :: NSOLMAX = 53      ! Max # of soluble tracers
       REAL*8,  PARAMETER   :: EPSILON = 1d-32   ! A very small positive #
 !
@@ -7141,6 +7136,8 @@
 !  (9 ) Now references new function E_ICE, which is an analytic function of 
 !        Kelvin temperature instead of Celsius. (bmy, 3/7/05)
 !  16 Sep 2010 - R. Yantosca - Added ProTeX headers
+!  18 Oct 2012 - R. Yantosca - Removed DEVEL from #ifdef statement, now use
+!                              EXTERNAL_GRID || EXTERNAL_FORCING
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -7204,7 +7201,14 @@
          FIRST = .FALSE. 
       ENDIF
 
-#if ! defined( DEVEL )
+!-----------------------------------------------------------------------------
+! Prior to 10/17/12:
+! Shut this section off for EXTERNAL_GRID, EXTERNAL_FORCING
+!#if ! defined( DEVEL )
+!-----------------------------------------------------------------------------
+#if defined( EXTERNAL_GRID ) || defined( EXTERNAL_FORCING )
+      ! Do nothing
+#else
       !=================================================================
       ! Compute Vud, CLDLIQ, CLDICE, C_H2O, following Jacob et al, 2000.
       !=================================================================

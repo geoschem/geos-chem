@@ -12,20 +12,18 @@
 !\\
 ! !INTERFACE: 
 !      
-MODULE GC_CHUNK_MOD
+MODULE GC_Chunk_Mod
 !
 ! !USES:
 !      
-  USE GC_TYPE_MOD
-
   IMPLICIT NONE
   PRIVATE
 !
 ! !PUBLIC MEMBER FUNCTIONS:
 !
-  PUBLIC :: GC_CHUNK_INIT
-  PUBLIC :: GC_CHUNK_RUN
-  PUBLIC :: GC_CHUNK_FINAL
+  PUBLIC :: GC_Chunk_Init
+  PUBLIC :: GC_Chunk_Run
+  PUBLIC :: GC_Chunk_Final
 !
 ! !REMARKS:
 !  The routines in this module execute only when GEOS-Chem is connected
@@ -35,6 +33,7 @@ MODULE GC_CHUNK_MOD
 !  22 Jun 2009 - R. Yantosca & P. Le Sager - Chunkized & cleaned up.
 !  09 Oct 2012 - R. Yantosca - Now pass am_I_Root to all routines
 !  09 Oct 2012 - R. Yantosca - Added comments, cosmetic changes
+!  16 Oct 2012 - R. Yantosca - Renamed GC_STATE argument to State_Chm
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -62,6 +61,71 @@ CONTAINS
 !------------------------------------------------------------------------------
 !BOP
 !
+! !IROUTINE: gc_chunk_init
+!
+! !DESCRIPTION: Subroutine GC\_CHUNK\_INIT calls the various 
+!  initialization routines that read the setup files for the GEOS-Chem
+!  chunk code.  Also, ID flags for advected tracers, chemical species,
+!  dry deposition species and wet deposition species are defined.
+!\\
+!\\
+! !INETRFACE:
+!
+  SUBROUTINE GC_Chunk_Init( NI,     NJ,   NL,   State_Met, State_Chm,  &
+                            tsChem, nymd, nhms, am_I_Root, RC        )
+!
+! !USES:
+!
+    USE GC_Initialization_Mod
+    USE GC_Type_Mod
+    USE GC_Type2_MOD
+    USE Smv_ErrCode_Mod
+!
+! !INPUT PARAMETERS:
+!
+    INTEGER,            INTENT(IN)    :: NI          ! # of longitudes
+    INTEGER,            INTENT(IN)    :: NJ          ! # of latitudes
+    INTEGER,            INTENT(IN)    :: NL          ! # of levels
+    INTEGER,            INTENT(IN)    :: nymd        ! GMT date (YYYY/MM/DD)
+    INTEGER,            INTENT(IN)    :: nhms        ! GMT time (hh:mm:ss)
+    LOGICAL,            INTENT(IN)    :: am_I_Root   ! Are we on the root CPU?
+    REAL,               INTENT(IN)    :: tsChem      ! Chemistry timestep
+!
+! !INPUT/OUTPUT PARAMETERS:
+!
+    TYPE(CHEMSTATE),    INTENT(INOUT) :: State_Chm   ! Chemistry state
+    TYPE(GC_MET_LOCAL), INTENT(INOUT) :: State_Met   ! Meteorology state
+!
+! !OUTPUT PARAMETERS:
+!
+    INTEGER,            INTENT(OUT)   :: RC          ! Success or failure?
+!
+! !REVISION HISTORY: 
+!  18 Jul 2011 - M. Long     - Initial Version
+!  28 Mar 2012 - M. Long     - Rewrite per structure of BCC init interface
+!  09 Oct 2012 - R. Yantosca - Added comments, cosmetic changes
+!  16 Oct 2012 - R. Yantosca - Renamed GC_STATE argument to State_Chm
+!  16 Oct 2012 - R. Yantosca - Renamed GC_MET argument to State_Met
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+
+    ! Initialize GEOS-Chem dimensions w/ the dimensions on this PET
+    CALL GC_Init_Dimensions( NI, NJ, NL )
+
+    ! Initialize the G-C simulation and chemistry mechanism
+    CALL GC_InitRun( State_Met, State_Chm, tsChem, nymd, nhms, am_I_Root, RC )
+
+    ! Return code
+    RC = SMV_SUCCESS
+    
+  END SUBROUTINE GC_Chunk_Init
+!EOC
+!------------------------------------------------------------------------------
+!          Harvard University Atmospheric Chemistry Modeling Group            !
+!------------------------------------------------------------------------------
+!BOP
+!
 ! !IROUTINE: gc_chunk_run
 !
 ! !DESCRIPTION: Routine GC\_CHUNK\_RUN is the driver for the following 
@@ -77,13 +141,15 @@ CONTAINS
 !
 ! !INTERFACE:
 !
-  SUBROUTINE GC_Chunk_Run( am_I_Root, GC_MET, GC_STATE, NL, NI, NJ, RC )
+  SUBROUTINE GC_Chunk_Run( am_I_Root, State_Met, State_Chm, NL, NI, NJ, RC )
 !
 ! !USES:
 !
-    USE GC_CHEMDR
+
+    USE Gc_ChemDr
     USE SMV_ERRCODE_MOD
-    USE GC_TYPE2_MOD
+    USE GC_Type_Mod
+    USE GC_Type2_Mod
 !
 ! !INPUT PARAMETERS:
 !
@@ -94,8 +160,8 @@ CONTAINS
 !
 ! !INPUT/OUTPUT PARAMETERS:
 !
-    TYPE(CHEMSTATE),    INTENT(INOUT) :: GC_STATE    ! Chemical state
-    TYPE(GC_MET_LOCAL), INTENT(INOUT) :: GC_MET      ! Meteorology state
+    TYPE(CHEMSTATE),    INTENT(INOUT) :: State_Chm   ! Chemical state
+    TYPE(GC_MET_LOCAL), INTENT(INOUT) :: State_Met   ! Meteorology state
 !
 ! !OUTPUT PARAMETERS:
 !
@@ -107,8 +173,11 @@ CONTAINS
 !  stored in local variables within this module.
 !
 ! !REVISION HISTORY:
-!  22 Jun 2009 - R. Yantosca & P. Le Sager - Columnized & cleaned up.
+!  18 Jul 2011 - M. Long     - Initialf Version
 !  09 Oct 2012 - R. Yantosca - Added extra comments & cosmetic changes
+!  16 Oct 2012 - R. Yantosca - Renamed GC_STATE argument to State_Chm
+!  16 Oct 2012 - R. Yantosca - Renamed GC_MET argument to State_Met
+!  17 Oct 2012 - R. Yantosca - Need to call AIRQNT before chemistry
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -118,77 +187,16 @@ CONTAINS
     INTEGER :: NC
 
     ! Number of advected tracers
-    NC = SIZE(GC_STATE%TRACERS,4)
+    NC = SIZE( State_Chm%Tracers, 4 )
 
     ! Call the chemistry run method
-    CALL DO_GC_CHEM( GC_STATE, GC_MET, am_I_Root, NI, NJ, NL, NC )
+    CALL Do_GC_Chem( State_Chm, State_Met, am_I_Root, NI, NJ, NL, NC )
 
     ! Return code
     RC = SMV_SUCCESS
 
-  END SUBROUTINE GC_CHUNK_RUN
-!EOC
-!------------------------------------------------------------------------------
-!          Harvard University Atmospheric Chemistry Modeling Group            !
-!------------------------------------------------------------------------------
-!BOP
-!
-! !IROUTINE: gc_chunk_init
-!
-! !DESCRIPTION: Subroutine GC\_CHUNK\_INIT calls the various 
-!  initialization routines that read the setup files for the GEOS-Chem
-!  chunk code.  Also, ID flags for advected tracers, chemical species,
-!  dry deposition species and wet deposition species are defined.
-!\\
-!\\
-! !INETRFACE:
-!
-  SUBROUTINE GC_Chunk_Init( NI,     NJ,   NL,   GC_MET,    GC_STATE,  &
-                            tsChem, nymd, nhms, am_I_Root, RC        )
-!
-! !USES:
-!
-    USE GC_INITIALIZATION_MOD
-    USE GC_TYPE2_MOD
-    USE SMV_ERRCODE_MOD
-!
-! !INPUT PARAMETERS:
-!
-    INTEGER, INTENT(IN)  :: NI          ! # of longitudes
-    INTEGER, INTENT(IN)  :: NJ          ! # of latitudes
-    INTEGER, INTENT(IN)  :: NL          ! # of levels
-    INTEGER, INTENT(IN)  :: nymd        ! GMT date (YYYY/MM/DD)
-    INTEGER, INTENT(IN)  :: nhms        ! GMT time (hh:mm:ss)
-    LOGICAL, INTENT(IN)  :: am_I_Root   ! Are we on the root CPU?
-    REAL,    INTENT(IN)  :: tsChem      ! Chemistry timestep
-!
-! !INPUT/OUTPUT PARAMETERS:
-!
-    TYPE(CHEMSTATE)      :: GC_STATE    ! Object for chemistry state
-    TYPE(GC_MET_LOCAL)   :: GC_MET      ! Object for meteorology state
-!
-! !OUTPUT PARAMETERS:
-!
-    INTEGER, INTENT(OUT) :: RC          ! Error return code
-!
-! !REVISION HISTORY: 
-!  18 Jul 2011 - M. Long     - Initial Version
-!  28 Mar 2012 - M. Long     - Rewrite per structure of BCC init interface
-!  09 Oct 2012 - R. Yantosca - Added comments, cosmetic changes
-!EOP
-!------------------------------------------------------------------------------
-!BOC
+  END SUBROUTINE GC_Chunk_Run
 
-    ! Initialize dimensions
-    CALL GC_INIT_DIMENSIONS( NI, NJ, NL )
-
-    ! Initialize the G-C simulation and chemistry mechanism
-    CALL GC_INITRUN( GC_MET, GC_STATE, tsChem, nymd, nhms, am_I_Root)
-
-    ! Return code
-    RC = SMV_SUCCESS
-
-  END SUBROUTINE GC_CHUNK_INIT
 !EOC
 !------------------------------------------------------------------------------
 !          Harvard University Atmospheric Chemistry Modeling Group            !
@@ -203,39 +211,35 @@ CONTAINS
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE GC_CHUNK_FINAL( am_I_Root, RC )
+  SUBROUTINE GC_Chunk_Final( State_Met, State_Chm, am_I_Root, RC )
 !
 ! !USES:
 !
-    USE SMV_ERRCODE_MOD
+    USE GC_Type_Mod,         ONLY : GC_Met_Local
+    USE GC_Type2_Mod,        ONLY : ChemState    ! Derived type for chem state
+    USE GC_Finalization_Mod
+    USE Smv_ErrCode_Mod
 !
 ! !INPUT PARAMETERS:
 !
-    LOGICAL, INTENT(IN) :: am_I_Root
+    LOGICAL,            INTENT(IN)    :: am_I_Root  ! Are we on the root CPU?
+!
+! !INPUT/OUTPUT PARAMETERS:
+!
+    TYPE(GC_Met_Local), INTENT(INOUT) :: State_Met  ! Chemistry state
+    TYPE(CHEMSTATE),    INTENT(INOUT) :: State_Chm  ! Chemistry state
 !
 ! !OUTPUT PARAMETERS:
 !
-    INTEGER, INTENT(OUT)   :: RC         !  Error return code
+    INTEGER,            INTENT(OUT)   :: RC         ! Success or failure
 !
 ! !REMARKS:
-! %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-! %%%% NOTE: As of 10/9/12, the finalize is not done; this is a stub. %%%%
-! %%%% Need to add the finalize & deallocation code ASAP.             %%%%
-! %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+!  Add 
 !
 ! !REVISION HISTORY: 
-!  30 Apr 2009 - R. Yantosca - Initial version
-!  05 May 2009 - P. Le Sager - now use module variables; remove call to
-!                              cleanup_dust
-!  05 Jun 2009 - R. Yantosca - Now deallocate COEF%MOLEC_KG & COEF%XNUMOL
-!  30 Jun 2009 - R. Yantosca - Moved here from "chemistry_mod.f" 
-!  30 Apr 2010 - R. Yantosca - Now pass IDENT via the arg list
-!  30 Apr 2010 - R. Yantosca - Now call CLEANUP_SCHEM outside this routine
-!  03 Jun 2010 - R. Yantosca - Removed calls to CLEANUP_* routines.  These
-!                              referenced 3-D arrays that only need to be
-!                              used in GEOS-Chem.
-!  08 Jul 2010 - R. Yantosca - Archive tracers, OH in DIAG_COL for printout
+!  18 Jul 2011 - M. Long     - Initial Version
 !  09 Oct 2012 - R. Yantosca - Added comments & cosmetic changes
+!  16 Oct 2012 - R. Yantosca - Renamed GC_STATE argument to State_Chm
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -247,7 +251,10 @@ CONTAINS
     ! Set error code to success
     RC                      = SMV_SUCCESS
 
-  END SUBROUTINE GC_CHUNK_FINAL
+    ! Finalize GEOS-Chem
+    CALL GC_Finalize( State_Met, State_Chm, am_I_Root, RC )
+
+  END SUBROUTINE GC_Chunk_Final
 !EOC
-END MODULE GC_CHUNK_MOD
+END MODULE GC_Chunk_Mod
 #endif

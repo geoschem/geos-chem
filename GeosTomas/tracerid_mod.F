@@ -2021,8 +2021,8 @@
 
 !------------------------------------------------------------------------------
 
-#if defined( DEVEL )
-      SUBROUTINE SETTRACE( GC_STATE, am_I_Root )
+#if defined( DEVEL ) || defined( EXTERNAL_GRID ) || defined( EXTERNAL_FORCING )
+      SUBROUTINE SETTRACE( State_Chm, am_I_Root )
 #else
       SUBROUTINE SETTRACE( am_I_Root )
 #endif
@@ -2054,6 +2054,7 @@
 !  (9 ) Add debug print. (hotp, 01/10)
 !  30 Jul 2012 - R. Yantosca - Now accept am_I_Root as an argument when
 !                              running with the traditional driver main.F
+!  16 Oct 2012 - R. Yantosca - Renamed chem state object to State_Chm
 !******************************************************************************
 !
       ! References to F90 modules
@@ -2064,13 +2065,17 @@
       ! for Debug (hotp 8/5/09)
       USE LOGICAL_MOD, ONLY : LPRT
 
-      USE CMN_SIZE_MOD      ! Size parameters
-      USE COMODE_LOOP_MOD   ! NAMEGAS
+      USE CMN_SIZE_MOD                           ! Size parameters
+      USE COMODE_LOOP_MOD                        ! NAMEGAS
 
-#if defined(DEVEL)
-      USE GC_TYPE2_MOD,  ONLY : CHEMSTATE, REGISTER_CSPEC
+#if defined( DEVEL ) || defined( EXTERNAL_GRID ) || defined( EXTERNAL_FORCING )
+      USE GC_TYPE2_MOD,  ONLY : CHEMSTATE        ! Derived type for chem state 
 
-      TYPE(CHEMSTATE), INTENT(INOUT) :: GC_STATE
+#if defined( ESMF_ )
+      USE GC_TYPE2_MOD,  ONLY : Register_Species ! Used w/ ESMF
+#endif
+
+      TYPE(CHEMSTATE), INTENT(INOUT) :: State_Chm   ! Chemical state object
 #endif
 
       ! Arguments
@@ -2177,13 +2182,18 @@
 
          IF ( NAMEGAS(I) == 'H2SO4'  ) IDH2SO4  = I !(win, 6/23/09)
 
-#if defined( DEVEL )
-         CALL REGISTER_CSPEC(NAMEGAS(I),I,GC_STATE,STAT)
-         IF (STAT .lt. 0) THEN
+#if defined( ESMF_ )
+
+         ! Add the species name & Id to the chemistry state object
+         ! (this only needs to be done if we are using the ESMF interface)
+         CALL Register_Species( NAMEGAS(I), I, State_Chm, STAT )
+
+         ! Error check
+         IF ( STAT .lt. 0 ) THEN
             CALL ERROR_STOP('FAIL','REGISTER_CSPEC')
          ELSE
             IF ( am_I_Root ) THEN
-               WRITE(6,*) 'Registered ', NAMEGAS(I), STAT ELSE
+               WRITE(6,*) 'Registered ', NAMEGAS(I), STAT
             ENDIF
          ENDIF
 #endif

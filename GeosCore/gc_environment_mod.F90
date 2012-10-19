@@ -6,15 +6,16 @@
 !
 ! !MODULE: gc_environment_mod
 !
-! !DESCRIPTION: Module GC\_ENVIRONMENT\_MOD establishes the runtime environment
-! for the GEOS-Chem model. It is designed to receive model parameter and geophys.
-! environment information and allocate memory based upon it.
+! !DESCRIPTION: Module GC\_ENVIRONMENT\_MOD establishes the runtime 
+!  environment for the GEOS-Chem model. It is designed to receive model 
+!  parameter and geophysical environment information and allocate memory 
+!  based upon it.
 !
-! It provides routines to do the following:
-! (1) Allocate geo-spatial arrays
-! (2) Initialize met. field derived type.
-! (3) Initialize CHEM, PHYS, and EMISSIONS states
-! (4) ...
+!  It provides routines to do the following:
+!  (1) Allocate geo-spatial arrays
+!  (2) Initialize met. field derived type.
+!  (3) Initialize CHEM, PHYS, and EMISSIONS states
+!  (4) ...
 !\\
 !\\
 !  NOTE: This is mostly for testing the grid-independent code in the current 
@@ -24,7 +25,7 @@
 !\\
 ! !INTERFACE: 
 !
-MODULE GC_ENVIRONMENT_MOD
+MODULE GC_Environment_Mod
 !
 ! !USES
 !        
@@ -44,6 +45,10 @@ MODULE GC_ENVIRONMENT_MOD
 !
   PRIVATE :: INIT_LOCAL_MET
 !
+! !REMARKS:
+!  For consistency, we should probably move the met state initialization
+!  to the same module where the met state derived type is contained.
+!
 ! !REVISION HISTORY:
 !  26 Jan 2012 - M. Long     - Created module file
 !  13 Aug 2012 - R. Yantosca - Added ProTeX headers
@@ -62,17 +67,14 @@ CONTAINS
 ! !DESCRIPTION: Subroutine ALLOCATE\_ALL allocates all LAT/LON ALLOCATABLE 
 !  arrays for global use by the GEOS-Chem either as a standalone program or
 !  module.
-
 !\\
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE ALLOCATE_ALL
+  SUBROUTINE ALLOCATE_ALL( am_I_Root, RC )
 !
 ! !USES:
 !
-
-    USE GC_TYPE2_MOD,      ONLY : CHEM_STATE, INIT_CHEMSTATE
     USE CMN_DEP_MOD,       ONLY : SET_CMN_DEP_MOD
     USE CMN_NOX_MOD,       ONLY : SET_CMN_NOX_MOD
     USE CMN_O3_MOD,        ONLY : SET_CMN_O3_MOD
@@ -84,12 +86,25 @@ CONTAINS
     USE CMN_SIZE_MOD,      ONLY : SET_CMN_SIZE_MOD
     USE CMN_DIAG_MOD,      ONLY : SET_CMN_DIAG_MOD
     USE COMODE_LOOP_MOD,   ONLY : SET_COMODE_LOOP_MOD
-          
+    USE SMV_ERRCODE_MOD
+
     IMPLICIT NONE
-! 
+!
+! !INPUT PARAMETERS:
+!
+    LOGICAL, INTENT(IN) :: am_I_Root   ! Are we on the root CPU?
+!
+! !OUTPUT PARAMETERS:
+!
+      INTEGER, INTENT(OUT) :: RC          ! Success or failure?
+!
+! !REMARKS:
+!  Need to add better error checking and exit upon failure.
+!
 ! !REVISION HISTORY: 
 !  26 Jan 2012 - M. Long     - Initial version
 !  13 Aug 2012 - R. Yantosca - Added ProTeX headers
+!  17 Oct 2012 - R. Yantosca - Add am_I_Root, RC as arguments
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -101,14 +116,14 @@ CONTAINS
     CALL SET_CMN_MOD
     CALL SET_CMN_FJ_MOD
     CALL SET_COMMSOIL_MOD
-    CALL SET_COMODE_LOOP_MOD
+    CALL SET_COMODE_LOOP_MOD( am_I_Root, RC )
     CALL SET_JV_CMN_MOD
     
     CALL SET_VDIFF_PRE_MOD
           
   END SUBROUTINE ALLOCATE_ALL
 !EOC
-!------------------------------------------------------------------------------
+ !------------------------------------------------------------------------------
 !          Harvard University Atmospheric Chemistry Modeling Group            !
 !------------------------------------------------------------------------------
 !BOP
@@ -122,35 +137,48 @@ CONTAINS
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE INIT_ALL( LOCAL_MET, CHEM_STATE ) 
+  SUBROUTINE Init_All( State_Met, State_Chm, am_I_Root, RC ) 
 
 !
 ! !USES:
 !
     USE GC_TYPE_MOD
-    USE GC_TYPE2_MOD, ONLY : INIT_CHEMSTATE, CHEMSTATE
+    USE GC_TYPE2_MOD, ONLY : ChemState
+    USE GC_TYPE2_MOD, ONLY : Init_Chemistry_State
 
     IMPLICIT NONE
 !
+! !INPUT PARAMETERS:
+!
+    LOGICAL,            INTENT(IN)    :: am_I_Root   ! Are we on the root CPU?
+!
+! !INPUT/OUTPUT PARAMETERS:
+!
+    TYPE(GC_MET_LOCAL), INTENT(INOUT) :: State_Met   ! Meteorology state
+    TYPE(CHEMSTATE   ), INTENT(INOUT) :: State_Chm   ! Chemistry state
+!
 ! !OUTPUT PARAMETERS:
 !
-    TYPE(GC_MET_LOCAL), INTENT(OUT) :: LOCAL_MET
-    TYPE(CHEMSTATE   ), INTENT(OUT) :: CHEM_STATE
+    INTEGER,            INTENT(OUT)   :: RC          ! Success or failure
 !
 ! !REVISION HISTORY: 
 !  26 Jan 2012 - M. Long     - Initial version
 !  13 Aug 2012 - R. Yantosca - Added ProTeX headers
+!  16 Oct 2012 - R. Yantosca - Renamed LOCAL_MET argument to State_Met
+!  16 Oct 2012 - R. Yantosca - Renamed GC_STATE  argument to State_Chm
+!  16 Oct 2012 - R. Yantosca - Call Init_Chemistry_State (in gc_type2_mod.F90,
+!                              which was renamed from INIT_CHEMSTATE)
 !EOP
 !------------------------------------------------------------------------------
 !BOC
 
     ! Initialize object for met fields
-    CALL INIT_LOCAL_MET( LOCAL_MET )
+    CALL INIT_LOCAL_MET( State_Met )
 
     ! Initialize object for chemical state
-    CALL INIT_CHEMSTATE( CHEM_STATE )
+    CALL Init_Chemistry_State( State_Chm, am_I_Root, RC )
     
-  END SUBROUTINE INIT_ALL
+  END SUBROUTINE Init_All
 !EOC
 !------------------------------------------------------------------------------
 !          Harvard University Atmospheric Chemistry Modeling Group            !
@@ -165,7 +193,7 @@ CONTAINS
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE INIT_LOCAL_MET( LOCAL_MET )
+  SUBROUTINE INIT_LOCAL_MET( State_Met )
 !
 ! !USES:
 !
@@ -177,13 +205,17 @@ CONTAINS
     
     IMPLICIT NONE
 !
-! !OUTPUT PARAMETERS:
+! !INPUT/OUTPUT PARAMETERS:
 !
-    TYPE(GC_MET_LOCAL), INTENT(OUT) :: LOCAL_MET
+    TYPE(GC_MET_LOCAL), INTENT(INOUT) :: State_Met
+!
+! !REMARKS:
+!  For consistency, maybe this should be moved to a different module.
 !
 ! !REVISION HISTORY: 
 !  01 Oct 1995 - R. Yantosca - Initial version
 !  08 Dec 2009 - R. Yantosca - Added ProTeX headers
+!  16 Oct 2012 - R. Yantosca - Renamed LOCAL_MET argument to State_Met
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -192,66 +224,70 @@ CONTAINS
 !
     INTEGER :: I,J,L,AS
 
-          ! Allocate 2-D Arrays
+    !=======================================================================
+    ! Allocate 2-D Arrays
+    !=======================================================================
     ALLOCATE( &
-         LOCAL_MET%ALBD(IIPAR, JJPAR), &   ! Visible surface albedo [unitless]
-         LOCAL_MET%CLDFRC(IIPAR, JJPAR), & ! Column cloud fraction [unitless]
-         LOCAL_MET%FRCLND(IIPAR, JJPAR), & ! Olson land fraction [unitless]
-         LOCAL_MET%GWETTOP(IIPAR, JJPAR), &! Top soil moisture [unitless]
-         LOCAL_MET%HFLUX(IIPAR, JJPAR), &  ! Sensible heat flux [W/m2]
-         LOCAL_MET%LWI(IIPAR, JJPAR), &    ! Land/water indices [unitless]
-         LOCAL_MET%PARDR(IIPAR, JJPAR), &  ! Direct  photsyn active rad [W/m2]
-         LOCAL_MET%PARDF(IIPAR, JJPAR), &  ! Diffuse photsyn active rad [W/m2]
-         LOCAL_MET%PBLH(IIPAR, JJPAR), &   ! PBL height [m]
-         LOCAL_MET%PRECCON(IIPAR, JJPAR), &! Conv  precip @ ground [kg/m2/s]
-         LOCAL_MET%PRECTOT(IIPAR, JJPAR), &! Total precip @ ground [kg/m2/s]
-         LOCAL_MET%RADSWG(IIPAR,JJPAR), & ! Solar radiation @ ground [W/m2]
-         LOCAL_MET%SST(IIPAR, JJPAR), &    ! Sea surface temperature [K]
-         LOCAL_MET%SUNCOS(IIPAR*JJPAR), & ! Cosine of solar zenith angle
-         LOCAL_MET%TO3(IIPAR, JJPAR), &    ! Total overhead O3 column [DU]
-         LOCAL_MET%TROPP(IIPAR, JJPAR), &  ! Tropopause pressure [hPa]
-         LOCAL_MET%TS(IIPAR, JJPAR), &     ! Surface temperature [K]
-         LOCAL_MET%U10M(IIPAR, JJPAR), &   ! E/W wind speed @ 10m height [m/s]
-         LOCAL_MET%USTAR(IIPAR, JJPAR), &  ! Friction velocity [m/s]
-         LOCAL_MET%UVALBEDO(IIPAR, JJPAR), &! UV surface albedo [unitless]
-         LOCAL_MET%V10M(IIPAR, JJPAR), &   ! N/S wind speed @ 10m height [m/s]
-         LOCAL_MET%Z0(IIPAR, JJPAR), &
-         STAT = AS )
-    IF (AS /= 0) CALL ALLOC_ERR('LOCAL_MET 2D')
+       State_Met%ALBD    (IIPAR,JJPAR), & ! Visible surface albedo [unitless]
+       State_Met%CLDFRC  (IIPAR,JJPAR), & ! Column cloud fraction [unitless]
+       State_Met%FRCLND  (IIPAR,JJPAR), & ! Olson land fraction [unitless]
+       State_Met%GWETTOP (IIPAR,JJPAR), & ! Top soil moisture [unitless]
+       State_Met%HFLUX   (IIPAR,JJPAR), & ! Sensible heat flux [W/m2]
+       State_Met%LWI     (IIPAR,JJPAR), & ! Land/water indices [unitless]
+       State_Met%PARDR   (IIPAR,JJPAR), & ! Direct  photsyn active rad [W/m2]
+       State_Met%PARDF   (IIPAR,JJPAR), & ! Diffuse photsyn active rad [W/m2]
+       State_Met%PBLH    (IIPAR,JJPAR), & ! PBL height [m]
+       State_Met%PRECCON (IIPAR,JJPAR), & ! Conv  precip @ ground [kg/m2/s]
+       State_Met%PRECTOT (IIPAR,JJPAR), & ! Total precip @ ground [kg/m2/s]
+       State_Met%RADSWG  (IIPAR,JJPAR), & ! Solar radiation @ ground [W/m2]
+       State_Met%SST     (IIPAR,JJPAR), & ! Sea surface temperature [K]
+       State_Met%SUNCOS  (IIPAR*JJPAR), & ! Cosine of solar zenith angle
+       State_Met%TO3     (IIPAR,JJPAR), & ! Total overhead O3 column [DU]
+       State_Met%TROPP   (IIPAR,JJPAR), & ! Tropopause pressure [hPa]
+       State_Met%TS      (IIPAR,JJPAR), & ! Surface temperature [K]
+       State_Met%U10M    (IIPAR,JJPAR), & ! E/W wind speed @ 10m height [m/s]
+       State_Met%USTAR   (IIPAR,JJPAR), & ! Friction velocity [m/s]
+       State_Met%UVALBEDO(IIPAR,JJPAR), & ! UV surface albedo [unitless]
+       State_Met%V10M    (IIPAR,JJPAR), & ! N/S wind speed @ 10m height [m/s]
+       State_Met%Z0      (IIPAR,JJPAR), &
+       STAT = AS )
+    IF (AS /= 0) CALL ALLOC_ERR('INIT_LOCAL_MET 2D')
 
-          ! Allocate 3-D Arrays
+    !=======================================================================
+    ! Allocate 3-D Arrays
+    !=======================================================================
     ALLOCATE( &
-         LOCAL_MET%AD(IIPAR,JJPAR,LLPAR), &        ! Air mass [kg]
-         LOCAL_MET%AIRDENS(LLPAR,IIPAR,JJPAR), &   ! Air density [kg/m3]
-         LOCAL_MET%AIRVOL(IIPAR,JJPAR,LLPAR), &    ! Grid box volume [m3]
-         LOCAL_MET%AREA_M2(IIPAR, JJPAR, LLPAR), & ! Grid box surface area [cm2]
-         LOCAL_MET%BXHEIGHT(IIPAR,JJPAR,LLPAR), &  ! Grid box height [m]
-         LOCAL_MET%CLDF(LLPAR,IIPAR,JJPAR), &      ! 3-D cloud fraction [unitless]
-         LOCAL_MET%CMFMC(IIPAR,JJPAR,LLPAR+1), &     ! Cloud mass flux [kg/m2/s]
-         LOCAL_MET%DQIDTMST(IIPAR,JJPAR,LLPAR), &  ! Ice tendency, mst proc [kg/kg/s]
-         LOCAL_MET%DQLDTMST(IIPAR,JJPAR,LLPAR), &  ! H2O tendency, mst proc [kg/kg/s]
-         LOCAL_MET%DQVDTMST(IIPAR,JJPAR,LLPAR), &  ! Vapor tendency, mst proc [kg/kg/s]
-         LOCAL_MET%DTRAIN(IIPAR,JJPAR,LLPAR), &    ! Detrainment flux [kg/m2/s]
-         LOCAL_MET%MOISTQ(LLPAR,IIPAR,JJPAR), &    ! Tendency in sp. humidity [kg/kg/s]
-         LOCAL_MET%OPTD(LLPAR,IIPAR,JJPAR), &      ! Visible optical depth [unitless]
-         LOCAL_MET%PEDGE(IIPAR,JJPAR,LLPAR+1), &     ! Pressure @ level edges [Pa]
-         LOCAL_MET%PMID(IIPAR,JJPAR,LLPAR), &      ! Pressure @ level centers [Pa]
-         LOCAL_MET%DELP(LLPAR,IIPAR,JJPAR), &      ! Pressure thickness for layer [Pa]
-         LOCAL_MET%RH(IIPAR,JJPAR,LLPAR), &        ! Relative humidity [unitless]
-         LOCAL_MET%SPHU(IIPAR,JJPAR,LLPAR), &      ! Specific humidity [kg/kg]
-         LOCAL_MET%T(IIPAR,JJPAR,LLPAR), &         ! Temperature [K]
-         LOCAL_MET%TAUCLI(IIPAR,JJPAR,LLPAR), &    ! Opt depth of ice clouds [unitless]
-         LOCAL_MET%TAUCLW(IIPAR,JJPAR,LLPAR), &    ! Opt depth of H2O clouds [unitless]
-         STAT=AS)
+       State_Met%AD      (IIPAR,JJPAR,LLPAR  ), & ! Air mass [kg]
+       State_Met%AIRDENS (LLPAR,IIPAR,JJPAR  ), & ! Air density [kg/m3]
+       State_Met%AIRVOL  (IIPAR,JJPAR,LLPAR  ), & ! Grid box volume [m3]
+       State_Met%AREA_M2 (IIPAR,JJPAR,LLPAR  ), & ! Grid box surface area [cm2]
+       State_Met%BXHEIGHT(IIPAR,JJPAR,LLPAR  ), & ! Grid box height [m]
+       State_Met%CLDF    (LLPAR,IIPAR,JJPAR  ), & ! 3-D cloud fraction [1]
+       State_Met%CMFMC   (IIPAR,JJPAR,LLPAR+1), & ! Cloud mass flux [kg/m2/s]
+       State_Met%DQIDTMST(IIPAR,JJPAR,LLPAR  ), & ! Ice tndcy, mst [kg/kg/s]
+       State_Met%DQLDTMST(IIPAR,JJPAR,LLPAR  ), & ! H2O tndcy, mst [kg/kg/s]
+       State_Met%DQVDTMST(IIPAR,JJPAR,LLPAR  ), & ! Vapor tndcy, mst [kg/kg/s]
+       State_Met%DTRAIN  (IIPAR,JJPAR,LLPAR  ), & ! Detrainment flux [kg/m2/s]
+       State_Met%MOISTQ  (LLPAR,IIPAR,JJPAR  ), & ! Tndcy in spc hum [kg/kg/s]
+       State_Met%OPTD    (LLPAR,IIPAR,JJPAR  ), & ! Visible opt depth [1]
+       State_Met%PEDGE   (IIPAR,JJPAR,LLPAR+1), & ! Pressure @ edges [Pa]
+       State_Met%PMID    (IIPAR,JJPAR,LLPAR  ), & ! Pressure @ centers [Pa]
+       State_Met%DELP    (LLPAR,IIPAR,JJPAR  ), & ! Pressure thickness [Pa]
+       State_Met%RH      (IIPAR,JJPAR,LLPAR  ), & ! Relative humidity [1]
+       State_Met%SPHU    (IIPAR,JJPAR,LLPAR  ), & ! Specific humidity [kg/kg]
+       State_Met%T       (IIPAR,JJPAR,LLPAR  ), & ! Temperature [K]
+       State_Met%TAUCLI  (IIPAR,JJPAR,LLPAR  ), & ! Opt depth of ice clouds [1]
+       State_Met%TAUCLW  (IIPAR,JJPAR,LLPAR  ), & ! Opt depth of H2O clouds [1]
+       STAT=AS)
     
-    IF (AS /= 0) CALL ALLOC_ERR('LOCAL_MET 3D')
+    IF (AS /= 0) CALL ALLOC_ERR('INIT_LOCAL_MET 3D')
     
 ! Comment out DO loop
 !    DO I = 1,IIPAR
 !       DO J = 1, JJPAR
 !          DO L = 1, LLPAR
-!!             LOCAL_MET%PEDGE(I,J,L) = GET_PEDGE(I,J,L)
-!!                   LOCAL_MET%PMID (I,J,L) = GET_PCENTER(I,J,L)
+!!             State_Met%PEDGE(I,J,L) = GET_PEDGE(I,J,L)
+!!                   State_Met%PMID (I,J,L) = GET_PCENTER(I,J,L)
 !                ENDDO
 !             ENDDO
 !          ENDDO
@@ -261,5 +297,5 @@ CONTAINS
 
   END SUBROUTINE INIT_LOCAL_MET
 !EOC           
-END MODULE GC_ENVIRONMENT_MOD
+END MODULE GC_Environment_Mod
 #endif
