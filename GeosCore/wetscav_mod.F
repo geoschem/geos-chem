@@ -7206,7 +7206,9 @@
 ! Shut this section off for EXTERNAL_GRID, EXTERNAL_FORCING
 !#if ! defined( DEVEL )
 !-----------------------------------------------------------------------------
-#if !defined( EXTERNAL_GRID ) && !defined( EXTERNAL_FORCING )
+#if defined( EXTERNAL_GRID ) || defined( EXTERNAL_FORCING )
+      ! Do nothing
+#else
       !=================================================================
       ! Compute Vud, CLDLIQ, CLDICE, C_H2O, following Jacob et al, 2000.
       !=================================================================
