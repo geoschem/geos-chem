@@ -112,6 +112,7 @@
 !  07 Feb 2012 - E. Corbitt  - Imported tagged tracers
 !  08 Feb 2012 - R. Yantosca - Add modifications for GEOS-5.7.2 data
 !  01 Mar 2012 - R. Yantosca - Now reference new grid_mod.F90
+!  19 Apr 2012 - E. Corbitt  - Added LGCBROMINE to use GEOS-Chem bromine.
 !  01 Aug 2012 - R. Yantosca - Add reference to findFreeLUN from inqure_mod.F90
 !  03 Aug 2012 - R. Yantosca - Move calls to findFreeLUN out of DEVEL block
 !******************************************************************************
@@ -142,9 +143,10 @@
       PUBLIC :: LHg2HalfAerosol
       PUBLIC :: STRAT_BR_FACTOR,        LAnthroHgOnly
       PUBLIC :: LOHO3CHEM,              LnoUSAemis
+      PUBLIC :: LGCBROMINE !eds 4/19/12         
       PUBLIC :: PARTITION_Hg2 ! hma       
       PUBLIC :: Fp, Fg        ! hma 
-         
+
       !=================================================================
       ! MODULE VARIABLES
       !=================================================================
@@ -207,6 +209,7 @@
       LOGICAL   :: LRED_JNO2,   LGEOSLWC
       LOGICAL   :: LHg2HalfAerosol
       LOGICAL   :: LAnthroHgOnly,          LOHO3CHEM
+      LOGICAL   :: LGCBROMINE !eds 4/19/12
       LOGICAL   :: LnoUSAemis
       REAL*8    :: STRAT_BR_FACTOR
 
@@ -387,7 +390,6 @@
       WRITE( 6, 110 )  FILENAME 
  110  FORMAT( '     -PARTITION_Hg2: Reading ', a )
 
-
       !------------------------------------------------------!
       ! Put aerosol mixing ratio (mol/mol) into arrays.     
       !------------------------------------------------------!
@@ -458,7 +460,6 @@
  
       ! convert REAL*4 to REAL*8 
       CALL TRANSFER_3D_TROP( ARRAYdst1 , DST_CONC ) 
-
 
 !$OMP PARALLEL DO
 !$OMP+DEFAULT( SHARED )

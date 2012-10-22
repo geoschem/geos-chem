@@ -161,6 +161,10 @@
 !       Environ. Sci. Technol., 45, 10477-10484.
 !  (9 ) Street, D.G. et al. (2009), Projections of global mercury emissions
 !       in 2050, Environ. Sci. Technol., 43, 2983-2988.
+!  (10) Holmes, C.D., et al. (2010) Global atmospheric model for mercury 
+!       including oxidation by bromine atoms, AC&P, 10, 12,037-12,057.
+!  (11) Parrella, J. et al. (2012), Tropospheric bromine chemistry: 
+!       implications for present and pre-industrial ozone and mercury, ACP.
 !
 !  NOTES:
 !  (1 ) Updated for reduction rxn and online Hg0 ocean flux.  Now use 
@@ -180,6 +184,7 @@
 !  08 Feb 2012 - R. Yantosca - Add modifications for GEOS-5.7.x met
 !  01 Mar 2012 - R. Yantosca - Now reference new grid_mod.F90
 !  01 Mar 2012 - R. Yantosca - Use updated GET_LOCALTIME from time_mod.F
+!  19 Apr 2012 - E. Corbitt  - Added LGCBROMINE to use GEOS-Chem bromine.
 !******************************************************************************
 !
       ! References to F90 modules
@@ -193,6 +198,7 @@
       USE OCEAN_MERCURY_MOD, ONLY : LHg2HalfAerosol
       USE OCEAN_MERCURY_MOD, ONLY : STRAT_BR_FACTOR
       USE OCEAN_MERCURY_MOD, ONLY : LAnthroHgOnly, LOHO3CHEM
+      USE OCEAN_MERCURY_MOD, ONLY : LGCBROMINE !eds 4/19/12
       USE OCEAN_MERCURY_MOD, ONLY : LnoUSAemis,  LBROCHEM
 
       IMPLICIT NONE
@@ -677,7 +683,8 @@
       ! Set of Hg/Br rate constants to use
       ! Recommended: DonohoueYBBalabanov, GoodsiteY, or DonohoueYB
       ! DonohoueYBBalabanov used by Holmes et al. 2010
-      CHARACTER(LEN=*), PARAMETER  :: METHOD='DonohoueYBBalabanov' 
+      !CHARACTER(LEN=*), PARAMETER :: METHOD='DonohoueYBBalabanov'
+      CHARACTER(LEN=*), PARAMETER  :: METHOD='GoodsiteUpdate' 
 
 
       !=================================================================
@@ -1843,6 +1850,24 @@
          k3br = 2.5d-10 * ( T / 298d0 ) ** ( -.57d0 ) 
          k3oh = k3br
       
+      CASE( 'GoodsiteUpdate' )
+         !k1 from Donohoue et al. 2006
+         !k2 derived from Goodsite et al. updated 2012 rates
+         !   preserving the k2/k1 equilibrium (detailed balance)
+         !k2a from Balabanov et al. 2005
+         !k3 from Goodsite et al. 2004
+         !Include HgBr+OH reaction
+
+         !Goodsite et al. 2004 rates
+         k1G  = 3.7d-13 * ( T / 298d0 ) ** ( -2.76d0 ) * ( Nair / N0 )
+         k2G  = 4.0d9  * exp(-7292d0/T)
+
+         k1   = 1.46d-32 * ( T / 298d0 ) ** ( -1.86d0 ) * Nair
+         k2   = k2G * k1 / k1G
+         k2a  = 3.9d-11
+         k3br = 2.5d-10 * ( T / 298d0 ) ** ( -.57d0 )
+         k3oh = k3br
+
       CASE DEFAULT
 
       END SELECT
@@ -7005,6 +7030,10 @@
       ! Switches for new reduction parameterization
       LRED_JNO2=.TRUE. ! Make propto JNO2 otherwise [OH]
       LGEOSLWC=.TRUE. ! Use GEOS LWC
+
+      ! Switch for using GEOS-Chem tropospheric bromine fields,
+      ! ref. Parrella et al. 2012, instead of older TOMCAT fields
+      LGCBROMINE = .TRUE. 
 
       ! Switch specifies that Hg2 is 50% bound to aerosol and 50% in
       ! gas phase (TRUE). If FALSE, then use temperature dependent 
