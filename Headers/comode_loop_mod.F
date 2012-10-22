@@ -724,7 +724,7 @@
 !
 ! !USES:
 !
-      USE SMV_ERRCODE_MOD
+      USE GIGC_ERRCODE_MOD
 
       IMPLICIT NONE
 !
@@ -743,13 +743,13 @@
 ! !REVISION HISTORY: 
 !  17 Oct 2012 - R. Yantosca - Need to also set NLAT, NLONG, etc.
 !  17 Oct 2012 - R. Yantosca - Added ProTeX headers
+!  22 Oct 2012 - R. Yantosca - Now references gigc_errcode_mod.F90
 !EOP
 !------------------------------------------------------------------------------
 !BOC
 !
 ! !LOCAL VARIABLES:
 !
-
       INTEGER :: AS
 
       ! Set size variables (from comode_loop_mod.F)
@@ -769,7 +769,7 @@
       NPVERT = NVERT + IPLUME
 
       ! Assume success
-      RC     = SMV_SUCCESS
+      RC     = GIGC_SUCCESS
 
       ! Allocate arrays
       ALLOCATE( MLOP    ( ILAT,   ILONG         ), STAT=AS )
