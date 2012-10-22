@@ -5,7 +5,7 @@
 !------------------------------------------------------------------------------
 !BOP
 !
-! !MODULE: gc_chemdr
+! !MODULE: gigc_chemdr
 !
 ! !DESCRIPTION: Module GC\_CHEMDR is the "bridge" between the ESMF interface
 !  to the GEOS-5 GCM and the GEOS-Chem chemistry routines.
@@ -13,7 +13,7 @@
 !\\
 ! !INTERFACE:
 !
-MODULE GC_ChemDr
+MODULE GIGC_ChemDr
 !
 ! !USES:
 !
@@ -22,7 +22,7 @@ MODULE GC_ChemDr
 !
 ! !PUBLIC MEMBER FUNCTIONS:
 !
-  PUBLIC :: DO_GC_CHEM
+  PUBLIC :: GIGC_Do_Chem
 !
 ! !REMARKS:
 !  This mo
@@ -32,6 +32,7 @@ MODULE GC_ChemDr
 !  15 Oct 2012 - R. Yantosca - Added ProTeX headers, F90 indentation
 !  16 Oct 2012 - R. Yantosca - Renamed GC_STATE to State_Chm
 !  16 Oct 2012 - R. Yantosca - Renamed GC_MET to State_Met
+!  22 Oct 2012 - R. Yantosca - Renamed to gigc_chemdr.F90
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -43,36 +44,36 @@ CONTAINS
 !------------------------------------------------------------------------------
 !BOP
 !
-! !IROUTINE: do_gc_chem
+! !IROUTINE: gigc_do_chem
 !
-! !DESCRIPTION: Routine DO\_GC\_CHEM calls the GEOS-Chem chemistry routines
-!  from the ESMF interface to the GEOS-5 GCM.
+! !DESCRIPTION: Routine GIGC\_DO\_CHEM is the chemistry driver for the
+!  Grid-Independent GEOS-Chem (aka "GIGC") model.  This routine is called by
+!  the Run method from the ESMF interface to the GEOS-5 GCM.
 !\\
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE Do_GC_Chem( State_Chm, State_Met, am_I_Root, NI, NJ, NL, NCNST )
+  SUBROUTINE GIGC_Do_Chem( State_Chm, State_Met, am_I_Root, NI, NJ, NL, NCNST )
 !
 ! !USES:
 !
-    USE GIGC_State_Chm_Mod, ONLY : ChmState
-    USE GIGC_State_Chm_Mod, ONLY : MetState
     USE CHEMISTRY_MOD,      ONLY : DO_CHEMISTRY
-    USE DAO_MOD
-    USE PBL_MIX_MOD,        ONLY : PBL_TOP_L, PBL_TOP_M, INIT_PBL_MIX
-    USE GRID_MOD,           ONLY : AREA_M2, YEDGE, XEDGE, YMID, XMID
-    USE CMN_SIZE_MOD,       ONLY : DJSIZE, DISIZE, LLPAR, IIPAR, JJPAR
-    USE DAO_MOD
     USE CMN_DEP_MOD,        ONLY : FRCLND
-    USE UVALBEDO_MOD,       ONLY : UVALBEDO
-    USE COMODE_LOOP_MOD
+    USE CMN_SIZE_MOD,       ONLY : DJSIZE, DISIZE, LLPAR, IIPAR, JJPAR
     USE COMODE_MOD,         ONLY : AIRDENS, CSPEC_FULL
+    USE COMODE_LOOP_MOD
+    USE DAO_MOD
+    USE GIGC_State_Chm_Mod, ONLY : ChmState
+    USE GIGC_State_Met_Mod, ONLY : MetState
+    USE GIGC_Test_Utils
+    USE GIGC_Chem_Utils
+    USE GRID_MOD,           ONLY : AREA_M2, YEDGE, XEDGE, YMID, XMID
+    USE LOGICAL_MOD
+    USE PBL_MIX_MOD,        ONLY : PBL_TOP_L, PBL_TOP_M, INIT_PBL_MIX
+    USE PRESSURE_MOD,       ONLY : EXTERNAL_PEDGE !PEDGE, PMID
     USE TRACER_MOD
     USE TRACERID_MOD     
-    USE PRESSURE_MOD,       ONLY : EXTERNAL_PEDGE !PEDGE, PMID
-    USE LOGICAL_MOD
-    USE GC_TEST_UTILS
-    USE GC_CHEM_UTILS
+    USE UVALBEDO_MOD,       ONLY : UVALBEDO
 !
 ! !INPUT PARAMETERS:
 !
@@ -103,6 +104,7 @@ CONTAINS
 !  16 Oct 2012 - R. Yantosca - Renamed GC_MET to State_Met
 !  19 Oct 2012 - R. Yantosca - Now reference gigc_state_chm_mod.F90
 !  19 Oct 2012 - R. Yantosca - Now reference gigc_state_met_mod.F90
+!  22 Oct 2012 - R. Yantosca - Renamed to GIGC_Do_Chem
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -112,8 +114,7 @@ CONTAINS
 
 ! TESTING SECTION
 !<><><><><><><><><><><><><><><><><><><><><><>
-     !CALL DUMP_GC_CONFIG( am_I_Root )
-
+     !CALL GIGC_Dump_Config( am_I_Root )
 
 
 !<><><><><><><><><><><><><><><><><><><><><><>
@@ -196,7 +197,7 @@ CONTAINS
       ! Call the GEOS-Chem Chemistry routines
       !======================================================================
       IF ( am_I_Root ) THEN
-         WRITE(6,*) '##### GC_CHEMDR, TRC_OX before chem'
+         WRITE(6,*) '##### GIGC_Do_Chem, TRC_OX before chem'
          WRITE(6,*) State_Chm%Tracers(1,1,:,2)
       ENDIF
 
@@ -219,11 +220,11 @@ CONTAINS
       State_Chm%Species = CSPEC_FULL
 
       IF ( am_I_Root ) THEN
-         WRITE(6,*) '##### GC_CHEMDR, TRC_OX after chem'
+         WRITE(6,*) '##### GIGC_Do_Chem, TRC_OX after chem'
          WRITE(6,*) State_Chm%Tracers(1,1,:,2)
       ENDIF
 
-    END SUBROUTINE Do_GC_Chem
+    END SUBROUTINE GIGC_Do_Chem
 !EOC
 !-----------------------------------------------------------------------------
 ! NOTE: Preserve version with BCC-specific stuff.  We should probably split
@@ -529,5 +530,5 @@ CONTAINS
 !      RETURN
 !    END SUBROUTINE DO_GC_CHEM
 
-END MODULE GC_CHEMDR
+END MODULE GIGC_ChemDr
 #endif

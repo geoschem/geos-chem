@@ -4,18 +4,17 @@
 !------------------------------------------------------------------------------
 !BOP
 !
-! !MODULE: gc_esmf_utils
+! !MODULE: gigc_esmf_utils
 !
-! !DESCRIPTION: Module GC\_ESMF\_UTILS is the module that ...
+! !DESCRIPTION: Module GIGC\_ESMF\_UTILS is the module that ...
 !\\
 !\\
 ! !INTERFACE: 
 !      
-MODULE GC_ESMF_Utils
+MODULE GIGC_ESMF_Utils
 !
 ! !USES:
-!      
-    
+!     
   IMPLICIT NONE
   PRIVATE
 !
@@ -30,6 +29,8 @@ MODULE GC_ESMF_Utils
 !  22 Jun 2009 - R. Yantosca & P. Le Sager - Chunkized & cleaned up.
 !  16 Oct 2012 - R. Yantosca - Renamed GC_MET argument to State_Met
 !  16 Oct 2012 - R. Yantosca - Renamed GC_STATE argument to State_Chm
+!  22 Oct 2012 - R. Yantosca - Renamed to gigc_esmf_utils.F90
+
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -210,5 +211,5 @@ CONTAINS
 
   END SUBROUTINE ESMF2GeosChem
 !EOC
-END MODULE GC_ESMF_UTILS
+END MODULE GIGC_Esmf_Utils
 #endif

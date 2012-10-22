@@ -4,30 +4,29 @@
 !------------------------------------------------------------------------------
 !BOP
 !
-! !MODULE: gc_finalization_mod
+! !MODULE: gigc_finalization_mod
 !
-! !DESCRIPTION: Module GC\_FINALIZATION\_MOD is the module that contains 
+! !DESCRIPTION: Module GIGC\_FINALIZATION\_MOD is the module that contains 
 !  the GEOS-Chem finalize methods for the ESMF framework.
 !\\
 !\\
 ! !INTERFACE: 
 !      
-MODULE GC_Finalization_Mod
+MODULE GIGC_Finalization_Mod
 !
 ! !USES:
 !      
-  USE Smv_ErrCode_Mod
-
   IMPLICIT NONE
   PRIVATE
 !
 ! !PUBLIC MEMBER FUNCTIONS:
 !      
-  PUBLIC :: GC_Finalize
-  PUBLIC :: Cleanup_GEOSChem
+  PUBLIC :: GIGC_Finalize
+  PUBLIC :: GIGC_Cleanup_GeosChem
 !
 ! !REVISION HISTORY:
 !  19 Oct 2012 - R. Yantosca - Added ProTeX headers
+!  22 Oct 2012 - R. Yantosca - Renamed to gigc_finalization_mod.F90
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -38,34 +37,35 @@ CONTAINS
 !------------------------------------------------------------------------------
 !BOP
 !
-! !IROUTINE: GC_Finalize
+! !IROUTINE: gigc_finalize
 !
-! !DESCRIPTION: GC_Finalize calls the cleanup routines which deallocate
+! !DESCRIPTION: GIGC\_Finalize calls the cleanup routines which deallocate
 !  memory from the State objects of the Grid-Independent GEOS-Chem (aka
 !  "GIGC") code.
 !\\
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE GC_Finalize( State_Met, State_Chm, am_I_Root, RC )
+  SUBROUTINE GIGC_Finalize( State_Met, State_Chm, am_I_Root, RC )
 !
 ! !USES:
 !
+    USE GIGC_ErrCode_Mod
     USE GIGC_State_Chm_Mod
     USE GIGC_State_Met_Mod
 !
 ! !INPUT PARAMETERS: 
 !
-    LOGICAL,            INTENT(IN)    :: am_I_Root   ! Are we on the root CPU?
+    LOGICAL,        INTENT(IN)    :: am_I_Root   ! Are we on the root CPU?
 !
 ! !INPUT/OUTPUT PARAMETERS: 
 !
-    TYPE(GC_MET_LOCAL), INTENT(INOUT) :: State_Met   ! Meteorology state
-    TYPE(CHEMSTATE),    INTENT(INOUT) :: State_Chm   ! Chemistry state
+    TYPE(MetState), INTENT(INOUT) :: State_Met   ! Meteorology state
+    TYPE(ChmState), INTENT(INOUT) :: State_Chm   ! Chemistry state
 !
 ! !OUTPUT PARAMETERS:
 !
-    INTEGER,            INTENT(OUT)   :: RC          ! Success or failure
+    INTEGER,        INTENT(OUT)   :: RC          ! Success or failure
 !
 ! !REMARKS:
 ! 
@@ -73,6 +73,7 @@ CONTAINS
 !  16 Oct 2012 - R. Yantosca - Initial version
 !  19 Oct 2012 - R. Yantosca - Now reference gigc_state_chm_mod.F90
 !  19 Oct 2012 - R. Yantosca - Now reference gigc_state_met_mod.F90
+!  22 Oct 2012 - R. Yantosca - Renamed to GIGC_Finalize
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -80,33 +81,34 @@ CONTAINS
 ! !LOCAL VARIABLES:
 !
     ! Assume success
-    RC = SMV_SUCCESS
+    RC = GIGC_SUCCESS
 
-    ! Deallocate fields of the chemistry state
-    CALL Cleanup_GIGC_State_Chm( State_Chm, am_I_Root, RC )
+    ! Deallocate fields of the Chemistry State object
+    CALL Cleanup_GIGC_State_Chm( am_I_Root, State_Chm, RC )
 
-    ! Deallocate fields of the meteorology state
-    Call Cleanup_GIGC_State_Met( State_Met, am_I_Root, RC )
+    ! Deallocate fields of the Meteorology State object
+    Call Cleanup_GIGC_State_Met( am_I_Root, State_Met, RC )
 
     ! Deallocate all other GEOS-Chem allocatable arrays
-    CALL Cleanup_GeosChem( am_I_Root, RC )
+    CALL GIGC_CleanUp_GeosChem( am_I_Root, RC )
 
-  END SUBROUTINE GC_Finalize
+  END SUBROUTINE GIGC_Finalize
 !EOC
 !------------------------------------------------------------------------------
 !          Harvard University Atmospheric Chemistry Modeling Group            !
 !------------------------------------------------------------------------------
 !BOP
 !
-! !IROUTINE: cleanup_geoschem
+! !IROUTINE: gigc_cleanup_geoschem
 !
-! !DESCRIPTION: Routine CLEANUP\_GEOSCHEM deallocates arrays in the various 
-!  GEOS-Chem modules.  This is an analog to subroutine CLEANUP in GeosCore.
+! !DESCRIPTION: Routine GIGC\_CLEANUP\_GEOSCHEM deallocates arrays in the 
+!  various GEOS-Chem modules.  This is an analog to subroutine CLEANUP in 
+!  GeosCore.
 !\\
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE Cleanup_GeosChem( am_I_Root, RC )
+  SUBROUTINE GIGC_CleanUp_GeosChem( am_I_Root, RC )
 !
 ! !USES:
 !
@@ -141,6 +143,7 @@ CONTAINS
     USE GC_BIOMASS_MOD,          ONLY : CLEANUP_GC_BIOMASS
     USE GFED2_BIOMASS_MOD,       ONLY : CLEANUP_GFED2_BIOMASS
     USE GFED3_BIOMASS_MOD,       ONLY : CLEANUP_GFED3_BIOMASS
+    USE GIGC_ErrCode_Mod
     USE GLOBAL_CH4_MOD,          ONLY : CLEANUP_GLOBAL_CH4
     USE GLOBAL_HNO3_MOD,         ONLY : CLEANUP_GLOBAL_HNO3
     USE GLOBAL_NO3_MOD,          ONLY : CLEANUP_GLOBAL_NO3
@@ -196,6 +199,8 @@ CONTAINS
 ! 
 ! !REVISION HISTORY: 
 !  15 Oct 2012 - R. Yantosca - Initial version
+!  22 Oct 2012 - R. Yantosca - Renamed to GIGC_CleanUp_GeosChem
+!  22 Oct 2012 - R. Yantosca - Now reference gigc_errcode_mod.F90
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -203,7 +208,7 @@ CONTAINS
 ! !LOCAL VARIABLES:
     
     ! Assume success at first
-    RC = SMV_SUCCESS
+    RC = GIGC_SUCCESS
 
     ! Call cleanup routines from individual F90 modules
     CALL CLEANUP_AEROSOL
@@ -276,7 +281,7 @@ CONTAINS
     CALL CLEANUP_ICOADS_SHIP !(cklee,7/09/09)
     CALL CLEANUP_RETRO
     
-  END SUBROUTINE Cleanup_GeosChem
+  END SUBROUTINE GIGC_CleanUp_GeosChem
 !EOC
-END MODULE GC_Finalization_Mod
+END MODULE GIGC_Finalization_Mod
 #endif

@@ -4,15 +4,16 @@
 !------------------------------------------------------------------------------
 !BOP
 !
-! !MODULE: gc_chunk_mod
+! !MODULE: gigc_chunk_mod
 !
-! !DESCRIPTION: Module GC\_CHUNK\_MOD is the module that contains 
-!  the GEOS-Chem chunk code init, run and finalize methods.
+! !DESCRIPTION: Module GC\_CHUNK\_MOD is the module that contains the init,
+!  run, and finalize methods for the ESMF interface to the Grid-Independent
+!  GEOS-Chem (aka "GIGC").
 !\\
 !\\
 ! !INTERFACE: 
 !      
-MODULE GC_Chunk_Mod
+MODULE GIGC_Chunk_Mod
 !
 ! !USES:
 !      
@@ -21,9 +22,9 @@ MODULE GC_Chunk_Mod
 !
 ! !PUBLIC MEMBER FUNCTIONS:
 !
-  PUBLIC :: GC_Chunk_Init
-  PUBLIC :: GC_Chunk_Run
-  PUBLIC :: GC_Chunk_Final
+  PUBLIC :: GIGC_Chunk_Init
+  PUBLIC :: GIGC_Chunk_Run
+  PUBLIC :: GIGC_Chunk_Final
 !
 ! !REMARKS:
 !  The routines in this module execute only when GEOS-Chem is connected
@@ -34,6 +35,7 @@ MODULE GC_Chunk_Mod
 !  09 Oct 2012 - R. Yantosca - Now pass am_I_Root to all routines
 !  09 Oct 2012 - R. Yantosca - Added comments, cosmetic changes
 !  16 Oct 2012 - R. Yantosca - Renamed GC_STATE argument to State_Chm
+!  22 Oct 2012 - R. Yantosca - Renamed to gigc_chunk_mod.F90
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -61,22 +63,21 @@ CONTAINS
 !------------------------------------------------------------------------------
 !BOP
 !
-! !IROUTINE: gc_chunk_init
+! !IROUTINE: gigc_chunk_init
 !
-! !DESCRIPTION: Subroutine GC\_CHUNK\_INIT calls the various 
-!  initialization routines that read the setup files for the GEOS-Chem
-!  chunk code.  Also, ID flags for advected tracers, chemical species,
-!  dry deposition species and wet deposition species are defined.
+! !DESCRIPTION: Subroutine GIGC\_CHUNK\_INIT is the ESMF init method for
+!  the Grid-Independent GEOS-Chem (aka "GIGC").  This routine calls lower-
+!  level routines to allocate arrays and read input files.
 !\\
 !\\
 ! !INETRFACE:
 !
-  SUBROUTINE GC_Chunk_Init( NI,     NJ,   NL,   State_Met, State_Chm,  &
-                            tsChem, nymd, nhms, am_I_Root, RC        )
+  SUBROUTINE GIGC_Chunk_Init( NI,     NJ,   NL,   State_Met, State_Chm,  &
+                              tsChem, nymd, nhms, am_I_Root, RC        )
 !
 ! !USES:
 !
-    USE GC_Initialization_Mod
+    USE GIGC_Initialization_Mod
     USE GIGC_ErrCode_Mod
     USE GIGC_State_Chm_Mod,    ONLY : ChmState
     USE GIGC_State_Met_Mod,    ONLY : MetState
@@ -100,6 +101,9 @@ CONTAINS
 !
     INTEGER,        INTENT(OUT)   :: RC          ! Success or failure?
 !
+! !REMARKS:
+!  Need to add better error checking
+!
 ! !REVISION HISTORY: 
 !  18 Jul 2011 - M. Long     - Initial Version
 !  28 Mar 2012 - M. Long     - Rewrite per structure of BCC init interface
@@ -108,6 +112,7 @@ CONTAINS
 !  16 Oct 2012 - R. Yantosca - Renamed GC_MET argument to State_Met
 !  19 Oct 2012 - R. Yantosca - Now reference gigc_state_chm_mod.F90
 !  19 Oct 2012 - R. Yantosca - Now reference gigc_state_met_mod.F90
+!  22 Oct 2012 - R. Yantosca - Renamed to GIGC_Chunk_Init
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -116,48 +121,53 @@ CONTAINS
     RC = GIGC_SUCCESS
 
     ! Initialize GEOS-Chem dimensions w/ the dimensions on this PET
-    CALL GC_Init_Dimensions( NI, NJ, NL )
+    CALL GIGC_Init_Dimensions( NI, NJ, NL )
 
     ! Initialize the G-C simulation and chemistry mechanism
-    CALL GC_InitRun( State_Met, State_Chm, tsChem, nymd, nhms, am_I_Root, RC )
+    CALL GIGC_Init_Simulation( am_I_Root = am_I_Root,   &
+                               tsChem    = tsChem,      &
+                               nymd      = nymd,        &
+                               nhms      = nhms,        &
+                               State_Chm = State_Chm,   &
+                               State_Met = State_Met,   &
+                               RC        = RC          )
 
-  END SUBROUTINE GC_Chunk_Init
+  END SUBROUTINE GIGC_Chunk_Init
 !EOC
 !------------------------------------------------------------------------------
 !          Harvard University Atmospheric Chemistry Modeling Group            !
 !------------------------------------------------------------------------------
 !BOP
 !
-! !IROUTINE: gc_chunk_run
+! !IROUTINE: gigc_chunk_run
 !
-! !DESCRIPTION: Routine GC\_CHUNK\_RUN is the driver for the following 
-! operations:
+! !DESCRIPTION: Subroutine GIGC\_CHUNK\_RUN is the ESMF run method for
+!  the Grid-Independent GEOS-Chem (aka "GIGC").  This routine is the driver
+!  for the following operations:
+!
 ! \begin{itemize}
-! \item Planetary boundary layer mixing
-! \item Cloud convection
 ! \item Dry deposition
-! \item Emissions
+! \item Emissions (to be added later)
 ! \item Chemistry
-! \item Wet Depositon
 ! \end{itemize}
 !
 ! !INTERFACE:
 !
-  SUBROUTINE GC_Chunk_Run( am_I_Root, State_Met, State_Chm, NL, NI, NJ, RC )
+  SUBROUTINE GIGC_Chunk_Run( am_I_Root, State_Met, State_Chm, NL, NI, NJ, RC )
 !
 ! !USES:
 !
-    USE Gc_ChemDr
+    USE GIGC_ChemDr
     USE GIGC_ErrCode_Mod
-    USE GIGC_State_Chm_Mod,    ONLY : ChmState
-    USE GIGC_State_Met_Mod,    ONLY : MetState
+    USE GIGC_State_Chm_Mod, ONLY : ChmState
+    USE GIGC_State_Met_Mod, ONLY : MetState
 !
 ! !INPUT PARAMETERS:
 !
     LOGICAL,        INTENT(IN)    :: am_I_Root   ! Are we on root CPU?
-    INTEGER,        INTENT(IN)    :: NI          ! # of longitudes
-    INTEGER,        INTENT(IN)    :: NJ          ! # of latitudes
-    INTEGER,        INTENT(IN)    :: NL          ! # of levels
+    INTEGER,        INTENT(IN)    :: NI          ! # of longitudes on this PET
+    INTEGER,        INTENT(IN)    :: NJ          ! # of latitudes on this PET
+    INTEGER,        INTENT(IN)    :: NL          ! # of levels on this PET
 !
 ! !INPUT/OUTPUT PARAMETERS:
 !
@@ -172,6 +182,8 @@ CONTAINS
 !  Met field inputs from the GC_MET object have SI units.  Some GEOS-Chem 
 !  lower-level routines require nonstandard units.  Units are converted and 
 !  stored in local variables within this module.
+!                                                                             .
+!  Need to add better error-handling.
 !
 ! !REVISION HISTORY:
 !  18 Jul 2011 - M. Long     - Initialf Version
@@ -181,6 +193,7 @@ CONTAINS
 !  17 Oct 2012 - R. Yantosca - Need to call AIRQNT before chemistry
 !  19 Oct 2012 - R. Yantosca - Now reference gigc_state_chm_mod.F90
 !  19 Oct 2012 - R. Yantosca - Now reference gigc_state_met_mod.F90
+!  22 Oct 2012 - R. Yantosca - Renamed to GIGC_Chunk_Run
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -196,20 +209,19 @@ CONTAINS
     NC = SIZE( State_Chm%Tracers, 4 )
 
     ! Call the chemistry run method
-    CALL Do_GC_Chem( State_Chm, State_Met, am_I_Root, NI, NJ, NL, NC )
+    CALL GIGC_Do_Chem( State_Chm, State_Met, am_I_Root, NI, NJ, NL, NC )
 
     ! Return code
-    RC = SMV_SUCCESS
+    RC = GIGC_SUCCESS
 
-  END SUBROUTINE GC_Chunk_Run
-
+  END SUBROUTINE GIGC_Chunk_Run
 !EOC
 !------------------------------------------------------------------------------
 !          Harvard University Atmospheric Chemistry Modeling Group            !
 !------------------------------------------------------------------------------
 !BOP
 !
-! !IROUTINE: gc_chunk_final
+! !IROUTINE: gigc_chunk_final
 !
 ! !DESCRIPTION: Subroutine GC\_CHUNK\_FINAL deallocates pointers and
 !  arrays used in the chemistry. 
@@ -217,12 +229,12 @@ CONTAINS
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE GC_Chunk_Final( State_Met, State_Chm, am_I_Root, RC )
+  SUBROUTINE GIGC_Chunk_Final( State_Met, State_Chm, am_I_Root, RC )
 !
 ! !USES:
 !
-    USE GC_Finalization_Mod
     USE GIGC_ErrCode_Mod
+    USE GIGC_Finalization_Mod
     USE GIGC_State_Chm_Mod,    ONLY : ChmState
     USE GIGC_State_Met_Mod,    ONLY : MetState
 !
@@ -245,6 +257,7 @@ CONTAINS
 !  16 Oct 2012 - R. Yantosca - Renamed GC_STATE argument to State_Chm
 !  19 Oct 2012 - R. Yantosca - Now reference gigc_state_chm_mod.F90
 !  19 Oct 2012 - R. Yantosca - Now reference gigc_state_met_mod.F90
+!  22 Oct 2012 - R. Yantosca - Renamed to GIGC_Chunk_Final
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -257,9 +270,9 @@ CONTAINS
     RC = GIGC_SUCCESS
 
     ! Finalize GEOS-Chem
-    CALL GC_Finalize( State_Met, State_Chm, am_I_Root, RC )
+    CALL GIGC_Finalize( State_Met, State_Chm, am_I_Root, RC )
 
-  END SUBROUTINE GC_Chunk_Final
+  END SUBROUTINE GIGC_Chunk_Final
 !EOC
-END MODULE GC_Chunk_Mod
+END MODULE GIGC_Chunk_Mod
 #endif

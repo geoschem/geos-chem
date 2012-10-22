@@ -6,14 +6,14 @@
 !
 ! !MODULE: gc_idxmap_mod
 !
-! !DESCRIPTION: Module GC\_IDXMAP\_MOD contains the routine
+! !DESCRIPTION: Module GIGC\_IDXMAP\_MOD contains the routine
 !  to initialize the mapping between ESMF tracer indexes and
 !  GEOS-Chem internal indexes.
 !\\
 !\\
 ! !INTERFACE: 
 !      
-MODULE GC_IDXMAP_MOD
+MODULE GIGC_IdxMap_Mod
 !
 ! !USES:
 !      
@@ -22,11 +22,12 @@ MODULE GC_IDXMAP_MOD
 !
 ! !REMARKS:
 !  This module appears to be not used in the current implementation of
-!  the GEOS-Chem ESMF interface.
+!  the GEOS-Chem ESMF interface.  It may just be for the BCC interface.
 ! 
 ! !REVISION HISTORY: 
 !  16 Oct 2012 - M. Long     - Initial version
 !  16 Oct 2012 - R. Yantosca - Added ProTeX headers
+!  22 Oct 2012 - R. Yantosca - Renamed to gigc_idxmap_mod.f90
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -44,7 +45,7 @@ CONTAINS
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE GC_IDXMAP( ID_TRACERS )
+  SUBROUTINE GIGC_IdxMap( ID_TRACERS )
 !
 ! !USES:
 !
@@ -64,6 +65,7 @@ CONTAINS
 ! !REVISION HISTORY: 
 !  16 Oct 2012 - M. Long     - Initial version
 !  16 Oct 2012 - R. Yantosca - Added ProTeX headers
+!  22 Oct 2012 - R. Yantosca - Renamed to GIGC_IdxMap
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -125,7 +127,7 @@ CONTAINS
     IDTSOG3  = ID_TRACERS%SOG3
     IDTSOG4  = ID_TRACERS%SOG4
         
-  END SUBROUTINE GC_IDXMAP
+  END SUBROUTINE GIGC_IdxMap
 !EOC
-END MODULE GC_IDXMAP_MOD
+END MODULE GIGC_IdxMap_Mod
 #endif

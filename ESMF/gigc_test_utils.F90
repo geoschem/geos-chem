@@ -3,22 +3,32 @@
 !------------------------------------------------------------------------------
 !BOP
 !
-! !MODULE: gc_test_utils
+! !MODULE: gigc_test_utils
 !
-! !DESCRIPTION: Module GC\_TEST\_UTILS contains debugging code.
+! !DESCRIPTION: Module GIGC\_Test\_Utils contains debugging code for the
+!  ESMF interface to the Grid-Independent GEOS-Chem (aka "GIGC").
 !\\
 !\\
 ! !INTERFACE:
 !
-MODULE GC_TEST_UTILS
-
-  PUBLIC
+MODULE GIGC_Test_Utils
+!
+! !USES:
+!
+  IMPLICIT NONE
+  PRIVATE
+!
+! !PUBLIC MEMBER FUNCTIONS:
+!
+  PUBLIC :: GIGC_Dump_Config
 !
 ! !REMARKS:
-
+!  Additional debugging routines can be added here as necessary
+!
 ! !REVISION HISTORY: 
 !  18 Oct 2012 - M. Long     - Initial version
 !  18 Oct 2012 - R. Yantosca - Added ProTeX headers
+!  22 Oct 2012 - R. Yantosca - Renamed to gigc_test_utils.F90
 !EOP
 !------------------------------------------------------------------------------
 !BOC!BOC
@@ -29,14 +39,14 @@ CONTAINS
 !------------------------------------------------------------------------------
 !BOP
 !
-! !IROUTINE: dump_gc_config
+! !IROUTINE: gigc_dump_config
 !
 ! !DESCRIPTION: Prints out information about GEOS-Chem options.
 !\\
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE DUMP_GC_CONFIG( am_I_Root )
+  SUBROUTINE GIGC_Dump_Config( am_I_Root )
 !
 ! !USES:
 !
@@ -49,6 +59,7 @@ CONTAINS
 ! !REVISION HISTORY: 
 !  18 Oct 2012 - M. Long     - Initial version
 !  18 Oct 2012 - R. Yantosca - Added ProTeX headers
+!  22 Oct 2012 - R. Yantosca - Renamed to GIGC_Dump_Config
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -76,6 +87,6 @@ CONTAINS
 
     ENDIF
 
-  END SUBROUTINE DUMP_GC_CONFIG
+  END SUBROUTINE GIGC_Dump_Config
 !EOC
-END MODULE GC_TEST_UTILS
+END MODULE GIGC_Test_Utils

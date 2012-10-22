@@ -1,36 +1,37 @@
-#if defined( DEVEL )
+#if defined( DEVEL ) || defined( EXTERNAL_GRID ) || defined( EXTERNAL_FORCING )
 !------------------------------------------------------------------------------
 !          Harvard University Atmospheric Chemistry Modeling Group            !
 !------------------------------------------------------------------------------
 !BOP
 !
-! !MODULE: gc_environment_mod
+! !MODULE: gigc_environment_mod
 !
-! !DESCRIPTION: Module GC\_ENVIRONMENT\_MOD establishes the runtime 
-!  environment for the GEOS-Chem model. It is designed to receive model 
-!  parameter and geophysical environment information and allocate memory 
-!  based upon it.
-!
+! !DESCRIPTION: Module GIGC\_ENVIRONMENT\_MOD establishes the runtime 
+!  environment for the Grid-Independent GEOS-Chem (aka "GIGC") model.  It is 
+!  designed to receive model parameter and geophysical environment information 
+!  and allocate memory based upon it.
+!\\
+!\\
 !  It provides routines to do the following:
-!  (1) Allocate geo-spatial arrays
-!  (2) Initialize met. field derived type.
-!  (3) Initialize CHEM, PHYS, and EMISSIONS states
-!  (4) ...
+!
+! \begin{itemize}
+! \item Allocate geo-spatial arrays
+! \item Initialize met. field derived type.
+! \item Initialize CHEM, PHYS, and EMISSIONS states
+! \end{itemize}
 !\\
 !\\
 !  NOTE: This is mostly for testing the grid-independent code in the current 
-!  GEOS-Chem.  Many of these inputs will come from the GEOS-5 interface. It will
-!  remain in DEVEL state for some time.
+!  GEOS-Chem.  Many of these inputs will come from the GEOS-5 interface. 
+!  It will remain in DEVEL state for some time.
 !\\
 !\\
 ! !INTERFACE: 
 !
-MODULE GC_Environment_Mod
+MODULE GIGC_Environment_Mod
 !
 ! !USES
 !        
-  USE GC_TYPE_MOD                  ! Various derived type definitions
-
   IMPLICIT NONE
 # include "define.h"
 
@@ -38,8 +39,8 @@ MODULE GC_Environment_Mod
 !
 ! !PUBLIC MEMBER FUNCTIONS:
 !
-  PUBLIC :: ALLOCATE_ALL
-  PUBLIC :: INIT_ALL
+  PUBLIC :: GIGC_Allocate_All
+  PUBLIC :: GIGC_Init_All
 !
 ! !REMARKS:
 !  For consistency, we should probably move the met state initialization
@@ -50,6 +51,7 @@ MODULE GC_Environment_Mod
 !  13 Aug 2012 - R. Yantosca - Added ProTeX headers
 !  19 Oct 2012 - R. Yantosca - Removed routine INIT_LOCAL_MET, this is now
 !                              handled in Headers/gigc_state_met_mod.F90
+!  22 Oct 2012 - R. Yantosca - Renamed to gigc_environment_mod.F90
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -60,41 +62,42 @@ CONTAINS
 !------------------------------------------------------------------------------
 !BOP
 !
-! !IROUTINE: allocate_all
+! !IROUTINE: gigc_allocate_all
 !
-! !DESCRIPTION: Subroutine ALLOCATE\_ALL allocates all LAT/LON ALLOCATABLE 
-!  arrays for global use by the GEOS-Chem either as a standalone program or
-!  module.
+! !DESCRIPTION: Subroutine GIGC\_ALLOCATE\_ALL allocates all LAT/LON 
+!  ALLOCATABLE arrays for global use by the GEOS-Chem either as a standalone 
+!  program or module.
 !\\
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE ALLOCATE_ALL( am_I_Root, RC )
+  SUBROUTINE GIGC_Allocate_All( am_I_Root, RC )
 !
 ! !USES:
 !
+
     USE CMN_DEP_MOD,       ONLY : SET_CMN_DEP_MOD
     USE CMN_NOX_MOD,       ONLY : SET_CMN_NOX_MOD
     USE CMN_O3_MOD,        ONLY : SET_CMN_O3_MOD
     USE CMN_MOD,           ONLY : SET_CMN_MOD
     USE CMN_FJ_MOD,        ONLY : SET_CMN_FJ_MOD
-    USE JV_CMN_MOD,        ONLY : SET_JV_CMN_MOD
-    USE COMMSOIL_MOD,      ONLY : SET_COMMSOIL_MOD
-    USE VDIFF_PRE_MOD,     ONLY : SET_VDIFF_PRE_MOD
     USE CMN_SIZE_MOD,      ONLY : SET_CMN_SIZE_MOD
     USE CMN_DIAG_MOD,      ONLY : SET_CMN_DIAG_MOD
     USE COMODE_LOOP_MOD,   ONLY : SET_COMODE_LOOP_MOD
-    USE SMV_ERRCODE_MOD
+    USE COMMSOIL_MOD,      ONLY : SET_COMMSOIL_MOD
+    USE GIGC_ERRCODE_MOD
+    USE JV_CMN_MOD,        ONLY : SET_JV_CMN_MOD
+    USE VDIFF_PRE_MOD,     ONLY : SET_VDIFF_PRE_MOD
 
     IMPLICIT NONE
 !
 ! !INPUT PARAMETERS:
 !
-    LOGICAL, INTENT(IN) :: am_I_Root   ! Are we on the root CPU?
+    LOGICAL, INTENT(IN)  :: am_I_Root   ! Are we on the root CPU?
 !
 ! !OUTPUT PARAMETERS:
 !
-      INTEGER, INTENT(OUT) :: RC          ! Success or failure?
+    INTEGER, INTENT(OUT) :: RC          ! Success or failure?
 !
 ! !REMARKS:
 !  Need to add better error checking and exit upon failure.
@@ -103,6 +106,7 @@ CONTAINS
 !  26 Jan 2012 - M. Long     - Initial version
 !  13 Aug 2012 - R. Yantosca - Added ProTeX headers
 !  17 Oct 2012 - R. Yantosca - Add am_I_Root, RC as arguments
+!  22 Oct 2012 - R. Yantosca - Renamed to GIGC_Allocate_All
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -119,23 +123,23 @@ CONTAINS
     
     CALL SET_VDIFF_PRE_MOD
           
-  END SUBROUTINE ALLOCATE_ALL
+  END SUBROUTINE GIGC_Allocate_All
 !EOC
 !------------------------------------------------------------------------------
 !          Harvard University Atmospheric Chemistry Modeling Group            !
 !------------------------------------------------------------------------------
 !BOP
 !
-! !IROUTINE: init_all
+! !IROUTINE: gigc_init_all
 !
-! !DESCRIPTION: Subroutine INIT\_ALL initializes the top-level data structures
-!  that are either passed to/from GC or between GC components 
+! !DESCRIPTION: Subroutine GIGC\_INIT\_ALL initializes the top-level data 
+!  structures that are either passed to/from GC or between GC components 
 !  (emis->transport->chem->etc)
 !\\
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE Init_All( State_Met, State_Chm, am_I_Root, RC ) 
+  SUBROUTINE GIGC_Init_All( State_Met, State_Chm, am_I_Root, RC ) 
 !
 ! !USES:
 !
@@ -159,6 +163,9 @@ CONTAINS
 !
     INTEGER,        INTENT(OUT)   :: RC          ! Success or failure
 !
+! !REMARKS:
+!  Need to add better error checking, currently we just return upon error.
+!
 ! !REVISION HISTORY: 
 !  26 Jan 2012 - M. Long     - Initial version
 !  13 Aug 2012 - R. Yantosca - Added ProTeX headers
@@ -170,6 +177,7 @@ CONTAINS
 !  19 Oct 2012 - R. Yantosca - Now reference gigc_state_chm_mod.F90
 !  19 Oct 2012 - R. Yantosca - Now reference gigc_errcode_mod.F90
 !  19 Oct 2012 - R. Yantosca - Now reference IGAS in Headers/comode_loop_mod.F
+!  22 Oct 2012 - R. Yantosca - Renamed to GIGC_Init_All
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -203,7 +211,7 @@ CONTAINS
     ! Return upon error
     IF ( RC /= GIGC_SUCCESS ) RETURN
 
-  END SUBROUTINE Init_All
+  END SUBROUTINE GIGC_Init_All
 !EOC           
-END MODULE GC_Environment_Mod
+END MODULE GIGC_Environment_Mod
 #endif
