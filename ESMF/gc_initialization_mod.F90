@@ -158,8 +158,10 @@
        IF ( LEMIS .OR. LCHEM ) THEN
           IF ( ITS_A_FULLCHEM_SIM() ) CALL INIT_COMODE(am_I_Root)
           IF ( ITS_AN_AEROSOL_SIM() ) CALL INIT_COMODE(am_I_Root)
-          IF ( LKPP )  CALL INIT_GCKPP_COMODE( IIPAR, JJPAR, LLTROP, &
-               ITLOOP, NMTRATE, IGAS, RC )
+          IF ( LKPP ) THEN
+             CALL INIT_GCKPP_COMODE( am_I_Root, IIPAR,   JJPAR, LLTROP,  &
+                                     ITLOOP,    NMTRATE, IGAS,  RC      )
+          ENDIF
        ENDIF
 
        ALLOCATE( TO3_DAILY( IIPAR, JJPAR ), STAT=AS )
