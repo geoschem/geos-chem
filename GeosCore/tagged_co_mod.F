@@ -819,6 +819,7 @@
 !  (21) Use newest JPL 2006 rate constant for CO+OH (jaf, jmao, 3/4/09)
 !  01 Mar 2012 - R. Yantosca - Now use GET_AREA_CM2(I,J,L) from grid_mod.F90
 !  01 Mar 2012 - R. Yantosca - Now use GET_YMID(I,J,L) from grid_mod.F90
+!  22 Oct 2012 - R. Yantosca - Now pass am_I_Root=.TRUE. to GET_GLOBAL_CH4
 !******************************************************************************
 !
       ! References to F90 modules
@@ -920,8 +921,8 @@
       !       (bmy, 1/24/08)
       !=================================================================
       IF ( ITS_A_NEW_YEAR() ) THEN 
-         CALL GET_GLOBAL_CH4( GET_YEAR(), .TRUE., 
-     &                        A3090S, A0030S, A0030N, A3090N )
+         CALL GET_GLOBAL_CH4( GET_YEAR(), .TRUE.,             
+     &                        A3090S, A0030S, A0030N, A3090N, .TRUE. )
       ENDIF
 
       !=================================================================
