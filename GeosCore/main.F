@@ -112,11 +112,11 @@
       !-----------------------------------------------------------------
       ! Modules for the Grid-Independent GEOS-Chem (aka "GIGC")
       !-----------------------------------------------------------------
-      USE LOGICAL_MOD,        ONLY : DO_DIAG_WRITE
-      USE GC_ENVIRONMENT_MOD, ONLY : ALLOCATE_ALL
-      USE GC_ENVIRONMENT_MOD, ONLY : INIT_ALL
-      USE GIGC_State_Chm_Mod, ONLY : ChmState
-      USE GIGC_State_Met_Mod, ONLY : MetState
+      USE LOGICAL_MOD,          ONLY : Do_Diag_Write
+      USE GIGC_Environment_Mod, ONLY : GIGC_Allocate_All
+      USE GIGC_Environment_Mod, ONLY : GIGC_Init_All
+      USE GIGC_State_Chm_Mod,   ONLY : ChmState
+      USE GIGC_State_Met_Mod,   ONLY : MetState
 #endif
 
       IMPLICIT NONE
@@ -257,7 +257,7 @@
 
 #if defined( DEVEL )
       ! Allocate all lon/lat arrays for global use by GEOS-Chem
-      CALL ALLOCATE_ALL( am_I_root, RC )
+      CALL GIGC_Allocate_All( am_I_root, RC )
 #endif
 
       ! Display current grid resolution and data set type
@@ -273,7 +273,7 @@
 
 #if defined( DEVEL )
       ! Initialize State_Met and CHEMSTATE objects
-      CALL INIT_ALL( State_Met, State_Chm, am_I_Root, RC )
+      CALL GIGC_Init_All( State_Met, State_Chm, am_I_Root, RC )
 
       ! Assign values to the TRAC_NAME, TRAC_ID, SMVG_ID fields
       ! of the State_Chm object.  NOTE: This has to be done after
