@@ -77,28 +77,28 @@ CONTAINS
 ! !USES:
 !
     USE GC_Initialization_Mod
-    USE GC_Type_Mod
-    USE GC_Type2_MOD
-    USE Smv_ErrCode_Mod
+    USE GIGC_ErrCode_Mod
+    USE GIGC_State_Chm_Mod,    ONLY : ChmState
+    USE GIGC_State_Met_Mod,    ONLY : MetState
 !
 ! !INPUT PARAMETERS:
 !
-    INTEGER,            INTENT(IN)    :: NI          ! # of longitudes
-    INTEGER,            INTENT(IN)    :: NJ          ! # of latitudes
-    INTEGER,            INTENT(IN)    :: NL          ! # of levels
-    INTEGER,            INTENT(IN)    :: nymd        ! GMT date (YYYY/MM/DD)
-    INTEGER,            INTENT(IN)    :: nhms        ! GMT time (hh:mm:ss)
-    LOGICAL,            INTENT(IN)    :: am_I_Root   ! Are we on the root CPU?
-    REAL,               INTENT(IN)    :: tsChem      ! Chemistry timestep
+    INTEGER,        INTENT(IN)    :: NI          ! # of longitudes
+    INTEGER,        INTENT(IN)    :: NJ          ! # of latitudes
+    INTEGER,        INTENT(IN)    :: NL          ! # of levels
+    INTEGER,        INTENT(IN)    :: nymd        ! GMT date (YYYY/MM/DD)
+    INTEGER,        INTENT(IN)    :: nhms        ! GMT time (hh:mm:ss)
+    LOGICAL,        INTENT(IN)    :: am_I_Root   ! Are we on the root CPU?
+    REAL,           INTENT(IN)    :: tsChem      ! Chemistry timestep
 !
 ! !INPUT/OUTPUT PARAMETERS:
 !
-    TYPE(CHEMSTATE),    INTENT(INOUT) :: State_Chm   ! Chemistry state
-    TYPE(GC_MET_LOCAL), INTENT(INOUT) :: State_Met   ! Meteorology state
+    TYPE(ChmState), INTENT(INOUT) :: State_Chm   ! Chemistry State Object
+    TYPE(MetState), INTENT(INOUT) :: State_Met   ! Meteorology State Object
 !
 ! !OUTPUT PARAMETERS:
 !
-    INTEGER,            INTENT(OUT)   :: RC          ! Success or failure?
+    INTEGER,        INTENT(OUT)   :: RC          ! Success or failure?
 !
 ! !REVISION HISTORY: 
 !  18 Jul 2011 - M. Long     - Initial Version
@@ -106,9 +106,14 @@ CONTAINS
 !  09 Oct 2012 - R. Yantosca - Added comments, cosmetic changes
 !  16 Oct 2012 - R. Yantosca - Renamed GC_STATE argument to State_Chm
 !  16 Oct 2012 - R. Yantosca - Renamed GC_MET argument to State_Met
+!  19 Oct 2012 - R. Yantosca - Now reference gigc_state_chm_mod.F90
+!  19 Oct 2012 - R. Yantosca - Now reference gigc_state_met_mod.F90
 !EOP
 !------------------------------------------------------------------------------
 !BOC
+
+    ! Assume success
+    RC = GIGC_SUCCESS
 
     ! Initialize GEOS-Chem dimensions w/ the dimensions on this PET
     CALL GC_Init_Dimensions( NI, NJ, NL )
@@ -116,9 +121,6 @@ CONTAINS
     ! Initialize the G-C simulation and chemistry mechanism
     CALL GC_InitRun( State_Met, State_Chm, tsChem, nymd, nhms, am_I_Root, RC )
 
-    ! Return code
-    RC = SMV_SUCCESS
-    
   END SUBROUTINE GC_Chunk_Init
 !EOC
 !------------------------------------------------------------------------------
@@ -145,27 +147,26 @@ CONTAINS
 !
 ! !USES:
 !
-
     USE Gc_ChemDr
-    USE SMV_ERRCODE_MOD
-    USE GC_Type_Mod
-    USE GC_Type2_Mod
+    USE GIGC_ErrCode_Mod
+    USE GIGC_State_Chm_Mod,    ONLY : ChmState
+    USE GIGC_State_Met_Mod,    ONLY : MetState
 !
 ! !INPUT PARAMETERS:
 !
-    LOGICAL,            INTENT(IN)    :: am_I_Root   ! Are we on root CPU?
-    INTEGER,            INTENT(IN)    :: NI          ! # of longitudes
-    INTEGER,            INTENT(IN)    :: NJ          ! # of latitudes
-    INTEGER,            INTENT(IN)    :: NL          ! # of levels
+    LOGICAL,        INTENT(IN)    :: am_I_Root   ! Are we on root CPU?
+    INTEGER,        INTENT(IN)    :: NI          ! # of longitudes
+    INTEGER,        INTENT(IN)    :: NJ          ! # of latitudes
+    INTEGER,        INTENT(IN)    :: NL          ! # of levels
 !
 ! !INPUT/OUTPUT PARAMETERS:
 !
-    TYPE(CHEMSTATE),    INTENT(INOUT) :: State_Chm   ! Chemical state
-    TYPE(GC_MET_LOCAL), INTENT(INOUT) :: State_Met   ! Meteorology state
+    TYPE(ChmState), INTENT(INOUT) :: State_Chm   ! Chemistry State object
+    TYPE(MetState), INTENT(INOUT) :: State_Met   ! Meteorology State object
 !
 ! !OUTPUT PARAMETERS:
 !
-    INTEGER,            INTENT(OUT)   :: RC          ! Return code
+    INTEGER,        INTENT(OUT)   :: RC          ! Return code
 !
 ! !REMARKS:
 !  Met field inputs from the GC_MET object have SI units.  Some GEOS-Chem 
@@ -178,6 +179,8 @@ CONTAINS
 !  16 Oct 2012 - R. Yantosca - Renamed GC_STATE argument to State_Chm
 !  16 Oct 2012 - R. Yantosca - Renamed GC_MET argument to State_Met
 !  17 Oct 2012 - R. Yantosca - Need to call AIRQNT before chemistry
+!  19 Oct 2012 - R. Yantosca - Now reference gigc_state_chm_mod.F90
+!  19 Oct 2012 - R. Yantosca - Now reference gigc_state_met_mod.F90
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -185,6 +188,9 @@ CONTAINS
 ! !LOCAL VARIABLES:
 !
     INTEGER :: NC
+
+    ! Assume success
+    RC = GIGC_SUCCESS
 
     ! Number of advected tracers
     NC = SIZE( State_Chm%Tracers, 4 )
@@ -215,31 +221,30 @@ CONTAINS
 !
 ! !USES:
 !
-    USE GC_Type_Mod,         ONLY : GC_Met_Local
-    USE GC_Type2_Mod,        ONLY : ChemState    ! Derived type for chem state
     USE GC_Finalization_Mod
-    USE Smv_ErrCode_Mod
+    USE GIGC_ErrCode_Mod
+    USE GIGC_State_Chm_Mod,    ONLY : ChmState
+    USE GIGC_State_Met_Mod,    ONLY : MetState
 !
 ! !INPUT PARAMETERS:
 !
-    LOGICAL,            INTENT(IN)    :: am_I_Root  ! Are we on the root CPU?
+    LOGICAL,        INTENT(IN)    :: am_I_Root  ! Are we on the root CPU?
 !
 ! !INPUT/OUTPUT PARAMETERS:
 !
-    TYPE(GC_Met_Local), INTENT(INOUT) :: State_Met  ! Chemistry state
-    TYPE(CHEMSTATE),    INTENT(INOUT) :: State_Chm  ! Chemistry state
+    TYPE(ChmState), INTENT(INOUT) :: State_Chm  ! Chemistry State object
+    TYPE(MetState), INTENT(INOUT) :: State_Met  ! Meteorology State object
 !
 ! !OUTPUT PARAMETERS:
 !
-    INTEGER,            INTENT(OUT)   :: RC         ! Success or failure
-!
-! !REMARKS:
-!  Add 
+    INTEGER,        INTENT(OUT)   :: RC         ! Success or failure
 !
 ! !REVISION HISTORY: 
 !  18 Jul 2011 - M. Long     - Initial Version
 !  09 Oct 2012 - R. Yantosca - Added comments & cosmetic changes
 !  16 Oct 2012 - R. Yantosca - Renamed GC_STATE argument to State_Chm
+!  19 Oct 2012 - R. Yantosca - Now reference gigc_state_chm_mod.F90
+!  19 Oct 2012 - R. Yantosca - Now reference gigc_state_met_mod.F90
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -248,8 +253,8 @@ CONTAINS
 !
 !   write(*,*) 'FINALIZING'
 
-    ! Set error code to success
-    RC                      = SMV_SUCCESS
+    ! Assume succes
+    RC = GIGC_SUCCESS
 
     ! Finalize GEOS-Chem
     CALL GC_Finalize( State_Met, State_Chm, am_I_Root, RC )

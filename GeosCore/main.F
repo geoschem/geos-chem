@@ -109,11 +109,14 @@
       USE I6_READ_MOD           ! For reading I6 data (all other met)
 
 #if defined( DEVEL )
+      !-----------------------------------------------------------------
+      ! Modules for the Grid-Independent GEOS-Chem (aka "GIGC")
+      !-----------------------------------------------------------------
       USE LOGICAL_MOD,        ONLY : DO_DIAG_WRITE
       USE GC_ENVIRONMENT_MOD, ONLY : ALLOCATE_ALL
       USE GC_ENVIRONMENT_MOD, ONLY : INIT_ALL
-      USE GC_TYPE2_MOD,       ONLY : CHEMSTATE
-      USE GC_TYPE_MOD,        ONLY : GC_MET_LOCAL
+      USE GIGC_State_Chm_Mod, ONLY : ChmState
+      USE GIGC_State_Met_Mod, ONLY : MetState
 #endif
 
       IMPLICIT NONE
@@ -198,6 +201,8 @@
 !  18 Oct 2012 - R. Yantosca - Rename CHEM_STATE object to State_Chm
 !  18 Oct 2012 - R. Yantosca - Now pass am_I_Root, RC arguments to routines
 !                              ALLOCATE_ALL, INIT_ALL when using -DDEVEL
+!  19 Oct 2012 - R. Yantosca - Now reference gigc_state_chm_mod.F90
+!  19 Oct 2012 - R. Yantosca - Now reference gigc_state_met_mod.F90
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -227,8 +232,8 @@
       TYPE(MapWeight), POINTER :: mapping(:,:) => NULL()
 
 #if defined( DEVEL )
-      TYPE(CHEMSTATE)          :: State_Chm
-      TYPE(GC_MET_LOCAL)       :: State_Met
+      TYPE(ChmState)           :: State_Chm   ! Chemistry State object
+      TYPE(MetState)           :: State_Met   ! Meteorology State object
 #endif
 
       ! When connecting G-C to an external GCM, we need to only write 
@@ -1260,6 +1265,8 @@
 !  28 Feb 2012 - R. Yantosca - Removed support for GEOS-3
 !  19 Mar 2012 - R. Yantosca - Now echo info for 0.25 x 0.3125 runs
 !  19 Mar 2012 - R. Yantosca - Now echo info if ISORROPIA is turned off
+!  22 Oct 2012 - R. Yantosca - Now echo info if -DDEVEL is used
+
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -1353,6 +1360,16 @@
       WRITE( 6, '(a)' ) '# ISORROPIA TURNED OFF FOR TESTING!!! #'
       WRITE( 6, '(a)' ) REPEAT( '#', 39 )
 #endif
+
+      !-------------------------------------------------
+      ! Print msg if ISORROPIA is turned off for debug
+      !-------------------------------------------------
+#if   defined( DEVEL ) 
+      WRITE( 6, '(a)' ) REPEAT( '#', 39 )
+      WRITE( 6, '(a)' ) '# USING -DDEVEL FOR TESTING THE GIGC  #'
+      WRITE( 6, '(a)' ) REPEAT( '#', 39 )
+#endif
+
       
       !-------------------------------------------------
       ! System time stamp

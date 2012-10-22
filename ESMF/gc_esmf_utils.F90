@@ -51,13 +51,13 @@ CONTAINS
 !
 ! !USES:
 !
-    USE GC_TYPE_MOD          
-    USE GC_TYPE2_MOD
+    USE GIGC_State_Chm_Mod, ONLY : ChmState
+    USE GIGC_State_Met_Mod, ONLY : MetState
 !
 ! !INPUT/OUTPUT PARAMETERS: 
 !
-    TYPE(GC_MET_LOCAL), INTENT(INOUT) :: State_Met   ! Meteorology state
-    TYPE(CHEMSTATE),    INTENT(INOUT) :: State_Chm   ! Chemistry state
+    TYPE(ChmState), INTENT(INOUT) :: State_Chm   ! Chemistry State object
+    TYPE(MetState), INTENT(INOUT) :: State_Met   ! Meteorology State object
 !
 ! !REMARKS:
 !  This routine may just be for the BCC interface. 
@@ -65,6 +65,8 @@ CONTAINS
 ! !REVISION HISTORY: 
 !  16 Oct 2012 - M. Long     - Initial version
 !  16 Oct 2012 - R. Yantosca - Added ProTeX headers
+!  19 Oct 2012 - R. Yantosca - Now reference gigc_state_chm_mod.F90
+!  19 Oct 2012 - R. Yantosca - Now reference gigc_state_met_mod.F90
 !EOP
 !------------------------------------------------------------------------------
 !BOC

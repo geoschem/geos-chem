@@ -69,9 +69,9 @@
 ! !INTERFACE:
 !
 #if defined( DEVEL ) || defined( EXTERNAL_GRID ) || defined( EXTERNAL_FORCING )
-      SUBROUTINE DO_CHEMISTRY(am_I_Root,NI,NJ,NL,State_Chm, State_Met)
+      SUBROUTINE DO_CHEMISTRY( am_I_Root,NI,NJ,NL,State_Chm,State_Met )
 #else
-      SUBROUTINE DO_CHEMISTRY(am_I_Root)
+      SUBROUTINE DO_CHEMISTRY( am_I_Root )
 #endif
 !
 ! !USES:
@@ -124,8 +124,8 @@
       USE CMN_DIAG_MOD          ! NDxx flags
 
 #if defined( DEVEL ) || defined( EXTERNAL_GRID ) || defined( EXTERNAL_FORCING )
-      USE GC_TYPE_MOD,     ONLY : GC_MET_LOCAL
-      USE GC_TYPE2_MOD,    ONLY : CHEMSTATE
+      USE GIGC_State_Chm_Mod, ONLY : ChmState
+      USE GIGC_State_Met_Mod, ONLY : MetState
 #endif
 !
 ! !INPUT VARIABLES:
@@ -184,6 +184,8 @@
 !  10 Aug 2012 - R. Yantosca - Cosmetic changes
 !  18 Oct 2012 - R. Yantosca - Rename GC_MET argument to State_Met
 !  18 Oct 2012 - R. Yantosca - Rename CHEM_STATE argument to State_Chem
+!  19 Oct 2012 - R. Yantosca - Now reference gigc_state_chm_mod.F90
+!  19 Oct 2012 - R. Yantosca - Now reference gigc_state_met_mod.F90
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -194,9 +196,8 @@
       INTEGER       :: N_TROP, MONTH, YEAR, WAVELENGTH
 
 #if defined( DEVEL ) || defined( EXTERNAL_GRID ) || defined( EXTERNAL_FORCING )
-      TYPE(CHEMSTATE), INTENT(INOUT) :: State_Chm
-      TYPE(GC_MET_LOCAL), INTENT(IN) :: State_Met
-!      REAL*8                         :: STT(IIPAR,JJPAR,LLPAR,N_TRACERS)
+      TYPE(ChmState), INTENT(INOUT) :: State_Chm
+      TYPE(MetState), INTENT(IN)    :: State_Met
 #endif
 
       !=================================================================

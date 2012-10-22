@@ -41,10 +41,6 @@ MODULE GC_Environment_Mod
   PUBLIC :: ALLOCATE_ALL
   PUBLIC :: INIT_ALL
 !
-! !PRIVATE MEMBER FUNCTIONS:
-!
-  PRIVATE :: INIT_LOCAL_MET
-!
 ! !REMARKS:
 !  For consistency, we should probably move the met state initialization
 !  to the same module where the met state derived type is contained.
@@ -52,6 +48,8 @@ MODULE GC_Environment_Mod
 ! !REVISION HISTORY:
 !  26 Jan 2012 - M. Long     - Created module file
 !  13 Aug 2012 - R. Yantosca - Added ProTeX headers
+!  19 Oct 2012 - R. Yantosca - Removed routine INIT_LOCAL_MET, this is now
+!                              handled in Headers/gigc_state_met_mod.F90
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -123,7 +121,7 @@ CONTAINS
           
   END SUBROUTINE ALLOCATE_ALL
 !EOC
- !------------------------------------------------------------------------------
+!------------------------------------------------------------------------------
 !          Harvard University Atmospheric Chemistry Modeling Group            !
 !------------------------------------------------------------------------------
 !BOP
@@ -138,28 +136,28 @@ CONTAINS
 ! !INTERFACE:
 !
   SUBROUTINE Init_All( State_Met, State_Chm, am_I_Root, RC ) 
-
 !
 ! !USES:
 !
-    USE GC_TYPE_MOD
-    USE GC_TYPE2_MOD, ONLY : ChemState
-    USE GC_TYPE2_MOD, ONLY : Init_Chemistry_State
-
-    IMPLICIT NONE
+    USE CMN_Size_Mod,       ONLY : IIPAR, JJPAR, LLPAR, NBIOMAX
+    USE Comode_Loop_Mod,    ONLY : IGAS
+    USE GIGC_ErrCode_Mod
+    USE GIGC_State_Chm_Mod
+    USE GIGC_State_Met_Mod
+    USE Tracer_Mod,         ONLY : N_TRACERS
 !
 ! !INPUT PARAMETERS:
 !
-    LOGICAL,            INTENT(IN)    :: am_I_Root   ! Are we on the root CPU?
+    LOGICAL,        INTENT(IN)    :: am_I_Root   ! Are we on the root CPU?
 !
 ! !INPUT/OUTPUT PARAMETERS:
 !
-    TYPE(GC_MET_LOCAL), INTENT(INOUT) :: State_Met   ! Meteorology state
-    TYPE(CHEMSTATE   ), INTENT(INOUT) :: State_Chm   ! Chemistry state
+    TYPE(MetState), INTENT(INOUT) :: State_Met   ! Meteorology State object
+    TYPE(ChmState), INTENT(INOUT) :: State_Chm   ! Chemistry State object
 !
 ! !OUTPUT PARAMETERS:
 !
-    INTEGER,            INTENT(OUT)   :: RC          ! Success or failure
+    INTEGER,        INTENT(OUT)   :: RC          ! Success or failure
 !
 ! !REVISION HISTORY: 
 !  26 Jan 2012 - M. Long     - Initial version
@@ -168,134 +166,44 @@ CONTAINS
 !  16 Oct 2012 - R. Yantosca - Renamed GC_STATE  argument to State_Chm
 !  16 Oct 2012 - R. Yantosca - Call Init_Chemistry_State (in gc_type2_mod.F90,
 !                              which was renamed from INIT_CHEMSTATE)
+!  19 Oct 2012 - R. Yantosca - Now reference gigc_state_met_mod.F90
+!  19 Oct 2012 - R. Yantosca - Now reference gigc_state_chm_mod.F90
+!  19 Oct 2012 - R. Yantosca - Now reference gigc_errcode_mod.F90
+!  19 Oct 2012 - R. Yantosca - Now reference IGAS in Headers/comode_loop_mod.F
 !EOP
 !------------------------------------------------------------------------------
 !BOC
 
+    !=======================================================================
     ! Initialize object for met fields
-    CALL INIT_LOCAL_MET( State_Met )
+    !=======================================================================
+    CALL Init_GIGC_State_Met( am_I_Root  = am_I_Root,   &
+                              IM         = IIPAR,       &
+                              JM         = JJPAR,       &
+                              LM         = LLPAR,       &
+                              State_Met  = State_Met,   &
+                              RC         = RC          )
 
+    ! Return upon error
+    IF ( RC /= GIGC_SUCCESS ) RETURN
+
+    !=======================================================================
     ! Initialize object for chemical state
-    CALL Init_Chemistry_State( State_Chm, am_I_Root, RC )
+    !=======================================================================
+    CALL Init_GIGC_State_Chm( am_I_Root  = am_I_Root,   &
+                              IM         = IIPAR,       &
+                              JM         = JJPAR,       &
+                              LM         = LLPAR,       &
+                              nTracers   = N_TRACERS,   &
+                              nBioMax    = NBIOMAX,     &
+                              nSpecies   = IGAS,        &
+                              State_Chm  = State_Chm,   &
+                              RC         = RC          )
     
+    ! Return upon error
+    IF ( RC /= GIGC_SUCCESS ) RETURN
+
   END SUBROUTINE Init_All
-!EOC
-!------------------------------------------------------------------------------
-!          Harvard University Atmospheric Chemistry Modeling Group            !
-!------------------------------------------------------------------------------
-!BOP
-!
-! !IROUTINE: init_local_met
-!
-! !DESCRIPTION: Subroutine INIT\_LOCAL\_MET allocates all fields of an
-!  object based on derived type GC_MET_LOCAL (from gc_type_mod.F90).
-!\\
-!\\
-! !INTERFACE:
-!
-  SUBROUTINE INIT_LOCAL_MET( State_Met )
-!
-! !USES:
-!
-    USE GC_TYPE_MOD
-    USE CMN_SIZE_MOD, ONLY : IIPAR, JJPAR, LLPAR
-    USE ERROR_MOD,    ONLY : ALLOC_ERR
-    USE PRESSURE_MOD, ONLY : GET_PEDGE, GET_PCENTER
-    USE TRACER_MOD,   ONLY : N_TRACERS
-    
-    IMPLICIT NONE
-!
-! !INPUT/OUTPUT PARAMETERS:
-!
-    TYPE(GC_MET_LOCAL), INTENT(INOUT) :: State_Met
-!
-! !REMARKS:
-!  For consistency, maybe this should be moved to a different module.
-!
-! !REVISION HISTORY: 
-!  01 Oct 1995 - R. Yantosca - Initial version
-!  08 Dec 2009 - R. Yantosca - Added ProTeX headers
-!  16 Oct 2012 - R. Yantosca - Renamed LOCAL_MET argument to State_Met
-!EOP
-!------------------------------------------------------------------------------
-!BOC
-!
-! !LOCAL VARIABLES:
-!
-    INTEGER :: I,J,L,AS
-
-    !=======================================================================
-    ! Allocate 2-D Arrays
-    !=======================================================================
-    ALLOCATE( &
-       State_Met%ALBD    (IIPAR,JJPAR), & ! Visible surface albedo [unitless]
-       State_Met%CLDFRC  (IIPAR,JJPAR), & ! Column cloud fraction [unitless]
-       State_Met%FRCLND  (IIPAR,JJPAR), & ! Olson land fraction [unitless]
-       State_Met%GWETTOP (IIPAR,JJPAR), & ! Top soil moisture [unitless]
-       State_Met%HFLUX   (IIPAR,JJPAR), & ! Sensible heat flux [W/m2]
-       State_Met%LWI     (IIPAR,JJPAR), & ! Land/water indices [unitless]
-       State_Met%PARDR   (IIPAR,JJPAR), & ! Direct  photsyn active rad [W/m2]
-       State_Met%PARDF   (IIPAR,JJPAR), & ! Diffuse photsyn active rad [W/m2]
-       State_Met%PBLH    (IIPAR,JJPAR), & ! PBL height [m]
-       State_Met%PRECCON (IIPAR,JJPAR), & ! Conv  precip @ ground [kg/m2/s]
-       State_Met%PRECTOT (IIPAR,JJPAR), & ! Total precip @ ground [kg/m2/s]
-       State_Met%RADSWG  (IIPAR,JJPAR), & ! Solar radiation @ ground [W/m2]
-       State_Met%SST     (IIPAR,JJPAR), & ! Sea surface temperature [K]
-       State_Met%SUNCOS  (IIPAR*JJPAR), & ! Cosine of solar zenith angle
-       State_Met%TO3     (IIPAR,JJPAR), & ! Total overhead O3 column [DU]
-       State_Met%TROPP   (IIPAR,JJPAR), & ! Tropopause pressure [hPa]
-       State_Met%TS      (IIPAR,JJPAR), & ! Surface temperature [K]
-       State_Met%U10M    (IIPAR,JJPAR), & ! E/W wind speed @ 10m height [m/s]
-       State_Met%USTAR   (IIPAR,JJPAR), & ! Friction velocity [m/s]
-       State_Met%UVALBEDO(IIPAR,JJPAR), & ! UV surface albedo [unitless]
-       State_Met%V10M    (IIPAR,JJPAR), & ! N/S wind speed @ 10m height [m/s]
-       State_Met%Z0      (IIPAR,JJPAR), &
-       STAT = AS )
-    IF (AS /= 0) CALL ALLOC_ERR('INIT_LOCAL_MET 2D')
-
-    !=======================================================================
-    ! Allocate 3-D Arrays
-    !=======================================================================
-    ALLOCATE( &
-       State_Met%AD      (IIPAR,JJPAR,LLPAR  ), & ! Air mass [kg]
-       State_Met%AIRDENS (LLPAR,IIPAR,JJPAR  ), & ! Air density [kg/m3]
-       State_Met%AIRVOL  (IIPAR,JJPAR,LLPAR  ), & ! Grid box volume [m3]
-       State_Met%AREA_M2 (IIPAR,JJPAR,LLPAR  ), & ! Grid box surface area [cm2]
-       State_Met%BXHEIGHT(IIPAR,JJPAR,LLPAR  ), & ! Grid box height [m]
-       State_Met%CLDF    (LLPAR,IIPAR,JJPAR  ), & ! 3-D cloud fraction [1]
-       State_Met%CMFMC   (IIPAR,JJPAR,LLPAR+1), & ! Cloud mass flux [kg/m2/s]
-       State_Met%DQIDTMST(IIPAR,JJPAR,LLPAR  ), & ! Ice tndcy, mst [kg/kg/s]
-       State_Met%DQLDTMST(IIPAR,JJPAR,LLPAR  ), & ! H2O tndcy, mst [kg/kg/s]
-       State_Met%DQVDTMST(IIPAR,JJPAR,LLPAR  ), & ! Vapor tndcy, mst [kg/kg/s]
-       State_Met%DTRAIN  (IIPAR,JJPAR,LLPAR  ), & ! Detrainment flux [kg/m2/s]
-       State_Met%MOISTQ  (LLPAR,IIPAR,JJPAR  ), & ! Tndcy in spc hum [kg/kg/s]
-       State_Met%OPTD    (LLPAR,IIPAR,JJPAR  ), & ! Visible opt depth [1]
-       State_Met%PEDGE   (IIPAR,JJPAR,LLPAR+1), & ! Pressure @ edges [Pa]
-       State_Met%PMID    (IIPAR,JJPAR,LLPAR  ), & ! Pressure @ centers [Pa]
-       State_Met%DELP    (LLPAR,IIPAR,JJPAR  ), & ! Pressure thickness [Pa]
-       State_Met%RH      (IIPAR,JJPAR,LLPAR  ), & ! Relative humidity [1]
-       State_Met%SPHU    (IIPAR,JJPAR,LLPAR  ), & ! Specific humidity [kg/kg]
-       State_Met%T       (IIPAR,JJPAR,LLPAR  ), & ! Temperature [K]
-       State_Met%TAUCLI  (IIPAR,JJPAR,LLPAR  ), & ! Opt depth of ice clouds [1]
-       State_Met%TAUCLW  (IIPAR,JJPAR,LLPAR  ), & ! Opt depth of H2O clouds [1]
-       STAT=AS)
-    
-    IF (AS /= 0) CALL ALLOC_ERR('INIT_LOCAL_MET 3D')
-    
-! Comment out DO loop
-!    DO I = 1,IIPAR
-!       DO J = 1, JJPAR
-!          DO L = 1, LLPAR
-!!             State_Met%PEDGE(I,J,L) = GET_PEDGE(I,J,L)
-!!                   State_Met%PMID (I,J,L) = GET_PCENTER(I,J,L)
-!                ENDDO
-!             ENDDO
-!          ENDDO
-
-!          ALLOCATE( TRACER_INDEX(N_TRACERS), STAT = AS )
-!          write(*,*) 'TRACER_INDEX: ', shape(tracer_index)
-
-  END SUBROUTINE INIT_LOCAL_MET
 !EOC           
 END MODULE GC_Environment_Mod
 #endif

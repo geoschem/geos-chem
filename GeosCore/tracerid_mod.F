@@ -1415,6 +1415,7 @@
 !  30 Jul 2012 - R. Yantosca - Now accept am_I_Root as an argument when
 !                              running with the traditional driver main.F
 !  16 Oct 2012 - R. Yantosca - Renamed chem state object to State_Chm
+!  19 Oct 2012 - R. Yantosca - Now reference gigc_state_chm_mod.F90
 !******************************************************************************
 !
       ! References to F90 modules
@@ -1424,16 +1425,14 @@
       USE TRACER_MOD, ONLY : TRACER_N_CONST, TRACER_NAME
       USE LOGICAL_MOD, ONLY : LPRT
 
-      USE CMN_SIZE_MOD                           ! Size parameters
-      USE COMODE_LOOP_MOD                        ! NAMEGAS
+      USE CMN_SIZE_MOD                                 ! Size parameters
+      USE COMODE_LOOP_MOD                              ! NAMEGAS
 
 #if defined( DEVEL ) || defined( EXTERNAL_GRID ) || defined( EXTERNAL_FORCING )
-      USE GC_TYPE2_MOD,  ONLY : CHEMSTATE        ! Derived type for chem state 
-
+      USE GIGC_State_Chm_Mod, ONLY: ChmState           ! Derived type
 #if defined( ESMF_ )
-      USE GC_TYPE2_MOD,  ONLY : Register_Species ! Used w/ ESMF
+      USE GIGC_State_Chm_Mod, ONLY: Register_Species   ! Used w/ ESMF
 #endif
-
 #endif
 
       ! Arguments
@@ -1443,10 +1442,8 @@
       INTEGER             :: I, J, T, C, STAT
 
 #if defined( DEVEL ) || defined( EXTERNAL_GRID ) || defined( EXTERNAL_FORCING )
-      ! Derived type object with chemical state
-      TYPE(CHEMSTATE), INTENT(INOUT) :: State_Chm
+      TYPE(ChmState), INTENT(INOUT) :: State_Chm       ! Chemistry State obj
 #endif
-
  
       !=================================================================
       ! SETTRACE begins here!
@@ -1665,21 +1662,22 @@
 ! !USES:
 !
       ! References to F90 modules
-      USE GC_TYPE2_MOD, ONLY : CHEMSTATE
-      USE TRACER_MOD,   ONLY : N_TRACERS
-      USE TRACER_MOD,   ONLY : TRACER_NAME
+      USE GIGC_State_Chm_Mod, ONLY : ChmState
+      USE TRACER_MOD,         ONLY : N_TRACERS
+      USE TRACER_MOD,         ONLY : TRACER_NAME
 !
 ! !INPUT PARAMETERS: 
 !
-      LOGICAL,         INTENT(IN)    :: am_I_Root    ! Is this the root CPU?
+      LOGICAL,        INTENT(IN)    :: am_I_Root    ! Is this the root CPU?
 !
 ! !INPUT/OUTPUT PARAMETERS:
 !
-      TYPE(CHEMSTATE), INTENT(INOUT) :: State_Chm    ! Obj for chemical state
+      TYPE(ChmState), INTENT(INOUT) :: State_Chm    ! Obj for chemical state
 ! 
 ! !REVISION HISTORY: 
 !  13 Aug 2012 - R. Yantosca - Initial version
 !  16 Oct 2012 - R. Yantosca - Renamed chem state object to State_Chm
+!  19 Oct 2012 - R. Yantosca - Now references gigc_state_chm_mod.F90
 !EOP
 !------------------------------------------------------------------------------
 !BOC

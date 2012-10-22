@@ -458,7 +458,7 @@
 !------------------------------------------------------------------------------
 
 #if defined( DEVEL )
-      SUBROUTINE GET_A6_FIELDS( NYMD, NHMS, LOCAL_MET )
+      SUBROUTINE GET_A6_FIELDS( NYMD, NHMS, State_Met )
 #else
       SUBROUTINE GET_A6_FIELDS( NYMD, NHMS )
 #endif
@@ -483,6 +483,7 @@
 !        MFYC, MFZ, PV, QI, QL, RH, TAUCLI, TAUCLW for GEOS-5 
 !        (bmy, 10/30/07)
 !  28 Feb 2012 - R. Yantosca - Removed support for GEOS-3
+!  19 Oct 2012 - R. Yantosca - Now reference gigc_state_met_mod.F90
 !******************************************************************************
 !
       ! References to F90 modules
@@ -499,13 +500,13 @@
 
       USE CMN_SIZE_MOD  ! Size parameters
 #if defined( DEVEL )
-      USE GC_TYPE_MOD,  ONLY : GC_MET_LOCAL
+      USE GIGC_State_Met_Mod, Only : MetState
 #endif
 
       ! Arguments
       INTEGER, INTENT(IN) :: NYMD, NHMS 
 #if defined( DEVEL )
-      TYPE(GC_MET_LOCAL), INTENT(INOUT) :: LOCAL_MET
+      TYPE(MetState), INTENT(INOUT) :: State_Met
 #endif
 
       ! Local variables
@@ -585,19 +586,19 @@
       LASTNHMS = NHMS
 
 #if defined( DEVEL )
-      LOCAL_MET%CLDF     = CLDF
-      LOCAL_MET%CMFMC    = CMFMC
-      LOCAL_MET%DTRAIN   = DTRAIN
-      LOCAL_MET%MOISTQ   = MOISTQ
-      LOCAL_MET%OPTD     = OPTDEP
-      LOCAL_MET%RH       = RH
-      LOCAL_MET%SPHU     = SPHU
-      LOCAL_MET%T        = T
-      LOCAL_MET%DQIDTMST = DQIDTMST
-      LOCAL_MET%DQLDTMST = DQLDTMST
-      LOCAL_MET%TAUCLI   = TAUCLI
-      LOCAL_MET%TAUCLW   = TAUCLW
-      LOCAL_MET%DQVDTMST = DQVDTMST
+      State_Met%CLDF     = CLDF
+      State_Met%CMFMC    = CMFMC
+      State_Met%DTRAIN   = DTRAIN
+      State_Met%MOISTQ   = MOISTQ
+      State_Met%OPTD     = OPTDEP
+      State_Met%RH       = RH
+      State_Met%SPHU     = SPHU
+      State_Met%T        = T
+      State_Met%DQIDTMST = DQIDTMST
+      State_Met%DQLDTMST = DQLDTMST
+      State_Met%TAUCLI   = TAUCLI
+      State_Met%TAUCLW   = TAUCLW
+      State_Met%DQVDTMST = DQVDTMST
 #endif
 
       ! Return to calling program

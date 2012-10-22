@@ -16,9 +16,6 @@ MODULE GC_Initialization_Mod
 !
 ! !USES:
 !      
-  USE GC_TYPE_MOD,  ONLY : GC_MET_LOCAL
-  USE GC_TYPE2_MOD, ONLY : CHEMSTATE
-
   IMPLICIT NONE
   PRIVATE
 !
@@ -145,11 +142,11 @@ CONTAINS
 !
   SUBROUTINE GC_INITRUN( State_Met, State_Chm, tsChem,        &
                          nymd,      nhms,      am_I_Root, RC )
-      
 !
 ! !USES:
 !
-    USE GC_TYPE2_MOD,       ONLY : Init_Chemistry_State 
+    USE GIGC_State_Chm_Mod
+    USE GIGC_State_Met_Mod
     USE CMN_SIZE_MOD,       ONLY : IIPAR
     USE CMN_SIZE_MOD,       ONLY : JJPAR
     USE CMN_SIZE_MOD,       ONLY : LLTROP
@@ -183,19 +180,19 @@ CONTAINS
 !
 ! !INPUT PARAMETERS: 
 !
-    REAL,               INTENT(IN)    :: tsChem      ! Chemistry timestep [s]
-    INTEGER,            INTENT(IN)    :: nymd        ! GMT date (YYYY/MM/DD)
-    INTEGER,            INTENT(IN)    :: nhms        ! GMT time (hh:mm:ss)
-    LOGICAL,            INTENT(IN)    :: am_I_Root   ! Is this the root CPU?
+    REAL,           INTENT(IN)    :: tsChem      ! Chemistry timestep [s]
+    INTEGER,        INTENT(IN)    :: nymd        ! GMT date (YYYY/MM/DD)
+    INTEGER,        INTENT(IN)    :: nhms        ! GMT time (hh:mm:ss)
+    LOGICAL,        INTENT(IN)    :: am_I_Root   ! Is this the root CPU?
 !
 ! !INPUT/OUTPUT PARAMETERS:
 !
-    TYPE(CHEMSTATE),    INTENT(INOUT) :: State_Chm   ! Obj for chemistry
-    TYPE(GC_MET_LOCAL), INTENT(INOUT) :: State_Met   ! Obj for meteorology
+    TYPE(ChmState), INTENT(INOUT) :: State_Chm   ! Chemistry State object
+    TYPE(MetState), INTENT(INOUT) :: State_Met   ! Meteorology State object
 !
 ! !OUTPUT PARAMETERS:
 !
-    INTEGER,            INTENT(OUT)   :: RC          ! Success or failure?  
+    INTEGER,        INTENT(OUT)   :: RC          ! Success or failure?  
 !
 ! !REMARKS
 !  Add other calls to GEOS-Chem init routines as necessary.
@@ -205,6 +202,8 @@ CONTAINS
 !  15 Oct 2012 - M. Long     - Initial version
 !  15 Oct 2012 - R. Yantosca - Added ProTeX Headers, use F90 format/indents
 !  17 Oct 2012 - R. Yantosca - Now initialize the chemistry mechanism
+!  19 Oct 2012 - R. Yantosca - Now reference gigc_state_chm_mod.F90
+!  19 Oct 2012 - R. Yantosca - Now reference gigc_state_met_mod.F90
 !EOP
 !------------------------------------------------------------------------------
 !BOC

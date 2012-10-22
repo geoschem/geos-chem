@@ -122,10 +122,14 @@
 #endif
 
 #if defined( DEVEL )
+      !-----------------------------------------------------------------
+      ! Modules for the Grid-Independent GEOS-Chem (aka "GIGC")
+      !-----------------------------------------------------------------
       USE LOGICAL_MOD,        ONLY : DO_DIAG_WRITE
-      USE GC_ENVIRONMENT_MOD, ONLY : ALLOCATE_ALL, INIT_ALL
-      USE GC_TYPE2_MOD,       ONLY : CHEMSTATE
-      USE GC_TYPE_MOD,        ONLY : GC_MET_LOCAL
+      USE GC_ENVIRONMENT_MOD, ONLY : ALLOCATE_ALL
+      USE GC_ENVIRONMENT_MOD, ONLY : INIT_ALL
+      USE GIGC_State_Chm_Mod, ONLY : ChmState
+      USE GIGC_State_Met_Mod, ONLY : MetState
 #endif
 
       IMPLICIT NONE
@@ -233,8 +237,8 @@
       TYPE(MapWeight), POINTER :: mapping(:,:) => NULL()
 
 #if defined( DEVEL )
-      TYPE(CHEMSTATE)          :: CHEM_STATE
-      TYPE(GC_MET_LOCAL)       :: LOCAL_MET
+      TYPE(ChmState)           :: State_Chm   ! Chemistry State object
+      TYPE(MetState)           :: State_Met   ! Meteorology State object
 #endif
 
       ! When connecting G-C to an external GCM, we need to only write 

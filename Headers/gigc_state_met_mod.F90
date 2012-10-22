@@ -29,7 +29,6 @@ MODULE GIGC_State_Met_Mod
 !
 ! !PUBLIC MEMBER FUNCTIONS:
 !
-  PUBLIC :: Get_Spc_Idx
   PUBLIC :: Init_GIGC_State_Met
   PUBLIC :: Cleanup_GIGC_State_Met
 !
@@ -124,7 +123,7 @@ CONTAINS
 !
 ! !INPUT/OUTPUT PARAMETERS:
 !
-    TYPE(CHMSTATE), INTENT(INOUT) :: State_Met   ! Obj for meteorology state
+    TYPE(MetState), INTENT(INOUT) :: State_Met   ! Obj for meteorology state
 !
 ! !OUTPUT PARAMETERS:
 !
@@ -364,5 +363,5 @@ CONTAINS
 
    END SUBROUTINE Cleanup_GIGC_State_Met
 !EOC
-END MODULE Cleanup_GIGC_State_Met_Mod
+END MODULE GIGC_State_Met_Mod
 #endif

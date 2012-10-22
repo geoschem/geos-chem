@@ -1027,8 +1027,7 @@ sulfate_mod.o               : sulfate_mod.F                                  \
 
 sunparam.o                  : sunparam.F
 
-gc_type2_mod.o              : gc_type2_mod.F90        tracer_mod.o
-gc_environment_mod.o        : gc_environment_mod.F90  gc_type2_mod.o         \
+gc_environment_mod.o        : gc_environment_mod.F90                         \
 			      gc_type_mod.o           vdiff_pre_mod.o
 
 tagged_co_mod.o             : tagged_co_mod.F                                \
@@ -1072,7 +1071,7 @@ tpcore_window_mod.o         : tpcore_window_mod.F     dao_mod.o              \
 
 tracer_mod.o                : tracer_mod.F
 
-tracerid_mod.o              : tracerid_mod.F          gc_type2_mod.o         \
+tracerid_mod.o              : tracerid_mod.F                                 \
                               logical_mod.o           tracer_mod.o           \
 			      gc_environment_mod.o
 

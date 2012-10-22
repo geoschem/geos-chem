@@ -68,9 +68,9 @@
 ! !INTERFACE:
 !
 #if defined( DEVEL ) || defined( EXTERNAL_GRID ) || defined( EXTERNAL_FORCING )
-      SUBROUTINE DO_CHEMISTRY(am_I_Root, NI, NJ, NL, CHEM_STATE, GC_MET)
+      SUBROUTINE DO_CHEMISTRY( am_I_Root,NI,NJ,NL,State_Chm,State_Met )
 #else
-      SUBROUTINE DO_CHEMISTRY(am_I_Root)
+      SUBROUTINE DO_CHEMISTRY( am_I_Root )
 #endif
 !
 ! !USES:
@@ -127,18 +127,16 @@
       USE CMN_DIAG_MOD          ! NDxx flags
 
 #if defined( DEVEL ) || defined( EXTERNAL_GRID ) || defined( EXTERNAL_FORCING )
-      USE GC_TYPE_MOD,            ONLY : GC_MET_LOCAL
-      USE GC_TYPE2_MOD,           ONLY : CHEMSTATE
+      USE GIGC_State_Chm_Mod, ONLY : ChmState
+      USE GIGC_State_Met_Mod, ONLY : MetState
 #endif
-
 !
 ! !INPUT VARIABLES:
 !
-#if defined( DEVEL ) || defined( EXTERNAL_GRID ) || defined( EXTERNAL_FORCING )
-      INTEGER, INTENT(IN) :: NI, NJ, NL
-#endif
-
       LOGICAL, INTENT(IN) :: am_I_Root   ! Is this the root CPU?
+#if defined( DEVEL ) || defined( EXTERNAL_GRID ) || defined( EXTERNAL_FORCING )
+      INTEGER, INTENT(IN) :: NI, NJ, NL  ! # of lons, lats, levels on this CPU
+#endif
 !
 ! !REVISION HISTORY: 
 !  (1 ) Now reference DELP, T from "dao_mod.f" since we need to pass this
@@ -195,10 +193,9 @@
       LOGICAL, SAVE :: FIRST = .TRUE.
       INTEGER       :: N_TROP, MONTH, YEAR, WAVELENGTH
 
-#if defined( DEVEL )
-      TYPE(CHEMSTATE), INTENT(INOUT) :: CHEM_STATE
-      TYPE(GC_MET_LOCAL), INTENT(IN) :: GC_MET
-!      REAL*8                         :: STT(IIPAR,JJPAR,LLPAR,N_TRACERS)
+#if defined( DEVEL ) || defined( EXTERNAL_GRID ) || defined( EXTERNAL_FORCING )
+      TYPE(ChmState), INTENT(INOUT) :: State_Chm
+      TYPE(MetState), INTENT(IN)    :: State_Met
 #endif
 
 #if   defined( APM )
@@ -212,7 +209,7 @@
 
 #if defined( DEVEL )
       ! Transfer tracer array to local
-      STT = CHEM_STATE%TRACERS(:,:,:,:N_TRACERS)
+      STT = State_Chm%TRACERS(:,:,:,:N_TRACERS)
 #endif
 
       ! Compute optical depths (except for CH4 simulation)
@@ -237,7 +234,7 @@
 
 #if defined( DEVEL )
             ! Call chemistry solver from ESMF interface
-            CALL CHEMDR( am_I_Root, NI, NJ, NL, GC_MET, CHEM_STATE )
+            CALL CHEMDR( am_I_Root, NI, NJ, NL, State_Met, State_Chm )
             PRINT *,"DO_CHEMISTRY: Done with CHEMDR"
 #else
             ! Call chemistry solver from traditional driver "main.F"
@@ -453,7 +450,7 @@
       
 #if defined( DEVEL ) || defined( EXTERNAL_GRID ) || defined( EXTERNAL_FORCING )
       ! Transfer tracer array back to non-local
-      CHEM_STATE%TRACERS(:,:,:,:N_TRACERS) = STT
+      State_Chm%TRACERS(:,:,:,:N_TRACERS) = STT
 #endif
 
       END SUBROUTINE DO_CHEMISTRY

@@ -29,10 +29,8 @@ MODULE GIGC_State_Phy_Mod
 !
 ! !PUBLIC MEMBER FUNCTIONS:
 !
-  PUBLIC :: Get_Tracer_Id
-  PUBLIC :: Init_Chemistry_State
-  PUBLIC :: Cleanup_Chemistry_State
-  PUBLIC :: Register_Species
+  PUBLIC :: Init_GIGC_State_Phy
+  PUBLIC :: Cleanup_GIGC_State_Phy
 !
 ! !PUBLIC DATA MEMBERS:
 !
@@ -250,25 +248,29 @@ CONTAINS
 !EOP
 !------------------------------------------------------------------------------
 !BOC
-     IF ( ASSOCIATED( State_Phy%LAT      )  ) DEALLOCATE( State_Phy%LAT      ) 
-     IF ( ASSOCIATED( State_Phy%LON      )  ) DEALLOCATE( State_Phy%LON      ) 
-     IF ( ASSOCIATED( State_Phy%PS       )  ) DEALLOCATE( State_Phy%PS       )
-     IF ( ASSOCIATED( State_Phy%PSDRY    )  ) DEALLOCATE( State_Phy%PSDRY    )
-     IF ( ASSOCIATED( State_Phy%PHIS     )  ) DEALLOCATE( State_Phy%PHIS     )
-     IF ( ASSOCIATED( State_Phy%ULAT     )  ) DEALLOCATE( State_Phy%ULAT     )
-     IF ( ASSOCIATED( State_Phy%ULON     )  ) DEALLOCATE( State_Phy%ULON     )
-     IF ( ASSOCIATED( State_Phy%T        )  ) DEALLOCATE( State_Phy%T        )
-     IF ( ASSOCIATED( State_Phy%U        )  ) DEALLOCATE( State_Phy%U        )
-     IF ( ASSOCIATED( State_Phy%V        )  ) DEALLOCATE( State_Phy%V        )
-     IF ( ASSOCIATED( State_Phy%OMEGA    )  ) DEALLOCATE( State_Phy%OMEGA    )
-     IF ( ASSOCIATED( State_Phy%PMID     )  ) DEALLOCATE( State_Phy%PMID     )
-     IF ( ASSOCIATED( State_Phy%PMIDDRY  )  ) DEALLOCATE( State_Phy%PMIDDRY  )
-     IF ( ASSOCIATED( State_Phy%RPDEL    )  ) DEALLOCATE( State_Phy%RPDEL    )
-     IF ( ASSOCIATED( State_Phy%RPDELDRY )  ) DEALLOCATE( State_Phy%RPDELDRY )
-     IF ( ASSOCIATED( State_Phy%UZM      )  ) DEALLOCATE( State_Phy%UZM      )
-     IF ( ASSOCIATED( State_Phy%ZM       )  ) DEALLOCATE( State_Phy%ZM       )
+    ! Assume success
+    RC = GIGC_SUCCESS
 
-   END SUBROUTINE Cleanup_GIGC_State_Phy
+    ! Deallocate fields
+    IF ( ASSOCIATED( State_Phy%LAT      )  ) DEALLOCATE( State_Phy%LAT      ) 
+    IF ( ASSOCIATED( State_Phy%LON      )  ) DEALLOCATE( State_Phy%LON      ) 
+    IF ( ASSOCIATED( State_Phy%PS       )  ) DEALLOCATE( State_Phy%PS       )
+    IF ( ASSOCIATED( State_Phy%PSDRY    )  ) DEALLOCATE( State_Phy%PSDRY    )
+    IF ( ASSOCIATED( State_Phy%PHIS     )  ) DEALLOCATE( State_Phy%PHIS     )
+    IF ( ASSOCIATED( State_Phy%ULAT     )  ) DEALLOCATE( State_Phy%ULAT     )
+    IF ( ASSOCIATED( State_Phy%ULON     )  ) DEALLOCATE( State_Phy%ULON     )
+    IF ( ASSOCIATED( State_Phy%T        )  ) DEALLOCATE( State_Phy%T        )
+    IF ( ASSOCIATED( State_Phy%U        )  ) DEALLOCATE( State_Phy%U        )
+    IF ( ASSOCIATED( State_Phy%V        )  ) DEALLOCATE( State_Phy%V        )
+    IF ( ASSOCIATED( State_Phy%OMEGA    )  ) DEALLOCATE( State_Phy%OMEGA    )
+    IF ( ASSOCIATED( State_Phy%PMID     )  ) DEALLOCATE( State_Phy%PMID     )
+    IF ( ASSOCIATED( State_Phy%PMIDDRY  )  ) DEALLOCATE( State_Phy%PMIDDRY  )
+    IF ( ASSOCIATED( State_Phy%RPDEL    )  ) DEALLOCATE( State_Phy%RPDEL    )
+    IF ( ASSOCIATED( State_Phy%RPDELDRY )  ) DEALLOCATE( State_Phy%RPDELDRY )
+    IF ( ASSOCIATED( State_Phy%UZM      )  ) DEALLOCATE( State_Phy%UZM      )
+    IF ( ASSOCIATED( State_Phy%ZM       )  ) DEALLOCATE( State_Phy%ZM       )
+
+  END SUBROUTINE Cleanup_GIGC_State_Phy
 !EOC
 END MODULE GIGC_State_Phy_Mod
 #endif

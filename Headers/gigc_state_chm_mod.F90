@@ -393,7 +393,7 @@ CONTAINS
 !BOC
 
     ! Assume success
-    RC = SMV_SUCCESS
+    RC = GIGC_SUCCESS
 
     IF ( ASSOCIATED( State_Chm%Trac_Id ) ) THEN
        DEALLOCATE( State_Chm%Trac_Id )

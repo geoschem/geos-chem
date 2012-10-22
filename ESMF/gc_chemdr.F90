@@ -55,38 +55,37 @@ CONTAINS
 !
 ! !USES:
 !
-    USE GC_TYPE_MOD,     ONLY : GC_MET_LOCAL
-    USE GC_TYPE2_MOD,    ONLY : CHEMSTATE
-    USE CHEMISTRY_MOD,   ONLY : DO_CHEMISTRY
+    USE GIGC_State_Chm_Mod, ONLY : ChmState
+    USE GIGC_State_Chm_Mod, ONLY : MetState
+    USE CHEMISTRY_MOD,      ONLY : DO_CHEMISTRY
     USE DAO_MOD
-    USE PBL_MIX_MOD,     ONLY : PBL_TOP_L, PBL_TOP_M, INIT_PBL_MIX
-    USE GRID_MOD,        ONLY : AREA_M2, YEDGE, XEDGE, YMID, XMID
-    USE CMN_SIZE_MOD,    ONLY : DJSIZE, DISIZE, LLPAR, IIPAR, JJPAR
+    USE PBL_MIX_MOD,        ONLY : PBL_TOP_L, PBL_TOP_M, INIT_PBL_MIX
+    USE GRID_MOD,           ONLY : AREA_M2, YEDGE, XEDGE, YMID, XMID
+    USE CMN_SIZE_MOD,       ONLY : DJSIZE, DISIZE, LLPAR, IIPAR, JJPAR
     USE DAO_MOD
-    USE CMN_DEP_MOD,     ONLY : FRCLND
-    USE UVALBEDO_MOD,    ONLY : UVALBEDO
+    USE CMN_DEP_MOD,        ONLY : FRCLND
+    USE UVALBEDO_MOD,       ONLY : UVALBEDO
     USE COMODE_LOOP_MOD
-    USE COMODE_MOD,      ONLY : AIRDENS, CSPEC_FULL
+    USE COMODE_MOD,         ONLY : AIRDENS, CSPEC_FULL
     USE TRACER_MOD
     USE TRACERID_MOD     
-    USE PRESSURE_MOD,    ONLY : EXTERNAL_PEDGE !PEDGE, PMID
+    USE PRESSURE_MOD,       ONLY : EXTERNAL_PEDGE !PEDGE, PMID
     USE LOGICAL_MOD
-    
     USE GC_TEST_UTILS
     USE GC_CHEM_UTILS
 !
 ! !INPUT PARAMETERS:
 !
-    INTEGER,            INTENT(IN)    :: NI          ! # of longitudes
-    INTEGER,            INTENT(IN)    :: NJ          ! # of latitudes
-    INTEGER,            INTENT(IN)    :: NL          ! # of levels
-    INTEGER,            INTENT(IN)    :: NCNST       ! # of constituents
-    LOGICAL,            INTENT(IN)    :: am_I_Root   ! Are we on the root CPU
+    INTEGER,        INTENT(IN)    :: NI          ! # of longitudes
+    INTEGER,        INTENT(IN)    :: NJ          ! # of latitudes
+    INTEGER,        INTENT(IN)    :: NL          ! # of levels
+    INTEGER,        INTENT(IN)    :: NCNST       ! # of constituents
+    LOGICAL,        INTENT(IN)    :: am_I_Root   ! Are we on the root CPU
 !
 ! !INPUT/OUTPUT PARAMETERS:
 !
-    TYPE(CHEMSTATE),    INTENT(INOUT) :: State_Chm    ! Chemistry state
-    TYPE(GC_MET_LOCAL), INTENT(INOUT) :: State_Met      ! Meteorology state
+    TYPE(ChmState), INTENT(INOUT) :: State_Chm   ! Chemistry State object
+    TYPE(MetState), INTENT(INOUT) :: State_Met   ! Meteorology State object
 !
 ! !OUTPUT PARAMETERS:
 !
@@ -102,6 +101,8 @@ CONTAINS
 !  15 Oct 2012 - R. Yantosca - Added ProTeX headers, F90 indentation
 !  16 Oct 2012 - R. Yantosca - Renamed GC_STATE to State_Chm
 !  16 Oct 2012 - R. Yantosca - Renamed GC_MET to State_Met
+!  19 Oct 2012 - R. Yantosca - Now reference gigc_state_chm_mod.F90
+!  19 Oct 2012 - R. Yantosca - Now reference gigc_state_met_mod.F90
 !EOP
 !------------------------------------------------------------------------------
 !BOC

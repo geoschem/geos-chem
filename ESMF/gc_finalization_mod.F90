@@ -25,7 +25,11 @@ MODULE GC_Finalization_Mod
 !      
   PUBLIC :: GC_Finalize
   PUBLIC :: Cleanup_GEOSChem
-
+!
+! !REVISION HISTORY:
+!  19 Oct 2012 - R. Yantosca - Added ProTeX headers
+!EOP
+!------------------------------------------------------------------------------
 !BOC
 CONTAINS
 !EOC
@@ -34,9 +38,11 @@ CONTAINS
 !------------------------------------------------------------------------------
 !BOP
 !
-! !IROUTINE: 
+! !IROUTINE: GC_Finalize
 !
-! !DESCRIPTION: 
+! !DESCRIPTION: GC_Finalize calls the cleanup routines which deallocate
+!  memory from the State objects of the Grid-Independent GEOS-Chem (aka
+!  "GIGC") code.
 !\\
 !\\
 ! !INTERFACE:
@@ -45,9 +51,8 @@ CONTAINS
 !
 ! !USES:
 !
-    USE GC_Type_Mod,    ONLY : GC_Met_Local       
-    USE GC_Type2_Mod,   ONLY : ChemState          
-    USE GC_Type2_Mod,   ONLY : Cleanup_Chemistry_State
+    USE GIGC_State_Chm_Mod
+    USE GIGC_State_Met_Mod
 !
 ! !INPUT PARAMETERS: 
 !
@@ -66,6 +71,8 @@ CONTAINS
 ! 
 ! !REVISION HISTORY: 
 !  16 Oct 2012 - R. Yantosca - Initial version
+!  19 Oct 2012 - R. Yantosca - Now reference gigc_state_chm_mod.F90
+!  19 Oct 2012 - R. Yantosca - Now reference gigc_state_met_mod.F90
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -76,10 +83,10 @@ CONTAINS
     RC = SMV_SUCCESS
 
     ! Deallocate fields of the chemistry state
-    CALL Cleanup_Chemistry_State( State_Chm, am_I_Root, RC )
+    CALL Cleanup_GIGC_State_Chm( State_Chm, am_I_Root, RC )
 
     ! Deallocate fields of the meteorology state
-    !Call Cleanup_MetFields_State( State_Met, am_I_Root, RC )
+    Call Cleanup_GIGC_State_Met( State_Met, am_I_Root, RC )
 
     ! Deallocate all other GEOS-Chem allocatable arrays
     CALL Cleanup_GeosChem( am_I_Root, RC )
