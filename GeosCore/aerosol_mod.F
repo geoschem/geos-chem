@@ -1,46 +1,38 @@
-! $Id: aerosol_mod.f,v 1.1 2009/09/16 14:06:43 bmy Exp $
+!------------------------------------------------------------------------------
+!          Harvard University Atmospheric Chemistry Modeling Group            !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !MODULE: aerosol_mod
+!
+! !DESCRIPTION: Module AEROSOL\_MOD contains variables and routines for
+!  computing optical properties for aerosols which are needed for both the
+!  FAST-J photolysis and ND21 optical depth diagnostics. (bmy, 7/20/04,
+!  2/10/09)
+!\\
+!\\
+! !INTERFACE: 
+!
       MODULE AEROSOL_MOD
+! 
+! !USES:
 !
-!******************************************************************************
-!  Module AEROSOL_MOD contains variables and routines for computing optical
-!  properties for aerosols which are needed for both the FAST-J photolysis
-!  and ND21 optical depth diagnostics.  (bmy, 7/20/04, 2/10/09)
+      IMPLICIT NONE
+#     include "define.h"
+      PRIVATE
 !
-!  Module Variables:
-!  ============================================================================
-!  (1 ) BCPI        (REAL*8) : Hydrophilic black carbon aerosol   [kg/m3]
-!  (2 ) BCPO        (REAL*8) : Hydrophobic black carbon aerosol   [kg/m3]
-!  (3 ) OCPI        (REAL*8) : Hydrophilic organic carbon aerosol [kg/m3]
-!  (4 ) OCPO        (REAL*8) : Hydrophilic organic carbon aerosol [kg/m3]
-!  (5 ) SALA        (REAL*8) : Accumulation mode seasalt aerosol  [kg/m3] 
-!  (6 ) SALC        (REAL*8) : Coarse mode seasalt aerosol        [kg/m3]
-!  (7 ) SO4_NH4_NIT (REAL*8) : Lumped SO4-NH4-NIT aerosol         [kg/m3]
-!  (8 ) SOILDUST    (REAL*8) : Mineral dust aerosol from soils    [kg/m3]
+! !PUBLIC MEMBER FUNCTIONS:
 !
-!  Module Routines:
-!  ============================================================================
-!  (1 ) AEROSOL_RURALBOX : Computes loop indices & other properties for RDAER
-!  (2 ) AEROSOL_CONC     : Computes aerosol conc in [kg/m3] for FAST-J & diags
-!  (3 ) RDAER            : Computes optical properties for aerosls for FAST-J
-!  (4 ) INIT_AEROSOL     : Allocates and zeroes all module arrays
-!  (5 ) CLEANUP_AEROSOL  : Deallocates all module arrays
+      PUBLIC :: AEROSOL_CONC
+      PUBLIC :: AEROSOL_RURALBOX
+      PUBLIC :: RDAER
+      PUBLIC :: CLEANUP_AEROSOL
 !
-!  GEOS-CHEM modules referenced by "aerosol_mod.f"
-!  ============================================================================
-!  (1 ) bpch2_mod.f      : Module w/ routines for binary punch file I/O
-!  (2 ) comode_mod.f     : Module w/ SMVGEAR allocatable arrays
-!  (3 ) dao_mod.f        : Module w/ arrays for DAO met fields
-!  (4 ) diag_mod.f       : Module w/ GEOS-CHEM diagnostic arrays
-!  (5 ) directory_mod.f  : Module w/ GEOS-CHEM data & met field dirs
-!  (6 ) error_mod.f      : Module w/ I/O error and NaN check routines
-!  (7 ) logical_mod.f    : Module w/ GEOS-CHEM logical switches
-!  (8 ) time_mod.f       : Module w/ routines for computing time & date
-!  (9 ) tracer_mod.f     : Module w/ GEOS-CHEM tracer array STT etc.
-!  (10) tracerid_mod.f   : Module w/ pointers to tracers & emissions
-!  (11) transfer_mod.f   : Module w/ routines to cast & resize arrays
-!  (12) tropopause_mod.f : Module w/ routines to read in ann mean tropopause
+! !PUBLIC DATA MEMBERS:
 !
-!  NOTES:
+      PUBLIC :: SOILDUST
+!
+! !REVISION HISTORY:
 !  (1 ) Added AEROSOL_RURALBOX routine (bmy, 9/28/04)
 !  (2 ) Now convert ABSHUM from absolute humidity to relative humidity in
 !         AEROSOL_RURALBOX, using the same algorithm as in "gasconc.f".
@@ -59,31 +51,25 @@
 !  (9 ) Add SOAG and SOAM species. (tmf, ccc, 3/2/09)
 !  (10) Modify AOD output to wavelength specified in jv_spec_aod.dat 
 !       (clh, 05/07/10)
-!******************************************************************************
+!  22 Dec 2011 - M. Payer    - Added ProTeX headers
+!EOP
+!------------------------------------------------------------------------------
+!BOC
 !
-      IMPLICIT NONE
-#     include "define.h"
-
-      !=================================================================
-      ! MODULE PRIVATE DECLARATIONS -- keep certain internal variables 
-      ! and routines from being seen outside "aerosol_mod.f"
-      !=================================================================
-
-      ! Make everything PRIVATE ...
-      PRIVATE
-
-      ! ... except these variables ...
-      PUBLIC :: SOILDUST
-
-      ! ... and these routines
-      PUBLIC :: AEROSOL_CONC
-      PUBLIC :: AEROSOL_RURALBOX
-      PUBLIC :: RDAER
-      PUBLIC :: CLEANUP_AEROSOL
-
-      !=================================================================
-      ! MODULE VARIABLES
-      !=================================================================
+! !PRIVATE TYPES:
+!
+      !========================================================================
+      ! MODULE VARIABLES:
+      !
+      ! BCPI        : Hydrophilic black carbon aerosol   [kg/m3]
+      ! BCPO        : Hydrophobic black carbon aerosol   [kg/m3]
+      ! OCPI        : Hydrophilic organic carbon aerosol [kg/m3]
+      ! OCPO        : Hydrophilic organic carbon aerosol [kg/m3]
+      ! SALA        : Accumulation mode seasalt aerosol  [kg/m3] 
+      ! SALC        : Coarse mode seasalt aerosol        [kg/m3]
+      ! SO4_NH4_NIT : Lumped SO4-NH4-NIT aerosol         [kg/m3]
+      ! SOILDUST    : Mineral dust aerosol from soils    [kg/m3]
+      !========================================================================
       REAL*8, ALLOCATABLE :: BCPI(:,:,:)
       REAL*8, ALLOCATABLE :: BCPO(:,:,:)
       REAL*8, ALLOCATABLE :: OCPI(:,:,:)
@@ -93,25 +79,54 @@
       REAL*8, ALLOCATABLE :: SO4_NH4_NIT(:,:,:)
       REAL*8, ALLOCATABLE :: SOILDUST(:,:,:,:)
 
+#if defined( DEVEL )
+      ! Mass of hydrophobic aerosol from Mian Chin
+      REAL*8, ALLOCATABLE, SAVE   :: DAERSL(:,:,:,:)
+
+      ! Mass of hydrophilic aerosol from Mian Chin
+      REAL*8, ALLOCATABLE, SAVE   :: WAERSL(:,:,:,:)
+#endif
       !=================================================================
       ! MODULE ROUTINES -- follow below the "CONTAINS" statement
       !=================================================================
       CONTAINS
-
+!EOC
 !------------------------------------------------------------------------------
+!          Harvard University Atmospheric Chemistry Modeling Group            !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: aerosol_ruralbox
+!
+! ! DESCRIPTION: Subroutine AEROSOL\_RURALBOX computes quantities that are
+!   needed by RDAER. This mimics the call to RURALBOX, which is only done for
+!   fullchem runs. (bmy, 9/28/04, 9/14/06)
+!\\
+!\\
+! !INTERFACE:
+!
+      SUBROUTINE AEROSOL_RURALBOX( N_TROP, am_I_Root )
+!
+! !USES:
+!
+      USE COMODE_MOD,     ONLY : ABSHUM, AIRDENS, IXSAVE   
+      USE COMODE_MOD,     ONLY : IYSAVE, IZSAVE,  JLOP       
+      USE DAO_MOD,        ONLY : AD,     AVGW,    MAKE_AVGW, T
+      USE TROPOPAUSE_MOD, ONLY : ITS_IN_THE_TROP
+      USE LOGICAL_MOD,    ONLY : LVARTROP
 
-      SUBROUTINE AEROSOL_RURALBOX( N_TROP )
+      USE CMN_SIZE_MOD                    ! Size parameters
+      USE COMODE_LOOP_MOD                 ! AD, AVG, WTAIR, etc.
 !
-!******************************************************************************
-!  Subroutine AEROSOL_RURALBOX computes quantities that are needed by RDAER.
-!  This mimics the call to RURALBOX, which is only done for fullchem runs.
-!  (bmy, 9/28/04, 9/14/06)
+! !INPUT PARAMETERS:
 !
-!  Arguments as Output:
-!  ============================================================================
-!  (1 ) N_TROP (INTEGER) : Number of tropospheric boxes
+      LOGICAL, INTENT(IN)  :: am_I_Root   ! Is this the root CPU?
 !
-!  NOTES:
+! !OUTPUT PARAMETERS:
+!
+      INTEGER, INTENT(OUT) :: N_TROP      ! Number of tropospheric boxes
+!
+! !REVISION HISTORY: 
 !  (1 ) Now convert ABSHUM from absolute humidity to relative humidity in
 !        AEROSOL_RURALBOX, using the same algorithm as in "gasconc.f".
 !        (bmy, 1/27/05)
@@ -119,22 +134,15 @@
 !        boxes w/in the troposphere. (bmy, 8/22/05)
 !  (3 ) Now make sure all USE statements are USE, ONLY (bmy, 10/3/05)
 !  (4 ) Modified for variable tropopause (phs, bdf, 9/14/06)
-!******************************************************************************
+!  22 Dec 2011 - M. Payer    - Added ProTeX headers
+!  30 Jul 2012 - R. Yantosca - Now accept am_I_Root as an argument when
+!                              running with the traditional driver main.F
+!EOP
+!------------------------------------------------------------------------------
+!BOC
 !
-      ! References to F90 modules
-      USE COMODE_MOD,     ONLY : ABSHUM, AIRDENS, IXSAVE   
-      USE COMODE_MOD,     ONLY : IYSAVE, IZSAVE,  JLOP       
-      USE DAO_MOD,        ONLY : AD,     AVGW,    MAKE_AVGW, T
-      USE TROPOPAUSE_MOD, ONLY : ITS_IN_THE_TROP
-      USE LOGICAL_MOD,    ONLY : LVARTROP
-
-      USE CMN_SIZE_MOD  ! Size parameters
-      USE COMODE_LOOP_MOD  ! AD, AVG, WTAIR, other SMVGEAR variables
-
-      ! Argumetns
-      INTEGER, INTENT(OUT) :: N_TROP
-
-      ! Local variables
+! !LOCAL VARIABLES:
+!
       LOGICAL, SAVE        :: FIRST = .TRUE.
       INTEGER, SAVE        :: N_TROP_BOXES
       INTEGER              :: I, J, L, JLOOP
@@ -195,7 +203,11 @@
 
          ! JLOOP is now the number of boxes w/in GEOS-CHEM's annual mean 
          ! tropopause.  Copy to SAVEd variable N_TROP_BOXES.
-         write(6,*) '  in aerosol ruralbox, val of trop boxes: ', jloop
+         IF ( am_I_Root ) THEN
+            WRITE( 6, 100 ) jloop
+ 100        FORMAT( '  in aerosol ruralbox, val of trop boxes: ', I10)
+         ENDIF
+
          N_TROP_BOXES = JLOOP
 
          ! Set NTLOOP, NTTLOOP here.  Howeve, we will have to reset these
@@ -272,31 +284,27 @@
       ENDDO
 !$OMP END PARALLEL DO
 
-      ! Return to calling program
       END SUBROUTINE AEROSOL_RURALBOX
-      
+!EOC
 !------------------------------------------------------------------------------
-      
+!          Harvard University Atmospheric Chemistry Modeling Group            !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: aerosol_conc
+!
+! !DESCRIPTION: Subroutine AEROSOL\_CONC computes aerosol concentrations in
+!  kg/m3 from the tracer mass in kg in the STT array.  These are needed to
+!  compute optical properties for photolysis and for the optical depth
+!  diagnostics. (bmy, 7/20/04, 2/10/09)
+!\\
+!\\
+! !INTERFACE:
+!
       SUBROUTINE AEROSOL_CONC
 !
-!******************************************************************************
-!  Subroutine AEROSOL_CONC computes aerosol concentrations in kg/m3 from
-!  the tracer mass in kg in the STT array.  These are needed to compute
-!  optical properties for photolysis and for the optical depth diagnostics.
-!  (bmy, 7/20/04, 2/10/09)
-!  
-!  This code was originally included in "chemdr.f", but the same computation 
-!  also needs to be done for offline aerosol simulations.  Therefore, we have 
-!  split this code off into a separate subroutine which can be called by both 
-!  fullchem and offline aerosol simulations.
+! !USES:
 !
-!  NOTES:
-!  (1 ) Now make sure all USE statements are USE, ONLY (bmy, 10/3/05)
-!  (2 ) Now add contribution from SOA4 into Hydrophilic OC (dkh, bmy, 5/18/06)
-!  (3 ) Now set OCF=2.1 to be consistent w/ "carbon_mod.f" (tmf, 2/10/09)
-!******************************************************************************
-!
-      ! References to F90 modules
       USE DAO_MOD,      ONLY : AIRVOL
       USE LOGICAL_MOD,  ONLY : LCARB,   LDUST,   LSOA,    LSSALT, LSULF
       USE TRACER_MOD,   ONLY : STT
@@ -307,12 +315,27 @@
       USE TRACERID_MOD, ONLY : IDTSO4,  IDTSOA5  
       USE TRACERID_MOD, ONLY : IDTSOAG, IDTSOAM
 
-      USE CMN_SIZE_MOD  ! Size parameters
-
-      ! Local variables
-      LOGICAL, SAVE      :: FIRST = .TRUE. 
-      INTEGER            :: I, J, L, N
-
+      USE CMN_SIZE_MOD       ! Size parameters
+!
+! !REMARKS:
+!  This code was originally included in "chemdr.f", but the same computation 
+!  also needs to be done for offline aerosol simulations.  Therefore, we have 
+!  split this code off into a separate subroutine which can be called by both 
+!  fullchem and offline aerosol simulations.
+!
+! !REVISION HISTORY: 
+!  (1 ) Now make sure all USE statements are USE, ONLY (bmy, 10/3/05)
+!  (2 ) Now add contribution from SOA4 into Hydrophilic OC (dkh, bmy, 5/18/06)
+!  (3 ) Now set OCF=2.1 to be consistent w/ "carbon_mod.f" (tmf, 2/10/09)
+!  22 Dec 2011 - M. Payer    - Added ProTeX headers
+!  30 Jul 2012 - R. Yantosca - Now accept am_I_Root as an argument when
+!                              running with the traditional driver main.F
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+!
+! !DEFINED PARAMETERS:
+!
       ! We carry carbon mass only in OC and here need to multiply by
       ! 1.4 to account for the mass of the other chemical components
       ! (rjp, bmy, 7/15/04)
@@ -325,6 +348,12 @@
       ! For SOAM, assume the total aerosol mass/methylglyoxal mass = 1.d0 
       ! for now (tmf, 1/7/09)
       REAL*8,  PARAMETER :: OCFM = 1.d0
+!
+! !LOCAL VARIABLES:
+!
+      LOGICAL, SAVE      :: FIRST = .TRUE. 
+      INTEGER            :: I, J, L, N
+
       !=================================================================
       ! AEROSOL_CONC begins here!
       !=================================================================
@@ -444,14 +473,23 @@
          ! chem to use just four dust bins or more flexible 
          ! calculations depending on the number of dust bins. 
          ! (rjp, 03/27/04)
+         !
+         ! Now splitting mass into bins in fractions derived from
+         ! Highwood et al. (2003).  Data is from log-normal fit of
+         ! PCASP measurements of Saharan dust (Solid line in Fig.4b)
+         ! (dar, 04/25/10)
          !===========================================================
          IF ( LDUST ) THEN
 
             ! Lump 1st dust tracer for het chem
-            DO N = 1, 4
-               SOILDUST(I,J,L,N) = 
-     &              0.25d0 * STT(I,J,L,IDTDST1) / AIRVOL(I,J,L)
-            ENDDO
+            SOILDUST(I,J,L,1) = 
+     &              0.06d0 * STT(I,J,L,IDTDST1) / AIRVOL(I,J,L)
+            SOILDUST(I,J,L,2) =
+     &              0.12d0 * STT(I,J,L,IDTDST1) / AIRVOL(I,J,L)
+            SOILDUST(I,J,L,3) =
+     &              0.24d0 * STT(I,J,L,IDTDST1) / AIRVOL(I,J,L)
+            SOILDUST(I,J,L,4) =
+     &              0.58d0 * STT(I,J,L,IDTDST1) / AIRVOL(I,J,L)
 
             ! Other hetchem bins
             SOILDUST(I,J,L,5) = STT(I,J,L,IDTDST2) / AIRVOL(I,J,L)
@@ -484,29 +522,72 @@
       ENDDO
 !$OMP END PARALLEL DO
 
-      ! Return to calling program
       END SUBROUTINE AEROSOL_CONC
-
+!EOC
 !------------------------------------------------------------------------------
+!          Harvard University Atmospheric Chemistry Modeling Group            !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: rdaer
+!
+! !DESCRIPTION: Subroutine RDAER reads global aerosol concentrations as
+!  determined by Mian Chin.  Calculates optical depth at each level for
+!  "set\_prof.f". Also calculates surface area for heterogeneous chemistry. It
+!  uses aerosol parameters in FAST-J input file "jv\_spec.dat" for these
+!  calculations. (rvm, rjp, tdf, bmy, 11/04/01, 7/20/04)
+!\\
+!\\
+! !INTERFACE:
+!
+      SUBROUTINE RDAER( am_I_Root, MONTH, YEAR, WAVELENGTH )
+!
+! !USES:
+!
+      USE BPCH2_MOD,     ONLY : GET_NAME_EXT, GET_RES_EXT
+      USE BPCH2_MOD,     ONLY : GET_TAU0,     READ_BPCH2
+      USE COMODE_MOD,    ONLY : ABSHUM,       ERADIUS,    IXSAVE
+      USE COMODE_MOD,    ONLY : IYSAVE,       IZSAVE,     TAREA 
+      USE COMODE_MOD,    ONLY : WTAREA,       WERADIUS
+      USE DAO_MOD,       ONLY : BXHEIGHT
+      USE DIAG_MOD,      ONLY : AD21
+      USE DIRECTORY_MOD, ONLY : DATA_DIR
+      USE ERROR_MOD,     ONLY : ERROR_STOP
+      USE LOGICAL_MOD,   ONLY : LSULF,        LCARB,      LSSALT
+      USE TIME_MOD,      ONLY : ITS_A_NEW_MONTH
+      USE TRACER_MOD,    ONLY : ITS_A_FULLCHEM_SIM
+      USE TRANSFER_MOD,  ONLY : TRANSFER_3D
+ 
+      USE CMN_SIZE_MOD,  ONLY : NNPAR, NDSTBIN, IIPAR,   JJPAR,   LLTROP
+      USE CMN_SIZE_MOD,  ONLY : LLPAR, MAXFAM,  NEMPARA, NEMPARB, LGLOB
+      USE JV_CMN_MOD          ! }ODAER, QAA, RAA, QAA_AOD (clh)
+      USE COMODE_LOOP_MOD     ! NTLOOP
+      USE CMN_DIAG_MOD        ! ND21, LD21
 
-      SUBROUTINE RDAER( MONTH, YEAR, WAVELENGTH )
+!#if defined( DEVEL )
+      USE CMN_FJ_MOD,    ONLY : JPMAX, JPPJ   
+!#else
+!      USE CMN_FJ_MOD,    ONLY : IPAR, JPAR, LPAR, JPMAX, JPPJ   
+!#endif
+      USE JV_CMN_MOD   ! ODAER, QAA, RAA, QAA_AOD (clh)
+      USE COMODE_LOOP_MOD   ! NTLOOP
+      USE CMN_DIAG_MOD   ! ND21, LD21
+
+      IMPLICIT NONE
+#     include "define.h"
+
 !
-!******************************************************************************
-!  Subroutine RDAER reads global aerosol concentrations as determined by
-!  Mian Chin.  Calculates optical depth at each level for "set_prof.f".
-!  Also calculates surface area for heterogeneous chemistry.  It uses aerosol
-!  parameters in FAST-J input file "jv_spec.dat" for these calculations.
-!  (rvm, rjp, tdf, bmy, 11/04/01, 7/20/04)
+! !INPUT PARAMETERS:
 !
-!  Arguments as Input:
-!  ============================================================================
-!  (1 ) THISMONTH   (INTEGER) : Number of the current month (1-12)
-!  (2 ) THISYEAR    (INTEGER) : 4-digit year value (e.g. 1997, 2002)
-!  (3 ) WAVELENGTH  (INTEGER) : Logical indicator
-!                                = 0 AOD computed at 999 nm
-!                                = 1 AOD computed at wavelength in jv_spec_aod
+      LOGICAL, INTENT(IN)           :: am_I_Root  ! Is this the root CPU?
+      INTEGER, INTENT(IN), OPTIONAL :: MONTH      ! # of current month (1-12)
+      INTEGER, INTENT(IN), OPTIONAL :: YEAR       ! 4-digit year (e.g. 2002)
+      INTEGER, INTENT(IN), OPTIONAL :: WAVELENGTH ! Logical indicator
+!                                                 ! = 0 AOD computed at 999 nm
+!                                                 ! = 1 AOD computed at
+!                                                 !   wavelength in jv_spec_aod
 !
-!  NOTES:
+! !REVISION HISTORY: 
 !  (1 ) At the point in which "rdaer.f" is called, ABSHUM is actually
 !        absolute humidity and not relative humidity (rvm, bmy, 2/28/02)
 !  (2 ) Now force double-precision arithmetic by using the "D" exponent.
@@ -541,38 +622,15 @@
 !        that are used for the calculation of the AOD. The ND21 diagnostic
 !        should only be updated when WAVELENGTH = 1. (skim, 02/03/11)
 !  09 Mar 2011 - R. Yantosca - Set MSDENS(2) = 1800 for APM (G. Luo)
-!******************************************************************************
+!  22 Dec 2011 - M. Payer    - Added ProTeX headers
+!  30 Jul 2012 - R. Yantosca - Now accept am_I_Root as an argument when
+!                              running with the traditional driver main.F
+!EOP
+!------------------------------------------------------------------------------
+!BOC
 !
-      ! References to F90 modules
-      USE BPCH2_MOD,     ONLY : GET_NAME_EXT, GET_RES_EXT
-      USE BPCH2_MOD,     ONLY : GET_TAU0,     READ_BPCH2
-      USE COMODE_MOD,    ONLY : ABSHUM, ERADIUS, IXSAVE
-      USE COMODE_MOD,    ONLY : IYSAVE, IZSAVE,  TAREA 
-      USE COMODE_MOD,    ONLY : WTAREA, WERADIUS
-      USE DAO_MOD,       ONLY : BXHEIGHT
-      USE DIAG_MOD,      ONLY : AD21
-      USE DIRECTORY_MOD, ONLY : DATA_DIR
-      USE ERROR_MOD,     ONLY : ERROR_STOP
-      USE LOGICAL_MOD,   ONLY : LSULF, LCARB, LSSALT
-      USE TIME_MOD,      ONLY : ITS_A_NEW_MONTH
-      USE TRACER_MOD,    ONLY : ITS_A_FULLCHEM_SIM
-      USE TRANSFER_MOD,  ONLY : TRANSFER_3D
-
-#     include "define.h"
-
-      USE CMN_SIZE_MOD,  ONLY : NNPAR, NDSTBIN, IIPAR, JJPAR, LLTROP
-      USE CMN_SIZE_MOD,  ONLY : LLPAR, MAXFAM, NEMPARA, NEMPARB, LGLOB
-      USE CMN_FJ_MOD,    ONLY : IPAR, JPAR, LPAR, JPMAX, JPPJ   ! LPAR, F77_CMN_SIZE
-      USE JV_CMN_MOD   ! ODAER, QAA, RAA, QAA_AOD (clh)
-      USE COMODE_LOOP_MOD   ! NTLOOP
-      USE CMN_DIAG_MOD   ! ND21, LD21
-
-      IMPLICIT NONE
-
-      ! Arguments
-      INTEGER, INTENT(IN), OPTIONAL :: MONTH, YEAR, WAVELENGTH
-
-      ! Local variables
+! !LOCAL VARIABLES:
+!
       LOGICAL             :: FIRST = .TRUE.
       LOGICAL             :: DO_READ_DATA
       CHARACTER(LEN=255)  :: FILENAME
@@ -583,12 +641,13 @@
       REAL*8              :: TEMP2(IIPAR,JJPAR,LLPAR)
       REAL*8              :: MSDENS(NAER), XTAU, DRYAREA
 
-
+#if !defined( DEVEL )
       ! Mass of hydrophobic aerosol from Mian Chin
       REAL*8, SAVE        :: DAERSL(IIPAR,JJPAR,LLPAR,2)       
 
       ! Mass of hydrophilic aerosol from Mian Chin
-      REAL*8, SAVE        :: WAERSL(IIPAR,JJPAR,LLPAR,NAER)    
+      REAL*8, SAVE        :: WAERSL(IIPAR,JJPAR,LLPAR,NAER) 
+#endif
 
       ! Effective radius at RH bins read in from "jv_spec.dat"
       REAL*8		  :: RW(NRH)	
@@ -675,7 +734,7 @@
          ! Use online aerosol concentrations
          !-----------------------------------
          IF ( FIRST ) THEN
-            WRITE( 6, 100 ) 
+            IF ( am_I_Root ) WRITE( 6, 100 ) 
  100        FORMAT( '     - RDAER: Using online SO4 NH4 NIT!' )
          ENDIF
 
@@ -699,7 +758,7 @@
          IF ( DO_READ_DATA ) THEN
             
             ! Print filename
-            WRITE( 6, 105 ) TRIM( FILENAME )
+            IF ( am_I_Root ) WRITE( 6, 105 ) TRIM( FILENAME )
  105        FORMAT( '     - RDAER: Reading SULFATE from ', a )
 
             ! Read data
@@ -732,7 +791,7 @@
          ! Use online aerosol concentrations
          !-----------------------------------
          IF ( FIRST ) THEN
-            WRITE( 6, 110 ) 
+            IF ( am_I_Root ) WRITE( 6, 110 ) 
  110        FORMAT( '     - RDAER: Using online BCPI OCPI BCPO OCPO!' )
          ENDIF
 
@@ -768,7 +827,7 @@
          IF ( DO_READ_DATA ) THEN
 
             ! Print filename
-            WRITE( 6, 115 ) TRIM( FILENAME )
+            IF ( am_I_Root ) WRITE( 6, 115 ) TRIM( FILENAME )
  115        FORMAT( '     - RDAER: Reading BC and OC from ', a )
 
             !--------------------------------
@@ -830,7 +889,7 @@
          ! Use online aerosol concentrations
          !-----------------------------------
          IF ( FIRST ) THEN
-            WRITE( 6, 120 ) 
+            IF ( am_I_Root ) WRITE( 6, 120 ) 
  120        FORMAT( '     - RDAER: Using online SALA SALC' )
          ENDIF
 
@@ -860,7 +919,7 @@
          IF ( DO_READ_DATA ) THEN
 
             ! Print filename
-            WRITE( 6, 125 ) TRIM( FILENAME )
+            IF ( am_I_Root ) WRITE( 6, 125 ) TRIM( FILENAME )
  125        FORMAT( '     - RDAER: Reading SEASALT from ', a )
 
             !----------------------------------
@@ -1373,25 +1432,37 @@
       ! Reset first-time flag
       FIRST = .FALSE.
 
-      ! Return to calling program
       END SUBROUTINE RDAER
-
+!EOC
 !------------------------------------------------------------------------------
-
+!          Harvard University Atmospheric Chemistry Modeling Group            !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: init_aerosol
+!
+! !DESCRIPTION: Subroutine INIT\_AEROSOL allocates and zeroes module arrays
+!  (bmy, 7/20/04)
+!\\
+!\\
+! !INTERFACE:
+!
       SUBROUTINE INIT_AEROSOL
 !
-!******************************************************************************
-!  Subroutine INIT_AEROSOL allocates and zeroes module arrays (bmy, 7/20/04)
-! 
-!  NOTES:
-!******************************************************************************
+! !USES:
 !
-      ! References to F90 modules
       USE ERROR_MOD, ONLY : ALLOC_ERR
 
-      USE CMN_SIZE_MOD 
-
-      ! Local variables
+      USE CMN_SIZE_MOD
+! 
+! !REVISION HISTORY:
+!  22 Dec 2011 - M. Payer    - Added ProTeX headers
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+!
+! !LOCAL VARIABLES:
+!
       INTEGER :: AS
 
       !=================================================================
@@ -1430,19 +1501,44 @@
       IF ( AS /= 0 ) CALL ALLOC_ERR( 'SOILDUST' )
       SOILDUST = 0d0
 
-      ! Return to calling program
-      END SUBROUTINE INIT_AEROSOL
+#if defined( DEVEL )
+      ! Mass of hydrophobic aerosol from Mian Chin
+      ALLOCATE( DAERSL(IIPAR,JJPAR,LLPAR,2), STAT=AS)       
+      IF ( AS /= 0) CALL ALLOC_ERR( 'DAERSL' )
+      DAERSL = 0d0
 
+      ! Mass of hydrophilic aerosol from Mian Chin
+      ALLOCATE( WAERSL(IIPAR,JJPAR,LLPAR,NAER), STAT=AS)       
+      IF ( AS /= 0) CALL ALLOC_ERR( 'WAERSL' )
+      DAERSL = 0d0
+#endif
+
+      ! Return to calling program
+
+      END SUBROUTINE INIT_AEROSOL
+!EOC
 !------------------------------------------------------------------------------
-      
+!          Harvard University Atmospheric Chemistry Modeling Group            !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: cleanup_aerosol
+!
+! !DESCRIPTION: Subroutine CLEANUP\_AEROSOL deallocates all module arrays
+!  (bmy, 7/20/04)
+!\\
+!\\
+! !INTERFACE:
+!
       SUBROUTINE CLEANUP_AEROSOL
+! 
+! !REVISION HISTORY:
+!  22 Dec 2011 - M. Payer    - Added ProTeX headers
+!EOP
+!------------------------------------------------------------------------------
+!BOC
 !
-!******************************************************************************
-!  Subroutine CLEANUP_AEROSOL deallocates all module arrays (bmy, 7/20/04)
-!
-!  NOTES:
-!******************************************************************************
-!
+
       !=================================================================
       ! CLEANUP_AEROSOL begins here!
       !=================================================================
@@ -1455,10 +1551,6 @@
       IF ( ALLOCATED( SO4_NH4_NIT ) ) DEALLOCATE( SO4_NH4_NIT )
       IF ( ALLOCATED( SOILDUST    ) ) DEALLOCATE( SOILDUST    )
 
-      ! Return to calling program
       END SUBROUTINE CLEANUP_AEROSOL
-
-!------------------------------------------------------------------------------
-
-      ! End of module
+!EOC
       END MODULE AEROSOL_MOD

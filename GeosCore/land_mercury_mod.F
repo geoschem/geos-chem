@@ -38,6 +38,9 @@
 !  25 Aug 2010 - R. Yantosca - Treat MERRA in same way as GEOS-5
 !  30 Aug 2010 - R. Yantosca - Added more ProTeX headers
 !  12 Apr 2011 - J. Fisher   - Add missing code from Holmes 2010
+!  08 Feb 2012 - R. Yantosca - Treat GEOS-5.7.x in the same way as MERRA
+!  01 Mar 2012 - R. Yantosca - Now reference new grid_mod.F90
+!  11 Apr 2012 - R. Yantosca - Now reference new modis_lai_mod.F90
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -96,6 +99,7 @@
 !  25 Aug 2010 - R. Yantosca - Treat MERRA in same way as GEOS-5
 !  26 Apr 2011 - J. Fisher   - Use MERRA land fraction information
 !  12 Apr 2011 - J. Fisher   - Add missing code from Holmes 2010
+!  08 Feb 2012 - R. Yantosca - Treat GEOS-5.7.x in the same way as MERRA
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -134,15 +138,16 @@
          FRAC_SNOW_OR_ICE = 0d0
          FRAC_SNOWFREE_LAND  = 1d0
 
-#if   defined( MERRA )
+#if   defined( MERRA ) || defined( GEOS_57 )
          ! Distinguish between ice/snow and snow-free land
-         FRAC_SNOW_OR_ICE =  
-     &        MIN(FRSNO(I,J) + FRSEAICE(I,J) + FRLANDIC(I,J), 1d0)
+         FRAC_SNOW_OR_ICE    =  MIN(FRSNO(I,J) 
+     &                       + FRSEAICE(I,J) + FRLANDIC(I,J), 1d0)
          FRAC_SNOWFREE_LAND  = MAX(FRLAND(I,J) - FRSNO(I,J), 0d0)
+
          ! Set this to FALSE in MERRA to avoid overwriting fractions
-         IS_SNOW_OR_ICE = .FALSE.
-         IS_LAND_OR_ICE = ( (FRAC_SNOWFREE_LAND > 0d0) .OR.
-     &                      (FRAC_SNOW_OR_ICE > 0d0) )
+         IS_SNOW_OR_ICE      = .FALSE.
+         IS_LAND_OR_ICE      = ( (FRAC_SNOWFREE_LAND > 0d0) .OR.
+     &                           (FRAC_SNOW_OR_ICE > 0d0) )
 #elif defined( GEOS_5 )
          ! GEOS5 snow height (water equivalent) in mm. (Docs incorrectly say m)
          IS_SNOW_OR_ICE = 
@@ -242,6 +247,7 @@
 ! !REVISION HISTORY:
 !  30 Jul 2008 - N. E. Selin, C. Holmes, B. Corbitt - Initial version 
 !  12 Apr 2011 - J. Fisher   - Add missing code from Holmes 2010
+!  01 Mar 2012 - R. Yantosca - Now use GET_AREA_CM2(I,J,L) from grid_mod.F90
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -284,7 +290,7 @@
          DO I = 1, IIPAR
  
             ! Grid box surface area, cm2
-            AREA_CM2 = GET_AREA_CM2( J )
+            AREA_CM2 = GET_AREA_CM2( I, J, 1 )
 
             ! Convert molec CO /cm3 /s -> mol CO /gridbox /s 
             E_CO = ( BIOMASS(I,J,IDBCO) / 6.022D23 ) * AREA_CM2
@@ -377,6 +383,7 @@
 
 ! !REVISION HISTORY:
 !  30 Aug 2010 - N. Eckley, C. Holmes, B. Corbitt - Initial version
+!  01 Mar 2012 - R. Yantosca - Now use GET_AREA_M2(I,J,L) from grid_mod.F90
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -431,7 +438,7 @@
 
                ! convert from ng /m2 /s -> kg/gridbox/s
                ! Grid box surface area [m2]
-               AREA_M2      = GET_AREA_M2( J )
+               AREA_M2      = GET_AREA_M2( I, J, 1 )
                EHg0_vg(I,J) = VEG_EMIS * AREA_M2 * 1D-12
 
             ELSE
@@ -466,13 +473,13 @@
 !
 ! !USES:
 !
-      USE LAI_MOD,  ONLY : ISOLAI, MISOLAI, PMISOLAI, DAYS_BTW_M
-      USE DAO_MOD,  ONLY : RADSWG, SUNCOS, TS, IS_LAND
-      USE TIME_MOD, ONLY : GET_MONTH, ITS_A_NEW_MONTH
-      USE TIME_MOD, ONLY : GET_TS_EMIS
-      USE GRID_MOD, ONLY : GET_AREA_M2
-      USE DAO_MOD,  ONLY : SNOW, SNOMAS
-      USE DAO_MOD,  ONLY : FRSNO, FRLAND
+      USE MODIS_LAI_MOD, ONLY : ISOLAI  => GC_LAI
+      USE DAO_MOD,       ONLY : RADSWG, SUNCOS, TS, IS_LAND
+      USE TIME_MOD,      ONLY : GET_MONTH, ITS_A_NEW_MONTH
+      USE TIME_MOD,      ONLY : GET_TS_EMIS
+      USE GRID_MOD,      ONLY : GET_AREA_M2
+      USE DAO_MOD,       ONLY : SNOW, SNOMAS
+      USE DAO_MOD,       ONLY : FRSNO, FRLAND
 
       USE CMN_SIZE_MOD     ! Size parameters
       USE CMN_DEP_MOD      ! FRCLND
@@ -516,6 +523,11 @@
 !  25 Aug 2010 - R. Yantosca - Treat MERRA in same way as GEOS-5
 !  26 Apr 2011 - J. Fisher   - Use MERRA land fraction information
 !  12 Apr 2011 - J. Fisher   - Bug fixes, add missing code from Holmes 2010
+!  08 Feb 2012 - R. Yantosca - Treat GEOS-5.7.x in the same way as MERRA
+!  10 Feb 2012 - R. Yantosca - Extend #if statement for SOIL_EMIS_FAC in order
+!                              to get the code to compile w/o error.
+!  01 Mar 2012 - R. Yantosca - Now use GET_AREA_CM2(I,J,L) from grid_mod.F90
+!  11 Apr 2012 - R. Yantosca - Replace lai_mod.F with modis_lai_mod.F90
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -547,6 +559,22 @@
       REAL*8, PARAMETER  :: SOIL_EMIS_FAC = 2.4D-2*0.71d0 ! for sunlight function
 #elif defined(GRID2x25)
       REAL*8, PARAMETER :: SOIL_EMIS_FAC=2.4D-2*0.71d0*4d0
+#elif defined(GRID05x0666)
+      !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+      ! lhu, 1/5/2012, add pre-defined SOIL_EMIS_FAC for 05x0667 simulation
+      ! This is a non-physical value and would need to be changed for an
+      ! actual mercury simulation
+      REAL*8, PARAMETER :: SOIL_EMIS_FAC = -9.0D99
+      !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+#elif defined(GRID025x03125)
+      !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+      ! lhu, 1/5/2012, add pre-defined SOIL_EMIS_FAC for 05x0667 simulation
+      ! This is a non-physical value and would need to be changed for an
+      ! actual mercury simulation
+      REAL*8, PARAMETER :: SOIL_EMIS_FAC = -9.0D99
+      !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+#else  ! This sets a default value for GCM & ESMF COUPLING
+      REAL*8, PARAMETER ::SOIL_EMIS_FAC = 2.4D-2*.5742d0 ! for sunlight function
 #endif
 
       !=================================================================
@@ -565,7 +593,7 @@
          ! Except in MERRA, assume whole box is land if conditions met
          ! (jaf, 4/26/11)
          FRAC_SNOWFREE_LAND = 1d0
-#if   defined( MERRA )
+#if   defined( MERRA ) || defined( GEOS_57 )
          FRAC_SNOWFREE_LAND = MAX(FRLAND(I,J) - FRSNO(I,J), 0d0)
          IS_SNOWFREE_LAND = (FRAC_SNOWFREE_LAND > 0d0)
 #elif defined( GEOS_5 )
@@ -602,7 +630,7 @@
      &           DRYSOIL_HG * SOIL_EMIS_FAC
      
             ! Grid box surface area [m2]
-            AREA_M2   = GET_AREA_M2( J )
+            AREA_M2   = GET_AREA_M2( I, J, 1 )
  
             ! convert soilnat from ng /m2 /h -> kg /gridbox /s
             EHg0_so(I,J) = SOIL_EMIS * AREA_M2 * 1D-12 / ( 60D0 * 60D0 )
@@ -846,7 +874,8 @@
 !
       USE BPCH2_MOD
       USE DAO_MOD,           ONLY : IS_LAND
-      USE FILE_MOD,          ONLY : IU_FILE, IOERROR
+      USE FILE_MOD,          ONLY : IOERROR
+      USE inquireMod,        ONLY : findFreeLun
       USE TIME_MOD,          ONLY : EXPAND_DATE, YMD_EXTRACT
       USE TIME_MOD,          ONLY : GET_NYMD, GET_NHMS
       USE DIRECTORY_MOD,     ONLY : DATA_DIR
@@ -854,7 +883,7 @@
       USE DEPO_MERCURY_MOD,  ONLY : WD_Hg2, WD_HgP, DD_HgP, DD_Hg2
       USE DEPO_MERCURY_MOD,  ONLY : READ_GTMM_RESTART
     
-      USE CMN_SIZE_MOD          ! Size parameters
+      USE CMN_SIZE_MOD            ! Size parameters
 !
 ! !INPUT PARAMETERS: 
 !
@@ -863,6 +892,7 @@
 ! 
 ! !REVISION HISTORY:
 !  15 Sep 2009 - C. Carouge  - Initial version
+!  03 Aug 2012 - R. Yantosca - Move calls to findFreeLUN out of DEVEL block
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -873,7 +903,6 @@
       INTEGER   :: MONTH   ! Current month
       INTEGER   :: DAY
       INTEGER   :: NYMD, NHMS
-      
 
       REAL*8, DIMENSION(IIPAR, JJPAR)   :: TSURF    ! Ground temperature
       REAL*8, DIMENSION(IIPAR, JJPAR)   :: PRECIP   ! Total precipitation
@@ -888,7 +917,7 @@
       REAL*8, DIMENSION(IIPAR, JJPAR)   :: Hg2mth_dry
       REAL*8, DIMENSION(IIPAR, JJPAR)   :: Hg2mth_wet
 
-      INTEGER               :: IOS, I, J, L
+      INTEGER               :: IOS, I, J, L, IU_FILE
 
       CHARACTER(LEN=255)    :: FILENAME
 
@@ -928,6 +957,10 @@
       ! Read monthly meteorology fields
       !=================================================================
 
+      ! Find a free file LUN
+      IU_FILE  = findFreeLun()
+
+      ! File name
       FILENAME = TRIM( DATA_DIR ) // 'mercury_201007/' //
      &           'mean_metfields/' // GET_NAME_EXT() // 
      &           '/mean_YYYYMM.bpch'
@@ -938,9 +971,9 @@
       ! Echo some input to the screen
       WRITE( 6, '(a)' ) REPEAT( '=', 79 )
       WRITE( 6, 100   ) 
-      WRITE( 6, 110   ) TRIM( FILENAME )
+      WRITE( 6, 110   ) TRIM( FILENAME ), IU_FILE
  100  FORMAT( 'G T M M  H g   M E T   F I L E   I N P U T' )
- 110  FORMAT( /, 'GTMM_DR: Reading ', a )
+ 110  FORMAT( /, 'GTMM_DR: Reading ', a, ' on unit ', i6  )
 
       ! Open the binary punch file for input
       CALL OPEN_BPCH2_FOR_READ( IU_FILE, FILENAME )

@@ -31,7 +31,7 @@
       USE TRACER_MOD,     ONLY : XNUMOLAIR
       USE TRACERID_MOD,   ONLY : IDTOX
       USE TROPOPAUSE_MOD, ONLY : ITS_IN_THE_TROP
-      USE DIAG03_MOD       , ONLY : AD03_RGM, AD03_RPM, ND03   
+      USE DIAG03_MOD,        ONLY : AD03_RGM, AD03_PBM, ND03   
       USE OCEAN_MERCURY_MOD, ONLY : Fg, Fp, PARTITION_Hg2
 
 #if   defined( APM )
@@ -84,7 +84,7 @@
 !  (20) Now replace DXYP(J) with routine GET_AREA_M2 from "grid_mod.f"
 !        (bmy, 2/4/03)
 !  (21) Now compute PBL top for ND67 for GEOS-4/fvDAS.  Also now include
-!        SCALE_HEIGHT from header file "F77_CMN_GCTM". (bmy, 6/23/03)
+!        SCALE_HEIGHT from header file "CMN_GCTM". (bmy, 6/23/03)
 !  (22) Now references N_TRACERS, STT, and ITS_A_FULLCHEM_SIM from
 !        "tracer_mod.f" (bmy, 7/20/04)
 !  (23) Fixed ND67 PS-PBL for GCAP and GEOS-5 met fields (swu, bmy, 6/9/05)
@@ -100,6 +100,8 @@
 !  (31) Add potential temperature diagnostic in ND57 (fp, 2/3/10)
 !  25 Aug 2010 - R. Yantosca - Added ProTeX headers
 !  15 Feb 2011 - R. Yantosca - Added modifications for APM from G. Luo
+!  28 Feb 2012 - R. Yantosca - Removed support for GEOS-3
+!  01 Mar 2012 - R. Yantosca - Now use GET_AREA_M2(I,J,L) from grid_mod.F90
 !
 ! !REMARKS:
 !  For a complete list of GEOS-Chem diagnostics, please see this web page:
@@ -159,7 +161,7 @@
 ! H Amos, 25 Oct 2011--------------------------------------------------
 
       !-----------------------------------------------!
-      ! Write ND03 diagnostics for RGM and RPM (pptv) !
+      ! Write ND03 diagnostics for RGM and PBM (pptv) !
       !-----------------------------------------------!
        IF(ND03 > 0) THEN
 
@@ -175,8 +177,8 @@
           AD03_RGM(I,J,L) = AD03_RGM(I,J,L)+
      &      Fg(I,J,L) * STT(I,J,L,2) * TCVV(2) / AD(I,J,L) *1D12
 
-          ! Reactive particulate mercury, RPM
-          AD03_RPM(I,J,L) = AD03_RPM(I,J,L) + 
+          ! Reactive particulate mercury, PBM
+          AD03_PBM(I,J,L) = AD03_PBM(I,J,L) + 
      &      Fp(I,J,L)* STT(I,J,L,2) * TCVV(2) / AD(I,J,L) *1D12
                                                        
         ENDDO
@@ -394,18 +396,9 @@
          DO J = 1, JJPAR
          DO I = 1, IIPAR
 
-#if   defined( GEOS_3 )
-
-            ! PBL is in [hPa], subtract from PSurface
-            AD67(I,J,13) = AD67(I,J,13) + GET_PEDGE(I,J,1) - PBL(I,J) 
-
-#else
-            
             ! PBL is in [m], use hydrostatic law to get [hPa]
             AD67(I,J,13) = AD67(I,J,13) + 
      &           ( GET_PEDGE(I,J,1) * EXP( -PBL(I,J) / SCALE_HEIGHT ) )
-
-#endif
 
          ENDDO
          ENDDO
@@ -452,11 +445,9 @@
       !================================================================= 
       IF ( ND69 > 0 ) THEN
          DO J = 1, JJPAR
-            AREA_M2 = GET_AREA_M2( J )
-
-            DO I = 1, IIPAR
-               AD69(I,J,1) = AREA_M2
-            ENDDO
+         DO I = 1, IIPAR
+            AD69(I,J,1) = GET_AREA_M2( I, J, 1 )
+         ENDDO
          ENDDO
       ENDIF
       

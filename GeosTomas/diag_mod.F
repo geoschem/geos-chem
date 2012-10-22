@@ -251,6 +251,9 @@
       REAL*4,  ALLOCATABLE :: AD61(:,:,:,:)
       REAL*4,  ALLOCATABLE :: AD61_inst(:,:,:,:)
 
+      ! For ND63 -- fraction of NOx remaining and Integrated OPE
+      REAL*4,  ALLOCATABLE :: AD63(:,:,:)
+
       ! For ND66 -- I-6 fields diagnostic
       REAL*4,  ALLOCATABLE :: AD66(:,:,:,:)      
 
@@ -361,6 +364,7 @@
 !  (13) Now deallocate AD30 (bmy, 8/18/05)
 !  (14) Now deallocate CTO3, AD10, AD10em arrays (phs, 9/18/07)
 !  (15) Now deallocate TOMAS related arrays (win, bmy, 1/25/10)
+!  15 Feb 2011 - R. Yantosca - Add modifications for APM microphysics
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -450,6 +454,7 @@
       IF ( ALLOCATED( AD60_SOA    ) ) DEALLOCATE( AD60_SOA    )
       IF ( ALLOCATED( AD61        ) ) DEALLOCATE( AD61        )
       IF ( ALLOCATED( AD61_inst   ) ) DEALLOCATE( AD61_inst   ) !(win, 1/25/10)
+      IF ( ALLOCATED( AD63        ) ) DEALLOCATE( AD63        )
       IF ( ALLOCATED( AD66        ) ) DEALLOCATE( AD66        )
       IF ( ALLOCATED( AD68        ) ) DEALLOCATE( AD68        )
       IF ( ALLOCATED( AD69        ) ) DEALLOCATE( AD69        )
@@ -492,9 +497,17 @@
       IF ( ALLOCATED( MASSFLNS    ) ) DEALLOCATE( MASSFLNS    )
       IF ( ALLOCATED( MASSFLUP    ) ) DEALLOCATE( MASSFLUP    )
       IF ( ALLOCATED( TURBFLUP    ) ) DEALLOCATE( TURBFLUP    )
-      IF ( ALLOCATED( STT_TEMPO2  ) ) DEALLOCATE( STT_TEMPO2  ) 
+      IF ( ALLOCATED( STT_TEMPO2  ) ) DEALLOCATE( STT_TEMPO2  )
+
+#if   defined( APM )
+      !-----------------------------------------
+      ! Deallocate arrays for APM microphysics
+      !-----------------------------------------
+      IF ( ALLOCATED( AD07_OM     ) ) DEALLOCATE( AD07_OM     )
+#endif
 
       END SUBROUTINE CLEANUP_DIAG
 !EOC
       END MODULE DIAG_MOD 
+
 

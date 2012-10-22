@@ -21,8 +21,8 @@
 !
 ! !PUBLIC DATA MEMBERS:
 !
-      REAL*8, PUBLIC, ALLOCATABLE :: H2O2s(:,:,:)   ! Save H2O2 and SO2 [v/v]
-      REAL*8, PUBLIC, ALLOCATABLE :: SO2s(:,:,:)    !  for sulfate chemistry
+      REAL*8, PUBLIC, ALLOCATABLE, TARGET :: H2O2s(:,:,:)   ! Save H2O2 and SO2 [v/v]
+      REAL*8, PUBLIC, ALLOCATABLE, TARGET :: SO2s(:,:,:)    !  for sulfate chemistry
 !
 ! !PUBLIC MEMBER FUNCTIONS:
 !
@@ -46,7 +46,8 @@
       PRIVATE :: RAINOUT
       PRIVATE :: GET_RAINFRAC
       PRIVATE :: SAFETY
-      PRIVATE :: WASHFRAC_AEROSOL
+      PRIVATE :: WASHFRAC_FINE_AEROSOL
+      PRIVATE :: WASHFRAC_COARSE_AEROSOL
       PRIVATE :: WASHFRAC_LIQ_GAS
       PRIVATE :: WASHFRAC_HNO3
 !
@@ -135,12 +136,19 @@
 !  08 Oct 2010 - H. Amos - Various other modifications in WETDEP_MERRA
 !  01 Aug 2011 - H. Amos - Bug fix for function WASHFRAC_LIQ_GAS
 !  01 Aug 2011 - H. Amos - Updated comments
+!  09 Feb 2012 - R. Yantosca - Add modifications for GEOS-5.7.x
+!  21 Jun 2012 - R. Yantosca - Declare H2O2s, SO2s as TARGETs for pointers
 !EOP
 !------------------------------------------------------------------------------
 !BOC
 !
 ! !DEFINED PARAMETERS:
-!                                               !upped from 50 (eds)
+!
+!------------------------------------------------------------------------------
+! Prior to 10/22/12:
+! Increased from 53 to 60 for tagged Hg sim (eds, mpayer, 10/22/12)
+!      INTEGER, PARAMETER   :: NSOLMAX = 53      ! Max # of soluble tracers
+!------------------------------------------------------------------------------
       INTEGER, PARAMETER   :: NSOLMAX = 60      ! Max # of soluble tracers
       REAL*8,  PARAMETER   :: EPSILON = 1d-32   ! A very small positive #
 !
@@ -205,11 +213,12 @@
 !  13 Aug 2010 - R. Yantosca - Treat GEOS-5 like MERRA
 !  16 Sep 2010 - R. Yantosca - Added ProTeX headers
 !  20 Sep 2010 - R. Yantosca - Rewrote #if block structure for clarity
+!  09 Feb 2012 - R. Yantosca - Treat GEOS-5.7.x in the same way as MERRA
 !EOP
 !------------------------------------------------------------------------------
 !BOC
 
-#if   defined( MERRA )
+#if   defined( MERRA ) || defined( GEOS_57 )
 
       !=================================================================
       ! MERRA: Only do wet deposition for large-scale + anvil precip
@@ -301,9 +310,9 @@
                                   ! =F, denotes convective precip
 ! 
 ! !REMARKS:
-!  %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-!  %%%%%          FOR MERRA MET FIELDS ONLY         %%%%%
-!  %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+!  %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+!  %%%%%          FOR MERRA and GEOS-5.7.x MET FIELDS ONLY         %%%%%
+!  %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 !                                                                             .
 !  Now construct QQ and PDOWN directly from MERRA met fields.
 !                                                                             .
@@ -341,9 +350,9 @@
 !                                                                             .
 !  = [ (PFILSAN/1000) * 100 ] + [ (PFILSAN/1000) * 100]
 !                                                                             .
-!  %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%% 
-!  %%%%%    FOR ALL OTHER MET FIELDS EXCEPT MERRA   %%%%%
-!  %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%% 
+!  %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%% 
+!  %%%%%    FOR ALL OTHER MET FIELDS EXCEPT MERRA and GEOS-5.7.x   %%%%%
+!  %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 !                                                                             .
 !  If there is total precipitation in the (I,J) column, then:
 !                                                                             .
@@ -406,6 +415,7 @@
 !  (11) Now reference met field arrays directly from "dao_mod.f" (bmy, 11/8/02)
 !  16 Sep 2010 - R. Yantosca - Added ProTeX headers
 !  16 Sep 2010 - R. Yantosca - Compute QQ and PDOWN from MERRA met fields
+!  09 Feb 2012 - R. Yantosca - Added modifications for GEOS-5.7.x met fields
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -445,7 +455,30 @@
       DO J = 1, JJPAR
       DO I = 1, IIPAR
 
-#if   defined( MERRA )
+#if   defined( GEOS_57 )
+
+         !==============================================================
+         ! %%%%% FOR GEOS-5.7.x MET FIELDS ONLY %%%%%  
+         !
+         ! In GEOS-5.7.x, the PFILSAN and PFLLSAN fields are defined
+         ! on level edges.  Therefore, we must use L+1 to index them.
+         !==============================================================
+
+         ! Loop over vertical levels
+         DO L = 1, LLPAR
+
+            ! Rate of new precipitation formation in grid box (I,J,L)
+            ! [cm3 H2O/cm3 air/s]
+            QQ(L,I,J)    = ( DQRLSAN(I,J,L)                   )
+     &                   * ( AIRDEN(L,I,J)  / 1000d0          )
+
+            ! Column precipitation [cm3 H2O/cm2 air/s]
+            PDOWN(L,I,J) = ( ( PFLLSAN(I,J,L+1) / 1000d0 ) 
+     &                   +   ( PFILSAN(I,J,L+1) /  917d0 ) ) * 100d0
+
+         ENDDO
+
+#elif   defined( MERRA )
 
          !==============================================================
          ! %%%%% FOR MERRA MET FIELDS ONLY %%%%%  
@@ -478,6 +511,16 @@
             ELSE
                FRAC = PRECON(I,J) / PREACC(I,J)
             ENDIF
+
+           !##################################################################
+           !### KLUDGE: On July 22, 2010, there is an error where PREACC
+           !### is set to a very small number (but nonzero).  This causes
+           !### FRAC to blow up to near infinity and PDOWN to be a very
+           !### large number.  For now, limit FRAC to be between 0 and 1.
+           !### 
+           IF ( FRAC > 1d0 ) FRAC = 1d0
+           IF ( FRAC < 0d0 ) FRAC = 0d0 
+           !##################################################################
 
             ! Start at the top of the atmosphere
             L = LLPAR
@@ -598,6 +641,7 @@
       !=================================================================
       
       ! Saturation vap press of Ice [Pa] -- divide by 100 for [hPa]
+!      write(*,*) 'E_ICE:', TK
       VALUE = ( 10d0**( A/TK + B ) ) / 100d0 
 
       END FUNCTION E_ICE
@@ -709,8 +753,10 @@
       USE TRACERID_MOD, ONLY : IDTISOPN, IDTMMN
       USE TRACERID_MOD, ONLY : IDTIEPOX, IDTRIP
       USE TRACERID_MOD, ONLY : IDTMAP
+      ! jpp 4/27/09
+      USE TRACERID_MOD, ONLY : IDTHOBr,  IDTHBr,   IDTBr2
 
-      USE CMN_SIZE_MOD                         ! Size parameters
+      USE CMN_SIZE_MOD                               ! Size parameters
 !
 ! !INPUT PARAMETERS: 
 !
@@ -774,11 +820,12 @@
 !  (21) Bug fix: now use separate conversion factors for H2O2 and NH3.
 !        (havala, bmy, 7/26/06)
 !  16 Sep 2010 - R. Yantosca - Added ProTeX headers
-!  10-Jan-2011 - H.Amos - Changed Hg2 Henry's law constant from 1.0d14 (no 
-!                         citation) to 1.4d6 M/atm (HgCl2, Lindqvist & Rhode, 
-!                         1985). Henry's law constant in wetscav_mod.f is 
-!                         now consistent with what's used in mercury_mod.f
-! 27 Sep 2011 - H. Amos - remove LHg_WETDasHNO3 logical, it's obsolete
+!  10-Jan-2011 - H.Amos      - Changed Hg2 Henry's law constant from 1.0d14 (no 
+!                              citation) to 1.4d6 M/atm (HgCl2, Lindqvist &
+!                              Rhode, 1985). Henry's law constant in
+!                              wetscav_mod.f is now consistent with what's used
+!                              in mercury_mod.f
+!  27 Sep 2011 - H. Amos     - remove LHg_WETDasHNO3 logical, it's obsolete
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -814,14 +861,14 @@
       ! 210Pb and 7Be (aerosols)
       !-------------------------------
       IF ( N == IDTPb .or. N == IDTBe7 ) THEN
-         CALL F_AEROSOL( KC, F )
+         CALL F_AEROSOL( KC,N, F )
          ISOL = GET_ISOL( N )
 
       !-------------------------------
       ! HNO3 (aerosol)
       !-------------------------------
       ELSE IF ( N == IDTHNO3 ) THEN
-         CALL F_AEROSOL( KC, F )
+         CALL F_AEROSOL( KC,N, F )
          ISOL = GET_ISOL( N ) 
 
       !-------------------------------
@@ -937,6 +984,187 @@
 
          ! ND38 index
          ISOL = GET_ISOL( N ) 
+
+      !-------------------------------
+      ! HOBr (liquid phase only)
+      ! jpp 4/27/09
+      !-------------------------------
+      ELSE IF ( N == IDTHOBr ) THEN 
+
+         ! No scavenging at the surface
+         F(:,:,1) = 0d0
+
+         ! Apply scavenging in levels 2 and higher
+         DO L = 2, LLPAR
+         DO J = 1, JJPAR
+         DO I = 1, IIPAR
+
+            ! Compute liquid to gas ratio for HOBr:
+            ! 1. first argument is the adjusted Henry's law coefficient,
+            ! which I've calculated for pH = 4.5
+            !
+            ! H0 from Freznel et al. [1998]
+            ! McGrath and Rowland, 1994 says dH_sol for HOBr = - 50 kJ/mol
+            ! (- 12 kcal/mol)
+            ! acid dissociation constant in Heff is small (1.5e-9), reported
+            ! by Haag and Holne [1983]
+            CALL COMPUTE_L2G( 6.1d3, -6014.d0, 
+     &                        T(I,J,L), CLDLIQ(I,J,L), L2G )
+
+            ! Fraction of HOBr in liquid phase
+            ! (Eqs. 4, 5, 6, Jacob et al, 2000)
+            C_TOT = 1d0 + L2G
+            F_L   = L2G / C_TOT
+
+            ! Compute the rate constant K.
+            IF ( T(I,J,L) >= 268d0 ) THEN
+
+               K = KC * F_L
+
+            ELSE IF ( T(I,J,L) > 248d0  .and. T(I,J,L) < 268d0 ) THEN
+
+               K = KC * (0.d0 * F_L) 
+
+            ELSE
+
+               K = 0.d0
+                  
+            ENDIF
+
+            ! Distance between grid box centers [m]
+            TMP = 0.5d0 * ( BXHEIGHT(I,J,L-1) + BXHEIGHT(I,J,L) ) 
+               
+            ! F is the fraction of HOBr scavenged out of the updraft
+            ! (Eq. 2, Jacob et al, 2000)
+            F(I,J,L) = 1d0 - EXP( -K * TMP / Vud(I,J) )
+
+         ENDDO
+         ENDDO
+         ENDDO
+
+         ! ND38 index
+         ISOL = GET_ISOL( N ) 
+
+      !-------------------------------
+      ! HBr (liquid phase only)
+      ! jpp 4/27/09
+      !-------------------------------
+      ELSE IF ( N == IDTHBr ) THEN 
+
+         ! No scavenging at the surface
+         F(:,:,1) = 0d0
+
+         ! Apply scavenging in levels 2 and higher
+         DO L = 2, LLPAR
+         DO J = 1, JJPAR
+         DO I = 1, IIPAR
+
+            ! Compute liquid to gas ratio for HBr:
+            ! 1. first argument is the adjusted Henry's law coefficient,
+            ! which I've calculated for pH = 4.5
+            !
+            ! H0 and heat of solution are estimated by Yang et al. [2005]
+            CALL COMPUTE_L2G( 7.1d13, -10200.0d0, 
+     &                        T(I,J,L), CLDLIQ(I,J,L), L2G )
+
+
+            ! Fraction of HBr in liquid phase
+            ! (Eqs. 4, 5, 6, Jacob et al, 2000)
+            C_TOT = 1d0 + L2G
+            F_L   = L2G / C_TOT
+
+            ! Compute the rate constant K.
+            IF ( T(I,J,L) >= 268d0 ) THEN
+
+               K = KC * F_L
+
+            ELSE IF ( T(I,J,L) > 248d0  .and. T(I,J,L) < 268d0 ) THEN
+               
+               ! HBr has a large effective Henry's
+               ! Law Constant, similar to HCl and HNO3, which have
+               ! retention fractions (RFs) of 1.
+               ! RFs have not been measured for HBr; 
+               ! however, Stuart and Jacobson [2003]
+               ! suggest that species with large
+               ! Hstar's should have RF's of about 1.
+               ! (jpp, 6/13/2011)
+               K = KC * (1.d0 * F_L) !jpp, testing riming efficiency
+
+            ELSE
+
+               K = 0.d0
+                  
+            ENDIF
+
+            ! Distance between grid box centers [m]
+            TMP = 0.5d0 * ( BXHEIGHT(I,J,L-1) + BXHEIGHT(I,J,L) ) 
+
+            ! F is the fraction of HBr scavenged out of the updraft
+            ! (Eq. 2, Jacob et al, 2000)
+            F(I,J,L) = 1d0 - EXP( -K * TMP / Vud(I,J) )
+
+
+         ENDDO
+         ENDDO
+         ENDDO
+
+         ! ND38 index
+         ISOL = GET_ISOL( N )
+
+
+      !------------------------------
+      ! Br2 (liquid phase only), jpp
+      !------------------------------
+      ELSE IF ( N == IDTBr2 ) THEN
+
+         ! No scavenging at the surface
+         F(:,:,1) = 0d0
+
+         ! Apply scavenging in levels 2 and higher
+         DO L = 2, LLPAR
+         DO J = 1, JJPAR
+         DO I = 1, IIPAR
+
+            ! Compute liquid to gas ratio for Br2:
+            CALL COMPUTE_L2G( 0.76d0, -3.72d3, 
+     &           T(I,J,L), CLDLIQ(I,J,L), L2G )
+
+            ! Fraction of Br2 in liquid phase
+            C_TOT = 1d0 + L2G
+            F_L   = L2G / C_TOT
+   
+            ! Compute the rate constant K.
+            !
+            ! * no data found on fraction Br2 remaining
+            !   in particle phase during riming. Plus,
+            !   it has a small effective Henry's Law. So we'll
+            !   assume 0% retention at all temperatures
+            !   above 248K and below 268K. (jpp, 1/14/2011)
+            ! * CL2 analogue has low mass accomodation coeff. for ice
+            !   0 uptake in cold clouds. (<1e-4, Sander et al [2010] - JPL)
+            IF ( T(I,J,L) >= 268d0 ) THEN
+               K = KC * F_L
+            ELSE IF ( T(I,J,L) > 248d0  .and. T(I,J,L) < 268d0 ) THEN
+               K = KC * (0.d0 * F_L) !jpp, testing riming efficiency
+            ELSE
+               K = 0d0   
+            ENDIF
+
+
+            ! Distance between grid box centers [m]
+            TMP = 0.5d0 * ( BXHEIGHT(I,J,L-1) + BXHEIGHT(I,J,L) ) 
+                  
+            ! F is the fraction of Br2 scavenged out of the updraft
+            ! (Eq. 2, Jacob et al, 2000)
+            F(I,J,L) = 1d0 - EXP( -K * TMP / Vud(I,J) )
+
+         ENDDO
+         ENDDO
+         ENDDO
+
+         ! ND38 index
+         ISOL = GET_ISOL( N ) 
+
 
       ! Update GLYX and MGLY Henry's Law Const calculations (tmf, 9/13/06)  
       !-------------------------------
@@ -1162,7 +1390,7 @@
       ELSE IF ( N == IDTSO2 ) THEN
 
          ! Compute fraction of SO2 scavenged
-         CALL F_AEROSOL( KC, F )
+         CALL F_AEROSOL( KC,N, F )
          ISOL = GET_ISOL( N )
 
          !==============================================================
@@ -1211,14 +1439,14 @@
       !-------------------------------
       ELSE IF ( N == IDTSO4 .or. N == IDTSO4s .or. N == IDTSO4aq ) THEN
 
-         CALL F_AEROSOL( KC, F ) 
+         CALL F_AEROSOL( KC,N, F ) 
          ISOL = GET_ISOL( N ) 
 
       !-------------------------------
       ! MSA (aerosol)
       !-------------------------------
       ELSE IF ( N == IDTMSA ) THEN
-         CALL F_AEROSOL( KC, F )
+         CALL F_AEROSOL( KC,N, F )
          ISOL = GET_ISOL( N )
 
       !-------------------------------
@@ -1283,7 +1511,7 @@
       ! NH4aq (aqueous aerosol)
       !-------------------------------
       ELSE IF ( N == IDTNH4 .or. N == IDTNH4aq ) THEN
-         CALL F_AEROSOL( KC, F )
+         CALL F_AEROSOL( KC,N, F )
          ISOL = GET_ISOL( N )
          
       !-------------------------------
@@ -1292,22 +1520,24 @@
       ELSE IF ( N == IDTNIT  .or. N == IDTNITs .or.
      &          N == IDTAS   .or. N == IDTAHS  .or. 
      &          N == IDTLET ) THEN 
-         CALL F_AEROSOL( KC, F )
+         CALL F_AEROSOL( KC,N, F )
          ISOL = GET_ISOL( N )
 
       !-------------------------------
       ! BC HYDROPHILIC (aerosol) or
+      ! BC HYDROPHOBIC (aerosol) or
       ! OC HYDROPHILIC (aerosol)
       !-------------------------------
-      ELSE IF ( N == IDTBCPI .or. N == IDTOCPI ) THEN
-         CALL F_AEROSOL( KC, F )
+      ELSE IF ( N == IDTBCPI .or. N == IDTOCPI .or.
+     &          N == IDTBCPO ) THEN
+         CALL F_AEROSOL( KC,N, F )
          ISOL = GET_ISOL( N )
 
       !-------------------------------
-      ! BC HYDROPHOBIC (aerosol) or
+      !
       ! OC HYDROPHOBIC (aerosol)
       !-------------------------------
-      ELSE IF ( N == IDTBCPO .or. N == IDTOCPO ) THEN
+      ELSE IF (  N == IDTOCPO ) THEN
 
          ! Force not to be lost in convective updraft for now
          F    = 0d0
@@ -1318,7 +1548,7 @@
       !-------------------------------
       ELSE IF ( N == IDTDST1 .or. N == IDTDST2 .or.
      &          N == IDTDST3 .or. N == IDTDST4 ) THEN
-         CALL F_AEROSOL( KC, F )
+         CALL F_AEROSOL( KC,N, F )
          ISOL = GET_ISOL( N )
 
       !-------------------------------
@@ -1326,7 +1556,7 @@
       ! Coarse mode seasalt (aerosol)
       !-------------------------------
       ELSE IF ( N == IDTSALA .or. N == IDTSALC ) THEN
-         CALL F_AEROSOL( KC, F )
+         CALL F_AEROSOL( KC,N, F )
          ISOL = GET_ISOL( N )
 
       !-------------------------------
@@ -1553,7 +1783,7 @@
       ELSE IF ( N == IDTSOA1 .or. N == IDTSOA2  .or. 
      &          N == IDTSOA3 .or. N == IDTSOA4  .or. 
      &          N == IDTSOA5                    ) THEN
-         CALL F_AEROSOL( KC, F )
+         CALL F_AEROSOL( KC,N, F )
 
          DO L = 2, LLPAR
          DO J = 1, JJPAR
@@ -1572,7 +1802,7 @@
       ! Scavenging efficiency for SOA is 0.8
       !------------------------------------------
       ELSE IF ( N == IDTSOAG .or. N == IDTSOAM ) THEN
-         CALL F_AEROSOL( KC, F )
+         CALL F_AEROSOL( KC,N, F )
 
          DO L = 2, LLPAR
          DO J = 1, JJPAR
@@ -1645,7 +1875,7 @@
       !-------------------------------
       ELSE IF ( IS_HgP( N ) ) THEN
 
-         CALL F_AEROSOL( KC, F ) 
+         CALL F_AEROSOL( KC,N, F ) 
          ISOL = GET_ISOL( N )
 
       ! Additional tracers for isoprene
@@ -2031,11 +2261,13 @@
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE F_AEROSOL( KC, F ) 
+      SUBROUTINE F_AEROSOL( KC,N, F ) 
 !
 ! !USES:
 !
-      USE DAO_MOD, ONLY : BXHEIGHT
+      USE DAO_MOD, ONLY : BXHEIGHT, T
+      USE TRACERID_MOD, ONLY : IDTBCPO,  IDTDST1,  IDTHNO3 
+      USE TRACERID_MOD, ONLY : IDTDST2,  IDTDST3,  IDTDST4
 
       USE CMN_SIZE_MOD   ! Size parameters
 !
@@ -2043,6 +2275,8 @@
 !
       ! Conversion rate from cloud condensate to precip [1/s]
       REAL*8, INTENT(IN)  :: KC
+      !Add N to idendify tracers (qq,10/11/2011)
+      INTEGER, INTENT(IN) :: N
 !
 ! !OUTPUT PARAMETERS:
 !
@@ -2081,6 +2315,15 @@
        
          ! (Eq. 2, Jacob et al, 2000, with K = Kc)
          F(I,J,L) = 1d0 - EXP( -KC * TMP / Vud(I,J) )
+         ! snow vs rain (qq, 10/11/2011)
+         IF (T(I,J,L) >= 258d0 .and. N == IDTBCPO) THEN
+            F(I,J,L) = 0d0
+         ENDIF
+         IF (T(I,J,L) <258d0 .and. N /= IDTBCPO  .and. N /= IDTHNO3
+     &     .and. N /= IDTDST1 .and. N /= IDTDST2 .and. N /= IDTDST3 
+     &     .and. N /= IDTDST4) THEN
+            F(I,J,L) = 0d0
+         ENDIF
             
       ENDDO
       ENDDO
@@ -2107,7 +2350,7 @@
 !
       USE TRACER_MOD, ONLY : N_TRACERS
 
-      USE CMN_SIZE_MOD           ! Size parameters
+      USE CMN_SIZE_MOD                 ! Size parameters
 !
 ! !INPUT PARAMETERS: 
 !
@@ -2207,9 +2450,11 @@
       USE TRACERID_MOD, ONLY : IDTMOBA,  IDTPROPNN
       USE TRACERID_MOD, ONLY : IDTISOPN, IDTMMN
       USE TRACERID_MOD, ONLY : IDTIEPOX, IDTRIP, IDTMAP
+      ! jpp 4/27/09
+      USE TRACERID_MOD, ONLY : IDTHOBr, IDTHBr,   IDTBr2
       USE TRACER_MOD,   ONLY : ITS_A_MERCURY_SIM 
 
-      USE CMN_SIZE_MOD             ! Size parameters
+      USE CMN_SIZE_MOD                   ! Size parameters
 !
 ! !INPUT PARAMETERS: 
 !
@@ -2263,6 +2508,7 @@
 !  25 Aug 2010 - R. Yantosca - Treat MERRA in the same way as GEOS-5
 !  16 Sep 2010 - R. Yantosca - Added ProTeX headers
 !  27 Sep 2011 - H. Amos     - remove LHg_WETDasHNO3 logical, it's obsolete
+!  09 Feb 2012 - R. Yantosca - Treat GEOS-5.7.x in the same way as MERRA
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -2293,45 +2539,10 @@
       ! Save the local temperature in TK for convenience
       TK = T(I,J,L)
 
-#if   defined( GEOS_5 ) || defined( MERRA )
-      !------------------------------------------------------------------
-      ! NOTE FROM HONGYU LIU (hyl@nianet.org) -- 3/5/08
-      !
-      ! Lead-210 (210Pb) and Beryllium-7 (7Be) simulations indicate 
-      ! that we can improve the GEOS-5 simulation by (1) turning off
-      ! rainout/washout for convective precip (see DO_WETDEP) 
-      ! and (2) suppressing rainout for large-scale precip at  
-      ! temperatures below 258K.
-      !
-      ! Place an #if block here to set RAINFRAC=0 when T < 258K for 
-      ! GEOS-5 met.  This will suppress rainout. (hyl, bmy, 3/5/08)
-      !
-      ! Allow scavenging at cold temperatures for Hg simulation.
-      ! (cdh, 4/16/09, 5/20/09)
-      !-------------------------------------------------------------------   
-! CDH 8/7/2009, 10/27/2009. All temperature dependence for Hg handled below
-      IF ( TK < 258d0 .AND. (.NOT. ITS_A_MERCURY_SIM() ) ) THEN
-         RAINFRAC = 0d0
-         RETURN
-      ENDIF
-#endif
-
-      !------------------------------
-      ! 210Pb and 7Be (aerosol)
-      !------------------------------
-      IF ( N == IDTPb .or. N == IDTBe7 ) THEN 
-         RAINFRAC = GET_RAINFRAC( K_RAIN, F, DT )
-         
-      !------------------------------
-      ! HNO3 (aerosol)
-      !------------------------------
-      ELSE IF ( N == IDTHNO3 ) THEN
-         RAINFRAC = GET_RAINFRAC( K_RAIN, F, DT )
-
       !------------------------------
       ! H2O2 (liquid & ice phases)
       !------------------------------
-      ELSE IF ( N == IDTH2O2 ) THEN
+      IF ( N == IDTH2O2 ) THEN
 
          ! Compute ice to gas ratio for H2O2 by co-condensation
          ! (Eq. 9, Jacob et al, 2000)
@@ -2727,7 +2938,6 @@
             
          ELSE
             K = 0d0
-               
          ENDIF
   
          ! Compute RAINFRAC, the fraction of rained-out CH3OOH
@@ -2766,54 +2976,111 @@
 
       !!!!! end FP additional tracers for ISOP (6/2009)
 
-      !------------------------------
-      ! SO2
-      !------------------------------
-      ELSE IF ( N == IDTSO2 ) THEN
+      !----------------------------------
+      ! HOBr (liquid phase only), jpp
+      !----------------------------------
+      ELSE IF ( N == IDTHOBr ) THEN
 
-         !==============================================================
-         ! NOTE: SO2 and H2O2 are in [v/v] and here RAINFRAC contains 
-         ! the amount of SO2 lost due to rainout normalized by the
-         ! total SO2 -- so that in WETDEP routine mulitiplying SO2 in 
-         ! [kg] will produce correct amount.  Need to verify this. 
-         ! (rjp, 01/16/02)
-         !==============================================================
 
-         ! Treat SO2 as an aerosol
-         RAINFRAC = GET_RAINFRAC( K_RAIN, F, DT )
+         ! Compute liquid to gas ratio for HOBr:
+         ! 1. first argument is the adjusted Henry's law coefficient,
+         ! which I've calculated for pH = 4.5
+         ! (jpp, 4/27/09)
+         ! 
+         ! McGrath and Rowland, 1994 estimate - 50 kJ/mol heat of solution
+         ! H0 comes from Freznel et al. [1998]
+         CALL COMPUTE_L2G( 6.1d3, -6014.d0,
+     &                     TK,    CLDLIQ(I,J,L), L2G )      
 
-         ! Update SO2 and H2O2
-         IF ( SO2s(I,J,L) > EPSILON ) THEN 
-         
-            ! Limit RAINFRAC 
-            SO2LOSS      = MIN( SO2s(I,J,L), H2O2s(I,J,L) )
-            RAINFRAC     = SO2LOSS * RAINFRAC / SO2s(I,J,L)
-            RAINFRAC     = MAX( RAINFRAC, 0d0 )
-         
-            ! Update saved H2O2 concentration
-            H2O2s(I,J,L) = H2O2s(I,J,L) - ( SO2s(I,J,L) * RAINFRAC )
-            H2O2s(I,J,L) = MAX( H2O2s(I,J,L), EPSILON )
-         
+         ! Fraction of HOBr in liquid phase
+         ! (Eqs. 4, 5, 6, Jacob et al, 2000)
+         C_TOT = 1d0 + L2G
+         F_L   = L2G / C_TOT
+         F_I   = I2G / C_TOT
+
+         ! Compute the rate constant K.
+         IF ( TK >= 268d0 ) THEN
+            K = K_RAIN * F_L 
+         ELSE IF ( TK > 248d0  .and. TK < 268d0 ) THEN
+
+            K = K_RAIN * (0.d0 * F_L)
+
          ELSE
-            RAINFRAC = 0D0
-         
+            K = 0.d0
          ENDIF
-         
-         ! Update saved SO2 concentration
-         SO2s(I,J,L) = SO2s(I,J,L) * ( 1.D0 - RAINFRAC )
-         SO2s(I,J,L) = MAX( SO2s(I,J,L), EPSILON )         
 
-      !----------------------------
-      ! SO4 and SO4aq (aerosol)
-      !----------------------------
-      ELSE IF ( N == IDTSO4 .or. N == IDTSO4s .or. N == IDTSO4aq ) THEN
-         RAINFRAC = GET_RAINFRAC( K_RAIN, F, DT )
+         ! Compute RAINFRAC, the fraction of rained-out HOBr
+         ! (Eq. 10, Jacob et al, 2000)
+         RAINFRAC = GET_RAINFRAC( K, F, DT ) 
+
+      !-----------------------------------
+      ! HBr (liquid phase only), jpp
+      !-----------------------------------
+      ELSE IF ( N == IDTHBr ) THEN
+
+         ! Compute liquid to gas ratio for HBr:
+         ! 1. first argument is the adjusted Henry's law coefficient,
+         ! which I've calculated for pH = 4.5
+         !
+         ! H0 and heat of solution are estimated by Yang et al. [2005]
+         CALL COMPUTE_L2G( 7.1d13,   -10200.0d0,
+     &                     T(I,J,L), CLDLIQ(I,J,L), L2G )
+
+         ! Fraction of HBr in liquid phase
+         ! (Eqs. 4, 5, 6, Jacob et al, 2000)
+         C_TOT = 1d0 + L2G
+         F_L   = L2G / C_TOT
+
+         ! Compute the rate constant K.
+         IF ( TK >= 268d0 ) THEN
+            K = K_RAIN * F_L 
+         ELSE IF ( TK > 248d0  .and. TK < 268d0 ) THEN
+
+            ! HBr has a large effective Henry's
+            ! Law Constant, similar to HCl and HNO3, which have
+            ! retention fractions (RFs) of 1.
+            ! RFs have not been measured for HBr; 
+            ! however, Stuart and Jacobson [2003]
+            ! suggest that species with large
+            ! Hstar's should have RF's of about 1.
+            ! (jpp, 6/13/2011)
+            K = K_RAIN * (1.d0 * F_L) ! jpp, testing riming efficiency
+
+         ELSE
+            K = 0.d0
+         ENDIF
+  
+         ! Compute RAINFRAC, the fraction of rained-out HBr
+         ! (Eq. 10, Jacob et al, 2000)
+         RAINFRAC = GET_RAINFRAC( K, F, DT ) 
 
       !------------------------------
-      ! MSA (aerosol)
+      ! Br2 (liquid phase only), jpp
       !------------------------------
-      ELSE IF ( N == IDTMSA ) THEN
-         RAINFRAC = GET_RAINFRAC( K_RAIN, F, DT )
+      ELSE IF ( N == IDTBr2 ) THEN
+
+         ! 1. H0 and the heat of solution are taken from Dean [1992].
+         ! 2. Dissociation constant for hydrolysis is small (4e-9) and taken
+         !    from Beckwith et al. [1996]
+         CALL COMPUTE_L2G( 0.76d0,   -3.72d3,
+     &                     T(I,J,L), CLDLIQ(I,J,L), L2G )
+
+         ! Fraction of HBr in liquid phase
+         C_TOT = 1d0 + L2G
+         F_L   = L2G / C_TOT
+
+         ! Compute the rate constant K.
+         IF ( TK >= 268d0 ) THEN
+            K = K_RAIN * F_L
+         ELSE IF ( TK > 248d0  .and. TK < 268d0 ) THEN
+            K = K_RAIN * (0.d0 * F_L)
+         ELSE
+            K = 0d0   
+         ENDIF
+  
+         ! Compute RAINFRAC, the fraction of rained-out HBr
+         ! (Eq. 10, Jacob et al, 2000)
+         RAINFRAC = GET_RAINFRAC( K, F, DT ) 
 
       !------------------------------
       ! NH3 (liquid & ice phases)
@@ -2858,53 +3125,6 @@
          ! Compute RAINFRAC, the fraction of rained-out NH3
          ! (Eq. 10, Jacob et al, 2000)
          RAINFRAC = GET_RAINFRAC( K, F, DT )
-
-      !------------------------------
-      ! NH4 and NH4aq (aerosol)
-      !------------------------------
-      ELSE IF ( N == IDTNH4 .or. N == IDTNH4aq ) THEN
-
-         ! NOTE: NH4aq may have a henry's law constant; 
-         !       Carine will investigate (cas, bmy, 12/20/04)
-         RAINFRAC = GET_RAINFRAC( K_RAIN, F, DT )
-
-      !------------------------------
-      ! NIT/AS/AHS/LET (aerosol)
-      !------------------------------
-      ELSE IF ( N == IDTNIT .or. N == IDTNITs .or.
-     &          N == IDTAS  .or. N == IDTAHS  .or. 
-     &          N == IDTLET ) THEN
-         RAINFRAC = GET_RAINFRAC( K_RAIN, F, DT )
-
-      !------------------------------
-      ! BC HYDROPHILIC (aerosol) or
-      ! OC HYDROPHILIC (aerosol)
-      !------------------------------
-      ELSE IF ( N == IDTBCPI .or. N == IDTOCPI) THEN
-         RAINFRAC = GET_RAINFRAC( K_RAIN, F, DT )
-
-      !-------------------------------
-      ! BC HYDROPHOBIC (aerosol) or
-      ! OC HYDROPHOBIC (aerosol)
-      !-------------------------------
-      ELSE IF ( N == IDTBCPO .or. N == IDTOCPO ) THEN
-
-         ! No rainout 
-         RAINFRAC = 0.0D0                  
-
-      !-------------------------------
-      ! DUST all size bins (aerosol)
-      !-------------------------------
-      ELSE IF ( N == IDTDST1 .or. N == IDTDST2 .or.
-     &          N == IDTDST3 .or. N == IDTDST4 ) THEN
-         RAINFRAC = GET_RAINFRAC( K_RAIN, F, DT )
-
-      !------------------------------
-      ! Accum  seasalt (aerosol) or
-      ! Coarse seasalt (aerosol)
-      !------------------------------
-      ELSE IF ( N == IDTSALA .or. N == IDTSALC ) THEN
-         RAINFRAC = GET_RAINFRAC( K_RAIN, F, DT )      
 
       !------------------------------
       ! ALPH (liquid phase only)
@@ -3039,72 +3259,208 @@
          ! Compute RAINFRAC, the fraction of rained-out SOG{1,2,3}
          ! (Eq. 10, Jacob et al, 2000)
          RAINFRAC = GET_RAINFRAC( K, F, DT )
-
-      !--------------------------------------
-      ! SOA[1,2,3,4,5] (aerosol)
-      ! Scavenging efficiency for SOA is 0.8
-      !--------------------------------------
-      ELSE IF ( N == IDTSOA1 .or. N == IDTSOA2  .or. 
-     &          N == IDTSOA3 .or. N == IDTSOA4  .or. 
-     &          N == IDTSOA5                    ) THEN
-         RAINFRAC = GET_RAINFRAC( K_RAIN, F, DT )
-         RAINFRAC = RAINFRAC * 0.8d0
-
-      !--------------------------------------
-      ! SOAG and SOAM (aerosol)
-      ! Scavenging efficiency for SOA is 0.8
-      !--------------------------------------
-      ELSE IF ( N == IDTSOAG .OR. N == IDTSOAM ) THEN
-         RAINFRAC = GET_RAINFRAC( K_RAIN, F, DT )
-         RAINFRAC = RAINFRAC * 0.8d0
-
-      !------------------------------
-      ! Hg2 (liquid phase only)
-      !------------------------------
-      ELSE IF ( IS_Hg2( N ) ) THEN 
-
-         ! Compute liquid to gas ratio for HgCl2, using
-         ! the appropriate parameters for Henry's law
-         ! (Refs: INSERT HERE)
-         !
-         ! hma, 10-Jan-2011, Henry's law constant for 
-         ! HgCl2 = 1.4d+6 M/atm for HgCl2 (Lindqvist and Rodhe, 1985)
-         CALL COMPUTE_L2G( 1.4d+6, -8.4d3, 
-     &                     T(I,J,L), CLDLIQ(I,J,L), L2G )
-         
-         ! Fraction of HgCl2 in liquid phase
-         ! Assume no HgCl2 in the ice phase
-         C_TOT = 1d0 + L2G
-         F_L   = L2G / C_TOT
-
-         ! Compute the rate constant K.  Assume the retention factor  
-         ! for liquid HgCl2 is 0 for T < 268 K, and 
-         ! 1.0 for T > 268 K. (Eq. 1, Jacob et al, 2000)
-         IF ( TK >= 248d0 ) THEN
-            K = K_RAIN * F_L  
-         ELSE
-            K = 0d0               
-         ENDIF
-  
-         ! Compute RAINFRAC, the fraction of rained-out HgCl2
-         ! (Eq. 10, Jacob et al, 2000)
-         RAINFRAC = GET_RAINFRAC( K, F, DT ) 
-
-      !------------------------------
-      ! HgP (treat like aerosol)
-      !------------------------------
-      ELSE IF ( IS_HgP( N ) ) THEN
-         RAINFRAC = GET_RAINFRAC( K_RAIN, F, DT )
-
-         ! CDH 9/28/2009
-!         IF ( TK < 248d0 ) RAINFRAC = 0d0
-
-      !------------------------------
-      ! ERROR: insoluble tracer!
-      !------------------------------
+        
       ELSE
-         CALL ERROR_STOP( 'Invalid tracer!', 'RAINOUT (wetscav_mod.f)' )
 
+#if   defined( GEOS_5 ) || defined( MERRA ) || defined( GEOS_57 )
+         !------------------------------------------------------------------
+         ! Suppress scavenging at cold temperatures for most aerosol simulation
+         ! Allow scavenging at cold temperatures for BCPO,DUST and HNO3 (qq,
+         ! 10/14/2011)
+         ! Allow scavenging at cold temperatures for Hg simulation.
+         ! (cdh, 4/16/09, 5/20/09)
+         !------------------------------------------------------------------- 
+! CDH 8/7/2009, 10/27/2009. All temperature dependence for Hg handled below
+         IF ( TK < 258d0 .AND. (.NOT. ITS_A_MERCURY_SIM() ) ) THEN
+            ! allow Dust and BCPO to be IN (qq,10/11/2011)
+            IF ( N == IDTBCPO .or. N == IDTDST1 .or. N == IDTDST2 .or.
+     &           N == IDTDST3 .or. N == IDTDST4 .or.N == IDTHNO3) THEN
+               RAINFRAC = GET_RAINFRAC( K_RAIN, F, DT )
+            ELSE 
+               RAINFRAC = 0d0
+            ENDIF
+            RETURN
+         ENDIF
+#endif
+
+         !------------------------------
+         ! 210Pb and 7Be (aerosol)
+         !------------------------------
+         IF ( N == IDTPb .or. N == IDTBe7 ) THEN 
+            RAINFRAC = GET_RAINFRAC( K_RAIN, F, DT )
+           
+         !------------------------------
+         ! HNO3 (aerosol)
+         !------------------------------
+         ELSE IF ( N == IDTHNO3 ) THEN
+            RAINFRAC = GET_RAINFRAC( K_RAIN, F, DT )
+  
+         !------------------------------
+         ! SO2
+         !------------------------------
+         ELSE IF ( N == IDTSO2 ) THEN
+  
+            !==============================================================
+            ! NOTE: SO2 and H2O2 are in [v/v] and here RAINFRAC contains 
+            ! the amount of SO2 lost due to rainout normalized by the
+            ! total SO2 -- so that in WETDEP routine mulitiplying SO2 in 
+            ! [kg] will produce correct amount.  Need to verify this. 
+            ! (rjp, 01/16/02)
+            !==============================================================
+  
+            ! Treat SO2 as an aerosol
+            RAINFRAC = GET_RAINFRAC( K_RAIN, F, DT )
+  
+            ! Update SO2 and H2O2
+            IF ( SO2s(I,J,L) > EPSILON ) THEN 
+            
+               ! Limit RAINFRAC 
+               SO2LOSS      = MIN( SO2s(I,J,L), H2O2s(I,J,L) )
+               RAINFRAC     = SO2LOSS * RAINFRAC / SO2s(I,J,L)
+               RAINFRAC     = MAX( RAINFRAC, 0d0 )
+         
+               ! Update saved H2O2 concentration
+               H2O2s(I,J,L) = H2O2s(I,J,L) - ( SO2s(I,J,L) * RAINFRAC )
+               H2O2s(I,J,L) = MAX( H2O2s(I,J,L), EPSILON )
+           
+            ELSE
+               RAINFRAC = 0D0
+           
+            ENDIF
+           
+            ! Update saved SO2 concentration
+            SO2s(I,J,L) = SO2s(I,J,L) * ( 1.D0 - RAINFRAC )
+            SO2s(I,J,L) = MAX( SO2s(I,J,L), EPSILON )         
+  
+         !----------------------------
+         ! SO4 and SO4aq (aerosol)
+         !----------------------------
+         ELSE IF ( N == IDTSO4 .or. N == IDTSO4s .or.
+     &             N == IDTSO4aq )THEN
+            RAINFRAC = GET_RAINFRAC( K_RAIN, F, DT )
+  
+         !------------------------------
+         ! MSA (aerosol)
+         !------------------------------
+         ELSE IF ( N == IDTMSA ) THEN
+            RAINFRAC = GET_RAINFRAC( K_RAIN, F, DT )
+  
+  
+         !------------------------------
+         ! NH4 and NH4aq (aerosol)
+         !------------------------------
+         ELSE IF ( N == IDTNH4 .or. N == IDTNH4aq ) THEN
+  
+            ! NOTE: NH4aq may have a henry's law constant; 
+            !       Carine will investigate (cas, bmy, 12/20/04)
+            RAINFRAC = GET_RAINFRAC( K_RAIN, F, DT )
+  
+         !------------------------------
+         ! NIT/AS/AHS/LET (aerosol)
+         !------------------------------
+         ELSE IF ( N == IDTNIT .or. N == IDTNITs .or.
+     &             N == IDTAS  .or. N == IDTAHS  .or. 
+     &             N == IDTLET ) THEN
+            RAINFRAC = GET_RAINFRAC( K_RAIN, F, DT )
+
+         !------------------------------
+         ! BC HYDROPHILIC (aerosol) or
+         ! OC HYDROPHILIC (aerosol)
+         !------------------------------
+         ELSE IF ( N == IDTBCPI .or. N == IDTOCPI) THEN
+            RAINFRAC = GET_RAINFRAC( K_RAIN, F, DT )
+  
+         !-------------------------------
+         ! BC HYDROPHOBIC (aerosol) or
+         ! OC HYDROPHOBIC (aerosol)
+         !-------------------------------
+         ELSE IF ( N == IDTBCPO .or. N == IDTOCPO ) THEN
+  
+            ! No rainout 
+            RAINFRAC = 0.0D0                  
+  
+         !-------------------------------
+         ! DUST all size bins (aerosol)
+         !-------------------------------
+         ELSE IF ( N == IDTDST1 .or. N == IDTDST2 .or.
+     &             N == IDTDST3 .or. N == IDTDST4 ) THEN
+            RAINFRAC = GET_RAINFRAC( K_RAIN, F, DT )
+  
+         !------------------------------
+         ! Accum  seasalt (aerosol) or
+         ! Coarse seasalt (aerosol)
+         !------------------------------
+         ELSE IF ( N == IDTSALA .or. N == IDTSALC ) THEN
+            RAINFRAC = GET_RAINFRAC( K_RAIN, F, DT )      
+  
+  
+         !--------------------------------------
+         ! SOA[1,2,3,4,5] (aerosol)
+         ! Scavenging efficiency for SOA is 0.8
+         !--------------------------------------
+         ELSE IF ( N == IDTSOA1 .or. N == IDTSOA2  .or. 
+     &             N == IDTSOA3 .or. N == IDTSOA4  .or. 
+     &             N == IDTSOA5                    ) THEN
+            RAINFRAC = GET_RAINFRAC( K_RAIN, F, DT )
+            RAINFRAC = RAINFRAC * 0.8d0
+  
+         !--------------------------------------
+         ! SOAG and SOAM (aerosol)
+         ! Scavenging efficiency for SOA is 0.8
+         !--------------------------------------
+         ELSE IF ( N == IDTSOAG .OR. N == IDTSOAM ) THEN
+            RAINFRAC = GET_RAINFRAC( K_RAIN, F, DT )
+            RAINFRAC = RAINFRAC * 0.8d0
+  
+         !------------------------------
+         ! Hg2 (liquid phase only)
+         !------------------------------
+         ELSE IF ( IS_Hg2( N ) ) THEN 
+
+            ! Compute liquid to gas ratio for HgCl2, using
+            ! the appropriate parameters for Henry's law
+            ! (Refs: INSERT HERE)
+            !
+            ! hma, 10-Jan-2011, Henry's law constant for 
+            ! HgCl2 = 1.4d+6 M/atm for HgCl2 (Lindqvist and Rodhe, 1985)
+            CALL COMPUTE_L2G( 1.4d+6, -8.4d3, 
+     &                        T(I,J,L), CLDLIQ(I,J,L), L2G )
+         
+            ! Fraction of HgCl2 in liquid phase
+            ! Assume no HgCl2 in the ice phase
+            C_TOT = 1d0 + L2G
+            F_L   = L2G / C_TOT
+
+            ! Compute the rate constant K.  Assume the retention factor  
+            ! for liquid HgCl2 is 0 for T < 268 K, and 
+            ! 1.0 for T > 268 K. (Eq. 1, Jacob et al, 2000)
+            IF ( TK >= 248d0 ) THEN
+               K = K_RAIN * F_L  
+            ELSE
+               K = 0d0               
+            ENDIF
+  
+            ! Compute RAINFRAC, the fraction of rained-out HgCl2
+            ! (Eq. 10, Jacob et al, 2000)
+            RAINFRAC = GET_RAINFRAC( K, F, DT ) 
+
+         !------------------------------
+         ! HgP (treat like aerosol)
+         !------------------------------
+         ELSE IF ( IS_HgP( N ) ) THEN
+            RAINFRAC = GET_RAINFRAC( K_RAIN, F, DT )
+
+            ! CDH 9/28/2009
+!            IF ( TK < 248d0 ) RAINFRAC = 0d0
+
+         !------------------------------
+         ! ERROR: insoluble tracer!
+         !------------------------------
+         ELSE
+            CALL ERROR_STOP( 'Invalid tracer!',
+     &                       'RAINOUT (wetscav_mod.f)' )
+
+         ENDIF
       ENDIF
       
       END SUBROUTINE RAINOUT
@@ -3189,8 +3545,10 @@
       USE TRACERID_MOD, ONLY : IDTMOBA,  IDTPROPNN
       USE TRACERID_MOD, ONLY : IDTISOPN, IDTMMN
       USE TRACERID_MOD, ONLY : IDTIEPOX, IDTRIP, IDTMAP
+      ! jpp 4/27/09
+      USE TRACERID_MOD, ONLY : IDTHOBr,  IDTHBr,   IDTBr2
 
-      USE CMN_SIZE_MOD               ! Size parameters
+      USE CMN_SIZE_MOD                     ! Size parameters
 !
 ! !INPUT PARAMETERS: 
 !
@@ -3267,6 +3625,8 @@
 !                              washout is modeled as a kinetic vs equilibrium 
 !                              process.
 !  27 Sep 2011 - H. Amos     - remove LHg2_WETDasHNO3 logical, it's obsolete
+!  20 Jan 2012 - H. Amos     - WASHFRAC for aerosol is now either computed by
+!                              WASHFRAC_FINE_AEROSOL or WASHFRAC_COARSE_AEROSOL
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -3278,8 +3638,9 @@
       !=================================================================
       ! WASHOUT begins here!
       !
-      ! Call either WASHFRAC_AEROSOL or WASHFRAC_LIQ_GAS to compute the
-      ! fraction of tracer lost to washout according to Jacob et al 2000
+      ! Call either WASHFRAC_FINE_AEROSOL, WASHFRAC_COARSE_AEROSOL,
+      ! or WASHFRAC_LIQ_GAS to compute the fraction of tracer lost to 
+      ! washout according to Jacob et al 2000
       !=================================================================
 
       ! DZ is the height of the grid box in cm
@@ -3290,7 +3651,7 @@
       !------------------------------
       IF ( N == IDTPb .or. N == IDTBe7 ) THEN
          KIN      = .TRUE.
-         WASHFRAC = WASHFRAC_AEROSOL( DT, F, PP, TK )
+         WASHFRAC = WASHFRAC_FINE_AEROSOL( DT, F, PP, TK )
 
       !------------------------------
       ! HNO3 (aerosol)
@@ -3304,19 +3665,41 @@
       !------------------------------
       ELSE IF ( N == IDTH2O2 ) THEN
          KIN      = .FALSE.
-         CALL WASHFRAC_LIQ_GAS( 8.3d4, -7.4d3, PP, DT, 
-     &                                F,      DZ,    TK,
-     &                          WASHFRAC, KIN)
+         CALL WASHFRAC_LIQ_GAS( 8.3d4, -7.4d3, PP,       DT,  F,
+     &                          DZ,     TK,    WASHFRAC, KIN  )
 
       !------------------------------
       ! CH2O (liquid & gas phases)
       !------------------------------
       ELSE IF ( N == IDTCH2O ) THEN 
          KIN      = .FALSE.
-         CALL WASHFRAC_LIQ_GAS( 3.0d3, -7.2d3, PP, DT, 
-     &                                F,      DZ,    TK,
-     &                          WASHFRAC, KIN )
+         CALL WASHFRAC_LIQ_GAS( 3.0d3, -7.2d3, PP,       DT,  F,
+     &                          DZ,     TK,    WASHFRAC, KIN  )
 
+      !------------------------------
+      ! HOBr (liquid & gas phases) jpp
+      !------------------------------
+      ELSE IF ( N == IDTHOBr ) THEN 
+         KIN      = .FALSE.
+         ! McGrath and Rowland, 1994 says dH_sol for HOBr = 50 kJ/mol
+         CALL WASHFRAC_LIQ_GAS( 6.1d3, -6014.d0, PP,       DT,  F, 
+     &                          DZ,     TK,      WASHFRAC, KIN  )
+
+      !------------------------------
+      ! HBr (liquid & gas phases) jpp
+      !------------------------------
+      ELSE IF ( N == IDTHBr ) THEN 
+         KIN      = .FALSE.
+         CALL WASHFRAC_LIQ_GAS( 7.1d13, -10200.d0, PP,       DT,  F,
+     &                          DZ,     TK,        WASHFRAC, KIN  )
+
+      !------------------------------
+      ! Br2 (liquid & gas phases) jpp
+      !------------------------------
+      ELSE IF ( N == IDTBr2 ) THEN 
+         KIN      = .FALSE.
+         CALL WASHFRAC_LIQ_GAS( 0.76d0, -3.72d3, PP,       DT,  F,
+     &                          DZ,      TK,     WASHFRAC, KIN  ) 
 
       !------------------------------
       ! GLYX (liquid & gas phases)
@@ -3329,10 +3712,8 @@
          ! dependence for CH2O works well for glyoxal,
          !      so we use the same H298_R as CH2O
          KIN      = .FALSE.
-         CALL WASHFRAC_LIQ_GAS( 3.6d5, -7.2d3, PP, DT, 
-     &                                F,      DZ,    TK,
-     &                          WASHFRAC, KIN )
-
+         CALL WASHFRAC_LIQ_GAS( 3.6d5, -7.2d3, PP,       DT,  F, 
+     &                          DZ,     TK,    WASHFRAC, KIN  )
 
       !------------------------------
       ! MGLY (liquid & gas phases)
@@ -3343,9 +3724,8 @@
          ! from Betterton and Hoffman 1988): Kstar298 = 3.71d3 M/atm;  
          ! H298_R = -7.5d3 K
          KIN      = .FALSE.
-         CALL WASHFRAC_LIQ_GAS( 3.7d3, -7.5d3, PP, DT, 
-     &                                F,      DZ,    TK,
-     &                          WASHFRAC, KIN )
+         CALL WASHFRAC_LIQ_GAS( 3.7d3, -7.5d3, PP,       DT,  F, 
+     &                          DZ,     TK,    WASHFRAC, KIN  )
 
       !------------------------------
       ! GLYC (liquid & gas phases)
@@ -3356,54 +3736,48 @@
          ! from Betterton and Hoffman 1988): Kstar298 = 4.6d4 M/atm;  
          ! H298_R = -4.6d3 K
          KIN      = .FALSE.
-         CALL WASHFRAC_LIQ_GAS( 4.1d4, -4.6d3, PP, DT, 
-     &                                F,      DZ,    TK,
-     &                          WASHFRAC, KIN )
+         CALL WASHFRAC_LIQ_GAS( 4.1d4, -4.6d3, PP,       DT,  F,
+     &                          DZ,     TK,    WASHFRAC, KIN  )
 
       !------------------------------
       ! MP (liquid & gas phases)
       !------------------------------
       ELSE IF ( N == IDTMP ) THEN
          KIN      = .FALSE.
-         CALL WASHFRAC_LIQ_GAS( 3.1d2, -5.2d3, PP, DT, 
-     &                                F,      DZ,    TK,
-     &                          WASHFRAC, KIN )
+         CALL WASHFRAC_LIQ_GAS( 3.1d2, -5.2d3, PP,       DT,  F,
+     &                          DZ,     TK,    WASHFRAC, KIN  )
 
       !------------------------------
       ! MOBA (liquid phase only)
       !------------------------------
       ELSE IF ( N == IDTMOBA ) THEN       
          KIN      = .FALSE.
-         CALL WASHFRAC_LIQ_GAS( 2.6d4, -6.3d3, PP, DT, 
-     &                                F,      DZ,    TK,
-     &                          WASHFRAC, KIN )
+         CALL WASHFRAC_LIQ_GAS( 2.6d4, -6.3d3, PP,       DT,  F,
+     &                          DZ,     TK,    WASHFRAC, KIN  )
 
       !------------------------------
       ! ISOPN (liquid phase only)
       !------------------------------
       ELSE IF ( N == IDTISOPN ) THEN
          KIN      = .FALSE.
-         CALL WASHFRAC_LIQ_GAS(17d3, -9.2d3 , PP, DT, 
-     &                                F,      DZ,    TK,
-     &                          WASHFRAC, KIN )
+         CALL WASHFRAC_LIQ_GAS(17d3, -9.2d3 , PP,        DT,  F,
+     &                          DZ,     TK,    WASHFRAC, KIN  )
 
       !------------------------------
       ! MMN (liquid phase only)
       !------------------------------
       ELSE IF ( N == IDTMMN ) THEN
          KIN      = .FALSE.
-         CALL WASHFRAC_LIQ_GAS( 17d3, -9.2d3, PP, DT, 
-     &                                F,      DZ,    TK,
-     &                          WASHFRAC, KIN )
+         CALL WASHFRAC_LIQ_GAS( 17d3, -9.2d3, PP,        DT,  F,
+     &                          DZ,     TK,    WASHFRAC, KIN  )
 
       !------------------------------
       ! PROPNN (liquid phase only)
       !------------------------------
       ELSE IF ( N == IDTPROPNN ) THEN
          KIN      = .FALSE.
-         CALL WASHFRAC_LIQ_GAS( 1.0d3, 0.0d0, PP, DT, 
-     &                                F,      DZ,    TK,
-     &                          WASHFRAC, KIN )
+         CALL WASHFRAC_LIQ_GAS( 1.0d3, 0.0d0, PP,        DT,  F,
+     &                          DZ,     TK,    WASHFRAC, KIN  )
 
       !------------------------------
       ! RIP (liquid phase only)
@@ -3411,27 +3785,24 @@
       ELSE IF ( N == IDTRIP ) THEN
          !USE H2O2 
          KIN      = .FALSE.
-         CALL WASHFRAC_LIQ_GAS( 8.3d4, -7.4d3, PP, DT, 
-     &                                F,      DZ,    TK,
-     &                          WASHFRAC, KIN )
+         CALL WASHFRAC_LIQ_GAS( 8.3d4, -7.4d3, PP,       DT,  F,
+     &                          DZ,     TK,    WASHFRAC, KIN  )
 
       !------------------------------
       ! MAP   (liquid phase only)
       !------------------------------
       ELSE IF ( N == IDTMAP ) THEN
          KIN      = .FALSE.
-         CALL WASHFRAC_LIQ_GAS( 8.4d2, -5.3d3, PP, DT, 
-     &                                F,      DZ,    TK,
-     &                          WASHFRAC, KIN )
+         CALL WASHFRAC_LIQ_GAS( 8.4d2, -5.3d3, PP,       DT,  F,
+     &                          DZ,     TK,    WASHFRAC, KIN  )
 
       !------------------------------
       ! IEPOX (liquid phase only)
       !------------------------------
       ELSE IF ( N == IDTIEPOX ) THEN
          KIN      = .FALSE.
-         CALL WASHFRAC_LIQ_GAS( 8.3d4, -7.4d3, PP, DT, 
-     &                                F,      DZ,    TK,
-     &                          WASHFRAC, KIN )
+         CALL WASHFRAC_LIQ_GAS( 8.3d4, -7.4d3, PP,       DT,  F,
+     &                          DZ,     TK,    WASHFRAC, KIN  )
 
       !------------------------------
       ! SO2 (aerosol treatment)
@@ -3443,7 +3814,7 @@
          ! wet scavenging.  When evaporation occurs, it returns to SO4.
          !==============================================================
          KIN      = .TRUE.
-         WASHFRAC = WASHFRAC_AEROSOL( DT, F, PP, TK )
+         WASHFRAC = WASHFRAC_FINE_AEROSOL( DT, F, PP, TK )
 
          !==============================================================
          ! Use the wet-scavenging following [Chin et al, 1996] such 
@@ -3476,30 +3847,29 @@
       !------------------------------
       ELSE IF ( N == IDTSO4 .or. N == IDTSO4s .or. N == IDTSO4aq ) THEN
          KIN      = .TRUE.
-         WASHFRAC = WASHFRAC_AEROSOL( DT, F, PP, TK )
+         WASHFRAC = WASHFRAC_FINE_AEROSOL( DT, F, PP, TK )
 
       !------------------------------
       ! MSA (aerosol)
       !------------------------------
       ELSE IF ( N == IDTMSA ) THEN
          KIN      = .TRUE.
-         WASHFRAC = WASHFRAC_AEROSOL( DT, F, PP, TK )
+         WASHFRAC = WASHFRAC_FINE_AEROSOL( DT, F, PP, TK )
 
       !------------------------------
       ! NH3 (liquid & gas phases)
       !------------------------------
       ELSE IF ( N == IDTNH3 ) THEN
          KIN      = .FALSE.
-         CALL WASHFRAC_LIQ_GAS( 3.3d6, -4.1d3, PP, DT, 
-     &                                F,      DZ,    TK,
-     &                          WASHFRAC, KIN )
+         CALL WASHFRAC_LIQ_GAS( 3.3d6, -4.1d3, PP,       DT,  F, 
+     &                          DZ,     TK,    WASHFRAC, KIN  )
 
       !------------------------------
       ! NH4 and NH4aq (aerosol)
       !------------------------------
       ELSE IF ( N == IDTNH4 .or. N == IDTNH4aq ) THEN
          KIN      = .TRUE.
-         WASHFRAC = WASHFRAC_AEROSOL( DT, F, PP, TK )
+         WASHFRAC = WASHFRAC_FINE_AEROSOL( DT, F, PP, TK )
 
       !------------------------------
       ! NIT/AS/AHS/LET (aerosol)
@@ -3508,7 +3878,7 @@
      &          N == IDTAS   .or. N == IDTAHS  .or. 
      &          N == IDTLET ) THEN
          KIN      = .TRUE.
-         WASHFRAC = WASHFRAC_AEROSOL( DT, F, PP, TK )
+         WASHFRAC = WASHFRAC_FINE_AEROSOL( DT, F, PP, TK )
 
       !------------------------------
       ! BC HYDROPHILIC (aerosol) or
@@ -3519,50 +3889,55 @@
       ELSE IF ( N == IDTBCPI .or. N == IDTOCPI  .or.
      &          N == IDTBCPO .or. N == IDTOCPO ) THEN
          KIN      = .TRUE.
-         WASHFRAC = WASHFRAC_AEROSOL( DT, F, PP, TK )
+         WASHFRAC = WASHFRAC_FINE_AEROSOL( DT, F, PP, TK )
 
       !------------------------------
       ! DUST all size bins (aerosol)
       !------------------------------
       ELSE IF ( N == IDTDST1 .or. N == IDTDST2  .or.
-     &          N == IDTDST3 .or. N == IDTDST4 ) THEN
+     &          N == IDTDST3  ) THEN
          KIN      = .TRUE.
-         WASHFRAC = WASHFRAC_AEROSOL( DT, F, PP, TK )
+         WASHFRAC = WASHFRAC_FINE_AEROSOL( DT, F, PP, TK )
+      !!coarse mode aerosols (qq,10/11/2011)
+      ELSE IF ( N == IDTDST4 ) THEN
+         KIN      = .TRUE.
+         WASHFRAC = WASHFRAC_COARSE_AEROSOL( DT, F, PP, TK)
 
       !------------------------------
       ! Accum  seasalt (aerosol) or
       ! Coarse seasalt (aerosol)
       !------------------------------
-      ELSE IF ( N == IDTSALA .or. N == IDTSALC ) THEN
+      ELSE IF ( N == IDTSALA  ) THEN
          KIN      = .TRUE.
-         WASHFRAC = WASHFRAC_AEROSOL( DT, F, PP, TK )
-
+         WASHFRAC = WASHFRAC_FINE_AEROSOL( DT, F, PP, TK )
+      !!coarse mode aerosols (qq,10/11/2011)
+      ELSE IF ( N == IDTSALC ) THEN
+         KIN      = .TRUE.
+         WASHFRAC = WASHFRAC_COARSE_AEROSOL( DT, F, PP, TK)
+ 
       !------------------------------
       ! ALPH (liquid & gas phases)
       !------------------------------
       ELSE IF ( N == IDTALPH ) THEN
          KIN      = .FALSE.
-         CALL WASHFRAC_LIQ_GAS( 0.023d0, 0.d0, PP, DT, 
-     &                                F,       DZ,   TK,
-     &                          WASHFRAC, KIN )
+         CALL WASHFRAC_LIQ_GAS( 0.023d0, 0.d0, PP,       DT,  F,  
+     &                          DZ,      TK,   WASHFRAC, KIN  )
 
       !------------------------------
       ! LIMO (liquid & gas phases)
       !------------------------------
       ELSE IF ( N == IDTLIMO ) THEN
          KIN      = .FALSE.
-         CALL WASHFRAC_LIQ_GAS( 0.07d0, 0.d0, PP, DT, 
-     &                                F,      DZ,   TK,
-     &                          WASHFRAC, KIN )
+         CALL WASHFRAC_LIQ_GAS( 0.07d0, 0.d0, PP,       DT,  F,  
+     &                          DZ,     TK,   WASHFRAC, KIN  )
 
       !------------------------------
       ! ALCO (liquid & gas phases)
       !------------------------------
       ELSE IF ( N == IDTALCO ) THEN
          KIN      = .FALSE.
-         CALL WASHFRAC_LIQ_GAS( 54.d0, 0.d0, PP, DT, 
-     &                                F,     DZ,   TK,
-     &                          WASHFRAC, KIN )
+         CALL WASHFRAC_LIQ_GAS( 54.d0,  0.d0, PP,       DT,  F,  
+     &                          DZ,     TK,   WASHFRAC, KIN  )
 
       !---------------------------------
       ! SOG[1,2,3,4] (liq & gas phases)
@@ -3571,9 +3946,8 @@
      &          N == IDTSOG3 .or. N == IDTSOG4  .or.  
      &          N == IDTSOG5                    ) THEN   
          KIN      = .FALSE.
-         CALL WASHFRAC_LIQ_GAS( 1.0d5, -6.039d3, PP, DT, 
-     &                                F,      DZ,      TK,
-     &                          WASHFRAC, KIN )
+         CALL WASHFRAC_LIQ_GAS( 1.0d5, -6.039d3, PP,       DT,  F,  
+     &                          DZ,     TK,      WASHFRAC, KIN  )
 
       !------------------------------
       ! SOA[1,2,3,4,5] (aerosol)
@@ -3582,36 +3956,33 @@
      &          N == IDTSOA3 .or. N == IDTSOA4  .or.  
      &          N == IDTSOA5                    ) THEN
          KIN      = .TRUE.
-         WASHFRAC = WASHFRAC_AEROSOL( DT, F, PP, TK )
+         WASHFRAC = WASHFRAC_FINE_AEROSOL( DT, F, PP, TK )
 
       !------------------------------
       ! SOAG and SOAM (aerosol)
       !------------------------------
       ELSE IF ( N == IDTSOAG .or. N == IDTSOAM ) THEN
          KIN      = .TRUE.
-         WASHFRAC = WASHFRAC_AEROSOL( DT, F, PP, TK )
+         WASHFRAC = WASHFRAC_FINE_AEROSOL( DT, F, PP, TK )
 
       !------------------------------
       ! Hg2 (liquid & gas phases)
       !------------------------------
       ELSE IF ( IS_Hg2( N ) ) THEN
 
-
          ! Assume Hg2 is in gas phase and equilibrates with precip
          ! according to Henry's law
          ! HgCl2: 1.4d+6 M/atm (Ref: Lindqvist and Rhode, 1985) 
          KIN      = .FALSE.
-         CALL WASHFRAC_LIQ_GAS( 1.4d+6  , -8.4d3, PP, DT , 
-     &                          F       , DZ    , TK,
-     &                          WASHFRAC, KIN             )
-
+         CALL WASHFRAC_LIQ_GAS( 1.4d+6, -8.4d3, PP,       DT,  F,
+     &                          DZ,      TK,    WASHFRAC, KIN  )
       
       !------------------------------
       ! HgP (treat like aerosol) 
       !------------------------------
       ELSE IF ( IS_HgP( N ) ) THEN 
          KIN      = .TRUE.
-         WASHFRAC = WASHFRAC_AEROSOL( DT, F, PP, TK )
+         WASHFRAC = WASHFRAC_FINE_AEROSOL( DT, F, PP, TK )
 
       !------------------------------
       ! ERROR: Insoluble tracer
@@ -3628,20 +3999,19 @@
 !------------------------------------------------------------------------------
 !BOP
 !
-! !IROUTINE: washfrac_aerosol
+! !IROUTINE: washfrac_fine_aerosol
 !
-! !DESCRIPTION: Function WASHFRAC\_AEROSOL returns the fraction of soluble 
-!  aerosol tracer lost to washout.
+! !DESCRIPTION: Function WASHFRAC\_FINE\_AEROSOL returns the fraction of
+!  soluble aerosol tracer lost to washout.
 !\\
 !\\
 ! !INTERFACE:
 !
-      FUNCTION WASHFRAC_AEROSOL( DT, F, PP, TK ) 
+      FUNCTION WASHFRAC_FINE_AEROSOL( DT, F, PP, TK ) 
      &         RESULT( WASHFRAC )
 !
 ! !USES:
 !
-      USE TRACER_MOD, ONLY : ITS_A_MERCURY_SIM
 !
 ! !INPUT PARAMETERS: 
 !
@@ -3662,63 +4032,109 @@
 !  (1 ) WASHFRAC_AEROSOL used to be an internal function to subroutine WASHOUT.
 !        This caused NaN's in the parallel loop on Altix, so we moved it to
 !        the module and now pass Iall arguments explicitly (bmy, 7/20/04)
+!  16 Sep 2010 - R. Yantosca - Added ProTeX headers
 !  21 Jan 2011 - J. Fisher & Q. Wang - Update to account for time-dependent
 !        shift in aerosol size distribution that slows washout as a rain
 !        event proceeds (see e.g. Feng et al., 2007, 2009). 
-!  16 Aug 2011 - H Amos - Remove K_WASH from input list, make a defined 
-!                         parameter.
-!
-!  16 Sep 2010 - R. Yantosca - Added ProTeX headers
-!
+!  16 Aug 2011 - H Amos      - Remove K_WASH from input list, make a defined 
+!                              parameter.
+!  20 Jan 2012 - H Amos      - rename WASHFRAC_FINE_AEROSOL to distinguish 
+!                              this function from WASHFRAC_COARSE_AEROSOL
 !EOP
 !------------------------------------------------------------------------------
 !BOC
 !
 ! !DEFINED PARAMETER:
 !
-      ! First-order washout rate [1/cm]
-!      REAL*8,PARAMETER  :: K_WASH = 1d0      ! standard value
-      REAL*8, PARAMETER :: K_WASH = 1.06d-3  ! for Feng 2007, 2009 update
-
+      ! Washout rate constant for aerosols: aP^b (p: mm h^-1)
+      ! K_WASH for aerosols in accumulation mode (qq,10/11/2011)
+      REAL*8, PARAMETER :: K_WASH = 1.06d-3
 
       !=================================================================
-      ! WASHFRAC_AEROSOL begins here!
+      ! WASHFRAC_FINE_AEROSOL begins here!
       !=================================================================
 
-      !--------------------------------------------------------  
-      ! Old, standard fomulation. Must use K_WASH = 1d0 and 
-      ! change CLDLIQ, CLDICE values in INIT_WETSCAV.
-      ! Prior to 1/21/11: 
-      !
-      !! Washout only happens at or above 268 K
-      !! Now allow washout of Hg aerosols (cdh, 4/16/09)
-      !IF ( ( TK >= 268d0 ) .OR. ITS_A_MERCURY_SIM() ) THEN
-      !   WASHFRAC = F * ( 1d0 - EXP( -K_WASH * ( PP / F ) * DT ) )
-      !ELSE
-      !   WASHFRAC = 0d0
-      !ENDIF
-      !--------------------------------------------------------
-
-      ! Formulation from Feng 2007 with rain coefficients
-      ! from Feng 2007 and snow coefficients from Feng 2009.
-      ! Formula is S=aR^b, with R the precipitation rate in mm/hr
-      ! [Ref: Q. Wang et al, 2011 - submitted to ACP]
-      IF ( TK >= 268d0 ) THEN
-         WASHFRAC = F *(1d0 - EXP( -K_WASH * ( PP / F*3.6d4 )**0.61d0
-     &                             * DT / 3.6d3 ))
+      ! Washout only happens at or above 268 K
+      IF ( ( TK >= 268d0 ) ) THEN
+         WASHFRAC = F *(1d0 - EXP( -K_WASH * 
+     &                         (PP / F*3.6d4 )**0.61d0 * DT / 3.6d3 ))
       ELSE
          WASHFRAC = F *(1d0 - EXP( -2.6d1*K_WASH *
-     &                          (PP / F*3.6d4)**0.96d0 * DT / 3.6d3 ))
+     &                         (PP / F*3.6d4 )**0.96d0 * DT / 3.6d3 ))
+
       ENDIF
 
-      END FUNCTION WASHFRAC_AEROSOL
+      END FUNCTION WASHFRAC_FINE_AEROSOL
 !EOC
 !------------------------------------------------------------------------------
 !          Harvard University Atmospheric Chemistry Modeling Group            !
 !------------------------------------------------------------------------------
 !BOP
 !
-! !IROUTINE: washfrac_aerosol
+! !IROUTINE: washfrac_coarse_aerosol
+!
+! !DESCRIPTION: Function WASHFRAC\_COARSE\_AEROSOL returns the fraction of soluble 
+!  aerosol tracer lost to washout.
+!\\
+!\\
+! !INTERFACE:
+!
+      FUNCTION WASHFRAC_COARSE_AEROSOL( DT, F, PP, TK ) 
+     &         RESULT( WASHFRAC )
+!
+! !USES:
+!
+!
+! !INPUT PARAMETERS: 
+!
+      REAL*8, INTENT(IN) :: DT         ! Timestep of washout event [s]
+      REAL*8, INTENT(IN) :: F          ! Fraction of grid box that is
+                                       !  precipitating [unitless]
+      REAL*8, INTENT(IN) :: PP         ! Precip rate thru bottom of grid 
+                                       !  box (I,J,L)  [cm3 H2O/cm2 air/s]
+      REAL*8, INTENT(IN) :: TK         ! Temperature in grid box [K]
+!
+! !RETURN VALUE:
+!
+      REAL*8             :: WASHFRAC   ! Fraction of soluble tracer 
+                                       !  lost to washout
+! 
+! !REVISION HISTORY: 
+!  08 Nov 2002 - R. Yantosca - Initial version
+!  (1 ) WASHFRAC_AEROSOL used to be an internal function to subroutine WASHOUT.
+!        This caused NaN's in the parallel loop on Altix, so we moved it to
+!        the module and now pass Iall arguments explicitly (bmy, 7/20/04)
+!  16 Sep 2010 - R. Yantosca - Added ProTeX headers
+!  16 Aug 2011 - H Amos      - Remove K_WASH from input list, make a defined 
+!                              parameter.
+!  20 Jan 2012 - H Amos      - WASHFRAC_COARSE_AEROSOL created to handle
+!                              SALC and DST4
+!
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+!
+      !=================================================================
+      ! WASHFRAC_FINE_AEROSOL begins here!
+      !=================================================================
+
+      ! Washout only happens at or above 268 K
+      IF ( TK >= 268d0 ) THEN
+           WASHFRAC = F *(1d0 - EXP( -0.92d0 * ( PP / F*3.6d4 )**0.79d0 
+     &                             * DT / 3.6d3 ))
+      ELSE
+           WASHFRAC = F *(1d0 - EXP( -1.57d0 *
+     &                          (PP / F*3.6d4)**0.96d0 * DT / 3.6d3 ))
+      ENDIF   
+
+      END FUNCTION WASHFRAC_COARSE_AEROSOL
+!EOC
+!------------------------------------------------------------------------------
+!          Harvard University Atmospheric Chemistry Modeling Group            !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: washfrac_hno3
 !
 ! !DESCRIPTION: Function WASHFRAC\_HNO3 returns the fraction of HNO3 
 !               tracer lost to washout.
@@ -3753,7 +4169,7 @@
 !                        2009) should only be applied to aerosol species. It
 !                        was a coincidence before that the original washout
 !                        coefficients for aerosols and HNO3 were the same.
-!   16 Aug 2011, H Amos: Remove K_WASH from input list, now a defined parameter 
+!   16 Aug 2011, H Amos: Remove K_WASH from input list, now a defined parameter
 !
 !EOP
 !------------------------------------------------------------------------------
@@ -3792,8 +4208,8 @@
 ! !INTERFACE:
 ! 
       SUBROUTINE WASHFRAC_LIQ_GAS( Kstar298, H298_R, PP, DT, 
-     &                           F,        DZ,     TK,
-     &                           WASHFRAC, KIN ) 
+     &                             F,        DZ,     TK,
+     &                             WASHFRAC, KIN ) 
 !
 ! !INPUT PARAMETERS: 
 !
@@ -3839,6 +4255,7 @@
 !
       REAL*8, PARAMETER :: K_WASH = 1d0  ! First order washout rate 
                                          ! constant [cm^-1]. 
+
       !=================================================================
       ! WASHFRAC_LIQ_GAS begins here!
       !=================================================================
@@ -3864,12 +4281,6 @@
          ! Washout fraction / F from Eq. 14, Jacob et al, 2000
          ! Note: WASHFRAC_F_14 should match what's used for HNO3 (hma, 13aug2011)
          WASHFRAC_F_14 = 1d0 - EXP( -K_WASH * ( PP / F ) * DT )
-
-         ! Prior to 05 Jun 2011 (H Amos)------------------------------
-         ! ! Do not let the Henry's law washout fraction exceed
-         ! ! ( washout fraction / F ) from Eq. 14 -- this is a cap
-         ! IF ( WASHFRAC > WASHFRAC_F_14 ) WASHFRAC = WASHFRAC_F_14
-         !------------------------------------------------------------
 
          ! Do not let the Henry's law washout fraction exceed
          ! that of HNO3 -- this is a cap
@@ -3917,8 +4328,8 @@
       USE DEPO_MERCURY_MOD,  ONLY : ADD_Hg2_SNOWPACK
       USE LOGICAL_MOD,       ONLY : LGTMM
 
-      USE CMN_SIZE_MOD      ! Size parameters
-      USE CMN_DIAG_MOD      ! Diagnostic arrays and switches 
+      USE CMN_SIZE_MOD            ! Size parameters
+      USE CMN_DIAG_MOD            ! Diagnostic arrays and switches
 !
 ! !INPUT PARAMETERS: 
 !
@@ -4510,8 +4921,8 @@
       USE DEPO_MERCURY_MOD,  ONLY : ADD_Hg2_SNOWPACK
       USE LOGICAL_MOD,       ONLY : LGTMM
 
-      USE CMN_SIZE_MOD      ! Size parameters
-      USE CMN_DIAG_MOD      ! Diagnostic arrays and switches 
+      USE CMN_SIZE_MOD            ! Size parameters
+      USE CMN_DIAG_MOD            ! Diagnostic arrays and switches
 !
 ! !INPUT PARAMETERS: 
 !
@@ -5009,8 +5420,11 @@
 
       ! Compute rainout rate constant K in s^-1 (Eq. 12, Jacob et al, 2000).
       ! 1.0d-4 = K_MIN, a minimum value for K_RAIN 
-      ! 1.5d-6 = L + W, the condensed water content (liq + ice) in the cloud
-      K_RAIN = 1.0d-4 + ( Q / 1.5d-6 ) 
+!      ! 1.5d-6 = L + W, the condensed water content (liq + ice) in the cloud
+!      K_RAIN = 1.0d-4 + ( Q / 1.5d-6 ) 
+      !tunable parameter (qq,10/14/2011)
+      ! 1.0d-6 = L + W, the condensed water content (liq + ice) in the cloud
+      K_RAIN = 1.0d-4 + ( Q / 1.0d-6 ) 
       
       END FUNCTION LS_K_RAIN
 !EOC
@@ -5054,8 +5468,11 @@
       !=================================================================
 
       ! Compute F', the area of the grid box undergoing precipitation
-      ! 1.5d-6 = L + W, the condensed water content [cm3 H2O/cm3 air]
-      F_PRIME = Q / ( K_RAIN * 1.5d-6 )
+!      ! 1.5d-6 = L + W, the condensed water content [cm3 H2O/cm3 air]
+!      F_PRIME = Q / ( K_RAIN * 1.0d-6 )
+      !tunable parameter (qq,10/14/2011)
+      ! 1.0d-6 = L + W, the condensed water content [cm3 H2O/cm3 air]
+      F_PRIME = Q / ( K_RAIN * 1.0d-6 )
 
       END FUNCTION LS_F_PRIME
 !EOC
@@ -5142,8 +5559,8 @@
       USE ERROR_MOD,   ONLY : IT_IS_NAN                ! Test for NaN
       USE LOGICAL_MOD, ONLY : LGTMM                    ! Use GTMM for Hg sim?
 
-      USE CMN_SIZE_MOD                           ! Size parameters
-      USE CMN_DIAG_MOD                           ! Diagnostic flags etc
+      USE CMN_SIZE_MOD                                 ! Size parameters
+      USE CMN_DIAG_MOD                                 ! Diagnostic flags
 !
 ! !INPUT PARAMETERS: 
 !     
@@ -5305,7 +5722,6 @@
 !  The modifications for the MERRA met fields require calling this same 
 !  sequence of code more than once.  The expedient solution was to just move
 !  the relevant code into this this subroutine.
-
 !\\
 !\\
 ! !INTERFACE:
@@ -5335,8 +5751,8 @@
       USE LOGICAL_MOD,  ONLY : LGTMM                   ! Use GTMM w/ Hg sim?
       USE ERROR_MOD,    ONLY : IT_IS_NAN               ! Check for NaN 
 
-      USE CMN_SIZE_MOD                           ! Size parameters
-      USE CMN_DIAG_MOD                           ! Diagnostic flags, etc
+      USE CMN_SIZE_MOD                                 ! Size parameters
+      USE CMN_DIAG_MOD                                 ! Diagnostic flags
 !
 ! !INPUT PARAMETERS: 
 !     
@@ -5490,7 +5906,7 @@
      &                 TF,        H2O2s(I,J,L), SO2s(I,J,L), 
      &                 WASHFRAC,  KIN )
 
-#if    defined( MERRA )
+#if    defined( MERRA ) || defined( GEOS_57 )
          !%%% BUG FIX: Only apply this section of when running
          !%%% GEOS-Chem with MERRA met fields.  (bmy, hamos, 5/26/11)
          !
@@ -5507,19 +5923,19 @@
          ENDIF
 #endif
 
-           ! Adjust WASHFRAC accordingly for aerosols.  NOTE: TF is always 
-           ! > 0 since DO_WASHOUT_ONLY is only called if F_WASHOUT > 0.  
-           ! We will never get a div-by-zero error here. (bmy, 5/27/11)
-           IF ( KIN ) THEN
-             WASHFRAC = WASHFRAC / TF * F_WASHOUT
-           ENDIF
+         ! Adjust WASHFRAC accordingly for aerosols.  NOTE: TF is always 
+         ! > 0 since DO_WASHOUT_ONLY is only called if F_WASHOUT > 0.  
+         ! We will never get a div-by-zero error here. (bmy, 5/27/11)
+         IF ( KIN ) THEN
+           WASHFRAC = WASHFRAC / TF * F_WASHOUT
+         ENDIF
                   
          !--------------------------------------------------------------
          ! Washout of aerosol tracers -- 
          ! this is modeled as a kinetic process
          !--------------------------------------------------------------
 
-          IF ( KIN ) THEN
+         IF ( KIN ) THEN
 
             ! Define ALPHA, the fraction of the raindrops that 
             ! re-evaporate when falling from (I,J,L+1) to (I,J,L)
@@ -5691,8 +6107,8 @@
       USE TRACERID_MOD, ONLY : IDTSO4                  ! ID flag for SO4
       USE LOGICAL_MOD,  ONLY : LGTMM                   ! Use GTMM w/ Hg sim?
 
-      USE CMN_SIZE_MOD                           ! Size parameters
-      USE CMN_DIAG_MOD                           ! Diagnostic flags, etc
+      USE CMN_SIZE_MOD                                 ! Size parameters
+      USE CMN_DIAG_MOD                                 ! Diagnostic flags
 !
 ! !INPUT PARAMETERS: 
 !     
@@ -5824,8 +6240,8 @@
       USE TRACERID_MOD, ONLY : IDTSO4                  ! ID flag for SO4
       USE LOGICAL_MOD,  ONLY : LGTMM                   ! Use GTMM w/ Hg sim?
 
-      USE CMN_SIZE_MOD                           ! Size parameters
-      USE CMN_DIAG_MOD                           ! Diagnostic flags, etc
+      USE CMN_SIZE_MOD                                 ! Size parameters
+      USE CMN_DIAG_MOD                                 ! Diagnostic flags
 !
 ! !INPUT PARAMETERS: 
 !     
@@ -6010,7 +6426,7 @@
 !
       USE ERROR_MOD, ONLY : GEOS_CHEM_STOP
 
-      USE CMN_SIZE_MOD
+      USE CMN_SIZE_MOD                              ! Size parameters
 !
 ! !INPUT PARAMETERS: 
 !
@@ -6091,7 +6507,7 @@
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE WETDEPID
+      SUBROUTINE WETDEPID( am_I_Root )
 !
 ! !USES:
 !
@@ -6114,8 +6530,14 @@
       USE TRACERID_MOD, ONLY : IDTMOBA,   IDTPROPNN
       USE TRACERID_MOD, ONLY : IDTISOPN,  IDTMMN
       USE TRACERID_MOD, ONLY : IDTIEPOX,  IDTRIP,    IDTMAP
+      ! jpp 4/27/09
+      USE TRACERID_MOD, ONLY : IDTHOBr,   IDTHBr,    IDTBr2
 
-      USE CMN_SIZE_MOD  ! Size parameters
+      USE CMN_SIZE_MOD       ! Size parameters
+!
+! !INPUT PARAMETERS:
+!
+      LOGICAL, INTENT(IN) :: am_I_Root   ! Is this the root CPU?
 ! 
 ! !REVISION HISTORY: 
 !  08 Nov 2002 - R. Yantosca - Initial version
@@ -6135,6 +6557,8 @@
 !        or HgP tracer (bmy, 1/6/06)
 !  (11) Now added SOG4 and SOA4 (dkh, bmy, 5/18/06)
 !  16 Sep 2010 - R. Yantosca - Added ProTeX headers
+!  30 Jul 2012 - R. Yantosca - Now accept am_I_Root as an argument when
+!                              running with the traditional driver main.F
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -6194,6 +6618,21 @@
          ELSE IF ( N == IDTGLYC ) THEN
             NSOL         = NSOL + 1
             IDWETD(NSOL) = IDTGLYC
+
+         !---------------------------------------
+         ! jpp, 10/21/08: adding bromine species
+         ELSE IF ( N == IDTHOBr ) THEN
+            NSOL         = NSOL + 1
+            IDWETD(NSOL) = IDTHOBr
+
+         ELSE IF ( N == IDTHBr ) THEN
+            NSOL         = NSOL + 1
+            IDWETD(NSOL) = IDTHBr
+
+         ELSE IF ( N == IDTBr2 ) THEN
+            NSOL         = NSOL + 1
+            IDWETD(NSOL) = IDTBr2
+         !---------------------------------------
 
          !FP_ISOP (6/2009)
          
@@ -6423,17 +6862,19 @@
       !=================================================================
       ! Echo list of soluble tracers to the screen
       !=================================================================
-      WRITE( 6, '(/,a,/)' ) 'WETDEPID: List of soluble tracers: '
-      WRITE( 6, '(a)  '   ) '  #             Name  Tracer Mol Wt'
-      WRITE( 6, '(a)'     ) '                      Number g/mole'
-      WRITE( 6, '(a)'     ) REPEAT( '-', 36 )
+      IF ( am_I_Root ) THEN
+         WRITE( 6, '(/,a,/)' ) 'WETDEPID: List of soluble tracers: '
+         WRITE( 6, '(a)  '   ) '  #             Name  Tracer Mol Wt'
+         WRITE( 6, '(a)'     ) '                      Number g/mole'
+         WRITE( 6, '(a)'     ) REPEAT( '-', 36 )
 
-      DO NN = 1, NSOL
-         N = IDWETD(NN)
-         WRITE( 6, '(i3,3x,a14,3x,i3,3x,f6.1)' )
-     &        NN, TRIM( TRACER_NAME(N) ), N, TRACER_MW_G(N)
-      ENDDO
-      
+         DO NN = 1, NSOL
+            N = IDWETD(NN)
+            WRITE( 6, '(i3,3x,a14,3x,i3,3x,f6.1)' )
+     &           NN, TRIM( TRACER_NAME(N) ), N, TRACER_MW_G(N)
+         ENDDO
+      ENDIF
+
       END SUBROUTINE WETDEPID
 !EOC
 !------------------------------------------------------------------------------
@@ -6460,7 +6901,7 @@
       USE TRACER_MOD,   ONLY : ITS_A_RnPbBe_SIM,   ITS_A_MERCURY_SIM
       USE TRACERID_MOD, ONLY : IDTSOAG,  IDTSOAM
 
-      USE CMN_SIZE_MOD ! Size Parameters
+      USE CMN_SIZE_MOD       ! Size parameters
 !
 ! !RETURN VALUE:
 !
@@ -6507,6 +6948,10 @@
          IF ( LSULF )    NMAX = NMAX + 8        ! SO2, SO4, MSA, NH3, NH4, NIT
          IF ( LDUST  )   NMAX = NMAX + NDSTBIN  ! plus # of dust bins
          IF ( LSSALT )   NMAX = NMAX + 2        ! plus 2 seasalts
+
+         ! jpp, 4/27/09:( 1) add space for 3 bromine species to
+         !                   be wet-deposited: HBr, HOBr, and Br2.
+         NMAX = NMAX + 3
 
          IF ( LSOA ) THEN
             IF ( LCARB ) NMAX = NMAX + 17       ! carbon + SOA aerosols
@@ -6667,7 +7112,8 @@
       USE TRACER_MOD,   ONLY : STT
       USE TRACERID_MOD, ONLY : IDTH2O2, IDTSO2
 
-      USE CMN_SIZE_MOD ! Size parameters
+      USE CMN_SIZE_MOD       ! Size parameters
+
 ! 
 ! !REVISION HISTORY: 
 !  23 Feb 2000 - R. Yantosca - Initial version
@@ -6759,6 +7205,7 @@
          FIRST = .FALSE. 
       ENDIF
 
+#if ! defined( DEVEL )
       !=================================================================
       ! Compute Vud, CLDLIQ, CLDICE, C_H2O, following Jacob et al, 2000.
       !=================================================================
@@ -6786,58 +7233,20 @@
             ENDIF
          ENDIF
 
-         !-----------------------------------------------------------------
-         ! Old, standard values. Use these CLDLIQ and CLDICE values if you
-         ! are using the old, standard washout coefficients in 
-         ! WASHFRAC_AEROSOL.
-         !
-         ! Prior to 22 Jan 2011:
-         !!==============================================================
-         !! CLDLIQ, the cloud liquid water content [cm3 H2O/cm3 air], 
-         !! is a function of the local Kelvin temperature:
-         !!  
-         !!    CLDLIQ = 2e-6                    [     T >= 268 K    ]
-         !!    CLDLIQ = 2e-6 * ((T - 248) / 20) [ 248 K < T < 268 K ]
-         !!    CLDLIQ = 0                       [     T <= 248 K    ]
-         !!==============================================================
-         !IF ( TK >= 268d0 ) THEN
-         !   CLDLIQ(I,J,L) = 2d-6
-         !
-         !ELSE IF ( TK > 248d0 .and. TK < 268d0 ) THEN
-         !   CLDLIQ(I,J,L) = 2d-6 * ( ( TK - 248d0 ) / 20d0 )
-         !
-         !ELSE
-         !   CLDLIQ(I,J,L) = 0d0
-         !   
-         !ENDIF
-         !  
-         !!=============================================================
-         !! CLDICE, the cloud ice content [cm3 ice/cm3 air] is given by:
-         !!
-         !!    CLDICE = 2e-6 - CLDLIQ
-         !!=============================================================
-         !CLDICE(I,J,L) = 2d-6 - CLDLIQ(I,J,L)
-         !-----------------------------------------------------------------
-
-
-         !-----------------------------------------------------------------
-         ! Use these values of CLDLIQ and CLDICE if you are using Feng's 
-         ! (2007, 2009) updated washout coefficients in WASHFRAC_AEROSOL.
-         ! [Ref: Q. Wang et al., 2011 - submitted to ACP]
-         !
          !==============================================================
          ! CLDLIQ, the cloud liquid water content [cm3 H2O/cm3 air], 
          ! is a function of the local Kelvin temperature:
-         !  
-         !    CLDLIQ = 1.0e-6                    [     T >= 268 K    ]
-         !    CLDLIQ = 1.0e-6 * ((T - 248) / 20) [ 248 K < T < 268 K ]
+         ! Tunable parameter and use 1e-6 here (qq,10/14/2011) 
+         !    CLDLIQ = 1e-6                    [     T >= 268 K    ]
+         !    CLDLIQ = 1e-6 * ((T - 248) / 20) [ 248 K < T < 268 K ]
          !    CLDLIQ = 0                       [     T <= 248 K    ]
+         !
          !==============================================================
          IF ( TK >= 268d0 ) THEN
-            CLDLIQ(I,J,L) = 1.0d-6
+            CLDLIQ(I,J,L) = 1d-6
 
          ELSE IF ( TK > 248d0 .and. TK < 268d0 ) THEN
-            CLDLIQ(I,J,L) = 1.0d-6 * ( ( TK - 248d0 ) / 20d0 )
+            CLDLIQ(I,J,L) = 1d-6 * ( ( TK - 248d0 ) / 20d0 )
 
          ELSE
             CLDLIQ(I,J,L) = 0d0
@@ -6849,10 +7258,7 @@
          !
          !    CLDICE = 1.0e-6 - CLDLIQ
          !=============================================================
-         CLDICE(I,J,L) = 1.0d-6 - CLDLIQ(I,J,L)
-         !-----------------------------------------------------------------
-
-
+         CLDICE(I,J,L) = 1d-6 - CLDLIQ(I,J,L)
 
          !=============================================================
          ! C_H2O is given by Dalton's Law as:
@@ -6873,7 +7279,7 @@
       ENDDO
       ENDDO
 !$OMP END PARALLEL DO
-
+#endif
       END SUBROUTINE INIT_WETSCAV
 !EOC
 !------------------------------------------------------------------------------

@@ -32,6 +32,10 @@
       PUBLIC  :: ITS_IN_THE_STRAT
       PUBLIC  :: READ_TROPOPAUSE
       PUBLIC  :: SAVE_FULL_TROP
+#if defined( DEVEL)
+      PUBLIC  :: LMIN, LMAX
+#endif
+
 !
 ! !PRIVATE MEMBER FUNCTIONS:
 !
@@ -780,7 +784,7 @@
 !------------------------------------------------------------------------------
 !BOC
 
-#if   defined( GEOS_4 ) || defined( GEOS_5 ) || defined( MERRA )
+#if   defined( GEOS_4 ) || defined( GEOS_5 ) || defined( MERRA ) || defined( GEOS_57 )
 !
 ! !LOCAL VARIABLES:
 ! 

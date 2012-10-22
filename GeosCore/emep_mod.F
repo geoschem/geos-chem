@@ -34,6 +34,8 @@
 ! 
 ! !USES:
 !
+      USE ERROR_MOD, ONLY: ALLOC_ERR
+
       IMPLICIT NONE
 #     include "define.h"
       PRIVATE
@@ -73,29 +75,32 @@
 !  26 Jan 2010 - R. Yantosca - Minor bug fix in INIT_EMEP
 !  31 Aug 2010 - R. Yantosca - Updated comments
 !  24 Nov 2010 - G. Vinken   - Updated EMEP mask file
+!  13 Mar 2012 - M. Cooper   - Changed gridding algorithm to map_a2a
+!  22 Mar 2012 - M. Payer    - C2H6 emissions are too low. Use Yaping
+!                              Xiao's C2H6 emissions instead.
 !EOP
 !------------------------------------------------------------------------------
 !
 ! !PRIVATE DATA MEMBERS:
 !
       ! Array for geographic mask
-      REAL*8,  ALLOCATABLE :: EUROPE_MASK(:,:)
+      REAL*8,  ALLOCATABLE, TARGET  :: EUROPE_MASK(:,:)
 
       ! Arrays for ground-based emissions
-      REAL*8,  ALLOCATABLE :: EMEP_NOx(:,:)
-      REAL*8,  ALLOCATABLE :: EMEP_CO(:,:)
-      REAL*8,  ALLOCATABLE :: EMEP_SO2(:,:)
-      REAL*8,  ALLOCATABLE :: EMEP_NH3(:,:)
-      REAL*8,  ALLOCATABLE :: EMEP_ALK4(:,:)
-      REAL*8,  ALLOCATABLE :: EMEP_MEK(:,:)
-      REAL*8,  ALLOCATABLE :: EMEP_ALD2(:,:)
-      REAL*8,  ALLOCATABLE :: EMEP_PRPE(:,:)
-      REAL*8,  ALLOCATABLE :: EMEP_C2H6(:,:)
+      REAL*8,  ALLOCATABLE, TARGET  :: EMEP_NOx(:,:)
+      REAL*8,  ALLOCATABLE, TARGET  :: EMEP_CO(:,:)
+      REAL*8,  ALLOCATABLE, TARGET  :: EMEP_SO2(:,:)
+      REAL*8,  ALLOCATABLE, TARGET  :: EMEP_NH3(:,:)
+      REAL*8,  ALLOCATABLE, TARGET  :: EMEP_ALK4(:,:)
+      REAL*8,  ALLOCATABLE, TARGET  :: EMEP_MEK(:,:)
+      REAL*8,  ALLOCATABLE, TARGET  :: EMEP_ALD2(:,:)
+      REAL*8,  ALLOCATABLE, TARGET  :: EMEP_PRPE(:,:)
+      REAL*8,  ALLOCATABLE, TARGET  :: EMEP_C2H6(:,:)
 
       ! Arrays for ship emissions
-      REAL*8,  ALLOCATABLE :: EMEP_CO_SHIP(:,:)
-      REAL*8,  ALLOCATABLE :: EMEP_SO2_SHIP(:,:)
-      REAL*8,  ALLOCATABLE :: EMEP_NOx_SHIP(:,:)
+      REAL*8,  ALLOCATABLE, TARGET  :: EMEP_CO_SHIP(:,:)
+      REAL*8,  ALLOCATABLE, TARGET  :: EMEP_SO2_SHIP(:,:)
+      REAL*8,  ALLOCATABLE, TARGET  :: EMEP_NOx_SHIP(:,:)
 
       CONTAINS
 !EOC
@@ -180,6 +185,9 @@
 !       (amv, 06/2008)
 !  (2 ) Now returns ship emissions if requested (phs, 6/08)
 !  (3 ) Added checks to avoid calling unavailable ship emissions (phs, 6/08)
+!  01 Mar 2012 - R. Yantosca - Now use GET_AREA_CM2(I,J,L) from grid_mod.F90
+!  22 Mar 2012 - M. Payer    - C2H6 emissions are too low. Use Yaping
+!                              Xiao's C2H6 emissions instead.
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -252,7 +260,7 @@
 
       ! C2H6 
       ELSE IF ( N == IDTC2H6 ) THEN
-         EMEP = EMEP_C2H6(I,J)
+         EMEP = -1d0
 
       ! SO2
       ELSE IF ( N == IDTSO2 ) THEN
@@ -278,7 +286,7 @@
       !------------------------------
       IF ( DO_KGS ) THEN
 
-         EMEP = EMEP * GET_AREA_CM2(J) / XNUMOL(NN)
+         EMEP = EMEP * GET_AREA_CM2( I, J, 1 ) / XNUMOL(NN)
 
       ENDIF
 
@@ -297,26 +305,46 @@
 !\\
 ! !INTERFACE:
 !
+#if defined( DEVEL )
+      SUBROUTINE EMISS_EMEP( EMISS )
+#else
       SUBROUTINE EMISS_EMEP
+#endif
 !
 ! !USES:
 ! 
       USE BPCH2_MOD,        ONLY : GET_TAU0,     OPEN_BPCH2_FOR_READ
-      USE FILE_MOD,         ONLY : IU_FILE,      IOERROR
+      USE FILE_MOD,         ONLY : IOERROR
       USE DIRECTORY_MOD,    ONLY : DATA_DIR_1x1 
       USE LOGICAL_MOD,      ONLY : LFUTURE
-      USE REGRID_1x1_MOD,   ONLY : DO_REGRID_1x1
+      USE REGRID_A2A_MOD,   ONLY : DO_REGRID_A2A
       USE TIME_MOD,         ONLY : EXPAND_DATE,  GET_YEAR
       USE TIME_MOD,         ONLY : GET_MONTH
       USE SCALE_ANTHRO_MOD, ONLY : GET_ANNUAL_SCALAR
+      USE inquireMod,       ONLY : findFreeLUN
 
-      USE CMN_SIZE_MOD       ! Size parameters
-      USE CMN_O3_MOD         ! SCALEYEAR
+      USE CMN_SIZE_MOD           ! Size parameters
+      USE CMN_O3_MOD             ! SCALEYEAR
+
+#if defined( DEVEL )
+      USE TRACERID_MOD, ONLY : IDTNOX,  IDTCO,   IDTALK4, IDTMEK
+      USE TRACERID_MOD, ONLY : IDTALD2, IDTPRPE, IDTC2H6, IDTSO2
+      USE TRACERID_MOD, ONLY : IDTNH3
+      USE TRACER_MOD,   ONLY : XNUMOL
+      USE TRACER_MOD,   ONLY : N_TRACERS
+      USE GRID_MOD,     ONLY : GET_AREA_CM2
+      USE LOGICAL_MOD,  ONLY : LEMEPSHIP
+#endif
 !
 ! !REVISION HISTORY: 
 !  01 Nov 2005 - B. Field, R. Yantosca - Initial version
 !  (1 ) Modified for IPCC future emissions.  Now references LFUTURE from
 !        "logical_mod.f". (bmy, 5/30/06)
+!  13 Mar 2012 - M. Cooper   - Changed gridding algorithm to map_a2a
+!  24 May 2012 - R. Yantosca - Fixed minor bugs in map_a2a implementation
+!  03 Aug 2012 - R. Yantosca - Move calls to findFreeLUN out of DEVEL block
+!  07 Aug 2012 - R. Yantosca - Now print LUN used to open file
+!  24 Aug 2012 - R. Yantosca - DO_REGRID_A2A now reads netCDF input file
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -329,7 +357,7 @@
       CHARACTER(LEN=255)      :: FILENAME
 
       ! For bpch file format
-      INTEGER                 :: I,  J,  L,  N,  IOS
+      INTEGER                 :: I,  IU_FILE, J,  L,  N,  IOS
       INTEGER                 :: NTRACER,   NSKIP
       INTEGER                 :: HALFPOLAR, CENTER180
       INTEGER                 :: NI,        NJ,        NL
@@ -343,6 +371,14 @@
       CHARACTER(LEN=40)       :: CATEGORY
       CHARACTER(LEN=40)       :: UNIT     
       CHARACTER(LEN=40)       :: RESERVED
+      CHARACTER(LEN=255)      :: LLFILENAME
+      REAL*8                  :: INGRID (I1x1, J1x1 )
+
+#if defined( DEVEL ) || defined( EXTERNAL_GRID ) || defined( EXTERNAL_FORCING )
+      REAL*8, INTENT(INOUT) :: EMISS(IIPAR, JJPAR, N_TRACERS)
+      REAL*8, ALLOCATABLE   :: A(:,:)
+      INTEGER AS
+#endif
 
       !=================================================================
       ! EMISS_EMEP begins here!
@@ -350,6 +386,12 @@
 
       ! First-time initialization
       IF ( FIRST ) THEN
+#if defined( DEVEL ) || defined( EXTERNAL_GRID ) || defined( EXTERNAL_FORCING )
+         ALLOCATE( A( IIPAR, JJPAR ), STAT=AS )
+         IF ( AS /= 0 ) CALL ALLOC_ERR( 'EMEP:A' )
+         A = 0d0
+#endif         
+         
          CALL INIT_EMEP
          FIRST = .FALSE.
       ENDIF
@@ -376,9 +418,12 @@
       ! Expand filename
       CALL EXPAND_DATE( FILENAME, EMEP_NYMD, 000000 )
          
+      ! Find a free file LUN
+      IU_FILE = findFreeLun()
+
       ! Echo info
-      WRITE( 6, 100 ) TRIM( FILENAME )
- 100  FORMAT( '     - EMISS_EMEP: Reading ', a )
+      WRITE( 6, 100 ) TRIM( FILENAME ), IU_FILE
+ 100  FORMAT( '     - EMISS_EMEP: Reading ', a, ' on unit ', i4 )
 
       !=================================================================
       ! Read data at 1x1 resolution and regrid to current grid size
@@ -386,6 +431,10 @@
 
       ! Open file
       CALL OPEN_BPCH2_FOR_READ( IU_FILE, FILENAME )
+
+      ! File with lat/lon edges for regridding
+      LLFILENAME = TRIM( DATA_DIR_1x1) //
+     &             'MAP_A2A_Regrid_201203/MAP_A2A_latlon_geos1x1.nc'
 
       ! Read the entire file in one pass (for I/O optimization)
       DO 
@@ -418,31 +467,51 @@
 
             ! NOx [molec/cm2/s]
             CASE( 1  )
-               CALL DO_REGRID_1x1( UNIT, ARRAY, EMEP_NOx  )
-
+               INGRID = ARRAY(:,:,1)
+               CALL DO_REGRID_A2A( LLFILENAME, I1x1,      J1x1,
+     &                             INGRID,     EMEP_NOx,  PERAREA=0,
+     &                             netCDF=.TRUE.                     )
             ! CO [molec/cm2/s]
             CASE( 4  )
-               CALL DO_REGRID_1x1( UNIT, ARRAY, EMEP_CO   )
-
+               INGRID = ARRAY(:,:,1)
+               CALL DO_REGRID_A2A( LLFILENAME, I1x1,      J1x1,
+     &                             INGRID,     EMEP_CO,   PERAREA=0,
+     &                             netCDF=.TRUE.                     )
+               
             ! ALK4 [atoms C/cm2/s]
             CASE( 5  )
-               CALL DO_REGRID_1x1( UNIT, ARRAY, EMEP_ALK4 )
+               INGRID = ARRAY(:,:,1)
+               CALL DO_REGRID_A2A( LLFILENAME, I1x1,      J1x1,
+     &                             INGRID,     EMEP_ALK4, PERAREA=0,
+     &                             netCDF=.TRUE.                     )
 
             ! MEK [atoms C/cm2/s]
             CASE( 10 )
-               CALL DO_REGRID_1x1( UNIT, ARRAY, EMEP_MEK  )
+               INGRID = ARRAY(:,:,1)
+               CALL DO_REGRID_A2A( LLFILENAME, I1x1,      J1x1,
+     &                             INGRID,     EMEP_MEK,  PERAREA=0,
+     &                             netCDF=.TRUE.                     )
 
             ! ALD2 [atoms C/cm2/s]
             CASE( 11 )
-               CALL DO_REGRID_1x1( UNIT, ARRAY, EMEP_ALD2 )
+               INGRID = ARRAY(:,:,1)
+               CALL DO_REGRID_A2A( LLFILENAME, I1x1,      J1x1,
+     &                             INGRID,     EMEP_ALD2, PERAREA=0,
+     &                             netCDF=.TRUE.                     )
 
             ! PRPE [atoms C/cm2/s]
             CASE( 18 )
-               CALL DO_REGRID_1x1( UNIT, ARRAY, EMEP_PRPE )
+               INGRID = ARRAY(:,:,1)
+               CALL DO_REGRID_A2A( LLFILENAME, I1x1,      J1x1,
+     &                             INGRID,     EMEP_PRPE, PERAREA=0,
+     &                             netCDF=.TRUE.                     )
 
             ! C2H6 [atoms C/cm2/s]
             CASE( 21 )
-               CALL DO_REGRID_1x1( UNIT, ARRAY, EMEP_C2H6 )
+               INGRID = ARRAY(:,:,1)
+               CALL DO_REGRID_A2A( LLFILENAME, I1x1,      J1x1,
+     &                             INGRID,     EMEP_C2H6, PERAREA=0,
+     &                             netCDF=.TRUE.                     )
 
             CASE DEFAULT
                ! Nothing
@@ -463,12 +532,17 @@
       ! NOx, CO, NH3 and include SOx (amv, 06/04/08)
       !=================================================================
 
-      IF ( SCALEYEAR > 1989 ) THEN
+      IF ( SCALEYEAR > 1989) THEN
 
          ! new EMEP data is only defined from 1990-2007
          EMEP_YEAR = MIN( SCALEYEAR, 2007 )
 
          CALL READ_EMEP_UPDATED(  1, EMEP_YEAR, EMEP_NOx, 0 )
+         IF ( SCALEYEAR >2007 .AND. SCALEYEAR <=2010 ) THEN
+         CALL GET_ANNUAL_SCALAR( 71, 2007, SCALEYEAR, Sc )
+         EMEP_NOx(:,:) = EMEP_NOx(:,:) * Sc(:,:)
+         END IF
+
          CALL READ_EMEP_UPDATED(  4, EMEP_YEAR, EMEP_CO, 0 )
          CALL READ_EMEP_UPDATED( 26, EMEP_YEAR, EMEP_SO2, 0 )
          CALL READ_EMEP_UPDATED( 30, EMEP_YEAR, EMEP_NH3, 1 )
@@ -478,6 +552,7 @@
          CALL READ_EMEP_UPDATED( 26, EMEP_YEAR, EMEP_SO2_SHIP, 2 )
 
       ! Need to use for SOx/NH3 anyways, but SOx scale back further
+
       ELSE
 
          CALL READ_EMEP_UPDATED( 26, 1990, EMEP_SO2, 0 )
@@ -497,6 +572,62 @@
       IF ( LFUTURE ) THEN 
          CALL EMEP_SCALE_FUTURE
       ENDIF
+
+#if defined( DEVEL )
+      DO I=1,IIPAR
+      DO J=1,JJPAR
+         A(I,J)  = GET_AREA_CM2( I, J, 1 ) 
+      ENDDO
+      ENDDO
+
+      IF ( LEMEPSHIP ) THEN
+         EMISS(:,:,IDTNOx) = EMEP_NOx_SHIP(:,:)
+     &        * A / XNUMOL(IDTNOx)
+      ELSE 
+         EMISS(:,:,IDTNOx) = EMEP_NOx(:,:)
+     &        * A / XNUMOL(IDTNOx)
+      ENDIF
+      IF ( LEMEPSHIP ) THEN
+         EMISS(:,:,IDTCO) = EMEP_CO_SHIP(:,:)
+     &        * A / XNUMOL(IDTCO)
+      ELSE 
+         EMISS(:,:,IDTCO) = EMEP_CO(:,:)
+     &        * A / XNUMOL(IDTCO)
+      ENDIF
+
+      ! ALK4 (>= C4 alkanes)
+      EMISS(:,:,IDTALK4) = EMEP_ALK4(:,:)
+     &        * A / XNUMOL(IDTALK4)
+
+      ! MEK
+      EMISS(:,:,IDTMEK) = EMEP_MEK(:,:)
+     &        * A / XNUMOL(IDTMEK)
+
+      ! ALD2 (acetaldehyde)
+      EMISS(:,:,IDTALD2) = EMEP_ALD2(:,:)
+     &        * A / XNUMOL(IDTALD2)
+
+      ! PRPE (>= C3 alkenes)
+      EMISS(:,:,IDTPRPE) = EMEP_PRPE(:,:)
+     &        * A / XNUMOL(IDTPRPE)
+
+      ! C2H6 
+      EMISS(:,:,IDTC2H6) = EMEP_C2H6(:,:)
+     &        * A / XNUMOL(IDTC2H6)
+         
+      ! SO2
+      IF ( LEMEPSHIP ) THEN
+         EMISS(:,:,IDTSO2) = EMEP_SO2_SHIP(:,:)
+     &        * A / XNUMOL(IDTSO2)
+      ELSE 
+         EMISS(:,:,IDTSO2) = EMEP_SO2(:,:)
+     &        * A / XNUMOL(IDTSO2)
+      ENDIF
+
+      ! NH3
+      EMISS(:,:,IDTNH3) = EMEP_NH3(:,:)
+     &        * A / XNUMOL(IDTNH3)
+#endif
 
       !=================================================================
       ! Print emission totals
@@ -520,20 +651,34 @@
 !\\
 ! !INTERFACE:
 !
+#if defined( DEVEL )
+      SUBROUTINE EMISS_EMEP_05x0666( EMISS )
+#else
       SUBROUTINE EMISS_EMEP_05x0666
+#endif
 !
 ! !USES:
 !
       USE BPCH2_MOD,        ONLY : GET_TAU0,     READ_BPCH2
       USE DIRECTORY_MOD,    ONLY : DATA_DIR
       USE LOGICAL_MOD,      ONLY : LFUTURE
-      USE REGRID_1x1_MOD,   ONLY : DO_REGRID_05x0666
       USE TIME_MOD,         ONLY : EXPAND_DATE,  GET_YEAR
       USE TIME_MOD,         ONLY : GET_MONTH
       USE SCALE_ANTHRO_MOD, ONLY : GET_ANNUAL_SCALAR_05x0666_NESTED
 
       USE CMN_SIZE_MOD       ! Size parameters
       USE CMN_O3_MOD         ! SCALEYEAR
+
+#if defined( DEVEL )
+      USE TRACERID_MOD, ONLY : IDTNOX,  IDTCO,   IDTALK4, IDTMEK
+      USE TRACERID_MOD, ONLY : IDTALD2, IDTPRPE, IDTC2H6, IDTSO2
+      USE TRACERID_MOD, ONLY : IDTNH3
+      USE TRACER_MOD,   ONLY : XNUMOL
+      USE TRACER_MOD,   ONLY : N_TRACERS
+      USE GRID_MOD,     ONLY : GET_AREA_CM2
+      USE LOGICAL_MOD,  ONLY : LEMEPSHIP
+#endif
+
 !
 ! !REVISION HISTORY:
 !  23 Oct 2006 - A. v. Donkelaar - Initial version, modified from EMISS_EMEP
@@ -564,12 +709,24 @@
       CHARACTER(LEN=40)       :: UNIT
       CHARACTER(LEN=40)       :: RESERVED
 
+#if defined( DEVEL )
+      REAL*8, INTENT(INOUT) :: EMISS(IIPAR, JJPAR, N_TRACERS)
+      REAL*8, ALLOCATABLE   :: A(:,:)
+      INTEGER AS
+#endif
+
       !=================================================================
       ! EMISS_EMEP begins here!
       !=================================================================
 
       ! First-time initialization
       IF ( FIRST ) THEN
+#if defined( DEVEL )
+         ALLOCATE( A( IIPAR, JJPAR ), STAT=AS )
+         IF ( AS /= 0 ) CALL ALLOC_ERR( 'EMEP:A' )
+         A = 0d0
+#endif         
+         
          CALL INIT_EMEP
          FIRST = .FALSE.
       ENDIF
@@ -665,7 +822,6 @@
          CALL GET_ANNUAL_SCALAR_05x0666_NESTED(73,1990,SCALEYEAR,Sc)
          EMEP_SO2(:,:) = EMEP_SO2(:,:) * Sc(:,:)
 !         EMEP_SO2_SHIP = EMEP_SO2_SHIP * Sc  ! do not scale SHIP
-
       ENDIF
 
 
@@ -675,6 +831,62 @@
       IF ( LFUTURE ) THEN
          CALL EMEP_SCALE_FUTURE
       ENDIF
+
+#if defined( DEVEL )
+      DO I=1,IIPAR
+      DO J=1,JJPAR
+         A(I,J)  = GET_AREA_CM2( I, J, 1 ) 
+      ENDDO
+      ENDDO
+
+      IF ( LEMEPSHIP ) THEN
+         EMISS(:,:,IDTNOx) = EMEP_NOx_SHIP(:,:)
+     &        * A / XNUMOL(IDTNOx)
+      ELSE 
+         EMISS(:,:,IDTNOx) = EMEP_NOx(:,:)
+     &        * A / XNUMOL(IDTNOx)
+      ENDIF
+      IF ( LEMEPSHIP ) THEN
+         EMISS(:,:,IDTCO) = EMEP_CO_SHIP(:,:)
+     &        * A / XNUMOL(IDTCO)
+      ELSE 
+         EMISS(:,:,IDTCO) = EMEP_CO(:,:)
+     &        * A / XNUMOL(IDTCO)
+      ENDIF
+
+      ! ALK4 (>= C4 alkanes)
+      EMISS(:,:,IDTALK4) = EMEP_ALK4(:,:)
+     &        * A / XNUMOL(IDTALK4)
+
+      ! MEK
+      EMISS(:,:,IDTMEK) = EMEP_MEK(:,:)
+     &        * A / XNUMOL(IDTMEK)
+
+      ! ALD2 (acetaldehyde)
+      EMISS(:,:,IDTALD2) = EMEP_ALD2(:,:)
+     &        * A / XNUMOL(IDTALD2)
+
+      ! PRPE (>= C3 alkenes)
+      EMISS(:,:,IDTPRPE) = EMEP_PRPE(:,:)
+     &        * A / XNUMOL(IDTPRPE)
+
+      ! C2H6 
+      EMISS(:,:,IDTC2H6) = EMEP_C2H6(:,:)
+     &        * A / XNUMOL(IDTC2H6)
+         
+      ! SO2
+      IF ( LEMEPSHIP ) THEN
+         EMISS(:,:,IDTSO2) = EMEP_SO2_SHIP(:,:)
+     &        * A / XNUMOL(IDTSO2)
+      ELSE 
+         EMISS(:,:,IDTSO2) = EMEP_SO2(:,:)
+     &        * A / XNUMOL(IDTSO2)
+      ENDIF
+
+      ! NH3
+      EMISS(:,:,IDTNH3) = EMEP_NH3(:,:)
+     &        * A / XNUMOL(IDTNH3)
+#endif
 
       !=================================================================
       ! Print emission totals
@@ -807,6 +1019,8 @@
 !  (4 ) Now emissions and base year are arguments. Output in Tg/month
 !        since this is called monthly (phs, 12/9/08)
 !  (5 ) Bug fix, now print out correct monthly EMEP totals (bmy, 1/30/09)
+!  01 Mar 2012 - R. Yantosca - Now use GET_AREA_M2(I,J,L) from grid_mod.F90
+!  22 Mar 2012 - M. Payer    - Remove print for C2H6 emissions.
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -877,31 +1091,29 @@
       SO2      = 0d0 
       NH3      = 0d0 
 
-      ! Loop over latitudes
+      ! Loop over grid boxes
       DO J = 1, JJPAR
-            
+      DO I = 1, IIPAR
+
          ! Surface area [cm2] * seconds in this year 
          ! Multiply by 1d-9 to convert from [kg] to [Tg]
-         A = GET_AREA_CM2( J ) * DAYS_IN_MONTH * 86400d0 * 1d-9 
+         A = GET_AREA_CM2( I, J, 1 ) * DAYS_IN_MONTH * 86400d0 * 1d-9 
          
-         ! Loop over longitudes
-         DO I = 1, IIPAR
+         ! Sum emissions (list NOx as Tg N)
+         NOX  = NOX  + ( EMEP_NOX (I,J) + EMEP_NOX_SHIP(I,J) )
+     &        * A * B(1)
+         CO   = CO   + ( EMEP_CO  (I,J) + EMEP_CO_SHIP(I,J)  )
+     &        * A * B(2) 
+         SO2  = SO2  + ( EMEP_SO2 (I,J) + EMEP_SO2_SHIP(I,J) )
+     &        * A * B(8) 
 
-            ! Sum emissions (list NOx as Tg N)
-            NOX  = NOX  + ( EMEP_NOX (I,J) + EMEP_NOX_SHIP(I,J) )
-     $           * A * B(1)
-            CO   = CO   + ( EMEP_CO  (I,J) + EMEP_CO_SHIP(I,J)  )
-     $           * A * B(2) 
-            SO2  = SO2  + ( EMEP_SO2 (I,J) + EMEP_SO2_SHIP(I,J) )
-     $           * A * B(8) 
-
-            ALK4 = ALK4 + EMEP_ALK4(I,J) * A * B(3) 
-            MEK  = MEK  + EMEP_MEK (I,J) * A * B(4) 
-            ALD2 = ALD2 + EMEP_ALD2(I,J) * A * B(5) 
-            PRPE = PRPE + EMEP_PRPE(I,J) * A * B(6) 
-            C2H6 = C2H6 + EMEP_C2H6(I,J) * A * B(7) 
-            NH3  = NH3  + EMEP_NH3 (I,J) * A * B(9) 
-         ENDDO
+         ALK4 = ALK4 + EMEP_ALK4(I,J) * A * B(3) 
+         MEK  = MEK  + EMEP_MEK (I,J) * A * B(4) 
+         ALD2 = ALD2 + EMEP_ALD2(I,J) * A * B(5) 
+         PRPE = PRPE + EMEP_PRPE(I,J) * A * B(6) 
+         C2H6 = C2H6 + EMEP_C2H6(I,J) * A * B(7) 
+         NH3  = NH3  + EMEP_NH3 (I,J) * A * B(9) 
+      ENDDO
       ENDDO
  
       !----------------
@@ -917,9 +1129,12 @@
       WRITE( 6, 110   ) 'MEK ', EMISS_YEAR, EMEP_MONTH, MEK,  ' C'
       WRITE( 6, 110   ) 'ALD2', EMISS_YEAR, EMEP_MONTH, ALD2, ' C'
       WRITE( 6, 110   ) 'PRPE', EMISS_YEAR, EMEP_MONTH, PRPE, ' C'
-      WRITE( 6, 110   ) 'C2H6', EMISS_YEAR, EMEP_MONTH, C2H6, ' C'
  110  FORMAT( 'EMEP anthropogenic ', a4, ' for ', i4, '/', i2.2,
      &        ': ', f13.6, ' Tg', a2 )
+
+      WRITE( 6, '(/,a,/)' ) 'EMEP_MOD: EMEP C2H6 anthro '       //
+     &   'emissions are too low. Using offline C2H6 emissions ' //
+     &   'from Yaping Xiao.'
 
       ! Fancy output
       WRITE( 6, '(a)' ) REPEAT( '=', 79 )
@@ -945,9 +1160,8 @@
 ! 
       USE BPCH2_MOD,      ONLY : READ_BPCH2
       USE DIRECTORY_MOD,  ONLY : DATA_DIR_1x1
-      USE REGRID_1x1_MOD, ONLY : DO_REGRID_1x1
-
-      USE CMN_SIZE_MOD       ! Size parameters
+      USE REGRID_A2A_MOD, ONLY : DO_REGRID_A2A
+      USE CMN_SIZE_MOD         ! Size parameters
 !
 ! !REVISION HISTORY: 
 !  18 Oct 2006 - R. Yantosca - Initial version
@@ -955,6 +1169,11 @@
 !        a rectangular box (bmy, 10/18/06)
 !  (2 ) Updated the mask file to correspond with the 200911 EMEP emissions
 !        (gvinken, 11/24/10)
+!  13 Mar 2012 - M. Cooper   - Changed regrid algorithm to map_a2a
+!  24 May 2012 - R. Yantosca - Fixed minor bugs in map_a2a implementation
+!  15 Aug 2012 - M. Payer    - Fixed minor bugs in regridding of mask; Also set
+!                              mask to 1 if greater than 0 (L. Murray)
+!  24 Aug 2012 - R. Yantosca - DO_REGRID_A2A now reads netCDF input file
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -963,21 +1182,21 @@
 !
       REAL*4                  :: ARRAY(I1x1,J1x1,1)
       CHARACTER(LEN=255)      :: FILENAME
+      CHARACTER(LEN=255)      :: LLFILENAME
+      REAL*8                  :: INGRID (I1x1,J1x1)
+      REAL*8                  :: OUTGRID(IIPAR,JJPAR)
 
       !=================================================================
       ! READ_EUROPE_MASK begins here!
       !=================================================================
 
       ! File name
-!-----------------------------------------------------------------------
-! Prior to 11/24/10:
-! Read in new mask file for EMEP emissions (gvinken, 11/24/10)
-!      FILENAME  = TRIM( DATA_DIR_1x1 ) // 
-!     &            'EMEP_200510/EMEP_mask.geos.1x1'
-!-----------------------------------------------------------------------
       FILENAME  = TRIM( DATA_DIR_1x1 ) // 
      &            'EMEP_200911/EMEP_mask.geos.1x1'
 
+      ! File with lat/lon edges for regridding
+      LLFILENAME = TRIM( DATA_DIR_1x1) //
+     &             'MAP_A2A_Regrid_201203/MAP_A2A_latlon_geos1x1.nc'
       ! Echo info
       WRITE( 6, 100 ) TRIM( FILENAME )
  100  FORMAT( '     - READ_EUROPE_MASK: Reading ', a )
@@ -987,8 +1206,16 @@
      &                 0d0,       I1x1,     J1x1,     
      &                 1,         ARRAY,    QUIET=.TRUE. ) 
 
+
       ! Regrid from GEOS 1x1 GRID to current model resolution
-      CALL DO_REGRID_1x1( 'unitless', ARRAY, EUROPE_MASK )
+      INGRID = ARRAY(:,:,1)
+      CALL DO_REGRID_A2A( LLFILENAME, I1x1,    J1x1,
+     &                    INGRID,     OUTGRID, PERAREA=0,
+     &                    netCDF=.TRUE.                   )  
+
+      EUROPE_MASK = OUTGRID 
+
+      WHERE ( EUROPE_MASK > 0D0 ) EUROPE_MASK = 1D0
 
       END SUBROUTINE READ_EUROPE_MASK
 !EOC
@@ -1011,7 +1238,6 @@
 !
       USE BPCH2_MOD,      ONLY : READ_BPCH2
       USE DIRECTORY_MOD,  ONLY : DATA_DIR
-      USE REGRID_1x1_MOD, ONLY : DO_REGRID_05x0666
 
       USE CMN_SIZE_MOD       ! Size parameters
 !
@@ -1070,13 +1296,13 @@
       USE BPCH2_MOD,      ONLY : READ_BPCH2, GET_TAU0
       USE TIME_MOD,       ONLY : EXPAND_DATE, GET_MONTH
       USE DIRECTORY_MOD,  ONLY : DATA_DIR_1x1 
-      USE REGRID_1x1_MOD, ONLY : DO_REGRID_1x1
       USE LOGICAL_MOD,    ONLY : LEMEPSHIP
       USE GRID_MOD,       ONLY : GET_AREA_CM2
       USE TRACERID_MOD,   ONLY : IDTNOx, IDTCO, IDTSO2, IDTNH3
+      USE REGRID_A2A_MOD, ONLY : DO_REGRID_A2A
 
-      USE CMN_SIZE_MOD       ! Size parameters
-      USE CMN_O3_MOD         ! SCALEYEAR
+      USE CMN_SIZE_MOD         ! Size parameters
+      USE CMN_O3_MOD           ! SCALEYEAR
 !
 ! !INPUT PARAMETERS:
 !
@@ -1093,6 +1319,10 @@
 !  28 Jan 2009 - P. Le Sager - Now account for LEMEPSHIP
 !  29 Oct 2009 - Added multi-species seasonality (amv)
 !  04 Jan 2010 - Extended to 2007, changed input format (amv)
+!  01 Mar 2012 - R. Yantosca - Now use GET_AREA_CM2(I,J,L) from grid_mod.F90
+!  13 Mar 2012 - M. Cooper   - Changed regrid algorithm to map_a2a
+!  24 May 2012 - R. Yantosca - Fixed minor bugs in map_a2a implementation
+!  24 Aug 2012 - R. Yantosca - DO_REGRID_A2A now reads netCDF input file
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -1105,6 +1335,9 @@
       CHARACTER(LEN=255)            :: FILENAME, DIR
       REAL*8                        :: EMEP_TAU, TAU, A, B
       INTEGER                       :: EMEP_NYMD, MN, RATIOID, I, J
+      CHARACTER(LEN=255)            :: LLFILENAME
+      REAL*8                        :: INGRID (I1x1, J1x1 )
+      REAL*8                        :: OUTGRID(IIPAR,JJPAR)
 
       ARRAY_1x1_SHIP(:,:,:) = 0.d0
       ARRAY_1x1_LAND(:,:,:) = 0.d0
@@ -1163,31 +1396,46 @@
          ! Apply Monthly Factors over land
          TAU = GET_TAU0( GET_MONTH(), 1, 2005)
 
-         IF ( TRACER .eq. IDTNOx ) THEN
-            FILENAME = TRIM( DIR ) // 'SeasonalVariation/' 
-     &        // 'NOx-EMEP-SeasonalScalar.geos.1x1'
-            RATIOID = 71
-         ELSEIF ( TRACER .eq. IDTCO ) THEN
-            FILENAME = TRIM( DIR ) // 'SeasonalVariation/'
-     &        // 'CO-EMEP-SeasonalScalar.geos.1x1'
-            RATIOID = 72
-         ELSEIF ( TRACER .eq. IDTSO2 ) THEN
-            FILENAME = TRIM( DIR ) // 'SeasonalVariation/'
-     &        // 'SOx-EMEP-SeasonalScalar.geos.1x1'
-            RATIOID = 73
-         ELSEIF ( TRACER .eq. IDTNH3 ) THEN
-            FILENAME = TRIM( DIR ) // 'SeasonalVariation/'
-     &        // 'NH3-EMEP-SeasonalScalar.geos.1x1'
-            RATIOID = 74
-         ENDIF
+         ! Select proper filename & tracer #
+         SELECT CASE( TRACER )
+
+            ! NOx
+            CASE( 1 )
+               RATIOID = 71
+               FILENAME = TRIM( DIR )          //
+     &                    'SeasonalVariation/' //
+     &                    'NOx-EMEP-SeasonalScalar.geos.1x1'
+
+            ! CO
+            CASE( 4 )
+               RATIOID = 72
+               FILENAME = TRIM( DIR )          //
+     &                    'SeasonalVariation/' //
+     &                    'CO-EMEP-SeasonalScalar.geos.1x1'
+
+            ! SO2
+            CASE( 26 )
+               RATIOID = 73
+               FILENAME = TRIM( DIR )          //
+     &                    'SeasonalVariation/' //
+     &                    'SOx-EMEP-SeasonalScalar.geos.1x1'
+
+            ! SO2
+            CASE( 30 )
+               RATIOID = 74
+               FILENAME = TRIM( DIR )          //
+     &                    'SeasonalVariation/' //
+     &                    'NH3-EMEP-SeasonalScalar.geos.1x1'
+
+         END SELECT
 
          ! Echo info
          WRITE( 6, 101 ) TRIM( FILENAME )
 
          ! Read data
          CALL READ_BPCH2( FILENAME, 'RATIO-2D', RATIOID,
-     &                    TAU,   I1x1,      J1x1,
-     &                    1,         ARRAY_1x1,     QUIET=.TRUE. )
+     &                    TAU,      I1x1,       J1x1,
+     &                    1,        ARRAY_1x1,  QUIET=.TRUE. )
 
          ARRAY_1x1_LAND(:,:,1) = ARRAY_1x1_LAND(:,:,1) 
      &                           * ARRAY_1x1(:,:,1)
@@ -1199,7 +1447,16 @@
      &                                       ARRAY_1x1_SHIP(:,:,1)
       IF ( wSHIP .eq. 2 ) ARRAY_1x1(:,:,1) = ARRAY_1x1_SHIP(:,:,1)
 
-      CALL DO_REGRID_1x1('kg/yr', ARRAY_1x1, ARRAY)
+      ! File with lat/lon edges for regridding
+      LLFILENAME = TRIM( DATA_DIR_1x1) //
+     &             'MAP_A2A_Regrid_201203/MAP_A2A_latlon_geos1x1.nc'
+
+      ! Regrid to current model resolution [kg/yr]
+      INGRID = ARRAY_1x1(:,:,1)
+      CALL DO_REGRID_A2A( LLFILENAME, I1x1,    J1x1,
+     &                    INGRID,     OUTGRID, PERAREA=1,
+     &                    netCDF=.TRUE.                   )
+      ARRAY  = OUTGRID
 
       ! Convert SOx to SO2 assuming a SOx is 95% SO2 over Europe, as used
       ! throughout GEOS-Chem, and as per Chin et al, 2000
@@ -1208,23 +1465,22 @@
       ! convert to molec/cm2 for consistency with previous
       ! emissions
       B = 0d0
-      IF ( IDTNOx .eq. TRACER ) B = 1.d3 / 46d0 * 6.0225d23
-      IF ( IDTCO  .eq. TRACER ) B = 1.d3 / 28d0 * 6.0225d23
-      IF ( IDTSO2 .eq. TRACER ) B = 1.d3 / 64d0 * 6.0225d23
-      IF ( IDTNH3 .eq. TRACER ) B = 1.d3 / 17d0 * 6.0225d23
+      IF ( TRACER .eq.  1 ) B = 1.d3 / 46d0 * 6.0225d23
+      IF ( TRACER .eq.  4 ) B = 1.d3 / 28d0 * 6.0225d23
+      IF ( TRACER .eq. 26 ) B = 1.d3 / 64d0 * 6.0225d23
+      IF ( TRACER .eq. 30 ) B = 1.d3 / 17d0 * 6.0225d23
 
-      ! Loop over latitudes
+      ! Loop over surface boxes
       DO J = 1, JJPAR
+      DO I = 1, IIPAR
 
          ! Surface area [cm2] * sec per year
-         A = GET_AREA_CM2( J ) * 365d0 * 86400d0
+         A = GET_AREA_CM2( I, J, 1 ) * 365d0 * 86400d0
 
-         ! Loop over longitudes
-         DO I = 1, IIPAR
+         ! Unit conversion
+         ARRAY(I,J) = ARRAY(I,J) / A * B
 
-            ARRAY(I,J) = ARRAY(I,J) / A * B
-
-         ENDDO
+      ENDDO
       ENDDO
 
       END SUBROUTINE READ_EMEP_UPDATED
@@ -1251,7 +1507,6 @@
       USE BPCH2_MOD,      ONLY : READ_BPCH2, GET_TAU0
       USE TIME_MOD,       ONLY : EXPAND_DATE, GET_MONTH
       USE DIRECTORY_MOD,  ONLY : DATA_DIR
-      USE REGRID_1x1_MOD, ONLY : DO_REGRID_05x0666
       USE LOGICAL_MOD,    ONLY : LEMEPSHIP
       USE TRACERID_MOD,   ONLY : IDTNOx, IDTCO, IDTSO2, IDTNH3
       USE GRID_MOD,       ONLY : GET_AREA_CM2
@@ -1273,6 +1528,7 @@
 !  28 Jan 2009 - A. v. Donkelaar, P. Le Sager - Initial version
 !  28 Jan 2009 - P. Le Sager - Now account for LEMEPSHIP
 !  29 Oct 2009 - Added multi-species seasonality (amv)
+!  01 Mar 2012 - R. Yantosca - Now use GET_AREA_CM2(I,J,L) from grid_mod.F90
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -1352,23 +1608,38 @@
          ! Apply Monthly Factors over land
          TAU = GET_TAU0( GET_MONTH(), 1, 2005)
 
-         IF ( TRACER .eq. 1 ) THEN
-            FILENAME = TRIM( DIR ) // 'SeasonalVariation/'
-     &        // 'NOx-EMEP-SeasonalScalar.geos.05x0666'
-            RATIOID = 71
-         ELSEIF ( TRACER .eq. 4 ) THEN
-            FILENAME = TRIM( DIR ) // 'SeasonalVariation/'
-     &        // 'CO-EMEP-SeasonalScalar.geos.05x0666'
-            RATIOID = 72
-         ELSEIF ( TRACER .eq. 26 ) THEN
-            FILENAME = TRIM( DIR ) // 'SeasonalVariation/'
-     &        // 'SOx-EMEP-SeasonalScalar.geos.05x0666'
-            RATIOID = 73
-         ELSEIF ( TRACER .eq. 30 ) THEN
-            FILENAME = TRIM( DIR ) // 'SeasonalVariation/'
-     &        // 'NH3-EMEP-SeasonalScalar.geos.05x0666'
-            RATIOID = 74
-         ENDIF
+         ! Select proper filename & tracer #
+         SELECT CASE( TRACER )
+
+            ! NOx
+            CASE( 1 )
+               RATIOID = 71
+               FILENAME = TRIM( DIR )          //
+     &                    'SeasonalVariation/' //
+     &                    'NOx-EMEP-SeasonalScalar.geos.05x0666'
+
+            ! CO
+            CASE( 4 )
+               RATIOID = 72
+               FILENAME = TRIM( DIR )          //
+     &                    'SeasonalVariation/' //
+     &                    'CO-EMEP-SeasonalScalar.geos.05x0666'
+
+            ! SO2
+            CASE( 26 )
+               RATIOID = 73
+               FILENAME = TRIM( DIR )          //
+     &                    'SeasonalVariation/' //
+     &                    'SOx-EMEP-SeasonalScalar.geos.05x0666'
+
+            ! SO2
+            CASE( 30 )
+               RATIOID = 74
+               FILENAME = TRIM( DIR )          //
+     &                    'SeasonalVariation/' //
+     &                    'NH3-EMEP-SeasonalScalar.geos.05x0666'
+
+         END SELECT
 
          ! Echo info
          WRITE( 6, 101 ) TRIM( FILENAME )
@@ -1399,23 +1670,22 @@
       ! convert to molec/cm2 for consistency with previous
       ! emissions
       B = 0d0
-      IF ( IDTNOx .eq. TRACER ) B = 1.d3 / 46d0 * 6.0225d23
-      IF ( IDTCO  .eq. TRACER ) B = 1.d3 / 28d0 * 6.0225d23
-      IF ( IDTSO2 .eq. TRACER ) B = 1.d3 / 64d0 * 6.0225d23
-      IF ( IDTNH3 .eq. TRACER ) B = 1.d3 / 17d0 * 6.0225d23
+      IF ( TRACER .eq.  1 ) B = 1.d3 / 46d0 * 6.0225d23
+      IF ( TRACER .eq.  4 ) B = 1.d3 / 28d0 * 6.0225d23
+      IF ( TRACER .eq. 26 ) B = 1.d3 / 64d0 * 6.0225d23
+      IF ( TRACER .eq. 30 ) B = 1.d3 / 17d0 * 6.0225d23
 
-      ! Loop over latitudes
+      ! Loop over surface boxes
       DO J = 1, JJPAR
+      DO I = 1, IIPAR
 
          ! Surface area [cm2] * sec per year
-         A = GET_AREA_CM2( J ) * 365d0 * 86400d0
+         A = GET_AREA_CM2( I, J, 1 ) * 365d0 * 86400d0
 
-         ! Loop over longitudes
-         DO I = 1, IIPAR
+         ! Unit conversion
+         ARRAY(I,J) = ARRAY(I,J) / A * B
 
-            ARRAY(I,J) = ARRAY(I,J) / A * B
-
-         ENDDO
+      ENDDO
       ENDDO
 
       END SUBROUTINE READ_EMEP_UPDATED_05x0666

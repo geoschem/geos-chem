@@ -264,7 +264,7 @@
 !  (4 ) MOISTQ is originally [g H2O/kg air/day], and is converted in
 !        READ_A6 to [kg H2O/kg air/s]. (bmy, 3/14/00)
 !  (5 ) Now reference PREACC, PRECON from "dao_mod.f" instead of from
-!        common block header file "F77_CMN_PRECIP" (bmy, 6/26/00)
+!        common block header file "CMN_PRECIP" (bmy, 6/26/00)
 !  (6 ) Now pass BXHEIGHT as an argument.  Also added to "dao_mod.f". 
 !        (bmy, 6/26/00)
 !  (7 ) Moved from "dao_mod.f" to "wetscav_mod.f".  Also made PREACC
@@ -573,11 +573,11 @@
 !        Giorgi & Chaimedes, as described in Jacob et al, 2000.
 !  (4 ) Now no longer suppress scavenging of HNO3 and aerosol below 258K.
 !        Updated comments, cosmetic changes.  Now set TK = T(I,J,L) since
-!        T is now sized (IIPAR,JJPAR,LLPAR) in "F77_CMN". (djj, hyl, bmy, 1/24/02)
+!        T is now sized (IIPAR,JJPAR,LLPAR) in "CMN". (djj, hyl, bmy, 1/24/02)
 !  (5 ) Eliminated obsolete code (bmy, 2/27/02)
 !  (6 ) Now reference T from "dao_mod.f".  Updated comments.  Now bundled 
 !        into "wetscav_mod.f". Now refererences "tracerid_mod.f".  Also 
-!        removed reference to F77_CMN since we don't need NSRCX. (bmy, 11/8/02)
+!        removed reference to CMN since we don't need NSRCX. (bmy, 11/8/02)
 !  (7 ) Now updated for carbon & dust aerosol tracers (rjp, bmy, 4/5/04)
 !  (8 ) Now updated for seasalt aerosol tracers (rjp, bec, bmy, 4/20/04)
 !  (9 ) Now updated for secondary aerosol tracers (rjp, bmy, 7/13/04)
@@ -791,10 +791,10 @@
 !        obsolete.  Updated comments. (bmy, 9/27/01)
 !  (5 ) Removed obsolete commented out code from 9/01 (bmy, 10/24/01)
 !  (6 ) Now reference BXHEIGHT, T from "dao_mod.f".  Also remove reference
-!        to "F77_CMN_NOX".  Updated comments.  Now bundled into "wetscav_mod.f".
+!        to "CMN_NOX".  Updated comments.  Now bundled into "wetscav_mod.f".
 !        Now also references "tracerid_mod.f".  Added internal routines
 !        WASHFRAC_AEROSOL and WASHFRAC_LIQ_GAS.  Also removed reference to
-!        F77_CMN since we don't need to use NSRCX here. (bmy, 11/6/02)
+!        CMN since we don't need to use NSRCX here. (bmy, 11/6/02)
 !  (7 ) Updated for carbon aerosol and dust tracers (rjp, bmy, 4/5/04)
 !  (8 ) Updated for seasalt aerosol tracers (rjp, bec, bmy, 4/20/04)
 !  (9 ) Updated for secondary organic aerosol tracers (rjp, bmy, 7/13/04)
@@ -2757,7 +2757,7 @@ coefs used
 !  the WETDEPBIN routine above (bmy, 11/8/02, 5/18/06)
 ! 
 !  NOTES:
-!  (1 ) Now references "tracerid_mod.f".  Also references "F77_CMN" in order to
+!  (1 ) Now references "tracerid_mod.f".  Also references "CMN" in order to
 !        pass variables NSRCX and NTRACE. (bmy, 11/8/02)
 !  (2 ) Updated for carbon aerosol & dust tracers (rjp, bmy, 4/5/04)
 !  (3 ) Updated for seasalt aerosol tracers.  Also added fancy output.

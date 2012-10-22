@@ -1,64 +1,83 @@
-! $Id: benchmark_mod.f,v 1.1 2009/09/16 14:06:41 bmy Exp $
+!------------------------------------------------------------------------------
+!          Harvard University Atmospheric Chemistry Modeling Group            !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !MODULE: benchmark_mod
+!
+! !DESCRIPTION: Module BENCHMARK\_MOD contains routines to save out initial 
+!  and final tracer masses which are needed for GEOS-Chem 1-month benchmark 
+!  simulations
+!\\
+!\\
+! !INTERFACE: 
+!
       MODULE BENCHMARK_MOD
 !
-!******************************************************************************
-!  Module BENCHMARK_MOD contains routines to save out initial and final
-!  tracer masses which are needed for GEOS-CHEM benchmark diagnostics.
-!  (bmy, 7/20/04, 10/3/05)
-!
-!  Module Variables:
-!  ============================================================================
-!  (1 ) INITIAL_FILE (CHAR*255) : Name of file w/ initial tracer mass
-!  (2 ) FINAL_FILE   (CHAR*255) : Name of file w/ final tracer mass
-!
-!  Module Routines:
-!  ============================================================================
-!  (1 ) STDRUN : Saves initial or final tracer mass to bpch file format
-!
-!  GEOS-CHEM modules referenced by biomass_mod.f
-!  ============================================================================
-!  (1 ) bpch2_mod.f     : Module containing routines for binary punch file I/O
-!  (2 ) file_mod.f          : Contains file unit numbers and error checks
-!  (3 ) logical_mod.f   : Module containing GEOS-CHEM logical switches
-!  (4 ) time_mod.f      : Module containing routines for computing time & date
-!  (5 ) tracer_mod.f    : Module containing GEOS-CHEM tracer array STT etc.
-!  (6 ) tracerid_mod.f  : Module containing pointers to tracers & emissions
-!
-!  NOTES:
-!  (1 ) Now expand date & time tokens in filenames (bmy, 1/31/05)
-!  (2 ) Now modified for GCAP grid (swu, bmy, 6/28/05)
-!  (3 ) Now make sure all USE statements are USE, ONLY (bmy, 10/3/05)
-!******************************************************************************
+! !USES:
 !
       IMPLICIT NONE
 #     include "define.h"
-
-      !=================================================================
-      ! MODULE VARIABLES
-      !=================================================================
-      CHARACTER(LEN=255) :: INITIAL_FILE
-      CHARACTER(LEN=255) :: FINAL_FILE
-
-      !=================================================================
-      ! MODULE ROUTINES -- Follow below the "CONTAINS" statement
-      !=================================================================
-      CONTAINS
-
+      PRIVATE
+!
+! !PUBLIC MEMBER FUNCTIONS:
+!
+      PUBLIC :: STDRUN
+!
+! !PUBLIC DATA MEMBERS:
+!
+      CHARACTER(LEN=255), PUBLIC :: INITIAL_FILE ! File w/ initial tracer mass
+      CHARACTER(LEN=255), PUBLIC :: FINAL_FILE   ! File w/ final   tracer mass
+!
+! !REVISION HISTORY:
+!  (1 ) Now expand date & time tokens in filenames (bmy, 1/31/05)
+!  (2 ) Now modified for GCAP grid (swu, bmy, 6/28/05)
+!  (3 ) Now make sure all USE statements are USE, ONLY (bmy, 10/3/05)
+!  01 Aug 2012 - R. Yantosca - Add reference to findFreeLUN from inqure_mod.F90
+!EOP
 !------------------------------------------------------------------------------
+!BOC
+      CONTAINS
+!EOC
+!------------------------------------------------------------------------------
+!          Harvard University Atmospheric Chemistry Modeling Group            !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !ROUTINE: 
+!
+! !DESCRIPTION: Subroutine STDRUN dumps the mass of either Ox [kg] or 222Rn, 
+!  210Pb, and 7Be [kg] at the start & end of each run.  This is necessary
+!  for GEOS-CHEM benchmarking.
 
+!\\
+!\\
+! !INTERFACE:
+!
       SUBROUTINE STDRUN( LBEGIN )
 !
-!******************************************************************************
-!  Subroutine STDRUN dumps the mass of either Ox [kg] or 222Rn, 210Pb, and 7Be
-!  [kg] at the start & end of each run.  This is necessary for GEOS-CHEM
-!  benchmarking.  (bmy, 8/12/02, 10/3/05)
+! !USES:
 !
-!  Arguments as Input:
-!  ============================================================================
-!  (1 ) LBEGIN (LOGICAL) : TRUE  denotes beginning of the run;
-!                          FALSE denotes the end of the run
+      USE BPCH2_MOD,    ONLY : OPEN_BPCH2_FOR_WRITE, BPCH2             
+      USE BPCH2_MOD,    ONLY : GET_HALFPOLAR,        GET_MODELNAME
+      USE FILE_MOD,     ONLY : IOERROR
+      USE TIME_MOD,     ONLY : EXPAND_DATE,          GET_NYMD
+      USE TIME_MOD,     ONLY : GET_NHMS,             GET_TAU
+      USE TRACER_MOD,   ONLY : ITS_A_FULLCHEM_SIM,   ITS_A_RnPbBe_SIM
+      USE TRACER_MOD,   ONLY : STT,                  N_TRACERS
+      USE TRACERID_MOD, ONLY : IDTOX
+      USE CMN_SIZE_MOD       ! Size parameters
+      USE inquireMod,   ONLY : findFreeLUN
 !
-!  NOTES:
+! !INPUT PARAMETERS: 
+!
+      ! TRUE  denotes beginning of simulation
+      ! FALSE denotes end of simulation
+      LOGICAL, INTENT(IN) :: LBEGIN 
+! 
+! !REVISION HISTORY: 
+!  12 Aug 2002 - R. Yantosca - Initial version
+!  03 Aug 2012 - R. Yantosca - Added ProTeX headers
 !  (1 ) Changed name from STDRUN_Ox to STDRUN, since we now can also save out 
 !        Rn/Pb/Be for NSRCX==1.  Also deleted obsolete code from 6/02.  Added 
 !        LBEGIN as an argument to determine if this is the start or end of the 
@@ -66,27 +85,17 @@
 !  (2 ) Bundled into "benchmark_mod.f" (bmy, 7/20/04)
 !  (3 ) Now expand date tokens in the filename (bmy, 1/31/05)
 !  (4 ) Now call GET_HALFPOLAR from "bpch2_mod.f" to get the HALFPOLAR flag
-!        value for GEOS or GCAP grids .  Also removed references to F77_CMN_DIAG
+!        value for GEOS or GCAP grids .  Also removed references to CMN_DIAG
 !        and TRCOFFSET. (bmy, 6/28/05)
 !  (5 ) Now make sure all USE statements are USE, ONLY (bmy, 10/3/05)
-!******************************************************************************
+!  03 Aug 2012 - R. Yantosca - Now use findFreeLUN to obtain file unit #'s
+!EOP
+!------------------------------------------------------------------------------
+!BOC
 !
-      ! References to F90 modules
-      USE BPCH2_MOD,    ONLY : OPEN_BPCH2_FOR_WRITE, BPCH2             
-      USE BPCH2_MOD,    ONLY : GET_HALFPOLAR,        GET_MODELNAME
-      USE FILE_MOD,     ONLY : IU_FILE,              IOERROR
-      USE TIME_MOD,     ONLY : EXPAND_DATE,          GET_NYMD
-      USE TIME_MOD,     ONLY : GET_NHMS,             GET_TAU
-      USE TRACER_MOD,   ONLY : ITS_A_FULLCHEM_SIM,   ITS_A_RnPbBe_SIM
-      USE TRACER_MOD,   ONLY : STT,                  N_TRACERS
-      USE TRACERID_MOD, ONLY : IDTOX
-
-      USE CMN_SIZE_MOD   ! Size parameters
-
-      ! Arguments
-      LOGICAL, INTENT(IN) :: LBEGIN 
-
-      ! Local variables
+! !LOCAL VARIABLES:
+!
+      INTEGER             :: IU_FILE
       INTEGER             :: N,        NYMD,     NHMS
       INTEGER, PARAMETER  :: IFIRST=1, JFIRST=1, LFIRST=1
       INTEGER, PARAMETER  :: CENTER180=1
@@ -106,6 +115,9 @@
       ! Return if we are not doing either a radon or fullchem stdrun
       IF ( ( .not. ITS_A_FULLCHEM_SIM() ) .and. 
      &     ( .not. ITS_A_RnPbBe_SIM() ) ) RETURN
+
+      ! Find a free file LUN
+      IU_FILE   = findFreeLUN()
 
       ! Define variables for binary punch file
       MODELNAME = GET_MODELNAME()
@@ -177,10 +189,6 @@
       ! Close file
       CLOSE( IU_FILE )
 
-      ! Return to MAIN program
       END SUBROUTINE STDRUN
-
-!------------------------------------------------------------------------------
-
-      ! End of module
+!EOC
       END MODULE BENCHMARK_MOD

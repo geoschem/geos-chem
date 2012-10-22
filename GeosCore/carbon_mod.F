@@ -173,6 +173,8 @@
 !  (25) Bug fix for EMIS_SAVE in EMITHIGH (bmy, 1/11/10)
 !  (26) Bug fix: call SOA_PARA_INIT (ensberg, bmy, 6/30/10)
 !  (27) Modified to include GFED3 (psk, 1/5/11)
+!  01 Mar 2012 - R. Yantosca - Now reference new grid_mod.F90
+!  30 Jul 2012 - R. Yantosca - Modifications for grid-independence
 !******************************************************************************
 !
       USE LOGICAL_MOD,    ONLY : LNLPBL ! (Lin,03/31/09)
@@ -272,7 +274,7 @@
 
 !------------------------------------------------------------------------------
 
-      SUBROUTINE CHEMCARBON
+      SUBROUTINE CHEMCARBON( am_I_Root )
 !
 !******************************************************************************
 !  Subroutine CHEMCARBON is the interface between the GEOS-CHEM main program 
@@ -284,13 +286,15 @@
 !  (1 ) Added code from the Caltech group for SOA chemistry.  Also now 
 !        reference "global_oh_mod.f", "global_o3_mod.f", "global_no3_mod.f".
 !        (rjp, bmy, 7/8/04)
-!  (2 ) Now reference LSOA and LEMIS from F77_CMN_SETUP.  Now only call OHNO3TIME
+!  (2 ) Now reference LSOA and LEMIS from CMN_SETUP.  Now only call OHNO3TIME
 !        if it hasn't been done before w/in EMISSCARBON. (rjp, bmy, 7/15/04)
 !  (3 ) Now reference LSOA, LEMIS, LPRT from "logical_mod.f".  Now reference
 !        STT and ITS_AN_AEROSOL_SIM from "tracer_mod.f" (bmy, 7/20/04)
 !  (4 ) Now make sure all USE statements are USE, ONLY (bmy, 10/3/05)
 !  (5 ) Now updated for SOA production from ISOP. (dkh, bmy, 6/1/06)
 !  (6 ) Bug fix for aerosol sim w/ 20 tracers (phs, 9/14/06)
+!  30 Jul 2012 - R. Yantosca - Now accept am_I_Root as an argument when
+!                              running with the traditional driver main.F
 !******************************************************************************
 !
       ! References to F90 modules
@@ -307,11 +311,16 @@
       USE TRACERID_MOD,   ONLY : IDTSOG5, IDTSOA5  ! (dkh, 03/24/07)  
       USE TRACERID_MOD,   ONLY : IDTSOAG, IDTSOAM
 
-      USE CMN_SIZE_MOD       ! Size parameters
-
-      ! Local variables
-      LOGICAL, SAVE           :: FIRSTCHEM = .TRUE.
-      INTEGER                 :: N, THISMONTH
+      USE CMN_SIZE_MOD                   ! Size parameters
+!
+! !INPUT PARAMETERS:
+!
+      LOGICAL, INTENT(IN) :: am_I_Root   ! Is this the root CPU?
+!
+! !LOCAL VARIABLES:
+!
+      LOGICAL, SAVE       :: FIRSTCHEM = .TRUE.
+      INTEGER             :: N, THISMONTH
 
       !=================================================================
       ! CHEMCARBON begins here!
@@ -399,25 +408,33 @@
       ! Chemistry for hydrophobic BC
       IF ( IDTBCPO > 0 ) THEN
          CALL CHEM_BCPO( STT(:,:,:,IDTBCPO) )
-         IF ( LPRT ) CALL DEBUG_MSG( '### CHEMCARBON: a CHEM_BCPO' )
+         IF ( LPRT .and. am_I_Root ) THEN
+            CALL DEBUG_MSG( '### CHEMCARBON: a CHEM_BCPO' )
+         ENDIF
       ENDIF
 
       ! Chemistry for hydrophilic BC
       IF ( IDTBCPI > 0 ) THEN
          CALL CHEM_BCPI( STT(:,:,:,IDTBCPI) )
-         IF ( LPRT ) CALL DEBUG_MSG( '### CHEMCARBON: a CHEM_BCPI' )
+         IF ( LPRT .and. am_I_Root ) THEN
+            CALL DEBUG_MSG( '### CHEMCARBON: a CHEM_BCPI' )
+         ENDIF
       ENDIF
 
       ! Chemistry for hydrophobic OC
       IF ( IDTOCPO > 0 ) THEN
          CALL CHEM_OCPO( STT(:,:,:,IDTOCPO) )
-         IF ( LPRT ) CALL DEBUG_MSG( '### CHEMCARBON: a CHEM_OCPO' )
+         IF ( LPRT .and. am_I_Root ) THEN
+            CALL DEBUG_MSG( '### CHEMCARBON: a CHEM_OCPO' )
+         ENDIF
       ENDIF
 
       ! Chemistry for hydrophilic OC
       IF ( IDTOCPI > 0 ) THEN 
          CALL CHEM_OCPI( STT(:,:,:,IDTOCPI) )
-         IF ( LPRT ) CALL DEBUG_MSG( '### CHEMCARBON: a CHEM_OCPI' )
+         IF ( LPRT .and. am_I_Root ) THEN
+            CALL DEBUG_MSG( '### CHEMCARBON: a CHEM_OCPI' )
+         ENDIF
       ENDIF
 
       !=================================================================
@@ -441,15 +458,19 @@
             ! but only if it hasn't been done in EMISSCARBON
             IF ( LSOA .and. ( .not. LEMIS ) ) THEN
                CALL OHNO3TIME
-               IF ( LPRT ) CALL DEBUG_MSG( '### CHEMCARB: a OHNO3TIME' )
+               IF ( LPRT .and. am_I_Root ) THEN
+                  CALL DEBUG_MSG( '### CHEMCARB: a OHNO3TIME' )
+               ENDIF
             ENDIF
          ENDIF
 
          ! Compute SOA chemistry
          ! NOTE: This is SOA production from the reversible mechanism only 
          ! (tmf, 12/07/07) 
-         CALL SOA_CHEMISTRY
-         IF ( LPRT ) CALL DEBUG_MSG( '### CHEMCARBON: a SOA_CHEM' )
+         CALL SOA_CHEMISTRY( am_I_Root )
+         IF ( LPRT .and. am_I_Root ) THEN
+            CALL DEBUG_MSG( '### CHEMCARBON: a SOA_CHEM' )
+         ENDIF
 
          ! If SOAG and SOAM are declared, switch on 
          !    SOA production from dicarbonyls (tmf, 12/07/07) 
@@ -461,13 +482,15 @@
 
             ! Cloud uptake
             CALL SOAG_CLOUD
-            IF ( LPRT )
-     &         CALL DEBUG_MSG('### CHEMCARBON: a SOAG_CLOUD')        
-
+            IF ( LPRT .and. am_I_Root ) THEN
+               CALL DEBUG_MSG('### CHEMCARBON: a SOAG_CLOUD')        
+            ENDIF
+               
             ! Aqueous aerosol uptake
             CALL SOAG_LIGGIO_DIFF
-            IF ( LPRT ) 
-     &         CALL DEBUG_MSG('### CHEMCARBON: a SOAG_LIGGIO_DIFF')        
+            IF ( LPRT .and. am_I_Root ) THEN 
+               CALL DEBUG_MSG('### CHEMCARBON: a SOAG_LIGGIO_DIFF')        
+            ENDIF
 
          ENDIF
 
@@ -479,14 +502,15 @@
 
             ! Cloud uptake
             CALL SOAM_CLOUD
-            IF ( LPRT ) 
-     &         CALL DEBUG_MSG('### CHEMCARBON: a SOAM_CLOUD')        
+            IF ( LPRT .and. am_I_Root ) THEN
+               CALL DEBUG_MSG('### CHEMCARBON: a SOAM_CLOUD')        
+            ENDIF
 
             ! Aqueous aerosol uptake
             CALL SOAM_LIGGIO_DIFF
-            IF ( LPRT ) 
-     &         CALL DEBUG_MSG( '### CHEMCARBON: a SOAM_LIGGIO_DIFF' )        
-           
+            IF ( LPRT .and. am_I_Root ) THEN
+               CALL DEBUG_MSG( '### CHEMCARBON: a SOAM_LIGGIO_DIFF' )        
+            ENDIF
          ENDIF
    
       ENDIF
@@ -512,6 +536,7 @@
 !        from "pbl_mix_mod.f" (bmy, 2/17/05)
 !  (3 ) Now references XNUMOL from "tracer_mod.f" (bmy, 10/25/05)
 !  (4 ) Add option for non-local PBL scheme (lin, 06/09/08)
+!  01 Mar 2012 - R. Yantosca - Now use GET_AREA_CM2(I,J,L) from grid_mod.F90
 !******************************************************************************
 !
       ! References to F90 modules
@@ -621,7 +646,7 @@
          IF ( ND44 > 0 .AND. FREQ > 0d0 ) THEN
 
              ! Surface area [cm2]
-             AREA_CM2 = GET_AREA_CM2( J )
+             AREA_CM2 = GET_AREA_CM2( I, J, L )
 
              ! Convert drydep loss from [kg/timestep] to [atoms C/cm2/s]  
              ! XNUMOL is the ratio [molec tracer/kg tracer]   
@@ -684,6 +709,7 @@
 !  (2 ) Replace PBLFRAC from "drydep_mod.f" with GET_FRAC_UNDER_PBLTOP from 
 !        "pbl_mix_mod.f" (bmy, 2/17/05)
 !  (3 ) Now references XNUMOL from "tracer_mod.f" (bmy, 10/25/05)
+!  01 Mar 2012 - R. Yantosca - Now use GET_AREA_CM2(I,J,L) from grid_mod.F90
 !******************************************************************************
 !
       ! References to F90 modules
@@ -780,7 +806,7 @@
             IF ( ND44 > 0 .and. FREQ > 0d0 ) THEN
   
                ! Surface area [cm2]
-               AREA_CM2 = GET_AREA_CM2( J )
+               AREA_CM2 = GET_AREA_CM2( I, J, L )
 
                ! Convert drydep loss from [kg/timestep] to [molec/cm2/s]
                FLUX = ( TC0 + CCV - CNEW ) 
@@ -861,6 +887,7 @@
 !  (2 ) Replace PBLFRAC from "drydep_mod.f" with GET_FRAC_UNDER_PBLTOP from 
 !        "pbl_mix_mod.f" (bmy, 2/17/05)
 !  (3 ) Now references XNUMOL from "tracer_mod.f" (bmy, 10/25/05)
+!  01 Mar 2012 - R. Yantosca - Now use GET_AREA_CM2(I,J,L) from grid_mod.F90
 !******************************************************************************
 !
       ! References to F90 modules
@@ -969,7 +996,7 @@
          IF ( ND44 > 0 .AND. FREQ > 0d0 ) THEN
 
              ! Surface area [cm2]
-             AREA_CM2 = GET_AREA_CM2( J )
+             AREA_CM2 = GET_AREA_CM2( I, J, L )
 
              ! Convert drydep loss from [kg/timestep] to [atoms C/cm2/s]
              ! XNUMOL is the ratio [molec tracer/kg tracer]     
@@ -1034,6 +1061,7 @@
 !        "pbl_mix_mod.f" (bmy, 2/17/05)
 !  (3 ) Bug fix: add BL_FRAC to the PRIVATE list (mak, bmy, 10/3/05)
 !  (4 ) Now refrerences XNUMOL from "tracer_mod.f" (bmy, 10/25/05)
+!  01 Mar 2012 - R. Yantosca - Now use GET_AREA_CM2(I,J,L) from grid_mod.F90
 !******************************************************************************
 !
       ! References to F90 modules
@@ -1046,8 +1074,8 @@
       USE TRACERID_MOD, ONLY : IDTOCPI
       USE TIME_MOD,     ONLY : GET_TS_CHEM
 
-      USE CMN_SIZE_MOD     ! Size parameters
-      USE CMN_DIAG_MOD     ! ND44
+      USE CMN_SIZE_MOD       ! Size parameters
+      USE CMN_DIAG_MOD       ! ND44
 
       ! Arguments
       REAL*8,  INTENT(INOUT) :: TC(IIPAR,JJPAR,LLPAR)
@@ -1128,7 +1156,7 @@
             IF ( ND44 > 0 ) THEN
 
                ! Surface area [cm2]
-               AREA_CM2 = GET_AREA_CM2( J )
+               AREA_CM2 = GET_AREA_CM2( I, J, L )
 
                ! Convert drydep loss from [kg/timestep] to [atoms C/cm2/s]
                FLUX = ( TC0 + CCV - CNEW ) 
@@ -1280,6 +1308,9 @@
 
       !=================================================================
       ! Loop over grid boxes
+      !
+      !%%% NOTE: NEED TO REPLACE LLTROP WITH LLPAR FOR GIGC
+      !%%% DO THIS LATER SINCE WE ARE NOT USING THE SOA MECHANISM YET
       !=================================================================
       DO L = 1, LLTROP
       DO J = 1, JJPAR
@@ -1287,6 +1318,9 @@
 
             ! Get 1-D index
             JLOOP   = JLOP( I, J, L )
+
+            ! JLOP equal 0 if we're not in the tropopause. (ccc,10/16/09)
+            IF ( JLOOP == 0 ) CYCLE
 
             ! Get RH  
             XRH     = RH( I, J, L )   ![%]
@@ -1483,6 +1517,9 @@
 
       !=================================================================
       ! Loop over grid boxes
+      !
+      !%%% NOTE: NEED TO REPLACE LLTROP WITH LLPAR FOR GIGC
+      !%%% DO THIS LATER SINCE WE ARE NOT USING THE SOA MECHANISM YET
       !=================================================================
       DO L = 1, LLTROP
       DO J = 1, JJPAR
@@ -1490,6 +1527,9 @@
 
             ! Get 1-D index
             JLOOP   = JLOP( I, J, L )
+
+            ! JLOP equal 0 if we're not in the tropopause. (ccc,10/16/09)
+            IF ( JLOOP == 0 ) CYCLE
 
             ! Get RH  
             XRH     = RH( I, J, L )   ![%]
@@ -1600,7 +1640,7 @@
 
 !------------------------------------------------------------------------------
 
-      SUBROUTINE SOA_CHEMISTRY
+      SUBROUTINE SOA_CHEMISTRY( am_I_Root )
 !
 !******************************************************************************
 !  Subroutine SOA_CHEMISTRY performs SOA formation.  This code is from the
@@ -1670,14 +1710,12 @@
 !  (5 ) Now only print out debug info when LPRT=T (bmy, 4/21/10)
 !  (6 ) Bug fix: call SOA_PARA_INIT (ensberg, bmy, 6/30/10)
 !  05 Oct 2011 - R. Yantosca - SUNCOS is not needed, so remove
+!  30 Jul 2012 - R. Yantosca - Now accept am_I_Root as an argument when
+!                              running with the traditional driver main.F
 !******************************************************************************
 !
       ! References to F90 modules
       USE ERROR_MOD,    ONLY : DEBUG_MSG
-!------------------------------------------------------------------------------
-! Prior to 10/5/11: 
-!      USE DAO_MOD,      ONLY : T, AD, AIRVOL, SUNCOS
-!------------------------------------------------------------------------------
       USE DAO_MOD,      ONLY : T, AD, AIRVOL
       USE DIAG_MOD,     ONLY : AD07_HC
       USE TRACER_MOD,   ONLY : STT 
@@ -1693,8 +1731,13 @@
       USE CMN_SIZE_MOD       ! Size parameters
       USE CMN_O3_MOD         ! XNUMOL
       USE CMN_DIAG_MOD       ! ND44
-
-      ! Local variables
+!
+! !INPUT PARAMETERS:
+!
+      LOGICAL, INTENT(IN) :: am_I_Root   ! Is this the root CPU?
+!
+! !LOCAL VARIABLES:
+!
       LOGICAL, SAVE         :: FIRST = .TRUE.
       INTEGER               :: I,        J,        L,        N    
       INTEGER               :: JHC,      IPR,      NOX ! (dkh, 10/30/06)  
@@ -1731,6 +1774,9 @@
 
          FIRST = .FALSE.
       ENDIF
+
+      !%%% NOTE: NEED TO REPLACE LLTROP WITH LLPAR FOR GIGC
+      !%%% DO THIS LATER SINCE WE ARE NOT USING THE SOA MECHANISM YET
 
 !$OMP PARALLEL DO
 !$OMP+DEFAULT( SHARED )
@@ -1998,37 +2044,39 @@
          DARO2_TOT(5) = DARO2_TOT(5) + SUM(GLOB_DARO2(:,:,:,1,3)) / 1d9
          DARO2_TOT(6) = DARO2_TOT(6) + SUM(GLOB_DARO2(:,:,:,2,3)) / 1d9
 
-         PRINT*, ' MAX DARO2 = ',   MAXLOC(GLOB_DARO2(:,:,:,1,1)),
-     &                              MAXVAL(GLOB_DARO2(:,:,:,1,1))
-         PRINT*, 'GLOB_DARO2 11 =', DARO2_TOT(1),
-     &                              DARO2_TOT(1) - DARO2_TOT_0(1)
-         PRINT*, 'GLOB_DARO2 21 =', DARO2_TOT(2),
-     &                              DARO2_TOT(2) - DARO2_TOT_0(2)
-         PRINT*, 'GLOB_DARO2 12 =', DARO2_TOT(3),
-     &                              DARO2_TOT(3) - DARO2_TOT_0(3)
-         PRINT*, 'GLOB_DARO2 22 =', DARO2_TOT(4),
-     &                              DARO2_TOT(4) - DARO2_TOT_0(4)
-         PRINT*, 'GLOB_DARO2 13 =', DARO2_TOT(5),
-     &                              DARO2_TOT(5) - DARO2_TOT_0(5)
-         PRINT*, 'GLOB_DARO2 23 =', DARO2_TOT(6),
-     &                              DARO2_TOT(6) - DARO2_TOT_0(6)
+         IF ( am_I_Root ) THEN
+            PRINT*, ' MAX DARO2 = ',   MAXLOC(GLOB_DARO2(:,:,:,1,1)),
+     &                                 MAXVAL(GLOB_DARO2(:,:,:,1,1))
+            PRINT*, 'GLOB_DARO2 11 =', DARO2_TOT(1),
+     &                                 DARO2_TOT(1) - DARO2_TOT_0(1)
+            PRINT*, 'GLOB_DARO2 21 =', DARO2_TOT(2),
+     &                                 DARO2_TOT(2) - DARO2_TOT_0(2)
+            PRINT*, 'GLOB_DARO2 12 =', DARO2_TOT(3),
+     &                                 DARO2_TOT(3) - DARO2_TOT_0(3)
+            PRINT*, 'GLOB_DARO2 22 =', DARO2_TOT(4),
+     &                                 DARO2_TOT(4) - DARO2_TOT_0(4)
+            PRINT*, 'GLOB_DARO2 13 =', DARO2_TOT(5),
+     &                                 DARO2_TOT(5) - DARO2_TOT_0(5)
+            PRINT*, 'GLOB_DARO2 23 =', DARO2_TOT(6),
+     &                                 DARO2_TOT(6) - DARO2_TOT_0(6)
 
-         ! hotp 7/22/09 diagnostic
-         ! convert daven's numbers to be kg of parent HC reacted, not kg of
-         ! RO2 reacted, use Marom/Mro2
+            ! hotp 7/22/09 diagnostic
+            ! convert daven's numbers to be kg of parent HC reacted, not kg of
+            ! RO2 reacted, use Marom/Mro2
          PRINT*,'Accumulated parent HC reacted to RO2H,N products in Tg'
-         PRINT*, 'GLOB_DBRO2 11 =', DARO2_TOT(1)*78/159,
-     &        (DARO2_TOT(1) - DARO2_TOT_0(1))*78/159
-         PRINT*, 'GLOB_DBRO2 21 =', DARO2_TOT(2)*78/159,
-     &        (DARO2_TOT(2) - DARO2_TOT_0(2))*78/159
-         PRINT*, 'GLOB_DTRO2 12 =', DARO2_TOT(3)*92/173,
-     &        (DARO2_TOT(3) - DARO2_TOT_0(3))*92/173
-         PRINT*, 'GLOB_DTRO2 22 =', DARO2_TOT(4)*92/173,
-     &        (DARO2_TOT(4) - DARO2_TOT_0(4))*92/173
-         PRINT*, 'GLOB_DXRO2 13 =', DARO2_TOT(5)*106/187,
-     &        (DARO2_TOT(5) - DARO2_TOT_0(5))*106/187
-         PRINT*, 'GLOB_DXRO2 23 =', DARO2_TOT(6)*106/187,
-     &        (DARO2_TOT(6) - DARO2_TOT_0(6))*106/187
+            PRINT*, 'GLOB_DBRO2 11 =', DARO2_TOT(1)*78/159,
+     &           (DARO2_TOT(1) - DARO2_TOT_0(1))*78/159
+            PRINT*, 'GLOB_DBRO2 21 =', DARO2_TOT(2)*78/159,
+     &           (DARO2_TOT(2) - DARO2_TOT_0(2))*78/159
+            PRINT*, 'GLOB_DTRO2 12 =', DARO2_TOT(3)*92/173,
+     &           (DARO2_TOT(3) - DARO2_TOT_0(3))*92/173
+            PRINT*, 'GLOB_DTRO2 22 =', DARO2_TOT(4)*92/173,
+     &           (DARO2_TOT(4) - DARO2_TOT_0(4))*92/173
+            PRINT*, 'GLOB_DXRO2 13 =', DARO2_TOT(5)*106/187,
+     &           (DARO2_TOT(5) - DARO2_TOT_0(5))*106/187
+            PRINT*, 'GLOB_DXRO2 23 =', DARO2_TOT(6)*106/187,
+     &           (DARO2_TOT(6) - DARO2_TOT_0(6))*106/187
+         ENDIF
       ENDIF
       !------------------------------------------------------------------------
 
@@ -3819,6 +3867,7 @@ c
 !  (3 ) Bug fix: Add BL_FRAC to the PRIVATE list (mak, bmy, 10/3/05)
 !  (4 ) Now references XNUMOL from "tracer_mod.f" (bmy, 10/25/05)
 !  (5 ) Add non-local PBL scheme option for dry deposition (lin, 06/09/08)
+!  01 Mar 2012 - R. Yantosca - Now use GET_AREA_CM2(I,J,L) from grid_mod.F90
 !******************************************************************************
 !
       ! References to F90 modules
@@ -3900,7 +3949,7 @@ c
             IF ( ND44 > 0 ) THEN
 
                ! Surface area [cm2]
-               AREA_CM2 = GET_AREA_CM2( J )
+               AREA_CM2 = GET_AREA_CM2( I, J, L )
 
                ! Convert drydep loss from [kg/timestep] to [atoms C/cm2/s]
                FLUX = ( TC0 - CNEW ) 
@@ -3952,14 +4001,18 @@ c
 
 !------------------------------------------------------------------------------
 
+#if defined( DEVEL )
+      SUBROUTINE EMISSCARBON(EMISSIONS)
+#else
       SUBROUTINE EMISSCARBON
+#endif
 !
 !******************************************************************************
 !  Subroutine EMISSCARBON is the interface between the GEOS-CHEM model
 !  and the CARBONACEOUS AEROSOL emissions (rjp, bmy, 1/24/02, 9/25/06)
 !
 !  NOTES:
-!  (1 ) Now references LSOA from "F77_CMN_SETUP".  Also now call OHNO3TIME since
+!  (1 ) Now references LSOA from "CMN_SETUP".  Also now call OHNO3TIME since
 !        biogenic emissions also have a diurnal variation. (rjp, bmy, 7/15/04)
 !  (2 ) Now references LSOA and LPRT from "logical_mod.f".  Now references
 !        STT from "tracer_mod.f" (bmy, 7/20/04)
@@ -3990,12 +4043,20 @@ c
       USE CMN_SIZE_MOD    ! Size parameters
       USE CMN_DIAG_MOD    ! ND07
 
+#if defined( DEVEL )
+      USE TRACERID_MOD, ONLY : IDTBCPI, IDTBCPO, IDTOCPI, IDTOCPO
+      USE TRACER_MOD, ONLY   : N_TRACERS 
+#endif
+
       ! Local variables
       LOGICAL, SAVE        :: FIRST = .TRUE.
       INTEGER              :: I, J, MONTH, N
       REAL*8               :: BCSRC(IIPAR,JJPAR,2)
       REAL*8               :: OCSRC(IIPAR,JJPAR,2)
 
+#if defined( DEVEL )
+      REAL*8, INTENT(INOUT)      :: EMISSIONS(IIPAR,JJPAR,N_TRACERS+1)
+#endif
       !=================================================================
       ! EMISSCARBON begins here!
       !
@@ -4161,6 +4222,17 @@ c
       CALL EMITHIGH( BCSRC, OCSRC )
       IF ( LPRT ) CALL DEBUG_MSG( '### EMISCARB: after EMITHIGH' )
 
+#if defined( DEVEL )
+      IF (IDTBCPI /= 0) EMISSIONS(:,:,IDTBCPI) = 
+     &                    EMISSIONS(:,:,IDTBCPI) + BCSRC(:,:,1) ! Hydrophylic BC
+      IF (IDTBCPI /= 0) EMISSIONS(:,:,IDTBCPO) = 
+     &                    EMISSIONS(:,:,IDTBCPO) + BCSRC(:,:,2) ! Hydrophobic BC
+      IF (IDTBCPI /= 0) EMISSIONS(:,:,IDTOCPI) = 
+     &                    EMISSIONS(:,:,IDTOCPI) + OCSRC(:,:,1) ! Hydrophylic OC
+      IF (IDTBCPI /= 0) EMISSIONS(:,:,IDTOCPO) = 
+     &                    EMISSIONS(:,:,IDTOCPO) + OCSRC(:,:,2) ! Hydrophylic OC
+#endif
+
       !=================================================================
       ! ND07 diagnostic: Carbon aerosol emissions [kg/timestep]
       !=================================================================
@@ -4254,15 +4326,12 @@ c
 !                              computed @ 30 mins after each GMT hour
 !  07 Oct 2011 - R. Yantosca - Rename SUNCOS30 to SUNCOS_MID, which is the
 !                              cos(SZA) at the midpt of the chemistry timestep
+!  08 Dec 2011 - M. Payer    - Remove GEIA biogenic emissions option
 !******************************************************************************
 !
       ! References to F90 modules
       USE BPCH2_MOD,     ONLY : GET_NAME_EXT_2D,  GET_RES_EXT
       USE BPCH2_MOD,     ONLY : GET_TAU0,         READ_BPCH2
-!-----------------------------------------------------------------------------
-! Prior to 10/7/11:
-!      USE DAO_MOD,       ONLY : SUNCOS
-!-----------------------------------------------------------------------------
       USE DAO_MOD,       ONLY : SUNCOS_MID
       USE DIRECTORY_MOD, ONLY : DATA_DIR
       USE LOGICAL_MOD,   ONLY : LMEGANMONO,       LSOA
@@ -4301,23 +4370,10 @@ c
       REAL*8                 :: SC, PDF, PDR
 
       ! External functions
-!-- Moved to meganut_mod.f
-!      REAL*8,  EXTERNAL      :: XLTMMP
-      REAL*8,  EXTERNAL      :: EMMONOT
 
       !=================================================================
       ! BIOGENIC_OC begins here!
       !=================================================================
-
-      ! Get ISOPRENE baseline emissions (first-time only)
-      IF ( FIRST ) THEN
-         CALL RDISOPT( CONVERT )
-         CALL RDMONOT( GMONOT  )
-         CALL SETBASE( CONVERT, GMONOT )
-
-         ! Resety first-time flag
-         FIRST = .FALSE.
-      ENDIF
 
       !=================================================================
       ! If secondary organic aerosols are turned off ...
@@ -4341,26 +4397,15 @@ c
             ! ** MEGAN v2.1 **
             ! Cosine of solar zenith angle   (mpb,2009) 
             ! Diffuse and direct PAR         (mpb,2009)
-!------------------------------------------------------------------------------
-! Prior to 10/5/11:
-! Now compute MEGAN with the cos(SZA) @ 30 mins after the hour (bmy, 10/5/11)
-!            SC   = SUNCOS(IJLOOP)   
-!------------------------------------------------------------------------------
             SC   = SUNCOS_MID(IJLOOP)   
             PDR  = PARDR(I,J)
             PDF  = PARDF(I,J)
             ! +++++++++++++++++++++++++++++++++++++++++
 
-            ! Get monoterpenes from MEGAN or GEIA [kg C/box]
+            ! Get monoterpenes from MEGAN [kg C/box]
             IF ( LMEGANMONO ) THEN
-               ! +++++++++++++++++++++++++++++++++++++++++
-               ! New formulation for MEGAN (mpb,2009)
                EMMO = GET_EMMONOT_MEGAN( I, J, SC, TMMP,
      &                                   PDR, PDF, 1d0 )
-               ! +++++++++++++++++++++++++++++++++++++++++
-               ! EMMO = GET_EMMONOT_MEGAN( I, J, TMMP, 1d0 )
-            ELSE
-               EMMO = EMMONOT( IJLOOP, TMMP, 1d0 )
             ENDIF
 
             ! Fraction of EMMO that converts into OC [kg/box/timestep]
@@ -4431,25 +4476,15 @@ c
             ! ** MEGAN v2.1 **
             ! Cosine of solar zenith angle   (mpb,2009) 
             ! Diffuse and direct PAR         (mpb,2009)
-!------------------------------------------------------------------------------
-! Prior to 10/5/11:
-! Now compute MEGAN with the cos(SZA) @ 30 mins after the hour (bmy, 10/5/11)
-!            SC   = SUNCOS(IJLOOP)   
-!------------------------------------------------------------------------------
             SC   = SUNCOS_MID(IJLOOP)   
             PDR  = PARDR(I,J)
             PDF  = PARDF(I,J)
             ! +++++++++++++++++++++++++++++++++++++++++
 
-            ! Get monoterpenes from MEGAN or GEIA [kg C/box]
+            ! Get monoterpenes from MEGAN [kg C/box]
             IF ( LMEGANMONO ) THEN
-               ! +++++++++++++++++++++++++++++++++++++++++
-               ! New formulation for MEGAN (mpb,2009)
                TERP_ORGC(I,J) = GET_EMMONOT_MEGAN( I, J, SC, TMMP,
      &                                   PDR, PDF, 1d0 )               
-               ! TERP_ORGC(I,J) = GET_EMMONOT_MEGAN( I, J, TMMP, 1d0 )
-            ELSE
-               TERP_ORGC(I,J) = EMMONOT( IJLOOP, TMMP, 1d0 )
             ENDIF
 
             !---------------------------------------------------
@@ -4457,12 +4492,6 @@ c
             !---------------------------------------------------
             IF ( SUNCOS_MID(IJLOOP) > 0d0 .and. TCOSZ(I,J) > 0d0 ) THEN
                DIUR_ORVC(I,J) = GEIA_ORVC(I,J)*
-!-----------------------------------------------------------------------------
-! Prior to 10/5/11:
-! Now use SUNCOS_MID array instead of SUNCOS (bmy, 10/5/11)
-!     &                          ( SUNCOS(IJLOOP) / TCOSZ(I,J) ) *
-!     &                          ( 1440d0        / GET_TS_CHEM() )
-!-----------------------------------------------------------------------------
      &                          ( SUNCOS_MID(IJLOOP) / TCOSZ(I,J) ) *
      &                          ( 1440d0           / GET_TS_CHEM() )
 
@@ -4629,18 +4658,24 @@ c
 !  (3 ) Now can read data for both GEOS and GCAP grids (bmy, 8/16/05)
 !  (4 ) Now compute future emissions of BC,OC if necessary. (swu, bmy, 5/30/06)
 !  (5 ) Now reads in monthly data from Bond et al [2007] (eml, 4/17/09)
+!  08 Mar 2012 - M. Payer    - Added modifications for historical emissions of
+!                              BC/POA (E. Leibensperger)
 !******************************************************************************
 !
       ! References to F90 modules
       USE BPCH2_MOD,            ONLY : GET_NAME_EXT_2D, GET_RES_EXT
       USE BPCH2_MOD,            ONLY : GET_TAU0,        READ_BPCH2
-      USE DIRECTORY_MOD,        ONLY : DATA_DIR
+      USE DIRECTORY_MOD,        ONLY : DATA_DIR,        DATA_DIR_1x1
       USE FUTURE_EMISSIONS_MOD, ONLY : GET_FUTURE_SCALE_BCbf
       USE FUTURE_EMISSIONS_MOD, ONLY : GET_FUTURE_SCALE_BCff
       USE FUTURE_EMISSIONS_MOD, ONLY : GET_FUTURE_SCALE_OCbf
       USE FUTURE_EMISSIONS_MOD, ONLY : GET_FUTURE_SCALE_OCff
       USE LOGICAL_MOD,          ONLY : LFUTURE
       USE TIME_MOD,             ONLY : GET_TS_EMIS
+![eml
+      USE LOGICAL_MOD,          ONLY : LHIST, LBIOFUEL, LANTHRO
+      USE TIME_MOD,             ONLY : GET_HISTYR
+!eml]
       USE TRANSFER_MOD,         ONLY : TRANSFER_2D
 
       USE CMN_SIZE_MOD             ! Size parameters
@@ -4655,6 +4690,12 @@ c
       REAL*8                        :: STEPS_PER_MON
       REAL*8                        :: FD2D(IIPAR,JJPAR)
       CHARACTER(LEN=255)            :: FILENAME
+![eml
+      CHARACTER(LEN=  4)            :: CHISTYR
+!     REAL*4                        :: GENERIC_1x1(I1x1,J1x1-1,1)
+      REAL*4                        :: GENERIC_1x1(IIPAR,JJPAR,1)
+
+!eml]
 
       ! Hydrophilic fraction of BLACK CARBON (aka ELEMENTAL CARBON)
       REAL*8, PARAMETER             :: FHB = 0.2d0
@@ -4669,167 +4710,263 @@ c
       ! Number of emission timesteps per month
       STEPS_PER_MON = ( ( 1440 * NDAYS ( THISMONTH ) ) / GET_TS_EMIS() )
 
-      ! Get TAU0 value to index the punch file
-      XTAU          = GET_TAU0( THISMONTH, 1, 2000 )   
+![eml Only if LANTHRO
+      IF( LANTHRO ) THEN
 
+         !=================================================================
+         ! Read BLACK CARBON (aka ELEMENTAL CARBON) emission from 
+         ! anthropogenic sources as tracer #34 in [kg C/month].  
+         ! Then convert to [kg C/timestep] and store in ANTH_BLKC.
+         !=================================================================
+         IF( .not. LHIST ) THEN
+            ! Get TAU0 value to index the punch file
+            XTAU          = GET_TAU0( THISMONTH, 1, 2000 )   
       
-      !=================================================================
-      ! Read BLACK CARBON (aka ELEMENTAL CARBON) emission from 
-      ! anthropogenic sources as tracer #34 in [kg C/month].  
-      ! Then convert to [kg C/timestep] and store in ANTH_BLKC.
-      !=================================================================
-      ! Filename for carbon aerosol from fossil fuel use
-      FILENAME = TRIM( DATA_DIR )                         // 
-     &           'carbon_200909/BCOC_TBond_fossil.2000.'  // 
-     &           GET_NAME_EXT_2D() // '.' // GET_RES_EXT()
+            ! Filename for carbon aerosol from fossil fuel use
+            FILENAME = TRIM( DATA_DIR )                         // 
+     &                 'carbon_200909/BCOC_TBond_fossil.2000.'  // 
+     &                 GET_NAME_EXT_2D() // '.' // GET_RES_EXT()
+
+            ! Echo info
+            WRITE( 6, 100 ) TRIM( FILENAME )
+ 100        FORMAT( '     - ANTHRO_CARB_TBOND: Reading ', a )     
+
+            ! Read BLCK emission
+            CALL READ_BPCH2( FILENAME, 'ANTHSRCE', 34, 
+     &                       XTAU,      IIPAR,     JJPAR,     
+     &                       1,         ARRAY,     QUIET=.TRUE. ) 
+
+            ! Cast to REAL*8 and resize
+            CALL TRANSFER_2D( ARRAY(:,:,1), FD2D )
       
+         ELSE
 
-      ! Echo info
-      WRITE( 6, 100 ) TRIM( FILENAME )
- 100  FORMAT( '     - ANTHRO_CARB_TBOND: Reading ', a )
+            XTAU = GET_TAU0( THISMONTH, 1, GET_HISTYR() )
+            WRITE( CHISTYR, '(I4)' ) GET_HISTYR()
 
-      ! Read BLCK emission
-      CALL READ_BPCH2( FILENAME, 'ANTHSRCE', 34, 
-     &                 XTAU,      IIPAR,     JJPAR,     
-     &                 1,         ARRAY,     QUIET=.TRUE. ) 
+            ! Read historical emissions of BC
+            FILENAME = TRIM( DATA_DIR_1x1 )                   // 
+     &                 'historical_emissions_201203/BCOC/'    //
+     &                 'BCOC_anthsrce.'  // CHISTYR           // 
+     &                 '.'               // GET_NAME_EXT_2D() // 
+     &                 '.1x1'
 
-      ! Cast to REAL*8 and resize
-      CALL TRANSFER_2D( ARRAY(:,:,1), FD2D )
+            ! Echo info
+            WRITE( 6, 100 ) TRIM( FILENAME )
+
+            ! Read BLCK emission
+            CALL READ_BPCH2( FILENAME, 'ANTHSRCE',   34, 
+     &                       XTAU,      I1x1,        J1x1-1,     
+     &                       1,         GENERIC_1x1, QUIET=.TRUE. ) 
+
+            ! Cast to REAL*8 and resize
+            CALL TRANSFER_2D( GENERIC_1x1(:,:,1), FD2D )
+
+         ENDIF ! LHIST
+!eml]
+
 
 !$OMP PARALLEL DO
 !$OMP+DEFAULT( SHARED )
 !$OMP+PRIVATE( I, J, FUT_SCL )
-      DO J = 1, JJPAR
-      DO I = 1, IIPAR
+         DO J = 1, JJPAR
+         DO I = 1, IIPAR
          
-         ! Hydrophilic BLACK CARBON from anthropogenics [kg C/timestep]
-         ANTH_BLKC(I,J,1) =          FHB   * FD2D(I,J) / STEPS_PER_MON
+            ! Hydrophilic BLACK CARBON from anthropogenics [kg C/timestep]
+            ANTH_BLKC(I,J,1) =          FHB   * FD2D(I,J) /
+     &                         STEPS_PER_MON
          
-         ! Hydrophobic BLACK CARBON from anthropogenics [kg C/timestep]
-         ANTH_BLKC(I,J,2) = ( 1.d0 - FHB ) * FD2D(I,J) / STEPS_PER_MON
+            ! Hydrophobic BLACK CARBON from anthropogenics [kg C/timestep]
+            ANTH_BLKC(I,J,2) = ( 1.d0 - FHB ) * FD2D(I,J) / 
+     &                         STEPS_PER_MON
 
-         ! Compute future emissions of BLACK CARBON (if necessary)
-         IF ( LFUTURE ) THEN
-            FUT_SCL          = GET_FUTURE_SCALE_BCff( I, J )
-            ANTH_BLKC(I,J,1) = ANTH_BLKC(I,J,1) * FUT_SCL
-            ANTH_BLKC(I,J,2) = ANTH_BLKC(I,J,2) * FUT_SCL
-         ENDIF
-      ENDDO
-      ENDDO
+            ! Compute future emissions of BLACK CARBON (if necessary)
+            IF ( LFUTURE ) THEN
+               FUT_SCL          = GET_FUTURE_SCALE_BCff( I, J )
+               ANTH_BLKC(I,J,1) = ANTH_BLKC(I,J,1) * FUT_SCL
+               ANTH_BLKC(I,J,2) = ANTH_BLKC(I,J,2) * FUT_SCL
+            ENDIF
+         ENDDO
+         ENDDO
 !$OMP END PARALLEL DO
 
-      !=================================================================
-      ! Read ORGANIC CARBON from anthropogenic sources as tracer #35
-      ! in [kg C/month].  Then Convert to [kg C/timestep] and store in 
-      ! ANTH_ORGC.
-      !=================================================================
-      CALL READ_BPCH2( FILENAME, 'ANTHSRCE', 35, 
-     &                 XTAU,      IIPAR,     JJPAR,     
-     &                 1,         ARRAY,     QUIET=.TRUE. ) 
+         !=================================================================
+         ! Read ORGANIC CARBON from anthropogenic sources as tracer #35
+         ! in [kg C/month].  Then Convert to [kg C/timestep] and store in 
+         ! ANTH_ORGC.
+         !=================================================================
+         IF( .not. LHIST ) THEN
 
-      ! Cast to REAL*8 and resize
-      CALL TRANSFER_2D( ARRAY(:,:,1), FD2D )
+            CALL READ_BPCH2( FILENAME, 'ANTHSRCE', 35, 
+     &                       XTAU,      IIPAR,     JJPAR,     
+     &                       1,         ARRAY,     QUIET=.TRUE. ) 
+
+            ! Cast to REAL*8 and resize
+            CALL TRANSFER_2D( ARRAY(:,:,1), FD2D )
+
+         ELSE
+
+            ! Read historical emissions of BC
+            CALL READ_BPCH2( FILENAME, 'ANTHSRCE',   35, 
+     &                       XTAU,      I1x1,        J1x1-1,     
+     &                       1,         GENERIC_1x1, QUIET=.TRUE. ) 
+
+            ! Cast to REAL*8 and resize
+            CALL TRANSFER_2D( GENERIC_1x1(:,:,1), FD2D )
+
+         ENDIF ! LHIST
 
 !$OMP PARALLEL DO
 !$OMP+DEFAULT( SHARED )
 !$OMP+PRIVATE( I, J, FUT_SCL )
-      DO J = 1, JJPAR
-      DO I = 1, IIPAR
+         DO J = 1, JJPAR
+         DO I = 1, IIPAR
 
-         ! Hydrophilic ORGANIC CARBON from anthropogenics [kg C/timestep]
-         ANTH_ORGC(I,J,1) =          FHO *   FD2D(I,J) / STEPS_PER_MON
+            ! Hydrophilic ORGANIC CARBON from anthropogenics [kg C/timestep]
+            ANTH_ORGC(I,J,1) =          FHO *   FD2D(I,J) / 
+     &                         STEPS_PER_MON
 
-         ! Hydrophobic ORGANIC CARBON from anthropogenics [kgC/timestep]
-         ANTH_ORGC(I,J,2) = ( 1.d0 - FHO ) * FD2D(I,J) / STEPS_PER_MON
+            ! Hydrophobic ORGANIC CARBON from anthropogenics [kgC/timestep]
+            ANTH_ORGC(I,J,2) = ( 1.d0 - FHO ) * FD2D(I,J) / 
+     &                         STEPS_PER_MON
 
-         ! Compute future emissions of ORGANIC CARBON (if necessary)
-         IF ( LFUTURE ) THEN
-            FUT_SCL          = GET_FUTURE_SCALE_OCff( I, J )
-            ANTH_ORGC(I,J,1) = ANTH_ORGC(I,J,1) * FUT_SCL
-            ANTH_ORGC(I,J,2) = ANTH_ORGC(I,J,2) * FUT_SCL
-         ENDIF
-      ENDDO
-      ENDDO
+            ! Compute future emissions of ORGANIC CARBON (if necessary)
+            IF ( LFUTURE ) THEN
+               FUT_SCL          = GET_FUTURE_SCALE_OCff( I, J )
+               ANTH_ORGC(I,J,1) = ANTH_ORGC(I,J,1) * FUT_SCL
+               ANTH_ORGC(I,J,2) = ANTH_ORGC(I,J,2) * FUT_SCL
+            ENDIF
+         ENDDO
+         ENDDO
 !$OMP END PARALLEL DO
+
+![eml
+      ENDIF ! IF LANTHRO
+!eml]
 
       !=================================================================
       ! Read BLACK CARBON (aka ELEMENTAL CARBON) emission from biofuel 
       ! combustion as tracer #34 in [kg C/year].  Then convert to 
       ! [kg C/timestep] and store in BIOF_BLKC.
       !=================================================================
-      ! Filename
-      FILENAME = TRIM( DATA_DIR )                         // 
-     &           'carbon_200909/BCOC_TBond_biofuel.2000.' // 
-     &           GET_NAME_EXT_2D() // '.' // GET_RES_EXT()
 
+![eml Only if LBIOFUEL
+      IF( LBIOFUEL ) THEN
 
-      ! Echo info
-      WRITE( 6, 100 ) TRIM( FILENAME )
+         IF( .not. LHIST ) THEN
+            ! Filename
+            FILENAME = TRIM( DATA_DIR )                         // 
+     &                 'carbon_200909/BCOC_TBond_biofuel.2000.' // 
+     &                 GET_NAME_EXT_2D() // '.' // GET_RES_EXT()
 
-      ! Read data
-      CALL READ_BPCH2( FILENAME, 'BIOFSRCE', 34, 
-     &                 XTAU,      IIPAR,     JJPAR,
-     &                 1,         ARRAY,     QUIET=.TRUE. ) 
+            ! Echo info
+            WRITE( 6, 100 ) TRIM( FILENAME )
 
-      ! Cast to REAL*8 and resize
-      CALL TRANSFER_2D( ARRAY(:,:,1), FD2D )
+            ! Read data
+            CALL READ_BPCH2( FILENAME, 'BIOFSRCE', 34, 
+     &                       XTAU,      IIPAR,     JJPAR,
+     &                       1,         ARRAY,     QUIET=.TRUE. ) 
+
+            ! Cast to REAL*8 and resize
+            CALL TRANSFER_2D( ARRAY(:,:,1), FD2D )
+
+         ELSE
+            ! Read historical emissions of BC
+            FILENAME = TRIM( DATA_DIR_1x1 )                 // 
+     &                 'historical_emissions_201203/BCOC/'  //
+     &                 'BCOC_biofuel.' // CHISTYR           // 
+     &                 '.'             // GET_NAME_EXT_2D() // 
+     &                 '.1x1'
+
+            ! Echo info
+            WRITE( 6, 100 ) TRIM( FILENAME )
+
+            ! Read data
+            CALL READ_BPCH2( FILENAME, 'BIOFSRCE',   34, 
+     &                       XTAU,      I1x1,        J1x1-1,
+     &                       1,         GENERIC_1x1, QUIET=.TRUE. ) 
+
+            ! Cast to REAL*8 and resize
+            CALL TRANSFER_2D( GENERIC_1x1(:,:,1), FD2D )
+
+         ENDIF
+!eml]
 
 !$OMP PARALLEL DO
 !$OMP+DEFAULT( SHARED )
 !$OMP+PRIVATE( I, J, FUT_SCL )
-      DO J = 1, JJPAR
-      DO I = 1, IIPAR
+         DO J = 1, JJPAR
+         DO I = 1, IIPAR
 
-         ! Hydrophilic BLACK CARBON from biofuels [kg C /timestep]
-         BIOF_BLKC(I,J,1) =          FHB *   FD2D(I,J) / STEPS_PER_MON
+            ! Hydrophilic BLACK CARBON from biofuels [kg C /timestep]
+            BIOF_BLKC(I,J,1) =          FHB *   FD2D(I,J) / 
+     &                         STEPS_PER_MON
 
-         ! Hydrophobic BLACK CARBON from biofuels [kg C/timestep]
-         BIOF_BLKC(I,J,2) = ( 1.d0 - FHB ) * FD2D(I,J) / STEPS_PER_MON
+            ! Hydrophobic BLACK CARBON from biofuels [kg C/timestep]
+            BIOF_BLKC(I,J,2) = ( 1.d0 - FHB ) * FD2D(I,J) / 
+     &                         STEPS_PER_MON
 
 
-         ! Compute future emissions of BLACK CARBON (if necessary)
-         IF ( LFUTURE ) THEN
-            FUT_SCL          = GET_FUTURE_SCALE_BCbf( I, J )
-            BIOF_BLKC(I,J,1) = BIOF_BLKC(I,J,1) * FUT_SCL
-            BIOF_BLKC(I,J,2) = BIOF_BLKC(I,J,2) * FUT_SCL
-         ENDIF
-      ENDDO
-      ENDDO
+            ! Compute future emissions of BLACK CARBON (if necessary)
+            IF ( LFUTURE ) THEN
+               FUT_SCL          = GET_FUTURE_SCALE_BCbf( I, J )
+               BIOF_BLKC(I,J,1) = BIOF_BLKC(I,J,1) * FUT_SCL
+               BIOF_BLKC(I,J,2) = BIOF_BLKC(I,J,2) * FUT_SCL
+            ENDIF
+         ENDDO
+         ENDDO
 !$OMP END PARALLEL DO
 
-      !=================================================================
-      ! Read ORGANIC CARBON from biofuel combustion as tracer #35 in
-      ! [kg C/year].  Convert to [kg C/timestep] and store in BIOF_BLKC.
-      !=================================================================
-      
-      CALL READ_BPCH2( FILENAME, 'BIOFSRCE', 35, 
-     &                 XTAU,      IIPAR,     JJPAR,     
-     &                 1,         ARRAY,     QUIET=.TRUE. )
+         !=================================================================
+         ! Read ORGANIC CARBON from biofuel combustion as tracer #35 in
+         ! [kg C/year].  Convert to [kg C/timestep] and store in BIOF_BLKC.
+         !=================================================================
+         IF( .not. LHIST ) THEN
+            CALL READ_BPCH2( FILENAME, 'BIOFSRCE', 35, 
+     &                       XTAU,      IIPAR,     JJPAR,     
+     &                       1,         ARRAY,     QUIET=.TRUE. )
 
-      ! Cast to REAL*8 and resize
-      CALL TRANSFER_2D( ARRAY(:,:,1), FD2D )
+            ! Cast to REAL*8 and resize
+            CALL TRANSFER_2D( ARRAY(:,:,1), FD2D )
+
+         ELSE
+
+            CALL READ_BPCH2( FILENAME, 'BIOFSRCE',   35, 
+     &                       XTAU,      I1x1,        J1x1-1,     
+     &                       1,         GENERIC_1x1, QUIET=.TRUE. )
+
+            ! Cast to REAL*8 and resize
+            CALL TRANSFER_2D( GENERIC_1x1(:,:,1), FD2D )
+
+         ENDIF ! LHIST
 
 !$OMP PARALLEL DO
 !$OMP+DEFAULT( SHARED )
 !$OMP+PRIVATE( I, J )
-      DO J = 1, JJPAR
-      DO I = 1, IIPAR
+         DO J = 1, JJPAR
+         DO I = 1, IIPAR
 
-         ! Hydrophilic ORGANIC CARBON from biofuels [kg C/timestep]
-         BIOF_ORGC(I,J,1) =          FHO   * FD2D(I,J) / STEPS_PER_MON
+            ! Hydrophilic ORGANIC CARBON from biofuels [kg C/timestep]
+            BIOF_ORGC(I,J,1) =          FHO   * FD2D(I,J) / 
+     &                         STEPS_PER_MON
 
-         ! Hydrophobic ORGANIC CARBON from biofuels [kg C/timestep]
-         BIOF_ORGC(I,J,2) = ( 1.d0 - FHO ) * FD2D(I,J) / STEPS_PER_MON
+            ! Hydrophobic ORGANIC CARBON from biofuels [kg C/timestep]
+            BIOF_ORGC(I,J,2) = ( 1.d0 - FHO ) * FD2D(I,J) / 
+     &                         STEPS_PER_MON
 
-         ! Compute future emissions of BLACK CARBON (if necessary)
-         IF ( LFUTURE ) THEN
-            FUT_SCL          = GET_FUTURE_SCALE_OCbf( I, J )
-            BIOF_ORGC(I,J,1) = BIOF_ORGC(I,J,1) * FUT_SCL
-            BIOF_ORGC(I,J,2) = BIOF_ORGC(I,J,2) * FUT_SCL
-         ENDIF          
-      ENDDO
-      ENDDO
+            ! Compute future emissions of BLACK CARBON (if necessary)
+            IF ( LFUTURE ) THEN
+               FUT_SCL          = GET_FUTURE_SCALE_OCbf( I, J )
+               BIOF_ORGC(I,J,1) = BIOF_ORGC(I,J,1) * FUT_SCL
+                  BIOF_ORGC(I,J,2) = BIOF_ORGC(I,J,2) * FUT_SCL
+            ENDIF          
+         ENDDO
+         ENDDO
 !$OMP END PARALLEL DO
+
+![eml
+      ENDIF ! IF LBIOFUEL
+!eml]
 
       ! Return to calling program
       END SUBROUTINE ANTHRO_CARB_TBOND
@@ -5239,6 +5376,7 @@ c
 !        file-reading code to gc_biomass_mod.f. (bmy, 9/25/06)
 !  (7 ) Prevent seg fault error when LBIOMASS=F (bmy, 11/3/06)
 !  (8 ) Now apply future emissions if necessary (hotp, swu, bmy, 2/19/09)
+!  01 Mar 2012 - R. Yantosca - Now use GET_AREA_CM2(I,J,L) from grid_mod.F90
 !******************************************************************************
 !
       ! References to F90 modules
@@ -5286,50 +5424,48 @@ c
 !$OMP+DEFAULT( SHARED )
 !$OMP+PRIVATE( I, J, BIOBC, BIOOC, A_CM2, FUT_SCL )
 
-      ! Loop over latitudes
+      ! Loop over surface boxes
       DO J = 1, JJPAR
+      DO I = 1, IIPAR
 
          ! Grid box area [cm2]
-         A_CM2 = GET_AREA_CM2( J )
-         
-         ! Loop over longitudes
-         DO I = 1, IIPAR
+         A_CM2 = GET_AREA_CM2( I, J, 1 )
+      
+         ! Convert [molec/cm2/s] --> [kg C/timestep]
+         IF ( LBIOMASS ) THEN
+            BIOBC         = BIOMASS(I,J,IDBBC) * A_CM2 * CONV_BC
+            BIOOC         = BIOMASS(I,J,IDBOC) * A_CM2 * CONV_OC
+         ELSE
+            BIOBC         = 0d0
+            BIOOC         = 0d0
+         ENDIF
 
-            ! Convert [molec/cm2/s] --> [kg C/timestep]
-            IF ( LBIOMASS ) THEN
-               BIOBC         = BIOMASS(I,J,IDBBC) * A_CM2 * CONV_BC
-               BIOOC         = BIOMASS(I,J,IDBOC) * A_CM2 * CONV_OC
-            ELSE
-               BIOBC         = 0d0
-               BIOOC         = 0d0
-            ENDIF
+         ! Hydrophilic BLACK CARBON from biomass [kg C/timestep]
+         BIOB_BLKC(I,J,1) =          FHB   * BIOBC
+      
+         ! Hydrophobic BLACK CARBON from biomass [kg C/timestep]
+         BIOB_BLKC(I,J,2) = ( 1.D0 - FHB ) * BIOBC
 
-            ! Hydrophilic BLACK CARBON from biomass [kg C/timestep]
-            BIOB_BLKC(I,J,1) =          FHB   * BIOBC
-         
-            ! Hydrophobic BLACK CARBON from biomass [kg C/timestep]
-            BIOB_BLKC(I,J,2) = ( 1.D0 - FHB ) * BIOBC
+         ! Hydrophilic ORGANIC CARBON from biomass [kg C/timestep]
+         BIOB_ORGC(I,J,1) =          FHO   * BIOOC
 
-            ! Hydrophilic ORGANIC CARBON from biomass [kg C/timestep]
-            BIOB_ORGC(I,J,1) =          FHO   * BIOOC
+         ! Hydrophobic ORGANIC CARBON from biomass [kg C/timestep]
+         BIOB_ORGC(I,J,2) = ( 1.D0 - FHO ) * BIOOC
 
-            ! Hydrophobic ORGANIC CARBON from biomass [kg C/timestep]
-            BIOB_ORGC(I,J,2) = ( 1.D0 - FHO ) * BIOOC
+         ! Apply future emissions for GCAP (if necessary)
+         IF ( LFUTURE ) THEN
 
-            ! Apply future emissions for GCAP (if necessary)
-            IF ( LFUTURE ) THEN
+            ! Compute future emissions of ORGANIC CARBON
+            FUT_SCL          = GET_FUTURE_SCALE_OCbb( I, J )
+            BIOB_ORGC(I,J,1) = BIOB_ORGC(I,J,1) * FUT_SCL
+            BIOB_ORGC(I,J,2) = BIOB_ORGC(I,J,2) * FUT_SCL
 
-               ! Compute future emissions of ORGANIC CARBON
-               FUT_SCL          = GET_FUTURE_SCALE_OCbb( I, J )
-               BIOB_ORGC(I,J,1) = BIOB_ORGC(I,J,1) * FUT_SCL
-               BIOB_ORGC(I,J,2) = BIOB_ORGC(I,J,2) * FUT_SCL
-
-               ! Compute future emissions of BLACK CARBON
-               FUT_SCL          = GET_FUTURE_SCALE_BCbb( I, J )
-               BIOB_BLKC(I,J,1) = BIOB_BLKC(I,J,1) * FUT_SCL
-               BIOB_BLKC(I,J,2) = BIOB_BLKC(I,J,2) * FUT_SCL
-            ENDIF 
-         ENDDO
+            ! Compute future emissions of BLACK CARBON
+            FUT_SCL          = GET_FUTURE_SCALE_BCbb( I, J )
+            BIOB_BLKC(I,J,1) = BIOB_BLKC(I,J,1) * FUT_SCL
+            BIOB_BLKC(I,J,2) = BIOB_BLKC(I,J,2) * FUT_SCL
+         ENDIF 
+      ENDDO
       ENDDO
 !$OMP END PARALLEL DO  
 
@@ -5521,6 +5657,8 @@ c
 !  (3 ) Now store the peak SUNCOS value for each surface grid box (I,J) in 
 !        the COSZM array. (rjp, bmy, 3/30/04)
 !  (4 ) Also added parallel loop over grid boxes (bmy, 1/18/05)
+!  01 Mar 2012 - R. Yantosca - Now use GET_XMID(I,J,L) from grid_mod.F90
+!  01 Mar 2012 - R. Yantosca - Now use GET_YMID_R(I,J,L) from grid_mod.F90
 !******************************************************************************
 !
       ! References to F90 modules
@@ -5581,15 +5719,15 @@ c
 !$OMP+DEFAULT( SHARED )
 !$OMP+PRIVATE( I, J, YMID_R, IJLOOP, TIMLOC, AHR )
             DO J = 1, JJPAR
+            DO I = 1, IIPAR
 
                ! Grid box latitude center [radians]
-               YMID_R = GET_YMID_R( J )
-
-            DO I = 1, IIPAR
+               YMID_R = GET_YMID_R( I, J, 1 )
 
                ! Increment IJLOOP
                IJLOOP = ( (J-1) * IIPAR ) + I
-               TIMLOC = real(LHR0) + real(NT)/3600.0 + GET_XMID(I)/15.0
+               TIMLOC = real(LHR0) + real(NT)/3600.0 + 
+     &                  GET_XMID( I, J, 1 ) / 15.0
          
                DO WHILE (TIMLOC .lt. 0)
                   TIMLOC = TIMLOC + 24.0
@@ -6463,7 +6601,7 @@ c
          ! GET gas mixing ratio [v/v]
          XGASMIX = XGASM / XMW / ( XAIRM / 28.97d0 )
 
-#if   defined( GEOS_5 ) || defined( MERRA )
+#if   defined( GEOS_5 ) || defined( MERRA ) || defined( GEOS_57 )
 
          !---------------------------------------------
          ! GEOS-5/MERRA: Get LWC, FC from met fields
@@ -6665,7 +6803,7 @@ c
          ! GET gas mixing ratio [v/v]
          XGASMIX = XGASM / XMW / ( XAIRM / 28.97d0 )
 
-#if   defined( GEOS_5 ) || defined( MERRA )
+#if   defined( GEOS_5 ) || defined( MERRA ) || defined( GEOS_57 )
 
          !---------------------------------------------
          ! GEOS-5/MERRA: Get LWC, FC from met fields
@@ -6789,7 +6927,6 @@ c
 !      ! References to F90 modules
 !      USE BPCH2_MOD,  ONLY : BPCH2,         GET_MODELNAME
 !      USE BPCH2_MOD,  ONLY : GET_HALFPOLAR, OPEN_BPCH2_FOR_WRITE
-!      USE FILE_MOD,   ONLY : IU_FILE
 !      USE GRID_MOD,   ONLY : GET_XOFFSET,   GET_YOFFSET
 !      USE TIME_MOD,   ONLY : EXPAND_DATE
 !
@@ -6802,7 +6939,7 @@ c
 !      ! Local variables
 !      INTEGER             :: HALFPOLAR
 !      INTEGER, PARAMETER  :: CENTER180 = 1
-!      INTEGER             :: I0, IPR, J0, JHC, N
+!      INTEGER             :: I0, IPR, IU_FILE, J0, JHC, N
 !      REAL*4              :: LONRES,   LATRES
 !      REAL*4              :: ARRAY(IIPAR,JJPAR,LLPAR)
 !      CHARACTER(LEN=20)   :: MODELNAME
@@ -6970,7 +7107,7 @@ c
 !  NOTES:
 !  (1 ) Also added arrays for secondary organic aerosols (rjp, bmy, 7/8/04)
 !  (2 ) Remove reference to CMN, it's obsolete (bmy, 7/20/04)
-!  (3 ) Now reference LSOA from "logical_mod.f" not F77_CMN_SETUP.  Now call
+!  (3 ) Now reference LSOA from "logical_mod.f" not CMN_SETUP.  Now call
 !        GET_BOUNDING_BOX from "grid_mod.f" to compute the indices I1_NA,
 !        I2_NA, J1_NA, J2_NA which define the N. America region. (bmy, 12/1/04)
 !  (4 ) Now call READ_GPROD_APROD to read GPROD & APROD from disk. 
@@ -6980,6 +7117,7 @@ c
 !  (6 ) Now set parameters for NESTED_EU grid (amv, bmy, 12/19/09)
 !  14 Jan 2011 - R. Yantosca - If we are using GEOS-5 or MERRA met, then get
 !                              the cloud fraction directly from the met fields.
+!  01 Mar 2012 - R. Yantosca - Now use GET_BOUNDING_BOX from grid_mod.F90
 !******************************************************************************
 !
       ! References to F90 modules
@@ -6990,8 +7128,9 @@ c
       USE TRACERID_MOD, ONLY : IDTSOA5
 
       USE CMN_SIZE_MOD  ! Size parameters
-
-      ! Local variables
+!
+! !LOCAL VARIABLES:
+!
       LOGICAL, SAVE :: IS_INIT = .FALSE.
       INTEGER       :: AS, INDICES(4), YYYYMMDD, HHMMSS
       REAL*8        :: COORDS(4), TAU
@@ -7100,7 +7239,7 @@ c
          IF ( AS /= 0 ) CALL ALLOC_ERR( 'ORVC_SESQ' )
          ORVC_SESQ = 0d0
 
-#if   !defined( GEOS_5 ) && !defined( MERRA )
+#if   !defined( GEOS_5 ) && !defined( MERRA ) && !defined( GEOS_57 )
          ! If we are using GEOS-5 or MERRA met, then get the cloud fraction 
          ! directly from the met fields.  (skim, bmy, 1/14/10)
          ALLOCATE( VCLDF( IIPAR, JJPAR, LLTROP ), STAT=AS )
@@ -7153,7 +7292,15 @@ c
       J2_NA = JJPAR
 
 #elif defined( NESTED_CH )
-      ! For 1x1 China nested grid: we don't cover N. America region
+      ! For China nested grids: we don't cover N. America region
+      ! Setting these to zero will turn off Cooke/RJP emissions
+      I1_NA = 0
+      J1_NA = 0
+      I2_NA = 0
+      J2_NA = 0
+
+#elif defined ( SEAC4RS )
+      ! For SEAC4RS nested grid: we don't cover N. America region
       ! Setting these to zero will turn off Cooke/RJP emissions
       I1_NA = 0
       J1_NA = 0
@@ -7173,10 +7320,19 @@ c
       ! Definition of the N. American bounding box
       ! with LL corner (10N,165W) and UR corner (90N,40W)
       !            Lon_LL  Lat_LL  Lon_UR  Lat_UR
+#if defined( DEVEL )
+
+      I1_NA = 0
+      J1_NA = 0
+      I2_NA = 0
+      J2_NA = 0
+
+#else
+
       COORDS = (/ -165d0,  10d0,  -40d0,   90d0  /)
       
       ! Get the indices corresponding to the lon/lat values in COORDS
-      CALL GET_BOUNDING_BOX( COORDS, INDICES )
+      CALL GET_BOUNDING_BOX( 1, IIPAR, 1, JJPAR, 1, COORDS, INDICES )
 
       ! Copy values from INDEX array to scalars
       I1_NA = INDICES(1)
@@ -7184,6 +7340,7 @@ c
       I2_NA = INDICES(3)
       J2_NA = INDICES(4)
 
+#endif
 #endif
               
       ! Reset IS_INIT before exiting

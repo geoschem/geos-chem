@@ -16,6 +16,8 @@
 !
 ! !USES:
 !
+      USE inquireMod, ONLY : findFreeLUN
+
       IMPLICIT NONE
 #     include "define.h"
       PRIVATE
@@ -80,7 +82,7 @@
 !        * Allow option of mid-level scaling to match global avg ann flash
 !           rate between G-C and OTD-LIS 11-year climatology (new function)
 !        * Local Redist now a la Murray et al, 2007 in preparation (monthly)
-!        * Replace GEMISNOX (from F77_CMN_NOX) with module variable EMIS_LI_NOx
+!        * Replace GEMISNOX (from CMN_NOX) with module variable EMIS_LI_NOx
 !  (5 ) Added MFLUX, PRECON redistribution options (ltm, bmy, 11/29/07)
 !  (6 ) Updated OTD/LIS scaling for GEOS-5 to get more realistic totals
 !        (ltm, bmy, 2/20/08)
@@ -99,6 +101,9 @@
 !  13 Aug 2010 - R. Yantosca - Add modifications for MERRA
 !  10 Nov 2010 - L. Murray   - Updated OTD/LIS local scaling for MERRA 4x5
 !  10 Nov 2010 - R. Yantosca - Added ProTeX headers
+!  02 Feb 2012 - R. Yantosca - Added modifications for GEOS-5.7.x met fields
+!  01 Mar 2012 - R. Yantosca - Now reference new grid_mod.F90
+!  03 Aug 2012 - R. Yantosca - Move calls to findFreeLUN out of DEVEL block
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -258,21 +263,24 @@
 !$OMP+PRIVATE( RATE_SAVE,   VERTPROF                              )
 !$OMP+SCHEDULE( DYNAMIC )
 
-      ! Loop over latitudes
+      ! Loop over surface boxes
       DO J = 1, JJPAR
+      DO I = 1, IIPAR
 
-         ! Grid box surface areas in [m2] and [km2]
-         A_M2  = GET_AREA_M2( J )
-         A_KM2 = A_M2 / 1d6
+            !%%% NOTE: Use L=1 for GRID_MOD functions.  This is OK for the
+            !%%% existing GEOS-Chem with a pure cartesian grid, but may be an
+            !%%% issue when interfaced with a GCM with a non-regular grid
+            !%%% (bmy, 3/1/12)
 
-         ! Grid box latitude [degrees]
-         YMID  = GET_YMID( J )
+            ! Grid box surface areas in [m2] and [km2]
+            A_M2     = GET_AREA_M2( I, J, 1 )
+            A_KM2    = A_M2 / 1d6
 
-         ! Loop over longitudes
-         DO I = 1, IIPAR
+            ! Grid box latitude [degrees]
+            YMID     = GET_YMID( I, J, 1 )
 
             ! Grid box longitude [degrees]
-            XMID     = GET_XMID( I )
+            XMID     = GET_XMID( I, J, 1 )
 
             ! Initialize
             LBOTTOM  = 0
@@ -731,7 +739,6 @@
                !AD56(I,J,2) = AD56(I,J,2) + ( RATE_SAVE * ( 1d0 - X ) )
                AD56(I,J,3) = AD56(I,J,3) + ( RATE_SAVE *         X   )
 
-
                AD56(I,J,2) = AD56(I,J,2) + H0 * 1d-3
 
             ENDIF
@@ -756,6 +763,7 @@
                   SLBASE(I,J,L) = SLBASE(I,J,L) + VERTPROF(L) 
                ENDDO
             ENDIF
+
          ENDDO
       ENDDO
 !$OMP END PARALLEL DO
@@ -783,7 +791,7 @@
       USE DAO_MOD,       ONLY : IS_NEAR,  IS_WATER
       USE DIRECTORY_MOD, ONLY : DATA_DIR
       USE ERROR_MOD,     ONLY : GEOS_CHEM_STOP
-      USE FILE_MOD,      ONLY : IU_FILE,  IOERROR
+      USE FILE_MOD,      ONLY : IOERROR
       USE GRID_MOD,      ONLY : GET_YMID
       USE TIME_MOD,      ONLY : GET_MONTH
 
@@ -836,6 +844,8 @@
 !  (11) Now use the Ott et al. [2010] profiles, and apply consistently with
 !        GMI model [Allen et al., 2010] (ltm, bmy, 1/25/11).
 !  10 Nov 2010 - R. Yantosca - Added ProTeX headers
+!  01 Mar 2012 - R. Yantosca - Now use GET_AREA_CM2(I,J,L) from grid_mod.F90
+!  15 Jun 2012 - Nielsen - INQUIRE finds free logical unit number for IU_FILE
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -855,7 +865,12 @@
       MTYPE    = 0
       VERTPROF = 0d0
       MONTH    = GET_MONTH()
-      YMID     = GET_YMID(J)
+
+      !%%% NOTE: Use L=1 for GRID_MOD functions.  This is OK for the
+      !%%% existing GEOS-Chem with a pure cartesian grid, but may be an
+      !%%% issue when interfaced with a GCM with a non-regular grid
+      !%%% (bmy, 3/1/12)
+      YMID     = GET_YMID( I, J, 1 )
 
       !=================================================================
       ! Test whether location (I,J) is continental, marine, or snow/ice
@@ -1205,6 +1220,7 @@
 !       new data directory. Special handling for GEOS5.1.0 and 5.2.0 added. 
 !       (ltm, bmy, 1/25/11)
 !  10 Nov 2010 - R. Yantosca - Added ProTeX headers
+!  02 Feb 2012 - R. Yantosca - Added modifications for GEOS-5.7.x met
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -1223,6 +1239,8 @@
       ! Get model name
 #if   defined( MERRA )
       MODELNAME = 'merra'
+#elif defined( GEOS_57 )
+         MODELNAME = 'geos5.7.2'
 #elif defined( GEOS_5 )
       ! GEOS-5 convection scheme changed in GCM post 9/1/2008
       IF ( GET_TAU() .ge. GET_TAU0( 9, 1, 2008 ) ) THEN
@@ -1241,8 +1259,19 @@
      &        TRIM( MODELNAME ) // '.' // GET_RES_EXT()
 
       ! Prefix directory to file name
+#if !defined( GEOS_57 )
+
       FILENAME = TRIM( DATA_DIR ) // TRIM( FILENAME ) 
-      
+#endif      
+
+      ! For GEOS-57 nested grids, append a suffix to denote either
+      ! SEAC4RS or the China domain (skim, 5/29/12)
+#if   defined( GEOS_57 ) && defined( NESTED_CH )
+      FILENAME = TRIM( FILENAME ) // '.CH'
+#elif defined( GEOS_57 ) && defined( SEAC4RS )
+      FILENAME = TRIM( FILENAME ) // '.SE'
+#endif
+
       ! For GEOS-5 nested grids, append the a suffix to denote either 
       ! CHINA or NORTH AMERICA nested regions (ltm, bmy, 11/14/08)
 #if   defined( GEOS_5 ) && defined( NESTED_CH ) 
@@ -1284,6 +1313,49 @@
 !\\
 ! !INTERFACE:
 !
+#if defined( DEVEL )
+      SUBROUTINE EMLIGHTNING( EMISS )
+
+!
+! !USES:
+!
+      USE DAO_MOD,  ONLY : BXHEIGHT
+      USE DIAG_MOD, ONLY : AD32_li
+
+      USE CMN_SIZE_MOD         ! Size parameters
+      USE CMN_DIAG_MOD         ! ND32
+
+      REAL*8, INTENT(INOUT) :: EMISS(:,:,:)
+
+      INTEGER             :: I,J,L
+      REAL*8              :: TMP
+
+      ! External functions
+      REAL*8, EXTERNAL    :: BOXVL
+
+      !=================================================================
+      ! EMLIGHTNING begins here!
+      !=================================================================
+      DO I = 1, IIPAR
+         DO J = 1,JJPAR
+            DO L = 1, LLCONVM 
+               
+! SLBASE(I,J,L) has units [molec NOx/6h/box], convert units:
+! [molec/6h/box] * [6h/21600s] * [box/BOXVL cm3] = [molec/cm3/s]
+               TMP         = SLBASE(I,J,L) / ( 21600.d0 * BOXVL(I,J,L) )
+
+               EMIS_LI_NOx(I,J,L) = TMP
+               EMISS      (I,J,L) = TMP
+               
+! ND32 Diagnostic: Lightning NOx [molec NOx/cm2/s]
+               IF ( ND32 > 0 ) THEN
+                  AD32_li(I,J,L) = AD32_li(I,J,L) + 
+     &                 ( TMP * BXHEIGHT(I,J,L) * 1d2 )
+               ENDIF
+            ENDDO
+         ENDDO
+      ENDDO
+#else
       SUBROUTINE EMLIGHTNING( I, J )
 !
 ! !USES:
@@ -1302,14 +1374,14 @@
 ! !REVISION HISTORY: 
 !  09 Oct 1997 - R. Yantosca - Initial version
 !  (1 ) Remove IOFF, JOFF from the argument list.  Also remove references
-!        to header files "F77_CMN_O3" and "comtrid.h" (bmy, 3/16/00)
+!        to header files "CMN_O3" and "comtrid.h" (bmy, 3/16/00)
 !  (2 ) Now use allocatable array for ND32 diagnostic (bmy, 3/16/00)  
 !  (3 ) Now reference BXHEIGHT from "dao_mod.f".  Updated comments, cosmetic
 !        changes.  Replace LCONVM with the parameter LLCONVM. (bmy, 9/18/02)
 !  (4 ) Removed obsolete reference to "CMN".  Now bundled into 
 !        "lightning_mod.f" (bmy, 4/14/04)
 !  (5 ) Renamed from EMLIGHTNING_NL to EMLIGHTNING.  Now replace GEMISNOX
-!        (from F77_CMN_NOX) with module variable EMIS_LI_NOx. (ltm, bmy, 10/3/07)
+!        (from CMN_NOX) with module variable EMIS_LI_NOx. (ltm, bmy, 10/3/07)
 !  10 Nov 2010 - R. Yantosca - Added ProTeX headers
 !EOP
 !------------------------------------------------------------------------------
@@ -1339,7 +1411,7 @@
      &                        ( TMP * BXHEIGHT(I,J,L) * 1d2 )
           ENDIF
       ENDDO
-
+#endif
       END SUBROUTINE EMLIGHTNING
 !EOC
 !------------------------------------------------------------------------------
@@ -1367,7 +1439,7 @@
 
       USE BPCH2_MOD,   ONLY : GET_TAU0
       USE ERROR_MOD,   ONLY : GEOS_CHEM_STOP
-      USE TIME_MOD,    ONLY : GET_TAU
+      USE TIME_MOD,    ONLY : GET_TAU, GET_MONTH, GET_YEAR
 !
 ! !RETURN VALUE:
 !
@@ -1392,6 +1464,8 @@
 !  (8 ) Reprocessed for error in CLDTOPS field; Updated for GEOS
 !        5.1.0 vs. 5.2.0; MERRA added; (ltm, bmy, 1/25/11)
 !  10 Nov 2010 - R. Yantosca - Added ProTeX headers
+!  02 Feb 2012 - R. Yantosca - Compute BETA for MERRA 2 x 2.5
+!  02 Feb 2012 - R. Yantosca - Compute BETA for GEOS-5.7.x
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -1458,7 +1532,58 @@
       ! Initialize
       BETA = 1d0
 
-#if   defined( MERRA ) && defined( GRID4x5 )
+#if   defined( GEOS_57 ) && defined( GRID4x5 ) 
+
+      !---------------------------------------
+      ! GEOS-5.7.x: 4 x 5 global simulation
+      !---------------------------------------
+
+      ! ltm: Will need to be updated when other months/years become available
+      IF ( GET_YEAR() .eq. 2011 .and. GET_MONTH() .eq. 9 ) THEN
+         BETA = 0.63453405d0
+      ENDIF
+
+#elif defined( GEOS_57 ) && defined( GRID2x25 )
+
+      !---------------------------------------
+      ! GEOS-5.7.x: 2 x 2.5 global simulation
+      !---------------------------------------
+      
+      ! ltm: Will need to be updated when other months/years become available
+      IF ( GET_YEAR() .eq. 2011 .and. GET_MONTH() .eq. 9 ) THEN
+         BETA = 0.20604515d0
+      ENDIF
+
+#elif defined( GEOS_57 ) && defined( GRID025x0325 ) && defined( NESTED_CH )
+
+      !---------------------------------------
+      ! GEOS-5.7.x: Nested China simulation
+      !---------------------------------------
+      
+      ! ltm: Will need to be updated when other months/years become available
+      IF ( GET_YEAR() .eq. 2011 .and. GET_MONTH() .eq. 9 ) THEN
+         BETA = 0.20604515d0
+      ENDIF
+
+#elif defined( GEOS_57 ) && defined( GRID025x0325 ) && defined( SEAC4RS )
+
+      !---------------------------------------
+      ! GEOS-5.7.x: Nested SEAC4RS simulation
+      !---------------------------------------
+      
+      ! ltm: Will need to be updated when other months/years become available
+      IF ( GET_YEAR() .eq. 2011 .and. GET_MONTH() .eq. 9 ) THEN
+         BETA = 0.20604515d0
+      ENDIF
+
+#elif defined( MERRA ) && defined( GRID2x25 )
+
+      !---------------------------------------
+      ! MERRA: 2 x 2.5 global simulation
+      !---------------------------------------
+      BETA = ANN_AVG_FLASHRATE / 253.55888d0
+
+#elif   defined( MERRA ) && defined( GRID4x5 )
 
       !---------------------------------------
       ! MERRA: 4 x 5 global simulation
@@ -1578,8 +1703,6 @@
       USE DIRECTORY_MOD, ONLY : DATA_DIR
       USE ERROR_MOD,     ONLY : ALLOC_ERR
       USE FILE_MOD,      ONLY : IOERROR
-      USE FILE_MOD,      ONLY : IU_FILE
-      USE GRID_MOD,      ONLY : GET_YEDGE
       USE GRID_MOD,      ONLY : GET_AREA_M2
       USE LOGICAL_MOD,   ONLY : LOTDLOC
 
@@ -1603,13 +1726,14 @@
 !  (8 ) Read in new Ott profiles from lightning_NOx_201101. Remove
 !        depreciated options. (ltm, bmy, 1/25/11)
 !  10 Nov 2010 - R. Yantosca - Added ProTeX headers
+!  01 Mar 2012 - R. Yantosca - Removed reference to GET_YEDGE
 !EOP
 !------------------------------------------------------------------------------
 !BOC
 !
 ! !LOCAL VARIABLES:
 !
-      INTEGER             :: AS, III, IOS, JJJ
+      INTEGER             :: AS, III, IOS, JJJ, IU_FILE
       REAL*8              :: Y0, Y1
       CHARACTER(LEN=255)  :: FILENAME
 
@@ -1667,6 +1791,9 @@
       ! Echo info
       WRITE( 6, 100 ) TRIM( FILENAME )
  100  FORMAT( '     - INIT_LIGHTNING: Reading ', a )
+
+      ! Find a free file LUN
+      IU_FILE = findFreeLUN()
       
       ! Open file containing lightning PDF data
       OPEN( IU_FILE, FILE=TRIM( FILENAME ), STATUS='OLD', IOSTAT=IOS )

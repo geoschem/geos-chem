@@ -1,77 +1,66 @@
-! $Id: drydep_mod.f,v 1.2 2010/03/15 19:33:20 ccarouge Exp $
+!------------------------------------------------------------------------------
+!          Harvard University Atmospheric Chemistry Modeling Group            !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !MODULE: drydep_mod
+!
+! !DESCRIPTION: Module DRYDEP\_MOD contains variables and routines for the
+!  GEOS-Chem dry deposition scheme.
+!\\
+!\\
+! !INTERFACE: 
+!
       MODULE DRYDEP_MOD
+! 
+! !USES:
 !
-!******************************************************************************
-!  Module DRYDEP_MOD contains variables and routines for the GEOS-CHEM dry
-!  deposition scheme. (bmy, 1/27/03, 10/19/09)
+      USE CMN_SIZE_MOD                          ! Size parameters
+      USE CMN_DIAG_MOD                          ! Diag counters & flags
+      USE CMN_GCTM_MOD                          ! Physical constants
+      USE CMN_DEP_MOD                           ! IREG, ILAND, IUSE, FRCLND
+      USE COMMSOIL_MOD                          ! CANOPYNOX
+      USE COMODE_MOD                            ! Large arrays for SMVGEAR
+      USE COMODE_LOOP_MOD                       ! Formerly "comode.h"
+      USE DAO_MOD                               ! Met field arrays
+      USE DIAG_MOD,       ONLY : AD44           ! Diagnostic arrays
+      USE DIRECTORY_MOD                         ! Data directory paths
+      USE ERROR_MOD                             ! Error handling routines
+      USE GRID_MOD,       ONLY : GET_AREA_CM2   ! Grid box surface areas [cm2]
+      USE LOGICAL_MOD                           ! GEOS-Chem logical switches
+      USE PBL_MIX_MOD                           ! Boundary layer quantities
+      USE PRESSURE_MOD,   ONLY : GET_PEDGE      ! Pressure @ level edges
+      USE TIME_MOD,       ONLY : GET_TS_CHEM    ! Chemistry timestep
+      USE TRACER_MOD                            ! Tracer array STT etc.
+      USE TRACERID_MOD                          ! Tracer ID flags
+      USE TOMAS_MOD                             ! For TOMAS microphysics
+
+      IMPLICIT NONE
+
+#     include "define.h"
+
+      PRIVATE
 !
-!  Module Variables:
-!  ============================================================================
-!  (1 ) MAXDEP   (INTEGER) : Maximum number of drydep species
-!  (2 ) NNTYPE   (INTEGER) : Max # of landtypes / grid box
-!  (3 ) NNPOLY   (INTEGER) : Number of drydep polynomial coefficients
-!  (4 ) NNVEGTYPE(INTEGER) : Number of Olson land types
-!  (5 ) XCKMAN   (REAL*8 ) : Von Karman constant?
-!  (6 ) DRYDHNO3 (INTEGER) : Internal flag for location of HNO3 in DEPVEL
-!  (7 ) DRYDNO2  (INTEGER) : Internal flag for location of NO2  in DEPVEL
-!  (8 ) DRYDPAN  (INTEGER) : Internal flag for location of PAN  in DEPVEL
-!  (9 ) NUMDEP   (INTEGER) : Actual number of drydep species
-!  (10) NWATER   (INTEGER) : Number of Olson's surface types that are water
-!  (11) AIROSOL  (LOGICAL) : Array flags to denote aerosol drydep species
-!  (12) IDEP     (INTEGER) : ID #'s for dry deposition surface types 
-!  (13) IRAC     (INTEGER) : ???       resistance for drydep land type
-!  (14) IRCLO    (INTEGER) : ???       resistance for drydep land type
-!  (15) IRCLS    (INTEGER) : ???       resistance for drydep land type
-!  (16) IRGSO    (INTEGER) : ???       resistance for drydep land type
-!  (17) IRGSS    (INTEGER) : ???       resistance for drydep land type
-!  (18) IRI      (INTEGER) : Internal  resistance for drydep land types
-!  (19) IRLU     (INTEGER) : Cuticular resistance for drydep land types
-!  (20) IVSMAX   (INTEGER) : ???       resistance for drydep land type
-!  (21) IWATER   (INTEGER) : ID #'s for Olson surface types that are water 
-!  (22) IZO      (INTEGER) : Roughness heights for each Olson surface type
-!  (23) NDVZIND  (INTEGER) : Index array for ordering drydep species in DEPVEL
-!  (24) NTRAIND  (INTEGER) : Stores tracer numbers of drydep species
-!  (25) DEPSAV   (REAL*8 ) : Array containing dry deposition frequencies [s-1]
-!  (26) PBLFRAC  (REAL*8 ) : Array for multiplicative factor for drydep freq
-!  (27) DRYCOEFF (REAL*8 ) : Polynomial coefficients for dry deposition
-!  (28) HSTAR    (REAL*8 ) : Henry's law constant
-!  (29) F0       (REAL*8 ) : Reactivity factor for biological oxidation
-!  (30) XMW      (REAL*8 ) : Molecular weight of drydep species [kg]
-!  (32) A_RADI   (REAL*8 ) : Radius of aerosol for size-resolved drydep [um]
-!  (33) A_DEN    (REAL*8 ) : Density of aerosol for size-res'd drydep [kg/m3]
-!  (33) DEPNAME  (CHAR*14) : Names of dry deposition species
+! !PUBLIC MEMBER FUNCTIONS:
 !
-!  Module Routines:
-!  ============================================================================
-!  (1 ) DO_DRYDEP          : Dry deposition driver routine
-!  (2 ) DVZ_MINVAL         : Sets minimum drydep velocities for SULFATE tracers
-!  (3 ) METERO             : Computes meterological fields for dry deposition
-!  (4 ) DRYFLX             : Applies drydep losses from SMVGEAR to tracer array
-!  (5 ) DRYFLXRnPbBe       : Applies drydep losses to 210Pb and 7Be 
-!  (6 ) DRYFLXH2HD         : Applies drydep losses to H2 and HD
-!  (7 ) DEPVEL             : Computes dry deposition velocities (by D. Jacob)
-!  (8 ) DIFFG              : Computes diffusion coefficient for a gas
-!  (9 ) MODIN              : Reads inputs for DEPVEL from "drydep.table"
-!  (10) RDDRYCF            : Reads drydep polynomial coeffs from "drydep.coef"
-!  (11) AERO_SFCRSI        : Computes dust sfc resistance ff Seinfeld et al 86
-!  (12) AERO_SFCRSII       : Conputes dust sfc resistance ff Zhang et al 2001
-!  (13) INIT_DRYDEP        : Initializes and allocates module arrays
-!  (14) CLEANUP_DRYDEP     : Deallocates module arrays
+      PUBLIC :: CLEANUP_DRYDEP     
+      PUBLIC :: DO_DRYDEP
+      PUBLIC :: DRYFLX   
+      PUBLIC :: DRYFLXH2HD
+      PUBLIC :: DRYFLXRnPbBe       
+      PUBLIC :: DVZ_MINVAL         
+      PUBLIC :: INIT_DRYDEP
 !
-!  GEOS-CHEM modules referenced by "drydep_mod.f":
-!  ============================================================================
-!  (1 ) comode_mod.f       : Module w/ SMVGEAR allocatable arrays
-!  (2 ) dao_mod.f          : Module w/ arrays for DAO met fields
-!  (3 ) diag_mod.f         : Module w/ GEOS-CHEM diagnostic arrays
-!  (4 ) directory_mod.f    : Module w/ GEOS-CHEM data & met field dirs
-!  (4 ) error_mod.f        : Module w/ NaN, other error check routines
-!  (5 ) file_mod.f         : Module w/ file unit #'s and error checks
-!  (6 ) logical_mod.f      : Module w/ GEOS-CHEM logical switches
-!  (7 ) pbl_mix_mod.f      : Module w/ routines for PBL height & mixing
-!  (8 ) pressure_mod.f     : Module w/ routines to compute P(I,J,L)
-!  (9 ) tracer_mod.f       : Module w/ GEOS-CHEM tracer array etc.
-!  (10) tracerid_mod.f     : Module w/ pointers to tracers & emissions
+! !PUBLIC DATA MEMBERS:
 !
+      PUBLIC :: DEPNAME
+      PUBLIC :: DEPSAV
+      PUBLIC :: MAXDEP
+      PUBLIC :: NUMDEP
+      PUBLIC :: NTRAIND
+      PUBLIC :: DRYHg0, DRYHg2, DryHgP    !CDH
+!
+! !REMARKS:
 !  References:
 !  ============================================================================
 !  (1 ) Baldocchi, D.D., B.B. Hicks, and P. Camara, "A canopy stomatal
@@ -111,8 +100,13 @@
 !        Global Budget of Molecular Hydrogen and its Deuterium Content: 
 !        Constraints from Ground Station, Cruise, and Aircraft Observations,
 !        submitted to J. Geophys. Res., 2007.
-!!
-!  NOTES:
+!  (16) Karl, T., Harley, P., Emmons, L., Thornton, B., Guenther, A., Basu, C.,
+!        Turnipseed, A., and Jardine, K.: Efficient Atmospheric Cleansing of
+!        Oxidized Organic Trace Gases by Vegetation, Science, 330, 816-819,
+!        10.1126/science.1192534, 2010. 
+!
+! !REVISION HISTORY:
+!  27 Jan 2003 - R. Yantosca - Moved standalone routines into this module
 !  (1 ) Bug fix: Do not assume NO2 is the 2nd drydep species.  This causes
 !        a mis-indexing for CANOPYNOX.  Now archive ND44 diagnostic in kg for
 !        Radon runs in routine DRYFLXRnPbBe; convert to kg/s in diag3.f
@@ -160,127 +154,160 @@
 !        (lin, ccc, 5/29/09)
 !  (27) Minor bug fix in mol wts for ALPH, LIMO (bmy, 10/19/09)
 !  (28) Change MAXDEP from 50 to 81 (win, 7/14/09)
+!  (28a) modified to use Zhang 2001 for all non-size resolved aerosols (hotp)
 !  (29) Add aromatics SOA (dkh)
 !  (30) Add new species. Some tracers give 2 deposition species: ISOPN-> ISOPNB
 !       and ISOPND. (fp)
 !  (31) Updates for mercury simulation (ccc, 5/17/10)
-!******************************************************************************
+!  (32) Increase MAXDEP to 51 for dicarbonyls simulation. (ccc, 10/8/10)
+!  01 Aug 2011 - J. Fisher - Set aerosol dry deposition velocity to 0.03 cm/s
+!                            over snow and ice based on Nilsson & Rannik, 2001
+!  21 Dec 2011 - M. Payer  - Updates for sea salt (jaegle 5/11/11)
+!  22 Dec 2011 - M. Payer  - Added ProTeX headers
+!  10 Jan 2012 - M. Payer  - Update to use local surface pressure
+!  01 Mar 2012 - R. Yantosca - Now reference new grid_mod.F90
+!  26 Mar 2012 - R. Yantosca - Now reference CMN_SIZE_MOD at the top of module
+!  26 Mar 2012 - R. Yantosca - Replace NNTYPE, NNPOLY, NNVEGTYPE w/ the 
+!                              values NTYPE, NPOLY, NVEGTYPE from CMN_SIZE
+!  26 Mar 2012 - R. Yantosca - Now retire MODIN and RDDRYCF; read drydep inputs
+!                              from a netCDF file w/ routine READ_DRYDEP_INPUTS
+!  26 Mar 2012 - R. Yantosca - Reorganize module USE statements for clarity
+!  09 Apr 2012 - R. Yantosca - Now replace IJREG, IJLAND, IJUSE, XYLAI arrays
+!                              with IREG, ILAND, IUSE, XLAI.
+!  31 Jul 2012 - R. Yantosca - Modifications for grid-independence
+!EOP
+!------------------------------------------------------------------------------
+!BOC
 !
-      USE LOGICAL_MOD,     ONLY : LNLPBL ! (Lin, 03/31/09)
+! !DEFINED PARAMETERS:
+!
+      INTEGER, PARAMETER :: MAXDEP    = 81      ! Max # of depositing species
+      REAL*8,  PARAMETER :: XCKMAN    = 0.4d0   ! Von Karman's constant
+      INTEGER, PARAMETER :: NR_MAX    = 200     ! # of seasalt bins 
+      INTEGER, PARAMETER :: NDRYDTYPE = 11      ! # of drydep land types
+!
+! PRIVATE TYPES:
+!
+      !========================================================================
+      !  MODULE VARIABLES:
+      !
+      !  MAXDEP    : Maximum number of drydep species
+      !  XCKMAN    : Von Karman constant?
+      !  DRYDHNO3  : Internal flag for location of HNO3 in DEPVEL
+      !  DRYDNO2   : Internal flag for location of NO2  in DEPVEL
+      !  DRYDPAN   : Internal flag for location of PAN  in DEPVEL
+      !  NUMDEP    : Actual number of drydep species
+      !  NWATER    : Number of Olson's surface types that are water
+      !  AIROSOL   : Array flags to denote aerosol drydep species
+      !  IDEP      : ID #'s for dry deposition surface types 
+      !  IRAC      : ???       resistance for drydep land type
+      !  IRCLO     : ???       resistance for drydep land type
+      !  IRCLS     : ???       resistance for drydep land type
+      !  IRGSO     : ???       resistance for drydep land type
+      !  IRGSS     : ???       resistance for drydep land type
+      !  IRI       : Internal  resistance for drydep land types
+      !  IRLU      : Cuticular resistance for drydep land types
+      !  IVSMAX    : ???       resistance for drydep land type
+      !  IWATER    : ID #'s for Olson surface types that are water 
+      !  IZO       : Roughness heights for each Olson surface type
+      !  NDVZIND   : Index array for ordering drydep species in DEPVEL
+      !  NTRAIND   : Stores tracer numbers of drydep species
+      !  DEPSAV    : Array containing dry deposition frequencies [s-1]
+      !  PBLFRAC   : Array for multiplicative factor for drydep freq
+      !  DRYCOEFF  : Polynomial coefficients for dry deposition
+      !  HSTAR     : Henry's law constant
+      !  F0        : Reactivity factor for biological oxidation
+      !  XMW       : Molecular weight of drydep species [kg]
+      !  A_RADI    : Radius of aerosol for size-resolved drydep [um]
+      !  A_DEN     : Density of aerosol for size-res'd drydep [kg/m3]
+      !  DEPNAME   : Names of dry deposition species 
+      !
+      !  NOTE: these variables are defined in CMN_SIZE_mod.F
+      !    NTYPE    : Max # of landtypes / grid box
+      !    NPOLY    : Number of drydep polynomial coefficients
+      !    NVEGTYPE : Number of Olson land types
+      !========================================================================
 
-      IMPLICIT NONE
-#     include "define.h"
-
-      !=================================================================
-      ! MODULE PRIVATE DECLARATIONS
-      !=================================================================
-
-      ! Make everything PRIVATE ...
-      PRIVATE
-
-      ! ... except these variables ...
-      PUBLIC :: DEPNAME
-      PUBLIC :: DEPSAV
-      PUBLIC :: MAXDEP
-      PUBLIC :: NUMDEP
-      PUBLIC :: NTRAIND
-      PUBLIC :: DRYHg0, DRYHg2, DryHgP !CDH
-      
-      ! ... and these routines
-      PUBLIC :: CLEANUP_DRYDEP     
-      PUBLIC :: DO_DRYDEP
-      PUBLIC :: DRYFLX   
-      PUBLIC :: DRYFLXH2HD
-      PUBLIC :: DRYFLXRnPbBe       
-      PUBLIC :: DVZ_MINVAL         
-      PUBLIC :: INIT_DRYDEP        
-
-      !=================================================================
-      ! MODULE VARIABLES 
-      !=================================================================
-
-      ! Parameters
-      INTEGER, PARAMETER   :: MAXDEP    = 81  !(win, 7/14/09)
-      INTEGER, PARAMETER   :: NNTYPE    = 15     ! NTYPE    from "CMN_SIZE"
-      INTEGER, PARAMETER   :: NNPOLY    = 20     ! NPOLY    from "CMN_SIZE"
-      INTEGER, PARAMETER   :: NNVEGTYPE = 74     ! NVEGTYPE from "CMN_SIZE"
-      REAL*8,  PARAMETER   :: XCKMAN    = 0.4d0
- 
       ! Scalars
-      INTEGER              :: DRYDHNO3, DRYDNO2, DRYDPAN
-      !FP_ISOP (6/2009)
-      INTEGER              :: DRYDH2O2
+      INTEGER              :: DRYDHNO3, DRYDNO2, DRYDPAN, DRYDH2O2
+      INTEGER              :: DRYHg0,   DRYHg2,  DryHgP
       INTEGER              :: NUMDEP,   NWATER
 
-      ! Arrays
-      LOGICAL              :: AIROSOL(MAXDEP)
-      INTEGER              :: IDEP(NNVEGTYPE)
-      INTEGER              :: IRAC(NNTYPE)
-      INTEGER              :: IRCLO(NNTYPE)
-      INTEGER              :: IRCLS(NNTYPE)
-      INTEGER              :: IRGSS(NNTYPE)
-      INTEGER              :: IRGSO(NNTYPE)
-      INTEGER              :: IRI(NNTYPE)
-      INTEGER              :: IRLU(NNTYPE)
-      INTEGER              :: IVSMAX(NNTYPE)
-      INTEGER              :: IZO(NNVEGTYPE)
-      INTEGER              :: IWATER(NNVEGTYPE)
-      INTEGER              :: NDVZIND(MAXDEP)
-      INTEGER              :: NTRAIND(MAXDEP)
-      REAL*8,  ALLOCATABLE :: DEPSAV(:,:,:)
-      REAL*8               :: DRYCOEFF(NNPOLY)
-      REAL*8               :: HSTAR(MAXDEP)
-      REAL*8               :: F0(MAXDEP)
-      REAL*8               :: XMW(MAXDEP)
-      REAL*8               :: A_RADI(MAXDEP)
-      REAL*8               :: A_DEN(MAXDEP)
-      CHARACTER(LEN=14)    :: DEPNAME(MAXDEP)
+      ! Arrays for Baldocchi drydep polynomial coefficients
+      REAL*8               :: DRYCOEFF(NPOLY    )
 
-      ! Additional variables for mercury sim (cdh, 9/1/09)
-      INTEGER              :: DRYHg0, DRYHg2, DryHgP
+      ! Arrays that hold information for each of the 74 Olson land types
+      INTEGER              :: INDOLSON(NVEGTYPE )
+      INTEGER              :: IDEP    (NVEGTYPE )
+      INTEGER              :: IZO     (NVEGTYPE )
+      INTEGER              :: IWATER  (NVEGTYPE )
+
+      ! Arrays that hold information for each of the 11 drydep land types
+      INTEGER              :: IDRYDEP (NDRYDTYPE)
+      INTEGER              :: IRAC    (NDRYDTYPE)
+      INTEGER              :: IRCLO   (NDRYDTYPE)
+      INTEGER              :: IRCLS   (NDRYDTYPE)
+      INTEGER              :: IRGSS   (NDRYDTYPE)
+      INTEGER              :: IRGSO   (NDRYDTYPE)
+      INTEGER              :: IRI     (NDRYDTYPE)
+      INTEGER              :: IRLU    (NDRYDTYPE)
+      INTEGER              :: IVSMAX  (NDRYDTYPE)
+
+      ! Arrays that hold information about the dry-depositing species
+      LOGICAL              :: AIROSOL (MAXDEP   )
+      INTEGER              :: NDVZIND (MAXDEP   )
+      INTEGER              :: NTRAIND (MAXDEP   )
+      REAL*8               :: HSTAR   (MAXDEP   )
+      REAL*8               :: F0      (MAXDEP   )
+      REAL*8               :: XMW     (MAXDEP   )
+      REAL*8               :: A_RADI  (MAXDEP   )
+      REAL*8               :: A_DEN   (MAXDEP   )
+      CHARACTER(LEN=14)    :: DEPNAME (MAXDEP   )
+
+      ! Allocatable arrays
+      REAL*8,  ALLOCATABLE :: DEPSAV  (:,:,:    )   ! Drydep frequencies
+      REAL*8,  ALLOCATABLE :: DMID    (:        )   ! 
+      REAL*8,  ALLOCATABLE :: SALT_V  (:        )
 
       !=================================================================
       ! MODULE ROUTINES -- follow below the "CONTAINS" statement
       !=================================================================
       CONTAINS
-
+!EOC
 !------------------------------------------------------------------------------
-
-      SUBROUTINE DO_DRYDEP
+!          Harvard University Atmospheric Chemistry Modeling Group            !
+!------------------------------------------------------------------------------
+!BOP
 !
-!******************************************************************************
-!  Subroutine DO_DRYDEP is the driver for the GEOS-CHEM dry deposition scheme.
-!  DO_DRYDEP calls DEPVEL to compute deposition velocities [m/s], which are 
-!  then converted to [cm/s].  Drydep frequencies are also computed.  
-!  (lwh, gmg, djj, 1989, 1994; bmy, 2/11/03, 5/25/05)
+! !IROUTINE: do_drydep
 !
-!  DAO met fields passed via "dao_mod.f":
-!  ============================================================================
-!  (1 ) AD      (REAL*8 ) : Array for dry air mass at each grid box [kg]
-!  (2 ) AZO     (REAL*8 ) : Array for surface roughness heights     [m]
-!  (3 ) ALBD    (REAL*8 ) : Array for surface albedo                [m]
-!  (5 ) SUNCOS  (REAL*8 ) : Array for COSINE( solar zenith angle )  [unitless]
-!  (6 ) T       (REAL*8 ) : Array for grid box temperature          [K]
-!  (7 ) USTAR   (REAL*8 ) : Array for grid box friction velocity    [m/s]
+! !DESCRIPTION: Subroutine DO\_DRYDEP is the driver for the GEOS-CHEM dry
+!  deposition scheme. DO\_DRYDEP calls DEPVEL to compute deposition velocities
+!  [m/s], which are then converted to [cm/s].  Drydep frequencies are also
+!  computed. (lwh, gmg, djj, 1989, 1994; bmy, 2/11/03, 5/25/05)
+!\\
+!\\
+! !INTERFACE:
 !
-!  Other important quantities:
-!  ============================================================================
-!  (1 ) LSNOW   (LOGICAL) : Array to flag whether there is snow/ice on the sfc.
-!  (2 ) CZ1     (REAL*8 ) : Midpoint height of first model level     [m]
-!  (3 ) OBK     (REAL*8 ) : Array for Monin-Obhukov Length           [m]
-!  (4 ) TC0     (REAL*8 ) : Array for grid box surface temperature   [K]
-!  (5 ) ZH      (REAL*8 ) : Array for PBL heights at each grid box   [m]
-!  (6 ) DVEL    (REAL*8 ) : Array containing drydep velocities       [m/s]
-!  (7 ) CFRAC   (REAL*8 ) : Array containing column cloud frac       [unitless]
-!  (8 ) RADIAT  (REAL*8 ) : Array containing solar radiation         [W/m2]
-!  (9 ) RHB     (REAL*8 ) : Array containing relative humidity       [unitless]
+      SUBROUTINE DO_DRYDEP( am_I_Root )
+!
+! !INPUT PARAMETERS:
+!
+      LOGICAL, INTENT(IN) :: am_I_Root   ! Is this the root CPU?
+!
+! !REMARKS:
+!  NOTE: Modeled aerosol dry deposition velocities over snow and ice surfaces 
+!  in the Arctic are much higher than estimated from measured values (e.g., 
+!  Ibrahim et al. [1983]; Duan et al. [1988]; Nilsson and Rannik [2001]).  
+!  We will impose a dry deposition velocity of 0.03 cm/s for all aerosols 
+!  over snow and ice surfaces. (Jenny Fisher, 01 Aug 2011)
 !
 !  References (see full citations above):
 !  ============================================================================
 !  (1 ) Wesely, M. L., 1989 
 !  (2 ) Jacob, D.J., and S.C. Wofsy, 1990
 !
-!  NOTES:
+! !REVISION HISTORY: 
 !  (1 ) Remove SUNCOS, USTAR, AZO, OBK from the arg list; now reference these
 !        as well as AD and T from "dao_mod.f".  Cleaned up code and updated
 !        comments.  Now only order tracer numbers into NTRAIND on the first
@@ -304,37 +331,48 @@
 !  (7 ) Now dimension AZO for GEOS or GCAP met fields.  Remove obsolete
 !        variables. (swu, bmy, 5/25/05)
 !  (8 ) Remove reference to TRACERID_MOD, it's not needed (bmy, 10/3/05)
-!******************************************************************************
+!  01 Aug 2011 - J. Fisher - Set aerosol dry deposition velocity to 0.03 cm/s
+!                            over snow and ice based on Nilsson & Rannik, 2001
+!  15 Aug 2011 - R. Yantosca - Now reference IDTxxx flags from tracerid_mod.f
+!  07 Oct 2011 - R. Yantosca - Rename SUNCOS30 to SUNCOS_MID, which is the
+!                              cos(SZA) at the midpt of the chemistry timestep
+!  22 Dec 2011 - M. Payer    - Added ProTeX headers
+!  10 Jan 2012 - M. Payer    - Added local surface pressure
+!  26 Mar 2012 - R. Yantosca - Now read drydep inputs from a netCDF file
+!                              via routine READ_DRYDEP_INPUTS
+!  26 Mar 2012 - R. Yantosca - Remove calls to obsolete MODIN, RDDRYCF routines
+!  30 Jul 2012 - R. Yantosca - Now accept am_I_Root as an argument when
+!                              running with the traditional driver main.F
+!EOP
+!------------------------------------------------------------------------------
+!BOC
 !
-      ! Reference to F90 modules
-      USE DIAG_MOD,     ONLY : AD44
-      USE DAO_MOD,      ONLY : AD, ALBD, BXHEIGHT, SUNCOS
-      USE ERROR_MOD,    ONLY : DEBUG_MSG
-      USE LOGICAL_MOD,  ONLY : LPRT
-      USE TRACERID_MOD, ONLY : IDTSALA, IDTSALC, IDTSO4s, IDTNITs
-      USE TRACERID_MOD, ONLY : IDTDST1, IDTDST2, IDTDST3, IDTDST4
+! !LOCAL VARIABLES:
+!
+      ! Scalars
+      LOGICAL, SAVE :: FIRST = .TRUE.
+      INTEGER       :: I,   J,   L,  N, IJLOOP, NN, NDVZ
+      REAL*8        :: DVZ, THIK
 
-      USE CMN_SIZE_MOD       ! Size parameters
-      USE CMN_DIAG_MOD       ! ND44
-      USE CMN_GCTM_MOD       ! Physical constants
-      USE CMN_DEP_MOD        ! IREG, ILAND, IUSE, etc.
-
-      ! Local variables
-      LOGICAL, SAVE     :: FIRST = .TRUE.
-      LOGICAL           :: LSNOW(MAXIJ)
-      INTEGER           :: I, J, L, N, IJLOOP, NN, NDVZ
-      REAL*8            :: THIK,              DVZ
-      REAL*8            :: CZ1(MAXIJ),        TC0(MAXIJ)
-      REAL*8            :: ZH(MAXIJ),         OBK(MAXIJ)
-      REAL*8            :: CFRAC(MAXIJ),      RADIAT(MAXIJ)
-      REAL*8            :: USTAR(MAXIJ),      RHB(MAXIJ)
-      REAL*8            :: DVEL(MAXIJ,MAXDEP)
+      ! Arrays
+      LOGICAL       :: LSNOW (MAXIJ       )   ! Flag for snow/ice on the sfc.
+      REAL*8        :: CZ1   (MAXIJ       )   ! Midpt ht of 1st model level [m]
+      REAL*8        :: TC0   (MAXIJ       )   ! Grid box sfc temperature [K]
+      REAL*8        :: ZH    (MAXIJ       )   ! PBL height [m]
+      REAL*8        :: OBK   (MAXIJ       )   ! Monin-Obhukov Length [m]
+      REAL*8        :: CFRAC (MAXIJ       )   ! Column cloud frac [unitless]
+      REAL*8        :: RADIAT(MAXIJ       )   ! Solar radiation [W/m2]
+      REAL*8        :: USTAR (MAXIJ       )   ! Grid box friction velocity[m/s]
+      REAL*8        :: RHB   (MAXIJ       )   ! Relative humidity [unitless]
+      REAL*8        :: DVEL  (MAXIJ,MAXDEP)   ! Drydep velocities [m/s]
+      REAL*8        :: PRESSU(MAXIJ       )   ! Local surface pressure [Pa]
+      REAL*8        :: W10   (MAXIJ       )   ! 10m windspeed [m/s]
 
       ! Dimension AZO for GCAP or GEOS met fields (swu, bmy, 5/25/05)
 #if   defined( GCAP )
-      REAL*8            :: AZO(NTYPE)
+      REAL*8        :: AZO   (NTYPE       )   ! Z0, per Olson land type
 #else
-      REAL*8            :: AZO(MAXIJ)
+      REAL*8        :: AZO   (MAXIJ       )   ! Z0, per (I,J) square
 #endif
 
       !=================================================================
@@ -343,21 +381,37 @@
       
       ! Read drydep coeff's and land types on first call
       IF ( FIRST ) THEN
-         CALL RDDRYCF
-         CALL MODIN
+
+         ! Read drydep inputs from the netCDF file
+         ! Save Olson indices in INDOLSON array, in order to avoid
+         ! confusion w/ previously-assinged variable name IOLSON
+         CALL READ_DRYDEP_INPUTS( am_I_Root,
+     &                            DRYCOEFF, INDOLSON, IDEP,    
+     &                            IWATER,   NWATER,   IZO,      
+     &                            IDRYDEP,  IRI,      IRLU,     
+     &                            IRAC,     IRGSS,    IRGSO, 
+     &                            IRCLS,    IRCLO,    IVSMAX )
+
+         ! Calls INIT_WEIGHTSS to calculate the volume distribution of 
+         ! sea salt aerosols (jaegle 5/11/11)
+         CALL INIT_WEIGHTSS()
          FIRST = .FALSE.
       ENDIF
  
       ! Call METERO to obtain meterological fields (all 1-D arrays)
-      CALL METERO( CZ1, TC0,   OBK, CFRAC, RADIAT, 
-     &             AZO, USTAR, ZH,  LSNOW, RHB )
+      ! Added sfc pressure as PRESSU and 10m windspeed as W10 
+      !  (jaegle 5/11/11, mpayer 1/10/12)
+      CALL METERO( CZ1,   TC0, OBK,   CFRAC, RADIAT, AZO, 
+     &             USTAR, ZH,  LSNOW, RHB,   PRESSU, W10  )
 
       !=================================================================
       ! Call DEPVEL to compute dry deposition velocities [m/s]
+      ! Added  PRESSU, W10 as arguments (jaegle 5/11/11)
       !=================================================================
-      CALL DEPVEL( MAXIJ, RADIAT,  TC0,   SUNCOS, F0,  HSTAR, 
-     &             XMW,   AIROSOL, USTAR, CZ1,    OBK, CFRAC,  
-     &             ZH,    LSNOW,   DVEL,  AZO,    RHB ) 
+      CALL DEPVEL( MAXIJ,  RADIAT,  TC0,     SUNCOS_MID, F0,  
+     &             HSTAR,  XMW,     AIROSOL, USTAR,      CZ1,
+     &             OBK,    CFRAC,   ZH,      LSNOW,      DVEL,  
+     &             AZO,    RHB,     PRESSU,  W10               )
 
       !=================================================================
       ! Compute dry deposition frequencies; archive diagnostics
@@ -373,7 +427,7 @@
 
          ! THIK = thickness of surface layer [m]
          THIK    = BXHEIGHT(I,J,1)
-
+         
          ! Now we calculate drydep throughout the entire PBL.  
          ! Make sure that the PBL depth is greater than or equal 
          ! to the thickness of the 1st layer (rjp, bmy, 7/21/03)
@@ -390,12 +444,24 @@
             ! Index of drydep species in the DVEL array 
             ! as passed back from subroutine DEPVEL
             NDVZ = NDVZIND(N)
-                   
+                  
             ! Dry deposition velocity [cm/s]
             DVZ  = DVEL(IJLOOP,NDVZ) * 100.d0
 
             ! Set minimum velocity for sulfate tracers
             DVZ  = DVZ_MINVAL( NN, LSNOW(IJLOOP), DVZ )
+            
+            ! For ACET, we need to only do drydep over the land
+            ! and not over the oceans.
+            IF ( NN == IDTACET ) THEN
+
+               IF ( IS_LAND( I, J ) ) THEN
+                  DVZ = 0.1 
+               ELSE
+                  DVZ = 0d0
+               ENDIF
+
+            ENDIF
 
             ! Set Vd for aerosol tracers over snow/ice (J. Fisher, 8/1/11)
             IF ( ( AIROSOL(N)    ) .and. ( LSNOW(IJLOOP) )  .and. 
@@ -419,46 +485,47 @@
 !$OMP END PARALLEL DO
 
       !### Debug
-      IF ( LPRT ) CALL DEBUG_MSG( '### DO_DRYDEP: after dry dep' )
+      IF ( LPRT .and. am_I_Root ) THEN
+         CALL DEBUG_MSG( '### DO_DRYDEP: after dry dep' )
+      ENDIF
 
-      ! Return to calling program
       END SUBROUTINE DO_DRYDEP
-
+!EOC
 !------------------------------------------------------------------------------
-
+!          Harvard University Atmospheric Chemistry Modeling Group            !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: dvz_minval
+!
+! !DESCRIPTION: Function DVZ\_MINVAL sets minimum values for drydep velocities 
+!  for SULFATE TRACERS, according to Mian Chin's GOCART model. (rjp, bmy, 
+!  11/21/02, 10/3/05)
+!\\
+!\\
+! !INTERFACE:
+!
       FUNCTION DVZ_MINVAL( N, LSNOW, DVZ ) RESULT( NEWDVZ )
 !
-!******************************************************************************
-!  Function DVZ_MINVAL sets minimum values for drydep velocities for 
-!  SULFATE TRACERS, according to Mian Chin's GOCART model. 
-!  (rjp, bmy, 11/21/02, 10/3/05)
+! !INPUT PARAMETERS: 
 !
-!  Arguments as Input:
-!  ============================================================================
-!  (1 ) N     (INTEGER) : Tracer number
-!  (2 ) LSNOW (LOGICAL) : Flag for denoting snow/ice 
-!  (3 ) DVZ   (REAL*8 ) : Deposition velocity [cm/s]
+      INTEGER, INTENT(IN) :: N      ! Tracer number
+      LOGICAL, INTENT(IN) :: LSNOW  ! Flag for denoting snow/ice
+      REAL*8,  INTENT(IN) :: DVZ    ! Deposition velocity [cm/s]
 !
-!  NOTES:
+! !RETURN VALUE:
+!
+      REAL*8              :: NEWDVZ
+!
+! !REVISION HISTORY: 
 !  (1 ) Don't put a min drydep value on H2O2 for offline run (rjp, bmy,3/31/03)
 !  (2 ) Remove reference to CMN, it's obsolete (bmy, 7/20/04)
 !  (3 ) Now make sure all USE statements are USE, ONLY (bmy, 10/3/05)
-!******************************************************************************
+!  22 Dec 2011 - M. Payer    - Added ProTeX headers
+!EOP
+!------------------------------------------------------------------------------
+!BOC
 !
-      ! References to F90 modules
-      USE TRACERID_MOD, ONLY : IDTMSA, IDTNH3, IDTNH4
-      USE TRACERID_MOD, ONLY : IDTNIT, IDTSO2, IDTSO4
-
-      USE CMN_SIZE_MOD       ! Size parameters!
-
-      ! Arguments
-      INTEGER, INTENT(IN) :: N
-      LOGICAL, INTENT(IN) :: LSNOW
-      REAL*8,  INTENT(IN) :: DVZ
-
-      ! Function value
-      REAL*8              :: NEWDVZ
-
       !=================================================================
       ! DVZ_MINVAL begins here!
       !=================================================================
@@ -493,37 +560,53 @@
 
       ENDIF
 
-      ! Return to calling program
       END FUNCTION DVZ_MINVAL
-
+!EOC
 !------------------------------------------------------------------------------
-
+!          Harvard University Atmospheric Chemistry Modeling Group            !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: metero
+!
+! !DESCRIPTION: Subroutine METERO calculates meteorological constants needed
+!  for the dry deposition velocity module. (lwh, gmg, djj, 1989, 1994; bmy,
+!  10/3/05)
+!\\
+!\\
+! !INTERFACE:
+!
       SUBROUTINE METERO( CZ1, TC0,  OBK, CFRAC, RADIAT, 
-     &                   AZO, USTR, ZH,  LSNOW, RHB )
+     &                   AZO, USTR, ZH,  LSNOW, RHB, PRESSU, W10 )
 !
-!******************************************************************************
-!  Subroutine METERO calculates meteorological constants needed for the      
-!  dry deposition velocity module. (lwh, gmg, djj, 1989, 1994; bmy, 10/3/05)
+! !OUTPUT PARAMETERS:
 !
-!  Arguments as Output:
-!  ============================================================================
-!  (1 ) CZ1    (REAL*8 ) : Midpoint height of first model level     [m]
-!  (2 ) TC0    (REAL*8 ) : Array for grid box surface temperature   [K]
-!  (3 ) OBK    (REAL*8 ) : Array for the Monin-Obhukov length       [m]
-!  (4 ) CFRAC  (REAL*8 ) : Array for the column cloud fraction      [unitless]
-!  (5 ) RADIAT (REAL*8 ) : Array for the solar radiation @ ground   [W/m2]
-!  (6 ) AZO    (REAL*8 ) : Array for the roughness heights          [m]
-!  (7 ) USTR   (REAL*8 ) : Array for the friction velocity          [m/s]
-!  (8 ) ZH     (REAL*8 ) : Height of the mixed layer (aka PBL)      [m]
-!  (9 ) LSNOW  (LOGICAL) : Flag to denote ice & snow (ALBEDO < 0.4)
-!  (10) RHB    (REAL*8 ) : Relative humidity at surface             [unitless]
+      LOGICAL, INTENT(OUT) :: LSNOW (MAXIJ)  ! Flag for denoting snow/ice
+      REAL*8,  INTENT(OUT) :: CZ1   (MAXIJ)  ! Midpt ht of 1st model level [m]
+      REAL*8,  INTENT(OUT) :: TC0   (MAXIJ)  ! Grid box sfc temperature [K]
+      REAL*8,  INTENT(OUT) :: OBK   (MAXIJ)  ! Monin-Obhukov length [m]
+      REAL*8,  INTENT(OUT) :: CFRAC (MAXIJ)  ! Column cloud fraction [unitless]
+      REAL*8,  INTENT(OUT) :: RADIAT(MAXIJ)  ! Solar radiation @ ground [W/m2]
+      REAL*8,  INTENT(OUT) :: RHB   (MAXIJ)  ! Rel humidity at sfc [unitless]
+      REAL*8,  INTENT(OUT) :: USTR  (MAXIJ)  ! Friction velocity [m/s]
+      REAL*8,  INTENT(OUT) :: ZH    (MAXIJ)  ! PBL height [m]
+      REAL*8,  INTENT(OUT) :: PRESSU(MAXIJ)  ! Local surface pressure [Pa]
+      REAL*8,  INTENT(OUT) :: W10   (MAXIJ)  ! 10 meter windspeed [m/s]
+
+      ! Dimension AZO for GCAP or GEOS met fields (swu, bmy, 5/25/05)
+#if   defined( GCAP )
+      REAL*8, INTENT(OUT)  :: AZO(NTYPE)     ! Roughness heights, by landtype
+#else
+      REAL*8, INTENT(OUT)  :: AZO(MAXIJ)     ! Roughness heights, by grid box
+#endif
 !
+! !REMARKS:
 !  References (see full citations above):
 !  ============================================================================
 !  (1 ) Wesely, M. L., 1989. 
 !  (2 ) Jacob, D.J., and S.C. Wofsy, 1990
 !
-!  NOTES: 
+! !REVISION HISTORY: 
 !  (1 ) Now reference GET_PEDGE from "pressure_mod.f".  Now reference T from 
 !        "dao_mod.f".  Removed obsolete code & comments, and added new 
 !         documentation header.  Now force double precision with "D" 
@@ -547,42 +630,21 @@
 !        fields.  Remove obsolete variables. (swu, bmy, 5/25/05)
 !  (7 ) Now make sure all USE statements are USE, ONLY (bmy, 10/3/05)
 !  (8 ) Move XLTMMP function to module MEGANUT_MOD. (ccc, 11/20/09)
-!******************************************************************************
+!  (9 ) Add sea level pressure and 10m windspeed as arguments (jaegle 5/11/11)
+!  22 Dec 2011 - M. Payer    - Added ProTeX headers
+!  10 Jan 2012 - M. Payer    - Added local surface pressure
+!EOP
+!------------------------------------------------------------------------------
+!BOC
 !
-      ! References to F90 modules 
-      USE DAO_MOD,      ONLY : ALBD,   BXHEIGHT, CLDFRC, GET_OBK
-      USE DAO_MOD,      ONLY : RADSWG, RH,       TS,     USTAR,   Z0
-      USE PBL_MIX_MOD,  ONLY : GET_PBL_TOP_m
-      USE MEGANUT_MOD,  ONLY : XLTMMP
-                                  
-      USE CMN_SIZE_MOD       ! Size parameters
-      USE CMN_GCTM_MOD       ! Physical constants
-
-      ! Arguments
-      LOGICAL, INTENT(OUT)  :: LSNOW(MAXIJ)
-      REAL*8,  INTENT(OUT)  :: CZ1(MAXIJ)
-      REAL*8,  INTENT(OUT)  :: TC0(MAXIJ)
-      REAL*8,  INTENT(OUT)  :: OBK(MAXIJ)
-      REAL*8,  INTENT(OUT)  :: CFRAC(MAXIJ)
-      REAL*8,  INTENT(OUT)  :: RADIAT(MAXIJ)
-      REAL*8,  INTENT(OUT)  :: RHB(MAXIJ)
-      REAL*8,  INTENT(OUT)  :: USTR(MAXIJ)
-      REAL*8,  INTENT(OUT)  :: ZH(MAXIJ)
-
-      ! Dimension AZO for GCAP or GEOS met fields (swu, bmy, 5/25/05)
-#if   defined( GCAP )
-      REAL*8, INTENT(OUT)   :: AZO(NTYPE)
-#else
-      REAL*8, INTENT(OUT)   :: AZO(MAXIJ)
-#endif
-
-      ! Local variables
+! !LOCAL VARIABLES:
+!
       INTEGER               :: I,  J,  IJLOOP
       REAL*8                :: THIK
+      REAL*8                :: SP
 
       ! External functions
-!-- Moved to megan_mod.f. (ccc, 11/20/09)
-!      REAL*8, EXTERNAL      :: XLTMMP
+      REAL*8, EXTERNAL      :: SFCWINDSQR ! Surface wind speed (jaegle 5/11/11)
 
       !=================================================================
       ! METERO begins here!
@@ -603,13 +665,19 @@
       DO I = 1, IIPAR
 
          ! 1-D grid box index
-         IJLOOP      = ( (J-1) * IIPAR ) + I
+         IJLOOP         = ( (J-1) * IIPAR ) + I
 
          ! THIK = thickness of layer 1 [m]
-         THIK        = BXHEIGHT(I,J,1)
+         THIK           = BXHEIGHT(I,J,1)
 
          ! Midpoint height of first model level [m]
-         CZ1(IJLOOP) = THIK / 2.0d0
+         CZ1(IJLOOP)    = THIK / 2.0d0
+
+         ! Local surface pressure [hPa] (mpayer, 1/10/12)
+         SP             = GET_PEDGE(I,J,1)
+
+         ! Convert from hPa to Pa for SFCPRESS
+         PRESSU(IJLOOP) = SP * 1.d2
 
          !==============================================================
          ! Return meterological quantities as 1-D arrays for DEPVEL
@@ -642,24 +710,38 @@
          ZH(IJLOOP)     = GET_PBL_TOP_m( I, J )
 
          ! Relative humidity @ surface [unitless] (bec, bmy, 4/13/05)
-         RHB(IJLOOP)    = MIN( 0.99d0, RH(I,J,1) * 1.d-2 ) 
+         !RHB(IJLOOP)    = MIN( 0.99d0, RH(I,J,1) * 1.d-2 ) 
+         !  changed to 98% due to vapor pressure lowering above sea water
+         !  (Lewis & Schwartz, 2004)
+         !  jaegle (5/11/11)
+         RHB(IJLOOP)    = MIN( 0.98d0, RH(I,J,1) * 1.d-2 )
+
+         ! 10m windspeed (jaegle 5/11/11)
+         W10(IJLOOP)    =  SQRT( SFCWINDSQR(I,J) )
 
       ENDDO
       ENDDO
 !$OMP END PARALLEL DO
       
-      ! Return to calling program
       END SUBROUTINE METERO
-
+!EOC
 !------------------------------------------------------------------------------
-
+!          Harvard University Atmospheric Chemistry Modeling Group            !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: dryflx
+!
+! !DESCRIPTION: Subroutine DRYFLX sets up the dry deposition flux diagnostic
+!  for tracers which are part of the SMVGEAR mechanism. (bmy, bdf, 4/20/99,
+!  3/24/04)
+!\\
+!\\
+! !INTERFACE:
+!
       SUBROUTINE DRYFLX
-!
-!******************************************************************************
-!  Subroutine DRYFLX sets up the dry deposition flux diagnostic for tracers
-!  which are part of the SMVGEAR mechanism. (bmy, bdf, 4/20/99, 3/24/04)
-!
-!  NOTES:
+! 
+! !REVISION HISTORY: 
 !  (1 ) Bug fix -- now skip tracers for which NTDEP(N) is zero, in order
 !        to avoid array-out-of-bounds errors. (bmy, 5/2/00)
 !  (2 ) Now reference the CSPEC array from "comode_mod.f" instead of from
@@ -682,23 +764,17 @@
 !        multiple threads writing to the same element (bmy, 3/24/04)
 !  (11) Now reference GET_FRAC_UNDER_PBLTOP and GET_PBL_MAX_L from 
 !        "pbl_mix_mod.f".  Remove reference to CMN. (bmy, 2/22/05)
-!******************************************************************************
+!  22 Dec 2011 - M. Payer    - Added ProTeX headers
+!  01 Mar 2012 - R. Yantosca - Now use GET_AREA_M2(I,J,L) from grid_mod.F90
+!  31 Jul 2012 - R. Yantosca - Now loop from 1..LLPAR for GIGC compatibility
+!EOP
+!------------------------------------------------------------------------------
+!BOC
 !
-      ! References to F90 modules
-      USE COMODE_MOD,  ONLY : CSPEC, JLOP, VOLUME
-      USE DIAG_MOD,    ONLY : AD44
-      USE ERROR_MOD,   ONLY : ERROR_STOP
-      USE GRID_MOD,    ONLY : GET_AREA_CM2
-      USE PBL_MIX_MOD, ONLY : GET_FRAC_UNDER_PBLTOP, GET_PBL_MAX_L
-      USE TIME_MOD,    ONLY : GET_TS_CHEM
-
-      USE CMN_SIZE_MOD      ! Size parameters
-      USE COMODE_LOOP_MOD   ! CSPEC
-      USE CMN_DIAG_MOD      ! Diagnostic switches & arrays
-
-      ! Local variables
+! !LOCAL VARIABLES:
+!
       INTEGER :: I, J, JJ, JLOOP, L, L_PBLTOP, N, NK, NN
-      REAL*8  :: DTCHEM, PBL_MAX, TDRYFX, AREA_CM2(JJPAR)
+      REAL*8  :: DTCHEM, PBL_MAX, TDRYFX, AREA_CM2
 
       !=================================================================
       ! DRYFLX begins here!
@@ -714,8 +790,11 @@
       ! Chemistry timestep [s]
       DTCHEM  = GET_TS_CHEM() * 60d0
 
-      ! Highest extent of the PBL [model layers]
-      PBL_MAX = GET_PBL_MAX_L()
+!----------------------------------------------------
+! Prior to 7/31/12:
+!      ! Highest extent of the PBL [model layers]
+!      PBL_MAX = GET_PBL_MAX_L()
+!----------------------------------------------------
 
       !=================================================================
       ! ND44 diagnostic: Dry deposition flux [molec/cm2/s]
@@ -724,13 +803,6 @@
       ! tracers which are SMVGEAR species.  Fluxes for sulfate tracers
       ! will be updated in "sulfate_mod.f". (bmy, 11/19/02)
       !=================================================================
-
-      ! Save grid box surface area [cm2] in a lookup table (bmy, 7/23/03)
-      DO J = 1, JJPAR
-         AREA_CM2(J) = GET_AREA_CM2(J)
-      ENDDO
-
-      ! Loop over dry deposition species
 !$OMP PARALLEL DO
 !$OMP+DEFAULT( SHARED )
 !$OMP+PRIVATE( I, J, L, N, NK, JJ, JLOOP, TDRYFX )
@@ -754,23 +826,30 @@
          ENDIF
 
          ! Loop over grid boxes
-         DO L = 1, PBL_MAX
+!----------------------------------
+! Prior to 7/31/12:
+!         DO L = 1, PBL_MAX
+!----------------------------------
+         DO L = 1, LLPAR
          DO J = 1, JJPAR
          DO I = 1, IIPAR
          
             ! Only deal w/ boxes w/in the boundary layer
             IF ( GET_FRAC_UNDER_PBLTOP( I, J, L ) > 0d0 ) THEN
 
+               ! Grid box surface area [cm2]
+               AREA_CM2      = GET_AREA_CM2( I, J, L )
+
                ! 1-D grid box index for CSPEC & VOLUME
-               JLOOP = JLOP(I,J,L)
+               JLOOP         = JLOP(I,J,L)
 
                ! Dry dep flux [molec] for species N = 
                !  CSPEC(JLOOP,JJ) * VOLUME(JLOOP)
                !  [molec/cm3]     * [cm3]  
-               TDRYFX = CSPEC(JLOOP,JJ) * VOLUME(JLOOP)
+               TDRYFX        = CSPEC(JLOOP,JJ) * VOLUME(JLOOP)
                     
                ! Convert TDRYFX from [molec] to [molec/cm2/s]        
-               TDRYFX = TDRYFX / ( AREA_CM2(J) * DTCHEM ) 
+               TDRYFX        = TDRYFX / ( AREA_CM2 * DTCHEM ) 
                     
 !$OMP CRITICAL
                ! Save into AD44 diagnostic array
@@ -784,19 +863,25 @@
       ENDDO                     
 !$OMP END PARALLEL DO
 
-      ! Return to calling program
       END SUBROUTINE DRYFLX
-
+!EOC
 !------------------------------------------------------------------------------
-
-      SUBROUTINE DRYFLXRnPbBe
+!          Harvard University Atmospheric Chemistry Modeling Group            !
+!------------------------------------------------------------------------------
+!BOP
 !
-!******************************************************************************
-!  Subroutine DRYFLXRnPbBe removes dry deposition losses from the STT tracer
-!  array and archives deposition fluxes to the ND44 diagnostic. 
+! !IROUTINE: dryflxRnPbBe
+!
+! !DESCRIPTION: Subroutine DRYFLXRnPbBe removes dry deposition losses from the
+!  STT tracer array and archives deposition fluxes to the ND44 diagnostic. 
 !  (hyl, bmy, bdf, 4/2/99, 5/25/05)
+!\\
+!\\
+! !INTERFACE:
 !
-!  NOTES:
+      SUBROUTINE DRYFLXRnPbBe
+! 
+! !REVISION HISTORY:
 !  (1 ) Now eliminate DEPFLUX from CMN_SAV, in order to save memory.
 !        DEPFLUX is now a local variable (bdf, 4/2/99)
 !  (2 ) Now make DEPFLUX of dimension (IIPAR,JJPAR,MAXDEP) (bmy, 4/2/99)
@@ -820,21 +905,13 @@
 !  (13) Now reference STT from "tracer_mod.f" and LDRYD from "logical_mod.f"
 !        (bmy, 7/20/04)
 !  (14) Now modified for GEOS-5 and GCAP met fields (swu, bmy, 5/25/05)
-!******************************************************************************
+!  22 Dec 2011 - M. Payer    - Added ProTeX headers
+!EOP
+!------------------------------------------------------------------------------
+!BOC
 !
-      ! References to F90 modules
-      USE DIAG_MOD,    ONLY : AD44
-      USE ERROR_MOD,   ONLY : ERROR_STOP, GEOS_CHEM_STOP
-      USE LOGICAL_MOD, ONLY : LDRYD
-      USE PBL_MIX_MOD, ONLY : GET_FRAC_UNDER_PBLTOP, GET_PBL_MAX_L
-      USE TIME_MOD,    ONLY : GET_TS_CHEM
-      USE TRACER_MOD,  ONLY : STT
-
-      USE CMN_SIZE_MOD      ! Size parameters
-      USE CMN_DIAG_MOD      ! ND44
-      USE CMN_DEP_MOD       ! Dry deposition variables
-
-      ! Local variables
+! !LOCAL VARIABLES:
+!
       INTEGER             :: I, J, L, PBL_MAX, N, NN
       REAL*8              :: DTCHEM, FRACLOST, F_UNDER_TOP, AMT_LOST
 
@@ -923,25 +1000,26 @@
       ENDDO
 !$OMP END PARALLEL DO
 
-      ! Return to calling program
       END SUBROUTINE DRYFLXRnPbBe
-
+!EOC
 !------------------------------------------------------------------------------
-
+!          Harvard University Atmospheric Chemistry Modeling Group            !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: dryflxh2hd
+!
+! !DESCRIPTION: Subroutine DRYFLXH2HD removes dry deposition losses from the
+!  tracer array and archives deposition fluxes AND VELOCITY to the ND44
+!  diagnostic. (adapted from DRYFLX v5-05, jaegle 11/02/2005). 
+!\\
+!\\
+! !INTERFACE:
+!
       SUBROUTINE DRYFLXH2HD
 !
-!******************************************************************************
-!  Subroutine DRYFLXH2HD removes dry deposition losses from the tracer
-!  array and archives deposition fluxes AND VELOCITY to the ND44 diagnostic. 
-!  (adapted from DRYFLX v5-05, jaegle 11/02/2005). 
+! !USES:
 !
-!  NOTES:
-!  (1) Now deposit through the PBL. Commented but kept code related to soil
-!       temperature (phs, 5/16/07)
-!  (2) Move XLTMMP to module MEGANUT_MOD (ccc, 11/20/09)
-!******************************************************************************
-!
-      ! References to F90 modules
       USE DIAG_MOD,     ONLY : AD44
       USE ERROR_MOD,    ONLY : ERROR_STOP, GEOS_CHEM_STOP
       USE TIME_MOD,     ONLY : GET_TS_CHEM
@@ -956,11 +1034,22 @@
       
       USE CMN_SIZE_MOD       ! Size parameters
       USE CMN_DIAG_MOD       ! Diagnostic switches & arrays
-      USE CMN_VEL_MOD        ! IJLAND
       USE CMN_DEP_MOD        ! Dry deposition variables
       USE COMMSOIL_MOD       ! Soil pulsing & wetness variables
-
-      ! Local variables
+! 
+! !REVISION HISTORY: 
+!  (1) Now deposit through the PBL. Commented but kept code related to soil
+!       temperature (phs, 5/16/07)
+!  (2) Move XLTMMP to module MEGANUT_MOD (ccc, 11/20/09)
+!  22 Dec 2011 - M. Payer    - Added ProTeX headers
+!  01 Mar 2012 - R. Yantosca - Now use GET_AREA_CM2(I,J,L) from grid_mod.F90
+!  09 Apr 2012 - R. Yantosca - Replace IJLAND, IJUSE arrays w/ ILAND, IUSE
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+!
+! !LOCAL VARIABLES:
+!
       INTEGER     :: I, J, L, N, NN, M, PBL_MAX
       INTEGER     :: IJLOOP, I0, J0, IREF, JREF, K, STYP
       INTEGER     :: JLOP(IIPAR,JJPAR,1), NTYP(IIPAR,JJPAR)
@@ -1044,39 +1133,13 @@
      &              (FSOIL > 0.d0) .AND. (ALBD(I,J) < 0.4d0) ) THEN
 
                   ! Grid box area in cm2
-                  AREA_CM2 = GET_AREA_CM2( J )
-
-!                 !===========================================================
-!                 ! Get SOIL TEMPerature from function SOILTEMP(I,J,M,NTYP)
-!                 ! Right now Surface Temp is used instead.
-!                 ! So commented for now (phs, 3/5/07)  
-!                 !===========================================================
-!                 TMMP = XLTMMP(I,J,IJLOOP) - 273.15
-!  
-!                 ! Loop over landtype
-!                 DO K = 1, IREG(IREF,JREF)
-!                      
-!                    ! NCONSOIL Converts from Olson type  -> soil type           
-!                    STYP = NCONSOIL(ILAND(IREF,JREF,K)+1)
-!                          
-!                    ! Temperature factor
-!                    ! STEMP(I,J) is the weighted soil temperature in
-!                    ! gridbox i,j for all the soil types
-!                    ! IUSE is the fraction ((per mil) of box covered by land types
-!                    STEMP(I,J) = STEMP(I,J) + 
-!     &                           SOILTEMP(I,J,M,STYP,TMMP)*
-!     &                           DBLE(IUSE(IREF,JREF,K))/1000.D0
-!    
-!                      !write(*,*)'TEst',TMMP, TS(I,J)-273.15, STEMP(I,J)
-!                 ENDDO
-!
+                  AREA_CM2 = GET_AREA_CM2( I, J, 1 )
 
                   ! SVEL [cm/s] is the air-to-soil transfer velocity
                   ! Use uniform value of 3.94d-2 cm/s over land
                   ! not covered by snow or desert.
                   SVEL = 3.94d-2
 		  
-            	
                   ! if soil temperature is below freezing reduce dep vel
                   ! by 1/2, and additional 1/2 below -15C(hup, 6/21/2005)
                   ! for now use surface temperature (TS) instead of
@@ -1092,10 +1155,10 @@
 		  ! in units of per mil (IJUSE=500 -> 50% of the grid square). 
 		  DO K = 1, IREG(IREF,JREF)
 	          
-                     NTYP(I,J) = IJLAND(IJLOOP, K) + 1
+                     NTYP(I,J) = ILAND(I,J,K) + 1
                      
                      IF (NTYP(I,J) .eq. 52 .or. NTYP(I,J) .eq. 51) THEN 
-		  	SVEL = SVEL*(1-(IJUSE(IJLOOP,K)/1.d3)) 
+		  	SVEL = SVEL*(1-(IUSE(I,J,K)/1.d3)) 
                      ENDIF
                      
 		  ENDDO
@@ -1175,69 +1238,114 @@
       ENDDO                     ! NUMDEP = Number of species that drydep
 
 
-      ! Return to calling program
       END SUBROUTINE DRYFLXH2HD
-
+!EOC
 !------------------------------------------------------------------------------
-
-      SUBROUTINE DEPVEL( NPTS, RADIAT,  TEMP,  SUNCOS, F0,  HSTAR,
-     &                   XMW,  AIROSOL, USTAR, CZ1,    OBK, CFRAC,
-     &                   ZH,   LSNOW,   DVEL,  ZO,     RHB )
-
-      ! References to F90 modules (bmy, 3/8/01)
-      USE ERROR_MOD, ONLY : IT_IS_NAN
-
-      USE TRACERID_MOD, ONLY : IDTNK1             !(win, 7/15/09)
-      USE TOMAS_MOD,    ONLY : IBINS, AERO_DIADEN !(win, 7/15/09)
-                        
-!     Subroutine computes the dry deposition velocities using 
-!      a resistance-in-series model.
+!          Harvard University Atmospheric Chemistry Modeling Group            !
+!------------------------------------------------------------------------------
+!BOP
 !
-!** Contact: D.J. Jacob, Harvard U. (djj@io.harvard.edu)
-!** Modularized by G.M. Gardner, Harvard U.
-!** Version 3.2:   5/27/97
-!** Version 3.2.1: 3/4/99   -- bug fix in expression for RT 
-!** Version 3.2.2: 3/26/99  -- bug fix: specify a large Ra for aerosols
-!** Version 3.2.3: 11/12/99 -- change Reynolds # criterion from 10 to 1
-!                           -- force double precision w/ "D" exponents
-!** Version 3.3:   5/8/00   -- bug fixes, cleanup, updated comments.
-!** Version 3.4:   1/22/03  -- remove hardwire for CANOPYNOX
-!** Version 3.5    7/21/03  -- Remove cap of surface resistance in RLUXX
-!** Version 3.6    4/01/04  -- Now do drydep of DUST aerosol tracers
-!** Version 3.7    4/20/04  -- Now also do drydep of SEASALT aerosol tracers
-!** Version 3.8    4/13/05  -- Accounts for hygroscopic growth of SEASALT
-!**                             aerosol tracers.  DUST aerosol tracers do
-!**                             not grow hygroscopically.  Added RHB as
-!**                             an input argument.
-!** Version 3.9    5/25/05  -- Now restore GISS-specific code for GCAP model
-!** Version 3.9.1  11/17/05 -- change Reynolds # criterion from 1 to 0.1
+! !IROUTINE: depvel
 !
-!***********************************************************************
-!   Changes from Version 3.2 to Version 3.3:                         ***
-!   * We now suppress dry deposition over aerodynamically smooth     ***
-!     surfaces.  The previous algorithm yielded negative numbers     ***
-!     when u* was very small (due to the logarithm going negative).  ***
-!     See the comments below for more information.                   ***
-!   * Now eliminate obsolete variables ZLMO and SIH from the code.   ***
-!   * Obsolete comments have been updated or removed.                ***
-!***********************************************************************
-!   Changes from version 3.1 to version 3.2:                         ***
-!   * In unstable atmospheres with |ZLMO| < ZO, as can happen        ***
-!    occasionally under very low wind conditions with tall canopies, ***
-!    application of Monin-Obukhov similarity yields negative values  ***
-!    for RA.  This was a problem in version 3.1.  In fact,           ***
-!    Monin-Obukhov similarity does not apply under such conditions,  ***
-!    so we now set RA to zero and let the boundary                   ***
-!    resistance RB define the overall aerodynamic resistance.  Since *** 
-!    RB varies inversely with U* it will impose a large aerodynamic  ***
-!    resistance under very low wind conditions.                      ***
-!   * The range of applicability of stability correction functions   ***
-!    to Monin-Obukhov similarity has been extended to                ***
-!    -2.5 < z/zMO < 1.5, based on Figure 2 of Businger et al. [1971].***
-!    The range used to be -1 < z/zMO < 1 in version 3.1.             ***
-!***********************************************************************
-!                                  
-!  Literature cited:
+! !DESCRIPTION: Subroutine DEPVEL computes the dry deposition velocities using 
+!  a resistance-in-series model.
+!\\
+!\\
+! !INTERFACE:
+!
+      SUBROUTINE DEPVEL( NPTS,   RADIAT, TEMP,    SUNCOS, F0,  
+     &                   HSTAR,  XMW,    AIROSOL, USTAR,  CZ1,    
+     &                   OBK,    CFRAC,  ZH,      LSNOW,  DVEL,  
+     &                   ZO,     RHB,    PRESSU,  W10           )
+!
+! !INPUT PARAMETERS:
+!
+      INTEGER, INTENT(IN) :: NPTS             ! # of grid boxes = IIPAR*JJPAR
+      REAL*8,  INTENT(IN) :: RADIAT (MAXIJ )  ! Solar radiation [W/m2]
+      REAL*8,  INTENT(IN) :: TEMP   (MAXIJ )  ! Temperature [K]
+      REAL*8,  INTENT(IN) :: SUNCOS (MAXIJ )  ! Cosine of solar zenith angle
+      LOGICAL, INTENT(IN) :: AIROSOL(MAXDEP)  ! =T denotes aerosol species
+      REAL*8,  INTENT(IN) :: F0     (MAXDEP)  ! Reactivity factor for oxidation
+                                              !  of biological substances
+      REAL*8,  INTENT(IN) :: HSTAR  (MAXDEP)  ! Henry's law constant
+      REAL*8,  INTENT(IN) :: XMW    (MAXDEP)  ! Molecular weight [kg/mol]
+      REAL*8,  INTENT(IN) :: USTAR  (MAXIJ )  ! Friction velocity [m/s]
+      REAL*8,  INTENT(IN) :: CZ1    (MAXIJ )  ! Alt @ which Vd is computed [m]
+      REAL*8,  INTENT(IN) :: OBK    (MAXIJ )  ! Monin-Obhukov length [m]
+      REAL*8,  INTENT(IN) :: CFRAC  (MAXIJ )  ! Surface cloud fraction
+      REAL*8,  INTENT(IN) :: ZH     (MAXIJ )  ! Roughness height [m]
+      REAL*8,  INTENT(IN) :: RHB    (MAXIJ )  ! Relative humidity [%]
+      REAL*8,  INTENT(IN) :: PRESSU (MAXIJ )  ! Surface pressure [hPa]
+      REAL*8,  INTENT(IN) :: W10    (MAXIJ )  ! Wind speed @ 10m altitude [m/s]
+!
+! !OUTPUT PARAMETERS:
+! 
+      REAL*8, INTENT(OUT) :: DVEL(MAXIJ,MAXDEP)   ! Drydep velocity [m/s]
+!
+! !REMARKS:
+!  Need as landtype input for each grid square (I,J); see CMN_DEP_mod.F
+!     IREG(I,J)       - # of landtypes in grid square
+!     ILAND(I,J,LDT)  - Land type ID for element LDT =1, IREG(I,J)
+!                        (could be from any source - mapped to deposition 
+!                        surface ID in input unit 65)
+!     IJUSE(I,J,LDT) - Fraction ((per mil) of gridbox area occupied by
+!                       land type element LDT
+!                                                                             .
+!  Need as leaf area index; see CMN_DEP_mod.F
+!     XLAI(I,J,LDT)  - Leaf Area Index of land type element LDT
+!                                                                             .
+!  Need as meteorological input for each grid square(I,J) (passed):
+!     RADIAT(IJLOOP) - Solar radiation in W m-2
+!     TEMP(IJLOOP)   - Surface air temperature in K
+!     SUNCOS(IJLOOP) - Cosine of solar zenith angle
+!     LSNOW(IJLOOP)  - Logical for snow and sea ice
+!     RHB(IJLOOP)    - Relative humidity at the surface
+!     PRESSU(IJLOOP) - Local surface pressure
+!     W10(IJLOOP)    - 10m wind speed
+!                                                                             .
+!  Need as input for each species K (passed):
+!     F0(K)          - reactivity factor for oxidation of biological substances
+!     HSTAR(K)       - Henry's Law constant
+!     XMW(K)         - Molecular weight (kg/mole) of species K
+!                      (used to calculate molecular diffusivities)
+!     AIROSOL(K)     - LOGICAL flag (T = aerosol species; 
+!                                    F = gas-phase species)
+!                                                                             .
+!  Also need to call the following subroutines to read drydep input data:
+!     READ_DRYDEP_INPUTS    - (in this module) Reads in Olson land type 
+!                             indices, dry deposition land type indices, 
+!                             default roughness heights, and polynomial 
+!                             coefficients.  (This supersedes MODIN, RDDRYCF)
+!     COMPUTE_OLSON_LANDMAP - (in olson_landmap_mod.F90).  Reads in the
+!                             Olson land types at native resolution and re-bins
+!                             them on-the-fly to the GEOS-Chem grid resolution.
+!                             (This supersedes RDLAND)
+!     "rdlai.f"             - reads Leaf Area Indices from files "lai**.global"
+!                                                                             .
+!  Some variables used in the subroutine (passed):
+!     LRGERA(IJLOOP) T -> stable atmosphere; a high aerodynamic resistance
+!                        (RA=1.E4 m s-1) is imposed; else RA is calculated
+!     USTAR(IJLOOP)  - Friction velocity (m s-1)
+!     CZ1(IJLOOP)    - Altitude (m) at which deposition velocity is computed
+!     OBK(IJLOOP)    - Monin-Obukhov length (m): set to 1.E5 m under neutral 
+!                      conditions
+!     CFRAC(IJLOOP)  - Fractional cloud cover
+!     ZH(IJLOOP)     - Mixing depth (m)
+!                                                                             .
+!  Some variables used in the subroutine:
+!     MAXDEP         - the maximum number of species for which the dry 
+!                      deposition calculation is done
+!     ZO(LDT)        - Roughness height (m) for specific surface type indexed 
+!                      by LDT
+!     RSURFC(K,LDT)  - Bulk surface resistance (s m-1) for species K to 
+!                      surface LDT
+!     C1X(K)         - Total resistance to deposition (s m-1) for species K
+!                                                                             .
+!  Returned:
+!     DVEL(IJLOOP,K) - Deposition velocity (m s-1) of species K
+!                                                                             .
+!  References:
+!  ============================================================================
 !     Baldocchi, D.D., B.B. Hicks, and P. Camara, A canopy stomatal
 !       resistance model for gaseous deposition to vegetated surfaces,
 !       Atmos. Environ. 21, 91-101, 1987.
@@ -1269,79 +1377,68 @@
 !       Research Triangle Park (NC), 1988.
 !     Wesely, M.L., same title, Atmos. Environ., 23, 1293-1304, 1989.
 !
-!***********************************************************************       
+! !REVISION HISTORY: 
+!** Contact: D.J. Jacob, Harvard U. (djj@io.harvard.edu)
+!** Modularized by G.M. Gardner, Harvard U.
+!** Version 3.2:   5/27/97
+!** Version 3.2.1: 3/4/99   -- bug fix in expression for RT 
+!** Version 3.2.2: 3/26/99  -- bug fix: specify a large Ra for aerosols
+!** Version 3.2.3: 11/12/99 -- change Reynolds # criterion from 10 to 1
+!                           -- force double precision w/ "D" exponents
+!** Version 3.3:   5/8/00   -- bug fixes, cleanup, updated comments.
+!** Version 3.4:   1/22/03  -- remove hardwire for CANOPYNOX
+!** Version 3.5    7/21/03  -- Remove cap of surface resistance in RLUXX
+!** Version 3.6    4/01/04  -- Now do drydep of DUST aerosol tracers
+!** Version 3.7    4/20/04  -- Now also do drydep of SEASALT aerosol tracers
+!** Version 3.8    4/13/05  -- Accounts for hygroscopic growth of SEASALT
+!**                             aerosol tracers.  DUST aerosol tracers do
+!**                             not grow hygroscopically.  Added RHB as
+!**                             an input argument.
+!** Version 3.9    5/25/05  -- Now restore GISS-specific code for GCAP model
+!** Version 3.9.1  11/17/05 -- change Reynolds # criterion from 1 to 0.1
+!  11 May 2011 - L. Jaegle   - Updated to use actual Sea level pressure instead
+!                              of 1000 hPa
+!                            - Modified to used Slinn & Slinn (1980) over Ocean
+!                              surfaces
+!  22 Dec 2011 - M. Payer    - Added ProTeX headers
+!  10 Jan 2012 - M. Payer    - Updated to use local surface pressure
+!  09 Apr 2012 - R. Yantosca - Remove IJREG, IJLAND, IJUSE, XYLAI arrays and
+!                              replace w/ IREG, ILAND, IUSE, XLAI
+!  09 Apr 2012 - R. Yantosca - Remove reference to CMN_VEL_mod.F
+!  09 Apr 2012 - R. Yantosca - Now use INTENT(IN), INTENT(OUT) for arguments
+!  30 Jul 2012 - R. Yantosca - Now accept am_I_Root as an argument when
+!                              running with the traditional driver main.F
 !
-! Need as landtype input for each grid square (I,J) see (RDLAND & F77_CMN_VEL):
-!     IJREG(JLOOP)       - # of landtypes in grid square
-!     IJLAND(IJLOOP,LDT) - Land type ID for element LDT =1, IJREG(IJLOOP)
-!                          (could be from any source - mapped to deposition 
-!                          surface ID in input unit 65)
-!     IJUSE(IJLOOP,LDT)  - Fraction ((per mil) of gridbox area occupied by
-!                          land type element LDT
+!***********************************************************************
+!   Changes from Version 3.2 to Version 3.3:                         ***
+!   * We now suppress dry deposition over aerodynamically smooth     ***
+!     surfaces.  The previous algorithm yielded negative numbers     ***
+!     when u* was very small (due to the logarithm going negative).  ***
+!     See the comments below for more information.                   ***
+!   * Now eliminate obsolete variables ZLMO and SIH from the code.   ***
+!   * Obsolete comments have been updated or removed.                ***
+!***********************************************************************
+!   Changes from version 3.1 to version 3.2:                         ***
+!   * In unstable atmospheres with |ZLMO| < ZO, as can happen        ***
+!    occasionally under very low wind conditions with tall canopies, ***
+!    application of Monin-Obukhov similarity yields negative values  ***
+!    for RA.  This was a problem in version 3.1.  In fact,           ***
+!    Monin-Obukhov similarity does not apply under such conditions,  ***
+!    so we now set RA to zero and let the boundary                   ***
+!    resistance RB define the overall aerodynamic resistance.  Since *** 
+!    RB varies inversely with U* it will impose a large aerodynamic  ***
+!    resistance under very low wind conditions.                      ***
+!   * The range of applicability of stability correction functions   ***
+!    to Monin-Obukhov similarity has been extended to                ***
+!    -2.5 < z/zMO < 1.5, based on Figure 2 of Businger et al. [1971].***
+!    The range used to be -1 < z/zMO < 1 in version 3.1.             ***
+!***********************************************************************
+!EOP
+!------------------------------------------------------------------------------
+!BOC
 !
-! Need as leaf area index see (RDLAI & F77_CMN_VEL):
-!     XYLAI(IJLOOP,LDT)  - Leaf Area Index of land type element LDT
+! !LOCAL VARIABLES:
 !
-! Need as meteorological input for each grid square(I,J) (passed):
-!     RADIAT(IJLOOP) - Solar radiation in W m-2
-!     TEMP(IJLOOP)   - Surface air temperature in K
-!     SUNCOS(IJLOOP) - Cosine of solar zenith angle
-!     LSNOW(IJLOOP)  - Logical for snow and sea ice
-!     RHB(IJLOOP)    - Relative humidity at the surface
-!
-! Need as input for each species K (passed):
-!     F0(K)          - reactivity factor for oxidation of biological substances
-!     HSTAR(K)       - Henry's Law constant
-!     XMW(K)         - Molecular weight (kg/mole) of species K
-!                      (used to calculate molecular diffusivities)
-!     AIROSOL(K)     - LOGICAL flag (T = aerosol species; 
-!                                    F = gas-phase species)
-!
-! Also need to call the following subroutines to read drydep input data:
-!     "modin.f"      - reads Olson land types, dry deposition land types,
-!                      and roughness heights from "drydep.table". 
-!                      (NOTE: For GEOS model, roughness heights are taken
-!                       from met field input instead of from "drydep.table").
-!     "rddrycf.f     - reads drydep polynomial coeff's from file "drydep.coef"
-!     "rdlai.f"      - reads Leaf Area Indices from files "lai**.global"
-!     "rdland.f"     - reads Olson land types from file "vegtype.global"
-!
-! Some variables used in the subroutine (passed):
-!     LRGERA(IJLOOP) T -> stable atmosphere; a high aerodynamic resistance
-!                        (RA=1.E4 m s-1) is imposed; else RA is calculated
-!     USTAR(IJLOOP)  - Friction velocity (m s-1)
-!     CZ1(IJLOOP)    - Altitude (m) at which deposition velocity is computed
-!     OBK(IJLOOP)    - Monin-Obukhov length (m): set to 1.E5 m under neutral 
-!                      conditions
-!     CFRAC(IJLOOP)  - Fractional cloud cover
-!     ZH(IJLOOP)     - Mixing depth (m)
-!
-! Some variables used in the subroutine:
-!     MAXDEP         - the maximum number of species for which the dry 
-!                      deposition calculation is done
-!     ZO(LDT)        - Roughness height (m) for specific surface type indexed 
-!                      by LDT
-!     RSURFC(K,LDT)  - Bulk surface resistance (s m-1) for species K to 
-!                      surface LDT
-!     C1X(K)         - Total resistance to deposition (s m-1) for species K
-!
-! Returned:
-!     DVEL(IJLOOP,K) - Deposition velocity (m s-1) of species K
-!***********************************************************************       
-
-      USE CMN_SIZE_MOD
-      USE CMN_VEL_MOD
-      USE COMMSOIL_MOD
-
-      INTEGER NPTS
-      REAL*8  RADIAT(MAXIJ),TEMP(MAXIJ),SUNCOS(MAXIJ)
-      REAL*8  USTAR(MAXIJ),CZ1(MAXIJ)
-      REAL*8  OBK(MAXIJ),CFRAC(MAXIJ),ZH(MAXIJ)
-      REAL*8  DVEL(MAXIJ,MAXDEP)
-
-      ! Added relative humidity array (bec, bmy, 4/13/05)
-      REAL*8 :: RHB(MAXIJ)
-
       REAL*8  RI(NTYPE),RLU(NTYPE),RAC(NTYPE),RGSS(NTYPE),
      1        RGSO(NTYPE),RCLS(NTYPE),RCLO(NTYPE),
      2        RSURFC(MAXDEP,NTYPE)       
@@ -1359,9 +1456,6 @@
 #endif
 
       LOGICAL LDEP(MAXDEP)
-      LOGICAL AIROSOL(MAXDEP)
-      REAL*8  F0(MAXDEP),HSTAR(MAXDEP),XMW(MAXDEP)
-
       LOGICAL LRGERA(MAXIJ)
 
       REAL*8  VDS
@@ -1373,8 +1467,6 @@
       INTEGER IOLSON,II,IW
       INTEGER K,IJLOOP,LDT
       REAL*8  RCLX,RIXX,BIOFIT
-      REAL*8  PRESS
-      DATA PRESS /1.5D5/
 
       ! For TOMAS aerosol (win, 7/15/09)
       INTEGER  BIN
@@ -1382,8 +1474,11 @@
 !
 ! Logical for snow and sea ice
 !
-
       LOGICAL LSNOW(MAXIJ)
+
+      ! Loop indices (bmy, 3/29/12)
+      INTEGER :: I, J
+
 !***********************************************************************       
 !
 !
@@ -1422,8 +1517,12 @@
 !$OMP+PRIVATE( DTMP1,  DTMP2,  DTMP3,  DTMP4,  VDS,    CZH    )
 !$OMP+PRIVATE( CKUSTR, REYNO,  CORR1,  CORR2,  Z0OBK,  RA     )
 !$OMP+PRIVATE( DUMMY1, DUMMY2, DUMMY3, DUMMY4, DAIR,   RB     )
-!$OMP+PRIVATE( C1X,    VK                                     )
-      DO 560 IJLOOP =1,NPTS
+!$OMP+PRIVATE( C1X,    VK,     I,      J                      )
+      DO J = 1, JJPAR
+      DO I = 1, IIPAR
+
+         ! Convert (I,J) to 1-D index IJLOOP
+         IJLOOP = ( ( J - 1 ) * IIPAR ) + I 
 
 !** CZ is Altitude (m) at which deposition velocity is computed
          CZ = CZ1(IJLOOP)
@@ -1474,10 +1573,19 @@
 !* Olson land types, deposition land types, and surface resistance components
 !* are read from file 'drydep.table'; check that file for further details.
 !****************************************************************************
-         DO 170 LDT = 1,IJREG(IJLOOP)
-            IF (IJUSE(IJLOOP,LDT) .EQ. 0) GOTO 170
-            IOLSON = IJLAND(IJLOOP,LDT)+1
-            II = IDEP(IOLSON)
+
+         ! Loop over the # of Olson land types in this grid box (I,J)
+         DO 170 LDT = 1, IREG(I,J)
+
+            ! If the land type is not represented in grid 
+            ! box  (I,J), then skip to the next land type
+            IF ( IUSE(I,J,LDT) == 0 ) GOTO 170
+
+            ! Olson land type index + 1
+            IOLSON = ILAND(I,J,LDT)+1
+
+            ! Dry deposition land type index
+            II     = IDEP(IOLSON)
 !
 !** If the surface to be snow or ice;
 !** set II to 1 instead.
@@ -1496,11 +1604,10 @@
 !** divide them by the leaf area index to get a cuticular resistance for the
 !** bulk canopy.  If IRLU is '9999' it means there are no cuticular
 !** surfaces on which to deposit so we impose a very large value for RLU.
-            IF (IRLU(II) .GE. 9999 .OR. 
-     &           XYLAI(IJLOOP,LDT).LE.0.D0) THEN
-               RLU(LDT)  = 1.D6
+            IF ( IRLU(II) >= 9999 .or. XLAI(I,J,LDT) <= 0.D0 ) THEN
+               RLU(LDT) = 1.D6
             ELSE
-               RLU(LDT)= DBLE(IRLU(II))/XYLAI(IJLOOP,LDT)+RT
+               RLU(LDT) = DBLE( IRLU(II) ) / XLAI(I,J,LDT) + RT
             ENDIF
 !** The following are the remaining resistances for the Wesely
 !** resistance-in-series model for a surface canopy
@@ -1549,9 +1656,9 @@
             IF (TEMPC .GT. 0.D0 .AND. TEMPC .LT. 40.D0)
      *           GFACT = 400.D0/TEMPC/(40.0D0-TEMPC)
             GFACI = 100.D0
-            IF (RAD0.GT.0.D0 .AND. XYLAI(IJLOOP,LDT).GT.0.D0) THEN
-               GFACI=1.D0/BIOFIT(DRYCOEFF,XYLAI(IJLOOP,LDT),
-     *              SUNCOS(IJLOOP),CFRAC(IJLOOP))
+            IF ( RAD0 > 0.D0 .and. XLAI(I,J,LDT) > 0.D0 ) THEN
+               GFACI = 1.D0 / BIOFIT( DRYCOEFF,       XLAI(I,J,LDT),
+     &                                SUNCOS(IJLOOP), CFRAC(IJLOOP)  )
             ENDIF
             
             RIX = RIX*GFACT*GFACI
@@ -1570,8 +1677,8 @@
 !** exit for non-depositing species or aerosols.
                IF (.NOT. LDEP(K) .OR. AIROSOL(K)) GOTO 155
                XMWH2O = 18.D-3
-               RIXX = RIX*DIFFG(TEMPK,PRESS,XMWH2O)/
-     C              DIFFG(TEMPK,PRESS,XMW(K))
+               RIXX = RIX*DIFFG(TEMPK,PRESSU(IJLOOP),XMWH2O)/
+     C              DIFFG(TEMPK,PRESSU(IJLOOP),XMW(K))
      C              + 1.D0/(HSTAR(K)/3000.D0+100.D0*F0(K))
                RLUXX = 1.D12
                IF (RLU(LDT).LT.9999.D0)
@@ -1641,8 +1748,9 @@
 
                   ! [Zhang et al., 2001]
                   RSURFC(K,LDT) = 
-     &               AERO_SFCRSII( K,     II,            PRESS*1D-3, 
-     &                             TEMPK, USTAR(IJLOOP), RHB(IJLOOP) )
+     &               AERO_SFCRSII( K,     II,   PRESSU(IJLOOP)*1D-3, 
+     &                             TEMPK, USTAR(IJLOOP), RHB(IJLOOP),
+     &                             W10(IJLOOP) )
 
                ELSE IF ( ( DEPNAME(K) == 'DST1' )  .OR. 
      &                   ( DEPNAME(K) == 'DST2' )  .OR. 
@@ -1662,7 +1770,8 @@
 
                   ! [Zhang et al., 2001]
                   RSURFC(K,LDT) = 
-     &             DUST_SFCRSII(K, II, PRESS*1D-3, TEMPK, USTAR(IJLOOP))
+     &             DUST_SFCRSII(K, II, PRESSU(IJLOOP)*1D-3, 
+     &                                 TEMPK, USTAR(IJLOOP))
 
                ! (win, 7/15/09)
                ELSE IF ( ( NTRAIND(K) >= IDTNK1  )   .AND.
@@ -1684,7 +1793,8 @@
 
                   ! [Zhang et al., 2001]
                   RSURFC(K,LDT) = 
-     &             DUST_SFCRSII(K, II, PRESS*1D-3, TEMPK, USTAR(IJLOOP))
+     &             DUST_SFCRSII(K, II, PRESSU(IJLOOP), 
+     &                                 TEMPK, USTAR(IJLOOP))
 
                ELSE 
 
@@ -1693,24 +1803,30 @@
                   ! do this for non-size-resolved tracers where 
                   ! AIROSOL(K)=T. (rjp, tdf, bec, bmy, 4/20/04)
                   !=====================================================
-                  VDS = 0.002D0*USTAR(IJLOOP)
-                  IF (OBK(IJLOOP) .LT. 0.0D0) THEN
-                     VDS = VDS*(1.D0+(-300.D0/OBK(IJLOOP))**0.6667D0)
-                  ENDIF
-!***                               
-                  IF ( OBK(IJLOOP) .EQ. 0.0D0 )
-     c                 WRITE(6,156) OBK(IJLOOP),IJLOOP,LDT
- 156              FORMAT(1X,'OBK(IJLOOP)=',E11.2,1X,' IJLOOP =',I4,
-     c                   1X,'LDT=',I3/) 
-                  CZH  = ZH(IJLOOP)/OBK(IJLOOP)
-                  IF (CZH.LT.-30.0D0) VDS = 0.0009D0*USTAR(IJLOOP)*
-     x                                 (-CZH)**0.6667D0
+!                  ! use Zhang et al for all aerosols (hotp 10/26/07)
+!                  VDS = 0.002D0*USTAR(IJLOOP)
+!                  IF (OBK(IJLOOP) .LT. 0.0D0) THEN
+!                     VDS = VDS*(1.D0+(-300.D0/OBK(IJLOOP))**0.6667D0)
+!                  ENDIF
+!C***                               
+!                  IF ( OBK(IJLOOP) .EQ. 0.0D0 )
+!     c                 WRITE(6,156) OBK(IJLOOP),IJLOOP,LDT
+! 156              FORMAT(1X,'OBK(IJLOOP)=',E11.2,1X,' IJLOOP =',I4,
+!     c                   1X,'LDT=',I3/) 
+!                  CZH  = ZH(IJLOOP)/OBK(IJLOOP)
+!                  IF (CZH.LT.-30.0D0) VDS = 0.0009D0*USTAR(IJLOOP)*
+!     x                                 (-CZH)**0.6667D0
+
+                  RSURFC(K, LDT) =
+     &                ADUST_SFCRSII(K, II, PRESSU(IJLOOP)*1D-3, TEMPK,
+     &                              USTAR(IJLOOP))
+                  
 !*                                 
 !*    Set VDS to be less than VDSMAX (entry in input file divided by 1.D4)
 !*    VDSMAX is taken from Table 2 of Walcek et al. [1986].
 !*    Invert to get corresponding R
 
-                  RSURFC(K,LDT) = 1.D0/MIN(VDS, DBLE(IVSMAX(II))/1.D4)
+!                  RSURFC(K,LDT) = 1.D0/MIN(VDS, DBLE(IVSMAX(II))/1.D4)
                ENDIF
  160        CONTINUE
 !*
@@ -1720,17 +1836,17 @@
 !*                                 
          DO 190 K = 1,NUMDEP 
             IF (.NOT.LDEP(K)) GOTO 190
-            DO 180 LDT = 1,IJREG(IJLOOP)
-               IF (IJUSE(IJLOOP,LDT) .EQ. 0) GOTO 180
+            DO 180 LDT = 1,IREG(I,J)
+               IF ( IUSE(I,J,LDT) == 0 ) GOTO 180
                RSURFC(K,LDT)= MAX(1.D0, MIN(RSURFC(K,LDT), 9999.D0))
  180        CONTINUE
  190     CONTINUE
 !*                                 
 !*    Loop through the different landuse types present in the grid square     
 !*                                 
-         DO 500 LDT=1, IJREG(IJLOOP)
-            IF (IJUSE(IJLOOP,LDT) .EQ. 0) GOTO 500
-            IOLSON = IJLAND(IJLOOP,LDT)+1
+         DO 500 LDT = 1, IREG(I,J)
+            IF ( IUSE(I,J,LDT) == 0 ) GOTO 500
+            IOLSON = ILAND(I,J,LDT) + 1
 
 #if   defined( GCAP )
 ! NOTE: This section only applies to the GCAP/GISS model (swu, bmy, 5/25/05)
@@ -1967,7 +2083,7 @@
 !** cited on p. 16,476 of Jacob et al. [1992]
                DAIR = 0.2D0*1.D-4
                RB = (2.D0/CKUSTR)*
-     x              (DAIR/DIFFG(TEMPK,PRESS,XMW(K)))**0.667D0
+     x              (DAIR/DIFFG(TEMPK,PRESSU(IJLOOP),XMW(K)))**0.667D0
                IF (AIROSOL(K)) RB=0.D0
                C1X(K) = RA + RB + RSURFC(K,LDT)
  215        CONTINUE
@@ -1994,7 +2110,7 @@
             DO 400 K = 1,NUMDEP
                IF (.NOT.LDEP(K)) GOTO 400
                VK(K) = VD(K)
-               VD(K) = VK(K) +.001D0*DBLE(IJUSE(IJLOOP,LDT))/C1X(K)
+               VD(K) = VK(K) +.001D0*DBLE( IUSE(I,J,LDT) )/C1X(K)
  400        CONTINUE
  500     CONTINUE
 
@@ -2052,21 +2168,39 @@
 !$OMP END CRITICAL
             ENDIF
  550     CONTINUE
- 560  CONTINUE
+      ENDDO
+      ENDDO
 !$OMP END PARALLEL DO
 
-      ! Return to calling program
       END SUBROUTINE DEPVEL
-
+!EOC
 !------------------------------------------------------------------------------
-
+!          Harvard University Atmospheric Chemistry Modeling Group            !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: diffg
+!
+! !DESCRIPTION: Subroutine DIFFG calculates the molecular diffusivity [m2/s] in
+!  air for a gas X of molecular weight XM [kg] at temperature TK [K] and 
+!  pressure PRESS [Pa].  (bmy, 5/16/06)
+!\\
+!\\
+! !INTERFACE:
+!
       FUNCTION DIFFG( TK, PRESS, XM ) RESULT( DIFF_G )
 !
-!******************************************************************************
-!  Function DIFFG calculates the molecular diffusivity [m2/s] in air for a
-!  gas X of molecular weight XM [kg] at temperature TK [K] and 
-!  pressure PRESS [Pa].  (bmy, 5/16/06)
+! !USES:
 !
+
+!
+! !INPUT PARAMETERS: 
+!
+      REAL*8, INTENT(IN) :: TK     ! Temperature [K]
+      REAL*8, INTENT(IN) :: PRESS  ! Pressure [Pa]
+      REAL*8, INTENT(IN) :: XM     ! Molecular weight of gas [kg]
+!
+! !REMARKS:
 !  We specify the molecular weight of air (XMAIR) and the hard-sphere molecular
 !  radii of air (RADAIR) and of the diffusing gas (RADX).  The molecular
 !  radius of air is given in a Table on p. 479 of Levine [1988].  The Table
@@ -2074,25 +2208,18 @@
 !  to supply a molecular radius we specify here a generic value of 2.E-10 m for
 !  all molecules, which is good enough in terms of calculating the diffusivity
 !  as long as molecule is not too big.
-!
-!  Arguments as Input:
-!  ============================================================================
-!  (1 ) TK    (REAL*8) : Temperature [K]
-!  (2 ) PRESS (REAL*8) : Pressure [Pa]
-!  (3 ) XM    (REAL*8) : Molecular weight of gas [kg]
-!
-!  NOTES:
+! 
+! !REVISION HISTORY: 
 !  (1 ) Originally was a standalone function; now bundled into drydep_mod.f.
 !        Also now force REAL*8 precision with D exponents.  Now use F90
 !        style syntax and updated comments. (bmy, 5/16/06)
-!******************************************************************************
+!  22 Dec 2011 - M. Payer    - Added ProTeX headers
+!EOP
+!------------------------------------------------------------------------------
+!BOC
 !
-      ! Arguments
-      REAL*8, INTENT(IN) :: TK
-      REAL*8, INTENT(IN) :: PRESS
-      REAL*8, INTENT(IN) :: XM
-
-      ! Local variables
+! !LOCAL VARIABLES:
+!
       REAL*8             :: AIRDEN, Z, DIAM, FRPATH, SPEED, DIFF_G    
       REAL*8, PARAMETER  :: XMAIR  = 28.8d-3 
       REAL*8, PARAMETER  :: RADAIR = 1.2d-10
@@ -2123,238 +2250,513 @@
       ! eq. 8.9 of Seinfeld [1986]
       DIFF_G = ( 3d0 * PI / 32d0 ) * ( 1d0 + Z ) * FRPATH * SPEED
 
-      ! Return to calling program
       END FUNCTION DIFFG
-
+!EOC
 !------------------------------------------------------------------------------
-
-      SUBROUTINE MODIN
-!
-!******************************************************************************
-!  Subroutine MODIN reads Olson's data from the file "drydep.table".
-!  (bmy, 4/1/02, 7/20/04)
-!
-!  NOTE: The roughness heights (IZO) from "drydep.table" are supplanted by
-!  the Z0 field from the DAO met field archive.  The old GISS-II routines did
-!  not archive Z0 as a met field, so roughness heights for each land type
-!  were specified in this file.  This is historical baggage, but we still
-!  need to keep IZO for compatibility w/ existing routine "depvel.f".  
-!
-!  References (see above for full citations):
-!  ============================================================================
-!  (1 ) Wesely, M.L., 1988.
-!  (2 ) Wesely, M.L., 1989.
-!
-!  NOTES:
-!  (1 ) MODIN is one of the original GEOS-CHEM subroutines, that go back
-!        to the days of the GISS-II code.  This has been cleaned up and
-!        new comments added.  Also use subroutine "ioerror.f" to trap
-!        I/O errors across all platforms . Now read the "drydep.table" file 
-!        from the DATA_DIR/drydep_200203/ directory. (bmy, 4/1/02) 
-!  (2 ) Remove obsolete code from April 2002.  Now reference IU_FILE and
-!        IOERROR from "file_mod.f".  Now use IU_FILE as the file unit
-!        number instead of IUNIT. (bmy, 6/27/02)
-!  (3 ) Now bundled into "drydep_mod.f".  Changed NVEGTYPE to NNVEGTYPE.
-!        (bmy, 11/21/02)
-!  (4 ) Now references DATA_DIR from "directory_mod.f" (bmy, 7/20/04)
-!******************************************************************************
-!
-      ! References to F90 modules
-      USE DIRECTORY_MOD, ONLY : DATA_DIR
-      USE FILE_MOD,      ONLY : IU_FILE, IOERROR
-      
-      USE CMN_SIZE_MOD        ! Size parameters
-
-      IMPLICIT NONE
-#     include "define.h"
-
-      ! Local variables
-      INTEGER             :: L, IOLSON, I, IOS, IUNIT
-      CHARACTER(LEN=255)  :: FILENAME
-
-      !=================================================================
-      ! MODIN begins here!
-      !=================================================================
-
-      ! Logical unit number
-      IUNIT    = IU_FILE
-
-      ! Define the file name
-      FILENAME = TRIM( DATA_DIR ) // 'drydep_200203/drydep.table'
-
-      WRITE( 6, 50 ) TRIM( FILENAME )
- 50   FORMAT( '     - MODIN: Reading ', a )
-
-      ! Open file
-      OPEN( IUNIT, FILE=TRIM( FILENAME ), FORM='FORMATTED', 
-     &             STATUS='OLD',          IOSTAT=IOS )
-      IF ( IOS /= 0 ) CALL IOERROR( IOS, IUNIT, 'modin:1' ) 
-
-      ! Read 5 header comment lines
-      DO L = 1, 5
-         READ( IUNIT, '(a)', IOSTAT=IOS )
-         IF ( IOS /= 0 ) CALL IOERROR( IOS, IUNIT, 'modin:2' )
-      ENDDO
-
-      !=================================================================
-      ! For each of the NVEGTYPE Olson land types, read:
-      !
-      ! IOLSON (INTEGER) : Olson surface type ID #
-      ! IDEP   (INTEGER) : Drydep ID # corresponding to IOLSON
-      ! IZO    (INTEGER) : Roughness height [1e-4 m]
-      !=================================================================
-      DO L = 1, NNVEGTYPE
-         READ( IUNIT, '(3i6)', IOSTAT=IOS )
-     &      IOLSON, IDEP(IOLSON), IZO(IOLSON)
-         IF ( IOS /= 0 ) CALL IOERROR( IOS, IUNIT, 'modin:3' )
-      ENDDO
-
-      ! Read comment line
-      READ( IUNIT, '(a)', IOSTAT=IOS )
-      IF ( IOS /= 0 ) CALL IOERROR( IOS, IUNIT, 'modin:4' )
-      
-      !=================================================================
-      ! For the water surface types, zO is input as 1.E-4 m but is 
-      ! recalculated elsewhere as function of wind speed.  Read the # 
-      ! of Olson's surface types that are water (NWATER) and the 
-      ! corresponding ID's (IWATER)
-      !=================================================================
-      READ( IUNIT, '(10i3)', IOSTAT=IOS ) NWATER, (IWATER(I),I=1,NWATER)
-      IF ( IOS /= 0 ) CALL IOERROR( IOS, IUNIT, 'modin:5' )
-
-      ! Read 3 lines of comments
-      DO L = 1, 3
-         READ( IUNIT, '(a)', IOSTAT=IOS )
-         IF ( IOS /= 0 ) CALL IOERROR( IOS, IUNIT, 'modin:6' )
-      ENDDO
-
-      !=================================================================
-      ! Read in resistances for each surface type (see "depvel.f")
-      ! IRI,IRLU,IRAC,IRGSS,IRGSO,IRCLS,IRCLO,IVSMAX 
-      !=================================================================
-      DO L = 1, NNVEGTYPE
-         READ( IUNIT, '(9i5)', IOSTAT=IOS ) 
-     &        I, IRI(I),   IRLU(I),  IRAC(I),  IRGSS(I),
-     &           IRGSO(I), IRCLS(I), IRCLO(I), IVSMAX(I)
-
-         IF ( IOS < 0 ) EXIT
-         IF ( IOS > 0 ) CALL IOERROR( IOS, IUNIT, 'modin:7' )
-      ENDDO
-
-      ! Close the file
-      CLOSE( IUNIT )
-
-      ! Return to calling program
-      END SUBROUTINE MODIN
-
+!          Harvard University Atmospheric Chemistry Modeling Group            !
 !------------------------------------------------------------------------------
-
-      SUBROUTINE RDDRYCF
+!BOP
 !
-!******************************************************************************
-!  Subroutine RDDRYCF read polynomial coefficients from the "drydep.coef"
-!  file in the data directory (bmy, 7/6/01, 7/20/04)
+! !IROUTINE: read_drydep_inputs
 !
-!  NOTES:
-!  (1 ) Use F90 syntax.  Now read "drydep.coef" directly from DATA_DIR.
-!        Now use IOERROR to trap I/O errors.  Updated comments and made
-!        cosmetic changes (bmy, 7/6/01)
-!  (2 ) Removed obsolete code from ages past (bmy, 9/4/01)
-!  (3 ) Now read the "drydep.coef" file from the DATA_DIR/drydep_200203/ 
-!        directory.  Make IUNIT a dynamic variable and not a parameter. 
-!        (bmy, 3/29/02)
-!  (4 ) Removed obsolete code from March 2002.  Now reference IU_FILE and
-!        IOERROR from "file_mod.f".  Now use IU_FILE as the logical unit
-!        number. (bmy, 6/27/02)
-!  (5 ) Bundled into "drydep_mod.f" (bmy, 11/21/02) 
-!  (6 ) Now references DATA_DIR from "directory_mod.f" (bmy, 7/20/04)
-!******************************************************************************
+! !DESCRIPTION: Subroutine READ\_DRYDEP\_INPUTS reads inputs for the dry
+!  deposition module corresponding to either the Olson 1992 (GEOS-Chem default)
+!  or Olson 2001 (planned replacement for Olson 1992) land map.
+!\\
+!\\
+! !INTERFACE:
 !
-      ! References to F90 modules
-      USE DIRECTORY_MOD, ONLY : DATA_DIR
-      USE FILE_MOD,      ONLY : IU_FILE, IOERROR
-
-      USE CMN_SIZE_MOD  ! Size parameters
-
-      IMPLICIT NONE
-#     include "define.h"
+      SUBROUTINE READ_DRYDEP_INPUTS( am_I_Root, DRYCOEFF, IOLSON, 
+     &                               IDEP,      IWATER,   NWATER, 
+     &                               IZO,       IDRYDEP,  IRI,    
+     &                               IRLU,      IRAC,     IRGSS,  
+     &                               IRGSO,     IRCLS,    IRCLO,  
+     &                               IVSMAX                       )
+!
+! !USES:
+!
+      ! Modules for netCDF read
+      USE m_netcdf_io_open
+      USE m_netcdf_io_get_dimlen
+      USE m_netcdf_io_read
+      USE m_netcdf_io_readattr
+      USE m_netcdf_io_close
       
-      ! Local variables
-      INTEGER            :: I, IOS
-      CHARACTER(LEN=80)  :: DUM
-      CHARACTER(LEN=255) :: FILENAME
-      
-      !=================================================================
-      ! RDDRYCF begins here!
-      !=================================================================
-
-      ! Define the file name
-      FILENAME = TRIM( DATA_DIR ) // 'drydep_200203/drydep.coef'
-
-      ! Echo info
-      WRITE( 6, 100 ) TRIM( FILENAME )
- 100  FORMAT( '     - RDDRYCF: Reading ', a ) 
-
-      ! Open file
-      OPEN( IU_FILE, FILE=TRIM( FILENAME ), STATUS='OLD', 
-     &               FORM='FORMATTED',      IOSTAT=IOS )
-      IF ( IOS /= 0 ) CALL IOERROR( IOS, IU_FILE, 'rddrycf:1' )
-
-      ! Read header line
-      READ( IU_FILE, '(a80)', IOSTAT=IOS ) DUM
-      IF ( IOS /= 0 ) CALL IOERROR( IOS, IU_FILE, 'rddrycf:2' )
-
-      ! Read polynomial coefficients
-      READ( IU_FILE,'(8(1pe10.2))', IOSTAT=IOS) (DRYCOEFF(I),I=1,NNPOLY)
-      IF ( IOS /= 0 ) CALL IOERROR( IOS, IU_FILE, 'rddrycf:3' )
-
-      ! Close file
-      CLOSE( IU_FILE )
-
-      ! Return to calling program
-      END SUBROUTINE RDDRYCF
-
+#     include "netcdf.inc"
+!
+! !INPUT PARAMETERS:
+!
+      LOGICAL, INTENT(IN) :: am_I_Root   ! Is this the root CPU?
+!
+! !OUTPUT PARAMETERS:
+!  
+      !-----------------------------------------------------------------------
+      ! DRYCOEFF : Baldocchi polynomial coeffs
+      ! IOLSON   : Olson land type indices (+1) 
+      ! IDEP     : Mapping: Olson ==> drydep ID
+      ! IWATER   : Olson types that represent water
+      ! NWATER   : Number of Olson types that are water
+      ! IZO      : Default Z0 (routgness height) for each Olson land type
+      ! IDRYDEP  : Dry deposition land type indices
+      ! IRI      : RI   resistance for drydep
+      ! IRLU     : RLU  resistance for drydep
+      ! IRAC     : RAC  resistance for drydep
+      ! IRGSS    : RGSS resistance for drydep
+      ! IRGSO    : RGSO resistance for drydep
+      ! IRCLS    : RCLS resistance for drydep
+      ! IRCLO    : RCLO resistance for drydep
+      ! IVSMAX   : Max drydep velocity (for aerosol) perr drydep land type
+      !-----------------------------------------------------------------------
+      REAL*8,  INTENT(OUT) :: DRYCOEFF(NPOLY    ) 
+      INTEGER, INTENT(OUT) :: IOLSON  (NVEGTYPE )       
+      INTEGER, INTENT(OUT) :: IDEP    (NVEGTYPE )      
+      INTEGER, INTENT(OUT) :: IWATER  (NVEGTYPE )    
+      INTEGER, INTENT(OUT) :: NWATER        
+      INTEGER, INTENT(OUT) :: IZO     (NVEGTYPE )       
+      INTEGER, INTENT(OUT) :: IDRYDEP (NDRYDTYPE)
+      INTEGER, INTENT(OUT) :: IRI     (NDRYDTYPE)
+      INTEGER, INTENT(OUT) :: IRLU    (NDRYDTYPE)
+      INTEGER, INTENT(OUT) :: IRAC    (NDRYDTYPE)
+      INTEGER, INTENT(OUT) :: IRGSS   (NDRYDTYPE)
+      INTEGER, INTENT(OUT) :: IRGSO   (NDRYDTYPE)
+      INTEGER, INTENT(OUT) :: IRCLS   (NDRYDTYPE)
+      INTEGER, INTENT(OUT) :: IRCLO   (NDRYDTYPE)
+      INTEGER, INTENT(OUT) :: IVSMAX  (NDRYDTYPE)
+!
+! !REMARKS:
+!  Routine READ_DRYDEP_INPUTS replaces routines MODIN (which read the ASCII 
+!  file "drydep.table") and RDDRYCF (which read the ASCII file "drydep.coef").
+!                                                                             .
+!  READ_DRYDEP_INPUTS was generated from the Perl script "ncCodeRead", which
+!  is part of the NcdfUtilities package (with subsequent hand-editing).
+!                                                                             .
+!  Assumes that you have:
+!  (1) A netCDF library (either v3 or v4) installed on your system
+!  (2) The NcdfUtilities package (from Bob Yantosca) source code
+!
+! !REVISION HISTORY:
+!  26 Mar 2012 - R. Yantosca - Initial version
+!EOP
 !------------------------------------------------------------------------------
+!BOC
+!
+! !LOCAL VARIABLES:
+!
+      !=================================================================
+      ! Variable declarations
+      !=================================================================
 
-      FUNCTION AERO_SFCRSII( K, II, PRESS, TEMP, USTAR, RHB ) RESULT(RS)
+      ! Scalars
+      INTEGER            :: fId                 ! netCDF file ID
+      CHARACTER(LEN=255) :: nc_dir              ! netCDF directory name
+      CHARACTER(LEN=255) :: nc_file             ! netCDF file name
+      CHARACTER(LEN=255) :: nc_path             ! netCDF path name
+      CHARACTER(LEN=255) :: v_name              ! netCDF variable name 
+      CHARACTER(LEN=255) :: a_name              ! netCDF attribute name
+      CHARACTER(LEN=255) :: a_val               ! netCDF attribute value
+
+      ! Arrays for netCDF start and count values
+      INTEGER            :: st1d(1), ct1d(1)    ! For 1D arrays 
+
+      !=================================================================
+      ! Open and read data from the netCDF file
+      !=================================================================
+
+      ! Pick the proper input file for Olson 1992 or Olson 2001
+      IF ( USE_OLSON_2001 ) THEN
+         nc_file = 'Olson_2001_Drydep_Inputs.nc'
+      ELSE
+         nc_file = 'Olson_1992_Drydep_Inputs.nc'
+      ENDIF
+
+      ! Open file for reading (construct full data path)
+      nc_dir  = TRIM( DATA_DIR_1x1 ) // 'Olson_Land_Map_201203/'
+      nc_path = TRIM( nc_dir )       // TRIM( nc_file )
+      CALL Ncop_Rd( fId, TRIM(nc_path) )
+
+      ! Echo info to stdout
+      IF ( am_I_Root ) THEN
+         WRITE( 6, 100 ) REPEAT( '%', 79 )
+         WRITE( 6, 110 ) TRIM(nc_file)
+         WRITE( 6, 120 ) TRIM(nc_dir)
+      ENDIF
+
+      !----------------------------------------
+      ! VARIABLE: DRYCOEFF
+      !----------------------------------------
+
+      ! Variable name
+      v_name = "DRYCOEFF"
+
+      ! Read DRYCOEFF from file
+      st1d   = (/ 1      /)
+      ct1d   = (/ NPOLY /)
+      CALL NcRd( DRYCOEFF, fId, TRIM(v_name), st1d, ct1d )
+
+      ! Read the DRYCOEFF:units attribute
+      a_name = "units"
+      CALL NcGet_Var_Attributes( fId,TRIM(v_name),TRIM(a_name),a_val )
+
+      ! Echo info to stdout
+      IF ( am_I_Root ) THEN
+         WRITE( 6, 130 ) TRIM(v_name), TRIM(a_val)
+      ENDIF
+
+      !----------------------------------------
+      ! VARIABLE: IOLSON
+      !----------------------------------------
+
+      ! Variable name
+      v_name = "IOLSON"
+
+      ! Read IOLSON from file
+      st1d   = (/ 1         /)
+      ct1d   = (/ NVEGTYPE /)
+      CALL NcRd( IOLSON, fId, TRIM(v_name), st1d, ct1d )
+
+      ! Read the IOLSON:units attribute
+      a_name = "units"
+      CALL NcGet_Var_Attributes( fId,TRIM(v_name),TRIM(a_name),a_val )
+
+      ! Echo info to stdout
+      IF ( am_I_Root ) THEN
+         WRITE( 6, 130 ) TRIM(v_name), TRIM(a_val)
+      ENDIF
+
+      !----------------------------------------
+      ! VARIABLE: IDEP
+      !----------------------------------------
+
+      ! Variable name
+      v_name = "IDEP"
+
+      ! Read IDEP from file
+      st1d   = (/ 1         /)
+      ct1d   = (/ NVEGTYPE /)
+      CALL NcRd( IDEP, fId, TRIM(v_name), st1d, ct1d )
+
+      ! Read the IDEP:units attribute
+      a_name = "units"
+      CALL NcGet_Var_Attributes( fId,TRIM(v_name),TRIM(a_name),a_val )
+
+      ! Echo info to stdout
+      IF ( am_I_Root ) THEN
+         WRITE( 6, 130 ) TRIM(v_name), TRIM(a_val)
+      ENDIF
+
+      !----------------------------------------
+      ! VARIABLE: IWATER
+      !----------------------------------------
+
+      ! Variable name
+      v_name = "IWATER"
+
+      ! Get the # of Olson types that are water
+      ! (NOTE: IWATER is an index array, dimension name = variable name)
+      CALL NcGet_DimLen( fId, TRIM(v_name), NWATER )
+
+      ! Initialize
+      IWATER = 0
+
+      ! Read IWATER from file
+      ! NOTE: IWATER is declared with NNVEGTYPE, but has NWATER values
+      ! The rest can be zeroed out
+      st1d   = (/ 1      /)
+      ct1d   = (/ NWATER /)
+      CALL NcRd( IWATER(1:NWATER), fId, TRIM(v_name), st1d, ct1d )
+
+      ! Read the IWATER:units attribute
+      a_name = "units"
+      CALL NcGet_Var_Attributes( fId,TRIM(v_name),TRIM(a_name),a_val )
+
+      ! Echo info to stdout
+      IF ( am_I_Root ) THEN
+         WRITE( 6, 130 ) TRIM(v_name), TRIM(a_val)
+      ENDIF
+
+      !----------------------------------------
+      ! VARIABLE: IZO
+      !----------------------------------------
+
+      ! Variable name
+      v_name = "IZO"
+
+      ! Read IZO from file
+      st1d   = (/ 1         /)
+      ct1d   = (/ NVEGTYPE /)
+      CALL NcRd( IZO, fId, TRIM(v_name), st1d, ct1d )
+
+      ! Read the IZO:long_name attribute
+      a_name = "long_name"
+      CALL NcGet_Var_Attributes( fId,TRIM(v_name),TRIM(a_name),a_val )
+
+      ! Echo info to stdout
+      IF ( am_I_Root ) THEN
+         WRITE( 6, 130 ) TRIM(v_name), TRIM(a_val)
+      ENDIF
+
+      !----------------------------------------
+      ! VARIABLE: IDRYDEP
+      !----------------------------------------
+
+      ! Variable name
+      v_name = "IDRYDEP"
+
+      ! Read IDRYDEP from file
+      st1d   = (/ 1         /)
+      ct1d   = (/ NDRYDTYPE /)
+      CALL NcRd( IDRYDEP, fId, TRIM(v_name), st1d, ct1d )
+
+      ! Read the IDRYDEP:units attribute
+      a_name = "units"
+      CALL NcGet_Var_Attributes( fId,TRIM(v_name),TRIM(a_name),a_val )
+
+      ! Echo info to stdout
+      IF ( am_I_Root ) THEN
+         WRITE( 6, 130 ) TRIM(v_name), TRIM(a_val)
+      ENDIF
+
+      !----------------------------------------
+      ! VARIABLE: IRI
+      !----------------------------------------
+
+      ! Variable name
+      v_name = "IRI"
+
+      ! Read IRI from file
+      st1d   = (/ 1         /)
+      ct1d   = (/ NDRYDTYPE /)
+      CALL NcRd( IRI, fId, TRIM(v_name), st1d, ct1d )
+
+      ! Read the IRI:units attribute
+      a_name = "units"
+      CALL NcGet_Var_Attributes( fId,TRIM(v_name),TRIM(a_name),a_val )
+
+      ! Echo info to stdout
+      IF ( am_I_Root ) THEN
+         WRITE( 6, 130 ) TRIM(v_name), TRIM(a_val)
+      ENDIF
+
+      !----------------------------------------
+      ! VARIABLE: IRLU
+      !----------------------------------------
+
+      ! Variable name
+      v_name = "IRLU"
+
+      ! Read IRLU from file
+      st1d   = (/ 1         /)
+      ct1d   = (/ NDRYDTYPE /)
+      CALL NcRd( IRLU, fId, TRIM(v_name), st1d, ct1d )
+
+      ! Read the IRLU:units attribute
+      a_name = "units"
+      CALL NcGet_Var_Attributes( fId,TRIM(v_name),TRIM(a_name),a_val )
+
+      ! Echo info to stdout
+      IF ( am_I_Root ) THEN
+         WRITE( 6, 130 ) TRIM(v_name), TRIM(a_val)
+      ENDIF
+
+      !----------------------------------------
+      ! VARIABLE: IRAC
+      !----------------------------------------
+
+      ! Variable name
+      v_name = "IRAC"
+
+      ! Read IRAC from file
+      st1d   = (/ 1         /)
+      ct1d   = (/ NDRYDTYPE /)
+      CALL NcRd( IRAC, fId, TRIM(v_name), st1d, ct1d )
+
+      ! Read the IRAC:units attribute
+      a_name = "units"
+      CALL NcGet_Var_Attributes( fId,TRIM(v_name),TRIM(a_name),a_val )
+
+      ! Echo info to stdout
+      IF ( am_I_Root ) THEN
+         WRITE( 6, 130 ) TRIM(v_name), TRIM(a_val)
+      ENDIF
+
+      !----------------------------------------
+      ! VARIABLE: IRGSS
+      !----------------------------------------
+
+      ! Variable name
+      v_name = "IRGSS"
+
+      ! Read IRGSS from file
+      st1d   = (/ 1         /)
+      ct1d   = (/ NDRYDTYPE /)
+      CALL NcRd( IRGSS, fId, TRIM(v_name), st1d, ct1d )
+
+      ! Read the IRGSS:units attribute
+      a_name = "units"
+      CALL NcGet_Var_Attributes( fId,TRIM(v_name),TRIM(a_name),a_val )
+
+      ! Echo info to stdout
+      IF ( am_I_Root ) THEN
+         WRITE( 6, 130 ) TRIM(v_name), TRIM(a_val)
+      ENDIF
+
+      !----------------------------------------
+      ! VARIABLE: IRGSO
+      !----------------------------------------
+
+      ! Variable name
+      v_name = "IRGSO"
+
+      ! Read IRGSO from file
+      st1d   = (/ 1         /)
+      ct1d   = (/ NDRYDTYPE /)
+      CALL NcRd( IRGSO, fId, TRIM(v_name), st1d, ct1d )
+
+      ! Read the IRGSO:units attribute
+      a_name = "units"
+      CALL NcGet_Var_Attributes( fId,TRIM(v_name),TRIM(a_name),a_val )
+
+      ! Echo info to stdout
+      IF ( am_I_Root ) THEN
+         WRITE( 6, 130 ) TRIM(v_name), TRIM(a_val)
+      ENDIF
+
+      !----------------------------------------
+      ! VARIABLE: IRCLS
+      !----------------------------------------
+
+      ! Variable name
+      v_name = "IRCLS"
+
+      ! Read IRCLS from file
+      st1d   = (/ 1         /)
+      ct1d   = (/ NDRYDTYPE /)
+      CALL NcRd( IRCLS, fId, TRIM(v_name), st1d, ct1d )
+
+      ! Read the IRCLS:units attribute
+      a_name = "units"
+      CALL NcGet_Var_Attributes( fId,TRIM(v_name),TRIM(a_name),a_val )
+
+      ! Echo info to stdout
+      IF ( am_I_Root ) THEN
+         WRITE( 6, 130 ) TRIM(v_name), TRIM(a_val)
+      ENDIF
+
+      !----------------------------------------
+      ! VARIABLE: IRCLO
+      !----------------------------------------
+
+      ! Variable name
+      v_name = "IRCLO"
+
+      ! Read IRCLO from file
+      st1d   = (/ 1         /)
+      ct1d   = (/ NDRYDTYPE /)
+      CALL NcRd( IRCLO, fId, TRIM(v_name), st1d, ct1d )
+
+      ! Read the IRCLO:units attribute
+      a_name = "units"
+      CALL NcGet_Var_Attributes( fId,TRIM(v_name),TRIM(a_name),a_val )
+
+      ! Echo info to stdout
+      IF ( am_I_Root ) THEN
+         WRITE( 6, 130 ) TRIM(v_name), TRIM(a_val)
+      ENDIF
+
+      !----------------------------------------
+      ! VARIABLE: IVSMAX
+      !----------------------------------------
+
+      ! Variable name
+      v_name = "IVSMAX"
+
+      ! Read IVSMAX from file
+      st1d   = (/ 1         /)
+      ct1d   = (/ NDRYDTYPE /)
+      CALL NcRd( IVSMAX, fId, TRIM(v_name), st1d, ct1d )
+
+      ! Read the IVSMAX:units attribute
+      a_name = "units"
+      CALL NcGet_Var_Attributes( fId,TRIM(v_name),TRIM(a_name),a_val )
+
+      ! Echo info to stdout
+      IF ( am_I_Root ) THEN
+         WRITE( 6, 130 ) TRIM(v_name), TRIM(a_val)
+      ENDIF
+
+      !=================================================================
+      ! Cleanup and quit
+      !=================================================================
+
+      ! Close netCDF file
+      CALL NcCl( fId )
+
+      ! Echo info to stdout
+      IF ( am_I_Root ) THEN
+         WRITE( 6, 140 )
+         WRITE( 6, 100 ) REPEAT( '%', 79 )
+      ENDIF
+
+      ! FORMAT statements
+ 100  FORMAT( a                                              )
+ 110  FORMAT( '%% Opening file  : ',         a               )
+ 120  FORMAT( '%%  in directory : ',         a, / , '%%'     )
+ 130  FORMAT( '%% Successfully read ',       a, ' [', a, ']' )
+ 140  FORMAT( '%% Successfully closed file!'                 )
+
+      END SUBROUTINE READ_DRYDEP_INPUTS
+!EOC
+!------------------------------------------------------------------------------
+!          Harvard University Atmospheric Chemistry Modeling Group            !
+!------------------------------------------------------------------------------
+!BOP
 !
-!******************************************************************************
-!  Function AERO_SFCRSII computes the aerodynamic resistance of seasalt aerosol
-!  tracers according to Zhang et al 2001.  We account for hygroscopic growth
-!  of the seasalt aerosol particles (rjp, tdf, bec, bmy, 4/1/04, 6/11/08)
+! !IROUTINE: aero_sfcrsii
 !
-!  Arguments as Input: 
-!  ============================================================================
-!  (1 ) K     (INTEGER) : Dry deposition tracer index (range: 1-NUMDEP)
-!  (2 ) II    (INTEGER) : GEOS-CHEM surface type index
-!  (3 ) PRESS (REAL*8 ) : Pressure [kPa] (where 1 Kpa = 0.1 mb)
-!  (4 ) TEMP  (REAL*8 ) : Temperature [K]
-!  (5 ) USTAR (REAL*8 ) : Friction Velocity [m/s]
-!  (6 ) RHB   (REAL*8)  : Relative humidity (fraction)
+! !DESCRIPTION: Function AERO\_SFCRSII computes the aerodynamic resistance of
+!  seasalt aerosol tracers according to Zhang et al 2001.  We account for
+!  hygroscopic growth of the seasalt aerosol particles. (rjp, tdf, bec, bmy,
+!  4/1/04, 6/11/08)
+!\\
+!\\
+! !INTERFACE:
 !
-!  Function Value
-!  ============================================================================
-!  (6 ) Rs    (REAL*8 ) : Surface resistance for dust particles [s/m]
+      FUNCTION AERO_SFCRSII( K, II, PRESS, TEMP, USTAR, RHB, 
+     &                             W10 ) RESULT(RS)
 !
-!  NOTES
+! !INPUT PARAMETERS: 
+!
+      INTEGER, INTENT(IN) :: K     ! Drydep tracer index (range: 1-NUMDEP)
+      INTEGER, INTENT(IN) :: II    ! Surface type index of GEOS-CHEM
+      REAL*8,  INTENT(IN) :: PRESS ! Pressure [kPa] (1 mb = 100 Pa = 0.1 kPa)
+      REAL*8,  INTENT(IN) :: TEMP  ! Temperature [K]   
+      REAL*8,  INTENT(IN) :: USTAR ! Friction velocity [m/s]
+      REAL*8,  INTENT(IN) :: RHB   ! Relative humidity (fraction)
+      ! Added 10m windspeed (jaegle 5/11/11)
+      REAL*8,  INTENT(IN) :: W10   ! 10 m windspeed [m/s]
+!
+! !RETURN VALUE:
+!
+      REAL*8              :: RS    ! Surface resistance for particles [s/m]
+! 
+! !REVISION HISTORY: 
 !  (1 ) Updated comments.  Also now force double precision w/ "D" exponents.
 !        (bmy, 4/1/04)
 !  (2 ) Now limit relative humidity to [tiny(real*8),0.99] range for DLOG
 !         argument (phs, 6/11/08)
-!******************************************************************************
+!  (3 ) Bug fixes to the Gerber (1985) growth function (jaegle 5/11/11)
+!  (4)  Update growth function to Lewis and Schwartz (2006) and density
+!       calculation based on Tang et al. (1997) (bec, jaegle 5/11/11)
+!  (5 ) Updates of sea salt deposition over water to follow the Slinn & Slinn
+!       (1980) formulation over water surface. Described in Jaegle et al. (ACP,
+!       11, 2011) (jaegle 5/11/11)
+!  22 Dec 2011 - M. Payer    - Added ProTeX headers
+!EOP
+!------------------------------------------------------------------------------
+!BOC
 !
-      ! Arguments
-      INTEGER, INTENT(IN) :: K     ! INDEX OF NUMDEP
-      INTEGER, INTENT(IN) :: II    ! Surface type index of GEOS-CHEM
-      REAL*8,  INTENT(IN) :: PRESS ! Pressure in Kpa 1 mb = 100 pa = 0.1 kPa
-      REAL*8,  INTENT(IN) :: TEMP  ! Temperature (K)    
-      REAL*8,  INTENT(IN) :: USTAR ! Friction velocity (m/s)
-      REAL*8,  INTENT(IN) :: RHB   ! Relative humidity (fraction)
-
-      ! Function value
-      REAL*8              :: RS    ! Surface resistance for particles [s/m]
-
-      ! Local variables
+! !LOCAL VARIABLES:
+!
       INTEGER             :: N
       REAL*8, PARAMETER   :: C1 = 0.7674d0,  C2 = 3.079d0, 
      &                       C3 = 2.573d-11, C4 = -1.424d0
@@ -2373,9 +2775,42 @@
       REAL*8  :: SC, ST      ! Schmidt and Stokes number (nondim)
       REAL*8  :: RHBL        ! Relative humidity local
 
-      REAL*8  :: DIAM, DEN, RATIO_R, RWET, RCM
+      ! replace RCM with RUM (radius in microns instead of cm) - jaegle 5/11/11
+      !REAL*8  :: DIAM, DEN, RATIO_R, RWET, RCM
+      REAL*8  :: DIAM, DEN, RATIO_R, RWET, RUM
       REAL*8  :: FAC1, FAC2
       REAL*8  :: EB, EIM, EIN, R1, AA, VTS
+      ! New variables added (jaegle 5/11/11)
+      REAL*8  :: SW
+      REAL*8  :: SALT_MASS, SALT_MASS_TOTAL, VTS_WEIGHT, DMIDW ! for weighting the settling velocity
+      REAL*8  :: D0, D1  !lower and upper bounds of sea-salt dry diameter bins 
+      REAL*8  :: DEDGE
+      REAL*8  :: DEN1, WTP 
+      INTEGER :: ID,NR
+      LOGICAL, SAVE          :: FIRST = .TRUE.
+
+      !increment of radius for integration of settling velocity (um)
+      REAL*8, PARAMETER      :: DR    = 5.d-2
+
+      ! Parameters for polynomial coefficients to derive seawater
+      ! density. From Tang et al. (1997) - jaegle 5/11/11
+      REAL*8,  PARAMETER     :: A1 =  7.93d-3
+      REAL*8,  PARAMETER     :: A2 = -4.28d-5
+      REAL*8,  PARAMETER     :: A3 =  2.52d-6
+      REAL*8,  PARAMETER     :: A4 = -2.35d-8
+      REAL*8,  PARAMETER     :: EPSI = 1.0D-4
+
+      ! parameters for assumed size distribution of accumulation and coarse
+      ! mode sea salt aerosols, as described in Jaegle et al. (ACP, 11, 2011)
+      ! (jaegle, 5/11/11)
+      ! 1) geometric dry mean diameters (microns)
+      REAL*8,  PARAMETER     ::   RG_A = 0.085d0
+      REAL*8,  PARAMETER     ::   RG_C = 0.4d0
+      ! 2) sigma of the size distribution
+      REAL*8,  PARAMETER     ::   SIG_A = 1.5d0
+      REAL*8,  PARAMETER     ::   SIG_C = 1.8d0
+      REAL*8,  PARAMETER     :: PI =3.14159D0
+
 
 !=======================================================================
 !   #  LUC [Zhang et al., 2001]                GEOS-CHEM LUC (Corr. #)
@@ -2513,28 +2948,111 @@
       !
       !      R1 (Particle rebound)  = exp(-St^0.5)
       !=================================================================
+      !      Update (jaegle 5/11/2011): The above formulation of Zhang et al
+      !      (2001) is valid for land surfaces and was originally based on the
+      !      work of Slinn (1982). Over water surfaces, the work of reference
+      !      is that of Slinn and Slinn (1980) who use the term "viscous
+      !      sublayer" to refer to the thin layer extending 0.1-1mm above the 
+      !      water surface. Due to the proximity of the water, the RH in this
+      !      layer is much higher than the ambient RH in the surface layer.
+      !      According to Lewis and Schwartz (2004): "Relative humidities of
+      !      99% and 100% were considered by Slinn and Slinn for the viscous
+      !      sublayer, however near the ocean surface RH would be limited to
+      !      near 98% because of the vapor pressure lowering of water over
+      !      seawater due to the salt content". We will thus use a constant
+      !      value RH=98% over all ocean boxes. This affects the growth of
+      !      particles (the wet radius at RH=98% is x4 the dry radius) and thus
+      !      affects all the terms depending on particle size.
+      !      
+      !      Other updates for ocean surfaces:
+      !         a)   Over ocean surfaces the formulation from Slinn & Slinn for
+      !              the resistance in the viscous layer is 
+      !                Rs = 1 / (Cd/XCKMAN*U10m*(Eb+Eim)+VTS)
+      !              with  Cd=(Ustar/U10m)**2, and VTS is the gravitational
+      !              settling in the viscous layer. Note that the gravitational
+      !              settling calculated here for the viscous layer is >> than
+      !              the one calculated for the surface layer in seasalt_mod.f
+      !              because of the higher RH.
+      !         b)   Eim = 10^(-3/St) based on Slinn and Slinn (1980)
+      !
+      ! References:
+      !  LEWIS and SCHWARTZ (2004), "SEA SALT AEROSOL PRODUCTION, MECHANISMS,
+      !    METHODS AND MODELS" AGU monograph 152.
+      !  SLINN and SLINN (1980), "PREDICTIONS FOR PARTICLE DEPOSITION ON
+      !    NATURAL-WATERS" Atmos Environ (1980) vol. 14 (9) pp. 1013-1016.
+      !  SLINN (1982), "PREDICTIONS FOR PARTICLE DEPOSITION TO VEGETATIVE
+      !    CANOPIES" Atmos Environ (1982) vol. 16 (7) pp. 1785-1794.
+      !==================================================================
+
+      ! Number of bins for sea salt size distribution
+      NR =INT((( SALC_REDGE_um(2) - SALA_REDGE_um(1) ) / DR )
+     &                  + 0.5d0 )
 
       ! Particle radius [cm]
-      RCM  = A_RADI(K) * 1.d2
+      ! Bug fix: The Gerber [1985] growth should use the dry radius 
+      ! in micromenters and not cm. Replace RCM with RUM (jaegle 5/11/11)
+      !RCM  = A_RADI(K) * 1.d2
+      RUM  = A_RADI(K) * 1.d6
       
       ! Exponential factors used for hygroscopic growth
-      FAC1 = C1 * ( RCM**C2 )
-      FAC2 = C3 * ( RCM**C4 )
+      ! Replace RCM with RUM (jaegle 5/11/11)
+      !FAC1 = C1 * ( RCM**C2 )
+      !FAC2 = C3 * ( RCM**C4 )
+      FAC1 = C1 * ( RUM**C2 )
+      FAC2 = C3 * ( RUM**C4 )
 
       ! Aerosol growth with relative humidity in radius [m] 
       ! (Gerber, 1985) (bec, 12/8/04)
       ! Added safety check for LOG (phs, 6/11/08)
       RHBL    = MAX( TINY(RHB), RHB )
-      RWET    = 0.01d0*(FAC1/(FAC2-DLOG(RHBL))+RCM**3.d0)**0.33d0
+
+      ! Check whether we are over the oceans or not:
+      ! Over oceans the RH in the viscous sublayer is set to 98%, following
+      ! Lewis and Schwartz (2004), see discussion above (jaegle 5/11/11)
+      IF (LUC == 14) THEN
+          RHBL = 0.98
+      ENDIF
+      ! Corrected bug in Gerber formulation: use of LOG10  (jaegle 5/11/11)
+      !RWET    = 0.01d0*(FAC1/(FAC2-DLOG(RHBL))+RCM**3.d0)**0.33d0
+      !RWET = 1.d-6*(FAC1/(FAC2-LOG10(RHBL))+RUM**3.d0)**0.33333d0
+
+      ! Use equation 5 in Lewis and Schwartz (2006) for sea salt growth [m] (jaegle 5/11/11)
+      RWET = A_RADI(K) * (4.d0 / 3.7d0) *
+     &          ( (2.d0 - RHBL)/(1.d0 - RHBL) )**(1.d0/3.d0)
 
       ! Ratio dry over wet radii at the cubic power
-      RATIO_R = ( A_RADI(K) / RWET )**3.d0
+      !RATIO_R = ( A_RADI(K) / RWET )**3.d0
 
       ! Diameter of the wet aerosol [m]
       DIAM  = RWET * 2.d0  
 
       ! Density of the wet aerosol [kg/m3] (bec, 12/8/04)
-      DEN   = RATIO_R * A_DEN(K) + ( 1.d0 - RATIO_R ) * 1000.d0 
+      !DEN   = RATIO_R * A_DEN(K) + ( 1.d0 - RATIO_R ) * 1000.d0 
+
+      ! Above density calculation is chemically unsound because it ignores
+      ! chemical solvation.  
+      ! Iteratively solve Tang et al., 1997 equation 5 to calculate density of
+      ! wet aerosol (kg/m3) 
+      ! (bec, 6/17/10, jaegle 5/11/11)
+      ! Redefine RATIO_R
+      RATIO_R = A_RADI(K) / RWET
+
+      ! Assume an initial density of 1000 kg/m3
+      DEN  = 1000.D0
+      DEN1 = 0.d0 !initialize (bec, 6/21/10)
+      DO WHILE ( ABS( DEN1-DEN ) .gt. EPSI )
+         ! First calculate weight percent of aerosol (kg_RH=0.8/kg_wet) 
+         WTP    = 100.d0 * A_DEN(K)/DEN * RATIO_R**3.d0
+         ! Then calculate density of wet aerosol using equation 5 
+         ! in Tang et al., 1997 [kg/m3]
+         DEN1   = ( 0.9971d0 + (A1 * WTP) + (A2 * WTP**2) + 
+     $               (A3 * WTP**3) + (A4 * WTP**4) ) * 1000.d0
+         ! Now calculate new weight percent using above density calculation
+         WTP    = 100.d0 * A_DEN(K)/DEN1 * RATIO_R**3
+         ! Now recalculate new wet density [kg/m3]
+         DEN   = ( 0.9971d0 + (A1 * WTP) + (A2 * WTP**2) + 
+     $              (A3 * WTP**3) + (A4 * WTP**4) ) * 1000.d0
+      ENDDO
 
       ! Dp [um] = particle diameter
       DP    = DIAM * 1.d6 
@@ -2575,6 +3093,43 @@
       ! Settling velocity [m/s]
       VTS  = CONST * SLIP / VISC
 
+      ! This settling velocity is for the mid-point of the size bin.
+      ! Need to integrate over the size bin, taking into account the
+      ! mass distribution of sea-salt and the dependence of VTS on aerosol
+      ! size. See WET_SETTLING in SEASALT_MOD.f for more details.
+      ! (jaegle 5/11/11)
+      SALT_MASS_TOTAL = 0d0
+      VTS_WEIGHT      = 0d0
+      ! Check what the min/max range of the SS size bins are
+      IF ( RUM .le. SALA_REDGE_um(2) ) THEN
+        D0 = SALA_REDGE_um(1)*2d0
+        D1 = SALA_REDGE_um(2)*2d0
+      ELSE 
+        D0 = SALC_REDGE_um(1)*2d0
+        D1 = SALC_REDGE_um(2)*2d0
+      ENDIF
+     
+
+      DO ID = 1, NR
+      ! Calculate mass of wet aerosol (Dw = wet diameter, D = dry diamter):
+      ! Overall = dM/dDw = dV/dlnD * Rwet/Rdry * DEN /Rw
+        IF (DMID(ID) .ge. D0 .and. DMID(ID) .le. D1 ) THEN
+           DMIDW = DMID(ID) * RWET/A_RADI(K)   ! wet radius [um]
+           SALT_MASS   = SALT_V(ID) * RWET/A_RADI(K) * DEN / 
+     &                    (DMIDW*0.5d0)
+           VTS_WEIGHT  = VTS_WEIGHT + 
+     &              SALT_MASS * VTS * (DMIDW/(RWET*1d6*2d0) )**2d0 *
+     &                            (2d0 * DR *  RWET/A_RADI(K))
+           SALT_MASS_TOTAL=SALT_MASS_TOTAL+SALT_MASS *
+     &                            (2d0 * DR *  RWET/A_RADI(K))
+        ENDIF
+
+      ENDDO
+
+      ! Final mass weighted setting velocity:
+      VTS = VTS_WEIGHT/SALT_MASS_TOTAL
+
+
       ! Brownian diffusion constant for particle (m2/s)
       DIFF = BOLTZ * TEMP * SLIP 
      &      / (3.d0 * 3.141592d0 * VISC * DIAM)  
@@ -2592,9 +3147,14 @@
          EIN  = 0.5d0 * ( DIAM / AA )**2
       ENDIF
 
-      EIM  = ( ST / ( ALPHA(LUC) + ST ) )**(BETA)
-
-      EIM  = MIN( EIM, 0.6D0 )
+      ! Use the formulation of Slinn and Slinn (1980) for the impaction over
+      ! water surfaces (jaegle 5/11/11)
+      IF (LUC == 14) THEN
+         EIM  = 10.d0**( -3.d0/ ST )   ! for water surfaces
+      ELSE
+         EIM  = ( ST / ( ALPHA(LUC) + ST ) )**(BETA)
+         EIM  = MIN( EIM, 0.6D0 )
+      ENDIF
 
       IF (LUC == 11 .OR. LUC == 13 .OR. LUC == 14) THEN
          R1 = 1.D0
@@ -2603,49 +3163,143 @@
       ENDIF
 
       ! surface resistance for particle
-      RS   = 1.D0 / (E0 * USTAR * (EB + EIM + EIN) * R1 )
+      ! Use the formulation of Slinn and Slinn (1980) for the impaction over
+      ! water surfaces (jaegle 5/11/11)
+      IF (LUC == 14) THEN
+         RS   = 1.D0 / (USTAR**2.d0/ (W10*XCKMAN) * (EB + EIM ) + VTS)
+      ELSE
+         RS   = 1.D0 / (E0 * USTAR * (EB + EIM + EIN) * R1 )
+      ENDIF
 
-      ! Return to calling program
       END FUNCTION AERO_SFCRSII
-
+!EOC
 !------------------------------------------------------------------------------
+!          Harvard University Atmospheric Chemistry Modeling Group            !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: init_weightss
+!
+! !DESCRIPTION: Subroutine INIT\_WEIGHTSS calculates the volume size
+!  distribution of sea-salt. This only has to be done once. We assume that
+!  sea-salt is the combination of a coarse mode and accumulation model
+!  log-normal distribution functions. The resulting arrays are: DMID = diameter
+!  of bin and SALT\_V = dV/dln(D) [in um3]. (jaegle 5/11/11)
+!\\
+!\\
+! !INTERFACE:
+!
+      SUBROUTINE INIT_WEIGHTSS
+! 
+! !REVISION HISTORY: 
+!  11 May 2011 - L. Jaegle   - Initial version
+!  22 Dec 2011 - M. Payer    - Added ProTeX headers
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+!
+! !LOCAL VARIABLES:
+!
+      INTEGER             :: N
 
+      REAL*8  :: SALT_MASS, SALT_MASS_TOTAL, VTS_WEIGHT, DMIDW ! jaegle, for weighting the settling vel.
+      REAL*8  :: DEDGE
+      INTEGER :: ID,NR
+
+      ! increment of radius for integration of settling velocity (um)
+      REAL*8, PARAMETER      :: DR    = 5.d-2
+
+      ! parameters for assumed size distribution of acc and coarse mode
+      ! sea salt aerosols
+      ! geometric dry mean diameters (microns)
+      REAL*8,  PARAMETER     ::   RG_A = 0.085d0
+      REAL*8,  PARAMETER     ::   RG_C = 0.4d0
+      ! sigma of the size distribution
+      REAL*8,  PARAMETER     ::   SIG_A = 1.5d0
+      REAL*8,  PARAMETER     ::   SIG_C = 1.8d0
+      REAL*8, PARAMETER   :: PI =3.14159D0
+
+
+      ! Number of bins between the lowest bound of of the accumulation mode
+      ! sea salt and the upper bound of the coarse mode sea salt.
+      NR =INT((( SALC_REDGE_um(2) - SALA_REDGE_um(1) ) / DR )
+     &                  + 0.5d0 )
+
+      !=================================================================
+      ! Define the volume size distribution of sea-salt. This only has
+      ! to be done once. We assume that sea-salt is the combination of a
+      ! coarse mode and accumulation model log-normal distribution functions
+      !=================================================================
+
+       ! Lower edge of 0th bin diameter [um]
+       DEDGE=SALA_REDGE_um(1) * 2d0
+
+       ! Loop over diameters
+       DO ID = 1, NR
+
+           ! Diameter of mid-point in microns
+           DMID(ID)  = DEDGE + ( DR )
+
+	   ! Calculate the dry volume size distribution as the sum of two
+           ! log-normal size distributions. The parameters for the size
+           ! distribution are based on Reid et al. and Quinn et al.
+	   ! The scaling factors 13. and 0.8 for acc and coarse mode aerosols
+	   ! are chosen to obtain a realistic distribution  
+	   ! SALT_V (D) = dV/dln(D) [um3]
+	   SALT_V(ID) = PI / 6d0* (DMID(ID)**3) * (
+     &         13d0*exp(-0.5*( LOG(DMID(ID))-LOG(RG_A*2d0) )**2d0/
+     &                   LOG(SIG_A)**2d0 )
+     &         /( sqrt(2d0 * PI) * LOG(SIG_A) )  +
+     &         0.8d0*exp(-0.5*( LOG(DMID(ID))-LOG(RG_C*2d0) )**2d0/
+     &                   LOG(SIG_C)**2d0)
+     &         /( sqrt(2d0 * PI) * LOG(SIG_C) )  )
+           ! update the next edge
+           DEDGE = DEDGE + DR*2d0
+        ENDDO
+
+      END SUBROUTINE INIT_WEIGHTSS
+!EOC
+!------------------------------------------------------------------------------
+!          Harvard University Atmospheric Chemistry Modeling Group            !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: dust_sfcrsi
+!
+! !DESCRIPTION: Function DUST\_SFCRSI computes the aerodynamic resistance of
+!  dust aerosol tracers according to Seinfeld et al 96.  We do not consider
+!  hygroscopic growth of the dust aerosol particles. (rjp, tdf, bmy, bec, 
+!  4/1/04, 4/15/05)
+!\\
+!\\
+! !INTERFACE:
+!
       FUNCTION DUST_SFCRSI( K, II, PRESS, TEMP, USTAR ) RESULT( RS )
 !
-!******************************************************************************
-!  Function DUST_SFCRSI computes the aerodynamic resistance of dust aerosol
-!  tracers according to Seinfeld et al 96.  We do not consider hygroscopic
-!  growth of the dust aerosol particles. (rjp, tdf, bmy, bec, 4/1/04, 4/15/05)
+! !INPUT PARAMETERS: 
 !
-!  Arguments as Input: 
-!  ============================================================================
-!  (1 ) K     (INTEGER) : Dry deposition tracer index (range: 1-NUMDEP)
-!  (2 ) II    (INTEGER) : GEOS-CHEM surface type index
-!  (3 ) PRESS (REAL*8 ) : Pressure [kPa] (where 1 Kpa = 0.1 mb)
-!  (4 ) TEMP  (REAL*8 ) : Temperature [K]
-!  (5 ) USTAR (REAL*8 ) : Friction Velocity [m/s]
+      INTEGER, INTENT(IN) :: K     ! Drydep tracer index (range: 1-NUMDEP)
+      INTEGER, INTENT(IN) :: II    ! Surface type index of GEOS-CHEM
+      REAL*8,  INTENT(IN) :: PRESS ! Pressure [kPa] (1 mb = 100 Pa = 0.1 kPa)
+      REAL*8,  INTENT(IN) :: TEMP  ! Temperature [K]    
+      REAL*8,  INTENT(IN) :: USTAR ! Friction velocity [m/s]
 !
-!  Function Value
-!  ============================================================================
-!  (6 ) Rs    (REAL*8 ) : Surface resistance for dust particles [s/m]
+! !RETURN VALUE:
 !
-!  NOTES
+      REAL*8              :: RS    ! Surface resistance for particles [s/m]
+! 
+! !REVISION HISTORY: 
 !  (1 ) Updated comments.  Also now force double precision w/ "D" exponents.
 !        (bmy, 4/1/04)
 !  (2 ) Renamed to DUST_SFCRSII, since this will only be used to compute
 !        aerodynamic resistance of dust aerosols.  (bec, bmy, 4/15/05)
-!******************************************************************************
-!    
-      INTEGER, INTENT(IN) :: K     ! INDEX OF NUMDEP
-      INTEGER, INTENT(IN) :: II    ! Surface type index of GEOS-CHEM
-      REAL*8, INTENT(IN)  :: PRESS ! Pressure in Kpa 1 mb = 100 pa = 0.1 kPa
-      REAL*8, INTENT(IN)  :: TEMP  ! Temperature (K)    
-      REAL*8, INTENT(IN)  :: USTAR ! Friction velocity (m/s)
-
-      ! Function value
-      REAL*8              :: RS    ! Surface resistance for particles [s/m]
-
-      ! Local variables
+!  22 Dec 2011 - M. Payer    - Added ProTeX headers
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+!
+! !LOCAL VARIABLES:
+!
       INTEGER             :: N
       REAL*8, PARAMETER   :: C1 = 0.7674d0,  C2 = 3.079d0, 
      &                       C3 = 2.573d-11, C4 = -1.424d0
@@ -2773,53 +3427,55 @@
       ! surface resistance for particle
       RS   = 1.D0 / ( E0 * USTAR * (EB + EIM) )
       
-      ! Return to calling program
       END FUNCTION DUST_SFCRSI
-
+!EOC
 !------------------------------------------------------------------------------
-! added MERGE1 (hotp 5/25/09)
-
+!          Harvard University Atmospheric Chemistry Modeling Group            !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: adust_sfcrsii
+!
+! !DESCRIPTION: Function ADUST\_SFCRSII computes the aerodynamic resistance of
+!  non-size resolved aerosol according to Zhang et al 2001.  We do not consider
+!  the hygroscopic growth of the aerosol particles. (rjp, tdf, bec, bmy, 
+!  4/1/04, 4/15/05) 
+!\\
+!\\
+!  This routine is used for all aerosols except dust, sulfate, and seasalt
+!  (hotp 7/31/09)
+!\\
+!\\
+! !INTERFACE:
+!
       FUNCTION ADUST_SFCRSII( K, II, PRESS, TEMP, USTAR ) RESULT( RS )
-
-! This routine is used for all aerosols except dust, sulfate, and seasalt (hotp 7/31/09)
-! modified hotp 7/12/07 for non size resolved aerosols
-! this is just DUST_SFCRSII rename and the diameter and density fixed
 !
-!******************************************************************************
-!  Function ADUST_SFCRSII computes the aerodynamic resistance of non-size
-!  resolved aerosol according to Zhang et al 2001.  We do not consider the hygroscopic
-!  growth of the aerosol particles. (rjp, tdf, bec, bmy, 4/1/04, 4/15/05)
+! !INPUT PARAMETERS: 
 !
-!  Arguments as Input: 
-!  ============================================================================
-!  (1 ) K     (INTEGER) : Dry deposition tracer index (range: 1-NUMDEP)
-!  (2 ) II    (INTEGER) : GEOS-CHEM surface type index
-!  (3 ) PRESS (REAL*8 ) : Pressure [kPa] (where 1 Kpa = 0.1 mb)
-!  (4 ) TEMP  (REAL*8 ) : Temperature [K]
-!  (5 ) USTAR (REAL*8 ) : Friction Velocity [m/s]
+      INTEGER, INTENT(IN) :: K     ! Drydep tracer index (range: 1-NUMDEP)
+      INTEGER, INTENT(IN) :: II    ! Surface type index of GEOS-CHEM
+      REAL*8,  INTENT(IN) :: PRESS ! Pressure [kPa] (1 mb = 100 Pa = 0.1 kPa)
+      REAL*8,  INTENT(IN) :: TEMP  ! Temperature [K]    
+      REAL*8,  INTENT(IN) :: USTAR ! Friction velocity [m/s]
 !
-!  Function Value
-!  ============================================================================
-!  (6 ) Rs    (REAL*8 ) : Surface resistance for dust particles [s/m]
+! !RETURN VALUE:
 !
-!  NOTES
+      REAL*8              :: RS    ! Surface resistance for particles [s/m]
+! 
+! !REVISION HISTORY:
 !  (1 ) Updated comments.  Also now force double precision w/ "D" exponents.
 !        (bmy, 4/1/04)
 !  (2 ) Renamed to DUST_SFCRSII, since this will only be used to compute
 !        aerodynamic resistance of dust aerosols.  (bec, bmy, 4/15/05)
-!******************************************************************************
+!  (3 ) Modified hotp for non size resolved aerosols. This is just DUST_SFCRSII
+!        renamed and the diameter and density fixed. (hotp 7/12/07)
+!  22 Dec 2011 - M. Payer    - Added ProTeX headers
+!EOP
+!------------------------------------------------------------------------------
+!BOC
 !
-      ! Arguments
-      INTEGER, INTENT(IN) :: K     ! INDEX OF NUMDEP
-      INTEGER, INTENT(IN) :: II    ! Surface type index of GEOS-CHEM
-      REAL*8,  INTENT(IN) :: PRESS ! Pressure in Kpa 1 mb = 100 pa = 0.1 kPa
-      REAL*8,  INTENT(IN) :: TEMP  ! Temperature (K)    
-      REAL*8,  INTENT(IN) :: USTAR ! Friction velocity (m/s)
-
-      ! Function value
-      REAL*8              :: RS    ! Surface resistance for particles [s/m]
-
-      ! Local variables
+! !LOCAL VARIABLES:
+!
       INTEGER             :: N
       REAL*8, PARAMETER   :: C1 = 0.7674d0,  C2 = 3.079d0, 
      &                       C3 = 2.573d-11, C4 = -1.424d0
@@ -3052,48 +3708,50 @@
       ! surface resistance for particle
       RS   = 1.D0 / (E0 * USTAR * (EB + EIM + EIN) * R1 )
 
-      ! Return to calling program
       END FUNCTION ADUST_SFCRSII
-
+!EOC
 !------------------------------------------------------------------------------
+!          Harvard University Atmospheric Chemistry Modeling Group            !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: dust_sfcrsii
+!
+! !DESCRIPTION: Function DUST\_SFCRSII computes the aerodynamic resistance of
+!  dust aerosol tracers according to Zhang et al 2001.  We do not consider the
+!  hygroscopic growth of the aerosol particles. (rjp, tdf, bec, bmy, 4/1/04,
+!  4/15/05)
+!\\
+!\\
+! !INTERFACE:
+!
 
       FUNCTION DUST_SFCRSII( K, II, PRESS, TEMP, USTAR ) RESULT( RS )
 !
-!******************************************************************************
-!  Function DUST_SFCRSII computes the aerodynamic resistance of dust aerosol
-!  tracers according to Zhang et al 2001.  We do not consider the hygroscopic
-!  growth of the aerosol particles. (rjp, tdf, bec, bmy, 4/1/04, 4/15/05)
+! !INPUT PARAMETERS: 
 !
-!  Arguments as Input: 
-!  ============================================================================
-!  (1 ) K     (INTEGER) : Dry deposition tracer index (range: 1-NUMDEP)
-!  (2 ) II    (INTEGER) : GEOS-CHEM surface type index
-!  (3 ) PRESS (REAL*8 ) : Pressure [kPa] (where 1 Kpa = 0.1 mb)
-!  (4 ) TEMP  (REAL*8 ) : Temperature [K]
-!  (5 ) USTAR (REAL*8 ) : Friction Velocity [m/s]
+      INTEGER, INTENT(IN) :: K     ! Drydep tracer index (range: 1-NUMDEP)
+      INTEGER, INTENT(IN) :: II    ! Surface type index of GEOS-CHEM
+      REAL*8,  INTENT(IN) :: PRESS ! Pressure [kPa] (1 mb = 100 Pa = 0.1 kPa)
+      REAL*8,  INTENT(IN) :: TEMP  ! Temperature [K]    
+      REAL*8,  INTENT(IN) :: USTAR ! Friction velocity [m/s]
 !
-!  Function Value
-!  ============================================================================
-!  (6 ) Rs    (REAL*8 ) : Surface resistance for dust particles [s/m]
+! !RETURN VALUE:
 !
-!  NOTES
+      REAL*8              :: RS    ! Surface resistance for particles [s/m]
+! 
+! !REVISION HISTORY: 
 !  (1 ) Updated comments.  Also now force double precision w/ "D" exponents.
 !        (bmy, 4/1/04)
 !  (2 ) Renamed to DUST_SFCRSII, since this will only be used to compute
 !        aerodynamic resistance of dust aerosols.  (bec, bmy, 4/15/05)
-!******************************************************************************
+!  22 Dec 2011 - M. Payer    - Added ProTeX headers
+!EOP
+!------------------------------------------------------------------------------
+!BOC
 !
-      ! Arguments
-      INTEGER, INTENT(IN) :: K     ! INDEX OF NUMDEP
-      INTEGER, INTENT(IN) :: II    ! Surface type index of GEOS-CHEM
-      REAL*8,  INTENT(IN) :: PRESS ! Pressure in Kpa 1 mb = 100 pa = 0.1 kPa
-      REAL*8,  INTENT(IN) :: TEMP  ! Temperature (K)    
-      REAL*8,  INTENT(IN) :: USTAR ! Friction velocity (m/s)
-
-      ! Function value
-      REAL*8              :: RS    ! Surface resistance for particles [s/m]
-
-      ! Local variables
+! !LOCAL VARIABLES:
+!
       INTEGER             :: N
       REAL*8, PARAMETER   :: C1 = 0.7674d0,  C2 = 3.079d0, 
      &                       C3 = 2.573d-11, C4 = -1.424d0
@@ -3326,18 +3984,28 @@
       ! surface resistance for particle
       RS   = 1.D0 / (E0 * USTAR * (EB + EIM + EIN) * R1 )
 
-      ! Return to calling program
       END FUNCTION DUST_SFCRSII
-
+!EOC
 !------------------------------------------------------------------------------
-
-      SUBROUTINE INIT_DRYDEP
+!          Harvard University Atmospheric Chemistry Modeling Group            !
+!------------------------------------------------------------------------------
+!BOP
 !
-!******************************************************************************
-!  Subroutine INIT_DRYDEP initializes certain variables for the GEOS-CHEM
-!  dry deposition subroutines. (bmy, 11/19/02, 10/19/09)
+! !IROUTINE: init_drydep
 !
-!  NOTES:
+! !DESCRIPTION: Subroutine INIT\_DRYDEP initializes certain variables for the
+!  GEOS-CHEM dry deposition subroutines. (bmy, 11/19/02, 10/19/09)
+!\\
+!\\
+! !INTERFACE:
+!
+      SUBROUTINE INIT_DRYDEP( am_I_Root )
+!
+! !INPUT PARAMETERS:
+!
+      LOGICAL, INTENT(IN) :: am_I_Root   ! Is this the root CPU?
+! 
+! !REVISION HISTORY: 
 !  (1 ) Added N2O5 as a drydep tracer, w/ the same drydep velocity as
 !        HNO3.  Now initialize PBLFRAC array. (rjp, bmy, 7/21/03)
 !  (2 ) Added extra carbon & dust aerosol tracers (rjp, tdf, bmy, 4/1/04)
@@ -3364,73 +4032,19 @@
 !  (15) Minor bug fix: ALPH, LIMO should have molwt = 136.23, not 136 even
 !        (bmy, 10/19/09)
 !  (16) Add TOMAS aerosol NK1-NK30 and H2SO4 to drydep list (win, 7/14/09)
-!******************************************************************************
+!  15 Dec 2011 - M. Payer    - Update OVOC drydep according to Karl et al. 2010
+!                              and add drydep for MVK and MACR. (J. Mao)
+!  21 Dec 2011 - M. Payer    - Add allocation for size distribution of sea salt
+!                              SALT_V and DMID (jaegle, 5/11/11)
+!  22 Dec 2011 - M. Payer    - Added ProTeX headers
+!  30 Jul 2012 - R. Yantosca - Now accept am_I_Root as an argument when
+!                              running with the traditional driver main.F
+!EOP
+!------------------------------------------------------------------------------
+!BOC
 !
-      ! References to F90 modules
-      USE ERROR_MOD,    ONLY : ALLOC_ERR
-      USE LOGICAL_MOD,  ONLY : LDRYD
-      USE TRACER_MOD,   ONLY : ITS_A_MERCURY_SIM
-      USE TRACER_MOD,   ONLY : N_TRACERS, SALA_REDGE_um, SALC_REDGE_um
-      USE TRACERID_MOD, ONLY : IDTPB,     IDTBE7,        IDTNOX
-      USE TRACERID_MOD, ONLY : IDTOX,     IDTPAN,        IDTHNO3 
-      USE TRACERID_MOD, ONLY : IDTH2O2,   IDTPMN,        IDTPPN  
-      USE TRACERID_MOD, ONLY : IDTISN2,   IDTR4N2,       IDTCH2O 
-      USE TRACERID_MOD, ONLY : IDTN2O5,   IDTSO2,        IDTSO4  
-      USE TRACERID_MOD, ONLY : IDTSO4S,   IDTMSA,        IDTNH3  
-      USE TRACERID_MOD, ONLY : IDTNH4,    IDTNIT,        IDTNITS 
-      USE TRACERID_MOD, ONLY : IDTAS,     IDTAHS,        IDTLET  
-      USE TRACERID_MOD, ONLY : IDTSO4aq,  IDTNH4aq,      IDTBCPI 
-      USE TRACERID_MOD, ONLY : IDTOCPI,   IDTBCPO,       IDTOCPO 
-      USE TRACERID_MOD, ONLY : IDTALPH,   IDTLIMO,       IDTALCO 
-      USE TRACERID_MOD, ONLY : IDTSOG1,   IDTSOG2,       IDTSOG3 
-      USE TRACERID_MOD, ONLY : IDTSOG4,   IDTSOA1,       IDTSOA2       
-      USE TRACERID_MOD, ONLY : IDTSOA3,   IDTSOA4,       IDTDST1
-      ! (hotp 5/25/09)
-      USE TRACERID_MOD, ONLY : IDTSOA5,   IDTSOG5
-      USE TRACERID_MOD, ONLY : IDTDST2,   IDTDST3,       IDTDST4
-      USE TRACERID_MOD, ONLY : IDTSALA,   IDTSALC,       Id_Hg2
-      USE TRACERID_MOD, ONLY : ID_HgP,    ID_Hg_tot
-      USE TRACERID_MOD, ONLY : ID_Hg0 !eck added 19jul06
-      USE TRACERID_MOD, ONLY : IDTH2,     IDTHD
-      USE TRACERID_MOD, ONLY : IDTGLYX,   IDTMGLY
-      USE TRACERID_MOD, ONLY : IDTSOAG,   IDTSOAM
-      USE TRACERID_MOD, ONLY : IDTGLYC
-      USE TRACERID_MOD, ONLY : IDTAPAN, IDTENPAN, IDTGLPAN
-      USE TRACERID_MOD, ONLY : IDTGPAN, IDTMPAN, IDTNIPAN
-      !add some species (fp, 6/2009)
-      USE TRACERID_MOD, ONLY : IDTPROPNN
-      USE TRACERID_MOD, ONLY : IDTISOPN    
-      USE TRACERID_MOD, ONLY : IDTMMN
-      USE TRACERID_MOD, ONLY : IDTRIP, IDTIEPOX, IDTPYPAN
-      USE TRACERID_MOD, ONLY : IDTMAP
-
-      USE TRACERID_MOD, ONLY : IDTNK1 ,   IDTNK2 ,       IDTNK3     !(win, 7/14/09)   
-      USE TRACERID_MOD, ONLY : IDTNK4 ,   IDTNK5 ,       IDTNK6        
-      USE TRACERID_MOD, ONLY : IDTNK7 ,   IDTNK8 ,       IDTNK9        
-      USE TRACERID_MOD, ONLY : IDTNK10,   IDTNK11,       IDTNK12       
-      USE TRACERID_MOD, ONLY : IDTNK13,   IDTNK14,       IDTNK15       
-      USE TRACERID_MOD, ONLY : IDTNK16,   IDTNK17,       IDTNK18       
-      USE TRACERID_MOD, ONLY : IDTNK19,   IDTNK20,       IDTNK21       
-      USE TRACERID_MOD, ONLY : IDTNK22,   IDTNK23,       IDTNK24       
-      USE TRACERID_MOD, ONLY : IDTNK25,   IDTNK26,       IDTNK27       
-      USE TRACERID_MOD, ONLY : IDTNK28,   IDTNK29,       IDTNK30
-      USE TRACERID_MOD, ONLY : IDTH2SO4                          !(win, 7/14/09)            
-
-      USE TRACERID_MOD, ONLY : IDTNK1 ,   IDTNK2 ,       IDTNK3     !(win, 7/14/09)   
-      USE TRACERID_MOD, ONLY : IDTNK4 ,   IDTNK5 ,       IDTNK6        
-      USE TRACERID_MOD, ONLY : IDTNK7 ,   IDTNK8 ,       IDTNK9        
-      USE TRACERID_MOD, ONLY : IDTNK10,   IDTNK11,       IDTNK12       
-      USE TRACERID_MOD, ONLY : IDTNK13,   IDTNK14,       IDTNK15       
-      USE TRACERID_MOD, ONLY : IDTNK16,   IDTNK17,       IDTNK18       
-      USE TRACERID_MOD, ONLY : IDTNK19,   IDTNK20,       IDTNK21       
-      USE TRACERID_MOD, ONLY : IDTNK22,   IDTNK23,       IDTNK24       
-      USE TRACERID_MOD, ONLY : IDTNK25,   IDTNK26,       IDTNK27       
-      USE TRACERID_MOD, ONLY : IDTNK28,   IDTNK29,       IDTNK30
-      USE TRACERID_MOD, ONLY : IDTH2SO4                          !(win, 7/14/09)            
-
-      USE CMN_SIZE_MOD       ! Size parameters
-
-      ! Local variables
+! !LOCAL VARIABLES:
+!
       LOGICAL :: IS_Hg
       INTEGER :: AS, N
 
@@ -3532,7 +4146,7 @@
             NTRAIND(NUMDEP) = IDTHNO3
             NDVZIND(NUMDEP) = NUMDEP
             DEPNAME(NUMDEP) = 'HNO3'
-            HST AR(NUMDEP)  = 1.0d+14
+            HSTAR(NUMDEP)   = 1.0d+14
             F0(NUMDEP)      = 0.0d0
             XMW(NUMDEP)     = 63d-3
             AIROSOL(NUMDEP) = .FALSE.
@@ -3548,6 +4162,17 @@
             HSTAR(NUMDEP)   = 1.0d+5
             F0(NUMDEP)      = 1.0d0
             XMW(NUMDEP)     = 34d-3
+            AIROSOL(NUMDEP) = .FALSE.
+
+         ! ACET
+         ELSE IF ( N == IDTACET ) THEN
+            NUMDEP          = NUMDEP + 1
+            NDVZIND(NUMDEP) = NUMDEP
+            NTRAIND(NUMDEP) = IDTACET
+            DEPNAME(NUMDEP) = 'ACET'
+            HSTAR(NUMDEP)   = 1.0d+5
+            F0(NUMDEP)      = 1.0d0
+            XMW(NUMDEP)     = 58d-3
             AIROSOL(NUMDEP) = .FALSE.
 
          ! PMN (uses same dep vel as PAN)
@@ -3613,7 +4238,7 @@
             NDVZIND(NUMDEP) = NUMDEP
             DEPNAME(NUMDEP) = 'CH2O'
             HSTAR(NUMDEP)   = 6.0d+3
-            F0(NUMDEP)      = 0.0d0
+            F0(NUMDEP)      = 1.0d0 !Karl et al. 2010(science)
             XMW(NUMDEP)     = 30d-3
             AIROSOL(NUMDEP) = .FALSE.
 
@@ -3626,7 +4251,7 @@
             NDVZIND(NUMDEP) = NUMDEP
             DEPNAME(NUMDEP) = 'GLYX'
             HSTAR(NUMDEP)   = 3.6d+5
-            F0(NUMDEP)      = 0.0d0
+            F0(NUMDEP)      = 1.0d0 !Karl et al. 2010(science)
             XMW(NUMDEP)     = 58d-3
             AIROSOL(NUMDEP) = .FALSE.
 
@@ -3637,7 +4262,7 @@
             NDVZIND(NUMDEP) = NUMDEP
             DEPNAME(NUMDEP) = 'MGLY'
             HSTAR(NUMDEP)   = 3.7d+3
-            F0(NUMDEP)      = 0.0d0
+            F0(NUMDEP)      = 1.0d0 !Karl et al. 2010(science)
             XMW(NUMDEP)     = 72d-3
             AIROSOL(NUMDEP) = .FALSE.
 
@@ -3648,7 +4273,7 @@
             NDVZIND(NUMDEP) = NUMDEP
             DEPNAME(NUMDEP) = 'GLYC'
             HSTAR(NUMDEP)   = 4.1d+4
-            F0(NUMDEP)      = 0.0d0
+            F0(NUMDEP)      = 1.0d0 !Karl et al. 2010(science)
             XMW(NUMDEP)     = 60d-3
             AIROSOL(NUMDEP) = .FALSE.
 
@@ -3727,7 +4352,87 @@
             HSTAR(NUMDEP)   = 0d0
             F0(NUMDEP)      = 0d0
             XMW(NUMDEP)     = 0d0
-            AIROSOL(NUMDEP) = .FALSE.   
+            AIROSOL(NUMDEP) = .FALSE.
+
+         !--------------------------------------------
+         ! jpp, 2/27/08, adding HOBr and HBr dry dep
+         ! HOBr
+         ELSE IF ( N == IDTHOBR ) THEN
+            NUMDEP          = NUMDEP + 1
+            NTRAIND(NUMDEP) = IDTHOBr
+            NDVZIND(NUMDEP) = NUMDEP
+            DEPNAME(NUMDEP) = 'HOBr'
+            ! from R. Sander's compilation...
+            ! jpp 4/27/09: This adjusted Henry's Law
+            !              coefficient is calculated as the avg
+            !              of the following values (as found in
+            !              R. Sander's document).
+            !  1. Blatchley et al. 1992 (they said > 1.9E3, so I make it 2E3
+            !  2. Frenzel et al. 1996 (this is an estimate, 6.1E3)
+            !  3. Mozurkewich et al. 1995 (thermo calculation, 1.8E0)
+            !
+            ! jpp 1/14/2011: changing Hstar from 2.8d3 to 6.1d3, consistent
+            !                with p-TOMCAT. ref: Freznel et al. 1998
+            HSTAR(NUMDEP)   = 6.1d+3
+            F0(NUMDEP)      = 0.0d0
+            XMW(NUMDEP)     = 97d-3
+            AIROSOL(NUMDEP) = .FALSE.
+
+         ! HBr
+         ELSE IF ( N == IDTHBR ) THEN
+            NUMDEP          = NUMDEP + 1
+            NTRAIND(NUMDEP) = IDTHBr
+            NDVZIND(NUMDEP) = NUMDEP
+            DEPNAME(NUMDEP) = 'HBr'
+            ! R. Sander's compilation sheet...
+            ! Chameides [1992]
+            !HSTAR(NUMDEP)   = 7.2d-1
+            !HSTAR(NUMDEP)   = 7.1d+8
+            !HSTAR(NUMDEP)   = 2.9d+7
+            !
+            ! jpp 4/27/09: This adjusted Henry's Law
+            !           coefficient is calculated as
+            !           the average of the adjusted
+            !           quantities from the following sources
+            !           (all listed in R. Sander's Henry's law document)
+            !   1. Brimblecombe and Clegg 1989
+            !   2. Wagman et al. 1982
+            !   3. Chameides and Stelson 1992
+            !HSTAR(NUMDEP)   = 2.97d+16
+            !
+            ! jpp, 1/14/2011: made Hstar consistent with
+            !                 p-TOMCAT. Ref: Dean 1992.
+            !                 Assuming a pH of 7 for the plant stomata.
+            HSTAR(NUMDEP)   = 7.1d+15
+            F0(NUMDEP)      = 0.0d0
+            XMW(NUMDEP)     = 81d-3
+            AIROSOL(NUMDEP) = .FALSE.
+
+         ! BrNO3
+         ELSE IF ( N == IDTBRNO3 ) THEN
+            NUMDEP          = NUMDEP + 1
+            NTRAIND(NUMDEP) = IDTBrNO3
+            NDVZIND(NUMDEP) = NUMDEP
+            DEPNAME(NUMDEP) = 'BrNO3'
+            ! see R. Sander's compilation...
+            ! infininte Hstar
+            HSTAR(NUMDEP)   = 1.d+20
+            F0(NUMDEP)      = 0.0d0
+            XMW(NUMDEP)     = 142.d-3
+            AIROSOL(NUMDEP) = .FALSE.
+
+         ELSE IF ( N == IDTBR2 ) THEN
+            NUMDEP          = NUMDEP + 1
+            NTRAIND(NUMDEP) = IDTBr2
+            NDVZIND(NUMDEP) = NUMDEP
+            DEPNAME(NUMDEP) = 'Br2'
+            ! taken from Table 2 of Yang et al. 2005, assuming
+            ! that the temperature = 298 K (jpp, 1/13/2011)
+            HSTAR(NUMDEP)   = 0.76d0
+            F0(NUMDEP)      = 0.0d0
+            XMW(NUMDEP)     = 160.d-3
+            AIROSOL(NUMDEP) = .FALSE.
+         !--------------------------------------------
 
          !FP_ISOP
          ! !ISOPN=ISOPNDISOPNB
@@ -3741,7 +4446,7 @@
             F0(NUMDEP)      = 0d0  
             XMW(NUMDEP)     = 147d-3
             AIROSOL(NUMDEP) = .FALSE.
-        
+
             NUMDEP          = NUMDEP + 1
             NTRAIND(NUMDEP) = IDTISOPN
             NDVZIND(NUMDEP) = NUMDEP
@@ -3789,7 +4494,7 @@
             NDVZIND(NUMDEP) = DRYDH2O2 !USE H2O2
             DEPNAME(NUMDEP) = 'RIP'
             HSTAR(NUMDEP)   = 0d0
-            F0(NUMDEP)      = 0d0
+            F0(NUMDEP)      = 1.0d0 !Karl et al. 2010(science)
             XMW(NUMDEP)     = 0d0
             AIROSOL(NUMDEP) = .FALSE.
 
@@ -3800,7 +4505,7 @@
             NDVZIND(NUMDEP) = DRYDH2O2 !USE H2O2
             DEPNAME(NUMDEP) = 'IEPOX'
             HSTAR(NUMDEP)   = 0d0
-            F0(NUMDEP)      = 0d0
+            F0(NUMDEP)      = 1.0d0 !Karl et al. 2010(science)
             XMW(NUMDEP)     = 0d0
             AIROSOL(NUMDEP) = .FALSE.
 
@@ -3814,6 +4519,29 @@
             F0(NUMDEP)      = 1.0d0  !Assume reactive
             XMW(NUMDEP)     = 76d-3
             AIROSOL(NUMDEP) = .FALSE.
+            
+         !MVK
+         ELSE IF ( N == IDTMVK ) THEN
+            NUMDEP          = NUMDEP + 1
+            NTRAIND(NUMDEP) = IDTMVK
+            NDVZIND(NUMDEP) = NUMDEP !USE H2O2
+            DEPNAME(NUMDEP) = 'MVK'
+            HSTAR(NUMDEP)   = 4.4d1 !from R. Sander
+            F0(NUMDEP)      = 1.0d0 !Karl et al. 2010(science)
+            XMW(NUMDEP)     = 70d-3
+            AIROSOL(NUMDEP) = .FALSE.
+
+         !MACR
+         ELSE IF ( N == IDTMACR ) THEN
+            NUMDEP          = NUMDEP + 1
+            NDVZIND(NUMDEP) = NUMDEP
+            NTRAIND(NUMDEP) = IDTMACR
+            DEPNAME(NUMDEP) = 'MACR'
+            HSTAR(NUMDEP)   = 6.5d0 !from R. Sander
+            F0(NUMDEP)      = 1.0d0 !Assume reactive
+            XMW(NUMDEP)     = 70d-3
+            AIROSOL(NUMDEP) = .FALSE.
+
 
          !----------------------------------
          ! Sulfur & Nitrate aerosol tracers
@@ -4275,354 +5003,6 @@
             A_DEN(NUMDEP)   = 2200.d0         
             AIROSOL(NUMDEP) = .TRUE. 
          !----------------------------------
-         ! Sulfuric acid gas tracer   !(win, 7/14/09)
-         !----------------------------------
-         ! H2SO4
-         ELSE IF ( N == IDTH2SO4 ) THEN
-            NUMDEP          = NUMDEP + 1
-            NTRAIND(NUMDEP) = IDTH2SO4
-            NDVZIND(NUMDEP) = NUMDEP
-            DEPNAME(NUMDEP) = 'H2SO4'
-            HSTAR(NUMDEP)   = 1.0d+5
-            F0(NUMDEP)      = 0.0d0
-            XMW(NUMDEP)     = 98d-3
-            AIROSOL(NUMDEP) = .FALSE. 
-                     
-         !----------------------------------
-         ! Aerosol number tracers     !(win, 7/14/09)
-         !----------------------------------
-
-         ! NK1 (aerosol)
-         ELSE IF  ( N == IDTNK1) THEN
-            NUMDEP          = NUMDEP + 1
-            NTRAIND(NUMDEP) = IDTNK1
-            NDVZIND(NUMDEP) = NUMDEP
-            DEPNAME(NUMDEP) = 'NK1'
-            HSTAR(NUMDEP)   = 0.0d0
-            F0(NUMDEP)      = 0.0d0
-            XMW(NUMDEP)     = 1.d0
-            AIROSOL(NUMDEP) = .TRUE. 
-
-         ! NK2 (aerosol)
-         ELSE IF  ( N == IDTNK2) THEN
-            NUMDEP          = NUMDEP + 1
-            NTRAIND(NUMDEP) = IDTNK2
-            NDVZIND(NUMDEP) = NUMDEP
-            DEPNAME(NUMDEP) = 'NK2'
-            HSTAR(NUMDEP)   = 0.0d0
-            F0(NUMDEP)      = 0.0d0
-            XMW(NUMDEP)     = 1.d0
-            AIROSOL(NUMDEP) = .TRUE. 
-
-         ! NK3 (aerosol)
-         ELSE IF  ( N == IDTNK3) THEN
-            NUMDEP          = NUMDEP + 1
-            NTRAIND(NUMDEP) = IDTNK3
-            NDVZIND(NUMDEP) = NUMDEP
-            DEPNAME(NUMDEP) = 'NK3'
-            HSTAR(NUMDEP)   = 0.0d0
-            F0(NUMDEP)      = 0.0d0
-            XMW(NUMDEP)     = 1.d0
-            AIROSOL(NUMDEP) = .TRUE.
-
-         ! NK4 (aerosol)
-         ELSE IF  ( N == IDTNK4) THEN
-            NUMDEP          = NUMDEP + 1
-            NTRAIND(NUMDEP) = IDTNK4
-            NDVZIND(NUMDEP) = NUMDEP
-            DEPNAME(NUMDEP) = 'NK4'
-            HSTAR(NUMDEP)   = 0.0d0
-            F0(NUMDEP)      = 0.0d0
-            XMW(NUMDEP)     = 1.d0
-            AIROSOL(NUMDEP) = .TRUE.
-
-         ! NK5 (aerosol)
-         ELSE IF  ( N == IDTNK5) THEN
-            NUMDEP          = NUMDEP + 1
-            NTRAIND(NUMDEP) = IDTNK5
-            NDVZIND(NUMDEP) = NUMDEP
-            DEPNAME(NUMDEP) = 'NK5'
-            HSTAR(NUMDEP)   = 0.0d0
-            F0(NUMDEP)      = 0.0d0
-            XMW(NUMDEP)     = 1.d0
-            AIROSOL(NUMDEP) = .TRUE.
-
-         ! NK6 (aerosol)
-         ELSE IF  ( N == IDTNK6) THEN
-            NUMDEP          = NUMDEP + 1
-            NTRAIND(NUMDEP) = IDTNK6
-            NDVZIND(NUMDEP) = NUMDEP
-            DEPNAME(NUMDEP) = 'NK6'
-            HSTAR(NUMDEP)   = 0.0d0
-            F0(NUMDEP)      = 0.0d0
-            XMW(NUMDEP)     = 1.d0
-            AIROSOL(NUMDEP) = .TRUE.
-
-         ! NK7 (aerosol)
-         ELSE IF  ( N == IDTNK7) THEN
-            NUMDEP          = NUMDEP + 1
-            NTRAIND(NUMDEP) = IDTNK7
-            NDVZIND(NUMDEP) = NUMDEP
-            DEPNAME(NUMDEP) = 'NK7'
-            HSTAR(NUMDEP)   = 0.0d0
-            F0(NUMDEP)      = 0.0d0
-            XMW(NUMDEP)     = 1.d0
-            AIROSOL(NUMDEP) = .TRUE.
-
-         ! NK8 (aerosol)
-         ELSE IF  ( N == IDTNK8) THEN
-            NUMDEP          = NUMDEP + 1
-            NTRAIND(NUMDEP) = IDTNK8
-            NDVZIND(NUMDEP) = NUMDEP
-            DEPNAME(NUMDEP) = 'NK8'
-            HSTAR(NUMDEP)   = 0.0d0
-            F0(NUMDEP)      = 0.0d0
-            XMW(NUMDEP)     = 1.d0
-            AIROSOL(NUMDEP) = .TRUE.
-
-         ! NK9 (aerosol)
-         ELSE IF  ( N == IDTNK9) THEN
-            NUMDEP          = NUMDEP + 1
-            NTRAIND(NUMDEP) = IDTNK9
-            NDVZIND(NUMDEP) = NUMDEP
-            DEPNAME(NUMDEP) = 'NK9'
-            HSTAR(NUMDEP)   = 0.0d0
-            F0(NUMDEP)      = 0.0d0
-            XMW(NUMDEP)     = 1.d0
-            AIROSOL(NUMDEP) = .TRUE.
-
-         ! NK10 (aerosol)
-         ELSE IF  ( N == IDTNK10) THEN
-            NUMDEP          = NUMDEP + 1
-            NTRAIND(NUMDEP) = IDTNK10
-            NDVZIND(NUMDEP) = NUMDEP
-            DEPNAME(NUMDEP) = 'NK10'
-            HSTAR(NUMDEP)   = 0.0d0
-            F0(NUMDEP)      = 0.0d0
-            XMW(NUMDEP)     = 1.d0
-            AIROSOL(NUMDEP) = .TRUE.
-
-         ! NK11 (aerosol)
-         ELSE IF  ( N == IDTNK11) THEN
-            NUMDEP          = NUMDEP + 1
-            NTRAIND(NUMDEP) = IDTNK11
-            NDVZIND(NUMDEP) = NUMDEP
-            DEPNAME(NUMDEP) = 'NK11'
-            HSTAR(NUMDEP)   = 0.0d0
-            F0(NUMDEP)      = 0.0d0
-            XMW(NUMDEP)     = 1.d0
-            AIROSOL(NUMDEP) = .TRUE. 
-
-         ! NK12 (aerosol)
-         ELSE IF  ( N == IDTNK12) THEN
-            NUMDEP          = NUMDEP + 1
-            NTRAIND(NUMDEP) = IDTNK12
-            NDVZIND(NUMDEP) = NUMDEP
-            DEPNAME(NUMDEP) = 'NK12'
-            HSTAR(NUMDEP)   = 0.0d0
-            F0(NUMDEP)      = 0.0d0
-            XMW(NUMDEP)     = 1.d0
-            AIROSOL(NUMDEP) = .TRUE. 
-
-         ! NK13 (aerosol)
-         ELSE IF  ( N == IDTNK13) THEN
-            NUMDEP          = NUMDEP + 1
-            NTRAIND(NUMDEP) = IDTNK13
-            NDVZIND(NUMDEP) = NUMDEP
-            DEPNAME(NUMDEP) = 'NK13'
-            HSTAR(NUMDEP)   = 0.0d0
-            F0(NUMDEP)      = 0.0d0
-            XMW(NUMDEP)     = 1.d0
-            AIROSOL(NUMDEP) = .TRUE.
-
-         ! NK14 (aerosol)
-         ELSE IF  ( N == IDTNK14) THEN
-            NUMDEP          = NUMDEP + 1
-            NTRAIND(NUMDEP) = IDTNK14
-            NDVZIND(NUMDEP) = NUMDEP
-            DEPNAME(NUMDEP) = 'NK14'
-            HSTAR(NUMDEP)   = 0.0d0
-            F0(NUMDEP)      = 0.0d0
-            XMW(NUMDEP)     = 1.d0
-            AIROSOL(NUMDEP) = .TRUE.
-
-         ! NK15 (aerosol)
-         ELSE IF  ( N == IDTNK15) THEN
-            NUMDEP          = NUMDEP + 1
-            NTRAIND(NUMDEP) = IDTNK15
-            NDVZIND(NUMDEP) = NUMDEP
-            DEPNAME(NUMDEP) = 'NK15'
-            HSTAR(NUMDEP)   = 0.0d0
-            F0(NUMDEP)      = 0.0d0
-            XMW(NUMDEP)     = 1.d0
-            AIROSOL(NUMDEP) = .TRUE.
- 
-         ! NK16 (aerosol)
-         ELSE IF  ( N == IDTNK16) THEN
-            NUMDEP          = NUMDEP + 1
-            NTRAIND(NUMDEP) = IDTNK16
-            NDVZIND(NUMDEP) = NUMDEP
-            DEPNAME(NUMDEP) = 'NK16'
-            HSTAR(NUMDEP)   = 0.0d0
-            F0(NUMDEP)      = 0.0d0
-            XMW(NUMDEP)     = 1.d0
-            AIROSOL(NUMDEP) = .TRUE.
-
-         ! NK17 (aerosol)
-         ELSE IF  ( N == IDTNK17) THEN
-            NUMDEP          = NUMDEP + 1
-            NTRAIND(NUMDEP) = IDTNK17
-            NDVZIND(NUMDEP) = NUMDEP
-            DEPNAME(NUMDEP) = 'NK17'
-            HSTAR(NUMDEP)   = 0.0d0
-            F0(NUMDEP)      = 0.0d0
-            XMW(NUMDEP)     = 1.d0
-            AIROSOL(NUMDEP) = .TRUE.
-
-         ! NK18 (aerosol)
-         ELSE IF  ( N == IDTNK18) THEN
-            NUMDEP          = NUMDEP + 1
-            NTRAIND(NUMDEP) = IDTNK18
-            NDVZIND(NUMDEP) = NUMDEP
-            DEPNAME(NUMDEP) = 'NK18'
-            HSTAR(NUMDEP)   = 0.0d0
-            F0(NUMDEP)      = 0.0d0
-            XMW(NUMDEP)     = 1.d0
-            AIROSOL(NUMDEP) = .TRUE.
-
-         ! NK19 (aerosol)
-         ELSE IF  ( N == IDTNK19) THEN
-            NUMDEP          = NUMDEP + 1
-            NTRAIND(NUMDEP) = IDTNK19
-            NDVZIND(NUMDEP) = NUMDEP
-            DEPNAME(NUMDEP) = 'NK19'
-            HSTAR(NUMDEP)   = 0.0d0
-            F0(NUMDEP)      = 0.0d0
-            XMW(NUMDEP)     = 1.d0
-            AIROSOL(NUMDEP) = .TRUE.
-
-         ! NK20 (aerosol)
-         ELSE IF  ( N == IDTNK20) THEN
-            NUMDEP          = NUMDEP + 1
-            NTRAIND(NUMDEP) = IDTNK20
-            NDVZIND(NUMDEP) = NUMDEP
-            DEPNAME(NUMDEP) = 'NK20'
-            HSTAR(NUMDEP)   = 0.0d0
-            F0(NUMDEP)      = 0.0d0
-            XMW(NUMDEP)     = 1.d0
-            AIROSOL(NUMDEP) = .TRUE.
-
-         ! NK21 (aerosol)
-         ELSE IF  ( N == IDTNK21) THEN
-            NUMDEP          = NUMDEP + 1
-            NTRAIND(NUMDEP) = IDTNK21
-            NDVZIND(NUMDEP) = NUMDEP
-            DEPNAME(NUMDEP) = 'NK21'
-            HSTAR(NUMDEP)   = 0.0d0
-            F0(NUMDEP)      = 0.0d0
-            XMW(NUMDEP)     = 1.d0
-            AIROSOL(NUMDEP) = .TRUE. 
-
-         ! NK22 (aerosol)
-         ELSE IF  ( N == IDTNK22) THEN
-            NUMDEP          = NUMDEP + 1
-            NTRAIND(NUMDEP) = IDTNK22
-            NDVZIND(NUMDEP) = NUMDEP
-            DEPNAME(NUMDEP) = 'NK22'
-            HSTAR(NUMDEP)   = 0.0d0
-            F0(NUMDEP)      = 0.0d0
-            XMW(NUMDEP)     = 1.d0
-            AIROSOL(NUMDEP) = .TRUE. 
-
-         ! NK23 (aerosol)
-         ELSE IF  ( N == IDTNK23) THEN
-            NUMDEP          = NUMDEP + 1
-            NTRAIND(NUMDEP) = IDTNK23
-            NDVZIND(NUMDEP) = NUMDEP
-            DEPNAME(NUMDEP) = 'NK23'
-            HSTAR(NUMDEP)   = 0.0d0
-            F0(NUMDEP)      = 0.0d0
-            XMW(NUMDEP)     = 1.d0
-            AIROSOL(NUMDEP) = .TRUE.
-
-         ! NK24 (aerosol)
-         ELSE IF  ( N == IDTNK24) THEN
-            NUMDEP          = NUMDEP + 1
-            NTRAIND(NUMDEP) = IDTNK24
-            NDVZIND(NUMDEP) = NUMDEP
-            DEPNAME(NUMDEP) = 'NK24'
-            HSTAR(NUMDEP)   = 0.0d0
-            F0(NUMDEP)      = 0.0d0
-            XMW(NUMDEP)     = 1.d0
-            AIROSOL(NUMDEP) = .TRUE.
-
-         ! NK25 (aerosol)
-         ELSE IF  ( N == IDTNK25) THEN
-            NUMDEP          = NUMDEP + 1
-            NTRAIND(NUMDEP) = IDTNK25
-            NDVZIND(NUMDEP) = NUMDEP
-            DEPNAME(NUMDEP) = 'NK25'
-            HSTAR(NUMDEP)   = 0.0d0
-            F0(NUMDEP)      = 0.0d0
-            XMW(NUMDEP)     = 1.d0
-            AIROSOL(NUMDEP) = .TRUE.
-
-         ! NK26 (aerosol)
-         ELSE IF  ( N == IDTNK26) THEN
-            NUMDEP          = NUMDEP + 1
-            NTRAIND(NUMDEP) = IDTNK26
-            NDVZIND(NUMDEP) = NUMDEP
-            DEPNAME(NUMDEP) = 'NK26'
-            HSTAR(NUMDEP)   = 0.0d0
-            F0(NUMDEP)      = 0.0d0
-            XMW(NUMDEP)     = 1.d0
-            AIROSOL(NUMDEP) = .TRUE.
-
-         ! NK27 (aerosol)
-         ELSE IF  ( N == IDTNK27) THEN
-            NUMDEP          = NUMDEP + 1
-            NTRAIND(NUMDEP) = IDTNK27
-            NDVZIND(NUMDEP) = NUMDEP
-            DEPNAME(NUMDEP) = 'NK27'
-            HSTAR(NUMDEP)   = 0.0d0
-            F0(NUMDEP)      = 0.0d0
-            XMW(NUMDEP)     = 1.d0
-            AIROSOL(NUMDEP) = .TRUE.
-
-         ! NK28 (aerosol)
-         ELSE IF  ( N == IDTNK28) THEN
-            NUMDEP          = NUMDEP + 1
-            NTRAIND(NUMDEP) = IDTNK28
-            NDVZIND(NUMDEP) = NUMDEP
-            DEPNAME(NUMDEP) = 'NK28'
-            HSTAR(NUMDEP)   = 0.0d0
-            F0(NUMDEP)      = 0.0d0
-            XMW(NUMDEP)     = 1.d0
-            AIROSOL(NUMDEP) = .TRUE.
-
-         ! NK29 (aerosol)
-         ELSE IF  ( N == IDTNK29) THEN
-            NUMDEP          = NUMDEP + 1
-            NTRAIND(NUMDEP) = IDTNK29
-            NDVZIND(NUMDEP) = NUMDEP
-            DEPNAME(NUMDEP) = 'NK29'
-            HSTAR(NUMDEP)   = 0.0d0
-            F0(NUMDEP)      = 0.0d0
-            XMW(NUMDEP)     = 1.d0
-            AIROSOL(NUMDEP) = .TRUE.
-
-         ! NK30 (aerosol)
-         ELSE IF  ( N == IDTNK30) THEN
-            NUMDEP          = NUMDEP + 1
-            NTRAIND(NUMDEP) = IDTNK30
-            NDVZIND(NUMDEP) = NUMDEP
-            DEPNAME(NUMDEP) = 'NK30'
-            HSTAR(NUMDEP)   = 0.0d0
-            F0(NUMDEP)      = 0.0d0
-            XMW(NUMDEP)     = 1.d0
-            AIROSOL(NUMDEP) = .TRUE.
-            
-         !----------------------------------
 	 ! H2/HD tracers 
          ! (hup, jaegle, phs, 9/17/08)
          !----------------------------------
@@ -4671,7 +5051,9 @@
                NTRAIND(NUMDEP) = ID_Hg2(ID_Hg_tot)
                NDVZIND(NUMDEP) = NUMDEP
                DEPNAME(NUMDEP) = 'Hg2'
-               HSTAR(NUMDEP)   = 1.0d+6
+               HSTAR(NUMDEP)   = 1.0d+14
+               ! Change from 1d6 to 1d14 per HAmos 9/23/11
+               ! implemented 10/19/11 eck
                F0(NUMDEP)      = 0.0d0
                XMW(NUMDEP)     = 201d-3
                AIROSOL(NUMDEP) = .FALSE. 
@@ -4729,20 +5111,32 @@
 
       !=================================================================
       ! Allocate arrays
+      ! add allocation for SALT_V and DMID (jaegle 5/11/11)
       !=================================================================
       ALLOCATE( DEPSAV( IIPAR, JJPAR, NUMDEP ), STAT=AS )
       IF ( AS /= 0 ) CALL ALLOC_ERR( 'DEPSAV' )
       DEPSAV = 0d0
 
+      ALLOCATE( SALT_V( NR_MAX ), STAT=AS )
+      IF ( AS /= 0 ) CALL ALLOC_ERR( 'SALT_V' )
+      SALT_V = 0d0
+
+      ALLOCATE( DMID( NR_MAX ), STAT=AS )
+      IF ( AS /= 0 ) CALL ALLOC_ERR( 'DMID' )
+      DMID = 0d0
+
+
       !=================================================================
       ! Echo information to stdout
       !=================================================================
+      IF ( am_I_Root ) THEN
       WRITE( 6, '(/,a)' ) 'INIT_DRYDEP: List of dry deposition species:'
       WRITE( 6, '(/,a)'   )
      & '  #   Name  Tracer DEPVEL Henry''s    React.   Molec.  Aerosol?'
       WRITE( 6, '(a)'   )
      & '            Number Index  Law Const  Factor   Weight  (T or F)'
       WRITE( 6, '(a)'   ) REPEAT( '-', 65 )
+      ENDIF
 
       DO N = 1, NUMDEP
          WRITE( 6, 100 ) N, TRIM( DEPNAME(N) ), NTRAIND(N), NDVZIND(N), 
@@ -4750,32 +5144,39 @@
       ENDDO
  100  FORMAT( i3, 3x, a4, 2(3x,i3), 4x, es8.1, 2(3x,f6.3), 3x, L3 )
 
-      ! Return to calling program
       END SUBROUTINE INIT_DRYDEP
-
+!EOC
 !------------------------------------------------------------------------------
-      
-      SUBROUTINE CLEANUP_DRYDEP
+!          Harvard University Atmospheric Chemistry Modeling Group            !
+!------------------------------------------------------------------------------
+!BOP
 !
-!******************************************************************************
-!  Subroutine CLEANUP_DRYDEP deallocates all module arrays.
+! !IROUTINE: cleanup_drydep
+!
+! !DESCRIPTION: Subroutine CLEANUP\_DRYDEP deallocates all module arrays.
 !  (bmy, 2/27/03, 2/22/05)
+!\\
+!\\
+! !INTERFACE:
+!   
+      SUBROUTINE CLEANUP_DRYDEP
 ! 
-!  NOTES:
+! !REVISION HISTORY: 
 !  (1 ) Remove reference to PBLFRAC array; it's obsolete (bmy, 2/22/05)
-!******************************************************************************
-!
+!  (2 ) Added SALT_V and DMID (jaegle, 5/11/11)
+!  22 Dec 2011 - M. Payer    - Added ProTeX headers
+!EOP
+!------------------------------------------------------------------------------
+!BOC
       !=================================================================
       ! CLEANUP_DRYDEP begins here!
       !=================================================================
-      IF ( ALLOCATED( DEPSAV  ) ) DEALLOCATE( DEPSAV  )
+      IF ( ALLOCATED( DEPSAV   ) ) DEALLOCATE( DEPSAV   )
+      IF ( ALLOCATED( SALT_V   ) ) DEALLOCATE( SALT_V   )
+      IF ( ALLOCATED( DMID     ) ) DEALLOCATE( DMID     )
 
-      ! Return to calling program
       END SUBROUTINE CLEANUP_DRYDEP
-
-!------------------------------------------------------------------------------
-
-      ! End of module
+!EOC
       END MODULE DRYDEP_MOD
 
       

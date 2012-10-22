@@ -15,7 +15,7 @@
 !
 ! !USES:
 !
-      USE ACETONE_MOD,             ONLY : CLEANUP_ACETONE
+      !USE ACETONE_MOD,             ONLY : CLEANUP_ACETONE
       USE AEROSOL_MOD,             ONLY : CLEANUP_AEROSOL
       USE AIRCRAFT_NOX_MOD,        ONLY : CLEANUP_AIRCRAFT_NOX
       USE ARCTAS_SHIP_EMISS_MOD,   ONLY : CLEANUP_ARCTAS_SHIP
@@ -53,15 +53,17 @@
       USE GLOBAL_NOX_MOD,          ONLY : CLEANUP_GLOBAL_NOX
       USE GLOBAL_O1D_MOD,          ONLY : CLEANUP_GLOBAL_O1D
       USE GLOBAL_OH_MOD,           ONLY : CLEANUP_GLOBAL_OH
+      USE GLOBAL_GRID_MOD,         ONLY : CLEANUP_GLOBAL_GRID
+      USE GRID_MOD,                ONLY : CLEANUP_GRID
       USE H2_HD_MOD,               ONLY : CLEANUP_H2_HD
       USE HCN_CH3CN_MOD,           ONLY : CLEANUP_HCN_CH3CN
       USE HDF_MOD,                 ONLY : CLEANUP_HDF
       USE ISOROPIAII_MOD,          ONLY : CLEANUP_ISOROPIAII
-      USE LAI_MOD,                 ONLY : CLEANUP_LAI
       USE LIGHTNING_NOX_MOD,       ONLY : CLEANUP_LIGHTNING_NOX
       USE LINOZ_MOD,               ONLY : CLEANUP_LINOZ
       USE MEGAN_MOD,               ONLY : CLEANUP_MEGAN
       USE MERCURY_MOD,             ONLY : CLEANUP_MERCURY
+      USE MODIS_LAI_MOD,           ONLY : CLEANUP_MODIS_LAI
       USE OCEAN_MERCURY_MOD,       ONLY : CLEANUP_OCEAN_MERCURY
       USE DEPO_MERCURY_MOD,        ONLY : CLEANUP_DEPO_MERCURY
       USE LAND_MERCURY_MOD,        ONLY : CLEANUP_LAND_MERCURY
@@ -72,20 +74,25 @@
       USE REGRID_1x1_MOD,          ONLY : CLEANUP_REGRID_1x1
       USE SEASALT_MOD,             ONLY : CLEANUP_SEASALT
       USE SULFATE_MOD,             ONLY : CLEANUP_SULFATE
+      USE STRAT_CHEM_MOD,          ONLY : CLEANUP_STRAT_CHEM
       USE TAGGED_CO_MOD,           ONLY : CLEANUP_TAGGED_CO
       USE TOMS_MOD,                ONLY : CLEANUP_TOMS
       USE TPCORE_FVDAS_MOD,        ONLY : EXIT_TPCORE
       USE TPCORE_GEOS5_WINDOW_MOD, ONLY : EXIT_GEOS5_TPCORE_WINDOW
+      USE TPCORE_GEOS57_WINDOW_MOD,ONLY : EXIT_GEOS57_TPCORE_WINDOW !clb
       USE TRACER_MOD,              ONLY : CLEANUP_TRACER
-      USE TRANSPORT_MOD,           ONLY : CLEANUP_TRANSPORT
       USE TROPOPAUSE_MOD,          ONLY : CLEANUP_TROPOPAUSE
       USE UVALBEDO_MOD,            ONLY : CLEANUP_UVALBEDO
       USE VISTAS_ANTHRO_MOD,       ONLY : CLEANUP_VISTAS_ANTHRO
       USE WETSCAV_MOD,             ONLY : CLEANUP_WETSCAV
       USE ICOADS_SHIP_MOD,         ONLY : CLEANUP_ICOADS_SHIP  !(cklee,7/09/09)
       USE RETRO_MOD,               ONLY : CLEANUP_RETRO
+      USE BROMOCARB_MOD,           ONLY : CLEANUP_BROMOCARB    ! jpp, 6/17/09
 #if   defined( APM )
       USE APM_WETS_MOD,            ONLY : CLEANUP_WETSCAVBIN
+#endif
+#if ! defined( ESMF_ )
+      USE TRANSPORT_MOD,           ONLY : CLEANUP_TRANSPORT
 #endif
 
       IMPLICIT NONE
@@ -177,6 +184,12 @@
 !  13 Aug 2010 - R. Yantosca - Added ProTeX headers
 !  22 Aug 2011 - R. Yantosca - Add modifications for APM microphysics (G. Luo)
 !  07 Sep 2011 - P. Kasibhatla - Add modifications for GFED3
+!  19 Mar 2012 - M. Payer    - Remove call to CLEANUP_ACETONE. It is no longer
+!                              needed after removal of JO1D and RESP routines.
+!  05 Apr 2012 - R. Yantosca - Now call CLEANUP_MODIS_LAI
+!  11 Apr 2012 - R. Yantosca - Remove reference to obsolete lai_mod.F
+!  01 May 2012 - M. Payer    - Added calls for CLEANUP_GLOBAL_GRID and
+!                              CLEANUP_GRID
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -189,13 +202,14 @@
  100  FORMAT( '     - CLEANUP: deallocating arrays now...' )
 
       ! Call cleanup routines from individual F90 modules
-      CALL CLEANUP_ACETONE
+      !CALL CLEANUP_ACETONE
       CALL CLEANUP_AEROSOL
       CALL CLEANUP_AIRCRAFT_NOX
       CALL CLEANUP_ARCTAS_SHIP
       CALL CLEANUP_BIOMASS
       CALL CLEANUP_BIOFUEL
       CALL CLEANUP_BRAVO
+      CALL CLEANUP_BROMOCARB  ! jpp, 6/17/09
       CALL CLEANUP_C2H6
       CALL CLEANUP_CAC_ANTHRO
       CALL CLEANUP_CARBON
@@ -227,15 +241,17 @@
       CALL CLEANUP_GLOBAL_NO3
       CALL CLEANUP_GLOBAL_O1D
       CALL CLEANUP_GLOBAL_OH
+      CALL CLEANUP_GLOBAL_GRID
+      CALL CLEANUP_GRID
       CALL CLEANUP_H2_HD
       CALL CLEANUP_HCN_CH3CN
       CALL CLEANUP_HDF
       CALL CLEANUP_ISOROPIAII
-      CALL CLEANUP_LAI
       CALL CLEANUP_LIGHTNING_NOX
       CALL CLEANUP_LINOZ
       CALL CLEANUP_MEGAN
       CALL CLEANUP_MERCURY
+      CALL CLEANUP_MODIS_LAI
       CALL CLEANUP_OCEAN_MERCURY
       CALL CLEANUP_DEPO_MERCURY
       CALL CLEANUP_LAND_MERCURY
@@ -246,8 +262,11 @@
       CALL CLEANUP_REGRID_1x1
       CALL CLEANUP_SEASALT
       CALL CLEANUP_SULFATE
+      CALL CLEANUP_STRAT_CHEM
       CALL CLEANUP_TAGGED_CO
+#if ! defined( ESMF_ )
       CALL CLEANUP_TRANSPORT
+#endif
       CALL CLEANUP_TOMS
       CALL CLEANUP_TRACER
       CALL CLEANUP_TROPOPAUSE
@@ -263,6 +282,9 @@
 
 #if   defined( GEOS_5 ) && defined( GRID05x0666 )
       CALL EXIT_GEOS5_TPCORE_WINDOW 
+#elif defined( GEOS_57) && defined( GRID025x03125)
+      ! clb
+      CALL EXIT_GEOS57_TPCORE_WINDOW
 #else
       CALL EXIT_TPCORE
 #endif

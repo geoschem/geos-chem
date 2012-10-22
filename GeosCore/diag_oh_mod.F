@@ -223,6 +223,7 @@
          WRITE( 6, *       ) 'ND23: Mass-Weighted OH Concentration'
          WRITE( 6, *       ) 'Mean OH = ', OHCONC, ' [1e5 molec/cm3]' 
          WRITE( 6, '(  a)' ) REPEAT( '=', 79 ) 
+
          ! Avoid divide-by-zero errors
          IF ( ITS_A_CH4_SIM() ) THEN
             IF ( SUM_OHLOSS > 0 ) THEN
@@ -269,7 +270,7 @@
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE INIT_DIAG_OH
+      SUBROUTINE INIT_DIAG_OH(am_I_Root)
 !
 ! !USES:
 !
@@ -278,10 +279,15 @@
       USE TRACER_MOD,  ONLY : ITS_A_FULLCHEM_SIM, ITS_A_CH4_SIM
 
       USE CMN_SIZE_MOD    ! Size parameters
+
+! !INPUT VARIABLES:
+
+      LOGICAL, INTENT(IN) :: am_I_Root
+
 ! 
 ! !REVISION HISTORY: 
 !  07 Jul 2004 - R. Yantosca - Initial version
-!  (1 ) Remove references to CO-OH simulation and to F77_CMN_DIAG (bmy, 6/24/05)
+!  (1 ) Remove references to CO-OH simulation and to CMN_DIAG (bmy, 6/24/05)
 !  15 Sep 2010 - R. Yantosca - Added ProTeX headers
 !EOP
 !------------------------------------------------------------------------------
@@ -318,7 +324,7 @@
       ENDIF
 
       ! Echo info
-      WRITE( 6, 100 ) DO_SAVE_OH
+      IF(am_I_Root) WRITE( 6, 100 ) DO_SAVE_OH
  100  FORMAT( /, 'Turn on Mean OH diagnostic (ND23)? :', L5 )
   
       ! Return if we aren't saving mean OH

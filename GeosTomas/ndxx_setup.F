@@ -20,7 +20,7 @@
 !
 ! !USES:
 !
-      !NBIOMAX moved to F77_CMN_SIZE (fp, 6/2009)
+      !NBIOMAX moved to CMN_SIZE_mod (fp, 6/2009)
       !USE BIOMASS_MOD,     ONLY : NBIOMAX
       USE BIOFUEL_MOD,     ONLY : NBFTRACE
       USE DIAG_MOD,        ONLY : AD01,        AD02,        AD05    
@@ -61,7 +61,7 @@
       USE DIAG_MOD,        ONLY : LTLXRO2H,    LTLXRO2N
       USE DIAG_MOD,        ONLY : AD44,        AD45,        LTOTH
       USE DIAG_MOD,        ONLY : CTOTH,       AD46,        AD47
-      USE DIAG_MOD,        ONLY : AD52,        AD54
+      USE DIAG_MOD,        ONLY : AD52,        AD54,        AD63
       USE DIAG_MOD,        ONLY : AD19,        AD58,        AD60
       USE DIAG_MOD,        ONLY : AD59_NUMB,   AD59_SULF,   AD59_SALT    !(win, 7/9/09)
       USE DIAG_MOD,        ONLY : AD59_ECIL,   AD59_ECOB    !(win, 7/9/09)
@@ -72,6 +72,7 @@
       USE DIAG_MOD,        ONLY : AD55,        AD66,        AD67
       USE DIAG_MOD,        ONLY : AD68,        AD69,        CTO3
       USE DIAG_MOD,        ONLY : AD10,        AD10em,      CTO3_24h
+      USE DIAG63_MOD,      ONLY : DO_SAVE_DIAG63
       ! Add O3 for ND45 diag. (ccc, 8/12/09)
       USE DIAG_MOD,        ONLY : LTO3
       USE DIAG_MOD,        ONLY : AD59_NUMB,   AD59_SULF,   AD59_SALT    !(win, 7/9/09)
@@ -1021,10 +1022,6 @@
       !=================================================================
       IF ( ND45 > 0 ) THEN
          LD45 = MIN( ND45,        LLPAR   )
-!------------------------------------------------------------------------------
-! Prior to 2/16/11:
-!         NMAX = MIN( N_TRACERS+1, NNPAR+1 )
-!------------------------------------------------------------------------------
          NMAX = MIN( N_TRC_TOT+1, NNPAR+1 )
 
          ! Accumulating diagnostic array
@@ -1103,6 +1100,9 @@
 
       !=================================================================
       ! ND53: Free diagnostics
+      !=================================================================
+
+      !=================================================================
       !
       ! ND54 - Time spend in the troposphere
       !        --> uses AD54 array (allocatable)
@@ -1258,6 +1258,16 @@
          IF ( AS /= 0 ) CALL ALLOC_ERR( 'AD61' )
          ALLOCATE( AD61_INST( IIPAR, JJPAR, LD61, PD61 ), STAT=AS )
          IF ( AS /= 0 ) CALL ALLOC_ERR( 'AD61_INST' )
+      ENDIF
+
+      !=================================================================
+      ! ND63: FRACTION OF NOx REMAINING AND INTEGRATED OPE
+      !=================================================================
+      IF ( DO_SAVE_DIAG63 ) THEN 
+
+         ALLOCATE( AD63( IIPAR, JJPAR, 5), STAT=AS )
+         IF ( AS /= 0 ) CALL ALLOC_ERR( 'AD63' )
+
       ENDIF
 
       !=================================================================

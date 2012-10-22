@@ -109,9 +109,15 @@
 !  12 Apr 2011 - J. Fisher   - Add missing code from Holmes 2010
 !  27 Sep 2011 - H. Amos     - remove LHg_WETDasHNO3 logical, it's obsolete
 !  25 Oct 2011 - H. Amos     - bring in code for Hg2 gas-particle partitioning
-!  07 Feb 2012 - E. Corbitt - Imported tagged tracers
+!  07 Feb 2012 - E. Corbitt  - Imported tagged tracers
+!  08 Feb 2012 - R. Yantosca - Add modifications for GEOS-5.7.2 data
+!  01 Mar 2012 - R. Yantosca - Now reference new grid_mod.F90
+!  01 Aug 2012 - R. Yantosca - Add reference to findFreeLUN from inqure_mod.F90
+!  03 Aug 2012 - R. Yantosca - Move calls to findFreeLUN out of DEVEL block
 !******************************************************************************
 !
+      USE inquireMod, ONLY : findFreeLUN
+
       IMPLICIT NONE
 #     include "define.h"
 
@@ -309,7 +315,6 @@
 !                         and has been extended to 59 tracers.
 !  09 Mar 2011 - H Amos - clean up comments
 !  25 Oct 2011 - H Amos - brought into v9-01-02
-!  23 Nov 2011 - H Amos - add stratospheric aerosols
 !*****************************************************************************
      
       ! References F90 modules
@@ -318,7 +323,6 @@
       USE BPCH2_MOD    , ONLY : GET_TAU0     , READ_BPCH2
       USE DIRECTORY_MOD, ONLY : DATA_DIR
       USE TRANSFER_MOD , ONLY : TRANSFER_3D  , TRANSFER_3D_TROP
-      USE DIAG03_MOD   , ONLY : AD03_Fg      , AD03_Fp 
       USE DIAG03_MOD   , ONLY : ND03                
       USE TIME_MOD     , ONLY : SET_Hg2_DIAG        
       USE DIRECTORY_MOD, ONLY : DATA_DIR      
@@ -339,7 +343,6 @@
       REAL*4               :: ARRAYbcpo( IGLOB, JGLOB, LGLOB )  ! bcpo
       REAL*4               :: ARRAYocpo( IGLOB, JGLOB, LGLOB )  ! ocpo
       REAL*4               :: ARRAYdst1( IGLOB, JGLOB, LGLOB )  ! dst1
-      REAL*4               :: ARRAY_UTLS(IGLOB, JGLOB, LGLOB )  ! UTLS SO4 
 
       ! Arrays to hold bulk concentration and surface area
       REAL*4               :: ARRAYconc(IGLOB,JGLOB,LGLOB)  ! concentration
@@ -347,7 +350,7 @@
       ! Local variables
       REAL*8               :: XTAU
       INTEGER              :: I, J, L, NN
-      CHARACTER(LEN=155)   :: FILENAME, FILENAME2
+      CHARACTER(LEN=155)   :: FILENAME
       CHARACTER(LEN=2)     :: MON                 ! for months 10-12
       CHARACTER(LEN=1)     :: SMON                ! for months 1-9
       REAL*8, PARAMETER    :: TINY  = 1d-16       ! to prevent NaN
@@ -384,19 +387,6 @@
       WRITE( 6, 110 )  FILENAME 
  110  FORMAT( '     -PARTITION_Hg2: Reading ', a )
 
-
-      ! UT/LS aerosols (WACCM)
-#if defined( GRID4x5 )
-      FILENAME2 = '/home/h/hamos/GC/input_files/aerosols/'//
-     &            'WACCM/WACCM.aerosol.4x5.47L.bpch'
-#elif defined( GRID2x25 )
-      FILENAME2 = '/home/h/hamos/GC/input_files/aerosols/'//
-     &            'WACCM/WACCM.aerosol.2x25.47L.bpch'
-#endif
-
-      ! Echo some information to the standard output
-      WRITE( 6, 100 )  FILENAME2 
- 100  FORMAT( '     -PARTITION_Hg2: Reading ', a )
 
       !------------------------------------------------------!
       ! Put aerosol mixing ratio (mol/mol) into arrays.     
@@ -469,58 +459,6 @@
       ! convert REAL*4 to REAL*8 
       CALL TRANSFER_3D_TROP( ARRAYdst1 , DST_CONC ) 
 
-      !---------------------------
-      ! UT/LS aerosols (mol/mol)
-      !---------------------------
-      
-      ! Get the TAU0 value for the start of the given month
-      ! Assume "generic" year 1985 (TAU0 = [0, 744, ... 8016])
-      XTAU = GET_TAU0( THISMONTH, 1, 2005 ) 
-
-      ! UT/LS sulfate (WACCM simulation)  
-      CALL READ_BPCH2( FILENAME2, 'SULF-MR' ,  1,  
-     &                 XTAU,      IGLOB,     JGLOB,
-     &                 LGLOB,     ARRAY_UTLS, QUIET=.TRUE. )
- 
-      ! convert REAL*4 to REAL*8 
-      CALL TRANSFER_3D_TROP( ARRAY_UTLS , SO4_WAC )
-
-#if defined( GRID2x25 )
-      ! convert mol/mol to ppb
-      ! Note: At 4x5, both GC and WACCM aerosols are read in
-      !       as mol/mol. At 2x2.5, GC aerosols are read in as
-      !       ppb and WACCM aerosols as mol/mol. It's an IDL 
-      !       idiosyncracy. Convert WACCM aerosols to same units
-      !       as GC aerosols. (hma, 20120104)
-      SO4_WAC = 1d9 * SO4_WAC
-#endif
-
-!$OMP PARALLEL DO
-!$OMP+DEFAULT( SHARED )
-!$OMP+PRIVATE( I, J, L )
-
-      ! Below ~10 km, use GEOS-Chem sulfate aerosol
-      ! Above ~10 km, use WACCM sulfate aerosol
-      ! 10km is about level 30 if using 47L reduced grid. 
-      ! (H Amos, 29 Nov 2011)
-
-      !DO L = 1, 30
-      DO J = 1, JJPAR
-      DO I = 1, IIPAR
-
-        DO L = 1, 30
-           SO4_CONC(I,J,L) = SO4_GC(I,J,L)
-        ENDDO
-
-        DO L = 31, 47
-           SO4_CONC(I,J,L) = SO4_WAC(I,J,L)
-        ENDDO
-
-      ENDDO
-      ENDDO 
-
-!$OMP END PARALLEL DO
-
 
 !$OMP PARALLEL DO
 !$OMP+DEFAULT( SHARED )
@@ -584,17 +522,6 @@
             IF (Fg(I,J,L)+Fp(I,J,L) > 1) THEN
                PRINT*, ' Fg + Fp > 1 @ ocean_mercury_mod.f'
                CALL GEOS_CHEM_STOP 
-            ENDIF
-
-            ! write AD03 diagnostics
-            IF ( ND03 > 0 ) THEN
-
-               ! Hg(II) gas fraction
-               AD03_Fg(I,J,L) = AD03_Fg(I,J,L) + Fg(I,J,L)
-
-               ! Hg(II) particle-bound fraction
-               AD03_Fp(I,J,L) = AD03_Fp(I,J,L) + Fp(I,J,L) 
-
             ENDIF
 
       ENDDO
@@ -764,6 +691,10 @@
 !                              or else the PGI compiler will crash
 !  09 Nov 2011 - H. Amos     - Apply Anne's bug fix for the Hg(0) evasion 
 !                              and uptake diagnostics
+!  08 Feb 2012 - R. Yantosca - Now treat GEOS-5.7.2 in the same way as MERRA
+!  01 Mar 2012 - R. Yantosca - Now use GET_AREA_CM2(I,J,L) from grid_mod.F90
+!  01 Mar 2012 - R. Yantosca - Now use GET_XMID(I,J,L) from grid_mod.F90
+!  01 Mar 2012 - R. Yantosca - Now use GET_YMID(I,J,L) from grid_mod.F90
 !******************************************************************************
 !
       ! References to F90 modules
@@ -933,13 +864,13 @@
       DO I = 1, IIPAR
 
          ! Grid box surface area [m2]
-         A_M2 = GET_AREA_M2( J )
+         A_M2 = GET_AREA_M2( I, J, 1 )
 
 !--jaf.start
          ! Use fractional land type information in MERRA (jaf, 4/26/11)
          ! FROCEAN is a constant, so to get correct ocean fraction we
          ! need to subtract the sea ice fraction.
-#if   defined(MERRA)
+#if   defined( MERRA ) || defined( GEOS_57 )
          NPP_tot = NPP_tot+ NPP(I,J) * A_M2 * 
      &             ( FROCEAN(I,J) - FRSEAICE(I,J) )
          A_ocean = A_ocean + A_M2 * 
@@ -955,7 +886,7 @@
       NPP_avg = NPP_tot / A_ocean
 
 
-      ! Loop over latitudes   
+      ! Loop over surface boxes  
 !$OMP PARALLEL DO
 !$OMP+DEFAULT( SHARED )
 !$OMP+PRIVATE( I,   vi,   A_M2,    Hg2_RED  )
@@ -969,14 +900,11 @@
 !$OMP+PRIVATE( Sc,  Usq,  C_tot,   JorgC_kg   )
 !$OMP+PRIVATE( IS_OCEAN_BOX                   )
 !$OMP+SCHEDULE( DYNAMIC )
-
       DO J = 1, JJPAR
+      DO I = 1, IIPAR
 
          ! Grid box surface area [m2]
-         A_M2 = GET_AREA_M2( J )
-
-      ! Loop over longitudes
-      DO I = 1, IIPAR
+         A_M2       = GET_AREA_M2( I, J, 1 )
 
          ! Initialize values
          Kw         = 0d0
@@ -1019,7 +947,7 @@
          ! FROCEAN is a constant, so to get correct ocean fraction we
          ! need to subtract the sea ice fraction. Don't let the fraction
          ! be less than zero (jaf, 4/26/11)
-#if   defined(MERRA)
+#if   defined( MERRA ) || defined( GEOS_57 )
          FRAC_L     = FRLAND(I,J)
          FRAC_O     = MAX(FROCEAN(I,J) - FRSEAICE(I,J), 0d0)
          IS_OCEAN_BOX = ((FRAC_O > 0d0) .and. (SEAICE00(I,J) > 0.5d0))
@@ -1248,10 +1176,10 @@
             DO C = 1, N_tot_oc
 
                ! Grid-box latitude [degrees]
-               Y = GET_YMID( J )
+               Y = GET_YMID( I, J, 1 )
          
                ! Grid box longitude [degrees]
-               X = GET_XMID( I )
+               X = GET_XMID( I, J, 1 )
 
                ! Get Hg category #
                IF ( C == 1 ) NN = ID_Hg_tot
@@ -2129,6 +2057,10 @@
 !
 !  NOTES:
 !  (1 ) Now use MERRA land fraction information (jaf, 4/26/11)
+!   8 Feb 2012 - R. Yantosca - Treat GEOS-5.7.2 in the same way as MERRA
+!  01 Mar 2012 - R. Yantosca - Now use GET_AREA_CM2(I,J,L) from grid_mod.F90
+!  01 Mar 2012 - R. Yantosca - Now use GET_XMID(I,J,L) from grid_mod.F90
+!  01 Mar 2012 - R. Yantosca - Now use GET_YMID(I,J,L) from grid_mod.F90
 !******************************************************************************
 !
       ! Reference to fortran90 modules
@@ -2169,13 +2101,13 @@
       ENDIF
 
       ! Grid box surface area [m2]
-      A_M2   = GET_AREA_M2( J )
+      A_M2   = GET_AREA_M2( I, J, 1 )
 
       ! Fraction of box that is ocean
       ! Use fractional land type information in MERRA (jaf, 4/26/11)
       ! FROCEAN is a constant, so to get correct ocean fraction we
       ! need to subtract the sea ice fraction.
-#if   defined(MERRA)
+#if   defined( MERRA ) || defined( GEOS_57 )
       FRAC_O     = MAX(FROCEAN(I,J) - FRSEAICE(I,J), 0d0)
 #else
       FRAC_O = 1d0 - FRCLND(I,J)
@@ -2202,10 +2134,10 @@
          ! Add Cdeepatl to North Atlantic and Cdeep to rest if the world (anls, 01/05/09)
 
          ! Grid-box latitude [degrees]
-         Y = GET_YMID( J )
+         Y = GET_YMID( I, J, 1 )
          
          ! Grid box longitude [degrees]
-         X = GET_XMID( I )
+         X = GET_XMID( I, J, 1 )
 
          ! Loop over total Hg (and ocean Hg if necessary)
          DO C = 1, N_tot_oc
@@ -2438,6 +2370,8 @@
 !  (2 ) HHMMSS   :  and Hour-Min-Sec for which to read restart file
 ! 
 !  NOTES:
+!  01 Aug 2012 - R. Yantosca - Add reference to findFreeLUN from inqure_mod.F90
+!  07 Aug 2012 - R. Yantosca - Now print LUN used to open file
 !******************************************************************************
 !
       ! References to F90 modules
@@ -2445,7 +2379,7 @@
       USE DEPO_MERCURY_MOD, ONLY : SNOW_HG, CHECK_DIMENSIONS
       USE DIRECTORY_MOD,    ONLY : RUN_DIR
       USE ERROR_MOD,        ONLY : DEBUG_MSG
-      USE FILE_MOD,         ONLY : IU_FILE,     IOERROR
+      USE FILE_MOD,         ONLY : IOERROR
       USE LOGICAL_MOD,      ONLY : LSPLIT,      LPRT
       USE TIME_MOD,         ONLY : EXPAND_DATE
       USE TRACER_MOD,       ONLY : STT,         TRACER_NAME, TRACER_MW_G
@@ -2456,29 +2390,30 @@
       USE TRACERID_MOD,     ONLY : GET_HgP_CAT !eds 10/18/10
       !-----------------------------------------------------------------------
 
-      USE CMN_SIZE_MOD     ! Size parameters
+      USE CMN_SIZE_MOD           ! Size parameters
 
       ! Arguments
-      INTEGER, INTENT(IN)   :: YYYYMMDD, HHMMSS
+      INTEGER, INTENT(IN) :: YYYYMMDD, HHMMSS
 
       ! Local Variables
-      INTEGER               :: I, IOS, J, L, NN, N_oc
-      INTEGER               :: YEAR, MONTH, DAY
-      INTEGER               :: NCOUNT(NNPAR) 
-      REAL*4                :: Hg_OCEAN(IIPAR,JJPAR,1)
-      CHARACTER(LEN=255)    :: FILENAME
+      INTEGER             :: IU_FILE
+      INTEGER             :: I, IOS, J, L, NN, N_oc
+      INTEGER             :: YEAR, MONTH, DAY
+      INTEGER             :: NCOUNT(NNPAR) 
+      REAL*4              :: Hg_OCEAN(IIPAR,JJPAR,1)
+      CHARACTER(LEN=255)  :: FILENAME
 
       ! For binary punch file, version 2.0
-      INTEGER               :: NI,        NJ,      NL
-      INTEGER               :: IFIRST,    JFIRST,  LFIRST
-      INTEGER               :: NTRACER,   NSKIP
-      INTEGER               :: HALFPOLAR, CENTER180
-      REAL*4                :: LONRES,    LATRES
-      REAL*8                :: ZTAU0,     ZTAU1
-      CHARACTER(LEN=20)     :: MODELNAME
-      CHARACTER(LEN=40)     :: CATEGORY
-      CHARACTER(LEN=40)     :: UNIT     
-      CHARACTER(LEN=40)     :: RESERVED
+      INTEGER             :: NI,        NJ,      NL
+      INTEGER             :: IFIRST,    JFIRST,  LFIRST
+      INTEGER             :: NTRACER,   NSKIP
+      INTEGER             :: HALFPOLAR, CENTER180
+      REAL*4              :: LONRES,    LATRES
+      REAL*8              :: ZTAU0,     ZTAU1
+      CHARACTER(LEN=20)   :: MODELNAME
+      CHARACTER(LEN=40)   :: CATEGORY
+      CHARACTER(LEN=40)   :: UNIT     
+      CHARACTER(LEN=40)   :: RESERVED
 
       !=================================================================
       ! READ_OCEAN_Hg_RESTART begins here!
@@ -2487,6 +2422,9 @@
       ! Initialize some variables
       NCOUNT(:)       = 0
       Hg_OCEAN(:,:,:) = 0e0
+
+      ! Find a free file LUN
+      IU_FILE         = findFreeLUN()
 
       ! Copy input file name to a local variable
       FILENAME        = TRIM( RUN_DIR ) // TRIM( Hg_RST_FILE )
@@ -2497,9 +2435,9 @@
       ! Echo some input to the screen
       WRITE( 6, '(a)' ) REPEAT( '=', 79 )
       WRITE( 6, 100   ) 
-      WRITE( 6, 110   ) TRIM( FILENAME )
+      WRITE( 6, 110   ) TRIM( FILENAME ), IU_FILE
  100  FORMAT( 'O C E A N   H g   R E S T A R T   F I L E   I N P U T' )
- 110  FORMAT( /, 'READ_OCEAN_Hg_RESTART: Reading ', a )
+ 110  FORMAT( /, 'READ_OCEAN_Hg_RESTART: Reading ', a, ' on unit ', i4 )
 
       ! Open the binary punch file for input
       CALL OPEN_BPCH2_FOR_READ( IU_FILE, FILENAME )
@@ -2710,7 +2648,7 @@
       ! References to F90 modules
       USE ERROR_MOD, ONLY : GEOS_CHEM_STOP
 
-      USE CMN_SIZE_MOD  ! Size parameters
+      USE CMN_SIZE_MOD    ! Size parameters
 
       ! Arguments
       INTEGER, INTENT(IN) :: N_TRACERS, NCOUNT(NNPAR)
@@ -2765,13 +2703,13 @@
 !  (3 ) TAU      : GEOS-CHEM TAU value corresponding to YYYYMMDD, HHMMSS
 !  
 !  NOTES:
+!  01 Aug 2012 - R. Yantosca - Add reference to findFreeLUN from inqure_mod.F90
 !******************************************************************************
 !
       ! References to F90 modules
       USE BPCH2_MOD
       USE DEPO_MERCURY_MOD, ONLY : SNOW_HG
       USE DIRECTORY_MOD,    ONLY : RUN_DIR
-      USE FILE_MOD,         ONLY : IU_FILE
       USE GRID_MOD,         ONLY : GET_XOFFSET, GET_YOFFSET
       USE LOGICAL_MOD,      ONLY : LSPLIT
       USE TIME_MOD,         ONLY : EXPAND_DATE, GET_TAU
@@ -2779,20 +2717,21 @@
       USE TRACERID_MOD,     ONLY : ID_Hg2,      N_Hg_CATS
       USE TRACERID_MOD,     ONLY : ID_HgP !eds 9/9/10 
 
-      USE CMN_SIZE_MOD     ! Size parameters
+      USE CMN_SIZE_MOD           ! Size parameters
 
       ! Arguments           
-      INTEGER, INTENT(IN)   :: NYMD, NHMS
-      REAL*8,  INTENT(IN)   :: TAU
+      INTEGER, INTENT(IN) :: NYMD, NHMS
+      REAL*8,  INTENT(IN) :: TAU
 
       ! Local variables
-      INTEGER               :: HALFPOLAR, CENTER180
-      INTEGER               :: IFIRST,    JFIRST,   LFIRST
-      INTEGER               :: N,         NN
-      REAL*4                :: LONRES,    LATRES,   ARRAY(IIPAR,JJPAR,1)
-      CHARACTER(LEN=20)     :: MODELNAME
-      CHARACTER(LEN=40)     :: CATEGORY,  UNIT,     RESERVED
-      CHARACTER(LEN=255)    :: FILENAME
+      INTEGER             :: IU_FILE
+      INTEGER             :: HALFPOLAR, CENTER180
+      INTEGER             :: IFIRST,    JFIRST,   LFIRST
+      INTEGER             :: N,         NN
+      REAL*4              :: LONRES,    LATRES,   ARRAY(IIPAR,JJPAR,1)
+      CHARACTER(LEN=20)   :: MODELNAME
+      CHARACTER(LEN=40)   :: CATEGORY,  UNIT,     RESERVED
+      CHARACTER(LEN=255)  :: FILENAME
 
       !=================================================================
       ! MAKE_OCEAN_Hg_RESTART begins here!
@@ -2811,13 +2750,16 @@
       RESERVED  = ''
       UNIT      = 'kg'
 
+      ! Find a free file LUN
+      IU_FILE   = findFreeLUN()
+
       ! Expand date in filename
       FILENAME  = TRIM( RUN_DIR ) // Hg_RST_FILE
       CALL EXPAND_DATE( FILENAME, NYMD, NHMS )
 
       ! Echo info
-      WRITE( 6, 100 ) TRIM( FILENAME )
- 100  FORMAT( '     - MAKE_RESTART_FILE: Writing ', a )
+      WRITE( 6, 100 ) TRIM( FILENAME ), IU_FILE
+ 100  FORMAT( '     - MAKE_RESTART_FILE: Writing ', a, ' on unit ', i6 )
 
       ! Open BPCH file for output
       CALL OPEN_BPCH2_FOR_WRITE( IU_FILE, FILENAME )
@@ -3601,10 +3543,6 @@
       IF ( AS /= 0 ) CALL ALLOC_ERR( 'R' )
       R = 0d0 
 
-      ALLOCATE( SO4_WAC( IIPAR, JJPAR, LLPAR ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'SO4_WAC' )
-      SO4_WAC = 0d0 
-
       ALLOCATE( SO4_CONC( IIPAR, JJPAR, LLPAR ), STAT=AS )
       IF ( AS /= 0 ) CALL ALLOC_ERR( 'SO4_CONC' )
       SO4_CONC = 0d0 
@@ -3655,7 +3593,6 @@
       IF ( ALLOCATED( BC_CONC   ) ) DEALLOCATE( BC_CONC   )
       IF ( ALLOCATED( DST_CONC  ) ) DEALLOCATE( DST_CONC  )
       IF ( ALLOCATED( R         ) ) DEALLOCATE( R         )
-      IF ( ALLOCATED( SO4_WAC   ) ) DEALLOCATE( SO4_WAC   )
       IF ( ALLOCATED( SO4_CONC  ) ) DEALLOCATE( SO4_CONC  )
 
       ! Return to calling program

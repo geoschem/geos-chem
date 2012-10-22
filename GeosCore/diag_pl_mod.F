@@ -61,6 +61,7 @@
 !  (8 ) Now make COUNT a 3-D array (phs, 11/18/08)
 !  (9 ) Minor fix in DIAG20 (dbj, bmy, 10/26/09)
 !  16 Sep 2010 - R. Yantosca - Added ProTeX headers
+!  06 Aug 2012 - R. Yantosca - Make IU_ND20 a local module variable
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -69,6 +70,7 @@
 !
       ! Scalars
       LOGICAL                        :: DO_SAVE_O3
+      INTEGER                        :: IU_ND20
       INTEGER                        :: NFAM
       INTEGER                        :: YYYYMMDD
       REAL*8                         :: TAUb, TAUe, TAU0, TAU1
@@ -97,18 +99,19 @@
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE SETJFAM( NACTIVE, NINAC )
+      SUBROUTINE SETJFAM( NACTIVE, NINAC, am_I_Root )
 !
 ! !USES:
 !
-      USE CMN_SIZE_MOD     ! Size parameters
-      USE COMODE_LOOP_MOD     ! SMVGEAR II arrays
+      USE CMN_SIZE_MOD                      ! Size parameters
+      USE COMODE_LOOP_MOD                   ! SMVGEAR II arrays
 
 !
 ! !INPUT/OUTPUT PARAMETERS: 
 ! 
-      INTEGER, INTENT(INOUT) :: NACTIVE   ! # of active chemical species
-      INTEGER, INTENT(INOUT) :: NINAC     ! # of inactive chemical species
+      INTEGER, INTENT(INOUT) :: NACTIVE     ! # of active chemical species
+      INTEGER, INTENT(INOUT) :: NINAC       ! # of inactive chemical species
+      LOGICAL, INTENT(IN)    :: am_I_Root   ! Is this the root CPU?
 !
 ! !REMARKS:
 !  At present, the ND65 diagnostic works only with SMVGEAR and not with
@@ -125,7 +128,9 @@
 !        first ND65 family.  Set NCS = NCSURBAN, since we have defined our 
 !        GEOS-CHEM mechanism in the urban slot of SMVGEAR II.(bmy, 4/21/03)
 !  (2 ) Bundled into "diag65_mod.f" (bmy, 7/20/04)
-!  15 Sep 2010 - R. Yantosca - Added ProTeX headers 
+!  15 Sep 2010 - R. Yantosca - Added ProTeX headers
+!  30 Jul 2012 - R. Yantosca - Now accept am_I_Root as an argument, even when
+!                              called from the traditional driver main.F
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -168,10 +173,12 @@
       !=================================================================
       ! Write out family names to "smv2.log" file
       !=================================================================
+      IF ( am_I_Root ) THEN
       WRITE( IO93, '(/,a)'      ) REPEAT( '=', 79 )
       WRITE( IO93, '(a)'        ) 'Families for prod or loss output:'
       WRITE( IO93, '(a,/)'      ) REPEAT( '=', 79 )
       WRITE( IO93, '(10(a7,1x))' ) ( TRIM( NAMEGAS(J) ), J=JGAS0,JGAS )
+      ENDIF
 
       END SUBROUTINE SETJFAM
 !EOC
@@ -189,7 +196,7 @@
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE SETPL
+      SUBROUTINE SETPL( am_I_Root )
 !
 ! !USES:
 !
@@ -199,6 +206,10 @@
 
       USE CMN_SIZE_MOD
       USE COMODE_LOOP_MOD
+!
+! !INPUT VARIABLES:
+!
+      LOGICAL, INTENT(IN) :: am_I_Root   ! Is this the root CPU?
 ! 
 ! !REMARKS:
 !  At present, the ND65 diagnostic works only with SMVGEAR and not with
@@ -214,6 +225,8 @@
 !        have defined our GEOS-CHEM mechanism in the urban slot of SMVGEAR II
 !        Updated comments.  (bmy, 5/1/03)
 !  15 Sep 2010 - R. Yantosca - Added ProTeX headers 
+!  30 Jul 2012 - R. Yantosca - Now accept am_I_Root as an argument, even when
+!                              called from the traditional driver main.F
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -287,11 +300,13 @@
          IF ( PORL(F) == 'LOSS' ) PORL(F) = 'loss'
 
          ! Write to "smv2.log"
-         WRITE( IO93, 104 ) F, FAM_NAME(F), PORL(F), FAM_NMEM(F) 
+	 IF ( am_I_Root ) THEN
+            WRITE( IO93, 104 ) F, FAM_NAME(F), PORL(F), FAM_NMEM(F) 
+         ENDIF
  104     FORMAT(/, 'Family ', i2, ' is ' ,a5, ' ', a4,
      &             ' with ',  i2, ' members' )
 
-         WRITE( IO93, 105 ) 
+         IF ( am_I_Root ) WRITE( IO93, 105 )
  105     FORMAT( 'ind', 2x, 'species', 1x, 'jnum', 2x, 'coef' )
 
          !------------------
@@ -308,8 +323,10 @@
             ENDDO
 
             ! Write to "smv2.log"
-            WRITE( IO93, '(i2,3x,a5,2x,i3,2x,f5.1 )') 
-     &           F, FAM_MEMB(M,F), IFAMMEM(M,F), COEFMEM(M,F)
+            IF ( am_I_Root ) THEN
+               WRITE( IO93, '(i2,3x,a5,2x,i3,2x,f5.1 )') 
+     &            F, FAM_MEMB(M,F), IFAMMEM(M,F), COEFMEM(M,F)
+            ENDIF
          ENDDO
       ENDDO
 
@@ -467,15 +484,19 @@
       !=================================================================
       ! Write out prod or loss reactions to "smv2.log"
       !=================================================================
-      WRITE( IO93, '(/,a)' ) REPEAT( '=', 79 )
-      WRITE( IO93, '(a)'   ) 'Here are the prod and loss reactions'
-      WRITE( IO93, '(a)'   ) REPEAT( '=', 79 )
+      IF ( am_I_Root ) THEN
+         WRITE( IO93, '(/,a)' ) REPEAT( '=', 79 )
+         WRITE( IO93, '(a)'   ) 'Here are the prod and loss reactions'
+         WRITE( IO93, '(a)'   ) REPEAT( '=', 79 )
+      ENDIF
 
       ! Loop over P/L diagnostic families
       DO N = 1, NFAMILIES
 
          ! Write family header
-         WRITE( IO93, 587 ) NAMEGAS(IFAM(N)), PORL(N), NNPL(N)
+         IF ( am_I_Root ) THEN
+            WRITE( IO93, 587 ) NAMEGAS(IFAM(N)), PORL(N), NNPL(N)
+         ENDIF
  587     FORMAT( /, 'Family ',a5,' ',a4,' -- no of rxns is  ',i3, 5x,
      &           'coefficient')
 
@@ -504,10 +525,11 @@
                !----------------------
                ! Write kinetic rxns
                !----------------------
-               WRITE(IO93,588) I, NK, NAMEGAS(IREAC1),
-     &              NAMEGAS(IREAC2),  NAMEGAS(IPROD1),
-     &              NAMEGAS(IPROD2),  EXTRACHAR, COEFPL(I,N)
-
+               IF (am_I_Root ) THEN
+                  WRITE(IO93,588) I, NK, NAMEGAS(IREAC1),
+     &               NAMEGAS(IREAC2),  NAMEGAS(IPROD1),
+     &               NAMEGAS(IPROD2),  EXTRACHAR, COEFPL(I,N)
+               ENDIF
  588           FORMAT(I3,1X,I3,1X,A5,' + ',A5,' = ',A5,' + ',A5,
      &                A5,1X,ES13.6)
 
@@ -516,10 +538,11 @@
                !----------------------
                ! Write photo rxns
                !----------------------
-               WRITE(IO93,589) I, NK, NAMEGAS(IREAC1),
-     &              NAMEGAS(IPROD1),  NAMEGAS(IPROD2), 
-     &              EXTRACHAR,        COEFPL(I,N)
-
+               IF ( am_I_Root ) THEN
+                  WRITE(IO93,589) I, NK, NAMEGAS(IREAC1),
+     &               NAMEGAS(IPROD1),  NAMEGAS(IPROD2), 
+     &               EXTRACHAR,        COEFPL(I,N)
+               ENDIF
  589           FORMAT(I3,1X,I3,1X,A5,' +  hv   = ',A5,' + ',A5,
      &                A5,1X,1P1E13.6)
 
@@ -553,22 +576,27 @@
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE DO_DIAG_PL 
+      SUBROUTINE DO_DIAG_PL( am_I_Root ) 
 !
 ! !USES:
 !
       USE COMODE_MOD, ONLY : CSPEC, JLOP
-
-      USE CMN_SIZE_MOD  ! Size parameters
-      USE COMODE_LOOP_MOD  ! SMVGEAR II arrays
-      USE CMN_DIAG_MOD  ! LD65
+      USE CMN_SIZE_MOD                      ! Size parameters
+      USE COMODE_LOOP_MOD                   ! SMVGEAR II arrays
+      USE CMN_DIAG_MOD                      ! LD65
+!
+! !INPUT PARAMETERS:
+!
+      LOGICAL, INTENT(IN) :: am_I_Root      ! Is this the root CPU?
 ! 
 ! !REVISION HISTORY:
 !  16 Mar 2000 - I. Bey      - Initial version
 !  (1 ) Now bundled into "prod_loss_diag_mod.f" (bmy, 7/20/04)
 !  (2 ) Now only loop up thru LD65 levels (bmy, 12/4/07)
 !  (3 ) Set FAM_PL to zero in the stratosphere (phs, 11/17/08)
-!  15 Sep 2010 - R. Yantosca - Added ProTeX headers 
+!  15 Sep 2010 - R. Yantosca - Added ProTeX headers
+!  30 Jul 2012 - R. Yantosca - Now accept am_I_Root as an argument when
+!                              running with the traditional driver main.F
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -634,7 +662,7 @@
       ! from the fullchem simulation for a future tagged Ox run
       !=================================================================
 
-      IF ( DO_SAVE_O3 ) CALL DIAG20
+      IF ( DO_SAVE_O3 ) CALL DIAG20( am_I_Root )
 
       END SUBROUTINE DO_DIAG_PL
 !EOC
@@ -654,7 +682,7 @@
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE DIAG20
+      SUBROUTINE DIAG20( am_I_Root )
 !
 ! !USES:
 !
@@ -666,9 +694,12 @@
       USE TIME_MOD,      ONLY : ITS_A_NEW_DAY, TIMESTAMP_STRING
       USE TRACER_MOD,    ONLY : STT,           XNUMOL
       USE TRACERID_MOD,  ONLY : IDTOX
-
-      USE CMN_SIZE_MOD      ! Size parameters
-      USE CMN_DIAG_MOD      ! LD65
+      USE CMN_SIZE_MOD                      ! Size parameters
+      USE CMN_DIAG_MOD                      ! LD65
+!
+! !INPUT PARAMETERS:
+!
+      LOGICAL, INTENT(IN) :: am_I_Root      ! Is this the root CPU?
 ! 
 ! !REMARKS:
 !  DIAG20 assumes that ND65 (P-L diagnostics) have been turned on.
@@ -689,6 +720,8 @@
 !        regimes (phs, 11/17/08)
 !  (8 ) Bug fix: Now just zero arrays w/o loop indices (dbj, bmy, 10/26/09)
 !  15 Sep 2010 - R. Yantosca - Added ProTeX headers 
+!  30 Jul 2012 - R. Yantosca - Now accept am_I_Root as an argument when
+!                              running with the traditional driver main.F
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -730,7 +763,7 @@
 
       ! Echo info
       STAMP = TIMESTAMP_STRING()
-      WRITE( 6, 120 ) STAMP
+      IF ( am_I_Root ) WRITE( 6, 120 ) STAMP
  120  FORMAT( '     - DIAG20: Archiving P(Ox) & L(Ox) at ', a )
 
 
@@ -815,7 +848,7 @@
          FILENAME = TRIM( O3PL_DIR ) // FILENAME
 
          ! Echo info
-         WRITE( 6, 110 ) TRIM( FILENAME )
+         IF ( am_I_Root ) WRITE( 6, 110 ) TRIM( FILENAME )
  110     FORMAT( '     - DIAG20: Writing ', a )
 
          ! Write P(Ox) and L(Ox) to disk
@@ -850,11 +883,11 @@
 !
       USE BPCH2_MOD,  ONLY : BPCH2,         GET_HALFPOLAR
       USE BPCH2_MOD,  ONLY : GET_MODELNAME, OPEN_BPCH2_FOR_WRITE
-      USE FILE_MOD,   ONLY : IU_ND20
       USE GRID_MOD,   ONLY : GET_XOFFSET,   GET_YOFFSET
+      USE inquireMod, ONLY : findFreeLUN
 
-      USE CMN_SIZE_MOD   ! Size parameters
-      USE CMN_DIAG_MOD   ! LD65
+      USE CMN_SIZE_MOD     ! Size parameters
+      USE CMN_DIAG_MOD     ! LD65
 ! 
 ! !REVISION HISTORY:
 !  09 Jun 1999 - I. Bey      - Initial version
@@ -864,6 +897,7 @@
 !  (3 ) Now make sure all USE statements are USE, ONLY (bmy, 10/3/05)
 !  (4 ) Now only write up to LD65 levels (phs, bmy, 12/4/07)
 !  15 Sep 2010 - R. Yantosca - Added ProTeX headers 
+!  03 Aug 2012 - R. Yantosca - Move calls to findFreeLUN out of DEVEL block
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -885,6 +919,9 @@
       !=================================================================
       ! WRITE20 begins here!
       !=================================================================
+
+      ! Find a free file LUN
+      IU_ND20   = findFreeLUN()
 
       ! Define various parameters for the BPCH file
       TITLE     = 'GEOS-CHEM archived P(O3) and L(O3) rates for Tag Ox'
@@ -1018,11 +1055,6 @@
 
       ! If the next chemistry timestep is the hour of day
       ! when we have to save to disk, return TRUE
-!-----------------------------------------------------------------------
-! Prior to 9/27/11:
-! Fix for centralizing the chemistry time step (lzh, mpayer, 9/27/11)
-!      IF ( MOD( HOUR + CHEM, 24d0 ) == 0 ) THEN
-!-----------------------------------------------------------------------
       IF ( HOUR + CHEM >= 24d0 ) THEN
          ITS_TIME = .TRUE.
          TAU_W    = TAU + CHEM
@@ -1232,9 +1264,9 @@
       USE ERROR_MOD,  ONLY : ALLOC_ERR
       USE TRACER_MOD, ONLY : ITS_A_FULLCHEM_SIM
 
-      USE CMN_SIZE_MOD   ! Size parameters
+      USE CMN_SIZE_MOD      ! Size parameters
       USE COMODE_LOOP_MOD   ! LFAMILY, NFAMILIES
-      USE CMN_DIAG_MOD   ! ND65,    LD65
+      USE CMN_DIAG_MOD      ! ND65,    LD65
 !
 ! !INPUT PARAMETERS: 
 !

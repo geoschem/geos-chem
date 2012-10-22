@@ -35,6 +35,7 @@
 !  18 Sep 2007 - L. Jaegle, H. U. Price, P. Le Sager -- Initial version
 !  02 Dec 2010 - R. Yantosca - Added ProTeX headers
 !  07 Sep 2011 - P. Kasibhatla - Modified to include GFED3 (psk, 1/5/11)
+!  01 Mar 2012 - R. Yantosca - Now reference new grid_mod.F90
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -109,33 +110,43 @@
 !\\
 ! !INTERFACE:
 !
+#if defined( DEVEL )
+      SUBROUTINE EMISS_H2_HD( BIO_EMISS )
+#else
       SUBROUTINE EMISS_H2_HD
+#endif
 !
 ! !USES:
 !
-      USE BIOFUEL_MOD,   ONLY : BIOFUEL,     BIOFUEL_BURN
-      ! IDBCO moved to tracerid_mod by FP (hotp 7/31/09)
-      USE BIOMASS_MOD,   ONLY : BIOMASS!,     IDBCO
-      USE DAO_MOD,       ONLY : SUNCOS,      BXHEIGHT
-      USE DIAG_MOD,      ONLY : AD29,        AD46,          AD10em
-      USE GEIA_MOD,      ONLY : GET_IHOUR,   GET_DAY_INDEX, READ_GEIA
-      USE GEIA_MOD,      ONLY : READ_LIQCO2, READ_TOTCO2,   READ_TODX
-      USE GRID_MOD,      ONLY : GET_XOFFSET, GET_YOFFSET,   GET_AREA_CM2
-      USE LOGICAL_MOD,      ONLY : LANTHRO,     LGFED2BB, LGFED3BB
+      USE BIOFUEL_MOD,      ONLY : BIOFUEL,     BIOFUEL_BURN
+      USE BIOMASS_MOD,      ONLY : BIOMASS
+      USE DAO_MOD,          ONLY : SUNCOS,      BXHEIGHT
+      USE DAO_MOD,          ONLY : PARDF,       PARDR
+      USE DAO_MOD,          ONLY : SUNCOS_MID
+      USE DIAG_MOD,         ONLY : AD29,        AD46,          AD10em
+      USE GEIA_MOD,         ONLY : GET_IHOUR,   GET_DAY_INDEX, READ_GEIA
+      USE GEIA_MOD,         ONLY : READ_LIQCO2, READ_TOTCO2,   READ_TODX
+      USE GRID_MOD,         ONLY : GET_XOFFSET, GET_YOFFSET  
+      USE GRID_MOD,         ONLY : GET_AREA_CM2
+      USE LOGICAL_MOD,      ONLY : LANTHRO,     LGFED2BB,      LGFED3BB
       USE LOGICAL_MOD,      ONLY : LBIOMASS,    LBIOFUEL,      LNEI99
       USE LOGICAL_MOD,      ONLY : LSTREETS,    LEDGAR,        LBRAVO
+      USE LOGICAL_MOD,      ONLY : LMEGAN
       USE MEGANUT_MOD,      ONLY : XLTMMP
-      USE TRACERID_MOD,  ONLY : IDBCO
+      USE MEGAN_MOD,        ONLY : GET_EMMONOT_MEGAN
+      USE MEGAN_MOD,        ONLY : GET_EMISOP_MEGAN
+      USE TRACERID_MOD,     ONLY : IDBCO
       USE TIME_MOD,         ONLY : GET_MONTH,   GET_TAU 
       USE TIME_MOD,         ONLY : GET_YEAR,    GET_TS_EMIS  
       USE TRACER_MOD,       ONLY : STT
       USE TRACERID_MOD,     ONLY : IDBFCO,      IDTH2,         IDTHD
-      USE TAGGED_CO_MOD,    ONLY : INIT_TAGGED_CO,  READ_ACETONE, EMACET
+      USE TAGGED_CO_MOD,    ONLY : INIT_TAGGED_CO
+      USE TAGGED_CO_MOD,    ONLY : READ_ACETONE,  EMACET
       USE SCALE_ANTHRO_MOD, ONLY : GET_ANNUAL_SCALAR
       
-      USE CMN_SIZE_MOD     ! Size parameters
-      USE CMN_O3_MOD       ! FSCALYR, SCNR89, TODH, EMISTCO
-      USE CMN_DIAG_MOD     ! Diagnostic arrays & switches
+      USE CMN_SIZE_MOD      ! Size parameters
+      USE CMN_O3_MOD        ! FSCALYR, SCNR89, TODH, EMISTCO
+      USE CMN_DIAG_MOD      ! Diagnostic arrays & switches
 ! 
 ! !REVISION HISTORY: 
 !  18 Sep 2007 - L. Jaegle, H. U. Price, P. Le Sager -- Initial version
@@ -143,6 +154,9 @@
 !  (2 ) Move XLTMMP to module MEGANUT_MOD (ccc, 11/20/09)
 !  (3 ) IDBCO is in TRACERID_MOD now (hotp 7/31/09)
 !  02 Dec 2010 - R. Yantosca - Added ProTeX headers
+!  08 Dec 2011 - M. Payer    - Remove obsolete GEIA biogenic emissions and add
+!                              MEGAN biogenic emissions.
+!  01 Mar 2012 - R. Yantosca - Now use GET_AREA_CM2(I,J,L) from grid_mod.F90
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -157,7 +171,7 @@
       LOGICAL, SAVE          :: FIRSTEMISS = .TRUE.
       INTEGER, SAVE          :: LASTYEAR = -999, LASTMONTH = -999
 
-      ! For now these are defined in F77_CMN_O3
+      ! For now these are defined in CMN_O3_mod
       !REAL*4                 :: EMISTCO(IIPAR,JJPAR)
       !REAL*4                 :: FLIQCO2(IIPAR,JJPAR)
 
@@ -167,11 +181,16 @@
       REAL*8                 :: CONVERT(NVEGTYPE) 
       REAL*8                 :: GMONOT(NVEGTYPE)
 
+      ! Cosine SZA & PAR (for calculation of monoterpenes)
+      REAL*8                 :: SC, PDF, PDR
+
       ! External functions
-!-- XLTMMP moved to meganut_mod.f (ccc, 11/20/09)
-!      REAL*8, EXTERNAL       :: XLTMMP,  EMISOP, BOXVL
-      REAL*8, EXTERNAL       :: EMISOP, BOXVL
-      REAL*8, EXTERNAL       :: EMMONOT, EMCH3OH
+      REAL*8, EXTERNAL       :: BOXVL
+      REAL*8, EXTERNAL       :: EMCH3OH
+
+#if defined( DEVEL )
+      REAL*8, INTENT(INOUT)  :: BIO_EMISS(:,:,:)
+#endif
 
       !=================================================================
       ! EMISS_H2_HD begins here!
@@ -179,17 +198,6 @@
       ! Do the following only on the first call to EMISS_H2_HD...
       !=================================================================
       IF ( FIRSTEMISS ) THEN
-
-         ! Read polynomial coeffs' for isoprene emissions
-         CALL RDLIGHT
-
-         ! Read conversion tables for isoprene & monoterpene emissions
-         ! Also read acetone emissions (bnd, bmy, 6/8/01)
-         CALL RDISOPT( CONVERT )
-         CALL RDMONOT( GMONOT  ) 
-
-         ! Set the base level of isoprene & monoterpene emissions
-         CALL SETBASE( CONVERT, GMONOT )
 
          ! Read time-of-day and day-of-week scale factors for GEIA emissions
          CALL READ_TODX( TODN, TODH, TODB, SCNR89 )
@@ -295,11 +303,11 @@
          DO J = 1, JJPAR
             JREF = J + J0
 
-            ! Grid box surface areas [cm2]
-            AREA_CM2 = GET_AREA_CM2( J )
-
             DO I = 1, IIPAR
                IREF = I + I0
+
+               ! Grid box surface areas [cm2]
+               AREA_CM2 = GET_AREA_CM2( I, J, 1 )
 
                ! E_CO is FF CO emissions in [molec CO/cm^2/s]
                ! Scale E_CO by the day-of-week scale factor SFAC89
@@ -413,14 +421,12 @@
 !!$OMP+DEFAULT( SHARED )
 !!$OMP+PRIVATE( E_H2, E_HD, I, J, N, AREA_CM2 )
 
-         ! Loop over latitudes
+         ! Loop over surface boxes
          DO J = 1, JJPAR
+         DO I = 1, IIPAR
 
             ! Grid box surface area [cm2]
-            AREA_CM2 = GET_AREA_CM2( J )
-
-            ! Loop over longitudes
-            DO I = 1, IIPAR
+            AREA_CM2 = GET_AREA_CM2( I, J, 1 )
 
             ! Convert [molec CO/cm2/s] to [molec H2/cm2/s]
             ! Scale by 0.29 mol H2/mol CO and increase by 
@@ -496,7 +502,11 @@
       !       biofuel burning array (bmy, 6/8/01).
       !=================================================================
       IF ( LBIOFUEL ) THEN
+#if defined( DEVEL )
+         CALL BIOFUEL_BURN( BIO_EMISS )
+#else
          CALL BIOFUEL_BURN
+#endif
 
 !$OMP PARALLEL DO
 !$OMP+DEFAULT( SHARED )
@@ -549,11 +559,10 @@
 !$OMP+PRIVATE( I, J, AREA_CM2, IJLOOP, TMMP, EMXX, EMMO, EMAC, EMOC )
 !$OMP+PRIVATE( E_H2, E_HD )
       DO J = 1, JJPAR
+      DO I = 1, IIPAR
 
-         ! Grid box surface area [cm2]
-         AREA_CM2 = GET_AREA_CM2( J )
-
-         DO I = 1, IIPAR
+            ! Grid box surface area [cm2]
+            AREA_CM2 = GET_AREA_CM2( I, J, 1 )
 
             ! 1-D array index 
             IJLOOP = ( (J-1) * IIPAR ) + I
@@ -567,11 +576,25 @@
 
             ! Surface air temperature [K]
             TMMP = XLTMMP(I,J,IJLOOP)
-      
-            ! ISOP and MONOTERPENE emissions in [atoms C/box/time step] 
-            ! SUNCOS is COSINE( solar zenith angle ) 
-            EMXX = EMISOP( I, J, IJLOOP, SUNCOS, TMMP, XNUMOL_ISOP ) 
-            EMMO = EMMONOT( IJLOOP, TMMP, XNUMOL_MONO )
+
+
+            ! MEGAN biogenic emissions (mpayer,12/8/11)
+            IF ( LMEGAN ) THEN
+
+               ! Cosine of solar zenith angle
+               SC   = SUNCOS_MID(IJLOOP)
+
+               ! Diffuse and direct PAR
+               PDR  = PARDR(I,J)
+               PDF  = PARDF(I,J)
+
+               ! ISOP and MONOTERPENE emissions in [atoms C/box/time step]
+               EMXX = GET_EMISOP_MEGAN(  I,   J,   SC,    TMMP, 
+     &                                   PDR, PDF, XNUMOL_ISOP )
+               EMMO = GET_EMMONOT_MEGAN( I,   J,   SC,    TMMP,
+     &                                   PDR, PDF, XNUMOL_MONO )
+
+            ENDIF
 
             ! Store ISOP and MONOTERPENE emissions [atoms C/box/time step]
             ! for later use in the subroutine CHEM_H2_HD
@@ -687,6 +710,8 @@
 ! !REVISION HISTORY: 
 !  18 Sep 2007 - L. Jaegle, H. U. Price, P. Le Sager -- Initial version
 !  02 Dec 2010 - R. Yantosca - Added ProTeX headers
+!  01 Mar 2012 - R. Yantosca - Now use GET_AREA_CM2(I,J,L) from grid_mod.F90
+!  01 Mar 2012 - R. Yantosca - Now use GET_YMID(I,J,L) from grid_mod.F90
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -781,11 +806,10 @@
       
       DO L = 1, LLPAR
       DO J = 1, JJPAR
+      DO I = 1, IIPAR
 
          ! Latitude of grid box
-         YMID = GET_YMID( J )
-
-      DO I = 1, IIPAR
+         YMID = GET_YMID( I, J, L )
 
          !==============================================================
          ! (0) Define useful quantities

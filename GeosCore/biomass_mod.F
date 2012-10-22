@@ -36,6 +36,10 @@
 !
 !   CO2        24         1          [molec CO2 /cm2/s]
 !
+!  ----------------------------------------------------------------------------
+!  FOR CH4 SIMULATION ONLY (kjw)
+!
+!   CH4        25         1          [molec CH4 /cm2/s]!
 !
 !  Module Variables:
 !  ============================================================================
@@ -84,6 +88,7 @@
 !  (6 ) Now always scale biomass CO regardless of inventory (jaf, mak, 11/6/09)
 !  (7 ) Updates to remove all hard-wired order. (fp, 2/2/10)
 !  (8)  Updates to include GFED3 (psk, 1/5/11)
+!  14 Feb 2012 - M. Payer    - Add modifications for CH4 simulation (K. Wecht)
 !******************************************************************************
 !
       USE CMN_SIZE_MOD               ! Size parameters
@@ -100,9 +105,9 @@
       PRIVATE
 
       ! ... except these variables
-      ! FP: NBIOMAX now specified in F77_CMN_SIZE and is the max
+      ! FP: NBIOMAX now specified in CMN_SIZE_mod and is the max
       ! number of BB species allowed, used for array allocation (hotp 7/30/09)
-      ! if additional BB species are added, increase NBIOMAX in F77_CMN_SIZE
+      ! if additional BB species are added, increase NBIOMAX in CMN_SIZE_mod
       !PUBLIC :: NBIOMAX
       !PUBLIC :: NBIOMAX_GAS ! no longer needed (hotp 8/3/09)
       !FP_ISOP
@@ -138,7 +143,7 @@
       ! MODULE VARIABLES
       !=================================================================
 
-      ! FP Removed hard-wired IDBxxx and move NBIOMAX to F77_CMN_SIZE (hotp 7/30/09)      ! Parameters
+      ! FP Removed hard-wired IDBxxx and move NBIOMAX to CMN_SIZE_mod (hotp 7/30/09)      ! Parameters
 !      INTEGER, PARAMETER   :: NBIOMAX     = 24
 !      INTEGER, PARAMETER   :: NBIOMAX_GAS = 19
 !      INTEGER, PARAMETER   :: IDBNOX      = 1
@@ -170,7 +175,11 @@
 
 !------------------------------------------------------------------------------
 
+#if defined( DEVEL )
+      SUBROUTINE COMPUTE_BIOMASS_EMISSIONS( YEAR, MONTH, BIOEMISSIONS )
+#else
       SUBROUTINE COMPUTE_BIOMASS_EMISSIONS( YEAR, MONTH )
+#endif
 !
 !******************************************************************************
 !  Subroutine COMPUTE_BIOMASS_EMISSIONS is a wrapper which allows us to select
@@ -212,7 +221,7 @@
       USE GFED3_BIOMASS_MOD, ONLY : GFED3_COMPUTE_BIOMASS
       USE LOGICAL_MOD,       ONLY : LBIOMASS, LGFED2BB, LGFED3BB
       USE LOGICAL_MOD,       ONLY : L8DAYBB,  LSYNOPBB, L3HRBB
-      USE LOGICAL_MOD,       ONLY : L8DAYBB3,  LSYNOPBB3, L3HRBB3
+      USE LOGICAL_MOD,       ONLY : LDAYBB3,  L3HRBB3
       USE TIME_MOD,          ONLY : ITS_A_NEW_MONTH
       USE TRACER_MOD,        ONLY : ITS_A_CO2_SIM
       USE TRACER_MOD,        ONLY : ITS_A_H2HD_SIM
@@ -231,7 +240,10 @@
 
       ! Arguments
       INTEGER, INTENT(IN)        :: YEAR, MONTH
-
+#if defined( DEVEL )
+!      REAL*8,  INTENT(INOUT)     :: BIOEMISSIONS(:,:,:) ! MSL
+      REAL*8,  INTENT(INOUT)     :: BIOEMISSIONS(IIPAR,JJPAR,NBIOMAX) ! MSL
+#endif
       ! Local variables
       LOGICAL, SAVE              :: FIRST = .TRUE.
       LOGICAL                    :: DO_ND28, DO_ND29, DO_ND32
@@ -251,11 +263,10 @@
          ! First-time initialization
          IF ( FIRST ) THEN
             CALL INIT_BIOMASS
-            FIRST    = .FALSE.
-            USE_GFED2 = LGFED2BB .or. L8DAYBB .or. LSYNOPBB .or. L3HRBB
-            USE_GFED3 = LGFED3BB .or.
-     &                  L8DAYBB3 .or. LSYNOPBB3 .or. L3HRBB3
-            USE_GFED = USE_GFED2. or. USE_GFED3
+            FIRST     = .FALSE.
+            USE_GFED2 = LGFED2BB  .or. L8DAYBB .or. LSYNOPBB .or. L3HRBB
+            USE_GFED3 = LGFED3BB  .or. LDAYBB3 .or. L3HRBB3
+            USE_GFED  = USE_GFED2 .or. USE_GFED3
          ENDIF
          
          ! Define diagnostic flags
@@ -325,6 +336,11 @@
                ! Get CO2 emissions [molec/cm2/s]
                CALL GC_READ_BIOMASS_CO2( YEAR, MONTH,
      &                                   BIOMASS(:,:,IDBCO2) )
+
+#if defined( DEVEL )
+               BIOEMISSIONS(:,:,IDBCO2) = BIOEMISSIONS(:,:,IDBCO2) +
+     &                                    BIOMASS(:,:,IDBCO2)
+#endif
             ELSE
 
                !------------------------------
@@ -347,11 +363,21 @@
      &                                      BIOMASS(:,:,IDBSO2) )
                ENDIF
 
+#if defined( DEVEL )
+               BIOEMISSIONS(:,:,IDBSO2) = BIOEMISSIONS(:,:,IDBSO2) +
+     &                                    BIOMASS(:,:,IDBSO2)
+#endif
+
                ! Get biomass NH3 [molec/cm2/s]
                IF ( IDTNH3 > 0 ) THEN
                   CALL GC_READ_BIOMASS_NH3( YEAR, MONTH,
      &                                      BIOMASS(:,:,IDBNH3) )
                ENDIF
+
+#if defined( DEVEL )
+               BIOEMISSIONS(:,:,IDBNH3) = BIOEMISSIONS(:,:,IDBNH3) +
+     &                                    BIOMASS(:,:,IDBNH3)
+#endif
 
                ! Get biomass BC & OC [molec/cm2/s]
                IF ( IDTBCPO > 0 .and. IDTOCPO > 0 ) THEN
@@ -359,6 +385,12 @@
      &                                       BIOMASS(:,:,IDBBC), 
      &                                       BIOMASS(:,:,IDBOC) ) 
                ENDIF
+#if defined( DEVEL )
+               BIOEMISSIONS(:,:,IDBBC) = BIOEMISSIONS(:,:,IDBBC) +
+     &                                   BIOMASS(:,:,IDBBC)
+               BIOEMISSIONS(:,:,IDBOC) = BIOEMISSIONS(:,:,IDBOC) +
+     &                                   BIOMASS(:,:,IDBOC)
+#endif
             ENDIF
 
             ! Irrespective of inventory type, we need to scale biomass
@@ -375,6 +407,10 @@
                ELSE IF ( ITS_A_TAGCO_SIM() ) THEN
                   BIOMASS(:,:,IDBCO) = BIOMASS(:,:,IDBCO) * 1.11d0
                ENDIF
+#if defined( DEVEL )
+               BIOEMISSIONS(:,:,IDBCO) = BIOEMISSIONS(:,:,IDBCO) +
+     &                                   BIOMASS(:,:,IDBCO)
+#endif
             ENDIF
          ENDIF
 
@@ -421,7 +457,8 @@
       END SUBROUTINE COMPUTE_BIOMASS_EMISSIONS
 
 !------------------------------------------------------------------------------
-      SUBROUTINE SET_BIOTRCE
+
+      SUBROUTINE SET_BIOTRCE( am_I_Root )
 
 !******************************************************************************
 !  Routine created by FP to set IDBxxxs according to the tracers defined
@@ -429,6 +466,8 @@
 !  tracers in input.geos (FP 6/2009, hotp 7/30/09)
 !
 !  NOTES:
+!  30 Jul 2012 - R. Yantosca - Now accept am_I_Root as an argument when
+!                              running with the traditional driver main.F
 !******************************************************************************
 
 !FP_ISOP
@@ -445,6 +484,7 @@
       USE TRACERID_MOD, ONLY : IDBSO2,  IDBNH3
       USE TRACERID_MOD, ONLY : IDBBC,   IDBOC
       USE TRACERID_MOD, ONLY : IDBCO2
+      USE TRACERID_MOD, ONLY : IDBCH4   !kjw
       USE TRACERID_MOD, ONLY : IDBBENZ, IDBTOLU, IDBXYLE
       ! Add dicarbonyls
       USE TRACERID_MOD, ONLY : IDBGLYX, IDBMGLY, IDBC2H4
@@ -458,6 +498,10 @@
       USE TRACERID_MOD, ONLY : IDTBENZ, IDTTOLU, IDTXYLE
       USE TRACERID_MOD, ONLY : IDTHAC, IDTGLYC, IDTMGLY, IDTGLYX
       USE TRACERID_MOD, ONLY : IDTC2H2, IDTC2H4
+
+      USE TRACER_MOD,   ONLY : ITS_A_CH4_SIM ! (mpayer, 2/14/12)
+
+      LOGICAL, INTENT(IN) :: am_I_Root
 
       !=================================================================
       ! SET_BIOTRCE begins here!
@@ -574,6 +618,14 @@
       BIOTRCE( IDBCO2 ) = 1
       BIOBGAS( IDBCO2 ) = .FALSE.
 
+      ! For CH4 (kjw)
+      !  IDBCH4 is placed at end after all full chem tracers and CO2
+      IF ( ITS_A_CH4_SIM() ) THEN
+         IDBCH4            = NBIOTRCE + 1
+         BIOTRCE( IDBCH4 ) = 1
+         BIOBGAS( IDBCH4 ) = .FALSE.  ! not treated in setemis
+      ENDIF
+
       ! Error check 
       ! NBIOTRCE should be less than or equal to NBIOMAX (hotp 7/31/09)
       !IF ( NBIOTRCE > NBIOMAX ) THEN
@@ -584,11 +636,13 @@
       IF ( NBIOTRCE .GE. NBIOMAX ) THEN
           CALL ERROR_STOP ( 'NBIOTRCE too large!', '(biomass_mod)' )
           ! If you get this error, an appropriate fix is to increase
-          ! NBIOMAX in F77_CMN_SIZE (hotp 7/31/09)
+          ! NBIOMAX in CMN_SIZE_mod (hotp 7/31/09)
       ENDIF
 
       ! Echo biomass burning tracer information
-      WRITE( 6, 100 ) BIOTRCE( 1:NBIOTRCE )
+      IF ( am_I_Root ) THEN
+         WRITE( 6, 100 ) BIOTRCE( 1:NBIOTRCE )
+      ENDIF
  100  FORMAT( 'TRACERID: Biomass burning tracers        :', 20i3 )
       
       ! Return to calling program
@@ -704,7 +758,6 @@
       ! CLEANUP_BIOMASS begins here!
       !=================================================================
       IF ( ALLOCATED( BIOMASS ) ) DEALLOCATE( BIOMASS )
-
       ! Return to calling program
       END SUBROUTINE CLEANUP_BIOMASS
 

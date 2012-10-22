@@ -36,6 +36,7 @@
 ! !REVISION HISTORY:
 !  24 Nov 2008 - A. v. Donkelaar - Initial version  
 !  28 Jan 2009 - P. Le Sager     - Initial Version in GEOS-Chem
+!  01 Mar 2012 - R. Yantosca     - Now reference new grid_mod.F90
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -45,9 +46,6 @@
       ! Arrays for weekday & weekend emissions
       REAL*8,  ALLOCATABLE :: VISTAS_WD_NOx(:,:)
       REAL*8,  ALLOCATABLE :: VISTAS_WE_NOx(:,:)
-
-      ! Array for surface area
-      REAL*8,  ALLOCATABLE :: A_CM2(:)
 
       CONTAINS
 !EOC
@@ -71,6 +69,7 @@
 !
 ! !USES:
 !
+      USE GRID_MOD,     ONLY : GET_AREA_CM2
       USE TRACER_MOD,   ONLY : XNUMOL
       USE TRACERID_MOD, ONLY : IDTNOx
 !
@@ -95,6 +94,7 @@
 !
 ! !REVISION HISTORY: 
 !  28 Jan 2009 - A. v. Donkelaar, P. Le Sager - Initial Version
+!  01 Mar 2012 - R. Yantosca - Now use GET_AREA_CM2(I,J,L) from grid_mod.F90
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -137,7 +137,7 @@
       IF ( DO_KGS ) THEN
             
          ! Convert from [molec/c,2/s] to [kg/s]
-         VALUE = VALUE * A_CM2(J) / XNUMOL(N)
+         VALUE = VALUE * GET_AREA_CM2( I, J, 1 ) / XNUMOL(N)
 
       ENDIF
 
@@ -156,39 +156,66 @@
 !\\
 ! !INTERFACE:
 !
+#if defined( DEVEL )
+      SUBROUTINE EMISS_VISTAS_ANTHRO(EMISS)
+#else
       SUBROUTINE EMISS_VISTAS_ANTHRO
+#endif
 !
 ! !USES:
 ! 
       USE BPCH2_MOD,         ONLY : GET_TAU0,      READ_BPCH2
       USE DIRECTORY_MOD,     ONLY : DATA_DIR_1x1 
       USE LOGICAL_MOD,       ONLY : LFUTURE
-      USE REGRID_1x1_MOD,    ONLY : DO_REGRID_1x1
+      USE REGRID_A2A_MOD,    ONLY : DO_REGRID_A2A
       USE TIME_MOD,          ONLY : GET_YEAR, GET_MONTH
       USE SCALE_ANTHRO_MOD,  ONLY : GET_ANNUAL_SCALAR_1x1
 
-      USE CMN_SIZE_MOD          ! Size parameters
-      USE CMN_O3_MOD            ! FSCALYR
+      USE CMN_SIZE_MOD            ! Size parameters
+      USE CMN_O3_MOD              ! FSCALYR
+
+#if defined( DEVEL )
+      USE TIME_MOD,     ONLY : GET_DAY_OF_WEEK
+      USE TRACER_MOD,   ONLY : N_TRACERS
+      USE TRACER_MOD,   ONLY : XNUMOL
+      USE TRACERID_MOD, ONLY : IDTNOx
+      USE GRID_MOD,     ONLY : GET_AREA_CM2
+      USE ERROR_MOD,    ONLY : ALLOC_ERR
+#endif
 !
 ! !REVISION HISTORY: 
 !  28 Jan 2009 - A. v. Donkelaar, P. Le Sager - Initial Version
+!  13 Mar 2012 - M. Cooper   - Changed regrid algorithm to map_a2a
+!  24 May 2012 - R. Yantosca - Fix minor bugs in map_a2a algorithm
+!  24 Aug 2012 - R. Yantosca - DO_REGRID_A2A now reads netCDF input file
 !EOP
 !------------------------------------------------------------------------------
 !BOC
 !
 ! !LOCAL VARIABLES:
 !
-      LOGICAL, SAVE              :: FIRST = .TRUE.
-      INTEGER                    :: I, J, THISYEAR
-      INTEGER                    :: MN, SNo, ScNo
-      REAL*4                     :: ARRAY(I1x1,J1x1,1)
-      REAL*8                     :: GEOS_1x1(I1x1,J1x1,1)
-      REAL*8                     :: SC_1x1(I1x1,J1x1)
-      REAL*8                     :: TAU2002, TAU
-      CHARACTER(LEN=255)         :: FILENAME, VISTAS_DIR
-      CHARACTER(LEN=4)           :: SYEAR, SNAME
-      CHARACTER(LEN=2)           :: SMN
-      CHARACTER(LEN=1)           :: SSMN
+      LOGICAL, SAVE         :: FIRST = .TRUE.
+      INTEGER               :: I, J, THISYEAR
+      INTEGER               :: MN, SNo, ScNo
+      REAL*4                :: ARRAY(I1x1,J1x1,1)
+      REAL*8                :: GEOS_1x1(I1x1,J1x1,1)
+      REAL*8                :: SC_1x1(I1x1,J1x1)
+      REAL*8                :: TAU2002, TAU
+      CHARACTER(LEN=255)    :: FILENAME, VISTAS_DIR
+      CHARACTER(LEN=4)      :: SYEAR, SNAME
+      CHARACTER(LEN=2)      :: SMN
+      CHARACTER(LEN=1)      :: SSMN
+      CHARACTER(LEN=255)    :: LLFILENAME
+      REAL*8                :: INGRID(I1x1,J1x1)
+
+
+#if defined( DEVEL )
+      INTEGER               :: DAY_NUM
+      LOGICAL               :: WEEKDAY
+      REAL*8, INTENT(INOUT) :: EMISS(IIPAR, JJPAR, N_TRACERS)
+      REAL*8, ALLOCATABLE   :: A(:,:)
+      INTEGER AS
+#endif
 
       !=================================================================
       ! EMISS_VISTAS_ANTHRO begins here!
@@ -196,6 +223,11 @@
 
       ! First-time initialization
       IF ( FIRST ) THEN
+#if defined( DEVEL )
+         ALLOCATE( A( IIPAR, JJPAR ), STAT=AS )
+         IF ( AS /= 0 ) CALL ALLOC_ERR( 'EMISS_EPA_NEI:A' )
+         A = 0d0
+#endif         
          CALL INIT_VISTAS_ANTHRO
          FIRST = .FALSE.
       ENDIF
@@ -210,8 +242,8 @@
       ENDIF
 
       ! cap maximum scaling year
-      IF ( THISYEAR .gt. 2007 ) THEN
-         THISYEAR = 2007
+      IF ( THISYEAR .gt. 2010 ) THEN
+         THISYEAR = 2010
       ENDIF
 
       SNAME = 'NOx'
@@ -272,15 +304,7 @@
       ! Apply Ozone Season Scalars
       GEOS_1x1(:,:,1) = GEOS_1x1(:,:,1) * ARRAY(:,:,1)
 
-      ! Apply Annual Scalar
-      IF ( THISYEAR .ne. 2002 ) THEN
-         CALL GET_ANNUAL_SCALAR_1x1( ScNo,     2002,
-     &                             THISYEAR, SC_1x1 )
-
-         GEOS_1x1(:,:,1) = GEOS_1x1(:,:,1) * SC_1x1(:,:)
-      ENDIF
-
-      ! Load/Apply weekend/weekday factors
+      ! Load/Apply weekend factors
       TAU = GET_TAU0( MN, 1, 1999)
       FILENAME  = TRIM( VISTAS_DIR )
      &            // 'wkend_an_scalar.nei99.geos.1x1'
@@ -290,13 +314,21 @@
 
       ! Read data
       CALL READ_BPCH2( FILENAME, 'WD-WE-$', 2,
-     &                    TAU,   I1x1,      J1x1,
-     &                    1,         ARRAY,     QUIET=.TRUE. )
+     &                 TAU,      I1x1,      J1x1,
+     &                 1,        ARRAY,     QUIET=.TRUE. )
 
-      ! Regrid from GEOS 1x1 --> current model resolution
-      CALL DO_REGRID_1x1( 'molec/cm2/s', GEOS_1x1 * ARRAY, 
-     &                        VISTAS_WE_NOx )
+      ! File with lat/lon edges for regridding
+      LLFILENAME = TRIM( DATA_DIR_1x1) //
+     &             'MAP_A2A_Regrid_201203/MAP_A2A_latlon_geos1x1.nc'
 
+      ! Regrid to current model resolution
+      INGRID = GEOS_1x1(:,:,1) * ARRAY(:,:,1)
+      CALL DO_REGRID_A2A( LLFILENAME, I1x1,          J1x1,
+     &                    INGRID,     VISTAS_WE_NOx, PERAREA=0,
+     &                    netCDF=.TRUE.                         )
+
+
+      ! Load/Apply weekday factors
       FILENAME  = TRIM( VISTAS_DIR )
      &            // 'wkday_an_scalar.nei99.geos.1x1'
 
@@ -305,12 +337,15 @@
 
       ! Read data
       CALL READ_BPCH2( FILENAME, 'WD-WE-$', 1,
-     &                    TAU,   I1x1,      J1x1,
-     &                    1,         ARRAY,     QUIET=.TRUE. )
+     &                 TAU,      I1x1,      J1x1,
+     &                 1,        ARRAY,     QUIET=.TRUE. )
 
+ 
       ! Regrid from GEOS 1x1 --> current model resolution
-      CALL DO_REGRID_1x1( 'molec/cm2/s', GEOS_1x1 * ARRAY, 
-     &                        VISTAS_WD_NOx )
+      INGRID = GEOS_1x1(:,:,1) * ARRAY(:,:,1)
+      CALL DO_REGRID_A2A( LLFILENAME, I1x1,          J1x1,
+     &                    INGRID,     VISTAS_WD_NOx, PERAREA=0,
+     &                    netCDF=.TRUE.                         )
 
       !--------------------------
       ! Compute future emissions
@@ -318,6 +353,28 @@
       IF ( LFUTURE ) THEN 
          CALL VISTAS_SCALE_FUTURE
       ENDIF
+
+#if defined( DEVEL )
+      !--------------------------
+      ! Give to global bundle
+      !--------------------------
+      DAY_NUM = GET_DAY_OF_WEEK()
+      WEEKDAY = ( DAY_NUM > 0 .and. DAY_NUM < 6 )
+
+      DO I=1,IIPAR
+      DO J=1,JJPAR
+         A(I,J)  = GET_AREA_CM2( I, J, 1 ) 
+      ENDDO
+      ENDDO
+
+      IF ( WEEKDAY ) THEN
+         IF ( IDTNOX > 0) EMISS(:,:,IDTNOX) = 
+     &        VISTAS_WD_NOx(:,:) * A / XNUMOL(IDTNOX)
+      ELSE
+         IF ( IDTNOX > 0) EMISS(:,:,IDTNOX) = 
+     &        VISTAS_WE_NOx(:,:) * A / XNUMOL(IDTNOX)
+      ENDIF
+#endif
 
       !--------------------------
       ! Print emission totals
@@ -409,6 +466,7 @@
 !
 ! !REVISION HISTORY: 
 !  28 Jan 2009 - P. Le Sager - Initial Version
+!  01 Mar 2012 - R. Yantosca - Now use GET_AREA_CM2(I,J,L) from grid_mod.F90
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -433,21 +491,20 @@
 
       ! Loop over latitudes
       DO J = 1, JJPAR
+      DO I = 1, IIPAR
 
          ! Surface area [cm2] * seconds in this month / AVOGADRO's number
          ! Also multiply by the factor 1d-9 to convert kg to Tg
-         A = GET_AREA_CM2( J ) * ( D(THISMONTH) * 86400d-9 ) / 6.0225d23
+         A       = GET_AREA_CM2( I, J, 1 ) 
+     &           * ( D(THISMONTH) * 86400d-9 ) / 6.0225d23
 
-         ! Loop over longitudes
-         DO I = 1, IIPAR
+         ! Weekday avg emissions
+         WD_NOX  = WD_NOX  + VISTAS_WD_NOX (I,J) * A * F_NOX
 
-            ! Weekday avg emissions
-            WD_NOX  = WD_NOX  + VISTAS_WD_NOX (I,J) * A * F_NOX
+         ! Weekend avg emissions
+         WE_NOX  = WE_NOX  + VISTAS_WE_NOX (I,J) * A * F_NOX
 
-            ! Weekend avg emissions
-            WE_NOX  = WE_NOX  + VISTAS_WE_NOX (I,J) * A * F_NOX
-
-         ENDDO
+      ENDDO
       ENDDO
 
       ! Fancy output
@@ -487,13 +544,13 @@
 ! !USES:
 ! 
       USE ERROR_MOD,   ONLY : ALLOC_ERR
-      USE GRID_MOD,    ONLY : GET_AREA_CM2
       USE LOGICAL_MOD, ONLY : LVISTAS
 
       USE CMN_SIZE_MOD    ! Size parameters
 !
 ! !REVISION HISTORY: 
 !  28 Jan 2009 - P. Le Sager - Initial Version
+!  01 Mar 2012 - R. Yantosca - Remove A_CM2 array, use GET_AREA_CM2 instead
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -521,19 +578,6 @@
       IF ( AS /= 0 ) CALL ALLOC_ERR( 'VISTAS_WE_NOx' )
       VISTAS_WE_NOx = 0d0
 
-      !---------------------------------------------------
-      ! Pre-store array for grid box surface area in cm2
-      !---------------------------------------------------
-
-      ! Allocate array
-      ALLOCATE( A_CM2( JJPAR ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'A_CM2' )
-
-      ! Fill array
-      DO J = 1, JJPAR
-         A_CM2(J) = GET_AREA_CM2( J )
-      ENDDO
-
       END SUBROUTINE INIT_VISTAS_ANTHRO
 !EOC
 !------------------------------------------------------------------------------
@@ -553,13 +597,13 @@
 !
 ! !REVISION HISTORY: 
 !  28 Jan 2009 - P. Le Sager - Initial Version
+!  02 Mar 2012 - R. Yantosca - Remove A_CM2 array
 !EOP
 !------------------------------------------------------------------------------
 !BOC
       !=================================================================
       ! CLEANUP_VISTAS_ANTHRO begins here!
       !=================================================================
-      IF ( ALLOCATED( A_CM2          ) ) DEALLOCATE( A_CM2          )
       IF ( ALLOCATED( VISTAS_WD_NOx  ) ) DEALLOCATE( VISTAS_WD_NOx  )
       IF ( ALLOCATED( VISTAS_WE_NOx  ) ) DEALLOCATE( VISTAS_WE_NOx  )
 

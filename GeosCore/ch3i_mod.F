@@ -55,10 +55,20 @@
 !  (11) Now make sure all USE statements are USE, ONLY (bmy, 10/3/05)
 !  (12) BIOMASS(:,:,IDBCO) from "biomass_mod.f" is now in units of 
 !        [molec CO/cm2/s].  Adjust unit conversion accordingly. (bmy, 9/27/06)
+!  01 Mar 2012 - R. Yantosca - Now use GET_AREA_M2(I,J,L) from grid_mod.F90
 !******************************************************************************
 !
+      USE CMN_SIZE_MOD  ! Size parameters
+
       IMPLICIT NONE
 #     include "define.h"
+
+#if defined( DEVEL )
+      REAL*8, ALLOCATABLE :: OCDATA(:,:) ! ocean field for emiss. flux
+      REAL*8, ALLOCATABLE :: EFCH4R(:,:) ! emission flux from rice
+      REAL*8, ALLOCATABLE :: EFCH4W(:,:) ! emission flux from wetlands
+      REAL*8              :: CH3ISUM(5)          ! sum of emissions in kg/yr
+#endif
 
       !=================================================================
       ! MODULE ROUTINES -- follow below the "CONTAINS" statement 
@@ -92,7 +102,7 @@
 !        (surface water concentration should not exceed 8 ng/L)
 !  (2 ) CH3I emissions from rice and wetlands use Fung's CH4 emission
 !        inventory scaled with a constant factor from BIBLE observations.
-!  (3 ) Added "F77_CMN_SETUP" so that the proper path name to the /data/ctm
+!  (3 ) Added "CMN_SETUP" so that the proper path name to the /data/ctm
 !        directories can be supplied. (bmy, 3/18/99)
 !  (4 ) Trap I/O errors with subroutine IOERROR (bmy, 5/27/99)
 !  (5 ) OCDATA now holds the aqueous CH3I in [ng/L], as read from disk.
@@ -129,13 +139,22 @@
       ! Arguments
       INTEGER, INTENT(IN) ::  THISMONTH    ! month of the year (1, 2, .., 12)
 
+#if defined( DEVEL )
+!      ! Local common blocks (shared with OPEN_CH3I_FILES)      
+!      REAL*8              :: OCDATA(IIPAR,JJPAR) ! ocean field for emiss. flux
+!      REAL*8              :: EFCH4R(IIPAR,JJPAR) ! emission flux from rice
+!      REAL*8              :: EFCH4W(IIPAR,JJPAR) ! emission flux from wetlands
+!      REAL*8              :: CH3ISUM(5)          ! sum of emissions in kg/yr
+!      COMMON /CH3IFLDS/ OCDATA, EFCH4R, EFCH4W, CH3ISUM
+#else
       ! Local common blocks (shared with OPEN_CH3I_FILES)      
       REAL*8              :: OCDATA(IIPAR,JJPAR) ! ocean field for emiss. flux
       REAL*8              :: EFCH4R(IIPAR,JJPAR) ! emission flux from rice
       REAL*8              :: EFCH4W(IIPAR,JJPAR) ! emission flux from wetlands
       REAL*8              :: CH3ISUM(5)          ! sum of emissions in kg/yr
       COMMON /CH3IFLDS/ OCDATA, EFCH4R, EFCH4W, CH3ISUM
-      
+#endif     
+ 
       ! Local variables
       REAL*4              :: Q1(IIPAR,JJPAR,1)
       REAL*8              :: XTAU
@@ -232,7 +251,11 @@
 
 !------------------------------------------------------------------------------
 
+#if defined( DEVEL )
+      SUBROUTINE EMISSCH3I( BIO_EMISS )
+#else
       SUBROUTINE EMISSCH3I
+#endif
 !
 !******************************************************************************
 !  Subroutine EMISSCH3I (mgs, bmy, 11/23/98, 9/27/06) specifies methyl 
@@ -291,7 +314,7 @@
 !  (11) Fixed bugs in the expressions for H and FLUX (mgs, bmy, 5/15/99)
 !  (12) Now uses bilinear correlation with NPP and RADSWG for ocean source
 !       (before only NPP)   (mgs, 16 Jun 1999
-!  (13) FRCLND removed as argument, because F77_CMN_DEP now included 
+!  (13) FRCLND removed as argument, because CMN_DEP now included 
 !       (mgs, 06/16/99)
 !  (14) Ocean emissions now differetn parametrizations for 3 latitude regions.
 !        Emissions protocolled in more detail.
@@ -329,6 +352,7 @@
 !  (33) BIOMASS(:,:,IDBCO) from "biomass_mod.f" is now in units of 
 !        [molec CO/cm2/s].  Adjust unit conversion accordingly. (bmy, 9/27/06)
 !  (34) IDBCO is now defined in TRACERID_MOD. (fp, hotp 7/31/09)
+!  01 Mar 2012 - R. Yantosca - Now use GET_AREA_M2(I,J,L) from grid_mod.F90
 !******************************************************************************
 !
       ! Reference to F90 modules
@@ -351,6 +375,14 @@
       USE CMN_DIAG_MOD    ! Diagnostic switches
       USE CMN_DEP_MOD     ! RADIAT, FRCLND
 
+#if defined( DEVEL )
+      ! Local common blocks (shared with OPEN_CH3I_FILES)
+!      REAL*8 :: OCDATA(IIPAR,JJPAR)   ! scaled ocean net primary prod.
+!      REAL*8 :: EFCH4R(IIPAR,JJPAR)  ! scaled emission flux from rice
+!      REAL*8 :: EFCH4W(IIPAR,JJPAR)  ! scaled emission flux from wetlands
+!      REAL*8 :: CH3ISUM(5)           ! sum of emissions in kg/yr
+      REAL*8, INTENT(INOUT) :: BIO_EMISS(:,:,:)
+#else
       ! Local common blocks (shared with OPEN_CH3I_FILES)
       REAL*8 :: OCDATA(IIPAR,JJPAR)   ! scaled ocean net primary prod.
       REAL*8 :: EFCH4R(IIPAR,JJPAR)  ! scaled emission flux from rice
@@ -358,7 +390,7 @@
       REAL*8 :: CH3ISUM(5)           ! sum of emissions in kg/yr
 
       COMMON /CH3IFLDS/ OCDATA, EFCH4R, EFCH4W, CH3ISUM
-
+#endif
       ! Local variables:
       LOGICAL, SAVE      :: FIRSTEMISS = .TRUE.
       INTEGER            :: I, IJLOOP, J,    L,    N
@@ -588,11 +620,11 @@
       N = 1
       L = 1
       DO J = 1, JJPAR
+      DO I = 1, IIPAR
 
          ! Grid box surface area [m2]
-         AREA_M2 = GET_AREA_M2( J )
+         AREA_M2 = GET_AREA_M2( I, J, 1 )
 
-      DO I = 1, IIPAR
          IF ( TS(I,J) >= 271.15 .and. FRCLND(I,J) < 0.8 ) THEN
 
             ! surface air temp [K]
@@ -738,7 +770,11 @@
       ENDIF
 
       ! Now reference routine BIOFUEL_BURN from "biofuel_mod.f" (bmy, 9/12/00)
+#if defined( DEVEL )
+      CALL BIOFUEL_BURN( BIO_EMISS )
+#else
       CALL BIOFUEL_BURN
+#endif
 
       N = 3
       L = 1
@@ -779,11 +815,10 @@
       N = 4
       L = 1
       DO J = 1, JJPAR
-
-         ! Grid box surface area [m2]
-         AREA_M2 = GET_AREA_M2( J )
-
          DO I = 1, IIPAR
+
+            ! Grid box surface area [m2]
+            AREA_M2 = GET_AREA_M2( I, J, 1 )
 
             ! First compute flux as kg/m2/time step
             FLUX = EFCH4R(I,J)
@@ -818,11 +853,10 @@
       N = 5
       L = 1
       DO J = 1, JJPAR
-
-         ! Grid box surface area [m2]
-         AREA_M2 = GET_AREA_M2( J )
-
          DO I = 1, IIPAR
+
+            ! Grid box surface area [m2]
+            AREA_M2 = GET_AREA_M2( I, J, 1 )
 
             ! First compute flux as kg/m2/time step
             FLUX = EFCH4W(I,J)
@@ -1095,6 +1129,22 @@
       ! Return to calling program
       END SUBROUTINE CHEMCH3I
 
+#if defined( DEVEL )
+!------------------------------------------------------------------------------
+      SUBROUTINE SET_CH3I_MOD
+
+      IMPLICIT NONE
+
+      INTEGER AS
+
+      ALLOCATE(
+     &  OCDATA(IIPAR,JJPAR),      ! ocean field for emiss. flux
+     &  EFCH4R(IIPAR,JJPAR),      ! emission flux from rice
+     &  EFCH4W(IIPAR,JJPAR),      ! emission flux from wetlands
+     &  STAT=AS)
+ 
+      END SUBROUTINE SET_CH3I_MOD
+#endif
 !------------------------------------------------------------------------------
 
       END MODULE CH3I_MOD

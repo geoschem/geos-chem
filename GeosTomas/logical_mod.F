@@ -63,6 +63,9 @@
 !  20 Jul 2010 - C. Carouge  - Add LPREINDHG and LGTMM for updated mercury.
 !  24 Jan 2011 - L. Murray   - Remove LOTDREG, LCTH, LMFLUX, LPRECON,
 !                               and LOTDSCALE for lightning
+!  07 Sep 2011 - P. Kasibhatla - Modified to include GFED3
+!  26 Mar 2012 - R. Yantosca - Add USE_OLSON_2001 switch, which will use the
+!                              newer Olson 2001 land map & drydep inputs
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -88,6 +91,8 @@
       !%%%% Chemistry %%%%
       LOGICAL :: LCHEM           ! Use chemistry?
       LOGICAL :: LKPP            ! Use KPP solver instead of SMVGEAR?
+      LOGICAL :: LSCHEM          ! Use linear strat chem? (vs. no strat schem)
+      LOGICAL :: LLINOZ          ! T = Linoz O3; F = Synoz O3
 
       !%%%% Cloud convection %%%%
       LOGICAL :: LCONV           ! Use cloud convection?
@@ -101,6 +106,7 @@
       !%%%% Deposition %%%%
       LOGICAL :: LDRYD           ! Use dry deposition?
       LOGICAL :: LWETD           ! Use wet deposition?
+      LOGICAL :: USE_OLSON_2001  ! Use the Olson 2001 land map & drydep info?
 
       !%%%% Emissions %%%%
       LOGICAL :: LAIRNOX         ! Use aircraft NOx emissions?
@@ -139,6 +145,7 @@
       LOGICAL :: LWOODCO         ! <-- deprecated: replace w/ LBIOFUEL soon
       LOGICAL :: LAVHRRLAI       ! Use AVHRR leaf-area-indices?
       LOGICAL :: LGFED2BB        ! Use GFED2 biomass burning?
+      LOGICAL :: LGFED3BB        ! Use GFED3 biomass burning?
       LOGICAL :: LFUTURE         ! Use future-years emission scaling (GCAP)?
       LOGICAL :: LARCSHIP        ! Use ARCTAS ship emissions?
       LOGICAL :: LEMEPSHIP       ! Use EMEP ship emissions?
@@ -146,23 +153,30 @@
       LOGICAL :: L8DAYBB         ! Use GFED2 8-day biomass burning?
       LOGICAL :: L3HRBB          ! Use GFED2 3-hr biomass burning?
       LOGICAL :: LSYNOPBB        ! Use GFED2 synoptic biomass burning
+      LOGICAL :: LDAYBB3         ! Use GFED3 daily biomass burning?
+      LOGICAL :: L3HRBB3         ! Use GFED3 3-hr biomass burning?
       LOGICAL :: LMODISLAI       ! MODIS LAI (mpb, 2009)
       LOGICAL :: LPECCA          ! PCEEA BVOC emission model (mpb,2009)
       LOGICAL :: LRETRO          ! RETRO anthropogenic emissions (wfr, 3/8/11)
+![eml
+      LOGICAL :: LHIST           ! Use historical emissions?
+!eml]
+      LOGICAL :: LWARWICK_VSLS   ! Use Warwick_s3 R(Br)n? (jpp 8/23/07)
+      LOGICAL :: LSSABr2         ! Use sea salt Br2 emiss? (jpp, 3/28/2010)
+      LOGICAL :: LFIX_PBL_BrO    ! Run 1ppt MBL BRO Sim.? (jpp 5/10/10)
 
       !%%%% Transport and strat BC's %%%%
       LOGICAL :: LFILL           ! Fill negative values in TPCORE?
       LOGICAL :: LMFCT           ! Turns TPCORE MFCT option on/off
       LOGICAL :: LTRAN           ! Turns advection on/off
       LOGICAL :: LTPFV           ! Are we using the GEOS-4 
-      LOGICAL :: LUPBD           ! Use stratospheric O3, NOY bdry conditions
-      LOGICAL :: LLINOZ          ! Use LINOZ chemistry in the stratosphere?
       LOGICAL :: LWINDO          ! Use nested-grid simulation?
       LOGICAL :: LWINDO2x25      ! Use nested-grid BC's @ 2 x 2.5 resolution?
       LOGICAL :: LWINDO_NA       
       LOGICAL :: LWINDO_EU
       LOGICAL :: LWINDO_CH
       LOGICAL :: LWINDO_CU
+      LOGICAL :: LWINDO_SE
 
       !%%%% Met fields %%%%
       LOGICAL :: LUNZIP          ! Unzip met fields on-the-fly?
@@ -232,6 +246,9 @@
       LOGICAL :: LND50_HDF       ! Save ND50  diagnostic in HDF5?
       LOGICAL :: LND51_HDF       ! Save ND51  diagnostic in HDF5?
       LOGICAL :: LND51b_HDF      ! Save ND51b diagnostic in HDF5?
+ 
+      !%%%% For interface with GCM's in MPI environments
+      LOGICAL :: DO_DIAG_WRITE = .TRUE.  ! TURN ON/OFF DIAGNOSTIC WRITING
 
       END MODULE LOGICAL_MOD
 !EOC

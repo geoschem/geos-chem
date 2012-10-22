@@ -1,5 +1,9 @@
 ! $Id: emissdr.f,v 1.6 2010/03/15 19:33:24 ccarouge Exp $
+#if defined( DEVEL )
+      SUBROUTINE EMISSDR( EMISS_TEND, BIOEMISS_TEND )
+#else
       SUBROUTINE EMISSDR
+#endif
 !
 !******************************************************************************
 !  Subroutine EMISSDR computes emissions for the full chemistry simulation
@@ -82,17 +86,16 @@
 !                              to be consistent w/ the chemistry.
 !  07 Oct 2011 - R. Yantosca - Rename SUNCOS30 to SUNCOS_MID, which is the
 !                              cos(SZA) at the midpt of the chemistry timestep
+!  06 Dec 2011 - E. Fischer  - Change biogenic acetone emissions to MEGAN
+!  08 Dec 2011 - M. Payer    - Remove GEIA biogenic emissions option
+!  01 Mar 2012 - R. Yantosca - Now use GET_LOCALTIME(I,J,L) from time_mod.F90
+!  01 Mar 2012 - R. Yantosca - Now use GET_AREA_CM2(I,J,L) from grid_mod.F90
 !******************************************************************************
 !
       ! References to F90 modules
       USE ACETONE_MOD,       ONLY : EMISS_BIOACET, OCEAN_SOURCE_ACET
-      USE ACETONE_MOD,       ONLY : READ_JO1D,     READ_RESP
       USE AIRCRAFT_NOX_MOD,  ONLY : AIREMISS
       USE BIOFUEL_MOD,       ONLY : BIOFUEL_BURN
-!------------------------------------------------------------------------------
-! Prior to 10/7/11:
-!      USE DAO_MOD,           ONLY : PARDF,         PARDR,     SUNCOS        
-!------------------------------------------------------------------------------
       USE DAO_MOD,           ONLY : PARDF,         PARDR,     SUNCOS_MID       
       USE DIAG_MOD,          ONLY : AD29,          AD46
       USE GRID_MOD,          ONLY : GET_AREA_CM2
@@ -117,15 +120,22 @@
       USE MEGAN_MOD,         ONLY : ACTIVITY_FACTORS  !(mpb,2009)
       USE MEGANUT_MOD,       ONLY : XLTMMP
       !FP_ISOP (6/2009)
-      USE EMISSIONS_MOD,     ONLY : ISOP_SCALING 
-
+      USE EMISSIONS_MOD,     ONLY : ISOP_SCALING
+      !jpp, 8/24/07
+      USE TRACERID_MOD,      ONLY : IDECHBr3, IDECH2Br2
+      USE BROMOCARB_MOD,     ONLY : EMIS_CHBr3, EMIS_CH2Br2
+      USE BROMOCARB_MOD,     ONLY : Br_SCALING
  
       USE CMN_SIZE_MOD     ! Size parameters
       USE COMODE_LOOP_MOD     ! IVERT?
       USE CMN_O3_MOD       ! Emissions arrays
       USE CMN_DIAG_MOD     ! Diagnostic arrays and switches
-      USE CMN_MONOT_MOD    ! Monoterpenes
       USE CMN_NOX_MOD      ! GEMISNOX2
+
+#if defined( DEVEL )
+      USE TRACERID_MOD,      ONLY : IDTNOX
+      USE TRACER_MOD,        ONLY : N_TRACERS
+#endif
 
       IMPLICIT NONE
 #     include "define.h"
@@ -149,9 +159,16 @@
       ! Molecules C / kg C
       REAL*8,  PARAMETER     :: XNUMOL_C = 6.022d+23 / 12d-3 
 
+      REAL*8                 :: AREA_M2 !jpp 9/10/07
+
+      ! Molecular weight of CHBr3 [kg/mol], (jpp, 9/10/07)
+      REAL*8,  PARAMETER     :: MWT_CHBr3  = 2.53d-1
+
+      ! Molecular weight of CH2Br2 [kg/mol], (jpp, 9/16/07)
+      REAL*8,  PARAMETER     :: MWT_CH2Br2 = 1.74d-1
+
       ! External functions
-      REAL*8, EXTERNAL       :: BOXVL,   EMISOP 
-      REAL*8, EXTERNAL       :: EMMONOT, EMISOP_MB, EMISOP_GRASS
+      REAL*8, EXTERNAL       :: BOXVL
 
       ! Add in new monoterpene species (mpb,2009)
       REAL*8                 :: APINE  , BPINE , LIMON , SABIN 
@@ -162,6 +179,13 @@
       REAL*8                 :: GAMMA_P
       REAL*8                 :: GAMMA_T
       REAL*8                 :: GAMMA_SM
+
+#if defined( DEVEL )
+      REAL*8, INTENT(INOUT)  :: 
+     &     EMISS_TEND(IIPAR,JJPAR,LLPAR,N_TRACERS+1),
+     &     BIOEMISS_TEND(IIPAR,JJPAR,LLPAR,N_TRACERS+1)
+#endif
+
 !
 !******************************************************************************
 !  EMISSDR begins here!
@@ -181,14 +205,6 @@
       I0 = GET_XOFFSET()
       J0 = GET_YOFFSET()
 
-      IF ( FIRSTEMISS ) THEN
-          CALL RDLIGHT
-          CALL RDISOPT( CONVERT )
-          CALL RDMONOT( GMONOT  )
-          CALL SETBASE( CONVERT, GMONOT )
-          FIRSTEMISS = .FALSE.
-      ENDIF
-!
 !******************************************************************************
 !  BE CAREFUL WITH USING A WINDOW RELATIVE TO THE EMISSIONS WINDOW
 !  NEED SPECIFY THE OFFSET OF THE SUB-WINDOW
@@ -221,20 +237,23 @@
       DO J = 1, JJPAR
          JREF = J + J0
 
-         ! Compute surface area of grid boxes in cm^2 
-         AREA_CM2 = GET_AREA_CM2( J )
-
          ! Loop over longitues
          DO I = 1, IIPAR
             IREF   = I + I0
             IJLOOP = IJLOOP + 1
-         
+
+            ! Compute surface area of grid boxes in cm^2 
+            AREA_CM2 = GET_AREA_CM2( I, J, 1 )
+
+            ! jpp, 9/10/07: wanted surface area in m^2
+            AREA_M2  = AREA_CM2 / (100.d0 ** 2)
+
             ! Zero biogenic acetone (bmy, 9/14/01)
             BIO_ACET  = 0d0
 
             ! Use function GET_LOCALTIME to get the local time at lon I
             ! Middle of time step is between 10pm-2am when IHOUR = 1
-            IHOUR = NINT( ( GET_LOCALTIME( I ) ) / 4 ) + 1
+            IHOUR = NINT( ( GET_LOCALTIME( I, J, 1 ) ) / 4 ) + 1
             IF ( IHOUR .EQ. 7 ) IHOUR = 1
 
             !=================================================================
@@ -270,27 +289,40 @@
 !-----------------------------------------------------------------------------
 ! LIGHTNING EMISSIONS NOX [molecules/cm3/s]
 !
+#if defined( DEVEL )
+            IF ( LLIGHTNOX .AND. I == 1 .AND. J == 1 ) 
+     &           CALL EMLIGHTNING( EMISS_TEND(:,:,:,IDTNOX) )
+#else
             IF ( LLIGHTNOX ) CALL EMLIGHTNING( I, J )
+#endif
 !-----------------------------------------------------------------------------
 ! SOIL EMISSIONS NOX [molecules/cm3/s]
 !
             IF ( ( LSOILNOX .OR. LFERTILIZERNOX )
      &             .AND. I == 1 .AND. J == 1 ) 
-!------------------------------------------------------------------------------
-! Prior to 10/7/11:
-! Now call soil NOx emissions with the cos(SZA) computed @ the midpoint of
-! the chemistry timestep (bmy, 10/7/11)
-!     &         CALL SOILNOXEMS( SUNCOS )
-!------------------------------------------------------------------------------
+#if defined( DEVEL )
+     &         CALL SOILNOXEMS( SUNCOS_MID, EMISS_TEND(:,:,1,IDTNOX) )
+#else
      &         CALL SOILNOXEMS( SUNCOS_MID )
+#endif
 !-----------------------------------------------------------------------------
 ! AIRCRAFT emissions NOx [molecules/cm3/s]
 !
+#if defined( DEVEL )
+            IF ( LAIRNOX .AND. I == 1 .AND. J == 1 ) 
+     &           CALL AIREMISS( EMISS_TEND(:,:,:,IDTNOX) )
+#else
             IF ( LAIRNOX .AND. I == 1 .AND. J == 1 ) CALL AIREMISS
+#endif
 !-----------------------------------------------------------------------------
 ! NOx AND CO from biofuel combustion [kg/box]  
 !
+#if defined( DEVEL )
+            IF ( LWOODCO .AND. I == 1 .AND. J == 1 ) 
+     &           CALL BIOFUEL_BURN( BIOEMISS_TEND(:,:,1,:) )
+#else
             IF ( LWOODCO .AND. I == 1 .AND. J == 1 ) CALL BIOFUEL_BURN
+#endif
 !----------------------------------------------------------------------------
 ! BIOGENIC EMISSIONS OF VARIOUS QUANTITIES [Atoms C/box/time step]
 !
@@ -299,7 +331,7 @@
                ! Temperature
                TMMP  = XLTMMP(I,J,IJLOOP)
             
-               ! Modified to choose MEGAN/GEIA inventory indenpendantly 
+               ! Modified to choose MEGAN inventory indenpendantly 
                ! for ISOP and MONX/MBO. (ccc, 1/20/09)
                IF ( LMEGAN ) THEN
 
@@ -308,12 +340,6 @@
                   !------------------
 
                   ! Cosine of solar zenith angle
-!------------------------------------------------------------------------------
-! Prior to 10/7/11:
-! Now call MEGAN emissions with the cos(SZA) computed @ the midpoint of
-! the chemistry timestep (bmy, 10/7/11)
-!                  SC   = SUNCOS(IJLOOP)
-!------------------------------------------------------------------------------
                   SC   = SUNCOS_MID(IJLOOP)
                
                   ! Diffuse and direct PAR
@@ -324,27 +350,10 @@
                   EMIS = GET_EMISOP_MEGAN(  I, J,     SC, TMMP, 
      &                                      PDR, PDF, XNUMOL_C )
 
-               ELSE  
-
-                  !------------------
-                  ! GEIA Isoprene 
-                  !------------------
-
-                  ! Isoprene
-!------------------------------------------------------------------------------
-! Prior to 10/5/11:
-! Now call GEIA emissions with the cos(SZA) computed @ the midpoint of
-! the chemistry timestep (bmy, 10/7/11)
-!                  EMIS = EMISOP(   I, J, IJLOOP, SUNCOS, TMMP, XNUMOL_C)
-!------------------------------------------------------------------------------
-                  EMIS = EMISOP( I,J,IJLOOP,SUNCOS_MID,TMMP,XNUMOL_C )
-
                ENDIF
  
                !FP_ISOP (6/2009)
                EMIS = ISOP_SCALING * EMIS
-
-
 
                IF ( LMEGANMONO ) THEN
 
@@ -390,51 +399,7 @@
                   EMMO = APINE + BPINE + LIMON + SABIN + 
      &                   MYRCN + CAREN + OCIMN
 
-
-               ELSE  
-
-                  !------------------
-                  ! GEIA biogenics 
-                  !------------------
-
-                  ! Monoterpenes
-                  EMMO = EMMONOT(          IJLOOP,       
-     &                              TMMP, XNUMOL_C )
-             
-                  ! Methyl Butenol
-!------------------------------------------------------------------------------
-! Prior to 10/7/11:
-! Now call GEIA emissions with the cos(SZA) computed @ the midpoint of
-! the chemistry timestep (bmy, 10/7/11)
-!                  EMMB = EMISOP_MB( I, J, IJLOOP, SUNCOS, 
-!------------------------------------------------------------------------------
-                  EMMB = EMISOP_MB( I, J, IJLOOP, SUNCOS_MID, 
-     &                              TMMP, XNUMOL_C )
-
                ENDIF
-
-
-               ! Isoprene emissions from grasslands (use GEIA always)
-               !
-               ! Note from May Fu (cetmfu@polyu.edu.hk), 02 Dec 2008:
-               ! 
-               ! EMISOP_GRASS calculates isoprene emission from grasslands
-               ! using the GEIA inventory; this is used only in EMISS_BIOACET
-               ! below to calculate grassland acetone emission.
-               ! 
-               ! EMISOP (GEIA) and GET_EMISOP_MEGAN (MEGAN) already contains
-               ! the full isoprene emission, including grasslands.  Therefore 
-               ! EMISOP_GRASS should NOT be considered as an additional
-               ! isoprene source.
-               !--------------------------------------------------------------
-!------------------------------------------------------------------------------
-! Prior to 10/7/11:
-! Now call GEIA emissions with the cos(SZA) computed @ the midpoint of
-! the chemistry timestep (bmy, 10/7/11)
-!                  EMMB = EMISOP_MB( I, J, IJLOOP, SUNCOS, 
-!               GRASS = EMISOP_GRASS(I, J,IJLOOP, SUNCOS, TMMP, XNUMOL_C) 
-!------------------------------------------------------------------------------
-               GRASS = EMISOP_GRASS(I,J,IJLOOP,SUNCOS_MID,TMMP,XNUMOL_C) 
 
                ! +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
                ! Store BVOC emissions for diagnositics 48,49,51 (mpb,2009)
@@ -468,19 +433,12 @@
 !
                IF ( IDEACET /= 0 ) THEN
 
-                  ! Read monthly mean JO1D and leaf respiration values
-                  ! These will be stored internally in "acetone_mod.f"
-                  IF ( I==1 .and. J==1 ) THEN
-                     IF ( GET_MONTH() /= LASTMONTH ) THEN
-                        CALL READ_JO1D( GET_MONTH() )
-                        CALL READ_RESP( GET_MONTH() )
-                        LASTMONTH = GET_MONTH()
-                     ENDIF
-                  ENDIF
-
+                  ! evf, edits to use MEGAN biogenic acetone emiss (5/25/2011)
                   ! Compute biogenic acetone emissions [atoms C/box/s]
                   CALL EMISS_BIOACET( I,    J,    TMMP,  EMMO, 
+     &                                SC, PDR, PDF, XNUMOL_C,
      &                                EMIS, EMMB, GRASS, BIO_ACET )
+
                
                   ! Also add ocean source of acetone [atoms C/box/s]
                   CALL OCEAN_SOURCE_ACET( I, J, BIO_ACET )
@@ -622,6 +580,31 @@
             ENDIF
 !=======================================================================
 
+
+!
+!-----------------------------------------------------------------------------
+! BIOGENIC CHBr3 and CH2Br2 EMISSIONS, (jpp, 8/24/07)
+!  Both in [molecules/box/s] as expected by setemiss.f
+!
+!
+
+            IF ( IDECHBr3 /= 0 ) THEN
+               EMISRR(I,J,IDECHBr3) = EMIS_CHBr3(I,J)
+
+               ! Scale emissions
+               EMISRR(I,J,IDECHBr3) = EMISRR(I,J,IDECHBr3) * Br_SCALING
+
+            ENDIF
+
+            IF ( IDECH2Br2 /= 0 ) THEN
+               EMISRR(I,J,IDECH2Br2) = EMIS_CH2Br2(I,J)
+
+               ! Scale emissions
+               EMISRR(I,J,IDECH2Br2) = EMISRR(I,J,IDECH2Br2) * 
+     &                                 Br_SCALING
+
+            ENDIF
+
 !
 !******************************************************************************
 !  ND46 diagnostic: Biogenic emissions 
@@ -639,6 +622,9 @@
 !     AD46(:,:,11) = Total biogenic mycrene  emissions [atoms C/cm2/s]
 !     AD46(:,:,12) = Total biogenic 3-carene emissions [atoms C/cm2/s]
 !     AD46(:,:,13) = Total biogenic ocimene  emissions [atoms C/cm2/s]
+!     AD46(:,:,14) = Total biogenic CHBr3    emissions [kg/m2/s]
+!     AD46(:,:,15) = Total biogenic CH2Br2   emissions [kg/m2/s]
+!     AD46(:,:,16) = Total biogenic SSBr2    emissions [kg/m2/s]
 !
 !  NOTES: 
 !  (1 ) Now make ACET tracer #2 and PRPE tracer #3 (bmy, 9/13/01)
@@ -694,6 +680,16 @@
               AD46(I,J,13) = AD46(I,J,13) + ( OCIMN / AREA_CM2 / DTSRCE) 
 
                ! ++++++++++++++++++++++++++++++++++++++++++++++++++++
+
+               ! CHBr3 emissions [kg/m2/s] -- tracer #14
+               AD46(I,J,14) = AD46(I,J,14) + ( EMISRR(I,J,IDECHBr3) / 
+     &                        AREA_M2) * ( MWT_CHBr3 / AVG )
+
+               ! CH2Br2 emissions [kg/m2/s] -- tracer #15
+               AD46(I,J,15) = AD46(I,J,15) + ( EMISRR(I,J,IDECH2Br2) / 
+     &                        AREA_M2) * ( MWT_CH2Br2 / AVG )
+
+               ! Note: IDEBr2 is added to AD46(I,J,16) in ssa_bromine_mod.F
                
                ENDIF  
             ENDIF

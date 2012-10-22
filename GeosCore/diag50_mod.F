@@ -95,6 +95,8 @@
 !  02 Dec 2010 - R. Yantosca - Added ProTeX headers
 !  03 Feb 2011 - S. Kim      - Now do not scale the AOD output
 !                              (recalculated in RDAER AND DUST_MOD)
+!  03 Aug 2012 - R. Yantosca - Move calls to findFreeLUN out of DEVEL block
+!  06 Aug 2012 - R. Yantosca - Now make IU_ND50 a local module variable
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -134,6 +136,7 @@
       !=================================================================
 
       ! Scalars
+      INTEGER              :: IU_ND50
       INTEGER              :: COUNT
       INTEGER              :: IOFF,           JOFF   
       INTEGER              :: LOFF,           I0
@@ -179,6 +182,8 @@
 !EOP
 !------------------------------------------------------------------------------
 !BOC
+      USE LOGICAL_MOD, ONLY : DO_DIAG_WRITE
+
       !=================================================================
       ! DIAG50 begins here!
       !=================================================================
@@ -187,7 +192,9 @@
       CALL ACCUMULATE_DIAG50
 
       ! Write data to disk at the end of the day
-      IF ( ITS_TIME_FOR_WRITE_DIAG50() ) CALL WRITE_DIAG50
+      IF ( ITS_TIME_FOR_WRITE_DIAG50() .and. DO_DIAG_WRITE ) THEN
+         CALL WRITE_DIAG50
+      ENDIF
 
       END SUBROUTINE DIAG50
 !EOC
@@ -224,11 +231,12 @@
       USE TRACERID_MOD,   ONLY : IDTR4N2, IDTSALA, IDTSALC 
       USE TROPOPAUSE_MOD, ONLY : ITS_IN_THE_TROP
 
-      USE CMN_FJ_MOD, ONLY : IPAR, JPAR, LPAR, JPMAX, JPPJ  ! includes F77_CMN_SIZE
+      USE CMN_FJ_MOD,     ONLY : JPMAX, JPPJ  ! includes F77_CMN_SIZE
       USE JV_CMN_MOD  ! ODAER, QAA, QAA_OUT
       USE COMODE_LOOP_MOD  ! NPVERT
       USE CMN_O3_MOD    ! FRACO3, FRACNO, SAVEO3, SAVENO2, SAVEHO2, FRACNO2
       USE CMN_GCTM_MOD  ! SCALE_HEIGHT
+      USE LOGICAL_MOD,    ONLY : DO_DIAG_WRITE
 ! 
 ! !REVISION HISTORY: 
 !  20 Jul 2004 - R. Yantosca - Initial version
@@ -783,9 +791,9 @@
       USE BPCH2_MOD,  ONLY : GET_HALFPOLAR
       USE BPCH2_MOD,  ONLY : OPEN_BPCH2_FOR_WRITE
       USE ERROR_MOD,  ONLY : ALLOC_ERR
-      USE FILE_MOD,   ONLY : IU_ND50
       USE GRID_MOD,   ONLY : GET_XOFFSET
       USE GRID_MOD,   ONLY : GET_YOFFSET
+      USE inquireMod, ONLY : findFreeLUN
       USE LOGICAL_MOD,ONLY : LND50_HDF
       USE TIME_MOD,   ONLY : EXPAND_DATE
       USE TIME_MOD,   ONLY : GET_NYMD_DIAG
@@ -832,6 +840,8 @@
 !  12 Nov 2010 - R. Yantosca - Now save out PEDGE-$ (pressure at level edges)
 !                              rather than Psurface - PTOP
 !  02 Dec 2010 - R. Yantosca - Added ProTeX headers
+!  03 Aug 2012 - R. Yantosca - Move calls to findFreeLUN out of DEVEL block
+!  07 Aug 2012 - R. Yantosca - Now print LUN used to open file
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -860,9 +870,12 @@
 
       CALL EXPAND_DATE( FILENAME, GET_NYMD_DIAG(), NHMS )
       
+      ! Find a free file LUN
+      IU_ND50 = findFreeLun()
+
       ! Echo info
-      WRITE( 6, 100 ) TRIM( FILENAME )
- 100  FORMAT( '     - DIAG50: Opening file ', a ) 
+      WRITE( 6, 100 ) TRIM( FILENAME ), IU_ND50
+ 100  FORMAT( '     - DIAG50: Opening file ', a, ' on unit ', i4 ) 
 
       ! Open output file
       IF ( LND50_HDF ) THEN

@@ -153,6 +153,9 @@
       CHARACTER(LEN=80)  :: TITLE
       CHARACTER(LEN=255) :: ND49_OUTPUT_FILE
 
+      ! Logical file unit for ND49 diagnostic
+      INTEGER            :: IU_ND49
+
       CONTAINS
 !EOC
 !------------------------------------------------------------------------------
@@ -173,33 +176,34 @@
 !
 ! !USES:
 !
-      USE BPCH2_MOD,    ONLY : BPCH2,   OPEN_BPCH2_FOR_WRITE
-      USE DAO_MOD,      ONLY : AD,      AIRDEN, BXHEIGHT, CLDF 
-      USE DAO_MOD,      ONLY : CLDTOPS, OPTD,   RH,       SLP     
-      USE DAO_MOD,      ONLY : T,       UWND,   VWND
-      USE DAO_MOD,      ONLY : TS
-      USE DAO_MOD,      ONLY : PARDF, PARDR
-      USE LAI_MOD,      ONLY : ISOLAI
-      USE FILE_MOD,     ONLY : IU_ND49
-      USE GRID_MOD,     ONLY : GET_XOFFSET,        GET_YOFFSET
-      USE TIME_MOD,     ONLY : EXPAND_DATE
-      USE TIME_MOD,     ONLY : GET_NYMD,           GET_NHMS
-      USE TIME_MOD,     ONLY : GET_NYMD_DIAG,      GET_TS_DIAG
-      USE TIME_MOD,     ONLY : GET_TAU,            GET_HOUR
-      USE TIME_MOD,     ONLY : ITS_A_NEW_DAY,      TIMESTAMP_STRING
-      USE PBL_MIX_MOD,  ONLY : GET_PBL_TOP_L,      GET_PBL_TOP_m
-      USE TRACER_MOD,   ONLY : ITS_A_FULLCHEM_SIM, N_TRACERS
-      USE TRACER_MOD,   ONLY : STT,                TCVV
-      USE TRACER_MOD,   ONLY : XNUMOLAIR
-      USE PRESSURE_MOD, ONLY : GET_PEDGE
-      USE TRACERID_MOD, ONLY : IDTHNO3, IDTHNO4, IDTN2O5, IDTNOX  
-      USE TRACERID_MOD, ONLY : IDTPAN,  IDTPMN,  IDTPPN,  IDTOX   
-      USE TRACERID_MOD, ONLY : IDTR4N2, IDTSALA, IDTSALC 
+      USE BPCH2_MOD,     ONLY : BPCH2,   OPEN_BPCH2_FOR_WRITE
+      USE DAO_MOD,       ONLY : AD,      AIRDEN, BXHEIGHT, CLDF 
+      USE DAO_MOD,       ONLY : CLDTOPS, OPTD,   RH,       SLP     
+      USE DAO_MOD,       ONLY : T,       UWND,   VWND
+      USE DAO_MOD,       ONLY : TS
+      USE DAO_MOD,       ONLY : PARDF, PARDR
+      USE MODIS_LAI_MOD, ONLY : ISOLAI => GC_LAI
+      USE GRID_MOD,      ONLY : GET_XOFFSET,        GET_YOFFSET
+      USE inquireMod,    ONLY : findFreeLun
+      USE TIME_MOD,      ONLY : EXPAND_DATE
+      USE TIME_MOD,      ONLY : GET_NYMD,           GET_NHMS
+      USE TIME_MOD,      ONLY : GET_NYMD_DIAG,      GET_TS_DIAG
+      USE TIME_MOD,      ONLY : GET_TAU,            GET_HOUR
+      USE TIME_MOD,      ONLY : ITS_A_NEW_DAY,      TIMESTAMP_STRING
+      USE PBL_MIX_MOD,   ONLY : GET_PBL_TOP_L,      GET_PBL_TOP_m
+      USE TRACER_MOD,    ONLY : ITS_A_FULLCHEM_SIM, N_TRACERS
+      USE TRACER_MOD,    ONLY : STT,                TCVV
+      USE TRACER_MOD,    ONLY : XNUMOLAIR
+      USE PRESSURE_MOD,  ONLY : GET_PEDGE
+      USE TRACERID_MOD,  ONLY : IDTHNO3, IDTHNO4, IDTN2O5, IDTNOX  
+      USE TRACERID_MOD,  ONLY : IDTPAN,  IDTPMN,  IDTPPN,  IDTOX   
+      USE TRACERID_MOD,  ONLY : IDTR4N2, IDTSALA, IDTSALC 
+      USE LOGICAL_MOD,   ONLY : DO_DIAG_WRITE
 
-      USE CMN_FJ_MOD, ONLY : IPAR, JPAR, LPAR, JPMAX, JPPJ        ! FAST-J stuff, includes F77_CMN_SIZE
-      USE JV_CMN_MOD        ! ODAER, QAA, QAA_AOD (clh)
-      USE CMN_O3_MOD		! Pure O3, SAVENO2
-      USE CMN_GCTM_MOD        ! XTRA2
+      USE CMN_FJ_MOD,    ONLY : JPMAX,   JPPJ     ! FAST-J stuff
+      USE JV_CMN_MOD                              ! ODAER, QAA, QAA_AOD (clh)
+      USE CMN_O3_MOD	                          ! Pure O3, SAVENO2
+      USE CMN_GCTM_MOD                            ! XTRA2
 !
 ! !REVISION HISTORY: 
 !  09 Apr 1999 - I. Bey, R. Martin, R. Yantosca - Initial version
@@ -227,6 +231,9 @@
 !  (14) Add outputs for EMISS_BVOC (10 tracers), TS, PARDR, PARDF and ISOLAI
 !        (mpb, 11/19/09)
 !  02 Dec 2010 - R. Yantosca - Added ProTeX headers
+!  11 Apr 2012 - R. Yantosca - Replace lai_mod.F with modis_lai_mod.F90
+!  03 Aug 2012 - R. Yantosca - Move calls to findFreeLUN out of DEVEL block
+!  07 Aug 2012 - R. Yantosca - Now print LUN used to open file
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -285,16 +292,24 @@
 
       IF ( NHMS == TS_DIAG ) THEN     ! It's a new day for diagnostics.
 
+         ! Find a free file LUN
+         IU_ND49 = findFreeLUN()
+
          ! Expand date tokens in the file name
          FILENAME = TRIM( ND49_OUTPUT_FILE )
          CALL EXPAND_DATE( FILENAME, GET_NYMD(), GET_NHMS() )
 
          ! Echo info
-         WRITE( 6, 100 ) TRIM( FILENAME )
- 100     FORMAT( '     - DIAG49: Opening file ', a )
+         WRITE( 6, 100 ) TRIM( FILENAME ), IU_ND49
+ 100     FORMAT( '     - DIAG49: Opening file ', a, ' on unit ', i4 )
         
-         ! Open bpch file and write top-of-file header
-         CALL OPEN_BPCH2_FOR_WRITE( IU_ND49, FILENAME, TITLE )
+         IF ( DO_DIAG_WRITE ) THEN
+
+            ! Open bpch file and write top-of-file header
+            CALL OPEN_BPCH2_FOR_WRITE( IU_ND49, FILENAME, TITLE )
+
+         ENDIF
+
       ENDIF
 
       !=================================================================
@@ -1420,22 +1435,27 @@
 
          ENDIF
 
+         IF ( DO_DIAG_WRITE ) THEN
+
          !==============================================================
          ! Save this data block to the ND49 timeseries file
          !==============================================================
-         CALL BPCH2( IU_ND49,      MODELNAME,    LONRES,   
-     &               LATRES,       HALFPOLAR,    CENTER180, 
-     &               CATEGORY,     GMTRC,        UNIT,      
-     &               TAU,          TAU,          RESERVED,  
-     &               ND49_NI,      ND49_NJ,      GMNL,  
-     &               ND49_IMIN+I0, ND49_JMIN+J0, ND49_LMIN, 
-     &               REAL( Q(1:ND49_NI, 1:ND49_NJ, 1:GMNL),4 ) )
+            CALL BPCH2( IU_ND49,      MODELNAME,    LONRES,   
+     &        LATRES,       HALFPOLAR,    CENTER180, 
+     &           CATEGORY,     GMTRC,        UNIT,      
+     &           TAU,          TAU,          RESERVED,  
+     &           ND49_NI,      ND49_NJ,      GMNL,  
+     &           ND49_IMIN+I0, ND49_JMIN+J0, ND49_LMIN, 
+     &           REAL( Q(1:ND49_NI, 1:ND49_NJ, 1:GMNL),4 ) )
+
+         ENDIF
+
       ENDDO
             
       !=================================================================
       ! Close the file at the proper time
       !=================================================================
-      IF ( ITS_TIME_TO_CLOSE_FILE() ) THEN
+      IF ( ITS_TIME_TO_CLOSE_FILE() .and. DO_DIAG_WRITE ) THEN
 
          ! Expand date tokens in the file name
          FILENAME = TRIM( ND49_OUTPUT_FILE )

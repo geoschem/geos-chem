@@ -64,6 +64,8 @@
 !        (b) Hudman et al., 2008, Geophys. Res. Lett., 35, L04801, 
 !             doi:10.1029/2007GL032393
 !  (8 ) Now can read 0.5 x 0.667 nested grid emissions (amv, bmy, 12/18/09)
+!  22 Mar 2012 - M. Payer    - C2H6 emissions are too low. Use Yaping Xiao's
+!                              C2H6 emissions instead.
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -514,12 +516,27 @@
 !\\
 ! !INTERFACE:
 !
+#if defined( DEVEL )
+      SUBROUTINE EMISS_EPA_NEI(EMISS, BEMISS)
+#else
       SUBROUTINE EMISS_EPA_NEI
+#endif
 !
 ! !USES:
 !
       USE LOGICAL_MOD, ONLY : LNEI05 
       USE LOGICAL_MOD, ONLY : LNEI99
+#if defined( DEVEL )
+      USE CMN_SIZE_MOD
+      USE TRACER_MOD,   ONLY : N_TRACERS
+      USE TRACERID_MOD, ONLY : IDTACET, IDTALK4, IDTC2H6, IDTC3H8
+      USE TRACERID_MOD, ONLY : IDTCH2O, IDTCO,   IDTMEK,  IDTNOX
+      USE TRACERID_MOD, ONLY : IDTNH3,  IDTPRPE, IDTSO2,  IDTSO4  
+      USE GRID_MOD,     ONLY : GET_AREA_CM2
+      USE TRACER_MOD,   ONLY : TRACER_MW_KG
+      USE TIME_MOD,     ONLY : GET_DAY_OF_WEEK
+      USE ERROR_MOD,    ONLY : ALLOC_ERR
+#endif
 !
 ! !REMARKS:
 !  Read EPA/NEI99 anthro + EPA/NEI99 biofuel if LNEI99=T, or
@@ -538,12 +555,26 @@
 !
       LOGICAL, SAVE :: FIRST = .TRUE.
       
+#if defined( DEVEL )
+      INTEGER               :: I,J,DAY_NUM, AS
+      LOGICAL               :: WEEKDAY
+      REAL*8, INTENT(INOUT) :: EMISS(IIPAR, JJPAR, N_TRACERS)
+      REAL*8, INTENT(INOUT) :: BEMISS(IIPAR, JJPAR, NBIOMAX)
+      REAL*8, ALLOCATABLE   :: A(:,:)
+#endif
+
       !=================================================================
       ! First-time initialization
       !=================================================================
       IF ( FIRST ) THEN
 
+#if defined( DEVEL )
          ! Allocate arrays
+         ALLOCATE( A( IIPAR, JJPAR ), STAT=AS )
+         IF ( AS /= 0 ) CALL ALLOC_ERR( 'EMISS_EPA_NEI:A' )
+         A = 0d0
+#endif
+
          CALL INIT_EPA_NEI
 
 #if   defined( GRID05_0666 )
@@ -588,6 +619,178 @@
          ENDIF
 
       ENDIF
+
+#if defined( DEVEL )
+! Emissions  are treated as if they're molec/cm2/s
+! and converted to Kg/s
+
+      DAY_NUM = GET_DAY_OF_WEEK()
+      WEEKDAY = ( DAY_NUM > 0 .and. DAY_NUM < 6 )
+
+      DO I=1,IIPAR
+      DO J=1,JJPAR
+         A(I,J)  = GET_AREA_CM2( I, J, 1 ) 
+      ENDDO
+      ENDDO
+
+      DO J=1,JJPAR
+         IF ( WEEKDAY ) THEN
+            IF (.not. LNEI05) THEN
+               IF ( IDTNOX > 0) EMISS(:,J,IDTNOX) = 
+     &              EPA_WD_AN_NOX(:,J) * A(:,J) *
+     &              6.0225d-23 * TRACER_MW_KG(IDTNOX) 
+               IF ( IDTCO  > 0) EMISS(:,J,IDTCO)  = 
+     &              EPA_WD_AN_CO(:,J) * A(:,J) *
+     &              6.0225d-23 * TRACER_MW_KG(IDTCO) 
+               IF ( IDTALK4> 0) EMISS(:,J,IDTALK4) = 
+     &              EPA_WD_AN_ALK4(:,J) * A(:,J) *
+     &              6.0225d-23 * TRACER_MW_KG(IDTALK4) 
+               IF ( IDTACET > 0) EMISS(:,J,IDTACET) = 
+     &              EPA_WD_AN_ACET(:,J) * A(:,J) *
+     &              6.0225d-23 * TRACER_MW_KG(IDTACET) 
+               IF ( IDTMEK > 0) EMISS(:,J,IDTMEK)  = 
+     &              EPA_WD_AN_MEK(:,J) * A(:,J) *
+     &              6.0225d-23 * TRACER_MW_KG(IDTMEK) 
+               IF ( IDTPRPE > 0) EMISS(:,J,IDTPRPE) = 
+     &              EPA_WD_AN_PRPE(:,J) * A(:,J) *
+     &              6.0225d-23 * TRACER_MW_KG(IDTPRPE) 
+               IF ( IDTC3H8> 0) EMISS(:,J,IDTC3H8) = 
+     &              EPA_WD_AN_C3H8(:,J) * A(:,J) *
+     &              6.0225d-23 * TRACER_MW_KG(IDTC3H8) 
+               IF ( IDTCH2O> 0) EMISS(:,J,IDTCH2O) = 
+     &              EPA_WD_AN_CH2O(:,J) * A(:,J) *
+     &              6.0225d-23 * TRACER_MW_KG(IDTCH2O) 
+               IF ( IDTC2H6> 0) EMISS(:,J,IDTC2H6) = 
+     &              EPA_WD_AN_C2H6(:,J) * A(:,J) *
+     &              6.0225d-23 * TRACER_MW_KG(IDTC2H6) 
+               IF ( IDTSO2 > 0) EMISS(:,J,IDTSO2)  = 
+     &              EPA_WD_AN_SO2(:,J) * A(:,J) *
+     &              6.0225d-23 * TRACER_MW_KG(IDTSO2) 
+               IF ( IDTSO4 > 0) EMISS(:,J,IDTSO4)  = 
+     &              EPA_WD_AN_SO4(:,J) * A(:,J) *
+     &              6.0225d-23 * TRACER_MW_KG(IDTSO4) 
+               IF ( IDTNH3 > 0) EMISS(:,J,IDTNH3)  = 
+     &              EPA_WD_AN_NH3(:,J) * A(:,J) *
+     &              6.0225d-23 * TRACER_MW_KG(IDTNH3) 
+            ENDIF
+
+            IF ( IDTNOX > 0 ) EMISS(:,J,IDTNOX) = 
+     &           EPA_WD_BF_NOX(:,J) * A(:,J) *
+     &           6.0225d-23 * TRACER_MW_KG(IDTNOX) 
+            IF ( IDTCO > 0 ) EMISS(:,J,IDTCO)  = 
+     &           EPA_WD_BF_CO(:,J) * A(:,J) *
+     &           6.0225d-23 * TRACER_MW_KG(IDTCO) 
+            IF ( IDTALK4> 0 ) EMISS(:,J,IDTALK4) = 
+     &           EPA_WD_BF_ALK4(:,J) * A(:,J) *
+     &           6.0225d-23 * TRACER_MW_KG(IDTALK4) 
+            IF ( IDTACET> 0 ) EMISS(:,J,IDTACET) = 
+     &           EPA_WD_BF_ACET(:,J) * A(:,J) *
+     &           6.0225d-23 * TRACER_MW_KG(IDTACET) 
+            IF ( IDTMEK > 0 ) EMISS(:,J,IDTMEK)  = 
+     &           EPA_WD_BF_MEK(:,J) * A(:,J) *
+     &           6.0225d-23 * TRACER_MW_KG(IDTMEK) 
+            IF ( IDTPRPE> 0 ) EMISS(:,J,IDTPRPE) = 
+     &           EPA_WD_BF_PRPE(:,J) * A(:,J) *
+     &           6.0225d-23 * TRACER_MW_KG(IDTPRPE) 
+            IF ( IDTC3H8> 0 ) EMISS(:,J,IDTC3H8) = 
+     &           EPA_WD_BF_C3H8(:,J) * A(:,J) *
+     &           6.0225d-23 * TRACER_MW_KG(IDTC3H8) 
+            IF ( IDTCH2O> 0 ) EMISS(:,J,IDTCH2O) = 
+     &           EPA_WD_BF_CH2O(:,J) * A(:,J) *
+     &           6.0225d-23 * TRACER_MW_KG(IDTCH2O) 
+            IF ( IDTC2H6> 0 ) EMISS(:,J,IDTC2H6) = 
+     &           EPA_WD_BF_C2H6(:,J) * A(:,J) *
+     &           6.0225d-23 * TRACER_MW_KG(IDTC2H6) 
+            IF ( IDTSO2 > 0 ) EMISS(:,J,IDTSO2)  = 
+     &           EPA_WD_BF_SO2(:,J) * A(:,J) *
+     &           6.0225d-23 * TRACER_MW_KG(IDTSO2) 
+            IF ( IDTSO4 > 0 ) EMISS(:,J,IDTSO4)  = 
+     &           EPA_WD_BF_SO4(:,J) * A(:,J) *
+     &           6.0225d-23 * TRACER_MW_KG(IDTSO4) 
+            IF ( IDTNH3 > 0 ) EMISS(:,J,IDTNH3)  = 
+     &           EPA_WD_BF_NH3(:,J) * A(:,J) *
+     &           6.0225d-23 * TRACER_MW_KG(IDTNH3) 
+
+         ELSE ! ITS a WEEKEND...
+            IF (.not. LNEI05) THEN
+               IF ( IDTNOX > 0) EMISS(:,J,IDTNOX) = 
+     &              EPA_WE_AN_NOX(:,J) * A(:,J) *
+     &              6.0225d-23 * TRACER_MW_KG(IDTNOX) 
+               IF ( IDTCO  > 0) EMISS(:,J,IDTCO)  = 
+     &              EPA_WE_AN_CO(:,J) * A(:,J) *
+     &              6.0225d-23 * TRACER_MW_KG(IDTCO) 
+               IF ( IDTALK4> 0) EMISS(:,J,IDTALK4) = 
+     &              EPA_WE_AN_ALK4(:,J) * A(:,J) *
+     &              6.0225d-23 * TRACER_MW_KG(IDTALK4) 
+               IF ( IDTACET> 0) EMISS(:,J,IDTACET) = 
+     &              EPA_WE_AN_ACET(:,J) * A(:,J) *
+     &              6.0225d-23 * TRACER_MW_KG(IDTACET) 
+               IF ( IDTMEK > 0) EMISS(:,J,IDTMEK)  = 
+     &              EPA_WE_AN_MEK(:,J) * A(:,J) *
+     &              6.0225d-23 * TRACER_MW_KG(IDTMEK) 
+               IF ( IDTPRPE> 0) EMISS(:,J,IDTPRPE) = 
+     &              EPA_WE_AN_PRPE(:,J) * A(:,J) *
+     &              6.0225d-23 * TRACER_MW_KG(IDTPRPE) 
+               IF ( IDTC3H8> 0) EMISS(:,J,IDTC3H8) = 
+     &              EPA_WE_AN_C3H8(:,J) * A(:,J) *
+     &              6.0225d-23 * TRACER_MW_KG(IDTC3H8) 
+               IF ( IDTCH2O> 0) EMISS(:,J,IDTCH2O) = 
+     &              EPA_WE_AN_CH2O(:,J) * A(:,J) *
+     &              6.0225d-23 * TRACER_MW_KG(IDTCH2O) 
+               IF ( IDTC2H6> 0) EMISS(:,J,IDTC2H6) = 
+     &              EPA_WE_AN_C2H6(:,J) * A(:,J) *
+     &              6.0225d-23 * TRACER_MW_KG(IDTC2H6) 
+               IF ( IDTSO2 > 0) EMISS(:,J,IDTSO2)  = 
+     &              EPA_WE_AN_SO2(:,J) * A(:,J) *
+     &              6.0225d-23 * TRACER_MW_KG(IDTSO2) 
+               IF ( IDTSO4 > 0) EMISS(:,J,IDTSO4)  = 
+     &              EPA_WE_AN_SO4(:,J) * A(:,J) *
+     &              6.0225d-23 * TRACER_MW_KG(IDTSO4) 
+               IF ( IDTNH3 > 0) EMISS(:,J,IDTNH3)  = 
+     &              EPA_WE_AN_NH3(:,J) * A(:,J) *
+     &              6.0225d-23 * TRACER_MW_KG(IDTNH3) 
+            ENDIF
+            
+            IF ( IDTNOX > 0 ) EMISS(:,J,IDTNOX) = 
+     &           EPA_WE_BF_NOX(:,J) * A(:,J) *
+     &           6.0225d-23 * TRACER_MW_KG(IDTNOX) 
+            IF ( IDTCO  > 0 ) EMISS(:,J,IDTCO)  = 
+     &           EPA_WE_BF_CO(:,J) * A(:,J) *
+     &           6.0225d-23 * TRACER_MW_KG(IDTCO) 
+            IF ( IDTALK4> 0 ) EMISS(:,J,IDTALK4) = 
+     &           EPA_WE_BF_ALK4(:,J) * A(:,J) *
+     &           6.0225d-23 * TRACER_MW_KG(IDTALK4) 
+            IF ( IDTACET> 0 ) EMISS(:,J,IDTACET) = 
+     &           EPA_WE_BF_ACET(:,J) * A(:,J) *
+     &           6.0225d-23 * TRACER_MW_KG(IDTACET) 
+            IF ( IDTMEK > 0 ) EMISS(:,J,IDTMEK)  = 
+     &           EPA_WE_BF_MEK(:,J) * A(:,J) *
+     &           6.0225d-23 * TRACER_MW_KG(IDTMEK) 
+            IF ( IDTPRPE> 0 ) EMISS(:,J,IDTPRPE) = 
+     &           EPA_WE_BF_PRPE(:,J) * A(:,J) *
+     &           6.0225d-23 * TRACER_MW_KG(IDTPRPE) 
+            IF ( IDTC3H8> 0 ) EMISS(:,J,IDTC3H8) = 
+     &           EPA_WE_BF_C3H8(:,J) * A(:,J) *
+     &           6.0225d-23 * TRACER_MW_KG(IDTC3H8) 
+            IF ( IDTCH2O> 0 ) EMISS(:,J,IDTCH2O) = 
+     &           EPA_WE_BF_CH2O(:,J) * A(:,J) *
+     &           6.0225d-23 * TRACER_MW_KG(IDTCH2O) 
+            IF ( IDTC2H6> 0 ) EMISS(:,J,IDTC2H6) = 
+     &           EPA_WE_BF_C2H6(:,J) * A(:,J) *
+     &           6.0225d-23 * TRACER_MW_KG(IDTC2H6) 
+            IF ( IDTSO2 > 0 ) EMISS(:,J,IDTSO2)  = 
+     &           EPA_WE_BF_SO2(:,J) * A(:,J) *
+     &           6.0225d-23 * TRACER_MW_KG(IDTSO2) 
+            IF ( IDTSO4 > 0 ) EMISS(:,J,IDTSO4)  = 
+     &           EPA_WE_BF_SO4(:,J) * A(:,J) *
+     &           6.0225d-23 * TRACER_MW_KG(IDTSO4) 
+            IF ( IDTNH3 > 0 ) EMISS(:,J,IDTNH3)  = 
+     &           EPA_WE_BF_NH3(:,J) * A(:,J) *
+     &           6.0225d-23 * TRACER_MW_KG(IDTNH3) 
+
+         ENDIF
+      ENDDO
+#endif
 
       ! Echo info
       WRITE( 6, '(a)' ) REPEAT( '=', 79 )
@@ -1071,14 +1274,14 @@
 ! !USES:
 !
       USE BPCH2_MOD,        ONLY : OPEN_BPCH2_FOR_READ
-      USE FILE_MOD,         ONLY : IU_FILE, IOERROR
+      USE FILE_MOD,         ONLY : IOERROR
+      USE inquireMod,       ONLY : findFreeLUN
       USE LOGICAL_MOD,      ONLY : LICARTT
       USE TRANSFER_MOD,     ONLY : TRANSFER_2D
       USE SCALE_ANTHRO_MOD, ONLY : GET_ANNUAL_SCALAR
-      USE TIME_MOD,         ONLY : GET_YEAR
-   
-      USE CMN_SIZE_MOD             ! Size parameters
-      USE CMN_O3_MOD               ! FSCLYR
+      USE TIME_MOD,         ONLY : GET_YEAR   
+      USE CMN_SIZE_MOD                                       ! Size parameters
+      USE CMN_O3_MOD                                         ! FSCLYR
 !
 ! !INPUT PARAMETERS: 
 !
@@ -1104,13 +1307,14 @@
 !  (1 ) now apply yearly scale factor (amv, phs, 3/10/08)
 !  (2 ) Now accounts for FSCLYR (phs, 3/17/08)
 !  07 Feb 2011 - R. Yantosca - Added ProTeX headers
+!  07 Aug 2012 - R. Yantosca - Now print LUN used to open file
 !EOP
 !------------------------------------------------------------------------------
 !BOC
 !
 ! !LOCAL VARIABLES:
 !
-      INTEGER           :: I,  J,  L,  N,  IOS
+      INTEGER           :: I,  IU_FILE, J,  L,  N,  IOS
       INTEGER           :: NTRACER,   NSKIP
       INTEGER           :: HALFPOLAR, CENTER180
       INTEGER           :: NI,        NJ,        NL
@@ -1129,9 +1333,12 @@
       ! READ_EPA begins here!
       !=================================================================
 
+      ! Find a free file LUN
+      IU_FILE = findFreeLUN()
+
       ! Echo info
-      WRITE( 6, 100 ) TRIM( FILENAME )
- 100  FORMAT( 'READ_EPA: Reading ', a )
+      WRITE( 6, 100 ) TRIM( FILENAME ), IU_FILE
+ 100  FORMAT( 'READ_EPA: Reading ', a, ' on unit ', i4 )
 
       ! Open file
       CALL OPEN_BPCH2_FOR_READ( IU_FILE, FILENAME )
@@ -1616,6 +1823,8 @@
 !  (5) Now replace FMOL with TRACER_MW_KG (bmy, 10/25/05) 
 
 !  07 Feb 2011 - R. Yantosca - Added ProTeX headers
+!  01 Mar 2012 - R. Yantosca - Now use GET_AREA_CM2(I,J,L) from grid_mod.F90
+!  22 Mar 2012 - M. Payer    - Remove print for C2H6 emissions.
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -1633,7 +1842,6 @@
       REAL*8           :: F_MEK,   F_PRPE,  F_C2H6,  F_C3H8
       REAL*8           :: F_CH2O,  F_SO2,   F_SO4,   F_NH3
       CHARACTER(LEN=6) :: UNIT
-
       ! Days per month
       INTEGER          :: D(12) = (/ 31, 28, 31, 30, 31, 30,
      &                               31, 31, 30, 31, 30, 31 /)
@@ -1702,45 +1910,44 @@
       ! Sum anthropogenic emissions
       !=================================================================
 
-      ! Loop over latitudes
+      ! Loop over surface boxes
       DO J = 1, JJPAR
-            
+      DO I = 1, IIPAR
+
          ! Surface area [cm2] * seconds in this month / AVOGADRO's number
          ! Also multiply by the factor 1d-9 to convert kg to Tg
-         A = GET_AREA_CM2( J ) * ( D(THISMONTH) * 86400d-9 ) / 6.0225d23
+         A       = GET_AREA_CM2( I, J, 1 ) 
+     &           * ( D(THISMONTH) * 86400d-9 ) / 6.0225d23
          
-         ! Loop over longitudes
-         DO I = 1, IIPAR
+         ! Weekday avg emissions
+         WD_NOX  = WD_NOX  + EPA_WD_AN_NOX (I,J) * A * F_NOX 
+         WD_CO   = WD_CO   + EPA_WD_AN_CO  (I,J) * A * F_CO  
+         WD_ALK4 = WD_ALK4 + EPA_WD_AN_ALK4(I,J) * A * F_ALK4
+         WD_ACET = WD_ACET + EPA_WD_AN_ACET(I,J) * A * F_ACET
+         WD_MEK  = WD_MEK  + EPA_WD_AN_MEK (I,J) * A * F_MEK 
+         WD_PRPE = WD_PRPE + EPA_WD_AN_PRPE(I,J) * A * F_PRPE
+         WD_C2H6 = WD_C2H6 + EPA_WD_AN_C2H6(I,J) * A * F_C2H6
+         WD_C3H8 = WD_C3H8 + EPA_WD_AN_C3H8(I,J) * A * F_C3H8
+         WD_CH2O = WD_CH2O + EPA_WD_AN_CH2O(I,J) * A * F_CH2O
+         WD_SO2  = WD_SO2  + EPA_WD_AN_SO2 (I,J) * A * F_SO2 
+         WD_SO4  = WD_SO4  + EPA_WD_AN_SO4 (I,J) * A * F_SO4 
+         WD_NH3  = WD_NH3  + EPA_WD_AN_NH3 (I,J) * A * F_NH3 
 
-            ! Weekday avg emissions
-            WD_NOX  = WD_NOX  + EPA_WD_AN_NOX (I,J) * A * F_NOX 
-            WD_CO   = WD_CO   + EPA_WD_AN_CO  (I,J) * A * F_CO  
-            WD_ALK4 = WD_ALK4 + EPA_WD_AN_ALK4(I,J) * A * F_ALK4
-            WD_ACET = WD_ACET + EPA_WD_AN_ACET(I,J) * A * F_ACET
-            WD_MEK  = WD_MEK  + EPA_WD_AN_MEK (I,J) * A * F_MEK 
-            WD_PRPE = WD_PRPE + EPA_WD_AN_PRPE(I,J) * A * F_PRPE
-            WD_C2H6 = WD_C2H6 + EPA_WD_AN_C2H6(I,J) * A * F_C2H6
-            WD_C3H8 = WD_C3H8 + EPA_WD_AN_C3H8(I,J) * A * F_C3H8
-            WD_CH2O = WD_CH2O + EPA_WD_AN_CH2O(I,J) * A * F_CH2O
-            WD_SO2  = WD_SO2  + EPA_WD_AN_SO2 (I,J) * A * F_SO2 
-            WD_SO4  = WD_SO4  + EPA_WD_AN_SO4 (I,J) * A * F_SO4 
-            WD_NH3  = WD_NH3  + EPA_WD_AN_NH3 (I,J) * A * F_NH3 
+         ! Weekend avg emissions
+         WE_NOX  = WE_NOX  + EPA_WE_AN_NOX (I,J) * A * F_NOX 
+         WE_CO   = WE_CO   + EPA_WE_AN_CO  (I,J) * A * F_CO  
+         WE_ALK4 = WE_ALK4 + EPA_WE_AN_ALK4(I,J) * A * F_ALK4
+         WE_ACET = WE_ACET + EPA_WE_AN_ACET(I,J) * A * F_ACET
+         WE_MEK  = WE_MEK  + EPA_WE_AN_MEK (I,J) * A * F_MEK 
+         WE_PRPE = WE_PRPE + EPA_WE_AN_PRPE(I,J) * A * F_PRPE
+         WE_C2H6 = WE_C2H6 + EPA_WE_AN_C2H6(I,J) * A * F_C2H6
+         WE_C3H8 = WE_C3H8 + EPA_WE_AN_C3H8(I,J) * A * F_C3H8
+         WE_CH2O = WE_CH2O + EPA_WE_AN_CH2O(I,J) * A * F_CH2O
+         WE_SO2  = WE_SO2  + EPA_WE_AN_SO2 (I,J) * A * F_SO2 
+         WE_SO4  = WE_SO4  + EPA_WE_AN_SO4 (I,J) * A * F_SO4 
+         WE_NH3  = WE_NH3  + EPA_WE_AN_NH3 (I,J) * A * F_NH3 
 
-            ! Weekend avg emissions
-            WE_NOX  = WE_NOX  + EPA_WE_AN_NOX (I,J) * A * F_NOX 
-            WE_CO   = WE_CO   + EPA_WE_AN_CO  (I,J) * A * F_CO  
-            WE_ALK4 = WE_ALK4 + EPA_WE_AN_ALK4(I,J) * A * F_ALK4
-            WE_ACET = WE_ACET + EPA_WE_AN_ACET(I,J) * A * F_ACET
-            WE_MEK  = WE_MEK  + EPA_WE_AN_MEK (I,J) * A * F_MEK 
-            WE_PRPE = WE_PRPE + EPA_WE_AN_PRPE(I,J) * A * F_PRPE
-            WE_C2H6 = WE_C2H6 + EPA_WE_AN_C2H6(I,J) * A * F_C2H6
-            WE_C3H8 = WE_C3H8 + EPA_WE_AN_C3H8(I,J) * A * F_C3H8
-            WE_CH2O = WE_CH2O + EPA_WE_AN_CH2O(I,J) * A * F_CH2O
-            WE_SO2  = WE_SO2  + EPA_WE_AN_SO2 (I,J) * A * F_SO2 
-            WE_SO4  = WE_SO4  + EPA_WE_AN_SO4 (I,J) * A * F_SO4 
-            WE_NH3  = WE_NH3  + EPA_WE_AN_NH3 (I,J) * A * F_NH3 
-
-         ENDDO
+      ENDDO
       ENDDO
  
       !=================================================================
@@ -1757,7 +1964,6 @@
       WRITE( 6, 100   ) 'PRPE', THISMONTH, WD_PRPE, ' C'
       WRITE( 6, 100   ) 'C3H8', THISMONTH, WD_C3H8, ' C'
       WRITE( 6, 100   ) 'CH2O', THISMONTH, WD_CH2O, '  '
-      WRITE( 6, 100   ) 'C2H6', THISMONTH, WD_C2H6, ' C'
       WRITE( 6, 100   ) 'SO2 ', THISMONTH, WD_SO2,  '  '
       WRITE( 6, 100   ) 'SO4 ', THISMONTH, WD_SO4,  '  '
       WRITE( 6, 100   ) 'NH3 ', THISMONTH, WD_NH3,  '  '
@@ -1774,12 +1980,15 @@
       WRITE( 6, 110   ) 'PRPE', THISMONTH, WE_PRPE, ' C'
       WRITE( 6, 110   ) 'C3H8', THISMONTH, WE_C3H8, ' C'
       WRITE( 6, 110   ) 'CH2O', THISMONTH, WE_CH2O, '  '
-      WRITE( 6, 110   ) 'C2H6', THISMONTH, WE_C2H6, ' C'
       WRITE( 6, 110   ) 'SO2 ', THISMONTH, WE_SO2,  '  '
       WRITE( 6, 110   ) 'SO4 ', THISMONTH, WE_SO4,  '  '
       WRITE( 6, 110   ) 'NH3 ', THISMONTH, WE_NH3,  '  '
  110  FORMAT( 'Total weekend avg anthro ', a4, ' for 1999/', 
      &         i2.2, ': ', f13.6, ' Tg', a2 )
+
+      WRITE( 6, '(/,a,/)' ) 'EPA_NEI_MOD: EPA/NEI99 C2H6 '   //
+     &   'anthro emissions are too low. Using offline C2H6 ' //
+     &   'emissions from Yaping Xiao.'
 
       END SUBROUTINE TOTAL_ANTHRO_TG
 !EOC
@@ -1817,6 +2026,7 @@
 !  (1 ) Prevent out of bounds error when tracers are undefined (bmy, 1/25/05)
 !  (2 ) Now replace FMOL with TRACER_MW_KG
 !  07 Feb 2011 - R. Yantosca - Added ProTeX headers
+!  01 Mar 2012 - R. Yantosca - Now use GET_AREA_M2(I,J,L) from grid_mod.F90
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -1905,42 +2115,43 @@
 
       ! Loop over surface boxes
       DO J = 1, JJPAR
+      DO I = 1, IIPAR
 
          ! Surface area [cm2] * seconds in this month / AVOGADRO's number
          ! Also multiply by the factor 1d-9 to convert kg to Tg
-         A = GET_AREA_CM2( J ) * ( D(THISMONTH) * 86400d-9 ) / 6.0225d23
+         A       = GET_AREA_CM2( I, J, 1 ) 
+     &           * ( D(THISMONTH) * 86400d-9 ) / 6.0225d23
 
-         DO I = 1, IIPAR
 
-            ! Weekday avg emissions
-            WD_NOX  = WD_NOX  + EPA_WD_BF_NOX (I,J) * A * F_NOX
-            WD_CO   = WD_CO   + EPA_WD_BF_CO  (I,J) * A * F_CO  
-            WD_ALK4 = WD_ALK4 + EPA_WD_BF_ALK4(I,J) * A * F_ALK4
-            WD_ACET = WD_ACET + EPA_WD_BF_ACET(I,J) * A * F_ACET
-            WD_MEK  = WD_MEK  + EPA_WD_BF_MEK (I,J) * A * F_MEK 
-            WD_PRPE = WD_PRPE + EPA_WD_BF_PRPE(I,J) * A * F_PRPE
-            WD_C2H6 = WD_C2H6 + EPA_WD_BF_C2H6(I,J) * A * F_C2H6
-            WD_C3H8 = WD_C3H8 + EPA_WD_BF_C3H8(I,J) * A * F_C3H8
-            WD_CH2O = WD_CH2O + EPA_WD_BF_CH2O(I,J) * A * F_CH2O
-            WD_SO2  = WD_SO2  + EPA_WD_BF_SO2 (I,J) * A * F_SO2 
-            WD_SO4  = WD_SO4  + EPA_WD_BF_SO4 (I,J) * A * F_SO4 
-            WD_NH3  = WD_NH3  + EPA_WD_BF_NH3 (I,J) * A * F_NH3 
+         ! Weekday avg emissions
+         WD_NOX  = WD_NOX  + EPA_WD_BF_NOX (I,J) * A * F_NOX
+         WD_CO   = WD_CO   + EPA_WD_BF_CO  (I,J) * A * F_CO  
+         WD_ALK4 = WD_ALK4 + EPA_WD_BF_ALK4(I,J) * A * F_ALK4
+         WD_ACET = WD_ACET + EPA_WD_BF_ACET(I,J) * A * F_ACET
+         WD_MEK  = WD_MEK  + EPA_WD_BF_MEK (I,J) * A * F_MEK 
+         WD_PRPE = WD_PRPE + EPA_WD_BF_PRPE(I,J) * A * F_PRPE
+         WD_C2H6 = WD_C2H6 + EPA_WD_BF_C2H6(I,J) * A * F_C2H6
+         WD_C3H8 = WD_C3H8 + EPA_WD_BF_C3H8(I,J) * A * F_C3H8
+         WD_CH2O = WD_CH2O + EPA_WD_BF_CH2O(I,J) * A * F_CH2O
+         WD_SO2  = WD_SO2  + EPA_WD_BF_SO2 (I,J) * A * F_SO2 
+         WD_SO4  = WD_SO4  + EPA_WD_BF_SO4 (I,J) * A * F_SO4 
+         WD_NH3  = WD_NH3  + EPA_WD_BF_NH3 (I,J) * A * F_NH3 
+         
+         ! Weekend avg emissions
+         WE_NOX  = WE_NOX  + EPA_WE_BF_NOX (I,J) * A * F_NOX 
+         WE_CO   = WE_CO   + EPA_WE_BF_CO  (I,J) * A * F_CO  
+         WE_ALK4 = WE_ALK4 + EPA_WE_BF_ALK4(I,J) * A * F_ALK4
+         WE_ACET = WE_ACET + EPA_WE_BF_ACET(I,J) * A * F_ACET
+         WE_MEK  = WE_MEK  + EPA_WE_BF_MEK (I,J) * A * F_MEK 
+         WE_PRPE = WE_PRPE + EPA_WE_BF_PRPE(I,J) * A * F_PRPE
+         WE_C2H6 = WE_C2H6 + EPA_WE_BF_C2H6(I,J) * A * F_C2H6
+         WE_C3H8 = WE_C3H8 + EPA_WE_BF_C3H8(I,J) * A * F_C3H8
+         WE_CH2O = WE_CH2O + EPA_WE_BF_CH2O(I,J) * A * F_CH2O
+         WE_SO2  = WE_SO2  + EPA_WE_BF_SO2 (I,J) * A * F_SO2 
+         WE_SO4  = WE_SO4  + EPA_WE_BF_SO4 (I,J) * A * F_SO4 
+         WE_NH3  = WE_NH3  + EPA_WE_BF_NH3 (I,J) * A * F_NH3 
             
-            ! Weekend avg emissions
-            WE_NOX  = WE_NOX  + EPA_WE_BF_NOX (I,J) * A * F_NOX 
-            WE_CO   = WE_CO   + EPA_WE_BF_CO  (I,J) * A * F_CO  
-            WE_ALK4 = WE_ALK4 + EPA_WE_BF_ALK4(I,J) * A * F_ALK4
-            WE_ACET = WE_ACET + EPA_WE_BF_ACET(I,J) * A * F_ACET
-            WE_MEK  = WE_MEK  + EPA_WE_BF_MEK (I,J) * A * F_MEK 
-            WE_PRPE = WE_PRPE + EPA_WE_BF_PRPE(I,J) * A * F_PRPE
-            WE_C2H6 = WE_C2H6 + EPA_WE_BF_C2H6(I,J) * A * F_C2H6
-            WE_C3H8 = WE_C3H8 + EPA_WE_BF_C3H8(I,J) * A * F_C3H8
-            WE_CH2O = WE_CH2O + EPA_WE_BF_CH2O(I,J) * A * F_CH2O
-            WE_SO2  = WE_SO2  + EPA_WE_BF_SO2 (I,J) * A * F_SO2 
-            WE_SO4  = WE_SO4  + EPA_WE_BF_SO4 (I,J) * A * F_SO4 
-            WE_NH3  = WE_NH3  + EPA_WE_BF_NH3 (I,J) * A * F_NH3 
-            
-         ENDDO
+      ENDDO
       ENDDO
  
       !=================================================================
@@ -2064,8 +2275,9 @@
 !        to BPCH2_MOD and TRACERID_MOD, they're not needed.  (bmy, 10/3/05)
 !  (2 ) Default value changed to -1 to identify tracers without EPA/NEI 
 !        emissions. (hotp, ccc, 5/29/09)
-
 !  07 Feb 2011 - R. Yantosca - Added ProTeX headers
+!  22 Mar 2012 - M. Payer    - C2H6 emissions are too low. Use Yaping Xiao's
+!                              C2H6 emissions instead.
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -2104,7 +2316,7 @@
             EPA_NEI = EPA_WD_AN_CH2O(I,J)
 
          ELSE IF ( N == IDTC2H6 ) THEN
-            EPA_NEI = EPA_WD_AN_C2H6(I,J)
+            EPA_NEI = -1d0
 
          ELSE IF ( N == IDTSO2 ) THEN
             EPA_NEI = EPA_WD_AN_SO2(I,J)
@@ -2152,7 +2364,7 @@
             EPA_NEI = EPA_WE_AN_CH2O(I,J)
 
          ELSE IF ( N == IDTC2H6 ) THEN
-            EPA_NEI = EPA_WE_AN_C2H6(I,J)
+            EPA_NEI = -1d0
 
          ELSE IF ( N == IDTSO2 ) THEN
             EPA_NEI = EPA_WE_AN_SO2(I,J)

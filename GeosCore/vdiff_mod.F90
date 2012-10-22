@@ -16,12 +16,16 @@ MODULE VDIFF_MOD
 ! !USES:
 !
   USE TRACER_MOD,    ONLY : pcnst => N_TRACERS
-  USE VDIFF_PRE_MOD, ONLY : LLPAR
   USE LOGICAL_MOD,   ONLY : LPRT
   USE ERROR_MOD,     ONLY : DEBUG_MSG
-  
+#if defined( DEVEL )
+  USE VDIFF_PRE_MOD, ONLY : plev  => LLPAR
+  USE CMN_SIZE_MOD,  ONLY : IIPAR, JJPAR, LLPAR
+#else
+  USE VDIFF_PRE_MOD, ONLY : LLPAR
+#endif  
+
   IMPLICIT NONE
-#     include "define.h"
 #     include "define.h"
   
   PRIVATE
@@ -34,7 +38,12 @@ MODULE VDIFF_MOD
 !  
   save
   
+
+#if defined( DEVEL ) 
+  integer :: plevp
+#else  
   integer, parameter :: plev = LLPAR, plevp = plev + 1
+#endif
   
   real*8, parameter ::          &
        rearth = 6.37122d6,      & ! radius earth (m)
@@ -81,7 +90,11 @@ MODULE VDIFF_MOD
 !-----------------------------------------------------------------------
   real*8 :: &
        zkmin            ! minimum kneutral*f(ri)
+#if defined( DEVEL )
+  real*8, allocatable :: ml2(:)   ! mixing lengths squaredB
+#else
   real*8 :: ml2(plevp)   ! mixing lengths squared
+#endif
   real*8, allocatable :: qmincg(:)   ! min. constituent concentration 
                                      !  counter-gradient term
   
@@ -112,6 +125,8 @@ MODULE VDIFF_MOD
 !  02 Mar 2011 - R. Yantosca - Bug fixes for PGI compiler: these mostly
 !                              involve explicitly using "D" exponents
 !  25 Mar 2011 - R. Yantosca - Corrected bug fixes noted by Jintai Lin
+!  08 Feb 2012 - R. Yantosca - Add modifications for GEOS-5.7.2 met
+!  22 Jun 2012 - R. Yantosca - Now use pointers to flip arrays in vertical
 !EOP
 !------------------------------------------------------------------------------
 
@@ -153,6 +168,10 @@ contains
 !-----------------------------------------------------------------------
 ! 	... basic constants
 !-----------------------------------------------------------------------
+#if defined( DEVEL )
+    plevp = plev+1
+#endif
+
     g    = gravx
     onet = 1d0/3.d0
     
@@ -883,11 +902,6 @@ contains
        rrho(i)  = rair*t(i,plev)/pmid(i,plev)
        if (present(taux) .and. present(tauy)) then
           ustr     = sqrt( sqrt( taux(i)**2 + tauy(i)**2 )*rrho(i) )
-          !---------------------------------------------------------------
-          ! Prior to 9/17/11:
-          ! Use double precision exponents (bmy, 9/17/11)
-          !ustar(i) = max( ustr,.01 )
-          !---------------------------------------------------------------
           ustar(i) = max( ustr,.01d0 )
        endif
        khfs(i)  = shflx(i)*rrho(i)/cpair
@@ -1654,7 +1668,7 @@ contains
 ! !USES:
 ! 
     USE PRESSURE_MOD, ONLY : GET_AP, GET_BP
-    USE ERROR_MOD,   ONLY : ALLOC_ERR
+    USE ERROR_MOD,    ONLY : ALLOC_ERR
     
     implicit none
 !
@@ -1673,12 +1687,22 @@ contains
     
     integer :: AS
     
+#if defined( DEVEL )
+    real*8, allocatable :: ref_pmid(:)
+#else
     real*8 :: ref_pmid(LLPAR)
+#endif
 
     !=================================================================
     ! vdinti begins here!
     !=================================================================
 
+#if defined( DEVEL )
+    ALLOCATE( ref_pmid(LLPAR), STAT=AS )
+    IF ( AS /= 0 ) CALL ALLOC_ERR( 'ref_pmid' )
+    ref_pmid = 0.d0
+    plevp = plev+1
+#endif
 !-----------------------------------------------------------------------
 ! 	... hard-wired numbers.
 !           zkmin = minimum k = kneutral*f(ri)
@@ -1718,6 +1742,11 @@ contains
 !-----------------------------------------------------------------------
 ! 	... set the square of the mixing lengths
 !-----------------------------------------------------------------------
+#if defined( DEVEL )
+    ALLOCATE( ml2(plevp), STAT=AS )
+    IF ( AS /= 0 ) CALL ALLOC_ERR( 'ml2' )
+#endif
+
     ml2(1) = 0.d0
     do k = 2,plev
        ml2(k) = (30.d0)**2
@@ -1811,7 +1840,7 @@ contains
 !
 ! !INPUT/OUTPUT PARAMETERS: 
 !
-    real*8, intent(inout) :: as2(IIPAR,JJPAR,LLPAR,N_TRACERS) ! advected species
+    real*8, intent(inout), TARGET :: as2(IIPAR,JJPAR,LLPAR,N_TRACERS) ! advected species
 
 !    REAL*8                :: SNOW_HT !cdh - obsolete
     REAL*8                :: FRAC_NO_HG0_DEP !jaf 
@@ -1834,6 +1863,9 @@ contains
 !  26 Apr 2011 - J. Fisher   - Use MERRA land fraction information
 !  25 Oct 2011 - H. Amos     - bring Hg2 gas-particle partitioning code into
 !                              v9-01-02
+!  08 Feb 2012 - R. Yantosca - Treat GEOS-5.7.2 in the same way as MERRA
+!  01 Mar 2012 - R. Yantosca - Now use GET_AREA_CM2(I,J,L) from grid_mod.F90
+!  22 Jun 2012 - R. Yantosca - Now use pointers to flip arrays in vertical
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -1842,16 +1874,16 @@ contains
 !
     integer :: I,J,L,JLOOP,N,NN
 
-    real*8, dimension(IIPAR,JJPAR,LLPAR) :: pmid, rpdel, rpdeli, zm
-    real*8, dimension(IIPAR,JJPAR,LLPAR+1) :: pint
-    real*8, dimension(IIPAR,JJPAR,N_TRACERS) :: sflx
-    real*8, dimension(IIPAR,JJPAR,N_TRACERS) :: eflx, dflx ! surface flux
-    real*8, dimension(IIPAR,JJPAR,LLPAR+1) :: cgs, kvh, kvm
-    real*8, dimension(IIPAR,JJPAR) :: pblh, tpert, qpert
-    real*8, dimension(IIPAR,JJPAR,LLPAR) :: thp         ! potential temperature
-    real*8, dimension(IIPAR,JJPAR) :: shflx    ! water vapor flux
-    real*8, dimension(IIPAR,JJPAR,LLPAR) :: t1
-    real*8, dimension(IIPAR,JJPAR,LLPAR,N_TRACERS) :: as ! save tracer MR 
+    real*8, TARGET, dimension(IIPAR,JJPAR,LLPAR) :: pmid, rpdel, rpdeli, zm
+    real*8, TARGET, dimension(IIPAR,JJPAR,LLPAR+1) :: pint
+    real*8, TARGET, dimension(IIPAR,JJPAR,N_TRACERS) :: sflx
+    real*8, TARGET, dimension(IIPAR,JJPAR,N_TRACERS) :: eflx, dflx ! surface flux
+    real*8, TARGET, dimension(IIPAR,JJPAR,LLPAR+1) :: cgs, kvh, kvm
+    real*8, TARGET, dimension(IIPAR,JJPAR) :: pblh, tpert, qpert
+    real*8, TARGET, dimension(IIPAR,JJPAR,LLPAR) :: thp         ! potential temperature
+    real*8, TARGET, dimension(IIPAR,JJPAR) :: shflx    ! water vapor flux
+    real*8, TARGET, dimension(IIPAR,JJPAR,LLPAR) :: t1
+    real*8, TARGET, dimension(IIPAR,JJPAR,LLPAR,N_TRACERS) :: as ! save tracer MR 
                                                          ! before vdiffdr
     real*8 :: vtemp
     real*8 :: p0 = 1.d5
@@ -1867,6 +1899,23 @@ contains
 
     ! Add flags
     LOGICAL :: IS_CH4, IS_FULLCHEM, IS_Hg, IS_TAGOx, IS_TAGCO
+
+    ! Pointers 
+    REAL*8,  POINTER :: p_um1   (:,:,:  )
+    REAL*8,  POINTER :: p_vm1   (:,:,:  )
+    REAL*8,  POINTER :: p_tadv  (:,:,:  )
+    REAL*8,  POINTER :: p_pmid  (:,:,:  )
+    REAL*8,  POINTER :: p_pint  (:,:,:  )
+    REAL*8,  POINTER :: p_rpdel (:,:,:  ) 
+    REAL*8,  POINTER :: p_rpdeli(:,:,:  )
+    REAL*8,  POINTER :: p_zm    (:,:,:  )
+    REAL*8,  POINTER :: p_thp   (:,:,:  )
+    REAL*8,  POINTER :: p_kvh   (:,:,:  )
+    REAL*8,  POINTER :: p_kvm   (:,:,:  )
+    REAL*8,  POINTER :: p_cgs   (:,:,:  )
+    REAL*8,  POINTER :: p_shp   (:,:,:  )
+    REAL*8,  POINTER :: p_t1    (:,:,:  )
+    REAL*8,  POINTER :: p_as2   (:,:,:,:)
 
     !=================================================================
     ! vdiffdr begins here!
@@ -1906,6 +1955,8 @@ contains
     dtime = GET_TS_CONV()*60d0 ! min -> second
     
     shflx = eflux / latvap ! latent heat -> water vapor flux
+
+! (Turn off parallelization for now, skim 6/20/12)
     
 !$OMP PARALLEL DO DEFAULT( SHARED ) PRIVATE( I, J, L )
     do J = 1, JJPAR
@@ -1967,7 +2018,7 @@ contains
 !$OMP PARALLEL DO       &
 !$OMP DEFAULT( SHARED ) &
 !$OMP PRIVATE( I, J, L, N, NN, JLOOP, wk1, wk2, pbl_top, DEP_KG ) &
-!!$OMP PRIVATE( SNOW_HT )
+!!$OMP PRIVATE( SNOW_HT ) &
 !$OMP PRIVATE( FRAC_NO_HG0_DEP, ZERO_HG0_DEP )
     do J = 1, JJPAR
     do I = 1, IIPAR
@@ -2003,8 +2054,9 @@ contains
           ! Should NOT use ID_EMITTED here, since it is only for gases 
           ! for SMVGEAR. (Lin, 06/10/08)
           do N = 1, N_TRACERS
-             eflx(I,J,N) = eflx(I,J,N) + emis_save(I,J,N)/GET_AREA_M2(J)/ &
-                                                         GET_TS_EMIS() / 60.d0
+             eflx(I,J,N) = eflx(I,J,N) + emis_save(I,J,N)       &
+                                       / GET_AREA_M2( I, J, 1 ) &
+                                       / GET_TS_EMIS() / 60.d0
           enddo
 
        ENDIF
@@ -2031,8 +2083,9 @@ contains
           ! Should NOT use ID_EMITTED here, since it is only for gases 
           ! for SMVGEAR. (Lin, 06/10/08)
           do N = 1, N_TRACERS
-             eflx(I,J,N) = eflx(I,J,N) + emis_save(I,J,N)/GET_AREA_M2(J)/ &
-                                                         GET_TS_EMIS() / 60.d0
+             eflx(I,J,N) = eflx(I,J,N) + emis_save(I,J,N) &
+                         / GET_AREA_M2( I, J, 1 )         &
+                         / GET_TS_EMIS() / 60.d0
           enddo
        endif
 
@@ -2041,8 +2094,9 @@ contains
        !----------------------------------------------------------------
        IF ( IS_Hg ) THEN
           do N = 1, N_TRACERS
-             eflx(I,J,N) = eflx(I,J,N) + emis_save(I,J,N)/GET_AREA_M2(J)/ &
-                  GET_TS_EMIS() / 60.d0
+             eflx(I,J,N) = eflx(I,J,N) + emis_save(I,J,N) & 
+                         / GET_AREA_M2( I, J, 1 )         &
+                         / GET_TS_EMIS() / 60.d0
           enddo
        ENDIF
 
@@ -2050,12 +2104,13 @@ contains
        ! Apply dry deposition frequencies
        !----------------------------------------------------------------
        do N = 1, NUMDEP ! NUMDEP includes all gases/aerosols
+          ! Now include sea salt dry deposition (jaegle 5/11/11)
           IF (TRIM( DEPNAME(N) ) == 'DST1'.OR. &
               TRIM( DEPNAME(N) ) == 'DST2'.OR. &
               TRIM( DEPNAME(N) ) == 'DST3'.OR. &
-              TRIM( DEPNAME(N) ) == 'DST4'.OR. &
-              TRIM( DEPNAME(N) ) == 'SALA'.OR. &
-              TRIM( DEPNAME(N) ) == 'SALC') CYCLE
+              TRIM( DEPNAME(N) ) == 'DST4') CYCLE
+              !TRIM( DEPNAME(N) ) == 'SALA'.OR. &
+              !TRIM( DEPNAME(N) ) == 'SALC') CYCLE
 
           ! gases + aerosols for full chemistry 
           NN   = NTRAIND(N)
@@ -2174,7 +2229,7 @@ contains
           ! Except in MERRA, we assume entire grid box is water or ice
           ! if conditions are met (jaf, 4/26/11)
           FRAC_NO_HG0_DEP = 1d0
-#if   defined( MERRA )
+#if   defined( MERRA ) || defined( GEOS_57 )
           FRAC_NO_HG0_DEP = &
                MIN(FROCEAN(I,J) + FRSNO(I,J) + FRLANDIC(I,J), 1d0)
           ZERO_HG0_DEP = ( FRAC_NO_HG0_DEP > 0d0 )
@@ -2243,7 +2298,7 @@ contains
        ! for deposition: additional step to convert from s-1 to kg/m2/s
        ! dflx(I,J,:) = dflx(I,J,:) * pmid(I,J,1) / rair / vtemp * BXHEIGHT(I,J,1)
        ! alternate method to convert from s-1 to kg/m2/s
-       dflx(I,J,:) = dflx(I,J,:) * AD(I,J,1) / GET_AREA_M2(J) 
+       dflx(I,J,:) = dflx(I,J,:) * AD(I,J,1) / GET_AREA_M2( I, J, 1 ) 
 
        ! surface flux = emissions - dry deposition
        sflx(I,J,:) = eflx(I,J,:) - dflx(I,J,:) ! kg/m2/s
@@ -2261,7 +2316,8 @@ contains
              NN = NTRAIND(N)
              
              ! Deposition mass, kg
-             DEP_KG = dflx( I, J, NN ) * GET_AREA_M2(J) * GET_TS_CONV() * 60d0
+             DEP_KG = dflx( I, J, NN ) * GET_AREA_M2( I, J, 1 ) &
+                    * GET_TS_CONV()    * 60d0
 
              IF ( IS_Hg2(NN) ) THEN 
                 
@@ -2290,8 +2346,10 @@ contains
        do N = 1, NUMDEP
           SELECT CASE ( DEPNAME(N) )
              ! non gases + aerosols for fully chemistry 
-             CASE ( 'DST1', 'DST2', 'DST3', 'DST4', 'SALA', &
-                    'SALC' )
+             !CASE ( 'DST1', 'DST2', 'DST3', 'DST4', 'SALA', &
+             !       'SALC' )
+	     ! now include sea salt dry deposition (jaegle 5/11/11)
+             CASE ( 'DST1', 'DST2', 'DST3', 'DST4')
                 CYCLE
              CASE DEFAULT
                 ! Locate position of each tracer in DEPSAV
@@ -2335,25 +2393,37 @@ contains
        enddo
        endif
 
-       ! Use simpler way to flip vectors in vertical (bmy, 12/17/10)
-       ! mozart is top-down and geos-chem is bottom-up
-       um1    = um1   ( :, :, LLPAR  :1:-1 )   
-       vm1    = vm1   ( :, :, LLPAR  :1:-1 )
-       tadv   = tadv  ( :, :, LLPAR  :1:-1 )
-       pmid   = pmid  ( :, :, LLPAR  :1:-1 )
-       pint   = pint  ( :, :, LLPAR+1:1:-1 )
-       rpdel  = rpdel ( :, :, LLPAR  :1:-1 )
-       rpdeli = rpdeli( :, :, LLPAR  :1:-1 )
-       zm     = zm    ( :, :, LLPAR  :1:-1 )
-       thp    = thp   ( :, :, LLPAR  :1:-1 )
+       !-------------------------------------------------------------------
+       ! Now use pointers to flip arrays in the vertical (bmy, 6/22/15)
+       !-------------------------------------------------------------------
 
-       ! Flip AS2 array in vertical (tracer concentrations)
-       ! Also convert from v/v -> m/m (i.e., kg/kg)
+       ! 3-D fields on level centers
+       p_um1              => um1   ( :, :, LLPAR  :1:-1    )   
+       p_vm1              => vm1   ( :, :, LLPAR  :1:-1    )
+       p_tadv             => tadv  ( :, :, LLPAR  :1:-1    )
+       p_pmid             => pmid  ( :, :, LLPAR  :1:-1    )
+       p_rpdel            => rpdel ( :, :, LLPAR  :1:-1    )
+       p_rpdeli           => rpdeli( :, :, LLPAR  :1:-1    )
+       p_zm               => zm    ( :, :, LLPAR  :1:-1    )
+       p_thp              => thp   ( :, :, LLPAR  :1:-1    )
+       p_shp              => shp   ( :, :, LLPAR  :1:-1    )
+
+       ! 3-D fields on level edges
+       p_pint             => pint  ( :, :, LLPAR+1:1:-1    )
+       p_kvh              => kvh   ( :, :, LLPAR+1:1:-1    )
+       p_kvm              => kvm   ( :, :, LLPAR+1:1:-1    )
+       p_cgs              => cgs   ( :, :, LLPAR+1:1:-1    )
+
+       ! Tracer concentration fields
+       p_as2              => as2   ( :, :, LLPAR  :1:-1, : )
+
+       ! Convert v/v -> m/m (i.e., kg/kg)
        DO N = 1, N_TRACERS
-          as2(:,:,:,N) = as2(:,:,LLPAR:1:-1,N) / TCVV(N) 
+          p_as2(:,:,:,N)  =  p_as2(:,:,:,N) / TCVV(N) 
        ENDDO
 
-       shp    = shp   ( :, :, LLPAR  :1:-1 ) * 1.d-3 ! g/kg -> kg/kg
+       ! Convert g/kg -> kg/kg
+       p_shp              =  p_shp * 1.d-3 
 
        !### Debug
        IF ( LPRT ) CALL DEBUG_MSG( '### VDIFFDR: before vdiff' )
@@ -2361,43 +2431,30 @@ contains
 !$OMP PARALLEL DO DEFAULT( SHARED )      &
 !$OMP PRIVATE( J )     
        do J = 1, JJPAR
-          call vdiff( J, 1, um1, vm1, tadv,        &
-                      pmid, pint, rpdel,           &
-                      rpdeli, dtime,               &
-                      zm, hflx, sflx,              &
-                      thp, as2, pblh,              &
-                      kvh,                         &
-                      kvm, tpert, qpert,           &
-                      cgs, shp,                    &
-                      shflx, IIPAR, ustar_arg=ustar)
+          call vdiff( J,      1,      p_um1,   p_vm1,    p_tadv,          &
+                      p_pmid, p_pint, p_rpdel, p_rpdeli, dtime,           &
+                      p_zm,   hflx,   sflx,    p_thp,    p_as2,           &
+                      pblh,   p_kvh,  p_kvm,   tpert,    qpert,           &
+                      p_cgs,  p_shp,  shflx,   IIPAR,    ustar_arg=ustar )
+
        enddo
 !$OMP END PARALLEL DO
 
        !### Debug
        IF ( LPRT ) CALL DEBUG_MSG( '### VDIFFDR: after vdiff' )
 
-       ! Use simpler way to flip vectors in vertical (bmy, 12/17/10)
-       ! mozart is top-down and geos-chem is bottom-up
-       um1    = um1   ( :, :, LLPAR  :1:-1 )   
-       vm1    = vm1   ( :, :, LLPAR  :1:-1 )
-       tadv   = tadv  ( :, :, LLPAR  :1:-1 )
-       pmid   = pmid  ( :, :, LLPAR  :1:-1 )
-       pint   = pint  ( :, :, LLPAR+1:1:-1 )
-       rpdel  = rpdel ( :, :, LLPAR  :1:-1 )
-       rpdeli = rpdeli( :, :, LLPAR  :1:-1 )
-       zm     = zm    ( :, :, LLPAR  :1:-1 )
-       thp    = thp   ( :, :, LLPAR  :1:-1 )
-
-       ! Flip AS2 array in vertical (tracer concentrations)
-       ! Also convert from m/m (i.e. kg/kg) -> v/v
+       ! Convert kg/kg -> v/v
        DO N = 1, N_TRACERS
-          as2(:,:,:,N) = as2(:,:,LLPAR:1:-1,N) * TCVV(N)
+          p_as2(:,:,:,N) = p_as2(:,:,:,N) * TCVV(N)
        ENDDO
 
-       kvh    = kvh   ( :, :, LLPAR+1:1:-1 )
-       kvm    = kvm   ( :, :, LLPAR+1:1:-1 )
-       cgs    = cgs   ( :, :, LLPAR+1:1:-1 )
-       shp    = shp   ( :, :, LLPAR  :1:-1 ) * 1.d3 ! kg/kg -> g/kg
+       ! Convert kg/kg -> g/kg
+       p_shp    = p_shp * 1.d3
+
+       ! Free pointers
+       NULLIFY( p_um1,   p_vm1,    p_tadv, p_pmid, p_pint )
+       NULLIFY( p_rpdel, p_rpdeli, p_zm,   p_thp,  p_cgs  )
+       NULLIFY( p_kvh,   p_kvm,    p_shp,  p_as2          )
 
     else if( arvdiff ) then
 !-----------------------------------------------------------------------
@@ -2406,76 +2463,63 @@ contains
 !       %%% NOTE: THIS SECTION IS NORMALLY NOT EXECUTED %%%
 !       %%% BECAUSE ARVDIFF IS SET TO .FALSE. ABOVE     %%% 
 !-----------------------------------------------------------------------
-      
-       ! Use simpler way to flip vectors in vertical (bmy, 12/17/10)
-       ! mozart is top-down and geos-chem is bottom-up
-       t1     = tadv  ( :, :, LLPAR  :1:-1 )
-       pmid   = pmid  ( :, :, LLPAR  :1:-1 )
-       pint   = pint  ( :, :, LLPAR+1:1:-1 )
-       rpdel  = rpdel ( :, :, LLPAR  :1:-1 )
-       rpdeli = rpdeli( :, :, LLPAR  :1:-1 )
-       kvh    = kvh   ( :, :, LLPAR+1:1:-1 )
-       cgs    = cgs   ( :, :, LLPAR+1:1:-1 )
 
-       ! Flip AS2 array in vertical (tracer concentrations)
-       DO N = 1, N_TRACERS
-          as2(:,:,:,N) = as2(:,:,LLPAR:1:-1,N)
-       ENDDO
+       !-------------------------------------------------------------------
+       ! Now use pointers to flip arrays in the vertical (bmy, 6/22/15)
+       !-------------------------------------------------------------------
+
+       ! INPUTS: 3-D fields on level centers
+       p_tadv   => tadv  ( :, :, LLPAR  :1:-1   )
+       p_pmid   => pmid  ( :, :, LLPAR  :1:-1   )
+       p_rpdel  => rpdel ( :, :, LLPAR  :1:-1   )
+       p_rpdeli => rpdeli( :, :, LLPAR  :1:-1   )
+
+       ! INPUTS: 3-D fields on level edges
+       p_pint   => pint  ( :, :, LLPAR+1:1:-1   )
+       p_kvh    => kvh   ( :, :, LLPAR+1:1:-1   )
+       p_cgs    => cgs   ( :, :, LLPAR+1:1:-1   )
+
+       ! INPUTS: Tracer concentration fields
+       p_as2    => as2   ( :, :, LLPAR:1:-1,  : )
 
        ! Convert from v/v -> m/m (i.e., kg/kg)
        do N = 1, N_TRACERS
-          as2(:,:,:,N) = as2(:,:,:,N) / TCVV(N) 
+          p_as2(:,:,:,N) = p_as2(:,:,:,N) / TCVV(N) 
        enddo
 
        !### Debug
-       IF ( LPRT ) CALL DEBUG_MSG( '### VDIFFDR: before vdiff' )
+       IF ( LPRT ) CALL DEBUG_MSG( '### VDIFFDR: before vdiffar' )
 
-!$OMP PARALLEL DO DEFAULT( SHARED )   &
-!$OMP PRIVATE( J )
+!!$OMP PARALLEL DO DEFAULT( SHARED )   &
+!!$OMP PRIVATE( J )
        do J = 1, JJPAR
-          call vdiffar( J, tadv, &
-                        pmid, pint,        &
-                        rpdel, rpdeli, dtime, &
-                        sflx, as2,                   &
-                        kvh, cgs, IIPAR)
-
+          call vdiffar( J,      p_tadv, p_pmid, p_pint, p_rpdel, p_rpdeli,  &
+                        dtime,  sflx,   p_as2,  p_kvh,  p_cgs,   IIPAR     )
       enddo
-!$OMP END PARALLEL DO
+!!$OMP END PARALLEL DO
 
        !### Debug
-       IF ( LPRT ) CALL DEBUG_MSG( '### VDIFFDR: after vdiff' )
+       IF ( LPRT ) CALL DEBUG_MSG( '### VDIFFDR: after vdiffar' )
 
        ! Convert from m/m (i.e. kg/kg) -> v/v
        do N = 1, N_TRACERS
-          as2(:,:,:,N) = as2(:,:,:,N) * TCVV(N) 
+          p_as2(:,:,:,N) = p_as2(:,:,:,N) * TCVV(N) 
        enddo
 
-       ! Use simpler way to flip vectors in vertical (bmy, 12/17/10)
-       ! mozart is top-down and geos-chem is bottom-up
-       t1     = t1    ( :, :, LLPAR  :1:-1 )
-       kvh    = kvh   ( :, :, LLPAR+1:1:-1 )
-       cgs    = cgs   ( :, :, LLPAR+1:1:-1 )
-
-       ! Flip AS2 array in vertical (tracer concentrations)
-       DO N = 1, N_TRACERS
-          as2(:,:,:,N) = as2(:,:,LLPAR:1:-1,N)
-       ENDDO
+       ! Free pointers
+       NULLIFY( p_tadv, p_pmid, p_rpdel, p_rpdeli )
+       NULLIFY( p_pint, p_kvh,  p_cgs,   p_as2    )
 
     end if
 
+    !-------------------------------------------------------------------
     ! re-compute PBL variables wrt derived pblh (in m)
+    !-------------------------------------------------------------------
     if (.not. pblh_ar) then
 
-#if   defined( GEOS_3 )
-       ! PBL in GEOS_3 is in hPa 
-       ! pint has been 'upside-down' (Lin, 05/28/08)
-       ! m -> hPa
-       ! PBL = pint(:,:,LLPAR+1) * pblh / SCALE_HEIGHT ! simplified formulation
-       PBL = pint(:,:,LLPAR+1) * (1.d0 - EXP( - pblh / SCALE_HEIGHT )) * 1.d-2
-#else
-       ! PBL in other meteo. datasets is in m 
+       ! PBL is in m 
        PBL = pblh 
-#endif
+
        CALL COMPUTE_PBL_HEIGHT
     endif
 
@@ -2512,7 +2556,6 @@ contains
     USE TIME_MOD,      ONLY : ITS_TIME_FOR_EMIS
 
     IMPLICIT NONE
-#     include "define.h"
 #     include "define.h"
 !
 ! !INPUT PARAMETERS:
@@ -2555,7 +2598,14 @@ contains
 
        ! If it's time to do emissions, call SETEMIS
        IF ( ITS_TIME_FOR_EMIS() ) THEN 
-          CALL SETEMIS( EMISRR, EMISRRN )
+!-------------------------------------------------------------------------------
+! Prior to 10/2/12:
+! Need to also pass a value to the am_I_Root argument of setemis.F
+! (mpayer, bmy, 10/2/12)
+!          CALL SETEMIS( EMISRR, EMISRRN )
+!-------------------------------------------------------------------------------
+          CALL SETEMIS( EMISRR, EMISRRN, .TRUE. )
+
           IF ( LPRT ) CALL DEBUG_MSG( '### DO_PBL_MIX_2: aft SETEMIS' )
        ENDIF
 

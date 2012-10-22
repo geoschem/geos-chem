@@ -75,12 +75,17 @@
 !  (16) Now print output for IFORT compiler in "tpcore" (bmy, 10/18/05)
 !  (17) Remove support for LINUX_IFC & LINUX_EFC compilers (bmy, 8/4/06)
 !  (18) Corrected mass flux diagnostics (phs, 9/18/07)
+!  01 Mar 2012 - R. Yantosca - Now reference new grid_mod.F90
 !******************************************************************************
 !
       !=================================================================
       ! MODULE PRIVATE DECLARATIONS -- keep certain internal variables 
       ! and routines from being seen outside "tpcore_mod.f"
       !=================================================================
+
+#if defined( DEVEL )
+      USE ERROR_MOD, ONLY : ALLOC_ERR
+#endif
 
       ! Make everything PRIVATE ...
       PRIVATE
@@ -350,7 +355,8 @@
 #     include "define.h"
 
 ! ****6***0*********0*********0*********0*********0*********0**********72
-      PARAMETER (Jmax = 721, kmax = 200)
+!clb  PARAMETER (Jmax = 721, kmax = 200)
+      PARAMETER (Jmax=1200, kmax=200)
 ! ****6***0*********0*********0*********0*********0*********0**********72
  
 ! Input-Output arrays
@@ -1988,9 +1994,9 @@ c     median(x,y,z) = min(max(x,y), max(y,z), max(z,x))
 
       elseif(LMT .eq. 4) then
 
-c****6***0*********0*********0*********0*********0*********0**********72
+!****6***0*********0*********0*********0*********0*********0**********72
 ! Huynh's 2nd constraint
-c****6***0*********0*********0*********0*********0*********0**********72
+!****6***0*********0*********0*********0*********0*********0**********72
 
       do k=2, NL-1
          do i=1,imr
@@ -2876,16 +2882,17 @@ c        AL(i,k) = median(AL(i,k), qmin, qmax)
 !  (3 ) Now declare DXYP as a local array, and initialize it with calls
 !        to routine GET_AREA_M2 of "grid_mod.f".  Now use function GET_TS_DYN
 !        from "time_mod.f".  Remove reference to CMN header file. (bmy, 2/4/03)
+!  01 Mar 2012 - R. Yantosca - Now use GET_AREA_M2(I,J,L) from grid_mod.F90
 !******************************************************************************
 !
       ! References to F90 modules
-      USE GRID_MOD, ONLY : GET_AREA_M2
-      USE TIME_MOD, ONLY : GET_TS_DYN
+      USE GRID_MOD,  ONLY : GET_AREA_M2
+      USE TIME_MOD,  ONLY : GET_TS_DYN
 
       USE CMN_SIZE_MOD   ! Size parameters
       USE CMN_DIAG_MOD   ! Diagnostic switches
       USE CMN_GCTM_MOD   ! g0_100
-
+      
       IMPLICIT NONE
 #     include "define.h" 
 
@@ -2896,7 +2903,7 @@ c        AL(i,k) = median(AL(i,k), qmin, qmax)
       REAL*8,  INTENT(INOUT) :: FY(IIPAR,JJPAR,LLPAR)
 
       ! Local variables
-      INTEGER                :: I, J, J2, K, K2, L
+      INTEGER                :: I, J, J2, K, K2, L, AS
       REAL*8                 :: DTC, DTDYN, NSDYN, SUM1, SUM2
       REAL*8                 :: NP_FLUX(IIPAR,LLPAR)
       REAL*8                 :: SP_FLUX(IIPAR,LLPAR)
@@ -2907,9 +2914,13 @@ c        AL(i,k) = median(AL(i,k), qmin, qmax)
       REAL*8                 :: VMFLX(IIPAR,JJPAR,LLPAR)
 
       ! Local SAVEd variables
+#if defined( DEVEL )
+      LOGICAL, SAVE              :: FIRST = .TRUE.
+      REAL*8,  ALLOCATABLE, SAVE :: DXYP(:)
+#else
       LOGICAL, SAVE          :: FIRST = .TRUE.
       REAL*8,  SAVE          :: DXYP(JJPAR)
-
+#endif
       !=================================================================
       ! PRESS_FIX begins here!
       !
@@ -2933,8 +2944,13 @@ c        AL(i,k) = median(AL(i,k), qmin, qmax)
 
       ! Save grid box surface areas [m2] into the local DXYP array
       IF ( FIRST ) THEN
+#if defined( DEVEL )
+         ALLOCATE( DXYP(JJPAR), STAT=AS)
+         IF ( AS /=0 ) CALL ALLOC_ERR( 'DXYP_PRESS_FIX')
+#endif
+
          DO J = 1, JJPAR
-            DXYP(J) = GET_AREA_M2( J )
+            DXYP(J) = GET_AREA_M2( 1, J, 1 )
          ENDDO
 
          ! Reset first-time flag
@@ -3123,6 +3139,7 @@ c        AL(i,k) = median(AL(i,k), qmin, qmax)
 !        to routine GET_AREA_M2 and GET_YOFFSET of "grid_mod.f".  Now also
 !        references GET_BP from "pressure_mod.f" (bmy, 2/11/03)
 !  (8 ) Removed reference to CMN (bmy, 7/20/04)
+!  01 Mar 2012 - R. Yantosca - Now use GET_AREA_CM2(I,J,L) from grid_mod.F90
 !******************************************************************************
 !
       ! References to F90 modules
@@ -3130,7 +3147,7 @@ c        AL(i,k) = median(AL(i,k), qmin, qmax)
       USE GRID_MOD,     ONLY : GET_AREA_M2, GET_YOFFSET
       USE PRESSURE_MOD, ONLY : GET_BP
 
-      USE CMN_SIZE_MOD     ! Size parameters
+      USE CMN_SIZE_MOD       ! Size parameters
 
       IMPLICIT NONE
 #     include "define.h"
@@ -3149,7 +3166,7 @@ c        AL(i,k) = median(AL(i,k), qmin, qmax)
       ! Local variables
       LOGICAL                :: LSP, LNP, LEW
       INTEGER                :: IIX, JJX, KM, JB, JE, IEPZ, IMZ
-      INTEGER                :: I, J, J2, K, L
+      INTEGER                :: I, J, J2, K, L, AS
       REAL*8                 :: ALFAX, UFILT, VFILT, PCTM8, G100
       REAL*8                 :: AIRQAV, AWE, SUMAD0, SUMAW0, AIRWET
       REAL*8                 :: AIRH2O, AIRQKG ,SUM1, SUMA, SUMP, SUMQ
@@ -3170,8 +3187,14 @@ c        AL(i,k) = median(AL(i,k), qmin, qmax)
 
       ! Local saved variables
       LOGICAL, SAVE          :: FIRST = .TRUE.
+
+#if defined( DEVEL )
+      REAL*8,  ALLOCATABLE, SAVE :: DXYP(:)
+      REAL*8,  ALLOCATABLE, SAVE :: DSIG(:)
+#else
       REAL*8,  SAVE          :: DXYP(JJPAR)
       REAL*8,  SAVE          :: DSIG(LLPAR)
+#endif
 
       !=================================================================
       ! DYN0 begins here!
@@ -3284,12 +3307,22 @@ c        AL(i,k) = median(AL(i,k), qmin, qmax)
       IF ( FIRST ) THEN
          
          ! Surface area [m2]
+#if defined( DEVEL )
+         ALLOCATE( DXYP(JJPAR), STAT=AS)
+         IF ( AS /=0 ) CALL ALLOC_ERR( 'DXYP_DYN0')
+#endif
+
          DO J = 1, JJPAR
-            DXYP(J) = GET_AREA_M2( J )
+            DXYP(J) = GET_AREA_M2( 1, J, 1 )
          ENDDO
 
          ! Sigma-level thickness [unitless]
          ! Assumes we are using a pure-sigma grid
+#if defined( DEVEL )
+         ALLOCATE( DSIG(LLPAR), STAT=AS)
+         IF ( AS /=0 ) CALL ALLOC_ERR( 'DSIG')
+#endif
+
          DO L = 1, LLPAR        
             DSIG(L) = GET_BP(L) - GET_BP(L+1)
          ENDDO
@@ -4079,6 +4112,7 @@ c        AL(i,k) = median(AL(i,k), qmin, qmax)
 !  (9 ) Remove references obsolete to CO-OH param code (bmy, 6/24/05)
 !  (10) Bug fix: FX should be dimensioned with IIPAR+1 and FZ should be
 !        dimensioned with LLPAR+1 (bmy, 7/21/05)
+!  01 Mar 2012 - R. Yantosca - Now use GET_AREA_CM2(I,J,L) from grid_mod.F90
 !******************************************************************************
 !
       ! References to F90 modules
@@ -4151,10 +4185,11 @@ c        AL(i,k) = median(AL(i,k), qmin, qmax)
 
             DO J = 1, JJPAR
 
-               ! Grid box surface area [m2]
-               AREA_M2 = GET_AREA_M2( J )
-
                DO I = 1, IIPAR
+                  
+                  ! Grid box surface area [m2]
+                  AREA_M2 = GET_AREA_M2( I, J, K )
+
                   DTC = ( FX(I,J,K) + FX1_TP(I,J,K) ) * 
      &                  ( g0_100    * AREA_M2       ) /
      &                  ( TCVV(IC)  * DTDYN         )
@@ -4182,10 +4217,11 @@ c        AL(i,k) = median(AL(i,k), qmin, qmax)
 
             DO J = 1, JJPAR
                
-               ! Grid box surface area [m2]
-               AREA_M2 = GET_AREA_M2( J )
-
                DO I = 1, IIPAR
+
+                  ! Grid box surface area [m2]
+                  AREA_M2 = GET_AREA_M2( I, J, K )
+
                   DTC = ( FY(I,J,K) + FY1_TP(I,J,K)    ) * 
      &                  ( ACOSP(J)  * g0_100 * AREA_M2 ) /
      &                  ( TCVV(IC)  * DTDYN            )
@@ -4218,11 +4254,12 @@ c        AL(i,k) = median(AL(i,k), qmin, qmax)
             K2 = LLPAR - K + 1
 
             DO J = 1, JJPAR
-               
-               ! Grid box surface area [m2]
-               AREA_M2 = GET_AREA_M2( J )
 
                DO I = 1, IIPAR
+
+                  ! Grid box surface area [m2]
+                  AREA_M2 = GET_AREA_M2( I, J, K )
+
                   DTC = ( FZ(I,J,K) + FZ1_TP(I,J,K) ) *
      &                  ( g0_100    * AREA_M2       ) /
      &                  ( TCVV(IC)  * DTDYN         )

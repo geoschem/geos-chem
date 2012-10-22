@@ -1,5 +1,5 @@
 ! $Id: jsparse.f,v 1.1 2009/09/16 14:06:23 bmy Exp $
-      SUBROUTINE JSPARSE
+      SUBROUTINE JSPARSE( am_I_Root )
 !
 !******************************************************************************
 !  Subroutine JSPARSE sets up the sparse-matrix arrays for SMVGEAR II.
@@ -12,6 +12,8 @@
 !        and change in moles to "smv2.log".  Now call GEOS_CHEM_STOP to
 !        deallocate all arrays and stop the run safely.  Now force double
 !        precision with "D" exponents. (bmy, 4/18/03)
+!  30 Jul 2012 - R. Yantosca - Now accept am_I_Root as an argument even when
+!                              called from the traditional driver "main.F"
 !******************************************************************************
 !
       ! References to F90 modules
@@ -24,6 +26,7 @@
       IMPLICIT NONE
 #     include "define.h"
 
+      INTEGER, INTENT(IN) :: am_I_Root   ! Is this the root CPU?
 !
 ! *********************************************************************
 ! ************        WRITTEN BY MARK JACOBSON (1993)      ************
@@ -308,8 +311,10 @@
             IF (ISPC1.GT.0) ISPC1 = INEWOLD(ISPC1,NCS)
             IF (ISPC2.GT.0) ISPC2 = INEWOLD(ISPC2,NCS)
             IF (ISPC3.GT.0) ISPC3 = INEWOLD(ISPC3,NCS)
-            WRITE(IO93,155) NREPT, NK,NAMENCS(ISPC1,NCS), 
-     1                   NAMENCS(ISPC2,NCS), NAMENCS(ISPC3,NCS)
+            IF ( am_I_Root ) THEN
+               WRITE(IO93,155) NREPT, NK,NAMENCS(ISPC1,NCS), 
+     &            NAMENCS(ISPC2,NCS), NAMENCS(ISPC3,NCS)
+            ENDIF
  155        FORMAT('REPEAT REACTANTS: ',I5,I5,3(1X,A14))
            ENDIF 
           ENDIF 
@@ -497,9 +502,7 @@
 ! *********************************************************************
 !
        DO 243 J          = 1, JPHOTRAT(NCS)
-        NK               = NKPHOTRAT(J,NCS)
-        NKN              = NEWFOLD(NK,NCS)
-        NKNPHOTRT(J,NCS) = NKN
+         NKNPHOTRT(J,NCS) = NKPHOTRAT(J,NCS)
  243   CONTINUE
 !
  245   FORMAT('JSPARSE: IC NE NALLRAT =',2(I5))
@@ -576,17 +579,23 @@
  260   CONTINUE
 !
        IF (IOREAC.EQ.1) THEN
-        WRITE(IO93,*)
-        WRITE(IO93,240)
+        IF(am_I_Root) WRITE(IO93,*)
+        IF(am_I_Root) WRITE(IO93,240)
         DO 270 K = 1, NTSPEC(NCS) 
          J       = INEWOLD(K,NCS) 
-         WRITE(IO93,250)NAMENCS( J,NCS),NUMGAINT(K,NCS),NUMGAIN( K,NCS),
-     1                NUMLOST( K,NCS),NUMLOSS( K,NCS),NUMGAINT(K,NCS) 
-     2               -NUMLOST( K,NCS)-NUMGAIN( K,NCS)+NUMLOSS( K,NCS),
-     3                FRACGAIN(K,NCS),NUMGFRT( K,NCS)
+         IF ( am_I_Root ) THEN
+            WRITE(IO93,250)
+     &           NAMENCS( J,NCS),NUMGAINT(K,NCS),NUMGAIN( K,NCS),
+     &           NUMLOST( K,NCS),NUMLOSS( K,NCS),NUMGAINT(K,NCS) 
+     &           -NUMLOST( K,NCS)-NUMGAIN( K,NCS)+NUMLOSS( K,NCS),
+     &           FRACGAIN(K,NCS),NUMGFRT( K,NCS)
+         ENDIF
  270    CONTINUE
-        WRITE(IO93,250) 'OVERALL       ',NGTSUM, NGSUM, NLTSUM, NLSUM,
-     1               NGTSUM - NLTSUM - NGSUM + NLSUM, 0., NGFSUM
+        IF ( am_I_Root ) THEN
+           WRITE(IO93,250) 'OVERALL       ',
+     &          NGTSUM, NGSUM, NLTSUM, NLSUM,
+     &          NGTSUM - NLTSUM - NGSUM + NLSUM, 0., NGFSUM
+        ENDIF
        ENDIF
 !
        IF (NMOTH(  NCS).GT.MAXGL2.OR.NOLOSP(NCS).GT.MAXGL3.OR.
@@ -604,7 +613,7 @@
 ! NMASBAL = NUMBER OF MASS BALANCE GROUPS (E.G. S, N, C ARE GROUPS)
 ! WTMB(1) = NUMBER OF ATOMS OF A GIVEN MASS BALANCE SPECIES PER MOLECULE 
 !
-       WRITE(IO93,360) CHEMTYP(NCS)
+       IF(am_I_Root) WRITE(IO93,360) CHEMTYP(NCS)
 !
        IF (NCS.LE.NCSGAS) THEN
 ! 
@@ -614,7 +623,7 @@
          IF (MBCOMP(N,MB1).GT.0) THEN 
           TNUMGN     = 0
           TNUMLS     = 0
-          WRITE(IO93,325) NAMEMB(N)
+          IF(am_I_Root) WRITE(IO93,325) NAMEMB(N)
           DO 380 J   = 1, MBCOMP(N,MB1) 
            JGAS      = JMBCOMP(N,J,MB1)
            JNEW      = MAPPL(JGAS,NCS)
@@ -623,15 +632,20 @@
            TNUMLSA   = NUMLOSS(JNEW,NCS) * WTMB(N,JGAS,MB1) 
            TNUMGN    = TNUMGN + TNUMGNA
            TNUMLS    = TNUMLS + TNUMLSA
-           WRITE(IO93,320) NAMEGAS(JGAS), TNUMGNA, TNUMLSA, 0 
+           IF ( am_I_Root ) THEN
+              WRITE(IO93,320) NAMEGAS(JGAS), TNUMGNA, TNUMLSA, 0 
+           ENDIF
  380      CONTINUE
-          WRITE(IO93,370) TNUMGN, TNUMLS, TNUMGN - TNUMLS 
+          IF ( am_I_Root ) THEN
+             WRITE(IO93,370) TNUMGN, TNUMLS, TNUMGN - TNUMLS 
+          ENDIF
          ENDIF 
  385    CONTINUE
        ENDIF
 !
-       WRITE(IO93,375) NALLRAT(NCSP), NALLRAT(NCS) - NALLRAT(NCSP),
-     1                 NALLRAT(NCS) 
+       IF(am_I_Root) WRITE(IO93,375) 
+     &                 NALLRAT(NCSP), NALLRAT(NCS) - NALLRAT(NCSP),
+     &                 NALLRAT(NCS) 
 !
  360   FORMAT(/'CHANGE IN MOLES DUE TO ',A14,' CHEMISTRY')
  325   FORMAT('MASS BALANCE GROUP              = ',A14)
@@ -704,7 +718,7 @@
 ! *   SET DECOMPOSITION AND BACK-SUBSTITUTION SPARSE-MATRIX ARRAYS    *
 ! *********************************************************************
 !
-       CALL KSPARSE
+       CALL KSPARSE(am_I_Root)
 
 !
 ! *********************************************************************

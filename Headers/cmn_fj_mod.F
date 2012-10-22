@@ -23,11 +23,6 @@
 !
 ! !DEFINED PARAMETERS:
 !
-      ! Global array sizes in longitude, latitude, altitude
-      INTEGER, PARAMETER :: IPAR = IIPAR
-      INTEGER, PARAMETER :: JPAR = JJPAR
-      INTEGER, PARAMETER :: LPAR = LLPAR
-
       ! max # of photolysis rxns = 4 + IPHOT (see comode.h)
       ! FP increased JPMAX since IPHOT was increased (hotp 7/31/09)
       !INTEGER, PARAMETER :: JPMAX = 79
@@ -52,7 +47,11 @@
       INTEGER            :: RINDEX(JPMAX)
 
       ! Output J-values
-      REAL*8             :: ZPJ(LPAR,JPMAX,IPAR,JPAR)
+#if defined( DEVEL ) || defined( EXTERNAL_GRID ) || defined( EXTERNAL_FORCING )
+      REAL*8, ALLOCATABLE :: ZPJ(:,:,:,:)
+#else
+      REAL*8             :: ZPJ(LLPAR,JPMAX,IIPAR,JJPAR)
+#endif
 ! 
 ! !REMARKS:
 !  Based on code from Oliver Wild (9 Jul 1999)
@@ -75,8 +74,22 @@
 !  (11) Increase photolysis rxns JPMAX = 89 for Isoprene (fp, 2/2/10)
 !  (12) Increase species name length. (fp, 2/2/10)
 !  23 Aug 2011 - M. Long   - Converted to Module from Header file
+!  10 Aug 2012 - R. Yantosca - Replace IPAR, JPAR, LPAR w/ IIPAR, JJPAR, LLPAR
 !EOP
 !------------------------------------------------------------------------------
 !BOC
+#if defined( DEVEL )
+      CONTAINS
+
+      SUBROUTINE SET_CMN_FJ_MOD
+
+      IMPLICIT NONE
+
+      INTEGER AS
+
+      ALLOCATE(ZPJ(LLPAR,JPMAX,IIPAR,JJPAR), STAT=AS)
+
+      END SUBROUTINE SET_CMN_FJ_MOD
+#endif
       END MODULE CMN_FJ_MOD
 !EOC

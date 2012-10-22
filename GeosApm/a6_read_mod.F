@@ -53,8 +53,12 @@
 !        (phs, bmy, 3/28/08)
 !  (15) Now get the # of A-6 fields from the file ident string (bmy, 10/7/08)
 !  (16) Remove references to IN_CLOUD_OD (bmy, 10/15/09)
+!  28 Feb 2012 - R. Yantosca - Removed support for GEOS-3
+!  03 Aug 2012 - R. Yantosca - Now make IU_A6 a private module variable
 !******************************************************************************
 !
+      USE inquireMod, ONLY : findFreeLUN
+
       IMPLICIT NONE
 #     include "define.h"
 
@@ -80,6 +84,9 @@
 
       ! Number of A6 fields in the file
       INTEGER :: N_A6_FIELDS
+
+      ! File unit for A-6 met fields
+      INTEGER :: IU_A6
 
       !=================================================================
       ! MODULE ROUTINES -- follow below the "CONTAINS" statement 
@@ -112,11 +119,12 @@
 !        and GCAP met fields. (bmy, 5/25/05)
 !  (5 ) Now make sure all USE statements are USE, ONLY (bmy, 10/3/05)
 !  (6 ) Remove support for GEOS-1 and GEOS-STRAT met fields (bmy, 8/4/06)
+!  28 Feb 2012 - R. Yantosca - Removed support for GEOS-3
 !******************************************************************************
 !
       ! References to F90 modules
       USE BPCH2_MOD,     ONLY : GET_RES_EXT
-      USE DIRECTORY_MOD, ONLY : DATA_DIR,   GCAP_DIR,   GEOS_3_DIR 
+      USE DIRECTORY_MOD, ONLY : DATA_DIR,   GCAP_DIR
       USE DIRECTORY_MOD, ONLY : GEOS_4_DIR, GEOS_5_DIR, TEMP_DIR 
       USE ERROR_MOD,     ONLY : ERROR_STOP
       USE TIME_MOD,      ONLY : EXPAND_DATE
@@ -140,13 +148,7 @@
       !=================================================================
       IF ( PRESENT( NYMD ) ) THEN
 
-#if   defined( GEOS_3 )
-
-         ! Strings for directory & filename
-         GEOS_DIR = TRIM( GEOS_3_DIR )
-         A6_STR   = 'YYYYMMDD.a6.' // GET_RES_EXT() 
-
-#elif defined( GEOS_4 )
+#if   defined( GEOS_4 )
 
          ! Strings for directory & filename
          GEOS_DIR = TRIM( GEOS_4_DIR )
@@ -327,7 +329,7 @@
 !  (1 ) Adapted from OPEN_MET_FIELDS of "dao_read_mod.f" (bmy, 6/19/03)
 !  (2 ) Now opens either zipped or unzipped files (bmy, 12/11/03)
 !  (3 ) Now skips past the GEOS-4 ident string (bmy, 12/12/03)
-!  (4 ) Now references "directory_mod.f" instead of F77_CMN_SETUP.  Also now
+!  (4 ) Now references "directory_mod.f" instead of CMN_SETUP.  Also now
 !        references LUNZIP from "logical_mod.f".  Also now prevents EXPAND_DATE
 !        from overwriting Y/M/D tokens in directory paths. (bmy, 7/20/04)
 !  (5 ) Now use FILE_EXISTS from "file_mod.f" to determine if file unit IU_A6 
@@ -338,15 +340,18 @@
 !  (9 ) Now get the # of A-3 fields from the file ident string (bmy, 10/7/08)
 !  (10) Set N_A6_FIELDS=21 for GEOS-5 and IN_CLOUD_OD (jmao, bmy, 2/12/09)
 !  (11) Remove references to IN_CLOUD_OD (bmy, 10/15/09)
+!  28 Feb 2012 - R. Yantosca - Removed support for GEOS-3
+!  03 Aug 2012 - R. Yantosca - Now use findFreeLUN to define IU_A6 locally
+!  07 Aug 2012 - R. Yantosca - Now print LUN used to open file
 !******************************************************************************
 !      
       ! References to F90 modules
       USE BPCH2_MOD,     ONLY : GET_RES_EXT
-      USE DIRECTORY_MOD, ONLY : DATA_DIR,   GCAP_DIR,   GEOS_3_DIR 
+      USE DIRECTORY_MOD, ONLY : DATA_DIR,   GCAP_DIR
       USE DIRECTORY_MOD, ONLY : GEOS_4_DIR, GEOS_5_DIR, TEMP_DIR 
       USE ERROR_MOD,     ONLY : ERROR_STOP
       USE LOGICAL_MOD,   ONLY : LUNZIP
-      USE FILE_MOD,      ONLY : IU_A6, IOERROR, FILE_EXISTS
+      USE FILE_MOD,      ONLY : IOERROR, FILE_EXISTS
       USE TIME_MOD,      ONLY : EXPAND_DATE
 
       USE CMN_SIZE_MOD        ! Size parameters
@@ -356,7 +361,7 @@
 
       ! Local variables
       LOGICAL, SAVE          :: FIRST = .TRUE.
-      LOGICAL                :: IT_EXISTS
+      LOGICAL                :: IT_EXISTS, IS_OPEN
       INTEGER                :: IOS, IUNIT
       CHARACTER(LEN=8)       :: IDENT
       CHARACTER(LEN=255)     :: A6_FILE
@@ -370,13 +375,7 @@
       ! Open A-6 file at the proper time, or on the first call
       IF ( DO_OPEN_A6( NYMD, NHMS ) ) THEN
 
-#if   defined( GEOS_3 )
-
-         ! Strings for directory & filename
-         GEOS_DIR = TRIM( GEOS_3_DIR )
-         A6_FILE  = 'YYYYMMDD.a6.' // GET_RES_EXT()
-
-#elif defined( GEOS_4 )
+#if   defined( GEOS_4 )
 
          ! Strings for directory & filename
          GEOS_DIR = TRIM( GEOS_4_DIR )
@@ -410,7 +409,8 @@
          ENDIF
 
          ! Close previously opened A-3 file
-         CLOSE( IU_A6 )
+	 INQUIRE( IU_A6, OPENED=IS_OPEN )
+         IF ( IS_OPEN ) CLOSE( IU_A6 )
 
          ! Make sure the file unit is valid before we open the file
          IF ( .not. FILE_EXISTS( IU_A6 ) ) THEN
@@ -418,6 +418,9 @@
      &                       'OPEN_A6_FIELDS (a6_read_mod.f)' )
          ENDIF
 
+         ! Find a free file LUN
+         IU_A6 = findFreeLUN()
+         
          ! Open the file
          OPEN( UNIT   = IU_A6,         FILE   = TRIM( PATH ),
      &         STATUS = 'OLD',         ACCESS = 'SEQUENTIAL',  
@@ -428,10 +431,8 @@
          ENDIF
 
          ! Echo info
-         WRITE( 6, 100 ) TRIM( PATH )
- 100     FORMAT( '     - Opening: ', a ) 
-
-#if   !defined( GEOS_3 )
+         WRITE( 6, 100 ) TRIM( PATH ), IU_A6
+ 100     FORMAT( '     - Opening: ', a, ' on unit ', i4 ) 
 
          ! Skip past the ident string
          READ( IU_A6, IOSTAT=IOS ) IDENT
@@ -452,8 +453,6 @@
          N_A6_FIELDS = 21
 #endif
 
-#endif
-
       ENDIF
 
       ! Return to calling program
@@ -461,7 +460,11 @@
 
 !------------------------------------------------------------------------------
 
+#if defined( DEVEL )
+      SUBROUTINE GET_A6_FIELDS( NYMD, NHMS, LOCAL_MET )
+#else
       SUBROUTINE GET_A6_FIELDS( NYMD, NHMS )
+#endif
 !
 !******************************************************************************
 !  Subroutine GET_A6_FIELDS is a wrapper for routine READ_A6.  GET_A6_FIELDS
@@ -474,7 +477,7 @@
 !  (2 ) NHMS (INTEGER) :  and HHMMSS of A-6 fields to be read from disk
 !
 !  NOTES:
-!  (1 ) CFRAC has been removed from F77_CMN_DEP.  Now use CLDFRC(I,J) from
+!  (1 ) CFRAC has been removed from CMN_DEP.  Now use CLDFRC(I,J) from
 !        "dao_mod.f" (bmy, 12/9/03)
 !  (2 ) Now pass CLDTOPS to READ_A6 for GEOS-4 (bmy, 3/4/04)
 !  (3 ) Now modified for GEOS-5 and GCAP met fields (swu, bmy, 5/25/05)
@@ -482,6 +485,7 @@
 !  (5 ) Now read CMFMC, DQIDTMST, DQLDTMST, DQRCON, DQRLSC, DQVDTMST, MFXC,
 !        MFYC, MFZ, PV, QI, QL, RH, TAUCLI, TAUCLW for GEOS-5 
 !        (bmy, 10/30/07)
+!  28 Feb 2012 - R. Yantosca - Removed support for GEOS-3
 !******************************************************************************
 !
       ! References to F90 modules
@@ -533,9 +537,15 @@
 #endif
 
       USE CMN_SIZE_MOD  ! Size parameters
+#if defined( DEVEL )
+      USE GC_TYPE_MOD,  ONLY : GC_MET_LOCAL
+#endif
 
       ! Arguments
       INTEGER, INTENT(IN) :: NYMD, NHMS 
+#if defined( DEVEL )
+      TYPE(GC_MET_LOCAL), INTENT(INOUT) :: LOCAL_MET
+#endif
 
       ! Local variables
       INTEGER, SAVE       :: LASTNYMD = -1, LASTNHMS = -1
@@ -555,22 +565,7 @@
          RETURN
       ENDIF
 
-#if   defined( GEOS_3 ) 
-
-      !=================================================================      
-      ! GEOS-3: get CLDF, CLDMAS, CLDTOPS, DTRAIN, MOISTQ, OPTDEP
-      !=================================================================
-#if   defined( APM )
-      CALL READ_A6( NYMD=NYMD,      NHMS=NHMS,       
-     &              CLDF=CLDF0,     CLDMAS=CLDMAS0, CLDTOPS=CLDTOPS0, 
-     &              DTRAIN=DTRAIN0, MOISTQ=MOISTQ0, OPTDEPTH=OPTDEP0 )
-#else
-      CALL READ_A6( NYMD=NYMD,     NHMS=NHMS,       
-     &              CLDF=CLDF,     CLDMAS=CLDMAS, CLDTOPS=CLDTOPS, 
-     &              DTRAIN=DTRAIN, MOISTQ=MOISTQ, OPTDEPTH=OPTDEP )
-#endif
-
-#elif defined( GEOS_4 )
+#if   defined( GEOS_4 )
 
       !=================================================================      
       ! GEOS-4: get CLDF, CLDTOPS, HKBETA, HKETA, MOISTQ, OPTDEP, SPHU
@@ -618,16 +613,13 @@
      &              CMFMC=CMFMC,        DQIDTMST=DQIDTMST, 
      &              DQLDTMST=DQLDTMST,  DQRCON=DQRCON, 
      &              DQRLSC=DQRLSC,      DQVDTMST=DQVDTMST,
-     &              DTRAIN=DTRAIN,     !-------------------------------------
-!--------------------------------------+ MFXC=MFXC,    Activate these    
-!     &              MFYC=MFYC,          MFZ=MFZ       later (bmy, 1/17/07)
-!----------------------------------------------------------------------------
-     &              MOISTQ=MOISTQ,     OPTDEPTH=OPTDEP, 
-     &              PV=PV,             RH=RH,             
-     &              Q=SPHU,            QL=QL,             
-     &              QI=QI,             T=T,               
-     &              TAUCLI=TAUCLI,     TAUCLW=TAUCLW,     
-     &              U=UWND,            V=VWND         ) 
+     &              DTRAIN=DTRAIN,     
+     &              MOISTQ=MOISTQ,      OPTDEPTH=OPTDEP, 
+     &              PV=PV,              RH=RH,             
+     &              Q=SPHU,             QL=QL,             
+     &              QI=QI,              T=T,               
+     &              TAUCLI=TAUCLI,      TAUCLW=TAUCLW,     
+     &              U=UWND,             V=VWND         ) 
 #endif
 
 #elif defined( GCAP ) 
@@ -672,6 +664,22 @@
       ! Save NYMD and NHMS for next call
       LASTNYMD = NYMD
       LASTNHMS = NHMS
+
+#if defined( DEVEL )
+      LOCAL_MET%CLDF     = CLDF
+      LOCAL_MET%CMFMC    = CMFMC
+      LOCAL_MET%DTRAIN   = DTRAIN
+      LOCAL_MET%MOISTQ   = MOISTQ
+      LOCAL_MET%OPTD     = OPTDEP
+      LOCAL_MET%RH       = RH
+      LOCAL_MET%SPHU     = SPHU
+      LOCAL_MET%T        = T
+      LOCAL_MET%DQIDTMST = DQIDTMST
+      LOCAL_MET%DQLDTMST = DQLDTMST
+      LOCAL_MET%TAUCLI   = TAUCLI
+      LOCAL_MET%TAUCLW   = TAUCLW
+      LOCAL_MET%DQVDTMST = DQVDTMST
+#endif
 
 #if   defined( APM )
 
@@ -922,6 +930,7 @@
 !  (1 ) Now modified for GCAP and GEOS-5 met fields (swu, bmy, 5/25/05)
 !  (2 ) Remove support for GEOS-1 and GEOS-STRAT met fields (bmy, 8/4/06)
 !  (3 ) Increase number of A-6 fields for GEOS-5 to 21 (bmy, 5/15/07)
+!  28 Feb 2012 - R. Yantosca - Removed support for GEOS-3
 !******************************************************************************
 !
       USE CMN_SIZE_MOD 
@@ -932,12 +941,7 @@
       !=================================================================
       ! GET_N_A6 begins here!
       !=================================================================
-#if   defined( GEOS_3 )
-
-      ! GEOS-3 has 6 A-6 fields
-      N_A6 = 6
-
-#elif defined( GEOS_4 )
+#if defined( GEOS_4 )
 
       ! GEOS-4 has 12 A-6 fields
       N_A6 = 12
@@ -1065,7 +1069,7 @@
 !  (3 ) Now compute CLDTOPS using ZMMU for GEOS-4 (bmy, 3/4/04)
 !  (4 ) Now modified for GEOS-5 and GCAP fields.  Added DETRAINE, 
 !        DETRAINN, DNDE, DNDN, ENTRAIN, UPDE, UPDN as optional arguments.
-!        Now references "F77_CMN_DIAG". (swu, bmy, 5/25/05)
+!        Now references "CMN_DIAG". (swu, bmy, 5/25/05)
 !  (5 ) Bug fix in ND66 diagnostic for GEOS-4 (bmy, 2/1/06)
 !  (6 ) Remove support for GEOS-1 and GEOS-STRAT met fields (bmy, 8/4/06)
 !  (7 ) Now set negative SPHU to a small positive # (1d-32) instead of zero, 
@@ -1080,11 +1084,14 @@
 !        (phs, bmy, 3/28/08)
 !  (8 ) Now get the # of A-6 fields from the file ident string (bmy, 10/7/08)
 !  (9 ) Remove references to IN_CLOUD_OD (bmy, 10/15/09)
+!  28 Feb 2012 - R. Yantosca - Removed support for GEOS-3
+!  03 Aug 2012 - R. Yantosca - Now use locally-defined IU_A3 file LUN
+!  07 Aug 2012 - R. Yantosca - Now print LUN used to open file
 !******************************************************************************
 !
       ! References to F90 modules
       USE DIAG_MOD,     ONLY : AD66,        AD67
-      USE FILE_MOD,     ONLY : IOERROR,     IU_A6
+      USE FILE_MOD,     ONLY : IOERROR
       USE TIME_MOD,     ONLY : SET_CT_A6,   TIMESTAMP_STRING
       USE TRANSFER_MOD, ONLY : TRANSFER_A6, TRANSFER_3D_Lp1
       USE TRANSFER_MOD, ONLY : TRANSFER_3D, TRANSFER_G5_PLE
@@ -1703,8 +1710,9 @@
          IF ( CHECK_TIME( XYMD, XHMS, NYMD, NHMS ) .AND. 
      &        NFOUND == N_A6 ) THEN
             STAMP = TIMESTAMP_STRING( NYMD, NHMS )
-            WRITE( 6, 210 ) NFOUND, STAMP
- 210        FORMAT( '     - Found all ', i3, ' A-6 met fields for ', a )
+            WRITE( 6, 210 ) NFOUND, STAMP, IU_A6
+ 210        FORMAT( '     - Found all ', i3, ' A-6 met fields for ', 
+     &                   a, ' on unit ', i4 )
             EXIT
          ENDIF
       ENDDO
@@ -1739,40 +1747,6 @@
          ENDDO
          ENDDO
       ENDIF     
-
-#elif defined( GEOS_3 )
-
-      !------------------------------
-      ! Special handling for GEOS-3
-      !------------------------------
-
-      ! Due to an error in the DAO archiving process, the CLDMAS and 
-      ! DTRAIN fields have units of [kg/m2/600s].  Divide here by 600 
-      ! to convert CLDMAS and DTRAIN into units of [kg/m2/s].
-      IF ( PRESENT( CLDMAS ) ) CLDMAS = CLDMAS / 600d0
-      IF ( PRESENT( DTRAIN ) ) DTRAIN = DTRAIN / 600d0
-
-      ! CLDTOPS highest location of CLDMAS in the column (I,J)
-      IF ( PRESENT( CLDTOPS ) .and. PRESENT( CLDMAS ) ) THEN
-         DO J = 1, JJPAR
-         DO I = 1, IIPAR
-            CLDTOPS(I,J) = 1
-            DO L = LLPAR, 1, -1
-               IF ( CLDMAS(I,J,L) > 0d0 ) THEN
-                  CLDTOPS(I,J) = L + 1
-               ENDIF
-            ENDDO
-         ENDDO
-         ENDDO
-      ENDIF
-
-      ! For 1998 GEOS-3 fields only, create OPTDEPTH = TAUCLD * CLDTOT
-      ! The 1998 fields only store TAUCLD, which is the in-cloud 
-      ! optical depth.  The actual grid box optical depth is 
-      ! TAUCLD * CLDTOT, which is what FAST-J needs. (bmy, 10/11/01)
-      IF ( PRESENT( OPTDEPTH ) .and. ( NYMD / 10000 ) == 1998 ) THEN
-         OPTDEPTH = TAUCLD * CLDTOT
-      ENDIF
 
 #elif defined( GEOS_4 )
 

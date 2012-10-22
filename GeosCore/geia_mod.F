@@ -48,8 +48,14 @@
 !  (14) Now make sure all USE statements are USE, ONLY (bmy, 10/3/05)
 !  (15) Modifications for 0.5 x 0.666 nested grids (yxw, dan, bmy, 11/6/08)
 !  (16) Modifications for reading data on GEOS-4 1 x 1.25 grids (bmy, 1/13/10)
+!  01 Mar 2012 - R. Yantosca - Now reference new grid_mod.F90
+!  01 Mar 2012 - R. Yantosca - Use updated GET_LOCALTIME from time_mod.F
+!  01 Aug 2012 - R. Yantosca - Add reference to findFreeLUN from inqure_mod.F90
+!  03 Aug 2012 - R. Yantosca - Move calls to findFreeLUN out of DEVEL block
 !******************************************************************************
 !
+      USE inquireMod, ONLY : findFreeLUN
+
       IMPLICIT NONE
 #     include "define.h" 
 
@@ -79,20 +85,22 @@
 !        from "file_mod.f" (bmy, 6/27/02)
 !  (7 ) Now use ENCODE to define CYEAR string for PGI/Linux (bmy, 9/29/03)
 !  (8 ) Now references DATA_DIR from "directory_mod.f" (bmy, 7/20/04)
+!  01 Aug 2012 - R. Yantosca - Add reference to findFreeLUN from inqure_mod.F90
+!  03 Aug 2012 - R. Yantosca - Move calls to findFreeLUN out of DEVEL block
 !******************************************************************************
 !
       ! References to F90 modules
       USE BPCH2_MOD,     ONLY : GET_RES_EXT
       USE DIRECTORY_MOD, ONLY : DATA_DIR
-      USE FILE_MOD,      ONLY : IU_FILE, IOERROR
-
-      USE CMN_SIZE_MOD   ! Size parameters
+      USE FILE_MOD,      ONLY : IOERROR
+      USE CMN_SIZE_MOD        ! Size parameters
 
       ! Arguments
       INTEGER, INTENT(IN)  :: SCALEYEAR
       REAL*4,  INTENT(OUT) :: TOTCO2(IIPAR,JJPAR)
 
       ! Local variables
+      INTEGER              :: IU_FILE
       INTEGER              :: I, J, IX, JX, IOS
       CHARACTER(LEN=4  )   :: CYEAR
       CHARACTER(LEN=255)   :: FILENAME
@@ -124,6 +132,9 @@
          ! Echo filename to stdout
          WRITE( 6, 20 ) TRIM( FILENAME )
  20      FORMAT( 'READ_TOTCO2: Reading ', a )
+
+         ! Find a free file LUN         
+         IU_FILE = findFreeLUN()
 
          ! Open the file containing liquid CO2 scale factors
          OPEN( IU_FILE, FILE=TRIM( FILENAME ), STATUS='OLD', 
@@ -167,23 +178,23 @@
 !        from "file_mod.f" (bmy, 6/27/02)
 !  (7 ) Now use ENCODE to define CYEAR string for PGI/Linux (bmy, 9/29/03)
 !  (8 ) Now references DATA_DIR from "directory_mod.f" (bmy, 7/20/04)
+!  01 Aug 2012 - R. Yantosca - Add reference to findFreeLUN from inqure_mod.F90
+!  03 Aug 2012 - R. Yantosca - Move calls to findFreeLUN out of DEVEL block
 !******************************************************************************
 !
       ! References to F90 modules
       USE BPCH2_MOD,     ONLY : GET_RES_EXT
       USE DIRECTORY_MOD, ONLY : DATA_DIR
-      USE FILE_MOD,      ONLY : IU_FILE, IOERROR
+      USE FILE_MOD,      ONLY : IOERROR
       USE BPCH2_MOD,     ONLY : GET_RES_EXT
-
-
-
-      USE CMN_SIZE_MOD   ! Size parameters
+      USE CMN_SIZE_MOD        ! Size parameters
 
       ! Arguments
       INTEGER, INTENT(IN)  :: SCALEYEAR
       REAL*4,  INTENT(OUT) :: LIQCO2(IIPAR,JJPAR)
 
       ! Local variables
+      INTEGER              :: IU_FILE
       INTEGER              :: I, J, IX, JX, IOS
       CHARACTER(LEN=4  )   :: CYEAR
       CHARACTER(LEN=255)   :: FILENAME
@@ -214,6 +225,9 @@
          ! Echo filename to stdout
          WRITE( 6, 20 ) TRIM( FILENAME )
  20      FORMAT( 'READ_TOTCO2: Reading ', a )
+
+         ! Find a free file LUN
+         IU_FILE = findFreeLUN()
 
          ! Open the file containing liquid CO2 scale factors
          OPEN( IU_FILE, FILE=TRIM( FILENAME ), STATUS='OLD', 
@@ -256,7 +270,7 @@
 !  (3 ) Now use IOS /= 0 to trap both I/O errors and EOF (bmy, 9/13/00)
 !  (4 ) Now read files directly from DATA_DIR/fossil_200104 subdirectory.
 !        Also echo the file name to stdout.  Now reference DATA_DIR from
-!        the "F77_CMN_SETUP" header file. (bmy, 4/3/02)
+!        the "CMN_SETUP" header file. (bmy, 4/3/02)
 !  (5 ) Now reference IU_FILE and IOERROR from "file_mod.f".  Also deleted
 !        obsolete code from April 2002 (bmy, 6/27/02)
 !  (6 ) Now references DATA_DIR from "directory_mod.f" (bmy, 7/20/04)
@@ -267,13 +281,14 @@
 !       sum of TODB is not 6, which points to a problem. However this is not
 !       used in the code. (phs, 4/16/09)
 !  (10) Now read data for GEOS-4 1 x 1.25 grid (bmy, 1/13/09)
+!  01 Aug 2012 - R. Yantosca - Add reference to findFreeLUN from inqure_mod.F90
+!  03 Aug 2012 - R. Yantosca - Move calls to findFreeLUN out of DEVEL block
 !******************************************************************************
 !
       ! References to F90 modules
       USE DIRECTORY_MOD, ONLY : DATA_DIR
-      USE FILE_MOD,      ONLY : IU_FILE, IOERROR
-
-      USE CMN_SIZE_MOD  ! Size parameters
+      USE FILE_MOD,      ONLY : IOERROR
+      USE CMN_SIZE_MOD        ! Size parameters
 
       ! Arguments
       REAL*8, INTENT(OUT) :: TODH(6), TODN(6), TODB(6), SCNR89(3,3)
@@ -287,8 +302,8 @@
       ! READ_TODX begins here!
       !=================================================================
 
-      ! File name unit
-      IUNIT = IU_FILE
+      ! Find a free file LUN
+      IUNIT = findFreeLUN()
       
 #if   defined( GRID4x5  )
 
@@ -463,18 +478,18 @@
 !        ASCII merge file (bmy, 4/23/01)
 !  (5 ) Now read files directly from DATA_DIR/fossil_obsolete subdirectory.
 !        Also echo the file name to stdout.  Now reference DATA_DIR from
-!        the "F77_CMN_SETUP" header file. (bmy, 4/3/02)
+!        the "CMN_SETUP" header file. (bmy, 4/3/02)
 !  (6 ) Now reference IU_FILE and IOERROR from "file_mod.f".  Also deleted
 !        obsolete code from April 2002 (bmy, 6/27/02)
 !  (7 ) Now references DATA_DIR from "directory_mod.f" (bmy, 7/20/04)
+!  03 Aug 2012 - R. Yantosca - Move calls to findFreeLUN out of DEVEL block
 !******************************************************************************
 !
       ! References to F90 modules
       USE BPCH2_MOD,     ONLY : GET_RES_EXT
       USE DIRECTORY_MOD, ONLY : DATA_DIR
-      USE FILE_MOD,      ONLY : IU_FILE, IOERROR
-
-      USE CMN_SIZE_MOD            ! Size parameters
+      USE FILE_MOD,      ONLY : IOERROR
+      USE CMN_SIZE_MOD        ! Size parameters
 
       ! Arguments
       REAL*4, INTENT(OUT), OPTIONAL :: E_NOX (IIPAR,JJPAR,4,2)
@@ -518,8 +533,8 @@
       FILENAME = TRIM( FILENAME ) // '_SASS' 
 #endif
 
-      ! Define the file unit
-      IUNIT = IU_FILE 
+      ! Find a free file LUN
+      IUNIT = findFreeLUN()
       
       ! Echo the filename to stdout
       WRITE( 6, 100 ) TRIM( FILENAME )
@@ -948,6 +963,11 @@
 !  ============================================================================
 !  (1 ) IHOUR  (INTEGER) : Index for scale factor arrays
 !
+! !REMARKS:
+!  For now use GET_LOCALTIME( I, 1, 1 ) which will be independent of J and L
+!  for a pure cartesian grid.  This may need to be revisited once G-C is
+!  interfaced into a GCM.
+!
 !  NOTES:
 !  (1 ) COMPUTE IHOUR TO DETERMINE TIME OF DAY FACTOR FOR EMISSIONS
 !        THIS TOFDAY IS IN GREENWICH TIME(GMT); WE NEED TO CHANGE IT TO
@@ -985,7 +1005,7 @@
 
       ! IHOUR ranges from 1-6 
       ! Modified to use NINT instead of INT (ccc, 4/15/09)
-      IHOUR = NINT( ( GET_LOCALTIME( I ) ) / 4 ) + 1
+      IHOUR = NINT( ( GET_LOCALTIME( I, 1, 1 ) ) / 4 ) + 1
       IF ( IHOUR == 7 ) IHOUR = 1
 
       ! Return to calling program
@@ -1013,6 +1033,7 @@
 !      Bryan Duncan (bnd@io.harvard.edu), and Daniel Jacob (djj@io.harvard.edu)
 !  (2) Now replace DXYP(J)*1d4 with routine GET_AREA_CM2 from "grid_mod.f".
 !       (bmy, 2/4/03)
+!  01 Mar 2012 - R. Yantosca - Now use GET_AREA_M2(I,J,L) from grid_mod.F90
 !******************************************************************************
 !
       ! References to F90 modules
@@ -1041,13 +1062,13 @@
 
       DO L = 1, LX
       DO J = 1, JX
-            
+      DO I = 1, IX
+
          ! Grid box surface area [cm2]
-         A_CM2 = GET_AREA_CM2( J )
-         
-         DO I = 1, IX
-            TOTAL = TOTAL + FFARRAY(I,J,L) * A_CM2 * ( MOLWT/ 6.023d23 )
-         ENDDO
+         A_CM2 = GET_AREA_CM2( I, J, L )
+
+         TOTAL = TOTAL + FFARRAY(I,J,L) * A_CM2 * ( MOLWT/ 6.023d23 )
+      ENDDO
       ENDDO
       ENDDO
 

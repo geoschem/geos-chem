@@ -16,75 +16,29 @@
 !
 ! !INTERFACE:
 !
-      SUBROUTINE INITIALIZE( IFLAG )
+      SUBROUTINE INITIALIZE( IFLAG, am_I_Root )
 !
 ! !USES:
 !
-      USE DIAG_MOD,    ONLY : AD01,        AD02,        AD05    
-      USE DIAG_MOD,    ONLY : AD06,        AD07,        AD07_BC
-      USE DIAG_MOD,    ONLY : AD07_OC,     AD07_HC,     AD08
-      USE DIAG_MOD,    ONLY : AD07_SOAGM
-      USE DIAG_MOD,    ONLY : AD09,        AD09_em,     AD11
-      USE DIAG_MOD,    ONLY : AD12,        AD13_DMS,    AD13_SO2_ac 
-      USE DIAG_MOD,    ONLY : AD13_SO2_an, AD13_SO2_bb, AD13_SO2_bf
-      USE DIAG_MOD,    ONLY : AD13_SO2_ev, AD13_SO2_nv, AD13_SO4_an
-      USE DIAG_MOD,    ONLY : AD13_SO4_bf, AD13_SO2_sh, AD13_NH3_an
-      USE DIAG_MOD,    ONLY : AD13_NH3_na, AD13_NH3_bb, AD13_NH3_bf
-      USE DIAG_MOD,    ONLY : CONVFLUP,    TURBFLUP,    AD16
-      USE DIAG_MOD,    ONLY : CT16,        AD17,        CT17
-      USE DIAG_MOD,    ONLY : AD18,        CT18,        AD21
-      USE DIAG_MOD,    ONLY : AD21_cr,     AD22,        LTJV
-      USE DIAG_MOD,    ONLY : CTJV,        MASSFLEW,    MASSFLNS
-      USE DIAG_MOD,    ONLY : MASSFLUP,    AD28,        AD29
-      USE DIAG_MOD,    ONLY : AD30,        AD31
-      !add potential temp diagnostic (fp, 6/2009)
-      USE DIAG_MOD,    ONLY : AD57
-      USE DIAG_MOD,    ONLY : AD32_ac,     AD32_an,     AD32_bb
-      USE DIAG_MOD,    ONLY : AD32_bf,     AD32_fe,     AD32_li
-      USE DIAG_MOD,    ONLY : AD32_so,     AD32_ub,     AD33
-      USE DIAG_MOD,    ONLY : AD34,        AD35,        AD36
-      USE DIAG_MOD,    ONLY : AD37,        AD38,        AD39
-      USE DIAG_MOD,    ONLY : AD43,        LTNO
-      USE DIAG_MOD,    ONLY : CTNO,        LTOH,        CTOH
-      USE DIAG_MOD,    ONLY : LTHO2,       CTHO2,       LTNO2
-      USE DIAG_MOD,    ONLY : CTNO2,       LTNO3,       CTNO3
-      ! update for arom (dkh, 06/21/07)  
-      USE DIAG_MOD,    ONLY : CTLBRO2H,    CTLBRO2N
-      USE DIAG_MOD,    ONLY : CTLTRO2H,    CTLTRO2N
-      USE DIAG_MOD,    ONLY : CTLXRO2H,    CTLXRO2N
-      USE DIAG_MOD,    ONLY : AD44,        AD45,        LTOTH
-      USE DIAG_MOD,    ONLY : CTOTH,       AD46,        AD47
-      USE DIAG_MOD,    ONLY : AD52
-      USE DIAG_MOD,    ONLY : AD54,        CTO3,        CTO3_24h
-      USE DIAG_MOD,    ONLY : AD19,        AD58,        AD60
-      USE DIAG_MOD,    ONLY : AD59_NUMB,   AD59_SULF,   AD59_SALT !(win, 7/28/09)
-      USE DIAG_MOD,    ONLY : AD59_ECIL,   AD59_ECOB              !(win, 7/28/09)
-      USE DIAG_MOD,    ONLY : AD59_OCIL,   AD59_OCOB,   AD59_DUST !(win, 7/28/09)
-      USE DIAG_MOD,    ONLY : AD60_COND,   AD60_COAG,   AD60_NUCL !(win, 7/28/09)
-      USE DIAG_MOD,    ONLY : AD60_AQOX,   AD60_ERROR,  AD60_SOA  !(win, 7/28/09)
-      USE DIAG_MOD,    ONLY : AD55,        AD66,        AD67
-      USE DIAG_MOD,    ONLY : AD68,        AD69
-      USE DIAG_MOD,    ONLY : AD10,        AD10em
-      USE DIAG03_MOD,  ONLY : ND03,        ZERO_DIAG03
-      USE DIAG04_MOD,  ONLY : ND04,        ZERO_DIAG04
-      USE DIAG41_MOD,  ONLY : ND41,        ZERO_DIAG41
-      USE DIAG42_MOD,  ONLY : ND42,        ZERO_DIAG42
-      USE DIAG56_MOD,  ONLY : ND56,        ZERO_DIAG56
-      USE DIAG_PL_MOD, ONLY : AD65,        FAM_PL
-      USE ERROR_MOD,   ONLY : ERROR_STOP
-      USE LOGICAL_MOD, ONLY : LCRYST
+      ! Modules from Headers subdirectory
+      USE CMN_SIZE_MOD          
+      USE CMN_DIAG_MOD
+      USE ERROR_MOD
       USE TIME_MOD
-#if   defined( APM )
-      USE DIAG_MOD,    ONLY : AD07_OM
-#endif
 
-      USE CMN_SIZE_MOD    ! Size parameters
-      USE CMN_DIAG_MOD    ! NDxx flags
+      ! Modules from GeosCore subdirectory
+      USE DIAG_MOD
+      USE DIAG03_MOD
+      USE DIAG04_MOD
+      USE DIAG41_MOD
+      USE DIAG42_MOD
+      USE DIAG56_MOD
+      USE DIAG_PL_MOD
+      USE LOGICAL_MOD
 
       IMPLICIT NONE
+
 #     include "define.h"
-
-
 !
 ! !INPUT PARAMETERS: 
 !
@@ -92,6 +46,9 @@
       ! If IFLAG=2, zero accumulating diagnostic arrays
       ! If IFLAG=3, zero accumulating diagnostic counters
       INTEGER, INTENT(IN)  :: IFLAG
+
+      ! Is this the root CPU?
+      LOGICAL, INTENT(IN) :: am_I_Root   
 !
 ! !REMARKS:
 !  Eventually we will fold this into "diag_mod.f" in a cleaner,
@@ -164,6 +121,8 @@
 !  (47) Add potential temperature diagnostic. (fp, 06/09)
 !  25 Aug 2010 - R. Yantosca - Added ProTeX headers
 !  25 Aug 2010 - R. Yantosca - Now also reset the counter for A1 timesteps
+!  08 Feb 2012 - R. Yantosca - Rewrote USE statements, for clarity
+!  08 Feb 2012 - R. Yantosca - Now also reset the counter for I3 timesteps
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -345,7 +304,9 @@
         ENDIF
 
          ! Echo output
-         WRITE( 6, '(a)' ) '     - INITIALIZE: Diag arrays zeroed!'
+         IF ( am_I_Root ) THEN
+            WRITE( 6, '(a)' ) '     - INITIALIZE: Diag arrays zeroed!'
+         ENDIF
       ENDIF  
 
       !================================================================= 
@@ -361,6 +322,7 @@
          CALL SET_CT_CONV( RESET=.TRUE. )
          CALL SET_CT_DYN(  RESET=.TRUE. )
          CALL SET_CT_EMIS( RESET=.TRUE. )
+         CALL SET_CT_I3(   RESET=.TRUE. )
          CALL SET_CT_I6(   RESET=.TRUE. )
          CALL SET_CT_XTRA( RESET=.TRUE. )
          CALL SET_CT_DIAG( RESET=.TRUE. )
@@ -390,8 +352,10 @@
          IF ( ND43 >               0 ) CTLXRO2N   = 0
 
          ! Echo output
-         WRITE( 6, '(a)' ) '     - INITIALIZE: Diag counters zeroed!'
+         IF ( am_I_Root ) THEN
+            WRITE( 6, '(a)' ) '     - INITIALIZE: Diag counters zeroed!'
+         ENDIF
       ENDIF
-
+ 
       END SUBROUTINE INITIALIZE
 !EOC

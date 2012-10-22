@@ -80,6 +80,7 @@
 !  21 Sep 2010 - R. Yantosca - Removed duplicates in INIT_DIAGINFO
 !  21 Oct 2010 - R. Yantosca - Bug fix in INIT_DIAGINFO
 !  09 Dec 2010 - C. Carouge  - Modify MAXTRACER definition to account for 
+!   8 Feb 2012 - R. Yantosca - Add modifications for GEOS-5.7.x
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -96,23 +97,6 @@
       CHARACTER(LEN=255)             :: DFILE
 
       ! For "tracerinfo.dat"
-      !--------------------------------------------------------------------
-      ! Prior to 8/3/10:
-      ! For consistency, define MAXDIAG and MAXTRACER from the equivalent 
-      ! parameters in CMN_DIAG.  This will prevent out-of bounds errors
-      ! when these parameters are extended to add more tracers.
-      ! (psk, bmy, 8/3/10)
-      !INTEGER,           PARAMETER   :: MAXDIAG   = 70  
-      !INTEGER,           PARAMETER   :: MAXTRACER = 120  
-      !--------------------------------------------------------------------
-      !--------------------------------------------------------------------
-      ! Prior to 12/7/10:
-      ! Some diagnostics hold up to 2 times the number of tracers (e.g.
-      ! AD44 holds the data for deposition velocity and deposition flux)
-      ! So MAXTRACER must be defined as 2*MAX_TRACER
-      !INTEGER,           PARAMETER   :: MAXDIAG   = MAX_DIAG  
-      !INTEGER,           PARAMETER   :: MAXTRACER = MAX_TRACER  
-      !--------------------------------------------------------------------
       INTEGER,           PARAMETER   :: MAXDIAG   = MAX_DIAG
       INTEGER,           PARAMETER   :: MAXTRACER = 2 * MAX_TRACER
       INTEGER,           ALLOCATABLE :: NTRAC(:)
@@ -814,7 +798,7 @@
 
       N           = N + 1
       CATEGORY(N) = 'NOX-LI-$'
-      DESCRIPT(N) = 'Lightning NOx'
+      DESCRIPT(N) = 'Lightning NOx'      
       OFFSET(N)   = SPACING * 1
 
       N           = N + 1
@@ -1027,36 +1011,6 @@
       DESCRIPT(N) = 'Tracer mass (kg)'
       OFFSET(N)   = SPACING * 4
 
-      !------------------------------------------------------------------------
-      ! Prior to 9/21/10:
-      ! Remove duplicate definitions of diagnostics.  These should be in kg/s
-      ! so they need to have a diagnostic offset of 3000. (bmy, ccc, 9/27/10)
-      !N           = N + 1
-      !CATEGORY(N) = 'CV-FLX-$'
-      !DESCRIPT(N) = 'Upward flux from wet conv'
-      !OFFSET(N)   = SPACING * 4
-      !
-      !N           = N + 1
-      !CATEGORY(N) = 'TURBMC-$'
-      !DESCRIPT(N) = 'Upward flux from PBL mixing'
-      !OFFSET(N)   = SPACING * 4
-      !
-      !N           = N + 1
-      !CATEGORY(N) = 'EW-FLX-$'
-      !DESCRIPT(N) = 'E/W transport flux'
-      !OFFSET(N)   = SPACING * 4
-      !
-      !N           = N + 1
-      !CATEGORY(N) = 'NS-FLX-$'
-      !DESCRIPT(N) = 'N/S transport flux'
-      !OFFSET(N)   = SPACING * 4
-      !
-      !N           = N + 1
-      !CATEGORY(N) = 'UP-FLX-$'
-      !DESCRIPT(N) = 'Up/down transport flux'
-      !OFFSET(N)   = SPACING * 4
-      !------------------------------------------------------------------------
-
       N           = N + 1
       CATEGORY(N) = 'SOAGPROD'
       DESCRIPT(N) = 'SOA GPROD restart'
@@ -1186,15 +1140,6 @@
       CATEGORY(N) = 'WD-CVW-$'
       DESCRIPT(N) = 'Convective washout'
       OFFSET(N)   = SPACING * 29
-
-      !--------------------------------------------------------------------
-      ! Prior to 10/21/10:
-      ! MC-FRC-$ is in kg/s, so this should be SPACING*3 (bmy, 10/21/10)
-      !N           = N + 1
-      !CATEGORY(N) = 'MC-FRC-$'
-      !DESCRIPT(N) = 'Moist conv fraction'
-      !OFFSET(N)   = SPACING * 30
-      !--------------------------------------------------------------------
 
       N           = N + 1
       CATEGORY(N) = 'COBUDGET'
@@ -1399,6 +1344,12 @@
       DESCRIPT(N) = 'Wetland Fraction'
       OFFSET(N)   = SPACING * 51
 
+      N           = N + 1
+      CATEGORY(N) = 'SHIP-$$$'
+      DESCRIPT(N) = 'Ship diagnostics'
+      OFFSET(N)   = SPACING * 59
+
+
 ! NEED TO DO THAT AT ONE POINT      
 !      ! New for CSPEC
 !      N           = N + 1
@@ -1429,7 +1380,7 @@
 !
 ! !USES:
 !
-      USE DIAG03_MOD,   ONLY : ND03, PD03
+      USE DIAG03_MOD,   ONLY : ND03, PD03, PD03_PL
       USE DIAG04_MOD,   ONLY : ND04
       USE DIAG41_MOD,   ONLY : ND41
       USE DIAG42_MOD,   ONLY : ND42
@@ -1439,6 +1390,7 @@
       USE DIAG51_MOD,   ONLY : DO_SAVE_DIAG51
       USE DIAG51b_MOD,  ONLY : DO_SAVE_DIAG51b
       USE DIAG56_MOD,   ONLY : ND56
+      USE DIAG63_MOD,   ONLY:  DO_SAVE_DIAG63
       USE DIAG_PL_MOD,  ONLY : DO_SAVE_PL,  GET_NFAM
       USE DIAG_PL_MOD,  ONLY : GET_FAM_MWT, GET_FAM_NAME
       USE DRYDEP_MOD,   ONLY : DEPNAME,     NUMDEP,    NTRAIND
@@ -1501,8 +1453,18 @@
 !  03 Aug 2010 - R. Yantosca - Added ProTeX headers
 !  13 Aug 2010 - R. Yantosca - Treat MERRA in the same way as GEOS-5
 !  02 Sep 2010 - R. Yantosca - In ND28: Omit SOA tracers if LSOA = .FALSE.
+!  09-Dec-2010 - H. Amos     - Added RGM and PBM  tracers for the
+!                              mercury simulation
+!  09-Dec-2010 - H. Amos     - fix spacing and #s for PL-HG2-$ diagnostics
 !  12 Nov 2010 - R. Yantosca - Need to save out surface pressure line to 
 !                              tracerinfo.dat for the timeseries diagnostics
+!  24 Jan 2012 - M. Payer    - Change scale factors for Rn-Pb-Be simulation so
+!                              units are in mBq/SCM
+!  08 Feb 2012 - R. Yantosca - Treat GEOS-5.7.x in the same way as MERRA
+!  19 Mar 2012 - M. Payer    - Remove ACETdl and ACETgr from ND11 diagnostic.
+!                              Acetone from dry leaf matter and grasses is now
+!                              included in the direct emissions (ACETbg).
+!                              (E. Fischer)
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -1512,8 +1474,6 @@
       INTEGER :: N, NN, NYMDb, NHMSb, T
       LOGICAL :: DO_TIMESERIES
 
-      ! For Hg diagnostic: some max number of tracers per diagnostic.
-      INTEGER :: PD03_PL
 
       !=================================================================
       ! INIT_TRACERINFO begins here!
@@ -1527,6 +1487,15 @@
       !----------------------------------
       ! General tracer information
       !----------------------------------
+
+!hma,20120323
+      !Do not print HgP in the IJ-AVG-$ field.
+      !HgP is now emitted and treated as Hg2, so all HgP IJ-AVG-$
+      !  fields are just zeroes
+      IF ( ITS_A_MERCURY_SIM() ) THEN
+         N_TRACERS = N_TRACERS - 1
+      ENDIF
+
       DO T = 1, N_TRACERS
 
          ! Store quantities for each tracer
@@ -1555,14 +1524,14 @@
          IF ( ITS_A_RnPbBe_SIM() ) THEN
             SELECT CASE( T ) 
                CASE( 1 )
-                  UNIT (T,45) = 'pCi/SCM'
-                  SCALE(T,45) = 1.5243e21
+                  UNIT (T,45) = 'mBq/SCM'
+                  SCALE(T,45) = 5.6397E+22
                CASE( 2 ) 
-                  UNIT (T,45) = 'fCi/SCM'
-                  SCALE(T,45) = 7.0651e20
+                  UNIT (T,45) = 'mBq/SCM'
+                  SCALE(T,45) = 2.6141E+19
                CASE( 3 )
-                  UNIT (T,45) = 'fCi/SCM'
-                  SCALE(T,45) = 1.0938e23
+                  UNIT (T,45) = 'mBq/SCM'
+                  SCALE(T,45) = 4.0513E+21
                CASE DEFAULT
                   ! Nothing
             END SELECT
@@ -1606,9 +1575,7 @@
          
          ! Number of tracers:
          ! PD03     = max # of tracers for HG-SRCE
-         ! PD03_PL  = max # of tracers for HG-SRCE + PL-HG2-$
-         PD03_PL = PD03 + 8
-         
+         ! PD03_PL  = max # of tracers for PL-HG2-$
 
          ! Loop over tracers for HG-SRCE
 !         DO T = 1, NTRAC(03)
@@ -1659,26 +1626,19 @@
                   FNAME(T,03) = 'Anthro particulate Hg'
                   INDEX(T,03) = T + ( SPACING * 34 )
                CASE( 10 )
-!                  NAME (T,03) = 'KwHg'
-!                  FNAME(T,03) = 'Henry''s Law exchange constant'
-!                  UNIT (T,03) = 'cm/h'
                   NAME (T,03) = 'Hgaq_tot'
                   FNAME(T,03) = 'Total oceanic mercury'
                   UNIT (T,03) = 'kg'
                   INDEX(T,03) = T + ( SPACING * 34 )
                   MWT  (T,03) = 0e0
                CASE( 11 )
-!                  NAME (T,03) = 'HgC'
-!                  FNAME(T,03) = 'Hg in Colloidal phase'
                   NAME (T,03) = 'HgP_aq'
                   FNAME(T,03) = 'Ocean mass of particulate Hg'
                   INDEX(T,03) = T + ( SPACING * 34 )
                CASE( 12 )
-!                  NAME (T,03) = 'Hg_to_C'
-!                  FNAME(T,03) = 'Hg converted to colloidal'
-                  NAME (T,03) = 'Hg_to_P'
-                  FNAME(T,03) = 'Hg converted to particulate'
-                  UNIT (T,03) = 'kg/m2/s'
+                  NAME (T,03) = 'JorgC'
+                  FNAME(T,03) = 'Mass of orgC sunk in ocean'
+                  UNIT (T,03) = 'kg'
                   INDEX(T,03) = T + ( SPACING * 34 )
                CASE( 13 )
                   NAME (T,03) = 'Hg_bb'
@@ -1695,12 +1655,12 @@
                   FNAME(T,03) = 'Hg soil emissions'
                   UNIT (T,03) = 'kg'
                   INDEX(T,03) = T + ( SPACING * 34 )
-               CASE(16 )
+               CASE( 16 )
                   NAME (T,03) = 'Hg_up'
                   FNAME(T,03) = 'Hg ocean up flux'
                   UNIT (T,03) = 'kg'
                   INDEX(T,03) = T + ( SPACING * 34 )
-               CASE(17 )
+               CASE( 17 )
                   NAME (T,03) = 'Hg_down'
                   FNAME(T,03) = 'Hg ocean downflux'
                   UNIT (T,03) = 'kg'
@@ -1715,7 +1675,7 @@
          ENDDO
          
          ! Loop over tracers for PL-HG2-$
-         DO N = 1, 8
+         DO N = 1, PD03_PL
             T = N + PD03
 
             ! Define quantities
@@ -1726,40 +1686,50 @@
 
 
             ! Get name, long-name, index, and new units
-            SELECT CASE( T )
-               CASE( 19 )
+            SELECT CASE( N )
+               CASE( 1 )
                   NAME (T,03) = 'Hg2_Hg0'
                   FNAME(T,03) = 'Prod of Hg2 from Hg0'
                   INDEX(T,03) = ( N ) + ( SPACING * 35 )
-               CASE( 20 )
+               CASE( 2 )
                   NAME (T,03) = 'Hg2_OH'
                   FNAME(T,03) = 'Prod of Hg2 from OH'
                   INDEX(T,03) = ( N ) + ( SPACING * 35 ) 
-               CASE( 21 )
+               CASE( 3 )
                   NAME (T,03) = 'Hg2_O3'
                   FNAME(T,03) = 'Prod of Hg2 from O3'
                   INDEX(T,03) = ( N ) + ( SPACING * 35 )
-               CASE( 22 )
+               CASE( 4 )
                   NAME (T,03) = 'Hg2_SS'
                   FNAME(T,03) = 'Loss of Hg2 from sea salt'
                   INDEX(T,03) = ( N ) + ( SPACING * 35 )
-               CASE( 23 )
+               CASE( 5 )
                   NAME (T,03) = 'Hg2_SSR'
                   FNAME(T,03) = 'Loss rate Hg2 from sea salt'
                   UNIT (T,03) = '/s'
                   INDEX(T,03) = ( N ) + ( SPACING * 35 )
-               CASE( 24 )
+               CASE( 6 )
                   NAME (T,03) = 'Hg2_Br'
                   FNAME(T,03) = 'Prod of Hg2 from Br'
                   INDEX(T,03) = ( N ) + ( SPACING * 35 )
-               CASE( 25 )
+               CASE( 7 )
                   NAME (T,03) = 'Br'
                   FNAME(T,03) = 'Br concentration'
                   INDEX(T,03) = ( N ) + ( SPACING * 35 )
-               CASE( 26 )
+               CASE( 8 )
                   NAME (T,03) = 'BrO'
                   FNAME(T,03) = 'BrO concentration'
                   INDEX(T,03) = ( N ) + ( SPACING * 35 )
+               CASE( 9 )
+                  NAME (T,03) = 'PBM'
+                  FNAME(T,03) = 'Particle bound mercury'
+                  UNIT (T,03) = 'pptv'
+                  INDEX(T,03) = ( N ) + ( SPACING * 35 )      
+               CASE( 10 )
+                  NAME (T,03) = 'RGM'
+                  FNAME(T,03) = 'Reactive gaseous mercury'
+                  UNIT (T,03) = 'pptv'
+                  INDEX(T,03) = ( N ) + ( SPACING * 35 ) 
                CASE DEFAULT
                   ! Nothing
             END SELECT
@@ -1768,7 +1738,7 @@
          ! Loop over tracers for OCEAN-HG
          DO N = 1, N_TRACERS
          
-            T = N + PD03_PL
+            T = N + PD03 + PD03_PL
 
             ! Define quantities
             UNIT (T,03) = 'kg'
@@ -1792,7 +1762,7 @@
          ! Loop over tracers for SNOW-HG
          DO N = 1, 1
          
-            T = N + PD03_PL + N_TRACERS
+            T = N + PD03 + PD03_PL + N_TRACERS
 
             ! Define quantities
             UNIT (T,03) = 'kg'
@@ -2256,7 +2226,7 @@
       IF ( ND11 > 0 ) THEN
 
          ! Number of tracers
-         NTRAC(11) = 7
+         NTRAC(11) = 5
 
          ! Loop over tracers
          DO T = 1, NTRAC(11)
@@ -2273,15 +2243,9 @@
                   NAME (T,11) = 'ACETbg'
                   FNAME(T,11) = 'ACET from direct emissions'
                CASE( 4 )
-                  NAME (T,11) = 'ACETdl'
-                  FNAME(T,11) = 'ACET from dry leaf matter'
-               CASE( 5 )
-                  NAME (T,11) = 'ACETgr'
-                  FNAME(T,11) = 'ACET from grasslands'
-               CASE( 6 )
                   NAME (T,11) = 'ACETop'
                   FNAME(T,11) = 'ACET from ocean source'
-               CASE( 7 )
+               CASE( 5 )
                   NAME (T,11) = 'ACETol'
                   FNAME(T,11) = 'ACET from ocean sink'
                CASE DEFAULT
@@ -2514,7 +2478,7 @@
             !------------------
 
             ! Number of tracers
-            NTRAC(22) = 8
+            NTRAC(22) = 14 ! Increase for bromine (jpp, mpayer, 12/28/11)
 
             ! Loop over tracers
             DO T = 1, NTRAC(22)
@@ -2533,11 +2497,22 @@
                      NAME(T,22) = 'JO3'
                   CASE( 6  )
                      NAME(T,22) = 'POH'
-
                   CASE( 7  )
                      NAME(T,22) = 'JGLYX'
                   CASE( 8  )
                      NAME(T,22) = 'JMGLY'
+                  CASE( 9  )
+                     NAME(T,22) = 'JBrO'
+                  CASE( 10 )
+                     NAME(T,22) = 'JHOBr'
+                  CASE( 11 )
+                     NAME(T,22) = 'JBrNO2'
+                  CASE( 12 )
+                     NAME(T,22) = 'JBrNO3'
+                  CASE( 13 )
+                     NAME(T,22) = 'JCHBr3'
+                  CASE( 14 )
+                     NAME(T,22) = 'JBr2'
                  CASE DEFAULT
                   ! Nothing
                END SELECT
@@ -2857,12 +2832,6 @@
       !-------------------------------------      
       ! Surface pressure (ND31)
       !-------------------------------------   
-      !-------------------------------------------------------------
-      ! Prior to 11/12/10:
-      ! Need to save out surface pressure line to tracerinfo.dat
-      ! for the timeseries diagnostics (bmy, 11/12/10)
-      !IF ( ND31 > 0 ) THEN
-      !-------------------------------------------------------------
       IF ( ND31 > 0       .or. DO_SAVE_DIAG48 .or. 
      &     DO_SAVE_DIAG49 .or. DO_SAVE_DIAG50 .or. 
      &     DO_SAVE_DIAG51 .or. DO_SAVE_DIAG51b     ) THEN
@@ -3310,7 +3279,7 @@ c$$$            ENDDO
       IF ( ND46 > 0 ) THEN 
 
          ! Number of tracers
-         NTRAC(46) = 13 ! was 6 (mpb,2009)
+         NTRAC(46) = 16 ! Increase for bromine (jpp, mpayer, 12/28/11)
 
          ! Loop over tracers
          DO T = 1, NTRAC(46)
@@ -3356,16 +3325,42 @@ c$$$            ENDDO
                CASE( 13)
                   NAME(T,46) = 'OCIMN'
                   MOLC(T,46) = 10
+               !jpp, 9/6/07
+               CASE( 14 )
+                  INDEX(T,46)  = T + ( SPACING * 21 )
+                  NAME  (T,46) = 'CHBr3'
+                  FNAME (T,46) = 'Ocean bromoform emissions'
+                  UNIT  (T,46) = 'kg/m2/s'
+                  MWT   (T,46) = 2.53e-1   !in [kg/mol]
+                  SCALE(T,46) = 1e0
+               CASE( 15 )
+                  INDEX (T,46)  = T + ( SPACING * 21 )
+                  NAME  (T,46) = 'CH2Br2'
+                  FNAME (T,46) = 'Ocean dibromomethane emissions'
+                  UNIT  (T,46) = 'kg/m2/s'
+                  MWT   (T,46) = 1.74e-1   !in [kg/mol]
+                  SCALE (T,46) = 1e0
+               CASE( 16 )
+                  INDEX (T,46)  = T + ( SPACING * 21 )
+                  NAME  (T,46) = 'SSBr2'
+                  FNAME (T,46) = 'sea-salt Br2 emissions'
+                  UNIT  (T,46) = 'kg/m2/s'
+                  MWT   (T,46) = 1.60e-1   !in [kg/mol]
+                  SCALE (T,46) = 1e0
                CASE DEFAULT
                   ! Nothing
             END SELECT
 
-            ! Define the rest of the quantities
-            INDEX(T,46) = T + ( SPACING * 21 )
-            FNAME(T,46) = TRIM( NAME(T,46) ) // ' emissions'
-            UNIT (T,46) = 'atoms C/cm2/s'
-            MWT  (T,46) = 12e-3
-            SCALE(T,46) = 1e0
+            !jpp, 9/6/07: preventing these default quantities
+            !             from overwriting CHBr3's info.
+            IF ( T < 14 ) THEN
+               ! Define the rest of the quantities
+               INDEX(T,46) = T + ( SPACING * 21 )
+               FNAME(T,46) = TRIM( NAME(T,46) ) // ' emissions'
+               UNIT (T,46) = 'atoms C/cm2/s'
+               MWT  (T,46) = 12e-3
+               SCALE(T,46) = 1e0
+            ENDIF
          ENDDO
       ENDIF
 
@@ -3773,6 +3768,51 @@ c$$$            ENDDO
       ENDIF
 
       !-------------------------------------      
+      ! SHIP DIAGNOSTICS (ND63)
+      !-------------------------------------      
+      IF ( DO_SAVE_DIAG63 ) THEN 
+
+         ! Number of tracers
+         NTRAC(63) = 5
+
+         ! Loop over tracers
+         DO T = 1, NTRAC(63)
+
+            ! Define quantities
+            INDEX(T,63) = T + ( SPACING * 59 )
+            MOLC (T,63) = 0
+            MWT  (T,63) = 0e0
+            SCALE(T,63) = 1e0
+            UNIT (T,63) = 'unitless'
+
+            ! Get name, long-name (and others where necessary)
+            SELECT CASE( T )
+               CASE( 1  )
+                  NAME (T,63) = 'Frac_NOx'
+                  FNAME(T,63) = 'Fraction of NOx remaining'
+               CASE( 2  )
+                  NAME (T,63) = 'IntOPE'
+                  FNAME(T,63) = 'Integrated OPE'
+               CASE( 3  )
+                  NAME (T,63) = 'Frac_NOx*SHIP'
+                  FNAME(T,63) = 'Integrated OPE'
+                  UNIT (T,63) = 'kg/box/timestep'
+               CASE( 4  )
+                  NAME (T,63) = 'IntOPE*(1-Frac_NOx)*SHIP'
+                  FNAME(T,63) = 'Integrated OPE'
+                  UNIT (T,63) = 'kg/box/timestep'
+               CASE( 5  )
+                  NAME (T,63) = 'Ship_emissions'
+                  FNAME(T,63) = 'Ship emissions'
+                  UNIT (T,63) = 'kg/box/timestep'
+               CASE DEFAULT
+                  ! Nothing
+            END SELECT
+
+         ENDDO
+      ENDIF
+
+      !-------------------------------------      
       ! Family prod & loss (ND65)
       !-------------------------------------      
       IF ( DO_SAVE_PL ) THEN
@@ -3846,7 +3886,7 @@ c$$$            ENDDO
 #if   defined( GEOS_4 )
                   NAME(T,66) = 'ZMMU'
                   UNIT(T,66) = 'Pa/s'
-#elif defined( GEOS_5 ) || defined( MERRA )
+#elif defined( GEOS_5 ) || defined( MERRA ) || defined( GEOS_57 )
                   NAME(T,66) = 'CMFMC'
                   UNIT(T,66) = 'kg/m2/s'
 #else

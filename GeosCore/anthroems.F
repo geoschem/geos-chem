@@ -69,7 +69,7 @@
 !    NSEASON=3 --> summer (Jun, Jul, Aug)
 !    NSEASON=4 --> autumn (Sep, Oct, Nov)
 !                                                                             .
-!  Passed Via F77_CMN_O3:
+!  Passed Via CMN_O3_mod:
 !  ===========================================================================
 !  Fossil Fuel arrays: EMISTNOX,  EMISTCO,   EMISTETHE, EMISTPRPE,
 !                      EMISTC2H6, EMISTC3H8, EMISTALK4, EMISTACET,
@@ -189,7 +189,18 @@
       I0 = 0
       J0 = 0
 
+#elif defined( GRID025x0325 ) && defined( NESTED_CH )
+
+      I0 = 0
+      J0 = 0
+
+#elif defined( GRID025x0325 ) && defined( SEAC4RS )
+
+      I0 = 0
+      J0 = 0
+
 #endif
+
       !=================================================================
       ! If FSCALYR < 0 then use this year (JYEAR) for the scaling 
       ! factors.  Otherwise, use the value of FSCALYR as specified in 
@@ -587,11 +598,12 @@
             DO J = 1, JJPAR
                JREF = J + J0
                
-               ! Grid box surface area [cm2]
-               AREA_CM2 = GET_AREA_CM2( J )
-
                DO I = 1, IIPAR
                   IREF = I + I0
+                  
+                  ! Grid box surface area [cm2]
+                  AREA_CM2 = GET_AREA_CM2( I, J, 1 )
+
                   EMIST(I,J,N) = EMIST(I,J,N) * TRACER_MW_KG(NN) * 
      &                           DTSRCE * AREA_CM2 / 6.023d23
 
@@ -652,12 +664,12 @@
                DO J = 1, JJPAR
                   JREF = J + J0
                
-                  ! Grid box surface area [cm2]
-                  AREA_CM2 = GET_AREA_CM2( J )
-               
                   DO I = 1, IIPAR
                      IREF = I + I0
 
+                     ! Grid box surface area [cm2]
+                     AREA_CM2 = GET_AREA_CM2( I, J, 1 )
+               
                      EMISTN(I,J,LL) = EMISTN(I,J,LL) *TRACER_MW_KG(NN) * 
      &                                DTSRCE * AREA_CM2  / 6.023d23
                

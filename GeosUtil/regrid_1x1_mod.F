@@ -1135,6 +1135,7 @@
 !  (7 ) OUT (REAL*8 ) : Array containing output data on GCAP 4x5 grid
 !
 !  NOTES:
+!  01 Mar 2012 - R. Yantosca - Now use GET_AREA_M2(I,J,L) from grid_mod.F90
 !******************************************************************************
 !
       ! References to F90 modules
@@ -1237,7 +1238,7 @@
      &              0.5d0 * SUM( IN( E-2:E,   N,   L ) ) * A1x1(N  )
             
             ! 4x5 output field at (I,J,L)
-            OUT(I,J,L) = M_TOT / GET_AREA_M2( J )
+            OUT(I,J,L) = M_TOT / GET_AREA_M2( I, J, L )
          ENDDO 
          ENDDO  
 
@@ -1388,6 +1389,7 @@
 !  (7 ) OUT (REAL*8 ) : Array containing output data on GEOS-Chem 4x5 grid
 !
 !  NOTES:
+!  01 Mar 2012 - R. Yantosca - Now use GET_AREA_M2(I,J,L) from grid_mod.F90
 !******************************************************************************
 !
       ! References to F90 modules
@@ -1481,7 +1483,7 @@
      &              0.5d0*SUM( IN( E-2:E,   N,   L ) ) * A1x1(N  )
             
             ! 4x5 output field at (I,J,L)
-            OUT(I,J,L) = M_TOT / GET_AREA_M2( J )
+            OUT(I,J,L) = M_TOT / GET_AREA_M2( I, J, L )
 
          ENDDO 
          ENDDO  
@@ -1618,6 +1620,7 @@
 !  (7 ) OUT (REAL*8 ) : Array containing output data on GEOS-Chem 2x25 grid
 !
 !  NOTES:
+!  01 Mar 2012 - R. Yantosca - Now use GET_AREA_M2(I,J,L) from grid_mod.F90
 !******************************************************************************
 !
       ! References to F90 modules
@@ -1759,7 +1762,7 @@
      &                       0.375d0 * IN(E,  N,  L) * A1x1(N  )
 
                ! 2 x 2.5 output field at (I,J,L)
-               OUT(I,J,L)  = M_TOT / GET_AREA_M2( J )
+               OUT(I,J,L)  = M_TOT / GET_AREA_M2( I, J, L )
 
             ELSE
 
@@ -1780,7 +1783,7 @@
      &           0.125d0 *      IN( E,       N,  L )   * A1X1(N  )
 
                ! 2 x 2.5 output field at (I,J,L)
-               OUT(I,J,L) = M_TOT / GET_AREA_M2( J )
+               OUT(I,J,L) = M_TOT / GET_AREA_M2( I, J, L )
             ENDIF
          ENDDO
          ENDDO

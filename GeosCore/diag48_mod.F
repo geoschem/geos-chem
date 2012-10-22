@@ -73,8 +73,13 @@
 !  (10) Now do not scale AOD output (now recalculated in RDAER and DUST_MOD)
 !       Minor bug fix with the accumulation of ODAER across RH bins
 !       (skim, 02/03/11)
+!  01 Aug 2012 - R. Yantosca - Add reference to findFreeLUN from inqure_mod.F90
+!  06 Aug 2012 - R. Yantosca - Move calls to findFreeLUN out of DEVEL block
+!  06 Aug 2012 - R. Yantosca - Now make IU_ND48 a local module variable
 !******************************************************************************
 !
+      USE inquireMod, ONLY : findFreeLUN
+
       IMPLICIT NONE
 #     include "define.h"
 
@@ -113,6 +118,9 @@
       CHARACTER(LEN=40)    :: RESERVED = 'ND48 station timeseries'
       CHARACTER(LEN=80)    :: TITLE
       CHARACTER(LEN=255)   :: ND48_OUTPUT_FILE
+
+      ! LUN for ND48 diagnostic file
+      INTEGER              :: IU_ND48
 
       ! Arrays
       INTEGER, ALLOCATABLE :: ND48_I(:)
@@ -160,7 +168,6 @@
       USE DAO_MOD,      ONLY : CLDTOPS, OPTD,   RH,       SLP   
       USE DAO_MOD,      ONLY : T,       UWND,   VWND 
       USE ERROR_MOD,    ONLY : ERROR_STOP
-      USE FILE_MOD,     ONLY : IU_ND48
       USE GRID_MOD,     ONLY : GET_XOFFSET,        GET_YOFFSET
       USE PBL_MIX_MOD,  ONLY : GET_PBL_TOP_L,      GET_PBL_TOP_m
       USE PRESSURE_MOD, ONLY : GET_PEDGE
@@ -174,10 +181,11 @@
       USE TRACERID_MOD, ONLY : IDTPAN,  IDTPMN,  IDTPPN,  IDTOX   
       USE TRACERID_MOD, ONLY : IDTR4N2, IDTSALA, IDTSALC 
 
-      USE CMN_FJ_MOD, ONLY : IPAR, JPAR, LPAR, JPMAX, JPPJ    ! Size parameters + FAST-J stuff
+      USE CMN_FJ_MOD,   ONLY : JPMAX, JPPJ    ! Size parameters + FAST-J stuff
       USE JV_CMN_MOD    ! ODAER, ODMDUST, QAA, QAA_OUT
       USE CMN_O3_MOD      ! XNUMOLAIR
       USE CMN_GCTM_MOD    ! SCALE_HEIGHT
+      USE LOGICAL_MOD,  ONLY : DO_DIAG_WRITE
 
       ! Local variables
       LOGICAL, SAVE      :: IS_CLDTOPS,  IS_OPTD, IS_SEASALT, IS_SLP
@@ -221,8 +229,12 @@
          FILENAME = TRIM( ND48_OUTPUT_FILE )
          CALL EXPAND_DATE( FILENAME, GET_NYMD(), GET_NHMS() )
 
-         ! Open file for writing
-         CALL OPEN_ND48_FILE( FILENAME )
+         IF ( DO_DIAG_WRITE ) THEN
+
+            ! Open file for writing
+            CALL OPEN_ND48_FILE( FILENAME )
+
+         ENDIF
 
          ! Reset first-time flag
          FIRST = .FALSE.
@@ -245,7 +257,7 @@
          N = ND48_N(W)
 
          ! Get local time
-         LT = GET_LOCALTIME( I )
+         LT = GET_LOCALTIME( I , J, L )
 
          ! Initialize
          Q(:) = 0
@@ -699,14 +711,18 @@
 
          ENDIF
          
+         IF ( DO_DIAG_WRITE ) THEN
+
          !==============================================================
          ! Write each station to a bpch file
          !==============================================================
-         CALL BPCH2( IU_ND48,   MODELNAME, LONRES,   LATRES,       
-     &               HALFPOLAR, CENTER180, CATEGORY, GMTRC,        
-     &               UNIT,      TAU,       TAU,      RESERVED,  
-     &               1,         1,         K,        I+I0,         
-     &               J+J0,      1,         REAL( Q(1:K),4 ) )
+            CALL BPCH2( IU_ND48,   MODELNAME, LONRES,   LATRES,       
+     &           HALFPOLAR, CENTER180, CATEGORY, GMTRC,        
+     &           UNIT,      TAU,       TAU,      RESERVED,  
+     &           1,         1,         K,        I+I0,         
+     &           J+J0,      1,         REAL( Q(1:K),4 ) )
+            
+         ENDIF
 
       ENDDO
 
@@ -727,8 +743,12 @@
 !         CLOSE( IU_ND49 ) 
 !      ENDIF
 
-      ! Flush the file once per day
-      IF ( ITS_A_NEW_DAY() ) CALL FLUSH( IU_ND48 ) 
+      IF ( DO_DIAG_WRITE ) THEN
+
+         ! Flush the file once per day
+         IF ( ITS_A_NEW_DAY() ) CALL FLUSH( IU_ND48 ) 
+
+      ENDIF
 
       ! Return to calling program
       END SUBROUTINE DIAG48
@@ -749,7 +769,7 @@
 !******************************************************************************
 !
       ! References to F90 modules
-      USE FILE_MOD, ONLY : IU_ND48, IOERROR
+      USE FILE_MOD, ONLY : IOERROR
 
       ! Arguments
       CHARACTER(LEN=*), INTENT(IN) :: FILENAME
@@ -763,9 +783,17 @@
       ! OPEN_ND48_FOR_WRITE begins here!
       !=================================================================
 
+      ! Find a free file LUN
+      IU_ND48 = findFreeLUN()
+
       ! Initialize
       FTI   = 'CTM bin 02 -- GEOS-CHEM station ts' 
       TITLE = 'GEOS-CHEM ND48 station timeseries diagnostic'
+
+!%%% NOTE: The GEOS-5 GCM won't call this routine, so it should be OK
+!%%% to use IU_ND48 from the file_mod.F. (bmy, 8/3/12)
+!%%%      ! Find a free file LUN
+!%%%      IU_ND48 = findFreeLUN()
 
       ! Open file for output
       OPEN( IU_ND48,    FILE=TRIM( FILENAME ), STATUS='UNKNOWN',

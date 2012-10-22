@@ -13,8 +13,8 @@
 !        R. Sander, Max-Planck Institute for Chemistry, Mainz, Germany
 ! 
 ! File                 : gckpp_Rates.f90
-! Time                 : Wed Sep 15 15:20:39 2010
-! Working directory    : /mnt/lstr04/srv/home/c/ccarouge/KPP/geoschem_kppfiles/v8-03-02/standard
+! Time                 : Tue Jul 24 13:27:00 2012
+! Working directory    : /home/mpayer/KPP
 ! Equation file        : gckpp.kpp
 ! Output root filename : gckpp
 ! 
@@ -46,8 +46,8 @@ CONTAINS
 !      ARR =  DBLE(A0) * EXP(-DBLE(B0)/TEMP) * (TEMP/300.0_dp)**DBLE(C0)
 !   END FUNCTION ARR        
 !
-!!~~~> Simplified Arrhenius, with two arguments
-!!~~~> Note: The argument B0 has a changed sign when compared to ARR
+!~~~> Simplified Arrhenius, with two arguments
+!~~~> Note: The argument B0 has a changed sign when compared to ARR
 !   REAL(kind=dp) FUNCTION ARR2( A0,B0 )
 !      REAL A0,B0           
 !      ARR2 =  DBLE(A0) * EXP( DBLE(B0)/TEMP )              

@@ -15,6 +15,8 @@
 !
 ! !USES:
 !
+      USE inquireMod, ONLY : findFreeLUN
+
       IMPLICIT NONE
 #     include "define.h"
       PRIVATE
@@ -34,6 +36,11 @@
       PRIVATE :: GET_N_A3        
       PRIVATE :: READ_A3         
 !
+! !REMARKS:
+!  This module reads GEOS-4, GEOS-5, and GCAP met fields
+!  MERRA met fields are read in routines merra_*_mod.F
+!  GEOS-5.7.2 met fields are read in geos572_read_mod.F
+!
 ! !REVISION HISTORY:
 !  23 Jun 2003 - R. Yantosca - Initial version
 !  (1 ) Adapted from "dao_read_mod.f" (bmy, 6/23/03)
@@ -51,6 +58,9 @@
 !  (12) Now get the # of A-3 fields from the file ident string (bmy, 10/7/08)
 !  (13) Remove references to IN_CLOUD_OD (bmy, 10/15/09)
 !  21 Sep 2010 - R. Yantosca - Added ProTeX headers
+!  28 Feb 2012 - R. Yantosca - Removed support for GEOS-3
+!  03 Aug 2012 - R. Yantosca - Move calls to findFreeLUN out of DEVEL block
+!  03 Aug 2012 - R. Yantosca - Now make IU_A3 a private module variable
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -59,6 +69,9 @@
 !
       ! Number of A3 fields in the file
       INTEGER :: N_A3_FIELDS
+
+      ! File unit for A-3 met fields
+      INTEGER :: IU_A3
 
       CONTAINS
 !EOC
@@ -82,14 +95,14 @@
 ! !USES:
 !
       USE BPCH2_MOD,     ONLY : GET_RES_EXT
-      USE DIRECTORY_MOD, ONLY : DATA_DIR,   GCAP_DIR,   GEOS_3_DIR 
+      USE DIRECTORY_MOD, ONLY : DATA_DIR,   GCAP_DIR
       USE DIRECTORY_MOD, ONLY : GEOS_4_DIR, GEOS_5_DIR, TEMP_DIR 
       USE ERROR_MOD,     ONLY : ERROR_STOP
       USE TIME_MOD,      ONLY : EXPAND_DATE
       USE UNIX_CMDS_MOD, ONLY : BACKGROUND, REDIRECT,   REMOVE_CMD 
       USE UNIX_CMDS_MOD, ONLY : UNZIP_CMD,  WILD_CARD,  ZIP_SUFFIX
 
-      USE CMN_SIZE_MOD                        ! Size parameters
+      USE CMN_SIZE_MOD                          ! Size parameters
 !
 ! !INPUT PARAMETERS: 
 !
@@ -108,6 +121,7 @@
 !  (5 ) Now make sure all USE statements are USE, ONLY (bmy, 10/3/05)
 !  (6 ) Remove support for GEOS-1 and GEOS-STRAT met fields (bmy, 8/4/06)
 !  21 Sep 2010 - R. Yantosca - Added ProTeX headers
+!  28 Feb 2012 - R. Yantosca - Removed support for GEOS-3
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -124,13 +138,7 @@
       !=================================================================
       IF ( PRESENT( NYMD ) ) THEN
 
-#if   defined( GEOS_3 )
-
-         ! Strings for directory & filename
-         GEOS_DIR = TRIM( GEOS_3_DIR )
-         A3_STR   = 'YYYYMMDD.a3.' // GET_RES_EXT()
-
-#elif defined( GEOS_4 )
+#if   defined( GEOS_4 )
 
          ! Strings for directory & filename
          GEOS_DIR = TRIM( GEOS_4_DIR )
@@ -240,9 +248,9 @@
 !
 ! !INPUT PARAMETERS: 
 !
-      INTEGER, INTENT(IN)           :: NYMD    ! YYYY/MM/DD date
-      INTEGER, INTENT(IN)           :: NHMS    ! hh:mm:ss time
-      LOGICAL, INTENT(IN), OPTIONAL :: RESET   ! Reset first-time flag?
+      INTEGER, INTENT(IN)            :: NYMD    ! YYYY/MM/DD date
+      INTEGER, INTENT(IN)            :: NHMS    ! hh:mm:ss time
+      LOGICAL, INTENT(IN),  OPTIONAL :: RESET   ! Reset first-time flag?
 ! 
 ! !REVISION HISTORY: 
 !  23 Jun 2003 - R. Yantosca - Initial version
@@ -252,6 +260,7 @@
 !                              days of A3 data @ start of run), then reset the
 !                              first-time flag.  This will prevent an error if
 !                              if the start time is not 00 GMT.
+!  28 Feb 2012 - R. Yantosca - Removed support for GEOS-3
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -281,23 +290,11 @@
          GOTO 999
       ENDIF
 
-#if   defined( GEOS_3 ) 
-
-      ! Open A-3 file if it's 00:00 GMT, or on the first call
-      IF ( NHMS == 000000 .or. FIRST ) THEN
-         DO_OPEN = .TRUE. 
-         GOTO 999
-      ENDIF
-
-#else
-
       ! Open A-3 file if it's 01:30 GMT,  or on the first call
       IF ( NHMS == 013000 .or. FIRST ) THEN
          DO_OPEN = .TRUE. 
          GOTO 999
       ENDIF
-
-#endif
 
       !=================================================================
       ! Reset quantities for next call
@@ -322,32 +319,36 @@
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE OPEN_A3_FIELDS( NYMD, NHMS, RESET )
+      SUBROUTINE OPEN_A3_FIELDS( NYMD, NHMS, RESET, IUNIT )
 !
 ! !USES:
 !
       USE BPCH2_MOD,     ONLY : GET_RES_EXT
-      USE DIRECTORY_MOD, ONLY : DATA_DIR,   GCAP_DIR,   GEOS_3_DIR 
+      USE DIRECTORY_MOD, ONLY : DATA_DIR,   GCAP_DIR
       USE DIRECTORY_MOD, ONLY : GEOS_4_DIR, GEOS_5_DIR, TEMP_DIR 
       USE LOGICAL_MOD,   ONLY : LUNZIP
       USE ERROR_MOD,     ONLY : ERROR_STOP
-      USE FILE_MOD,      ONLY : IU_A3,      IOERROR,    FILE_EXISTS
+      USE FILE_MOD,      ONLY : IOERROR,    FILE_EXISTS
       USE TIME_MOD,      ONLY : EXPAND_DATE
 
-      USE CMN_SIZE_MOD                       ! Size parameters
+      USE CMN_SIZE_MOD                          ! Size parameters
 !
 ! !INPUT PARAMETERS: 
 !
-      INTEGER, INTENT(IN)           :: NYMD    ! YYYY/MM/dd and 
-      INTEGER, INTENT(IN)           :: NHMS    !  hh:mm:ss of desired data
-      LOGICAL, INTENT(IN), OPTIONAL :: RESET   ! Reset first-time flag?
+      INTEGER, INTENT(IN)            :: NYMD    ! YYYY/MM/dd and 
+      INTEGER, INTENT(IN)            :: NHMS    !  hh:mm:ss of desired data
+      LOGICAL, INTENT(IN),  OPTIONAL :: RESET   ! Reset first-time flag?
+!
+! !OUTPUT PARAMETERS:
+!
+      INTEGER, INTENT(OUT), OPTIONAL :: IUNIT   ! Returns IU_A1 to caller
 ! 
 ! !REVISION HISTORY: 
 !  15 Jun 1998 - R. Yantosca - Initial version
 !  (1 ) Adapted from OPEN_MET_FIELDS of "dao_read_mod.f" (bmy, 6/13/03)
 !  (2 ) Now opens either zipped or unzipped files (bmy, 12/11/03)
 !  (3 ) Now skips past the GEOS-4 ident string (bmy, 12/12/03)
-!  (4 ) Now references "directory_mod.f" instead of F77_CMN_SETUP.  Also now
+!  (4 ) Now references "directory_mod.f" instead of CMN_SETUP.  Also now
 !        references LUNZIP from "logical_mod.f".  Also now prevents EXPAND_DATE
 !        from overwriting Y/M/D tokens in directory paths. (bmy, 7/20/04)
 !  (5 ) Now use FILE_EXISTS from "file_mod.f" to determine if file unit IU_A3
@@ -358,6 +359,11 @@
 !  (9 ) Now get the # of A-3 fields from the file ident string (bmy, 10/7/08)
 !  21 Sep 2010 - R. Yantosca - Added ProTeX headers
 !  21 Sep 2010 - R. Yantosca - Now pass RESET flag to DO_OPEN_A3
+!  28 Feb 2012 - R. Yantosca - Removed support for GEOS-3
+!  03 Aug 2012 - R. Yantosca - Move calls to findFreeLUN out of DEVEL block
+!  03 Aug 2012 - R. Yantosca - Now use findFreeLUN to define IU_A3 locally
+!  06 Aug 2012 - R. Yantosca - Add IUNIT to pass IU_A3 to calling routine
+!  07 Aug 2012 - R. Yantosca - Now print LUN used to open file
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -365,7 +371,7 @@
 ! !LOCAL VARIABLES:
 !
       LOGICAL            :: DO_RESET
-      LOGICAL            :: IT_EXISTS
+      LOGICAL            :: IT_EXISTS, IS_OPEN
       INTEGER            :: IOS
       CHARACTER(LEN=2)   :: DUM
       CHARACTER(LEN=8)   :: IDENT
@@ -376,7 +382,7 @@
       !=================================================================
       ! OPEN_A3_FIELDS begins here!
       !=================================================================
-      
+
       IF ( PRESENT( RESET ) ) THEN
          DO_RESET = RESET
       ELSE
@@ -386,13 +392,7 @@
       ! Open A-3 fields at the proper time, or on the first call
       IF ( DO_OPEN_A3( NYMD, NHMS, DO_RESET ) ) THEN
 
-#if   defined( GEOS_3 )
-
-         ! Strings for directory & filename
-         GEOS_DIR = TRIM( GEOS_3_DIR )
-         A3_FILE  = 'YYYYMMDD.a3.' // GET_RES_EXT()
-
-#elif defined( GEOS_4 )
+#if   defined( GEOS_4 )
 
          ! Strings for directory & filename
          GEOS_DIR = TRIM( GEOS_4_DIR )
@@ -426,7 +426,8 @@
          ENDIF
 
          ! Close previously opened A-3 file
-         CLOSE( IU_A3 )
+	 INQUIRE( IU_A3, OPENED=IS_OPEN )
+         IF( IS_OPEN ) CLOSE( IU_A3 )
 
          ! Make sure the file unit is valid before we open the file
          IF ( .not. FILE_EXISTS( IU_A3 ) ) THEN
@@ -434,7 +435,15 @@
      &                       'OPEN_A3_FIELDS (a3_read_mod.f)' )
          ENDIF
 
-         ! Open the file
+         ! Find a free file LUN
+         IU_A3 = findFreeLUN( IU_A3 )
+
+         ! Pass the value of IU_A3 to back to the calling routine
+         IF ( PRESENT( IUNIT ) ) THEN
+            IUNIT = IU_A3
+         ENDIF
+
+         ! Open the A3 file
          OPEN( UNIT   = IU_A3,         FILE   = TRIM( PATH ),
      &         STATUS = 'OLD',         ACCESS = 'SEQUENTIAL',  
      &         FORM   = 'UNFORMATTED', IOSTAT = IOS )
@@ -444,11 +453,9 @@
          ENDIF
 
          ! Echo info
-         WRITE( 6, 100 ) TRIM( PATH )
- 100     FORMAT( '     - Opening: ', a )
+         WRITE( 6, 100 ) TRIM( PATH ), IU_A3
+ 100     FORMAT( '     - Opening: ', a,  ' on unit ', i4 )
          
-#if   defined( GEOS_4 ) || defined( GEOS_5 ) || defined( GCAP )
-
          ! Skip past the ident string
          READ( IU_A3, IOSTAT=IOS ) IDENT
 
@@ -460,8 +467,6 @@
          ! is the # of fields contained in the file
          READ( IDENT(7:8), '(i2.2)' ) N_A3_FIELDS        
         
-#endif
-
       ENDIF
 
       END SUBROUTINE OPEN_A3_FIELDS
@@ -519,6 +524,7 @@
 !  (9 ) Now read FRLAND, FROCEAN, FRLANDIC and FRLAKE for methane
 !        (kjw, 8/18/09)
 !  21 Sep 2010 - R. Yantosca - Added ProTeX headers
+!  28 Feb 2012 - R. Yantosca - Removed support for GEOS-3
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -542,20 +548,7 @@
          RETURN
       ENDIF
 
-#if   defined( GEOS_3 ) 
-
-      !=================================================================
-      ! For GEOS-3, read the following fields:
-      !    HFLUX, RADSWG, PREACC, PRECON, USTAR, 
-      !    Z0,    PBL,    CLDFRC, U10M,   V10M
-      !=================================================================
-      CALL READ_A3( NYMD=NYMD,     NHMS=NHMS,     CLDFRC=CLDFRC,  
-     &              HFLUX=HFLUX,   PBL=PBL,       PREACC=PREACC, 
-     &              PRECON=PRECON, RADSWG=RADSWG, TS=TS,
-     &              U10M=U10M,     USTAR=USTAR,   V10M=V10M, 
-     &              Z0=Z0 )              
-
-#elif defined( GEOS_4 )
+#if   defined( GEOS_4 )
 
       !================================================================
       ! For GEOS-4, read the following fields:
@@ -681,26 +674,14 @@
 !  (5 ) Increase # of fields for GEOS-5 to 25 (bmy, 1/17/07)
 !  (6 ) Increase # of fields for GEOS-5 to 26 (EFLUX) (ccc, 5/21/09)
 !  21 Sep 2010 - R. Yantosca - Added ProTeX headers
+!  28 Feb 2012 - R. Yantosca - Removed support for GEOS-3
 !EOP
 !------------------------------------------------------------------------------
 !BOC
       !=================================================================
       ! GET_N_A3 begins here!
       !=================================================================
-#if   defined( GEOS_3 )
-
-      ! GEOS-3 for 1998, 1999 has 14 A-3 fields per file
-      ! GEOS-3 for 2000+      has 11 A-3 fields per file
-      SELECT CASE ( NYMD / 10000 )
-         CASE ( 1998, 1999 )
-            N_A3 = 14
-
-         CASE DEFAULT
-            N_A3 = 11
-      
-      END SELECT
-
-#elif defined( GEOS_4 )
+#if   defined( GEOS_4 )
 
       ! GEOS-4 has 19 A-3 fields
       N_A3 = 19
@@ -797,7 +778,6 @@
 !
       USE DIAG_MOD,     ONLY : AD67
       USE FILE_MOD,     ONLY : IOERROR
-      USE FILE_MOD,     ONLY : IU_A3
       USE TIME_MOD,     ONLY : SET_CT_A3
       USE TIME_MOD,     ONLY : TIMESTAMP_STRING
       USE TRANSFER_MOD, ONLY : TRANSFER_2D
@@ -906,6 +886,8 @@
 !  (10) Now read FRLAND, FROCEAN, FRLANDIC, FRLAKE for methane (kjw, 8/18/09)
 !  (11) Remove reference to IN_CLOUD_OD (bmy, 10/15/09)
 !  21 Sep 2010 - R. Yantosca - Added ProTeX headers
+!  03 Aug 2012 - R. Yantosca - Now use locally-defined IU_A3 file LUN
+!  07 Aug 2012 - R. Yantosca - Now print LUN used to open file
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -1432,8 +1414,9 @@
          IF ( CHECK_TIME( XYMD, XHMS, NYMD, NHMS ) .and. 
      &        NFOUND == N_A3 ) THEN 
             STAMP = TIMESTAMP_STRING( NYMD, NHMS )
-            WRITE( 6, 210 ) NFOUND, STAMP
- 210        FORMAT( '     - Found all ', i3, ' A-3 met fields for ', a )
+            WRITE( 6, 210 ) NFOUND, STAMP, IU_A3
+ 210        FORMAT( '     - Found all ', i3, ' A-3 met fields for ', 
+     &                   a, ' on unit ', i4 )
             EXIT
          ENDIF
       ENDDO

@@ -15,6 +15,8 @@
 !
 ! !USES:
 !
+      USE inquireMod, ONLY : findFreeLUN
+
       IMPLICIT NONE
 #     include "define.h"
       PRIVATE
@@ -35,13 +37,16 @@
 !
 ! !REVISION HISTORY:
 !  19 Aug 2010 - R. Yantosca - Initial version, based on a3_read_mod.f
+!  03 Aug 2012 - R. Yantosca - Now make IU_A1 a private module variable
 !EOP
+
 !------------------------------------------------------------------------------
 !BOC
 !
 ! !PRIVATE TYPES:
 !
       INTEGER :: N_A1_FIELDS    ! # of fields in the file
+      INTEGER :: IU_A1          ! File LUN for A-1 fields
 
       CONTAINS
 !EOC
@@ -135,7 +140,7 @@
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE OPEN_MERRA_A1_FIELDS( NYMD, NHMS, RESET )
+      SUBROUTINE OPEN_MERRA_A1_FIELDS( NYMD, NHMS, RESET, IUNIT )
 !
 ! !USES:
 !
@@ -144,18 +149,24 @@
       USE DIRECTORY_MOD, ONLY : MERRA_DIR
       USE ERROR_MOD,     ONLY : ERROR_STOP
       USE FILE_MOD,      ONLY : FILE_EXISTS
-      USE FILE_MOD,      ONLY : IU_A1
       USE FILE_MOD,      ONLY : IOERROR
       USE TIME_MOD,      ONLY : EXPAND_DATE
 !
 ! !INPUT PARAMETERS: 
 !
-      INTEGER, INTENT(IN)           :: NYMD    ! YYYYMMDD date
-      INTEGER, INTENT(IN)           :: NHMS    ! hhmmss time
-      LOGICAL, INTENT(IN), OPTIONAL :: RESET   ! Reset first-time A1 flag?
+      INTEGER, INTENT(IN)            :: NYMD    ! YYYYMMDD date
+      INTEGER, INTENT(IN)            :: NHMS    ! hhmmss time
+      LOGICAL, INTENT(IN),  OPTIONAL :: RESET   ! Reset first-time A1 flag?
+!
+! !INPUT/OUTPUT PARAMETERS:
+!
+      INTEGER, INTENT(OUT), OPTIONAL :: IUNIT   ! Returns IU_A1 to caller
 ! 
 ! !REVISION HISTORY:
 !  19 Aug 2010 - R. Yantosca - Initial version, based on a3_read_mod.f
+!  03 Aug 2012 - R. Yantosca - Now use findFreeLUN to define IU_A1 locally
+!  06 Aug 2012 - R. Yantosca - Add optional IUNIT to pass LUN to calling routine
+!  07 Aug 2012 - R. Yantosca - Now print LUN used to open file
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -163,7 +174,7 @@
 ! !LOCAL VARIABLES:
 !
       LOGICAL            :: DO_RESET
-      LOGICAL            :: IT_EXISTS
+      LOGICAL            :: IT_EXISTS, IS_OPEN
       INTEGER            :: IOS
       CHARACTER(LEN=2)   :: DUM
       CHARACTER(LEN=8)   :: IDENT
@@ -201,8 +212,9 @@
          PATH = TRIM( DATA_DIR ) // 
      &          TRIM( GEOS_DIR ) // TRIM( A1_FILE )
 
-         ! Close previously opened A-3 file
-         CLOSE( IU_A1 )
+         ! Close previously opened A-1 file
+	 INQUIRE( IU_A1, OPENED=IS_OPEN )
+         IF ( IS_OPEN ) CLOSE( IU_A1 )
 
          ! Make sure the file unit is valid before we open the file
          IF ( .not. FILE_EXISTS( IU_A1 ) ) THEN
@@ -214,6 +226,15 @@
          ! Open the A1 file
          !---------------------------
 
+         ! Find a free file LUN
+         IU_A1 = findFreeLUN()
+
+         ! If IUNIT is specified, then pass the value of
+         ! IU_A1 back to the calling program
+         IF ( PRESENT( IUNIT ) ) THEN
+            IUNIT = IU_A1
+         ENDIF
+
          ! Open the file
          OPEN( UNIT   = IU_A1,         FILE   = TRIM( PATH ),
      &         STATUS = 'OLD',         ACCESS = 'SEQUENTIAL',  
@@ -224,8 +245,8 @@
          ENDIF
 
          ! Echo info
-         WRITE( 6, 100 ) TRIM( PATH )
- 100     FORMAT( '     - Opening: ', a )
+         WRITE( 6, 100 ) TRIM( PATH ), IU_A1
+ 100     FORMAT( '     - Opening: ', a, ' on unit ', i4 )
          
          !---------------------------
          ! Get # of fields in file
@@ -390,7 +411,6 @@
 !
       USE DIAG_MOD,     ONLY : AD67
       USE FILE_MOD,     ONLY : IOERROR
-      USE FILE_MOD,     ONLY : IU_A1
       USE TIME_MOD,     ONLY : SET_CT_A1
       USE TIME_MOD,     ONLY : TIMESTAMP_STRING
       USE TRANSFER_MOD, ONLY : TRANSFER_2D
@@ -454,6 +474,9 @@
 !  25 Aug 2010 - R. Yantosca - Now read LWI (land/water/ice) from disk
 !  15 Aug 2011 - R. Yantosca - Now save SWGDN in 2nd slot of ND67 diagnostic
 !  25 Mar 2011 - R. Yantosca - Bug fix: make local SWGDN array for ND67 diag
+!  08 Jun 2012 - S. Philip   - Correction for MERRA boundary layer height
+!  03 Aug 2012 - R. Yantosca - Now use locally-defined IU_A1 file LUN
+!  07 Aug 2012 - R. Yantosca - Now print LUN used to open file
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -1042,7 +1065,7 @@
          IF ( XYMD == NYMD .and. XHMS == NHMS ) THEN
             IF ( NFOUND == N_A1_FIELDS ) THEN 
                STAMP = TIMESTAMP_STRING( NYMD, NHMS )
-               WRITE( 6, 210 ) NFOUND, STAMP
+               WRITE( 6, 210 ) NFOUND, STAMP, IU_A1
                EXIT
             ENDIF
          ENDIF
@@ -1050,7 +1073,8 @@
 
       ! FORMATs
  200  FORMAT( 'Searching for next MERRA A1 field!'                    )
- 210  FORMAT( '     - Found all ', i3, ' MERRA A1 met fields for ', a )
+ 210  FORMAT( '     - Found all ', i3, ' MERRA A1 met fields for ', 
+     &             a, ' on unit ', i4                                 )
 
       !=================================================================
       !        %%%%% SPECIAL HANDLING FOR CERTAIN FIELDS %%%%% 
@@ -1077,6 +1101,16 @@
       PRECCON = PRECCON * 86400d0
       PRECLSC = PRECLSC * 86400d0
       PRECTOT = PRECTOT * 86400d0
+
+      ! Correction for MERRA PBLH:
+      ! PBLH must be greater than a minimum mechanical mixing depth,
+      ! defined as 700*friction velocity
+      ! (Koracin and Berkowicz, 1988; Lin and McElroy, 2010)
+      DO J = 1, JJPAR
+      DO I = 1, IIPAR
+         PBLH(I,J) = max( PBLH(I,J), 700d0*USTAR(I,J) )
+      ENDDO
+      ENDDO
 
       !=================================================================
       ! ND67 diagnostic: A1 surface fields

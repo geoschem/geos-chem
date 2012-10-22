@@ -144,9 +144,12 @@
 !  (6 ) Now uses GOCART source function (tdf, bmy, 1/25/07)
 !  (7 ) Modifications for 0.5 x 0.667 grid (yxw, dan, bmy, 11/6/08)
 !  (8 ) Updates for nested grids (amv, bmy, 12/18/09)
+!  28 Feb 2012 - R. Yantosca - Removed support for GEOS-3
+!  01 Mar 2012 - R. Yantosca - Now reference new grid_mod.F90
 !******************************************************************************
 !
       IMPLICIT NONE
+#     include "define.h"
 
       !=================================================================
       ! MODULE PRIVATE DECLARATIONS -- keep certain internal variables
@@ -297,6 +300,10 @@
 !  (6 ) For now treat MERRA like GEOS-5 (bmy, 8/13/10)
 !  29 Oct 2010 - T. D. Fairlie, R. Yantosca - Retune dust for MERRA 4x5
 !  15 Feb 2011 - R. Yantosca - Add modifications for APM from G. Luo
+!  08 Feb 2012 - R. Yantosca - For now, use same FLX_MSS_FDG_FCT for 
+!                              GEOS-5.7.x as for MERRA
+!  28 Feb 2012 - R. Yantosca - Removed support for GEOS-3
+!  01 Mar 2012 - R. Yantosca - Now use GET_AREA_M2(I,J,L) from grid_mod.F90
 !******************************************************************************
 !
       ! References to F90 modules
@@ -337,7 +344,20 @@
       !--------------
 
       ! Global mass flux tuning factor (a posteriori) [frc]
-#if   defined( GEOS_5 ) && defined( GRID05x0666 )
+#if   defined( GEOS_57 ) && defined( GRID025x03125 )
+
+      ! Copy the 05x0666 scale factors for now
+      ! (skim, 5/20/12)
+
+#if defined(NESTED_CH)  
+      ! retuned based upon updated GEOS-4 tuning (amv, Nov 9, 2009)
+      REAL*8,  PARAMETER     :: FLX_MSS_FDG_FCT = 3.23d-4
+#elif defined(SEAC4RS)
+      REAL*8,  PARAMETER     :: FLX_MSS_FDG_FCT = 4.54d-4
+#endif
+
+      ! Global mass flux tuning factor (a posteriori) [frc]
+#elif defined( GEOS_5 ) && defined( GRID05x0666 )
 
 #if defined(NESTED_CH)  
       ! retuned based upon updated GEOS-4 tuning (amv, Nov 9, 2009)
@@ -357,6 +377,7 @@
 
       ! retuned based upon updated GEOS-4 tuning (amv, Nov 9, 2009)
       REAL*8,  PARAMETER     :: FLX_MSS_FDG_FCT = 4.9d-4
+
 
 #elif defined( MERRA ) && defined( GRID2x25 )
       
@@ -381,12 +402,17 @@
       !----------------------------------------------------------------
       REAL*8,  PARAMETER     :: FLX_MSS_FDG_FCT = 7.0d-4 / 0.731d0
 
-#elif defined( GEOS_3 ) && defined( GRID1x1 ) && defined( NESTED_NA )
+#elif defined( GEOS_57 ) && defined( GRID2x25 )
 
-      ! For the GEOS-3 1x1 N. America Nested grid (as used by the MIT/FAA-ULS
-      ! project), we'll tune the global dust emissions to the same totals as 
-      ! the GEOS-5 4x5 1-year benchmark v8-01-01-Run0. (bmy, 11/10/08)
-      REAL*8,  PARAMETER     :: FLX_MSS_FDG_FCT = 7.0d-4 / 9.57d0
+      !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+      !%%% NOTE: NEED TO SCALE THIS FOR GEOS-5.7.x 2x25!                 %%%
+      !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+      REAL*8,  PARAMETER     :: FLX_MSS_FDG_FCT = 4.9d-4
+
+#elif defined( GEOS_57 ) && defined( GRID4x5 )
+
+      ! Based on results from GEOS 5.7 for September 2011
+      REAL*8,  PARAMETER     :: FLX_MSS_FDG_FCT = 7.0d-4 * 1.272d0
 
 #else
 
@@ -889,7 +915,7 @@ ctdf        print *,' no mobilisation candidates'
 
                ! use get_area_m2 (Grid box surface area) [m2] instead of DXYP
                Q_DST_TND_MBL(I,M) =
-     &              FLX_MSS_VRT_DST(I,M) * GET_AREA_M2(LAT_IDX) ! [kg/sec]
+     &              FLX_MSS_VRT_DST(I,M) * GET_AREA_M2(I,LAT_IDX,1) ! [kg/sec]
 
                ! Introduce DSRC: dust mixing ratio increment   12/9/2K3
                DSRC(I,M) =      ! [kg]
@@ -4755,10 +4781,6 @@ c Fix up for negative argument, erf, etc.
       ! and size bins (Zender et al., 2K3, Equ. 12, and Table 1)
       !=================================================================
       CALL OVR_SRC_SNK_FRC_GET( DST_SRC_NBR,   DMT_VMA_SRC,
-!-----------------------------------------------------------------------------
-! Prior to 2/15/11:
-!     &                          GSD_ANL_SRC,   NDSTBIN,
-!-----------------------------------------------------------------------------
      &                          GSD_ANL_SRC,   N_DST_BIN,
      &                          DMT_MIN,       DMT_MAX,
      &                          OVR_SRC_SNK_FRC )
@@ -4771,10 +4793,6 @@ c Fix up for negative argument, erf, etc.
       ! dust flux into transport
       !==============================================================
       CALL DST_PSD_MSS( OVR_SRC_SNK_FRC, MSS_FRC_SRC,
-!-----------------------------------------------------------------------------
-! Prior to 2/15/11:
-!     &                  OVR_SRC_SNK_MSS, NDSTBIN, DST_SRC_NBR )
-!-----------------------------------------------------------------------------
      &                  OVR_SRC_SNK_MSS, N_DST_BIN, DST_SRC_NBR )
 
       !=================================================================
@@ -5123,25 +5141,6 @@ c Fix up for negative argument, erf, etc.
       IF ( AS /= 0 ) CALL ALLOC_ERR( 'TAI' )
       TAI = 0d0
 
-!------------------------------------------------------------------------------
-! Prior to 2/15/11:
-!      ALLOCATE( DMT_VWR( NDSTBIN ), STAT=AS )
-!      IF ( AS /= 0 ) CALL ALLOC_ERR( 'DMT_VWR' )
-!      DMT_VWR = 0d0
-!
-!      ALLOCATE( DNS_AER( NDSTBIN ), STAT=AS )
-!      IF ( AS /= 0 ) CALL ALLOC_ERR( 'DNS_AER' )
-!      DNS_AER = 0d0
-!
-!      ALLOCATE( OVR_SRC_SNK_FRC( DST_SRC_NBR, NDSTBIN ), STAT=AS )
-!      IF ( AS /= 0 ) CALL ALLOC_ERR( 'OVR_SRC_SNK_FRC' )
-!      OVR_SRC_SNK_FRC = 0d0
-!
-!      ALLOCATE( OVR_SRC_SNK_MSS( DST_SRC_NBR, NDSTBIN ), STAT=AS )
-!      IF ( AS /= 0 ) CALL ALLOC_ERR( 'OVR_SRC_SNK_MSS' )
-!      OVR_SRC_SNK_MSS = 0d0
-!------------------------------------------------------------------------------
-
       ALLOCATE( DMT_VWR( N_DST_BIN ), STAT=AS )
       IF ( AS /= 0 ) CALL ALLOC_ERR( 'DMT_VWR' )
       DMT_VWR = 0d0
@@ -5161,25 +5160,6 @@ c Fix up for negative argument, erf, etc.
       ALLOCATE( OROGRAPHY( IIPAR, JJPAR ), STAT=AS )
       IF ( AS /= 0 ) CALL ALLOC_ERR( 'OROGRAPHY' )
       OROGRAPHY = 0
-
-!------------------------------------------------------------------------------
-! Prior to 2/15/11:
-!      ! Bin size min diameter [m]
-!      ALLOCATE( DMT_MIN( NDSTBIN ), STAT=AS )
-!      IF ( AS /= 0 ) CALL ALLOC_ERR( 'DMT_MIN' )
-!      DMT_MIN(1) = 0.2d-6
-!      DMT_MIN(2) = 2.0d-6
-!      DMT_MIN(3) = 3.6d-6
-!      DMT_MIN(4) = 6.0d-6
-!
-!      ! Bin size max diameter [m]
-!      ALLOCATE( DMT_MAX( NDSTBIN ), STAT=AS )
-!      IF ( AS /= 0 ) CALL ALLOC_ERR( 'DMT_MAX' )
-!      DMT_MAX(1) = 2.0d-6
-!      DMT_MAX(2) = 3.6d-6
-!      DMT_MAX(3) = 6.0d-6
-!      DMT_MAX(4) = 1.2d-5
-!------------------------------------------------------------------------------
 
       ! Bin size min diameter [m]
       ALLOCATE( DMT_MIN( N_DST_BIN ), STAT=AS )

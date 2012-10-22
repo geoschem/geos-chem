@@ -1,20 +1,42 @@
-! $Id: inphot.f,v 1.1 2009/09/16 14:06:24 bmy Exp $
-      SUBROUTINE INPHOT( NLAYER, NREACS )
+!------------------------------------------------------------------------------
+!          Harvard University Atmospheric Chemistry Modeling Group            !
+!------------------------------------------------------------------------------
+!BOP
 !
-!******************************************************************************
-!  Subroutine INPHOT initializes quantities for FAST-J photolysis, including
-!  JPL spectral data (e.g. cross sections, quantum yields), standard O3 and T 
-!  profiles, and the translation indices between GEOS-Chem and FAST-J species
-!  names. (Oliver Wild, 4/99, ppm, bmy, 9/7/99, 5/10/10)
+! !ROUTINE: inphot
 !
-!  Arguments as Input:
-!  ============================================================================
-!  (1 ) NLAYER (INTEGER) : Number of layers for FAST-J photolysis
-!  (2 ) NREACS (INTEGER) : Total # of photolysis reactions for FAST-J
+! !DESCRIPTION: Subroutine INPHOT initializes quantities for FAST-J photolysis,
+!  including JPL spectral data (e.g. cross sections, quantum yields), standard 
+!  O3 and T profiles, and the translation indices between GEOS-Chem and FAST-J
+!  species names.
+!\\
+!\\
+! !INTERFACE:
 !
-!  NOTES: 
+      SUBROUTINE INPHOT( NLAYER, NREACS, am_I_Root )
+!
+! !USES:
+!
+#     include "define.h"
+
+      USE ERROR_MOD,    ONLY : ERROR_STOP
+      USE CMN_FJ_MOD,   ONLY : JPMAX, JPPJ, JPNL
+      USE CMN_SIZE_MOD, ONLY : LLPAR
+      USE JV_CMN_MOD
+      USE inquireMod,   ONLY : findFreeLUN
+
+      IMPLICIT NONE
+!
+! !INPUT PARAMETERS: 
+!
+      INTEGER, INTENT(IN) :: NLAYER      ! # of layers for FAST-J photolysis
+      INTEGER, INTENT(IN) :: NREACS      ! # of FAST-J photolysis reactions
+      LOGICAL, INTENT(IN) :: am_I_Root   ! Is this the root CPU?
+! 
+! !REVISION HISTORY: 
+!  01 Apr 1999 - O. Wild     - Initial version
 !  (1 ) Remove PTOP from the arg list, since it is now a 
-!        parameter in "F77_CMN_SIZE" (bmy, 2/10/00).
+!        parameter in "CMN_SIZE" (bmy, 2/10/00).
 !  (2 ) Remove SIGE from the argument list, since we are now using
 !        a hybrid pressure specification.  Now define ETAA and ETAB
 !        for use in "set_prof.f". (bmy, 8/23/02)
@@ -25,22 +47,22 @@
 !        GET_PEDGE routine.  Also remove reference to "pressure_mod.f".  
 !        Updated comments. (bmy, 10/30/07)
 !  (6 ) Read jv_spec_aod.dat file for AOD diagnostics. (clh, bmy, 5/10/10)
-!******************************************************************************
+!  30 Jul 2012 - R. Yantosca - Now accept am_I_Root as an argument when
+!                              running with the traditional driver main.F
+!  30 Jul 2012 - R. Yantosca - Added ProTeX headers
+!  30 Jul 2012 - R. Yantosca - Now add LUN as a local variable
+!  01 Aug 2012 - R. Yantosca - Add reference to findFreeLUN from inqure_mod.F90
+!  03 Aug 2012 - R. Yantosca - Move calls to findFreeLUN out of DEVEL block
+!  07 Aug 2012 - R. Yantosca - Now print LUN used to open file
+!EOP
+!------------------------------------------------------------------------------
+!BOC
 !
-      ! References to F90 modules (bmy, 6/27/02)
-      USE ERROR_MOD,    ONLY : ERROR_STOP
-      USE FILE_MOD,     ONLY : IU_FASTJ
+! !LOCAL VARIABLES
+!
+      INTEGER            :: LUN
+      CHARACTER(LEN=255) :: FILENAME
 
-#     include "define.h"
-
-      USE CMN_FJ_MOD, ONLY : IPAR, JPAR, LPAR, JPMAX, JPPJ, JPNL
-      USE JV_CMN_MOD
-
-      IMPLICIT NONE
-
-      ! Arguments
-      INTEGER, INTENT(IN) :: NLAYER, NREACS
-      
       !=================================================================
       ! INPHOT begins here!
       !=================================================================
@@ -52,8 +74,8 @@
       JPPJ  = NREACS + 4         
 
       ! Error check # of layers
-      IF ( JPNL > LPAR ) THEN 
-         CALL ERROR_STOP( 'JPNL > LPAR!', 'inphot.f' )
+      IF ( JPNL > LLPAR ) THEN 
+         CALL ERROR_STOP( 'JPNL > LLPAR!', 'inphot.f' )
       ENDIF
 
       ! Error check # of rxns
@@ -61,24 +83,90 @@
          CALL ERROR_STOP( 'JPPJ > JPMAX!', 'inphot.f' )
       ENDIF
 
-      ! Read in labels of photolysis rates required
-      CALL RD_JS( IU_FASTJ, 'ratj.d' )
+      !-----------------------------------------------------------------
+      ! Read in the names of FAST-J photolysis species from "ratj.d"
+      !-----------------------------------------------------------------
 
+      ! Find a free file unit
+      LUN      = findFreeLUN()
+
+      ! Name of file to read
+      FILENAME = 'ratj.d'
+
+#if defined( DEVEL ) || defined( EXTERNAL_GRID ) || defined( EXTERNAL_FORCING )
+      ! For the ESMF interface to GEOS-5 GCM, we need to append *___.rc
+      FILENAME = TRIM( FILENAME ) // '___.rc'
+#endif
+
+      ! Echo info
+      IF ( am_I_Root ) THEN
+         WRITE( 6, 100 ) TRIM( FILENAME ), LUN
+ 100     FORMAT( 'GEOSCHEM::INPHOT: Reading ', a ', on unit ', i4 )
+      ENDIF
+
+      ! Read J_value names 
+      CALL RD_JS( LUN, TRIM( FILENAME ), am_I_Root )
+
+      !-----------------------------------------------------------------
       ! Call JV_INDEX to translate between GEOS-Chem species 
       ! nomenclature and Fast-J species nomenclature (bmy, 9/13/99)
-      CALL JV_INDEX 
+      !-----------------------------------------------------------------
+      CALL JV_INDEX( am_I_Root )
 
+      !-----------------------------------------------------------------
       ! Read in JPL spectral data set (e.g. X-sections, quantum yields)
-      CALL RD_TJPL( IU_FASTJ, 'jv_spec.dat' )
+      !-----------------------------------------------------------------
 
+      ! Find a free file unit
+      LUN      = findFreeLUN()
+
+      ! Name of file to read
+      FILENAME = 'jv_spec.dat'
+
+#if defined( DEVEL ) || defined( EXTERNAL_GRID ) || defined( EXTERNAL_FORCING )
+      ! For the ESMF interface to GEOS-5 GCM, we need to append *___.rc
+      FILENAME = TRIM( FILENAME ) // '___.rc'
+#endif
+
+      ! Echo info
+      IF ( am_I_Root ) THEN
+         WRITE( 6, 100 ) TRIM( FILENAME ), LUN
+      ENDIF
+      
+      ! Read JPL data from disk
+      CALL RD_TJPL( LUN, TRIM( FILENAME ), am_I_Root )
+
+      !-----------------------------------------------------------------
       ! Read in aerosol optics to be used to calculate AODs (clh)
-      CALL RD_AOD( IU_FASTJ, 'jv_spec_aod.dat' )
+      !-----------------------------------------------------------------
 
+      ! Find a free file unit
+      LUN      = findFreeLUN()
+
+      ! Name of file to read
+      FILENAME = 'jv_spec_aod.dat'
+#if defined( DEVEL ) || defined( EXTERNAL_GRID ) || defined( EXTERNAL_FORCING )
+      ! For the ESMF interface to GEOS-5 GCM, we need to append *___.rc
+      FILENAME = TRIM( FILENAME ) // '___.rc'
+#endif
+
+      ! Echo info
+      IF ( am_I_Root ) THEN
+         WRITE( 6, 100 ) TRIM( FILENAME ), LUN
+      ENDIF
+
+      ! Read aerosol optics from disk
+      CALL RD_AOD( LUN, TRIM( FILENAME ), am_I_Root )
+
+      !-----------------------------------------------------------------
       ! Read in T & O3 climatology (cf. Nagatani/92 and McPeters/91)
-      CALL RD_PROF( IU_FASTJ, 'jv_atms.dat' )
- 
-      ! Select Aerosol/Cloud types to be used
-      CALL SET_AER
+      !-----------------------------------------------------------------
+      CALL READ_JV_ATMS_DAT( am_I_Root )
 
-      ! Return to calling program
+      !-----------------------------------------------------------------
+      ! Select Aerosol/Cloud types to be used
+      !-----------------------------------------------------------------
+      CALL SET_AER( am_I_Root )
+
       END SUBROUTINE INPHOT
+!EOC

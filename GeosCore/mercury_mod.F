@@ -74,11 +74,11 @@
 !  (7 ) global_o3_mod.f    : Module w/ routines to read 3-D O3 field
 !  (8 ) global_oh_mod.f    : Module w/ routines to read 3-D OH field
 !  (9 ) global_br_mod.f    : Module w/ routines to read 3-D Br field
-!  (10 ) grid_mod.f         : Module w/ horizontal grid information
+!  (10) grid_mod.f         : Module w/ horizontal grid information
 !  (11) logical_mod.f      : Module w/ GEOS-CHEM logical switches
 !  (12) pbl_mix_mod.f      : Module w/ routines for PBL height & mixing
 !  (13) pressure_mod.f     : Module w/ routines to compute P(I,J,L)
-!  (14) regrid_1x1_mod.f   : Module w/ routines to regrid 1x1 data
+!  (14) regrid_a2a_mod.f   : Module w/ routines to regrid data
 !  (15) time_mod.f         : Module w/ routines to compute date & time
 !  (16) tracer_mod.f       : Module w/ GEOS-CHEM tracer array STT etc.
 !  (17) tracerid_mod.f     : Module w/ pointers to tracers & emissions
@@ -174,9 +174,12 @@
 !  (7 ) Now includes LPREINDHG logical switch for preindustrial simulation 
 !       (eds 7/30/08)
 !  13 Aug 2010 - R. Yantosca - Add modifications for MERRA (treat like GEOS-5)
-!  01 Apr 2011 - H. Amos      - added LVEGEMIS, distinct from LGCAPEMIS
+!  01 Apr 2011 - H. Amos     - added LVEGEMIS, distinct from LGCAPEMIS
 !  27 Sep 2011 - H. Amos     - Remove LHg_WETDasHNO3 logical, it's obsolete
-!  07 Feb 2012 - E. Corbitt - Imported tagged tracers; renamed nt to geo.
+!  07 Feb 2012 - E. Corbitt  - Imported tagged tracers; renamed nt to geo.
+!  08 Feb 2012 - R. Yantosca - Add modifications for GEOS-5.7.x met
+!  01 Mar 2012 - R. Yantosca - Now reference new grid_mod.F90
+!  01 Mar 2012 - R. Yantosca - Use updated GET_LOCALTIME from time_mod.F
 !******************************************************************************
 !
       ! References to F90 modules
@@ -209,7 +212,8 @@
       PUBLIC :: INIT_MERCURY
       PUBLIC :: EMISSMERCURY
       PUBLIC :: PARTITIONHG
-      
+      PUBLIC :: HGPFRAC
+
       !=================================================================
       ! MODULE VARIABLES
       !=================================================================
@@ -308,7 +312,8 @@
 
       ! Henry's Law constant for Hg2 [mol /L /atm]
       REAL*8, PARAMETER     :: HL       = 1.4d6
- 
+      REAL*8, ALLOCATABLE :: HGPFRAC(:,:,:)
+
       !=================================================================
       ! MODULE ROUTINES -- follow below the "CONTAINS" statement
       !=================================================================
@@ -565,6 +570,8 @@
 !  13 Aug 2010 - R. Yantosca - Treat MERRA like GEOS-5 
 !  14 Jan 2011 - R. Yantosca - Now get volume cloud fraction directly
 !                              from GEOS-5 and MERRA met fields
+!  08 Feb 2012 - R. Yantosca - Treat GEOS-5.7.x in the same way as MERRA
+!  01 Mar 2012 - R. Yantosca - Now use GET_AREA_CM2(I,J,L) from grid_mod.F90
 !******************************************************************************
 !
       ! References to F90 modules
@@ -586,7 +593,6 @@
       USE DEPO_MERCURY_MOD, ONLY : ADD_HG2_DD
       USE DAO_MOD,          ONLY : SNOW, SNOMAS
       USE PRESSURE_MOD,     ONLY : GET_PCENTER 
-      USE GRID_MOD,         ONLY : GET_YMID 
       USE DIAG_MOD,         ONLY : AD44
       USE DAO_MOD,          ONLY : AIRDEN, QL
       USE DAO_MOD,          ONLY : AD, CLDF
@@ -710,7 +716,7 @@
          C_OH        = GET_OH( I, J, L )
          C_BR        = GET_BR( I, J, L, C_BRO )
 
-#if   defined( GEOS_5 ) || defined( MERRA ) 
+#if   defined( GEOS_5 ) || defined( MERRA ) || defined( GEOS_57 )
 
          !---------------------------------------------
          ! GEOS-5/MERRA: Get LWC, FC from met fields
@@ -868,7 +874,7 @@
          ! Except in MERRA, we assume entire grid box is water or ice
          ! if conditions are met (jaf, 4/26/11)
          FRAC_NO_HG0_DEP = 1d0
-#if   defined( MERRA )
+#if   defined( MERRA ) || defined( GEOS_57 )
          FRAC_NO_HG0_DEP =
      &        MIN(FROCEAN(I,J) + FRSNO(I,J) + FRLANDIC(I,J), 1d0) 
          ZERO_HG0_DEP = ( FRAC_NO_HG0_DEP > 0d0 )
@@ -1038,7 +1044,7 @@
             IF ( ( ND44 > 0 .OR. LGTMM ) .AND. (.NOT. LNLPBL) ) THEN
 
                ! Grid box surface area [cm2]
-               AREA_CM2 = GET_AREA_CM2( J )
+               AREA_CM2 = GET_AREA_CM2( I, J, L )
 
                ! Amt of Hg(II) lost to drydep [molec/cm2/s]
                DEP_DRY_FLX  = DEP_HG2_DRY * XNUMOL(ID_Hg2(NN)) / 
@@ -1870,7 +1876,7 @@
 !  (1 ) V_DEP_HgP (REAL*8) : Dry deposition velocity for Hg(II) [cm/s]
 !     
 !  NOTES:
-!  (1 ) Removed references to AD44 and "F77_CMN_DIAG".  Now compute drydep for all
+!  (1 ) Removed references to AD44 and "CMN_DIAG".  Now compute drydep for all
 !        levels within the PBL.  Now references ND03, LD03 from "diag03_mod.f".
 !        (bmy, 2/24/05)
 !  (2 ) Now references XNUMOL & XNUMOLAIR from "tracer_mod.f" (bmy, 10/25/05)
@@ -1878,12 +1884,11 @@
 !******************************************************************************
 !
       ! Refernces to F90 modules
-      USE DIAG03_MOD  , ONLY : ND03, LD03
-      USE GRID_MOD    , ONLY : GET_AREA_CM2
-      USE LOGICAL_MOD , ONLY : LSPLIT
-      USE PBL_MIX_MOD , ONLY : GET_FRAC_UNDER_PBLTOP, GET_PBL_MAX_L
-      USE TIME_MOD    , ONLY : GET_TS_CHEM
-      USE TRACER_MOD  , ONLY : STT,       XNUMOL
+      USE DIAG03_MOD,   ONLY : ND03, LD03
+      USE LOGICAL_MOD,  ONLY : LSPLIT
+      USE PBL_MIX_MOD,  ONLY : GET_FRAC_UNDER_PBLTOP, GET_PBL_MAX_L
+      USE TIME_MOD,     ONLY : GET_TS_CHEM
+      USE TRACER_MOD,   ONLY : STT,       XNUMOL
       USE TRACERID_MOD, ONLY : ID_HgP,    N_Hg_CATS
 
       USE CMN_SIZE_MOD  ! Size parameters
@@ -1957,10 +1962,11 @@
 !  (6  ) DTCHEM   (INTEGER) : Chemistry timestep [s]
 !
 !  NOTES:
-!  (1  ) Remove references to "diag_mod.f" and "F77_CMN_DIAG".  Now save drydep
+!  (1  ) Remove references to "diag_mod.f" and "CMN_DIAG".  Now save drydep
 !         fluxes into T44 array. (bmy, 2/24/05)
 !  (2  ) Now references XNUMOL from "tracer_mod.f" (bmy, 10/25/05)
 !  (3  ) Now uses ID_HgP and ID_Hg_tot from "tracerid_mod.f" (cdh, bmy,4/6/06)
+!  01 Mar 2012 - R. Yantosca - Now use GET_AREA_CM2(I,J,L) from grid_mod.F90
 !******************************************************************************
 !
       ! References to F90 modules
@@ -2011,7 +2017,7 @@
       IF ( ND44 > 0 .AND. (.NOT. LNLPBL) ) THEN
          
          ! Grid box surface area [cm2]
-         AREA_CM2     = GET_AREA_CM2( J )
+         AREA_CM2     = GET_AREA_CM2( I, J, L )
 
          ! Amt of Hg(II) lost to drydep [molec/cm2/s]
          DRYDEP       = OLD_HgP - NEW_HgP  
@@ -2022,7 +2028,6 @@
 
       ENDIF
      
-
       ! Return to calling program
       END SUBROUTINE RXN_HgP_DRYD
 
@@ -2041,6 +2046,8 @@
 !  (2 ) Now no longer call COMPUTE_FEMIS, since we can get the same information
 !        from routine GET_FRAC_OF_PBL in "pbl_mix_mod.f" (bmy, 2/22/05)
 !  (3 ) Now modified for new ocean mercury module. (cdh, sas, bmy, 4/6/06)
+!  01 Mar 2012 - R. Yantosca - Now use GET_XMID(I,J,L) from grid_mod.F90
+!  01 Mar 2012 - R. Yantosca - Now use GET_YMID(I,J,L) from grid_mod.F90
 !******************************************************************************
 !
       ! References to F90 modules
@@ -2133,8 +2140,10 @@
          DO J = 1, JJPAR
          DO I = 1, IIPAR
 
-            IF ( GET_XMID(I) > -125 .AND. GET_XMID(I) < -65 .AND.
-     &           GET_YMID(J) >  25  .AND. GET_YMID(J) < 50 ) THEN
+            IF ( GET_XMID( I, J, 1 ) > -125 .AND. 
+     &           GET_XMID( I, J, 1 ) < -65  .AND.
+     &           GET_YMID( I, J, 1 ) >  25  .AND. 
+     &           GET_YMID( I, J, 1 ) < 50 ) THEN
                
                EHg0_An(I,J) = 0d0
                EHg2_An(I,J) = 0d0
@@ -3546,29 +3555,42 @@
 !        land re-emissions files from Noelle Selin. (eck, bmy, 4/6/06)
 !  (5 ) Now reads anthro emissions for 17 world regions from David Streets
 !       for use in tagged simulations. (eds 2/7/12)
+!  (6 ) Bug fix: emissions are read on GENERIC grid (jaf, 2/8/12)
+!  01 Mar 2012 - R. Yantosca - Now use GET_XMID(I,J,L) from grid_mod.F90
+!  01 Mar 2012 - R. Yantosca - Now use GET_YMID(I,J,L) from grid_mod.F90
+!  13 Mar 2012 - M. Cooper   - Changed regrid algorithm to map_a2a
+!  24 May 2012 - R. Yantosca - Fixed minor bugs in map_a2a algorithm
+!  24 May 2012 - H. Amos     - updated file paths for soil Hg files
+!  28 Jun 2012 - S. Kim      - Bug fix: you need to provide a location
+!                              in the call to ERROR_STOP
+!  24 Aug 2012 - R. Yantosca - DO_REGRID_A2A now reads netCDF input file
 !******************************************************************************
 !
       ! References to F90 modules
       USE BPCH2_MOD,      ONLY : GET_NAME_EXT_2D, GET_RES_EXT
       USE BPCH2_MOD,      ONLY : GET_TAU0,        READ_BPCH2
-      USE DIRECTORY_MOD,  ONLY : DATA_DIR_1x1, DATA_DIR
-      USE LOGICAL_MOD,    ONLY : LDYNOCEAN, LPREINDHG
-      USE LOGICAL_MOD,    ONLY : LSPLIT !eds 8/31/10
-      USE REGRID_1x1_MOD, ONLY : DO_REGRID_1x1
+      USE DIRECTORY_MOD,  ONLY : DATA_DIR_1x1,    DATA_DIR
+      USE LOGICAL_MOD,    ONLY : LDYNOCEAN,       LPREINDHG
+      USE LOGICAL_MOD,    ONLY : LSPLIT           !eds 8/31/10
+      USE REGRID_A2A_MOD, ONLY : DO_REGRID_A2A
       USE TIME_MOD,       ONLY : EXPAND_DATE
       USE TRANSFER_MOD,   ONLY : TRANSFER_2D
-      USE GRID_MOD,       ONLY : GET_XMID,    GET_YMID
+      USE GRID_MOD,       ONLY : GET_XMID,        GET_YMID
+      USE ERROR_MOD,      ONLY : ERROR_STOP
 
-      USE CMN_SIZE_MOD       ! Size parameters
+      USE CMN_SIZE_MOD         ! Size parameters
 
       ! Local variables
       INTEGER                 :: NYMD, I, J
       REAL*4                  :: ARRAY(IIPAR,JJPAR,1)
-      REAL*4                  :: ARRAY1(I1x1,J1x1,1)
+      REAL*4                  :: ARRAY1(I1x1,J1x1-1,1)
+      REAL*8, TARGET          :: GEN_1x1(I1x1,J1x1-1)
       REAL*8                  :: XTAU
       REAL*8                  :: X, Y
       REAL*8, PARAMETER       :: SEC_PER_YR = 365.25d0 * 86400d0
       CHARACTER(LEN=255)      :: FILENAME
+      CHARACTER(LEN=255)      :: LLFILENAME
+      REAL*8, POINTER         :: INGRID(:,:) => NULL()
 
       !=================================================================
       ! MERCURY_READYR begins here! 
@@ -3590,8 +3612,11 @@
          !---------------------------
          ! Hg(0) emissions, except mining [kg/s]
          !---------------------------
-         
-         
+
+         ! File with lat/lon edges for regridding
+         LLFILENAME = TRIM( DATA_DIR_1x1) //
+     &              'MAP_A2A_Regrid_201203/MAP_A2A_latlon_generic1x1.nc'
+
          IF (LGCAPEMIS) THEN
             ! Use Bess' GCAP emissions from David Streets
 
@@ -3609,9 +3634,6 @@
              XTAU = GET_TAU0( 1, 1, ANTHRO_Hg_YEAR )
 
             ! Filename for anthropogenic mercury source
-!            FILENAME = '/home/cdh/GC/Archived-Br/' // 
-!     &           'GEIA_Streets_Hg0.geos.1x1.YYYY'
-
             FILENAME = TRIM( DATA_DIR_1x1) // 'mercury_201205/' // 
      &           'GEIA_Streets_' // TRIM( SCENARIO ) //
      &           '_Hg0.geos.1x1.YYYY'
@@ -3625,15 +3647,24 @@
  100        FORMAT( '     - MERCURY_READYR: Reading ', a )
 
             ! Read data in [kg/yr]
-            CALL READ_BPCH2( FILENAME, 'HG-SRCE', 1, 
-     &           XTAU,      I1x1,     J1x1,    
-     &           1,         ARRAY1,   QUIET=.TRUE. )
-            
-            ! Regrid from 1x1 to the current grid
-            CALL DO_REGRID_1x1( 'kg', ARRAY1, EHg0_an )
+            CALL READ_BPCH2( FILENAME, 'HG-SRCE', 1,
+     &                       XTAU,      I1x1,     J1x1-1,
+     &                       1,         ARRAY1,   QUIET=.TRUE. )
+
+            ! Cast to REAL*8 before regridding
+            GEN_1x1(:,:) = ARRAY1(:,:,1)
+
+            ! Regrid from GENERIC 1x1 to the current grid
+            INGRID  => GEN_1x1(:,:)
+            CALL DO_REGRID_A2A( LLFILENAME, I1x1,    J1x1-1,
+     &                          INGRID,     EHg0_an, PERAREA=1,
+     &                          netCDF=.TRUE.                   )
 
             ! Convert from [kg/yr] to [kg/s]
             EHg0_an = EHg0_an / SEC_PER_YR
+
+            ! Free pointer
+            NULLIFY( INGRID )
 
 !- eds 8/31/10 ------------------------------------------------------
          IF (LSPLIT) THEN
@@ -3642,7 +3673,6 @@
             ! GEIA 2005 emissions are scaled to 2006 or 2050
              NYMD = ( ANTHRO_Hg_YEAR * 10000 ) + 0101
              XTAU = GET_TAU0( 1, 1, ANTHRO_Hg_YEAR )
-
 
             ! Anthro Canada Hg0
             FILENAME = TRIM( DATA_DIR_1x1) // 'mercury_201205/' //
@@ -4073,11 +4103,17 @@
 
             ! Read data in [kg/yr]
             CALL READ_BPCH2( FILENAME, 'HG-SRCE', 1, 
-     &           XTAU,      I1x1,     J1x1,    
-     &           1,         ARRAY1,   QUIET=.TRUE. )
-            
-            ! Regrid from 1x1 to the current grid
-            CALL DO_REGRID_1x1( 'kg', ARRAY1, EHg0_an )
+     &                       XTAU,      I1x1,     J1x1-1,
+     &                       1,         ARRAY1,   QUIET=.TRUE. )
+
+            ! Cast to REAL*8 before regridding
+            GEN_1x1(:,:) = ARRAY1(:,:,1)
+
+            ! Regrid from GENERIC 1x1 to the current grid
+            INGRID  => GEN_1x1(:,:)
+            CALL DO_REGRID_A2A( LLFILENAME, I1x1,    J1x1-1,
+     &                          INGRID,     EHg0_an, PERAREA=1,
+     &                          netCDF=.TRUE.                   )
 
             ! Convert from [kg/yr] to [kg/s]
             EHg0_an = EHg0_an / SEC_PER_YR    
@@ -4089,7 +4125,8 @@
             ! Implemented 10/19/11 by eck
             EHg0_an=1.24d0*EHg0_an
             
-
+            ! Free pointer
+            NULLIFY( INGRID )
 
          ELSE
             ! Otherwise use Selin et al. 2008 emissions
@@ -4110,42 +4147,49 @@
 
             ! Read data in [kg/yr]
             CALL READ_BPCH2( FILENAME, 'HG-SRCE', 1, 
-     &           XTAU,      I1x1,     J1x1,    
-     &           1,         ARRAY1,   QUIET=.TRUE. )
+     &                       XTAU,      I1x1,     J1x1-1,
+     &                       1,         ARRAY1,   QUIET=.TRUE. )
             
-            ! Regrid from 1x1 to the current grid
-            CALL DO_REGRID_1x1( 'kg', ARRAY1, EHg0_an )
+            ! Cast to REAL*8 before regridding
+            GEN_1x1(:,:) = ARRAY1(:,:,1)
+
+            ! Regrid from GENERIC 1x1 to the current grid
+            INGRID  => GEN_1x1(:,:)
+            CALL DO_REGRID_A2A( LLFILENAME, I1x1,    J1x1-1,
+     &                          INGRID,     EHg0_an, PERAREA=1,
+     &                          netCDF=.TRUE.                   )
 
             ! Convert from [kg/yr] to [kg/s]
             EHg0_an = EHg0_an / SEC_PER_YR
 
             ! Scale up the inventory, as explained in Selin et al., GBC 2008
             DO J = 1, JJPAR
+            DO I = 1, IIPAR
+
+               ! Grid box longitude [degrees]
+               X = GET_XMID( I, J, 1 )
 
                ! Grid-box latitude [degrees]
-               Y = GET_YMID( J )
-         
-               ! Loop over longitudes
-               DO I = 1, IIPAR
+               Y = GET_YMID( I, J, 1 )
 
-                  ! Grid box longitude [degrees]
-                  X = GET_XMID( I )
+               ! Asian Anthro Hg increase 50%
+               IF ( ( X >= 70.0 .and. X < 152.5 )  .and.
+     &              ( Y >=  8.0 .and. Y <  45.0 ) ) THEN
 
-                  ! Asian Anthro Hg increase 50%
-                  IF ( ( X >= 70.0 .and. X < 152.5 )  .and.
-     &                 ( Y >=  8.0 .and. Y <  45.0 ) ) THEN
+                  EHg0_an(I,J) = EHg0_an(I,J) * 1.5d0
 
-                     EHg0_an(I,J) = EHg0_an(I,J) * 1.5d0
+               ELSE
 
-                  ELSE
+                  ! otherwise, 30% increase
+                  EHg0_an(I,J) = EHg0_an(I,J) * 1.3d0
 
-                     ! otherwise, 30% increase
-                     EHg0_an(I,J) = EHg0_an(I,J) * 1.3d0
+               ENDIF 
 
-                  ENDIF 
-
-               ENDDO
+            ENDDO
             ENDDO 
+
+            ! Free pointer
+            NULLIFY( INGRID )
 
          ENDIF
 
@@ -4216,14 +4260,23 @@
 
             ! Read data in [kg/yr]
             CALL READ_BPCH2( FILENAME, 'HG-SRCE', 6, 
-     &           XTAU,      I1x1,     J1x1,    
-     &           1,         ARRAY1,   QUIET=.TRUE. )
+     &                       XTAU,      I1x1,     J1x1-1,
+     &                       1,         ARRAY1,   QUIET=.TRUE. )
 
-            ! Regrid from 1x1 to the current grid
-            CALL DO_REGRID_1x1( 'kg', ARRAY1, EHg2_an )
+            ! Cast to REAL*8 before regridding
+            GEN_1x1(:,:) = ARRAY1(:,:,1)
+
+            ! Regrid from GENERIC 1x1 to the current grid
+            INGRID  => GEN_1x1(:,:)
+            CALL DO_REGRID_A2A( LLFILENAME, I1x1,    J1x1-1,
+     &                          INGRID,     EHg2_an, PERAREA=1,
+     &                          netCDF=.TRUE.                   )
 
             ! Convert from [kg/yr] to [kg/s]
             EHg2_an = EHg2_an / SEC_PER_YR
+
+            ! Free pointer
+            NULLIFY( INGRID )
 
 !- eds 8/31/10 ----------------------------------------------------
          IF (LSPLIT) THEN
@@ -4659,11 +4712,17 @@
 
             ! Read data in [kg/yr]
             CALL READ_BPCH2( FILENAME, 'HG-SRCE', 6, 
-     &           XTAU,      I1x1,     J1x1,    
-     &           1,         ARRAY1,   QUIET=.TRUE. )
+     &                       XTAU,      I1x1,     J1x1-1,
+     &                       1,         ARRAY1,   QUIET=.TRUE. )
 
-            ! Regrid from 1x1 to the current grid
-            CALL DO_REGRID_1x1( 'kg', ARRAY1, EHg2_an )
+            ! Cast to REAL*8 before regridding
+            GEN_1x1(:,:) = ARRAY1(:,:,1)
+
+            ! Regrid from GENERIC 1x1 to the current grid
+            INGRID  => GEN_1x1(:,:)
+            CALL DO_REGRID_A2A( LLFILENAME, I1x1,    J1x1-1,
+     &                          INGRID,     EHg2_an, PERAREA=1,
+     &                          netCDF=.TRUE.                   )
 
             ! Convert from [kg/yr] to [kg/s]
             EHg2_an = EHg2_an / SEC_PER_YR
@@ -4674,6 +4733,9 @@
             ! Refs: Amos et al. (2011, ACPD), Y. Zhang et al. (2011, in prep)
             ! Implemented 10/19/11 by eck
             EHg2_an=0.45d0*EHg2_an
+
+            ! Free pointer
+            NULLIFY( INGRID )
 
          ELSE
             ! Otherwise use Selin et al. 2008 emissions
@@ -4691,14 +4753,23 @@
 
             ! Read data in [kg/yr]
             CALL READ_BPCH2( FILENAME, 'HG-SRCE', 6, 
-     &           XTAU,      I1x1,     J1x1,    
-     &           1,         ARRAY1,   QUIET=.TRUE. )
+     &                       XTAU,      I1x1,     J1x1-1,
+     &                       1,         ARRAY1,   QUIET=.TRUE. )
 
-            ! Regrid from 1x1 to the current grid
-            CALL DO_REGRID_1x1( 'kg', ARRAY1, EHg2_an )
+            ! Cast to REAL*8 before regridding
+            GEN_1x1(:,:) = ARRAY1(:,:,1)
+
+            ! Regrid from GENERIC 1x1 to the current grid
+            INGRID  => GEN_1x1(:,:)
+            CALL DO_REGRID_A2A( LLFILENAME, I1x1,    J1x1-1,
+     &                          INGRID,     EHg2_an, PERAREA=1,
+     &                          netCDF=.TRUE.                   )
 
             ! Convert from [kg/yr] to [kg/s]; increase Pacyna by 30%
             EHg2_an = EHg2_an * 1.3d0 / SEC_PER_YR
+
+            ! Free pointer
+            NULLIFY( INGRID )
 
          ENDIF
 
@@ -4729,14 +4800,23 @@
 
             ! Read data in [kg/yr]
             CALL READ_BPCH2( FILENAME, 'HG-SRCE', 9, 
-     &           XTAU,      I1x1,     J1x1,    
-     &           1,         ARRAY1,   QUIET=.TRUE. )
+     &                       XTAU,      I1x1,     J1x1-1,
+     &                       1,         ARRAY1,   QUIET=.TRUE. )
 
-            ! Regrid from 1x1 to the current grid
-            CALL DO_REGRID_1x1( 'kg', ARRAY1, EHgP_an )
+            ! Cast to REAL*8 before regridding
+            GEN_1x1(:,:) = ARRAY1(:,:,1)
+
+            ! Regrid from GENERIC 1x1 to the current grid
+            INGRID  => GEN_1x1(:,:)
+            CALL DO_REGRID_A2A( LLFILENAME, I1x1,    J1x1-1,
+     &                          INGRID,     EHgP_an, PERAREA=1,
+     &                          netCDF=.TRUE.                   )
 
             ! Convert from [kg/yr] to [kg/s]
             EHgP_an = EHgP_an / SEC_PER_YR
+
+            ! Free pointer
+            NULLIFY( INGRID )
 
 !- eds 8/31/10 ----------------------------------------------------
          IF (LSPLIT) THEN
@@ -5157,6 +5237,9 @@
 
 !----------------------------------------------------------------
 
+            ! Free pointer
+            NULLIFY( INGRID )
+
          ELSEIF (LGEIA05) THEN
             ! Use GEIA 2005 emissions (eck, 10/19/11)
 
@@ -5171,12 +5254,18 @@
             WRITE( 6, 100 ) TRIM( FILENAME )
 
             ! Read data in [kg/yr]
-            CALL READ_BPCH2( FILENAME, 'HG-SRCE', 9, 
-     &           XTAU,      I1x1,     J1x1,    
-     &           1,         ARRAY1,   QUIET=.TRUE. )
+            CALL READ_BPCH2( FILENAME, 'HG-SRCE', 9,
+     &                       XTAU,      I1x1,     J1x1-1,
+     &                       1,         ARRAY1,   QUIET=.TRUE. )
 
-            ! Regrid from 1x1 to the current grid
-            CALL DO_REGRID_1x1( 'kg', ARRAY1, EHgP_an )
+            ! Cast to REAL*8 before regridding
+            GEN_1x1(:,:) = ARRAY1(:,:,1)
+
+            ! Regrid from GENERIC 1x1 to the current grid
+            INGRID  => GEN_1x1(:,:)
+            CALL DO_REGRID_A2A( LLFILENAME, I1x1,    J1x1-1,
+     &                          INGRID,     EHgP_an, PERAREA=1,
+     &                          netCDF=.TRUE.                   )
 
             ! Convert from [kg/yr] to [kg/s]
             EHgP_an = EHgP_an / SEC_PER_YR
@@ -5187,6 +5276,9 @@
             ! Refs: Amos et al. (2011, ACPD), Y. Zhang et al. (2011, in prep)
             ! Implemented 10/19/11 by eck
             EHgP_an=0.55d0*EHgP_an
+
+            ! Free pointer
+            NULLIFY( INGRID )
 
          ELSE
             ! Otherwise use Selin et al. 2008 emissions
@@ -5202,15 +5294,24 @@
             WRITE( 6, 100 ) TRIM( FILENAME )
 
             ! Read data in [kg/yr]
-            CALL READ_BPCH2( FILENAME, 'HG-SRCE', 9, 
-     &           XTAU,      I1x1,     J1x1,    
-     &           1,         ARRAY1,   QUIET=.TRUE. )
+            CALL READ_BPCH2( FILENAME, 'HG-SRCE', 9,
+     &                       XTAU,      I1x1,     J1x1-1,
+     &                       1,         ARRAY1,   QUIET=.TRUE. )
 
-            ! Regrid from 1x1 to the current grid
-            CALL DO_REGRID_1x1( 'kg', ARRAY1, EHgP_an )
+            ! Cast to REAL*8 before regridding
+            GEN_1x1(:,:) = ARRAY1(:,:,1)
+
+            ! Regrid from GENERIC 1x1 to the current grid
+            INGRID  => GEN_1x1(:,:)
+            CALL DO_REGRID_A2A( LLFILENAME, I1x1,    J1x1-1,
+     &                          INGRID,     EHgP_an, PERAREA=1,
+     &                          netCDF=.TRUE.                   )
 
             ! Convert from [kg/yr] to [kg/s];increase Pacyna by 30%
             EHgP_an = EHgP_an * 1.3D0 / SEC_PER_YR
+
+            ! Free pointer
+            NULLIFY( INGRID )
 
          ENDIF
 
@@ -5223,7 +5324,8 @@
 
       !=================================================================
       ! Read distribution of Hg on land.
-      ! See explanation in Selin et al., GBC 2008
+      ! See explanation in Selin et al., GBC 2008 or the GEOS-Chem Hg
+      !  wiki.
       !
       ! EHg0_dist is a dimensionless spatial scaling factor that distributes
       ! the soil Hg content according to deposition. It also accounts for
@@ -5238,11 +5340,18 @@
          ! Pre-industrial 
          !-----------------------
 #if   defined( GEOS_5 ) && defined( GRID4x5 )
-         FILENAME = '/home/h/hamos/GC/input_files/Hg/soilHg/'//
-     &              'soilHg.preind.4x5.bpch'  !hma, 09  Jun 2011
+        FILENAME= TRIM( DATA_DIR )            //
+     &            'mercury_201110/soilHg.102311.preind.bpch'
 #elif defined( GEOS_5 ) && defined( GRID2x25 )
-         FILENAME = '/home/h/hamos/GC/input_files/Hg/soilHg/'//
-     &              'soilHg.preind.2x25.bpch' ! hma, 19 Dec 2011
+        FILENAME= TRIM( DATA_DIR )            //
+     &            'mercury_201110/soilHg.102311.preind.bpch'
+#elif defined( MERRA ) && defined( GRID4x5 )
+        FILENAME= TRIM( DATA_DIR )            //
+     &            'mercury_201110/soilHg.merra.preind.bpch'
+#else
+        ! Include a location for the error message (skim, 6/28/12)
+        CALL ERROR_STOP( "You need to make a Hg soil file. ", 
+     &                   "PREINDUSTRIAL MERCURY")
 #endif
 
       ELSE
@@ -5250,11 +5359,18 @@
          ! Present day
          !-----------------------
 #if   defined( GEOS_5 ) && defined( GRID4x5 )
-         FILENAME = '/home/h/hamos/GC/input_files/Hg/soilHg/'//
-     &              'soilHg.presentday.4x5.bpch'  !hma, 09  Jun 2011
+        FILENAME= TRIM( DATA_DIR )            //
+     &            'mercury_201110/soilHg.102311.presentday.bpch'
 #elif defined( GEOS_5 ) && defined( GRID2x25 )
-         FILENAME = '/home/h/hamos/GC/input_files/Hg/soilHg/'//
-     &              'soilHg.presentday.2x25.bpch' ! hma, 19 Dec 2011
+        FILENAME= TRIM( DATA_DIR )            //
+     &            'mercury_201110/soilHg.102311.presentday.bpch'
+#elif defined( MERRA ) && defined( GRID4x5 )
+        FILENAME= TRIM( DATA_DIR )            //
+     &            'mercury_201110/soilHg.merra.presentday.bpch'
+#else
+        ! Include a location for the error message (skim, 6/28/12)
+        CALL ERROR_STOP( "You need to make a Hg soil file. ", 
+     &                   "PRESENT DAY MERCURY")
 #endif
 
       ENDIF
@@ -5603,6 +5719,8 @@
 !  (1-3) BrO (REAL*8)      : Concentration of BrO
 !
 !  NOTES:
+!  01 Mar 2012 - R. Yantosca - Now use GET_YMID(I,J,L) from grid_mod.F90
+!  01 Mar 2012 - R. Yantosca - Now use GET_LOCALTIME(I,J,L) from time_mod.F90
 !******************************************************************************
 !
       ! References to F90 modules
@@ -5718,9 +5836,9 @@
      &     (SUNCOS(JLOOP) > 0D0) .AND. (T(I,J,1) <= 268D0) .AND.
      &     ( LWI(I,J)==2 )  .AND. GET_OBK(I,J) > 0D0 ) THEN
 
-         IF ( ( (GET_YMID(J) > 60D0) .AND. 
+         IF ( ( (GET_YMID(I,J,L) > 60D0) .AND. 
      &          (GET_MONTH() >= 3) .AND. (GET_MONTH() <= 5)  ) .OR.
-     &        ( (GET_YMID(J) < -50D0) .AND. 
+     &        ( (GET_YMID(I,J,L) < -50D0) .AND. 
      &          (GET_MONTH() >= 9) .AND. (GET_MONTH() <= 11)  ) ) THEN
 
             ! Br concentration due to bromine explosion, pptv
@@ -5757,7 +5875,7 @@
          ELSE
 
             ! Local time: 0-23.999
-            LOCALTIME = GET_LOCALTIME(I)
+            LOCALTIME = GET_LOCALTIME( I, J, L )
       
             ! Interpolate the real hour to lie within an equinoctal day
             ! i.e. between 6-18
@@ -5820,6 +5938,8 @@
 !  (3 ) Now store the peak SUNCOS value for each surface grid box (I,J) in 
 !        the COSZM array. (rjp, bmy, 3/30/04)
 !  (4 ) Also added parallel loop over grid boxes (eck, bmy, 12/8/04)
+!  01 Mar 2012 - R. Yantosca - Now use GET_XMID(I,J,L) from grid_mod.F90
+!  01 Mar 2012 - R. Yantosca - Now use GET_YMID_R(I,J,L) from grid_mod.F90
 !******************************************************************************
 !
       ! References to F90 modules
@@ -5882,15 +6002,15 @@
 !$OMP+DEFAULT( SHARED )
 !$OMP+PRIVATE( I, J, YMID_R, IJLOOP, TIMLOC, AHR )
             DO J = 1, JJPAR
+            DO I = 1, IIPAR
 
                ! Grid box latitude center [radians]
-               YMID_R = GET_YMID_R( J )
-
-            DO I = 1, IIPAR
+               YMID_R = GET_YMID_R( I, J, 1 )
 
                ! Increment IJLOOP
                IJLOOP = ( (J-1) * IIPAR ) + I
-               TIMLOC = real(LHR0) + real(NT)/3600.0 + GET_XMID(I)/15.0
+               TIMLOC = real(LHR0) + real(NT)/3600.0 
+     &                + GET_XMID(I,J,1)/15.0
          
                DO WHILE (TIMLOC .lt. 0)
                   TIMLOC = TIMLOC + 24.0
@@ -5946,133 +6066,132 @@
       ! Return to calling program
       END SUBROUTINE OHNO3TIME
 
-c$$$!------------------------------------------------------------------------------
-c$$$! eds 2/7/2012 no longer use this routine - replaced by new tagged tracers
-c$$$      SUBROUTINE DEFINE_TAGGED_Hg
-c$$$!
-c$$$!******************************************************************************
-c$$$!  Subroutine DEFINE_TAGGED_Hg defines the tagged tracer numbers for
-c$$$!  anthropogenic (by geographic region) Hg0, Hg2, and HgP.  The position of 
-c$$$!  Hg2 and HgP in the DEPSAV array is also computed for future use.  This 
-c$$$!  routine only has to be called once at the start of the simulation. 
-c$$$!  (eck, cdh, bmy, 12/15/04, 4/6/06)
-c$$$!
-c$$$!  NOTES:
-c$$$!  (1 ) Now only define AN_Hg0, AN_Hg2, AN_HgP.  Now use ID_Hg0, ID_Hg2, and
-c$$$!        ID_HgP index arrays from "tracerid_mod.f". (eck, cdh, bmy, 4/6/06)
-c$$$!******************************************************************************
-c$$$!
-c$$$!      ! References to F90 modules
-c$$$      USE GRID_MOD,     ONLY : GET_XMID, GET_YMID
-c$$$      USE ERROR_MOD,    ONLY : ERROR_STOP
-c$$$      USE TRACER_MOD,   ONLY : N_TRACERS
-c$$$      USE TRACERID_MOD, ONLY : ID_Hg0,    ID_Hg2,   ID_HgP
-c$$$      USE TRACERID_MOD, ONLY : ID_Hg_tot, ID_Hg_na, ID_Hg_eu, ID_Hg_as
-c$$$      USE TRACERID_MOD, ONLY : ID_Hg_rw,  ID_Hg_oc, ID_Hg_ln, ID_Hg_nt
-c$$$
-c$$$      USE CMN_SIZE_MOD     ! Size parameters
-c$$$
-c$$$      ! Local variables
-c$$$      INTEGER               :: I, J
-c$$$      REAL*8                :: X, Y
-c$$$      CHARACTER(LEN=255)    :: LOCATION
-c$$$
-c$$$      !=================================================================
-c$$$      ! DEFINE_TAGGED_Hg begins here!
-c$$$      !=================================================================
-c$$$
-c$$$      ! Location string for ERROR_STOP
-c$$$      LOCATION = 'DEFINE_TAGGED_Hg ("mercury_mod.f")'
-c$$$
-c$$$      !---------------------------------
-c$$$      ! Anthropogenic tracer indices
-c$$$      !---------------------------------
-c$$$
-c$$$      ! Loop over latitudes
-c$$$!$OMP PARALLEL DO 
-c$$$!$OMP+DEFAULT( SHARED ) 
-c$$$!$OMP+PRIVATE( I, J, X, Y )
-c$$$      DO J = 1, JJPAR
-c$$$
-c$$$         ! Grid-box latitude [degrees]
-c$$$         Y = GET_YMID( J )
-c$$$         
-c$$$         ! Loop over longitudes
-c$$$         DO I = 1, IIPAR
-c$$$
-c$$$            ! Grid box longitude [degrees]
-c$$$            X = GET_XMID( I )
-c$$$
-c$$$            ! North American Anthro Hg 
-c$$$            IF ( ( X >= -172.5 .and. X < -17.5 )   .and. 
-c$$$     &           ( Y >=   24.0 .and. Y <  88.0 ) ) THEN
-c$$$               AN_Hg0(I,J) = ID_Hg0(ID_Hg_na)
-c$$$               AN_Hg2(I,J) = ID_Hg2(ID_Hg_na)
-c$$$               AN_HgP(I,J) = ID_HgP(ID_Hg_na)
-c$$$            
-c$$$            ! European Anthro Hg (1st sub-box)
-c$$$            ELSE IF ( ( X >= -17.5 .and. X < 72.5 )  .and. 
-c$$$     &                ( Y >=  36.0 .and. Y < 45.0 ) ) THEN
-c$$$               AN_Hg0(I,J) = ID_Hg0(ID_Hg_eu)
-c$$$               AN_Hg2(I,J) = ID_Hg2(ID_Hg_eu)
-c$$$               AN_HgP(I,J) = ID_HgP(ID_Hg_eu)
-c$$$
-c$$$            ! European Anthro Hg (2nd sub-box)
-c$$$            ELSE IF ( ( X >= -17.5 .and. X < 172.5 )  .and. 
-c$$$     &                ( Y >=  45.0 .and. Y <  88.0 ) ) THEN
-c$$$               AN_Hg0(I,J) = ID_Hg0(ID_Hg_eu)
-c$$$               AN_Hg2(I,J) = ID_Hg2(ID_Hg_eu)
-c$$$               AN_HgP(I,J) = ID_HgP(ID_Hg_eu)
-c$$$
-c$$$            ! Asian Anthro Hg 
-c$$$            ELSE IF ( ( X >= 70.0 .and. X < 152.5 )  .and.
-c$$$     &                ( Y >=  8.0 .and. Y <  45.0 ) ) THEN
-c$$$               AN_Hg0(I,J) = ID_Hg0(ID_Hg_as)
-c$$$               AN_Hg2(I,J) = ID_Hg2(ID_Hg_as)
-c$$$               AN_HgP(I,J) = ID_HgP(ID_Hg_as)
-c$$$
-c$$$            ! Rest-of-world Anthro Hg 
-c$$$            ELSE
-c$$$               AN_Hg0(I,J) = ID_Hg0(ID_Hg_rw)
-c$$$               AN_Hg2(I,J) = ID_Hg2(ID_Hg_rw)
-c$$$               AN_HgP(I,J) = ID_HgP(ID_Hg_rw)
-c$$$
-c$$$            ENDIF
-c$$$         ENDDO
-c$$$      ENDDO
-c$$$!$OMP END PARALLEL DO
-c$$$
-c$$$      !=================================================================
-c$$$      ! Error check tracers: make sure they are not zero
-c$$$      ! since this can cause array-out-of-bounds errors
-c$$$      !=================================================================
-c$$$
-c$$$      ! Tagged Hg0
-c$$$      IF ( ANY( AN_Hg0 == 0 ) ) THEN
-c$$$         CALL ERROR_STOP( 'AN_Hg0 tracers are undefined!', LOCATION )   
-c$$$      ENDIF
-c$$$      
-c$$$      ! Tagged Hg2
-c$$$      IF ( ANY( AN_Hg2 == 0 ) ) THEN
-c$$$         CALL ERROR_STOP( 'AN_Hg2 tracers are undefined!', LOCATION )   
-c$$$      ENDIF
-c$$$
-c$$$      ! Tagged Hg2
-c$$$      IF ( ANY( AN_HgP == 0 ) ) THEN
-c$$$         CALL ERROR_STOP( 'AN_HgP tracer are undefined!', LOCATION )   
-c$$$      ENDIF
-c$$$
-c$$$      !---------------------------------
-c$$$      ! Error check # of tracers
-c$$$      !---------------------------------
-c$$$      IF ( N_TRACERS < 21 ) THEN 
-c$$$         CALL ERROR_STOP( 'Too few Hg tagged tracers!',
-c$$$     &                    'DEFINE_TAGGED_Hg ("mercury_mod.f")' )
-c$$$      ENDIF
-c$$$
-c$$$      ! Return to calling program
-c$$$      END SUBROUTINE DEFINE_TAGGED_Hg
-
+!$$$!---------------------------------------------------------------------------
+!$$$! eds 2/7/2012 no longer use this routine - replaced by new tagged tracers
+!$$$      SUBROUTINE DEFINE_TAGGED_Hg
+!$$$!
+!$$$!***************************************************************************
+!$$$!  Subroutine DEFINE_TAGGED_Hg defines the tagged tracer numbers for
+!$$$!  anthropogenic (by geographic region) Hg0, Hg2, and HgP.  The position of 
+!$$$!  Hg2 and HgP in the DEPSAV array is also computed for future use.  This 
+!$$$!  routine only has to be called once at the start of the simulation. 
+!$$$!  (eck, cdh, bmy, 12/15/04, 4/6/06)
+!$$$!
+!$$$!  NOTES:
+!$$$!  (1 ) Now only define AN_Hg0, AN_Hg2, AN_HgP.  Now use ID_Hg0, ID_Hg2, and
+!$$$!        ID_HgP index arrays from "tracerid_mod.f". (eck, cdh, bmy, 4/6/06)
+!$$$!***************************************************************************
+!$$$!
+!$$$!      ! References to F90 modules
+!$$$      USE GRID_MOD,     ONLY : GET_XMID, GET_YMID
+!$$$      USE ERROR_MOD,    ONLY : ERROR_STOP
+!$$$      USE TRACER_MOD,   ONLY : N_TRACERS
+!$$$      USE TRACERID_MOD, ONLY : ID_Hg0,    ID_Hg2,   ID_HgP
+!$$$      USE TRACERID_MOD, ONLY : ID_Hg_tot, ID_Hg_na, ID_Hg_eu, ID_Hg_as
+!$$$      USE TRACERID_MOD, ONLY : ID_Hg_rw,  ID_Hg_oc, ID_Hg_ln, ID_Hg_nt
+!$$$
+!$$$      USE CMN_SIZE_MOD     ! Size parameters
+!$$$
+!$$$      ! Local variables
+!$$$      INTEGER               :: I, J
+!$$$      REAL*8                :: X, Y
+!$$$      CHARACTER(LEN=255)    :: LOCATION
+!$$$
+!$$$      !=================================================================
+!$$$      ! DEFINE_TAGGED_Hg begins here!
+!$$$      !=================================================================
+!$$$
+!$$$      ! Location string for ERROR_STOP
+!$$$      LOCATION = 'DEFINE_TAGGED_Hg ("mercury_mod.f")'
+!$$$
+!$$$      !---------------------------------
+!$$$      ! Anthropogenic tracer indices
+!$$$      !---------------------------------
+!$$$
+!$$$      ! Loop over latitudes
+!$$$!$OMP PARALLEL DO 
+!$$$!$OMP+DEFAULT( SHARED ) 
+!$$$!$OMP+PRIVATE( I, J, X, Y )
+!$$$      DO J = 1, JJPAR
+!$$$
+!$$$         ! Grid-box latitude [degrees]
+!$$$         Y = GET_YMID( J )
+!$$$         
+!$$$         ! Loop over longitudes
+!$$$         DO I = 1, IIPAR
+!$$$
+!$$$            ! Grid box longitude [degrees]
+!$$$            X = GET_XMID( I )
+!$$$
+!$$$            ! North American Anthro Hg 
+!$$$            IF ( ( X >= -172.5 .and. X < -17.5 )   .and. 
+!$$$     &           ( Y >=   24.0 .and. Y <  88.0 ) ) THEN
+!$$$               AN_Hg0(I,J) = ID_Hg0(ID_Hg_na)
+!$$$               AN_Hg2(I,J) = ID_Hg2(ID_Hg_na)
+!$$$               AN_HgP(I,J) = ID_HgP(ID_Hg_na)
+!$$$            
+!$$$            ! European Anthro Hg (1st sub-box)
+!$$$            ELSE IF ( ( X >= -17.5 .and. X < 72.5 )  .and. 
+!$$$     &                ( Y >=  36.0 .and. Y < 45.0 ) ) THEN
+!$$$               AN_Hg0(I,J) = ID_Hg0(ID_Hg_eu)
+!$$$               AN_Hg2(I,J) = ID_Hg2(ID_Hg_eu)
+!$$$               AN_HgP(I,J) = ID_HgP(ID_Hg_eu)
+!$$$
+!$$$            ! European Anthro Hg (2nd sub-box)
+!$$$            ELSE IF ( ( X >= -17.5 .and. X < 172.5 )  .and. 
+!$$$     &                ( Y >=  45.0 .and. Y <  88.0 ) ) THEN
+!$$$               AN_Hg0(I,J) = ID_Hg0(ID_Hg_eu)
+!$$$               AN_Hg2(I,J) = ID_Hg2(ID_Hg_eu)
+!$$$               AN_HgP(I,J) = ID_HgP(ID_Hg_eu)
+!$$$
+!$$$            ! Asian Anthro Hg 
+!$$$            ELSE IF ( ( X >= 70.0 .and. X < 152.5 )  .and.
+!$$$     &                ( Y >=  8.0 .and. Y <  45.0 ) ) THEN
+!$$$               AN_Hg0(I,J) = ID_Hg0(ID_Hg_as)
+!$$$               AN_Hg2(I,J) = ID_Hg2(ID_Hg_as)
+!$$$               AN_HgP(I,J) = ID_HgP(ID_Hg_as)
+!$$$
+!$$$            ! Rest-of-world Anthro Hg 
+!$$$            ELSE
+!$$$               AN_Hg0(I,J) = ID_Hg0(ID_Hg_rw)
+!$$$               AN_Hg2(I,J) = ID_Hg2(ID_Hg_rw)
+!$$$               AN_HgP(I,J) = ID_HgP(ID_Hg_rw)
+!$$$
+!$$$            ENDIF
+!$$$         ENDDO
+!$$$      ENDDO
+!$$$!$OMP END PARALLEL DO
+!$$$
+!$$$      !=================================================================
+!$$$      ! Error check tracers: make sure they are not zero
+!$$$      ! since this can cause array-out-of-bounds errors
+!$$$      !=================================================================
+!$$$
+!$$$      ! Tagged Hg0
+!$$$      IF ( ANY( AN_Hg0 == 0 ) ) THEN
+!$$$         CALL ERROR_STOP( 'AN_Hg0 tracers are undefined!', LOCATION )   
+!$$$      ENDIF
+!$$$      
+!$$$      ! Tagged Hg2
+!$$$      IF ( ANY( AN_Hg2 == 0 ) ) THEN
+!$$$         CALL ERROR_STOP( 'AN_Hg2 tracers are undefined!', LOCATION )   
+!$$$      ENDIF
+!$$$
+!$$$      ! Tagged Hg2
+!$$$      IF ( ANY( AN_HgP == 0 ) ) THEN
+!$$$         CALL ERROR_STOP( 'AN_HgP tracer are undefined!', LOCATION )   
+!$$$      ENDIF
+!$$$
+!$$$      !---------------------------------
+!$$$      ! Error check # of tracers
+!$$$      !---------------------------------
+!$$$      IF ( N_TRACERS < 21 ) THEN 
+!$$$         CALL ERROR_STOP( 'Too few Hg tagged tracers!',
+!$$$     &                    'DEFINE_TAGGED_Hg ("mercury_mod.f")' )
+!$$$      ENDIF
+!$$$
+!$$$      ! Return to calling program
+!$$$      END SUBROUTINE DEFINE_TAGGED_Hg
 !------------------------------------------------------------------------------
 
       SUBROUTINE CALC_HG2_SEASALT_LOSSRATE
@@ -6095,7 +6214,6 @@ c$$$      END SUBROUTINE DEFINE_TAGGED_Hg
       ! References to F90 modules
       USE DAO_MOD    , ONLY : IS_WATER, RH
       USE PBL_MIX_MOD, ONLY : GET_PBL_TOP_M
-      USE FILE_MOD   , ONLY : IU_FILE
       USE RNPBBE_MOD , ONLY : SLQ
 
       USE CMN_SIZE_MOD     ! Size parameters
@@ -6265,6 +6383,7 @@ c$$$      END SUBROUTINE DEFINE_TAGGED_Hg
 !  (1-3) I, J, L (INTEGER) : Grid box indices for lon, lat, vertical level
 !
 !  NOTES:
+!  01 Mar 2012 - R. Yantosca - Now use GET_YMID_R(I,J,L) from grid_mod.F90
 !******************************************************************************
 !
       ! References to F90 modules
@@ -6315,8 +6434,7 @@ c$$$      END SUBROUTINE DEFINE_TAGGED_Hg
      &            - A3*COS( 3d0*R ) + B3*SIN( 3d0*R )
 
          ! Latitude of grid box [radians]
-         YMID_R = GET_YMID_R( J )
-
+         YMID_R = GET_YMID_R( I, J, L )
 
          ! Cosine of solar zenith angle at local noon
          CSZANOON = SIN( YMID_R ) * SIN( DEC ) +
@@ -6366,8 +6484,8 @@ c$$$      END SUBROUTINE DEFINE_TAGGED_Hg
 !   12-Jul-2010 H. Amos - Add option to partition Hg2 according to Fg/Fp
 !   02-Jan-2011 H. Amos - Add/clean up comments
 !   04 Jan 2012 H. Amos - modify algorithms to reflect the fact that 
-!                         anthropogenic Hg(p) is now emitted as Hg(II) (i.e. it's
-!                         no longer considered refractory). 
+!                         anthropogenic Hg(p) is now emitted as Hg(II) (i.e. 
+!                         it's no longer considered refractory). 
 !******************************************************************************
 
       ! References to F90 modules
@@ -6472,11 +6590,13 @@ c$$$      END SUBROUTINE DEFINE_TAGGED_Hg
 !  
 !  NOTES:
 !  (1 ) Removed reference to FEMIS array.  Now also allocates and zeroes
-!        the T44 array.  Added reference to F77_CMN_DIAG.  Now references 
+!        the T44 array.  Added reference to CMN_DIAG.  Now references 
 !        N_TRACERS from "tracer_mod.f". (bmy, 2/24/05)
 !  (2 ) EHg0_an, EHg2_an, EHgP_an are now 2-D arrays.  Now modified for 
 !        updated ocean mercury module. (eck, cdh, sas, bmy, 4/6/06)
 !  27 Sep 2011 - H. Amos - remove LHg_WETDasHNO3 logical, it's obsolete
+!  11 Apr 2012 - R. Yantosca - Now retire lai_mod.F; remove call to INIT_LAI
+!  11 Apr 2012 - R. Yantosca - Now move LAI initialization to main.F
 !******************************************************************************
 !
       ! References to F90 modules
@@ -6486,7 +6606,6 @@ c$$$      END SUBROUTINE DEFINE_TAGGED_Hg
       USE LOGICAL_MOD , ONLY : LGTMM
       USE TRACER_MOD  , ONLY : N_TRACERS
       USE TRACERID_MOD, ONLY : N_Hg_CATS
-      USE LAI_MOD     , ONLY : INIT_LAI
 
       USE CMN_SIZE_MOD     ! Size parameters
       USE CMN_DIAG_MOD     ! ND44
@@ -6825,9 +6944,9 @@ c$$$      END SUBROUTINE DEFINE_TAGGED_Hg
       IF ( AS /= 0 ) CALL ALLOC_ERR( 'JNO2' )
       JNO2 = 0d0
 
-      ! Initialize LAI arrays
-      CALL INIT_LAI
-      
+      ALLOCATE( HGPFRAC( IIPAR, JJPAR, LLPAR ), STAT=AS )
+      IF ( AS /= 0 ) CALL ALLOC_ERR( 'HGPFRAC' )
+      HGPFRAC = 0d0
 
       !=================================================================
       ! Allocate & initialize arrays for tagged tracer indices

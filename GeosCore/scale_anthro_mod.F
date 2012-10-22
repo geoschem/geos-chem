@@ -63,31 +63,38 @@
 !
 ! !USES:
 !
-      USE REGRID_1x1_MOD, ONLY : DO_REGRID_1x1
+      USE REGRID_A2A_MOD, ONLY : DO_REGRID_A2A
+      USE FILE_MOD,       ONLY : IOERROR, IU_FILE
+      USE DIRECTORY_MOD,  ONLY : DATA_DIR_1x1
 
-      USE CMN_SIZE_MOD                         ! Size parameters
+      USE CMN_SIZE_MOD         ! Size parameters
 !
 ! !INPUT PARAMETERS: 
 !
-      INTEGER, INTENT(IN)    :: TRACER           ! Tracer number
-      INTEGER, INTENT(IN)    :: B_YEAR           ! Base year of emissions
-      INTEGER, INTENT(IN)    :: T_YEAR           ! Target year of emissions
+      INTEGER, INTENT(IN)     :: TRACER           ! Tracer number
+      INTEGER, INTENT(IN)     :: B_YEAR           ! Base year of emissions
+      INTEGER, INTENT(IN)     :: T_YEAR           ! Target year of emissions
 !
 ! !INPUT/OUTPUT PARAMETERS: 
 !
-      REAL*4,  INTENT(INOUT) :: AS(IIPAR,JJPAR)  ! Scale factor array
+      REAL*4,  INTENT(INOUT)  :: AS(IIPAR,JJPAR)  ! Scale factor array
 !
 ! !REVISION HISTORY: 
 !  28 Jan 2009 - A. v. Donkelaar and P. Le Sager - Initial Version
+!  13 Mar 2012 - M. Cooper   - Changed regrid algorithm to map_a2a
+!  07 Jun 2012 - M. Payer    - Fixed minor bugs in map_a2a calls (M. Cooper)
+!  24 Aug 2012 - R. Yantosca - DO_REGRID_A2A now reads netCDF input file
 !EOP
 !------------------------------------------------------------------------------
 !BOC
 !
 ! !LOCAL VARIABLES:
 !
-      REAL*8                        :: AS_1x1(I1x1,J1x1)
-      REAL*8                        :: AS_1x1x1(I1x1,J1x1,1)
-      REAL*8                        :: AS_R8(IIPAR,JJPAR)
+      REAL*8, TARGET          :: AS_1x1(I1x1,J1x1)
+      REAL*8, TARGET          :: AS_1x1x1(I1x1,J1x1,1)
+      CHARACTER(LEN=255)      :: LLFILENAME
+      REAL*8                  :: OUTGRID(IIPAR,JJPAR)
+      REAL*8, POINTER         :: INGRID(:,:) => NULL()
 
       ! Read 1x1 scale factors
       CALL GET_ANNUAL_SCALAR_1x1( TRACER, B_YEAR, T_YEAR, AS_1x1 )
@@ -95,11 +102,21 @@
       ! Cast to REAL*8
       AS_1x1x1(:,:,1) = AS_1x1(:,:)
 
+      ! File with lat/lon edges for regridding
+      LLFILENAME = TRIM( DATA_DIR_1x1) //
+     &             'MAP_A2A_Regrid_201203/MAP_A2A_latlon_geos1x1.nc'
+  
       ! Regrid emissions factors to current model resolution
-      CALL DO_REGRID_1x1( 'unitless', AS_1x1x1, AS_R8 )
+      INGRID => AS_1x1x1(:,:,1)
+      CALL DO_REGRID_A2A( LLFILENAME, I1x1,    J1x1, 
+     &                    INGRID,     OUTGRID, PERAREA=0,
+     &                    netCDF=.TRUE.                   )
 
       ! Cast to REAL*4
-      AS(:,:) = AS_R8(:,:)
+      AS(:,:) = OUTGRID(:,:)
+
+      ! Free pointer
+      NULLIFY( INGRID )
 
       END SUBROUTINE GET_ANNUAL_SCALAR
 !EOC
@@ -148,6 +165,8 @@
 !                              all years, made necessary input changes
 !  10 Aug 2011 - D. Millet   - Now use updated scale factor file for CO, which
 !                              corrects a problem over Botswana/S. Africa
+!  25 Apr 2012 - M. Payer    - Add kludge to set TARG_YEAR=1985 for 1986 thru
+!                              1989 (B. Yantosca)
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -166,11 +185,18 @@
       ! GET_ANNUAL_SCALAR_1x1 begins here!
       !=================================================================
 
-      SCALE_DIR = TRIM( DATA_DIR_1x1 ) // 'anth_scale_factors_200911/'
+      SCALE_DIR = TRIM( DATA_DIR_1x1 ) // 'anth_scale_factors_201111/'
 
       ! limit scaling between available years
-      BASE_YEAR = MAX( MIN( B_YEAR, 2006 ), 1985 )
-      TARG_YEAR = MAX( MIN( T_YEAR, 2006 ), 1985 )
+      BASE_YEAR = MAX( MIN( B_YEAR, 2010 ), 1985 )
+      TARG_YEAR = MAX( MIN( T_YEAR, 2010 ), 1985 )
+
+      !### KLUDGE: Set years properly for 1986 thru 1989
+      !### which have no data in the file.  Use 1985
+      IF ( T_YEAR == 1986 ) TARG_YEAR = 1985
+      IF ( T_YEAR == 1987 ) TARG_YEAR = 1985
+      IF ( T_YEAR == 1988 ) TARG_YEAR = 1985
+      IF ( T_YEAR == 1989 ) TARG_YEAR = 1985
 
       WRITE( BASE_YYYY_STR, '(i4.4)' ) BASE_YEAR
       WRITE( TARG_YYYY_STR, '(i4.4)' ) TARG_YEAR
@@ -202,8 +228,13 @@
 
          ENDIF
 
-         ! Get Tau    
-         TAU = GET_TAU0(1,1,BASE_YEAR)
+         ! Get Tau. Only NOx scaling exists after 2006   
+         
+         IF ( BASE_YEAR >=2006 .and. TRACER.ne.71) THEN
+             TAU = GET_TAU0(1,1,2005)
+         ELSE 
+             TAU = GET_TAU0(1,1,BASE_YEAR)
+         ENDIF
 
          ! Echo filename
          WRITE( 6, 100 ) TRIM( FILENAME )
@@ -211,7 +242,7 @@
 
          ! Read data
          CALL READ_BPCH2( FILENAME, 'RATIO-2D', TRACER,
-     &                    TAU,  I1x1,       J1x1,
+     &                    TAU,      I1x1,       J1x1,
      &                    1,        B_1x1,      QUIET=.TRUE. )
 
       ENDIF
@@ -243,15 +274,20 @@
 
          ENDIF
 
-         ! Calc Tau
-         TAU = GET_TAU0(1,1,TARG_YEAR)
+         ! Calc Tau. Only NOx scaling exists after 2006 
+         IF ( TARG_YEAR >=2006 .and. TRACER.ne.71 ) THEN
+             TAU = GET_TAU0(1,1,2005)
+         ELSE 
+             TAU = GET_TAU0(1,1,TARG_YEAR)
+         ENDIF
 
          ! Echo filename
          WRITE( 6, 100 ) TRIM( FILENAME )
 
          ! Read data
+
          CALL READ_BPCH2( FILENAME, 'RATIO-2D', TRACER,
-     &                    TAU,  I1x1,       J1x1,
+     &                    TAU,      I1x1,       J1x1,
      &                    1,        T_1x1,      QUIET=.TRUE. )
 
       ENDIF
@@ -280,19 +316,20 @@
      &                     ( TRACER, B_YEAR, T_YEAR, AS )
 ! !USES:
 !
-      USE REGRID_1x1_MOD,       ONLY : DO_REGRID_1x1
+      USE DIRECTORY_MOD,  ONLY : DATA_DIR_1x1
+      USE REGRID_A2A_MOD, ONLY : DO_REGRID_A2A
 
-      USE CMN_SIZE_MOD             ! Size parameters
+      USE CMN_SIZE_MOD         ! Size parameters
 !
 ! !INPUT PARAMETERS:
 !
-      INTEGER, INTENT(IN)  :: TRACER
-      INTEGER, INTENT(IN)  :: B_YEAR
-      INTEGER, INTENT(IN)  :: T_YEAR
+      INTEGER, INTENT(IN)     :: TRACER
+      INTEGER, INTENT(IN)     :: B_YEAR
+      INTEGER, INTENT(IN)     :: T_YEAR
 !
 ! !INPUT/OUTPUT PARAMETERS: 
 !
-      REAL*4,         INTENT(INOUT) :: AS(IIPAR,JJPAR)
+      REAL*4,   INTENT(INOUT) :: AS(IIPAR,JJPAR)
 !
 ! !REVISION HISTORY: 
 !  28 Jan 2009 - A. v. Donkelaar and P. Le Sager - Initial Version
@@ -303,18 +340,24 @@
 !  18 Dec 2009 - Aaron van D - Rewrote GET_ANNUAL_SCALAR_05x0666_NESTED to 
 !                              retrieve and regrid scale factors by calling 
 !                              GET_ANNUAL_SCALAR_1x1 and regridding on fly
+!  06 Apr 2012 - M. Payer    - Changed regrid algorithm to map_a2a (M. Cooper)
+!  07 Jun 2012 - M. Payer    - Fixed minor bugs in map_a2a calls (M. Cooper)
 !
 ! !REMARKS:
 !  (1) Scaling factors are for years between 1985 and 2005, on the GEOS-Chem
 !       0.5x0.666 grid for China domain (tmf, 3/5/09)
+!  24 Aug 2012 - R. Yantosca - DO_REGRID_A2A now reads netCDF input file
 !EOP
 !------------------------------------------------------------------------------
 !BOC
 !
 ! ! LOCAL VARIABLES:
 !
-      REAL*8                        :: AS_1x1(I1x1,J1x1,1)
-      REAL*8                        :: AS_R8(IIPAR, JJPAR)
+      REAL*8, TARGET          :: AS_1x1(I1x1,J1x1,1)
+      REAL*8                  :: AS_R8(IIPAR, JJPAR)
+      CHARACTER(LEN=255)      :: LLFILENAME
+      REAL*8                  :: OUTGRID(IIPAR,JJPAR)
+      REAL*8, POINTER         :: INGRID(:,:) => NULL()
 
       !=================================================================
       ! GET_ANNUAL_SCALAR_05x0666_NESTED begins here!
@@ -322,8 +365,21 @@
 
       CALL GET_ANNUAL_SCALAR_1x1( TRACER, B_YEAR, T_YEAR, AS_1x1 )
 
-      CALL DO_REGRID_1x1( 'unitless', AS_1x1, AS_R8 )
-      AS(:,:) = AS_R8(:,:)
+      ! File with lat/lon edges for regridding
+      LLFILENAME = TRIM( DATA_DIR_1x1) //
+     &             'MAP_A2A_Regrid_201203/MAP_A2A_latlon_geos1x1.nc'
+  
+      ! Regrid emissions factors to current model resolution [unitless]
+      INGRID => AS_1x1(:,:,1)
+      CALL DO_REGRID_A2A( LLFILENAME, I1x1,    J1x1, 
+     &                    INGRID,     OUTGRID, PERAREA=0,
+     &                    netCDF=.TRUE.                   )
+
+      ! Cast to REAL*4
+      AS(:,:) = OUTGRID(:,:)
+
+      ! Free pointer
+      NULLIFY( INGRID )
 
       END SUBROUTINE GET_ANNUAL_SCALAR_05x0666_NESTED
 !EOC

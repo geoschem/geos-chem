@@ -173,23 +173,35 @@
 !\\
 ! !INTERFACE:
 !
+#if defined( DEVEL )
+      SUBROUTINE EMISS_BRAVO(EMISSIONS)
+#else
       SUBROUTINE EMISS_BRAVO
+#endif
 !
 ! !USES:
 ! 
       USE BPCH2_MOD,        ONLY : GET_TAU0,      READ_BPCH2
       USE DIRECTORY_MOD,    ONLY : DATA_DIR_1x1 
       USE LOGICAL_MOD,      ONLY : LFUTURE
-      USE REGRID_1x1_MOD,   ONLY : DO_REGRID_1x1, DO_REGRID_G2G_1x1
-      USE SCALE_ANTHRO_MOD, ONLY : GET_ANNUAL_SCALAR_1x1
+      USE SCALE_ANTHRO_MOD, ONLY : GET_ANNUAL_SCALAR
       USE TIME_MOD,         ONLY : GET_YEAR
+      USE REGRID_A2A_MOD,   ONLY : DO_REGRID_A2A
 
-      USE CMN_SIZE_MOD         ! Size parameters
-      USE CMN_O3_MOD           ! 
+      USE CMN_SIZE_MOD           ! Size parameters
+      USE CMN_O3_MOD             ! 
+
+#if defined( DEVEL )
+      USE TRACER_MOD,   ONLY : N_TRACERS
+      USE TRACERID_MOD, ONLY : IDTNOX, IDTCO, IDTSO2
+#endif
 !
 ! !REVISION HISTORY: 
 !  22 Jun 2006 - R. Park, F. Boersma, R. Yantosca - Initial version
 !  (1 ) Now pass the unit string to DO_REGRID_G2G_1x1 (bmy, 8/9/06)
+!  13 Mar 2012 - M. Cooper   - Changed regrid algorithm to map_a2a
+!  24 May 2012 - R. Yantosca - Fixed minor bugs in map_a2a implementation
+!  24 Aug 2012 - R. Yantosca - DO_REGRID_A2A now reads netCDF input file
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -199,11 +211,17 @@
       LOGICAL, SAVE           :: FIRST = .TRUE.
       INTEGER                 :: SCALEYEAR
       REAL*4                  :: ARRAY(I1x1,J1x1-1,1)
-      REAL*8                  :: GEN_1x1(I1x1,J1x1-1)
-      REAL*8                  :: GEOS_1x1(I1x1,J1x1,1)
-      REAL*8                  :: SC_1x1(I1x1,J1x1)
+      REAL*8, TARGET          :: GEN_1x1(I1x1,J1x1-1)
+      REAL*4                  :: SC(IIPAR,JJPAR)
       REAL*8                  :: TAU0
       CHARACTER(LEN=255)      :: FILENAME
+      CHARACTER(LEN=255)      :: LLFILENAME
+      REAL*8, POINTER         :: INGRID(:,:) => NULL()
+      REAL*8                  :: OUTGRID(IIPAR,JJPAR)
+
+#if defined( DEVEL )
+      REAL*8, INTENT(INOUT)   :: EMISSIONS(IIPAR,JJPAR,N_TRACERS)
+#endif
       
       !=================================================================
       ! EMISS_BRAVO begins here!
@@ -249,15 +267,22 @@
       ! Cast from REAL*4 to REAL*8
       GEN_1x1(:,:) = ARRAY(:,:,1)
 
-      ! Regrid NOx [molec/cm2/s] to GEOS 1x1 GRID
-      CALL DO_REGRID_G2G_1x1( 'molec/cm2/s', GEN_1x1, GEOS_1x1(:,:,1) )
+      ! File with lat/lon edges for regridding
+      LLFILENAME = TRIM( DATA_DIR_1x1) //
+     &             'MAP_A2A_Regrid_201203/MAP_A2A_latlon_generic1x1.nc'
 
-      ! Get/Apply annual scalar factor (amv 08/21/2007)
-      CALL GET_ANNUAL_SCALAR_1x1( 71, 1999, SCALEYEAR, SC_1x1 )
-      GEOS_1x1(:,:,1) = GEOS_1x1(:,:,1) * SC_1x1(:,:)
+      ! Regrid to NOx [molec/cm2/s] current model resolution
+      INGRID => GEN_1x1
+      CALL DO_REGRID_A2A( LLFILENAME, I1x1,    J1x1-1, 
+     &                    INGRID,     OUTGRID, PERAREA=0,
+     &                    netCDF=.TRUE.                   )
 
-      ! Regrid NOx [molec/cm2/s] to current model resolution
-      CALL DO_REGRID_1x1( 'molec/cm2/s', GEOS_1x1, BRAVO_NOx )
+      ! Get & apply scaling factor
+      CALL GET_ANNUAL_SCALAR( 71, 1999, SCALEYEAR, SC )
+      BRAVO_NOx = OUTGRID * SC
+
+      ! Free pointer
+      NULLIFY( INGRID )
 
       !---------------------
       ! Read and regrid CO
@@ -278,15 +303,19 @@
       ! Cast from REAL*4 to REAL*8
       GEN_1x1(:,:) = ARRAY(:,:,1)
 
-      ! Regrid CO [molec/cm2/s] to GEOS 1x1 GRID
-      CALL DO_REGRID_G2G_1x1( 'molec/cm2/s', GEN_1x1, GEOS_1x1(:,:,1) )
-
-      ! Get/Apply annual scalar factor (amv 08/21/2007)
-      CALL GET_ANNUAL_SCALAR_1x1( 72, 1999, SCALEYEAR, SC_1x1 )
-      GEOS_1x1(:,:,1) = GEOS_1x1(:,:,1) * SC_1x1(:,:)
-
       ! Regrid CO [molec/cm2/s] to current model resolution
-      CALL DO_REGRID_1x1( 'molec/cm2/s', GEOS_1x1, BRAVO_CO )
+      INGRID => GEN_1x1
+      CALL DO_REGRID_A2A( LLFILENAME, I1x1,    J1x1-1, 
+     &                    INGRID,     OUTGRID, PERAREA=0, 
+     &                    netCDF=.TRUE.                   )
+
+
+      ! Get & apply scaling factor
+      CALL GET_ANNUAL_SCALAR( 72, 1999, SCALEYEAR, SC )
+      BRAVO_CO = OUTGRID * SC
+
+      ! Free pointer
+      NULLIFY( INGRID )
 
       !---------------------
       ! Read and regrid SO2
@@ -307,15 +336,18 @@
       ! Cast from REAL*4 to REAL*8
       GEN_1x1(:,:) = ARRAY(:,:,1)
 
-      ! Regrid SO2 [molec/cm2/s] to GEOS 1x1 GRID
-      CALL DO_REGRID_G2G_1x1( 'molec/cm2/s', GEN_1x1, GEOS_1x1(:,:,1) )
-
-      ! Get/Apply annual scalar factor (amv 08/21/2007)
-      CALL GET_ANNUAL_SCALAR_1x1( 73, 1999, SCALEYEAR, SC_1x1 )
-      GEOS_1x1(:,:,1) = GEOS_1x1(:,:,1) * SC_1x1(:,:)
-
       ! Regrid SO2 [molec/cm2/s] to current model resolution
-      CALL DO_REGRID_1x1( 'molec/cm2/s', GEOS_1x1, BRAVO_SO2 )
+      INGRID => GEN_1x1
+      CALL DO_REGRID_A2A( LLFILENAME, I1x1,    J1x1-1, 
+     &                    INGRID,     OUTGRID, PERAREA=0,
+     &                    netCDF=.TRUE.                   )
+
+      ! Get & apply scaling factor
+      CALL GET_ANNUAL_SCALAR( 73, 1999, SCALEYEAR, SC )
+      BRAVO_SO2 = OUTGRID * SC
+
+      ! Nullify pointer
+      NULLIFY( INGRID )
 
       !=================================================================
       ! Compute IPCC future emissions (if necessary)
@@ -328,6 +360,17 @@
       ! Print emission totals
       !=================================================================
       CALL TOTAL_ANTHRO_TG( SCALEYEAR )
+
+#if defined( DEVEL )
+      EMISSIONS(:,:,IDTNOX) = EMISSIONS(:,:,IDTNOX) +
+     &                        BRAVO_NOx
+
+      EMISSIONS(:,:,IDTCO)  = EMISSIONS(:,:,IDTCO) +
+     &                        BRAVO_CO
+
+      EMISSIONS(:,:,IDTSO2) = EMISSIONS(:,:,IDTSO2) +
+     &                        BRAVO_SO2
+#endif      
 
       END SUBROUTINE EMISS_BRAVO
 !EOC
@@ -421,7 +464,8 @@
 !
 ! !REVISION HISTORY: 
 !  22 Jun 2006 - R. Park, F. Boersma, R. Yantosca - Initial version
-!  (1 ) Now YEAR is input to reflect scaling factors applied (phs, 3/17/08) 
+!  (1 ) Now YEAR is input to reflect scaling factors applied (phs, 3/17/08)
+!  01 Mar 2012 - R. Yantosca - Now use GET_AREA_CM2(I,J,L) from grid_mod.F90 
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -460,19 +504,17 @@
 
       ! Loop over latitudes
       DO J = 1, JJPAR
-            
+      DO I = 1, IIPAR
+
          ! Convert [molec/cm2/s] to [Tg]
          ! (Multiply by 1d-9 to convert from [kg] to [Tg])
-         A = GET_AREA_CM2( J ) * 365.25d0 * 86400d0 * 1d-9 
-         
-         ! Loop over longitudes
-         DO I = 1, IIPAR
+         A = GET_AREA_CM2( I, J, 1 ) * 365.25d0 * 86400d0 * 1d-9 
 
-            ! Sum emissions (list NOx as Tg N)
-            NOX = NOX + ( BRAVO_NOX(I,J) * A * B(1) )
-            CO  = CO  + ( BRAVO_CO (I,J) * A * B(2) )
-            SO2 = SO2 + ( BRAVO_SO2(I,J) * A * B(3) )
-         ENDDO
+         ! Sum emissions (list NOx as Tg N)
+         NOX = NOX + ( BRAVO_NOX(I,J) * A * B(1) )
+         CO  = CO  + ( BRAVO_CO (I,J) * A * B(2) )
+         SO2 = SO2 + ( BRAVO_SO2(I,J) * A * B(3) )
+      ENDDO
       ENDDO
  
       !----------------
@@ -514,25 +556,29 @@
       USE BPCH2_MOD,      ONLY : GET_NAME_EXT_2D, GET_RES_EXT
       USE BPCH2_MOD,      ONLY : GET_TAU0,        READ_BPCH2
       USE DIRECTORY_MOD,  ONLY : DATA_DIR_1x1
-      USE REGRID_1x1_MOD, ONLY : DO_REGRID_1x1,   DO_REGRID_G2G_1x1
+      USE REGRID_A2A_MOD, ONLY : DO_REGRID_A2A
       USE TRANSFER_MOD,   ONLY : TRANSFER_2D
 
-      USE CMN_SIZE_MOD       ! Size parameters
+      USE CMN_SIZE_MOD         ! Size parameters
 !
 ! !REVISION HISTORY: 
 !  22 Jun 2006 - R. Park, F. Boersma, R. Yantosca - Initial version
 !  (1 ) Now pass UNIT to DO_REGRID_G2G_1x1 (bmy, 8/9/06)
+!  06 Apr 2012 - M. Payer    - Changed regrid algorithm to map_a2a (M. Cooper)
+!  24 May 2012 - R. Yantosca - Fixed minor bugs in map_a2a implementation
+!  15 Aug 2012 - M. Payer    - Set mask to 1 if greater than 0 (L. Murray)
+!  24 Aug 2012 - R. Yantosca - DO_REGRID_A2A now reads netCDF input file
 !EOP
 !------------------------------------------------------------------------------
 !BOC
 !
 ! !LOCAL VARIABLES:
 !
-      REAL*4                  :: ARRAY(I1x1,J1x1-1,1)
-      REAL*8                  :: GEN_1x1(I1x1,J1x1-1)
-      REAL*8                  :: GEOS_1x1(I1x1,J1x1,1)
+      REAL*4                  :: ARRAY  (I1x1,J1x1-1,1)
+      REAL*8                  :: GEN_1x1(I1x1,J1x1-1  )
       REAL*8                  :: XTAU
       CHARACTER(LEN=255)      :: FILENAME 
+      CHARACTER(LEN=255)      :: LLFILENAME
 
       !=================================================================
       ! READ_BRAVO_MASK begins here!
@@ -557,11 +603,16 @@
       ! Cast from REAL*4 to REAL*8
       GEN_1x1(:,:) = ARRAY(:,:,1) 
 
-      ! Regrid from GENERIC 1x1 GRID to GEOS 1x1 GRID
-      CALL DO_REGRID_G2G_1x1( 'unitless', GEN_1x1, GEOS_1x1(:,:,1) )
-      
-      ! Regrid from GEOS 1x1 GRID to current model resolution
-      CALL DO_REGRID_1x1( 'unitless', GEOS_1x1, BRAVO_MASK )
+      ! File with lat/lon edges for regridding
+      LLFILENAME = TRIM( DATA_DIR_1x1) //
+     &             'MAP_A2A_Regrid_201203/MAP_A2A_latlon_generic1x1.nc'
+
+      ! Regrid to current model resolution [unitless]
+      CALL DO_REGRID_A2A( LLFILENAME, I1x1,       J1x1-1, 
+     &                    GEN_1x1,    BRAVO_MASK, PERAREA=0,
+     &                    netCDF=.TRUE.                      )
+
+      WHERE ( BRAVO_MASK > 0D0 ) BRAVO_MASK = 1D0
 
       END SUBROUTINE READ_BRAVO_MASK
 !EOC

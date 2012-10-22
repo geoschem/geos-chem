@@ -119,7 +119,11 @@
 
 !------------------------------------------------------------------------------
 
+#if defined( DEVEL )
+      SUBROUTINE BIOFUEL_BURN( BIO_EMISS )
+#else
       SUBROUTINE BIOFUEL_BURN
+#endif
 !
 !******************************************************************************
 !  Subroutine BIOFUEL_BURN computes the yearly biofuel burning emissions
@@ -179,7 +183,7 @@
 !  (22) Now reference ITS_A_H2HD_SIM from "tracer_mod.f" for ND29.
 !        (phs, 9/18/07)
 !  (23) Switch off biofuel in S.E.-Asia if Streets 2006 inventory is used,
-!        accounting for FSCLYR from F77_CMN_O3 (phs,3/17/08)
+!        accounting for FSCLYR from CMN_O3 (phs,3/17/08)
 !  (24) Add scaling of aromatic emissions over the US. (hotp, 11/23/09)
 !   7 Feb 2011 - R. Yantosca - If we are using the EPA/NEI05 anthropogenic
 !                              emissions, get biofuels from EPA/NEI99 over USA
@@ -188,6 +192,11 @@
 !  18 Aug 2011 - D. Millet   - RETRO anthropogenic emissions include 
 !                              residential biofuel, so we need to zero out the
 !                              biofuel contributions to avoid double-counting
+!  08 Mar 2012 - M. Payer    - Added modifications for historical emissions of
+!                              NOx (E. Leibensperger)
+!  06 Apr 2012 - M. Payer    - Changed regrid algorithm to map_a2a (M. Cooper)
+!  24 May 2012 - R. Yantosca - Fix minor bugs in map_a2a implementation
+!  24 Aug 2012 - R. Yantosca - DO_REGRID_A2A now reads netCDF input file
 !******************************************************************************
 !
       ! References to F90 modules
@@ -195,7 +204,7 @@
       USE BPCH2_MOD,            ONLY : GET_TAU0,         READ_BPCH2
       USE DAO_MOD,              ONLY : BXHEIGHT
       USE DIAG_MOD,             ONLY : AD29,    AD32_bf, AD34
-      USE DIRECTORY_MOD,        ONLY : DATA_DIR
+      USE DIRECTORY_MOD,        ONLY : DATA_DIR,         DATA_DIR_1x1
       USE EPA_NEI_MOD,          ONLY : GET_EPA_BIOFUEL,  GET_USA_MASK
       USE LOGICAL_MOD,          ONLY : LFUTURE, LNEI99,  LSTREETS
       USE LOGICAL_MOD,          ONLY : LRETRO ! (dbm, 8/18/2011)
@@ -215,10 +224,15 @@
       USE TRACERID_MOD,         ONLY : IDBFBENZ,IDBFTOLU,IDBFXYLE
       USE TRACERID_MOD,         ONLY : IDBFGLYX,IDBFMGLY,IDBFC2H4
       USE TRACERID_MOD,         ONLY : IDBFC2H2,IDBFGLYC,IDBFHAC
+![eml 
+      USE LOGICAL_MOD,          ONLY : LHIST
+      USE TIME_MOD,             ONLY : GET_HISTYR
+      USE REGRID_A2A_MOD,       ONLY : DO_REGRID_A2A
+!eml]
 
-      USE CMN_SIZE_MOD             ! Size parameters
-      USE CMN_O3_MOD               ! FSCLYR
-      USE CMN_DIAG_MOD             ! ND29, ND32, ND34
+      USE CMN_SIZE_MOD               ! Size parameters
+      USE CMN_O3_MOD                 ! FSCLYR
+      USE CMN_DIAG_MOD               ! ND29, ND32, ND34
 
       IMPLICIT NONE
 #     include "define.h"
@@ -234,11 +248,25 @@
       REAL*8,  SAVE                 :: MOLWT(NBFMAX)
       REAL*8                        :: TOTAL, BXHEIGHT_CM, EPA_NEI
       CHARACTER(LEN=255)            :: FILENAME 
+![eml
+      CHARACTER(LEN=4  )            :: CHISTYR
+      CHARACTER(LEN=255)            :: ED_FILENAME
+      REAL*4                        :: GENERIC_1x1(I1x1,J1x1-1)
+      REAL*8, TARGET                :: GENERIC_8_1x1(I1x1,J1x1-1)
+      REAL*8                        :: TEMP_ED(IIPAR,JJPAR,1), HIST_TAU
+!eml]
+      CHARACTER(LEN=255)            :: LLFILENAME
+      REAL*8, POINTER               :: INGRID(:,:) => NULL()
+      REAL*8                        :: OUTGRID(IIPAR,JJPAR)
       
       ! External functions
       REAL*8,  EXTERNAL             :: BOXVL
 
       REAL*8                        :: BF_CO( IIPAR, JJPAR )  ! Biofuel emission of CO [molec/cm2/s]
+
+#if defined( DEVEL )
+      REAL*8, INTENT(INOUT)         :: BIO_EMISS(:,:,:)
+#endif
 
       !=================================================================
       !   B i o f u e l   B u r n i n g   B e g i n s   H e r e !!
@@ -314,13 +342,54 @@
                !----------------
 
                ! Read biofuel NOx emissions in [kg/box/yr] -- tracer #1
-               CALL READ_BPCH2( FILENAME, 'BIOFSRCE', 1 , 
-     &                          0d0,       IIPAR,     JJPAR,     
-     &                          1,         ARRAY,     QUIET=.TRUE. ) 
-                         
-               ! Cast from REAL*4 to REAL*8, resize to (IIPAR,JJPAR)
-               CALL TRANSFER_2D( ARRAY(:,:,1), BIOFUEL_KG(N,:,:) )
+![eml
+               IF ( LHIST ) THEN
+
+                  !-----------------------------------------------------
+                  ! Historical emissions of NOX
+                  !-----------------------------------------------------
+
+                  WRITE(CHISTYR, '(I4)') GET_HISTYR()
+                  HIST_TAU = GET_TAU0(1,1,GET_HISTYR())
+
+                  ED_FILENAME = TRIM( DATA_DIR_1x1 )                // 
+     &                          'historical_emissions_201203/NOx/'  //
+     &                          'EDGAR.BCNOX.'    //     CHISTYR    //
+     &                          'generic.1x1'
+
+                  CALL READ_BPCH2(ED_FILENAME, 'EDGAR-2D', 1,
+     &                            HIST_TAU,    I1x1,       J1x1-1,
+     &                            1,          GENERIC_1x1, QUIET=.TRUE.)
+
+                  ! Cast from REAL*4 to REAL*8
+                  GENERIC_8_1x1 = GENERIC_1x1
+
+                  ! File with lat/lon edges for regridding
+                  LLFILENAME = TRIM( DATA_DIR_1x1) //
+     &              'MAP_A2A_Regrid_201203/MAP_A2A_latlon_generic1x1.nc'
+
+                  ! Regrid to current model resolution
+                  INGRID => GENERIC_8_1x1
+                  CALL DO_REGRID_A2A( LLFILENAME, I1x1,    J1x1-1,
+     &                                INGRID,     OUTGRID, PERAREA=1,
+     &                                netCDF=.TRUE. )
+                  BIOFUEL_KG(N,:,:) = OUTGRID  
+                  
+                  ! Free pointer
+                  NULLIFY( INGRID )
+
+               ELSE
+
+                  CALL READ_BPCH2( FILENAME, 'BIOFSRCE', 1 , 
+     &                             0d0,       IIPAR,     JJPAR,     
+     &                             1,         ARRAY,     QUIET=.TRUE. ) 
+                          
+                  ! Cast from REAL*4 to REAL*8, resize to (IIPAR,JJPAR)
+                  CALL TRANSFER_2D( ARRAY(:,:,1), BIOFUEL_KG(N,:,:) )
                
+               ENDIF
+!eml]
+     
                ! Compute future NOx emissions (if necessary)
                IF ( LFUTURE ) THEN
                   CALL SCALE_FUTURE( 'NOxbf', BIOFUEL_KG(N,:,:) )
@@ -795,7 +864,7 @@
             !-----------------------------------------------------------
             IF ( LRETRO ) THEN
                IF ( (NN == IDTC2H2) .or. (NN == IDTC2H4) .or.
-     &              (NN == IDTC2H6) .or. (NN == IDTPRPE) .or.
+     &              (NN == IDTPRPE) .or.
      &              (NN == IDTC3H8) .or. (NN == IDTALK4) .or.
      &              (NN == IDTCH2O) .or. (NN == IDTALD2) .or. 
      &              (NN == IDTACET) .or. (NN == IDTMEK ) .or.
@@ -814,77 +883,59 @@
             ! so we are forced to take the biofuel emissions over the
             ! USA from the NEI99 inventory.  (bmy, 2/7/11)
             !-----------------------------------------------------------
-            
-            ! If EPA/NEI99 emissions are turned on....
-            IF ( LNEI99 .or. LNEI05 ) THEN
+![eml Not if historical or not NOx
+            IF( .not. LHIST .or. BFTRACE(N) .ne. IDTNOX ) THEN
+               ! If EPA/NEI99 emissions are turned on....
+               IF ( LNEI99 .or. LNEI05 ) THEN
 
-               ! If we are over the USA ...
-               IF ( GET_USA_MASK( I, J ) > 0d0 ) THEN
+                  ! If we are over the USA ...
+                  IF ( GET_USA_MASK( I, J ) > 0d0 ) THEN
   
-                  ! Get GEOS-CHEM tracer number
-                  NN      = BFTRACE(N)
+                     ! Get GEOS-CHEM tracer number
+                     NN      = BFTRACE(N)
 
-                  ! We do not have EPA/NEI biofuel emission.  
-                  ! Use default emission for the newly added species. 
-                  ! (tmf, 1/8/08) 
-                  IF ( (NN /= IDTGLYX) .and. (NN /= IDTMGLY) .and. 
-     &                 (NN /= IDTBENZ) .and. (NN /= IDTTOLU) .and.
-     &                 (NN /= IDTXYLE) .and. (NN /= IDTC2H4) .and.
-     &                 (NN /= IDTC2H2) .and. (NN /= IDTGLYC) .and.             
-     &                 (NN /= IDTHAC ) ) THEN
+                     ! We do not have EPA/NEI biofuel emission.  
+                     ! Use default emission for the newly added species. 
+                     ! (tmf, 1/8/08) 
+                     IF ( (NN /= IDTGLYX) .and. (NN /= IDTMGLY) .and. 
+     &                    (NN /= IDTBENZ) .and. (NN /= IDTTOLU) .and.
+     &                    (NN /= IDTXYLE) .and. (NN /= IDTC2H4) .and.
+     &                    (NN /= IDTC2H2) .and. (NN /= IDTGLYC) .and.          
+     &                    (NN /= IDTHAC ) ) THEN
 
-                     ! Get EPA/NEI biofuel [molec/cm2/s or atoms C/cm2/s]
-                     EPA_NEI = GET_EPA_BIOFUEL( I, J, NN, WEEKDAY )
+                        ! Get EPA/NEI biofuel [molec/cm2/s or atoms C/cm2/s]
+                        EPA_NEI = GET_EPA_BIOFUEL( I, J, NN, WEEKDAY )
 
-                     ! Convert [molec/cm2/s] to [molec/cm3/s]
-                     BIOFUEL(N,I,J) = EPA_NEI / BXHEIGHT_CM
+                        ! Convert [molec/cm2/s] to [molec/cm3/s]
+                        BIOFUEL(N,I,J) = EPA_NEI / BXHEIGHT_CM
                   
+                     ENDIF
+                  ENDIF
+               ENDIF
+
+               !-----------------------------------------------------------
+               ! If we are over SE ASIA and are using Streets 2006 (that is
+               ! emission year is GE 2006), set BIOFUEL to zero since they
+               ! are already accounted for (phs, 3/17/08)
+               !-----------------------------------------------------------
+               IF ( LSTREETS .and. ( SIM_YEAR >= 2001 ) ) THEN
+
+                  ! If we are over the SE Asia region
+                  IF ( GET_SE_ASIA_MASK( I, J ) > 0d0 ) THEN
+
+                     ! Only zero BIOFUEL for tracers included in Streets emiss
+                     IF ( (NN /= IDTGLYX) .AND. (NN /= IDTMGLY) .AND.
+     &                    (NN /= IDTGLYC) .AND. (NN /= IDTHAC ) .AND.
+     &                    (NN /= IDTBENZ) .AND. (NN /= IDTTOLU) .AND.
+     &                    (NN /= IDTXYLE) .AND. (NN /= IDTC2H4) .AND. 
+     &                    (NN /= IDTC2H2) ) THEN
+
+                        BIOFUEL(N,I,J) = 0.d0
+
+                     ENDIF
                   ENDIF
                ENDIF
             ENDIF
-
-            !-----------------------------------------------------------
-            ! If we are over SE ASIA and are using Streets 2006 (that is
-            ! emission year is GE 2006), set BIOFUEL to zero since they
-            ! are already accounted for (phs, 3/17/08)
-            !-----------------------------------------------------------
-!------------------------------------------------------------------------------
-! Prior to 2/18/11:
-! NOTE from Claire Carouge (2/18/11):
-! I found a bug in biofuel_mod.f about Streets emissions. Initially we used 
-! Streets 2000 for years <= 2005, then Streets 2006 for year >= 2006. But this 
-! was changed because of discrepancies in the total emissions between 2005 and 
-! 2006. So now we use Streets 2000 for years <=2000 and Streets 2006 for years 
-! >= 2001. The problem is that Streets 2006 contains biofuels and not Streets 
-! 2000. So in biofuel_mod.f, there is to change the following IF condition to
-! ( SIM_YEAR >= 2001 ) to avoid double counting biofuel emissions over Asia.
-!            IF ( LSTREETS .and. ( SIM_YEAR >= 2006 ) ) THEN
-!------------------------------------------------------------------------------
-            IF ( LSTREETS .and. ( SIM_YEAR >= 2001 ) ) THEN
-
-               ! If we are over the SE Asia region
-               IF ( GET_SE_ASIA_MASK( I, J ) > 0d0 ) THEN
-
-                  ! Only zero BIOFUEL for tracers included in Streets inventory
-                  IF ( (NN /= IDTGLYX) .AND. (NN /= IDTMGLY) .AND.
-     &                 (NN /= IDTGLYC) .AND. (NN /= IDTHAC ) .AND.
-     &                 (NN /= IDTBENZ) .AND. (NN /= IDTTOLU) .AND.
-     &                 (NN /= IDTXYLE) .AND. (NN /= IDTC2H4) .AND. 
-     &                 (NN /= IDTC2H2) ) THEN
-
-                     BIOFUEL(N,I,J) = 0.d0
-
-                  ENDIF
-               ENDIF
-            ENDIF
-
-            ! move below so that BIOFUEL array is complete before
-            ! archiving diagnostic info (hotp 11/23/09)
-!            ! ND34 -- archive biofuel burning species [molec/cm2/s]
-!            IF ( DO_ND34 ) THEN
-!               AD34(I,J,N) = AD34(I,J,N) + ( BIOFUEL(N,I,J) * 
-!     &                                       BXHEIGHT_CM )
-!            ENDIF
          ENDDO  
 
          ! ND29 -- CO source diagnostics [molec/cm2/s]
@@ -1197,7 +1248,7 @@
 
 !------------------------------------------------------------------------------
 
-      SUBROUTINE SET_BFTRACE
+      SUBROUTINE SET_BFTRACE( am_I_Root )
 !
 !******************************************************************************
 !  Subroutine SET_NBFTRACE sets the NBFTRACE variable with the number of
@@ -1205,7 +1256,9 @@
 !  in order to prevent circular module references. (bmy, 11/6/02, 10/3/05)
 !
 !  NOTES:
-!  (1 ) Now make sure all USE statements are USE, ONLY (bmy, 10/3/05)
+!  (1 ) Now make sure all USE statements are USE, ONLY (bmy, 10/3/05
+!  30 Jul 2012 - R. Yantosca - Now accept am_I_Root as an argument when
+!                              running with the traditional driver main.F
 !******************************************************************************
 !
       ! References to F90 modules
@@ -1221,6 +1274,9 @@
       USE TRACERID_MOD, ONLY : IDTGLYX,  IDTMGLY,  IDTBENZ,  IDTTOLU
       USE TRACERID_MOD, ONLY : IDTXYLE,  IDTC2H4,  IDTC2H2,  IDTGLYC
       USE TRACERID_MOD, ONLY : IDTHAC
+
+      LOGICAL, INTENT(IN) :: am_I_Root
+
       !=================================================================
       ! SET_BFTRACE begins here!
       !=================================================================
@@ -1271,10 +1327,11 @@
       IF ( IDBFHAC  /= 0 ) BFTRACE(IDBFHAC ) = IDTHAC
 
       ! Echo biofuel tracer information
-      WRITE( 6, 100 ) BFTRACE( 1:NBFTRACE )
+      IF ( am_I_Root ) THEN
+         WRITE( 6, 100 ) BFTRACE( 1:NBFTRACE )
+      ENDIF
  100  FORMAT( 'TRACERID: Biofuel burning tracers        :', 20i3 )
       
-      ! Return to calling program
       END SUBROUTINE SET_BFTRACE
 
 !------------------------------------------------------------------------------

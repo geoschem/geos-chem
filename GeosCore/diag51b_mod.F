@@ -112,6 +112,8 @@
 !                              rather than Psurface - PTOP
 !  03 Feb 2011 - S. Kim      - Now do not scale the AOD output
 !                              (recalculated in RDAER AND DUST_MOD)
+!  01 Mar 2012 - R. Yantosca - Use updated GET_LOCALTIME from time_mod.F
+!  06 Aug 2012 - R. Yantosca - Now make IU_ND51b a local module variable
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -177,6 +179,9 @@
       CHARACTER(LEN=40)    :: RESERVED = ''
       CHARACTER(LEN=80)    :: TITLE
       CHARACTER(LEN=255)   :: ND51_OUTPUT_FILE
+
+      ! LUN for ND51b output file
+      INTEGER              :: IU_ND51b
 
       ! Arrays
       INTEGER, ALLOCATABLE :: GOOD(:)
@@ -250,6 +255,8 @@
 !EOP
 !------------------------------------------------------------------------------
 !BOC
+      USE LOGICAL_MOD, ONLY : DO_DIAG_WRITE
+
 !
 ! !LOCAL VARIABLES:
 !
@@ -266,7 +273,7 @@
       CALL ACCUMULATE_DIAG51
 
       ! Write data to disk at the proper time
-      IF ( ITS_TIME_FOR_WRITE_DIAG51( TAU_W ) ) THEN
+      IF ( ITS_TIME_FOR_WRITE_DIAG51( TAU_W ) .and. DO_DIAG_WRITE ) THEN
          CALL WRITE_DIAG51( TAU_W )
       ENDIF
 
@@ -295,6 +302,11 @@
 
       USE CMN_SIZE_MOD   ! Size parameters
 ! 
+! !REMARKS:
+!  For now use GET_LOCALTIME( I, 1, 1 ) which will be independent of J and L
+!  for a pure cartesian grid.  This may need to be revisited once G-C is
+!  interfaced into a GCM.
+!
 ! !REVISION HISTORY: 
 !  20 Jul 2004 - R. Yantosca - Initial version
 !  (1 ) The 1d-3 in the computation of XLOCTM is to remove roundoff ambiguity 
@@ -309,6 +321,7 @@
 !  (7 ) We need to substract TS_DYN to the time to get the local time at 
 !        the beginning of previous time step. (ccc, 8/11/09)
 !  02 Dec 2010 - R. Yantosca - Added ProTeX headers
+!  01 Mar 2012 - R. Yantosca - Now use GET_LOCALTIME(I,J,L) from time_mod.F90
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -327,7 +340,7 @@
       DO I = 1, IIPAR
 
          ! Get local time
-         LT = GET_LOCALTIME(I) - TS_DYN
+         LT = GET_LOCALTIME( I, 1, 1 ) - TS_DYN
          IF ( LT < 0  ) LT = LT + 24d0
 
          ! GOOD indicates which boxes have local times between HR1 and HR2
@@ -362,8 +375,7 @@
       USE DAO_MOD,        ONLY : TS
       ! Now included PAR direct and diffuse (mpb,2009)
       USE DAO_MOD,        ONLY : PARDF, PARDR
-      ! Now included current (MODIS) LAI (mpb,2009)
-      USE LAI_MOD,        ONLY : ISOLAI
+      USE MODIS_LAI_MOD,  ONLY : ISOLAI => GC_LAI
       USE PBL_MIX_MOD,    ONLY : GET_PBL_TOP_L,    GET_PBL_TOP_m
       USE PRESSURE_MOD,   ONLY : GET_PEDGE
       USE TIME_MOD,       ONLY : GET_ELAPSED_MIN,  GET_TS_CHEM 
@@ -376,7 +388,7 @@
       USE TRACERID_MOD,   ONLY : IDTR4N2, IDTSALA, IDTSALC 
       USE TROPOPAUSE_MOD, ONLY : ITS_IN_THE_TROP
 
-      USE CMN_FJ_MOD, ONLY : IPAR, JPAR, LPAR, JPMAX, JPPJ  ! includes F77_CMN_SIZE
+      USE CMN_FJ_MOD,     ONLY : JPMAX, JPPJ  ! includes F77_CMN_SIZE
       USE JV_CMN_MOD  ! ODAER, QAA, QAA_AOD
       USE CMN_O3_MOD    ! FRACO3, FRACNO, SAVEO3, SAVENO2, SAVEHO2, FRACNO2
       USE CMN_GCTM_MOD  ! SCALE_HEIGHT
@@ -413,6 +425,7 @@
 !  (12) Added MEGAN species (mpb, bmy, 12/21/09)
 !  12 Nov 2010 - R. Yantosca - Now save out PEDGE-$ (pressure at level edges)
 !                              rather than Psurface - PTOP
+!  11 Apr 2012 - R. Yantosca - Replace lai_mod.F with modis_lai_mod.F
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -1214,7 +1227,7 @@
       USE BPCH2_MOD,   ONLY : BPCH2
       USE BPCH2_MOD,   ONLY : OPEN_BPCH2_FOR_WRITE
       USE ERROR_MOD,   ONLY : ALLOC_ERR
-      USE FILE_MOD,    ONLY : IU_ND51b
+      USE inquireMod,  ONLY : findFreeLUN
       USE LOGICAL_MOD, ONLY : LND51b_HDF
       USE TIME_MOD,    ONLY : EXPAND_DATE
       USE TIME_MOD,    ONLY : GET_NYMD_DIAG    
@@ -1274,6 +1287,8 @@
 !  (13) Added MEGAN species (mpb, bmy, 12/21/09)
 !  12 Nov 2010 - R. Yantosca - Now save out PEDGE-$ (pressure at level edges)
 !                              rather than Psurface - PTOP
+!  03 Aug 2012 - R. Yantosca - Move calls to findFreeLUN out of DEVEL block
+!  07 Aug 2012 - R. Yantosca - Now print LUN used to open file
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -1291,6 +1306,9 @@
       ! WRITE_DIAG51 begins here!
       !=================================================================
 
+      ! Find a free file LUN
+      IU_ND51b = findFreeLUN()
+
       ! Replace date tokens in FILENAME
       FILENAME = ND51_OUTPUT_FILE
 
@@ -1303,7 +1321,7 @@
       
       ! Echo info
       WRITE( 6, 100 ) TRIM( FILENAME )
- 100  FORMAT( '     - DIAG51b: Opening file ', a ) 
+ 100  FORMAT( '     - DIAG51b: Opening file ', a, ' on unit ', i4 ) 
 
       ! Open output file
       IF ( LND51b_HDF ) THEN
@@ -1867,7 +1885,11 @@
      &                  TAU0,         TAU1,         RESERVED,  
      &                  ND51_NI,      ND51_NJ,      GMNL,     
      &                  ND51_IMIN+I0, ND51_JMIN+J0, ND51_LMIN, 
+#if defined( DEVEL )
+     &                  REAL( Q(1:ND51_NI, 1:ND51_NJ, 1:GMNL, W),4))
+#else
      &                  REAL( Q(1:ND51_NI, 1:ND51_NJ, 1:GMNL, W)))
+#endif
          ENDIF
       ENDDO
 

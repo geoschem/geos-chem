@@ -62,6 +62,8 @@
 !                              DO_MERRA_CONVECTION routine
 !  16 Aug 2011 - J. Fisher   - Minor bug fixes in DO_MERRA_CONVECTION
 !  15 Feb 2011 - R. Yantosca - Add modifications for APM from G. Luo
+!  28 Feb 2012 - R. Yantosca - Removed support for GEOS-3
+!  02 Mar 2012 - R. Yantosca - Now reference the new grid_mod.F90
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -120,7 +122,7 @@
 ! 
 ! !REVISION HISTORY: 
 !  25 May 2005 - S. Wu       - Initial version
-!  08 Feb 2007 - R. Yantosca - Now reference "F77_CMN_SIZE".  Now references 
+!  08 Feb 2007 - R. Yantosca - Now reference "CMN_SIZE".  Now references 
 !                              CLDMAS, CMFMC, DTRAIN from "dao_mod.f" so that 
 !                              we can pass either GEOS-5 or GEOS-3 meteorology
 !                              to NFCLDMX. 
@@ -138,6 +140,12 @@
 !  15 Oct 2010 - R. Yantosca - Now pass H2O2s, SO2s to DO_MERRA_CONVECTION
 !  15 Feb 2011 - R. Yantosca - Add modifications for APM from G. Luo
 !  29 Aug 2011 - R. Yantosca - Bug fix: reposition #if defined(APM) statement
+!  09 Feb 2012 - R. Yantosca - For GEOS-5.7, PFICU and PFLCU fields are
+!                              defined on level edges.  Pass the top edge
+!                              of each level to DO_MERRA_CONVECTION
+!  28 Feb 2012 - R. Yantosca - Removed support for GEOS-3
+!  01 Mar 2012 - R. Yantosca - Now use GET_AREA_M2(I,J,L) from grid_mod.F90
+!  21 Jun 2012 - R. Yantosca - Now use poiners to pass array slices to routines
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -158,22 +166,6 @@
 
       ! Call GCAP driver routine
       CALL DO_GCAP_CONVECT
-
-#elif defined( GEOS_3 )
-
-      !=================================================================
-      ! GEOS-3 met fields
-      !=================================================================
-
-      ! Pick the proper # of tracers
-#if   defined( APM )  
-      N_TOT_TRC = N_TRACERS + N_APMTRA   ! If APM is used, then convect
-#else                                    !  the G-C advected tracers +
-      N_TOT_TRC = N_TRACERS              !  the APM aerosol tracers
-#endif
-
-      ! Call the S-J Lin convection routine for GEOS-3
-      CALL NFCLDMX( N_TOT_TRC, TCVV, CLDMAS, DTRAIN, STT )
 
 #elif defined( GEOS_4 )
 
@@ -200,7 +192,7 @@
       ! Call the S-J Lin convection routine for GEOS-5
       CALL NFCLDMX( N_TOT_TRC, TCVV, CMFMC(:,:,2:LLPAR+1), DTRAIN, STT )
 
-#elif defined( MERRA )
+#elif defined( MERRA ) || defined( GEOS_57 )
 
       !=================================================================
       ! MERRA met fields
@@ -218,13 +210,28 @@
       REAL*8             :: AREA_M2, DT
                          
       ! Arrays           
-      REAL*8             :: DIAG14(               LLPAR,   N_TRACERS )
-      REAL*8             :: DIAG38(               LLPAR,   N_TRACERS )
-      REAL*8             :: F     (               LLPAR,   N_TRACERS )
-      REAL*8             :: FSOL  ( IIPAR, JJPAR, LLPAR,   N_TRACERS )
-      INTEGER            :: ISOL  (                        N_TRACERS )
-      REAL*8             :: PEDGE (               LLPAR+1            )
+      REAL*8             :: DIAG14 (               LLPAR,   N_TRACERS )
+      REAL*8             :: DIAG38 (               LLPAR,   N_TRACERS )
+      REAL*8             :: F      (               LLPAR,   N_TRACERS )
+      REAL*8,  TARGET    :: FSOL   ( IIPAR, JJPAR, LLPAR,   N_TRACERS )
+      INTEGER            :: ISOL   (                        N_TRACERS )
+      REAL*8             :: PEDGE  (               LLPAR+1            )
 
+      ! Pointers
+      REAL*8,  POINTER   :: p_AD      (:    )   
+      REAL*8,  POINTER   :: p_BXHEIGHT(:    )
+      REAL*8,  POINTER   :: p_CMFMC   (:    )
+      REAL*8,  POINTER   :: p_DQRCU   (:    )
+      REAL*8,  POINTER   :: p_DTRAIN  (:    )
+      REAL*8,  POINTER   :: p_H2O2s   (:    )
+      REAL*8,  POINTER   :: p_FSOL    (:,:,:)
+      REAL*8,  POINTER   :: p_PFICU   (:    )   
+      REAL*8,  POINTER   :: p_PFLCU   (:    )
+      REAL*8,  POINTER   :: p_REEVAPCN(:    )
+      REAL*8,  POINTER   :: p_SO2s    (:    )
+      REAL*8,  POINTER   :: p_STT     (:,:  )
+      REAL*8,  POINTER   :: p_T       (:    )
+      
       ! Parameters
       LOGICAL, PARAMETER :: FIRST = .TRUE.
 
@@ -262,8 +269,14 @@
          ! Molecular weight [kg]
          COEF%MOLWT_KG(N) = TRACER_MW_KG(N)
 
+         ! Set a pointer to each 3D slice of FSOL
+         p_FSOL => FSOL(:,:,:,N)
+
          ! Fraction of soluble tracer
-         CALL COMPUTE_F( N, FSOL(:,:,:,N), ISOL(N) ) 
+         CALL COMPUTE_F( N, p_FSOL, ISOL(N) ) 
+
+         ! Nullify the pointer
+         NULLIFY( p_FSOL )
 
       ENDDO
       
@@ -272,29 +285,31 @@
       !-----------------------------------------------------------------
 !$OMP PARALLEL DO
 !$OMP+DEFAULT( SHARED )
-!$OMP+PRIVATE( J, AREA_M2, I,      IDENT,  L,  PEDGE )
-!$OMP+PRIVATE( N, F,       DIAG14, DIAG38, RC, NN    ) 
+!$OMP+PRIVATE( J,          AREA_M2,  I,       IDENT,      L       )
+!$OMP+PRIVATE( PEDGE,      N,        F,       DIAG14,     DIAG38  )
+!$OMP+PRIVATE( RC,         NN,       p_AD,    p_BXHEIGHT, p_CMFMC )
+!$OMP+PRIVATE( p_DQRCU,    p_DTRAIN, p_H2O2s, p_PFICU,    p_PFLCU )
+!$OMP+PRIVATE( P_REEVAPCN, p_SO2s,   p_STT,   p_T                 )
       DO J = 1, JJPAR
-
-         ! Grid box surface area [m2]
-         AREA_M2           = GET_AREA_M2( J ) 
-
       DO I = 1, IIPAR
 
+         ! Grid box surface area [m2]
+         AREA_M2           =  GET_AREA_M2( I, J, 1 ) 
+
          ! Initialize the IDENT object for error I/O
-         IDENT%STDOUT_FILE = ''                     ! Write to
-         IDENT%STDOUT_LUN  = 6                      !  stdout
-         IDENT%PET         = 0                      ! CPU #
-         IDENT%I_AM(1)     = 'MAIN'                 ! Main routine
-         IDENT%I_AM(2)     = 'DO_CONVECTION'        ! This routine
-         IDENT%LEV         = 2                      ! This level
-         IDENT%ERRMSG      = ''                     ! Error msg
-        !IDENT%VERBOSE     = ( I==23 .and. J==34 )  ! Debug box
-         IDENT%VERBOSE     = ( I==67 .and. J==31 )  ! Debug box
+         IDENT%STDOUT_FILE =  ''                     ! Write to
+         IDENT%STDOUT_LUN  =  6                      !  stdout
+         IDENT%PET         =  0                      ! CPU #
+         IDENT%I_AM(1)     =  'MAIN'                 ! Main routine
+         IDENT%I_AM(2)     =  'DO_CONVECTION'        ! This routine
+         IDENT%LEV         =  2                      ! This level
+         IDENT%ERRMSG      =  ''                     ! Error msg
+        !IDENT%VERBOSE     =  ( I==23 .and. J==34 )  ! Debug box
+         IDENT%VERBOSE     =  ( I==67 .and. J==31 )  ! Debug box
 
          ! Pressure edges
          DO L = 1, LLPAR+1
-            PEDGE(L)       = GET_PEDGE( I, J, L )
+            PEDGE(L)       =  GET_PEDGE( I, J, L )
          ENDDO
 
          ! For some reason, the parallelization chokes if we pass an array 
@@ -302,10 +317,36 @@
          ! copy the data into a local array and then pass that to the routine.
          DO N = 1, N_TRACERS
          DO L = 1, LLPAR
-            F(L,N)         = FSOL(I,J,L,N)
+            F(L,N)         =  FSOL(I,J,L,N)
          ENDDO
          ENDDO
 
+#if   defined( GEOS_57 )
+
+         ! For GEOS-5.7, PFICU and PFLCU are defined on level edges
+         p_PFICU           => PFICU   ( I, J, 2:LLPAR+1 )
+         p_PFLCU           => PFLCU   ( I, J, 2:LLPAR+1 )
+
+#elif defined( MERRA   )
+
+         ! For MERRA, PFICU and PFLCU are defined on level centers
+         p_PFICU           => PFICU   ( I, J, 1:LLPAR   )
+         p_PFLCU           => PFLCU   ( I, J, 1:LLPAR   )
+
+#endif
+
+         ! Pointers to slices of larger arrays
+         p_AD              => AD      ( I, J,  :          )
+         p_BXHEIGHT        => BXHEIGHT( I, J,  :          )
+         p_CMFMC           => CMFMC   ( I, J, 2:LLPAR+1   )
+         p_DQRCU           => DQRCU   ( I, J,  :          )
+         p_DTRAIN          => DTRAIN  ( I, J,  :          )
+         p_H2O2s           => H2O2s   ( I, J,  :          )
+         p_REEVAPCN        => REEVAPCN( I, J,  :          )
+         p_SO2s            => SO2s    ( I, J,  :          )
+         p_STT             => STT     ( I, J,  :,       : )
+         p_T               => T       ( I, J,  :          )
+         
          !--------------------------
          ! Do the cloud convection
          !--------------------------
@@ -318,18 +359,18 @@
      &                             PEDGE    = PEDGE,
      &                             TS_DYN   = DT, 
      &                             F        = F,
-     &                             AD       = AD      (I,J, :        ),
-     &                             BXHEIGHT = BXHEIGHT(I,J, :        ),
-     &                             CMFMC    = CMFMC   (I,J,2:LLPAR+1 ),
-     &                             DQRCU    = DQRCU   (I,J, :        ),
-     &                             DTRAIN   = DTRAIN  (I,J, :        ), 
-     &                             H2O2s    = H2O2s   (I,J, :        ),
-     &                             PFICU    = PFICU   (I,J, :        ),
-     &                             PFLCU    = PFLCU   (I,J, :        ),
-     &                             REEVAPCN = REEVAPCN(I,J, :        ),
-     &                             SO2s     = SO2s    (I,J, :        ),
-     &                             T        = T       (I,J, :        ),
-     &                             Q        = STT     (I,J, :,      :), 
+     &                             AD       = p_AD,
+     &                             BXHEIGHT = p_BXHEIGHT,
+     &                             CMFMC    = p_CMFMC,
+     &                             DQRCU    = p_DQRCU,
+     &                             DTRAIN   = p_DTRAIN,
+     &                             H2O2s    = p_H2O2s,
+     &                             PFICU    = p_PFICU,
+     &                             PFLCU    = p_PFLCU,
+     &                             REEVAPCN = p_REEVAPCN,            
+     &                             SO2s     = p_SO2s,
+     &                             T        = p_T,
+     &                             Q        = p_STT,
      &                             DIAG14   = DIAG14,
      &                             DIAG38   = DIAG38,
      &                             I        = I,
@@ -340,6 +381,11 @@
          IF ( RC /= SMV_SUCCESS ) THEN
             CALL GEOS_CHEM_STOP
          ENDIF
+
+         ! Free pointer memory
+         NULLIFY( p_AD,       p_BXHEIGHT, p_CMFMC, p_DQRCU )
+         NULLIFY( p_DTRAIN,   p_H2O2s,    p_PFICU, p_PFLCU )
+         NULLIFY( p_REEVAPCN, p_SO2s,     p_STT,   p_T     )
 
          !--------------------------
          ! ND14 diagnostic [kg/s]
@@ -428,21 +474,21 @@
 !
 ! !LOCAL VARIABLES:
 !
-      LOGICAL, SAVE :: FIRST = .TRUE.
-      INTEGER       :: I, ISOL, J, L, L2, N, NSTEP  
-      !INTEGER       :: INDEXSOL(N_TRACERS) 
-      INTEGER       :: CONVDT    
-      !REAL*8        :: F(IIPAR,JJPAR,LLPAR,N_TRACERS)
-      REAL*8        :: RPDEL(IIPAR,JJPAR,LLPAR)
-      REAL*8        :: DP(IIPAR,JJPAR,LLPAR)
-      REAL*8        :: P1, P2, TDT   
-      INTEGER       :: N_TOT_TRC      
+      LOGICAL, SAVE  :: FIRST = .TRUE.
+      INTEGER        :: I, ISOL, J, L, L2, N, NSTEP
+      !INTEGER        :: INDEXSOL(N_TRACERS)
+      INTEGER        :: CONVDT
+      !REAL*8         :: F(IIPAR,JJPAR,LLPAR,N_TRACERS)
+      REAL*8         :: RPDEL(IIPAR,JJPAR,LLPAR)
+      REAL*8         :: DP(IIPAR,JJPAR,LLPAR)
+      REAL*8         :: P1, P2, TDT
+      INTEGER        :: N_TOT_TRC
 #if   defined( APM )
-      INTEGER       :: INDEXSOL(                  N_TRACERS+N_APMTRA) 
-      REAL*8        :: F       (IIPAR,JJPAR,LLPAR,N_TRACERS+N_APMTRA)
+      INTEGER        :: INDEXSOL(                  N_TRACERS+N_APMTRA)
+      REAL*8         :: F       (IIPAR,JJPAR,LLPAR,N_TRACERS+N_APMTRA)
 #else
-      INTEGER       :: INDEXSOL(                  N_TRACERS) 
-      REAL*8        :: F       (IIPAR,JJPAR,LLPAR,N_TRACERS)
+      INTEGER        :: INDEXSOL(                  N_TRACERS)
+      REAL*8         :: F       (IIPAR,JJPAR,LLPAR,N_TRACERS)
 #endif
 
       !=================================================================
@@ -490,7 +536,7 @@
          ! Get fraction of tracer scavenged and the soluble tracer 
          ! index (ISOL). For non-soluble tracers, F=0 and ISOL=0.
          CALL COMPUTE_F( N, F(:,:,:,N), ISOL ) 
-         
+
          ! Store ISOL in an array for later use
          INDEXSOL(N) = ISOL
 
@@ -568,7 +614,6 @@
      &                    F     (:,:,LLPAR:1:-1,:),         
      &                    TCVV,   
      &                    INDEXSOL )
-
 
       ! Add a check to set negative values in STT to TINY
       ! (ccc, 4/15/09)
@@ -841,6 +886,9 @@
 
       USE CMN_SIZE_MOD     ! Size parameters
       USE CMN_DIAG_MOD     ! Diagnostic switches & arrays
+#if defined( DEVEL )
+      USE ERROR_MOD,        ONLY : ALLOC_ERR
+#endif
 
       IMPLICIT NONE
 #     include "define.h"
@@ -1000,6 +1048,7 @@
 !  (18) Add a check to set negative values in Q to TINY (ccc, 4/15/09)
 !  (19) Updates for mercury simulation (ccc, 5/17/10)
 !  13 Aug 2010 - R. Yantosca - Added ProTeX headers
+!  01 Mar 2012 - R. Yantosca - Now use GET_AREA_M2(I,J,L) from grid_mod.F90
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -1010,8 +1059,13 @@
       LOGICAL, SAVE          :: IS_Hg = .TRUE.
       INTEGER                :: I, J, K, KTOP, L, N, NDT
       INTEGER                :: IC, ISTEP, JUMP, JS, JN, NS
+#if defined( DEVEL )
+      INTEGER                :: IMR, JNP, NLAY, AS
+      REAL*8, ALLOCATABLE, SAVE :: DSIG(:)
+#else
       INTEGER                :: IMR, JNP, NLAY
-      REAL*8,  SAVE          :: DSIG(LLPAR)
+      REAL*8, SAVE           :: DSIG(LLPAR)
+#endif
       REAL*8                 :: SDT, CMOUT, ENTRN, DQ, AREA_M2
       REAL*8                 :: T0, T1, T2, T3, T4, TSUM, DELQ
       REAL*8                 :: DTCSUM(IIPAR,JJPAR,LLPAR,NC)
@@ -1061,6 +1115,11 @@
          ! NOTE: We don't need to do this for GEOS-5 (bmy, 6/27/07)
          ! DSIG is the sigma-level thickness (NOTE: this assumes that
          ! we are using a pure-sigma grid.  Use new routine for fvDAS.)
+#if defined( DEVEL )
+         ALLOCATE( DSIG(LLPAR), STAT=AS )
+         IF ( AS /= 0 ) CALL ALLOC_ERR( 'DSIG_CONVECTION' )
+#endif
+
          DO L = 1, LLPAR        
             DSIG(L) = GET_BP(L) - GET_BP(L+1)
          ENDDO
@@ -1129,12 +1188,12 @@
 !$OMP+PRIVATE( I, J, AREA_M2, K )
 !$OMP+SCHEDULE( DYNAMIC )
       DO K = 1, NLAY
-         DO J = 1, JJPAR
-            AREA_M2 = GET_AREA_M2( J )
-            DO I = 1, IMR
-               BMASS(I,J,K) = AD(I,J,K) / AREA_M2
-            ENDDO
-         ENDDO
+      DO J = 1, JJPAR
+      DO I = 1, IMR
+         AREA_M2      = GET_AREA_M2( I, J, K )
+         BMASS(I,J,K) = AD(I,J,K) / AREA_M2
+      ENDDO
+      ENDDO
       ENDDO
 !$OMP END PARALLEL DO
 
@@ -1293,13 +1352,12 @@
             ! is the level ABOVE level K.  This is the way that SJ Lin 
             ! indexes the sigma levels.
             !===========================================================
-            DO K = 3, KTOP
+            DO K = 3,  KTOP
             DO J = JS, JN
+            DO I = 1,  IMR
 
                ! Grid box surface area [m2]
-               AREA_M2 = GET_AREA_M2( J )
-
-               DO I = 1, IMR
+               AREA_M2 = GET_AREA_M2( I, J, K )
 
 !==============================================================================
 !  (5.1)  M a s s   B a l a n c e   i n   C l o u d  ===>  QC(I,J)

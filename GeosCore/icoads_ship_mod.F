@@ -42,15 +42,14 @@
 !
 ! !REVISION HISTORY:
 !  21 Jul 2009 - Chulkyu Lee & P. Le Sager - Initial Version
+!  01 Mar 2012 - R. Yantosca - Now reference new grid_mod.F90
+!  01 Mar 2012 - R. Yantosca - Remove A_CM2 array, use GET_AREA_CM2 instead
 !EOP
 !------------------------------------------------------------------------------
 !BOC
 !
 ! !PRIVATE DATA MEMBERS:
 !
-      ! Array for surface area
-      REAL*8,  ALLOCATABLE :: A_CM2(:)
-
       ! Arrays for emissions
       REAL*8,  ALLOCATABLE :: NOx(:,:)
       REAL*8,  ALLOCATABLE :: CO(:,:)
@@ -77,6 +76,7 @@
 !
 ! !USES:
 !
+      USE GRID_MOD,     ONLY : GET_AREA_CM2
       USE TRACER_MOD,   ONLY : XNUMOL
       USE TRACERID_MOD, ONLY : IDTNOx, IDTCO, IDTSO2, IDTNH3
       USE TIME_MOD,     ONLY : GET_YEAR, GET_MONTH
@@ -99,6 +99,7 @@
 !
 ! !REVISION HISTORY: 
 !  21 Jul 2009 - Chulkyu Lee & P. Le Sager - Initial Version
+!  01 Mar 2012 - R. Yantosca - Now use GET_AREA_CM2(I,J,L) from grid_mod.F90
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -182,7 +183,8 @@
       ELSE IF ( DO_MCS ) THEN
 
          ! Convert NOx from [kg/month] to [molec/cm2/s]
-         VALUE = VALUE * XNUMOL(N) / ( A_CM2(J) * SEC_IN_MONTH )
+         VALUE = ( VALUE                   * XNUMOL(N)    )
+     &         / ( GET_AREA_CM2( I, J, 1 ) * SEC_IN_MONTH )
 
       ENDIF
 
@@ -201,22 +203,34 @@
 !\\
 ! !INTERFACE:
 !
+#if defined( DEVEL )
+      SUBROUTINE EMISS_ICOADS_SHIP( EMISS )
+#else
       SUBROUTINE EMISS_ICOADS_SHIP
+#endif
 !
 ! !USES:
 ! 
       USE BPCH2_MOD,         ONLY : GET_TAU0,      READ_BPCH2
       USE DIRECTORY_MOD,     ONLY : DATA_DIR_1x1 
       USE LOGICAL_MOD,       ONLY : LFUTURE
-      USE REGRID_1x1_MOD,    ONLY : DO_REGRID_1x1
       USE TIME_MOD,          ONLY : GET_YEAR,      GET_MONTH
       USE SCALE_ANTHRO_MOD,  ONLY : GET_ANNUAL_SCALAR_1x1
+      USE REGRID_A2A_MOD,    ONLY : DO_REGRID_A2A
 
-      USE CMN_SIZE_MOD          ! Size parameters
-      USE CMN_O3_MOD            ! FSCALYR
+      USE CMN_SIZE_MOD            ! Size parameters
+      USE CMN_O3_MOD              ! FSCALYR
+
+#if defined( DEVEL )
+      USE TRACER_MOD,   ONLY : XNUMOL, N_TRACERS
+      USE TRACERID_MOD, ONLY : IDTNOx, IDTCO, IDTSO2, IDTNH3
+#endif
 !
 ! !REVISION HISTORY: 
 !  21 Jul 2009 - Chulkyu Lee & P. Le Sager - Initial Version
+!  13 Mar 2012 - M. Cooper   - Changed regrid algorithm to map_a2a
+!  24 May 2012 - R. Yantosca - Fixed minor bugs in map_a2a algorithm
+!  24 Aug 2012 - R. Yantosca - DO_REGRID_A2A now reads netCDF input file
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -227,12 +241,20 @@
       INTEGER                    :: I, J, THISYEAR, SPECIES, SNo, ScNo
       INTEGER                    :: THISMONTH
       REAL*4                     :: ARRAY(I1x1,J1x1,1)
-      REAL*8                     :: GEOS_1x1(I1x1,J1x1,1)
+      REAL*8, TARGET             :: GEOS_1x1(I1x1,J1x1,1)
       REAL*8                     :: SC_1x1(I1x1,J1x1)
       REAL*8                     :: TAU
       CHARACTER(LEN=255)         :: FILENAME
       CHARACTER(LEN=4)           :: SYEAR, SNAME
       CHARACTER (LEN=2)          :: SMONTH
+      CHARACTER(LEN=255)         :: LLFILENAME
+      REAL*8, POINTER            :: INGRID(:,:) => NULL()
+
+#if defined( DEVEL )
+      REAL*8, INTENT(INOUT)      :: EMISS(IIPAR, JJPAR, N_TRACERS)
+      INTEGER                    :: YEAR, MONTH
+      REAL*8                     :: SEC_IN_MONTH
+#endif
 
       !=================================================================
       ! EMISS_ICOADS_SHIP begins here!
@@ -256,6 +278,9 @@
 
       WRITE( SMONTH, '(i2.2)' ) THISMONTH
 
+      ! File with lat/lon edges for regridding
+      LLFILENAME = TRIM( DATA_DIR_1x1) //
+     &             'MAP_A2A_Regrid_201203/MAP_A2A_latlon_geos1x1.nc'
 
       DO SPECIES = 1,3
 
@@ -304,26 +329,35 @@
          GEOS_1x1(:,:,1) = GEOS_1x1(:,:,1) * SC_1x1(:,:)
 
 
-
          ! Regrid from GEOS 1x1 --> current model resolution
+         INGRID => GEOS_1x1(:,:,1)
+
          IF ( SPECIES .eq. 1 ) THEN
 
-            CALL DO_REGRID_1x1( 'kg/month', GEOS_1x1, NOx )
+            CALL DO_REGRID_A2A( LLFILENAME, I1x1, J1x1, 
+     &                          INGRID,     NOx,  PERAREA=1,
+     &                          netCDF=.TRUE.                )
 
          ELSEIF ( SPECIES .eq. 2 ) THEN
 
-            CALL DO_REGRID_1x1( 'kg/month', GEOS_1x1, CO )
+            CALL DO_REGRID_A2A( LLFILENAME, I1x1, J1x1,
+     &                          INGRID,     CO,   PERAREA=1,
+     &                          netCDF=.TRUE.                )
 
          ELSEIF ( SPECIES .eq. 3 ) THEN
 
             ! Convert SOx to SO2, where SOx is assumed to be 1.4% SO4 and
             ! 98.6% SO2 over NA, based upon Chin et al, 2000, and as
             ! utilized in sulfate_mod.f
-            GEOS_1x1(:,:,1) = GEOS_1x1(:,:,1) * 0.986
-
-            CALL DO_REGRID_1x1( 'kg/month', GEOS_1x1, SO2 )
+            INGRID = INGRID * 0.986
+            CALL DO_REGRID_A2A( LLFILENAME, I1x1, J1x1,
+     &                          INGRID,     SO2,  PERAREA=1,
+     &                          netCDF=.TRUE.                )
 
          ENDIF
+
+         ! Free pointer
+         NULLIFY( INGRID )
 
       ENDDO
 
@@ -333,6 +367,32 @@
       IF ( LFUTURE ) THEN 
          CALL ICOADS_SCALE_FUTURE
       ENDIF
+
+#if defined( DEVEL )
+! Get emissions year
+      YEAR = GET_YEAR()
+! Get emissions month      
+      MONTH = GET_MONTH()
+      
+      IF ( (MONTH == 4) .OR. (MONTH == 6) .OR.
+     &     (MONTH == 9) .OR. (MONTH == 11) ) THEN
+         SEC_IN_MONTH = 86400D0*30.0D0
+      ELSE IF (MONTH == 2) THEN
+! ICOADS ship emissions for 2002
+         IF (MOD(YEAR,4) == 0) THEN
+            SEC_IN_MONTH = 86400D0*29.0D0
+         ELSE
+            SEC_IN_MONTH = 86400D0*28.0D0
+         ENDIF
+      ELSE
+         SEC_IN_MONTH = 86400D0*31.0D0
+      ENDIF
+
+      ! Convert from Kg/Month -> Kg/S
+      EMISS(:,:,IDTNOx) = NOx / SEC_IN_MONTH
+      EMISS(:,:,IDTCO)  = CO  / SEC_IN_MONTH
+      EMISS(:,:,IDTSO2) = SO2 / SEC_IN_MONTH
+#endif
 
       !--------------------------
       ! Print emission totals
@@ -486,13 +546,13 @@
 ! !USES:
 ! 
       USE ERROR_MOD,   ONLY : ALLOC_ERR
-      USE GRID_MOD,    ONLY : GET_AREA_CM2
       USE LOGICAL_MOD, ONLY : LICOADSSHIP
 
       USE CMN_SIZE_MOD    ! Size parameters
 !
 ! !REVISION HISTORY: 
 !  21 Jul 2009 - Chulkyu Lee & P. Le Sager - Initial Version
+!  02 Mar 2012 - R. Yantosca - Remove A_CM2 array
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -524,19 +584,6 @@
       IF ( AS /= 0 ) CALL ALLOC_ERR( 'SO2' )
       SO2 = 0d0
 
-      !---------------------------------------------------
-      ! Pre-store array for grid box surface area in cm2
-      !---------------------------------------------------
-
-      ! Allocate array
-      ALLOCATE( A_CM2( JJPAR ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'A_CM2' )
-
-      ! Fill array
-      DO J = 1, JJPAR
-         A_CM2(J) = GET_AREA_CM2( J )
-      ENDDO
-
       END SUBROUTINE INIT_ICOADS_SHIP
 !EOC
 !------------------------------------------------------------------------------
@@ -560,10 +607,9 @@
 !------------------------------------------------------------------------------
 !BOC
 !
-      IF ( ALLOCATED( A_CM2          ) ) DEALLOCATE( A_CM2          )
-      IF ( ALLOCATED( NOx            ) ) DEALLOCATE( NOx            )
-      IF ( ALLOCATED( CO             ) ) DEALLOCATE( CO             )
-      IF ( ALLOCATED( SO2            ) ) DEALLOCATE( SO2            )
+      IF ( ALLOCATED( NOx ) ) DEALLOCATE( NOx )
+      IF ( ALLOCATED( CO  ) ) DEALLOCATE( CO  )
+      IF ( ALLOCATED( SO2 ) ) DEALLOCATE( SO2 )
 
       END SUBROUTINE CLEANUP_ICOADS_SHIP
 !EOC

@@ -64,6 +64,10 @@
       ! Now set PD52 to 1 (jaegle 2/26/09)
       ! Increase PD46 from 6 to 13 (mpb, ccc, 11/19/09)
       ! increase PD21 from 20 to 27 (clh, 05/06/10)
+      ! changed PD44 (drydep) to 53 (jpp, 6/13/09)
+      ! changed PD39 (wetdep) to 38 (jpp, 7/08/09)
+      ! Now set PD46 to 16 (jpp, 6/7/09)
+      ! Changed PD11 from 7 to 5 (efischer, mpayer, 3/19/12)
       !=================================================================
       INTEGER, PARAMETER :: PD01=3            
       INTEGER, PARAMETER :: PD02=3
@@ -73,7 +77,7 @@
       INTEGER, PARAMETER :: PD08=2
       INTEGER, PARAMETER :: PD09=6
       INTEGER, PARAMETER :: PD10=20            
-      INTEGER, PARAMETER :: PD11=7           
+      INTEGER, PARAMETER :: PD11=5
       INTEGER, PARAMETER :: PD12=0     
       INTEGER, PARAMETER :: PD13=1            
       INTEGER, PARAMETER :: PD14=NNPAR       
@@ -84,7 +88,7 @@
       INTEGER, PARAMETER :: PD19=0            
       INTEGER, PARAMETER :: PD20=0 
       INTEGER, PARAMETER :: PD21=27
-      INTEGER, PARAMETER :: PD22=8
+      INTEGER, PARAMETER :: PD22=14      !jpp replaced 8, 4/24/2011... for Br.
       INTEGER, PARAMETER :: PD23=0           
       INTEGER, PARAMETER :: PD24=NNPAR        
       INTEGER, PARAMETER :: PD25=NNPAR       
@@ -101,12 +105,12 @@
       INTEGER, PARAMETER :: PD36=NNPAR        
       INTEGER, PARAMETER :: PD37=35        
       INTEGER, PARAMETER :: PD38=35 
-      INTEGER, PARAMETER :: PD39=35            
+      INTEGER, PARAMETER :: PD39=38      !jpp replaced 35
       INTEGER, PARAMETER :: PD40=4       
       INTEGER, PARAMETER :: PD43=5  
-      INTEGER, PARAMETER :: PD44=41
+      INTEGER, PARAMETER :: PD44=53      !jpp replaced 41
       INTEGER, PARAMETER :: PD45=NNPAR+1      
-      INTEGER, PARAMETER :: PD46=13
+      INTEGER, PARAMETER :: PD46=16      !jpp replaced 13
       INTEGER, PARAMETER :: PD47=NNPAR+1
       INTEGER, PARAMETER :: PD48=2            
       INTEGER, PARAMETER :: PD49=0                
@@ -133,7 +137,11 @@
       INTEGER, PARAMETER :: PD62=NNPAR        
       INTEGER, PARAMETER :: PD63=0           
       INTEGER, PARAMETER :: PD64=0
+#if defined( DEVEL )
+      INTEGER            :: PD65
+#else
       INTEGER, PARAMETER :: PD65=LLPAR*MAXFAM 
+#endif
       INTEGER, PARAMETER :: PD66=6           
       INTEGER, PARAMETER :: PD67=23 ! (Lin, 31/03/09)
       INTEGER, PARAMETER :: PD68=4            
@@ -175,7 +183,7 @@
       INTEGER :: LD24, LD25, LD26, LD37, LD38, LD39, LD43, LD45, LD47
       INTEGER :: LD54, LD64, LD65, LD66, LD68, LD01, LD02, LD05, LD07
       INTEGER :: LD09, LD10, LD31, LD52, LD19, LD57, LD58, LD59, LD60
-      INTEGER :: LD61
+      INTEGER :: LD61, LD62
 
       !=================================================================
       ! NDxx diagnostic flags
@@ -253,6 +261,17 @@
 !EOP
 !------------------------------------------------------------------------------
 !BOC
-	END MODULE CMN_DIAG_MOD
+#if defined( DEVEL )
+      CONTAINS
+
+      SUBROUTINE SET_CMN_DIAG_MOD
+      
+        IMPLICIT NONE
+
+        PD65=LLPAR*MAXFAM 
+
+      END SUBROUTINE SET_CMN_DIAG_MOD
+#endif
+      END MODULE CMN_DIAG_MOD
 !EOC
 
