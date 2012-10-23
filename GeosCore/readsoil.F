@@ -82,13 +82,13 @@
       !=================================================================
 
       ! Open netCDF file
-      nc_path = '/as/data/geos/GEOS_NATIVE/soil_NOx_201208/' //
-     &             'soilNOx.landtype.generic.025x025.nc'
+      nc_path = TRIM( DATA_DIR_1x1 ) // 'soil_NOx_201208/' //
+     &          'soilNOx.landtype.generic.025x025.nc'
       CALL Ncop_Rd( fId, TRIM(nc_path) )
 
       ! Echo info to stdout
       nc_file = 'soilNOx.landtype.generic.025x025.nc'  
-      nc_dir  = '/as/data/geos/GEOS_NATIVE/soil_NOx_201208/' 
+      nc_dir  = TRIM( DATA_DIR_1x1 ) // 'soil_NOx_201208/' 
       WRITE( 6, 100 ) REPEAT( '%', 79 )
       WRITE( 6, 110 ) TRIM(nc_file)
       WRITE( 6, 120 ) TRIM(nc_dir)

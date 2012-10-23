@@ -69,8 +69,8 @@
 
     ! Open file
     nc_file = 'soilNOx.Inputs_MODIS_Biomes.nc'  
-    nc_dir  = '/as/data/geos/GEOS_NATIVE/soil_NOx_201208/'
-    nc_path = TRIM( nc_dir ) // TRIM( nc_file )
+    nc_dir  = TRIM( DATA_DIR_1x1 ) // 'soil_NOx_201208/'
+    nc_path = TRIM( nc_dir )       // TRIM( nc_file )
     CALL Ncop_Rd( fId, TRIM(nc_path) )
     
     ! Echo info to stdout
