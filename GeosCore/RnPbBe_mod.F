@@ -51,7 +51,7 @@
 !  14 Jun 2001 - H. Liu      - Initial version  
 !  (1 ) Added existing routines to this module (bmy, 6/14/01)
 !  (2 ) Updated comments (bmy, 9/4/01)
-g!  (3 ) Eliminate AVGF; redimensioned XTRA2 (bmy, 9/25/01)
+!  (3 ) Eliminate AVGF; redimensioned XTRA2 (bmy, 9/25/01)
 !  (4 ) Replace references to PW(I,J) with P(I,J) (bmy, 10/3/01)
 !  (5 ) Remove obsolete code from 9/01 and 10/01 (bmy, 10/23/01)
 !  (6 ) Removed duplicate variable declarations (bmy, 11/15/01)
