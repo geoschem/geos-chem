@@ -713,9 +713,10 @@
 !------------------------------------------------------------------------------
 !BOP
 !
-! !IROUTINE: 
+! !IROUTINE: set_comode_loop_mod
 !
-! !DESCRIPTION: 
+! !DESCRIPTION: Subroutine SET\_COMODE\_LOOP\_MOD initializes size parameters
+!  with the geospatial values obtained from the ESMF interface.
 !\\
 !\\
 ! !INTERFACE:

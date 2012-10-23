@@ -46,10 +46,10 @@ CONTAINS
 !------------------------------------------------------------------------------
 !BOP
 !
-! !IROUTINE: gc_cheminit
+! !IROUTINE: gigc_init_chemistry
 !
-! !DESCRIPTION: Routine GIGC\_Init\_Chemistry initializes the GEOS-Chem chemistry
-!  module so that it can connect to the ESMF interface.
+! !DESCRIPTION: Routine GIGC\_Init\_Chemistry initializes the GEOS-Chem 
+!  chemistry module so that it can connect to the ESMF interface.
 !\\
 !\\
 ! !INTERFACE:
@@ -101,11 +101,10 @@ CONTAINS
 !------------------------------------------------------------------------------
 !BOP
 !
-! !IROUTINE: gc_emis_inti
+! !IROUTINE: gigc_emis_inti
 !
 ! !DESCRIPTION: Routine GC\_EMIS\_INTI establishes the emissions fields for
-!   each set of geos-chem emissions used. 
-!  component.
+!  each set of geos-chem emissions used.
 !\\
 !\\
 ! !INTERFACE:
@@ -146,9 +145,10 @@ CONTAINS
 !
 ! !IROUTINE: gigc_init_simulation
 !
-! !DESCRIPTION: Routine GIGC\_INIT\_SIMULATION is the Initialize method for the ESMF
-!  interface that connects GEOS-Chem to the GEOS-5 GCM.  Calls to the various
-!  GEOS-Chem init routines (which allocate arrays, etc.) are made from here.
+! !DESCRIPTION: Routine GIGC\_INIT\_SIMULATION is the Initialize method for 
+!  the ESMF interface that connects the Grid-Independent GEOS-Chem (aka "GIGC")
+!  to the GEOS-5 GCM.  Calls to the various GEOS-Chem init routines (which 
+!  allocate arrays, etc.) are made from here.
 !\\
 !\\
 ! !INTERFACE:
@@ -370,7 +370,7 @@ CONTAINS
 ! !IROUTINE: gigc_get_options
 !
 ! !DESCRIPTION: Routine GIGC\_GET\_OPTIONS reads options for a GEOS-Chem 
-!  simulation from the input.geos___.rc input file.
+!  simulation from the input.geos\_\_\_.rc input file.
 !\\
 !\\
 ! !INTERFACE:

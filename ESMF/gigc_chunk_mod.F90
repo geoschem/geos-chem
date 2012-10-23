@@ -70,7 +70,7 @@ CONTAINS
 !  level routines to allocate arrays and read input files.
 !\\
 !\\
-! !INETRFACE:
+! !INTERFACE:
 !
   SUBROUTINE GIGC_Chunk_Init( NI,     NJ,   NL,   State_Met, State_Chm,  &
                               tsChem, nymd, nhms, am_I_Root, RC        )

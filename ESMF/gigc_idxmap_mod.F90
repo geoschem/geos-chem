@@ -6,9 +6,8 @@
 !
 ! !MODULE: gc_idxmap_mod
 !
-! !DESCRIPTION: Module GIGC\_IDXMAP\_MOD contains the routine
-!  to initialize the mapping between ESMF tracer indexes and
-!  GEOS-Chem internal indexes.
+! !DESCRIPTION: Module GIGC\_IDXMAP\_MOD contains the routine to initialize 
+!  the mapping between ESMF tracer indexes and GEOS-Chem internal indexes.
 !\\
 !\\
 ! !INTERFACE: 
@@ -38,7 +37,7 @@ CONTAINS
 !------------------------------------------------------------------------------
 !BOP
 !
-! !IROUTINE: 
+! !IROUTINE: gigc_idxmap
 !
 ! !DESCRIPTION: 
 !\\

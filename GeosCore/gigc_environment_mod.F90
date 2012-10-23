@@ -19,8 +19,7 @@
 ! \item Initialize met. field derived type.
 ! \item Initialize CHEM, PHYS, and EMISSIONS states
 ! \end{itemize}
-!\\
-!\\
+
 !  NOTE: This is mostly for testing the grid-independent code in the current 
 !  GEOS-Chem.  Many of these inputs will come from the GEOS-5 interface. 
 !  It will remain in DEVEL state for some time.
