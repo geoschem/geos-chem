@@ -37,7 +37,6 @@
 ! 
 ! !USES:
 !
-      USE SMV_ERRCODE_MOD 	
       USE CMN_SIZE_MOD
 
       IMPLICIT NONE
@@ -169,9 +168,10 @@
      &                              CLIM, LANDFRAC, RC,
      &                              SUNCOS, U10M, V10M, R_CANOPY, 
      &				    LAI)
-
-      USE SMV_ERRCODE_MOD, ONLY : SMV_SUCCESS
-
+!
+! !USES:
+!
+      USE GIGC_ERRCODE_MOD, ONLY : GIGC_SUCCESS
 !
 ! !INPUT PARAMETERS:
 ! 
@@ -213,6 +213,7 @@
 !  17 Aug 2009 - R. Yantosca - Columnized and cleaned up
 !  17 Aug 2009 - R. Yantosca - Added ProTeX headers
 !  31 Jan 2011 - R. Hudman   - New Model added
+!  23 Oct 2012 - M. Payer    - Now reference Headers/gigc_errcode_mod.F90
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -229,7 +230,7 @@
       !=================================================================
 
       ! Assume successful return
-      RC             = SMV_SUCCESS
+      RC             = GIGC_SUCCESS
 
       ! Initialize
       SOILNOX        = 0d0
