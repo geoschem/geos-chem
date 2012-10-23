@@ -669,6 +669,9 @@ gfed3_biomass_mod.o         : gfed3_biomass_mod.F                            \
                               future_emissions_mod.o  logical_mod.o          \
                               tracer_mod.o            tracerid_mod.o         
 
+gigc_environment_mod.o      : gigc_environment_mod.F90                       \
+			      gc_type_mod.o           vdiff_pre_mod.o
+
 global_br_mod.o             : global_br_mod.F         tropopause_mod.o 
 
 global_ch4_mod.o            : global_ch4_mod.F                               \
@@ -801,7 +804,7 @@ main.o                      : main.F                                         \
                               vdiff_mod.o             wetscav_mod.o          \
                               merra_cn_mod.o          merra_a1_mod.o         \
                               merra_a3_mod.o          merra_i6_mod.o         \
-                              gc_environment_mod.o    geos57_read_mod.o      \
+                              gigc_environment_mod.o  geos57_read_mod.o      \
                               diag63_mod.o            olson_landmap_mod.o    \
                               mapping_mod.o           toms_mod.o             \
                               soilnox_restart_mod.o 
@@ -1031,10 +1034,6 @@ sulfate_mod.o               : sulfate_mod.F                                  \
 
 sunparam.o                  : sunparam.F
 
-gc_type2_mod.o              : gc_type2_mod.F90        tracer_mod.o
-gc_environment_mod.o        : gc_environment_mod.F90  gc_type2_mod.o         \
-			      gc_type_mod.o           vdiff_pre_mod.o
-
 tagged_co_mod.o             : tagged_co_mod.F                                \
                               biofuel_mod.o           biomass_mod.o          \
                               dao_mod.o               diag_mod.o             \
@@ -1076,9 +1075,9 @@ tpcore_window_mod.o         : tpcore_window_mod.F     dao_mod.o              \
 
 tracer_mod.o                : tracer_mod.F
 
-tracerid_mod.o              : tracerid_mod.F          gc_type2_mod.o         \
+tracerid_mod.o              : tracerid_mod.F                                 \
                               logical_mod.o           tracer_mod.o           \
-			      gc_environment_mod.o
+			      gigc_environment_mod.o
 
 transport_mod.o             : transport_mod.F                                \
                               dao_mod.o               diag_mod.o             \

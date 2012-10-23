@@ -112,11 +112,14 @@
       USE I6_READ_MOD           ! For reading I6 data (all other met)
 
 #if defined( DEVEL )
-      USE LOGICAL_MOD,        ONLY : DO_DIAG_WRITE
-      USE GC_ENVIRONMENT_MOD, ONLY : ALLOCATE_ALL
-      USE GC_ENVIRONMENT_MOD, ONLY : INIT_ALL
-      USE GC_TYPE2_MOD,       ONLY : CHEMSTATE
-      USE GC_TYPE_MOD,        ONLY : GC_MET_LOCAL
+      !-----------------------------------------------------------------
+      ! Modules for the Grid-Independent GEOS-Chem (aka "GIGC")
+      !-----------------------------------------------------------------
+      USE LOGICAL_MOD,          ONLY : Do_Diag_Write
+      USE GIGC_Environment_Mod, ONLY : GIGC_Allocate_All
+      USE GIGC_Environment_Mod, ONLY : GIGC_Init_All
+      USE GIGC_State_Chm_Mod,   ONLY : ChmState
+      USE GIGC_State_Met_Mod,   ONLY : MetState
 #endif
 
       IMPLICIT NONE
@@ -197,6 +200,12 @@
 !                              is needed for compatibility w/ the GEOS-5 GCM.
 !  13 Aug 2012 - R. Yantosca - Now call FILL_CHEM_STATE_IDs to populate
 !                              the CHEM_STATE object ID and name fields
+!  18 Oct 2012 - R. Yantosca - Rename LOCAL_MET object to State_Met
+!  18 Oct 2012 - R. Yantosca - Rename CHEM_STATE object to State_Chm
+!  18 Oct 2012 - R. Yantosca - Now pass am_I_Root, RC arguments to routines
+!                              ALLOCATE_ALL, INIT_ALL when using -DDEVEL
+!  19 Oct 2012 - R. Yantosca - Now reference gigc_state_chm_mod.F90
+!  19 Oct 2012 - R. Yantosca - Now reference gigc_state_met_mod.F90
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -226,8 +235,8 @@
       TYPE(MapWeight), POINTER :: mapping(:,:) => NULL()
 
 #if defined( DEVEL )
-      TYPE(CHEMSTATE)          :: CHEM_STATE
-      TYPE(GC_MET_LOCAL)       :: LOCAL_MET
+      TYPE(ChmState)           :: State_Chm   ! Chemistry State object
+      TYPE(MetState)           :: State_Met   ! Meteorology State object
 #endif
 
       ! When connecting G-C to an external GCM, we need to only write 
@@ -251,7 +260,7 @@
 
 #if defined( DEVEL )
       ! Allocate all lon/lat arrays for global use by GEOS-Chem
-      CALL ALLOCATE_ALL
+      CALL GIGC_Allocate_All( am_I_root, RC )
 #endif
 
       ! Display current grid resolution and data set type
@@ -266,14 +275,14 @@
       IF ( LPRT ) CALL DEBUG_MSG( '### MAIN: a READ_INPUT_FILE' )
 
 #if defined( DEVEL )
-      ! Initialize LOCAL_MET and CHEMSTATE objects
-      CALL INIT_ALL( LOCAL_MET, CHEM_STATE )
+      ! Initialize State_Met and CHEMSTATE objects
+      CALL GIGC_Init_All( State_Met, State_Chm, am_I_Root, RC )
 
       ! Assign values to the TRAC_NAME, TRAC_ID, SMVG_ID fields
-      ! of the CHEM_STATE object.  NOTE: This has to be done after
+      ! of the State_Chm object.  NOTE: This has to be done after
       ! the call to READ_INPUT_FILE, since we need the value of
       ! N_TRACERS, which is obtained by reading the input.geos file.
-      CALL FILL_CHEM_STATE_NAME_IDs( am_I_Root, CHEM_STATE )
+      CALL FILL_CHEM_STATE_NAME_IDs( am_I_Root, State_Chm )
 #endif
 
       ! Initialize met field arrays from "dao_mod.f"
@@ -348,7 +357,7 @@
       IF ( LPRT ) CALL DEBUG_MSG( '### MAIN: a SET_FLT_PRS' )
 
 #if defined( DEVEL )
-      CALL AIRQNT(LOCAL_MET)
+      CALL AIRQNT(State_Met)
 #else
       CALL AIRQNT
 #endif
@@ -751,7 +760,7 @@
 
          ! Compute airmass quantities at each grid box 
 #if defined( DEVEL )
-         CALL AIRQNT(LOCAL_MET)
+         CALL AIRQNT(State_Met)
 #else
          CALL AIRQNT
 #endif
@@ -811,7 +820,7 @@
 
             ! Reset air mass quantities
 #if defined( DEVEL )
-      CALL AIRQNT(LOCAL_MET)
+      CALL AIRQNT(State_Met)
 #else
       CALL AIRQNT
 #endif
@@ -857,7 +866,7 @@
             !             ***** E M I S S I O N S *****
             !========================================================
 #if defined( DEVEL )
-            IF ( LEMIS ) CALL DO_EMISSIONS(CHEM_STATE)
+            IF ( LEMIS ) CALL DO_EMISSIONS(State_Chm)
 #else
             IF ( LEMIS ) CALL DO_EMISSIONS
 #endif
@@ -962,7 +971,7 @@
             !             ***** E M I S S I O N S *****
             !========================================================
 #if defined( DEVEL )
-            IF ( LEMIS ) CALL DO_EMISSIONS(CHEM_STATE)
+            IF ( LEMIS ) CALL DO_EMISSIONS(State_Chm)
 #else
             IF ( LEMIS ) CALL DO_EMISSIONS
 #endif
@@ -1008,17 +1017,17 @@
 #if defined( DEVEL )
 ! vvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvv!
 ! BELOW IS A TMP KLUGE TO TEST PASSING STT !
-! TO "DO_CHEMISTRY" VIA THE "CHEM_STATE"   !
+! TO "DO_CHEMISTRY" VIA THE "State_Chm"   !
 ! DERIVED TYPE                             !
 !
 !    >-- STT SHOULD BE IN KG HERE --<
 !
 !^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^!
-            CHEM_STATE%TRACERS( :, :, :, 1:N_TRACERS ) = 
+            State_Chm%TRACERS( :, :, :, 1:N_TRACERS ) = 
      &                     STT( :, :, :, 1:N_TRACERS )
 ! FIN DE KLUGE
             CALL DO_CHEMISTRY( am_I_Root, IIPAR,      JJPAR, 
-     &                         LLPAR,     CHEM_STATE, LOCAL_MET )
+     &                         LLPAR,     State_Chm, State_Met )
 #else
             CALL DO_CHEMISTRY( am_I_Root )
 #endif
@@ -1276,6 +1285,8 @@
 !  28 Feb 2012 - R. Yantosca - Removed support for GEOS-3
 !  19 Mar 2012 - R. Yantosca - Now echo info for 0.25 x 0.3125 runs
 !  19 Mar 2012 - R. Yantosca - Now echo info if ISORROPIA is turned off
+!  22 Oct 2012 - R. Yantosca - Now echo info if -DDEVEL is used
+
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -1369,6 +1380,16 @@
       WRITE( 6, '(a)' ) '# ISORROPIA TURNED OFF FOR TESTING!!! #'
       WRITE( 6, '(a)' ) REPEAT( '#', 39 )
 #endif
+
+      !-------------------------------------------------
+      ! Print msg if ISORROPIA is turned off for debug
+      !-------------------------------------------------
+#if   defined( DEVEL ) 
+      WRITE( 6, '(a)' ) REPEAT( '#', 39 )
+      WRITE( 6, '(a)' ) '# USING -DDEVEL FOR TESTING THE GIGC  #'
+      WRITE( 6, '(a)' ) REPEAT( '#', 39 )
+#endif
+
       
       !-------------------------------------------------
       ! System time stamp
@@ -1611,7 +1632,7 @@
       DATE = GET_FIRST_A6_TIME()
       CALL OPEN_A6_FIELDS( DATE(1), DATE(2) ) 
 #if defined( DEVEL )
-      CALL GET_A6_FIELDS(  DATE(1), DATE(2), LOCAL_MET )      
+      CALL GET_A6_FIELDS(  DATE(1), DATE(2), State_Met )      
 #else
       CALL GET_A6_FIELDS(  DATE(1), DATE(2) )      
 #endif
@@ -1846,7 +1867,7 @@
          ! Open and read A-6 fields
          CALL OPEN_A6_FIELDS( DATE(1), DATE(2) )
 #if defined( DEVEL )
-         CALL GET_A6_FIELDS(  DATE(1), DATE(2), LOCAL_MET )      
+         CALL GET_A6_FIELDS(  DATE(1), DATE(2), State_Met )      
 #else
          CALL GET_A6_FIELDS(  DATE(1), DATE(2) )
 #endif

@@ -47,9 +47,8 @@
 ! !ROUTINE: 
 !
 ! !DESCRIPTION: Subroutine STDRUN dumps the mass of either Ox [kg] or 222Rn, 
-!  210Pb, and 7Be [kg] at the start & end of each run.  This is necessary
+!  210Pb, and 7Be [kg] at the start \& end of each run.  This is necessary
 !  for GEOS-CHEM benchmarking.
-
 !\\
 !\\
 ! !INTERFACE:

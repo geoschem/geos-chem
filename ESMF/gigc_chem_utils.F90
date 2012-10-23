@@ -4,14 +4,14 @@
 !------------------------------------------------------------------------------
 !BOP
 !
-! !MODULE: GC_Chem_Utils
+! !MODULE: GIGC_Chem_Utils
 !
 ! !DESCRIPTION: Utility module for the ESMF interface to GEOS-Chem.
 !\\
 !\\
 ! !INTERFACE:
 !
-MODULE GC_Chem_Utils
+MODULE GIGC_Chem_Utils
 !
 ! !USES:
 !
@@ -27,6 +27,8 @@ MODULE GC_Chem_Utils
 !  09 Oct 2012 - M. Long     - Initial version
 !  09 Oct 2012 - R. Yantosca - Added ProTeX headers
 !  09 Oct 2012 - R. Yantosca - Use F90 free-format indenting (Emacs F90 mode)
+!  22 Oct 2012 - R. Yantosca - Renamed to gigc_chem_utils.F90
+
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -44,13 +46,7 @@ MODULE GC_Chem_Utils
 !\\
 ! !INTERFACE:
 !
-  FUNCTION GET_SPC_INDX( SPC_NAME, GC_SPC_IDS, GC_SPC_NAMES ) RESULT( SPC_INDX )
-!
-! !USES:
-!
-    !%%%% NOTE: THIS DOESN'T SEEM TO BE USED HERE %%%%
-    !%%%%       SO MAYBE WE CAN DELETE THIS LATER %%%%
-    !USE COMODE_LOOP_MOD, ONLY : IGAS
+  FUNCTION Get_Spc_Indx( SPC_NAME, GC_SPC_IDS, GC_SPC_NAMES ) RESULT( SPC_INDX )
 !
 ! !INPUT PARAMETERS:
 !
@@ -88,7 +84,7 @@ MODULE GC_Chem_Utils
 
     ENDDO
 
-  END FUNCTION GET_SPC_INDX
+  END FUNCTION Get_Spc_Indx
 !EOC
 !------------------------------------------------------------------------------
 !          Harvard University Atmospheric Chemistry Modeling Group            !
@@ -148,4 +144,4 @@ MODULE GC_Chem_Utils
   END SUBROUTINE get_pbllev
 !EOC
 
-END MODULE GC_Chem_Utils
+END MODULE GIGC_Chem_Utils

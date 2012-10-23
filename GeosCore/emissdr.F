@@ -90,6 +90,8 @@
 !  08 Dec 2011 - M. Payer    - Remove GEIA biogenic emissions option
 !  01 Mar 2012 - R. Yantosca - Now use GET_LOCALTIME(I,J,L) from time_mod.F90
 !  01 Mar 2012 - R. Yantosca - Now use GET_AREA_CM2(I,J,L) from grid_mod.F90
+!  22 Oct 2012 - R. Yantosca - Prevent out-of-bounds errors in ND46 if bromine
+!                              emissions are turned off (e.g. for tagged CO)
 !******************************************************************************
 !
       ! References to F90 modules
@@ -756,6 +758,8 @@
 !  (1 ) Now make ACET tracer #2 and PRPE tracer #3 (bmy, 9/13/01)
 !  (2 ) Now archive ND46 as [atoms C/cm2/s] here (bmy, 9/13/01)
 !  (3 ) Added MBO emission diagnostics [atoms C/cm2/s] (bmy, tmf, 10/20/05)
+!  22 Oct 2012 - R. Yantosca - Prevent out-of-bounds errors in ND46 if bromine
+!                              emissions are turned off (e.g. for tagged CO)
 !******************************************************************************
 !
                IF ( ND46 > 0 ) THEN
@@ -808,12 +812,18 @@
                ! ++++++++++++++++++++++++++++++++++++++++++++++++++++
 
                ! CHBr3 emissions [kg/m2/s] -- tracer #14
-               AD46(I,J,14) = AD46(I,J,14) + ( EMISRR(I,J,IDECHBr3) / 
-     &                        AREA_M2) * ( MWT_CHBr3 / AVG )
+               IF ( IDECHBr3 > 0 ) THEN
+                  AD46(I,J,14) = AD46(I,J,14) 
+     &                         + ( EMISRR(I,J,IDECHBr3)  / AREA_M2 ) 
+     &                         * ( MWT_CHBr3             / AVG     )
+               ENDIF
 
                ! CH2Br2 emissions [kg/m2/s] -- tracer #15
-               AD46(I,J,15) = AD46(I,J,15) + ( EMISRR(I,J,IDECH2Br2) / 
-     &                        AREA_M2) * ( MWT_CH2Br2 / AVG )
+               IF ( IDECHBr3 > 0 ) THEN
+                  AD46(I,J,15) = AD46(I,J,15) 
+     &                         + ( EMISRR(I,J,IDECH2Br2) / AREA_M2 ) 
+     &                         * ( MWT_CH2Br2            / AVG     )
+               ENDIF
 
                ! Note: IDEBr2 is added to AD46(I,J,16) in ssa_bromine_mod.F
                

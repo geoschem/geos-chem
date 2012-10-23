@@ -46,6 +46,7 @@ BIN     := $(ROOTDIR)/bin
 BPCH    := $(ROOTDIR)/GeosBpch
 CORE    := $(ROOTDIR)/GeosCore
 DOC     := $(ROOTDIR)/doc
+ESMF    := $(ROOTDIR)/ESMF
 GTMM    := $(ROOTDIR)/GTMM
 HDR     := $(ROOTDIR)/Headers
 HELP    := $(ROOTDIR)/help

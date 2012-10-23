@@ -188,6 +188,9 @@
 !  03 Aug 2012 - R. Yantosca - Move calls to findFreeLUN out of DEVEL block
 !  03 Aug 2012 - R. Yantosca - Now make IU_GEOS a global module variable
 !                              so that we can define it with findFreeLun
+!  15 Oct 2012 - R. Yantosca - Add EXTERNAL_GRID, XTERNAL_FORCING to #ifdef
+!  16 Oct 2012 - R. Yantosca - Don't call CHECK_TIME_STEPS if we are calling
+!                              READ_INPUT_FILE from the ESMF interface
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -218,7 +221,7 @@
       ! Find a free file LUN
       IU_GEOS  = findFreeLUN()
 
-#if   defined( DEVEL )
+#if defined( DEVEL ) || defined( EXTERNAL_GRID ) || defined( EXTERNAL_FORCING )
       ! For ESMF interface to GEOS-5 GCM, we need to add "*___.rc"
       FILENAME = TRIM( FILENAME ) // '___.rc'
 #endif
@@ -368,11 +371,11 @@
 
       ! Make sure all directories are valid
       CALL VALIDATE_DIRECTORIES
-#endif
-#endif
 
       ! Check GEOS-CHEM timesteps
       CALL CHECK_TIME_STEPS( am_I_Root )
+#endif
+#endif
 
       ! Create "diaginfo.dat" and "tracerinfo.dat" files for GAMAP
       CALL DO_GAMAP( DIAGINFO, TRACERINFO )

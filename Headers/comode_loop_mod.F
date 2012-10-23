@@ -123,6 +123,7 @@
 !  14 Aug 2012 - R. Yantosca - Now set KBLOOP=1 only if we are connecting to
 !                              an external GCM (i.e. triggered by switches
 !                              EXTERNAL_GRID or EXTERNAL_FORCING).
+!  17 Oct 2012 - R. Yantosca - Do not define ILAYER if compiling w/ -DDEVEL
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -167,10 +168,6 @@
       ! %%%    -- Bob Yantosca (14 Aug 2012)                             %%%
       ! %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
       !
-!-----------------------------------------------------------------------------
-! Prior to 8/14/12:
-!#if defined( DEVEL )
-!-----------------------------------------------------------------------------
 #if defined( EXTERNAL_GRID ) || defined( EXTERNAL_FORCING )
       ! Set KBLOOP=1 for connecting to an external GCM
       PARAMETER (KBLOOP  = 1                       )
@@ -179,17 +176,18 @@
       PARAMETER (KBLOOP  = 24                      )
 #endif
 
-#if !defined( DEVEL )
+
+#if defined( DEVEL ) || defined( EXTERNAL_GRID ) || defined( EXTERNAL_FORCING )
+      ! Do Nothing here
+#else
+      ! Only define parameters if we aren't compiling with -DDEVEL etc.
       PARAMETER (IMLOOP  = ILAT * ILONG            )
-#endif
       PARAMETER (ILAYER  = IVERT + 1               )
-#if !defined( DEVEL )
       PARAMETER (ILTLOOP = IMLOOP * ILAYER         )
-#endif
-      PARAMETER (MAXDAYS = 1000                    )
-#if !defined( DEVEL )
       PARAMETER (MXBLOCK = 16 + ITLOOP/KBLOOP      )
 #endif
+
+      PARAMETER (MAXDAYS = 1000                    )
 !
 ! ************************* TRACER PARAMETERS ****************************
 ! IDEMS    = EMISSION ID NUMBER (WHICH SPECIES)
@@ -706,31 +704,87 @@
 ! ****************** END OF COMMON BLOCK COMODE.H *********************
 ! *********************************************************************
 !
-#if defined( DEVEL )
+#if defined( DEVEL ) || defined( EXTERNAL_GRID ) || defined( EXTERNAL_FORCING )
+!BOC
       CONTAINS
-
-      SUBROUTINE SET_COMODE_LOOP_MOD
+!EOC
+!------------------------------------------------------------------------------
+!          Harvard University Atmospheric Chemistry Modeling Group            !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: set_comode_loop_mod
+!
+! !DESCRIPTION: Subroutine SET\_COMODE\_LOOP\_MOD initializes size parameters
+!  with the geospatial values obtained from the ESMF interface.
+!\\
+!\\
+! !INTERFACE:
+!
+      SUBROUTINE SET_COMODE_LOOP_MOD( am_I_Root, RC )
+!
+! !USES:
+!
+      USE GIGC_ERRCODE_MOD
 
       IMPLICIT NONE
+!
+! !INPUT PARAMETERS: 
+!
+      LOGICAL, INTENT(IN)  :: am_I_Root   ! Are we on the root CPU?
+!
+! !OUTPUT PARAMETERS:
+!
+      INTEGER, INTENT(OUT) :: RC          ! Success or failure?
+!
+! !REMARKS:
+!  Need to add error-checking on the allocation statements, so that we
+!  exit the code upon error.
+! 
+! !REVISION HISTORY: 
+!  17 Oct 2012 - R. Yantosca - Need to also set NLAT, NLONG, etc.
+!  17 Oct 2012 - R. Yantosca - Added ProTeX headers
+!  22 Oct 2012 - R. Yantosca - Now references gigc_errcode_mod.F90
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+!
+! !LOCAL VARIABLES:
+!
+      INTEGER :: AS
 
-      INTEGER AS
-
+      ! Set size variables (from comode_loop_mod.F)
       ILAT    = JJPAR
       ILONG   = IIPAR
+      ILAYER  = LLPAR+1
       ITLOOP  = ILAT * ILONG * IPVERT
       IMLOOP  = ILAT * ILONG
       ILTLOOP = IMLOOP * ILAYER
       MXBLOCK = 16 + ITLOOP/KBLOOP
 
-      ALLOCATE(
-     &     MLOP(ILAT,ILONG),
-     &     JLOP_SMV(ILAT,ILONG,ILAYER),
-     &     JLLOW(MXBLOCK), KLHI(MXBLOCK),
-     &     JLOWVAR( MXBLOCK), KTLPVAR( MXBLOCK), 
-     &     JLOFIXED(MXBLOCK), JHIFIXED(MXBLOCK),
-     &     JREORDER(ITLOOP), LREORDER(ITLOOP), 
-     &     ITWO(    ITLOOP), NCSLOOP( ITLOOP,ICS),
-     &     STAT=AS)
+      ! Set size variables (these declarations were in chemdr.F)
+      NLAT   = JJPAR
+      NLONG  = IIPAR
+      NVERT  = IVERT 
+      NPVERT = NVERT
+      NPVERT = NVERT + IPLUME
+
+      ! Assume success
+      RC     = GIGC_SUCCESS
+
+      ! Allocate arrays
+      ALLOCATE( MLOP    ( ILAT,   ILONG         ), STAT=AS )
+      ALLOCATE( JLOP_SMV( ILAT,   ILONG, ILAYER ), STAT=AS )
+      ALLOCATE( JLLOW   ( MXBLOCK               ), STAT=AS )
+      ALLOCATE( KLHI    ( MXBLOCK               ), STAT=AS )
+      ALLOCATE( JLOWVAR ( MXBLOCK               ), STAT=AS )
+      ALLOCATE( KTLPVAR ( MXBLOCK               ), STAT=AS )
+      ALLOCATE( JLOFIXED( MXBLOCK               ), STAT=AS )
+      ALLOCATE( JHIFIXED( MXBLOCK               ), STAT=AS )
+      ALLOCATE( JREORDER( ITLOOP                ), STAT=AS )
+      ALLOCATE( LREORDER( ITLOOP                ), STAT=AS )
+      ALLOCATE( ITWO    ( ITLOOP                ), STAT=AS )
+      ALLOCATE( NCSLOOP ( ITLOOP, ICS           ), STAT=AS )
 
       END SUBROUTINE SET_COMODE_LOOP_MOD
 #endif

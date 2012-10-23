@@ -2021,8 +2021,8 @@
 
 !------------------------------------------------------------------------------
 
-#if defined( DEVEL )
-      SUBROUTINE SETTRACE( GC_STATE, am_I_Root )
+#if defined( DEVEL ) || defined( EXTERNAL_GRID ) || defined( EXTERNAL_FORCING )
+      SUBROUTINE SETTRACE( State_Chm, am_I_Root )
 #else
       SUBROUTINE SETTRACE( am_I_Root )
 #endif
@@ -2054,6 +2054,7 @@
 !  (9 ) Add debug print. (hotp, 01/10)
 !  30 Jul 2012 - R. Yantosca - Now accept am_I_Root as an argument when
 !                              running with the traditional driver main.F
+!  16 Oct 2012 - R. Yantosca - Renamed chem state object to State_Chm
 !******************************************************************************
 !
       ! References to F90 modules
@@ -2064,13 +2065,14 @@
       ! for Debug (hotp 8/5/09)
       USE LOGICAL_MOD, ONLY : LPRT
 
-      USE CMN_SIZE_MOD      ! Size parameters
-      USE COMODE_LOOP_MOD   ! NAMEGAS
+      USE CMN_SIZE_MOD                           ! Size parameters
+      USE COMODE_LOOP_MOD                        ! NAMEGAS
 
-#if defined(DEVEL)
-      USE GC_TYPE2_MOD,  ONLY : CHEMSTATE, REGISTER_CSPEC
-
-      TYPE(CHEMSTATE), INTENT(INOUT) :: GC_STATE
+#if defined( DEVEL ) || defined( EXTERNAL_GRID ) || defined( EXTERNAL_FORCING )
+      USE GIGC_State_Chm_Mod, ONLY: ChmState           ! Derived type
+#if defined( ESMF_ )
+      USE GIGC_State_Chm_Mod, ONLY: Register_Species   ! Used w/ ESMF
+#endif
 #endif
 
       ! Arguments
@@ -2079,6 +2081,10 @@
       ! Local variabales
       INTEGER             :: I, J, T, C
  
+#if defined( DEVEL ) || defined( EXTERNAL_GRID ) || defined( EXTERNAL_FORCING )
+      TYPE(ChmState), INTENT(INOUT) :: State_Chm       ! Chemistry State obj
+#endif
+
       !=================================================================
       ! SETTRACE begins here!
       !=================================================================
@@ -2177,13 +2183,18 @@
 
          IF ( NAMEGAS(I) == 'H2SO4'  ) IDH2SO4  = I !(win, 6/23/09)
 
-#if defined( DEVEL )
-         CALL REGISTER_CSPEC(NAMEGAS(I),I,GC_STATE,STAT)
-         IF (STAT .lt. 0) THEN
+#if defined( ESMF_ )
+
+         ! Add the species name & Id to the chemistry state object
+         ! (this only needs to be done if we are using the ESMF interface)
+         CALL Register_Species( NAMEGAS(I), I, State_Chm, STAT )
+
+         ! Error check
+         IF ( STAT .lt. 0 ) THEN
             CALL ERROR_STOP('FAIL','REGISTER_CSPEC')
          ELSE
             IF ( am_I_Root ) THEN
-               WRITE(6,*) 'Registered ', NAMEGAS(I), STAT ELSE
+               WRITE(6,*) 'Registered ', NAMEGAS(I), STAT
             ENDIF
          ENDIF
 #endif
@@ -2255,6 +2266,7 @@
                ENDIF
             ENDDO
 
+#if !defined( ESMF_ )
             ! Print when Debug output selected (hotp 8/5/09)
             IF ( LPRT .and. am_I_Root ) THEN
                PRINT*, '###--------------------'
@@ -2266,13 +2278,67 @@
                PRINT*, '### IDEMIS(T)  : ', IDEMIS(T)
                PRINT*, '### IDTRMB(T,C): ', IDTRMB(T,C)
             ENDIF
+#endif
 
          ENDDO
       ENDDO
 
       ! Return to calling program
       END SUBROUTINE SETTRACE
-    
+!EOC
+#if defined( DEVEL ) || defined( EXTERNAL_GRID ) || defined( EXTERNAL_FORCING )
+!------------------------------------------------------------------------------
+!          Harvard University Atmospheric Chemistry Modeling Group            !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: fill_chem_state_name_ids
+!
+! !DESCRIPTION: Subroutine FILL_State_Chm_NAME_IDs populates the trac_name,
+!  trac_id, and smvg_id fields of an object based on the CHEMSTATE derived
+!  type.
+!\\
+!\\
+! !INTERFACE:
+!
+      SUBROUTINE FILL_CHEM_STATE_NAME_IDs( am_I_Root, State_Chm )
+!
+! !USES:
+!
+      ! References to F90 modules
+      USE GIGC_State_Chm_Mod, ONLY : ChmState
+      USE TRACER_MOD,         ONLY : N_TRACERS
+      USE TRACER_MOD,         ONLY : TRACER_NAME
+!
+! !INPUT PARAMETERS: 
+!
+      LOGICAL,        INTENT(IN)    :: am_I_Root    ! Is this the root CPU?
+!
+! !INPUT/OUTPUT PARAMETERS:
+!
+      TYPE(ChmState), INTENT(INOUT) :: State_Chm    ! Obj for chemical state
+! 
+! !REVISION HISTORY: 
+!  13 Aug 2012 - R. Yantosca - Initial version
+!  16 Oct 2012 - R. Yantosca - Renamed chem state object to State_Chm
+!  19 Oct 2012 - R. Yantosca - Now references gigc_state_chm_mod.F90
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+!
+! !LOCAL VARIABLES:
+!
+      INTEGER :: N
+
+      ! Loop over defined tracers
+      DO N = 1, N_TRACERS
+         State_Chm%TRAC_ID(N)   = N
+         State_Chm%TRAC_NAME(N) = TRIM( TRACER_NAME(N) )
+      ENDDO
+
+      END SUBROUTINE FILL_CHEM_STATE_NAME_IDs
+!EOC 
+#endif    
 !------------------------------------------------------------------------------
 
       FUNCTION IS_Hg0( N ) RESULT( IT_IS_Hg0 )
