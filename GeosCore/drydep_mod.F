@@ -19,7 +19,7 @@
       USE CMN_DIAG_MOD                          ! Diag counters & flags
       USE CMN_GCTM_MOD                          ! Physical constants
       USE CMN_DEP_MOD                           ! IREG, ILAND, IUSE, FRCLND
-      USE COMMSOIL_MOD                          ! 
+      USE COMMSOIL_MOD                          ! Soil wetness variables
       USE COMODE_MOD                            ! Large arrays for SMVGEAR
       USE COMODE_LOOP_MOD                       ! Formerly "comode.h"
       USE DAO_MOD                               ! Met field arrays
@@ -59,8 +59,8 @@
       PUBLIC :: NUMDEP
       PUBLIC :: NTRAIND
       PUBLIC :: DRYHg0, DRYHg2, DryHgP    !CDH
-      PUBLIC :: IDEP, IRGSS, IRAC, IRCLS
-      PUBLIC :: IRGSO, IRLU, IRI, IRCLO, DRYCOEFF
+      PUBLIC :: IDEP,   IRGSS,  IRAC, IRCLS
+      PUBLIC :: IRGSO,  IRLU,   IRI,  IRCLO, DRYCOEFF
 !
 ! !REMARKS:
 !  References:
@@ -741,6 +741,18 @@
 ! !INTERFACE:
 !
       SUBROUTINE DRYFLX
+!
+! !USES:
+!
+      USE LOGICAL_MOD,  ONLY : LSOILNOX
+      USE GET_NDEP_MOD, ONLY : SOIL_DRYDEP
+      USE TRACERID_MOD, ONLY : IDTHNO3
+
+      USE CMN_SIZE_MOD       ! Size parameters
+      USE CMN_DIAG_MOD       ! Diagnostic switches & arrays
+      USE CMN_DEP_MOD        ! Dry deposition variables
+      USE COMMSOIL_MOD       ! Soil wetness variables
+      USE COMODE_MOD
 ! 
 ! !REVISION HISTORY: 
 !  (1 ) Bug fix -- now skip tracers for which NTDEP(N) is zero, in order
@@ -774,17 +786,6 @@
 !
 ! !LOCAL VARIABLES:
 !
-      USE LOGICAL_MOD,  ONLY : LSOILNOX
-      USE GET_NDEP_MOD, ONLY : SOIL_DRYDEP
-      USE TRACERID_MOD, ONLY : IDTHNO3
-
-      USE CMN_SIZE_MOD       ! Size parameters
-      USE CMN_DIAG_MOD       ! Diagnostic switches & arrays
-      USE CMN_DEP_MOD        ! Dry deposition variables
-      USE COMMSOIL_MOD       ! Soil wetness variables
-      USE COMODE_MOD
-
-
       INTEGER :: I, J, JJ, JLOOP, L, L_PBLTOP, N, NK, NN
       REAL*8  :: DTCHEM, PBL_MAX, TDRYFX, AREA_CM2
 
@@ -858,13 +859,13 @@
                     
 !$OMP CRITICAL
                IF ( ND44 /= 0 ) THEN 
-               ! Save into AD44 diagnostic array
-               AD44(I,J,N,1) = AD44(I,J,N,1) + TDRYFX
+                  ! Save into AD44 diagnostic array
+                  AD44(I,J,N,1) = AD44(I,J,N,1) + TDRYFX
                ENDIF 
 
                ! Archive dry deposited N species for use in soil_nox_mod
                IF (LSOILNOX ) THEN
-                 CALL SOIL_DRYDEP ( I, J, L, NN, TDRYFX)
+                  CALL SOIL_DRYDEP ( I, J, L, NN, TDRYFX)
                ENDIF
 
 
@@ -1029,7 +1030,7 @@
 !\\
 !\\
 ! !INTERFACE:
-
+!
       SUBROUTINE DRYFLXH2HD
 !
 ! !USES:

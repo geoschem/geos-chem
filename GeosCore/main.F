@@ -92,9 +92,7 @@
       USE MODIS_LAI_MOD         ! For MODIS leaf area indices (replacement)
       USE LIGHTNING_NOX_MOD     ! For lightning NOx emissions  
       USE MEGAN_MOD             ! For biogenic emissions
-      USE LOGICAL_MOD,       ONLY : LSOILNOX
-      USE SOILNOX_RESTART_MOD, ONLY: READ_SOIL_RESTART
-      USE SOILNOX_RESTART_MOD, ONLY: MAKE_SOILNOX_RESTART
+      USE SOILNOX_RESTART_MOD   ! For reading and writing soil NOx restart
       USE BROMOCARB_MOD         ! For setting CH3Br concentrations in PBL, jpp
 
       !-----------------------------------------------------------------
@@ -725,8 +723,7 @@
                CALL UPDATE_T_15_AVG
             ENDIF
 
-            ! Note: this daily call to rdsoil left
-            !for backward compatibility.
+            ! Note: this daily call to rdsoil left for backward compatibility.
             ! To be revised later.
             ! Also read soil-type info for fullchem simulation
             IF ( ITS_A_FULLCHEM_SIM() .or. ITS_A_H2HD_SIM() ) THEN

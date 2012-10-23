@@ -62,14 +62,16 @@
 !  (5 ) Now use function GET_MONTH from "time_mod.f".  Now make MONTH a local
 !        variable. (bmy, 2/11/03)
 !  (6 ) Now references DATA_DIR from "directory_mod.f" (bmy, 7/20/04)
-!  02 Dec 2010 - R. Yantosca - Added ProTeX headers
-!  03 Aug 2012 - R. Yantosca - Move calls to findFreeLUN out of DEVEL block
-!  30 Aug 2012 - J.D. Maasakkers - Removed reading of fert_scale.dat, climatprep,
-!                clim.dat and fert_res.dat. Soiltype is now only used by the dry
-!                deposition code. Data for the soil NOx code is read in:
-!                Readfert.F, Readsoil.F and Readclim.F
-!                Furthermore, the deposition arrays for the soil NOx code are 
-!                initialized here.
+!  02 Dec 2010 - R. Yantosca     - Added ProTeX headers
+!  03 Aug 2012 - R. Yantosca     - Move calls to findFreeLUN out of DEVEL block
+!  30 Aug 2012 - J.D. Maasakkers - Removed reading of fert_scale.dat,
+!                                  climatprep, clim.dat and fert_res.dat.
+!                                  Soiltype is now only used by the dry
+!                                  deposition code. Data for the soil NOx code
+!                                  is read in: Readfert.F, Readsoil.F and
+!                                  Readclim.F. Furthermore, the deposition
+!                                  arrays for the soil NOx code are 
+!                                  initialized here.
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -103,20 +105,19 @@
         
          !==============================================================
          !Initialize deposition arrays
-         !==============================================================          
-$
-          DRY_NO2  = 0.d0
-          DRY_PAN  = 0.d0
-          DRY_HNO3 = 0.d0
-          DRY_NH3  = 0.d0
-          DRY_NH4  = 0.d0
-          DRY_NIT  = 0.d0
-          WET_HNO3 = 0.d0
-          WET_NH3  = 0.d0
-          WET_NH4  = 0.d0
-          WET_NIT  = 0.d0
+         !==============================================================
+         DRY_NO2  = 0.d0
+         DRY_PAN  = 0.d0
+         DRY_HNO3 = 0.d0
+         DRY_NH3  = 0.d0
+         DRY_NH4  = 0.d0
+         DRY_NIT  = 0.d0
+         WET_HNO3 = 0.d0
+         WET_NH3  = 0.d0
+         WET_NH4  = 0.d0
+         WET_NIT  = 0.d0
 
-        !==============================================================
+         !==============================================================
          ! Read in soil type data (first pass only)
          !==============================================================
 
@@ -150,7 +151,7 @@ $
       ENDIF  
 
       END SUBROUTINE RDSOIL
-
+!EOC
 
 
 

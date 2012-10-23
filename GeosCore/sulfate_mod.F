@@ -3393,11 +3393,11 @@
          DO L = 1, LLPAR
 
             IF (ND44 > 0) THEN            
-            AD44(I,J,DRYNH3,1) = AD44(I,J,DRYNH3,1) + ND44_TMP(I,J,L)
+               AD44(I,J,DRYNH3,1) = AD44(I,J,DRYNH3,1) + ND44_TMP(I,J,L)
             ENDIF
 
             IF (LSOILNOX) THEN
-            CALL SOIL_DRYDEP ( I, J, L, IDTNH3, ND44_TMP(I,J,L) )
+               CALL SOIL_DRYDEP ( I, J, L, IDTNH3, ND44_TMP(I,J,L) )
             ENDIF
 
          ENDDO

@@ -1,38 +1,15 @@
-! $Id: soil_nox_mod_loop.f,v 1.2 2009/08/25 20:45:21 bmy Exp $
 !------------------------------------------------------------------------------
 !          Harvard University Atmospheric Chemistry Modeling Group            !
 !------------------------------------------------------------------------------
 !BOP
 !
-! !MODULE: soil_nox_mod.f
+! !MODULE: soil_nox_mod
 !
 ! !DESCRIPTION: Module containing GEOS-Chem soil NOx emissions routines.
 !\\
 !\\
-!  References:
-!  \begin{itemize}
-!  \item Wang, Y., D.J. Jacob, and J.A. Logan, Global simulation of 
-!        tropospheric O3-NOx-hydrocarbon chemistry, 1. Model formulation, 
-!        J. Geophys. Res., 103/D9, 10,713-10,726, 1998.
-!  \item Yienger, J.J, and H. Levy, \emph{Empirical model of global 
-!        soil-biogenic NOx emissions}, \underline{J. Geophys. Res.}, 
-!        \textbf{100}, D6, 11,447-11464, June 20, 1995.
-!  \item Yan, X., T. Ohara, and H. Akimoto,\emph{ Statistical modeling 
-!        of global soil NOx emissions},\underline{Global Biogeochem. Cycles},
-!          \textbf{19}, GB3019, doi:10.1029/2004GB002276, 2005.
-!  \item Potter, P., Ramankutty, N., Bennett, E.,  and Donner, S.: 
-!        Characterizing the Spatial Patterns of Global Fertilizer 
-!        Application and Manure Production, Earth Interactions, 
-!        in press, 2010.
-!  \item Moore, N.E., Improving global bottom-up biogenic soil NOx 
-!        inventories, Master's Thesis, Dalhousie University, 2007.
-!  \item Hudman, R.C., N.E. Moore, Steps toward a mechanistic model
-!        of global soil nitric oxide emissions: implementation and space
-!        based-constraints, ACPD, Manuscript under review for ACP
-!  \end{itemize}
-!
 ! !INTERFACE: 
-!188424.00
+!
       MODULE SOIL_NOx_MOD
 ! 
 ! !USES:
@@ -40,62 +17,85 @@
       USE CMN_SIZE_MOD
 
       IMPLICIT NONE
-
 #     include "define.h"
-
       PRIVATE
 !
 ! !PUBLIC MEMBER FUNCTIONS:
 !
       PUBLIC  :: SOIL_NOX_EMISSION
 !
-! !PUBLIC MEMBER FUNCTIONS:
+! !PRIVATE MEMBER FUNCTIONS:
 !
       PRIVATE :: SOILTEMP
       PRIVATE :: SOILWET
       PRIVATE :: SOILCRF
       PRIVATE :: FERTADD
       PRIVATE :: PULSING  
-
+!
 ! !AUTHOR:
 !  Original codes from:
 !    HARVARD ATMOSPHERIC CHEMISTRY MODELING GROUP 
 !    MODULE FOR SOIL NOX EMISSIONS           
 !    by Yuhang Wang, Gerry Gardner, and Prof. Daniel Jacob 
 !  Updated model code:
-!    by  Rynda Hudman, Neil Moore, and Randall Martin    
+!    by  Rynda Hudman, Neil Moore, Randall Martin, and Bram Maasakkers
+!
 ! !REMARKS:
 !  The soil NOx code has been updated from the original implementation
 !  of Yienger & Levy [1995] from  Wang et al., [1998] as summarized below.
 !  
 !  Old:
 !  ENOx   = f( T, biome, w/d)  x Pulse(precip) x canopy uptake + FERT
-!
+! 
 !  New:
 !  ENOx   = f( T, biome, WFPS, Fert)  x Pulse(dryspell) x canopy uptake 
-!
+! 
 !  1 - Update moisture treatment: soil moisture as a continuous variable 
 !  using WFPS rather than discrete wet/dry states and purely exponential 
 !  T impact (impact = -1. Tg N/yr)
-!
+! 
 !  2 - Update to Fertilizer:  new fertilizer maps including chemical and 
 !  manure fertilizer from Potter et al., [2010] distributed using MODIS EVI 
 !  seasonality, online-N deposition as a fertilizer source, and N-fertilizer
 !  source subject to T, WFPS, and pulsing like other N (impact = +1.3 Tg N/yr)
-!
+! 
 !  3- Update Pulsing Scheme: Yan et al., [2005] (shorter, stronger pulses) 
 !  (impact = +1. Tg N/yr). Also added restart file containing dry spell 
 !  information to properly account for dry spell length in continuing runs. 
-!
+! 
+!  References:
+!  ============================================================================
+!  (1 ) Wang, Y., D.J. Jacob, and J.A. Logan,  Global simulation of 
+!        tropospheric O3-NOx-hydrocarbon chemistry, 1. Model formulation, 
+!        J. Geophys. Res., 103/D9, 10, 713-10,726, 1998.
+!  (2 ) Yienger, J.J, and H. Levy, Empirical model of global soil-biogenic
+!        NOx emissions, J. Geophys. Res., 100, D6, 11,447-11464, June 20, 1995.
+!  (3 ) Yan, X., T. Ohara, and H. Akimoto, Statistical modeling of global
+!        soil NOx emissions, Global Biogeochem. Cycles, 19, GB3019,
+!        doi:10.1029/2004GB002276, 2005.
+!  (4 ) Potter, P., Ramankutty, N., Bennett, E., and Donner, S.: 
+!        Characterizing the Spatial Patterns of Global Fertilizer Application
+!        and Manure Production, Earth Interactions, 14, 1-22, 
+!        10.1175/2009EI288.1, 2010.
+!  (5 ) Moore, N.E., Improving global bottom-up biogenic soil NOx inventories,
+!        Master's Thesis, Dalhousie University, 2007.
+!  (6 ) Hudman, R.C., N.E. Moore, A.K. Mebust, R.V. Martin, A.R. Russell, 
+!        L.C. Valin, and R.C Cohen, Steps toward a mechanistic model of global
+!        soil nitric oxide emissions: implementation and space
+!        based-constraints, Atmos. Chem. Phys., 12, 7779-7795,
+!        doi:10.5194/acp-12-7779-2012, 2012.
+! 
 ! !REVISION HISTORY:
-!  17 Aug 2009 - R. Yantosca - Columnized and cleaned up
-!  17 Aug 2009 - R. Yantosca - Added ProTeX headers
-!  31 Jan 2011 - R. Hudman   - Added new code12259.perceus-ucb0
-!  31 Jan 2011 - R. Hudman   - Updated headers 
+!  17 Aug 2009 - R. Yantosca     - Columnized and cleaned up
+!  17 Aug 2009 - R. Yantosca     - Added ProTeX headers
+!  31 Jan 2011 - R. Hudman       - Added new code12259.perceus-ucb0
+!  31 Jan 2011 - R. Hudman       - Updated headers 
 !  29 Aug 2012 - J.D. Maasakkers - Implemented Jacob and Bakwin CRF
-!  29 Aug 2012 - J.D. Maasakkers - Adapted code to work with new (online regridded)
-!                landfraction, climate and fertilizer data
-!  29 Aug 2012 - J.D. Maasakkers - Removed all unused Wang et al. code (comments)  
+!  29 Aug 2012 - J.D. Maasakkers - Adapted code to work with new (online
+!                                  regridded) landfraction, climate and
+!                                  fertilizer data
+!  29 Aug 2012 - J.D. Maasakkers - Removed all unused Wang et al. code
+!                                  (comments)  
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -109,41 +109,49 @@
       INTEGER, PARAMETER :: NSOIL    = 24
 
       ! Canopy wind extinction coefficients
-      ! (cf. Yienger & Levy [1995], Sec 5), now a function of the MODIS/KOPPEN biometype (J.D. Maasakkers)
-       REAL*8,  PARAMETER :: SOILEXC(NSOIL)    = (/ 
-     &  0.10, 0.50, 0.10, 0.10, 0.10,
-     &  0.10, 0.10, 0.10, 0.10, 1.00,
-     &  1.00, 1.00, 1.00, 2.00, 4.00,
-     &  4.00, 4.00, 4.00, 4.00, 4.00,
-     &  4.00, 2.00, 0.10, 2.00                  /)
+      ! (cf. Yienger & Levy [1995], Sec 5), now a function of the
+      ! MODIS/KOPPEN biometype (J.D. Maasakkers)
+      REAL*8,  PARAMETER :: SOILEXC(NSOIL) = (/ 
+     &                      0.10, 0.50, 0.10, 0.10, 0.10,
+     &                      0.10, 0.10, 0.10, 0.10, 1.00,
+     &                      1.00, 1.00, 1.00, 2.00, 4.00,
+     &                      4.00, 4.00, 4.00, 4.00, 4.00,
+     &                      4.00, 2.00, 0.10, 2.00        /)
 
       ! Steinkamp and Lawrence, 2011 A values, wet biome coefficients
       ! for each of the 24 soil biomes
-      REAL*8,  PARAMETER :: A_BIOME(NSOIL)          =                (/ 
-     &   0.00, 0.00, 0.00, 0.00, 0.00, 0.06, 0.09, 0.09, 0.01, 
-     &   0.84, 0.84, 0.24, 0.42, 0.62, 0.03, 0.36, 0.36, 0.35, 
-     &   1.66, 0.08, 0.44, 0.57, 0.57, 0.57     /)
+      REAL*8,  PARAMETER :: A_BIOME(NSOIL) = (/ 
+     &                      0.00, 0.00, 0.00, 0.00, 0.00,
+     &                      0.06, 0.09, 0.09, 0.01, 0.84,
+     &                      0.84, 0.24, 0.42, 0.62, 0.03,
+     &                      0.36, 0.36, 0.35, 1.66, 0.08,
+     &                      0.44, 0.57, 0.57, 0.57        /)
 
       ! "A" coefficients for converting surface temp to soil temp
       ! for each of the 24 soil biomes
-      REAL*8,  PARAMETER :: SOILTA(NSOIL)          =                (/
-     &   0.00,0.92,0.00,0.66,0.66,0.66,0.66,0.66,0.66,0.66,0.66,
-     &   0.66,0.66,0.66,0.84,0.84,0.84,0.84,0.84,0.84,0.84,1.03,
-     &   1.03,1.03                           /)
+      REAL*8,  PARAMETER :: SOILTA(NSOIL)  = (/
+     &                      0.00, 0.92, 0.00, 0.66, 0.66,
+     &                      0.66, 0.66, 0.66, 0.66, 0.66,
+     &                      0.66, 0.66, 0.66, 0.66, 0.84,
+     &                      0.84, 0.84, 0.84, 0.84, 0.84,
+     &                      0.84, 1.03, 1.03, 1.03        /)
 
       ! "B" coefficients for converting surface temp to soil temp
       ! for each of the 24 soil biomes
-      REAL*8,  PARAMETER :: SOILTB(NSOIL)          =               (/         
-     &   0.00,4.40,0.00,8.80,8.80,8.80,8.80,8.80,8.80,8.80,8.80,
-     &   8.80,8.80,8.80,3.60,3.60,3.60,3.60,3.60,3.60,3.60,2.90,
-     &   2.90,2.90                          /)
+      REAL*8,  PARAMETER :: SOILTB(NSOIL)  = (/         
+     &                      0.00, 4.40, 0.00, 8.80, 8.80,
+     &                      8.80, 8.80, 8.80, 8.80, 8.80,
+     &                      8.80, 8.80, 8.80, 8.80, 3.60,
+     &                      3.60, 3.60, 3.60, 3.60, 3.60,
+     &                      3.60, 2.90, 2.90, 2.90        /)
 
-      ! Scale factor so that fertilizer emission = 1.8 Tg N/yr (Stehfest and Bouwman, 2006)
+      ! Scale factor so that fertilizer emission = 1.8 Tg N/yr
+      ! (Stehfest and Bouwman, 2006)
       ! before canopy reduction
       REAL*8, PARAMETER :: FERT_SCALE = 0.0068 
       ! Value calculated by running the 2x2.5 model
-      ! For now, use this value for all resolutions since regular soil NOx emissions
-      ! change with resolution as well (J.D. Maasakkers)
+      ! For now, use this value for all resolutions since regular soil NOx
+      ! emissions change with resolution as well (J.D. Maasakkers)
 
       CONTAINS
 !EOC
@@ -154,58 +162,60 @@
 !
 ! !IROUTINE: soil_nox_emission
 !
-! !DESCRIPTION: Subroutine SOIL_NOX_EMISSION computes the emission of soil and
+! !DESCRIPTION: Subroutine SOIL\_NOX\_EMISSION computes the emission of soil and
 !  fertilizer NOx for the GEOS-Chem model.
 !\\
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE SOIL_NOx_EMISSION(  
-     &                              TS_EMIS, TK, GWET,
-     &                              SOILFRT,  GWET_PREV,
-     &                              DRYPERIOD, PFACTOR,  SOILNOx, 
+      SUBROUTINE SOIL_NOx_EMISSION( TS_EMIS,   TK,
+     &                              GWET,      SOILFRT,
+     &                              GWET_PREV, DRYPERIOD,
+     &                              PFACTOR,   SOILNOx, 
      &                              DEPN,      FERTDIAG, 
-     &                              CLIM, LANDFRAC, RC,
-     &                              SUNCOS, U10M, V10M, R_CANOPY, 
-     &				    LAI)
-!
+     &                              CLIM,      LANDFRAC,
+     &                              RC,        SUNCOS,
+     &                              U10M,      V10M,
+     &				    R_CANOPY,  LAI)
+! 
 ! !USES:
 !
       USE GIGC_ERRCODE_MOD, ONLY : GIGC_SUCCESS
 !
 ! !INPUT PARAMETERS:
-! 
-      REAL*8  :: TS_EMIS     ! Emission timestep [min]
-      REAL*8  :: TK          ! surface temperature [K]
-      REAL*8  :: GWET        ! Top soil wetness [unitless]
-      REAL*8  :: DEPN        ! Dry Dep Fert term [ng N/m2/s]
-      REAL*8  :: SOILFRT     ! Fertilizer emissions [ng N/m2/s]
-      REAL*4  :: CLIM(:)     ! CLIM(1), arid fraction, CLIM(2), non-arid fraction
-      REAL*4  :: LANDFRAC(:)    ! Fraction of landtypes
+!
+      REAL*8,  INTENT(IN)  :: TS_EMIS     ! Emission timestep [min]
+      REAL*8,  INTENT(IN)  :: TK          ! surface temperature [K]
+      REAL*8,  INTENT(IN)  :: GWET        ! Top soil wetness [unitless]
+      REAL*8,  INTENT(IN)  :: DEPN        ! Dry Dep Fert term [ng N/m2/s]
+      REAL*8,  INTENT(IN)  :: SOILFRT     ! Fertilizer emissions [ng N/m2/s]
+      REAL*4,  INTENT(IN)  :: CLIM(:)     ! CLIM(1), arid fraction
+                                          ! CLIM(2), non-arid fraction
+      REAL*4,  INTENT(IN)  :: LANDFRAC(:) ! Fraction of landtypes
 
       !Input parameters for the canopy reduction factor
-      REAL*8  :: SUNCOS      ! Cosine of solar zenith angle
-      REAL*8  :: U10M        ! E/W wind speed @ 10m altitude [m]
-      REAL*8  :: V10M        ! N/S wind speed @ 10m altitude [m]
-      REAL*8  :: R_CANOPY(:) ! Resist. of canopy to NOx [1/s]
-      REAL*8  :: LAI         ! Leaf area indices [cm2/cm2]
+      REAL*8,  INTENT(IN)  :: SUNCOS      ! Cosine of solar zenith angle
+      REAL*8,  INTENT(IN)  :: U10M        ! E/W wind speed @ 10m altitude [m]
+      REAL*8,  INTENT(IN)  :: V10M        ! N/S wind speed @ 10m altitude [m]
+      REAL*8,  INTENT(IN)  :: R_CANOPY(:) ! Resist. of canopy to NOx [1/s]
+      REAL*8,  INTENT(IN)  :: LAI         ! Leaf area indices [cm2/cm2]
 !
 ! !OUTPUT PARAMETERS:
 !
-      REAL*8  :: SOILNOx     ! Soil NOx emissions [molec/cm2/s]
-      REAL*4  :: GWET_PREV   ! Soil Moisture Prev timestep
-      REAL*4  :: DRYPERIOD   ! Dry period length in hours
-      REAL*4  :: PFACTOR     ! Pulsing Factor
-      REAL*8  :: FERTDIAG    ! Fert emissions [molec/cm2/s
-      INTEGER :: RC          ! Return code
-
+      REAL*8,  INTENT(OUT) :: SOILNOx     ! Soil NOx emissions [molec/cm2/s]
+      REAL*4,  INTENT(OUT) :: GWET_PREV   ! Soil Moisture Prev timestep
+      REAL*4,  INTENT(OUT) :: DRYPERIOD   ! Dry period length in hours
+      REAL*4,  INTENT(OUT) :: PFACTOR     ! Pulsing Factor
+      REAL*8,  INTENT(OUT) :: FERTDIAG    ! Fert emissions [molec/cm2/s
+      INTEGER, INTENT(OUT) :: RC          ! Return code
 !
 ! !REMARKS:
 !  R_CANOPY is computed in routine GET_CANOPY_NOX of "canopy_nox_mod.f". 
 !  This was originally in the GEOS-Chem dry deposition code, but was split 
 !  off in order to avoid an ugly code dependency between the dry deposition
 !  and soil NOx codes.
-!  As of v9-01-04, this module uses the MODIS/Koppen biome types instead
+! 
+!  As of v9-02, this module uses the MODIS/Koppen biome types instead
 !  of the Olson land type / biome type, making it different from the original 
 !  dry deposition code (J.D. Maasakkers)
 !
@@ -219,7 +229,7 @@
 !BOC
 !
 ! !LOCAL VARIABLES:
-
+!
       INTEGER :: K
       REAL*8  :: BASE_TERM, CRF_TERM,  PULSE
       REAL*8  :: TC,        TEMP_TERM, WINDSQR
@@ -270,7 +280,7 @@
        
          ! SOILNOX includes fertilizer
          SOILNOX   = (SOILNOX 
-     &              + ( A_BIOME(K) + A_FERT )
+     &             + ( A_BIOME(K) + A_FERT )
      &             * ( TEMP_TERM * WET_TERM * PULSE ) 
      &             * LANDFRAC(K)
      &             * ( 1.d0 - CRF_TERM  ) )
@@ -283,8 +293,6 @@
      &             * ( 1.d0 - CRF_TERM  ) )
 
       ENDDO
-
-       
 
       END SUBROUTINE SOIL_NOX_EMISSION
 
@@ -315,7 +323,6 @@
                                            ! soil NOx emissions [unitless]
 !
 ! !REMARKS:
-!
 !    Based on Ormeci et al., [1999] and Otter et al., [1999]     
 !    there exists and entirely exponential relationship between 
 !    temperature and soil NOx emissions at constant soil moisture
@@ -330,20 +337,18 @@
 !     where T is the temperature in degrees Celsius....Below 
 !     0 C, we assume emissions are zero because they are insignificant 
 !     for the purposes of this global source. ...
-!                                                                             
+! 
+!  References:
+!  ============================================================================
+!  (1 ) Ormeci, B., S. L. Sanin, and J. J. Pierce, Laboratory study of 
+!        NO flux from agricultural soil: Effects of soil moisture, pH, 
+!        and temperature, J. Geophys. Res., 104 ,16211629, 1999.
+!  (2 ) Otter, L. B., W. X. Yang, M. C. Scholes, and F. X. Meixner, 
+!        Nitric oxide emissions from a southern African savanna, J. 
+!        Geophys. Res., 105 , 20,69720,706, 1999.
+!  (3 ) Yienger, J.J, and H. Levy, Empirical model of global soil-biogenic
+!        NOx emissions, J. Geophys. Res., 100, D6, 11,447-11464, June 20, 1995.
 !
-! !REFERENCES:
-!  \begin{itemize}
-!  \item Ormeci, B., S. L. Sanin, and J. J. Pierce, Laboratory study of 
-!         NO flux from agricultural soil: Effects of soil moisture, pH, 
-!         and temperature, J. Geophys. Res., 104 ,16211629, 1999.
-!  \item Otter, L. B., W. X. Yang, M. C. Scholes, and F. X. Meixner, 
-!         Nitric oxide emissions from a southern African savanna, J. 
-!         Geophys. Res., 105 , 20,69720,706, 1999.
-!  \item Yienger, J.J, and H. Levy, \emph{Empirical model of global 
-!        soil-biogenic NOx emissions}, \underline{J. Geophys. Res.}, 
-!        \textbf{100}, D6, 11,447-11464, June 20, 1995.
-!  \end{itemize}
 ! !REVISION HISTORY: 
 !  17 Aug 2009 - R. Yantosca - Initial Version
 !  17 Aug 2009 - R. Yantosca - Added ProTeX headers
@@ -359,14 +364,11 @@
 
       !==============================================================
       ! 1) Convert from Surface Temp  --> Soil Temp 
-      !   
       !==============================================================
 
       ! Save surface air temp in shadow variable TMMP
       TMMP   = TC
 
-!BOP
-!     
       ! DRY
       IF ( GWET < 0.3d0 ) THEN 
      
@@ -408,7 +410,6 @@
       SOIL_TEMP = SOIL_TEMP * UNITCONV 
 
       END FUNCTION SOILTEMP
-
 !EOC
 !----------------------------------------------------------------------------
 !          Harvard University Atmospheric Chemistry Modeling Group            !
@@ -419,7 +420,6 @@
 !
 ! !DESCRIPTION: Function SOILWET returns the soil moisture scaling 
 !  of soil NOx emissions (values from 0-1). 
-!
 !\\
 !\\
 ! !INTERFACE:
@@ -428,25 +428,23 @@
 !
 ! !INPUT PARAMETERS: 
 !
-!BOP
-!
       ! Fraction of arid & non-arid soil in the gridbox          
       REAL*4, INTENT(IN) :: CLIM(:)       
+
       ! Top soil wetness [unitless]
-      REAL*8,  INTENT(IN) :: GWET 
-     
+      REAL*8, INTENT(IN) :: GWET 
+    
 !
 ! !RETURN_VALUE:
 ! 
       ! A scaling term between 0-1 based on soil moisture
-      REAL*8  ::             WETSCALE      
+      REAL*8             :: WETSCALE      
 !
 ! !REMARKS:
-
 !  Soil moisture and temperature and now decoupled, the temperature
 !  term is scaled with a value from 0-1 based on water filled pore space
 !  WFPS in top-soil. 
-!
+! 
 !  From N.E. Moore thesis:
 !  The response of SNOx is not monotonic to WFPS. SNOx are low for the 
 !  extreme values of WFPS (0 and 1). For low values, emissions are 
@@ -455,47 +453,45 @@
 !  moisture is best described as a Poisson function [Parsons et al., 1996; 
 !  Otter et al., 1999; Pierce and Aneja, 2000; Kirkman et al., 2001; 
 !  van Dijk and Meixner, 2001; van Dijk et al., 2002]:
-
-!   scaling = a*x*exp(-b*x^2) 
-
-
+! 
+!     scaling = a*x*exp(-b*x^2) 
+! 
 !  where the values of a and b are chosen such that the maximum value 
 !  (unity) occurs for WFPS=0.3, which laboratory and field measurements have 
 !  found to be the optimal value for emissions in most soils. The typical 
 !  range of values are 0.2 (arid) up to 0.45 (floodplain) 
 !  [Yang and Meixner, 1997; Ormeci et al., 1999].  
-!
+! 
 !  Rice paddies no longer have to be scaled as in the Yienger & Levy model.
-
-!  !REFERENCES:
-!  \begin{itemize}
-!  \item Galbally, I. E., and R. Roy, Loss of fixed nitrogen from soils 
+! 
+!  References:
+!  ============================================================================
+!  (1 ) Galbally, I. E., and R. Roy, Loss of fixed nitrogen from soils 
 !        by nitric oxide exhalation, Nature, 275 , 734735, 1978.
-!  \item Kirkman, G. A., W. X. Yang, and F. X. Meixner, Biogenic nitric 
+!  (2 ) Kirkman, G. A., W. X. Yang, and F. X. Meixner, Biogenic nitric 
 !        oxide emissions upscaling: An approach for Zimbabwe, Global 
 !        Biogeochemical Cycles, 15 ,1005 1020, 2001.
-!  \item Ormeci, B., S. L. Sanin, and J. J. Pierce, Laboratory study of NO 
+!  (3 ) Ormeci, B., S. L. Sanin, and J. J. Pierce, Laboratory study of NO 
 !        flux from agricultural soil: Effects of soil moisture, pH, and 
 !        temperature, J. Geophys. Res., 104 , 16211629, 1999.
-!  \item Otter, L. B., W. X. Yang, M. C. Scholes, and F. X. Meixner, 
+!  (4 ) Otter, L. B., W. X. Yang, M. C. Scholes, and F. X. Meixner, 
 !        Nitric oxide emissions from a southern African savanna, J. 
 !        Geophys. Res., 105 , 20,69720,706, 1999.
-!  \item Parsons, D. A., M. C. Scholes, R. J. Scholes, and J. S. Levine, 
+!  (5 ) Parsons, D. A., M. C. Scholes, R. J. Scholes, and J. S. Levine, 
 !        Biogenic NO emissions from savanna soils as a function of fire 
 !        regime, soil type, soil nitrogen, and water status, J. Geophys. 
 !        Res., 101 , 23,68323,688, 1996.
-!  \item Pierce, J. J., and V. P. Aneja, Nitric oxide emissions from 
+!  (6 ) Pierce, J. J., and V. P. Aneja, Nitric oxide emissions from 
 !        engineered soil systems, Journal of Environmental Engineering, 
 !        pp. 225232, 2000.
-!  \item van Dijk, S. M., and J. H. Duyzer, Nitric oxide emissions from 
+!  (7 ) van Dijk, S. M., and J. H. Duyzer, Nitric oxide emissions from 
 !        forest soils, J. Geophys. Res., 104 , 15,95515,961, 1999.
-!  \item van Dijk, S. M., and F. X. Meixner, Production and consumption of 
+!  (8 ) van Dijk, S. M., and F. X. Meixner, Production and consumption of 
 !        NO in forest and pasture soils from the Amazon basin, Water, Air,
 !        and Soil Pollution: Focus 1 , pp. 119130, 2001.
-!  \item Yang, W. X., and F. X. Meixner, Gaseous Nitrogen Emissions from 
+!  (9 ) Yang, W. X., and F. X. Meixner, Gaseous Nitrogen Emissions from 
 !        Grasslands, CAB Int., Wallingford, UK, 1997, 67-71.
-!  \end{itemize}
-
+!
 ! !REVISION HISTORY: 
 !  17 Aug 2009 - R. Yantosca - Columnized and cleaned up
 !  17 Aug 2009 - R. Yantosca - Added ProTeX headers
@@ -504,16 +500,17 @@
 !EOP
 !------------------------------------------------------------------------------
 !BOC
-
-	!Scale by soil moisture           
-            IF ( CLIM(2) .GE. CLIM(1) .AND. CLIM(2) .NE. 0) THEN !Arid, max Poisson = 0.2
-            WETSCALE = 8.24 * GWET * EXP(-12.5*GWET*GWET)
-            ELSE  !Non-arid, max Poisson = 0.3
-            WETSCALE = 5.5 * GWET * EXP( -5.55 * GWET * GWET) 
-            ENDIF        
+!
+      !Scale by soil moisture           
+      IF ( CLIM(2) .GE. CLIM(1) .AND. CLIM(2) .NE. 0) THEN 
+         !Arid, max Poisson = 0.2
+         WETSCALE = 8.24 * GWET * EXP(-12.5*GWET*GWET)
+      ELSE
+         !Non-arid, max Poisson = 0.3
+         WETSCALE = 5.5 * GWET * EXP( -5.55 * GWET * GWET) 
+      ENDIF        
 
       END FUNCTION SOILWET
-
 !EOC
 !------------------------------------------------------------------------------
 !          Harvard University Atmospheric Chemistry Modeling Group            !
@@ -544,9 +541,8 @@
 ! !RETURN_VALUE:
 ! 
       REAL*8              :: SOIL_CRF   ! Canopy reduction factor (see below)
-
+!
 ! !REMARKS:
-!                                                                             .
 !  Also note, CANOPYNOX (the bulk surface resistance to NOx) is computed
 !  in routine GET_CANOPY_NOx (in "canopy_nox_mod.f") and is passed here
 !  as an argument.
@@ -595,40 +591,35 @@
       ENDIF
 
       END FUNCTION SOILCRF
-
 !EOC
 !-----------------------------------------------------------------------------
-
 !          Harvard University Atmospheric Chemistry Modeling Group            !
 !------------------------------------------------------------------------------
 !BOP
 !
 ! !ROUTINE: fertadd
 !
-! !DESCRIPTION: Function FERTADD 
-
+! !DESCRIPTION: Function FERTADD computes fertilizer emissions
+!\\
 !\\
 ! !INTERFACE:
-
-      FUNCTION FERTADD( SOILFERT, DEPN) 
-     &         RESULT( FERT_ADD )
-
+!
+      FUNCTION FERTADD( SOILFERT, DEPN) RESULT( FERT_ADD )
 !
 ! !INPUT PARAMETERS: 
 !
-      REAL*8,  INTENT(IN) :: DEPN       ! N emissions from deposition
-      REAL*8,  INTENT(IN) :: SOILFERT   ! N emissions from fertilizers
-                                        !  read in from disk and passed
-                                        !  here as an argument [ng N/m2/s]
+      REAL*8, INTENT(IN) :: DEPN      ! N emissions from deposition
+      REAL*8, INTENT(IN) :: SOILFERT  ! N emissions from fertilizers
+                                      !  read in from disk and passed
+                                      !  here as an argument [ng N/m2/s]
 !
 ! !RETURN_VALUE:
 ! 
-      REAL*8              :: FERT_ADD   ! Total Fert emissions
+      REAL*8            :: FERT_ADD   ! Total Fert emissions
 
-      REAL*8,  PARAMETER :: SECPERYEAR    = 86400.d0 * 365.
+      REAL*8, PARAMETER :: SECPERYEAR = 86400.d0 * 365.
 !
 ! !REMARKS:
-!
 !  We use a new spatially explicit data set of chemical and manure fert
 !  (native resolution 0.5\B0x0.5\B0) from Potter et al., [2010] 
 !  distributed using MODIS EVI seasonality as described in 
@@ -637,37 +628,35 @@
 !  In previous model, fertilizer emissions were emitted instantaneously as 
 !  2.5% of applied fertilizer, independent of soil moisture/soil temperature, 
 !  so that they were constant over the growing season. 
-
+! 
 !  Similar to the YL  parameterization, we now treat fertilizer emissions 
 !  as part of the Aw. If we treat the wet biome coefficient as a measure of 
 !  available N multiplied by a mean emission rate, we can treat fertilizer 
 !  N in the same manner. 
-!
-!  AW = SOILAW(BinewsoilAWS_08112011_emissonlyome) + N available in soil  x mean emission rate
 ! 
-! Instead of choosing an emission rate for each box equivalent to 2.5% 
-! of applied N yearly as done in the YL scheme, we chose the mean emission 
-! rate so that the total global above canopy SNOx due to fertilizer matches 
-! observed estimates of fertilizer emissions of 1.8 Tg N yr-1 from Stehfest 
-! and Bouman [2006].  This treatment allows for interannual and daily 
-! variability in the strength  of response to temperature and precipitation. 
-! Note: this scaling must be set for each resolution. 
-
+!  AW = SOILAW(BinewsoilAWS_08112011_emissonlyome) + N available in soil 
+!       x mean emission rate
+! 
+!  Instead of choosing an emission rate for each box equivalent to 2.5% 
+!  of applied N yearly as done in the YL scheme, we chose the mean emission 
+!  rate so that the total global above canopy SNOx due to fertilizer matches 
+!  observed estimates of fertilizer emissions of 1.8 Tg N yr-1 from Stehfest 
+!  and Bouman [2006].  This treatment allows for interannual and daily 
+!  variability in the strength  of response to temperature and precipitation. 
+!  Note: this scaling must be set for each resolution. 
+! 
 !  References:
-!  \begin{itemize}
-!  \item Potter, P., Ramankutty, N., Bennett, 
-!BOP
-!E.,  and Donner, S.: 
+!  ============================================================================
+!  (1 ) Potter, P., Ramankutty, N., Bennett, E.,  and Donner, S.: 
 !        Characterizing the Spatial Patterns of Global Fertilizer 
 !        Application and Manure Production, Earth Interactions, 
 !        in press, 2010.
-!  \item Stehfest, E. and L. Bouwman, N2O and NO emission from 
+!  (2 ) Stehfest, E. and L. Bouwman, N2O and NO emission from 
 !        agricultural fields and soils under natural vegetation: 
 !        summarizing available measurement data and modeling
 !        of global annual emissions, Nutrient Cycling in Agroecosystems 
 !        (2006), 74:207-228 DOI 10.1007/s10705-006-9000-7.
-!  \end{itemize}
-
+!
 ! !REVISION HISTORY: 
 !  17 Aug 2009 - R. Yantosca - Columnized and cleaned up
 !  17 Aug 2009 - R. Yantosca - Added ProTeX headers
@@ -683,13 +672,11 @@
       ! Soil fert and dep [ ng N /m2 ], a measure of N avail. in soil
       FERT_ADD = SOILFERT  + DEPN
 
-
-       ! Convert [ng N/m2] --> [ng N /m2/s] (scale needed to force
-       ! fert emiss of 1.8 Tg N/yr w/o canopy uptake.
+      ! Convert [ng N/m2] --> [ng N /m2/s]
+      ! (scale needed to force fert emiss of 1.8 Tg N/yr w/o canopy uptake)
       FERT_ADD = FERT_ADD / SECPERYEAR * FERT_SCALE   
 
       END FUNCTION FERTADD
-
 !EOC
 !------------------------------------------------------------------------------
 !          Harvard University Atmospheric Chemistry Modeling Group            !
@@ -700,8 +687,7 @@
 !
 ! !DESCRIPTION: Function PULSING calculates the increase (or "pulse") of 
 !  soil NOx emission that happens after preciptiation falls on dry soil.  
-!\\
-!\\
+!                                                                             .
 !  According to  Yan et al., [2005] , this pulsing process is thought to  
 !  be due to a release of inorganic nitrogen trapped on top of the dry soil 
 !  and a subsequent reactivation of water-stressed bacteria, which then 
@@ -722,38 +708,36 @@
 
 ! !INPUT/OUTPUT PARAMETERS:
 !
-      REAL*4,  INTENT(INOUT) :: GWET_PREV   ! soil moisture from prev. timestep
-      REAL*4,  INTENT(INOUT) :: PFACTOR     ! pulsing factor
-      REAL*4,  INTENT(INOUT) :: DRYPERIOD   ! dry period in # timesteps
-                                           
+      REAL*4, INTENT(INOUT) :: GWET_PREV   ! soil moisture from prev. timestep
+      REAL*4, INTENT(INOUT) :: PFACTOR     ! pulsing factor
+      REAL*4, INTENT(INOUT) :: DRYPERIOD   ! dry period in # timesteps
 !  
 ! !RETURN VALUE:
 !
       REAL*8                :: THE_PULSING ! Factor to multiply baseline 
-!                                          ! emissions by to account for
-!                                          ! soil pulsing of all types
+                                           ! emissions by to account for
+                                           ! soil pulsing of all types
 !
 ! !REMARKS:
 !  Soil NOx emissions consist of baseline emissions plus discrete "pulsing"
 !  episodes.  We follow thw Yan et al., [2005] algorithm, where the pulse
 !  (relative to the flux prewetting) is determined by the antecedent dry 
 !  period, with a simple logarithmic relationship,
-!
-!  PFACTOR = 13.01 ln ( DRYPERIOD ) -  53.6
-!
-!  ,where PFACTOR is the magnitude of peak flux relative to prewetting flux, 
+! 
+!     PFACTOR = 13.01 ln ( DRYPERIOD ) -  53.6
+! 
+!  where PFACTOR is the magnitude of peak flux relative to prewetting flux, 
 !  and DRYPERIOD  is the length of the antecedent dry period in hours.
 ! 
 !  The pulse decays with 
-!
-!  PFACTOR = PFACTOR * EXP( -0.068d0 * DTSRCE )       
-!                                                                  
+! 
+!     PFACTOR = PFACTOR * EXP( -0.068d0 * DTSRCE )       
+! 
 !  References:
-!  \begin{itemize}
-!  \item Yan, X., T. Ohara, and H. Akimoto (2005), Statistical modeling of 
+!  ============================================================================
+!  (1 ) Yan, X., T. Ohara, and H. Akimoto (2005), Statistical modeling of 
 !        global soil NOx emissions, Global Biogeochem. Cycles, 19, GB3019, 
 !        doi:10.1029/2004GB002276.Section 2.3.3
-!  \end{itemize}
 !
 ! !REVISION HISTORY: 
 !  17 Aug 2009 - R. Yantosca - Columnized and cleaned up
@@ -784,19 +768,20 @@
          ! If change in soil moisture is > 0.01 (rains)
          IF ( GDIFF > 0.01 ) THEN
 
-             !Initialize new pulse factor (dry period hours)
-             PFACTOR = 13.01 * LOG( DRYPERIOD ) - 53.6
+            !Initialize new pulse factor (dry period hours)
+            PFACTOR = 13.01 * LOG( DRYPERIOD ) - 53.6
 
-             ! If dry period < ~3 days then no pulse
-             IF ( PFACTOR < 1.0 ) PFACTOR = 1.0
+            ! If dry period < ~3 days then no pulse
+            IF ( PFACTOR < 1.0 ) PFACTOR = 1.0
 
-             ! Reinitialize dry period
-             DRYPERIOD = 0
+            ! Reinitialize dry period
+            DRYPERIOD = 0
 
          ! If no rain (i.e.,  change in soil moisture is < 0.01)
          ELSE
-             ! Add one timestep to dry period
-             DRYPERIOD = DRYPERIOD + DTSRCE
+
+            ! Add one timestep to dry period
+            DRYPERIOD = DRYPERIOD + DTSRCE
 
          ENDIF
 
@@ -820,10 +805,7 @@
       ! Return the pulsing factor
       THE_PULSING = PFACTOR
 
-      ! Return to calling program
       END FUNCTION PULSING
 !EOC
-
-
       END MODULE SOIL_NOx_MOD
 

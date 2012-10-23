@@ -1,4 +1,3 @@
-! $Id: canopy_nox_mod_loop.f,v 1.1.1.1 2009/07/24 20:34:56 bmy Exp $
 !------------------------------------------------------------------------------
 !          Harvard University Atmospheric Chemistry Modeling Group            !
 !------------------------------------------------------------------------------
@@ -8,17 +7,7 @@
 !     
 ! !DESCRIPTION: Module CANOPY\_NOX\_MOD contains routines for computing the
 !  bulk surface resistance of the canopy to NOx.  This quantity is needed by 
-!  GEOS-Chem soil emissions routine "soilcrf.f".  
-!\\
-!\\
-!  This computation was originally done in legacy routine DEPVEL (located in 
-!  "drydep_mod.f"), and the bulk surface resistance was stored in common block 
-!  array CANOPYNOX (in "commsoil.h").  However, the legacy code caused an ugly 
-!  dependency.  Drydep routine DEPVEL had to be called BEFORE the soil NOx 
-!  emissions routines.  Routine GET\_CANOPY\_NOX in this module performs the 
-!  same computation of NOx from tree canopies independent of "drydep_mod.f", 
-!  thus allowing for a totally clean separation between dry deposition routines
-!  and emisisons routines.
+!  GEOS-Chem soil emissions routine "soilcrf.f".
 !\\   
 !\\   
 ! !INTERFACE: 
@@ -37,7 +26,17 @@
 ! !PRIVATE MEMBER FUNCTIONS:
 !
       PRIVATE :: DIFFG
+!
 !  !REMARKS:
+!  This computation was originally done in legacy routine DEPVEL (located in 
+!  "drydep\_mod.f"), and the bulk surface resistance was stored in common block 
+!  array CANOPYNOX (in "commsoil.h").  However, the legacy code caused an ugly 
+!  dependency.  Drydep routine DEPVEL had to be called BEFORE the soil NOx 
+!  emissions routines.  Routine GET\_CANOPY\_NOX in this module performs the 
+!  same computation of NOx from tree canopies independent of "drydep\_mod.f", 
+!  thus allowing for a totally clean separation between dry deposition routines
+!  and emisisons routines.
+! 
 !  References:
 !  ============================================================================
 !  (1 ) Baldocchi, D.D., B.B. Hicks, and P. Camara, "A canopy stomatal
@@ -79,12 +78,13 @@
 !        submitted to J. Geophys. Res., 2007.
 !
 ! !REVISION HISTORY:
-!     22 Jun 2009 - R. Yantosca - Split off from "drydep_mod.f"
+!  22 Jun 2009 - R. Yantosca - Split off from "drydep_mod.f"
 !EOP
 !------------------------------------------------------------------------------
-
+!BOC
+!
       CONTAINS
-
+!EOC
 !------------------------------------------------------------------------------
 !          Harvard University Atmospheric Chemistry Modeling Group            !
 !------------------------------------------------------------------------------
@@ -94,7 +94,7 @@
 !
 ! !DESCRIPTION: Subroutine GET\_CANOPY\_NOX computes the bulk surface 
 !  resistance of the canopy to NOx.  This computation was originally done 
-!  within legacy routine DEPVEL (in "drydep_mod.f").  Moving this computation 
+!  within legacy routine DEPVEL (in "drydep\_mod.f").  Moving this computation 
 !  to GET\_CANOPY\_NOX now allows for a totally clean separation between 
 !  dry deposition routines and emissions routines in GEOS-Chem.
 !\\
@@ -106,13 +106,12 @@
 ! !USES:
 !
       ! Met fields: albedo, cloud frac, radiation, sun position, sfc tmp
-      USE DAO_MOD, ONLY : ALBD, CLDFRC, RADSWG, SUNCOS, TS
+      USE DAO_MOD,      ONLY : ALBD, CLDFRC, RADSWG, SUNCOS, TS
+      USE DRYDEP_MOD,   ONLY : DRYCOEFF	!todo
+      USE MODIS_LAI_MOD
       USE COMMSOIL_MOD
       USE CMN_SIZE_MOD
       USE CMN_DEP_MOD
-      USE DRYDEP_MOD, ONLY : DRYCOEFF	!todo
-
-      USE MODIS_LAI_MOD
 !
 ! !REMARKS:
 !     For backwards compatibility, the bulk surface resistance is stored
@@ -121,37 +120,16 @@
 !     NOx routines.
 !
 ! !REVISION HISTORY:
-!     22 Jun 2009 - R. Yantosca - Split off from "drydep_mod.f"
-!     14 Jun 2012 - J.D. Maasakkers - Rewritten as a function of the MODIS/Koppen biometype
+!     22 Jun 2009 - R. Yantosca     - Split off from "drydep_mod.f"
+!     14 Jun 2012 - J.D. Maasakkers - Rewritten as a function of the
+!                                     MODIS/Koppen biometype
 !EOP
 !------------------------------------------------------------------------------
 !BOC
 !
-! !LOCAL VARIABLES:
+! !EXTERNAL FUNCTIONS:
 !
-      ! Scalars
-      INTEGER :: I,      IJLOOP, J, K, KK
-      REAL*8  :: F0,     HSTAR, XMW              
-      REAL*8  :: DTMP1,  DTMP2, DTMP3,  DTMP4, GFACT, GFACI
-      REAL*8  :: RT,     RAD0,  RIX,    RIXX,  RDC,   RLUXX
-      REAL*8  :: RGSX,   RCLX,  TEMPK,  TEMPC
-
-      ! External Functions
-      REAL*8  :: BIOFIT
-
-      LOGICAL, SAVE          :: FIRSTCANOPY = .TRUE. 
-
-      ! Arrays
-      REAL*8  :: RI  (NSOILB)       
-      REAL*8  :: RLU (NSOILB)      
-      REAL*8  :: RAC (NSOILB)      
-      REAL*8  :: RGSS(NSOILB)     
-      REAL*8  :: RGSO(NSOILB)     
-      REAL*8  :: RCLS(NSOILB)     
-      REAL*8  :: RCLO(NSOILB)  
-
-!Maasacommon
-
+      REAL*8,  EXTERNAL:: BIOFIT
 !
 ! !DEFINED PARAMETERS:
 !
@@ -160,6 +138,26 @@
 
       ! Surface pressure??? [Pa]
       REAL*8, PARAMETER :: PRESS  = 1.5d5
+!
+! !LOCAL VARIABLES:
+!
+      ! Scalars
+      INTEGER          :: I,      IJLOOP, J, K, KK
+      REAL*8           :: F0,     HSTAR, XMW              
+      REAL*8           :: DTMP1,  DTMP2, DTMP3,  DTMP4, GFACT, GFACI
+      REAL*8           :: RT,     RAD0,  RIX,    RIXX,  RDC,   RLUXX
+      REAL*8           :: RGSX,   RCLX,  TEMPK,  TEMPC
+
+      LOGICAL, SAVE    :: FIRSTCANOPY = .TRUE. 
+
+      ! Arrays
+      REAL*8           :: RI  (NSOILB)       
+      REAL*8           :: RLU (NSOILB)      
+      REAL*8           :: RAC (NSOILB)      
+      REAL*8           :: RGSS(NSOILB)     
+      REAL*8           :: RGSO(NSOILB)     
+      REAL*8           :: RCLS(NSOILB)     
+      REAL*8           :: RCLO(NSOILB)  
 
       !=================================================================
       ! GET_CANOPY_NOX begins here!
@@ -170,10 +168,10 @@
       F0    = 0.1d0               ! Reactivity factor for biological oxidation 
       XMW   = 46d-3               ! Molecular wt of NO2 (kg)
 
-	 IF ( FIRSTCANOPY ) THEN
-      		CALL READ_RESISTANCES
-		FIRSTCANOPY = .FALSE. ! Now only read resistances once
-	 ENDIF
+      IF ( FIRSTCANOPY ) THEN
+         CALL READ_RESISTANCES
+         FIRSTCANOPY = .FALSE.    ! Now only read resistances once
+      ENDIF
 
       ! Loop over surface boxes
       DO J = 1, JJPAR
@@ -207,7 +205,7 @@
          ! and for tundra [Jacob et al., 1992].  All surface resistance 
          ! components are normalized to a leaf area index of unity.
          !--------------------------------------------------------------
-	!Loop over all biometypes
+ 	 !Loop over all biometypes
          DO K = 1, 24
 
             ! Skip if not present
@@ -219,7 +217,7 @@
             ! If the surface is snow or ice, then set K=3
             IF ( ALBD(I,J) > 0.4 ) KK = 3
 
-		!USE new MODIS/KOPPEN Biometypes to read data
+            ! USE new MODIS/KOPPEN Biometypes to read data
 
             ! Read the internal resistance RI (minimum stomatal resistance 
             ! for water vapor, per unit area of leaf) from the IRI array; 
@@ -370,15 +368,6 @@
 !  pressure PRESS [Pa].
 !\\
 !\\
-!  We specify the molecular weight of air (XMAIR) and the hard-sphere molecular
-!  radii of air (RADAIR) and of the diffusing gas (RADX).  The molecular
-!  radius of air is given in a Table on p. 479 of Levine [1988].  The Table
-!  also gives radii for some other molecules.  Rather than requesting the user
-!  to supply a molecular radius we specify here a generic value of 2.E-10 m for
-!  all molecules, which is good enough in terms of calculating the diffusivity
-!  as long as molecule is not too big.
-!\\
-!\\
 ! !INTERFACE:
 !
       FUNCTION DIFFG( TK, PRESS, XM ) RESULT( DIFF_G )
@@ -393,15 +382,20 @@
 !
       REAL*8             :: DIFF_G  ! Molecular diffusivity [m2/s]
 !
+! !REMARKS:
+!  We specify the molecular weight of air (XMAIR) and the hard-sphere molecular
+!  radii of air (RADAIR) and of the diffusing gas (RADX).  The molecular
+!  radius of air is given in a Table on p. 479 of Levine [1988].  The Table
+!  also gives radii for some other molecules.  Rather than requesting the user
+!  to supply a molecular radius we specify here a generic value of 2.E-10 m for
+!  all molecules, which is good enough in terms of calculating the diffusivity
+!  as long as molecule is not too big.
+! 
 ! !REVISION HISTORY:
 !     22 Jun 2009 - R. Yantosca - Copied from "drydep_mod.f"
 !EOP
 !------------------------------------------------------------------------------
-!BOC
-!
-! !LOCAL VARIABLES:
-!
-      REAL*8             :: AIRDEN, Z, DIAM, FRPATH, SPEED            
+!BOC      
 !
 ! !DEFINED PARAMETERS:
 !
@@ -411,6 +405,10 @@
       REAL*8, PARAMETER  :: RADX   = 1.5d-10
       REAL*8, PARAMETER  :: RGAS   = 8.32d0
       REAL*8, PARAMETER  :: AVOGAD = 6.023d23
+!
+! !LOCAL VARIABLES:
+!
+      REAL*8             :: AIRDEN, Z, DIAM, FRPATH, SPEED      
 
       !=================================================================
       ! DIFFG begins here!
@@ -436,6 +434,5 @@
 
       ! Return to calling program
       END FUNCTION DIFFG
-
-      END MODULE CANOPY_NOX_MOD
 !EOC
+      END MODULE CANOPY_NOX_MOD

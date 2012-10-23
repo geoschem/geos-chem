@@ -1,78 +1,57 @@
-! $Id: soilnox_restart_mod.f,v 1 2009/10/15 14:14:45 rch Exp $
+!------------------------------------------------------------------------------
+!          Harvard University Atmospheric Chemistry Modeling Group            !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !MODULE: soilnox_restart_mod
+!
+! !DESCRIPTION: Module SOILNOX\_RESTART\_MOD contains variables and routines
+!  used to read and write GEOS-CHEM Soil NOx restart files, which contain the
+!  following:
+!    DRYPERIOD - time since soil moisture increased by 0.01 (hours), 
+!    PFACTOR   - If soil pulsing, pulse factor from prev. timestep (unitless)
+!    This code was modified from restart\_mod.F
+!\\
+!\\
+! !INTERFACE: 
+!
       MODULE SOILNOX_RESTART_MOD
-!
-!******************************************************************************
-!  Module RESTART_MOD contains variables and routines which are used to read
-!  and write GEOS-CHEM Soil NOx restart files, which contain the following:
-!  DRYPERIOD - time since soil moisture increased by 0.01 (hours), 
-!  PFACTOR   - If soil pulsing, pulse factor from prev. timestep (unitless)
-!  This code was modified from restart_mod.f
-!
-!  Module Variables:
-!  ============================================================================
-!  (1 ) INPUT_RESTART_FILE   : Full path name of the restart file to be read
-!  (2 ) OUTPUT_RESTART_FILE  : Full path name (w/ tokens!) of output file
-!
-!  Module Routines:
-!  ============================================================================
-!  (1 ) MAKE_SOILNOX_RESTART : Writes restart file to disk 
-!  (2 ) READ_RESTART_FILE    : Reads restart file from disk 
-!  (4 ) CHECK_DIMENSIONS     : Ensures that restart file contains global data
-!  (6 ) CHECK_DATA_BLOCKS    : Makes sure we have read in data for each tracer
-!
-!  GEOS-CHEM modules referenced by restart_mod.f
-!  ============================================================================
-!  (1 ) bpch2_mod.f          : Module w/ routines for binary punch file I/O
-!  (2 ) error_mod.f          : Module w/ NaN and other error check routines
-!  (3 ) file_mod.f           : Module w/ file unit numbers and error checks
-!  (4 ) grid_mod.f           : Module w/ horizontal grid information
-!  (5 ) logical_mod.f        : Module w/ GEOS-CHEM logical switches
-!  (6 ) time_mod.f           : Module w/ routines for computing time & date
-!  (7 ) tracer_mod.f         : Module w/ GEOS-CHEM tracer array STT etc.
-!
-!  NOTES:
-!  (1 ) 
-!******************************************************************************
+! 
+! !USES:
 !
       IMPLICIT NONE
-
-      !=================================================================
-      ! MODULE PRIVATE DECLARATIONS -- keep certain internal variables 
-      ! and routines from being seen outside "restart_mod.f"
-      !=================================================================
-
-      ! Make everything PRIVATE ...
       PRIVATE
-
-      ! ... except these routines
+!
+! !PUBLIC MEMBER FUNCTIONS:
+!
       PUBLIC  :: MAKE_SOILNOX_RESTART
       PUBLIC  :: READ_SOIL_RESTART
-  
-
-      !=================================================================
-      ! MODULE ROUTINES -- follow below the "CONTAINS" statement 
-      !=================================================================
-      CONTAINS
-
+!
+! !REVISION HISTORY:
+!  23 Oct 2012 - M. Payer    - Added ProTeX headers
+!EOP
 !------------------------------------------------------------------------------
-
+!BOC
+!
+      CONTAINS
+!EOC
+!------------------------------------------------------------------------------
+!          Harvard University Atmospheric Chemistry Modeling Group            !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: make_soilnox_restart
+!
+! !DESCRIPTION: Subroutine MAKE\_SOILNOX\_RESTART creates GEOS-CHEM restart
+!  files of soilnox variables in binary punch file format. (rch, 10/15/2009)
+!\\
+!\\
+! !INTERFACE:
+!
       SUBROUTINE MAKE_SOILNOX_RESTART( YYYYMMDD, HHMMSS, TAU )
+! 
+! !USES:
 !
-!******************************************************************************
-!  Subroutine MAKE_SOILNOX_RESTART creates GEOS-CHEM restart files of soilnox  
-!  variables in binary punch file format. (rch, 10/15/2009)
-!
-!  Arguments as Input:
-!  ============================================================================
-!  (1 ) YYYYMMDD : Year-Month-Date 
-!  (2 ) HHMMSS   :  and Hour-Min-Sec for which to create a restart file       
-!  (3 ) TAU      : GEOS-CHEM TAU value corresponding to YYYYMMDD, HHMMSS
-!
-!  NOTES:
-!  (1 ) 
-!******************************************************************************
-!     
-      ! References to F90 modules
       USE BPCH2_MOD,   ONLY : BPCH2,         GET_MODELNAME
       USE BPCH2_MOD,   ONLY : GET_HALFPOLAR, OPEN_BPCH2_FOR_WRITE
       USE ERROR_MOD,   ONLY : DEBUG_MSG
@@ -83,12 +62,22 @@
       USE inquireMod,  ONLY : findfreeLUN
       USE CMN_SIZE_MOD
       USE COMMSOIL_MOD
-
-      ! Arguments
-      INTEGER, INTENT(IN)  :: YYYYMMDD, HHMMSS
-      REAL*8,  INTENT(IN)  :: TAU
-
-      ! Local Variables      
+!
+! !INPUT PARAMETERS:
+!
+      INTEGER, INTENT(IN)  :: YYYYMMDD ! Year-Month-Day
+      INTEGER, INTENT(IN)  :: HHMMSS   ! Hour-Min-Sec
+      REAL*8,  INTENT(IN)  :: TAU      ! GEOS-CHEM TAU value corresponding
+                                       ! to YYYYMMDD, HHMMSS
+!
+! !REVISION HISTORY:
+!  23 Oct 2012 - M. Payer    - Added ProTeX headers
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+!
+! !LOCAL VARIABLES:
+!
       INTEGER              :: I0, IOS,  J0, N, IU_SOIL
       INTEGER              :: YYYY, MM, DD,  HH, SS
       CHARACTER(LEN=255)   :: FILENAME
@@ -107,7 +96,7 @@
       CHARACTER(LEN=80)    :: TITLE 
 
       !=================================================================
-      ! MAKE_RESTART_FILE begins here!
+      ! MAKE_SOILNOX_RESTART begins here!
       !=================================================================
 
       LONRES   = DISIZE
@@ -156,12 +145,12 @@
       CATEGORY = 'RST-SOIL'
       N = 1
 
-         ! SAVE DRYPERIOD (HOURS)
-         CALL BPCH2( IU_SOIL,   MODELNAME, LONRES,    LATRES,    
-     &               HALFPOLAR, CENTER180, CATEGORY,  N,
-     &               UNIT,      TAU,       TAU,       RESERVED,   
-     &               IIPAR,     JJPAR,     1,     I0+1,            
-     &               J0+1,      1,         DRYPERIOD )
+      ! SAVE DRYPERIOD (HOURS)
+      CALL BPCH2( IU_SOIL,   MODELNAME, LONRES,    LATRES,    
+     &            HALFPOLAR, CENTER180, CATEGORY,  N,
+     &            UNIT,      TAU,       TAU,       RESERVED,   
+     &            IIPAR,     JJPAR,     1,     I0+1,            
+     &            J0+1,      1,         DRYPERIOD )
 
 
       ! PFACTOR 
@@ -170,12 +159,12 @@
       N = 2
 
 
-         ! SAVE PFACTOR
-         CALL BPCH2( IU_SOIL,   MODELNAME, LONRES,    LATRES,    
-     &               HALFPOLAR, CENTER180, CATEGORY,  N,
-     &               UNIT,      TAU,       TAU,       RESERVED,   
-     &               IIPAR,     JJPAR,     1,     I0+1,            
-     &               J0+1,      1,         PFACTOR )
+      ! SAVE PFACTOR
+      CALL BPCH2( IU_SOIL,   MODELNAME, LONRES,    LATRES,    
+     &            HALFPOLAR, CENTER180, CATEGORY,  N,
+     &            UNIT,      TAU,       TAU,       RESERVED,   
+     &            IIPAR,     JJPAR,     1,     I0+1,            
+     &            J0+1,      1,         PFACTOR )
       
 
       !GWET PREV
@@ -184,17 +173,15 @@
       N = 3
 
 
-         ! SAVE SOIL MOSITURE FROM PREVIOUS TIMESTEP
-         CALL BPCH2( IU_SOIL,   MODELNAME, LONRES,    LATRES,    
-     &               HALFPOLAR, CENTER180, CATEGORY,  N,
-     &               UNIT,      TAU,       TAU,       RESERVED,   
-     &               IIPAR,     JJPAR,     1,     I0+1,            
-     &               J0+1,      1,         GWET_PREV )
+      ! SAVE SOIL MOSITURE FROM PREVIOUS TIMESTEP
+      CALL BPCH2( IU_SOIL,   MODELNAME, LONRES,    LATRES,    
+     &            HALFPOLAR, CENTER180, CATEGORY,  N,
+     &            UNIT,      TAU,       TAU,       RESERVED,   
+     &            IIPAR,     JJPAR,     1,     I0+1,            
+     &            J0+1,      1,         GWET_PREV )
 
-       WRITE(6,*) GWET_PREV(45,24)
-       CALL FLUSH(6)
-
-
+      WRITE(6,*) GWET_PREV(45,24)
+      CALL FLUSH(6)
 
       ! N_RESERVOIR
       DRES = DEP_RESERVOIR
@@ -202,14 +189,12 @@
       CATEGORY = 'RST-SOIL'
       N = 4
 
-         ! SAVE N_Reservior
-         CALL BPCH2( IU_SOIL,   MODELNAME, LONRES,    LATRES,    
-     &               HALFPOLAR, CENTER180, CATEGORY,  N,
-     &               UNIT,      TAU,       TAU,       RESERVED,   
-     &               IIPAR,     JJPAR,     1,     I0+1,            
-     &               J0+1,      1,         DRES )
-
-
+      ! SAVE N_Reservior
+      CALL BPCH2( IU_SOIL,   MODELNAME, LONRES,    LATRES,    
+     &            HALFPOLAR, CENTER180, CATEGORY,  N,
+     &            UNIT,      TAU,       TAU,       RESERVED,   
+     &            IIPAR,     JJPAR,     1,     I0+1,            
+     &            J0+1,      1,         DRES )
 
       ! Close file
       CLOSE( IU_SOIL )
@@ -219,25 +204,24 @@
 
       ! Return to calling program
       END SUBROUTINE MAKE_SOILNOX_RESTART
-
+!EOC
 !------------------------------------------------------------------------------
-
+!          Harvard University Atmospheric Chemistry Modeling Group            !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: read_soil_restart
+!
+! !DESCRIPTION: Subroutine READ\_SOIL\_RESTART initializes GEOS-CHEM Soil NOx 
+!  parameters (binary punch file format)
+!\\
+!\\
+! !INTERFACE:
+!
       SUBROUTINE READ_SOIL_RESTART( YYYYMMDD, HHMMSS ) 
+! 
+! !USES:
 !
-!******************************************************************************
-!  Subroutine READ_SOIL_RESTART initializes GEOS-CHEM Soil NOx 
-!  parameters (binary punch file format) 
-!
-!  Arguments as input:
-!  ============================================================================
-!  (1 ) YYYYMMDD : Year-Month-Day 
-!  (2 ) HHMMSS   :  and Hour-Min-Sec for which to read restart file
-!
-!  NOTES:
-!  (1 )   
-!******************************************************************************
-!
-      ! References to F90 modules
       USE BPCH2_MOD,   ONLY : OPEN_BPCH2_FOR_READ
       USE ERROR_MOD,   ONLY : DEBUG_MSG
       USE FILE_MOD,    ONLY : IOERROR
@@ -246,11 +230,20 @@
       USE inquireMod,  ONLY : findfreeLUN
       USE CMN_SIZE_MOD
       USE COMMSOIL_MOD
-
-      ! Arguments
-      INTEGER, INTENT(IN) :: YYYYMMDD, HHMMSS
-
-      ! Local Variables
+!
+! !INPUT PARAMETERS:
+!
+      INTEGER, INTENT(IN) :: YYYYMMDD ! Year-Month-Day
+      INTEGER, INTENT(IN) :: HHMMSS   ! Hour-Min-Sec
+!
+! !REVISION HISTORY:
+!  23 Oct 2012 - M. Payer    - Added ProTeX headers
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+!
+! !LOCAL VARIABLES:
+!
       INTEGER             :: I, IOS, J, L, N
       CHARACTER(LEN=255)  :: FILENAME
 
@@ -268,15 +261,16 @@
       CHARACTER(LEN=40)   :: UNIT     
       CHARACTER(LEN=40)   :: RESERVED
       CHARACTER(LEN=255)  :: INPUT_RESTART_FILE  
-      !=================================================================
-      ! READ_RESTART_FILE begins here!
-      !=================================================================
 
+      !=================================================================
+      ! READ_SOIL_RESTART begins here!
+      !=================================================================
   
       !=================================================================
       ! Open restart file and read top-of-file header
       !=================================================================
       INPUT_RESTART_FILE = 'restart.soilnox.YYYYMMDDhh'
+
       ! Copy input file name to a local variable
       FILENAME = TRIM( INPUT_RESTART_FILE )
 
@@ -378,7 +372,6 @@
 
       WRITE(6,*) 'DONE GWET PREV'
 
-
       ! Read N_RESERVOIR from prev. ts ----------------------------------
  
       READ( IU_SOIL, IOSTAT=IOS )       
@@ -408,39 +401,44 @@
 
 
       WRITE(6,*) 'DONE NRES'
-        
-      ! Return to calling program
+
       END SUBROUTINE READ_SOIL_RESTART
-
-
+!EOC
 !------------------------------------------------------------------------------
-
+!          Harvard University Atmospheric Chemistry Modeling Group            !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: check_dimensions
+!
+! !DESCRIPTION: Subroutine CHECK\_DIMENSIONS makes sure that the dimensions of
+!  the restart file extend to cover the entire grid. (bmy, 6/25/02, 10/15/02)
+!\\
+!\\
+! !INTERFACE:
+!
       SUBROUTINE CHECK_DIMENSIONS( NI, NJ ) 
+! 
+! !USES:
 !
-!******************************************************************************
-!  Subroutine CHECK_DIMENSIONS makes sure that the dimensions of the
-!  restart file extend to cover the entire grid. (bmy, 6/25/02, 10/15/02)
+      USE ERROR_MOD, ONLY : GEOS_CHEM_STOP
+      USE CMN_SIZE_MOD
 !
-!  Arguments as Input:
-!  ============================================================================
-!  (1 ) NI (INTEGER) : Number of longitudes read from restart file
-!  (2 ) NJ (INTEGER) : Number of latitudes  read from restart file
+! !INPUT PARAMETERS:
 !
-!  NOTES:
+      INTEGER, INTENT(IN) :: NI ! Number of longitudes read from restart file
+      INTEGER, INTENT(IN) :: NJ ! Number of latitudes  read from restart file
+!
+! !REVISION HISTORY:
 !  (1 ) Added to "restart_mod.f".  Now no longer allow initialization with 
 !        less than a globally-sized data block. (bmy, 6/25/02)
 !  (2 ) Now reference GEOS_CHEM_STOP from "error_mod.f", which frees all
 !        allocated memory before stopping the run. (bmy, 10/15/02)
-!******************************************************************************
+!  23 Oct 2012 - M. Payer    - Added ProTeX headers
+!EOP
+!------------------------------------------------------------------------------
+!BOC
 !
-      ! References to F90 modules
-      USE ERROR_MOD, ONLY : GEOS_CHEM_STOP
-      USE CMN_SIZE_MOD
-
-      ! Arguments
-      INTEGER, INTENT(IN) :: NI, NJ
-
-
       !=================================================================
       ! CHECK_DIMENSIONS begins here!
       !=================================================================
@@ -463,13 +461,6 @@
          CALL GEOS_CHEM_STOP
       ENDIF
       
-
-      ! Return to calling program
       END SUBROUTINE CHECK_DIMENSIONS
-
-!------------------------------------------------------------------------------
-     
-
- 
-      ! End of module
+!EOC
       END MODULE SOILNOX_RESTART_MOD
