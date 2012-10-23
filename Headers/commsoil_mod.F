@@ -16,7 +16,6 @@
 ! !USES:
 !
       USE CMN_SIZE_MOD, ONLY : IIPAR, JJPAR, MAXIJ, NTYPE, NVEGTYPE
-      USE CMN_SIZE_MOD, ONLY : IGLOB, JGLOB
 
       IMPLICIT NONE
       PUBLIC
@@ -103,12 +102,13 @@
       INTEGER :: INDEXSOIL(2,NLAND) 
 
       ! New Soil NOx model arrays
-      REAL*8 :: SOILFERT(IGLOB,JGLOB,366)
-      REAL*4 :: CLIM(IGLOB,JGLOB,2)      !Fraction of arid (layer 1) and non-arid (layer 2) land
-      REAL*4 :: LAND2(IGLOB,JGLOB,24)    ! MODIS LANDTYPE
-      REAL*4 :: DRYPERIOD(IGLOB,JGLOB)   ! Dry period length
-      REAL*4 :: PFACTOR(IGLOB,JGLOB)     ! Pulse Factor
-      REAL*4 :: GWET_PREV(IGLOB,JGLOB)   ! Pulse Factor
+      REAL*8 :: SOILFERT(IIPAR,JJPAR,366)
+      REAL*4 :: CLIM(IIPAR,JJPAR,2)      ! Fraction of arid (layer 1) and
+                                         ! non-arid (layer 2) land
+      REAL*4 :: LAND2(IIPAR,JJPAR,24)    ! MODIS LANDTYPE
+      REAL*4 :: DRYPERIOD(IIPAR,JJPAR)   ! Dry period length
+      REAL*4 :: PFACTOR(IIPAR,JJPAR)     ! Pulse Factor
+      REAL*4 :: GWET_PREV(IIPAR,JJPAR)   ! Pulse Factor
       REAL*8 :: SOILEXC(NSOILB)
 
       ! Stores output
@@ -119,8 +119,8 @@
 #endif
 
       !Soil NOx Diag49
-      REAL*8 INST_SOIL(IGLOB,JGLOB) !instantaneous soil nox
-      REAL*8 INST_FERT(IGLOB,JGLOB) !instantaneous fert nox
+      REAL*8 INST_SOIL(IIPAR,JJPAR) ! Instantaneous soil nox
+      REAL*8 INST_FERT(IIPAR,JJPAR) ! Instantaneous fert nox
 
       ! Olson->soil type,nvegtype in commbio.h
       INTEGER :: NCONSOIL(NVEGTYPE) 
@@ -133,17 +133,17 @@
 #endif
 
       !Soil NOx deposited N arrays
-      REAL*8 DRY_NO2(IGLOB,JGLOB)
-      REAL*8 DRY_PAN(IGLOB,JGLOB)
-      REAL*8 DRY_HNO3(IGLOB,JGLOB)
-      REAL*8 DRY_NH3(IGLOB,JGLOB)
-      REAL*8 DRY_NH4(IGLOB,JGLOB)
-      REAL*8 DRY_NIT(IGLOB,JGLOB)
-      REAL*8 DEP_RESERVOIR(IGLOB,JGLOB)
-      REAL*8 WET_HNO3(IGLOB,JGLOB)
-      REAL*8 WET_NH3(IGLOB,JGLOB)
-      REAL*8 WET_NH4(IGLOB,JGLOB)
-      REAL*8 WET_NIT(IGLOB,JGLOB)
+      REAL*8 DRY_NO2(IIPAR,JJPAR)
+      REAL*8 DRY_PAN(IIPAR,JJPAR)
+      REAL*8 DRY_HNO3(IIPAR,JJPAR)
+      REAL*8 DRY_NH3(IIPAR,JJPAR)
+      REAL*8 DRY_NH4(IIPAR,JJPAR)
+      REAL*8 DRY_NIT(IIPAR,JJPAR)
+      REAL*8 DEP_RESERVOIR(IIPAR,JJPAR)
+      REAL*8 WET_HNO3(IIPAR,JJPAR)
+      REAL*8 WET_NH3(IIPAR,JJPAR)
+      REAL*8 WET_NH4(IIPAR,JJPAR)
+      REAL*8 WET_NIT(IIPAR,JJPAR)
 
       !MODIS/Koppen resistance values
       INTEGER  :: SNIMODIS(NSOILB)
