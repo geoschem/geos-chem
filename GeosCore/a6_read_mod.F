@@ -484,6 +484,7 @@
 !        (bmy, 10/30/07)
 !  28 Feb 2012 - R. Yantosca - Removed support for GEOS-3
 !  19 Oct 2012 - R. Yantosca - Now reference gigc_state_met_mod.F90
+!  23 Oct 2012 - R. Yantosca - Add QI, QL to the State_Met object
 !******************************************************************************
 !
       ! References to F90 modules
@@ -591,6 +592,8 @@
       State_Met%DTRAIN   = DTRAIN
       State_Met%MOISTQ   = MOISTQ
       State_Met%OPTD     = OPTDEP
+      State_Met%QI       = QI
+      State_Met%QL       = QL
       State_Met%RH       = RH
       State_Met%SPHU     = SPHU
       State_Met%T        = T

@@ -230,13 +230,36 @@
 !  16 Oct 2012 - R. Yantosca - Renamed Meteorology State object to State_Met
 !  19 Oct 2012 - R. Yantosca - Now reference gigc_state_chm_mod.F90
 !  19 Oct 2012 - R. Yantosca - Now reference gigc_state_met_mod.F90
+!  23 Oct 2012 - R. Yantosca - Add fixes for connecting to GEOS-5 GCM via ESMF
 !EOP
 !------------------------------------------------------------------------------
 !BOC
 !
 ! !LOCAL VARIABLES:
 !
-      LOGICAL, SAVE            :: FIRSTCHEM = .TRUE.
+#if defined( EXTERNAL_GRID ) || defined( EXTERNAL_FORCING )
+      !-----------------------------------------------------------------
+      !     %%%%% CONNECTING TO GEOS-5 GCM via ESMF INTERFACE %%%%%
+      !
+      ! We set FIRSTCHEM=F since we call these routines in the ESMF
+      ! init phase (in gigc_initialization_mod.F90).
+      !
+      ! Define FIRSTJLOP_P saved variable, which will allow us to set
+      ! the JLOOP_PREVIOUS array for the var trop. (bmy, 10/23/12)
+      !-----------------------------------------------------------------
+      LOGICAL, SAVE            :: FIRSTCHEM   = .FALSE.
+      LOGICAL, SAVE            :: FIRSTJLOP_P = .TRUE.
+#else
+      !-----------------------------------------------------------------
+      !              %%%%% TRADITIONAL GEOS-Chem %%%%%
+      !
+      ! Set FIRSTCHEM=T because, which will call the init routines 
+      ! on the very first chemistry timestep.  This is current practice
+      ! (bmy, 10/23/12)
+      !-----------------------------------------------------------------
+      LOGICAL, SAVE            :: FIRSTCHEM   = .TRUE.
+#endif
+
       INTEGER, SAVE            :: CH4_YEAR  = -1
       INTEGER                  :: I, J, JLOOP, L, NPTS, N, MONTH, YEAR
       INTEGER                  :: WAVELENGTH
@@ -296,17 +319,36 @@
       NTLOOP = NLOOP * NVERT
 
       !vartrop fix (dkh, 05/08/11)
-      !Save a copy of JLOP from the previous time step before re-ordering
+      !Save a corpy of JLOP from the previous time step before re-ordering
       !the grid mappings.
       JLOP_PREVIOUS(:,:,:) = JLOP(:,:,:)
 
+      ! Locate the tropopsheric boxes
       CALL RURALBOX( AD, T, AVGW, ALBD )
 
-      !vartrop fix (dkh, 05/08/11)
-      !Use JLOP from this timestep the first time through
-      IF ( FIRSTCHEM ) THEN
-         JLOP_PREVIOUS(:,:,:)= JLOP(:,:,:)
+#if defined( EXTERNAL_GRID ) || defined( EXTERNAL_FORCING )
+      !-----------------------------------------------------------------
+      !     %%%%% CONNECTING TO GEOS-5 GCM via ESMF INTERFACE %%%%%
+      !
+      ! Set JLOP_PREVIOUS with a different IF statement since we have 
+      ! set FIRSTCHEM=F for ESMF interface (bmy, 10/23/12)
+      !-----------------------------------------------------------------
+      IF ( FIRSTJLOP_P ) THEN
+         JLOP_PREVIOUS = JLOP
+         FIRSTJLOP_P   = .FALSE.
       ENDIF
+#else
+      !-----------------------------------------------------------------
+      !              %%%%% TRADITIONAL GEOS-Chem %%%%%
+      !
+      ! Define JLOP_PREVIOUS for the variable tropopause.  If this is
+      ! the very first chemistry timestep, use the current JLOP to
+      ! initialize the JLOP_PREVIOUS array. (bmy, 10/23/12)
+      !-----------------------------------------------------------------
+      IF ( FIRSTCHEM ) THEN
+         JLOP_PREVIOUS = JLOP
+      ENDIF
+#endif
 
       !### Debug
       IF ( LPRT .and. am_I_Root ) THEN

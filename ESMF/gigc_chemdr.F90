@@ -175,19 +175,21 @@ CONTAINS
       BXHEIGHT           = State_Met%BXHEIGHT  ! Grid box height [m]
       CLDF               = State_Met%CLDF      ! 3-D cloud fraction
       CMFMC              = State_Met%CMFMC     ! Cloud mass flux [kg/m2/s]
+      DELP               = State_Met%DELP      ! Pressure thickness [hPa]
       DQIDTMST           = State_Met%DQIDTMST  ! Ice tendency, mst [kg/kg/s]
       DQLDTMST           = State_Met%DQLDTMST  ! H2O tendency, mst [kg/kg/s]
       DQVDTMST           = State_Met%DQVDTMST  ! Vapor tendency, mst [kg/kg/s]
       DTRAIN             = State_Met%DTRAIN    ! Detrainment flux [kg/m2/s]
+      EXTERNAL_PEDGE     = State_Met%PEDGE     ! Pressure @ level edges [hPa]
       MOISTQ             = State_Met%MOISTQ    ! Tendency in sp. hum [kg/kg/s]
-      OPTD               = State_Met%OPTD      ! Visible optical depth [1]
-      DELP               = State_Met%DELP      ! Pressure thickness [hPa]
+      OPTD               = State_Met%OPTD      ! Visible optical depth [1]    
+      QI                 = State_Met%QI        ! Ice mixing ratio [kg/kg]
+      QL                 = State_Met%QL        ! Water mixing ratio [kg/kg]
       RH                 = State_Met%RH        ! Relative humidity [1]
       SPHU               = State_Met%SPHU      ! Specific humidity [kg/kg]
       T                  = State_Met%T         ! Temperature [K]
       TAUCLI             = State_Met%TAUCLI    ! Opt depth of ice clouds [1]
       TAUCLW             = State_Met%TAUCLW    ! Opt depth of h2o clouds [1]
-      EXTERNAL_PEDGE     = State_Met%PEDGE     ! Pressure @ level edges [hPa]
 
       ! Constituents
       STT                = State_Chm%Tracers   ! Advected tracers
