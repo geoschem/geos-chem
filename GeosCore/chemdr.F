@@ -359,7 +359,6 @@
          !---------------------------------
          ! Set global concentration of CH4
          !---------------------------------
-         !PRINT *,"CHMEDR: ICH4=",ICH4," and CH4_YEAR=",CH4_YEAR
          IF ( ICH4 > 0 .and. ( CH4_YEAR /= GET_YEAR() ) ) THEN
 
             ! If CH4 is a SMVGEAR II species, then call GET_GLOBAL_CH4

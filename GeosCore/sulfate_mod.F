@@ -3359,7 +3359,7 @@
 
                !========================================================
                ! ND44 diagnostic: Drydep flux of NH3 [molec/cm2/s]
-               !========================================================             
+               !========================================================
                IF ( ND44 > 0 .and. NH3 > 0d0 ) THEN
                !IF ( NH3 > 0d0 ) THEN
 
@@ -3761,7 +3761,6 @@
       USE TIME_MOD,     ONLY : GET_TS_CHEM
       USE TRACER_MOD,   ONLY : STT, TCVV, XNUMOL
       USE TRACERID_MOD, ONLY : IDTNIT, IDTNITs
-
       USE LOGICAL_MOD,  ONLY : LSOILNOX  
       USE GET_NDEP_MOD, ONLY : SOIL_DRYDEP
 

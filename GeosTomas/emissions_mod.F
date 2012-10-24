@@ -196,7 +196,6 @@
       ! jpp, 3/2/10: Sea-salt emissions of Br2.
       REAL*8                      :: SSA_Br2(IIPAR,JJPAR)
 
-
 #if defined( DEVEL ) || defined( EXTERNAL_GRID ) || defined( EXTERNAL_FORCING )
       TYPE(ChmState), INTENT(INOUT) :: State_Chm   ! Chemistry State object
       !TYPE(MetState), INTENT(INOUT) :: State_Met   ! Meteorology State object
@@ -399,7 +398,7 @@
 
          ! NOx-Ox-HC (w/ or w/o aerosols)
 #if defined( DEVEL ) || defined( EXTERNAL_GRID ) || defined( EXTERNAL_FORCING )
-         write(*,*) 'TRAC_TEND:', shape(State_Chm%TRAC_TEND)
+!         write(*,*) 'TRAC_TEND:', shape(State_Chm%TRAC_TEND)
          CALL EMISSDR( State_Chm%TRAC_TEND, State_Chm%TRAC_BTEND )
 #else
          CALL EMISSDR

@@ -49,6 +49,7 @@
 !  17 Dec 2009 - R. Yantosca - Added ProTeX headers
 !  28 Jan 2010 - C. Carouge, R. Yantosca - Modified for ISORROPIA II
 !  08 Aug 2012 - R. Yantosca - Now align IF statements better
+!  10 Aug 2012 - R. Yantosca - Cosmetic changes
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -184,6 +185,11 @@
 !  30 Jul 2012 - R. Yantosca - Now accept am_I_Root as an argument, and pass
 !                              this down to lower-level chem routines for GIGC
 !  08 Aug 2012 - R. Yantosca - Now align IF statements better
+!  10 Aug 2012 - R. Yantosca - Cosmetic changes
+!  18 Oct 2012 - R. Yantosca - Rename GC_MET argument to State_Met
+!  18 Oct 2012 - R. Yantosca - Rename CHEM_STATE argument to State_Chem
+!  19 Oct 2012 - R. Yantosca - Now reference gigc_state_chm_mod.F90
+!  19 Oct 2012 - R. Yantosca - Now reference gigc_state_met_mod.F90
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -207,9 +213,9 @@
       ! DO_CHEMISTRY begins here!
       !=================================================================
 
-#if defined( DEVEL )
+#if defined( DEVEL ) || defined( EXTERNAL_GRID ) || defined( EXTERNAL_FORCING )
       ! Transfer tracer array to local
-      STT = State_Chm%TRACERS(:,:,:,:N_TRACERS)
+      STT(:,:,:,1:N_TRACERS) = State_Chm%TRACERS(:,:,:,1:N_TRACERS)
 #endif
 
       ! Compute optical depths (except for CH4 simulation)
@@ -232,10 +238,9 @@
             CONCTMPSO4 = STT(:,:,:,IDTSO4)
 #endif
 
-#if defined( DEVEL )
-            ! Call chemistry solver from ESMF interface
+#if defined( DEVEL ) || defined( EXTERNAL_GRID ) || defined( EXTERNAL_FORCING )
+            ! Call chemistry solver for ESMF interface
             CALL CHEMDR( am_I_Root, NI, NJ, NL, State_Met, State_Chm )
-            PRINT *,"DO_CHEMISTRY: Done with CHEMDR"
 #else
             ! Call chemistry solver from traditional driver "main.F"
             CALL CHEMDR( am_I_Root )
@@ -450,7 +455,7 @@
       
 #if defined( DEVEL ) || defined( EXTERNAL_GRID ) || defined( EXTERNAL_FORCING )
       ! Transfer tracer array back to non-local
-      State_Chm%TRACERS(:,:,:,:N_TRACERS) = STT
+      State_Chm%TRACERS(:,:,:,1:N_TRACERS) = STT(:,:,:,1:N_TRACERS)
 #endif
 
       END SUBROUTINE DO_CHEMISTRY

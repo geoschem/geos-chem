@@ -1,4 +1,4 @@
-!------------------------------------------------------------------------------
+ !------------------------------------------------------------------------------
 !          Harvard University Atmospheric Chemistry Modeling Group            !
 !------------------------------------------------------------------------------
 !BOP
@@ -733,6 +733,10 @@
       !=================================================================
       ! Call appropriate emissions routine
       !=================================================================
+#if defined( DEVEL )
+      STT_TMP(:,:,:,:) = STT(:,:,:,IDTDST1:IDTDST4)
+#endif
+
 !prior to TOMAS addition (win, 7/17/09)
 c$$$      IF ( LDEAD ) THEN
 c$$$
@@ -830,6 +834,10 @@ c$$$      ENDIF
             ENDDO
          ENDIF
       ENDIF
+
+#if defined( DEVEL )
+      SFLX(:,:,:,IDTDST1:IDTDST4) = (STT(:,:,:,IDTDST1:IDTDST4)-STT_TMP)/(GET_TS_EMIS()*60.d0)
+#endif
 
       END SUBROUTINE EMISSDUST
 !EOC
@@ -1194,11 +1202,13 @@ c$$$      ENDIF
 !      INTEGER                :: IPOINT(NDSTBIN) = (/3, 2, 2, 2/)
       INTEGER                :: IPOINT(NDSTBIN)        !(win, 8/4/09)
       REAL*4                 :: ARRAY(IIPAR,JJPAR,3)
-      REAL*8, SAVE           :: SRCE_FUNC(IIPAR,JJPAR,3)
       REAL*8                 :: W10M,   DEN,  DIAM,   U_TS0, U_TS
       REAL*8                 :: SRCE_P, DSRC, REYNOL, ALPHA, BETA
       REAL*8                 :: GAMMA,  CW,   DTSRCE, AREA_M2
       CHARACTER(LEN=255)     :: FILENAME
+#if   !defined( DEVEL )
+      REAL*8, SAVE           :: SRCE_FUNC(IIPAR,JJPAR,3)
+#endif
 
       ! Transfer coeff for type natural source  (kg*s2/m5)
 !Prior 4/27/08
@@ -2120,6 +2130,12 @@ c$$$      ENDIF
      &                           'INIT_DUST ("dust_mod.f")')
          ENDIF
       ENDIF
+
+#if defined( DEVEL )
+      ALLOCATE( SRCE_FUNC(IIPAR,JJPAR,3), STAT=AS )
+      IF ( AS /= 0 ) CALL ALLOC_ERR( 'SRCE_FUNC' )
+      SRCE_FUNC = 0.d0
+#endif
 
       ! Reset flag
       IS_INIT = .TRUE.

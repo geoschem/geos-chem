@@ -188,6 +188,9 @@
 !  03 Aug 2012 - R. Yantosca - Move calls to findFreeLUN out of DEVEL block
 !  03 Aug 2012 - R. Yantosca - Now make IU_GEOS a global module variable
 !                              so that we can define it with findFreeLun
+!  15 Oct 2012 - R. Yantosca - Add EXTERNAL_GRID, XTERNAL_FORCING to #ifdef
+!  16 Oct 2012 - R. Yantosca - Don't call CHECK_TIME_STEPS if we are calling
+!                              READ_INPUT_FILE from the ESMF interface
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -218,7 +221,7 @@
       ! Find a free file LUN
       IU_GEOS  = findFreeLUN()
 
-#if   defined( DEVEL )
+#if defined( DEVEL ) || defined( EXTERNAL_GRID ) || defined( EXTERNAL_FORCING )
       ! For ESMF interface to GEOS-5 GCM, we need to add "*___.rc"
       FILENAME = TRIM( FILENAME ) // '___.rc'
 #endif
@@ -371,11 +374,11 @@
 
       ! Make sure all directories are valid
       CALL VALIDATE_DIRECTORIES
-#endif
-#endif
 
       ! Check GEOS-CHEM timesteps
       CALL CHECK_TIME_STEPS( am_I_Root )
+#endif
+#endif
 
       ! Create "diaginfo.dat" and "tracerinfo.dat" files for GAMAP
       CALL DO_GAMAP( DIAGINFO, TRACERINFO )
@@ -990,11 +993,7 @@
 !
 ! !INPUT PARAMETERS:
 !
-      LOGICAL, INTENT(IN) :: am_I_Root   ! Is this the root CPU?
-
-#if defined ( ESMF_ ) && defined( DEVEL )
-!      USE GC_ENVIRONMENT_MOD, ONLY : TRACER_INDEX, TRACER_NAMES
-#endif
+      LOGICAL, INTENT(IN) :: am_I_Root    ! Is this the root CPU?
 ! 
 ! !REVISION HISTORY: 
 !  20 Jul 2004 - R. Yantosca - Initial version
@@ -1007,6 +1006,7 @@
 !  (7 ) Now do not call SET_BIOTRCE anymore; it's obsolete (bmy, 4/5/06)
 !  (8 ) Add SET_BIOTRCE to initialize IDBxxxs. (fp, 2/26/10)
 !  27 Aug 2010 - R. Yantosca - Added ProTeX headers
+!  13 Aug 2012 - R. Yantosca - Now pass CHEM_STATE as an argument (DEVEL only)
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -1028,11 +1028,6 @@
       ! NTRACE
       CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_tracer_menu:2' )
       READ( SUBSTRS(1:N), * ) N_TRACERS
-
-!#if defined( ESMF_ ) && defined( DEVEL )
-!          ALLOCATE( TRACER_INDEX(N_TRACERS) )
-!          ALLOCATE( TRACER_NAMES(N_TRACERS) )
-!#endif      
 
       ! Separator line
       CALL SPLIT_ONE_LINE( SUBSTRS, N, -1, 'read_tracer_menu:3' )
@@ -3187,7 +3182,7 @@ c$$$      WRITE( 6, 100     ) '30-BIN DUST AEROSOLS?       : ', LDUST30
 #elif defined( GRID025x03125 )
       MAX_DYN = 5
 #elif defined( EXTERNAL_FORCING )
-      MAX_DYN = 10
+      MAX_DYN = 60
 #endif
 
       ! If TS_DYN is greater than MAX_DYN, then stop w/ error
@@ -3458,7 +3453,7 @@ c$$$      WRITE( 6, 100     ) '30-BIN DUST AEROSOLS?       : ', LDUST30
       ENDIF
 
       ! Initialize wet deposition tracers
-      IF ( LWETD .or. LCONV ) CALL WETDEPID !( am_I_Root )
+      IF ( LWETD .or. LCONV ) CALL WETDEPID( am_I_Root )
 
 #if   defined( APM )
       ! Initialize wet deposition tracers for APM

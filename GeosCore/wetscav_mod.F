@@ -636,7 +636,6 @@
       !=================================================================
       
       ! Saturation vap press of Ice [Pa] -- divide by 100 for [hPa]
-!      write(*,*) 'E_ICE:', TK
       VALUE = ( 10d0**( A/TK + B ) ) / 100d0 
 
       END FUNCTION E_ICE
@@ -4324,7 +4323,6 @@
       USE LOGICAL_MOD,       ONLY : LSOILNOX
       USE GET_NDEP_MOD,      ONLY : SOIL_WETDEP
 
-
       USE CMN_SIZE_MOD            ! Size parameters
       USE CMN_DIAG_MOD            ! Diagnostic arrays and switches
       USE COMMSOIL_MOD
@@ -4730,9 +4728,7 @@
                CALL DO_RAINOUT_ONLY( LS,  I,      J,         L,   
      &                               IDX, ERRMSG, F_RAINOUT, K_RAIN,  
      &                               DT,  STT,    DSTT               )
-            
-
-		ENDIF
+            ENDIF
 
             !==============================================================
             ! (5)  W a s h o u t   i n   t h e   m i d d l e   l e v e l s
@@ -4772,9 +4768,7 @@
      &                               QDOWN,     Q,    F_WASHOUT, 
      &                               F_RAINOUT, DT,   PDOWN,     
      &                               STT,       DSTT             )
-            
-
-		ENDIF
+            ENDIF
 
             !===========================================================
             ! (6)  N o   D o w n w a r d   P r e c i p i t a t i o n 
@@ -4840,8 +4834,7 @@
                CALL DO_WASHOUT_AT_SFC( LS,  I,      J,     L,         
      &                                 IDX, ERRMSG, QDOWN, F,   
      &                                 DT,  STT,    DSTT      )
-            ENDIF   
-
+            ENDIF    
          ENDIF
 
          !==============================================================
