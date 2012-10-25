@@ -12,8 +12,21 @@
 ! !INTERFACE:
 !
 #if defined( DEVEL ) || defined( EXTERNAL_GRID ) || defined( EXTERNAL_FORCING )
-      SUBROUTINE CHEMDR( am_I_Root, NI, NJ, NL, State_Met, State_Chm )
+      !-----------------------------------------------------------------
+      !     %%%%% CONNECTING TO GEOS-5 GCM via ESMF INTERFACE %%%%%
+      !
+      ! Call CHEMDR with dimension values as well as the Meteorology 
+      ! State and Chemistry State objects. (bmy, 10/25/12)
+      !-----------------------------------------------------------------
+      SUBROUTINE CHEMDR( am_I_Root, NI,        NJ, NL, 
+     &                   State_Met, State_Chm, RC      )
 #else
+      !-----------------------------------------------------------------
+      !              %%%%% TRADITIONAL GEOS-Chem %%%%%
+      !
+      ! Current practice is to call DO_CHEMISTRY with am_I_Root as the
+      ! only argument. (bmy, 10/25/12)
+      !-----------------------------------------------------------------
       SUBROUTINE CHEMDR( am_I_Root )
 #endif
 !
@@ -52,6 +65,13 @@
       USE CMN_DEP_MOD                ! FRCLND
 
 #if defined( DEVEL ) || defined( EXTERNAL_GRID ) || defined( EXTERNAL_FORCING )
+      !-----------------------------------------------------------------
+      !     %%%%% CONNECTING TO GEOS-5 GCM via ESMF INTERFACE %%%%%
+      !
+      ! We need to reference some modules particular to the Grid-
+      ! Independent GEOS-Chem implementation here. (bmy, 10/25/12)
+      !-----------------------------------------------------------------
+      USE GIGC_ErrCode_Mod
       USE GIGC_State_Chm_Mod,   ONLY : ChmState
       USE GIGC_State_Met_Mod,   ONLY : MetState
 #endif
@@ -231,6 +251,8 @@
 !  19 Oct 2012 - R. Yantosca - Now reference gigc_state_chm_mod.F90
 !  19 Oct 2012 - R. Yantosca - Now reference gigc_state_met_mod.F90
 !  24 Oct 2012 - R. Yantosca - Add fixes for connecting to GEOS-5 GCM via ESMF
+!  25 Oct 2012 - R. Yantosca - Document #ifdefs for the GIGC implementation
+!  25 Oct 2012 - R. Yantosca - Now add RC (success/failure) as an argument
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -254,6 +276,18 @@
       !=================================================================
       ! CHEMDR begins here!
       !=================================================================
+
+#if defined( DEVEL ) || defined( EXTERNAL_GRID ) || defined( EXTERNAL_FORCING )
+      !-----------------------------------------------------------------
+      !     %%%%% CONNECTING TO GEOS-5 GCM via ESMF INTERFACE %%%%%
+      !
+      ! Initialize the RC argument (bmy, 10/25/12)
+      !-----------------------------------------------------------------
+
+      ! Assume success
+      RC     = GIGC_SUCCESS
+#endif
+
 
       ! Set some size variables
       NLAT   = JJPAR
@@ -432,8 +466,28 @@
          ! Flag certain chemical species
          !-------------------------------
 #if defined( DEVEL )
+         !--------------------------------------------------------------
+         !  %%%%% TESTING GIGC INTERFACE FROM EXISTING GEOS-CHEM %%%%%
+         !
+         ! Here we are not using the ESMF interface to drive the
+         ! GEOS-Chem chemistry, but instead are compiling the regular
+         ! GEOS-Chem with the DEVEL=yes tag.  In this case, pass
+         ! the Chemistry State object to routine SETTRACE. 
+         !
+         ! NOTE: This is a temporary situation, as we will eventually
+         ! use the GEOS-Chem Chemistry State object instead of the
+         ! existing tracer array STT. (bmy, 10/25/12)
+         !--------------------------------------------------------------
+
+         !
          CALL SETTRACE( State_Chm, am_I_Root )
 #else
+         !--------------------------------------------------------------
+         !            %%%%% TRADITIONAL GEOS-Chem %%%%%
+         !
+         ! Current practice is to call SETTRACE with am_I_Root as the
+         ! only argument. (bmy, 10/25/12)
+         !--------------------------------------------------------------
          CALL SETTRACE( am_I_Root )
 #endif
 
@@ -510,7 +564,6 @@
       !=================================================================
 
 #if defined( EXTERNAL_GRID ) || defined( EXTERNAL_FORCING )
-
       !-----------------------------------------------------------------
       !     %%%%% CONNECTING TO GEOS-5 GCM via ESMF INTERFACE %%%%%
       !
@@ -710,18 +763,6 @@
       IF ( LPRT .and. am_I_Root ) THEN
          CALL DEBUG_MSG( '### CHEMDR: after PHYSPROC' )
       ENDIF
-
-!%%!  ltm: As of v9-01-03k, old SCHEM.F is now depreciated, and it and
-!%%!  the routines it called will likely be removed in a later version.
-!%%!  SCHEM applies a simplified strat chemistry in order
-!%%!  to prevent species from building up in the stratosphere
-!%%!  
-!%%!  ! NOTE: SCHEM still needs to be called whether or not LINOZ is
-!%%!  ! used.  LINOZ is just a replacement for SYNOZ. (bmy, 4/28/10)
-!%%!  CALL SCHEM
-!%%!
-!%%!  !### Debug
-!%%!  IF ( LPRT ) CALL DEBUG_MSG( '### CHEMDR: after SCHEM' )
 
       !=================================================================
       ! Call LUMP which lumps the species together after chemistry

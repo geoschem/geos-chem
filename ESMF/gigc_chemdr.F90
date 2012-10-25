@@ -105,6 +105,9 @@ CONTAINS
 !  19 Oct 2012 - R. Yantosca - Now reference gigc_state_chm_mod.F90
 !  19 Oct 2012 - R. Yantosca - Now reference gigc_state_met_mod.F90
 !  22 Oct 2012 - R. Yantosca - Renamed to GIGC_Do_Chem
+!  25 Oct 2012 - R. Yantosca - Now convert units of State_Chm%TRACERS from 
+!                              [v/v] -> [kg] before calling G-C chemistry 
+!                              (and from [kg] -> [v/v] after chemistry)
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -119,12 +122,14 @@ CONTAINS
 
 !<><><><><><><><><><><><><><><><><><><><><><>
 ! TEMPORARY INITIALIZATION SECTION
-      IIPAR = NI
-      JJPAR = NJ
-      LLPAR = NL
+      IIPAR      = NI
+      JJPAR      = NJ
+      LLPAR      = NL
+      LLTROP     = NL
+      LLTROP_FIX = NL
 
-      RRATE = 0.E0
-      TRATE = 0.E0
+      RRATE      = 0.E0
+      TRATE      = 0.E0
 
       !======================================================================
       ! Set 2-D variables
@@ -163,9 +168,14 @@ CONTAINS
       !======================================================================
       ! Set 3-D variables
       !
-      ! NOTE: This is a stopgap measure for testing.  Eventually we will
-      ! carry the meteorology state down to all G-C routines.  in order to
-      ! test, we need to populate the G-C module arrays from the met state.
+      ! %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+      ! %%% NOTE: This is a stopgap measure for testing.  Eventually we   %%%
+      ! %%% will carry the Meteorology State and Chemistry State objects  %%%
+      ! %%% down to all G-C routines.   In order to continue testing the  %%%
+      ! %%% GIGC without disrupting existing workflow, we must populate   %%%
+      ! %%% G-C module arays from the Meteorology and Chemistry States.   %%%
+      ! %%% (bmy, 10/25/12)                                               %%%
+      ! %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
       !======================================================================
 
       ! Met fields
@@ -192,40 +202,64 @@ CONTAINS
       TAUCLW             = State_Met%TAUCLW    ! Opt depth of h2o clouds [1]
 
       ! Constituents
-      STT                = State_Chm%Tracers   ! Advected tracers
       CSPEC_FULL         = State_Chm%Species   ! Chemical species
 
       !======================================================================
       ! Call the GEOS-Chem Chemistry routines
+      !
+      ! %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+      ! %%% NOTE: The values of State_Chm%TRACERS are taken from the ESMF %%%
+      ! %%% Internal State, which has units of [v/v].  We need to convert %%%
+      ! %%% this to [kg] before passing to the GEOS-Chem chemistry.  The  %%%
+      ! %%% GEOS-Chem code expects tracers to be in [kg] at the point     %%%
+      ! %%% where the chemistry routines are called. (bmy, 10/25/12)      %%%
+      ! %%%                                                               %%%
+      ! %%% NOTE: For now we initialize the GEOS-Chem tracer array STT    %%%
+      ! %%% with State_Chm%TRACERS within DO_CHEMISTRY (bmy, 10/25/12)    %%%
+      ! %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
       !======================================================================
+
+      !### Debug, print values in v/v before chem
       IF ( am_I_Root ) THEN
-         WRITE(6,*) '##### GIGC_Do_Chem, TRC_OX before chem'
+         WRITE(6,*) '##### GIGC_Do_Chem, TRC_OX before chem [v/v]'
          WRITE(6,*) State_Chm%Tracers(1,1,:,2)
       ENDIF
 
       ! If we are doing chemistry
       IF ( LCHEM ) THEN
 
-         ! The tracer concentrations from the import state have units of v/v;
-         ! we must convert these to kg before calling the chemistry
-         CALL Convert_Units( 2, N_TRACERS, TCVV, AD, STT )
+         ! The tracer concentrations in State_Chm%TRACERS state have units 
+         ! of [v/v] (since these come from the ESMF internal state).  We need
+         ! to convert these to [kg] before calling the GEOS-Chem chemistry.
+         CALL Convert_Units( 2, N_TRACERS, TCVV, AD, State_Chm%Tracers )
 
-         ! Call the solver
-         CALL Do_Chemistry( am_I_Root, NI, NJ, NL, State_Chm, State_Met )
+         ! Call the GEOS-Chem chemistry routines
+         CALL Do_Chemistry( am_I_Root, NI, NJ, NL, State_Chm, State_Met, RC )
 
-         ! Convert tracers back to v/v after chemistry
-         CALL Convert_Units( 1,  N_TRACERS, TCVV, AD, STT )
+         ! Convert the tracer concentrations in State_Chm%TRACERS back to
+         ! [v/v] so that they can be stored in the ESMF internal state
+         ! for the next chemistry timestep.
+         CALL Convert_Units( 1, N_TRACERS, TCVV, AD, State_Chm%Tracers )
 
       ENDIF
 
       !======================================================================
       ! Reset 3-D variables
+      !
+      ! %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+      ! %%% NOTE: This is a stopgap measure for testing.  Eventually we   %%%
+      ! %%% will carry the Meteorology State and Chemistry State objects  %%%
+      ! %%% down to all G-C routines.   In order to continue testing the  %%%
+      ! %%% GIGC without disrupting existing workflow, we must populate   %%%
+      ! %%% G-C module arays from the Meteorology and Chemistry States.   %%%
+      ! %%% (bmy, 10/25/12)                                               %%%
+      ! %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
       !======================================================================
 
       ! Save chemistry output for next timestep
-      State_Chm%Tracers = STT
       State_Chm%Species = CSPEC_FULL
 
+      !### Debug
       IF ( am_I_Root ) THEN
          WRITE(6,*) '##### GIGC_Do_Chem, TRC_OX after chem'
          WRITE(6,*) State_Chm%Tracers(1,1,:,2)

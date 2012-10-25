@@ -69,8 +69,21 @@
 ! !INTERFACE:
 !
 #if defined( DEVEL ) || defined( EXTERNAL_GRID ) || defined( EXTERNAL_FORCING )
-      SUBROUTINE DO_CHEMISTRY( am_I_Root,NI,NJ,NL,State_Chm,State_Met )
+      !-----------------------------------------------------------------
+      !     %%%%% CONNECTING TO GEOS-5 GCM via ESMF INTERFACE %%%%%
+      !
+      ! Call DO_CHEMISTRY with dimension values as well as the 
+      ! Meteorology State and Chemistry State objects. (bmy, 10/25/12)
+      !-----------------------------------------------------------------
+      SUBROUTINE DO_CHEMISTRY( am_I_Root, NI,        NJ, NL, 
+     &                         State_Chm, State_Met, RC      )
 #else
+      !-----------------------------------------------------------------
+      !              %%%%% TRADITIONAL GEOS-Chem %%%%%
+      !
+      ! Current practice is to call DO_CHEMISTRY with am_I_Root as the
+      ! only argument. (bmy, 10/25/12)
+      !-----------------------------------------------------------------
       SUBROUTINE DO_CHEMISTRY( am_I_Root )
 #endif
 !
@@ -124,16 +137,41 @@
       USE CMN_DIAG_MOD          ! NDxx flags
 
 #if defined( DEVEL ) || defined( EXTERNAL_GRID ) || defined( EXTERNAL_FORCING )
+      !-----------------------------------------------------------------
+      !     %%%%% CONNECTING TO GEOS-5 GCM via ESMF INTERFACE %%%%%
+      !
+      ! We need to reference some modules particular to the Grid-
+      ! Independent GEOS-Chem implementation here. (bmy, 10/25/12)
+      !-----------------------------------------------------------------
+      USE GIGC_ErrCode_Mod
       USE GIGC_State_Chm_Mod, ONLY : ChmState
       USE GIGC_State_Met_Mod, ONLY : MetState
 #endif
 !
-! !INPUT VARIABLES:
+! !INPUT PARAMETERS:
 !
-      LOGICAL, INTENT(IN) :: am_I_Root   ! Is this the root CPU?
+      LOGICAL,        INTENT(IN)    :: am_I_Root   ! Is this the root CPU?
 #if defined( DEVEL ) || defined( EXTERNAL_GRID ) || defined( EXTERNAL_FORCING )
-      INTEGER, INTENT(IN) :: NI, NJ, NL  ! # of lons, lats, levels on this CPU
+      INTEGER,        INTENT(IN)    :: NI          ! # of lons on this PET
+      INTEGER,        INTENT(IN)    :: NJ          ! # of lats on this PET 
+      INTEGER,        INTENT(IN)    :: NL          ! # of levels on this PET
+      TYPE(MetState), INTENT(IN)    :: State_Met   ! Meteorology State object
+!
+! !INPUT/OUTPUT PARAMETERS:
+!
+      TYPE(ChmState), INTENT(INOUT) :: State_Chm   ! Chemistry State object
+!
+! !OUTPUT PARAMETERS:
+!
+      INTEGER,        INTENT(OUT)   :: RC          ! Success or failure
 #endif
+!
+! !REMARKS:
+!  (1) State_Chm%TRACERS needs to enter this routine w/ units of [kg].
+!  (2) State_Chm%SPECIES needs to enter this routine w/ units of [molec/cm3].
+!  (3) As of 25 Oct 2012, we have not replaced the met-field arrays from
+!       dao_mod.F with the fields in State_Met.  This will be done in a
+!       piecemeal fashion so as not to disrupt the existing G-C workflow.
 !
 ! !REVISION HISTORY: 
 !  (1 ) Now reference DELP, T from "dao_mod.f" since we need to pass this
@@ -186,26 +224,48 @@
 !  18 Oct 2012 - R. Yantosca - Rename CHEM_STATE argument to State_Chem
 !  19 Oct 2012 - R. Yantosca - Now reference gigc_state_chm_mod.F90
 !  19 Oct 2012 - R. Yantosca - Now reference gigc_state_met_mod.F90
+!  25 Oct 2012 - R. Yantosca - Add comments for GIGC #ifdefs
+!  25 Oct 2012 - R. Yantosca - Add the RC output argument for the GIGC
 !EOP
 !------------------------------------------------------------------------------
 !BOC
 !
 ! !LOCAL VARIABLES:
 ! 
-      LOGICAL, SAVE :: FIRST = .TRUE.
       INTEGER       :: N_TROP, MONTH, YEAR, WAVELENGTH
 
-#if defined( DEVEL ) || defined( EXTERNAL_GRID ) || defined( EXTERNAL_FORCING )
-      TYPE(ChmState), INTENT(INOUT) :: State_Chm
-      TYPE(MetState), INTENT(IN)    :: State_Met
-#endif
+      ! SAVEd variables
+      LOGICAL, SAVE :: FIRST = .TRUE.
 
       !=================================================================
       ! DO_CHEMISTRY begins here!
       !=================================================================
 
 #if defined( DEVEL ) || defined( EXTERNAL_GRID ) || defined( EXTERNAL_FORCING )
-      ! Transfer tracer array to local
+      !-----------------------------------------------------------------
+      !     %%%%% CONNECTING TO GEOS-5 GCM via ESMF INTERFACE %%%%%
+      !
+      ! At present (25 Oct 2012), we have not yet completely replaced 
+      ! the GEOS-Chem arrays with fields from the Chemistry State
+      ! (i.e. State_Chm) and Meteorology State (i.e. State_Met) 
+      ! objects.  In order to continue GIGC development without 
+      ! disrupting the existing GEOS-Chem workflow, we shall copy the 
+      ! tracer array State_Chm%TRACERS to STT before chemistry. 
+      !
+      ! Also note: State_Chm%TRACERS needs to enter this routine with
+      ! units of [kg].  If we are calling this routine from the 
+      ! traditional "main.F" driver, then the tracers are already in
+      ! [kg] and no further unit conversion is necessary.  If on the
+      ! other hand we are calling this routine from the ESMF interface,
+      ! then we need to convert State_Chm%TRACERS from [v/v] to [kg]
+      ! in the calling routine GIGC_Do_Chem (in ESMF/gigc_chemdr.F90).
+      ! (bmy, 10/24/12) 
+      !-----------------------------------------------------------------
+
+      ! Assume success
+      RC = GIGC_SUCCESS
+
+      ! Initialize GEOS-Chem tracer array [kg] from Chemistry State object
       STT(:,:,:,1:N_TRACERS) = State_Chm%TRACERS(:,:,:,1:N_TRACERS)
 #endif
 
@@ -225,10 +285,23 @@
          IF ( ITS_A_FULLCHEM_SIM() ) THEN 
 
 #if defined( DEVEL ) || defined( EXTERNAL_GRID ) || defined( EXTERNAL_FORCING )
-            ! Call chemistry solver for ESMF interface
-            CALL CHEMDR( am_I_Root, NI, NJ, NL, State_Met, State_Chm )
+            !-----------------------------------------------------------
+            !  %%%%% CONNECTING TO GEOS-5 GCM via ESMF INTERFACE %%%%%
+            ! 
+            ! Call CHEMDR (the G-C chemistry driver routine) with
+            ! local dimension values and the the Meteorology and 
+            ! Chemistry State objects.  Have CHEMDR return success or
+            ! failure via the RC argument. (bmy, 10/25/12)
+            !-----------------------------------------------------------
+            CALL CHEMDR( am_I_Root, NI,        NJ, NL, 
+     &                   State_Met, State_Chm, RC      )
 #else
-            ! Call chemistry solver from traditional driver "main.F"
+            !-----------------------------------------------------------
+            !             %%%%% TRADITIONAL GEOS-Chem %%%%%
+            !
+            ! Current practice is to call CHEMDR with am_I_Root as the
+            ! only argument. (bmy, 10/25/12)
+            !-----------------------------------------------------------
             CALL CHEMDR( am_I_Root )
 #endif
 
@@ -436,7 +509,27 @@
       ENDIF
       
 #if defined( DEVEL ) || defined( EXTERNAL_GRID ) || defined( EXTERNAL_FORCING )
-      ! Transfer tracer array back to non-local
+      !-----------------------------------------------------------------
+      !     %%%%% CONNECTING TO GEOS-5 GCM via ESMF INTERFACE %%%%%
+      !
+      ! At present (25 Oct 2012), we have not yet completely replaced
+      ! the GEOS-Chem arrays with fields from the Chemistry State 
+      ! (i.e. State_Chm) and Meteorology State (i.e. State_Met)
+      ! objects.  In order to continue GIGC development without 
+      ! disrupting the existing GEOS-Chem workflow, we shall copy the 
+      ! tracer array STT back to State_Chm%TRACERS after chemistry. 
+      !
+      ! Also note: State_Chm%TRACERS needs to leave this routine with
+      ! units of [kg].  If we are calling this routine from the 
+      ! traditional "main.F" driver, then the tracers are already in
+      ! [kg] and no further unit conversion is necessary.  If on the
+      ! other hand we are calling this routine from the ESMF interface,
+      ! then we need to convert State_Chm%TRACERS from [kg] to [v/v]
+      ! in the calling routine GIGC_Do_Chem (in ESMF/gigc_chemdr.F90).
+      ! (bmy, 10/24/12) 
+      !-----------------------------------------------------------------
+
+      ! Reset Chemistry State tracers [kg] from GEOS-Chem tracer array
       State_Chm%TRACERS(:,:,:,1:N_TRACERS) = STT(:,:,:,1:N_TRACERS)
 #endif
 
