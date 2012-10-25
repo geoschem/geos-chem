@@ -269,7 +269,7 @@
       ! chemistry routines to function properly.  Therefore, call
       ! COPY_FULL_TROP from tropopause_mod.F every time.
       !-----------------------------------------------------------------
-      CALL COPY_FULL_TROP( am_I_Root )
+      CALL COPY_FULL_TROP()
 
 #else
       !-----------------------------------------------------------------
@@ -286,7 +286,7 @@
       !    (1 ) copy CSPEC_FULL to CSPEC depending on
       !         READ_CSPEC (hotp, 2/25/09)
       !-----------------------------------------------------------------
-      IF ( FIRSTCHEM .or. READ_CSPEC ) CALL COPY_FULL_TROP( am_I_Root )
+      IF ( FIRSTCHEM .or. READ_CSPEC ) CALL COPY_FULL_TROP()
 
 #endif
 
