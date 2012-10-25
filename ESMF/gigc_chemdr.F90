@@ -53,7 +53,8 @@ CONTAINS
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE GIGC_Do_Chem( State_Chm, State_Met, am_I_Root, NI, NJ, NL, NCNST )
+  SUBROUTINE GIGC_Do_Chem( State_Chm, State_Met, am_I_Root, NI, &
+                           NJ,        NL,        NCNST,     RC )
 !
 ! !USES:
 !
@@ -90,7 +91,7 @@ CONTAINS
 !
 ! !OUTPUT PARAMETERS:
 !
-    ! None yet
+    INTEGER,        INTENT(OUT)   :: RC          ! Success or failure
 !
 ! !REMARKS:
 !  NOTE: Eventually we will replace all met field arrays with the
@@ -220,10 +221,10 @@ CONTAINS
       !======================================================================
 
       !### Debug, print values in v/v before chem
-      IF ( am_I_Root ) THEN
-         WRITE(6,*) '##### GIGC_Do_Chem, TRC_OX before chem [v/v]'
-         WRITE(6,*) State_Chm%Tracers(1,1,:,2)
-      ENDIF
+      !IF ( am_I_Root ) THEN
+      !   WRITE(6,*) '##### GIGC_Do_Chem, TRC_OX before chem [v/v]'
+      !   WRITE(6,*) State_Chm%Tracers(1,1,:,2)
+      !ENDIF
 
       ! If we are doing chemistry
       IF ( LCHEM ) THEN
@@ -260,10 +261,10 @@ CONTAINS
       State_Chm%Species = CSPEC_FULL
 
       !### Debug
-      IF ( am_I_Root ) THEN
-         WRITE(6,*) '##### GIGC_Do_Chem, TRC_OX after chem'
-         WRITE(6,*) State_Chm%Tracers(1,1,:,2)
-      ENDIF
+      !IF ( am_I_Root ) THEN
+      !   WRITE(6,*) '##### GIGC_Do_Chem, TRC_OX after chem'
+      !   WRITE(6,*) State_Chm%Tracers(1,1,:,2)
+      !ENDIF
 
     END SUBROUTINE GIGC_Do_Chem
 !EOC
