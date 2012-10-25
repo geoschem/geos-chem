@@ -494,7 +494,9 @@
          ELAPSED_TODAY = ( HOUR * 3600 ) + ( MINUTE * 60 )
 
          !### Debug
-         IF ( prtDebug ) CALL DEBUG_MSG( '### MAIN: a SET_CURRENT_TIME' )
+         IF ( prtDebug ) THEN
+            CALL DEBUG_MSG( '### MAIN: a SET_CURRENT_TIME' )
+         ENDIf
 
          !==============================================================
          !   ***** W R I T E   D I A G N O S T I C   F I L E S *****
@@ -929,7 +931,9 @@
                ENDIF
       
                !### Debug
-               IF ( prtDebug ) CALL DEBUG_MSG( '### MAIN: a CONVECTION' )
+               IF ( prtDebug ) THEN
+                  CALL DEBUG_MSG( '### MAIN: a CONVECTION' )
+               ENDIF
             ENDIF 
          ENDIF 
 
