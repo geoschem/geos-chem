@@ -230,46 +230,26 @@
 !  16 Oct 2012 - R. Yantosca - Renamed Meteorology State object to State_Met
 !  19 Oct 2012 - R. Yantosca - Now reference gigc_state_chm_mod.F90
 !  19 Oct 2012 - R. Yantosca - Now reference gigc_state_met_mod.F90
-!  23 Oct 2012 - R. Yantosca - Add fixes for connecting to GEOS-5 GCM via ESMF
+!  24 Oct 2012 - R. Yantosca - Add fixes for connecting to GEOS-5 GCM via ESMF
 !EOP
 !------------------------------------------------------------------------------
 !BOC
 !
 ! !LOCAL VARIABLES:
 !
-#if defined( EXTERNAL_GRID ) || defined( EXTERNAL_FORCING )
-      !-----------------------------------------------------------------
-      !     %%%%% CONNECTING TO GEOS-5 GCM via ESMF INTERFACE %%%%%
-      !
-      ! We set FIRSTCHEM=F since we call these routines in the ESMF
-      ! init phase (in gigc_initialization_mod.F90).
-      !
-      ! Define FIRSTJLOP_P saved variable, which will allow us to set
-      ! the JLOOP_PREVIOUS array for the var trop. (bmy, 10/23/12)
-      !-----------------------------------------------------------------
-      LOGICAL, SAVE            :: FIRSTCHEM   = .FALSE.
-      LOGICAL, SAVE            :: FIRSTJLOP_P = .TRUE.
-#else
-      !-----------------------------------------------------------------
-      !              %%%%% TRADITIONAL GEOS-Chem %%%%%
-      !
-      ! Set FIRSTCHEM=T because, which will call the init routines 
-      ! on the very first chemistry timestep.  This is current practice
-      ! (bmy, 10/23/12)
-      !-----------------------------------------------------------------
-      LOGICAL, SAVE            :: FIRSTCHEM   = .TRUE.
-#endif
+      ! Scalars
+      INTEGER       :: I, J, JLOOP, L, NPTS, N, MONTH, YEAR
+      INTEGER       :: WAVELENGTH
+      INTEGER       :: DATE  
 
-      INTEGER, SAVE            :: CH4_YEAR  = -1
-      INTEGER                  :: I, J, JLOOP, L, NPTS, N, MONTH, YEAR
-      INTEGER                  :: WAVELENGTH
-      INTEGER                  :: DATE                         
-      INTEGER, SAVE            :: DATE_PREV = -1
+      ! SAVEd variables
+      LOGICAL, SAVE :: FIRSTCHEM   = .TRUE.
+      INTEGER, SAVE :: CH4_YEAR  = -1
+      INTEGER, SAVE :: DATE_PREV = -1
 
       ! To use CSPEC_FULL restart (dkh, 02/12/09) 
-      LOGICAL                  :: IT_EXISTS 
-
-      REAL :: START,FINISH
+      LOGICAL       :: IT_EXISTS
+      REAL          :: START,FINISH
 
       !=================================================================
       ! CHEMDR begins here!
@@ -294,6 +274,21 @@
       !=================================================================
       ! Open "smv2.log" output file and read chem mechanism switches
       !=================================================================
+
+#if defined( EXTERNAL_GRID ) || defined( EXTERNAL_FORCING )
+      !-----------------------------------------------------------------
+      !     %%%%% CONNECTING TO GEOS-5 GCM via ESMF INTERFACE %%%%%
+      !
+      ! Do nothing, since we will call READER etc. from the init 
+      ! method of the ESMF interface (bmy, 10/24/12)
+      !-----------------------------------------------------------------
+#else
+      !-----------------------------------------------------------------
+      !              %%%%% TRADITIONAL GEOS-Chem %%%%%
+      !
+      ! Call READER to read chemistry options from mglob.dat.  This is
+      ! current practice in the std GEOS-Chem (bmy, 10/24/12)
+      !-----------------------------------------------------------------
       IF ( FIRSTCHEM ) THEN
 
          ! Read from data file mglob.dat
@@ -308,6 +303,7 @@
          ! have defined the GEOS-CHEM mechanism) (bdf, bmy, 4/21/03)
          NCS = NCSURBAN
       ENDIF
+#endif
 
       !=================================================================      
       ! Call RURALBOX, which defines tropospheric boxes to be sent to
@@ -326,29 +322,11 @@
       ! Locate the tropopsheric boxes
       CALL RURALBOX( AD, T, AVGW, ALBD )
 
-#if defined( EXTERNAL_GRID ) || defined( EXTERNAL_FORCING )
-      !-----------------------------------------------------------------
-      !     %%%%% CONNECTING TO GEOS-5 GCM via ESMF INTERFACE %%%%%
-      !
-      ! Set JLOP_PREVIOUS with a different IF statement since we have 
-      ! set FIRSTCHEM=F for ESMF interface (bmy, 10/23/12)
-      !-----------------------------------------------------------------
-      IF ( FIRSTJLOP_P ) THEN
-         JLOP_PREVIOUS = JLOP
-         FIRSTJLOP_P   = .FALSE.
-      ENDIF
-#else
-      !-----------------------------------------------------------------
-      !              %%%%% TRADITIONAL GEOS-Chem %%%%%
-      !
-      ! Define JLOP_PREVIOUS for the variable tropopause.  If this is
-      ! the very first chemistry timestep, use the current JLOP to
-      ! initialize the JLOP_PREVIOUS array. (bmy, 10/23/12)
-      !-----------------------------------------------------------------
+      ! For the first chemistry timestep only, save JLOP into 
+      ! JLOP_PREVIOUS, because there is no previous timestep.
       IF ( FIRSTCHEM ) THEN
          JLOP_PREVIOUS = JLOP
       ENDIF
-#endif
 
       !### Debug
       IF ( LPRT .and. am_I_Root ) THEN
@@ -372,6 +350,22 @@
       !=================================================================
       ! Do the following only on the first call ...
       !=================================================================
+
+#if defined( EXTERNAL_GRID ) || defined( EXTERNAL_FORCING )
+      !-----------------------------------------------------------------
+      !     %%%%% CONNECTING TO GEOS-5 GCM via ESMF INTERFACE %%%%%
+      !
+      ! Do nothing, since we will call these setup routines from the 
+      ! init method of the ESMF interface (bmy, 10/24/12)
+      !-----------------------------------------------------------------
+#else
+      !-----------------------------------------------------------------
+      !              %%%%% TRADITIONAL GEOS-Chem %%%%%
+      !
+      ! Call the following chemistry setup routines only on the very
+      ! first chemistry timestep.  This is current practice in the
+      ! std GEOS-Chem. (bmy, 10/24/12)
+      !-----------------------------------------------------------------
       IF ( FIRSTCHEM ) THEN
 
          !---------------------------------
@@ -437,7 +431,7 @@
          !-------------------------------
          ! Flag certain chemical species
          !-------------------------------
-#if defined( DEVEL ) || defined( EXTERNAL_GRID ) || defined( EXTERNAL_FORCING )
+#if defined( DEVEL )
          CALL SETTRACE( State_Chm, am_I_Root )
 #else
          CALL SETTRACE( am_I_Root )
@@ -458,28 +452,41 @@
             CALL DEBUG_MSG( '### CHEMDR: after SETEMDEP' )
          ENDIF
       ENDIF
+#endif
 
       !=================================================================
       ! At the beginning of each new day, call SETUP_PLANEFLIGHT
       ! to see if there are any plane flight points to be processed
       !=================================================================
 
+#if defined( DEVEL ) || defined( EXTERNAL_GRID ) || defined( EXTERNAL_FORCING )
+      !-----------------------------------------------------------------
+      !     %%%%% CONNECTING TO GEOS-5 GCM via ESMF INTERFACE %%%%%
+      !
+      ! Do not call SETUP_PLANEFLIGHT, since we will not use this
+      ! diagnostic with the ESMF interface. (bmy, 10/24/12)
+      !-----------------------------------------------------------------
+#else
+      !-----------------------------------------------------------------
+      !              %%%%% TRADITIONAL GEOS-Chem %%%%%
+      !
+      ! If this is the first chem timestep of a new day, then we need 
+      ! to call SETUP_PLANEFLIGHT.  If chemistry is turned on, then 
+      ! we need to place this call here, so as to make sure that the 
+      ! chemical mechanism files (read by READER and READCHEM) have 
+      ! been loaded.  This is current practice in the std GEOS-Chem.
+      ! (bmy, 10/24/12)
+      !-----------------------------------------------------------------
+
       ! Get todays' date
       DATE = GET_NYMD()
-    
-      ! If this is the first chem timestep of a new day, then we need to 
-      ! call SETUP_PLANEFLIGHT.  If chemistry is turned on, then we need
-      ! to place this call here, so as to make sure that the chemical
-      ! mechanism files (read by READER and READCHEM) have been loaded.
+
       IF ( ND40 .and. DATE /= DATE_PREV ) THEN
-#if defined( DEVEL ) || defined( EXTERNAL_GRID ) || defined( EXTERNAL_FORCING )
-         ! Don't call SETUP_PLANEFLIGHT when connecting to GEOS-5 GCM
-#else
-         ! Only call SETUP_PLANEFLIGHT for the traditional G-C
          CALL SETUP_PLANEFLIGHT( am_I_Root )
          DATE_PREV = DATE
-#endif
       ENDIF
+
+#endif
 
       !================================================================
       ! Get concentrations of aerosols in [kg/m3] 
@@ -501,15 +508,65 @@
       ! (1) The call to GASCONC is modified to use CSPEC_FULL restart 
       !     file (dkh, hotp, ccc,2/26/09)
       !=================================================================
-      IT_EXISTS = .FALSE.
-      IF ( FIRSTCHEM .AND. LSVCSPEC ) THEN 
 
+#if defined( EXTERNAL_GRID ) || defined( EXTERNAL_FORCING )
+
+      !-----------------------------------------------------------------
+      !     %%%%% CONNECTING TO GEOS-5 GCM via ESMF INTERFACE %%%%%
+      !
+      ! Call GASCONC with FIRSTCHEM = .FALSE. and IS_EXISTS = .FALSE.
+      ! Within GASCONC, we will call COPY_FULL_TROP to make sure that
+      ! the CSPEC_FULL array gets copied to the CSPEC array.
+      ! (bmy, 10/24/12)
+      !-----------------------------------------------------------------
+      CALL GASCONC(  am_I_Root,
+     &               .FALSE.,                N_TRACERS, 
+     &               STT(:,:,:,1:N_TRACERS), XNUMOL(1:N_TRACERS),  
+     &               FRCLND,                 .FALSE. )
+
+#else
+      !-----------------------------------------------------------------
+      !              %%%%% TRADITIONAL GEOS-Chem %%%%%
+      !
+      ! On the first chemistry timestep:
+      !
+      !   (1) If we are reading initial species values from the CSPEC
+      !       restart file, then have GASCONC initialize the CSPEC 
+      !       array with the values read in from the restart file.
+      !
+      !   (2) If we are not reading initial species values from the
+      !       CSPEC restart file, then have GASCONC initialize the
+      !       CSPEC array with the initial values listed in the
+      !       "globchem.dat" chemistry mechanism file.
+      !
+      ! On all other chemistry timesteps:
+      !
+      !   (3) Call GASCONC with the current species concentrations in
+      !       the CSPEC array.  Do not reset to initial values.
+      !
+      ! NOTE: In all 3 cases, GASCONC will call PARTITION to separate
+      ! family tracers into individual species.
+      !
+      ! This is current practice in the std GEOS-Chem. (bmy, 10/24/12)
+      !-----------------------------------------------------------------
+
+      ! Assume there
+      IT_EXISTS = .FALSE.
+
+      ! Test if 
+      IF ( FIRSTCHEM .and. LSVCSPEC ) THEN 
+
+         ! Read the CSPEC restart file.  If not found, then 
+         ! return IT_EXISTS = .FALSE.
          CALL READ_CSPEC_FILE( am_I_Root,  GET_NYMD(), 
      &                         GET_NHMS(), IT_EXISTS ) 
-   
+  
          IF ( .not. IT_EXISTS ) THEN 
              
-            ! Use default background values 
+            !-----------------------------------------------------------
+            ! (2) First chemistry timestep, Call GASCONC to initialize 
+            !     CSPEC with default values from globchem.dat.
+            !-----------------------------------------------------------
             IF ( am_I_Root ) THEN
                WRITE(6,*) 
      &  '    - CHEMDR: CSPEC restart not found, use background values'
@@ -521,14 +578,15 @@
      &                    FRCLND,                 IT_EXISTS )
          ELSE 
 
-            ! Use restart values 
+            !-----------------------------------------------------------
+            ! (1) First chemistry timestep, Call GASCONC to initialize 
+            !     CSPEC with values from the CSPEC restart file
+            !-----------------------------------------------------------
             IF ( am_I_Root ) THEN
                WRITE(6,*) 
      &        '    - CHEMDR: using CSPEC values from restart file'
-
             ENDIF
 
-            ! Call GASCONC but don't reset CSPEC values
             CALL GASCONC(  am_I_Root,
      &                     .FALSE.,                 N_TRACERS, 
      &                     STT(:,:,:,1:N_TRACERS), XNUMOL(1:N_TRACERS),    
@@ -538,6 +596,10 @@
 
       ELSE 
 
+         !--------------------------------------------------------------
+         ! (3) All other chemistry timesteps, call GASCONC with
+         !     the current CSPEC values.  Do not re-initialize.
+         !--------------------------------------------------------------
          CALL GASCONC(  am_I_Root,
      &                  FIRSTCHEM,              N_TRACERS, 
      &                  STT(:,:,:,1:N_TRACERS), XNUMOL(1:N_TRACERS),  
@@ -548,8 +610,9 @@
 
       !### Debug
       IF ( LPRT .and. am_I_Root ) THEN
-         CALL DEBUG_MSG( '### CHEMDR: after GASCONC' )
+         CALL DEBUG_MSG( '### CHEMDR: after READ_CSPEC_FILEC' )
       ENDIF
+#endif
 
       !=================================================================  
       ! Call SETEMIS which sets emission rates REMIS 
@@ -604,15 +667,31 @@
       !=================================================================
       ! Call photolysis routine to compute J-Values
       !=================================================================
+
 #if defined( DEVEL ) || defined( EXTERNAL_GRID ) || defined( EXTERNAL_FORCING )
+      !-----------------------------------------------------------------
+      !     %%%%% CONNECTING TO GEOS-5 GCM via ESMF INTERFACE %%%%%
+      !
+      ! Call FAST_J by passing values from the Meteorology State
+      ! object.  This will facilitate connecting to the ESMF interface.
+      !-----------------------------------------------------------------
       CALL FAST_J( SUNCOS_MID,      OPTD,     UVALBEDO, 
      &             State_Met%PEDGE, am_I_Root           )
 #else
+      !-----------------------------------------------------------------
+      !              %%%%% TRADITIONAL GEOS-Chem %%%%%
+      !
+      ! Call FAST_J with arrays from dao_mod.F.  These will eventually
+      ! be removed in favor of the meteorology state.  But for now,
+      ! this is current practice in the std GEOS-Chem. (bmy, 10/24/12)
+      !-----------------------------------------------------------------
       CALL FAST_J( SUNCOS_MID, OPTD, UVALBEDO, am_I_Root )              
 #endif
 
       !### Debug
-      IF ( LPRT ) CALL DEBUG_MSG( '### CHEMDR: after FAST-J' )
+      IF ( LPRT .and. am_I_Root ) THEN
+         CALL DEBUG_MSG( '### CHEMDR: after FAST-J' )
+      ENDIF
 
       !================================================================
       ! Call chemistry routines
@@ -687,6 +766,21 @@
       ! Save production and loss for chemical families.  Also save
       ! P(Ox) and L(Ox) for a future tagged Ox run (if necessary).
       !=================================================================
+
+#if defined( EXTERNAL_GRID ) || defined( EXTERNAL_FORCING )
+      !-----------------------------------------------------------------
+      !     %%%%% CONNECTING TO GEOS-5 GCM via ESMF INTERFACE %%%%%
+      !
+      ! Do not call DO_DIAG_PL, since we will not use this diagnostic
+      ! with the ESMF interface. (bmy, 10/24/12)
+      !-----------------------------------------------------------------
+#else
+      !-----------------------------------------------------------------
+      !              %%%%% TRADITIONAL GEOS-Chem %%%%%
+      !
+      ! Call DO_DIAG_PL to compute the family prod/loss diagnostics.
+      ! This is current practice in the std GEOS-Chem. (bmy, 10/24/12)
+      !-----------------------------------------------------------------
       IF ( LFAMILY ) THEN
          CALL DO_DIAG_PL( am_I_Root )
 
@@ -695,19 +789,46 @@
             CALL DEBUG_MSG( '### CHEMDR: after DO_DIAG_PL' )
          ENDIF
       ENDIF
+#endif
       
       !=================================================================
-      ! Copy the chemical species from CSPEC (actual troposphere) to
-      ! CSPEC_FULL (potential troposphere) array.  We only need to do 
-      ! this if the variable troposphere is turned on. 
-      ! (bdf, phs, bmy, 10/3/06)
-      !
-      ! NOTE: 
-      ! (1) This has to be placed at the end of CHEMDR, after the
-      !     call to the ND65 diagnostic DO_DIAG_PL. (phs, 6/3/08)
-      ! (2) We also copy CSPEC to CSPEC_FULL if we want to write a 
-      !     CSPEC_FULL restart file. (ccc, 2/26/09) 
+      ! Copy the modified values from CSPEC back to CSPEC_FULL
       !=================================================================
+
+#if defined( EXTERNAL_GRID ) || defined( EXTERNAL_FORCING )
+      !-----------------------------------------------------------------
+      !     %%%%% CONNECTING TO GEOS-5 GCM via ESMF INTERFACE %%%%%
+      !
+      ! When we connect to the ESMF interface, the CSPEC_FULL array
+      ! is defined from the values in the Chemistry State.  We need
+      ! to copy these values to the CSPEC array for the rest of the
+      ! chemistry routines to function properly.  Therefore, call
+      ! COPY_FULL_TROP from tropopause_mod.F every time.
+      !-----------------------------------------------------------------
+      CALL SAVE_FULL_TROP()
+
+      !###  Debug
+      IF ( LPRT .and. am_I_Root ) THEN
+         CALL DEBUG_MSG( '### CHEMDR: after SAVE_FULL_TROP' )
+      ENDIF
+
+#else
+      !-----------------------------------------------------------------
+      !              %%%%% TRADITIONAL GEOS-Chem %%%%%
+      !
+      ! Preserve current practice in the std GEOS-Chem: (bmy, 10/24/12)
+      ! 
+      !    Copy the chemical species from CSPEC (actual troposphere) 
+      !    to CSPEC_FULL (potential troposphere) array.  We only need 
+      !    to do this if the variable troposphere is turned on. 
+      !    (bdf, phs, bmy, 10/3/06)
+      !
+      !    NOTE: 
+      !    (1) This has to be placed at the end of CHEMDR, after the
+      !         call to the ND65 diagnostic DO_DIAG_PL. (phs, 6/3/08)
+      !    (2) We also copy CSPEC to CSPEC_FULL if we want to write a 
+      !        CSPEC_FULL restart file. (ccc, 2/26/09) 
+      !-----------------------------------------------------------------
       IF ( LVARTROP .or. LSVCSPEC ) THEN
          CALL SAVE_FULL_TROP
 
@@ -716,6 +837,7 @@
             CALL DEBUG_MSG( '### CHEMDR: after SAVE_FULL_TROP' )
          ENDIF
       ENDIF
+#endif
 
       !=================================================================
       ! Set FIRSTCHEM = .FALSE. -- we have gone thru one chem step

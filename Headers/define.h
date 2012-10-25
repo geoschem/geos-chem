@@ -167,7 +167,7 @@
 !==============================================================================
 ! Force a compile error if a model type is undefined
 !==============================================================================
-#if !defined(GEOS_4) && !defined(GEOS_5) && !defined(MERRA) && !defined(GCAP) && !defined(GEOS_57) && !defined(EXTERNAL_FORCING)
+#if !defined(GEOS_4) && !defined(GEOS_5) && !defined(MERRA) && !defined(GCAP) && !defined(GEOS_57) && !defined(EXTERNAL_FORCING) && !defined( EXTERNAL_GRID )
 #error "ERROR: GEOS_4, GEOS_5, GEOS-5.7, MERRA, and GCAP"
 #error "are ALL undefined in header file define.h"
 #endif

@@ -70,7 +70,7 @@ CONTAINS
     USE GRID_MOD,           ONLY : AREA_M2, YEDGE, XEDGE, YMID, XMID
     USE LOGICAL_MOD
     USE PBL_MIX_MOD,        ONLY : PBL_TOP_L, PBL_TOP_M, INIT_PBL_MIX
-    USE PRESSURE_MOD,       ONLY : EXTERNAL_PEDGE !PEDGE, PMID
+    USE PRESSURE_MOD,       ONLY : EXTERNAL_PEDGE
     USE TRACER_MOD
     USE TRACERID_MOD     
     USE UVALBEDO_MOD,       ONLY : UVALBEDO
@@ -203,6 +203,7 @@ CONTAINS
          WRITE(6,*) State_Chm%Tracers(1,1,:,2)
       ENDIF
 
+      ! If we are doing chemistry
       IF ( LCHEM ) THEN
 
          ! The tracer concentrations from the import state have units of v/v;
@@ -216,6 +217,10 @@ CONTAINS
          CALL Convert_Units( 1,  N_TRACERS, TCVV, AD, STT )
 
       ENDIF
+
+      !======================================================================
+      ! Reset 3-D variables
+      !======================================================================
 
       ! Save chemistry output for next timestep
       State_Chm%Tracers = STT

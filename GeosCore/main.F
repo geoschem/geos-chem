@@ -203,6 +203,7 @@
 !                              ALLOCATE_ALL, INIT_ALL when using -DDEVEL
 !  19 Oct 2012 - R. Yantosca - Now reference gigc_state_chm_mod.F90
 !  19 Oct 2012 - R. Yantosca - Now reference gigc_state_met_mod.F90
+!  25 Oct 2012 - R. Yantosca - Define logical doDebugPrt for ND70 output
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -212,6 +213,7 @@
       ! Scalars
       LOGICAL                  :: FIRST = .TRUE.
       LOGICAL                  :: wasModisRead
+      LOGICAL                  :: prtDebug
       INTEGER                  :: I,             IOS,         J
       INTEGER                  :: K,             L,           N
       INTEGER                  :: JDAY,          NDIAGTIME,   N_DYN
@@ -253,7 +255,8 @@
       ! GEOS-CHEM starts here!                                            
       !=================================================================
 
-      RC=0 ! Error flag. Default 0 is "no error"
+      ! Assume success
+      RC = 0 
 
 #if defined( DEVEL )
       ! Allocate all lon/lat arrays for global use by GEOS-Chem
@@ -269,7 +272,12 @@
 
       ! Read input file and call init routines from other modules
       CALL READ_INPUT_FILE( am_I_Root ) 
-      IF ( LPRT ) CALL DEBUG_MSG( '### MAIN: a READ_INPUT_FILE' )
+
+      ! Set a flag to denote if we should print ND70 debug output
+      prtDebug = ( LPRT .and. am_I_Root )
+      
+      ! Debug output
+      IF ( prtDebug ) CALL DEBUG_MSG( '### MAIN: a READ_INPUT_FILE' )
 
 #if defined( DEVEL )
       ! Initialize State_Met and CHEMSTATE objects
@@ -284,22 +292,22 @@
 
       ! Initialize met field arrays from "dao_mod.f"
       CALL INIT_DAO
-      IF ( LPRT ) CALL DEBUG_MSG( '### MAIN: a INIT_DAO' )
+      IF ( prtDebug ) CALL DEBUG_MSG( '### MAIN: a INIT_DAO' )
 
       ! Initialize diagnostic arrays and counters
       CALL INITIALIZE( 2, am_I_Root )
       CALL INITIALIZE( 3, am_I_Root )
-      IF ( LPRT ) CALL DEBUG_MSG( '### MAIN: a INITIALIZE' )
+      IF ( prtDebug ) CALL DEBUG_MSG( '### MAIN: a INITIALIZE' )
 
       ! Initialize the new hybrid pressure module.  Define Ap and Bp.
       CALL INIT_PRESSURE( am_I_Root )
-      IF ( LPRT ) CALL DEBUG_MSG( '### MAIN: a INIT_PRESSURE' )
+      IF ( prtDebug ) CALL DEBUG_MSG( '### MAIN: a INIT_PRESSURE' )
 
       ! Read annual mean tropopause if not a variable tropopause
       ! read_tropopause is obsolete with variable tropopause
       IF ( .not. LVARTROP ) THEN
          CALL READ_TROPOPAUSE
-         IF ( LPRT ) CALL DEBUG_MSG( '### MAIN: a READ_TROPOPAUSE' )
+         IF ( prtDebug ) CALL DEBUG_MSG( '### MAIN: a READ_TROPOPAUSE' )
       ENDIF
 
       ! Initialize allocatable SMVGEAR/KPP arrays
@@ -313,7 +321,7 @@
          ENDIF
          IF ( RC == 1 )
      $        CALL ERROR_STOP( "Alloc error", "INIT_GCKPP_COMODE" )
-         IF ( LPRT ) CALL DEBUG_MSG( '### MAIN: a INIT_COMODE' )
+         IF ( prtDebug ) CALL DEBUG_MSG( '### MAIN: a INIT_COMODE' )
       ENDIF
          
       ! Added to read input file for linoz strat (dbj, jliu, bmy, 10/16/09)
@@ -327,7 +335,7 @@
          CALL INIT_MEGAN
          CALL INITIALIZE( 2, am_I_Root )
          CALL INITIALIZE( 3, am_I_Root )
-         IF ( LPRT ) CALL DEBUG_MSG( '### MAIN: a INIT_MEGAN' )
+         IF ( prtDebug ) CALL DEBUG_MSG( '### MAIN: a INIT_MEGAN' )
       ENDIF
 
       ! Define time variables for use below
@@ -347,23 +355,23 @@
 
       ! Compute avg surface pressure near polar caps
       CALL AVGPOLE( PS1 )
-      IF ( LPRT ) CALL DEBUG_MSG( '### MAIN: a AVGPOLE' )
+      IF ( prtDebug ) CALL DEBUG_MSG( '### MAIN: a AVGPOLE' )
 
       ! Call AIRQNT to compute air mass quantities from PS1
       CALL SET_FLOATING_PRESSURE( PS1 )
-      IF ( LPRT ) CALL DEBUG_MSG( '### MAIN: a SET_FLT_PRS' )
+      IF ( prtDebug ) CALL DEBUG_MSG( '### MAIN: a SET_FLT_PRS' )
 
 #if defined( DEVEL )
-      CALL AIRQNT(State_Met)
+      CALL AIRQNT( State_Met )
 #else
       CALL AIRQNT
 #endif
-      IF ( LPRT ) CALL DEBUG_MSG( '### MAIN: a AIRQNT' )
+      IF ( prtDebug ) CALL DEBUG_MSG( '### MAIN: a AIRQNT' )
 
       ! Compute lightning NOx emissions [molec/box/6h]
       IF ( LLIGHTNOX ) THEN
          CALL LIGHTNING
-         IF ( LPRT ) CALL DEBUG_MSG( '### MAIN: a LIGHTNING' )
+         IF ( prtDebug ) CALL DEBUG_MSG( '### MAIN: a LIGHTNING' )
       ENDIF
 
       ! Initialize the derived type object containing
@@ -383,11 +391,11 @@
       ! Initialize PBL quantities but do not do mixing
       ! Add option for non-local PBL (Lin, 03/31/09) 
       IF ( .NOT. LNLPBL ) THEN
-        CALL DO_PBL_MIX( .FALSE. )
-        IF ( LPRT ) CALL DEBUG_MSG( '### MAIN: a TURBDAY:1' )
+         CALL DO_PBL_MIX( .FALSE. )
+         IF ( prtDebug ) CALL DEBUG_MSG( '### MAIN: a TURBDAY:1' )
       ELSE
-        CALL DO_PBL_MIX_2( .FALSE. )
-        IF ( LPRT ) CALL DEBUG_MSG( '### MAIN: a NLPBL 1' )
+         CALL DO_PBL_MIX_2( .FALSE. )
+         IF ( prtDebug ) CALL DEBUG_MSG( '### MAIN: a NLPBL 1' )
       ENDIF
 
       !=================================================================
@@ -396,7 +404,7 @@
 
       ! Read initial tracer conditions
       CALL READ_RESTART_FILE( NYMDb, NHMSb )
-      IF ( LPRT ) CALL DEBUG_MSG( '### MAIN: a READ_RESTART_FILE' )
+      IF ( prtDebug ) CALL DEBUG_MSG( '### MAIN: a READ_RESTART_FILE' )
 
       ! Capture initial state of atmosphere for STE flux calc (ltm, 06/10/12)
       IF ( LSCHEM ) CALL INIT_STRAT_CHEM( am_I_Root )
@@ -419,7 +427,9 @@
       ! Read ocean Hg initial conditions (if necessary)
       IF ( ITS_A_MERCURY_SIM() .and. LDYNOCEAN ) THEN
          CALL READ_OCEAN_Hg_RESTART( NYMDb, NHMSb )
-         IF ( LPRT ) CALL DEBUG_MSG( '### MAIN: a READ_OCEAN_RESTART' )
+         IF ( prtDebug ) THEN 
+            CALL DEBUG_MSG( '### MAIN: a READ_OCEAN_RESTART' )
+         ENDIF
       ENDIF
 
       ! Save initial tracer masses to disk for benchmark runs
@@ -484,7 +494,7 @@
          ELAPSED_TODAY = ( HOUR * 3600 ) + ( MINUTE * 60 )
 
          !### Debug
-         IF ( LPRT ) CALL DEBUG_MSG( '### MAIN: a SET_CURRENT_TIME' )
+         IF ( prtDebug ) CALL DEBUG_MSG( '### MAIN: a SET_CURRENT_TIME' )
 
          !==============================================================
          !   ***** W R I T E   D I A G N O S T I C   F I L E S *****
@@ -498,7 +508,7 @@
             IF ( DO_DIAG_WRITE ) THEN
                CALL DIAG3  
 
-            ! Flush file units
+               ! Flush file units
                CALL CTM_FLUSH
             ENDIF
             !===========================================================
@@ -527,7 +537,7 @@
                   CALL MAKE_SOAPROD_FILE( GET_NYMD(), GET_NHMS() )
 
                   !### Debug
-                  IF ( LPRT ) THEN
+                  IF ( prtDebug ) THEN
                      CALL DEBUG_MSG( '### MAIN: a MAKE_SOAPROD_FILE' )
                   ENDIF
                ENDIF
@@ -538,7 +548,7 @@
                ENDIF 
 
                !### Debug
-               IF ( LPRT ) THEN
+               IF ( prtDebug ) THEN
                   CALL DEBUG_MSG( '### MAIN: a MAKE_RESTART_FILE' )
                ENDIF
             ENDIF
@@ -624,7 +634,7 @@
          ! Hg2 gas-particle partitioning (H Amos, 25 Oct 2011)
          IF ( ITS_A_MERCURY_SIM() .and. ITS_A_NEW_MONTH() ) THEN
             CALL PARTITION_Hg2( MONTH )
-            IF ( LPRT ) CALL DEBUG_MSG( '### MAIN: a PARTITION_Hg2' )
+            IF ( prtDebug ) CALL DEBUG_MSG( '### MAIN: a PARTITION_Hg2')
          ENDIF
 
          !==============================================================
@@ -717,7 +727,7 @@
             ENDIF
 
             !### Debug
-            IF ( LPRT ) CALL DEBUG_MSG ( '### MAIN: a DAILY DATA' )
+            IF ( prtDebug ) CALL DEBUG_MSG ( '### MAIN: a DAILY DATA' )
          ENDIF
 
          !==============================================================
@@ -758,7 +768,7 @@
          CALL SET_CT_DYN( INCREMENT=.TRUE. )
 
          !### Debug
-         IF ( LPRT ) CALL DEBUG_MSG( '### MAIN: a INTERP, etc' )
+         IF ( prtDebug ) CALL DEBUG_MSG( '### MAIN: a INTERP, etc' )
 
          ! Get averaging intervals for local-time diagnostics
          ! (NOTE: maybe improve this later on)
@@ -776,7 +786,9 @@
             CALL CONVERT_UNITS( 1,  N_TRACERS, TCVV, AD, STT )
 
             !### Debug
-            IF ( LPRT ) CALL DEBUG_MSG( '### MAIN: a CONVERT_UNITS:1' )
+            IF ( prtDebug ) THEN 
+               CALL DEBUG_MSG( '### MAIN: a CONVERT_UNITS:1' )
+            ENDIF
          ENDIF
 
 !%%%!    ltm: As of v9-01-03, UPBDFLX and SCHEM are depreciated. These
@@ -800,7 +812,7 @@
 
             ! Reset air mass quantities
 #if defined( DEVEL )
-      CALL AIRQNT(State_Met)
+      CALL AIRQNT( State_Met )
 #else
       CALL AIRQNT
 #endif
@@ -890,14 +902,14 @@
             ! Add option for non-local PBL. (Lin, 03/31/09)
             IF ( .NOT. LNLPBL ) THEN
                CALL DO_PBL_MIX( LTURB )
-               IF ( LPRT ) CALL DEBUG_MSG( '### MAIN: a TURBDAY:1' )
+               IF ( prtDebug ) CALL DEBUG_MSG( '### MAIN: a TURBDAY:1' )
             ELSE
                CALL DO_PBL_MIX_2( LTURB )
-               IF ( LPRT ) CALL DEBUG_MSG( '### MAIN: a NLPBL 2' )
+               IF ( prtDebug ) CALL DEBUG_MSG( '### MAIN: a NLPBL 2' )
             ENDIF
 
             !### Debug
-            IF ( LPRT ) CALL DEBUG_MSG( '### MAIN: a TURBDAY:2' )
+            IF ( prtDebug ) CALL DEBUG_MSG( '### MAIN: a TURBDAY:2' )
 
             !===========================================================
             !        ***** C L O U D   C O N V E C T I O N *****
@@ -917,7 +929,7 @@
                ENDIF
       
                !### Debug
-               IF ( LPRT ) CALL DEBUG_MSG( '### MAIN: a CONVECTION' )
+               IF ( prtDebug ) CALL DEBUG_MSG( '### MAIN: a CONVECTION' )
             ENDIF 
          ENDIF 
 
@@ -929,7 +941,9 @@
             CALL CONVERT_UNITS( 2, N_TRACERS, TCVV, AD, STT )
 
             !### Debug
-            IF ( LPRT ) CALL DEBUG_MSG( '### MAIN: a CONVERT_UNITS:2' )
+            IF ( prtDebug ) THEN 
+               CALL DEBUG_MSG( '### MAIN: a CONVERT_UNITS:2' )
+            ENDIF
          ENDIF
 
          !-------------------------------
@@ -1004,9 +1018,9 @@
 !
 !^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^!
             State_Chm%TRACERS( :, :, :, 1:N_TRACERS ) = 
-     &                     STT( :, :, :, 1:N_TRACERS )
+     &                    STT( :, :, :, 1:N_TRACERS )
 ! FIN DE KLUGE
-            CALL DO_CHEMISTRY( am_I_Root, IIPAR,      JJPAR, 
+            CALL DO_CHEMISTRY( am_I_Root, IIPAR,     JJPAR, 
      &                         LLPAR,     State_Chm, State_Met )
 #else
             CALL DO_CHEMISTRY( am_I_Root )
@@ -1079,7 +1093,9 @@
          CALL TIMESTAMP_DIAG
          CALL SET_ELAPSED_MIN
          CALL SET_CURRENT_TIME
-         IF ( LPRT ) CALL DEBUG_MSG( '### MAIN: after SET_ELAPSED_MIN' )
+         IF ( prtDebug ) THEN
+            CALL DEBUG_MSG( '### MAIN: after SET_ELAPSED_MIN' )
+         ENDIF
 
          !==============================================================
          !       ***** A R C H I V E   D I A G N O S T I C S *****
@@ -1087,20 +1103,20 @@
          IF ( ITS_TIME_FOR_DIAG() ) THEN
 
             !### Debug
-            IF ( LPRT ) CALL DEBUG_MSG( '### MAIN: b DIAGNOSTICS' )
+            IF ( prtDebug ) CALL DEBUG_MSG( '### MAIN: b DIAGNOSTICS' )
 
             ! Accumulate several diagnostic quantities
             CALL DIAG1
-            IF ( LPRT ) CALL DEBUG_MSG( '### MAIN: after DIAG1' )
+            IF ( prtDebug ) CALL DEBUG_MSG( '### MAIN: after DIAG1' )
 
             ! ND41: save PBL height in 1200-1600 LT (amf)
             ! (for comparison w/ Holzworth, 1967)
             IF ( ND41 > 0 ) CALL DIAG41
-            IF ( LPRT ) CALL DEBUG_MSG( '### MAIN: after DIAG41' )
+            IF ( prtDebug ) CALL DEBUG_MSG( '### MAIN: after DIAG41' )
 
             ! ND42: SOA concentrations [ug/m3]
             IF ( ND42 > 0 ) CALL DIAG42
-            IF ( LPRT ) CALL DEBUG_MSG( '### MAIN: after DIAG42' )
+            IF ( prtDebug ) CALL DEBUG_MSG( '### MAIN: after DIAG42' )
 
             ! 24-hr timeseries
             IF ( DO_SAVE_DIAG50 ) CALL DIAG50
@@ -1115,10 +1131,10 @@
                ! Archive data along the flight track
                CALL PLANEFLIGHT
             ENDIF
-            IF ( LPRT ) CALL DEBUG_MSG( '### MAIN: after DIAG40' )
+            IF ( prtDebug ) CALL DEBUG_MSG( '### MAIN: after DIAG40' )
 
             !### Debug
-            IF ( LPRT ) CALL DEBUG_MSG( '### MAIN: a DIAGNOSTICS' )
+            IF ( prtDebug ) CALL DEBUG_MSG( '### MAIN: a DIAGNOSTICS' )
          ENDIF
 
          !==============================================================
@@ -1129,24 +1145,24 @@
          !       to after the call to DO_WETDEP (bmy, 4/22/04)
          !============================================================== 
 
-         IF ( LPRT ) CALL DEBUG_MSG( '### MAIN: before TIMESERIES' )
+         IF ( prtDebug ) CALL DEBUG_MSG( '### MAIN: before TIMESERIES' )
 
          ! Station timeseries
          IF ( ITS_TIME_FOR_DIAG48() ) CALL DIAG48
-         IF ( LPRT ) CALL DEBUG_MSG( '### MAIN: after DIAG48' )
+         IF ( prtDebug ) CALL DEBUG_MSG( '### MAIN: after DIAG48' )
 
          ! 3-D timeseries
          IF ( ITS_TIME_FOR_DIAG49() ) CALL DIAG49
-         IF ( LPRT ) CALL DEBUG_MSG( '### MAIN: after DIAG49' )
+         IF ( prtDebug ) CALL DEBUG_MSG( '### MAIN: after DIAG49' )
 
          ! Ship timeseries
          IF ( ITS_TIME_FOR_DIAG63() ) CALL DIAG63
-         IF ( LPRT ) CALL DEBUG_MSG( '### MAIN: after DIAG63' )
+         IF ( prtDebug ) CALL DEBUG_MSG( '### MAIN: after DIAG63' )
 
          ! Morning or afternoon timeseries
          IF ( DO_SAVE_DIAG51 ) CALL DIAG51 
          IF ( DO_SAVE_DIAG51b ) CALL DIAG51b 
-         IF ( LPRT ) CALL DEBUG_MSG( '### MAIN: after DIAG51' )
+         IF ( prtDebug ) CALL DEBUG_MSG( '### MAIN: after DIAG51' )
 
          ! Comment out for now 
          !! Column timeseries
@@ -1156,7 +1172,7 @@
          !ENDIF
 
          !### After diagnostics
-         IF ( LPRT ) CALL DEBUG_MSG( '### MAIN: after TIMESERIES' )
+         IF ( prtDebug ) CALL DEBUG_MSG( '### MAIN: after TIMESERIES' )
 
          !==============================================================
          !  ***** E N D   O F   D Y N A M I C   T I M E S T E P *****
@@ -1185,7 +1201,9 @@
       !     become the fields at the beginning of the next timestep
       !=================================================================
       CALL COPY_I3_I6_FIELDS
-      IF ( LPRT ) CALL DEBUG_MSG( '### MAIN: after COPY_I3_I6_FIELDS' )
+      IF ( prtDebug ) THEN 
+         CALL DEBUG_MSG( '### MAIN: after COPY_I3_I6_FIELDS' )
+      ENDIF
 
       ENDDO
 
@@ -1221,7 +1239,7 @@
 
       ! Close all files
       CALL CLOSE_FILES
-      IF ( LPRT ) CALL DEBUG_MSG( '### MAIN: a CLOSE_FILES' )
+      IF ( prtDebug ) CALL DEBUG_MSG( '### MAIN: a CLOSE_FILES' )
 
       ! Deallocate dynamic module arrays
       CALL CLEANUP
@@ -1234,7 +1252,7 @@
       IF ( LGTMM ) CALL CleanupCASAarrays
 #endif
 
-      IF ( LPRT ) CALL DEBUG_MSG( '### MAIN: a CLEANUP' )
+      IF ( prtDebug ) CALL DEBUG_MSG( '### MAIN: a CLEANUP' )
 
       ! Print ending time of simulation
       CALL DISPLAY_END_TIME

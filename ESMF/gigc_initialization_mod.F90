@@ -29,13 +29,13 @@ MODULE GIGC_Initialization_Mod
   PUBLIC :: GIGC_Init_Time_Interface
   PUBLIC :: GIGC_Init_Dimensions
   PUBLIC :: GIGC_Allocate_Interface
-  PUBLIC :: GIGC_SetEnv
 !
 ! !REVISION HISTORY: 
 !  16 Oct 2012 - M. Long     - Initial version
 !  16 Oct 2012 - R. Yantosca - Added ProTeX headers
 !  22 Oct 2012 - R. Yantosca - Renamed to gigc_initialization_mod.F90
 !  22 Oct 2012 - R. Yantosca - Renamed several routines for better consistency
+!  25 Oct 2012 - R. Yantosca - Remove routine GIGC_SetEnv
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -281,8 +281,8 @@ CONTAINS
     NPVERT = NVERT
     NPVERT = NVERT + IPLUME
 
-    ! INITIALIZE ALLOCATABLE SMVGEAR/KPP ARRAYS
-    IF ( LEMIS .OR. LCHEM ) THEN
+!    ! INITIALIZE ALLOCATABLE SMVGEAR/KPP ARRAYS
+!    IF ( LEMIS .OR. LCHEM ) THEN
 
        ! Initialize arrays in comode_mod.F
        CALL INIT_COMODE( am_I_Root )
@@ -292,7 +292,7 @@ CONTAINS
           CALL INIT_GCKPP_COMODE( am_I_Root, IIPAR,   JJPAR, LLTROP,  &
                                   ITLOOP,    NMTRATE, IGAS,  RC      )
        ENDIF
-    ENDIF
+!    ENDIF
 
     ! Read from data file mglob.dat
     CALL READER( .TRUE., am_I_Root )
@@ -616,32 +616,5 @@ CONTAINS
     ALLOCATE( UVALBEDO( IIPAR, JJPAR), STAT=RC  )
 
   END SUBROUTINE GIGC_Allocate_Interface
-!EOC
-!------------------------------------------------------------------------------
-!          Harvard University Atmospheric Chemistry Modeling Group            !
-!------------------------------------------------------------------------------
-!BOP
-!
-! !IROUTINE: gigc_setenv
-!
-! !DESCRIPTION: GIGC\_SETENV
-!\\
-!\\
-! !INTERFACE:
-!
-  SUBROUTINE GIGC_SetEnv
-!
-! !REMARKS:
-!  This is a stub routine for now
-
-! !REVISION HISTORY: 
-!  15 Oct 2012 - M. Long     - Initial version
-!  15 Oct 2012 - R. Yantosca - Added ProTeX Headers, use F90 format/indents
-!  22 Oct 2012 - R. Yantosca - Renamed to GIGC_SetEnv
-!EOP
-!------------------------------------------------------------------------------
-!BOC
-  END SUBROUTINE GIGC_SetEnv
-!EOC      
 END MODULE GIGC_Initialization_Mod
 #endif

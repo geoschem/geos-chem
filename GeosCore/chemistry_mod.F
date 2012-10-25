@@ -430,7 +430,9 @@
          ENDIF
 
          !### Debug
-         IF ( LPRT ) CALL DEBUG_MSG( '### MAIN: a CHEMISTRY' )
+         IF ( LPRT .and. am_I_Root ) THEN
+            CALL DEBUG_MSG( '### MAIN: a CHEMISTRY' )
+         ENDIF
       ENDIF
       
 #if defined( DEVEL ) || defined( EXTERNAL_GRID ) || defined( EXTERNAL_FORCING )
