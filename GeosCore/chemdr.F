@@ -91,6 +91,10 @@
 ! !INPUT/OUTPUT VARIABLES:
 !
       TYPE(ChmState), INTENT(INOUT) :: State_Chm   ! Chemistry State object
+!
+! !OUTPUT PARAMETERS:
+!
+      INTEGER,        INTENT(OUT)   :: RC          ! Success or failure
 #endif
 !
 ! !REMARKS:
@@ -478,8 +482,6 @@
          ! use the GEOS-Chem Chemistry State object instead of the
          ! existing tracer array STT. (bmy, 10/25/12)
          !--------------------------------------------------------------
-
-         !
          CALL SETTRACE( State_Chm, am_I_Root )
 #else
          !--------------------------------------------------------------
