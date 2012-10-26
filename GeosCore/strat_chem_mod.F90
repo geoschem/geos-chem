@@ -123,7 +123,22 @@ CONTAINS
 !\\
 ! !INTERFACE:
 !
+#if defined( DEVEL ) || defined( EXTERNAL_GRID ) || defined( EXTERNAL_FORCING )
+  !-----------------------------------------------------------------------
+  !         %%%%% CONNECTING TO GEOS-5 GCM via ESMF INTERFACE %%%%%
+  !
+  ! Pass the Chemistry State object to DO_STRAT_CHEM
+  !------------------------------------------------------------------------
+  SUBROUTINE DO_STRAT_CHEM( am_I_Root, State_Chm, errCode )
+#else
+  !-------------------------------------------------------------------------
+  !                 %%%%% TRADITIONAL GEOS-Chem %%%%%
+  !
+  ! Current practice is to call DO_STRAT_CHEM with just the am_I_Root
+  ! argument. (bmy, 10/26/12)
+  !-------------------------------------------------------------------------
   SUBROUTINE DO_STRAT_CHEM( am_I_Root )
+#endif
 !
 ! !USES:
 !
@@ -141,13 +156,34 @@ CONTAINS
 
     USE CMN_SIZE_MOD
 
+#if defined( DEVEL ) || defined( EXTERNAL_GRID ) || defined( EXTERNAL_FORCING )
+    !-----------------------------------------------------------------------
+    !         %%%%% CONNECTING TO GEOS-5 GCM via ESMF INTERFACE %%%%%
+    !
+    ! We need to reference some modules particular to the Grid-
+    ! Independent GEOS-Chem implementation here. (bmy, 10/25/12)
+    !-----------------------------------------------------------------------
+    USE GIGC_ErrCode_Mod
+    USE GIGC_State_Chm_Mod, ONLY : ChmState
+#endif
+
     IMPLICIT NONE
 
 #include "define.h"
 !
 ! !INPUT PARAMETERS:
 !
-      LOGICAL, INTENT(IN) :: am_I_Root   ! Is this the root CPU?
+      LOGICAL,      INTENT(IN)    :: am_I_Root   ! Is this the root CPU?
+#if defined( DEVEL ) || defined( EXTERNAL_GRID ) || defined( EXTERNAL_FORCING )
+!
+! !INPUT/OUTPUT PARAMETERS:
+!
+    TYPE(ChmState), INTENT(INOUT) :: State_Chm   ! Chemistry State object
+!
+! !OUTPUT PARAMETERS:
+!
+    INTEGER,        INTENT(OUT)   :: errCode     ! Success or failure
+#endif
 !
 ! !REMARKS:
 ! 
@@ -161,6 +197,7 @@ CONTAINS
 !  30 Jul 2012 - R. Yantosca - Now accept am_I_Root as an argument when
 !                              running with the traditional driver main.F
 !  07 Aug 2012 - R. Yantosca - Make BEFORE a local variable for parallel loop
+!  26 Oct 2012 - R. Yantosca - Now pass the Chemistry State object for GIGC
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -188,6 +225,17 @@ CONTAINS
     ! DO_STRAT_CHEM begins here!
     !===============================
 
+#if defined( DEVEL ) || defined( EXTERNAL_GRID ) || defined( EXTERNAL_FORCING )
+    !-----------------------------------------------------------------------
+    !         %%%%% CONNECTING TO GEOS-5 GCM via ESMF INTERFACE %%%%%
+    !
+    ! Initialize the errCode argument (bmy, 10/26/12)
+    !-----------------------------------------------------------------------
+
+    ! Assume Success
+    errCode = GIGC_SUCCESS
+#endif
+
     STAMP = TIMESTAMP_STRING()
     IF ( am_I_Root ) THEN
        WRITE( 6, 10 ) STAMP
@@ -203,7 +251,23 @@ CONTAINS
        ! Read rates for this month
        IF ( ITS_A_FULLCHEM_SIM() ) THEN
 #if defined( GRID4x5 ) || defined( GRID2x25 )
+#if defined( DEVEL ) 
+          !-----------------------------------------------------------------
+          !   %%%%% TESTING GIGC INTERFACE FROM EXISTING GEOS-CHEM %%%%%
+          !
+          ! Pass the Chemistry State object to GET_RATES.  We don't call
+          ! this routine from the ESMF interface. (bmy, 10/26/12)
+          !-----------------------------------------------------------------
+          CALL GET_RATES( GET_MONTH(), State_Chm, am_I_Root, errCode )
+#else
+          !-----------------------------------------------------------------
+          !              %%%%% TRADITIONAL GEOS-Chem %%%%%
+          !
+          ! Current practice is to call DO_STRAT_CHEM with the current
+          ! month and the the am_I_Root argument. (bmy, 10/26/12)
+          !-----------------------------------------------------------------
           CALL GET_RATES( GET_MONTH(), am_I_Root )
+#endif
 #else
           ! For resolutions finer than 2x2.5, nested, 
           ! or otherwise exotic domains and resolutions
@@ -541,7 +605,23 @@ CONTAINS
 !\\
 ! !INTERFACE:
 !
+#if defined( DEVEL ) || defined( EXTERNAL_GRID ) || defined( EXTERNAL_FORCING )
+  !------------------------------------------------------------------------
+  !         %%%%% CONNECTING TO GEOS-5 GCM via ESMF INTERFACE %%%%%
+  !
+  ! Call CHEMDR with dimension values as well as the Meteorology 
+  ! State and Chemistry State objects. (bmy, 10/25/12)
+  !------------------------------------------------------------------------
+  SUBROUTINE GET_RATES( THISMONTH, State_Chm, am_I_Root, RC )
+#else
+  !-------------------------------------------------------------------------
+  !                 %%%%% TRADITIONAL GEOS-Chem %%%%%
+  !
+  ! Current practice in the standard GEOS-Chem is to read strat chem
+  ! prod/loss data from netCDF files. (bmy, 10/26/12)
+  !-------------------------------------------------------------------------
   SUBROUTINE GET_RATES( THISMONTH, am_I_Root )
+#endif
 !
 ! !USES:
 !
@@ -558,18 +638,41 @@ CONTAINS
 
     USE CMN_SIZE_MOD
 
+#if defined( DEVEL ) || defined( EXTERNAL_GRID ) || defined( EXTERNAL_FORCING )
+    !-----------------------------------------------------------------------
+    !         %%%%% CONNECTING TO GEOS-5 GCM via ESMF INTERFACE %%%%%
+    !
+    ! We need to reference some modules particular to the Grid-
+    ! Independent GEOS-Chem implementation here. (bmy, 10/25/12)
+    !-----------------------------------------------------------------------
+    USE GIGC_ErrCode_Mod
+    USE GIGC_State_Chm_Mod, ONLY : ChmState
+#endif
+
     IMPLICIT NONE
 !
 ! !INPUT PARAMETERS: 
 !
-    INTEGER, INTENT(IN) :: THISMONTH   ! Current month
-    LOGICAL, INTENT(IN) :: am_I_Root   ! Is this the root CPU?
+    INTEGER,        INTENT(IN)    :: THISMONTH   ! Current month
+    LOGICAL,        INTENT(IN)    :: am_I_Root   ! Is this the root CPU?
+
+#if defined( DEVEL ) || defined( EXTERNAL_GRID ) || defined( EXTERNAL_FORCING )
+!
+! !INPUT/OUTPUT PARAMETERS:
+!
+    TYPE(ChmState), INTENT(INOUT) :: State_Chm   ! Chemistry State object
+!
+! !OUTPUT PARAMETERS:
+!
+    INTEGER,        INTENT(OUT)   :: RC          ! Success or failure
+#endif
 !
 ! !REVISION HISTORY: 
 !  01 Feb 2011 - L. Murray   - Initial version
 !  20 Jul 2012 - R. Yantosca - Reorganized declarations for clarity
 !  30 Jul 2012 - R. Yantosca - Now accept am_I_Root as an argument when
 !                              running with the traditional driver main.F
+!  26 Oct 2012 - R. Yantosca - Now pass Chemistry State object for GIGC
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -594,6 +697,19 @@ CONTAINS
     LOSS = 0d0
     PROD = 0d0
 
+#if defined( EXTERNAL_GRID ) || defined( EXTERNAL_FORCING )
+    !-----------------------------------------------------------------------
+    !        %%%%% CONNECTING TO GEOS-5 GCM via ESMF INTERFACE %%%%%
+    !
+    ! Do nothing, since the 
+    !-----------------------------------------------------------------------
+#else
+    !-----------------------------------------------------------------------
+    !                %%%%% TRADITIONAL GEOS-Chem %%%%%
+    !
+    ! Current practice in the standard GEOS-Chem is to read strat chem
+    ! prod/loss data from netCDF files. (bmy, 10/26/12)
+    !-----------------------------------------------------------------------
     IF ( am_I_Root ) THEN
        WRITE( 6, 11 ) &
           '       - Getting new strat prod/loss rates for month: ', THISMONTH
@@ -678,6 +794,18 @@ CONTAINS
 
        call NcCl( fileID )
 
+#if defined( DEVEL ) 
+       !-----------------------------------------------------------------
+       !   %%%%% TESTING GIGC INTERFACE FROM EXISTING GEOS-CHEM %%%%%
+       !
+       ! Call the routine GIGC_Allocate_All (located in module file
+       ! GeosCore/gigc_environment_mod.F90) to allocate all lat/lon
+       ! allocatable arrays used by GEOS-Chem.  
+       !-----------------------------------------------------------------
+       State_Chm%Strat_P(:,:,:,N) = PROD(:,:,:,N)
+       State_Chm%Strat_k(:,:,:,N) = LOSS(:,:,:,N)
+#endif
+
     ENDDO
 
     !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -721,6 +849,7 @@ CONTAINS
        CALL TRANSFER_3D( Bry_temp(:,:,:), Bry_night(:,:,:,NN) )
        
     ENDDO
+#endif
 
   END SUBROUTINE GET_RATES
 !EOC
@@ -1205,7 +1334,23 @@ CONTAINS
 !\\
 ! !INTERFACE:
 !      
+#if defined( DEVEL )
+  !------------------------------------------------------------------------
+  !         %%%%% CONNECTING TO GEOS-5 GCM via ESMF INTERFACE %%%%%
+  !
+  ! Call CHEMDR with dimension values as well as the Meteorology 
+  ! State and Chemistry State objects. (bmy, 10/25/12)
+  !------------------------------------------------------------------------
+  SUBROUTINE INIT_STRAT_CHEM( am_I_Root, State_Chm, RC )
+#else
+  !-------------------------------------------------------------------------
+  !                 %%%%% TRADITIONAL GEOS-Chem %%%%%
+  !
+  ! Current practice in the standard GEOS-Chem is to read strat chem
+  ! prod/loss data from netCDF files. (bmy, 10/26/12)
+  !-------------------------------------------------------------------------
   SUBROUTINE INIT_STRAT_CHEM( am_I_Root )
+#endif
 !
 ! !USES:
 !
@@ -1223,16 +1368,39 @@ CONTAINS
 
     USE CMN_SIZE_MOD
 
+#if defined( DEVEL )
+    !-----------------------------------------------------------------------
+    !         %%%%% CONNECTING TO GEOS-5 GCM via ESMF INTERFACE %%%%%
+    !
+    ! We need to reference some modules particular to the Grid-
+    ! Independent GEOS-Chem implementation here. (bmy, 10/25/12)
+    !-----------------------------------------------------------------------
+    USE GIGC_ErrCode_Mod
+    USE GIGC_State_Chm_Mod, ONLY : ChmState
+#endif
+
     IMPLICIT NONE
 !
 ! !INPUT PARAMETERS:
 !
-    LOGICAL, INTENT(IN) :: am_I_Root   ! Is this the root CPU?
+    LOGICAL,        INTENT(IN)    :: am_I_Root   ! Is this the root CPU?
+
+#if defined( DEVEL )
+!
+! !INPUT/OUTPUT PARAMETERS:
+!
+    TYPE(ChmState), INTENT(INOUT) :: State_Chm   ! Chemistry State object
+!
+! !OUTPUT PARAMETERS:
+!
+    INTEGER,        INTENT(OUT)   :: RC          ! Success or failure
+#endif
 ! 
 ! !REVISION HISTORY:
 !  01 Feb 2011 - L. Murray   - Initial version
 !  30 Jul 2012 - R. Yantosca - Now accept am_I_Root as an argument when
 !                              running with the traditional driver main.F
+!  26 Oct 2012 - R. Yantosca - Now pass Chemistry State object for GIGC
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -1245,6 +1413,10 @@ CONTAINS
     !=================================================================
     ! INIT_STRAT_CHEM begins here!
     !=================================================================
+
+#if defined( DEVEL )
+    RC = GIGC_SUCCESS
+#endif
 
     ! Initialize counters, initial times, mapping arrays
     TpauseL_Cnt       = 0.
@@ -1334,6 +1506,16 @@ CONTAINS
                 NSCHEM                 = NSCHEM + 1
                 Strat_TrID_GC(NSCHEM)  = N  ! Maps 1:NSCHEM to STT index
                 Strat_TrID_GMI(NSCHEM) = NN ! Maps 1:NSCHEM to GMI_TrName index
+
+#if defined( DEVEL ) 
+                !---------------------------------------------------------
+                ! %%%%% CONNECTING TO GEOS-5 GCM via ESMF INTERFACE %%%%%
+                !
+                !---------------------------------------------------------
+                !State_Chm%Strat_Id(NSCHEM)   = Strat_TrID_GC(NSCHEM)
+                !State_Chm%Strat_Name(NSCHEM) = TRIM( TRACER_NAME(N) )
+                PRINT*, '### DEVEL: ', N, NSCHEM
+#endif
 
              ENDIF
 

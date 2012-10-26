@@ -305,9 +305,31 @@
             CALL CHEMDR( am_I_Root )
 #endif
 
+#if defined( DEVEL )
+            !-----------------------------------------------------------
+            !  %%%%% CONNECTING TO GEOS-5 GCM via ESMF INTERFACE %%%%%
+            ! 
+            ! Call CHEMDR (the G-C chemistry driver routine) with
+            ! local dimension values and the the Meteorology and 
+            ! Chemistry State objects.  Have CHEMDR return success or
+            ! failure via the RC argument. (bmy, 10/25/12)
+            !-----------------------------------------------------------
+
+            ! Call linearized stratospheric scheme
+            IF ( LSCHEM ) THEN 
+               CALL DO_STRAT_CHEM( am_I_Root, State_Chm, RC )
+            ENDIF
+#else
+            !-----------------------------------------------------------
+            !             %%%%% TRADITIONAL GEOS-Chem %%%%%
+            !
+            ! Current practice is to call DO_STRAT_CHEM with am_I_Root 
+            ! as the only argument. (bmy, 10/25/12)
+            !-----------------------------------------------------------
+
             ! Call linearized stratospheric scheme
             IF ( LSCHEM ) CALL DO_STRAT_CHEM( am_I_Root )
-            
+#endif            
             ! Do seasalt aerosol chemistry
             IF ( LSSALT ) CALL CHEMSEASALT( am_I_Root )
 
@@ -459,8 +481,31 @@
          ELSE IF ( ITS_A_TAGOX_SIM() ) THEN 
             CALL CHEM_TAGGED_OX
  
+#if defined( DEVEL )
+            !-----------------------------------------------------------
+            !  %%%%% CONNECTING TO GEOS-5 GCM via ESMF INTERFACE %%%%%
+            ! 
+            ! Call CHEMDR (the G-C chemistry driver routine) with
+            ! local dimension values and the the Meteorology and 
+            ! Chemistry State objects.  Have CHEMDR return success or
+            ! failure via the RC argument. (bmy, 10/25/12)
+            !-----------------------------------------------------------
+
+            ! Call linearized stratospheric scheme
+            IF ( LSCHEM ) THEN 
+               CALL DO_STRAT_CHEM( am_I_Root, State_Chm, RC )
+            ENDIF
+#else
+            !-----------------------------------------------------------
+            !             %%%%% TRADITIONAL GEOS-Chem %%%%%
+            !
+            ! Current practice is to call DO_STRAT_CHEM with am_I_Root 
+            ! as the only argument. (bmy, 10/25/12)
+            !-----------------------------------------------------------
+
             ! Call linearized stratospheric scheme
             IF ( LSCHEM ) CALL DO_STRAT_CHEM( am_I_Root )
+#endif
 
          !---------------------------------
          ! Tagged CO
@@ -498,8 +543,33 @@
          ELSE IF ( ITS_A_H2HD_SIM() ) THEN
             CALL CHEM_H2_HD
             CALL DRYFLXH2HD
+
+#if defined( DEVEL )
+            !-----------------------------------------------------------
+            !  %%%%% CONNECTING TO GEOS-5 GCM via ESMF INTERFACE %%%%%
+            ! 
+            ! Call CHEMDR (the G-C chemistry driver routine) with
+            ! local dimension values and the the Meteorology and 
+            ! Chemistry State objects.  Have CHEMDR return success or
+            ! failure via the RC argument. (bmy, 10/25/12)
+            !-----------------------------------------------------------
+
+            ! Call linearized stratospheric scheme
+            IF ( LSCHEM ) THEN 
+               CALL DO_STRAT_CHEM( am_I_Root, State_Chm, RC )
+            ENDIF
+#else
+            !-----------------------------------------------------------
+            !             %%%%% TRADITIONAL GEOS-Chem %%%%%
+            !
+            ! Current practice is to call DO_STRAT_CHEM with am_I_Root 
+            ! as the only argument. (bmy, 10/25/12)
+            !-----------------------------------------------------------
+
+            ! Call linearized stratospheric scheme
             CALL DO_STRAT_CHEM( am_I_Root )
-  
+#endif  
+
          ENDIF
 
          !### Debug

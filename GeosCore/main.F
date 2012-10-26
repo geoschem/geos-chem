@@ -465,8 +465,30 @@
       CALL READ_RESTART_FILE( NYMDb, NHMSb )
       IF ( prtDebug ) CALL DEBUG_MSG( '### MAIN: a READ_RESTART_FILE' )
 
+#if defined( DEVEL )
+      !-----------------------------------------------------------------
+      !   %%%%% TESTING GIGC INTERFACE FROM EXISTING GEOS-CHEM %%%%%
+      ! 
+      ! We must pass the Meteorology Object (i.e. State_Met) to routine
+      ! AIRQNT.  This object contains several individual met fields
+      ! which are used by the GEOS-Chem chemistry routines.
+      !-----------------------------------------------------------------
+
+      ! Capture initial state of atmosphere for STE flux calc (ltm, 06/10/12)
+      IF ( LSCHEM ) CALL INIT_STRAT_CHEM( am_I_Root, State_Chm, RC )
+
+#else
+      !--------------------------------------------------------------
+      !               %%%%% TRADITIONAL GEOS-Chem %%%%%
+      !
+      ! Current practice is to call INIT_STRAT_CHEM without any 
+      ! arguments. (bmy, 10/25/12)
+      !--------------------------------------------------------------
+
       ! Capture initial state of atmosphere for STE flux calc (ltm, 06/10/12)
       IF ( LSCHEM ) CALL INIT_STRAT_CHEM( am_I_Root )
+
+#endif
 
       ! add support for making restart files of APROD and GPROD (dkh, 11/09/06)  
       IF ( LSOA ) THEN
