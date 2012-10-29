@@ -802,8 +802,8 @@ CONTAINS
        ! GeosCore/gigc_environment_mod.F90) to allocate all lat/lon
        ! allocatable arrays used by GEOS-Chem.  
        !-----------------------------------------------------------------
-       State_Chm%Strat_P(:,:,:,N) = PROD(:,:,:,N)
-       State_Chm%Strat_k(:,:,:,N) = LOSS(:,:,:,N)
+       State_Chm%Schm_P(:,:,:,N) = PROD(:,:,:,N)
+       State_Chm%Schm_k(:,:,:,N) = LOSS(:,:,:,N)
 #endif
 
     ENDDO
@@ -1512,9 +1512,8 @@ CONTAINS
                 ! %%%%% CONNECTING TO GEOS-5 GCM via ESMF INTERFACE %%%%%
                 !
                 !---------------------------------------------------------
-                !State_Chm%Strat_Id(NSCHEM)   = Strat_TrID_GC(NSCHEM)
-                !State_Chm%Strat_Name(NSCHEM) = TRIM( TRACER_NAME(N) )
-                PRINT*, '### DEVEL: ', N, NSCHEM
+                State_Chm%Schm_Id(NSCHEM)   = Strat_TrID_GC(NSCHEM)
+                State_Chm%Schm_Name(NSCHEM) = TRIM( TRACER_NAME(N) )
 #endif
 
              ENDIF

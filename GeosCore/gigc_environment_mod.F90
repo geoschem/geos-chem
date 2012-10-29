@@ -151,7 +151,6 @@ CONTAINS
     USE GIGC_ErrCode_Mod
     USE GIGC_State_Chm_Mod
     USE GIGC_State_Met_Mod
-    USE Strat_Chem_Mod,     ONLY : Get_nSchm_nSchmBry
     USE Tracer_Mod,         ONLY : N_TRACERS
 !
 ! !INPUT PARAMETERS:
@@ -254,31 +253,22 @@ CONTAINS
 !
 ! !IROUTINE: get_nSchm_nSchmBry
 !
-! !DESCRIPTION: Subroutine INIT\_STRAT\_CHEM allocates all module arrays.  
-!  It also opens the necessary rate files.
+! !DESCRIPTION: Subroutine Get\_nSchm\_nSchmBry finds out the # of 
+!  stratospheric chemistry tracers and bromine tracers so that we can
+!  allocate the various Schm_* fields in the Chemistry State object.
 !\\
 !\\
 ! !INTERFACE:
 !      
-  !------------------------------------------------------------------------
-  !         %%%%% CONNECTING TO GEOS-5 GCM via ESMF INTERFACE %%%%%
-  !
-  ! Call CHEMDR with dimension values as well as the Meteorology 
-  ! State and Chemistry State objects. (bmy, 10/25/12)
-  !------------------------------------------------------------------------
   SUBROUTINE Get_nSchm_nSchmBry( am_I_Root, nSchm, nSchmBry, RC )
 !
 ! !USES:
 !
-    USE LOGICAL_MOD,   ONLY : LLINOZ
-    USE TRACER_MOD,    ONLY : N_TRACERS, TRACER_NAME, STT
-    USE TIME_MOD,      ONLY : GET_TAU, GET_NYMD, GET_NHMS, GET_TS_CHEM
-
-    USE m_netcdf_io_open
-    USE m_netcdf_io_read
-    USE m_netcdf_io_close
-
     USE CMN_SIZE_MOD
+    USE GIGC_ErrCode_Mod
+    USE LOGICAL_MOD,       ONLY : LLINOZ
+    USE TRACER_MOD,        ONLY : N_TRACERS, TRACER_NAME, STT
+    USE TIME_MOD,          ONLY : GET_TAU, GET_NYMD, GET_NHMS, GET_TS_CHEM
 !
 ! !INPUT PARAMETERS:
 !
@@ -302,6 +292,7 @@ CONTAINS
 ! !LOCAL VARIABLES:
 !
     CHARACTER(LEN=255) :: GMI_name, GC_Name
+    CHARACTER(LEN=255) :: GMI_TrName(120)
     INTEGER            :: AS, N, NN
 
     !=================================================================
@@ -345,62 +336,66 @@ CONTAINS
     ! defined as GEOS-Chem advected tracers
     !=====================================================================
 
-    ! Loop over all possible stratospheric species
-    DO NN = 1, NTR_GMI       
+    ! Loop over all GEOS-Chem advected tracers
+    DO N = 1, N_TRACERS
 
-       ! Stratospheric species name according to GMI
-       GMI_Name = TRIM(GMI_TrName(NN))
+       ! GEOS-Chem advected tracer name
+       GC_Name = TRACER_NAME(N) 
+    
+       !---------------------------------------------------------------
+       ! For now, guarantee that GMI prod/loss rates are not used for  
+       ! any bromine species
+       !---------------------------------------------------------------
+       IF ( ( TRIM( GC_Name ) ==      'Br' )   .or. &
+            ( TRIM( GC_Name ) ==    'BrCl' )   .or. &
+            ( TRIM( GC_Name ) ==     'BrO' )   .or. &
+            ( TRIM( GC_Name ) ==  'BrONO2' )   .or. &
+            ( TRIM( GC_Name ) ==  'CF2Br2' )   .or. &
+            ( TRIM( GC_Name ) == 'CF2ClBr' )   .or. &
+            ( TRIM( GC_Name ) ==   'CF3Br' )   .or. &
+            ( TRIM( GC_Name ) ==   'CH3Br' )   .or. &
+            ( TRIM( GC_Name ) ==     'HBr' )   .or. &
+            ( TRIM( GC_Name ) ==    'HOBr' ) ) THEN
+          
+          ! Increment # of Bromine tracers
+          nSchmBry = nSchmBry + 1
 
-       ! Some species names don't exactly match GEOS-Chem names
-       !IF ( TRIM(GMI_TrName(NN)) .eq. 'BrONO2' ) GMI_Name = 'BrNO3'
+          ! Skip to next GEOS-Chem tracer
+          CYCLE
+       ENDIF
 
-       ! Loop over all GEOS-Chem advected tracers
-       DO N = 1, N_TRACERS
+       ! Loop over all possible stratospheric species
+       DO NN = 1, SIZE( GMI_TrName )     
 
-          ! GEOS-Chem advected tracer name
-          GC_Name = TRACER_NAME(N) 
+          ! Stratospheric species name according to GMI
+          GMI_Name = TRIM( GMI_TrName(NN) )
 
-          !---------------------------------------------------------------
-          ! For now, guarantee that GMI prod/loss rates are not used for  
-          ! any bromine species
-          !---------------------------------------------------------------
-          IF ( TRIM( GC_Name ) ==      'Br' .or. &
-               TRIM( GC_Name ) ==    'BrCl' .or. &
-               TRIM( GC_Name ) ==     'BrO' .or. &
-               TRIM( GC_Name ) ==  'BrONO2' .or. &
-               TRIM( GC_Name ) ==  'CF2Br2' .or. &
-               TRIM( GC_Name ) == 'CF2ClBr' .or. &
-               TRIM( GC_Name ) ==   'CF3Br' .or. &
-               TRIM( GC_Name ) ==   'CH3Br' .or. &
-               TRIM( GC_Name ) ==     'HBr' .or. &
-               TRIM( GC_Name ) ==    'HOBr'        ) THEN
-
-             nSchmBry = nSChmBry + 1
-             CYCLE
-
+          ! Some species names don't exactly match GEOS-Chem names
+          !IF ( TRIM(GMI_TrName(NN)) .eq. 'BrONO2' ) GMI_Name = 'BrNO3'
+          
           !---------------------------------------------------------------
           ! Increment nSchm for each match 
           !---------------------------------------------------------------
           IF ( TRIM( GC_Name ) == TRIM( GMI_Name ) ) THEN
                 
-             IF ( LLINOZ .and. TRIM( GC_Name ) .eq. 'Ox' ) THEN
+             IF ( LLINOZ .and. ( TRIM( GC_Name ) == 'Ox' ) ) THEN
                 IF ( am_I_Root ) THEN
                    WRITE( 6, '(a)' ) TRIM( GC_Name ) // ' (via Linoz)'
                 ENDIF
-             ELSE IF ( TRIM(TRACER_NAME(N)) .eq. 'Ox' ) THEN
+             ELSE IF ( TRIM( GC_Name ) == 'Ox' ) THEN
                 IF ( am_I_Root ) THEN
-                   WRITE( 6, '(a)' ) TRIM( GC_Name )) // ' (via Synoz)'
+                   WRITE( 6, '(a)' ) TRIM( GC_Name ) // ' (via Synoz)'
                 ENDIF
              ELSE
                 IF ( am_I_Root ) THEN
-                   WRITE( 6, '(a)' ) TRIM( GC_Name )//' (via GMI rates)'
+                   WRITE( 6, '(a)' ) TRIM( GC_Name ) //' (via GMI rates)'
                 ENDIF
              ENDIF
              
              nSchm = nSchm + 1
-
+             EXIT
           ENDIF
-
+          
        ENDDO
     ENDDO
 
