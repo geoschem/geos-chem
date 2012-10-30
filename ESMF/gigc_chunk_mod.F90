@@ -186,7 +186,7 @@ CONTAINS
 !  Need to add better error-handling.
 !
 ! !REVISION HISTORY:
-!  18 Jul 2011 - M. Long     - Initialf Version
+!  18 Jul 2011 - M. Long     - Initial Version
 !  09 Oct 2012 - R. Yantosca - Added extra comments & cosmetic changes
 !  16 Oct 2012 - R. Yantosca - Renamed GC_STATE argument to State_Chm
 !  16 Oct 2012 - R. Yantosca - Renamed GC_MET argument to State_Met
@@ -194,6 +194,7 @@ CONTAINS
 !  19 Oct 2012 - R. Yantosca - Now reference gigc_state_chm_mod.F90
 !  19 Oct 2012 - R. Yantosca - Now reference gigc_state_met_mod.F90
 !  22 Oct 2012 - R. Yantosca - Renamed to GIGC_Chunk_Run
+!  25 Oct 2012 - R. Yantosca - Now pass RC to GIGC_DO_CHEM
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -209,10 +210,14 @@ CONTAINS
     NC = SIZE( State_Chm%Tracers, 4 )
 
     ! Call the chemistry run method
-    CALL GIGC_Do_Chem( State_Chm, State_Met, am_I_Root, NI, NJ, NL, NC )
-
-    ! Return code
-    RC = GIGC_SUCCESS
+    CALL GIGC_Do_Chem( am_I_Root  = am_I_Root,  &   ! Are we on the root CPU?
+                       NI         = NI,         &   ! # lons on this PET
+                       NJ         = NJ,         &   ! # lats on this PET
+                       NL         = NL,         &   ! # levels on this PET
+                       NCNST      = NC,         &   ! # of advected tracers
+                       State_Chm  = State_Chm,  &   ! Chemistry State
+                       State_Met  = State_Met,  &   ! Meteorology State
+                       RC         = RC         )    ! Success or failure
 
   END SUBROUTINE GIGC_Chunk_Run
 !EOC

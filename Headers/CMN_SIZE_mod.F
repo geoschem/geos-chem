@@ -362,16 +362,22 @@
 #endif
       REAL*8,  PARAMETER :: PTOP       = 0.01d0
 
-#elif defined ( EXTERNAL_GRID )
-
+#elif defined ( EXTERNAL_GRID ) || defined( EXTERNAL_FORCING )
       !-----------------------------------------------------------------
-      ! EXTERNALLY INITIALIZED GRID
+      !     %%%%% CONNECTING TO GEOS-5 GCM via ESMF INTERFACE %%%%%
+      !
+      ! We need to make all of these be variables rather than 
+      ! parameters, so that they can be defined directly from the
+      ! ESMF interface. (bmy, 10/11/12)
       !-----------------------------------------------------------------
-      INTEGER            :: IGLOB, JGLOB, LGLOB
-      INTEGER            :: IIPAR, JJPAR, LLPAR
-
-      INTEGER, PARAMETER :: LLTROP_FIX = 22
-      INTEGER, PARAMETER :: LLTROP     = 22
+      INTEGER            :: IGLOB
+      INTEGER            :: JGLOB
+      INTEGER            :: LGLOB
+      INTEGER            :: IIPAR
+      INTEGER            :: JJPAR
+      INTEGER            :: LLPAR                
+      INTEGER            :: LLTROP_FIX
+      INTEGER            :: LLTROP
       REAL*8,  PARAMETER :: PTOP       = 0.01d0
 #endif
 
@@ -406,14 +412,6 @@
 #elif defined( APM )
       INTEGER, PARAMETER :: NNPAR   = 154   ! For APM (G. Luo, 3/8/11)
 #else
-!------------------------------------------------------------------------------
-! Prior to 12/27/11:
-! Changed NNPAR from 75 to 85 to accommodate 10 bromine species added
-! (J. Parrella, mpayer, 12/27/11)
-!      ! increase NNPAR to 100 (FP 8/2009)
-!      INTEGER, PARAMETER :: NNPAR   = 75    ! For non-TOMAS simulations
-!      !INTEGER, PARAMETER :: NNPAR   = 100
-!------------------------------------------------------------------------------
       INTEGER, PARAMETER :: NNPAR   = 85    ! For non-TOMAS simulations
 #endif
 
@@ -425,15 +423,6 @@
       !  Add RCHO, HCOOH, ACTA
       !INTEGER, PARAMETER :: NEMPARA = 26 
       INTEGER, PARAMETER :: NEMPARA = 29
-
-!------------------------------------------------------------------------------
-! Prior to 12/27/11:
-! Added 3 to NEMPARB, to allow for biogenic VSL emissions of CH2Br2 and CHBr3
-! and seasalt emissions of Br2 (J. Parrella, mpayer, 12/27/11)
-!      ! Add biogenic emissions: MBO, MONX. (tmf, 1/7/09) 
-!!      INTEGER, PARAMETER :: NEMPARB = 3
-!      INTEGER, PARAMETER :: NEMPARB = 17
-!------------------------------------------------------------------------------
       INTEGER, PARAMETER :: NEMPARB = 20
 
       !=================================================================
@@ -583,6 +572,8 @@
 !  10 Feb 2012 - R. Yantosca - Added #if blocks for GEOS-5.7.x nested CH grid
 !  28 Feb 2012 - R. Yantosca - Removed support for GEOS-3
 !  27 Mar 2012 - R. Yantosca - Increase NTYPE from 15 to 25 for Olson 2001 map
+!  25 Oct 2012 - R. Yantosca - Now also set LLPAR, LLTROP, LLTROP_FIX to
+!                              LGLOB for grid-independent simulation
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -762,13 +753,26 @@
       LLPAR      = LGLOB     ! Full vertical grid
 #endif
 
-#elif defined( EXTERNAL_GRID )
+#elif defined( EXTERNAL_GRID ) || defined( EXTERNAL_FORCING )
 
-      !------------------------------------------------------------------
-      ! EXTERNALLY INITIALIZED GRID
-      !------------------------------------------------------------------
-      IIPAR      = IIPAR
-      JJPAR      = JJPAR
+      !-----------------------------------------------------------------
+      !     %%%%% CONNECTING TO GEOS-5 GCM via ESMF INTERFACE %%%%%
+      !
+      ! If we are connecting to the ESMF interface, then IGLOB, JGLOB,
+      ! and LGLOB have already been defined by the call to routine
+      ! GIGC_Init_Dimensions (in ESMF/gigc_initialization_mod.F90).
+      !
+      ! From these, we define the values for IIPAR, JJPAR, LLPAR,
+      ! LLTROP, and LLTROP_FIX.  We set LLTROP and LLTROP_FIX to LGLOB,
+      ! since we can only have one vertical dimension for the ESMF.
+      ! (bmy, 10/25/12)
+      !-----------------------------------------------------------------
+      IIPAR      = IIPAR  
+      JJPAR      = JJPAR  
+      LLPAR      = LGLOB
+      LLTROP     = LGLOB
+      LLTROP_FIX = LGLOB
+
 #endif
 
       ! Set values for former variables declared as parameters
@@ -1174,14 +1178,6 @@
 #elif defined( APM )
       INTEGER, PARAMETER :: NNPAR   = 154   ! For APM (G. Luo, 3/8/11)
 #else
-!------------------------------------------------------------------------------
-! Prior to 12/27/11:
-! Changed NNPAR from 75 to 85 to accommodate 10 bromine species added
-! (J. Parrella, mpayer, 12/27/11)
-!      ! increase NNPAR to 100 (FP 8/2009)
-!      INTEGER, PARAMETER :: NNPAR   = 75    ! For non-TOMAS simulations
-!      !INTEGER, PARAMETER :: NNPAR   = 100
-!------------------------------------------------------------------------------
       INTEGER, PARAMETER :: NNPAR   = 85    ! For non-TOMAS simulations
 #endif
 
@@ -1193,15 +1189,6 @@
       !  Add RCHO, HCOOH, ACTA
       !INTEGER, PARAMETER :: NEMPARA = 26 
       INTEGER, PARAMETER :: NEMPARA = 29
-
-!------------------------------------------------------------------------------
-! Prior to 12/27/11:
-! Added 3 to NEMPARB, to allow for biogenic VSL emissions of CH2Br2 and CHBr3
-! and seasalt emissions of Br2 (J. Parrella, mpayer, 12/27/11)
-!      ! Add biogenic emissions: MBO, MONX. (tmf, 1/7/09) 
-!!      INTEGER, PARAMETER :: NEMPARB = 3
-!      INTEGER, PARAMETER :: NEMPARB = 17
-!------------------------------------------------------------------------------
       INTEGER, PARAMETER :: NEMPARB = 20
 
       !=================================================================

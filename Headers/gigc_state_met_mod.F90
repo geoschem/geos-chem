@@ -79,6 +79,8 @@ MODULE GIGC_State_Met_Mod
      REAL*8, POINTER :: OPTD    (:,:,:)   ! Visible optical depth [unitless]
      REAL*8, POINTER :: PEDGE   (:,:,:)   ! Pressure @ level edges [Pa]
      REAL*8, POINTER :: PMID    (:,:,:)   ! Pressure @ level centers [Pa]
+     REAL*8, POINTER :: QI      (:,:,:)   ! Ice mixing ratio [kg/kg]
+     REAL*8, POINTER :: QL      (:,:,:)   ! Water mixing ratio [kg/kg]
      REAL*8, POINTER :: DELP    (:,:,:)   ! Delta-P extent  of a grid box [mb]
      REAL*8, POINTER :: RH      (:,:,:)   ! Relative humidity [unitless]
      REAL*8, POINTER :: SPHU    (:,:,:)   ! Specific humidity [kg/kg]
@@ -90,6 +92,7 @@ MODULE GIGC_State_Met_Mod
 !
 ! !REVISION HISTORY: 
 !  19 Oct 2012 - R. Yantosca - Initial version, split off from gc_type_mod.F90
+!  23 Oct 2012 - R. Yantosca - Added QI, QL met fields to the derived type
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -135,6 +138,7 @@ CONTAINS
 ! !REVISION HISTORY: 
 !  19 Oct 2012 - R. Yantosca - Initial version, based on gc_environment_mod.F90
 !  19 Oct 2012 - R. Yantosca - Now pass all dimensions as arguments
+!  23 Oct 2012 - R. Yantosca - Now allocate QI, QL fields
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -258,7 +262,13 @@ CONTAINS
                                                
     ALLOCATE( State_Met%PMID    ( IM, JM, LM   ), STAT=RC )
     IF ( RC /= GIGC_SUCCESS ) RETURN           
+
+    ALLOCATE( State_Met%QI      ( IM, JM, LM   ), STAT=RC )
+    IF ( RC /= GIGC_SUCCESS ) RETURN           
                                                
+    ALLOCATE( State_Met%QL      ( IM, JM, LM   ), STAT=RC )
+    IF ( RC /= GIGC_SUCCESS ) RETURN           
+                           
     ALLOCATE( State_Met%DELP    ( LM, IM, JM   ), STAT=RC )
     IF ( RC /= GIGC_SUCCESS ) RETURN           
                                                
@@ -315,6 +325,7 @@ CONTAINS
 !
 ! !REVISION HISTORY: 
 !  19 Oct 2012 - R. Yantosca - Initial version, based on gc_environment_mod.F90
+!  23 Oct 2012 - R. Yantosca - Now deallocate QI, QL fields
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -357,6 +368,8 @@ CONTAINS
      IF ( ASSOCIATED( State_Met%OPTD     )  ) DEALLOCATE( State_Met%OPTD     )
      IF ( ASSOCIATED( State_Met%PEDGE    )  ) DEALLOCATE( State_Met%PEDGE    )
      IF ( ASSOCIATED( State_Met%PMID     )  ) DEALLOCATE( State_Met%PMID     )
+     IF ( ASSOCIATED( State_Met%QI       )  ) DEALLOCATE( State_Met%QI       )
+     IF ( ASSOCIATED( State_Met%QL       )  ) DEALLOCATE( State_Met%QL       )
      IF ( ASSOCIATED( State_Met%DELP     )  ) DEALLOCATE( State_Met%DELP     )
      IF ( ASSOCIATED( State_Met%RH       )  ) DEALLOCATE( State_Met%RH       )
      IF ( ASSOCIATED( State_Met%SPHU     )  ) DEALLOCATE( State_Met%SPHU     )

@@ -65,9 +65,10 @@
 !  16 Jun 2011 - J. Parrella - Initial version
 !  22 May 2012 - M. Payer    - Added ProTeX headers
 !  26 Sep 2012 - R. Yantosca - For now, comment out debug print statements
+!  23 Oct 2012 - R. Yantosca - Add better error checks to prevent div-by-zero
 !EOP
 !------------------------------------------------------------------------------
-!BOC
+c!BOC
 !
 ! !DEFINED PARAMETERS:
 !
@@ -121,6 +122,15 @@
       iwc = CLDF * ( QI * 1d3 * dens_ice )
 #endif
 
+      !%%% ERROR CHECK!  Do not let IWC=0 because it will cause the
+      !%%% LOG10 statement in the upcoming section (bmy, 10/23/12)
+      IF ( ( .not. ( ABS( IWC ) > 0d0 ) ) ) THEN
+         gamma  = 0.d0
+         k_hbr  = 0.d0
+         k_hobr = 0.d0
+         RETURN
+      ENDIF
+
       ! ----------------------------------------------
       ! calculate the temperature dependent reactive
       ! uptake coefficient for HBr + HOBr + ice.
@@ -150,7 +160,6 @@
       !    instead of recycling.
       gamma_hobr = 0.003d0
       gamma_hbr  = 0.03d0
-
       ! ----------------------------------------------
       ! 2.
       !   calculate the surface area of cloud droplets
@@ -220,11 +229,23 @@
       ! now convert radius to [cm]
       RADIUS = RADIUS * 1.d-4
 
-      ! make sure there's enough ice in the box we're
-      ! looking at to do chemistry:
-      IF ( (iwc == 0.0) .or. (QI == 0.0) .or.
-     &     (it_is_nan( log10(iwc/50.0))) .or.
-     &     (CLDF == 0.0) .or. (RADIUS <= 0.0) ) THEN
+!------------------------------------------------------------------------------
+!      ! make sure there's enough ice in the box we're
+!      ! looking at to do chemistry:
+!      IF ( (iwc == 0.0) .or. (QI == 0.0) .or.
+!     &     (it_is_nan( log10(iwc/50.0))) .or.
+!     &     (CLDF == 0.0) .or. (RADIUS <= 0.0) ) THEN
+!         gamma  = 0.d0
+!         k_hbr  = 0.d0
+!         k_hobr = 0.d0
+!         RETURN
+!      ENDIF
+!------------------------------------------------------------------------------
+      !%%% ERROR CHECK!  Do not let RADIUS=0 because it will cause the
+      !%%% LOG10 statement in the upcoming section (bmy, 10/23/12)
+      IF ( (              RADIUS   < 0     )   .or.
+     &     ( .not. ( ABS( RADIUS ) > 0d0 ) )   .or.
+     &     ( .not. ( ABS( CLDF   ) > 0d0 ) ) ) THEN
          gamma  = 0.d0
          k_hbr  = 0.d0
          k_hobr = 0.d0

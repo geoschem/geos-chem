@@ -29,13 +29,13 @@ MODULE GIGC_Initialization_Mod
   PUBLIC :: GIGC_Init_Time_Interface
   PUBLIC :: GIGC_Init_Dimensions
   PUBLIC :: GIGC_Allocate_Interface
-  PUBLIC :: GIGC_SetEnv
 !
 ! !REVISION HISTORY: 
 !  16 Oct 2012 - M. Long     - Initial version
 !  16 Oct 2012 - R. Yantosca - Added ProTeX headers
 !  22 Oct 2012 - R. Yantosca - Renamed to gigc_initialization_mod.F90
 !  22 Oct 2012 - R. Yantosca - Renamed several routines for better consistency
+!  25 Oct 2012 - R. Yantosca - Remove routine GIGC_SetEnv
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -159,23 +159,19 @@ CONTAINS
 !
 ! !USES:
 !
-    USE GIGC_Environment_Mod, ONLY : GIGC_Allocate_All
-    USE GIGC_Environment_Mod, ONLY : GIGC_Init_All
+    USE GIGC_Environment_Mod
     USE GIGC_ErrCode_Mod  
     USE GIGC_State_Chm_Mod
     USE GIGC_State_Met_Mod
     USE CMN_SIZE_MOD,         ONLY : IIPAR
     USE CMN_SIZE_MOD,         ONLY : JJPAR
     USE CMN_SIZE_MOD,         ONLY : LLTROP
-    USE COMODE_MOD,           ONLY : INIT_COMODE
+    USE COMODE_MOD
     USE COMODE_LOOP_MOD       
     USE GCKPP_COMODE_MOD,     ONLY : INIT_GCKPP_COMODE
     USE GRID_MOD,             ONLY : INIT_GRID
-    USE DAO_MOD,              ONLY : INIT_DAO
-    USE LOGICAL_MOD,          ONLY : LKPP
-    USE LOGICAL_MOD,          ONLY : LPRT
-    USE LOGICAL_MOD,          ONLY : LEMIS
-    USE LOGICAL_MOD,          ONLY : LCHEM
+    USE DAO_MOD
+    USE LOGICAL_MOD
     USE PBL_MIX_MOD,          ONLY : INIT_PBL_MIX
     USE PRESSURE_MOD,         ONLY : INIT_PRESSURE
     USE TRACER_MOD,           ONLY : ITS_A_FULLCHEM_SIM
@@ -278,8 +274,15 @@ CONTAINS
     ! Initialize chemistry mechanism
     !=======================================================================
 
-    ! INITIALIZE ALLOCATABLE SMVGEAR/KPP ARRAYS
-    IF ( LEMIS .OR. LCHEM ) THEN
+    ! Set some size variables
+    NLAT   = JJPAR
+    NLONG  = IIPAR
+    NVERT  = IVERT 
+    NPVERT = NVERT
+    NPVERT = NVERT + IPLUME
+
+!    ! INITIALIZE ALLOCATABLE SMVGEAR/KPP ARRAYS
+!    IF ( LEMIS .OR. LCHEM ) THEN
 
        ! Initialize arrays in comode_mod.F
        CALL INIT_COMODE( am_I_Root )
@@ -289,24 +292,36 @@ CONTAINS
           CALL INIT_GCKPP_COMODE( am_I_Root, IIPAR,   JJPAR, LLTROP,  &
                                   ITLOOP,    NMTRATE, IGAS,  RC      )
        ENDIF
-    ENDIF
-
-    !%%% NOTE: FOR NOW THIS IS IN THE CHEMDR %%%
+!    ENDIF
 
     ! Read from data file mglob.dat
     CALL READER( .TRUE., am_I_Root )
 
     !### Debug
     IF ( LPRT .and. am_I_Root ) THEN
-       CALL DEBUG_MSG( '### CHEMDR: after READER' )        
+       CALL DEBUG_MSG( '### GIGC_INIT_CHEMISTRY: after READER' )
     ENDIF
+
+    ! Set NCS for urban chemistry only (since that is where we
+    ! have defined the GEOS-CHEM mechanism) (bdf, bmy, 4/21/03)
+    NCS = NCSURBAN
+
+    !### Debug
+    IF ( LPRT .and. am_I_Root ) THEN
+       CALL DEBUG_MSG( '### GIGC_INIT_CHEMISTRY: after READER' )        
+    ENDIF
+
+    ! Redefine NTLOOP since READER defines it initially (bmy, 9/28/04)
+    NLOOP   = NLAT  * NLONG
+    NTLOOP  = NLOOP * NVERT
+    NTTLOOP = NTLOOP
 
     ! Read "globchem.dat" chemistry mechanism
     CALL READCHEM( am_I_Root )
 
     !### Debug
     IF ( LPRT .and. am_I_Root ) THEN
-       CALL DEBUG_MSG( '### CHEMDR: after READCHEM' )        
+       CALL DEBUG_MSG( '### GIGC_INIT_CHEMISTRY: after READCHEM' )        
     ENDIF
 
     ! Save Chemical species names ID's into State_Chm
@@ -328,7 +343,7 @@ CONTAINS
 
     !### Debug
     IF ( LPRT .and. am_I_Root ) THEN
-       CALL DEBUG_MSG( '### CHEMDR: after GET_GLOBAL_CH4' )        
+       CALL DEBUG_MSG( '### GIGC_INIT_CHEMISTRY: after GET_GLOBAL_CH4' )        
     ENDIF
 
     ! Initialize FAST-J photolysis
@@ -336,7 +351,7 @@ CONTAINS
          
     !### Debug
     IF ( LPRT .and. am_I_Root ) THEN
-       CALL DEBUG_MSG( '### CHEMDR: after INPHOT' )        
+       CALL DEBUG_MSG( '### GIGC_INIT_CHEMISTRY: after INPHOT' )        
     ENDIF
 
     ! Flag certain chemical species
@@ -344,7 +359,7 @@ CONTAINS
 
     !### Debug
     IF ( LPRT .and. am_I_Root ) THEN
-       CALL DEBUG_MSG( '### CHEMDR: after SETTRACE' )
+       CALL DEBUG_MSG( '### GIGC_INIT_CHEMISTRY: after SETTRACE' )
     ENDIF
 
     ! Flag emission & drydep rxns
@@ -352,7 +367,7 @@ CONTAINS
 
     !### Debug
     IF ( LPRT .and. am_I_Root ) THEN
-       CALL DEBUG_MSG( '### CHEMDR: after SETEMDEP' )
+       CALL DEBUG_MSG( '### GIGC_INIT_CHEMISTRY: after SETEMDEP' )
     ENDIF
 
     ! Initialize dry deposition (work in progress), add here
@@ -601,32 +616,5 @@ CONTAINS
     ALLOCATE( UVALBEDO( IIPAR, JJPAR), STAT=RC  )
 
   END SUBROUTINE GIGC_Allocate_Interface
-!EOC
-!------------------------------------------------------------------------------
-!          Harvard University Atmospheric Chemistry Modeling Group            !
-!------------------------------------------------------------------------------
-!BOP
-!
-! !IROUTINE: gigc_setenv
-!
-! !DESCRIPTION: GIGC\_SETENV
-!\\
-!\\
-! !INTERFACE:
-!
-  SUBROUTINE GIGC_SetEnv
-!
-! !REMARKS:
-!  This is a stub routine for now
-
-! !REVISION HISTORY: 
-!  15 Oct 2012 - M. Long     - Initial version
-!  15 Oct 2012 - R. Yantosca - Added ProTeX Headers, use F90 format/indents
-!  22 Oct 2012 - R. Yantosca - Renamed to GIGC_SetEnv
-!EOP
-!------------------------------------------------------------------------------
-!BOC
-  END SUBROUTINE GIGC_SetEnv
-!EOC      
 END MODULE GIGC_Initialization_Mod
 #endif
