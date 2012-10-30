@@ -38,6 +38,11 @@
 !  ND49 tracer numbers:
 !  ============================================================================
 !  1 - N_TRACERS : GEOS-CHEM transported tracers            [v/v        ]
+!  61            : Soil NOx                                 [molec/cm2/s]
+!  62            : Fertilizer NOx                           [molec/cm2/s]
+!  63            : Dry Period                               [hours]
+!  64            : PFactor                                  [unitless]
+!  65            : Soil Moisture                            [unitless]
 !  76            : OH concentration                         [molec/cm3  ]
 !  77            : NO2 concentration                        [v/v        ]
 !  78            : PBL heights                              [m          ]
@@ -182,7 +187,9 @@
       USE DAO_MOD,       ONLY : T,       UWND,   VWND
       USE DAO_MOD,       ONLY : TS
       USE DAO_MOD,       ONLY : PARDF, PARDR
+      USE DAO_MOD,       ONLY : PREACC,   PRECON
       USE MODIS_LAI_MOD, ONLY : ISOLAI => GC_LAI
+      USE LOGICAL_MOD,   ONLY : LSOILNOX 
       USE GRID_MOD,      ONLY : GET_XOFFSET,        GET_YOFFSET
       USE inquireMod,    ONLY : findFreeLun
       USE TIME_MOD,      ONLY : EXPAND_DATE
@@ -204,6 +211,8 @@
       USE JV_CMN_MOD                              ! ODAER, QAA, QAA_AOD (clh)
       USE CMN_O3_MOD	                          ! Pure O3, SAVENO2
       USE CMN_GCTM_MOD                            ! XTRA2
+      USE COMMSOIL_MOD
+
 !
 ! !REVISION HISTORY: 
 !  09 Apr 1999 - I. Bey, R. Martin, R. Yantosca - Initial version
@@ -1145,6 +1154,144 @@
             DO X = 1, ND49_NI
                I = GET_I( X )
                Q(X,Y,1) = PARDR(I,J)
+            ENDDO
+            ENDDO
+!$OMP END PARALLEL DO
+
+         ELSE IF ( N == 61 .and.  LSOILNOX  ) THEN
+
+            !-----------------------------------
+            ! SOIL NOX EMISSIONS [molec/cm2/s]
+            !----------------------------------- 
+            CATEGORY = 'TIME-SER'
+            UNIT     = 'molec/cm2/s'
+            GMNL     = 1
+            GMTRC    = 27
+
+!$OMP PARALLEL DO
+!$OMP+DEFAULT( SHARED )
+!$OMP+PRIVATE( I, J, X, Y )
+            DO Y = 1, ND49_NJ
+               J = JOFF + Y
+            DO X = 1, ND49_NI
+               I = GET_I( X )
+               Q(X,Y,1) =  INST_SOIL(I,J)
+            ENDDO
+            ENDDO
+!$OMP END PARALLEL DO
+
+
+
+         ELSE IF ( N == 62 .and.  LSOILNOX  ) THEN
+
+            !-----------------------------------
+            ! FERTILIZER SOIL NOX EMISSIONS [molec/cm2/s]
+            !----------------------------------- 
+            CATEGORY = 'TIME-SER'
+            UNIT     = 'molec/cm2/s'
+            GMNL     = 1
+            GMTRC    = 28
+
+
+
+!$OMP PARALLEL DO!
+!$OMP+DEFAULT( SHARED )
+!$OMP+PRIVATE( I, J, X, Y )
+            DO Y = 1, ND49_NJ
+               J = JOFF + Y
+            DO X = 1, ND49_NI
+               I = GET_I( X )
+               Q(X,Y,1) =  INST_FERT(I,J)
+            ENDDO
+            ENDDO
+!$OMP END PARALLEL DO
+
+
+
+         ELSE IF ( N == 63 .and.  LSOILNOX  ) THEN
+
+            !-----------------------------------
+            !DRY PERIOD [hours]
+            !----------------------------------- 
+            CATEGORY = 'TIME-SER'
+            UNIT     = 'hours'
+            GMNL     = 1
+            GMTRC    = 29
+
+!$OMP PARALLEL DO
+!$OMP+DEFAULT( SHARED )
+!$OMP+PRIVATE( I, J, X, Y )
+            DO Y = 1, ND49_NJ
+               J = JOFF + Y
+            DO X = 1, ND49_NI
+               I = GET_I( X )
+               Q(X,Y,1) =  DRYPERIOD(I,J)
+            ENDDO
+            ENDDO
+!$OMP END PARALLEL DO
+
+         ELSE IF ( N == 64 .and.  LSOILNOX  ) THEN
+
+            !-----------------------------------
+            !PFACTOR [unitless]
+            !----------------------------------- 
+            CATEGORY = 'TIME-SER'
+            UNIT     = 'unitless'
+            GMNL     = 1
+            GMTRC    = 30
+
+!$OMP PARALLEL DO
+!$OMP+DEFAULT( SHARED )
+!$OMP+PRIVATE( I, J, X, Y )
+            DO Y = 1, ND49_NJ
+               J = JOFF + Y
+            DO X = 1, ND49_NI
+               I = GET_I( X )
+               Q(X,Y,1) = PFACTOR(I,J)
+            ENDDO
+            ENDDO
+!$OMP END PARALLEL DO
+
+         ELSE IF ( N == 65 .and.  LSOILNOX  ) THEN
+
+            !-----------------------------------
+            !GWET_PREV [unitless]
+            !----------------------------------- 
+            CATEGORY = 'TIME-SER'
+            UNIT     = 'unitless'
+            GMNL     = 1
+            GMTRC    = 31
+!$OMP PARALLEL DO
+!$OMP+DEFAULT( SHARED )
+!$OMP+PRIVATE( I, J, X, Y )
+            DO Y = 1, ND49_NJ
+               J = JOFF + Y
+            DO X = 1, ND49_NI
+               I = GET_I( X )
+               Q(X,Y,1) =  GWET_PREV(I,J)
+            ENDDO
+            ENDDO
+!$OMP END PARALLEL DO
+
+
+
+         ELSE IF ( N == 66 .and.  LSOILNOX  ) THEN
+
+            !-----------------------------------
+            !Accumulated Precip [mm/day]
+            !----------------------------------- 
+            CATEGORY = 'DAO-FLDS'
+            UNIT     = 'mm/day'
+            GMNL     = 1
+            GMTRC    = 3
+!$OMP PARALLEL DO
+!$OMP+DEFAULT( SHARED )
+!$OMP+PRIVATE( I, J, X, Y )
+            DO Y = 1, ND49_NJ
+               J = JOFF + Y
+            DO X = 1, ND49_NI
+               I = GET_I( X )
+               Q(X,Y,1) =  PREACC(I,J)
             ENDDO
             ENDDO
 !$OMP END PARALLEL DO

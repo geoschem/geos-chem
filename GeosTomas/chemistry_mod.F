@@ -49,6 +49,7 @@
 !  17 Dec 2009 - R. Yantosca - Added ProTeX headers
 !  28 Jan 2010 - C. Carouge, R. Yantosca - Modified for ISORROPIA II
 !  08 Aug 2012 - R. Yantosca - Now align IF statements better
+!  10 Aug 2012 - R. Yantosca - Cosmetic changes
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -165,7 +166,7 @@
 !        CLDF from "dao_mod.f" (bec, bmy, 4/20/05)
 !  (11) Now modified for GCAP met fields.  Now call CHEM_HCN_CH3CN from 
 !        "hcn_ch3cn_mod.f".  Also remove allreferences to the obsolete 
-!         CO-OH param simulation. (xyp, bmy}, 6/23/05)
+!         CO-OH param simulation. (xyp, bmy, 6/23/05)
 !  (12) Now make sure all USE statements are USE, ONLY (bmy, 10/3/05)
 !  (13) Now call MAKE_RH from "main.f" (bmy, 3/16/06)
 !  (14) Removed ISOP_PRIOR as a local variable (dkh, bmy, 6/1/06)
@@ -183,6 +184,7 @@
 !  30 Jul 2012 - R. Yantosca - Now accept am_I_Root as an argument, and pass
 !                              this down to lower-level chem routines for GIGC
 !  08 Aug 2012 - R. Yantosca - Now align IF statements better
+!  10 Aug 2012 - R. Yantosca - Cosmetic changes
 !  18 Oct 2012 - R. Yantosca - Rename GC_MET argument to State_Met
 !  18 Oct 2012 - R. Yantosca - Rename CHEM_STATE argument to State_Chem
 !  19 Oct 2012 - R. Yantosca - Now reference gigc_state_chm_mod.F90
@@ -204,9 +206,10 @@
       !=================================================================
       ! DO_CHEMISTRY begins here!
       !=================================================================
+
 #if defined( DEVEL ) || defined( EXTERNAL_GRID ) || defined( EXTERNAL_FORCING )
       ! Transfer tracer array to local
-      STT = State_Chm%TRACERS(:,:,:,:N_TRACERS)
+      STT(:,:,:,1:N_TRACERS) = State_Chm%TRACERS(:,:,:,1:N_TRACERS)
 #endif
 
       ! Compute optical depths (except for CH4 simulation)
@@ -225,9 +228,8 @@
          IF ( ITS_A_FULLCHEM_SIM() ) THEN 
 
 #if defined( DEVEL ) || defined( EXTERNAL_GRID ) || defined( EXTERNAL_FORCING )
-            ! Call chemistry solver from ESMF interface
+            ! Call chemistry solver for ESMF interface
             CALL CHEMDR( am_I_Root, NI, NJ, NL, State_Met, State_Chm )
-            PRINT *,"DO_CHEMISTRY: Done with CHEMDR"
 #else
             ! Call chemistry solver from traditional driver "main.F"
             CALL CHEMDR( am_I_Root )
@@ -283,7 +285,7 @@
             IF ( IDTACET /= 0 ) THEN
                CALL OCEAN_SINK_ACET( STT(:,:,1,IDTACET) ) 
             ENDIF
- 
+             
          !---------------------------------
          ! Offline aerosol simulation
          !---------------------------------
@@ -415,9 +417,9 @@
                CALL CHEMCH4
             ENDIF
  
-          !---------------------------------
-          ! Mercury
-          !---------------------------------
+         !---------------------------------
+         ! Mercury
+         !---------------------------------
          ELSE IF ( ITS_A_MERCURY_SIM() ) THEN
  
             ! Do Hg chemistry
@@ -436,10 +438,10 @@
          !### Debug
          IF ( LPRT ) CALL DEBUG_MSG( '### MAIN: a CHEMISTRY' )
       ENDIF
-         
+      
 #if defined( DEVEL ) || defined( EXTERNAL_GRID ) || defined( EXTERNAL_FORCING )
       ! Transfer tracer array back to non-local
-      State_Chm%TRACERS(:,:,:,:N_TRACERS) = STT
+      State_Chm%TRACERS(:,:,:,1:N_TRACERS) = STT(:,:,:,1:N_TRACERS)
 #endif
 
       END SUBROUTINE DO_CHEMISTRY

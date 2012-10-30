@@ -19,7 +19,7 @@
       USE CMN_DIAG_MOD                          ! Diag counters & flags
       USE CMN_GCTM_MOD                          ! Physical constants
       USE CMN_DEP_MOD                           ! IREG, ILAND, IUSE, FRCLND
-      USE COMMSOIL_MOD                          ! CANOPYNOX
+      USE COMMSOIL_MOD                          ! Soil wetness variables
       USE COMODE_MOD                            ! Large arrays for SMVGEAR
       USE COMODE_LOOP_MOD                       ! Formerly "comode.h"
       USE DAO_MOD                               ! Met field arrays
@@ -49,6 +49,7 @@
       PUBLIC :: DRYFLXRnPbBe       
       PUBLIC :: DVZ_MINVAL         
       PUBLIC :: INIT_DRYDEP
+
 !
 ! !PUBLIC DATA MEMBERS:
 !
@@ -58,6 +59,8 @@
       PUBLIC :: NUMDEP
       PUBLIC :: NTRAIND
       PUBLIC :: DRYHg0, DRYHg2, DryHgP    !CDH
+      PUBLIC :: IDEP,   IRGSS,  IRAC, IRCLS
+      PUBLIC :: IRGSO,  IRLU,   IRI,  IRCLO, DRYCOEFF
 !
 ! !REMARKS:
 !  References:
@@ -738,6 +741,18 @@
 ! !INTERFACE:
 !
       SUBROUTINE DRYFLX
+!
+! !USES:
+!
+      USE LOGICAL_MOD,  ONLY : LSOILNOX
+      USE GET_NDEP_MOD, ONLY : SOIL_DRYDEP
+      USE TRACERID_MOD, ONLY : IDTHNO3
+
+      USE CMN_SIZE_MOD       ! Size parameters
+      USE CMN_DIAG_MOD       ! Diagnostic switches & arrays
+      USE CMN_DEP_MOD        ! Dry deposition variables
+      USE COMMSOIL_MOD       ! Soil wetness variables
+      USE COMODE_MOD
 ! 
 ! !REVISION HISTORY: 
 !  (1 ) Bug fix -- now skip tracers for which NTDEP(N) is zero, in order
@@ -779,7 +794,7 @@
       !=================================================================
 
       ! Return unless we have turned on ND44 drydep diagnostic
-      IF ( ND44 == 0 ) RETURN
+      !IF ( ND44 == 0 ) RETURN
 
       ! There is only drydep in the surface layer, which
       ! is accounted for in the "URBAN" chemistry slot
@@ -797,12 +812,15 @@
       !=================================================================
 !$OMP PARALLEL DO
 !$OMP+DEFAULT( SHARED )
-!$OMP+PRIVATE( I, J, L, N, NK, JJ, JLOOP, TDRYFX )
+!$OMP+PRIVATE( I, J, L, N, NN, NK, JJ, JLOOP, TDRYFX )
 !$OMP+SCHEDULE( DYNAMIC )
       DO N = 1, NUMDEP
 
          ! Index for drydep species #N, from SMVGEAR
          NK = NTDEP(N)
+
+         ! Dry deposition tracer id
+         NN =  NTRAIND(N) 
 
          ! If NK <= 0, then skip to the next tracer.  
          ! This avoids array-out-of-bounds errors (bmy, 5/2/00)
@@ -840,8 +858,17 @@
                TDRYFX        = TDRYFX / ( AREA_CM2 * DTCHEM ) 
                     
 !$OMP CRITICAL
-               ! Save into AD44 diagnostic array
-               AD44(I,J,N,1) = AD44(I,J,N,1) + TDRYFX
+               IF ( ND44 /= 0 ) THEN 
+                  ! Save into AD44 diagnostic array
+                  AD44(I,J,N,1) = AD44(I,J,N,1) + TDRYFX
+               ENDIF 
+
+               ! Archive dry deposited N species for use in soil_nox_mod
+               IF (LSOILNOX ) THEN
+                  CALL SOIL_DRYDEP ( I, J, L, NN, TDRYFX)
+               ENDIF
+
+
 !$OMP END CRITICAL
 
             ENDIF
@@ -1023,7 +1050,7 @@
       USE CMN_SIZE_MOD       ! Size parameters
       USE CMN_DIAG_MOD       ! Diagnostic switches & arrays
       USE CMN_DEP_MOD        ! Dry deposition variables
-      USE COMMSOIL_MOD       ! Soil pulsing & wetness variables
+      USE COMMSOIL_MOD       ! Soil wetness variables
 ! 
 ! !REVISION HISTORY: 
 !  (1) Now deposit through the PBL. Commented but kept code related to soil
@@ -1059,9 +1086,9 @@
       ! Chemistry timestep in seconds
       DTCHEM = GET_TS_CHEM() * 60d0
 
-      ! Call soiltype to determine whether soil is dry or
+      ! Obsolete - Call soiltype to determine whether soil is dry or
       ! wet for all land grid-boxes
-      CALL SOILTYPE
+      !CALL SOILTYPE
 
       ! Only do the following if DRYDEP is turned on
       IF ( .not. LDRYD ) RETURN
@@ -1689,12 +1716,6 @@
                DTMP3=1.D0/(RAC(LDT)+RGSX)
                DTMP4=1.D0/(RDC+RCLX)
                RSURFC(K,LDT) = 1.D0/(DTMP1 + DTMP2 + DTMP3 + DTMP4)
-!  Save the within canopy depvel of NOx, used in calculating the 
-!  canopy reduction factor for soil emissions.
-               ! Remove hardwire for CANOPYNOX (bmy, 1/24/03)
-               IF ( K == DRYDNO2 ) THEN
-                  CANOPYNOX(IJLOOP,LDT)=DTMP1+DTMP2+DTMP3+DTMP4
-               ENDIF
 !** get surface deposition velocity for aerosols if needed;
 !** equations (15)-(17) of Walcek et al. [1986]
  155           IF (.NOT. AIROSOL(K)) GOTO 160

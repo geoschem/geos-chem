@@ -181,6 +181,7 @@
 !        IDTOCIL1-IDTOCIL30, IDTOCOB1-IDTOCOB30, and IDTAW1-IDTAW30 (win, 6/23/09)
 !  (23) Updates for mercury simulation (ccc, 5/17/10)
 !  17 Feb 2011 - R. Yantosca - Add modifications for APM microphysics (G. Luo)
+!  13 Aug 2012 - R. Yantosca - Add routine FILL_State_Chm_NAME_IDs
 !******************************************************************************
 !
       IMPLICIT NONE
@@ -457,16 +458,12 @@
       ! Error check for array dimensions (hotp 8/1/09)
       USE ERROR_MOD,   ONLY : ERROR_STOP
 
-      USE CMN_SIZE_MOD      ! Size parameters
-      USE COMODE_LOOP_MOD   ! IDEMS
-
-! !INPUT VARIABLES:
-
-      LOGICAL, INTENT(IN) :: am_I_Root
-
-#if defined(DEVEL)
-!      USE GC_ENVIRONMENT_MOD, ONLY : TRACER_INDEX, TRACER_NAMES
-#endif
+      USE CMN_SIZE_MOD                    ! Size parameters
+      USE COMODE_LOOP_MOD                 ! IDEMS
+!
+! !INPUT PARAMETERS:
+!
+      LOGICAL, INTENT(IN)  :: am_I_Root   ! Is this the root CPU?
 
       ! Local variables
       INTEGER              :: N, COUNT, COUNT_Hg0, COUNT_Hg2, COUNT_HgP
@@ -517,14 +514,10 @@
       !=================================================================
       DO N = 1, N_TRACERS
 
-#if defined (DEVEL)
-!         CHEM_STATE%TRAC_ID(N) = N
-!         CHEM_STATE%TRAC_NAME(N)  = TRIM( TRACER_NAME(N) )
-!         TRACER_INDEX(N) = N
-#endif
-         ! Convert tracer name to upper case.  TCNAME is in the "CMN" header
-         ! file -- we might use something better later on (bmy, 11/12/02)
+         ! Save TRACER_NAME into a CHARACTER*14 variable
          NAME = TRACER_NAME(N)
+
+         ! Convert name to uppercase
          CALL TRANUC( NAME )
 
          ! Find each tracer
@@ -2055,6 +2048,7 @@
 !  30 Jul 2012 - R. Yantosca - Now accept am_I_Root as an argument when
 !                              running with the traditional driver main.F
 !  16 Oct 2012 - R. Yantosca - Renamed chem state object to State_Chm
+!  19 Oct 2012 - R. Yantosca - Now reference gigc_state_chm_mod.F90
 !******************************************************************************
 !
       ! References to F90 modules
@@ -2062,11 +2056,10 @@
       USE TRACER_MOD, ONLY : ID_EMITTED,     N_TRACERS
       USE TRACER_MOD, ONLY : TRACER_COEFF,   TRACER_CONST
       USE TRACER_MOD, ONLY : TRACER_N_CONST, TRACER_NAME
-      ! for Debug (hotp 8/5/09)
       USE LOGICAL_MOD, ONLY : LPRT
 
-      USE CMN_SIZE_MOD                           ! Size parameters
-      USE COMODE_LOOP_MOD                        ! NAMEGAS
+      USE CMN_SIZE_MOD                                 ! Size parameters
+      USE COMODE_LOOP_MOD                              ! NAMEGAS
 
 #if defined( DEVEL ) || defined( EXTERNAL_GRID ) || defined( EXTERNAL_FORCING )
       USE GIGC_State_Chm_Mod, ONLY: ChmState           ! Derived type
@@ -2079,8 +2072,8 @@
       LOGICAL, INTENT(IN) :: am_I_Root
 
       ! Local variabales
-      INTEGER             :: I, J, T, C
- 
+      INTEGER             :: I, J, T, C, STAT
+
 #if defined( DEVEL ) || defined( EXTERNAL_GRID ) || defined( EXTERNAL_FORCING )
       TYPE(ChmState), INTENT(INOUT) :: State_Chm       ! Chemistry State obj
 #endif
@@ -2184,7 +2177,6 @@
          IF ( NAMEGAS(I) == 'H2SO4'  ) IDH2SO4  = I !(win, 6/23/09)
 
 #if defined( ESMF_ )
-
          ! Add the species name & Id to the chemistry state object
          ! (this only needs to be done if we are using the ESMF interface)
          CALL Register_Species( NAMEGAS(I), I, State_Chm, STAT )
@@ -2279,7 +2271,6 @@
                PRINT*, '### IDTRMB(T,C): ', IDTRMB(T,C)
             ENDIF
 #endif
-
          ENDDO
       ENDDO
 
@@ -2338,7 +2329,7 @@
 
       END SUBROUTINE FILL_CHEM_STATE_NAME_IDs
 !EOC 
-#endif    
+#endif
 !------------------------------------------------------------------------------
 
       FUNCTION IS_Hg0( N ) RESULT( IT_IS_Hg0 )

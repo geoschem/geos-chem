@@ -12,7 +12,7 @@
 ! !INTERFACE:
 !
 #if defined( DEVEL ) || defined( EXTERNAL_GRID ) || defined( EXTERNAL_FORCING )
-      SUBROUTINE CHEMDR( am_I_Root, NI, NJ, NL, State_met, State_Chm )
+      SUBROUTINE CHEMDR( am_I_Root, NI, NJ, NL, State_Met, State_Chm )
 #else
       SUBROUTINE CHEMDR( am_I_Root )
 #endif
@@ -226,6 +226,7 @@
 !   6 Mar 2012 - R. Yantosca - Now reference TO3 from dao_mod.F
 !  30 Jul 2012 - R. Yantosca - Now accept am_I_Root as an argument when
 !                              running with the traditional driver main.F
+!  10 Aug 2012 - R. Yantosca - Cosmetic changes
 !  16 Oct 2012 - R. Yantosca - Renamed Chemistry State object to State_Chm
 !  16 Oct 2012 - R. Yantosca - Renamed Meteorology State object to State_Met
 !  19 Oct 2012 - R. Yantosca - Now reference gigc_state_chm_mod.F90
@@ -561,10 +562,9 @@
       !=================================================================
       ! Call photolysis routine to compute J-Values
       !=================================================================
-#if defined( DEVEL )
-      CALL FAST_J( SUNCOS_MID,      OPTD,   UVALBEDO, 
-     &             State_Met%PEDGE, am_I_Root         )
-      PRINT *,"CHMEDR: Done with FAST_J"
+#if defined( DEVEL ) || defined( EXTERNAL_GRID ) || defined( EXTERNAL_FORCING )
+      CALL FAST_J( SUNCOS_MID,      OPTD,     UVALBEDO, 
+     &             State_Met%PEDGE, am_I_Root           )
 #else
       CALL FAST_J( SUNCOS_MID, OPTD, UVALBEDO, am_I_Root )              
 #endif

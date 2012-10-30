@@ -1823,6 +1823,9 @@
             ! Get 1-D index
             JLOOP   = JLOP( I, J, L )
 
+            ! JLOP equal 0 if we're not in the tropopause. (ccc,10/16/09)
+            IF ( JLOOP == 0 ) CYCLE
+
             ! Get RH  
             XRH     = RH( I, J, L )   ![%]
 
@@ -2025,6 +2028,9 @@
 
             ! Get 1-D index
             JLOOP   = JLOP( I, J, L )
+
+            ! JLOP equal 0 if we're not in the tropopause. (ccc,10/16/09)
+            IF ( JLOOP == 0 ) CYCLE
 
             ! Get RH  
             XRH     = RH( I, J, L )   ![%]
@@ -2636,37 +2642,39 @@
          DARO2_TOT(5) = DARO2_TOT(5) + SUM(GLOB_DARO2(:,:,:,1,3)) / 1d9
          DARO2_TOT(6) = DARO2_TOT(6) + SUM(GLOB_DARO2(:,:,:,2,3)) / 1d9
 
-         PRINT*, ' MAX DARO2 = ',   MAXLOC(GLOB_DARO2(:,:,:,1,1)),
-     &                              MAXVAL(GLOB_DARO2(:,:,:,1,1))
-         PRINT*, 'GLOB_DARO2 11 =', DARO2_TOT(1),
-     &                              DARO2_TOT(1) - DARO2_TOT_0(1)
-         PRINT*, 'GLOB_DARO2 21 =', DARO2_TOT(2),
-     &                              DARO2_TOT(2) - DARO2_TOT_0(2)
-         PRINT*, 'GLOB_DARO2 12 =', DARO2_TOT(3),
-     &                              DARO2_TOT(3) - DARO2_TOT_0(3)
-         PRINT*, 'GLOB_DARO2 22 =', DARO2_TOT(4),
-     &                              DARO2_TOT(4) - DARO2_TOT_0(4)
-         PRINT*, 'GLOB_DARO2 13 =', DARO2_TOT(5),
-     &                              DARO2_TOT(5) - DARO2_TOT_0(5)
-         PRINT*, 'GLOB_DARO2 23 =', DARO2_TOT(6),
-     &                              DARO2_TOT(6) - DARO2_TOT_0(6)
+         IF ( am_I_Root ) THEN
+            PRINT*, ' MAX DARO2 = ',   MAXLOC(GLOB_DARO2(:,:,:,1,1)),
+     &                                 MAXVAL(GLOB_DARO2(:,:,:,1,1))
+            PRINT*, 'GLOB_DARO2 11 =', DARO2_TOT(1),
+     &                                 DARO2_TOT(1) - DARO2_TOT_0(1)
+            PRINT*, 'GLOB_DARO2 21 =', DARO2_TOT(2),
+     &                                 DARO2_TOT(2) - DARO2_TOT_0(2)
+            PRINT*, 'GLOB_DARO2 12 =', DARO2_TOT(3),
+     &                                 DARO2_TOT(3) - DARO2_TOT_0(3)
+            PRINT*, 'GLOB_DARO2 22 =', DARO2_TOT(4),
+     &                                 DARO2_TOT(4) - DARO2_TOT_0(4)
+            PRINT*, 'GLOB_DARO2 13 =', DARO2_TOT(5),
+     &                                 DARO2_TOT(5) - DARO2_TOT_0(5)
+            PRINT*, 'GLOB_DARO2 23 =', DARO2_TOT(6),
+     &                                 DARO2_TOT(6) - DARO2_TOT_0(6)
 
-         ! hotp 7/22/09 diagnostic
-         ! convert daven's numbers to be kg of parent HC reacted, not kg of
-         ! RO2 reacted, use Marom/Mro2
+            ! hotp 7/22/09 diagnostic
+            ! convert daven's numbers to be kg of parent HC reacted, not kg of
+            ! RO2 reacted, use Marom/Mro2
          PRINT*,'Accumulated parent HC reacted to RO2H,N products in Tg'
-         PRINT*, 'GLOB_DBRO2 11 =', DARO2_TOT(1)*78/159,
-     &        (DARO2_TOT(1) - DARO2_TOT_0(1))*78/159
-         PRINT*, 'GLOB_DBRO2 21 =', DARO2_TOT(2)*78/159,
-     &        (DARO2_TOT(2) - DARO2_TOT_0(2))*78/159
-         PRINT*, 'GLOB_DTRO2 12 =', DARO2_TOT(3)*92/173,
-     &        (DARO2_TOT(3) - DARO2_TOT_0(3))*92/173
-         PRINT*, 'GLOB_DTRO2 22 =', DARO2_TOT(4)*92/173,
-     &        (DARO2_TOT(4) - DARO2_TOT_0(4))*92/173
-         PRINT*, 'GLOB_DXRO2 13 =', DARO2_TOT(5)*106/187,
-     &        (DARO2_TOT(5) - DARO2_TOT_0(5))*106/187
-         PRINT*, 'GLOB_DXRO2 23 =', DARO2_TOT(6)*106/187,
-     &        (DARO2_TOT(6) - DARO2_TOT_0(6))*106/187
+            PRINT*, 'GLOB_DBRO2 11 =', DARO2_TOT(1)*78/159,
+     &           (DARO2_TOT(1) - DARO2_TOT_0(1))*78/159
+            PRINT*, 'GLOB_DBRO2 21 =', DARO2_TOT(2)*78/159,
+     &           (DARO2_TOT(2) - DARO2_TOT_0(2))*78/159
+            PRINT*, 'GLOB_DTRO2 12 =', DARO2_TOT(3)*92/173,
+     &           (DARO2_TOT(3) - DARO2_TOT_0(3))*92/173
+            PRINT*, 'GLOB_DTRO2 22 =', DARO2_TOT(4)*92/173,
+     &           (DARO2_TOT(4) - DARO2_TOT_0(4))*92/173
+            PRINT*, 'GLOB_DXRO2 13 =', DARO2_TOT(5)*106/187,
+     &           (DARO2_TOT(5) - DARO2_TOT_0(5))*106/187
+            PRINT*, 'GLOB_DXRO2 23 =', DARO2_TOT(6)*106/187,
+     &           (DARO2_TOT(6) - DARO2_TOT_0(6))*106/187
+         ENDIF
       ENDIF
       !------------------------------------------------------------------------
 
@@ -4627,7 +4635,11 @@ c
 
 !------------------------------------------------------------------------------
 
+#if defined( DEVEL )
+      SUBROUTINE EMISSCARBON(EMISSIONS)
+#else
       SUBROUTINE EMISSCARBON
+#endif
 !
 !******************************************************************************
 !  Subroutine EMISSCARBON is the interface between the GEOS-CHEM model
@@ -4682,6 +4694,11 @@ c
       USE CMN_SIZE_MOD    ! Size parameters
       USE CMN_DIAG_MOD    ! ND07
 
+#if defined( DEVEL )
+      USE TRACERID_MOD, ONLY : IDTBCPI, IDTBCPO, IDTOCPI, IDTOCPO
+      USE TRACER_MOD, ONLY   : N_TRACERS 
+#endif
+
       ! Local variables
       LOGICAL, SAVE        :: FIRST = .TRUE.
       INTEGER              :: I, J, MONTH, N
@@ -4704,9 +4721,10 @@ c
       INTEGER              :: ISITE,JSITE,NSITE
       INTEGER              :: ISITE2,JSITE2,NSITE2
       LOGICAL              :: LOCEANICOC
+#endif
 
-      ! External functions
-      REAL*8,  EXTERNAL    :: SFCWINDSQR
+#if defined( DEVEL )
+      REAL*8, INTENT(INOUT)      :: EMISSIONS(IIPAR,JJPAR,N_TRACERS+1)
 #endif
 
       !=================================================================
@@ -4921,6 +4939,17 @@ c
      &                     OCSRCF, OCSRCB, OCSRCO  )
          IF ( LPRT ) CALL DEBUG_MSG( '### EMISCARB: after EMITHIGHNEW' )
       ENDIF
+#endif
+
+#if defined( DEVEL )
+      IF (IDTBCPI /= 0) EMISSIONS(:,:,IDTBCPI) = 
+     &                    EMISSIONS(:,:,IDTBCPI) + BCSRC(:,:,1) ! Hydrophylic BC
+      IF (IDTBCPI /= 0) EMISSIONS(:,:,IDTBCPO) = 
+     &                    EMISSIONS(:,:,IDTBCPO) + BCSRC(:,:,2) ! Hydrophobic BC
+      IF (IDTBCPI /= 0) EMISSIONS(:,:,IDTOCPI) = 
+     &                    EMISSIONS(:,:,IDTOCPI) + OCSRC(:,:,1) ! Hydrophylic OC
+      IF (IDTBCPI /= 0) EMISSIONS(:,:,IDTOCPO) = 
+     &                    EMISSIONS(:,:,IDTOCPO) + OCSRC(:,:,2) ! Hydrophylic OC
 #endif
 
       !=================================================================
@@ -7731,7 +7760,6 @@ c
 !      ! References to F90 modules
 !      USE BPCH2_MOD,  ONLY : BPCH2,         GET_MODELNAME
 !      USE BPCH2_MOD,  ONLY : GET_HALFPOLAR, OPEN_BPCH2_FOR_WRITE
-!      USE FILE_MOD,   ONLY : IU_FILE
 !      USE GRID_MOD,   ONLY : GET_XOFFSET,   GET_YOFFSET
 !      USE TIME_MOD,   ONLY : EXPAND_DATE
 !
@@ -7744,7 +7772,7 @@ c
 !      ! Local variables
 !      INTEGER             :: HALFPOLAR
 !      INTEGER, PARAMETER  :: CENTER180 = 1
-!      INTEGER             :: I0, IPR, J0, JHC, N
+!      INTEGER             :: I0, IPR, IU_FILE, J0, JHC, N
 !      REAL*4              :: LONRES,   LATRES
 !      REAL*4              :: ARRAY(IIPAR,JJPAR,LLPAR)
 !      CHARACTER(LEN=20)   :: MODELNAME
@@ -7934,8 +7962,9 @@ c
       USE TRACERID_MOD, ONLY : IDTSOA5
 
       USE CMN_SIZE_MOD  ! Size parameters
-
-      ! Local variables
+!
+! !LOCAL VARIABLES:
+!
       LOGICAL, SAVE :: IS_INIT = .FALSE.
       INTEGER       :: AS, INDICES(4), YYYYMMDD, HHMMSS
       REAL*8        :: COORDS(4), TAU
@@ -8114,7 +8143,7 @@ c
       I2_NA = 0
       J2_NA = 0
 
-#elif defined( SEAC4RS )
+#elif defined ( SEAC4RS )
       ! For SEAC4RS nested grid: we don't cover N. America region
       ! Setting these to zero will turn off Cooke/RJP emissions
       I1_NA = 0
@@ -8135,6 +8164,15 @@ c
       ! Definition of the N. American bounding box
       ! with LL corner (10N,165W) and UR corner (90N,40W)
       !            Lon_LL  Lat_LL  Lon_UR  Lat_UR
+#if defined( DEVEL )
+
+      I1_NA = 0
+      J1_NA = 0
+      I2_NA = 0
+      J2_NA = 0
+
+#else
+
       COORDS = (/ -165d0,  10d0,  -40d0,   90d0  /)
       
       ! Get the indices corresponding to the lon/lat values in COORDS
@@ -8146,6 +8184,7 @@ c
       I2_NA = INDICES(3)
       J2_NA = INDICES(4)
 
+#endif
 #endif
               
       ! Reset IS_INIT before exiting

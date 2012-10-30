@@ -92,6 +92,7 @@
       USE MODIS_LAI_MOD         ! For MODIS leaf area indices (replacement)
       USE LIGHTNING_NOX_MOD     ! For lightning NOx emissions  
       USE MEGAN_MOD             ! For biogenic emissions
+      USE SOILNOX_RESTART_MOD   ! For reading and writing soil NOx restart
       USE BROMOCARB_MOD         ! For setting CH3Br concentrations in PBL, jpp
 
       !-----------------------------------------------------------------
@@ -125,11 +126,11 @@
       !-----------------------------------------------------------------
       ! Modules for the Grid-Independent GEOS-Chem (aka "GIGC")
       !-----------------------------------------------------------------
-      USE LOGICAL_MOD,        ONLY : DO_DIAG_WRITE
-      USE GC_ENVIRONMENT_MOD, ONLY : ALLOCATE_ALL
-      USE GC_ENVIRONMENT_MOD, ONLY : INIT_ALL
-      USE GIGC_State_Chm_Mod, ONLY : ChmState
-      USE GIGC_State_Met_Mod, ONLY : MetState
+      USE LOGICAL_MOD,          ONLY : Do_Diag_Write
+      USE GIGC_Environment_Mod, ONLY : GIGC_Allocate_All
+      USE GIGC_Environment_Mod, ONLY : GIGC_Init_All
+      USE GIGC_State_Chm_Mod,   ONLY : ChmState
+      USE GIGC_State_Met_Mod,   ONLY : MetState
 #endif
 
       IMPLICIT NONE
@@ -208,6 +209,14 @@
 !                              routines in order to allow PRINT and WRITE
 !                              statements to execute on the root CPU.  This
 !                              is needed for compatibility w/ the GEOS-5 GCM.
+!  13 Aug 2012 - R. Yantosca - Now call FILL_CHEM_STATE_IDs to populate
+!                              the CHEM_STATE object ID and name fields
+!  18 Oct 2012 - R. Yantosca - Rename LOCAL_MET object to State_Met
+!  18 Oct 2012 - R. Yantosca - Rename CHEM_STATE object to State_Chm
+!  18 Oct 2012 - R. Yantosca - Now pass am_I_Root, RC arguments to routines
+!                              ALLOCATE_ALL, INIT_ALL when using -DDEVEL
+!  19 Oct 2012 - R. Yantosca - Now reference gigc_state_chm_mod.F90
+!  19 Oct 2012 - R. Yantosca - Now reference gigc_state_met_mod.F90
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -264,7 +273,8 @@
       RC=0 ! Error flag. Default 0 is "no error"
 
 #if defined( DEVEL )
-      CALL ALLOCATE_ALL
+      ! Allocate all lon/lat arrays for global use by GEOS-Chem
+      CALL GIGC_Allocate_All( am_I_root, RC )
 #endif
 
       ! Display current grid resolution and data set type
@@ -279,8 +289,14 @@
       IF ( LPRT ) CALL DEBUG_MSG( '### MAIN: a READ_INPUT_FILE' )
 
 #if defined( DEVEL )
-      ! Initialize all of CHEMSTATE
-      CALL INIT_ALL(LOCAL_MET, CHEM_STATE)
+      ! Initialize State_Met and CHEMSTATE objects
+      CALL GIGC_Init_All( State_Met, State_Chm, am_I_Root, RC )
+
+      ! Assign values to the TRAC_NAME, TRAC_ID, SMVG_ID fields
+      ! of the State_Chm object.  NOTE: This has to be done after
+      ! the call to READ_INPUT_FILE, since we need the value of
+      ! N_TRACERS, which is obtained by reading the input.geos file.
+      CALL FILL_CHEM_STATE_NAME_IDs( am_I_Root, State_Chm )
 #endif
 
       ! Initialize met field arrays from "dao_mod.f"
@@ -371,7 +387,7 @@
       IF ( LPRT ) CALL DEBUG_MSG( '### MAIN: a SET_FLT_PRS' )
 
 #if defined( DEVEL )
-      CALL AIRQNT(LOCAL_MET)
+      CALL AIRQNT(State_Met)
 #else
       CALL AIRQNT
 #endif
@@ -414,6 +430,12 @@
       ! Read initial tracer conditions
       CALL READ_RESTART_FILE( NYMDb, NHMSb )
       IF ( LPRT ) CALL DEBUG_MSG( '### MAIN: a READ_RESTART_FILE' )
+
+      ! Read soil NOx initial conditions
+      IF ( LSOILNOX ) THEN
+         CALL READ_SOIL_RESTART( NYMDb , NHMSb )
+         IF ( LPRT ) CALL DEBUG_MSG( '### MAIN: a READ_SOIL_RESTART' )
+      ENDIF
 
       ! Capture initial state of atmosphere for STE flux calc (ltm, 06/10/12)
       IF ( LSCHEM ) CALL INIT_STRAT_CHEM( am_I_Root )
@@ -529,6 +551,11 @@
                ! Make atmospheric restart file
                CALL MAKE_RESTART_FILE( NYMD, NHMS, TAU )
                   
+               ! Make soil restart file
+               IF ( LSOILNOX ) THEN
+                  CALL MAKE_SOILNOx_RESTART( NYMD, NHMS, TAU )
+               ENDIF
+
                ! Make ocean mercury restart file
                IF ( ITS_A_MERCURY_SIM() .and. LDYNOCEAN ) THEN
                   CALL MAKE_OCEAN_Hg_RESTART( NYMD, NHMS, TAU )
@@ -728,9 +755,14 @@
                CALL UPDATE_T_15_AVG
             ENDIF
 
+            ! Note: this daily call to rdsoil left for backward compatibility.
+            ! To be revised later.
             ! Also read soil-type info for fullchem simulation
             IF ( ITS_A_FULLCHEM_SIM() .or. ITS_A_H2HD_SIM() ) THEN
                CALL RDSOIL 
+	       CALL READSOIL
+	       CALL READFERT
+	       CALL READCLIM
             ENDIF
 
             !### Debug
@@ -757,7 +789,7 @@
 
          ! Compute airmass quantities at each grid box 
 #if defined( DEVEL )
-         CALL AIRQNT(LOCAL_MET)
+         CALL AIRQNT(State_Met)
 #else
          CALL AIRQNT
 #endif
@@ -817,7 +849,7 @@
 
             ! Reset air mass quantities
 #if defined( DEVEL )
-      CALL AIRQNT(LOCAL_MET)
+      CALL AIRQNT(State_Met)
 #else
       CALL AIRQNT
 #endif
@@ -868,7 +900,7 @@
             !             ***** E M I S S I O N S *****
             !========================================================
 #if defined( DEVEL )
-            IF ( LEMIS ) CALL DO_EMISSIONS(CHEM_STATE)
+            IF ( LEMIS ) CALL DO_EMISSIONS(State_Chm)
 #else
             IF ( LEMIS ) CALL DO_EMISSIONS
 #endif
@@ -882,8 +914,6 @@
                !jpp, 2/12/08: putting a call to SET_CH3Br
                !              which is in bromocarb_mod.f
                !       ***** Fix CH3Br Concentration in PBL *****
-               ! Kludge: eventually I want to keep the concentration
-               !         entirely fixed! Ask around on how to...
                !========================================================
                IF ( LEMIS .and. ( IDTCH3Br > 0 ) )
      &            CALL SET_CH3Br( N_TRACERS, TCVV, AD, STT, 
@@ -975,7 +1005,7 @@
             !             ***** E M I S S I O N S *****
             !========================================================
 #if defined( DEVEL )
-            IF ( LEMIS ) CALL DO_EMISSIONS(CHEM_STATE)
+            IF ( LEMIS ) CALL DO_EMISSIONS(State_Chm)
 #else
             IF ( LEMIS ) CALL DO_EMISSIONS
 #endif
@@ -1026,17 +1056,19 @@
 #if defined( DEVEL )
 ! vvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvv!
 ! BELOW IS A TMP KLUGE TO TEST PASSING STT !
-! TO "DO_CHEMISTRY" VIA THE "CHEM_STATE"   !
+! TO "DO_CHEMISTRY" VIA THE "State_Chm"   !
 ! DERIVED TYPE                             !
 !
 !    >-- STT SHOULD BE IN KG HERE --<
 !
 !^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^!
-            CHEM_STATE%TRACERS(:,:,:,:N_TRACERS) = STT
+            State_Chm%TRACERS( :, :, :, 1:N_TRACERS ) = 
+     &                     STT( :, :, :, 1:N_TRACERS )
 ! FIN DE KLUGE
-            CALL DO_CHEMISTRY(CHEM_STATE)
+            CALL DO_CHEMISTRY( am_I_Root, IIPAR,      JJPAR, 
+     &                         LLPAR,     State_Chm, State_Met )
 #else
-            CALL DO_CHEMISTRY(am_I_Root)
+            CALL DO_CHEMISTRY( am_I_Root )
 #endif
 
 #if   defined( APM )
@@ -1047,7 +1079,8 @@
 
          ! Check STT (yxw)   
 #if   defined( GEOS_5 ) && defined( GRID05x0666 )
-         CALL CHECK_STT_05x0666( 'after chemistry' )
+         !CALL CHECK_STT_05x0666( 'after chemistry' )
+         CALL CHECK_STT_05x0666( 'end of chem section, before wetdep' )
 #endif 
 
          !==============================================================
@@ -1307,6 +1340,8 @@
 !  28 Feb 2012 - R. Yantosca - Removed support for GEOS-3
 !  19 Mar 2012 - R. Yantosca - Now echo info for 0.25 x 0.3125 runs
 !  19 Mar 2012 - R. Yantosca - Now echo info if ISORROPIA is turned off
+!  22 Oct 2012 - R. Yantosca - Now echo info if -DDEVEL is used
+
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -1400,6 +1435,16 @@
       WRITE( 6, '(a)' ) '# ISORROPIA TURNED OFF FOR TESTING!!! #'
       WRITE( 6, '(a)' ) REPEAT( '#', 39 )
 #endif
+
+      !-------------------------------------------------
+      ! Print msg if ISORROPIA is turned off for debug
+      !-------------------------------------------------
+#if   defined( DEVEL ) 
+      WRITE( 6, '(a)' ) REPEAT( '#', 39 )
+      WRITE( 6, '(a)' ) '# USING -DDEVEL FOR TESTING THE GIGC  #'
+      WRITE( 6, '(a)' ) REPEAT( '#', 39 )
+#endif
+
       
       !-------------------------------------------------
       ! System time stamp
@@ -1642,7 +1687,7 @@
       DATE = GET_FIRST_A6_TIME()
       CALL OPEN_A6_FIELDS( DATE(1), DATE(2) ) 
 #if defined( DEVEL )
-      CALL GET_A6_FIELDS(  DATE(1), DATE(2), LOCAL_MET )      
+      CALL GET_A6_FIELDS(  DATE(1), DATE(2), State_Met )      
 #else
       CALL GET_A6_FIELDS(  DATE(1), DATE(2) )      
 #endif
@@ -1877,7 +1922,7 @@
          ! Open and read A-6 fields
          CALL OPEN_A6_FIELDS( DATE(1), DATE(2) )
 #if defined( DEVEL )
-         CALL GET_A6_FIELDS(  DATE(1), DATE(2), LOCAL_MET )      
+         CALL GET_A6_FIELDS(  DATE(1), DATE(2), State_Met )      
 #else
          CALL GET_A6_FIELDS(  DATE(1), DATE(2) )
 #endif

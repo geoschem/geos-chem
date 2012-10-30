@@ -93,6 +93,7 @@
       USE MODIS_LAI_MOD         ! For MODIS leaf area indices (replacement)
       USE LIGHTNING_NOX_MOD     ! For lightning NOx emissions  
       USE MEGAN_MOD             ! For biogenic emissions
+      USE SOILNOX_RESTART_MOD   ! For reading and writing soil NOx restart
       USE BROMOCARB_MOD         ! For setting CH3Br concentrations in PBL, jpp
 
       !-----------------------------------------------------------------
@@ -485,6 +486,12 @@
       ! arguments. (bmy, 10/25/12)
       !--------------------------------------------------------------
 
+      ! Read soil NOx initial conditions
+      IF ( LSOILNOX ) THEN
+         CALL READ_SOIL_RESTART( NYMDb , NHMSb )
+         IF ( LPRT ) CALL DEBUG_MSG( '### MAIN: a READ_SOIL_RESTART' )
+      ENDIF
+
       ! Capture initial state of atmosphere for STE flux calc (ltm, 06/10/12)
       IF ( LSCHEM ) CALL INIT_STRAT_CHEM( am_I_Root )
 
@@ -605,6 +612,11 @@
                ! Make atmospheric restart file
                CALL MAKE_RESTART_FILE( NYMD, NHMS, TAU )
                   
+               ! Make soil restart file
+               IF ( LSOILNOX ) THEN
+                  CALL MAKE_SOILNOx_RESTART( NYMD, NHMS, TAU )
+               ENDIF
+
                ! Make ocean mercury restart file
                IF ( ITS_A_MERCURY_SIM() .and. LDYNOCEAN ) THEN
                   CALL MAKE_OCEAN_Hg_RESTART( NYMD, NHMS, TAU )
@@ -804,9 +816,14 @@
                CALL UPDATE_T_15_AVG
             ENDIF
 
+            ! Note: this daily call to rdsoil left for backward compatibility.
+            ! To be revised later.
             ! Also read soil-type info for fullchem simulation
             IF ( ITS_A_FULLCHEM_SIM() .or. ITS_A_H2HD_SIM() ) THEN
                CALL RDSOIL 
+	       CALL READSOIL
+	       CALL READFERT
+	       CALL READCLIM
             ENDIF
 
             !### Debug

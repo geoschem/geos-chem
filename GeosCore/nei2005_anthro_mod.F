@@ -1847,7 +1847,7 @@
       DO L = 1, 5
          INGRID = ARRAY(:,:,L)
          CALL DO_REGRID_A2A( LLFILENAME, I1x1,    J1x1,
-     &                       INGRID,     OUTGRID, PERAREA=1,
+     &                       INGRID,     OUTGRID, PERAREA=0,
      &                       netCDF=.TRUE.                   )
          AS(:,:,L) = OUTGRID
       ENDDO
@@ -2089,7 +2089,7 @@
       DO L = 1, 5
          INGRID = ARRAY(:,:,L)
          CALL DO_REGRID_A2A( LLFILENAME, I1x1,    J1x1,
-     &                       INGRID,     OUTGRID, PERAREA=1,
+     &                       INGRID,     OUTGRID, PERAREA=0,
      &                       netCDF=.TRUE.                   )
          AS(:,:,L) = OUTGRID
       ENDDO

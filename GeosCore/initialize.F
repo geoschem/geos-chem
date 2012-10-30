@@ -348,6 +348,6 @@
             WRITE( 6, '(a)' ) '     - INITIALIZE: Diag counters zeroed!'
          ENDIF
       ENDIF
- 
+
       END SUBROUTINE INITIALIZE
 !EOC

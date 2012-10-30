@@ -66,6 +66,7 @@
 #  14 Aug 2012 - R. Yantosca - Added gc_environment_mod, etc.
 #  23 Oct 2012 - R. Yantosca - Added modules in ESMF
 #  23 Oct 2012 - R. Yantosca - Added tagged_co_mod
+#  23 Oct 2012 - M. Payer    - Added soil NOx modules; Removed upbdflx_mod.F
 #EOP
 #------------------------------------------------------------------------------
 #BOC
@@ -101,6 +102,7 @@ $(CORE)/bravo_mod.F                   \
 $(CORE)/bromocarb_mod.F               \
 $(CORE)/c2h6_mod.F                    \
 $(CORE)/cac_anthro_mod.F              \
+$(CORE)/canopy_nox_mod.F              \
 $(CORE)/chemistry_mod.F               \
 $(CORE)/co2_mod.F                     \
 $(CORE)/comode_mod.F                  \
@@ -126,6 +128,7 @@ $(CORE)/emissions_mod.F               \
 $(CORE)/fjx_acet_mod.F                \
 $(CORE)/gamap_mod.F                   \
 $(CORE)/gcap_read_mod.F               \
+$(CORE)/get_ndep_mod.F                \
 $(CORE)/gigc_environment_mod.F90      \
 $(CORE)/gc_type_mod.F                 \
 $(CORE)/geos57_read_mod.F90           \
@@ -164,6 +167,8 @@ $(CORE)/retro_mod.F                   \
 $(CORE)/RnPbBe_mod.F                  \
 $(CORE)/scale_anthro_mod.F            \
 $(CORE)/seasalt_mod.F                 \
+$(CORE)/soil_nox_mod.F                \
+$(CORE)/soilnox_restart_mod.F         \
 $(CORE)/ssa_bromine_mod.F             \
 $(CORE)/strat_chem_mod.F90            \
 $(CORE)/sulfate_mod.F                 \
@@ -176,7 +181,6 @@ $(CORE)/tropopause_mod.F              \
 $(CORE)/tpcore_fvdas_mod.F90          \
 $(CORE)/tpcore_geos5_window_mod.F90   \
 $(CORE)/transport_mod.F               \
-$(CORE)/upbdflx_mod.F                 \
 $(CORE)/vdiff_mod.F90                 \
 $(CORE)/vdiff_pre_mod.F               \
 $(CORE)/vistas_anthro_mod.F           \
@@ -207,6 +211,7 @@ $(CORE)/physproc.F                    \
 $(CORE)/RD_AOD.F                      \
 $(CORE)/rd_js.F                       \
 $(CORE)/RD_TJPL.F                     \
+$(CORE)/rdsoil.F                      \
 $(CORE)/read_jv_atms_dat.F90          \
 $(CORE)/set_aer.F                     \
 $(CORE)/setemdep.F                    \

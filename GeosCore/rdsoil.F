@@ -20,7 +20,7 @@
       USE FILE_MOD,      ONLY : IU_FILE, IOERROR
       USE ERROR_MOD,     ONLY : GEOS_CHEM_STOP
       USE TIME_MOD,      ONLY : GET_MONTH
-      
+     
       USE CMN_SIZE_MOD   ! Size parameters
       USE COMMSOIL_MOD ! Soil variables
 
@@ -35,22 +35,16 @@
 !  from the GISS-II model that was used at Harvard in the early 90's.  This
 !  was cleaned up and improved error checking was added. (bmy, 4/2/02)
 !                                                                             .
-!  Variables from "commsoil.h" header file:
+!  Variables from "commsoil_mod" header file:
 !  ============================================================================
 !  (1 ) NCONSOIL  (INTEGER) : Olson -> soil type mapping index                
-!  (2 ) INDEXSOIL (INTEGER) : Array containing grid box indices (I,J)
-!  (3 ) SOILFERT  (REAL*8 ) : Array containing fertilizer NOx [ng N/m2/s]  
-!  (4 ) SOILPREP  (REAL*8 ) : Array containing 2 months of observed
-!                              soil precipitation [mm/day]    
+!  (2 ) INDEXSOIL (INTEGER) : Array containing grid box indices (I,J)  
 !                                                                             .
 !  Files read in by "rdsoil.f":
 !  ============================================================================
 !  (1 ) DATA_DIR/soil_NOx_200203/soiltype.dat       : Olson and soil land types
-!  (2 ) DATA_DIR/soil_NOx_200203/fert_scale.dat     : NOx from fertilizers
-!  (3 ) DATA_DIR/soil_NOx_200203/climatprep4x5.dat  : 1x1   monthly soil precip
-!                                climatprep2x25.dat : 2x2.5 monthly soil precip
-!                                climatprep1x1.dat  : 4x5   monthly soil precip
-! 
+!
+! ! 
 ! !REVISION HISTORY: 
 !  05 Jan 1994 - Y. H. Wang, G. M. Gardner, - Initial version
 !  (1 ) Be sure to force double precision with the DBLE function and the "D" 
@@ -68,8 +62,16 @@
 !  (5 ) Now use function GET_MONTH from "time_mod.f".  Now make MONTH a local
 !        variable. (bmy, 2/11/03)
 !  (6 ) Now references DATA_DIR from "directory_mod.f" (bmy, 7/20/04)
-!  02 Dec 2010 - R. Yantosca - Added ProTeX headers
-!  03 Aug 2012 - R. Yantosca - Move calls to findFreeLUN out of DEVEL block
+!  02 Dec 2010 - R. Yantosca     - Added ProTeX headers
+!  03 Aug 2012 - R. Yantosca     - Move calls to findFreeLUN out of DEVEL block
+!  30 Aug 2012 - J.D. Maasakkers - Removed reading of fert_scale.dat,
+!                                  climatprep, clim.dat and fert_res.dat.
+!                                  Soiltype is now only used by the dry
+!                                  deposition code. Data for the soil NOx code
+!                                  is read in: Readfert.F, Readsoil.F and
+!                                  Readclim.F. Furthermore, the deposition
+!                                  arrays for the soil NOx code are 
+!                                  initialized here.
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -79,6 +81,7 @@
       LOGICAL, SAVE      :: FIRST   = .TRUE.
       INTEGER, SAVE      :: MONSAVE = 0 
       INTEGER            :: I, IUNIT, IOS, J, K, KK, M, M1, MONTH
+      INTEGER            :: IU_SOIL
       REAL*8             :: TMP(12)
 
       ! Name of file to read in
@@ -99,6 +102,20 @@
          
          ! Reset First-time flag
          FIRST = .FALSE.
+        
+         !==============================================================
+         !Initialize deposition arrays
+         !==============================================================
+         DRY_NO2  = 0.d0
+         DRY_PAN  = 0.d0
+         DRY_HNO3 = 0.d0
+         DRY_NH3  = 0.d0
+         DRY_NH4  = 0.d0
+         DRY_NIT  = 0.d0
+         WET_HNO3 = 0.d0
+         WET_NH3  = 0.d0
+         WET_NH4  = 0.d0
+         WET_NIT  = 0.d0
 
          !==============================================================
          ! Read in soil type data (first pass only)
@@ -131,94 +148,10 @@
          ! Close file
          CLOSE( IUNIT )
 
-         !==============================================================
-         ! Read in fertilizer data (first pass only)
-         ! Units are [ng N/m2/s] 
-         !==============================================================
+      ENDIF  
 
-         ! Define fertilizer file name
-         FILENAME = TRIM( DATA_DIR ) // 'soil_NOx_200203/fert_scale.dat'
-
-         ! Echo filename
-         WRITE( 6, 100 ) TRIM( FILENAME )
-
-         ! Find a free file LUN
-         IUNIT = findFreeLUN()
-
-         ! Open file
-         OPEN( IUNIT, FILE=TRIM( FILENAME ), STATUS='OLD', IOSTAT=IOS )
-         IF ( IOS /= 0 ) CALL IOERROR( IOS, IUNIT, 'rdsoil:4' )
-
-         ! Read data -- save (I,J) pairs into INDEXSOIL array
-         DO M = 1, NLAND
-	    READ( IUNIT,*, IOSTAT=IOS ) 
-     &           ( INDEXSOIL(I,M), I=1,2 ), SOILFERT(M)
-            IF ( IOS /= 0 ) CALL IOERROR( IOS, IUNIT, 'rdsoil:5' )
-         ENDDO
-
-         ! Close file
-         CLOSE( IUNIT )
-
-      ENDIF
-         
-      !=================================================================
-      ! Read in monthly soil precipitation data
-      !=================================================================
-
-      ! Only read data when we have entered a new month...
-      IF ( MONSAVE /= MONTH ) THEN
-      
-         ! Save the current month 
-         MONSAVE = MONTH
-      
-         ! M1 is the previous month
-         IF ( MONTH == 1 ) THEN
-            M1 = 12
-         ELSE
-            M1 = MONTH - 1
-         END IF
-
-         ! Define soil precip file name
-         FILENAME = TRIM( DATA_DIR ) // 'soil_NOx_200203/climatprep' //
-     &              GET_RES_EXT()    // '.dat'
-
-         ! Echo filename
-         WRITE( 6, 100 ) TRIM( FILENAME )
-
-         ! Find a free file LUN
-         IUNIT = findFreeLUN()
-
-         ! Open soil precip file
-         OPEN( IUNIT, FILE=TRIM( FILENAME ), STATUS='OLD', IOSTAT=IOS )
-         IF ( IOS /= 0 ) CALL IOERROR( IOS, IUNIT, 'rdsoil:6' )
-
-         ! Loop over Olson land types
-         DO M = 1, NLAND
-
-            ! Read monthly soil precip data for each (I,J) box
-            READ( IUNIT, *, IOSTAT=IOS ) I, J, ( TMP(K), K=1,12 )
-            IF ( IOS /= 0 ) CALL IOERROR( IOS, IUNIT, 'rdsoil:7' )
-
-            ! Error check -- make sure that each (I,J) pair has both
-            ! soil precip data and fertilizer data defined
-            IF ( INDEXSOIL(1,M) /= I .OR. INDEXSOIL(2,M) /= J ) THEN
-               WRITE(6,*) 'CORRUPTED TEMPCORR OR CLMATPRECIP DATA'
-               WRITE(6,*) 'CHECK (I,J)',I,J
-               CALL GEOS_CHEM_STOP
-            ELSE
-               SOILPREP(1,M) = TMP(M1)
-               SOILPREP(2,M) = TMP(MONTH)
-            ENDIF
-         ENDDO
-
-         ! Close file
-         CLOSE( IUNIT )
-
-      ENDIF
-
-      ! Return to calling program
       END SUBROUTINE RDSOIL
-
+!EOC
 
 
 
