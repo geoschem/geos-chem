@@ -356,7 +356,7 @@ CONTAINS
             ( TRIM( GC_Name ) ==   'CH3Br' )   .or. &
             ( TRIM( GC_Name ) ==     'HBr' )   .or. &
             ( TRIM( GC_Name ) ==    'HOBr' ) ) THEN
-          
+
           ! Increment # of Bromine tracers
           nSchmBry = nSchmBry + 1
 
