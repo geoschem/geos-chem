@@ -23,6 +23,7 @@
       !-----------------------------------------------------------------
       USE CMN_SIZE_MOD          ! Size parameters
       USE CMN_GCTM_MOD          ! Physical constants
+      USE COMMSOIL_MOD          ! Soil NOx emissions header file
       USE ERROR_MOD             ! For error checking
       USE FILE_MOD              ! For file I/O
       USE GIGC_ErrCode_Mod      ! Error codes for success or failure
@@ -95,6 +96,7 @@
       USE MEGAN_MOD             ! For biogenic emissions
       USE SOILNOX_RESTART_MOD   ! For reading and writing soil NOx restart
       USE BROMOCARB_MOD         ! For setting CH3Br concentrations in PBL, jpp
+
 
       !-----------------------------------------------------------------
       ! GEOS-Chem met field I/O modules
@@ -287,6 +289,16 @@
       ! particular met fields being used. (bmy, 10/25/12)
       !-----------------------------------------------------------------
       CALL GIGC_Allocate_All( am_I_root, RC )
+#else
+      !--------------------------------------------------------------
+      !               %%%%% TRADITIONAL GEOS-Chem %%%%%
+      !
+      ! For the new Soil Nox algorithm, make sure to call routine
+      ! SET_COMMSOIL_MOD to zero all soil NOx arrays.  This was
+      ! added to routine RDSOIL by Bram Maasakkers, but RDSOIL is
+      ! now obsolete has been removed. (bmy, 10/25/12)
+      !--------------------------------------------------------------
+      CALL Set_CommSoil_Mod( am_I_Root, RC )
 #endif
 
       ! Display current grid resolution and data set type
@@ -798,7 +810,11 @@
             ! To be revised later.
             ! Also read soil-type info for fullchem simulation
             IF ( ITS_A_FULLCHEM_SIM() .or. ITS_A_H2HD_SIM() ) THEN
-               CALL RDSOIL 
+               !---------------------------------------------------------
+               ! Prior to 10/30/12:
+               ! Retire call to RDSOIL, it's obsolete (bmy 10/30/12)
+               !CALL RDSOIL 
+               !---------------------------------------------------------
 	       CALL READSOIL
 	       CALL READFERT
 	       CALL READCLIM

@@ -74,7 +74,6 @@ CONTAINS
 !
 ! !USES:
 !
-
     USE CMN_DEP_MOD,       ONLY : SET_CMN_DEP_MOD
     USE CMN_NOX_MOD,       ONLY : SET_CMN_NOX_MOD
     USE CMN_O3_MOD,        ONLY : SET_CMN_O3_MOD
@@ -106,6 +105,7 @@ CONTAINS
 !  13 Aug 2012 - R. Yantosca - Added ProTeX headers
 !  17 Oct 2012 - R. Yantosca - Add am_I_Root, RC as arguments
 !  22 Oct 2012 - R. Yantosca - Renamed to GIGC_Allocate_All
+!  30 Oct 2012 - R. Yantosca - Now pass am_I_Root, RC to SET_COMMSOIL_MOD
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -116,7 +116,7 @@ CONTAINS
     CALL SET_CMN_O3_MOD
     CALL SET_CMN_MOD
     CALL SET_CMN_FJ_MOD
-    CALL SET_COMMSOIL_MOD
+    CALL SET_COMMSOIL_MOD   ( am_I_Root, RC )
     CALL SET_COMODE_LOOP_MOD( am_I_Root, RC )
     CALL SET_JV_CMN_MOD
     
