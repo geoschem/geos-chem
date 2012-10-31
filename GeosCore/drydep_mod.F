@@ -1052,6 +1052,18 @@
       USE CMN_DEP_MOD        ! Dry deposition variables
       USE COMMSOIL_MOD       ! Soil wetness variables
 ! 
+! !REMARKS:
+!  %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+!  %%% NOTE: THIS ROUTINE SHOULD BE REWRITTEN FOR THE NEW SOIL NOX SCHEME. %%%
+!  %%% We have commented out the obsolete INDEXSOIL and NLAND variables,   %%%
+!  %%% which were different depending on which horizontal grid was used.   %%%
+!  %%% The grid-independent GEOS-Chem cannot know a-priori what the size   %%%
+!  %%% of the horizontal grid is, since it will be told that by the        %%%
+!  %%% interface to the external GEOS-Chem.  Therefore, we cannot use      %%%
+!  %%% fixed parameters to define the horizontal (and vertical) grids that %%%
+!  %%% are used in GEOS-Chem.  (bmy, 10/30/12)                             %%%
+!  %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+!
 ! !REVISION HISTORY: 
 !  (1) Now deposit through the PBL. Commented but kept code related to soil
 !       temperature (phs, 5/16/07)
@@ -1128,127 +1140,128 @@
            ! reset STEMP (could be a scalar -depends on future usage-)
            ! STEMP = 0  ! Not use yet
 
-           ! Loop over each land grid-box
-            DO M      = 1, NLAND
-               IREF   = INDEXSOIL(1,M)
-               JREF   = INDEXSOIL(2,M)
-               I      = IREF - I0
-               J      = JREF - J0
-               IJLOOP = JLOP(I,J,1)
-
-               ! Fraction of grid box that is ocean
-               FSOIL = FRCLND(I,J)
- 
-
-               ! Only apply dry deposition over land surfaces which
-                    ! are not covered with ice or desert (albedo < 0.4)
-               ! and if we are in the window simulation.
-               IF ( (I.GE.1)       .AND. (I.LE.IIPAR)  .AND.
-     &              (J.GE.1)       .AND. (J.LE.JJPAR)  .AND.
-     &              (FSOIL > 0.d0) .AND. (ALBD(I,J) < 0.4d0) ) THEN
-
-                  ! Grid box area in cm2
-                  AREA_CM2 = GET_AREA_CM2( I, J, 1 )
-
-                  ! SVEL [cm/s] is the air-to-soil transfer velocity
-                  ! Use uniform value of 3.94d-2 cm/s over land
-                  ! not covered by snow or desert.
-                  SVEL = 3.94d-2
-		  
-                  ! if soil temperature is below freezing reduce dep vel
-                  ! by 1/2, and additional 1/2 below -15C(hup, 6/21/2005)
-                  ! for now use surface temperature (TS) instead of
-                  ! air temperature (T) jaegle, 12/12/2005
-		  IF (TS(I,J) <= 273.15d0) SVEL = SVEL / 2.0d0
-		  IF (TS(I,J) <= 258.15d0) SVEL =  SVEL / 2.0d0
-                  
-		  ! if desert, set deposition velocity to zero by multiplying
-		  ! dep vel by the fraction covered by desert(hup, 5/1/2006)
-		  ! IJLAND+1 is the Olson Land type index 
-            	  ! 51: desert	52: desert set SVEL = 0
-		  ! IJUSE is the fraction of the grid square occupied by surface K
-		  ! in units of per mil (IJUSE=500 -> 50% of the grid square). 
-		  DO K = 1, IREG(IREF,JREF)
-	          
-                     NTYP(I,J) = ILAND(I,J,K) + 1
-                     
-                     IF (NTYP(I,J) .eq. 52 .or. NTYP(I,J) .eq. 51) THEN 
-		  	SVEL = SVEL*(1-(IUSE(I,J,K)/1.d3)) 
-                     ENDIF
-                     
-		  ENDDO
-		  
-		  ! For HD add soil fractionation with 
-                  ! an alpha coefficient of 0.943 Gerst & Quay, 2001
-		  IF (N .eq. 2) SVEL = SVEL * 0.943
-
-
-                  ! Get THIK  (cannot use ZH variable, since
-                  ! DO_DRYDEP, METERO, and DEPVEL are not called in H2/HD sims)
-
-                  ! Fraction of box (I,J,L) under PBL top [unitless]
-                  F_UNDER_TOP = GET_FRAC_UNDER_PBLTOP( I, J, L )
-      
-                  ! Mixed layer depth [m]
-                  MLD = GET_PBL_TOP_m( I, J )
-      
-                  ! THIK = thickness of surface layer [m]
-                  THIK    = BXHEIGHT(I,J,1)
-                  ! Add option for non-local PBL mixing scheme: 
-                  ! only the surface (Lin, 03/31/09) 
-                  IF (.NOT. LNLPBL) THIK    = MAX( MLD, THIK ) 
-                  
-                  ! Dry deposition frequency [1/s]
-                  DRYF    = ( SVEL / 100.d0 ) / THIK
-		  
-		  ! FRACLOST = Fraction of species lost to drydep [unitless]
-                  FRACLOST = DRYF * DTCHEM * F_UNDER_TOP
-                  ! Add option for non-local PBL mixing scheme:
-                  ! only the surface (Lin, 03/31/29)
-                  IF (LNLPBL) FRACLOST = DRYF * DTCHEM
-
-                  !========================================================
-                  ! Proceed as follows:
-                  ! -------
-                  ! (a) If FRACLOST < 0, then stop the run.
-                  !
-                  ! (b) If FRACLOST > 1, use an exponential loss to 
-                  !     avoid negative tracer
-                  !
-                  ! (c) If FRACLOST is in the range (0-1), then use the 
-                  !     regular formula (STT * FRACLOST) to compute
-                  !     the loss from dry deposition.
-                  !========================================================
-
-                  ! Stop the run on negative FRACLOST!
-                  IF ( FRACLOST < 0 ) THEN
-                     CALL ERROR_STOP( 'FRACLOST < 0', 'dryflxH2HD' )
-                  ENDIF
-
-
-                  ! AMT_LOST = amount of tracer lost to drydep [kg]
-                  IF ( FRACLOST > 1 ) THEN
-                     AMT_LOST = STT(I,J,L,NN) * ( 1d0 - EXP(-FRACLOST) )
-     &                    * FSOIL
-                  ELSE
-                     AMT_LOST = STT(I,J,L,NN) * FRACLOST * FSOIL
-                  ENDIF
-
-
-                  ! ND44 diagnostic: drydep flux [kg/s]
-                  ! ND44 diagnostic: drydep velocity [cm/s]
-                  IF ( ND44 > 0 ) THEN
-                     AD44(I,J,N,1) = AD44(I,J,N,1) + ( AMT_LOST/DTCHEM ) 
-                     AD44(I,J,N,2) = AD44(I,J,N,2) + SVEL * FSOIL
-                  ENDIF
-
-
-                  ! Subtract AMT_LOST from the STT array [kg]
-                  STT(I,J,L,NN)  = STT(I,J,L,NN) - AMT_LOST
-		
-                    
-            ENDIF               ! I and J within bounds, ALBD<0.4 and FSOIL>0
-         ENDDO                  ! M = LAND GRID BOXES
+!           ! Loop over each land grid-box
+!            DO M      = 1, NLAND
+!
+!               !IREF   = INDEXSOIL(1,M)
+!               !JREF   = INDEXSOIL(2,M)
+!               I      = IREF - I0
+!               J      = JREF - J0
+!               IJLOOP = JLOP(I,J,1)
+!
+!               ! Fraction of grid box that is ocean
+!               FSOIL = FRCLND(I,J)
+! 
+!
+!               ! Only apply dry deposition over land surfaces which
+!                    ! are not covered with ice or desert (albedo < 0.4)
+!               ! and if we are in the window simulation.
+!               IF ( (I.GE.1)       .AND. (I.LE.IIPAR)  .AND.
+!     &              (J.GE.1)       .AND. (J.LE.JJPAR)  .AND.
+!     &              (FSOIL > 0.d0) .AND. (ALBD(I,J) < 0.4d0) ) THEN
+!
+!                  ! Grid box area in cm2
+!                  AREA_CM2 = GET_AREA_CM2( I, J, 1 )
+!
+!                  ! SVEL [cm/s] is the air-to-soil transfer velocity
+!                  ! Use uniform value of 3.94d-2 cm/s over land
+!                  ! not covered by snow or desert.
+!                  SVEL = 3.94d-2
+!		  
+!                  ! if soil temperature is below freezing reduce dep vel
+!                  ! by 1/2, and additional 1/2 below -15C(hup, 6/21/2005)
+!                  ! for now use surface temperature (TS) instead of
+!                  ! air temperature (T) jaegle, 12/12/2005
+!		  IF (TS(I,J) <= 273.15d0) SVEL = SVEL / 2.0d0
+!		  IF (TS(I,J) <= 258.15d0) SVEL =  SVEL / 2.0d0
+!                  
+!		  ! if desert, set deposition velocity to zero by multiplying
+!		  ! dep vel by the fraction covered by desert(hup, 5/1/2006)
+!		  ! IJLAND+1 is the Olson Land type index 
+!            	  ! 51: desert	52: desert set SVEL = 0
+!		  ! IJUSE is the fraction of the grid square occupied by surface K
+!		  ! in units of per mil (IJUSE=500 -> 50% of the grid square). 
+!		  DO K = 1, IREG(IREF,JREF)
+!	          
+!                     NTYP(I,J) = ILAND(I,J,K) + 1
+!                     
+!                     IF (NTYP(I,J) .eq. 52 .or. NTYP(I,J) .eq. 51) THEN 
+!		  	SVEL = SVEL*(1-(IUSE(I,J,K)/1.d3)) 
+!                     ENDIF
+!                     
+!		  ENDDO
+!		  
+!		  ! For HD add soil fractionation with 
+!                  ! an alpha coefficient of 0.943 Gerst & Quay, 2001
+!		  IF (N .eq. 2) SVEL = SVEL * 0.943
+!
+!
+!                  ! Get THIK  (cannot use ZH variable, since
+!                  ! DO_DRYDEP, METERO, and DEPVEL are not called in H2/HD sims)
+!
+!                  ! Fraction of box (I,J,L) under PBL top [unitless]
+!                  F_UNDER_TOP = GET_FRAC_UNDER_PBLTOP( I, J, L )
+!      
+!                  ! Mixed layer depth [m]
+!                  MLD = GET_PBL_TOP_m( I, J )
+!      
+!                  ! THIK = thickness of surface layer [m]
+!                  THIK    = BXHEIGHT(I,J,1)
+!                  ! Add option for non-local PBL mixing scheme: 
+!                  ! only the surface (Lin, 03/31/09) 
+!                  IF (.NOT. LNLPBL) THIK    = MAX( MLD, THIK ) 
+!                  
+!                  ! Dry deposition frequency [1/s]
+!                  DRYF    = ( SVEL / 100.d0 ) / THIK
+!		  
+!		  ! FRACLOST = Fraction of species lost to drydep [unitless]
+!                  FRACLOST = DRYF * DTCHEM * F_UNDER_TOP
+!                  ! Add option for non-local PBL mixing scheme:
+!                  ! only the surface (Lin, 03/31/29)
+!                  IF (LNLPBL) FRACLOST = DRYF * DTCHEM
+!
+!                  !========================================================
+!                  ! Proceed as follows:
+!                  ! -------
+!                  ! (a) If FRACLOST < 0, then stop the run.
+!                  !
+!                  ! (b) If FRACLOST > 1, use an exponential loss to 
+!                  !     avoid negative tracer
+!                  !
+!                  ! (c) If FRACLOST is in the range (0-1), then use the 
+!                  !     regular formula (STT * FRACLOST) to compute
+!                  !     the loss from dry deposition.
+!                  !========================================================
+!
+!                  ! Stop the run on negative FRACLOST!
+!                  IF ( FRACLOST < 0 ) THEN
+!                     CALL ERROR_STOP( 'FRACLOST < 0', 'dryflxH2HD' )
+!                  ENDIF
+!
+!
+!                  ! AMT_LOST = amount of tracer lost to drydep [kg]
+!                  IF ( FRACLOST > 1 ) THEN
+!                     AMT_LOST = STT(I,J,L,NN) * ( 1d0 - EXP(-FRACLOST) )
+!     &                    * FSOIL
+!                  ELSE
+!                     AMT_LOST = STT(I,J,L,NN) * FRACLOST * FSOIL
+!                  ENDIF
+!
+!
+!                  ! ND44 diagnostic: drydep flux [kg/s]
+!                  ! ND44 diagnostic: drydep velocity [cm/s]
+!                  IF ( ND44 > 0 ) THEN
+!                     AD44(I,J,N,1) = AD44(I,J,N,1) + ( AMT_LOST/DTCHEM ) 
+!                     AD44(I,J,N,2) = AD44(I,J,N,2) + SVEL * FSOIL
+!                  ENDIF
+!
+!
+!                  ! Subtract AMT_LOST from the STT array [kg]
+!                  STT(I,J,L,NN)  = STT(I,J,L,NN) - AMT_LOST
+!		
+!                    
+!            ENDIF               ! I and J within bounds, ALBD<0.4 and FSOIL>0
+!         ENDDO                  ! M = LAND GRID BOXES
          ENDDO                  ! PBL layers
       ENDDO                     ! NUMDEP = Number of species that drydep
 

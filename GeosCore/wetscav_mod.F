@@ -7233,14 +7233,22 @@
          FIRST = .FALSE. 
       ENDIF
 
-!-----------------------------------------------------------------------------
-! Prior to 10/17/12:
-! Shut this section off for EXTERNAL_GRID, EXTERNAL_FORCING
-!#if ! defined( DEVEL )
-!-----------------------------------------------------------------------------
 #if defined( EXTERNAL_GRID ) || defined( EXTERNAL_FORCING )
-      ! Do nothing
+      !-----------------------------------------------------------------
+      !     %%%%% CONNECTING TO GEOS-5 GCM via ESMF INTERFACE %%%%%
+      !
+      ! Skip computation of Vud, CLDICE, CLDLIQ, C_H2O.  These would 
+      ! have to be computed at a higher level and passed through the
+      ! import state. (bmy, 10/31/12)
+      !-----------------------------------------------------------------
 #else
+      !-----------------------------------------------------------------
+      !              %%%%% TRADITIONAL GEOS-Chem %%%%%
+      !
+      ! Compute Vud, CLDICE, CLDLIQ, C_H2O.  This is current practice 
+      ! in the standard GEOS-Chem model.  (bmy, 10/31/12)
+      !-----------------------------------------------------------------
+
       !=================================================================
       ! Compute Vud, CLDLIQ, CLDICE, C_H2O, following Jacob et al, 2000.
       !=================================================================

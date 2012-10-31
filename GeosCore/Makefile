@@ -106,6 +106,7 @@
 #  11 Apr 2012 - R. Yantosca - Remove all references to obsolete lai_mod.F
 #  12 Apr 2012 - R. Yantosca - Remove reference to findmon.F
 #  19 Apr 2012 - R. Yantosca - Remove reference to rd_prof.F
+#  30 Oct 2012 - R. Yantosca - Remove reference to rdsoil.F
 #EOP
 #------------------------------------------------------------------------------
 #BOC
@@ -914,8 +915,6 @@ precipfrac.o                : precipfrac.F            dao_mod.o
 RD_AOD.o                    : RD_AOD.F
 
 rd_js.o                     : rd_js.F
-
-rdsoil.o                    : rdsoil.F
 
 readsoil.o		    : readsoil.F
 

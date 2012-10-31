@@ -1006,11 +1006,6 @@ CONTAINS
     ENDDO
     ENDDO
     call NcCl( fileID )
-!############################################
-!### Prior to 9/6/12:
-!###    call transfer_3D( array, array2 )
-!###    STRAT_OH(:,:,:) = ARRAY2
-!############################################
     ptr_3D => STRAT_OH
     call transfer_3D( array, ptr_3D )
     NULLIFY( ptr_3D )
@@ -1100,11 +1095,6 @@ CONTAINS
        ENDDO
 
        ! Cast from REAL*4 to REAL*8 and resize to 1:LLPAR if necessary
-!##############################################################################
-!###       call transfer_3D( array, array2 )
-!###
-!###       PROD(:,:,:,N) = ARRAY2
-!##############################################################################
        ptr_3D => PROD(:,:,:,N)
        call transfer_3D( array, ptr_3D )
        NULLIFY( ptr_3D )
@@ -1130,11 +1120,6 @@ CONTAINS
        ENDDO
 
        ! Cast from REAL*4 to REAL*8 and resize to 1:LLPAR if necessary
-!##############################################################################
-!###       call transfer_3D( array, array2 )
-!###
-!###       LOSS(:,:,:,N) = ARRAY2
-!##############################################################################
        ptr_3d => LOSS(:,:,:,N)
        call transfer_3D( array, array2 )
        NULLIFY( ptr_3D )
@@ -1220,13 +1205,6 @@ CONTAINS
     ! It could be modified for nested domains if the total mass flux across the
     ! boundaries during the period is taken into account.
     RETURN
-!------------------------------------------------------------------------------
-! Prior to 10/5/12:
-! Since the rest of this code isn't needed for the nested grid, wrap it
-! in an #else statement.  This gets code to compile for IFORT 12, and avoids
-! an "catastrophic error: internal compiler error". (bmy, 10/5/12)
-!#endif
-!------------------------------------------------------------------------------
 #else
 
     ! Determine mean tropopause level for the period

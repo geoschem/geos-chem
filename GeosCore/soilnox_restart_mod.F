@@ -72,6 +72,7 @@
 !
 ! !REVISION HISTORY:
 !  23 Oct 2012 - M. Payer    - Added ProTeX headers
+!  31 Oct 2012 - R. Yantosca - Now define a title string
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -99,8 +100,9 @@
       ! MAKE_SOILNOX_RESTART begins here!
       !=================================================================
 
-      LONRES   = DISIZE
-      LATRES   = DJSIZE
+      ! Lon & lat sizes
+      LONRES    = DISIZE
+      LATRES    = DJSIZE
 
       ! Call GET_MODELNAME to return the proper model name for
       ! the given met data being used (bmy, 6/22/00)
@@ -111,13 +113,17 @@
       HALFPOLAR = GET_HALFPOLAR()
 
       ! Get the nested-grid offsets
-      I0 = GET_XOFFSET( GLOBAL=.TRUE. )
-      J0 = GET_YOFFSET( GLOBAL=.TRUE. )
+      I0        = GET_XOFFSET( GLOBAL=.TRUE. )
+      J0        = GET_YOFFSET( GLOBAL=.TRUE. )
+
+      ! Top-of-file title string
+      TITLE     = 'GEOS-CHEM Restart File: Soil NOx quantities'
 
       !=================================================================
       ! Open the restart file for output -- binary punch format
       !=================================================================
 
+      ! Default file name (maybe later add this to input file)
       OUTPUT_RESTART_FILE = 'restart.soilnox.YYYYMMDDhh'
 
       ! Copy the output restart file name into a local variable
@@ -131,6 +137,7 @@
 
       CALL FLUSH(6)
 
+      ! Find next free file unit
       IU_SOIL = findFreeLUN()
 
       ! Open restart file for output
@@ -140,61 +147,62 @@
       ! Write each variable to the restart file
       !=================================================================   
 
-      ! DRY PERIOD 
+      !---------------------------
+      ! DRY PERIOD [hours]
+      !---------------------------
       UNIT     = 'hours'
       CATEGORY = 'RST-SOIL'
-      N = 1
+      N        = 1
 
-      ! SAVE DRYPERIOD (HOURS)
+      ! Save to disk
       CALL BPCH2( IU_SOIL,   MODELNAME, LONRES,    LATRES,    
      &            HALFPOLAR, CENTER180, CATEGORY,  N,
      &            UNIT,      TAU,       TAU,       RESERVED,   
-     &            IIPAR,     JJPAR,     1,     I0+1,            
-     &            J0+1,      1,         DRYPERIOD )
+     &            IIPAR,     JJPAR,     1,         I0+1,            
+     &            J0+1,      1,         DRYPERIOD            )
 
-
-      ! PFACTOR 
+      !---------------------------
+      ! PFACTOR [unitless]
+      !---------------------------
       UNIT     = 'unitless'
       CATEGORY = 'RST-SOIL'
-      N = 2
+      N        = 2
 
-
-      ! SAVE PFACTOR
+      ! Write to disk
       CALL BPCH2( IU_SOIL,   MODELNAME, LONRES,    LATRES,    
      &            HALFPOLAR, CENTER180, CATEGORY,  N,
      &            UNIT,      TAU,       TAU,       RESERVED,   
-     &            IIPAR,     JJPAR,     1,     I0+1,            
-     &            J0+1,      1,         PFACTOR )
+     &            IIPAR,     JJPAR,     1,         I0+1,            
+     &            J0+1,      1,         PFACTOR              )
       
-
-      !GWET PREV
+      !---------------------------
+      ! Previous GWET [unitless]
+      !---------------------------
       UNIT     = 'unitless'
       CATEGORY = 'RST-SOIL'
-      N = 3
+      N        = 3
 
-
-      ! SAVE SOIL MOSITURE FROM PREVIOUS TIMESTEP
+      ! Save to disk
       CALL BPCH2( IU_SOIL,   MODELNAME, LONRES,    LATRES,    
      &            HALFPOLAR, CENTER180, CATEGORY,  N,
      &            UNIT,      TAU,       TAU,       RESERVED,   
-     &            IIPAR,     JJPAR,     1,     I0+1,            
-     &            J0+1,      1,         GWET_PREV )
+     &            IIPAR,     JJPAR,     1,         I0+1,            
+     &            J0+1,      1,         GWET_PREV            )
 
-      WRITE(6,*) GWET_PREV(45,24)
-      CALL FLUSH(6)
-
-      ! N_RESERVOIR
-      DRES = DEP_RESERVOIR
+      !---------------------------
+      ! N_RESERVOIR [ng N/m2]
+      !---------------------------
+      DRES     = DEP_RESERVOIR
       UNIT     = 'ng N/m2'
       CATEGORY = 'RST-SOIL'
-      N = 4
+      N        = 4
 
-      ! SAVE N_Reservior
+      ! Save to disk
       CALL BPCH2( IU_SOIL,   MODELNAME, LONRES,    LATRES,    
      &            HALFPOLAR, CENTER180, CATEGORY,  N,
      &            UNIT,      TAU,       TAU,       RESERVED,   
-     &            IIPAR,     JJPAR,     1,     I0+1,            
-     &            J0+1,      1,         DRES )
+     &            IIPAR,     JJPAR,     1,         I0+1,            
+     &            J0+1,      1,         DRES                 )
 
       ! Close file
       CLOSE( IU_SOIL )
