@@ -219,11 +219,6 @@
       ! NW  Maximum number of wavelength bins that can be used
       ! NP  Maximum number of aerosol/cloud types that can be used
       ! MX  Number of aerosol/cloud types supplied from CTM
-!----------------------------------------------------------------------------
-! Prior to 8/10/12:
-! Replace LPAR with LLPAR (bmy, 8/10/12)
-!      INTEGER, PARAMETER :: NB      = LPAR+1
-!----------------------------------------------------------------------------
       INTEGER, PARAMETER :: NB      = LLPAR+1
       INTEGER, PARAMETER :: NC      = 2*NB
       INTEGER, PARAMETER :: NS      = 51
@@ -259,12 +254,6 @@
       REAL*8  :: RAA_AOD(NP),SSA_AOD(NP)
 
       REAL*8  :: TREF(51,18,12),OREF(51,18,12),BREF(51)           
-!-----------------------------------------------------------
-! Prior to 8/10/12:
-! Replace IPAR, JPAR, LPAR with IIPAr, JJPAR, LLPAR
-!      REAL*8  :: ODMDUST(IPAR,JPAR,LPAR,NDUST)
-!      REAL*8  :: ODAER(IPAR,JPAR,LPAR,NAER*NRH)
-!-----------------------------------------------------------
       REAL*8  :: ODMDUST(IIPAR,JJPAR,LLPAR,NDUST)
       REAL*8  :: ODAER  (IIPAR,JJPAR,LLPAR,NAER*NRH)
 
@@ -285,12 +274,6 @@
       ! (bmy, 5/2/00)
       REAL*8   :: TJ(NB),PJ(NB+1),DM(NB),DO3(NB),DBC(NB),Z(NB)    
       REAL*8   :: AER(MX,NB),AMF(NB,NB),RFLECT,SZA,U0,TANHT
-!----------------------------------------------
-! Prior to 8/10/12:
-! Replace LPAR with LLPAR (bmy, 8/10/12)
-!      REAL*8   :: zj(LPAR,JPMAX)
-!      REAL*8   :: FFF(NW,lpar),VALJ(NS)
-!----------------------------------------------
       REAL*8   :: zj(LLPAR,JPMAX)
       REAL*8   :: FFF(NW,LLPAR),VALJ(NS)
       INTEGER  :: jadsub(NC)
