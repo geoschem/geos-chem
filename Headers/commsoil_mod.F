@@ -71,7 +71,7 @@
       REAL*8,  ALLOCATABLE :: INST_FERT    (:,:  )
 
       ! NOx in the canopy, used in dry deposition
-      REAL*8,  ALLOCATABLE  :: CANOPYNOX   (:,:  )
+      REAL*8,  ALLOCATABLE :: CANOPYNOX    (:,:  )
 
       ! Soil NOx deposited N arrays
       REAL*8,  ALLOCATABLE :: DRY_NO2      (:,:  )
@@ -230,67 +230,68 @@
       ! of IIPAR and JJPAR.  We cannot use fixed IIPAR and JJPAR
       ! parameters as is done for the traditional GEOS-Chem.
       !-----------------------------------------------------------------
-      ALLOCATE( SOILNOX      ( IIPAR, JJPAR      ), STAT=RC )
+
+      ALLOCATE( CANOPYNOX    ( IIPAR*JJPAR, NSOILB ), STAT=RC )
       IF ( RC /= GIGC_SUCCESS ) RETURN
 
-      ALLOCATE( SOILFERT     ( IIPAR, JJPAR, 366 ), STAT=RC )
+      ALLOCATE( SOILNOX      ( IIPAR, JJPAR        ), STAT=RC )
+      IF ( RC /= GIGC_SUCCESS ) RETURN
+                                                    
+      ALLOCATE( SOILFERT     ( IIPAR, JJPAR, 366   ), STAT=RC )
       IF ( RC /= GIGC_SUCCESS ) RETURN
 
-      ALLOCATE( CLIM         ( IIPAR, JJPAR, 2   ), STAT=RC )
+      ALLOCATE( CLIM         ( IIPAR, JJPAR, 2     ), STAT=RC )
       IF ( RC /= GIGC_SUCCESS ) RETURN
 
-      ALLOCATE( LAND2        ( IIPAR, JJPAR, 24  ), STAT=RC )
+      ALLOCATE( LAND2        ( IIPAR, JJPAR, 24    ), STAT=RC )
       IF ( RC /= GIGC_SUCCESS ) RETURN
 
-      ALLOCATE( DRYPERIOD    ( IIPAR, JJPAR      ), STAT=RC )
+      ALLOCATE( DRYPERIOD    ( IIPAR, JJPAR        ), STAT=RC )
       IF ( RC /= GIGC_SUCCESS ) RETURN
 
-      ALLOCATE( PFACTOR      ( IIPAR, JJPAR      ), STAT=RC )
+      ALLOCATE( PFACTOR      ( IIPAR, JJPAR        ), STAT=RC )
       IF ( RC /= GIGC_SUCCESS ) RETURN
 
-      ALLOCATE( GWET_PREV    ( IIPAR, JJPAR      ), STAT=RC )
+      ALLOCATE( GWET_PREV    ( IIPAR, JJPAR        ), STAT=RC )
       IF ( RC /= GIGC_SUCCESS ) RETURN
 
-      ALLOCATE( INST_SOIL    ( IIPAR, JJPAR      ), STAT=RC )
+      ALLOCATE( INST_SOIL    ( IIPAR, JJPAR        ), STAT=RC )
       IF ( RC /= GIGC_SUCCESS ) RETURN
 
-      ALLOCATE( INST_FERT    ( IIPAR, JJPAR      ), STAT=RC )
+      ALLOCATE( INST_FERT    ( IIPAR, JJPAR        ), STAT=RC )
       IF ( RC /= GIGC_SUCCESS ) RETURN
 
-      ALLOCATE( CANOPYNOX    ( IIPAR, JJPAR      ), STAT=RC )
+      ALLOCATE( DRY_NO2      ( IIPAR, JJPAR        ), STAT=RC )
       IF ( RC /= GIGC_SUCCESS ) RETURN
 
-      ALLOCATE( DRY_NO2      ( IIPAR, JJPAR      ), STAT=RC )
+      ALLOCATE( DRY_PAN      ( IIPAR, JJPAR        ), STAT=RC )
       IF ( RC /= GIGC_SUCCESS ) RETURN
 
-      ALLOCATE( DRY_PAN      ( IIPAR, JJPAR      ), STAT=RC )
+      ALLOCATE( DRY_HNO3     ( IIPAR, JJPAR        ), STAT=RC )
       IF ( RC /= GIGC_SUCCESS ) RETURN
 
-      ALLOCATE( DRY_HNO3     ( IIPAR, JJPAR      ), STAT=RC )
+      ALLOCATE( DRY_NH3      ( IIPAR, JJPAR        ), STAT=RC )
       IF ( RC /= GIGC_SUCCESS ) RETURN
 
-      ALLOCATE( DRY_NH3      ( IIPAR, JJPAR      ), STAT=RC )
+      ALLOCATE( DRY_NH4      ( IIPAR, JJPAR        ), STAT=RC )
+      IF ( RC /= GIGC_SUCCESS ) RETURN
+                                                   
+      ALLOCATE( DRY_NIT      ( IIPAR, JJPAR        ), STAT=RC )
       IF ( RC /= GIGC_SUCCESS ) RETURN
 
-      ALLOCATE( DRY_NH4      ( IIPAR, JJPAR      ), STAT=RC )
+      ALLOCATE( DEP_RESERVOIR( IIPAR, JJPAR        ), STAT=RC )
       IF ( RC /= GIGC_SUCCESS ) RETURN
 
-      ALLOCATE( DRY_NIT      ( IIPAR, JJPAR      ), STAT=RC )
+      ALLOCATE( WET_HNO3     ( IIPAR, JJPAR        ), STAT=RC ) 
       IF ( RC /= GIGC_SUCCESS ) RETURN
 
-      ALLOCATE( DEP_RESERVOIR( IIPAR, JJPAR      ), STAT=RC )
+      ALLOCATE( WET_NH3      ( IIPAR, JJPAR        ), STAT=RC )
       IF ( RC /= GIGC_SUCCESS ) RETURN
 
-      ALLOCATE( WET_HNO3     ( IIPAR, JJPAR      ), STAT=RC ) 
+      ALLOCATE( WET_NH4      ( IIPAR, JJPAR        ), STAT=RC )
       IF ( RC /= GIGC_SUCCESS ) RETURN
 
-      ALLOCATE( WET_NH3      ( IIPAR, JJPAR      ), STAT=RC )
-      IF ( RC /= GIGC_SUCCESS ) RETURN
-
-      ALLOCATE( WET_NH4      ( IIPAR, JJPAR      ), STAT=RC )
-      IF ( RC /= GIGC_SUCCESS ) RETURN
-
-      ALLOCATE( WET_NIT      ( IIPAR, JJPAR      ), STAT=RC )
+      ALLOCATE( WET_NIT      ( IIPAR, JJPAR        ), STAT=RC )
       IF ( RC /= GIGC_SUCCESS ) RETURN
 
 #endif
