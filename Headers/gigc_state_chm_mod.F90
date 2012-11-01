@@ -308,13 +308,11 @@ CONTAINS
 !  19 Oct 2012 - R. Yantosca - Now pass all dimensions as arguments
 !  26 Oct 2012 - R. Yantosca - Now allocate Strat_P, Strat_k fields
 !  26 Oct 2012 - R. Yantosca - Add nSchem, nSchemBry as arguments
+!  01 Nov 2012 - R. Yantosca - Don't allocate strat chem fields if nSchm=0
+!                              and nSchmBry=0 (i.e. strat chem is turned off)
 !EOP
 !------------------------------------------------------------------------------
 !BOC
-!
-! !LOCAL VARIABLES:
-!
-    INTEGER :: AS
 
     ! Assume success until otherwise
     RC = GIGC_SUCCESS
@@ -323,61 +321,71 @@ CONTAINS
     ! Allocate advected tracer fields
     !=====================================================================
 
-    ALLOCATE( State_Chm%Trac_Id    (             nTracers+1 ), STAT=RC )
+    ALLOCATE( State_Chm%Trac_Id       (             nTracers+1 ), STAT=RC )
     IF ( RC /= GIGC_SUCCESS ) RETURN
 
-    ALLOCATE( State_Chm%Trac_Name  (             nTracers+1 ), STAT=RC )
+    ALLOCATE( State_Chm%Trac_Name     (             nTracers+1 ), STAT=RC )
     IF ( RC /= GIGC_SUCCESS ) RETURN
 
-    ALLOCATE( State_Chm%Tracers    ( IM, JM, LM, nTracers+1 ), STAT=RC )
+    ALLOCATE( State_Chm%Tracers       ( IM, JM, LM, nTracers+1 ), STAT=RC )
     IF ( RC /= GIGC_SUCCESS ) RETURN
 
-    ALLOCATE( State_Chm%Trac_Tend  ( IM, JM, LM, nTracers+1 ), STAT=RC )
+    ALLOCATE( State_Chm%Trac_Tend     ( IM, JM, LM, nTracers+1 ), STAT=RC )
     IF ( RC /= GIGC_SUCCESS ) RETURN
 
-    ALLOCATE( State_Chm%Trac_Btend ( IM, JM, LM, nBiomax    ), STAT=RC )
+    ALLOCATE( State_Chm%Trac_Btend    ( IM, JM, LM, nBiomax    ), STAT=RC )
     IF ( RC /= GIGC_SUCCESS ) RETURN
 
     !=====================================================================
     ! Allocate chemical species fields
     !=====================================================================
 
-    ALLOCATE( State_Chm%Spec_Id    (             nSpecies   ), STAT=RC )
+    ALLOCATE( State_Chm%Spec_Id       (             nSpecies   ), STAT=RC )
     IF ( RC /= GIGC_SUCCESS ) RETURN
 
-    ALLOCATE( State_Chm%Spec_Name  (             nSpecies   ), STAT=RC )
+    ALLOCATE( State_Chm%Spec_Name     (             nSpecies   ), STAT=RC )
     IF ( RC /= GIGC_SUCCESS ) RETURN
 
-    ALLOCATE( State_Chm%Species    ( IM, JM, LM, nSpecies   ), STAT=RC )
+    ALLOCATE( State_Chm%Species       ( IM, JM, LM, nSpecies   ), STAT=RC )
     IF ( RC /= GIGC_SUCCESS ) RETURN
 
     !=====================================================================
     ! Allocate stratospheric chemistry fields
     !=====================================================================
 
-    ALLOCATE( State_Chm%Schm_Id    (             nSchm      ), STAT=RC )
-    IF ( RC /= GIGC_SUCCESS ) RETURN
+    ! Only allocate if strat chem is turned on
+    IF ( nSchm > 0 ) THEN
 
-    ALLOCATE( State_Chm%Schm_Name  (             nSchm      ), STAT=RC )
-    IF ( RC /= GIGC_SUCCESS ) RETURN
+       ALLOCATE( State_Chm%Schm_Id    (             nSchm      ), STAT=RC )
+       IF ( RC /= GIGC_SUCCESS ) RETURN
+       
+       ALLOCATE( State_Chm%Schm_Name  (             nSchm      ), STAT=RC )
+       IF ( RC /= GIGC_SUCCESS ) RETURN
+       
+       ALLOCATE( State_Chm%Schm_P     ( IM, JM, LM, nSchm      ), STAT=RC )
+       IF ( RC /= GIGC_SUCCESS ) RETURN
+       
+       ALLOCATE( State_Chm%Schm_k     ( IM, JM, LM, nSchm      ), STAT=RC )
+       IF ( RC /= GIGC_SUCCESS ) RETURN
+    
+    ENDIF
 
-    ALLOCATE( State_Chm%Schm_P     ( IM, JM, LM, nSchm      ), STAT=RC )
-    IF ( RC /= GIGC_SUCCESS ) RETURN
+    ! Only allocate if strat chem is turned on
+    IF ( nSchmBry > 0 ) THEN
+   
+       ALLOCATE( State_Chm%Schm_BryId (             nSchmBry   ), STAT=RC )
+       IF ( RC /= GIGC_SUCCESS ) RETURN
+       
+       ALLOCATE( State_Chm%Schm_BryNam(             nSchmBry   ), STAT=RC )
+       IF ( RC /= GIGC_SUCCESS ) RETURN
 
-    ALLOCATE( State_Chm%Schm_k     ( IM, JM, LM, nSchm      ), STAT=RC )
-    IF ( RC /= GIGC_SUCCESS ) RETURN
+       ALLOCATE( State_Chm%Schm_BryDay( IM, JM, LM, nSchmBry   ), STAT=RC )
+       IF ( RC /= GIGC_SUCCESS ) RETURN
 
-    ALLOCATE( State_Chm%Schm_BryId (             nSchmBry   ), STAT=RC )
-    IF ( RC /= GIGC_SUCCESS ) RETURN
+       ALLOCATE( State_Chm%Schm_BryNit( IM, JM, LM, nSchmBry   ), STAT=RC )
+       IF ( RC /= GIGC_SUCCESS ) RETURN
 
-    ALLOCATE( State_Chm%Schm_BryNam(             nSchmBry   ), STAT=RC )
-    IF ( RC /= GIGC_SUCCESS ) RETURN
-
-    ALLOCATE( State_Chm%Schm_BryDay( IM, JM, LM, nSchmBry   ), STAT=RC )
-    IF ( RC /= GIGC_SUCCESS ) RETURN
-
-    ALLOCATE( State_Chm%Schm_BryNit( IM, JM, LM, nSchmBry   ), STAT=RC )
-    IF ( RC /= GIGC_SUCCESS ) RETURN
+    ENDIF
 
     !=====================================================================
     ! Initialize fields

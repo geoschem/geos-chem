@@ -97,7 +97,6 @@
       USE SOILNOX_RESTART_MOD   ! For reading and writing soil NOx restart
       USE BROMOCARB_MOD         ! For setting CH3Br concentrations in PBL, jpp
 
-
       !-----------------------------------------------------------------
       ! GEOS-Chem met field I/O modules
       !-----------------------------------------------------------------
@@ -210,6 +209,7 @@
 !  25 Oct 2012 - R. Yantosca - Define logical doDebugPrt for ND70 output
 !  25 Oct 2012 - R. Yantosca - Add descriptive comments for DEVEL #ifdefs
 !  25 Oct 2012 - R. Yantosca - Now reference gigc_errcode_mod.F90
+!   1 Nov 2012 - R. Yantosca - Now read soil NOx restart file
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -498,18 +498,18 @@
       ! arguments. (bmy, 10/25/12)
       !--------------------------------------------------------------
 
+      ! Capture initial state of atmosphere for STE flux calc (ltm, 06/10/12)
+      IF ( LSCHEM ) CALL INIT_STRAT_CHEM( am_I_Root )
+
+#endif
+
       ! Read soil NOx initial conditions
       IF ( LSOILNOX ) THEN
          CALL READ_SOIL_RESTART( NYMDb , NHMSb )
          IF ( LPRT ) CALL DEBUG_MSG( '### MAIN: a READ_SOIL_RESTART' )
       ENDIF
 
-      ! Capture initial state of atmosphere for STE flux calc (ltm, 06/10/12)
-      IF ( LSCHEM ) CALL INIT_STRAT_CHEM( am_I_Root )
-
-#endif
-
-      ! add support for making restart files of APROD and GPROD (dkh, 11/09/06)  
+      ! add support for making restart files of APROD and GPROD (dkh, 11/09/06) 
       IF ( LSOA ) THEN
 
          !! use this to make initial soaprod files  

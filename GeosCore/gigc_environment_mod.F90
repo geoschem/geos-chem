@@ -151,6 +151,7 @@ CONTAINS
     USE GIGC_ErrCode_Mod
     USE GIGC_State_Chm_Mod
     USE GIGC_State_Met_Mod
+    USE Logical_Mod,        ONLY : LSCHEM
     USE Tracer_Mod,         ONLY : N_TRACERS
 !
 ! !INPUT PARAMETERS:
@@ -183,6 +184,7 @@ CONTAINS
 !  22 Oct 2012 - R. Yantosca - Renamed to GIGC_Init_All
 !  26 Oct 2012 - R. Yantosca - Now call Get_nSchm, nSchmBry to find out the
 !                              number of strat chem species and Bry species
+!  01 Nov 2012 - R. Yantosca - Now use LSCHEM from logical_mod.F
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -210,36 +212,61 @@ CONTAINS
 
 #if defined( EXTERNAL_GRID ) || defined( EXTERNAL_FORCING ) 
 
-    ! Set default values for strat chemistry
+    !-----------------------------------------------------------------------
+    !     %%%%% CONNECTING TO GEOS-5 GCM via ESMF INTERFACE %%%%%
+    !
+    ! At present, we have not included stratospheric chemistry in when
+    ! connecting to the ESMF interface.  We will have to include all strat
+    ! chem species via the ESMF import state.  For now just set nsChm
+    ! and nSchmBry to default values. (bmy, 11/1/12)
+    !-----------------------------------------------------------------------
     nSchm    = 1
     nSchmBry = 1
 
 #else
 
-    ! Find out the # of stratospheric chemistry species
-    CALL Get_nSchm_nSchmBry(  am_I_Root  = am_I_Root,   &
-                              nSchm      = nSchm,       &
-                              nSchmBry   = nSchmBry,    &
-                              RC         = RC          )
+    !-----------------------------------------------------------------------
+    !   %%%%% TESTING GIGC INTERFACE FROM EXISTING GEOS-CHEM %%%%%
+    !
+    ! We can test the grid-independent implementation of stratospheric
+    ! chemistry when compiling the traditional GEOS-Chem with DEVEL=yes.
+    ! In this case, we need to pre-compute the # of strat chem species
+    ! (nSchm) and the number of bromine species (nSchmBry) so that we can
+    ! allocate the corresponding fields of the chemistry state.
+    ! (bmy, 11/1/12)
+    !-----------------------------------------------------------------------
+    IF ( LSCHEM ) THEN
 
-    write(6,*) '### In GIGC_INIT_ALL'
-    write(6,*) '### nSchm    : ', nsChm
-    write(6,*) '### nSchmBry : ', nsChmBry
+       ! Strat chem is turned on, find out the # of stratospheric 
+       ! chemistry species for which we need to read rates from disk.
+       ! NOTE: Bromine species are handled specially.
+       CALL Get_nSchm_nSchmBry( am_I_Root  = am_I_Root,  &  ! Root CPU (Y/N)?
+                                nSchm      = nSchm,      &  ! # strat chem spec
+                                nSchmBry   = nSchmBry,   &  ! # strat chem spec
+                                RC         = RC         )   ! Success or failure
+
+    ELSE
+
+       ! Strat chem is turned off
+       nSchm    = 0
+       nSchmBry = 0
+
+    ENDIF
 
 #endif
 
     ! Initialize chemistry state
-    CALL Init_GIGC_State_Chm( am_I_Root  = am_I_Root,   &
-                              IM         = IIPAR,       &
-                              JM         = JJPAR,       &
-                              LM         = LLPAR,       &
-                              nTracers   = N_TRACERS,   &
-                              nBioMax    = NBIOMAX,     &
-                              nSpecies   = IGAS,        &
-                              nSchm      = nSchm,       &
-                              nSchmBry   = nSchmBry,    &
-                              State_Chm  = State_Chm,   &
-                              RC         = RC          )
+    CALL Init_GIGC_State_Chm(  am_I_Root  = am_I_Root,   &  ! Root CPU (Y/N)?
+                               IM         = IIPAR,       &  ! # of lons
+                               JM         = JJPAR,       &  ! # of lats
+                               LM         = LLPAR,       &  ! # of levels
+                               nTracers   = N_TRACERS,   &  ! # of tracers
+                               nBioMax    = NBIOMAX,     &  ! # biomass species
+                               nSpecies   = IGAS,        &  ! # chemical species 
+                               nSchm      = nSchm,       &  ! # strat chem spec
+                               nSchmBry   = nSchmBry,    &  ! # bromine species
+                               State_Chm  = State_Chm,   &  ! Chemistry State
+                               RC         = RC          )   ! Success or failure
     
     ! Return upon error
     IF ( RC /= GIGC_SUCCESS ) RETURN
