@@ -153,14 +153,15 @@ CONTAINS
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE GIGC_Init_Simulation( State_Met, State_Chm, tsChem,     &
-                                   nymd,      nhms,      am_I_Root,  &
-                                   RC                               )
+  SUBROUTINE GIGC_Init_Simulation( Input_Opt,  State_Met, State_Chm,  &
+                                   tsChem,     nymd,      nhms,       &
+                                   am_I_Root,  RC                    )
 !
 ! !USES:
 !
     USE GIGC_Environment_Mod
     USE GIGC_ErrCode_Mod  
+    USE GIGC_Input_Opt_Mod
     USE GIGC_State_Chm_Mod
     USE GIGC_State_Met_Mod
     USE CMN_SIZE_MOD,         ONLY : IIPAR
@@ -197,6 +198,7 @@ CONTAINS
 !
 ! !INPUT/OUTPUT PARAMETERS:
 !
+    TYPE(OptInput), INTENT(INOUT) :: Input_Opt   ! Input Options object
     TYPE(ChmState), INTENT(INOUT) :: State_Chm   ! Chemistry State object
     TYPE(MetState), INTENT(INOUT) :: State_Met   ! Meteorology State object
 !
@@ -215,6 +217,7 @@ CONTAINS
 !  17 Oct 2012 - R. Yantosca - Now initialize the chemistry mechanism
 !  19 Oct 2012 - R. Yantosca - Now reference gigc_state_chm_mod.F90
 !  19 Oct 2012 - R. Yantosca - Now reference gigc_state_met_mod.F90
+!  01 Nov 2012 - R. Yantosca - Now reference gigc_input_opt_mod.F90
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -235,13 +238,13 @@ CONTAINS
     CALL GIGC_Init_Time_Interface( DTIME, nymd, nhms, am_I_Root, RC )
 
     ! Allocate all
-    CALL GIGC_Allocate_All( am_I_Root, RC )
+    CALL GIGC_Allocate_All( am_I_Root, Input_Opt, RC )
 
     ! Allocate
     CALL GIGC_Allocate_Interface( am_I_Root, RC )
 
     ! Read options from the GEOS-Chem input file "input.geos"
-    CALL GIGC_Get_Options( am_I_Root, RC )
+    CALL GIGC_Get_Options( am_I_Root, Input_Opt, RC )
 
     ! Initialize derived-type objects for meteorology & chemistry states
     CALL GIGC_Init_All( State_Met, State_Chm, am_I_Root, RC )
@@ -390,20 +393,25 @@ CONTAINS
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE GIGC_Get_Options( am_I_Root, RC )
+  SUBROUTINE GIGC_Get_Options( am_I_Root, Input_Opt, RC )
 !
 ! !USES:
 !
     USE GIGC_ErrCode_Mod
-    USE Input_Mod,      ONLY : Read_Input_File
+    USE GIGC_Input_Opt_Mod, ONLY : OptInput
+    USE Input_Mod,          ONLY : Read_Input_File
 !
 ! !INPUT PARAMETERS: 
 !
-    LOGICAL, INTENT(IN)  :: am_I_Root   ! Are we on the root CPU?
+    LOGICAL,        INTENT(IN)    :: am_I_Root   ! Are we on the root CPU?
+!
+! !INPUT/OUTPUT PARAMETERS:
+!
+    TYPE(OptInput), INTENT(INOUT) :: Input_Opt   ! Input Options object
 !
 ! !OUTPUT PARAMETERS:
 !
-    INTEGER, INTENT(OUT) :: RC          ! Success or failure
+    INTEGER,        INTENT(OUT)   :: RC          ! Success or failure
 ! 
 ! !REMARKS:
 !  NOTE: We will probably convert the input file into an ESMF resource file
@@ -414,7 +422,7 @@ CONTAINS
 !  15 Oct 2012 - R. Yantosca - Added ProTeX Headers, use F90 format/indents
 !  22 Oct 2012 - R. Yantosca - Renamed to GIGC_Get_Options
 !  22 Oct 2012 - R. Yantosca - Added RC output argument
-
+!  01 Nov 2012 - R. Yantosca - Now pass the Input Options object via arg list
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -423,7 +431,7 @@ CONTAINS
     RC = GIGC_Success
     
     ! Read the GEOS-Chem input file here
-    CALL Read_Input_File( am_I_Root )
+    CALL Read_Input_File( am_I_Root, Input_Opt, RC )
 
   END SUBROUTINE GIGC_Get_Options
 !EOC

@@ -74,7 +74,7 @@ CONTAINS
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE GIGC_Allocate_All( am_I_Root, RC )
+  SUBROUTINE GIGC_Allocate_All( am_I_Root, Input_Opt, RC )
 !
 ! !USES:
 !
@@ -87,7 +87,8 @@ CONTAINS
     USE CMN_DIAG_MOD,      ONLY : SET_CMN_DIAG_MOD
     USE COMODE_LOOP_MOD,   ONLY : SET_COMODE_LOOP_MOD
     USE COMMSOIL_MOD,      ONLY : SET_COMMSOIL_MOD
-    USE GIGC_ERRCODE_MOD
+    USE GIGC_ErrCode_Mod
+    USE GIGC_Input_Opt_Mod
     USE JV_CMN_MOD,        ONLY : SET_JV_CMN_MOD
     USE VDIFF_PRE_MOD,     ONLY : SET_VDIFF_PRE_MOD
 
@@ -95,11 +96,15 @@ CONTAINS
 !
 ! !INPUT PARAMETERS:
 !
-    LOGICAL, INTENT(IN)  :: am_I_Root   ! Are we on the root CPU?
+    LOGICAL,        INTENT(IN)    :: am_I_Root   ! Are we on the root CPU?
+!
+! !INPUT/OUTPUT PARAMETERS:
+!
+    TYPE(OptInput), INTENT(INOUT) :: Input_Opt   ! Input Options object
 !
 ! !OUTPUT PARAMETERS:
 !
-    INTEGER, INTENT(OUT) :: RC          ! Success or failure?
+    INTEGER,        INTENT(OUT)   :: RC          ! Success or failure?
 !
 ! !REMARKS:
 !  Need to add better error checking and exit upon failure.
@@ -110,9 +115,16 @@ CONTAINS
 !  17 Oct 2012 - R. Yantosca - Add am_I_Root, RC as arguments
 !  22 Oct 2012 - R. Yantosca - Renamed to GIGC_Allocate_All
 !  30 Oct 2012 - R. Yantosca - Now pass am_I_Root, RC to SET_COMMSOIL_MOD
+!  01 Nov 2012 - R. Yantosca - Now zero the fields of the Input Options object
 !EOP
 !------------------------------------------------------------------------------
 !BOC
+
+    ! Initialize fields of the Input Options object
+    CALL Set_GIGC_Input_Opt( am_I_Root, Input_Opt, RC )
+
+    ! Allocate module fields with the locally-determined 
+    ! longitude (IIPAR) and latitude (JJPAR) dimensions
     CALL SET_CMN_SIZE_MOD
     CALL SET_CMN_DEP_MOD
     CALL SET_CMN_DIAG_MOD

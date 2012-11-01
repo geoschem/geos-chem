@@ -37,6 +37,7 @@
 #  23 Aug 2011 - M. Long     - Initial version
 #  09 Apr 2012 - R. Yantosca - Removed CMN_VEL_mod.F; it's obsolete
 #  19 Oct 2012 - R. Yantosca - Add modules for Grid-Independent GEOS-Chem
+#  01 Nov 2012 - R. Yantosca - Added gigc_input_opt_mod.F90
 #EOP
 #------------------------------------------------------------------------------
 #BOC
@@ -119,6 +120,8 @@ commsoil_mod.o       : commsoil_mod.F          CMN_SIZE_mod.o
 comode_loop_mod.o    : comode_loop_mod.F       CMN_SIZE_mod.o
 
 gigc_errcode_mod.o   : gigc_errcode_mod.F90    
+
+gigc_input_opt_mod.o : gigc_input_opt_mod.F90  gigc_errcode_mod.o
 
 gigc_state_chm_mod.o : gigc_state_chm_mod.F90  gigc_errcode_mod.o
 

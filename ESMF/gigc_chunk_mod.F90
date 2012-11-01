@@ -36,6 +36,7 @@ MODULE GIGC_Chunk_Mod
 !  09 Oct 2012 - R. Yantosca - Added comments, cosmetic changes
 !  16 Oct 2012 - R. Yantosca - Renamed GC_STATE argument to State_Chm
 !  22 Oct 2012 - R. Yantosca - Renamed to gigc_chunk_mod.F90
+!  01 Nov 2012 - R. Yantosca - Now pass Input Options object to routines
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -72,30 +73,33 @@ CONTAINS
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE GIGC_Chunk_Init( NI,     NJ,   NL,   State_Met, State_Chm,  &
-                              tsChem, nymd, nhms, am_I_Root, RC        )
+  SUBROUTINE GIGC_Chunk_Init( am_I_Root, NI,        NJ,     NL,         &
+                              nymd,      nhms,      tsChem, Input_Opt,  &
+                              State_Chm, State_Met, RC                 )
 !
 ! !USES:
 !
     USE GIGC_Initialization_Mod
     USE GIGC_ErrCode_Mod
+    USE GIGC_Input_Opt_Mod,    ONLY : OptInput
     USE GIGC_State_Chm_Mod,    ONLY : ChmState
     USE GIGC_State_Met_Mod,    ONLY : MetState
 !
 ! !INPUT PARAMETERS:
 !
+    LOGICAL,        INTENT(IN)    :: am_I_Root   ! Are we on the root CPU?
     INTEGER,        INTENT(IN)    :: NI          ! # of longitudes
     INTEGER,        INTENT(IN)    :: NJ          ! # of latitudes
     INTEGER,        INTENT(IN)    :: NL          ! # of levels
     INTEGER,        INTENT(IN)    :: nymd        ! GMT date (YYYY/MM/DD)
     INTEGER,        INTENT(IN)    :: nhms        ! GMT time (hh:mm:ss)
-    LOGICAL,        INTENT(IN)    :: am_I_Root   ! Are we on the root CPU?
     REAL,           INTENT(IN)    :: tsChem      ! Chemistry timestep
 !
 ! !INPUT/OUTPUT PARAMETERS:
 !
-    TYPE(ChmState), INTENT(INOUT) :: State_Chm   ! Chemistry State Object
-    TYPE(MetState), INTENT(INOUT) :: State_Met   ! Meteorology State Object
+    TYPE(OptInput), INTENT(INOUT) :: Input_Opt   ! Input Options object
+    TYPE(ChmState), INTENT(INOUT) :: State_Chm   ! Chemistry State object
+    TYPE(MetState), INTENT(INOUT) :: State_Met   ! Meteorology State object
 !
 ! !OUTPUT PARAMETERS:
 !
@@ -113,6 +117,8 @@ CONTAINS
 !  19 Oct 2012 - R. Yantosca - Now reference gigc_state_chm_mod.F90
 !  19 Oct 2012 - R. Yantosca - Now reference gigc_state_met_mod.F90
 !  22 Oct 2012 - R. Yantosca - Renamed to GIGC_Chunk_Init
+!  01 Nov 2012 - R. Yantosca - Now reference gigc_input_opt_mod.F90
+!  01 Nov 2012 - R. Yantosca - Reordered arguments for clarity
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -124,12 +130,13 @@ CONTAINS
     CALL GIGC_Init_Dimensions( NI, NJ, NL )
 
     ! Initialize the G-C simulation and chemistry mechanism
-    CALL GIGC_Init_Simulation( am_I_Root = am_I_Root,   &
-                               tsChem    = tsChem,      &
-                               nymd      = nymd,        &
-                               nhms      = nhms,        &
-                               State_Chm = State_Chm,   &
-                               State_Met = State_Met,   &
+    CALL GIGC_Init_Simulation( am_I_Root = am_I_Root,   &   ! Root CPU?
+                               tsChem    = tsChem,      &   ! Chem timestep
+                               nymd      = nymd,        &   ! Date
+                               nhms      = nhms,        &   ! Time
+                               Input_Opt = Input_Opt,   &   ! Input Options
+                               State_Chm = State_Chm,   &   ! Chemistry State
+                               State_Met = State_Met,   &   ! Meteorology State
                                RC        = RC          )
 
   END SUBROUTINE GIGC_Chunk_Init
@@ -147,18 +154,19 @@ CONTAINS
 !
 ! \begin{itemize}
 ! \item Dry deposition
-! \item Emissions (to be added later)
 ! \item Chemistry
 ! \end{itemize}
 !
 ! !INTERFACE:
 !
-  SUBROUTINE GIGC_Chunk_Run( am_I_Root, State_Met, State_Chm, NL, NI, NJ, RC )
+  SUBROUTINE GIGC_Chunk_Run( am_I_Root, NI,        NJ,        NL,  &
+                             Input_Opt, State_Chm, State_Met, RC  )
 !
 ! !USES:
 !
     USE GIGC_ChemDr
     USE GIGC_ErrCode_Mod
+    USE GIGC_Input_Opt_Mod, ONLY : OptInput
     USE GIGC_State_Chm_Mod, ONLY : ChmState
     USE GIGC_State_Met_Mod, ONLY : MetState
 !
@@ -168,6 +176,7 @@ CONTAINS
     INTEGER,        INTENT(IN)    :: NI          ! # of longitudes on this PET
     INTEGER,        INTENT(IN)    :: NJ          ! # of latitudes on this PET
     INTEGER,        INTENT(IN)    :: NL          ! # of levels on this PET
+    TYPE(OptInput), INTENT(IN)    :: Input_Opt   ! Input Options object
 !
 ! !INPUT/OUTPUT PARAMETERS:
 !
@@ -195,6 +204,7 @@ CONTAINS
 !  19 Oct 2012 - R. Yantosca - Now reference gigc_state_met_mod.F90
 !  22 Oct 2012 - R. Yantosca - Renamed to GIGC_Chunk_Run
 !  25 Oct 2012 - R. Yantosca - Now pass RC to GIGC_DO_CHEM
+!  01 Nov 2012 - R. Yantosca - Now reference gigc_input_opt_mod.F90
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -215,6 +225,7 @@ CONTAINS
                        NJ         = NJ,         &   ! # lats on this PET
                        NL         = NL,         &   ! # levels on this PET
                        NCNST      = NC,         &   ! # of advected tracers
+                       Input_Opt  = Input_Opt,  &   ! Input Options obj
                        State_Chm  = State_Chm,  &   ! Chemistry State
                        State_Met  = State_Met,  &   ! Meteorology State
                        RC         = RC         )    ! Success or failure
@@ -234,27 +245,29 @@ CONTAINS
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE GIGC_Chunk_Final( State_Met, State_Chm, am_I_Root, RC )
+  SUBROUTINE GIGC_Chunk_Final( am_I_Root, Input_Opt, State_Chm, State_Met, RC )
 !
 ! !USES:
 !
     USE GIGC_ErrCode_Mod
     USE GIGC_Finalization_Mod
+    USE GIGC_Input_Opt_Mod,    ONLY : OptInput
     USE GIGC_State_Chm_Mod,    ONLY : ChmState
     USE GIGC_State_Met_Mod,    ONLY : MetState
 !
 ! !INPUT PARAMETERS:
 !
-    LOGICAL,        INTENT(IN)    :: am_I_Root  ! Are we on the root CPU?
+    LOGICAL,        INTENT(IN)    :: am_I_Root     ! Are we on the root CPU?
 !
 ! !INPUT/OUTPUT PARAMETERS:
 !
-    TYPE(ChmState), INTENT(INOUT) :: State_Chm  ! Chemistry State object
-    TYPE(MetState), INTENT(INOUT) :: State_Met  ! Meteorology State object
+    TYPE(OptInput), INTENT(INOUT) :: Input_Opt     ! Input Options object
+    TYPE(ChmState), INTENT(INOUT) :: State_Chm     ! Chemistry State object
+    TYPE(MetState), INTENT(INOUT) :: State_Met     ! Meteorology State object
 !
 ! !OUTPUT PARAMETERS:
 !
-    INTEGER,        INTENT(OUT)   :: RC         ! Success or failure
+    INTEGER,        INTENT(OUT)   :: RC            ! Success or failure
 !
 ! !REVISION HISTORY: 
 !  18 Jul 2011 - M. Long     - Initial Version
@@ -263,19 +276,20 @@ CONTAINS
 !  19 Oct 2012 - R. Yantosca - Now reference gigc_state_chm_mod.F90
 !  19 Oct 2012 - R. Yantosca - Now reference gigc_state_met_mod.F90
 !  22 Oct 2012 - R. Yantosca - Renamed to GIGC_Chunk_Final
+!  01 Nov 2012 - R. Yantosca - Now reference gigc_input_opt_mod.F90
 !EOP
 !------------------------------------------------------------------------------
 !BOC
-!
-! !LOCAL VARIABLES:
-!
-!   write(*,*) 'FINALIZING'
 
     ! Assume succes
     RC = GIGC_SUCCESS
 
     ! Finalize GEOS-Chem
-    CALL GIGC_Finalize( State_Met, State_Chm, am_I_Root, RC )
+    CALL GIGC_Finalize( am_I_Root = am_I_Root,  &  ! Are we on the root CPU?
+                        Input_Opt = Input_Opt,  &  ! Input Options
+                        State_Chm = State_Chm,  &  ! Chemistry State
+                        State_Met = State_Met,  &  ! Meteorology State
+                        RC        = RC         )   ! Success or failure?
 
   END SUBROUTINE GIGC_Chunk_Final
 !EOC

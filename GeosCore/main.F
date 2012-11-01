@@ -118,6 +118,7 @@
       USE LOGICAL_MOD,          ONLY : Do_Diag_Write
       USE GIGC_Environment_Mod, ONLY : GIGC_Allocate_All
       USE GIGC_Environment_Mod, ONLY : GIGC_Init_All
+      USE GIGC_Input_Opt_Mod,   ONLY : OptInput
       USE GIGC_State_Chm_Mod,   ONLY : ChmState
       USE GIGC_State_Met_Mod,   ONLY : MetState
 #endif
@@ -209,7 +210,8 @@
 !  25 Oct 2012 - R. Yantosca - Define logical doDebugPrt for ND70 output
 !  25 Oct 2012 - R. Yantosca - Add descriptive comments for DEVEL #ifdefs
 !  25 Oct 2012 - R. Yantosca - Now reference gigc_errcode_mod.F90
-!   1 Nov 2012 - R. Yantosca - Now read soil NOx restart file
+!  01 Nov 2012 - R. Yantosca - Now read soil NOx restart file
+!  01 Nov 2012 - R. Yantosca - Now reference gigc_input_opt_mod.F90
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -243,10 +245,12 @@
       !-----------------------------------------------------------------
       !    %%%%% TESTING GIGC INTERFACE FROM EXISTING GEOS-CHEM %%%%%
       !
-      ! We must declare the Chemistry State object (State_Chm) and
-      ! the Meteorology State object (State_Met) here for use with
-      ! the Grid-Independent GEOS-Chem code. (bmy, 10/25/12)
+      ! We must declare the Chemistry State (State_Chm), Meteorology
+      ! State (State_Met), and Input Options (Input_Opt) objects
+      ! for use with the Grid-Independent GEOS-Chem code. 
+      ! (bmy, 10/25/12)
       !--------------------------------------------------------------
+      TYPE(OptInput)           :: Input_Opt   ! Input Options object
       TYPE(ChmState)           :: State_Chm   ! Chemistry State object
       TYPE(MetState)           :: State_Met   ! Meteorology State object
 #endif
@@ -275,6 +279,7 @@
       !-----------------------------------------------------------------
       !   %%%%% TESTING GIGC INTERFACE FROM EXISTING GEOS-CHEM %%%%%
       !
+      ! 
       ! Call the routine GIGC_Allocate_All (located in module file
       ! GeosCore/gigc_environment_mod.F90) to allocate all lat/lon
       ! allocatable arrays used by GEOS-Chem.  
@@ -287,8 +292,10 @@
       ! CPU.  To simulate this behavior without ESMF, we set IIPAR
       ! to IGLOB and JJPAR to JGLOB, where IGLOB, JGLOB depend on the
       ! particular met fields being used. (bmy, 10/25/12)
+      !
+      ! GIGC_Allocate_All now also initializes fields of the 
       !-----------------------------------------------------------------
-      CALL GIGC_Allocate_All( am_I_root, RC )
+      CALL GIGC_Allocate_All( am_I_root, Input_Opt, RC )
 #else
       !--------------------------------------------------------------
       !               %%%%% TRADITIONAL GEOS-Chem %%%%%

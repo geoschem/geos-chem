@@ -164,17 +164,35 @@
 !\\
 ! !INTERFACE:
 ! 
+#if defined( DEVEL ) || defined( EXTERNAL_GRID ) || defined( EXTERNAL_FORCING )
+      SUBROUTINE READ_INPUT_FILE( am_I_Root, Input_Opt, RC )
+#else
       SUBROUTINE READ_INPUT_FILE( am_I_Root )
+#endif
 !
 ! !USES:
 !
-      USE CHARPAK_MOD, ONLY : STRREPL
-      USE FILE_MOD,    ONLY : IOERROR
-      USE GAMAP_MOD,   ONLY : DO_GAMAP
+      USE CHARPAK_MOD,        ONLY : STRREPL
+      USE FILE_MOD,           ONLY : IOERROR
+      USE GAMAP_MOD,          ONLY : DO_GAMAP
+#if defined( DEVEL ) || defined( EXTERNAL_GRID ) || defined( EXTERNAL_FORCING )
+      USE GIGC_ErrCode_Mod
+      USE GIGC_Input_Opt_Mod, ONLY : OptInput
+#endif
 !
 ! !INPUT PARAMETERS:
 !
-      LOGICAL, INTENT(IN) :: am_I_Root   ! Is this the root CPU?
+      LOGICAL,        INTENT(IN)    :: am_I_Root   ! Is this the root CPU?
+#if defined( DEVEL ) || defined( EXTERNAL_GRID ) || defined( EXTERNAL_FORCING )
+!
+! !INPUT/OUTPUT PARAMETERS:
+!
+      TYPE(OptInput), INTENT(INOUT) :: Input_Opt   ! Input options
+!
+! !OUTPUT PARAMETERS:
+!
+      INTEGER,        INTENT(OUT)   :: RC          ! Success or failure
+#endif
 ! 
 ! !REVISION HISTORY: 
 !  20 Jul 2004 - R. Yantosca - Initial version
@@ -263,94 +281,209 @@
          !      UNIX CMDS, ARCHIVED OH, and O3PL menus.
          !=============================================================
          IF      ( INDEX( LINE, 'SIMULATION MENU'  ) > 0 ) THEN
+#if defined( DEVEL ) || defined( EXTERNAL_GRID ) || defined( EXTERNAL_FORCING )
+            CALL READ_SIMULATION_MENU( am_I_Root, Input_Opt, RC )             
+#else
             CALL READ_SIMULATION_MENU( am_I_Root )             
+#endif
                                      
          ELSE IF ( INDEX( LINE, 'TRACER MENU'      ) > 0 ) THEN
+#if defined( DEVEL ) || defined( EXTERNAL_GRID ) || defined( EXTERNAL_FORCING )
+            CALL READ_TRACER_MENU( am_I_Root, Input_Opt, RC )                 
+#else
             CALL READ_TRACER_MENU( am_I_Root )                 
+#endif
 
          ELSE IF ( INDEX( LINE, 'AEROSOL MENU'     ) > 0 ) THEN
+#if defined( DEVEL ) || defined( EXTERNAL_GRID ) || defined( EXTERNAL_FORCING )
+            CALL READ_AEROSOL_MENU( am_I_Root, Input_Opt, RC )              
+#else
             CALL READ_AEROSOL_MENU( am_I_Root )              
+#endif
 
 #if   defined( APM )
          ELSE IF ( INDEX( LINE, 'APM MENU'         ) > 0 ) THEN
+#if defined( DEVEL ) || defined( EXTERNAL_GRID ) || defined( EXTERNAL_FORCING )
+            CALL READ_APM_MENU( am_I_Root, Input_Opt, RC )
+#else
             CALL READ_APM_MENU( am_I_Root )
+#endif
 #endif
 
          ELSE IF ( INDEX( LINE, 'EMISSIONS MENU'   ) > 0 ) THEN
+#if defined( DEVEL ) || defined( EXTERNAL_GRID ) || defined( EXTERNAL_FORCING )
+            CALL READ_EMISSIONS_MENU( am_I_Root, Input_Opt, RC )             
+#else
             CALL READ_EMISSIONS_MENU( am_I_Root )             
+#endif
 
          ELSE IF ( INDEX( LINE, 'FUTURE MENU'      ) > 0 ) THEN
+#if defined( DEVEL ) || defined( EXTERNAL_GRID ) || defined( EXTERNAL_FORCING )
+            CALL READ_FUTURE_MENU( am_I_Root, Input_Opt, RC ) 
+#else
             CALL READ_FUTURE_MENU( am_I_Root ) 
-                                                        
+#endif     
+                                                   
          ELSE IF ( INDEX( LINE, 'CHEMISTRY MENU'   ) > 0 ) THEN
+#if defined( DEVEL ) || defined( EXTERNAL_GRID ) || defined( EXTERNAL_FORCING )
+            CALL READ_CHEMISTRY_MENU( am_I_Root, Input_Opt, RC )              
+#else
             CALL READ_CHEMISTRY_MENU( am_I_Root )              
-                                                  
+#endif
+                                                 
          ELSE IF ( INDEX( LINE, 'TRANSPORT MENU'   ) > 0 ) THEN
+#if defined( DEVEL ) || defined( EXTERNAL_GRID ) || defined( EXTERNAL_FORCING )
+            CALL READ_TRANSPORT_MENU( am_I_Root, Input_Opt, RC )              
+#else
             CALL READ_TRANSPORT_MENU( am_I_Root )              
-                                                  
+#endif     
+                                             
          ELSE IF ( INDEX( LINE, 'CONVECTION MENU'  ) > 0 ) THEN
+#if defined( DEVEL ) || defined( EXTERNAL_GRID ) || defined( EXTERNAL_FORCING )
+            CALL READ_CONVECTION_MENU( am_I_Root, Input_Opt, RC )            
+#else
             CALL READ_CONVECTION_MENU( am_I_Root )            
-                                                  
+#endif
+                                             
          ELSE IF ( INDEX( LINE, 'DEPOSITION MENU'  ) > 0 ) THEN
+#if defined( DEVEL ) || defined( EXTERNAL_GRID ) || defined( EXTERNAL_FORCING )
+            CALL READ_DEPOSITION_MENU( am_I_Root, Input_Opt, RC )             
+#else
             CALL READ_DEPOSITION_MENU( am_I_Root )             
+#endif
 
-         ELSE IF ( INDEX( LINE, 'CO2 SIM MENU'     ) > 0 ) THEN !Ray Nassar
+         ELSE IF ( INDEX( LINE, 'CO2 SIM MENU'     ) > 0 ) THEN
+#if defined( DEVEL ) || defined( EXTERNAL_GRID ) || defined( EXTERNAL_FORCING )
+            CALL READ_CO2_SIM_MENU( am_I_Root, Input_Opt, RC )
+#else
             CALL READ_CO2_SIM_MENU( am_I_Root )
+#endif
                                     
          ELSE IF ( INDEX( LINE, 'GAMAP MENU'       ) > 0 ) THEN
+#if defined( DEVEL ) || defined( EXTERNAL_GRID ) || defined( EXTERNAL_FORCING )
+            CALL READ_GAMAP_MENU( am_I_Root, Input_Opt, RC )                 
+#else
             CALL READ_GAMAP_MENU( am_I_Root )                 
+#endif
                                                   
          ELSE IF ( INDEX( LINE, 'OUTPUT MENU'      ) > 0 ) THEN
+#if defined( DEVEL ) || defined( EXTERNAL_GRID ) || defined( EXTERNAL_FORCING )
+            CALL READ_OUTPUT_MENU( am_I_Root, Input_Opt, RC )                 
+#else
             CALL READ_OUTPUT_MENU( am_I_Root )                 
+#endif
                                                   
          ELSE IF ( INDEX( LINE, 'DIAGNOSTIC MENU'  ) > 0 ) THEN
+#if defined( DEVEL ) || defined( EXTERNAL_GRID ) || defined( EXTERNAL_FORCING )
+            CALL READ_DIAGNOSTIC_MENU( am_I_Root, Input_Opt, RC )             
+#else
             CALL READ_DIAGNOSTIC_MENU( am_I_Root )             
+#endif
 
          ELSE IF ( INDEX( LINE, 'PLANEFLIGHT MENU' ) > 0 ) THEN
+#if defined( DEVEL ) || defined( EXTERNAL_GRID ) || defined( EXTERNAL_FORCING )
+            CALL READ_PLANEFLIGHT_MENU( am_I_Root, Input_Opt, RC )             
+#else
             CALL READ_PLANEFLIGHT_MENU( am_I_Root )             
+#endif
                                                   
          ELSE IF ( INDEX( LINE, 'ND48 MENU'        ) > 0 ) THEN
+#if defined( DEVEL ) || defined( EXTERNAL_GRID ) || defined( EXTERNAL_FORCING )
+            CALL READ_ND48_MENU( am_I_Root, Input_Opt, RC )                  
+#else
             CALL READ_ND48_MENU( am_I_Root )                  
+#endif
 
          ELSE IF ( INDEX( LINE, 'ND49 MENU'        ) > 0 ) THEN
+#if defined( DEVEL ) || defined( EXTERNAL_GRID ) || defined( EXTERNAL_FORCING )
+            CALL READ_ND49_MENU( am_I_Root, Input_Opt, RC )                   
+#else
             CALL READ_ND49_MENU( am_I_Root )                   
+#endif
                                                   
          ELSE IF ( INDEX( LINE, 'ND50 MENU'        ) > 0 ) THEN
+#if defined( DEVEL ) || defined( EXTERNAL_GRID ) || defined( EXTERNAL_FORCING )
+            CALL READ_ND50_MENU( am_I_Root, Input_Opt, RC )                   
+#else
             CALL READ_ND50_MENU( am_I_Root )                   
+#endif
                                                   
          ELSE IF ( INDEX( LINE, 'ND51 MENU'        ) > 0 ) THEN
+#if defined( DEVEL ) || defined( EXTERNAL_GRID ) || defined( EXTERNAL_FORCING )
+            CALL READ_ND51_MENU( am_I_Root, Input_Opt, RC )                   
+#else
             CALL READ_ND51_MENU( am_I_Root )                   
+#endif
                                                   
          ELSE IF ( INDEX( LINE, 'ND51b MENU'       ) > 0 ) THEN
+#if defined( DEVEL ) || defined( EXTERNAL_GRID ) || defined( EXTERNAL_FORCING )
+            CALL READ_ND51b_MENU( am_I_Root, Input_Opt, RC )  
+#else
             CALL READ_ND51b_MENU( am_I_Root )  
+#endif
 
          ELSE IF ( INDEX( LINE, 'ND63 MENU'        ) > 0 ) THEN
+#if defined( DEVEL ) || defined( EXTERNAL_GRID ) || defined( EXTERNAL_FORCING )
+            CALL READ_ND63_MENU( am_I_Root, Input_Opt, RC )                   
+#else
             CALL READ_ND63_MENU( am_I_Root )                   
+#endif
 
          ELSE IF ( INDEX( LINE, 'PROD & LOSS MENU' ) > 0 ) THEN
+#if defined( DEVEL ) || defined( EXTERNAL_GRID ) || defined( EXTERNAL_FORCING )
+            CALL READ_PROD_LOSS_MENU( am_I_Root, Input_Opt, RC )               
+#else
             CALL READ_PROD_LOSS_MENU( am_I_Root )               
-                                                  
+#endif     
+                                             
          ELSE IF ( INDEX( LINE, 'UNIX CMDS MENU'   ) > 0 ) THEN 
+#if defined( DEVEL ) || defined( EXTERNAL_GRID ) || defined( EXTERNAL_FORCING )
+            CALL READ_UNIX_CMDS_MENU( am_I_Root, Input_Opt, RC )              
+#else
             CALL READ_UNIX_CMDS_MENU( am_I_Root )              
+#endif
 
          ELSE IF ( INDEX( LINE, 'NESTED GRID MENU' ) > 0 ) THEN 
+#if defined( DEVEL ) || defined( EXTERNAL_GRID ) || defined( EXTERNAL_FORCING )
+            CALL READ_NESTED_GRID_MENU( am_I_Root, Input_Opt, RC )
+#else
             CALL READ_NESTED_GRID_MENU( am_I_Root )
+#endif
 
          ELSE IF ( INDEX( LINE, 'ARCHIVED OH MENU' ) > 0 ) THEN 
+#if defined( DEVEL ) || defined( EXTERNAL_GRID ) || defined( EXTERNAL_FORCING )
+            CALL READ_ARCHIVED_OH_MENU( am_I_Root, Input_Opt, RC  )
+#else
             CALL READ_ARCHIVED_OH_MENU( am_I_Root )
+#endif
 
          ELSE IF ( INDEX( LINE, 'O3 P/L MENU'      ) > 0 ) THEN 
+#if defined( DEVEL ) || defined( EXTERNAL_GRID ) || defined( EXTERNAL_FORCING )
+            CALL READ_O3PL_MENU( am_I_Root, Input_Opt, RC  )
+#else
             CALL READ_O3PL_MENU( am_I_Root )
+#endif
 
          ELSE IF ( INDEX( LINE, 'BENCHMARK MENU'   ) > 0 ) THEN 
+#if defined( DEVEL ) || defined( EXTERNAL_GRID ) || defined( EXTERNAL_FORCING )
+            CALL READ_BENCHMARK_MENU( am_I_Root, Input_Opt, RC  )
+#else
             CALL READ_BENCHMARK_MENU( am_I_Root )
-              
+#endif     
+         
          ELSE IF ( INDEX( LINE, 'MERCURY MENU'     ) > 0 ) THEN 
+#if defined( DEVEL ) || defined( EXTERNAL_GRID ) || defined( EXTERNAL_FORCING )
+            CALL READ_MERCURY_MENU( am_I_Root, Input_Opt, RC  )
+#else
             CALL READ_MERCURY_MENU( am_I_Root )
-                                    
+#endif 
+                                   
          ELSE IF ( INDEX( LINE, 'CH4 MENU'         ) > 0 ) THEN 
+#if defined( DEVEL ) || defined( EXTERNAL_GRID ) || defined( EXTERNAL_FORCING )
+            CALL READ_CH4_MENU( am_I_Root, Input_Opt, RC )
+#else
             CALL READ_CH4_MENU( am_I_Root )
-                                    
+#endif                                    
          ELSE IF ( INDEX( LINE, 'END OF FILE'      ) > 0 ) THEN 
             EXIT
 
@@ -575,7 +708,11 @@
 !\\
 ! !INTERFACE:
 !
+#if defined( DEVEL ) || defined( EXTERNAL_GRID ) || defined( EXTERNAL_FORCING )
+      SUBROUTINE READ_SIMULATION_MENU( am_I_Root, Input_Opt, RC )
+#else
       SUBROUTINE READ_SIMULATION_MENU( am_I_Root )
+#endif
 !
 ! !USES:
 !
@@ -592,10 +729,24 @@
       USE TIME_MOD,      ONLY : SET_CURRENT_TIME, SET_DIAGb
       USE TIME_MOD,      ONLY : SET_NDIAGTIME,    GET_TAU
       USE TRANSFER_MOD,  ONLY : INIT_TRANSFER
+#if defined( DEVEL ) || defined( EXTERNAL_GRID ) || defined( EXTERNAL_FORCING )
+      USE GIGC_ErrCode_Mod
+      USE GIGC_Input_Opt_Mod, ONLY : OptInput
+#endif
 !
 ! !INPUT PARAMETERS:
 !
-      LOGICAL, INTENT(IN) :: am_I_Root   ! Is this the root CPU?
+      LOGICAL,        INTENT(IN)    :: am_I_Root   ! Is this the root CPU?
+#if defined( DEVEL ) || defined( EXTERNAL_GRID ) || defined( EXTERNAL_FORCING )
+!
+! !INPUT/OUTPUT PARAMETERS:
+!
+      TYPE(OptInput), INTENT(INOUT) :: Input_Opt   ! Input options
+!
+! !OUTPUT PARAMETERS:
+!
+      INTEGER,        INTENT(OUT)   :: RC          ! Success or failure
+#endif
 ! 
 ! !REVISION HISTORY: 
 !  20 Jul 2004 - R. Yantosca - Initial version
@@ -620,6 +771,7 @@
 !  10 Jun 2012 - L. Murray   - Move Linoz to chemistry menu
 !  30 Jul 2012 - R. Yantosca - Now accept am_I_Root as an argument when
 !                              running with the traditional driver main.F
+!  01 Nov 2012 - R. Yantosca - Now pass Input_Opt, RC as arguments
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -719,6 +871,33 @@
 #if   defined( MERRA ) || defined( GEOS_57 )
       ! Turn unzipping off for MERRA met fields
       LUNZIP = .FALSE. 
+#endif
+
+#if defined( DEVEL ) || defined( EXTERNAL_GRID ) || defined( EXTERNAL_FORCING )
+      !=================================================================
+      ! Copy to Input_OPT state
+      !=================================================================
+      Input_Opt%NYMDb         = NYMDb 
+      Input_Opt%NHMSb         = NHMSb
+      Input_Opt%NYMDe         = NYMDe
+      Input_Opt%NHMSe         = NHMSe
+      Input_Opt%RUN_DIR       = RUN_DIR
+      Input_Opt%IN_RST_FILE   = IN_RST_FILE
+      Input_Opt%LSVGLB        = LSVGLB
+      Input_Opt%OUT_RST_FILE  = OUT_RST_FILE
+      Input_Opt%DATA_DIR      = DATA_DIR
+      Input_Opt%GCAP_DIR      = GCAP_DIR
+      Input_Opt%GEOS_4_DIR    = GEOS_4_DIR
+      Input_Opt%GEOS_5_DIR    = GEOS_5_DIR
+      Input_Opt%GEOS_57_DIR   = GEOS_57_DIR
+      Input_Opt%MERRA_DIR     = MERRA_DIR
+      Input_Opt%DATA_DIR_1x1  = DATA_DIR_1x1
+      Input_Opt%TEMP_DIR      = TEMP_DIR
+      Input_Opt%LUNZIP        = LUNZIP
+      Input_Opt%LWAIT         = LWAIT
+      Input_Opt%LVARTROP      = LVARTROP
+      Input_Opt%I0            = I0
+      Input_Opt%J0            = J0 
 #endif
 
       !=================================================================
@@ -826,7 +1005,7 @@
 ! !INPUT PARAMETERS:
 !
       LOGICAL, INTENT(IN) :: am_I_Root   ! Is this the root CPU?
-! 
+!
 ! !REMARKS:
 !  The module grid_mod.F90 has been modified to save grid parameters in 3D
 !  format, which will facilitate interfacing GEOS-Chem to a GCM.
@@ -842,6 +1021,7 @@
 !  01 May 2012 - M. Payer    - Add call to COMPUTE_GLOBAL_GRID for nested grids
 !  30 Jul 2012 - R. Yantosca - Now accept am_I_Root as an argument when
 !                              running with the traditional driver main.F
+!  01 Nov 2012 - R. Yantosca - Now pass Input_Opt, RC as arguments
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -938,16 +1118,26 @@
      &                   J1=1,      J2=JJPAR,  
      &                   L1=1,      L2=LLPAR  )
 
-      ! Compute grid parameters in grid_mod.F90
-#if ! defined( ESMF_ )
-#if ! defined( GCM   )
+#if defined( ESMF_ ) || defined( EXTERNAL_GRID ) || defined( EXTERNAL_FORCING )
+      !-----------------------------------------------------------------
+      !     %%%%% CONNECTING TO GEOS-5 GCM via ESMF INTERFACE %%%%%
+      !
+      ! The horiziontal grid definition shall be defined by the ESMF
+      ! interface, so do nothing here (bmy, 11/1/12)
+      !-----------------------------------------------------------------
+#else 
+      !-----------------------------------------------------------------
+      !              %%%%% TRADITIONAL GEOS-Chem %%%%%
+      !
+      ! Current practice is to call COMPUTE_GRID from grid_mod.F90
+      ! to compute the horizontal grid properties. (bmy, 11/1/12)
+      !-----------------------------------------------------------------
       CALL COMPUTE_GRID( am_I_Root=am_I_Root,
      &                   I1=1,      I2=IIPAR,  
      &                   J1=1,      J2=JJPAR,  
      &                   JSP=JSP,   JNP=JNP,   
      &                   L1=1,      L2=LLPAR,  
      &                   DLON=DLON, DLAT=DLAT )
-#endif
 #endif
 
       END SUBROUTINE INITIALIZE_GEOS_GRID
@@ -965,7 +1155,11 @@
 !\\
 ! !INTERFACE:
 !
+#if defined( DEVEL ) || defined( EXTERNAL_GRID ) || defined( EXTERNAL_FORCING )
+      SUBROUTINE READ_TRACER_MENU( am_I_Root, Input_Opt, RC )
+#else
       SUBROUTINE READ_TRACER_MENU( am_I_Root )
+#endif
 !
 ! !USES:
 !
@@ -987,10 +1181,24 @@
       USE TRACERID_MOD, ONLY : TRACERID
 
       USE CMN_SIZE_MOD                    ! Size parameters
+#if defined( DEVEL ) || defined( EXTERNAL_GRID ) || defined( EXTERNAL_FORCING )
+      USE GIGC_ErrCode_Mod
+      USE GIGC_Input_Opt_Mod, ONLY : OptInput
+#endif
 !
 ! !INPUT PARAMETERS:
 !
-      LOGICAL, INTENT(IN) :: am_I_Root    ! Is this the root CPU?
+      LOGICAL,        INTENT(IN)    :: am_I_Root   ! Is this the root CPU?
+#if defined( DEVEL ) || defined( EXTERNAL_GRID ) || defined( EXTERNAL_FORCING )
+!
+! !INPUT/OUTPUT PARAMETERS:
+!
+      TYPE(OptInput), INTENT(INOUT) :: Input_Opt   ! Input options
+!
+! !OUTPUT PARAMETERS:
+!
+      INTEGER,        INTENT(OUT)   :: RC          ! Success or failure
+#endif
 ! 
 ! !REVISION HISTORY: 
 !  20 Jul 2004 - R. Yantosca - Initial version
@@ -1004,6 +1212,7 @@
 !  (8 ) Add SET_BIOTRCE to initialize IDBxxxs. (fp, 2/26/10)
 !  27 Aug 2010 - R. Yantosca - Added ProTeX headers
 !  13 Aug 2012 - R. Yantosca - Now pass CHEM_STATE as an argument (DEVEL only)
+!  01 Nov 2012 - R. Yantosca - Now pass Input_Opt, RC as arguments
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -1550,6 +1759,23 @@
          ENDIF
       ENDIF
 
+#if defined( DEVEL ) || defined( EXTERNAL_GRID ) || defined( EXTERNAL_FORCING )
+      !=================================================================
+      ! Copy to the Input Options object
+      !=================================================================
+      Input_Opt%LSULF            = LSULF  
+      Input_Opt%LCRYST           = LCRYST
+      Input_Opt%LCARB            = LCARB
+      Input_Opt%LSOA             = LSOA 
+      Input_Opt%LDUST            = LDUST 
+      Input_Opt%LDEAD            = LDEAD
+      Input_Opt%LSSALT           = LSSALT
+      Input_Opt%LDICARB          = LDICARB  
+      ! Deal with these later
+      !Input_Opt%SALA_REDGE_um(T) = 
+      !Input_Opt%SALC_REDGE_um(T) = 
+
+#endif
       !=================================================================
       ! Print to screen
       !=================================================================
@@ -1587,7 +1813,11 @@
 !\\
 ! !INTERFACE:
 !
+#if defined( DEVEL ) || defined( EXTERNAL_GRID ) || defined( EXTERNAL_FORCING )
+      SUBROUTINE READ_EMISSIONS_MENU( am_I_Root, Input_Opt, RC )
+#else
       SUBROUTINE READ_EMISSIONS_MENU( am_I_Root )
+#endif
 !
 ! !USES:
 !
@@ -1601,10 +1831,24 @@
       USE TRACER_MOD,    ONLY : ITS_A_FULLCHEM_SIM
       USE CMN_SIZE_MOD      ! Size parameters
       USE CMN_O3_MOD        ! FSCALYR
+#if defined( DEVEL ) || defined( EXTERNAL_GRID ) || defined( EXTERNAL_FORCING )
+      USE GIGC_ErrCode_Mod
+      USE GIGC_Input_Opt_Mod, ONLY : OptInput
+#endif
 !
 ! !INPUT PARAMETERS:
 !
-      LOGICAL, INTENT(IN) :: am_I_Root   ! Is this the root CPU?
+      LOGICAL,        INTENT(IN)    :: am_I_Root   ! Is this the root CPU?
+#if defined( DEVEL ) || defined( EXTERNAL_GRID ) || defined( EXTERNAL_FORCING )
+!
+! !INPUT/OUTPUT PARAMETERS:
+!
+      TYPE(OptInput), INTENT(INOUT) :: Input_Opt   ! Input options
+!
+! !OUTPUT PARAMETERS:
+!
+      INTEGER,        INTENT(OUT)   :: RC          ! Success or failure
+#endif
 ! 
 ! !REVISION HISTORY: 
 !  20 Jul 2004 - R. Yantosca - Initial version
@@ -1663,6 +1907,7 @@
 !                              in other areas of the code.
 !  30 Jul 2012 - R. Yantosca - Now accept am_I_Root as an argument when
 !                              running with the traditional driver main.F
+!  01 Nov 2012 - R. Yantosca - Now pass Input_Opt, RC as arguments
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -2225,6 +2470,63 @@
          ENDIF
 
       ENDIF
+
+#if defined( DEVEL ) || defined( EXTERNAL_GRID ) || defined( EXTERNAL_FORCING )
+
+      !=================================================================
+      ! Copy to Input Options object
+      !=================================================================
+      Input_Opt%LEMIS          = LEMIS
+      Input_Opt%TS_EMIS        = TS_EMIS
+      Input_Opt%LANTHRO        = LANTHRO
+      Input_Opt%FSCALYR        = FSCALYR
+      Input_Opt%LEMEP          = LEMEP 
+      Input_Opt%LBRAVO         = LBRAVO
+      Input_Opt%LEDGAR         = LEDGAR
+      Input_Opt%LSTREETS       = LSTREETS
+      Input_Opt%LCAC           = LCAC
+      Input_Opt%LNEI05         = LNEI05
+      Input_Opt%LRETRO         = LRETRO
+      Input_Opt%LNEI99         = LNEI99
+      Input_Opt%LICARTT        = LICARTT
+      Input_Opt%LVISTAS        = LVISTAS
+      Input_Opt%LBIOFUEL       = LBIOFUEL
+      Input_Opt%LBIOGENIC      = LBIOGENIC
+      Input_Opt%LMEGAN         = LMEGAN
+      Input_Opt%LPECCA         = LPECCA 
+      Input_Opt%LMEGANMONO     = LMEGANMONO
+      Input_Opt%ISOP_SCALING   = ISOP_SCALING 
+      Input_Opt%LBIOMASS       = LBIOMASS 
+      Input_Opt%LBBSEA         = LBBSEA
+      Input_Opt%LTOMSAI        = LTOMSAI
+      Input_Opt%LGFED2BB       = LGFED2BB
+      Input_Opt%L8DAYBB        = L8DAYBB
+      Input_Opt%L3HRBB         = L3HRBB
+      Input_Opt%LSYNOPBB       = LSYNOPBB 
+      Input_Opt%LGFED3BB       = LGFED3BB
+      Input_Opt%LDAYBB3        = LDAYBB3
+      Input_Opt%L3HRBB3        = L3HRBB3
+      Input_Opt%LAIRNOX        = LAIRNOX
+      Input_Opt%LLIGHTNOX      = LLIGHTNOX
+      Input_Opt%LOTDLOC        = LOTDLOC
+      Input_Opt%LSOILNOX       = LSOILNOX
+      Input_Opt%LFERTILIZERNOX = LFERTILIZERNOX
+      Input_Opt%NOx_SCALING    = NOx_SCALING
+      Input_Opt%LEDGARSHIP     = LEDGARSHIP
+      Input_Opt%LICOADSSHIP    = LICOADSSHIP
+      Input_Opt%LEMEPSHIP      = LEMEPSHIP
+      Input_Opt%LSHIPSO2       = LSHIPSO2
+      Input_Opt%LARCSHIP       = LARCSHIP
+      Input_Opt%LCOOKE         = LCOOKE
+      Input_Opt%LAVHRRLAI      = LAVHRRLAI
+      Input_Opt%LMODISLAI      = LMODISLAI
+      Input_Opt%LHIST          = LHIST
+      Input_Opt%HISTYR         = HISTYR
+      Input_Opt%LWARWICK_VSLS  = LWARWICK_VSLS
+      Input_Opt%LSSABr2        = LSSABr2
+      Input_Opt%LFIX_PBL_BRO   = LFIX_PBL_BRO
+      Input_Opt%Br_SCALING     = Br_SCALING
+#endiF
 
       !=================================================================
       ! Initialization
