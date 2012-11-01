@@ -458,7 +458,7 @@
 !------------------------------------------------------------------------------
 
 #if defined( DEVEL )
-      SUBROUTINE GET_A6_FIELDS( NYMD, NHMS, LOCAL_MET )
+      SUBROUTINE GET_A6_FIELDS( NYMD, NHMS, State_Met )
 #else
       SUBROUTINE GET_A6_FIELDS( NYMD, NHMS )
 #endif
@@ -483,6 +483,8 @@
 !        MFYC, MFZ, PV, QI, QL, RH, TAUCLI, TAUCLW for GEOS-5 
 !        (bmy, 10/30/07)
 !  28 Feb 2012 - R. Yantosca - Removed support for GEOS-3
+!  19 Oct 2012 - R. Yantosca - Now reference gigc_state_met_mod.F90
+!  23 Oct 2012 - R. Yantosca - Add QI, QL to the State_Met object
 !******************************************************************************
 !
       ! References to F90 modules
@@ -499,13 +501,13 @@
 
       USE CMN_SIZE_MOD  ! Size parameters
 #if defined( DEVEL )
-      USE GC_TYPE_MOD,  ONLY : GC_MET_LOCAL
+      USE GIGC_State_Met_Mod, Only : MetState
 #endif
 
       ! Arguments
       INTEGER, INTENT(IN) :: NYMD, NHMS 
 #if defined( DEVEL )
-      TYPE(GC_MET_LOCAL), INTENT(INOUT) :: LOCAL_MET  ! Obj w/ met fields
+      TYPE(MetState), INTENT(INOUT) :: State_Met
 #endif
 
       ! Local variables
@@ -537,19 +539,19 @@
 
       ! Add met fields to object of type GC_MET_LOCAL
 #if defined( DEVEL )
-      LOCAL_MET%CLDF     = CLDF
-      LOCAL_MET%CLDTOPS  = CLDTOPS
-      LOCAL_MET%HKBETA   = HKBETA
-      LOCAL_MET%HKETA    = HKETA
-      LOCAL_MET%MOISTQ   = MOISTQ
-      LOCAL_MET%OPTDEP   = OPTDEP
-      LOCAL_MET%SPHU     = SPHU
-      LOCAL_MET%T        = T
-      LOCAL_MET%U        = UWND
-      LOCAL_MET%V        = VWND
-      LOCAL_MET%ZMEU     = ZMEU
-      LOCAL_MET%ZMMD     = ZMMD
-      LOCAL_MET%ZMMU     = ZMMU
+      State_Met%CLDF     = CLDF
+      State_Met%CLDTOPS  = CLDTOPS
+      State_Met%HKBETA   = HKBETA
+      State_Met%HKETA    = HKETA
+      State_Met%MOISTQ   = MOISTQ
+      State_Met%OPTDEP   = OPTDEP
+      State_Met%SPHU     = SPHU
+      State_Met%T        = T
+      State_Met%U        = UWND
+      State_Met%V        = VWND
+      State_Met%ZMEU     = ZMEU
+      State_Met%ZMMD     = ZMMD
+      State_Met%ZMMU     = ZMMU
 #endif
 
 #elif defined( GEOS_5 )
@@ -576,27 +578,27 @@
 
       ! Add met fields to object of type GC_MET_LOCAL
 #if defined( DEVEL )
-      LOCAL_MET%CLDF     = CLDF
-      LOCAL_MET%CLDTOPS  = CLDTOPS
-      LOCAL_MET%CMFMC    = CMFMC
-      LOCAL_MET%DQIDTMST = DQIDTMST
-      LOCAL_MET%DQLDTMST = DQLDTMST
-      LOCAL_MET%DQVDTMST = DQVDTMST
-      LOCAL_MET%DQRCU    = DQRCON
-      LOCAL_MET%DQRLSAN  = DQRLSC
-      LOCAL_MET%DTRAIN   = DTRAIN
-      LOCAL_MET%MOISTQ   = MOISTQ
-      LOCAL_MET%OPTDEP   = OPTDEP
-      LOCAL_MET%PV       = PV
-      LOCAL_MET%QI       = QI
-      LOCAL_MET%QL       = QL
-      LOCAL_MET%RH       = RH
-      LOCAL_MET%SPHU     = SPHU
-      LOCAL_MET%T        = T
-      LOCAL_MET%TAUCLI   = TAUCLI
-      LOCAL_MET%TAUCLW   = TAUCLW
-      LOCAL_MET%U        = UWND
-      LOCAL_MET%V        = VWND
+      State_Met%CLDF     = CLDF
+      State_Met%CLDTOPS  = CLDTOPS
+      State_Met%CMFMC    = CMFMC
+      State_Met%DQIDTMST = DQIDTMST
+      State_Met%DQLDTMST = DQLDTMST
+      State_Met%DQVDTMST = DQVDTMST
+      State_Met%DQRCU    = DQRCON
+      State_Met%DQRLSAN  = DQRLSC
+      State_Met%DTRAIN   = DTRAIN
+      State_Met%MOISTQ   = MOISTQ
+      State_Met%OPTDEP   = OPTDEP
+      State_Met%PV       = PV
+      State_Met%QI       = QI
+      State_Met%QL       = QL
+      State_Met%RH       = RH
+      State_Met%SPHU     = SPHU
+      State_Met%T        = T
+      State_Met%TAUCLI   = TAUCLI
+      State_Met%TAUCLW   = TAUCLW
+      State_Met%U        = UWND
+      State_Met%V        = VWND
 #endif
 
 #elif defined( GCAP ) 
@@ -621,22 +623,22 @@
       
       ! Add met fields to object of type GC_MET_LOCAL
 #if defined( DEVEL )
-      LOCAL_MET%CLDF     = CLDF
-      LOCAL_MET%CLDFRC   = CLDFRC
-      LOCAL_MET%CLDTOPS  = CLDTOPS
-      LOCAL_MET%DETRAINE = DETRAINE
-      LOCAL_MET%DETRAINN = DETRAINN
-      LOCAL_MET%DNDE     = DNDE
-      LOCAL_MET%DNDN     = DNDN
-      LOCAL_MET%ENTRAIN  = ENTRAIN
-      LOCAL_MET%MOISTQ   = MOISTQ
-      LOCAL_MET%OPTDEP   = OPTDEP
-      LOCAL_MET%SPHU     = SPHU
-      LOCAL_MET%T        = T
-      LOCAL_MET%U        = UWND
-      LOCAL_MET%UPDE     = UPDE
-      LOCAL_MET%UPDN     = UPDN
-      LOCAL_MET%V        = VWND
+      State_Met%CLDF     = CLDF
+      State_Met%CLDFRC   = CLDFRC
+      State_Met%CLDTOPS  = CLDTOPS
+      State_Met%DETRAINE = DETRAINE
+      State_Met%DETRAINN = DETRAINN
+      State_Met%DNDE     = DNDE
+      State_Met%DNDN     = DNDN
+      State_Met%ENTRAIN  = ENTRAIN
+      State_Met%MOISTQ   = MOISTQ
+      State_Met%OPTDEP   = OPTDEP
+      State_Met%SPHU     = SPHU
+      State_Met%T        = T
+      State_Met%U        = UWND
+      State_Met%UPDE     = UPDE
+      State_Met%UPDN     = UPDN
+      State_Met%V        = VWND
 #endif
 
 #endif

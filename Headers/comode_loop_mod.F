@@ -123,72 +123,90 @@
 !  14 Aug 2012 - R. Yantosca - Now set KBLOOP=1 only if we are connecting to
 !                              an external GCM (i.e. triggered by switches
 !                              EXTERNAL_GRID or EXTERNAL_FORCING).
+!  17 Oct 2012 - R. Yantosca - Do not define ILAYER if compiling w/ -DDEVEL
+!  24 Oct 2012 - R. Yantosca - Rewrite GIGC #ifdef blocks for clarity
 !EOP
 !------------------------------------------------------------------------------
 !BOC
 !
 ! !DEFINED PARAMETERS: 
 !
-      INTEGER ILAT,ILONG,IVERT,IPLUME,IPVERT,ITLOOP,KBLOOP,MXBLOCK
-      INTEGER IMLOOP,ILAYER,ILTLOOP,MAXDAYS
-#if !defined( DEVEL )
-      PARAMETER (ILAT    = JJPAR                   )  
-      PARAMETER (ILONG   = IIPAR                   )  
-#endif
+      INTEGER, PARAMETER :: IPLUME  = 0       ! Set to zero, we don't use this
+      INTEGER, PARAMETER :: MAXDAYS = 1000    ! This is not used in G-C
 
-      ! LLTROP is the max number of tropospheric levels 
-      PARAMETER (IVERT   = LLTROP                  )  
-
-      ! GEOS-CHEM does not use plumes...set IPLUME=0 
-      PARAMETER (IPLUME  = 0                       )
-      PARAMETER (IPVERT  = IVERT + IPLUME          )
-#if !defined( DEVEL )
-      PARAMETER (ITLOOP  = ILAT * ILONG * IPVERT   )
-#endif
-
-      ! KBLOOP is the # of boxes that SMVGEAR will process on a single CPU.
-      ! 
-      ! %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-      ! %%% NOTE: If you are using GEOS-Chem without ESMF, but with the  %%%
-      ! %%% DEVEL=yes option (i.e. to test grid-independent updates      %%%
-      ! %%% w/r/t a standard G-C simulation), then you must make sure    %%%
-      ! %%% that KBLOOP is set to the same value in both simulations.    %%%
-      ! %%%                                                              %%%
-      ! %%% The absolute and relative errors (which determine if the     %%%
-      ! %%% chemistry has converged to a solution) are computed over all %%%
-      ! %%% KBLOOP boxes at once.  Using different KBLOOP values in      %%%
-      ! %%% different simulations will cause slightly different results  %%%
-      ! %%% in chemical concentrations (even after only one timestep).   %%%
-      ! %%%                                                              %%%
-      ! %%% To this end, we now only set KBLOOP=1 if we are connecting   %%%
-      ! %%% GEOS-Chem to an external GCM (i.e. if the Cpp switches       %%%
-      ! %%% EXTERNAL_GRID or EXTERNAL_FORCING are set in define.h).      %%%
-      ! %%%                                                              %%%
-      ! %%%    -- Bob Yantosca (14 Aug 2012)                             %%%
-      ! %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-      !
-!-----------------------------------------------------------------------------
-! Prior to 8/14/12:
-!#if defined( DEVEL )
-!-----------------------------------------------------------------------------
 #if defined( EXTERNAL_GRID ) || defined( EXTERNAL_FORCING )
+      !-----------------------------------------------------------------
+      !     %%%%% CONNECTING TO GEOS-5 GCM via ESMF INTERFACE %%%%%
+      !
+      ! KBLOOP is the # of boxes that SMVGEAR will process per CPU.
       ! Set KBLOOP=1 for connecting to an external GCM
-      PARAMETER (KBLOOP  = 1                       )
+      !
+      ! %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+      ! %%% NOTE: If you are using GEOS-Chem without ESMF, but with  %%%
+      ! %%% the DEVEL=yes option (i.e. to test grid-independent      %%%
+      ! %%% updates w/r/t a standard G-C simulation), then you must  %%%
+      ! %%% make sure that KBLOOP is set to the same value in both   %%%
+      ! %%% simulations.                                             %%%
+      ! %%%                                                          %%%
+      ! %%% The absolute and relative errors (which determine if the %%%
+      ! %%% chemistry has converged to a solution) are computed over %%% 
+      ! %%% all KBLOOP boxes at once.  Using different KBLOOP values %%%
+      ! %%% in different simulations will cause slightly different   %%%
+      ! %%% results in chemical concentrations (even after only one  %%%
+      ! %%% timestep).                                               %%%
+      ! %%%                                                          %%%
+      ! %%% To this end, we now only set KBLOOP=1 if we are          %%%
+      ! %%% connecting GEOS-Chem to an external GCM (i.e. if the Cpp %%%
+      ! %%% switches EXTERNAL_GRID or EXTERNAL_FORCING are set in    %%%
+      ! %%% define.h).                                               %%%
+      ! %%%                                                          %%%
+      ! %%%    -- Bob Yantosca (14 Aug 2012)                         %%%
+      ! %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+      !-----------------------------------------------------------------
+      INTEGER, PARAMETER :: KBLOOP  = 1
 #else
+      !-----------------------------------------------------------------
+      !              %%%%% TRADITIONAL GEOS-Chem %%%%%
+      !
+      ! KBLOOP is the # of boxes that SMVGEAR will process per CPU.
       ! For "traditional" G-C simulations, leave KBLOOP = 24
-      PARAMETER (KBLOOP  = 24                      )
+      !-----------------------------------------------------------------
+      INTEGER, PARAMETER :: KBLOOP  = 24
 #endif
 
-#if !defined( DEVEL )
-      PARAMETER (IMLOOP  = ILAT * ILONG            )
-#endif
-      PARAMETER (ILAYER  = IVERT + 1               )
-#if !defined( DEVEL )
-      PARAMETER (ILTLOOP = IMLOOP * ILAYER         )
-#endif
-      PARAMETER (MAXDAYS = 1000                    )
-#if !defined( DEVEL )
-      PARAMETER (MXBLOCK = 16 + ITLOOP/KBLOOP      )
+#if defined( DEVEL ) || defined( EXTERNAL_GRID ) || defined( EXTERNAL_FORCING )
+      !-----------------------------------------------------------------
+      !     %%%%% CONNECTING TO GEOS-5 GCM via ESMF INTERFACE %%%%%
+      !
+      ! These values need to be defined as variables instead of
+      ! parameters so that they can be defined from the ESMF interface.
+      !-----------------------------------------------------------------
+      INTEGER            :: ILAT
+      INTEGER            :: ILONG
+      INTEGER            :: IVERT
+      INTEGER            :: IPVERT
+      INTEGER            :: ITLOOP
+      INTEGER            :: IMLOOP
+      INTEGER            :: ILAYER
+      INTEGER            :: ILTLOOP
+      INTEGER            :: MXBLOCK
+#else
+      !-----------------------------------------------------------------
+      !              %%%%% TRADITIONAL GEOS-Chem %%%%%
+      !
+      ! Define these values as parameters.  This is the current
+      ! practice in the standard GEOS-Chem. (bmy, 10/24/12)
+      !-----------------------------------------------------------------
+      ! Define parameters
+      INTEGER, PARAMETER :: ILAT    = JJPAR
+      INTEGER, PARAMETER :: ILONG   = IIPAR
+      INTEGER, PARAMETER :: IVERT   = LLTROP
+      INTEGER, PARAMETER :: IPVERT  = IVERT + IPLUME
+      INTEGER, PARAMETER :: ITLOOP  = ILAT * ILONG * IPVERT
+      INTEGER, PARAMETER :: IMLOOP  = ILAT * ILONG
+      INTEGER, PARAMETER :: ILAYER  = IVERT + 1
+      INTEGER, PARAMETER :: ILTLOOP = IMLOOP * ILAYER
+      INTEGER, PARAMETER :: MXBLOCK = 16 + ITLOOP/KBLOOP
 #endif
 !
 ! ************************* TRACER PARAMETERS ****************************
@@ -221,23 +239,10 @@
       INTEGER IMASBAL,IALTS,MXCOF
 
       ! Updated for SMVGEAR II (bdf, bmy, 4/1/03)
-!------------------------------------------------------------------------------
-! Prior to 12/28/11:
-! Increase IGAS   from 300 to 310 for 10 added bromine species 
-! Increase NMRATE from 700 to 726 for bromine rxns
-! Increase IPHOT  from 85  to 92  for Br
-! (J. Parrella, mpayer, 12/28/11)
-!!FP_ISOP 06/15/09 !IGAS, NMRATE and MAXGL increased
-!!      PARAMETER ( IGAS    = 200,               IAERTY  = 1           )
-!!      PARAMETER ( NMRATE  = 510,               IPHOT   = 85          )
-!      PARAMETER ( IGAS    = 300,               IAERTY  = 1           )
-!      PARAMETER ( NMRATE  = 700,               IPHOT   = 85          )
-!------------------------------------------------------------------------------
       PARAMETER ( IGAS    = 310,               IAERTY  = 1           )
       PARAMETER ( NMRATE  = 726,               IPHOT   = 92          )
       PARAMETER ( NMTRATE = NMRATE + IPHOT,    NMQRATE = 1           ) 
       PARAMETER ( NMRPROD = 25,                NMDEAD  = 100         )
-!      PARAMETER ( MAXGL   = 750,               MAXGL2  = 90          )
       PARAMETER ( MAXGL   = 1000,              MAXGL2  = 90          )
       PARAMETER ( MAXGL3  = NNPAR,             MAXGL4  = 10          )
       PARAMETER ( ICS     = 3,                 ICP     = 2*ICS       ) 
@@ -706,31 +711,108 @@
 ! ****************** END OF COMMON BLOCK COMODE.H *********************
 ! *********************************************************************
 !
-#if defined( DEVEL )
+#if defined( DEVEL ) || defined( EXTERNAL_GRID ) || defined( EXTERNAL_FORCING )
+!BOC
       CONTAINS
-
-      SUBROUTINE SET_COMODE_LOOP_MOD
+!EOC
+!------------------------------------------------------------------------------
+!          Harvard University Atmospheric Chemistry Modeling Group            !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: set_comode_loop_mod
+!
+! !DESCRIPTION: Subroutine SET\_COMODE\_LOOP\_MOD initializes size parameters
+!  with the geospatial values obtained from the ESMF interface.
+!\\
+!\\
+! !INTERFACE:
+!
+      SUBROUTINE SET_COMODE_LOOP_MOD( am_I_Root, RC )
+!
+! !USES:
+!
+      USE GIGC_ERRCODE_MOD
 
       IMPLICIT NONE
+!
+! !INPUT PARAMETERS: 
+!
+      LOGICAL, INTENT(IN)  :: am_I_Root   ! Are we on the root CPU?
+!
+! !OUTPUT PARAMETERS:
+!
+      INTEGER, INTENT(OUT) :: RC          ! Success or failure?
+!
+! !REMARKS:
+!  Need to add error-checking on the allocation statements, so that we
+!  exit the code upon error.
+! 
+! !REVISION HISTORY: 
+!  17 Oct 2012 - R. Yantosca - Need to also set NLAT, NLONG, etc.
+!  17 Oct 2012 - R. Yantosca - Added ProTeX headers
+!  22 Oct 2012 - R. Yantosca - Now references gigc_errcode_mod.F90
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+      ! Assume success
+      RC     = GIGC_SUCCESS
 
-      INTEGER AS
-
+      ! Set size variables (from comode_loop_mod.F)
       ILAT    = JJPAR
       ILONG   = IIPAR
+      IVERT   = LLPAR
+      IPVERT  = IVERT + IPLUME
+      ILAYER  = LLPAR + 1
       ITLOOP  = ILAT * ILONG * IPVERT
       IMLOOP  = ILAT * ILONG
       ILTLOOP = IMLOOP * ILAYER
       MXBLOCK = 16 + ITLOOP/KBLOOP
 
-      ALLOCATE(
-     &     MLOP(ILAT,ILONG),
-     &     JLOP_SMV(ILAT,ILONG,ILAYER),
-     &     JLLOW(MXBLOCK), KLHI(MXBLOCK),
-     &     JLOWVAR( MXBLOCK), KTLPVAR( MXBLOCK), 
-     &     JLOFIXED(MXBLOCK), JHIFIXED(MXBLOCK),
-     &     JREORDER(ITLOOP), LREORDER(ITLOOP), 
-     &     ITWO(    ITLOOP), NCSLOOP( ITLOOP,ICS),
-     &     STAT=AS)
+      ! Set size variables (these declarations were in chemdr.F)
+      NLAT    = JJPAR
+      NLONG   = IIPAR
+      NVERT   = IVERT 
+      NPVERT  = NVERT
+      NPVERT  = NVERT + IPLUME
+
+      ! Allocate arrays
+      ALLOCATE( MLOP    ( ILAT,   ILONG         ), STAT=RC )
+      ALLOCATE( JLOP_SMV( ILAT,   ILONG, ILAYER ), STAT=RC )
+      ALLOCATE( JLLOW   ( MXBLOCK               ), STAT=RC )
+      ALLOCATE( KLHI    ( MXBLOCK               ), STAT=RC )
+      ALLOCATE( JLOWVAR ( MXBLOCK               ), STAT=RC )
+      ALLOCATE( KTLPVAR ( MXBLOCK               ), STAT=RC )
+      ALLOCATE( JLOFIXED( MXBLOCK               ), STAT=RC )
+      ALLOCATE( JHIFIXED( MXBLOCK               ), STAT=RC )
+      ALLOCATE( JREORDER( ITLOOP                ), STAT=RC )
+      ALLOCATE( LREORDER( ITLOOP                ), STAT=RC )
+      ALLOCATE( ITWO    ( ITLOOP                ), STAT=RC )
+      ALLOCATE( NCSLOOP ( ITLOOP, ICS           ), STAT=RC )
+
+      IF ( am_I_Root ) THEN
+         write( 6, * ) '###########################################'
+         write( 6, * ) '### END of SET_COMODE_LOOP_MOD'
+         write( 6, * ) '### IIPAR   : ', IIPAR
+         write( 6, * ) '### JJPAR   : ', JJPAR
+         write( 6, * ) '### LLPAR   : ', LLPAR
+         write( 6, * ) '### LLTROP  : ', LLTROP
+         write( 6, * ) '### ----------'
+         write( 6, * ) '### ILAT    : ', ILAT   
+         write( 6, * ) '### ILONG   : ', ILONG  
+         write( 6, * ) '### IVERT   : ', IVERT  
+         write( 6, * ) '### IPVERT  : ', IPVERT 
+         write( 6, * ) '### ILAYER  : ', ILAYER 
+         write( 6, * ) '### ITLOOP  : ', ITLOOP 
+         write( 6, * ) '### IMLOOP  : ', IMLOOP 
+         write( 6, * ) '### ILTLOOP : ', ILTLOOP
+         write( 6, * ) '### MXBLOCK : ', MXBLOCK
+         write( 6, * ) '### NLAT    : ', NLAT   
+         write( 6, * ) '### NLONG   : ', NLONG  
+         write( 6, * ) '### NVERT   : ', NVERT  
+         write( 6, * ) '### NPVERT  : ', NPVERT 
+         write( 6, * ) '###########################################'
+      ENDIF
 
       END SUBROUTINE SET_COMODE_LOOP_MOD
 #endif

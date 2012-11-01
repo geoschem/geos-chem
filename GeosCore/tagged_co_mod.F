@@ -1,61 +1,47 @@
-! $Id: tagged_co_mod.f,v 1.3 2010/03/15 19:33:20 ccarouge Exp $
+!------------------------------------------------------------------------------
+!          Harvard University Atmospheric Chemistry Modeling Group            !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !MODULE: tagged_co_mod
+!
+! !DESCRIPTION: Module TAGGED\_CO\_MOD contains variables and routines 
+!  used for the  geographically tagged CO simulation.
+!\\
+!\\
+! !INTERFACE: 
+!
       MODULE TAGGED_CO_MOD
 !
-!******************************************************************************
-!  Module TAGGED_CO_MOD contains variables and routines used for the 
-!  geographically tagged CO simulation. (bmy, 7/28/00, 8/13/10)
+! !USES:
 !
-!  Module Variables:
-!  ============================================================================
-!  (1 ) BB_REGION   : Array for geographic regions for biomass burning CO
-!  (2 ) FF_REGION   : Array for geographic regions for fossil fuel CO
-!  (3 ) SUMISOPCO   : Array for production of CO from Isoprene
-!  (4 ) SUMMONOCO   : Array for production of CO from Monoterpenes
-!  (5 ) SUMCH3OHCO  : Array for production of CO from CH3OH (methanol)
-!  (6 ) SUMACETCO   : Array for production of CO from Acetone
-!  (7 ) EMACET      : Array for hold monthly mean acetone emissions
-!  (8 ) CO_PRODS    : Array for P(CO) from CH4      in the stratosphere
-!  (9 ) CO_LOSSS    : Array for L(CO) from CO  + OH in the stratosphere
-!  (10) FMOL_CO     : molecular weight of CO
-!  (11) XNUMOL_CO   : molec CO / kg CO
-!  (12) FMOL_CO     : molecular weight of ISOP
-!  (13) XNUMOL_CO   : molec ISOP / kg ISOP
-!  (14) FMOL_MONO   : molecular weight of MONOTERPENES
-!  (15) XNUMOL_MONO : molec MONOTERPENES / kg MONOTERPENES
+      IMPLICIT NONE
+#     include "define.h"     
+      PRIVATE
 !
-!  Module Routines:
-!  ============================================================================
-!  (1 ) DEFINE_FF_CO_REGIONS : Defines geographic regions for fossil fuel CO
-!  (2 ) DEFINE_BB_CO_REGIONS : Defines geographic regions for biomass burn. CO
-!  (3 ) EMISS_TAGGED_CO      : Emits CO into geographically "tagged" tracers
-!  (4 ) CHEM_TAGGED_CO       : Does chemistry for "tagged" CO tracers
-!  (5 ) GET_ALPHA_ISOP       : Returns CO yield from isoprene as f(NOx)
-!  (6 ) READ_PCO_LCO_STRAT   : Reads data into CO_PRODS and CO_LOSSS
-!  (7 ) GET_PCO_LCO_STRAT    : Extracts data from CO_PRODS and CO_LOSSS
-!  (8 ) READ_ACETONE         : Reads biog acetone and acetone from grasslands
-!  (9 ) INIT_TAGGED_CO       : Allocates and initializes module arrays
-!  (10) CLEANUP_TAGGED_CO    : Deallocates module arrays
+! !PRIVATE MEMBER FUNCTIONS:
 !
-!  GEOS-CHEM modules referenced by tagged_co_mod.f
-!  ============================================================================
-!  (1 ) biofuel_mod.f    : Module w/ routines to read biofuel emissions
-!  (2 ) biomass_mod.f    : Module w/ routines to read biomass emissions
-!  (3 ) bpch2_mod.f      : Module w/ routines for binary punch file I/O
-!  (4 ) dao_mod.f        : Module w/ arrays for DAO met fields
-!  (5 ) diag_mod.f       : Module w/ GEOS-CHEM diagnostic arrays
-!  (6 ) diag_pl_mod.f    : Module w/ routines for prod & loss diag's
-!  (7 ) directory_mod.f  : Module w/ GEOS-CHEM data & met field dirs
-!  (8 ) error_mod.f      : Module w/ I/O error and NaN check routines
-!  (9 ) geia_mod         : Module w/ routines to read anthro emissions
-!  (10) global_oh_mod.f  : Module w/ routines to read 3-D OH field
-!  (11) global_nox_mod.f : Module w/ routines to read 3-D NOx field
-!  (12) grid_mod.f       : Module w/ horizontal grid information
-!  (13) logical_mod.f    : Module w/ GEOS-CHEM logical switches
-!  (14) pressure_mod.f   : Module w/ routines to compute P(I,J,L)
-!  (15) time_mod.f       : Module w/ routines for computing time & date
-!  (16) tracer_mod.f     : Module w/ GEOS-CHEM tracer array STT etc.
-!  (17) tropopause_mod.f : Module w/ routines to read ann mean tropopause
-! 
+      PRIVATE :: DEFINE_FF_CO_REGIONS
+      PRIVATE :: DEFINE_BB_CO_REGIONS 
+!
+! !PUBLIC MEMBER FUNCTIONS:
+!
+      PUBLIC  :: EMISS_TAGGED_CO
+      PUBLIC  :: CHEM_TAGGED_CO
+      PUBLIC  :: GET_ALPHA_ISOP
+      PUBLIC  :: READ_PCO_LCO_STRAT
+      PUBLIC  :: GET_PCO_LCO_STRAT
+      PUBLIC  :: READ_ACETONE
+      PUBLIC  :: INIT_TAGGED_CO
+      PUBLIC  :: CLEANUP_TAGGED_CO
+!
+! !PUBLIC DATA MEMBERS:
+!
+      INTEGER, PUBLIC, ALLOCATABLE :: BB_REGION(:,:)   ! BB CO regions
+      INTEGER, PUBLIC, ALLOCATABLE :: FF_REGION(:,:)   ! FF CO regions
+      REAL*8,  PUBLIC, ALLOCATABLE :: EMACET(:,:)      ! Acetone emissions
+!
+! !REMARKS:
 !  Tagged CO Tracers (you can modify these as needs be!)
 !  ============================================================================
 !  (1 ) Total CO
@@ -76,7 +62,8 @@
 !  (16) CO chemically produced from Methanol (CH3OH)
 !  (17) CO chemically produced from Acetone
 !
-!  NOTES:
+! !REVISION HISTORY:
+!  28 Jul 2000- R. Yantosca - Initial version
 !  (1 ) Removed obsolete code from CHEM_TAGGED_CO (bmy, 12/21/00)
 !  (2 ) Added CO sources from oxidation of biofuel VOC's, biomass burning
 !        VOC's, fossil fuel VOC's, and natural VOC's (bnd, bmy, 1/2/01)
@@ -127,38 +114,22 @@
 !  13 Aug 2010 - R. Yantosca - Add modifications for MERRA (treat like GEOS-5)
 !  08 Feb 2012 - R. Yantosca - Add modifications for GEOS-5.7.2 met
 !  01 Mar 2012 - R. Yantosca - Now reference new grid_mod.F90
-!******************************************************************************
+!  23 Oct 2012 - R. Yantosca - Update prod/loss for new GMI strat chem
+!EOP
+!------------------------------------------------------------------------------
+!BOC
 !
-      IMPLICIT NONE
-#     include "define.h" 
-
-      !=================================================================
-      ! MODULE PRIVATE DECLARATIONS -- keep certain internal variables 
-      ! and routines from being seen outside "tagged_co_mod.f"
-      !=================================================================
-
-      ! PRIVATE module variables
-      PRIVATE BB_REGION, FF_REGION,   SUMCH3OHCO
-      PRIVATE SUMISOPCO, SUMMONOCO,   SUMACETCO
-      PRIVATE CO_PRODS,  CO_LOSSS,    FMOL_CO,   XNUMOL_CO
-      PRIVATE FMOL_ISOP, XNUMOL_ISOP, FMOL_MONO, XNUMOL_MONO      
-      
-      ! PRIVATE module routines
-      PRIVATE DEFINE_FF_CO_REGIONS, DEFINE_BB_CO_REGIONS 
-
-      !=================================================================
-      ! MODULE VARIABLES
-      !=================================================================
-      INTEGER, ALLOCATABLE :: BB_REGION(:,:)
-      INTEGER, ALLOCATABLE :: FF_REGION(:,:)
-      REAL*8,  ALLOCATABLE :: SUMCH3OHCO(:,:)
-      REAL*8,  ALLOCATABLE :: SUMISOPCO(:,:)
-      REAL*8,  ALLOCATABLE :: SUMMONOCO(:,:)
-      REAL*8,  ALLOCATABLE :: SUMACETCO(:,:)
-      REAL*8,  ALLOCATABLE :: EMACET(:,:)
-      REAL*8,  ALLOCATABLE :: CO_PRODS(:,:)
-      REAL*8,  ALLOCATABLE :: CO_LOSSS(:,:)
-
+! !PRIVATE TYPES:
+!
+      REAL*8,  ALLOCATABLE :: CO_PRODS  (:,:,:)   ! Strat P(CO) from CH4
+      REAL*8,  ALLOCATABLE :: CO_LOSSS  (:,:,:)   ! Strat L(CO) from CO + OH
+      REAL*8,  ALLOCATABLE :: SUMACETCO (:,:  )   ! P(CO) from Acetone
+      REAL*8,  ALLOCATABLE :: SUMCH3OHCO(:,:  )   ! P(CO) from CH3OH
+      REAL*8,  ALLOCATABLE :: SUMISOPCO (:,:  )   ! P(CO) from Isoprene
+      REAL*8,  ALLOCATABLE :: SUMMONOCO (:,:  )   ! P(CO) from Monoterpenes
+!
+! !DEFINED PARAMETERS:
+!
       ! FMOL_CO     - kg CO / mole CO
       ! XNUMOL_CO   - molecules CO / kg CO
       REAL*8,  PARAMETER   :: FMOL_CO     = 28d-3
@@ -174,25 +145,34 @@
       REAL*8,  PARAMETER   :: FMOL_MONO   = 12d-3
       REAL*8,  PARAMETER   :: XNUMOL_MONO = 6.022d+23/FMOL_MONO
 
-      !=================================================================
-      ! MODULE ROUTINES -- follow below the "CONTAINS" statement 
-      !=================================================================
       CONTAINS
-     
+!EOC
 !------------------------------------------------------------------------------
-
+!          Harvard University Atmospheric Chemistry Modeling Group            !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: define_ff_co_regions
+!
+! !DESCRIPTION: Subroutine DEFINE\_FF\_CO\_REGIONS defines the geographic 
+!  regions for fossil fuel emissions for the Tagged CO simulation. 
+!\\
+!\\
+! !INTERFACE:
+!
       SUBROUTINE DEFINE_FF_CO_REGIONS( REGION )
 !
-!******************************************************************************
-!  Subroutine DEFINE_FF_CO_REGIONS defines the geographic regions
-!  for fossil fuel emissions for the Tagged CO simulation. 
-!  (bnd, bmy, 7/21/00, 2/3/03)
+! !USES:
 !
-!  Arguments as Output:
-!  ============================================================================
-!  (1 ) REGION (INTEGER) : Array of Fossil Fuel CO regions 
+      USE CMN_SIZE_MOD
+      USE GRID_MOD,     ONLY : GET_XMID, GET_YMID
 !
-!  NOTES:
+! !OUTPUT PARAMETERS:
+!
+      INTEGER, INTENT(OUT) :: REGION(IIPAR,JJPAR)   ! Fossil fuel CO regions
+!
+! !REVISION HISTORY: 
+!  21 Jul 2000 - B. Duncan - Initial version
 !  (1 ) This subroutine only has to be at the beginning of the run, 
 !        since the regions don't change with time.
 !  (2 ) Regions are hardwired for now -- change if necessary
@@ -203,19 +183,15 @@
 !        grid box lon & lat.  Remove XMID, YMID from arg list. (bmy, 2/3/03)
 !  01 Mar 2012 - R. Yantosca - Now use GET_XMID(I,J,L) from grid_mod.F90
 !  01 Mar 2012 - R. Yantosca - Now use GET_YMID(I,J,L) from grid_mod.F90
-!******************************************************************************
+!  23 Oct 2012 - R. Yantosca - Added ProTeX headers
+!EOP
+!------------------------------------------------------------------------------
+!BOC
 !
-      ! References to F90 modules
-      USE GRID_MOD, ONLY : GET_XMID, GET_YMID
-
-      USE CMN_SIZE_MOD
-
-      ! Arguments
-      INTEGER, INTENT(OUT) :: REGION(IIPAR,JJPAR)
-
-      ! Local variables
-      INTEGER              :: I, J
-      REAL*8               :: X, Y
+! !LOCAL VARIABLES:
+!
+      INTEGER :: I, J
+      REAL*8  :: X, Y
 
       !=================================================================
       ! DEFINE_FF_CO_REGIONS begins here!
@@ -261,23 +237,34 @@
       ENDDO
 !$OMP END PARALLEL DO
 
-      ! Return to calling program
       END SUBROUTINE DEFINE_FF_CO_REGIONS
-
+!EOC
 !------------------------------------------------------------------------------
-
+!          Harvard University Atmospheric Chemistry Modeling Group            !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: define_bb_co_regions
+!
+! !DESCRIPTION:  Subroutine DEFINE\_BB\_CO\_REGIONS defines the geographic 
+!  regions for biomass burning emissions for the Tagged CO simulation. 
+!\\
+!\\
+! !INTERFACE:
+!
       SUBROUTINE DEFINE_BB_CO_REGIONS( REGION )
 !
-!******************************************************************************
-!  Subroutine DEFINE_BB_CO_REGIONS defines the geographic regions 
-!  for biomass burning emissions for the Tagged CO simulation. 
-!  (bnd, bmy, 7/21/00, 2/4/03)
+! !USES:
 !
-!  Arguments as Output:
-!  ============================================================================
-!  (1 ) REGION (INTEGER) : Array of Fossil Fuel CO regions 
+      USE CMN_SIZE_MOD
+      USE GRID_MOD,     ONLY : GET_XMID, GET_YMID
 !
-!  NOTES:
+! !OUTPUT PARAMETERS:
+!
+      INTEGER, INTENT(OUT) :: REGION(IIPAR,JJPAR)   ! Biomass CO regions
+! 
+! !REVISION HISTORY: 
+!  21 Jul 2000 - B. Duncan - Initial version
 !  (1 ) This subroutine only has to be at the beginning of the run, 
 !        since the regions don't change with time.
 !  (2 ) Regions are hardwired for now -- change if necessary
@@ -288,19 +275,15 @@
 !        grid box lon & lat.  Remove XMID, YMID from arg list. (bmy, 2/3/03)
 !  01 Mar 2012 - R. Yantosca - Now use GET_XMID(I,J,L) from grid_mod.F90
 !  01 Mar 2012 - R. Yantosca - Now use GET_YMID(I,J,L) from grid_mod.F90
-!******************************************************************************
+!  23 Oct 2012 - R. Yantosca - Added ProTeX headers
+!EOP
+!------------------------------------------------------------------------------
+!BOC
 !
-      ! References to F90 modules
-      USE GRID_MOD, ONLY : GET_XMID, GET_YMID
-
-      USE CMN_SIZE_MOD
-
-      ! Arguments
-      INTEGER, INTENT(OUT) :: REGION(IIPAR,JJPAR)
-
-      ! Local variables
-      INTEGER              :: I, J
-      REAL*8               :: X, Y
+! !LOCAL VARIABLES:
+!
+      INTEGER :: I, J
+      REAL*8  :: X, Y
 
       !=================================================================
       ! DEFINE_BB_CO_REGIONS begins here!
@@ -356,22 +339,66 @@
       ENDDO
 !$OMP END PARALLEL DO
 
-      ! Return to calling program
       END SUBROUTINE DEFINE_BB_CO_REGIONS
-
+!EOC
 !------------------------------------------------------------------------------
-
+!          Harvard University Atmospheric Chemistry Modeling Group            !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: emiss_tagged_co
+!
+! !DESCRIPTION: Subroutine EMISS\_TAGGED\_CO reads in CO emissions for the 
+!  Tagged CO run.
+!\\
+!\\
+! !INTERFACE:
+!
 #if defined( DEVEL )
       SUBROUTINE EMISS_TAGGED_CO( LOCAL_MET )
 #else
       SUBROUTINE EMISS_TAGGED_CO
 #endif
 !
-!******************************************************************************
-!  Subroutine EMISS_TAGGED_CO reads in CO emissions for the Tagged CO run
-!  (bey, bdf, bnd, bmy, 7/21/00, 6/30/08)
+! !USES:
 !
-!  NOTES:
+      USE CMN_SIZE_MOD       ! Size parameters
+      USE CMN_O3_MOD         ! FSCALYR, SCNR89, TODH, EMISTCO, EMISRR
+      USE CMN_DIAG_MOD       ! Diagnostic arrays & switches
+
+      USE BIOFUEL_MOD,  ONLY : BIOFUEL
+      USE BIOMASS_MOD,  ONLY : BIOMASS!,     IDBCO
+      USE DAO_MOD,      ONLY : SUNCOS,        PARDF,       PARDR
+      USE DAO_MOD,      ONLY : TS
+      USE DIAG_MOD,     ONLY : AD29,          AD46
+      USE GRID_MOD,     ONLY : GET_XOFFSET,   GET_YOFFSET, GET_AREA_CM2
+      USE LOGICAL_MOD,  ONLY : LSPLIT,        LANTHRO
+      USE LOGICAL_MOD,  ONLY : LBIOMASS,      LBIOFUEL
+      USE LOGICAL_MOD,  ONLY : LBIOGENIC,        LMEGAN
+      USE MEGAN_MOD,    ONLY : GET_EMISOP_MEGAN, GET_EMMONOT_MEGAN
+      USE MEGANUT_MOD,  ONLY : XLTMMP
+      USE PBL_MIX_MOD,  ONLY : GET_PBL_MAX_L, GET_FRAC_OF_PBL
+      USE TIME_MOD,     ONLY : GET_MONTH,     GET_TAU 
+      USE TIME_MOD,     ONLY : GET_YEAR,      GET_TS_EMIS  
+      USE TRACER_MOD,   ONLY : STT
+      USE TRACERID_MOD, ONLY : IDBFCO,        IDECO,          IDBCO
+#if defined( DEVEL )
+      USE GC_TYPE_MOD,  ONLY : GC_MET_LOCAL
+#endif
+
+      IMPLICIT NONE
+#     include "define.h"
+
+!
+! !INPUT PARAMETERS:
+!
+#if defined( DEVEL )
+      TYPE(GC_MET_LOCAL), INTENT(IN) :: LOCAL_MET  ! Obj w/ met fields
+#endif
+! 
+! !REVISION HISTORY: 
+!  21 Jul 2000 - I. Bey, B. Field, B. Duncan - Initial version
+!  23 Oct 2012 - R. Yantosca - Added ProTeX headers
 !  (1 ) Adapted from "emiss_co.f" (bmy, 7/2100)
 !  (2 ) Add multiprocessor commands for DO-loops (bmy, 7/21/00)
 !  (3 ) Added references to F90 modules "biomass_mod.f" and "biofuel_mod.f".
@@ -430,58 +457,21 @@
 !  (26) IDBCO is now defined in tracerid_mod.f (fp, 6/09)
 !  08 Dec 2011 - M. Payer    - Remove GEIA biogenic emission option
 !  01 Mar 2012 - R. Yantosca - Now use GET_AREA_CM2(I,J,L) from grid_mod.F90
-!******************************************************************************
+!EOP
+!------------------------------------------------------------------------------
+!BOC
 !
-      ! References to F90 modules
-      USE BIOFUEL_MOD,  ONLY : BIOFUEL
-      !IDBCO now in tracerid_mod (fp, 6/2009)
-      USE BIOMASS_MOD,  ONLY : BIOMASS!,     IDBCO
-      ! Add variables for MEGAN (jaf, 3/10/09)
-      USE DAO_MOD,      ONLY : SUNCOS,        PARDF,       PARDR
-      USE DAO_MOD,      ONLY : TS
-      USE DIAG_MOD,     ONLY : AD29,          AD46
-      USE GRID_MOD,     ONLY : GET_XOFFSET,   GET_YOFFSET, GET_AREA_CM2
-      USE LOGICAL_MOD,  ONLY : LSPLIT,        LANTHRO
-      USE LOGICAL_MOD,  ONLY : LBIOMASS,      LBIOFUEL
-      ! Add switches for biogenic MEGAN (jaf, 3/10/09)
-      USE LOGICAL_MOD,  ONLY : LBIOGENIC,        LMEGAN
-      ! Add MEGAN biogenic routines (jaf, 3/10/09)
-      USE MEGAN_MOD,    ONLY : GET_EMISOP_MEGAN, GET_EMMONOT_MEGAN
-      USE MEGANUT_MOD,  ONLY : XLTMMP
-      USE PBL_MIX_MOD,  ONLY : GET_PBL_MAX_L, GET_FRAC_OF_PBL
-      USE TIME_MOD,     ONLY : GET_MONTH,     GET_TAU 
-      USE TIME_MOD,     ONLY : GET_YEAR,      GET_TS_EMIS  
-      USE TRACER_MOD,   ONLY : STT
-      USE TRACERID_MOD, ONLY : IDBFCO,        IDECO,          IDBCO
-#if defined( DEVEL )
-      USE GC_TYPE_MOD,  ONLY : GC_MET_LOCAL
-#endif
-      
-      USE CMN_SIZE_MOD     ! Size parameters
-      USE CMN_O3_MOD       ! FSCALYR, SCNR89, TODH, EMISTCO, EMISRR
-      USE CMN_DIAG_MOD     ! Diagnostic arrays & switches
-
-      IMPLICIT NONE
-#     include "define.h"
-
-      ! Arguments
-#if defined( DEVEL )
-      TYPE(GC_MET_LOCAL), INTENT(IN) :: LOCAL_MET  ! Obj w/ met fields
-#endif
-
-      ! Local variables
+! !LOCAL VARIABLES:
+!
       LOGICAL, SAVE          :: FIRSTEMISS = .TRUE.
       INTEGER                :: I, J, L, N, I0, J0
       INTEGER                :: AS, IREF, JREF, IJLOOP, PBL_MAX
       INTEGER, SAVE          :: LASTMONTH = -999
 
-      ! For now these are defined in CMN_O3_mod
-      !REAL*4                 :: EMISTCO(IIPAR,JJPAR)
-      !REAL*4                 :: FLIQCO2(IIPAR,JJPAR)
-
       ! Change EMXX to EMIS to match full chem (jaf, 3/10/09)
       REAL*8                 :: TMMP, EMIS, EMX,    EMMO,    F_OF_PBL 
       REAL*8                 :: EMAC, E_CO, DTSRCE, AREA_CM2
+
       ! Add variables needed for MEGAN biogenics (jaf, 3/10/09)
       REAL*8                 :: SC,   PDF,  PDR
       
@@ -786,23 +776,57 @@
 !$OMP END PARALLEL DO
       ENDIF
 
-      ! Return to calling program
       END SUBROUTINE EMISS_TAGGED_CO
-
+!EOC
 !------------------------------------------------------------------------------
-
+!          Harvard University Atmospheric Chemistry Modeling Group            !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: chem_tagged_co
+!
+! !DESCRIPTION: Subroutine CHEM\_TAGGED\_CO performs CO chemistry on 
+!  geographically "tagged" CO tracers.  Loss is via reaction with OH. 
+!\\
+!\\
+! !INTERFACE:
+!
 #if defined( DEVEL )
       SUBROUTINE CHEM_TAGGED_CO( LOCAL_MET )
 #else
       SUBROUTINE CHEM_TAGGED_CO
 #endif
 !
-!******************************************************************************
-!  Subroutine CHEM_TAGGED_CO performs CO chemistry on geographically
-!  "tagged" CO tracers.  Loss is via reaction with OH. 
-!  (qli, bnd, bdf, bmy, 10/19/99, 5/31/06)
+! !USES:
 !
-!  NOTES:
+      USE CMN_SIZE_MOD         ! Size parameters
+      USE CMN_DIAG_MOD         ! ND65
+      USE DAO_MOD,        ONLY : AD, AIRVOL, T, DELP
+      USE DIAG_MOD,       ONLY : AD29
+      USE DIAG_PL_MOD,    ONLY : AD65
+      USE ERROR_MOD,      ONLY : CHECK_VALUE
+      USE GLOBAL_OH_MOD,  ONLY : GET_GLOBAL_OH,   OH
+      USE GLOBAL_NOX_MOD, ONLY : GET_GLOBAL_NOX,  BNOX
+      USE GRID_MOD,       ONLY : GET_YMID,        GET_AREA_CM2
+      USE LOGICAL_MOD,    ONLY : LSPLIT
+      USE PRESSURE_MOD,   ONLY : GET_PCENTER
+      USE TIME_MOD,       ONLY : GET_TS_CHEM,     GET_TS_EMIS
+      USE TIME_MOD,       ONLY : GET_MONTH,       GET_YEAR
+      USE TIME_MOD,       ONLY : ITS_A_NEW_MONTH, ITS_A_NEW_YEAR
+      USE TRACER_MOD,     ONLY : N_TRACERS,       STT
+      USE TROPOPAUSE_MOD, ONLY : ITS_IN_THE_STRAT
+#if defined( DEVEL )
+      USE GC_TYPE_MOD,    ONLY : GC_MET_LOCAL
+#endif
+!
+! !INPUT PARAMETERS:
+!
+#if defined( DEVEL )
+      TYPE(GC_MET_LOCAL), INTENT(IN) :: LOCAL_MET  ! Obj w/ met fields
+#endif
+! 
+! !REVISION HISTORY: 
+!  19 Oct 1999 - Q. Li, B. Duncan, B. Field - Initial version
 !  (1 ) Now do chemistry all the way to the model top. 
 !  (2 ) Use monthly mean OH fields for oxidation.
 !  (3 ) Now reference the monthly mean OH array and the routine which reads
@@ -849,39 +873,14 @@
 !  (21) Use newest JPL 2006 rate constant for CO+OH (jaf, jmao, 3/4/09)
 !  01 Mar 2012 - R. Yantosca - Now use GET_AREA_CM2(I,J,L) from grid_mod.F90
 !  01 Mar 2012 - R. Yantosca - Now use GET_YMID(I,J,L) from grid_mod.F90
-!******************************************************************************
+!  22 Oct 2012 - R. Yantosca - Now pass am_I_Root=.TRUE. to GET_GLOBAL_CH4
+!  23 Oct 2012 - R. Yantosca - Added ProTeX headers
+!EOP
+!------------------------------------------------------------------------------
+!BOC
 !
-      ! References to F90 modules
-      USE DAO_MOD,        ONLY : AD, AIRVOL, T
-      ! jaf, 3/10/09
-      USE DIAG_MOD,       ONLY : AD29
-      USE DIAG_PL_MOD,    ONLY : AD65
-      USE ERROR_MOD,      ONLY : CHECK_VALUE
-      USE GLOBAL_OH_MOD,  ONLY : GET_GLOBAL_OH,   OH
-      USE GLOBAL_NOX_MOD, ONLY : GET_GLOBAL_NOX,  BNOX
-      ! jaf, 3/10/09
-      USE GRID_MOD,       ONLY : GET_YMID,        GET_AREA_CM2
-      USE LOGICAL_MOD,    ONLY : LSPLIT
-      USE PRESSURE_MOD,   ONLY : GET_PCENTER
-      ! jaf, 3/10/09
-      USE TIME_MOD,       ONLY : GET_TS_CHEM,     GET_TS_EMIS
-      USE TIME_MOD,       ONLY : GET_MONTH,       GET_YEAR
-      USE TIME_MOD,       ONLY : ITS_A_NEW_MONTH, ITS_A_NEW_YEAR
-      USE TRACER_MOD,     ONLY : N_TRACERS,       STT
-      USE TROPOPAUSE_MOD, ONLY : ITS_IN_THE_STRAT
-#if defined( DEVEL )
-      USE GC_TYPE_MOD,    ONLY : GC_MET_LOCAL
-#endif
-
-      USE CMN_SIZE_MOD     ! Size parameters
-      USE CMN_DIAG_MOD     ! ND65
-
-      ! Arguments
-#if defined( DEVEL )
-      TYPE(GC_MET_LOCAL), INTENT(IN) :: LOCAL_MET  ! Obj w/ met fields
-#endif
-
-      ! Local variables
+! !LOCAL VARIABLES:
+!
       LOGICAL, SAVE          :: FIRSTCHEM = .TRUE.
       INTEGER                :: I, J, L, N, MONTH
       REAL*8                 :: ALPHA_CH4, ALPHA_ISOP, ALPHA_MONO
@@ -958,8 +957,8 @@
       !       (bmy, 1/24/08)
       !=================================================================
       IF ( ITS_A_NEW_YEAR() ) THEN 
-         CALL GET_GLOBAL_CH4( GET_YEAR(), .TRUE., 
-     &                        A3090S, A0030S, A0030N, A3090N )
+         CALL GET_GLOBAL_CH4( GET_YEAR(), .TRUE.,             
+     &                        A3090S, A0030S, A0030N, A3090N, .TRUE. )
       ENDIF
 
       !=================================================================
@@ -1501,42 +1500,49 @@
       ENDDO
 !$OMP END PARALLEL DO
 
-      ! Return to calling program
       END SUBROUTINE CHEM_TAGGED_CO
-
+!EOC
 !------------------------------------------------------------------------------
-
+!          Harvard University Atmospheric Chemistry Modeling Group            !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: get_alpha_isop
+!
+! !DESCRIPTION: Function GET\_ALPHA\_ISOP returns the CO yield from 
+!  Isoprene (ALPHA\_ISOP) either as a function of NOx or as a constant. 
+!\\
+!\\
+! !INTERFACE:
+!
       FUNCTION GET_ALPHA_ISOP( FROM_NOX, NOX ) RESULT( ALPHA_ISOP )
 !
-!******************************************************************************
-!  Function GET_ALPHA_ISOP returns the CO yield from Isoprene (ALPHA_ISOP) 
-!  either as a function of NOx or as a constant. (bnd, bmy, 6/13/01. 7/20/04)
+! !USES:
 !
-!  Arguments as Input:
-!  ===========================================================================
-!  (1 ) FROM_NOX (LOGICAL) : If =T, will take ALPHA_ISOP as f(NOx)
-!                            If =F, will set ALPHA_ISOP to a constant
-!  (2 ) NOX      (REAL*8 ) : NOx concentration in ppbv
+      USE ERROR_MOD, ONLY : ERROR_STOP
+!
+! !INPUT PARAMETERS: 
+!
+      LOGICAL, INTENT(IN)           :: FROM_NOX    ! If =T, will take ALPHA_ISOP
+                                                   ! as f(NOx).  If =F, will set
+                                                   ! ALPHA_ISOP to a constant
+      REAL*8,  INTENT(IN), OPTIONAL :: NOX         ! NOx concentration [ppbv]
+!
+! !RETURN VALUE:
+!
+      REAL*8                        :: ALPHA_ISOP  ! CO yield from ISOP
 ! 
-!  NOTES:
+! !REVISION HISTORY: 
+!  13 Jun 2001 - B. Duncan - Initial version
+!  01 Oct 1995 - R. Yantosca - Initial version
 !  (1 ) Now make NOx an optional argument (bmy, 8/28/01)
 !  (2 ) Now reference ERROR_STOP from "error_mod.f" (bmy, 10/15/02)
 !  (3 ) Updated comments (bmy, 7/20/04)
-!******************************************************************************
-!      
-      ! References to F90 modules
-      USE ERROR_MOD, ONLY : ERROR_STOP
-
-      ! Arguments
-      LOGICAL, INTENT(IN)           :: FROM_NOX
-      REAL*8,  INTENT(IN), OPTIONAL :: NOX
-
-      ! Function Value
-      REAL*8                        :: ALPHA_ISOP
-
+!  23 Oct 2012 - R. Yantosca - Added ProTeX headers
+!EOP
+!------------------------------------------------------------------------------
+!BOC
       !=================================================================
-      ! GET_ALPHA_ISOP begins here!
-      !
       ! If FROM_NOX = T, then we are taking the CO yield from Isoprene 
       ! as a function of NOx.  Otherwise, we set it to a constant.
       !=================================================================
@@ -1573,18 +1579,43 @@
 
       ENDIF
       
-      ! Return to calling program
       END FUNCTION GET_ALPHA_ISOP
-
+!EOC
 !------------------------------------------------------------------------------
- 
+!          Harvard University Atmospheric Chemistry Modeling Group            !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: read_pco_lco_strat
+!
+! !DESCRIPTION: Subroutine READ\_PCO\_LCO\_STRAT reads production and 
+!  destruction rates for CO in the stratosphere. (bnd, bmy, 9/13/00, 8/13/10) 
+!\\
+!\\
+! !INTERFACE:
+!
       SUBROUTINE READ_PCO_LCO_STRAT( THISMONTH ) 
 !
-!******************************************************************************
-!  Subroutine READ_PCO_LCO_STRAT reads production and destruction
-!  rates for CO in the stratosphere. (bnd, bmy, 9/13/00, 8/13/10)
+! !USES:
 !
-!  NOTES:
+      ! GEOS-Chem modules
+      USE CMN_SIZE_MOD   
+      USE BPCH2_MOD,     ONLY : GET_NAME_EXT, GET_RES_EXT
+      USE BPCH2_MOD,     ONLY : GET_TAU0,     READ_BPCH2
+      USE DIRECTORY_MOD, ONLY : DATA_DIR 
+      USE TRANSFER_MOD,  ONLY : TRANSFER_3D
+
+      ! netCDF modules
+      USE m_netcdf_io_open
+      USE m_netcdf_io_read
+      USE m_netcdf_io_close
+!
+! !INPUT PARAMETERS: 
+!
+      INTEGER, INTENT(IN) :: THISMONTH   ! Month to read
+! 
+! !REVISION HISTORY: 
+!  13 Sep 2000 - B. Duncan   - Initial version
 !  (1 ) Now use IOS /= 0 to trap both I/O errors and EOF. (bmy, 9/13/00)
 !  (2 ) Added to module "tagged_co_mod.f" (bmy, 6/13/01)
 !  (3 ) ARRAY needs to be of size (IIPAR,JJPAR).  Use TRANSFER_ZONAL from
@@ -1600,24 +1631,13 @@
 !  (8 ) Now make sure all USE statements are USE, ONLY (bmy, 10/3/05)
 !  13 Aug 2010 - R. Yantosca - Treat MERRA in the same way as GEOS-5
 !  08 Feb 2012 - R. Yantosca - Treat GEOS-5.7.2 in the same way as MERRA
-!******************************************************************************
+!  08 Dec 2009 - R. Yantosca - Added ProTeX headers
+!EOP
+!------------------------------------------------------------------------------
+!BOC
 !
-      ! References to F90 modules
-      USE BPCH2_MOD,     ONLY : GET_NAME_EXT, GET_RES_EXT
-      USE BPCH2_MOD,     ONLY : GET_TAU0,     READ_BPCH2
-      USE DIRECTORY_MOD, ONLY : DATA_DIR 
-      USE TRANSFER_MOD,  ONLY : TRANSFER_3D
-
-      USE m_netcdf_io_open
-      USE m_netcdf_io_read
-      USE m_netcdf_io_close
-
-      USE CMN_SIZE_MOD   ! Size parameters
-
-      ! Arguments
-      INTEGER, INTENT(IN) :: THISMONTH
-
-      ! Local variables
+! !LOCAL VARIABLES:
+!
       INTEGER             :: fileID
       CHARACTER(LEN=255)  :: FILENAME
       REAL*4              :: ARRAY(IIPAR,JJPAR,LGLOB) 
@@ -1644,8 +1664,8 @@
 
       ! Read P(CO)
       call NcRd( array, fileID, 'prod',
-     &           (/     1,     1,     1,  thismonth /),   ! Start
-     &           (/ iipar, jjpar, lglob,          1 /)  ) ! Count
+     &           (/     1,     1,     1, THISMONTH /),   ! Start
+     &           (/ IIPAR, JJPAR, LGLOB,         1 /)  ) ! Count
 
       ! Cast from REAL*4 to REAL*8 and resize to 1:LLPAR
       CALL TRANSFER_3D( ARRAY, CO_PRODS )
@@ -1656,8 +1676,8 @@
 
       ! Read P(CO)
       call NcRd( array, fileID, 'loss',
-     &           (/     1,     1,     1,  thismonth /),   ! Start
-     &           (/ iipar, jjpar, lglob,          1 /)  ) ! Count
+     &           (/     1,     1,     1, THISMONTH /),   ! Start
+     &           (/ IIPAR, JJPAR, LGLOB,         1 /)  ) ! Count
 
       ! Cast from REAL*4 to REAL*8 and resize to 1:LLPAR
       CALL TRANSFER_3D( ARRAY, CO_LOSSS )
@@ -1665,33 +1685,45 @@
       ! Close file
       call NcCl( fileID )
 
-      ! Return to calling program
       END SUBROUTINE READ_PCO_LCO_STRAT
-
+!EOC
 !------------------------------------------------------------------------------
-
+!          Harvard University Atmospheric Chemistry Modeling Group            !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: get_pco_lco_strat
+!
+! !DESCRIPTION: Function GET\_CO\_STRAT\_RATE uses production and loss rates
+!  for CO to calculate net production of CO in the stratosphere.  The 
+!  purpose of this SR is to prevent high CO concentrations from building 
+!  up in the stratosphere; in these layers only transport is simulated 
+!  (i.e., no chemistry).  For a long simulation, a buildup of high 
+!  concentrations could occur causing the stratosphere to become a 
+!  significant source of CO. 
+!\\
+!\\
+! !INTERFACE:
+!
       FUNCTION GET_PCO_LCO_STRAT( IS_PROD, I, J, L ) RESULT( RATE )
 !
-!******************************************************************************
-!  Function GET_CO_STRAT_RATE uses production and loss rates for CO to 
-!  calculate net production of CO in the stratosphere.  The purpose of this 
-!  SR is to prevent high CO concentrations from building up in the 
-!  stratosphere; in these layers only transport is simulated (i.e., no 
-!  chemistry).  For a long simulation, a buildup of high concentrations 
-!  could occur causing the stratosphere to become a significant source of CO. 
-!  (bnd, bmy, 6/13/01, 7/20/04)
+! !USES:
 !
-!  Arguments as Input: 
-!  ============================================================================
-!  (1  ) IS_PROD (LOGICAL) : If =T, then return CO production rate [v/v/s]
-!                            If =F, then return CO loss rate [s^-1]
-!  (2-5) I, J, L (INTEGER) : Grid box indices (lon,lat,alt)
-!  
-!  Arguments as Output: 
-!  ============================================================================
-!  (6  ) RATE    (REAL*8 ) : CO production [v/v/s] or loss rate [s-1]
+      USE CMN_SIZE_MOD                  ! Size parameters
+
 !
-!  NOTES:
+! !INPUT PARAMETERS: 
+!
+      LOGICAL, INTENT(IN)  :: IS_PROD   ! If = T, return CO production
+                                        ! If = F, return CO loss
+      INTEGER, INTENT(IN)  :: I, J, L   ! GEOS-Chem grid box indices
+!
+! !RETURN VALUE:
+!
+      REAL*8               :: RATE      ! CO prod [v/v/s] or loss [1/s]
+! 
+! !REVISION HISTORY: 
+!  13 Jun 2001 - B. Duncan - Initial version
 !  (1 ) Production (mixing ratio/sec) and loss (1/sec) rates provided by 
 !        Dylan Jones.  Only production by CH4+OH and destruction by CO+OH 
 !        are considered.
@@ -1704,44 +1736,53 @@
 !  (4 ) Added to module "tagged_co_mod.f" (bmy, 6/18/01)
 !  (5 ) Updated comments (bmy, 2/19/02)
 !  (6 ) Removed reference to CMN, it's not needed (bmy, 7/20/04)
-!******************************************************************************
+!  23 Oct 2012 - R. Yantosca - Added ProTeX headers
+!  23 Oct 2012 - J. Fisher   - Now use (I,J,L) to reference CO_PRODS 
+!                              and CO_LOSSS arrays for GMI strat chem
+!EOP
+!------------------------------------------------------------------------------
+!BOC
 !
-      USE CMN_SIZE_MOD       ! Size parameters
-
-      ! Arguments
-      LOGICAL, INTENT(IN)  :: IS_PROD
-      INTEGER, INTENT(IN)  :: I, J, L
-
-      ! Function return value
-      REAL*8               :: RATE
- 
       !=================================================================
-      ! GET_PCO_LCO_STRAT begins here!
-      !
       ! Pick P(CO) or L(CO) depending on IS_PROD
       !=================================================================
       IF ( IS_PROD ) THEN
-         RATE = CO_PRODS(J,L)   ! P(CO) from CH4 + OH in [v/v/s]
+         RATE = CO_PRODS(I,J,L)   ! P(CO) from CH4 + OH in [v/v/s]
       ELSE
-         RATE = CO_LOSSS(J,L)   ! L(CO) from CO + OH  in [s^-1]
+         RATE = CO_LOSSS(I,J,L)   ! L(CO) from CO + OH  in [s^-1]
       ENDIF
     
-      ! Return to calling program
       END FUNCTION GET_PCO_LCO_STRAT
-
-!-----------------------------------------------------------------------------
-
+!EOC
+!------------------------------------------------------------------------------
+!          Harvard University Atmospheric Chemistry Modeling Group            !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: read_acetone
+!
+! !DESCRIPTION: Subroutine READ\_ACETONE reads in biogenic acetone 
+!  emissions from a binary punch file. 
+!\\
+!\\
+! !INTERFACE:
+!
       SUBROUTINE READ_ACETONE( THISMONTH )
 !
-!******************************************************************************
-!  Subroutine READ_ACETONE reads in biogenic acetone emissions from
-!  a binary punch file. (bdf, bnd, bmy, 6/19/01, 10/3/05)
+! !USES:
 !
-!  Arguments as Input
-!  =========================================================================== 
-!  (1 ) THISMONTH (INTEGER) : Current month (1-12)
+      USE CMN_SIZE_MOD 
+      USE BPCH2_MOD,     ONLY : GET_NAME_EXT_2D, GET_RES_EXT
+      USE BPCH2_MOD,     ONLY : GET_TAU0,        READ_BPCH2
+      USE DIRECTORY_MOD, ONLY : DATA_DIR
+      USE TRANSFER_MOD,  ONLY : TRANSFER_2D
 !
-!  NOTES:
+! !INPUT PARAMETERS: 
+!
+      INTEGER, INTENT(IN) :: THISMONTH   ! Month to read
+! 
+! !REVISION HISTORY: 
+!  23 Oct 2012 - B. Field, B. Duncan - Initial version
 !  (1 ) Eliminate variables that aren't used anymore.  Updated comments
 !        and made some cosmetic changes. (bnd, bmy, 6/14/01)
 !  (2 ) Added to "tagged_co_mod.f" (bmy, 6/14/01)
@@ -1755,20 +1796,13 @@
 !  (6 ) Now references DATA_DIR from "directory_mod.f" (bmy, 7/20/04)
 !  (7 ) Now reads data from both GEOS and GCAP grids (bmy, 8/16/05)
 !  (8 ) Now make sure all USE statements are USE, ONLY (bmy, 10/3/05)
-!******************************************************************************
+!  23 Oct 2012 - R. Yantosca - Added ProTeX headers
+!EOP
+!------------------------------------------------------------------------------
+!BOC
 !
-      ! References to F90 modules
-      USE BPCH2_MOD,     ONLY : GET_NAME_EXT_2D, GET_RES_EXT
-      USE BPCH2_MOD,     ONLY : GET_TAU0,        READ_BPCH2
-      USE DIRECTORY_MOD, ONLY : DATA_DIR
-      USE TRANSFER_MOD,  ONLY : TRANSFER_2D
-
-      USE CMN_SIZE_MOD  ! Size parameters
-
-      ! Arguments 
-      INTEGER, INTENT(IN) :: THISMONTH
-
-      ! Local variables
+! !LOCAL VARIABLES:
+!
       INTEGER             :: I, J
       REAL*4              :: ARRAY(IIPAR,JJPAR,1)
       REAL*8              :: TEMP(IIPAR,JJPAR)
@@ -1824,18 +1858,30 @@
       ! Add acetone from grasslands to direct biogenic emissions
       EMACET(:,:) = EMACET(:,:) + TEMP(:,:)
 
-      ! Return to calling program
       END SUBROUTINE READ_ACETONE
-
+!EOC
 !------------------------------------------------------------------------------
-
+!          Harvard University Atmospheric Chemistry Modeling Group            !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: init_tagged_co
+!
+! !DESCRIPTION: Subroutine INIT\_TAGGED\_CO allocates memory to module arrays.
+!\\
+!\\
+! !INTERFACE:
+!
       SUBROUTINE INIT_TAGGED_CO
 !
-!******************************************************************************
-!  Subroutine INIT_TAGGED_CO allocates memory to module arrays.
-!  (bmy, 7/19/00, 9/18/07)
+! !USES:
 !
-!  NOTES:
+      USE CMN_SIZE_MOD
+      USE ERROR_MOD,    ONLY : ALLOC_ERR
+      USE TRACER_MOD,   ONLY : ITS_A_H2HD_SIM
+! 
+! !REVISION HISTORY: 
+!  19 Jul 2000 - R. Yantosca - Initial version
 !  (1 ) Added ISOP96, MONO96, CH3OH96 for GEOS-3 (bnd, bmy, 6/14/01)
 !  (2 ) Removed ISOP96, MONO96, CH3OH96 for GEOS-3, since the new GEOS-3
 !        fields make these no longer necessary (bmy, 8/21/09)
@@ -1845,15 +1891,15 @@
 !  (6 ) Now remove IJLOOP_CO (bmy, 7/20/04)
 !  (7 ) Now public. Now references ITS_A_H2HD_SIM from "tracer_mod.f". 
 !        Allocate needed variables if H2/HD simulation (phs, 9/18/07)
-!******************************************************************************
+!  23 Oct 2012 - R. Yantosca - Added ProTeX headers
+!  23 Oct 2012 - J. Fisher   - Dimension CO_PRODS and CO_LOSSS with
+!                              (IIPAR,JJPAR,LLPAR) for new GMI strat chem
+!EOP
+!------------------------------------------------------------------------------
+!BOC
 !
-      ! References to F90 modules
-      USE ERROR_MOD,  ONLY : ALLOC_ERR
-      USE TRACER_MOD, ONLY : ITS_A_H2HD_SIM
-
-      USE CMN_SIZE_MOD
-
-      ! Local variables
+! !LOCAL VARIABLES:
+!
       INTEGER :: AS, I, J, IJLOOP
       
       !=================================================================
@@ -1866,12 +1912,12 @@
       EMACET = 0d0 
 
       ! Allocate and initialize IJLOOP_CO -- 1-D array index
-      ALLOCATE( CO_PRODS( JJPAR, LLPAR ), STAT=AS )
+      ALLOCATE( CO_PRODS( IIPAR, JJPAR, LLPAR ), STAT=AS )
       IF ( AS /= 0 ) CALL ALLOC_ERR( 'CO_PRODS' )    
       CO_PRODS = 0d0
 
       ! Allocate and initialize IJLOOP_CO -- 1-D array index
-      ALLOCATE( CO_LOSSS( JJPAR, LLPAR ), STAT=AS )
+      ALLOCATE( CO_LOSSS( IIPAR, JJPAR, LLPAR ), STAT=AS )
       IF ( AS /= 0 ) CALL ALLOC_ERR( 'CO_LOSSS' )    
       CO_LOSSS = 0d0
 
@@ -1908,23 +1954,33 @@
       IF ( AS /= 0 ) CALL ALLOC_ERR( 'SUMACETCO' )         
       SUMACETCO = 0d0 
 
-      ! Return to calling program
       END SUBROUTINE INIT_TAGGED_CO
-
+!EOC
 !------------------------------------------------------------------------------
-  
+!          Harvard University Atmospheric Chemistry Modeling Group            !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: cleanup_tagged_co
+!
+! !DESCRIPTION: Subroutine CLEANUP\_TAGGED\_CO deallocates memory from 
+!  previously allocated module arrays.
+!\\
+!\\
+! !INTERFACE:
+!
       SUBROUTINE CLEANUP_TAGGED_CO
-!
-!******************************************************************************
-!  Subroutine CLEANUP_TAGGED_CO deallocates memory from previously
-!  allocated module arrays (bmy, 7/19/00, 7/20/04)
-!
-!  NOTES:
+! 
+! !REVISION HISTORY: 
+!  19 Jul 2000 - R. Yantosca - Initial version
 !  (1 ) Added ISOP96, MONO96, CH3OH96 for GEOS-3 (bnd, bmy, 6/14/01)
 !  (2 ) Removed ISOP96, MONO96, CH3OH96 for GEOS-3, since the new GEOS-3
 !        fields make these no longer necessary (bmy, 8/21/09)
 !  (3 ) Now remove IJLOOP_CO (bmy, 7/20/04)
-!******************************************************************************
+!  23 Oct 2012 - R. Yantosca - Added ProTeX headers
+!EOP
+!------------------------------------------------------------------------------
+!BOC
 !
       IF ( ALLOCATED( BB_REGION  ) ) DEALLOCATE( BB_REGION  )
       IF ( ALLOCATED( FF_REGION  ) ) DEALLOCATE( FF_REGION  )
@@ -1936,10 +1992,6 @@
       IF ( ALLOCATED( CO_PRODS   ) ) DEALLOCATE( CO_PRODS   )
       IF ( ALLOCATED( CO_LOSSS   ) ) DEALLOCATE( CO_LOSSS   )
 
-      ! Return to calling program
       END SUBROUTINE CLEANUP_TAGGED_CO
-
-!------------------------------------------------------------------------------
-
-      ! End of module
+!EOC
       END MODULE TAGGED_CO_MOD

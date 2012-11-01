@@ -187,7 +187,7 @@
       IS_AC_NOX = ALLOCATED( EMIS_AC_NOX )
 
       IF ( LPRT .and. am_I_Root ) THEN
-         WRITE(*,*) 'SCALE NOx emissions by', NOx_SCALING
+         WRITE(6,*) 'SCALE NOx emissions by', NOx_SCALING
       ENDIF
 
 !$OMP PARALLEL DO 

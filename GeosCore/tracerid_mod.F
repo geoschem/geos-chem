@@ -175,7 +175,7 @@
 !  (19) Added tracers and emissions for dicarbonyl simulation (tmf, 1/7/09)
 !  (20) Updates for mercury simulation (ccc, 5/17/10)
 !  17 Feb 2011 - R. Yantosca - Add modifications for APM microphysics (G. Luo)
-!  13 Aug 2012 - R. Yantosca - Add routine FILL_CHEM_STATE_NAME_IDs
+!  13 Aug 2012 - R. Yantosca - Add routine FILL_State_Chm_NAME_IDs
 !******************************************************************************
 !
 
@@ -1383,7 +1383,7 @@
 !------------------------------------------------------------------------------
 
 #if defined( DEVEL ) || defined( EXTERNAL_GRID ) || defined( EXTERNAL_FORCING )
-      SUBROUTINE SETTRACE( GC_STATE, am_I_Root )
+      SUBROUTINE SETTRACE( State_Chm, am_I_Root )
 #else
       SUBROUTINE SETTRACE( am_I_Root )
 #endif
@@ -1414,6 +1414,8 @@
 !  (9 ) Add debug print. (hotp, 01/10)
 !  30 Jul 2012 - R. Yantosca - Now accept am_I_Root as an argument when
 !                              running with the traditional driver main.F
+!  16 Oct 2012 - R. Yantosca - Renamed chem state object to State_Chm
+!  19 Oct 2012 - R. Yantosca - Now reference gigc_state_chm_mod.F90
 !******************************************************************************
 !
       ! References to F90 modules
@@ -1423,16 +1425,14 @@
       USE TRACER_MOD, ONLY : TRACER_N_CONST, TRACER_NAME
       USE LOGICAL_MOD, ONLY : LPRT
 
-      USE CMN_SIZE_MOD                           ! Size parameters
-      USE COMODE_LOOP_MOD                        ! NAMEGAS
+      USE CMN_SIZE_MOD                                 ! Size parameters
+      USE COMODE_LOOP_MOD                              ! NAMEGAS
 
 #if defined( DEVEL ) || defined( EXTERNAL_GRID ) || defined( EXTERNAL_FORCING )
-      USE GC_TYPE2_MOD,  ONLY : CHEMSTATE        ! Derived type for chem state 
-
+      USE GIGC_State_Chm_Mod, ONLY: ChmState           ! Derived type
 #if defined( ESMF_ )
-      USE GC_TYPE2_MOD,  ONLY : REGISTER_CSPEC   ! Used w/ ESMF
+      USE GIGC_State_Chm_Mod, ONLY: Register_Species   ! Used w/ ESMF
 #endif
-
 #endif
 
       ! Arguments
@@ -1442,10 +1442,8 @@
       INTEGER             :: I, J, T, C, STAT
 
 #if defined( DEVEL ) || defined( EXTERNAL_GRID ) || defined( EXTERNAL_FORCING )
-      ! Derived type object with chemical state
-      TYPE(CHEMSTATE), INTENT(INOUT) :: GC_STATE
+      TYPE(ChmState), INTENT(INOUT) :: State_Chm       ! Chemistry State obj
 #endif
-
  
       !=================================================================
       ! SETTRACE begins here!
@@ -1543,13 +1541,17 @@
          IF ( NAMEGAS(I) == 'LXRO2H'   ) IDLXRO2H   = I
          IF ( NAMEGAS(I) == 'LXRO2N'   ) IDLXRO2N   = I
 
-#if defined( DEVEL ) && defined( ESMF_ )
-         CALL REGISTER_CSPEC(NAMEGAS(I),I,GC_STATE,STAT)
-         IF (STAT .lt. 0) THEN
+#if defined( ESMF_ )
+         ! Add the species name & Id to the chemistry state object
+         ! (this only needs to be done if we are using the ESMF interface)
+         CALL Register_Species( NAMEGAS(I), I, State_Chm, STAT )
+
+         ! Error check
+         IF ( STAT .lt. 0 ) THEN
             CALL ERROR_STOP('FAIL','REGISTER_CSPEC')
          ELSE
             IF ( am_I_Root ) THEN
-               WRITE(6,*) 'Registered ', NAMEGAS(I), STAT ELSE
+               WRITE(6,*) 'Registered ', NAMEGAS(I), STAT
             ENDIF
          ENDIF
 #endif
@@ -1621,6 +1623,7 @@
                ENDIF
             ENDDO
 
+#if !defined( ESMF_ )
             ! Print when Debug output selected (hotp 8/5/09)
             IF ( LPRT .and. am_I_Root ) THEN
                PRINT*, '###--------------------'
@@ -1632,7 +1635,7 @@
                PRINT*, '### IDEMIS(T)  : ', IDEMIS(T)
                PRINT*, '### IDTRMB(T,C): ', IDTRMB(T,C)
             ENDIF
-
+#endif
          ENDDO
       ENDDO
 
@@ -1647,32 +1650,34 @@
 !
 ! !IROUTINE: fill_chem_state_name_ids
 !
-! !DESCRIPTION: Subroutine FILL_CHEM_STATE_NAME_IDs populates the trac_name,
+! !DESCRIPTION: Subroutine FILL_State_Chm_NAME_IDs populates the trac_name,
 !  trac_id, and smvg_id fields of an object based on the CHEMSTATE derived
 !  type.
 !\\
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE FILL_CHEM_STATE_NAME_IDs( am_I_Root, CHEM_STATE )
+      SUBROUTINE FILL_CHEM_STATE_NAME_IDs( am_I_Root, State_Chm )
 !
 ! !USES:
 !
       ! References to F90 modules
-      USE GC_TYPE2_MOD, ONLY : CHEMSTATE
-      USE TRACER_MOD,   ONLY : N_TRACERS
-      USE TRACER_MOD,   ONLY : TRACER_NAME
+      USE GIGC_State_Chm_Mod, ONLY : ChmState
+      USE TRACER_MOD,         ONLY : N_TRACERS
+      USE TRACER_MOD,         ONLY : TRACER_NAME
 !
 ! !INPUT PARAMETERS: 
 !
-      LOGICAL,         INTENT(IN)    :: am_I_Root    ! Is this the root CPU?
+      LOGICAL,        INTENT(IN)    :: am_I_Root    ! Is this the root CPU?
 !
 ! !INPUT/OUTPUT PARAMETERS:
 !
-      TYPE(CHEMSTATE), INTENT(INOUT) :: CHEM_STATE   ! Obj for chemical state
+      TYPE(ChmState), INTENT(INOUT) :: State_Chm    ! Obj for chemical state
 ! 
 ! !REVISION HISTORY: 
 !  13 Aug 2012 - R. Yantosca - Initial version
+!  16 Oct 2012 - R. Yantosca - Renamed chem state object to State_Chm
+!  19 Oct 2012 - R. Yantosca - Now references gigc_state_chm_mod.F90
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -1683,12 +1688,11 @@
 
       ! Loop over defined tracers
       DO N = 1, N_TRACERS
-         CHEM_STATE%TRAC_ID(N)   = N
-         CHEM_STATE%TRAC_NAME(N) = TRIM( TRACER_NAME(N) )
+         State_Chm%TRAC_ID(N)   = N
+         State_Chm%TRAC_NAME(N) = TRIM( TRACER_NAME(N) )
       ENDDO
 
       END SUBROUTINE FILL_CHEM_STATE_NAME_IDs
-
 !EOC 
 #endif
 !------------------------------------------------------------------------------

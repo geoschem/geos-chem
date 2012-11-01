@@ -49,6 +49,7 @@
 !  17 Dec 2009 - R. Yantosca - Added ProTeX headers
 !  28 Jan 2010 - C. Carouge, R. Yantosca - Modified for ISORROPIA II
 !  08 Aug 2012 - R. Yantosca - Now align IF statements better
+!  10 Aug 2012 - R. Yantosca - Cosmetic changes
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -68,9 +69,9 @@
 ! !INTERFACE:
 !
 #if defined( DEVEL ) || defined( EXTERNAL_GRID ) || defined( EXTERNAL_FORCING )
-      SUBROUTINE DO_CHEMISTRY(am_I_Root, NI, NJ, NL, CHEM_STATE, GC_MET)
+      SUBROUTINE DO_CHEMISTRY( am_I_Root,NI,NJ,NL,State_Chm,State_Met )
 #else
-      SUBROUTINE DO_CHEMISTRY(am_I_Root)
+      SUBROUTINE DO_CHEMISTRY( am_I_Root )
 #endif
 !
 ! !USES:
@@ -125,18 +126,16 @@
       USE CMN_DIAG_MOD          ! NDxx flags
 
 #if defined( DEVEL ) || defined( EXTERNAL_GRID ) || defined( EXTERNAL_FORCING )
-      USE GC_TYPE_MOD,            ONLY : GC_MET_LOCAL
-      USE GC_TYPE2_MOD,           ONLY : CHEMSTATE
+      USE GIGC_State_Chm_Mod, ONLY : ChmState
+      USE GIGC_State_Met_Mod, ONLY : MetState
 #endif
-
 !
 ! !INPUT VARIABLES:
 !
-#if defined( DEVEL ) || defined( EXTERNAL_GRID ) || defined( EXTERNAL_FORCING )
-      INTEGER, INTENT(IN) :: NI, NJ, NL
-#endif
-
       LOGICAL, INTENT(IN) :: am_I_Root   ! Is this the root CPU?
+#if defined( DEVEL ) || defined( EXTERNAL_GRID ) || defined( EXTERNAL_FORCING )
+      INTEGER, INTENT(IN) :: NI, NJ, NL  ! # of lons, lats, levels on this CPU
+#endif
 !
 ! !REVISION HISTORY: 
 !  (1 ) Now reference DELP, T from "dao_mod.f" since we need to pass this
@@ -185,6 +184,11 @@
 !  30 Jul 2012 - R. Yantosca - Now accept am_I_Root as an argument, and pass
 !                              this down to lower-level chem routines for GIGC
 !  08 Aug 2012 - R. Yantosca - Now align IF statements better
+!  10 Aug 2012 - R. Yantosca - Cosmetic changes
+!  18 Oct 2012 - R. Yantosca - Rename GC_MET argument to State_Met
+!  18 Oct 2012 - R. Yantosca - Rename CHEM_STATE argument to State_Chem
+!  19 Oct 2012 - R. Yantosca - Now reference gigc_state_chm_mod.F90
+!  19 Oct 2012 - R. Yantosca - Now reference gigc_state_met_mod.F90
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -195,17 +199,17 @@
       INTEGER       :: N_TROP, MONTH, YEAR, WAVELENGTH
 
 #if defined( DEVEL ) || defined( EXTERNAL_GRID ) || defined( EXTERNAL_FORCING )
-      TYPE(CHEMSTATE), INTENT(INOUT) :: CHEM_STATE
-      TYPE(GC_MET_LOCAL), INTENT(IN) :: GC_MET
-!      REAL*8                         :: STT(IIPAR,JJPAR,LLPAR,N_TRACERS)
+      TYPE(ChmState), INTENT(INOUT) :: State_Chm
+      TYPE(MetState), INTENT(IN)    :: State_Met
 #endif
 
       !=================================================================
       ! DO_CHEMISTRY begins here!
       !=================================================================
+
 #if defined( DEVEL ) || defined( EXTERNAL_GRID ) || defined( EXTERNAL_FORCING )
       ! Transfer tracer array to local
-      STT = CHEM_STATE%TRACERS(:,:,:,:N_TRACERS)
+      STT(:,:,:,1:N_TRACERS) = State_Chm%TRACERS(:,:,:,1:N_TRACERS)
 #endif
 
       ! Compute optical depths (except for CH4 simulation)
@@ -224,9 +228,8 @@
          IF ( ITS_A_FULLCHEM_SIM() ) THEN 
 
 #if defined( DEVEL ) || defined( EXTERNAL_GRID ) || defined( EXTERNAL_FORCING )
-            ! Call chemistry solver from ESMF interface
-            CALL CHEMDR( am_I_Root, NI, NJ, NL, GC_MET, CHEM_STATE )
-            PRINT *,"DO_CHEMISTRY: Done with CHEMDR"
+            ! Call chemistry solver for ESMF interface
+            CALL CHEMDR( am_I_Root, NI, NJ, NL, State_Met, State_Chm )
 #else
             ! Call chemistry solver from traditional driver "main.F"
             CALL CHEMDR( am_I_Root )
@@ -282,7 +285,7 @@
             IF ( IDTACET /= 0 ) THEN
                CALL OCEAN_SINK_ACET( STT(:,:,1,IDTACET) ) 
             ENDIF
- 
+             
          !---------------------------------
          ! Offline aerosol simulation
          !---------------------------------
@@ -414,9 +417,9 @@
                CALL CHEMCH4
             ENDIF
  
-          !---------------------------------
-          ! Mercury
-          !---------------------------------
+         !---------------------------------
+         ! Mercury
+         !---------------------------------
          ELSE IF ( ITS_A_MERCURY_SIM() ) THEN
  
             ! Do Hg chemistry
@@ -435,10 +438,10 @@
          !### Debug
          IF ( LPRT ) CALL DEBUG_MSG( '### MAIN: a CHEMISTRY' )
       ENDIF
-         
+      
 #if defined( DEVEL ) || defined( EXTERNAL_GRID ) || defined( EXTERNAL_FORCING )
       ! Transfer tracer array back to non-local
-      CHEM_STATE%TRACERS(:,:,:,:N_TRACERS) = STT
+      State_Chm%TRACERS(:,:,:,1:N_TRACERS) = STT(:,:,:,1:N_TRACERS)
 #endif
 
       END SUBROUTINE DO_CHEMISTRY

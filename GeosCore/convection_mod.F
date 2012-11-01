@@ -17,7 +17,12 @@
 ! !USES:
 !
       USE GC_TYPE_MOD
-      USE SMV_ERRCODE_MOD
+!-----------------------------------------------------------------------------
+! Prior to 10/22/12:
+! Replace this with Headers/gigc_errcode_mod.F90 (bmy, 10/22/12)
+!      USE SMV_ERRCODE_MOD
+!-----------------------------------------------------------------------------
+      USE GIGC_ERRCODE_MOD
       USE SMV_PHYSCONST_MOD
 
       IMPLICIT NONE
@@ -64,6 +69,7 @@
 !  15 Feb 2011 - R. Yantosca - Add modifications for APM from G. Luo
 !  28 Feb 2012 - R. Yantosca - Removed support for GEOS-3
 !  02 Mar 2012 - R. Yantosca - Now reference the new grid_mod.F90
+!  22 Oct 2012 - R. Yantosca - Now reference Headers/gigc_errcode_mod.F90
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -286,7 +292,7 @@
 
       ! Allocate the pointer array
       ALLOCATE( COEF%MOLWT_KG( N_TRACERS ), STAT=RC )
-      IF ( RC /= SMV_SUCCESS ) RETURN
+      IF ( RC /= GIGC_SUCCESS ) RETURN
       COEF%MOLWT_KG = 0d0
 
       ! Loop over advected tracers
@@ -456,7 +462,7 @@
 #endif
 
          ! Stop if error is encountered
-         IF ( RC /= SMV_SUCCESS ) THEN
+         IF ( RC /= GIGC_SUCCESS ) THEN
             CALL GEOS_CHEM_STOP
          ENDIF
 
@@ -1826,7 +1832,7 @@
       USE DEPO_MERCURY_MOD, ONLY : ADD_HgP_WD
       USE MERCURY_MOD,      ONLY : PARTITIONHg
       USE TRACERID_MOD,     ONLY : IS_Hg2
-      USE TRACERID_MOD,     ONLY : IS_HgP 
+      USE TRACERID_MOD,     ONLY : IS_HgP
       USE WETSCAV_MOD,      ONLY : WASHOUT
       USE WETSCAV_MOD,      ONLY : LS_K_RAIN
       USE WETSCAV_MOD,      ONLY : LS_F_PRIME
@@ -1923,6 +1929,8 @@
 !                              diagnostic below the cloud.  Using T0_SUM leads 
 !                              us to over-count the tracer scavenged out of 
 !                              the column.
+!  22 Oct 2012 - R. Yantosca - Now reference Headers/gigc_errcode_mod.F90
+
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -1969,14 +1977,14 @@
       ! Safety check #1: Invalid NLAY w/r/t Q
       IF ( NLAY < 1 .or. NLAY > SIZE( Q, 1 ) ) THEN
          WRITE( IDENT%ERRMSG, 200 ) NLAY, SIZE( Q, 1 )
-         RC = SMV_FAILURE
+         RC = GIGC_FAILURE
          RETURN
       ENDIF
 
       ! Safety check #2: Invalid NC w/r/t Q
       IF ( NC < 1 .or. NC > SIZE( Q, 2 ) ) THEN
          WRITE( IDENT%ERRMSG, 200 ) NC, SIZE( Q, 2 )
-         RC = SMV_FAILURE
+         RC = GIGC_FAILURE
          RETURN
       ENDIF
 
@@ -1984,7 +1992,7 @@
       IF ( NLAY > SIZE( F, 1 ) .or. NC > SIZE( F, 2 ) ) THEN
          WRITE( IDENT%ERRMSG, 220 ) NLAY, SIZE( F, 1 ),
      &                              NC,   SIZE( F, 2 )
-         RC = SMV_FAILURE
+         RC = GIGC_FAILURE
          RETURN
       ENDIF
 
@@ -2366,7 +2374,7 @@
                      WRITE( 6, 255 ) K, IC, Q(K,IC) 
  250                 FORMAT( 'NaN encountered in DO_MERRA_CONVECTION!' )
  255                 FORMAT( 'K, IC, Q(K,IC): ', 2i4, 1x, es13.6 )
-                     RC = SMV_FAILURE
+                     RC = GIGC_FAILURE
                      RETURN
                   ENDIF
 
@@ -2647,7 +2655,7 @@
       !================================================================
 
       ! Set error code to success
-      RC                      = SMV_SUCCESS
+      RC                      = GIGC_SUCCESS
 
       ! Remove this routine name from error trace stack
       IDENT%I_AM( IDENT%LEV ) = ''

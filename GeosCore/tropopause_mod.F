@@ -83,7 +83,7 @@
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE COPY_FULL_TROP
+      SUBROUTINE COPY_FULL_TROP()
 !
 ! !USES:
 !
@@ -133,7 +133,7 @@
             IX = IXSAVE(JLOOP)
             IY = IYSAVE(JLOOP)
             IZ = IZSAVE(JLOOP)
-            
+
             ! Copy from 3-D array
             CSPEC(JLOOP,JGAS) = CSPEC_FULL(IX,IY,IZ,JGAS)
 
@@ -157,7 +157,7 @@
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE SAVE_FULL_TROP
+      SUBROUTINE SAVE_FULL_TROP()
 !
 ! !USES:
 !

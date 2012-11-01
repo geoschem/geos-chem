@@ -378,23 +378,23 @@
 ! !INTERFACE:
 !
 #if defined( DEVEL )
-      SUBROUTINE AIRQNT(LOCAL_MET)
+      SUBROUTINE AIRQNT( State_Met )
 #else
       SUBROUTINE AIRQNT
 #endif
 !
 ! !USES:
 !
-      USE GRID_MOD,     ONLY : GET_AREA_M2
-      USE PRESSURE_MOD, ONLY : GET_BP, GET_PEDGE
+      USE GRID_MOD,           ONLY : GET_AREA_M2
+      USE PRESSURE_MOD,       ONLY : GET_BP, GET_PEDGE
 #if defined( DEVEL )
-      USE GC_TYPE_MOD,  ONLY : GC_MET_LOCAL
+      USE GIGC_State_Met_Mod, ONLY: MetState
 #endif
 !
 ! !INPUT/OUTPUT PARAMETERS:
 !
 #if defined( DEVEL )
-      TYPE(GC_MET_LOCAL), INTENT(INOUT) :: LOCAL_MET   ! Obj for met fields
+      TYPE(MetState), INTENT(INOUT) :: State_Met   ! Obj for met fields
 #endif
 !
 ! !REMARKS:
@@ -448,6 +448,8 @@
 !        JREF, DSIG variables -- these are obsolete for fvDAS.  (bmy, 6/19/03)
 !  16 Aug 2010 - R. Yantosca - Added ProTeX headers
 !  01 Mar 2012 - R. Yantosca - Now use GET_AREA_M2(I,J,L) from grid_mod.F90
+!  22 Oct 2012 - R. Yantosca - Now reference gigc_state_met_mod.F90
+!  22 Oct 2012 - R. Yantosca - Renamed LOCAL_MET argument to State_Met
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -480,7 +482,7 @@
          ! Pressure difference between top & bottom edges [hPa]
          DELP(L,I,J) = P1 - P2
 #if defined( DEVEL )
-         LOCAL_MET%DELP(L,I,J) = DELP(L,I,J)
+         State_Met%DELP(L,I,J) = DELP(L,I,J)
 #endif            
          !===========================================================
          ! BXHEIGHT is the height (Delta-Z) of grid box (I,J,L) 
@@ -493,7 +495,7 @@
          !===========================================================
          BXHEIGHT(I,J,L) = Rdg0 * T(I,J,L) * LOG( P1 / P2 )
 #if defined( DEVEL )
-         LOCAL_MET%BXHEIGHT(I,J,L) = BXHEIGHT(I,J,L)
+         State_Met%BXHEIGHT(I,J,L) = BXHEIGHT(I,J,L)
 #endif            
 
          !===========================================================
@@ -515,7 +517,7 @@
          !===========================================================
          AIRVOL(I,J,L) = BXHEIGHT(I,J,L) * AREA_M2
 #if defined( DEVEL )
-         LOCAL_MET%AIRVOL(I,J,L) = AIRVOL(I,J,L)
+         State_Met%AIRVOL(I,J,L) = AIRVOL(I,J,L)
 #endif            
 
          !===========================================================
@@ -532,7 +534,7 @@
          !===========================================================
          AD(I,J,L) = DELP(L,I,J) * G0_100 * AREA_M2
 #if defined( DEVEL )
-         LOCAL_MET%AD(I,J,L) = AD(I,J,L)
+         State_Met%AD(I,J,L) = AD(I,J,L)
 #endif            
 
          !===========================================================
@@ -540,7 +542,7 @@
          !===========================================================
          AIRDEN(L,I,J) = AD(I,J,L) / AIRVOL(I,J,L)
 #if defined( DEVEL )
-         LOCAL_MET%AIRDEN(L,I,J) = AIRDEN(L,I,J)
+         State_Met%AIRDENS(L,I,J) = AIRDEN(L,I,J)
 #endif            
       ENDDO
       ENDDO

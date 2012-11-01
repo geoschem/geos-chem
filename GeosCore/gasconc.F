@@ -292,14 +292,36 @@
  28      CONTINUE
       ENDIF        !(FIRSTCHEM)
       
-      ! If it's the first chemistry timestep then we need to copy the
-      ! concentrations from CSPEC_FULL into CSPEC.  We also need to do
-      ! this on subsequent chemistry timesteps if the variable tropopause
-      ! is turned on. (bdf, phs, bmy, 10/3/06)
-      ! NOTE : 
-      ! (1 ) copy CSPEC_FULL to CSPEC depending on READ_CSPEC (hotp, 2/25/09)
+#if defined( EXTERNAL_GRID ) || defined( EXTERNAL_FORCING )
+      !-----------------------------------------------------------------
+      !     %%%%% CONNECTING TO GEOS-5 GCM via ESMF INTERFACE %%%%%
+      !
+      ! When we connect to the ESMF interface, the CSPEC_FULL array
+      ! is defined from the values in the Chemistry State.  We need
+      ! to copy these values to the CSPEC array for the rest of the
+      ! chemistry routines to function properly.  Therefore, call
+      ! COPY_FULL_TROP from tropopause_mod.F every time.
+      !-----------------------------------------------------------------
+      CALL COPY_FULL_TROP()
 
-      IF ( FIRSTCHEM .or. READ_CSPEC ) CALL COPY_FULL_TROP
+#else
+      !-----------------------------------------------------------------
+      !              %%%%% TRADITIONAL GEOS-Chem %%%%%
+      !
+      ! Preserve current practice in the std GEOS-Chem: (bmy, 10/24/12)
+      !
+      !    If it's the first chemistry timestep then we need to copy
+      !    the concentrations from CSPEC_FULL into CSPEC.  We also
+      !    need to do this on subsequent chemistry timesteps if the
+      !    variable tropopause is turned on. (bdf, phs, bmy, 10/3/06)
+      !
+      !    NOTE:
+      !    (1 ) copy CSPEC_FULL to CSPEC depending on
+      !         READ_CSPEC (hotp, 2/25/09)
+      !-----------------------------------------------------------------
+      IF ( FIRSTCHEM .or. READ_CSPEC ) CALL COPY_FULL_TROP()
+
+#endif
 
 !  ********************************************************************
 !  *            Update starting concentrations for plumes             *

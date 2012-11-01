@@ -54,13 +54,12 @@
 !------------------------------------------------------------------------------
 !BOP
 !
-! !IROUTINE: 
+! !IROUTINE: unzip_gcap_fields
 !
 ! !DESCRIPTION: Subroutine UNZIP\_GCAP\_FIELDS invokes a FORTRAN system call
 !  to uncompress GCAP PHIS met field files and store the uncompressed data in a 
 !  temporary directory, where GEOS-CHEM can read them.  The original data 
-!  files are not disturbed.
- 
+!  files are not disturbed. 
 !\\
 !\\
 ! !INTERFACE:
@@ -189,11 +188,10 @@
 !------------------------------------------------------------------------------
 !BOP
 !
-! !IROUTINE: 
+! !IROUTINE: open_gcap_fields
 !
-! !DESCRIPTION: Subroutine OPEN_GCAP_FIELDS opens the PHIS and LWI met fields 
-!  file.
-
+! !DESCRIPTION: Subroutine OPEN\_GCAP\_FIELDS opens the PHIS and LWI met 
+!  fields file.
 !\\
 !\\
 ! !INTERFACE:
@@ -309,7 +307,7 @@
 !------------------------------------------------------------------------------
 !BOP
 !
-! !IROUTINE: 
+! !IROUTINE: get_gcap_fields
 !
 ! !DESCRIPTION: Subroutine GET\_GCAP\_FIELDS calls READ\_GCAP to read GCAP
 !  fields from disk at the start of a GEOS-Chem run. 
@@ -372,12 +370,11 @@
 !------------------------------------------------------------------------------
 !BOP
 !
-! !IROUTINE: 
+! !IROUTINE: check_time
 !
 ! !DESCRIPTION: Function CHECK\_TIME checks to see if the timestamp of the 
 !  GCAP field just read from disk matches the current time.  If so, then it's 
 !  time to return the GCAP field to the calling program. (bmy, 6/16/03)
-
 !\\
 !\\
 ! !INTERFACE:
@@ -406,10 +403,6 @@
 !EOP
 !------------------------------------------------------------------------------
 !BOC
-!
-! !LOCAL VARIABLES:
-!
-
       !=================================================================
       ! GEOS-3, GEOS-4: XYMD and XHMS are integers
       !=================================================================
@@ -426,11 +419,11 @@
 !------------------------------------------------------------------------------
 !BOP
 !
-! !IROUTINE: 
+! !IROUTINE: read_gcap
 !
-! !DESCRIPTION: Subroutine READ\_PHIS reads DAO PHIS (surface geopotential 
+! !DESCRIPTION: Subroutine READ\_GCAP reads the PHIS (surface geopotential 
 !  heights) field from disk.  PHIS is an I-6 field, but is time-independent.  
-!  Thus READ_PHIS only needs to be called once at the beginning of the model 
+!  Thus READ\_GCAP only needs to be called once at the beginning of the model 
 !  run.
 !\\
 !\\

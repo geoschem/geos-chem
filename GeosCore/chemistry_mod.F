@@ -69,9 +69,22 @@
 ! !INTERFACE:
 !
 #if defined( DEVEL ) || defined( EXTERNAL_GRID ) || defined( EXTERNAL_FORCING )
-      SUBROUTINE DO_CHEMISTRY(am_I_Root, NI, NJ, NL, CHEM_STATE, GC_MET)
+      !-----------------------------------------------------------------
+      !     %%%%% CONNECTING TO GEOS-5 GCM via ESMF INTERFACE %%%%%
+      !
+      ! Call DO_CHEMISTRY with dimension values as well as the 
+      ! Meteorology State and Chemistry State objects. (bmy, 10/25/12)
+      !-----------------------------------------------------------------
+      SUBROUTINE DO_CHEMISTRY( am_I_Root, NI,        NJ, NL, 
+     &                         State_Chm, State_Met, RC      )
 #else
-      SUBROUTINE DO_CHEMISTRY(am_I_Root)
+      !-----------------------------------------------------------------
+      !              %%%%% TRADITIONAL GEOS-Chem %%%%%
+      !
+      ! Current practice is to call DO_CHEMISTRY with am_I_Root as the
+      ! only argument. (bmy, 10/25/12)
+      !-----------------------------------------------------------------
+      SUBROUTINE DO_CHEMISTRY( am_I_Root )
 #endif
 !
 ! !USES:
@@ -125,19 +138,42 @@
       USE CMN_DIAG_MOD          ! NDxx flags
 
 #if defined( DEVEL ) || defined( EXTERNAL_GRID ) || defined( EXTERNAL_FORCING )
-      USE GC_TYPE_MOD,     ONLY : GC_MET_LOCAL
-      USE GC_TYPE2_MOD,    ONLY : CHEMSTATE
+      !-----------------------------------------------------------------
+      !     %%%%% CONNECTING TO GEOS-5 GCM via ESMF INTERFACE %%%%%
+      !
+      ! We need to reference some modules particular to the Grid-
+      ! Independent GEOS-Chem implementation here. (bmy, 10/25/12)
+      !-----------------------------------------------------------------
+      USE GIGC_ErrCode_Mod
+      USE GIGC_State_Chm_Mod, ONLY : ChmState
+      USE GIGC_State_Met_Mod, ONLY : MetState
 #endif
 !
-! !INPUT VARIABLES:
+! !INPUT PARAMETERS:
 !
-      LOGICAL, INTENT(IN) :: am_I_Root   ! Is this the root CPU?
+      LOGICAL,        INTENT(IN)    :: am_I_Root   ! Is this the root CPU?
 #if defined( DEVEL ) || defined( EXTERNAL_GRID ) || defined( EXTERNAL_FORCING )
-      INTEGER, INTENT(IN) :: NI, NJ, NL  ! # of lons, lats, levels on this CPU
-      TYPE(CHEMSTATE),    INTENT(INOUT) :: CHEM_STATE
-      TYPE(GC_MET_LOCAL), INTENT(INOUT) :: GC_MET
+      INTEGER,        INTENT(IN)    :: NI          ! # of lons on this PET
+      INTEGER,        INTENT(IN)    :: NJ          ! # of lats on this PET 
+      INTEGER,        INTENT(IN)    :: NL          ! # of levels on this PET
+!
+! !INPUT/OUTPUT PARAMETERS:
+!
+      TYPE(ChmState), INTENT(INOUT) :: State_Chm   ! Chemistry State object
+      TYPE(MetState), INTENT(INOUT) :: State_Met   ! Meteorology State object
+!
+! !OUTPUT PARAMETERS:
+!
+      INTEGER,        INTENT(OUT)   :: RC          ! Success or failure
 #endif
 
+!
+! !REMARKS:
+!  (1) State_Chm%TRACERS needs to enter this routine w/ units of [kg].
+!  (2) State_Chm%SPECIES needs to enter this routine w/ units of [molec/cm3].
+!  (3) As of 25 Oct 2012, we have not replaced the met-field arrays from
+!       dao_mod.F with the fields in State_Met.  This will be done in a
+!       piecemeal fashion so as not to disrupt the existing G-C workflow.
 !
 ! !REVISION HISTORY: 
 !  (1 ) Now reference DELP, T from "dao_mod.f" since we need to pass this
@@ -186,28 +222,60 @@
 !                              this down to lower-level chem routines for GIGC
 !  08 Aug 2012 - R. Yantosca - Now align IF statements better
 !  10 Aug 2012 - R. Yantosca - Cosmetic changes
+!  18 Oct 2012 - R. Yantosca - Rename GC_MET argument to State_Met
+!  18 Oct 2012 - R. Yantosca - Rename CHEM_STATE argument to State_Chem
+!  19 Oct 2012 - R. Yantosca - Now reference gigc_state_chm_mod.F90
+!  19 Oct 2012 - R. Yantosca - Now reference gigc_state_met_mod.F90
+!  25 Oct 2012 - R. Yantosca - Add comments for GIGC #ifdefs
+!  25 Oct 2012 - R. Yantosca - Add the RC output argument for the GIGC
 !EOP
 !------------------------------------------------------------------------------
 !BOC
 !
 ! !LOCAL VARIABLES:
 ! 
-      LOGICAL, SAVE :: FIRST = .TRUE.
       INTEGER       :: N_TROP, MONTH, YEAR, WAVELENGTH
+
+      ! SAVEd variables
+      LOGICAL, SAVE :: FIRST = .TRUE.
 
       !=================================================================
       ! DO_CHEMISTRY begins here!
       !=================================================================
 
 #if defined( DEVEL ) || defined( EXTERNAL_GRID ) || defined( EXTERNAL_FORCING )
-      ! Transfer tracer array to local
-      STT(:,:,:,1:N_TRACERS) = CHEM_STATE%TRACERS(:,:,:,1:N_TRACERS)
+      !-----------------------------------------------------------------
+      !     %%%%% CONNECTING TO GEOS-5 GCM via ESMF INTERFACE %%%%%
+      !
+      ! At present (25 Oct 2012), we have not yet completely replaced 
+      ! the GEOS-Chem arrays with fields from the Chemistry State
+      ! (i.e. State_Chm) and Meteorology State (i.e. State_Met) 
+      ! objects.  In order to continue GIGC development without 
+      ! disrupting the existing GEOS-Chem workflow, we shall copy the 
+      ! tracer array State_Chm%TRACERS to STT before chemistry. 
+      !
+      ! Also note: State_Chm%TRACERS needs to enter this routine with
+      ! units of [kg].  If we are calling this routine from the 
+      ! traditional "main.F" driver, then the tracers are already in
+      ! [kg] and no further unit conversion is necessary.  If on the
+      ! other hand we are calling this routine from the ESMF interface,
+      ! then we need to convert State_Chm%TRACERS from [v/v] to [kg]
+      ! in the calling routine GIGC_Do_Chem (in ESMF/gigc_chemdr.F90).
+      ! (bmy, 10/24/12) 
+      !-----------------------------------------------------------------
+
+      ! Assume success
+      RC = GIGC_SUCCESS
+
+      ! Initialize GEOS-Chem tracer array [kg] from Chemistry State object
+      STT(:,:,:,1:N_TRACERS) = State_Chm%TRACERS(:,:,:,1:N_TRACERS)
 #endif
 
       ! Compute optical depths (except for CH4 simulation)
       IF ( .not. ITS_A_CH4_SIM() ) THEN
 #if defined( DEVEL )
-         CALL OPTDEPTH( LLPAR, GC_MET%CLDF, GC_MET%OPTDEP, GC_MET%OPTD )
+         CALL OPTDEPTH( LLPAR,            State_Met%CLDF,
+     &                  State_Met%OPTDEP, State_Met%OPTD )
 #else
          CALL OPTDEPTH( LLPAR, CLDF, OPTDEP, OPTD )
 #endif
@@ -224,45 +292,58 @@
          IF ( ITS_A_FULLCHEM_SIM() ) THEN 
 
 #if defined( DEVEL ) || defined( EXTERNAL_GRID ) || defined( EXTERNAL_FORCING )
-            ! Call chemistry solver for ESMF interface
-            CALL CHEMDR( am_I_Root, NI, NJ, NL, GC_MET, CHEM_STATE )
+            !-----------------------------------------------------------
+            !  %%%%% CONNECTING TO GEOS-5 GCM via ESMF INTERFACE %%%%%
+            ! 
+            ! Call CHEMDR (the G-C chemistry driver routine) with
+            ! local dimension values and the the Meteorology and 
+            ! Chemistry State objects.  Have CHEMDR return success or
+            ! failure via the RC argument. (bmy, 10/25/12)
+            !-----------------------------------------------------------
+            CALL CHEMDR( am_I_Root, NI,        NJ, NL, 
+     &                   State_Met, State_Chm, RC      )
 
             ! Call linearized stratospheric scheme
-            IF ( LSCHEM ) CALL DO_STRAT_CHEM( am_I_Root, GC_MET )
+            IF ( LSCHEM ) CALL DO_STRAT_CHEM( am_I_Root, State_Met )
             
             ! Do seasalt aerosol chemistry
-            IF ( LSSALT ) CALL CHEMSEASALT( am_I_Root, GC_MET )
+            IF ( LSSALT ) CALL CHEMSEASALT( am_I_Root, State_Met)
 
             ! Also do sulfate chemistry
             IF ( LSULF ) THEN
 
                ! Do sulfate chemistry
-               CALL CHEMSULFATE( am_I_Root, GC_MET )
+               CALL CHEMSULFATE( am_I_Root, State_Met )
  
                ! Do aerosol thermodynamic equilibrium
                IF ( LSSALT ) THEN
                 
 #if   !defined( NO_ISORROPIA )
                   ! ISOROPIA takes Na+, Cl- into account
-                  CALL DO_ISOROPIAII( am_I_Root, GC_MET )
+                  CALL DO_ISOROPIAII( am_I_Root, State_Met )
 #endif
                 
                ELSE
  
                   ! RPMARES does not take Na+, Cl- into account
-                  CALL DO_RPMARES( am_I_Root, GC_MET )
+                  CALL DO_RPMARES( am_I_Root, State_Met )
 
                ENDIF
                 
             ENDIF
  
             ! Do carbonaceous aerosol chemistry
-            IF ( LCARB ) CALL CHEMCARBON( am_I_Root, GC_MET )
+            IF ( LCARB ) CALL CHEMCARBON( am_I_Root, State_Met )
  
             ! Do dust aerosol chemistry
-            IF ( LDUST ) CALL CHEMDUST( am_I_Root, GC_MET )
+            IF ( LDUST ) CALL CHEMDUST( am_I_Root, State_Met )
 #else
-            ! Call chemistry solver from traditional driver "main.F"
+            !-----------------------------------------------------------
+            !             %%%%% TRADITIONAL GEOS-Chem %%%%%
+            !
+            ! Current practice is to call CHEMDR with am_I_Root as the
+            ! only argument. (bmy, 10/25/12)
+            !-----------------------------------------------------------
             CALL CHEMDR( am_I_Root )
 
             ! Call linearized stratospheric scheme
@@ -300,7 +381,6 @@
             ! Do dust aerosol chemistry
             IF ( LDUST ) CALL CHEMDUST( am_I_Root )
 #endif
-
  
             ! ND44 drydep fluxes
             ! The drydep fluxes diag. is done in vdiff_mod.f when non-local 
@@ -313,7 +393,7 @@
             ! Remove acetone ocean sink
             IF ( IDTACET /= 0 ) THEN
 #if defined( DEVEL )
-               CALL OCEAN_SINK_ACET( STT(:,:,1,IDTACET), GC_MET ) 
+               CALL OCEAN_SINK_ACET( STT(:,:,1,IDTACET), State_Met ) 
 #else
                CALL OCEAN_SINK_ACET( STT(:,:,1,IDTACET) ) 
 #endif
@@ -327,7 +407,7 @@
             ! Define loop index and other SMVGEAR arrays
             ! N_TROP, the # of trop boxes, is returned
 #if defined( DEVEL )
-            CALL AEROSOL_RURALBOX( N_TROP, am_I_Root, GC_MET )
+            CALL AEROSOL_RURALBOX( N_TROP, am_I_Root, State_Met )
 #else
             CALL AEROSOL_RURALBOX( N_TROP, am_I_Root )
 #endif
@@ -355,53 +435,53 @@
 #if defined( DEVEL )
              ! Compute aerosol & dust concentrations [kg/m3]
              ! (NOTE: SOILDUST in "aerosol_mod.f" is computed here)
-             CALL AEROSOL_CONC( GC_MET )
+             CALL AEROSOL_CONC( State_Met )
  
              ! Compute AOD's and surface areas at 999 nm
              MONTH = 0
              YEAR  = 0
              WAVELENGTH = 0
 
-             CALL RDAER( am_I_Root, GC_MET, MONTH, YEAR, WAVELENGTH )
+             CALL RDAER( am_I_Root, State_Met, MONTH, YEAR, WAVELENGTH )
  
              !*** AEROSOL THERMODYNAMIC EQUILIBRIUM ***
              IF ( LSSALT ) THEN
 
 #if   !defined( NO_ISORROPIA )
                 ! ISOROPIA takes Na+, Cl- into account
-                CALL DO_ISOROPIAII( am_I_Root, GC_MET )
+                CALL DO_ISOROPIAII( am_I_Root, State_Met )
 #endif
              
              ELSE
  
                 ! RPMARES does not take Na+, Cl- into account
                 ! (skip for crystalline & aqueous offline run)
-                IF ( .not. LCRYST ) CALL DO_RPMARES( am_I_Root, GC_MET )
+                IF ( .not. LCRYST ) CALL DO_RPMARES( am_I_Root, State_Met )
  
              ENDIF
 
              !*** SEASALT AEROSOLS ***
-             IF ( LSSALT ) CALL CHEMSEASALT( am_I_Root, GC_MET )
+             IF ( LSSALT ) CALL CHEMSEASALT( am_I_Root, State_Met )
  
              !*** SULFATE AEROSOLS ***
              IF ( LSULF .or. LCRYST ) THEN
                 ! Do sulfate chemistry
-                CALL CHEMSULFATE( am_I_Root, GC_MET )
+                CALL CHEMSULFATE( am_I_Root, State_Met )
              ENDIF
                 
              !*** CARBON AND 2NDARY ORGANIC AEROSOLS ***
-             IF ( LCARB ) CALL CHEMCARBON( am_I_Root, GC_MET )
+             IF ( LCARB ) CALL CHEMCARBON( am_I_Root, State_Met )
  
              !*** MINERAL DUST AEROSOLS ***
              IF ( LDUST ) THEN 
  
                 ! Do dust aerosol chemsitry
-                CALL CHEMDUST( am_I_Root, GC_MET )
+                CALL CHEMDUST( am_I_Root, State_Met )
  
                 WAVELENGTH = 0
 
                 ! Compute dust OD's & surface areas
-                CALL RDUST_ONLINE( SOILDUST, WAVELENGTH, GC_MET )
+                CALL RDUST_ONLINE( SOILDUST, WAVELENGTH, State_Met )
 
              ENDIF
 
@@ -464,7 +544,7 @@
          !---------------------------------                 
          ELSE IF ( ITS_A_RnPbBe_SIM() ) THEN
 #if defined( DEVEL )
-            CALL CHEMRnPbBe( GC_MET )
+            CALL CHEMRnPbBe( State_Met )
 #else
             CALL CHEMRnPbBe 
 #endif
@@ -475,7 +555,7 @@
          !---------------------------------
          ELSE IF ( ITS_A_CH3I_SIM() ) THEN
 #if defined( DEVEL )
-            CALL CHEMCH3I( GC_MET )
+            CALL CHEMCH3I( State_Met )
 #else
             CALL CHEMCH3I
 #endif
@@ -485,7 +565,7 @@
          !---------------------------------
          ELSE IF ( ITS_A_HCN_SIM() ) THEN
 #if defined( DEVEL )
-            CALL CHEM_HCN_CH3CN( N_TRACERS, GC_MET, STT )
+            CALL CHEM_HCN_CH3CN( N_TRACERS, State_Met, STT )
 #else
             CALL CHEM_HCN_CH3CN( N_TRACERS, STT )
 #endif
@@ -495,10 +575,10 @@
          !---------------------------------
          ELSE IF ( ITS_A_TAGOX_SIM() ) THEN 
 #if defined( DEVEL )
-            CALL CHEM_TAGGED_OX( GC_MET )
+            CALL CHEM_TAGGED_OX( State_Met )
 
             ! Call linearized stratospheric scheme
-            IF ( LSCHEM ) CALL DO_STRAT_CHEM( am_I_Root, GC_MET )
+            IF ( LSCHEM ) CALL DO_STRAT_CHEM( am_I_Root, State_Met )
 #else
             CALL CHEM_TAGGED_OX
 
@@ -511,7 +591,7 @@
          !---------------------------------
          ELSE IF ( ITS_A_TAGCO_SIM() ) THEN
 #if defined( DEVEL )
-            CALL CHEM_TAGGED_CO( GC_MET )
+            CALL CHEM_TAGGED_CO( State_Met )
 #else
             CALL CHEM_TAGGED_CO
 #endif
@@ -521,7 +601,7 @@
          !---------------------------------
          ELSE IF ( ITS_A_C2H6_SIM() ) THEN
 #if defined( DEVEL )
-            CALL CHEMC2H6( GC_MET )
+            CALL CHEMC2H6( State_Met )
 #else
             CALL CHEMC2H6
 #endif
@@ -534,7 +614,7 @@
             ! Only call after the first 24 hours
             IF ( GET_ELAPSED_MIN() >= GET_TS_CHEM() ) THEN
 #if defined( DEVEL )
-               CALL CHEMCH4( GC_MET )
+               CALL CHEMCH4( State_Met )
 #else
                CALL CHEMCH4
 #endif
@@ -547,7 +627,7 @@
 
             ! Do Hg chemistry
 #if defined( DEVEL )
-            CALL CHEMMERCURY( GC_MET )
+            CALL CHEMMERCURY( State_Met )
 #else
             CALL CHEMMERCURY
 #endif
@@ -557,9 +637,9 @@
          !---------------------------------
          ELSE IF ( ITS_A_H2HD_SIM() ) THEN
 #if defined( DEVEL )
-            CALL CHEM_H2_HD( GC_MET )
-            CALL DRYFLXH2HD( GC_MET )
-            CALL DO_STRAT_CHEM( am_I_Root, GC_MET )
+            CALL CHEM_H2_HD( State_Met )
+            CALL DRYFLXH2HD( State_Met )
+            CALL DO_STRAT_CHEM( am_I_Root, State_Met )
 #else
             CALL CHEM_H2_HD
             CALL DRYFLXH2HD
@@ -569,12 +649,34 @@
          ENDIF
 
          !### Debug
-         IF ( LPRT ) CALL DEBUG_MSG( '### MAIN: a CHEMISTRY' )
+         IF ( LPRT .and. am_I_Root ) THEN
+            CALL DEBUG_MSG( '### MAIN: a CHEMISTRY' )
+         ENDIF
       ENDIF
       
 #if defined( DEVEL ) || defined( EXTERNAL_GRID ) || defined( EXTERNAL_FORCING )
-      ! Transfer tracer array back to non-local
-      CHEM_STATE%TRACERS(:,:,:,1:N_TRACERS) = STT(:,:,:,1:N_TRACERS)
+      !-----------------------------------------------------------------
+      !     %%%%% CONNECTING TO GEOS-5 GCM via ESMF INTERFACE %%%%%
+      !
+      ! At present (25 Oct 2012), we have not yet completely replaced
+      ! the GEOS-Chem arrays with fields from the Chemistry State 
+      ! (i.e. State_Chm) and Meteorology State (i.e. State_Met)
+      ! objects.  In order to continue GIGC development without 
+      ! disrupting the existing GEOS-Chem workflow, we shall copy the 
+      ! tracer array STT back to State_Chm%TRACERS after chemistry. 
+      !
+      ! Also note: State_Chm%TRACERS needs to leave this routine with
+      ! units of [kg].  If we are calling this routine from the 
+      ! traditional "main.F" driver, then the tracers are already in
+      ! [kg] and no further unit conversion is necessary.  If on the
+      ! other hand we are calling this routine from the ESMF interface,
+      ! then we need to convert State_Chm%TRACERS from [kg] to [v/v]
+      ! in the calling routine GIGC_Do_Chem (in ESMF/gigc_chemdr.F90).
+      ! (bmy, 10/24/12) 
+      !-----------------------------------------------------------------
+
+      ! Reset Chemistry State tracers [kg] from GEOS-Chem tracer array
+      State_Chm%TRACERS(:,:,:,1:N_TRACERS) = STT(:,:,:,1:N_TRACERS)
 #endif
 
       END SUBROUTINE DO_CHEMISTRY
@@ -885,7 +987,7 @@
 ! !INTERFACE:
 !
 #if defined( DEVEL )
-      SUBROUTINE RECOMPUTE_OD( am_I_Root, LOCAL_MET )
+      SUBROUTINE RECOMPUTE_OD( am_I_Root, State_Met )
 #else
       SUBROUTINE RECOMPUTE_OD( am_I_Root )
 #endif
@@ -903,14 +1005,14 @@
       USE TRACER_MOD,      ONLY : ITS_A_FULLCHEM_SIM
       USE TRACER_MOD,      ONLY : ITS_AN_AEROSOL_SIM
 #if defined( DEVEL )
-      USE GC_TYPE_MOD,     ONLY : GC_MET_LOCAL
+      USE GIGC_State_Met_Mod, ONLY : MetState
 #endif
 !
 ! !INPUT PARAMETERS:
 !
-      LOGICAL,            INTENT(IN) :: am_I_Root  ! Is this the root CPU?
+      LOGICAL,        INTENT(IN) :: am_I_Root   ! Is this the root CPU?
 #if defined( DEVEL )
-      TYPE(GC_MET_LOCAL), INTENT(IN) :: LOCAL_MET  ! Obj w/ met fields
+      TYPE(MetState), INTENT(IN) :: State_Met   ! Meteorology State object
 #endif
 !
 ! !REVISION HISTORY: 
@@ -941,7 +1043,7 @@
 
                ! Skip this section if all of these are turned off
 #if defined( DEVEL )
-               CALL AEROSOL_CONC( LOCAL_MET )
+               CALL AEROSOL_CONC( State_Met )
 #else
                CALL AEROSOL_CONC
 #endif
@@ -954,7 +1056,7 @@
                WAVELENGTH = 1
 
 #if defined( DEVEL )
-               CALL RDAER( am_I_Root, LOCAL_MET, MONTH, YEAR,
+               CALL RDAER( am_I_Root, State_Met, MONTH, YEAR,
      &                     WAVELENGTH )
 #else
                CALL RDAER( am_I_Root, MONTH, YEAR, WAVELENGTH )
@@ -976,11 +1078,11 @@
                !===============================================================
 #if defined( DEVEL )
                IF ( LDUST ) THEN
-                  CALL RDUST_ONLINE( SOILDUST, WAVELENGTH, LOCAL_MET )
+                  CALL RDUST_ONLINE( SOILDUST, WAVELENGTH, State_Met )
                ELSE
                   CALL RDUST_OFFLINE( MONTH,      YEAR,
      &                                WAVELENGTH, am_I_Root,
-     &                                LOCAL_MET   )
+     &                                State_Met   )
                ENDIF
 #else
                IF ( LDUST ) THEN

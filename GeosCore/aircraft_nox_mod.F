@@ -150,6 +150,7 @@
       INTEGER, SAVE      :: LASTMONTH = -99
       INTEGER            :: I, J, K, IOS
       INTEGER            :: IU_FILE
+      REAL*8             :: FUEL
 
       ! Conversion factor from [kg NO2/4h] to [molec NO2/s]
       REAL*8             :: CONV=9.0927d+20
@@ -202,12 +203,39 @@
 
          ! Read aircraft NOx
          DO 
-            READ( IU_FILE, *, IOSTAT=IOS ) I, J, K, AIR(I,J,K)
-            
+!%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+!%%% KLUDGE FOR NORTH AMERICAN NESTED GRID (bmy, 7/2/12)
+!%%% For some reason there seems to be bad data within the N. American
+!%%% nested grid data files.  Some of the longitude indices are out of bounds
+!%%% for the grid.  Put in a simple kludge to just skip over these boxes.
+!%%% We are going to be reinventing how emissions get done in GEOS-Chem,
+!%%% so it's probably not worth recreating the the file at this time.
+!%%%
+!%%%            READ( IU_FILE, *, IOSTAT=IOS ) I, J, K, AIR(I,J,K)
+!%%%          
+!%%%            ! IOS < 0 is end of file
+!%%%            ! IOS > 0 is an I/O error
+!%%%            IF ( IOS < 0 ) EXIT
+!%%%            IF ( IOS > 0 ) CALL IOERROR( IOS, IU_FILE, 'readair:2' )
+  
+            ! Now read emissions into a scalar
+            READ( IU_FILE, *, IOSTAT=IOS ) I, J, K, FUEL
+
             ! IOS < 0 is end of file
             ! IOS > 0 is an I/O error
             IF ( IOS < 0 ) EXIT
             IF ( IOS > 0 ) CALL IOERROR( IOS, IU_FILE, 'readair:2' )
+
+#if   defined( NESTED_NA )        
+            ! Error check, cycle if out of bounds
+            IF ( I > IIPAR ) CYCLE
+            IF ( J > JJPAR ) CYCLE
+#endif   
+
+            ! Save emissions into the AIR array
+            AIR(I,J,K) = FUEL
+!%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
          ENDDO
 
          ! Close file

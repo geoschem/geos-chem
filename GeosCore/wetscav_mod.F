@@ -144,11 +144,6 @@
 !
 ! !DEFINED PARAMETERS:
 !
-!------------------------------------------------------------------------------
-! Prior to 12/28/11:
-! Increase from 50 to 53 for bromine chem (jpp, mpayer, 12/28/11)
-!      INTEGER, PARAMETER   :: NSOLMAX = 50      ! Max # of soluble tracers
-!------------------------------------------------------------------------------
       INTEGER, PARAMETER   :: NSOLMAX = 53      ! Max # of soluble tracers
       REAL*8,  PARAMETER   :: EPSILON = 1d-32   ! A very small positive #
 !
@@ -897,7 +892,6 @@
       !=================================================================
       
       ! Saturation vap press of Ice [Pa] -- divide by 100 for [hPa]
-!      write(*,*) 'E_ICE:', TK
       VALUE = ( 10d0**( A/TK + B ) ) / 100d0 
 
       END FUNCTION E_ICE
@@ -5293,6 +5287,8 @@
       USE TRACERID_MOD,      ONLY : IS_HgP
       USE DEPO_MERCURY_MOD,  ONLY : ADD_Hg2_SNOWPACK
       USE LOGICAL_MOD,       ONLY : LGTMM
+      USE LOGICAL_MOD,       ONLY : LSOILNOX
+      USE GET_NDEP_MOD,      ONLY : SOIL_WETDEP
 
 #if defined( DEVEL )
       USE GC_TYPE_MOD,       ONLY : GC_MET_LOCAL
@@ -5300,6 +5296,7 @@
 
       USE CMN_SIZE_MOD            ! Size parameters
       USE CMN_DIAG_MOD            ! Diagnostic arrays and switches
+      USE COMMSOIL_MOD
 !
 ! !INPUT PARAMETERS: 
 !
@@ -5794,7 +5791,7 @@
 
             ! Save FTOP for next level
             FTOP = F_RAINOUT + F_WASHOUT
-             
+           
          ENDDO               
 
          !==============================================================
@@ -6609,15 +6606,18 @@
 !
 ! !USES:
 !
-      USE DIAG_MOD,    ONLY : AD16                     ! ND16 diag array
-      USE DIAG_MOD,    ONLY : AD17                     ! ND17 diag array
-      USE DIAG_MOD,    ONLY : AD39                     ! ND39 diag array
-      USE DIAG_MOD,    ONLY : CT16                     ! ND16 diag counter
-      USE DIAG_MOD,    ONLY : CT17                     ! ND17 diag counter
-      USE ERROR_MOD,   ONLY : IT_IS_NAN                ! Test for NaN
-      USE LOGICAL_MOD, ONLY : LGTMM                    ! Use GTMM for Hg sim?
+      USE DAO_MOD,      ONLY : BXHEIGHT                ! Grid box height [m]
+      USE DIAG_MOD,     ONLY : AD16                    ! ND16 diag array
+      USE DIAG_MOD,     ONLY : AD17                    ! ND17 diag array
+      USE DIAG_MOD,     ONLY : AD39                    ! ND39 diag array
+      USE DIAG_MOD,     ONLY : CT16                    ! ND16 diag counter
+      USE DIAG_MOD,     ONLY : CT17                    ! ND17 diag counter
+      USE ERROR_MOD,    ONLY : IT_IS_NAN               ! Test for NaN
+      USE GET_NDEP_MOD, ONLY : SOIL_WETDEP             ! Wet deposited species
+      USE LOGICAL_MOD,  ONLY : LGTMM                   ! Use GTMM for Hg sim?
+      USE LOGICAL_MOD,  ONLY : LSOILNOX                ! Use soil NOx?
 #if defined( DEVEL )
-      USE GC_TYPE_MOD, ONLY : GC_MET_LOCAL
+      USE GC_TYPE_MOD,  ONLY : GC_MET_LOCAL
 #endif
 
       USE CMN_SIZE_MOD                                 ! Size parameters
@@ -6750,6 +6750,12 @@
             AD39(I,J,L,NN) = AD39(I,J,L,NN) + WETLOSS / DT
          ENDIF
 
+         ! Archive wet loss in kg/s
+         IF ( LSOILNOX ) THEN
+            CALL SOIL_WETDEP ( I, J, L, N, WETLOSS / DT )
+         ENDIF
+
+
          !--------------------------------------------------------------
          ! Error checks
          !--------------------------------------------------------------
@@ -6820,10 +6826,11 @@
       USE DIAG_MOD,     ONLY : CT17                    ! ND17 diag counter
       USE DIAG_MOD,     ONLY : CT18                    ! ND18 diag counter
       USE ERROR_MOD,    ONLY : IT_IS_NAN               ! Test for NaN
+      USE GET_NDEP_MOD, ONLY : SOIL_WETDEP             ! Wet deposited species
+      USE LOGICAL_MOD,  ONLY : LGTMM                   ! Use GTMM w/ Hg sim?
+      USE LOGICAL_MOD,  ONLY : LSOILNOX                ! Use soil NOx?
       USE TRACERID_MOD, ONLY : IDTSO2                  ! ID flag for SO2
       USE TRACERID_MOD, ONLY : IDTSO4                  ! ID flag for SO4
-      USE LOGICAL_MOD,  ONLY : LGTMM                   ! Use GTMM w/ Hg sim?
-      USE ERROR_MOD,    ONLY : IT_IS_NAN               ! Check for NaN 
 #if defined( DEVEL )
       USE GC_TYPE_MOD,  ONLY : GC_MET_LOCAL
 #endif
@@ -7143,6 +7150,12 @@
          IF ( ( ND39 > 0 .or. LGTMM ) .and. L <= LD39 ) THEN
             AD39(I,J,L,NN) = AD39(I,J,L,NN) + WETLOSS / DT
          ENDIF
+
+         ! Archive wet loss in kg/s
+         IF ( LSOILNOX ) THEN
+            CALL SOIL_WETDEP ( I, J, L, N, WETLOSS / DT )
+         ENDIF
+
   
          !--------------------------------------------------------------
          ! Error checks
@@ -7199,9 +7212,11 @@
       USE DIAG_MOD,     ONLY : CT17                    ! ND17 diag counter
       USE DIAG_MOD,     ONLY : CT18                    ! ND18 diag counter
       USE ERROR_MOD,    ONLY : IT_IS_NAN               ! Test for NaN
+      USE GET_NDEP_MOD, ONLY : SOIL_WETDEP             ! Wet deposited species
+      USE LOGICAL_MOD,  ONLY : LGTMM                   ! Use GTMM w/ Hg sim?
+      USE LOGICAL_MOD,  ONLY : LSOILNOX                ! Use soil NOx?
       USE TRACERID_MOD, ONLY : IDTSO2                  ! ID flag for SO2
       USE TRACERID_MOD, ONLY : IDTSO4                  ! ID flag for SO4
-      USE LOGICAL_MOD,  ONLY : LGTMM                   ! Use GTMM w/ Hg sim?
 
       USE CMN_SIZE_MOD                                 ! Size parameters
       USE CMN_DIAG_MOD                                 ! Diagnostic flags
@@ -7275,6 +7290,12 @@
             AD39(I,J,L,NN) = AD39(I,J,L,NN) + ( WETLOSS / DT )
          ENDIF
 
+         ! Archive wet loss in kg/s
+         IF ( LSOILNOX ) THEN
+            CALL SOIL_WETDEP ( I, J, L, N, WETLOSS / DT )
+         ENDIF
+
+
          !--------------------------------------------------------------
          ! Error checks
          !--------------------------------------------------------------
@@ -7338,9 +7359,11 @@
       USE DIAG_MOD,     ONLY : CT17                    ! ND17 diag counter
       USE DIAG_MOD,     ONLY : CT18                    ! ND18 diag counter
       USE ERROR_MOD,    ONLY : IT_IS_NAN               ! Test for NaN
+      USE GET_NDEP_MOD, ONLY : SOIL_WETDEP             ! Wet deposited species
+      USE LOGICAL_MOD,  ONLY : LGTMM                   ! Use GTMM w/ Hg sim?
+      USE LOGICAL_MOD,  ONLY : LSOILNOX                ! Use soil NOx?
       USE TRACERID_MOD, ONLY : IDTSO2                  ! ID flag for SO2
       USE TRACERID_MOD, ONLY : IDTSO4                  ! ID flag for SO4
-      USE LOGICAL_MOD,  ONLY : LGTMM                   ! Use GTMM w/ Hg sim?
 #if defined( DEVEL )
       USE GC_TYPE_MOD,  ONLY : GC_MET_LOCAL
 #endif
@@ -7474,6 +7497,11 @@
          ! Add LGTMM in condition for AD39 (ccc, 11/18/09)
          IF ( ( ND39 > 0 .or. LGTMM ) .and. L <= LD39 ) THEN
             AD39(I,J,L,NN) = AD39(I,J,L,NN) + WETLOSS / DT
+         ENDIF
+
+         ! Archive wet loss in kg/s
+         IF ( LSOILNOX ) THEN
+            CALL SOIL_WETDEP ( I, J, L, N, WETLOSS / DT )
          ENDIF
 
          !-----------------------------------------------------
@@ -8276,6 +8304,8 @@
 !  (9 ) Now references new function E_ICE, which is an analytic function of 
 !        Kelvin temperature instead of Celsius. (bmy, 3/7/05)
 !  16 Sep 2010 - R. Yantosca - Added ProTeX headers
+!  18 Oct 2012 - R. Yantosca - Removed DEVEL from #ifdef statement, now use
+!                              EXTERNAL_GRID || EXTERNAL_FORCING
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -8339,7 +8369,22 @@
          FIRST = .FALSE. 
       ENDIF
 
-#if ! defined( DEVEL )
+#if defined( EXTERNAL_GRID ) || defined( EXTERNAL_FORCING )
+      !-----------------------------------------------------------------
+      !     %%%%% CONNECTING TO GEOS-5 GCM via ESMF INTERFACE %%%%%
+      !
+      ! Skip computation of Vud, CLDICE, CLDLIQ, C_H2O.  These would 
+      ! have to be computed at a higher level and passed through the
+      ! import state. (bmy, 10/31/12)
+      !-----------------------------------------------------------------
+#else
+      !-----------------------------------------------------------------
+      !              %%%%% TRADITIONAL GEOS-Chem %%%%%
+      !
+      ! Compute Vud, CLDICE, CLDLIQ, C_H2O.  This is current practice 
+      ! in the standard GEOS-Chem model.  (bmy, 10/31/12)
+      !-----------------------------------------------------------------
+
       !=================================================================
       ! Compute Vud, CLDLIQ, CLDICE, C_H2O, following Jacob et al, 2000.
       !=================================================================

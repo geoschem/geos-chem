@@ -123,6 +123,8 @@
 !  25 Aug 2010 - R. Yantosca - Now also reset the counter for A1 timesteps
 !  08 Feb 2012 - R. Yantosca - Rewrote USE statements, for clarity
 !  08 Feb 2012 - R. Yantosca - Now also reset the counter for I3 timesteps
+!  15 Oct 2012 - R. Yantosca - Bug fix, make sure Counter arrays CTLBRO2H etc. 
+!                              are allocated before we use them
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -344,12 +346,25 @@
          IF ( ND43 >               0 ) CTHO2      = 0
          IF ( ND43 >               0 ) CTNO3      = 0
          ! update for arom (dkh, 06/21/07)  
-         IF ( ND43 >               0 ) CTLBRO2H   = 0
-         IF ( ND43 >               0 ) CTLBRO2N   = 0
-         IF ( ND43 >               0 ) CTLTRO2H   = 0
-         IF ( ND43 >               0 ) CTLTRO2N   = 0
-         IF ( ND43 >               0 ) CTLXRO2H   = 0
-         IF ( ND43 >               0 ) CTLXRO2N   = 0
+!-----------------------------------------------------------------------------
+! Prior to 10/15/12:
+! Test if each of these are allocated before using them.  Otherwise the 
+! code will fail in the ESMF sandbox. (bmy, 10/15/12)
+!         IF ( ND43 >               0 ) CTLBRO2H   = 0
+!         IF ( ND43 >               0 ) CTLBRO2N   = 0
+!         IF ( ND43 >               0 ) CTLTRO2H   = 0
+!         IF ( ND43 >               0 ) CTLTRO2N   = 0
+!         IF ( ND43 >               0 ) CTLXRO2H   = 0
+!         IF ( ND43 >               0 ) CTLXRO2N   = 0
+!-----------------------------------------------------------------------------
+         IF ( ND43 > 0 ) THEN
+            IF ( ALLOCATED( CTLBRO2H ) ) CTLBRO2H   = 0
+            IF ( ALLOCATED( CTLBRO2N ) ) CTLBRO2N   = 0
+            IF ( ALLOCATED( CTLTRO2H ) ) CTLTRO2H   = 0
+            IF ( ALLOCATED( CTLTRO2N ) ) CTLTRO2N   = 0
+            IF ( ALLOCATED( CTLXRO2H ) ) CTLXRO2H   = 0
+            IF ( ALLOCATED( CTLXRO2N ) ) CTLXRO2N   = 0
+         ENDIF
 
          ! Echo output
          IF ( am_I_Root ) THEN

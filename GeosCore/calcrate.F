@@ -235,37 +235,6 @@
       REAL*8  :: QLIQ(KBLOOP)
       REAL*8  :: QICE(KBLOOP)
 
-!-------------------------------------------------------------------------------
-! Prior to 9/24/12:
-! CALCRATE is already called within a parallel loop from routine PHYSPROC,
-! and therefore only processes KTLOOP grid boxes at a time.  There is no need
-! to loop over all IIPAR*JJPAR*LLPAR boxes here.  Rewrite code to remove this
-! bottleneck and improve scalability. (bmy, 9/24/12)
-!      REAL*8  :: QLIQ(IIPAR,JJPAR,LLPAR), QICE(IIPAR,JJPAR,LLPAR)
-!      darea  = 0d0
-!#if defined( GEOS_5 ) || defined( MERRA ) || defined( GEOS_57 )
-!      QICE      = QI
-!      QLIQ      = QL
-!#else
-!      ! GEOS-4 and GCAP do not have QI or QL variables. Make same assumption
-!      ! as we do in wetscav_mod.F.
-!      DO I=1,IIPAR
-!      DO J=1,JJPAR
-!      DO L=1,LLPAR
-!         IF ( T(I,J,L) .LE. 248d0 ) THEN
-!            QLIQ(I,J,L) = 0d0
-!         ELSE IF ( T(I,J,L) .GE. 268d0 ) THEN
-!            QLIQ(I,J,L) = 1d-6
-!         ELSE
-!            QLIQ(I,J,L) = 1d-6 * ( ( T(I,J,L) - 248d0 ) / 20d0 )
-!         ENDIF
-!      ENDDO
-!      ENDDO
-!      ENDDO
-!      QICE = 1d-6 - QLIQ
-!#endif
-!-------------------------------------------------------------------------------
-
       darea  = 0d0
 
       ! initialize the true/false selectors (jpp, 4/12/10)
@@ -1152,11 +1121,6 @@ c new OH+CO rate from JPL2006.
 #if defined( GEOS_5 ) || defined( MERRA ) || defined( GEOS_57 )
      &                                 FRLAND(IX,IY),    FROCEAN(IX,IY),
 #endif
-!------------------------------------------------------------------------------
-! Prior to 9/24/12:
-! Use redefined QLIQ to avoid parallelization bottleneck (bmy, 9/24/12)
-!     &                                 QLIQ(IX,IY,IZ),   CLDF(IZ,IX,IY),
-!------------------------------------------------------------------------------
      &                                 QLIQ(KLOOP),      CLDF(IZ,IX,IY),
      &                                 AD(IX,IY,IZ) )
 
@@ -1172,11 +1136,6 @@ c new OH+CO rate from JPL2006.
                CALL cldice_hbrhobr_rxn( XDENA,
      &                                  AIRVOL(IX,IY,IZ),
      &                                  T(IX,IY,IZ),
-!------------------------------------------------------------------------------
-! Prior to 9/24/12:
-! Use redefined QICE to avoid parallelization bottleneck (bmy, 9/24/12)
-!     &                                  QICE(IX,IY,IZ),
-!------------------------------------------------------------------------------
      &                                  QICE(KLOOP),
      &                                  CLDF(IZ,IX,IY),
      &                                  AD(IX,IY,IZ),
@@ -1447,6 +1406,25 @@ c new OH+CO rate from JPL2006.
          ENDDO
       ENDDO
 
+
+#if defined( EXTERNAL_GRID ) || defined( EXTERNAL_FORCING )
+      !-----------------------------------------------------------------
+      !     %%%%% CONNECTING TO GEOS-5 GCM via ESMF INTERFACE %%%%%
+      !
+      ! Skip the following section where we compute the time-evolution
+      ! of ship emissions with the PARANOX model.  This will have to be
+      ! computed within the context of the new Emissions Component.
+      ! (bmy, 10/23/12)
+      !-----------------------------------------------------------------
+
+#else
+      !-----------------------------------------------------------------
+      !               %%%%% TRADITIONAL GEOS-Chem %%%%%
+      !
+      ! Include the time-evolution of ship emissions with the PARANOX
+      ! model as written.  This is current practice in the standard
+      ! GEOS-Chem. (bmy, 10/23/12)
+      !-----------------------------------------------------------------
 !      
 !**********************************************************************
 !             UPDATE SHIP EMISSIONS NOW THAT J-VALUES ARE KNOWN         
@@ -1776,7 +1754,7 @@ c new OH+CO rate from JPL2006.
             ENDIF
          ENDDO
       ENDIF
-
+#endif
 !
 ! *********************************************************************
 ! ******                   SET EMISSION RATES                    ******
