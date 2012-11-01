@@ -192,10 +192,6 @@
 #if   defined( APM )
 !$OMP+PRIVATE( TSO4, TSO4COAT )
 #endif
-!--------------------------
-! Prior to 7/31/12:
-!      DO L = 1, LLTROP
-!--------------------------
       DO L = 1, LLPAR
       DO J = 1, JJPAR
       DO I = 1, IIPAR
