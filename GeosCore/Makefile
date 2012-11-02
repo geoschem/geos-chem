@@ -338,7 +338,7 @@ calcrate.o                  : calcrate.F                                     \
                               drydep_mod.o            emissions_mod.o        \
                               logical_mod.o           pbl_mix_mod.o          \
                               planeflight_mod.o       tracerid_mod.o         \
-                              gc_type_mod.o
+                              cldice_HBrHOBr_rxn.o    gc_type_mod.o
 
 canopy_nox_mod.o            : canopy_nox_mod.F                               \
                               dao_mod.o               drydep_mod.o           \
@@ -386,8 +386,7 @@ chemistry_mod.o             : chemistry_mod.F                                \
                               seasalt_mod.o           strat_chem_mod.o       \
                               sulfate_mod.o           tagged_co_mod.o        \
                               tagged_ox_mod.o         tracerid_mod.o         \
-                              tracer_mod.o            gc_type_mod.o          \
-                              gc_type2_mod.o
+                              tracer_mod.o            gc_type_mod.o          
 
 cleanup.o                   : cleanup.F                                      \
                               acetone_mod.o           aerosol_mod.o          \
@@ -650,11 +649,6 @@ gc_biomass_mod.o            : gc_biomass_mod.F                               \
                               tracerid_mod.o          tracer_mod.o    
 
 gc_type_mod.o               : gc_type_mod.F
-
-gc_type2_mod.o              : gc_type2_mod.F90        tracer_mod.o
-
-gc_environment_mod.o        : gc_environment_mod.F90  gc_type2_mod.o         \
-			      gc_type_mod.o           vdiff_pre_mod.o
 
 gcap_convect_mod.o          : gcap_convect_mod.F                             \
                               dao_mod.o               diag_mod.o

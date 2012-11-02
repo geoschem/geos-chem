@@ -41,18 +41,28 @@ MODULE GIGC_State_Chm_Mod
   !=========================================================================
   TYPE, PUBLIC :: ChmState
 
-     ! Values from "tracer_mod.F"
-     INTEGER,           POINTER :: Trac_Id   (:      )  ! Tracer ID flags
-     CHARACTER(LEN=14), POINTER :: Trac_Name (:      )  ! Tracer names
-     INTEGER,           POINTER :: Spec_Id   (:      )  ! Chemical species flags
-     CHARACTER(LEN=14), POINTER :: Spec_Name (:      )  ! Chemical species name
+     ! Advected tracers
+     INTEGER,           POINTER :: Trac_Id    (:      )  ! Tracer ID #'s
+     CHARACTER(LEN=14), POINTER :: Trac_Name  (:      )  ! Tracer names
+     REAL*8,            POINTER :: Tracers    (:,:,:,:)  ! Tracer conc [kg]
+     REAL*8,            POINTER :: Trac_Tend  (:,:,:,:)  ! Tracer tendency
+     REAL*8,            POINTER :: Trac_Btend (:,:,:,:)  ! Biomass tendency
 
-     ! Concentrations & tendencies
-     REAL*8,            POINTER :: Trac_Tend (:,:,:,:)  ! Tracer tendency
-     REAL*8,            POINTER :: Trac_Btend(:,:,:,:)  ! Biomass tendency
-     REAL*8,            POINTER :: Tracers   (:,:,:,:)  ! Tracer conc [kg]
-     REAL*8,            POINTER :: Species   (:,:,:,:)  ! Species [molec/cm3]
+     ! Chemical species
+     INTEGER,           POINTER :: Spec_Id    (:      )  ! Species ID # 
+     CHARACTER(LEN=14), POINTER :: Spec_Name  (:      )  ! Species names
+     REAL*8,            POINTER :: Species    (:,:,:,:)  ! Species [molec/cm3]
 
+     ! Stratospheric chemistry 
+     INTEGER,           POINTER :: Schm_Id    (:      )  ! Strat Chem ID #'s
+     CHARACTER(LEN=14), POINTER :: Schm_Name  (:      )  ! Strat Chem Names
+     REAL*8,            POINTER :: Schm_P     (:,:,:,:)  ! Strat prod [v/v/s]
+     REAL*8,            POINTER :: Schm_k     (:,:,:,:)  ! Strat loss [1/s]
+     INTEGER,           POINTER :: Schm_BryId (:      )  ! Bry tracer #'s
+     CHARACTER(LEN=14), POINTER :: Schm_BryNam(:      )  ! Bry Names
+     REAL*8,            POINTER :: Schm_BryDay(:,:,:,:)  ! Bry, Day
+     REAL*8,            POINTER :: Schm_BryNit(:,:,:,:)  ! Bry, Night
+ 
   END TYPE ChmState
 
   !=========================================================================
@@ -136,6 +146,7 @@ MODULE GIGC_State_Chm_Mod
 !                                                                             
 ! !REVISION HISTORY:
 !  19 Oct 2012 - R. Yantosca - Initial version, based on "gc_type2_mod.F90"
+!  26 Oct 2012 - R. Yantosca - Add fields for stratospheric chemistry
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -260,9 +271,9 @@ CONTAINS
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE Init_GIGC_State_Chm( am_I_Root, IM,        JM,       &
-                                  LM,        nTracers,  nBioMax,  &
-                                  nSpecies,  State_Chm, RC       )
+  SUBROUTINE Init_GIGC_State_Chm( am_I_Root, IM,        JM,       LM,     &  
+                                  nTracers,  nBioMax,   nSpecies, nSchm,  &    
+                                  nSchmBry,  State_Chm, RC               )
 !
 ! !USES:
 !
@@ -276,7 +287,9 @@ CONTAINS
     INTEGER,        INTENT(IN)    :: LM          ! # longitudes on this PET
     INTEGER,        INTENT(IN)    :: nTracers    ! # advected tracers
     INTEGER,        INTENT(IN)    :: nBioMax     ! # biomass burning tracers
-    INTEGER,        INTENT(IN)    :: nSpecies    ! # chemical species    
+    INTEGER,        INTENT(IN)    :: nSpecies    ! # chemical species  
+    INTEGER,        INTENT(IN)    :: nSchm       ! # of strat chem species
+    INTEGER,        INTENT(IN)    :: nSchmBry    ! # of Bry species, strat chm
 !
 ! !INPUT/OUTPUT PARAMETERS:
 !
@@ -293,61 +306,111 @@ CONTAINS
 ! !REVISION HISTORY: 
 !  19 Oct 2012 - R. Yantosca - Renamed from gc_type2_mod.F90
 !  19 Oct 2012 - R. Yantosca - Now pass all dimensions as arguments
+!  26 Oct 2012 - R. Yantosca - Now allocate Strat_P, Strat_k fields
+!  26 Oct 2012 - R. Yantosca - Add nSchem, nSchemBry as arguments
+!  01 Nov 2012 - R. Yantosca - Don't allocate strat chem fields if nSchm=0
+!                              and nSchmBry=0 (i.e. strat chem is turned off)
 !EOP
 !------------------------------------------------------------------------------
 !BOC
-!
-! !LOCAL VARIABLES:
-!
-    INTEGER :: AS
 
     ! Assume success until otherwise
     RC = GIGC_SUCCESS
 
-    !--------------------------------
-    ! Allocate ID fields
-    !--------------------------------
-    ALLOCATE( State_Chm%Trac_Id  ( nTracers+1 ), STAT=RC )
+    !=====================================================================
+    ! Allocate advected tracer fields
+    !=====================================================================
+
+    ALLOCATE( State_Chm%Trac_Id       (             nTracers+1 ), STAT=RC )
     IF ( RC /= GIGC_SUCCESS ) RETURN
 
-    ALLOCATE( State_Chm%Trac_Name( nTracers+1 ), STAT=RC )
+    ALLOCATE( State_Chm%Trac_Name     (             nTracers+1 ), STAT=RC )
     IF ( RC /= GIGC_SUCCESS ) RETURN
 
-    ALLOCATE( State_Chm%Spec_Id  ( nSpecies   ), STAT=RC )
+    ALLOCATE( State_Chm%Tracers       ( IM, JM, LM, nTracers+1 ), STAT=RC )
     IF ( RC /= GIGC_SUCCESS ) RETURN
 
-    ALLOCATE( State_Chm%Spec_Name( nSpecies   ), STAT=RC )
+    ALLOCATE( State_Chm%Trac_Tend     ( IM, JM, LM, nTracers+1 ), STAT=RC )
     IF ( RC /= GIGC_SUCCESS ) RETURN
 
-    !--------------------------------
-    ! Allocate concentration fields
-    !--------------------------------
-    ALLOCATE( State_Chm%Tracers   ( IM, JM, LM, nTracers+1 ), STAT=RC )
+    ALLOCATE( State_Chm%Trac_Btend    ( IM, JM, LM, nBiomax    ), STAT=RC )
     IF ( RC /= GIGC_SUCCESS ) RETURN
 
-    ALLOCATE( State_Chm%Species   ( IM, JM, LM, nSpecies   ), STAT=RC )
+    !=====================================================================
+    ! Allocate chemical species fields
+    !=====================================================================
+
+    ALLOCATE( State_Chm%Spec_Id       (             nSpecies   ), STAT=RC )
     IF ( RC /= GIGC_SUCCESS ) RETURN
 
-    !--------------------------------
-    ! Allocate tendency fields
-    !--------------------------------
-    ALLOCATE( State_Chm%Trac_Tend ( IM, JM, LM, nTracers+1 ), STAT=RC )
+    ALLOCATE( State_Chm%Spec_Name     (             nSpecies   ), STAT=RC )
     IF ( RC /= GIGC_SUCCESS ) RETURN
 
-    ALLOCATE( State_Chm%Trac_Btend( IM, JM, LM, nBiomax    ), STAT=RC )
+    ALLOCATE( State_Chm%Species       ( IM, JM, LM, nSpecies   ), STAT=RC )
     IF ( RC /= GIGC_SUCCESS ) RETURN
 
-    !--------------------------------
+    !=====================================================================
+    ! Allocate stratospheric chemistry fields
+    !=====================================================================
+
+    ! Only allocate if strat chem is turned on
+    IF ( nSchm > 0 ) THEN
+
+       ALLOCATE( State_Chm%Schm_Id    (             nSchm      ), STAT=RC )
+       IF ( RC /= GIGC_SUCCESS ) RETURN
+       
+       ALLOCATE( State_Chm%Schm_Name  (             nSchm      ), STAT=RC )
+       IF ( RC /= GIGC_SUCCESS ) RETURN
+       
+       ALLOCATE( State_Chm%Schm_P     ( IM, JM, LM, nSchm      ), STAT=RC )
+       IF ( RC /= GIGC_SUCCESS ) RETURN
+       
+       ALLOCATE( State_Chm%Schm_k     ( IM, JM, LM, nSchm      ), STAT=RC )
+       IF ( RC /= GIGC_SUCCESS ) RETURN
+    
+    ENDIF
+
+    ! Only allocate if strat chem is turned on
+    IF ( nSchmBry > 0 ) THEN
+   
+       ALLOCATE( State_Chm%Schm_BryId (             nSchmBry   ), STAT=RC )
+       IF ( RC /= GIGC_SUCCESS ) RETURN
+       
+       ALLOCATE( State_Chm%Schm_BryNam(             nSchmBry   ), STAT=RC )
+       IF ( RC /= GIGC_SUCCESS ) RETURN
+
+       ALLOCATE( State_Chm%Schm_BryDay( IM, JM, LM, nSchmBry   ), STAT=RC )
+       IF ( RC /= GIGC_SUCCESS ) RETURN
+
+       ALLOCATE( State_Chm%Schm_BryNit( IM, JM, LM, nSchmBry   ), STAT=RC )
+       IF ( RC /= GIGC_SUCCESS ) RETURN
+
+    ENDIF
+
+    !=====================================================================
     ! Initialize fields
-    !--------------------------------
-    State_Chm%Trac_Id    = 0
-    State_Chm%Trac_name  = ''
-    State_Chm%Spec_Id    = 0
-    State_Chm%Spec_Name  = ''
-    State_Chm%Trac_Tend  = 0d0
-    State_Chm%Trac_Btend = 0d0
-    State_Chm%Tracers    = 0d0
-    State_Chm%Species    = 0d0
+    !=====================================================================
+
+    ! Advected tracers
+    State_Chm%Trac_Id     = 0
+    State_Chm%Trac_name   = ''
+    State_Chm%Tracers     = 0d0
+    State_Chm%Trac_Tend   = 0d0
+    State_Chm%Trac_Btend  = 0d0
+
+    ! Chemical species
+    State_Chm%Spec_Id     = 0
+    State_Chm%Spec_Name   = ''
+    State_Chm%Species     = 0d0
+
+    ! Stratospheric chemistry    
+    State_Chm%Schm_Id     = 0
+    State_Chm%Schm_Name   = ''
+    State_Chm%Schm_P      = 0d0
+    State_Chm%Schm_k      = 0d0
+    State_Chm%Schm_BryId  = 0
+    State_Chm%Schm_BryDay = 0d0
+    State_Chm%Schm_BryNit = 0d0
 
   END SUBROUTINE Init_GIGC_State_Chm
 !EOC
@@ -387,7 +450,8 @@ CONTAINS
 !  for consistency and also to facilitate future expansion. (bmy, 10/16/12)
 !
 ! !REVISION HISTORY: 
-!  15 Oct 2012 - R. Yantosca -  Initial version
+!  15 Oct 2012 - R. Yantosca - Initial version
+!  26 Oct 2012 - R. Yantosca - Now deallocate Strat_P, Strat_k fields
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -395,37 +459,23 @@ CONTAINS
     ! Assume success
     RC = GIGC_SUCCESS
 
-    IF ( ASSOCIATED( State_Chm%Trac_Id ) ) THEN
-       DEALLOCATE( State_Chm%Trac_Id )
-    ENDIF
-
-    IF ( ASSOCIATED( State_Chm%Trac_Name  ) ) THEN
-       DEALLOCATE( State_Chm%Trac_Name  )
-    ENDIF
-
-    IF ( ASSOCIATED( State_Chm%Spec_Id ) ) THEN
-       DEALLOCATE( State_Chm%Spec_Id )
-    ENDIF
-
-    IF ( ASSOCIATED( State_Chm%Spec_Name) ) THEN
-       DEALLOCATE( State_Chm%Spec_Name )
-    ENDIF
-
-    IF ( ASSOCIATED( State_Chm%Trac_Tend ) ) THEN
-       DEALLOCATE( State_Chm%Trac_Tend  )
-    ENDIF
-
-    IF ( ASSOCIATED( State_Chm%Trac_Btend ) ) THEN
-       DEALLOCATE( State_Chm%Trac_Btend )
-    ENDIF
-
-    IF ( ASSOCIATED( State_Chm%Tracers ) ) THEN
-       DEALLOCATE( State_Chm%Tracers )
-    ENDIF
-
-    IF ( ASSOCIATED( State_Chm%Species ) ) THEN
-       DEALLOCATE( State_Chm%Species )
-    ENDIF
+    ! Deallocate fields
+    IF ( ASSOCIATED(State_Chm%Trac_Id    ) ) DEALLOCATE(State_Chm%Trac_Id    )
+    IF ( ASSOCIATED(State_Chm%Trac_Name  ) ) DEALLOCATE(State_Chm%Trac_Name  )
+    IF ( ASSOCIATED(State_Chm%Spec_Id    ) ) DEALLOCATE(State_Chm%Spec_Id    )
+    IF ( ASSOCIATED(State_Chm%Spec_Name  ) ) DEALLOCATE(State_Chm%Spec_Name  )
+    IF ( ASSOCIATED(State_Chm%Trac_Tend  ) ) DEALLOCATE(State_Chm%Trac_Tend  )
+    IF ( ASSOCIATED(State_Chm%Trac_Btend ) ) DEALLOCATE(State_Chm%Trac_Btend )
+    IF ( ASSOCIATED(State_Chm%Tracers    ) ) DEALLOCATE(State_Chm%Tracers    )
+    IF ( ASSOCIATED(State_Chm%Species    ) ) DEALLOCATE(State_Chm%Species    )
+    IF ( ASSOCIATED(State_Chm%Schm_Id    ) ) DEALLOCATE(State_Chm%Schm_Id    )
+    IF ( ASSOCIATED(State_Chm%Schm_Name  ) ) DEALLOCATE(State_Chm%Schm_Name  )
+    IF ( ASSOCIATED(State_Chm%Schm_P     ) ) DEALLOCATE(State_Chm%Schm_P     )
+    IF ( ASSOCIATED(State_Chm%Schm_k     ) ) DEALLOCATE(State_Chm%Schm_k     )
+    IF ( ASSOCIATED(State_Chm%Schm_BryId ) ) DEALLOCATE(State_Chm%Schm_BryId )
+    IF ( ASSOCIATED(State_Chm%Schm_BryNam) ) DEALLOCATE(State_Chm%Schm_BryNam)
+    IF ( ASSOCIATED(State_Chm%Schm_BryDay) ) DEALLOCATE(State_Chm%Schm_BryDay)
+    IF ( ASSOCIATED(State_Chm%Schm_BryNit) ) DEALLOCATE(State_Chm%Schm_BryNit)
 
   END SUBROUTINE Cleanup_GIGC_State_Chm
 !EOC
