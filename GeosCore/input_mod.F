@@ -127,6 +127,8 @@
 !  03 Aug 2012 - R. Yantosca - Move calls to findFreeLUN out of DEVEL block
 !  03 Aug 2012 - R. Yantosca - Now make IU_GEOS a global module variable
 !                              so that we can define it with findFreeLun
+!  02 Nov 2012 - R. Yantosca - Now pass the Input Options object to routines;
+!                              this will eventually replace logical_mod, etc.
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -303,11 +305,7 @@
 
 #if   defined( APM )
          ELSE IF ( INDEX( LINE, 'APM MENU'         ) > 0 ) THEN
-#if defined( DEVEL ) || defined( EXTERNAL_GRID ) || defined( EXTERNAL_FORCING )
-            CALL READ_APM_MENU( am_I_Root, Input_Opt, RC )
-#else
             CALL READ_APM_MENU( am_I_Root )
-#endif
 #endif
 
          ELSE IF ( INDEX( LINE, 'EMISSIONS MENU'   ) > 0 ) THEN
@@ -493,8 +491,21 @@
       ! Close input file
       CLOSE( IU_GEOS )
 
-#if   !defined( ESMF_         ) 
-#if   !defined( EXTERNAL_GRID ) && !defined( EXTERNAL_FORCING )
+#if defined( ESMF_ ) || defined( EXTERNAL_GRID ) || defined( EXTERNAL_FORCING )
+      !-----------------------------------------------------------------
+      !     %%%%% CONNECTING TO GEOS-5 GCM via ESMF INTERFACE %%%%%
+      !
+      ! Do not initialize diagnostics when we are connecting to
+      ! the GEOS-5 GCM via ESMF. (bmy, 11/2/12)
+      !-----------------------------------------------------------------
+#else
+      !-----------------------------------------------------------------
+      !              %%%%% TRADITIONAL GEOS-Chem %%%%%
+      !
+      ! Current practice in the std GEOS-Chem is to initialize
+      ! diagnostics here. (bmy, 11/2/12)
+      !-----------------------------------------------------------------
+
       ! Allocate diagnostic arrays (phs, 11/18/08)
       CALL NDXX_SETUP
 
@@ -507,7 +518,6 @@
 
       ! Check GEOS-CHEM timesteps
       CALL CHECK_TIME_STEPS( am_I_Root )
-#endif
 #endif
 
       ! Create "diaginfo.dat" and "tracerinfo.dat" files for GAMAP
@@ -875,7 +885,7 @@
 
 #if defined( DEVEL ) || defined( EXTERNAL_GRID ) || defined( EXTERNAL_FORCING )
       !=================================================================
-      ! Copy to Input_OPT state
+      ! Set fields of Input Options object
       !=================================================================
       Input_Opt%NYMDb         = NYMDb 
       Input_Opt%NHMSb         = NHMSb
@@ -896,8 +906,11 @@
       Input_Opt%LUNZIP        = LUNZIP
       Input_Opt%LWAIT         = LWAIT
       Input_Opt%LVARTROP      = LVARTROP
-      Input_Opt%I0            = I0
-      Input_Opt%J0            = J0 
+      Input_Opt%NESTED_I0     = I0
+      Input_Opt%NESTED_J0     = J0 
+
+      ! Return success
+      RC = GIGC_SUCCESS
 #endif
 
       !=================================================================
@@ -1482,7 +1495,11 @@
 !\\
 ! !INTERFACE:
 !
+#if defined( DEVEL ) || defined( EXTERNAL_GRID ) || defined( EXTERNAL_FORCING )
+      SUBROUTINE READ_AEROSOL_MENU( am_I_Root, Input_Opt, RC )
+#else
       SUBROUTINE READ_AEROSOL_MENU( am_I_Root )
+#endif
 !
 ! !USES:
 !
@@ -1503,10 +1520,24 @@
       USE TRACERID_MOD, ONLY : IDTDST1,  IDTDST2,  IDTDST3, IDTDST4
       USE TRACERID_MOD, ONLY : IDTSALA,  IDTSALC 
       USE TRACERID_MOD, ONLY : IDTSOAG,  IDTSOAM,  IDTSOA5
+#if defined( DEVEL ) || defined( EXTERNAL_GRID ) || defined( EXTERNAL_FORCING )
+      USE GIGC_ErrCode_Mod
+      USE GIGC_Input_Opt_Mod, ONLY : OptInput
+#endif
 !
 ! !INPUT PARAMETERS:
 !
-      LOGICAL, INTENT(IN) :: am_I_Root   ! Is this the root CPU?
+      LOGICAL,        INTENT(IN)    :: am_I_Root   ! Is this the root CPU?
+#if defined( DEVEL ) || defined( EXTERNAL_GRID ) || defined( EXTERNAL_FORCING )
+!
+! !INPUT/OUTPUT PARAMETERS:
+!
+      TYPE(OptInput), INTENT(INOUT) :: Input_Opt   ! Input options
+!
+! !OUTPUT PARAMETERS:
+!
+      INTEGER,        INTENT(OUT)   :: RC          ! Success or failure
+#endif
 ! 
 ! !REVISION HISTORY: 
 !  20 Jul 2004 - R. Yantosca - Initial version
@@ -1524,6 +1555,7 @@
 !  27 Aug 2010 - R. Yantosca - Added ProTeX headers
 !  30 Jul 2012 - R. Yantosca - Now accept am_I_Root as an argument when
 !                              running with the traditional driver main.F
+!  01 Nov 2012 - R. Yantosca - Now pass Input_Opt, RC as arguments
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -1761,21 +1793,23 @@
 
 #if defined( DEVEL ) || defined( EXTERNAL_GRID ) || defined( EXTERNAL_FORCING )
       !=================================================================
-      ! Copy to the Input Options object
+      ! Set fields of Input Options object
       !=================================================================
-      Input_Opt%LSULF            = LSULF  
-      Input_Opt%LCRYST           = LCRYST
-      Input_Opt%LCARB            = LCARB
-      Input_Opt%LSOA             = LSOA 
-      Input_Opt%LDUST            = LDUST 
-      Input_Opt%LDEAD            = LDEAD
-      Input_Opt%LSSALT           = LSSALT
-      Input_Opt%LDICARB          = LDICARB  
-      ! Deal with these later
-      !Input_Opt%SALA_REDGE_um(T) = 
-      !Input_Opt%SALC_REDGE_um(T) = 
+      Input_Opt%LSULF              = LSULF  
+      Input_Opt%LCRYST             = LCRYST
+      Input_Opt%LCARB              = LCARB
+      Input_Opt%LSOA               = LSOA 
+      Input_Opt%LDUST              = LDUST 
+      Input_Opt%LDEAD              = LDEAD
+      Input_Opt%LSSALT             = LSSALT
+      Input_Opt%LDICARB            = LDICARB  
+      Input_Opt%SALA_REDGE_um(1:2) = SALA_REDGE_um(1:2)
+      Input_Opt%SALC_REDGE_um(1:2) = SALC_REDGE_um(1:2)
 
+      ! Return success
+      RC = GIGC_SUCCESS
 #endif
+
       !=================================================================
       ! Print to screen
       !=================================================================
@@ -2474,7 +2508,7 @@
 #if defined( DEVEL ) || defined( EXTERNAL_GRID ) || defined( EXTERNAL_FORCING )
 
       !=================================================================
-      ! Copy to Input Options object
+      ! Set fields of Input Options object
       !=================================================================
       Input_Opt%LEMIS          = LEMIS
       Input_Opt%TS_EMIS        = TS_EMIS
@@ -2526,7 +2560,11 @@
       Input_Opt%LSSABr2        = LSSABr2
       Input_Opt%LFIX_PBL_BRO   = LFIX_PBL_BRO
       Input_Opt%Br_SCALING     = Br_SCALING
-#endiF
+
+
+      ! Return success
+      RC = GIGC_SUCCESS
+#endif
 
       !=================================================================
       ! Initialization
@@ -2619,7 +2657,11 @@
 !\\
 ! !INTERFACE:
 !
+#if defined( DEVEL ) || defined( EXTERNAL_GRID ) || defined( EXTERNAL_FORCING )
+      SUBROUTINE READ_CO2_SIM_MENU( am_I_Root, Input_Opt, RC )
+#else
       SUBROUTINE READ_CO2_SIM_MENU( am_I_Root )
+#endif
 !
 ! !USES:
 !
@@ -2629,10 +2671,24 @@
 
       USE CMN_SIZE_MOD                   ! Size parameters
       USE CMN_O3_MOD                     ! FSCALYR
+#if defined( DEVEL ) || defined( EXTERNAL_GRID ) || defined( EXTERNAL_FORCING )
+      USE GIGC_ErrCode_Mod
+      USE GIGC_Input_Opt_Mod, ONLY : OptInput
+#endif
 !
 ! !INPUT PARAMETERS:
 !
-      LOGICAL, INTENT(IN) :: am_I_Root   ! Is this the root CPU?
+      LOGICAL,        INTENT(IN)    :: am_I_Root   ! Is this the root CPU?
+#if defined( DEVEL ) || defined( EXTERNAL_GRID ) || defined( EXTERNAL_FORCING )
+!
+! !INPUT/OUTPUT PARAMETERS:
+!
+      TYPE(OptInput), INTENT(INOUT) :: Input_Opt   ! Input options
+!
+! !OUTPUT PARAMETERS:
+!
+      INTEGER,        INTENT(OUT)   :: RC          ! Success or failure
+#endif
 ! 
 ! !REVISION HISTORY: 
 !  02 Mar 2009 - R. Nassar   - Initial version
@@ -2640,6 +2696,7 @@
 !  07 Sep 2011 - P. Kasibhatla - Modified for GFED3
 !  30 Jul 2012 - R. Yantosca - Now accept am_I_Root as an argument when
 !                              running with the traditional driver main.F
+!  01 Nov 2012 - R. Yantosca - Now pass Input_Opt, RC as arguments
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -2847,6 +2904,35 @@
            LSHIPEDG = .FALSE.
 	ENDIF
 
+#if defined( DEVEL ) || defined( EXTERNAL_GRID ) || defined( EXTERNAL_FORCING )
+      !=================================================================
+      ! Set fields of Input Options object
+      !=================================================================
+      Input_Opt%LGENFF      = LGENFF
+      Input_Opt%LANNFF      = LANNFF
+      Input_Opt%LMONFF      = LMONFF
+      Input_Opt%LCHEMCO2    = LCHEMCO2
+      Input_Opt%LSEASBB     = LSEASBB
+      Input_Opt%LGFED2BB    = LGFED2BB
+      Input_Opt%L8DAYBB     = L8DAYBB 
+      Input_Opt%LGFED3BB    = LGFED3BB
+      Input_Opt%LDAYBB3     = LDAYBB3
+      Input_Opt%LBIOFUEL    = LBIOFUEL
+      Input_Opt%LBIODAILY   = LBIODAILY
+      Input_Opt%LBIODIURNAL = LBIODIURNAL
+      Input_Opt%LBIONETORIG = LBIONETORIG
+      Input_Opt%LBIONETCLIM = LBIONETCLIM
+      Input_Opt%LOCN1997    = LOCN1997
+      Input_Opt%LOCN2009ANN = LOCN2009ANN
+      Input_Opt%LOCN2009MON = LOCN2009MON
+      Input_Opt%LSHIPEDG    = LSHIPEDG
+      Input_Opt%LSHIPICO    = LSHIPICO
+      Input_Opt%LPLANE      = LPLANE
+
+      ! Return success
+      RC = GIGC_SUCCESS
+#endif
+
       !=================================================================
       ! Print to screen
       !=================================================================
@@ -2910,24 +2996,44 @@
 !\\
 ! !INTERFACE:
 !
+#if defined( DEVEL ) || defined( EXTERNAL_GRID ) || defined( EXTERNAL_FORCING )
+      SUBROUTINE READ_FUTURE_MENU( am_I_Root, Input_Opt, RC )
+#else
       SUBROUTINE READ_FUTURE_MENU( am_I_Root )
+#endif
 !
 ! !USES:
 !
       USE FUTURE_EMISSIONS_MOD, ONLY : DO_FUTURE_EMISSIONS
       USE LOGICAL_MOD,          ONLY : LFUTURE
  
+#if defined( DEVEL ) || defined( EXTERNAL_GRID ) || defined( EXTERNAL_FORCING )
+      USE GIGC_ErrCode_Mod
+      USE GIGC_Input_Opt_Mod, ONLY : OptInput
+#endif
+
 #     include "define.h"             ! C-preprocessor switches
 !
 ! !INPUT PARAMETERS:
 !
-      LOGICAL, INTENT(IN) :: am_I_Root   ! Is this the root CPU?
+      LOGICAL,        INTENT(IN)    :: am_I_Root   ! Is this the root CPU?
+#if defined( DEVEL ) || defined( EXTERNAL_GRID ) || defined( EXTERNAL_FORCING )
+!
+! !INPUT/OUTPUT PARAMETERS:
+!
+      TYPE(OptInput), INTENT(INOUT) :: Input_Opt   ! Input options
+!
+! !OUTPUT PARAMETERS:
+!
+      INTEGER,        INTENT(OUT)   :: RC          ! Success or failure
+#endif
 ! 
 ! !REVISION HISTORY: 
 !  01 Jun 2006 - S. Wu       - Initial version
 !  27 Aug 2010 - R. Yantosca - Added ProTeX headers
 !  30 Jul 2012 - R. Yantosca - Now accept am_I_Root as an argument when
 !                              running with the traditional driver main.F
+!  01 Nov 2012 - R. Yantosca - Now pass Input_Opt, RC as arguments
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -2964,6 +3070,18 @@
       !### for the time being.  We will implement the future emissions for
       !### other met fields at a later date. (swu, bmy, 6/1/06)
       LFUTURE = .FALSE. 
+#endif
+
+#if defined( DEVEL ) || defined( EXTERNAL_GRID ) || defined( EXTERNAL_FORCING )
+      !=================================================================
+      ! Set fields of Input Options object
+      !=================================================================
+      Input_Opt%LFUTURE     = LFUTURE
+      Input_Opt%FUTURE_YEAR = FUTURE_YEAR
+      Input_Opt%FUTURE_SCEN = FUTURE_SCEN
+
+      ! Return success
+      RC = GIGC_SUCCESS
 #endif
 
       !=================================================================
@@ -3007,7 +3125,11 @@
 !\\
 ! !INTERFACE:
 !
+#if defined( DEVEL ) || defined( EXTERNAL_GRID ) || defined( EXTERNAL_FORCING )
+      SUBROUTINE READ_CHEMISTRY_MENU( am_I_Root, Input_Opt, RC )
+#else
       SUBROUTINE READ_CHEMISTRY_MENU( am_I_Root )
+#endif
 !
 ! !USES:
 !
@@ -3018,10 +3140,24 @@
       USE TRACER_MOD,  ONLY : N_TRACERS
 
       USE CMN_SIZE_MOD                   ! Size parameters
+#if defined( DEVEL ) || defined( EXTERNAL_GRID ) || defined( EXTERNAL_FORCING )
+      USE GIGC_ErrCode_Mod
+      USE GIGC_Input_Opt_Mod, ONLY : OptInput
+#endif
 !
 ! !INPUT PARAMETERS:
 !
-      LOGICAL, INTENT(IN) :: am_I_Root   ! Is this the root CPU?
+      LOGICAL,        INTENT(IN)    :: am_I_Root   ! Is this the root CPU?
+#if defined( DEVEL ) || defined( EXTERNAL_GRID ) || defined( EXTERNAL_FORCING )
+!
+! !INPUT/OUTPUT PARAMETERS:
+!
+      TYPE(OptInput), INTENT(INOUT) :: Input_Opt   ! Input options
+!
+! !OUTPUT PARAMETERS:
+!
+      INTEGER,        INTENT(OUT)   :: RC          ! Success or failure
+#endif
 ! 
 ! !REVISION HISTORY: 
 !  20 Jul 2004 - R. Yantosca - Initial version
@@ -3032,6 +3168,7 @@
 !  10 Jun 2012 - L. Murray   - Move all strat chemistry switches here
 !  30 Jul 2012 - R. Yantosca - Now accept am_I_Root as an argument when
 !                              running with the traditional driver main.F
+!  01 Nov 2012 - R. Yantosca - Now pass Input_Opt, RC as arguments
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -3078,6 +3215,21 @@
       ! Separator line
       CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_chemistry_menu:7' )
 
+#if defined( DEVEL ) || defined( EXTERNAL_GRID ) || defined( EXTERNAL_FORCING )
+      !=================================================================
+      ! Set fields of Input Options object
+      !=================================================================
+      Input_Opt%LCHEM    = LCHEM
+      Input_Opt%LSCHEM   = LSCHEM
+      Input_Opt%LLINOZ   = LLINOZ
+      Input_Opt%TS_CHEM  = TS_CHEM
+      Input_Opt%LSVCSPEC = LSVCSPEC
+      Input_Opt%LKPP     = LKPP
+
+      ! Return success
+      RC = GIGC_SUCCESS
+#endif
+
       !=================================================================
       ! Print to screen
       !=================================================================
@@ -3112,7 +3264,11 @@
 !\\
 ! !INTERFACE:
 !
+#if defined( DEVEL ) || defined( EXTERNAL_GRID ) || defined( EXTERNAL_FORCING )
+      SUBROUTINE READ_TRANSPORT_MENU( am_I_Root, Input_Opt, RC )
+#else
       SUBROUTINE READ_TRANSPORT_MENU( am_I_Root )
+#endif
 !
 ! !USES:
 !
@@ -3123,10 +3279,24 @@
 #if ! defined( ESMF_ )
       USE TRANSPORT_MOD, ONLY : SET_TRANSPORT
 #endif
+#if defined( DEVEL ) || defined( EXTERNAL_GRID ) || defined( EXTERNAL_FORCING )
+      USE GIGC_ErrCode_Mod
+      USE GIGC_Input_Opt_Mod, ONLY : OptInput
+#endif
 !
 ! !INPUT PARAMETERS:
 !
-      LOGICAL, INTENT(IN) :: am_I_Root   ! Is this the root CPU?
+      LOGICAL,        INTENT(IN)    :: am_I_Root   ! Is this the root CPU?
+#if defined( DEVEL ) || defined( EXTERNAL_GRID ) || defined( EXTERNAL_FORCING )
+!
+! !INPUT/OUTPUT PARAMETERS:
+!
+      TYPE(OptInput), INTENT(INOUT) :: Input_Opt   ! Input options
+!
+! !OUTPUT PARAMETERS:
+!
+      INTEGER,        INTENT(OUT)   :: RC          ! Success or failure
+#endif
 ! 
 ! !REVISION HISTORY: 
 !  20 Jul 2004 - R. Yantosca - Initial version
@@ -3140,6 +3310,7 @@
 !  10 Jun 2012 - L. Murray - Move strat to chemistry menu
 !  30 Jul 2012 - R. Yantosca - Now accept am_I_Root as an argument when
 !                              running with the traditional driver main.F
+!  01 Nov 2012 - R. Yantosca - Now pass Input_Opt, RC as arguments
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -3212,6 +3383,22 @@
          CALL ERROR_STOP( MSG, LOCATION )
       ENDIF
 
+#if defined( DEVEL ) || defined( EXTERNAL_GRID ) || defined( EXTERNAL_FORCING )
+      !=================================================================
+      ! Set fields of Input Options object
+      !=================================================================
+      Input_Opt%LTRAN       = LTRAN
+      Input_Opt%LMFCT       = LMFCT
+      Input_Opt%LFILL       = LFILL
+      Input_Opt%TPCORE_IORD = IORD
+      Input_Opt%TPCORE_JORD = JORD
+      Input_Opt%TPCORE_KORD = KORD
+      Input_Opt%TS_DYN      = TS_DYN
+
+      ! Return success
+      RC = GIGC_SUCCESS
+#endif
+
       !=================================================================
       ! Print to screen
       !=================================================================
@@ -3254,17 +3441,35 @@
 !\\
 ! !INTERFACE:
 !
+#if defined( DEVEL ) || defined( EXTERNAL_GRID ) || defined( EXTERNAL_FORCING )
+      SUBROUTINE READ_CONVECTION_MENU( am_I_Root, Input_Opt, RC )
+#else
       SUBROUTINE READ_CONVECTION_MENU( am_I_Root )
+#endif
 !
 ! !USES:
 !
       USE ERROR_MOD,   ONLY : ERROR_STOP
       USE LOGICAL_MOD, ONLY : LCONV, LTURB
       USE LOGICAL_MOD, ONLY : LNLPBL        ! (Lin, 03/31/09)
+#if defined( DEVEL ) || defined( EXTERNAL_GRID ) || defined( EXTERNAL_FORCING )
+      USE GIGC_ErrCode_Mod
+      USE GIGC_Input_Opt_Mod, ONLY : OptInput
+#endif
 !
 ! !INPUT PARAMETERS:
 !
-      LOGICAL, INTENT(IN) :: am_I_Root   ! Is this the root CPU?
+      LOGICAL,        INTENT(IN)    :: am_I_Root   ! Is this the root CPU?
+#if defined( DEVEL ) || defined( EXTERNAL_GRID ) || defined( EXTERNAL_FORCING )
+!
+! !INPUT/OUTPUT PARAMETERS:
+!
+      TYPE(OptInput), INTENT(INOUT) :: Input_Opt   ! Input options
+!
+! !OUTPUT PARAMETERS:
+!
+      INTEGER,        INTENT(OUT)   :: RC          ! Success or failure
+#endif
 ! 
 ! !REVISION HISTORY: 
 !  20 Jul 2004 - R. Yantosca - Initial version
@@ -3277,6 +3482,7 @@
 !                              been !defined( GEOS_57 ) )
 !  30 Jul 2012 - R. Yantosca - Now accept am_I_Root as an argument when
 !                              running with the traditional driver main.F
+!  01 Nov 2012 - R. Yantosca - Now pass Input_Opt, RC as arguments
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -3329,6 +3535,19 @@
       ENDIF
 #endif
 
+#if defined( DEVEL ) || defined( EXTERNAL_GRID ) || defined( EXTERNAL_FORCING )
+      !=================================================================
+      ! Set fields of Input Options object
+      !=================================================================
+      Input_Opt%LCONV   = LCONV
+      Input_Opt%LTURB   = LTURB
+      Input_Opt%LNLPBL  = LNLPBL
+      Input_Opt%TS_CONV = TS_CONV
+
+      ! Return success
+      RC = GIGC_SUCCESS
+#endif
+
       !=================================================================
       ! Print to screen
       !=================================================================
@@ -3360,7 +3579,11 @@
 !\\
 ! !INTERFACE:
 !
+#if defined( DEVEL ) || defined( EXTERNAL_GRID ) || defined( EXTERNAL_FORCING )
+      SUBROUTINE READ_DEPOSITION_MENU( am_I_Root, Input_Opt, RC )
+#else
       SUBROUTINE READ_DEPOSITION_MENU( am_I_Root )
+#endif
 !
 ! !USES:
 !
@@ -3377,10 +3600,24 @@
 #if   defined( APM )
       USE APM_WETS_MOD, ONLY : WETDEPBINID
 #endif
+#if defined( DEVEL ) || defined( EXTERNAL_GRID ) || defined( EXTERNAL_FORCING )
+      USE GIGC_ErrCode_Mod
+      USE GIGC_Input_Opt_Mod, ONLY : OptInput
+#endif
 !
 ! !INPUT PARAMETERS:
 !
-      LOGICAL, INTENT(IN) :: am_I_Root   ! Is this the root CPU?
+      LOGICAL,        INTENT(IN)    :: am_I_Root   ! Is this the root CPU?
+#if defined( DEVEL ) || defined( EXTERNAL_GRID ) || defined( EXTERNAL_FORCING )
+!
+! !INPUT/OUTPUT PARAMETERS:
+!
+      TYPE(OptInput), INTENT(INOUT) :: Input_Opt   ! Input options
+!
+! !OUTPUT PARAMETERS:
+!
+      INTEGER,        INTENT(OUT)   :: RC          ! Success or failure
+#endif
 ! 
 ! !REVISION HISTORY: 
 !  20 Jul 2004 - R. Yantosca - Initial version
@@ -3394,6 +3631,7 @@
 !  31 Jul 2012 - R. Yantosca - Now pass am_I_Root to INIT_DRYDEP
 !  30 Jul 2012 - R. Yantosca - Now accept am_I_Root as an argument when
 !                              running with the traditional driver main.F
+!  01 Nov 2012 - R. Yantosca - Now pass Input_Opt, RC as arguments
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -3439,6 +3677,17 @@
       IF ( ITS_A_TAGCO_SIM()   ) LWETD = .FALSE.
       IF ( ITS_A_C2H6_SIM()    ) LWETD = .FALSE.
       IF ( ITS_A_CH4_SIM()     ) LWETD = .FALSE.
+
+#if defined( DEVEL ) || defined( EXTERNAL_GRID ) || defined( EXTERNAL_FORCING )
+      !=================================================================
+      ! Set fields of Input Options object
+      !=================================================================
+      Input_Opt%LDRYD = LDRYD
+      Input_Opt%LWETD = LWETD
+
+      ! Return success
+      RC = GIGC_SUCCESS
+#endif
 
       !=================================================================
       ! Print to screen
@@ -3502,17 +3751,39 @@
 !\\
 ! !INTERFACE:
 !
+#if defined( DEVEL ) || defined( EXTERNAL_GRID ) || defined( EXTERNAL_FORCING )
+      SUBROUTINE READ_GAMAP_MENU( am_I_Root, Input_Opt, RC )
+#else
       SUBROUTINE READ_GAMAP_MENU( am_I_Root )
+#endif
+!
+! !USES:
+!
+#if defined( DEVEL ) || defined( EXTERNAL_GRID ) || defined( EXTERNAL_FORCING )
+      USE GIGC_ErrCode_Mod
+      USE GIGC_Input_Opt_Mod, ONLY : OptInput
+#endif
 !
 ! !INPUT PARAMETERS:
 !
-      LOGICAL, INTENT(IN) :: am_I_Root   ! Is this the root CPU?
+      LOGICAL,        INTENT(IN)    :: am_I_Root   ! Is this the root CPU?
+#if defined( DEVEL ) || defined( EXTERNAL_GRID ) || defined( EXTERNAL_FORCING )
+!
+! !INPUT/OUTPUT PARAMETERS:
+!
+      TYPE(OptInput), INTENT(INOUT) :: Input_Opt   ! Input options
+!
+! !OUTPUT PARAMETERS:
+!
+      INTEGER,        INTENT(OUT)   :: RC          ! Success or failure
+#endif
 ! 
 ! !REVISION HISTORY: 
 !  25 Apr 2005 - R. Yantosca - Initial version
 !  27 Aug 2010 - R. Yantosca - Added ProTeX headers
 !  30 Jul 2012 - R. Yantosca - Now accept am_I_Root as an argument when
 !                              running with the traditional driver main.F
+!  01 Nov 2012 - R. Yantosca - Now pass Input_Opt, RC as arguments
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -3537,6 +3808,17 @@
 
       ! Separator line
       CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_gamap_menu:3' )
+
+#if defined( DEVEL ) || defined( EXTERNAL_GRID ) || defined( EXTERNAL_FORCING )
+      !=================================================================
+      ! Set fields of Input Options object
+      !=================================================================
+      Input_Opt%GAMAP_DIAGINFO   = DIAGINFO
+      Input_Opt%GAMAP_TRACERINFO = TRACERINFO
+
+      ! Return success
+      RC = GIGC_SUCCESS
+#endif
 
       !=================================================================
       ! Print to screen
@@ -3565,7 +3847,11 @@
 !\\
 ! !INTERFACE:
 !
+#if defined( DEVEL ) || defined( EXTERNAL_GRID ) || defined( EXTERNAL_FORCING )
+      SUBROUTINE READ_OUTPUT_MENU( am_I_Root, Input_Opt, RC )
+#else
       SUBROUTINE READ_OUTPUT_MENU( am_I_Root )
+#endif
 !
 ! !USES:
 !
@@ -3573,10 +3859,24 @@
       
       USE CMN_SIZE_MOD   ! Size parameters
       USE CMN_DIAG_MOD   ! NJDAY
+#if defined( DEVEL ) || defined( EXTERNAL_GRID ) || defined( EXTERNAL_FORCING )
+      USE GIGC_ErrCode_Mod
+      USE GIGC_Input_Opt_Mod, ONLY : OptInput
+#endif
 !
 ! !INPUT PARAMETERS:
 !
-      LOGICAL, INTENT(IN) :: am_I_Root   ! Is this the root CPU?
+      LOGICAL,        INTENT(IN)    :: am_I_Root   ! Is this the root CPU?
+#if defined( DEVEL ) || defined( EXTERNAL_GRID ) || defined( EXTERNAL_FORCING )
+!
+! !INPUT/OUTPUT PARAMETERS:
+!
+      TYPE(OptInput), INTENT(INOUT) :: Input_Opt   ! Input options
+!
+! !OUTPUT PARAMETERS:
+!
+      INTEGER,        INTENT(OUT)   :: RC          ! Success or failure
+#endif
 ! 
 ! !REVISION HISTORY: 
 !  20 Jul 2004 - R. Yantosca - Initial version
@@ -3584,6 +3884,7 @@
 !  30 Jul 2012 - R. Yantosca - Now accept am_I_Root as an argument when
 !                              running with the traditional driver main.F
 !  03 Aug 2012 - R. Yantosca - IU_GEOS is now a global module variable
+!  01 Nov 2012 - R. Yantosca - Now pass Input_Opt, RC as arguments
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -3602,6 +3903,16 @@
 
       ! Error check
       IF ( IOS /= 0 ) CALL IOERROR( IOS, IU_GEOS, 'read_output_menu:1' )
+
+#if defined( DEVEL ) || defined( EXTERNAL_GRID ) || defined( EXTERNAL_FORCING )
+      !=================================================================
+      ! Set fields of Input Options object
+      !=================================================================
+      Input_Opt%NJDAY = NJDAY
+      
+      ! Return success
+      RC = GIGC_SUCCESS
+#endif
 
       !=================================================================
       ! Print to screen
@@ -3642,7 +3953,11 @@
 !\\
 ! !INTERFACE:
 !
+#if defined( DEVEL ) || defined( EXTERNAL_GRID ) || defined( EXTERNAL_FORCING )
+      SUBROUTINE READ_DIAGNOSTIC_MENU( am_I_Root, Input_Opt, RC )
+#else
       SUBROUTINE READ_DIAGNOSTIC_MENU( am_I_Root )
+#endif
 !
 ! !USES:
 !
@@ -3672,10 +3987,24 @@
 
       USE CMN_SIZE_MOD       ! Size parameters
       USE CMN_DIAG_MOD       ! NDxx flags
+#if defined( DEVEL ) || defined( EXTERNAL_GRID ) || defined( EXTERNAL_FORCING )
+      USE GIGC_ErrCode_Mod
+      USE GIGC_Input_Opt_Mod, ONLY : OptInput
+#endif
 !
 ! !INPUT PARAMETERS:
 !
-      LOGICAL, INTENT(IN) :: am_I_Root   ! Is this the root CPU?
+      LOGICAL,        INTENT(IN)    :: am_I_Root   ! Is this the root CPU?
+#if defined( DEVEL ) || defined( EXTERNAL_GRID ) || defined( EXTERNAL_FORCING )
+!
+! !INPUT/OUTPUT PARAMETERS:
+!
+      TYPE(OptInput), INTENT(INOUT) :: Input_Opt   ! Input options
+!
+! !OUTPUT PARAMETERS:
+!
+      INTEGER,        INTENT(OUT)   :: RC          ! Success or failure
+#endif
 !
 ! !REVISION HISTORY: 
 !  20 Jul 2004 - R. Yantosca - Initial version
@@ -3708,6 +4037,7 @@
 !                              with indices higher than #32 won't print out.
 !  30 Jul 2012 - R. Yantosca - Now accept am_I_Root as an argument when
 !                              running with the traditional driver main.F
+!  01 Nov 2012 - R. Yantosca - Now pass Input_Opt, RC as arguments
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -4404,7 +4734,11 @@
 !\\
 ! !INTERFACE:
 !
+#if defined( DEVEL ) || defined( EXTERNAL_GRID ) || defined( EXTERNAL_FORCING )
+      SUBROUTINE READ_PLANEFLIGHT_MENU( am_I_Root, Input_Opt, RC )
+#else
       SUBROUTINE READ_PLANEFLIGHT_MENU( am_I_Root )
+#endif
 !
 ! !USES:
 !
@@ -4413,16 +4747,31 @@
 
       USE CMN_SIZE_MOD                   ! MAXFAM
       USE CMN_DIAG_MOD                   ! ND40
+#if defined( DEVEL ) || defined( EXTERNAL_GRID ) || defined( EXTERNAL_FORCING )
+      USE GIGC_ErrCode_Mod
+      USE GIGC_Input_Opt_Mod, ONLY : OptInput
+#endif
 !
 ! !INPUT PARAMETERS:
 !
-      LOGICAL, INTENT(IN) :: am_I_Root   ! Is this the root CPU?
+      LOGICAL,        INTENT(IN)    :: am_I_Root   ! Is this the root CPU?
+#if defined( DEVEL ) || defined( EXTERNAL_GRID ) || defined( EXTERNAL_FORCING )
+!
+! !INPUT/OUTPUT PARAMETERS:
+!
+      TYPE(OptInput), INTENT(INOUT) :: Input_Opt   ! Input options
+!
+! !OUTPUT PARAMETERS:
+!
+      INTEGER,        INTENT(OUT)   :: RC          ! Success or failure
+#endif
 ! 
 ! !REVISION HISTORY: 
 !  20 Jul 2004 - R. Yantosca - Initial version
 !  27 Aug 2010 - R. Yantosca - Added ProTeX headers
 !  30 Jul 2012 - R. Yantosca - Now accept am_I_Root as an argument when
 !                              running with the traditional driver main.F
+!  01 Nov 2012 - R. Yantosca - Now pass Input_Opt, RC as arguments
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -4466,6 +4815,18 @@
       CALL SPLIT_ONE_LINE( SUBSTRS, N, 1,  'read_planeflight_menu:3' )
       READ( SUBSTRS(1:N), '(a)' ) OFILE
 
+#if defined( DEVEL ) || defined( EXTERNAL_GRID ) || defined( EXTERNAL_FORCING )
+      !=================================================================
+      ! Set fields of Input Options object
+      !=================================================================
+      Input_Opt%DO_PF    = DO_PF
+      Input_Opt%PF_IFILE = IFILE
+      Input_Opt%PF_OFILE = OFILE
+
+      ! Return success
+      RC = GIGC_SUCCESS
+#endif
+
       !=================================================================
       ! Print to screen
       !=================================================================
@@ -4503,16 +4864,34 @@
 !\\
 ! !INTERFACE:
 !
+#if defined( DEVEL ) || defined( EXTERNAL_GRID ) || defined( EXTERNAL_FORCING )
+      SUBROUTINE READ_ND48_MENU( am_I_Root, Input_Opt, RC )
+#else
       SUBROUTINE READ_ND48_MENU( am_I_Root )
+#endif
 !
 ! !USES:
 !
       USE DIAG48_MOD, ONLY : INIT_DIAG48, ND48_MAX_STATIONS
       USE ERROR_MOD,  ONLY : ERROR_STOP
+#if defined( DEVEL ) || defined( EXTERNAL_GRID ) || defined( EXTERNAL_FORCING )
+      USE GIGC_ErrCode_Mod
+      USE GIGC_Input_Opt_Mod, ONLY : OptInput
+#endif
 !
 ! !INPUT PARAMETERS:
 !
-      LOGICAL, INTENT(IN) :: am_I_Root   ! Is this the root CPU?
+      LOGICAL,        INTENT(IN)    :: am_I_Root   ! Is this the root CPU?
+#if defined( DEVEL ) || defined( EXTERNAL_GRID ) || defined( EXTERNAL_FORCING )
+!
+! !INPUT/OUTPUT PARAMETERS:
+!
+      TYPE(OptInput), INTENT(INOUT) :: Input_Opt   ! Input options
+!
+! !OUTPUT PARAMETERS:
+!
+      INTEGER,        INTENT(OUT)   :: RC          ! Success or failure
+#endif
 ! 
 ! !REVISION HISTORY: 
 !  20 Jul 2004 - R. Yantosca - Initial version
@@ -4520,6 +4899,7 @@
 !  27 Aug 2010 - R. Yantosca - Added ProTeX headers
 !  30 Jul 2012 - R. Yantosca - Now accept am_I_Root as an argument when
 !                              running with the traditional driver main.F
+!  01 Nov 2012 - R. Yantosca - Now pass Input_Opt, RC as arguments
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -4579,6 +4959,23 @@
          READ( SUBSTRS(4), * ) NARR(S) 
       ENDDO
 
+#if defined( DEVEL ) || defined( EXTERNAL_GRID ) || defined( EXTERNAL_FORCING )
+      !=================================================================
+      ! Set fields of Input Options object
+      !=================================================================
+      Input_Opt%DO_ND48            = DO_ND48
+      Input_Opt%ND48_FILE          = FILE
+      Input_Opt%ND48_FREQ          = FREQ
+      Input_Opt%ND48_N_STA         = N_STA
+      Input_Opt%ND48_IARR(1:N_STA) = IARR(1:N_STA)
+      Input_Opt%ND48_JARR(1:N_STA) = JARR(1:N_STA)
+      Input_Opt%ND48_LARR(1:N_STA) = LARR(1:N_STA)
+      Input_Opt%ND48_NARR(1:N_STA) = NARR(1:N_STA)
+
+      ! Return success
+      RC = GIGC_SUCCESS
+#endif
+
       !=================================================================
       ! Print to screen
       !=================================================================
@@ -4623,7 +5020,11 @@
 !\\
 ! !INTERFACE:
 !
+#if defined( DEVEL ) || defined( EXTERNAL_GRID ) || defined( EXTERNAL_FORCING )
+      SUBROUTINE READ_ND49_MENU( am_I_Root, Input_Opt, RC )
+#else
       SUBROUTINE READ_ND49_MENU( am_I_Root )
+#endif
 !
 ! !USES:
 !
@@ -4631,16 +5032,31 @@
       USE ERROR_MOD,  ONLY : ERROR_STOP
 
       USE CMN_SIZE_MOD     ! Size parameters
+#if defined( DEVEL ) || defined( EXTERNAL_GRID ) || defined( EXTERNAL_FORCING )
+      USE GIGC_ErrCode_Mod
+      USE GIGC_Input_Opt_Mod, ONLY : OptInput
+#endif
 !
 ! !INPUT PARAMETERS:
 !
-      LOGICAL, INTENT(IN) :: am_I_Root   ! Is this the root CPU?
+      LOGICAL,        INTENT(IN)    :: am_I_Root   ! Is this the root CPU?
+#if defined( DEVEL ) || defined( EXTERNAL_GRID ) || defined( EXTERNAL_FORCING )
+!
+! !INPUT/OUTPUT PARAMETERS:
+!
+      TYPE(OptInput), INTENT(INOUT) :: Input_Opt   ! Input options
+!
+! !OUTPUT PARAMETERS:
+!
+      INTEGER,        INTENT(OUT)   :: RC          ! Success or failure
+#endif
 ! 
 ! !REVISION HISTORY: 
 !  20 Jul 2004 - R. Yantosca - Initial version
 !  27 Aug 2010 - R. Yantosca - Added ProTeX headers
 !  30 Jul 2012 - R. Yantosca - Now accept am_I_Root as an argument when
 !                              running with the traditional driver main.F
+!  01 Nov 2012 - R. Yantosca - Now pass Input_Opt, RC as arguments
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -4704,6 +5120,26 @@
       ! Separator line
       CALL SPLIT_ONE_LINE( SUBSTRS, N, 1,  'read_nd49_menu:8' )
 
+
+#if defined( DEVEL ) || defined( EXTERNAL_GRID ) || defined( EXTERNAL_FORCING )
+      !=================================================================
+      ! Set fields of Input Options object
+      !=================================================================
+      Input_Opt%DO_ND49                = DO_ND49
+      Input_Opt%ND49_FILE              = FILE
+      Input_Opt%ND49_TRACERS(1:N_ND49) = TRACERS(1:N_ND49)
+      Input_Opt%ND49_FREQ              = FREQ
+      Input_Opt%ND49_IMIN              = IMIN
+      Input_Opt%ND49_IMAX              = IMAX
+      Input_Opt%ND49_JMIN              = JMIN
+      Input_Opt%ND49_JMAX              = JMAX
+      Input_Opt%ND49_LMIN              = LMIN
+      Input_Opt%ND49_LMAX              = LMAX
+
+      ! Return success
+      RC = GIGC_SUCCESS
+#endif
+
       !=================================================================
       ! Print to screen
       !=================================================================
@@ -4750,17 +5186,35 @@
 !\\
 ! !INTERFACE:
 !
+#if defined( DEVEL ) || defined( EXTERNAL_GRID ) || defined( EXTERNAL_FORCING )
+      SUBROUTINE READ_ND50_MENU( am_I_Root, Input_Opt, RC )
+#else
       SUBROUTINE READ_ND50_MENU( am_I_Root )
+#endif
 !
 ! !USES:
 !
       USE DIAG50_MOD,  ONLY : INIT_DIAG50
       USE ERROR_MOD,   ONLY : ERROR_STOP
       USE LOGICAL_MOD, ONLY : LND50_HDF
+#if defined( DEVEL ) || defined( EXTERNAL_GRID ) || defined( EXTERNAL_FORCING )
+      USE GIGC_ErrCode_Mod
+      USE GIGC_Input_Opt_Mod, ONLY : OptInput
+#endif
 !
 ! !INPUT PARAMETERS:
 !
-      LOGICAL, INTENT(IN) :: am_I_Root   ! Is this the root CPU?
+      LOGICAL,        INTENT(IN)    :: am_I_Root   ! Is this the root CPU?
+#if defined( DEVEL ) || defined( EXTERNAL_GRID ) || defined( EXTERNAL_FORCING )
+!
+! !INPUT/OUTPUT PARAMETERS:
+!
+      TYPE(OptInput), INTENT(INOUT) :: Input_Opt   ! Input options
+!
+! !OUTPUT PARAMETERS:
+!
+      INTEGER,        INTENT(OUT)   :: RC          ! Success or failure
+#endif
 ! 
 ! !REVISION HISTORY: 
 !  20 Jul 2004 - R. Yantosca - Initial version
@@ -4770,6 +5224,7 @@
 !  27 Aug 2010 - R. Yantosca - Added ProTeX headers
 !  30 Jul 2012 - R. Yantosca - Now accept am_I_Root as an argument when
 !                              running with the traditional driver main.F
+!  01 Nov 2012 - R. Yantosca - Now pass Input_Opt, RC as arguments
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -4836,6 +5291,25 @@
       ! Separator line
       CALL SPLIT_ONE_LINE( SUBSTRS, N, 1,  'read_nd50_menu:8' )
 
+#if defined( DEVEL ) || defined( EXTERNAL_GRID ) || defined( EXTERNAL_FORCING )
+      !=================================================================
+      ! Set fields of Input Options object
+      !=================================================================
+      Input_Opt%DO_ND50                = DO_ND50
+      Input_Opt%ND50_FILE              = FILE
+      Input_Opt%LND50_HDF              = LND50_HDF
+      Input_Opt%ND50_TRACERS(1:N_ND50) = TRACERS(1:N_ND50)
+      Input_Opt%ND50_IMIN              = IMIN
+      Input_Opt%ND50_IMAX              = IMAX
+      Input_Opt%ND50_JMIN              = JMIN
+      Input_Opt%ND50_JMAX              = JMAX
+      Input_Opt%ND50_LMIN              = LMIN
+      Input_Opt%ND50_LMAX              = LMAX
+
+      ! Return success
+      RC = GIGC_SUCCESS
+#endif
+
       !=================================================================
       ! Print to screen
       !=================================================================
@@ -4881,7 +5355,11 @@
 !\\
 ! !INTERFACE:
 !
+#if defined( DEVEL ) || defined( EXTERNAL_GRID ) || defined( EXTERNAL_FORCING )
+      SUBROUTINE READ_ND51_MENU( am_I_Root, Input_Opt, RC )
+#else
       SUBROUTINE READ_ND51_MENU( am_I_Root )
+#endif
 !
 ! !USES:
 !
@@ -4891,10 +5369,24 @@
 
       USE CMN_SIZE_MOD      ! Size parameters
       USE CMN_DIAG_MOD      ! NDxx flags
+#if defined( DEVEL ) || defined( EXTERNAL_GRID ) || defined( EXTERNAL_FORCING )
+      USE GIGC_ErrCode_Mod
+      USE GIGC_Input_Opt_Mod, ONLY : OptInput
+#endif
 !
 ! !INPUT PARAMETERS:
 !
-      LOGICAL, INTENT(IN) :: am_I_Root   ! Is this the root CPU?
+      LOGICAL,        INTENT(IN)    :: am_I_Root   ! Is this the root CPU?
+#if defined( DEVEL ) || defined( EXTERNAL_GRID ) || defined( EXTERNAL_FORCING )
+!
+! !INPUT/OUTPUT PARAMETERS:
+!
+      TYPE(OptInput), INTENT(INOUT) :: Input_Opt   ! Input options
+!
+! !OUTPUT PARAMETERS:
+!
+      INTEGER,        INTENT(OUT)   :: RC          ! Success or failure
+#endif
 ! 
 ! !REVISION HISTORY: 
 !  20 Jul 2004 - R. Yantosca - Initial version
@@ -4904,6 +5396,7 @@
 !  27 Aug 2010 - R. Yantosca - Added ProTeX headers
 !  30 Jul 2012 - R. Yantosca - Now accept am_I_Root as an argument when
 !                              running with the traditional driver main.F
+!  01 Nov 2012 - R. Yantosca - Now pass Input_Opt, RC as arguments
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -4980,6 +5473,28 @@
       ! Separator line
       CALL SPLIT_ONE_LINE( SUBSTRS, N, 1,  'read_nd51_menu:11' )
 
+#if defined( DEVEL ) || defined( EXTERNAL_GRID ) || defined( EXTERNAL_FORCING )
+      !=================================================================
+      ! Set fields of Input Options object
+      !=================================================================
+      Input_Opt%DO_ND51                = DO_ND51
+      Input_Opt%ND51_FILE              = FILE
+      Input_Opt%LND51_HDF              = LND51_HDF
+      Input_Opt%ND51_TRACERS(1:N_ND51) = TRACERS(1:N_ND51)
+      Input_Opt%ND51_HR_WRITE          = HR_WRITE
+      Input_Opt%ND51_HR1               = HR1 
+      Input_Opt%ND51_HR2               = HR2
+      Input_Opt%ND51_IMIN              = IMIN
+      Input_Opt%ND51_IMAX              = IMAX
+      Input_Opt%ND51_JMIN              = JMIN
+      Input_Opt%ND51_JMAX              = JMAX
+      Input_Opt%ND51_LMIN              = LMIN
+      Input_Opt%ND51_LMAX              = LMAX
+
+      ! Return success
+      RC = GIGC_SUCCESS
+#endif
+
       !=================================================================
       ! Print to screen
       !=================================================================
@@ -5029,7 +5544,11 @@
 !\\
 ! !INTERFACE:
 !
+#if defined( DEVEL ) || defined( EXTERNAL_GRID ) || defined( EXTERNAL_FORCING )
+      SUBROUTINE READ_ND51b_MENU( am_I_Root, Input_Opt, RC )
+#else
       SUBROUTINE READ_ND51b_MENU( am_I_Root )
+#endif
 !
 ! !USES:
 !
@@ -5039,16 +5558,31 @@
 
       USE CMN_SIZE_MOD      ! Size parameters
       USE CMN_DIAG_MOD      ! NDxx flags
+#if defined( DEVEL ) || defined( EXTERNAL_GRID ) || defined( EXTERNAL_FORCING )
+      USE GIGC_ErrCode_Mod
+      USE GIGC_Input_Opt_Mod, ONLY : OptInput
+#endif
 !
 ! !INPUT PARAMETERS:
 !
-      LOGICAL, INTENT(IN) :: am_I_Root   ! Is this the root CPU?
-! 
+      LOGICAL,        INTENT(IN)    :: am_I_Root   ! Is this the root CPU?
+#if defined( DEVEL ) || defined( EXTERNAL_GRID ) || defined( EXTERNAL_FORCING )
+!
+! !INPUT/OUTPUT PARAMETERS:
+!
+      TYPE(OptInput), INTENT(INOUT) :: Input_Opt   ! Input options
+!
+! !OUTPUT PARAMETERS:
+!
+      INTEGER,        INTENT(OUT)   :: RC          ! Success or failure
+#endif
+!
 ! !REVISION HISTORY: 
 !  21 Dec 2009 - Aaron van D - Initial version
 !  27 Aug 2010 - R. Yantosca - Added ProTeX headers
 !  30 Jul 2012 - R. Yantosca - Now accept am_I_Root as an argument when
 !                              running with the traditional driver main.F
+!  01 Nov 2012 - R. Yantosca - Now pass Input_Opt, RC as arguments
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -5125,6 +5659,28 @@
       ! Separator line
       CALL SPLIT_ONE_LINE( SUBSTRS, N, 1,  'read_nd51b_menu:10' )
 
+#if defined( DEVEL ) || defined( EXTERNAL_GRID ) || defined( EXTERNAL_FORCING )
+      !=================================================================
+      ! Set fields of Input Options object
+      !=================================================================
+      Input_Opt%DO_ND51b                 = DO_ND51
+      Input_Opt%ND51b_FILE               = FILE
+      Input_Opt%LND51b_HDF               = LND51b_HDF
+      Input_Opt%ND51b_TRACERS(1:N_ND51)  = TRACERS(1:N_ND51)
+      Input_Opt%ND51b_HR_WRITE           = HR_WRITE
+      Input_Opt%ND51b_HR1                = HR1 
+      Input_Opt%ND51b_HR2                = HR2
+      Input_Opt%ND51b_IMIN               = IMIN
+      Input_Opt%ND51b_IMAX               = IMAX
+      Input_Opt%ND51b_JMIN               = JMIN
+      Input_Opt%ND51b_JMAX               = JMAX
+      Input_Opt%ND51b_LMIN               = LMIN
+      Input_Opt%ND51b_LMAX               = LMAX
+
+      ! Return success
+      RC = GIGC_SUCCESS
+#endif
+
       !=================================================================
       ! Print to screen
       !=================================================================
@@ -5174,7 +5730,11 @@
 !\\
 ! !INTERFACE:
 !
+#if defined( DEVEL ) || defined( EXTERNAL_GRID ) || defined( EXTERNAL_FORCING )
+      SUBROUTINE READ_ND63_MENU( am_I_Root, Input_Opt, RC )
+#else
       SUBROUTINE READ_ND63_MENU( am_I_Root )
+#endif
 !
 ! !USES:
 !
@@ -5182,10 +5742,24 @@
       USE ERROR_MOD,  ONLY : ERROR_STOP
 
       USE CMN_SIZE_MOD     ! Size parameters
+#if defined( DEVEL ) || defined( EXTERNAL_GRID ) || defined( EXTERNAL_FORCING )
+      USE GIGC_ErrCode_Mod
+      USE GIGC_Input_Opt_Mod, ONLY : OptInput
+#endif
 !
 ! !INPUT PARAMETERS:
 !
-      LOGICAL, INTENT(IN) :: am_I_Root   ! Is this the root CPU?
+      LOGICAL,        INTENT(IN)    :: am_I_Root   ! Is this the root CPU?
+#if defined( DEVEL ) || defined( EXTERNAL_GRID ) || defined( EXTERNAL_FORCING )
+!
+! !INPUT/OUTPUT PARAMETERS:
+!
+      TYPE(OptInput), INTENT(INOUT) :: Input_Opt   ! Input options
+!
+! !OUTPUT PARAMETERS:
+!
+      INTEGER,        INTENT(OUT)   :: RC          ! Success or failure
+#endif
 ! 
 ! !REVISION HISTORY:
 !  25 Feb 2011 - G. Vinken   - Initial version
@@ -5194,6 +5768,7 @@
 !                              READ_ND63 MENU. ND59 is used by TOMAS.
 !  30 Jul 2012 - R. Yantosca - Now accept am_I_Root as an argument when
 !                              running with the traditional driver main.F
+!  01 Nov 2012 - R. Yantosca - Now pass Input_Opt, RC as arguments
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -5251,6 +5826,23 @@
       ! Separator line
       CALL SPLIT_ONE_LINE( SUBSTRS, N, 1,  'read_nd63_menu:8' )
 
+#if defined( DEVEL ) || defined( EXTERNAL_GRID ) || defined( EXTERNAL_FORCING )
+      !=================================================================
+      ! Set fields of Input Options object
+      !=================================================================
+      Input_Opt%DO_ND63              = DO_ND63
+      Input_Opt%ND63_FILE            = FILE
+      Input_Opt%ND63_TRACERS(1:ND63) = TRACERS(1:N_ND63)
+      Input_Opt%ND63_FREQ            = FREQ
+      Input_Opt%ND63_IMIN            = IMIN
+      Input_Opt%ND63_IMAX            = IMAX
+      Input_Opt%ND63_JMIN            = JMIN
+      Input_Opt%ND63_JMAX            = JMAX
+
+      ! Return success
+      RC = GIGC_SUCCESS
+#endif
+
       !=================================================================
       ! Print to screen
       !=================================================================
@@ -5295,7 +5887,11 @@
 !\\
 ! !INTERFACE:
 !
+#if defined( DEVEL ) || defined( EXTERNAL_GRID ) || defined( EXTERNAL_FORCING )
+      SUBROUTINE READ_PROD_LOSS_MENU( am_I_Root, Input_Opt, RC )
+#else
       SUBROUTINE READ_PROD_LOSS_MENU( am_I_Root )
+#endif
 !
 ! !USES:
 !
@@ -5308,10 +5904,24 @@
 
       USE CMN_SIZE_MOD      ! MAXFAM
       USE CMN_DIAG_MOD      ! ND65
+#if defined( DEVEL ) || defined( EXTERNAL_GRID ) || defined( EXTERNAL_FORCING )
+      USE GIGC_ErrCode_Mod
+      USE GIGC_Input_Opt_Mod, ONLY : OptInput
+#endif
 !
 ! !INPUT PARAMETERS:
 !
-      LOGICAL, INTENT(IN) :: am_I_Root   ! Is this the root CPU?
+      LOGICAL,        INTENT(IN)    :: am_I_Root   ! Is this the root CPU?
+#if defined( DEVEL ) || defined( EXTERNAL_GRID ) || defined( EXTERNAL_FORCING )
+!
+! !INPUT/OUTPUT PARAMETERS:
+!
+      TYPE(OptInput), INTENT(INOUT) :: Input_Opt   ! Input options
+!
+! !OUTPUT PARAMETERS:
+!
+      INTEGER,        INTENT(OUT)   :: RC          ! Success or failure
+#endif
 ! 
 ! !REVISION HISTORY: 
 !  20 Jul 2004 - R. Yantosca - Initial version
@@ -5524,7 +6134,11 @@
 !\\
 ! !INTERFACE:
 !
+#if defined( DEVEL ) || defined( EXTERNAL_GRID ) || defined( EXTERNAL_FORCING )
+      SUBROUTINE READ_UNIX_CMDS_MENU( am_I_Root, Input_Opt, RC )
+#else
       SUBROUTINE READ_UNIX_CMDS_MENU( am_I_Root )
+#endif
 !
 ! !USES:
 !
@@ -5532,17 +6146,32 @@
       USE UNIX_CMDS_MOD, ONLY : BACKGROUND, REDIRECT,  REMOVE_CMD 
       USE UNIX_CMDS_MOD, ONLY : SEPARATOR,  SPACE,     UNZIP_CMD
       USE UNIX_CMDS_MOD, ONLY : WILD_CARD,  ZIP_SUFFIX 
+#if defined( DEVEL ) || defined( EXTERNAL_GRID ) || defined( EXTERNAL_FORCING )
+      USE GIGC_ErrCode_Mod
+      USE GIGC_Input_Opt_Mod, ONLY : OptInput
+#endif
 !
 ! !INPUT PARAMETERS:
 !
-      LOGICAL, INTENT(IN) :: am_I_Root   ! Is this the root CPU?
-! 
+      LOGICAL,        INTENT(IN)    :: am_I_Root   ! Is this the root CPU?
+#if defined( DEVEL ) || defined( EXTERNAL_GRID ) || defined( EXTERNAL_FORCING )
+!
+! !INPUT/OUTPUT PARAMETERS:
+!
+      TYPE(OptInput), INTENT(INOUT) :: Input_Opt   ! Input options
+!
+! !OUTPUT PARAMETERS:
+!
+      INTEGER,        INTENT(OUT)   :: RC          ! Success or failure
+#endif 
+!
 ! !REVISION HISTORY: 
 !  20 Jul 2004 - R. Yantosca - Initial version
 !  (1 ) Now make sure all USE statements are USE, ONLY (bmy, 10/3/05)
 !  27 Aug 2010 - R. Yantosca - Added ProTeX headers
 !  30 Jul 2012 - R. Yantosca - Now accept am_I_Root as an argument when
 !                              running with the traditional driver main.F
+!  01 Nov 2012 - R. Yantosca - Now pass Input_Opt, RC as arguments
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -5593,6 +6222,22 @@
       ! Just hardwire the SPACE character
       SPACE = ' '
 
+#if defined( DEVEL ) || defined( EXTERNAL_GRID ) || defined( EXTERNAL_FORCING )
+      !=================================================================
+      ! Set fields of Input Options object
+      !=================================================================
+      Input_Opt%BACKGROUND = BACKGROUND
+      Input_Opt%REDIRECT   = REDIRECT
+      Input_Opt%REMOVE_CMD = REMOVE_CMD
+      Input_Opt%SEPARATOR  = SEPARATOR
+      Input_Opt%WILD_CARD  = WILD_CARD
+      Input_Opt%UNZIP_CMD  = UNZIP_CMD
+      Input_Opt%ZIP_SUFFIX = ZIP_SUFFIX
+
+      ! Return success
+      RC = GIGC_SUCCESS
+#endif
+
       !=================================================================
       ! Print to screen
       !=================================================================
@@ -5633,7 +6278,11 @@
 !\\
 ! !INTERFACE:
 !
+#if defined( DEVEL ) || defined( EXTERNAL_GRID ) || defined( EXTERNAL_FORCING )
+      SUBROUTINE READ_NESTED_GRID_MENU( am_I_Root, Input_Opt, RC )
+#else
       SUBROUTINE READ_NESTED_GRID_MENU( am_I_Root )
+#endif
 !
 ! !USES:
 !
@@ -5644,10 +6293,24 @@
       USE LOGICAL_MOD,   ONLY : LWINDO_NA,   LWINDO_EU,   LWINDO_CH
       USE LOGICAL_MOD,   ONLY : LWINDO_SE
       USE TPCORE_BC_MOD, ONLY : INIT_TPCORE_BC
+#if defined( DEVEL ) || defined( EXTERNAL_GRID ) || defined( EXTERNAL_FORCING )
+      USE GIGC_ErrCode_Mod
+      USE GIGC_Input_Opt_Mod, ONLY : OptInput
+#endif
 !
 ! !INPUT PARAMETERS:
 !
-      LOGICAL, INTENT(IN) :: am_I_Root   ! Is this the root CPU?
+      LOGICAL,        INTENT(IN)    :: am_I_Root   ! Is this the root CPU?
+#if defined( DEVEL ) || defined( EXTERNAL_GRID ) || defined( EXTERNAL_FORCING )
+!
+! !INPUT/OUTPUT PARAMETERS:
+!
+      TYPE(OptInput), INTENT(INOUT) :: Input_Opt   ! Input options
+!
+! !OUTPUT PARAMETERS:
+!
+      INTEGER,        INTENT(OUT)   :: RC          ! Success or failure
+#endif
 ! 
 ! !REVISION HISTORY: 
 !  20 Jul 2004 - R. Yantosca - Initial version
@@ -5656,6 +6319,7 @@
 !  27 Aug 2010 - R. Yantosca - Added ProTeX headers
 !  30 Jul 2012 - R. Yantosca - Now accept am_I_Root as an argument when
 !                              running with the traditional driver main.F
+!  01 Nov 2012 - R. Yantosca - Now pass Input_Opt, RC as arguments
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -5736,6 +6400,33 @@
       ! Separator line
       CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_nested_grid_menu:15' )
 
+#if defined( DEVEL ) || defined( EXTERNAL_GRID ) || defined( EXTERNAL_FORCING )
+      !=================================================================
+      ! Set fields of Input Options object
+      !=================================================================
+      Input_Opt%LWINDO      = LWINDO
+      Input_Opt%LWINDO2x25  = LWINDO2x25
+      Input_Opt%LWINDO_NA   = LWINDO_NA
+      Input_Opt%TPBC_DIR_NA = TPBC_DIR_NA
+      Input_Opt%LWINDO_EU   = LWINDO_EU
+      Input_Opt%TPBC_DIR_EU = TPBC_DIR_EU
+      Input_Opt%LWINDO_CH   = LWINDO_CH
+      Input_Opt%TPBC_DIR_CH = TPBC_DIR_CH
+      Input_Opt%LWINDO_SE   = LWINDO_SE
+      Input_Opt%TPBC_DIR_SE = TPBC_DIR_SE
+      Input_Opt%LWINDO_CU   = LWINDO_CU
+      Input_Opt%TPBC_DIR    = TPBC_DIR
+      Input_Opt%NESTED_TS   = TS
+      Input_Opt%NESTED_I1   = I1
+      Input_Opt%NESTED_J1   = J1
+      Input_Opt%NESTED_I2   = I2
+      Input_Opt%NESTED_J2   = J2
+      Input_Opt%NESTED_I0W  = I0W
+      Input_Opt%NESTED_J0W  = J0W
+
+      ! Return success
+      RC = GIGC_SUCCESS
+#endif
       !=================================================================
       ! Print to screen
       !=================================================================
@@ -5778,22 +6469,41 @@
 !\\
 ! !INTERFACE:
 !
+#if defined( DEVEL ) || defined( EXTERNAL_GRID ) || defined( EXTERNAL_FORCING )
+      SUBROUTINE READ_BENCHMARK_MENU( am_I_Root, Input_Opt, RC )
+#else
       SUBROUTINE READ_BENCHMARK_MENU( am_I_Root )
+#endif
 !
 ! !USES:
 !
       USE BENCHMARK_MOD, ONLY : INITIAL_FILE, FINAL_FILE
       USE LOGICAL_MOD,   ONLY : LSTDRUN
+#if defined( DEVEL ) || defined( EXTERNAL_GRID ) || defined( EXTERNAL_FORCING )
+      USE GIGC_ErrCode_Mod
+      USE GIGC_Input_Opt_Mod, ONLY : OptInput
+#endif
 !
 ! !INPUT PARAMETERS:
 !
-      LOGICAL, INTENT(IN) :: am_I_Root   ! Is this the root CPU?
+      LOGICAL,        INTENT(IN)    :: am_I_Root   ! Is this the root CPU?
+#if defined( DEVEL ) || defined( EXTERNAL_GRID ) || defined( EXTERNAL_FORCING )
+!
+! !INPUT/OUTPUT PARAMETERS:
+!
+      TYPE(OptInput), INTENT(INOUT) :: Input_Opt   ! Input options
+!
+! !OUTPUT PARAMETERS:
+!
+      INTEGER,        INTENT(OUT)   :: RC          ! Success or failure
+#endif
 ! 
 ! !REVISION HISTORY: 
 !  20 Jul 2004 - R. Yantosca - Initial version
 !  27 Aug 2010 - R. Yantosca - Added ProTeX headers
 !  30 Jul 2012 - R. Yantosca - Now accept am_I_Root as an argument when
 !                              running with the traditional driver main.F
+!  01 Nov 2012 - R. Yantosca - Now pass Input_Opt, RC as arguments
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -5821,6 +6531,18 @@
 
       ! Separator line
       CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_benchmark_menu:4' )
+
+#if defined( DEVEL ) || defined( EXTERNAL_GRID ) || defined( EXTERNAL_FORCING )
+      !=================================================================
+      ! Set fields of Input Options object
+      !=================================================================
+      Input_Opt%LSTDRUN           = LSTDRUN
+      Input_Opt%STDRUN_INIT_FILE  = INITIAL_FILE
+      Input_Opt%STDRUN_FINAL_FILE = FINAL_FILE
+
+      ! Return success
+      RC = GIGC_SUCCESS
+#endif
 
       !=================================================================
       ! Print to screen
@@ -5854,21 +6576,40 @@
 !\\
 ! !INTERFACE:
 !
+#if defined( DEVEL ) || defined( EXTERNAL_GRID ) || defined( EXTERNAL_FORCING )
+      SUBROUTINE READ_ARCHIVED_OH_MENU( am_I_Root, Input_Opt, RC )
+#else
       SUBROUTINE READ_ARCHIVED_OH_MENU( am_I_Root )
+#endif
 !
 ! !USES:
 !
       USE DIRECTORY_MOD, ONLY : OH_DIR
+#if defined( DEVEL ) || defined( EXTERNAL_GRID ) || defined( EXTERNAL_FORCING )
+      USE GIGC_ErrCode_Mod
+      USE GIGC_Input_Opt_Mod, ONLY : OptInput
+#endif
 !
 ! !INPUT PARAMETERS:
 !
-      LOGICAL, INTENT(IN) :: am_I_Root   ! Is this the root CPU?
+      LOGICAL,        INTENT(IN)    :: am_I_Root   ! Is this the root CPU?
+#if defined( DEVEL ) || defined( EXTERNAL_GRID ) || defined( EXTERNAL_FORCING )
+!
+! !INPUT/OUTPUT PARAMETERS:
+!
+      TYPE(OptInput), INTENT(INOUT) :: Input_Opt   ! Input options
+!
+! !OUTPUT PARAMETERS:
+!
+      INTEGER,        INTENT(OUT)   :: RC          ! Success or failure
+#endif
 ! 
 ! !REVISION HISTORY: 
 !  20 Jul 2004 - R. Yantosca - Initial version
 !  27 Aug 2010 - R. Yantosca - Added ProTeX headers
 !  30 Jul 2012 - R. Yantosca - Now accept am_I_Root as an argument when
 !                              running with the traditional driver main.F
+!  01 Nov 2012 - R. Yantosca - Now pass Input_Opt, RC as arguments
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -5888,6 +6629,16 @@
 
       ! Separator line
       CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_archived_oh_menu:1' )
+
+#if defined( DEVEL ) || defined( EXTERNAL_GRID ) || defined( EXTERNAL_FORCING )
+      !=================================================================
+      ! Set fields of Input Options object
+      !=================================================================
+      Input_Opt%OH_DIR = OH_DIR
+
+      ! Return success
+      RC = GIGC_SUCCESS
+#endif
 
       !=================================================================
       ! Print to screen
@@ -5916,20 +6667,38 @@
 !\\
 ! !INTERFACE:
 !
+#if defined( DEVEL ) || defined( EXTERNAL_GRID ) || defined( EXTERNAL_FORCING )
+      SUBROUTINE READ_O3PL_MENU( am_I_Root, Input_Opt, RC )
+#else
       SUBROUTINE READ_O3PL_MENU( am_I_Root )
+#endif
 !
 ! !USES:
 !
       USE DIRECTORY_MOD, ONLY : O3PL_DIR
+#if defined( DEVEL ) || defined( EXTERNAL_GRID ) || defined( EXTERNAL_FORCING )
+      USE GIGC_ErrCode_Mod
+      USE GIGC_Input_Opt_Mod, ONLY : OptInput
+#endif
 !
 ! !INPUT PARAMETERS:
 !
-      LOGICAL, INTENT(IN) :: am_I_Root   ! Is this the root CPU?
+      LOGICAL,        INTENT(IN)    :: am_I_Root   ! Is this the root CPU?
+#if defined( DEVEL ) || defined( EXTERNAL_GRID ) || defined( EXTERNAL_FORCING )
+!
+! !INPUT/OUTPUT PARAMETERS:
+!
+      TYPE(OptInput), INTENT(INOUT) :: Input_Opt   ! Input options
+!
+! !OUTPUT PARAMETERS:
+!
+      INTEGER,        INTENT(OUT)   :: RC          ! Success or failure
+#endif
 ! 
 ! !REVISION HISTORY: 
 !  20 Jul 2004 - R. Yantosca - Initial version
 !  27 Aug 2010 - R. Yantosca - Added ProTeX headers
-!EOP
+!  01 Nov 2012 - R. Yantosca - Now pass Input_Opt, RC as arguments
 !------------------------------------------------------------------------------
 !BOC
 !
@@ -5948,6 +6717,16 @@
 
       ! Separator line
       CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_archived_oh_menu:2' )
+
+#if defined( DEVEL ) || defined( EXTERNAL_GRID ) || defined( EXTERNAL_FORCING )
+      !=================================================================
+      ! Set fields of Input Options object
+      !=================================================================
+      Input_Opt%O3PL_DIR = O3PL_DIR
+
+      ! Return success
+      RC = GIGC_SUCCESS
+#endif
 
       !=================================================================
       ! Print to screen
@@ -5977,7 +6756,11 @@
 !\\
 ! !INTERFACE:
 !
+#if defined( DEVEL ) || defined( EXTERNAL_GRID ) || defined( EXTERNAL_FORCING )
+      SUBROUTINE READ_MERCURY_MENU( am_I_Root, Input_Opt, RC )
+#else
       SUBROUTINE READ_MERCURY_MENU( am_I_Root )
+#endif
 !
 ! !USES:
 !
@@ -5988,10 +6771,24 @@
       USE DEPO_MERCURY_MOD,  ONLY : INIT_DEPO_MERCURY
       USE LAND_MERCURY_MOD,  ONLY : INIT_LAND_MERCURY
       USE TRACER_MOD,        ONLY : ITS_A_MERCURY_SIM
+#if defined( DEVEL ) || defined( EXTERNAL_GRID ) || defined( EXTERNAL_FORCING )
+      USE GIGC_ErrCode_Mod
+      USE GIGC_Input_Opt_Mod, ONLY : OptInput
+#endif
 !
 ! !INPUT PARAMETERS:
 !
-      LOGICAL, INTENT(IN) :: am_I_Root   ! Is this the root CPU?
+      LOGICAL,        INTENT(IN)    :: am_I_Root   ! Is this the root CPU?
+#if defined( DEVEL ) || defined( EXTERNAL_GRID ) || defined( EXTERNAL_FORCING )
+!
+! !INPUT/OUTPUT PARAMETERS:
+!
+      TYPE(OptInput), INTENT(INOUT) :: Input_Opt   ! Input options
+!
+! !OUTPUT PARAMETERS:
+!
+      INTEGER,        INTENT(OUT)   :: RC          ! Success or failure
+#endif
 ! 
 ! !REVISION HISTORY: 
 !  24 Feb 2006 - R. Yantosca - Initial version
@@ -6000,6 +6797,7 @@
 !  27 Aug 2010 - R. Yantosca - Added ProTeX headers
 !  30 Jul 2012 - R. Yantosca - Now accept am_I_Root as an argument when
 !                              running with the traditional driver main.F
+!  01 Nov 2012 - R. Yantosca - Now pass Input_Opt, RC as arguments
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -6075,6 +6873,22 @@
  110  FORMAT( A, L5  )
  120  FORMAT( A, A   )
     
+#if defined( DEVEL ) || defined( EXTERNAL_GRID ) || defined( EXTERNAL_FORCING )
+      !=================================================================
+      ! Copy to Input Options object
+      !=================================================================
+      Input_Opt%ANTHRO_Hg_YEAR = ANTHRO_Hg_YEAR
+      Input_Opt%USE_CHECKS     = USE_CHECKS
+      Input_Opt%LDYNOCEAN      = LDYNOCEAN
+      Input_Opt%LPREINDHG      = LPREINDHG
+      Input_Opt%Hg_RST_FILE    = Hg_RST_FILE
+      Input_Opt%LGTMM          = LGTMM
+      Input_Opt%GTMM_RST_FILE  = GTMM_RST_FILE
+
+      ! Return success
+      RC = GIGC_SUCCESS
+#endif
+
       ! If we are performing a Hg simulation ...
       IF ( ITS_A_MERCURY_SIM() ) THEN 
 
@@ -6106,7 +6920,11 @@
 !\\
 ! !INTERFACE:
 !
+#if defined( DEVEL ) || defined( EXTERNAL_GRID ) || defined( EXTERNAL_FORCING )
+      SUBROUTINE READ_CH4_MENU( am_I_Root, Input_Opt, RC )
+#else
       SUBROUTINE READ_CH4_MENU( am_I_Root )
+#endif
 !
 ! !USES:
 !
@@ -6120,18 +6938,33 @@
       USE LOGICAL_MOD, ONLY : LGFED3BB, LDAYBB3
       USE LOGICAL_MOD, ONLY : LGFED2BB, L8DAYBB
       USE ERROR_MOD,   ONLY : ERROR_STOP
- 
+#if defined( DEVEL ) || defined( EXTERNAL_GRID ) || defined( EXTERNAL_FORCING )
+      USE GIGC_ErrCode_Mod
+      USE GIGC_Input_Opt_Mod, ONLY : OptInput
+#endif
+
 #     include "define.h"             ! C-preprocessor switches
 !
 ! !INPUT PARAMETERS:
 !
-      LOGICAL, INTENT(IN) :: am_I_Root   ! Is this the root CPU?
+      LOGICAL,        INTENT(IN)    :: am_I_Root   ! Is this the root CPU?
+#if defined( DEVEL ) || defined( EXTERNAL_GRID ) || defined( EXTERNAL_FORCING )
+!
+! !INPUT/OUTPUT PARAMETERS:
+!
+      TYPE(OptInput), INTENT(INOUT) :: Input_Opt   ! Input options
+!
+! !OUTPUT PARAMETERS:
+!
+      INTEGER,        INTENT(OUT)   :: RC          ! Success or failure
+#endif
 ! 
 ! !REVISION HISTORY: 
 !  03 Aug 2009 - K. Wecht, C. Pickett-Heaps - Initial version
 !  27 Aug 2010 - R. Yantosca - Added ProTeX headers
 !  30 Jul 2012 - R. Yantosca - Now accept am_I_Root as an argument when
 !                              running with the traditional driver main.F
+!  01 Nov 2012 - R. Yantosca - Now pass Input_Opt, RC as arguments
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -6237,6 +7070,27 @@
 
       ! FORMAT statements
  100  FORMAT( A, L5  )
+
+#if defined( DEVEL ) || defined( EXTERNAL_GRID ) || defined( EXTERNAL_FORCING )
+      !=================================================================
+      ! Set fields of Input Options object
+      !=================================================================
+      Input_Opt%LCH4BUD = LCH4BUD
+      Input_Opt%LGAO    = LGAO
+      Input_Opt%LCOL    = LCOL         
+      Input_Opt%LLIV    = LLIV         
+      Input_Opt%LWAST   = LWAST         
+      Input_Opt%LBFCH4  = LBFCH4       
+      Input_Opt%LRICE   = LRICE         
+      Input_Opt%LOTANT  = LOTANT         
+      Input_Opt%LBMCH4  = LBMCH4       
+      Input_Opt%LWETL   = LWETL         
+      Input_Opt%LSOABS  = LSOABS          
+      Input_Opt%LOTNAT  = LOTNAT 
+
+      ! Return success
+      RC = GIGC_SUCCESS         
+#endif
 
       END SUBROUTINE READ_CH4_MENU
 !EOC

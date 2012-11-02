@@ -118,9 +118,9 @@
       USE LOGICAL_MOD,          ONLY : Do_Diag_Write
       USE GIGC_Environment_Mod, ONLY : GIGC_Allocate_All
       USE GIGC_Environment_Mod, ONLY : GIGC_Init_All
-      USE GIGC_Input_Opt_Mod,   ONLY : OptInput
-      USE GIGC_State_Chm_Mod,   ONLY : ChmState
-      USE GIGC_State_Met_Mod,   ONLY : MetState
+      USE GIGC_Input_Opt_Mod
+      USE GIGC_State_Chm_Mod
+      USE GIGC_State_Met_Mod
 #endif
 
       IMPLICIT NONE
@@ -316,8 +316,11 @@
       !=================================================================
 
       ! Read input file and call init routines from other modules
+#if defined( DEVEL )
+      CALL READ_INPUT_FILE( am_I_Root, Input_Opt, RC ) 
+#else
       CALL READ_INPUT_FILE( am_I_Root ) 
-
+#endif
       ! Set a flag to denote if we should print ND70 debug output
       prtDebug = ( LPRT .and. am_I_Root )
       
@@ -346,7 +349,7 @@
       ! of the existing ALLOCATABLE module arrays. (bmy, 10/25/12)
       !-----------------------------------------------------------------
 
-      ! Initialize State_Met and CHEMSTATE objects
+      ! Initialize State_Met and State_Chm objects
       CALL GIGC_Init_All( State_Met, State_Chm, am_I_Root, RC )
 
       ! Assign values to the TRAC_NAME, TRAC_ID, SMVG_ID fields
@@ -1432,6 +1435,26 @@
 
       ! Deallocate dynamic module arrays
       CALL CLEANUP
+
+#if defined( DEVEL ) 
+      !-----------------------------------------------------------------
+      !   %%%%% TESTING GIGC INTERFACE FROM EXISTING GEOS-CHEM %%%%%
+      !
+      ! Call cleanup routines for the Input Options, Chemistry State,
+      ! and Meteorology State objects to free allocated memory.
+      ! (bmy, 11/2/12)
+      !-----------------------------------------------------------------
+
+      ! Deallocate fields of the Input Options object
+      CALL Cleanup_GIGC_Input_Opt( am_I_Root, Input_Opt, RC )
+
+      ! Deallocate fields of the Chemistry State object
+      CALL Cleanup_GIGC_State_Chm( am_I_Root, State_Chm, RC )
+
+      ! Deallocate fields of the Meteorology State object
+      CALL Cleanup_GIGC_State_Met( am_I_Root, State_Met, RC )
+#endif
+
 
       ! Deallocate the derived type object w/ mapping info
       CALL CLEANUP_MAPPING( mapping )

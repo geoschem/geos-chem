@@ -27,6 +27,7 @@ MODULE GIGC_Finalization_Mod
 ! !REVISION HISTORY:
 !  19 Oct 2012 - R. Yantosca - Added ProTeX headers
 !  22 Oct 2012 - R. Yantosca - Renamed to gigc_finalization_mod.F90
+!  02 Nov 2012 - R. Yantosca - Now cleanup the Input Options object
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -46,11 +47,12 @@ CONTAINS
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE GIGC_Finalize( State_Met, State_Chm, am_I_Root, RC )
+  SUBROUTINE GIGC_Finalize( am_I_Root, Input_Opt, State_Chm, State_Met, RC )
 !
 ! !USES:
 !
     USE GIGC_ErrCode_Mod
+    USE GIGC_Input_Opt_Mod
     USE GIGC_State_Chm_Mod
     USE GIGC_State_Met_Mod
 !
@@ -60,8 +62,9 @@ CONTAINS
 !
 ! !INPUT/OUTPUT PARAMETERS: 
 !
-    TYPE(MetState), INTENT(INOUT) :: State_Met   ! Meteorology state
-    TYPE(ChmState), INTENT(INOUT) :: State_Chm   ! Chemistry state
+    TYPE(OptInput), INTENT(INOUT) :: Input_Opt   ! Input Options object
+    TYPE(MetState), INTENT(INOUT) :: State_Met   ! Meteorology State object
+    TYPE(ChmState), INTENT(INOUT) :: State_Chm   ! Chemistry State object
 !
 ! !OUTPUT PARAMETERS:
 !
@@ -74,6 +77,7 @@ CONTAINS
 !  19 Oct 2012 - R. Yantosca - Now reference gigc_state_chm_mod.F90
 !  19 Oct 2012 - R. Yantosca - Now reference gigc_state_met_mod.F90
 !  22 Oct 2012 - R. Yantosca - Renamed to GIGC_Finalize
+!  02 Nov 2012 - R. Yantosca - Now reference gigc_input_opt_mod.F90
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -83,11 +87,14 @@ CONTAINS
     ! Assume success
     RC = GIGC_SUCCESS
 
+    ! Deallocate fields of the Input Options object
+    CALL Cleanup_GIGC_Input_Opt( am_I_Root, Input_Opt, RC )
+
     ! Deallocate fields of the Chemistry State object
     CALL Cleanup_GIGC_State_Chm( am_I_Root, State_Chm, RC )
 
     ! Deallocate fields of the Meteorology State object
-    Call Cleanup_GIGC_State_Met( am_I_Root, State_Met, RC )
+    CALL Cleanup_GIGC_State_Met( am_I_Root, State_Met, RC )
 
     ! Deallocate all other GEOS-Chem allocatable arrays
     CALL GIGC_CleanUp_GeosChem( am_I_Root, RC )
