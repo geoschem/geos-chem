@@ -225,7 +225,6 @@ CONTAINS
                        NJ         = NJ,         &   ! # lats on this PET
                        NL         = NL,         &   ! # levels on this PET
                        NCNST      = NC,         &   ! # of advected tracers
-                       Input_Opt  = Input_Opt,  &   ! Input Options obj
                        State_Chm  = State_Chm,  &   ! Chemistry State
                        State_Met  = State_Met,  &   ! Meteorology State
                        RC         = RC         )    ! Success or failure
