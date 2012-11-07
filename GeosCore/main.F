@@ -302,7 +302,7 @@
       Input_Opt%MAX_TRCS = NNPAR
       Input_Opt%MAX_MEMB = N_MEMBERS
       Input_Opt%MAX_FAMS = MAXFAM
-      
+
       ! Allocate fields of the Input Options object as well
       ! as other GEOS-Chem allocatable module arrays
       CALL GIGC_Allocate_All( am_I_root, Input_Opt, RC )
