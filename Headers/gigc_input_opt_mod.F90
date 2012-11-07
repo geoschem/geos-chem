@@ -1085,7 +1085,7 @@ CONTAINS
 !
 ! !INPUT/OUTPUT PARAMETERS:
 !
-    TYPE(OptInput), INTENT(INOUT) :: Input_Opt   ! Input options
+    TYPE(OptInput), INTENT(INOUT) :: Input_Opt   ! Input Options object
 !
 ! !OUTPUT PARAMETERS:
 !
@@ -1097,10 +1097,13 @@ CONTAINS
 !EOP
 !------------------------------------------------------------------------------
 !BOC
-!
-! !LOCAL VARIABLES:
-!
- 
+
+    ! Assume success
+    RC = GIGC_SUCCESS
+
+    !======================================================================
+    ! Deallocate fields of the Input Options object
+    !======================================================================
     IF ( ASSOCIATED( Input_Opt%ID_TRACER ) ) THEN
        DEALLOCATE( Input_Opt%ID_TRACER  ) 
     ENDIF

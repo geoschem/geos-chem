@@ -4600,6 +4600,15 @@
       ! Separator line
       CALL SPLIT_ONE_LINE( SUBSTRS, N, 1,  'read_diagnostic_menu:69' )
 
+#if defined( DEVEL ) || defined( EXTERNAL_GRID ) || defined( EXTERNAL_FORCING )
+      !=================================================================
+      ! Call other setup routines
+      !=================================================================
+
+      ! Return success
+      RC = GIGC_SUCCESS
+#endif
+
       !=================================================================
       ! Call other setup routines
       !================================================================
@@ -6174,6 +6183,9 @@
             Input_Opt%FAM_MEMB(M,F) = FAM_MEMB(M,F)
          ENDDO
       ENDDO
+
+      ! Return success
+      RC = GIGC_SUCCESS
 #endif
 
       !=================================================================

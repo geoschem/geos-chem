@@ -79,6 +79,9 @@ CONTAINS
 !------------------------------------------------------------------------------
 !BOC
 
+    ! Assume success
+    RC = GIGC_SUCCESS
+
     ! Don't write diagnostic files
     DO_DIAG_WRITE = .FALSE. 
 

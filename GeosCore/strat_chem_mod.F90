@@ -701,8 +701,14 @@ CONTAINS
     !-----------------------------------------------------------------------
     !        %%%%% CONNECTING TO GEOS-5 GCM via ESMF INTERFACE %%%%%
     !
-    ! Do nothing, since the 
+    ! Do nothing, since we would not be reading in data here when using
+    ! the ESMF interface.  The strat-chem data would have to come in
+    ! via the ESMF Import State. (bmy, 11/7/12)
     !-----------------------------------------------------------------------
+
+    ! Assume success
+    RC = GIGC_SUCCESS
+
 #else
     !-----------------------------------------------------------------------
     !                %%%%% TRADITIONAL GEOS-Chem %%%%%
