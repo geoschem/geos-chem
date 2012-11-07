@@ -89,7 +89,7 @@
 ! !INTERFACE:
 !
 #if defined( DEVEL )
-      SUBROUTINE DO_CONVECTION( LOCAL_MET )
+      SUBROUTINE DO_CONVECTION( State_Met )
 #else
       SUBROUTINE DO_CONVECTION
 #endif
@@ -127,7 +127,7 @@
       USE TRACER_MOD,   ONLY : N_APMTRA
 #endif
 #if defined( DEVEL )
-      USE GC_TYPE_MOD,  ONLY : GC_MET_LOCAL
+      USE GIGC_State_Met_Mod, ONLY : MetState
 #endif
 
       USE CMN_SIZE_MOD     ! Size parameters
@@ -136,7 +136,7 @@
 ! !INPUT PARAMETERS:
 !
 #if defined( DEVEL )
-      TYPE(GC_MET_LOCAL), INTENT(IN) :: LOCAL_MET  ! Obj w/ met fields
+      TYPE(MetState), INTENT(IN) :: State_Met   ! Meteorology State object
 #endif
 ! 
 ! !REVISION HISTORY: 
@@ -185,7 +185,7 @@
 
       ! Call GCAP driver routine
 #if defined( DEVEL )
-      CALL DO_GCAP_CONVECT( LOCAL_MET )
+      CALL DO_GCAP_CONVECT( State_Met )
 #else
       CALL DO_GCAP_CONVECT
 #endif
@@ -198,7 +198,7 @@
 
       ! Call GEOS-4 driver routine
 #if defined( DEVEL )
-      CALL DO_GEOS4_CONVECT( LOCAL_MET )
+      CALL DO_GEOS4_CONVECT( State_Met )
 #else
       CALL DO_GEOS4_CONVECT
 #endif
@@ -218,8 +218,8 @@
 
       ! Call the S-J Lin convection routine for GEOS-5
 #if defined( DEVEL )
-      CALL NFCLDMX( N_TOT_TRC, TCVV,   LOCAL_MET%CMFMC(:,:,2:LLPAR+1),
-     &              LOCAL_MET% DTRAIN, STT,  LOCAL_MET )
+      CALL NFCLDMX( N_TOT_TRC, TCVV,   State_Met%CMFMC(:,:,2:LLPAR+1),
+     &              State_Met% DTRAIN, STT,  State_Met )
 #else
       CALL NFCLDMX( N_TOT_TRC, TCVV, CMFMC(:,:,2:LLPAR+1), DTRAIN, STT )
 #endif
@@ -306,7 +306,7 @@
 
          ! Fraction of soluble tracer
 #if defined( DEVEL )
-         CALL COMPUTE_F( N, p_FSOL, ISOL(N), LOCAL_MET ) 
+         CALL COMPUTE_F( N, p_FSOL, ISOL(N), State_Met ) 
 #else
          CALL COMPUTE_F( N, p_FSOL, ISOL(N) ) 
 #endif
@@ -361,14 +361,14 @@
 #if   defined( GEOS_57 )
 
          ! For GEOS-5.7, PFICU and PFLCU are defined on level edges
-         T_PFICU = LOCAL_MET%PFICU( I, J, 2:LLPAR+1 )
-         T_PFLCU = LOCAL_MET%PFLCU( I, J, 2:LLPAR+1 )
+         T_PFICU = State_Met%PFICU( I, J, 2:LLPAR+1 )
+         T_PFLCU = State_Met%PFLCU( I, J, 2:LLPAR+1 )
 
 #elif defined( MERRA   )
 
          ! For MERRA, PFICU and PFLCU are defined on level centers
-         T_PFICU = LOCAL_MET%PFICU( I, J, 1:LLPAR   )
-         T_PFLCU = LOCAL_MET%PFLCU( I, J, 1:LLPAR   )
+         T_PFICU = State_Met%PFICU( I, J, 1:LLPAR   )
+         T_PFLCU = State_Met%PFLCU( I, J, 1:LLPAR   )
 
 #endif
 
@@ -384,24 +384,24 @@
      &                             PEDGE     = PEDGE,
      &                             TS_DYN    = DT, 
      &                             F         = F,
-     &                  AD        = LOCAL_MET%AD      (I,J, :        ),
-     &                  BXHEIGHT  = LOCAL_MET%BXHEIGHT(I,J, :        ),
-     &                  CMFMC     = LOCAL_MET%CMFMC   (I,J,2:LLPAR+1 ),
-     &                  DQRCU     = LOCAL_MET%DQRCU   (I,J, :        ),
-     &                  DTRAIN    = LOCAL_MET%DTRAIN  (I,J, :        ), 
+     &                  AD        = State_Met%AD      (I,J, :        ),
+     &                  BXHEIGHT  = State_Met%BXHEIGHT(I,J, :        ),
+     &                  CMFMC     = State_Met%CMFMC   (I,J,2:LLPAR+1 ),
+     &                  DQRCU     = State_Met%DQRCU   (I,J, :        ),
+     &                  DTRAIN    = State_Met%DTRAIN  (I,J, :        ), 
      &                             H2O2s     = H2O2s   (I,J, :        ),
      &                             PFICU     = T_PFICU,
      &                             PFLCU     = T_PFLCU,
-     &                  REEVAPCN  = LOCAL_MET%REEVAPCN(I,J, :        ),
+     &                  REEVAPCN  = State_Met%REEVAPCN(I,J, :        ),
      &                             SO2s      = SO2s    (I,J, :        ),
-     &                  T         = LOCAL_MET%T       (I,J, :        ),
+     &                  T         = State_Met%T       (I,J, :        ),
      &                             Q         = STT     (I,J, :,      :), 
      &                             DIAG14    = DIAG14,
      &                             DIAG38    = DIAG38,
      &                             I         = I,
      &                             J         = J,
      &                             RC        = RC,
-     &                  LOCAL_MET = LOCAL_MET )
+     &                  State_Met = State_Met )
 #else
 
 #if   defined( GEOS_57 )
@@ -525,7 +525,7 @@
 ! !INTERFACE:
 !
 #if defined( DEVEL )
-      SUBROUTINE DO_GEOS4_CONVECT( LOCAL_MET )
+      SUBROUTINE DO_GEOS4_CONVECT( State_Met )
 #else
       SUBROUTINE DO_GEOS4_CONVECT
 #endif
@@ -545,7 +545,7 @@
       USE TRACER_MOD,        ONLY : N_APMTRA
 #endif
 #if defined( DEVEL )
-      USE GC_TYPE_MOD,       ONLY : GC_MET_LOCAL
+      USE GIGC_State_Met_Mod, ONLY : MetState
 #endif
 
       USE CMN_SIZE_MOD          ! Size parameters
@@ -554,7 +554,7 @@
 ! !INPUT PARAMETERS:
 !
 #if defined( DEVEL )
-      TYPE(GC_MET_LOCAL), INTENT(IN) :: LOCAL_MET  ! Obj w/ met fields
+      TYPE(MetState), INTENT(IN) :: State_Met   ! Meteorology State object
 #endif
 ! 
 ! !REVISION HISTORY: 
@@ -633,7 +633,7 @@
          ! Get fraction of tracer scavenged and the soluble tracer 
          ! index (ISOL). For non-soluble tracers, F=0 and ISOL=0.
 #if defined( DEVEL )
-         CALL COMPUTE_F( N, F(:,:,:,N), ISOL, LOCAL_MET ) 
+         CALL COMPUTE_F( N, F(:,:,:,N), ISOL, State_Met ) 
 #else
          CALL COMPUTE_F( N, F(:,:,:,N), ISOL ) 
 #endif
@@ -706,17 +706,17 @@
      &                    N_TOT_TRC, 
      &                    STT   (:,:,LLPAR:1:-1,:),    
      &                    RPDEL,         
-     &                    LOCAL_MET%HKETA (:,:,LLPAR:1:-1  ),
-     &                    LOCAL_MET%HKBETA(:,:,LLPAR:1:-1  ), 
-     &                    LOCAL_MET%ZMMU  (:,:,LLPAR:1:-1  ),    
-     &                    LOCAL_MET%ZMMD  (:,:,LLPAR:1:-1  ),  
-     &                    LOCAL_MET%ZMEU  (:,:,LLPAR:1:-1  ),  
+     &                    State_Met%HKETA (:,:,LLPAR:1:-1  ),
+     &                    State_Met%HKBETA(:,:,LLPAR:1:-1  ), 
+     &                    State_Met%ZMMU  (:,:,LLPAR:1:-1  ),    
+     &                    State_Met%ZMMD  (:,:,LLPAR:1:-1  ),  
+     &                    State_Met%ZMEU  (:,:,LLPAR:1:-1  ),  
      &                    DP,     
      &                    NSTEP,    
      &                    F     (:,:,LLPAR:1:-1,:),         
      &                    TCVV,   
      &                    INDEXSOL,
-     &                    LOCAL_MET )
+     &                    State_Met )
 #else
       CALL FVDAS_CONVECT( TDT,   
      &                    N_TOT_TRC, 
@@ -770,7 +770,7 @@
 ! !INTERFACE:
 !
 #if defined( DEVEL )
-      SUBROUTINE DO_GCAP_CONVECT( LOCAL_MET )
+      SUBROUTINE DO_GCAP_CONVECT( State_Met )
 #else
       SUBROUTINE DO_GCAP_CONVECT
 #endif
@@ -791,7 +791,7 @@
       USE TRACER_MOD,       ONLY : N_APMTRA
 #endif
 #if defined( DEVEL )
-      USE GC_TYPE_MOD,      ONLY : GC_MET_LOCAL
+      USE GIGC_State_Met_Mod, ONLY : MetState
 #endif
 
       USE CMN_SIZE_MOD         ! Size parameters
@@ -800,7 +800,7 @@
 ! !INPUT PARAMETERS: 
 !
 #if defined( DEVEL )
-      TYPE(GC_MET_LOCAL), INTENT(IN) :: LOCAL_MET  ! Obj w/ met fields
+      TYPE(MetState), INTENT(IN) :: State_Met   ! Meteorology State object
 #endif
 !
 ! !REVISION HISTORY: 
@@ -877,7 +877,7 @@
          ! Get fraction of tracer scavenged and the soluble tracer 
          ! index (ISOL). For non-soluble tracers, F=0 and ISOL=0.
 #if defined( DEVEL )
-         CALL COMPUTE_F( N, F(:,:,:,N), ISOL, LOCAL_MET ) 
+         CALL COMPUTE_F( N, F(:,:,:,N), ISOL, State_Met ) 
 #else
          CALL COMPUTE_F( N, F(:,:,:,N), ISOL ) 
 #endif
@@ -955,13 +955,13 @@
      &                   F        (:,:,LLPAR:1:-1,:),     
      &                   TCVV,   
      &                   INDEXSOL, 
-     &                   LOCAL_MET%UPDE     (:,:,LLPAR:1:-1  ),
-     &                   LOCAL_MET%DNDE     (:,:,LLPAR:1:-1  ), 
-     &                   LOCAL_MET%ENTRAIN  (:,:,LLPAR:1:-1  ), 
-     &                   LOCAL_MET%DETRAINE (:,:,LLPAR:1:-1  ), 
-     &                   LOCAL_MET%UPDN     (:,:,LLPAR:1:-1  ),  
-     &                   LOCAL_MET%DNDN     (:,:,LLPAR:1:-1  ),
-     &                   LOCAL_MET%DETRAINN (:,:,LLPAR:1:-1  )  )
+     &                   State_Met%UPDE     (:,:,LLPAR:1:-1  ),
+     &                   State_Met%DNDE     (:,:,LLPAR:1:-1  ), 
+     &                   State_Met%ENTRAIN  (:,:,LLPAR:1:-1  ), 
+     &                   State_Met%DETRAINE (:,:,LLPAR:1:-1  ), 
+     &                   State_Met%UPDN     (:,:,LLPAR:1:-1  ),  
+     &                   State_Met%DNDN     (:,:,LLPAR:1:-1  ),
+     &                   State_Met%DETRAINN (:,:,LLPAR:1:-1  )  )
 #else
       CALL GCAP_CONVECT( TDT, 
      &                   STT      (:,:,LLPAR:1:-1,:), 
@@ -1021,7 +1021,7 @@
 ! !INTERFACE:
 !
 #if defined( DEVEL )
-      SUBROUTINE NFCLDMX( NC, TCVV, CLDMAS, DTRN, Q, LOCAL_MET )
+      SUBROUTINE NFCLDMX( NC, TCVV, CLDMAS, DTRN, Q, State_Met )
 #else
       SUBROUTINE NFCLDMX( NC, TCVV, CLDMAS, DTRN, Q )
 #endif
@@ -1041,8 +1041,8 @@
       USE DEPO_MERCURY_MOD, ONLY : ADD_Hg2_SNOWPACK !CDH
 
 #if defined( DEVEL )
-      USE ERROR_MOD,        ONLY : ALLOC_ERR
-      USE GC_TYPE_MOD,      ONLY : GC_MET_LOCAL
+      USE ERROR_MOD,          ONLY : ALLOC_ERR
+      USE GIGC_State_Met_Mod, ONLY : MetState
 #endif
 
       USE CMN_SIZE_MOD     ! Size parameters
@@ -1067,7 +1067,7 @@
       REAL*8,  INTENT(IN)    :: TCVV(NC)
 
 #if defined( DEVEL )
-      TYPE(GC_MET_LOCAL), INTENT(IN) :: LOCAL_MET  ! Obj w/ met fields
+      TYPE(MetState), INTENT(IN) :: State_Met   ! Meteorology State object
 #endif
 !
 ! !INPUT/OUTPUT PARAMETERS: 
@@ -1354,7 +1354,7 @@
       DO I = 1, IMR
          AREA_M2      = GET_AREA_M2( I, J, K )
 #if defined( DEVEL )
-         BMASS(I,J,K) = LOCAL_MET%AD(I,J,K) / AREA_M2
+         BMASS(I,J,K) = State_Met%AD(I,J,K) / AREA_M2
 #else
          BMASS(I,J,K) = AD(I,J,K) / AREA_M2
 #endif
@@ -1403,7 +1403,7 @@
          ! non-soluble tracers.   
          !==============================================================
 #if defined( DEVEL )
-         CALL COMPUTE_F( IC, F(:,:,:,IC), ISOL, LOCAL_MET ) 
+         CALL COMPUTE_F( IC, F(:,:,:,IC), ISOL, State_Met ) 
 #else
          CALL COMPUTE_F( IC, F(:,:,:,IC), ISOL ) 
 #endif
@@ -1673,7 +1673,7 @@
                         CALL ADD_Hg2_WD( I, J, IC, WET_Hg2 )
 #if defined( DEVEL )
                         CALL ADD_Hg2_SNOWPACK( I, J, IC, WET_Hg2,
-     &                                         LOCAL_MET )
+     &                                         State_Met )
 #else
                         CALL ADD_Hg2_SNOWPACK( I, J, IC, WET_Hg2 )
 #endif
@@ -1691,7 +1691,7 @@
                         CALL ADD_HgP_WD( I, J, IC, WET_HgP )
 #if defined( DEVEL )
                         CALL ADD_Hg2_SNOWPACK( I, J, IC, WET_HgP,
-     &                                         LOCAL_MET )
+     &                                         State_Met )
 #else
                         CALL ADD_Hg2_SNOWPACK( I, J, IC, WET_HgP )
 #endif
@@ -1810,7 +1810,7 @@
      &                                REEVAPCN, T,        TS_DYN,   
      &                                Q,        DIAG14,   DIAG38,   
      &                                H2O2s,    SO2s,     I,        
-     &                                J,        RC,       LOCAL_MET )
+     &                                J,        RC,       State_Met )
 #else
       SUBROUTINE DO_MERRA_CONVECTION( IDENT,    DIMINFO,  COEF, 
      &                                IDT,      OPTIONS,  AD,      
@@ -1837,7 +1837,7 @@
       USE WETSCAV_MOD,      ONLY : LS_K_RAIN
       USE WETSCAV_MOD,      ONLY : LS_F_PRIME
 #if defined( DEVEL )
-      USE GC_TYPE_MOD,      ONLY : GC_MET_LOCAL
+      USE GIGC_State_Met_Mod, ONLY : MetState
 #endif
 !
 ! !INPUT PARAMETERS:
@@ -1847,7 +1847,7 @@
       TYPE(ID_TRAC),     INTENT(IN) :: IDT         ! Obj w/ tracer ID flags
       TYPE(GC_OPTIONS),  INTENT(IN) :: OPTIONS     ! Obj w/ logical switches
 #if defined( DEVEL )
-      TYPE(GC_MET_LOCAL), INTENT(IN) :: LOCAL_MET  ! Obj w/ met fields
+      TYPE(MetState),    INTENT(IN) :: State_Met   ! Meteorology State object
 #endif
       REAL*8,            INTENT(IN) :: AD(:)       ! Air mass [kg]    
       REAL*8,            INTENT(IN) :: AREA_M2     ! Surface area [m2]
@@ -2621,7 +2621,7 @@
                ! Pass to "ocean_mercury_mod.f"
                CALL ADD_Hg2_WD      ( I, J, IC, WET_Hg2 )
 #if defined( DEVEL )
-               CALL ADD_Hg2_SNOWPACK( I, J, IC, WET_Hg2, LOCAL_MET )
+               CALL ADD_Hg2_SNOWPACK( I, J, IC, WET_Hg2, State_Met )
 #else
                CALL ADD_Hg2_SNOWPACK( I, J, IC, WET_Hg2 )
 #endif
@@ -2641,7 +2641,7 @@
                ! Pass to "ocean_mercury_mod.f"
                CALL ADD_HgP_WD      ( I, J, IC, WET_HgP )
 #if defined( DEVEL )
-               CALL ADD_Hg2_SNOWPACK( I, J, IC, WET_HgP, LOCAL_MET )
+               CALL ADD_Hg2_SNOWPACK( I, J, IC, WET_HgP, State_Met )
 #else
                CALL ADD_Hg2_SNOWPACK( I, J, IC, WET_HgP )
 #endif

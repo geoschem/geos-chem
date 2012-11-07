@@ -252,7 +252,7 @@
 !------------------------------------------------------------------------------
 
 #if defined( DEVEL )
-      SUBROUTINE EMISSCH3I( LOCAL_MET, BIO_EMISS )
+      SUBROUTINE EMISSCH3I( State_Met, BIO_EMISS )
 #else
       SUBROUTINE EMISSCH3I
 #endif
@@ -370,7 +370,7 @@
       USE TRACER_MOD,   ONLY : STT,       N_TRACERS
       USE TRACERID_MOD, ONLY : IDBFCO
 #if defined( DEVEL )
-      USE GC_TYPE_MOD,  ONLY : GC_MET_LOCAL
+      USE GIGC_State_Met_Mod, ONLY : MetState
 #endif
 
       USE CMN_SIZE_MOD    ! Size parameters
@@ -383,8 +383,8 @@
 !      REAL*8 :: EFCH4R(IIPAR,JJPAR)  ! scaled emission flux from rice
 !      REAL*8 :: EFCH4W(IIPAR,JJPAR)  ! scaled emission flux from wetlands
 !      REAL*8 :: CH3ISUM(5)           ! sum of emissions in kg/yr
-      TYPE(GC_MET_LOCAL), INTENT(IN)    :: LOCAL_MET  ! Obj w/ met fields
-      REAL*8,             INTENT(INOUT) :: BIO_EMISS(:,:,:)
+      TYPE(MetState), INTENT(IN)    :: State_Met   ! Meteorology State object
+      REAL*8,         INTENT(INOUT) :: BIO_EMISS(:,:,:)
 #else
       ! Local common blocks (shared with OPEN_CH3I_FILES)
       REAL*8 :: OCDATA(IIPAR,JJPAR)   ! scaled ocean net primary prod.
@@ -524,7 +524,7 @@
 
             ! set all values over land to zero
 #if defined( DEVEL )
-            IF ( LOCAL_MET%FRCLND(I,J) >= 0.8 ) OCDATA(I,J) = 0.0D0
+            IF ( State_Met%FRCLND(I,J) >= 0.8 ) OCDATA(I,J) = 0.0D0
 #else
             IF ( FRCLND(I,J) >= 0.8 ) OCDATA(I,J) = 0.0D0
 #endif
@@ -634,11 +634,11 @@
 
 #if defined( DEVEL )
 
-         IF ( LOCAL_MET%TS(I,J)     >= 271.15 .and.
-     &        LOCAL_MET%FRCLND(I,J) <  0.8    ) THEN
+         IF ( State_Met%TS(I,J)     >= 271.15 .and.
+     &        State_Met%FRCLND(I,J) <  0.8    ) THEN
 
             ! surface air temp [K]
-            TK = LOCAL_MET%TS(I,J)        
+            TK = State_Met%TS(I,J)        
 
 #else
          IF ( TS(I,J) >= 271.15 .and. FRCLND(I,J) < 0.8 ) THEN
@@ -661,14 +661,14 @@
             ! 10-m wind speed 
 #if defined( DEVEL )
             W10  = SQRT( SFCWINDSQR( I, J,
-     &                               LOCAL_MET%U10M, LOCAL_MET%V10M ) )
+     &                               State_Met%U10M, State_Met%V10M ) )
 
             ! Piston velocity [cm/h], cf Nightingale et al [2000b] 
             ! (swu, bmy, 8/16/05)
             Kw   = ( 0.24d0*W10*W10 + 0.061d0*W10 ) * SQRT( ScCO2/Sc )  
 
             ! convert gas-phase tracer mass to concentration in ng/L
-            CGAS = STT(I,J,L,N) * 1.0D9 / LOCAL_MET%AIRVOL(I,J,L)
+            CGAS = STT(I,J,L,N) * 1.0D9 / State_Met%AIRVOL(I,J,L)
 
 #else
             W10  = SQRT( SFCWINDSQR( I, J, U10M, V10M ) )
@@ -763,7 +763,7 @@
 
          ! Grid box height [cm]
 #if defined( DEVEL )
-         BXHEIGHT_CM = LOCAL_MET%BXHEIGHT(I,J,L) * 100d0
+         BXHEIGHT_CM = State_Met%BXHEIGHT(I,J,L) * 100d0
 #else
          BXHEIGHT_CM = BXHEIGHT(I,J,L) * 100d0
 #endif
@@ -784,7 +784,7 @@
 
          ! Convert to kg/grid box/time step
 #if defined( DEVEL )
-         FLUX = FLUX * BOXVL(I,J,L,LOCAL_MET)
+         FLUX = FLUX * BOXVL(I,J,L,State_Met)
 #else
          FLUX = FLUX * BOXVL(I,J,L)
 #endif
@@ -811,7 +811,7 @@
 
       ! Now reference routine BIOFUEL_BURN from "biofuel_mod.f" (bmy, 9/12/00)
 #if defined( DEVEL )
-      CALL BIOFUEL_BURN( LOCAL_MET, BIO_EMISS )
+      CALL BIOFUEL_BURN( State_Met, BIO_EMISS )
 #else
       CALL BIOFUEL_BURN
 #endif
@@ -829,12 +829,12 @@
 #if defined( DEVEL )
          ! Add to diagnostic array as kg/m2/time step
          IF ( ND36 > 0 ) THEN
-            BXHEIGHT_CM = LOCAL_MET%BXHEIGHT(I,J,L) * 100d0
+            BXHEIGHT_CM = State_Met%BXHEIGHT(I,J,L) * 100d0
             AD36(I,J,N) = AD36(I,J,N)  + FLUX * BXHEIGHT_CM *
      &                    1.0D4 * 1.0D + 12
          ENDIF
 
-         FLUX = FLUX * BOXVL(I,J,L,LOCAL_MET)
+         FLUX = FLUX * BOXVL(I,J,L,State_Met)
 #else
          ! Add to diagnostic array as kg/m2/time step
          IF ( ND36 > 0 ) THEN
@@ -958,9 +958,9 @@
 !------------------------------------------------------------------------------
 
 #if defined( DEVEL )
-      SUBROUTINE CHEMCH3I( LOCAL_MET )
+      SUBROUTINE CHEMCH3I( am_I_Root, State_Met )
 #else
-      SUBROUTINE CHEMCH3I
+      SUBROUTINE CHEMCH3I( am_I_Root )
 #endif
 !
 !******************************************************************************
@@ -1029,7 +1029,7 @@
       USE TIME_MOD,     ONLY : GET_TS_CHEM
       USE TRACER_MOD,   ONLY : STT, N_TRACERS
 #if defined( DEVEL )
-      USE GC_TYPE_MOD,  ONLY : GC_MET_LOCAL
+      USE GIGC_State_Met_Mod, ONLY : MetState
 #endif
 
       USE CMN_SIZE_MOD     ! Size parameters
@@ -1037,8 +1037,10 @@
       USE CMN_DIAG_MOD     ! ND36
 
       ! Arguments
+      LOGICAL,        INTENT(IN) :: am_I_Root   ! Is this the root CPU?
+
 #if defined( DEVEL )
-      TYPE(GC_MET_LOCAL), INTENT(IN) :: LOCAL_MET  ! Obj w/ met fields
+      TYPE(MetState), INTENT(IN) :: State_Met   ! Meteorology State object
 #endif
 
       ! Local variables
@@ -1107,9 +1109,9 @@
          ! needed for FAST-J.
          !==============================================================
 #if defined( DEVEL )
-         CALL FAST_J( SUNCOS, LOCAL_MET )
+         CALL FAST_J( SUNCOS, am_I_Root, State_Met )
 #else
-         CALL FAST_J( SUNCOS, OPTD, UVALBEDO )
+         CALL FAST_J( SUNCOS, OPTD, UVALBEDO, am_I_Root )
 #endif
         
          !==============================================================

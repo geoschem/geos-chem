@@ -107,7 +107,7 @@
 ! !INTERFACE:
 !
 #if defined( DEVEL )
-      SUBROUTINE DO_ISOROPIAII( am_I_Root, LOCAL_MET )
+      SUBROUTINE DO_ISOROPIAII( am_I_Root, State_Met )
 #else
       SUBROUTINE DO_ISOROPIAII( am_I_Root )
 #endif
@@ -130,16 +130,16 @@
       USE APM_INIT_MOD,    ONLY : IDTCTBCOC, IDTCTDST,IDTCTSO4
 #endif
 #if defined( DEVEL )
-      USE GC_TYPE_MOD,     ONLY : GC_MET_LOCAL
+      USE GIGC_State_Met_Mod, ONLY : MetState
 #endif
 
       USE CMN_SIZE_MOD        ! Size parameters
 !
 ! !INPUT PARAMETERS:
 !
-      LOGICAL,            INTENT(IN) :: am_I_Root  ! Is this the root CPU?
+      LOGICAL,        INTENT(IN) :: am_I_Root   ! Is this the root CPU?
 #if defined( DEVEL )
-      TYPE(GC_MET_LOCAL), INTENT(IN) :: LOCAL_MET  ! Obj w/ met fields
+      TYPE(MetState), INTENT(IN) :: State_Met   ! Meteorology State object
 #endif
 !
 ! !REMARKS:
@@ -288,7 +288,7 @@
 
          ! Skip strat boxes 
 #if defined( DEVEL )
-         IF ( ITS_IN_THE_STRAT( I, J, L, LOCAL_MET ) ) CYCLE
+         IF ( ITS_IN_THE_STRAT( I, J, L, State_Met ) ) CYCLE
 #else
          IF ( ITS_IN_THE_STRAT( I, J, L ) ) CYCLE
 #endif
@@ -306,10 +306,10 @@
 
 #if defined( DEVEL )
          ! Temperature [K]
-         TEMPI    = LOCAL_MET%T(I,J,L)
+         TEMPI    = State_Met%T(I,J,L)
 
          ! Relative humidity [unitless]
-         RHI      = LOCAL_MET%RH(I,J,L) * 1.d-2
+         RHI      = State_Met%RH(I,J,L) * 1.d-2
 #else
          ! Temperature [K]
          TEMPI    = T(I,J,L)
@@ -324,7 +324,7 @@
 
          ! Volume of grid box [m3] 
 #if defined( DEVEL )
-         VOL      = LOCAL_MET%AIRVOL(I,J,L)
+         VOL      = State_Met%AIRVOL(I,J,L)
 #else
          VOL      = AIRVOL(I,J,L)
 #endif
@@ -435,7 +435,7 @@
             ! GET_HNO3, lets HNO3 conc's evolve, but relaxes to 
             ! monthly mean values every 3h.
 #if defined( DEVEL )
-            TNO3  = GET_HNO3( I, J, L, LOCAL_MET ) * 1.d-6 / 63.d0
+            TNO3  = GET_HNO3( I, J, L, State_Met ) * 1.d-6 / 63.d0
 #else
             TNO3  = GET_HNO3( I,J,L ) * 1.d-6 / 63.d0
 #endif
@@ -682,7 +682,7 @@
 ! !INTERFACE:
 !
 #if defined( DEVEL )
-      FUNCTION GET_HNO3( I, J, L, LOCAL_MET ) RESULT ( HNO3_UGM3 )
+      FUNCTION GET_HNO3( I, J, L, State_Met ) RESULT ( HNO3_UGM3 )
 #else
       FUNCTION GET_HNO3( I, J, L ) RESULT ( HNO3_UGM3 )
 #endif
@@ -692,7 +692,7 @@
       USE GLOBAL_HNO3_MOD, ONLY : GET_HNO3_UGM3
       USE TIME_MOD,        ONLY : GET_ELAPSED_MIN
 #if defined( DEVEL )
-      USE GC_TYPE_MOD,     ONLY : GC_MET_LOCAL
+      USE GIGC_State_Met_Mod, ONLY : MetState
 #endif
 !
 ! !INPUT PARAMETERS: 
@@ -701,7 +701,7 @@
       INTEGER, INTENT(IN) :: J  ! GEOS-Chem latitude index
       INTEGER, INTENT(IN) :: L  ! GEOS-Chem level index
 #if defined( DEVEL )
-      TYPE(GC_MET_LOCAL), INTENT(IN) :: LOCAL_MET  ! Obj w/ met fields
+      TYPE(MetState), INTENT(IN) :: State_Met   ! Meteorology State object
 #endif
 ! 
 ! !REVISION HISTORY: 
@@ -727,7 +727,7 @@
       ! Otherwise just return the concentration in HNO3_sav
       IF ( MOD( GET_ELAPSED_MIN(), 180 ) == 0 ) THEN
 #if defined( DEVEL )
-         HNO3_UGM3 = GET_HNO3_UGM3( I, J, L, LOCAL_MET )
+         HNO3_UGM3 = GET_HNO3_UGM3( I, J, L, State_Met )
 #else
          HNO3_UGM3 = GET_HNO3_UGM3( I, J, L )
 #endif
@@ -785,7 +785,7 @@
 ! !INTERFACE:
 !
 #if defined( DEVEL )
-      SUBROUTINE GET_GNO3( I, J, L, LOCAL_MET, HNO3_kg )
+      SUBROUTINE GET_GNO3( I, J, L, State_Met, HNO3_kg )
 #else
       SUBROUTINE GET_GNO3( I, J, L, HNO3_kg )
 #endif
@@ -794,7 +794,7 @@
 !
       USE DAO_MOD, ONLY : AIRVOL
 #if defined( DEVEL )
-      USE GC_TYPE_MOD, ONLY : GC_MET_LOCAL
+      USE GIGC_State_Met_Mod, ONLY : MetState
 #endif
 !
 ! !INPUT PARAMETERS: 
@@ -802,8 +802,11 @@
       INTEGER, INTENT(IN)  :: I       ! GEOS-Chem longitude index
       INTEGER, INTENT(IN)  :: J       ! GEOS-Chem latitude index
       INTEGER, INTENT(IN)  :: L       ! GEOS-Chem level index
+!
+! !INPUT/OUTPUT PARAMETERS: 
+!
 #if defined( DEVEL )
-      TYPE(GC_MET_LOCAL), INTENT(INOUT) :: LOCAL_MET  ! Obj w/ met fields
+      TYPE(MetState), INTENT(INOUT) :: State_Met   ! Meteorology State object
 #endif
 !
 ! !OUTPUT PARAMETERS:
@@ -822,7 +825,7 @@
 
       ! convert from [mole/m3] to [kg]
 #if defined( DEVEL )
-      HNO3_kg = GAS_HNO3(I,J,L) * 63.d-3 * LOCAL_MET%AIRVOL(I,J,L) 
+      HNO3_kg = GAS_HNO3(I,J,L) * 63.d-3 * State_Met%AIRVOL(I,J,L) 
 #else
       HNO3_kg = GAS_HNO3(I,J,L) * 63.d-3 * AIRVOL(I,J,L) 
 #endif

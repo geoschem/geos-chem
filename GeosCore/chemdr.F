@@ -819,7 +819,7 @@
       ! Call FAST_J by passing values from the Meteorology State
       ! object.  This will facilitate connecting to the ESMF interface.
       !-----------------------------------------------------------------
-      CALL FAST_J( SUNCOS_MID, State_Met, am_I_Root )              
+      CALL FAST_J( SUNCOS_MID, am_I_Root, State_Met )              
 #else
       !-----------------------------------------------------------------
       !              %%%%% TRADITIONAL GEOS-Chem %%%%%

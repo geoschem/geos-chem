@@ -293,7 +293,7 @@
 ! !INTERFACE: 
 !
 #if defined( DEVEL )
-      SUBROUTINE ADD_HG2_SNOWPACK( I, J, N, DEP_Hg2, LOCAL_MET )
+      SUBROUTINE ADD_HG2_SNOWPACK( I, J, N, DEP_Hg2, State_Met )
 #else
       SUBROUTINE ADD_HG2_SNOWPACK( I, J, N, DEP_Hg2 )
 #endif
@@ -307,7 +307,7 @@
       USE TRACERID_MOD,      ONLY : IS_Hg2,      IS_HgP
 
 #if defined( DEVEL )
-      USE GC_TYPE_MOD,   ONLY : GC_MET_LOCAL
+      USE GIGC_State_Met_Mod, ONLY : MetState
 #endif
 
 #     include "define.h"
@@ -318,7 +318,7 @@
       INTEGER, INTENT(IN)   :: I, J, N
       REAL*8,  INTENT(IN)   :: Dep_Hg2
 #if defined( DEVEL )
-      TYPE(GC_MET_LOCAL), INTENT(IN) :: LOCAL_MET  ! Obj w/ met fields
+      TYPE(MetState), INTENT(IN) :: State_Met   ! Meteorology State object
 #endif
 !
 ! !REVISION HISTORY:
@@ -366,22 +366,22 @@
 
 #if   defined( MERRA ) || defined( GEOS_57 )
       ! Don't let fraction be greater than 1
-      FRAC_SNOW_OR_ICE = MIN( LOCAL_MET%FRSNO(I,J)     +
-     &                        LOCAL_MET%FRSEAICE(I,J)  + 
-     &                        LOCAL_MET%FRLANDIC(I,J), 1d0)
+      FRAC_SNOW_OR_ICE = MIN( State_Met%FRSNO(I,J)     +
+     &                        State_Met%FRSEAICE(I,J)  + 
+     &                        State_Met%FRLANDIC(I,J), 1d0)
       IS_SNOW_OR_ICE   = ( FRAC_SNOW_OR_ICE > 0d0 )
 
 #elif defined( GEOS_5 )
       ! Use GEOS5 snow height (water equivalent) in mm. (Docs wrongly say m)
-      IS_SNOW_OR_ICE   = (( IS_ICE ( I, J, LOCAL_MET     )) .OR. 
-     &                    ( IS_LAND( I, J, LOCAL_MET     )  .AND. 
-     &                      LOCAL_MET%SNOMAS(I,J) > 10d0 ))
+      IS_SNOW_OR_ICE   = (( IS_ICE ( I, J, State_Met     )) .OR. 
+     &                    ( IS_LAND( I, J, State_Met     )  .AND. 
+     &                      State_Met%SNOMAS(I,J) > 10d0 ))
 
 #else
       ! Use GEOS1-4 snow height (water equivalent) in mm
-      IS_SNOW_OR_ICE   = (( IS_ICE ( I, J, LOCAL_MET     )) .OR. 
-     &                    ( IS_LAND( I, J, LOCAL_MET     )  .AND. 
-     &                      LOCAL_MET%SNOW(I,J)   > 10d0 ))
+      IS_SNOW_OR_ICE   = (( IS_ICE ( I, J, State_Met     )) .OR. 
+     &                    ( IS_LAND( I, J, State_Met     )  .AND. 
+     &                      State_Met%SNOW(I,J)   > 10d0 ))
 #endif
 
 #else

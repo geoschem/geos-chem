@@ -215,7 +215,7 @@
 !-------------------------------------------------------------------------
 
 #if defined( DEVEL )
-      SUBROUTINE PARTITION_Hg2( THISMONTH, LOCAL_MET )
+      SUBROUTINE PARTITION_Hg2( THISMONTH, State_Met )
 #else
       SUBROUTINE PARTITION_Hg2(THISMONTH)
 #endif
@@ -322,7 +322,7 @@
       USE DIRECTORY_MOD, ONLY : DATA_DIR      
       USE ERROR_MOD    , ONLY : GEOS_CHEM_STOP
 #if defined( DEVEL )
-      USE GC_TYPE_MOD,   ONLY : GC_MET_LOCAL
+      USE GIGC_State_Met_Mod, ONLY : MetState
 #endif
 
       USE CMN_SIZE_MOD  ! Size parameters3
@@ -331,7 +331,7 @@
       ! Arguments
       INTEGER, INTENT(IN)  :: THISMONTH
 #if defined( DEVEL )
-      TYPE(GC_MET_LOCAL), INTENT(IN) :: LOCAL_MET  ! Obj w/ met fields
+      TYPE(MetState), INTENT(IN) :: State_Met   ! Meteorology State object
 #endif
 
       ! Arrays to hold aerosol concentrations  
@@ -487,15 +487,15 @@
         !       (hma, 20120104)
 #if defined( GRID4x5 )
         BULK_CONC(I,J,L) = 1d9 * ( BULK_CONC(I,J,L) *
-     &                     LOCAL_MET%AIRDEN(L,I,J)  )
+     &                     State_Met%AIRDEN(L,I,J)  )
 #elif defined( GRID2x25 )
-        BULK_CONC(I,J,L) = ( BULK_CONC(I,J,L) * LOCAL_MET%AIRDEN(L,I,J))
+        BULK_CONC(I,J,L) = ( BULK_CONC(I,J,L) * State_Met%AIRDEN(L,I,J))
 #endif 
 
         ! Calculate R = HgP_ads/RGM (i.e. the ratio of Hg2
         ! adsorbed onto aerosol to Hg2 in the  gas phase) 
         R(I,J,L) = BULK_CONC(I,J,L)*
-     &           ( 10d0**( ( 2.5d3 / LOCAL_MET%T(I,J,L)) - 10d0 ))
+     &           ( 10d0**( ( 2.5d3 / State_Met%T(I,J,L)) - 10d0 ))
 
 #else
         ! convert bulk aerosol mass concentration  to ug/m3
@@ -563,7 +563,7 @@
 !------------------------------------------------------------------------------
 
 #if defined( DEVEL )
-      SUBROUTINE OCEAN_MERCURY_FLUX( FLUX, LOCAL_MET )
+      SUBROUTINE OCEAN_MERCURY_FLUX( FLUX, State_Met )
 #else
       SUBROUTINE OCEAN_MERCURY_FLUX( FLUX )
 #endif
@@ -743,7 +743,7 @@
       USE DEPO_MERCURY_MOD, ONLY: DD_Hg2, WD_Hg2, DD_HgP, WD_HgP
  
 #if defined( DEVEL )
-      USE GC_TYPE_MOD,      ONLY : GC_MET_LOCAL
+      USE GIGC_State_Met_Mod, ONLY : MetState
 #endif
 
       USE CMN_SIZE_MOD      ! Size parameters
@@ -752,7 +752,7 @@
       ! Arguments 
       REAL*8,  INTENT(OUT)  :: FLUX(IIPAR,JJPAR,N_Hg_CATS)
 #if defined( DEVEL )
-      TYPE(GC_MET_LOCAL), INTENT(IN) :: LOCAL_MET  ! Obj w/ met fields
+      TYPE(MetState), INTENT(IN) :: State_Met   ! Meteorology State object
 #endif
 
       ! Local variables
@@ -892,13 +892,13 @@
 
 #if   defined( MERRA ) || defined( GEOS_57 )
          NPP_tot = NPP_tot+ NPP(I,J) * A_M2 * 
-     &             ( LOCAL_MET%FROCEAN(I,J) - LOCAL_MET%FRSEAICE(I,J) )
+     &             ( State_Met%FROCEAN(I,J) - State_Met%FRSEAICE(I,J) )
          A_ocean = A_ocean + A_M2 * 
-     &             ( LOCAL_MET%FROCEAN(I,J) - LOCAL_MET%FRSEAICE(I,J) )
+     &             ( State_Met%FROCEAN(I,J) - State_Met%FRSEAICE(I,J) )
 #else
          NPP_tot = NPP_tot+ NPP(I,J) * A_M2 *
-     &             ( 1d0 - LOCAL_MET%FRCLND(I,J))
-         A_ocean = A_ocean + A_M2 * ( 1 - LOCAL_MET%FRCLND(I,J) ) 
+     &             ( 1d0 - State_Met%FRCLND(I,J))
+         A_ocean = A_ocean + A_M2 * ( 1 - State_Met%FRCLND(I,J) ) 
 #endif
 
 #else
@@ -984,15 +984,15 @@
 #if   defined( DEVEL )
 
 #if   defined( MERRA ) || defined( GEOS_57 )
-         FRAC_L       = LOCAL_MET%FRLAND(I,J)
-         FRAC_O       = MAX( LOCAL_MET%FROCEAN(I,J) -
-     &                       LOCAL_MET%FRSEAICE(I,J), 0d0 )
+         FRAC_L       = State_Met%FRLAND(I,J)
+         FRAC_O       = MAX( State_Met%FROCEAN(I,J) -
+     &                       State_Met%FRSEAICE(I,J), 0d0 )
          IS_OCEAN_BOX = (( FRAC_O > 0d0 ) .and. 
-                         ( LOCAL_MET%SEAICE00(I,J)  > 0.5d0 ))
+                         ( State_Met%SEAICE00(I,J)  > 0.5d0 ))
 #else
-         FRAC_L       = LOCAL_MET%FRCLND(I,J)
+         FRAC_L       = State_Met%FRCLND(I,J)
          FRAC_O       = 1d0 - FRAC_L
-         IS_OCEAN_BOX = ( IS_WATER( I, J, LOCAL_MET ) )
+         IS_OCEAN_BOX = ( IS_WATER( I, J, State_Met ) )
 #endif
 
 #else
@@ -1013,7 +1013,7 @@
          ! Change ocean mass due to mixed layer depth change
          ! Keep before next IF so that we adjust mass in ice-covered boxes
 #if   defined( DEVEL )
-         CALL MLD_ADJUSTMENT( I, J, OLDMLD*1d-2, MLDcm*1d-2, LOCAL_MET )
+         CALL MLD_ADJUSTMENT( I, J, OLDMLD*1d-2, MLDcm*1d-2, State_Met )
 #else
          CALL MLD_ADJUSTMENT( I, J, OLDMLD*1d-2, MLDcm*1d-2 )
 #endif
@@ -1047,7 +1047,7 @@
 
 #if   defined( DEVEL )
             RADz   = ( 1 / ( MLDcm * 1d-2 ))
-     &               * (LOCAL_MET%RADSWG(I,J) / EC )    
+     &               * (State_Met%RADSWG(I,J) / EC )    
      &               * ( 1 - EXP( -EC * ( MLDcm * 1d-2) ) )
 #else
             RADz   = ( 1 / ( MLDcm * 1d-2 )) * ( RADSWG(I,J) / EC )    
@@ -1132,7 +1132,7 @@
             ! (Use as surrogate for SST, cap at freezing point)
 
 #if defined( DEVEL )
-            TK     = MAX( LOCAL_MET%TSKIN(I,J), 273.15d0 )
+            TK     = MAX( State_Met%TSKIN(I,J), 273.15d0 )
 #else
             TK     = MAX( TSKIN(I,J), 273.15d0 )                           
 #endif
@@ -1179,7 +1179,7 @@
 
             ! Square of surface (actually 10m) wind speed [m2/s2]
 #if defined( DEVEL )
-            Usq    = SFCWINDSQR( I, J, LOCAL_MET%U10M, LOCAL_MET%V10M )
+            Usq    = SFCWINDSQR( I, J, State_Met%U10M, State_Met%V10M )
 #else
             Usq    = SFCWINDSQR( I, J, U10M, V10M )
 #endif
@@ -1547,7 +1547,7 @@
                ! Gas phase Hg(0) concentration: convert [kg] -> [ng/L]
 #if defined( DEVEL )
                CHg0          = STT(I,J,1,N) * 1.0D9 /
-     &                         LOCAL_MET%AIRVOL(I,J,1)
+     &                         State_Met%AIRVOL(I,J,1)
 #else
                CHg0          = STT(I,J,1,N) * 1.0D9 / AIRVOL(I,J,1)
 #endif
@@ -1940,7 +1940,7 @@
 !------------------------------------------------------------------------------
 
 #if defined( DEVEL )
-      SUBROUTINE MLD_ADJUSTMENT( I, J, MLDold, MLDnew, LOCAL_MET )
+      SUBROUTINE MLD_ADJUSTMENT( I, J, MLDold, MLDnew, State_Met )
 #else
       SUBROUTINE MLD_ADJUSTMENT( I, J, MLDold, MLDnew )
 #endif
@@ -1976,7 +1976,7 @@
       USE TRACERID_MOD, ONLY : ID_Hg_tot, ID_Hg_oc, N_Hg_CATS
       USE DAO_MOD,      ONLY : FROCEAN, FRSEAICE ! jaf
 #if defined( DEVEL )
-      USE GC_TYPE_MOD,  ONLY : GC_MET_LOCAL
+      USE GIGC_State_Met_Mod, ONLY : MetState
 #endif
 
       USE CMN_SIZE_MOD     ! Size parameters
@@ -1986,7 +1986,7 @@
       INTEGER, INTENT(IN)   :: I, J 
       REAL*8,  INTENT(IN)   :: MLDold, MLDnew  
 #if defined( DEVEL )
-      TYPE(GC_MET_LOCAL), INTENT(IN) :: LOCAL_MET  ! Obj w/ met fields
+      TYPE(MetState), INTENT(IN) :: State_Met   ! Meteorology State object
 #endif
 
       ! Local variables
@@ -2016,10 +2016,10 @@
 #if defined( DEVEL )
 
 #if   defined( MERRA ) || defined( GEOS_57 )
-      FRAC_O     = MAX( LOCAL_MET%FROCEAN(I,J) - 
-     &                  LOCAL_MET%FRSEAICE(I,J), 0d0)
+      FRAC_O     = MAX( State_Met%FROCEAN(I,J) - 
+     &                  State_Met%FRSEAICE(I,J), 0d0)
 #else
-      FRAC_O = 1d0 - LOCAL_MET%FRCLND(I,J)
+      FRAC_O = 1d0 - State_Met%FRCLND(I,J)
 #endif
 
 #else

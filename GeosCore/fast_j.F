@@ -25,7 +25,7 @@
 ! !INTERFACE:
 !
 #if defined( DEVEL ) || defined( EXTERNAL_GRID ) || defined( EXTERNAL_FORCING )
-      SUBROUTINE FAST_J( SUNCOS, LOCAL_MET, am_I_Root )
+      SUBROUTINE FAST_J( SUNCOS, am_I_Root, State_Met )
 #else
       SUBROUTINE FAST_J( SUNCOS, OD, ALBD, am_I_Root )
 #endif
@@ -42,7 +42,7 @@
       USE TIME_MOD,     ONLY : GET_TAU,   GET_YEAR
       USE TOMS_MOD,     ONLY : GET_OVERHEAD_O3
 #if defined( DEVEL )
-      USE GC_TYPE_MOD,  ONLY : GC_MET_LOCAL
+      USE GIGC_State_Met_Mod, ONLY : MetState
 #endif
 
       USE CMN_SIZE_MOD, ONLY : IIPAR,   JJPAR, LLPAR
@@ -61,8 +61,8 @@
       REAL*8,  INTENT(IN) :: SUNCOS(MAXIJ)   
 
 #if defined( DEVEL ) || defined( EXTERNAL_GRID ) || defined( EXTERNAL_FORCING )
-      ! Obj w/ met fields
-      TYPE(GC_MET_LOCAL), INTENT(IN) :: LOCAL_MET
+      ! Meteorology State object
+      TYPE(MetState), INTENT(IN) :: State_Met
 #else
       ! Cloud optical depth [unitless]
       REAL*8,  INTENT(IN) :: OD(LLPAR,IIPAR,JJPAR) 
@@ -230,7 +230,7 @@
 #if defined( EXTERNAL_GRID ) || defined( EXTERNAL_FORCING )
             ! Define the PJ array here, using GCM pressures
             DO L = 1, LLPAR+1
-               PJ(L)     = LOCAL_MET%PEDGE( NLON, NLAT, L )
+               PJ(L)     = State_Met%PEDGE( NLON, NLAT, L )
             ENDDO
 #else
             ! Define the PJ array here, using Ap and Bp from GEOS-Chem
@@ -244,10 +244,10 @@
 
 #if defined( DEVEL )
             ! Temperature profile [K] at (NLON,NLAT)
-            TEMP         = LOCAL_MET%T(NLON,NLAT,1:LLPAR)
+            TEMP         = State_Met%T(NLON,NLAT,1:LLPAR)
 
             ! Surface albedo [unitless] at (NLON,NLAT)
-            SFCA         = LOCAL_MET%UVALBEDO(NLON,NLAT)
+            SFCA         = State_Met%UVALBEDO(NLON,NLAT)
 #else
             ! Temperature profile [K] at (NLON,NLAT)
             TEMP         = T(NLON,NLAT,1:LLPAR)
@@ -267,7 +267,7 @@
 
 #if defined( DEVEL )
             ! Cloud OD profile [unitless] at (NLON,NLAT)
-            OPTD         = LOCAL_MET%OPTD(1:LLPAR,NLON,NLAT)
+            OPTD         = State_Met%OPTD(1:LLPAR,NLON,NLAT)
 #else
             ! Cloud OD profile [unitless] at (NLON,NLAT)
             OPTD         = OD(1:LLPAR,NLON,NLAT)
@@ -294,7 +294,7 @@
 
                ! Column cloud fraction (not less than zero)
 #if defined( DEVEL )
-               CLDF1D = LOCAL_MET%CLDF(1:LLPAR,NLON,NLAT)
+               CLDF1D = State_Met%CLDF(1:LLPAR,NLON,NLAT)
 #else
                CLDF1D = CLDF(1:LLPAR,NLON,NLAT)
 #endif

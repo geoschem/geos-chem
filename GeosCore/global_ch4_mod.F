@@ -147,7 +147,7 @@
 ! !INTERFACE:
 !
 #if defined( DEVEL )
-      SUBROUTINE CH4_AVGTP( LOCAL_MET )
+      SUBROUTINE CH4_AVGTP( State_Met )
 #else
       SUBROUTINE CH4_AVGTP
 #endif
@@ -159,7 +159,7 @@
       USE PRESSURE_MOD, ONLY : GET_PCENTER
       USE TIME_MOD,     ONLY : GET_TS_DYN, GET_TS_CHEM, GET_ELAPSED_MIN
 #if defined( DEVEL )
-      USE GC_TYPE_MOD,  ONLY : GC_MET_LOCAL
+      USE GIGC_State_Met_Mod, ONLY : MetState
 #endif
 
       USE CMN_SIZE_MOD       ! Size parameters
@@ -167,7 +167,7 @@
 ! !INPUT PARAMETERS:
 !
 #if defined( DEVEL )
-      TYPE(GC_MET_LOCAL), INTENT(IN) :: LOCAL_MET  ! Obj w/ met fields
+      TYPE(MetState), INTENT(IN) :: State_Met   ! Meteorology State object
 #endif
 ! 
 ! !REVISION HISTORY:
@@ -283,7 +283,7 @@
 
          ! Archive temperature
 #if defined( DEVEL )
-         Tavg(I,J,L) = Tavg(I,J,L) + LOCAL_MET%T(I,J,L)
+         Tavg(I,J,L) = Tavg(I,J,L) + State_Met%T(I,J,L)
 #else
          Tavg(I,J,L) = Tavg(I,J,L) + T(I,J,L)
 #endif
@@ -321,7 +321,7 @@
 ! !INTERFACE:
 !
 #if defined( DEVEL )
-      SUBROUTINE EMISSCH4( LOCAL_MET )
+      SUBROUTINE EMISSCH4( State_Met )
 #else
       SUBROUTINE EMISSCH4
 #endif
@@ -343,7 +343,7 @@
       USE VDIFF_PRE_MOD, ONLY : EMIS_SAVE ! (ccc, 08/31/09)
       USE LOGICAL_MOD,   ONLY : LNLPBL    ! (ccc, 08/31/09)
 #if defined( DEVEL )
-      USE GC_TYPE_MOD,   ONLY : GC_MET_LOCAL
+      USE GIGC_State_Met_Mod, ONLY : MetState
 #endif
 
       USE CMN_SIZE_MOD        ! Size parameters
@@ -353,7 +353,7 @@
 ! !INPUT PARAMETERS:
 !
 #if defined( DEVEL )
-      TYPE(GC_MET_LOCAL), INTENT(IN) :: LOCAL_MET  ! Obj w/ met fields
+      TYPE(MetState), INTENT(IN) :: State_Met   ! Meteorology State object
 #endif
 ! 
 ! !REMARKS:
@@ -452,7 +452,7 @@
       !4.1 Wetland emissions
       IF ( LWETL ) THEN
 #if defined( DEVEL )
-         CALL WETLAND_EMIS( LOCAL_MET )
+         CALL WETLAND_EMIS( State_Met )
 #else
          CALL WETLAND_EMIS 
 #endif
@@ -648,7 +648,7 @@
 ! !INTERFACE:
 !
 #if defined( DEVEL )
-      SUBROUTINE WETLAND_EMIS( LOCAL_MET )
+      SUBROUTINE WETLAND_EMIS( State_Met )
 #else
       SUBROUTINE WETLAND_EMIS
 #endif
@@ -670,7 +670,7 @@
       USE TRANSFER_MOD,  ONLY : TRANSFER_2D
       USE DIAG_MOD,      ONLY : AD60, AD58
 #if defined( DEVEL )
-      USE GC_TYPE_MOD,   ONLY : GC_MET_LOCAL
+      USE GIGC_State_Met_Mod, ONLY : MetState
 #endif
 
       USE CMN_SIZE_MOD        ! Size parameters
@@ -679,7 +679,7 @@
 ! !INPUT PARAMETERS:
 !
 #if defined( DEVEL )
-      TYPE(GC_MET_LOCAL), INTENT(IN) :: LOCAL_MET  ! Obj w/ met fields
+      TYPE(MetState), INTENT(IN) :: State_Met   ! Meteorology State object
 #endif
 ! 
 ! !REVISION HISTORY:
@@ -805,14 +805,14 @@
       DO I = 1, IIPAR
 
 	 ! We don't want emissions in frozen regions
-	 IF ( LOCAL_MET%TSKIN(I,J) > 273d0 ) THEN
+	 IF ( State_Met%TSKIN(I,J) > 273d0 ) THEN
 
          ! We want emissions from land boxes only
-         IF ( LOCAL_MET%LWI(I,J) == 1 ) THEN
+         IF ( State_Met%LWI(I,J) == 1 ) THEN
 
 	    ! If wetness>0.1, the wetland fraction is equal
             ! to the maximal potential wetland fraction
-            IF (LOCAL_MET%GWETTOP(I,J) > 0.1d0) THEN
+            IF (State_Met%GWETTOP(I,J) > 0.1d0) THEN
                REALWET(I,J) = WETFRAC(I,J)
             ELSE
                REALWET(I,J) = 0.d0
@@ -833,18 +833,18 @@
       DO I = 1, IIPAR
 
 	 ! We don't want emissions in frozen regions
-	 IF ( LOCAL_MET%TSKIN(I,J) > 273d0 ) THEN
+	 IF ( State_Met%TSKIN(I,J) > 273d0 ) THEN
 
          ! We want emissions from any box that contains some land
          ! FRLAND is fraction of grid box that is land
-         IF ( LOCAL_MET%FRLAND(I,J) > 0) THEN 
+         IF ( State_Met%FRLAND(I,J) > 0) THEN 
 
             ! Actual wetness of land /= GWETTOP because GWETTOP includes
             ! wetness in lakes, ocean, and ice.  Below is a scheme to
             ! calculate effective GWETTOP of the land fraction
-            EFF_GWET(I,J) = ( LOCAL_MET%GWETTOP(I,J)  - 
-     &         ( LOCAL_MET%FROCEAN(I,J)     + LOCAL_MET%FRLAKE(I,J) + 
-     &           LOCAL_MET%FRLANDIC(I,J) )) / LOCAL_MET%FRLAND(I,J)
+            EFF_GWET(I,J) = ( State_Met%GWETTOP(I,J)  - 
+     &         ( State_Met%FROCEAN(I,J)     + State_Met%FRLAKE(I,J) + 
+     &           State_Met%FRLANDIC(I,J) )) / State_Met%FRLAND(I,J)
 
             ! Catch for negative EFF_GWET
             IF ( EFF_GWET(I,J) < 0d0 ) THEN
@@ -1081,11 +1081,11 @@
       DO I = 1, IIPAR
         
 #if defined( DEVEL )
-	 IF ( LOCAL_MET%TSKIN(I,J) < 233.d0 ) THEN
+	 IF ( State_Met%TSKIN(I,J) < 233.d0 ) THEN
 	    F_TEMP = 0d0
 	 ELSE
 	    F_TEMP = exp(308.56d0*(1.0d0/56.02d0-
-     &           1.0d0/(LOCAL_MET%TSKIN(I,J)-227.13d0))) !Lloyd & Taylor 1994
+     &           1.0d0/(State_Met%TSKIN(I,J)-227.13d0))) !Lloyd & Taylor 1994
          ENDIF
 #else
 	 IF ( tskin(I,J) < 233.d0 ) THEN
@@ -1684,7 +1684,7 @@
 ! !INTERFACE:
 !
 #if defined( DEVEL )
-      SUBROUTINE CHEMCH4( LOCAL_MET )
+      SUBROUTINE CHEMCH4( State_Met )
 #else
       SUBROUTINE CHEMCH4
 #endif
@@ -1705,7 +1705,7 @@
       USE LOGICAL_MOD,   ONLY : LSPLIT, LCH4BUD
       USE TIME_MOD,      ONLY : ITS_A_NEW_MONTH
 #if defined( DEVEL )
-      USE GC_TYPE_MOD,   ONLY : GC_MET_LOCAL
+      USE GIGC_State_Met_Mod, ONLY : MetState
 #endif
 
       USE CMN_SIZE_MOD        ! Size parameters
@@ -1715,7 +1715,7 @@
 ! !INPUT PARAMETERS:
 !
 #if defined( DEVEL )
-      TYPE(GC_MET_LOCAL), INTENT(IN) :: LOCAL_MET  ! Obj w/ met fields
+      TYPE(MetState), INTENT(IN) :: State_Met   ! Meteorology State object
 #endif
 ! 
 ! !REMARKS:
@@ -1805,8 +1805,8 @@
       DO J = 1, JJPAR
       DO I = 1, IIPAR
 #if defined( DEVEL )
-         BAIRDENS(I,J,L) = LOCAL_MET%AD(I,J,L)    * 1000d0   /
-     &                     BOXVL(I,J,L,LOCAL_MET) * 6.023D23 / WTAIR
+         BAIRDENS(I,J,L) = State_Met%AD(I,J,L)    * 1000d0   /
+     &                     BOXVL(I,J,L,State_Met) * 6.023D23 / WTAIR
 #else
          BAIRDENS(I,J,L) = AD(I,J,L) * 1000d0   / BOXVL(I,J,L) * 
      &                                 6.023D23 / WTAIR
@@ -1917,7 +1917,7 @@
       !     CH3CCLl3 at end of simulation.
       !=================================================================
 #if defined( DEVEL )
-      CALL CH4_OHSAVE( LOCAL_MET )
+      CALL CH4_OHSAVE( State_Met )
 #else
       CALL CH4_OHSAVE
 #endif
@@ -1944,7 +1944,7 @@
       ! (6) calculate rate of decay of CH4 by OH oxidation.
       !=================================================================
 #if defined( DEVEL )
-      CALL CH4_DECAY( LOCAL_MET )
+      CALL CH4_DECAY( State_Met )
 #else
       CALL CH4_DECAY
 #endif
@@ -1953,7 +1953,7 @@
       ! (7) calculate CH4 chemistry in layers above tropopause.
       !=================================================================
 #if defined( DEVEL )
-      CALL CH4_STRAT( LOCAL_MET )
+      CALL CH4_STRAT( State_Met )
 #else
       CALL CH4_STRAT
 #endif
@@ -2237,7 +2237,7 @@
 ! !INTERFACE:
 !
 #if defined( DEVEL )
-      SUBROUTINE CH4_DECAY( LOCAL_MET )
+      SUBROUTINE CH4_DECAY( State_Met )
 #else
       SUBROUTINE CH4_DECAY
 #endif
@@ -2249,7 +2249,7 @@
       USE TRACER_MOD, ONLY : STT
       USE DIAG_MOD,   ONLY : AD19   	      
 #if defined( DEVEL )
-      USE GC_TYPE_MOD, ONLY : GC_MET_LOCAL
+      USE GIGC_State_Met_Mod, ONLY : MetState
 #endif
 
       USE CMN_SIZE_MOD     ! Size parameters
@@ -2259,7 +2259,7 @@
 ! !INPUT PARAMETERS: 
 !
 #if defined( DEVEL )
-      TYPE(GC_MET_LOCAL), INTENT(IN) :: LOCAL_MET  ! Obj w/ met fields
+      TYPE(MetState), INTENT(IN) :: State_Met   ! Meteorology State object
 #endif
 ! 
 ! !REMARKS:
@@ -2334,18 +2334,18 @@
 #if defined( DEVEL )
             ! Use 24-hr avg temperature to calc. rate coeff.
             ! citation needed
-            KRATE = 2.45d-12 * EXP( -1775d0 / LOCAL_MET%T(I,J,L) )  
+            KRATE = 2.45d-12 * EXP( -1775d0 / State_Met%T(I,J,L) )  
 
             ! Conversion from [kg/box] --> [molec/cm3]
             ! [kg CH4/box] * [box/cm3] * XNUMOL_CH4 [molec CH4/kg CH4]
-            STT2GCH4 = 1d0 / LOCAL_MET%AIRVOL(I,J,L) / 1d6 * XNUMOL_CH4 
+            STT2GCH4 = 1d0 / State_Met%AIRVOL(I,J,L) / 1d6 * XNUMOL_CH4 
 
             ! CH4 in [molec/cm3]
             GCH4 = STT(I,J,L,1) * STT2GCH4
 	
             ! Sum loss in TCH4(3) (molecules/box)
             TCH4(I,J,L,3) = TCH4(I,J,L,3) + 
-     &                      ( GCH4  * BOXVL(I,J,L,LOCAL_MET) *
+     &                      ( GCH4  * BOXVL(I,J,L,State_Met) *
      &                        KRATE * BOH(I,J,L,LMN)         * DT )
 #else
             ! Use 24-hr avg temperature to calc. rate coeff.
@@ -2409,7 +2409,7 @@
 ! !INTERFACE:
 !
 #if defined( DEVEL )
-      SUBROUTINE CH4_OHSAVE( LOCAL_MET )
+      SUBROUTINE CH4_OHSAVE( State_Met )
 #else
       SUBROUTINE CH4_OHSAVE
 #endif
@@ -2421,7 +2421,7 @@
       USE TIME_MOD,    ONLY : GET_MONTH
       USE DAO_MOD,     ONLY : T
 #if defined( DEVEL )
-      USE GC_TYPE_MOD, ONLY : GC_MET_LOCAL
+      USE GIGC_State_Met_Mod, ONLY : MetState
 #endif
 
       USE CMN_SIZE_MOD      ! Size parameters
@@ -2430,7 +2430,7 @@
 ! !INPUT PARAMETERS:
 !
 #if defined( DEVEL )
-      TYPE(GC_MET_LOCAL), INTENT(IN) :: LOCAL_MET  ! Obj w/ met fields
+      TYPE(MetState), INTENT(IN) :: State_Met   ! Meteorology State object
 #endif
 ! 
 ! !REMARKS:
@@ -2482,18 +2482,18 @@
             ! Calculate OH mass [molec / box]
 #if defined( DEVEL )
             OHMASS = BOH(I,J,L,LMN)  * BAIRDENS(I,J,L) *
-     &               BOXVL(I,J,L,LOCAL_MET)
+     &               BOXVL(I,J,L,State_Met)
 
             ! Calculate total air mass [molec / box]
-            MASST  = BAIRDENS(I,J,L) * BOXVL(I,J,L,LOCAL_MET)
+            MASST  = BAIRDENS(I,J,L) * BOXVL(I,J,L,State_Met)
 
             ! Calculate CH3CCl3 + OH rate constant from JPL '06
             ! [cm3 / molec / s]
-            KCLO   = 1.64d-12 * EXP( -1520.d0 / LOCAL_MET%T(I,J,L) )
+            KCLO   = 1.64d-12 * EXP( -1520.d0 / State_Met%T(I,J,L) )
 
             ! Calculate Loss term [molec / box / s]
             LOSS   = KCLO            * BOH(I,J,L,LMN)  *
-     &               BAIRDENS(I,J,L) * BOXVL(I,J,L,LOCAL_MET)
+     &               BAIRDENS(I,J,L) * BOXVL(I,J,L,State_Met)
 #else
             OHMASS = BOH(I,J,L,LMN) * BAIRDENS(I,J,L) * BOXVL(I,J,L)
 
@@ -2536,7 +2536,7 @@
 ! !INTERFACE:
 !
 #if defined( DEVEL )
-      SUBROUTINE CH4_STRAT( LOCAL_MET )
+      SUBROUTINE CH4_STRAT( State_Met )
 #else
       SUBROUTINE CH4_STRAT
 #endif
@@ -2547,7 +2547,7 @@
       USE TIME_MOD,   ONLY : GET_MONTH, GET_TS_CHEM
       USE TRACER_MOD, ONLY : STT, CHECK_STT
 #if defined( DEVEL )
-      USE GC_TYPE_MOD, ONLY : GC_MET_LOCAL
+      USE GIGC_State_Met_Mod, ONLY : MetState
 #endif
 
       USE CMN_SIZE_MOD     ! Size parameters
@@ -2556,7 +2556,7 @@
 ! !INPUT PARAMETERS:
 !
 #if defined( DEVEL )
-      TYPE(GC_MET_LOCAL), INTENT(IN) :: LOCAL_MET  ! Obj w/ met fields
+      TYPE(MetState), INTENT(IN) :: State_Met   ! Meteorology State object
 #endif
 ! 
 ! !REMARKS:
@@ -2615,7 +2615,7 @@
             ! Conversion factor [kg/box] --> [molec/cm3]
             ! [kg/box] / [AIRVOL * 1e6 cm3] * [XNUMOL_CH4 molec/mole]
 #if defined( DEVEL )
-            STT2GCH4 = 1d0 / LOCAL_MET%AIRVOL(I,J,L) / 1d6 * XNUMOL_CH4
+            STT2GCH4 = 1d0 / State_Met%AIRVOL(I,J,L) / 1d6 * XNUMOL_CH4
 #else
             STT2GCH4 = 1d0 / AIRVOL(I,J,L) / 1d6 * XNUMOL_CH4
 #endif

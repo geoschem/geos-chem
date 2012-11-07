@@ -188,7 +188,7 @@ CONTAINS
 ! !INTERFACE:
 !
 #if defined( DEVEL )
-  SUBROUTINE Compute_Olson_LandMap( mapping, LOCAL_MET )
+  SUBROUTINE Compute_Olson_LandMap( mapping, State_Met )
 #else
   SUBROUTINE Compute_Olson_LandMap( mapping )
 #endif
@@ -196,14 +196,14 @@ CONTAINS
 ! !USES:
 !
 #if defined( DEVEL )
-      USE GC_TYPE_MOD,  ONLY : GC_MET_LOCAL
+    USE GIGC_State_Met_Mod, ONLY : MetState
 #endif
 !
 ! !INPUT/OUTPUT PARAMETERS:
 !
     TYPE(MapWeight), POINTER :: mapping(:,:)   ! "fine" -> "coarse" mapping
 #if defined( DEVEL )
-    TYPE(GC_MET_LOCAL), INTENT(INOUT) :: LOCAL_MET  ! Obj w/ met fields
+    TYPE(MetState), INTENT(INOUT) :: State_Met   ! Meteorology State object
 #endif
 !
 ! !REMARKS:
@@ -287,7 +287,7 @@ CONTAINS
     ILAND              = 0
     IUSE               = 0
 #if defined( DEVEL )
-    LOCAL_MET%FRCLND   = 1000e0
+    State_Met%FRCLND   = 1000e0
 #else
     FRCLND             = 1000e0
 #endif
@@ -466,13 +466,13 @@ CONTAINS
           ! If the current Olson land type is water (type 0),
           ! subtract the coverage fraction (IUSE) from FRCLND.
           IF ( ILAND(I,J,T) == 0 ) THEN
-             LOCAL_MET%FRCLND(I,J) = LOCAL_MET%FRCLND(I,J) - IUSE(I,J,T)
+             State_Met%FRCLND(I,J) = State_Met%FRCLND(I,J) - IUSE(I,J,T)
           ENDIF
        ENDDO
 
        ! Normalize FRCLND into the range of 0-1
        ! NOTE: Use REAL*4 for backwards compatibility w/ existing code!
-       LOCAL_MET%FRCLND(I,J) = LOCAL_MET%FRCLND(I,J) / 1000e0
+       State_Met%FRCLND(I,J) = State_Met%FRCLND(I,J) / 1000e0
 #else
        ! Loop over land types in the GEOS-CHEM GRID BOX
        DO T = 1, IREG(I,J)

@@ -112,7 +112,7 @@
 ! !INTERFACE:
 !
 #if defined( DEVEL )
-      SUBROUTINE DO_TRANSPORT( LOCAL_MET )
+      SUBROUTINE DO_TRANSPORT( State_Met )
 #else
       SUBROUTINE DO_TRANSPORT
 #endif
@@ -122,7 +122,7 @@
       USE GRID_MOD,      ONLY : ITS_A_NESTED_GRID
       USE TPCORE_BC_MOD, ONLY : INIT_TPCORE_BC
 #if defined( DEVEL )
-      USE GC_TYPE_MOD,   ONLY : GC_MET_LOCAL
+      USE GIGC_State_Met_Mod, ONLY : MetState
 #endif
 
       USE CMN_SIZE_MOD      ! Size parameters
@@ -130,7 +130,7 @@
 ! !INPUT PARAMETERS: 
 !
 #if defined( DEVEL )
-      TYPE(GC_MET_LOCAL), INTENT(IN) :: LOCAL_MET  ! Obj w/ met fields
+      TYPE(MetState), INTENT(IN) :: State_Met   ! Meteorology State object
 #endif
 ! 
 ! !REVISION HISTORY: 
@@ -177,9 +177,9 @@
       IF ( ITS_A_NESTED_GRID() ) THEN
 
 #if   defined( GRID1x1 )
-         CALL DO_WINDOW_TRANSPORT( LOCAL_MET )
+         CALL DO_WINDOW_TRANSPORT( State_Met )
 #elif defined( GRID05x0666 )
-         CALL DO_GEOS5_WINDOW_TRANSPORT( LOCAL_MET )
+         CALL DO_GEOS5_WINDOW_TRANSPORT( State_Met )
 #endif
 
       ELSE
@@ -187,12 +187,12 @@
 #if defined( GCAP )
 
          ! Call TPCORE w/ proper settings for GCAP met
-         CALL GCAP_GLOBAL_ADV( LOCAL_MET )
+         CALL GCAP_GLOBAL_ADV( State_Met )
 
 #else
 
          ! Call TPCORE w/ proper settings for GEOS-4/GEOS-5/MERRA/GEOS-5.7
-         CALL GEOS4_GEOS5_GLOBAL_ADV( LOCAL_MET )
+         CALL GEOS4_GEOS5_GLOBAL_ADV( State_Met )
 
 #endif
       ENDIF
@@ -243,7 +243,7 @@
 ! !INTERFACE:
 !
 #if defined( DEVEL )
-      SUBROUTINE GEOS4_GEOS5_GLOBAL_ADV( LOCAL_MET )
+      SUBROUTINE GEOS4_GEOS5_GLOBAL_ADV( State_Met )
 #else
       SUBROUTINE GEOS4_GEOS5_GLOBAL_ADV
 #endif
@@ -264,7 +264,7 @@
       USE TRACER_MOD,       ONLY : N_APMTRA
 #endif
 #if defined( DEVEL )
-      USE GC_TYPE_MOD,      ONLY : GC_MET_LOCAL
+      USE GIGC_State_Met_Mod, ONLY : MetState
 #endif
 
       USE CMN_SIZE_MOD         ! Size parameters        
@@ -274,7 +274,7 @@
 ! !INPUT PARAMETERS: 
 !
 #if defined( DEVEL )
-      TYPE(GC_MET_LOCAL), INTENT(IN) :: LOCAL_MET  ! Obj w/ met fields
+      TYPE(MetState), INTENT(IN) :: State_Met   ! Meteorology State object
 #endif
 ! 
 ! !REVISION HISTORY: 
@@ -358,7 +358,7 @@
 
          ! True surface pressure at end of dynamic timestep [hPa]
 #if defined( DEVEL )
-         P_TP2(I,J) = LOCAL_MET%PSC2(I,J)    
+         P_TP2(I,J) = State_Met%PSC2(I,J)    
 #else
          P_TP2(I,J) = PSC2(I,J)    
 #endif
@@ -409,7 +409,7 @@
 #if defined( DEVEL )
       CALL DO_PJC_PFIX( D_DYN,        
      &                  P_TP1,        P_TP2,
-     &                  LOCAL_MET%U,  LOCAL_MET%V,
+     &                  State_Met%U,  State_Met%V,
      &                  XMASS,        YMASS )
 #else
       CALL DO_PJC_PFIX( D_DYN, P_TP1, P_TP2, 
@@ -422,8 +422,8 @@
 
       ! Flip array indices in the vertical using pointer storage
 #if defined( DEVEL )
-      p_UWND  => LOCAL_MET%U(:,:,LLPAR:1:-1  )
-      p_VWND  => LOCAL_MET%V(:,:,LLPAR:1:-1  )
+      p_UWND  => State_Met%U(:,:,LLPAR:1:-1  )
+      p_VWND  => State_Met%V(:,:,LLPAR:1:-1  )
 #else
       p_UWND  => UWND (:,:,LLPAR:1:-1  )
       p_VWND  => VWND (:,:,LLPAR:1:-1  )
@@ -529,7 +529,7 @@
 ! !INTERFACE:
 !
 #if defined( DEVEL )
-      SUBROUTINE GCAP_GLOBAL_ADV( LOCAL_MET )
+      SUBROUTINE GCAP_GLOBAL_ADV( State_Met )
 #else
       SUBROUTINE GCAP_GLOBAL_ADV
 #endif
@@ -549,7 +549,7 @@
       USE TRACER_MOD,       ONLY : N_APMTRA
 #endif
 #if defined( DEVEL )
-      USE GC_TYPE_MOD,      ONLY : GC_MET_LOCAL
+      USE GIGC_State_Met_Mod, ONLY : MetState
 #endif
 
       USE CMN_SIZE_MOD         ! Size parameters
@@ -559,7 +559,7 @@
 ! !INPUT PARAMETERS: 
 !
 #if defined( DEVEL )
-      TYPE(GC_MET_LOCAL), INTENT(IN) :: LOCAL_MET  ! Obj w/ met fields
+      TYPE(MetState), INTENT(IN) :: State_Met   ! Meteorology State object
 #endif
 ! 
 ! !REVISION HISTORY: 
@@ -648,7 +648,7 @@
 
          ! Psurface - PTOP at end of dynamic timestep [hPa]
 #if defined( DEVEL )
-         P_TP2(I,J) = LOCAL_MET%PSC2(I,J) - PTOP
+         P_TP2(I,J) = State_Met%PSC2(I,J) - PTOP
 #else
          P_TP2(I,J) = PSC2(I,J)        - PTOP
 #endif
@@ -699,7 +699,7 @@
 #if defined( DEVEL )
       CALL DO_PJC_PFIX( D_DYN,
      &                  P_TP1+PTOP,   P_TP2+PTOP, 
-     &                  LOCAL_MET%U,  LOCAL_MET%V,
+     &                  State_Met%U,  State_Met%V,
      &                  XMASS,        YMASS )
 #else
       CALL DO_PJC_PFIX( D_DYN, P_TP1+PTOP, P_TP2+PTOP, 
@@ -712,8 +712,8 @@
 
       ! Flip array indices in the vertical using pointer storage
 #if defined( DEVEL )
-      p_UWND  => LOCAL_MET%U(:,:,LLPAR:1:-1  )
-      p_VWND  => LOCAL_MET%V(:,:,LLPAR:1:-1  )
+      p_UWND  => State_Met%U(:,:,LLPAR:1:-1  )
+      p_VWND  => State_Met%V(:,:,LLPAR:1:-1  )
 #else
       p_UWND  => UWND (:,:,LLPAR:1:-1  )
       p_VWND  => VWND (:,:,LLPAR:1:-1  )
@@ -819,7 +819,7 @@
 ! !INTERFACE:
 !
 #if defined( DEVEL )
-      SUBROUTINE DO_GEOS5_WINDOW_TRANSPORT( LOCAL_MET )
+      SUBROUTINE DO_GEOS5_WINDOW_TRANSPORT( State_Met )
 #else
       SUBROUTINE DO_GEOS5_WINDOW_TRANSPORT 
 #endif
@@ -847,7 +847,7 @@
       USE TRACER_MOD,                ONLY : N_APMTRA
 #endif
 #if defined( DEVEL )
-      USE GC_TYPE_MOD,               ONLY : GC_MET_LOCAL
+      USE GIGC_State_Met_Mod,        ONLY : MetState
 #endif
 
       USE CMN_SIZE_MOD                  ! Size parameters
@@ -857,7 +857,7 @@
 ! !INPUT PARAMETERS: 
 !
 #if defined( DEVEL )
-      TYPE(GC_MET_LOCAL), INTENT(IN) :: LOCAL_MET  ! Obj w/ met fields
+      TYPE(MetState), INTENT(IN) :: State_Met   ! Meteorology State object
 #endif
 ! 
 ! !REVISION HISTORY: 
@@ -939,7 +939,7 @@
 
          ! True surface pressure at end of dynamic timestep [hPa]
 #if defined( DEVEL )
-         P_TP2(I,J) = LOCAL_MET%PSC2(I,J)
+         P_TP2(I,J) = State_Met%PSC2(I,J)
 #else
          P_TP2(I,J) = PSC2(I,J)
 #endif
@@ -992,7 +992,7 @@
 #if defined( DEVEL )
       CALL DO_PJC_PFIX_GEOS5_WINDOW( D_DYN,
      &                               P_TP1,        P_TP2,
-     &                               LOCAL_MET%U,  LOCAL_MET%V,
+     &                               State_Met%U,  State_Met%V,
      &                               XMASS,        YMASS )
 #else
       CALL DO_PJC_PFIX_GEOS5_WINDOW( D_DYN, P_TP1, P_TP2,
@@ -1008,8 +1008,8 @@
 
       ! Flip array indices in the vertical using pointer storage
 #if defined( DEVEL )
-      p_UWND  => LOCAL_MET%U(:,:,LLPAR:1:-1  )
-      p_VWND  => LOCAL_MET%V(:,:,LLPAR:1:-1  )
+      p_UWND  => State_Met%U(:,:,LLPAR:1:-1  )
+      p_VWND  => State_Met%V(:,:,LLPAR:1:-1  )
 #else
       p_UWND  => UWND (:,:,LLPAR:1:-1  )
       p_VWND  => VWND (:,:,LLPAR:1:-1  )

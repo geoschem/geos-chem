@@ -235,7 +235,7 @@ CONTAINS
 ! !INTERFACE:
 !
 #if defined( DEVEL )
-  SUBROUTINE Geos57_Read_CN( LOCAL_MET )
+  SUBROUTINE Geos57_Read_CN( State_Met )
 #else
   SUBROUTINE Geos57_Read_CN()
 #endif
@@ -248,13 +248,13 @@ CONTAINS
     USE DAO_MOD, ONLY : FROCEAN
     USE DAO_MOD, ONLY : PHIS
 #if defined( DEVEL )
-    USE GC_TYPE_MOD,  ONLY : GC_MET_LOCAL
+    USE GIGC_State_Met_Mod, ONLY : MetState
 #endif
 !
 ! !INPUT/OUTPUT PARAMETERS:
 !
 #if defined( DEVEL )
-    TYPE(GC_MET_LOCAL), INTENT(INOUT) :: LOCAL_MET  ! Obj w/ met fields
+    TYPE(MetState), INTENT(INOUT) :: State_Met   ! Meteorology State object
 #endif
 !
 ! !REMARKS:
@@ -355,11 +355,11 @@ CONTAINS
     CALL Transfer_2d( Q, PHIS )
 
 #if defined( DEVEL )
-      LOCAL_MET%FRLAKE   = FRLAKE
-      LOCAL_MET%FRLAND   = FRLAND
-      LOCAL_MET%FRLANDIC = FRLANDIC
-      LOCAL_MET%FROCEAN  = FROCEAN
-      LOCAL_MET%PHIS     = PHIS
+      State_Met%FRLAKE   = FRLAKE
+      State_Met%FRLAND   = FRLAND
+      State_Met%FRLANDIC = FRLANDIC
+      State_Met%FROCEAN  = FROCEAN
+      State_Met%PHIS     = PHIS
 #endif
 
     ! Echo info
@@ -398,7 +398,7 @@ CONTAINS
 ! !INTERFACE:
 !
 #if defined( DEVEL )
-  SUBROUTINE Geos57_Read_A1( YYYYMMDD, HHMMSS, LOCAL_MET )
+  SUBROUTINE Geos57_Read_A1( YYYYMMDD, HHMMSS, State_Met )
 #else
   SUBROUTINE Geos57_Read_A1( YYYYMMDD, HHMMSS )
 #endif
@@ -449,7 +449,7 @@ CONTAINS
     USE DAO_MOD, ONLY : V10M
     USE DAO_MOD, ONLY : Z0M      => Z0
 #if defined( DEVEL )
-    USE GC_TYPE_MOD, ONLY : GC_MET_LOCAL
+    USE GIGC_State_Met_Mod, ONLY : MetState
 #endif
 !
 ! !INPUT PARAMETERS:
@@ -460,7 +460,7 @@ CONTAINS
 ! !INPUT/OUTPUT PARAMETERS:
 !
 #if defined( DEVEL )
-    TYPE(GC_MET_LOCAL), INTENT(INOUT) :: LOCAL_MET  ! Obj w/ met fields
+    TYPE(MetState), INTENT(INOUT) :: State_Met   ! Meteorology State object
 #endif
 !
 ! !REMARKS:
@@ -803,48 +803,48 @@ CONTAINS
     CALL Transfer_2d( Q, Z0M )
 
 #if defined( DEVEL )
-      LOCAL_MET%ALBD     = ALBEDO
-      LOCAL_MET%CLDFRC   = CLDTOT
-      LOCAL_MET%EFLUX    = EFLUX
-      LOCAL_MET%EVAP     = EVAP
-      LOCAL_MET%FRSEAICE = FRSEAICE
-      LOCAL_MET%FRSNO    = FRSNO
-      LOCAL_MET%GRN      = GRN
-      LOCAL_MET%GWETROOT = GWETROOT
-      LOCAL_MET%GWETTOP  = GWETTOP
-      LOCAL_MET%HFLUX    = HFLUX
-      LOCAL_MET%LAI      = LAI
-      LOCAL_MET%LWI      = LWI
-      LOCAL_MET%PARDR    = PARDR
-      LOCAL_MET%PARDF    = PARDF
-      LOCAL_MET%PBLH     = PBLH
-      LOCAL_MET%PRECANV  = PRECANV
-      LOCAL_MET%PRECCON  = PRECCON
-      LOCAL_MET%PRECLSC  = PRECLSC
-      LOCAL_MET%PRECSNO  = PRECSNO
-      LOCAL_MET%PRECTOT  = PRECTOT
-      LOCAL_MET%RADLWG   = LWGNT
-      LOCAL_MET%RADSWG   = SWGDN
-      LOCAL_MET%SEAICE00 = SEAICE00
-      LOCAL_MET%SEAICE10 = SEAICE10
-      LOCAL_MET%SEAICE20 = SEAICE20
-      LOCAL_MET%SEAICE30 = SEAICE30
-      LOCAL_MET%SEAICE40 = SEAICE40
-      LOCAL_MET%SEAICE50 = SEAICE50
-      LOCAL_MET%SEAICE60 = SEAICE60
-      LOCAL_MET%SEAICE70 = SEAICE70
-      LOCAL_MET%SEAICE80 = SEAICE80
-      LOCAL_MET%SEAICE90 = SEAICE90
-      LOCAL_MET%SLP      = SLP
-      LOCAL_MET%SNODP    = SNODP
-      LOCAL_MET%SNOMAS   = SNOMAS
-      LOCAL_MET%TROPP    = TROPPT
-      LOCAL_MET%TS       = T2M
-      LOCAL_MET%TSKIN    = TS
-      LOCAL_MET%U10M     = U10M
-      LOCAL_MET%USTAR    = USTAR
-      LOCAL_MET%V10M     = V10M
-      LOCAL_MET%Z0       = Z0M
+      State_Met%ALBD     = ALBEDO
+      State_Met%CLDFRC   = CLDTOT
+      State_Met%EFLUX    = EFLUX
+      State_Met%EVAP     = EVAP
+      State_Met%FRSEAICE = FRSEAICE
+      State_Met%FRSNO    = FRSNO
+      State_Met%GRN      = GRN
+      State_Met%GWETROOT = GWETROOT
+      State_Met%GWETTOP  = GWETTOP
+      State_Met%HFLUX    = HFLUX
+      State_Met%LAI      = LAI
+      State_Met%LWI      = LWI
+      State_Met%PARDR    = PARDR
+      State_Met%PARDF    = PARDF
+      State_Met%PBLH     = PBLH
+      State_Met%PRECANV  = PRECANV
+      State_Met%PRECCON  = PRECCON
+      State_Met%PRECLSC  = PRECLSC
+      State_Met%PRECSNO  = PRECSNO
+      State_Met%PRECTOT  = PRECTOT
+      State_Met%RADLWG   = LWGNT
+      State_Met%RADSWG   = SWGDN
+      State_Met%SEAICE00 = SEAICE00
+      State_Met%SEAICE10 = SEAICE10
+      State_Met%SEAICE20 = SEAICE20
+      State_Met%SEAICE30 = SEAICE30
+      State_Met%SEAICE40 = SEAICE40
+      State_Met%SEAICE50 = SEAICE50
+      State_Met%SEAICE60 = SEAICE60
+      State_Met%SEAICE70 = SEAICE70
+      State_Met%SEAICE80 = SEAICE80
+      State_Met%SEAICE90 = SEAICE90
+      State_Met%SLP      = SLP
+      State_Met%SNODP    = SNODP
+      State_Met%SNOMAS   = SNOMAS
+      State_Met%TROPP    = TROPPT
+      State_Met%TS       = T2M
+      State_Met%TSKIN    = TS
+      State_Met%U10M     = U10M
+      State_Met%USTAR    = USTAR
+      State_Met%V10M     = V10M
+      State_Met%Z0       = Z0M
 #endif
 
     ! Echo info
@@ -917,7 +917,7 @@ CONTAINS
 ! !INTERFACE:
 !
 #if defined( DEVEL )
-  SUBROUTINE Geos57_Read_A3( YYYYMMDD, HHMMSS, LOCAL_MET )
+  SUBROUTINE Geos57_Read_A3( YYYYMMDD, HHMMSS, State_Met )
 #else
   SUBROUTINE Geos57_Read_A3( YYYYMMDD, HHMMSS )
 #endif
@@ -925,7 +925,7 @@ CONTAINS
 ! !USES:
 !
 #if defined( DEVEL )
-    USE GC_TYPE_MOD, ONLY : GC_MET_LOCAL
+    USE GIGC_State_Met_Mod, ONLY : MetState
 #endif
 !
 ! !INPUT PARAMETERS:
@@ -936,7 +936,7 @@ CONTAINS
 ! !INPUT/OUTPUT PARAMETERS:
 !
 #if defined( DEVEL )
-    TYPE(GC_MET_LOCAL), INTENT(INOUT) :: LOCAL_MET  ! Obj w/ met fields
+    TYPE(MetState), INTENT(INOUT) :: State_Met   ! Meteorology State object
 #endif
 !
 ! !REVISION HISTORY:
@@ -973,10 +973,10 @@ CONTAINS
 
     ! Read all the diffeent A3 files
 #if defined( DEVEL )
-    CALL Geos57_Read_A3cld ( YYYYMMDD, HHMMSS, LOCAL_MET )
-    CALL Geos57_Read_A3dyn ( YYYYMMDD, HHMMSS, LOCAL_MET )
-    CALL Geos57_Read_A3mstC( YYYYMMDD, HHMMSS, LOCAL_MET )
-    CALL Geos57_Read_A3mstE( YYYYMMDD, HHMMSS, LOCAL_MET )
+    CALL Geos57_Read_A3cld ( YYYYMMDD, HHMMSS, State_Met )
+    CALL Geos57_Read_A3dyn ( YYYYMMDD, HHMMSS, State_Met )
+    CALL Geos57_Read_A3mstC( YYYYMMDD, HHMMSS, State_Met )
+    CALL Geos57_Read_A3mstE( YYYYMMDD, HHMMSS, State_Met )
 #else
     CALL Geos57_Read_A3cld ( YYYYMMDD, HHMMSS )
     CALL Geos57_Read_A3dyn ( YYYYMMDD, HHMMSS )
@@ -1011,7 +1011,7 @@ CONTAINS
 ! !INTERFACE:
 !
 #if defined( DEVEL )
-  SUBROUTINE Geos57_Read_A3cld( YYYYMMDD, HHMMSS, LOCAL_MET )
+  SUBROUTINE Geos57_Read_A3cld( YYYYMMDD, HHMMSS, State_Met )
 #else
   SUBROUTINE Geos57_Read_A3cld( YYYYMMDD, HHMMSS )
 #endif
@@ -1025,7 +1025,7 @@ CONTAINS
     USE DAO_MOD, ONLY : TAUCLI
     USE DAO_MOD, ONLY : TAUCLW
 #if defined( DEVEL )
-    USE GC_TYPE_MOD, ONLY : GC_MET_LOCAL
+    USE GIGC_State_Met_Mod, ONLY : MetState
 #endif
 !
 ! !INPUT PARAMETERS:
@@ -1036,7 +1036,7 @@ CONTAINS
 ! !INPUT/OUTPUT PARAMETERS:
 !
 #if defined( DEVEL )
-    TYPE(GC_MET_LOCAL), INTENT(INOUT) :: LOCAL_MET  ! Obj w/ met fields
+    TYPE(MetState), INTENT(INOUT) :: State_Met   ! Meteorology State object
 #endif
 !
 ! !REMARKS:
@@ -1155,12 +1155,12 @@ CONTAINS
     CALL Transfer_3d( Q, TAUCLW )
 
 #if defined( DEVEL )
-      LOCAL_MET%CLDF   = CLOUD
-      LOCAL_MET%OPTDEP = OPTDEPTH
-      LOCAL_MET%QI     = QI
-      LOCAL_MET%QL     = QL
-      LOCAL_MET%TAUCLI = TAUCLI
-      LOCAL_MET%TAUCLW = TAUCLW
+      State_Met%CLDF   = CLOUD
+      State_Met%OPTDEP = OPTDEPTH
+      State_Met%QI     = QI
+      State_Met%QL     = QL
+      State_Met%TAUCLI = TAUCLI
+      State_Met%TAUCLW = TAUCLW
 #endif
 
     ! Echo info
@@ -1191,7 +1191,7 @@ CONTAINS
 ! !INTERFACE:
 !
 #if defined( DEVEL )
-  SUBROUTINE GEOS57_READ_A3dyn( YYYYMMDD, HHMMSS, LOCAL_MET )
+  SUBROUTINE GEOS57_READ_A3dyn( YYYYMMDD, HHMMSS, State_Met )
 #else
   SUBROUTINE GEOS57_READ_A3dyn( YYYYMMDD, HHMMSS )
 #endif
@@ -1206,7 +1206,7 @@ CONTAINS
     USE DAO_MOD, ONLY : U      => UWND
     USE DAO_MOD, ONLY : V      => VWND
 #if defined( DEVEL )
-    USE GC_TYPE_MOD, ONLY : GC_MET_LOCAL
+    USE GIGC_State_Met_Mod, ONLY : MetState
 #endif
 !
 ! !INPUT PARAMETERS:
@@ -1217,7 +1217,7 @@ CONTAINS
 ! !INPUT/OUTPUT PARAMETERS:
 !
 #if defined( DEVEL )
-    TYPE(GC_MET_LOCAL), INTENT(INOUT) :: LOCAL_MET  ! Obj w/ met fields
+    TYPE(MetState), INTENT(INOUT) :: State_Met   ! Meteorology State object
 #endif
 !
 ! !REMARKS:
@@ -1349,11 +1349,11 @@ CONTAINS
     CALL Transfer_3d( Q, V )
 
 #if defined( DEVEL )
-      LOCAL_MET%CMFMC  = CMFMC
-      LOCAL_MET%DTRAIN = DTRAIN
-      LOCAL_MET%RH     = RH
-      LOCAL_MET%U      = U
-      LOCAL_MET%V      = V
+      State_Met%CMFMC  = CMFMC
+      State_Met%DTRAIN = DTRAIN
+      State_Met%RH     = RH
+      State_Met%U      = U
+      State_Met%V      = V
 #endif
 
     ! Echo info
@@ -1379,7 +1379,7 @@ CONTAINS
     ENDDO
 
 #if defined( DEVEL )
-      LOCAL_MET%CLDTOPS = CLDTOPS
+      State_Met%CLDTOPS = CLDTOPS
 #endif
 
     ! ND66 diagnostic: U, V, CMFMC, DTRAIN met fields
@@ -1415,7 +1415,7 @@ CONTAINS
 ! !INTERFACE:
 !
 #if defined( DEVEL )
-  SUBROUTINE GEOS57_READ_A3mstC( YYYYMMDD, HHMMSS, LOCAL_MET )
+  SUBROUTINE GEOS57_READ_A3mstC( YYYYMMDD, HHMMSS, State_Met )
 #else
   SUBROUTINE GEOS57_READ_A3mstC( YYYYMMDD, HHMMSS )
 #endif
@@ -1427,7 +1427,7 @@ CONTAINS
     USE DAO_MOD, ONLY : REEVAPCN
     USE DAO_MOD, ONLY : REEVAPLS
 #if defined( DEVEL )
-    USE GC_TYPE_MOD, ONLY : GC_MET_LOCAL
+    USE GIGC_State_Met_Mod, ONLY : MetState
 #endif
 !
 ! !INPUT PARAMETERS:
@@ -1438,7 +1438,7 @@ CONTAINS
 ! !INPUT/OUTPUT PARAMETERS:
 !
 #if defined( DEVEL )
-    TYPE(GC_MET_LOCAL), INTENT(INOUT) :: LOCAL_MET  ! Obj w/ met fields
+    TYPE(MetState), INTENT(INOUT) :: State_Met   ! Meteorology State object
 #endif
 !
 ! !REMARKS:
@@ -1547,10 +1547,10 @@ CONTAINS
     CALL Transfer_3d( Q, REEVAPLS )
 
 #if defined( DEVEL )
-      LOCAL_MET%DQRCU    = DQRCU
-      LOCAL_MET%DQRLSAN  = DQRLSAN
-      LOCAL_MET%REEVAPCN = REEVAPCN
-      LOCAL_MET%REEVAPLS = REEVAPLS
+      State_Met%DQRCU    = DQRCU
+      State_Met%DQRLSAN  = DQRLSAN
+      State_Met%REEVAPCN = REEVAPCN
+      State_Met%REEVAPLS = REEVAPLS
 #endif
 
     ! Echo info
@@ -1582,7 +1582,7 @@ CONTAINS
 ! !INTERFACE:
 !
 #if defined( DEVEL )
-  SUBROUTINE GEOS57_READ_A3mstE( YYYYMMDD, HHMMSS, LOCAL_MET )
+  SUBROUTINE GEOS57_READ_A3mstE( YYYYMMDD, HHMMSS, State_Met )
 #else
   SUBROUTINE GEOS57_READ_A3mstE( YYYYMMDD, HHMMSS )
 #endif
@@ -1594,7 +1594,7 @@ CONTAINS
     USE DAO_MOD, ONLY : PFLCU
     USE DAO_MOD, ONLY : PFLLSAN
 #if defined( DEVEL )
-    USE GC_TYPE_MOD, ONLY : GC_MET_LOCAL
+    USE GIGC_State_Met_Mod, ONLY : MetState
 #endif
 !
 ! !INPUT PARAMETERS:
@@ -1605,7 +1605,7 @@ CONTAINS
 ! !INPUT/OUTPUT PARAMETERS:
 !
 #if defined( DEVEL )
-    TYPE(GC_MET_LOCAL), INTENT(INOUT) :: LOCAL_MET  ! Obj w/ met fields
+    TYPE(MetState), INTENT(INOUT) :: State_Met   ! Meteorology State object
 #endif
 !
 ! !REMARKS:
@@ -1714,10 +1714,10 @@ CONTAINS
     CALL Transfer_3d_Lp1( Qe,  PFLLSAN )
 
 #if defined( DEVEL )
-      LOCAL_MET%PFICU   = PFICU
-      LOCAL_MET%PFILSAN = PFILSAN
-      LOCAL_MET%PFLCU   = PFLCU
-      LOCAL_MET%PFLLSAN = PFLLSAN
+      State_Met%PFICU   = PFICU
+      State_Met%PFILSAN = PFILSAN
+      State_Met%PFLCU   = PFLCU
+      State_Met%PFLLSAN = PFLLSAN
 #endif
 
     ! Echo info
@@ -1748,7 +1748,7 @@ CONTAINS
 ! !INTERFACE:
 !
 #if defined( DEVEL )
-  SUBROUTINE Geos57_Read_I3_1( YYYYMMDD, HHMMSS, LOCAL_MET )
+  SUBROUTINE Geos57_Read_I3_1( YYYYMMDD, HHMMSS, State_Met )
 #else
   SUBROUTINE Geos57_Read_I3_1( YYYYMMDD, HHMMSS )
 #endif
@@ -1760,7 +1760,7 @@ CONTAINS
     USE DAO_MOD, ONLY : QV1 => SPHU1
     USE DAO_MOD, ONLY : T1  => TMPU1
 #if defined( DEVEL )
-    USE GC_TYPE_MOD, ONLY : GC_MET_LOCAL
+    USE GIGC_State_Met_Mod, ONLY : MetState
 #endif
 !
 ! !INPUT PARAMETERS:
@@ -1771,7 +1771,7 @@ CONTAINS
 ! !INPUT/OUTPUT PARAMETERS:
 !
 #if defined( DEVEL )
-    TYPE(GC_MET_LOCAL), INTENT(INOUT) :: LOCAL_MET  ! Obj w/ met fields
+    TYPE(MetState), INTENT(INOUT) :: State_Met   ! Meteorology State object
 #endif
 !
 ! !REMARKS:
@@ -1899,10 +1899,10 @@ CONTAINS
     CALL Transfer_3d( Q3, T1 )
 
 #if defined( DEVEL )
-      LOCAL_MET%PS1   = PS1
-     !LOCAL_MET%PV1   = PV1
-      LOCAL_MET%SPHU1 = QV1
-      LOCAL_MET%TMPU1 = T1
+      State_Met%PS1   = PS1
+     !State_Met%PV1   = PV1
+      State_Met%SPHU1 = QV1
+      State_Met%TMPU1 = T1
 #endif
 
     ! Echo info
@@ -1958,7 +1958,7 @@ CONTAINS
 ! !INTERFACE:
 !
 #if defined( DEVEL )
-  SUBROUTINE Geos57_Read_I3_2( YYYYMMDD, HHMMSS, LOCAL_MET )
+  SUBROUTINE Geos57_Read_I3_2( YYYYMMDD, HHMMSS, State_Met )
 #else
   SUBROUTINE Geos57_Read_I3_2( YYYYMMDD, HHMMSS )
 #endif
@@ -1970,7 +1970,7 @@ CONTAINS
     USE DAO_MOD, ONLY : QV2 => SPHU2
     USE DAO_MOD, ONLY : T2  => TMPU2
 #if defined( DEVEL )
-    USE GC_TYPE_MOD, ONLY : GC_MET_LOCAL
+    USE GIGC_State_Met_Mod, ONLY : MetState
 #endif
 !
 ! !INPUT PARAMETERS:
@@ -1981,7 +1981,7 @@ CONTAINS
 ! !INPUT/OUTPUT PARAMETERS:
 !
 #if defined( DEVEL )
-    TYPE(GC_MET_LOCAL), INTENT(INOUT) :: LOCAL_MET  ! Obj w/ met fields
+    TYPE(MetState), INTENT(INOUT) :: State_Met   ! Meteorology State object
 #endif
 !
 ! !REMARKS:
@@ -2109,10 +2109,10 @@ CONTAINS
     CALL Transfer_3d( Q3, T2 )
 
 #if defined( DEVEL )
-      LOCAL_MET%PS2   = PS2
-     !LOCAL_MET%PV2    = PV2
-      LOCAL_MET%SPHU2 = QV2
-      LOCAL_MET%TMPU2 = T2
+      State_Met%PS2   = PS2
+     !State_Met%PV2    = PV2
+      State_Met%SPHU2 = QV2
+      State_Met%TMPU2 = T2
 #endif
 
     ! Echo info

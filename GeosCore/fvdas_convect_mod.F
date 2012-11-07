@@ -161,7 +161,7 @@
       SUBROUTINE FVDAS_CONVECT( TDT,   NTRACE, Q,     RPDEL, ETA, 
      &                          BETA,  MU,     MD,    EU,    DP,    
      &                          NSTEP, FRACIS, TCVV,  INDEXSOL,
-     &                          LOCAL_MET )
+     &                          State_Met )
 #else
       SUBROUTINE FVDAS_CONVECT( TDT,   NTRACE, Q,     RPDEL, ETA, 
      &                          BETA,  MU,     MD,    EU,    DP,    
@@ -224,7 +224,7 @@
 !******************************************************************************
 
 #if defined( DEVEL )
-      USE GC_TYPE_MOD,  ONLY : GC_MET_LOCAL
+      USE GIGC_State_Met_Mod, ONLY : MetState
 #endif
 
       USE CMN_SIZE_MOD      ! Size parameters
@@ -244,7 +244,7 @@
       REAL*8,  INTENT(IN)    :: FRACIS(IIPAR,JJPAR,LLPAR,NTRACE) 
       REAL*8,  INTENT(IN)    :: TCVV(NTRACE)
 #if defined( DEVEL )
-      TYPE(GC_MET_LOCAL), INTENT(IN) :: LOCAL_MET  ! Obj w/ met fields
+      TYPE(MetState), INTENT(IN) :: State_Met   ! Meteorology State object
 #endif
 
       ! Local variables
@@ -295,7 +295,7 @@
      &                        DUG,   EUG,       EDG,    DPG,  DSUBCLD,  
      &                        JT,    MX,        IDEEP,  1,    LENGATH, 
      &                        NSTEP, 0.5D0*TDT, FRACIS, TCVV, INDEXSOL,
-     &                        LOCAL_MET )
+     &                        State_Met )
 #else
                CALL CONVTRAN( J,     NTRACE,    Q,      MUG,  MDG,      
      &                        DUG,   EUG,       EDG,    DPG,  DSUBCLD,  
@@ -704,7 +704,7 @@
      &                     DU,    EU,     ED,     DP,   DSUBCLD,  
      &                     JT,    MX,     IDEEP,  IL1G, IL2G,     
      &                     NSTEP, DELT,   FRACIS, TCVV, INDEXSOL,
-     &                     LOCAL_MET )
+     &                     State_Met )
 #else
       SUBROUTINE CONVTRAN( J,     NTRACE, Q,      MU,   MD,       
      &                     DU,    EU,     ED,     DP,   DSUBCLD,  
@@ -796,7 +796,7 @@
       USE DEPO_MERCURY_MOD,  ONLY : ADD_Hg2_SNOWPACK !CDH
 
 #if defined( DEVEL )
-      USE GC_TYPE_MOD,       ONLY : GC_MET_LOCAL
+      USE GIGC_State_Met_Mod, ONLY : MetState
 #endif
 
       USE CMN_SIZE_MOD          ! Size parameters
@@ -824,7 +824,7 @@
       REAL*8,  INTENT(IN)        :: TCVV(NTRACE)
       INTEGER, INTENT(IN)        :: INDEXSOL(NTRACE)
 #if defined( DEVEL )
-      TYPE(GC_MET_LOCAL), INTENT(IN) :: LOCAL_MET  ! Obj w/ met fields
+      TYPE(MetState), INTENT(IN) :: State_Met   ! Meteorology State object
 #endif
 
       ! Local variables
@@ -1234,7 +1234,7 @@
                      CALL ADD_Hg2_WD( II, J, M, WET_Hg2 )
 #if defined( DEVEL )
                      CALL ADD_Hg2_SNOWPACK( II, J, M, WET_Hg2, 
-     &                                      LOCAL_MET )
+     &                                      State_Met )
 #else
                      CALL ADD_Hg2_SNOWPACK( II, J, M, WET_Hg2 )
 #endif
@@ -1258,7 +1258,7 @@
                      CALL ADD_HgP_WD( II, J, M, WET_HgP )
 #if defined( DEVEL )
                      CALL ADD_Hg2_SNOWPACK( II, J, M, WET_HgP,
-     &                                      LOCAL_MET )
+     &                                      State_Met )
 #else
                      CALL ADD_Hg2_SNOWPACK( II, J, M, WET_HgP )
 #endif

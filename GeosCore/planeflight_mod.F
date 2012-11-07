@@ -1119,7 +1119,7 @@
 ! !INTERFACE:
 !
 #if defined( DEVEL )
-      SUBROUTINE PLANEFLIGHT( LOCAL_MET )
+      SUBROUTINE PLANEFLIGHT( State_Met )
 #else
       SUBROUTINE PLANEFLIGHT
 #endif
@@ -1139,7 +1139,7 @@
       USE TIME_MOD,     ONLY : GET_TAU,        GET_TS_DIAG
       USE TRACER_MOD,   ONLY : STT,            TCVV
 #if defined( DEVEL )
-      USE GC_TYPE_MOD,  ONLY : GC_MET_LOCAL
+      USE GIGC_State_Met_Mod, ONLY : MetState
 #endif
 
       USE JV_CMN_MOD         ! ODAER, QAA, QAA_AOD
@@ -1148,7 +1148,7 @@
 ! !INPUT PARAMETERS: 
 !
 #if defined( DEVEL )
-      TYPE(GC_MET_LOCAL), INTENT(IN) :: LOCAL_MET  ! Obj w/ met fields
+      TYPE(MetState), INTENT(IN) :: State_Met   ! Meteorology State object
 #endif
 ! 
 ! !REVISION HISTORY: 
@@ -1325,7 +1325,7 @@
                   !--------------------------
                   CASE ( 1001 )
 #if defined( DEVEL )
-                     VARI(V) = LOCAL_MET%T(I,J,L)
+                     VARI(V) = State_Met%T(I,J,L)
 #else
                      VARI(V) = T(I,J,L)
 #endif
@@ -1373,13 +1373,13 @@
                   ! GMAO U-wind [m/s]
                   !-------------------------
                   CASE ( 1005 )
-                     VARI(V) = LOCAL_MET%U(I,J,L)
+                     VARI(V) = State_Met%U(I,J,L)
 
                   !--------------------------
                   ! GMAO V-wind [m/s]
                   !--------------------------
                   CASE ( 1006 )
-                     VARI(V) = LOCAL_MET%V(I,J,L)
+                     VARI(V) = State_Met%V(I,J,L)
 #else
                   !-------------------------
                   ! GMAO U-wind [m/s]
@@ -1418,25 +1418,25 @@
                   ! GEOS-Chem SEAICE frac's
                   !--------------------------
                   CASE ( 1100 )
-                     VARI(V) = LOCAL_MET%SEAICE00(I,J)
+                     VARI(V) = State_Met%SEAICE00(I,J)
                   CASE ( 1101 )
-                     VARI(V) = LOCAL_MET%SEAICE10(I,J)
+                     VARI(V) = State_Met%SEAICE10(I,J)
                   CASE ( 1102 )
-                     VARI(V) = LOCAL_MET%SEAICE20(I,J)
+                     VARI(V) = State_Met%SEAICE20(I,J)
                   CASE ( 1103 )
-                     VARI(V) = LOCAL_MET%SEAICE30(I,J)
+                     VARI(V) = State_Met%SEAICE30(I,J)
                   CASE ( 1104 )
-                     VARI(V) = LOCAL_MET%SEAICE40(I,J)
+                     VARI(V) = State_Met%SEAICE40(I,J)
                   CASE ( 1105 )
-                     VARI(V) = LOCAL_MET%SEAICE50(I,J)
+                     VARI(V) = State_Met%SEAICE50(I,J)
                   CASE ( 1106 )
-                     VARI(V) = LOCAL_MET%SEAICE60(I,J)
+                     VARI(V) = State_Met%SEAICE60(I,J)
                   CASE ( 1107 )
-                     VARI(V) = LOCAL_MET%SEAICE70(I,J)
+                     VARI(V) = State_Met%SEAICE70(I,J)
                   CASE ( 1108 )
-                     VARI(V) = LOCAL_MET%SEAICE80(I,J)
+                     VARI(V) = State_Met%SEAICE80(I,J)
                   CASE ( 1109 )
-                     VARI(V) = LOCAL_MET%SEAICE90(I,J)
+                     VARI(V) = State_Met%SEAICE90(I,J)
 #else
                   !--------------------------
                   ! GEOS-Chem SEAICE frac's
@@ -1562,7 +1562,7 @@
                      ! Convert from [kg] --> [v/v]
 #if defined( DEVEL )
                      VARI(V) = STT(I,J,L,N) * TCVV(N) /
-     &                         LOCAL_MET%AD(I,J,L)
+     &                         State_Met%AD(I,J,L)
 #else
                      VARI(V) = STT(I,J,L,N) * TCVV(N) / AD(I,J,L)
 #endif

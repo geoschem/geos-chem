@@ -134,7 +134,7 @@
 ! !INTERFACE:
 !
 #if defined( DEVEL )
-      SUBROUTINE CHEMSEASALT( am_I_Root, LOCAL_MET )
+      SUBROUTINE CHEMSEASALT( am_I_Root, State_Met )
 #else
       SUBROUTINE CHEMSEASALT( am_I_Root )
 #endif
@@ -147,7 +147,7 @@
       USE TRACER_MOD,   ONLY : STT
       USE TRACERID_MOD, ONLY : IDTSALA, IDTSALC
 #if defined( DEVEL )
-      USE GC_TYPE_MOD,  ONLY : GC_MET_LOCAL
+      USE GIGC_State_Met_Mod, ONLY : MetState
 #endif
 
       USE CMN_SIZE_MOD       ! Size parameters
@@ -156,7 +156,7 @@
 !
       LOGICAL,            INTENT(IN) :: am_I_Root  ! Is this the root CPU?
 #if defined( DEVEL )
-      TYPE(GC_MET_LOCAL), INTENT(IN) :: LOCAL_MET  ! Obj w/ met fields
+      TYPE(MetState), INTENT(IN) :: State_Met   ! Meteorology State object
 #endif
 ! 
 ! !REVISION HISTORY:
@@ -214,7 +214,7 @@
       ! Accumulation mode
       !-------------------
 #if defined( DEVEL )
-      CALL WET_SETTLING( STT(:,:,:,IDTSALA), 1, LOCAL_MET )
+      CALL WET_SETTLING( STT(:,:,:,IDTSALA), 1, State_Met )
 #else
       CALL WET_SETTLING( STT(:,:,:,IDTSALA), 1 )
 #endif
@@ -236,7 +236,7 @@
       ! Coarse mode
       !-------------------
 #if defined( DEVEL )
-      CALL WET_SETTLING( STT(:,:,:,IDTSALC), 2, LOCAL_MET )
+      CALL WET_SETTLING( STT(:,:,:,IDTSALC), 2, State_Met )
 #else
       CALL WET_SETTLING( STT(:,:,:,IDTSALC), 2 )
 #endif
@@ -270,7 +270,7 @@
 ! !INTERFACE:
 !
 #if defined( DEVEL )
-      SUBROUTINE WET_SETTLING( TC, N, LOCAL_MET )
+      SUBROUTINE WET_SETTLING( TC, N, State_Met )
 #else
       SUBROUTINE WET_SETTLING( TC, N )
 #endif
@@ -288,7 +288,7 @@
       ! add (jaegle 5/11/11)
       USE ERROR_MOD,     ONLY : DEBUG_MSG, ERROR_STOP
 #if defined( DEVEL )
-      USE GC_TYPE_MOD,   ONLY : GC_MET_LOCAL
+      USE GIGC_State_Met_Mod, ONLY : MetState
 #endif
 
       USE CMN_SIZE_MOD        ! Size parameters
@@ -299,7 +299,7 @@
 !
       INTEGER, INTENT(IN)    :: N  ! N=1 is accum mode; N=2 is coarse mode
 #if defined( DEVEL )
-      TYPE(GC_MET_LOCAL), INTENT(IN) :: LOCAL_MET  ! Obj w/ met fields
+      TYPE(MetState), INTENT(IN) :: State_Met   ! Meteorology State object
 #endif
 !
 ! !INPUT/OUTPUT PARAMETERS: 
@@ -485,10 +485,10 @@
 
 #if defined( DEVEL )
             ! Temperature [K]
-            TEMP    = LOCAL_MET%T(I,J,L)
+            TEMP    = State_Met%T(I,J,L)
 
             ! Cap RH at 0.99 
-            RHB     = MIN( 0.99d0, LOCAL_MET%RH(I,J,L) * 1d-2 )
+            RHB     = MIN( 0.99d0, State_Met%RH(I,J,L) * 1d-2 )
 #else
             ! Temperature [K]
             TEMP    = T(I,J,L)
@@ -625,7 +625,7 @@
          ! We know the boundary condition at the model top
          L    = LLTROP
 #if defined( DEVEL )
-         DELZ = LOCAL_MET%BXHEIGHT(I,J,L)
+         DELZ = State_Met%BXHEIGHT(I,J,L)
 #else
          DELZ = BXHEIGHT(I,J,L)
 #endif
@@ -634,8 +634,8 @@
 
          DO L = LLTROP-1, 1, -1
 #if defined( DEVEL )
-            DELZ  = LOCAL_MET%BXHEIGHT(I,J,L)
-            DELZ1 = LOCAL_MET%BXHEIGHT(I,J,L+1)
+            DELZ  = State_Met%BXHEIGHT(I,J,L)
+            DELZ1 = State_Met%BXHEIGHT(I,J,L+1)
 #else
             DELZ  = BXHEIGHT(I,J,L)
             DELZ1 = BXHEIGHT(I,J,L+1)
@@ -834,7 +834,7 @@
 ! !INTERFACE:
 !
 #if defined( DEVEL )
-      SUBROUTINE EMISSSEASALT( LOCAL_MET, SFLX, SSA_Br2 )
+      SUBROUTINE EMISSSEASALT( State_Met, SFLX, SSA_Br2 )
 #else
       SUBROUTINE EMISSSEASALT( SSA_Br2 )
 #endif
@@ -847,7 +847,7 @@
       USE TRACERID_MOD, ONLY : IDTSALA, IDTSALC
       USE VDIFF_PRE_MOD,ONLY : emis_save ! (Lin, 03/31/09)
 #if defined( DEVEL )
-      USE GC_TYPE_MOD,  ONLY : GC_MET_LOCAL
+      USE GIGC_State_Met_Mod, ONLY : MetState
       USE TRACER_MOD,   ONLY : N_TRACERS
 #endif
 
@@ -866,7 +866,7 @@
 ! !INPUT PARAMETERS:
 !
 #if defined( DEVEL )
-      TYPE(GC_MET_LOCAL), INTENT(IN) :: LOCAL_MET  ! Obj w/ met fields
+      TYPE(MetState), INTENT(IN) :: State_Met   ! Meteorology State object
 #endif
 !
 ! !REVISION HISTORY: 
@@ -926,7 +926,7 @@
       ! Accumulation mode emissions
       IF ( IDTSALA > 0 ) THEN
 #if defined( DEVEL )
-         CALL SRCSALT( STT(:,:,:,IDTSALA), tmpbr2(:,:), 1, LOCAL_MET )
+         CALL SRCSALT( STT(:,:,:,IDTSALA), tmpbr2(:,:), 1, State_Met )
 #else
          CALL SRCSALT( STT(:,:,:,IDTSALA), tmpbr2(:,:), 1 )
 #endif
@@ -945,7 +945,7 @@
       ! Coarse mode emissions
       IF ( IDTSALC > 0 ) THEN
 #if defined( DEVEL )
-         CALL SRCSALT( STT(:,:,:,IDTSALC), tmpbr2(:,:), 2, LOCAL_MET )
+         CALL SRCSALT( STT(:,:,:,IDTSALC), tmpbr2(:,:), 2, State_Met )
 #else
          CALL SRCSALT( STT(:,:,:,IDTSALC), tmpbr2(:,:), 2 )
 #endif
@@ -997,7 +997,7 @@
 ! !INTERFACE:
 !
 #if defined( DEVEL )
-      SUBROUTINE SRCSALT( TC, SSA_Br2, N, LOCAL_MET )
+      SUBROUTINE SRCSALT( TC, SSA_Br2, N, State_Met )
 #else
       SUBROUTINE SRCSALT( TC, SSA_Br2, N )
 #endif
@@ -1017,7 +1017,7 @@
       USE SSA_BROMINE_MOD, ONLY : EMISS_SSA_BROMINE
 
 #if defined( DEVEL )
-      USE GC_TYPE_MOD,   ONLY : GC_MET_LOCAL
+      USE GIGC_State_Met_Mod, ONLY : MetState
 #endif
 
       USE CMN_SIZE_MOD        ! Size parameters
@@ -1028,7 +1028,7 @@
 !
       INTEGER, INTENT(IN)    :: N  ! N=1 is accum mode; N=2 is coarse mode
 #if defined( DEVEL )
-      TYPE(GC_MET_LOCAL), INTENT(IN) :: LOCAL_MET  ! Obj w/ met fields
+      TYPE(MetState), INTENT(IN) :: State_Met   ! Meteorology State object
 #endif
 !
 ! !INPUT/OUTPUT PARAMETERS: 
@@ -1250,15 +1250,15 @@
 
             ! Test if this is a water box
 #if defined( DEVEL )
-            IF ( IS_WATER( I, J, LOCAL_MET ) ) THEN
+            IF ( IS_WATER( I, J, State_Met ) ) THEN
 
                ! Wind speed at 10 m altitude [m/s]
                W10M = SQRT( SFCWINDSQR( I, J,
-     &                                  LOCAL_MET%U10M,
-     &                                  LOCAL_MET%V10M) )
+     &                                  State_Met%U10M,
+     &                                  State_Met%V10M) )
 
                ! Sea surface temperature in Celcius (jaegle 5/11/11)
-               SST = LOCAL_MET%TSKIN(I,J) - 273.15d0
+               SST = State_Met%TSKIN(I,J) - 273.15d0
 
 #else
             IF ( IS_WATER(I,J) ) THEN
@@ -1357,7 +1357,7 @@
 
 	    ! Number density [#/m3] (bec, bmy, 4/13/05)
 #if defined( DEVEL )
-	    N_DENS(I,J,L,N)   = SALT_N(I,J) / LOCAL_MET%AIRVOL(I,J,L)
+	    N_DENS(I,J,L,N)   = SALT_N(I,J) / State_Met%AIRVOL(I,J,L)
 #else
 	    N_DENS(I,J,L,N)   = SALT_N(I,J) / AIRVOL(I,J,L)              
 #endif
@@ -1389,8 +1389,8 @@
 ! !INTERFACE:
 !
 #if defined( DEVEL )
-      SUBROUTINE GET_ALK( I,    J,    L,   LOCAL_MET,
-     &                    ALK1, ALK2, Kt1, Kt2, Kt1N, Kt2N )
+      SUBROUTINE GET_ALK( I, J, L, ALK1, ALK2, Kt1, Kt2, Kt1N, Kt2N,
+     &                    State_Met )
 #else
       SUBROUTINE GET_ALK( I, J, L, ALK1, ALK2, Kt1, Kt2, Kt1N, Kt2N )
 #endif
@@ -1401,14 +1401,14 @@
       USE ERROR_MOD,    ONLY : IT_IS_NAN
       USE TRACER_MOD,   ONLY : SALA_REDGE_um, SALC_REDGE_um
 #if defined( DEVEL )
-      USE GC_TYPE_MOD,  ONLY : GC_MET_LOCAL
+      USE GIGC_State_Met_Mod, ONLY : MetState
 #endif
 !
 ! !INPUT PARAMETERS: 
 !
       INTEGER, INTENT(IN)  :: I, J, L 
 #if defined( DEVEL )
-      TYPE(GC_MET_LOCAL), INTENT(IN) :: LOCAL_MET  ! Obj w/ met fields
+      TYPE(MetState), INTENT(IN) :: State_Met   ! Meteorology State object
 #endif
 !
 ! !OUTPUT PARAMETERS: 
@@ -1472,8 +1472,8 @@
       !! alkalinity [v/v] to [kg] use this when transporting alk
       !! or using Liao et al [2004] assumption of a continuous supply of
       ! alkalinity based on Laskin et al. [2003]
-      !ALK1 = STT(I,J,L,IDTSALA) * LOCAL_MET%AD(I,J,L)/TCVV(IDTSALA)
-      !ALK2 = STT(I,J,L,IDTSALC) * LOCAL_MET%AD(I,J,L)/TCVV(IDTSALC)
+      !ALK1 = STT(I,J,L,IDTSALA) * State_Met%AD(I,J,L)/TCVV(IDTSALA)
+      !ALK2 = STT(I,J,L,IDTSALC) * State_Met%AD(I,J,L)/TCVV(IDTSALC)
       !-----------------------------------------------------------------------
 
       ! Conversion from [m-3] --> [cm-3]
@@ -1487,7 +1487,7 @@
 
          ! set humidity index IRH as a percent
 #if defined( DEVEL )
-         IRH = LOCAL_MET%RH(I,J,L)
+         IRH = State_Met%RH(I,J,L)
 #else
          IRH = RH(I,J,L)
 #endif

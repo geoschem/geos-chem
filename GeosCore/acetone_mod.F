@@ -102,7 +102,7 @@
 !
 #if defined( DEVEL )
       SUBROUTINE OCEAN_SOURCE_ACET( I,  J,  ALBD, TS, U10M, V10M,
-     &                              LOCAL_MET, ACETONE )
+     &                              ACETONE, State_Met )
 #else
       SUBROUTINE OCEAN_SOURCE_ACET( I,  J,  ALBD, TS, U10M, V10M,
      &                              ACETONE )
@@ -115,7 +115,7 @@
       USE GRID_MOD,  ONLY : GET_AREA_CM2
       USE TIME_MOD,  ONLY : GET_TS_EMIS
 #if defined( DEVEL )
-      USE GC_TYPE_MOD, ONLY : GC_MET_LOCAL
+      USE GIGC_State_Met_Mod, ONLY : MetState
 #endif
 
       USE CMN_SIZE_MOD                  ! Size parameters
@@ -133,7 +133,7 @@
       REAL*8,  INTENT(IN)    :: U10M(IIPAR,JJPAR) ! E/W wind speed @ 10m [m/s]
       REAL*8,  INTENT(IN)    :: V10M(IIPAR,JJPAR) ! N/S wind speed @ 10m [m/s]
 #if defined( DEVEL )
-      TYPE(GC_MET_LOCAL), INTENT(IN) :: LOCAL_MET ! Obj w/ met fields
+      TYPE(MetState), INTENT(IN) :: State_Met     ! Meteorology State object
 #endif
 !
 ! !INPUT/OUTPUT PARAMETERS:
@@ -225,7 +225,7 @@
 
       ! Fraction of (I,J) that is ocean
 #if defined( DEVEL )
-      FOCEAN   = 1d0 - LOCAL_MET%FRCLND(I,J)    
+      FOCEAN   = 1d0 - State_Met%FRCLND(I,J)    
 #else
       FOCEAN   = 1d0 - FRCLND(I,J)    
 #endif
@@ -357,7 +357,7 @@
 ! !INTERFACE:
 !
 #if defined( DEVEL )
-      SUBROUTINE OCEAN_SINK_ACET( ACETONE, LOCAL_MET )
+      SUBROUTINE OCEAN_SINK_ACET( ACETONE, State_Met )
 #else
       SUBROUTINE OCEAN_SINK_ACET( ACETONE )
 #endif
@@ -368,7 +368,7 @@
       USE GRID_MOD, ONLY : GET_AREA_CM2
       USE TIME_MOD, ONLY : GET_TS_CHEM
 #if defined( DEVEL )
-      USE GC_TYPE_MOD, ONLY : GC_MET_LOCAL
+      USE GIGC_State_Met_Mod, ONLY : MetState
 #else
       USE DAO_MOD,     ONLY : ALBD, TS, U10M, V10M
 #endif
@@ -382,7 +382,7 @@
 ! !INPUT PARAMETERS:
 !
 #if defined( DEVEL )
-      TYPE(GC_MET_LOCAL), INTENT(IN) :: LOCAL_MET   ! Obj w/ met fields
+      TYPE(MetState), INTENT(IN) :: State_Met   ! Meteorology State object
 #endif
 !
 ! !INPUT/OUTPUT PARAMETERS: 
@@ -466,7 +466,7 @@
 
             ! Fraction of grid box that is ocean
 #if defined( DEVEL )
-            FOCEAN = 1d0 - LOCAL_MET%FRCLND(I,J)
+            FOCEAN = 1d0 - State_Met%FRCLND(I,J)
 #else
             FOCEAN = 1d0 - FRCLND(I,J)
 #endif
@@ -478,13 +478,13 @@
             !===========================================================
 #if defined( DEVEL )
             IF ( FOCEAN > 0.5d0 .and.
-     &           LOCAL_MET%ALBD(I,J) <= 0.4d0 ) THEN
+     &           State_Met%ALBD(I,J) <= 0.4d0 ) THEN
 
                ! Updated Henry's Law to 27 M/atm following Benkelberg et al.
                ! [1995], Johnson [2010], and Zhou and Mopper [1990]
                ! (evf, 5/11/11)
                HSTAR = (660d0)*EXP(-5090d0*(1./298d0 -
-     &                 1./LOCAL_MET%TS(I,J)))
+     &                 1./State_Met%TS(I,J)))
 #else
             IF ( FOCEAN > 0.5d0 .and. ALBD(I,J) <= 0.4d0 ) THEN
 
@@ -507,13 +507,13 @@
                ! square of the surface wind correctly for all GEOS models 
 #if defined( DEVEL )
                U     = SQRT( SFCWINDSQR( I, J,
-     &                                   LOCAL_MET%U10M,
-     &                                   LOCAL_MET%V10M ) )
+     &                                   State_Met%U10M,
+     &                                   State_Met%V10M ) )
 
             
                ! TC is temperature in Celsius
                ! Bug fix: make sure -5 <= TC <= 30 (mje, rvm, bmy, 11/26/01) 
-               TC    = LOCAL_MET%TS(I,J) - 273.15d0  
+               TC    = State_Met%TS(I,J) - 273.15d0  
                TC    = MIN( MAX( TC, -5d0 ), 30d0 )
 #else
                U     = SQRT( SFCWINDSQR( I, J, U10M, V10M ) )
@@ -552,7 +552,7 @@
 
                ! CG is the gas concentration of acetone [kg C/cm3]
 #if defined( DEVEL )
-               CG    = ACETONE(I,J) / BOXVL(I,J,1,LOCAL_MET)
+               CG    = ACETONE(I,J) / BOXVL(I,J,1,State_Met)
 #else
                CG    = ACETONE(I,J) / BOXVL(I,J,1)
 #endif

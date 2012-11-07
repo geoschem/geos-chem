@@ -12,7 +12,7 @@
 ! !INTERFACE:
 !
 #if defined( DEVEL )
-      SUBROUTINE DIAG1( LOCAL_MET )
+      SUBROUTINE DIAG1( State_Met )
 #else
       SUBROUTINE DIAG1 
 #endif
@@ -42,7 +42,7 @@
       USE TRACER_MOD,     ONLY : N_APMTRA
 #endif
 #if defined( DEVEL )
-      USE GC_TYPE_MOD,    ONLY : GC_MET_LOCAL
+      USE GIGC_State_Met_Mod, ONLY : MetState
 #endif
 
       USE CMN_SIZE_MOD  ! Size parameters
@@ -57,7 +57,7 @@
 ! !INPUT PARAMETERS:
 !
 #if defined( DEVEL )
-      TYPE(GC_MET_LOCAL), INTENT(IN) :: LOCAL_MET  ! Obj w/ met fields
+      TYPE(MetState), INTENT(IN) :: State_Met   ! Meteorology State object
 #endif
 !
 ! !REVISION HISTORY:
@@ -164,7 +164,7 @@
          DO I = 1, IIPAR
 #if defined( DEVEL )
             STT_VV(I,J,L,N) = 
-     &         MAX( STT(I,J,L,N) * TCVV(N) / LOCAL_MET%AD(I,J,L), 0d0 )
+     &         MAX( STT(I,J,L,N) * TCVV(N) / State_Met%AD(I,J,L), 0d0 )
 #else
             STT_VV(I,J,L,N) = 
      &           MAX( STT(I,J,L,N) * TCVV(N) / AD(I,J,L), 0d0 )
@@ -195,12 +195,12 @@
           ! Reactive gaseous mercury, RGM
           AD03_RGM(I,J,L) = AD03_RGM(I,J,L) +
      &                      Fg(I,J,L) * STT(I,J,L,2) * TCVV(2) /
-     &                      LOCAL_MET%AD(I,J,L) *1D12
+     &                      State_Met%AD(I,J,L) *1D12
 
           ! Reactive particulate mercury, PBM
           AD03_PBM(I,J,L) = AD03_PBM(I,J,L) +
      &                      Fp(I,J,L) * STT(I,J,L,2) * TCVV(2) /
-     &                      LOCAL_MET%AD(I,J,L) *1D12
+     &                      State_Met%AD(I,J,L) *1D12
 #else
           ! Reactive gaseous mercury, RGM
           AD03_RGM(I,J,L) = AD03_RGM(I,J,L)+
@@ -228,11 +228,11 @@
          DO J = 1, JJPAR
          DO I = 1, IIPAR
 #if defined( DEVEL )
-            IF ( IS_WATER( I, J, LOCAL_MET ) )
+            IF ( IS_WATER( I, J, State_Met ) )
      &           AD30(I,J) = AD30(I,J) + 0e0
-            IF ( IS_LAND ( I, J, LOCAL_MET ) )
+            IF ( IS_LAND ( I, J, State_Met ) )
      &           AD30(I,J) = AD30(I,J) + 1e0
-            IF ( IS_ICE  ( I, J, LOCAL_MET ) )
+            IF ( IS_ICE  ( I, J, State_Met ) )
      &           AD30(I,J) = AD30(I,J) + 2e0
 #else
             IF ( IS_WATER( I, J ) ) AD30(I,J) = AD30(I,J) + 0e0
@@ -398,7 +398,7 @@
             DO J = 1, JJPAR
             DO I = 1, IIPAR
 #if defined( DEVEL )
-               IF ( ITS_IN_THE_TROP( I, J, L, LOCAL_MET ) )
+               IF ( ITS_IN_THE_TROP( I, J, L, State_Met ) )
      &              AD54(I,J,L) = AD54(I,J,L) + 1.
 #else
                IF ( ITS_IN_THE_TROP(I,J,L) )
@@ -425,7 +425,7 @@
             P0          = GET_PEDGE(I,J,1)
 
 #if defined( DEVEL )
-            AD57(I,J,L) = AD57(I,J,L) + LOCAL_MET%T(I,J,L) *
+            AD57(I,J,L) = AD57(I,J,L) + State_Met%T(I,J,L) *
      &                  ( P0 / GET_PCENTER( I, J, L ) )**0.286
 #else
             AD57(I,J,L) = AD57(I,J,L)
@@ -448,7 +448,7 @@
             ! PBL is in [m], use hydrostatic law to get [hPa]
 #if defined( DEVEL )
             AD67(I,J,13) = AD67(I,J,13) + 
-     &                   ( GET_PEDGE(I,J,1) * EXP( -LOCAL_MET%PBLH(I,J)
+     &                   ( GET_PEDGE(I,J,1) * EXP( -State_Met%PBLH(I,J)
      &                   / SCALE_HEIGHT ) )
 #else
             AD67(I,J,13) = AD67(I,J,13) + 
@@ -471,7 +471,7 @@
 
          ! Set a flag for whether AVGW is allocated or not
 #if defined( DEVEL )
-         AVGW_ALLOCATED = ASSOCIATED( LOCAL_MET%AVGW )
+         AVGW_ALLOCATED = ASSOCIATED( State_Met%AVGW )
 #else
          AVGW_ALLOCATED = ALLOCATED( AVGW )
 #endif
@@ -483,14 +483,14 @@
          DO J = 1, JJPAR
          DO I = 1, IIPAR
 #if defined( DEVEL )
-            AD68(I,J,L,1) = AD68(I,J,L,1) + LOCAL_MET%BXHEIGHT(I,J,L)
-            AD68(I,J,L,2) = AD68(I,J,L,2) + LOCAL_MET%AD(I,J,L)
-            AD68(I,J,L,4) = AD68(I,J,L,4) + LOCAL_MET%AIRDEN(L,I,J) *
+            AD68(I,J,L,1) = AD68(I,J,L,1) + State_Met%BXHEIGHT(I,J,L)
+            AD68(I,J,L,2) = AD68(I,J,L,2) + State_Met%AD(I,J,L)
+            AD68(I,J,L,4) = AD68(I,J,L,4) + State_Met%AIRDEN(L,I,J) *
      &                      XNUMOLAIR
 
             ! Make sure AVGW is now allocated (bmy, 9/25/01)
             IF ( AVGW_ALLOCATED ) THEN
-               AD68(I,J,L,3) = AD68(I,J,L,3) + LOCAL_MET%AVGW(I,J,L)
+               AD68(I,J,L,3) = AD68(I,J,L,3) + State_Met%AVGW(I,J,L)
             ENDIF
 #else
             AD68(I,J,L,1) = AD68(I,J,L,1) + BXHEIGHT(I,J,L)

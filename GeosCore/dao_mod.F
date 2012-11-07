@@ -542,7 +542,7 @@
          !===========================================================
          AIRDEN(L,I,J) = AD(I,J,L) / AIRVOL(I,J,L)
 #if defined( DEVEL )
-         State_Met%AIRDENS(L,I,J) = AIRDEN(L,I,J)
+         State_Met%AIRDEN(L,I,J) = AIRDEN(L,I,J)
 #endif            
       ENDDO
       ENDDO
@@ -682,7 +682,7 @@
 ! !INTERFACE:
 !
 #if defined( DEVEL )
-      SUBROUTINE INTERP( NTIME0, NTIME1, NTDT, LOCAL_MET )
+      SUBROUTINE INTERP( NTIME0, NTIME1, NTDT, State_Met )
 #else
       SUBROUTINE INTERP( NTIME0, NTIME1, NTDT )
 #endif
@@ -692,7 +692,7 @@
       USE GRID_MOD,    ONLY : GET_YEDGE
       USE LOGICAL_MOD, ONLY : LVARTROP
 #if defined( DEVEL )
-      USE GC_TYPE_MOD, ONLY : GC_MET_LOCAL
+      USE GIGC_State_Met_Mod, ONLY : MetState
 #endif
 !
 ! !INPUT PARAMETERS: 
@@ -700,8 +700,11 @@
       INTEGER, INTENT(IN)  :: NTIME0   ! Elapsed time [s] at start of 6hr step
       INTEGER, INTENT(IN)  :: NTIME1   ! Elapsed time [s] at current time
       INTEGER, INTENT(IN)  :: NTDT     ! Length of dynamic timestep [s]
+!
+! !INPUT/OUTPUT PARAMETERS: 
+!
 #if defined( DEVEL )
-      TYPE(GC_MET_LOCAL), INTENT(INOUT) :: LOCAL_MET  ! Obj w/ met fields
+      TYPE(MetState), INTENT(INOUT) :: State_Met   ! Meteorology State object
 #endif
 ! 
 ! !REMARKS:
@@ -802,17 +805,17 @@
          YNORTH = GET_YEDGE( I, J+1, 1 )
 
          ! Interpolate pressure [hPa] to the end of the dynamic timestep
-         LOCAL_MET%PSC2(I,J) = LOCAL_MET%PS1(I,J) +
-     &                       ( LOCAL_MET%PS2(I,J) - 
-     &                         LOCAL_MET%PS1(I,J) ) * TC2 
+         State_Met%PSC2(I,J) = State_Met%PS1(I,J) +
+     &                       ( State_Met%PS2(I,J) - 
+     &                         State_Met%PS1(I,J) ) * TC2 
 
          ! Test if we are using the variable tropopause
          IF ( LVARTROP ) THEN
  
             ! Interpolate TROPP [hPa] to the midpt of the dynamic timestep
-            LOCAL_MET%TROPP(I,J) = LOCAL_MET%TROPP1(I,J) +
-     &                           ( LOCAL_MET%TROPP2(I,J) - 
-     &                             LOCAL_MET%TROPP1(I,J) ) * TM
+            State_Met%TROPP(I,J) = State_Met%TROPP1(I,J) +
+     &                           ( State_Met%TROPP2(I,J) - 
+     &                             State_Met%TROPP1(I,J) ) * TM
 
             ! However, we still need to make sure to cap TROPP in the
             ! polar regions (if the entire box is outside 60S-60N)
@@ -820,7 +823,7 @@
             ! altitude.  Set TROPP in the polar regions to 200 hPa.
             ! (jal, phs, bmy, 9/18/07)
             IF ( YSOUTH >= 60d0 .or. YNORTH <= -60d0 ) THEN
-               LOCAL_MET%TROPP(I,J) = MAX( LOCAL_MET%TROPP(I,J), 200d0 )
+               State_Met%TROPP(I,J) = MAX( State_Met%TROPP(I,J), 200d0 )
             ENDIF
          ENDIF
       ENDDO
@@ -843,14 +846,14 @@
          YNORTH = GET_YEDGE( I, J+1, 1 )
 
          ! Interpolate pressure [hPa] to the end of the dynamic timestep
-         LOCAL_MET%PSC2(I,J) = LOCAL_MET%PS1(I,J)  +
-     &                       ( LOCAL_MET%PS2(I,J)  -
-     &                         LOCAL_MET%PS1(I,J)  ) * TC2 
+         State_Met%PSC2(I,J) = State_Met%PS1(I,J)  +
+     &                       ( State_Met%PS2(I,J)  -
+     &                         State_Met%PS1(I,J)  ) * TC2 
 
          ! Interpolate the GEOS-5 total O3 column [DU] to current time
-         LOCAL_MET%TO3(I,J)  = LOCAL_MET%TO31(I,J) +
-     &                       ( LOCAL_MET%TO32(I,J) -
-     &                         LOCAL_MET%TO31(I,J) ) * TM
+         State_Met%TO3(I,J)  = State_Met%TO31(I,J) +
+     &                       ( State_Met%TO32(I,J) -
+     &                         State_Met%TO31(I,J) ) * TM
 
          ! Even though TROPP is a 3-hour average field, we 
          ! we still need to make sure to cap TROPP in the
@@ -860,7 +863,7 @@
          ! (jal, phs, bmy, 9/18/07)
          IF ( LVARTROP ) THEN
             IF ( YSOUTH >= 60d0 .or. YNORTH <= -60d0 ) THEN
-               LOCAL_MET%TROPP(I,J) = MAX( LOCAL_MET%TROPP(I,J), 200d0 )
+               State_Met%TROPP(I,J) = MAX( State_Met%TROPP(I,J), 200d0 )
             ENDIF
          ENDIF
       ENDDO
@@ -889,9 +892,9 @@
             YNORTH     = GET_YEDGE( I, J+1, L )
             
             ! Interpolate pressure [hPa] to the end of the dynamic timestep
-            LOCAL_MET%PSC2(I,J)  = LOCAL_MET%PS1(I,J) +
-     &                           ( LOCAL_MET%PS2(I,J) - 
-     &                             LOCAL_MET%PS1(I,J) ) * TC2 
+            State_Met%PSC2(I,J)  = State_Met%PS1(I,J) +
+     &                           ( State_Met%PS2(I,J) - 
+     &                             State_Met%PS1(I,J) ) * TC2 
 
             ! Even though TROPP is a 3-hour average field, we 
             ! we still need to make sure to cap TROPP in the
@@ -901,7 +904,7 @@
             ! (jal, phs, bmy, 9/18/07)
             IF ( LVARTROP ) THEN
                IF ( YSOUTH >= 60d0 .or. YNORTH <= -60d0 ) THEN
-                  LOCAL_MET%TROPP(I,J) = MAX( LOCAL_MET%TROPP(I,J),
+                  State_Met%TROPP(I,J) = MAX( State_Met%TROPP(I,J),
      &                                        200d0 )
                ENDIF
             ENDIF
@@ -910,9 +913,9 @@
          !----------------------------------------------------
          ! Interpolate 3D variables
          !----------------------------------------------------
-         LOCAL_MET%RH(I,J,L) = LOCAL_MET%RH1(I,J,L)   +
-     &                       ( LOCAL_MET%RH2(I,J,L)   -
-     &                         LOCAL_MET%RH1(I,J,L) ) * TM
+         State_Met%RH(I,J,L) = State_Met%RH1(I,J,L)   +
+     &                       ( State_Met%RH2(I,J,L)   -
+     &                         State_Met%RH1(I,J,L) ) * TM
 
       ENDDO
       ENDDO
@@ -941,9 +944,9 @@
             YNORTH     = GET_YEDGE( I, J+1, L )
 
             ! Interpolate pressure [hPa] to the end of the dynamic timestep
-            LOCAL_MET%PSC2(I,J)  = LOCAL_MET%PS1(I,J) +
-     &                           ( LOCAL_MET%PS2(I,J) -
-     &                             LOCAL_MET%PS1(I,J) ) * TC2 
+            State_Met%PSC2(I,J)  = State_Met%PS1(I,J) +
+     &                           ( State_Met%PS2(I,J) -
+     &                             State_Met%PS1(I,J) ) * TC2 
 
             ! Even though TROPP is a 3-hour average field, we 
             ! we still need to make sure to cap TROPP in the
@@ -953,7 +956,7 @@
             ! (jal, phs, bmy, 9/18/07)
             IF ( LVARTROP ) THEN
                IF ( YSOUTH >= 60d0 .or. YNORTH <= -60d0 ) THEN
-                  LOCAL_MET%TROPP(I,J) = MAX( LOCAL_MET%TROPP(I,J),
+                  State_Met%TROPP(I,J) = MAX( State_Met%TROPP(I,J),
      &                                        200d0 )
                ENDIF
             ENDIF
@@ -962,13 +965,13 @@
          !----------------------------------------------------
          ! Interpolate 3D variables
          !----------------------------------------------------
-         LOCAL_MET%T   (I,J,L) = LOCAL_MET%TMPU1(I,J,L)   +
-     &                         ( LOCAL_MET%TMPU2(I,J,L)   -
-     &                           LOCAL_MET%TMPU1(I,J,L) ) * TM
+         State_Met%T   (I,J,L) = State_Met%TMPU1(I,J,L)   +
+     &                         ( State_Met%TMPU2(I,J,L)   -
+     &                           State_Met%TMPU1(I,J,L) ) * TM
 
-         LOCAL_MET%SPHU(I,J,L) = LOCAL_MET%SPHU1(I,J,L)   +
-     &                         ( LOCAL_MET%SPHU2(I,J,L)   -
-     &                           LOCAL_MET%SPHU1(I,J,L)t ) * TM 
+         State_Met%SPHU(I,J,L) = State_Met%SPHU1(I,J,L)   +
+     &                         ( State_Met%SPHU2(I,J,L)   -
+     &                           State_Met%SPHU1(I,J,L)t ) * TM 
 
       ENDDO
       ENDDO
@@ -1171,7 +1174,7 @@
 ! !INTERFACE:
 !
 #if defined( DEVEL )
-      FUNCTION IS_LAND( I, J, LOCAL_MET ) RESULT ( LAND )
+      FUNCTION IS_LAND( I, J, State_Met ) RESULT ( LAND )
 #else
       FUNCTION IS_LAND( I, J ) RESULT ( LAND )
 #endif
@@ -1180,15 +1183,15 @@
 !
       USE TIME_MOD,    ONLY : GET_YEAR
 #if defined( DEVEL )
-      USE GC_TYPE_MOD, ONLY : GC_MET_LOCAL
+      USE GIGC_State_Met_Mod, ONLY : MetState
 #endif
 !
 ! !INPUT PARAMETERS: 
 !
-      INTEGER, INTENT(IN)  :: I           ! Longitude index of grid box
-      INTEGER, INTENT(IN)  :: J           ! Latitude  index of grid box
+      INTEGER,        INTENT(IN) :: I           ! Longitude index of grid box
+      INTEGER,        INTENT(IN) :: J           ! Latitude  index of grid box
 #if defined( DEVEL )
-      TYPE(GC_MET_LOCAL), INTENT(IN) :: LOCAL_MET  ! Obj w/ met fields
+      TYPE(MetState), INTENT(IN) :: State_Met   ! Meteorology State object
 #endif
 !
 ! !RETURN VALUE:
@@ -1234,8 +1237,8 @@
 
       ! It's a land box if 50% or more of the box is covered by 
       ! land and less than 50% of the box is covered by ice
-      LAND = ( LOCAL_MET%LWI_GISS(I,J) >= 0.5d0 .and. 
-     &         LOCAL_MET%SNICE(I,J)    <  0.5d0 )
+      LAND = ( State_Met%LWI_GISS(I,J) >= 0.5d0 .and. 
+     &         State_Met%SNICE(I,J)    <  0.5d0 )
 
 #else
 
@@ -1244,8 +1247,8 @@
       !--------------------------
 
       ! LWI=1 and ALBEDO less than 69.5% is a LAND box 
-      LAND = ( NINT( LOCAL_MET%LWI(I,J) ) == 1       .and.
-     &               LOCAL_MET%ALBD(I,J)  <  0.695d0 )
+      LAND = ( NINT( State_Met%LWI(I,J) ) == 1       .and.
+     &               State_Met%ALBD(I,J)  <  0.695d0 )
 
 #endif
 
@@ -1290,7 +1293,7 @@
 ! !INTERFACE:
 !
 #if defined( DEVEL )
-      FUNCTION IS_WATER( I, J, LOCAL_MET ) RESULT ( WATER )
+      FUNCTION IS_WATER( I, J, State_Met ) RESULT ( WATER )
 #else
       FUNCTION IS_WATER( I, J ) RESULT ( WATER )
 #endif
@@ -1299,15 +1302,15 @@
 !
       USE TIME_MOD,    ONLY : GET_YEAR
 #if defined( DEVEL )
-      USE GC_TYPE_MOD, ONLY : GC_MET_LOCAL
+      USE GIGC_State_Met_Mod, ONLY : MetState
 #endif
 !
 ! !INPUT PARAMETERS: 
 !
-      INTEGER, INTENT(IN)  :: I           ! Longitude index of grid box
-      INTEGER, INTENT(IN)  :: J           ! Latitude  index of grid box
+      INTEGER,        INTENT(IN) :: I           ! Longitude index of grid box
+      INTEGER,        INTENT(IN) :: J           ! Latitude  index of grid box
 #if defined( DEVEL )
-      TYPE(GC_MET_LOCAL), INTENT(IN) :: LOCAL_MET  ! Obj w/ met fields
+      TYPE(MetState), INTENT(IN) :: State_Met   ! Meteorology State object
 #endif
 !
 ! !RETURN VALUE:
@@ -1353,8 +1356,8 @@
 
       ! It's a water box if less than 50% of the box is
       ! covered by land and less than 50% is covered by ice
-      WATER = ( LOCAL_MET%LWI_GISS(I,J) < 0.5d0 .and. 
-     &          LOCAL_MET%SNICE(I,J)    < 0.5d0 )
+      WATER = ( State_Met%LWI_GISS(I,J) < 0.5d0 .and. 
+     &          State_Met%SNICE(I,J)    < 0.5d0 )
 
 #else
 
@@ -1363,8 +1366,8 @@
       !---------------------------
 
       ! LWI=0 and ALBEDO less than 69.5% is a water box 
-      WATER = ( NINT( LOCAL_MET%LWI(I,J) ) == 0       .and.
-     &                LOCAL_MET%ALBD(I,J)  <  0.695d0 )
+      WATER = ( NINT( State_Met%LWI(I,J) ) == 0       .and.
+     &                State_Met%ALBD(I,J)  <  0.695d0 )
 
 #endif
 
@@ -1409,7 +1412,7 @@
 ! !INTERFACE:
 !
 #if defined( DEVEL )
-      FUNCTION IS_ICE( I, J, LOCAL_MET ) RESULT ( ICE )
+      FUNCTION IS_ICE( I, J, State_Met ) RESULT ( ICE )
 #else
       FUNCTION IS_ICE( I, J ) RESULT ( ICE )
 #endif
@@ -1418,15 +1421,15 @@
 !
       USE TIME_MOD,    ONLY : GET_YEAR
 #if defined( DEVEL )
-      USE GC_TYPE_MOD, ONLY : GC_MET_LOCAL
+      USE GIGC_State_Met_Mod, ONLY : MetState
 #endif
 !
 ! !INPUT PARAMETERS: 
 !
-      INTEGER, INTENT(IN)  :: I           ! Longitude index of grid box
-      INTEGER, INTENT(IN)  :: J           ! Latitude  index of grid box
+      INTEGER,        INTENT(IN) :: I           ! Longitude index of grid box
+      INTEGER,        INTENT(IN) :: J           ! Latitude  index of grid box
 #if defined( DEVEL )
-      TYPE(GC_MET_LOCAL), INTENT(IN) :: LOCAL_MET  ! Obj w/ met fields
+      TYPE(MetState), INTENT(IN) :: State_Met   ! Meteorology State object
 #endif
 !
 ! !RETURN VALUE:
@@ -1454,7 +1457,7 @@
       !--------------------------
 
       ! It's an ice box if 50% or more of the box is covered by ice
-      ICE = ( LOCAL_MET%SNICE(I,J) >= 0.5d0 )
+      ICE = ( State_Met%SNICE(I,J) >= 0.5d0 )
 
 #else
 
@@ -1463,8 +1466,8 @@
       !--------------------------
 
       ! LWI=2 or ALBEDO > 69.5% is ice
-      ICE = ( NINT( LOCAL_MET%LWI(I,J) ) == 2       .or.
-     &              LOCAL_MET%ALBD(I,J)  >= 0.695d0 )
+      ICE = ( NINT( State_Met%LWI(I,J) ) == 2       .or.
+     &              State_Met%ALBD(I,J)  >= 0.695d0 )
 
 #endif
 
@@ -1509,7 +1512,7 @@
 ! !INTERFACE:
 !
 #if defined( DEVEL )
-      FUNCTION IS_NEAR( I, J, THRESH, NEIGHBOR, LOCAL_MET )
+      FUNCTION IS_NEAR( I, J, THRESH, NEIGHBOR, State_Met )
      &   RESULT ( NEAR )
 #else
       FUNCTION IS_NEAR( I, J, THRESH, NEIGHBOR ) RESULT ( NEAR )
@@ -1518,17 +1521,17 @@
 ! !USES:
 !
 #if defined( DEVEL )
-      USE GC_TYPE_MOD, ONLY : GC_MET_LOCAL
+      USE GIGC_State_Met_Mod, ONLY : MetState
 #endif
 !
 ! !INPUT PARAMETERS: 
 !
       ! Arguments
-      INTEGER, INTENT(IN) :: I, J        ! Lon & lat grid box indices
-      INTEGER, INTENT(IN) :: NEIGHBOR    ! # of neighbor boxes to consider
-      REAL*8,  INTENT(IN) :: THRESH      ! LWI threshold for near-land 
+      INTEGER,        INTENT(IN) :: I, J       ! Lon & lat grid box indices
+      INTEGER,        INTENT(IN) :: NEIGHBOR   ! # of neighbor boxes to consider
+      REAL*8,         INTENT(IN) :: THRESH     ! LWI threshold for near-land 
 #if defined( DEVEL )
-      TYPE(GC_MET_LOCAL), INTENT(IN) :: LOCAL_MET  ! Obj w/ met fields
+      TYPE(MetState), INTENT(IN) :: State_Met  ! Meteorology State object
 #endif
 !
 ! !RETURN VALUE:
@@ -1589,7 +1592,7 @@
             
 #if defined( DEVEL )
             ! If it's an ice box, skip to next neighbor
-            IF ( IS_ICE( LONGI, LATJ, LOCAL_MET ) ) CYCLE
+            IF ( IS_ICE( LONGI, LATJ, State_Met ) ) CYCLE
 
 #if   defined( GCAP ) 
 
@@ -1603,8 +1606,8 @@
             !
             ! It's near-land if THRESH <= LWI_GISS <= 1.0 
             !---------------------------------------------------
-            IF ( LOCAL_MET%LWI_GISS(LONGI,LATJ) >  THRESH .and.
-     &           LOCAL_MET%LWI_GISS(LONGI,LATJ) <= 1.0d0 ) THEN
+            IF ( State_Met%LWI_GISS(LONGI,LATJ) >  THRESH .and.
+     &           State_Met%LWI_GISS(LONGI,LATJ) <= 1.0d0 ) THEN
 
                ! We are in a near-land box
                NEAR = .TRUE.
@@ -1627,8 +1630,8 @@
             !
             ! It's near-land if THRESH <= LWI <= 1.0 
             !---------------------------------------------------
-            IF ( LOCAL_MET%LWI(LONGI,LATJ) >  THRESH  .and.
-     &           LOCAL_MET%LWI(LONGI,LATJ) <= 1d0    ) THEN
+            IF ( State_Met%LWI(LONGI,LATJ) >  THRESH  .and.
+     &           State_Met%LWI(LONGI,LATJ) <= 1d0    ) THEN
 
                ! We are in a near-land box
                NEAR = .TRUE.
@@ -1716,7 +1719,7 @@
 ! !INTERFACE:
 !
 #if defined( DEVEL )
-      SUBROUTINE MAKE_AVGW( LOCAL_MET )
+      SUBROUTINE MAKE_AVGW( State_Met )
 #else
       SUBROUTINE MAKE_AVGW
 #endif
@@ -1724,13 +1727,13 @@
 ! !USES:
 !
 #if defined( DEVEL )
-      USE GC_TYPE_MOD,  ONLY : GC_MET_LOCAL
+      USE GIGC_State_Met_Mod, ONLY : MetState
 #endif
 !
 ! !INPUT/OUTPUT PARAMETERS:
 !
 #if defined( DEVEL )
-      TYPE(GC_MET_LOCAL), INTENT(INOUT) :: LOCAL_MET  ! Obj w/ met fields
+      TYPE(MetState), INTENT(INOUT) :: State_Met   ! Meteorology State object
 #endif
 ! 
 ! !REVISION HISTORY: 
@@ -1785,8 +1788,8 @@
       DO J = 1, JJPAR
       DO I = 1, IIPAR
 #if defined( DEVEL )
-!         LOCAL_MET%AVGW(I,J,L) = HCONV * LOCAL_MET%SPHU(I,J,L)
-         LOCAL_MET%AVGW(I,J,L) = HCONV * SPHU(I,J,L)
+!         State_Met%AVGW(I,J,L) = HCONV * State_Met%SPHU(I,J,L)
+         State_Met%AVGW(I,J,L) = HCONV * SPHU(I,J,L)
 #else
          AVGW(I,J,L) = HCONV * SPHU(I,J,L) 
 #endif
@@ -1811,7 +1814,7 @@
 ! !INTERFACE:
 !
 #if defined( DEVEL )
-      SUBROUTINE MAKE_RH( LOCAL_MET )
+      SUBROUTINE MAKE_RH( State_Met )
 #else
       SUBROUTINE MAKE_RH
 #endif
@@ -1820,13 +1823,13 @@
 !
       USE PRESSURE_MOD, ONLY : GET_PCENTER
 #if defined( DEVEL )
-      USE GC_TYPE_MOD,  ONLY : GC_MET_LOCAL
+      USE GIGC_State_Met_Mod, ONLY : MetState
 #endif
 !
 ! !INPUT PARAMETERS: 
 !
 #if defined( DEVEL )
-      TYPE(GC_MET_LOCAL), INTENT(INOUT) :: LOCAL_MET  ! Obj w/ met fields
+      TYPE(MetState), INTENT(INOUT) :: State_Met   ! Meteorology State object
 #endif
 !
 ! !REMARKS:
@@ -1878,7 +1881,7 @@
 
          ! Temperature at grid box (I,J,L)
 #if defined( DEVEL )
-         TEMP = LOCAL_MET%T(I,J,L)
+         TEMP = State_Met%T(I,J,L)
 #else
          TEMP = T(I,J,L)
 #endif
@@ -1889,11 +1892,11 @@
             
 #if defined( DEVEL )
          ! Specific humidity in mb
-!         SHMB = LOCAL_MET%SPHU(I,J,L) * 1.6072d-3 * PRES
+!         SHMB = State_Met%SPHU(I,J,L) * 1.6072d-3 * PRES
          SHMB = SPHU(I,J,L) * 1.6072d-3 * PRES
             
          ! Relative humidity as a percentage
-         LOCAL_MET%RH(I,J,L) = ( SHMB / ESAT ) * 100d0 
+         State_Met%RH(I,J,L) = ( SHMB / ESAT ) * 100d0 
 #else
          ! Specific humidity in mb
          SHMB = SPHU(I,J,L) * 1.6072d-3 * PRES
@@ -1923,7 +1926,7 @@
 ! !INTERFACE:
 !
 #if defined( DEVEL )
-      FUNCTION GET_OBK( I, J, LOCAL_MET ) RESULT( OBK )
+      FUNCTION GET_OBK( I, J, State_Met ) RESULT( OBK )
 #else
       FUNCTION GET_OBK( I, J ) RESULT( OBK )
 #endif
@@ -1931,15 +1934,15 @@
 ! !USES:
 !
 #if defined( DEVEL )
-      USE GC_TYPE_MOD, ONLY : GC_MET_LOCAL
+      USE GIGC_State_Met_Mod, ONLY : MetState
 #endif
 !
 ! !INPUT PARAMETERS: 
 !
-      INTEGER, INTENT(IN) :: I     ! Longitude index
-      INTEGER, INTENT(IN) :: J     ! Latitude  index
+      INTEGER,        INTENT(IN) :: I           ! Longitude index
+      INTEGER,        INTENT(IN) :: J           ! Latitude  index
 #if defined( DEVEL )
-      TYPE(GC_MET_LOCAL), INTENT(IN) :: LOCAL_MET  ! Obj w/ met fields
+      TYPE(MetState), INTENT(IN) :: State_Met   ! Meteorology State object
 #endif
 !
 ! !RETURN VALUE:
@@ -1964,7 +1967,7 @@
 
       ! Monin-Obhukov length is a GCAP met field
 #if defined( DEVEL )
-      OBK = LOCAL_MET%MOLENGTH(I,J)
+      OBK = State_Met%MOLENGTH(I,J)
 #else
       OBK = MOLENGTH(I,J)
 #endif
@@ -1996,12 +1999,12 @@
 
 #if defined( DEVEL )
       ! Numerator
-      NUM = - LOCAL_MET%AIRDEN(1,I,J) * CP                   *
-     &        LOCAL_MET%TS(I,J)        * LOCAL_MET%USTAR(I,J) *
-     &        LOCAL_MET%USTAR(I,J)     * LOCAL_MET%USTAR(I,J)
+      NUM = - State_Met%AIRDEN(1,I,J) * CP                   *
+     &        State_Met%TS(I,J)        * State_Met%USTAR(I,J) *
+     &        State_Met%USTAR(I,J)     * State_Met%USTAR(I,J)
 
       ! Denominator
-      DEN =  KAPPA         * g0       * LOCAL_MET%HFLUX(I,J) 
+      DEN =  KAPPA         * g0       * State_Met%HFLUX(I,J) 
 #else
       ! Numerator
       NUM = -AIRDEN(1,I,J) *  CP            * TS(I,J) *
@@ -2474,7 +2477,7 @@
 ! !INTERFACE:
 !
 #if defined( DEVEL )
-      SUBROUTINE COPY_I3_I6_FIELDS( LOCAL_MET )
+      SUBROUTINE COPY_I3_I6_FIELDS( State_Met )
 #else
       SUBROUTINE COPY_I3_I6_FIELDS
 #endif
@@ -2482,13 +2485,13 @@
 ! !USES:
 !
 #if defined( DEVEL )
-      USE GC_TYPE_MOD, ONLY : GC_MET_LOCAL
+      USE GIGC_State_Met_Mod, ONLY : MetState
 #endif
 !
 ! !INPUT PARAMETERS:
 !
 #if defined( DEVEL )
-      TYPE(GC_MET_LOCAL), INTENT(INOUT) :: LOCAL_MET  ! Obj w/ met fields
+      TYPE(MetState), INTENT(INOUT) :: State_Met   ! Meteorology State object
 #endif
 ! 
 ! !REVISION HISTORY: 
@@ -2522,40 +2525,40 @@
       !------------------
       ! GCAP met
       !------------------
-      LOCAL_MET%PS1    = LOCAL_MET%PS2     ! I6 surface pressure    [hPa]
-      LOCAL_MET%TROPP1 = LOCAL_MET%TROPP2  ! I6 tropopause pressure [hPa]
+      State_Met%PS1    = State_Met%PS2     ! I6 surface pressure    [hPa]
+      State_Met%TROPP1 = State_Met%TROPP2  ! I6 tropopause pressure [hPa]
 
 #elif defined( GEOS_4 )
 
       !------------------
       ! GEOS-4 met
       !------------------
-      LOCAL_MET%PS1    = LOCAL_MET%PS2     ! I6 surface pressure    [hPa]
-      LOCAL_MET%TROPP1 = LOCAL_MET%TROPP2  ! I6 tropopause pressure [hPa]
+      State_Met%PS1    = State_Met%PS2     ! I6 surface pressure    [hPa]
+      State_Met%TROPP1 = State_Met%TROPP2  ! I6 tropopause pressure [hPa]
 
 #elif defined( GEOS_5 )
 
       !------------------
       ! GEOS-5 met
       !------------------
-      LOCAL_MET%PS1    = LOCAL_MET%PS2     ! I6 surface pressure    [hPa] 
+      State_Met%PS1    = State_Met%PS2     ! I6 surface pressure    [hPa] 
 
 #elif defined( GEOS_57 )
 
       !------------------
       ! GEOS-5.7.x met
       !------------------
-      LOCAL_MET%PS1    = LOCAL_MET%PS2     ! I3 surface pressure    [hPa]
-      LOCAL_MET%SPHU1  = LOCAL_MET%SPHU2   ! I3 specific humidity   [g/kg]
-      LOCAL_MET%TMPU1  = LOCAL_MET%TMPU2   ! I3 temperature         [K]
+      State_Met%PS1    = State_Met%PS2     ! I3 surface pressure    [hPa]
+      State_Met%SPHU1  = State_Met%SPHU2   ! I3 specific humidity   [g/kg]
+      State_Met%TMPU1  = State_Met%TMPU2   ! I3 temperature         [K]
 
 #elif defined( MERRA )
 
       !------------------
       ! MERRA met
       !------------------
-      LOCAL_MET%PS1    = LOCAL_MET%PS2     ! I6 surface pressure    [hPa]
-      LOCAL_MET%RH1    = LOCAL_MET%RH2     ! I6 relative humidity   [%]
+      State_Met%PS1    = State_Met%PS2     ! I6 surface pressure    [hPa]
+      State_Met%RH1    = State_Met%RH2     ! I6 relative humidity   [%]
 
 #endif
 

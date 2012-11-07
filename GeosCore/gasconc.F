@@ -14,7 +14,7 @@
 #if defined( DEVEL )
       SUBROUTINE GASCONC( am_I_Root, 
      &                    FIRSTCHEM, NTRACER,    STT, 
-     &                    XNUMOL,    READ_CSPEC, LOCAL_MET  )
+     &                    XNUMOL,    READ_CSPEC, State_Met )
 #else
       SUBROUTINE GASCONC( am_I_Root, 
      &                    FIRSTCHEM, NTRACER,   STT, 
@@ -35,7 +35,7 @@
       USE ERROR_MOD,      ONLY : ERROR_STOP ! (dkh, 10/06/06)  
       USE LOGICAL_MOD,    ONLY : LSOA ! (dkh, 10/06/06)  
 #if defined( DEVEL )
-      USE GC_TYPE_MOD,    ONLY : GC_MET_LOCAL
+      USE GIGC_State_Met_Mod, ONLY : MetState
 #endif
       
       USE CMN_SIZE_MOD         ! Size parameters
@@ -46,16 +46,15 @@
 !
 ! !INPUT PARAMETERS: 
 !
-      LOGICAL, INTENT(IN)     :: am_I_Root            ! Is this the root CPU?
-      LOGICAL, INTENT(IN)     :: FIRSTCHEM            ! First-time flag
-      INTEGER, INTENT(IN)     :: NTRACER              ! # of tracers
-      REAL*8,  INTENT(IN)     :: XNUMOL(NTRACER)      ! Molec tracer/kg tracer
-#if !defined( DEVEL )
-      REAL*8,  INTENT(IN)     :: FRCLND(IIPAR,JJPAR)  ! Land fraction
-#endif
-      LOGICAL, INTENT(IN)     :: READ_CSPEC           ! Is 
+      LOGICAL,        INTENT(IN) :: am_I_Root       ! Is this the root CPU?
+      LOGICAL,        INTENT(IN) :: FIRSTCHEM       ! First-time flag
+      INTEGER,        INTENT(IN) :: NTRACER         ! # of tracers
+      REAL*8,         INTENT(IN) :: XNUMOL(NTRACER) ! Molec tracer/kg tracer
+      LOGICAL,        INTENT(IN) :: READ_CSPEC      ! Is 
 #if defined( DEVEL )
-      TYPE(GC_MET_LOCAL), INTENT(IN) :: LOCAL_MET     ! Obj w/ met fields
+      TYPE(MetState), INTENT(IN) :: State_Met       ! Meteorology State object
+#else
+      REAL*8,         INTENT(IN) :: FRCLND(IIPAR,JJPAR)  ! Land fraction
 #endif
 !
 ! !OUTPUT PARAMETERS:
@@ -189,7 +188,7 @@
                   ! Conversion factor
 #if defined( DEVEL )
                   CONST = GET_PCENTER(IX,IY,IZ) * 1000D0 / 
-     &                  ( LOCAL_MET%T(IX,IY,IZ) * BK )
+     &                  ( State_Met%T(IX,IY,IZ) * BK )
 #else
                   CONST = GET_PCENTER(IX,IY,IZ)*1000D0/(T(IX,IY,IZ)*BK)
 #endif
@@ -204,7 +203,7 @@
                      ! Test for ocean/land boxes
                      !---------------------------
 #if defined( DEVEL )
-                     IF ( LOCAL_MET%FRCLND(IX,IY) >= 0.5 ) THEN
+                     IF ( State_Met%FRCLND(IX,IY) >= 0.5 ) THEN
 #else
                      IF ( FRCLND(IX,IY) >= 0.5 ) THEN
 #endif
@@ -233,7 +232,7 @@
                      !---------------------------
 #if defined( DEVEL )
                      IF ( ITS_IN_THE_TROP( IX, IY, IZ, 
-     &                                     LOCAL_MET ) ) THEN
+     &                                     State_Met ) ) THEN
 #else
                      IF ( ITS_IN_THE_TROP( IX, IY, IZ ) ) THEN
 #endif
@@ -269,7 +268,7 @@
                   ! Conversion factor
 #if defined( DEVEL )
                   CONST = GET_PCENTER(IX,IY,IZ) * 1000D0 /
-     &                  ( LOCAL_MET%T(IX,IY,IZ) * BK )
+     &                  ( State_Met%T(IX,IY,IZ) * BK )
 #else
                   CONST = GET_PCENTER(IX,IY,IZ)*1000D0/(T(IX,IY,IZ)*BK)
 #endif

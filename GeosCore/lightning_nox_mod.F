@@ -151,7 +151,7 @@
 ! !INTERFACE:
 !
 #if defined( DEVEL )
-      SUBROUTINE LIGHTNING( LOCAL_MET )
+      SUBROUTINE LIGHTNING( State_Met )
 #else
       SUBROUTINE LIGHTNING
 #endif
@@ -166,7 +166,7 @@
       USE TIME_MOD,     ONLY : GET_MONTH, GET_YEAR
 
 #if defined( DEVEL )
-      USE GC_TYPE_MOD,  ONLY : GC_MET_LOCAL
+      USE GIGC_State_Met_Mod, ONLY : MetState
 #endif
 
       USE CMN_SIZE_MOD     ! Size parameters
@@ -175,7 +175,7 @@
 ! !INPUT PARAMETERS:
 !
 #if defined( DEVEL )
-      TYPE(GC_MET_LOCAL), INTENT(IN) :: LOCAL_MET  ! Obj w/ met fields
+      TYPE(MetState), INTENT(IN) :: State_Met   ! Meteorology State object
 #endif
 !
 ! !REMARKS:
@@ -331,7 +331,7 @@
             ! Find negative charge layer
 #if defined( DEVEL )
             DO L = 1, LMAX
-               IF ( LOCAL_MET%T(I,J,L) <= T_NEG_CTR ) THEN
+               IF ( State_Met%T(I,J,L) <= T_NEG_CTR ) THEN
                   LCHARGE = L
                   EXIT
                ENDIF
@@ -361,8 +361,8 @@
             ! Temperatures [K] at the centers of grid
             ! boxes (I,J,LCHARGE-1) and (I,J,LCHARGE)
 #if defined( DEVEL )
-            T1   = LOCAL_MET%T(I,J,LCHARGE-1)
-            T2   = LOCAL_MET%T(I,J,LCHARGE  )
+            T1   = State_Met%T(I,J,LCHARGE-1)
+            T2   = State_Met%T(I,J,LCHARGE  )
 #else
             T1   = T(I,J,LCHARGE-1)
             T2   = T(I,J,LCHARGE  )
@@ -402,7 +402,7 @@
             ELSE
                LCHARGE = LCHARGE - 1
 #if defined( DEVEL )
-               HCHARGE = ( LOCAL_MET%BXHEIGHT(I,J,LCHARGE) - ZUP ) + DZ
+               HCHARGE = ( State_Met%BXHEIGHT(I,J,LCHARGE) - ZUP ) + DZ
 #else
                HCHARGE = ( BXHEIGHT(I,J,LCHARGE) - ZUP ) + DZ
 #endif
@@ -434,7 +434,7 @@
 
             ! Cloud top level
 #if defined( DEVEL )
-            LTOP = LOCAL_MET%CLDTOPS(I,J)
+            LTOP = State_Met%CLDTOPS(I,J)
 #else
             LTOP = CLDTOPS(I,J)
 #endif
@@ -453,7 +453,7 @@
             !--------------------------
             ! Shallow-cloud inhibition trap (see Murray et al. [2011])
 #if defined( DEVEL )
-            IF ( LOCAL_MET%T(I,J,LTOP) >= T_NEG_TOP ) CYCLE
+            IF ( State_Met%T(I,J,LTOP) >= T_NEG_TOP ) CYCLE
 #else
             IF ( T(I,J,LTOP) >= T_NEG_TOP ) CYCLE
 #endif
@@ -463,13 +463,13 @@
 #if defined( DEVEL )
             ! H0 is the convective cloud top height [m].  This is the
             ! distance from the surface to the top edge of box (I,J,LTOP).
-            H0   = SUM( LOCAL_MET%BXHEIGHT(I,J,1:LTOP) )
+            H0   = SUM( State_Met%BXHEIGHT(I,J,1:LTOP) )
 
             ! Z_CG is the cloud-ground path (ground --> HCHARGE) [m]
-            Z_CG = SUM( LOCAL_MET%BXHEIGHT(I,J,1:LCHARGE-1)  ) + HCHARGE
+            Z_CG = SUM( State_Met%BXHEIGHT(I,J,1:LCHARGE-1)  ) + HCHARGE
 
             ! Z_IC is the intra-cloud path (HCHARGE --> cloud top) [m]
-            Z_IC = SUM( LOCAL_MET%BXHEIGHT(I,J,LCHARGE:LTOP) ) - HCHARGE
+            Z_IC = SUM( State_Met%BXHEIGHT(I,J,LCHARGE:LTOP) ) - HCHARGE
 #else
             ! H0 is the convective cloud top height [m].  This is the
             ! distance from the surface to the top edge of box (I,J,LTOP).
@@ -506,7 +506,7 @@
             ! Find the level where T = 0 C
 #if defined( DEVEL )
             DO L = 1, LMAX
-               IF ( LOCAL_MET%T(I,J,L) <= T_NEG_BOT ) THEN
+               IF ( State_Met%T(I,J,L) <= T_NEG_BOT ) THEN
                   LBOTTOM = L
                   EXIT
                ENDIF
@@ -536,8 +536,8 @@
             ! Temperature [K] at the centers of grid
             ! boxes (I,J,LBOTTOM-1) and (I,J,LBOTTOM)
 #if defined( DEVEL )
-            T1   = LOCAL_MET%T(I,J,LBOTTOM-1)
-            T2   = LOCAL_MET%T(I,J,LBOTTOM  )
+            T1   = State_Met%T(I,J,LBOTTOM-1)
+            T2   = State_Met%T(I,J,LBOTTOM  )
 #else
             T1   = T(I,J,LBOTTOM-1)
             T2   = T(I,J,LBOTTOM  )
@@ -577,7 +577,7 @@
             ELSE
                LBOTTOM = LBOTTOM - 1
 #if defined( DEVEL )
-               HBOTTOM = ( LOCAL_MET%BXHEIGHT(I,J,LBOTTOM) - ZUP ) + DZ
+               HBOTTOM = ( State_Met%BXHEIGHT(I,J,LBOTTOM) - ZUP ) + DZ
 #else
                HBOTTOM = ( BXHEIGHT(I,J,LBOTTOM) - ZUP ) + DZ
 #endif
@@ -586,7 +586,7 @@
             ! Cold cloud thickness is difference of cloud top 
             ! height (H0) and the height to the bottom.
 #if defined( DEVEL )
-            CC = H0 - SUM( LOCAL_MET%BXHEIGHT(I,J,1:LBOTTOM-1) ) -
+            CC = H0 - SUM( State_Met%BXHEIGHT(I,J,1:LBOTTOM-1) ) -
      &           HBOTTOM 
 #else
             CC = H0 - SUM( BXHEIGHT(I,J,1:LBOTTOM-1) ) - HBOTTOM 
@@ -627,7 +627,7 @@
 
             ! Get lightning flash rate per minute and IC/CG ratio
 #if defined( DEVEL )
-            CALL FLASHES_CTH( I, J, H0, LOCAL_MET, FLASHRATE )
+            CALL FLASHES_CTH( I, J, H0, FLASHRATE, State_Met )
 #else
             CALL FLASHES_CTH( I, J, H0, FLASHRATE )
 #endif
@@ -836,8 +836,8 @@
                ! Partition the column total NOx [molec/6h] from lightning 
                ! into the vertical using Pickering PDF functions
 #if defined( DEVEL )
-               CALL LIGHTDIST( I, J, LTOP, H0, YMID, TOTAL, LOCAL_MET,
-     &                         VERTPROF )
+               CALL LIGHTDIST( I, J, LTOP, H0, YMID, TOTAL, VERTPROF,
+     &                         State_Met )
 #else
                CALL LIGHTDIST( I, J, LTOP, H0, YMID, TOTAL, VERTPROF )
 #endif
@@ -868,8 +868,8 @@
 ! !INTERFACE:
 !
 #if defined( DEVEL )
-      SUBROUTINE LIGHTDIST( I, J, LTOP, H0, XLAT, TOTAL, LOCAL_MET, 
-     &                      VERTPROF )
+      SUBROUTINE LIGHTDIST( I, J, LTOP, H0, XLAT, TOTAL, VERTPROF,
+     &                      State_Met )
 #else
       SUBROUTINE LIGHTDIST( I, J, LTOP, H0, XLAT, TOTAL, VERTPROF )
 #endif
@@ -884,7 +884,7 @@
       USE TIME_MOD,      ONLY : GET_MONTH
 
 #if defined( DEVEL )
-      USE GC_TYPE_MOD,   ONLY : GC_MET_LOCAL
+      USE GIGC_State_Met_Mod, ONLY : MetState
 #endif
 
       USE CMN_SIZE_MOD                        ! Size parameters
@@ -898,7 +898,7 @@
       REAL*8,  INTENT(IN)  :: XLAT              ! Latitude value [degrees]
       REAL*8,  INTENT(IN)  :: TOTAL             ! Column Total # of LNOx molec 
 #if defined( DEVEL )
-      TYPE(GC_MET_LOCAL), INTENT(IN) :: LOCAL_MET  ! Obj w/ met fields
+      TYPE(MetState), INTENT(IN) :: State_Met   ! Meteorology State object
 #endif
 !
 ! !OUTPUT PARAMETERS:
@@ -990,7 +990,7 @@
 
          IF ( ABS(YMID) .le. 15 ) THEN
 #if defined( DEVEL )
-            IF ( IS_LAND( I, J, LOCAL_MET ) ) THEN
+            IF ( IS_LAND( I, J, State_Met ) ) THEN
 #else
             IF ( IS_LAND(I,J) ) THEN
 #endif
@@ -1011,7 +1011,7 @@
 
          IF ( ABS(YMID) .le. 15 ) THEN
 #if defined( DEVEL )
-            IF ( IS_LAND( I, J, LOCAL_MET ) ) THEN
+            IF ( IS_LAND( I, J, State_Met ) ) THEN
 #else
             IF ( IS_LAND(I,J) ) THEN
 #endif
@@ -1030,7 +1030,7 @@
 
          IF ( ABS(YMID) .le. 15 ) THEN
 #if defined( DEVEL )
-            IF ( IS_LAND( I, J, LOCAL_MET ) ) THEN
+            IF ( IS_LAND( I, J, State_Met ) ) THEN
 #else
             IF ( IS_LAND(I,J) ) THEN
 #endif
@@ -1061,7 +1061,7 @@
       ! Look up the cumulative fraction of NOx for each vertical level
       DO L = 1, LTOP
 #if defined( DEVEL )
-         ZHEIGHT = ZHEIGHT + LOCAL_MET%BXHEIGHT(I,J,L)
+         ZHEIGHT = ZHEIGHT + State_Met%BXHEIGHT(I,J,L)
 #else
          ZHEIGHT = ZHEIGHT + BXHEIGHT(I,J,L)
 #endif
@@ -1095,7 +1095,7 @@
 ! !INTERFACE:
 !
 #if defined( DEVEL )
-      SUBROUTINE FLASHES_CTH( I, J, HEIGHT, LOCAL_MET, FLASHRATE )
+      SUBROUTINE FLASHES_CTH( I, J, HEIGHT, FLASHRATE, State_Met )
 #else
       SUBROUTINE FLASHES_CTH( I, J, HEIGHT, FLASHRATE )
 #endif
@@ -1109,22 +1109,23 @@
       USE DAO_MOD, ONLY : IS_WATER
 
 #if defined( DEVEL )
-      USE GC_TYPE_MOD, ONLY : GC_MET_LOCAL
+      USE GIGC_State_Met_Mod, ONLY : MetState
       USE CMN_SIZE_MOD      ! Size parameters
 #endif
 !
 ! !INPUT PARAMETERS: 
 !
-      INTEGER, INTENT(IN)  :: I           ! Longitude index
-      INTEGER, INTENT(IN)  :: J           ! Latitude index
-      REAL*8,  INTENT(IN)  :: HEIGHT      ! Height of conv cloud top [m]
+      INTEGER,        INTENT(IN)  :: I           ! Longitude index
+      INTEGER,        INTENT(IN)  :: J           ! Latitude index
+      REAL*8,         INTENT(IN)  :: HEIGHT      ! Height of conv cloud top [m]
 #if defined( DEVEL )
-      TYPE(GC_MET_LOCAL), INTENT(IN) :: LOCAL_MET  ! Obj w/ met fields
+      TYPE(MetState), INTENT(IN)  :: State_Met   ! Meteorology State object
 #endif
 !
 ! !OUTPUT PARAMETERS:
 !
-      REAL*8,  INTENT(OUT) :: FLASHRATE   ! Lightning flash rate [flashes/min]
+      REAL*8,         INTENT(OUT) :: FLASHRATE   ! Lightning flast rate
+                                                 !  [flashes/min]
 !
 ! !REVISION HISTORY: 
 !  10 May 2006 - L. Murray - Initial version
@@ -1160,7 +1161,7 @@
 
       ! Test for land type
 #if defined( DEVEL )
-      IF ( IS_LAND( I, J, LOCAL_MET ) ) THEN
+      IF ( IS_LAND( I, J, State_Met ) ) THEN
 #else
       IF ( IS_LAND( I, J ) ) THEN
 #endif
@@ -1169,7 +1170,7 @@
          FLASHRATE   = 3.44d-5 * ( ( HEIGHT * 1d-3 )**4.9d0  )
 
 #if defined( DEVEL )
-      ELSE IF ( IS_WATER( I, J, LOCAL_MET ) ) THEN
+      ELSE IF ( IS_WATER( I, J, State_Met ) ) THEN
 #else
       ELSE IF ( IS_WATER( I, J ) ) THEN
 #endif
@@ -1178,7 +1179,7 @@
          FLASHRATE   = 6.4d-4  * ( ( HEIGHT * 1d-3 )**1.73d0 )
 
 #if defined( DEVEL )
-      ELSE IF ( IS_ICE( I, J, LOCAL_MET ) ) THEN
+      ELSE IF ( IS_ICE( I, J, State_Met ) ) THEN
 #else
       ELSE IF ( IS_ICE( I, J ) ) THEN
 #endif
@@ -1449,14 +1450,14 @@
 ! !INTERFACE:
 !
 #if defined( DEVEL )
-      SUBROUTINE EMLIGHTNING( LOCAL_MET, EMISS )
+      SUBROUTINE EMLIGHTNING( State_Met, EMISS )
 
 !
 ! !USES:
 !
       USE DAO_MOD,  ONLY : BXHEIGHT
       USE DIAG_MOD, ONLY : AD32_li
-      USE GC_TYPE_MOD, ONLY : GC_MET_LOCAL
+      USE GIGC_State_Met_Mod, ONLY : MetState
 
       USE CMN_SIZE_MOD         ! Size parameters
       USE CMN_DIAG_MOD         ! ND32
@@ -1464,8 +1465,8 @@
 !
 ! !INPUT PARAMETERS:
 !
-      TYPE(GC_MET_LOCAL), INTENT(IN) :: LOCAL_MET  ! Obj w/ met fields
-      REAL*8, INTENT(INOUT) :: EMISS(:,:,:)
+      TYPE(MetState), INTENT(IN)    :: State_Met   ! Meteorology State object
+      REAL*8,         INTENT(INOUT) :: EMISS(:,:,:)
 ! 
 ! !REVISION HISTORY: 
 !  09 Oct 1997 - R. Yantosca - Initial version
@@ -1501,7 +1502,7 @@
 ! SLBASE(I,J,L) has units [molec NOx/6h/box], convert units:
 ! [molec/6h/box] * [6h/21600s] * [box/BOXVL cm3] = [molec/cm3/s]
                TMP         = SLBASE(I,J,L) / ( 21600.d0 *
-     &                       BOXVL(I,J,L,LOCAL_MET) )
+     &                       BOXVL(I,J,L,State_Met) )
 
                EMIS_LI_NOx(I,J,L) = TMP
                EMISS      (I,J,L) = TMP
@@ -1509,7 +1510,7 @@
 ! ND32 Diagnostic: Lightning NOx [molec NOx/cm2/s]
                IF ( ND32 > 0 ) THEN
                   AD32_li(I,J,L) = AD32_li(I,J,L) + 
-     &                 ( TMP * LOCAL_MET%BXHEIGHT(I,J,L) * 1d2 )
+     &                 ( TMP * State_Met%BXHEIGHT(I,J,L) * 1d2 )
                ENDIF
             ENDDO
          ENDDO

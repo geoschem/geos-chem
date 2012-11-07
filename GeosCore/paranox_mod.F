@@ -159,8 +159,8 @@
 ! !INTERFACE:
 !
 #if defined( DEVEL )
-      SUBROUTINE INTERPOLATE_LUT( I,     J,     LOCAL_MET, 
-     &                            fraction_nox, int_ope ) 
+      SUBROUTINE INTERPOLATE_LUT( I, J, fraction_nox, int_ope,
+     &                            State_Met ) 
 #else
       SUBROUTINE INTERPOLATE_LUT( I, J, fraction_nox, int_ope ) 
 #endif
@@ -174,7 +174,7 @@
       USE TIME_MOD,     ONLY : GET_LOCALTIME
       USE ERROR_MOD,    ONLY : ERROR_STOP
 #if defined( DEVEL )
-      USE GC_TYPE_MOD,  ONLY : GC_MET_LOCAL
+      USE GIGC_State_Met_Mod, ONLY : MetState
 #endif
 
       USE CMN_FJ_MOD         ! Photolysis parameters
@@ -182,14 +182,14 @@
 !
 ! !INPUT PARAMETERS: 
 !
-      INTEGER, INTENT(IN)        :: I, J
+      INTEGER,        INTENT(IN)  :: I, J
 #if defined( DEVEL )
-      TYPE(GC_MET_LOCAL), INTENT(IN) :: LOCAL_MET  ! Obj w/ met fields
+      TYPE(MetState), INTENT(IN)  :: State_Met   ! Meteorology State object
 #endif
 !
 ! !OUTPUT PARAMETERS: 
 !
-      REAL,    INTENT(OUT)       :: fraction_nox, int_ope
+      REAL,           INTENT(OUT) :: fraction_nox, int_ope
 !
 ! !REVISION HISTORY:
 !     Jun 2010 - G.C.M. Vinken - Initial version
@@ -270,15 +270,15 @@
       
 !#if defined( DEVEL )
       ! Temperature
-!      PRINT*,"Temperature here is: ",LOCAL_MET%TS(I,J)
-!      PRINT*,"USA: ", LOCAL_MET%TS(32,64)
+!      PRINT*,"Temperature here is: ",State_Met%TS(I,J)
+!      PRINT*,"USA: ", State_Met%TS(32,64)
 
       ! Tracer concentrations in v/v
-!      PRINT*,"[O3] is: ",STT(I,J,1,IDTOX)/ LOCAL_MET%AD(I,J,1) * TCVV(IDTOX)
-!      PRINT*,"[CO] is: ",STT(I,J,1,IDTCO)/ LOCAL_MET%AD(I,J,1) * TCVV(IDTCO)
+!      PRINT*,"[O3] is: ",STT(I,J,1,IDTOX)/ State_Met%AD(I,J,1) * TCVV(IDTOX)
+!      PRINT*,"[CO] is: ",STT(I,J,1,IDTCO)/ State_Met%AD(I,J,1) * TCVV(IDTCO)
 !      PRINT*,"IDTOX is: ", IDTOX
 !      PRINT*,"IDO3 is: ", IDO3
-!      PRINT*,"In USA: ",STT(32,64,1,IDTOX)/LOCAL_MET%AD(32,64,1) * TCVV(IDTOX)
+!      PRINT*,"In USA: ",STT(32,64,1,IDTOX)/State_Met%AD(32,64,1) * TCVV(IDTOX)
 !#else
       ! Temperature
 !      PRINT*,"Temperature here is: ",TS(I,J)
@@ -305,16 +305,16 @@
       ! Set the variables
       IJLOOP       = ( (J-1) * IIPAR ) + I 
 #if defined( DEVEL )
-      var_array(1) = LOCAL_MET%TS(I,J)                ! Temperature
+      var_array(1) = State_Met%TS(I,J)                ! Temperature
       var_array(2) = jvalues(I,J,1)                   ! J(NO2)
       var_array(3) = STT(I,J,1,IDTOX)    /            ! [O3] in ppbv 
-     $               LOCAL_MET%AD(I,J,1) *
+     $               State_Met%AD(I,J,1) *
      $               TCVV(IDTOX)         * 1.E9   
       var_array(4) = ASIND(SUNCOS_MID_5hr(IJLOOP))    ! alfa0
       var_array(5) = ASIND(SUNCOS_MID(IJLOOP))        ! alfa5
       var_array(6) = jvalues(I,J,2) / jvalues(I,J,1)  ! J(O1D)/J(NO2)
       var_array(7) = STT(I,J,1,IDTCO)    /            ! [CO] in ppbv
-     $               LOCAL_MET%AD(I,J,1) *
+     $               State_Met%AD(I,J,1) *
      $               TCVV(IDTCO)         * 1.E9   
 #else
       var_array(1) = TS(I,J)                          ! Temperature
@@ -589,8 +589,8 @@
 ! !INTERFACE:
 !
 #if defined( DEVEL )
-      SUBROUTINE INTERPOLATE_LUT2( I, J, o3, no, no2, dens, LOCAL_MET,
-     &                             fraction_nox, int_ope ) 
+      SUBROUTINE INTERPOLATE_LUT2( I, J, o3, no, no2, dens,
+     &                             fraction_nox, int_ope, State_Met ) 
 #else
       SUBROUTINE INTERPOLATE_LUT2( I, J, o3, no, no2, dens,
      &                             fraction_nox, int_ope ) 
@@ -603,7 +603,7 @@
       USE TIME_MOD,  ONLY : GET_LOCALTIME
       USE ERROR_MOD, ONLY : ERROR_STOP
 #if defined( DEVEL )
-      USE GC_TYPE_MOD, ONLY : GC_MET_LOCAL
+      USE GIGC_State_Met_Mod, ONLY : MetState
 #endif
 
       USE CMN_FJ_MOD      ! Photolysis parameters
@@ -614,7 +614,7 @@
       INTEGER, INTENT(IN)        :: I, J
       REAL*8,  INTENT(IN)        :: o3, no, no2, dens
 #if defined( DEVEL )
-      TYPE(GC_MET_LOCAL), INTENT(IN) :: LOCAL_MET  ! Obj w/ met fields
+      TYPE(MetState), INTENT(IN) :: State_Met   ! Meteorology State object
 #endif
 !
 ! !OUTPUT PARAMETERS: 
@@ -708,15 +708,15 @@
       
 !#if defined( DEVEL )
       ! Temperature
-!      PRINT*,"Temperature here is: ",LOCAL_MET%TS(I,J)
-!      PRINT*,"USA: ",LOCAL_MET%TS(32,64)
+!      PRINT*,"Temperature here is: ",State_Met%TS(I,J)
+!      PRINT*,"USA: ",State_Met%TS(32,64)
 
       ! Tracer concentrations in v/v
-!      PRINT*,"[O3] is: ",STT(I,J,1,IDTOX)/ LOCAL_MET%AD(I,J,1) * TCVV(IDTOX)
-!      PRINT*,"[CO] is: ",STT(I,J,1,IDTCO)/ LOCAL_MET%AD(I,J,1) * TCVV(IDTCO)
+!      PRINT*,"[O3] is: ",STT(I,J,1,IDTOX)/ State_Met%AD(I,J,1) * TCVV(IDTOX)
+!      PRINT*,"[CO] is: ",STT(I,J,1,IDTCO)/ State_Met%AD(I,J,1) * TCVV(IDTCO)
 !      PRINT*,"IDTOX is: ", IDTOX
 !      PRINT*,"IDO3 is: ", IDO3
-!      PRINT*,"In USA: ",STT(32,64,1,IDTOX)/LOCAL_MET%AD(32,64,1) * TCVV(IDTOX)
+!      PRINT*,"In USA: ",STT(32,64,1,IDTOX)/State_Met%AD(32,64,1) * TCVV(IDTOX)
 !#else
       ! Temperature
 !      PRINT*,"Temperature here is: ",TS(I,J)
@@ -743,7 +743,7 @@
       ! Set the variables
       IJLOOP       = ( (J-1) * IIPAR ) + I
 #if defined( DEVEL )
-      var_array(1) = LOCAL_MET%TS(I,J)                ! Temperature
+      var_array(1) = State_Met%TS(I,J)                ! Temperature
 #else
       var_array(1) = TS(I,J)                          ! Temperature
 #endif

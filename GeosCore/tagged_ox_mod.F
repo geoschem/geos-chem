@@ -306,7 +306,7 @@
 ! !INTERFACE:
 !
 #if defined( DEVEL )
-      SUBROUTINE GET_REGIONAL_POX( I, J, L, PP, LOCAL_MET )
+      SUBROUTINE GET_REGIONAL_POX( I, J, L, PP, State_Met )
 #else
       SUBROUTINE GET_REGIONAL_POX( I, J, L, PP )
 #endif
@@ -317,7 +317,7 @@
       USE TIME_MOD,       ONLY : GET_TS_CHEM
       USE TROPOPAUSE_MOD, ONLY : ITS_IN_THE_TROP
 #if defined( DEVEL )
-      USE GC_TYPE_MOD,    ONLY : GC_MET_LOCAL
+      USE GIGC_State_Met_Mod, ONLY : MetState
 #endif
 
       USE CMN_SIZE_MOD       ! Size parameters
@@ -329,7 +329,7 @@
       ! GEOS-Chem grid box indices for lon, lat, alt
       INTEGER, INTENT(IN)  :: I, J, L
 #if defined( DEVEL )
-      TYPE(GC_MET_LOCAL), INTENT(IN) :: LOCAL_MET  ! Obj w/ met fields
+      TYPE(MetState), INTENT(IN) :: State_Met   ! Meteorology State object
 #endif
 !
 ! !OUTPUT PARAMETERS:
@@ -379,7 +379,7 @@
       
       ! IS TROP is TRUE if we are in the troposphere
 #if defined( DEVEL )
-      ITS_IN_TROP = ITS_IN_THE_TROP( I, J, L, LOCAL_MET )
+      ITS_IN_TROP = ITS_IN_THE_TROP( I, J, L, State_Met )
 #else
       ITS_IN_TROP = ITS_IN_THE_TROP( I, J, L )
 #endif
@@ -430,7 +430,7 @@
 
       ! P(Ox) [kg]
 #if defined( DEVEL )
-      PPROD = P24H(I,J,L)     * BOXVL(I,J,L,LOCAL_MET) *
+      PPROD = P24H(I,J,L)     * BOXVL(I,J,L,State_Met) *
      &        ( GET_TS_CHEM() * 60d0 )
 #else
       PPROD = P24H(I,J,L) * BOXVL(I,J,L) * ( GET_TS_CHEM() * 60d0 )
@@ -520,7 +520,7 @@
 ! !INTERFACE:
 !
 #if defined( DEVEL )
-      SUBROUTINE CHEM_TAGGED_OX( LOCAL_MET )
+      SUBROUTINE CHEM_TAGGED_OX( State_Met )
 #else
       SUBROUTINE CHEM_TAGGED_OX 
 #endif
@@ -545,7 +545,7 @@
       USE TROPOPAUSE_MOD, ONLY : ITS_IN_THE_TROP
       USE LOGICAL_MOD,    ONLY : LNLPBL
 #if defined( DEVEL )
-      USE GC_TYPE_MOD,  ONLY   : GC_MET_LOCAL
+      USE GIGC_State_Met_Mod, ONLY : MetState
 #endif
 
       USE CMN_SIZE_MOD  ! Size parameters
@@ -558,7 +558,7 @@
 ! !INPUT PARAMETERS: 
 !
 #if defined( DEVEL )
-      TYPE(GC_MET_LOCAL), INTENT(IN) :: LOCAL_MET  ! Obj w/ met fields
+      TYPE(MetState), INTENT(IN) :: State_Met   ! Meteorology State object
 #endif
 ! 
 ! !REVISION HISTORY:
@@ -677,12 +677,12 @@
             ! P(Ox) is a function of geographic & altitude location
             ! NOTE: We call this only when N==1 for optimal looping
             IF ( N == 1 ) CALL GET_REGIONAL_POX( I, J, L, PP,
-     &                                           LOCAL_MET   )
+     &                                           State_Met   )
             
             ! L(Ox) is originally in [1/cm3/s]; convert to [kg] 
-            IF ( ITS_IN_THE_TROP( I, J, L, LOCAL_MET ) ) THEN
+            IF ( ITS_IN_THE_TROP( I, J, L, State_Met ) ) THEN
                LL = STT(I,J,L,N)           * L24H(I,J,L) *
-     &              BOXVL(I,J,L,LOCAL_MET) * DTCHEM
+     &              BOXVL(I,J,L,State_Met) * DTCHEM
             ELSE
                LL = 0.0d0
             ENDIF 
@@ -708,12 +708,12 @@
                ! Only archive chemical production if this
                ! region has production to begin with [kg/s]
                IF ( PP(I,J,L,N) > 0d0 ) THEN
-                  PL            = P24H(I,J,L) * BOXVL(I,J,L,LOCAL_MET)
+                  PL            = P24H(I,J,L) * BOXVL(I,J,L,State_Met)
                   AD65(I,J,L,N) = AD65(I,J,L,N) + PL
                ENDIF
 
                ! Archive loss for all tracers [kg/s]
-               PL = STT(I,J,L,N) * L24H(I,J,L) * BOXVL(I,J,L,LOCAL_MET)
+               PL = STT(I,J,L,N) * L24H(I,J,L) * BOXVL(I,J,L,State_Met)
                AD65(I,J,L,N_TRACERS+N) = AD65(I,J,L,N_TRACERS+N) + PL
 #else
                ! Only archive chemical production if this

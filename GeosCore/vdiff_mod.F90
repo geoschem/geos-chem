@@ -204,7 +204,7 @@ contains
                     sflx,       thp_arg,   as2,        pblh_arg,    &
                     kvh_arg,    kvm_arg,   tpert_arg,  qpert_arg,   &
                     cgs_arg,    shp,       wvflx_arg,  plonl,       &
-                    LOCAL_MET,  taux_arg,   tauy_arg,  ustar_arg )
+                    State_Met,  taux_arg,   tauy_arg,  ustar_arg )
 #else
   subroutine vdiff( lat, ip, uwnd, vwnd, tadv, &
                     pmid, pint, rpdel_arg, rpdeli_arg, ztodt, &
@@ -221,7 +221,7 @@ contains
     USE TRACER_MOD,    ONLY : TCVV
     USE DAO_MOD,       ONLY : AD
 #if defined( DEVEL )
-      USE GC_TYPE_MOD, ONLY : GC_MET_LOCAL
+    USE GIGC_State_Met_Mod, ONLY : MetState
 #endif
 
     implicit none
@@ -245,7 +245,7 @@ contains
          sflx(:,:,:),        &     ! surface constituent flux (kg/m2/s)
          wvflx_arg(:,:)            ! water vapor flux (kg/m2/s)
 #if defined( DEVEL )
-      TYPE(GC_MET_LOCAL), INTENT(IN) :: LOCAL_MET  ! Obj w/ met fields
+    TYPE(MetState), INTENT(IN) :: State_Met   ! Meteorology State object
 #endif
 !
 ! !INPUT/OUTPUT PARAMETERS: 
@@ -767,7 +767,7 @@ contains
 #if defined( DEVEL )
           TURBFLUP(I,lat,k,M) = TURBFLUP(I,lat,k,M) &
                               + (qp1(I,L,M) - qp0(I,L,M)) &
-                              * LOCAL_MET%AD(I,lat,k) &
+                              * State_Met%AD(I,lat,k) &
                               / ( TCVV(M) * ztodt )
 #else
           TURBFLUP(I,lat,k,M) = TURBFLUP(I,lat,k,M) &
@@ -1816,7 +1816,7 @@ contains
 ! !INTERFACE:
 !
 #if defined( DEVEL )
-  SUBROUTINE VDIFFDR( as2, LOCAL_MET )
+  SUBROUTINE VDIFFDR( as2, State_Met )
 #else
   SUBROUTINE VDIFFDR(as2)
 #endif
@@ -1872,7 +1872,7 @@ contains
     USE LOGICAL_MOD,  ONLY : LSOILNOX
     USE GET_NDEP_MOD, ONLY : SOIL_DRYDEP
 #if defined( DEVEL )
-    USE GC_TYPE_MOD,  ONLY : GC_MET_LOCAL
+    USE GIGC_State_Met_Mod, ONLY : MetState
 #endif
 
 #   include "define.h"
@@ -1882,7 +1882,7 @@ contains
 ! !INPUT PARAMETERS: 
 !
 #if defined( DEVEL )
-      TYPE(GC_MET_LOCAL), INTENT(IN) :: LOCAL_MET  ! Obj w/ met fields
+    TYPE(MetState), INTENT(IN) :: State_Met   ! Meteorology State object
 #endif
 !
 ! !INPUT/OUTPUT PARAMETERS: 
@@ -2004,7 +2004,7 @@ contains
     dtime = GET_TS_CONV()*60d0 ! min -> second
     
 #if defined( DEVEL )
-    shflx = LOCAL_MET%EFLUX / latvap ! latent heat -> water vapor flux
+    shflx = State_Met%EFLUX / latvap ! latent heat -> water vapor flux
 #else
     shflx = eflux / latvap ! latent heat -> water vapor flux
 #endif
@@ -2021,7 +2021,7 @@ contains
        pint(I,J,L) = GET_PEDGE(I,J,L)*100.d0   ! hPa -> Pa
        ! calculate potential temperature
 #if defined( DEVEL )
-       thp(I,J,L) = LOCAL_MET%T(I,J,L)*(p0/pmid(I,J,L))**cappa
+       thp(I,J,L) = State_Met%T(I,J,L)*(p0/pmid(I,J,L))**cappa
 #else
        thp(I,J,L) = tadv(I,J,L)*(p0/pmid(I,J,L))**cappa
 #endif
@@ -2041,9 +2041,9 @@ contains
     ! the calculation of BXHEIGHT. (lin, 06/02/08)
     !zm(I,J,L) = sum(BXHEIGHT(I,J,1:L))
 #if defined( DEVEL )
-       zm(I,J,L) = sum( LOCAL_MET%BXHEIGHT(I,J,1:L)) &
+       zm(I,J,L) = sum( State_Met%BXHEIGHT(I,J,1:L)) &
                  - log( pmid(I,J,L)/pint(I,J,L+1) )  &
-                 * r_g * LOCAL_MET%T(I,J,L)
+                 * r_g * State_Met%T(I,J,L)
 #else
        zm(I,J,L) = sum(BXHEIGHT(I,J,1:L)) &
                    - log(pmid(I,J,L)/pint(I,J,L+1)) * r_g * tadv(I,J,L)
@@ -2104,7 +2104,7 @@ contains
 
           ! additional step to convert from molec spec/cm3/s to kg/m2/s
 #if defined( DEVEL )
-          eflx(I,J,:) = eflx(I,J,:) * LOCAL_MET%BXHEIGHT(I,J,1) / &
+          eflx(I,J,:) = eflx(I,J,:) * State_Met%BXHEIGHT(I,J,1) / &
                         6.022d23    * 1.d6
 #else
           eflx(I,J,:) = eflx(I,J,:) * BXHEIGHT(I,J,1) / 6.022d23 * 1.d6
@@ -2198,9 +2198,9 @@ contains
              ! globally
              do L = 1, pbl_top
 #if defined( DEVEL )
-                wk1 = wk1 + as2(I,J,L,NN) * LOCAL_MET%AD(I,J,L)* &
+                wk1 = wk1 + as2(I,J,L,NN) * State_Met%AD(I,J,L)* &
                       GET_FRAC_UNDER_PBLTOP(I,J,L)
-                wk2 = wk2 + LOCAL_MET%AD(I,J,L) * &
+                wk2 = wk2 + State_Met%AD(I,J,L) * &
                       GET_FRAC_UNDER_PBLTOP(I,J,L)
 #else
                 wk1 = wk1 + as2(I,J,L,NN)*AD(I,J,L)* &
@@ -2218,8 +2218,8 @@ contains
              if (drydep_back_cons) then 
 #if defined( DEVEL )
                 dflx(I,J,NN) = dflx(I,J,NN) * (wk2+1.d-30) / &
-                               LOCAL_MET%AD(I,J,1)         * &
-                               LOCAL_MET%BXHEIGHT(I,J,1)   / &
+                               State_Met%AD(I,J,1)         * &
+                               State_Met%BXHEIGHT(I,J,1)   / &
                                GET_PBL_TOP_m(I,J)
 #else
                 dflx(I,J,NN) = dflx(I,J,NN) * (wk2+1.d-30) / AD(I,J,1) * &
@@ -2315,24 +2315,24 @@ contains
 #if defined( DEVEL )
 
 #if   defined( MERRA ) || defined( GEOS_57 )
-          FRAC_NO_HG0_DEP = MIN( LOCAL_MET%FROCEAN(I,J) + &
-                                 LOCAL_MET%FRSNO(I,J)   + &
-                                 LOCAL_MET%FRLANDIC(I,J), 1d0)
+          FRAC_NO_HG0_DEP = MIN( State_Met%FROCEAN(I,J) + &
+                                 State_Met%FRSNO(I,J)   + &
+                                 State_Met%FRLANDIC(I,J), 1d0)
           ZERO_HG0_DEP    = ( FRAC_NO_HG0_DEP > 0d0 )
 
 #elif defined( GEOS_5 )
           ! GEOS5 snow height (water equivalent) in mm. (Docs wrongly say m)
-          ZERO_HG0_DEP = (( LOCAL_MET%LWI(I,J) == 0      )  .OR.  &
-                          ( IS_ICE ( I, J, LOCAL_MET     )) .OR.  &
-                          ( IS_LAND( I, J, LOCAL_MET     )  .AND. &
-                            LOCAL_MET%SNOMAS(I,J) > 10d0 ))
+          ZERO_HG0_DEP = (( State_Met%LWI(I,J) == 0      )  .OR.  &
+                          ( IS_ICE ( I, J, State_Met     )) .OR.  &
+                          ( IS_LAND( I, J, State_Met     )  .AND. &
+                            State_Met%SNOMAS(I,J) > 10d0 ))
 
 #else
           ! GEOS1-4 snow heigt (water equivalent) in mm
-          ZERO_HG0_DEP = (( LOCAL_MET%LWI(I,J) == 0      )  .OR.  &
-                          ( IS_ICE ( I, J, LOCAL_MET     )) .OR.  &
-                          ( IS_LAND( I, J, LOCAL_MET     )  .AND. &
-                            LOCAL_MET%SNOW(I,J)   > 10d0 ))
+          ZERO_HG0_DEP = (( State_Met%LWI(I,J) == 0      )  .OR.  &
+                          ( IS_ICE ( I, J, State_Met     )) .OR.  &
+                          ( IS_LAND( I, J, State_Met     )  .AND. &
+                            State_Met%SNOW(I,J)   > 10d0 ))
 #endif
 
 #else
@@ -2379,9 +2379,9 @@ contains
                                           ! globally
                 do L = 1, pbl_top
 #if defined( DEVEL )
-                   wk1 = wk1 + as2(I,J,L,N) * LOCAL_MET%AD(I,J,L) * &
+                   wk1 = wk1 + as2(I,J,L,N) * State_Met%AD(I,J,L) * &
                                GET_FRAC_UNDER_PBLTOP(I,J,L)
-                   wk2 = wk2 + LOCAL_MET%AD(I,J,L) * &
+                   wk2 = wk2 + State_Met%AD(I,J,L) * &
                                GET_FRAC_UNDER_PBLTOP(I,J,L)
 #else
                    wk1 = wk1 + as2(I,J,L,N)*AD(I,J,L)* &
@@ -2399,8 +2399,8 @@ contains
                 if (drydep_back_cons) then 
 #if defined( DEVEL )
                    dflx(I,J,N) = dflx(I,J,N) * (wk2+1.d-30) / &
-                                 LOCAL_MET%AD(I,J,1)        * &
-                                 LOCAL_MET%BXHEIGHT(I,J,1)  / &
+                                 State_Met%AD(I,J,1)        * &
+                                 State_Met%BXHEIGHT(I,J,1)  / &
                                  GET_PBL_TOP_m(I,J)
 #else
                    dflx(I,J,N) = dflx(I,J,N) * (wk2+1.d-30) / AD(I,J,1) * &
@@ -2423,7 +2423,7 @@ contains
        ! dflx(I,J,:) = dflx(I,J,:) * pmid(I,J,1) / rair / vtemp * BXHEIGHT(I,J,1)
        ! alternate method to convert from s-1 to kg/m2/s
 #if defined( DEVEL )
-       dflx(I,J,:) = dflx(I,J,:) * LOCAL_MET%AD(I,J,1) / &
+       dflx(I,J,:) = dflx(I,J,:) * State_Met%AD(I,J,1) / &
                      GET_AREA_M2( I, J, 1 ) 
 #else
        dflx(I,J,:) = dflx(I,J,:) * AD(I,J,1) / GET_AREA_M2( I, J, 1 ) 
@@ -2452,7 +2452,7 @@ contains
                 
                 CALL ADD_HG2_DD( I, J, NN, DEP_KG )
 #if defined( DEVEL )
-               CALL ADD_Hg2_SNOWPACK( I, J, NN, DEP_KG, LOCAL_MET )
+               CALL ADD_Hg2_SNOWPACK( I, J, NN, DEP_KG, State_Met )
 #else
                CALL ADD_Hg2_SNOWPACK( I, J, NN, DEP_KG )
 #endif
@@ -2461,7 +2461,7 @@ contains
                 
                 CALL ADD_HGP_DD( I, J, NN, DEP_KG )
 #if defined( DEVEL )
-                CALL ADD_Hg2_SNOWPACK( I, J, NN, DEP_KG, LOCAL_MET )
+                CALL ADD_Hg2_SNOWPACK( I, J, NN, DEP_KG, State_Met )
 #else
                 CALL ADD_Hg2_SNOWPACK( I, J, NN, DEP_KG )
 #endif
@@ -2555,9 +2555,9 @@ contains
 
        ! 3-D fields on level centers
 #if defined( DEVEL )
-       p_um1              => LOCAL_MET%U( :, :, LLPAR  :1:-1    )   
-       p_vm1              => LOCAL_MET%V( :, :, LLPAR  :1:-1    )
-       p_tadv             => LOCAL_MET%T( :, :, LLPAR  :1:-1    )
+       p_um1              => State_Met%U( :, :, LLPAR  :1:-1    )   
+       p_vm1              => State_Met%V( :, :, LLPAR  :1:-1    )
+       p_tadv             => State_Met%T( :, :, LLPAR  :1:-1    )
 #else
        p_um1              => um1   ( :, :, LLPAR  :1:-1    )   
        p_vm1              => vm1   ( :, :, LLPAR  :1:-1    )
@@ -2569,7 +2569,7 @@ contains
        p_zm               => zm    ( :, :, LLPAR  :1:-1    )
        p_thp              => thp   ( :, :, LLPAR  :1:-1    )
 !#if defined( DEVEL )
-!       p_shp              => LOCAL_MET%SPHU( :, :, LLPAR  :1:-1    )
+!       p_shp              => State_Met%SPHU( :, :, LLPAR  :1:-1    )
 !#else
        p_shp              => shp   ( :, :, LLPAR  :1:-1    )
 !#endif
@@ -2599,11 +2599,11 @@ contains
        do J = 1, JJPAR
           call vdiff( J,        1,      p_um1,  p_vm1,           &
                       p_tadv,   p_pmid, p_pint, p_rpdel,         &
-                      p_rpdeli, dtime,  p_zm,   LOCAL_MET%HFLUX, &
+                      p_rpdeli, dtime,  p_zm,   State_Met%HFLUX, &
                       sflx,     p_thp,  p_as2,  pblh,            &
                       p_kvh,    p_kvm,  tpert,  qpert,           &
                       p_cgs,    p_shp,  shflx,  IIPAR,           &
-                      LOCAL_MET,        ustar_arg=ustar )
+                      State_Met,        ustar_arg=ustar )
        enddo
 #else
        do J = 1, JJPAR
@@ -2646,7 +2646,7 @@ contains
 
        ! INPUTS: 3-D fields on level centers
 #if defined( DEVEL )
-       p_tadv   => LOCAL_MET%T( :, :, LLPAR  :1:-1   )
+       p_tadv   => State_Met%T( :, :, LLPAR  :1:-1   )
 #else
        p_tadv   => tadv  ( :, :, LLPAR  :1:-1   )
 #endif
@@ -2701,7 +2701,7 @@ contains
        PBL = pblh 
 
 #if defined( DEVEL )
-       CALL COMPUTE_PBL_HEIGHT( LOCAL_MET )
+       CALL COMPUTE_PBL_HEIGHT( State_Met )
 #else
        CALL COMPUTE_PBL_HEIGHT
 #endif
@@ -2728,7 +2728,7 @@ contains
 ! !INTERFACE:
 !
 #if defined( DEVEL )
-  SUBROUTINE DO_PBL_MIX_2( DO_TURBDAY, LOCAL_MET )
+  SUBROUTINE DO_PBL_MIX_2( DO_TURBDAY, State_Met )
 #else
   SUBROUTINE DO_PBL_MIX_2( DO_TURBDAY )
 #endif
@@ -2744,7 +2744,7 @@ contains
     USE TIME_MOD,      ONLY : ITS_TIME_FOR_EMIS
 
 #if defined( DEVEL )
-    USE GC_TYPE_MOD,   ONLY : GC_MET_LOCAL
+    USE GIGC_State_Met_Mod, ONLY : MetState
 #endif
 
     IMPLICIT NONE
@@ -2755,7 +2755,7 @@ contains
     LOGICAL, INTENT(IN) :: DO_TURBDAY  ! Switch which turns on PBL mixing of 
                                        ! tracers
 #if defined( DEVEL )
-    TYPE(GC_MET_LOCAL), INTENT(IN) :: LOCAL_MET  ! Obj w/ met fields
+    TYPE(MetState), INTENT(IN) :: State_Met   ! Meteorology State object
 #endif
 !
 ! !REVISION HISTORY: 
@@ -2784,7 +2784,7 @@ contains
 
     ! Compute PBL height and related quantities
 #if defined( DEVEL )
-    CALL COMPUTE_PBL_HEIGHT( LOCAL_MET )
+    CALL COMPUTE_PBL_HEIGHT( State_Met )
 #else
     CALL COMPUTE_PBL_HEIGHT
 #endif
@@ -2804,7 +2804,7 @@ contains
 !          CALL SETEMIS( EMISRR, EMISRRN )
 !-------------------------------------------------------------------------------
 #if defined( DEVEL )
-          CALL SETEMIS( EMISRR, EMISRRN, .TRUE., LOCAL_MET )
+          CALL SETEMIS( EMISRR, EMISRRN, .TRUE., State_Met )
 #else
           CALL SETEMIS( EMISRR, EMISRRN, .TRUE. )
 #endif
@@ -2816,7 +2816,7 @@ contains
     ! Do mixing of tracers in the PBL (if necessary)
     IF ( DO_TURBDAY ) THEN 
 #if defined( DEVEL )
-       CALL VDIFFDR( STT, LOCAL_MET )
+       CALL VDIFFDR( STT, State_Met )
 #else
        CALL VDIFFDR( STT )
 #endif

@@ -27,7 +27,7 @@
 ! !INTERFACE:
 !
 #if defined( DEVEL )
-      SUBROUTINE DIAG_2PM( LOCAL_MET )
+      SUBROUTINE DIAG_2PM( State_Met )
 #else
       SUBROUTINE DIAG_2PM
 #endif
@@ -50,7 +50,7 @@
       USE TIME_MOD,       ONLY : GET_ELAPSED_MIN
       USE TIME_MOD,       ONLY : GET_TS_DIAG
 #if defined( DEVEL )
-      USE GC_TYPE_MOD,    ONLY : GC_MET_LOCAL
+      USE GIGC_State_Met_Mod, ONLY : MetState
 #endif
 
       USE CMN_SIZE_MOD   ! Size parameters
@@ -62,7 +62,7 @@
 ! !INPUT PARAMETERS: 
 !
 #if defined( DEVEL )
-      TYPE(GC_MET_LOCAL), INTENT(IN) :: LOCAL_MET  ! Obj w/ met fields
+      TYPE(MetState), INTENT(IN) :: State_Met   ! Meteorology State object
 #endif
 !
 ! !REMARKS:
@@ -164,7 +164,7 @@
                   LTO3(I,J) = 1
                   DO L = 1, LD45
 #if defined( DEVEL )
-                     IF ( ITS_IN_THE_TROP( I, J, L, LOCAL_MET ) ) THEN
+                     IF ( ITS_IN_THE_TROP( I, J, L, State_Met ) ) THEN
                         CTO3(I,J,L) = CTO3(I,J,L) + 1
                      ENDIF
 #else
@@ -186,7 +186,7 @@
                DO L = 1, MAX( LD47, LD65 )
 #if defined( DEVEL )
                   IF ( IS_CHEM .and.
-     &                 ITS_IN_THE_TROP( I, J, L, LOCAL_MET )) THEN
+     &                 ITS_IN_THE_TROP( I, J, L, State_Met )) THEN
                      CTO3_24h(I,J,L) = CTO3_24h(I,J,L) + 1
                   ENDIF
 #else
@@ -232,7 +232,7 @@
                ! Counters for # of NO, NO2 boxes in the trop (phs, 1/24/07)
                DO L = 1, LD43
 #if defined( DEVEL )
-                  IF ( ITS_IN_THE_TROP( I, J, L, LOCAL_MET ) ) THEN
+                  IF ( ITS_IN_THE_TROP( I, J, L, State_Met ) ) THEN
 #else
                   IF ( ITS_IN_THE_TROP( I, J, L ) ) THEN
 #endif
@@ -269,7 +269,7 @@
                ! Counters for # of OH,HO2,NO3 boxes in the trop (phs, 1/24/07)
                DO L = 1, LD43 
 #if defined( DEVEL )
-                  IF ( ITS_IN_THE_TROP( I, J, L, LOCAL_MET ) ) THEN
+                  IF ( ITS_IN_THE_TROP( I, J, L, State_Met ) ) THEN
 #else
                   IF ( ITS_IN_THE_TROP( I, J, L ) ) THEN
 #endif

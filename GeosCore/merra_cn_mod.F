@@ -191,7 +191,7 @@
 ! !INTERFACE:
 !
 #if defined( DEVEL )
-      SUBROUTINE GET_MERRA_CN_FIELDS( NYMD, NHMS, LOCAL_MET )
+      SUBROUTINE GET_MERRA_CN_FIELDS( NYMD, NHMS, State_Met )
 #else
       SUBROUTINE GET_MERRA_CN_FIELDS( NYMD, NHMS )
 #endif
@@ -204,7 +204,7 @@
       USE DAO_MOD, ONLY : FROCEAN    ! Fraction of grid box that is ocean
       USE DAO_MOD, ONLY : PHIS       ! Surface geopotential height
 #if defined( DEVEL )
-      USE GC_TYPE_MOD, ONLY : GC_MET_LOCAL
+      USE GIGC_State_Met_Mod, ONLY : MetState
 #endif
 !
 ! !INPUT PARAMETERS: 
@@ -215,7 +215,7 @@
 ! !INPUT/OUTPUT PARAMETERS:
 !
 #if defined( DEVEL )
-      TYPE(GC_MET_LOCAL), INTENT(INOUT) :: LOCAL_MET  ! Obj w/ met fields
+      TYPE(MetState), INTENT(INOUT) :: State_Met   ! Meteorology State object
 #endif
 ! 
 ! !REVISION HISTORY: 
@@ -235,11 +235,11 @@
      &              PHIS     = PHIS      )
 
 #if defined( DEVEL )
-      LOCAL_MET%FRLAKE   = FRLAKE
-      LOCAL_MET%FRLAND   = FRLAND
-      LOCAL_MET%FRLANDIC = FRLANDIC
-      LOCAL_MET%FROCEAN  = FROCEAN
-      LOCAL_MET%PHIS     = PHIS
+      State_Met%FRLAKE   = FRLAKE
+      State_Met%FRLAND   = FRLAND
+      State_Met%FRLANDIC = FRLANDIC
+      State_Met%FROCEAN  = FROCEAN
+      State_Met%PHIS     = PHIS
 #endif
       
       END SUBROUTINE GET_MERRA_CN_FIELDS

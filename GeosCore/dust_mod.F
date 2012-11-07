@@ -94,7 +94,7 @@
 ! !INTERFACE:
 !
 #if defined( DEVEL )
-      SUBROUTINE CHEMDUST( am_I_Root, LOCAL_MET )
+      SUBROUTINE CHEMDUST( am_I_Root, State_Met )
 #else
       SUBROUTINE CHEMDUST( am_I_Root )
 #endif
@@ -107,16 +107,16 @@
       USE TRACER_MOD,   ONLY : STT
       USE TRACERID_MOD, ONLY : IDTDST1, IDTDST2, IDTDST3, IDTDST4
 #if defined( DEVEL )
-      USE GC_TYPE_MOD,  ONLY : GC_MET_LOCAL
+      USE GIGC_State_Met_Mod, ONLY : MetState
 #endif
 
       USE CMN_SIZE_MOD       ! Size parameters
 !
 ! !INPUT PARAMETERS:
 !
-      LOGICAL,            INTENT(IN) :: am_I_Root  ! Is this the root CPU?
+      LOGICAL,        INTENT(IN) :: am_I_Root   ! Is this the root CPU?
 #if defined( DEVEL )
-      TYPE(GC_MET_LOCAL), INTENT(IN) :: LOCAL_MET  ! Obj w/ met fields
+      TYPE(MetState), INTENT(IN) :: State_Met   ! Meteorology State object
 #endif
 ! 
 ! !REVISION HISTORY: 
@@ -188,7 +188,7 @@
 
       ! Dust settling
 #if defined( DEVEL )
-      CALL DRY_SETTLING( STT(:,:,:,IDTDST1:IDTDST4), LOCAL_MET )
+      CALL DRY_SETTLING( STT(:,:,:,IDTDST1:IDTDST4), State_Met )
 #else
       CALL DRY_SETTLING(   STT(:,:,:,IDTDST1:IDTDST4) )
 #endif
@@ -215,7 +215,7 @@
 !
 
 #if defined( DEVEL )
-      SUBROUTINE DRY_SETTLING( TC, LOCAL_MET )
+      SUBROUTINE DRY_SETTLING( TC, State_Met )
 #else
       SUBROUTINE DRY_SETTLING( TC )
 #endif
@@ -230,7 +230,7 @@
       USE TRACER_MOD,   ONLY : XNUMOL
       USE TRACERID_MOD, ONLY : IDTDST1
 #if defined( DEVEL )
-      USE GC_TYPE_MOD,  ONLY : GC_MET_LOCAL
+      USE GIGC_State_Met_Mod, ONLY : MetState
 #endif
 
       USE CMN_SIZE_MOD       ! Size parameters
@@ -240,7 +240,7 @@
 ! !INPUT PARAMETERS:
 !
 #if defined( DEVEL )
-      TYPE(GC_MET_LOCAL), INTENT(IN) :: LOCAL_MET  ! Obj w/ met fields
+      TYPE(MetState), INTENT(IN) :: State_Met   ! Meteorology State object
 #endif
 !
 ! !INPUT/OUTPUT PARAMETERS: 
@@ -336,7 +336,7 @@
                   ! Get P [kPa], T [K], and P*DP
                   P    = GET_PCENTER(I,J,L) * 0.1d0
 #if defined( DEVEL )
-                  TEMP = LOCAL_MET%T(I,J,L)
+                  TEMP = State_Met%T(I,J,L)
 #else
                   TEMP = T(I,J,L)
 #endif
@@ -386,7 +386,7 @@
                ! We know the boundary condition at the model top
                L           = LLTROP
 #if defined( DEVEL )
-               DELZ        = LOCAL_MET%BXHEIGHT(I,J,L)
+               DELZ        = State_Met%BXHEIGHT(I,J,L)
 #else
                DELZ        = BXHEIGHT(I,J,L)
 #endif
@@ -395,8 +395,8 @@
 
                DO L = LLTROP-1, 1, -1
 #if defined( DEVEL )
-                  DELZ        = LOCAL_MET%BXHEIGHT(I,J,L)
-                  DELZ1       = LOCAL_MET%BXHEIGHT(I,J,L+1)
+                  DELZ        = State_Met%BXHEIGHT(I,J,L)
+                  DELZ1       = State_Met%BXHEIGHT(I,J,L+1)
 #else
                   DELZ        = BXHEIGHT(I,J,L)
                   DELZ1       = BXHEIGHT(I,J,L+1)
@@ -549,7 +549,7 @@
 ! !INTERFACE:
 !
 #if defined( DEVEL )
-      SUBROUTINE EMISSDUST( LOCAL_MET, SFLX )
+      SUBROUTINE EMISSDUST( State_Met, SFLX )
 #else
       SUBROUTINE EMISSDUST
 #endif
@@ -563,9 +563,17 @@
 
       USE CMN_SIZE_MOD       ! Size parameters
 #if defined( DEVEL )
-      USE GC_TYPE_MOD,  ONLY : GC_MET_LOCAL
-      USE TRACER_MOD,   ONLY : N_TRACERS
-      USE TIME_MOD,     ONLY : GET_TS_EMIS
+      USE GIGC_State_Met_Mod, ONLY : MetState
+      USE TRACER_MOD,         ONLY : N_TRACERS
+      USE TIME_MOD,           ONLY : GET_TS_EMIS
+!
+! !INPUT PARAMETERS:
+!
+      TYPE(MetState), INTENT(IN) :: State_Met   ! Meteorology State object
+!
+! !INPUT/OUTPUT PARAMETERS:
+!
+      REAL*8, INTENT(INOUT) :: SFLX(IIPAR,JJPAR,LLPAR,N_TRACERS+1)
 #endif
 ! 
 ! !REVISION HISTORY: 
@@ -583,11 +591,9 @@
       LOGICAL, SAVE :: FIRST = .TRUE.
       
 #if defined( DEVEL )
-      TYPE(GC_MET_LOCAL), INTENT(IN) :: LOCAL_MET  ! Obj w/ met fields
-      REAL*8, INTENT(INOUT) :: SFLX(IIPAR,JJPAR,LLPAR,N_TRACERS+1)
-      REAL*8                :: STT_TMP(IIPAR,JJPAR,LLPAR,4)
-!      REAL*8                :: DTSRCE
+      REAL*8        :: STT_TMP(IIPAR,JJPAR,LLPAR,4)
 #endif
+
       !=================================================================
       ! EMISSDUST begins here!
       !=================================================================
@@ -622,7 +628,7 @@
 
          ! Use Zender's DEAD dust source function
 #if defined( DEVEL )
-         CALL SRC_DUST_DEAD( STT(:,:,:,IDTDST1:IDTDST4), LOCAL_MET )
+         CALL SRC_DUST_DEAD( STT(:,:,:,IDTDST1:IDTDST4), State_Met )
 #else
          CALL SRC_DUST_DEAD( STT(:,:,:,IDTDST1:IDTDST4) )
 #endif
@@ -634,7 +640,7 @@
 
          ! Use Paul Ginoux's dust source function
 #if defined( DEVEL )
-         CALL SRC_DUST_GINOUX( STT(:,:,:,IDTDST1:IDTDST4 ), LOCAL_MET )
+         CALL SRC_DUST_GINOUX( STT(:,:,:,IDTDST1:IDTDST4 ), State_Met )
 #else
          CALL SRC_DUST_GINOUX( STT(:,:,:,IDTDST1:IDTDST4) )
 #endif
@@ -666,7 +672,7 @@
 ! !INTERFACE:
 !
 #if defined( DEVEL )
-      SUBROUTINE SRC_DUST_DEAD( TC, LOCAL_MET )
+      SUBROUTINE SRC_DUST_DEAD( TC, State_Met )
 #else
       SUBROUTINE SRC_DUST_DEAD( TC )
 #endif
@@ -690,19 +696,23 @@
       USE TRANSFER_MOD,  ONLY : TRANSFER_2D
 
 #if defined( DEVEL )
-      USE GC_TYPE_MOD,       ONLY : GC_MET_LOCAL
+      USE GIGC_State_Met_Mod, ONLY : MetState
 #endif
 
       USE CMN_SIZE_MOD        ! Size parameters
       USE CMN_DIAG_MOD        ! ND06
       USE CMN_GCTM_MOD        ! g0
 !
+! !INPUT PARAMETERS: 
+!
+#if defined( DEVEL )
+      TYPE(MetState), INTENT(IN)    :: State_Met   ! Meteorology State object
+#endif
+!
 ! !INPUT/OUTPUT PARAMETERS: 
 ! 
-      REAL*8, INTENT(INOUT) :: TC(IIPAR,JJPAR,LLPAR,NDSTBIN)  ! Dust mass [kg]
-#if defined( DEVEL )
-      TYPE(GC_MET_LOCAL), INTENT(IN) :: LOCAL_MET  ! Obj w/ met fields
-#endif
+      ! Dust mass [kg]
+      REAL*8,         INTENT(INOUT) :: TC(IIPAR,JJPAR,LLPAR,NDSTBIN)
 !
 ! !REMARKS:
 !  Input:
@@ -835,7 +845,7 @@
 
       ! Make OROGRAPHY array from GEOS-CHEM LWI
 #if defined( DEVEL )
-      CALL GET_ORO( OROGRAPHY, LOCAL_MET )
+      CALL GET_ORO( OROGRAPHY, State_Met )
 #else
       CALL GET_ORO( OROGRAPHY )
 #endif
@@ -864,20 +874,20 @@
 
 #if defined( DEVEL )
             ! Temperature [K] at surface layer
-            TLON(I)        = LOCAL_MET%T(I,J,1)
+            TLON(I)        = State_Met%T(I,J,1)
 
             ! Potential temperature [K] at surface layer
             THLON(I)       = TLON(I) * ( P1000 / PMID(I) )**AKAP
 
             ! U and V winds at surface [m/s]
-            ULON(I)        = LOCAL_MET%U(I,J,1)
-            VLON(I)        = LOCAL_MET%V(I,J,1)
+            ULON(I)        = State_Met%U(I,J,1)
+            VLON(I)        = State_Met%V(I,J,1)
             
             ! Half box height at surface [m]
-            BHT2(I)        = LOCAL_MET%BXHEIGHT(I,J,1) / 2.d0
+            BHT2(I)        = State_Met%BXHEIGHT(I,J,1) / 2.d0
 
             ! Specific humidity at surface [kg H2O/kg air]
-!            Q_H2O(I)       = LOCAL_MET%SPHU(I,J,1) / 1000.d0
+!            Q_H2O(I)       = State_Met%SPHU(I,J,1) / 1000.d0
             Q_H2O(I)       = SPHU(I,J,1) / 1000.d0
 
             ! Orography at surface
@@ -886,9 +896,9 @@
 
             ! Snow height [m H2O]
 #if   defined( GEOS_5 ) || defined( MERRA ) || defined( GEOS_57 )
-            SNW_HGT_LQD(I) = LOCAL_MET%SNOMAS(I,J) / 1000d0
+            SNW_HGT_LQD(I) = State_Met%SNOMAS(I,J) / 1000d0
 #else
-            SNW_HGT_LQD(I) = LOCAL_MET%SNOW(I,J) / 1000d0
+            SNW_HGT_LQD(I) = State_Met%SNOW(I,J) / 1000d0
 #endif
 
 #else
@@ -939,7 +949,7 @@
          CALL DST_MBL( DOY,    BHT2,  J,      YMID_R, ORO,    
      &                 PTHICK, PMID,  Q_H2O,  DSRC,   SNW_HGT_LQD, 
      &                 DTSRCE, TLON,  THLON,  VLON,   ULON,
-     &                 FIRST,  J,     LOCAL_MET )
+     &                 FIRST,  J,     State_Met )
 #else
          CALL DST_MBL( DOY,    BHT2,  J,     YMID_R, ORO,    
      &                 PTHICK, PMID,  Q_H2O, DSRC,   SNW_HGT_LQD, 
@@ -988,7 +998,7 @@
 ! !INTERFACE:
 !
 #if defined( DEVEL )
-      SUBROUTINE SRC_DUST_GINOUX( TC, LOCAL_MET )
+      SUBROUTINE SRC_DUST_GINOUX( TC, State_Met )
 #else
       SUBROUTINE SRC_DUST_GINOUX( TC )
 #endif
@@ -1003,19 +1013,23 @@
       USE TIME_MOD,      ONLY : GET_TS_EMIS
       USE GRID_MOD,      ONLY : GET_AREA_M2
 #if defined( DEVEL )
-      USE GC_TYPE_MOD, ONLY : GC_MET_LOCAL
+      USE GIGC_State_Met_Mod, ONLY : MetState
 #endif
 
       USE CMN_SIZE_MOD        ! Size parameters
       USE CMN_DIAG_MOD        ! ND19, LD13 (for now)
       USE CMN_GCTM_MOD        ! g0
 !
+! !INPUT PARAMETERS: 
+!
+#if defined( DEVEL )
+      TYPE(MetState), INTENT(IN)    :: State_Met   ! Meteorology State object
+#endif
+!
 ! !INPUT/OUTPUT PARAMETERS: 
 ! 
-      REAL*8, INTENT(INOUT) :: TC(IIPAR,JJPAR,LLPAR,NDSTBIN)  ! Dust mass [kg]
-#if defined( DEVEL )
-      TYPE(GC_MET_LOCAL), INTENT(IN) :: LOCAL_MET  ! Obj w/ met fields
-#endif
+      ! Dust mass [kg]
+      REAL*8,         INTENT(INOUT) :: TC(IIPAR,JJPAR,LLPAR,NDSTBIN)
 !
 ! !REMARKS:
 !  Input:
@@ -1208,8 +1222,8 @@
                ! 10m wind speed [m/s]
 #if defined( DEVEL )
                W10M   = SQRT( SFCWINDSQR( I, J,
-     &                                    LOCAL_MET%U10M,
-     &                                    LOCAL_MET%V10M ) )
+     &                                    State_Met%U10M,
+     &                                    State_Met%V10M ) )
 #else
                W10M   = SQRT( SFCWINDSQR( I, J, U10M, V10M ) )
 #endif
@@ -1255,7 +1269,7 @@
 ! !INTERFACE:
 !
 #if defined( DEVEL )
-      SUBROUTINE RDUST_ONLINE( DUST, WAVELENGTH, LOCAL_MET )
+      SUBROUTINE RDUST_ONLINE( DUST, WAVELENGTH, State_Met )
 #else
       SUBROUTINE RDUST_ONLINE( DUST, WAVELENGTH )
 #endif
@@ -1272,7 +1286,7 @@
       USE COMODE_MOD,    ONLY : WTAREA, WERADIUS
       USE DAO_MOD,       ONLY : RH
 #if defined( DEVEL )
-      USE GC_TYPE_MOD,   ONLY : GC_MET_LOCAL
+      USE GIGC_State_Met_Mod, ONLY : MetState
 #endif
 
 !      USE CMN_FJ_MOD,    ONLY : IPAR, JPAR, LPAR, JPMAX, JPPJ      
@@ -1283,10 +1297,10 @@
 !
 ! !INPUT PARAMETERS: 
 ! 
-      REAL*8,  INTENT(IN) :: DUST(IIPAR,JJPAR,LLPAR,NDUST)   ! Dust [kg/m3]
-      INTEGER, INTENT(IN) :: WAVELENGTH
+      REAL*8,         INTENT(IN) :: DUST(IIPAR,JJPAR,LLPAR,NDUST) ! Dust [kg/m3]
+      INTEGER,        INTENT(IN) :: WAVELENGTH
 #if defined( DEVEL )
-      TYPE(GC_MET_LOCAL), INTENT(IN) :: LOCAL_MET  ! Obj w/ met fields
+      TYPE(MetState), INTENT(IN) :: State_Met   ! Meteorology State object
 #endif
 ! 
 ! !REVISION HISTORY: 
@@ -1361,13 +1375,13 @@
 #if defined( DEVEL )
          IF ( WAVELENGTH > 0 ) THEN
 
-            ODMDUST(I,J,L,N) = 0.75d0 * LOCAL_MET%BXHEIGHT(I,J,L) * 
+            ODMDUST(I,J,L,N) = 0.75d0 * State_Met%BXHEIGHT(I,J,L) * 
      &                         DUST(I,J,L,N) * QAA_AOD(14+N)     / 
      &                        ( MSDENS(N) * RAA_AOD(14+N) * 1.0D-6 )
 
          ELSE
 
-            ODMDUST(I,J,L,N) = 0.75d0 * LOCAL_MET%BXHEIGHT(I,J,L) * 
+            ODMDUST(I,J,L,N) = 0.75d0 * State_Met%BXHEIGHT(I,J,L) * 
      &                         DUST(I,J,L,N) * QAA(4,14+N)     / 
      &                        ( MSDENS(N) * RAA(4,14+N) * 1.0D-6 )
 
@@ -1436,7 +1450,7 @@
          ! Archive WTAREA and WERADIUS when RH > 35%  (tmf, 6/13/07) 
          ! Get RH  
 #if defined( DEVEL )
-         XRH     = LOCAL_MET%RH( I, J, L )   ![%]
+         XRH     = State_Met%RH( I, J, L )   ![%]
 #else
          XRH     = RH( I, J, L )   ![%]
 #endif
@@ -1524,7 +1538,7 @@
 !
 #if defined( DEVEL )
       SUBROUTINE RDUST_OFFLINE( THISMONTH, THISYEAR, WAVELENGTH,
-     &                          am_I_Root, LOCAL_MET )
+     &                          am_I_Root, State_Met )
 #else
       SUBROUTINE RDUST_OFFLINE( THISMONTH, THISYEAR, WAVELENGTH,
      &                          am_I_Root  )
@@ -1544,7 +1558,7 @@
       USE COMODE_MOD,    ONLY : WTAREA, WERADIUS
       USE DAO_MOD,       ONLY : RH
 #if defined( DEVEL )
-      USE GC_TYPE_MOD,   ONLY : GC_MET_LOCAL
+      USE GIGC_State_Met_Mod, ONLY : MetState
 #endif
 
 #     include "define.h"
@@ -1558,13 +1572,13 @@
 !
 ! !INPUT PARAMETERS: 
 !
-      INTEGER, INTENT(IN) :: THISMONTH   ! Current month (1-12)
-      INTEGER, INTENT(IN) :: THISYEAR    ! Current year  (YYYY format)
-      INTEGER, INTENT(IN) :: WAVELENGTH  ! Determine which wavelength to use 
-                                         !  for optical properties
-      LOGICAL, INTENT(IN) :: am_I_Root   ! Is this the root CPU?
+      INTEGER,        INTENT(IN) :: THISMONTH   ! Current month (1-12)
+      INTEGER,        INTENT(IN) :: THISYEAR    ! Current year  (YYYY format)
+      INTEGER,        INTENT(IN) :: WAVELENGTH  ! Determine which wavelength to
+                                                !  use for optical properties
+      LOGICAL,        INTENT(IN) :: am_I_Root   ! Is this the root CPU?
 #if defined( DEVEL )
-      TYPE(GC_MET_LOCAL), INTENT(IN) :: LOCAL_MET  ! Obj w/ met fields
+      TYPE(MetState), INTENT(IN) :: State_Met   ! Meteorology State object
 #endif
 !
 ! !REVISION HISTORY: 
@@ -1720,14 +1734,14 @@
             IF ( WAVELENGTH > 0 ) THEN
 
                ODMDUST(I,J,L,N) = 0.75d0        *
-     &                            LOCAL_MET%BXHEIGHT(I,J,L) * 
+     &                            State_Met%BXHEIGHT(I,J,L) * 
      &                            DUST(I,J,L,N) * QAA_AOD(14+N)     / 
      &                           ( MSDENS(N) * RAA_AOD(14+N) * 1.0D-6 )
 
             ELSE
 
                ODMDUST(I,J,L,N) = 0.75d0        *
-     &                            LOCAL_MET%BXHEIGHT(I,J,L) * 
+     &                            State_Met%BXHEIGHT(I,J,L) * 
      &                            DUST(I,J,L,N) * QAA(4,14+N)     / 
      &                           ( MSDENS(N) * RAA(4,14+N) * 1.0D-6 )
 
@@ -1802,7 +1816,7 @@
          ! Archive WTAREA and WERADIUS when RH > 35% (tmf, 6/13/07) 
          ! Get RH  
 #if defined( DEVEL )
-         XRH     = LOCAL_MET%RH( I, J, L )   ![%]
+         XRH     = State_Met%RH( I, J, L )   ![%]
 #else
          XRH     = RH( I, J, L )   ![%]
 #endif

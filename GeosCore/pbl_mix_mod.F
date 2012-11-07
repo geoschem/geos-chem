@@ -108,7 +108,7 @@
 ! !INTERFACE:
 !
 #if defined( DEVEL )
-      SUBROUTINE DO_PBL_MIX( DO_TURBDAY, LOCAL_MET )
+      SUBROUTINE DO_PBL_MIX( DO_TURBDAY, State_Met )
 #else
       SUBROUTINE DO_PBL_MIX( DO_TURBDAY )
 #endif
@@ -121,15 +121,15 @@
       USE TRACER_MOD,  ONLY : N_APMTRA
 #endif
 #if defined( DEVEL )
-      USE GC_TYPE_MOD, ONLY : GC_MET_LOCAL
+      USE GIGC_State_Met_Mod, ONLY : MetState
 #endif
 !
 ! !INPUT PARAMETERS: 
 !
-      LOGICAL, INTENT(IN) :: DO_TURBDAY   ! =T means call TURBDAY 
-                                          !    for full PBL mixing
+      LOGICAL,        INTENT(IN) :: DO_TURBDAY  ! =T means call TURBDAY 
+                                                !    for full PBL mixing
 #if defined( DEVEL )
-      TYPE(GC_MET_LOCAL), INTENT(IN) :: LOCAL_MET  ! Obj w/ met fields
+      TYPE(MetState), INTENT(IN) :: State_Met   ! Meteorology State object
 #endif
 !
 ! !REVISION HISTORY: 
@@ -164,14 +164,14 @@
          
       ! Compute PBL height and related quantities
 #if defined( DEVEL )
-      CALL COMPUTE_PBL_HEIGHT( LOCAL_MET )
+      CALL COMPUTE_PBL_HEIGHT( State_Met )
 #else
       CALL COMPUTE_PBL_HEIGHT
 #endif
 
       ! Do complete mixing of tracers in the PBL (if necessary)
 #if defined( DEVEL )
-      IF ( DO_TURBDAY ) CALL TURBDAY( N_TOT_TRC, STT, TCVV, LOCAL_MET )
+      IF ( DO_TURBDAY ) CALL TURBDAY( N_TOT_TRC, STT, TCVV, State_Met )
 #else
       IF ( DO_TURBDAY ) CALL TURBDAY( N_TOT_TRC, STT, TCVV )
 #endif
@@ -192,7 +192,7 @@
 ! !INTERFACE:
 !
 #if defined( DEVEL )
-      SUBROUTINE COMPUTE_PBL_HEIGHT( LOCAL_MET )
+      SUBROUTINE COMPUTE_PBL_HEIGHT( State_Met )
 #else
       SUBROUTINE COMPUTE_PBL_HEIGHT
 #endif
@@ -203,7 +203,7 @@
       USE ERROR_MOD,    ONLY : ERROR_STOP
       USE PRESSURE_MOD, ONLY : GET_PEDGE
 #if defined( DEVEL )
-      USE GC_TYPE_MOD,  ONLY : GC_MET_LOCAL
+      USE GIGC_State_Met_Mod, ONLY : MetState
 #endif
 
       USE CMN_SIZE_MOD       ! Size parameters
@@ -212,7 +212,7 @@
 ! !INPUT PARAMETERS: 
 !
 #if defined( DEVEL )
-      TYPE(GC_MET_LOCAL), INTENT(IN) :: LOCAL_MET  ! Obj w/ met fields
+      TYPE(MetState), INTENT(IN) :: State_Met   ! Meteorology State object
 #endif
 !
 ! !REVISION HISTORY: 
@@ -262,7 +262,7 @@
          ! BLTOP = pressure at PBL top [hPa]
          ! Use barometric law since PBL is in [m]
 #if defined( DEVEL )
-         BLTOP  = P(0) * EXP( -LOCAL_MET%PBLH(I,J) / SCALE_HEIGHT )
+         BLTOP  = P(0) * EXP( -State_Met%PBLH(I,J) / SCALE_HEIGHT )
 #else
          BLTOP  = P(0) * EXP( -PBL(I,J) / SCALE_HEIGHT )
 #endif
@@ -333,7 +333,7 @@
                ! PBL height [m]
 #if defined( DEVEL )
                PBL_TOP_m(I,J)     = PBL_TOP_m(I,J) +
-     &                              LOCAL_MET%BXHEIGHT(I,J,L)
+     &                              State_Met%BXHEIGHT(I,J,L)
 #else
                PBL_TOP_m(I,J)     = PBL_TOP_m(I,J) + BXHEIGHT(I,J,L)
 #endif
@@ -353,7 +353,7 @@
                ! PBL height [m] 
 #if defined( DEVEL )
                PBL_TOP_m(I,J)     = PBL_TOP_m(I,J) + 
-     &                            ( LOCAL_MET%BXHEIGHT(I,J,L) *
+     &                            ( State_Met%BXHEIGHT(I,J,L) *
      &                              FPBL(I,J) )
 #else
                PBL_TOP_m(I,J)     = PBL_TOP_m(I,J) + 
@@ -428,7 +428,7 @@
 ! !INTERFACE:
 !
 #if defined( DEVEL )
-      SUBROUTINE TURBDAY( NTRC, TC, TCVV, LOCAL_MET )              
+      SUBROUTINE TURBDAY( NTRC, TC, TCVV, State_Met )              
 #else
       SUBROUTINE TURBDAY( NTRC, TC, TCVV )              
 #endif
@@ -439,7 +439,7 @@
       USE DIAG_MOD,    ONLY : TURBFLUP
       USE TIME_MOD,    ONLY : GET_TS_CONV
 #if defined( DEVEL )
-      USE GC_TYPE_MOD, ONLY : GC_MET_LOCAL
+      USE GIGC_State_Met_Mod, ONLY : MetState
 #endif
 
       USE CMN_SIZE_MOD      ! Size parameters    
@@ -453,9 +453,9 @@
       ! MW air (g/mol) / MW tracer (g/mol)     [ unitless ]
       REAL*8,   INTENT(IN)    :: TCVV(NTRC)
 
-      ! Obj w/ met fields
 #if defined( DEVEL )
-      TYPE(GC_MET_LOCAL), INTENT(IN) :: LOCAL_MET
+      ! Meteorology State object
+      TYPE(MetState), INTENT(IN) :: State_Met
 #endif
 !
 ! !INPUT/OUTPUT PARAMETERS: 
@@ -575,7 +575,7 @@
          AA = 0.d0 
          DO L = 1, IMIX(I,J)-1 
 #if defined( DEVEL )
-            AA = AA + LOCAL_MET%AD(I,J,L) 
+            AA = AA + State_Met%AD(I,J,L) 
 #else
             AA = AA + AD(I,J,L) 
 #endif
@@ -583,7 +583,7 @@
                
          L  = IMIX(I,J) 
 #if defined( DEVEL )
-         AA = AA + LOCAL_MET%AD(I,J,L) * FPBL(I,J)
+         AA = AA + State_Met%AD(I,J,L) * FPBL(I,J)
 #else
          AA = AA + AD(I,J,L) * FPBL(I,J)
 #endif
@@ -599,7 +599,7 @@
             CC = 0.d0
             DO L = 1, IMIX(I,J)-1 
 #if defined( DEVEL )
-               CC = CC + LOCAL_MET%AD(I,J,L) * TC(I,J,L,N)
+               CC = CC + State_Met%AD(I,J,L) * TC(I,J,L,N)
 #else
                CC = CC + AD(I,J,L) * TC(I,J,L,N)
 #endif
@@ -608,7 +608,7 @@
             ! Then also sum mass from (I,J,L) which straddle the PBL top
             L     = IMIX(I,J) 
 #if defined( DEVEL )
-            CC    = CC + LOCAL_MET%AD(I,J,L) * TC(I,J,L,N) * FPBL(I,J)
+            CC    = CC + State_Met%AD(I,J,L) * TC(I,J,L,N) * FPBL(I,J)
 #else
             CC    = CC + AD(I,J,L) * TC(I,J,L,N) * FPBL(I,J)
 #endif
@@ -636,12 +636,12 @@
             ! For grid boxes (I,J,L) which lie below the PBL top
             DO L = 1, IMIX(I,J)-1 
                DTC(I,J,L,N) = ( A(I,J) * CC_AA       *
-     &                          LOCAL_MET%AD(I,J,L)  -
+     &                          State_Met%AD(I,J,L)  -
      &                          A(I,J) * TC(I,J,L,N) *
-     &                          LOCAL_MET%AD(I,J,L) ) 
+     &                          State_Met%AD(I,J,L) ) 
 
                TC(I,J,L,N) = TC(I,J,L,N) + DTC(I,J,L,N) /
-     &                       LOCAL_MET%AD(I,J,L)
+     &                       State_Met%AD(I,J,L)
             ENDDO 
 
             ! For grid boxes (I,J,L) which straddle the PBL top
@@ -649,12 +649,12 @@
 
             DTC(I,J,L,N)  = 
      &           ( A(I,J) * FPBL(I,J)  * CC_AA       *
-     &             LOCAL_MET%AD(I,J,L) - 
+     &             State_Met%AD(I,J,L) - 
      &             A(I,J) * FPBL(I,J)  * TC(I,J,L,N) *
-     &             LOCAL_MET%AD(I,J,L) ) 
+     &             State_Met%AD(I,J,L) ) 
                
             TC(I,J,L,N) = TC(I,J,L,N) + DTC(I,J,L,N) / 
-     &                    LOCAL_MET%AD(I,J,L)
+     &                    State_Met%AD(I,J,L)
 #else
             ! For grid boxes (I,J,L) which lie below the PBL top
             DO L = 1, IMIX(I,J)-1 

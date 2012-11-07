@@ -120,7 +120,7 @@
 !------------------------------------------------------------------------------
 
 #if defined( DEVEL )
-      SUBROUTINE BIOFUEL_BURN( LOCAL_MET, BIO_EMISS )
+      SUBROUTINE BIOFUEL_BURN( State_Met, BIO_EMISS )
 #else
       SUBROUTINE BIOFUEL_BURN
 #endif
@@ -230,7 +230,7 @@
       USE REGRID_A2A_MOD,       ONLY : DO_REGRID_A2A
 !eml]
 #if defined( DEVEL )
-      USE GC_TYPE_MOD,          ONLY : GC_MET_LOCAL
+      USE GIGC_State_Met_Mod,   ONLY : MetState
 #endif
 
       USE CMN_SIZE_MOD               ! Size parameters
@@ -266,9 +266,10 @@
 
       REAL*8                        :: BF_CO( IIPAR, JJPAR )  ! Biofuel emission of CO [molec/cm2/s]
 
+      ! Inout parameters
 #if defined( DEVEL )
-      REAL*8, INTENT(INOUT)          :: BIO_EMISS(:,:,:)
-      TYPE(GC_MET_LOCAL), INTENT(IN) :: LOCAL_MET  ! Obj w/ met fields
+      TYPE(MetState), INTENT(IN)    :: State_Met      ! Meteorology State object
+      REAL*8,         INTENT(INOUT) :: BIO_EMISS(:,:,:)
 #endif
 
       !=================================================================
@@ -848,7 +849,7 @@
 
          ! BXHEIGHT_CM = the surface grid box height in cm
 #if defined( DEVEL )
-         BXHEIGHT_CM = LOCAL_MET%BXHEIGHT(I,J,1) * 1d2
+         BXHEIGHT_CM = State_Met%BXHEIGHT(I,J,1) * 1d2
 #else
          BXHEIGHT_CM = BXHEIGHT(I,J,1) * 1d2
 #endif
@@ -863,7 +864,7 @@
 #if defined( DEVEL )
             BIOFUEL(N,I,J) = BIOFUEL_KG(N,I,J)                  * 
      &                       ( 6.023d23 / MOLWT(N)            ) /
-     &                       ( 365d0 * 86400d0 * BOXVL(I,J,1,LOCAL_MET))
+     &                       ( 365d0 * 86400d0 * BOXVL(I,J,1,State_Met))
 #else
             BIOFUEL(N,I,J) = BIOFUEL_KG(N,I,J)                  * 
      &                       ( 6.023d23 / MOLWT(N)            ) /
@@ -1070,7 +1071,7 @@
 
             ! BXHEIGHT_CM = the surface grid box height in cm
 #if defined( DEVEL )
-            BXHEIGHT_CM = LOCAL_MET%BXHEIGHT(I,J,1) * 1d2
+            BXHEIGHT_CM = State_Met%BXHEIGHT(I,J,1) * 1d2
 #else
             BXHEIGHT_CM = BXHEIGHT(I,J,1) * 1d2
 #endif

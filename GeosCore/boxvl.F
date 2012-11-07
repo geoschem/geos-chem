@@ -13,7 +13,7 @@
 ! !INTERFACE:
 !
 #if defined( DEVEL )
-      REAL*8 FUNCTION BOXVL( I, J, L, LOCAL_MET )
+      REAL*8 FUNCTION BOXVL( I, J, L, State_Met )
 #else
       REAL*8 FUNCTION BOXVL( I, J, L )
 #endif
@@ -22,7 +22,7 @@
 !
       USE DAO_MOD, ONLY : AIRVOL
 #if defined( DEVEL )
-      USE GC_TYPE_MOD,  ONLY : GC_MET_LOCAL
+      USE GIGC_State_Met_Mod, ONLY : MetState
 #endif
 
       IMPLICIT NONE
@@ -34,7 +34,7 @@
       INTEGER, INTENT(IN) :: J   ! Latitude index
       INTEGER, INTENT(IN) :: L   ! Level index
 #if defined( DEVEL )
-      TYPE(GC_MET_LOCAL), INTENT(IN) :: LOCAL_MET  ! Obj w/ met fields
+      TYPE(MetState), INTENT(IN) :: State_Met   ! Meteorology State object
 #endif
 !
 ! !REVISION HISTORY: 
@@ -58,7 +58,7 @@
       ! BOXVL begins here!
       !=================================================================
 #if defined( DEVEL )
-      BOXVL = LOCAL_MET%AIRVOL(I,J,L) * 1d6
+      BOXVL = State_Met%AIRVOL(I,J,L) * 1d6
 #else
       BOXVL = AIRVOL(I,J,L) * 1d6
 #endif

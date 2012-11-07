@@ -263,7 +263,7 @@
 ! !INTERFACE:
 !
 #if defined( DEVEL )
-      SUBROUTINE EMISSRnPbBe( LOCAL_MET )
+      SUBROUTINE EMISSRnPbBe( State_Met )
 #else
       SUBROUTINE EMISSRnPbBe
 #endif
@@ -281,7 +281,7 @@
       USE TROPOPAUSE_MOD, ONLY : ITS_IN_THE_STRAT
       USE PRESSURE_MOD,   ONLY : GET_PCENTER
 #if defined( DEVEL )
-      USE GC_TYPE_MOD,    ONLY : GC_MET_LOCAL
+      USE GIGC_State_Met_Mod, ONLY : MetState
 #endif
 
       USE CMN_SIZE_MOD       ! Size parameters
@@ -293,7 +293,7 @@
 ! !INPUT PARAMETERS: 
 !
 #if defined( DEVEL )
-      TYPE(GC_MET_LOCAL), INTENT(IN) :: LOCAL_MET  ! Obj w/ met fields
+      TYPE(MetState), INTENT(IN) :: State_Met   ! Meteorology State object
 #endif
 ! 
 ! !REVISION HISTORY: 
@@ -416,7 +416,7 @@
 
          ! Fraction of grid box that is land
 #if defined( DEVEL )
-         F_LAND  = LOCAL_MET%FRCLND(I,J)
+         F_LAND  = State_Met%FRCLND(I,J)
 #else
          F_LAND  = FRCLND(I,J)
 #endif
@@ -487,7 +487,7 @@
 
          ! For boxes below freezing, reduce 222Rn emissions by 3x
 #if defined( DEVEL )
-         IF ( LOCAL_MET%TS(I,J) < 273.15 ) ADD_Rn = ADD_Rn / 3d0
+         IF ( State_Met%TS(I,J) < 273.15 ) ADD_Rn = ADD_Rn / 3d0
 #else
          IF ( TS(I,J) < 273.15 ) ADD_Rn = ADD_Rn / 3d0
 #endif
@@ -538,7 +538,7 @@
             ! Be_TMP = [stars/g air/s] * [0.045 atom/star] * 
             !          [kg air] * [1e3 g/kg] = 7Be emissions [atoms/s]
 #if defined( DEVEL )
-            Be_TMP  = Be_TMP * 0.045d0 * LOCAL_MET%AD(I,J,L) * 1.d3 
+            Be_TMP  = Be_TMP * 0.045d0 * State_Met%AD(I,J,L) * 1.d3 
 #else
             Be_TMP  = Be_TMP * 0.045d0 * AD(I,J,L) * 1.d3 
 #endif
@@ -548,7 +548,7 @@
 
             ! Correct the strat-trop exchange of 7Be
 #if defined( DEVEL )
-            IF ( ITS_IN_THE_STRAT( I, J, L, LOCAL_MET ) ) THEN
+            IF ( ITS_IN_THE_STRAT( I, J, L, State_Met ) ) THEN
                CALL CORRECT_STE( ADD_Be )
             ENDIF
 #else
@@ -589,7 +589,7 @@
 ! !INTERFACE:
 !
 #if defined( DEVEL )
-      SUBROUTINE CHEMRnPbBe( LOCAL_MET )
+      SUBROUTINE CHEMRnPbBe( State_Met )
 #else
       SUBROUTINE CHEMRnPbBe
 #endif
@@ -601,7 +601,7 @@
       USE TRACER_MOD,     ONLY : STT, N_TRACERS
       USE TROPOPAUSE_MOD, ONLY : ITS_IN_THE_STRAT
 #if defined( DEVEL )
-      USE GC_TYPE_MOD,    ONLY : GC_MET_LOCAL
+      USE GIGC_State_Met_Mod, ONLY : MetState
 #endif
 
       USE CMN_SIZE_MOD       ! Size parameters
@@ -610,7 +610,7 @@
 ! !INPUT PARAMETERS: 
 !
 #if defined( DEVEL )
-      TYPE(GC_MET_LOCAL), INTENT(IN) :: LOCAL_MET  ! Obj w/ met fields
+      TYPE(MetState), INTENT(IN) :: State_Met   ! Meteorology State object
 #endif
 ! 
 ! !REVISION HISTORY:
@@ -711,7 +711,7 @@
 
             ! Correct strat-trop exchange of 210Pb in stratosphere
 #if defined( DEVEL )
-            IF ( ITS_IN_THE_STRAT( I, J, L, LOCAL_MET ) ) THEN
+            IF ( ITS_IN_THE_STRAT( I, J, L, State_Met ) ) THEN
                CALL CORRECT_STE( ADD_Pb )
             ENDIF
 #else

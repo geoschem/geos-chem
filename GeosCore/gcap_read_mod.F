@@ -316,7 +316,7 @@
 ! !INTERFACE:
 !
 #if defined( DEVEL )
-      SUBROUTINE GET_GCAP_FIELDS( LOCAL_MET )
+      SUBROUTINE GET_GCAP_FIELDS( State_Met )
 #else
       SUBROUTINE GET_GCAP_FIELDS
 #endif
@@ -325,13 +325,13 @@
 !
       USE DAO_MOD,     ONLY : PHIS, LWI_GISS
 #if defined( DEVEL )
-      USE GC_TYPE_MOD, ONLY : GC_MET_LOCAL
+      USE GIGC_State_Met_Mod, ONLY : MetState
 #endif
 !
 ! !INPUT/OUTPUT PARAMETERS:
 !
 #if defined( DEVEL )
-      TYPE(GC_MET_LOCAL), INTENT(INOUT) :: LOCAL_MET  ! Obj w/ met fields
+      TYPE(MetState), INTENT(INOUT) :: State_Met   ! Meteorology State object
 #endif
 ! 
 ! !REVISION HISTORY: 
@@ -358,8 +358,8 @@
       CALL READ_GCAP( NYMD=NYMD, NHMS=NHMS, PHIS=PHIS, LWI=LWI_GISS )
 
 #if defined( DEVEL )
-      LOCAL_MET%PHIS     = PHIS
-      LOCAL_MET%LWI_GISS = LWI_GISS
+      State_Met%PHIS     = PHIS
+      State_Met%LWI_GISS = LWI_GISS
 #endif
 
       ! Return to calling program

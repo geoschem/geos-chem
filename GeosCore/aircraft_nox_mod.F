@@ -256,7 +256,7 @@
 
 !------------------------------------------------------------------------------
 #if defined( DEVEL )
-      SUBROUTINE AIREMISS( LOCAL_MET, EMISS )
+      SUBROUTINE AIREMISS( State_Met, EMISS )
 #else
       SUBROUTINE AIREMISS
 #endif
@@ -291,7 +291,7 @@
       USE GRID_MOD,     ONLY : GET_XOFFSET, GET_YOFFSET
       USE PRESSURE_MOD, ONLY : GET_PEDGE
 #if defined( DEVEL )
-      USE GC_TYPE_MOD,  ONLY : GC_MET_LOCAL
+      USE GIGC_State_Met_Mod, ONLY : MetState
 #endif
 
       USE CMN_SIZE_MOD  ! Size parameters
@@ -306,8 +306,8 @@
       REAL*8, EXTERNAL    ::  BOXVL
 
 #if defined( DEVEL )
-      TYPE(GC_MET_LOCAL), INTENT(IN) :: LOCAL_MET  ! Obj w/ met fields
-      REAL*8, INTENT(INOUT) :: EMISS(:,:,:)
+      TYPE(MetState), INTENT(IN)    :: State_Met    ! Meteorology State object
+      REAL*8,         INTENT(INOUT) :: EMISS(:,:,:)
 #endif
       
       !=================================================================
@@ -396,7 +396,7 @@
 
                ! Convert from [molec/s] to [molec/cm3/s]
 #if defined( DEVEL )
-               TMP = AIREMIS(I,J,L)  / BOXVL(I,J,L,LOCAL_MET)
+               TMP = AIREMIS(I,J,L)  / BOXVL(I,J,L,State_Met)
 #else
                TMP             = AIREMIS(I,J,L)  / BOXVL(I,J,L)
 #endif
@@ -409,7 +409,7 @@
                IF ( ND32 > 0 ) THEN
 #if defined( DEVEL )
                   AD32_ac(I,J,L) = AD32_ac(I,J,L) +
-     &                     ( TMP * LOCAL_MET%BXHEIGHT(I,J,L) * 1d2 )
+     &                     ( TMP * State_Met%BXHEIGHT(I,J,L) * 1d2 )
 #else
                   AD32_ac(I,J,L) = AD32_ac(I,J,L) +
      &                    ( TMP * BXHEIGHT(I,J,L) * 1d2 )

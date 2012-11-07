@@ -171,7 +171,7 @@
 ! !INTERFACE:
 !
 #if defined( DEVEL )
-      SUBROUTINE EMISSCO2( LOCAL_MET )
+      SUBROUTINE EMISSCO2( State_Met )
 #else
       SUBROUTINE EMISSCO2
 #endif
@@ -200,7 +200,7 @@
       USE LOGICAL_MOD,  ONLY : LSHIPSCALE,  LPLANESCALE
       USE LOGICAL_MOD,  ONLY : LCHEMCO2
 #if defined( DEVEL )
-      USE GC_TYPE_MOD,  ONLY : GC_MET_LOCAL
+      USE GIGC_State_Met_Mod, ONLY : MetState
 #endif
 
       USE CMN_SIZE_MOD    ! Size parameters
@@ -208,7 +208,7 @@
 ! !INPUT PARAMETERS:
 !
 #if defined( DEVEL )
-      TYPE(GC_MET_LOCAL), INTENT(IN) :: LOCAL_MET  ! Obj w/ met fields
+      TYPE(MetState), INTENT(IN) :: State_Met   ! Meteorology State object
 #endif
 !
 ! !REMARKS:
@@ -362,7 +362,7 @@
  
          ! Aircraft CO2 emissions
 #if defined( DEVEL )
-         IF ( LPLANE   ) CALL READ_AVIATION_CO2( LOCAL_MET )
+         IF ( LPLANE   ) CALL READ_AVIATION_CO2( State_Met )
 #else
          IF ( LPLANE   ) CALL READ_AVIATION_CO2
 #endif
@@ -645,7 +645,7 @@
 
                ! Convert E_CO2 from [molec CO2/cm3/s] to [kg]
 #if defined( DEVEL )
-               E_CO2    = E_CO2  * BOXVL(I,J,L,LOCAL_MET) *
+               E_CO2    = E_CO2  * BOXVL(I,J,L,State_Met) *
      &                    DTSRCE / XNUMOL_CO2
 #else
                E_CO2    = E_CO2 * BOXVL(I,J,L) * DTSRCE / XNUMOL_CO2
@@ -690,7 +690,7 @@
 
                !  Convert from [molec/cm3/s] to [kg]
 #if defined( DEVEL )
-               E_CO2  = E_CO2  * BOXVL(I,J,L,LOCAL_MET) *
+               E_CO2  = E_CO2  * BOXVL(I,J,L,State_Met) *
      &                  DTSRCE / XNUMOL_CO2
 #else
                E_CO2  = E_CO2 * BOXVL(I,J,L) * DTSRCE / XNUMOL_CO2
@@ -2008,7 +2008,7 @@
 ! !INTERFACE:
 !
 #if defined( DEVEL )
-      SUBROUTINE READ_AVIATION_CO2( LOCAL_MET )
+      SUBROUTINE READ_AVIATION_CO2( State_Met )
 #else
       SUBROUTINE READ_AVIATION_CO2
 #endif
@@ -2022,7 +2022,7 @@
       USE FILE_MOD,      ONLY : IOERROR
       USE TIME_MOD,      ONLY : GET_MONTH, GET_YEAR
 #if defined( DEVEL )
-      USE GC_TYPE_MOD,   ONLY : GC_MET_LOCAL
+      USE GIGC_State_Met_Mod, ONLY : MetState
 #endif
 
       USE CMN_SIZE_MOD        ! Size parameters
@@ -2030,7 +2030,7 @@
 ! !INPUT PARAMETERS:
 !
 #if defined( DEVEL )
-      TYPE(GC_MET_LOCAL), INTENT(IN) :: LOCAL_MET  ! Obj w/ met fields
+      TYPE(MetState), INTENT(IN) :: State_Met   ! Meteorology State object
 #endif
 !
 ! !REMARKS:
@@ -2163,7 +2163,7 @@
 
                ! Altitude of top edge of level L, from ground [km]
 #if defined( DEVEL )
-               ZH(L) = ZH(L-1) + ( LOCAL_MET%BXHEIGHT(I,J,L) * 1d-3 )
+               ZH(L) = ZH(L-1) + ( State_Met%BXHEIGHT(I,J,L) * 1d-3 )
 #else
                ZH(L) = ZH(L-1) + ( BXHEIGHT(I,J,L) * 1d-3 )
 #endif
@@ -2227,7 +2227,7 @@
       DO I = 1, IIPAR
       DO L = 1, LLPAR
 #if defined( DEVEL )
-         EMPLANECO2(I,J,L) = EMPLANECO2(I,J,L) / BOXVL(I,J,L,LOCAL_MET)
+         EMPLANECO2(I,J,L) = EMPLANECO2(I,J,L) / BOXVL(I,J,L,State_Met)
      &                     * 6.022d23 / 44.01d-3
 #else
          EMPLANECO2(I,J,L) = EMPLANECO2(I,J,L) / BOXVL(I,J,L)

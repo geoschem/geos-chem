@@ -114,9 +114,11 @@ CMN_mod.o            : CMN_mod.F               CMN_SIZE_mod.o
 
 cmn_fj_mod.o         : cmn_fj_mod.F            CMN_SIZE_mod.o
 
-commsoil_mod.o       : commsoil_mod.F          CMN_SIZE_mod.o
+commsoil_mod.o       : commsoil_mod.F          CMN_SIZE_mod.o      \
+                       gigc_errcode_mod.o
 
-comode_loop_mod.o    : comode_loop_mod.F       CMN_SIZE_mod.o
+comode_loop_mod.o    : comode_loop_mod.F       CMN_SIZE_mod.o      \
+                       gigc_errcode_mod.o
 
 gigc_errcode_mod.o   : gigc_errcode_mod.F90    
 

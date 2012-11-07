@@ -1,6 +1,6 @@
 ! $Id: emissdr.f,v 1.6 2010/03/15 19:33:24 ccarouge Exp $
 #if defined( DEVEL )
-      SUBROUTINE EMISSDR( LOCAL_MET, EMISS_TEND, BIOEMISS_TEND )
+      SUBROUTINE EMISSDR( State_Met, EMISS_TEND, BIOEMISS_TEND )
 #else
       SUBROUTINE EMISSDR
 #endif
@@ -102,10 +102,9 @@
       USE DAO_MOD,           ONLY : PARDF,         PARDR,     SUNCOS_MID       
       USE DAO_MOD,           ONLY : ALBD,          TS
       USE DAO_MOD,           ONLY : U10M,          V10M
+      USE DAO_MOD,           ONLY : BXHEIGHT,      GWETTOP
       USE DIAG_MOD,          ONLY : AD29,          AD46
-      USE DIAG_MOD,          ONLY : AD32_fe,     AD32_so
-      USE DAO_MOD,           ONLY : PREACC, PRECON, TS, U10M, V10M
-      USE DAO_MOD,           ONLY : BXHEIGHT, GWETTOP
+      USE DIAG_MOD,          ONLY : AD32_fe,       AD32_so
       USE GRID_MOD,          ONLY : GET_AREA_CM2
       USE GRID_MOD,          ONLY : GET_YMID
       USE GRID_MOD,          ONLY : GET_XMID
@@ -140,9 +139,9 @@
       USE BROMOCARB_MOD,     ONLY : Br_SCALING
       USE MODIS_LAI_MOD
 #if defined( DEVEL )
-      USE TRACERID_MOD,      ONLY : IDTNOX
-      USE TRACER_MOD,        ONLY : N_TRACERS
-      USE GC_TYPE_MOD,       ONLY : GC_MET_LOCAL
+      USE GIGC_State_Met_Mod, ONLY : MetState
+      USE TRACERID_MOD,       ONLY : IDTNOX
+      USE TRACER_MOD,         ONLY : N_TRACERS
 #endif
  
       USE CMN_SIZE_MOD            ! Size parameters
@@ -158,9 +157,9 @@
 
       !Arguments
 #if defined( DEVEL )
-      TYPE(GC_MET_LOCAL), INTENT(IN) :: LOCAL_MET  ! Obj w/ met fields
+      TYPE(MetState), INTENT(IN)    :: State_Met   ! Meteorology State object
 
-      REAL*8, INTENT(INOUT)  :: 
+      REAL*8,         INTENT(INOUT) :: 
      &     EMISS_TEND(IIPAR,JJPAR,LLPAR,N_TRACERS+1),
      &     BIOEMISS_TEND(IIPAR,JJPAR,LLPAR,N_TRACERS+1)
 #endif
@@ -285,6 +284,21 @@
             IF ( DRYPERIOD(I,J) .GT. 8760.) DRYPERIOD(I,J) = 8760.
  
             ! Return NOx emission from soils [molec/cm2/s]
+#if defined( DEVEL )
+            CALL SOIL_NOX_EMISSION( TS_EMIS,        
+     &                              State_Met%TS(I,J),
+     &                              State_Met%GWETTOP(I,J),
+     &                              SOILFRT,  
+     &                              GWET_PREV(I,J), DRYPERIOD(I,J),
+     &                              PFACTOR(I,J),   GEMISNOX2(I,J),
+     &                              DEP_FERT,       FERTDIAG, 
+     &                              CLIM(I,J,:),    LAND2(I,J,:),
+     &                              RC,             SUNCOS_MID(IJLOOP),
+     &				    State_Met%U10M(I,J),
+     &                              State_Met%V10M(I,J), 
+     &                              CANOPYNOX(IJLOOP,:), 
+     &                              GC_LAI(I,J) )
+#else
             CALL SOIL_NOX_EMISSION( TS_EMIS,        TS(I,J),
      &                              GWETTOP(I,J),   SOILFRT,  
      &                              GWET_PREV(I,J), DRYPERIOD(I,J),
@@ -295,6 +309,7 @@
      &				    U10M(I,J),      V10M(I,J), 
      &                              CANOPYNOX(IJLOOP,:), 
      &                              GC_LAI(I,J) )
+#endif
 
             ! Archive emissions
             IF ( ND32 > 0 ) THEN
@@ -305,8 +320,13 @@
             INST_SOIL(I,J) = GEMISNOX2(I,J)
             INST_FERT(I,J) = FERTDIAG
 
+#if defined( DEVEL )
+            GEMISNOX2(I,J) = GEMISNOX2(I,J)  / 
+     &                     ( State_Met%BXHEIGHT(I,J,1) * 100d0 )
+#else
             GEMISNOX2(I,J) = GEMISNOX2(I,J)  / 
      &                     ( BXHEIGHT(I,J,1) * 100d0 )
+#endif
 
          ENDDO            
          ENDDO
@@ -415,24 +435,24 @@
 ! LIGHTNING EMISSIONS NOX [molecules/cm3/s]
 !
             IF ( LLIGHTNOX .AND. I == 1 .AND. J == 1 ) 
-     &           CALL EMLIGHTNING( LOCAL_MET, EMISS_TEND(:,:,:,IDTNOX) )
+     &           CALL EMLIGHTNING( State_Met, EMISS_TEND(:,:,:,IDTNOX) )
 !-----------------------------------------------------------------------------
 ! SOIL EMISSIONS NOX [molecules/cm3/s]
 !
-            IF ( ( LSOILNOX .OR. LFERTILIZERNOX )
-     &             .AND. I == 1 .AND. J == 1 ) 
-     &         CALL SOILNOXEMS( SUNCOS_MID, LOCAL_MET, 
-     &                          EMISS_TEND(:,:,1,IDTNOX) )
+!            IF ( ( LSOILNOX .OR. LFERTILIZERNOX )
+!     &             .AND. I == 1 .AND. J == 1 ) 
+!     &         CALL SOILNOXEMS( SUNCOS_MID, State_Met, 
+!     &                          EMISS_TEND(:,:,1,IDTNOX) )
 !-----------------------------------------------------------------------------
 ! AIRCRAFT emissions NOx [molecules/cm3/s]
 !
             IF ( LAIRNOX .AND. I == 1 .AND. J == 1 ) 
-     &           CALL AIREMISS( LOCAL_MET, EMISS_TEND(:,:,:,IDTNOX) )
+     &           CALL AIREMISS( State_Met, EMISS_TEND(:,:,:,IDTNOX) )
 !-----------------------------------------------------------------------------
 ! NOx AND CO from biofuel combustion [kg/box]  
 !
             IF ( LWOODCO .AND. I == 1 .AND. J == 1 ) 
-     &           CALL BIOFUEL_BURN( LOCAL_MET, BIOEMISS_TEND(:,:,1,:) )
+     &           CALL BIOFUEL_BURN( State_Met, BIOEMISS_TEND(:,:,1,:) )
 
 #else
 
@@ -445,11 +465,7 @@
 !
 !            IF ( ( LSOILNOX .OR. LFERTILIZERNOX )
 !     &             .AND. I == 1 .AND. J == 1 ) 
-!#if defined( DEVEL )
-!     &         CALL SOILNOXEMS( SUNCOS_MID, EMISS_TEND(:,:,1,IDTNOX) )
-!#else
 !     &         CALL SOILNOXEMS( SUNCOS_MID )
-!#endif
 !-----------------------------------------------------------------------------
 ! AIRCRAFT emissions NOx [molecules/cm3/s]
 !
@@ -468,7 +484,7 @@
 
                ! Temperature
 #if defined( DEVEL )
-               TMMP  = XLTMMP( I, J, LOCAL_MET%TS, IJLOOP )
+               TMMP  = XLTMMP( I, J, State_Met%TS, IJLOOP )
 #else
                TMMP  = XLTMMP( I, J, TS, IJLOOP )
 #endif
@@ -486,8 +502,8 @@
                
                   ! Diffuse and direct PAR
 #if defined( DEVEL )
-                  PDR  = LOCAL_MET%PARDR(I,J)
-                  PDF  = LOCAL_MET%PARDF(I,J)
+                  PDR  = State_Met%PARDR(I,J)
+                  PDF  = State_Met%PARDF(I,J)
 #else
                   PDR  = PARDR(I,J)
                   PDF  = PARDF(I,J)
@@ -590,12 +606,12 @@
                   ! Also add ocean source of acetone [atoms C/box/s]
 #if defined( DEVEL )
                   CALL OCEAN_SOURCE_ACET( I, J, 
-     &                                    LOCAL_MET%ALBD,
-     &                                    LOCAL_MET%TS,
-     &                                    LOCAL_MET%U10M,
-     &                                    LOCAL_MET%V10M,
-     &                                    LOCAL_MET,
-     &                                    BIO_ACET )
+     &                                    State_Met%ALBD,
+     &                                    State_Met%TS,
+     &                                    State_Met%U10M,
+     &                                    State_Met%V10M,
+     &                                    BIO_ACET,
+     &                                    State_Met )
 #else
                   CALL OCEAN_SOURCE_ACET( I, J, ALBD, TS, U10M, V10M, 
      &                                    BIO_ACET )

@@ -187,7 +187,7 @@
 ! !INTERFACE:
 !
 #if defined( DEVEL )
-      SUBROUTINE GET_MERRA_I6_FIELDS_1( NYMD, NHMS, LOCAL_MET )
+      SUBROUTINE GET_MERRA_I6_FIELDS_1( NYMD, NHMS, State_Met )
 #else
       SUBROUTINE GET_MERRA_I6_FIELDS_1( NYMD, NHMS )
 #endif
@@ -197,7 +197,7 @@
       USE DAO_MOD, ONLY : PS1       ! Surface pressure  [hPa]
       USE DAO_MOD, ONLY : RH1       ! Relative humidity [fraction]
 #if defined( DEVEL )
-      USE GC_TYPE_MOD, ONLY : GC_MET_LOCAL
+      USE GIGC_State_Met_Mod, ONLY : MetState
 #endif
 !
 ! !INPUT PARAMETERS: 
@@ -208,7 +208,7 @@
 ! !INPUT/OUTPUT PARAMETERS:
 !
 #if defined( DEVEL )
-      TYPE(GC_MET_LOCAL), INTENT(INOUT) :: LOCAL_MET  ! Obj w/ met fields
+      TYPE(MetState), INTENT(INOUT) :: State_Met   ! Meteorology State object
 #endif
 ! 
 ! !REVISION HISTORY: 
@@ -225,8 +225,8 @@
      &              RH   = RH1   )
 
 #if defined( DEVEL )
-      LOCAL_MET%PS1 = PS1
-      LOCAL_MET%RH1 = RH1
+      State_Met%PS1 = PS1
+      State_Met%RH1 = RH1
 #endif
       
       END SUBROUTINE GET_MERRA_I6_FIELDS_1
@@ -245,7 +245,7 @@
 ! !INTERFACE:
 !
 #if defined( DEVEL )
-      SUBROUTINE GET_MERRA_I6_FIELDS_2( NYMD, NHMS, LOCAL_MET )
+      SUBROUTINE GET_MERRA_I6_FIELDS_2( NYMD, NHMS, State_Met )
 #else
       SUBROUTINE GET_MERRA_I6_FIELDS_2( NYMD, NHMS )
 #endif
@@ -255,7 +255,7 @@
       USE DAO_MOD, ONLY : PS2       ! Surface pressure  [hPa]
       USE DAO_MOD, ONLY : RH2       ! Relative humidity [fraction]
 #if defined( DEVEL )
-      USE GC_TYPE_MOD, ONLY : GC_MET_LOCAL
+      USE GIGC_State_Met_Mod, ONLY : MetState
 #endif
 !
 ! !INPUT PARAMETERS: 
@@ -266,7 +266,7 @@
 ! !INPUT/OUTPUT PARAMETERS:
 !
 #if defined( DEVEL )
-      TYPE(GC_MET_LOCAL), INTENT(INOUT) :: LOCAL_MET  ! Obj w/ met fields
+      TYPE(MetState), INTENT(INOUT) :: State_Met   ! Meteorology State object
 #endif
 ! 
 ! !REVISION HISTORY: 
@@ -283,8 +283,8 @@
      &              RH   = RH2   )
 
 #if defined( DEVEL )
-      LOCAL_MET%PS2 = PS2
-      LOCAL_MET%RH2 = RH2
+      State_Met%PS2 = PS2
+      State_Met%RH2 = RH2
 #endif
       
       END SUBROUTINE GET_MERRA_I6_FIELDS_2

@@ -13,7 +13,7 @@
 ! !INTERFACE:
 !
 #if defined( DEVEL )
-      SUBROUTINE RURALBOX( LOCAL_MET )
+      SUBROUTINE RURALBOX( State_Met )
 #else
       SUBROUTINE RURALBOX( AD, T, AVGW, ALBD )
 #endif
@@ -25,7 +25,7 @@
       USE PRESSURE_MOD,   ONLY : GET_PCENTER,      GET_PEDGE
       USE TROPOPAUSE_MOD, ONLY : ITS_IN_THE_STRAT, ITS_IN_THE_TROP
 #if defined( DEVEL )
-      USE GC_TYPE_MOD,    ONLY : GC_MET_LOCAL
+      USE GIGC_State_Met_Mod, ONLY : MetState
 #endif
 
 #     include "define.h"
@@ -39,7 +39,7 @@
 ! !INPUT PARAMETERS: 
 !
 #if defined( DEVEL )
-      TYPE(GC_MET_LOCAL), INTENT(IN) :: LOCAL_MET      ! Obj w/ met fields
+      TYPE(MetState), INTENT(IN) :: State_Met   ! Meteorology State object
 #else
       REAL*8,  INTENT(IN) :: AD(IIPAR,JJPAR,LLPAR)     ! Air mass [kg]
       REAL*8,  INTENT(IN) :: T(IIPAR,JJPAR,LLPAR)      ! Temperature [K]
@@ -134,7 +134,7 @@
                ! Skip over strat boxes
                !=======================================================
 #if defined( DEVEL )
-               IF ( ITS_IN_THE_STRAT( I, J, L, LOCAL_MET ) ) GOTO 40
+               IF ( ITS_IN_THE_STRAT( I, J, L, State_Met ) ) GOTO 40
 #else
                IF ( ITS_IN_THE_STRAT( I, J, L ) ) GOTO 40
 #endif
@@ -165,7 +165,7 @@
                JLOP(I,J,L)    = JLOOP
 
 #if defined( DEVEL )
-               IF ( ITS_IN_THE_TROP( I, J, L, LOCAL_MET ) ) THEN
+               IF ( ITS_IN_THE_TROP( I, J, L, State_Met ) ) THEN
 #else
                IF ( ITS_IN_THE_TROP( I, J, L ) ) THEN
 #endif
@@ -202,21 +202,21 @@
 
 #if defined( DEVEL )
             ! get box volume [cm3]
-            VOLUME(JLOOP)  = BOXVL( I, J, L, LOCAL_MET )
+            VOLUME(JLOOP)  = BOXVL( I, J, L, State_Met )
 
             ! get air density in (molecs cm^-3)
-            AIRDENS(JLOOP) = LOCAL_MET%AD(I,J,L) * 1000.d0 / 
+            AIRDENS(JLOOP) = State_Met%AD(I,J,L) * 1000.d0 / 
      &                       VOLUME(JLOOP) * AVG / WTAIR
 
             ! get temperature
-            T3(JLOOP)      = LOCAL_MET%T(I,J,L)
+            T3(JLOOP)      = State_Met%T(I,J,L)
 
             ! PRESS3 = pressure in bar, multiply mb * 1000
             PRESS3(JLOOP)  = GET_PCENTER(I,J,L) * 1000d0
 
             ! Get relative humidity (here is absolute #H2O/cc air)
             ! AVGW is the mixing ratio of water vapor [v/v]
-            ABSHUM(JLOOP)  = LOCAL_MET%AVGW(I,J,L) * AIRDENS(JLOOP)
+            ABSHUM(JLOOP)  = State_Met%AVGW(I,J,L) * AIRDENS(JLOOP)
 #else
             ! get box volume [cm3]
             VOLUME(JLOOP)  = BOXVL(I, J, L)

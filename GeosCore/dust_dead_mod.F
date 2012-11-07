@@ -253,7 +253,7 @@
      &                    PRS_MDP,     Q_H2O_VPR,   DSRC,
      &                    SNW_HGT_LQD, TM_ADJ,      TPT_MDP,
      &                    TPT_PTN_MDP, WND_MRD_MDP, WND_ZNL_MDP,
-     &                    FIRST,       NSTEP,       LOCAL_MET )
+     &                    FIRST,       NSTEP,       State_Met )
 #else
       SUBROUTINE DST_MBL( DOY,         HGT_MDP,     LAT_IDX,
      &                    LAT_RDN,     ORO,         PRS_DLT,
@@ -317,7 +317,7 @@
       USE GRID_MOD,  ONLY : GET_AREA_M2
       USE ERROR_MOD, ONLY : ERROR_STOP
 #if defined( DEVEL )
-      USE GC_TYPE_MOD, ONLY : GC_MET_LOCAL
+      USE GIGC_State_Met_Mod, ONLY : MetState
 #endif
 
       USE CMN_SIZE_MOD      ! Size parameters
@@ -341,7 +341,7 @@
       LOGICAL, INTENT(IN)    :: FIRST
       REAL*8,  INTENT(INOUT) :: DSRC(IIPAR,NDSTBIN)
 #if defined( DEVEL )
-      TYPE(GC_MET_LOCAL), INTENT(IN) :: LOCAL_MET  ! Obj w/ met fields
+      TYPE(MetState), INTENT(IN) :: State_Met   ! Meteorology State object
 #endif
 
       !--------------
@@ -616,13 +616,13 @@
       ! Get volumetric water content from GWET
       CALL VWC_SFC_GET(
      &    LAT_IDX,             ! I [idx] Latitude index
-     &    LOCAL_MET%GWETTOP,   ! I [unitless] Top soil moisture
+     &    State_Met%GWETTOP,   ! I [unitless] Top soil moisture
      &    VWC_SFC_SLICE )      ! O [m3 m-3] Volumetric water content
 
       ! Get surface and soil temperature
       CALL TPT_GND_SOI_GET(
      &    LAT_IDX,            ! I [idx] Latitude index!
-     &    LOCAL_MET%TS,       ! I [K] Sfc temperature at 2m
+     &    State_Met%TS,       ! I [K] Sfc temperature at 2m
      &    TPT_GND_SLICE,      ! O [K] Ground temperature
      &    TPT_SOI_SLICE )     ! O [K] Soil temperature
 #else
@@ -695,7 +695,7 @@ ctdf        print *,' no mobilisation candidates'
       DO I = 1, IIPAR
 #if defined( DEVEL )
          W10M = SQRT( SFCWINDSQR( I,              LAT_IDX,
-     &                            LOCAL_MET%U10M, LOCAL_MET%V10M ) )
+     &                            State_Met%U10M, State_Met%V10M ) )
 #else
          W10M = SQRT( SFCWINDSQR( I, LAT_IDX, U10M, V10M ) )
 #endif
@@ -727,8 +727,8 @@ ctdf        print *,' no mobilisation candidates'
          ! Just assign for flag mobilisation candidates
          IF ( FLG_MBL_SLICE(I) ) THEN
 #if defined( DEVEL )
-            WND_FRC_GEOS(I) = LOCAL_MET%USTAR(I,LAT_IDX)
-            Z0_GEOS(I)      = LOCAL_MET%Z0(I,LAT_IDX)
+            WND_FRC_GEOS(I) = State_Met%USTAR(I,LAT_IDX)
+            Z0_GEOS(I)      = State_Met%Z0(I,LAT_IDX)
 #else
             WND_FRC_GEOS(I) = USTAR(I,LAT_IDX)
             Z0_GEOS(I)      = Z0(I,LAT_IDX)
@@ -1408,7 +1408,7 @@ ctdf        print *,' no mobilisation candidates'
 !------------------------------------------------------------------------------
 
 #if defined( DEVEL )
-      SUBROUTINE GET_ORO( OROGRAPHY, LOCAL_MET )
+      SUBROUTINE GET_ORO( OROGRAPHY, State_Met )
 #else
       SUBROUTINE GET_ORO( OROGRAPHY )
 #endif
@@ -1431,14 +1431,14 @@ ctdf        print *,' no mobilisation candidates'
       ! References to F90 modules
       USE DAO_MOD, ONLY : IS_LAND, IS_WATER, IS_ICE
 #if defined( DEVEL )
-      USE GC_TYPE_MOD, ONLY : GC_MET_LOCAL
+      USE GIGC_State_Met_Mod, ONLY : MetState
 #endif
 
       USE CMN_SIZE_MOD
 
       ! Arguments
 #if defined( DEVEL )
-      TYPE(GC_MET_LOCAL), INTENT(IN) :: LOCAL_MET  ! Obj w/ met fields
+      TYPE(MetState), INTENT(IN) :: State_Met   ! Meteorology State object
 #endif
       INTEGER, INTENT(OUT)  :: OROGRAPHY(IIPAR,JJPAR)
 
@@ -1456,13 +1456,13 @@ ctdf        print *,' no mobilisation candidates'
 
 #if defined( DEVEL )
          ! Ocean
-         IF ( IS_WATER( I, J, LOCAL_MET ) ) OROGRAPHY(I,J) = 0
+         IF ( IS_WATER( I, J, State_Met ) ) OROGRAPHY(I,J) = 0
 
          ! Land
-         IF ( IS_LAND(  I, J, LOCAL_MET ) ) OROGRAPHY(I,J) = 1
+         IF ( IS_LAND(  I, J, State_Met ) ) OROGRAPHY(I,J) = 1
 
          ! Ice
-         IF ( IS_ICE (  I, J, LOCAL_MET ) ) OROGRAPHY(I,J) = 2
+         IF ( IS_ICE (  I, J, State_Met ) ) OROGRAPHY(I,J) = 2
 
 #else
          ! Ocean

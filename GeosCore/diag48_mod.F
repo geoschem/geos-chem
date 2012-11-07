@@ -136,7 +136,7 @@
 !------------------------------------------------------------------------------
 
 #if defined( DEVEL )
-      SUBROUTINE DIAG48( LOCAL_MET )
+      SUBROUTINE DIAG48( State_Met )
 #else
       SUBROUTINE DIAG48 
 #endif
@@ -185,7 +185,7 @@
       USE TRACERID_MOD, ONLY : IDTPAN,  IDTPMN,  IDTPPN,  IDTOX   
       USE TRACERID_MOD, ONLY : IDTR4N2, IDTSALA, IDTSALC 
 #if defined( DEVEL )
-      USE GC_TYPE_MOD,  ONLY : GC_MET_LOCAL
+      USE GIGC_State_Met_Mod, ONLY : MetState
 #endif
 
       USE CMN_FJ_MOD,   ONLY : JPMAX, JPPJ    ! Size parameters + FAST-J stuff
@@ -196,7 +196,7 @@
 
       ! Arguments
 #if defined( DEVEL )
-      TYPE(GC_MET_LOCAL), INTENT(IN) :: LOCAL_MET  ! Obj w/ met fields
+      TYPE(MetState), INTENT(IN) :: State_Met   ! Meteorology State object
 #endif
 
       ! Local variables
@@ -225,9 +225,9 @@
 
          ! Set logical flags on first timestep
 #if defined( DEVEL )
-         IS_CLDTOPS  = ASSOCIATED( LOCAL_MET%CLDTOPS )
-         IS_SLP      = ASSOCIATED( LOCAL_MET%SLP     )
-         IS_OPTD     = ASSOCIATED( LOCAL_MET%OPTD    )
+         IS_CLDTOPS  = ASSOCIATED( State_Met%CLDTOPS )
+         IS_SLP      = ASSOCIATED( State_Met%SLP     )
+         IS_OPTD     = ASSOCIATED( State_Met%OPTD    )
 #else
          IS_CLDTOPS  = ALLOCATED( CLDTOPS )
          IS_SLP      = ALLOCATED( SLP     )
@@ -291,7 +291,7 @@
 
 #if defined( DEVEL )
             DO L = 1, K
-               Q(L) = STT(I,J,L,N) * TCVV(N) / LOCAL_MET%AD(I,J,L)
+               Q(L) = STT(I,J,L,N) * TCVV(N) / State_Met%AD(I,J,L)
             ENDDO
 #else
             DO L = 1, K
@@ -311,7 +311,7 @@
 #if defined( DEVEL )
             DO L = 1, K
                Q(L) = STT(I,J,L,IDTOX)    * TCVV(IDTOX)  / 
-     &                LOCAL_MET%AD(I,J,L) * FRACO3(I,J,L)
+     &                State_Met%AD(I,J,L) * FRACO3(I,J,L)
             ENDDO
 #else
             DO L = 1, K
@@ -332,7 +332,7 @@
 #if defined( DEVEL )
             DO L = 1, K
                Q(L) = STT(I,J,L,IDTNOX) * TCVV(IDTNOX) * 
-     &                FRACNO(I,J,L)     / LOCAL_MET%AD(I,J,L)
+     &                FRACNO(I,J,L)     / State_Met%AD(I,J,L)
             ENDDO
 #else
             DO L = 1, K
@@ -359,42 +359,42 @@
                ! NOx
                Q(L) = Q(L) + ( TCVV(IDTNOX)        * 
      &                         STT(I,J,L,IDTNOX)   / 
-     &                         LOCAL_MET%AD(I,J,L) )
+     &                         State_Met%AD(I,J,L) )
 
                ! PAN
                Q(L) = Q(L) + ( TCVV(IDTPAN)        * 
      &                         STT(I,J,L,IDTPAN)   / 
-     &                         LOCAL_MET%AD(I,J,L) )
+     &                         State_Met%AD(I,J,L) )
 
                ! HNO3
                Q(L) = Q(L) + ( TCVV(IDTHNO3)       *
      &                         STT(I,J,L,IDTHNO3)  / 
-     &                         LOCAL_MET%AD(I,J,L) )
+     &                         State_Met%AD(I,J,L) )
             
                ! PMN
                Q(L) = Q(L) + ( TCVV(IDTPMN)        *
      &                         STT(I,J,L,IDTPMN)   / 
-     &                         LOCAL_MET%AD(I,J,L) )
+     &                         State_Met%AD(I,J,L) )
 
                ! PPN
                Q(L) = Q(L) + ( TCVV(IDTPPN)        * 
      &                         STT(I,J,L,IDTPPN)   / 
-     &                         LOCAL_MET%AD(I,J,L) )
+     &                         State_Met%AD(I,J,L) )
  
                ! R4N2
                Q(L) = Q(L) + ( TCVV(IDTR4N2)       *
      &                         STT(I,J,L,IDTR4N2)  / 
-     &                         LOCAL_MET%AD(I,J,L) )
+     &                         State_Met%AD(I,J,L) )
             
                ! N2O5
                Q(L) = Q(L) + ( 2d0 * TCVV(IDTN2O5) *
      &                         STT(I,J,L,IDTN2O5)  / 
-     &                         LOCAL_MET%AD(I,J,L) )
+     &                         State_Met%AD(I,J,L) )
                         
                ! HNO4
                Q(L) = Q(L) + ( TCVV(IDTHNO4)       *
      &                         STT(I,J,L,IDTHNO4)  / 
-     &                         LOCAL_MET%AD(I,J,L) )
+     &                         State_Met%AD(I,J,L) )
             ENDDO
 #else
             DO L = 1, K
@@ -500,7 +500,7 @@
 
             DO L = 1, K
 #if defined( DEVEL )
-               Q(L) = LOCAL_MET%AIRDEN(L,I,J) * XNUMOLAIR * 1d-6
+               Q(L) = State_Met%AIRDEN(L,I,J) * XNUMOLAIR * 1d-6
 #else
                Q(L) = AIRDEN(L,I,J) * XNUMOLAIR * 1d-6
 #endif
@@ -517,7 +517,7 @@
 
             DO L = 1, K
 #if defined( DEVEL )
-               Q(L) = LOCAL_MET%CLDF(L,I,J)
+               Q(L) = State_Met%CLDF(L,I,J)
 #else
                Q(L) = CLDF(L,I,J)
 #endif
@@ -533,7 +533,7 @@
             GMTRC    = 20
 
 #if defined( DEVEL )
-            Q(1) = SUM( LOCAL_MET%OPTD(:,I,J) )
+            Q(1) = SUM( State_Met%OPTD(:,I,J) )
 #else
             Q(1) = SUM( OPTD(:,I,J) )
 #endif
@@ -549,7 +549,7 @@
 
             IF ( K == 1 ) THEN
 #if defined( DEVEL )
-               Q(1) = GET_PEDGE( I, J, LOCAL_MET%CLDTOPS(I,J) )
+               Q(1) = GET_PEDGE( I, J, State_Met%CLDTOPS(I,J) )
 #else
                Q(1) = GET_PEDGE( I, J, CLDTOPS(I,J) )
 #endif
@@ -713,7 +713,7 @@
 #if defined( DEVEL )
             DO L = 1, K
                Q(L) = ( STT(I,J,L,IDTSALA) + STT(I,J,L,IDTSALC) ) *
-     &                  TCVV(IDTSALA)      / LOCAL_MET%AD(I,J,L) 
+     &                  TCVV(IDTSALA)      / State_Met%AD(I,J,L) 
             ENDDO
 #else
             DO L = 1, K
@@ -733,7 +733,7 @@
 
 #if defined( DEVEL )
             DO L = 1, K
-               Q(L) = LOCAL_MET%BXHEIGHT(I,J,L)
+               Q(L) = State_Met%BXHEIGHT(I,J,L)
             ENDDO
 #else
             DO L = 1, K
@@ -752,7 +752,7 @@
 
 #if defined( DEVEL )
             DO L = 1, K
-               Q(L) = LOCAL_MET%RH(I,J,L)
+               Q(L) = State_Met%RH(I,J,L)
             ENDDO
 #else
             DO L = 1, K
@@ -771,7 +771,7 @@
 
             IF ( K == 1 ) THEN
 #if defined( DEVEL )
-               Q(1) = LOCAL_MET%SLP(I,J)
+               Q(1) = State_Met%SLP(I,J)
 #else
                Q(1) = SLP(I,J)
 #endif
@@ -788,7 +788,7 @@
 
             DO L = 1, K
 #if defined( DEVEL )
-               Q(L) = LOCAL_MET%U(I,J,L)
+               Q(L) = State_Met%U(I,J,L)
 #else
                Q(L) = UWND(I,J,L)
 #endif
@@ -805,7 +805,7 @@
 
             DO L = 1, K
 #if defined( DEVEL )
-               Q(L) = LOCAL_MET%V(I,J,L)
+               Q(L) = State_Met%V(I,J,L)
 #else
                Q(L) = VWND(I,J,L)
 #endif
@@ -835,7 +835,7 @@
 
             DO L = 1, K
 #if defined( DEVEL )
-               Q(L) = LOCAL_MET%T(I,J,L)
+               Q(L) = State_Met%T(I,J,L)
 #else
                Q(L) = T(I,J,L)
 #endif

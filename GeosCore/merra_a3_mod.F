@@ -250,7 +250,7 @@
 ! !INTERFACE:
 !
 #if defined( DEVEL )
-      SUBROUTINE GET_MERRA_A3_FIELDS( NYMD, NHMS, LOCAL_MET )
+      SUBROUTINE GET_MERRA_A3_FIELDS( NYMD, NHMS, State_Met )
 #else
       SUBROUTINE GET_MERRA_A3_FIELDS( NYMD, NHMS )
 #endif
@@ -265,7 +265,7 @@
       USE DAO_MOD, ONLY : T,       TAUCLI,   TAUCLW,   UWND
       USE DAO_MOD, ONLY : VWND
 #if defined( DEVEL )
-      USE GC_TYPE_MOD, ONLY : GC_MET_LOCAL
+      USE GIGC_State_Met_Mod, ONLY : MetState
 #endif
 
       USE CMN_SIZE_MOD            ! Size parameters
@@ -278,7 +278,7 @@
 ! !INPUT/OUTPUT PARAMETERS:
 !
 #if defined( DEVEL )
-      TYPE(GC_MET_LOCAL), INTENT(INOUT) :: LOCAL_MET  ! Obj w/ met fields
+      TYPE(MetState), INTENT(INOUT) :: State_Met   ! Meteorology State object
 #endif
 ! 
 ! !REVISION HISTORY: 
@@ -340,31 +340,31 @@
       LASTNHMS = NHMS
 
 #if defined( DEVEL )
-      LOCAL_MET%CLDF     = CLDF
-      LOCAL_MET%CLDTOPS  = CLDTOPS
-      LOCAL_MET%CMFMC    = CMFMC
-      LOCAL_MET%DQRCU    = DQRCU
-      LOCAL_MET%DQRLSAN  = DQRLSAN
-      LOCAL_MET%DQIDTMST = DQIDTMST
-      LOCAL_MET%DQLDTMST = DQLDTMST
-      LOCAL_MET%DQVDTMST = DQVDTMST
-      LOCAL_MET%DTRAIN   = DTRAIN
-      LOCAL_MET%MOISTQ   = MOISTQ
-      LOCAL_MET%OPTDEP   = OPTDEP
-      LOCAL_MET%PFICU    = PFICU
-      LOCAL_MET%PFILSAN  = PFILSAN
-      LOCAL_MET%PFLCU    = PFLCU
-      LOCAL_MET%PFLLSAN  = PFLLSAN
-      LOCAL_MET%QI       = QI
-      LOCAL_MET%QL       = QL
-      LOCAL_MET%SPHU     = SPHU
-      LOCAL_MET%REEVAPCN = REEVAPCN
-      LOCAL_MET%REEVAPLS = REEVAPLS
-      LOCAL_MET%T        = T
-      LOCAL_MET%TAUCLI   = TAUCLI
-      LOCAL_MET%TAUCLW   = TAUCLW
-      LOCAL_MET%U        = UWND
-      LOCAL_MET%V        = VWND
+      State_Met%CLDF     = CLDF
+      State_Met%CLDTOPS  = CLDTOPS
+      State_Met%CMFMC    = CMFMC
+      State_Met%DQRCU    = DQRCU
+      State_Met%DQRLSAN  = DQRLSAN
+      State_Met%DQIDTMST = DQIDTMST
+      State_Met%DQLDTMST = DQLDTMST
+      State_Met%DQVDTMST = DQVDTMST
+      State_Met%DTRAIN   = DTRAIN
+      State_Met%MOISTQ   = MOISTQ
+      State_Met%OPTDEP   = OPTDEP
+      State_Met%PFICU    = PFICU
+      State_Met%PFILSAN  = PFILSAN
+      State_Met%PFLCU    = PFLCU
+      State_Met%PFLLSAN  = PFLLSAN
+      State_Met%QI       = QI
+      State_Met%QL       = QL
+      State_Met%SPHU     = SPHU
+      State_Met%REEVAPCN = REEVAPCN
+      State_Met%REEVAPLS = REEVAPLS
+      State_Met%T        = T
+      State_Met%TAUCLI   = TAUCLI
+      State_Met%TAUCLW   = TAUCLW
+      State_Met%U        = UWND
+      State_Met%V        = VWND
 #endif
 
       END SUBROUTINE GET_MERRA_A3_FIELDS

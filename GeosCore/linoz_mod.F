@@ -95,7 +95,7 @@
 ! !INTERFACE:
 !
 #if defined( DEVEL )
-      SUBROUTINE DO_LINOZ( am_I_Root, LOCAL_MET )
+      SUBROUTINE DO_LINOZ( am_I_Root, State_Met )
 #else
       SUBROUTINE DO_LINOZ( am_I_Root )
 #endif
@@ -104,16 +104,16 @@
 !
       USE TIME_MOD
 #if defined( DEVEL )
-      USE GC_TYPE_MOD,  ONLY : GC_MET_LOCAL
+      USE GIGC_State_Met_Mod, ONLY : MetState
 #endif
 
       USE CMN_SIZE_MOD
 !
 ! !INPUT PARAMETERS:
 !
-      LOGICAL,            INTENT(IN) :: am_I_Root  ! Is this the root CPU?
+      LOGICAL,        INTENT(IN) :: am_I_Root   ! Is this the root CPU?
 #if defined( DEVEL )
-      TYPE(GC_MET_LOCAL), INTENT(IN) :: LOCAL_MET  ! Obj w/ met fields
+      TYPE(MetState), INTENT(IN) :: State_Met   ! Meteorology State object
 #endif
 !
 ! !REVISION HISTORY: 
@@ -143,7 +143,7 @@
 
       ! Call the Linoz chemistry
 #if defined( DEVEL )
-      CALL LINOZ_CHEM3( NSCHEM, am_I_Root, LOCAL_MET )
+      CALL LINOZ_CHEM3( NSCHEM, am_I_Root, State_Met )
 #else
       CALL LINOZ_CHEM3( NSCHEM, am_I_Root )
 #endif
@@ -164,7 +164,7 @@
 ! !INTERFACE:
 !
 #if defined( DEVEL )
-      SUBROUTINE LINOZ_CHEM3( DTCHEM, am_I_Root, LOCAL_MET )
+      SUBROUTINE LINOZ_CHEM3( DTCHEM, am_I_Root, State_Met )
 #else
       SUBROUTINE LINOZ_CHEM3( DTCHEM, am_I_Root )
 #endif
@@ -180,7 +180,7 @@
       USE PRESSURE_MOD,   ONLY : GET_PEDGE
       USE PRESSURE_MOD,   ONLY : GET_PCENTER
 #if defined( DEVEL )
-      USE GC_TYPE_MOD,    ONLY : GC_MET_LOCAL
+      USE GIGC_State_Met_Mod, ONLY : MetState
 #endif
   
       USE CMN_SIZE_MOD
@@ -188,10 +188,10 @@
 !
 ! !INPUT PARAMETERS:
 !
-      REAL*8,             INTENT(IN) :: DTCHEM     ! Time step [seconds]
-      LOGICAL,            INTENT(IN) :: am_I_Root  ! Is this the root CPU?
+      REAL*8,         INTENT(IN) :: DTCHEM      ! Time step [seconds]
+      LOGICAL,        INTENT(IN) :: am_I_Root   ! Is this the root CPU?
 #if defined( DEVEL )
-      TYPE(GC_MET_LOCAL), INTENT(IN) :: LOCAL_MET  ! Obj w/ met fields
+      TYPE(MetState), INTENT(IN) :: State_Met   ! Meteorology State object
 #endif
 !
 ! !REVISION HISTORY: 
@@ -303,7 +303,7 @@
          DO J = 1, JM
          DO I = 1, IM
 #if defined( DEVEL )
-            LBOT = GET_TPAUSE_LEVEL( I, J, LOCAL_MET ) + 1
+            LBOT = GET_TPAUSE_LEVEL( I, J, State_Met ) + 1
 #else
             LBOT = GET_TPAUSE_LEVEL(I,J)+1
 #endif
@@ -363,7 +363,7 @@
                ! ++++++ temperature feedback: ++++++ 
                dertmp=tlstt(j,l,6)              ! Derivative w.r.t. Temperature
 #if defined( DEVEL )
-               dtmp=(LOCAL_MET%T(I,J,L) -       ! Deviation in Temperature 
+               dtmp=(State_Met%T(I,J,L) -       ! Deviation in Temperature 
      &                tlstt(j,l,2))              !  from climatology.
 #else
                dtmp=(T(I,J,L)-tlstt(j,l,2))     ! Deviation in Temperature 

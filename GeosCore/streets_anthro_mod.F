@@ -408,7 +408,7 @@
 !------------------------------------------------------------------------------
 
 #if defined( DEVEL )
-      SUBROUTINE EMISS_STREETS_ANTHRO( LOCAL_MET, EMISSIONS )
+      SUBROUTINE EMISS_STREETS_ANTHRO( State_Met, EMISSIONS )
 #else
       SUBROUTINE EMISS_STREETS_ANTHRO
 #endif
@@ -448,7 +448,7 @@
       USE CMN_O3_MOD           ! FSCALYR
 
 #if defined( DEVEL )
-      USE GC_TYPE_MOD,      ONLY : GC_MET_LOCAL
+      USE GIGC_State_Met_Mod, ONLY : MetState
       USE TRACER_MOD,       ONLY : N_TRACERS
       USE TRACERID_MOD,     ONLY : IDTNOx, IDTCO, IDTSO2, IDTNH3
       USE TRACERID_MOD,     ONLY : IDTACET, IDTALK4, IDTC2H6
@@ -480,8 +480,8 @@
       REAL*8                     :: TAUMONTH_2001, TAUMONTH_2004, TAU
 
 #if defined( DEVEL )
-      TYPE(GC_MET_LOCAL), INTENT(IN) :: LOCAL_MET  ! Obj w/ met fields
-      REAL*8,INTENT(INOUT)           :: EMISSIONS(IIPAR,JJPAR,N_TRACERS)
+      TYPE(MetState), INTENT(IN)    :: State_Met   ! Meteorology State object
+      REAL*8,         INTENT(INOUT) :: EMISSIONS(IIPAR,JJPAR,N_TRACERS)
 #endif
       !=================================================================
       ! EMISS_STREETS_ANTHRO begins here!
@@ -566,9 +566,9 @@
 #if defined( DEVEL )
 
 #if defined( GEOS_5 ) || defined( MERRA ) || defined( GEOS_527 )
-            IF ( LOCAL_MET%FROCEAN(I,J) == 1d0 ) SCALOC(I,J) = 0d0
+            IF ( State_Met%FROCEAN(I,J) == 1d0 ) SCALOC(I,J) = 0d0
 #else
-            IF ( IS_WATER(I,J,LOCAL_MET) ) SCALOC(I,J) = 0d0
+            IF ( IS_WATER(I,J,State_Met) ) SCALOC(I,J) = 0d0
 #endif
 
 #else
@@ -1285,7 +1285,7 @@
 !------------------------------------------------------------------------------
 
 #if defined( DEVEL )
-      SUBROUTINE EMISS_STREETS_ANTHRO_05x0666( LOCAL_MET, EMISSIONS)
+      SUBROUTINE EMISS_STREETS_ANTHRO_05x0666( State_Met, EMISSIONS)
 #else
       SUBROUTINE EMISS_STREETS_ANTHRO_05x0666
 #endif
@@ -1325,12 +1325,12 @@
       USE CMN_O3_MOD         ! FSCALYR
 
 #if defined( DEVEL )
-      USE GC_TYPE_MOD,      ONLY : GC_MET_LOCAL
-      USE TRACER_MOD,       ONLY : N_TRACERS
-      USE TRACERID_MOD,     ONLY : IDTNOx, IDTCO, IDTSO2, IDTNH3
-      USE TRACERID_MOD,     ONLY : IDTACET, IDTALK4, IDTC2H6
-      USE TRACERID_MOD,     ONLY : IDTCH2O, IDTMEK,  IDTALD2
-      USE TRACERID_MOD,     ONLY : IDTPRPE, IDTC3H8
+      USE GIGC_State_Met_Mod, ONLY : MetState
+      USE TRACER_MOD,         ONLY : N_TRACERS
+      USE TRACERID_MOD,       ONLY : IDTNOx, IDTCO, IDTSO2, IDTNH3
+      USE TRACERID_MOD,       ONLY : IDTACET, IDTALK4, IDTC2H6
+      USE TRACERID_MOD,       ONLY : IDTCH2O, IDTMEK,  IDTALD2
+      USE TRACERID_MOD,       ONLY : IDTPRPE, IDTC3H8
 #endif
       ! Local variables
       LOGICAL, SAVE              :: FIRST = .TRUE.
@@ -1357,8 +1357,8 @@
       REAL*8                     :: TAUMONTH_2001, TAUMONTH_2004, TAU
 
 #if defined( DEVEL )
-      TYPE(GC_MET_LOCAL), INTENT(IN) :: LOCAL_MET  ! Obj w/ met fields
-      REAL*8,INTENT(INOUT)           :: EMISSIONS(IIPAR,JJPAR,N_TRACERS)
+      TYPE(MetState), INTENT(IN)    :: State_Met   ! Meteorology State object
+      REAL*8,         INTENT(INOUT) :: EMISSIONS(IIPAR,JJPAR,N_TRACERS)
 #endif
       
       !=================================================================
@@ -1449,7 +1449,7 @@
          DO J = 1, JJPAR
          DO I = 1, IIPAR
 #if defined( DEVEL )
-            IF ( LOCAL_MET%FROCEAN(I,J) == 1d0 ) SCALOC(I,J) = 0d0
+            IF ( State_Met%FROCEAN(I,J) == 1d0 ) SCALOC(I,J) = 0d0
 #else
             IF ( FROCEAN(I,J) == 1d0 ) SCALOC(I,J) = 0d0
 #endif

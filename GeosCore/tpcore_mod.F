@@ -102,8 +102,10 @@
 
 ! ****6***0*********0*********0*********0*********0*********0**********72
 #if defined( DEVEL )
-      subroutine tpcore(IGD,Q,PS1,PS2,U,V,W,NDT,IORD,JORD,KORD,NC,IM,
-     &                  JM,j1,NL,AP,BP,PT,AE,FILL,MFCT,Umax, LOCAL_MET)
+      subroutine tpcore( IGD,  Q,    PS1,   PS2,   U,     V,
+     &                   W,    NDT,  IORD,  JORD,  KORD,  NC,
+     &                   IM,   JM,   j1,    NL,    AP,    BP,   
+     &                   PT,   AE,   FILL,  MFCT,  Umax,  State_Met )
 #else
       subroutine tpcore(IGD,Q,PS1,PS2,U,V,W,NDT,IORD,JORD,KORD,NC,IM,
      &                  JM,j1,NL,AP,BP,PT,AE,FILL,MFCT,Umax)
@@ -358,7 +360,7 @@
 
       ! References to F90 modules
 #if defined( DEVEL )
-      USE GC_TYPE_MOD, ONLY : GC_MET_LOCAL
+      USE GIGC_State_Met_Mod, ONLY : MetState
 #endif
  
       ! Added to pass C-preprocessor switches (bmy, 3/9/01)
@@ -375,7 +377,7 @@
      &     U(IM,JM,NL),V(IM,JM,NL),AP(NL+1),BP(NL+1)
       LOGICAL  ZCROSS, FILL, MFCT, deform
 #if defined( DEVEL )
-      TYPE(GC_MET_LOCAL), INTENT(IN) :: LOCAL_MET  ! Obj w/ met fields
+      TYPE(MetState), INTENT(IN) :: State_Met   ! Meteorology State object
 #endif
  
 ! Local dynamic arrays
@@ -726,7 +728,7 @@
          ! XMASS_PF, YMASS_PF.  PRESS_FIX will call routine DYN0, etc.
          !==============================================================
 #if defined( DEVEL )
-         CALL PRESS_FIX( XMASS_PF, YMASS_PF, NDT, ACOSP, J1, LOCAL_MET )
+         CALL PRESS_FIX( XMASS_PF, YMASS_PF, NDT, ACOSP, J1, State_Met )
 #else
          CALL PRESS_FIX( XMASS_PF, YMASS_PF, NDT, ACOSP, J1 )
 #endif
@@ -2877,7 +2879,7 @@ c        AL(i,k) = median(AL(i,k), qmin, qmax)
 !------------------------------------------------------------------------------
 
 #if defined( DEVEL )
-      SUBROUTINE PRESS_FIX( FX, FY, NDT, ACOSP, J1, LOCAL_MET )
+      SUBROUTINE PRESS_FIX( FX, FY, NDT, ACOSP, J1, State_Met )
 #else
       SUBROUTINE PRESS_FIX( FX, FY, NDT, ACOSP, J1 )
 #endif
@@ -2910,7 +2912,7 @@ c        AL(i,k) = median(AL(i,k), qmin, qmax)
       USE GRID_MOD,  ONLY : GET_AREA_M2
       USE TIME_MOD,  ONLY : GET_TS_DYN
 #if defined( DEVEL )
-      USE GC_TYPE_MOD, ONLY : GC_MET_LOCAL
+      USE GIGC_State_Met_Mod, ONLY : MetState
 #endif
 
       USE CMN_SIZE_MOD   ! Size parameters
@@ -2926,7 +2928,7 @@ c        AL(i,k) = median(AL(i,k), qmin, qmax)
       REAL*8,  INTENT(INOUT) :: FX(IIPAR,JJPAR,LLPAR) 
       REAL*8,  INTENT(INOUT) :: FY(IIPAR,JJPAR,LLPAR)
 #if defined( DEVEL )
-      TYPE(GC_MET_LOCAL), INTENT(IN) :: LOCAL_MET  ! Obj w/ met fields
+      TYPE(MetState), INTENT(IN) :: State_Met   ! Meteorology State object
 #endif
 
       ! Local variables
@@ -3070,7 +3072,7 @@ c        AL(i,k) = median(AL(i,k), qmin, qmax)
       !=================================================================
 #if defined( DEVEL )
       CALL DYN0( NSDYN, J1,    NP_FLUX, SP_FLUX, 
-     &           UMFLX, VMFLX, ALFA,    BETA,   GAMA, LOCAL_MET )
+     &           UMFLX, VMFLX, ALFA,    BETA,   GAMA, State_Met )
 #else
       CALL DYN0( NSDYN, J1,    NP_FLUX, SP_FLUX, 
      &           UMFLX, VMFLX, ALFA,    BETA,   GAMA )
@@ -3130,9 +3132,9 @@ c        AL(i,k) = median(AL(i,k), qmin, qmax)
 !------------------------------------------------------------------------------
 
 #if defined( DEVEL )
-      SUBROUTINE DYN0( DTWIND, J1,    NP_FLUX, SP_FLUX,
-     &                 UMFLX,  VMFLX, ALFA,    BETA,    GAMA,
-     &                 LOCAL_MET )
+      SUBROUTINE DYN0( DTWIND,   J1,     NP_FLUX,  SP_FLUX,
+     &                 UMFLX,    VMFLX,  ALFA,     BETA,     GAMA,
+     &                 State_Met )
 #else
       SUBROUTINE DYN0( DTWIND, J1,    NP_FLUX, SP_FLUX,
      &                 UMFLX,  VMFLX, ALFA,    BETA,    GAMA )
@@ -3185,7 +3187,7 @@ c        AL(i,k) = median(AL(i,k), qmin, qmax)
       USE GRID_MOD,     ONLY : GET_AREA_M2, GET_YOFFSET
       USE PRESSURE_MOD, ONLY : GET_BP
 #if defined( DEVEL )
-      USE GC_TYPE_MOD,  ONLY : GC_MET_LOCAL
+      USE GIGC_State_Met_Mod, ONLY : MetState
 #endif
 
       USE CMN_SIZE_MOD       ! Size parameters
@@ -3204,7 +3206,7 @@ c        AL(i,k) = median(AL(i,k), qmin, qmax)
       REAL*8,  INTENT(INOUT) :: BETA(IIPAR,JJPAR+1,LLPAR)
       REAL*8,  INTENT(INOUT) :: GAMA(IIPAR,JJPAR,LLPAR+1)
 #if defined( DEVEL )
-      TYPE(GC_MET_LOCAL), INTENT(IN) :: LOCAL_MET  ! Obj w/ met fields
+      TYPE(MetState), INTENT(IN) :: State_Met   ! Meteorology State object
 #endif
 
       ! Local variables
@@ -3397,9 +3399,9 @@ c        AL(i,k) = median(AL(i,k), qmin, qmax)
       DO I = 1, IIPAR
 #if defined( DEVEL )
          XYZB(I,J,L)    = DSIG(L) * DXYP(J) * 1.d2 / G0
-         AD_L(I,J,L)    = LOCAL_MET%AIRDEN(L,I,J) *
-     &                    LOCAL_MET%AIRVOL(I,J,L)
-!         SPHU_KG(I,J,L) = LOCAL_MET%SPHU(I,J,L) / 1000d0
+         AD_L(I,J,L)    = State_Met%AIRDEN(L,I,J) *
+     &                    State_Met%AIRVOL(I,J,L)
+!         SPHU_KG(I,J,L) = State_Met%SPHU(I,J,L) / 1000d0
          SPHU_KG(I,J,L) = SPHU(I,J,L) / 1000d0
 #else
          XYZB(I,J,L)    = DSIG(L) * DXYP(J) * 1.d2 / G0
@@ -3474,7 +3476,7 @@ c        AL(i,k) = median(AL(i,k), qmin, qmax)
         
          DO K = 1, LLPAR
 #if defined( DEVEL )
-            AIRWET     = LOCAL_MET%PSC2(I,J) * XYZB(I,J,K)
+            AIRWET     = State_Met%PSC2(I,J) * XYZB(I,J,K)
 #else
             AIRWET     = PSC2(I,J)      * XYZB(I,J,K)
 #endif
@@ -3598,10 +3600,10 @@ c        AL(i,k) = median(AL(i,k), qmin, qmax)
 #if defined( DEVEL )
          ! special case for j=2, jjpar-1 for tpcore pole configuration.
          IF ( J .eq. 2 .OR. J .eq. JJPAR-1 ) THEN
-            PCTM(I,J) = LOCAL_MET%PSC2(I,J)
+            PCTM(I,J) = State_Met%PSC2(I,J)
          ENDIF
 
-         PERR(I,J) = PCTM(I,J) - LOCAL_MET%PSC2(I,J)
+         PERR(I,J) = PCTM(I,J) - State_Met%PSC2(I,J)
          MERR(I,J) = PERR(I,J) * DXYP(J) * G100
 #else
          ! special case for j=2, jjpar-1 for tpcore pole configuration.
@@ -3739,11 +3741,11 @@ c        AL(i,k) = median(AL(i,k), qmin, qmax)
 
          PCTM8     = ( SUM( AIRNEW(I,J,:) ) + SUMAQ(I,J) ) / XYB(I,J)
          PCTM(I,J) = PCTM8
-         PERR(I,J) = PCTM8 - LOCAL_MET%PSC2(I,J)
+         PERR(I,J) = PCTM8 - State_Met%PSC2(I,J)
 
          DO K = 1, LLPAR
             AIRQKG      = SPHU_KG(I,J,K) *
-     &                  ( XYZB(I,J,K) * LOCAL_MET%PSC2(I,J) )
+     &                  ( XYZB(I,J,K) * State_Met%PSC2(I,J) )
             AIRX(I,J,K) = PCTM8 * XYZB(I,J,K) - AIRQKG
          ENDDO
       ENDDO

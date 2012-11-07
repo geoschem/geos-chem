@@ -18,7 +18,7 @@
 ! !INTERFACE:
 !
 #if defined( DEVEL )
-      SUBROUTINE SETEMIS( EMISRR, EMISRRN, am_I_Root, LOCAL_MET )
+      SUBROUTINE SETEMIS( EMISRR, EMISRRN, am_I_Root, State_Met )
 #else
       SUBROUTINE SETEMIS( EMISRR, EMISRRN, am_I_Root )
 #endif
@@ -44,7 +44,7 @@
       ! NOx emissions scaling FP 15/12/09
       USE EMISSIONS_MOD,     ONLY : NOx_SCALING
 #if defined( DEVEL )
-      USE GC_TYPE_MOD,       ONLY : GC_MET_LOCAL
+      USE GIGC_State_Met_Mod, ONLY : MetState
 #endif
 
 #     include "define.h"
@@ -69,7 +69,7 @@
 
       ! Obj w/ met fields
 #if defined( DEVEL )
-      TYPE(GC_MET_LOCAL), INTENT(IN) :: LOCAL_MET
+      TYPE(MetState), INTENT(IN) :: State_Met   ! Meteorology State object
 #endif
 !
 ! !REMARKS:
@@ -382,7 +382,7 @@
                   ! the trop into the strat.  We only want to partition
                   ! emissions in the troposphere. (bmy, 9/10/10)
 #if defined( DEVEL )
-                  IF ( ITS_IN_THE_STRAT( I, J, L, LOCAL_MET ) ) EXIT
+                  IF ( ITS_IN_THE_STRAT( I, J, L, State_Met ) ) EXIT
 #else
                   IF ( ITS_IN_THE_STRAT(I,J,L) ) EXIT
 #endif

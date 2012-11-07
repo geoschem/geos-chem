@@ -92,7 +92,7 @@
 ! !INTERFACE:
 !
 #if defined( DEVEL )
-      SUBROUTINE MAKE_RESTART_FILE( YYYYMMDD, HHMMSS, TAU, LOCAL_MET )
+      SUBROUTINE MAKE_RESTART_FILE( YYYYMMDD, HHMMSS, TAU, State_Met )
 #else
       SUBROUTINE MAKE_RESTART_FILE( YYYYMMDD, HHMMSS, TAU )
 #endif
@@ -109,7 +109,7 @@
       USE TIME_MOD,    ONLY : EXPAND_DATE
       USE TRACER_MOD,  ONLY : STT,           N_TRACERS,  TCVV
 #if defined( DEVEL )
-      USE GC_TYPE_MOD, ONLY : GC_MET_LOCAL
+      USE GIGC_State_Met_Mod, ONLY : MetState
 #endif
 
       USE CMN_SIZE_MOD                   ! Size parameters
@@ -120,7 +120,7 @@
       INTEGER, INTENT(IN)  :: HHMMSS     ! hh:mm:ss GMT time
       REAL*8,  INTENT(IN)  :: TAU        ! TAU value (hrs from 1/1/1985)
 #if defined( DEVEL )
-      TYPE(GC_MET_LOCAL), INTENT(IN) :: LOCAL_MET  ! Obj w/ met fields
+      TYPE(MetState), INTENT(IN) :: State_Met   ! Meteorology State object
 #endif
 ! 
 ! !REVISION HISTORY: 
@@ -233,7 +233,7 @@
          DO J = 1, JJPAR
          DO I = 1, IIPAR
 #if defined( DEVEL )
-            TRACER(I,J,L) = STT(I,J,L,N) * TCVV(N) / LOCAL_MET%AD(I,J,L)
+            TRACER(I,J,L) = STT(I,J,L,N) * TCVV(N) / State_Met%AD(I,J,L)
 #else
             TRACER(I,J,L) = STT(I,J,L,N) * TCVV(N) / AD(I,J,L)
 #endif
@@ -273,7 +273,7 @@
 ! !INTERFACE:
 !
 #if defined( DEVEL )
-      SUBROUTINE READ_RESTART_FILE( YYYYMMDD, HHMMSS, LOCAL_MET ) 
+      SUBROUTINE READ_RESTART_FILE( YYYYMMDD, HHMMSS, State_Met ) 
 #else
       SUBROUTINE READ_RESTART_FILE( YYYYMMDD, HHMMSS ) 
 #endif
@@ -292,7 +292,7 @@
       USE TRACER_MOD,  ONLY : TRACER_NAME
       USE TRACER_MOD,  ONLY : TRACER_MW_G
 #if defined( DEVEL )
-      USE GC_TYPE_MOD, ONLY : GC_MET_LOCAL
+      USE GIGC_State_Met_Mod, ONLY : MetState
 #endif
 
       USE CMN_SIZE_MOD                  ! Size parameters
@@ -302,7 +302,7 @@
       INTEGER, INTENT(IN) :: YYYYMMDD   ! YYYY/MM/DD GMT date
       INTEGER, INTENT(IN) :: HHMMSS     ! hh:mm:ss   GMT time
 #if defined( DEVEL )
-      TYPE(GC_MET_LOCAL), INTENT(IN) :: LOCAL_MET  ! Obj w/ met fields
+      TYPE(MetState), INTENT(IN) :: State_Met   ! Meteorology State object
 #endif
 ! 
 ! !REVISION HISTORY: 
@@ -440,7 +440,7 @@
 
             ! Convert TRACER from [v/v] to [kg] and copy into STT array
 #if defined( DEVEL )
-            CALL COPY_STT( NTRACER, TRACER, NCOUNT, LOCAL_MET )
+            CALL COPY_STT( NTRACER, TRACER, NCOUNT, State_Met )
 #else
             CALL COPY_STT( NTRACER, TRACER, NCOUNT )
 #endif
@@ -650,7 +650,7 @@
 ! !INTERFACE:
 !
 #if defined( DEVEL )
-      SUBROUTINE COPY_STT( NTRACER, TRACER, NCOUNT, LOCAL_MET )
+      SUBROUTINE COPY_STT( NTRACER, TRACER, NCOUNT, State_Met )
 #else
       SUBROUTINE COPY_STT( NTRACER, TRACER, NCOUNT )
 #endif
@@ -660,7 +660,7 @@
       USE DAO_MOD,    ONLY : AD
       USE TRACER_MOD, ONLY : N_TRACERS, STT, TCVV
 #if defined( DEVEL )
-      USE GC_TYPE_MOD, ONLY : GC_MET_LOCAL
+      USE GIGC_State_Met_Mod, ONLY : MetState
 #endif
       
       USE CMN_SIZE_MOD                                     ! Size parameters
@@ -671,7 +671,7 @@
       REAL*4,  INTENT(IN)    :: TRACER(IIPAR,JJPAR,LLPAR)  ! Tracers from 
                                                            !  rst file [v/v]
 #if defined( DEVEL )
-      TYPE(GC_MET_LOCAL), INTENT(IN) :: LOCAL_MET  ! Obj w/ met fields
+      TYPE(MetState), INTENT(IN) :: State_Met   ! Meteorology State object
 #endif
 !
 ! !INPUT/OUTPUT PARAMETERS: 
@@ -713,7 +713,7 @@
       DO J = 1, JJPAR
       DO I = 1, IIPAR
 #if defined( DEVEL )
-         STT(I,J,L,N) = TRACER(I,J,L) * LOCAL_MET%AD(I,J,L) / TCVV(N) 
+         STT(I,J,L,N) = TRACER(I,J,L) * State_Met%AD(I,J,L) / TCVV(N) 
 #else
          STT(I,J,L,N) = TRACER(I,J,L) * AD(I,J,L) / TCVV(N) 
 #endif

@@ -106,7 +106,7 @@
 ! !INTERFACE:
 !
 #if defined( DEVEL )
-      SUBROUTINE AEROSOL_RURALBOX( N_TROP, am_I_Root, LOCAL_MET )
+      SUBROUTINE AEROSOL_RURALBOX( N_TROP, am_I_Root, State_Met )
 #else
       SUBROUTINE AEROSOL_RURALBOX( N_TROP, am_I_Root )
 #endif
@@ -119,7 +119,7 @@
       USE TROPOPAUSE_MOD, ONLY : ITS_IN_THE_TROP
       USE LOGICAL_MOD,    ONLY : LVARTROP
 #if defined( DEVEL )
-      USE GC_TYPE_MOD,    ONLY : GC_MET_LOCAL
+      USE GIGC_State_Met_Mod, ONLY : MetState
 #endif
 
       USE CMN_SIZE_MOD                    ! Size parameters
@@ -127,17 +127,17 @@
 !
 ! !INPUT PARAMETERS:
 !
-      LOGICAL,            INTENT(IN)    :: am_I_Root  ! Is this the root CPU?
+      LOGICAL,            INTENT(IN)    :: am_I_Root ! Is this the root CPU?
 !
 ! !INPUT PARAMETERS: 
 !
 #if defined( DEVEL )
-      TYPE(GC_MET_LOCAL), INTENT(INOUT) :: LOCAL_MET  ! Obj w/ met fields
+      TYPE(MetState), INTENT(INOUT) :: State_Met     ! Meteorology State object
 #endif
 !
 ! !OUTPUT PARAMETERS:
 !
-      INTEGER,            INTENT(OUT)   :: N_TROP     ! # tropospheric boxes
+      INTEGER,            INTENT(OUT)   :: N_TROP    ! # tropospheric boxes
 !
 ! !REVISION HISTORY: 
 !  (1 ) Now convert ABSHUM from absolute humidity to relative humidity in
@@ -174,7 +174,7 @@
 
       ! Create AVGW field -- mixing ratio of water [v/v]
 #if defined( DEVEL )
-      CALL MAKE_AVGW( LOCAL_MET )
+      CALL MAKE_AVGW( State_Met )
 #else
       CALL MAKE_AVGW
 #endif
@@ -201,7 +201,7 @@
             ! Boxes w/in ann mean tropopause
             !----------------------------------
 #if defined( DEVEL )
-            IF ( ITS_IN_THE_TROP( I, J, L, LOCAL_MET ) ) THEN
+            IF ( ITS_IN_THE_TROP( I, J, L, State_Met ) ) THEN
 #else
             IF ( ITS_IN_THE_TROP( I, J, L ) ) THEN
 #endif
@@ -287,15 +287,15 @@
 
 #if defined( DEVEL )
             ! Air density in [molec/cm3]
-            AIRDENS(JLOOP) = LOCAL_MET%AD(I,J,L)    * 1000.d0 / 
-     &                       BOXVL(I,J,L,LOCAL_MET) * AVG  / WTAIR
+            AIRDENS(JLOOP) = State_Met%AD(I,J,L)    * 1000.d0 / 
+     &                       BOXVL(I,J,L,State_Met) * AVG  / WTAIR
 
             ! ABSHUM = absolute humidity [molec H2O/cm3 air]
-            ABSHUM(JLOOP)  = LOCAL_MET%AVGW(I,J,L)  * AIRDENS(JLOOP)
+            ABSHUM(JLOOP)  = State_Met%AVGW(I,J,L)  * AIRDENS(JLOOP)
 
             ! Convert ABSHUM to relative humidity [fraction]
             ! using the same algorithm as in "gasconc.f"
-            TK             = LOCAL_MET%T(I,J,L)
+            TK             = State_Met%T(I,J,L)
 #else
             ! Air density in [molec/cm3]
             AIRDENS(JLOOP) = AD(I,J,L)*1000.d0/BOXVL(I,J,L)*AVG/WTAIR
@@ -337,7 +337,7 @@
 ! !INTERFACE:
 !
 #if defined( DEVEL )
-      SUBROUTINE AEROSOL_CONC( LOCAL_MET )
+      SUBROUTINE AEROSOL_CONC( State_Met )
 #else
       SUBROUTINE AEROSOL_CONC
 #endif
@@ -354,7 +354,7 @@
       USE TRACERID_MOD, ONLY : IDTSO4,  IDTSOA5  
       USE TRACERID_MOD, ONLY : IDTSOAG, IDTSOAM
 #if defined( DEVEL )
-      USE GC_TYPE_MOD,  ONLY : GC_MET_LOCAL
+      USE GIGC_State_Met_Mod, ONLY : MetState
 #endif
 
       USE CMN_SIZE_MOD       ! Size parameters
@@ -362,7 +362,7 @@
 ! !INPUT PARAMETERS:
 !
 #if defined( DEVEL )
-      TYPE(GC_MET_LOCAL), INTENT(IN) :: LOCAL_MET  ! Obj w/ met fields
+      TYPE(MetState), INTENT(IN) :: State_Met   ! Meteorology State object
 #endif
 !
 ! !REMARKS:
@@ -446,7 +446,7 @@
             SO4_NH4_NIT(I,J,L) = ( STT(I,J,L,IDTSO4)     + 
      &                             STT(I,J,L,IDTNH4)     +
      &                             STT(I,J,L,IDTNIT) )   /
-     &                             LOCAL_MET%AIRVOL(I,J,L)
+     &                             State_Met%AIRVOL(I,J,L)
 
          ENDIF
 
@@ -459,14 +459,14 @@
          IF ( LCARB ) THEN
 
             ! Hydrophilic BC [kg/m3]
-            BCPI(I,J,L) = STT(I,J,L,IDTBCPI) / LOCAL_MET%AIRVOL(I,J,L)
+            BCPI(I,J,L) = STT(I,J,L,IDTBCPI) / State_Met%AIRVOL(I,J,L)
 
             ! Hydrophobic BC [kg/m3]
-            BCPO(I,J,L) = STT(I,J,L,IDTBCPO) / LOCAL_MET%AIRVOL(I,J,L)
+            BCPO(I,J,L) = STT(I,J,L,IDTBCPO) / State_Met%AIRVOL(I,J,L)
 
             ! Hydrophobic OC [kg/m3] 
             OCPO(I,J,L) = STT(I,J,L,IDTOCPO) * OCF /
-     &                    LOCAL_MET%AIRVOL(I,J,L)
+     &                    State_Met%AIRVOL(I,J,L)
 
             IF ( LSOA ) THEN
 
@@ -481,19 +481,19 @@
      &                     +   STT(I,J,L,IDTSOA3)
      &                     +   STT(I,J,L,IDTSOA4)
      &                     +   STT(I,J,L,IDTSOA5) )
-     &                     /   LOCAL_MET%AIRVOL(I,J,L)
+     &                     /   State_Met%AIRVOL(I,J,L)
  
                ! Check to see if we are simulating SOAG and SOAM (tmf, 1/7/09)
                IF ( IDTSOAG > 0 ) THEN
                  OCPI(I,J,L) = OCPI(I,J,L) + 
      &                         STT(I,J,L,IDTSOAG) * OCFG /
-     &                         LOCAL_MET%AIRVOL(I,J,L)
+     &                         State_Met%AIRVOL(I,J,L)
                ENDIF
 
                IF ( IDTSOAM > 0 ) THEN
                  OCPI(I,J,L) = OCPI(I,J,L) + 
      &                         STT(I,J,L,IDTSOAM) * OCFM /
-     &                         LOCAL_MET%AIRVOL(I,J,L)
+     &                         State_Met%AIRVOL(I,J,L)
                ENDIF
             ELSE
 
@@ -502,7 +502,7 @@
                ! components which are attached to the OC aerosol.
                ! (rjp, bmy, 7/15/04)
                OCPI(I,J,L) = STT(I,J,L,IDTOCPI) * OCF /
-     &                       LOCAL_MET%AIRVOL(I,J,L)
+     &                       State_Met%AIRVOL(I,J,L)
                   
             ENDIF
 
@@ -538,21 +538,21 @@
 
             ! Lump 1st dust tracer for het chem
             SOILDUST(I,J,L,1) = 
-     &            0.06d0 * STT(I,J,L,IDTDST1) / LOCAL_MET%AIRVOL(I,J,L)
+     &            0.06d0 * STT(I,J,L,IDTDST1) / State_Met%AIRVOL(I,J,L)
             SOILDUST(I,J,L,2) =
-     &            0.12d0 * STT(I,J,L,IDTDST1) / LOCAL_MET%AIRVOL(I,J,L)
+     &            0.12d0 * STT(I,J,L,IDTDST1) / State_Met%AIRVOL(I,J,L)
             SOILDUST(I,J,L,3) =
-     &            0.24d0 * STT(I,J,L,IDTDST1) / LOCAL_MET%AIRVOL(I,J,L)
+     &            0.24d0 * STT(I,J,L,IDTDST1) / State_Met%AIRVOL(I,J,L)
             SOILDUST(I,J,L,4) =
-     &            0.58d0 * STT(I,J,L,IDTDST1) / LOCAL_MET%AIRVOL(I,J,L)
+     &            0.58d0 * STT(I,J,L,IDTDST1) / State_Met%AIRVOL(I,J,L)
 
             ! Other hetchem bins
             SOILDUST(I,J,L,5) = STT(I,J,L,IDTDST2) /
-     &                          LOCAL_MET%AIRVOL(I,J,L)
+     &                          State_Met%AIRVOL(I,J,L)
             SOILDUST(I,J,L,6) = STT(I,J,L,IDTDST3) /
-     &                          LOCAL_MET%AIRVOL(I,J,L)
+     &                          State_Met%AIRVOL(I,J,L)
             SOILDUST(I,J,L,7) = STT(I,J,L,IDTDST4) /
-     &                          LOCAL_MET%AIRVOL(I,J,L)
+     &                          State_Met%AIRVOL(I,J,L)
             
          ENDIF
 
@@ -564,10 +564,10 @@
          IF ( LSSALT ) THEN
 
             ! Accumulation mode seasalt aerosol [kg/m3]
-            SALA(I,J,L) = STT(I,J,L,IDTSALA) / LOCAL_MET%AIRVOL(I,J,L)
+            SALA(I,J,L) = STT(I,J,L,IDTSALA) / State_Met%AIRVOL(I,J,L)
             
             ! Coarse mode seasalt aerosol [kg/m3]
-            SALC(I,J,L) = STT(I,J,L,IDTSALC) / LOCAL_MET%AIRVOL(I,J,L)
+            SALC(I,J,L) = STT(I,J,L,IDTSALC) / State_Met%AIRVOL(I,J,L)
 
             ! Avoid division by zero
             SALA(I,J,L) = MAX( SALA(I,J,L), 1d-35 )
@@ -758,7 +758,7 @@
 ! !INTERFACE:
 !
 #if defined( DEVEL )
-      SUBROUTINE RDAER( am_I_Root, LOCAL_MET, MONTH, YEAR, WAVELENGTH )
+      SUBROUTINE RDAER( am_I_Root, State_Met, MONTH, YEAR, WAVELENGTH )
 #else
       SUBROUTINE RDAER( am_I_Root, MONTH, YEAR, WAVELENGTH )
 #endif
@@ -779,7 +779,7 @@
       USE TRACER_MOD,    ONLY : ITS_A_FULLCHEM_SIM
       USE TRANSFER_MOD,  ONLY : TRANSFER_3D
 #if defined( DEVEL )
-      USE GC_TYPE_MOD,   ONLY : GC_MET_LOCAL
+      USE GIGC_State_Met_Mod, ONLY : MetState
 #endif
 
       USE CMN_SIZE_MOD,  ONLY : NNPAR, NDSTBIN, IIPAR,   JJPAR,   LLTROP
@@ -811,7 +811,7 @@
 !                                                 ! = 1 AOD computed at
 !                                                 !   wavelength in jv_spec_aod
 #if defined( DEVEL )
-      TYPE(GC_MET_LOCAL), INTENT(IN) :: LOCAL_MET ! Obj w/ met fields
+      TYPE(MetState), INTENT(IN) :: State_Met     ! Meteorology State object
 #endif
 !
 ! !REVISION HISTORY: 
@@ -1384,7 +1384,7 @@
             ! of aerosol type and relative humidity into ODAER, 
             ! which will get passed to the FAST-J routines
             ODAER(I,J,L,IRHN) = SCALEOD(I,J,L,R) * 0.75d0
-     &                        * LOCAL_MET%BXHEIGHT(I,J,L) 
+     &                        * State_Met%BXHEIGHT(I,J,L) 
      &                        * WAERSL(I,J,L,N)  * QAA_AOD(IND(N)) / 
      &                        ( MSDENS(N) * RAA_AOD(IND(N)) * 1.0D-6 )
 
@@ -1394,7 +1394,7 @@
             ! of aerosol type and relative humidity into ODAER, 
             ! which will get passed to the FAST-J routines
             ODAER(I,J,L,IRHN) = SCALEOD(I,J,L,R) * 0.75d0 
-     &                        * LOCAL_MET%BXHEIGHT(I,J,L) 
+     &                        * State_Met%BXHEIGHT(I,J,L) 
      &                        * WAERSL(I,J,L,N)  * QAA(4,IND(N)) / 
      &                        ( MSDENS(N) * RAA(4,IND(N)) * 1.0D-6 )
 #else
@@ -1504,7 +1504,7 @@
 #if defined( DEVEL )
             ! Aerosol optical depth
             ODAER(I,J,L,IRHN) = ODAER(I,J,L,IRHN) + 0.75d0 *
-     &                          LOCAL_MET%BXHEIGHT(I,J,L)  * 
+     &                          State_Met%BXHEIGHT(I,J,L)  * 
      &                          DAERSL(I,J,L,N-1) * QAA_AOD(IND(N))   / 
      &                          ( MSDENS(N) * RAA_AOD(IND(N)) * 1.0D-6 )
 
@@ -1512,7 +1512,7 @@
 
             ! Aerosol optical depth
             ODAER(I,J,L,IRHN) = ODAER(I,J,L,IRHN) + 0.75d0 *
-     &                          LOCAL_MET%BXHEIGHT(I,J,L)  * 
+     &                          State_Met%BXHEIGHT(I,J,L)  * 
      &                          DAERSL(I,J,L,N-1) * QAA(4,IND(N))   / 
      &                          ( MSDENS(N) * RAA(4,IND(N)) * 1.0D-6 )
 #else

@@ -243,7 +243,7 @@
 !------------------------------------------------------------------------------
 
 #if defined( DEVEL )
-      SUBROUTINE CHEMMERCURY( LOCAL_MET )
+      SUBROUTINE CHEMMERCURY( State_Met )
 #else
       SUBROUTINE CHEMMERCURY
 #endif
@@ -279,14 +279,14 @@
       USE OCEAN_MERCURY_MOD, ONLY : PARTITION_Hg2
 
 #if defined( DEVEL )
-      USE GC_TYPE_MOD,       ONLY : GC_MET_LOCAL
+      USE GIGC_State_Met_Mod, ONLY : MetState
 #endif
 
       USE CMN_SIZE_MOD        ! Size parameters
 
       !Arguments
 #if defined( DEVEL )
-      TYPE(GC_MET_LOCAL), INTENT(IN) :: LOCAL_MET  ! Obj w/ met fields
+      TYPE(MetState), INTENT(IN) :: State_Met   ! Meteorology State object
 #endif
 
       ! Local variables
@@ -314,7 +314,7 @@
 
          ! Renamed to GET_GLOBAL_BR
 #if defined( DEVEL )
-         CALL GET_GLOBAL_BR( MONTH, LOCAL_MET )
+         CALL GET_GLOBAL_BR( MONTH, State_Met )
 #else
          CALL GET_GLOBAL_BR( MONTH )
 #endif
@@ -339,7 +339,7 @@
       ! Calculate the rate of sea salt aerosol uptake of Hg2
       IF ( LDYNSEASALT .AND. ITS_TIME_FOR_A3() ) THEN
 #if defined( DEVEL )
-         CALL CALC_HG2_SEASALT_LOSSRATE( LOCAL_MET )
+         CALL CALC_HG2_SEASALT_LOSSRATE( State_Met )
 #else
          CALL CALC_HG2_SEASALT_LOSSRATE
 #endif
@@ -373,7 +373,7 @@
 
          ! Dry deposition occurs with PBL mixing,
          ! pass zero deposition frequency
-         CALL CHEM_Hg0_Hg2( ZERO_DVEL, ZERO_DVEL, LOCAL_MET )
+         CALL CHEM_Hg0_Hg2( ZERO_DVEL, ZERO_DVEL, State_Met )
 
       ELSE
 
@@ -382,23 +382,23 @@
             ! Dry deposition active for both Hg0 and Hg2; 
             ! pass drydep frequency to CHEM_Hg0_Hg2
             ! (NOTE: DEPSAV has units 1/s)
-            CALL CHEM_Hg0_Hg2( K_DRYD2, DEPSAV(:,:,DRYHg0), LOCAL_MET )
+            CALL CHEM_Hg0_Hg2( K_DRYD2, DEPSAV(:,:,DRYHg0), State_Met )
 
          ELSEIF (DRYHg2 > 0 .and. DRYHg0 .le. 0) THEN
 
             ! Only Hg2 dry deposition is active
-            CALL CHEM_Hg0_Hg2( K_DRYD2, ZERO_DVEL, LOCAL_MET )
+            CALL CHEM_Hg0_Hg2( K_DRYD2, ZERO_DVEL, State_Met )
 
          ELSEIF (DRYHg2 <= 0 .and. DRYHg0 > 0) THEN
 
             ! Only Hg0 dry deposition is active
             CALL CHEM_Hg0_Hg2( ZERO_DVEL , DEPSAV(:,:,DRYHg0),
-     &                         LOCAL_MET )
+     &                         State_Met )
 
          ELSE
 
             ! No dry deposition, pass zero deposition frequency
-            CALL CHEM_Hg0_Hg2( ZERO_DVEL , ZERO_DVEL, LOCAL_MET )
+            CALL CHEM_Hg0_Hg2( ZERO_DVEL , ZERO_DVEL, State_Met )
 
 #else
 
@@ -467,7 +467,7 @@
 !------------------------------------------------------------------------------
 
 #if defined( DEVEL )
-      SUBROUTINE CHEM_Hg0_Hg2( V_DEP_Hg2, V_DEP_Hg0, LOCAL_MET )
+      SUBROUTINE CHEM_Hg0_Hg2( V_DEP_Hg2, V_DEP_Hg0, State_Met )
 #else
       SUBROUTINE CHEM_Hg0_Hg2( V_DEP_Hg2, V_DEP_Hg0 )
 #endif
@@ -581,7 +581,7 @@
       USE DAO_MOD,          ONLY : FRSNO, FRLANDIC, FROCEAN
 
 #if defined( DEVEL )
-      USE GC_TYPE_MOD,      ONLY : GC_MET_LOCAL
+      USE GIGC_State_Met_Mod, ONLY : MetState
 #endif
 
       USE CMN_SIZE_MOD       ! Size parameters
@@ -591,7 +591,7 @@
       REAL*8, INTENT(IN)    :: V_DEP_Hg2(IIPAR,JJPAR)
       REAL*8, INTENT(IN)    :: V_DEP_Hg0(IIPAR,JJPAR)
 #if defined( DEVEL )
-      TYPE(GC_MET_LOCAL), INTENT(IN) :: LOCAL_MET  ! Obj w/ met fields
+      TYPE(MetState), INTENT(IN) :: State_Met   ! Meteorology State object
 #endif
 
       ! Local variables
@@ -698,8 +698,8 @@
 
          ! Monthly mean O3, OH Br concentrations [molec/cm3]
 #if defined( DEVEL )
-         C_BR        = GET_BR( I, J, L, LOCAL_MET, C_BRO )
-         C_O3        = GET_O3( I, J, L, LOCAL_MET )
+         C_BR        = GET_BR( I, J, L, C_BRO,    State_Met )
+         C_O3        = GET_O3( I, J, L, State_Met )
          C_OH        = GET_OH( I, J, L )
 #else
          C_BR        = GET_BR( I, J, L, C_BRO )
@@ -716,13 +716,13 @@
 
 #if defined( DEVEL )
          ! Get cloud fraction from met fields [unitless]
-         FC = LOCAL_MET%CLDF(L,I,J)
+         FC = State_Met%CLDF(L,I,J)
 
          IF ( LGEOSLWC ) THEN
 
             ! Get liquid water content [m3 H2O/m3 air] within cloud from met
             ! Units: [kg H2O/kg air] * [kg air/m3 air] * [m3 H2O/1e3 kg H2O]
-            LWC = LOCAL_MET%QL(I,J,L) * LOCAL_MET%AIRDEN(L,I,J) * 1D-3
+            LWC = State_Met%QL(I,J,L) * State_Met%AIRDEN(L,I,J) * 1D-3
 
             !%%% NOTE: Someone should investigate effect of dividing LWC by the
             !%%% cloud fraction, as is done in sulfate_mod.f (bmy, 5/27/11)
@@ -731,10 +731,10 @@
 
             ! Get liquid water content for entire grid box,
             ! based on formula for LWC in cloud [m3 H2O/m3 air]
-            LWC = GET_LWC( LOCAL_MET%T(I,J,L) ) * FC 
+            LWC = GET_LWC( State_Met%T(I,J,L) ) * FC 
 
             ! There should be no liquid water when T < 258K 
-            IF ( LOCAL_MET%T(I,J,L) < 258D0 )  LWC = 0D0
+            IF ( State_Met%T(I,J,L) < 258D0 )  LWC = 0D0
 
          ENDIF
 #else
@@ -770,14 +770,14 @@
          ! Get volume fraction of gridbox containing 
          ! cloud [unitless], following Sundqvist et al 1989.
 #if defined( DEVEL )
-         FC          = GET_VCLDF( I, J, L, LOCAL_MET )
+         FC          = GET_VCLDF( I, J, L, State_Met )
 
          ! Get liquid water content for entire grid box,
          ! based on formula for LWC in cloud (m3/m3)
-         LWC         = GET_LWC( LOCAL_MET%T(I,J,L) ) * FC 
+         LWC         = GET_LWC( State_Met%T(I,J,L) ) * FC 
 
          ! There should be no liquid water when T < 258K 
-         IF ( LOCAL_MET%T(I,J,L) < 258D0 )  LWC = 0D0
+         IF ( State_Met%T(I,J,L) < 258D0 )  LWC = 0D0
 #else
          FC          = GET_VCLDF( I, J, L )
 
@@ -794,13 +794,13 @@
 #if defined( DEVEL )
          ! Define fraction of Hg(II) which is in aqueous solution
          ! [dimensionless]
-         FA          = ( HL * R * LOCAL_MET%T(I,J,L) * LWC )
+         FA          = ( HL * R * State_Met%T(I,J,L) * LWC )
          FA          = FA / ( 1d0 + FA )
 
          ! Cl- in sea-salt aerosol enhances solubility 2000X in MBL
          IF ( LRED_JNO2 .AND. ( F_PBL >0.1  )  .AND. 
-     &        IS_WATER( I, J, LOCAL_MET )) THEN
-            FA          = ( HL * 2D3 * R * LOCAL_MET%T(I,J,L) * LWC )
+     &        IS_WATER( I, J, State_Met )) THEN
+            FA          = ( HL * 2D3 * R * State_Met%T(I,J,L) * LWC )
             FA          = FA / ( 1d0 + FA )
             
          ENDIF
@@ -810,7 +810,7 @@
          K_OH        = K_HG_OH * C_OH
 
          IF (LBRCHEM) THEN
-            K_BR = GET_HGBR_RATE( C_BR, LOCAL_MET%T(I,J,L), 
+            K_BR = GET_HGBR_RATE( C_BR, State_Met%T(I,J,L), 
      &             GET_PCENTER(I,J,L), C_OH, METHOD )
          ELSE
             K_BR = 0d0
@@ -884,7 +884,7 @@
          ! Remove the IF statement once HG2_SEASALT_LOSSRATE 
          ! is in the standard version. (cdh, 2/8/08)
 #if defined( DEVEL )
-         IF ( IS_WATER( I, J, LOCAL_MET ) ) THEN
+         IF ( IS_WATER( I, J, State_Met ) ) THEN
 #else
          IF ( IS_WATER(I,J) ) THEN
 #endif
@@ -935,24 +935,24 @@
 #if defined( DEVEL )
 
 #if   defined( MERRA ) || defined( GEOS_57 )
-         FRAC_NO_HG0_DEP = MIN( LOCAL_MET%FROCEAN(I,J) + 
-     &                          LOCAL_MET%FRSNO(I,J)   +
-     &                          LOCAL_MET%FRLANDIC(I,J), 1d0 ) 
+         FRAC_NO_HG0_DEP = MIN( State_Met%FROCEAN(I,J) + 
+     &                          State_Met%FRSNO(I,J)   +
+     &                          State_Met%FRLANDIC(I,J), 1d0 ) 
          ZERO_HG0_DEP = ( FRAC_NO_HG0_DEP > 0d0 )
 
 #elif defined( GEOS_5 )
          ! GEOS5 snow height (water equivalent) in mm. (Docs wrongly say m)
-         ZERO_HG0_DEP = (( LOCAL_MET%LWI(I,J)   == 0    )  .OR. 
-     &                   ( IS_ICE ( I, J, LOCAL_MET     )) .OR.
-     &                   ( IS_LAND( I, J, LOCAL_MET     )  .AND.
-     &                     LOCAL_MET%SNOMAS(I,J) > 10d0 ))
+         ZERO_HG0_DEP = (( State_Met%LWI(I,J)   == 0    )  .OR. 
+     &                   ( IS_ICE ( I, J, State_Met     )) .OR.
+     &                   ( IS_LAND( I, J, State_Met     )  .AND.
+     &                     State_Met%SNOMAS(I,J) > 10d0 ))
 
 #else
          ! GEOS1-4 snow heigt (water equivalent) in mm
-         ZERO_HG0_DEP = (( LOCAL_MET%LWI(I,J) == 0    )  .OR.
-     &                   ( IS_ICE ( I, J, LOCAL_MET   )) .OR. 
-     &                   ( IS_LAND( I, J, LOCAL_MET   )  .AND.
-     &                     LOCAL_MET%SNOW(I,J) > 10d0 ))
+         ZERO_HG0_DEP = (( State_Met%LWI(I,J) == 0    )  .OR.
+     &                   ( IS_ICE ( I, J, State_Met   )) .OR. 
+     &                   ( IS_LAND( I, J, State_Met   )  .AND.
+     &                     State_Met%SNOW(I,J) > 10d0 ))
 #endif 
 
 #else
@@ -1121,7 +1121,7 @@
             IF ( LHGSNOW .AND. (DEP_Hg2>0d0) ) THEN
 #if defined( DEVEL )
                CALL ADD_HG2_SNOWPACK(I,J,ID_Hg2(NN),DEP_HG2_DRY,
-     &                               LOCAL_MET)
+     &                               State_Met)
 #else
                CALL ADD_HG2_SNOWPACK(I,J,ID_Hg2(NN),DEP_HG2_DRY)
 #endif
@@ -2106,7 +2106,7 @@
 !------------------------------------------------------------------------------
 
 #if defined( DEVEL )
-      SUBROUTINE EMISSMERCURY( LOCAL_MET )
+      SUBROUTINE EMISSMERCURY( State_Met )
 #else
       SUBROUTINE EMISSMERCURY
 
@@ -2148,14 +2148,14 @@
       USE TRACERID_MOD,      ONLY : ID_Hg_tot, ID_Hg0
 
 #if defined( DEVEL )
-      USE GC_TYPE_MOD,       ONLY : GC_MET_LOCAL
+      USE GIGC_State_Met_Mod, ONLY : MetState
 #endif
 
       USE CMN_SIZE_MOD          ! Size parameters
 
       ! Arguments
 #if defined( DEVEL )
-      TYPE(GC_MET_LOCAL), INTENT(IN) :: LOCAL_MET  ! Obj w/ met fields
+      TYPE(MetState), INTENT(IN) :: State_Met   ! Meteorology State object
 #endif
 
       ! Local variables
@@ -2188,33 +2188,33 @@
          ! (cdh, 4/30/09)
          EHg0_oc = 0d0
 
-         CALL OCEAN_MERCURY_FLUX( EHg0_oc, LOCAL_MET )
+         CALL OCEAN_MERCURY_FLUX( EHg0_oc, State_Met )
          IF ( LPRT ) CALL DEBUG_MSG( '### EMISSMERCURY: a OCEAN_FLUX' )
 
       ENDIF
 
       IF ( LGTMM ) THEN
          IF ( ITS_A_NEW_MONTH() ) THEN
-            CALL GTMM_DR( EHg0_gtm(:,:), LOCAL_MET )
+            CALL GTMM_DR( EHg0_gtm(:,:), State_Met )
             IF ( LPRT ) CALL DEBUG_MSG( '### EMISSMERCURY: a GTMM' )
          ENDIF
   
       ELSE
          
-         CALL LAND_MERCURY_FLUX ( EHg0_ln, LHGSNOW, LOCAL_MET )
+         CALL LAND_MERCURY_FLUX ( EHg0_ln, LHGSNOW, State_Met )
          IF ( LPRT ) CALL DEBUG_MSG( '### EMISSMERCURY: a LAND_FLUX' )
       
          ! Bug fix: VEGEMIS shouldn't be tied to GCAP emissions
          ! (jaf, eds, 4/1/11)
-         CALL VEGEMIS( LVEGEMIS, EHg0_dist, EHg0_vg, LOCAL_MET )
+         CALL VEGEMIS( LVEGEMIS, EHg0_dist, EHg0_vg, State_Met )
          IF ( LPRT ) CALL DEBUG_MSG( '### EMISSMERCURY: a VEGEMIS' )
       
-         CALL SOILEMIS( EHg0_dist, EHg0_so, LOCAL_MET )
+         CALL SOILEMIS( EHg0_dist, EHg0_so, State_Met )
          IF ( LPRT ) CALL DEBUG_MSG( '### EMISSMERCURY: a SOILEMIS' )
 
       ENDIF
 
-      CALL SNOWPACK_MERCURY_FLUX ( EHg0_snow, LHGSNOW, LOCAL_MET )
+      CALL SNOWPACK_MERCURY_FLUX ( EHg0_snow, LHGSNOW, State_Met )
       IF ( LPRT ) CALL DEBUG_MSG( '### EMISSMERCURY: a SNOW_FLUX' )
 
 #else
@@ -3577,7 +3577,7 @@
 !------------------------------------------------------------------------------
 
 #if defined( DEVEL )
-      FUNCTION GET_VCLDF( I, J, L, LOCAL_MET ) RESULT( VCLDF )
+      FUNCTION GET_VCLDF( I, J, L, State_Met ) RESULT( VCLDF )
 #else
       FUNCTION GET_VCLDF( I, J, L ) RESULT( VCLDF )
 #endif
@@ -3603,13 +3603,13 @@
       USE DAO_MOD,      ONLY : RH
       USE PRESSURE_MOD, ONLY : GET_PCENTER, GET_PEDGE
 #if defined( DEVEL )
-      USE GC_TYPE_MOD,  ONLY : GC_MET_LOCAL
+      USE GIGC_State_Met_Mod, ONLY : MetState
 #endif
       
       ! Arguments
       INTEGER, INTENT(IN)  :: I, J, L
 #if defined( DEVEL )
-      TYPE(GC_MET_LOCAL), INTENT(IN) :: LOCAL_MET  ! Obj w/ met fields
+      TYPE(MetState), INTENT(IN) :: State_Met   ! Meteorology State object
 #endif
 
       ! Local variables
@@ -3632,7 +3632,7 @@
       ! RH (from "dao_mod.f") is relative humidity [%]
       ! Convert to fraction and store in RH2
 #if defined( DEVEL )
-      RH2  = LOCAL_MET%RH(I,J,L) * 1.0d-2
+      RH2  = State_Met%RH(I,J,L) * 1.0d-2
 #else
       RH2  = RH(I,J,L) * 1.0d-2
 #endif
@@ -3654,7 +3654,7 @@
 !------------------------------------------------------------------------------
 
 #if defined( DEVEL )
-      FUNCTION GET_O3( I, J, L, LOCAL_MET ) RESULT( O3_MOLEC_CM3 )
+      FUNCTION GET_O3( I, J, L, State_Met ) RESULT( O3_MOLEC_CM3 )
 #else
       FUNCTION GET_O3( I, J, L ) RESULT( O3_MOLEC_CM3 )
 #endif
@@ -3676,7 +3676,7 @@
       USE DAO_MOD      , ONLY : AD
       USE GLOBAL_O3_MOD, ONLY : O3
 #if defined( DEVEL )
-      USE GC_TYPE_MOD,   ONLY : GC_MET_LOCAL
+      USE GIGC_State_Met_Mod, ONLY : MetState
 #endif
 
       USE CMN_SIZE_MOD  ! Size parameters
@@ -3684,7 +3684,7 @@
       ! Arguments
       INTEGER, INTENT(IN) :: I, J, L
 #if defined( DEVEL )
-      TYPE(GC_MET_LOCAL), INTENT(IN) :: LOCAL_MET  ! Obj w/ met fields
+      TYPE(MetState), INTENT(IN) :: State_Met   ! Meteorology State object
 #endif
 
       ! Local variables
@@ -3701,7 +3701,7 @@
       ! and convert to [molec/cm3] (eck, 12/2/04)
 #if defined( DEVEL )
       O3_MOLEC_CM3 = O3(I,J,L)           * ( 6.022d23 / 28.97d-3 ) * 
-     &               LOCAL_MET%AD(I,J,L) / BOXVL(I,J,L,LOCAL_MET)
+     &               State_Met%AD(I,J,L) / BOXVL(I,J,L,State_Met)
 #else
       O3_MOLEC_CM3 = O3(I,J,L) * ( 6.022d23 / 28.97d-3 ) * 
      &               AD(I,J,L)  /  BOXVL(I,J,L)
@@ -3770,7 +3770,7 @@
 !------------------------------------------------------------------------------
 
 #if defined( DEVEL )
-      FUNCTION GET_BR( I, J, L, LOCAL_MET, BRO_MOLEC_CM3 )
+      FUNCTION GET_BR( I, J, L, BRO_MOLEC_CM3, State_Met )
      &   RESULT( BR_MOLEC_CM3 )
 #else
       FUNCTION GET_BR( I, J, L, BRO_MOLEC_CM3 ) RESULT( BR_MOLEC_CM3 )
@@ -3810,7 +3810,7 @@
       USE ERROR_MOD     , ONLY : SAFE_DIV
 
 #if defined( DEVEL )
-      USE GC_TYPE_MOD,    ONLY : GC_MET_LOCAL
+      USE GIGC_State_Met_Mod, ONLY : MetState
 #endif
 
       USE CMN_SIZE_MOD  ! Size parameters
@@ -3819,7 +3819,7 @@
       INTEGER, INTENT(IN) :: I, J, L
       REAL*8, INTENT(OUT) :: BrO_MOLEC_CM3 
 #if defined( DEVEL )
-      TYPE(GC_MET_LOCAL), INTENT(IN) :: LOCAL_MET  ! Obj w/ met fields
+      TYPE(MetState), INTENT(IN) :: State_Met   ! Meteorology State object
 #endif
 
       ! Local variables
@@ -3867,7 +3867,7 @@
 
       ! Multiple stratospheric concentrations by Factor, if necessary
 #if defined( DEVEL )
-      IF ( (ITS_IN_THE_STRAT( I, J, L, LOCAL_MET )) .AND.
+      IF ( (ITS_IN_THE_STRAT( I, J, L, State_Met )) .AND.
      &     (ABS(STRAT_BR_FACTOR - 1d0) > 1d-2) )    THEN
 #else
       IF ( (ITS_IN_THE_STRAT(I,J,L)) .AND.
@@ -3887,7 +3887,7 @@
       FPBL = GET_FRAC_UNDER_PBLTOP(I,J,L)
 
 #if defined( DEVEL )
-      IF ( IS_WATER( I, J, LOCAL_MET ) .AND. (FPBL > 0d0) ) THEN
+      IF ( IS_WATER( I, J, State_Met ) .AND. (FPBL > 0d0) ) THEN
 #else
       IF ( IS_WATER(I,J) .AND. (FPBL > 0d0) ) THEN
 #endif
@@ -3897,7 +3897,7 @@
          ! Platt & Janssen, Faraday Discussions (1995)
 #if defined( DEVEL )
          BR_MBL = BRO_MBL *( J_BRO(I,J,L) + K_BRO_NO * C_NO ) / 
-     &                     ( K_BR_O3      * GET_O3(I,J,L,LOCAL_MET) ) *
+     &                     ( K_BR_O3      * GET_O3(I,J,L,State_Met) ) *
      &                       FPBL
 #else
          BR_MBL = BRO_MBL *( J_BRO(I,J,L) + K_BRO_NO * C_NO ) / 
@@ -3927,9 +3927,9 @@
 #if defined( DEVEL )
       IF ( ( LPOLARBR ) .AND. ( FPBL >  0d0   ) .AND.
      &     ( SUNCOS(JLOOP)           >  0D0   ) .AND. 
-     &     ( LOCAL_MET%T(I,J,1)      <= 268D0 ) .AND.
-     &     ( LOCAL_MET%LWI(I,J)      == 2     ) .AND. 
-     &       GET_OBK(I,J,LOCAL_MET)  >  0D0   ) THEN
+     &     ( State_Met%T(I,J,1)      <= 268D0 ) .AND.
+     &     ( State_Met%LWI(I,J)      == 2     ) .AND. 
+     &       GET_OBK(I,J,State_Met)  >  0D0   ) THEN
 #else
       IF ( (LPOLARBR)         .AND. (FPBL > 0d0) .AND.
      &     (SUNCOS(JLOOP) > 0D0) .AND. (T(I,J,1) <= 268D0) .AND.
@@ -4012,10 +4012,10 @@
 #if defined( DEVEL )
       BR_MOLEC_CM3  = BR_PPTV             * 1D-12      *
      &                ( 6.022D23          / 28.97D-3 ) * 
-     &                LOCAL_MET%AD(I,J,L) / BOXVL(I,J,L,LOCAL_MET)
+     &                State_Met%AD(I,J,L) / BOXVL(I,J,L,State_Met)
       BRO_MOLEC_CM3 = BRO_PPTV            * 1D-12      *
      &                ( 6.022D23          / 28.97D-3 ) * 
-     &                LOCAL_MET%AD(I,J,L) / BOXVL(I,J,L,LOCAL_MET)
+     &                State_Met%AD(I,J,L) / BOXVL(I,J,L,State_Met)
 #else
       BR_MOLEC_CM3  = BR_PPTV * 1D-12 * ( 6.022D23 / 28.97D-3 ) * 
      &                AD(I,J,L)  /  BOXVL(I,J,L)
@@ -4303,7 +4303,7 @@
 !------------------------------------------------------------------------------
 
 #if defined( DEVEL )
-      SUBROUTINE CALC_HG2_SEASALT_LOSSRATE( LOCAL_MET )
+      SUBROUTINE CALC_HG2_SEASALT_LOSSRATE( State_Met )
 #else
       SUBROUTINE CALC_HG2_SEASALT_LOSSRATE
 #endif
@@ -4331,14 +4331,14 @@
       USE RNPBBE_MOD , ONLY : SLQ
 
 #if defined( DEVEL )
-      USE GC_TYPE_MOD, ONLY : GC_MET_LOCAL
+      USE GIGC_State_Met_Mod, ONLY : MetState
 #endif
 
       USE CMN_SIZE_MOD     ! Size parameters
 
       !Arguments
 #if defined( DEVEL )
-      TYPE(GC_MET_LOCAL), INTENT(IN) :: LOCAL_MET  ! Obj w/ met fields
+      TYPE(MetState), INTENT(IN) :: State_Met   ! Meteorology State object
 #endif
 
       ! Local variables
@@ -4368,7 +4368,7 @@
 
          ! Only calculate deposition via sea salt over water
 #if defined( DEVEL )
-         IF ( IS_WATER( I, J, LOCAL_MET ) ) THEN
+         IF ( IS_WATER( I, J, State_Met ) ) THEN
 #else
          IF ( IS_WATER(I,J) ) THEN
 #endif
@@ -4376,7 +4376,7 @@
             ! Wind speed at 10m altitude [m/s]
 #if defined( DEVEL )
             U10M = SQRT( SFCWINDSQR( I, J,
-     &                               LOCAL_MET%U10M, LOCAL_MET%V10M ) )
+     &                               State_Met%U10M, State_Met%V10M ) )
 #else
             U10M = SQRT( SFCWINDSQR( I, J, U, V ) )
 #endif
@@ -4392,7 +4392,7 @@
             ! Don't allow supersaturation, as [Cl-] is undefined for RH>=1 
             ! Cap RH at 99%, Don't allow RH < 75% as happens in coastal areas
 #if defined( DEVEL )
-            S = MAX( MIN( LOCAL_MET%RH(I,J,1), 99D0 ), 75D0 ) * 1D-2
+            S = MAX( MIN( State_Met%RH(I,J,1), 99D0 ), 75D0 ) * 1D-2
 #else
             S = MAX( MIN( RH(I,J,1), 99D0 ), 75D0 ) * 1D-2
 #endif

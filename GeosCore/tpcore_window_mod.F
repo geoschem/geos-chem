@@ -152,7 +152,7 @@
      &                          IM,   JM,   J1,   I0,   J0,   I0_W, 
      &                          J0_W, I1_W, J1_W, I2_W, J2_W, IM_W,
      &                          JM_W, IGZD, NL,   AP,   BP,   PT,
-     &                          AE,   FILL, MFCT, Umax, LOCAL_MET )
+     &                          AE,   FILL, MFCT, Umax, State_Met )
 #else
       SUBROUTINE TPCORE_WINDOW( IGD,  Q,    PS1,  PS2,  U,    V,   
      &                          W,    NDT,  IORD, JORD, KORD, NC,   
@@ -421,7 +421,7 @@
 
       ! References to F90 modules
 #if defined( DEVEL )
-      USE GC_TYPE_MOD, ONLY : GC_MET_LOCAL
+      USE GIGC_State_Met_Mod, ONLY : MetState
 #endif
 
       ! Added to pass C-preprocessor switches (bmy, 3/9/01)
@@ -440,7 +440,7 @@
       LOGICAL  ZCROSS, FILL, MFCT, deform
 
 #if defined( DEVEL )
-      TYPE(GC_MET_LOCAL), INTENT(IN) :: LOCAL_MET  ! Obj w/ met fields
+      TYPE(MetState), INTENT(IN) :: State_Met   ! Meteorology State object
 #endif
  
 ! Local dynamic arrays
@@ -896,7 +896,7 @@ c15    write (6,*) 'cosp(',j+j0_w+j0,')=',cosp_w(j)
 #if defined( DEVEL )
          CALL PRESS_FIX( XMASS_PF_w, YMASS_PF_w, NDT,  ACOSP_w, Jmax,
      &                   I0_W,       J0_W,       IM_W, JM_W,    IGZD,
-     &                   LOCAL_MET )
+     &                   State_Met )
 #else
          CALL PRESS_FIX( XMASS_PF_w, YMASS_PF_w, NDT,  ACOSP_w, Jmax,
      &                   I0_W,       J0_W,       IM_W, JM_W,    IGZD )
@@ -3269,9 +3269,9 @@ c        AL(i,k) = median(AL(i,k), qmin, qmax)
 !------------------------------------------------------------------------------
 
 #if defined( DEVEL )
-      SUBROUTINE PRESS_FIX( FX,    FY,   NDT,  ACOSP, Jmax,
-     &                      I0_W,  J0_W, IM_W, JM_W,  IGZD,
-     &                      LOCAL_MET )
+      SUBROUTINE PRESS_FIX( FX,       FY,    NDT,   ACOSP,  Jmax,
+     &                      I0_W,     J0_W,  IM_W,  JM_W,   IGZD,
+     &                      State_Met )
 #else
       SUBROUTINE PRESS_FIX( FX,    FY,   NDT,  ACOSP, Jmax,
      &                      I0_W,  J0_W, IM_W, JM_W,  IGZD )
@@ -3304,7 +3304,7 @@ c        AL(i,k) = median(AL(i,k), qmin, qmax)
       USE GRID_MOD, ONLY : GET_AREA_M2
       USE TIME_MOD, ONLY : GET_TS_DYN
 #if defined( DEVEL )
-      USE GC_TYPE_MOD, ONLY : GC_MET_LOCAL
+      USE GIGC_State_Met_Mod, ONLY : MetState
 #endif
 
       USE CMN_SIZE_MOD  ! Size parameters
@@ -3329,7 +3329,7 @@ c        AL(i,k) = median(AL(i,k), qmin, qmax)
      &                             1-IGZD:JM_W+IGZD+1,LLPAR)
 
 #if defined( DEVEL )
-      TYPE(GC_MET_LOCAL), INTENT(IN) :: LOCAL_MET  ! Obj w/ met fields
+      TYPE(MetState), INTENT(IN) :: State_Met   ! Meteorology State object
 #endif
 
       ! Local variables
@@ -3509,7 +3509,7 @@ c        AL(i,k) = median(AL(i,k), qmin, qmax)
 !%%%
 #if defined( DEVEL )
       CALL DYN0( NSDYN, UMFLX, VMFLX, ALFA, BETA, GAMA, 
-     &           I0_W,  J0_W,  IM_W,  JM_W, IGZD, LOCAL_MET )
+     &           I0_W,  J0_W,  IM_W,  JM_W, IGZD, State_Met )
 #else
       CALL DYN0( NSDYN, UMFLX, VMFLX, ALFA, BETA, GAMA, 
      &           I0_W,  J0_W,  IM_W,  JM_W, IGZD )
@@ -3579,7 +3579,7 @@ c        AL(i,k) = median(AL(i,k), qmin, qmax)
 
 #if defined( DEVEL )
       SUBROUTINE DYN0( DTWIND, UMFLX, VMFLX, ALFA, BETA, GAMA,
-     &                 I0_W,   J0_W,  IM_W,  JM_W, IGZD, LOCAL_MET )
+     &                 I0_W,   J0_W,  IM_W,  JM_W, IGZD, State_Met )
 #else
       SUBROUTINE DYN0( DTWIND, UMFLX, VMFLX, ALFA, BETA, GAMA,
      &                 I0_W,   J0_W,  IM_W,  JM_W, IGZD )
@@ -3621,7 +3621,7 @@ c        AL(i,k) = median(AL(i,k), qmin, qmax)
       USE GRID_MOD,     ONLY : GET_AREA_M2
       USE PRESSURE_MOD, ONLY : GET_BP
 #if defined( DEVEL )
-      USE GC_TYPE_MOD,  ONLY : GC_MET_LOCAL
+      USE GIGC_State_Met_Mod, ONLY : MetState
 #endif
 
       USE CMN_SIZE_MOD     ! Size parameters
@@ -3659,7 +3659,7 @@ c        AL(i,k) = median(AL(i,k), qmin, qmax)
      &                               1-IGZD:JM_W+IGZD,LLPAR+1)
 
 #if defined( DEVEL )
-      TYPE(GC_MET_LOCAL), INTENT(IN) :: LOCAL_MET  ! Obj w/ met fields
+      TYPE(MetState), INTENT(IN) :: State_Met   ! Meteorology State object
 #endif
 
       ! Local variables
@@ -3853,9 +3853,9 @@ c        AL(i,k) = median(AL(i,k), qmin, qmax)
       DO I = 1, IIPAR
 #if defined( DEVEL )
          XYZB(I,J,L)    = DSIG(L) * DXYP(J) * 1.d2 / G0
-         AD_L(I,J,L)    = LOCAL_MET%AIRDEN(L,I,J) *
-     &                    LOCAL_MET%AIRVOL(I,J,L)
-!         SPHU_KG(I,J,L) = LOCAL_MET%SPHU(I,J,L) / 1000d0
+         AD_L(I,J,L)    = State_Met%AIRDEN(L,I,J) *
+     &                    State_Met%AIRVOL(I,J,L)
+!         SPHU_KG(I,J,L) = State_Met%SPHU(I,J,L) / 1000d0
          SPHU_KG(I,J,L) = SPHU(I,J,L) / 1000d0
 #else
          XYZB(I,J,L)    = DSIG(L) * DXYP(J) * 1.d2 / G0
@@ -3949,7 +3949,7 @@ c        AL(i,k) = median(AL(i,k), qmin, qmax)
 
          DO K = 1, LLPAR
 #if defined( DEVEL )
-            AIRWET     = LOCAL_MET%PSC2(I+I0_w,J+J0_w) * 
+            AIRWET     = State_Met%PSC2(I+I0_w,J+J0_w) * 
      &                   XYZB(I+I0_w,J+J0_w,K)
 #else
             AIRWET     = PSC2(I+I0_w,J+J0_w) * XYZB(I+I0_w,J+J0_w,K)
@@ -4090,7 +4090,7 @@ c        AL(i,k) = median(AL(i,k), qmin, qmax)
 !%%%         ENDIF
 !%%%
 #if defined( DEVEL )
-         PERR(I,J) = PCTM(I,J) - LOCAL_MET%PSC2(I+I0_w,J+J0_w)
+         PERR(I,J) = PCTM(I,J) - State_Met%PSC2(I+I0_w,J+J0_w)
 #else
          PERR(I,J) = PCTM(I,J) - PSC2(I+I0_w,J+J0_w)
 #endif
@@ -4244,12 +4244,12 @@ c        AL(i,k) = median(AL(i,k), qmin, qmax)
          PCTM8     = ( SUM( AIRNEW(I,J,:) ) + SUMAQ(I,J) ) /
      &                               XYB(I+I0_W,J+J0_W)
          PCTM(I,J) = PCTM8
-         PERR(I,J) = PCTM8 - LOCAL_MET%PSC2(I+I0_W,J+J0_W)
+         PERR(I,J) = PCTM8 - State_Met%PSC2(I+I0_W,J+J0_W)
 
          DO K = 1, LLPAR
             AIRQKG      = SPHU_KG(I+I0_W,J+J0_W,K) *
      &                  ( XYZB(I+I0_W,J+J0_W,K)    * 
-     &                    LOCAL_MET%PSC2(I+I0_W,J+J0_W) )
+     &                    State_Met%PSC2(I+I0_W,J+J0_W) )
             AIRX(I,J,K) = PCTM8 * XYZB(I+I0_W,J+J0_W,K) - AIRQKG
          ENDDO
       ENDDO

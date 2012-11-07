@@ -231,7 +231,7 @@
 ! !INTERFACE:
 !
 #if defined( DEVEL )
-      SUBROUTINE CHECK_VAR_TROP( LOCAL_MET )
+      SUBROUTINE CHECK_VAR_TROP( State_Met )
 #else
       SUBROUTINE CHECK_VAR_TROP
 #endif
@@ -240,7 +240,7 @@
 !
       USE ERROR_MOD,     ONLY : GEOS_CHEM_STOP
 #if defined( DEVEL )
-      USE GC_TYPE_MOD,   ONLY : GC_MET_LOCAL
+      USE GIGC_State_Met_Mod, ONLY : MetState
 #endif
 
       USE CMN_SIZE_MOD      ! Size parameters
@@ -249,7 +249,7 @@
 ! !INPUT PARAMETERS: 
 !
 #if defined( DEVEL )
-      TYPE(GC_MET_LOCAL), INTENT(IN) :: LOCAL_MET  ! Obj w/ met fields
+      TYPE(MetState), INTENT(IN) :: State_Met   ! Meteorology State object
 #endif
 ! 
 ! !REVISION HISTORY: 
@@ -274,7 +274,7 @@
       DO J = 1, JJPAR
       DO I = 1, IIPAR
 #if defined( DEVEL )
-         TPAUSE_LEV(I,J) = GET_TPAUSE_LEVEL( I, J, LOCAL_MET )
+         TPAUSE_LEV(I,J) = GET_TPAUSE_LEVEL( I, J, State_Met )
 #else
          TPAUSE_LEV(I,J) = GET_TPAUSE_LEVEL(I,J)
 #endif
@@ -527,7 +527,7 @@
 ! !INTERFACE:
 !
 #if defined( DEVEL )
-      FUNCTION GET_TPAUSE_LEVEL( I, J, LOCAL_MET ) RESULT( L_TP )
+      FUNCTION GET_TPAUSE_LEVEL( I, J, State_Met ) RESULT( L_TP )
 #else
       FUNCTION GET_TPAUSE_LEVEL( I, J ) RESULT( L_TP )
 #endif
@@ -539,7 +539,7 @@
       USE ERROR_MOD,    ONLY : GEOS_CHEM_STOP
       USE PRESSURE_MOD, ONLY : GET_PEDGE
 #if defined( DEVEL )
-      USE GC_TYPE_MOD,  ONLY : GC_MET_LOCAL
+      USE GIGC_State_Met_Mod, ONLY : MetState
 #endif
 
       USE CMN_SIZE_MOD            ! Size parameters
@@ -549,7 +549,7 @@
       INTEGER, INTENT(IN) :: I      ! Longitude index
       INTEGER, INTENT(IN) :: J      ! Latitude index
 #if defined( DEVEL )
-      TYPE(GC_MET_LOCAL), INTENT(IN) :: LOCAL_MET  ! Obj w/ met fields
+      TYPE(MetState), INTENT(IN) :: State_Met   ! Meteorology State object
 #endif
 !
 ! !RETURN VALUE:
@@ -591,7 +591,7 @@
             ! where the tropopause occurs.  This box is partially in the
             ! trop and partially in the strat.
 #if defined( DEVEL )
-            IF ( LOCAL_MET%TROPP(I,J) >= PRESS_BEDGE ) THEN
+            IF ( State_Met%TROPP(I,J) >= PRESS_BEDGE ) THEN
 #else
             IF ( TROPP(I,J) >= PRESS_BEDGE ) THEN
 #endif
@@ -644,7 +644,7 @@
 ! !INTERFACE:
 !
 #if defined( DEVEL )
-      FUNCTION ITS_IN_THE_TROP( I, J, L, LOCAL_MET ) RESULT ( IS_TROP )
+      FUNCTION ITS_IN_THE_TROP( I, J, L, State_Met ) RESULT ( IS_TROP )
 #else
       FUNCTION ITS_IN_THE_TROP( I, J, L ) RESULT ( IS_TROP )
 #endif
@@ -655,7 +655,7 @@
       USE LOGICAL_MOD,  ONLY : LVARTROP
       USE PRESSURE_MOD, ONLY : GET_PEDGE
 #if defined( DEVEL )
-      USE GC_TYPE_MOD,  ONLY : GC_MET_LOCAL
+      USE GIGC_State_Met_Mod, ONLY : MetState
 #endif
 !
 ! !INPUT PARAMETERS: 
@@ -664,7 +664,7 @@
       INTEGER, INTENT(IN) :: J         ! Latitude index
       INTEGER, INTENT(IN) :: L         ! Level index
 #if defined( DEVEL )
-      TYPE(GC_MET_LOCAL), INTENT(IN) :: LOCAL_MET  ! Obj w/ met fields
+      TYPE(MetState), INTENT(IN) :: State_Met   ! Meteorology State object
 #endif
 !
 ! !RETURN VALUE:
@@ -696,7 +696,7 @@
 
          ! Check against actual tropopause pressure
 #if defined( DEVEL )
-         IS_TROP     = ( PRESS_BEDGE > LOCAL_MET%TROPP(I,J) )
+         IS_TROP     = ( PRESS_BEDGE > State_Met%TROPP(I,J) )
 #else
          IS_TROP     = ( PRESS_BEDGE > TROPP(I,J) )
 #endif
@@ -724,7 +724,7 @@
 ! !INTERFACE:
 !
 #if defined( DEVEL )
-      FUNCTION ITS_IN_THE_STRAT( I, J, L, LOCAL_MET ) RESULT( IS_STRAT )
+      FUNCTION ITS_IN_THE_STRAT( I, J, L, State_Met ) RESULT( IS_STRAT )
 #else
       FUNCTION ITS_IN_THE_STRAT( I, J, L ) RESULT( IS_STRAT )
 #endif
@@ -732,7 +732,7 @@
 ! !USES:
 !
 #if defined( DEVEL )
-      USE GC_TYPE_MOD, ONLY : GC_MET_LOCAL
+      USE GIGC_State_Met_Mod, ONLY : MetState
 #endif
 !
 ! !INPUT PARAMETERS: 
@@ -741,7 +741,7 @@
       INTEGER, INTENT(IN) :: J          ! Latitude index
       INTEGER, INTENT(IN) :: L          ! Level index
 #if defined( DEVEL )
-      TYPE(GC_MET_LOCAL), INTENT(IN) :: LOCAL_MET  ! Obj w/ met fields
+      TYPE(MetState), INTENT(IN) :: State_Met   ! Meteorology State object
 #endif
 !
 ! !RETURN VALUE:
@@ -764,7 +764,7 @@
       ! exact opposite of function ITS_IN_THE_TROP.  This should avoid
       ! numerical issues. (phs, 11/14/08)
 #if defined( DEVEL )
-      IS_STRAT = ( .not. ITS_IN_THE_TROP( I, J, L, LOCAL_MET ) )
+      IS_STRAT = ( .not. ITS_IN_THE_TROP( I, J, L, State_Met ) )
 #else
       IS_STRAT = ( .not. ITS_IN_THE_TROP( I, J, L ) )
 #endif
@@ -784,7 +784,7 @@
 ! !INTERFACE:
 !
 #if defined( DEVEL )
-      SUBROUTINE DIAG_TROPOPAUSE( LOCAL_MET )
+      SUBROUTINE DIAG_TROPOPAUSE( State_Met )
 #else
       SUBROUTINE DIAG_TROPOPAUSE
 #endif
@@ -798,7 +798,7 @@
       USE PRESSURE_MOD,   ONLY : GET_PCENTER
       USE PRESSURE_MOD,   ONLY : GET_PEDGE
 #if defined( DEVEL )
-      USE GC_TYPE_MOD,    ONLY : GC_MET_LOCAL
+      USE GIGC_State_Met_Mod, ONLY : MetState
 #endif
 
       USE CMN_SIZE_MOD  ! Size parameters
@@ -807,7 +807,7 @@
 ! !INPUT PARAMETERS: 
 !
 #if defined( DEVEL )
-      TYPE(GC_MET_LOCAL), INTENT(IN) :: LOCAL_MET  ! Obj w/ met fields
+      TYPE(MetState), INTENT(IN) :: State_Met   ! Meteorology State object
 #endif
 !
 ! !REMARKS:
@@ -887,12 +887,12 @@
             !---------------------------
     
             ! For this (I,J) column, get the level where the t'pause occurs
-            L_TP = GET_TPAUSE_LEVEL( I, J, LOCAL_MET )
+            L_TP = GET_TPAUSE_LEVEL( I, J, State_Met )
 
             ! Get height (from surface to top edge) of all boxes that lie
             ! totally w/in the troposphere.  NOTE: Grid box (I,J,L_TP-1)
             ! is the highest purely tropospheric grid box in the column.
-            H    = SUM( LOCAL_MET%BXHEIGHT( I, J, 1:L_TP-1 ) )
+            H    = SUM( State_Met%BXHEIGHT( I, J, 1:L_TP-1 ) )
 
             ! Get the pressures [hPa] at the bottom and top edges
             ! of the grid box in which the tropopause occurs
@@ -901,11 +901,11 @@
 
             ! FRAC is the fraction of the grid box (I,J,L_TP) 
             ! that lies totally within the troposphere
-            FRAC = ( Pb - LOCAL_MET%TROPP(I,J) ) / ( Pb - Pt ) 
+            FRAC = ( Pb - State_Met%TROPP(I,J) ) / ( Pb - Pt ) 
 
             ! Add to H the height [m] of the purely tropospheric 
             ! fraction of grid box (I,J,L_TP)
-            H    = H + ( FRAC * LOCAL_MET%BXHEIGHT(I,J,L_TP) )
+            H    = H + ( FRAC * State_Met%BXHEIGHT(I,J,L_TP) )
 
             !---------------------------
             ! Archive into ND55 array
@@ -913,7 +913,7 @@
             AD55(I,J,1) = AD55(I,J,1) + L_TP        ! T'pause level
             AD55(I,J,2) = AD55(I,J,2) + H/1.0d3     ! T'pause height [km]
             AD55(I,J,3) = AD55(I,J,3) + 
-     &                    LOCAL_MET%TROPP(I,J)      ! T'pause pressure [hPa]
+     &                    State_Met%TROPP(I,J)      ! T'pause pressure [hPa]
 
          ENDDO
          ENDDO
@@ -994,7 +994,7 @@
       DO J = 1, JJPAR
       DO I = 1, IIPAR
 #if defined( DEVEL )
-         H(I,J,1) = LOCAL_MET%BXHEIGHT(I,J,1) / 2.d0
+         H(I,J,1) = State_Met%BXHEIGHT(I,J,1) / 2.d0
 #else
          H(I,J,1) = BXHEIGHT(I,J,1) / 2.d0
 #endif
@@ -1007,8 +1007,8 @@
       DO I = 1, IIPAR
 #if defined( DEVEL )
          H(I,J,L+1) = H(I,J,L) + 
-     &               ( LOCAL_MET%BXHEIGHT(I,J,L) +
-     &                 LOCAL_MET%BXHEIGHT(I,J,L+1) ) / 2.d0
+     &               ( State_Met%BXHEIGHT(I,J,L) +
+     &                 State_Met%BXHEIGHT(I,J,L+1) ) / 2.d0
 #else
          H(I,J,L+1) = H(I,J,L) + 
      &               ( BXHEIGHT(I,J,L) + BXHEIGHT(I,J,L+1) ) / 2.d0
@@ -1026,7 +1026,7 @@
 
             ! Get the tropopause level
 #if defined( DEVEL )
-            L           = GET_TPAUSE_LEVEL( I, J, LOCAL_MET )
+            L           = GET_TPAUSE_LEVEL( I, J, State_Met )
 #else
             L           = GET_TPAUSE_LEVEL( I, J )
 #endif

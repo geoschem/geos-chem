@@ -458,7 +458,8 @@
  
                 ! RPMARES does not take Na+, Cl- into account
                 ! (skip for crystalline & aqueous offline run)
-                IF ( .not. LCRYST ) CALL DO_RPMARES( am_I_Root, State_Met )
+                IF ( .not. LCRYST ) 
+     &             CALL DO_RPMARES( am_I_Root, State_Met )
  
              ENDIF
 
@@ -557,9 +558,9 @@
          !---------------------------------
          ELSE IF ( ITS_A_CH3I_SIM() ) THEN
 #if defined( DEVEL )
-            CALL CHEMCH3I( State_Met )
+            CALL CHEMCH3I( am_I_Root, State_Met )
 #else
-            CALL CHEMCH3I
+            CALL CHEMCH3I( am_I_Root )
 #endif
 
          !---------------------------------            
@@ -567,7 +568,7 @@
          !---------------------------------
          ELSE IF ( ITS_A_HCN_SIM() ) THEN
 #if defined( DEVEL )
-            CALL CHEM_HCN_CH3CN( N_TRACERS, State_Met, STT )
+            CALL CHEM_HCN_CH3CN( N_TRACERS, STT, State_Met )
 #else
             CALL CHEM_HCN_CH3CN( N_TRACERS, STT )
 #endif

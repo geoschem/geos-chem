@@ -246,7 +246,7 @@
 ! !INTERFACE:
 !
 #if defined( DEVEL )
-      SUBROUTINE DIAG51b( LOCAL_MET )
+      SUBROUTINE DIAG51b( State_Met )
 #else
       SUBROUTINE DIAG51b
 #endif
@@ -255,13 +255,13 @@
 !
       USE LOGICAL_MOD, ONLY : DO_DIAG_WRITE
 #if defined( DEVEL )
-      USE GC_TYPE_MOD, ONLY : GC_MET_LOCAL
+      USE GIGC_State_Met_Mod, ONLY : MetState
 #endif
 !
 ! !INPUT PARAMETERS:
 !
 #if defined( DEVEL )
-      TYPE(GC_MET_LOCAL), INTENT(IN) :: LOCAL_MET  ! Obj w/ met fields
+      TYPE(MetState), INTENT(IN) :: State_Met   ! Meteorology State object
 #endif
 ! 
 ! !REVISION HISTORY: 
@@ -286,7 +286,7 @@
 
       ! Accumulate data in the Q array
 #if defined( DEVEL )
-      CALL ACCUMULATE_DIAG51( LOCAL_MET )
+      CALL ACCUMULATE_DIAG51( State_Met )
 #else
       CALL ACCUMULATE_DIAG51
 #endif
@@ -384,7 +384,7 @@
 ! !INTERFACE:
 !
 #if defined( DEVEL )
-      SUBROUTINE ACCUMULATE_DIAG51( LOCAL_MET )
+      SUBROUTINE ACCUMULATE_DIAG51( State_Met )
 #else
       SUBROUTINE ACCUMULATE_DIAG51
 #endif
@@ -411,7 +411,7 @@
       USE TRACERID_MOD,   ONLY : IDTR4N2, IDTSALA, IDTSALC 
       USE TROPOPAUSE_MOD, ONLY : ITS_IN_THE_TROP
 #if defined( DEVEL )
-      USE GC_TYPE_MOD,    ONLY : GC_MET_LOCAL
+      USE GIGC_State_Met_Mod, ONLY : MetState
 #endif
 
       USE CMN_FJ_MOD,     ONLY : JPMAX, JPPJ  ! includes F77_CMN_SIZE
@@ -422,7 +422,7 @@
 ! !INPUT PARAMETERS:
 !
 #if defined( DEVEL )
-      TYPE(GC_MET_LOCAL), INTENT(IN) :: LOCAL_MET  ! Obj w/ met fields
+      TYPE(MetState), INTENT(IN) :: State_Met   ! Meteorology State object
 #endif
 ! 
 ! !REVISION HISTORY: 
@@ -483,9 +483,9 @@
       ! Set logical flags on first call
       IF ( FIRST ) THEN
 #if defined( DEVEL )
-         IS_OPTD     = ASSOCIATED( LOCAL_MET%OPTD    )
-         IS_CLDTOPS  = ASSOCIATED( LOCAL_MET%CLDTOPS )
-         IS_SLP      = ASSOCIATED( LOCAL_MET%SLP     )
+         IS_OPTD     = ASSOCIATED( State_Met%OPTD    )
+         IS_CLDTOPS  = ASSOCIATED( State_Met%CLDTOPS )
+         IS_SLP      = ASSOCIATED( State_Met%SLP     )
 #else
          IS_OPTD     = ALLOCATED( OPTD    )
          IS_CLDTOPS  = ALLOCATED( CLDTOPS )
@@ -576,7 +576,7 @@
 
             ! Only increment if we are in the trop
 #if defined( DEVEL )
-            IF ( ITS_IN_THE_TROP( I, J, L, LOCAL_MET ) ) THEN
+            IF ( ITS_IN_THE_TROP( I, J, L, State_Met ) ) THEN
                COUNT_CHEM3D(X,Y,K) = COUNT_CHEM3D(X,Y,K) + GOOD(I)
             ENDIF
 #else
@@ -626,7 +626,7 @@
 #if defined( DEVEL )
                Q(X,Y,K,W) = Q(X,Y,K,W) + 
      &                      ( STT(I,J,L,N)      * TCVV(N) / 
-     &                      LOCAL_MET%AD(I,J,L) * GOOD(I) )
+     &                      State_Met%AD(I,J,L) * GOOD(I) )
 #else
                Q(X,Y,K,W) = Q(X,Y,K,W) + 
      &                      ( STT(I,J,L,N) * TCVV(N) / 
@@ -644,7 +644,7 @@
 #if defined( DEVEL )
                Q(X,Y,K,W) = Q(X,Y,K,W) + 
      &              ( STT(I,J,L,IDTOX) * FRACO3(I,J,L)       *
-     &                TCVV(IDTOX)      / LOCAL_MET%AD(I,J,L) *
+     &                TCVV(IDTOX)      / State_Met%AD(I,J,L) *
      &                GOOD_CHEM(X) )
 #else
                Q(X,Y,K,W) = Q(X,Y,K,W) + 
@@ -663,7 +663,7 @@
 #if defined( DEVEL )
                Q(X,Y,K,W) = Q(X,Y,K,W)  + 
      &              ( STT(I,J,L,IDTNOX) * FRACNO(I,J,L)       *
-     &                TCVV(IDTNOX)      / LOCAL_MET%AD(I,J,L) *
+     &                TCVV(IDTNOX)      / State_Met%AD(I,J,L) *
      &                GOOD_CHEM(X) )
 #else
                Q(X,Y,K,W) = Q(X,Y,K,W) + 
@@ -684,41 +684,41 @@
                ! NOx
                TMP = TMP + ( TCVV(IDTNOX)        * GOOD(I) *
      &                       STT(I,J,L,IDTNOX)   / 
-     &                       LOCAL_MET%AD(I,J,L) )
+     &                       State_Met%AD(I,J,L) )
                ! PAN
                TMP = TMP + ( TCVV(IDTPAN)        * GOOD(I) *
      &                       STT(I,J,L,IDTPAN)   / 
-     &                       LOCAL_MET%AD(I,J,L) )
+     &                       State_Met%AD(I,J,L) )
 
                ! HNO3
                TMP = TMP + ( TCVV(IDTHNO3)       * GOOD(I) *
      &                       STT(I,J,L,IDTHNO3)  / 
-     &                       LOCAL_MET%AD(I,J,L) )
+     &                       State_Met%AD(I,J,L) )
             
                ! PMN
                TMP = TMP + ( TCVV(IDTPMN)        * GOOD(I) *
      &                       STT(I,J,L,IDTPMN)   / 
-     &                       LOCAL_MET%AD(I,J,L) )
+     &                       State_Met%AD(I,J,L) )
 
                ! PPN
                TMP = TMP + ( TCVV(IDTPPN)        * GOOD(I) *
      &                       STT(I,J,L,IDTPPN)   / 
-     &                       LOCAL_MET%AD(I,J,L) )
+     &                       State_Met%AD(I,J,L) )
  
                ! R4N2
                TMP = TMP + ( TCVV(IDTR4N2)       * GOOD(I) *
      &                       STT(I,J,L,IDTR4N2)  / 
-     &                       LOCAL_MET%AD(I,J,L) )
+     &                       State_Met%AD(I,J,L) )
             
                ! N2O5
                TMP = TMP + ( 2d0 * TCVV(IDTN2O5) * GOOD(I) *
      &                       STT(I,J,L,IDTN2O5)  / 
-     &                       LOCAL_MET%AD(I,J,L) )
+     &                       State_Met%AD(I,J,L) )
                         
                ! HNO4
                TMP = TMP + ( TCVV(IDTHNO4)       * GOOD(I) *
      &                       STT(I,J,L,IDTHNO4)  / 
-     &                       LOCAL_MET%AD(I,J,L) )
+     &                       State_Met%AD(I,J,L) )
 #else
                ! NOx
                TMP = TMP + ( TCVV(IDTNOX)        * GOOD(I) *
@@ -775,7 +775,7 @@
 #if defined( DEVEL )
                Q(X,Y,K,W) = Q(X,Y,K,W) + 
      &            ( STT(I,J,L,IDTNOX)  * FRACNO2(I,J,L)      *
-     &              TCVV(IDTNOX)       / LOCAL_MET%AD(I,J,L) *
+     &              TCVV(IDTNOX)       / State_Met%AD(I,J,L) *
      &              GOOD_CHEM(X) )
 #else
                Q(X,Y,K,W) = Q(X,Y,K,W) + 
@@ -809,7 +809,7 @@
                ! AIR DENSITY [molec/cm3] 
                !--------------------------------------
 #if defined( DEVEL )
-               Q(X,Y,K,W) = Q(X,Y,K,W) + ( LOCAL_MET%AIRDEN(L,I,J) *
+               Q(X,Y,K,W) = Q(X,Y,K,W) + ( State_Met%AIRDEN(L,I,J) *
      &                      XNUMOLAIR  * 1d-6 * GOOD(I) )
 #else
                Q(X,Y,K,W) = Q(X,Y,K,W) + 
@@ -822,7 +822,7 @@
                ! 3-D CLOUD FRACTION [unitless]
                !--------------------------------------
 #if defined( DEVEL )
-               Q(X,Y,K,W) = Q(X,Y,K,W) + ( LOCAL_MET%CLDF(L,I,J) *
+               Q(X,Y,K,W) = Q(X,Y,K,W) + ( State_Met%CLDF(L,I,J) *
      &                      GOOD(I) )
 #else
                Q(X,Y,K,W) = Q(X,Y,K,W) + ( CLDF(L,I,J) * GOOD(I) )
@@ -834,7 +834,7 @@
                ! COLUMN OPTICAL DEPTH [unitless]
                !--------------------------------------
 #if defined( DEVEL )
-               Q(X,Y,1,W) = Q(X,Y,1,W) + ( LOCAL_MET%OPTD(L,I,J) *
+               Q(X,Y,1,W) = Q(X,Y,1,W) + ( State_Met%OPTD(L,I,J) *
      &                      GOOD(I) )
 #else
                Q(X,Y,1,W) = Q(X,Y,1,W) + ( OPTD(L,I,J) * GOOD(I) )
@@ -847,7 +847,7 @@
                !--------------------------------------
                IF ( K == 1 ) THEN
 #if defined( DEVEL )
-                  TMP        = GET_PEDGE( I, J, LOCAL_MET%CLDTOPS(I,J) )
+                  TMP        = GET_PEDGE( I, J, State_Met%CLDTOPS(I,J) )
 #else
                   TMP        = GET_PEDGE( I, J, CLDTOPS(I,J) )
 #endif
@@ -1001,7 +1001,7 @@
      &                      ( STT(I,J,L,IDTSALA)   + 
      &                        STT(I,J,L,IDTSALC) ) *
      &                        TCVV(IDTSALA)        /
-     &                        LOCAL_MET%AD(I,J,L)  * GOOD(I)
+     &                        State_Met%AD(I,J,L)  * GOOD(I)
 #else
                Q(X,Y,K,W) = Q(X,Y,K,W) +
      &                      ( STT(I,J,L,IDTSALA) + 
@@ -1015,7 +1015,7 @@
                ! GRID BOX HEIGHTS [m]
                !-----------------------------------               
 #if defined( DEVEL )
-               Q(X,Y,K,W) = Q(X,Y,K,W) + ( LOCAL_MET%BXHEIGHT(I,J,L) *
+               Q(X,Y,K,W) = Q(X,Y,K,W) + ( State_Met%BXHEIGHT(I,J,L) *
      &                      GOOD(I) )
 #else
                Q(X,Y,K,W) = Q(X,Y,K,W) + ( BXHEIGHT(I,J,L) * GOOD(I) )
@@ -1027,7 +1027,7 @@
                ! RELATIVE HUMIDITY [%]
                !-----------------------------------               
 #if defined( DEVEL )
-               Q(X,Y,K,W) = Q(X,Y,K,W) + ( LOCAL_MET%RH(I,J,L) *
+               Q(X,Y,K,W) = Q(X,Y,K,W) + ( State_Met%RH(I,J,L) *
      &                      GOOD(I) )
 #else
                Q(X,Y,K,W) = Q(X,Y,K,W) + ( RH(I,J,L) * GOOD(I) )
@@ -1040,7 +1040,7 @@
                !-----------------------------------               
                IF ( K == 1 ) THEN
 #if defined( DEVEL )
-                  Q(X,Y,K,W) = Q(X,Y,K,W) + ( LOCAL_MET%SLP(I,J) *
+                  Q(X,Y,K,W) = Q(X,Y,K,W) + ( State_Met%SLP(I,J) *
      &                         GOOD(I) )
 #else
                   Q(X,Y,K,W) = Q(X,Y,K,W) + ( SLP(I,J) * GOOD(I) )
@@ -1053,7 +1053,7 @@
                ! ZONAL (U) WIND [M/S]
                !-----------------------------------               
 #if defined( DEVEL )
-               Q(X,Y,K,W) = Q(X,Y,K,W) + ( LOCAL_MET%U(I,J,L) *
+               Q(X,Y,K,W) = Q(X,Y,K,W) + ( State_Met%U(I,J,L) *
      &                      GOOD(I) )
 #else
                Q(X,Y,K,W) = Q(X,Y,K,W) + ( UWND(I,J,L) * GOOD(I) )
@@ -1065,7 +1065,7 @@
                ! MERIDIONAL (V) WIND [M/S]
                !-----------------------------------               
 #if defined( DEVEL )
-               Q(X,Y,K,W) = Q(X,Y,K,W) + ( LOCAL_MET%V(I,J,L) *
+               Q(X,Y,K,W) = Q(X,Y,K,W) + ( State_Met%V(I,J,L) *
      &                      GOOD(I) )
 #else
                Q(X,Y,K,W) = Q(X,Y,K,W) + ( VWND(I,J,L) * GOOD(I) )
@@ -1084,7 +1084,7 @@
                ! TEMPERATURE [K]
                !-----------------------------------
 #if defined( DEVEL )
-               Q(X,Y,K,W) = Q(X,Y,K,W) + ( LOCAL_MET%T(I,J,L) *
+               Q(X,Y,K,W) = Q(X,Y,K,W) + ( State_Met%T(I,J,L) *
      &                      GOOD(I) )
 #else
                Q(X,Y,K,W) = Q(X,Y,K,W) + ( T(I,J,L) * GOOD(I) )
@@ -1103,7 +1103,7 @@
               
 #if defined( DEVEL )
                   Q(X,Y,K,W) = Q(X,Y,K,W) +
-     &                       ( LOCAL_MET%PARDR(I,J) * GOOD(I) )
+     &                       ( State_Met%PARDR(I,J) * GOOD(I) )
 #else
                   Q(X,Y,K,W) =  Q(X,Y,K,W) +
      &                     ( PARDR(I,J) * GOOD(I) ) 
@@ -1120,7 +1120,7 @@
               
 #if defined( DEVEL )
                   Q(X,Y,K,W) =  Q(X,Y,K,W) +
-     &                       (  LOCAL_MET%PARDF(I,J) * GOOD(I) )
+     &                       (  State_Met%PARDF(I,J) * GOOD(I) )
 #else
                   Q(X,Y,K,W) =  Q(X,Y,K,W) +
      &                     ( PARDF(I,J) * GOOD(I) ) 
@@ -1150,7 +1150,7 @@
 
 #if defined( DEVEL )
                   Q(X,Y,K,W) = Q(X,Y,K,W) +
-     &                       ( LOCAL_MET%TS(I,J) * GOOD(I) )
+     &                       ( State_Met%TS(I,J) * GOOD(I) )
 #else
                   Q(X,Y,K,W) = Q(X,Y,K,W) + ( TS(I,J) * GOOD(I) )
 #endif

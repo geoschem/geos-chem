@@ -595,7 +595,7 @@
 !
 #if defined( DEVEL )
       SUBROUTINE SET_BRO( N_TRACERS, TCVV, AD, SUNCOS, STT, unit_flag,
-     &                    LOCAL_MET  )
+     &                    State_Met  )
 #else
       SUBROUTINE SET_BRO( N_TRACERS, TCVV, AD, SUNCOS, STT, unit_flag )
 #endif
@@ -607,7 +607,7 @@
       USE LOGICAL_MOD,   ONLY : LFIX_PBL_BRO
       USE DAO_MOD,       ONLY : IS_WATER
 #if defined( DEVEL )
-      USE GC_TYPE_MOD,   ONLY : GC_MET_LOCAL
+      USE GIGC_State_Met_Mod, ONLY : MetState
 #endif
 
       USE CMN_SIZE_MOD        ! Size parameters
@@ -627,11 +627,8 @@
       REAL*8,  INTENT(IN)    :: TCVV(N_TRACERS)
       REAL*8,  INTENT(IN)    :: SUNCOS(MAXIJ) 
       REAL*8,  INTENT(IN)    :: AD(IIPAR,JJPAR,LLPAR)
-!
-! !INPUT PARAMETERS: 
-!
 #if defined( DEVEL )
-      TYPE(GC_MET_LOCAL), INTENT(IN) :: LOCAL_MET  ! Obj w/ met fields
+      TYPE(MetState), INTENT(IN) :: State_Met   ! Meteorology State object
 #endif
 !
 ! !INPUT/OUTPUT PARAMETERS:
@@ -708,7 +705,7 @@
             !    sources.
             ! -----------------------------------------
 #if defined( DEVEL )
-            IF ( .not. IS_WATER( I, J, LOCAL_MET) ) THEN
+            IF ( .not. IS_WATER( I, J, State_Met) ) THEN
 #else
             IF ( .not. IS_WATER(I,J) ) THEN
 #endif

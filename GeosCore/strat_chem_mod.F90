@@ -2018,7 +2018,7 @@ CONTAINS
           !============================================================== 
 #if defined( DEVEL )
           T2   = State_Met%T(I,J,L70mb  )
-          T1   = State_Met&T(I,J,L70mb-1)
+          T1   = State_Met%T(I,J,L70mb-1)
 #else
           T2   = T(I,J,L70mb  )
           T1   = T(I,J,L70mb-1)        

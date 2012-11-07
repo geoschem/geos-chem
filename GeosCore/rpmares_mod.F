@@ -77,7 +77,7 @@
 !------------------------------------------------------------------------------
 
 #if defined( DEVEL )
-      SUBROUTINE DO_RPMARES( am_I_Root, LOCAL_MET )
+      SUBROUTINE DO_RPMARES( am_I_Root, State_Met )
 #else
       SUBROUTINE DO_RPMARES( am_I_Root )
 #endif
@@ -123,7 +123,7 @@
       USE APM_INIT_MOD,    ONLY : IDTCTBCOC, IDTCTDST
 #endif
 #if defined( DEVEL )
-      USE GC_TYPE_MOD,     ONLY : GC_MET_LOCAL
+      USE GIGC_State_Met_Mod, ONLY : MetState
 #endif
 
       USE CMN_SIZE_MOD     ! Size parameters
@@ -144,7 +144,7 @@
 !
       LOGICAL,            INTENT(IN) :: am_I_Root  ! Is this the root CPU?
 #if defined( DEVEL )
-      TYPE(GC_MET_LOCAL), INTENT(IN) :: LOCAL_MET  ! Obj w/ met fields
+      TYPE(MetState), INTENT(IN) :: State_Met   ! Meteorology State object
 #endif
 !
 ! !DEFINED PARAMETERS:
@@ -208,12 +208,12 @@
          
          ! Skip if we are in the stratosphere (bmy, 4/3/08)
 #if defined( DEVEL )
-         IF ( ITS_IN_THE_STRAT( I, J, L, LOCAL_MET ) ) CYCLE
+         IF ( ITS_IN_THE_STRAT( I, J, L, State_Met ) ) CYCLE
 
          ! Temperature [K], RH [unitless], and volume [m3]
-         ATEMP = LOCAL_MET%T(I,J,L)
-         ARH   = LOCAL_MET%RH(I,J,L) * 1.d-2
-         AVOL  = LOCAL_MET%AIRVOL(I,J,L)
+         ATEMP = State_Met%T(I,J,L)
+         ARH   = State_Met%RH(I,J,L) * 1.d-2
+         AVOL  = State_Met%AIRVOL(I,J,L)
 #else
          IF ( ITS_IN_THE_STRAT( I, J, L ) ) CYCLE
 
@@ -253,7 +253,7 @@
             GNO3 = MAX( STT(I,J,L,IDTHNO3) * 1.d9 / AVOL, CONMIN )
          ELSE
 #if defined( DEVEL )
-            GNO3 = MAX( GET_HNO3( I, J, L, LOCAL_MET ), CONMIN )
+            GNO3 = MAX( GET_HNO3( I, J, L, State_Met ), CONMIN )
 #else
             GNO3 = MAX( GET_HNO3( I, J, L ), CONMIN )
 #endif
@@ -302,7 +302,7 @@
 !------------------------------------------------------------------------------
 
 #if defined( DEVEL )
-      FUNCTION GET_HNO3( I, J, L, LOCAL_MET ) RESULT ( HNO3_UGM3 )
+      FUNCTION GET_HNO3( I, J, L, State_Met ) RESULT ( HNO3_UGM3 )
 #else
       FUNCTION GET_HNO3( I, J, L ) RESULT ( HNO3_UGM3 )
 #endif
@@ -329,13 +329,13 @@
       USE GLOBAL_HNO3_MOD, ONLY : GET_HNO3_UGM3
       USE TIME_MOD,        ONLY : GET_ELAPSED_MIN
 #if defined( DEVEL )
-      USE GC_TYPE_MOD,     ONLY : GC_MET_LOCAL
+      USE GIGC_State_Met_Mod, ONLY : MetState
 #endif
 
       ! Arguments
       INTEGER, INTENT(IN) :: I, J, L
 #if defined( DEVEL )
-      TYPE(GC_MET_LOCAL), INTENT(IN) :: LOCAL_MET  ! Obj w/ met fields
+      TYPE(MetState), INTENT(IN) :: State_Met   ! Meteorology State object
 #endif
 
       ! Local variables
@@ -349,7 +349,7 @@
       ! Otherwise just return the concentration in HNO3_sav
       IF ( MOD( GET_ELAPSED_MIN(), 180 ) == 0 ) THEN
 #if defined( DEVEL )
-         HNO3_UGM3 = GET_HNO3_UGM3( I, J, L, LOCAL_MET )
+         HNO3_UGM3 = GET_HNO3_UGM3( I, J, L, State_Met )
 #else
          HNO3_UGM3 = GET_HNO3_UGM3( I, J, L )
 #endif

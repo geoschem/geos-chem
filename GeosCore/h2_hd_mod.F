@@ -111,7 +111,7 @@
 ! !INTERFACE:
 !
 #if defined( DEVEL )
-      SUBROUTINE EMISS_H2_HD( LOCAL_MET, BIO_EMISS )
+      SUBROUTINE EMISS_H2_HD( State_Met, BIO_EMISS )
 #else
       SUBROUTINE EMISS_H2_HD
 #endif
@@ -144,18 +144,22 @@
       USE TAGGED_CO_MOD,    ONLY : READ_ACETONE,  EMACET
       USE SCALE_ANTHRO_MOD, ONLY : GET_ANNUAL_SCALAR
 #if defined( DEVEL )
-      USE GC_TYPE_MOD,      ONLY : GC_MET_LOCAL
+      USE GIGC_State_Met_Mod, ONLY : MetState
 #endif
       
       USE CMN_SIZE_MOD      ! Size parameters
       USE CMN_O3_MOD        ! FSCALYR, SCNR89, TODH, EMISTCO
       USE CMN_DIAG_MOD      ! Diagnostic arrays & switches
+
+#if defined( DEVEL )
 !
 ! !INPUT PARAMETERS: 
 !
-#if defined( DEVEL )
-      TYPE(GC_MET_LOCAL), INTENT(IN) :: LOCAL_MET        ! Obj w/ met fields
-      REAL*8, INTENT(INOUT)          :: BIO_EMISS(:,:,:)
+      TYPE(MetState), INTENT(IN)    :: State_Met   ! Meteorology State object!
+!
+! !INPUT/OUTPUT PARAMETERS: 
+!
+      REAL*8,         INTENT(INOUT) :: BIO_EMISS(:,:,:)
 #endif
 ! 
 ! !REVISION HISTORY: 
@@ -509,7 +513,7 @@
       !=================================================================
       IF ( LBIOFUEL ) THEN
 #if defined( DEVEL )
-         CALL BIOFUEL_BURN( LOCAL_MET, BIO_EMISS )
+         CALL BIOFUEL_BURN( State_Met, BIO_EMISS )
 #else
          CALL BIOFUEL_BURN
 #endif
@@ -527,7 +531,7 @@
             ! and enhance by 18.9% * yield h2/co from photochemical
             ! oxidation (lyj, 2/10/07)
             E_H2 = BIOFUEL(IDBFCO,I,J)    / XNUMOL_H2 *
-     &             BOXVL(I,J,1,LOCAL_MET) * DTSRCE    *
+     &             BOXVL(I,J,1,State_Met) * DTSRCE    *
      &             ( ( 0.189d0 * H2CO_YIELD(I,J,1) ) + 0.322d0 )
 
 
@@ -537,14 +541,14 @@
 
             E_HD = ( BIOFUEL(IDBFCO,I,J) * 1.1059d-4 )    * 
      &             ( ( 0.189d0 * H2CO_YIELD(I,J,1) )      + 0.322d0 ) /
-     &             XNUMOL_HD   * ( BOXVL(I,J,1,LOCAL_MET) * DTSRCE  ) *
+     &             XNUMOL_HD   * ( BOXVL(I,J,1,State_Met) * DTSRCE  ) *
      &             2.d0
 
             ! ND10 -- store Biofuel Fuel H2 [molec/cm2/s]
             IF ( ND10 > 0 ) THEN
                AD10em(I,J,3) = AD10em(I,J,3) + ( BIOFUEL(IDBFCO,I,J) *
      &                 ( ( 0.189d0 * H2CO_YIELD(I,J,1) ) + 0.322d0 ) *
-     &                       LOCAL_MET%BXHEIGHT(I,J,1)   * 100d0 )
+     &                       State_Met%BXHEIGHT(I,J,1)   * 100d0 )
             ENDIF 
 #else
             ! Convert from [molec CO/cm3/s] to [kg H2]
@@ -610,7 +614,7 @@
 
             ! Surface air temperature [K]
 #if defined( DEVEL )
-            TMMP = XLTMMP( I, J, LOCAL_MET%TS, IJLOOP )
+            TMMP = XLTMMP( I, J, State_Met%TS, IJLOOP )
 #else
             TMMP = XLTMMP( I, J, TS, IJLOOP )
 #endif
@@ -623,8 +627,8 @@
 
                ! Diffuse and direct PAR
 #if defined( DEVEL )
-               PDR  = LOCAL_MET%PARDR(I,J)
-               PDF  = LOCAL_MET%PARDF(I,J)
+               PDR  = State_Met%PARDR(I,J)
+               PDF  = State_Met%PARDF(I,J)
 #else
                PDR  = PARDR(I,J)
                PDF  = PARDF(I,J)
@@ -725,7 +729,7 @@
 ! !INTERFACE:
 !
 #if defined( DEVEL )
-      SUBROUTINE CHEM_H2_HD( LOCAL_MET )
+      SUBROUTINE CHEM_H2_HD( State_Met )
 #else
       SUBROUTINE CHEM_H2_HD
 #endif
@@ -749,7 +753,7 @@
       USE TAGGED_CO_MOD,  ONLY : GET_ALPHA_ISOP,    READ_PCO_LCO_STRAT
       USE TAGGED_CO_MOD,  ONLY : GET_PCO_LCO_STRAT
 #if defined( DEVEL )
-      USE GC_TYPE_MOD,    ONLY : GC_MET_LOCAL
+      USE GIGC_State_Met_Mod, ONLY : MetState
 #endif
 
       USE CMN_SIZE_MOD     ! Size parameters
@@ -758,7 +762,7 @@
 ! !INPUT PARAMETERS: 
 !
 #if defined( DEVEL )
-      TYPE(GC_MET_LOCAL), INTENT(IN) :: LOCAL_MET  ! Obj w/ met fields
+      TYPE(MetState), INTENT(IN) :: State_Met   ! Meteorology State object
 #endif
 ! 
 ! !REVISION HISTORY: 
@@ -872,10 +876,10 @@
          ! STTH2 [molec H2/cm3/kg H2] converts [kg H2] --> [molec H2/cm3]
          ! kg H2/box * box/cm3 * mole/0.002 kg H2 * Avog.#/mole
 #if defined( DEVEL )
-         STTH2 = 1d0     / LOCAL_MET%AIRVOL(I,J,L) / 1d6 /
+         STTH2 = 1d0     / State_Met%AIRVOL(I,J,L) / 1d6 /
      &           FMOL_H2 * 6.023d23
 	 
-	 STTHD = 1d0     / LOCAL_MET%AIRVOL(I,J,L) / 1d6 / 
+	 STTHD = 1d0     / State_Met%AIRVOL(I,J,L) / 1d6 / 
      &           FMOL_HD * 6.023d23 
 #else
          STTH2 = 1d0 / AIRVOL(I,J,L) / 1d6 / FMOL_H2 * 6.023d23
@@ -891,8 +895,8 @@
 
          ! DENS is the number density of air [molec air/cm3]
 #if defined( DEVEL )
-         DENS  = LOCAL_MET%AD(I,J,L)    * 1000.d0  /
-     &           BOXVL(I,J,L,LOCAL_MET) * 6.023d23 / WTAIR
+         DENS  = State_Met%AD(I,J,L)    * 1000.d0  /
+     &           BOXVL(I,J,L,State_Met) * 6.023d23 / WTAIR
 #else
          DENS  = AD(I,J,L) * 1000.d0 / BOXVL(I,J,L) * 6.023d23  / WTAIR
 #endif
@@ -906,7 +910,7 @@
 
          ! Test level for stratosphere or troposphere
 #if defined( DEVEL )
-         IF ( ITS_IN_THE_STRAT( I, J, L, LOCAL_MET ) ) THEN
+         IF ( ITS_IN_THE_STRAT( I, J, L, State_Met ) ) THEN
 #else
          IF ( ITS_IN_THE_STRAT( I, J, L ) ) THEN
 #endif
@@ -962,7 +966,7 @@
 
             ! Calculate updated rate constant [s-1] (bnd, bmy, 1/2/01)
 #if defined( DEVEL )
-            KRATE     = 2.45D-12 * EXP( -1775.d0 / LOCAL_MET%T(I,J,L) ) 
+            KRATE     = 2.45D-12 * EXP( -1775.d0 / State_Met%T(I,J,L) ) 
 #else
             KRATE     = 2.45D-12 * EXP( -1775.d0 / T(I,J,L) ) 
 #endif
@@ -1044,14 +1048,14 @@
             ! P(CO) from Isoprene Flux = ALPHA_ISOP * Flux(ISOP)
             ! Convert from [molec ISOP/box] to [molec CO/cm3]
             ! Also account for the fact that ISOP has 5 carbons
-            H2_ISOP = SUMISOPCO(I,J) / BOXVL(I,J,L,LOCAL_MET) / 5.d0 *
+            H2_ISOP = SUMISOPCO(I,J) / BOXVL(I,J,L,State_Met) / 5.d0 *
      &                ALPHA_ISOP
 	    
             ! P(CO) from CH3OH is scaled to Isoprene Flux (see above)
 	    ! Units are [molec CO/cm3]
             ! For H2, scale by the relative CO/H2 molar weights and
             ! the H2/CO yields.
-            H2_CH3OH = ( SUMISOPCO(I,J) / BOXVL(I,J,L,LOCAL_MET) ) *
+            H2_CH3OH = ( SUMISOPCO(I,J) / BOXVL(I,J,L,State_Met) ) *
      &                 ( 100d0          / 397d0                  ) *
      &                 ( H2CO_YIELD(I,J,L)                       ) *
      &                 ( 12d0           / 28d0                   ) 
@@ -1134,7 +1138,7 @@
             ! Units are [molec H2/cm3]. Scale by the
             ! H2/CO photochemical yield.
 #if defined( DEVEL )
-            H2_MONO = ( SUMMONOCO(I,J) / BOXVL(I,J,L,LOCAL_MET) ) * 
+            H2_MONO = ( SUMMONOCO(I,J) / BOXVL(I,J,L,State_Met) ) * 
      &                ( ALPHA_MONO     * H2CO_YIELD(I,J,L) )
 #else
             H2_MONO = ( SUMMONOCO(I,J) / BOXVL(I,J,L)      ) * 
@@ -1184,7 +1188,7 @@
             
             ! Units are [molec H2/cc]. Scale by the H2/CO yield.
 #if defined( DEVEL )
-            H2_ACET = SUMACETCO(I,J) / BOXVL(I,J,L,LOCAL_MET) * 
+            H2_ACET = SUMACETCO(I,J) / BOXVL(I,J,L,State_Met) * 
      &                ALPHA_ACET     * H2CO_YIELD (I,J,L)
 #else
             H2_ACET = SUMACETCO(I,J) / BOXVL(I,J,L) * 
@@ -1214,7 +1218,7 @@
 
          ! Select out tropospheric or stratospheric boxes
 #if defined( DEVEL )
-         IF ( ITS_IN_THE_STRAT( I, J, L, LOCAL_MET ) ) THEN
+         IF ( ITS_IN_THE_STRAT( I, J, L, State_Met ) ) THEN
 #else
          IF ( ITS_IN_THE_STRAT( I, J, L ) ) THEN
 #endif
@@ -1228,8 +1232,8 @@
 	    
 	    ! Rate constants for H2+OH and HD+OH from JPL, 2004 (hup, 06/28/04)
 #if defined( DEVEL )
-            H2_RATE = 5.5D-12 * EXP( -2000.d0 / LOCAL_MET%T(I,J,L) )
-            HD_RATE = 5.0D-12 * EXP( -2130.d0 / LOCAL_MET%T(I,J,L) )
+            H2_RATE = 5.5D-12 * EXP( -2000.d0 / State_Met%T(I,J,L) )
+            HD_RATE = 5.0D-12 * EXP( -2130.d0 / State_Met%T(I,J,L) )
 #else
             H2_RATE = 5.5D-12 * EXP( -2000.d0 / T(I,J,L) )
             HD_RATE = 5.0D-12 * EXP( -2130.d0 / T(I,J,L) )
@@ -1286,8 +1290,8 @@
 	    ! Loss for H2 and HD by reaction with OH accd JPL, 2004 
 	    ! (hup, 06/28/04)
 #if defined( DEVEL )
-            H2_RATE = 5.5D-12 * EXP( -2000.d0 / LOCAL_MET%T(I,J,L) )
-	    HD_RATE = 5.0D-12 * EXP( -2130.d0 / LOCAL_MET%T(I,J,L) )
+            H2_RATE = 5.5D-12 * EXP( -2000.d0 / State_Met%T(I,J,L) )
+	    HD_RATE = 5.0D-12 * EXP( -2130.d0 / State_Met%T(I,J,L) )
 #else
             H2_RATE = 5.5D-12 * EXP( -2000.d0 / T(I,J,L) )
 	    HD_RATE = 5.0D-12 * EXP( -2130.d0 / T(I,J,L) )

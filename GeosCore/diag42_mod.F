@@ -73,7 +73,7 @@
 ! !INTERFACE:
 !
 #if defined( DEVEL )
-      SUBROUTINE DIAG42( LOCAL_MET )
+      SUBROUTINE DIAG42( State_Met )
 #else
       SUBROUTINE DIAG42
 #endif
@@ -93,7 +93,7 @@
       USE TRACERID_MOD, ONLY : IDTSO4, IDTNIT, IDTNH4, IDTSALA, IDTSALC
       USE TRACERID_MOD, ONLY : IDTBCPI, IDTBCPO
 #if defined( DEVEL )
-      USE GC_TYPE_MOD,  ONLY : GC_MET_LOCAL
+      USE GIGC_State_Met_Mod, ONLY : MetState
 #endif
 
       USE CMN_SIZE_MOD     ! Size parameters
@@ -102,7 +102,7 @@
 ! !INPUT PARAMETERS:
 !
 #if defined( DEVEL )
-      TYPE(GC_MET_LOCAL), INTENT(IN) :: LOCAL_MET  ! Obj w/ met fields
+      TYPE(MetState), INTENT(IN) :: State_Met   ! Meteorology State object
 #endif
 ! 
 ! !REVISION HISTORY: 
@@ -147,10 +147,10 @@
 #if defined( DEVEL )
          ! Conversion factor from [kg] --> [ug/m3]
          ! (LTOTH=1 if between OTH_HR1 and OTH_HR2, LTOTH=0 otherwise)
-         !FACTOR        = 1d9 / LOCAL_MET%AIRVOL(I,J,L) * LTOTH(I,J) 
+         !FACTOR        = 1d9 / State_Met%AIRVOL(I,J,L) * LTOTH(I,J) 
 
          ! Conversion factor from [kg] --> [ug/m3]
-         FACTOR        = 1d9 / LOCAL_MET%AIRVOL(I,J,L)
+         FACTOR        = 1d9 / State_Met%AIRVOL(I,J,L)
 #else
          ! Conversion factor from [kg] --> [ug/m3]
          ! (LTOTH=1 if between OTH_HR1 and OTH_HR2, LTOTH=0 otherwise)

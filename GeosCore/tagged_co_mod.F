@@ -355,7 +355,7 @@
 ! !INTERFACE:
 !
 #if defined( DEVEL )
-      SUBROUTINE EMISS_TAGGED_CO( LOCAL_MET )
+      SUBROUTINE EMISS_TAGGED_CO( State_Met )
 #else
       SUBROUTINE EMISS_TAGGED_CO
 #endif
@@ -383,7 +383,7 @@
       USE TRACER_MOD,   ONLY : STT
       USE TRACERID_MOD, ONLY : IDBFCO,        IDECO,          IDBCO
 #if defined( DEVEL )
-      USE GC_TYPE_MOD,  ONLY : GC_MET_LOCAL
+      USE GIGC_State_Met_Mod, ONLY : MetState
 #endif
 
       IMPLICIT NONE
@@ -393,7 +393,7 @@
 ! !INPUT PARAMETERS:
 !
 #if defined( DEVEL )
-      TYPE(GC_MET_LOCAL), INTENT(IN) :: LOCAL_MET  ! Obj w/ met fields
+      TYPE(MetState), INTENT(IN) :: State_Met   ! Meteorology State object
 #endif
 ! 
 ! !REVISION HISTORY: 
@@ -652,7 +652,7 @@
             ! Convert biofuel CO from [molec CO/cm3/s] to [kg CO]
 #if defined( DEVEL )
             E_CO = BIOFUEL(IDBFCO,I,J)    / XNUMOL_CO * 
-     &             BOXVL(I,J,1,LOCAL_MET) * DTSRCE
+     &             BOXVL(I,J,1,State_Met) * DTSRCE
 #else
             E_CO = BIOFUEL(IDBFCO,I,J) / XNUMOL_CO * 
      &             BOXVL(I,J,1)        * DTSRCE
@@ -710,7 +710,7 @@
 
          ! Surface air temperature [K]
 #if defined( DEVEL )
-         TMMP = XLTMMP( I, J, LOCAL_MET%TS, IJLOOP )
+         TMMP = XLTMMP( I, J, State_Met%TS, IJLOOP )
 #else
          TMMP = XLTMMP( I, J, TS, IJLOOP )
 #endif
@@ -726,8 +726,8 @@
 
             ! Diffuse and direct PAR
 #if defined( DEVEL )
-            PDR = LOCAL_MET%PARDR(I,J)
-            PDF = LOCAL_MET%PARDF(I,J)
+            PDR = State_Met%PARDR(I,J)
+            PDF = State_Met%PARDF(I,J)
 #else
             PDR = PARDR(I,J)
             PDF = PARDF(I,J)
@@ -792,7 +792,7 @@
 ! !INTERFACE:
 !
 #if defined( DEVEL )
-      SUBROUTINE CHEM_TAGGED_CO( LOCAL_MET )
+      SUBROUTINE CHEM_TAGGED_CO( State_Met )
 #else
       SUBROUTINE CHEM_TAGGED_CO
 #endif
@@ -816,13 +816,13 @@
       USE TRACER_MOD,     ONLY : N_TRACERS,       STT
       USE TROPOPAUSE_MOD, ONLY : ITS_IN_THE_STRAT
 #if defined( DEVEL )
-      USE GC_TYPE_MOD,    ONLY : GC_MET_LOCAL
+      USE GIGC_State_Met_Mod, ONLY : MetState
 #endif
 !
 ! !INPUT PARAMETERS:
 !
 #if defined( DEVEL )
-      TYPE(GC_MET_LOCAL), INTENT(IN) :: LOCAL_MET  ! Obj w/ met fields
+      TYPE(MetState), INTENT(IN) :: State_Met   ! Meteorology State object
 #endif
 ! 
 ! !REVISION HISTORY: 
@@ -992,15 +992,15 @@
 #if defined( DEVEL )
          ! STTCO [molec CO/cm3/kg CO] converts [kg CO] --> [molec CO/cm3]
          ! kg CO/box * box/cm3 * mole/0.028 kg CO * Avog.#/mole
-         STTCO = 1d0     / LOCAL_MET%AIRVOL(I,J,L) / 1d6 /
+         STTCO = 1d0     / State_Met%AIRVOL(I,J,L) / 1d6 /
      &           FMOL_CO * 6.023d23
 
          ! GCO is CO concentration in [molec CO/cm3]
          GCO   = STT(I,J,L,1) * STTCO
 
          ! DENS is the number density of air [molec air/cm3]
-         DENS  = LOCAL_MET%AD(I,J,L)    * 1000.d0   /
-     &           BOXVL(I,J,L,LOCAL_MET) * 6.023d23  / WTAIR
+         DENS  = State_Met%AD(I,J,L)    * 1000.d0   /
+     &           BOXVL(I,J,L,State_Met) * 6.023d23  / WTAIR
 #else
          ! STTCO [molec CO/cm3/kg CO] converts [kg CO] --> [molec CO/cm3]
          ! kg CO/box * box/cm3 * mole/0.028 kg CO * Avog.#/mole
@@ -1022,7 +1022,7 @@
 
          ! Test level for stratosphere or troposphere
 #if defined( DEVEL )
-         IF ( ITS_IN_THE_STRAT( I, J, L, LOCAL_MET ) ) THEN
+         IF ( ITS_IN_THE_STRAT( I, J, L, State_Met ) ) THEN
 #else
          IF ( ITS_IN_THE_STRAT( I, J, L ) ) THEN
 #endif
@@ -1058,7 +1058,7 @@
 
             ! Calculate updated rate constant [s-1] (bnd, bmy, 1/2/01)
 #if defined( DEVEL )
-            KRATE = 2.45D-12 * EXP( -1775.d0 / LOCAL_MET%T(I,J,L) ) 
+            KRATE = 2.45D-12 * EXP( -1775.d0 / State_Met%T(I,J,L) ) 
 #else
             KRATE = 2.45D-12 * EXP( -1775.d0 / T(I,J,L) ) 
 #endif 
@@ -1126,12 +1126,12 @@
             ! Units of ALPHA_ISOP are [molec CO/molec ISOP]
             ! Units of CO_ISOP are [molec CO/cm3]
 #if defined( DEVEL )
-            CO_ISOP = SUMISOPCO(I,J) / BOXVL(I,J,L,LOCAL_MET) /
+            CO_ISOP = SUMISOPCO(I,J) / BOXVL(I,J,L,State_Met) /
      &                5.d0           * ALPHA_ISOP
 
             ! P(CO) from CH3OH is scaled to Isoprene Flux (see above)
             ! Units are [molec CO/cm3]
-            CO_CH3OH = ( SUMISOPCO(I,J) / BOXVL(I,J,L,LOCAL_MET) ) * 
+            CO_CH3OH = ( SUMISOPCO(I,J) / BOXVL(I,J,L,State_Met) ) * 
      &                 ( 100d0          / 397d0                  ) * 
      &                 ( 12d0           / 28d0                   )
 #else
@@ -1204,7 +1204,7 @@
             ! P(CO) from Monoterpene Flux =  alpha * Flux(Mono)
             ! Units are [molec CO/cm3]
 #if defined( DEVEL )
-            CO_MONO = ( SUMMONOCO(I,J) / BOXVL(I,J,L,LOCAL_MET) ) *
+            CO_MONO = ( SUMMONOCO(I,J) / BOXVL(I,J,L,State_Met) ) *
      &                ALPHA_MONO
 #else
             CO_MONO = ( SUMMONOCO(I,J) / BOXVL(I,J,L) ) * ALPHA_MONO
@@ -1250,7 +1250,7 @@
             
             ! Units are [molec CO/cc]
 #if defined( DEVEL )
-            CO_ACET = SUMACETCO(I,J) / BOXVL(I,J,L,LOCAL_MET) *
+            CO_ACET = SUMACETCO(I,J) / BOXVL(I,J,L,State_Met) *
      &                ALPHA_ACET
 #else
             CO_ACET = SUMACETCO(I,J) / BOXVL(I,J,L) * ALPHA_ACET
@@ -1293,7 +1293,7 @@
 
          ! Select out tropospheric or stratospheric boxes
 #if defined( DEVEL )
-         IF ( ITS_IN_THE_STRAT( I, J, L, LOCAL_MET ) ) THEN
+         IF ( ITS_IN_THE_STRAT( I, J, L, State_Met ) ) THEN
 #else
          IF ( ITS_IN_THE_STRAT( I, J, L ) ) THEN
 #endif
@@ -1380,9 +1380,9 @@
 #if defined( DEVEL )
             ! Decay rate - new JPL 2006 version (jaf, 3/4/09)
             ! KLO1 = k_0(T) from JPL Data Eval (page 2-1)
-            KLO1   = 5.9D-33 * ( LOCAL_MET%T(I,J,L) / 300 )**(-1.4D0)
+            KLO1   = 5.9D-33 * ( State_Met%T(I,J,L) / 300 )**(-1.4D0)
             ! KHI1 = k_inf(T) from JPL Data Eval (page 2-1)
-            KHI1   = 1.1D-12 * ( LOCAL_MET%T(I,J,L) / 300 )**(1.3D0)
+            KHI1   = 1.1D-12 * ( State_Met%T(I,J,L) / 300 )**(1.3D0)
             XYRAT1 = KLO1 * DENS / KHI1
             BLOG1  = LOG10(XYRAT1)
             FEXP1  = 1.D0 / ( 1.D0 + BLOG1 * BLOG1 )
@@ -1390,9 +1390,9 @@
             KCO1   = KLO1 * DENS * 0.6**FEXP1 / ( 1.d0 + XYRAT1 )
 
             ! KLO2 = k_0(T) from JPL Data Eval (page 2-1)
-            KLO2   = 1.5D-13 * ( LOCAL_MET%T(I,J,L) / 300 )**(0.6D0)
+            KLO2   = 1.5D-13 * ( State_Met%T(I,J,L) / 300 )**(0.6D0)
             ! KHI2 = k_inf(T) from JPL Data Eval (page 2-1)
-            KHI2   = 2.1D09  * ( LOCAL_MET%T(I,J,L) / 300 )**(6.1D0)
+            KHI2   = 2.1D09  * ( State_Met%T(I,J,L) / 300 )**(6.1D0)
             XYRAT2 = KLO2 * DENS / KHI2
             BLOG2  = LOG10(XYRAT2)
             FEXP2  = 1.D0 / ( 1.D0 + BLOG2 * BLOG2 )

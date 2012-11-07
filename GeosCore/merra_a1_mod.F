@@ -281,7 +281,7 @@
 ! !INTERFACE:
 !
 #if defined( DEVEL )
-      SUBROUTINE GET_MERRA_A1_FIELDS( NYMD, NHMS, LOCAL_MET )
+      SUBROUTINE GET_MERRA_A1_FIELDS( NYMD, NHMS, State_Met )
 #else
       SUBROUTINE GET_MERRA_A1_FIELDS( NYMD, NHMS )
 #endif
@@ -300,7 +300,7 @@
       USE DAO_MOD, ONLY : TS,       TSKIN,    U10M,     USTAR
       USE DAO_MOD, ONLY : V10M,     Z0 
 #if defined( DEVEL )
-      USE GC_TYPE_MOD, ONLY : GC_MET_LOCAL
+      USE GIGC_State_Met_Mod, ONLY : MetState
 #endif
 
       USE CMN_SIZE_MOD            ! Size parameters
@@ -313,7 +313,7 @@
 ! !INPUT/OUTPUT PARAMETERS:
 !
 #if defined( DEVEL )
-      TYPE(GC_MET_LOCAL), INTENT(INOUT) :: LOCAL_MET  ! Obj w/ met fields
+      TYPE(MetState), INTENT(INOUT) :: State_Met   ! Meteorology State object
 #endif
 ! 
 ! !REVISION HISTORY: 
@@ -393,48 +393,48 @@
       LASTNHMS = NHMS
 
 #if defined( DEVEL )
-      LOCAL_MET%ALBD     = ALBD
-      LOCAL_MET%CLDFRC   = CLDFRC
-      LOCAL_MET%EFLUX    = EFLUX
-      LOCAL_MET%EVAP     = EVAP
-      LOCAL_MET%FRSEAICE = FRSEAICE
-      LOCAL_MET%FRSNO    = FRSNO
-      LOCAL_MET%GRN      = GRN
-      LOCAL_MET%GWETROOT = GWETROOT
-      LOCAL_MET%GWETTOP  = GWETTOP
-      LOCAL_MET%HFLUX    = HFLUX
-      LOCAL_MET%LAI      = LAI
-      LOCAL_MET%LWI      = LWI
-      LOCAL_MET%PARDR    = PARDR
-      LOCAL_MET%PARDF    = PARDF
-      LOCAL_MET%PBLH     = PBL
-      LOCAL_MET%PRECANV  = PREANV
-      LOCAL_MET%PRECCON  = PRECON
-      LOCAL_MET%PRECTOT  = PREACC
-      LOCAL_MET%PRECLSC  = PRELSC
-      LOCAL_MET%PRECSNO  = PRECSNO
-      LOCAL_MET%RADLWG   = RADLWG
-      LOCAL_MET%RADSWG   = RADSWG
-      LOCAL_MET%SEAICE00 = SEAICE00
-      LOCAL_MET%SEAICE10 = SEAICE10
-      LOCAL_MET%SEAICE20 = SEAICE20
-      LOCAL_MET%SEAICE30 = SEAICE30
-      LOCAL_MET%SEAICE40 = SEAICE40
-      LOCAL_MET%SEAICE50 = SEAICE50
-      LOCAL_MET%SEAICE60 = SEAICE60
-      LOCAL_MET%SEAICE70 = SEAICE70
-      LOCAL_MET%SEAICE80 = SEAICE80
-      LOCAL_MET%SEAICE90 = SEAICE90
-      LOCAL_MET%SLP      = SLP
-      LOCAL_MET%SNODP    = SNODP
-      LOCAL_MET%SNOMAS   = SNOMAS
-      LOCAL_MET%TROPP    = TROPP
-      LOCAL_MET%TS       = TS
-      LOCAL_MET%TSKIN    = TSKIN
-      LOCAL_MET%U10M     = U10M
-      LOCAL_MET%USTAR    = USTAR
-      LOCAL_MET%V10M     = V10M
-      LOCAL_MET%Z0       = Z0
+      State_Met%ALBD     = ALBD
+      State_Met%CLDFRC   = CLDFRC
+      State_Met%EFLUX    = EFLUX
+      State_Met%EVAP     = EVAP
+      State_Met%FRSEAICE = FRSEAICE
+      State_Met%FRSNO    = FRSNO
+      State_Met%GRN      = GRN
+      State_Met%GWETROOT = GWETROOT
+      State_Met%GWETTOP  = GWETTOP
+      State_Met%HFLUX    = HFLUX
+      State_Met%LAI      = LAI
+      State_Met%LWI      = LWI
+      State_Met%PARDR    = PARDR
+      State_Met%PARDF    = PARDF
+      State_Met%PBLH     = PBL
+      State_Met%PRECANV  = PREANV
+      State_Met%PRECCON  = PRECON
+      State_Met%PRECTOT  = PREACC
+      State_Met%PRECLSC  = PRELSC
+      State_Met%PRECSNO  = PRECSNO
+      State_Met%RADLWG   = RADLWG
+      State_Met%RADSWG   = RADSWG
+      State_Met%SEAICE00 = SEAICE00
+      State_Met%SEAICE10 = SEAICE10
+      State_Met%SEAICE20 = SEAICE20
+      State_Met%SEAICE30 = SEAICE30
+      State_Met%SEAICE40 = SEAICE40
+      State_Met%SEAICE50 = SEAICE50
+      State_Met%SEAICE60 = SEAICE60
+      State_Met%SEAICE70 = SEAICE70
+      State_Met%SEAICE80 = SEAICE80
+      State_Met%SEAICE90 = SEAICE90
+      State_Met%SLP      = SLP
+      State_Met%SNODP    = SNODP
+      State_Met%SNOMAS   = SNOMAS
+      State_Met%TROPP    = TROPP
+      State_Met%TS       = TS
+      State_Met%TSKIN    = TSKIN
+      State_Met%U10M     = U10M
+      State_Met%USTAR    = USTAR
+      State_Met%V10M     = V10M
+      State_Met%Z0       = Z0
 #endif
 
       END SUBROUTINE GET_MERRA_A1_FIELDS

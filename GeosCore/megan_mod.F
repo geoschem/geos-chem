@@ -2687,7 +2687,7 @@
 ! !INTERFACE:
 !
 #if defined( DEVEL )
-      SUBROUTINE UPDATE_T_DAY( LOCAL_MET )
+      SUBROUTINE UPDATE_T_DAY( State_Met )
 #else
       SUBROUTINE UPDATE_T_DAY
 #endif
@@ -2697,13 +2697,13 @@
       USE MEGANUT_MOD     ! We use all functions from the module
       USE DAO_MOD,     ONLY : PARDR, PARDF, TS
 #if defined( DEVEL )
-      USE GC_TYPE_MOD, ONLY : GC_MET_LOCAL
+      USE GIGC_State_Met_Mod, ONLY : MetState
 #endif
 !
 ! !INPUT PARAMETERS: 
 !
 #if defined( DEVEL )
-      TYPE(GC_MET_LOCAL), INTENT(IN) :: LOCAL_MET  ! Obj w/ met fields
+      TYPE(MetState), INTENT(IN) :: State_Met   ! Meteorology State object
 #endif
 ! 
 ! !REVISION HISTORY: 
@@ -2740,9 +2740,9 @@
             
          ! Store 
 #if defined( DEVEL )
-         T_DAY(I,J,1)     = XLTMMP ( I, J, LOCAL_MET%TS    )
-         PARDF_DAY(I,J,1) = XLPARDF( I, J, LOCAL_MET%PARDF )
-         PARDR_DAY(I,J,1) = XLPARDR( I, J, LOCAL_MET%PARDR )
+         T_DAY(I,J,1)     = XLTMMP ( I, J, State_Met%TS    )
+         PARDF_DAY(I,J,1) = XLPARDF( I, J, State_Met%PARDF )
+         PARDR_DAY(I,J,1) = XLPARDR( I, J, State_Met%PARDR )
 #else
          T_DAY(I,J,1)     = XLTMMP ( I, J, TS    )
          PARDF_DAY(I,J,1) = XLPARDF( I, J, PARDF )
@@ -2863,7 +2863,7 @@
 ! !INTERFACE:
 !
 #if defined( DEVEL )
-      SUBROUTINE INIT_MEGAN( LOCAL_MET )
+      SUBROUTINE INIT_MEGAN( State_Met )
 #else
       SUBROUTINE INIT_MEGAN
 #endif
@@ -2882,7 +2882,7 @@
       USE TIME_MOD,         ONLY : ITS_A_LEAPYEAR
       USE TIME_MOD,         ONLY : YMD_EXTRACT
 #if defined( DEVEL )
-      USE GC_TYPE_MOD,      ONLY : GC_MET_LOCAL
+      USE GIGC_State_Met_Mod, ONLY : MetState
 #endif
 ! 
 ! !REVISION HISTORY: 
@@ -2916,7 +2916,7 @@
       REAL*8               :: JD_T15b,   JD_T15
 
 #if defined( DEVEL )
-      TYPE(GC_MET_LOCAL), INTENT(INOUT) :: LOCAL_MET  ! Obj w/ met fields
+      TYPE(MetState), INTENT(INOUT) :: State_Met   ! Meteorology State object
 #endif
       
       !=================================================================
@@ -3149,7 +3149,7 @@
             ! Sfc temp is hourly data
             !-----------------------------
             CALL GEOS57_READ_A1( NYMD_T15, 010000*J + G4AHEAD,
-     &                           LOCAL_MET ) 
+     &                           State_Met ) 
 
 #elif   defined( MERRA )
 
@@ -3163,7 +3163,7 @@
 
             ! Read A1 fields from disk
             CALL GET_MERRA_A1_FIELDS(  NYMD_T15, 010000*J + G4AHEAD,
-     &                                 LOCAL_MET ) 
+     &                                 State_Met ) 
 
 #else
             !-----------------------------
@@ -3176,12 +3176,12 @@
 
             ! Read A3 fields from disk
             CALL GET_A3_FIELDS(  NYMD_T15, 030000*J + G4AHEAD, 
-     &                           LOCAL_MET ) 
+     &                           State_Met ) 
 
 #endif
 
             ! Update hourly temperatures
-            CALL UPDATE_T_DAY( LOCAL_MET )
+            CALL UPDATE_T_DAY( State_Met )
          ENDDO     
 
 #else

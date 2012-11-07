@@ -65,7 +65,7 @@
 !------------------------------------------------------------------------------
       
 #if defined( DEVEL )
-      FUNCTION GET_HNO3_UGM3( I, J, L, LOCAL_MET ) RESULT( HNO3_UGM3 )
+      FUNCTION GET_HNO3_UGM3( I, J, L, State_Met ) RESULT( HNO3_UGM3 )
 #else
       FUNCTION GET_HNO3_UGM3( I, J, L ) RESULT( HNO3_UGM3 )
 #endif
@@ -88,7 +88,7 @@
       USE DAO_MOD,    ONLY : AD, AIRVOL
       USE TRACER_MOD, ONLY : TCVV
 #if defined( DEVEL )
-      USE GC_TYPE_MOD, ONLY : GC_MET_LOCAL
+      USE GIGC_State_Met_Mod, ONLY : MetState
 #endif
 
       USE CMN_SIZE_MOD  ! Size parameters
@@ -96,7 +96,7 @@
       ! Arguments
       INTEGER, INTENT(IN) :: I, J, L
 #if defined( DEVEL )
-      TYPE(GC_MET_LOCAL), INTENT(IN) :: LOCAL_MET  ! Obj w/ met fields
+      TYPE(MetState), INTENT(IN) :: State_Met   ! Meteorology State object
 #endif
 
       ! Local variables
@@ -108,10 +108,10 @@
 
 #if defined( DEVEL )
       ! First convert HNO3 from [v/v] to [kg]
-      HNO3_UGM3 = HNO3(I,J,L) * LOCAL_MET%AD(I,J,L) / ( 28.97d0 / 63d0 )
+      HNO3_UGM3 = HNO3(I,J,L) * State_Met%AD(I,J,L) / ( 28.97d0 / 63d0 )
 
       ! Then convert HNO3 from [kg] to [ug/m3]
-      HNO3_UGM3 = HNO3_UGM3 * 1.d9 / LOCAL_MET%AIRVOL(I,J,L)
+      HNO3_UGM3 = HNO3_UGM3 * 1.d9 / State_Met%AIRVOL(I,J,L)
 #else
       ! First convert HNO3 from [v/v] to [kg]
       HNO3_UGM3 = HNO3(I,J,L) * AD(I,J,L) / ( 28.97d0 / 63d0 )

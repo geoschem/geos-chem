@@ -486,7 +486,7 @@
 ! !INTERFACE:
 !
 #if defined( DEVEL )
-      SUBROUTINE GET_A3_FIELDS( NYMD, NHMS, LOCAL_MET )
+      SUBROUTINE GET_A3_FIELDS( NYMD, NHMS, State_Met )
 #else
       SUBROUTINE GET_A3_FIELDS( NYMD, NHMS )
 #endif
@@ -501,7 +501,7 @@
       USE DAO_MOD, ONLY : U10M,    USTAR,  V10M,   Z0, EFLUX
       USE DAO_MOD, ONLY : FRLAND,  FROCEAN,FRLAKE, FRLANDIC
 #if defined( DEVEL )
-      USE GC_TYPE_MOD, ONLY : GC_MET_LOCAL
+      USE GIGC_State_Met_Mod, ONLY : MetState
 #endif
 
       USE CMN_SIZE_MOD  ! Size parameters
@@ -514,7 +514,7 @@
 ! !INPUT/OUTPUT PARAMETERS:
 !
 #if defined( DEVEL )
-      TYPE(GC_MET_LOCAL), INTENT(INOUT) :: LOCAL_MET  ! Obj w/ met fields
+      TYPE(MetState), INTENT(INOUT) :: State_Met   ! Meteorology State object
 #endif
 ! 
 ! !REVISION HISTORY: 
@@ -578,24 +578,24 @@
 
       ! Add met fields to object of type GC_MET_LOCAL
 #if defined( DEVEL )
-      LOCAL_MET%ALBD    = ALBD
-      LOCAL_MET%CLDFRC  = CLDFRC
-      LOCAL_MET%GWETTOP = GWETTOP
-      LOCAL_MET%HFLUX   = HFLUX
-      LOCAL_MET%PARDF   = PARDF
-      LOCAL_MET%PARDR   = PARDR
-      LOCAL_MET%PBLH    = PBL
-      LOCAL_MET%PRECTOT = PREACC
-      LOCAL_MET%PRECCON = PRECON
-      LOCAL_MET%RADLWG  = RADLWG
-      LOCAL_MET%RADSWG  = RADSWG
-      LOCAL_MET%SNOW    = SNOW
-      LOCAL_MET%TS      = TS
-      LOCAL_MET%TSKIN   = TSKIN
-      LOCAL_MET%U10M    = U10M
-      LOCAL_MET%USTAR   = USTAR
-      LOCAL_MET%V10M    = V10M
-      LOCAL_MET%Z0      = Z0
+      State_Met%ALBD    = ALBD
+      State_Met%CLDFRC  = CLDFRC
+      State_Met%GWETTOP = GWETTOP
+      State_Met%HFLUX   = HFLUX
+      State_Met%PARDF   = PARDF
+      State_Met%PARDR   = PARDR
+      State_Met%PBLH    = PBL
+      State_Met%PRECTOT = PREACC
+      State_Met%PRECCON = PRECON
+      State_Met%RADLWG  = RADLWG
+      State_Met%RADSWG  = RADSWG
+      State_Met%SNOW    = SNOW
+      State_Met%TS      = TS
+      State_Met%TSKIN   = TSKIN
+      State_Met%U10M    = U10M
+      State_Met%USTAR   = USTAR
+      State_Met%V10M    = V10M
+      State_Met%Z0      = Z0
 #endif
 
 #elif defined( GEOS_5 )
@@ -624,36 +624,36 @@
 
       ! Add met fields to object of type GC_MET_LOCAL
 #if defined( DEVEL )
-      LOCAL_MET%ALBD     = ALBD
-      LOCAL_MET%CLDFRC   = CLDFRC
-      LOCAL_MET%EFLUX    = EFLUX
-      LOCAL_MET%EVAP     = EVAP
-      LOCAL_MET%FRLAKE   = FRLAKE
-      LOCAL_MET%FRLAND   = FRLAND
-      LOCAL_MET%FRLANDIC = FRLANDIC
-      LOCAL_MET%FROCEAN  = FROCEAN
-      LOCAL_MET%GRN      = GRN
-      LOCAL_MET%GWETROOT = GWETROOT
-      LOCAL_MET%GWETTOP  = GWETTOP
-      LOCAL_MET%HFLUX    = HFLUX
-      LOCAL_MET%LAI      = LAI
-      LOCAL_MET%PARDF    = PARDF
-      LOCAL_MET%PARDR    = PARDR
-      LOCAL_MET%PBLH     = PBL
-      LOCAL_MET%PRECTOT  = PREACC
-      LOCAL_MET%PRECCON  = PRECON
-      LOCAL_MET%PRECSNO  = PRECSNO
-      LOCAL_MET%RADLWG   = RADLWG
-      LOCAL_MET%RADSWG   = RADSWG
-      LOCAL_MET%SNODP    = SNODP
-      LOCAL_MET%SNOMAS   = SNOMAS
-      LOCAL_MET%TROPP    = TROPP
-      LOCAL_MET%TS       = TS
-      LOCAL_MET%TSKIN    = TSKIN
-      LOCAL_MET%U10M     = U10M
-      LOCAL_MET%USTAR    = USTAR
-      LOCAL_MET%V10M     = V10M
-      LOCAL_MET%Z0       = Z0
+      State_Met%ALBD     = ALBD
+      State_Met%CLDFRC   = CLDFRC
+      State_Met%EFLUX    = EFLUX
+      State_Met%EVAP     = EVAP
+      State_Met%FRLAKE   = FRLAKE
+      State_Met%FRLAND   = FRLAND
+      State_Met%FRLANDIC = FRLANDIC
+      State_Met%FROCEAN  = FROCEAN
+      State_Met%GRN      = GRN
+      State_Met%GWETROOT = GWETROOT
+      State_Met%GWETTOP  = GWETTOP
+      State_Met%HFLUX    = HFLUX
+      State_Met%LAI      = LAI
+      State_Met%PARDF    = PARDF
+      State_Met%PARDR    = PARDR
+      State_Met%PBLH     = PBL
+      State_Met%PRECTOT  = PREACC
+      State_Met%PRECCON  = PRECON
+      State_Met%PRECSNO  = PRECSNO
+      State_Met%RADLWG   = RADLWG
+      State_Met%RADSWG   = RADSWG
+      State_Met%SNODP    = SNODP
+      State_Met%SNOMAS   = SNOMAS
+      State_Met%TROPP    = TROPP
+      State_Met%TS       = TS
+      State_Met%TSKIN    = TSKIN
+      State_Met%U10M     = U10M
+      State_Met%USTAR    = USTAR
+      State_Met%V10M     = V10M
+      State_Met%Z0       = Z0
 #endif
 
 #elif defined( GCAP )
@@ -680,22 +680,22 @@
 
       ! Add met fields to object of type GC_MET_LOCAL
 #if defined( DEVEL )
-      LOCAL_MET%ALBD     = ALBD
-      LOCAL_MET%GWETTOP  = GWETTOP
-      LOCAL_MET%MOLENGTH = MOLENGTH
-      LOCAL_MET%OICE     = OICE
-      LOCAL_MET%PARDF    = PARDF
-      LOCAL_MET%PARDR    = PARDR
-      LOCAL_MET%PBLH     = PBL
-      LOCAL_MET%PRECTOT  = PREACC
-      LOCAL_MET%PRECCON  = PRECON
-      LOCAL_MET%RADSWG   = RADSWG
-      LOCAL_MET%SNICE    = SNICE
-      LOCAL_MET%SNOW     = SNOW
-      LOCAL_MET%TS       = TS
-      LOCAL_MET%U10M     = U10M
-      LOCAL_MET%USTAR    = USTAR
-      LOCAL_MET%V10M     = V10M
+      State_Met%ALBD     = ALBD
+      State_Met%GWETTOP  = GWETTOP
+      State_Met%MOLENGTH = MOLENGTH
+      State_Met%OICE     = OICE
+      State_Met%PARDF    = PARDF
+      State_Met%PARDR    = PARDR
+      State_Met%PBLH     = PBL
+      State_Met%PRECTOT  = PREACC
+      State_Met%PRECCON  = PRECON
+      State_Met%RADSWG   = RADSWG
+      State_Met%SNICE    = SNICE
+      State_Met%SNOW     = SNOW
+      State_Met%TS       = TS
+      State_Met%U10M     = U10M
+      State_Met%USTAR    = USTAR
+      State_Met%V10M     = V10M
 #endif
 
 #endif

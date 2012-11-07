@@ -52,7 +52,7 @@
 !------------------------------------------------------------------------------
 
 #if defined( DEVEL )
-      SUBROUTINE READ_UVALBEDO( MONTH, LOCAL_MET )
+      SUBROUTINE READ_UVALBEDO( MONTH, State_Met )
 #else
       SUBROUTINE READ_UVALBEDO( MONTH )
 #endif
@@ -105,7 +105,7 @@
       USE ERROR_MOD,     ONLY : ALLOC_ERR
       USE TRANSFER_MOD,  ONLY : TRANSFER_2D
 #if defined( DEVEL )
-      USE GC_TYPE_MOD,   ONLY : GC_MET_LOCAL
+      USE GIGC_State_Met_Mod, ONLY : MetState
 #endif
 
       USE CMN_SIZE_MOD   ! Size parameters
@@ -113,7 +113,7 @@
       ! Arguments
       INTEGER, INTENT(IN)  :: MONTH
 #if defined( DEVEL )
-      TYPE(GC_MET_LOCAL), INTENT(INOUT) :: LOCAL_MET  ! Obj w/ met fields
+      TYPE(MetState), INTENT(INOUT) :: State_Met   ! Meteorology State object
 #endif
       
       ! Local Variables
@@ -167,7 +167,7 @@
       
 #if defined( DEVEL )
       ! Copy field to derived type object
-      LOCAL_MET%UVALBEDO = UVALBEDO
+      State_Met%UVALBEDO = UVALBEDO
 #endif
 
       ! Return to calling program

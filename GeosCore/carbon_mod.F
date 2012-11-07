@@ -275,7 +275,7 @@
 !------------------------------------------------------------------------------
 
 #if defined( DEVEL )
-      SUBROUTINE CHEMCARBON( am_I_Root, LOCAL_MET )
+      SUBROUTINE CHEMCARBON( am_I_Root, State_Met )
 #else
       SUBROUTINE CHEMCARBON( am_I_Root )
 #endif
@@ -316,16 +316,16 @@
       USE TRACERID_MOD,   ONLY : IDTSOAG, IDTSOAM
 
 #if defined( DEVEL )
-      USE GC_TYPE_MOD,    ONLY : GC_MET_LOCAL
+      USE GIGC_State_Met_Mod, ONLY : MetState
 #endif
 
       USE CMN_SIZE_MOD         ! Size parameters
 !
 ! !INPUT PARAMETERS:
 !
-      LOGICAL,            INTENT(IN) :: am_I_Root  ! Is this the root CPU?
+      LOGICAL,        INTENT(IN) :: am_I_Root   ! Is this the root CPU?
 #if defined( DEVEL )
-      TYPE(GC_MET_LOCAL), INTENT(IN) :: LOCAL_MET  ! Obj w/ met fields
+      TYPE(MetState), INTENT(IN) :: State_Met   ! Meteorology State object
 #endif
 !
 ! !LOCAL VARIABLES:
@@ -479,7 +479,7 @@
          ! NOTE: This is SOA production from the reversible mechanism only 
          ! (tmf, 12/07/07) 
 #if defined( DEVEL )
-         CALL SOA_CHEMISTRY( am_I_Root, LOCAL_MET )
+         CALL SOA_CHEMISTRY( am_I_Root, State_Met )
 #else
          CALL SOA_CHEMISTRY( am_I_Root )
 #endif
@@ -494,16 +494,16 @@
 #if defined( DEVEL )
             ! Get grid box cloud fraction (tmf, 2/26/07)
             ! NOTE: We skip this for GEOS-5/MERRA met (skim, bmy, 1/14/10)
-            CALL GET_VCLDF( LOCAL_MET )
+            CALL GET_VCLDF( State_Met )
 
             ! Cloud uptake
-            CALL SOAG_CLOUD( LOCAL_MET )
+            CALL SOAG_CLOUD( State_Met )
             IF ( LPRT .and. am_I_Root ) THEN
                CALL DEBUG_MSG('### CHEMCARBON: a SOAG_CLOUD')
             ENDIF
 
             ! Aqueous aerosol uptake
-            CALL SOAG_LIGGIO_DIFF( LOCAL_MET )
+            CALL SOAG_LIGGIO_DIFF( State_Met )
             IF ( LPRT .and. am_I_Root ) THEN       
                CALL DEBUG_MSG('### CHEMCARBON: a SOAG_LIGGIO_DIFF')
             ENDIF
@@ -532,16 +532,16 @@
 #if defined( DEVEL )
             ! Get grid box cloud fraction (tmf, 2/26/07)
             ! NOTE: We skip this for GEOS-5/MERRA met (skim, bmy, 1/14/10)
-            CALL GET_VCLDF( LOCAL_MET )
+            CALL GET_VCLDF( State_Met )
 
             ! Cloud uptake
-            CALL SOAM_CLOUD( LOCAL_MET )
+            CALL SOAM_CLOUD( State_Met )
             IF ( LPRT .and. am_I_Root ) THEN
                CALL DEBUG_MSG('### CHEMCARBON: a SOAM_CLOUD')
             ENDIF
 
             ! Aqueous aerosol uptake
-            CALL SOAM_LIGGIO_DIFF( LOCAL_MET )
+            CALL SOAM_LIGGIO_DIFF( State_Met )
             IF ( LPRT .and. am_I_Root ) THEN
                CALL DEBUG_MSG( '### CHEMCARBON: a SOAM_LIGGIO_DIFF' )
             ENDIF
@@ -1276,7 +1276,7 @@
 !-------------------------------------------------------------------------------
 
 #if defined( DEVEL )
-      SUBROUTINE SOAG_LIGGIO_DIFF( LOCAL_MET )
+      SUBROUTINE SOAG_LIGGIO_DIFF( State_Met )
 #else
       SUBROUTINE SOAG_LIGGIO_DIFF
 #endif
@@ -1306,7 +1306,7 @@
       USE TRACER_MOD,   ONLY : STT 
       USE TRACERID_MOD, ONLY : IDTGLYX, IDTSOAG
 #if defined( DEVEL )
-      USE GC_TYPE_MOD,  ONLY : GC_MET_LOCAL
+      USE GIGC_State_Met_Mod, ONLY : MetState
 #endif
 
       USE CMN_SIZE_MOD         ! Size parameters
@@ -1316,7 +1316,7 @@
 
       ! Input parameters
 #if defined( DEVEL )
-      TYPE(GC_MET_LOCAL), INTENT(IN) :: LOCAL_MET  ! Obj w/ met fields
+      TYPE(MetState), INTENT(IN) :: State_Met   ! Meteorology State object
 #endif
 
       ! Local variables
@@ -1385,7 +1385,7 @@
 
 #if defined( DEVEL )
             ! Get RH  
-            XRH     = LOCAL_MET%RH( I, J, L )   ![%]
+            XRH     = State_Met%RH( I, J, L )   ![%]
 
             ! initialize for safety
             XUPTK0   = 0d0
@@ -1394,14 +1394,14 @@
             XUPTK    = 0d0
 
             ! Get T
-            XTEMP   = LOCAL_MET%T( I, J, L )
+            XTEMP   = State_Met%T( I, J, L )
             XSQTEMP = SQRT( XTEMP )
 
             ! Get air density  [molec/cm3]
             XAD     = AIRDENS( JLOOP )
 
             ! Get air volumne [m3]
-            XAIRM3   = LOCAL_MET%AIRVOL( I, J, L )
+            XAIRM3   = State_Met%AIRVOL( I, J, L )
 #else
             ! Get RH  
             XRH     = RH( I, J, L )   ![%]
@@ -1513,7 +1513,7 @@
 !------------------------------------------------------------------------------
 
 #if defined( DEVEL )
-      SUBROUTINE SOAM_LIGGIO_DIFF( LOCAL_MET )
+      SUBROUTINE SOAM_LIGGIO_DIFF( State_Met )
 #else
       SUBROUTINE SOAM_LIGGIO_DIFF
 #endif
@@ -1543,7 +1543,7 @@
       USE TRACER_MOD,   ONLY : STT 
       USE TRACERID_MOD, ONLY : IDTMGLY, IDTSOAM
 #if defined( DEVEL )
-      USE GC_TYPE_MOD,  ONLY : GC_MET_LOCAL
+      USE GIGC_State_Met_Mod, ONLY : MetState
 #endif
 
       USE CMN_SIZE_MOD         ! Size parameters
@@ -1553,7 +1553,7 @@
 
       ! Input parameters
 #if defined( DEVEL )
-      TYPE(GC_MET_LOCAL), INTENT(IN) :: LOCAL_MET  ! Obj w/ met fields
+      TYPE(MetState), INTENT(IN) :: State_Met   ! Meteorology State object
 #endif
 
       ! Local variables
@@ -1622,7 +1622,7 @@
 
 #if defined( DEVEL )
             ! Get RH  
-            XRH     = LOCAL_MET%RH( I, J, L )   ![%]
+            XRH     = State_Met%RH( I, J, L )   ![%]
 
             ! initialize for safety
             XUPTK0   = 0d0
@@ -1631,14 +1631,14 @@
             XUPTK    = 0d0
 
             ! Get T
-            XTEMP   = LOCAL_MET%T( I, J, L )
+            XTEMP   = State_Met%T( I, J, L )
             XSQTEMP = SQRT( XTEMP )
 
             ! Get air density  [molec/cm3]
             XAD     = AIRDENS( JLOOP )
 
             ! Get air volumne [m3]
-            XAIRM3  = LOCAL_MET%AIRVOL( I, J, L )
+            XAIRM3  = State_Met%AIRVOL( I, J, L )
 #else
             ! Get RH  
             XRH     = RH( I, J, L )   ![%]
@@ -1751,7 +1751,7 @@
 !------------------------------------------------------------------------------
 
 #if defined( DEVEL )
-      SUBROUTINE SOA_CHEMISTRY( am_I_Root, LOCAL_MET )
+      SUBROUTINE SOA_CHEMISTRY( am_I_Root, State_Met )
 #else
       SUBROUTINE SOA_CHEMISTRY( am_I_Root )
 #endif
@@ -1842,7 +1842,7 @@
       USE TIME_MOD,     ONLY : ITS_TIME_FOR_BPCH
       USE LOGICAL_MOD,  ONLY : LPRT   !(bmy, 4/21/10)
 #if defined( DEVEL )
-      USE GC_TYPE_MOD,  ONLY : GC_MET_LOCAL
+      USE GIGC_State_Met_Mod, ONLY : MetState
 #endif
 
       USE CMN_SIZE_MOD       ! Size parameters
@@ -1851,9 +1851,9 @@
 !
 ! !INPUT PARAMETERS:
 !
-      LOGICAL,            INTENT(IN) :: am_I_Root  ! Is this the root CPU?
+      LOGICAL,        INTENT(IN) :: am_I_Root   ! Is this the root CPU?
 #if defined( DEVEL )
-      TYPE(GC_MET_LOCAL), INTENT(IN) :: LOCAL_MET  ! Obj w/ met fields
+      TYPE(MetState), INTENT(IN) :: State_Met   ! Meteorology State object
 #endif
 !
 ! !LOCAL VARIABLES:
@@ -1912,7 +1912,7 @@
 
          ! Volume of grid box [m3]
 #if defined( DEVEL )
-         VOL    = LOCAL_MET%AIRVOL(I,J,L)
+         VOL    = State_Met%AIRVOL(I,J,L)
 #else
          VOL    = AIRVOL(I,J,L)    
 #endif
@@ -1922,10 +1922,10 @@
 
 #if defined( DEVEL )
          ! air conc. in kg/m3
-         CAIR   = LOCAL_MET%AD(I,J,L) / VOL
+         CAIR   = State_Met%AD(I,J,L) / VOL
 
          ! Temperature [K]
-         RTEMP  = LOCAL_MET%T(I,J,L)
+         RTEMP  = State_Met%T(I,J,L)
 #else
          ! air conc. in kg/m3
          CAIR   = AD(I,J,L) / VOL  
@@ -1939,7 +1939,7 @@
          !CALL SOA_PARA( I, J, L, RTEMP, KO3, KOH, KNO3, ALPHA, KOM )
 #if defined( DEVEL )
          CALL SOA_PARA( RTEMP, KO3, KOH, KNO3, KOM,
-     &                  I,     J,   L,   LOCAL_MET  )
+     &                  I,     J,   L,   State_Met  )
 #else
          CALL SOA_PARA( RTEMP, KO3, KOH, KNO3, KOM, ! ) (dkh, 10/09/05)  
      &                  I,     J,   L                     )
@@ -1958,7 +1958,7 @@
          ! ALPHA is a module variable now (ccc, 2/2/10)
          !CALL CHEM_NVOC( I, J, L, KO3, KOH, KNO3, ALPHA, GM0 )
 #if defined( DEVEL )
-         CALL CHEM_NVOC( I, J, L, KO3, KOH, KNO3, GM0, LOCAL_MET )
+         CALL CHEM_NVOC( I, J, L, KO3, KOH, KNO3, GM0, State_Met )
 #else
          CALL CHEM_NVOC( I, J, L, KO3, KOH, KNO3, GM0 )
 #endif
@@ -1993,7 +1993,7 @@
          ! No need to proceed because there is no
          ! products that need to be re-equilibrated.
 #if defined( DEVEL )
-         IF ( ( MPRODUCT / LOCAL_MET%AD(I,J,L) ) <= 29.D-18 ) CYCLE
+         IF ( ( MPRODUCT / State_Met%AD(I,J,L) ) <= 29.D-18 ) CYCLE
 #else
          IF ( ( MPRODUCT / AD(I,J,L) ) <= 29.D-18 ) CYCLE
 #endif
@@ -2148,7 +2148,7 @@
                 !AM0(IPR,JHC) = 1.D-18 * AD(I,J,L)
                 GM0(NOX,IPR,JHC) = GM0(NOX,IPR,JHC) + AM0(NOX,IPR,JHC)
 #if defined( DEVEL )
-                AM0(NOX,IPR,JHC) = 1.D-18 * LOCAL_MET%AD(I,J,L)
+                AM0(NOX,IPR,JHC) = 1.D-18 * State_Met%AD(I,J,L)
 #else
                 AM0(NOX,IPR,JHC) = 1.D-18 * AD(I,J,L)
 #endif
@@ -2608,7 +2608,7 @@ c
 
 #if defined( DEVEL )
       SUBROUTINE SOA_PARA( TEMP, KO3, KOH, KNO3, KOM,
-     &                     II,   JJ,  LL,  LOCAL_MET  )
+     &                     II,   JJ,  LL,  State_Met  )
 #else
       SUBROUTINE SOA_PARA( TEMP, KO3, KOH, KNO3, KOM,
      &                     II,   JJ,  LL              )
@@ -2672,7 +2672,7 @@ c
       ! References to F90 modules
       USE TROPOPAUSE_MOD, ONLY : ITS_IN_THE_TROP
 #if defined( DEVEL )
-      USE GC_TYPE_MOD,    ONLY : GC_MET_LOCAL
+      USE GIGC_State_Met_Mod, ONLY : MetState
 #endif
 
       ! Arguments
@@ -2683,7 +2683,7 @@ c
       !REAL*8,  INTENT(OUT) :: RALPHA(NPROD,MHC), KOM(NPROD,MHC)
       REAL*8, INTENT(OUT)  :: KOM(MNOX,MPROD,MHC)
 #if defined( DEVEL )
-      TYPE(GC_MET_LOCAL), INTENT(IN) :: LOCAL_MET  ! Obj w/ met fields
+      TYPE(MetState), INTENT(IN) :: State_Met   ! Meteorology State object
 #endif
 
       ! Local variables
@@ -2758,7 +2758,7 @@ c
       ! If we are in the stratosphere, set ISOP oxidation rates to zero
       ! (dkh, bmy, 5/22/06)
 #if defined( DEVEL )
-      IF ( ITS_IN_THE_TROP( II, JJ, LL, LOCAL_MET ) ) THEN
+      IF ( ITS_IN_THE_TROP( II, JJ, LL, State_Met ) ) THEN
 #else
       IF ( ITS_IN_THE_TROP( II, JJ, LL ) ) THEN
 #endif
@@ -3260,7 +3260,7 @@ c
 
       !SUBROUTINE CHEM_NVOC( I, J, L, KO3, KOH, KNO3, ALPHA, GM0 )
 #if defined( DEVEL )
-      SUBROUTINE CHEM_NVOC( I, J, L, KO3, KOH, KNO3, GM0, LOCAL_MET )
+      SUBROUTINE CHEM_NVOC( I, J, L, KO3, KOH, KNO3, GM0, State_Met )
 #else
       SUBROUTINE CHEM_NVOC( I, J, L, KO3, KOH, KNO3, GM0 )
 #endif
@@ -3296,7 +3296,7 @@ c
       USE TRACERID_MOD,  ONLY : IDTALCO,     IDTALPH,  IDTLIMO
       USE TIME_MOD,      ONLY : GET_TS_CHEM, GET_MONTH
 #if defined( DEVEL )
-      USE GC_TYPE_MOD,   ONLY : GC_MET_LOCAL
+      USE GIGC_State_Met_Mod, ONLY : MetState
 #endif
 
       USE CMN_SIZE_MOD      ! Size parameters
@@ -3308,7 +3308,7 @@ c
       !REAL*8,  INTENT(INOUT) :: GM0(NPROD,MHC)
       REAL*8,  INTENT(INOUT) :: GM0(MNOX,MPROD,MHC)
 #if defined( DEVEL )
-      TYPE(GC_MET_LOCAL), INTENT(IN) :: LOCAL_MET  ! Obj w/ met fields
+      TYPE(MetState), INTENT(IN) :: State_Met   ! Meteorology State object
 #endif
 
       ! Local variables
@@ -3328,8 +3328,8 @@ c
       ! Get offline OH, NO3, O3 concentrations [molec/cm3]
 #if defined( DEVEL )
       OHMC    = GET_OH(  I, J, L ) 
-      TTNO3   = GET_NO3( I, J, L, LOCAL_MET )
-      TTO3    = GET_O3(  I, J, L, LOCAL_MET ) 
+      TTNO3   = GET_NO3( I, J, L, State_Met )
+      TTO3    = GET_O3(  I, J, L, State_Met ) 
 #else
       OHMC    = GET_OH(  I, J, L ) 
       TTNO3   = GET_NO3( I, J, L )
@@ -4179,7 +4179,7 @@ c
 !------------------------------------------------------------------------------
 
 #if defined( DEVEL )
-      SUBROUTINE EMISSCARBON( LOCAL_MET, EMISSIONS )
+      SUBROUTINE EMISSCARBON( State_Met, EMISSIONS )
 #else
       SUBROUTINE EMISSCARBON
 #endif
@@ -4220,9 +4220,9 @@ c
       USE CMN_DIAG_MOD    ! ND07
 
 #if defined( DEVEL )
-      USE GC_TYPE_MOD,  ONLY : GC_MET_LOCAL
-      USE TRACERID_MOD, ONLY : IDTBCPI, IDTBCPO, IDTOCPI, IDTOCPO
-      USE TRACER_MOD,   ONLY : N_TRACERS 
+      USE GIGC_State_Met_Mod, ONLY : MetState
+      USE TRACERID_MOD,       ONLY : IDTBCPI, IDTBCPO, IDTOCPI, IDTOCPO
+      USE TRACER_MOD,         ONLY : N_TRACERS 
 #endif
 
       ! Local variables
@@ -4233,8 +4233,8 @@ c
 
       ! Arguments
 #if defined( DEVEL )
-      TYPE(GC_MET_LOCAL), INTENT(IN) :: LOCAL_MET  ! Obj w/ met fields
-      REAL*8, INTENT(INOUT)      :: EMISSIONS(IIPAR,JJPAR,N_TRACERS+1)
+      TYPE(MetState), INTENT(IN)    :: State_Met   ! Meteorology State object
+      REAL*8, INTENT(INOUT) :: EMISSIONS(IIPAR,JJPAR,N_TRACERS+1)
 #endif
       !=================================================================
       ! EMISSCARBON begins here!
@@ -4339,7 +4339,7 @@ c
       ! Compute biogenic OC
       !--------------------------
 #if defined( DEVEL )
-      CALL BIOGENIC_OC( LOCAL_MET )
+      CALL BIOGENIC_OC( State_Met )
 #else
       CALL BIOGENIC_OC
 #endif
@@ -4485,7 +4485,7 @@ c
 !------------------------------------------------------------------------------
 
 #if defined( DEVEL )
-      SUBROUTINE BIOGENIC_OC( LOCAL_MET )
+      SUBROUTINE BIOGENIC_OC( State_Met )
 #else
       SUBROUTINE BIOGENIC_OC
 #endif
@@ -4533,14 +4533,14 @@ c
       USE DAO_MOD,       ONLY : PARDF, PARDR, TS
       USE MEGANUT_MOD,   ONLY : XLTMMP
 #if defined( DEVEL )
-      USE GC_TYPE_MOD, ONLY   : GC_MET_LOCAL
+      USE GIGC_State_Met_Mod, ONLY : MetState
 #endif
 
       USE CMN_SIZE_MOD      ! Size parameters
 
       ! Arguments
 #if defined( DEVEL )
-      TYPE(GC_MET_LOCAL), INTENT(IN) :: LOCAL_MET  ! Obj w/ met fields
+      TYPE(MetState), INTENT(IN) :: State_Met   ! Meteorology State object
 #endif
 
       ! Local variables
@@ -4587,15 +4587,15 @@ c
 
 #if defined( DEVEL )
              ! Surface temperature [K]
-            TMMP           = XLTMMP( I, J, LOCAL_MET%TS, IJLOOP )
+            TMMP           = XLTMMP( I, J, State_Met%TS, IJLOOP )
 
             ! +++++++++++++++++++++++++++++++++++++++++
             ! ** MEGAN v2.1 **
             ! Cosine of solar zenith angle   (mpb,2009) 
             ! Diffuse and direct PAR         (mpb,2009)
             SC   = SUNCOS_MID(IJLOOP)   
-            PDR  = LOCAL_MET%PARDR(I,J)
-            PDF  = LOCAL_MET%PARDF(I,J)
+            PDR  = State_Met%PARDR(I,J)
+            PDF  = State_Met%PARDF(I,J)
             ! +++++++++++++++++++++++++++++++++++++++++
 #else
 
@@ -4679,7 +4679,7 @@ c
 
 #if defined( DEVEL )
             ! Surface temperature [K]
-            TMMP           = XLTMMP( I, J, LOCAL_MET%TS, IJLOOP )
+            TMMP           = XLTMMP( I, J, State_Met%TS, IJLOOP )
 
             ! Monoterpene emission [kg C/box/timestep]
 
@@ -4688,8 +4688,8 @@ c
             ! Cosine of solar zenith angle   (mpb,2009) 
             ! Diffuse and direct PAR         (mpb,2009)
             SC   = SUNCOS_MID(IJLOOP)   
-            PDR  = LOCAL_MET%PARDR(I,J)
-            PDF  = LOCAL_MET%PARDF(I,J)
+            PDR  = State_Met%PARDR(I,J)
+            PDF  = State_Met%PARDF(I,J)
             ! +++++++++++++++++++++++++++++++++++++++++
 #else
             ! Surface temperature [K]
@@ -6101,7 +6101,7 @@ c
 !------------------------------------------------------------------------------
 
 #if defined( DEVEL )
-      FUNCTION GET_NO3( I, J, L, LOCAL_MET ) RESULT( NO3_MOLEC_CM3 ) 
+      FUNCTION GET_NO3( I, J, L, State_Met ) RESULT( NO3_MOLEC_CM3 ) 
 #else
       FUNCTION GET_NO3( I, J, L ) RESULT( NO3_MOLEC_CM3 ) 
 #endif
@@ -6130,7 +6130,7 @@ c
       USE TRACER_MOD,     ONLY : ITS_A_FULLCHEM_SIM, ITS_AN_AEROSOL_SIM
       USE TRACERID_MOD,   ONLY : IDNO3
 #if defined( DEVEL )
-      USE GC_TYPE_MOD,    ONLY : GC_MET_LOCAL
+      USE GIGC_State_Met_Mod, ONLY : MetState
 #endif
 
       USE CMN_SIZE_MOD  ! Size parameters
@@ -6139,7 +6139,7 @@ c
       ! Arguments
       INTEGER, INTENT(IN) :: I, J, L
 #if defined( DEVEL )
-      TYPE(GC_MET_LOCAL), INTENT(IN) :: LOCAL_MET  ! Obj w/ met fields
+      TYPE(MetState), INTENT(IN) :: State_Met   ! Meteorology State object
 #endif
 
       ! Local variables
@@ -6209,12 +6209,12 @@ c
 
             ! At night: Get NO3 [v/v] and convert it to [kg]
 #if defined( DEVEL )
-            NO3_MOLEC_CM3 = NO3(I,J,L) * LOCAL_MET%AD(I,J,L) *
+            NO3_MOLEC_CM3 = NO3(I,J,L) * State_Met%AD(I,J,L) *
      &                      ( 62d0/28.97d0 )
 
             ! Convert NO3 from [kg] to [molec/cm3]
             NO3_MOLEC_CM3 = NO3_MOLEC_CM3 * XNUMOL_NO3 /
-     &                      BOXVL(I,J,L,LOCAL_MET)
+     &                      BOXVL(I,J,L,State_Met)
 #else
             NO3_MOLEC_CM3 = NO3(I,J,L) * AD(I,J,L) * ( 62d0/28.97d0 ) 
 
@@ -6243,7 +6243,7 @@ c
 !------------------------------------------------------------------------------
 
 #if defined( DEVEL )
-      FUNCTION GET_O3( I, J, L, LOCAL_MET ) RESULT( O3_MOLEC_CM3 )
+      FUNCTION GET_O3( I, J, L, State_Met ) RESULT( O3_MOLEC_CM3 )
 #else
       FUNCTION GET_O3( I, J, L ) RESULT( O3_MOLEC_CM3 )
 #endif
@@ -6272,7 +6272,7 @@ c
       USE TRACER_MOD,    ONLY : XNUMOLAIR
       USE TRACERID_MOD,  ONLY : IDO3
 #if defined( DEVEL )
-      USE GC_TYPE_MOD,   ONLY : GC_MET_LOCAL
+      USE GIGC_State_Met_Mod, ONLY : MetState
 #endif
 
       USE CMN_SIZE_MOD  ! Size parameters
@@ -6280,7 +6280,7 @@ c
       ! Arguments
       INTEGER, INTENT(IN) :: I, J, L
 #if defined( DEVEL )
-      TYPE(GC_MET_LOCAL), INTENT(IN) :: LOCAL_MET  ! Obj w/ met fields
+      TYPE(MetState), INTENT(IN) :: State_Met   ! Meteorology State object
 #endif
 
       ! Local variables
@@ -6323,12 +6323,12 @@ c
 
             ! Get O3 [v/v] and convert it to [kg]
 #if defined( DEVEL )
-            O3_MOLEC_CM3 = O3(I,J,L) * LOCAL_MET%AD(I,J,L) *
+            O3_MOLEC_CM3 = O3(I,J,L) * State_Met%AD(I,J,L) *
      &                     ( 48d0/28.97d0 )
                
             ! Convert O3 from [kg] to [molec/cm3]
             O3_MOLEC_CM3 = O3_MOLEC_CM3 * XNUMOL_O3 /
-     &                     BOXVL(I,J,L,LOCAL_MET)
+     &                     BOXVL(I,J,L,State_Met)
 #else
             O3_MOLEC_CM3 = O3(I,J,L) * AD(I,J,L) * ( 48d0/28.97d0 )
                
@@ -6649,7 +6649,7 @@ c
 !------------------------------------------------------------------------------
 
 #if defined( DEVEL )
-      SUBROUTINE GET_VCLDF( LOCAL_MET )
+      SUBROUTINE GET_VCLDF( State_Met )
 #else
       SUBROUTINE GET_VCLDF
 #endif
@@ -6671,14 +6671,14 @@ c
       USE DAO_MOD,      ONLY : RH
       USE PRESSURE_MOD, ONLY : GET_PCENTER, GET_PEDGE
 #if defined( DEVEL )
-      USE GC_TYPE_MOD,  ONLY : GC_MET_LOCAL
+      USE GIGC_State_Met_Mod, ONLY : MetState
 #endif
 
       USE CMN_SIZE_MOD   ! Size parameters
 
       ! Arguments
 #if defined( DEVEL )
-      TYPE(GC_MET_LOCAL), INTENT(IN) :: LOCAL_MET  ! Obj w/ met fields
+      TYPE(MetState), INTENT(IN) :: State_Met   ! Meteorology State object
 #endif
 
       ! Local variables
@@ -6712,7 +6712,7 @@ c
          ! RH (from "dao_mod.f") is relative humidity [%]
          ! Convert to fraction and store in RH2
 #if defined( DEVEL )
-         RH2  = LOCAL_MET%RH(I,J,L) * 1.0d-2
+         RH2  = State_Met%RH(I,J,L) * 1.0d-2
 #else
          RH2  = RH(I,J,L) * 1.0d-2
 #endif
@@ -6785,7 +6785,7 @@ c
 !------------------------------------------------------------------------------
 
 #if defined( DEVEL )
-      SUBROUTINE SOAG_CLOUD( LOCAL_MET )
+      SUBROUTINE SOAG_CLOUD( State_Met )
 #else
       SUBROUTINE SOAG_CLOUD
 #endif
@@ -6817,7 +6817,7 @@ c
       USE TRACERID_MOD,    ONLY : IDTGLYX, IDTSOAG
 
 #if defined( DEVEL )
-      USE GC_TYPE_MOD,     ONLY : GC_MET_LOCAL
+      USE GIGC_State_Met_Mod, ONLY : MetState
 #endif
 
       USE CMN_SIZE_MOD    ! Size parameters
@@ -6825,7 +6825,7 @@ c
 
       !Arguments
 #if defined( DEVEL )
-      TYPE(GC_MET_LOCAL), INTENT(IN) :: LOCAL_MET  ! Obj w/ met fields
+      TYPE(MetState), INTENT(IN) :: State_Met   ! Meteorology State object
 #endif
 
       ! Local variables
@@ -6871,20 +6871,20 @@ c
 
          ! Skip stratospheric boxes
 #if defined( DEVEL )
-         IF ( ITS_IN_THE_STRAT( I, J, L, LOCAL_MET ) ) CYCLE
+         IF ( ITS_IN_THE_STRAT( I, J, L, State_Met ) ) CYCLE
 
          ! initialize for safety
          XUPTKMAX = 0d0
          XUPTK    = 0d0
 
          ! Get temperature
-         XTEMP   = LOCAL_MET%T( I, J, L )
+         XTEMP   = State_Met%T( I, J, L )
 
          ! Get air mass  [kg/box]
-         XAIRM   = LOCAL_MET%AD( I, J, L  )
+         XAIRM   = State_Met%AD( I, J, L  )
 
          ! Get air volumne [m3]
-         XAIRM3  = LOCAL_MET%AIRVOL( I, J, L )
+         XAIRM3  = State_Met%AIRVOL( I, J, L )
 
 #else
          IF ( ITS_IN_THE_STRAT( I, J, L ) ) CYCLE
@@ -6922,11 +6922,11 @@ c
 
 #if defined( DEVEL )
          ! Get cloud fraction from met fields
-         FC      = LOCAL_MET%CLDF(L,I,J)
+         FC      = State_Met%CLDF(L,I,J)
 
          ! Get liquid water content within cloud [g/m3] directly from met
          ! Units: [kg H2O/kg air] * [kg air/m3] * [1000 g/kg] = [g H2O/m3]
-         LWC     = LOCAL_MET%QL(I,J,L) * LOCAL_MET%AIRDEN(L,I,J) * 1d3
+         LWC     = State_Met%QL(I,J,L) * State_Met%AIRDEN(L,I,J) * 1d3
 #else
          ! Get cloud fraction from met fields
          FC      = CLDF(L,I,J)
@@ -6961,7 +6961,7 @@ c
      &        ( XTEMP   > 258.0  ) ) THEN
 
 #if defined( DEVEL )
-            IF ( IS_LAND( I, J, LOCAL_MET ) ) THEN
+            IF ( IS_LAND( I, J, State_Met ) ) THEN
 #else
             IF ( IS_LAND(I,J) ) THEN
 #endif
@@ -7034,7 +7034,7 @@ c
 !------------------------------------------------------------------------------
 
 #if defined( DEVEL )
-      SUBROUTINE SOAM_CLOUD( LOCAL_MET )
+      SUBROUTINE SOAM_CLOUD( State_Met )
 #else
       SUBROUTINE SOAM_CLOUD
 #endif
@@ -7064,7 +7064,7 @@ c
       USE TRACERID_MOD,    ONLY : IDTMGLY, IDTSOAM
 
 #if defined( DEVEL )
-      USE GC_TYPE_MOD,     ONLY : GC_MET_LOCAL
+      USE GIGC_State_Met_Mod, ONLY : MetState
 #endif
 
       USE CMN_SIZE_MOD    ! Size parameters
@@ -7072,7 +7072,7 @@ c
 
       !Arguments
 #if defined( DEVEL )
-      TYPE(GC_MET_LOCAL), INTENT(IN) :: LOCAL_MET  ! Obj w/ met fields
+      TYPE(MetState), INTENT(IN) :: State_Met   ! Meteorology State object
 #endif
 
       ! Local variables
@@ -7118,20 +7118,20 @@ c
 
          ! Skip stratospheric boxes
 #if defined( DEVEL )
-         IF ( ITS_IN_THE_STRAT( I, J, L, LOCAL_MET ) ) CYCLE
+         IF ( ITS_IN_THE_STRAT( I, J, L, State_Met ) ) CYCLE
 
          ! initialize for safety
          XUPTKMAX = 0d0
          XUPTK    = 0d0
 
          ! Get temperature
-         XTEMP   = LOCAL_MET%T( I, J, L )
+         XTEMP   = State_Met%T( I, J, L )
 
          ! Get air mass  [kg/box]
-         XAIRM   = LOCAL_MET%AD( I, J, L  )
+         XAIRM   = State_Met%AD( I, J, L  )
 
          ! Get air volumne [m3]
-         XAIRM3  = LOCAL_MET%AIRVOL( I, J, L )
+         XAIRM3  = State_Met%AIRVOL( I, J, L )
 
 #else
          IF ( ITS_IN_THE_STRAT( I, J, L ) ) CYCLE
@@ -7169,11 +7169,11 @@ c
 
 #if defined( DEVEL )
          ! Get cloud fraction from met fields [unitless]
-         FC      = LOCAL_MET%CLDF(L,I,J)
+         FC      = State_Met%CLDF(L,I,J)
 
          ! Get liquid water content within cloud [g/m3] directly from met
          ! Units: [kg H2O/kg air] * [kg air/m3] * [1000 g/kg] = [g H2O/m3]
-         LWC     = LOCAL_MET%QL(I,J,L) * LOCAL_MET%AIRDEN(L,I,J) * 1d3
+         LWC     = State_Met%QL(I,J,L) * State_Met%AIRDEN(L,I,J) * 1d3
 #else
          ! Get cloud fraction from met fields [unitless]
          FC      = CLDF(L,I,J)
@@ -7205,7 +7205,7 @@ c
      &        ( XTEMP   > 258.0  ) ) THEN
 
 #if defined( DEVEL )
-            IF ( IS_LAND( I, J, LOCAL_MET ) ) THEN
+            IF ( IS_LAND( I, J, State_Met ) ) THEN
 #else
             IF ( IS_LAND(I,J) ) THEN
 #endif

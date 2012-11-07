@@ -1,6 +1,6 @@
 ! $Id: CO_strat_pl.f,v 1.1 2009/09/16 14:06:49 bmy Exp $
 #if defined( DEVEL )
-      SUBROUTINE CO_STRAT_PL( COPROD, COLOSS, LOCAL_MET )
+      SUBROUTINE CO_STRAT_PL( COPROD, COLOSS, State_Met )
 #else
       SUBROUTINE CO_STRAT_PL( COPROD, COLOSS )
 #endif
@@ -39,7 +39,7 @@
       USE TRACERID_MOD,   ONLY : IDTCO,           IDTCH2O
       USE TROPOPAUSE_MOD, ONLY : ITS_IN_THE_TROP, GET_MIN_TPAUSE_LEVEL
 #if defined( DEVEL )
-      USE GC_TYPE_MOD,    ONLY : GC_MET_LOCAL
+      USE GIGC_State_Met_Mod, ONLY : MetState
 #endif
 
       USE CMN_SIZE_MOD   ! Size parameters
@@ -51,7 +51,7 @@
       REAL*4,  INTENT(IN) :: COPROD(JJPAR,LLPAR)
       REAL*4,  INTENT(IN) :: COLOSS(JJPAR,LLPAR)
 #if defined( DEVEL )
-      TYPE(GC_MET_LOCAL), INTENT(IN) :: LOCAL_MET  ! Obj w/ met fields
+      TYPE(MetState), INTENT(IN) :: State_Met   ! Meteorology State object
 #endif
 
       ! Local variables
@@ -96,10 +96,10 @@
 
          ! Skip tropospheric grid boxes
 #if defined( DEVEL )
-         IF ( ITS_IN_THE_TROP( I, J, L, LOCAL_MET ) ) CYCLE
+         IF ( ITS_IN_THE_TROP( I, J, L, State_Met ) ) CYCLE
 
          ! conversion factor from [kg/box] to [molec/cm3]
-         STTTOGCO = 6.022d23 / ( 28d-3 * BOXVL(I,J,L,LOCAL_MET) )
+         STTTOGCO = 6.022d23 / ( 28d-3 * BOXVL(I,J,L,State_Met) )
 #else
          IF ( ITS_IN_THE_TROP(I,J,L) ) CYCLE
 
@@ -112,8 +112,8 @@
 
 #if defined( DEVEL )
          ! Air density in molec/cm3
-         BAIRDENS = LOCAL_MET%AD(I,J,L) * XNUMOLAIR /
-     &              BOXVL(I,J,L,LOCAL_MET)
+         BAIRDENS = State_Met%AD(I,J,L) * XNUMOLAIR /
+     &              BOXVL(I,J,L,State_Met)
 #else
          ! Air density in molec/cm3
          BAIRDENS = AD(I,J,L) * XNUMOLAIR / BOXVL(I,J,L)

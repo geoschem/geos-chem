@@ -66,7 +66,7 @@
 ! !INTERFACE:
 !
 #if defined( DEVEL )
-      SUBROUTINE LAND_MERCURY_FLUX( LFLUX, LHGSNOW, LOCAL_MET )
+      SUBROUTINE LAND_MERCURY_FLUX( LFLUX, LHGSNOW, State_Met )
 #else
       SUBROUTINE LAND_MERCURY_FLUX( LFLUX, LHGSNOW )
 #endif
@@ -82,16 +82,16 @@
       USE DAO_MOD,          ONLY : FRSNO, FRSEAICE, FRLANDIC, FRLAND 
 
 #if defined( DEVEL )
-      USE GC_TYPE_MOD,   ONLY : GC_MET_LOCAL
+      USE GIGC_State_Met_Mod, ONLY : MetState
 #endif
 
       USE CMN_SIZE_MOD         ! Size parameters
 !
 ! !INPUT PARAMETERS:
 !
-      LOGICAL, INTENT(IN)  :: LHGSNOW                      ! Use Hg0 from snow?
+      LOGICAL,        INTENT(IN) :: LHGSNOW     ! Use Hg0 from snow?
 #if defined( DEVEL )
-      TYPE(GC_MET_LOCAL), INTENT(IN) :: LOCAL_MET          ! Obj w/ met fields
+      TYPE(MetState), INTENT(IN) :: State_Met   ! Meteorology State object
 #endif
 !
 ! !OUTPUT PARAMETERS:
@@ -153,11 +153,11 @@
 
 #if   defined( MERRA ) || defined( GEOS_57 )
          ! Distinguish between ice/snow and snow-free land
-         FRAC_SNOW_OR_ICE    = MIN( LOCAL_MET%FRSNO(I,J)     +
-     &                              LOCAL_MET%FRSEAICE(I,J)  + 
-     &                              LOCAL_MET%FRLANDIC(I,J), 1d0)
-         FRAC_SNOWFREE_LAND  = MAX( LOCAL_MET%FRLAND(I,J)    - 
-     &                              LOCAL_MET%FRSNO(I,J),    0d0)
+         FRAC_SNOW_OR_ICE    = MIN( State_Met%FRSNO(I,J)     +
+     &                              State_Met%FRSEAICE(I,J)  + 
+     &                              State_Met%FRLANDIC(I,J), 1d0)
+         FRAC_SNOWFREE_LAND  = MAX( State_Met%FRLAND(I,J)    - 
+     &                              State_Met%FRSNO(I,J),    0d0)
 
          ! Set this to FALSE in MERRA to avoid overwriting fractions
          IS_SNOW_OR_ICE      = .FALSE.
@@ -166,19 +166,19 @@
 
 #elif defined( GEOS_5 )
          ! GEOS5 snow height (water equivalent) in mm. (Docs incorrectly say m)
-         IS_SNOW_OR_ICE = (( IS_ICE ( I, J, LOCAL_MET     ))  .OR. 
-     &                     ( IS_LAND( I, J, LOCAL_MET     )   .AND.
-     &                       LOCAL_MET%SNOMAS(I,J) > 10d0 ))
-         IS_LAND_OR_ICE = (( IS_LAND( I, J, LOCAL_MET     ))  .OR.
-     &                     ( IS_ICE ( I, J, LOCAL_MET     )))
+         IS_SNOW_OR_ICE = (( IS_ICE ( I, J, State_Met     ))  .OR. 
+     &                     ( IS_LAND( I, J, State_Met     )   .AND.
+     &                       State_Met%SNOMAS(I,J) > 10d0 ))
+         IS_LAND_OR_ICE = (( IS_LAND( I, J, State_Met     ))  .OR.
+     &                     ( IS_ICE ( I, J, State_Met     )))
 
 #else
          ! GEOS1-4 snow heigt (water equivalent) in mm
-         IS_SNOW_OR_ICE = (( IS_ICE ( I, J, LOCAL_MET     ))  .OR.
-     &                     ( IS_LAND( I, J, LOCAL_MET     )   .AND. 
-     &                       LOCAL_MET%SNOW(I,J)   > 10d0 ))
-         IS_LAND_OR_ICE = (( IS_LAND( I, J, LOCAL_MET     ))  .OR.
-     &                     ( IS_ICE ( I, J, LOCAL_MET     )))
+         IS_SNOW_OR_ICE = (( IS_ICE ( I, J, State_Met     ))  .OR.
+     &                     ( IS_LAND( I, J, State_Met     )   .AND. 
+     &                       State_Met%SNOW(I,J)   > 10d0 ))
+         IS_LAND_OR_ICE = (( IS_LAND( I, J, State_Met     ))  .OR.
+     &                     ( IS_ICE ( I, J, State_Met     )))
 #endif
 
 #else
@@ -371,7 +371,7 @@
       ! Bug fix: VEGEMIS shouldn't be tied to GCAP emissions
       ! (jaf, eds, 4/1/11)
 #if defined( DEVEL )
-      SUBROUTINE VEGEMIS( LVEGEMIS, EHg0_dist, EHg0_vg, LOCAL_MET )
+      SUBROUTINE VEGEMIS( LVEGEMIS, EHg0_dist, EHg0_vg, State_Met )
 #else
       SUBROUTINE VEGEMIS( LVEGEMIS, EHg0_dist, EHg0_vg )
 #endif
@@ -384,7 +384,7 @@
       USE GRID_MOD,       ONLY: GET_AREA_M2
 
 #if defined( DEVEL )
-      USE GC_TYPE_MOD,   ONLY : GC_MET_LOCAL
+      USE GIGC_State_Met_Mod, ONLY : MetState
 #endif
 
       USE CMN_SIZE_MOD     ! Size parameters
@@ -397,7 +397,7 @@
       LOGICAL,                INTENT(IN)  :: LVEGEMIS
       REAL*8, DIMENSION(:,:), INTENT(IN)  :: EHg0_dist
 #if defined( DEVEL )
-      TYPE(GC_MET_LOCAL),     INTENT(IN)  :: LOCAL_MET  ! Obj w/ met fields
+      TYPE(MetState), INTENT(IN) :: State_Met   ! Meteorology State object
 #endif
 !
 ! !OUTPUT PARAMETERS:
@@ -480,7 +480,7 @@
          DO I=1, IIPAR
         
 #if defined( DEVEL )
-            IF (IS_LAND( I, J, LOCAL_MET )) THEN
+            IF (IS_LAND( I, J, State_Met )) THEN
 #else
             IF (IS_LAND(I,J)) THEN  
 #endif
@@ -528,7 +528,7 @@
 ! !INTERFACE:
 !
 #if defined( DEVEL )
-      SUBROUTINE SOILEMIS( EHg0_dist, EHg0_so, LOCAL_MET )
+      SUBROUTINE SOILEMIS( EHg0_dist, EHg0_so, State_Met )
 #else
       SUBROUTINE SOILEMIS( EHg0_dist, EHg0_so )
 #endif
@@ -544,7 +544,7 @@
       USE DAO_MOD,       ONLY : FRSNO, FRLAND
 
 #if defined( DEVEL )
-      USE GC_TYPE_MOD, ONLY : GC_MET_LOCAL
+      USE GIGC_State_Met_Mod, ONLY : MetState
 #endif
 
       USE CMN_SIZE_MOD     ! Size parameters
@@ -553,7 +553,7 @@
 !
       REAL*8, DIMENSION(:,:), INTENT(IN) :: EHg0_dist
 #if defined( DEVEL )
-      TYPE(GC_MET_LOCAL),     INTENT(IN) :: LOCAL_MET  ! Obj w/ met fields
+      TYPE(MetState), INTENT(IN) :: State_Met   ! Meteorology State object
 #endif
 !
 ! !OUTPUT PARAMETERS:
@@ -665,19 +665,19 @@
 #if defined( DEVEL )
 
 #if   defined( MERRA ) || defined( GEOS_57 )
-         FRAC_SNOWFREE_LAND = MAX( LOCAL_MET%FRLAND(I,J) - 
-     &                             LOCAL_MET%FRSNO(I,J), 0d0 )
+         FRAC_SNOWFREE_LAND = MAX( State_Met%FRLAND(I,J) - 
+     &                             State_Met%FRSNO(I,J), 0d0 )
          IS_SNOWFREE_LAND   = ( FRAC_SNOWFREE_LAND > 0d0 )
 
 #elif defined( GEOS_5 )
          ! GEOS5 snow height (water equivalent) in mm. (Docs wrongly say m)
-         IS_SNOWFREE_LAND = ( IS_LAND( I, J, LOCAL_MET ) .AND.
-     &                      ( LOCAL_MET%SNOMAS(I,J) < 10d0 ))
+         IS_SNOWFREE_LAND = ( IS_LAND( I, J, State_Met ) .AND.
+     &                      ( State_Met%SNOMAS(I,J) < 10d0 ))
 
 #else
          ! GEOS1-4 snow heigt (water equivalent) in mm
-         IS_SNOWFREE_LAND = ( IS_LAND( I, J, LOCAL_MET ) .AND.
-     &                      ( LOCAL_MET%SNOW(I,J)   < 10d0 ))
+         IS_SNOWFREE_LAND = ( IS_LAND( I, J, State_Met ) .AND.
+     &                      ( State_Met%SNOW(I,J)   < 10d0 ))
 #endif
 
 #else
@@ -718,7 +718,7 @@
             ! Soil emissions, ng /m2 /h
 #if defined( DEVEL )
             SOIL_EMIS = 
-     &           EXP( 0.0011 * LOCAL_MET%RADSWG(I,J) * LIGHTFRAC ) *
+     &           EXP( 0.0011 * State_Met%RADSWG(I,J) * LIGHTFRAC ) *
      &           DRYSOIL_HG * SOIL_EMIS_FAC
 #else
             SOIL_EMIS = 
@@ -843,7 +843,7 @@
 ! !INTERFACE:
 !
 #if defined( DEVEL )
-      SUBROUTINE SNOWPACK_MERCURY_FLUX( FLUX, LHGSNOW, LOCAL_MET )
+      SUBROUTINE SNOWPACK_MERCURY_FLUX( FLUX, LHGSNOW, State_Met )
 #else
       SUBROUTINE SNOWPACK_MERCURY_FLUX( FLUX, LHGSNOW )
 #endif
@@ -855,16 +855,16 @@
       USE DAO_MOD,          ONLY : T, SUNCOS
       USE DEPO_MERCURY_MOD, ONLY : SNOW_HG
 #if defined( DEVEL )
-      USE GC_TYPE_MOD,      ONLY : GC_MET_LOCAL
+      USE GIGC_State_Met_Mod, ONLY : MetState
 #endif
 
       USE CMN_SIZE_MOD         ! Size parameters
 !
 ! !INPUT PARAMETERS: 
 !
-      LOGICAL, INTENT(IN)   :: LHGSNOW                      ! Use Hg from snow?
+      LOGICAL,        INTENT(IN) :: LHGSNOW     ! Use Hg from snow?
 #if defined( DEVEL )
-      TYPE(GC_MET_LOCAL), INTENT(IN) :: LOCAL_MET           ! Obj w/ met fields
+      TYPE(MetState), INTENT(IN) :: State_Met   ! Meteorology State object
 #endif
 !
 ! !OUTPUT PARAMETERS:
@@ -931,7 +931,7 @@
             ! time in snowpack, based on cycle observed at Alert 
             ! (e.g. Steffen et al. 2008)
 #if defined( DEVEL )
-            IF ( LOCAL_MET%T(I,J,1) > 270D0) THEN
+            IF ( State_Met%T(I,J,1) > 270D0) THEN
 #else
             IF (T(I,J,1) > 270D0) THEN
 #endif
@@ -980,7 +980,7 @@
 ! !INTERFACE: 
 !
 #if defined( DEVEL )
-      SUBROUTINE GTMM_DR( Hg0gtm, LOCAL_MET )
+      SUBROUTINE GTMM_DR( Hg0gtm, State_Met )
 #else
       SUBROUTINE GTMM_DR( Hg0gtm )
 #endif
@@ -999,7 +999,7 @@
       USE DEPO_MERCURY_MOD,  ONLY : READ_GTMM_RESTART
 
 #if defined( DEVEL )
-      USE GC_TYPE_MOD,       ONLY : GC_MET_LOCAL
+      USE GIGC_State_Met_Mod, ONLY : MetState
 #endif
     
       USE CMN_SIZE_MOD            ! Size parameters
@@ -1007,7 +1007,7 @@
 ! !INPUT PARAMETERS: 
 !
 #if defined( DEVEL )
-      TYPE(GC_MET_LOCAL), INTENT(IN) :: LOCAL_MET  ! Obj w/ met fields
+      TYPE(MetState), INTENT(IN) :: State_Met   ! Meteorology State object
 #endif
 !
 ! !OUTPUT PARAMETERS: 
@@ -1197,7 +1197,7 @@
       DO J = 1, JJPAR
       DO I = 1, IIPAR
 #if defined( DEVEL )
-         IF ( .NOT.(IS_LAND(I, J, LOCAL_MET )) ) Hg0gtm(I,J) = 0d0
+         IF ( .NOT.(IS_LAND(I, J, State_Met )) ) Hg0gtm(I,J) = 0d0
 #else
          IF ( .NOT.(IS_LAND(I, J)) ) Hg0gtm(I,J) = 0d0
 #endif

@@ -13,7 +13,7 @@
 ! !INTERFACE:
 !
 #if defined( DEVEL )
-      SUBROUTINE PHYSPROC( SUNCOS, am_I_Root, LOCAL_MET )
+      SUBROUTINE PHYSPROC( SUNCOS, am_I_Root, State_Met )
 #else
       SUBROUTINE PHYSPROC( SUNCOS, am_I_Root )
 #endif
@@ -30,7 +30,7 @@
       USE CHEMISTRY_MOD,   ONLY : GCKPP_DRIVER
       USE GCKPP_GLOBAL,    ONLY : NTT
 #if defined( DEVEL )
-      USE GC_TYPE_MOD,     ONLY : GC_MET_LOCAL
+      USE GIGC_State_Met_Mod, ONLY : MetState
 #endif
 
       USE CMN_SIZE_MOD          ! Size parameters
@@ -40,10 +40,10 @@
 !
 ! !INPUT PARAMETERS: 
 !
-      REAL*8,  INTENT(IN) :: SUNCOS(MAXIJ)   ! Cosine of solar zenith angle
-      LOGICAL, INTENT(IN) :: am_I_Root       ! Is this the root CPU?
+      REAL*8,         INTENT(IN) :: SUNCOS(MAXIJ) ! Cos of solar zenith angle
+      LOGICAL,        INTENT(IN) :: am_I_Root     ! Is this the root CPU?
 #if defined( DEVEL )
-      TYPE(GC_MET_LOCAL), INTENT(IN) :: LOCAL_MET  ! Obj w/ met fields
+      TYPE(MetState), INTENT(IN) :: State_Met     ! Meteorology State object
 #endif
 !
 ! !REMARKS:
@@ -332,7 +332,7 @@
 !
 
 #if defined( DEVEL )
-          CALL CALCRATE( SUNCOS, LOCAL_MET )
+          CALL CALCRATE( SUNCOS, State_Met )
 #else
           CALL CALCRATE(SUNCOS)
 #endif

@@ -436,7 +436,7 @@
 !------------------------------------------------------------------------------
 
 #if defined( DEVEL )
-      SUBROUTINE GET_I6_FIELDS_1( NYMD, NHMS, LOCAL_MET )
+      SUBROUTINE GET_I6_FIELDS_1( NYMD, NHMS, State_Met )
 #else
       SUBROUTINE GET_I6_FIELDS_1( NYMD, NHMS )
 #endif
@@ -463,13 +463,13 @@
       USE DAO_MOD, ONLY : ALBD1, LWI,  PS1,   SLP
       USE DAO_MOD, ONLY : TO31,  TTO3, TROPP1
 #if defined( DEVEL )
-      USE GC_TYPE_MOD, ONLY : GC_MET_LOCAL
+      USE GIGC_State_Met_Mod, ONLY : MetState
 #endif
 
       ! Arguments
-      INTEGER, INTENT(IN) :: NYMD, NHMS 
+      INTEGER,        INTENT(IN)    :: NYMD, NHMS 
 #if defined( DEVEL )
-      TYPE(GC_MET_LOCAL), INTENT(INOUT) :: LOCAL_MET  ! Obj w/ met fields
+      TYPE(MetState), INTENT(INOUT) :: State_Met   ! Meteorology State object
 #endif
 
 #if   defined( GEOS_4 )
@@ -482,10 +482,10 @@
 
       ! Add met fields to object of type GC_MET_LOCAL
 #if defined( DEVEL )
-      LOCAL_MET%LWI    = LWI
-      LOCAL_MET%PS1    = PS1
-      LOCAL_MET%SLP    = SLP
-      LOCAL_MET%TROPP1 = TROPP1
+      State_Met%LWI    = LWI
+      State_Met%PS1    = PS1
+      State_Met%SLP    = SLP
+      State_Met%TROPP1 = TROPP1
 #endif
 
 #elif defined( GEOS_5 )
@@ -498,11 +498,11 @@
 
       ! Add met fields to object of type GC_MET_LOCAL
 #if defined( DEVEL )
-      LOCAL_MET%LWI   = LWI
-      LOCAL_MET%PS1   = PS1
-      LOCAL_MET%SLP   = SLP
-      LOCAL_MET%TO31  = TO31
-      LOCAL_MET%TTO3  = TTO3
+      State_Met%LWI   = LWI
+      State_Met%PS1   = PS1
+      State_Met%SLP   = SLP
+      State_Met%TO31  = TO31
+      State_Met%TTO3  = TTO3
 #endif
 
 #elif defined( GCAP )
@@ -513,8 +513,8 @@
       CALL READ_I6( NYMD=NYMD, NHMS=NHMS, PS=PS1, SLP=SLP )
 
 #if defined( DEVEL )
-      LOCAL_MET%PS1   = PS1
-      LOCAL_MET%SLP   = SLP
+      State_Met%PS1   = PS1
+      State_Met%SLP   = SLP
 #endif
 
 #endif
@@ -525,7 +525,7 @@
 !-----------------------------------------------------------------------------
 
 #if defined( DEVEL )
-      SUBROUTINE GET_I6_FIELDS_2( NYMD, NHMS, LOCAL_MET )
+      SUBROUTINE GET_I6_FIELDS_2( NYMD, NHMS, State_Met )
 #else
       SUBROUTINE GET_I6_FIELDS_2( NYMD, NHMS )
 #endif
@@ -553,13 +553,13 @@
       USE DAO_MOD, ONLY : TO32,  TTO3
       USE DAO_MOD, ONLY : TROPP2
 #if defined( DEVEL )
-      USE GC_TYPE_MOD, ONLY : GC_MET_LOCAL
+      USE GIGC_State_Met_Mod, ONLY : MetState
 #endif
 
       ! Arguments
-      INTEGER, INTENT(IN) :: NYMD, NHMS 
+      INTEGER,        INTENT(IN)    :: NYMD, NHMS 
 #if defined( DEVEL )
-      TYPE(GC_MET_LOCAL), INTENT(INOUT) :: LOCAL_MET  ! Obj w/ met fields
+      TYPE(MetState), INTENT(INOUT) :: State_Met   ! Meteorology State object
 #endif
 
 #if   defined( GEOS_4 )
@@ -572,10 +572,10 @@
 
       ! Add met fields to object of type GC_MET_LOCAL
 #if defined( DEVEL )
-      LOCAL_MET%LWI    = LWI
-      LOCAL_MET%PS2    = PS2
-      LOCAL_MET%SLP    = SLP
-      LOCAL_MET%TROPP2 = TROPP2
+      State_Met%LWI    = LWI
+      State_Met%PS2    = PS2
+      State_Met%SLP    = SLP
+      State_Met%TROPP2 = TROPP2
 #endif
 
 #elif defined( GEOS_5 )
@@ -588,11 +588,11 @@
 
       ! Add met fields to object of type GC_MET_LOCAL
 #if defined( DEVEL )
-      LOCAL_MET%LWI   = LWI
-      LOCAL_MET%PS2   = PS2
-      LOCAL_MET%SLP   = SLP
-      LOCAL_MET%TO32  = TO32
-      LOCAL_MET%TTO3  = TTO3
+      State_Met%LWI   = LWI
+      State_Met%PS2   = PS2
+      State_Met%SLP   = SLP
+      State_Met%TO32  = TO32
+      State_Met%TTO3  = TTO3
 #endif
 
 #elif defined( GCAP )
@@ -603,8 +603,8 @@
       CALL READ_I6( NYMD=NYMD, NHMS=NHMS, PS=PS2, SLP=SLP )
 
 #if defined( DEVEL )
-      LOCAL_MET%PS2   = PS2
-      LOCAL_MET%SLP   = SLP
+      State_Met%PS2   = PS2
+      State_Met%SLP   = SLP
 #endif
 
 #endif

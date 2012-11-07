@@ -291,22 +291,23 @@
 ! !INTERFACE:
 !
 #if defined( DEVEL )
-      SUBROUTINE DO_DRYDEP( am_I_Root, LOCAL_MET )
+      SUBROUTINE DO_DRYDEP( am_I_Root, State_Met )
 #else
       SUBROUTINE DO_DRYDEP( am_I_Root )
 #endif
 !
 ! !USES:
 !
+      USE DAO_MOD,      ONLY : BXHEIGHT
 #if defined( DEVEL )
-      USE GC_TYPE_MOD,  ONLY : GC_MET_LOCAL
+      USE GIGC_State_Met_Mod, ONLY : MetState
 #endif
 !
 ! !INPUT PARAMETERS:
 !
-      LOGICAL,            INTENT(IN) :: am_I_Root  ! Is this the root CPU?
+      LOGICAL,        INTENT(IN)    :: am_I_Root   ! Is this the root CPU?
 #if defined( DEVEL )
-      TYPE(GC_MET_LOCAL), INTENT(IN) :: LOCAL_MET  ! Obj w/ met fields
+      TYPE(MetState), INTENT(INOUT) :: State_Met   ! Meteorology State object
 #endif
 !
 ! !REMARKS:
@@ -416,7 +417,7 @@
       ! Added sfc pressure as PRESSU and 10m windspeed as W10 
       !  (jaegle 5/11/11, mpayer 1/10/12)
 #if defined( DEVEL )
-      CALL METERO( LOCAL_MET,  CZ1, TC0,   OBK, CFRAC,  RADIAT, 
+      CALL METERO( State_Met,  CZ1, TC0,   OBK, CFRAC,  RADIAT, 
      &             AZO, USTAR, ZH,  LSNOW, RHB, PRESSU, W10 )
 #else
       CALL METERO( CZ1, TC0,   OBK, CFRAC, RADIAT, 
@@ -446,7 +447,7 @@
 
          ! THIK = thickness of surface layer [m]
 #if defined( DEVEL )
-         THIK    = LOCAL_MET%BXHEIGHT(I,J,1)
+         THIK    = State_Met%BXHEIGHT(I,J,1)
 #else
          THIK    = BXHEIGHT(I,J,1)
 #endif
@@ -479,7 +480,7 @@
             IF ( NN == IDTACET ) THEN
 
 #if defined( DEVEL )
-               IF ( IS_LAND( I, J, LOCAL_MET ) ) THEN
+               IF ( IS_LAND( I, J, State_Met ) ) THEN
 #else
                IF ( IS_LAND( I, J ) ) THEN
 #endif
@@ -604,7 +605,7 @@
 ! !INTERFACE:
 !
 #if defined( DEVEL )
-      SUBROUTINE METERO( LOCAL_MET, CZ1, TC0,  OBK,  CFRAC,  RADIAT, 
+      SUBROUTINE METERO( State_Met, CZ1, TC0,  OBK,  CFRAC,  RADIAT, 
      &                   AZO, USTR, ZH,  LSNOW, RHB, PRESSU, W10 )
 #else
       SUBROUTINE METERO( CZ1, TC0,  OBK, CFRAC, RADIAT, 
@@ -613,14 +614,15 @@
 !
 ! !USES:
 !
+      USE DAO_MOD,      ONLY : BXHEIGHT
 #if defined( DEVEL )
-      USE GC_TYPE_MOD,  ONLY : GC_MET_LOCAL
+      USE GIGC_State_Met_Mod, ONLY : MetState
 #endif
 !
 ! !INPUT PARAMETERS:
 !
 #if defined( DEVEL )
-      TYPE(GC_MET_LOCAL), INTENT(IN) :: LOCAL_MET  ! Obj w/ met fields
+      TYPE(MetState), INTENT(IN) :: State_Met   ! Meteorology State object
 #endif
 !
 ! !OUTPUT PARAMETERS:
@@ -713,7 +715,7 @@
 
          ! THIK = thickness of layer 1 [m]
 #if defined( DEVEL )
-         THIK           = LOCAL_MET%BXHEIGHT(I,J,1)
+         THIK           = State_Met%BXHEIGHT(I,J,1)
 #else
          THIK           = BXHEIGHT(I,J,1)
 #endif
@@ -735,26 +737,26 @@
 
 #if   !defined( GCAP )
          ! For GEOS: Roughness height [m] is a function of lat/lon
-         AZO(IJLOOP)    = LOCAL_MET%Z0(I,J)
+         AZO(IJLOOP)    = State_Met%Z0(I,J)
 #endif
 
          ! Column cloud fraction [unitless]
-         CFRAC(IJLOOP)  = LOCAL_MET%CLDFRC(I,J)
+         CFRAC(IJLOOP)  = State_Met%CLDFRC(I,J)
 
          ! Set logical LSNOW if snow and sea ice (ALBEDO > 0.4)
-         LSNOW(IJLOOP)  = ( LOCAL_MET%ALBD(I,J) > 0.4 )
+         LSNOW(IJLOOP)  = ( State_Met%ALBD(I,J) > 0.4 )
 
          ! Monin-Obhukov length [m]
-         OBK(IJLOOP)    = GET_OBK( I, J, LOCAL_MET )
+         OBK(IJLOOP)    = GET_OBK( I, J, State_Met )
 
          ! Solar insolation @ ground [W/m2]
-         RADIAT(IJLOOP) = LOCAL_MET%RADSWG(I,J) 
+         RADIAT(IJLOOP) = State_Met%RADSWG(I,J) 
 
          ! Surface temperature [K]
-         TC0(IJLOOP)    = LOCAL_MET%TS(I,J)
+         TC0(IJLOOP)    = State_Met%TS(I,J)
 
          ! Friction velocity [m/s]
-         USTR(IJLOOP)   = LOCAL_MET%USTAR(I,J)
+         USTR(IJLOOP)   = State_Met%USTAR(I,J)
 
          ! Mixed layer depth [m]
          ZH(IJLOOP)     = GET_PBL_TOP_m( I, J )
@@ -764,12 +766,12 @@
          !  changed to 98% due to vapor pressure lowering above sea water
          !  (Lewis & Schwartz, 2004)
          !  jaegle (5/11/11)
-         RHB(IJLOOP)    = MIN( 0.98d0, LOCAL_MET%RH(I,J,1) * 1.d-2 )
+         RHB(IJLOOP)    = MIN( 0.98d0, State_Met%RH(I,J,1) * 1.d-2 )
 
          ! 10m windspeed (jaegle 5/11/11)
          W10(IJLOOP)    =  SQRT( SFCWINDSQR( I, J,
-     &                                       LOCAL_MET%U10M,
-     &                                       LOCAL_MET%V10M ) )
+     &                                       State_Met%U10M,
+     &                                       State_Met%V10M ) )
 
 #else
 
@@ -1121,7 +1123,7 @@
 ! !INTERFACE:
 !
 #if defined( DEVEL )
-      SUBROUTINE DRYFLXH2HD( LOCAL_MET )
+      SUBROUTINE DRYFLXH2HD( State_Met )
 #else
       SUBROUTINE DRYFLXH2HD
 #endif
@@ -1140,7 +1142,7 @@
       USE PBL_MIX_MOD,  ONLY : GET_FRAC_UNDER_PBLTOP, GET_PBL_MAX_L
       !USE MEGANUT_MOD,  ONLY : XLTMMP
 #if defined( DEVEL )
-      USE GC_TYPE_MOD,  ONLY : GC_MET_LOCAL
+      USE GIGC_State_Met_Mod, ONLY : MetState
 #endif
       
       USE CMN_SIZE_MOD       ! Size parameters
@@ -1151,7 +1153,7 @@
 ! !INPUT PARAMETERS:
 !
 #if defined( DEVEL )
-      TYPE(GC_MET_LOCAL), INTENT(IN) :: LOCAL_MET  ! Obj w/ met fields
+      TYPE(MetState), INTENT(IN) :: State_Met   ! Meteorology State object
 #endif
 ! 
 ! !REMARKS:
@@ -1251,7 +1253,7 @@
 !
 !#if defined( DEVEL )
 !               ! Fraction of grid box that is ocean
-!               FSOIL = LOCAL_MET%FRCLND(I,J)
+!               FSOIL = State_Met%FRCLND(I,J)
 ! 
 !
 !               ! Only apply dry deposition over land surfaces which
@@ -1260,7 +1262,7 @@
 !               IF ( (I.GE.1)       .AND. (I.LE.IIPAR)  .AND.
 !     &              (J.GE.1)       .AND. (J.LE.JJPAR)  .AND.
 !     &              (FSOIL > 0.d0) .AND. 
-!     &              (LOCAL_MET%ALBD(I,J) < 0.4d0) ) THEN
+!     &              (State_Met%ALBD(I,J) < 0.4d0) ) THEN
 !#else
 !               ! Fraction of grid box that is ocean
 !               FSOIL = FRCLND(I,J)
@@ -1287,8 +1289,8 @@
 !                  ! for now use surface temperature (TS) instead of
 !                  ! air temperature (T) jaegle, 12/12/2005
 !#if defined( DEVEL )
-!		  IF (LOCAL_MET%TS(I,J) <= 273.15d0) SVEL = SVEL / 2.0d0
-!		  IF (LOCAL_MET%TS(I,J) <= 258.15d0) SVEL = SVEL / 2.0d0
+!		  IF (State_Met%TS(I,J) <= 273.15d0) SVEL = SVEL / 2.0d0
+!		  IF (State_Met%TS(I,J) <= 258.15d0) SVEL = SVEL / 2.0d0
 !#else
 !		  IF (TS(I,J) <= 273.15d0) SVEL = SVEL / 2.0d0
 !		  IF (TS(I,J) <= 258.15d0) SVEL =  SVEL / 2.0d0
@@ -1326,7 +1328,7 @@
 !      
 !                  ! THIK = thickness of surface layer [m]
 !#if defined( DEVEL )
-!                  THIK    = LOCAL_MET%BXHEIGHT(I,J,1)
+!                  THIK    = State_Met%BXHEIGHT(I,J,1)
 !#else
 !                  THIK    = BXHEIGHT(I,J,1)
 !#endif

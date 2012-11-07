@@ -1,6 +1,6 @@
 ! $Id: precipfrac.f,v 1.1 2009/09/16 14:06:15 bmy Exp $
 #if defined( DEVEL )
-      SUBROUTINE PRECIPFRAC( I, J, RATE, FRAC, LOCAL_MET )
+      SUBROUTINE PRECIPFRAC( I, J, RATE, FRAC, State_Met )
 #else
       SUBROUTINE PRECIPFRAC( I, J, RATE, FRAC )
 #endif
@@ -48,7 +48,7 @@
       USE DAO_MOD,  ONLY : PREACC, PRECON
       USE GRID_MOD, ONLY : GET_YOFFSET
 #if defined( DEVEL )
-      USE GC_TYPE_MOD, ONLY : GC_MET_LOCAL
+      USE GIGC_State_Met_Mod, ONLY : MetState
 #endif
 
       USE CMN_SIZE_MOD   ! JJPAR
@@ -60,7 +60,7 @@
       INTEGER, INTENT(IN)  :: I, J
       REAL*8,  INTENT(OUT) :: RATE, FRAC
 #if defined( DEVEL )
-      TYPE(GC_MET_LOCAL), INTENT(IN) :: LOCAL_MET  ! Obj w/ met fields
+      TYPE(MetState), INTENT(IN) :: State_Met   ! Meteorology State object
 #endif
 
       ! Local variables
@@ -89,7 +89,7 @@
       ! this value in the variable FRAC_LS.
       !=================================================================
 #if defined( DEVEL )
-      IF ( ( LOCAL_MET%PRECTOT(I,J) - LOCAL_MET%PRECCON(I,J) ) 
+      IF ( ( State_Met%PRECTOT(I,J) - State_Met%PRECCON(I,J) ) 
      &     > 0.0d0 ) THEN
          FRAC_LS = 7.0d-2
       ELSE
@@ -111,7 +111,7 @@
       !  Store this value in the variable FRAC_CONV.
       !=================================================================
 #if defined( DEVEL )
-      IF ( LOCAL_MET%PRECCON(I,J) > 0.0d0 ) THEN
+      IF ( State_Met%PRECCON(I,J) > 0.0d0 ) THEN
          FRAC_CONV = 3.0d-3
       ELSE
          FRAC_CONV = 0.0d0
@@ -140,7 +140,7 @@
       !=================================================================
 #if defined( DEVEL )
       IF ( FRAC > 0.0d0 ) THEN
-         RATE = LOCAL_MET%PRECTOT(I,J) / FRAC
+         RATE = State_Met%PRECTOT(I,J) / FRAC
       ELSE   
          RATE = 0.0d0
       ENDIF

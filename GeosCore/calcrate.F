@@ -1,6 +1,6 @@
 ! $Id: calcrate.f,v 1.6 2010/03/15 19:33:25 ccarouge Exp $
 #if defined( DEVEL )
-      SUBROUTINE CALCRATE( SUNCOS, LOCAL_MET )
+      SUBROUTINE CALCRATE( SUNCOS, State_Met )
 #else
       SUBROUTINE CALCRATE( SUNCOS )
 #endif
@@ -134,7 +134,7 @@
       USE PARANOX_MOD,     ONLY : INTERPOLATE_LUT2 !(mpayer, 2/7/12)
 
 #if defined( DEVEL )
-      USE GC_TYPE_MOD,     ONLY : GC_MET_LOCAL
+      USE GIGC_State_Met_Mod, ONLY : MetState
 #endif
 
       USE CMN_SIZE_MOD          ! Size parameters
@@ -151,7 +151,7 @@
 
       ! Arguments
 #if defined( DEVEL )
-      TYPE(GC_MET_LOCAL), INTENT(IN) :: LOCAL_MET  ! Obj w/ met fields
+      TYPE(MetState), INTENT(IN) :: State_Met   ! Meteorology State object
 #endif
       
       ! jpp, rate constant for BrNO3 cloud recycling
@@ -966,8 +966,8 @@ c new OH+CO rate from JPL2006.
                      ! flag to 1 (also assume that there is no ice/snow)
 #if defined( DEVEL )
                      IF (  IZ <= GET_PBL_TOP_L( IX , IY ) .and.
-     &                     LOCAL_MET%FRCLND(IX,IY) >= 0.5 .and.
-     &                     (.not. IS_ICE( IX,IY,LOCAL_MET) ) ) THEN 
+     &                     State_Met%FRCLND(IX,IY) >= 0.5 .and.
+     &                     (.not. IS_ICE( IX,IY,State_Met) ) ) THEN 
 #else
                      IF (  IZ <= GET_PBL_TOP_L( IX , IY ) .and.
      &                     FRCLND(IX,IY) >= 0.5 .and.
@@ -1516,11 +1516,11 @@ c new OH+CO rate from JPL2006.
                ! Determine fraction of NOx remaining and integrated Ozone
                ! Production Efficiency for ship emiss (gvinken,mpayer,2/7/12)
 #if defined( DEVEL )
-               CALL INTERPOLATE_LUT2( IX,                IY,           
+               CALL INTERPOLATE_LUT2( IX,             IY,           
      &                             CBLK(KLOOP,IDO3),  CBLK(KLOOP,IDNO),
      &                             CBLK(KLOOP,IDNO2), DENAIR(KLOOP),
-     &                             LOCAL_MET,
-     &                             fraction_nox,      int_ope )
+     &                             fraction_nox,      int_ope,
+     &                             State_Met          )
 #else
                CALL INTERPOLATE_LUT2( IX,                IY,           
      &                             CBLK(KLOOP,IDO3),  CBLK(KLOOP,IDNO),

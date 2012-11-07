@@ -92,7 +92,7 @@
 ! !INTERFACE:
 !
 #if defined( DEVEL )      
-      SUBROUTINE EMISSC2H6( LOCAL_MET, EMISS, BIO_EMISS)
+      SUBROUTINE EMISSC2H6( State_Met, EMISS, BIO_EMISS)
 #else
       SUBROUTINE EMISSC2H6
 #endif
@@ -113,7 +113,7 @@
       USE TRACERID_MOD,  ONLY : IDBFC2H6, IDEC2H6, IDTC2H6
       USE TRANSFER_MOD,  ONLY : TRANSFER_2D
 #if defined( DEVEL )
-      USE GC_TYPE_MOD ,  ONLY : GC_MET_LOCAL
+      USE GIGC_State_Met_Mod, ONLY : MetState
 #endif
 
       USE CMN_SIZE_MOD        ! Size parameters
@@ -124,7 +124,7 @@
 ! !INPUT PARAMETERS:
 !
 #if defined( DEVEL )
-      TYPE(GC_MET_LOCAL), INTENT(IN) :: LOCAL_MET  ! Obj w/ met fields
+      TYPE(MetState), INTENT(IN) :: State_Met   ! Meteorology State object
 #endif
 !
 ! !INPUT/OUTPUT PARAMETERS:
@@ -244,7 +244,7 @@
 
             ! Read biofuel burning emissions (and update ND34 diagnostic)
 #if defined( DEVEL )
-            CALL BIOFUEL_BURN( LOCAL_MET, BIO_EMISS )
+            CALL BIOFUEL_BURN( State_Met, BIO_EMISS )
 #else
             CALL BIOFUEL_BURN
 #endif
@@ -258,7 +258,7 @@
                ! Convert [molec C/cm3/s] to [kg C2H6] and store in E_C2H6
 #if defined( DEVEL )
                E_C2H6_BF = BIOFUEL(IDBFC2H6,I,J) / 2.0d0 / 
-     &                     XNUMOL_C2H6 * BOXVL(I,J,1,LOCAL_MET) * DTSRCE
+     &                     XNUMOL_C2H6 * BOXVL(I,J,1,State_Met) * DTSRCE
 #else
                E_C2H6_BF = BIOFUEL(IDBFC2H6,I,J) / 2.0d0 / 
      &                     XNUMOL_C2H6 * BOXVL(I,J,1) * DTSRCE  
@@ -368,7 +368,7 @@
 ! !INTERFACE:
 !
 #if defined( DEVEL )
-      SUBROUTINE CHEMC2H6( LOCAL_MET )
+      SUBROUTINE CHEMC2H6( State_Met )
 #else
       SUBROUTINE CHEMC2H6
 #endif
@@ -381,7 +381,7 @@
       USE TIME_MOD,      ONLY : GET_MONTH, GET_TS_CHEM
       USE TRACER_MOD,    ONLY : N_TRACERS, STT
 #if defined( DEVEL )
-      USE GC_TYPE_MOD,   ONLY : GC_MET_LOCAL
+      USE GIGC_State_Met_Mod, ONLY : MetState
 #endif
 
       USE CMN_SIZE_MOD        ! Size parameters
@@ -389,7 +389,7 @@
 ! !INPUT PARAMETERS:
 !
 #if defined( DEVEL )
-      TYPE(GC_MET_LOCAL), INTENT(IN) :: LOCAL_MET  ! Obj w/ met fields
+      TYPE(MetState), INTENT(IN) :: State_Met   ! Meteorology State object
 #endif
 ! 
 ! !REVISION HISTORY:
@@ -452,7 +452,7 @@
          
          ! Loss rate [molec2 C2H6/cm6/s]^-1
 #if defined( DEVEL )
-         KRATE = 8.7d-12 * EXP( -1070.0d0 / LOCAL_MET%T(I,J,L) )
+         KRATE = 8.7d-12 * EXP( -1070.0d0 / State_Met%T(I,J,L) )
 #else
          KRATE = 8.7d-12 * EXP( -1070.0d0 / T(I,J,L) )
 #endif
