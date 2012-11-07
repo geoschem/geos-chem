@@ -32,59 +32,79 @@ MODULE GIGC_Input_Opt_Mod
   TYPE, PUBLIC :: OptInput
 
      !----------------------------------------
+     ! SIZE PARAMETER fields
+     !----------------------------------------
+     INTEGER                     :: MAX_TRCS
+     INTEGER                     :: MAX_MEMB
+     INTEGER                     :: MAX_FAMS
+
+     !----------------------------------------
      ! SIMULATION MENU fields 
      !----------------------------------------
-     INTEGER                     :: NYMDb              ! YYYY/MM/DD @ start
-     INTEGER                     :: NHMSb              ! hh:mm:ss   @ start
-     INTEGER                     :: NYMDe              ! YYYY/MM/DD @ end
-     INTEGER                     :: NHMSe              ! hh:mm:ss   @ end
-     CHARACTER(LEN=255)          :: RUN_DIR            ! Run dir for GEOS-Chem
-     CHARACTER(LEN=255)          :: IN_RST_FILE        ! Input restart file
-     LOGICAL                     :: LSVGLB             ! Save tracer rst file?
-     CHARACTER(LEN=255)          :: OUT_RST_FILE       ! Output restart file
-     CHARACTER(LEN=255)          :: DATA_DIR           ! Root DAO met field dir
-     CHARACTER(LEN=255)          :: GCAP_DIR           ! GCAP met data dir
-     CHARACTER(LEN=255)          :: GEOS_4_DIR         ! GEOS-4 met data dir
-     CHARACTER(LEN=255)          :: GEOS_5_DIR         ! GEOS-5 met data dir
-     CHARACTER(LEN=255)          :: GEOS_57_DIR        ! GEOS-5.7.x met dir
-     CHARACTER(LEN=255)          :: MERRA_DIR          ! MERRA met data dir
-     CHARACTER(LEN=255)          :: DATA_DIR_1x1       ! Native res data dir
-     CHARACTER(LEN=255)          :: TEMP_DIR           ! Temporary dir
-     LOGICAL                     :: LUNZIP             ! Unzip met fields?
-     LOGICAL                     :: LWAIT              ! Wait for unzipping?
-     LOGICAL                     :: LVARTROP           ! Dynamic tropopause?
-     INTEGER                     :: NESTED_I0          ! Nested grid lat offset
-     INTEGER                     :: NESTED_J0          ! Nested grid lon offset
+     INTEGER                     :: NYMDb              
+     INTEGER                     :: NHMSb              
+     INTEGER                     :: NYMDe              
+     INTEGER                     :: NHMSe              
+     CHARACTER(LEN=255)          :: RUN_DIR            
+     CHARACTER(LEN=255)          :: IN_RST_FILE        
+     LOGICAL                     :: LSVGLB             
+     CHARACTER(LEN=255)          :: OUT_RST_FILE       
+     CHARACTER(LEN=255)          :: DATA_DIR           
+     CHARACTER(LEN=255)          :: GCAP_DIR           
+     CHARACTER(LEN=255)          :: GEOS_4_DIR         
+     CHARACTER(LEN=255)          :: GEOS_5_DIR         
+     CHARACTER(LEN=255)          :: GEOS_57_DIR        
+     CHARACTER(LEN=255)          :: MERRA_DIR          
+     CHARACTER(LEN=255)          :: DATA_DIR_1x1       
+     CHARACTER(LEN=255)          :: TEMP_DIR           
+     LOGICAL                     :: LUNZIP             
+     LOGICAL                     :: LWAIT              
+     LOGICAL                     :: LVARTROP           
+     INTEGER                     :: NESTED_I0          
+     INTEGER                     :: NESTED_J0          
 
      !----------------------------------------
      ! TRACER MENU fields
      !----------------------------------------
-     INTEGER                     :: N_TRACERS          ! # of tracer
-     INTEGER,            POINTER :: ID_TRACER(:)       ! List of tracer numbers
-     CHARACTER(LEN=255), POINTER :: TRACER_NAME(:)     ! List of tracer names
-     REAL*8,             POINTER :: TRACER_MW_G(:)     ! Tracer mol wt [g]
-     REAL*8,             POINTER :: TRACER_MW_KG(:)    ! Tracer mol wt [kg]
-     REAL*8,             POINTER :: TCVV(:)            ! MW air/ MW tracer
-     REAL*8,             POINTER :: XNUMOL(:)          ! Molec tracer/kg tracer
-     INTEGER,            POINTER :: TRACER_N_CONST(:)  !  
-     REAL*8,             POINTER :: TRACER_CONST(:,:)  !  
-     REAL*8,             POINTER :: TRACER_COEFF(:,:)  !
+     INTEGER                     :: N_TRACERS          
+     INTEGER,            POINTER :: ID_TRACER(:)       
+     CHARACTER(LEN=255), POINTER :: TRACER_NAME(:)     
+     REAL*8,             POINTER :: TRACER_MW_G(:)     
+     REAL*8,             POINTER :: TRACER_MW_KG(:)    
+     REAL*8,             POINTER :: TCVV(:)            
+     REAL*8,             POINTER :: XNUMOL(:)          
+     INTEGER,            POINTER :: TRACER_N_CONST(:)  
+     CHARACTER(LEN=255), POINTER :: TRACER_CONST(:,:)  
+     REAL*8,             POINTER :: TRACER_COEFF(:,:)  
      INTEGER,            POINTER :: ID_EMITTED(:)  
      LOGICAL                     :: LSPLIT
+     LOGICAL                     :: ITS_A_RnPbBe_SIM
+     LOGICAL                     :: ITS_A_CH3I_SIM
+     LOGICAL                     :: ITS_A_FULLCHEM_SIM
+     LOGICAL                     :: ITS_A_HCN_SIM
+     LOGICAL                     :: ITS_A_TAGOX_SIM
+     LOGICAL                     :: ITS_A_TAGCO_SIM
+     LOGICAL                     :: ITS_A_C2H6_SIM
+     LOGICAL                     :: ITS_A_CH4_SIM
+     LOGICAL                     :: ITS_AN_AEROSOL_SIM
+     LOGICAL                     :: ITS_A_MERCURY_SIM
+     LOGICAL                     :: ITS_A_CO2_SIM
+     LOGICAL                     :: ITS_A_H2HD_SIM
+     LOGICAL                     :: ITS_NOT_COPARAM_OR_CH4
 
      !----------------------------------------
      ! AEROSOL MENU fields
      !----------------------------------------
-     LOGICAL                     :: LSULF              ! Sulfate aerosols?
-     LOGICAL                     :: LCRYST             ! Crystalline aerosols?
-     LOGICAL                     :: LCARB              ! Carbon aerosols?
-     LOGICAL                     :: LSOA               ! SOA aerosols?
-     LOGICAL                     :: LDUST              ! Dust aerosols?
-     LOGICAL                     :: LDEAD              ! Use DEAD dust src?
-     LOGICAL                     :: LSSALT             ! Sea salt aerosols?
-     LOGICAL                     :: LDICARB            ! Dicarbonyl aerosols?
-     REAL*8,             POINTER :: SALA_REDGE_um(:)   ! SALA size bin limits
-     REAL*8,             POINTER :: SALC_REDGE_um(:)   ! SALC size bin limits
+     LOGICAL                     :: LSULF              
+     LOGICAL                     :: LCRYST             
+     LOGICAL                     :: LCARB              
+     LOGICAL                     :: LSOA               
+     LOGICAL                     :: LDUST              
+     LOGICAL                     :: LDEAD              
+     LOGICAL                     :: LSSALT             
+     LOGICAL                     :: LDICARB            
+     REAL*8,             POINTER :: SALA_REDGE_um(:)   
+     REAL*8,             POINTER :: SALC_REDGE_um(:)   
 
      !----------------------------------------
      ! EMISSIONS MENU fields
@@ -279,7 +299,6 @@ MODULE GIGC_Input_Opt_Mod
      LOGICAL                     :: ND62
      LOGICAL                     :: ND63
      LOGICAL                     :: ND64
-     LOGICAL                     :: ND65
      LOGICAL                     :: ND66
      LOGICAL                     :: ND67
      LOGICAL                     :: ND68
@@ -383,6 +402,19 @@ MODULE GIGC_Input_Opt_Mod
      INTEGER                     :: ND63_JMAX
 
      !----------------------------------------
+     ! PROD LOSS MENU fields
+     !----------------------------------------
+     LOGICAL                     :: DO_SAVE_PL
+     INTEGER                     :: ND65
+     LOGICAL                     :: DO_SAVE_O3
+     INTEGER                     :: NFAM
+     REAL*8,             POINTER :: FAM_COEF(:,:)
+     CHARACTER(LEN=255), POINTER :: FAM_MEMB(:,:)
+     CHARACTER(LEN=255), POINTER :: FAM_NAME(:  )
+     INTEGER,            POINTER :: FAM_NMEM(:  )
+     CHARACTER(LEN=255), POINTER :: FAM_TYPE(:  )
+
+     !----------------------------------------
      ! UNIX CMDS fields
      !----------------------------------------
      CHARACTER(LEN=255)          :: BACKGROUND
@@ -460,6 +492,10 @@ MODULE GIGC_Input_Opt_Mod
      LOGICAL                     :: LSOABS
      LOGICAL                     :: LOTNAT
 
+     !----------------------------------------
+     ! SIMULATION TYPES
+     !----------------------------------------  
+
   END TYPE OptInput
 !
 ! !REMARKS:
@@ -468,15 +504,10 @@ MODULE GIGC_Input_Opt_Mod
 ! !REVISION HISTORY:
 !  01 Nov 2012 - R. Yantosca - Initial version, based on logical_mod.F
 !                              newer Olson 2001 land map & drydep inputs
+!  07 Nov 2012 - R. Yantosca - Added Input_Opt%ITS_A_*_SIM fields
 !EOP
 !------------------------------------------------------------------------------
 !BOC
-!
-! !DEFINED PARAMETERS:
-!
-  INTEGER, PARAMETER :: N_MAX     = 300   ! Placeholder value
-  INTEGER, PARAMETER :: N_MEMBERS = 10    ! Placeholder value
-
 CONTAINS
 !EOC
 !------------------------------------------------------------------------------
@@ -511,476 +542,521 @@ CONTAINS
     INTEGER,        INTENT(OUT)   :: RC          ! Success or failure?
 !
 ! !REMARKS:
-!  May need to add better error checking.
-! 
+!  NOTE: Set Input_Opt%MAX_TRCS and Input_Opt%MAX_MEMB outside of this
+!  routine to define the max # of tracers and species per family tracer
+!  for input quantities.  
+!                                                                              .
+!  Probably need to implement better error checking.
+!
 ! !REVISION HISTORY: 
 !  01 Nov 2012 - R. Yantosca - Initial version
+!  07 Nov 2012 - R. Yantosca - Added MAX_TRCS, MAX_MEMB via arg list
 !EOP
 !------------------------------------------------------------------------------
 !BOC
-    
+!
+! !LOCAL VARIABLES:
+!
+    INTEGER :: MAX_TRCS, MAX_MEMB, MAX_FAMS
+
     ! Assume success
     RC                               = GIGC_SUCCESS
 
     !----------------------------------------
+    ! SIZE PARAMETER fields 
+    !----------------------------------------
+    MAX_TRCS                         = Input_Opt%MAX_TRCS
+    MAX_MEMB                         = Input_Opt%MAX_MEMB
+    MAX_FAMS                         = Input_Opt%MAX_FAMS
+
+    !----------------------------------------
     ! SIMULATION MENU fields 
     !----------------------------------------
-    Input_Opt%NYMDb             = 0
-    Input_Opt%NHMSb             = 0
-    Input_Opt%NYMDe             = 0
-    Input_Opt%NHMSe             = 0
-    Input_Opt%RUN_DIR           = ''
-    Input_Opt%IN_RST_FILE       = ''
-    Input_Opt%LSVGLB            = .FALSE.
-    Input_Opt%OUT_RST_FILE      = ''
-    Input_Opt%DATA_DIR          = ''
-    Input_Opt%GCAP_DIR          = ''
-    Input_Opt%GEOS_4_DIR        = ''
-    Input_Opt%GEOS_5_DIR        = ''
-    Input_Opt%GEOS_57_DIR       = ''
-    Input_Opt%MERRA_DIR         = ''
-    Input_Opt%DATA_DIR_1x1      = ''
-    Input_Opt%TEMP_DIR          = ''
-    Input_Opt%LUNZIP            = .FALSE.
-    Input_Opt%LWAIT             = .FALSE.
-    Input_Opt%LVARTROP          = .FALSE.
-    Input_Opt%NESTED_I0         = 0
-    Input_Opt%NESTED_J0         = 0
+    Input_Opt%NYMDb                  = 0
+    Input_Opt%NHMSb                  = 0
+    Input_Opt%NYMDe                  = 0
+    Input_Opt%NHMSe                  = 0
+    Input_Opt%RUN_DIR                = ''
+    Input_Opt%IN_RST_FILE            = ''
+    Input_Opt%LSVGLB                 = .FALSE.
+    Input_Opt%OUT_RST_FILE           = ''
+    Input_Opt%DATA_DIR               = ''
+    Input_Opt%GCAP_DIR               = ''
+    Input_Opt%GEOS_4_DIR             = ''
+    Input_Opt%GEOS_5_DIR             = ''
+    Input_Opt%GEOS_57_DIR            = ''
+    Input_Opt%MERRA_DIR              = ''
+    Input_Opt%DATA_DIR_1x1           = ''
+    Input_Opt%TEMP_DIR               = ''
+    Input_Opt%LUNZIP                 = .FALSE.
+    Input_Opt%LWAIT                  = .FALSE.
+    Input_Opt%LVARTROP               = .FALSE.
+    Input_Opt%NESTED_I0              = 0
+    Input_Opt%NESTED_J0              = 0
      
     !----------------------------------------
     ! TRACER MENU fields
     !----------------------------------------
-    ALLOCATE( Input_Opt%ID_TRACER     ( N_MAX            ), STAT=RC )
-    ALLOCATE( Input_Opt%TRACER_NAME   ( N_MAX            ), STAT=RC )
-    ALLOCATE( Input_Opt%TRACER_MW_G   ( N_MAX            ), STAT=RC )
-    ALLOCATE( Input_Opt%TRACER_MW_KG  ( N_MAX            ), STAT=RC )
-    ALLOCATE( Input_Opt%TCVV          ( N_MAX            ), STAT=RC )
-    ALLOCATE( Input_Opt%XNUMOL        ( N_MAX            ), STAT=RC )     
-    ALLOCATE( Input_Opt%TRACER_N_CONST( N_MAX            ), STAT=RC )     
-    ALLOCATE( Input_Opt%TRACER_CONST  ( N_MAX, N_MEMBERS ), STAT=RC )     
-    ALLOCATE( Input_Opt%TRACER_COEFF  ( N_MAX, N_MEMBERS ), STAT=RC )
-    ALLOCATE( Input_Opt%ID_EMITTED    ( N_MAX            ), STAT=RC )     
+    ALLOCATE( Input_Opt%ID_TRACER     ( MAX_TRCS           ), STAT=RC )
+    ALLOCATE( Input_Opt%TRACER_NAME   ( MAX_TRCS           ), STAT=RC )
+    ALLOCATE( Input_Opt%TRACER_MW_G   ( MAX_TRCS           ), STAT=RC )
+    ALLOCATE( Input_Opt%TRACER_MW_KG  ( MAX_TRCS           ), STAT=RC )
+    ALLOCATE( Input_Opt%TCVV          ( MAX_TRCS           ), STAT=RC )
+    ALLOCATE( Input_Opt%XNUMOL        ( MAX_TRCS           ), STAT=RC )     
+    ALLOCATE( Input_Opt%TRACER_N_CONST( MAX_TRCS           ), STAT=RC )     
+    ALLOCATE( Input_Opt%TRACER_CONST  ( MAX_TRCS, MAX_MEMB ), STAT=RC )     
+    ALLOCATE( Input_Opt%TRACER_COEFF  ( MAX_TRCS, MAX_MEMB ), STAT=RC )
+    ALLOCATE( Input_Opt%ID_EMITTED    ( MAX_TRCS           ), STAT=RC )     
 
-    Input_Opt%N_TRACERS         = 0
-    Input_Opt%ID_TRACER         = 0
-    Input_Opt%TRACER_NAME       = ''
-    Input_Opt%TRACER_MW_G       = 0d0
-    Input_Opt%TRACER_MW_KG      = 0d0
-    Input_Opt%TCVV              = 0d0
-    Input_Opt%XNUMOL            = 0d0
-    Input_Opt%TRACER_N_CONST    = 0
-    Input_Opt%TRACER_CONST      = 0d0  
-    Input_Opt%TRACER_COEFF      = 0d0
-    Input_Opt%ID_EMITTED        = 0
-    Input_Opt%LSPLIT            = .FALSE.
-    
+    Input_Opt%N_TRACERS              = 0
+    Input_Opt%ID_TRACER              = 0
+    Input_Opt%TRACER_NAME            = ''
+    Input_Opt%TRACER_MW_G            = 0d0
+    Input_Opt%TRACER_MW_KG           = 0d0
+    Input_Opt%TCVV                   = 0d0
+    Input_Opt%XNUMOL                 = 0d0
+    Input_Opt%TRACER_N_CONST         = 0
+    Input_Opt%TRACER_CONST           = ''  
+    Input_Opt%TRACER_COEFF           = 0d0
+    Input_Opt%ID_EMITTED             = 0
+    Input_Opt%LSPLIT                 = .FALSE.
+    Input_Opt%ITS_A_RnPbBe_SIM       = .FALSE.
+    Input_Opt%ITS_A_CH3I_SIM         = .FALSE.
+    Input_Opt%ITS_A_FULLCHEM_SIM     = .FALSE.
+    Input_Opt%ITS_A_HCN_SIM          = .FALSE.
+    Input_Opt%ITS_A_TAGOX_SIM        = .FALSE.
+    Input_Opt%ITS_A_TAGCO_SIM        = .FALSE.
+    Input_Opt%ITS_A_C2H6_SIM         = .FALSE.
+    Input_Opt%ITS_A_CH4_SIM          = .FALSE.
+    Input_Opt%ITS_AN_AEROSOL_SIM     = .FALSE.
+    Input_Opt%ITS_A_MERCURY_SIM      = .FALSE.
+    Input_Opt%ITS_A_CO2_SIM          = .FALSE.
+    Input_Opt%ITS_A_H2HD_SIM         = .FALSE.
+    Input_Opt%ITS_NOT_COPARAM_OR_CH4 = .FALSE.
+
     !----------------------------------------
     ! AEROSOL MENU fields
     !----------------------------------------
     ALLOCATE( Input_Opt%SALA_REDGE_um( 2 ), STAT=RC )
     ALLOCATE( Input_Opt%SALC_REDGE_um( 2 ), STAT=RC )     
     
-    Input_Opt%LSULF             = .FALSE.
-    Input_Opt%LCRYST            = .FALSE.
-    Input_Opt%LCARB             = .FALSE.
-    Input_Opt%LSOA              = .FALSE.
-    Input_Opt%LDUST             = .FALSE.
-    Input_Opt%LDEAD             = .FALSE.
-    Input_Opt%LSSALT            = .FALSE.
-    Input_Opt%LDICARB           = .FALSE.
-    Input_Opt%SALA_REDGE_um     = 0d0
-    Input_Opt%SALC_REDGE_um     = 0d0
+    Input_Opt%LSULF                  = .FALSE.
+    Input_Opt%LCRYST                 = .FALSE.
+    Input_Opt%LCARB                  = .FALSE.
+    Input_Opt%LSOA                   = .FALSE.
+    Input_Opt%LDUST                  = .FALSE.
+    Input_Opt%LDEAD                  = .FALSE.
+    Input_Opt%LSSALT                 = .FALSE.
+    Input_Opt%LDICARB                = .FALSE.
+    Input_Opt%SALA_REDGE_um          = 0d0
+    Input_Opt%SALC_REDGE_um          = 0d0
 
     !----------------------------------------
     ! EMISSIONS MENU fields
     !----------------------------------------
-    Input_Opt%LEMIS             = .FALSE.
-    Input_Opt%TS_EMIS           = .FALSE.
-    Input_Opt%LANTHRO           = .FALSE.
-    Input_Opt%FSCALYR           = .FALSE.
-    Input_Opt%LEMEP             = .FALSE.
-    Input_Opt%LBRAVO            = .FALSE.
-    Input_Opt%LEDGAR            = .FALSE.
-    Input_Opt%LSTREETS          = .FALSE.
-    Input_Opt%LCAC              = .FALSE.
-    Input_Opt%LNEI05            = .FALSE.
-    Input_Opt%LRETRO            = .FALSE.
-    Input_Opt%LNEI99            = .FALSE.
-    Input_Opt%LICARTT           = .FALSE.
-    Input_Opt%LVISTAS           = .FALSE.
-    Input_Opt%LBIOFUEL          = .FALSE.
-    Input_Opt%LBIOGENIC         = .FALSE.
-    Input_Opt%LMEGAN            = .FALSE.
-    Input_Opt%LPECCA            = .FALSE.
-    Input_Opt%LMEGANMONO        = .FALSE.
-    Input_Opt%ISOP_SCALING      = 0d0
-    Input_Opt%LBIOMASS          = .FALSE.
-    Input_Opt%LBBSEA            = .FALSE.
-    Input_Opt%LTOMSAI           = .FALSE.
-    Input_Opt%LGFED2BB          = .FALSE.
-    Input_Opt%L8DAYBB           = .FALSE.
-    Input_Opt%L3HRBB            = .FALSE.
-    Input_Opt%LSYNOPBB          = .FALSE.
-    Input_Opt%LGFED3BB          = .FALSE.
-    Input_Opt%LDAYBB3           = .FALSE.
-    Input_Opt%L3HRBB3           = .FALSE.
-    Input_Opt%LAIRNOX           = .FALSE.
-    Input_Opt%LLIGHTNOX         = .FALSE.
-    Input_Opt%LOTDLOC           = .FALSE.
-    Input_Opt%LSOILNOX          = .FALSE.
-    Input_Opt%LFERTILIZERNOX    = .FALSE.
-    Input_Opt%NOx_SCALING       = 0d0
-    Input_Opt%LEDGARSHIP        = .FALSE.
-    Input_Opt%LICOADSSHIP       = .FALSE.
-    Input_Opt%LEMEPSHIP         = .FALSE.
-    Input_Opt%LSHIPSO2          = .FALSE.
-    Input_Opt%LARCSHIP          = .FALSE.
-    Input_Opt%LCOOKE            = .FALSE.
-    Input_Opt%LAVHRRLAI         = .FALSE.
-    Input_Opt%LMODISLAI         = .FALSE.
-    Input_Opt%LHIST             = .FALSE.
-    Input_Opt%HISTYR            = .FALSE.
-    Input_Opt%LWARWICK_VSLS     = .FALSE.
-    Input_Opt%LSSABr2           = .FALSE.
-    Input_Opt%LFIX_PBL_BRO      = .FALSE.
-    Input_Opt%Br_SCALING        = 0d0    
+    Input_Opt%LEMIS                  = .FALSE.
+    Input_Opt%TS_EMIS                = .FALSE.
+    Input_Opt%LANTHRO                = .FALSE.
+    Input_Opt%FSCALYR                = .FALSE.
+    Input_Opt%LEMEP                  = .FALSE.
+    Input_Opt%LBRAVO                 = .FALSE.
+    Input_Opt%LEDGAR                 = .FALSE.
+    Input_Opt%LSTREETS               = .FALSE.
+    Input_Opt%LCAC                   = .FALSE.
+    Input_Opt%LNEI05                 = .FALSE.
+    Input_Opt%LRETRO                 = .FALSE.
+    Input_Opt%LNEI99                 = .FALSE.
+    Input_Opt%LICARTT                = .FALSE.
+    Input_Opt%LVISTAS                = .FALSE.
+    Input_Opt%LBIOFUEL               = .FALSE.
+    Input_Opt%LBIOGENIC              = .FALSE.
+    Input_Opt%LMEGAN                 = .FALSE.
+    Input_Opt%LPECCA                 = .FALSE.
+    Input_Opt%LMEGANMONO             = .FALSE.
+    Input_Opt%ISOP_SCALING           = 0d0
+    Input_Opt%LBIOMASS               = .FALSE.
+    Input_Opt%LBBSEA                 = .FALSE.
+    Input_Opt%LTOMSAI                = .FALSE.
+    Input_Opt%LGFED2BB               = .FALSE.
+    Input_Opt%L8DAYBB                = .FALSE.
+    Input_Opt%L3HRBB                 = .FALSE.
+    Input_Opt%LSYNOPBB               = .FALSE.
+    Input_Opt%LGFED3BB               = .FALSE.
+    Input_Opt%LDAYBB3                = .FALSE.
+    Input_Opt%L3HRBB3                = .FALSE.
+    Input_Opt%LAIRNOX                = .FALSE.
+    Input_Opt%LLIGHTNOX              = .FALSE.
+    Input_Opt%LOTDLOC                = .FALSE.
+    Input_Opt%LSOILNOX               = .FALSE.
+    Input_Opt%LFERTILIZERNOX         = .FALSE.
+    Input_Opt%NOx_SCALING            = 0d0
+    Input_Opt%LEDGARSHIP             = .FALSE.
+    Input_Opt%LICOADSSHIP            = .FALSE.
+    Input_Opt%LEMEPSHIP              = .FALSE.
+    Input_Opt%LSHIPSO2               = .FALSE.
+    Input_Opt%LARCSHIP               = .FALSE.
+    Input_Opt%LCOOKE                 = .FALSE.
+    Input_Opt%LAVHRRLAI              = .FALSE.
+    Input_Opt%LMODISLAI              = .FALSE.
+    Input_Opt%LHIST                  = .FALSE.
+    Input_Opt%HISTYR                 = .FALSE.
+    Input_Opt%LWARWICK_VSLS          = .FALSE.
+    Input_Opt%LSSABr2                = .FALSE.
+    Input_Opt%LFIX_PBL_BRO           = .FALSE.
+    Input_Opt%Br_SCALING             = 0d0    
 
     !----------------------------------------
     ! CO2 MENU fields
     !----------------------------------------
-    Input_Opt%LGENFF            = .FALSE.
-    Input_Opt%LANNFF            = .FALSE.
-    Input_Opt%LMONFF            = .FALSE.
-    Input_Opt%LCHEMCO2          = .FALSE.
-    Input_Opt%LSEASBB           = .FALSE.
-    Input_Opt%LBIOFUEL          = .FALSE.
-    Input_Opt%LBIODAILY         = .FALSE.
-    Input_Opt%LBIODIURNAL       = .FALSE.
-    Input_Opt%LBIONETORIG       = .FALSE.
-    Input_Opt%LBIONETCLIM       = .FALSE.
-    Input_Opt%LOCN1997          = .FALSE.
-    Input_Opt%LOCN2009ANN       = .FALSE.
-    Input_Opt%LOCN2009MON       = .FALSE.
-    Input_Opt%LSHIPEDG          = .FALSE.
-    Input_Opt%LSHIPICO          = .FALSE.
-    Input_Opt%LPLANE            = .FALSE.
+    Input_Opt%LGENFF                 = .FALSE.
+    Input_Opt%LANNFF                 = .FALSE.
+    Input_Opt%LMONFF                 = .FALSE.
+    Input_Opt%LCHEMCO2               = .FALSE.
+    Input_Opt%LSEASBB                = .FALSE.
+    Input_Opt%LBIOFUEL               = .FALSE.
+    Input_Opt%LBIODAILY              = .FALSE.
+    Input_Opt%LBIODIURNAL            = .FALSE.
+    Input_Opt%LBIONETORIG            = .FALSE.
+    Input_Opt%LBIONETCLIM            = .FALSE.
+    Input_Opt%LOCN1997               = .FALSE.
+    Input_Opt%LOCN2009ANN            = .FALSE.
+    Input_Opt%LOCN2009MON            = .FALSE.
+    Input_Opt%LSHIPEDG               = .FALSE.
+    Input_Opt%LSHIPICO               = .FALSE.
+    Input_Opt%LPLANE                 = .FALSE.
 
     !----------------------------------------
     ! FUTURE MENU fields
     !----------------------------------------
-    Input_Opt%LFUTURE           = .FALSE.
-    Input_Opt%FUTURE_YEAR       = 0
-    Input_Opt%FUTURE_SCEN       = ''
+    Input_Opt%LFUTURE                = .FALSE.
+    Input_Opt%FUTURE_YEAR            = 0
+    Input_Opt%FUTURE_SCEN            = ''
 
     !----------------------------------------
     ! CHEMISTRY MENU fields
     !----------------------------------------
-    Input_Opt%LCHEM             = .FALSE.
-    Input_Opt%LSCHEM            = .FALSE.
-    Input_Opt%LLINOZ            = .FALSE. 
-    Input_Opt%TS_CHEM           = 0
-    Input_Opt%LSVCSPEC          = .FALSE. 
-    Input_Opt%LKPP              = .FALSE. 
+    Input_Opt%LCHEM                  = .FALSE.
+    Input_Opt%LSCHEM                 = .FALSE.
+    Input_Opt%LLINOZ                 = .FALSE. 
+    Input_Opt%TS_CHEM                = 0
+    Input_Opt%LSVCSPEC               = .FALSE. 
+    Input_Opt%LKPP                   = .FALSE. 
 
     !----------------------------------------
     ! CHEMISTRY MENU fields
     !----------------------------------------
-    Input_Opt%LTRAN             = .FALSE.
-    Input_Opt%LMFCT             = .FALSE.
-    Input_Opt%LFILL             = .FALSE.
-    Input_Opt%TPCORE_IORD       = .FALSE.
-    Input_Opt%TPCORE_JORD       = .FALSE.
-    Input_Opt%TPCORE_KORD       = .FALSE.
-    Input_Opt%TS_DYN            = .FALSE.
+    Input_Opt%LTRAN                  = .FALSE.
+    Input_Opt%LMFCT                  = .FALSE.
+    Input_Opt%LFILL                  = .FALSE.
+    Input_Opt%TPCORE_IORD            = .FALSE.
+    Input_Opt%TPCORE_JORD            = .FALSE.
+    Input_Opt%TPCORE_KORD            = .FALSE.
+    Input_Opt%TS_DYN                 = .FALSE.
 
     !----------------------------------------
     ! CONVECTION MENU fields
     !----------------------------------------
-    Input_Opt%LCONV             = .FALSE.
-    Input_Opt%LTURB             = .FALSE.
-    Input_Opt%LNLPBL            = .FALSE.
-    Input_Opt%TS_CONV           = 0
+    Input_Opt%LCONV                  = .FALSE.
+    Input_Opt%LTURB                  = .FALSE.
+    Input_Opt%LNLPBL                 = .FALSE.
+    Input_Opt%TS_CONV                = 0
 
     !----------------------------------------
     ! DEPOSITION MENU fields
     !----------------------------------------
-    Input_Opt%LDRYD             = .FALSE.
-    Input_Opt%LWETD             = .FALSE.
+    Input_Opt%LDRYD                  = .FALSE.
+    Input_Opt%LWETD                  = .FALSE.
 
     !----------------------------------------
     ! GAMAP_MENU fields
     !----------------------------------------
-    Input_Opt%GAMAP_DIAGINFO    = ''
-    Input_Opt%GAMAP_TRACERINFO  = ''
+    Input_Opt%GAMAP_DIAGINFO         = ''
+    Input_Opt%GAMAP_TRACERINFO       = ''
 
     !----------------------------------------
     ! OUTPUT MENU fields
     !----------------------------------------
     ALLOCATE( Input_Opt%NJDAY( 366 ), STAT=RC )
 
-    Input_Opt%NJDAY             = 0
+    Input_Opt%NJDAY                  = 0
 
     !----------------------------------------
     ! DIAGNOSTIC MENU fields
     !----------------------------------------
-    Input_Opt%ND01              = .FALSE.
-    Input_Opt%ND02              = .FALSE.
-    Input_Opt%ND03              = .FALSE.
-    Input_Opt%ND04              = .FALSE.
-    Input_Opt%ND05              = .FALSE.
-    Input_Opt%ND06              = .FALSE.
-    Input_Opt%ND07              = .FALSE.
-    Input_Opt%ND08              = .FALSE.
-    Input_Opt%ND09              = .FALSE.
-    Input_Opt%ND10              = .FALSE.
-    Input_Opt%ND11              = .FALSE.
-    Input_Opt%ND12              = .FALSE.
-    Input_Opt%ND13              = .FALSE.
-    Input_Opt%ND14              = .FALSE.
-    Input_Opt%ND15              = .FALSE.
-    Input_Opt%ND16              = .FALSE.
-    Input_Opt%ND17              = .FALSE.
-    Input_Opt%ND18              = .FALSE.
-    Input_Opt%ND19              = .FALSE.
-    Input_Opt%ND20              = .FALSE.
-    Input_Opt%ND21              = .FALSE.
-    Input_Opt%ND22              = .FALSE.
-    Input_Opt%ND23              = .FALSE.
-    Input_Opt%ND24              = .FALSE.
-    Input_Opt%ND25              = .FALSE.
-    Input_Opt%ND26              = .FALSE.
-    Input_Opt%ND27              = .FALSE.
-    Input_Opt%ND28              = .FALSE.
-    Input_Opt%ND29              = .FALSE.
-    Input_Opt%ND30              = .FALSE.
-    Input_Opt%ND31              = .FALSE.
-    Input_Opt%ND32              = .FALSE.
-    Input_Opt%ND33              = .FALSE.
-    Input_Opt%ND34              = .FALSE.
-    Input_Opt%ND35              = .FALSE.
-    Input_Opt%ND36              = .FALSE.
-    Input_Opt%ND37              = .FALSE.
-    Input_Opt%ND38              = .FALSE.
-    Input_Opt%ND39              = .FALSE.
-    Input_Opt%ND40              = .FALSE.
-    Input_Opt%ND41              = .FALSE.
-    Input_Opt%ND42              = .FALSE.
-    Input_Opt%ND43              = .FALSE.
-    Input_Opt%ND44              = .FALSE.
-    Input_Opt%ND45              = .FALSE.
-    Input_Opt%ND46              = .FALSE.
-    Input_Opt%ND47              = .FALSE.
-    Input_Opt%ND48              = .FALSE.
-    Input_Opt%ND49              = .FALSE.
-    Input_Opt%ND50              = .FALSE.
-    Input_Opt%ND51              = .FALSE.
-    Input_Opt%ND52              = .FALSE.
-    Input_Opt%ND53              = .FALSE.
-    Input_Opt%ND54              = .FALSE.
-    Input_Opt%ND55              = .FALSE.
-    Input_Opt%ND56              = .FALSE.
-    Input_Opt%ND57              = .FALSE.
-    Input_Opt%ND58              = .FALSE.
-    Input_Opt%ND59              = .FALSE.
-    Input_Opt%ND60              = .FALSE.
-    Input_Opt%ND61              = .FALSE.
-    Input_Opt%ND62              = .FALSE.
-    Input_Opt%ND63              = .FALSE.
-    Input_Opt%ND64              = .FALSE.
-    Input_Opt%ND65              = .FALSE.
-    Input_Opt%ND66              = .FALSE.
-    Input_Opt%ND67              = .FALSE.
-    Input_Opt%ND68              = .FALSE.
-    Input_Opt%ND69              = .FALSE.
-    Input_Opt%ND70              = .FALSE.
-    Input_Opt%TINDEX(:,:)       = 0
-    Input_Opt%TCOUNT(:)         = 0	  
-    Input_Opt%TMAX(:)	        = 0
+    Input_Opt%ND01                   = .FALSE.
+    Input_Opt%ND02                   = .FALSE.
+    Input_Opt%ND03                   = .FALSE.
+    Input_Opt%ND04                   = .FALSE.
+    Input_Opt%ND05                   = .FALSE.
+    Input_Opt%ND06                   = .FALSE.
+    Input_Opt%ND07                   = .FALSE.
+    Input_Opt%ND08                   = .FALSE.
+    Input_Opt%ND09                   = .FALSE.
+    Input_Opt%ND10                   = .FALSE.
+    Input_Opt%ND11                   = .FALSE.
+    Input_Opt%ND12                   = .FALSE.
+    Input_Opt%ND13                   = .FALSE.
+    Input_Opt%ND14                   = .FALSE.
+    Input_Opt%ND15                   = .FALSE.
+    Input_Opt%ND16                   = .FALSE.
+    Input_Opt%ND17                   = .FALSE.
+    Input_Opt%ND18                   = .FALSE.
+    Input_Opt%ND19                   = .FALSE.
+    Input_Opt%ND20                   = .FALSE.
+    Input_Opt%ND21                   = .FALSE.
+    Input_Opt%ND22                   = .FALSE.
+    Input_Opt%ND23                   = .FALSE.
+    Input_Opt%ND24                   = .FALSE.
+    Input_Opt%ND25                   = .FALSE.
+    Input_Opt%ND26                   = .FALSE.
+    Input_Opt%ND27                   = .FALSE.
+    Input_Opt%ND28                   = .FALSE.
+    Input_Opt%ND29                   = .FALSE.
+    Input_Opt%ND30                   = .FALSE.
+    Input_Opt%ND31                   = .FALSE.
+    Input_Opt%ND32                   = .FALSE.
+    Input_Opt%ND33                   = .FALSE.
+    Input_Opt%ND34                   = .FALSE.
+    Input_Opt%ND35                   = .FALSE.
+    Input_Opt%ND36                   = .FALSE.
+    Input_Opt%ND37                   = .FALSE.
+    Input_Opt%ND38                   = .FALSE.
+    Input_Opt%ND39                   = .FALSE.
+    Input_Opt%ND40                   = .FALSE.
+    Input_Opt%ND41                   = .FALSE.
+    Input_Opt%ND42                   = .FALSE.
+    Input_Opt%ND43                   = .FALSE.
+    Input_Opt%ND44                   = .FALSE.
+    Input_Opt%ND45                   = .FALSE.
+    Input_Opt%ND46                   = .FALSE.
+    Input_Opt%ND47                   = .FALSE.
+    Input_Opt%ND48                   = .FALSE.
+    Input_Opt%ND49                   = .FALSE.
+    Input_Opt%ND50                   = .FALSE.
+    Input_Opt%ND51                   = .FALSE.
+    Input_Opt%ND52                   = .FALSE.
+    Input_Opt%ND53                   = .FALSE.
+    Input_Opt%ND54                   = .FALSE.
+    Input_Opt%ND55                   = .FALSE.
+    Input_Opt%ND56                   = .FALSE.
+    Input_Opt%ND57                   = .FALSE.
+    Input_Opt%ND58                   = .FALSE.
+    Input_Opt%ND59                   = .FALSE.
+    Input_Opt%ND60                   = .FALSE.
+    Input_Opt%ND61                   = .FALSE.
+    Input_Opt%ND62                   = .FALSE.
+    Input_Opt%ND63                   = .FALSE.
+    Input_Opt%ND64                   = .FALSE.
+    Input_Opt%ND65                   = .FALSE.
+    Input_Opt%ND66                   = .FALSE.
+    Input_Opt%ND67                   = .FALSE.
+    Input_Opt%ND68                   = .FALSE.
+    Input_Opt%ND69                   = .FALSE.
+    Input_Opt%ND70                   = .FALSE.
+    Input_Opt%TINDEX(:,:)            = 0
+    Input_Opt%TCOUNT(:)              = 0	  
+    Input_Opt%TMAX(:)	             = 0
 
     !----------------------------------------
     ! PLANEFLIGHT MENU fields
     !----------------------------------------
-    Input_Opt%DO_PF             = .FALSE.
-    Input_Opt%PF_IFILE          = ''
-    Input_Opt%PF_OFILE          = ''
+    Input_Opt%DO_PF                  = .FALSE.
+    Input_Opt%PF_IFILE               = ''
+    Input_Opt%PF_OFILE               = ''
 
     !----------------------------------------
     ! ND48 MENU fields
     !----------------------------------------
-    ALLOCATE( Input_Opt%ND48_IARR( N_MAX ), STAT=RC )
-    ALLOCATE( Input_Opt%ND48_JARR( N_MAX ), STAT=RC )
-    ALLOCATE( Input_Opt%ND48_LARR( N_MAX ), STAT=RC )
-    ALLOCATE( Input_Opt%ND48_NARR( N_MAX ), STAT=RC )
+    ALLOCATE( Input_Opt%ND48_IARR( MAX_TRCS ), STAT=RC )
+    ALLOCATE( Input_Opt%ND48_JARR( MAX_TRCS ), STAT=RC )
+    ALLOCATE( Input_Opt%ND48_LARR( MAX_TRCS ), STAT=RC )
+    ALLOCATE( Input_Opt%ND48_NARR( MAX_TRCS ), STAT=RC )
 
-    Input_Opt%DO_ND48           = .FALSE.
-    Input_Opt%ND48_FILE         = ''
-    Input_Opt%ND48_FREQ         = 0
-    Input_Opt%ND48_N_STA        = 0
-    Input_Opt%ND48_IARR         = 0
-    Input_Opt%ND48_JARR         = 0
-    Input_Opt%ND48_LARR         = 0
-    Input_Opt%ND48_NARR         = 0
+    Input_Opt%DO_ND48                = .FALSE.
+    Input_Opt%ND48_FILE              = ''
+    Input_Opt%ND48_FREQ              = 0
+    Input_Opt%ND48_N_STA             = 0
+    Input_Opt%ND48_IARR              = 0
+    Input_Opt%ND48_JARR              = 0
+    Input_Opt%ND48_LARR              = 0
+    Input_Opt%ND48_NARR              = 0
 
     !----------------------------------------
     ! ND49 MENU fields
     !----------------------------------------
-    ALLOCATE( Input_Opt%ND49_TRACERS( N_MAX ), STAT=RC )
+    ALLOCATE( Input_Opt%ND49_TRACERS( MAX_TRCS ), STAT=RC )
 
-    Input_Opt%DO_ND49           = .FALSE.
-    Input_Opt%ND49_FILE         = ''
-    Input_Opt%ND49_TRACERS      = 0
-    Input_Opt%ND49_FREQ         = 0
-    Input_Opt%ND49_IMIN         = 0
-    Input_Opt%ND49_IMAX         = 0
-    Input_Opt%ND49_JMIN         = 0
-    Input_Opt%ND49_JMAX         = 0
-    Input_Opt%ND49_LMIN         = 0
-    Input_Opt%ND49_LMAX         = 0
+    Input_Opt%DO_ND49                = .FALSE.
+    Input_Opt%ND49_FILE              = ''
+    Input_Opt%ND49_TRACERS           = 0
+    Input_Opt%ND49_FREQ              = 0
+    Input_Opt%ND49_IMIN              = 0
+    Input_Opt%ND49_IMAX              = 0
+    Input_Opt%ND49_JMIN              = 0
+    Input_Opt%ND49_JMAX              = 0
+    Input_Opt%ND49_LMIN              = 0
+    Input_Opt%ND49_LMAX              = 0
 
     !----------------------------------------
     ! ND50 MENU fields
     !----------------------------------------
-    ALLOCATE( Input_Opt%ND50_TRACERS( N_MAX ), STAT=RC )
+    ALLOCATE( Input_Opt%ND50_TRACERS( MAX_TRCS ), STAT=RC )
 
-    Input_Opt%DO_ND50           = .FALSE.
-    Input_Opt%ND50_FILE         = ''
-    Input_Opt%LND50_HDF         = .FALSE.
-    Input_Opt%ND50_TRACERS      = 0
-    Input_Opt%ND50_IMIN         = 0
-    Input_Opt%ND50_IMAX         = 0
-    Input_Opt%ND50_JMIN         = 0
-    Input_Opt%ND50_JMAX         = 0
-    Input_Opt%ND50_LMIN         = 0
-    Input_Opt%ND50_LMAX         = 0
+    Input_Opt%DO_ND50                = .FALSE.
+    Input_Opt%ND50_FILE              = ''
+    Input_Opt%LND50_HDF              = .FALSE.
+    Input_Opt%ND50_TRACERS           = 0
+    Input_Opt%ND50_IMIN              = 0
+    Input_Opt%ND50_IMAX              = 0
+    Input_Opt%ND50_JMIN              = 0
+    Input_Opt%ND50_JMAX              = 0
+    Input_Opt%ND50_LMIN              = 0
+    Input_Opt%ND50_LMAX              = 0
 
     !----------------------------------------
     ! ND51 MENU fields
     !----------------------------------------
-    ALLOCATE( Input_Opt%ND51_TRACERS( N_MAX ), STAT=RC )
+    ALLOCATE( Input_Opt%ND51_TRACERS( MAX_TRCS ), STAT=RC )
 
-    Input_Opt%DO_ND51           = .FALSE.
-    Input_Opt%ND51_FILE         = ''
-    Input_Opt%LND51_HDF         = .FALSE.
-    Input_Opt%ND51_TRACERS      = 0
-    Input_Opt%ND51_HR_WRITE     = 0d0
-    Input_Opt%ND51_HR1          = 0d0
-    Input_Opt%ND51_HR2          = 0d0
-    Input_Opt%ND51_IMIN         = 0
-    Input_Opt%ND51_IMAX         = 0
-    Input_Opt%ND51_JMIN         = 0
-    Input_Opt%ND51_JMAX         = 0
-    Input_Opt%ND51_LMIN         = 0
+    Input_Opt%DO_ND51                = .FALSE.
+    Input_Opt%ND51_FILE              = ''
+    Input_Opt%LND51_HDF              = .FALSE.
+    Input_Opt%ND51_TRACERS           = 0
+    Input_Opt%ND51_HR_WRITE          = 0d0
+    Input_Opt%ND51_HR1               = 0d0
+    Input_Opt%ND51_HR2               = 0d0
+    Input_Opt%ND51_IMIN              = 0
+    Input_Opt%ND51_IMAX              = 0
+    Input_Opt%ND51_JMIN              = 0
+    Input_Opt%ND51_JMAX              = 0
+    Input_Opt%ND51_LMIN              = 0
 
     !----------------------------------------
     ! ND51b MENU fields
     !----------------------------------------
-    ALLOCATE( Input_Opt%ND51b_TRACERS( N_MAX ), STAT=RC )
+    ALLOCATE( Input_Opt%ND51b_TRACERS( MAX_TRCS ), STAT=RC )
 
-    Input_Opt%DO_ND51b          = .FALSE.
-    Input_Opt%ND51b_FILE        = ''
-    Input_Opt%LND51b_HDF        = .FALSE.
-    Input_Opt%ND51b_TRACERS     = 0
-    Input_Opt%ND51b_HR_WRITE    = 0d0
-    Input_Opt%ND51b_HR1         = 0d0
-    Input_Opt%ND51b_HR2         = 0d0
-    Input_Opt%ND51b_IMIN        = 0
-    Input_Opt%ND51b_IMAX        = 0
-    Input_Opt%ND51b_JMIN        = 0
-    Input_Opt%ND51b_JMAX        = 0
-    Input_Opt%ND51b_LMIN        = 0
+    Input_Opt%DO_ND51b               = .FALSE.
+    Input_Opt%ND51b_FILE             = ''
+    Input_Opt%LND51b_HDF             = .FALSE.
+    Input_Opt%ND51b_TRACERS          = 0
+    Input_Opt%ND51b_HR_WRITE         = 0d0
+    Input_Opt%ND51b_HR1              = 0d0
+    Input_Opt%ND51b_HR2              = 0d0
+    Input_Opt%ND51b_IMIN             = 0
+    Input_Opt%ND51b_IMAX             = 0
+    Input_Opt%ND51b_JMIN             = 0
+    Input_Opt%ND51b_JMAX             = 0
+    Input_Opt%ND51b_LMIN             = 0
 
     !----------------------------------------
     ! ND63 MENU fields
     !----------------------------------------
-    ALLOCATE( Input_Opt%ND63_TRACERS( N_MAX ), STAT=RC )
+    Input_Opt%DO_ND63                = .FALSE.
+    Input_Opt%ND63_FILE              = ''
+    Input_Opt%ND63_TRACERS           = 0
+    Input_Opt%ND63_FREQ              = 0
+    Input_Opt%ND63_IMIN              = 0
+    Input_Opt%ND63_IMAX              = 0
+    Input_Opt%ND63_JMIN              = 0
+    Input_Opt%ND63_JMAX              = 0
 
-    Input_Opt%DO_ND63           =.FALSE.
-    Input_Opt%ND63_FILE         = ''
-    Input_Opt%ND63_Tracers      = 0
-    Input_Opt%ND63_FREQ         = 0
-    Input_Opt%ND63_IMIN         = 0
-    Input_Opt%ND63_IMAX         = 0
-    Input_Opt%ND63_JMIN         = 0
-    Input_Opt%ND63_JMAX         = 0
+    !----------------------------------------
+    ! PROD LOSS MENU fields
+    !----------------------------------------
+    ALLOCATE( Input_Opt%FAM_COEF( MAX_MEMB, MAX_FAMS ), STAT=RC )
+    ALLOCATE( Input_Opt%FAM_MEMB( MAX_MEMB, MAX_FAMS ), STAT=RC )
+    ALLOCATE( Input_Opt%FAM_NAME(           MAX_FAMS ), STAT=RC )
+    ALLOCATE( Input_Opt%FAM_NMEM(           MAX_FAMS ), STAT=RC )
+    ALLOCATE( Input_Opt%FAM_TYPE(           MAX_FAMS ), STAT=RC )
 
+    Input_Opt%DO_SAVE_PL             = .FALSE.
+    Input_Opt%ND65                   = 0
+    Input_Opt%DO_SAVE_O3             = .FALSE.
+    Input_Opt%NFAM                   = 0
+    Input_Opt%FAM_COEF               = 0d0
+    Input_Opt%FAM_MEMB               = ''
+    Input_Opt%FAM_NAME               = ''
+    Input_Opt%FAM_NMEM               = 0
+    Input_Opt%FAM_TYPE               = ''
 
     !----------------------------------------
     ! UNIX CMDS fields
     !----------------------------------------
-    Input_Opt%BACKGROUND        = ''
-    Input_Opt%REDIRECT          = ''  
-    Input_Opt%REMOVE_CMD        = ''
-    Input_Opt%SEPARATOR         = ''
-    Input_Opt%WILD_CARD         = ''
-    Input_Opt%UNZIP_CMD         = ''
-    Input_Opt%ZIP_SUFFIX        = ''
+    Input_Opt%BACKGROUND             = ''
+    Input_Opt%REDIRECT               = ''  
+    Input_Opt%REMOVE_CMD             = ''
+    Input_Opt%SEPARATOR              = ''
+    Input_Opt%WILD_CARD              = ''
+    Input_Opt%UNZIP_CMD              = ''
+    Input_Opt%ZIP_SUFFIX             = ''
 
     !----------------------------------------
     ! NESTED GRID MENU fields
     !----------------------------------------
-    Input_Opt%LWINDO            = .FALSE.
-    Input_Opt%LWINDO2x25        = .FALSE.
-    Input_Opt%LWINDO_NA         = .FALSE.
-    Input_Opt%TPBC_DIR_NA       = ''
-    Input_Opt%LWINDO_EU         = .FALSE.
-    Input_Opt%TPBC_DIR_EU       = ''
-    Input_Opt%LWINDO_CH         = .FALSE.
-    Input_Opt%TPBC_DIR_CH       = ''
-    Input_Opt%LWINDO_SE         = .FALSE.
-    Input_Opt%TPBC_DIR_SE       = ''
-    Input_Opt%LWINDO_CU         = 0
-    Input_Opt%TPBC_DIR          = ''
-    Input_Opt%NESTED_TS         = 0
-    Input_Opt%NESTED_I1         = 0
-    Input_Opt%NESTED_J1         = 0
-    Input_Opt%NESTED_I2         = 0
-    Input_Opt%NESTED_J2         = 0
-    Input_Opt%NESTED_I0W        = 0
-    Input_Opt%NESTED_J0W        = 0 
+    Input_Opt%LWINDO                 = .FALSE.
+    Input_Opt%LWINDO2x25             = .FALSE.
+    Input_Opt%LWINDO_NA              = .FALSE.
+    Input_Opt%TPBC_DIR_NA            = ''
+    Input_Opt%LWINDO_EU              = .FALSE.
+    Input_Opt%TPBC_DIR_EU            = ''
+    Input_Opt%LWINDO_CH              = .FALSE.
+    Input_Opt%TPBC_DIR_CH            = ''
+    Input_Opt%LWINDO_SE              = .FALSE.
+    Input_Opt%TPBC_DIR_SE            = ''
+    Input_Opt%LWINDO_CU              = 0
+    Input_Opt%TPBC_DIR               = ''
+    Input_Opt%NESTED_TS              = 0
+    Input_Opt%NESTED_I1              = 0
+    Input_Opt%NESTED_J1              = 0
+    Input_Opt%NESTED_I2              = 0
+    Input_Opt%NESTED_J2              = 0
+    Input_Opt%NESTED_I0W             = 0
+    Input_Opt%NESTED_J0W             = 0 
 
     !----------------------------------------
     ! BENCHMARK MENU fields
     !----------------------------------------
-    Input_Opt%LSTDRUN           = .FALSE.
-    Input_Opt%STDRUN_INIT_FILE  = ''
-    Input_Opt%STDRUN_FINAL_FILE =''
+    Input_Opt%LSTDRUN                = .FALSE.
+    Input_Opt%STDRUN_INIT_FILE       = ''
+    Input_Opt%STDRUN_FINAL_FILE      =''
 
     !----------------------------------------
     ! ARCHIVED OH MENU fields
     !----------------------------------------
-    Input_Opt%OH_DIR            = ''
+    Input_Opt%OH_DIR                 = ''
 
     !----------------------------------------
     ! O3PL MENU fields
     !----------------------------------------
-    Input_Opt%O3PL_DIR          = ''
+    Input_Opt%O3PL_DIR               = ''
 
     !----------------------------------------
     ! MERCURY MENU fields
     !----------------------------------------     
-    Input_Opt%ANTHRO_Hg_YEAR    = 0
-    Input_Opt%USE_CHECKS        = .FALSE.
-    Input_Opt%LDYNOCEAN         = .FALSE.
-    Input_Opt%LPREINDHG         = .FALSE.
-    Input_Opt%Hg_RST_FILE       = ''
-    Input_Opt%LGTMM             = .FALSE.
-    Input_Opt%GTMM_RST_FILE     = ''
+    Input_Opt%ANTHRO_Hg_YEAR         = 0
+    Input_Opt%USE_CHECKS             = .FALSE.
+    Input_Opt%LDYNOCEAN              = .FALSE.
+    Input_Opt%LPREINDHG              = .FALSE.
+    Input_Opt%Hg_RST_FILE            = ''
+    Input_Opt%LGTMM                  = .FALSE.
+    Input_Opt%GTMM_RST_FILE          = ''
 
     !----------------------------------------
     ! CH4 MENU fields
     !----------------------------------------  
-    Input_Opt%LCH4BUD           = .FALSE.
-    Input_Opt%LGAO              = .FALSE.
-    Input_Opt%LCOL              = .FALSE.
-    Input_Opt%LLIV              = .FALSE.
-    Input_Opt%LWAST             = .FALSE.
-    Input_Opt%LBFCH4            = .FALSE.
-    Input_Opt%LRICE             = .FALSE.
-    Input_Opt%LOTANT            = .FALSE.
-    Input_Opt%LBMCH4            = .FALSE.
-    Input_Opt%LWETL             = .FALSE.
-    Input_Opt%LSOABS            = .FALSE.
-    Input_Opt%LOTNAT            = .FALSE.
+    Input_Opt%LCH4BUD                = .FALSE.
+    Input_Opt%LGAO                   = .FALSE.
+    Input_Opt%LCOL                   = .FALSE.
+    Input_Opt%LLIV                   = .FALSE.
+    Input_Opt%LWAST                  = .FALSE.
+    Input_Opt%LBFCH4                 = .FALSE.
+    Input_Opt%LRICE                  = .FALSE.
+    Input_Opt%LOTANT                 = .FALSE.
+    Input_Opt%LBMCH4                 = .FALSE.
+    Input_Opt%LWETL                  = .FALSE.
+    Input_Opt%LSOABS                 = .FALSE.
+    Input_Opt%LOTNAT                 = .FALSE.
 
   END SUBROUTINE Set_GIGC_Input_Opt
 !EOC
@@ -1016,7 +1092,8 @@ CONTAINS
     INTEGER,        INTENT(OUT)   :: RC          ! Success or failure
 !
 ! !REVISION HISTORY: 
-!   2 Nov 2012 - R. Yantosca - Initial version
+!  02 Nov 2012 - R. Yantosca - Initial version
+!  07 Nov 2012 - R. Yantosca - Now deallocate fields from prod/loss menu
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -1089,7 +1166,7 @@ CONTAINS
     ENDIF
 
     IF ( ASSOCIATED( Input_Opt%ND49_TRACERS ) ) THEN
-       DEALLOCATE( Input_Opt%ND49_TRACERS   )
+       DEALLOCATE( Input_Opt%ND49_TRACERS )
     ENDIF
 
     IF ( ASSOCIATED( Input_Opt%ND50_TRACERS ) ) THEN
@@ -1105,9 +1182,29 @@ CONTAINS
     ENDIF
 
     IF ( ASSOCIATED( Input_Opt%ND63_TRACERS ) ) THEN
-       DEALLOCATE( Input_Opt%ND63_TRACERS   )
+       DEALLOCATE( Input_Opt%ND63_TRACERS )
     ENDIF
 
+    IF ( ASSOCIATED( Input_Opt%FAM_COEF ) ) THEN
+       DEALLOCATE( Input_Opt%FAM_COEF )
+    ENDIF
+
+    IF ( ASSOCIATED( Input_Opt%FAM_MEMB ) ) THEN
+       DEALLOCATE( Input_Opt%FAM_MEMB )
+    ENDIF
+
+    IF ( ASSOCIATED( Input_Opt%FAM_NAME ) ) THEN
+       DEALLOCATE( Input_Opt%FAM_NAME )
+    ENDIF
+
+    IF ( ASSOCIATED( Input_Opt%FAM_NMEM ) ) THEN
+       DEALLOCATE( Input_Opt%FAM_NMEM )
+    ENDIF
+
+    IF ( ASSOCIATED( Input_Opt%FAM_TYPE ) ) THEN
+       DEALLOCATE( Input_Opt%FAM_TYPE )
+    ENDIF
+    
   END SUBROUTINE Cleanup_GIGC_Input_Opt
 !EOC
 END MODULE GIGC_Input_Opt_Mod

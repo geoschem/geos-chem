@@ -1226,6 +1226,7 @@
 !  27 Aug 2010 - R. Yantosca - Added ProTeX headers
 !  13 Aug 2012 - R. Yantosca - Now pass CHEM_STATE as an argument (DEVEL only)
 !  01 Nov 2012 - R. Yantosca - Now pass Input_Opt, RC as arguments
+!  07 Nov 2012 - R. Yantosca - Now define Input_Opt%ITS_A_*_SIM fields
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -1479,6 +1480,47 @@
 
       ! Set counter
       CT1 = CT1 + 1
+
+#if defined( DEVEL ) || defined( EXTERNAL_GRID ) || defined( EXTERNAL_FORCING )
+      !=================================================================
+      ! Set fields of Input Options object
+      !=================================================================
+      Input_Opt%N_TRACERS              = N_TRACERS
+      Input_Opt%LSPLIT                 = LSPLIT
+      Input_Opt%ITS_A_RnPbBe_SIM       = ( SIM_TYPE == 1  )
+      Input_Opt%ITS_A_CH3I_SIM         = ( SIM_TYPE == 2  )
+      Input_Opt%ITS_A_FULLCHEM_SIM     = ( SIM_TYPE == 3  )
+      Input_Opt%ITS_A_HCN_SIM          = ( SIM_TYPE == 4  )
+      Input_Opt%ITS_A_TAGOX_SIM        = ( SIM_TYPE == 6  )
+      Input_Opt%ITS_A_TAGCO_SIM        = ( SIM_TYPE == 7  )
+      Input_Opt%ITS_A_C2H6_SIM         = ( SIM_TYPE == 8  )
+      Input_Opt%ITS_A_CH4_SIM          = ( SIM_TYPE == 9  )
+      Input_Opt%ITS_NOT_COPARAM_OR_CH4 = ( SIM_TYPE /= 9  )
+      Input_Opt%ITS_AN_AEROSOL_SIM     = ( SIM_TYPE == 10 )
+      Input_Opt%ITS_A_MERCURY_SIM      = ( SIM_TYPE == 11 )
+      Input_Opt%ITS_A_CO2_SIM          = ( SIM_TYPE == 12 )
+      Input_Opt%ITS_A_H2HD_SIM         = ( SIM_TYPE == 13 )
+      
+      ! Print info about each tracer
+      DO T = 1, N_TRACERS
+         Input_Opt%ID_EMITTED(T)       = ID_EMITTED(T)
+         Input_Opt%ID_TRACER(T)        = ID_TRACER(T)         
+         Input_Opt%TRACER_NAME(T)      = TRIM( TRACER_NAME(T) )
+         Input_Opt%TRACER_MW_G(T)      = TRACER_MW_G(T)
+         Input_Opt%TRACER_MW_KG(T)     = TRACER_MW_KG(T)
+         Input_OPt%TCVV(T)             = TCVV(T)  
+         Input_Opt%XNUMOL(T)           = XNUMOL(T)
+
+         ! Loop over member species
+         DO C = 1, TRACER_N_CONST(T)
+            Input_Opt%TRACER_COEFF(T,C) = TRACER_COEFF(T,C)
+            Input_Opt%TRACER_CONST(T,C) = TRIM( TRACER_CONST(T,C) )
+         ENDDO
+      ENDDO
+
+      ! Return success
+      RC = GIGC_SUCCESS
+#endif
 
       END SUBROUTINE READ_TRACER_MENU
 !EOC
@@ -6110,6 +6152,29 @@
  110  FORMAT( A, I5 )
  120  FORMAT( /, 'Family=', A5, '  Type=', a4 )
  130  FORMAT( I3, 1X, F4.1, 1X, A5 )
+
+#if defined( DEVEL ) || defined( EXTERNAL_GRID ) || defined( EXTERNAL_FORCING )
+      !=================================================================
+      ! Set fields of Input Options object
+      !=================================================================
+      Input_Opt%DO_SAVE_PL          = DO_SAVE_PL
+      Input_Opt%ND65                = ND65
+      Input_Opt%DO_SAVE_O3          = DO_SAVE_O3
+      Input_Opt%NFAM                = NFAM
+
+      ! Loop over # families
+      DO F = 1, NFAM
+         Input_Opt%FAM_NAME(F)      = FAM_NAME(F) 
+         Input_Opt%FAM_NMEM(F)      = FAM_NMEM(F)
+         Input_Opt%FAM_TYPE(F)      = FAM_TYPE(F)
+
+         ! Loop over # members/family
+         DO M = 1, FAM_NMEM(F)   
+            Input_Opt%FAM_COEF(M,F) = FAM_COEF(M,F)
+            Input_Opt%FAM_MEMB(M,F) = FAM_MEMB(M,F)
+         ENDDO
+      ENDDO
+#endif
 
       !=================================================================
       ! Call setup routines from other F90 modules

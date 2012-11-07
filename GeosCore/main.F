@@ -295,6 +295,16 @@
       !
       ! GIGC_Allocate_All now also initializes fields of the 
       !-----------------------------------------------------------------
+
+      ! Define dimensions for fields of the Input Options object
+      ! NOTE: At this point we have not yet read in the "input.geos"
+      ! file so these are just placeholder values (bmy, 11/7/12)
+      Input_Opt%MAX_TRCS = NNPAR
+      Input_Opt%MAX_MEMB = N_MEMBERS
+      Input_Opt%MAX_FAMS = MAXFAM
+      
+      ! Allocate fields of the Input Options object as well
+      ! as other GEOS-Chem allocatable module arrays
       CALL GIGC_Allocate_All( am_I_root, Input_Opt, RC )
 #else
       !--------------------------------------------------------------
