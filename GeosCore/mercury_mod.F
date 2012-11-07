@@ -161,7 +161,7 @@
 !       (eds 7/30/08)
 !  13 Aug 2010 - R. Yantosca - Add modifications for MERRA (treat like GEOS-5)
 !  01 Apr 2011 - H. Amos      - added LVEGEMIS, distinct from LGCAPEMIS
-!  1 Nov 2011 - Y. Zhang      - Add subroutines to do in plume reduction of Hg
+!  01 Nov 2011 - Y. Zhang     - Add subroutines to do in plume reduction of Hg
 !******************************************************************************
 !
       ! References to F90 modules
@@ -498,7 +498,7 @@
       USE GRID_MOD,         ONLY : GET_AREA_CM2
       USE LOGICAL_MOD,      ONLY : LPRT, LDYNOCEAN, LNLPBL
       USE ERROR_MOD,        ONLY : DEBUG_MSG 
-      USE ERROR_MOD     , ONLY : SAFE_DIV   !yzh
+      USE ERROR_MOD,        ONLY : SAFE_DIV   !yzh
       USE DEPO_MERCURY_MOD, ONLY : ADD_HG2_DD
       USE DAO_MOD,          ONLY : SNOW, SNOMAS
       USE PRESSURE_MOD,     ONLY : GET_PCENTER 
@@ -572,13 +572,13 @@
       ! inserted ifdefs for future tuning of 2x2.5 by eck
 #if defined (GRID4x5)
       !REAL*8, PARAMETER     :: K_RED_JNO2 = 3.5d-3 / 2d0 ! ref: Amos et al. (2011)
-      REAL*8, PARAMETER    :: K_RED_JNO2 = 6.4d-3     ! yzh, consider cloud fraction 
+      REAL*8, PARAMETER     :: K_RED_JNO2 = 6.4d-3 ! yzh, consider cloud fraction 
 #elif defined (GRID2x25)
       REAL*8, PARAMETER     :: K_RED_JNO2 = 3.5D-3/2d0
 #elif defined( GRID05x0666 ) && defined( NESTED_NA )
-      REAL*8, PARAMETER     :: K_RED_JNO2 = 6.4D-3 * 1.33   ! yzh
+      REAL*8, PARAMETER     :: K_RED_JNO2 = 6.4D-3 * 1.33 ! yzh
 #else
-      REAL*8, PARAMETER    :: K_RED_JNO2 = 6.4d-3     ! yzh, need tune 
+      REAL*8, PARAMETER     :: K_RED_JNO2 = 6.4d-3        ! yzh, need tune 
 #endif      
 
       ! K for sea salt (eck, bmy, 4/6/06) [/s]
@@ -649,7 +649,7 @@
             !%%% cloud fraction, as is done in sulfate_mod.f (bmy, 5/27/11)
 
             ! yzh added this. (11/9/2011)
-            ! LWC is a grid-box averaged quantity. To improve the representation 
+            ! LWC is a grid-box averaged quantity. To improve representation 
             ! of sulfate chemistry, we divide LWC by the cloud fraction and 
             ! compute sulfate chemistry based on the LWC within the cloud.  We 
             ! get the appropriate grid-box averaged mass of SO2 and sulfate by 
@@ -704,7 +704,6 @@
          ! mass of SO2 and sulfate by multiplying the reaction rates
          ! L2S and L3s by the cloud fraction after the aqueous chemistry
          ! has been done.  (lzh, jaf, bmy, 5/27/11)
-
 #if   defined( GEOS_5 ) || defined( MERRA ) 
          IF ( LGEOSLWC ) FA =  FA * FC
 #endif
@@ -2762,14 +2761,16 @@
             XTAU     = GET_TAU0( 1, 1, 2005 )
 
             ! Filename for anthropogenic mercury source
-!           read emission files with the same resolution as the grid
-!           need to read emission file at nested-resolution, Y. Zhang 11/1/2011
-!            FILENAME = TRIM( DATA_DIR_1x1 )       // 
-!     &           'mercury_201002/GEIA_Hg0.geos.1x1.YYYY'
-            FILENAME = TRIM( DATA_DIR ) // 
-     &           'Hg_emission_201001/GEIA_Hg0.' //
-     &           GET_NAME_EXT() // '.' // GET_RES_EXT() //
-     &           '.YYYY'
+#if defined( GRID05x0666 ) && defined( NESTED_NA )
+            ! Need to read emission file at nested-resolution, Y. Zhang 11/1/11
+            FILENAME = TRIM( DATA_DIR )           // 
+     &           'mercury_201203/GEIA_Hg0.'       //
+     &           GET_NAME_EXT()     // '.'        //
+     &           GET_RES_EXT()      //  '.YYYY'
+#else
+            FILENAME = TRIM( DATA_DIR_1x1 )       // 
+     &           'mercury_201002/GEIA_Hg0.geos.1x1.YYYY'
+#endif
 
             ! Add year to the filename
             CALL EXPAND_DATE( FILENAME, NYMD, 000000 )
@@ -2778,20 +2779,23 @@
             WRITE( 6, 100 ) TRIM( FILENAME )
 
             ! Read data in [kg/yr]
-!           read emission files with the same resolution as the grid
-!           need to read emission file at nested-resolution, Y. Zhang 11/1/2011
-!            CALL READ_BPCH2( FILENAME, 'HG-SRCE', 1, 
-!     &           XTAU,      I1x1,     J1x1,    
-!     &           1,         ARRAY1,   QUIET=.TRUE. )
-            CALL READ_BPCH2( FILENAME, 'HG-SRCE', 1, 
-     &           XTAU,      IIPAR,     JJPAR,    
-     &           1,         ARRAY(:,:,1),   QUIET=.TRUE. )
-            
-            ! Regrid from 1x1 to the current grid
-!           read emission files with the same resolution as the grid
-!           need to read emission file at nested-resolution, Y. Zhang 11/1/2011
-!            CALL DO_REGRID_1x1( 'kg', ARRAY1, EHg0_an )
+#if defined( GRID05x0666 ) && defined( NESTED_NA )
+            ! Need to read emission file at nested-resolution, Y. Zhang 11/1/11
+            CALL READ_BPCH2( FILENAME, 'HG-SRCE',     1, 
+     &                       XTAU,      IIPAR,        JJPAR,    
+     &                       1,         ARRAY(:,:,1), QUIET=.TRUE. )
+
             CALL TRANSFER_2D( ARRAY(:,:,1), EHg0_an )
+#else
+            CALL READ_BPCH2( FILENAME, 'HG-SRCE', 1, 
+     &                       XTAU,      I1x1,     J1x1,    
+     &                       1,         ARRAY1,   QUIET=.TRUE. )
+
+            ! Regrid from 1x1 to the current grid
+            CALL DO_REGRID_1x1( 'kg', ARRAY1, EHg0_an )
+#endif
+            
+
 
             ! Convert from [kg/yr] to [kg/s]
             EHg0_an = EHg0_an / SEC_PER_YR    
@@ -2861,7 +2865,7 @@
 
          ENDIF
 
-        ! Read the NEI2005 emission inventory, override in the NA region
+         ! Read the NEI2005 emission inventory, override in the NA region
          ! Y. Zhang, 11/1/2011
          IF (LNEI2005) THEN
             ! Use US EPA2005 and Canadian NPRI2005 emissions
@@ -2872,15 +2876,15 @@
 
             ! Filename for anthropogenic mercury source
             IF (LInPlume) THEN
-            FILENAME = TRIM( DATA_DIR) // 'Hg_emission_201001/' //
-     &           'NEI2005_NPRI2005_NewSpeciation_Hg0.' //
-     &           GET_NAME_EXT() // '.' // GET_RES_EXT() //
-     &           '.YYYY'
+               FILENAME = TRIM( DATA_DIR) // 'mercury_201203' //
+     &              'NEI2005_NPRI2005_NewSpeciation_Hg0.'     //
+     &              GET_NAME_EXT() // '.' // GET_RES_EXT()    //
+     &              '.YYYY'
             ELSE
-            FILENAME = TRIM( DATA_DIR) // 'Hg_emission_201001/' //
-     &           'NEI2005_NPRI2005_Hg0.' //
-     &           GET_NAME_EXT() // '.' // GET_RES_EXT() //
-     &           '.YYYY'
+               FILENAME = TRIM( DATA_DIR)   // 'mercury_201203' //
+     &              'NEI2005_NPRI2005_Hg0.' //
+     &              GET_NAME_EXT() // '.'   // GET_RES_EXT()    //
+     &              '.YYYY'
             ENDIF
 
             ! Add year to the filename
@@ -2890,9 +2894,9 @@
             WRITE( 6, 100 ) TRIM( FILENAME )
 
             ! Read data in [kg/yr]
-            CALL READ_BPCH2( FILENAME, 'HG-SRCE', 1,
-     &           XTAU,      IIPAR,     JJPAR,
-     &           1,     ARRAY(:,:,1),     QUIET=.TRUE. )
+            CALL READ_BPCH2( FILENAME, 'HG-SRCE',     1,
+     &                       XTAU,      IIPAR,        JJPAR,
+     &                       1,         ARRAY(:,:,1), QUIET=.TRUE. )
 
              ! Replace the NA emission
               DO J = 1, JJPAR
@@ -2987,14 +2991,16 @@
             ! Use GEIA 2005 emissions (eck, 10/19/11)
 
             ! Filename for anthropogenic mercury source
-!           read emission files with the same resolution as the grid
-!           need to read emission file at nested-resolution, Y. Zhang 11/1/2011
-!            FILENAME = TRIM( DATA_DIR_1x1 )               // 
-!     &           'mercury_201002/GEIA_Hg2.geos.1x1.YYYY'
-            FILENAME = TRIM( DATA_DIR ) // 
-     &           'Hg_emission_201001/GEIA_Hg2.'//
-     &           GET_NAME_EXT() // '.' // GET_RES_EXT() //
-     &           '.YYYY'
+#if defined( GRID05x0666 ) && defined( NESTED_NA )
+            ! Need to read emission file at nested-resolution, Y. Zhang 11/1/11
+            FILENAME = TRIM( DATA_DIR )           // 
+     &           'mercury_201203/GEIA_Hg2.'       //
+     &           GET_NAME_EXT()     // '.'        //
+     &           GET_RES_EXT()      // '.YYYY'
+#else
+            FILENAME = TRIM( DATA_DIR_1x1 )               // 
+     &           'mercury_201002/GEIA_Hg2.geos.1x1.YYYY'
+#endif
 
             ! Add year to the filename
             CALL EXPAND_DATE( FILENAME, NYMD, 000000 )
@@ -3004,20 +3010,21 @@
             WRITE( 6, 100 ) TRIM( FILENAME )
 
             ! Read data in [kg/yr]
-!           read emission files with the same resolution as the grid
-!           need to read emission file at nested-resolution, Y. Zhang 11/1/2011
-!            CALL READ_BPCH2( FILENAME, 'HG-SRCE', 6, 
-!     &           XTAU,      I1x1,     J1x1,    
-!     &           1,         ARRAY1,   QUIET=.TRUE. )
+#if defined( GRID05x0666 ) && defined( NESTED_NA )
+            ! Need to read emission file at nested-resolution, Y. Zhang 11/1/11
+            CALL READ_BPCH2( FILENAME, 'HG-SRCE',     6, 
+     &                       XTAU,      IIPAR,        JJPAR,    
+     &                       1,         ARRAY(:,:,1), QUIET=.TRUE. )
+
+            CALL TRANSFER_2D( ARRAY(:,:,1), EHg2_an )
+#else
             CALL READ_BPCH2( FILENAME, 'HG-SRCE', 6, 
-     &           XTAU,      IIPAR,     JJPAR,    
-     &           1,         ARRAY(:,:,1),   QUIET=.TRUE. )
+     &                       XTAU,      I1x1,     J1x1,    
+     &                       1,         ARRAY1,   QUIET=.TRUE. )
 
             ! Regrid from 1x1 to the current grid
-!           read emission files with the same resolution as the grid
-!           need to read emission file at nested-resolution, Y. Zhang 11/1/2011
-!            CALL DO_REGRID_1x1( 'kg', ARRAY1, EHg2_an )
-            CALL TRANSFER_2D( ARRAY(:,:,1), EHg2_an )
+            CALL DO_REGRID_1x1( 'kg', ARRAY1, EHg2_an )
+#endif
 
             ! Convert from [kg/yr] to [kg/s]
             EHg2_an = EHg2_an / SEC_PER_YR
@@ -3059,7 +3066,7 @@
          ! Read the NEI2005 emission inventory, override in the NA region
          ! Y. Zhang, 11/1/2011
          IF (LNEI2005) THEN
-           ! Use US EPA2005 emissions
+            ! Use US EPA2005 emissions
 
             ! Mercury data is either for 2006
             NYMD     = ( ANTHRO_Hg_YEAR * 10000 ) + 0101
@@ -3067,15 +3074,15 @@
 
             ! Filename for anthropogenic mercury source
             IF (LInPlume) THEN
-            FILENAME = TRIM( DATA_DIR) // 'Hg_emission_201001/' //
-     &           'NEI2005_NPRI2005_NewSpeciation_Hg2.' //
-     &           GET_NAME_EXT() // '.' // GET_RES_EXT() //
-     &           '.YYYY'
+               FILENAME = TRIM( DATA_DIR) // 'mercury_201203/' //
+     &              'NEI2005_NPRI2005_NewSpeciation_Hg2.'      //
+     &              GET_NAME_EXT() // '.' // GET_RES_EXT()     //
+     &              '.YYYY'
             ELSE
-            FILENAME = TRIM( DATA_DIR) // 'Hg_emission_201001/' //
-     &           'NEI2005_NPRI2005_Hg2.' //
-     &           GET_NAME_EXT() // '.' // GET_RES_EXT() //
-     &           '.YYYY'
+               FILENAME = TRIM( DATA_DIR) // 'mercury_201203/' //
+     &              'NEI2005_NPRI2005_Hg2.'                    //
+     &              GET_NAME_EXT() // '.' // GET_RES_EXT()     //
+     &              '.YYYY'
             ENDIF
 
             ! Add year to the filename
@@ -3143,14 +3150,16 @@
             ! Use GEIA 2005 emissions (eck, 10/19/11)
 
             ! Filename for anthropogenic mercury source
-!           read emission files with the same resolution as the grid
-!           need to read emission file at nested-resolution, Y. Zhang 11/1/2011
-!            FILENAME = TRIM( DATA_DIR_1x1)   //
-!     &           'mercury_201002/GEIA_HgP.geos.1x1.YYYY'
-            FILENAME = TRIM( DATA_DIR ) //
-     &           'Hg_emission_201001/GEIA_HgP.'//
-     &           GET_NAME_EXT() // '.' // GET_RES_EXT() //
-     &           '.YYYY'
+#if defined( GRID05x0666 ) && defined( NESTED_NA )
+            ! Need to read emission file at nested-resolution, Y. Zhang 11/1/11
+            FILENAME = TRIM( DATA_DIR )           //
+     &           'mercury_201203/GEIA_HgP.'       //
+     &           GET_NAME_EXT()     // '.'        //
+     &           GET_RES_EXT()      //'.YYYY'
+#else
+            FILENAME = TRIM( DATA_DIR_1x1)   //
+     &           'mercury_201002/GEIA_HgP.geos.1x1.YYYY'
+#endif
 
             ! Add year to the filename
             CALL EXPAND_DATE( FILENAME, NYMD, 000000 )
@@ -3159,21 +3168,21 @@
             WRITE( 6, 100 ) TRIM( FILENAME )
 
             ! Read data in [kg/yr]
-!           read emission files with the same resolution as the grid
-!           need to read emission file at nested-resolution, Y. Zhang 11/1/2011
-!            CALL READ_BPCH2( FILENAME, 'HG-SRCE', 9, 
-!     &           XTAU,      I1x1,     J1x1,    
-!     &           1,         ARRAY1,   QUIET=.TRUE. )
+#if defined( GRID05x0666 ) && defined( NESTED_NA )
+            ! Need to read emission file at nested-resolution, Y. Zhang 11/1/11
+            CALL READ_BPCH2( FILENAME, 'HG-SRCE',     9, 
+     &                       XTAU,      IIPAR,        JJPAR,    
+     &                       1,         ARRAY(:,:,1), QUIET=.TRUE. )
+
+            CALL TRANSFER_2D( ARRAY(:,:,1), EHgP_an )
+#else
             CALL READ_BPCH2( FILENAME, 'HG-SRCE', 9, 
-     &           XTAU,      IIPAR,     JJPAR,    
-     &           1,         ARRAY(:,:,1),   QUIET=.TRUE. )
+     &                       XTAU,      I1x1,     J1x1,    
+     &                       1,         ARRAY1,   QUIET=.TRUE. )
 
             ! Regrid from 1x1 to the current grid
-!           read emission files with the same resolution as the grid
-!           need to read emission file at nested-resolution, Y. Zhang 11/1/2011
-!            CALL DO_REGRID_1x1( 'kg', ARRAY1, EHgP_an )
-            CALL TRANSFER_2D( ARRAY(:,:,1), EHgP_an )
-
+            CALL DO_REGRID_1x1( 'kg', ARRAY1, EHgP_an )
+#endif
             ! Convert from [kg/yr] to [kg/s]
             EHgP_an = EHgP_an / SEC_PER_YR
 
@@ -3212,8 +3221,8 @@
 
          ! Read the NEI2005 emission inventory, override in the NA region
          ! Y. Zhang, 11/1/2011
-        IF (LNEI2005) THEN
-           ! Use US EPA2005 emissions
+         IF (LNEI2005) THEN
+            ! Use US EPA2005 emissions
 
             ! Mercury data is either for 2006
             NYMD     = ( ANTHRO_Hg_YEAR * 10000 ) + 0101
@@ -3221,15 +3230,15 @@
 
             ! Filename for anthropogenic mercury source
             IF (LInPlume) THEN
-            FILENAME = TRIM( DATA_DIR) // 'Hg_emission_201001/' //
-     &           'NEI2005_NPRI2005_NewSpeciation_HgP.' //
-     &           GET_NAME_EXT() // '.' // GET_RES_EXT() //
-     &           '.YYYY'
+               FILENAME = TRIM( DATA_DIR) // 'mercury_201203/' //
+     &              'NEI2005_NPRI2005_NewSpeciation_HgP.'      //
+     &              GET_NAME_EXT() // '.' // GET_RES_EXT()     //
+     &              '.YYYY'
             ELSE
-            FILENAME = TRIM( DATA_DIR) // 'Hg_emission_201001/' //
-     &           'NEI2005_NPRI2005_HgP.' //
-     &           GET_NAME_EXT() // '.' // GET_RES_EXT() //
-     &           '.YYYY'
+               FILENAME = TRIM( DATA_DIR) // 'mercury_201203/' //
+     &              'NEI2005_NPRI2005_HgP.'                    //
+     &              GET_NAME_EXT() // '.' // GET_RES_EXT()     //
+     &              '.YYYY'
             ENDIF
 
             ! Add year to the filename
@@ -3319,12 +3328,15 @@
       XTAU     = GET_TAU0( 1, 1, 1985 )
 
       ! Filename for natural land-source mercury
-!           need to read emission file at nested-resolution, Y. Zhang 11/1/2011
-!      FILENAME= TRIM( DATA_DIR )            //
-!     &     'mercury_201007/newnatural.bpch'
-       FILENAME = TRIM( DATA_DIR) // 'Hg_emission_201001/' //
-     &           'newnatural.' //
-     &           GET_NAME_EXT() // '.' // GET_RES_EXT()
+#if defined( GRID05x0666 ) && defined( NESTED_NA )
+      ! Need to read emission file at nested-resolution, Y. Zhang 11/1/2011
+      FILENAME = TRIM( DATA_DIR) // 'mercury_201203/' //
+     &           'newnatural.'   // GET_NAME_EXT()    //
+     &            '.'            // GET_RES_EXT()
+#else
+      FILENAME= TRIM( DATA_DIR )            //
+     &     'mercury_201007/newnatural.bpch'
+#endif
 
       ! Echo info
       WRITE( 6, 100 ) TRIM( FILENAME )
