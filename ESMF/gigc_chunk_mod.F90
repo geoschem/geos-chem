@@ -205,6 +205,7 @@ CONTAINS
 !  22 Oct 2012 - R. Yantosca - Renamed to GIGC_Chunk_Run
 !  25 Oct 2012 - R. Yantosca - Now pass RC to GIGC_DO_CHEM
 !  01 Nov 2012 - R. Yantosca - Now reference gigc_input_opt_mod.F90
+!  08 Nov 2012 - R. Yantosca - Now pass Input_Opt to GIGC_Do_Chem
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -225,8 +226,9 @@ CONTAINS
                        NJ         = NJ,         &   ! # lats on this PET
                        NL         = NL,         &   ! # levels on this PET
                        NCNST      = NC,         &   ! # of advected tracers
-                       State_Chm  = State_Chm,  &   ! Chemistry State
-                       State_Met  = State_Met,  &   ! Meteorology State
+                       Input_Opt  = Input_Opt,  &   ! Input Options object
+                       State_Chm  = State_Chm,  &   ! Chemistry State object
+                       State_Met  = State_Met,  &   ! Meteorology State object
                        RC         = RC         )    ! Success or failure
 
   END SUBROUTINE GIGC_Chunk_Run
