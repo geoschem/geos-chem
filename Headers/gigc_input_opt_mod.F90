@@ -34,6 +34,7 @@ MODULE GIGC_Input_Opt_Mod
      !----------------------------------------
      ! SIZE PARAMETER fields
      !----------------------------------------
+     INTEGER                     :: MAX_DIAG
      INTEGER                     :: MAX_TRCS
      INTEGER                     :: MAX_MEMB
      INTEGER                     :: MAX_FAMS
@@ -493,8 +494,10 @@ MODULE GIGC_Input_Opt_Mod
      LOGICAL                     :: LOTNAT
 
      !----------------------------------------
-     ! SIMULATION TYPES
+     ! APM MENU fields
      !----------------------------------------  
+     LOGICAL                     :: IFNUCL
+     REAL*8                      :: FE0
 
   END TYPE OptInput
 !
@@ -505,6 +508,7 @@ MODULE GIGC_Input_Opt_Mod
 !  01 Nov 2012 - R. Yantosca - Initial version, based on logical_mod.F
 !                              newer Olson 2001 land map & drydep inputs
 !  07 Nov 2012 - R. Yantosca - Added Input_Opt%ITS_A_*_SIM fields
+!  08 Nov 2012 - R. Yantosca - Added APM MENU fields
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -550,14 +554,15 @@ CONTAINS
 !
 ! !REVISION HISTORY: 
 !  01 Nov 2012 - R. Yantosca - Initial version
-!  07 Nov 2012 - R. Yantosca - Added MAX_TRCS, MAX_MEMB via arg list
+!  07 Nov 2012 - R. Yantosca - Now add size parameter fields to Input_Opt
+!                              that can be set prior to calling this routine
 !EOP
 !------------------------------------------------------------------------------
 !BOC
 !
 ! !LOCAL VARIABLES:
 !
-    INTEGER :: MAX_TRCS, MAX_MEMB, MAX_FAMS
+    INTEGER :: MAX_DIAG, MAX_TRCS, MAX_MEMB, MAX_FAMS
 
     ! Assume success
     RC                               = GIGC_SUCCESS
@@ -565,6 +570,7 @@ CONTAINS
     !----------------------------------------
     ! SIZE PARAMETER fields 
     !----------------------------------------
+    MAX_DIAG                         = Input_Opt%MAX_DIAG
     MAX_TRCS                         = Input_Opt%MAX_TRCS
     MAX_MEMB                         = Input_Opt%MAX_MEMB
     MAX_FAMS                         = Input_Opt%MAX_FAMS
@@ -783,6 +789,10 @@ CONTAINS
     !----------------------------------------
     ! DIAGNOSTIC MENU fields
     !----------------------------------------
+    ALLOCATE( Input_Opt%TINDEX( MAX_DIAG, MAX_TRCS ), STAT=RC )
+    ALLOCATE( Input_Opt%TCOUNT( MAX_DIAG           ), STAT=RC )
+    ALLOCATE( Input_Opt%TMAX  ( MAX_DIAG           ), STAT=RC )
+
     Input_Opt%ND01                   = .FALSE.
     Input_Opt%ND02                   = .FALSE.
     Input_Opt%ND03                   = .FALSE.
@@ -1057,6 +1067,12 @@ CONTAINS
     Input_Opt%LWETL                  = .FALSE.
     Input_Opt%LSOABS                 = .FALSE.
     Input_Opt%LOTNAT                 = .FALSE.
+
+    !----------------------------------------
+    ! APM MENU fields
+    !----------------------------------------  
+    Input_Opt%IFNUCL                 = .FALSE.
+    Input_Opt%FE0                    = 0d0
 
   END SUBROUTINE Set_GIGC_Input_Opt
 !EOC
