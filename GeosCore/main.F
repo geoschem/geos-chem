@@ -212,6 +212,7 @@
 !  25 Oct 2012 - R. Yantosca - Now reference gigc_errcode_mod.F90
 !  01 Nov 2012 - R. Yantosca - Now read soil NOx restart file
 !  01 Nov 2012 - R. Yantosca - Now reference gigc_input_opt_mod.F90
+!  08 Nov 2012 - R. Yantosca - Now pass Input_Opt as an arg to DO_CHEMISTRY
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -299,7 +300,7 @@
       ! Define dimensions for fields of the Input Options object
       ! NOTE: At this point we have not yet read in the "input.geos"
       ! file so these are just placeholder values (bmy, 11/7/12)
-      Input_Opt%MAX_DIAG = MAXDIAG
+      Input_Opt%MAX_DIAG = MAX_DIAG
       Input_Opt%MAX_TRCS = NNPAR
       Input_Opt%MAX_MEMB = N_MEMBERS
       Input_Opt%MAX_FAMS = MAXFAM
@@ -328,8 +329,19 @@
 
       ! Read input file and call init routines from other modules
 #if defined( DEVEL )
+      !-----------------------------------------------------------------
+      !   %%%%% TESTING GIGC INTERFACE FROM EXISTING GEOS-CHEM %%%%%
+      !
+      ! 
+      !-----------------------------------------------------------------
       CALL READ_INPUT_FILE( am_I_Root, Input_Opt, RC ) 
 #else
+      !-----------------------------------------------------------------
+      !               %%%%% TRADITIONAL GEOS-Chem %%%%%
+      !
+      ! Current practice in the std GEOS-Chem is to call routine
+      ! READ_INPUT_FILE with just the "am_I_Root" variable.
+      !-----------------------------------------------------------------
       CALL READ_INPUT_FILE( am_I_Root ) 
 #endif
       ! Set a flag to denote if we should print ND70 debug output
@@ -1217,8 +1229,8 @@
      &                    STT( :, :, :, 1:N_TRACERS )
 
             ! Do GEOS-Chem chemistry
-            CALL DO_CHEMISTRY( am_I_Root, IIPAR,     JJPAR, LLPAR, 
-     &                         State_Chm, State_Met, RC            ) 
+            CALL DO_CHEMISTRY( am_I_Root, IIPAR,     JJPAR,     LLPAR, 
+     &                         Input_Opt, State_Chm, State_Met, RC     ) 
 #else
             !-----------------------------------------------------------
             !              %%%%% TRADITIONAL GEOS-Chem %%%%%

@@ -72,11 +72,11 @@
       !-----------------------------------------------------------------
       !     %%%%% CONNECTING TO GEOS-5 GCM via ESMF INTERFACE %%%%%
       !
-      ! Call DO_CHEMISTRY with dimension values as well as the 
-      ! Meteorology State and Chemistry State objects. (bmy, 10/25/12)
+      ! Call CHEMDR with dimension values as well as the Input Options,
+      ! Meteorology State,  and Chemistry State objects. (bmy, 11/8/12)
       !-----------------------------------------------------------------
       SUBROUTINE DO_CHEMISTRY( am_I_Root, NI,        NJ, NL, 
-     &                         State_Chm, State_Met, RC      )
+     &                         Input_Opt, State_Chm, State_Met, RC )
 #else
       !-----------------------------------------------------------------
       !              %%%%% TRADITIONAL GEOS-Chem %%%%%
@@ -104,8 +104,6 @@
       USE H2_HD_MOD,       ONLY : CHEM_H2_HD
       USE HCN_CH3CN_MOD,   ONLY : CHEM_HCN_CH3CN
       USE ISOROPIAII_MOD,  ONLY : DO_ISOROPIAII
-      USE LOGICAL_MOD,     ONLY : LCARB, LCHEM,  LCRYST, LDUST, LSCHEM
-      USE LOGICAL_MOD,     ONLY : LPRT,  LSSALT, LSULF,  LSOA
       USE MERCURY_MOD,     ONLY : CHEMMERCURY
       USE OPTDEPTH_MOD,    ONLY : OPTDEPTH
       USE RnPbBe_MOD,      ONLY : CHEMRnPbBe
@@ -117,6 +115,37 @@
       USE TAGGED_OX_MOD,   ONLY : CHEM_TAGGED_OX
       USE TIME_MOD,        ONLY : GET_ELAPSED_MIN, GET_TS_CHEM
       USE TRACER_MOD,      ONLY : N_TRACERS,       STT  
+      USE TRACERID_MOD,    ONLY : IDTACET, IDTISOP
+
+      USE CMN_SIZE_MOD          ! Size parameters
+      USE COMODE_LOOP_MOD       ! NPHOT
+      USE CMN_DIAG_MOD          ! NDxx flags
+
+#if defined( DEVEL ) || defined( EXTERNAL_GRID ) || defined( EXTERNAL_FORCING )
+      !-----------------------------------------------------------------
+      !     %%%%% CONNECTING TO GEOS-5 GCM via ESMF INTERFACE %%%%%
+      !
+      ! We need to reference some modules particular to the Grid-
+      ! Independent GEOS-Chem implementation here.   In particular,
+      ! the settings from the Input Options object will replace
+      ! logical flags from logical_mod.F. (bmy, 11/8/12)
+      !-----------------------------------------------------------------
+      USE GIGC_ErrCode_Mod
+      USE GIGC_Input_Opt_Mod, ONLY : OptInput
+      USE GIGC_State_Chm_Mod, ONLY : ChmState
+      USE GIGC_State_Met_Mod, ONLY : MetState
+#else
+      !-----------------------------------------------------------------
+      !              %%%%% TRADITIONAL GEOS-Chem %%%%%
+      !
+      ! Current practice in the standard GEOS-Chem is to reference
+      ! logical flags directly from module GeosCore/logical_mod.F.
+      ! We also reference the ITS_A_*_SIM functions directly from
+      ! module GeosCore/tracer_mod.F.   (bmy, 11/8/12)
+      !-----------------------------------------------------------------
+      USE LOGICAL_MOD,     ONLY : LCARB, LCHEM,  LCRYST, LDUST, LSCHEM
+      USE LOGICAL_MOD,     ONLY : LPRT,  LSSALT, LSULF,  LSOA
+      USE LOGICAL_MOD,     ONLY : LNLPBL 
       USE TRACER_MOD,      ONLY : ITS_A_C2H6_SIM
       USE TRACER_MOD,      ONLY : ITS_A_CH3I_SIM
       USE TRACER_MOD,      ONLY : ITS_A_CH4_SIM
@@ -129,23 +158,6 @@
       USE TRACER_MOD,      ONLY : ITS_A_TAGOX_SIM
       USE TRACER_MOD,      ONLY : ITS_AN_AEROSOL_SIM
       USE TRACER_MOD,      ONLY : ITS_NOT_COPARAM_OR_CH4
-      USE TRACERID_MOD,    ONLY : IDTACET, IDTISOP
-      USE LOGICAL_MOD,     ONLY : LNLPBL ! (Lin, 03/31/09)
-
-      USE CMN_SIZE_MOD          ! Size parameters
-      USE COMODE_LOOP_MOD       ! NPHOT
-      USE CMN_DIAG_MOD          ! NDxx flags
-
-#if defined( DEVEL ) || defined( EXTERNAL_GRID ) || defined( EXTERNAL_FORCING )
-      !-----------------------------------------------------------------
-      !     %%%%% CONNECTING TO GEOS-5 GCM via ESMF INTERFACE %%%%%
-      !
-      ! We need to reference some modules particular to the Grid-
-      ! Independent GEOS-Chem implementation here. (bmy, 10/25/12)
-      !-----------------------------------------------------------------
-      USE GIGC_ErrCode_Mod
-      USE GIGC_State_Chm_Mod, ONLY : ChmState
-      USE GIGC_State_Met_Mod, ONLY : MetState
 #endif
 !
 ! !INPUT PARAMETERS:
@@ -155,6 +167,7 @@
       INTEGER,        INTENT(IN)    :: NI          ! # of lons on this PET
       INTEGER,        INTENT(IN)    :: NJ          ! # of lats on this PET 
       INTEGER,        INTENT(IN)    :: NL          ! # of levels on this PET
+      TYPE(OptInput), INTENT(IN)    :: Input_Opt   ! Input Options object
       TYPE(MetState), INTENT(IN)    :: State_Met   ! Meteorology State object
 !
 ! !INPUT/OUTPUT PARAMETERS:
@@ -226,13 +239,52 @@
 !  19 Oct 2012 - R. Yantosca - Now reference gigc_state_met_mod.F90
 !  25 Oct 2012 - R. Yantosca - Add comments for GIGC #ifdefs
 !  25 Oct 2012 - R. Yantosca - Add the RC output argument for the GIGC
+!  08 Nov 2012 - R. Yantosca - Now pass Input_Opt argument for the GIGC and
+!                              use fields of Input_Opt to replace logicals
 !EOP
 !------------------------------------------------------------------------------
 !BOC
 !
 ! !LOCAL VARIABLES:
 ! 
-      INTEGER       :: N_TROP, MONTH, YEAR, WAVELENGTH
+      INTEGER       :: N_TROP
+      INTEGER       :: MONTH
+      INTEGER       :: YEAR
+      INTEGER       :: WAVELENGTH
+      LOGICAL       :: IT_IS_A_C2H6_SIM
+      LOGICAL       :: IT_IS_A_CH3I_SIM
+      LOGICAL       :: IT_IS_A_CH4_SIM
+      LOGICAL       :: IT_IS_A_FULLCHEM_SIM
+      LOGICAL       :: IT_IS_A_H2HD_SIM
+      LOGICAL       :: IT_IS_A_HCN_SIM
+      LOGICAL       :: IT_IS_A_MERCURY_SIM
+      LOGICAL       :: IT_IS_A_RnPbBe_SIM
+      LOGICAL       :: IT_IS_A_TAGCO_SIM
+      LOGICAL       :: IT_IS_A_TAGOX_SIM
+      LOGICAL       :: IT_IS_AN_AEROSOL_SIM
+      LOGICAL       :: IT_IS_NOT_COPARAM_OR_CH4
+
+#if defined( DEVEL ) || defined( EXTERNAL_GRID ) || defined( EXTERNAL_FORCING )
+      !-----------------------------------------------------------------
+      !     %%%%% CONNECTING TO GEOS-5 GCM via ESMF INTERFACE %%%%%
+      !
+      ! We need to define local logical flags to hold corresponding
+      ! values from the Input Options object.  We do not need to define
+      ! these for the traditional GEOS-Chem since it will refer to 
+      ! variables from the same name from GeosCore/logical_mod.F.
+      ! (bmy, 11/8/12)
+      !-----------------------------------------------------------------
+      LOGICAL       :: LCARB
+      LOGICAL       :: LCHEM
+      LOGICAL       :: LCRYST
+      LOGICAL       :: LDUST
+      LOGICAL       :: LSCHEM
+      LOGICAL       :: LPRT
+      LOGICAL       :: LSSALT
+      LOGICAL       :: LSULF
+      LOGICAL       :: LSOA
+      LOGICAL       :: LNLPBL
+#endif
 
       ! SAVEd variables
       LOGICAL, SAVE :: FIRST = .TRUE.
@@ -258,78 +310,113 @@
       ! [kg] and no further unit conversion is necessary.  If on the
       ! other hand we are calling this routine from the ESMF interface,
       ! then we need to convert State_Chm%TRACERS from [v/v] to [kg]
-      ! in the calling routine GIGC_Do_Chem (in ESMF/gigc_chemdr.F90).
-      ! (bmy, 10/24/12) 
+      ! in the calling routine GIGC_Do_Chem (in ESMF/gigc_chemdr.F90)
+      !
+      ! To simplify the coding for both the ESMF interface and the
+      ! traditional GEOS-Chem, define local logical variables for
+      ! various flags and simulation types. (bmy, 11/8/12)
       !-----------------------------------------------------------------
 
       ! Assume success
-      RC = GIGC_SUCCESS
+      RC                       = GIGC_SUCCESS
 
       ! Initialize GEOS-Chem tracer array [kg] from Chemistry State object
-      STT(:,:,:,1:N_TRACERS) = State_Chm%TRACERS(:,:,:,1:N_TRACERS)
+      STT(:,:,:,1:N_TRACERS)   = State_Chm%TRACERS(:,:,:,1:N_TRACERS)
+
+      ! Copy logical fields from INPUT_OPT to local variables for use below
+      LCARB                    = Input_Opt%LCARB                        
+      LCHEM                    = Input_Opt%LCHEM
+      LCRYST                   = Input_Opt%LCRYST
+      LDUST                    = Input_Opt%LDUST
+      LSCHEM                   = Input_Opt%LSCHEM
+      LPRT                     = Input_Opt%LPRT
+      LSSALT                   = Input_Opt%LSSALT
+      LSULF                    = Input_Opt%LSULF
+      LSOA                     = Input_Opt%LSOA
+      LNLPBL                   = Input_Opt%LNLPBL
+      IT_IS_A_C2H6_SIM         = Input_Opt%ITS_A_C2H6_SIM
+      IT_IS_A_CH3I_SIM         = Input_Opt%ITS_A_CH3I_SIM
+      IT_IS_A_CH4_SIM          = Input_Opt%ITS_A_CH4_SIM 
+      IT_IS_A_FULLCHEM_SIM     = Input_Opt%ITS_A_FULLCHEM_SIM
+      IT_IS_A_H2HD_SIM         = Input_Opt%ITS_A_H2HD_SIM
+      IT_IS_A_HCN_SIM          = Input_Opt%ITS_A_HCN_SIM
+      IT_IS_A_MERCURY_SIM      = Input_Opt%ITS_A_MERCURY_SIM
+      IT_IS_A_RnPbBe_SIM       = Input_Opt%ITS_A_TAGCO_SIM
+      IT_IS_A_TAGCO_SIM        = Input_Opt%ITS_A_TAGCO_SIM
+      IT_IS_A_TAGOX_SIM        = Input_Opt%ITS_A_TAGOX_SIM
+      IT_IS_AN_AEROSOL_SIM     = Input_Opt%ITS_AN_AEROSOL_SIM
+      IT_IS_NOT_COPARAM_OR_CH4 = Input_Opt%ITS_NOT_COPARAM_OR_CH4
+#else
+      !--------------------------------------------------------------
+      !               %%%%% TRADITIONAL GEOS-Chem %%%%%
+      !
+      ! Define local logical flags to store values from the various
+      ! ITS_A_*_SIM routines from GeosCore/tracer_mod.F.  We do this
+      ! in order to clarify the coding for both the ESMF interface
+      ! as well as for the traditional GEOS-Chem.  (bmy, 11/8/12)
+      !--------------------------------------------------------------
+      IT_IS_A_C2H6_SIM         = ITS_A_C2H6_SIM()
+      IT_IS_A_CH3I_SIM         = ITS_A_CH3I_SIM()
+      IT_IS_A_CH4_SIM          = ITS_A_CH4_SIM()
+      IT_IS_A_FULLCHEM_SIM     = ITS_A_FULLCHEM_SIM()
+      IT_IS_A_H2HD_SIM         = ITS_A_H2HD_SIM()
+      IT_IS_A_HCN_SIM          = ITS_A_HCN_SIM()
+      IT_IS_A_MERCURY_SIM      = ITS_A_MERCURY_SIM()
+      IT_IS_A_RnPbBe_SIM       = ITS_A_RnPbBe_SIM()
+      IT_IS_A_TAGCO_SIM        = ITS_A_TAGCO_SIM()
+      IT_IS_A_TAGOX_SIM        = ITS_A_TAGOX_SIM()
+      IT_IS_AN_AEROSOL_SIM     = ITS_AN_AEROSOL_SIM()
+      IT_IS_NOT_COPARAM_OR_CH4 = ITS_NOT_COPARAM_OR_CH4()
 #endif
 
-      ! Compute optical depths (except for CH4 simulation)
-      IF ( .not. ITS_A_CH4_SIM() ) THEN
+      ! Compute optical depths
+      IF ( .not. IT_IS_A_CH4_SIM ) THEN
          CALL OPTDEPTH( LLPAR, CLDF, OPTDEP, OPTD )
       ENDIF
 
       !=================================================================
       ! If LCHEM=T then call the chemistry subroutines
       !=================================================================
-      IF ( LCHEM ) THEN 
+      IF ( LCHEM ) THEN
 
          !---------------------------------
          ! NOx-Ox-HC (w/ or w/o aerosols) 
          !---------------------------------
-         IF ( ITS_A_FULLCHEM_SIM() ) THEN 
+         IF ( IT_IS_A_FULLCHEM_SIM ) THEN 
 
 #if defined( DEVEL ) || defined( EXTERNAL_GRID ) || defined( EXTERNAL_FORCING )
             !-----------------------------------------------------------
             !  %%%%% CONNECTING TO GEOS-5 GCM via ESMF INTERFACE %%%%%
-            ! 
-            ! Call CHEMDR (the G-C chemistry driver routine) with
-            ! local dimension values and the the Meteorology and 
-            ! Chemistry State objects.  Have CHEMDR return success or
-            ! failure via the RC argument. (bmy, 10/25/12)
-            !-----------------------------------------------------------
-            CALL CHEMDR( am_I_Root, NI,        NJ, NL, 
-     &                   State_Met, State_Chm, RC      )
-#else
-            !-----------------------------------------------------------
-            !             %%%%% TRADITIONAL GEOS-Chem %%%%%
             !
-            ! Current practice is to call CHEMDR with am_I_Root as the
-            ! only argument. (bmy, 10/25/12)
+            ! Call CHEMDR with dimension values as well as the Input 
+            ! Options, Meteorology State, and Chemistry State objects. 
+            ! (bmy, 11/8/12)
             !-----------------------------------------------------------
-            CALL CHEMDR( am_I_Root )
-#endif
 
-#if defined( DEVEL ) || defined( EXTERNAL_GRID ) || defined( EXTERNAL_FORCING )
-            !-----------------------------------------------------------
-            !  %%%%% CONNECTING TO GEOS-5 GCM via ESMF INTERFACE %%%%%
-            ! 
-            ! Call CHEMDR (the G-C chemistry driver routine) with
-            ! local dimension values and the the Meteorology and 
-            ! Chemistry State objects.  Have CHEMDR return success or
-            ! failure via the RC argument. (bmy, 10/25/12)
-            !-----------------------------------------------------------
+            ! Call gas-phase chemistry
+            CALL CHEMDR( am_I_Root, NI,        NJ,        NL, 
+     &                   Input_Opt, State_Met, State_Chm, RC  )
 
             ! Call linearized stratospheric scheme
             IF ( LSCHEM ) THEN 
                CALL DO_STRAT_CHEM( am_I_Root, State_Chm, RC )
             ENDIF
 #else
-            !-----------------------------------------------------------
-            !             %%%%% TRADITIONAL GEOS-Chem %%%%%
+            !--------------------------------------------------------
+            !            %%%%% TRADITIONAL GEOS-Chem %%%%%
             !
-            ! Current practice is to call DO_STRAT_CHEM with am_I_Root 
-            ! as the only argument. (bmy, 10/25/12)
-            !-----------------------------------------------------------
+            ! Current practice in the std GEOS-Chem is to call both
+            ! CHEMDR and DO_STRAT_CHEM with just the am_I_Root
+            ! argument. (bmy, 11/8/12)
+            !--------------------------------------------------------
+
+            ! Call gas-phase chemistry
+            CALL CHEMDR( am_I_Root )
 
             ! Call linearized stratospheric scheme
             IF ( LSCHEM ) CALL DO_STRAT_CHEM( am_I_Root )
-#endif            
+#endif
+
             ! Do seasalt aerosol chemistry
             IF ( LSSALT ) CALL CHEMSEASALT( am_I_Root )
 
@@ -366,7 +453,7 @@
             ! The drydep fluxes diag. is done in vdiff_mod.f when non-local 
             ! PBL is used ( Lin, 03/31/09) 
             IF ( .NOT. LNLPBL ) CALL DRYFLX 
- 
+
             ! ND43 chemical production
             CALL DIAGOH
  
@@ -378,8 +465,8 @@
          !---------------------------------
          ! Offline aerosol simulation
          !---------------------------------
-         ELSE IF ( ITS_AN_AEROSOL_SIM() ) THEN
- 
+         ELSE IF ( IT_IS_AN_AEROSOL_SIM ) THEN
+
             ! Define loop index and other SMVGEAR arrays
             ! N_TROP, the # of trop boxes, is returned
             CALL AEROSOL_RURALBOX( N_TROP, am_I_Root )
@@ -459,26 +546,26 @@
          !---------------------------------
          ! Rn-Pb-Be
          !---------------------------------                 
-         ELSE IF ( ITS_A_RnPbBe_SIM() ) THEN
+         ELSE IF ( IT_IS_A_RnPbBe_SIM ) THEN
             CALL CHEMRnPbBe 
             CALL DRYFLXRnPbBe
                    
          !---------------------------------
          ! CH3I
          !---------------------------------
-         ELSE IF ( ITS_A_CH3I_SIM() ) THEN
+         ELSE IF ( IT_IS_A_CH3I_SIM ) THEN
             CALL CHEMCH3I
  
          !---------------------------------            
          ! HCN
          !---------------------------------
-         ELSE IF ( ITS_A_HCN_SIM() ) THEN
+         ELSE IF ( IT_IS_A_HCN_SIM ) THEN
             CALL CHEM_HCN_CH3CN( N_TRACERS, STT )
  
          !---------------------------------
          ! Tagged O3
          !---------------------------------
-         ELSE IF ( ITS_A_TAGOX_SIM() ) THEN 
+         ELSE IF ( IT_IS_A_TAGOX_SIM ) THEN 
             CALL CHEM_TAGGED_OX
  
 #if defined( DEVEL )
@@ -510,19 +597,19 @@
          !---------------------------------
          ! Tagged CO
          !---------------------------------
-         ELSE IF ( ITS_A_TAGCO_SIM() ) THEN
+         ELSE IF ( IT_IS_A_TAGCO_SIM ) THEN
             CALL CHEM_TAGGED_CO
  
          !---------------------------------
          ! C2H6
          !---------------------------------
-         ELSE IF ( ITS_A_C2H6_SIM() ) THEN
+         ELSE IF ( IT_IS_A_C2H6_SIM ) THEN
             CALL CHEMC2H6
  
          !---------------------------------
          ! CH4
          !---------------------------------
-         ELSE IF ( ITS_A_CH4_SIM() ) THEN
+         ELSE IF ( IT_IS_A_CH4_SIM ) THEN
  
             ! Only call after the first 24 hours
             IF ( GET_ELAPSED_MIN() >= GET_TS_CHEM() ) THEN
@@ -532,7 +619,7 @@
          !---------------------------------
          ! Mercury
          !---------------------------------
-         ELSE IF ( ITS_A_MERCURY_SIM() ) THEN
+         ELSE IF ( IT_IS_A_MERCURY_SIM ) THEN
  
             ! Do Hg chemistry
             CALL CHEMMERCURY
@@ -540,7 +627,7 @@
          !---------------------------------
          ! Offline H2/HD
          !---------------------------------
-         ELSE IF ( ITS_A_H2HD_SIM() ) THEN
+         ELSE IF ( IT_IS_A_H2HD_SIM ) THEN
             CALL CHEM_H2_HD
             CALL DRYFLXH2HD
 

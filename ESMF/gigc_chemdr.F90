@@ -53,8 +53,9 @@ CONTAINS
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE GIGC_Do_Chem( State_Chm, State_Met, am_I_Root, NI, &
-                           NJ,        NL,        NCNST,     RC )
+  SUBROUTINE GIGC_Do_Chem( am_I_Root, NI,        NJ,         &
+                           NL,        NCNST,     Input_Opt,  &
+                           State_Chm, State_Met, RC         )
 !
 ! !USES:
 !
@@ -109,6 +110,7 @@ CONTAINS
 !  25 Oct 2012 - R. Yantosca - Now convert units of State_Chm%TRACERS from 
 !                              [v/v] -> [kg] before calling G-C chemistry 
 !                              (and from [kg] -> [v/v] after chemistry)
+!  08 Nov 2012 - R. Yantosca - Now pass the Input_Opt object to DO_CHEMISTRY
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -235,7 +237,8 @@ CONTAINS
          CALL Convert_Units( 2, N_TRACERS, TCVV, AD, State_Chm%Tracers )
 
          ! Call the GEOS-Chem chemistry routines
-         CALL Do_Chemistry( am_I_Root, NI, NJ, NL, State_Chm, State_Met, RC )
+         CALL Do_Chemistry( am_I_Root, NI,        NJ,        NL,  &
+                            Input_Opt, State_Chm, State_Met, RC  )
 
          ! Convert the tracer concentrations in State_Chm%TRACERS back to
          ! [v/v] so that they can be stored in the ESMF internal state

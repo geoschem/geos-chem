@@ -4030,6 +4030,9 @@
       USE CMN_SIZE_MOD       ! Size parameters
       USE CMN_DIAG_MOD       ! NDxx flags
 #if defined( DEVEL ) || defined( EXTERNAL_GRID ) || defined( EXTERNAL_FORCING )
+      USE DIAG_MOD,           ONLY: TINDEX
+      USE DIAG_MOD,           ONLY: TCOUNT
+      USE DIAG_MOD,           ONLY: TMAX
       USE GIGC_ErrCode_Mod
       USE GIGC_Input_Opt_Mod, ONLY : OptInput
 #endif
@@ -4604,78 +4607,87 @@
       !=================================================================
       ! Call other setup routines
       !=================================================================
-      Input_Opt%ND01    = ND01
-      Input_Opt%ND02    = ND02
-      Input_Opt%ND03    = ND03
-      Input_Opt%ND04    = ND04
-      Input_Opt%ND05    = ND05
-      Input_Opt%ND06    = ND06
-      Input_Opt%ND07    = ND07
-      Input_Opt%ND08    = ND08
-      Input_Opt%ND09    = ND09
-      Input_Opt%ND10    = ND10
-      Input_Opt%ND11    = ND11
-      Input_Opt%ND12    = ND12
-      Input_Opt%ND13    = ND13
-      Input_Opt%ND14    = ND14
-      Input_Opt%ND15    = ND15
-      Input_Opt%ND16    = ND16
-      Input_Opt%ND17    = ND17
-      Input_Opt%ND18    = ND18
-      Input_Opt%ND19    = ND19
-      Input_Opt%ND20    = ND20
-      Input_Opt%ND21    = ND21
-      Input_Opt%ND22    = ND22
-      Input_Opt%ND23    = ND23
-      Input_Opt%ND24    = ND24
-      Input_Opt%ND25    = ND25
-      Input_Opt%ND26    = ND26
-      Input_Opt%ND27    = ND27
-      Input_Opt%ND28    = ND28
-      Input_Opt%ND29    = ND29
-      Input_Opt%ND30    = ND30
-      Input_Opt%ND31    = ND31
-      Input_Opt%ND32    = ND32
-      Input_Opt%ND33    = ND33
-      Input_Opt%ND34    = ND34
-      Input_Opt%ND35    = ND35
-      Input_Opt%ND36    = ND36
-      Input_Opt%ND37    = ND37
-      Input_Opt%ND38    = ND38
-      Input_Opt%ND39    = ND39
-      Input_Opt%ND40    = ND40
-      Input_Opt%ND41    = ND41
-      Input_Opt%ND42    = ND42
-      Input_Opt%ND43    = ND43
-      Input_Opt%ND44    = ND44
-      Input_Opt%ND45    = ND45
-      Input_Opt%ND46    = ND46
-      Input_Opt%ND47    = ND47
-      Input_Opt%ND48    = ND48
-      Input_Opt%ND49    = ND49
-      Input_Opt%ND50    = ND50
-      Input_Opt%ND51    = ND51
-      Input_Opt%ND52    = ND52
-      Input_Opt%ND53    = ND53
-      Input_Opt%ND54    = ND54
-      Input_Opt%ND55    = ND55
-      Input_Opt%ND56    = ND56
-      Input_Opt%ND57    = ND57
-      Input_Opt%ND58    = ND58
-      Input_Opt%ND59    = ND59
-      Input_Opt%ND60    = ND60
-      Input_Opt%ND61    = ND61
-      Input_Opt%ND62    = ND62
-      Input_Opt%ND63    = ND63
-      Input_Opt%ND64    = ND64
-      Input_Opt%ND66    = ND66
-      Input_Opt%ND67    = ND67
-      Input_Opt%ND68    = ND68
-      Input_Opt%ND69    = ND69
-      Input_Opt%ND70    = ND70
-      Input_Opt%TINDEX  = TINDEX(:,:)
-      Input_Opt%TCOUNT  = TCOUNT(:)
-      Input_Opt%TMAX    = TMAX(:)
+      Input_Opt%ND01               = ND01
+      Input_Opt%ND02               = ND02
+      Input_Opt%ND03               = ND03
+      Input_Opt%ND04               = ND04
+      Input_Opt%ND05               = ND05
+      Input_Opt%ND06               = ND06
+      Input_Opt%ND07               = ND07
+      Input_Opt%ND08               = ND08
+      Input_Opt%ND09               = ND09
+      Input_Opt%ND10               = ND10
+      Input_Opt%ND11               = ND11
+      Input_Opt%ND12               = ND12
+      Input_Opt%ND13               = ND13
+      Input_Opt%ND14               = ND14
+      Input_Opt%ND15               = ND15
+      Input_Opt%ND16               = ND16
+      Input_Opt%ND17               = ND17
+      Input_Opt%ND18               = ND18
+      Input_Opt%ND19               = ND19
+      Input_Opt%ND20               = ND20
+      Input_Opt%ND21               = ND21
+      Input_Opt%ND22               = ND22
+      Input_Opt%ND23               = ND23
+      Input_Opt%ND24               = ND24
+      Input_Opt%ND25               = ND25
+      Input_Opt%ND26               = ND26
+      Input_Opt%ND27               = ND27
+      Input_Opt%ND28               = ND28
+      Input_Opt%ND29               = ND29
+      Input_Opt%ND30               = ND30
+      Input_Opt%ND31               = ND31
+      Input_Opt%ND32               = ND32
+      Input_Opt%ND33               = ND33
+      Input_Opt%ND34               = ND34
+      Input_Opt%ND35               = ND35
+      Input_Opt%ND36               = ND36
+      Input_Opt%ND37               = ND37
+      Input_Opt%ND38               = ND38
+      Input_Opt%ND39               = ND39
+      Input_Opt%ND40               = ND40
+      Input_Opt%ND41               = ND41
+      Input_Opt%ND42               = ND42
+      Input_Opt%ND43               = ND43
+      Input_Opt%ND44               = ND44
+      Input_Opt%ND45               = ND45
+      Input_Opt%ND46               = ND46
+      Input_Opt%ND47               = ND47
+      Input_Opt%ND48               = ND48
+      Input_Opt%ND49               = ND49
+      Input_Opt%ND50               = ND50
+      Input_Opt%ND51               = ND51
+      Input_Opt%ND52               = ND52
+      Input_Opt%ND53               = ND53
+      Input_Opt%ND54               = ND54
+      Input_Opt%ND55               = ND55
+      Input_Opt%ND56               = ND56
+      Input_Opt%ND57               = ND57
+      Input_Opt%ND58               = ND58
+      Input_Opt%ND59               = ND59
+      Input_Opt%ND60               = ND60
+      Input_Opt%ND61               = ND61
+      Input_Opt%ND62               = ND62
+      Input_Opt%ND63               = ND63
+      Input_Opt%ND64               = ND64
+      Input_Opt%ND66               = ND66
+      Input_Opt%ND67               = ND67
+      Input_Opt%ND68               = ND68
+      Input_Opt%ND69               = ND69
+      Input_Opt%ND70               = ND70
+      Input_Opt%LPRT               = ( ND70 > 0 )
+
+      ! Loop over # of diagnostics
+      DO M = 1, Input_Opt%MAX_DIAG
+         Input_Opt%TCOUNT(M)       = TCOUNT(M)
+         Input_Opt%TMAX(M)         = TMAX(M)
+
+         ! Loop over tracers per diagnostic
+         DO N = 1, Input_Opt%MAX_TRCS
+            Input_Opt%TINDEX(M,N)  = TINDEX(M,N)
+         ENDDO
+      ENDDO
 
       ! Return success
       RC = GIGC_SUCCESS
@@ -6055,6 +6067,7 @@
 !  27 Aug 2010 - R. Yantosca - Added ProTeX headers
 !  30 Jul 2012 - R. Yantosca - Now accept am_I_Root as an argument when
 !                              running with the traditional driver main.F
+!  08 Nov 2012 - R. Yantosca - Now save fields to the Input_Opt object
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -6239,6 +6252,7 @@
       ! Set fields of Input Options object
       !=================================================================
       Input_Opt%DO_SAVE_PL          = DO_SAVE_PL
+      Input_Opt%LFAMILY             = ( DO_SAVE_PL .and. NFAM > 0 )
       Input_Opt%ND65                = ND65
       Input_Opt%DO_SAVE_O3          = DO_SAVE_O3
       Input_Opt%NFAM                = NFAM

@@ -15,11 +15,11 @@
       !-----------------------------------------------------------------
       !     %%%%% CONNECTING TO GEOS-5 GCM via ESMF INTERFACE %%%%%
       !
-      ! Call CHEMDR with dimension values as well as the Meteorology 
-      ! State and Chemistry State objects. (bmy, 10/25/12)
+      ! Call CHEMDR with dimension values as well as the Input Options,
+      ! Meteorology State,  and Chemistry State objects. (bmy, 11/8/12)
       !-----------------------------------------------------------------
-      SUBROUTINE CHEMDR( am_I_Root, NI,        NJ, NL, 
-     &                   State_Met, State_Chm, RC      )
+      SUBROUTINE CHEMDR( am_I_Root, NI,        NJ,        NL, 
+     &                   Input_Opt, State_Met, State_Chm, RC  )
 #else
       !-----------------------------------------------------------------
       !              %%%%% TRADITIONAL GEOS-Chem %%%%%
@@ -43,9 +43,6 @@
       USE DUST_MOD,             ONLY : RDUST_ONLINE, RDUST_OFFLINE
       USE ERROR_MOD,            ONLY : DEBUG_MSG,    ERROR_STOP
       USE FUTURE_EMISSIONS_MOD, ONLY : GET_FUTURE_YEAR
-      USE LOGICAL_MOD,          ONLY : LCARB,        LDUST
-      USE LOGICAL_MOD,          ONLY : LPRT,         LSSALT,    LSULF  
-      USE LOGICAL_MOD,          ONLY : LSOA,         LVARTROP,  LFUTURE
       USE PLANEFLIGHT_MOD,      ONLY : SETUP_PLANEFLIGHT
       USE TIME_MOD,             ONLY : GET_MONTH,    GET_YEAR
       USE TIME_MOD,             ONLY : ITS_A_NEW_DAY
@@ -55,7 +52,6 @@
       USE UVALBEDO_MOD,         ONLY : UVALBEDO
       USE RESTART_MOD,          ONLY : READ_CSPEC_FILE 
       USE TIME_MOD,             ONLY : GET_NYMD,     GET_NHMS
-      USE LOGICAL_MOD,          ONLY : LSVCSPEC,     LLINOZ
 
       USE CMN_SIZE_MOD               ! Size parameters
       USE COMODE_LOOP_MOD            ! SMVGEAR variables
@@ -69,11 +65,26 @@
       !     %%%%% CONNECTING TO GEOS-5 GCM via ESMF INTERFACE %%%%%
       !
       ! We need to reference some modules particular to the Grid-
-      ! Independent GEOS-Chem implementation here. (bmy, 10/25/12)
+      ! Independent GEOS-Chem implementation here.   In particular,
+      ! the settings from the Input Options object will replace
+      ! logical flags from logical_mod.F. (bmy, 11/8/12)
       !-----------------------------------------------------------------
       USE GIGC_ErrCode_Mod
+      USE GIGC_Input_Opt_Mod,   ONLY : OptInput
       USE GIGC_State_Chm_Mod,   ONLY : ChmState
       USE GIGC_State_Met_Mod,   ONLY : MetState
+#else
+      !-----------------------------------------------------------------
+      !              %%%%% TRADITIONAL GEOS-Chem %%%%%
+      !
+      ! Current practice in the standard GEOS-Chem is to reference
+      ! logical flags directly from module GeosCore/logical_mod.F.
+      ! (bmy, 11/8/12)
+      !-----------------------------------------------------------------
+      USE LOGICAL_MOD,          ONLY : LCARB,        LDUST
+      USE LOGICAL_MOD,          ONLY : LPRT,         LSSALT,    LSULF  
+      USE LOGICAL_MOD,          ONLY : LSOA,         LVARTROP,  LFUTURE
+      USE LOGICAL_MOD,          ONLY : LSVCSPEC
 #endif
 
       IMPLICIT NONE
@@ -86,6 +97,7 @@
       INTEGER,        INTENT(IN)    :: NI          ! # of lons on this CPU
       INTEGER,        INTENT(IN)    :: NJ          ! # of lats on this CPU
       INTEGER,        INTENT(IN)    :: NL          ! # of levs on this CPU
+      TYPE(OptInput), INTENT(IN)    :: Input_Opt   ! Input Options object
       TYPE(MetState), INTENT(IN)    :: State_Met   ! Meteorology State object
 !
 ! !INPUT/OUTPUT VARIABLES:
@@ -257,6 +269,7 @@
 !  24 Oct 2012 - R. Yantosca - Add fixes for connecting to GEOS-5 GCM via ESMF
 !  25 Oct 2012 - R. Yantosca - Document #ifdefs for the GIGC implementation
 !  25 Oct 2012 - R. Yantosca - Now add RC (success/failure) as an argument
+!  08 Nov 2012 - R. Yantosca - Now add Input_Opt (Input Options) as an argument
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -277,6 +290,28 @@
       LOGICAL       :: IT_EXISTS
       REAL          :: START,FINISH
 
+      ! For printing debug output
+      LOGICAL       :: prtDebug
+
+#if defined( DEVEL ) || defined( EXTERNAL_GRID ) || defined( EXTERNAL_FORCING )
+      !-----------------------------------------------------------------
+      !     %%%%% CONNECTING TO GEOS-5 GCM via ESMF INTERFACE %%%%%
+      !
+      ! To simplify the coding for the ESMF interface, define local 
+      ! variables for logical values that will be obtained from the
+      !Input Options object. (bmy, 11/8/12)
+      !-----------------------------------------------------------------
+      LOGICAL       :: LCARB
+      LOGICAL       :: LDUST
+      LOGICAL       :: LPRT
+      LOGICAL       :: LSSALT
+      LOGICAL       :: LSULF  
+      LOGICAL       :: LSOA
+      LOGICAL       :: LVARTROP
+      LOGICAL       :: LFUTURE
+      LOGICAL       :: LSVCSPEC
+#endif
+
       !=================================================================
       ! CHEMDR begins here!
       !=================================================================
@@ -285,24 +320,38 @@
       !-----------------------------------------------------------------
       !     %%%%% CONNECTING TO GEOS-5 GCM via ESMF INTERFACE %%%%%
       !
-      ! Initialize the RC argument (bmy, 10/25/12)
+      ! Initialize the RC argument.  Also copy logical values from the
+      ! Input Options object over to local variables. (bmy, 11/8/12)
       !-----------------------------------------------------------------
 
       ! Assume success
-      RC     = GIGC_SUCCESS
+      RC        = GIGC_SUCCESS
+
+      ! Copy logical fields from INPUT_OPT to local variables for use below
+      LCARB    = Input_Opt%LCARB
+      LDUST    = Input_Opt%LDUST
+      LPRT     = Input_Opt%LPRT
+      LSSALT   = Input_Opt%LSSALT
+      LSULF    = Input_Opt%LSULF
+      LSOA     = Input_Opt%LSOA
+      LVARTROP = Input_Opt%LVARTROP
+      LFUTURE  = Input_Opt%LFUTURE
+      LSVCSPEC = Input_Opt%LSVCSPEC
 #endif
 
+      ! Do we need to print debug output?
+      prtDebug = ( LPRT .and. am_I_Root )
 
       ! Set some size variables
-      NLAT   = JJPAR
-      NLONG  = IIPAR
-      NVERT  = IVERT 
-      NPVERT = NVERT
-      NPVERT = NVERT + IPLUME
+      NLAT     = JJPAR
+      NLONG    = IIPAR
+      NVERT    = IVERT 
+      NPVERT   = NVERT
+      NPVERT   = NVERT + IPLUME
 
       ! Get month and year
-      MONTH  = GET_MONTH()
-      YEAR   = GET_YEAR()
+      MONTH    = GET_MONTH()
+      YEAR     = GET_YEAR()
 
       !=================================================================
       ! Compute AVGW, the mixing ratio of water vapor
@@ -333,7 +382,7 @@
          CALL READER( FIRSTCHEM, am_I_Root )
 
          !### Debug
-         IF ( LPRT .and. am_I_Root ) THEN
+         IF ( prtDebug ) THEN
             CALL DEBUG_MSG( '### CHEMDR: after READER' )
          ENDIF
 
@@ -367,7 +416,7 @@
       ENDIF
 
       !### Debug
-      IF ( LPRT .and. am_I_Root ) THEN
+      IF ( prtDebug ) THEN
          CALL DEBUG_MSG( '### CHEMDR: after RURALBOX' ) 
       ENDIF
 
@@ -381,7 +430,7 @@
       CALL SETMODEL( am_I_Root )
 
       !### Debug
-      IF ( LPRT .and. am_I_Root ) THEN
+      IF ( prtDebug ) THEN
          CALL DEBUG_MSG( '### CHEMDR: after SETMODEL' )
       ENDIF
 
@@ -418,7 +467,7 @@
          NCS = NCSURBAN
 
          !### Debug
-         IF ( LPRT .and. am_I_Root ) THEN
+         IF ( prtDebug ) THEN
             CALL DEBUG_MSG( '### CHEMDR: after READCHEM' )
          ENDIF
 
@@ -461,7 +510,7 @@
          CALL INPHOT( LLTROP, NPHOT, am_I_Root ) 
          
          !### Debug
-         IF ( LPRT .and. am_I_Root ) THEN
+         IF ( prtDebug ) THEN
             CALL DEBUG_MSG( '### CHEMDR: after INPHOT' )        
          ENDIF
 
@@ -493,7 +542,7 @@
 #endif
 
          !### Debug
-         IF ( LPRT .and. am_I_Root ) THEN
+         IF ( prtDebug ) THEN
             CALL DEBUG_MSG( '### CHEMDR: after SETTRACE' )
          ENDIF
 
@@ -503,7 +552,7 @@
          CALL SETEMDEP( N_TRACERS, am_I_Root )
 
          !### Debug
-         IF ( LPRT .and. am_I_Root ) THEN
+         IF ( prtDebug ) THEN
             CALL DEBUG_MSG( '### CHEMDR: after SETEMDEP' )
          ENDIF
       ENDIF
@@ -608,7 +657,7 @@
       IT_EXISTS = .FALSE.
 
       ! Test if 
-      IF ( FIRSTCHEM .and. LSVCSPEC ) THEN 
+      IF ( FIRSTCHEM .and. LSVCSPEC ) THEN
 
          ! Read the CSPEC restart file.  If not found, then 
          ! return IT_EXISTS = .FALSE.
@@ -663,7 +712,7 @@
       IT_EXISTS = .FALSE.
 
       !### Debug
-      IF ( LPRT .and. am_I_Root ) THEN
+      IF ( prtDebug ) THEN
          CALL DEBUG_MSG( '### CHEMDR: after READ_CSPEC_FILEC' )
       ENDIF
 #endif
@@ -674,7 +723,7 @@
       CALL SETEMIS( EMISRR, EMISRRN, am_I_Root )
       
       !### Debug
-      IF ( LPRT .and. am_I_Root ) THEN
+      IF ( prtDebug ) THEN
          CALL DEBUG_MSG( '### CHEMDR: after SETEMIS' )
       ENDIf
 
@@ -688,7 +737,7 @@
       CALL RDAER( am_I_Root, MONTH, YEAR, WAVELENGTH )
 
       !### Debug
-      IF ( LPRT .and. am_I_Root ) THEN 
+      IF ( prtDebug ) THEN 
          CALL DEBUG_MSG( '### CHEMDR: after RDAER' )
       ENDIF
 
@@ -708,7 +757,7 @@
       ENDIF
 
       !### Debug
-      IF ( LPRT .and. am_I_Root ) THEN
+      IF ( prtDebug ) THEN
          CALL DEBUG_MSG( '### CHEMDR: after RDUST' )
       ENDIF
 
@@ -743,7 +792,7 @@
 #endif
 
       !### Debug
-      IF ( LPRT .and. am_I_Root ) THEN
+      IF ( prtDebug ) THEN
          CALL DEBUG_MSG( '### CHEMDR: after FAST-J' )
       ENDIF
 
@@ -761,7 +810,7 @@
       !write(*,*) 'PHYSPROC TIME: ', finish-start
 
       !### Debug
-      IF ( LPRT .and. am_I_Root ) THEN
+      IF ( prtDebug ) THEN
          CALL DEBUG_MSG( '### CHEMDR: after PHYSPROC' )
       ENDIF
 
@@ -773,7 +822,7 @@
      &           STT(:,:,:,1:N_TRACERS) )
 
       !### Debug
-      IF ( LPRT .and. am_I_Root ) THEN
+      IF ( prtDebug ) THEN
          CALL DEBUG_MSG( '### CHEMDR: after LUMP' )
       ENDIF
 
@@ -789,7 +838,7 @@
      &                SAVENO3 )
 
          !### Debug
-         IF ( LPRT .and. am_I_Root ) THEN
+         IF ( prtDebug ) THEN
             CALL DEBUG_MSG( '### CHEMDR: after OHSAVE' )
          ENDIF
       ENDIF
@@ -800,7 +849,7 @@
       CALL DO_DIAG_OH
       
       !### Debug
-      IF ( LPRT .and. am_I_Root ) THEN
+      IF ( prtDebug ) THEN
          CALL DEBUG_MSG( '### CHEMDR: after DO_DIAG_OH' )
       ENDIF
 
@@ -823,11 +872,15 @@
       ! Call DO_DIAG_PL to compute the family prod/loss diagnostics.
       ! This is current practice in the std GEOS-Chem. (bmy, 10/24/12)
       !-----------------------------------------------------------------
-      IF ( LFAMILY ) THEN
+#if defined( DEVEL )
+      IF ( Input_Opt%LFAMILY ) THEN                      !%%% For ESMF
+#else
+      IF ( LFAMILY ) THEN                                !%%% For std G-C
+#endif
          CALL DO_DIAG_PL( am_I_Root )
 
          !### Debug
-         IF ( LPRT .and. am_I_Root ) THEN
+         IF ( prtDebug ) THEN
             CALL DEBUG_MSG( '### CHEMDR: after DO_DIAG_PL' )
          ENDIF
       ENDIF
@@ -850,7 +903,7 @@
       CALL SAVE_FULL_TROP()
 
       !###  Debug
-      IF ( LPRT .and. am_I_Root ) THEN
+      IF ( prtDebug ) THEN
          CALL DEBUG_MSG( '### CHEMDR: after SAVE_FULL_TROP' )
       ENDIF
 
@@ -875,7 +928,7 @@
          CALL SAVE_FULL_TROP
 
          !### Debug
-         IF ( LPRT .and. am_I_Root ) THEN
+         IF ( prtDebug ) THEN
             CALL DEBUG_MSG( '### CHEMDR: after SAVE_FULL_TROP' )
          ENDIF
       ENDIF
@@ -887,7 +940,7 @@
       FIRSTCHEM = .FALSE.
 
       !### Debug
-      IF ( LPRT .and. am_I_Root ) THEN
+      IF ( prtDebug ) THEN
          CALL DEBUG_MSG( '### Now exiting CHEMDR !' )
       ENDIF
 
