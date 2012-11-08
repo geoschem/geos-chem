@@ -130,7 +130,7 @@
       PUBLIC :: LHg2HalfAerosol,        LHg_WETDasHNO3
       PUBLIC :: STRAT_BR_FACTOR,        LAnthroHgOnly
       PUBLIC :: LOHO3CHEM,              LnoUSAemis
-      PUBLIC :: LNEI2005,                    LInPlume     ! yzh
+      PUBLIC :: LNEI2005,               LInPlume     ! yzh
          
       !=================================================================
       ! MODULE VARIABLES
@@ -1286,13 +1286,18 @@
       !------------------------------
 
       ! MLD file name
-!           need to read emission file at nested-resolution, Y. Zhang 11/1/2011
-!      FILENAME = TRIM( DATA_DIR )       // 
-!     &           'mercury_201007/MLD_DReqDT.geos.' // GET_RES_EXT()  
-      FILENAME = TRIM( DATA_DIR )       // 
-     &           'mercury_201007/MLD_DReqDT.' // 
-     &          GET_NAME_EXT() // '.' // GET_RES_EXT()
-     
+#if defined( GRID05x0666 ) && defined( NESTED_NA )
+      ! Need to read emission file at nested-resolution, Y. Zhang 11/1/2011
+      FILENAME = TRIM( DATA_DIR )                  // 
+     &           'mercury_201203/MLD_DReqDT.'      // 
+     &           GET_NAME_EXT()    // '.'          //
+     &           GET_RES_EXT()
+#else
+      FILENAME = TRIM( DATA_DIR )                  // 
+     &           'mercury_201007/MLD_DReqDT.geos.' // 
+     &           GET_RES_EXT()
+#endif
+
       ! Echo info
       WRITE( 6, 100 ) TRIM( FILENAME )
  100  FORMAT( '     - OCEAN_MERCURY_READ: Reading ', a )  
@@ -1323,12 +1328,17 @@
 !-------------------------------------------------
 
       ! Chl file name
-!           need to read emission file at nested-resolution, Y. Zhang 11/1/2011
-!      FILENAME = TRIM( DATA_DIR )       // 
-!     &           'mercury_201007/Chl_2003.geos.' // GET_RES_EXT()
-      FILENAME = TRIM( DATA_DIR )       // 
-     &           'mercury_201007/Chl_2003.'// 
-     &          GET_NAME_EXT() // '.' // GET_RES_EXT()  
+#if defined( GRID05x0666 ) && defined( NESTED_NA )
+      FILENAME = TRIM( DATA_DIR )                  // 
+     &           'mercury_201203/Chl_2003.'        // 
+     &           GET_NAME_EXT()     // '.'         //
+     &           GET_RES_EXT()
+#else
+      ! Need to read emission file at nested-resolution, Y. Zhang 11/1/2011
+      FILENAME = TRIM( DATA_DIR )                  // 
+     &           'mercury_201007/Chl_2003.geos.'   //
+     &           GET_RES_EXT()
+#endif
 
       ! Echo info
       WRITE( 6, 100 ) TRIM( FILENAME )
@@ -1356,12 +1366,17 @@
       !--------------------------------
  
       ! NPP file name (anls, 100111)
-!           need to read emission file at nested-resolution, Y. Zhang 11/1/2011
-!      FILENAME = TRIM( DATA_DIR )       // 
-!     &           'mercury_201007/NPP_2003.geos.' // GET_RES_EXT()
-      FILENAME = TRIM( DATA_DIR )       // 
-     &           'mercury_201007/NPP_2003.' // 
-     &          GET_NAME_EXT() // '.' // GET_RES_EXT()  
+#if defined( GRID05x0666 ) && defined( NESTED_NA )
+      ! Need to read emission file at nested-resolution, Y. Zhang 11/1/2011
+      FILENAME = TRIM( DATA_DIR )                  // 
+     &           'mercury_201203/NPP_2003.'        // 
+     &          GET_NAME_EXT()     // '.'          //
+     &          GET_RES_EXT()  
+#else
+      FILENAME = TRIM( DATA_DIR )                  // 
+     &           'mercury_201007/NPP_2003.geos.'   //
+     &           GET_RES_EXT()
+#endif
 
       ! Echo info
       WRITE( 6, 100 ) TRIM( FILENAME )
@@ -1383,12 +1398,17 @@
       !---------------------------------
 
       ! NPP file name
-!           need to read emission file at nested-resolution, Y. Zhang 11/1/2011
-!      FILENAME = TRIM( DATA_DIR_1x1 )               // 
-!     &           'mercury_200511/ekman_upvel.geos.' // GET_RES_EXT() 
-      FILENAME = TRIM( DATA_DIR )               // 
-     &           'ocean_201001/ekman_upvel.' // 
-     &           GET_NAME_EXT() // '.' // GET_RES_EXT() 
+#if defined( GRID05x0666 ) && defined( NESTED_NA )
+      ! Nneed to read emission file at nested-resolution, Y. Zhang 11/1/2011
+      FILENAME = TRIM( DATA_DIR )                   // 
+     &           'mercury_201203/ekman_upvel.'        // 
+     &           GET_NAME_EXT()    // '.'           //
+     &           GET_RES_EXT() 
+#else
+      FILENAME = TRIM( DATA_DIR_1x1 )               // 
+     &           'mercury_200511/ekman_upvel.geos.' //
+     &           GET_RES_EXT()
+#endif
 
       ! Echo info
       WRITE( 6, 100 ) TRIM( FILENAME )
@@ -1463,12 +1483,17 @@
       ENDIF
 
       ! MLD file name
-!           need to read emission file at nested-resolution, Y. Zhang 11/1/2011
-!      FILENAME = TRIM( DATA_DIR )       // 
-!     &           'mercury_201007/MLD_DReqDT.geos.' // GET_RES_EXT()      
-      FILENAME = TRIM( DATA_DIR )       // 
-     &           'mercury_201007/MLD_DReqDT.' // 
-     &          GET_NAME_EXT() // '.' // GET_RES_EXT()   
+#if defined( GRID05x0666 ) && defined( NESTED_NA )
+      ! Need to read emission file at nested-resolution, Y. Zhang 11/1/2011 
+      FILENAME = TRIM( DATA_DIR )                  // 
+     &           'mercury_201203/MLD_DReqDT.'      // 
+     &           GET_NAME_EXT()    // '.'          //
+     &           GET_RES_EXT()   
+#else
+      FILENAME = TRIM( DATA_DIR )                  // 
+     &           'mercury_201007/MLD_DReqDT.geos.' //
+     &            GET_RES_EXT()
+#endif
 
       ! Echo info
       WRITE( 6, 100 ) TRIM( FILENAME )

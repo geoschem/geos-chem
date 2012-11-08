@@ -2689,6 +2689,7 @@
       USE TIME_MOD,       ONLY : EXPAND_DATE
       USE TRANSFER_MOD,   ONLY : TRANSFER_2D
       USE GRID_MOD,       ONLY : GET_XMID,    GET_YMID
+      USE ERROR_MOD,      ONLY : ERROR_STOP
 
       USE CMN_SIZE_MOD       ! Size parameters
 
@@ -2876,12 +2877,12 @@
 
             ! Filename for anthropogenic mercury source
             IF (LInPlume) THEN
-               FILENAME = TRIM( DATA_DIR) // 'mercury_201203' //
+               FILENAME = TRIM( DATA_DIR) // 'mercury_201203/' //
      &              'NEI2005_NPRI2005_NewSpeciation_Hg0.'     //
      &              GET_NAME_EXT() // '.' // GET_RES_EXT()    //
      &              '.YYYY'
             ELSE
-               FILENAME = TRIM( DATA_DIR)   // 'mercury_201203' //
+               FILENAME = TRIM( DATA_DIR)   // 'mercury_201203/' //
      &              'NEI2005_NPRI2005_Hg0.' //
      &              GET_NAME_EXT() // '.'   // GET_RES_EXT()    //
      &              '.YYYY'
@@ -3288,26 +3289,40 @@
       ! Use "generic" year 1985 for TAU values
       XTAU     = GET_TAU0( 1, 1, 1985 )
 
+#if defined( GRID05x0666 ) && defined( NESTED_NA )
+      IF ( LPREINDHG ) THEN
+         ! Need to add file for nested-grid, yzh
+        CALL ERROR_STOP( "You need to make a Hg soil file. ", 
+     &                   "PREINDUSTRIAL MERCURY")
+      ELSEIF (LGEIA05) THEN
+         !add H. Amos soil spinup for chemistry tuning 9/23/11
+         !implemented 10/19/11 eck for GEIA 05 inventory
+         ! Need to read nested-grid files, yzh
+         FILENAME=TRIM( DATA_DIR )           //
+     &           'mercury_201203/soilhg.presentday.' //
+     &           GET_NAME_EXT() // '.' // GET_RES_EXT()
+      ELSE
+         ! Need to add file for nested-grid, yzh
+        CALL ERROR_STOP( "You need to make a Hg soil file. ", 
+     &                   "PRESENT DAY MERCURY")
+      ENDIF
+#else
       IF ( LPREINDHG ) THEN
          FILENAME=TRIM( DATA_DIR )           //
      &        'mercury_201110/soilHg.102311.preind.bpch' 
       !        !add H. Amos soil spinup for chemistry tuning 9/23/11
          !implemented 10/19/11 eck
 !     &        'mercury_201007/soilhg.preind.cdh.bpch'
-         ! Need to add file for nested-grid, yzh
       ELSEIF (LGEIA05) THEN
          !add H. Amos soil spinup for chemistry tuning 9/23/11
          !implemented 10/19/11 eck for GEIA 05 inventory
          FILENAME=TRIM( DATA_DIR )           //
-!     &        'mercury_201110/soilHg.102311.presentday.bpch'
-!         need to read nested-grid files, yzh
-     &           'soilhg.presentday.' //
-     &           GET_NAME_EXT() // '.' // GET_RES_EXT()
+     &        'mercury_201110/soilHg.102311.presentday.bpch'
       ELSE
          FILENAME=TRIM( DATA_DIR )           //
      &        'mercury_201007/soilhg.presentday.cdh.bpch'
-         ! Need to add file for nested-grid, yzh
       ENDIF
+#endif
 
       ! Echo info
       WRITE( 6, 100 ) TRIM( FILENAME )
@@ -4522,7 +4537,7 @@
 
       END SUBROUTINE RED_INPLUME_GRID
 
-!-------------------------------------------------------------------------------------------------
+!------------------------------------------------------------------------------
 
       SUBROUTINE DO_RED_INPLUME
 !
@@ -4567,7 +4582,7 @@
       XTAU     = GET_TAU0( 1, 1, 2005 )
 
       ! Read power plant emissions
-           FILENAME = TRIM( DATA_DIR) // 'Hg_emission_201001/' //
+           FILENAME = TRIM( DATA_DIR) // 'mercury_201203/' //
      &           'CFPP_NEI2005_NPRI2005_Hg2.' //
      &           GET_NAME_EXT() // '.' // GET_RES_EXT() //
      &           '.YYYY'
@@ -4603,7 +4618,7 @@
       ! Return to calling program
       END SUBROUTINE DO_RED_INPLUME
 
-!-------------------------------------------------------------------------------------------------
+!------------------------------------------------------------------------------
 
       SUBROUTINE INIT_MERCURY( THIS_ANTHRO_Hg_YEAR )
 !
