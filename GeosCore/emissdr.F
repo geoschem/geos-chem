@@ -605,13 +605,7 @@
                
                   ! Also add ocean source of acetone [atoms C/box/s]
 #if defined( DEVEL )
-                  CALL OCEAN_SOURCE_ACET( I, J, 
-     &                                    State_Met%ALBD,
-     &                                    State_Met%TS,
-     &                                    State_Met%U10M,
-     &                                    State_Met%V10M,
-     &                                    BIO_ACET,
-     &                                    State_Met )
+                  CALL OCEAN_SOURCE_ACET( I, J, BIO_ACET, State_Met )
 #else
                   CALL OCEAN_SOURCE_ACET( I, J, ALBD, TS, U10M, V10M, 
      &                                    BIO_ACET )

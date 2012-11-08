@@ -1139,19 +1139,18 @@
                !         entirely fixed! Ask around on how to...
                !========================================================
                IF ( LEMIS .and. ( IDTCH3Br > 0 ) )
-     &            CALL SET_CH3Br( N_TRACERS,          TCVV,
-     &                            State_Met%AD,       STT,
-     &                            ITS_TIME_FOR_UNIT() )
+     &            CALL SET_CH3Br( N_TRACERS, TCVV,
+     &                            STT,       ITS_TIME_FOR_UNIT(),
+     &                            State_Met  )
 
                ! ----------------------------------------------------
                ! If selected in input.geos, then set the MBL
                ! concentration of BrO equal to 1 pptv during daytime.
                ! ----------------------------------------------------
                IF ( LEMIS .and. ( IDTBrO > 0 ) )
-     &            CALL SET_BRO( N_TRACERS,    TCVV,
-     &                          State_Met%AD, SUNCOS,
-     &                          STT,          ITS_TIME_FOR_UNIT(),
-     &                          State_Met     )
+     &            CALL SET_BRO( N_TRACERS,           TCVV,
+     &                          SUNCOS,              STT,
+     &                          ITS_TIME_FOR_UNIT(), State_Met )
             ENDIF
 #else
             !-----------------------------------------------------------
@@ -1305,19 +1304,18 @@
                !         entirely fixed! Ask around on how to...
                !========================================================
                IF ( LEMIS .and. ( IDTCH3Br > 0 ) )
-     &            CALL SET_CH3Br( N_TRACERS,          TCVV,
-     &                            State_Met%AD,       STT,
-     &                            ITS_TIME_FOR_UNIT() )
+     &            CALL SET_CH3Br( N_TRACERS, TCVV,
+     &                            STT,       ITS_TIME_FOR_UNIT(),
+     &                            State_Met  )
 
                ! ----------------------------------------------------
                ! If selected in input.geos, then set the MBL
                ! concentration of BrO equal to 1 pptv during daytime.
                ! ----------------------------------------------------
                IF ( LEMIS .and. ( IDTBrO > 0 ) )
-     &            CALL SET_BRO( N_TRACERS,    TCVV,
-     &                          State_Met%AD, SUNCOS,
-     &                          STT,          ITS_TIME_FOR_UNIT(),
-     &                          State_Met     )
+     &            CALL SET_BRO( N_TRACERS,           TCVV,
+     &                          SUNCOS,              STT,
+     &                          ITS_TIME_FOR_UNIT(), State_Met )
 
             ENDIF
 #else

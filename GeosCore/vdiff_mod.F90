@@ -1952,6 +1952,7 @@ contains
     REAL*8,  POINTER :: p_um1   (:,:,:  )
     REAL*8,  POINTER :: p_vm1   (:,:,:  )
     REAL*8,  POINTER :: p_tadv  (:,:,:  )
+    REAL*8,  POINTER :: p_hflux (:,:    )
     REAL*8,  POINTER :: p_pmid  (:,:,:  )
     REAL*8,  POINTER :: p_pint  (:,:,:  )
     REAL*8,  POINTER :: p_rpdel (:,:,:  ) 
@@ -2558,6 +2559,7 @@ contains
        p_um1              => State_Met%U( :, :, LLPAR  :1:-1    )   
        p_vm1              => State_Met%V( :, :, LLPAR  :1:-1    )
        p_tadv             => State_Met%T( :, :, LLPAR  :1:-1    )
+       p_hflux            => State_Met%HFLUX
 #else
        p_um1              => um1   ( :, :, LLPAR  :1:-1    )   
        p_vm1              => vm1   ( :, :, LLPAR  :1:-1    )
@@ -2599,7 +2601,7 @@ contains
        do J = 1, JJPAR
           call vdiff( J,        1,      p_um1,  p_vm1,           &
                       p_tadv,   p_pmid, p_pint, p_rpdel,         &
-                      p_rpdeli, dtime,  p_zm,   State_Met%HFLUX, &
+                      p_rpdeli, dtime,  p_zm,   p_hflux,         &
                       sflx,     p_thp,  p_as2,  pblh,            &
                       p_kvh,    p_kvm,  tpert,  qpert,           &
                       p_cgs,    p_shp,  shflx,  IIPAR,           &
@@ -2630,7 +2632,7 @@ contains
        ! Free pointers
        NULLIFY( p_um1,   p_vm1,    p_tadv, p_pmid, p_pint )
        NULLIFY( p_rpdel, p_rpdeli, p_zm,   p_thp,  p_cgs  )
-       NULLIFY( p_kvh,   p_kvm,    p_shp,  p_as2          )
+       NULLIFY( p_kvh,   p_kvm,    p_shp,  p_as2,  p_hflux)
 
     else if( arvdiff ) then
 !-----------------------------------------------------------------------

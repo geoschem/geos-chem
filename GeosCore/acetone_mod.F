@@ -101,8 +101,7 @@
 ! !INTERFACE:
 !
 #if defined( DEVEL )
-      SUBROUTINE OCEAN_SOURCE_ACET( I,  J,  ALBD, TS, U10M, V10M,
-     &                              ACETONE, State_Met )
+      SUBROUTINE OCEAN_SOURCE_ACET( I, J, ACETONE, State_Met )
 #else
       SUBROUTINE OCEAN_SOURCE_ACET( I,  J,  ALBD, TS, U10M, V10M,
      &                              ACETONE )
@@ -128,12 +127,13 @@
 !
       INTEGER, INTENT(IN)    :: I                 ! GEOS-Chem longitude index
       INTEGER, INTENT(IN)    :: J                 ! GEOS-Chem latitude index
+#if defined( DEVEL )
+      TYPE(MetState), INTENT(IN) :: State_Met     ! Meteorology State object
+#else
       REAL*8,  INTENT(IN)    :: ALBD(IIPAR,JJPAR) ! Sfc albedo [unitless]
       REAL*8,  INTENT(IN)    :: TS(IIPAR,JJPAR)   ! Sfc temperature at 2m [K]
       REAL*8,  INTENT(IN)    :: U10M(IIPAR,JJPAR) ! E/W wind speed @ 10m [m/s]
       REAL*8,  INTENT(IN)    :: V10M(IIPAR,JJPAR) ! N/S wind speed @ 10m [m/s]
-#if defined( DEVEL )
-      TYPE(MetState), INTENT(IN) :: State_Met     ! Meteorology State object
 #endif
 !
 ! !INPUT/OUTPUT PARAMETERS:
@@ -242,9 +242,11 @@
 
          ! Updated Henry's Law to 27 M/atm following Benkelberg et al. [1995],
          ! Johnson [2010], and Zhou and Mopper [1990](evf, 5/11/11)
-
+#if defined( DEVEL )
+         HSTAR = (660d0)*EXP(-5090d0*(1./298d0 - 1./State_Met%TS(I,J)))
+#else
          HSTAR = (660d0)*EXP(-5090d0*(1./298d0 - 1./TS(I,J)))
-
+#endif
   
          ! Want Henry constant exressed as
          ! concentration in air/concentration in water.
@@ -258,11 +260,21 @@
          ! Magnitude of resultant wind [m/s]
          ! SFCWINDSQR(I,J) is needed since this will compute the square
          ! of the surface wind correctly for all GEOS models (bmy, 9/5/01)
+#if defined( DEVEL )
+         U        = SQRT( SFCWINDSQR( I, J,
+     &                                State_Met%U10M,
+     &                                State_Met%V10M ) )
+#else
          U        = SQRT( SFCWINDSQR( I, J, U10M, V10M ) )
+#endif
 
          ! TC is temperature in Celsius
          ! Also make sure -5 <= TC <= 30 (mje, rvm, bmy, 11/26/01)
+#if defined( DEVEL )
+         TC       = State_Met%TS(I,J) - 273.15d0                           
+#else
          TC       = TS(I,J) - 273.15d0                           
+#endif
          TC       = MIN( MAX( TC, -5d0 ), 30d0 )
 
          ! SC is Schmidt # for acetone [unitless]
@@ -292,7 +304,11 @@
          KKL      = KKL / 3600d0
 
          ! Turn off ocean uptake over snow/ice (ALBEDO > 0.4)
+#if defined( DEVEL )
+         IF ( State_Met%ALBD(I,J) > 0.4d0 ) KKL = 0d0
+#else
          IF ( ALBD(I,J) > 0.4d0 ) KKL = 0d0
+#endif
       
          !===============================================================
          !(evf, 5/11/11)

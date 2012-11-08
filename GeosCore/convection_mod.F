@@ -218,8 +218,12 @@
 
       ! Call the S-J Lin convection routine for GEOS-5
 #if defined( DEVEL )
-      CALL NFCLDMX( N_TOT_TRC, TCVV,   State_Met%CMFMC(:,:,2:LLPAR+1),
-     &              State_Met% DTRAIN, STT,  State_Met )
+      CALL NFCLDMX( N_TOT_TRC,
+     &              TCVV,
+     &              State_Met%CMFMC(:,:,2:LLPAR+1),
+     &              State_Met%DTRAIN, 
+     &              STT,
+     &              State_Met )
 #else
       CALL NFCLDMX( N_TOT_TRC, TCVV, CMFMC(:,:,2:LLPAR+1), DTRAIN, STT )
 #endif
@@ -361,17 +365,29 @@
 #if   defined( GEOS_57 )
 
          ! For GEOS-5.7, PFICU and PFLCU are defined on level edges
-         T_PFICU = State_Met%PFICU( I, J, 2:LLPAR+1 )
-         T_PFLCU = State_Met%PFLCU( I, J, 2:LLPAR+1 )
+         p_PFICU           => State_Met%PFICU   ( I, J, 2:LLPAR+1   )
+         p_PFLCU           => State_Met%PFLCU   ( I, J, 2:LLPAR+1   )
 
 #elif defined( MERRA   )
 
          ! For MERRA, PFICU and PFLCU are defined on level centers
-         T_PFICU = State_Met%PFICU( I, J, 1:LLPAR   )
-         T_PFLCU = State_Met%PFLCU( I, J, 1:LLPAR   )
+         p_PFICU           => State_Met%PFICU   ( I, J, 1:LLPAR     )
+         p_PFLCU           => State_Met%PFLCU   ( I, J, 1:LLPAR     )
 
 #endif
 
+         ! Pointers to slices of larger arrays
+         p_AD              => State_Met%AD      ( I, J,  :          )
+         p_BXHEIGHT        => State_Met%BXHEIGHT( I, J,  :          )
+         p_CMFMC           => State_Met%CMFMC   ( I, J, 2:LLPAR+1   )
+         p_DQRCU           => State_Met%DQRCU   ( I, J,  :          )
+         p_DTRAIN          => State_Met%DTRAIN  ( I, J,  :          )
+         p_H2O2s           => State_Met%H2O2s   ( I, J,  :          )
+         p_REEVAPCN        => State_Met%REEVAPCN( I, J,  :          )
+         p_SO2s            => State_Met%SO2s    ( I, J,  :          )
+         p_STT             => State_Met%STT     ( I, J,  :,       : )
+         p_T               => State_Met%T       ( I, J,  :          )
+         
          !--------------------------
          ! Do the cloud convection
          !--------------------------
@@ -384,24 +400,25 @@
      &                             PEDGE     = PEDGE,
      &                             TS_DYN    = DT, 
      &                             F         = F,
-     &                  AD        = State_Met%AD      (I,J, :        ),
-     &                  BXHEIGHT  = State_Met%BXHEIGHT(I,J, :        ),
-     &                  CMFMC     = State_Met%CMFMC   (I,J,2:LLPAR+1 ),
-     &                  DQRCU     = State_Met%DQRCU   (I,J, :        ),
-     &                  DTRAIN    = State_Met%DTRAIN  (I,J, :        ), 
-     &                             H2O2s     = H2O2s   (I,J, :        ),
-     &                             PFICU     = T_PFICU,
-     &                             PFLCU     = T_PFLCU,
-     &                  REEVAPCN  = State_Met%REEVAPCN(I,J, :        ),
-     &                             SO2s      = SO2s    (I,J, :        ),
-     &                  T         = State_Met%T       (I,J, :        ),
-     &                             Q         = STT     (I,J, :,      :), 
+     &                             AD        = p_AD,
+     &                             BXHEIGHT  = p_BXHEIGHT,
+     &                             CMFMC     = p_CMFMC,
+     &                             DQRCU     = p_DQRCU,
+     &                             DTRAIN    = p_DTRAIN,
+     &                             H2O2s     = p_H2O2s,
+     &                             PFICU     = p_PFICU,
+     &                             PFLCU     = p_PFLCU,
+     &                             REEVAPCN  = p_REEVAPCN,            
+     &                             SO2s      = p_SO2s,
+     &                             T         = p_T,
+     &                             Q         = p_STT,
      &                             DIAG14    = DIAG14,
      &                             DIAG38    = DIAG38,
      &                             I         = I,
      &                             J         = J,
-     &                             RC        = RC,
-     &                  State_Met = State_Met )
+     &                             RC        = RC, 
+     &                             State_Met = State_Met )
+
 #else
 
 #if   defined( GEOS_57 )

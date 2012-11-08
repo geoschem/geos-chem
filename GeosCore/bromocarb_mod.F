@@ -426,7 +426,11 @@
 !\\
 ! !INTERFACE:
 !
+#if defined( DEVEL )
+      SUBROUTINE SET_CH3Br( N_TRACERS, TCVV, STT, unit_flag, State_Met )
+#else
       SUBROUTINE SET_CH3Br( N_TRACERS, TCVV, AD, STT, unit_flag )
+#endif
 ! 
 ! !USES:
 !
@@ -434,6 +438,9 @@
       USE PBL_MIX_MOD,   ONLY : GET_FRAC_UNDER_PBLTOP
       USE TRACER_MOD,    ONLY : TRACER_NAME
       USE LOGICAL_MOD,   ONLY : LWARWICK_VSLS
+#if defined( DEVEL )
+      USE GIGC_State_Met_Mod, ONLY : MetState
+#endif
 
       USE CMN_SIZE_MOD        ! Size parameters
       USE CMN_DEP_MOD         ! FRCLND = returns land-fraction of given box
@@ -450,7 +457,11 @@
       LOGICAL, INTENT(IN)    :: unit_flag
       INTEGER, INTENT(IN)    :: N_TRACERS 
       REAL*8,  INTENT(IN)    :: TCVV(N_TRACERS)
+#if defined( DEVEL )
+      TYPE(MetState), INTENT(IN) :: State_Met   ! Meteorology State object
+#else
       REAL*8,  INTENT(IN)    :: AD(IIPAR,JJPAR,LLPAR)
+#endif
 !
 ! !INPUT/OUTPUT PARAMETERS:
 !
@@ -557,8 +568,13 @@
             ELSE
                ! Now convert the [v/v] units to [kg]
                ! as in convert_units subroutine in dao_mod.f
+#if defined( DEVEL )
+               STT(I,J,L,CH3Br_sel) = CH3Br_conc * State_Met%AD(I,J,L) /
+     &                                TCVV(CH3Br_sel)
+#else
                STT(I,J,L,CH3Br_sel) = CH3Br_conc * 
      &                                AD(I,J,L)  / TCVV(CH3Br_sel)
+#endif
             ENDIF
 
 !            IF ( FIRST_COUNT ) THEN
@@ -594,7 +610,7 @@
 ! !INTERFACE:
 !
 #if defined( DEVEL )
-      SUBROUTINE SET_BRO( N_TRACERS, TCVV, AD, SUNCOS, STT, unit_flag,
+      SUBROUTINE SET_BRO( N_TRACERS, TCVV, SUNCOS, STT, unit_flag,
      &                    State_Met  )
 #else
       SUBROUTINE SET_BRO( N_TRACERS, TCVV, AD, SUNCOS, STT, unit_flag )
@@ -626,9 +642,10 @@
       INTEGER, INTENT(IN)    :: N_TRACERS 
       REAL*8,  INTENT(IN)    :: TCVV(N_TRACERS)
       REAL*8,  INTENT(IN)    :: SUNCOS(MAXIJ) 
-      REAL*8,  INTENT(IN)    :: AD(IIPAR,JJPAR,LLPAR)
 #if defined( DEVEL )
       TYPE(MetState), INTENT(IN) :: State_Met   ! Meteorology State object
+#else
+      REAL*8,  INTENT(IN)    :: AD(IIPAR,JJPAR,LLPAR)
 #endif
 !
 ! !INPUT/OUTPUT PARAMETERS:
@@ -738,8 +755,14 @@
                   ELSE
                      ! Now convert the [v/v] units to [kg]
                      ! as in convert_units subroutine in dao_mod.f
+#if defined( DEVEL )
+                     STT(I,J,L,BrO_sel) = BrO_conc * 
+     &                                    State_Met%AD(I,J,L) /
+     &                                    TCVV(BrO_sel)
+#else
                      STT(I,J,L,BrO_sel) = BrO_conc * 
      &                    AD(I,J,L) / TCVV(BrO_sel)
+#endif
                   ENDIF
 
                ENDIF            ! end selection of PBL boxes
