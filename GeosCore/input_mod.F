@@ -211,6 +211,7 @@
 !  15 Oct 2012 - R. Yantosca - Add EXTERNAL_GRID, XTERNAL_FORCING to #ifdef
 !  16 Oct 2012 - R. Yantosca - Don't call CHECK_TIME_STEPS if we are calling
 !                              READ_INPUT_FILE from the ESMF interface
+!  09 Nov 2012 - R. Yantosca - Now pass Input_Opt to lower-level routines
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -242,6 +243,16 @@
       IU_GEOS  = findFreeLUN()
 
 #if defined( DEVEL ) || defined( EXTERNAL_GRID ) || defined( EXTERNAL_FORCING )
+      !-----------------------------------------------------------------
+      !     %%%%% CONNECTING TO GEOS-5 GCM via ESMF INTERFACE %%%%%
+      !
+      ! Define the RC flag and append a ___.rc suffix to the
+      ! input.geos file name. (bmy, 11/9/12)
+      !-----------------------------------------------------------------
+
+      ! Assume success
+      RC       = GIGC_SUCCESS
+
       ! For ESMF interface to GEOS-5 GCM, we need to add "*___.rc"
       FILENAME = TRIM( FILENAME ) // '___.rc'
 #endif
@@ -499,15 +510,26 @@
       ! the GEOS-5 GCM via ESMF. (bmy, 11/2/12)
       !-----------------------------------------------------------------
 #else
+
+#if defined( DEVEL )
+      !-----------------------------------------------------------------
+      !   %%%%% TESTING GIGC INTERFACE FROM EXISTING GEOS-CHEM %%%%% 
+      !
+      ! If we are testing the Grid-Independent data flow by compiling
+      ! the "traditional" GEOS-Chem with the DEVEL=yes option, then we
+      ! need to pass the Input Options argument and the am_I_Root flag
+      ! to NDXX_SETUP. (bmy, 11/9/12)
+      !-----------------------------------------------------------------
+      CALL NDXX_SETUP( am_I_Root, Input_Opt, RC )
+#else
       !-----------------------------------------------------------------
       !              %%%%% TRADITIONAL GEOS-Chem %%%%%
       !
-      ! Current practice in the std GEOS-Chem is to initialize
-      ! diagnostics here. (bmy, 11/2/12)
+      ! Current practice in the std GEOS-Chem is to call NDXX_SETUP
+      ! with no arguments. (bmy, 11/2/12)
       !-----------------------------------------------------------------
-
-      ! Allocate diagnostic arrays (phs, 11/18/08)
-      CALL NDXX_SETUP
+      CALL NDXX_SETUP()
+#endif
 
       !=================================================================
       ! Further error-checking and initialization

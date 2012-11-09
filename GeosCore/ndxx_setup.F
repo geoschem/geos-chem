@@ -16,12 +16,28 @@
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE NDXX_SETUP
+#if defined( DEVEL )
+      !-----------------------------------------------------------------
+      !   %%%%% TESTING GIGC INTERFACE FROM EXISTING GEOS-CHEM %%%%% 
+      !
+      ! If we are testing the Grid-Independent data flow by compiling
+      ! the "traditional" GEOS-Chem with the DEVEL=yes option, then we
+      ! need to pass the Input Options argument and the am_I_Root flag
+      ! to NDXX_SETUP. (bmy, 11/9/12)
+      !-----------------------------------------------------------------
+      SUBROUTINE NDXX_SETUP( am_I_Root, Input_Opt, RC )
+#else
+      !-----------------------------------------------------------------
+      !              %%%%% TRADITIONAL GEOS-Chem %%%%%
+      !
+      ! Current practice in the std GEOS-Chem is to call NDXX_SETUP
+      ! with no arguments. (bmy, 11/2/12)
+      !-----------------------------------------------------------------
+      SUBROUTINE NDXX_SETUP()
+#endif
 !
 ! !USES:
 !
-      !NBIOMAX moved to CMN_SIZE_mod (fp, 6/2009)
-      !USE BIOMASS_MOD,     ONLY : NBIOMAX
       USE BIOFUEL_MOD,     ONLY : NBFTRACE
       USE DIAG_MOD,        ONLY : AD01,        AD02,        AD05    
       USE DIAG_MOD,        ONLY : AD06,        AD07,        AD07_BC
@@ -40,9 +56,7 @@
       USE DIAG_MOD,        ONLY : CTJV,        MASSFLEW,    MASSFLNS
       USE DIAG_MOD,        ONLY : MASSFLUP,    AD28,        AD29
       USE DIAG_MOD,        ONLY : AD30,        AD31
-      !FP_ISOP potential temperature diag (6/2009)
       USE DIAG_MOD,        ONLY : AD57
-      !
       USE DIAG_MOD,        ONLY : AD32_ac,     AD32_an,     AD32_bb
       USE DIAG_MOD,        ONLY : AD32_bf,     AD32_fe,     AD32_li
       USE DIAG_MOD,        ONLY : AD32_so,     AD32_ub,     AD33
@@ -52,7 +66,6 @@
       USE DIAG_MOD,        ONLY : CTNO,        LTOH,        CTOH
       USE DIAG_MOD,        ONLY : LTHO2,       CTHO2,       LTNO2
       USE DIAG_MOD,        ONLY : CTNO2,       LTNO3,       CTNO3
-      ! update for arom (dkh, 06/21/07)  
       USE DIAG_MOD,        ONLY : CTLBRO2H,    CTLBRO2N
       USE DIAG_MOD,        ONLY : CTLTRO2H,    CTLTRO2N
       USE DIAG_MOD,        ONLY : CTLXRO2H,    CTLXRO2N
@@ -67,23 +80,14 @@
       USE DIAG_MOD,        ONLY : AD68,        AD69,        CTO3
       USE DIAG_MOD,        ONLY : AD10,        AD10em,      CTO3_24h
       USE DIAG63_MOD,      ONLY : DO_SAVE_DIAG63
-      ! Add O3 for ND45 diag. (ccc, 8/12/09)
       USE DIAG_MOD,        ONLY : LTO3
       USE DIAG_OH_MOD,     ONLY : INIT_DIAG_OH
       USE DRYDEP_MOD,      ONLY : NUMDEP
       USE ERROR_MOD,       ONLY : ALLOC_ERR,   ERROR_STOP
-      USE LOGICAL_MOD,     ONLY : LDUST, LCARB, LSSALT, LCRYST, LDRYD
-      ! Added for mercury simulation. (ccc, 6/4/10)
-      USE LOGICAL_MOD,     ONLY : LGTMM
       USE PLANEFLIGHT_MOD, ONLY : SETUP_PLANEFLIGHT
-      USE TRACER_MOD,      ONLY : ITS_A_CH3I_SIM
-      USE TRACER_MOD,      ONLY : ITS_A_FULLCHEM_SIM
-      USE TRACER_MOD,      ONLY : ITS_A_MERCURY_SIM
-      USE TRACER_MOD,      ONLY : ITS_A_TAGOX_SIM
-      USE TRACER_MOD,      ONLY : ITS_A_H2HD_SIM
-      USE TRACER_MOD,      ONLY : N_TRACERS
       USE TRACERID_MOD,    ONLY : NEMANTHRO
       USE WETSCAV_MOD,     ONLY : GET_WETDEP_NMAX
+
 #if   defined( APM )
       USE DIAG_MOD,        ONLY : AD07_OM 
       USE TRACER_MOD,      ONLY : N_APMTRA
@@ -92,8 +96,56 @@
       USE CMN_SIZE_MOD          ! Size parameters
       USE CMN_DIAG_MOD          ! Diagnostic switches & arrays
 
+#if defined( DEVEL )
+      !-----------------------------------------------------------------
+      !   %%%%% TESTING GIGC INTERFACE FROM EXISTING GEOS-CHEM %%%%% 
+      !
+      ! Reference derived types etc. for the Grid-Independent 
+      ! functionality.  Also do not reference logical flags from
+      ! logical_mod.F and ITS_A_*_SIM functions from tracer_mod.F
+      ! since these will be passed via the Input_Opt object.
+      !
+      ! Also accept input parameters via the arg list. (bmy, 11/9/12)
+      !-----------------------------------------------------------------
+      USE GIGC_ErrCode_Mod
+      USE GIGC_Input_Opt_Mod, ONLY : OptInput
+      USE GIGC_State_Met_Mod, ONLY : MetState
+
       IMPLICIT NONE
 #     include "define.h"
+!
+! !INPUT PARAMETERS:
+!
+      LOGICAL,        INTENT(IN)     :: am_I_Root 
+!
+! !INPUT/OUTPUT PARAMETERS:
+!
+      TYPE(OptInput), INTENT(INOUT)  :: Input_Opt
+!
+! !OUTPUT PARAMETERS:
+!
+      INTEGER,        INTENT(OUT)    :: RC
+#else
+      !-----------------------------------------------------------------
+      !              %%%%% TRADITIONAL GEOS-Chem %%%%%
+      ! 
+      ! Current practice in the std GEOS-Chem is to reference logical
+      ! flags from "logical_mod.F" and ITS_A_*SIM functions from 
+      ! tracer_mod.F.  These will eventually be supplanted by the
+      ! fields of Input_Opt. (bmy, 11/9/12)
+      !-----------------------------------------------------------------
+      USE LOGICAL_MOD,     ONLY : LDUST, LCARB, LSSALT, LCRYST, LDRYD
+      USE LOGICAL_MOD,     ONLY : LGTMM
+      USE TRACER_MOD,      ONLY : N_TRACERS
+      USE TRACER_MOD,      ONLY : ITS_A_CH3I_SIM
+      USE TRACER_MOD,      ONLY : ITS_A_FULLCHEM_SIM
+      USE TRACER_MOD,      ONLY : ITS_A_MERCURY_SIM
+      USE TRACER_MOD,      ONLY : ITS_A_TAGOX_SIM
+      USE TRACER_MOD,      ONLY : ITS_A_H2HD_SIM
+
+      IMPLICIT NONE
+#     include "define.h"
+#endif
 ! 
 ! !REVISION HISTORY:
 !  16 Jun 1998 - I. Bey, R. Yantosca - Initial version
@@ -233,6 +285,7 @@
 !  (77) NBIOMAX is now in CMN_SIZE. (fp, 2/26/10)
 !  26 Aug 2010 - R. Yantosca - Added ProTeX headers
 !  16 Feb 2011 - R. Yantosca - Add modifications for APM from G. Luo
+!  09 Nov 2012 - R. Yantosca - Added GIGC-specific modifications
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -240,10 +293,72 @@
 ! !LOCAL VARIABLES:
 !
       INTEGER :: NMAX, AS, NEMISS, LMAX, N_TRC_TOT
+      INTEGER :: IT_IS_A_CH3I_SIM
+      INTEGER :: IT_IS_A_FULLCHEM_SIM
+      INTEGER :: IT_IS_A_MERCURY_SIM
+      INTEGER :: IT_IS_A_TAGOX_SIM
+      INTEGER :: IT_IS_A_H2HD_SIM
+
+#if defined( DEVEL )
+      !-----------------------------------------------------------------
+      !   %%%%% TESTING GIGC INTERFACE FROM EXISTING GEOS-CHEM %%%%% 
+      !
+      ! To simplify the coding for the DEVEL=yes option and the 
+      ! "traditional" GEOS-Chem, we define local variables for each
+      ! of the logical flags that would have come from logical_mod.F.
+      ! For the Grid-Independent GEOS-Chem, these now come from the
+      ! Input Options object. (bmy, 11/9/12)
+      !-----------------------------------------------------------------     
+      INTEGER :: N_TRACERS
+      LOGICAL :: LDUST
+      LOGICAL :: LCARB
+      LOGICAL :: LSSALT
+      LOGICAL :: LCRYST
+      LOGICAL :: LDRYD
+      LOGICAL :: LGTMM
+#endif
 
       !=================================================================
       ! NDXX_SETUP begins here! 
+      !=================================================================
+
+#if   defined( DEVEL )
+      !-----------------------------------------------------------------
+      !   %%%%% TESTING GIGC INTERFACE FROM EXISTING GEOS-CHEM %%%%% 
       !
+      ! Initialize local variables with fields from the Input Options
+      ! object. (bmy, 11/9/12)
+      !-----------------------------------------------------------------
+      N_TRACERS            = Input_Opt%N_TRACERS
+      LDUST                = Input_Opt%LDUST
+      LCARB                = Input_Opt%LCARB
+      LSSALT               = Input_Opt%LSSALT
+      LCRYST               = Input_Opt%LCRYST
+      LDRYD                = Input_Opt%LDRYD
+      LGTMM                = Input_Opt%LGTMM
+      IT_IS_A_CH3I_SIM     = Input_Opt%ITS_A_CH3I_SIM
+      IT_IS_A_FULLCHEM_SIM = Input_Opt%ITS_A_FULLCHEM_SIM
+      IT_IS_A_MERCURY_SIM  = Input_Opt%ITS_A_MERCURY_SIM  
+      IT_IS_A_TAGOX_SIM    = Input_Opt%ITS_A_TAGOX_SIM 
+      IT_IS_A_H2HD_SIM     = Input_Opt%ITS_A_H2HD_SIM
+
+      ! Assume success
+      RC                   = GIGC_SUCCESS
+#else
+      !-----------------------------------------------------------------
+      !              %%%%% TRADITIONAL GEOS-Chem %%%%%
+      ! 
+      ! To clarify the coding, save values of the ITS_A_*_SIM functions
+      ! (from tracer_mod.F) into local variables. (bmy, 11/9/12)
+      !-----------------------------------------------------------------      
+      IT_IS_A_CH3I_SIM     = ITS_A_CH3I_SIM()
+      IT_IS_A_FULLCHEM_SIM = ITS_A_FULLCHEM_SIM()
+      IT_IS_A_MERCURY_SIM  = ITS_A_MERCURY_SIM()
+      IT_IS_A_TAGOX_SIM    = ITS_A_TAGOX_SIM()
+      IT_IS_A_H2HD_SIM     = ITS_A_H2HD_SIM()
+#endif
+
+      !=================================================================
       ! Initialize some multi-level variables       
       !=================================================================
       LD01 = 1
@@ -590,7 +705,7 @@
 
          ! For full chemistry, we only consider boxes below the
          ! tropopause.  Cap LD22 at LLTROP (bmy, 4/2/01)
-         IF ( ITS_A_FULLCHEM_SIM() ) THEN
+         IF ( IT_IS_A_FULLCHEM_SIM ) THEN
             LD22 = MIN( ND22, LLTROP )
          ELSE
             LD22 = MIN( ND22, LLPAR  )
@@ -777,7 +892,7 @@
       !  
       ! NOTE: For a CH3I run, use ND36 for CH3I emission diagnostics....
       !=================================================================
-      IF ( ITS_A_CH3I_SIM() ) NEMANTHRO = 8   ! for CH3I
+      IF ( IT_IS_A_CH3I_SIM ) NEMANTHRO = 8   ! for CH3I
 
       IF ( ND36 > 0 ) THEN
          ALLOCATE( AD36( IIPAR, JJPAR, NEMANTHRO ), STAT=AS )
@@ -853,7 +968,7 @@
          
          ! For full chemistry, only save OH up to the tropopause.  
          ! For tagged CO or CO-OH, save OH everywhere (bmy, 2/12/01)
-         IF ( ITS_A_FULLCHEM_SIM() ) THEN
+         IF ( IT_IS_A_FULLCHEM_SIM ) THEN
             LD43 = MIN( ND43, LLTROP )
          ELSE
             LD43 = MIN( ND43, LLPAR  )
@@ -979,7 +1094,7 @@
       IF ( ND44 > 0 .OR. LGTMM ) THEN
 
          ! Get number of tracers for ND44
-         IF ( ITS_A_TAGOX_SIM() .or. ITS_A_MERCURY_SIM() ) THEN
+         IF ( IT_IS_A_TAGOX_SIM .or. IT_IS_A_MERCURY_SIM ) THEN
             NMAX = N_TRACERS
          ELSE
             NMAX = NUMDEP
@@ -1183,6 +1298,84 @@
          ALLOCATE( AD69( IIPAR, JJPAR, PD69 ), STAT=AS )
          IF ( AS /= 0 ) CALL ALLOC_ERR( 'AD69' )
       ENDIF
+
+#if defined( DEVEL )
+      !-----------------------------------------------------------------
+      !   %%%%% TESTING GIGC INTERFACE FROM EXISTING GEOS-CHEM %%%%% 
+      !
+      ! Save LD* fields back into the Input_Opt object (bmy, 11/9/12)
+      !-----------------------------------------------------------------
+      Input_Opt%LD01  = LD01
+      Input_Opt%LD02  = LD02
+      !Input_Opt%LD03  = LD03
+      !Input_Opt%LD04  = LD04
+      Input_Opt%LD05  = LD05
+      !Input_Opt%LD06  = LD06
+      Input_Opt%LD07  = LD07
+      !Input_Opt%LD08  = LD08
+      Input_Opt%LD09  = LD09
+      Input_Opt%LD10  = LD10
+      !Input_Opt%LD11  = LD11
+      Input_Opt%LD12  = LD12
+      Input_Opt%LD13  = LD13
+      Input_Opt%LD14  = LD14
+      Input_Opt%LD15  = LD15
+      Input_Opt%LD16  = LD16
+      Input_Opt%LD17  = LD17
+      Input_Opt%LD18  = LD18
+      Input_Opt%LD19  = LD19
+      !Input_Opt%LD20  = LD20
+      Input_Opt%LD21  = LD21
+      Input_Opt%LD22  = LD22
+      !Input_Opt%LD23  = LD23
+      Input_Opt%LD24  = LD24
+      Input_Opt%LD25  = LD25
+      Input_Opt%LD26  = LD26
+      !Input_Opt%LD27  = LD27
+      !Input_Opt%LD28  = LD28
+      !Input_Opt%LD29  = LD29
+      !Input_Opt%LD30  = LD30
+      Input_Opt%LD31  = LD31
+      !Input_Opt%LD32  = LD32
+      !Input_Opt%LD33  = LD33
+      !Input_Opt%LD34  = LD34
+      !Input_Opt%LD35  = LD35
+      !Input_Opt%LD36  = LD36
+      Input_Opt%LD37  = LD37
+      Input_Opt%LD38  = LD38
+      Input_Opt%LD39  = LD39
+      !Input_Opt%LD40  = LD40
+      !Input_Opt%LD41  = LD41
+      !Input_Opt%LD42  = LD42
+      Input_Opt%LD43  = LD43
+      !Input_Opt%LD44  = LD44
+      Input_Opt%LD45  = LD45
+      !Input_Opt%LD46  = LD46
+      Input_Opt%LD47  = LD47
+      !Input_Opt%LD48  = LD48
+      !Input_Opt%LD49  = LD49
+      !Input_Opt%LD50  = LD50
+      !Input_Opt%LD51  = LD51
+      Input_Opt%LD52  = LD52
+      !Input_Opt%LD53  = LD53
+      Input_Opt%LD54  = LD54
+      !Input_Opt%LD55  = LD55
+      !Input_Opt%LD56  = LD56
+      Input_Opt%LD57  = LD57
+      Input_Opt%LD58  = LD58
+      Input_Opt%LD59  = LD59
+      Input_Opt%LD60  = LD60
+      Input_Opt%LD61  = LD61
+      Input_Opt%LD62  = LD62
+      !Input_Opt%LD63  = LD63
+      Input_Opt%LD64  = LD64
+      Input_Opt%LD65  = LD65
+      Input_Opt%LD66  = LD66
+      !Input_Opt%LD67  = LD67
+      Input_Opt%LD68  = LD68
+      !Input_Opt%LD69  = LD69
+      !Input_Opt%LD70  = LD70
+#endif
 
       END SUBROUTINE NDXX_SETUP
 !EOC

@@ -46,7 +46,7 @@
       USE PLANEFLIGHT_MOD,      ONLY : SETUP_PLANEFLIGHT
       USE TIME_MOD,             ONLY : GET_MONTH,    GET_YEAR
       USE TIME_MOD,             ONLY : ITS_A_NEW_DAY
-      USE TRACER_MOD,           ONLY : STT,          N_TRACERS, XNUMOL
+      USE TRACER_MOD,           ONLY : STT
       USE TRACERID_MOD,         ONLY : IDTNOX,       IDTOX,     SETTRACE
       USE TROPOPAUSE_MOD,       ONLY : SAVE_FULL_TROP
       USE UVALBEDO_MOD,         ONLY : UVALBEDO
@@ -79,11 +79,15 @@
       !
       ! Current practice in the standard GEOS-Chem is to reference
       ! logical flags directly from module GeosCore/logical_mod.F.
-      ! (bmy, 11/8/12)
+      !
+      ! We also need to reference N_TRACERS and XNUMOL from
+      ! module GeosCore/tracer_mod.F (bmy, 11/8/12)
       !-----------------------------------------------------------------
-      USE LOGICAL_MOD,          ONLY : LCARB,        LDUST
-      USE LOGICAL_MOD,          ONLY : LPRT,         LSSALT,    LSULF  
-      USE LOGICAL_MOD,          ONLY : LSOA,         LVARTROP,  LFUTURE
+      USE TRACER_MOD,           ONLY : N_TRACERS
+      USE TRACER_MOD,           ONLY : XNUMOL
+      USE LOGICAL_MOD,          ONLY : LCARB,     LDUST
+      USE LOGICAL_MOD,          ONLY : LPRT,      LSSALT,    LSULF  
+      USE LOGICAL_MOD,          ONLY : LSOA,      LVARTROP,  LFUTURE
       USE LOGICAL_MOD,          ONLY : LSVCSPEC
 #endif
 
@@ -298,9 +302,11 @@
       !     %%%%% CONNECTING TO GEOS-5 GCM via ESMF INTERFACE %%%%%
       !
       ! To simplify the coding for the ESMF interface, define local 
-      ! variables for logical values that will be obtained from the
-      !Input Options object. (bmy, 11/8/12)
+      ! variables values that will be obtained from the Input Options 
+      ! object. (bmy, 11/8/12)
       !-----------------------------------------------------------------
+      INTEGER       :: N_TRACERS
+      REAL*8        :: XNUMOL(Input_Opt%N_TRACERS)
       LOGICAL       :: LCARB
       LOGICAL       :: LDUST
       LOGICAL       :: LPRT
@@ -328,30 +334,32 @@
       RC        = GIGC_SUCCESS
 
       ! Copy logical fields from INPUT_OPT to local variables for use below
-      LCARB    = Input_Opt%LCARB
-      LDUST    = Input_Opt%LDUST
-      LPRT     = Input_Opt%LPRT
-      LSSALT   = Input_Opt%LSSALT
-      LSULF    = Input_Opt%LSULF
-      LSOA     = Input_Opt%LSOA
-      LVARTROP = Input_Opt%LVARTROP
-      LFUTURE  = Input_Opt%LFUTURE
-      LSVCSPEC = Input_Opt%LSVCSPEC
+      N_TRACERS = Input_Opt%N_TRACERS
+      XNUMOL    = Input_Opt%XNUMOL
+      LCARB     = Input_Opt%LCARB
+      LDUST     = Input_Opt%LDUST
+      LPRT      = Input_Opt%LPRT
+      LSSALT    = Input_Opt%LSSALT
+      LSULF     = Input_Opt%LSULF
+      LSOA      = Input_Opt%LSOA
+      LVARTROP  = Input_Opt%LVARTROP
+      LFUTURE   = Input_Opt%LFUTURE
+      LSVCSPEC  = Input_Opt%LSVCSPEC
 #endif
 
       ! Do we need to print debug output?
-      prtDebug = ( LPRT .and. am_I_Root )
+      prtDebug  = ( LPRT .and. am_I_Root )
 
       ! Set some size variables
-      NLAT     = JJPAR
-      NLONG    = IIPAR
-      NVERT    = IVERT 
-      NPVERT   = NVERT
-      NPVERT   = NVERT + IPLUME
+      NLAT      = JJPAR
+      NLONG     = IIPAR
+      NVERT     = IVERT 
+      NPVERT    = NVERT
+      NPVERT    = NVERT + IPLUME
 
       ! Get month and year
-      MONTH    = GET_MONTH()
-      YEAR     = GET_YEAR()
+      MONTH     = GET_MONTH()
+      YEAR      = GET_YEAR()
 
       !=================================================================
       ! Compute AVGW, the mixing ratio of water vapor

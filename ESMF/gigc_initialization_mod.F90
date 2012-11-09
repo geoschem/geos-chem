@@ -181,9 +181,6 @@ CONTAINS
     USE PRESSURE_MOD,         ONLY : INIT_PRESSURE
     USE TRACER_MOD,           ONLY : ITS_A_FULLCHEM_SIM
     USE TRACER_MOD,           ONLY : ITS_AN_AEROSOL_SIM
-    USE TRACER_MOD,           ONLY : ID_TRACER
-    USE TRACER_MOD,           ONLY : TRACER_NAME
-    USE TRACER_MOD,           ONLY : N_TRACERS
     USE TRACERID_MOD,         ONLY : SETTRACE
     USE TOMS_MOD,             ONLY : TO3_DAILY
     USE WETSCAV_MOD,          ONLY : INIT_WETSCAV
@@ -222,13 +219,16 @@ CONTAINS
 !  19 Oct 2012 - R. Yantosca - Now reference gigc_state_chm_mod.F90
 !  19 Oct 2012 - R. Yantosca - Now reference gigc_state_met_mod.F90
 !  01 Nov 2012 - R. Yantosca - Now reference gigc_input_opt_mod.F90
+!  09 Nov 2012 - R. Yantosca - Now use fields from Input Options object
 !EOP
 !------------------------------------------------------------------------------
 !BOC
 !
 ! !LOCAL VARIABLES:
 ! 
+    LOGICAL :: PrtDebug
     INTEGER :: DTIME, K, AS, N, PLON, PLAT
+
 
     !=======================================================================
     ! Initialize key GEOS-Chem sections
@@ -250,17 +250,20 @@ CONTAINS
     ! Read options from the GEOS-Chem input file "input.geos"
     CALL GIGC_Get_Options( am_I_Root, Input_Opt, RC )
 
+    ! Determine if we have to print debug output
+    prtDebug = ( Input_Opt%LPRT .and. am_I_Root )
+
     ! Initialize derived-type objects for meteorology & chemistry states
-    CALL GIGC_Init_All( State_Met, State_Chm, am_I_Root, RC )
+    CALL GIGC_Init_All( am_I_Root, Input_Opt, State_Chm, State_Met, RC )
 
     ! Save tracer names and ID's into State_Chm
-    DO N = 1, N_TRACERS
-       State_Chm%TRAC_NAME(N) = 'TRC_' // TRIM( TRACER_NAME(N) )
-       State_Chm%TRAC_ID  (N) = ID_TRACER(N)
+    DO N = 1, Input_Opt%N_TRACERS
+       State_Chm%TRAC_NAME(N) = 'TRC_' // TRIM( Input_Opt%TRACER_NAME(N) )
+       State_Chm%TRAC_ID  (N) = Input_Opt%ID_TRACER(N)
     ENDDO
        
     ! Allocate and zero GEOS-Chem diagnostic arrays
-    CALL NDXX_SETUP
+    CALL NDXX_SETUP( am_I_Root, Input_Opt, RC )
 
     ! Initialize 
     CALL GIGC_Init_Chemistry( PLON, PLAT, am_I_Root, RC )
@@ -305,7 +308,7 @@ CONTAINS
     CALL READER( .TRUE., am_I_Root )
 
     !### Debug
-    IF ( LPRT .and. am_I_Root ) THEN
+    IF ( prtDebug ) THEN
        CALL DEBUG_MSG( '### GIGC_INIT_CHEMISTRY: after READER' )
     ENDIF
 
@@ -314,7 +317,7 @@ CONTAINS
     NCS = NCSURBAN
 
     !### Debug
-    IF ( LPRT .and. am_I_Root ) THEN
+    IF ( prtDebug ) THEN
        CALL DEBUG_MSG( '### GIGC_INIT_CHEMISTRY: after READER' )        
     ENDIF
 
@@ -327,7 +330,7 @@ CONTAINS
     CALL READCHEM( am_I_Root )
 
     !### Debug
-    IF ( LPRT .and. am_I_Root ) THEN
+    IF ( prtDebug ) THEN
        CALL DEBUG_MSG( '### GIGC_INIT_CHEMISTRY: after READCHEM' )        
     ENDIF
 
@@ -349,7 +352,7 @@ CONTAINS
                          C0030S, C0030N, C3090N, am_I_Root )
 
     !### Debug
-    IF ( LPRT .and. am_I_Root ) THEN
+    IF ( prtDebug ) THEN
        CALL DEBUG_MSG( '### GIGC_INIT_CHEMISTRY: after GET_GLOBAL_CH4' )        
     ENDIF
 
@@ -357,7 +360,7 @@ CONTAINS
     CALL INPHOT( LLPAR, NPHOT, am_I_Root ) 
          
     !### Debug
-    IF ( LPRT .and. am_I_Root ) THEN
+    IF ( prtDebug ) THEN
        CALL DEBUG_MSG( '### GIGC_INIT_CHEMISTRY: after INPHOT' )        
     ENDIF
 
@@ -365,7 +368,7 @@ CONTAINS
     CALL SETTRACE( State_Chm, am_I_Root )
 
     !### Debug
-    IF ( LPRT .and. am_I_Root ) THEN
+    IF ( prtDebug ) THEN
        CALL DEBUG_MSG( '### GIGC_INIT_CHEMISTRY: after SETTRACE' )
     ENDIF
 
@@ -373,7 +376,7 @@ CONTAINS
     CALL SETEMDEP( N_TRACERS, am_I_Root )
 
     !### Debug
-    IF ( LPRT .and. am_I_Root ) THEN
+    IF ( prtDebug ) THEN
        CALL DEBUG_MSG( '### GIGC_INIT_CHEMISTRY: after SETEMDEP' )
     ENDIF
 

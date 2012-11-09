@@ -127,34 +127,31 @@ CONTAINS
   !-----------------------------------------------------------------------
   !         %%%%% CONNECTING TO GEOS-5 GCM via ESMF INTERFACE %%%%%
   !
-  ! Pass the Chemistry State object to DO_STRAT_CHEM
+  ! Pass size dimenisons, the Input Options object, and the Chemistry
+  ! State object as arguments. (bmy, 11/9/12)
   !------------------------------------------------------------------------
-  SUBROUTINE DO_STRAT_CHEM( am_I_Root, State_Chm, errCode )
+  SUBROUTINE DO_STRAT_CHEM( am_I_Root, Input_Opt, State_Chm, errCode )
 #else
   !-------------------------------------------------------------------------
   !                 %%%%% TRADITIONAL GEOS-Chem %%%%%
   !
   ! Current practice is to call DO_STRAT_CHEM with just the am_I_Root
-  ! argument. (bmy, 10/26/12)
+  ! argument. (bmy, 11/9/12)
   !-------------------------------------------------------------------------
   SUBROUTINE DO_STRAT_CHEM( am_I_Root )
 #endif
 !
 ! !USES:
 !
-    USE DAO_MOD,        ONLY : AD, CONVERT_UNITS, T, SUNCOS
-    USE ERROR_MOD,      ONLY : DEBUG_MSG, GEOS_CHEM_STOP
-    USE LOGICAL_MOD,    ONLY : LLINOZ, LPRT
-    USE LINOZ_MOD,      ONLY : DO_LINOZ
-    USE TIME_MOD,       ONLY : GET_MONTH, TIMESTAMP_STRING
-    USE TRACER_MOD,     ONLY : ITS_A_FULLCHEM_SIM, ITS_A_TAGOX_SIM
-    USE TRACER_MOD,     ONLY : ITS_A_H2HD_SIM
-    USE TRACER_MOD,     ONLY : N_TRACERS, STT, TCVV, TRACER_MW_KG, XNUMOLAIR
-    USE TRACERID_MOD,   ONLY : IDTOX, IDTCHBr3, IDTCH2Br2, IDTCH3Br
-    USE TROPOPAUSE_MOD, ONLY : GET_MIN_TPAUSE_LEVEL, GET_TPAUSE_LEVEL
-    USE TROPOPAUSE_MOD, ONLY : ITS_IN_THE_TROP
-
     USE CMN_SIZE_MOD
+    USE DAO_MOD,            ONLY : AD, CONVERT_UNITS, T, SUNCOS
+    USE ERROR_MOD,          ONLY : DEBUG_MSG, GEOS_CHEM_STOP
+    USE LINOZ_MOD,          ONLY : DO_LINOZ
+    USE TIME_MOD,           ONLY : GET_MONTH, TIMESTAMP_STRING
+    USE TRACER_MOD,         ONLY : STT, TCVV, TRACER_MW_KG, XNUMOLAIR
+    USE TRACERID_MOD,       ONLY : IDTOX, IDTCHBr3, IDTCH2Br2, IDTCH3Br
+    USE TROPOPAUSE_MOD,     ONLY : GET_MIN_TPAUSE_LEVEL, GET_TPAUSE_LEVEL
+    USE TROPOPAUSE_MOD,     ONLY : ITS_IN_THE_TROP
 
 #if defined( DEVEL ) || defined( EXTERNAL_GRID ) || defined( EXTERNAL_FORCING )
     !-----------------------------------------------------------------------
@@ -164,7 +161,21 @@ CONTAINS
     ! Independent GEOS-Chem implementation here. (bmy, 10/25/12)
     !-----------------------------------------------------------------------
     USE GIGC_ErrCode_Mod
+    USE GIGC_Input_Opt_Mod, ONLY : OptInput
     USE GIGC_State_Chm_Mod, ONLY : ChmState
+#else
+    !---------------------------------------------------------------------
+    !                  %%%%% TRADITIONAL GEOS-Chem %%%%%
+    !
+    ! Reference logical flags from GeosCore/logical_mod.F and tracer
+    ! quantities from GeosCore/tracer_mod.F (bmy, 11/9/12)
+    !---------------------------------------------------------------------
+    USE LOGICAL_MOD,        ONLY : LLINOZ
+    USE LOGICAL_MOD,        ONLY : LPRT
+    USE TRACER_MOD,         ONLY : N_TRACERS
+    USE TRACER_MOD,         ONLY : ITS_A_FULLCHEM_SIM
+    USE TRACER_MOD,         ONLY : ITS_A_TAGOX_SIM
+    USE TRACER_MOD,         ONLY : ITS_A_H2HD_SIM
 #endif
 
     IMPLICIT NONE
@@ -173,8 +184,9 @@ CONTAINS
 !
 ! !INPUT PARAMETERS:
 !
-      LOGICAL,      INTENT(IN)    :: am_I_Root   ! Is this the root CPU?
+    LOGICAL,        INTENT(IN)    :: am_I_Root   ! Is this the root CPU?
 #if defined( DEVEL ) || defined( EXTERNAL_GRID ) || defined( EXTERNAL_FORCING )
+    TYPE(OptInput), INTENT(IN)    :: Input_Opt   ! Input Options object 
 !
 ! !INPUT/OUTPUT PARAMETERS:
 !
@@ -184,7 +196,7 @@ CONTAINS
 !
     INTEGER,        INTENT(OUT)   :: errCode     ! Success or failure
 #endif
-!
+!f
 ! !REMARKS:
 ! 
 ! !REVISION HISTORY: 
@@ -198,6 +210,7 @@ CONTAINS
 !                              running with the traditional driver main.F
 !  07 Aug 2012 - R. Yantosca - Make BEFORE a local variable for parallel loop
 !  26 Oct 2012 - R. Yantosca - Now pass the Chemistry State object for GIGC
+!  09 Nov 2012 - R. Yantosca - Now pass the Input Options object for GIGC
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -205,21 +218,52 @@ CONTAINS
 ! !LOCAL VARIABLES:
 !
     ! SAVEd quantities
-    LOGICAL, SAVE             :: FIRST      = .TRUE.
-    INTEGER, SAVE             :: LASTMONTH  = -99
+    LOGICAL, SAVE     :: FIRST      = .TRUE.
+    INTEGER, SAVE     :: LASTMONTH  = -99
+
+    ! Flags for simulation types
+    LOGICAL           :: IT_IS_A_FULLCHEM_SIM
+    LOGICAL           :: IT_IS_A_TAGOX_SIM
+    LOGICAL           :: IT_IS_A_H2HD_SIM
 
     ! Scalars
-    CHARACTER(LEN=16)         :: STAMP
-    INTEGER                   :: I,    IJWINDOW, J,   L,   N,      NN
-    REAL*8                    :: dt,   P,        k,   M0,  RC,     M
-    REAL*8                    :: TK,   RDLOSS,   T1L, mOH, BryDay, BryNight
+    LOGICAL           :: prtDebug
+    CHARACTER(LEN=16) :: STAMP
+    INTEGER           :: I,    IJWINDOW, J,   L,   N,      NN
+    REAL*8            :: dt,   P,        k,   M0,  RC,     M
+    REAL*8            :: TK,   RDLOSS,   T1L, mOH, BryDay, BryNight
+
+#if defined( DEVEL ) || defined( EXTERNAL_GRID ) || defined( EXTERNAL_FORCING )
+    !---------------------------------------------------------------------
+    !       %%%%% CONNECTING TO GEOS-5 GCM via ESMF INTERFACE %%%%%
+    !
+    ! Declare local copies for arrays that we are no longer referencing
+    ! from logical_mod.F and tracer_mod.F.
+    ! 
+    ! Use Input_Opt%N_TRACERS to declare arrays (bmy, 11/9/12)
+    !---------------------------------------------------------------------
+    LOGICAL           :: LLINOZ
+    LOGICAL           :: LPRT
+    INTEGER           :: N_TRACERS
+  
+    ! Arrays
+    REAL*8            :: STT0  (IIPAR,JJPAR,LLPAR,Input_Opt%N_TRACERS)
+    REAL*8            :: BEFORE(IIPAR,JJPAR,LLPAR)
+#else
+    !---------------------------------------------------------------------
+    !                  %%%%% TRADITIONAL GEOS-Chem %%%%%
+    !
+    ! Use N_TRACERS from GeosCore/tracer_mod.F to declare arrays
+    ! (bmy, 11/9/12)
+    !---------------------------------------------------------------------
 
     ! Arrays
-    REAL*8                    :: STT0(IIPAR,JJPAR,LLPAR,N_TRACERS)
-    REAL*8                    :: BEFORE(IIPAR,JJPAR,LLPAR)
+    REAL*8            :: STT0(IIPAR,JJPAR,LLPAR,N_TRACERS)
+    REAL*8            :: BEFORE(IIPAR,JJPAR,LLPAR)
+#endif
 
     ! External functions
-    REAL*8, EXTERNAL          :: BOXVL
+    REAL*8, EXTERNAL  :: BOXVL
 
     !===============================
     ! DO_STRAT_CHEM begins here!
@@ -229,12 +273,34 @@ CONTAINS
     !-----------------------------------------------------------------------
     !         %%%%% CONNECTING TO GEOS-5 GCM via ESMF INTERFACE %%%%%
     !
-    ! Initialize the errCode argument (bmy, 10/26/12)
+    ! To simplify the coding for the ESMF interface and traditional
+    ! GEOS-Chem, copy values from Input_Opt to local arrays. (bmy, 11/9/12)
     !-----------------------------------------------------------------------
 
     ! Assume Success
-    errCode = GIGC_SUCCESS
+    errCode              = GIGC_SUCCESS
+
+    ! Save values from the Input Options object to local variables
+    N_TRACERS            = Input_Opt%N_TRACERS
+    LLINOZ               = Input_Opt%LLINOZ
+    LPRT                 = Input_Opt%LPRT
+    IT_IS_A_FULLCHEM_SIM = Input_Opt%ITS_A_FULLCHEM_SIM
+    IT_IS_A_TAGOX_SIM    = Input_Opt%ITS_A_TAGOX_SIM  
+    IT_IS_A_H2HD_SIM     = Input_Opt%ITS_A_H2HD_SIM
+#else
+    !-----------------------------------------------------------------------
+    !                  %%%%% TRADITIONAL GEOS-Chem %%%%%
+    !
+    ! To simplify the coding, save values from ITS_A_*_SIM functions (from 
+    ! GeosCore/tracer_mod.F) to local variables (bmy, 11/9/12)
+    !-----------------------------------------------------------------------
+    IT_IS_A_FULLCHEM_SIM = ITS_A_FULLCHEM_SIM()
+    IT_IS_A_TAGOX_SIM    = ITS_A_TAGOX_SIM()
+    IT_IS_A_H2HD_SIM     = ITS_A_H2HD_SIM()
 #endif
+
+    ! Set a flag for debug printing
+    prtDebug             = ( LPRT .and. am_I_Root )
 
     STAMP = TIMESTAMP_STRING()
     IF ( am_I_Root ) THEN
@@ -244,12 +310,12 @@ CONTAINS
     
     IF ( GET_MONTH() /= LASTMONTH ) THEN
 
-       IF ( LPRT .and. am_I_Root ) THEN 
+       IF ( prtDebug ) THEN 
           CALL DEBUG_MSG( '### STRAT_CHEM: at GET_RATES' )
        ENDIF
 
        ! Read rates for this month
-       IF ( ITS_A_FULLCHEM_SIM() ) THEN
+       IF ( IT_IS_A_FULLCHEM_SIM ) THEN
 #if defined( GRID4x5 ) || defined( GRID2x25 )
 #if defined( DEVEL ) 
           !-----------------------------------------------------------------
@@ -258,7 +324,8 @@ CONTAINS
           ! Pass the Chemistry State object to GET_RATES.  We don't call
           ! this routine from the ESMF interface. (bmy, 10/26/12)
           !-----------------------------------------------------------------
-          CALL GET_RATES( GET_MONTH(), State_Chm, am_I_Root, errCode )
+          CALL GET_RATES( GET_MONTH(), Input_Opt, State_Chm,  &
+                                       am_I_Root, errCode    )
 #else
           !-----------------------------------------------------------------
           !              %%%%% TRADITIONAL GEOS-Chem %%%%%
@@ -282,14 +349,14 @@ CONTAINS
     ! Set first-time flag to false
     FIRST = .FALSE.    
 
-    IF ( LPRT .and. am_I_Root ) THEN
+    IF ( prtDebug ) THEN
        CALL DEBUG_MSG( '### STRAT_CHEM: at DO_STRAT_CHEM' )
     ENDIF
 
     !================================================================
     ! Full chemistry simulations
     !================================================================
-    IF ( ITS_A_FULLCHEM_SIM() ) THEN
+    IF ( IT_IS_A_FULLCHEM_SIM ) THEN
 
        ! Advance counter for number of times we've sampled the tropopause level
        TpauseL_CNT = TpauseL_CNT + 1d0
@@ -319,7 +386,7 @@ CONTAINS
                    NN = Strat_TrID_GC(N) ! Tracer index in STT
 
                    ! Skip Ox; we'll always use either Linoz or Synoz
-                   IF ( ITS_A_FULLCHEM_SIM() .and. NN .eq. IDTOx ) CYCLE
+                   IF ( IT_IS_A_FULLCHEM_SIM .and. NN .eq. IDTOx ) CYCLE
 
                    dt = DTCHEM                              ! timestep [s]
                    k = LOSS(I,J,L,N)                        ! loss freq [s-1]
@@ -504,7 +571,7 @@ CONTAINS
     !======================================================================
     ! Tagged Ox simulation
     !======================================================================
-    ELSE IF ( ITS_A_TAGOX_SIM() ) THEN
+    ELSE IF ( IT_IS_A_TAGOX_SIM ) THEN
 
        ! Tagged Ox only makes use of Synoz or Linoz. We apply either to
        ! the total Ox tracer, and the stratospheric Ox tracer.
@@ -544,7 +611,7 @@ CONTAINS
     !======================================================================
     ! H2-HD Simulation
     !======================================================================
-    ELSE IF ( ITS_A_H2HD_SIM() ) THEN
+    ELSE IF ( IT_IS_A_H2HD_SIM ) THEN
 
        ! H2/HD uses upbdflx_H2, which is a modified Synoz.
 
@@ -609,10 +676,10 @@ CONTAINS
   !------------------------------------------------------------------------
   !         %%%%% CONNECTING TO GEOS-5 GCM via ESMF INTERFACE %%%%%
   !
-  ! Call CHEMDR with dimension values as well as the Meteorology 
-  ! State and Chemistry State objects. (bmy, 10/25/12)
+  ! Call CHEMDR with dimension values as well as the Input Options, 
+  ! Meteorology State, and Chemistry State objects. (bmy, 10/25/12)
   !------------------------------------------------------------------------
-  SUBROUTINE GET_RATES( THISMONTH, State_Chm, am_I_Root, RC )
+  SUBROUTINE GET_RATES( THISMONTH, Input_Opt, State_Chm, am_I_Root, RC )
 #else
   !-------------------------------------------------------------------------
   !                 %%%%% TRADITIONAL GEOS-Chem %%%%%
@@ -625,12 +692,13 @@ CONTAINS
 !
 ! !USES:
 !
-    USE BPCH2_MOD,       ONLY : GET_NAME_EXT, GET_RES_EXT, GET_TAU0, READ_BPCH2
-    USE DIRECTORY_MOD,   ONLY : DATA_DIR
-    USE LOGICAL_MOD,     ONLY : LLINOZ
-    USE TIME_MOD,        ONLY : GET_MONTH
-    USE TRACER_MOD,      ONLY : N_TRACERS, TRACER_NAME
-    USE TRANSFER_MOD,    ONLY : TRANSFER_3D
+    USE BPCH2_MOD,          ONLY : GET_NAME_EXT
+    USE BPCH2_MOD,          ONLY : GET_RES_EXT
+    USE BPCH2_MOD,          ONLY : GET_TAU0
+    USE BPCH2_MOD,          ONLY : READ_BPCH2
+    USE DIRECTORY_MOD,      ONLY : DATA_DIR
+    USE TIME_MOD,           ONLY : GET_MONTH
+    USE TRANSFER_MOD,       ONLY : TRANSFER_3D
 
     USE m_netcdf_io_open
     USE m_netcdf_io_read
@@ -646,17 +714,28 @@ CONTAINS
     ! Independent GEOS-Chem implementation here. (bmy, 10/25/12)
     !-----------------------------------------------------------------------
     USE GIGC_ErrCode_Mod
+    USE GIGC_Input_Opt_Mod, ONLY : OptInput
     USE GIGC_State_Chm_Mod, ONLY : ChmState
+#else
+    !-----------------------------------------------------------------------
+    !                   %%%%% TRADITIONAL GEOS-Chem %%%%%
+    !
+    ! Current practice in the standard GEOS-Chem is to reference logical
+    ! flags from GeosCore/logical_mod.F and tracer quantities from 
+    ! GeosCore/tracer_mod.F. (bmy, 10/26/12)
+    !-----------------------------------------------------------------------
+    USE TRACER_MOD,         ONLY : N_TRACERS
+    USE TRACER_MOD,         ONLY : TRACER_NAME
 #endif
 
     IMPLICIT NONE
 !
 ! !INPUT PARAMETERS: 
 !
-    INTEGER,        INTENT(IN)    :: THISMONTH   ! Current month
     LOGICAL,        INTENT(IN)    :: am_I_Root   ! Is this the root CPU?
-
+    INTEGER,        INTENT(IN)    :: THISMONTH   ! Current month
 #if defined( DEVEL ) || defined( EXTERNAL_GRID ) || defined( EXTERNAL_FORCING )
+    TYPE(OptInput), INTENT(IN)    :: Input_Opt   ! Input Options object
 !
 ! !INPUT/OUTPUT PARAMETERS:
 !
@@ -673,6 +752,7 @@ CONTAINS
 !  30 Jul 2012 - R. Yantosca - Now accept am_I_Root as an argument when
 !                              running with the traditional driver main.F
 !  26 Oct 2012 - R. Yantosca - Now pass Chemistry State object for GIGC
+!   9 Nov 2012 - R. Yantosca - Now pass Input Options object for GIGC
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -688,6 +768,17 @@ CONTAINS
     ! Arrays
     REAL*4             :: ARRAY ( IIPAR, JJPAR, LGLOB )  ! Full vertical res
     REAL*8             :: ARRAY2( IIPAR, JJPAR, LLPAR )  ! Actual vertical res
+
+#if defined( DEVEL )
+    !-----------------------------------------------------------------------
+    !        %%%%% CONNECTING TO GEOS-5 GCM via ESMF INTERFACE %%%%%
+    !
+    ! Define local variables to hold quantities from Input_Opt
+    ! (bmy, 11/9/12)
+    !----------------------------------------------------------------------
+    INTEGER            :: N_TRACERS
+    CHARACTER(LEN=14)  :: TRACER_NAME(Input_Opt%N_TRACERS)
+#endif
 
     !=================================================================
     ! GET_RATES begins here
@@ -707,9 +798,27 @@ CONTAINS
     !-----------------------------------------------------------------------
 
     ! Assume success
-    RC = GIGC_SUCCESS
+    RC                       = GIGC_SUCCESS
 
 #else
+
+#if defined( DEVEL )
+    !----------------------------------------------------------------------
+    !      %%%%% TESTING GIGC INTERFACE FROM EXISTING GEOS-CHEM %%%%%
+    ! 
+    ! If we are compiling GEOS-Chem with the DEVEL=yes option, then we
+    ! need to copy fields of Input_Opt to local variables (bmy, 11/9/12)
+    !----------------------------------------------------------------------
+
+    ! Assume success
+    RC                       = GIGC_SUCCESS
+
+    ! Copy fields from Input_Opt to Llocal variables
+    N_TRACERS                = Input_Opt%N_TRACERS
+    TRACER_NAME(1:N_TRACERS) = Input_Opt%TRACER_NAME(1:N_TRACERS)
+
+#endif
+
     !-----------------------------------------------------------------------
     !                %%%%% TRADITIONAL GEOS-Chem %%%%%
     !
@@ -1322,10 +1431,10 @@ CONTAINS
   !------------------------------------------------------------------------
   !         %%%%% CONNECTING TO GEOS-5 GCM via ESMF INTERFACE %%%%%
   !
-  ! Call CHEMDR with dimension values as well as the Meteorology 
-  ! State and Chemistry State objects. (bmy, 10/25/12)
+  ! Call INIT_STRAT_CHEM dimension values as well as the Input Objects,
+  ! and Meteorology State objects. (bmy, 11/9/12)
   !------------------------------------------------------------------------
-  SUBROUTINE INIT_STRAT_CHEM( am_I_Root, State_Chm, RC )
+  SUBROUTINE INIT_STRAT_CHEM( am_I_Root, Input_Opt, State_Chm, RC )
 #else
   !-------------------------------------------------------------------------
   !                 %%%%% TRADITIONAL GEOS-Chem %%%%%
@@ -1339,9 +1448,7 @@ CONTAINS
 ! !USES:
 !
     USE ERROR_MOD,     ONLY : ALLOC_ERR
-    USE LOGICAL_MOD,   ONLY : LLINOZ
-    USE TRACER_MOD,    ONLY : ITS_A_FULLCHEM_SIM, ITS_A_TAGOX_SIM
-    USE TRACER_MOD,    ONLY : N_TRACERS, TRACER_NAME, STT
+    USE TRACER_MOD,    ONLY : STT
     USE TRACERID_MOD,  ONLY : IDTCHBr3, IDTCH2Br2, IDTCH3Br
     USE TRACERID_MOD,  ONLY : IDTBr2,IDTBr,IDTBrO,IDTHOBr,IDTHBr,IDTBrNO3
     USE TIME_MOD,      ONLY : GET_TAU, GET_NYMD, GET_NHMS, GET_TS_CHEM
@@ -1357,10 +1464,24 @@ CONTAINS
     !         %%%%% CONNECTING TO GEOS-5 GCM via ESMF INTERFACE %%%%%
     !
     ! We need to reference some modules particular to the Grid-
-    ! Independent GEOS-Chem implementation here. (bmy, 10/25/12)
+    ! Independent GEOS-Chem implementation here. (bmy, 11/9/12)
     !-----------------------------------------------------------------------
     USE GIGC_ErrCode_Mod
+    USE GIGC_Input_Opt_Mod, ONLY : OptInput
     USE GIGC_State_Chm_Mod, ONLY : ChmState
+#else
+    !-------------------------------------------------------------------------
+    !                 %%%%% TRADITIONAL GEOS-Chem %%%%%
+    !
+    ! Current practice in the standard GEOS-Chem is to reference logical
+    ! flags from GeosCore/logical_mod.F and tracer quantities from
+    ! Geoscore/tracer_mod.F. (bmy, 11/9/12)
+    !-------------------------------------------------------------------------
+    USE LOGICAL_MOD,       ONLY : LLINOZ
+    USE TRACER_MOD,        ONLY : ITS_A_FULLCHEM_SIM
+    USE TRACER_MOD,        ONLY : ITS_A_TAGOX_SIM
+    USE TRACER_MOD,        ONLY : N_TRACERS
+    USE TRACER_MOD,        ONLY : TRACER_NAME
 #endif
 
     IMPLICIT NONE
@@ -1368,8 +1489,8 @@ CONTAINS
 ! !INPUT PARAMETERS:
 !
     LOGICAL,        INTENT(IN)    :: am_I_Root   ! Is this the root CPU?
-
 #if defined( DEVEL )
+    TYPE(OptInput), INTENT(IN)    :: Input_Opt   ! Input Options object
 !
 ! !INPUT/OUTPUT PARAMETERS:
 !
@@ -1385,31 +1506,71 @@ CONTAINS
 !  30 Jul 2012 - R. Yantosca - Now accept am_I_Root as an argument when
 !                              running with the traditional driver main.F
 !  26 Oct 2012 - R. Yantosca - Now pass Chemistry State object for GIGC
+!  09 Nov 2012 - R. Yantosca - Now pass Input Options object for GIGC
 !EOP
 !------------------------------------------------------------------------------
 !BOC
 !
 ! !LOCAL VARIABLES:
 !
-    CHARACTER(LEN=16)     :: sname
-    INTEGER               :: AS, N, NN
+    CHARACTER(LEN=16) :: sname
+    INTEGER           :: AS, N, NN
+    LOGICAL           :: IT_IS_A_FULLCHEM_SIM
+    LOGICAL           :: IT_IS_A_TAGOX_SIM
+
+#if defined( DEVEL )
+    !-----------------------------------------------------------------------
+    !         %%%%% CONNECTING TO GEOS-5 GCM via ESMF INTERFACE %%%%%
+    !
+    ! Define local variables for quantities that will be initialized 
+    ! from the Input_Opt object.  
+    !-----------------------------------------------------------------------
+    LOGICAL           :: LLINOZ
+    INTEGER           :: N_TRACERS
+    CHARACTER(LEN=14) :: TRACER_NAME(Input_Opt%N_TRACERS)
+#endif
 
     !=================================================================
     ! INIT_STRAT_CHEM begins here!
     !=================================================================
 
 #if defined( DEVEL )
-    RC = GIGC_SUCCESS
+    !-----------------------------------------------------------------------
+    !         %%%%% CONNECTING TO GEOS-5 GCM via ESMF INTERFACE %%%%%
+    !
+    ! We need to reference some modules particular to the Grid-
+    ! Independent GEOS-Chem implementation here. (bmy, 11/9/12)
+    !-----------------------------------------------------------------------
+
+    ! Assume success
+    RC                       = GIGC_SUCCESS
+
+    ! Save fields from the Input_Opt object to local variables
+    LLINOZ                   = Input_Opt%LLINOZ
+    N_TRACERS                = Input_Opt%N_TRACERS
+    IT_IS_A_FULLCHEM_SIM     = Input_Opt%ITS_A_FULLCHEM_SIM
+    IT_IS_A_TAGOX_SIM        = Input_Opt%ITS_A_TAGOX_SIM
+    TRACER_NAME(1:N_TRACERS) = Input_Opt%TRACER_NAME(1:N_TRACERS)
+#else
+    !---------------------------------------------------------------------
+    !                 %%%%% TRADITIONAL GEOS-Chem %%%%%
+    !
+    ! Current practice in the standard GEOS-Chem is to reference logical
+    ! flags from GeosCore/logical_mod.F and tracer quantities from
+    ! Geoscore/tracer_mod.F. (bmy, 11/9/12)
+    !---------------------------------------------------------------------
+    IT_IS_A_FULLCHEM_SIM     = ITS_A_FULLCHEM_SIM()
+    IT_IS_A_TAGOX_SIM        = ITS_A_TAGOX_SIM()
 #endif
 
     ! Initialize counters, initial times, mapping arrays
-    TpauseL_Cnt       = 0.
-    NSCHEM            = 0
-    TauInit           = GET_TAU()
-    NymdInit          = GET_NYMD()
-    NhmsInit          = GET_NHMS()
-    strat_trID_GC(:)  = 0
-    strat_trID_GMI(:) = 0
+    TpauseL_Cnt              = 0.
+    NSCHEM                   = 0
+    TauInit                  = GET_TAU()
+    NymdInit                 = GET_NYMD()
+    NhmsInit                 = GET_NHMS()
+    strat_trID_GC(:)         = 0
+    strat_trID_GMI(:)        = 0
 
     ! Initialize timestep for chemistry [s]
     dTchem = GET_TS_CHEM() * 60d0
@@ -1447,7 +1608,7 @@ CONTAINS
     !===========================!
     ! Full chemistry simulation !
     !===========================!
-    IF ( ITS_A_FULLCHEM_SIM() ) THEN
+    IF ( IT_IS_A_FULLCHEM_SIM ) THEN
 
        DO NN = 1, NTR_GMI       
 
@@ -1521,7 +1682,7 @@ CONTAINS
        !===========!
        ! Tagged Ox !
        !===========!
-    ELSE IF ( ITS_A_TAGOX_SIM() ) THEN
+    ELSE IF ( IT_IS_A_TAGOX_SIM ) THEN
        IF ( LLINOZ ) THEN
           IF ( am_I_Root ) THEN
              WRITE(6,*) 'Linoz ozone performed on: '

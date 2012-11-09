@@ -75,7 +75,7 @@
       ! Call CHEMDR with dimension values as well as the Input Options,
       ! Meteorology State,  and Chemistry State objects. (bmy, 11/8/12)
       !-----------------------------------------------------------------
-      SUBROUTINE DO_CHEMISTRY( am_I_Root, NI,        NJ, NL, 
+      SUBROUTINE DO_CHEMISTRY( am_I_Root, NI,        NJ,        NL, 
      &                         Input_Opt, State_Chm, State_Met, RC )
 #else
       !-----------------------------------------------------------------
@@ -114,7 +114,7 @@
       USE TAGGED_CO_MOD,   ONLY : CHEM_TAGGED_CO
       USE TAGGED_OX_MOD,   ONLY : CHEM_TAGGED_OX
       USE TIME_MOD,        ONLY : GET_ELAPSED_MIN, GET_TS_CHEM
-      USE TRACER_MOD,      ONLY : N_TRACERS,       STT  
+      USE TRACER_MOD,      ONLY : STT  
       USE TRACERID_MOD,    ONLY : IDTACET, IDTISOP
 
       USE CMN_SIZE_MOD          ! Size parameters
@@ -144,8 +144,8 @@
       ! module GeosCore/tracer_mod.F.   (bmy, 11/8/12)
       !-----------------------------------------------------------------
       USE LOGICAL_MOD,     ONLY : LCARB, LCHEM,  LCRYST, LDUST, LSCHEM
-      USE LOGICAL_MOD,     ONLY : LPRT,  LSSALT, LSULF,  LSOA
-      USE LOGICAL_MOD,     ONLY : LNLPBL 
+      USE LOGICAL_MOD,     ONLY : LPRT,  LSSALT, LSULF,  LSOA,  LNLPBL 
+      USE TRACER_MOD,      ONLY : N_TRACERS
       USE TRACER_MOD,      ONLY : ITS_A_C2H6_SIM
       USE TRACER_MOD,      ONLY : ITS_A_CH3I_SIM
       USE TRACER_MOD,      ONLY : ITS_A_CH4_SIM
@@ -272,8 +272,10 @@
       ! values from the Input Options object.  We do not need to define
       ! these for the traditional GEOS-Chem since it will refer to 
       ! variables from the same name from GeosCore/logical_mod.F.
-      ! (bmy, 11/8/12)
+      ! Also need to shadow the N_TRACERS variable from module
+      ! GeosCore/tracer_mod.F. (bmy, 11/9/12)
       !-----------------------------------------------------------------
+      INTEGER       :: N_TRACERS
       LOGICAL       :: LCARB
       LOGICAL       :: LCHEM
       LOGICAL       :: LCRYST
@@ -320,10 +322,8 @@
       ! Assume success
       RC                       = GIGC_SUCCESS
 
-      ! Initialize GEOS-Chem tracer array [kg] from Chemistry State object
-      STT(:,:,:,1:N_TRACERS)   = State_Chm%TRACERS(:,:,:,1:N_TRACERS)
-
       ! Copy logical fields from INPUT_OPT to local variables for use below
+      N_TRACERS                = Input_Opt%N_TRACERS
       LCARB                    = Input_Opt%LCARB                        
       LCHEM                    = Input_Opt%LCHEM
       LCRYST                   = Input_Opt%LCRYST
@@ -346,6 +346,10 @@
       IT_IS_A_TAGOX_SIM        = Input_Opt%ITS_A_TAGOX_SIM
       IT_IS_AN_AEROSOL_SIM     = Input_Opt%ITS_AN_AEROSOL_SIM
       IT_IS_NOT_COPARAM_OR_CH4 = Input_Opt%ITS_NOT_COPARAM_OR_CH4
+
+      ! Initialize GEOS-Chem tracer array [kg] from Chemistry State object
+      STT(:,:,:,1:N_TRACERS)   = State_Chm%TRACERS(:,:,:,1:N_TRACERS)
+
 #else
       !--------------------------------------------------------------
       !               %%%%% TRADITIONAL GEOS-Chem %%%%%
@@ -369,9 +373,31 @@
       IT_IS_NOT_COPARAM_OR_CH4 = ITS_NOT_COPARAM_OR_CH4()
 #endif
 
-      ! Compute optical depths
       IF ( .not. IT_IS_A_CH4_SIM ) THEN
+!#if defined( DEVEL ) || defined( EXTERNAL_GRID ) || defined( EXTERNAL_FORCING )
+!         !--------------------------------------------------------------
+!         !   %%%%% CONNECTING TO GEOS-5 GCM via ESMF INTERFACE %%%%%
+!         !
+!         ! Now pass size dimensions, the Input Options object, and the
+!         ! Meteorology State object to OPTDEPTH.  NOTE: The OPTD
+!         ! and CLDF fields of the State_Met object have already
+!         ! been populated in main.F. (bmy, 11/9/12)
+!         !--------------------------------------------------------------
+!
+!         ! Compute optical depth diagnostics
+!         CALL OPTDEPTH( am_I_Root, NI,        NJ, NL,
+!     &                  Input_Opt, State_Met, RC      )
+!#else
+         !--------------------------------------------------------------
+         !              %%%%% TRADITIONAL GEOS-Chem %%%%%
+         !
+         ! Current practice in the standard GEOS-Chem is to pass
+         ! met field arrays as arguments to OPTDEPTH. (bmy, 11/9/12)
+         !--------------------------------------------------------------
+
+         ! Compute visible optical depths
          CALL OPTDEPTH( LLPAR, CLDF, OPTDEP, OPTD )
+!#endif
       ENDIF
 
       !=================================================================
@@ -399,16 +425,16 @@
 
             ! Call linearized stratospheric scheme
             IF ( LSCHEM ) THEN 
-               CALL DO_STRAT_CHEM( am_I_Root, State_Chm, RC )
+               CALL DO_STRAT_CHEM( am_I_Root, Input_Opt, State_Chm, RC )
             ENDIF
 #else
-            !--------------------------------------------------------
+            !-----------------------------------------------------------
             !            %%%%% TRADITIONAL GEOS-Chem %%%%%
             !
             ! Current practice in the std GEOS-Chem is to call both
             ! CHEMDR and DO_STRAT_CHEM with just the am_I_Root
             ! argument. (bmy, 11/8/12)
-            !--------------------------------------------------------
+            !-----------------------------------------------------------
 
             ! Call gas-phase chemistry
             CALL CHEMDR( am_I_Root )
@@ -572,22 +598,21 @@
             !-----------------------------------------------------------
             !  %%%%% CONNECTING TO GEOS-5 GCM via ESMF INTERFACE %%%%%
             ! 
-            ! Call CHEMDR (the G-C chemistry driver routine) with
-            ! local dimension values and the the Meteorology and 
-            ! Chemistry State objects.  Have CHEMDR return success or
-            ! failure via the RC argument. (bmy, 10/25/12)
+            ! Call DO_STRAT_CHEM (the G-C chemistry driver routine) 
+            ! with the Input Options and Chemistry State objects. 
+            ! (bmy, 11/9/12)
             !-----------------------------------------------------------
 
             ! Call linearized stratospheric scheme
             IF ( LSCHEM ) THEN 
-               CALL DO_STRAT_CHEM( am_I_Root, State_Chm, RC )
+               CALL DO_STRAT_CHEM( am_I_Root, Input_Opt, State_Chm, RC )
             ENDIF
 #else
             !-----------------------------------------------------------
             !             %%%%% TRADITIONAL GEOS-Chem %%%%%
             !
             ! Current practice is to call DO_STRAT_CHEM with am_I_Root 
-            ! as the only argument. (bmy, 10/25/12)
+            ! as the only argument. (bmy, 11/9/12)
             !-----------------------------------------------------------
 
             ! Call linearized stratospheric scheme
@@ -643,7 +668,7 @@
 
             ! Call linearized stratospheric scheme
             IF ( LSCHEM ) THEN 
-               CALL DO_STRAT_CHEM( am_I_Root, State_Chm, RC )
+               CALL DO_STRAT_CHEM( am_I_Root, Input_Opt, State_Chm, RC )
             ENDIF
 #else
             !-----------------------------------------------------------

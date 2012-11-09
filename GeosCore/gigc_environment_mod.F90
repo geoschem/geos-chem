@@ -154,21 +154,21 @@ CONTAINS
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE GIGC_Init_All( State_Met, State_Chm, am_I_Root, RC ) 
+  SUBROUTINE GIGC_Init_All( am_I_Root, Input_Opt, State_Chm, State_Met, RC )
 !
 ! !USES:
 !
     USE CMN_Size_Mod,       ONLY : IIPAR, JJPAR, LLPAR, NBIOMAX
     USE Comode_Loop_Mod,    ONLY : IGAS
     USE GIGC_ErrCode_Mod
+    USE GIGC_Input_Opt_Mod
     USE GIGC_State_Chm_Mod
     USE GIGC_State_Met_Mod
-    USE Logical_Mod,        ONLY : LSCHEM
-    USE Tracer_Mod,         ONLY : N_TRACERS
 !
 ! !INPUT PARAMETERS:
 !
     LOGICAL,        INTENT(IN)    :: am_I_Root   ! Are we on the root CPU?
+    TYPE(OptInput), INTENT(IN)    :: Input_Opt   ! Input Options object
 !
 ! !INPUT/OUTPUT PARAMETERS:
 !
@@ -197,13 +197,22 @@ CONTAINS
 !  26 Oct 2012 - R. Yantosca - Now call Get_nSchm, nSchmBry to find out the
 !                              number of strat chem species and Bry species
 !  01 Nov 2012 - R. Yantosca - Now use LSCHEM from logical_mod.F
+!  09 Nov 2012 - R. Yantosca - Now pass Input Options object for GIGC
 !EOP
 !------------------------------------------------------------------------------
 !BOC
 !
 ! !LOCAL VARIABLES
 !
-    INTEGER :: nSchm, nSchmBry
+    INTEGER :: nSchm, nSchmBry, N_TRACERS
+    LOGICAL :: LSCHM
+
+    !=======================================================================
+    ! Copy fields from Input_Opt to local variables
+    !=======================================================================
+    
+    ! Get # of tracers 
+    N_TRACERS = Input_Opt%N_TRACERS
 
     !=======================================================================
     ! Initialize object for met fields
@@ -247,7 +256,7 @@ CONTAINS
     ! allocate the corresponding fields of the chemistry state.
     ! (bmy, 11/1/12)
     !-----------------------------------------------------------------------
-    IF ( LSCHEM ) THEN
+    IF ( Input_Opt%LSCHEM ) THEN
 
        ! Strat chem is turned on, find out the # of stratospheric 
        ! chemistry species for which we need to read rates from disk.
@@ -274,7 +283,7 @@ CONTAINS
                                LM         = LLPAR,       &  ! # of levels
                                nTracers   = N_TRACERS,   &  ! # of tracers
                                nBioMax    = NBIOMAX,     &  ! # biomass species
-                               nSpecies   = IGAS,        &  ! # chemical species 
+                               nSpecies   = IGAS,        &  ! # chemical species
                                nSchm      = nSchm,       &  ! # strat chem spec
                                nSchmBry   = nSchmBry,    &  ! # bromine species
                                State_Chm  = State_Chm,   &  ! Chemistry State

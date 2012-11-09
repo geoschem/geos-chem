@@ -236,75 +236,75 @@ MODULE GIGC_Input_Opt_Mod
      !----------------------------------------
      ! DIAGNOSTIC MENU fields
      !----------------------------------------
-     INTEGER                     :: ND01
-     INTEGER                     :: ND02
-     INTEGER                     :: ND03
-     INTEGER                     :: ND04
-     INTEGER                     :: ND05
-     INTEGER                     :: ND06
-     INTEGER                     :: ND07
-     INTEGER                     :: ND08
-     INTEGER                     :: ND09
-     INTEGER                     :: ND10
-     INTEGER                     :: ND11
-     INTEGER                     :: ND12
-     INTEGER                     :: ND13
-     INTEGER                     :: ND14
-     INTEGER                     :: ND15
-     INTEGER                     :: ND16
-     INTEGER                     :: ND17
-     INTEGER                     :: ND18
-     INTEGER                     :: ND19
-     INTEGER                     :: ND20
-     INTEGER                     :: ND21
-     INTEGER                     :: ND22
-     INTEGER                     :: ND23
-     INTEGER                     :: ND24
-     INTEGER                     :: ND25
-     INTEGER                     :: ND26
-     INTEGER                     :: ND27
-     INTEGER                     :: ND28
-     INTEGER                     :: ND29
-     INTEGER                     :: ND30
-     INTEGER                     :: ND31
-     INTEGER                     :: ND32
-     INTEGER                     :: ND33
-     INTEGER                     :: ND34
-     INTEGER                     :: ND35
-     INTEGER                     :: ND36
-     INTEGER                     :: ND37
-     INTEGER                     :: ND38
-     INTEGER                     :: ND39
-     INTEGER                     :: ND40
-     INTEGER                     :: ND41
-     INTEGER                     :: ND42
-     INTEGER                     :: ND43
-     INTEGER                     :: ND44
-     INTEGER                     :: ND45
-     INTEGER                     :: ND46
-     INTEGER                     :: ND47
-     INTEGER                     :: ND48
-     INTEGER                     :: ND49
-     INTEGER                     :: ND50
-     INTEGER                     :: ND51
-     INTEGER                     :: ND52
-     INTEGER                     :: ND53
-     INTEGER                     :: ND54
-     INTEGER                     :: ND55
-     INTEGER                     :: ND56
-     INTEGER                     :: ND57
-     INTEGER                     :: ND58
-     INTEGER                     :: ND59
-     INTEGER                     :: ND60
-     INTEGER                     :: ND61
-     INTEGER                     :: ND62
-     INTEGER                     :: ND63
-     INTEGER                     :: ND64
-     INTEGER                     :: ND66
-     INTEGER                     :: ND67
-     INTEGER                     :: ND68
-     INTEGER                     :: ND69
-     INTEGER                     :: ND70
+     INTEGER                     :: ND01, LD01
+     INTEGER                     :: ND02, LD02
+     INTEGER                     :: ND03, LD03
+     INTEGER                     :: ND04, LD04
+     INTEGER                     :: ND05, LD05
+     INTEGER                     :: ND06, LD06
+     INTEGER                     :: ND07, LD07
+     INTEGER                     :: ND08, LD08
+     INTEGER                     :: ND09, LD09
+     INTEGER                     :: ND10, LD10
+     INTEGER                     :: ND11, LD11
+     INTEGER                     :: ND12, LD12
+     INTEGER                     :: ND13, LD13
+     INTEGER                     :: ND14, LD14
+     INTEGER                     :: ND15, LD15
+     INTEGER                     :: ND16, LD16
+     INTEGER                     :: ND17, LD17
+     INTEGER                     :: ND18, LD18
+     INTEGER                     :: ND19, LD19
+     INTEGER                     :: ND20, LD20
+     INTEGER                     :: ND21, LD21
+     INTEGER                     :: ND22, LD22
+     INTEGER                     :: ND23, LD23
+     INTEGER                     :: ND24, LD24
+     INTEGER                     :: ND25, LD25
+     INTEGER                     :: ND26, LD26
+     INTEGER                     :: ND27, LD27
+     INTEGER                     :: ND28, LD28
+     INTEGER                     :: ND29, LD29
+     INTEGER                     :: ND30, LD30
+     INTEGER                     :: ND31, LD31
+     INTEGER                     :: ND32, LD32
+     INTEGER                     :: ND33, LD33
+     INTEGER                     :: ND34, LD34
+     INTEGER                     :: ND35, LD35
+     INTEGER                     :: ND36, LD36
+     INTEGER                     :: ND37, LD37
+     INTEGER                     :: ND38, LD38
+     INTEGER                     :: ND39, LD39
+     INTEGER                     :: ND40, LD40
+     INTEGER                     :: ND41, LD41
+     INTEGER                     :: ND42, LD42
+     INTEGER                     :: ND43, LD43
+     INTEGER                     :: ND44, LD44
+     INTEGER                     :: ND45, LD45
+     INTEGER                     :: ND46, LD46
+     INTEGER                     :: ND47, LD47
+     INTEGER                     :: ND48, LD48
+     INTEGER                     :: ND49, LD49
+     INTEGER                     :: ND50, LD50
+     INTEGER                     :: ND51, LD51
+     INTEGER                     :: ND52, LD52
+     INTEGER                     :: ND53, LD53
+     INTEGER                     :: ND54, LD54
+     INTEGER                     :: ND55, LD55
+     INTEGER                     :: ND56, LD56
+     INTEGER                     :: ND57, LD57
+     INTEGER                     :: ND58, LD58
+     INTEGER                     :: ND59, LD59
+     INTEGER                     :: ND60, LD60
+     INTEGER                     :: ND61, LD61
+     INTEGER                     :: ND62, LD62
+     INTEGER                     :: ND63, LD63
+     INTEGER                     :: ND64, LD64
+     INTEGER                     :: ND66, LD66
+     INTEGER                     :: ND67, LD67
+     INTEGER                     :: ND68, LD68
+     INTEGER                     :: ND69, LD69
+     INTEGER                     :: ND70, LD70
      LOGICAL                     :: LPRT
      INTEGER,            POINTER :: TINDEX(:,:)
      INTEGER,            POINTER :: TCOUNT(:) 				  
@@ -408,7 +408,7 @@ MODULE GIGC_Input_Opt_Mod
      !----------------------------------------
      LOGICAL                     :: DO_SAVE_PL
      LOGICAL                     :: LFAMILY
-     INTEGER                     :: ND65
+     INTEGER                     :: ND65, LD65
      LOGICAL                     :: DO_SAVE_O3
      INTEGER                     :: NFAM
      REAL*8,             POINTER :: FAM_COEF(:,:)
@@ -511,6 +511,7 @@ MODULE GIGC_Input_Opt_Mod
 !                              newer Olson 2001 land map & drydep inputs
 !  07 Nov 2012 - R. Yantosca - Added Input_Opt%ITS_A_*_SIM fields
 !  08 Nov 2012 - R. Yantosca - Added APM MENU fields
+!  09 Nov 2012 - R. Yantosca - Added LD* variables for diagnostic levels
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -558,6 +559,7 @@ CONTAINS
 !  01 Nov 2012 - R. Yantosca - Initial version
 !  07 Nov 2012 - R. Yantosca - Now add size parameter fields to Input_Opt
 !                              that can be set prior to calling this routine
+!  09 Nov 2012 - R. Yantosca - Now zero LD* fields for diagnostic levels
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -865,6 +867,76 @@ CONTAINS
     Input_Opt%ND68                   = 0
     Input_Opt%ND69                   = 0
     Input_Opt%ND70                   = 0
+    Input_Opt%LD01                   = 0
+    Input_Opt%LD02                   = 0
+    Input_Opt%LD03                   = 0
+    Input_Opt%LD04                   = 0
+    Input_Opt%LD05                   = 0
+    Input_Opt%LD06                   = 0
+    Input_Opt%LD07                   = 0
+    Input_Opt%LD08                   = 0
+    Input_Opt%LD09                   = 0
+    Input_Opt%LD10                   = 0
+    Input_Opt%LD11                   = 0
+    Input_Opt%LD12                   = 0
+    Input_Opt%LD13                   = 0
+    Input_Opt%LD14                   = 0
+    Input_Opt%LD15                   = 0
+    Input_Opt%LD16                   = 0
+    Input_Opt%LD17                   = 0
+    Input_Opt%LD18                   = 0
+    Input_Opt%LD19                   = 0
+    Input_Opt%LD20                   = 0
+    Input_Opt%LD21                   = 0
+    Input_Opt%LD22                   = 0
+    Input_Opt%LD23                   = 0
+    Input_Opt%LD24                   = 0
+    Input_Opt%LD25                   = 0
+    Input_Opt%LD26                   = 0
+    Input_Opt%LD27                   = 0
+    Input_Opt%LD28                   = 0
+    Input_Opt%LD29                   = 0
+    Input_Opt%LD30                   = 0
+    Input_Opt%LD31                   = 0
+    Input_Opt%LD32                   = 0
+    Input_Opt%LD33                   = 0
+    Input_Opt%LD34                   = 0
+    Input_Opt%LD35                   = 0
+    Input_Opt%LD36                   = 0
+    Input_Opt%LD37                   = 0
+    Input_Opt%LD38                   = 0
+    Input_Opt%LD39                   = 0
+    Input_Opt%LD40                   = 0
+    Input_Opt%LD41                   = 0
+    Input_Opt%LD42                   = 0
+    Input_Opt%LD43                   = 0
+    Input_Opt%LD44                   = 0
+    Input_Opt%LD45                   = 0
+    Input_Opt%LD46                   = 0
+    Input_Opt%LD47                   = 0
+    Input_Opt%LD48                   = 0
+    Input_Opt%LD49                   = 0
+    Input_Opt%LD50                   = 0
+    Input_Opt%LD51                   = 0
+    Input_Opt%LD52                   = 0
+    Input_Opt%LD53                   = 0
+    Input_Opt%LD54                   = 0
+    Input_Opt%LD55                   = 0
+    Input_Opt%LD56                   = 0
+    Input_Opt%LD57                   = 0
+    Input_Opt%LD58                   = 0
+    Input_Opt%LD59                   = 0
+    Input_Opt%LD60                   = 0
+    Input_Opt%LD61                   = 0
+    Input_Opt%LD62                   = 0
+    Input_Opt%LD63                   = 0
+    Input_Opt%LD64                   = 0
+    Input_Opt%LD65                   = 0
+    Input_Opt%LD66                   = 0
+    Input_Opt%LD67                   = 0
+    Input_Opt%LD68                   = 0
+    Input_Opt%LD69                   = 0
+    Input_Opt%LD70                   = 0
     Input_Opt%LPRT                   = .FALSE.
     Input_Opt%TINDEX(:,:)            = 0
     Input_Opt%TCOUNT(:)              = 0	  

@@ -249,11 +249,17 @@
       ! We must declare the Chemistry State (State_Chm), Meteorology
       ! State (State_Met), and Input Options (Input_Opt) objects
       ! for use with the Grid-Independent GEOS-Chem code. 
-      ! (bmy, 10/25/12)
-      !--------------------------------------------------------------
+      !
+      ! Also define NI, NJ, NL for more consistent naming w/r/t the 
+      ! ESMF interface.  Initialize these from IIPAR, JJPAR, JJPAR
+      ! (bmy, 11/9/12)
+      !-----------------------------------------------------------------
       TYPE(OptInput)           :: Input_Opt   ! Input Options object
       TYPE(ChmState)           :: State_Chm   ! Chemistry State object
       TYPE(MetState)           :: State_Met   ! Meteorology State object
+      INTEGER                  :: NI          ! # of longitudes 
+      INTEGER                  :: NJ          ! # of latitudes
+      INTEGER                  :: NL          ! # of levels
 #endif
 
       ! When connecting G-C to an external GCM, we need to only write 
@@ -294,8 +300,14 @@
       ! to IGLOB and JJPAR to JGLOB, where IGLOB, JGLOB depend on the
       ! particular met fields being used. (bmy, 10/25/12)
       !
-      ! GIGC_Allocate_All now also initializes fields of the 
+      ! GIGC_Allocate_All now also initializes fields of the soil NOx
+      ! and 
       !-----------------------------------------------------------------
+
+      ! Define NI, NJ, NL dimensions for use below
+      NI                 = IIPAR
+      NJ                 = JJPAR
+      NL                 = LLPAR
 
       ! Define dimensions for fields of the Input Options object
       ! NOTE: At this point we have not yet read in the "input.geos"
@@ -373,7 +385,8 @@
       !-----------------------------------------------------------------
 
       ! Initialize State_Met and State_Chm objects
-      CALL GIGC_Init_All( State_Met, State_Chm, am_I_Root, RC )
+      CALL GIGC_Init_All( am_I_root, Input_Opt, State_Chm, 
+     &                               State_Met, RC         )
 
       ! Assign values to the TRAC_NAME, TRAC_ID, SMVG_ID fields
       ! of the State_Chm object.  NOTE: This has to be done after
@@ -521,7 +534,9 @@
       !-----------------------------------------------------------------
 
       ! Capture initial state of atmosphere for STE flux calc (ltm, 06/10/12)
-      IF ( LSCHEM ) CALL INIT_STRAT_CHEM( am_I_Root, State_Chm, RC )
+      IF ( LSCHEM ) THEN
+         CALL INIT_STRAT_CHEM( am_I_Root, Input_Opt, State_Chm, RC )
+      ENDIF
 
 #else
       !--------------------------------------------------------------
@@ -1224,12 +1239,18 @@
             ! (bmy, 10/25/12)
             !-----------------------------------------------------------
 
+            !%%% Kludge, for now initialize fields that would have
+            !%%% been initialized in routine OPTDEPTH (bmy, 11/9/12)
+            OPTD          (1:NL,1:NI,1:NJ) = OPTDEP(1:NL,1:NI,1:NJ)
+            State_Met%OPTD(1:NL,1:NI,1:NJ) = OPTDEP(1:NL,1:NI,1:NJ)
+            State_Met%CLDF(1:NL,1:NI,1:NJ) = CLDF  (1:NL,1:NI,1:NJ)
+
             ! Initialize the tracer field fo the
             State_Chm%TRACERS( :, :, :, 1:N_TRACERS ) = 
      &                    STT( :, :, :, 1:N_TRACERS )
 
             ! Do GEOS-Chem chemistry
-            CALL DO_CHEMISTRY( am_I_Root, IIPAR,     JJPAR,     LLPAR, 
+            CALL DO_CHEMISTRY( am_I_Root, NI,        NJ,        NL,
      &                         Input_Opt, State_Chm, State_Met, RC     ) 
 #else
             !-----------------------------------------------------------
