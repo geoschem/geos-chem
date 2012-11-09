@@ -1399,9 +1399,9 @@
 
       ! NPP file name
 #if defined( GRID05x0666 ) && defined( NESTED_NA )
-      ! Nneed to read emission file at nested-resolution, Y. Zhang 11/1/2011
+      ! Need to read emission file at nested-resolution, Y. Zhang 11/1/2011
       FILENAME = TRIM( DATA_DIR )                   // 
-     &           'mercury_201203/ekman_upvel.'        // 
+     &           'mercury_201203/ekman_upvel.'      // 
      &           GET_NAME_EXT()    // '.'           //
      &           GET_RES_EXT() 
 #else
@@ -1417,9 +1417,15 @@
       TAU = GET_TAU0( THISMONTH, 1, 1985 )
 
       ! Read from disk; original units are [cm/s]
+#if defined( GRID05x0666 ) && defined( NESTED_NA )
+      CALL READ_BPCH2( FILENAME, 'BXHGHT-$',    6,  
+     &                 TAU,       IIPAR,        JJPAR,      
+     &                 1,         ARRAY(:,:,1), QUIET=.TRUE. )
+#else
       CALL READ_BPCH2( FILENAME, 'EKMAN-V',     1,  
      &                 TAU,       IIPAR,        JJPAR,      
      &                 1,         ARRAY(:,:,1), QUIET=.TRUE. )
+#endif
 
       ! Resize and cast to REAL*8
       CALL TRANSFER_2D( ARRAY(:,:,1), UPVEL )

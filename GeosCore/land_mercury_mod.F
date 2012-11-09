@@ -547,6 +547,8 @@
       REAL*8, PARAMETER  :: SOIL_EMIS_FAC = 2.4D-2*.5742d0 ! for sunlight function
 #elif defined(GRID2x25)
       REAL*8, PARAMETER :: SOIL_EMIS_FAC=2.4D-2*.5742d0*4d0
+#else
+      REAL*8, PARAMETER :: SOIL_EMIS_FAC=1.0D0
 #endif
 
       !=================================================================

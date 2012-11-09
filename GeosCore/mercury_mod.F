@@ -2930,7 +2930,12 @@
          XTAU     = GET_TAU0( 1, 1, 1985 )
 
          ! Filename for artisanal mining emissions (4x5 only for now)
-         FILENAME=TRIM( DATA_DIR ) // 'mercury_201007/artisanal.bpch'
+#if defined( GRID05x0666 ) && defined( NESTED_NA )
+         FILENAME = TRIM( DATA_DIR ) // 'mercury_201203/artisanal.' //
+     &              GET_NAME_EXT()   // '.' // GET_RES_EXT()
+#else
+         FILENAME = TRIM( DATA_DIR ) // 'mercury_201007/artisanal.bpch'
+#endif
 
          ! Echo info
          WRITE( 6, 100 ) TRIM( FILENAME )
@@ -4277,10 +4282,14 @@
 
       !CDH -WE EVENTUALLY NEED TO SUPPORT OTHER MODEL RESOLUTIONS
       ! Filename for full-level GEOS5 model
+#if defined( GRID05x0666 ) && defined( NESTED_NA )
+      FILENAME = TRIM( DATA_DIR )  // 'mercury_201203/jvalues.noon.' //
+     &           GET_NAME_EXT()    // '.' // GET_RES_EXT()
+#else
       FILENAME = 
      &           TRIM( DATA_DIR )  // 'mercury_201007/jvalues.noon.' //
      &           GET_NAME_EXT() // '.' // GET_RES_EXT()
-
+#endif
 
       ! Echo some information to the standard output
       WRITE( 6, 110 ) TRIM( FILENAME )

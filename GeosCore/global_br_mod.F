@@ -137,8 +137,14 @@
       !-----------------------------------------------------------------
 
       ! Filename
+#if defined( GRID05x0666 ) && defined( NESTED_NA )
+      FILENAME = TRIM( DATA_DIR )                     //
+     &           'mercury_201203/BrOx.TOMCAT_org.'    //
+     &           GET_NAME_EXT() // '.' // GET_RES_EXT()
+#else
       FILENAME = TRIM( BR_DIR ) // 'BrOx.TOMCAT_org.' //
      &           GET_NAME_EXT() // '.' // GET_RES_EXT() 
+#endif
 
       ! Echo some information to the standard output
       WRITE( 6, 120 ) TRIM( FILENAME )
@@ -169,8 +175,14 @@
       !-----------------------------------------------------------------
 
       ! Filename
+#if defined( GRID05x0666 ) && defined( NESTED_NA )
+      FILENAME = TRIM( DATA_DIR )              //
+     &           'mercury_201203/BrOx.GMI.'    //
+     &           GET_NAME_EXT() // '.'         // GET_RES_EXT()
+#else
       FILENAME = TRIM( BR_DIR ) // 'BrOx.GMI.' //
      &           GET_NAME_EXT() // '.'         // GET_RES_EXT()
+#endif
 
       ! Echo some information to the standard output
       WRITE( 6, 120 ) TRIM( FILENAME )
@@ -287,8 +299,14 @@
       XTAU = GET_TAU0( THISMONTH, 1, 2002 )
 
       ! Filename
+#if defined( GRID05x0666 ) && defined( NESTED_NA )
+      FILENAME = TRIM( DATA_DIR )                  //
+     &           'mercury_201203/jBrO.daytime.'    //
+     &           GET_NAME_EXT() // '.' // GET_RES_EXT()
+#else
       FILENAME = TRIM( BR_DIR ) // 'jBrO.daytime.' //
      &           GET_NAME_EXT() // '.' // GET_RES_EXT() 
+#endif
 
       ! Echo some information to the standard output
       WRITE( 6, 120 ) TRIM( FILENAME )
