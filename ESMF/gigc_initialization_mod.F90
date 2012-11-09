@@ -373,7 +373,7 @@ CONTAINS
     ENDIF
 
     ! Flag emission & drydep rxns
-    CALL SETEMDEP( N_TRACERS, am_I_Root )
+    CALL SETEMDEP( Input_Opt%N_TRACERS, am_I_Root )
 
     !### Debug
     IF ( prtDebug ) THEN
