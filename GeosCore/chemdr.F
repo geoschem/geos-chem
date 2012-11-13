@@ -94,7 +94,7 @@
       IMPLICIT NONE
 #     include "define.h"
 !
-! !INPUT VARIABLES:
+! !INPUT PARAMETERS:
 !
       LOGICAL,        INTENT(IN)    :: am_I_Root   ! Is this the root CPU?
 #if defined( DEVEL ) || defined( EXTERNAL_GRID ) || defined( EXTERNAL_FORCING )
@@ -104,7 +104,7 @@
       TYPE(OptInput), INTENT(IN)    :: Input_Opt   ! Input Options object
       TYPE(MetState), INTENT(IN)    :: State_Met   ! Meteorology State object
 !
-! !INPUT/OUTPUT VARIABLES:
+! !INPUT/OUTPUT PARAMETERS:
 !
       TYPE(ChmState), INTENT(INOUT) :: State_Chm   ! Chemistry State object
 !
@@ -469,8 +469,20 @@
 
          ! Read "globchem.dat" chemistry mechanism
 #if defined( DEVEL )
+         !--------------------------------------------------------------
+         !  %%%%% TESTING GIGC INTERFACE FROM EXISTING GEOS-CHEM %%%%%
+         !
+         ! Now pass the Input Options object and RC status flag to
+         ! routine READCHEM (bmy, 11/13/12)
+         !--------------------------------------------------------------
          CALL READCHEM( am_I_Root, Input_Opt, RC )
 #else
+         !--------------------------------------------------------------
+         !              %%%%% TRADITIONAL GEOS-Chem %%%%%
+         !
+         ! Current practice in the std G-C is to call READCHEM with
+         ! just the am_I_Root argument (bmy, 11/13/12)
+         !--------------------------------------------------------------
          CALL READCHEM( am_I_Root )
 #endif
          ! Set NCS=NCSURBAN here since we have defined our tropospheric
@@ -624,9 +636,26 @@
       !=================================================================
       IF ( LSULF .or. LCARB .or. LDUST .or. LSSALT ) THEN
 
-         ! Skip this section if all these are turned off
-         CALL AEROSOL_CONC
+#if defined( DEVEL ) || defined( EXTERNAL_GRID ) || defined( EXTERNAL_FORCING )
+         !--------------------------------------------------------------
+         !   %%%%% CONNECTING TO GEOS-5 GCM via ESMF INTERFACE %%%%%
+         !
+         ! Now pass the Input Options object and RC status flag
+         ! as arguments to AEROSOL_CONC (bmy, 11/13/12)
+         !--------------------------------------------------------------
+         CALL AEROSOL_CONC( am_I_Root, Input_Opt, RC )
 
+#else
+         !--------------------------------------------------------------
+         !              %%%%% TRADITIONAL GEOS-Chem %%%%%
+         !
+         ! Current practice in the standard GEOS-Chem is to call 
+         ! AEROSOL_CONC without any arguments (bmy, 11/13/12)
+         !--------------------------------------------------------------
+
+         ! Skip this section if all these are turned off
+         CALL AEROSOL_CONC()
+#endif
       ENDIF
 
       !=================================================================
@@ -652,7 +681,6 @@
      &               .FALSE.,                N_TRACERS, 
      &               STT(:,:,:,1:N_TRACERS), XNUMOL(1:N_TRACERS),  
      &               FRCLND,                 .FALSE. )
-
 #else
       !-----------------------------------------------------------------
       !              %%%%% TRADITIONAL GEOS-Chem %%%%%
@@ -700,11 +728,12 @@
                WRITE(6,*) 
      &  '    - CHEMDR: CSPEC restart not found, use background values'
             ENDIF
- 
+
             CALL GASCONC( am_I_Root,
      &                    FIRSTCHEM,              N_TRACERS, 
      &                    STT(:,:,:,1:N_TRACERS), XNUMOL(1:N_TRACERS),    
      &                    FRCLND,                 IT_EXISTS )
+
          ELSE 
 
             !-----------------------------------------------------------
@@ -720,7 +749,6 @@
      &                     .FALSE.,                 N_TRACERS, 
      &                     STT(:,:,:,1:N_TRACERS), XNUMOL(1:N_TRACERS),    
      &                     FRCLND,                 IT_EXISTS )
-
          ENDIF 
 
       ELSE 
@@ -733,7 +761,6 @@
      &                  FIRSTCHEM,              N_TRACERS, 
      &                  STT(:,:,:,1:N_TRACERS), XNUMOL(1:N_TRACERS),  
      &                  FRCLND,                 IT_EXISTS )
-
       ENDIF 
       IT_EXISTS = .FALSE.
 
@@ -760,7 +787,22 @@
       ! Call RDAER to compute AOD for FAST-J (skim, 02/03/11)
       WAVELENGTH = 0
 
+#if defined( DEVEL ) || defined( EXTERNAL_GRID ) || defined( EXTERNAL_FORCING )
+      !-----------------------------------------------------------------
+      !    %%%%% CONNECTING TO GEOS-5 GCM via ESMF INTERFACE %%%%%
+      !
+      ! Now pass the Input Options and RC to RDAER (bmy, 11/13/12)
+      !-----------------------------------------------------------------
+      CALL RDAER( am_I_Root, MONTH, YEAR, WAVELENGTH, Input_Opt, RC )
+#else
+      !-----------------------------------------------------------------
+      !            %%%%% TRADITIONAL GEOS-Chem %%%%%
+      !  
+      ! Current practice in the std GEOS-Chem is to call RDAER w/
+      ! just am_I_Root, MONTH, YEAR, WAVELENGTH (bmy, 11/13/12)
+      !-----------------------------------------------------------------
       CALL RDAER( am_I_Root, MONTH, YEAR, WAVELENGTH )
+#endif
 
       !### Debug
       IF ( prtDebug ) THEN 

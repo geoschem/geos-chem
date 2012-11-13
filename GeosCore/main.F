@@ -1318,7 +1318,23 @@
          ! diagnostic and only on a chemistry timestep.
          ! (skim, 02/05/11)
          IF ( ITS_TIME_FOR_CHEM() ) THEN
+#if defined( DEVEL )
+            !-----------------------------------------------------------
+            ! %%%%% TESTING GIGC INTERFACE FROM EXISTING GEOS-CHEM %%%%%
+            !
+            ! Now pass the Input Options object and RC status flag
+            ! to RECOMPUTE_OD as arguments (bmy, 11/13/12)
+            !-----------------------------------------------------------
+            CALL RECOMPUTE_OD( am_I_Root, Input_Opt, RC )
+#else
+            !-----------------------------------------------------------
+            !              %%%%% TRADITIONAL GEOS-Chem %%%%%
+            !
+            ! Current practice is to call routine RECOMPUTE_OD with
+            ! am_I_Root as the only argument. (bmy, 10/25/12)
+            !-----------------------------------------------------------
             CALL RECOMPUTE_OD( am_I_Root )
+#endif
          ENDIF
 
          !==============================================================

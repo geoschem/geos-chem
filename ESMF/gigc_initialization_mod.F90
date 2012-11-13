@@ -1,4 +1,4 @@
-#if defined (ESMF_)
+#if defined( ESMF_ )
 !------------------------------------------------------------------------------
 !          Harvard University Atmospheric Chemistry Modeling Group            !
 !------------------------------------------------------------------------------
@@ -22,8 +22,6 @@ MODULE GIGC_Initialization_Mod
 !
 ! !PUBLIC MEMBER FUNCTIONS:
 !      
-  PUBLIC :: GIGC_Init_Chemistry
-  PUBLIC :: GIGC_Emis_Inti
   PUBLIC :: GIGC_Init_Simulation
   PUBLIC :: GIGC_Get_Options
   PUBLIC :: GIGC_Init_Time_Interface
@@ -40,107 +38,6 @@ MODULE GIGC_Initialization_Mod
 !------------------------------------------------------------------------------
 !BOC
 CONTAINS
-!EOC
-!------------------------------------------------------------------------------
-!          Harvard University Atmospheric Chemistry Modeling Group            !
-!------------------------------------------------------------------------------
-!BOP
-!
-! !IROUTINE: gigc_init_chemistry
-!
-! !DESCRIPTION: Routine GIGC\_Init\_Chemistry initializes the GEOS-Chem 
-!  chemistry module so that it can connect to the ESMF interface.
-!\\
-!\\
-! !INTERFACE:
-!
-  SUBROUTINE GIGC_Init_Chemistry( PLON, PLAT, am_I_Root, RC )
-!
-! !USES:
-!
-    USE LOGICAL_MOD,     ONLY : DO_DIAG_WRITE
-    USE CMN_SIZE_MOD,    ONLY : JJPAR, IIPAR
-    USE GIGC_ErrCode_Mod
-!
-! !INPUT PARAMETERS: 
-!
-    INTEGER, INTENT(IN)  :: PLON        ! Number of
-    INTEGER, INTENT(IN)  :: PLAT
-    LOGICAL, INTENT(IN)  :: am_I_Root   ! Is this the root CPU?
-!
-! !OUTPUT PARAMETERS:
-!
-    INTEGER, INTENT(OUT) :: RC          ! Success or failure?  
-
-! 
-! !REVISION HISTORY: 
-!  15 Oct 2012 - M. Long     - Initial version
-!  15 Oct 2012 - R. Yantosca - Added ProTeX Headers, use F90 format/indents
-!EOP
-!------------------------------------------------------------------------------
-!BOC
-
-    ! Assume success
-    RC = GIGC_SUCCESS
-
-    ! Don't write diagnostic files
-    DO_DIAG_WRITE = .FALSE. 
-
-    !### Debug
-    ! SET MODEL DIMENSIONS 
-    !IIPAR = 1
-    !JJPAR = PCOLS
-
-    !=======================================================================
-    ! Read GEOS-Chem emissions data ets
-    !=======================================================================
-   
-    ! For now comment this out
-    !CALL GC_EMIS_INTI( PLONL, PLATL, 1 )
-
-  END SUBROUTINE GIGC_Init_Chemistry
-!EOC
-!------------------------------------------------------------------------------
-!          Harvard University Atmospheric Chemistry Modeling Group            !
-!------------------------------------------------------------------------------
-!BOP
-!
-! !IROUTINE: gigc_emis_inti
-!
-! !DESCRIPTION: Routine GC\_EMIS\_INTI establishes the emissions fields for
-!  each set of geos-chem emissions used.
-!\\
-!\\
-! !INTERFACE:
-!
-  SUBROUTINE GIGC_Emis_Inti( PLONL, PLATL, PPLON )
-!
-! !USES:
-!
-!    USE GC_EMIS_EDGAR, ONLY: GC_EDGAR_EMIS_INTI
-!
-! !INPUT PARAMETERS: 
-!
-    INTEGER, INTENT(IN) :: PLONL
-    INTEGER, INTENT(IN) :: PLATL
-    INTEGER, INTENT(IN) :: PPLON
-! 
-! !REMARKS:
-!  This is a stub routine for now.  Will eventually connect with the Emissions
-!  Component as being developed by Christoph Keller.
-!
-! !REVISION HISTORY: 
-!  15 Oct 2012 - M. Long     - Initial version
-!  15 Oct 2012 - R. Yantosca - Added ProTeX Headers, use F90 format/indents
-!  22 Oct 2012 - R. Yantosca - Renamed to GIGC_Emis_Inti
-!EOP
-!------------------------------------------------------------------------------
-!BOC
-
-    ! Comment out for now
-    !CALL GC_EDGAR_EMIS_INTI( PLONL, PLATL, PPLON )
-
-  END SUBROUTINE GIGC_Emis_Inti
 !EOC
 !------------------------------------------------------------------------------
 !          Harvard University Atmospheric Chemistry Modeling Group            !
@@ -185,10 +82,6 @@ CONTAINS
     USE TOMS_MOD,             ONLY : TO3_DAILY
     USE WETSCAV_MOD,          ONLY : INIT_WETSCAV
     USE ERROR_MOD,            ONLY : DEBUG_MSG
-
-    ! Comment these out for now (bmy, 10/15/12)
-    !USE TIME_MANAGER,       ONLY : GET_STEP_SIZE
-    !USE GC_GRIDAREA
 !
 ! !INPUT PARAMETERS: 
 !
@@ -228,9 +121,8 @@ CONTAINS
 !
 ! !LOCAL VARIABLES:
 ! 
-    LOGICAL :: PrtDebug
-    INTEGER :: DTIME, K, AS, N, PLON, PLAT
-
+    LOGICAL :: prtDebug
+    INTEGER :: DTIME, K, AS, N, YEAR
 
     !=======================================================================
     ! Initialize key GEOS-Chem sections
@@ -243,10 +135,10 @@ CONTAINS
     ! Initialize the timing routines
     CALL GIGC_Init_Time_Interface( DTIME, nymd, nhms, am_I_Root, RC )
 
-    ! Allocate all
+    ! Allocate GEOS-Chem module arrays
     CALL GIGC_Allocate_All( am_I_Root, Input_Opt, RC )
 
-    ! Allocate
+    ! Allocate arrays that would not be otherwise allocated
     CALL GIGC_Allocate_Interface( am_I_Root, RC )
 
     ! Read options from the GEOS-Chem input file "input.geos"
@@ -265,19 +157,16 @@ CONTAINS
     ENDDO
        
     ! Allocate and zero GEOS-Chem diagnostic arrays
-    CALL NDXX_SETUP( am_I_Root, Input_Opt, RC )
+    CALL Ndxx_Setup( am_I_Root, Input_Opt, RC )
 
     ! Allocate and initialize met field arrays
-    CALL INIT_DAO
+    CALL Init_Dao
 
     ! Initialize the GEOS-Chem pressure module (set Ap & Bp)
-    CALL INIT_PRESSURE( am_I_Root )
+    CALL Init_Pressure( am_I_Root )
 
     ! Initialize the PBL mixing module
-    CALL INIT_PBL_MIX
-!       
-!    ! Initialize the  
-!    CALL INIT_WETSCAV
+    CALL Init_PBL_Mix
 
     !=======================================================================
     ! Initialize chemistry mechanism
@@ -345,9 +234,9 @@ CONTAINS
     ! chemistry mechanism in the urban slot of SMVGEAR II (bmy, 4/21/03)
     NCS = NCSURBAN
 
-    !%%%%% FOR NOW HARDWIRE CH4 to 2007 values %%%%%
     ! Get CH4 [ppbv] in 4 latitude bins for each year
-    CALL GET_GLOBAL_CH4( 2007,   .TRUE., C3090S, &
+    YEAR = NYMD / 10000
+    CALL GET_GLOBAL_CH4( YEAR,   .TRUE., C3090S, &
                          C0030S, C0030N, C3090N, am_I_Root )
 
     !### Debug

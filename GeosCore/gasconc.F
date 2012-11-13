@@ -21,16 +21,18 @@
       USE COMODE_MOD,     ONLY : IYSAVE, IZSAVE,  PRESS3, T3
       USE COMODE_MOD,     ONLY : CSPEC_FULL, JLOP
       USE DRYDEP_MOD,     ONLY : NUMDEP
+
       USE TROPOPAUSE_MOD, ONLY : ITS_IN_THE_TROP, COPY_FULL_TROP
       USE TROPOPAUSE_MOD, ONLY : SAVE_FULL_TROP
-      USE LOGICAL_MOD,    ONLY : LVARTROP
       USE DAO_MOD,        ONLY : T
       USE PRESSURE_MOD,   ONLY : GET_PCENTER
       USE ERROR_MOD,      ONLY : ERROR_STOP ! (dkh, 10/06/06)  
-      USE LOGICAL_MOD,    ONLY : LSOA ! (dkh, 10/06/06)  
       
       USE CMN_SIZE_MOD                                ! Size parameters
       USE COMODE_LOOP_MOD                             ! SMVGEAR II arrays
+
+      USE LOGICAL_MOD,        ONLY : LSOA
+      USE LOGICAL_MOD,        ONLY : LVARTROP
 
       IMPLICIT NONE
 #     include "define.h"
@@ -570,7 +572,7 @@
         ENDIF
        ENDIF
       ENDIF
-!
+
  475  FORMAT(4X,'SPECIES',5X,'GEARCONC     chem.dat    % ERROR IFAVG')
  495  FORMAT(A14,2(1X,1PE11.4),2X,0PF8.2,'%',3X,I1)
  505  FORMAT(I3,37X,F8.2,'%   AVERAGE OF ',I5,' SPECIES')

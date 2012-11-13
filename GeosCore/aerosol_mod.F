@@ -301,12 +301,27 @@
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE AEROSOL_CONC
+#if defined( DEVEL ) || defined( EXTERNAL_GRID ) || defined( EXTERNAL_FORCING )
+      !-----------------------------------------------------------------
+      !     %%%%% CONNECTING TO GEOS-5 GCM via ESMF INTERFACE %%%%%
+      !
+      ! Now pass the am_I_Root, Input_Opt, and RC as arguments 
+      ! to AEROSOL_CONC for the ESMF interface (bmy, 11/13/12)
+      !-----------------------------------------------------------------
+      SUBROUTINE AEROSOL_CONC( am_I_Root, Input_Opt, RC  )
+#else
+      !-----------------------------------------------------------------
+      !              %%%%% TRADITIONAL GEOS-Chem %%%%%
+      !
+      ! Current practice is to call AEROSOL_CONC with no arguments
+      ! (bmy, 11/13/12)
+      !-----------------------------------------------------------------
+      SUBROUTINE AEROSOL_CONC()
+#endif
 !
 ! !USES:
 !
       USE DAO_MOD,      ONLY : AIRVOL
-      USE LOGICAL_MOD,  ONLY : LCARB,   LDUST,   LSOA,    LSSALT, LSULF
       USE TRACER_MOD,   ONLY : STT
       USE TRACERID_MOD, ONLY : IDTBCPI, IDTBCPO, IDTDST1, IDTDST2
       USE TRACERID_MOD, ONLY : IDTDST3, IDTDST4, IDTNH4,  IDTNIT  
@@ -316,6 +331,43 @@
       USE TRACERID_MOD, ONLY : IDTSOAG, IDTSOAM
 
       USE CMN_SIZE_MOD       ! Size parameters
+
+#if defined( DEVEL ) || defined( EXTERNAL_GRID ) || defined( EXTERNAL_FORCING )
+      !-----------------------------------------------------------------
+      !     %%%%% CONNECTING TO GEOS-5 GCM via ESMF INTERFACE %%%%%
+      !
+      ! We need to reference some modules particular to the Grid-
+      ! Independent GEOS-Chem implementation here.   In particular,
+      ! the settings from the Input Options object will replace
+      ! logical flags from logical_mod.F. (bmy, 11/8/12)
+      !-----------------------------------------------------------------
+      USE GIGC_ErrCode_Mod
+      USE GIGC_Input_Opt_Mod,   ONLY : OptInput
+#else
+      !-----------------------------------------------------------------
+      !              %%%%% TRADITIONAL GEOS-Chem %%%%%
+      !
+      ! Current practice in the standard GEOS-Chem is to reference
+      ! logical flags directly from module GeosCore/logical_mod.F.
+      ! (bmy, 11/13/12)
+      !-----------------------------------------------------------------
+      USE LOGICAL_MOD,  ONLY : LCARB
+      USE LOGICAL_MOD,  ONLY : LDUST
+      USE LOGICAL_MOD,  ONLY : LSOA
+      USE LOGICAL_MOD,  ONLY : LSSALT
+      USE LOGICAL_MOD,  ONLY : LSULF
+#endif
+!
+! !INPUT PARAMETERS:
+!
+#if defined( DEVEL ) || defined( EXTERNAL_GRID ) || defined( EXTERNAL_FORCING )
+      LOGICAL,        INTENT(IN)    :: am_I_Root   ! Is this the root CPU?
+      TYPE(OptInput), INTENT(IN)    :: Input_Opt   ! Input Options object
+!
+! !OUTPUT PARAMETERS:
+!
+      INTEGER,        INTENT(OUT)   :: RC          ! Success or failure
+#endif
 !
 ! !REMARKS:
 !  This code was originally included in "chemdr.f", but the same computation 
@@ -330,6 +382,7 @@
 !  22 Dec 2011 - M. Payer    - Added ProTeX headers
 !  30 Jul 2012 - R. Yantosca - Now accept am_I_Root as an argument when
 !                              running with the traditional driver main.F
+!  13 Nov 2012 - R. Yantosca - Now pass am_I_Root, Input_Opt, RC as arguments
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -354,9 +407,43 @@
       LOGICAL, SAVE      :: FIRST = .TRUE. 
       INTEGER            :: I, J, L, N
 
+#if defined( DEVEL ) || defined( EXTERNAL_GRID ) || defined( EXTERNAL_FORCING )
+      !-----------------------------------------------------------------
+      !     %%%%% CONNECTING TO GEOS-5 GCM via ESMF INTERFACE %%%%%
+      !
+      ! To simplify the coding for the ESMF interface, define local 
+      ! variables values that will be obtained from the Input Options 
+      ! object. (bmy, 11/8/12)
+      !-----------------------------------------------------------------
+      LOGICAL            :: LCARB
+      LOGICAL            :: LDUST
+      LOGICAL            :: LSOA
+      LOGICAL            :: LSSALT
+      LOGICAL            :: LSULF
+#endif
+
       !=================================================================
       ! AEROSOL_CONC begins here!
       !=================================================================
+
+#if defined( DEVEL ) || defined( EXTERNAL_GRID ) || defined( EXTERNAL_FORCING )
+      !-----------------------------------------------------------------
+      !     %%%%% CONNECTING TO GEOS-5 GCM via ESMF INTERFACE %%%%%
+      !
+      ! Initialize the RC argument.  Also copy logical values from the
+      ! Input Options object over to local variables. (bmy, 11/8/12)
+      !-----------------------------------------------------------------
+
+      ! Assume success
+      RC     = GIGC_SUCCESS
+
+      ! Copy fields from INPUT_OPT to local variables for use below
+      LCARB  = Input_Opt%LCARB
+      LDUST  = Input_Opt%LDUST
+      LSOA   = Input_Opt%LSOA
+      LSSALT = Input_Opt%LSSALT
+      LSULF  = Input_Opt%LSULF
+#endif
 
       ! First-time initialization
       IF ( FIRST ) THEN
@@ -540,7 +627,24 @@
 !\\
 ! !INTERFACE:
 !
+#if defined( DEVEL ) || defined( EXTERNAL_GRID ) || defined( EXTERNAL_FORCING )
+      !-----------------------------------------------------------------
+      !     %%%%% CONNECTING TO GEOS-5 GCM via ESMF INTERFACE %%%%%
+      !
+      ! Add the Input Options object and RC status flag to the 
+      ! argument list. (bmy, 11/13/12)
+      !-----------------------------------------------------------------
+      SUBROUTINE RDAER( am_I_Root,  MONTH,     YEAR, 
+     &                  WAVELENGTH, Input_Opt, RC    )
+#else
+      !-----------------------------------------------------------------
+      !              %%%%% TRADITIONAL GEOS-Chem %%%%%
+      !
+      ! Current practice is to call RDAER with am_I_Root, MONTH, YEAR
+      ! and WAVELENGTH. (bmy, 11/13/12)
+      !----------------------------------------------------------------
       SUBROUTINE RDAER( am_I_Root, MONTH, YEAR, WAVELENGTH )
+#endif
 !
 ! !USES:
 !
@@ -551,11 +655,8 @@
       USE COMODE_MOD,    ONLY : WTAREA,       WERADIUS
       USE DAO_MOD,       ONLY : BXHEIGHT
       USE DIAG_MOD,      ONLY : AD21
-      USE DIRECTORY_MOD, ONLY : DATA_DIR
       USE ERROR_MOD,     ONLY : ERROR_STOP
-      USE LOGICAL_MOD,   ONLY : LSULF,        LCARB,      LSSALT
       USE TIME_MOD,      ONLY : ITS_A_NEW_MONTH
-      USE TRACER_MOD,    ONLY : ITS_A_FULLCHEM_SIM
       USE TRANSFER_MOD,  ONLY : TRANSFER_3D
  
       USE CMN_SIZE_MOD,  ONLY : NNPAR, NDSTBIN, IIPAR,   JJPAR,   LLTROP
@@ -564,14 +665,37 @@
       USE COMODE_LOOP_MOD     ! NTLOOP
       USE CMN_DIAG_MOD        ! ND21, LD21
 
-!#if defined( DEVEL )
       USE CMN_FJ_MOD,    ONLY : JPMAX, JPPJ   
-!#else
-!      USE CMN_FJ_MOD,    ONLY : IPAR, JPAR, LPAR, JPMAX, JPPJ   
-!#endif
-      USE JV_CMN_MOD   ! ODAER, QAA, RAA, QAA_AOD (clh)
-      USE COMODE_LOOP_MOD   ! NTLOOP
-      USE CMN_DIAG_MOD   ! ND21, LD21
+      USE JV_CMN_MOD          ! ODAER, QAA, RAA, QAA_AOD (clh)
+      USE COMODE_LOOP_MOD     ! NTLOOP
+      USE CMN_DIAG_MOD        ! ND21, LD21
+
+#if defined( DEVEL ) || defined( EXTERNAL_GRID ) || defined( EXTERNAL_FORCING )
+      !-----------------------------------------------------------------
+      !     %%%%% CONNECTING TO GEOS-5 GCM via ESMF INTERFACE %%%%%
+      !
+      ! We need to reference some modules particular to the Grid-
+      ! Independent GEOS-Chem implementation here.   In particular,
+      ! the settings from the Input Options object will replace
+      ! logical flags from logical_mod.F. (bmy, 11/8/12)
+      !-----------------------------------------------------------------
+      USE GIGC_ErrCode_Mod
+      USE GIGC_Input_Opt_Mod,   ONLY : OptInput
+#else
+      !-----------------------------------------------------------------
+      !              %%%%% TRADITIONAL GEOS-Chem %%%%%
+      !
+      ! Current practice in the standard GEOS-Chem is to reference
+      ! logical flags directly from module GeosCore/logical_mod.F, 
+      ! directories from GeosCore/directory_mod.F, and the ITS_A_*_SIM
+      ! functions from GeosCore/tracer_mod.F. (bmy, 11/13/12)
+      !-----------------------------------------------------------------
+      USE DIRECTORY_MOD, ONLY : DATA_DIR
+      USE LOGICAL_MOD,   ONLY : LSULF
+      USE LOGICAL_MOD,   ONLY : LCARB
+      USE LOGICAL_MOD,   ONLY : LSSALT
+      USE TRACER_MOD,    ONLY : ITS_A_FULLCHEM_SIM
+#endif
 
       IMPLICIT NONE
 #     include "define.h"
@@ -586,6 +710,13 @@
 !                                                 ! = 0 AOD computed at 999 nm
 !                                                 ! = 1 AOD computed at
 !                                                 !   wavelength in jv_spec_aod
+#if defined( DEVEL ) || defined( EXTERNAL_GRID ) || defined( EXTERNAL_FORCING )
+      TYPE(OptInput), INTENT(IN)    :: Input_Opt  ! Input Options object
+!
+! !OUTPUT PARAMETERS:
+!     
+      INTEGER,        INTENT(OUT)   :: RC         ! Success or failure?
+#endif
 !
 ! !REVISION HISTORY: 
 !  (1 ) At the point in which "rdaer.f" is called, ABSHUM is actually
@@ -625,6 +756,7 @@
 !  22 Dec 2011 - M. Payer    - Added ProTeX headers
 !  30 Jul 2012 - R. Yantosca - Now accept am_I_Root as an argument when
 !                              running with the traditional driver main.F
+!  13 Nov 2012 - R. Yantosca - Now pass Input_Opt, RC arguments for GIGC
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -632,6 +764,7 @@
 ! !LOCAL VARIABLES:
 !
       LOGICAL             :: FIRST = .TRUE.
+      LOGICAL             :: IT_IS_A_FULLCHEM_SIM
       LOGICAL             :: DO_READ_DATA
       CHARACTER(LEN=255)  :: FILENAME
       INTEGER             :: THISMONTH, THISYEAR
@@ -680,9 +813,51 @@
       ! The following are ordered according to the mass densities below
       INTEGER, SAVE	  :: IND(NAER) = (/22, 29, 36, 43, 50/)
 
+#if defined( DEVEL ) || defined( EXTERNAL_GRID ) || defined( EXTERNAL_FORCING )
+      !-----------------------------------------------------------------
+      !     %%%%% CONNECTING TO GEOS-5 GCM via ESMF INTERFACE %%%%%
+      !
+      ! To simplify the coding for the ESMF interface, define local 
+      ! variables values that will be obtained from the Input Options 
+      ! object. (bmy, 11/8/12)
+      !-----------------------------------------------------------------
+      CHARACTER(LEN=255) :: DATA_DIR
+      LOGICAL            :: LCARB
+      LOGICAL            :: LSSALT
+      LOGICAL            :: LSULF
+#endif
+
       !=================================================================
       ! RDAER begins here!
       !=================================================================
+
+#if defined( DEVEL ) || defined( EXTERNAL_GRID ) || defined( EXTERNAL_FORCING )
+      !-----------------------------------------------------------------
+      !     %%%%% CONNECTING TO GEOS-5 GCM via ESMF INTERFACE %%%%%
+      !
+      ! Initialize the RC argument.  Also copy logical values from the
+      ! Input Options object over to local variables. (bmy, 11/8/12)
+      !-----------------------------------------------------------------
+
+      ! Assume success
+      RC                   = GIGC_SUCCESS
+
+      ! Copy fields from INPUT_OPT to local variables for use below
+      DATA_DIR             = Input_Opt%DATA_DIR
+      IT_IS_A_FULLCHEM_SIM = Input_Opt%ITS_A_FULLCHEM_SIM
+      LCARB                = Input_Opt%LCARB
+      LSSALT               = Input_Opt%LSSALT
+      LSULF                = Input_Opt%LSULF
+#else
+      !-----------------------------------------------------------------
+      !              %%%%% TRADITIONAL GEOS-Chem %%%%%
+      !
+      ! Current practice in the std GEOS-Chem is to reference the
+      ! ITS_A_*_SIM functions directly from tracer_mod.F (bmy, 11/13/12)
+      !-----------------------------------------------------------------
+      IT_IS_A_FULLCHEM_SIM = ITS_A_FULLCHEM_SIM()
+#endif
+
 
       ! Copy MONTH argument to local variable THISMONTH
       IF ( PRESENT( MONTH ) ) THEN
@@ -700,7 +875,7 @@
 
       ! Set a logical flag if we have to read data from disk
       ! (once per month, for full-chemistry simulations)
-      DO_READ_DATA = ( ITS_A_FULLCHEM_SIM() .and. ITS_A_NEW_MONTH() )
+      DO_READ_DATA = ( IT_IS_A_FULLCHEM_SIM .and. ITS_A_NEW_MONTH() )
 
       !=================================================================
       ! For full-chemistry runs w/ offline fields, define filename
