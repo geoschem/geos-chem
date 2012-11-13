@@ -109,20 +109,62 @@
 !\\
 ! !INTERFACE:
 !
+#if defined( DEVEL ) || defined( EXTERNAL_GRID ) || defined( EXTERNAL_FORCING )
+      !-----------------------------------------------------------------
+      !     %%%%% CONNECTING TO GEOS-5 GCM via ESMF INTERFACE %%%%%
+      !
+      ! Pass the Input Options argument and RC status flag to 
+      ! INIT_COMODE as arguments. (bmy, 11/13/12)
+      !-----------------------------------------------------------------
+      SUBROUTINE INIT_COMODE( am_I_Root, Input_Opt, RC )
+#else
+      !-----------------------------------------------------------------
+      !              %%%%% TRADITIONAL GEOS-Chem %%%%%
+      !
+      ! Current practice is to call INIT_COMODE with am_I_Root as the
+      ! only argument. (bmy, 11/13/12)
+      !-----------------------------------------------------------------
       SUBROUTINE INIT_COMODE( am_I_Root )
+#endif
 !
 ! !USES:
-!
-      USE ERROR_MOD,  ONLY : ALLOC_ERR
-      USE TRACER_MOD, ONLY : ITS_AN_AEROSOL_SIM
-      USE TRACER_MOD, ONLY : ITS_A_FULLCHEM_SIM
-      
+!    
       USE CMN_SIZE_MOD
       USE COMODE_LOOP_MOD 
+      USE ERROR_MOD,          ONLY : ALLOC_ERR
+
+#if defined( DEVEL ) || defined( EXTERNAL_GRID ) || defined( EXTERNAL_FORCING )
+      !-----------------------------------------------------------------
+      !     %%%%% CONNECTING TO GEOS-5 GCM via ESMF INTERFACE %%%%%
+      !
+      ! We need to reference some modules particular to the Grid-
+      ! Independent GEOS-Chem implementation here.   In particular,
+      ! the settings from the Input Options object will replace
+      ! the ITS_A_*SIM functions from tracer_mod.F (bmy, 11/8/12)
+      !-----------------------------------------------------------------
+      USE GIGC_ErrCode_Mod
+      USE GIGC_Input_Opt_Mod, ONLY : OptInput
+#else
+      !-----------------------------------------------------------------
+      !     %%%%% CONNECTING TO GEOS-5 GCM via ESMF INTERFACE %%%%%
+      !
+      ! Current practice in the std G-C is to reference ITS_A_*_SIM 
+      ! functions directly from GeosCore/tracer_mod.F (bmy, 11/13/12)
+      !-----------------------------------------------------------------
+      USE TRACER_MOD,         ONLY : ITS_AN_AEROSOL_SIM
+      USE TRACER_MOD,         ONLY : ITS_A_FULLCHEM_SIM
+#endif
 !
 ! !INPUT PARAMETERS:
 !
-      LOGICAL, INTENT(IN) :: am_I_Root   ! Is this the root CPU?
+      LOGICAL,        INTENT(IN)  :: am_I_Root   ! Is this the root CPU?
+#if defined( DEVEL ) || defined( EXTERNAL_GRID ) || defined( EXTERNAL_FORCING )
+      TYPE(OptInput), INTENT(IN)  :: Input_Opt   ! Input Options object
+!
+! !OUTPUT PARAMETERS:
+!
+      INTEGER,        INTENT(OUT) :: RC          ! Success or failure?
+#endif
 ! 
 ! !REVISION HISTORY: 
 !  31 Aug 2000 - R. Yantosca - Initial version
@@ -133,6 +175,7 @@
 !  21 Dec 2010 - R. Yantosca - Added ProTeX headers
 !  30 Jul 2012 - R. Yantosca - Now accept am_I_Root as an argument when
 !                              running with the traditional driver main.F
+!  13 Nov 2012 - R. Yantosca - Now pass Input_Opt, RC arguments for GIGC
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -140,6 +183,8 @@
 ! !LOCAL VARIABLES:
 !
       INTEGER :: AS
+      LOGICAL :: IT_IS_AN_AEROSOL_SIM
+      LOGICAL :: IT_IS_A_FULLCHEM_SIM
 
       !=================================================================
       ! INIT_COMODE begins here!
@@ -149,10 +194,35 @@
       ENDIF
  100  FORMAT( '     - INIT_COMODE: Allocating arrays for SMVGEAR...' )
 
+#if defined( DEVEL ) || defined( EXTERNAL_GRID ) || defined( EXTERNAL_FORCING )
+      !-----------------------------------------------------------------
+      !     %%%%% CONNECTING TO GEOS-5 GCM via ESMF INTERFACE %%%%%
+      !
+      ! Initialize the RC argument.  Also copy logical values from the
+      ! Input Options object over to local variables. (bmy, 11/13/12)
+      !-----------------------------------------------------------------
+
+      ! Assume success
+      RC                   = GIGC_SUCCESS
+
+      ! Copy logical fields from INPUT_OPT to local variables for use below
+      IT_IS_AN_AEROSOL_SIM = Input_Opt%ITS_AN_AEROSOL_SIM
+      IT_IS_A_FULLCHEM_SIM = Input_Opt%ITS_A_FULLCHEM_SIM
+#else
+      !-----------------------------------------------------------------
+      !              %%%%% TRADITIONAL GEOS-Chem %%%%%
+      !
+      ! Save values from ITS_A_*_SIM functions from tracer_mod.F
+      ! to local variables (bmy, 11/13/12)
+      !-----------------------------------------------------------------
+      IT_IS_AN_AEROSOL_SIM = ITS_AN_AEROSOL_SIM()
+      IT_IS_A_FULLCHEM_SIM = ITS_A_FULLCHEM_SIM()
+#endif
+
       !----------------------------------
       ! FULL CHEMISTRY SIMULATION
       !----------------------------------
-      IF ( ITS_A_FULLCHEM_SIM() ) THEN
+      IF ( IT_IS_A_FULLCHEM_SIM ) THEN
       
          ALLOCATE( ABSHUM( ITLOOP ), STAT=AS )
          IF ( AS /= 0 ) CALL ALLOC_ERR( 'ABSHUM' )
@@ -240,7 +310,7 @@
       !----------------------------------
       ! OFFLINE AEROSOL SIMULATION
       !----------------------------------
-      IF ( ITS_AN_AEROSOL_SIM() ) THEN
+      IF ( IT_IS_AN_AEROSOL_SIM ) THEN
 
          ALLOCATE( ABSHUM( ITLOOP ), STAT=AS )
          IF ( AS /= 0 ) CALL ALLOC_ERR( 'ABSHUM' )
@@ -304,40 +374,39 @@
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE CLEANUP_COMODE
+      SUBROUTINE CLEANUP_COMODE()
 ! 
 ! !REVISION HISTORY: 
 !  31 Aug 2000 - R. Yantosca - Initial version
 !  (1 ) Now deallocate CSPEC, CSUMA, ERRMX2; cosmetic changes (bmy, 7/18/03)
 !  21 Dec 2010 - R. Yantosca - Added ProTeX headers
+!  13 Nov 2012 - R. Yantosca - Cosmetic changes
 !EOP
 !------------------------------------------------------------------------------
 !BOC
       !=================================================================
       ! CLEANUP_COMODE begins here!
       !=================================================================
-      IF ( ALLOCATED( ABSHUM     ) ) DEALLOCATE( ABSHUM     )
-      IF ( ALLOCATED( AIRDENS    ) ) DEALLOCATE( AIRDENS    )
-      IF ( ALLOCATED( CSPEC      ) ) DEALLOCATE( CSPEC      )
-      IF ( ALLOCATED( CSPEC_FULL ) ) DEALLOCATE( CSPEC_FULL )
-      IF ( ALLOCATED( CSUMA      ) ) DEALLOCATE( CSUMA      )
-      IF ( ALLOCATED( CSUMC      ) ) DEALLOCATE( CSUMC      )
-      IF ( ALLOCATED( ERADIUS    ) ) DEALLOCATE( ERADIUS    )
-      IF ( ALLOCATED( ERRMX2     ) ) DEALLOCATE( ERRMX2     )
-      IF ( ALLOCATED( IXSAVE     ) ) DEALLOCATE( IXSAVE     )
-      IF ( ALLOCATED( IYSAVE     ) ) DEALLOCATE( IYSAVE     )
-      IF ( ALLOCATED( IZSAVE     ) ) DEALLOCATE( IZSAVE     )
-      IF ( ALLOCATED( JLOP       ) ) DEALLOCATE( JLOP       )
-
+      IF ( ALLOCATED( ABSHUM        ) ) DEALLOCATE( ABSHUM        )
+      IF ( ALLOCATED( AIRDENS       ) ) DEALLOCATE( AIRDENS       )
+      IF ( ALLOCATED( CSPEC         ) ) DEALLOCATE( CSPEC         )
+      IF ( ALLOCATED( CSPEC_FULL    ) ) DEALLOCATE( CSPEC_FULL    )
+      IF ( ALLOCATED( CSUMA         ) ) DEALLOCATE( CSUMA         )
+      IF ( ALLOCATED( CSUMC         ) ) DEALLOCATE( CSUMC         )
+      IF ( ALLOCATED( ERADIUS       ) ) DEALLOCATE( ERADIUS       )
+      IF ( ALLOCATED( ERRMX2        ) ) DEALLOCATE( ERRMX2        )
+      IF ( ALLOCATED( IXSAVE        ) ) DEALLOCATE( IXSAVE        )
+      IF ( ALLOCATED( IYSAVE        ) ) DEALLOCATE( IYSAVE        )
+      IF ( ALLOCATED( IZSAVE        ) ) DEALLOCATE( IZSAVE        )
+      IF ( ALLOCATED( JLOP          ) ) DEALLOCATE( JLOP          )
       IF ( ALLOCATED( JLOP_PREVIOUS ) ) DEALLOCATE( JLOP_PREVIOUS )
-
-      IF ( ALLOCATED( PRESS3     ) ) DEALLOCATE( PRESS3     )     
-      IF ( ALLOCATED( REMIS      ) ) DEALLOCATE( REMIS      )
-      IF ( ALLOCATED( T3         ) ) DEALLOCATE( T3         )     
-      IF ( ALLOCATED( TAREA      ) ) DEALLOCATE( TAREA      )
-      IF ( ALLOCATED( VOLUME     ) ) DEALLOCATE( VOLUME     )  
-      IF ( ALLOCATED( WTAREA     ) ) DEALLOCATE( WTAREA     )
-      IF ( ALLOCATED( WERADIUS   ) ) DEALLOCATE( WERADIUS   )
+      IF ( ALLOCATED( PRESS3        ) ) DEALLOCATE( PRESS3        )     
+      IF ( ALLOCATED( REMIS         ) ) DEALLOCATE( REMIS         )
+      IF ( ALLOCATED( T3            ) ) DEALLOCATE( T3            )     
+      IF ( ALLOCATED( TAREA         ) ) DEALLOCATE( TAREA         )
+      IF ( ALLOCATED( VOLUME        ) ) DEALLOCATE( VOLUME        )  
+      IF ( ALLOCATED( WTAREA        ) ) DEALLOCATE( WTAREA        )
+      IF ( ALLOCATED( WERADIUS      ) ) DEALLOCATE( WERADIUS      )
 
       END SUBROUTINE CLEANUP_COMODE
 !EOC

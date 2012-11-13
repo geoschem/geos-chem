@@ -1383,8 +1383,20 @@
 !------------------------------------------------------------------------------
 
 #if defined( DEVEL ) || defined( EXTERNAL_GRID ) || defined( EXTERNAL_FORCING )
-      SUBROUTINE SETTRACE( State_Chm, am_I_Root )
+      !-----------------------------------------------------------------
+      !     %%%%% CONNECTING TO GEOS-5 GCM via ESMF INTERFACE %%%%%
+      !
+      ! For the GIGC, Call SETTRACE with the Input Options object, 
+      ! Chemistry State object and RC status flag. (bmy, 11/13/12)
+      !-----------------------------------------------------------------
+      SUBROUTINE SETTRACE( am_I_Root, Input_Opt, State_Chm, RC )
 #else
+      !-----------------------------------------------------------------
+      !              %%%%% TRADITIONAL GEOS-Chem %%%%%
+      !
+      ! Current practice is to call SETTRACE with am_I_Root as the
+      ! only argument. (bmy, 10/13/12)
+      !-----------------------------------------------------------------
       SUBROUTINE SETTRACE( am_I_Root )
 #endif
 !
@@ -1416,38 +1428,109 @@
 !                              running with the traditional driver main.F
 !  16 Oct 2012 - R. Yantosca - Renamed chem state object to State_Chm
 !  19 Oct 2012 - R. Yantosca - Now reference gigc_state_chm_mod.F90
+!  13 Nov 2012 - R. Yantosca - Now pass Input Options object as an argument
+
 !******************************************************************************
 !
       ! References to F90 modules
       USE ERROR_MOD,  ONLY : ERROR_STOP
-      USE TRACER_MOD, ONLY : ID_EMITTED,     N_TRACERS
-      USE TRACER_MOD, ONLY : TRACER_COEFF,   TRACER_CONST
-      USE TRACER_MOD, ONLY : TRACER_N_CONST, TRACER_NAME
-      USE LOGICAL_MOD, ONLY : LPRT
 
       USE CMN_SIZE_MOD                                 ! Size parameters
       USE COMODE_LOOP_MOD                              ! NAMEGAS
 
 #if defined( DEVEL ) || defined( EXTERNAL_GRID ) || defined( EXTERNAL_FORCING )
-      USE GIGC_State_Chm_Mod, ONLY: ChmState           ! Derived type
+      !-----------------------------------------------------------------
+      !     %%%%% CONNECTING TO GEOS-5 GCM via ESMF INTERFACE %%%%%
+      !
+      ! We need to reference some modules particular to the Grid-
+      ! Independent GEOS-Chem implementation here.   In particular,
+      ! the settings from the Input Options object will replace
+      ! logical flags from logical_mod.F. (bmy, 11/8/12)
+      !-----------------------------------------------------------------
+      USE GIGC_ErrCode_Mod
+      USE GIGC_Input_Opt_Mod, ONLY: OptInput          
+      USE GIGC_State_Chm_Mod, ONLY: ChmState          
 #if defined( ESMF_ )
       USE GIGC_State_Chm_Mod, ONLY: Register_Species   ! Used w/ ESMF
 #endif
+#else
+      !-----------------------------------------------------------------
+      !              %%%%% TRADITIONAL GEOS-Chem %%%%%
+      !
+      ! Current practice in the standard GEOS-Chem is to reference
+      ! logical flags directly from module GeosCore/logical_mod.F.
+      !
+      ! We also need to reference tracer quantities (N_TRACERS, XNUMOL,
+      ! etc.) from module GeosCore/tracer_mod.F. (bmy, 11/13/12)
+      !-----------------------------------------------------------------
+      USE TRACER_MOD,        ONLY : ID_EMITTED,     N_TRACERS
+      USE TRACER_MOD,        ONLY : TRACER_COEFF,   TRACER_CONST
+      USE TRACER_MOD,        ONLY : TRACER_N_CONST, TRACER_NAME
+      USE LOGICAL_MOD,       ONLY : LPRT
 #endif
-
-      ! Arguments
-      LOGICAL, INTENT(IN) :: am_I_Root
-
-      ! Local variabales
-      INTEGER             :: I, J, T, C, STAT
+!
+! !INPUT PARAMETERS:
+!
+      LOGICAL,        INTENT(IN)    :: am_I_Root   ! Are we on the root CPU?
 
 #if defined( DEVEL ) || defined( EXTERNAL_GRID ) || defined( EXTERNAL_FORCING )
-      TYPE(ChmState), INTENT(INOUT) :: State_Chm       ! Chemistry State obj
+      !-----------------------------------------------------------------
+      !     %%%%% CONNECTING TO GEOS-5 GCM via ESMF INTERFACE %%%%%
+      !
+      ! Declare the Input Options, Chemistry State, and RC status
+      ! flag as arguments (bmy, 11/13/12)
+      !
+      ! To simplify the coding for both the std GEOS-Chem and the ESMF
+      ! interface, eclare local variables for quantities that will be
+      ! defined from the Input_Opt object. (bmy, 11/13/12)
+      !-----------------------------------------------------------------
+      TYPE(OptInput), INTENT(IN)    :: Input_Opt   ! Input Options obj
+!
+! !INPUT/OUTPUT PARAMETERS
+!
+      TYPE(ChmState), INTENT(INOUT) :: State_Chm   ! Chemistry State obj
+!
+! !OUTPUT PARAMETERS:
+!
+      INTEGER,        INTENT(OUT)   :: RC          ! Success or failure?
+!
+! !LOCAL VARIABLES:
+!
+      LOGICAL            :: LPRT
+      INTEGER            :: N_TRACERS
+      INTEGER            :: ID_EMITTED    ( Input_Opt%MAX_TRCS )
+      REAL*8             :: TRACER_COEFF  ( Input_Opt%MAX_TRCS, 
+     &                                      Input_Opt%MAX_MEMB )
+      CHARACTER(LEN=255) :: TRACER_CONST  ( Input_Opt%MAX_TRCS, 
+     &                                      Input_Opt%MAX_MEMB )
+      INTEGER            :: TRACER_N_CONST( Input_Opt%MAX_TRCS )
+      CHARACTER(LEN=255) :: TRACER_NAME   ( Input_Opt%MAX_TRCS )
 #endif
+
+      ! Local variabales
+      INTEGER            :: I, J, T, C, STAT
  
       !=================================================================
       ! SETTRACE begins here!
       !=================================================================
+
+#if defined( DEVEL ) || defined( EXTERNAL_GRID ) || defined( EXTERNAL_FORCING )
+      !-----------------------------------------------------------------
+      !     %%%%% CONNECTING TO GEOS-5 GCM via ESMF INTERFACE %%%%%
+      !
+      ! To simplify the coding for the ESMF interface, define local 
+      ! variables values that will be obtained from the Input Options 
+      ! object. (bmy, 11/8/12)
+      !-----------------------------------------------------------------
+      LPRT           = Input_Opt%LPRT
+      N_TRACERS      = Input_Opt%N_TRACERS
+      ID_EMITTED     = Input_Opt%ID_EMITTED
+      TRACER_COEFF   = Input_Opt%TRACER_COEFF
+      TRACER_CONST   = Input_Opt%TRACER_CONST 
+      TRACER_N_CONST = Input_Opt%TRACER_N_CONST
+      TRACER_NAME    = Input_Opt%TRACER_NAME
+#endif
+
 
       ! Reset NCS = NCSURBAN, since we have defined our GEOS-CHEM
       ! mechanism in the urban slot of SMVGEAR II (bmy, 4/21/03)

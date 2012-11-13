@@ -344,7 +344,8 @@
       !-----------------------------------------------------------------
       !   %%%%% TESTING GIGC INTERFACE FROM EXISTING GEOS-CHEM %%%%%
       !
-      ! 
+      ! Now pass the Input_Options object and RC status flag to
+      ! routine READ_INPUT_FILE (bmy, 11/13/12)
       !-----------------------------------------------------------------
       CALL READ_INPUT_FILE( am_I_Root, Input_Opt, RC ) 
 #else
@@ -417,8 +418,27 @@
 
       ! Initialize allocatable SMVGEAR/KPP arrays
       IF ( LEMIS .or. LCHEM ) THEN
+#if defined( DEVEL )
+         !--------------------------------------------------------------
+         !  %%%%% TESTING GIGC INTERFACE FROM EXISTING GEOS-CHEM %%%%%
+         !
+         ! Pass the Input Options object and RC status flag to
+         ! INIT_COMODE as arguments. (bmy, 11/13/12)
+         !--------------------------------------------------------------
+         IF ( Input_Opt%ITS_A_FULLCHEM_SIM   .or.
+     &        Input_Opt%ITS_AN_AEROSOL_SIM ) THEN
+            CALL INIT_COMODE( am_I_Root, Input_Opt, RC )
+         ENDIF
+#else
+         !-----------------------------------------------------------
+         !               %%%%% TRADITIONAL GEOS-Chem %%%%%
+         !
+         ! Current practice is to call INIT_COMODE without any 
+         ! arguments. (bmy, 11/13/12)
+         !-----------------------------------------------------------
          IF ( ITS_A_FULLCHEM_SIM() ) CALL INIT_COMODE( am_I_Root )
          IF ( ITS_AN_AEROSOL_SIM() ) CALL INIT_COMODE( am_I_Root )
+#endif
          IF ( LKPP ) THEN
             CALL INIT_GCKPP_COMODE( am_I_Root, IIPAR,  JJPAR,   
      &                              LLTROP,    ITLOOP, NMTRATE, 

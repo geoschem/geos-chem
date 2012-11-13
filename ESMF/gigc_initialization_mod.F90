@@ -220,6 +220,8 @@ CONTAINS
 !  19 Oct 2012 - R. Yantosca - Now reference gigc_state_met_mod.F90
 !  01 Nov 2012 - R. Yantosca - Now reference gigc_input_opt_mod.F90
 !  09 Nov 2012 - R. Yantosca - Now use fields from Input Options object
+!  13 Nov 2012 - R. Yantosca - Pass Input Options object to routines 
+!                              SETEMDEP, INIT_COMODE
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -265,9 +267,6 @@ CONTAINS
     ! Allocate and zero GEOS-Chem diagnostic arrays
     CALL NDXX_SETUP( am_I_Root, Input_Opt, RC )
 
-    ! Initialize 
-    CALL GIGC_Init_Chemistry( PLON, PLAT, am_I_Root, RC )
-
     ! Allocate and initialize met field arrays
     CALL INIT_DAO
 
@@ -295,7 +294,7 @@ CONTAINS
 !    IF ( LEMIS .OR. LCHEM ) THEN
 
        ! Initialize arrays in comode_mod.F
-       CALL INIT_COMODE( am_I_Root )
+       CALL INIT_COMODE( am_I_Root, Input_Opt, RC )
 
        ! Initialize KPP (if necessary)
        IF ( LKPP ) THEN
@@ -327,7 +326,7 @@ CONTAINS
     NTTLOOP = NTLOOP
 
     ! Read "globchem.dat" chemistry mechanism
-    CALL READCHEM( am_I_Root )
+    CALL READCHEM( am_I_Root, Input_Opt, RC )
 
     !### Debug
     IF ( prtDebug ) THEN
@@ -365,7 +364,7 @@ CONTAINS
     ENDIF
 
     ! Flag certain chemical species
-    CALL SETTRACE( State_Chm, am_I_Root )
+    CALL SETTRACE( am_I_Root, Input_Opt, State_Chm, RC )
 
     !### Debug
     IF ( prtDebug ) THEN
@@ -373,7 +372,7 @@ CONTAINS
     ENDIF
 
     ! Flag emission & drydep rxns
-    CALL SETEMDEP( Input_Opt%N_TRACERS, am_I_Root )
+    CALL SETEMDEP( am_I_Root, Input_Opt, RC )
 
     !### Debug
     IF ( prtDebug ) THEN

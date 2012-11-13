@@ -1528,6 +1528,7 @@
          Input_Opt%ID_EMITTED(T)       = ID_EMITTED(T)
          Input_Opt%ID_TRACER(T)        = ID_TRACER(T)         
          Input_Opt%TRACER_NAME(T)      = TRIM( TRACER_NAME(T) )
+         Input_Opt%TRACER_N_CONST(T)   = TRACER_N_CONST(T)
          Input_Opt%TRACER_MW_G(T)      = TRACER_MW_G(T)
          Input_Opt%TRACER_MW_KG(T)     = TRACER_MW_KG(T)
          Input_OPt%TCVV(T)             = TCVV(T)  

@@ -1,5 +1,20 @@
-! $Id: readchem.f,v 1.2 2010/03/15 19:33:21 ccarouge Exp $
+#if defined( DEVEL ) || defined( EXTERNAL_GRID ) || defined( EXTERNAL_FORCING )
+      !-----------------------------------------------------------------
+      !     %%%%% CONNECTING TO GEOS-5 GCM via ESMF INTERFACE %%%%%
+      !
+      ! For the GIGC, now call READCHEM with the Input Options object
+      ! and the RC status flag. (bmy, 11/13/12)
+      !-----------------------------------------------------------------
+      SUBROUTINE READCHEM( am_I_Root, Input_Opt, RC )
+#else
+      !-----------------------------------------------------------------
+      !              %%%%% TRADITIONAL GEOS-Chem %%%%%
+      !
+      ! Current practice is to call READCHEM with just the am_I_Root
+      ! flag. (bmy, 11/13/12)
+      !-----------------------------------------------------------------
       SUBROUTINE READCHEM( am_I_Root )
+#endif
 !
 !******************************************************************************
 !  Subroutine READCHEM reads species 2names, chemical rxns, and photolysis 
@@ -45,7 +60,6 @@
 !  07 Aug 2012 - R. Yantosca - Now print LUN used to open file
 !******************************************************************************
 !
-!
 ! !USES:
 !
 #     include "define.h"
@@ -55,16 +69,43 @@
       USE ERROR_MOD,   ONLY : GEOS_CHEM_STOP
       USE DIAG_PL_MOD, ONLY : SETJFAM, SETPL
       USE ERROR_MOD,   ONLY : DEBUG_MSG
-      USE LOGICAL_MOD, ONLY : LPRT
       USE CMN_SIZE_MOD                         ! Size parameters
       USE COMODE_LOOP_MOD                      ! SMVGEAR II arrays
       USE inquireMod,  ONLY : findFreeLUN
+
+#if defined( DEVEL ) || defined( EXTERNAL_GRID ) || defined( EXTERNAL_FORCING )
+      !-----------------------------------------------------------------
+      !     %%%%% CONNECTING TO GEOS-5 GCM via ESMF INTERFACE %%%%%
+      !
+      ! We need to reference some modules particular to the Grid-
+      ! Independent GEOS-Chem implementation here.   In particular,
+      ! the settings from the Input Options object will replace
+      ! logical flags from logical_mod.F. (bmy, 11/13/12)
+      !-----------------------------------------------------------------
+      USE GIGC_ErrCode_Mod
+      USE GIGC_Input_Opt_Mod, ONLY : OptInput
+#else
+      !-----------------------------------------------------------------
+      !              %%%%% TRADITIONAL GEOS-Chem %%%%%
+      !
+      ! Current practice in the standard GEOS-Chem is to reference
+      ! logical flags directly from module GeosCore/logical_mod.F.
+      !-----------------------------------------------------------------
+      USE LOGICAL_MOD, ONLY : LPRT
+#endif      
 
       IMPLICIT NONE
 !
 ! !INPUT PARAMETERS:
 !
-      LOGICAL, INTENT(IN) :: am_I_Root         ! Is this the root CPU?
+      LOGICAL,        INTENT(IN)  :: am_I_Root   ! Is this the root CPU?
+#if defined( DEVEL ) || defined( EXTERNAL_GRID ) || defined( EXTERNAL_FORCING )
+      TYPE(OptInput), INTENT(IN)  :: Input_Opt   ! Input Options object
+!
+! !OUTPUT PARAMETERS:
+!
+      INTEGER,        INTENT(OUT) :: RC          ! Success or failure?
+#endif
 !
 ! *********************************************************************
 ! ************        WRITTEN BY MARK JACOBSON (1990-4)    ************
@@ -156,9 +197,36 @@
 
       CHARACTER(LEN=255) :: FILENAME
 
+#if defined( DEVEL ) || defined( EXTERNAL_GRID ) || defined( EXTERNAL_FORCING )
+      !-----------------------------------------------------------------
+      !     %%%%% CONNECTING TO GEOS-5 GCM via ESMF INTERFACE %%%%%
+      !
+      ! To simplify the coding for the ESMF interface, define local 
+      ! variables values that will be obtained from the Input Options 
+      ! object. (bmy, 11/8/12)
+      !-----------------------------------------------------------------
+      LOGICAL :: LPRT
+#endif
+
       !=================================================================
       ! READCHEM begins here!
       !=================================================================
+
+#if defined( DEVEL ) || defined( EXTERNAL_GRID ) || defined( EXTERNAL_FORCING )
+      !-----------------------------------------------------------------
+      !     %%%%% CONNECTING TO GEOS-5 GCM via ESMF INTERFACE %%%%%
+      !
+      ! Initialize the RC argument.  Also copy logical values from the
+      ! Input Options object over to local variables. (bmy, 11/13/12)
+      !-----------------------------------------------------------------
+
+      ! Assume success
+      RC             = GIGC_SUCCESS
+
+      ! Copy logical fields from INPUT_OPT to local variables for use below
+      LPRT           = Input_Opt%LPRT
+#endif
+
       NINAC          = 0
       NACTIVE        = 0 
       NSDEAD         = 0 

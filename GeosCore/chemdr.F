@@ -468,8 +468,11 @@
          !---------------------------------
 
          ! Read "globchem.dat" chemistry mechanism
+#if defined( DEVEL )
+         CALL READCHEM( am_I_Root, Input_Opt, RC )
+#else
          CALL READCHEM( am_I_Root )
-
+#endif
          ! Set NCS=NCSURBAN here since we have defined our tropospheric
          ! chemistry mechanism in the urban slot of SMVGEAR II (bmy, 4/21/03)
          NCS = NCSURBAN
@@ -532,13 +535,14 @@
          ! Here we are not using the ESMF interface to drive the
          ! GEOS-Chem chemistry, but instead are compiling the regular
          ! GEOS-Chem with the DEVEL=yes tag.  In this case, pass
-         ! the Chemistry State object to routine SETTRACE. 
+         ! the Input Options object, Chemistry State object and 
+         ! RC status flag to routine SETTRACE. 
          !
          ! NOTE: This is a temporary situation, as we will eventually
          ! use the GEOS-Chem Chemistry State object instead of the
          ! existing tracer array STT. (bmy, 10/25/12)
          !--------------------------------------------------------------
-         CALL SETTRACE( State_Chm, am_I_Root )
+         CALL SETTRACE( am_I_Root, Input_Opt, State_Chm, RC )
 #else
          !--------------------------------------------------------------
          !            %%%%% TRADITIONAL GEOS-Chem %%%%%
@@ -557,8 +561,22 @@
          !-------------------------------
          ! Flag emission & drydep rxns
          !-------------------------------
+#if defined( DEVEL ) || defined( EXTERNAL_GRID ) || defined( EXTERNAL_FORCING )
+         !--------------------------------------------------------------
+         !    %%%%% CONNECTING TO GEOS-5 GCM via ESMF INTERFACE %%%%%
+         !
+         ! Now pass the Input Options and RC to SETEMDEP (bmy, 11/13/12)
+         !--------------------------------------------------------------
+         CALL SETEMDEP( am_I_Root, Input_Opt, RC )
+#else
+         !--------------------------------------------------------------
+         !            %%%%% TRADITIONAL GEOS-Chem %%%%%
+         !  
+         ! Current practice in the std GEOS-Chem is to call SETEMDEP w/
+         ! just N_TRACERs and am_I_Root as arguments (bmy, 11/13/12)
+         !--------------------------------------------------------------
          CALL SETEMDEP( N_TRACERS, am_I_Root )
-
+#endif
          !### Debug
          IF ( prtDebug ) THEN
             CALL DEBUG_MSG( '### CHEMDR: after SETEMDEP' )
