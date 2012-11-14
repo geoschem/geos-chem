@@ -414,9 +414,9 @@
             !-----------------------------------------------------------
             !  %%%%% CONNECTING TO GEOS-5 GCM via ESMF INTERFACE %%%%%
             !
-            ! Pass the Input Options, Meterorology State, Chemistry
-            ! State, and RC status flag to routines as necessary.
-            ! (bmy, 11/13/12)
+            ! Pass am_I_Root, Input_Opt, the RC status flag, and in
+            ! some cases, State_Met and State_Chm to routines
+            ! as is necessary.  (bmy, 11/14/12)
             !-----------------------------------------------------------
 
             ! Call gas-phase chemistry
@@ -431,6 +431,39 @@
             ! Do seasalt aerosol chemistry
             IF ( LSSALT ) THEN
                CALL CHEMSEASALT( am_I_Root, Input_Opt, RC )
+            ENDIF
+
+            ! Also do sulfate chemistry
+            IF ( LSULF ) THEN
+
+               ! Do sulfate chemistry
+               CALL CHEMSULFATE( am_I_Root, Input_Opt, RC )
+
+               ! Do aerosol thermodynamic equilibrium
+               IF ( LSSALT ) THEN
+
+#if   !defined( NO_ISORROPIA )
+                  ! ISOROPIA takes Na+, Cl- into account
+                  CALL DO_ISOROPIAII( am_I_Root, Input_Opt, RC )
+#endif
+
+               ELSE
+
+                  ! RPMARES does not take Na+, Cl- into account
+                  CALL DO_RPMARES( am_I_Root )
+
+               ENDIF
+
+            ENDIF
+
+            ! Do carbonaceous aerosol chemistry
+            IF ( LCARB ) THEN
+               CALL CHEMCARBON( am_I_Root, Input_Opt, RC )
+            ENDIF
+
+            ! Do dust aerosol chemistry
+            IF ( LDUST ) THEN
+               CALL CHEMDUST( am_I_Root, Input_Opt, RC )
             ENDIF
 #else
             !-----------------------------------------------------------
@@ -447,79 +480,36 @@
 
             ! Do seasalt aerosol chemistry
             IF ( LSSALT ) CALL CHEMSEASALT( am_I_Root )
-#endif
-
 
             ! Also do sulfate chemistry
             IF ( LSULF ) THEN
 
                ! Do sulfate chemistry
                CALL CHEMSULFATE( am_I_Root )
- 
+
                ! Do aerosol thermodynamic equilibrium
                IF ( LSSALT ) THEN
-                
+
 #if   !defined( NO_ISORROPIA )
-#if defined( DEVEL ) || defined( EXTERNAL_GRID ) || defined( EXTERNAL_FORCING )
-               !--------------------------------------------------------
-               ! %%%%% CONNECTING TO GEOS-5 GCM via ESMF INTERFACE %%%%%
-               !
-               ! Add the Input Options object and RC status flag as 
-               ! arguments (bmy, 11/14/12)
-               !---------------------------------------------------------
-
-               ! ISOROPIA takes Na+, Cl- into account
-               CALL DO_ISOROPIAII( am_I_Root, Input_Opt, RC )
-#else
-               !---------------------------------------------------------
-               !              %%%%% TRADITIONAL GEOS-Chem %%%%%
-               !
-               ! Preserve existing subroutine call (bmy, 11/13/12)
-               !---------------------------------------------------------
-
                ! ISOROPIA takes Na+, Cl- into account
                CALL DO_ISOROPIAII( am_I_Root )
 #endif
-#endif
-                
+
                ELSE
- 
+
                   ! RPMARES does not take Na+, Cl- into account
                   CALL DO_RPMARES( am_I_Root )
- 
+
                ENDIF
                 
             ENDIF
- 
-#if defined( DEVEL ) || defined( EXTERNAL_GRID ) || defined( EXTERNAL_FORCING )
-            !-----------------------------------------------------------
-            !  %%%%% CONNECTING TO GEOS-5 GCM via ESMF INTERFACE %%%%%
-            !
-            ! Add the Input Options object and RC status flag as 
-            ! arguments (bmy, 11/13/12)
-            !-----------------------------------------------------------
 
             ! Do carbonaceous aerosol chemistry
-            IF ( LCARB ) THEN
-               CALL CHEMCARBON( am_I_Root, Input_Opt, RC )
-            ENDIF
-
-            ! Do dust aerosol chemistry
-            IF ( LDUST ) THEN
-               CALL CHEMDUST( am_I_Root, Input_Opt, RC )
-            ENDIF
-#else
-            !-----------------------------------------------------------
-            !             %%%%% TRADITIONAL GEOS-Chem %%%%%
-            !
-            ! Preserve existing subroutine calls (bmy, 11/13/12)
-            !-----------------------------------------------------------
             IF ( LCARB ) CALL CHEMCARBON( am_I_Root )
 
             ! Do dust aerosol chemistry
             IF ( LDUST ) CALL CHEMDUST( am_I_Root )
 #endif
- 
  
             ! ND44 drydep fluxes
             ! The drydep fluxes diag. is done in vdiff_mod.f when non-local 
@@ -549,9 +539,9 @@
                ! Init chem mechanism and photolysis
                CALL READER  ( FIRST,         am_I_Root )
 #if defined( DEVEL ) || defined( EXTERNAL_GRID ) || defined( EXTERNAL_FORCING )
-               CALL READCHEM( am_I_Root, Input_Opt, RC )
+               CALL READCHEM( am_I_Root, Input_Opt, RC )    !%%% For ESMF
 #else
-               CALL READCHEM(                am_I_Root )
+               CALL READCHEM(                am_I_Root )    !%%% Std G-C
 #endif
                CALL INPHOT  ( LLTROP, NPHOT, am_I_Root )
  
@@ -567,30 +557,6 @@
                FIRST = .FALSE.
             ENDIF
  
-            ! Compute aerosol & dust concentrations [kg/m3]
-            ! (NOTE: SOILDUST in "aerosol_mod.f" is computed here)
-#if defined( DEVEL ) || defined( EXTERNAL_GRID ) || defined( EXTERNAL_FORCING )
-            !-----------------------------------------------------------
-            !  %%%%% CONNECTING TO GEOS-5 GCM via ESMF INTERFACE %%%%%
-            !
-            ! Now pass the Input Options object and RC status flag
-            ! as arguments to AEROSOL_CONC (bmy, 11/13/12)
-            !-----------------------------------------------------------
-            CALL AEROSOL_CONC( am_I_Root, Input_Opt, RC )
-#else
-            !-----------------------------------------------------------
-            !            %%%%% TRADITIONAL GEOS-Chem %%%%%
-            !
-            ! Current practice in the standard GEOS-Chem is to call 
-            ! AEROSOL_CONC without any arguments (bmy, 11/13/12)
-            !-----------------------------------------------------------
-            CALL AEROSOL_CONC()
-#endif
-            ! Compute AOD's and surface areas at 999 nm
-            MONTH      = 0
-            YEAR       = 0
-            WAVELENGTH = 0
-
 #if defined( DEVEL ) || defined( EXTERNAL_GRID ) || defined( EXTERNAL_FORCING )
             !-----------------------------------------------------------
             !  %%%%% CONNECTING TO GEOS-5 GCM via ESMF INTERFACE %%%%%
@@ -598,8 +564,64 @@
             ! Add the Input Options object and RC status flag as
             ! arguments to RDAER for the GIGC.  (bmy, 11/13/12)
             !-----------------------------------------------------------
+
+            ! Compute aerosol & dust concentrations [kg/m3]
+            ! (NOTE: SOILDUST in "aerosol_mod.f" is computed here)
+            CALL AEROSOL_CONC( am_I_Root, Input_Opt, RC )
+
+            ! Compute AOD's and surface areas at 999 nm
+            MONTH      = 0
+            YEAR       = 0
+            WAVELENGTH = 0
             CALL RDAER( am_I_Root,  MONTH,     YEAR,
      &                  WAVELENGTH, Input_Opt, RC    )
+
+            !*** AEROSOL THERMODYNAMIC EQUILIBRIUM ***
+            IF ( LSSALT ) THEN
+
+#if   !defined( NO_ISORROPIA )
+               ! ISOROPIA takes Na+, Cl- into account
+               CALL DO_ISOROPIAII( am_I_Root, Input_Opt, RC )
+#endif
+
+            ELSE
+
+               ! RPMARES does not take Na+, Cl- into account
+               ! (skip for crystalline & aqueous offline run)
+               IF ( .not. LCRYST ) CALL DO_RPMARES( am_I_Root )
+
+            ENDIF
+
+            !*** SEASALT AEROSOLS ***
+            IF ( LSSALT ) THEN
+               CALL CHEMSEASALT( am_I_Root, Input_Opt, RC )
+            ENDIF
+
+            !*** SULFATE AEROSOLS ***
+            IF ( LSULF .or. LCRYST ) THEN
+
+               ! Do sulfate chemistry
+               CALL CHEMSULFATE( am_I_Root, Input_Opt, RC )
+
+            ENDIF
+
+            !*** CARBON AND 2NDARY ORGANIC AEROSOLS ***
+            IF ( LCARB ) THEN
+               CALL CHEMCARBON( am_I_Root, Input_Opt, RC )
+            ENDIF
+
+            !*** MINERAL DUST AEROSOLS ***
+            IF ( LDUST ) THEN
+
+               ! Do dust aerosol chemistry
+               CALL CHEMDUST( am_I_Root, Input_Opt, RC )
+
+               WAVELENGTH = 0
+
+               ! Compute dust OD's & surface areas
+               CALL RDUST_ONLINE( SOILDUST, WAVELENGTH )
+            ENDIF
+
 #else
             !-----------------------------------------------------------
             !            %%%%% TRADITIONAL GEOS-Chem %%%%%
@@ -608,62 +630,36 @@
             ! RDAER with just am_I_Root, MONTH, YEAR, and WAVELENGTH
             ! arguments. (bmy, 11/13/12)
             !-----------------------------------------------------------
+
+
+            ! Compute aerosol & dust concentrations [kg/m3]
+            ! (NOTE: SOILDUST in "aerosol_mod.f" is computed here)
+            CALL AEROSOL_CONC()
+
+            ! Compute AOD's and surface areas at 999 nm
+            MONTH      = 0
+            YEAR       = 0
+            WAVELENGTH = 0
             CALL RDAER( am_I_Root, MONTH, YEAR, WAVELENGTH )
-#endif
- 
+
             !*** AEROSOL THERMODYNAMIC EQUILIBRIUM ***
             IF ( LSSALT ) THEN
              
 #if   !defined( NO_ISORROPIA )
-#if defined( DEVEL ) || defined( EXTERNAL_GRID ) || defined( EXTERNAL_FORCING )
-               !--------------------------------------------------------
-               ! %%%%% CONNECTING TO GEOS-5 GCM via ESMF INTERFACE %%%%%
-               !
-               ! Add the Input Options object and RC status flag as 
-               ! arguments (bmy, 11/14/12)
-               !---------------------------------------------------------
-
-               ! ISOROPIA takes Na+, Cl- into account
-               CALL DO_ISOROPIAII( am_I_Root, Input_Opt, RC )
-#else
-               !---------------------------------------------------------
-               !              %%%%% TRADITIONAL GEOS-Chem %%%%%
-               !
-               ! Preserve existing subroutine call (bmy, 11/13/12)
-               !---------------------------------------------------------
-
                ! ISOROPIA takes Na+, Cl- into account
                CALL DO_ISOROPIAII( am_I_Root )
 #endif
-#endif
-             
+
             ELSE
- 
+
                ! RPMARES does not take Na+, Cl- into account
                ! (skip for crystalline & aqueous offline run)
                IF ( .not. LCRYST ) CALL DO_RPMARES( am_I_Root )
- 
+
             ENDIF
- 
+
             !*** SEASALT AEROSOLS ***
-#if defined( DEVEL ) || defined( EXTERNAL_GRID ) || defined( EXTERNAL_FORCING )
-            !-----------------------------------------------------------
-            !  %%%%% CONNECTING TO GEOS-5 GCM via ESMF INTERFACE %%%%%
-            !
-            ! Add the Input Options object and RC status flag as 
-            ! arguments (bmy, 11/13/12)
-            !-----------------------------------------------------------
-            IF ( LSSALT ) THEN
-               CALL CHEMSEASALT( am_I_Root, Input_Opt, RC )
-            ENDIF
-#else
-            !-----------------------------------------------------------
-            !            %%%%% TRADITIONAL GEOS-Chem %%%%%
-            ! 
-            ! Preserve existing subroutine call
-            !-----------------------------------------------------------
             IF ( LSSALT ) CALL CHEMSEASALT( am_I_Root )
-#endif
 
             !*** SULFATE AEROSOLS ***
             IF ( LSULF .or. LCRYST ) THEN
@@ -672,30 +668,22 @@
                CALL CHEMSULFATE( am_I_Root )
  
             ENDIF
-                
+
             !*** CARBON AND 2NDARY ORGANIC AEROSOLS ***
-#if defined( DEVEL ) || defined( EXTERNAL_GRID ) || defined( EXTERNAL_FORCING )
-            IF ( LCARB ) THEN
-               CALL CHEMCARBON( am_I_Root, Input_Opt, RC )
-            ENDIF
-#else
             IF ( LCARB ) CALL CHEMCARBON( am_I_Root )
-#endif
- 
+
             !*** MINERAL DUST AEROSOLS ***
             IF ( LDUST ) THEN 
  
                ! Do dust aerosol chemsitry
-#if defined( DEVEL ) || defined( EXTERNAL_GRID ) || defined( EXTERNAL_FORCING )
-               CALL CHEMDUST( am_I_Root, Input_Opt, RC )
-#else
                CALL CHEMDUST( am_I_Root )
-#endif
+
                WAVELENGTH = 0
 
                ! Compute dust OD's & surface areas
                CALL RDUST_ONLINE( SOILDUST, WAVELENGTH )
             ENDIF
+#endif
  
          !---------------------------------
          ! Rn-Pb-Be

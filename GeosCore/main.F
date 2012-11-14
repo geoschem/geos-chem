@@ -116,8 +116,7 @@
       ! Modules for the Grid-Independent GEOS-Chem (aka "GIGC")
       !-----------------------------------------------------------------
       USE LOGICAL_MOD,          ONLY : Do_Diag_Write
-      USE GIGC_Environment_Mod, ONLY : GIGC_Allocate_All
-      USE GIGC_Environment_Mod, ONLY : GIGC_Init_All
+      USE GIGC_Environment_Mod
       USE GIGC_Input_Opt_Mod
       USE GIGC_State_Chm_Mod
       USE GIGC_State_Met_Mod
