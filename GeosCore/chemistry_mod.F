@@ -460,8 +460,26 @@
                IF ( LSSALT ) THEN
                 
 #if   !defined( NO_ISORROPIA )
-                  ! ISOROPIA takes Na+, Cl- into account
-                  CALL DO_ISOROPIAII( am_I_Root )
+#if defined( DEVEL ) || defined( EXTERNAL_GRID ) || defined( EXTERNAL_FORCING )
+               !--------------------------------------------------------
+               ! %%%%% CONNECTING TO GEOS-5 GCM via ESMF INTERFACE %%%%%
+               !
+               ! Add the Input Options object and RC status flag as 
+               ! arguments (bmy, 11/14/12)
+               !---------------------------------------------------------
+
+               ! ISOROPIA takes Na+, Cl- into account
+               CALL DO_ISOROPIAII( am_I_Root, Input_Opt, RC )
+#else
+               !---------------------------------------------------------
+               !              %%%%% TRADITIONAL GEOS-Chem %%%%%
+               !
+               ! Preserve existing subroutine call (bmy, 11/13/12)
+               !---------------------------------------------------------
+
+               ! ISOROPIA takes Na+, Cl- into account
+               CALL DO_ISOROPIAII( am_I_Root )
+#endif
 #endif
                 
                ELSE
@@ -473,11 +491,35 @@
                 
             ENDIF
  
+#if defined( DEVEL ) || defined( EXTERNAL_GRID ) || defined( EXTERNAL_FORCING )
+            !-----------------------------------------------------------
+            !  %%%%% CONNECTING TO GEOS-5 GCM via ESMF INTERFACE %%%%%
+            !
+            ! Add the Input Options object and RC status flag as 
+            ! arguments (bmy, 11/13/12)
+            !-----------------------------------------------------------
+
             ! Do carbonaceous aerosol chemistry
+            IF ( LCARB ) THEN
+               CALL CHEMCARBON( am_I_Root, Input_Opt, RC )
+            ENDIF
+
+            ! Do dust aerosol chemistry
+            IF ( LDUST ) THEN
+               CALL CHEMDUST( am_I_Root, Input_Opt, RC )
+            ENDIF
+#else
+            !-----------------------------------------------------------
+            !             %%%%% TRADITIONAL GEOS-Chem %%%%%
+            !
+            ! Preserve existing subroutine calls (bmy, 11/13/12)
+            !-----------------------------------------------------------
             IF ( LCARB ) CALL CHEMCARBON( am_I_Root )
- 
+
             ! Do dust aerosol chemistry
             IF ( LDUST ) CALL CHEMDUST( am_I_Root )
+#endif
+ 
  
             ! ND44 drydep fluxes
             ! The drydep fluxes diag. is done in vdiff_mod.f when non-local 
@@ -506,7 +548,11 @@
 
                ! Init chem mechanism and photolysis
                CALL READER  ( FIRST,         am_I_Root )
+#if defined( DEVEL ) || defined( EXTERNAL_GRID ) || defined( EXTERNAL_FORCING )
+               CALL READCHEM( am_I_Root, Input_Opt, RC )
+#else
                CALL READCHEM(                am_I_Root )
+#endif
                CALL INPHOT  ( LLTROP, NPHOT, am_I_Root )
  
                ! Reset NCS with NCSURBAN
@@ -569,8 +615,26 @@
             IF ( LSSALT ) THEN
              
 #if   !defined( NO_ISORROPIA )
+#if defined( DEVEL ) || defined( EXTERNAL_GRID ) || defined( EXTERNAL_FORCING )
+               !--------------------------------------------------------
+               ! %%%%% CONNECTING TO GEOS-5 GCM via ESMF INTERFACE %%%%%
+               !
+               ! Add the Input Options object and RC status flag as 
+               ! arguments (bmy, 11/14/12)
+               !---------------------------------------------------------
+
+               ! ISOROPIA takes Na+, Cl- into account
+               CALL DO_ISOROPIAII( am_I_Root, Input_Opt, RC )
+#else
+               !---------------------------------------------------------
+               !              %%%%% TRADITIONAL GEOS-Chem %%%%%
+               !
+               ! Preserve existing subroutine call (bmy, 11/13/12)
+               !---------------------------------------------------------
+
                ! ISOROPIA takes Na+, Cl- into account
                CALL DO_ISOROPIAII( am_I_Root )
+#endif
 #endif
              
             ELSE
@@ -586,7 +650,8 @@
             !-----------------------------------------------------------
             !  %%%%% CONNECTING TO GEOS-5 GCM via ESMF INTERFACE %%%%%
             !
-            ! Add Input_Opt, RC as args to CHEMSEASALT (bmy, 11/13/12)
+            ! Add the Input Options object and RC status flag as 
+            ! arguments (bmy, 11/13/12)
             !-----------------------------------------------------------
             IF ( LSSALT ) THEN
                CALL CHEMSEASALT( am_I_Root, Input_Opt, RC )
@@ -609,14 +674,23 @@
             ENDIF
                 
             !*** CARBON AND 2NDARY ORGANIC AEROSOLS ***
+#if defined( DEVEL ) || defined( EXTERNAL_GRID ) || defined( EXTERNAL_FORCING )
+            IF ( LCARB ) THEN
+               CALL CHEMCARBON( am_I_Root, Input_Opt, RC )
+            ENDIF
+#else
             IF ( LCARB ) CALL CHEMCARBON( am_I_Root )
+#endif
  
             !*** MINERAL DUST AEROSOLS ***
             IF ( LDUST ) THEN 
  
                ! Do dust aerosol chemsitry
+#if defined( DEVEL ) || defined( EXTERNAL_GRID ) || defined( EXTERNAL_FORCING )
+               CALL CHEMDUST( am_I_Root, Input_Opt, RC )
+#else
                CALL CHEMDUST( am_I_Root )
- 
+#endif
                WAVELENGTH = 0
 
                ! Compute dust OD's & surface areas
@@ -753,7 +827,7 @@
       ! (i.e. State_Chm) and Meteorology State (i.e. State_Met)
       ! objects.  In order to continue GIGC development without 
       ! disrupting the existing GEOS-Chem workflow, we shall copy the 
-      ! tracer array STT back to State_Chm%TRACERS after chemistry. 
+      ! trac3er array STT back to State_Chm%TRACERS after chemistry. 
       !
       ! Also note: State_Chm%TRACERS needs to leave this routine with
       ! units of [kg].  If we are calling this routine from the 

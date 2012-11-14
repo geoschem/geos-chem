@@ -106,7 +106,22 @@
 !\\
 ! !INTERFACE:
 !
+#if defined( DEVEL ) || defined( EXTERNAL_GRID ) || defined( EXTERNAL_FORCING )
+      !-----------------------------------------------------------------
+      !     %%%%% CONNECTING TO GEOS-5 GCM via ESMF INTERFACE %%%%%
+      !
+      ! Add the Input Options object and RC status flag as arguments
+      ! (bmy, 11/13/12)
+      !-----------------------------------------------------------------
+      SUBROUTINE DO_ISOROPIAII( am_I_Root, Input_Opt, RC )
+#else
+      !-----------------------------------------------------------------
+      !              %%%%% TRADITIONAL GEOS-Chem %%%%%
+      !
+      ! Preserve existing subroutine call (bmy, 11/13/12)
+      !-----------------------------------------------------------------
       SUBROUTINE DO_ISOROPIAII( am_I_Root )
+#endif
 !
 ! !USES:
 !
@@ -114,9 +129,8 @@
       USE ERROR_MOD,       ONLY : DEBUG_MSG,       ERROR_STOP
       USE ERROR_MOD,       ONLY : SAFE_DIV
       USE GLOBAL_HNO3_MOD, ONLY : GET_GLOBAL_HNO3
-      USE LOGICAL_MOD,     ONLY : LPRT
       USE TIME_MOD,        ONLY : GET_MONTH,       ITS_A_NEW_MONTH
-      USE TRACER_MOD             
+      USE TRACER_MOD,      ONLY : STT
       USE TRACERID_MOD,    ONLY : IDTHNO3, IDTNIT, IDTNH4, IDTNH3
       USE TRACERID_MOD,    ONLY : IDTSALA, IDTSO4
       USE TROPOPAUSE_MOD,  ONLY : ITS_IN_THE_STRAT
@@ -127,10 +141,40 @@
 #endif
 
       USE CMN_SIZE_MOD        ! Size parameters
+#if defined( DEVEL ) || defined( EXTERNAL_GRID ) || defined( EXTERNAL_FORCING )
+      !-----------------------------------------------------------------
+      !     %%%%% CONNECTING TO GEOS-5 GCM via ESMF INTERFACE %%%%%
+      !
+      ! We need to reference some modules particular to the Grid-
+      ! Independent GEOS-Chem implementation here.   In particular,
+      ! the settings from the Input Options object will replace
+      ! logical flags from logical_mod.F. (bmy, 11/8/12)
+      !-----------------------------------------------------------------
+      USE GIGC_ErrCode_Mod
+      USE GIGC_Input_Opt_Mod, ONLY : OptInput
+#else
+      !-----------------------------------------------------------------
+      !              %%%%% TRADITIONAL GEOS-Chem %%%%%
+      !
+      ! Current practice in the standard GEOS-Chem is to reference
+      ! logical flags directly from module GeosCore/logical_mod.F.
+      ! (bmy, 11/13/12)
+      !-----------------------------------------------------------------
+      USE LOGICAL_MOD,        ONLY : LPRT
+      USE TRACER_MOD,         ONLY : ITS_A_FULLCHEM_SIM
+      USE TRACER_MOD,         ONLY : ITS_AN_AEROSOL_SIM  
+#endif
 !
 ! !INPUT PARAMETERS:
 !
-      LOGICAL, INTENT(IN) :: am_I_Root   ! Is this the root CPU?
+      LOGICAL,        INTENT(IN)  :: am_I_Root   ! Is this the root CPU?
+#if defined( DEVEL ) || defined( EXTERNAL_GRID ) || defined( EXTERNAL_FORCING )
+      TYPE(OptInput), INTENT(IN)  :: Input_Opt   ! Input Options object
+!
+! !OUTPUT PARAMETERS:
+!
+      INTEGER,        INTENT(OUT) :: RC          ! Success or failure?
+#endif
 !
 ! !REMARKS:
 !  Original isoropia v1.3 implmentation: (rjp, bec, bmy, 12/17/01, 8/22/05)
@@ -192,10 +236,55 @@
       ! debug variables
       INTEGER                  :: Itemp, Jtemp, Ltemp
       LOGICAL, SAVE            :: FIRSTCHECK = .TRUE.
+
+      LOGICAL                  :: IT_IS_AN_AEROSOL_SIM
+      LOGICAL                  :: IT_IS_A_FULLCHEM_SIM
+
+#if defined( DEVEL ) || defined( EXTERNAL_GRID ) || defined( EXTERNAL_FORCING )
+      !-----------------------------------------------------------------
+      !     %%%%% CONNECTING TO GEOS-5 GCM via ESMF INTERFACE %%%%%
+      !
+      ! We need to define local logical flags to hold corresponding
+      ! values from the Input Options object.  We do not need to define
+      ! these for the traditional GEOS-Chem since it will refer to 
+      ! variables from the same name from GeosCore/logical_mod.F.
+      ! Also need to shadow the N_TRACERS variable from module
+      ! GeosCore/tracer_mod.F. (bmy, 11/13/12)
+      !-----------------------------------------------------------------
+      LOGICAL                  :: LPRT
+#endif
                   
       !=================================================================
       ! DO_ISOROPIAII begins here!
       !=================================================================
+
+#if defined( DEVEL ) || defined( EXTERNAL_GRID ) || defined( EXTERNAL_FORCING )
+      !-----------------------------------------------------------------
+      !     %%%%% CONNECTING TO GEOS-5 GCM via ESMF INTERFACE %%%%%
+      !
+      ! Initialize the RC argument.  Also copy logical values from the
+      ! Input Options object over to local variables. (bmy, 11/13/12)
+      !-----------------------------------------------------------------
+
+      ! Assume success
+      RC                   = GIGC_SUCCESS
+
+      ! Copy fields from INPUT_OPT to local variables for use below
+      LPRT                 = Input_Opt%LPRT  
+      IT_IS_AN_AEROSOL_SIM = Input_Opt%ITS_AN_AEROSOL_SIM
+      IT_IS_A_FULLCHEM_SIM = Input_Opt%ITS_A_FULLCHEM_SIM
+#else
+      !-----------------------------------------------------------------
+      !              %%%%% TRADITIONAL GEOS-Chem %%%%%
+      !
+      ! Current practice in the standard GEOS-Chem is to reference
+      ! logical flags directly from module GeosCore/logical_mod.F
+      ! and the ITS_A_*_SIM functions directly from module
+      ! GeosCore/tracer_mod.F (bmy, 11/14/12)
+      !-----------------------------------------------------------------
+      IT_IS_AN_AEROSOL_SIM = ITS_AN_AEROSOL_SIM()
+      IT_IS_A_FULLCHEM_SIM = ITS_A_FULLCHEM_SIM()
+#endif
 
       ! Location string
       X = 'DO_ISOROPIAII (isoropiaII_mod.f)'
@@ -222,12 +311,12 @@
       !=================================================================
       IF ( IDTHNO3 == 0 ) THEN
 
-         IF ( ITS_A_FULLCHEM_SIM() ) THEN
+         IF ( IT_IS_A_FULLCHEM_SIM ) THEN
 
             ! Coupled simulation: stop w/ error since we need HNO3
             CALL ERROR_STOP( 'IDTHNO3 is not defined!', X )
  
-         ELSE IF ( ITS_AN_AEROSOL_SIM() ) THEN
+         ELSE IF ( IT_IS_AN_AEROSOL_SIM ) THEN
 
             ! Offline simulation: read monthly mean HNO3
             IF ( ITS_A_NEW_MONTH() ) THEN

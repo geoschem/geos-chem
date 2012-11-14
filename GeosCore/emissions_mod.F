@@ -81,7 +81,7 @@
 ! !INTERFACE:
 !
 #if defined( DEVEL ) || defined( EXTERNAL_GRID ) || defined( EXTERNAL_FORCING )
-      SUBROUTINE DO_EMISSIONS( State_Chm )
+      SUBROUTINE DO_EMISSIONS( am_I_Root, Input_Opt, State_Chm, RC )
 #else
       SUBROUTINE DO_EMISSIONS
 #endif
@@ -129,9 +129,24 @@
       USE CMN_O3_MOD                   ! FSCLYR
 
 #if defined( DEVEL ) || defined( EXTERNAL_GRID ) || defined( EXTERNAL_FORCING )
+      USE GIGC_ErrCode_Mod
+      USE GIGC_Input_Opt_Mod,     ONLY : OptInput
       USE GIGC_State_Chm_Mod,     ONLY : ChmState
       USE GIGC_State_Met_Mod,     ONLY : MetState
       USE TRACERID_MOD,           ONLY : IDTSO2, IDTC2H6
+!
+! !INPUT PARAMETERS:
+!
+      LOGICAL,        INTENT(IN)    :: am_I_Root   ! Are we on the root CPU?
+      TYPE(OptInput), INTENT(IN)    :: Input_Opt   ! Input Options object
+!
+! !INPUT/OUTPUT PARAMETERS:
+!
+      TYPE(ChmState), INTENT(INOUT) :: State_Chm   ! Chemistry State object
+!
+! !OUTPUT PARAMETERS:
+!
+      INTEGER,        INTENT(OUT)   :: RC          ! Success or failure?
 #endif
 !
 ! !REVISION HISTORY: 
@@ -187,14 +202,21 @@
       ! jpp, 3/2/10: Sea-salt emissions of Br2.
       REAL*8                      :: SSA_Br2(IIPAR,JJPAR)
 
-#if defined( DEVEL ) || defined( EXTERNAL_GRID ) || defined( EXTERNAL_FORCING )
-      TYPE(ChmState), INTENT(INOUT) :: State_Chm   ! Chemistry State object
-      !TYPE(MetState), INTENT(INOUT) :: State_Met   ! Meteorology State object
-#endif
-
       !=================================================================
       ! DO_EMISSIONS begins here!
       !=================================================================
+
+#if defined( DEVEL ) || defined( EXTERNAL_GRID ) || defined( EXTERNAL_FORCING )
+      !-----------------------------------------------------------------
+      !     %%%%% CONNECTING TO GEOS-5 GCM via ESMF INTERFACE %%%%%
+      !
+      ! Initialize the RC argument.  Also copy logical values from the
+      ! Input Options object over to local variables. (bmy, 11/13/12)
+      !-----------------------------------------------------------------
+
+      ! Assume success
+      RC        = GIGC_SUCCESS
+#endif
 
       ! Get year and month
       MONTH = GET_MONTH()
@@ -404,7 +426,8 @@
          IF ( LCARB             ) 
      &      CALL EMISSCARBON(State_Chm%TRAC_TEND(:,:,1,:))
          IF ( LDUST             ) 
-     &      CALL EMISSDUST(State_Chm%TRAC_TEND(:,:,:,:))
+     &      CALL EMISSDUST( am_I_Root, Input_Opt, 
+     &                      State_Chm%TRAC_TEND(:,:,:,:), RC)
 #else
          IF ( LSSALT            ) CALL EMISSSEASALT(ssa_br2) !jpp, 3/2/10
          IF ( LSULF .or. LCRYST ) CALL EMISSSULFATE
@@ -565,7 +588,8 @@
          IF ( LCARB             ) 
      &   CALL EMISSCARBON(State_Chm%TRAC_TEND(:,:,1,:))
          IF ( LDUST             ) 
-     &   CALL EMISSDUST(State_Chm%TRAC_TEND(:,:,:,:))
+     &   CALL EMISSDUST( am_I_Root, Input_Opt,
+     &                   State_Chm%TRAC_TEND(:,:,:,:), RC )
 #else
          IF ( LSSALT            ) CALL EMISSSEASALT()
          IF ( LSULF .or. LCRYST ) CALL EMISSSULFATE

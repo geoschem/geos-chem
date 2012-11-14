@@ -1066,10 +1066,12 @@
             !-----------------------------------------------------------
             ! %%%%% TESTING GIGC INTERFACE FROM EXISTING GEOS-CHEM %%%%%
             !
-            ! Pass the Chemistry State object (i.e. State_Chm) to 
-            ! routine DO_EMISSIONS. (bmy, 10/25/12)
+            ! Pass the am_I_Root, Input_Opt, State_Chm as arguments
+            ! to routine DO_EMISSIONS. (bmy, 11/14/12)
             !-----------------------------------------------------------
-            IF ( LEMIS ) CALL DO_EMISSIONS( State_Chm )
+            IF ( LEMIS ) THEN
+               CALL DO_EMISSIONS( am_I_Root, Input_Opt, State_Chm, RC )
+            ENDIF
 #else
             !-----------------------------------------------------------
             !              %%%%% TRADITIONAL GEOS-Chem %%%%%
@@ -1190,7 +1192,9 @@
             ! Pass the Chemistry State object (i.e. State_Chm) to 
             ! routine DO_EMISSIONS (bmy, 10/25/12)
             !-----------------------------------------------------------
-            IF ( LEMIS ) CALL DO_EMISSIONS( State_Chm )
+            IF ( LEMIS ) THEN
+               CALL DO_EMISSIONS( am_I_Root, Input_Opt, State_Chm, RC )
+            ENDIF
 #else
             !-----------------------------------------------------------
             !             %%%%% TRADITIONAL GEOS-Chem %%%%%
